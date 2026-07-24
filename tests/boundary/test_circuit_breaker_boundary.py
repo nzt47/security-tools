@@ -320,15 +320,23 @@ class TestExtremeValues:
         assert stats.total_calls == 1000
 
     def test_invalid_failure_threshold_raises(self):
-        """非法 failure_threshold 抛出 ValueError"""
+        """非法 failure_threshold 抛出 ValueError
+
+        边界契约: failure_threshold ∈ (0, 1]
+        - 1.0 合法（"全失败才熔断"策略，ThreeLevelBreakerConfig 默认值）
+        - 0.0 / -0.5 / 1.5 非法
+        """
+        # 1.0 合法，不抛异常
+        CircuitBreaker(failure_threshold=1.0)
+
         with pytest.raises(ValueError, match="failure_threshold"):
             CircuitBreaker(failure_threshold=0.0)
 
         with pytest.raises(ValueError, match="failure_threshold"):
-            CircuitBreaker(failure_threshold=1.0)
+            CircuitBreaker(failure_threshold=-0.5)
 
         with pytest.raises(ValueError, match="failure_threshold"):
-            CircuitBreaker(failure_threshold=-0.5)
+            CircuitBreaker(failure_threshold=1.5)
 
     def test_invalid_min_calls_raises(self):
         """非法 min_calls 抛出 ValueError"""

@@ -1,0 +1,110 @@
+# Grafana Unified Alerting Provisioning
+# 技能幻觉指标告警规则 — 基于 yunshu_skill_hallucination_total
+#
+# 阈值（按用户确认）:
+#   - warning:  5 分钟内幻觉次数 > 5
+#   - critical: 5 分钟内幻觉次数 > 20
+#
+# PromQL: sum by (skill_id) (increase(yunshu_skill_hallucination_total[5m]))
+# 按 skill_id 分组，单技能维度触发告警，避免全局噪声。
+#
+# 挂载位置: /etc/grafana/provisioning/alerting/yunshu-skill-hallucination.yml
+# Grafana 8+ unified alerting 自动加载
+
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: yunshu-skill-quality
+    folder: Yunshu
+    interval: 30s
+    rules:
+      # ── Warning: 单技能 5 分钟幻觉次数 > 5 ──
+      - uid: yunshu-skill-hallucination-warning
+        title: "技能幻觉次数警告（5m > 5）"
+        condition: B
+        data:
+          # A: Prometheus 查询 — 5 分钟内各 skill_id 幻觉次数
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum by (skill_id) (increase(yunshu_skill_hallucination_total[5m]))
+              instant: true
+              refId: A
+          # B: 阈值表达式 — A > 5
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  query:
+                    params:
+                      - A
+                  evaluator:
+                    type: gt
+                    params:
+                      - 5
+              refId: B
+        noDataState: OK
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: "技能 {{ $labels.skill_id }} 5 分钟内幻觉次数超过 warning 阈值"
+          description: "skill_id={{ $labels.skill_id }} 在过去 5 分钟内幻觉次数为 {{ $values.A }}，超过 warning 阈值 5。请检查该技能的 instruction 与检索召回质量。"
+          runbook_url: "https://github.com/nzt47/security-tools/blob/feature/tlm-step3-vectorstore-sqlite-vec/docs/observability_fix_summary.md"
+        labels:
+          severity: warning
+          team: yunshu
+          category: skill-quality
+
+      # ── Critical: 单技能 5 分钟幻觉次数 > 20 ──
+      - uid: yunshu-skill-hallucination-critical
+        title: "技能幻觉次数严重（5m > 20）"
+        condition: B
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: sum by (skill_id) (increase(yunshu_skill_hallucination_total[5m]))
+              instant: true
+              refId: A
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  query:
+                    params:
+                      - A
+                  evaluator:
+                    type: gt
+                    params:
+                      - 20
+              refId: B
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: "技能 {{ $labels.skill_id }} 5 分钟内幻觉次数超过 critical 阈值"
+          description: "skill_id={{ $labels.skill_id }} 在过去 5 分钟内幻觉次数为 {{ $values.A }}，超过 critical 阈值 20。该技能可能已不可用，建议立即下线或回滚。"
+          runbook_url: "https://github.com/nzt47/security-tools/blob/feature/tlm-step3-vectorstore-sqlite-vec/docs/observability_fix_summary.md"
+        labels:
+          severity: critical
+          team: yunshu
+          category: skill-quality

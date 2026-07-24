@@ -325,6 +325,8 @@ safetensors==0.7.0
     # via transformers
 scikit-learn==1.8.0
     # via sentence-transformers
+sqlite-vec>=0.1.9
+    # via Yunshu (TLM L3 向量存储后端)
 scipy==1.17.1
     # via
     #   scikit-learn

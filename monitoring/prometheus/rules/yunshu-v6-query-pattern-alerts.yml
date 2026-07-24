@@ -1,0 +1,398 @@
+# Prometheus Alert Rules — v6 Query 模式识别监控
+#
+# 适用版本: v6 query_pattern (commit 244b49d7)
+# 维护责任人: skills_mgmt 模块 owner
+# 挂载位置: /etc/prometheus/rules/yunshu-v6-query-pattern-alerts.yml
+#
+# 告警分级:
+#   P0 (critical): 立即处理（ PagerDuty / 电话通知）
+#   P1 (warning):  1 小时内处理（IM 通知）
+#   P2 (info):     观察记录（日报汇总）
+#
+# 指标来源:
+#   - yunshu_skill_match_count{method="query_pattern"}  (gauge, v6 命中时上报 value=0)
+#   - yunshu_skill_match_count{method="rrf_rerank"}       (gauge, 走 RRF 时上报)
+#   - yunshu_skill_match_latency_ms                      (histogram)
+#   - yunshu_query_pattern_hits_total{category="..."}    (counter, v6.1 建议新增)
+#   - yunshu_query_pattern_duration_ms                   (histogram, v6.1 建议新增)
+#
+# 日志来源（ELK/Loki 查询）:
+#   action="match.query_pattern.rejected"  (loader.py L306)
+#   action="match.rrf_fallback_to_tfidf"   (loader.py L411)
+#   action="match.extension_not_implemented" (loader.py L472)
+#
+# 验证命令:
+#   promtool check rules yunshu-v6-query-pattern-alerts.yml
+#   promtool test rules test-yunshu-v6-alerts.yml
+
+groups:
+  # ════════════════════════════════════════════════════════════
+  #  P0 级告警（critical）— 立即处理
+  # ════════════════════════════════════════════════════════════
+  - name: yunshu_v6_query_pattern_p0
+    interval: 30s
+    rules:
+      # ── P0-1: query_pattern 命中率突降（规则可能被禁用或删除）──
+      # 基线: 5 次/分钟；条件: < 1 次/分钟，持续 10 分钟
+      - alert: YunshuV6QueryPatternHitRateDropped
+        expr: |
+          sum(rate(yunshu_skill_match_count{method="query_pattern"}[5m])) < 0.0167
+          and
+          sum(rate(yunshu_skill_match_count[5m])) > 1
+        for: 10m
+        labels:
+          severity: critical
+          level: P0
+          team: skills_mgmt
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "v6 query_pattern 命中率突降"
+          description: |
+            query_pattern 命中率 5 分钟内 < 1 次/分钟（基线 5 次/分钟），
+            持续 10 分钟。
+            可能原因:
+              1. SKILL_QUERY_PATTERN_ENABLED 被设为 false
+              2. _QUERY_PATTERNS 常量被误删
+              3. use_reranker/use_vector 调用方参数变更
+            排查命令:
+              kubectl exec -n yunshu <pod> -- env | grep SKILL_QUERY_PATTERN
+              kubectl logs -n yunshu <pod> | grep "match.query_pattern.rejected" | tail -50
+
+      # ── P0-2: query_pattern 命中率突增（规则可能过宽，误伤正样本）──
+      # 基线: 15%；条件: > 50%，持续 5 分钟
+      - alert: YunshuV6QueryPatternHitRateSurged
+        expr: |
+          (
+            sum(rate(yunshu_skill_match_count{method="query_pattern"}[5m]))
+            /
+            clamp_min(sum(rate(yunshu_skill_match_count[5m])), 0.001)
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: critical
+          level: P0
+          team: skills_mgmt
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "v6 query_pattern 命中率突增（可能误伤正样本）"
+          description: |
+            query_pattern 命中率 > 50%（基线 15%），持续 5 分钟。
+            高风险: 可能规则被改宽，导致正样本被误拒。
+            紧急回滚:
+              kubectl exec -n yunshu <pod> -- env-set SKILL_QUERY_PATTERN_ENABLED=false
+              # 或 kubectl set env deployment/yunshu SKILL_QUERY_PATTERN_ENABLED=false
+            验证正样本 P@3:
+              kubectl exec -n yunshu <pod> -- python scripts/eval_rrf_fusion.py --only rrf_rerank --top-k 3
+
+      # ── P0-3: 正样本 P@3 下降（CI 评估任务上报的指标）──
+      # 条件: P@3 < 0.40（v6 基线 0.4444）
+      # 依赖: eval_rrf_fusion.py 定期跑并将 P@3 写入 yunshu_skill_retrieval_precision_at_k
+      - alert: YunshuV6PositivePrecisionDropped
+        expr: |
+          yunshu_skill_retrieval_precision_at_k{k="3"} < 0.40
+        for: 1m
+        labels:
+          severity: critical
+          level: P0
+          team: skills_mgmt
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "正样本 P@3 下降到 {{ $value }}（基线 0.4444）"
+          description: |
+            v6 query_pattern 可能误伤正样本，P@3 已跌破 0.40。
+            立即回滚:
+              export SKILL_QUERY_PATTERN_ENABLED=false
+            人工审计:
+              抽样 100 条命中日志，检查是否有技能 query 被误拒:
+              grep "match.query_pattern.rejected" /var/log/agent/loader.log | jq -r '.intent' | head -100
+
+  # ════════════════════════════════════════════════════════════
+  #  P1 级告警（warning）— 1 小时内处理
+  # ════════════════════════════════════════════════════════════
+  - name: yunshu_v6_query_pattern_p1
+    interval: 30s
+    rules:
+      # ── P1-1: 某类别命中率归零（规则可能失效）──
+      # 条件: 某 category 30 分钟内 0 命中
+      # 依赖: v6.1 建议新增的 yunshu_query_pattern_hits_total{category}
+      - alert: YunshuV6QueryPatternCategoryZero
+        expr: |
+          sum by (category) (
+            increase(yunshu_query_pattern_hits_total[30m])
+          ) == 0
+        for: 30m
+        labels:
+          severity: warning
+          level: P1
+          team: skills_mgmt
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "v6 query_pattern 类别 {{ $labels.category }} 30 分钟内 0 命中"
+          description: |
+            类别 {{ $labels.category }} 的规则可能失效。
+            检查 _QUERY_PATTERNS 中该类别的正则是否被误删或修改。
+            排查命令:
+              kubectl exec -n yunshu <pod> -- grep -A2 "category.*{{ $labels.category }}" agent/skills_mgmt/loader.py
+
+      # ── P1-2: query_pattern 延迟升高（正则可能回溯爆炸）──
+      # 基线: <5ms；条件: P99 > 50ms，持续 10 分钟
+      # 依赖: v6.1 建议新增的 yunshu_query_pattern_duration_ms
+      - alert: YunshuV6QueryPatternLatencyHigh
+        expr: |
+          histogram_quantile(0.99,
+            sum by (le) (rate(yunshu_query_pattern_duration_ms_bucket[5m]))
+          ) > 50
+        for: 10m
+        labels:
+          severity: warning
+          level: P1
+          team: skills_mgmt
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "v6 query_pattern 延迟 P99 > 50ms（基线 <5ms）"
+          description: |
+            正则匹配延迟升高，可能存在回溯爆炸（catastrophic backtracking）。
+            检查最近是否新增了包含 (.+?) 等贪婪/回溯模式的正则。
+            排查命令:
+              kubectl logs -n yunshu <pod> | jq 'select(.action=="match.query_pattern.rejected") | .duration_ms' | sort -n | tail -10
+
+      # ── P1-3: RRF 降级次数激增（query_pattern 可能失效，大量请求回退 RRF）──
+      # 条件: rrf_rerank 路径请求 > 基线 200%，持续 10 分钟
+      # 基线通过 avg_over_time 计算
+      - alert: YunshuV6RRFDegradationSurge
+        expr: |
+          (
+            sum(rate(yunshu_skill_match_count{method="rrf_rerank"}[5m]))
+            /
+            clamp_min(
+              avg_over_time(sum(rate(yunshu_skill_match_count{method="rrf_rerank"}[5m]))[1h:5m]),
+              0.001
+            )
+          ) > 2.0
+        for: 10m
+        labels:
+          severity: warning
+          level: P1
+          team: skills_mgmt
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "v6 RRF 降级次数激增（基线 200%+）"
+          description: |
+            query_pattern 可能失效，导致大量请求回退到 RRF+Reranker 路径。
+            影响: GPU 占用上升，延迟增加（580ms vs 5ms）。
+            排查:
+              1. 检查 SKILL_QUERY_PATTERN_ENABLED 是否被禁用
+              2. 检查 _QUERY_PATTERNS 是否被误删
+              3. 检查调用方是否未传 use_reranker=True
+
+  # ════════════════════════════════════════════════════════════
+  #  P2 级告警（info）— 观察记录
+  # ════════════════════════════════════════════════════════════
+  - name: yunshu_v6_query_pattern_p2
+    interval: 5m
+    rules:
+      # ── P2-1: 单类别占比异常（可能规则过宽）──
+      # 条件: 某 category 占比 > 60%，持续 30 分钟
+      - alert: YunshuV6QueryPatternCategoryDominant
+        expr: |
+          (
+            sum by (category) (rate(yunshu_query_pattern_hits_total[30m]))
+            /
+            clamp_min(sum(rate(yunshu_query_pattern_hits_total[30m])), 0.001)
+          ) > 0.6
+        for: 30m
+        labels:
+          severity: info
+          level: P2
+          team: skills_mgmt
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "v6 query_pattern 类别 {{ $labels.category }} 占比 > 60%"
+          description: |
+            类别 {{ $labels.category }} 命中占比过高，规则可能过宽。
+            建议审计该类别的命中 query:
+              kubectl logs -n yunshu <pod> | jq -r 'select(.category=="{{ $labels.category }}") | .intent' | sort | uniq -c | sort -rn | head -20
+
+      # ── P2-2: extension_not_implemented 日志频繁（调用方参数误传）──
+      # 条件: 10 分钟内 match.extension_not_implemented 日志 > 600 次（10/min）
+      # 依赖: 日志分析任务将日志转为 metric yunshu_skill_match_fallback_total
+      - alert: YunshuV6FallbackFrequent
+        expr: |
+          sum(rate(yunshu_skill_match_fallback_total{reason="extension_not_implemented"}[10m])) > 0.167
+        for: 10m
+        labels:
+          severity: info
+          level: P2
+          team: skills_mgmt
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "v6 extension_not_implemented 频繁（>10 次/分钟）"
+          description: |
+            调用方可能误传 use_vector/use_reranker=True 但未传 fusion_mode。
+            排查:
+              kubectl logs -n yunshu <pod> | grep "match.extension_not_implemented" | jq -r '.intent' | head -20
+
+      # ── P2-3: 环境变量被禁用（运维主动操作记录）──
+      # 条件: query_pattern 命中数为 0 且 rrf_rerank 命中数正常，持续 15 分钟
+      - alert: YunshuV6QueryPatternDisabled
+        expr: |
+          sum(rate(yunshu_skill_match_count{method="query_pattern"}[15m])) == 0
+          and
+          sum(rate(yunshu_skill_match_count{method="rrf_rerank"}[15m])) > 0.1
+        for: 15m
+        labels:
+          severity: info
+          level: P2
+          team: skills_mgmt
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "v6 query_pattern 可能被禁用（SKILL_QUERY_PATTERN_ENABLED=false?）"
+          description: |
+            query_pattern 命中数为 0 但 RRF 正常运行，环境变量可能被禁用。
+            若为计划内操作，可忽略此告警。
+            验证:
+              kubectl exec -n yunshu <pod> -- env | grep SKILL_QUERY_PATTERN
+
+  # ════════════════════════════════════════════════════════════
+  #  v6.2 negative_intent 语义拒绝层告警（BGE-m3 prototype）
+  # ════════════════════════════════════════════════════════════
+  # 指标来源:
+  #   - yunshu_skill_match_count{method="negative_intent"}  (gauge, v6.2 命中时上报 value=0)
+  #   - yunshu_negative_intent_hits_total{category="..."}   (counter, 建议新增)
+  #   - yunshu_negative_intent_duration_ms                  (histogram, 建议新增)
+  #   - yunshu_negative_intent_detector_failed_total        (counter, 检测器降级计数)
+  #
+  # 日志来源（ELK/Loki 查询）:
+  #   action="detect.rejected"               (negative_intent_detector.py L305)
+  #   action="match.negative_intent.rejected" (loader.py _match_intent_by_embedding)
+  #   action="negative_intent_detector.init_failed"  (loader.py _get_negative_intent_detector)
+  #   action="prototypes.not_found"          (negative_intent_detector.py L146)
+  #   action="detect.exception"              (negative_intent_detector.py L316)
+  - name: yunshu_v62_negative_intent_alerts
+    interval: 30s
+    rules:
+      # ── P0-4: v6.2 embedding 层误伤正样本（违【不易】核心约束）──
+      # 条件: 正样本 P@3 下降到 < 0.40（与 v6.1 P0-3 同源指标，独立告警便于区分责任）
+      # 当此告警与 P0-3 同时触发时，优先怀疑 v6.2 误伤
+      - alert: YunshuV62NegativeIntentFalseReject
+        expr: |
+          yunshu_skill_retrieval_precision_at_k{k="3"} < 0.40
+          and
+          sum(rate(yunshu_skill_match_count{method="negative_intent"}[5m])) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          level: P0
+          team: skills_mgmt
+          version: v6.2
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "v6.2 negative_intent 可能误伤正样本（P@3 < 0.40）"
+          description: |
+            正样本 P@3 已跌破 0.40，且 v6.2 embedding 层有命中，
+            高度怀疑阈值过低导致正样本被误拒（违【不易】）。
+            紧急回滚（秒级）:
+              kubectl exec -n yunshu <pod> -- env-set SKILL_NEGATIVE_INTENT_ENABLED=false
+            人工审计:
+              kubectl logs -n yunshu <pod> | jq 'select(.action=="detect.rejected") | .intent' | head -100
+            重跑校准:
+              kubectl exec -n yunshu <pod> -- python scripts/calibrate_v62_threshold.py
+
+      # ── P0-5: v6.2 检测器持续降级（BGE-m3 不可用）──
+      # 条件: 检测器 init_failed 或 detect.exception 计数 > 10/分钟，持续 5 分钟
+      # 影响: v6.2 层失效，所有未命中 v6.1 规则的负样本回退到 RRF+Reranker（延迟 600ms+）
+      - alert: YunshuV62DetectorDegrading
+        expr: |
+          sum(rate(yunshu_negative_intent_detector_failed_total[5m])) > 0.167
+        for: 5m
+        labels:
+          severity: critical
+          level: P0
+          team: skills_mgmt
+          version: v6.2
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "v6.2 negative_intent 检测器持续降级（BGE-m3 不可用?）"
+          description: |
+            NegativeIntentDetector 失败率 > 10 次/分钟，持续 5 分钟。
+            可能原因:
+              1. BGE-m3 模型加载失败（OOM / 磁盘满）
+              2. prototype JSON 文件丢失或格式错误
+              3. vector_adapter.encode_query 持续返回 None
+            排查:
+              kubectl logs -n yunshu <pod> | jq 'select(.module_name=="negative_intent_detector") | .action' | sort | uniq -c
+              kubectl exec -n yunshu <pod> -- ls -la tests/eval/negative_intent_prototypes.json
+
+      # ── P1-4: v6.2 延迟升高（BGE-m3 编码耗时异常）──
+      # 基线: <100ms；条件: P99 > 300ms，持续 10 分钟
+      # 影响: 违背 v6.2 "负样本延迟 ≤ 200ms" 目标
+      - alert: YunshuV62LatencyHigh
+        expr: |
+          histogram_quantile(0.99,
+            sum by (le) (rate(yunshu_negative_intent_duration_ms_bucket[5m]))
+          ) > 300
+        for: 10m
+        labels:
+          severity: warning
+          level: P1
+          team: skills_mgmt
+          version: v6.2
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "v6.2 negative_intent 延迟 P99 > 300ms（基线 <100ms）"
+          description: |
+            BGE-m3 query 编码耗时异常，可能原因:
+              1. CPU 资源争抢（其他进程占用）
+              2. 模型未缓存，每次重新加载
+              3. 系统内存不足导致 swap
+            排查:
+              kubectl top pod -n yunshu
+              kubectl logs -n yunshu <pod> | jq 'select(.action=="detect.rejected") | .duration_ms' | sort -n | tail -10
+
+      # ── P1-5: v6.2 命中率突增（阈值可能过低）──
+      # 条件: negative_intent 命中占比 > 30%，持续 10 分钟
+      # 基线: 15%（25 负样本中 ~3-4 个由 v6.2 命中）
+      - alert: YunshuV62HitRateSurged
+        expr: |
+          (
+            sum(rate(yunshu_skill_match_count{method="negative_intent"}[10m]))
+            /
+            clamp_min(sum(rate(yunshu_skill_match_count[10m])), 0.001)
+          ) > 0.3
+        for: 10m
+        labels:
+          severity: warning
+          level: P1
+          team: skills_mgmt
+          version: v6.2
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "v6.2 negative_intent 命中率突增（可能误伤正样本）"
+          description: |
+            negative_intent 命中占比 > 30%（基线 15%），持续 10 分钟。
+            可能阈值过低，正样本被误拒。
+            建议提升阈值:
+              kubectl exec -n yunshu <pod> -- env-set SKILL_NEGATIVE_INTENT_THRESHOLD=0.80
+            重跑校准确认新阈值:
+              kubectl exec -n yunshu <pod> -- python scripts/calibrate_v62_threshold.py --threshold 0.80
+
+      # ── P2-4: v6.2 环境变量被禁用（运维主动操作记录）──
+      - alert: YunshuV62Disabled
+        expr: |
+          sum(rate(yunshu_skill_match_count{method="negative_intent"}[15m])) == 0
+          and
+          sum(rate(yunshu_skill_match_count{method="rrf_rerank"}[15m])) > 0.1
+        for: 15m
+        labels:
+          severity: info
+          level: P2
+          team: skills_mgmt
+          version: v6.2
+          runbook: docs/V6_MONITORING_CONFIG_CHECKLIST.md
+        annotations:
+          summary: "v6.2 negative_intent 可能被禁用"
+          description: |
+            negative_intent 命中数为 0 但 RRF 正常运行，环境变量可能被禁用。
+            若为计划内操作（如阈值误伤回滚），可忽略此告警。
+            验证:
+              kubectl exec -n yunshu <pod> -- env | grep SKILL_NEGATIVE_INTENT

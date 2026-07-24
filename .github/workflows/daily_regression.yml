@@ -1,0 +1,223 @@
+# =====================================================================
+# 每日回归测试 CI/CD 流水线
+#
+# 【不易】不修改测试代码,仅编排执行顺序和失败通知
+# 【变易】支持手动触发(workflow_dispatch) + 每日定时(cron) + PR 触发
+# 【简易】三阶段:依赖安装 → 单元测试 → 端到端恢复测试
+#
+# 触发条件:
+#   - 每日 UTC 02:00(北京时间 10:00)定时执行
+#   - PR 到 master 分支时执行
+#   - 手动触发(workflow_dispatch)
+# =====================================================================
+name: Daily Regression Tests
+
+on:
+  schedule:
+    # UTC 02:00 = 北京时间 10:00(每日)
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: '测试套件(all / unit / e2e / checkpoint)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - unit
+          - e2e
+          - checkpoint
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'scripts/finetune_reranker.py'
+      - 'agent/tool_router_hybrid.py'
+      - 'tests/test_checkpoint_*.py'
+      - 'tests/test_lora_checkpoint.py'
+      - '.github/workflows/daily_regression.yml'
+
+env:
+  PYTHON_VERSION: '3.12'
+  HF_HUB_OFFLINE: '1'
+  TRANSFORMERS_OFFLINE: '1'
+
+jobs:
+  # =====================================================================
+  # Job 1: 单元测试(LoRA checkpoint 保存/加载)
+  # =====================================================================
+  unit-tests:
+    name: Unit Tests (LoRA Checkpoint)
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_suite != 'e2e'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install peft accelerate sentence-transformers transformers numpy
+          # 安装项目依赖(最小集,避免加载完整 agent)
+          pip install pytest pytest-cov
+
+      - name: Run LoRA checkpoint unit tests
+        run: |
+          python -m unittest tests.test_lora_checkpoint -v
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+
+      - name: Run checkpoint resume failure tests
+        run: |
+          python -m unittest tests.test_checkpoint_resume_failure -v
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: |
+            .pytest_cache/
+            **/test_*.xml
+          retention-days: 7
+
+  # =====================================================================
+  # Job 2: 端到端断点续训恢复测试(核心回归套件)
+  # =====================================================================
+  e2e-recovery-tests:
+    name: E2E Recovery Tests
+    runs-on: ubuntu-latest
+    if: github.event.inputs.test_suite != 'unit'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install peft accelerate sentence-transformers transformers numpy
+          pip install pytest pytest-cov
+
+      - name: Run E2E checkpoint recovery tests
+        run: |
+          python -m unittest tests.test_checkpoint_recovery_e2e -v
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+
+      - name: Run LRU cache logging verification
+        run: |
+          python scripts/verify_lru_cache_logging.py
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+          AGENT_HYBRID_EMBEDDING: '0'  # CI 环境不加载真实模型
+
+      - name: Upload E2E test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: |
+            .pytest_cache/
+            **/test_*.xml
+          retention-days: 7
+
+  # =====================================================================
+  # Job 3: 测试汇总与通知
+  # =====================================================================
+  test-summary:
+    name: Test Summary & Notification
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-recovery-tests]
+    if: always()
+    steps:
+      - name: Check test results
+        id: results
+        run: |
+          UNIT_RESULT="${{ needs.unit-tests.result }}"
+          E2E_RESULT="${{ needs.e2e-recovery-tests.result }}"
+          echo "unit_tests=${UNIT_RESULT}" >> $GITHUB_OUTPUT
+          echo "e2e_tests=${E2E_RESULT}" >> $GITHUB_OUTPUT
+
+          if [[ "${UNIT_RESULT}" == "failure" ]] || [[ "${E2E_RESULT}" == "failure" ]]; then
+            echo "overall=failed" >> $GITHUB_OUTPUT
+            echo "❌ 回归测试失败" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "overall=passed" >> $GITHUB_OUTPUT
+            echo "✅ 所有回归测试通过" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "## 回归测试汇总" >> $GITHUB_STEP_SUMMARY
+          echo "| 套件 | 结果 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests (LoRA Checkpoint) | ${UNIT_RESULT} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Recovery Tests | ${E2E_RESULT} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Send notification on failure
+        if: steps.results.outputs.overall == 'failed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **回归测试失败**\n\n请检查 [Workflow Run](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ')\n\n失败套件:\n- Unit Tests: ${{ needs.unit-tests.result }}\n- E2E Recovery Tests: ${{ needs.e2e-recovery-tests.result }}'
+            })
+
+  # =====================================================================
+  # Job 4: 代码覆盖率报告(可选)
+  # =====================================================================
+  coverage-report:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install peft accelerate sentence-transformers transformers numpy
+          pip install pytest pytest-cov
+
+      - name: Run tests with coverage
+        run: |
+          python -m pytest tests/test_checkpoint_recovery_e2e.py \
+                         tests/test_checkpoint_resume_failure.py \
+                         tests/test_lora_checkpoint.py \
+                         --cov=scripts/finetune_reranker \
+                         --cov-report=xml \
+                         --cov-report=term-missing
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false

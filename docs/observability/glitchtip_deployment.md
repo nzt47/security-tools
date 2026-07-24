@@ -200,7 +200,7 @@ SDK 在 `before_send` 钩子中过滤以下字段（见 [`_sentry_before_send`](
 
 ### 6.1 注入 DSN
 
-在 [`yunshu-ui/.env.production`](file:///c:/Users/Administrator/agent/yunshu-ui/.env.production) 中配置：
+在 [`yunshu-ui/.env.production.example`](file:///c:/Users/Administrator/agent/yunshu-ui/.env.production.example) 中配置（复制为 `.env.production` 后填入真实 DSN）：
 
 ```bash
 VITE_SENTRY_DSN=https://public_key@glitchtip.example.com/2

@@ -1,4 +1,4 @@
-﻿<#
+﻿﻿<#
 .SYNOPSIS
     验证环境变量优先级: CLI > 环境变量 > config.yaml > 默认值
 

@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 import time
 import uuid
@@ -38,6 +39,50 @@ from .exceptions import SkillNotFoundError, SkillMgmtError
 
 def _trace_id() -> str:
     return uuid.uuid4().hex[:16]
+
+
+# ════════════════════════════════════════════════════════════
+#  Query 模式识别（v6：针对 5 个 0% 拒绝率类别）
+# ════════════════════════════════════════════════════════════
+
+# 【变易】query 模式规则：命中即拒绝（返回空 MatchResult）
+# 每条规则: (pattern, category, reason)
+# 来源：v5.1 报告 §6.1 的 5 个 0% 拒绝率类别
+# 验证：scripts/check_pattern_conflicts.py 确认 45 个正样本不命中
+_QUERY_PATTERNS: List[Tuple["re.Pattern", str, str]] = [
+    # ── 1. keyword_trap: "X 是什么意思"/"X 概念解释"/"X 的定义" ──
+    # 根因: 查询定义不是触发技能
+    (re.compile(r"(.+?)\s*是什么(意思|含义|东西)"), "keyword_trap", "definition_query"),
+    (re.compile(r"(.+?)\s*概念解释"), "keyword_trap", "definition_query"),
+    (re.compile(r"(.+?)\s*的(定义|含义)"), "keyword_trap", "definition_query"),
+
+    # ── 2. translation: "帮我翻译"/"请翻译" ──
+    # 根因: 翻译类查询不触发技能
+    (re.compile(r"(帮我|请).{0,4}翻译"), "translation", "translation_request"),
+
+    # ── 3. creative: "帮我写诗/歌/故事" ──
+    # 根因: 创作类查询不触发技能
+    (re.compile(r"(帮我|请).{0,2}写.{0,2}(诗|歌|故事|小说|文章|散文)"), "creative", "creative_writing"),
+
+    # ── 4. math: "帮我算"/数学运算符 ──
+    # 根因: 数学计算不触发技能
+    (re.compile(r"(帮我|请).{0,2}算"), "math", "math_calculation"),
+    (re.compile(r"[\d]+\s*[+\-*/]\s*[\d]+"), "math", "math_expression"),
+
+    # ── 5. similar: 系统操作类（黑名单关键词） ──
+    # 根因: "删除文件"/"重启服务器" 是系统操作，非技能
+    # 风险: 中（用精确匹配，避免误伤"删除脚本"等真匹配）
+    (re.compile(r"(删除|移动|复制|重命名)\s*(文件|目录|文件夹)"), "similar", "file_operation"),
+    (re.compile(r"(重启|关闭|启动)\s*(服务器|服务|进程|系统)"), "similar", "system_operation"),
+
+    # ── 6. booking: 预订/下单类（v6.1 新增） ──
+    # 根因: v6 评估中 case_105 "帮我点外卖" 误召 voice_interaction
+    # 方案: 精确宾语白名单（方案 A），已通过 verify_v61_booking_rule.py 验证
+    # 验证: 3 负样本全部命中 + 5 voice 正样本不误伤 + 40 黄金集正样本 0 冲突
+    # 风险: 低（白名单宾语都是明确的购物对象，"帮我点歌"不匹配）
+    (re.compile(r"(帮我|请|我想).{0,2}(点|订|买|叫|购).{0,3}(外卖|机票|酒店|火车票|电影票|商品|礼物)"),
+     "booking", "order_request"),
+]
 
 
 # ════════════════════════════════════════════════════════════
@@ -224,6 +269,165 @@ class SkillLoader:
         self._vector_adapter = vector_adapter
 
     # ──────────────────────────────────────────────
+    #  Query 模式识别（v6：最早拒绝非技能意图）
+    # ──────────────────────────────────────────────
+
+    def _match_query_pattern(
+        self, intent: str, *, tid: str, t0: float
+    ) -> Optional[MatchResult]:
+        """query 模式识别：命中非技能意图模式时返回空 MatchResult
+
+        在 RRF/reranker 之前执行，最早拒绝明显非技能的 query。
+        覆盖 5 类 0% 拒绝率类别：keyword_trap/translation/creative/math/similar
+
+        【不易】仅在 use_reranker=True 调用，不影响旧路径（match() 中守护）
+        【变易】模式规则集中管理（_QUERY_PATTERNS），便于扩展
+        【简易】单次正则匹配，O(n) 复杂度，无模型加载
+
+        Args:
+            intent: 用户意图文本
+            tid: trace_id（用于可观测性日志）
+            t0: 起始时间戳（用于计算 elapsed_ms）
+
+        Returns:
+            None: 未命中模式，继续走 RRF/reranker
+            MatchResult: 命中模式，返回空结果（matches=[]）
+                         retrieval_method="query_pattern"
+        """
+        # 环境变量开关（默认开启）
+        # 设为 false/0/off 时禁用模式识别，继续走 RRF
+        enabled = os.environ.get(
+            "SKILL_QUERY_PATTERN_ENABLED", "true"
+        ).lower()
+        if enabled in ("false", "0", "off", "no"):
+            return None
+
+        if not intent:
+            return None
+
+        for pattern, category, reason in _QUERY_PATTERNS:
+            if pattern.search(intent):
+                elapsed = (time.time() - t0) * 1000
+                logger.info(json.dumps({
+                    "trace_id": tid,
+                    "module_name": "loader",
+                    "action": "match.query_pattern.rejected",
+                    "intent": intent[:100],
+                    "category": category,
+                    "reason": reason,
+                    "duration_ms": round(elapsed, 2),
+                }, ensure_ascii=False))
+                return MatchResult(
+                    matches=[],
+                    total_scanned=0,
+                    elapsed_ms=elapsed,
+                    estimated_total_tokens=0,
+                    retrieval_method="query_pattern",
+                    fallback_used=False,
+                )
+        return None
+
+    # ──────────────────────────────────────────────
+    #  v6.2 语义意图识别（NegativeIntentDetector 懒加载与调用）
+    # ──────────────────────────────────────────────
+
+    def _get_negative_intent_detector(self):
+        """懒加载 NegativeIntentDetector 单例
+
+        延迟创建避免 import 时拉起 BGE-m3 模型。
+        复用 SkillLoader 已注入的 vector_adapter（共享 BGE-m3 实例）。
+
+        【不易】失败时返回 None（不影响 match 主流程）
+        【变易】首次调用预热 BGE-m3（ensure_indexed），后续复用缓存
+        【简易】单例缓存，避免重复创建
+        """
+        if getattr(self, "_negative_intent_detector", None) is not None:
+            return self._negative_intent_detector
+        try:
+            from .negative_intent_detector import NegativeIntentDetector
+            # 【变易】用 _get_vector_adapter() 而非 self._vector_adapter
+            # 确保在 _match_intent_by_embedding 早期调用时 adapter 已创建
+            # 守【不易】：adapter 创建失败时返回 None，降级到 RRF
+            adapter = self._get_vector_adapter()
+            if adapter is None:
+                return None
+            # 预热 BGE-m3：触发 _st_backend 初始化，否则 encode_query 返回 None
+            # 守【不易】：预热失败时降级返回 None，不影响 match 主流程
+            try:
+                adapter.ensure_indexed()
+            except Exception as e:  # noqa: BLE001
+                logger.warning(json.dumps({
+                    "module_name": "loader",
+                    "action": "negative_intent_detector.warmup_failed",
+                    "error": str(e)[:300],
+                }, ensure_ascii=False))
+                return None
+            self._negative_intent_detector = NegativeIntentDetector(
+                vector_adapter=adapter,
+            )
+            return self._negative_intent_detector
+        except Exception as e:  # noqa: BLE001
+            logger.warning(json.dumps({
+                "module_name": "loader",
+                "action": "negative_intent_detector.init_failed",
+                "error": str(e)[:300],
+            }, ensure_ascii=False))
+            return None
+
+    def _match_intent_by_embedding(
+        self, intent: str, *, tid: str, t0: float
+    ) -> Optional[MatchResult]:
+        """v6.2 语义拒绝层：规则未命中后的 embedding 相似度判定
+
+        在 _match_query_pattern 未命中后执行，用 BGE-m3 embedding
+        与非技能意图 prototype 计算余弦相似度，命中则返回空 MatchResult。
+
+        覆盖 v6.1 正则无法泛化的句式（如"明天会下雨吗"无需写新规则）。
+
+        【不易】仅在 use_reranker=True 调用（match() 中守护）
+        【变易】prototype 数据外部化，阈值可通过环境变量调整
+        【简易】委托 NegativeIntentDetector.detect，单次点积
+
+        Args:
+            intent: 用户意图文本
+            tid: trace_id（用于可观测性日志）
+            t0: 起始时间戳（用于计算 elapsed_ms）
+
+        Returns:
+            None: 未命中或检测器降级，继续走 RRF/reranker
+            MatchResult: 命中，返回空结果（matches=[]）
+                         retrieval_method="negative_intent"
+        """
+        detector = self._get_negative_intent_detector()
+        if detector is None:
+            return None  # 检测器不可用，降级到 RRF
+
+        result = detector.detect(intent, tid=tid, t0=t0)
+        if result is None:
+            return None  # 未命中
+
+        # 命中：返回空 MatchResult
+        category, similarity, _ = result
+        elapsed = (time.time() - t0) * 1000
+        logger.info(json.dumps({
+            "trace_id": tid,
+            "module_name": "loader",
+            "action": "match.negative_intent.rejected",
+            "intent": intent[:100],
+            "category": category,
+            "similarity": round(similarity, 4),
+            "duration_ms": round(elapsed, 2),
+        }, ensure_ascii=False))
+        return MatchResult(
+            matches=[],
+            total_scanned=0,
+            elapsed_ms=elapsed,
+            estimated_total_tokens=0,
+            retrieval_method="negative_intent",
+            fallback_used=False,
+        )
+
+    # ──────────────────────────────────────────────
     #  第一层：元数据匹配
     # ──────────────────────────────────────────────
 
@@ -270,6 +474,44 @@ class SkillLoader:
         """
         t0 = time.time()
         tid = _trace_id()
+
+        # [Bug1 修复] use_bm25/use_reranker 未实现的 warning 移到方法开头,
+        # 确保所有返回路径 (RRF 成功 / vector 成功 / TF-IDF 降级) 都能触发记录
+        if use_bm25 or use_reranker:
+            logger.warning(json.dumps({
+                "trace_id": tid,
+                "module_name": "loader",
+                "action": "match.extension_not_implemented",
+                "intent": intent[:100],
+                "use_bm25": use_bm25,
+                "use_reranker": use_reranker,
+                "retrieval_weights": retrieval_weights,
+                "fallback": "tfidf",
+            }, ensure_ascii=False))
+
+        # ── 【变易】query 模式识别：最早拒绝非技能意图 ──
+        # 命中模式后直接返回空 MatchResult，不触发 RRF/reranker
+        # 仅在 use_reranker=True 且 use_vector=True 时启用（守【不易】不影响旧调用路径）
+        if use_reranker and use_vector:
+            pattern_result = self._match_query_pattern(intent, tid=tid, t0=t0)
+            if pattern_result is not None:
+                emit_metric("yunshu_skill_match_count",
+                            value=0, kind="gauge",
+                            labels={"layer": "1", "method": "query_pattern"})
+                return pattern_result
+
+            # ── 【变易】v6.2 语义拒绝层：规则未命中后的语义兜底 ──
+            # 用 BGE-m3 embedding 与非技能意图 prototype 计算余弦相似度
+            # 命中则返回空 MatchResult，避免走昂贵的 RRF+Reranker
+            # 失败降级返回 None（放行到 RRF，守【不易】）
+            intent_result = self._match_intent_by_embedding(
+                intent, tid=tid, t0=t0,
+            )
+            if intent_result is not None:
+                emit_metric("yunshu_skill_match_count",
+                            value=0, kind="gauge",
+                            labels={"layer": "1", "method": "negative_intent"})
+                return intent_result
 
         # 扩展点防御：use_vector=True 时走向量检索分支，失败降级 TF-IDF
         # use_bm25 / use_reranker 仍保留 warning（未实现）
@@ -357,18 +599,9 @@ class SkillLoader:
                 "fallback": "tfidf",
             }, ensure_ascii=False))
 
-        # use_bm25 / use_reranker 仍未实现，记录 warning
+        # use_bm25 / use_reranker 未实现, warning 已在方法开头记录 (Bug1 修复)
+        # 此处仅设置 fallback_used 标记 (RRF/vector 成功路径已提前 return)
         if use_bm25 or use_reranker:
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "match.extension_not_implemented",
-                "intent": intent[:100],
-                "use_bm25": use_bm25,
-                "use_reranker": use_reranker,
-                "retrieval_weights": retrieval_weights,
-                "fallback": "tfidf",
-            }, ensure_ascii=False))
             fallback_used = True
 
         # 加载元数据索引（第一层，只读 front matter）
@@ -500,6 +733,25 @@ class SkillLoader:
         if adapter is None:
             return None
 
+        # 【v6.4 修复】预热向量引擎：触发 _vector_store 创建 + BGE-m3 索引构建
+        # 根因：_get_vector_adapter 只创建 adapter 实例，_vector_store=None、_index_built=False
+        #       未预热时 adapter.search 返回空或失败 → RRF 退化为 tfidf 单路 → P@3 下降
+        # 守【不易】：预热失败时返回 None，降级 TF-IDF，不影响 match() 主流程
+        # 注：移除 is_vector_engine_active 检查 — 该检查要求 ChromaDB，
+        #     Windows 上 ChromaDB 不兼容（project_memory 已记录）会误阻断
+        #     SentenceTransformers 后端的有效向量检索
+        try:
+            adapter.ensure_indexed()
+        except Exception as e:  # noqa: BLE001
+            logger.warning(json.dumps({
+                "trace_id": tid,
+                "module_name": "loader",
+                "action": "vector.warmup_failed",
+                "intent": intent[:100],
+                "error": str(e)[:300],
+            }, ensure_ascii=False))
+            return None
+
         try:
             results = adapter.search(
                 intent, top_k=top_k, enabled_only=enabled_only,
@@ -550,7 +802,7 @@ class SkillLoader:
             total_scanned=len(index),
             elapsed_ms=0.0,  # 外层会重新计算并覆盖
             estimated_total_tokens=total_tokens,
-            retrieval_method="vector",
+            retrieval_method="vector",  # 走到这里说明 vector_engine_active=True
             fallback_used=False,
         )
 
