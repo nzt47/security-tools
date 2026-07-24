@@ -16,6 +16,7 @@
 """
 
 import os
+import re
 import json
 import uuid
 import time
@@ -56,6 +57,10 @@ class HolographicAdapter(MemoryInterface):
     _VEC_TABLE = "memories_vec"
     _VEC_FAILED_TABLE = "memories_vec_failed"
     _VEC_DIM = 512  # 向量维度（与 DDL 中 FLOAT[512] 对齐）
+    # FTS5 查询特殊字符：未加引号时会导致解析错误或语义改变
+    # Why: 连字符 - 是 NOT 操作符、数字 token 可能被误判为列引用（"no such column"）、
+    #      空格是 token 分隔符。含这些字符的查询（如 JIRA-1001）只能用 phrase query。
+    _FTS5_SPECIAL_CHARS = re.compile(r'[\s\-*()"^:]')
 
     def __init__(
         self,
@@ -99,6 +104,8 @@ class HolographicAdapter(MemoryInterface):
         # [TLM-L2] 熔断机制：连续失败达阈值后自动降级 _vec_available=False（缺口 D）
         self._vec_fail_count = 0
         self._vec_fail_threshold = 5
+        # [TLM-L3] Markdown 双向同步器（可选；None 时不启用双向同步）
+        self._syncer = None
 
         self._init_db()
         self._init_vec_table()            # [TLM-L2] 向量表初始化（失败降级，不抛异常）
@@ -280,6 +287,17 @@ class HolographicAdapter(MemoryInterface):
                     "created_at REAL NOT NULL, "
                     "retries INTEGER DEFAULT 0)"
                 )
+                # [TLM-L3] 双向同步冲突表（守不易：冲突只记录不自动解决）
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS sync_conflicts ("
+                    "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                    "sqlite_id TEXT NOT NULL, "
+                    "db_hash TEXT, "
+                    "file_hash TEXT, "
+                    "detected_at REAL NOT NULL, "
+                    "resolved_at REAL, "
+                    "resolution TEXT)"
+                )
                 conn.commit()
                 logger.info("[HolographicAdapter][migrate] 迁移完成: 新增字段=%s, 兜底表=%s 已就绪",
                             added if added else "无", self._VEC_FAILED_TABLE)
@@ -306,6 +324,7 @@ class HolographicAdapter(MemoryInterface):
         meta_str = json.dumps(metadata or {}, ensure_ascii=False)
         now = time.time()
 
+        ok = False
         with self._lock:
             try:
                 with self._get_conn() as conn:
@@ -332,11 +351,20 @@ class HolographicAdapter(MemoryInterface):
                     self._cache.clear()
 
                 logger.debug("[HolographicAdapter] 保存成功: key=%s", key)
-                return True
+                ok = True
 
             except Exception as e:
                 logger.error("[HolographicAdapter] 保存失败: key=%s, error=%s", key, e)
-                return False
+                ok = False
+
+        # [TLM-L3] 锁外通知 syncer（守 project_memory：持锁禁外部回调）
+        # 覆盖 save 与 save_with_embedding 两条路径（后者委托前者）
+        if ok and self._syncer is not None:
+            try:
+                self._syncer.notify_change(key, "upsert")
+            except Exception as e_sync:
+                logger.warning("[HolographicAdapter] syncer.notify_change 失败（忽略）: %s", e_sync)
+        return ok
 
     # [TLM-L2] 带向量的保存 — 主表+FTS 同事务，向量层异步写入
     async def save_with_embedding(
@@ -480,10 +508,17 @@ class HolographicAdapter(MemoryInterface):
         with self._lock:
             try:
                 with self._get_conn() as conn:
-                    # FTS5 搜索：使用双引号精确匹配 + 前缀匹配
-                    # 转义特殊字符并构建 FTS5 查询
+                    # FTS5 搜索：phrase 精确匹配 + 简单 token 前缀匹配
+                    # 转义双引号（FTS5 phrase 内双引号需成对转义）
                     safe_query = query.replace('"', '""')
-                    fts_query = f'"{safe_query}" OR {safe_query}*'
+                    # Why: 未加引号的前缀匹配 {safe_query}* 在含特殊字符（如 JIRA-1001 的连字符）
+                    #      时会被 FTS5 误解析：连字符=NOT、数字=列引用 → "no such column: 1001"。
+                    #      仅当 safe_query 为简单 token（无 FTS5 特殊字符）时才追加前缀匹配，
+                    #      否则只用 phrase query（双引号包裹，安全处理所有字符，含 ID 模式）。
+                    if self._FTS5_SPECIAL_CHARS.search(safe_query):
+                        fts_query = f'"{safe_query}"'
+                    else:
+                        fts_query = f'"{safe_query}" OR {safe_query}*'
 
                     rows = conn.execute(f"""
                         SELECT c.key, c.data, c.metadata, c.created_at,
@@ -680,19 +715,34 @@ class HolographicAdapter(MemoryInterface):
         if not key:
             return False
 
+        ok = False
         with self._lock:
             try:
                 with self._get_conn() as conn:
                     conn.execute(f"DELETE FROM {self._CONTENT_TABLE} WHERE key = ?", (key,))
                     conn.execute(f"DELETE FROM {self._FTS_TABLE} WHERE key = ?", (key,))
+                    # [TLM-L3] 同步删除向量行（若向量层可用）
+                    if self._vec_available:
+                        try:
+                            conn.execute(f"DELETE FROM {self._VEC_TABLE} WHERE id = ?", (key,))
+                        except Exception:
+                            pass
                     conn.commit()
 
                 if self._cache:
                     self._cache.clear()
-                return True
+                ok = True
             except Exception as e:
                 logger.error("[HolographicAdapter] 删除失败: key=%s, error=%s", key, e)
-                return False
+                ok = False
+
+        # [TLM-L3] 锁外通知 syncer 删除事件
+        if ok and self._syncer is not None:
+            try:
+                self._syncer.notify_change(key, "delete")
+            except Exception as e_sync:
+                logger.warning("[HolographicAdapter] syncer.notify_change(delete) 失败（忽略）: %s", e_sync)
+        return ok
 
     async def clear(self) -> bool:
         """清空所有记忆"""
@@ -840,3 +890,157 @@ class HolographicAdapter(MemoryInterface):
 
         logger.info("[HolographicAdapter][vec] replay_vec_failed 完成: 重放 %d 条", replayed)
         return replayed
+
+    # ── [TLM-L3] Markdown 双向同步支持方法 ──
+
+    def set_syncer(self, syncer):
+        """注入 MarkdownSyncer（启用双向同步）。传 None 关闭。"""
+        self._syncer = syncer
+        logger.info("[HolographicAdapter] syncer 已%s", "注入" if syncer is not None else "移除")
+
+    def get_raw_memory(self, key: str) -> Optional[dict]:
+        """读取单条记忆原始字段（供 FileWatcher 反向同步计算 db_hash）
+
+        Returns:
+            {key, data, metadata, category, importance} 或 None（不存在）
+        """
+        try:
+            with self._get_conn() as conn:
+                row = conn.execute(
+                    f"SELECT key, data, metadata, category FROM {self._CONTENT_TABLE} WHERE key = ?",
+                    (key,),
+                ).fetchone()
+            if row is None:
+                return None
+            row = dict(row)
+            try:
+                meta = json.loads(row.get("metadata") or "{}")
+            except (json.JSONDecodeError, TypeError):
+                meta = {}
+            return {
+                "key": row["key"],
+                "data": row["data"],
+                "metadata": meta,
+                "category": row.get("category") or meta.get("category") or "uncategorized",
+                "importance": meta.get("importance"),
+            }
+        except Exception as e:
+            logger.warning("[HolographicAdapter] get_raw_memory 失败 key=%s: %s", key, e)
+            return None
+
+    def get_raw_memories(self, keys: list) -> list[dict]:
+        """批量读取多条记忆（供 syncer._flush 分组渲染）"""
+        if not keys:
+            return []
+        placeholders = ",".join("?" * len(keys))
+        try:
+            with self._get_conn() as conn:
+                rows = conn.execute(
+                    f"SELECT key, data, metadata, category FROM {self._CONTENT_TABLE} "
+                    f"WHERE key IN ({placeholders})",
+                    keys,
+                ).fetchall()
+            result = []
+            for row in rows:
+                row = dict(row)
+                try:
+                    meta = json.loads(row.get("metadata") or "{}")
+                except (json.JSONDecodeError, TypeError):
+                    meta = {}
+                result.append({
+                    "key": row["key"],
+                    "data": row["data"],
+                    "metadata": meta,
+                    "category": row.get("category") or meta.get("category") or "uncategorized",
+                    "importance": meta.get("importance"),
+                })
+            return result
+        except Exception as e:
+            logger.warning("[HolographicAdapter] get_raw_memories 失败: %s", e)
+            return []
+
+    def get_raw_memories_all(self) -> list[dict]:
+        """全量读取（供 syncer.flush_all 初始化物化）"""
+        try:
+            with self._get_conn() as conn:
+                rows = conn.execute(
+                    f"SELECT key, data, metadata, category FROM {self._CONTENT_TABLE}"
+                ).fetchall()
+            result = []
+            for row in rows:
+                row = dict(row)
+                try:
+                    meta = json.loads(row.get("metadata") or "{}")
+                except (json.JSONDecodeError, TypeError):
+                    meta = {}
+                result.append({
+                    "key": row["key"],
+                    "data": row["data"],
+                    "metadata": meta,
+                    "category": row.get("category") or meta.get("category") or "uncategorized",
+                    "importance": meta.get("importance"),
+                })
+            return result
+        except Exception as e:
+            logger.warning("[HolographicAdapter] get_raw_memories_all 失败: %s", e)
+            return []
+
+    def record_sync_conflict(
+        self,
+        sqlite_id: str,
+        db_hash: Optional[str],
+        file_hash: Optional[str],
+        resolution: str = "unresolved",
+    ) -> int:
+        """记录双向同步冲突（守不易：只记录不自动解决）
+
+        Returns: 冲突记录 id
+        """
+        now = time.time()
+        try:
+            with self._lock:
+                with self._get_conn() as conn:
+                    cur = conn.execute(
+                        "INSERT INTO sync_conflicts "
+                        "(sqlite_id, db_hash, file_hash, detected_at, resolution) "
+                        "VALUES (?, ?, ?, ?, ?)",
+                        (sqlite_id, db_hash, file_hash, now, resolution),
+                    )
+                    conn.commit()
+                    return cur.lastrowid or 0
+        except Exception as e:
+            logger.error("[HolographicAdapter] record_sync_conflict 失败: %s", e)
+            return 0
+
+    def list_sync_conflicts(self, unresolved_only: bool = True) -> list[dict]:
+        """查询冲突记录（供人工复核）"""
+        try:
+            with self._get_conn() as conn:
+                if unresolved_only:
+                    rows = conn.execute(
+                        "SELECT * FROM sync_conflicts WHERE resolved_at IS NULL "
+                        "ORDER BY detected_at DESC"
+                    ).fetchall()
+                else:
+                    rows = conn.execute(
+                        "SELECT * FROM sync_conflicts ORDER BY detected_at DESC"
+                    ).fetchall()
+            return [dict(r) for r in rows]
+        except Exception as e:
+            logger.warning("[HolographicAdapter] list_sync_conflicts 失败: %s", e)
+            return []
+
+    def resolve_sync_conflict(self, conflict_id: int, resolution: str):
+        """标记冲突已处理（人工复核后调用）"""
+        now = time.time()
+        try:
+            with self._lock:
+                with self._get_conn() as conn:
+                    conn.execute(
+                        "UPDATE sync_conflicts SET resolved_at = ?, resolution = ? WHERE id = ?",
+                        (now, resolution, conflict_id),
+                    )
+                    conn.commit()
+        except Exception as e:
+            logger.warning("[HolographicAdapter] resolve_sync_conflict 失败: %s", e)
+
