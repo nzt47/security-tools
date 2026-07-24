@@ -491,6 +491,90 @@ class TestBaselineRefresh:
 
 
 # ──────────────────────────────────────────────────────────────
+# 验收 9: 冲突检测幂等去重（同一冲突状态不重复记录）
+# ──────────────────────────────────────────────────────────────
+
+class TestConflictIdempotency:
+    def test_same_conflict_not_duplicated(self, adapter):
+        """同一 (sqlite_id, db_hash, file_hash) 未解决冲突多次调用只记 1 条"""
+        id1 = adapter.record_sync_conflict("k1", "hash_db_1", "hash_file_1")
+        id2 = adapter.record_sync_conflict("k1", "hash_db_1", "hash_file_1")
+        id3 = adapter.record_sync_conflict("k1", "hash_db_1", "hash_file_1")
+        assert id1 == id2 == id3, f"同一冲突应返回相同 id，实际 {id1}/{id2}/{id3}"
+        conflicts = adapter.list_sync_conflicts()
+        assert len(conflicts) == 1, f"应只 1 条，实际 {len(conflicts)}"
+
+    def test_different_conflict_state_records_new(self, adapter):
+        """冲突状态变化（hash 变了）后记录新条目"""
+        adapter.record_sync_conflict("k1", "db1", "file1")
+        # 文件又改了 → file_hash 变化 → 新冲突状态
+        id2 = adapter.record_sync_conflict("k1", "db1", "file2")
+        conflicts = adapter.list_sync_conflicts()
+        assert len(conflicts) == 2, f"不同冲突状态应记 2 条，实际 {len(conflicts)}"
+        assert conflicts[0]["id"] != conflicts[1]["id"]
+
+    def test_resolved_then_new_conflict_allowed(self, adapter):
+        """旧冲突解决后，相同状态可重新记录（不复用已解决记录）"""
+        id1 = adapter.record_sync_conflict("k1", "db1", "file1")
+        adapter.resolve_sync_conflict(id1, "manual")
+        # 相同冲突状态再次出现 → 应记录新条目（旧条目已解决）
+        id2 = adapter.record_sync_conflict("k1", "db1", "file1")
+        assert id2 != id1, "已解决后相同冲突状态应记新条目"
+        unresolved = adapter.list_sync_conflicts(unresolved_only=True)
+        assert len(unresolved) == 1
+
+
+# ──────────────────────────────────────────────────────────────
+# 验收 10: enable_markdown_sync 集成入口
+# ──────────────────────────────────────────────────────────────
+
+class TestEnableMarkdownSync:
+    def test_enable_creates_syncer_and_watcher(self, adapter, md_dir):
+        """集成入口一站式创建 syncer + watcher 并注入 adapter"""
+        pytest.importorskip("watchdog")
+        syncer, watcher = adapter.enable_markdown_sync(
+            md_dir, debounce_seconds=1, batch_threshold=10, dedup_ms=200,
+        )
+        try:
+            assert adapter._syncer is syncer
+            assert watcher is not None and watcher._started
+            # 写入一条 → 正向同步可用
+            async def r():
+                await adapter.save_with_embedding("ik1", "integrated content", {"category": "pref"})
+            asyncio.run(r())
+            syncer._flush()
+            assert os.path.exists(os.path.join(md_dir, "pref", "ik1.md"))
+        finally:
+            adapter.disable_markdown_sync(watcher)
+
+    def test_enable_without_watcher(self, adapter, md_dir):
+        """start_watcher=False 时仅启用正向同步"""
+        syncer, watcher = adapter.enable_markdown_sync(md_dir, start_watcher=False)
+        try:
+            assert adapter._syncer is syncer
+            assert watcher is None
+            async def r():
+                await adapter.save_with_embedding("ik2", "forward only", {"category": "note"})
+            asyncio.run(r())
+            syncer._flush()
+            assert os.path.exists(os.path.join(md_dir, "note", "ik2.md"))
+        finally:
+            adapter.disable_markdown_sync(watcher)
+
+    def test_disable_removes_syncer(self, adapter, md_dir):
+        """disable 后 adapter._syncer 为 None，save 不再触发同步"""
+        syncer, watcher = adapter.enable_markdown_sync(md_dir, start_watcher=False)
+        adapter.disable_markdown_sync(watcher)
+        assert adapter._syncer is None
+        # disable 后写入不应触发 syncer（已 close）
+        async def r():
+            await adapter.save_with_embedding("ik3", "after disable", {"category": "pref"})
+        asyncio.run(r())
+        assert not os.path.exists(os.path.join(md_dir, "pref", "ik3.md"))
+
+
+
+# ──────────────────────────────────────────────────────────────
 # 验收 7: 真实 watchdog Observer 端到端（锁定 dispatch 继承修复）
 # ──────────────────────────────────────────────────────────────
 

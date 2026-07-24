@@ -898,6 +898,77 @@ class HolographicAdapter(MemoryInterface):
         self._syncer = syncer
         logger.info("[HolographicAdapter] syncer 已%s", "注入" if syncer is not None else "移除")
 
+    def enable_markdown_sync(
+        self,
+        output_dir: str,
+        start_watcher: bool = True,
+        debounce_seconds: int = 5,
+        batch_threshold: int = 10,
+        dedup_ms: int = 500,
+    ):
+        """[TLM-L3] 一站式启用 Markdown 双向同步集成入口。
+
+        封装创建 MarkdownSyncer + MarkdownFileWatcher + set_syncer + watcher.start()，
+        将 refresh_single（反向基线刷新）与冲突处理（record_sync_conflict）串联进
+        adapter 集成代码。集成后数据流：
+        - 正向：adapter.save/delete → syncer.notify_change → flush 渲染 .md
+        - 反向：watchdog 捕获 .md 编辑 → 三路 content_hash 比较 →
+          幂等跳过 / 反向更新 SQLite + refresh_single 刷新基线 / record_sync_conflict 记冲突
+        - 冲突：写入 sync_conflicts 表，不自动解决（守不易）
+
+        Args:
+            output_dir: Markdown 物化目录（按 category 分子目录）
+            start_watcher: 是否启动 FileWatcher（False 时仅启用正向同步）
+            dedup_ms: Windows watchdog 去重窗口（默认 500ms，守不易约束）
+
+        Returns: (syncer, watcher)；watcher 启动失败时 watcher 为 None（不阻塞主进程）
+        """
+        # 延迟导入避免顶层循环依赖
+        from agent.memory.markdown_syncer import MarkdownSyncer
+        from agent.memory.file_watcher import MarkdownFileWatcher
+
+        syncer = MarkdownSyncer(
+            adapter=self,
+            output_dir=output_dir,
+            debounce_seconds=debounce_seconds,
+            batch_threshold=batch_threshold,
+        )
+        self.set_syncer(syncer)
+
+        watcher = None
+        if start_watcher:
+            watcher = MarkdownFileWatcher(
+                watch_dir=output_dir,
+                adapter=self,
+                syncer=syncer,
+                dedup_ms=dedup_ms,
+            )
+            # 启动失败由 watcher 内部兜底，不抛异常（守不易：不阻塞主进程）
+            watcher.start()
+
+        logger.info(
+            "[HolographicAdapter] Markdown 双向同步已启用 output_dir=%s "
+            "watcher=%s debounce=%ss batch=%s dedup=%sms",
+            output_dir, "on" if (watcher and watcher._started) else "off",
+            debounce_seconds, batch_threshold, dedup_ms,
+        )
+        return syncer, watcher
+
+    def disable_markdown_sync(self, watcher=None):
+        """关闭双向同步：停止 watcher + 关闭 syncer + 移除注入"""
+        if watcher is not None:
+            try:
+                watcher.stop()
+            except Exception as e:
+                logger.warning("[HolographicAdapter] 停止 watcher 异常: %s", e)
+        if self._syncer is not None:
+            try:
+                self._syncer.close()
+            except Exception as e:
+                logger.warning("[HolographicAdapter] 关闭 syncer 异常: %s", e)
+        self.set_syncer(None)
+        logger.info("[HolographicAdapter] Markdown 双向同步已关闭")
+
     def get_raw_memory(self, key: str) -> Optional[dict]:
         """读取单条记忆原始字段（供 FileWatcher 反向同步计算 db_hash）
 
@@ -1000,6 +1071,24 @@ class HolographicAdapter(MemoryInterface):
         try:
             with self._lock:
                 with self._get_conn() as conn:
+                    # 幂等去重（守不易：冲突检测幂等）：同一 (sqlite_id, db_hash,
+                    # file_hash) 的未解决冲突不重复记录，避免 watchdog 多次触发
+                    # 或 Observer+手动双重触发产生重复条目
+                    # 用 IS 比较以正确匹配 NULL（SQLite 特性）
+                    existing = conn.execute(
+                        "SELECT id FROM sync_conflicts "
+                        "WHERE sqlite_id = ? AND db_hash IS ? AND file_hash IS ? "
+                        "AND resolved_at IS NULL ORDER BY id DESC LIMIT 1",
+                        (sqlite_id, db_hash, file_hash),
+                    ).fetchone()
+                    if existing is not None:
+                        existing_id = existing["id"] if isinstance(existing, dict) else existing[0]
+                        logger.debug(
+                            "[HolographicAdapter] 冲突已存在未解决记录，跳过重复 "
+                            "id=%s sqlite_id=%s db_hash=%s file_hash=%s",
+                            existing_id, sqlite_id, db_hash, file_hash,
+                        )
+                        return existing_id
                     cur = conn.execute(
                         "INSERT INTO sync_conflicts "
                         "(sqlite_id, db_hash, file_hash, detected_at, resolution) "
@@ -1007,9 +1096,20 @@ class HolographicAdapter(MemoryInterface):
                         (sqlite_id, db_hash, file_hash, now, resolution),
                     )
                     conn.commit()
-                    return cur.lastrowid or 0
+                    conflict_id = cur.lastrowid or 0
+            # 锁外记日志（守 project_memory：持锁禁 I/O，日志记录移出临界区）
+            logger.info(
+                "[HolographicAdapter] 冲突已记录 id=%s sqlite_id=%s "
+                "db_hash=%s file_hash=%s resolution=%s detected_at=%.3f",
+                conflict_id, sqlite_id, db_hash, file_hash, resolution, now,
+            )
+            return conflict_id
         except Exception as e:
-            logger.error("[HolographicAdapter] record_sync_conflict 失败: %s", e)
+            logger.error(
+                "[HolographicAdapter] record_sync_conflict 失败 sqlite_id=%s "
+                "db_hash=%s file_hash=%s error=%s",
+                sqlite_id, db_hash, file_hash, e,
+            )
             return 0
 
     def list_sync_conflicts(self, unresolved_only: bool = True) -> list[dict]:
@@ -1025,7 +1125,21 @@ class HolographicAdapter(MemoryInterface):
                     rows = conn.execute(
                         "SELECT * FROM sync_conflicts ORDER BY detected_at DESC"
                     ).fetchall()
-            return [dict(r) for r in rows]
+            result = [dict(r) for r in rows]
+            logger.info(
+                "[HolographicAdapter] 查询冲突记录 unresolved_only=%s 返回 %d 条",
+                unresolved_only, len(result),
+            )
+            if result:
+                # 抽样详情便于排查（最多 3 条，避免日志爆炸）
+                for c in result[:3]:
+                    logger.debug(
+                        "[HolographicAdapter] 冲突详情 id=%s sqlite_id=%s "
+                        "db=%s file=%s resolved=%s resolution=%s",
+                        c.get("id"), c.get("sqlite_id"), c.get("db_hash"),
+                        c.get("file_hash"), c.get("resolved_at"), c.get("resolution"),
+                    )
+            return result
         except Exception as e:
             logger.warning("[HolographicAdapter] list_sync_conflicts 失败: %s", e)
             return []
@@ -1041,6 +1155,13 @@ class HolographicAdapter(MemoryInterface):
                         (now, resolution, conflict_id),
                     )
                     conn.commit()
+            logger.info(
+                "[HolographicAdapter] 冲突已标记解决 id=%s resolution=%s resolved_at=%.3f",
+                conflict_id, resolution, now,
+            )
         except Exception as e:
-            logger.warning("[HolographicAdapter] resolve_sync_conflict 失败: %s", e)
+            logger.warning(
+                "[HolographicAdapter] resolve_sync_conflict 失败 id=%s error=%s",
+                conflict_id, e,
+            )
 
