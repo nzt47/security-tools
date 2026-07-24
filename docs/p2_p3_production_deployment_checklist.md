@@ -180,13 +180,14 @@
 
 ### 3.1 后端选择确认
 
-- [ ] 确认 VectorStore 使用 chromadb 后端（非 json fallback）
+- [ ] 确认 VectorStore 使用向量后端（chromadb 或 sqlite_vec，非 json fallback）
   ```python
   from memory.vector_store import VectorStore
   store = VectorStore(persist_dir="./data/memory")
-  assert store._backend == "chromadb", f"期望 chromadb，实际 {store._backend}"
+  # Why: VectorStore 优先级 sqlite_vec > chromadb > json，前两者都是有效的向量后端
+  assert store._backend in ("chromadb", "sqlite_vec"), f"期望 chromadb 或 sqlite_vec，实际 {store._backend}"
   ```
-  - ⚠️ 如果 `_backend == "json"`，说明 chromadb 初始化失败，检查日志
+  - ⚠️ 如果 `_backend == "json"`，说明向量后端初始化失败，检查日志
 
 ### 3.2 路径修复验证
 
@@ -269,7 +270,22 @@
   ```
   - 预期: 全部 passed
 
-### 5.2 向量存储功能验证
+### 5.2 自动化回归测试（P2/P3 专项）
+
+- [ ] 运行自动化回归脚本（10 项核心验证）
+  ```bash
+  python scripts/verify_p2_p3_regression.py
+  ```
+  - 预期: 10 passed / 0 failed
+  - 报告自动保存到 `logs/p2_p3_regression_report.md`
+  - 覆盖项: 环境/PersistentClient/CRUD/语义搜索/Win临时目录/VectorStore/P2缓存/P4排序/持久化/线程安全
+
+- [ ] 确认回归测试报告结果
+  - 查看: `logs/p2_p3_regression_report.md`
+  - 预期: 所有 10 项全部 PASS
+  - ⚠️ 如果有 FAIL，根据详情排查（常见: chromadb 版本不对/路径问题/依赖冲突）
+
+### 5.3 向量存储功能验证
 
 - [ ] 添加记忆 + 搜索记忆
   ```python
@@ -396,6 +412,7 @@
 | API 兼容性 | 阶段 3 | `python -m pytest tests/performance/test_chromadb_v05_api_compat.py -v` |
 | 性能测试 | 阶段 4 | `python -m pytest tests/performance/test_vector_store_performance.py -v -s` |
 | heapq 压测 | 阶段 4 | `python scripts/run_p4_benchmark.py` |
+| **P2/P3 自动化回归** | **阶段 5** | **`python scripts/verify_p2_p3_regression.py`** |
 | 回归测试 | 阶段 5 | `python -m pytest tests/ -v --timeout=300 -x` |
 
 ---
