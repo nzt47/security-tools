@@ -1,5 +1,5 @@
 {
-  "trace_id": "733e074aeed14de7",
+  "trace_id": "755e88b250f34fc3",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -31,7 +31,7 @@
       "name": "logging_utils",
       "layer": "core",
       "file_path": "",
-      "in_degree": 68,
+      "in_degree": 70,
       "out_degree": 1
     },
     {
@@ -215,7 +215,7 @@
       "name": "tool_router",
       "layer": "core",
       "file_path": "agent/tool_router.py",
-      "in_degree": 3,
+      "in_degree": 5,
       "out_degree": 1
     },
     {
@@ -377,6 +377,14 @@
       "file_path": "",
       "in_degree": 2,
       "out_degree": 0
+    },
+    {
+      "path": "agent.mcp_executor",
+      "name": "mcp_executor",
+      "layer": "core",
+      "file_path": "agent/mcp_executor.py",
+      "in_degree": 0,
+      "out_degree": 2
     },
     {
       "path": "agent.diff_tools",
@@ -1275,6 +1283,30 @@
       "out_degree": 0
     },
     {
+      "path": "agent.memory.markdown_syncer",
+      "name": "markdown_syncer",
+      "layer": "memory",
+      "file_path": "agent/memory/markdown_syncer.py",
+      "in_degree": 2,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.memory.file_watcher",
+      "name": "file_watcher",
+      "layer": "memory",
+      "file_path": "agent/memory/file_watcher.py",
+      "in_degree": 1,
+      "out_degree": 3
+    },
+    {
+      "path": "agent.memory.observability",
+      "name": "observability",
+      "layer": "memory",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 1
+    },
+    {
       "path": "agent.memory",
       "name": "memory",
       "layer": "memory",
@@ -1299,14 +1331,6 @@
       "out_degree": 2
     },
     {
-      "path": "agent.memory.observability",
-      "name": "observability",
-      "layer": "memory",
-      "file_path": "agent/memory/observability.py",
-      "in_degree": 0,
-      "out_degree": 1
-    },
-    {
       "path": "agent.memory.filter",
       "name": "filter",
       "layer": "memory",
@@ -1320,7 +1344,7 @@
       "layer": "memory",
       "file_path": "",
       "in_degree": 2,
-      "out_degree": 4
+      "out_degree": 6
     },
     {
       "path": "agent.memory.adapters.mem0_adapter",
@@ -2639,6 +2663,32 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.mcp_executor",
+      "target": "agent.tool_router",
+      "source_layer": "core",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 483,
+      "source_file": "agent/mcp_executor.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.mcp_executor",
+      "target": "agent.tool_router",
+      "source_layer": "core",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 446,
+      "source_file": "agent/mcp_executor.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.diff_tools",
       "target": "agent.logging_utils",
       "source_layer": "core",
@@ -2722,7 +2772,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 62,
+      "line": 92,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -2735,7 +2785,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 68,
+      "line": 98,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5278,6 +5328,58 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.memory.markdown_syncer",
+      "target": "agent.logging_utils",
+      "source_layer": "memory",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 37,
+      "source_file": "agent/memory/markdown_syncer.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.file_watcher",
+      "target": "agent.logging_utils",
+      "source_layer": "memory",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 33,
+      "source_file": "agent/memory/file_watcher.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.file_watcher",
+      "target": "agent.memory.markdown_syncer",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 34,
+      "source_file": "agent/memory/file_watcher.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.file_watcher",
+      "target": "agent.memory.observability",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 421,
+      "source_file": "agent/memory/file_watcher.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.memory",
       "target": "agent.memory.base",
       "source_layer": "memory",
@@ -5530,7 +5632,7 @@
       "source_layer": "memory",
       "target_layer": "memory",
       "import_type": "from_import",
-      "line": 28,
+      "line": 29,
       "source_file": "agent/memory/adapters/holographic_adapter.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5543,7 +5645,7 @@
       "source_layer": "memory",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 33,
+      "line": 34,
       "source_file": "agent/memory/adapters/holographic_adapter.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5556,9 +5658,35 @@
       "source_layer": "memory",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 732,
+      "line": 782,
       "source_file": "agent/memory/adapters/holographic_adapter.py",
       "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.adapters.holographic_adapter",
+      "target": "agent.memory.markdown_syncer",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 927,
+      "source_file": "agent/memory/adapters/holographic_adapter.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.adapters.holographic_adapter",
+      "target": "agent.memory.file_watcher",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 928,
+      "source_file": "agent/memory/adapters/holographic_adapter.py",
+      "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -5569,7 +5697,7 @@
       "source_layer": "memory",
       "target_layer": "caching",
       "import_type": "from_import",
-      "line": 81,
+      "line": 86,
       "source_file": "agent/memory/adapters/holographic_adapter.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9439,14 +9567,14 @@
     }
   ],
   "stats": {
-    "total_files": 330,
-    "total_nodes": 261,
-    "total_edges": 565,
-    "cross_layer_edges": 360,
+    "total_files": 334,
+    "total_nodes": 264,
+    "total_edges": 573,
+    "cross_layer_edges": 362,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
-      "core": 55,
+      "core": 56,
       "lazy_loader": 3,
       "monitoring": 27,
       "utils": 5,
@@ -9467,7 +9595,7 @@
       "p6": 5,
       "log_system": 9,
       "handoff": 1,
-      "memory": 11,
+      "memory": 13,
       "guardrails": 4,
       "tool_schema_pruner": 1,
       "tool_fewshot_store": 1,
@@ -9482,6 +9610,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1182.2251720000027
+    "build_duration_ms": 1188.3359959999993
   }
 }

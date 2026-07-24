@@ -51,6 +51,7 @@ flowchart LR
         agent_llm_monitor["agent.llm_monitor"]
         agent_llm_response_cache["agent.llm_response_cache"]
         agent_logging_utils["agent.logging_utils"]:::crosslayer
+        agent_mcp_executor["agent.mcp_executor"]
         agent_memory_optimized["agent.memory_optimized"]
         agent_multi_tenant["agent.multi_tenant"]
         agent_network_config["agent.network_config"]:::crosslayer
@@ -146,8 +147,10 @@ flowchart LR
         agent_memory_adapters_holographic_adapter["agent.memory.adapters.holographic_adapter"]
         agent_memory_adapters_mem0_adapter["agent.memory.adapters.mem0_adapter"]
         agent_memory_base["agent.memory.base"]
+        agent_memory_file_watcher["agent.memory.file_watcher"]
         agent_memory_filter["agent.memory.filter"]
         agent_memory_long_term_memory["agent.memory.long_term_memory"]:::crosslayer
+        agent_memory_markdown_syncer["agent.memory.markdown_syncer"]
         agent_memory_observability["agent.memory.observability"]
         agent_memory_reviewer["agent.memory.reviewer"]:::crosslayer
         agent_memory_router["agent.memory.router"]
@@ -377,6 +380,8 @@ flowchart LR
     agent_state_manager --> agent_logging_utils
     agent_state_manager -.-> agent_skills_mgmt
     agent_state_manager -.-> agent_workflow_learning
+    agent_mcp_executor --> agent_tool_router
+    agent_mcp_executor --> agent_tool_router
     agent_diff_tools --> agent_logging_utils
     agent_diff_tools --> agent_system_tools
     agent_compression_tools --> agent_logging_utils
@@ -580,6 +585,10 @@ flowchart LR
     agent_extensions_security_checker --> agent_extensions_base
     agent_memory_short_term_memory --> agent_memory_base
     agent_memory_short_term_memory -.-> agent_logging_utils
+    agent_memory_markdown_syncer -.-> agent_logging_utils
+    agent_memory_file_watcher -.-> agent_logging_utils
+    agent_memory_file_watcher --> agent_memory_markdown_syncer
+    agent_memory_file_watcher --> agent_memory_observability
     agent_memory --> agent_memory_base
     agent_memory --> agent_memory_router
     agent_memory --> agent_memory_adapters
@@ -602,6 +611,8 @@ flowchart LR
     agent_memory_adapters_holographic_adapter --> agent_memory_base
     agent_memory_adapters_holographic_adapter -.-> agent_logging_utils
     agent_memory_adapters_holographic_adapter -.-> agent_error_handler
+    agent_memory_adapters_holographic_adapter --> agent_memory_markdown_syncer
+    agent_memory_adapters_holographic_adapter --> agent_memory_file_watcher
     agent_memory_adapters_holographic_adapter -.-> agent_caching_multi_level_cache
     agent_skills_mgmt_creator -.-> agent_extensions_market
     agent_skills_mgmt_enhancer -.-> agent_feedback
@@ -908,10 +919,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 330
-- 模块节点数: 261
-- 依赖边数: 565
-- 跨层调用数: 360
+- 扫描文件数: 334
+- 模块节点数: 264
+- 依赖边数: 573
+- 跨层调用数: 362
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1182.23 ms
+- 构建耗时: 1188.34 ms
