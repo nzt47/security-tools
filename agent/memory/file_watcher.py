@@ -140,6 +140,15 @@ class MarkdownFileWatcher:
 
     def on_modified(self, src_path: str):
         """watchdog on_modified 入口：500ms 去重后处理"""
+        # 入口日志：记录每个到达的事件原始路径（含被过滤的），便于排查 Windows
+        # 事件触发频率与去重窗口问题
+        logger.debug(
+            log_dict({
+                "module_name": "file_watcher",
+                "action": "on_modified.entry",
+                "msg": f"[FileWatcher] 事件到达 src_path={src_path}",
+            })
+        )
         path = os.path.abspath(src_path)
         # 过滤非 .md 与 .tmp 原子写临时文件
         if not path.endswith(".md") or path.endswith(".tmp"):
@@ -320,6 +329,14 @@ class MarkdownFileWatcher:
             return
 
         # 4) 两者都偏离 base → 双向冲突，只记录不自动解决（守不易）
+        logger.debug(
+            log_dict({
+                "module_name": "file_watcher",
+                "action": "conflict.detect_start",
+                "msg": f"[FileWatcher] 冲突检测开始 sqlite_id={sqlite_id} "
+                       f"双向均偏离 base={base_hash} db={db_hash} file={file_hash}",
+            })
+        )
         logger.warning(
             log_dict({
                 "module_name": "file_watcher",
@@ -328,9 +345,18 @@ class MarkdownFileWatcher:
                        f"base={base_hash} db={db_hash} file={file_hash}",
             })
         )
-        self.adapter.record_sync_conflict(
+        conflict_id = self.adapter.record_sync_conflict(
             sqlite_id, db_hash=db_hash, file_hash=file_hash,
             resolution="unresolved",
+        )
+        logger.info(
+            log_dict({
+                "module_name": "file_watcher",
+                "action": "conflict.recorded",
+                "msg": f"[FileWatcher] 冲突已上报 sqlite_id={sqlite_id} "
+                       f"conflict_id={conflict_id}"
+                       f"（幂等去重：同状态复用已有记录）",
+            })
         )
         self._notify_conflict_metric()
 
