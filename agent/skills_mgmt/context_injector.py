@@ -39,6 +39,8 @@ from .executor import ExecutionResult
 from .file_store import SkillFileStore
 from .observability import logger, emit_metric
 from .exceptions import SkillNotFoundError
+from .models import Skill
+from .output_guard import SkillOutputGuard
 
 
 def _trace_id() -> str:
@@ -623,19 +625,27 @@ class ContextInjector:
 
     def inject_result(self, result: ExecutionResult,
                       *, request_feedback: bool = False,
-                      trace_id: str = "") -> Dict[str, Any]:
+                      trace_id: str = "",
+                      skill: Optional[Skill] = None) -> Dict[str, Any]:
         """第三层 — 注入脚本执行结果
 
         只注入执行结果（JSON），不注入代码。
         代码已在后台执行完毕，只把结果传给模型。
 
+        [不易] 注入前先经 SkillOutputGuard 护栏校验:
+            - critical: 不注入结果, 仅注入错误说明
+            - error:   注入结果 + 追加 ⚠️ 警告
+            - warn:    记日志, 正常注入
+            - info:    正常注入
+
         Args:
             result: 脚本执行结果
             request_feedback: 是否在结果后注入"请对该技能效果评分"的引导
             trace_id: 关联追踪ID（用于反馈落库时绑定）
+            skill: 技能对象 (可选, 传入时启用 output_schema 格式校验)
 
         Returns: {prompt, skill_id, script_name, estimated_tokens, layer,
-                  feedback_request?}
+                  feedback_request?, guard_result}
         """
         t0 = time.time()
         tid = trace_id or _trace_id()
@@ -655,7 +665,72 @@ class ContextInjector:
         else:
             truncated = False
 
+        # [不易] 输出护栏: 注入前校验执行结果
+        guard = SkillOutputGuard()
+        guard_result = guard.validate_execution_result(result, skill)
+        guard_severity = guard_result.severity
+
+        # critical: 不注入结果, 仅注入错误说明
+        if guard_severity == "critical":
+            critical_msgs = "; ".join(
+                f.message for f in guard_result.findings
+                if f.severity == "critical"
+            )
+            prompt = (
+                f"## ⚠️ 执行结果护栏拦截：{result.skill_id}/{result.script_name}\n\n"
+                f"执行结果未注入上下文，原因：{critical_msgs}"
+            )
+            elapsed = (time.time() - t0) * 1000
+            logger.warning(json.dumps({
+                "trace_id": tid,
+                "module_name": "context_injector",
+                "action": "inject_result.guard_blocked",
+                "duration_ms": round(elapsed, 2),
+                "layer": 3,
+                "skill_id": result.skill_id,
+                "script_name": result.script_name,
+                "guard_severity": guard_severity,
+                "findings": [f.to_dict() for f in guard_result.findings],
+            }, ensure_ascii=False))
+            emit_metric("yunshu_skill_output_guard_total",
+                        value=1, kind="counter",
+                        labels={"skill_id": result.skill_id,
+                                "severity": guard_severity})
+            return {
+                "prompt": prompt,
+                "skill_id": result.skill_id,
+                "script_name": result.script_name,
+                "estimated_tokens": estimate_tokens(prompt),
+                "truncated": False,
+                "layer": 3,
+                "feedback_request": None,
+                "guard_result": guard_result.to_dict(),
+            }
+
         prompt = f"## 脚本执行结果：{result.skill_id}/{result.script_name}\n\n```json\n{result_str}\n```"
+
+        # error: 注入结果 + 追加警告
+        if guard_severity == "error":
+            error_msgs = "; ".join(
+                f.message for f in guard_result.findings
+                if f.severity == "error"
+            )
+            prompt += f"\n\n⚠️ 执行结果校验失败：{error_msgs}"
+
+        # warn: 仅记日志, 正常注入
+        if guard_severity == "warn":
+            logger.warning(json.dumps({
+                "trace_id": tid,
+                "module_name": "context_injector",
+                "action": "inject_result.guard_warn",
+                "skill_id": result.skill_id,
+                "findings": [f.to_dict() for f in guard_result.findings],
+            }, ensure_ascii=False))
+
+        emit_metric("yunshu_skill_output_guard_total",
+                    value=1, kind="counter",
+                    labels={"skill_id": result.skill_id,
+                            "severity": guard_severity})
 
         # 自解释 UI 原则：在执行结果后引导用户对技能效果评分
         # 配合 feedback-skill 绑定，收集到的评分将驱动技能自进化
@@ -716,6 +791,7 @@ class ContextInjector:
             "truncated": truncated,
             "layer": 3,
             "feedback_request": feedback_request,
+            "guard_result": guard_result.to_dict(),
         }
 
     # ──────────────────────────────────────────────
