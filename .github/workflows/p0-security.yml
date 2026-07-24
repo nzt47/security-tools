@@ -42,6 +42,11 @@ on:
       - 'patches/p0_security/**'
       - 'scripts/scan_sensitive_regex.py'
       - '.github/workflows/p0-security.yml'
+      # P1 硬编码密码防护：监控相关文件
+      - 'scripts/_import_dashboards.py'
+      - 'docker-compose.monitoring*.yml'
+      - 'docker/glitchtip/orm_setup_inline.py'
+      - '.github/gitleaks-config.toml'
   pull_request:
     branches:
       - main
@@ -56,6 +61,11 @@ on:
       - 'tests/regression/test_p0_security_fix.py'
       - 'patches/p0_security/**'
       - 'scripts/scan_sensitive_regex.py'
+      # P1 硬编码密码防护：监控相关文件
+      - 'scripts/_import_dashboards.py'
+      - 'docker-compose.monitoring*.yml'
+      - 'docker/glitchtip/orm_setup_inline.py'
+      - '.github/gitleaks-config.toml'
   schedule:
     - cron: '0 3 * * *'
   workflow_dispatch:
@@ -297,13 +307,85 @@ jobs:
           echo "=== 跨模块一致性验证通过 ==="
 
   # ============================================================================
-  # Job 5: 测试总结
+  # Job 5: 硬编码密码扫描 — 防止 P1 问题复发
+  # ============================================================================
+  # [P1 防复发] 使用 gitleaks 扫描硬编码密码，检测以下模式：
+  #   - password = "xxx" 硬编码赋值
+  #   - Grafana/GlitchTip/PostgreSQL admin 密码硬编码
+  #   - Django SECRET_KEY 硬编码
+  #   - HTTP Basic Auth 密码
+  #   - 常见弱密码（admin123, password123 等）
+  # 白名单：环境变量引用、占位符、.env.example、文档、测试文件
+  # 触发：修改监控相关文件时 + 定时扫描
+  hardcoded-password-scan:
+    name: 硬编码密码扫描 (P1 防复发)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: 安装 gitleaks
+        run: |
+          echo "=== 安装 gitleaks v8 ==="
+          GITLEAKS_VERSION="8.18.1"
+          wget -q "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -O /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks
+          chmod +x /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: 运行 gitleaks 扫描
+        run: |
+          echo "=== 硬编码密码扫描（P1 防复发）==="
+          mkdir -p test_reports
+          gitleaks detect \
+            --config .github/gitleaks-config.toml \
+            --source . \
+            --no-git-text \
+            --report-format json \
+            --report-path test_reports/hardcoded-password-scan.json \
+            --verbose
+          SCAN_EXIT=$?
+          echo ""
+          echo "=== 扫描结果 ==="
+          if [ -f test_reports/hardcoded-password-scan.json ] && [ -s test_reports/hardcoded-password-scan.json ]; then
+            FINDINGS=$(python -c "import json; data=json.load(open('test_reports/hardcoded-password-scan.json')); print(len(data))" 2>/dev/null || echo "0")
+            echo "发现硬编码密码: ${FINDINGS} 处"
+            cat test_reports/hardcoded-password-scan.json | python -m json.tool 2>/dev/null || cat test_reports/hardcoded-password-scan.json
+          else
+            echo "未发现硬编码密码 ✅"
+          fi
+          if [ $SCAN_EXIT -ne 0 ]; then
+            echo ""
+            echo "❌ 硬编码密码扫描未通过！请修复后重试。"
+            echo "修复指南："
+            echo "  1. 将硬编码密码改为 os.environ.get('VAR_NAME') 读取"
+            echo "  2. Docker Compose 使用 \${VAR:-default} 变量插值"
+            echo "  3. 密码值放入 .env 文件（已被 .gitignore 排除）"
+            echo "  4. 参考修复: commit 9d51c406 (P1 硬编码密码移除)"
+            exit 1
+          else
+            echo "✅ 硬编码密码扫描通过"
+          fi
+
+      - name: 上传扫描报告
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: hardcoded-password-scan-report
+          path: test_reports/hardcoded-password-scan.json
+          retention-days: 30
+
+  # ============================================================================
+  # Job 6: 测试总结
   # ============================================================================
   p0-security-summary:
     name: P0 安全验证总结
     runs-on: ubuntu-22.04
     timeout-minutes: 15
-    needs: [static-scan, p0-security-tests, patch-integrity, cross-module-consistency]
+    needs: [static-scan, p0-security-tests, patch-integrity, cross-module-consistency, hardcoded-password-scan]
     if: always()
     steps:
       - name: 生成总结报告
@@ -317,11 +399,13 @@ jobs:
           echo "| P0 回归测试 | ${{ needs.p0-security-tests.result == 'success' && '通过' || '失败' }} |"
           echo "| 补丁完整性 | ${{ needs.patch-integrity.result == 'success' && '通过' || '失败' }} |"
           echo "| 跨模块一致性 | ${{ needs.cross-module-consistency.result == 'success' && '通过' || '失败' }} |"
+          echo "| 硬编码密码扫描 | ${{ needs.hardcoded-password-scan.result == 'success' && '通过' || '失败' }} |"
           echo ""
           if [ "${{ needs.static-scan.result }}" == "success" ] && \
              [ "${{ needs.p0-security-tests.result }}" == "success" ] && \
              [ "${{ needs.patch-integrity.result }}" == "success" ] && \
-             [ "${{ needs.cross-module-consistency.result }}" == "success" ]; then
+             [ "${{ needs.cross-module-consistency.result }}" == "success" ] && \
+             [ "${{ needs.hardcoded-password-scan.result }}" == "success" ]; then
             echo "P0 安全验证全部通过！"
           else
             echo "P0 安全验证存在失败项，请检查！"
