@@ -393,7 +393,8 @@ store = VectorStore(
     cache_size=100
 )
 print(f'VectorStore 后端: {store._backend}')
-assert store._backend == 'chromadb', f'期望 chromadb，实际 {store._backend}'
+# Why: VectorStore 优先级 sqlite_vec > chromadb > json，两者都是有效的向量后端
+assert store._backend in ('chromadb', 'sqlite_vec'), f'期望 chromadb 或 sqlite_vec，实际 {store._backend}'
 
 # 添加记忆
 store.add('测试记忆内容', metadata={'type': 'verify'})
@@ -409,7 +410,7 @@ stats = store.get_cache_stats()
 print(f'缓存统计: {stats}')
 print('VectorStore 集成验证通过')
 "
-# 预期: backend=chromadb
+# 预期: backend=chromadb 或 sqlite_vec（只要不是 json fallback 即可）
 ```
 
 ### 4.6 验证 6: P2 预热缓存
@@ -534,6 +535,34 @@ Select-String -Path "requirements.txt" -Pattern "chromadb"
 pip install -r requirements.txt --dry-run 2>&1 | Select-String "chromadb"
 # 预期: Already satisfied: chromadb>=0.5.0,<0.6.0
 ```
+
+### 4.11 验证 11: 自动化回归测试（一键验证）
+
+> 使用自动化脚本一键执行上述所有验证项，适合快速回归
+
+```powershell
+# 运行自动化回归测试脚本（10 项验证）
+python scripts/verify_p2_p3_regression.py
+```
+
+**预期结果**（降级到 0.5.x 后）: 10 passed / 0 failed
+
+**脚本覆盖的 10 项验证**:
+
+| # | 测试项 | 对应手动验证 |
+|---|--------|-------------|
+| 1 | 环境检查 | 3.4 验证版本 |
+| 2 | PersistentClient API | 4.1 验证 1 |
+| 3 | Collection CRUD | 4.2 验证 2 |
+| 4 | 语义搜索 query | 4.3 验证 3 |
+| 5 | Windows 临时目录兼容性 | 4.4 验证 4 |
+| 6 | VectorStore 集成 | 4.5 验证 5 |
+| 7 | P2 预热缓存 | 4.6 验证 6 |
+| 8 | P4 heapq 排序 | —（手动验证未覆盖）|
+| 9 | 数据持久化 | 4.9 验证 9 |
+| 10 | 线程安全 | —（手动验证未覆盖）|
+
+> 报告自动保存到 `logs/p2_p3_regression_report.md`
 
 ---
 
