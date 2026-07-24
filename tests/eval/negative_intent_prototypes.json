@@ -1,8 +1,8 @@
 {
-  "version": "v6.2-prototypes",
+  "version": "v6.3-prototypes",
   "description": "非技能意图 prototype 样本 — 每类 3-5 条，用于 BGE-m3 embedding 相似度判定",
   "embedding_model": "BAAI/bge-m3",
-  "threshold_default": 0.75,
+  "threshold_default": 0.65,
   "categories": [
     {
       "category": "weather",
@@ -17,13 +17,15 @@
     },
     {
       "category": "programming",
-      "description": "编程技术问题类 — 非技能意图（注意：与 skills_mgmt 代码技能区分）",
+      "description": "编程技术问题类 — 非技能意图（v6.3 清洗：移除英文样本，改为纯中文具体编程问题，消除与 context_aware/voice_interaction 的语义冲突）",
       "samples": [
-        "def print_hello_world function",
-        "java python c++ programming",
-        "how to implement quick sort",
         "写一个 python 函数",
-        "如何实现二分查找"
+        "如何实现二分查找",
+        "python 列表怎么去重",
+        "这段代码报错了 syntax error",
+        "git 怎么回退上一个 commit",
+        "sql 查询语句怎么写",
+        "正则表达式匹配邮箱"
       ]
     },
     {
