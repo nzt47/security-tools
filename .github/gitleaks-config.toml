@@ -1,0 +1,101 @@
+# Gitleaks 配置 - 硬编码密码扫描
+#
+# 目的：防止 P1 硬编码密码问题复发
+# 扫描范围：Python/YAML/Docker Compose/Shell 脚本
+# 白名单：环境变量引用、占位符、.env.example、文档
+#
+# 使用方式：
+#   本地: gitleaks detect --config .github/gitleaks-config.toml --source .
+#   CI: 通过 p0-security.yml 的 hardcoded-password-scan Job 自动运行
+
+title = "Yunshu Project - 硬编码密码扫描配置（P1 防复发）"
+
+[allowlist]
+description = "允许的密码占位符和环境变量引用（白名单）"
+paths = [
+    # 示例文件允许占位符
+    '''\.env\.example$''',
+    '''\.env\.backup''',
+    # 文档允许示例密码
+    '''docs/.*\.md$''',
+    '''README.*\.md$''',
+    # gitleaks 自身配置
+    '''\.github/gitleaks-config\.toml$''',
+    # 测试文件中的 mock 密码
+    '''tests/.*\.py$''',
+]
+regexes = [
+    # Python 环境变量读取（os.environ.get / os.getenv）
+    '''os\.environ\.get\s*\(''',
+    '''os\.getenv\s*\(''',
+    # Docker Compose 变量插值 ${VAR:-default}
+    '''\$\{[A-Z_]+_PASSWORD(:-[^}]*)?\}''',
+    '''\$\{[A-Z_]+_USER(:-[^}]*)?\}''',
+    # 占位符
+    '''CHANGE_ME''',
+    '''YOUR_PASSWORD_HERE''',
+    '''<your-password>''',
+    '''<your-secret>''',
+    ''' Placeholder ''',
+    '''example\.com''',
+    '''local\.test''',
+    # 注释中的说明
+    '''#\s*.*密码.*环境变量''',
+    '''#\s*.*password.*env''',
+]
+
+# ── 规则 1: 硬编码密码赋值 ──────────────────────────────────────
+[[rules]]
+id = "hardcoded-password-assignment"
+description = "硬编码密码赋值（password = 'xxx'）"
+regex = '''(?i)(password|passwd|pwd)\s*[:=]\s*['"][^'"\s]{4,}['"]'''
+tags = ["password", "hardcoded", "p1"]
+keywords = ["password", "passwd", "pwd"]
+
+# ── 规则 2: Grafana admin 密码硬编码 ───────────────────────────
+[[rules]]
+id = "grafana-admin-password"
+description = "Grafana admin 密码硬编码（GF_SECURITY_ADMIN_PASSWORD）"
+regex = '''GF_SECURITY_ADMIN_PASSWORD\s*[:=]\s*['"][^'"\s]{4,}['"]'''
+tags = ["grafana", "password", "p1"]
+keywords = ["GF_SECURITY_ADMIN_PASSWORD"]
+
+# ── 规则 3: GlitchTip 密码硬编码 ────────────────────────────────
+[[rules]]
+id = "glitchtip-password"
+description = "GlitchTip admin 密码硬编码"
+regex = '''GLITCHTIP_ADMIN_PASSWORD\s*[:=]\s*['"][^'"\s]{4,}['"]'''
+tags = ["glitchtip", "password", "p1"]
+keywords = ["GLITCHTIP_ADMIN_PASSWORD"]
+
+# ── 规则 4: PostgreSQL 密码硬编码 ───────────────────────────────
+[[rules]]
+id = "postgres-password"
+description = "PostgreSQL 密码硬编码"
+regex = '''POSTGRES_PASSWORD\s*[:=]\s*['"][^'"\s]{4,}['"]'''
+tags = ["postgres", "password", "p1"]
+keywords = ["POSTGRES_PASSWORD"]
+
+# ── 规则 5: Django SECRET_KEY 硬编码 ────────────────────────────
+[[rules]]
+id = "django-secret-key"
+description = "Django SECRET_KEY 硬编码（非 dev-secret-key 占位符）"
+regex = '''SECRET_KEY\s*[:=]\s*['"](?!dev-secret-key|change-me|your-secret)[^'"\s]{20,}['"]'''
+tags = ["django", "secret", "p1"]
+keywords = ["SECRET_KEY"]
+
+# ── 规则 6: HTTP Basic Auth 密码 ────────────────────────────────
+[[rules]]
+id = "http-basic-auth-password"
+description = "HTTP Basic Auth 密码硬编码（auth=(user, 'password')）"
+regex = '''auth\s*=\s*\([^)]*['"][^'"\s]{4,}['"]'''
+tags = ["http", "auth", "password", "p1"]
+keywords = ["auth="]
+
+# ── 规则 7: admin/admin123 常见弱密码 ───────────────────────────
+[[rules]]
+id = "common-weak-password"
+description = "常见弱密码（admin123, password123, 12345678 等）"
+regex = '''(?i)(password|admin)\s*[:=]\s*['"](admin123|password123|12345678|qwerty|letmein)['"]'''
+tags = ["weak", "password", "p1"]
+keywords = ["admin123", "password123", "12345678"]
