@@ -467,3 +467,21 @@ def guard_result_example_data():
     with open(json_path, encoding="utf-8") as f:
         return json.load(f)
 
+
+@pytest.fixture(scope="session")
+def guard_trace_log_example_data():
+    """从 docs/guard_trace_log_example.json 加载链路追踪日志示例 (回归测试复用)
+
+    来源: demo_guard_trace.py 运行产出的结构化日志, 整理为 JSON fixture
+    用途: 回归测试验证 guard_trace 串联结构 (start/end 事件 + trace_id 一致性 + 时序)
+    若文件不存在则跳过 (需先运行 demo_guard_trace.py 并整理为 JSON)
+    """
+    import json
+    from pathlib import Path
+    json_path = Path(__file__).parent.parent.parent / "docs" / "guard_trace_log_example.json"
+    if not json_path.exists():
+        import pytest
+        pytest.skip("guard_trace_log_example.json 不存在, 参考 docs/guard_trace_log_example.md 整理")
+    with open(json_path, encoding="utf-8") as f:
+        return json.load(f)
+
