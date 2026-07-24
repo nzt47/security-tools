@@ -12,6 +12,12 @@ global:
   external_labels:
     environment: "production"
 
+# Alertmanager 路由 — 告警发送到 alertmanager 服务
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
 rule_files:
   - "alert_rules.yml"
   - "recording_rules.yml"
@@ -24,6 +30,14 @@ scrape_configs:
       - targets: ['visibility-exporter:9101']
     metrics_path: /metrics
     scrape_interval: 30s
+
+  # 1b. MCP 日志级别监控导出器（check_mcp_log_level.py --serve）
+  #     轻量级: 仅 stdlib, 暴露 mcp_log_level_current / mcp_log_level_fallback
+  - job_name: 'mcp-log-monitor'
+    static_configs:
+      - targets: ['mcp-log-monitor:9102']
+    metrics_path: /metrics
+    scrape_interval: 15s
 
   # 2. 云枢应用业务指标（prometheus_flask_exporter）
   - job_name: 'yunshu-app'

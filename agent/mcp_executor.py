@@ -35,6 +35,9 @@ from typing import Any, Optional, Dict
 #              set_logger_level("INFO")   # 排查完恢复
 _VALID_LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR"}
 _MCP_LOG_LEVEL = os.environ.get("MCP_LOG_LEVEL", "INFO").upper()
+# 回退追踪 — 供 healthcheck / Prometheus 指标 / 告警规则使用
+_LOG_LEVEL_FALLBACK = False       # True 表示发生了无效值回退
+_LOG_LEVEL_ORIGINAL: Optional[str] = None  # 原始无效值(回退时填充)
 logger = logging.getLogger(__name__)
 # 模块加载时校验:CRITICAL 等非白名单值回退 INFO(防止抑制 ERROR 日志)
 # CRITICAL 虽是 Python logging 内置级别(logging.CRITICAL=50),但会抑制
@@ -42,6 +45,8 @@ logger = logging.getLogger(__name__)
 if _MCP_LOG_LEVEL not in _VALID_LOG_LEVELS:
     logger.warning("[MCP] 无效日志级别 '%s',回退到 INFO。有效值: %s",
                    _MCP_LOG_LEVEL, sorted(_VALID_LOG_LEVELS))
+    _LOG_LEVEL_ORIGINAL = _MCP_LOG_LEVEL
+    _LOG_LEVEL_FALLBACK = True
     _MCP_LOG_LEVEL = "INFO"
 logger.setLevel(getattr(logging, _MCP_LOG_LEVEL, logging.INFO))
 
@@ -74,6 +79,33 @@ def set_logger_level(level: str) -> str:
 def get_logger_level() -> str:
     """查询当前 mcp_executor 日志级别(便于运维确认)"""
     return logging.getLevelName(logger.getEffectiveLevel())
+
+
+def get_log_level_status() -> dict:
+    """查询日志级别完整状态 — 供 healthcheck / Prometheus 指标 / 告警规则使用。
+
+    Returns:
+        {
+            "level": "INFO",           # 当前生效级别
+            "configured": "CRITICAL",  # 环境变量原始配置值(upper)
+            "fallback": True,          # 是否发生了无效值回退
+            "original": "CRITICAL",    # 回退前的原始值(无回退时为 None)
+            "valid_levels": ["DEBUG", "ERROR", "INFO", "WARNING"],
+        }
+
+    Example:
+        >>> status = get_log_level_status()
+        >>> if status["fallback"]:
+        ...     print(f"告警: MCP_LOG_LEVEL={status['original']} 被回退到 INFO")
+    """
+    configured = os.environ.get("MCP_LOG_LEVEL", "INFO").upper()
+    return {
+        "level": get_logger_level(),
+        "configured": configured,
+        "fallback": _LOG_LEVEL_FALLBACK,
+        "original": _LOG_LEVEL_ORIGINAL,
+        "valid_levels": sorted(_VALID_LOG_LEVELS),
+    }
 
 
 # ════════════════════════════════════════════════════════════════
