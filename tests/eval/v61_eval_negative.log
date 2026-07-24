@@ -1,0 +1,118 @@
+════════════════════════════════════════════════════════════════════════════════════════════════════
+  负样本拒绝能力评估  (top_k=3, threshold=0.001)
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+>>> [1/4] 正样本黄金集评估 (RRF 基线, 无 reranker)...
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 19942.76it/s]
+C:\Users\Administrator\agent\agent\skills_mgmt\vector_adapter.py:250: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  "dim": model.get_sentence_embedding_dimension(),
+{"trace_id": "0fb9da5038ce428f", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天天气真好", "fallback": "tfidf"}
+{"trace_id": "090124828b42486e", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "def print_hello_world function", "fallback": "tfidf"}
+{"trace_id": "ac83c12d01d74cf1", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "java python c++ programming", "fallback": "tfidf"}
+{"trace_id": "c624851d18aa4f84", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "12345", "fallback": "tfidf"}
+  P@3=0.4222 R@3=1.0000 MRR=0.9667
+
+>>> [2/4] 正样本黄金集评估 (RRF + Reranker, threshold=0.001)...
+
+Loading weights:   0%|          | 0/393 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 393/393 [00:00<00:00, 6056.08it/s]
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 23717.19it/s]
+C:\Users\Administrator\agent\agent\skills_mgmt\vector_adapter.py:250: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  "dim": model.get_sentence_embedding_dimension(),
+{"trace_id": "a5c134fe80f94184", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天天气真好", "fallback": "tfidf"}
+{"trace_id": "a5c134fe80f94184", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "今天天气真好", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "94437afc3c4a4e19", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "def print_hello_world function", "fallback": "tfidf"}
+{"trace_id": "94437afc3c4a4e19", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "def print_hello_world function", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "c6f5b6eba71a4778", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "java python c++ programming", "fallback": "tfidf"}
+{"trace_id": "c6f5b6eba71a4778", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "java python c++ programming", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "e081d79325954343", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "12345", "fallback": "tfidf"}
+{"trace_id": "e081d79325954343", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "12345", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+  P@3=0.4444 R@3=1.0000 MRR=0.9889
+
+>>> [3/4] 负样本拒绝评估 (RRF 基线, 无 reranker)...
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 28484.11it/s]
+C:\Users\Administrator\agent\agent\skills_mgmt\vector_adapter.py:250: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  "dim": model.get_sentence_embedding_dimension(),
+{"trace_id": "fc838e98146d4b84", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天天气怎么样", "fallback": "tfidf"}
+{"trace_id": "baca322ae6fd4ecf", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "def print_hello_world function", "fallback": "tfidf"}
+{"trace_id": "e41aed46121d449d", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "java python c++ programming", "fallback": "tfidf"}
+{"trace_id": "bde634024d6241fd", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "how to implement quick sort", "fallback": "tfidf"}
+{"trace_id": "1037140563444d42", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "12345", "fallback": "tfidf"}
+{"trace_id": "c4a138f6a596477e", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "asdfghjkl", "fallback": "tfidf"}
+{"trace_id": "3ab51afaf92c447c", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天股票涨了吗", "fallback": "tfidf"}
+{"trace_id": "755b33c3b4e74221", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "你好，你是谁", "fallback": "tfidf"}
+
+  RRF 拒绝率: 32.00% (8/25)
+  误召回: 17 个用例
+
+>>> [4/4] 负样本拒绝评估 (RRF + Reranker, threshold=0.001)...
+
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 391/391 [00:00<00:00, 17036.20it/s]
+C:\Users\Administrator\agent\agent\skills_mgmt\vector_adapter.py:250: FutureWarning: The `get_sentence_embedding_dimension` method has been renamed to `get_embedding_dimension`.
+  "dim": model.get_sentence_embedding_dimension(),
+{"trace_id": "b6657cd9b95847a9", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天天气怎么样", "fallback": "tfidf"}
+{"trace_id": "b6657cd9b95847a9", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "今天天气怎么样", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+
+Loading weights:   0%|          | 0/393 [00:00<?, ?it/s]
+Loading weights: 100%|██████████| 393/393 [00:00<00:00, 5856.16it/s]
+{"trace_id": "5fa3306b7442489c", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "def print_hello_world function", "fallback": "tfidf"}
+{"trace_id": "5fa3306b7442489c", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "def print_hello_world function", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "e5c48cd897f946ef", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "java python c++ programming", "fallback": "tfidf"}
+{"trace_id": "e5c48cd897f946ef", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "java python c++ programming", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "d199743deafd458e", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "how to implement quick sort", "fallback": "tfidf"}
+{"trace_id": "d199743deafd458e", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "how to implement quick sort", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "d7a17fe6ecc34da4", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "12345", "fallback": "tfidf"}
+{"trace_id": "d7a17fe6ecc34da4", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "12345", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "9849aa1e7f124fb8", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "asdfghjkl", "fallback": "tfidf"}
+{"trace_id": "9849aa1e7f124fb8", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "asdfghjkl", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "8eeaaf3b90384fb4", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "今天股票涨了吗", "fallback": "tfidf"}
+{"trace_id": "8eeaaf3b90384fb4", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "今天股票涨了吗", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+{"trace_id": "a4e0422447914edb", "module_name": "loader", "action": "match.rrf_fallback_to_tfidf", "intent": "你好，你是谁", "fallback": "tfidf"}
+{"trace_id": "a4e0422447914edb", "module_name": "loader", "action": "match.extension_not_implemented", "intent": "你好，你是谁", "use_bm25": false, "use_reranker": true, "retrieval_weights": null, "fallback": "tfidf"}
+
+  RRF+Reranker 拒绝率: 100.00% (25/25)
+  误召回: 0 个用例
+
+════════════════════════════════════════════════════════════════════════════════════════════════════
+  综合对比
+════════════════════════════════════════════════════════════════════════════════════════════════════
+  方法                         正样本P@3       正样本R@3       正样本MRR         负样本拒绝率
+  --------------------------------------------------------------------------------
+  RRF                        0.4222       1.0000       0.9667         32.00%
+  RRF+Reranker               0.4444       1.0000       0.9889        100.00%
+
+  Reranker 增益: P@3 +0.0222, 拒绝率 +68.00%
+
+  按类别分组拒绝率（RRF+Reranker）
+  ------------------------------------------------------------
+  negative_booking             3/3  100.00%
+  negative_cooking             1/1  100.00%
+  negative_creative            1/1  100.00%
+  negative_daily               1/1  100.00%
+  negative_entertainment       1/1  100.00%
+  negative_finance             2/2  100.00%
+  negative_greeting            1/1  100.00%
+  negative_keyword_trap        2/2  100.00%
+  negative_math                1/1  100.00%
+  negative_medical             1/1  100.00%
+  negative_noise               2/2  100.00%
+  negative_programming         3/3  100.00%
+  negative_similar             2/2  100.00%
+  negative_sports              1/1  100.00%
+  negative_translation         1/1  100.00%
+  negative_weather             2/2  100.00%
+
+报告已保存: tests\eval\negative_rejection_v6_1_verify.json
+Exception ignored in: <function ResourceTracker.__del__ at 0x000001983CFE4F40>
+Traceback (most recent call last):
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\multiprocess\resource_tracker.py", line 80, in __del__
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\multiprocess\resource_tracker.py", line 89, in _stop
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\multiprocess\resource_tracker.py", line 102, in _stop_locked
+AttributeError: '_thread.RLock' object has no attribute '_recursion_count'

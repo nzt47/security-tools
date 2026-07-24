@@ -1,0 +1,112 @@
+{
+  "version": "v6.3-prototypes",
+  "description": "非技能意图 prototype 样本 — 每类 3-5 条，用于 BGE-m3 embedding 相似度判定",
+  "embedding_model": "BAAI/bge-m3",
+  "threshold_default": 0.65,
+  "categories": [
+    {
+      "category": "weather",
+      "description": "天气查询类 — 非技能意图",
+      "samples": [
+        "今天天气怎么样",
+        "明天会下雨吗",
+        "周末天气如何",
+        "现在外面多少度",
+        "下周会冷吗"
+      ]
+    },
+    {
+      "category": "programming",
+      "description": "编程技术问题类 — 非技能意图（v6.3 清洗：移除英文样本，改为纯中文具体编程问题，消除与 context_aware/voice_interaction 的语义冲突）",
+      "samples": [
+        "写一个 python 函数",
+        "如何实现二分查找",
+        "python 列表怎么去重",
+        "这段代码报错了 syntax error",
+        "git 怎么回退上一个 commit",
+        "sql 查询语句怎么写",
+        "正则表达式匹配邮箱"
+      ]
+    },
+    {
+      "category": "noise",
+      "description": "噪声/无意义输入类 — 非技能意图",
+      "samples": [
+        "12345",
+        "asdfghjkl",
+        "qwerty",
+        "123 abc"
+      ]
+    },
+    {
+      "category": "entertainment",
+      "description": "娱乐推荐类 — 非技能意图",
+      "samples": [
+        "推荐一首好听的歌",
+        "给我放个电影",
+        "讲个笑话",
+        "推荐一本书"
+      ]
+    },
+    {
+      "category": "finance",
+      "description": "金融数据查询类 — 非技能意图",
+      "samples": [
+        "今天股票涨了吗",
+        "比特币现在多少钱",
+        "美元汇率多少",
+        "黄金价格"
+      ]
+    },
+    {
+      "category": "cooking",
+      "description": "烹饪做法类 — 非技能意图",
+      "samples": [
+        "教我怎么做红烧肉",
+        "番茄炒蛋怎么做",
+        "怎么煮粥",
+        "红烧排骨的做法"
+      ]
+    },
+    {
+      "category": "sports",
+      "description": "运动健身类 — 非技能意图",
+      "samples": [
+        "跑步前要做什么热身",
+        "怎么练腹肌",
+        "篮球怎么投篮",
+        "游泳姿势"
+      ]
+    },
+    {
+      "category": "medical",
+      "description": "医疗咨询类 — 非技能意图（注意：非医疗技能）",
+      "samples": [
+        "感冒了吃什么药",
+        "头疼怎么办",
+        "拉肚子吃什么",
+        "失眠怎么调理"
+      ]
+    },
+    {
+      "category": "daily",
+      "description": "日常询问类 — 非技能意图",
+      "samples": [
+        "现在几点了",
+        "今天是星期几",
+        "今天日期",
+        "明天放假吗"
+      ]
+    },
+    {
+      "category": "greeting",
+      "description": "问候闲聊类 — 非技能意图",
+      "samples": [
+        "你好，你是谁",
+        "你是干嘛的",
+        "你叫什么名字",
+        "你好呀"
+      ]
+    }
+  ]
+}

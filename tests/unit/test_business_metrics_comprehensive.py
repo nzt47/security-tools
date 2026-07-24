@@ -125,7 +125,7 @@ class TestMetricDefinitions:
     def test_categories_valid(self):
         valid_categories = {
             "interaction", "task", "knowledge", "extension",
-            "model_router", "stability", "business",
+            "model_router", "stability", "business", "skill_quality",
         }
         for defn in BUSINESS_METRICS_DEFINITIONS.values():
             assert defn.category in valid_categories

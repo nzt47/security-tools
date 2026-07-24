@@ -1,4 +1,4 @@
-﻿# Docker 构建重试逻辑测试脚本
+﻿﻿# Docker 构建重试逻辑测试脚本
 # 模拟网络超时场景，验证 Invoke-WithRetry 的指数退避时序
 #
 # 用法: .\test_retry_logic.ps1 [-Verbose]
