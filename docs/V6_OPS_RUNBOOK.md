@@ -256,17 +256,176 @@ grep "match.query_pattern.rejected" /var/log/agent/loader.log | \
 
 ---
 
-## 10. 相关文档
+## 10. v6.2 补充章节 — negative_intent 语义拒绝层
+
+> 本章节为 v6.2 增量内容，与 v6.1 章节并存。v6.2 在 v6.1 正则规则之后、RRF+Reranker 之前增加 BGE-m3 语义拒绝层。
+
+### 10.1 v6.2 一句话概要
+
+v6.2 在 v6.1 正则规则未命中后，用 BGE-m3 embedding 与 10 类非技能意图 prototype 计算余弦相似度，命中则提前拒绝，**负样本平均延迟从 ~600ms 降至 ≤ 200ms**，正样本 P@3=0.4444 不变。
+
+### 10.2 v6.2 关键配置
+
+| 配置项 | 默认值 | 推荐值 | 说明 | 修改方式 |
+|--------|--------|--------|------|----------|
+| `SKILL_NEGATIVE_INTENT_ENABLED` | `true` | `true` | v6.2 总开关 | 环境变量 |
+| `SKILL_NEGATIVE_INTENT_THRESHOLD` | `0.75` | **`0.71`** | 相似度阈值（校准后采用 0.71）| 环境变量 |
+
+**配置原则**：所有配置通过 `.env` 文件修改（守【不易】）。
+
+**阈值选择依据**：校准脚本（`calibrate_v62_threshold.py`）分析显示正样本 max sim = 0.7021（case_013 "建议"），采用 0.71 略高于此值，确保正样本 0 误伤（守【不易】）。负样本覆盖率 64%，但 9 个漏判负样本全部已被 v6.1 正则规则覆盖。
+
+### 10.3 v6.2 上线前检查清单
+
+```bash
+# ── 1. 单元测试通过 ──
+python -m pytest tests/unit/test_negative_intent.py -q
+# 预期: ~71-95 passed
+
+# ── 2. 阈值校准（BGE-m3 相似度分布分析）──
+python scripts/calibrate_v62_threshold.py --dry-run
+# 预期: 样本集结构正常
+
+python scripts/calibrate_v62_threshold.py \
+    --output tests/eval/v62_threshold_calibration.json
+# 预期: 输出推荐阈值 + 正负样本分布 + 0 prototype 冲突
+
+# ── 3. 端到端 4 阶段验证 ──
+python scripts/verify_v62_negative_intent.py \
+    --output tests/eval/v62_verify_report.json
+# 预期: 正样本 P@3=0.4444 + 负样本拒绝率 100% + v6.2 命中数 ≥ 8
+
+# ── 4. 环境变量确认 ──
+echo $SKILL_NEGATIVE_INTENT_ENABLED    # 空（默认 true）或 true
+echo $SKILL_NEGATIVE_INTENT_THRESHOLD  # 空（默认 0.75）或校准值
+```
+
+### 10.4 v6.2 上线步骤
+
+#### 10.4.1 部署代码
+
+```bash
+git pull origin feature/tlm-step3-vectorstore-sqlite-vec
+git checkout <v6.2-commit>  # 校准验证后回填
+
+# 确认 v6.2 文件存在
+ls agent/skills_mgmt/negative_intent_detector.py
+ls tests/eval/negative_intent_prototypes.json
+ls scripts/calibrate_v62_threshold.py
+ls scripts/verify_v62_negative_intent.py
+```
+
+#### 10.4.2 配置 .env
+
+```bash
+# 追加到 .env（基于校准结果，采用 0.71 阈值）
+cat >> .env <<'EOF'
+# v6.2 语义拒绝层（默认开启）
+SKILL_NEGATIVE_INTENT_ENABLED=true
+# 相似度阈值（校准后采用 0.71，守【不易】0 正样本误伤）
+SKILL_NEGATIVE_INTENT_THRESHOLD=0.71
+EOF
+
+systemctl restart yunshu-agent
+```
+
+#### 10.4.3 部署 v6.2 告警规则
+
+```bash
+# 告警规则已追加到 yunshu-v6-query-pattern-alerts.yml
+# 含 5 条 v6.2 告警：P0-4 误伤 / P0-5 检测器降级 / P1-4 延迟 / P1-5 命中率 / P2-4 禁用
+promtool check rules monitoring/prometheus/rules/yunshu-v6-query-pattern-alerts.yml
+kubectl apply -f monitoring/prometheus/rules/yunshu-v6-query-pattern-alerts.yml
+```
+
+### 10.5 v6.2 回滚预案
+
+#### 10.5.1 一键回滚（秒级，推荐）
+
+```bash
+# 仅禁 v6.2 embedding 层，v6.1 规则层与 RRF+Reranker 不受影响
+kubectl exec -n yunshu <pod> -- env-set SKILL_NEGATIVE_INTENT_ENABLED=false
+# 或在 .env 中
+echo "SKILL_NEGATIVE_INTENT_ENABLED=false" >> .env && systemctl restart yunshu-agent
+```
+
+#### 10.5.2 完整回滚（Git revert）
+
+```bash
+git revert <v6.2-commit>
+# 保留 v6.1，回滚 v6.2 全部改动
+```
+
+### 10.6 v6.2 常见问题
+
+#### Q5: v6.2 命中率为 0？
+
+**排查**：
+```bash
+# 检查环境变量
+kubectl exec -n yunshu <pod> -- env | grep SKILL_NEGATIVE_INTENT
+
+# 检查 prototype 文件
+kubectl exec -n yunshu <pod> -- ls -la tests/eval/negative_intent_prototypes.json
+
+# 检查 BGE-m3 加载日志
+kubectl logs -n yunshu <pod> | jq 'select(.module_name=="negative_intent_detector") | .action'
+# 预期 action: prototypes.loaded
+```
+
+#### Q6: 正样本 P@3 下降（v6.2 误伤）？
+
+**紧急处理**：
+```bash
+# 1. 立即禁用 v6.2
+kubectl exec -n yunshu <pod> -- env-set SKILL_NEGATIVE_INTENT_ENABLED=false
+
+# 2. 检查误伤样本
+kubectl logs -n yunshu <pod> | jq 'select(.action=="detect.rejected") | .intent' | head -100
+
+# 3. 重跑校准，提高阈值
+kubectl exec -n yunshu <pod> -- python scripts/calibrate_v62_threshold.py --threshold 0.80
+```
+
+#### Q7: v6.2 延迟 > 300ms？
+
+**排查**：
+```bash
+# BGE-m3 编码耗时
+kubectl logs -n yunshu <pod> | jq 'select(.action=="detect.rejected") | .duration_ms' | sort -n | tail -10
+
+# CPU 占用
+kubectl top pod -n yunshu
+
+# 若 CPU 不足，临时禁用 v6.2
+kubectl exec -n yunshu <pod> -- env-set SKILL_NEGATIVE_INTENT_ENABLED=false
+```
+
+### 10.7 v6.2 监控指标
+
+| 指标 | 类型 | 说明 |
+|------|------|------|
+| `yunshu_skill_match_count{method="negative_intent"}` | gauge | v6.2 命中时上报 value=0 |
+| `yunshu_negative_intent_hits_total{category}` | counter | 各类别命中数（建议新增） |
+| `yunshu_negative_intent_duration_ms` | histogram | 检测延迟（建议新增） |
+| `yunshu_negative_intent_detector_failed_total` | counter | 检测器降级计数（建议新增） |
+
+---
+
+## 11. 相关文档
 
 | 文档 | 用途 |
 |------|------|
 | [V6_MONITORING_CONFIG_CHECKLIST.md](file:///c:/Users/Administrator/agent/docs/V6_MONITORING_CONFIG_CHECKLIST.md) | 完整监控指标清单（10 章） |
 | [RETRIEVAL_UPGRADE_V6_REPORT_20260723.md](file:///c:/Users/Administrator/agent/docs/RETRIEVAL_UPGRADE_V6_REPORT_20260723.md) | v6 技术报告（11 章） |
+| [RETRIEVAL_UPGRADE_V6_1_REPORT.md](file:///c:/Users/Administrator/agent/docs/RETRIEVAL_UPGRADE_V6_1_REPORT.md) | v6.1 booking 规则评估报告 |
+| [RETRIEVAL_UPGRADE_V6_2_REPORT.md](file:///c:/Users/Administrator/agent/docs/RETRIEVAL_UPGRADE_V6_2_REPORT.md) | v6.2 语义拒绝层评估报告 |
 | [QUERY_PATTERN_V61_BOOKING_VALIDATION_PLAN.md](file:///c:/Users/Administrator/agent/docs/QUERY_PATTERN_V61_BOOKING_VALIDATION_PLAN.md) | v6.1 booking 规则验证方案 |
-| [yunshu-v6-query-pattern-alerts.yml](file:///c:/Users/Administrator/agent/monitoring/prometheus/rules/yunshu-v6-query-pattern-alerts.yml) | Prometheus 告警规则 |
+| [v6.2_query_intent_generalization_plan.md](file:///c:/Users/Administrator/agent/.trae/documents/v6.2_query_intent_generalization_plan.md) | v6.2 实施计划 |
+| [yunshu-v6-query-pattern-alerts.yml](file:///c:/Users/Administrator/agent/monitoring/prometheus/rules/yunshu-v6-query-pattern-alerts.yml) | Prometheus 告警规则（含 v6.2 增量） |
 
 ---
 
-**文档版本**: 1.0
-**生成日期**: 2026-07-23
-**适用 commit**: 244b49d7
+**文档版本**: 1.1（追加 v6.2 章节）
+**生成日期**: 2026-07-24
+**适用 commit**: v6.1 = 244b49d7 / v6.2 = TBD（校准验证后回填）
