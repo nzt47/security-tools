@@ -559,6 +559,40 @@ def test_orchestrator_guard_e2e_critical_strategy_logged(
     assert "返回脱敏输出" in log_str
 
 
+def test_orchestrator_guard_critical_decision_trace_logged(
+    monkeypatch, tmp_path, caplog,
+    llm_output_hallucination_pii_injection, loaded_skills_for_guard,
+):
+    """端到端: 传 guard_trace 时, critical 决策点链路日志被记录且携带 trace_id
+
+    验证 [链路追踪] 不变量: critical_decision 日志与 start/end 同 guard_trace,
+    跨服务排查时可按 guard_trace 聚合定位降级路径
+    (start → enter → result → critical_strategy → critical_decision → end)
+    """
+    import logging
+    real_svc = _make_real_svc(tmp_path)
+    monkeypatch.setattr(
+        "agent.state_manager.get_skills_mgmt_service", lambda: real_svc,
+    )
+    orch = _make_orchestrator()
+    orch._loaded_skill_ids = loaded_skills_for_guard
+    test_trace = "abc123def456abcd"  # 模拟 _call_llm_v2 生成的 _gtrace
+
+    with caplog.at_level(logging.WARNING):
+        orch._guard_llm_output(
+            llm_output_hallucination_pii_injection, "处理用户请求",
+            guard_trace=test_trace,
+        )
+    # critical_decision 链路日志被记录
+    decision_logs = [r.message for r in caplog.records
+                     if "guard_trace.critical_decision" in str(r.message)]
+    assert len(decision_logs) >= 1, "critical_decision 链路日志未记录"
+    # 日志携带 guard_trace (串联 start/end 的核心不变量)
+    log_str = str(decision_logs[0])
+    assert test_trace in log_str, "critical_decision 日志未携带 guard_trace (串联断裂)"
+    assert "返回脱敏输出" in log_str
+
+
 def test_orchestrator_guard_e2e_normal_output_passes(
     monkeypatch, tmp_path,
 ):
@@ -697,8 +731,8 @@ def test_integration_check_detects_commented_call():
     original_src = textwrap.dedent(original_src)  # 去除类方法缩进
     # 模拟注释掉调用语句 (生产环境可能发生的误操作)
     tampered_src = original_src.replace(
-        "response = self._guard_llm_output(response, user_input)",
-        "# response = self._guard_llm_output(response, user_input)  # 故意注释",
+        "response = self._guard_llm_output(response, user_input, guard_trace=_gtrace)",
+        "# response = self._guard_llm_output(response, user_input, guard_trace=_gtrace)  # 故意注释",
     )
     # 确认篡改生效: 字符串仍含 _guard_llm_output (在注释中)
     assert "_guard_llm_output" in tampered_src, "测试前提: 注释中仍含字符串"
@@ -733,8 +767,8 @@ def test_call_llm_v2_integrates_guard_fails_when_call_commented(monkeypatch):
     # 获取原始源码并篡改: 注释掉 _guard_llm_output 调用语句
     original_src = textwrap.dedent(inspect.getsource(Orchestrator._call_llm_v2))
     tampered_src = original_src.replace(
-        "response = self._guard_llm_output(response, user_input)",
-        "# response = self._guard_llm_output(response, user_input)  # 故意注释",
+        "response = self._guard_llm_output(response, user_input, guard_trace=_gtrace)",
+        "# response = self._guard_llm_output(response, user_input, guard_trace=_gtrace)  # 故意注释",
     )
     # 前提: 篡改生效 (注释中仍含字符串, 但非真实调用)
     assert "_guard_llm_output" in tampered_src, "测试前提失败: 篡改未生效"
@@ -783,3 +817,59 @@ def test_guard_matches_example_data(
         f"findings 不一致: {actual_pairs} != {example_pairs}"
     # sanitized_output 一致
     assert gr.sanitized_output == example["sanitized_output"]
+
+
+# ════════════════════════════════════════════════════════════
+#  12. guard_trace 链路追踪日志示例 fixture 回归
+# ════════════════════════════════════════════════════════════
+
+def test_guard_trace_log_example_fixture_integrity(guard_trace_log_example_data):
+    """回归测试: guard_trace_log_example.json fixture 数据完整性 + trace 串联结构
+
+    验证 [不易] 不变量:
+    - 5 个事件, 同一 guard_trace 贯穿 (跨服务排查基础)
+    - start/end 边界事件齐全且时序正确
+    - internal_actions 均携带同一 guard_trace
+    - trace_chain 摘要与 events 实际内容一致
+    若 fixture 被误改破坏串联结构, 本测试失败
+    """
+    data = guard_trace_log_example_data
+    gtrace = data["guard_trace"]
+    events = data["events"]
+    chain = data["trace_chain"]
+
+    # 1. 事件数与 trace_chain.event_count 一致
+    assert len(events) == chain["event_count"], "event_count 与实际事件数不一致"
+    assert len(events) == 5, "应有 5 个事件 (start/enter/result/critical_strategy/end)"
+
+    # 2. 所有事件携带同一 guard_trace (串联核心不变量)
+    for ev in events:
+        assert ev["fields"]["guard_trace"] == gtrace, \
+            "事件 %d 的 guard_trace 不一致 (串联断裂)" % ev["seq"]
+
+    # 3. start/end 边界事件齐全且时序正确
+    actions = [ev["action"] for ev in events]
+    assert actions[0] == chain["start_action"], "首事件应为 start 边界"
+    assert actions[-1] == chain["end_action"], "末事件应为 end 边界"
+    assert chain["start_action"] == "orchestrator.guard_trace.start"
+    assert chain["end_action"] == "orchestrator.guard_trace.end"
+
+    # 4. internal_actions 时序正确 (位于 start 与 end 之间)
+    internal = actions[1:-1]
+    assert internal == chain["internal_actions"], "internal_actions 时序不一致"
+
+    # 5. critical_strategy 事件存在且 severity=critical (降级决策可追溯)
+    critical_ev = next(
+        (e for e in events
+         if e["action"] == "orchestrator._guard_llm_output.critical_strategy"),
+        None,
+    )
+    assert critical_ev is not None, "缺少 critical_strategy 事件"
+    assert critical_ev["fields"]["severity"] == "critical"
+    assert critical_ev["fields"]["has_sanitized"] is True
+    assert critical_ev["fields"]["decision"] == "返回脱敏输出"
+
+    # 6. duration_ms 在 end 事件记录, 与 trace_chain 一致且为正
+    end_ev = events[-1]
+    assert end_ev["fields"]["duration_ms"] == chain["duration_ms"]
+    assert end_ev["fields"]["duration_ms"] > 0, "duration_ms 应为正数"

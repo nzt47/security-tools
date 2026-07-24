@@ -1040,7 +1040,7 @@ class Orchestrator:
                     'message': '[链路追踪] 护栏调用开始 | guard_trace=%s | input_len=%d | intent=%s'
                                % (_gtrace, len(response), (user_input or '')[:40]),
                 }))
-                response = self._guard_llm_output(response, user_input)
+                response = self._guard_llm_output(response, user_input, guard_trace=_gtrace)
                 logger.info(log_dict({
                     'module_name': 'orchestrator',
                     'action': 'orchestrator.guard_trace.end',
@@ -1059,11 +1059,14 @@ class Orchestrator:
         else:
             return self._build_offline_response(user_input)
 
-    def _guard_llm_output(self, response: str, user_input: str) -> str:
+    def _guard_llm_output(self, response: str, user_input: str, *,
+                         guard_trace: str = "") -> str:
         """[护栏集成] LLM 输出护栏: 校验幻觉/PII/Prompt Injection
 
         [不易] 护栏异常不阻塞主流程, 失败时返回原 response
         [变易] severity=critical 时用脱敏输出或降级提示; warn/error 用脱敏输出
+        [链路追踪] guard_trace 由调用方 (_call_llm_v2) 传入, 贯穿 start/end,
+                  critical 决策日志携带该值, 便于跨服务排查降级路径
         """
         logger.info(log_dict({
             'module_name': 'orchestrator',
@@ -1117,6 +1120,19 @@ class Orchestrator:
                                   else '触发重试或降级到兜底回复'),
                     'severity': severity,
                 }))
+                # [链路追踪] critical 决策点 — 串联 guard_trace, 跨服务排查降级路径
+                # 与 guard_trace.start/end 同 trace_id, 在日志系统按 guard_trace 聚合
+                # 可定位: start → (enter → result → critical_strategy) → critical_decision → end
+                if guard_trace:
+                    logger.warning(log_dict({
+                        'module_name': 'orchestrator',
+                        'action': 'orchestrator.guard_trace.critical_decision',
+                        'message': '[链路追踪] critical 降级决策点 | guard_trace=%s | has_sanitized=%s | 决策=%s'
+                                   % (guard_trace, bool(sanitized),
+                                      '返回脱敏输出' if sanitized else '返回拦截提示'),
+                        'guard_trace': guard_trace,
+                        'severity': severity,
+                    }))
                 # critical: 优先用脱敏输出, 无则降级提示
                 return sanitized if sanitized else "（输出校验未通过，已拦截）"
             if severity == "error":
