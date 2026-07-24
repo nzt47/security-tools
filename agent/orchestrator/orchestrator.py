@@ -733,6 +733,18 @@ class Orchestrator:
                     except Exception as _e:
                         logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.log', 'message': '工具路由失败: %s' % (_e,)}))
                 _tool_defs = _tools.get_tool_defs(whitelist=_whitelist)
+                # 【Schema 裁剪】tool_router 选定后裁剪,守 [不易] required 不动、deprecated 移除
+                try:
+                    from agent.tool_schema_pruner import prune_tool_defs
+                    _orig_tool_count = len(_tool_defs)
+                    _tool_defs = prune_tool_defs(
+                        _tool_defs,
+                        intent_context={"selected_tools": list(_whitelist or [])},
+                    ) or _tool_defs
+                    _pruned_count = _orig_tool_count - len(_tool_defs)
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.schema_prune', 'message': '[SchemaPruner] 工具数 %d → %d (移除 %d 个工具级 deprecated)' % (_orig_tool_count, len(_tool_defs), _pruned_count)}))
+                except Exception as _spe:
+                    logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.schema_prune_failed', 'message': '[SchemaPruner] 裁剪失败降级原 tool_defs: %s' % (_spe,)}))
                 _client = self._llm._get_client()
 
                 # 智能调度：选择最合适的模型
@@ -747,6 +759,29 @@ class Orchestrator:
                     logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] 使用主模型: %s (pro可用=%s)' % (_working_model, self._llm_pro is not None)}))
 
                 _working = list(messages)
+                # 【Dynamic Few-shot 注入】从 tool_fewshot_store 采样脱敏样本,插入 user_input 之前
+                # 【不易】 Few-shot 仅来自真实成功调用(由 ToolFewshotStore 保证);注入位置=user_input 前(动态区后置)
+                try:
+                    from agent.tool_fewshot_store import ToolFewshotStore
+                    from agent.orchestrator.prompt_builder import build_fewshot_message
+                    _fs_whitelist = list(_whitelist or [])
+                    logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'fewshot_sample_start', 'message': '[Fewshot] 采样开始: whitelist_size=%d whitelist=%s' % (len(_fs_whitelist), _fs_whitelist)}))
+                    _fs_samples = ToolFewshotStore.instance().sample_for_tools(_fs_whitelist)
+                    _fs_tools_with_samples = sum(1 for v in _fs_samples.values() if v)
+                    _fs_total = sum(len(v) for v in _fs_samples.values())
+                    logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'fewshot_sample_done', 'message': '[Fewshot] 采样完成: tools_with_samples=%d total_samples=%d samples=%s' % (_fs_tools_with_samples, _fs_total, dict(_fs_samples))}))
+                    _fmsg = build_fewshot_message(_fs_samples)
+                    if _fmsg is None:
+                        logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'fewshot_build_none', 'message': '[Fewshot] build_fewshot_message 返回 None(无样本或降级),跳过注入'}))
+                    else:
+                        if _working:
+                            _inject_pos = len(_working) - 1
+                            _working.insert(_inject_pos, _fmsg)
+                            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'fewshot_injected', 'message': '[Fewshot] 注入成功: position=user_input_before(idx=%d) working_count=%d' % (_inject_pos, len(_working))}))
+                        else:
+                            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'fewshot_no_user_input', 'message': '[Fewshot] _working 为空,无法注入(无 user_input)'}))
+                except Exception as _fse:
+                    logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'fewshot_inject_failed', 'message': '[Fewshot] 注入失败降级跳过: %s: %s traceback=%s' % (type(_fse).__name__, _fse, __import__('traceback').format_exc())}))
                 _reasoning = None
                 _max_rounds = 3
                 response = ""
@@ -995,6 +1030,23 @@ class Orchestrator:
                         response = "已获取到以下信息：\n" + "\n".join(f"  - {s}" for s in _fb_summaries)
                     else:
                         response = "（已处理完毕）"
+                # [护栏集成] LLM 回复校验: 幻觉/PII/Prompt Injection
+                # [链路追踪] guard_trace 贯穿护栏调用边界, 便于排查跨服务调用
+                _gtrace = uuid.uuid4().hex[:16]
+                _gt0 = time.time()
+                logger.info(log_dict({
+                    'module_name': 'orchestrator',
+                    'action': 'orchestrator.guard_trace.start',
+                    'message': '[链路追踪] 护栏调用开始 | guard_trace=%s | input_len=%d | intent=%s'
+                               % (_gtrace, len(response), (user_input or '')[:40]),
+                }))
+                response = self._guard_llm_output(response, user_input)
+                logger.info(log_dict({
+                    'module_name': 'orchestrator',
+                    'action': 'orchestrator.guard_trace.end',
+                    'message': '[链路追踪] 护栏调用结束 | guard_trace=%s | duration_ms=%.1f | output_len=%d'
+                               % (_gtrace, (time.time() - _gt0) * 1000, len(response)),
+                }))
                 return response
             except LLMServiceError as e:
                 error_msg = str(e)
@@ -1006,6 +1058,89 @@ class Orchestrator:
                 )
         else:
             return self._build_offline_response(user_input)
+
+    def _guard_llm_output(self, response: str, user_input: str) -> str:
+        """[护栏集成] LLM 输出护栏: 校验幻觉/PII/Prompt Injection
+
+        [不易] 护栏异常不阻塞主流程, 失败时返回原 response
+        [变易] severity=critical 时用脱敏输出或降级提示; warn/error 用脱敏输出
+        """
+        logger.info(log_dict({
+            'module_name': 'orchestrator',
+            'action': 'orchestrator._guard_llm_output.enter',
+            'message': '[护栏] 入口 | response_len=%d | loaded_skills=%d | intent=%s'
+                       % (len(response or ""), len(getattr(self, "_loaded_skill_ids", [])),
+                          (user_input or "")[:40]),
+        }))
+        try:
+            from agent.state_manager import get_skills_mgmt_service
+            svc = get_skills_mgmt_service()
+            if svc is None:
+                logger.info(log_dict({
+                    'module_name': 'orchestrator',
+                    'action': 'orchestrator._guard_llm_output.skip_no_svc',
+                    'message': '[护栏] skills_mgmt_svc 未初始化, 跳过校验',
+                }))
+                return response
+            loaded = getattr(self, "_loaded_skill_ids", [])
+            result = svc.validate_llm_output(
+                response, loaded_skills=loaded, intent=user_input,
+            )
+            severity = result.get("severity", "info")
+            sanitized = result.get("sanitized_output")
+            findings_count = len(result.get("findings", []))
+            logger.info(log_dict({
+                'module_name': 'orchestrator',
+                'action': 'orchestrator._guard_llm_output.result',
+                'message': '[护栏] 校验完成 | severity=%s | findings=%d | has_sanitized=%s'
+                           % (severity, findings_count, bool(sanitized)),
+                'severity': severity,
+            }))
+
+            if severity == "critical":
+                logger.warning(log_dict({
+                    'module_name': 'orchestrator',
+                    'action': 'orchestrator._guard_llm_output.critical',
+                    'message': '[护栏] LLM 输出 critical 拦截 findings=%d' % findings_count,
+                    'severity': severity,
+                }))
+                # [变易] critical 降级策略日志: 记录具体决策, 便于线上排查
+                # 策略: has_sanitized=True → 返回脱敏输出 (保留可用信息)
+                #       has_sanitized=False → 返回拦截提示 (建议触发重试或降级到兜底回复)
+                logger.warning(log_dict({
+                    'module_name': 'orchestrator',
+                    'action': 'orchestrator._guard_llm_output.critical_strategy',
+                    'message': '[护栏] critical 降级策略 | has_sanitized=%s | 决策=%s | 建议=%s'
+                               % (bool(sanitized),
+                                  '返回脱敏输出' if sanitized else '返回拦截提示',
+                                  '保留脱敏信息继续流程' if sanitized
+                                  else '触发重试或降级到兜底回复'),
+                    'severity': severity,
+                }))
+                # critical: 优先用脱敏输出, 无则降级提示
+                return sanitized if sanitized else "（输出校验未通过，已拦截）"
+            if severity == "error":
+                logger.info(log_dict({
+                    'module_name': 'orchestrator',
+                    'action': 'orchestrator._guard_llm_output.error',
+                    'message': '[护栏] LLM 输出 error 警告 findings=%d' % findings_count,
+                }))
+                return sanitized if sanitized else response
+            # warn/info: 用脱敏输出 (如有), 不阻塞
+            logger.info(log_dict({
+                'module_name': 'orchestrator',
+                'action': 'orchestrator._guard_llm_output.pass',
+                'message': '[护栏] 通过 (severity=%s), 返回%s'
+                           % (severity, '脱敏输出' if sanitized else '原输出'),
+            }))
+            return sanitized if sanitized else response
+        except Exception as e:  # noqa: BLE001 [不易] 护栏不阻塞
+            logger.warning(log_dict({
+                'module_name': 'orchestrator',
+                'action': 'orchestrator._guard_llm_output.exception',
+                'message': '[护栏] 异常, 跳过校验: %s' % str(e)[:100],
+            }))
+            return response
 
     # ════════════════════════════════════════════════════════════════════
     #  反思

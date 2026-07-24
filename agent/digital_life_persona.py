@@ -419,11 +419,14 @@ class DigitalLifePersonaMixin:
             return ""
 
         parts = []
+        loaded_ids: list = []
         for s in installed:
             sid = s["id"]
             enabled = s.get("enabled", True)
             if enabled and sid in self._SKILL_PROMPTS:
                 parts.append(self._SKILL_PROMPTS[sid])
+                loaded_ids.append(sid)
+        self._loaded_skill_ids = loaded_ids  # [护栏集成] 供 orchestrator 校验幻觉
         result = "\n\n".join(parts)
         self._cached_skill_instructions = result
         return result
