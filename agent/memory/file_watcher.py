@@ -181,8 +181,18 @@ class MarkdownFileWatcher:
                     log_dict({
                         "module_name": "file_watcher",
                         "action": "dedup.coalesced",
-                        "msg": f"[FileWatcher] 去重命中: 重置 {self.dedup_ms}ms 计时器 "
-                               f"（burst 合并）path={path}",
+                        "msg": f"[FileWatcher] 去重命中: 重置 {self.dedup_ms}ms 计时器"
+                               f"（burst 合并）path={path} "
+                               f"pool_size={len(self._dedup_timers)}",
+                    })
+                )
+            else:
+                logger.debug(
+                    log_dict({
+                        "module_name": "file_watcher",
+                        "action": "dedup.scheduled",
+                        "msg": f"[FileWatcher] 去重新建: 启动 {self.dedup_ms}ms 计时器"
+                               f"path={path} pool_size={len(self._dedup_timers)}",
                     })
                 )
             timer = threading.Timer(
@@ -198,6 +208,14 @@ class MarkdownFileWatcher:
         """去重窗口到期后执行：解析 → 三路比较 → 反向更新/记冲突"""
         with self._dedup_lock:
             self._dedup_timers.pop(path, None)
+        logger.debug(
+            log_dict({
+                "module_name": "file_watcher",
+                "action": "dedup.window_expired",
+                "msg": f"[FileWatcher] 去重窗口到期: 开始处理 path={path} "
+                       f"remaining_pool={len(self._dedup_timers)}",
+            })
+        )
         with self._proc_lock:
             self._processing.add(path)
         try:
