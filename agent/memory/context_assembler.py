@@ -193,7 +193,10 @@ class ContextAssembler:
         )
         l0_text = self._build_l0()
         l1_items = await self._build_l1(query, max_tokens)
+        # 单独计量 L2 耗时（便于脚本做 L2 超时断言 + 性能排查定位瓶颈层）
+        l2_t0 = time.time()
         l2_items = await self._build_l2(query)
+        l2_elapsed_ms = (time.time() - l2_t0) * 1000.0
 
         l0_tokens = _estimate_tokens(l0_text)
         elapsed_ms = (time.time() - t0) * 1000.0
@@ -209,6 +212,7 @@ class ContextAssembler:
                        f"L0_tokens={l0_tokens}/{self.l0_token_limit} "
                        f"L1_count={len(l1_items)} "
                        f"L2_count={len(l2_items)} "
+                       f"L2_elapsed={l2_elapsed_ms:.2f}ms "
                        f"elapsed={elapsed_ms:.2f}ms",
             })
         )
@@ -221,6 +225,7 @@ class ContextAssembler:
                 "l1_count": len(l1_items),
                 "l2_count": len(l2_items),
                 "elapsed_ms": round(elapsed_ms, 2),
+                "l2_elapsed_ms": round(l2_elapsed_ms, 2),
             },
         }
 
