@@ -162,3 +162,14 @@ test_results/
 
 # SQLite3 数据库文件（运行时,不入库）
 *.sqlite3
+
+# === 升级/训练/评估产物（2026-07-25）===
+# 升级脚本备份目录（含 .env 快照与 Docker volume，禁止入库）
+.upgrade-backup-*/
+# SFT 训练数据集与报告（体积大，不入库）
+data/sft_datasets/
+data/sft_*.jsonl
+data/sft_*_report.json
+# v6.4 向量恢复评估报告（运行时生成，不入库）
+tests/eval/*_recovery_report.json
+
