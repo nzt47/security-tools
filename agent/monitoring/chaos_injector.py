@@ -115,6 +115,10 @@ class ChaosInjector:
         self._memory_pressure_thread: Optional[threading.Thread] = None
         self._memory_pressure_stop_event = threading.Event()
         self._memory_hold_list: List[bytearray] = []
+        # [TLM-AUDIT-P3] cleanup_monitor 线程追踪与停止信号
+        # Why: 原 cleanup_monitor daemon 线程无引用保存、无 join，time.sleep 无法唤醒
+        self._cleanup_threads: list[threading.Thread] = []
+        self._cleanup_stop_event = threading.Event()
 
         # 初始化默认配置
         for fault_type in FaultType:
@@ -336,16 +340,26 @@ class ChaosInjector:
             
             # 如果有持续时间限制，启动监控线程等待结束后清理
             if duration_ms:
+                # [TLM-AUDIT-P3] 用 Event.wait 替代 time.sleep，支持 stop 时立即唤醒
+                stop_event = self._cleanup_stop_event
+
                 def cleanup_monitor():
                     """监控并清理CPU压力进程"""
                     set_trace_id(self._chaos_trace_id)
-                    time.sleep(duration_ms / 1000.0 + 1)
+                    # 用 Event.wait 替代 time.sleep，stop 时立即唤醒
+                    if stop_event.wait(timeout=duration_ms / 1000.0 + 1):
+                        logger.info(log_dict({'module_name': 'chaos_injector', 'action': 'cpu.cleanup_wake', 'msg': '[Chaos] cleanup_monitor 提前唤醒'}))
                     for p in processes:
                         if p.is_alive():
                             p.terminate()
                     logger.info(log_dict({'module_name': 'chaos_injector', 'action': 'cpu', 'msg': f'[Chaos] 所有CPU压力进程已终止'}))
-                
-                threading.Thread(target=cleanup_monitor, daemon=True).start()
+
+                cleanup_thread = threading.Thread(
+                    target=cleanup_monitor, daemon=True, name="chaos-cleanup"
+                )
+                cleanup_thread.start()
+                # [TLM-AUDIT-P3] 保存引用，stop 时 join
+                self._cleanup_threads.append(cleanup_thread)
             
             self._injection_records.append(FaultInjectionRecord(
                 fault_type=FaultType.CPU_PRESSURE,
@@ -595,19 +609,49 @@ class ChaosInjector:
             
             logger.info(log_dict({'module_name': 'chaos_injector', 'action': 'fault_type.value', 'msg': f'[Chaos] 已清除故障: {fault_type.value}'}))
     
+    def stop_cleanup_threads(self, timeout: float = 5.0) -> None:
+        """等待所有 cleanup_monitor 线程完成或超时
+
+        [不易] 守资源完整：确保 CPU 压力子进程被 terminate，避免僵尸进程
+        [变易] stop_event 唤醒 + join timeout 兜底
+        [简易] 复用现有 _memory_pressure_thread 的 join 模式
+
+        Args:
+            timeout: join 超时（秒），与 _thread_join_timeout 默认值一致
+        """
+        # 唤醒所有阻塞在 Event.wait 的 cleanup_monitor
+        self._cleanup_stop_event.set()
+
+        for t in self._cleanup_threads:
+            if t.is_alive():
+                t.join(timeout=timeout)
+                if t.is_alive():
+                    logger.warning(log_dict({
+                        'module_name': 'chaos_injector',
+                        'action': 'cleanup.join_timeout',
+                        'msg': f'[Chaos] cleanup_monitor 线程 {t.name} join 超时({timeout}s)',
+                    }))
+
+        self._cleanup_threads.clear()
+        # 重置 stop_event（支持后续注入）
+        self._cleanup_stop_event.clear()
+
     def clear_all(self):
         """清除所有故障"""
         with self._lock:
             for fault_type in FaultType:
                 self.clear_fault(fault_type)
-            
+
             # 确保内存清理
             self._memory_pressure_stop_event.set()
             if self._memory_pressure_thread and self._memory_pressure_thread.is_alive():
                 self._memory_pressure_thread.join(timeout=self._thread_join_timeout)
             self._memory_hold_list.clear()
             gc.collect()
-        
+
+        # [TLM-AUDIT-P3] 锁外清理 cleanup_monitor 线程（持锁禁 join，守 project_memory）
+        self.stop_cleanup_threads(timeout=self._thread_join_timeout)
+
         logger.info(log_dict({'module_name': 'chaos_injector', 'action': 'log', 'msg': '[Chaos] 已清除所有故障'}))
     
     def get_active_faults(self) -> List[FaultConfig]:

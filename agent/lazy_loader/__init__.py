@@ -34,6 +34,7 @@ if loader.should_load('ocr'):
 ```
 """
 
+import atexit
 import logging
 import json
 import uuid
@@ -142,8 +143,39 @@ class LazyModuleLoader:
         self.loading_levels: Set[LoadLevel] = set()
         self._lock = threading.Lock()
         self._async_lock = asyncio.Lock()
+        # [TLM-AUDIT-P2] 标记 shutdown 是否已执行（幂等性）
+        self._shutdown_called: bool = False
+
+        # [TLM-AUDIT-P2] 注册 atexit 钩子，确保进程退出时清理线程池
+        # Why: ThreadPoolExecutor 的 daemon 线程在进程退出时会被强终止，
+        # 正在执行的模块加载可能中断导致状态不一致
+        atexit.register(self._atexit_shutdown)
 
         logger.info(log_dict({'module_name': '__init__', 'action': 'max_workers.max_workers', 'msg': f'[LazyLoader] 初始化完成: max_workers={max_workers}'}))
+
+    def shutdown(self):
+        """关闭线程池，等待所有未完成任务完成
+
+        [不易] 守数据完整性：shutdown(wait=True) 确保线程池任务完成
+        [变易] 幂等性：_shutdown_called 标记防止重复关闭
+        """
+        if self._shutdown_called:
+            return
+        self._shutdown_called = True
+        self.executor.shutdown(wait=True)
+        logger.info(log_dict({'module_name': '__init__', 'action': 'shutdown', 'msg': '[LazyLoader] 线程池已关闭'}))
+
+    def _atexit_shutdown(self):
+        """atexit 钩子：进程退出时安全清理线程池
+
+        [不易] 守数据完整性：确保线程池中的模块加载任务完成
+        [变易] 异常隔离：atexit 钩子中的异常不应影响退出流程
+        [简易] 复用 shutdown()，仅加 try-except 包裹
+        """
+        try:
+            self.shutdown()
+        except Exception as e:
+            logger.warning(f"[LazyLoader] atexit shutdown 失败: {e}")
 
     def register(
         self,
