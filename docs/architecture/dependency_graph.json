@@ -1,5 +1,5 @@
 {
-  "trace_id": "f9d2826237dc4151",
+  "trace_id": "ee74651bbd2e4d80",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -8737,7 +8737,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 128,
+      "line": 132,
       "source_file": "agent/monitoring/chaos_injector.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9660,7 +9660,7 @@
       "source_layer": "lazy_loader",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 50,
+      "line": 51,
       "source_file": "agent/lazy_loader/__init__.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9726,6 +9726,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1193.2346440000003
+    "build_duration_ms": 1231.5422439999963
   }
 }
