@@ -298,6 +298,14 @@ jobs:
             --benchmark-only \
             --benchmark-json=test_reports/benchmark.json
 
+      - name: 运行 L2 性能回归测试
+        run: |
+          pytest tests/performance/test_l2_perf_regression.py \
+            -v \
+            --timeout=120 \
+            -m performance \
+            --junitxml=test_reports/l2-perf-results.xml
+
       - name: 上传性能报告
         uses: actions/upload-artifact@v4
         with:
