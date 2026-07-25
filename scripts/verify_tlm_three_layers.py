@@ -270,7 +270,8 @@ async def main() -> int:
             print(f"  [{i}] key={f['key']} source={f['source']}")
             print(f"      fragment: {f['fragment'][:120]}...")
         print()
-        print(f"组装耗时: {result['meta']['elapsed_ms']:.2f}ms")
+        print(f"组装耗时: {result['meta']['elapsed_ms']:.2f}ms "
+              f"(其中 L2 冷数据加载 {result['meta']['l2_elapsed_ms']:.2f}ms)")
 
         print()
         print("=" * 72)
@@ -301,6 +302,11 @@ async def main() -> int:
                  all(f["source"] == "markdown_archive" for f in result["L2"])),
                 ("L2 fragment 非空字符串",
                  all(f["fragment"] for f in result["L2"])),
+                # 性能护栏：L2 冷数据懒加载（向量检索 + Markdown read_fragment）
+                # 正常路径应 <50ms，1 秒为异常阈值（触发时需排查 vec0 索引或 .md 文件 IO）
+                ("L2 加载耗时不超过 1 秒（性能护栏，实际={:.2f}ms）".format(
+                     result["meta"]["l2_elapsed_ms"]),
+                 result["meta"]["l2_elapsed_ms"] <= 1000.0),
             ])
         else:
             checks.append(
