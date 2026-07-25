@@ -73,6 +73,10 @@ class MarkdownFileWatcher:
         # （主要靠幂等性，此集合作为快速短路）
         self._processing: set[str] = set()
         self._proc_lock = threading.Lock()
+        # 【方案一】反向更新异步线程句柄集合（守不易：close 前必须 join,
+        # 避免 _async_reverse_update 在 syncer.close 后到达导致 pending 丢失）
+        # 复用 _proc_lock 保护，避免新增锁
+        self._reverse_threads: set[threading.Thread] = set()
 
     # ── 生命周期 ──
 
@@ -122,7 +126,12 @@ class MarkdownFileWatcher:
             self._started = False
 
     def stop(self):
-        """停止 Observer，取消所有去重计时器"""
+        """停止 Observer，取消所有去重计时器，等待反向更新异步线程完成
+
+        【方案一】join _reverse_threads 确保 _async_reverse_update 在 syncer.close
+        前完成，避免 close 后 notify_change 因 _closed=True 丢失 pending
+        （守不易：数据完整性）。timeout 5s 防卡死，超时则记警告继续。
+        """
         with self._dedup_lock:
             for timer in self._dedup_timers.values():
                 timer.cancel()
@@ -134,6 +143,27 @@ class MarkdownFileWatcher:
             except Exception as e:
                 logger.warning("[FileWatcher] 停止 Observer 异常: %s", e)
             self._observer = None
+        # 【方案一】等待反向更新异步线程完成（_async_reverse_update 调 save_with_embedding
+        # → notify_change，若在 syncer.close 后到达会因 _closed=True 丢失 pending）
+        with self._proc_lock:
+            threads_to_join = list(self._reverse_threads)
+        for t in threads_to_join:
+            if t.is_alive():
+                try:
+                    t.join(timeout=5)
+                    if t.is_alive():
+                        logger.warning(
+                            log_dict({
+                                "module_name": "file_watcher",
+                                "action": "stop.thread_join_timeout",
+                                "msg": "[FileWatcher] 反向更新线程 join 超时(5s)，"
+                                       "可能仍有 pending 丢失（风险2 兜底由方案二覆盖）",
+                            })
+                        )
+                except Exception as e:
+                    logger.warning("[FileWatcher] join 反向更新线程异常: %s", e)
+        with self._proc_lock:
+            self._reverse_threads.clear()
         self._started = False
 
     # ── 事件处理（由 _Handler 调用）──
@@ -368,15 +398,21 @@ class MarkdownFileWatcher:
 
         metadata = raw.get("metadata") or {}
         # 异步反向更新（adapter.save_with_embedding 是 async）
-        threading.Thread(
+        # 【方案一】保存线程句柄，stop() 时 join 等待完成
+        t = threading.Thread(
             target=self._async_reverse_update,
             args=(sqlite_id, new_data, metadata),
             daemon=True,
-        ).start()
+        )
+        with self._proc_lock:
+            self._reverse_threads.add(t)
+        t.start()
 
     def _async_reverse_update(self, sqlite_id: str, new_data: str, metadata: dict):
         """异步执行反向更新（运行 event_loop 调用 async 接口）"""
         import asyncio
+        # 【方案一】获取当前线程句柄，finally 中清理（避免 _reverse_threads 无限增长）
+        current_t = threading.current_thread()
         try:
             loop = asyncio.new_event_loop()
             try:
@@ -414,6 +450,10 @@ class MarkdownFileWatcher:
                     "msg": f"[FileWatcher] 反向同步异常 sqlite_id={sqlite_id}: {e}",
                 })
             )
+        finally:
+            # 【方案一】清理线程句柄（无论成功失败，避免 _reverse_threads 无限增长）
+            with self._proc_lock:
+                self._reverse_threads.discard(current_t)
 
     def _notify_conflict_metric(self):
         """冲突上报指标（埋点失败不影响主流程）"""
