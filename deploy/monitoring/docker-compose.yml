@@ -98,11 +98,14 @@ services:
     environment:
       - MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-INFO}
       - PYTHONPATH=/app
-    # 安装 PyYAML 后启动 exporter（visibility_report.py load_thresholds 需要 yaml）
+    # 安装 PyYAML + watchdog 后启动 exporter
+    #   - pyyaml: visibility_report.py load_thresholds 需要 yaml
+    #   - watchdog: agent/sensor/file_watcher.py → from watchdog.observers import Observer
+    #     缺失会导致 ModuleNotFoundError，容器反复 Restarting
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        pip install --no-cache-dir pyyaml --quiet &&
+        pip install --no-cache-dir pyyaml watchdog --quiet &&
         echo "[startup] MCP_LOG_LEVEL=${MCP_LOG_LEVEL:-INFO} (mcp_executor 动态日志级别)" &&
         python scripts/visibility_report.py --serve-metrics --port 9101 --refresh-interval 300
     ports:
