@@ -39,7 +39,13 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = "c:\Users\Administrator\agent"
 $envFile = "$projectRoot\.env"
 $composeFile = "$projectRoot\docker-compose.monitoring.yml"
-$oldPwd = "Yunshu@P1Verify2026!"
+# 安全: 旧密码从环境变量读取, 避免硬编码（P1 防复发, 与 commit 9d51c406 一致）
+$oldPwd = $env:GRAFANA_OLD_PASSWORD
+if (-not $oldPwd) {
+    Write-Host "[ERROR] 环境变量 GRAFANA_OLD_PASSWORD 未设置" -ForegroundColor Red
+    Write-Host "  请在执行前设置: \$env:GRAFANA_OLD_PASSWORD = '<旧密码>'" -ForegroundColor Yellow
+    exit 1
+}
 
 # ── 工具函数 ───────────────────────────────────────────────────
 function Write-Section {
