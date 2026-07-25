@@ -43,7 +43,7 @@ $composeFile = "$projectRoot\docker-compose.monitoring.yml"
 $oldPwd = $env:GRAFANA_OLD_PASSWORD
 if (-not $oldPwd) {
     Write-Host "[ERROR] 环境变量 GRAFANA_OLD_PASSWORD 未设置" -ForegroundColor Red
-    Write-Host "  请在执行前设置: \$env:GRAFANA_OLD_PASSWORD = '<旧密码>'" -ForegroundColor Yellow
+    Write-Host "  请在执行前设置环境变量 GRAFANA_OLD_PASSWORD 后重试" -ForegroundColor Yellow
     exit 1
 }
 
