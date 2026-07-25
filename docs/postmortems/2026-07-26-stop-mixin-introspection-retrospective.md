@@ -315,8 +315,43 @@ def test_stop_wakes_up_long_interval(self, engine):
 | 优先级 | 任务 | 模块 | 预估 | 状态 |
 |--------|------|------|------|------|
 | P1 | 新发现 MEDIUM：cognitive/knowledge.py:127 asyncio.create_task fire-and-forget 持久化任务 | cognitive | 1h | ✅ **已完成**（commit `42b97b64`，TLM-AUDIT-003） |
-| P2 | lazy_loader shutdown() 注册到 atexit，确保进程退出时清理线程池 | lazy_loader | 0.5h | 待处理 |
-| P3 | chaos_injector cleanup_monitor 线程补充 join（当前依赖 daemon 兜底） | monitoring | 0.5h | 待处理 |
+| P2 | lazy_loader shutdown() 注册到 atexit，确保进程退出时清理线程池 | lazy_loader | 0.5h | 🔄 **进行中**（commit `d4950cab`，TLM-AUDIT-P2） |
+| P3 | chaos_injector cleanup_monitor 线程补充 join（当前依赖 daemon 兜底） | monitoring | 0.5h | 🔄 **进行中**（commit `d4950cab`，TLM-AUDIT-P3） |
+
+#### P2 修复详情（2026-07-26 进行中）
+
+**Commit**：`d4950cab` fix(lazy_loader,chaos_injector): 实现 P2 atexit 注册 + P3 cleanup_monitor join
+
+**修复内容**：
+- `__init__` 末尾 `atexit.register(self._atexit_shutdown)` 注册退出钩子
+- 新增 `shutdown()` 方法：`executor.shutdown(wait=True)` + `_shutdown_called` 幂等标记
+- 新增 `_atexit_shutdown()`：try-except 包裹 shutdown，异常不影响退出流程
+
+**测试覆盖**：[test_lazy_loader_atexit.py](file:///c:/Users/Administrator/agent/tests/unit/test_lazy_loader_atexit.py) 4 个用例
+- test_atexit_registered_on_init：验证 _atexit_shutdown 方法存在
+- test_shutdown_idempotent：多次调用 shutdown 不报错
+- test_atexit_shutdown_catches_exception：异常隔离验证
+- test_shutdown_calls_executor_shutdown：executor.shutdown(wait=True) 调用验证
+
+#### P3 修复详情（2026-07-26 进行中）
+
+**Commit**：`d4950cab` fix(lazy_loader,chaos_injector): 实现 P2 atexit 注册 + P3 cleanup_monitor join
+
+**修复内容**：
+- `__init__` 新增 `_cleanup_threads: list[threading.Thread]` + `_cleanup_stop_event`
+- `cleanup_monitor`：`time.sleep` → `Event.wait`（支持立即唤醒）+ 保存线程引用到 `_cleanup_threads`
+- 新增 `stop_cleanup_threads(timeout)`：set event + join all + clear list + reset event
+- `clear_all` 末尾调用 `stop_cleanup_threads`（锁外执行，守 project_memory "持锁禁 join"）
+
+**测试覆盖**：[test_chaos_cleanup_threads.py](file:///c:/Users/Administrator/agent/tests/unit/test_chaos_cleanup_threads.py) 6 个用例
+- test_cleanup_thread_saved_after_inject：inject 后 _cleanup_threads 非空
+- test_stop_cleanup_threads_joins_all：join 后所有线程退出
+- test_stop_cleanup_threads_wakes_up_event_wait：stop 在 1s 内唤醒（Event.wait）
+- test_cleanup_terminates_child_processes：stop 后子进程被 terminate
+- test_stop_cleanup_threads_idempotent：二次调用不报错 + stop_event 重置
+- test_clear_all_calls_stop_cleanup：clear_all 触发 stop_cleanup_threads
+
+**回归测试**：123 passed（含 lazy_loader + chaos_injector 原有测试）
 
 #### P1 修复详情（2026-07-26 完成）
 
