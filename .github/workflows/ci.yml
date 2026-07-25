@@ -149,7 +149,7 @@ jobs:
           # 业务代码走 fallback 路径 (130/130 测试本地验证通过)
           SKILLS_OFFLINE: '1'
         run: |
-          echo "=== 运行快速单元测试（固定顺序，禁用 pytest-randomly 避免 OOM）==="
+          echo "=== 运行快速单元测试（定位挂起根因版：--maxfail=5 + --timeout=60 + -rA）==="
           pytest tests/unit/ \
             -v \
             --tb=short \
@@ -160,11 +160,25 @@ jobs:
             -p no:randomly \
             -m "not slow and not skip_ci" \
             --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
-            --timeout=300
-          # 方案 A：禁用 pytest-randomly 随机顺序，避免某些测试组合下内存累积导致 OOM (exit 137)。
-          # 彻底隔离方案见 coverage-ci.yml 的 --forked（方案 B）。
-          # 本地复现失败测试：
-          #   pytest tests/unit/ -v --tb=short
+            --maxfail=5 \
+            --timeout=60 \
+            --timeout-method=thread \
+            -rA
+          # 【诊断模式】--maxfail=5: 5 次失败/超时后立即停止,定位挂起根因
+          # --timeout=60: 缩短单测试超时到 60s (原 300s),快速暴露挂起测试
+          # --timeout-method=thread: 线程级超时,能中断 join 阻塞
+          # -rA: 显示所有测试结果摘要 (含 skipped/timeout/failure)
+          # 确认根因后恢复 --timeout=300 并移除 --maxfail
+      - name: 失败时打印最近测试日志（定位挂起）
+        if: failure()
+        run: |
+          echo "=== 单元测试失败/挂起,打印诊断信息 ==="
+          echo "HEAD commit: $(git rev-parse HEAD)"
+          echo "Python: $(python --version)"
+          echo "pytest plugins: $(pip list 2>/dev/null | grep -i pytest)"
+          echo "SKILLS_OFFLINE: ${SKILLS_OFFLINE:-not set}"
+          echo "=== 最近修改的测试文件 ==="
+          git log --oneline -5 -- tests/unit/ 2>/dev/null || true
 
       - name: 运行新模块专项测试
         run: |
