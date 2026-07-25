@@ -79,6 +79,9 @@ class KnowledgePrecipitator:
                            用于将沉淀结果写入持久化记忆
         """
         self._memory_router = memory_router
+        # [TLM-AUDIT-003] 追踪未完成的异步持久化任务，支持 flush_pending 等待
+        # Why: 原 asyncio.create_task fire-and-forget，事件循环关闭时未完成任务会丢失
+        self._pending_persist_tasks: set[asyncio.Task] = set()
 
     def precipitate(self,
                     task_type: str,
@@ -124,7 +127,8 @@ class KnowledgePrecipitator:
 
         # 高置信度记录写入持久化记忆
         if self._memory_router and confidence >= 0.5:
-            asyncio.create_task(self._persist(record, trace_id))
+            # [TLM-AUDIT-003] 改为可追踪模式，保存 Task 引用以便 flush_pending 等待
+            self._schedule_persist(record, trace_id)
 
         return record
 
@@ -265,6 +269,62 @@ class KnowledgePrecipitator:
             confidence -= 0.1
 
         return max(0.0, min(1.0, confidence))
+
+    # ── [TLM-AUDIT-003] 异步持久化任务追踪与优雅关闭 ──
+
+    def _schedule_persist(self, record: KnowledgeRecord, trace_id: str) -> None:
+        """调度异步持久化任务，保存 Task 引用以便 flush_pending 等待
+
+        [不易] 守数据完整性：Task 引用必须保存，否则事件循环关闭时未完成任务会丢失。
+        [变易] add_done_callback 自动清理已完成任务，避免集合无限增长。
+        [简易] 降级处理：无事件循环时跳过（precipitate 可能在同步上下文调用）。
+        """
+        try:
+            task = asyncio.create_task(self._persist(record, trace_id))
+        except RuntimeError:
+            # 无运行中的事件循环（precipitate 在同步上下文调用），降级跳过
+            logger.warning(
+                "[Cognitive] 无事件循环，跳过异步持久化: trace_id=%s", trace_id
+            )
+            return
+        self._pending_persist_tasks.add(task)
+        # 任务完成后自动从集合移除，避免无限增长
+        task.add_done_callback(self._pending_persist_tasks.discard)
+
+    async def flush_pending(self, timeout: float = 10.0) -> bool:
+        """等待所有未完成的持久化任务完成（关闭前调用）
+
+        [不易] 守数据完整性：事件循环关闭前必须等待所有 _persist 任务完成。
+        [变易] timeout 兜底防止无限等待，return_exceptions=True 避免单个任务异常阻塞。
+        [简易] 空集合直接返回 True（无任务可等待）。
+
+        Args:
+            timeout: 最长等待时间（秒），默认 10s
+
+        Returns:
+            True 如果全部完成，False 如果超时
+        """
+        if not self._pending_persist_tasks:
+            return True
+        pending_count = len(self._pending_persist_tasks)
+        logger.info(
+            "[Cognitive] flush_pending 开始: 等待 %d 个持久化任务, timeout=%ss",
+            pending_count, timeout,
+        )
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(*self._pending_persist_tasks, return_exceptions=True),
+                timeout=timeout,
+            )
+            logger.info("[Cognitive] flush_pending 完成: 全部任务已结束")
+            return True
+        except asyncio.TimeoutError:
+            remaining = len(self._pending_persist_tasks)
+            logger.warning(
+                "[Cognitive] flush_pending 超时(%ss): 仍有 %d/%d 个任务未完成",
+                timeout, remaining, pending_count,
+            )
+            return False
 
     async def _persist(self, record: KnowledgeRecord, trace_id: str):
         """将知识记录持久化到记忆系统
