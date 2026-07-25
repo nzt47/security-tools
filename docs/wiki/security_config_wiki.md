@@ -332,4 +332,7 @@ ENV LLM_PROVIDER=openai
 
 - [安全配置使用说明](../security/secure_config_guide.md)
 - [安全测试报告](../test_reports/security_test_report.md)
+- [CI 安全扫描 Wiki](ci_security_scan_wiki.md) — gitleaks 硬编码密码扫描工作流使用指南
+- [CI 配置归档](../archive/CI_GITLEAKS_SECURITY_SCAN_ARCHIVE.md) — 修复链路与验证证据
+- [CI 修复复盘报告](../postmortems/2026-07-26-gitleaks-ci-fix-postmortem.md) — 7 类根因分析
 - [项目 README](../../README.md)
