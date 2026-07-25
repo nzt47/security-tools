@@ -36,6 +36,9 @@
 | `.github/workflows/test.yml` | L2 step 新增 `L2_SCHEME=sync-serial-path-cache` 标记 + 解析图表 step + artifact 上传 |
 | `scripts/parse_ci_l2_report.py` | 新增 CI 日志解析与可视化脚本 |
 | `CHANGELOG_L2_ASYNC_IO_REVERT_20260726.md` | 详细决策记录 |
+| `scripts/simulate_l2_async_switch.py` | 新增 dry-run 切换模拟脚本，支持 `--bench-log` 性能对比日志与 `--check` 一致性校验 |
+| `scripts/l2_async_experiment_branch.ps1` | 新增临时分支 git 操作指令（6 动作：create/verify/status/merge/abort/cleanup） |
+| `docs/changelogs/l2-async-switch-checklist.md` | 新增异步方案切换操作检查清单（7 Phase + 回滚预案 + 9 项验收标准） |
 
 ## CI 标记
 
