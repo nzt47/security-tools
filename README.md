@@ -456,3 +456,27 @@ config_manager 测试强化与 TLM Step 2 记忆系统发布。从零测试到 9
 
 详细变更见 [CHANGELOG.md](CHANGELOG.md) 和 [发布归档](docs/releases/v1.2.0.md)。
 
+## L2 冷数据加载性能测试
+
+> **最佳实践**：同步串行 + 路径缓存。异步 IO（`asyncio.to_thread`）实测 P50 变慢 21 倍，不建议使用。
+
+| 实践 | 说明 |
+|------|------|
+| 同步串行 read_fragment | `_build_l2` for 循环串行调用，无线程池开销 |
+| 路径缓存（O(1) 命中） | `_fragment_path_cache` 缓存 key→filepath，避免重复 glob |
+| 限量读取 | `f.read(max_chars*4)` 只读前 N 字节，避免读全文 |
+
+### 性能护栏（CI 回归测试）
+
+| 测试 | 阈值 |
+|------|------|
+| 冷启动 P99 | < 2s |
+| 热启动 P99 | < 1s |
+| 并发(10) P99 | < 2s |
+| 缓存有效性 | 热启动 ≤ 2×冷启动 |
+
+### 相关文档
+
+- [L2 性能测试最佳实践详解](tests/performance/README.md)
+- [异步 IO 不适用场景分析](docs/perf-async-io-analysis.md)
+- [极限压测脚本](scripts/bench_l2_stress.py)

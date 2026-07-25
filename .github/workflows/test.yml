@@ -300,6 +300,9 @@ jobs:
 
       - name: 运行 L2 性能回归测试
         run: |
+          echo "=== L2 性能回归测试 ==="
+          echo "方案: 同步串行 read_fragment + 路径缓存（最优方案）"
+          echo "护栏: 冷启动 P99<2s | 热启动 P99<1s | 并发 P99<2s | 缓存有效性"
           pytest tests/performance/test_l2_perf_regression.py \
             -v \
             --timeout=120 \
