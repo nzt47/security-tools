@@ -23,6 +23,14 @@ paths = [
     '''\.github/gitleaks-config\.toml$''',
     # 测试文件中的 mock 密码
     '''tests/.*\.py$''',
+    # v1.3.1 新增: 非业务代码路径排除（避免误报）
+    # 虚拟环境（第三方依赖, 非项目代码）
+    '''venv/.*''',
+    '''\.venv/.*''',
+    # 历史测试日志（仅记录运行结果, 非源代码）
+    '''test_reports/.*''',
+    # 通用日志文件
+    '''\.log$''',
 ]
 regexes = [
     # Python 环境变量读取（os.environ.get / os.getenv）
