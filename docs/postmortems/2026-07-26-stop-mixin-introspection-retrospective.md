@@ -315,10 +315,10 @@ def test_stop_wakes_up_long_interval(self, engine):
 | 优先级 | 任务 | 模块 | 预估 | 状态 |
 |--------|------|------|------|------|
 | P1 | 新发现 MEDIUM：cognitive/knowledge.py:127 asyncio.create_task fire-and-forget 持久化任务 | cognitive | 1h | ✅ **已完成**（commit `42b97b64`，TLM-AUDIT-003） |
-| P2 | lazy_loader shutdown() 注册到 atexit，确保进程退出时清理线程池 | lazy_loader | 0.5h | 🔄 **进行中**（commit `d4950cab`，TLM-AUDIT-P2） |
-| P3 | chaos_injector cleanup_monitor 线程补充 join（当前依赖 daemon 兜底） | monitoring | 0.5h | 🔄 **进行中**（commit `d4950cab`，TLM-AUDIT-P3） |
+| P2 | lazy_loader shutdown() 注册到 atexit，确保进程退出时清理线程池 | lazy_loader | 0.5h | ✅ **已完成**（commit `d4950cab`，TLM-AUDIT-P2） |
+| P3 | chaos_injector cleanup_monitor 线程补充 join（当前依赖 daemon 兜底） | monitoring | 0.5h | ✅ **已完成**（commit `d4950cab`，TLM-AUDIT-P3） |
 
-#### P2 修复详情（2026-07-26 进行中）
+#### P2 修复详情（2026-07-26 已完成）
 
 **Commit**：`d4950cab` fix(lazy_loader,chaos_injector): 实现 P2 atexit 注册 + P3 cleanup_monitor join
 
@@ -333,7 +333,7 @@ def test_stop_wakes_up_long_interval(self, engine):
 - test_atexit_shutdown_catches_exception：异常隔离验证
 - test_shutdown_calls_executor_shutdown：executor.shutdown(wait=True) 调用验证
 
-#### P3 修复详情（2026-07-26 进行中）
+#### P3 修复详情（2026-07-26 已完成）
 
 **Commit**：`d4950cab` fix(lazy_loader,chaos_injector): 实现 P2 atexit 注册 + P3 cleanup_monitor join
 
