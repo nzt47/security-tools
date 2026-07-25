@@ -77,12 +77,20 @@ tags = ["postgres", "password", "p1"]
 keywords = ["POSTGRES_PASSWORD"]
 
 # ── 规则 5: Django SECRET_KEY 硬编码 ────────────────────────────
+# 注: 原 regex 使用 (?!...) Perl lookahead, Go RE2 不支持, 改用 allowlist 排除占位符
 [[rules]]
 id = "django-secret-key"
 description = "Django SECRET_KEY 硬编码（非 dev-secret-key 占位符）"
-regex = '''SECRET_KEY\s*[:=]\s*['"](?!dev-secret-key|change-me|your-secret)[^'"\s]{20,}['"]'''
+regex = '''SECRET_KEY\s*[:=]\s*['"][^'"\s]{20,}['"]'''
 tags = ["django", "secret", "p1"]
 keywords = ["SECRET_KEY"]
+
+  [rules.allowlist]
+  regexes = [
+    '''dev-secret-key''',
+    '''change-me''',
+    '''your-secret''',
+  ]
 
 # ── 规则 6: HTTP Basic Auth 密码 ────────────────────────────────
 [[rules]]
