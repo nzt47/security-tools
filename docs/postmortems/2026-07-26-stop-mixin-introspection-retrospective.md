@@ -312,11 +312,34 @@ def test_stop_wakes_up_long_interval(self, engine):
 
 ### 7.1 短期（下一迭代）
 
-| 优先级 | 任务 | 模块 | 预估 |
-|--------|------|------|------|
-| P1 | 新发现 MEDIUM：cognitive/knowledge.py:127 asyncio.create_task fire-and-forget 持久化任务 | cognitive | 1h |
-| P2 | lazy_loader shutdown() 注册到 atexit，确保进程退出时清理线程池 | lazy_loader | 0.5h |
-| P3 | chaos_injector cleanup_monitor 线程补充 join（当前依赖 daemon 兜底） | monitoring | 0.5h |
+| 优先级 | 任务 | 模块 | 预估 | 状态 |
+|--------|------|------|------|------|
+| P1 | 新发现 MEDIUM：cognitive/knowledge.py:127 asyncio.create_task fire-and-forget 持久化任务 | cognitive | 1h | ✅ **已完成**（commit `42b97b64`，TLM-AUDIT-003） |
+| P2 | lazy_loader shutdown() 注册到 atexit，确保进程退出时清理线程池 | lazy_loader | 0.5h | 待处理 |
+| P3 | chaos_injector cleanup_monitor 线程补充 join（当前依赖 daemon 兜底） | monitoring | 0.5h | 待处理 |
+
+#### P1 修复详情（2026-07-26 完成）
+
+**Commit**：`42b97b64` fix(cognitive): 修复 knowledge.py asyncio.create_task fire-and-forget 风险 [TLM-AUDIT-003]
+
+**修复内容**：
+- `__init__` 新增 `_pending_persist_tasks: set[asyncio.Task]` 追踪集合
+- 新增 `_schedule_persist()`：封装 `create_task` + 保存 Task 引用 + `add_done_callback` 自动清理
+- 新增 `flush_pending(timeout=10.0)`：`asyncio.gather` + `wait_for` 等待所有任务完成
+- `precipitate` 调用改为 `_schedule_persist`（替代直接 `create_task`）
+
+**降级处理**：
+- 无事件循环时（同步上下文调用 `precipitate`）`_schedule_persist` 捕获 `RuntimeError` 跳过
+- 单个任务异常不阻塞 `flush_pending`（`return_exceptions=True`）
+- `timeout` 兜底防止无限等待
+
+**测试覆盖**：[test_knowledge_flush_pending.py](file:///c:/Users/Administrator/agent/tests/unit/test_knowledge_flush_pending.py) 13 个用例
+- TestSchedulePersist(4)：任务调度 / 低置信度跳过 / 自动清理 / 多任务追踪
+- TestFlushPending(5)：空集合 / 等待完成 / 超时 / 异常处理 / 幂等性
+- TestSchedulePersistDegradation(2)：无事件循环降级 / 异步上下文正常
+- TestPersistCorrectness(2)：数据正确性 / 异常不阻塞
+
+**回归测试**：65 passed（含 test_cognitive_loop.py 原有用例）
 
 ### 7.2 长期（架构改进）
 
