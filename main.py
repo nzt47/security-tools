@@ -76,8 +76,18 @@ def main():
     parser.add_argument("--log-target", type=str, default=None, help="指定日志记录器名称（默认根记录器）")
     args = parser.parse_args()
 
-    # 重新配置日志（根据debug参数）
-    setup_agent_logging(debug_mode=args.debug)
+    # 加载 .env 到 os.environ（守 user_rules「配置走 .env」）
+    # Why: env_config_manager.reload() 把 .env 写入 os.environ，
+    #      后续 os.getenv("LOG_LEVEL") 等才能读到 .env 里的配置
+    # 注意: reload() 会覆盖现有同名环境变量（.env 为单一数据源，符合项目设计）
+    try:
+        from agent.env_config_manager import get_env_config_manager
+        get_env_config_manager().reload()
+    except Exception as _e:
+        logger.warning(f".env 加载失败（继续使用系统环境变量）: {_e}")
+    # 重新配置日志（优先级: --debug 命令行参数 > LOG_LEVEL 环境变量 > 默认 INFO）
+    _env_debug = os.getenv("LOG_LEVEL", "INFO").upper() == "DEBUG"
+    setup_agent_logging(debug_mode=args.debug or _env_debug)
 
     if args.debug:
         logger.info("调试模式已启用")
