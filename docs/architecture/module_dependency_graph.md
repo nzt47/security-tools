@@ -26,6 +26,9 @@ flowchart LR
         agent_cognitive_observability["agent.cognitive.observability"]
         agent_cognitive_reflection["agent.cognitive.reflection"]
     end
+    subgraph common [common]
+        agent_common_stop_mixin["agent.common.stop_mixin"]:::crosslayer
+    end
     subgraph core [core]
         agent_api_gateway["agent.api_gateway"]
         agent_async_executor["agent.async_executor"]:::crosslayer
@@ -464,6 +467,7 @@ flowchart LR
     agent_p6 --> agent_p6_performance
     agent_p6 --> agent_p6_frequency
     agent_p6_observability -.-> agent_monitoring_business_metrics
+    agent_log_system_introspection -.-> agent_common_stop_mixin
     agent_log_system_introspection -.-> agent_logging_utils
     agent_log_system_introspection -.-> agent_tool_calling
     agent_log_system_observability -.-> agent_monitoring_business_metrics
@@ -842,6 +846,7 @@ flowchart LR
     agent_human_in_the_loop_observability -.-> agent_monitoring_business_metrics
     agent_data_observability -.-> agent_monitoring_business_metrics
     agent_monitoring_search --> agent_monitoring_tracing
+    agent_monitoring_search -.-> agent_common_stop_mixin
     agent_monitoring_search --> agent_monitoring_observability_config
     agent_monitoring_chaos_injector --> agent_monitoring_tracing
     agent_monitoring_chaos_injector -.-> agent_logging_utils
@@ -926,10 +931,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 336
-- 模块节点数: 266
-- 依赖边数: 578
-- 跨层调用数: 364
+- 扫描文件数: 338
+- 模块节点数: 267
+- 依赖边数: 580
+- 跨层调用数: 366
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1190.55 ms
+- 构建耗时: 1193.23 ms
