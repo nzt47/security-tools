@@ -3,14 +3,12 @@
 用途：
 - 构造大规模冷数据 + 高并发读，触发 MarkdownSyncer.read_fragment 极限瓶颈
 - 采集 P50/P99/Max/QPS，定位 L2 冷数据加载性能拐点
-- 场景 E 验证 asyncio.to_thread 异步 IO 能否缓解事件循环阻塞
 
 压测场景：
 - 场景 A 冷启动：路径缓存空，首次 assemble 触发 N 个 glob 未命中（O(子目录数)）
 - 场景 B 热启动：路径缓存满，第二次 assemble 全部 O(1) 命中
 - 场景 C 高并发：K 个 assemble 并发（_cache_lock 竞争 + 同步 IO 阻塞事件循环）
 - 场景 D 大 fragment：单条 data 20KB+，验证限量读取（max_chars*4 字节）效果
-- 场景 E 异步 IO：monkey-patch _build_l2 用 asyncio.to_thread 并发 read_fragment
 
 运行：
     python scripts/bench_l2_stress.py
@@ -32,7 +30,6 @@ import struct
 import sys
 import tempfile
 import time
-import types
 from pathlib import Path
 
 # 加入项目根（便于直接 python scripts/xxx.py 运行）
@@ -272,101 +269,6 @@ async def scenario_c_concurrent(
     return list(latencies), total
 
 
-# ── 场景 E：异步 IO 优化（asyncio.to_thread 包装 read_fragment）──
-
-async def _async_build_l2(self, query: str) -> list[dict]:
-    """异步版 _build_l2：read_fragment 用 asyncio.to_thread 并发执行
-
-    Why: 同步 read_fragment 在 for 循环中串行执行，阻塞事件循环。
-         asyncio.to_thread 把每个 read_fragment 放到线程池，释放事件循环，
-         使多个并发 assemble 的 read_fragment 能真正并行（IO 释放 GIL）。
-
-    不变量：与原版 _build_l2 返回结构一致（{key, fragment, source}），
-           L2 仍从 Markdown 归档读取（不查 SQLite 主表，守不易约束）。
-    """
-    if self.adapter is None or self.syncer is None or not query:
-        return []
-    if not getattr(self.adapter, "_vec_available", False):
-        return []
-    embedding_func = getattr(self.adapter, "_embedding_func", None)
-    if embedding_func is None:
-        return []
-    try:
-        query_embedding = embedding_func(query)
-    except Exception:
-        return []
-    if not query_embedding:
-        return []
-    try:
-        vec_results = await self.adapter.search_vector(query_embedding, top_k=self.l2_top_k)
-    except Exception:
-        return []
-
-    # 收集 key（与原版逻辑一致）
-    keys: list[str | None] = []
-    for r in vec_results:
-        meta = getattr(r, "metadata", None) or {}
-        key = meta.get("key") if isinstance(meta, dict) else None
-        keys.append(key)
-
-    # 关键优化：asyncio.to_thread 并发读取 fragment（替代原版 for 循环串行）
-    # Why: read_fragment 是同步阻塞（glob + open），放线程池后释放事件循环，
-    #      多个并发 assemble 的 read_fragment 可在线程池中并行（IO 释放 GIL）
-    async def _read_one(k):
-        if not k:
-            return None
-        try:
-            return await asyncio.to_thread(
-                self.syncer.read_fragment, k, self.l2_max_chars
-            )
-        except Exception:
-            return ""
-
-    fragments_raw = await asyncio.gather(*[_read_one(k) for k in keys])
-
-    # 组装结果（与原版一致）
-    fragments: list[dict] = []
-    for key, frag in zip(keys, fragments_raw):
-        if not key:
-            continue
-        if frag:
-            fragments.append({
-                "key": key,
-                "fragment": frag,
-                "source": "markdown_archive",
-            })
-    return fragments
-
-
-async def scenario_e_async_io(
-    assembler: ContextAssembler, query: str, concurrency: int,
-) -> tuple[list[float], float]:
-    """场景 E：异步 IO（monkey-patch _build_l2 用 asyncio.to_thread 并发 read_fragment）
-
-    对比场景 C（同步串行 read_fragment）验证异步 IO 能否缓解事件循环阻塞。
-    非侵入式：只 monkey-patch 压测实例，不改生产代码。
-    """
-    # monkey-patch _build_l2 为异步版本（只影响本次压测）
-    original_build_l2 = assembler._build_l2
-    assembler._build_l2 = types.MethodType(_async_build_l2, assembler)
-
-    # 清空缓存（与场景 C 一致，公平对比）
-    with assembler.syncer._cache_lock:
-        assembler.syncer._fragment_path_cache.clear()
-
-    async def _one_task() -> float:
-        result = await assembler.assemble(query, max_tokens=4000)
-        return result["meta"]["l2_elapsed_ms"]
-
-    t0 = time.time()
-    latencies = await asyncio.gather(*[_one_task() for _ in range(concurrency)])
-    total = (time.time() - t0) * 1000.0
-
-    # 恢复原版 _build_l2
-    assembler._build_l2 = original_build_l2
-    return list(latencies), total
-
-
 # ── 主流程 ──
 
 async def main(args: argparse.Namespace) -> int:
@@ -500,31 +402,6 @@ async def main(args: argparse.Namespace) -> int:
                   f"(读取 {result['meta']['l2_count']} 个 fragment)")
             print(f"  总耗时: {total:.2f}ms")
 
-        # ── 场景 E：异步 IO 对比 ──
-        print(f"\n【场景 E】异步 IO（asyncio.to_thread 并发 read_fragment, 并发度={args.concurrency}）")
-        async_l2_list, async_total = await scenario_e_async_io(
-            assembler, QUERY, args.concurrency,
-        )
-        report(f"concurrency={args.concurrency}", async_l2_list, async_total)
-
-        # 同步 vs 异步对比
-        if conc_l2_list and async_l2_list:
-            sync_p50 = percentile(sorted(conc_l2_list), 0.50)
-            sync_p99 = percentile(sorted(conc_l2_list), 0.99)
-            async_p50 = percentile(sorted(async_l2_list), 0.50)
-            async_p99 = percentile(sorted(async_l2_list), 0.99)
-            imp_p99 = (sync_p99 - async_p99) / sync_p99 * 100 if sync_p99 > 0 else 0
-            imp_p50 = (sync_p50 - async_p50) / sync_p50 * 100 if sync_p50 > 0 else 0
-            print(f"\n  [同步 vs 异步对比]")
-            print(f"    P50: 同步 {sync_p50:.2f}ms → 异步 {async_p50:.2f}ms (改善 {imp_p50:+.1f}%)")
-            print(f"    P99: 同步 {sync_p99:.2f}ms → 异步 {async_p99:.2f}ms (改善 {imp_p99:+.1f}%)")
-            if imp_p99 > 20:
-                print(f"  [✓] 异步 IO 显著缓解事件循环阻塞，建议推广到生产代码")
-            elif imp_p99 > 0:
-                print(f"  [~] 异步 IO 有改善但不显著（可能受线程池开销抵消）")
-            else:
-                print(f"  [!] 异步 IO 未改善（可能受 GIL 或线程池大小限制）")
-
         # ── 结论 ──
         print("\n" + "=" * 72)
         print("【结论】")
@@ -544,9 +421,6 @@ async def main(args: argparse.Namespace) -> int:
             print(f"  高并发 P99（同步 IO）: {p99_conc:.2f}ms (并发度={args.concurrency})")
             if p99_conc > 1000:
                 print(f"  [!] 高并发 P99 超过 1 秒，L2 成为瓶颈，建议异步化 read_fragment")
-        if async_l2_list:
-            p99_async = percentile(sorted(async_l2_list), 0.99)
-            print(f"  高并发 P99（异步 IO）: {p99_async:.2f}ms (并发度={args.concurrency})")
         print("\n  压测完成。")
 
     return 0
