@@ -1,0 +1,152 @@
+{
+  "__meta": {
+    "template_name": "MCP 日志级别安全告警 (Yunshu_mcp_log_level_alerts)",
+    "template_version": "1.0.0",
+    "generated_at": "2026-07-25",
+    "source": "deploy/monitoring/prometheus/alert_rules.yml",
+    "schema": "Grafana Unified Alerting (v8.0+)",
+    "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+    },
+    "usage": {
+      "import": "Grafana -> Alerting -> Rules -> Import (粘贴 JSON) 或通过 HTTP API: POST /api/v1/provisioning/alert-rules",
+      "variables": [
+        {"name": "${DS_PROMETHEUS}", "description": "Prometheus 数据源 UID, 在 Grafana -> Data Sources 查询"},
+        {"name": "${folder}", "description": "规则存放的 folder UID, 默认可使用 'general'"}
+      ],
+      "labels": {
+        "component": "mcp",
+        "origin": "yunshu-mcp-log-level-monitor"
+      }
+    },
+    "references": [
+      "docs/PROD_LOG_LEVEL_RUNBOOK.md",
+      "agent/mcp_executor.py",
+      "scripts/check_mcp_log_level.py"
+    ]
+  },
+  "groups": [
+    {
+      "name": "Yunshu_mcp_log_level_alerts",
+      "interval": "15s",
+      "rules": [
+        {
+          "uid": "mcp-log-fallback",
+          "title": "McpLogLevelFallback",
+          "condition": "A",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 60,
+                "to": 0
+              },
+              "datasourceUid": "${DS_PROMETHEUS}",
+              "model": {
+                "expr": "mcp_log_level_fallback == 1",
+                "instant": true,
+                "refId": "A",
+                "type": "math"
+              }
+            }
+          ],
+          "dashboardUid": null,
+          "panelId": null,
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "0s",
+          "annotations": {
+            "summary": "MCP 日志级别异常回退 — 疑似恶意配置",
+            "description": "容器 {{ $labels.instance }} 的 MCP_LOG_LEVEL 被设为 '{{ $labels.original }}'(非白名单值),已自动回退到 INFO。CRITICAL(50) 会抑制 ERROR(40) 日志,可能用于掩盖错误痕迹。请立即排查容器环境变量是否被篡改。",
+            "runbook_url": "docs/PROD_LOG_LEVEL_RUNBOOK.md#5-安全防护恶意值自动回退",
+            "valid_levels": "DEBUG,INFO,WARNING,ERROR"
+          },
+          "labels": {
+            "severity": "critical",
+            "component": "mcp",
+            "category": "security",
+            "origin": "yunshu-mcp-log-level-monitor"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "mcp-log-exporter-down",
+          "title": "McpLogLevelExporterDown",
+          "condition": "A",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 120,
+                "to": 0
+              },
+              "datasourceUid": "${DS_PROMETHEUS}",
+              "model": {
+                "expr": "absent(mcp_log_level_current) or up{job=\"mcp-log-monitor\"} == 0",
+                "instant": true,
+                "refId": "A",
+                "type": "math"
+              }
+            }
+          ],
+          "dashboardUid": null,
+          "panelId": null,
+          "noDataState": "Alerting",
+          "execErrState": "Error",
+          "for": "1m",
+          "annotations": {
+            "summary": "MCP 日志级别监控导出器不可达",
+            "description": "mcp-log-monitor 服务(端口 9102)在过去 1 分钟内不可达,无法监控日志级别回退事件。请检查容器健康状态。",
+            "runbook_url": "docs/PROD_LOG_LEVEL_RUNBOOK.md#7-故障排查"
+          },
+          "labels": {
+            "severity": "warning",
+            "component": "mcp",
+            "category": "monitoring",
+            "origin": "yunshu-mcp-log-level-monitor"
+          },
+          "isPaused": false
+        },
+        {
+          "uid": "mcp-log-unknown",
+          "title": "McpLogLevelUnknown",
+          "condition": "A",
+          "data": [
+            {
+              "refId": "A",
+              "relativeTimeRange": {
+                "from": 180,
+                "to": 0
+              },
+              "datasourceUid": "${DS_PROMETHEUS}",
+              "model": {
+                "expr": "mcp_log_level_current == 0",
+                "instant": true,
+                "refId": "A",
+                "type": "math"
+              }
+            }
+          ],
+          "dashboardUid": null,
+          "panelId": null,
+          "noDataState": "OK",
+          "execErrState": "Error",
+          "for": "2m",
+          "annotations": {
+            "summary": "MCP 日志级别未知 — 可能启动异常",
+            "description": "mcp_log_level_current == 0 表示日志级别无法确定,可能 mcp_executor 模块加载失败或 logger 配置异常。",
+            "runbook_url": "docs/PROD_LOG_LEVEL_RUNBOOK.md#7-故障排查"
+          },
+          "labels": {
+            "severity": "warning",
+            "component": "mcp",
+            "category": "anomaly",
+            "origin": "yunshu-mcp-log-level-monitor"
+          },
+          "isPaused": false
+        }
+      ]
+    }
+  ]
+}
