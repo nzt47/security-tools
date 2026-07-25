@@ -405,3 +405,6 @@ def get_env_config_manager() -> EnvConfigManager:
     global _instance
     if _instance is None:
         _instance = EnvConfigManager()
+    # 【不易】单例契约: 必须返回实例，否则调用方拿 None 触发 'NoneType' object has no attribute 'set'
+    # Why: 修复 9 个网络配置加密测试失败（test_network_config.py / test_network_config_save_regression.py）
+    return _instance
