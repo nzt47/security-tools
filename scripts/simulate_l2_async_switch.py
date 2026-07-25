@@ -182,6 +182,102 @@ def parse_implementation_state(syncer_path: Path, assembler_path: Path) -> Imple
     return state
 
 
+# ── 压测日志解析（性能对比用）──
+
+@dataclass
+class ScenarioMetrics:
+    """单场景性能指标"""
+    name: str  # A/B/C/E
+    p50: float = 0.0
+    p99: float = 0.0
+    pmax: float = 0.0
+
+    @property
+    def is_async(self) -> bool:
+        """场景 E 为异步 IO 方案"""
+        return self.name == "E"
+
+
+@dataclass
+class BenchPerf:
+    """压测性能数据（场景 C 同步 vs 场景 E 异步）"""
+    sync_scenario: ScenarioMetrics | None = None   # 场景 C
+    async_scenario: ScenarioMetrics | None = None  # 场景 E
+    all_scenarios: list[ScenarioMetrics] = field(default_factory=list)
+
+    @property
+    def has_comparison(self) -> bool:
+        return self.sync_scenario is not None and self.async_scenario is not None
+
+
+def parse_bench_log(bench_path: Path) -> BenchPerf:
+    """解析 bench_l2_stress.py 输出的压测日志
+
+    格式样本：
+        【场景 C】高并发（20 个 assemble 并发，同步 IO）
+            P50:    16.81ms
+            P99:    99.75ms
+            Max:    99.75ms
+
+    Why: 仅采集【场景 X】块，排除【锁竞争统计】等非场景块干扰
+    """
+    perf = BenchPerf()
+    if not bench_path.exists():
+        return perf
+
+    content = bench_path.read_text(encoding="utf-8", errors="replace")
+    lines = content.split("\n")
+
+    block_pattern = re.compile(r"【([^】]+)】")
+    scenario_pattern = re.compile(r"场景\s*([A-Z])")
+    metric_pattern = re.compile(r"(P50|P99|Max):\s*([\d.]+)ms")
+
+    current_scenario: str | None = None
+    current_metrics: dict[str, float] = {}
+
+    for line in lines:
+        block_match = block_pattern.search(line)
+        if block_match:
+            # 保存上一个场景
+            if current_scenario and current_metrics:
+                m = ScenarioMetrics(
+                    name=current_scenario,
+                    p50=current_metrics.get("P50", 0.0),
+                    p99=current_metrics.get("P99", 0.0),
+                    pmax=current_metrics.get("Max", 0.0),
+                )
+                perf.all_scenarios.append(m)
+                if current_scenario == "C":
+                    perf.sync_scenario = m
+                elif current_scenario == "E":
+                    perf.async_scenario = m
+            # 检查是否是场景块
+            scenario_match = scenario_pattern.search(block_match.group(1))
+            current_scenario = scenario_match.group(1) if scenario_match else None
+            current_metrics = {}
+            continue
+
+        metric_match = metric_pattern.search(line)
+        if metric_match and current_scenario:
+            current_metrics[metric_match.group(1)] = float(metric_match.group(2))
+
+    # 保存最后一个场景
+    if current_scenario and current_metrics:
+        m = ScenarioMetrics(
+            name=current_scenario,
+            p50=current_metrics.get("P50", 0.0),
+            p99=current_metrics.get("P99", 0.0),
+            pmax=current_metrics.get("Max", 0.0),
+        )
+        perf.all_scenarios.append(m)
+        if current_scenario == "C":
+            perf.sync_scenario = m
+        elif current_scenario == "E":
+            perf.async_scenario = m
+
+    return perf
+
+
 # ── 一致性校验 ──
 
 def check_consistency(ci_state: CIState, impl_state: ImplementationState) -> ConsistencyReport:
@@ -339,6 +435,88 @@ def print_switch_simulation(
     print(f"\n  【不易】顺序约束：先改实现（3、4）→ 再改标记（1、2），避免标记撒谎")
 
 
+def print_perf_comparison(
+    perf: BenchPerf,
+    log_file: Path | None = None,
+) -> str:
+    """打印性能对比表（场景 C 同步 vs 场景 E 异步）+ 决策建议
+
+    Args:
+        perf: 压测性能数据
+        log_file: 若提供，将报告写入日志文件
+
+    Returns: 报告全文（便于调用方追加到其他日志）
+    """
+    lines: list[str] = []
+    lines.append("")
+    lines.append("=" * 72)
+    lines.append("【性能对比日志：同步串行 vs 异步 IO】")
+    lines.append("=" * 72)
+
+    if not perf.has_comparison:
+        lines.append("\n  [!] 未找到场景 C 或场景 E 数据，无法对比")
+        lines.append(f"  已采集场景: {[s.name for s in perf.all_scenarios] or '(无)'}")
+        report = "\n".join(lines)
+        print(report)
+        return report
+
+    sync = perf.sync_scenario
+    async_ = perf.async_scenario
+
+    lines.append(f"\n── 场景 C（同步串行）vs 场景 E（异步 IO）──")
+    lines.append(f"  {'指标':<8} {'同步串行 (C)':<20} {'异步 IO (E)':<20} {'变化':<15} {'结论':<10}")
+    lines.append(f"  {'-'*75}")
+
+    for metric_name, sync_val, async_val in [
+        ("P50", sync.p50, async_.p50),
+        ("P99", sync.p99, async_.p99),
+        ("Max", sync.pmax, async_.pmax),
+    ]:
+        if sync_val > 0:
+            ratio = async_val / sync_val
+            if ratio >= 1.0:
+                change = f"变慢 {ratio:.1f} 倍"
+                verdict = "❌ 恶化"
+            else:
+                change = f"变快 {1/ratio:.1f} 倍"
+                verdict = "✅ 改善"
+        else:
+            change = "N/A"
+            verdict = "N/A"
+        lines.append(f"  {metric_name:<8} {sync_val:<20.2f} {async_val:<20.2f} {change:<15} {verdict:<10}")
+
+    # 决策建议
+    lines.append(f"\n── 决策建议 ──")
+    p50_ratio = async_.p50 / sync.p50 if sync.p50 > 0 else 0
+    if p50_ratio > 1.0:
+        lines.append(f"  ❌ 不建议切换：异步 IO P50 变慢 {p50_ratio:.1f} 倍")
+        lines.append(f"  建议：保持当前同步串行方案（L2_SCHEME=sync-serial-path-cache）")
+        lines.append(f"  根因参考：路径缓存已消除瓶颈，线程池调度开销反超操作本身")
+    elif p50_ratio < 1.0:
+        lines.append(f"  ✅ 可考虑切换：异步 IO P50 改善 {1/p50_ratio:.1f} 倍")
+        lines.append(f"  建议：按 docs/changelogs/l2-async-switch-checklist.md 执行完整切换流程")
+    else:
+        lines.append(f"  ⚠️ 性能持平：需结合 P99/Max 与业务场景综合判断")
+
+    # 所有场景概览
+    if perf.all_scenarios:
+        lines.append(f"\n── 全部场景概览 ──")
+        lines.append(f"  {'场景':<8} {'P50(ms)':<15} {'P99(ms)':<15} {'Max(ms)':<15}")
+        lines.append(f"  {'-'*50}")
+        for s in perf.all_scenarios:
+            lines.append(f"  {s.name:<8} {s.p50:<15.2f} {s.p99:<15.2f} {s.pmax:<15.2f}")
+
+    report = "\n".join(lines)
+    print(report)
+
+    # 写入日志文件
+    if log_file:
+        log_file.write_text(report + "\n", encoding="utf-8")
+        print(f"\n[✓] 性能对比日志已写入: {log_file}")
+
+    return report
+
+
 # ── 主流程 ──
 
 def main() -> int:
@@ -352,6 +530,14 @@ def main() -> int:
     parser.add_argument(
         "--simulate", action="store_true",
         help="输出切换前后对比模拟报告",
+    )
+    parser.add_argument(
+        "--bench-log", type=str, default="",
+        help="压测日志路径（bench_l2_stress.py 输出），用于输出场景 C vs E 性能对比",
+    )
+    parser.add_argument(
+        "--log-file", type=str, default="",
+        help="将性能对比日志写入指定文件（便于归档分析）",
     )
     args = parser.parse_args()
 
@@ -384,6 +570,20 @@ def main() -> int:
     if args.simulate or not args.check:
         simulation = simulate_switch(ci_state, impl_state)
         print_switch_simulation(report, simulation)
+
+    # 性能对比日志（若提供 --bench-log）
+    if args.bench_log:
+        bench_path = Path(args.bench_log)
+        if not bench_path.is_absolute():
+            bench_path = ROOT / args.bench_log
+        if not bench_path.exists():
+            print(f"\n[!] 压测日志不存在: {bench_path}，跳过性能对比")
+        else:
+            perf = parse_bench_log(bench_path)
+            log_file = Path(args.log_file) if args.log_file else None
+            if log_file and not log_file.is_absolute():
+                log_file = ROOT / args.log_file
+            print_perf_comparison(perf, log_file)
 
     # 退出码
     return 0 if report.is_consistent else 1
