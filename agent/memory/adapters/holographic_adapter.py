@@ -106,6 +106,9 @@ class HolographicAdapter(MemoryInterface):
         self._vec_fail_threshold = 5
         # [TLM-L3] Markdown 双向同步器（可选；None 时不启用双向同步）
         self._syncer = None
+        # [TLM-L2] HotnessScorer 热度计算器（可选；None 时跳过命中计数更新）
+        # Why: 通过 set_scorer 注入避免循环依赖（scorer 持有 adapter，adapter 反向持有 scorer）
+        self._scorer = None
 
         self._init_db()
         self._init_vec_table()            # [TLM-L2] 向量表初始化（失败降级，不抛异常）
@@ -264,6 +267,9 @@ class HolographicAdapter(MemoryInterface):
             "last_accessed": "REAL",
             "type": "TEXT",
             "category": "TEXT",
+            # [TLM-L2] 热度计算所需字段（HotnessScorer.compute_hotness 依赖）
+            "importance": "REAL DEFAULT 1.0",
+            "hotness": "REAL DEFAULT 0.0",
         }
         try:
             with self._get_conn() as conn:
@@ -297,6 +303,14 @@ class HolographicAdapter(MemoryInterface):
                     "detected_at REAL NOT NULL, "
                     "resolved_at REAL, "
                     "resolution TEXT)"
+                )
+                # 【方案二】pending 崩溃恢复表（syncer.close 后到达的 notify_change 落盘）
+                # Why: _closed=True 后 notify_change 不能 silently 丢弃,落盘供下次启动补偿
+                conn.execute(
+                    "CREATE TABLE IF NOT EXISTS pending_recovery ("
+                    "key TEXT PRIMARY KEY, "
+                    "op TEXT NOT NULL, "
+                    "saved_at REAL NOT NULL)"
                 )
                 conn.commit()
                 logger.info("[HolographicAdapter][migrate] 迁移完成: 新增字段=%s, 兜底表=%s 已就绪",
@@ -482,6 +496,7 @@ class HolographicAdapter(MemoryInterface):
                     metadata={"key": key, "distance": distance, **meta},
                 ))
             logger.info("[HolographicAdapter][vec] search_vector 命中 %d 条 (top_k=%d)", len(results), top_k)
+            self._record_access_for_results(results)  # [TLM-L2] 命中即更新 access_count
             return results
         except Exception as e:
             self._record_vec_failure()  # [TLM-L2] 熔断计数
@@ -503,6 +518,7 @@ class HolographicAdapter(MemoryInterface):
         if self._cache:
             cached = self._cache.get(cache_key)
             if cached is not None:
+                self._record_access_for_results(cached)  # [TLM-L2] 缓存命中也更新 access_count
                 return cached
 
         with self._lock:
@@ -573,11 +589,13 @@ class HolographicAdapter(MemoryInterface):
                 if self._cache:
                     self._cache.set(cache_key, results)
 
-                return results
-
             except Exception as e:
                 logger.error("[HolographicAdapter] 搜索失败: query=%s, error=%s", query, e)
                 return []
+
+        # [TLM-L2] 命中计数移到锁外（record_access 复用 _lock，锁内调用会死锁）
+        self._record_access_for_results(results)
+        return results
 
     def _like_fallback(
         self,
@@ -898,6 +916,15 @@ class HolographicAdapter(MemoryInterface):
         self._syncer = syncer
         logger.info("[HolographicAdapter] syncer 已%s", "注入" if syncer is not None else "移除")
 
+    def set_scorer(self, scorer):
+        """[TLM-L2] 注入 HotnessScorer（启用命中计数）。传 None 关闭。
+
+        Why: search/search_vector 命中时需事务性更新 access_count + last_accessed，
+             通过依赖注入避免循环依赖（HotnessScorer 持有 adapter，adapter 反向持有 scorer）。
+        """
+        self._scorer = scorer
+        logger.info("[HolographicAdapter] scorer 已%s", "注入" if scorer is not None else "移除")
+
     def enable_markdown_sync(
         self,
         output_dir: str,
@@ -973,12 +1000,15 @@ class HolographicAdapter(MemoryInterface):
         """读取单条记忆原始字段（供 FileWatcher 反向同步计算 db_hash）
 
         Returns:
-            {key, data, metadata, category, importance} 或 None（不存在）
+            {key, data, metadata, category, importance, access_count,
+             last_accessed, hotness} 或 None（不存在）
         """
         try:
             with self._get_conn() as conn:
                 row = conn.execute(
-                    f"SELECT key, data, metadata, category FROM {self._CONTENT_TABLE} WHERE key = ?",
+                    f"SELECT key, data, metadata, category, importance, "
+                    f"access_count, last_accessed, hotness "
+                    f"FROM {self._CONTENT_TABLE} WHERE key = ?",
                     (key,),
                 ).fetchone()
             if row is None:
@@ -988,12 +1018,21 @@ class HolographicAdapter(MemoryInterface):
                 meta = json.loads(row.get("metadata") or "{}")
             except (json.JSONDecodeError, TypeError):
                 meta = {}
+            # importance 优先取 metadata（用户显式设置），主表列作 fallback
+            # Why: save_with_embedding 当前未写入主表 importance 列，主表默认值
+            #      1.0 会覆盖 metadata 中的真实值；待 save 路径写入主表后可改为优先主表
+            importance = meta.get("importance")
+            if importance is None:
+                importance = row.get("importance")
             return {
                 "key": row["key"],
                 "data": row["data"],
                 "metadata": meta,
                 "category": row.get("category") or meta.get("category") or "uncategorized",
-                "importance": meta.get("importance"),
+                "importance": importance,
+                "access_count": row.get("access_count") or 0,
+                "last_accessed": row.get("last_accessed"),
+                "hotness": row.get("hotness") or 0.0,
             }
         except Exception as e:
             logger.warning("[HolographicAdapter] get_raw_memory 失败 key=%s: %s", key, e)
@@ -1007,8 +1046,9 @@ class HolographicAdapter(MemoryInterface):
         try:
             with self._get_conn() as conn:
                 rows = conn.execute(
-                    f"SELECT key, data, metadata, category FROM {self._CONTENT_TABLE} "
-                    f"WHERE key IN ({placeholders})",
+                    f"SELECT key, data, metadata, category, importance, "
+                    f"access_count, last_accessed, hotness "
+                    f"FROM {self._CONTENT_TABLE} WHERE key IN ({placeholders})",
                     keys,
                 ).fetchall()
             result = []
@@ -1018,12 +1058,19 @@ class HolographicAdapter(MemoryInterface):
                     meta = json.loads(row.get("metadata") or "{}")
                 except (json.JSONDecodeError, TypeError):
                     meta = {}
+                # importance 优先取 metadata（用户显式设置），主表列作 fallback
+                importance = meta.get("importance")
+                if importance is None:
+                    importance = row.get("importance")
                 result.append({
                     "key": row["key"],
                     "data": row["data"],
                     "metadata": meta,
                     "category": row.get("category") or meta.get("category") or "uncategorized",
-                    "importance": meta.get("importance"),
+                    "importance": importance,
+                    "access_count": row.get("access_count") or 0,
+                    "last_accessed": row.get("last_accessed"),
+                    "hotness": row.get("hotness") or 0.0,
                 })
             return result
         except Exception as e:
@@ -1035,7 +1082,9 @@ class HolographicAdapter(MemoryInterface):
         try:
             with self._get_conn() as conn:
                 rows = conn.execute(
-                    f"SELECT key, data, metadata, category FROM {self._CONTENT_TABLE}"
+                    f"SELECT key, data, metadata, category, importance, "
+                    f"access_count, last_accessed, hotness "
+                    f"FROM {self._CONTENT_TABLE}"
                 ).fetchall()
             result = []
             for row in rows:
@@ -1044,17 +1093,78 @@ class HolographicAdapter(MemoryInterface):
                     meta = json.loads(row.get("metadata") or "{}")
                 except (json.JSONDecodeError, TypeError):
                     meta = {}
+                # importance 优先取 metadata（用户显式设置），主表列作 fallback
+                importance = meta.get("importance")
+                if importance is None:
+                    importance = row.get("importance")
                 result.append({
                     "key": row["key"],
                     "data": row["data"],
                     "metadata": meta,
                     "category": row.get("category") or meta.get("category") or "uncategorized",
-                    "importance": meta.get("importance"),
+                    "importance": importance,
+                    "access_count": row.get("access_count") or 0,
+                    "last_accessed": row.get("last_accessed"),
+                    "hotness": row.get("hotness") or 0.0,
                 })
             return result
         except Exception as e:
             logger.warning("[HolographicAdapter] get_raw_memories_all 失败: %s", e)
             return []
+
+    # ── [TLM-L2] 检索命中计数（事务性更新 access_count + last_accessed）──
+
+    def _record_access_for_results(self, results: list) -> None:
+        """检索命中后事务性更新 access_count 与 last_accessed（守不易）
+
+        Why: search/search_vector 命中必须事务性更新这两个字段，作为热度计算的输入。
+        持锁操作严禁外部回调，故只更新 SQLite 主表 + 内存 scorer.record_access，
+        不在锁内调用任何 I/O 密集型回调。
+
+        - results 为 MemoryResult 列表，metadata.key 为记忆主键
+        - scorer 未注入时跳过 record_access 调用（守降级）
+        - 异常吞掉（命中计数失败不阻塞检索主流程）
+        """
+        if not results:
+            return
+        keys: list[str] = []
+        for r in results:
+            meta = getattr(r, "metadata", None) or {}
+            k = meta.get("key") if isinstance(meta, dict) else None
+            if k:
+                keys.append(k)
+        if not keys:
+            return
+        now = time.time()
+        try:
+            with self._lock:
+                with self._get_conn() as conn:
+                    # 事务性更新：access_count += 1, last_accessed = now
+                    # Why: 两个字段必须同事务，避免热度计算读到不一致状态
+                    placeholders = ",".join("?" * len(keys))
+                    conn.execute(
+                        f"UPDATE {self._CONTENT_TABLE} "
+                        f"SET access_count = access_count + 1, "
+                        f"last_accessed = ? "
+                        f"WHERE key IN ({placeholders})",
+                        (now, *keys),
+                    )
+                    conn.commit()
+        except Exception as e:
+            logger.warning(
+                "[HolographicAdapter] _record_access_for_results 更新失败 keys=%s: %s",
+                keys, e,
+            )
+            return
+        # 锁外通知 scorer 更新内存热度缓存（守 project_memory：持锁禁外部回调）
+        if self._scorer is not None:
+            try:
+                for k in keys:
+                    self._scorer.record_access(k, now)
+            except Exception as e:
+                logger.debug(
+                    "[HolographicAdapter] scorer.record_access 失败（忽略）: %s", e
+                )
 
     def record_sync_conflict(
         self,
@@ -1103,6 +1213,12 @@ class HolographicAdapter(MemoryInterface):
                 "db_hash=%s file_hash=%s resolution=%s detected_at=%.3f",
                 conflict_id, sqlite_id, db_hash, file_hash, resolution, now,
             )
+            # [TLM-L2] 冲突计数器埋点（埋点失败不影响冲突记录返回值）
+            try:
+                from agent.memory.observability import track_tlm_sync_conflict
+                track_tlm_sync_conflict(resolution)
+            except Exception as e_metric:
+                logger.debug("[HolographicAdapter] sync_conflict 埋点失败（忽略）: %s", e_metric)
             return conflict_id
         except Exception as e:
             logger.error(
@@ -1164,4 +1280,59 @@ class HolographicAdapter(MemoryInterface):
                 "[HolographicAdapter] resolve_sync_conflict 失败 id=%s error=%s",
                 conflict_id, e,
             )
+
+    # ── 【方案二】pending 崩溃恢复表接口 ──
+
+    def save_pending_recovery(self, key: str, op: str) -> None:
+        """落盘单条 pending 到 pending_recovery 表
+
+        场景：syncer.close() 后到达的 notify_change 调用此方法，避免 pending 丢失。
+        下次启动 syncer 初始化时 load_pending_recovery 读取并 re-apply。
+        """
+        if not key:
+            return
+        try:
+            with self._get_conn() as conn:
+                conn.execute(
+                    "INSERT OR REPLACE INTO pending_recovery (key, op, saved_at) "
+                    "VALUES (?, ?, ?)",
+                    (key, op, time.time()),
+                )
+                conn.commit()
+        except Exception as e:
+            logger.warning(
+                "[HolographicAdapter] save_pending_recovery 失败 key=%s: %s", key, e
+            )
+
+    def load_pending_recovery(self) -> list[dict]:
+        """读取 pending_recovery 表所有记录（syncer 启动时调用）"""
+        try:
+            with self._get_conn() as conn:
+                rows = conn.execute(
+                    "SELECT key, op FROM pending_recovery ORDER BY saved_at ASC"
+                ).fetchall()
+            return [{"key": row["key"], "op": row["op"]} for row in rows]
+        except Exception as e:
+            logger.warning("[HolographicAdapter] load_pending_recovery 失败: %s", e)
+            return []
+
+    def clear_pending_recovery(self, keys: Optional[list] = None) -> None:
+        """清理 pending_recovery 表（re-apply 成功后调用）
+
+        Args:
+            keys: 指定 key 清理；None 清理全表
+        """
+        try:
+            with self._get_conn() as conn:
+                if keys:
+                    placeholders = ",".join("?" * len(keys))
+                    conn.execute(
+                        f"DELETE FROM pending_recovery WHERE key IN ({placeholders})",
+                        keys,
+                    )
+                else:
+                    conn.execute("DELETE FROM pending_recovery")
+                conn.commit()
+        except Exception as e:
+            logger.warning("[HolographicAdapter] clear_pending_recovery 失败: %s", e)
 

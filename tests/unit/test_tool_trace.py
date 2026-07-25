@@ -723,3 +723,82 @@ class TestSingleton:
         r1 = ToolTraceRecorder.instance()
         ToolTraceRecorder.reset()
         assert r1._stopped is True
+
+
+# ════════════════════════════════════════════════════════════
+#  TestStopGracefulShutdown 【TLM-AUDIT-001】
+# ════════════════════════════════════════════════════════════
+
+class TestStopGracefulShutdown:
+    """【TLM-AUDIT-001】stop() 优雅关闭 writer 线程 + flush 残留数据
+
+    回归场景：ToolTraceRecorder 无 stop() 方法，进程退出时 daemon writer
+    线程被强终止，队列残留 trace 数据丢失。修复后 stop() 确保：
+    1. _stopped=True 让 _writer_loop 退出
+    2. _queue.put(None) 唤醒阻塞的 writer 线程
+    3. join(timeout) 等待线程退出
+    4. _flush_residual 强制写入残留数据
+    """
+
+    def test_stop_sets_stopped_flag(self, recorder):
+        """stop() 后 _stopped=True"""
+        assert recorder._stopped is False
+        recorder.stop(timeout=2.0)
+        assert recorder._stopped is True
+
+    def test_stop_joins_writer_thread(self, recorder):
+        """stop() 后 writer 线程不再 alive"""
+        assert recorder._writer_thread.is_alive()
+        recorder.stop(timeout=3.0)
+        assert not recorder._writer_thread.is_alive()
+
+    def test_stop_flushes_residual_queue(self, recorder):
+        """stop() 前放入队列的记录被写入 DB（守不易：数据完整性）"""
+        # 放入 5 条记录到队列
+        for i in range(5):
+            recorder._queue.put(_make_record(trace_id=f"residual_{i:012d}"))
+        # 立即 stop，触发 _flush_residual
+        recorder.stop(timeout=3.0)
+        # 验证队列已空
+        assert recorder._queue.empty()
+        # 验证 DB 有 5 条记录（writer 消费 + _flush_residual 兜底）
+        conn = sqlite3.connect(recorder._db_path)
+        count = conn.execute("SELECT COUNT(*) FROM tool_traces").fetchone()[0]
+        conn.close()
+        assert count == 5, f"期望 5 条记录,实际 {count}"
+
+    def test_stop_idempotent(self, recorder):
+        """二次调用 stop() 不抛异常，返回 True（守简易：幂等）"""
+        recorder.stop(timeout=2.0)
+        result = recorder.stop(timeout=2.0)
+        assert result is True
+        assert recorder._stopped is True
+
+    def test_stop_no_data_loss(self, recorder):
+        """stop 后队列空 + DB 有记录（数据完整性不变量）"""
+        recorder._queue.put(_make_record(trace_id="nolossaaaa1111"))
+        recorder._queue.put(_make_record(trace_id="nolossbbbb2222"))
+        recorder.stop(timeout=3.0)
+        assert recorder._queue.empty()
+        conn = sqlite3.connect(recorder._db_path)
+        count = conn.execute("SELECT COUNT(*) FROM tool_traces").fetchone()[0]
+        conn.close()
+        assert count == 2, f"期望 2 条记录,实际 {count}"
+
+    def test_stop_returns_true_when_already_stopped(self, recorder):
+        """已停止时 stop() 直接返回 True（幂等短路）"""
+        recorder._stopped = True
+        result = recorder.stop(timeout=1.0)
+        assert result is True
+
+    def test_reset_calls_stop_and_joins_writer(self, tmp_path):
+        """reset() 调用 stop()，writer 线程被 join（守不易：数据完整性）"""
+        ToolTraceRecorder.reset()
+        r = ToolTraceRecorder(db_path=str(tmp_path / "reset_stop.db"))
+        ToolTraceRecorder._instance = r
+        writer_t = r._writer_thread
+        assert writer_t.is_alive()
+        # reset 应通过 stop() 优雅关闭 writer 线程
+        ToolTraceRecorder.reset()
+        assert not writer_t.is_alive()
+        assert r._stopped is True

@@ -16,6 +16,7 @@
 import asyncio
 import os
 import sys
+import threading
 import time
 
 import pytest
@@ -618,4 +619,281 @@ class TestRealObserver:
         watcher = MarkdownFileWatcher(md_dir, adapter, syncer)
         watcher.start()  # 不应抛
         assert watcher._started is False
+
+
+# ──────────────────────────────────────────────────────────────
+# 验收 7: close() 数据完整性 — 残留 pending 必须在关闭前 flush
+# ──────────────────────────────────────────────────────────────
+
+class TestCloseFlushesPending:
+    """close() 数据完整性回归测试
+
+    回归场景：修复前 close() 先设 _closed=True 再调 _flush，而 _flush 首行
+    `if self._closed: return` 直接跳过 → 残留 pending 永久丢失（违不易：数据完整性）。
+    修复后 close() 先 flush 再设 _closed，保证 pending 不丢。
+    """
+
+    def test_close_flushes_pending_before_close_flag(self, adapter, md_dir):
+        """close() 必须先 flush 残留 pending 再设 _closed（守不易：数据完整性）"""
+        # debounce 设长避免 Timer 自动 flush 干扰观察
+        syncer = MarkdownSyncer(
+            adapter, output_dir=md_dir, debounce_seconds=60, batch_threshold=10,
+        )
+        adapter.set_syncer(syncer)
+
+        async def write_one():
+            await adapter.save_with_embedding(
+                "close_k1", "close_data", {"category": "note"},
+            )
+        asyncio.run(write_one())
+
+        # 前置断言：pending 已累积，.md 文件尚未生成
+        assert "close_k1" in syncer._pending
+        assert not os.path.exists(os.path.join(md_dir, "note", "close_k1.md"))
+
+        # 触发关闭：修复前会丢失 pending，修复后应 flush
+        syncer.close()
+
+        # 验证 .md 文件已生成（pending 未丢失）
+        assert os.path.exists(os.path.join(md_dir, "note", "close_k1.md"))
+        # 验证 _closed 已设
+        assert syncer._closed is True
+        # pending 已被 flush 清空
+        assert len(syncer._pending) == 0
+
+    def test_close_idempotent(self, adapter, md_dir):
+        """二次调用 close() 不抛异常、无副作用（守简易：幂等）"""
+        syncer = MarkdownSyncer(adapter, output_dir=md_dir, debounce_seconds=60)
+        syncer.close()
+        # 二次调用不应抛异常
+        syncer.close()
+        assert syncer._closed is True
+
+    def test_close_with_empty_pending_no_error(self, adapter, md_dir):
+        """无 pending 时 close() 正常完成（守降级）"""
+        syncer = MarkdownSyncer(adapter, output_dir=md_dir, debounce_seconds=60)
+        # 无任何写入，直接 close
+        syncer.close()
+        assert syncer._closed is True
+        assert len(syncer._pending) == 0
+
+    def test_close_loops_flush_until_pending_empty(self, adapter, md_dir):
+        """close() 循环 flush 直到 pending 为空（守不易：数据完整性）
+
+        回归：修复前单次 _flush 后到 _closed=True 前窗口期，并发 notify_change
+        累积的 pending 会丢失。修复后循环 flush 杜绝此窗口。
+        """
+        syncer = MarkdownSyncer(
+            adapter, output_dir=md_dir, debounce_seconds=60, batch_threshold=100,
+        )
+        adapter.set_syncer(syncer)
+
+        # 先写入记忆累积 pending
+        async def setup():
+            await adapter.save_with_embedding(
+                "loop_k1", "loop_data", {"category": "note"},
+            )
+        asyncio.run(setup())
+
+        # 模拟竞态：第一次 _flush 后注入新 pending（模拟 close 期间到达的 notify_change）
+        original_flush = syncer._flush
+        flush_count = [0]
+
+        def mock_flush():
+            original_flush()
+            flush_count[0] += 1
+            # 第一次 flush 后注入新 pending（模拟并发 notify_change 累积）
+            if flush_count[0] == 1:
+                with syncer._lock:
+                    syncer._pending["injected_k"] = "upsert"
+
+        syncer._flush = mock_flush
+        syncer.close()
+
+        # 验证 _flush 被调用至少 2 次（循环生效，第二次处理注入的 pending）
+        assert flush_count[0] >= 2, f"期望循环 flush 至少 2 次,实际 {flush_count[0]}"
+        # 验证 _closed 已设
+        assert syncer._closed is True
+        # 验证 pending 已清空（循环 flush 后无残留）
+        assert len(syncer._pending) == 0
+
+    def test_close_max_rounds_prevents_livelock(self, adapter, md_dir):
+        """close() 循环超过 max_rounds 时强制退出（守简易：防活锁）
+
+        场景：持续高频写入导致 pending 永不空，max_rounds=5 兜底强制退出。
+        """
+        syncer = MarkdownSyncer(
+            adapter, output_dir=md_dir, debounce_seconds=60, batch_threshold=100,
+        )
+        adapter.set_syncer(syncer)
+
+        # 模拟持续注入 pending（永不空），触发 max_rounds 兜底
+        original_flush = syncer._flush
+
+        def always_inject_flush():
+            original_flush()
+            # 每次 flush 后都注入新 pending（模拟持续高频写入）
+            with syncer._lock:
+                syncer._pending["persistent_k"] = "upsert"
+
+        syncer._flush = always_inject_flush
+
+        # close() 应在 max_rounds 后退出，不死循环
+        import time as _time
+        t0 = _time.time()
+        syncer.close()
+        elapsed = _time.time() - t0
+
+        # 验证未死循环（5 次 flush 应在 5 秒内完成）
+        assert elapsed < 5.0, f"close() 耗时 {elapsed}s，疑似活锁"
+        # 验证 _closed 最终已设（强制退出路径）
+        assert syncer._closed is True
+
+
+# ──────────────────────────────────────────────────────────────
+# 【方案一】watcher.stop() 等待反向更新异步线程完成
+# ──────────────────────────────────────────────────────────────
+
+class TestWatcherThreadJoin:
+    """【方案一】watcher 线程句柄管理 + stop() join（守不易：数据完整性）
+
+    回归场景：FileWatcher._reverse_update 通过 threading.Thread 异步执行
+    save_with_embedding → notify_change。若线程在 syncer.close() 后到达，
+    notify_change 见 _closed=True 直接 return，pending 丢失。
+    修复后 watcher.stop() 中 join _reverse_threads，确保异步线程在 close 前完成。
+    """
+
+    def test_stop_waits_for_reverse_update_threads(self, adapter, syncer, watcher, md_dir):
+        """stop() 必须等待反向更新线程完成（守不易：数据完整性）"""
+        # 模拟慢反向更新线程
+        done = threading.Event()
+
+        def slow_reverse():
+            try:
+                time.sleep(0.3)
+            finally:
+                done.set()
+
+        t = threading.Thread(target=slow_reverse, daemon=True)
+        with watcher._proc_lock:
+            watcher._reverse_threads.add(t)
+        t.start()
+
+        # 验证 stop 等待线程完成
+        t0 = time.time()
+        watcher.stop()
+        elapsed = time.time() - t0
+        assert elapsed >= 0.25, f"stop 未等待线程完成,耗时 {elapsed}s"
+        assert done.is_set(), "反向更新线程未完成"
+
+    def test_stop_join_timeout_does_not_hang(self, adapter, syncer, watcher, md_dir):
+        """stop() join 超时不卡死（守简易：超时兜底）"""
+        # 模拟永不完成的线程
+        def infinite_loop():
+            while True:
+                time.sleep(1)
+
+        t = threading.Thread(target=infinite_loop, daemon=True)
+        with watcher._proc_lock:
+            watcher._reverse_threads.add(t)
+        t.start()
+
+        # 验证 stop 超时不卡死（join timeout=5s，总耗时 < 10s）
+        t0 = time.time()
+        watcher.stop()
+        elapsed = time.time() - t0
+        assert elapsed < 10.0, f"stop() 耗时 {elapsed}s，疑似卡死"
+
+
+# ──────────────────────────────────────────────────────────────
+# 【方案二】pending_recovery 崩溃恢复表
+# ──────────────────────────────────────────────────────────────
+
+class TestPendingRecovery:
+    """【方案二】pending_recovery 表崩溃恢复（守不易：数据完整性）
+
+    回归场景：syncer.close() 后到达的 notify_change 因 _closed=True 丢失。
+    修复后 notify_change 在 _closed 时落盘到 pending_recovery，下次启动
+    _recover_pending 读取并 re-apply。
+    """
+
+    def test_notify_change_after_close_persists_to_recovery(self, adapter, md_dir):
+        """_closed=True 后 notify_change 落盘到 pending_recovery（守不易）"""
+        syncer = MarkdownSyncer(adapter, output_dir=md_dir, debounce_seconds=60)
+        adapter.set_syncer(syncer)
+        syncer.close()  # 设 _closed=True
+
+        # close 后 notify_change 应落盘到 pending_recovery
+        syncer.notify_change("recovery_k1", "upsert")
+        syncer.notify_change("recovery_k2", "delete")
+
+        # 验证 pending_recovery 表有记录
+        recovered = adapter.load_pending_recovery()
+        keys = {r["key"]: r["op"] for r in recovered}
+        assert keys.get("recovery_k1") == "upsert"
+        assert keys.get("recovery_k2") == "delete"
+
+    def test_close_residual_pending_persisted(self, adapter, md_dir):
+        """close() 残留 pending（max_rounds 超限）落盘到 pending_recovery"""
+        syncer = MarkdownSyncer(
+            adapter, output_dir=md_dir, debounce_seconds=60, batch_threshold=100,
+        )
+        adapter.set_syncer(syncer)
+
+        # 先注入 seed pending，让 close() 循环启动（否则首次检查 _pending 为空直接 break）
+        with syncer._lock:
+            syncer._pending["seed_k"] = "upsert"
+
+        # 模拟持续注入 pending（永不空），触发 max_rounds 兜底
+        original_flush = syncer._flush
+
+        def always_inject_flush():
+            original_flush()
+            with syncer._lock:
+                syncer._pending["residual_k"] = "upsert"
+
+        syncer._flush = always_inject_flush
+        syncer.close()
+
+        # 验证残留 pending 落盘到 pending_recovery
+        recovered = adapter.load_pending_recovery()
+        keys = [r["key"] for r in recovered]
+        assert "residual_k" in keys, f"残留 pending 未落盘,recovered={keys}"
+
+    def test_recover_pending_on_init(self, adapter, md_dir):
+        """__init__ 从 pending_recovery 恢复未 flush 的 pending（崩溃补偿）"""
+        # 预置 pending_recovery 记录（模拟上次 close 时落盘）
+        adapter.save_pending_recovery("recover_k1", "upsert")
+        adapter.save_pending_recovery("recover_k2", "delete")
+
+        # 创建 syncer，__init__ 应自动恢复
+        syncer = MarkdownSyncer(adapter, output_dir=md_dir, debounce_seconds=60)
+
+        # 验证 pending 已恢复到 _pending
+        with syncer._lock:
+            pending = dict(syncer._pending)
+        assert pending.get("recover_k1") == "upsert"
+        assert pending.get("recover_k2") == "delete"
+
+        # 验证 pending_recovery 表已清理（避免重复 re-apply）
+        recovered = adapter.load_pending_recovery()
+        assert len(recovered) == 0, f"恢复表未清理,recovered={recovered}"
+
+    def test_clear_pending_recovery(self, adapter):
+        """clear_pending_recovery 清理指定 key 或全表"""
+        adapter.save_pending_recovery("k1", "upsert")
+        adapter.save_pending_recovery("k2", "upsert")
+        adapter.save_pending_recovery("k3", "upsert")
+
+        # 清理指定 key
+        adapter.clear_pending_recovery(["k1", "k2"])
+        recovered = adapter.load_pending_recovery()
+        keys = [r["key"] for r in recovered]
+        assert "k3" in keys
+        assert "k1" not in keys
+        assert "k2" not in keys
+
+        # 清理全表
+        adapter.clear_pending_recovery()
+        assert adapter.load_pending_recovery() == []
 
