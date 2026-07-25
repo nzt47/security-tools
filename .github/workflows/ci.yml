@@ -141,6 +141,13 @@ jobs:
           pip install -e .
 
       - name: 运行单元测试
+        env:
+          # 【不易】CI 必须启用 SKILLS_OFFLINE,避免 sentence_transformers/transformers
+          # 导入时递归扫描文件系统触发 pytest-timeout 300s (transformers/utils/import_utils.py
+          # 的 create_import_structure_from_path 在 ubuntu runner 上扫描超时)
+          # conftest.py 的 _skills_offline_mode fixture 会 patch 这些重量级模块为 None,
+          # 业务代码走 fallback 路径 (130/130 测试本地验证通过)
+          SKILLS_OFFLINE: '1'
         run: |
           echo "=== 运行快速单元测试（固定顺序，禁用 pytest-randomly 避免 OOM）==="
           pytest tests/unit/ \
