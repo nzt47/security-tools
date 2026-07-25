@@ -173,3 +173,7 @@ data/sft_*_report.json
 # v6.4 向量恢复评估报告（运行时生成，不入库）
 tests/eval/*_recovery_report.json
 
+# === L2 性能报告运行产物（2026-07-26）===
+# 本地运行 parse_ci_l2_report.py 生成的样本图表（CI 在 test_reports/ 下重新生成并作为 artifact 上传）
+l2_perf_report.png
+
