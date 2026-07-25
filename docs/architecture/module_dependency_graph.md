@@ -147,8 +147,10 @@ flowchart LR
         agent_memory_adapters_holographic_adapter["agent.memory.adapters.holographic_adapter"]
         agent_memory_adapters_mem0_adapter["agent.memory.adapters.mem0_adapter"]
         agent_memory_base["agent.memory.base"]
+        agent_memory_context_assembler["agent.memory.context_assembler"]
         agent_memory_file_watcher["agent.memory.file_watcher"]
         agent_memory_filter["agent.memory.filter"]
+        agent_memory_hotness_scorer["agent.memory.hotness_scorer"]
         agent_memory_long_term_memory["agent.memory.long_term_memory"]:::crosslayer
         agent_memory_markdown_syncer["agent.memory.markdown_syncer"]
         agent_memory_observability["agent.memory.observability"]
@@ -585,7 +587,11 @@ flowchart LR
     agent_extensions_security_checker --> agent_extensions_base
     agent_memory_short_term_memory --> agent_memory_base
     agent_memory_short_term_memory -.-> agent_logging_utils
+    agent_memory_context_assembler -.-> agent_logging_utils
+    agent_memory_context_assembler --> agent_memory_observability
     agent_memory_markdown_syncer -.-> agent_logging_utils
+    agent_memory_hotness_scorer -.-> agent_logging_utils
+    agent_memory_hotness_scorer --> agent_memory_observability
     agent_memory_file_watcher -.-> agent_logging_utils
     agent_memory_file_watcher --> agent_memory_markdown_syncer
     agent_memory_file_watcher --> agent_memory_observability
@@ -614,6 +620,7 @@ flowchart LR
     agent_memory_adapters_holographic_adapter --> agent_memory_markdown_syncer
     agent_memory_adapters_holographic_adapter --> agent_memory_file_watcher
     agent_memory_adapters_holographic_adapter -.-> agent_caching_multi_level_cache
+    agent_memory_adapters_holographic_adapter --> agent_memory_observability
     agent_skills_mgmt_creator -.-> agent_extensions_market
     agent_skills_mgmt_enhancer -.-> agent_feedback
     agent_skills_mgmt_memory_abstractor -.-> agent_state_manager
@@ -919,10 +926,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 334
-- 模块节点数: 264
-- 依赖边数: 573
-- 跨层调用数: 362
+- 扫描文件数: 336
+- 模块节点数: 266
+- 依赖边数: 578
+- 跨层调用数: 364
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1188.34 ms
+- 构建耗时: 1190.55 ms
