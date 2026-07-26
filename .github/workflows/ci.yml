@@ -350,7 +350,7 @@ jobs:
           set +e
           python scripts/monitor_l2_p99.py \
             --input test_reports/bench_ci.log \
-            --threshold 1000 \
+            --threshold 1 \
             --alert-log test_reports/p99_alerts.jsonl
           echo "exit_code=$?" >> $GITHUB_OUTPUT
           exit 0
