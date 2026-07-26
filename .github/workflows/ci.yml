@@ -149,7 +149,8 @@ jobs:
           # 业务代码走 fallback 路径 (130/130 测试本地验证通过)
           SKILLS_OFFLINE: '1'
         run: |
-          echo "=== 运行快速单元测试（定位挂起根因版：--maxfail=5 + --timeout=60 + -rA）==="
+          mkdir -p test-results
+          echo "=== 运行单元测试（signal 超时法，避免线程耗尽 INTERNALERROR）==="
           pytest tests/unit/ \
             -v \
             --tb=short \
@@ -160,15 +161,19 @@ jobs:
             -p no:randomly \
             -m "not slow and not skip_ci" \
             --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
-            --maxfail=5 \
             --timeout=60 \
-            --timeout-method=thread \
+            --timeout-method=signal \
+            --junitxml=test-results/junit.xml \
             -rA
-          # 【诊断模式】--maxfail=5: 5 次失败/超时后立即停止,定位挂起根因
-          # --timeout=60: 缩短单测试超时到 60s (原 300s),快速暴露挂起测试
-          # --timeout-method=thread: 线程级超时,能中断 join 阻塞
-          # -rA: 显示所有测试结果摘要 (含 skipped/timeout/failure)
-          # 确认根因后恢复 --timeout=300 并移除 --maxfail
+          # 【不易根因修复】--timeout-method=signal: 用 SIGALRM 信号做超时检测,
+          # 不启动新线程。原 thread 方法每个测试启动一个超时检测线程,
+          # 8661 个测试累积导致 "RuntimeError: can't start new thread" INTERNALERROR
+          # Why signal 优于 thread:
+          #   1. signal 不创建线程,无累积开销
+          #   2. SIGALRM 可中断 join 阻塞和 C 扩展调用
+          #   3. Linux 原生支持(Windows 不支持,本地仍用 thread)
+          # --junitxml: 写结构化测试结果,即使 INTERNALERROR 也能下载查看失败列表
+          # --timeout=60: 单测试 60s 超时,平衡灵敏度与误报率
       - name: 失败时打印最近测试日志（定位挂起）
         if: failure()
         run: |

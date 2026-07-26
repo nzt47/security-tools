@@ -48,15 +48,28 @@ def _load_golden_positives() -> List[Tuple[str, str]]:
             if c.get("expected_skill_ids")]
 
 
-def _load_uncovered_negatives() -> List[Tuple[str, str, str]]:
+def _load_uncovered_negatives() -> List:
     """加载 v6.1 规则未命中的 15 个负样本
 
     通过遍历 _QUERY_PATTERNS 判断哪些负样本未被规则命中。
+
+    【变易】v6.1 _QUERY_PATTERNS 已于 commit 1159d88f 删除（TLM 三层路由取代），
+    规则删除后此测试前提失效。导入失败时返回带 skip mark 的占位项，
+    让 pytest 显式跳过而非抛 ImportError 阻断整个文件收集（守【简易】显式>隐式）。
     """
     if not _NEGATIVE_SET.exists():
         pytest.skip(f"负样本集不存在: {_NEGATIVE_SET}")
-    # 导入 v6.1 规则
-    from agent.skills_mgmt.loader import _QUERY_PATTERNS
+    # 导入 v6.1 规则（已被 TLM 三层路由取代，可能不存在）
+    try:
+        from agent.skills_mgmt.loader import _QUERY_PATTERNS
+    except ImportError:
+        # 规则已删除：返回 skip 占位项，保留测试类定义但不执行
+        return [pytest.param(
+            "", "", "",
+            marks=pytest.mark.skip(
+                reason="_QUERY_PATTERNS 已于 commit 1159d88f 删除（TLM 三层路由取代 v6.1 规则）"
+            ),
+        )]
 
     with open(_NEGATIVE_SET, "r", encoding="utf-8") as f:
         data = json.load(f)
