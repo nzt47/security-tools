@@ -24,6 +24,7 @@
 
 import json
 import logging
+import os
 import time
 import uuid
 from unittest.mock import MagicMock, patch, PropertyMock
@@ -38,6 +39,16 @@ import pytest
 
 from agent.orchestrator import observability as obs_orch
 from agent.skills_mgmt import observability as obs_skills
+
+
+# 【变易】SKILLS_OFFLINE 模式下 conftest._skills_offline_mode 会将
+# obs_skills.track_event / emit_metric patch 为 no-op（见 tests/unit/conftest.py
+# L315-317），依赖其真实日志输出/指标调用的测试无法验证，按环境跳过。
+# obs_orch 不受影响（conftest 仅 patch skills_mgmt.observability）。
+_skip_if_skills_offline = pytest.mark.skipif(
+    os.environ.get("SKILLS_OFFLINE") == "1",
+    reason="SKILLS_OFFLINE 模式下 obs_skills.track_event/emit_metric 被 conftest patch 为 no-op",
+)
 
 
 # ============================================================================
@@ -390,6 +401,7 @@ class TestSkillsMgmtTrackEvent:
     """skills_mgmt/observability.py 的 track_event（snake_case）变体"""
 
     @pytest.mark.unit
+    @_skip_if_skills_offline
     def test_track_event_normal_call(self, caplog):
         """track_event 正常调用应输出结构化日志"""
         with caplog.at_level(logging.INFO, logger="agent.skills_mgmt"):
@@ -404,6 +416,7 @@ class TestSkillsMgmtTrackEvent:
         assert log_data["payload"]["skill_id"] == "test-skill"
 
     @pytest.mark.unit
+    @_skip_if_skills_offline
     def test_track_event_none_payload(self, caplog):
         """track_event payload=None 时应使用空字典"""
         with caplog.at_level(logging.INFO, logger="agent.skills_mgmt"):
@@ -440,6 +453,7 @@ class TestEmitMetric:
             obs_skills.emit_metric("yunshu_skill_test", value=1, kind="counter")
 
     @pytest.mark.unit
+    @_skip_if_skills_offline
     def test_emit_metric_counter(self):
         """counter 类型应调用 inc_counter（若可用）"""
         mock_metrics = MagicMock()
@@ -452,6 +466,7 @@ class TestEmitMetric:
         mock_metrics.inc_counter.assert_called_once()
 
     @pytest.mark.unit
+    @_skip_if_skills_offline
     def test_emit_metric_histogram(self):
         """histogram 类型应调用 observe_histogram"""
         mock_metrics = MagicMock()
@@ -463,6 +478,7 @@ class TestEmitMetric:
         mock_metrics.observe_histogram.assert_called_once()
 
     @pytest.mark.unit
+    @_skip_if_skills_offline
     def test_emit_metric_gauge(self):
         """gauge 类型应调用 set_gauge"""
         mock_metrics = MagicMock()
@@ -474,6 +490,7 @@ class TestEmitMetric:
         mock_metrics.set_gauge.assert_called_once()
 
     @pytest.mark.unit
+    @_skip_if_skills_offline
     def test_emit_metric_auto_adds_success_label(self):
         """labels 缺少 success/failure 时应自动补 success=true（硬约束）"""
         mock_metrics = MagicMock()
@@ -488,6 +505,7 @@ class TestEmitMetric:
         assert labels.get("success") == "true"
 
     @pytest.mark.unit
+    @_skip_if_skills_offline
     def test_emit_metric_preserves_existing_success_label(self):
         """已有 success 标签时不应覆盖"""
         mock_metrics = MagicMock()

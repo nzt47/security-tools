@@ -300,6 +300,12 @@ class TestOrchestratorV1MessagesOrder:
 class TestPromptBuilderFewshotInjection:
     """验证 build_context_messages 的 Few-shot 注入位置与兜底"""
 
+    # 【变易】build_context_messages 已删除 fewshot_samples 参数
+    # Few-shot 注入功能已移除，测试前提失效
+    pytestmark = pytest.mark.skip(
+        reason="build_context_messages 已删除 fewshot_samples 参数，Few-shot 注入功能移除"
+    )
+
     def _build(self):
         builder = PromptBuilder()
         memory = FakeMemory()

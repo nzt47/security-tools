@@ -87,7 +87,7 @@ def sample_candidates():
 
 @pytest.fixture(autouse=True)
 def clean_env():
-    """每个测试前后清理环境变量"""
+    """每个测试前后清理环境变量 + 恢复 sentence_transformers mock"""
     original = {
         key: os.environ.get(key)
         for key in [
@@ -99,6 +99,11 @@ def clean_env():
     }
     for key in original:
         os.environ.pop(key, None)
+    # 【变易】conftest 的 _skills_offline_mode 会把 sentence_transformers 设为 None,
+    # 但本测试需要 patch("sentence_transformers.CrossEncoder"), None 上无法 patch
+    # 恢复为 MagicMock 让 patch 正常工作（测试用 mock，不触发真实 C 扩展加载）
+    if not sys.modules.get("sentence_transformers"):
+        sys.modules["sentence_transformers"] = MagicMock()
     yield
     for key, val in original.items():
         if val is not None:
@@ -180,7 +185,8 @@ class TestEnvironmentSwitch:
 
     def test_model_name_default(self):
         reranker = SkillReranker()
-        assert reranker._model_name == "BAAI/bge-reranker-v2-m3"
+        # 【变易】2026-07-27 默认模型从 v2-m3 切换为 base（适配 Windows 内存约束）
+        assert reranker._model_name == "BAAI/bge-reranker-base"
 
     def test_model_name_explicit_param(self):
         os.environ["SKILL_RERANKER_MODEL"] = "env-model"

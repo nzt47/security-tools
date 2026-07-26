@@ -12,8 +12,10 @@
 
 相关文件:
     - agent/skills_mgmt/loader.py — _QUERY_PATTERNS 常量 + _match_query_pattern 方法
-    - tests/eval/skill_retrieval_golden_set.json — 45 个正样本黄金集
-    - tests/eval/negative_samples_extended.json — 25 个负样本集
+
+【变易】v6.1 _QUERY_PATTERNS + _match_query_pattern 已于 commit 1159d88f 删除
+（TLM 三层路由取代 v6.1 规则）。整个测试文件前提失效，跳过收集。
+后续如需测试 TLM 三层路由，请在 test_tlm_*.py 中新建。
 """
 from __future__ import annotations
 
@@ -24,6 +26,13 @@ from typing import List, Tuple
 from unittest.mock import patch
 
 import pytest
+
+# 【变易】v6.1 规则已删除（commit 1159d88f），整个文件测试前提失效
+pytest.skip(
+    "_QUERY_PATTERNS + _match_query_pattern 已于 commit 1159d88f 删除"
+    "（TLM 三层路由取代 v6.1 规则），整个测试文件前提失效",
+    allow_module_level=True,
+)
 
 from agent.skills_mgmt.loader import SkillLoader, MatchResult
 
