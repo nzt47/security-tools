@@ -333,7 +333,7 @@ jobs:
         # 容错：sqlite-vec 不可用时压测会跳过，Markdown 报告相应跳过，不影响 CI 结果
         run: |
           # 运行快速压测生成性能数据（小数据量，约 7 秒）
-          python scripts/bench_l2_stress.py --cold-count 30 --category-count 5 --concurrency 5 --rounds 1 > test_reports/bench_ci.log 2>&1 || true
+          python scripts/bench_l2_stress.py --cold-count 30 --category-count 5 --concurrency 5 --rounds 3 > test_reports/bench_ci.log 2>&1 || true
           # 生成性能对比日志（需要压测日志含场景 C/E）
           python scripts/simulate_l2_async_switch.py --bench-log test_reports/bench_ci.log --log-file test_reports/l2_switch_perf_comparison.log || true
           # 转换为 Markdown 报告
