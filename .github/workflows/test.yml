@@ -324,6 +324,17 @@ jobs:
             --ci-log test_reports/l2-ci.log \
             --output test_reports/l2_perf_report.png
 
+      - name: 转换性能日志为 Markdown
+        # Why: 将压测日志转为 Markdown 报告，方便直接粘贴到技术文档/PR 描述
+        # 容错：sqlite-vec 不可用时压测会跳过，Markdown 报告相应跳过，不影响 CI 结果
+        run: |
+          # 运行快速压测生成性能数据（小数据量，约 7 秒）
+          python scripts/bench_l2_stress.py --cold-count 30 --category-count 5 --concurrency 5 --rounds 1 > test_reports/bench_ci.log 2>&1 || true
+          # 生成性能对比日志（需要压测日志含场景 C/E）
+          python scripts/simulate_l2_async_switch.py --bench-log test_reports/bench_ci.log --log-file test_reports/l2_switch_perf_comparison.log || true
+          # 转换为 Markdown 报告
+          python scripts/convert_perf_log_to_md.py --input test_reports/l2_switch_perf_comparison.log --output test_reports/l2_switch_perf_comparison.md || true
+
       - name: 上传性能报告
         uses: actions/upload-artifact@v4
         with:
@@ -332,6 +343,9 @@ jobs:
             test_reports/benchmark.json
             test_reports/l2-ci.log
             test_reports/l2_perf_report.png
+            test_reports/bench_ci.log
+            test_reports/l2_switch_perf_comparison.log
+            test_reports/l2_switch_perf_comparison.md
           retention-days: 30
 
   coverage-check:
