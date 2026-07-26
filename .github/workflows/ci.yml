@@ -340,15 +340,64 @@ jobs:
           python scripts/convert_perf_log_to_md.py --input test_reports/l2_switch_perf_comparison.log --output test_reports/l2_switch_perf_comparison.md || true
 
       - name: 监控 P99 告警
+        id: p99-monitor
         # Why: 自动检查场景 C P99 是否超阈值，超阈值时打印告警 + 发送 Slack 通知
-        # 容错：监控失败不影响 CI 结果（|| true），告警信息写入 p99_alerts.jsonl
+        # 容错：监控失败不影响 CI 结果，退出码写入 GITHUB_OUTPUT 供后续 step 使用
+        # 退出码：0=正常，1=告警，2=解析失败
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
+          set +e
           python scripts/monitor_l2_p99.py \
             --input test_reports/bench_ci.log \
             --threshold 1000 \
-            --alert-log test_reports/p99_alerts.jsonl || true
+            --alert-log test_reports/p99_alerts.jsonl
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          exit 0
+
+      - name: 创建 P99 告警 Issue
+        # Why: P99 告警时自动创建 GitHub Issue，便于团队跟踪性能退化
+        # 条件触发：监控脚本退出码为 1（告警）
+        if: steps.p99-monitor.outputs.exit_code == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 读取最新告警记录
+          ALERT_DATA=$(tail -1 test_reports/p99_alerts.jsonl)
+          P99=$(echo "$ALERT_DATA" | python -c "import json,sys; d=json.load(sys.stdin); print(f'{d[\"p99\"]:.2f}')")
+          THRESHOLD=$(echo "$ALERT_DATA" | python -c "import json,sys; d=json.load(sys.stdin); print(f'{d[\"threshold\"]:.0f}')")
+          RATIO=$(python -c "print(f'{$P99/$THRESHOLD:.2f}')")
+          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
+
+          gh issue create \
+            --title "🚨 L2 P99 告警 - P99=${P99}ms 超阈值 ${THRESHOLD}ms" \
+            --body "## P99 告警详情
+
+          | 项 | 值 |
+          |----|-----|
+          | 告警时间 | ${TIMESTAMP} |
+          | 场景 | C - 高并发同步串行 |
+          | P99 | ${P99}ms |
+          | 阈值 | ${THRESHOLD}ms |
+          | 超阈值倍数 | ${RATIO}x |
+          | CI 运行 | ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} |
+
+          ## 告警日志
+
+          \`\`\`json
+          ${ALERT_DATA}
+          \`\`\`
+
+          ## 排查建议
+
+          - 检查 CI 环境磁盘 IO 性能
+          - 检查并发竞争情况
+          - 检查事件循环阻塞
+          - 对比历史 P99 数据趋势
+
+          > 此 Issue 由 CI 自动创建，请勿手动关闭直到 P99 恢复正常。
+          " \
+            --label "performance,alert,automated" || echo "Issue 创建失败（可能标签不存在）"
 
       - name: 上传性能报告
         uses: actions/upload-artifact@v4
