@@ -456,8 +456,21 @@ def print_perf_comparison(
     if not perf.has_comparison:
         lines.append("\n  [!] 未找到场景 C 或场景 E 数据，无法对比")
         lines.append(f"  已采集场景: {[s.name for s in perf.all_scenarios] or '(无)'}")
+
+        # 即使没有 C vs E 对比，也输出全场景概览（供 convert 脚本生成 Markdown）
+        if perf.all_scenarios:
+            lines.append(f"\n── 全部场景概览 ──")
+            lines.append(f"  {'场景':<8} {'P50(ms)':<15} {'P99(ms)':<15} {'Max(ms)':<15}")
+            lines.append(f"  {'-'*50}")
+            for s in perf.all_scenarios:
+                lines.append(f"  {s.name:<8} {s.p50:<15.2f} {s.p99:<15.2f} {s.pmax:<15.2f}")
+
         report = "\n".join(lines)
         print(report)
+        # 写入日志文件（即使没有 C vs E 对比，也生成 log 供 convert 脚本使用）
+        if log_file:
+            log_file.write_text(report + "\n", encoding="utf-8")
+            print(f"\n[✓] 性能对比日志已写入: {log_file}")
         return report
 
     sync = perf.sync_scenario
