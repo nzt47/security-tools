@@ -1,4 +1,5 @@
 """Metrics Collector 单元测试"""
+import os
 import pytest
 import threading
 import time
@@ -10,6 +11,16 @@ from agent.monitoring.metrics import (
     record_latency,
     increment_counter,
     get_all_metrics,
+)
+
+
+# 【变易】SKILLS_OFFLINE 模式下 conftest._skills_offline_mode 会将
+# get_metrics_collector patch 为返回 _DummyCollector（仅 inc_counter/
+# observe_histogram/set_gauge 三方法，无 reset/get_stats/get_all_metrics/
+# record_latency 等），依赖真实 MetricsCollector 实例的快捷函数测试无法验证。
+_skip_if_skills_offline = pytest.mark.skipif(
+    os.environ.get("SKILLS_OFFLINE") == "1",
+    reason="SKILLS_OFFLINE 模式下 get_metrics_collector 被 conftest patch 为 _DummyCollector",
 )
 
 
@@ -292,33 +303,36 @@ class TestMetricsCollectorThreading:
 class TestShortcutFunctions:
     """测试快捷函数"""
 
+    @_skip_if_skills_offline
     def test_record_latency_shortcut(self):
         """测试记录延迟快捷函数"""
         collector = get_metrics_collector()
         collector.reset()
-        
+
         record_latency("shortcut.latency", 0.1)
-        
+
         stats = collector.get_stats("shortcut.latency")
         assert stats["count"] == 1
 
+    @_skip_if_skills_offline
     def test_increment_counter_shortcut(self):
         """测试增加计数器快捷函数"""
         collector = get_metrics_collector()
         collector.reset()
-        
+
         increment_counter("shortcut.count", 5)
-        
+
         counters = collector.get_all_metrics()["counters"]
         assert counters["shortcut.count"] == 5
 
+    @_skip_if_skills_offline
     def test_get_all_metrics_shortcut(self):
         """测试获取所有指标快捷函数"""
         collector = get_metrics_collector()
         collector.reset()
-        
+
         collector.record_latency("test.metric", 0.5)
-        
+
         metrics = get_all_metrics()
-        
+
         assert "test.metric" in metrics["histograms"]

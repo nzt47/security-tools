@@ -93,8 +93,9 @@ class TestRecordToolRetrievalTrace:
         assert trace_data["action"] == "tool_retrieval"
 
         # 验证所有必需字段存在
+        # 【变易】user_input_hash 字段已移除（改用 query_hash 脱敏）
         required_fields = {
-            "user_input_hash", "top_k", "latency_ms",
+            "top_k", "latency_ms",
             "bm25_candidates", "embed_candidates", "fused_candidates",
             "alpha", "degraded", "tools_preview",
         }
@@ -102,8 +103,6 @@ class TestRecordToolRetrievalTrace:
             f"缺少字段: {required_fields - trace_data.keys()}"
 
         # 验证字段类型与值合理性
-        assert isinstance(trace_data["user_input_hash"], str)
-        assert len(trace_data["user_input_hash"]) == 16  # SHA256 前 16 位
         assert trace_data["top_k"] == 10  # 默认值
         assert trace_data["latency_ms"] >= 0
         assert isinstance(trace_data["bm25_candidates"], int)
@@ -132,10 +131,10 @@ class TestRecordToolRetrievalTrace:
         trace_msg = trace_logs[-1].message
         # 原文不应出现在 trace 中(只存 hash)
         assert "mypassword123" not in trace_msg
-        # hash 应存在
+        # hash 应存在（【变易】user_input_hash 已重命名为 query_hash）
         trace_data = json.loads(trace_msg)
-        assert "user_input_hash" in trace_data
-        assert len(trace_data["user_input_hash"]) == 16
+        assert "query_hash" in trace_data
+        assert len(trace_data["query_hash"]) == 16
 
     def test_trace_degraded_flag_true_when_embedding_disabled(self, real_index_path, caplog):
         """AGENT_HYBRID_EMBEDDING=0 时 trace 中 degraded=True"""

@@ -1185,6 +1185,11 @@ class TestCallLLMV2:
         digital_life._memory = MockMemory()
         digital_life._select_model_for_request = MagicMock(return_value=(mock_llm, mock_llm.model))
         digital_life._tool_calling_service = None
+        # 【变易】_call_llm_v2 内部调用 self._guard_llm_output(response, ...) 并将其
+        # 返回值作为最终结果（orchestrator.py:1043）。MagicMock 自动生成的属性返回
+        # MagicMock 对象而非字符串，需显式配置透传 response，模拟"护栏跳过校验"场景
+        # （对应 _guard_llm_output 中 svc is None 的 return response 分支）
+        digital_life._guard_llm_output.side_effect = lambda response, *a, **kw: response
 
         result = DigitalLife._call_llm_v2(digital_life, "Hello", "Body status")
 
@@ -1206,6 +1211,8 @@ class TestCallLLMV2:
         digital_life._memory = MockMemory()
         digital_life._select_model_for_request = MagicMock(return_value=(mock_llm, mock_llm.model))
         digital_life._tool_calling_service = None
+        # 【变易】同上：让 _guard_llm_output 透传 response，聚焦 persona 注入逻辑测试
+        digital_life._guard_llm_output.side_effect = lambda response, *a, **kw: response
 
         result = DigitalLife._call_llm_v2(digital_life, "Hello", "Body status")
 

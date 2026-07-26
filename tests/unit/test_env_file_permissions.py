@@ -141,6 +141,12 @@ class TestWindowsFilePermissions:
 
     def test_icacls_uses_create_no_window(self, temp_env_file):
         """Windows: 应使用 CREATE_NO_WINDOW 避免弹出控制台窗口"""
+        # 【变易】CREATE_NO_WINDOW (0x08000000) 是 Windows subprocess.run 专属标志
+        # Linux 的 subprocess.run 不接受 creationflags 参数，即使 patch sys.platform
+        # 业务代码在 Linux 上也不传 creationflags，故此测试仅 Windows 有意义
+        if sys.platform != 'win32':
+            pytest.skip("CREATE_NO_WINDOW 是 Windows 专属标志，Linux subprocess 不支持")
+
         from agent.env_config_manager import EnvConfigManager
 
         temp_env_file.touch()
