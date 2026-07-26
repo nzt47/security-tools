@@ -256,10 +256,11 @@ def send_alert(
             f.write(json.dumps(alert_entry, ensure_ascii=False) + "\n")
         print(f"\n  [✓] 告警日志已追加: {alert_log}")
 
-    # Slack webhook（可选）
+    # Slack webhook（可选，URL 通过环境变量传入，不硬编码）
     webhook_url = os.environ.get("SLACK_WEBHOOK_URL")
     if webhook_url and alerted:
         try:
+            import ssl
             import urllib.request
             payload = json.dumps({
                 "text": (
@@ -275,10 +276,16 @@ def send_alert(
                 data=payload,
                 headers={"Content-Type": "application/json"},
             )
-            urllib.request.urlopen(req, timeout=10)
+            # 安全：强制 SSL 证书验证 + 短超时（避免 CI 长时间卡住）
+            ssl_ctx = ssl.create_default_context()
+            urllib.request.urlopen(req, timeout=5, context=ssl_ctx)
             print(f"  [✓] Slack 告警已发送")
-        except Exception as e:
-            print(f"  [!] Slack 告警发送失败: {e}")
+        except urllib.error.HTTPError as e:
+            # 安全：不打印完整异常（避免泄露 webhook URL）
+            print(f"  [!] Slack 告警发送失败: HTTP {e.code}")
+        except Exception:
+            # 安全：不打印完整异常（避免泄露 webhook URL）
+            print(f"  [!] Slack 告警发送失败: 网络或配置错误")
 
 
 # ── 主入口 ──
