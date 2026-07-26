@@ -299,11 +299,51 @@ jobs:
             -o "python_files=benchmark_*.py" \
             --timeout=300
 
+      - name: 运行 L2 性能回归测试
+        env:
+          L2_SCHEME: sync-serial-path-cache
+        run: |
+          mkdir -p test_reports
+          echo "SCHEME=${L2_SCHEME}"
+          echo "方案: 同步串行 read_fragment + 路径缓存（最优方案）"
+          echo "护栏: cold-p99<2s|warm-p99<1s|concurrent-p99<2s|cache-validity"
+          echo "=== L2 性能回归测试 ==="
+          pytest tests/performance/test_l2_perf_regression.py \
+            -v \
+            -m performance \
+            --junitxml=test_reports/l2-perf-results.xml \
+            2>&1 | tee test_reports/l2-ci.log
+
+      - name: 解析 L2 性能日志并生成图表
+        # Why: 自动从 CI 日志抓取方案标记 + pytest 护栏结果，生成可视化图表供 artifact 下载
+        run: |
+          pip install --timeout=60 matplotlib numpy || true
+          python scripts/parse_ci_l2_report.py \
+            --ci-log test_reports/l2-ci.log \
+            --output test_reports/l2_perf_report.png
+
+      - name: 转换性能日志为 Markdown
+        # Why: 将压测日志转为 Markdown 报告，方便直接粘贴到技术文档/PR 描述
+        # 容错：sqlite-vec 不可用时压测会跳过，Markdown 报告相应跳过，不影响 CI 结果
+        run: |
+          # 运行快速压测生成性能数据（小数据量，约 7 秒）
+          python scripts/bench_l2_stress.py --cold-count 30 --category-count 5 --concurrency 5 --rounds 1 > test_reports/bench_ci.log 2>&1 || true
+          # 生成性能对比日志（需要压测日志含场景 C/E）
+          python scripts/simulate_l2_async_switch.py --bench-log test_reports/bench_ci.log --log-file test_reports/l2_switch_perf_comparison.log || true
+          # 转换为 Markdown 报告
+          python scripts/convert_perf_log_to_md.py --input test_reports/l2_switch_perf_comparison.log --output test_reports/l2_switch_perf_comparison.md || true
+
       - name: 上传性能报告
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-report
-          path: test_reports/benchmark.json
+          path: |
+            test_reports/benchmark.json
+            test_reports/l2-ci.log
+            test_reports/l2_perf_report.png
+            test_reports/bench_ci.log
+            test_reports/l2_switch_perf_comparison.log
+            test_reports/l2_switch_perf_comparison.md
 
   # ============================================================================
   # 覆盖率检查
