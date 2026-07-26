@@ -339,6 +339,17 @@ jobs:
           # 转换为 Markdown 报告
           python scripts/convert_perf_log_to_md.py --input test_reports/l2_switch_perf_comparison.log --output test_reports/l2_switch_perf_comparison.md || true
 
+      - name: 监控 P99 告警
+        # Why: 自动检查场景 C P99 是否超阈值，超阈值时打印告警 + 发送 Slack 通知
+        # 容错：监控失败不影响 CI 结果（|| true），告警信息写入 p99_alerts.jsonl
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          python scripts/monitor_l2_p99.py \
+            --input test_reports/bench_ci.log \
+            --threshold 1000 \
+            --alert-log test_reports/p99_alerts.jsonl || true
+
       - name: 上传性能报告
         uses: actions/upload-artifact@v4
         with:
@@ -350,6 +361,7 @@ jobs:
             test_reports/bench_ci.log
             test_reports/l2_switch_perf_comparison.log
             test_reports/l2_switch_perf_comparison.md
+            test_reports/p99_alerts.jsonl
 
   # ============================================================================
   # 覆盖率检查
