@@ -421,6 +421,43 @@ class SkillVectorAdapter:
             return count
 
     # ──────────────────────────────────────────────
+    #  查询编码
+    # ──────────────────────────────────────────────
+
+    def encode_query(self, query: str) -> Optional[Any]:
+        """编码 query 为 BGE-m3 归一化向量（供 NegativeIntentDetector 使用）
+
+        复用 _st_backend 的 SentenceTransformer 模型，编码方式与
+        _search_sentence_transformers 完全一致，保证相似度计算无失真。
+
+        【不易】编码方式必须与 search 一致（normalize_embeddings=True）
+        【变易】_st_backend 未初始化时返回 None，调用方负责降级
+        【简易】单次 model.encode 调用
+
+        Args:
+            query: 用户查询文本
+
+        Returns:
+            归一化向量 (dim=1024,)，或 None（后端不可用/编码失败）
+        """
+        if self._st_backend is None:
+            return None
+        try:
+            model, _, _, _ = self._st_backend
+            vec = model.encode(
+                [query], normalize_embeddings=True,
+                show_progress_bar=False,
+            )[0]
+            return vec
+        except Exception as e:  # noqa: BLE001
+            logger.warning(json.dumps({
+                "module_name": "vector_adapter",
+                "action": "encode_query.failed",
+                "error": str(e)[:300],
+            }, ensure_ascii=False))
+            return None
+
+    # ──────────────────────────────────────────────
     #  搜索
     # ──────────────────────────────────────────────
 

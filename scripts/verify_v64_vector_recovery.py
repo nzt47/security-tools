@@ -43,54 +43,8 @@ if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
 
-# ════════════════════════════════════════════════════════════
-#  monkey-patch encode_query（防止 git reset 回滚源码修改）
-# ════════════════════════════════════════════════════════════
-
-def _apply_encode_query_patch():
-    """动态添加 encode_query 到 SkillVectorAdapter（如果缺失）
-
-    根因：vector_adapter.py 的 encode_query 方法被 git reset 回滚
-    方案：运行时 monkey-patch，不修改源文件
-    """
-    try:
-        from agent.skills_mgmt.vector_adapter import SkillVectorAdapter
-        if hasattr(SkillVectorAdapter, 'encode_query'):
-            return  # 方法已存在，无需 patch
-
-        def _encode_query(self, query):
-            if not query:
-                return None
-            st = self._st_backend
-            if st is None:
-                # _st_backend 未初始化，尝试 ensure_indexed 触发初始化
-                try:
-                    self.ensure_indexed()
-                    st = self._st_backend
-                except Exception:
-                    pass
-            if st is None:
-                return None
-            # _st_backend 可能是 SentenceTransformer 模型或 (model, ...) 元组
-            model = st[0] if isinstance(st, tuple) else st
-            if model is None:
-                return None
-            try:
-                vec = model.encode(
-                    [query], normalize_embeddings=True,
-                    show_progress_bar=False,
-                )[0]
-                return vec
-            except Exception:
-                return None
-
-        SkillVectorAdapter.encode_query = _encode_query
-        print("  ℹ️  encode_query monkey-patch 已应用（源码方法缺失）")
-    except Exception as e:
-        print(f"  ⚠️  encode_query monkey-patch 失败: {e}", file=sys.stderr)
-
-
-_apply_encode_query_patch()
+# encode_query 方法已在 vector_adapter.py 源文件中恢复（commit b59bd14c 实现）
+# 无需运行时 monkey-patch，直接 import 使用即可
 
 
 # ════════════════════════════════════════════════════════════
