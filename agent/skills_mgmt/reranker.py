@@ -39,13 +39,10 @@ _DEFAULT_RERANKER_MAX_LENGTH = 512
 _DEFAULT_RERANK_TOP_N = 10  # RRF 召回数量（rerank 前的候选池大小）
 
 # 【变易】rerank_score 阈值：低于此分数的候选视为低置信度，从最终结果中剔除
-# 来源：v5 阈值分析（scripts/analyze_threshold.py）实测分布
-#   - 真匹配 rerank_score 最低 0.0015（case_035 safety_guard）
-#   - 负样本 rerank_score 最高 0.0005（case_042 帮我订一张机票）
-#   - 0.001 阈值位于两者中间：TP=45 FN=0 FP=0（100% recall + 100% precision）
-# 0.05 阈值过严（误杀 7 个真匹配），故默认值采用 0.001
+# 来源：v4 评估数据显示真匹配 rerank_score 0.06~0.99，负样本 ≤0.0005
+# 0.05 阈值能拒绝 case_042 "帮我订一张机票" 这类误召回（rerank_score=0.0005）
 # 可通过环境变量 SKILL_RERANK_MIN_SCORE 覆盖
-_DEFAULT_RERANK_MIN_SCORE = 0.001
+_DEFAULT_RERANK_MIN_SCORE = 0.05
 
 
 def _env_float(name: str, default: float) -> float:
@@ -119,7 +116,7 @@ class SkillReranker:
             max_length: 输入 token 长度上限（query+doc 总长度）
             rerank_top_n: 召回候选池大小（建议 >= 2*top_k）
             rerank_min_score: rerank_score 阈值，低于此值的候选将被剔除
-                None 时读取环境变量 SKILL_RERANK_MIN_SCORE，默认 0.001
+                None 时读取环境变量 SKILL_RERANK_MIN_SCORE，默认 0.05
                 设为负数（如 -1.0）可禁用阈值过滤
         """
         self.model_name = model_name
