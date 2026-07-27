@@ -185,8 +185,8 @@ class TestEnvironmentSwitch:
 
     def test_model_name_default(self):
         reranker = SkillReranker()
-        # 【变易】2026-07-27 默认模型从 v2-m3 切换为 base（适配 Windows 内存约束）
-        assert reranker._model_name == "BAAI/bge-reranker-base"
+        # 【变易】2026-07-28 页面文件扩容后回退为 v2-m3（已验证可用）
+        assert reranker._model_name == "BAAI/bge-reranker-v2-m3"
 
     def test_model_name_explicit_param(self):
         os.environ["SKILL_RERANKER_MODEL"] = "env-model"
