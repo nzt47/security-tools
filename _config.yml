@@ -1,4 +1,5 @@
-theme: jekyll-theme-markdown
+# GitHub Pages 配置
+theme: jekyll-theme-cayman
 markdown: kramdown
 title: TLM 三层记忆架构总览
 description: TLM 架构设计 + P3/P4 优化完整文档
