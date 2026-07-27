@@ -158,7 +158,7 @@ flowchart LR
         agent_memory_markdown_syncer["agent.memory.markdown_syncer"]
         agent_memory_observability["agent.memory.observability"]
         agent_memory_reviewer["agent.memory.reviewer"]:::crosslayer
-        agent_memory_router["agent.memory.router"]
+        agent_memory_router["agent.memory.router"]:::crosslayer
         agent_memory_short_term_memory["agent.memory.short_term_memory"]:::crosslayer
     end
     subgraph model_router [model_router]
@@ -505,6 +505,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_code_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_core_tools
     agent_orchestrator_lifecycle_manager -.-> agent_system_prompt_config
+    agent_orchestrator_lifecycle_manager -.-> agent_memory_router
     agent_orchestrator_lifecycle_manager -.-> agent_workflow_engine_engine
     agent_orchestrator_lifecycle_manager -.-> agent_workflow_engine_builtin_rules
     agent_orchestrator_lifecycle_manager -.-> agent_extensions_manager
@@ -933,8 +934,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 338
 - 模块节点数: 267
-- 依赖边数: 580
-- 跨层调用数: 366
+- 依赖边数: 581
+- 跨层调用数: 367
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1208.24 ms
+- 构建耗时: 669.59 ms
