@@ -437,12 +437,9 @@ class MemorySkillAbstractor:
         ltm = LongTermMemory()
         cutoff = self._cutoff_ts(days)
         entries: List[MemoryEntry] = []
-        raw_entries = ltm.list_unverified(limit=200) + ltm.list_sensitive(limit=200)
-        seen_keys: set = set()
+        # [TLM-L4] 改用 list_recent（替代 list_unverified + list_sensitive，避免重复）
+        raw_entries = ltm.list_recent(limit=200)
         for entry in raw_entries:
-            if entry.key in seen_keys:
-                continue
-            seen_keys.add(entry.key)
             if entry.created_at and entry.created_at < cutoff:
                 continue
             content = entry.content

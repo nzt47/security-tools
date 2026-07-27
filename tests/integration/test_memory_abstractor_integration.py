@@ -903,8 +903,8 @@ class TestLoadLongTermMemories:
             metadata={"success": True},
         )
         mock_ltm = MagicMock()
-        mock_ltm.list_unverified.return_value = [mock_entry]
-        mock_ltm.list_sensitive.return_value = []
+        # [TLM-L4] _load_long_term_memories 已改用 list_recent（替代 list_unverified + list_sensitive）
+        mock_ltm.list_recent.return_value = [mock_entry]
         with patch("agent.skills_mgmt.memory_abstractor.MemorySkillAbstractor._cutoff_ts", return_value=0):
             with patch("agent.memory.long_term_memory.LongTermMemory", return_value=mock_ltm):
                 result = abstractor._load_long_term_memories(days=30)

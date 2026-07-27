@@ -177,3 +177,7 @@ tests/eval/*_recovery_report.json
 # 本地运行 parse_ci_l2_report.py 生成的样本图表（CI 在 test_reports/ 下重新生成并作为 artifact 上传）
 l2_perf_report.png
 
+
+# 构建产物（不提交）
+packages/*/dist/
+

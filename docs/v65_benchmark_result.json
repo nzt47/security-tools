@@ -1,0 +1,61 @@
+{
+  "timestamp": "2026-07-28 00:58:18",
+  "model": "BAAI/bge-reranker-v2-m3",
+  "results": [
+    {
+      "test": "memory",
+      "load_time_s": 41.58,
+      "rss_before_mb": 65.5,
+      "rss_after_load_mb": 1969.6,
+      "model_memory_mb": 1904.1,
+      "target_rss_mb": 1536,
+      "passed": false
+    },
+    {
+      "test": "single_rerank",
+      "iterations": 20,
+      "min_ms": 2657.48,
+      "mean_ms": 3540.31,
+      "p50_ms": 3426.89,
+      "p95_ms": 4499.32,
+      "p99_ms": 4641.87,
+      "max_ms": 4677.5,
+      "target_p99_ms": 500,
+      "passed": false
+    },
+    {
+      "test": "throughput",
+      "iterations": 30,
+      "total_s": 101.68,
+      "qps": 0.3,
+      "avg_latency_ms": 3389.25,
+      "target_qps": 10,
+      "passed": false
+    },
+    {
+      "test": "concurrency",
+      "threads": 4,
+      "per_thread": 5,
+      "total_requests": 20,
+      "success_count": 20,
+      "error_count": 0,
+      "total_s": 74.76,
+      "p50_ms": 13864.52,
+      "p99_ms": 21355.98,
+      "target_zero_error": true,
+      "passed": true
+    },
+    {
+      "test": "tail_latency",
+      "iterations": 50,
+      "p50_ms": 3524.05,
+      "p95_ms": 4626.86,
+      "p99_ms": 5433.47,
+      "p999_ms": 5632.2,
+      "max_ms": 5654.28,
+      "target_p999_ms": 2000,
+      "passed": false
+    }
+  ],
+  "all_passed": false
+}
