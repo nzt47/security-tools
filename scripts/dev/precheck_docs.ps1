@@ -49,14 +49,24 @@ if [ `$? -ne 0 ]; then
 fi
 exit 0  # 始终放行，仅作预览
 "@
-    Set-Content -Path $hookPath -Value $hookContent -Encoding utf8
-    # 设置可执行权限（Git Bash 环境）
-    if ($IsLinux -or $IsMacOS) {
-        chmod +x $hookPath 2>$null
+    try {
+        Set-Content -Path $hookPath -Value $hookContent -Encoding utf8 -ErrorAction Stop
+        # 设置可执行权限（Git Bash 环境）
+        if ($IsLinux -or $IsMacOS) {
+            chmod +x $hookPath 2>$null
+        }
+        Write-Host "[OK] pre-commit hook 已安装到 $hookPath" -ForegroundColor Green
+        Write-Host "  策略: 非阻塞预览（不阻止提交）"
+        Write-Host "  可手动跳过: git commit --no-verify"
+    } catch {
+        Write-Host "[!] 自动安装被拦截（沙盒保护 .git/ 目录）" -ForegroundColor Yellow
+        Write-Host "  请手动创建 .git/hooks/pre-commit 文件，内容如下:" -ForegroundColor Gray
+        Write-Host "  ----"
+        Write-Host $hookContent -ForegroundColor Gray
+        Write-Host "  ----"
+        Write-Host "  或在 PowerShell 管理员模式下重试" -ForegroundColor Gray
+        Write-Host "  或直接手动调用: .\scripts\dev\precheck_docs.ps1 -SkipChart" -ForegroundColor Gray
     }
-    Write-Host "[OK] pre-commit hook 已安装到 $hookPath" -ForegroundColor Green
-    Write-Host "  策略: 非阻塞预览（不阻止提交）"
-    Write-Host "  可手动跳过: git commit --no-verify"
     exit 0
 }
 
@@ -91,8 +101,8 @@ foreach ($file in $mdFiles) {
     $links = [regex]::Matches($content, '\[([^\]]+)\]\(([^)]+)\)')
     foreach ($link in $links) {
         $linkPath = $link.Groups[2].Value
-        # 跳过 http/https/锚点链接
-        if ($linkPath -match '^(https?|mailto:|#|/)') { continue }
+        # 跳过 http/https/mailto/file:///绝对路径/锚点链接
+        if ($linkPath -match '^(https?|mailto:|file:///|#|/)') { continue }
         $totalLinks++
         # 解析相对路径
         $fullPath = Join-Path $file.DirectoryName $linkPath
