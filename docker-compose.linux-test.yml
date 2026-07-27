@@ -1,0 +1,141 @@
+# Linux 测试环境 Docker Compose
+#
+# 完整测试环境，解决 Windows 下 torch 0xC0000005 崩溃问题
+# 支持：unit 测试 + integration 测试 + sqlite-vec + embedding 模型
+#
+# 用法：
+#   # 运行所有 unit 测试
+#   docker-compose -f docker-compose.linux-test.yml run --rm test
+#
+#   # 运行指定测试
+#   docker-compose -f docker-compose.linux-test.yml run --rm test pytest tests/unit/test_long_term_memory_embedding.py -v
+#
+#   # 运行 768 维验证脚本
+#   docker-compose -f docker-compose.linux-test.yml run --rm test python scripts/verify_768dim_dynamic.py
+#
+#   # 预下载 embedding 模型（首次使用前执行一次，加速后续测试）
+#   docker-compose -f docker-compose.linux-test.yml run --rm predownload-models
+#
+#   # 运行 integration 测试
+#   docker-compose -f docker-compose.linux-test.yml run --rm test-integration
+#
+#   # 运行完整测试套件（unit + integration）
+#   docker-compose -f docker-compose.linux-test.yml run --rm test-all
+
+version: "3.8"
+
+services:
+  # ── 预下载 embedding 模型（首次使用前运行一次）──
+  predownload-models:
+    build:
+      context: .
+      dockerfile: Dockerfile.linux-test
+    container_name: yunshu-predownload-models
+    restart: "no"
+    volumes:
+      # 模型缓存持久化（首次下载后后续测试直接使用）
+      - hf-cache:/app/.hf_cache
+    environment:
+      - HF_HOME=/app/.hf_cache
+      - TRANSFORMERS_CACHE=/app/.hf_cache
+      - SENTENCE_TRANSFORMERS_HOME=/app/.hf_cache
+    entrypoint: ["python"]
+    command: |
+      -c "
+      from sentence_transformers import SentenceTransformer
+      print('[1/3] 下载 BAAI/bge-small-en-v1.5 (384 维)...')
+      SentenceTransformer('BAAI/bge-small-en-v1.5')
+      print('[OK] bge-small 下载完成')
+      print('[2/3] 下载 BAAI/bge-large-en-v1.5 (768 维)...')
+      SentenceTransformer('BAAI/bge-large-en-v1.5')
+      print('[OK] bge-large 下载完成')
+      print('[3/3] 模型预下载全部完成')
+      "
+
+  # ── Unit 测试（默认）──
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.linux-test
+    container_name: yunshu-linux-test
+    restart: "no"
+    volumes:
+      # 测试结果持久化
+      - test-results:/app/test_results
+      # HuggingFace 模型缓存（复用预下载的模型）
+      - hf-cache:/app/.hf_cache
+      # 测试数据（可选，用于 E2E 测试）
+      - ./data/memory:/app/data/memory:ro
+    environment:
+      - HF_HOME=/app/.hf_cache
+      - TRANSFORMERS_CACHE=/app/.hf_cache
+      - SENTENCE_TRANSFORMERS_HOME=/app/.hf_cache
+      - OMP_NUM_THREADS=4
+      - MKL_NUM_THREADS=4
+      - PYTEST_TIMEOUT=120
+      # 测试数据库路径（使用临时内存数据库或卷内数据库）
+      - DB_PATH=/app/data/memory/test.db
+    # 支持自定义命令：docker-compose run --rm test <command>
+    # 默认运行 tests/unit/
+
+  # ── Integration 测试 ──
+  test-integration:
+    build:
+      context: .
+      dockerfile: Dockerfile.linux-test
+    container_name: yunshu-linux-test-integration
+    restart: "no"
+    volumes:
+      - test-results:/app/test_results
+      - hf-cache:/app/.hf_cache
+    environment:
+      - HF_HOME=/app/.hf_cache
+      - OMP_NUM_THREADS=4
+      - MKL_NUM_THREADS=4
+      - PYTEST_TIMEOUT=120
+    entrypoint: ["python", "-m", "pytest", "tests/integration/", "-v", "--tb=short", "--timeout=120", "--timeout-method=thread"]
+
+  # ── 完整测试套件（unit + integration）──
+  test-all:
+    build:
+      context: .
+      dockerfile: Dockerfile.linux-test
+    container_name: yunshu-linux-test-all
+    restart: "no"
+    volumes:
+      - test-results:/app/test_results
+      - hf-cache:/app/.hf_cache
+    environment:
+      - HF_HOME=/app/.hf_cache
+      - OMP_NUM_THREADS=4
+      - MKL_NUM_THREADS=4
+      - PYTEST_TIMEOUT=120
+    entrypoint: ["python", "-m", "pytest", "tests/", "-v", "--tb=short", "--timeout=120", "--timeout-method=thread", "-q"]
+
+  # ── sqlite-vec 专项测试 ──
+  test-sqlite-vec:
+    build:
+      context: .
+      dockerfile: Dockerfile.linux-test
+    container_name: yunshu-sqlite-vec-test
+    restart: "no"
+    volumes:
+      - test-results:/app/test_results
+      - hf-cache:/app/.hf_cache
+    environment:
+      - HF_HOME=/app/.hf_cache
+      - OMP_NUM_THREADS=4
+    entrypoint: ["python", "-m", "pytest"]
+    command: >
+      tests/unit/test_long_term_memory_embedding.py
+      tests/unit/test_tlm_memory_store.py
+      tests/unit/test_memory_storage_boundary.py
+      tests/unit/test_vector_store_sqlite_vec.py
+      tests/unit/test_memory_vector_store.py
+      -v --tb=short --timeout=120 --timeout-method=thread
+
+volumes:
+  test-results:
+    driver: local
+  hf-cache:
+    driver: local

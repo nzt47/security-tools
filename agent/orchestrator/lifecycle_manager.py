@@ -307,6 +307,22 @@ class LifecycleManager:
         except Exception as e:
             logger.warning(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.memoryreviewer.fail', 'message': '[WARN] 记忆审查器初始化失败: %s' % (e,), 'error': str(e)}))
 
+        # ── 3.7 TLM L5: MemoryRouter 三层路由（L1/L2/L3）──
+        self._memory_router = None
+        try:
+            from agent.memory.router import MemoryRouter
+            self._memory_router = MemoryRouter()
+            # 注册三层适配器（STM→L1, HolographicAdapter→L2, LTM→L3）
+            if self._short_term_memory is not None:
+                self._memory_router.register_tier("L1", self._short_term_memory)
+            # L2 复用 router 的默认适配器（HolographicAdapter）
+            self._memory_router.register_tier("L2", self._memory_router.default)
+            if self._long_term_memory is not None:
+                self._memory_router.register_tier("L3", self._long_term_memory)
+            logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.memoryrouter', 'message': '[ok] 记忆路由器（MemoryRouter）已激活，已注册 L1/L2/L3 三层适配器'}))
+        except Exception as e:
+            logger.warning(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.memoryrouter.fail', 'message': '[WARN] 记忆路由器初始化失败: %s' % (e,), 'error': str(e)}))
+
         # ── 4. 我的本能：行为控制 ──
         self._behavior = BehaviorController()
         logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.behaviorcontroller', 'message': '[ok] 本能（BehaviorController）已激活'}))

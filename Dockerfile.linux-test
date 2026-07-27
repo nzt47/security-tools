@@ -1,0 +1,95 @@
+# Dockerfile for Linux Test Environment
+#
+# 完整测试环境，包含所有依赖：
+# - sqlite-vec（KNN 向量检索）
+# - torch + sentence-transformers（embedding 模型）
+# - transformers（模型推理）
+#
+# 用途：
+#   在 Linux 环境运行所有测试（unit + integration + memory + vector store）
+#   解决 Windows 下 torch 0xC0000005 崩溃问题
+#
+# 用法：
+#   docker build -f Dockerfile.linux-test -t yunshu-linux-test .
+#   docker run --rm yunshu-linux-test pytest tests/unit/ -v
+#   docker run --rm yunshu-linux-test python scripts/verify_768dim_dynamic.py
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# ── 国内镜像源配置（加速构建 10-50 倍）──
+# apt 源：清华 Debian 镜像
+# pip 源：清华 PyPI 镜像
+# 注意：python:3.12-slim 基于 Debian trixie，使用 DEB822 格式源文件
+RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || \
+    sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list 2>/dev/null || true && \
+    mkdir -p /root/.pip && \
+    printf '[global]\nindex-url = https://pypi.tuna.tsinghua.edu.cn/simple\ntrusted-host = pypi.tuna.tsinghua.edu.cn\n' > /root/.pip/pip.conf
+
+# ── 系统依赖 ──
+# gcc/g++: 编译 C 扩展（sqlite-vec 等）
+# git: 部分测试需要
+# curl: 健康检查
+# sqlite3: 命令行工具（调试用）
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    git \
+    curl \
+    sqlite3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Python 依赖 ──
+# 先复制依赖文件（利用 Docker 层缓存）
+COPY requirements.txt requirements-dev.txt ./
+
+# 安装生产依赖（过滤 Windows-only 包：pywin32/pypiwin32/comtypes）
+# 使用清华 PyPI 镜像加速（pip.conf 已配置）
+RUN grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install --no-cache-dir -r /dev/stdin
+
+# 安装开发依赖（pytest, pytest-asyncio, pytest-timeout 等）
+RUN if [ -f requirements-dev.txt ]; then \
+        grep -v -E 'pywin32|pypiwin32|comtypes' requirements-dev.txt | pip install --no-cache-dir -r /dev/stdin; \
+    fi
+
+# 安装项目本身（-e 模式，支持测试导入）
+COPY . .
+RUN pip install --no-cache-dir -e .
+
+# ── 环境变量 ──
+ENV PYTHONPATH=/app
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# [torch 稳定性] 限制 OpenMP 线程数，避免过度并发导致的内存访问冲突
+# Linux 上 torch 通常稳定，但限制线程数可避免资源竞争
+ENV OMP_NUM_THREADS=4
+ENV MKL_NUM_THREADS=4
+
+# [HuggingFace 模型缓存] 持久化到卷，避免每次重新下载
+ENV HF_HOME=/app/.hf_cache
+ENV TRANSFORMERS_CACHE=/app/.hf_cache
+ENV SENTENCE_TRANSFORMERS_HOME=/app/.hf_cache
+
+# [测试配置] 默认超时 120 秒（embedding 模型加载需要时间）
+ENV PYTEST_TIMEOUT=120
+
+# 验证关键模块可导入（build 阶段快速失败）
+RUN python -c "import sqlite_vec; print(f'sqlite-vec OK: {sqlite_vec.__version__}')" || echo "[WARN] sqlite-vec import failed"
+RUN python -c "import torch; print(f'torch OK: {torch.__version__}')" || echo "[WARN] torch import failed"
+RUN python -c "import sentence_transformers; print(f'sentence-transformers OK')" || echo "[WARN] sentence-transformers import failed"
+RUN python -c "from agent.memory.long_term_memory import LongTermMemory; print('LongTermMemory OK')"
+
+# 创建必要目录
+RUN mkdir -p /app/test_results /app/.hf_cache /app/data/memory /app/backups
+
+# 测试结果卷
+VOLUME /app/test_results
+# HuggingFace 模型缓存卷（避免重复下载）
+VOLUME /app/.hf_cache
+# 数据卷（测试数据库）
+VOLUME /app/data/memory
+
+# 默认运行所有 unit 测试
+ENTRYPOINT ["python", "-m", "pytest", "tests/unit/", "-v", "--tb=short", "--timeout=120", "--timeout-method=thread"]

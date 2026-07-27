@@ -1,0 +1,54 @@
+{
+  "timestamp": "2026-07-28 01:03:08",
+  "mode": "rrf_degraded",
+  "skill_reranker_enabled": false,
+  "results": [
+    {
+      "test": "main_flow_verify",
+      "passed": true,
+      "rss_mb": 65.4
+    },
+    {
+      "test": "degraded_single",
+      "iterations": 200,
+      "min_ms": 0.0,
+      "mean_ms": 0.008,
+      "p50_ms": 0.0,
+      "p95_ms": 0.0,
+      "p99_ms": 0.504,
+      "p999_ms": 0.516,
+      "max_ms": 0.517,
+      "qps": 121327.9,
+      "target_p99_ms": 100,
+      "target_qps": 50,
+      "passed": true
+    },
+    {
+      "test": "degraded_concurrency",
+      "threads": 4,
+      "per_thread": 25,
+      "total_requests": 100,
+      "error_count": 0,
+      "total_s": 0.0,
+      "p50_ms": 0.0,
+      "p99_ms": 0.0,
+      "qps": 79512.9,
+      "target_zero_error": true,
+      "passed": true
+    },
+    {
+      "test": "degraded_tail",
+      "iterations": 500,
+      "p50_ms": 0.0,
+      "p95_ms": 0.0,
+      "p99_ms": 0.0,
+      "p999_ms": 0.756,
+      "max_ms": 1.005,
+      "target_p999_ms": 200,
+      "passed": true
+    }
+  ],
+  "all_passed": true,
+  "rss_before_mb": 65.4,
+  "rss_after_mb": 65.5
+}
