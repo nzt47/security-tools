@@ -500,6 +500,21 @@ class SkillLoader:
         if adapter is None:
             return None
 
+        # 【不易】BM25 fallback 模式不是真正的向量语义检索
+        # 在 SKILLS_OFFLINE=1 的 CI 环境中，sentence_transformers/chromadb 被禁用，
+        # VectorStore 会降级到 BM25 倒排索引模式。这不是用户请求 use_vector=True 时
+        # 期望的向量语义检索，应返回 None 让调用方降级到 TF-IDF
+        # （保持 fallback_used=True 的语义正确性，测试 test_match_fallback_flag_when_vector_requested 守卫此契约）
+        if getattr(adapter, '_st_backend', None) is None and \
+           getattr(adapter, '_native_chroma', None) is None:
+            logger.info(json.dumps({
+                "trace_id": tid,
+                "module_name": "loader",
+                "action": "vector.skipped_bm25_fallback",
+                "reason": "BM25 fallback is not real vector search",
+            }, ensure_ascii=False))
+            return None
+
         try:
             results = adapter.search(
                 intent, top_k=top_k, enabled_only=enabled_only,
