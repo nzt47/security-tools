@@ -864,8 +864,14 @@ jobs:
           pip install -e .
 
       - name: 运行全项目测试并生成 coverage.xml
+        env:
+          # 【不易】CI 必须启用 SKILLS_OFFLINE,避免 sentence_transformers/transformers
+          # 导入时递归扫描文件系统触发超时（与 ci.yml unit-tests job 保持一致）
+          # conftest.py 的 _skills_offline_mode fixture 会 patch 重量级模块为 None,
+          # 业务代码走 fallback 路径
+          SKILLS_OFFLINE: '1'
         run: |
-          echo "=== 运行全项目测试 ==="
+          echo "=== 运行全项目测试（SKILLS_OFFLINE=1，对齐 ci.yml 配置）==="
           # --cov=agent --cov=scripts：同时测量 agent 和 scripts 两个源目录
           # --cov-report=xml：生成 coverage.xml 供 visibility-report job 消费
           # --maxfail=0：覆盖 pytest.ini 的 --maxfail=10，避免 collection errors 过早停止
@@ -873,9 +879,12 @@ jobs:
           #         （如依赖外部服务），会在 10 个 errors 后停止，导致 coverage.xml line-rate=0
           # --continue-on-collection-errors：部分测试文件 collection 失败时仍继续执行其他测试
           # --cov-fail-under=0：不因覆盖率低而失败，阻断交由 visibility-report 的 test_coverage 阈值
-          # --timeout=300：单个测试超过 300 秒未完成则标记失败并继续，防止卡死整个 CI
-          #   原因：曾出现全项目测试覆盖率 job 运行 3+ 小时仍未完成，疑似某个测试等待外部
-          #         服务或死锁；--timeout 需配合 pytest-timeout 插件（已在安装依赖中添加）
+          # --timeout=300 --timeout-method=signal：单个测试超过 300 秒则信号杀掉
+          #   signal 法不创建线程，避免大量测试累积导致 "can't start new thread" INTERNALERROR
+          #   （与 ci.yml 的 --timeout-method=signal 保持一致，Linux 原生支持）
+          # -m "not slow and not skip_ci"：过滤慢测试和 CI 跳过标记，与 ci.yml 一致
+          # --ignore=test_sandbox_multiprocess_boundary.py：CI Linux spawn pickle 错误，与 ci.yml 一致
+          # -p no:randomly：禁用随机排序，避免测试顺序依赖导致的 flaky
           # 注意：不使用 --cov-config=.coveragerc_scripts，因为该配置的 omit 包含 agent/*
           #       会排除 agent 目录下所有文件，与全项目覆盖率目标冲突
           python -m pytest tests/ \
@@ -887,6 +896,10 @@ jobs:
             --continue-on-collection-errors \
             --cov-fail-under=0 \
             --timeout=300 \
+            --timeout-method=signal \
+            -m "not slow and not skip_ci" \
+            --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
+            -p no:randomly \
             -q \
             --tb=short
 
