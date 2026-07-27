@@ -1,0 +1,4 @@
+theme: jekyll-theme-markdown
+markdown: kramdown
+title: TLM 三层记忆架构总览
+description: TLM 架构设计 + P3/P4 优化完整文档
