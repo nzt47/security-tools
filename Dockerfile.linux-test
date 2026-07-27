@@ -46,11 +46,16 @@ COPY requirements.txt requirements-dev.txt ./
 
 # 安装生产依赖（过滤 Windows-only 包：pywin32/pypiwin32/comtypes）
 # 使用清华 PyPI 镜像加速（pip.conf 已配置）
-RUN grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install --no-cache-dir -r /dev/stdin
+# [修复] 新版 pip 不支持 -r /dev/stdin，改用临时文件
+RUN grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt > /tmp/req-filtered.txt && \
+    pip install --no-cache-dir -r /tmp/req-filtered.txt && \
+    rm -f /tmp/req-filtered.txt
 
 # 安装开发依赖（pytest, pytest-asyncio, pytest-timeout 等）
 RUN if [ -f requirements-dev.txt ]; then \
-        grep -v -E 'pywin32|pypiwin32|comtypes' requirements-dev.txt | pip install --no-cache-dir -r /dev/stdin; \
+        grep -v -E 'pywin32|pypiwin32|comtypes' requirements-dev.txt > /tmp/req-dev-filtered.txt && \
+        pip install --no-cache-dir -r /tmp/req-dev-filtered.txt && \
+        rm -f /tmp/req-dev-filtered.txt; \
     fi
 
 # 安装项目本身（-e 模式，支持测试导入）
