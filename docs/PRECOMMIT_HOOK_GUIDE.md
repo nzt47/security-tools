@@ -301,7 +301,7 @@ Write-Host "[OK] BOM added to precheck_docs.ps1"
 | 2026-07-28 | `fef8c52e` | 修复预检脚本中文路径误报失效链接 + 阈值降到 0 |
 | 2026-07-29 | `d7fd5762` | 新增场景测试脚本 + 10 场景边界测试脚本 + 故障排查表格化 |
 | 2026-07-29 | `e558ed1f`/`63f335bf` | 新增 sync_precommit_hook.ps1 跨仓库自动化部署 + precheck_docs.ps1 支持 -TargetRepo 参数 + 提取 fail-safe 模块 |
-| 2026-07-29 | 本次提交 | fail-safe 模块扩展权限冲突自动修复（Test-HookExecutable/Repair-HookPermission/Invoke-SafeHookWrite）+ 真实仓库部署模拟脚本 + 权限修复单元测试 |
+| 2026-07-29 | `1811b42b` | fail-safe 模块扩展权限冲突自动修复（Test-HookExecutable/Repair-HookPermission/Invoke-SafeHookWrite）+ 真实仓库部署模拟脚本 + 权限修复单元测试 |
 
 ---
 
