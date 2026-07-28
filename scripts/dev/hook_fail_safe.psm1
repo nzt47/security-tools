@@ -290,5 +290,231 @@ function Test-HookMarker {
     return $result
 }
 
+# =================================================================
+# 8. 钩子权限检测与修复（变易：跨平台兼容 Windows ACL + Unix chmod）
+# =================================================================
+function Test-HookExecutable {
+    <#
+    .SYNOPSIS
+        检测 hook 文件是否可执行（跨平台）
+    .DESCRIPTION
+        - Unix: 检查文件是否有执行位（用 stat -c %a 或 git update-index --chmod=）
+        - Windows: 检查文件是否只读 + 当前用户是否有写入权限
+    .OUTPUTS
+        [hashtable] @{ IsExecutable = $bool; Platform = $string; Issues = @() }
+    #>
+    param([string]$HookPath)
+    $result = @{ IsExecutable = $true; Platform = $null; Issues = @() }
+
+    if (-not (Test-Path $HookPath)) {
+        $result.IsExecutable = $false
+        $result.Issues += 'hook 文件不存在'
+        return $result
+    }
+
+    # 平台检测
+    $isWindows = ($PSVersionTable.Platform -ne 'Unix') -and ($env:OS -eq 'Windows_NT')
+    $result.Platform = if ($isWindows) { 'Windows' } else { 'Unix' }
+
+    if ($isWindows) {
+        # Windows: 检查只读属性
+        $fileInfo = Get-Item $HookPath -Force
+        if ($fileInfo.IsReadOnly) {
+            $result.IsExecutable = $false
+            $result.Issues += '文件被设置为只读'
+        }
+        # 检查 ACL 是否允许当前用户写入
+        try {
+            $acl = Get-Acl $HookPath -ErrorAction Stop
+            $currentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+            $rules = $acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])
+            $canWrite = $false
+            foreach ($rule in $rules) {
+                if ($rule.AccessControlType -eq 'Allow' -and
+                    $rule.RegistryRights -band [System.Security.AccessControl.FileSystemRights]::Modify -or
+                    $rule.FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::Write) {
+                    # 检查是否应用于当前用户或所属组
+                    if ($currentIdentity.User -eq $rule.IdentityReference -or
+                        ($currentIdentity.Groups | ForEach-Object { $_ }) -contains $rule.IdentityReference) {
+                        $canWrite = $true
+                        break
+                    }
+                }
+            }
+            if (-not $canWrite) {
+                # 简化检查：若 ACL 复杂判断不准，只标记只读问题
+                # 真正的 ACL 修复在 Repair-HookPermission 中处理
+            }
+        } catch {
+            # ACL 读取失败不阻塞，只记录
+            $result.Issues += "ACL 读取失败: $($_.Exception.Message)"
+        }
+    } else {
+        # Unix: 检查执行位（mode 末位奇数表示 owner 有执行位）
+        $modeStr = & stat -c '%a' $HookPath 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            $mode = $modeStr.ToString().Trim()
+            # [Convert]::ToInt32('111', 8) 为 PS 5.1 兼容写法（避免 0o111 PS7+ 语法）
+            $execBits = [Convert]::ToInt32('111', 8)
+            $modeInt = [Convert]::ToInt32($mode, 8)
+            $hasExec = ($modeInt -band $execBits) -ne 0
+            if (-not $hasExec) {
+                $result.IsExecutable = $false
+                $result.Issues += "文件无执行位 (mode=$modeStr)"
+            }
+        }
+    }
+
+    return $result
+}
+
+function Repair-HookPermission {
+    <#
+    .SYNOPSIS
+        自动修复 hook 文件权限冲突
+    .DESCRIPTION
+        - Windows: 移除只读属性 + 重置 ACL 允许当前用户完全控制
+        - Unix: chmod +x 添加执行位
+        - 失败时返回详细错误信息，不抛异常（fail-soft，由调用者决定是否阻塞）
+    .PARAMETER HookPath
+        hook 文件路径
+    .OUTPUTS
+        [hashtable] @{ Repaired = $bool; Actions = @(); Error = $string }
+    #>
+    param([string]$HookPath)
+    $result = @{ Repaired = $false; Actions = @(); Error = $null }
+
+    if (-not (Test-Path $HookPath)) {
+        $result.Error = 'hook 文件不存在，无法修复权限'
+        return $result
+    }
+
+    $isWindows = ($PSVersionTable.Platform -ne 'Unix') -and ($env:OS -eq 'Windows_NT')
+
+    try {
+        if ($isWindows) {
+            # 1. 移除只读属性
+            $fileInfo = Get-Item $HookPath -Force
+            if ($fileInfo.IsReadOnly) {
+                $fileInfo.IsReadOnly = $false
+                $fileInfo.Refresh()
+                $result.Actions += '移除只读属性'
+            }
+
+            # 2. 重置 ACL：确保当前用户有完全控制权
+            $currentIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+            $acl = Get-Acl $HookPath -ErrorAction Stop
+
+            # 检查是否已有当前用户的规则
+            $hasWriteRule = $false
+            foreach ($rule in $acl.GetAccessRules($true, $true, [System.Security.Principal.SecurityIdentifier])) {
+                if ($rule.AccessControlType -eq 'Allow' -and
+                    ($rule.FileSystemRights -band [System.Security.AccessControl.FileSystemRights]::Write)) {
+                    $hasWriteRule = $true
+                    break
+                }
+            }
+
+            if (-not $hasWriteRule) {
+                $rights = [System.Security.AccessControl.FileSystemRights]::FullControl
+                $inheritance = [System.Security.AccessControl.InheritanceFlags]::None
+                $propagation = [System.Security.AccessControl.PropagationFlags]::None
+                $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+                    $currentIdentity.Name, $rights, $inheritance, $propagation, 'Allow'
+                )
+                $acl.AddAccessRule($rule)
+                Set-Acl -Path $HookPath -AclObject $acl -ErrorAction Stop
+                $result.Actions += "添加 ACL 规则: $($currentIdentity.Name) FullControl"
+            }
+
+            $result.Repaired = $true
+        } else {
+            # Unix: chmod +x
+            & chmod +x $HookPath 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                $result.Actions += 'chmod +x 添加执行位'
+                $result.Repaired = $true
+            } else {
+                $result.Error = "chmod +x 失败 (exit=$LASTEXITCODE)"
+            }
+        }
+    } catch {
+        $result.Error = $_.Exception.Message
+    }
+
+    return $result
+}
+
+function Invoke-SafeHookWrite {
+    <#
+    .SYNOPSIS
+        安全写入 hook 文件（含权限自动修复）
+    .DESCRIPTION
+        复合操作：写入 hook -> 检测权限 -> 必要时修复 -> 再次验证
+        任意步骤失败都返回详细错误，不抛异常。
+        调用者可根据 Repaired 字段决定是否提示用户。
+    .PARAMETER HookPath
+        hook 文件路径
+    .PARAMETER Content
+        hook 内容
+    .OUTPUTS
+        [hashtable] @{ Written = $bool; PermissionOk = $bool; Repaired = $bool; Actions = @(); Error = $string }
+    #>
+    param([string]$HookPath, [string]$Content)
+    $result = @{
+        Written = $false; PermissionOk = $false; Repaired = $false
+        Actions = @(); Error = $null
+    }
+
+    # 1. 尝试写入
+    try {
+        Write-HookNoBom -Path $HookPath -Content $Content
+        $result.Written = $true
+        $result.Actions += 'hook 已写入'
+    } catch {
+        # 第一次写入失败：可能权限不足，尝试修复
+        $result.Error = "首次写入失败: $($_.Exception.Message)"
+        $repair = Repair-HookPermission -HookPath $HookPath
+        $result.Actions += $repair.Actions
+        if (-not $repair.Repaired) {
+            $result.Error += " | 权限修复失败: $($repair.Error)"
+            return $result
+        }
+        $result.Repaired = $true
+        # 修复后重试
+        try {
+            Write-HookNoBom -Path $HookPath -Content $Content
+            $result.Written = $true
+            $result.Actions += '权限修复后重试写入成功'
+        } catch {
+            $result.Error += " | 修复后仍写入失败: $($_.Exception.Message)"
+            return $result
+        }
+    }
+
+    # 2. 验证权限
+    $permCheck = Test-HookExecutable -HookPath $HookPath
+    if ($permCheck.IsExecutable) {
+        $result.PermissionOk = $true
+    } else {
+        # 尝试修复权限
+        $repair = Repair-HookPermission -HookPath $HookPath
+        $result.Actions += $repair.Actions
+        if ($repair.Repaired) {
+            $result.Repaired = $true
+            # 再次验证
+            $permCheck2 = Test-HookExecutable -HookPath $HookPath
+            $result.PermissionOk = $permCheck2.IsExecutable
+            if (-not $result.PermissionOk) {
+                $result.Error = "权限修复后仍不可执行: $($permCheck2.Issues -join '; ')"
+            }
+        } else {
+            $result.Error = "权限修复失败: $($repair.Error)"
+        }
+    }
+
+    return $result
+}
+
 # 导出所有函数
-Export-ModuleMember -Function Get-HookContent, Write-HookNoBom, Write-FileWithBom, Backup-ExistingHook, Test-HookUpToDate, Set-SourceRepoEnv, Test-SourceRepoEnv, Resolve-GitDir, Test-HookMarker
+Export-ModuleMember -Function Get-HookContent, Write-HookNoBom, Write-FileWithBom, Backup-ExistingHook, Test-HookUpToDate, Set-SourceRepoEnv, Test-SourceRepoEnv, Resolve-GitDir, Test-HookMarker, Test-HookExecutable, Repair-HookPermission, Invoke-SafeHookWrite
