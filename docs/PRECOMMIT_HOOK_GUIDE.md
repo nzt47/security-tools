@@ -168,55 +168,76 @@ git commit --no-verify -m "..."
 
 **风险提示**：跳过 hook 后失效链接会进入仓库历史，下次其他开发者提交时会被阻塞。建议跳过后立即修复并补提交。
 
+### 4.6 场景化测试（中文路径删除/重命名）
+
+```powershell
+# 模拟文件被删除/重命名/移动 5 个场景，验证 hook 实时阻塞
+powershell -ExecutionPolicy Bypass -File scripts\dev\test_hook_chinese_path.ps1
+
+# 仅清理上次测试残留
+powershell -ExecutionPolicy Bypass -File scripts\dev\test_hook_chinese_path.ps1 -Cleanup
+```
+
+测试场景：基线（PASS）→ 删除（BLOCK）→ 重命名（BLOCK）→ 移动（BLOCK）→ `--no-verify` 跳过（PASS）。脚本自动回滚 HEAD 与测试目录，不污染工作区。
+
+### 4.7 边界测试（10 场景自动化）
+
+```powershell
+# 运行 10 个中文路径边界测试，输出 Markdown 日志到 scripts/dev/logs/
+powershell -ExecutionPolicy Bypass -File scripts\dev\test_hook_chinese_path_boundary.ps1
+
+# 调试时保留测试文件
+powershell -ExecutionPolicy Bypass -File scripts\dev\test_hook_chinese_path_boundary.ps1 -KeepTestFiles
+```
+
+覆盖场景：纯中文、中英混合、中文+数字、中文+空格、全角括号、深度路径、多 dots、重命名失效、生僻 Unicode。日志命名 `hook_chinese_path_test_YYYYMMDD_HHMMSS.md`。
+
 ---
 
 ## 五、故障排查
 
-### 5.1 Hook 不触发
+### 5.1 速查表
 
-**症状**：`git commit` 没有任何输出，直接成功。
+按下表对照报错信息快速定位根因与修复方案。
 
-**排查**：
-```bash
-ls -la .git/hooks/pre-commit
-# 应有可执行权限，若不存在则需重装：
-powershell -ExecutionPolicy Bypass -File scripts\dev\precheck_docs.ps1 -InstallHook
-```
+| # | 症状 / 报错信息 | 根因 | 修复方案 | 影响范围 |
+|---|----------------|------|---------|---------|
+| 1 | `git commit` 无任何输出直接成功 | hook 文件不存在或无执行权限 | 重装 hook：`powershell -ExecutionPolicy Bypass -File scripts\dev\precheck_docs.ps1 -InstallHook` | 仅本地 |
+| 2 | `error: cannot spawn .git/hooks/pre-commit: No such file or directory` | hook 文件被加了 UTF-8 BOM，bash 不识别带 BOM 的 shebang `#!/bin/bash` | 用 .NET API 移除 BOM（见 5.2 修复代码） | 仅本地 hook 文件 |
+| 3 | 实际存在的中文文件被报为 `[BROKEN]` | precheck_docs.ps1 丢失 BOM，PowerShell 5.1 按 GBK 解码导致中文路径乱码 | 给 precheck_docs.ps1 重新加 UTF-8 BOM（见 5.3 修复代码） | 仅本地脚本 |
+| 4 | 脚本执行报 `ParserError` / `MissingCatchOrFinally` / `Array index expression is missing` | 脚本无 BOM，中文注释/字符串被 GBK 错误解码，字符串引号失配 | 同 #3，给脚本加 BOM | 仅本地脚本 |
+| 5 | hook 输出显示失效链接数与实际不符 | Get-Content/Test-Path 在 PS 5.1 下对中文路径处理有缺陷 | 确认 precheck_docs.ps1 已使用 .NET API（`[System.IO.File]::ReadAllText` + `[System.IO.File]::Exists`） | 仅本地脚本 |
 
-### 5.2 Hook 报 "cannot spawn .git/hooks/pre-commit"
+### 5.2 Hook 报 "cannot spawn" 的修复代码
 
-**根因**：hook 文件被加了 UTF-8 BOM，bash 不识别带 BOM 的 shebang。
-
-**修复**（必须用 .NET API，因 PowerShell `Set-Content` 会自动加 BOM）：
 ```powershell
+# 移除 hook 文件的 UTF-8 BOM（bash 无法识别带 BOM 的 shebang）
 $hookPath = "C:\Users\Administrator\agent\.git\hooks\pre-commit"
 $bytes = [System.IO.File]::ReadAllBytes($hookPath)
 if ($bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF) {
     $newBytes = $bytes[3..($bytes.Length - 1)]
     [System.IO.File]::WriteAllBytes($hookPath, $newBytes)
+    Write-Host "[OK] BOM removed from pre-commit hook"
 }
 ```
 
-### 5.3 中文路径被误报失效
+### 5.3 中文路径误报失效的修复代码
 
-**症状**：实际存在的中文文件被报为 BROKEN。
-
-**根因**：脚本文件丢失 BOM，PowerShell 5.1 按 GBK 解码。
-
-**修复**：
 ```powershell
+# 给 precheck_docs.ps1 加 UTF-8 BOM（PowerShell 5.1 中文系统兼容）
 $utf8WithBom = New-Object System.Text.UTF8Encoding $true
 $content = [System.IO.File]::ReadAllText('scripts\dev\precheck_docs.ps1', [System.Text.Encoding]::UTF8)
 [System.IO.File]::WriteAllText((Resolve-Path 'scripts\dev\precheck_docs.ps1').Path, $content, $utf8WithBom)
+Write-Host "[OK] BOM added to precheck_docs.ps1"
 ```
 
-### 5.4 PowerShell 解析错误（中文乱码导致）
+### 5.4 编码规则速记
 
-**症状**：脚本执行报 `ParserError`、`MissingCatchOrFinally`、`Array index expression is missing`。
-
-**根因**：脚本无 BOM，中文注释/字符串被 GBK 错误解码，导致字符串引号失配。
-
-**修复**：同 5.3，给脚本加 BOM。
+| 文件类型 | 必须 BOM | 原因 |
+|---------|---------|------|
+| `.ps1` 脚本（含中文注释/字符串） | ✅ UTF-8 with BOM | 让 PowerShell 5.1 正确按 UTF-8 解析 |
+| `.git/hooks/*` bash 脚本 | ❌ UTF-8 无 BOM | BOM 会破坏 `#!/bin/bash` shebang |
+| Markdown / JSON / YAML | ❌ UTF-8 无 BOM | 部分工具不兼容 BOM |
 
 ---
 
@@ -237,6 +258,7 @@ $content = [System.IO.File]::ReadAllText('scripts\dev\precheck_docs.ps1', [Syste
 | 2026-07-28 | `f9687300` | 预检脚本增加阻塞模式 + 失效链接批量修复脚本 |
 | 2026-07-28 | `b3cd60a7` | 批量修复 98 个失效 Markdown 链接 |
 | 2026-07-28 | `fef8c52e` | 修复预检脚本中文路径误报失效链接 + 阈值降到 0 |
+| 2026-07-29 | 待提交 | 新增场景测试脚本 + 10 场景边界测试脚本 + 故障排查表格化 |
 
 ---
 
