@@ -56,7 +56,7 @@ python scripts/rebuild_p0_workflow.py --yes     # 跳过确认
 | 整个操作需撤销 | `git revert` 回退到重建前 commit（场景 C） |
 | 备份+历史都丢失 | 从验证报告手工重建（场景 D） |
 
-**完整回滚决策树**: 见 [完整文档第四章 4.4 节](p0_workflow_rebuild_runbook.md#44-回滚决策树)
+**完整回滚决策树**: 见 ~~完整文档第四章 4.4 节~~ ⚠ (待确认)
 
 ## 验证状态
 

@@ -2,7 +2,7 @@
 
 > **文档日期**：2026-07-19
 > **安全等级**：P0（紧急）
-> **关联文档**：[BFG_CLEANUP_REPORT_20260719.md](./BFG_CLEANUP_REPORT_20260719.md)
+> **关联文档**：~~BFG_CLEANUP_REPORT_20260719.md~~ ⚠ (待确认)
 > **CI/CD 平台**：GitHub Actions（18 个 workflows）
 
 ---
@@ -341,7 +341,7 @@ Remove-Item -Recurse -Force $logDir -ErrorAction SilentlyContinue
 - [GitHub Actions Artifacts API](https://docs.github.com/rest/actions/artifacts)
 - [GitHub Actions Workflow Runs API](https://docs.github.com/rest/actions/workflow-runs)
 - [actions/checkout documentation](https://github.com/actions/checkout)
-- 内部文档：[BFG_CLEANUP_REPORT_20260719.md](./BFG_CLEANUP_REPORT_20260719.md)
+- 内部文档：~~BFG_CLEANUP_REPORT_20260719.md~~ ⚠ (待确认)
 
 ---
 

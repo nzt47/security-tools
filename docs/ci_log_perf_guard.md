@@ -89,7 +89,7 @@
 | push | 增量扫描 | `HEAD~1 → HEAD` |
 | 定时任务 | 全量扫描 | 扫描所有文件，更新豁免清单 |
 
-**豁免清单**：[`.trae/double_serialization_exemptions.json`](../.trae/double_serialization_exemptions.json)
+**豁免清单**：~~`.trae/double_serialization_exemptions.json`~~ ⚠ (待确认)
 - 记录存量违规（基线：1865 处 / 184 文件）
 - 新增违规不在豁免清单中即阻断合并
 

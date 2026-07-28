@@ -640,9 +640,9 @@ alerts:
 
 ### 7.2 相关文档
 
-- [P5 极限优化最终完成报告](../P5_OPTIMIZATION_FINAL_REPORT.md)
-- [P5 优化计划](../P5_LIMIT_OPTIMIZATION_PLAN.md)
-- [EventMonitor 瓶颈分析](../P5_EventMonitor_Bottleneck_Analysis.md)
+- ~~P5 极限优化最终完成报告~~ ⚠ (待确认)
+- ~~P5 优化计划~~ ⚠ (待确认)
+- ~~EventMonitor 瓶颈分析~~ ⚠ (待确认)
 
 ### 7.3 测试命令
 

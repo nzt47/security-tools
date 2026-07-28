@@ -273,3 +273,80 @@ SKILL_RERANKER_ENABLED=false
 3. **执行回归压测**：`python scripts/benchmark_v65_jina_reranker.py`
 4. **决策**：根据 P99 实测值决定是否启用
 5. **更新报告**：将结果写入 v6.5 测试报告
+
+---
+
+## 7. 实测结果（2026-07-28 01:34）
+
+### 7.1 执行环境
+
+| 项目 | 值 |
+|------|-----|
+| 执行时间 | 2026-07-28 01:34:50 |
+| 模型路径 | `C:/Users/Administrator/.cache/huggingface/hub/models--jinaai--jina-reranker-v2-base-multilingual` |
+| 模型来源 | modelscope 镜像下载（扁平结构，非 HF 标准缓存） |
+| 离线模式 | HF_HUB_OFFLINE=1, TRANSFORMERS_OFFLINE=1 |
+| trust_remote_code | True（jina 含自定义代码，必需） |
+| 兼容性修复 | embedding.py 内联实现 `_create_position_ids_from_input_ids`（transformers 5.x 移除了原 API） |
+
+### 7.2 实测数据
+
+| 测试项 | 指标 | 实测值 | SLO 目标 | 结果 |
+|--------|------|--------|---------|------|
+| 模型加载 | 耗时 | 49.50s | - | - |
+| 模型加载 | RSS | 966.5MB | ≤ 1.5GB | ✅ 通过 |
+| 排序正确性 | 语音查询首位 | voice_interaction | voice_interaction | ✅ 正确 |
+| 排序正确性 | PDF 查询首位 | pdf_parser | pdf_parser | ✅ 正确 |
+| **测试 B 单次延迟** | **P99** | **7960ms** | **≤ 500ms** | **❌ 未达标** |
+| 测试 B 单次延迟 | P50 | 6590ms | - | - |
+| 测试 B 单次延迟 | Mean | 6630ms | - | - |
+| 测试 B 单次延迟 | QPS | 0.15 | ≥ 3 | ❌ 未达标 |
+
+> 测试 C/D/E 因 SLO 已明确不达标而终止，未收集完整数据。
+
+### 7.3 三模式对比（实测）
+
+| 模式 | P99 延迟 | QPS | 内存 RSS | 排序精度 | SLO 达标 |
+|------|---------|-----|---------|---------|---------|
+| v2-m3（CPU） | 4641ms | 0.30 | 1.92GB | ⭐⭐⭐ | ❌ |
+| **jina-v2（CPU）** | **7960ms** | **0.15** | **966MB** | **⭐⭐** | **❌** |
+| RRF 降级 | 0.5ms | 121,327 | 65MB | ⭐ | ✅ |
+
+### 7.4 根因分析
+
+**jina-v2 比 v2-m3 更慢的原因**：
+1. **架构差异**：jina-reranker-v2-base-multilingual 基于 XLM-Roberta-large，层数深、隐藏维度大
+2. **候选数 20**：每次 rerank 处理 20 个 (query, document) pair，batch 推理在 CPU 上非线性扩展
+3. **手动测试误导**：2 个 pair 测试 0.3s（看似快），但 20 个 pair 需 6-8s（10 倍候选 → 20 倍延迟）
+4. **模型文件大小 ≠ 推理速度**：jina 280MB 文件小但计算量大（XLM-Roberta 架构），v2-m3 2.3GB 但优化更好
+
+**结论**：CPU 环境下所有 Cross-Encoder（v2-m3 / jina-v2）均不满足 500ms SLO。
+
+### 7.5 最终决策
+
+```
+jina P99 7960ms > 500ms SLO？
+└─ 是 ❌
+    └─ P99 > 1000ms → 保持 RRF 降级
+        └─ 已回滚 .env：SKILL_RERANKER_ENABLED=false
+        └─ 主流程降级到 RRF 排序（P99 0.5ms）
+```
+
+### 7.6 配置变更记录
+
+| 文件 | 变更 | 原因 |
+|------|------|------|
+| `.env` | `SKILL_RERANKER_ENABLED=true → false` | jina P99 7.96s 不达标，降级回 RRF |
+| `.env` | `SKILL_RERANKER_MODEL` 指向 jina 本地路径 | 模型已下载，保留路径供未来 GPU 环境启用 |
+| `agent/skills_mgmt/reranker.py` | `CrossEncoder(model, trust_remote_code=True)` | jina 含自定义代码，必需此参数 |
+| `embedding.py`（模型目录） | 内联 `_create_position_ids_from_input_ids` | transformers 5.x 移除了原 API |
+| `scripts/benchmark_v65_jina_reranker.py` | 添加行缓冲 + 减少迭代 | 后台运行可见进度 |
+
+### 7.7 后续建议
+
+1. **短期**：保持 RRF 降级（已验证 P99 0.5ms，满足 SLO）
+2. **中期**：探索更轻量的 Reranker 方案
+   - 减少候选数：20 → 5（预估 P99 降至 2s，仍不达标）
+   - 尝试 bge-reranker-base（1.1GB，需解决网络下载问题）
+   - 评估 ONNX 量化推理加速
+3. **长期**：GPU 环境部署 Cross-Encoder（v2-m3 或 jina-v2 均可）

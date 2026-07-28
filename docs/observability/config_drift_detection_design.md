@@ -888,4 +888,4 @@ python scripts/check_config_drift.py --snapshot path/to/snapshot.json
 
 - [Phase 4 行动计划](phase4_plan.md) — Task 4 配置漂移检测 MVP
 - [Phase 3 最终执行总结](phase3_final_summary.md) — 前置阶段成果
-- [ObservabilityConfig 源码](../agent/monitoring/observability_config.py) — 配置系统实现
+- ~~ObservabilityConfig 源码~~ ⚠ (待确认: observability_config.py) — 配置系统实现

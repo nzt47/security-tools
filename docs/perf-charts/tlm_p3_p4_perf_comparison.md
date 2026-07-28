@@ -1,7 +1,7 @@
 # TLM 架构升级 P3/P4 性能对比报告
 
-> **生成时间**: 1785172635.4765553
-> **图表文件**: [tlm_p3_p4_perf_comparison.png](docs/perf-charts/tlm_p3_p4_perf_comparison.png)
+> **生成时间**: 1785213607.1977656
+> **图表文件**: [tlm_p3_p4_perf_comparison.png](./tlm_p3_p4_perf_comparison.png)
 > **数据来源**: 本地 Windows 测试, 1000 条 × 384 维
 
 ## 一、性能演进总结

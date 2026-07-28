@@ -65,11 +65,11 @@ CI 日志已加标记：`echo "方案: 同步串行 read_fragment + 路径缓存
 
 | 文件 | 说明 |
 |------|------|
-| [异步 IO 分析文档](../docs/perf-async-io-analysis.md) | 完整根因分析 |
-| [性能测试最佳实践](../tests/performance/README.md) | CI 测试详解 |
-| [极限压测脚本](../scripts/bench_l2_stress.py) | 4 场景压测 + 锁统计 |
-| [CI 回归测试](../tests/performance/test_l2_perf_regression.py) | 4 个性能护栏 |
-| [决策 Changelog](../CHANGELOG_L2_ASYNC_IO_REVERT_20260726.md) | 完整决策记录 |
+| ~~异步 IO 分析文档~~ ⚠ (待确认) | 完整根因分析 |
+| ~~性能测试最佳实践~~ ⚠ (待确认: README.md) | CI 测试详解 |
+| ~~极限压测脚本~~ ⚠ (待确认: bench_l2_stress.py) | 4 场景压测 + 锁统计 |
+| ~~CI 回归测试~~ ⚠ (待确认: test_l2_perf_regression.py) | 4 个性能护栏 |
+| ~~决策 Changelog~~ ⚠ (待确认) | 完整决策记录 |
 
 ## 提交记录
 

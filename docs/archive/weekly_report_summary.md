@@ -53,7 +53,7 @@ task_scheduler.py  ████████████████████�
 
 ## 📚 交付物
 
-- [Bug 修复总结](docs/browser_state_leak_bugfix_summary.md)
+- ~~Bug 修复总结~~ ⚠ (待确认)
 - [最终覆盖率验收报告](final_coverage_acceptance_report.md)
 - README.md 已同步更新（测试章节 + 覆盖率数据 + 修复记录）
 

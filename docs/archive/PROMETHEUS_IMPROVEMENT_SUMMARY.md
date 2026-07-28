@@ -77,7 +77,7 @@ python prometheus_example.py --interval 60    # 60秒检查间隔
 **新增文件**:
 
 #### Windows 自动启动配置
-- [setup_autostart.py](setup_autostart.py) - Windows 任务计划程序配置脚本
+- ~~setup_autostart.py~~ ⚠ (待确认) - Windows 任务计划程序配置脚本
 
 **功能**:
 ```powershell
@@ -105,8 +105,8 @@ python setup_autostart.py --uninstall
 - 命令: `python prometheus_example.py --quiet`
 
 #### Linux 自动启动配置
-- [setup_autostart_linux.sh](setup_autostart_linux.sh) - Linux systemd 配置脚本
-- [monitoring/Yunshu-prometheus.service](monitoring/Yunshu-prometheus.service) - systemd 服务文件
+- ~~setup_autostart_linux.sh~~ ⚠ (待确认) - Linux systemd 配置脚本
+- ~~monitoring/Yunshu-prometheus.service~~ ⚠ (待确认) - systemd 服务文件
 
 **功能**:
 ```bash
@@ -258,7 +258,7 @@ sudo journalctl -u Yunshu-prometheus -f
 
 - [START_GUIDE.md](START_GUIDE.md) - 启动脚本使用指南
 - [PROMETHEUS_VERIFICATION_SUMMARY.md](PROMETHEUS_VERIFICATION_SUMMARY.md) - Prometheus 验证总结
-- [monitoring/README.md](monitoring/README.md) - 监控堆栈说明
+- ~~monitoring/README.md~~ ⚠ (待确认) - 监控堆栈说明
 
 ---
 

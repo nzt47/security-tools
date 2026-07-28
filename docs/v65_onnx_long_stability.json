@@ -1,0 +1,228 @@
+{
+  "timestamp": "2026-07-28 12:08:06",
+  "model": "C:/Users/Administrator/.cache/huggingface/hub/models--jinaai--jina-reranker-v2-base-multilingual",
+  "onnx_file": "model_quantized.onnx",
+  "iterations": 1000,
+  "total_time_s": 262.75,
+  "latency": {
+    "min_ms": 218.4,
+    "mean_ms": 262.62,
+    "p50_ms": 254.65,
+    "p95_ms": 340.24,
+    "p99_ms": 427.95,
+    "p999_ms": 521.92,
+    "max_ms": 566.52
+  },
+  "qps": 3.81,
+  "memory": {
+    "rss_before_mb": 417.41,
+    "rss_after_load_mb": 1112.0,
+    "rss_after_warmup_mb": 1156.51,
+    "rss_final_mb": 1156.5,
+    "rss_peak_mb": 1156.57,
+    "rss_delta_mb": -0.01,
+    "leak_threshold_mb": 50,
+    "stable": true,
+    "samples": [
+      {
+        "iteration": 50,
+        "rss_mb": 1156.51
+      },
+      {
+        "iteration": 100,
+        "rss_mb": 1156.57
+      },
+      {
+        "iteration": 150,
+        "rss_mb": 1156.51
+      },
+      {
+        "iteration": 200,
+        "rss_mb": 1156.51
+      },
+      {
+        "iteration": 250,
+        "rss_mb": 1156.52
+      },
+      {
+        "iteration": 300,
+        "rss_mb": 1156.52
+      },
+      {
+        "iteration": 350,
+        "rss_mb": 1156.52
+      },
+      {
+        "iteration": 400,
+        "rss_mb": 1156.5
+      },
+      {
+        "iteration": 450,
+        "rss_mb": 1156.5
+      },
+      {
+        "iteration": 500,
+        "rss_mb": 1156.5
+      },
+      {
+        "iteration": 550,
+        "rss_mb": 1156.5
+      },
+      {
+        "iteration": 600,
+        "rss_mb": 1156.5
+      },
+      {
+        "iteration": 650,
+        "rss_mb": 1156.5
+      },
+      {
+        "iteration": 700,
+        "rss_mb": 1156.5
+      },
+      {
+        "iteration": 750,
+        "rss_mb": 1156.5
+      },
+      {
+        "iteration": 800,
+        "rss_mb": 1156.5
+      },
+      {
+        "iteration": 850,
+        "rss_mb": 1156.5
+      },
+      {
+        "iteration": 900,
+        "rss_mb": 1156.5
+      },
+      {
+        "iteration": 950,
+        "rss_mb": 1156.5
+      },
+      {
+        "iteration": 1000,
+        "rss_mb": 1156.5
+      }
+    ]
+  },
+  "latency_snapshots": [
+    {
+      "iteration": 100,
+      "p50": 263.68,
+      "p95": 419.89,
+      "p99": 452.93,
+      "max": 473.18
+    },
+    {
+      "iteration": 200,
+      "p50": 246.44,
+      "p95": 317.76,
+      "p99": 416.67,
+      "max": 474.04
+    },
+    {
+      "iteration": 300,
+      "p50": 257.43,
+      "p95": 331.0,
+      "p99": 379.45,
+      "max": 391.09
+    },
+    {
+      "iteration": 400,
+      "p50": 250.44,
+      "p95": 366.48,
+      "p99": 419.9,
+      "max": 566.52
+    },
+    {
+      "iteration": 500,
+      "p50": 253.02,
+      "p95": 301.6,
+      "p99": 407.81,
+      "max": 521.87
+    },
+    {
+      "iteration": 600,
+      "p50": 252.96,
+      "p95": 298.13,
+      "p99": 409.44,
+      "max": 443.2
+    },
+    {
+      "iteration": 700,
+      "p50": 244.94,
+      "p95": 299.46,
+      "p99": 416.78,
+      "max": 417.9
+    },
+    {
+      "iteration": 800,
+      "p50": 254.3,
+      "p95": 349.92,
+      "p99": 405.46,
+      "max": 406.81
+    },
+    {
+      "iteration": 900,
+      "p50": 251.66,
+      "p95": 319.14,
+      "p99": 421.42,
+      "max": 427.93
+    },
+    {
+      "iteration": 1000,
+      "p50": 261.09,
+      "p95": 305.21,
+      "p99": 383.56,
+      "max": 459.41
+    }
+  ],
+  "sort_verifications": [
+    {
+      "iteration": 200,
+      "correct": true,
+      "scores": [
+        2.2891,
+        -2.4806
+      ]
+    },
+    {
+      "iteration": 400,
+      "correct": true,
+      "scores": [
+        2.2891,
+        -2.4806
+      ]
+    },
+    {
+      "iteration": 600,
+      "correct": true,
+      "scores": [
+        2.2891,
+        -2.4806
+      ]
+    },
+    {
+      "iteration": 800,
+      "correct": true,
+      "scores": [
+        2.2891,
+        -2.4806
+      ]
+    },
+    {
+      "iteration": 1000,
+      "correct": true,
+      "scores": [
+        2.2891,
+        -2.4806
+      ]
+    }
+  ],
+  "load_time_s": 1.12,
+  "slo_passed": true,
+  "memory_stable": true,
+  "sort_correct": true,
+  "all_passed": true
+}
