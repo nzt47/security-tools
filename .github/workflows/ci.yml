@@ -134,6 +134,12 @@ jobs:
   unit-tests:
     name: 单元测试 (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    # 【不易】job 级硬超时兜底：2026-07-29 排查 9c53ae88 run 卡住 16 小时发现
+    # --timeout=60 --timeout-method=signal 的 SIGALRM 无法中断 C 扩展调用
+    # (sentence_transformers / chromadb / sqlite-vec 的阻塞 join)，导致 pytest
+    # 进程无限挂起。timeout-minutes 由 GitHub runner 强制 kill，是最后防线。
+    # 45 分钟 = 单测试 60s × 8661 个测试理论最大值的合理上界（实际约 30 分钟）
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
