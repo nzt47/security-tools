@@ -405,3 +405,4 @@ def get_env_config_manager() -> EnvConfigManager:
     global _instance
     if _instance is None:
         _instance = EnvConfigManager()
+    return _instance
