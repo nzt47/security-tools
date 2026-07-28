@@ -192,6 +192,40 @@ powershell -ExecutionPolicy Bypass -File scripts\dev\test_hook_chinese_path_boun
 
 覆盖场景：纯中文、中英混合、中文+数字、中文+空格、全角括号、深度路径、多 dots、重命名失效、生僻 Unicode。日志命名 `hook_chinese_path_test_YYYYMMDD_HHMMSS.md`。
 
+### 4.8 自动化部署与同步（跨仓库）
+
+```powershell
+# 1. 安装到当前仓库（默认行为，无需参数）
+powershell -ExecutionPolicy Bypass -File scripts\dev\sync_precommit_hook.ps1
+
+# 2. 安装到指定仓库（clone 新仓库后用）
+powershell -ExecutionPolicy Bypass -File scripts\dev\sync_precommit_hook.ps1 -Install D:\code\other-repo
+
+# 3. 扫描本机所有 git 仓库批量同步（默认扫 c:\Users\Administrator 下一层）
+powershell -ExecutionPolicy Bypass -File scripts\dev\sync_precommit_hook.ps1 -Sync -ScanRoot D:\code
+
+# 4. 查看所有仓库的 hook 安装状态
+powershell -ExecutionPolicy Bypass -File scripts\dev\sync_precommit_hook.ps1 -Status
+
+# 5. DryRun 预览（不写入、不备份、不改环境变量，可与上述模式组合）
+powershell -ExecutionPolicy Bypass -File scripts\dev\sync_precommit_hook.ps1 -Sync -DryRun
+```
+
+**核心设计**：
+- 通过环境变量 `TLM_HOOK_SOURCE_REPO`（User 级）间接寻址源仓库路径，hook 可复制到任意仓库
+- 已有 hook 自动备份到 `pre-commit.bak.{yyyyMMdd_HHmmss}` 后覆盖
+- 幂等性：已是最新版本则跳过，重复运行零破坏
+- 跳过列表：`node_modules` / `.venv` / `AppData` / `OneDrive` 等
+
+**hook 三道 fail-safe 防护**（hook 内部）：
+1. `TLM_HOOK_SOURCE_REPO` 未设置 → exit 1
+2. `precheck_docs.ps1` 不存在 → exit 1
+3. powershell 调用失败 → exit 1
+
+**首次使用提示**：
+- 第一次运行 install/sync 后，环境变量会写入 User 级。**已打开的终端需重启**或手动执行 `$env:TLM_HOOK_SOURCE_REPO = "C:\Users\Administrator\agent"`
+- 源仓库被移动后，重跑 sync_precommit_hook.ps1 即可自动更新环境变量 + 重写所有 hook 的 marker 行
+
 ---
 
 ## 五、故障排查
@@ -202,11 +236,13 @@ powershell -ExecutionPolicy Bypass -File scripts\dev\test_hook_chinese_path_boun
 
 | # | 症状 / 报错信息 | 根因 | 修复方案 | 影响范围 |
 |---|----------------|------|---------|---------|
-| 1 | `git commit` 无任何输出直接成功 | hook 文件不存在或无执行权限 | 重装 hook：`powershell -ExecutionPolicy Bypass -File scripts\dev\precheck_docs.ps1 -InstallHook` | 仅本地 |
+| 1 | `git commit` 无任何输出直接成功 | hook 文件不存在或无执行权限 | 重装 hook：`powershell -ExecutionPolicy Bypass -File scripts\dev\sync_precommit_hook.ps1`（推荐）或 `precheck_docs.ps1 -InstallHook`（旧版） | 仅本地 |
 | 2 | `error: cannot spawn .git/hooks/pre-commit: No such file or directory` | hook 文件被加了 UTF-8 BOM，bash 不识别带 BOM 的 shebang `#!/bin/bash` | 用 .NET API 移除 BOM（见 5.2 修复代码） | 仅本地 hook 文件 |
 | 3 | 实际存在的中文文件被报为 `[BROKEN]` | precheck_docs.ps1 丢失 BOM，PowerShell 5.1 按 GBK 解码导致中文路径乱码 | 给 precheck_docs.ps1 重新加 UTF-8 BOM（见 5.3 修复代码） | 仅本地脚本 |
 | 4 | 脚本执行报 `ParserError` / `MissingCatchOrFinally` / `Array index expression is missing` | 脚本无 BOM，中文注释/字符串被 GBK 错误解码，字符串引号失配 | 同 #3，给脚本加 BOM | 仅本地脚本 |
 | 5 | hook 输出显示失效链接数与实际不符 | Get-Content/Test-Path 在 PS 5.1 下对中文路径处理有缺陷 | 确认 precheck_docs.ps1 已使用 .NET API（`[System.IO.File]::ReadAllText` + `[System.IO.File]::Exists`） | 仅本地脚本 |
+| 6 | `[pre-commit][ERROR] TLM_HOOK_SOURCE_REPO 未设置` | sync_precommit_hook.ps1 未运行过，或终端是 install 前打开的 | 重跑 `sync_precommit_hook.ps1 -Install <repo>`；或当前终端手动 `$env:TLM_HOOK_SOURCE_REPO = "C:\Users\Administrator\agent"` | 仅当前用户 |
+| 7 | `[pre-commit][ERROR] 源仓库脚本不存在: <path>` | 源仓库被移动/重命名/删除 | 重新定位源仓库后重跑 `sync_precommit_hook.ps1 -Sync`，自动更新环境变量与 hook marker | 仅当前用户 |
 
 ### 5.2 Hook 报 "cannot spawn" 的修复代码
 
@@ -258,7 +294,8 @@ Write-Host "[OK] BOM added to precheck_docs.ps1"
 | 2026-07-28 | `f9687300` | 预检脚本增加阻塞模式 + 失效链接批量修复脚本 |
 | 2026-07-28 | `b3cd60a7` | 批量修复 98 个失效 Markdown 链接 |
 | 2026-07-28 | `fef8c52e` | 修复预检脚本中文路径误报失效链接 + 阈值降到 0 |
-| 2026-07-29 | 待提交 | 新增场景测试脚本 + 10 场景边界测试脚本 + 故障排查表格化 |
+| 2026-07-29 | `d7fd5762` | 新增场景测试脚本 + 10 场景边界测试脚本 + 故障排查表格化 |
+| 2026-07-29 | 待提交 | 新增 sync_precommit_hook.ps1 跨仓库自动化部署 + precheck_docs.ps1 支持 -TargetRepo 参数 |
 
 ---
 
