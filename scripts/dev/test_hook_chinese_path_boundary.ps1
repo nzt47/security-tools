@@ -128,6 +128,75 @@ $scenarios = @(
         TargetFile = "生僻字𠀀𠀁测试.md"
         TargetContent = "# rare"
         ExpectBroken = $false
+    },
+    # ── S11-S18: 扩展场景（半角括号 / 特殊符号 / URL 编码） ──
+    # 预期基于 precheck_docs.ps1 实际行为（非理想行为）：
+    # - 正则 \[([^\]]+)\]\(([^)]+)\) 遇第一个 ) 截断
+    # - 跳过 ^(https?|mailto:|file:///|#|/) 开头（# 在中间不跳过）
+    # - [System.IO.File]::Exists 不做 URL 解码、不剥离 # 锚点、不识别 + 为空格
+    @{
+        Name = "S11_halfwidth_paren_basic"
+        Desc = "半角括号失效 - 正则在第一个 ) 截断"
+        RefContent = "- [目标](文件(1).md)"
+        TargetFile = "文件(1).md"
+        TargetContent = "# exists"
+        ExpectBroken = $true
+    },
+    @{
+        Name = "S12_halfwidth_paren_nested"
+        Desc = "半角括号嵌套 - 多层括号同样截断"
+        RefContent = "- [目标](a(b)c.md)"
+        TargetFile = "a(b)c.md"
+        TargetContent = "# nested"
+        ExpectBroken = $true
+    },
+    @{
+        Name = "S13_chinese_space_ampersand"
+        Desc = "中文+空格+& 组合（& 在文件名合法，应通过）"
+        RefContent = "- [目标](中文 & 英文.md)"
+        TargetFile = "中文 & 英文.md"
+        TargetContent = "# ampersand"
+        ExpectBroken = $false
+    },
+    @{
+        Name = "S14_hash_anchor_conflict"
+        Desc = "# 锚点冲突 - 脚本不剥离锚点，整体当路径查找"
+        RefContent = "- [目标](目标文件.md#章节)"
+        TargetFile = "目标文件.md"
+        TargetContent = "# anchored"
+        ExpectBroken = $true
+    },
+    @{
+        Name = "S15_percent_literal"
+        Desc = "% 符号 - 文件名含 % 字面量（应通过）"
+        RefContent = "- [目标](100%.md)"
+        TargetFile = "100%.md"
+        TargetContent = "# percent"
+        ExpectBroken = $false
+    },
+    @{
+        Name = "S16_plus_literal"
+        Desc = "+ 符号 - 文件名含 + 字面量（应通过，验证 + 不被解释为空格）"
+        RefContent = "- [目标](a+b.md)"
+        TargetFile = "a+b.md"
+        TargetContent = "# plus"
+        ExpectBroken = $false
+    },
+    @{
+        Name = "S17_url_encoded_literal_exists"
+        Desc = "URL 编码路径 - 字面量文件存在（脚本不解码，按字面量查找应通过）"
+        RefContent = "- [目标](%E4%B8%AD%E6%96%87.md)"
+        TargetFile = "%E4%B8%AD%E6%96%87.md"
+        TargetContent = "# literal"
+        ExpectBroken = $false
+    },
+    @{
+        Name = "S18_url_encoded_decoded_only"
+        Desc = "URL 编码路径 - 仅解码后文件存在（字面量不存在，应 BROKEN）"
+        RefContent = "- [目标](%E4%B8%AD%E6%96%87.md)"
+        TargetFile = "中文.md"
+        TargetContent = "# decoded"
+        ExpectBroken = $true
     }
 )
 
