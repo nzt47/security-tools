@@ -287,6 +287,43 @@ def test_data_manager():
 # 测试环境管理
 # ============================================================================
 
+@pytest.fixture(scope="function", autouse=True)
+def _mock_env_config_in_ci():
+    """CI 环境中 mock EnvConfigManager.set/delete，绕过 .env 文件 I/O。
+
+    【不易】不改变测试断言语义——仍验证 NetworkConfigManager 正确调用
+           _save_secure 并传递正确的 key/value 到 EnvConfigManager。
+    【变易】仅 SKILLS_OFFLINE=1（CI 环境）激活，本地开发走真实 .env 写入；
+           全局 autouse 对非 CI 环境为 no-op（早返回），零副作用。
+    【简易】mock 直接操作 os.environ，无文件 I/O。
+
+    Why 集中到 conftest.py: 原 test_network_config.py 与
+         test_network_config_save_regression.py 各自定义了完全相同的 fixture，
+         违反 DRY。提取后两个测试文件零侵入复用，新增同类测试亦自动继承。
+    Why autouse=True 安全: SKILLS_OFFLINE 守卫保证仅 CI 环境激活 mock；
+         CI 中所有测试都依赖 EnvConfigManager 写入，mock 后改走 os.environ，
+         断言语义不变（仍校验 key/value 正确传递）。
+    """
+    if not os.environ.get('SKILLS_OFFLINE'):
+        yield
+        return
+
+    from unittest.mock import patch
+    from agent.env_config_manager import EnvConfigManager
+
+    def _mock_set(self, key, value):
+        """绕过 .env 文件写入，直接设置 os.environ（热重载等效）"""
+        os.environ[key] = value
+
+    def _mock_delete(self, key):
+        """绕过 .env 文件删除，直接移除 os.environ"""
+        os.environ.pop(key, None)
+
+    with patch.object(EnvConfigManager, 'set', _mock_set), \
+         patch.object(EnvConfigManager, 'delete', _mock_delete):
+        yield
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment():
     """设置测试环境 - 会话级别自动执行"""
