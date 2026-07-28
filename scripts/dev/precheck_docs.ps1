@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     本地开发预检脚本：提交 docs 前生成性能图表 + 验证链接
 
@@ -54,7 +54,7 @@ if ($InstallHook) {
         '# 阻塞模式：失效链接超过阈值时阻止提交',
         '',
         'echo "[pre-commit] 运行 docs 预检（阻塞模式）..."',
-        'powershell -ExecutionPolicy Bypass -File scripts/dev/precheck_docs.ps1 -SkipChart -BlockMode -AllowBroken 98',
+        'powershell -ExecutionPolicy Bypass -File scripts/dev/precheck_docs.ps1 -SkipChart -BlockMode -AllowBroken 0',
         'result=$?',
         'if [ $result -ne 0 ]; then',
         '    echo ""',
@@ -109,7 +109,8 @@ $totalLinks = 0
 $brokenLinks = 0
 
 foreach ($file in $mdFiles) {
-    $content = Get-Content $file.FullName -Raw
+    # 用 .NET API + UTF8 显式编码读取，避免 PowerShell 5.1 默认 GBK 解码中文导致路径乱码
+    $content = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
     # 匹配 [text](path) 格式的相对链接
     $links = [regex]::Matches($content, '\[([^\]]+)\]\(([^)]+)\)')
     foreach ($link in $links) {
@@ -117,9 +118,9 @@ foreach ($file in $mdFiles) {
         # 跳过 http/https/mailto/file:///绝对路径/锚点链接
         if ($linkPath -match '^(https?|mailto:|file:///|#|/)') { continue }
         $totalLinks++
-        # 解析相对路径
-        $fullPath = Join-Path $file.DirectoryName $linkPath
-        if (-not (Test-Path $fullPath)) {
+        # 解析相对路径（.NET API 正确处理 Unicode 字符）
+        $fullPath = [System.IO.Path]::Combine($file.DirectoryName, $linkPath)
+        if (-not ([System.IO.File]::Exists($fullPath) -or [System.IO.Directory]::Exists($fullPath))) {
             Write-Host "  [BROKEN] $($file.Name): $linkPath" -ForegroundColor Red
             $brokenLinks++
         }
