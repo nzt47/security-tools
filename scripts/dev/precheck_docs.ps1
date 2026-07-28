@@ -35,12 +35,23 @@ param(
     [switch]$SkipChart,
     [switch]$InstallHook,
     [switch]$BlockMode,
-    [int]$AllowBroken = 0
+    [int]$AllowBroken = 0,
+    [string]$TargetRepo
 )
 
 $ErrorActionPreference = "Continue"
 $ProjectRoot = (Resolve-Path "$PSScriptRoot\..\..").Path
-Set-Location $ProjectRoot
+# 若指定 -TargetRepo（被 sync_precommit_hook.ps1 部署的 hook 调用），切换到目标仓库根目录；
+# 否则保持原行为（cd 到脚本所在源仓库根目录）
+if ($TargetRepo) {
+    if (-not (Test-Path $TargetRepo)) {
+        Write-Host "[ERROR] -TargetRepo 指定的路径不存在: $TargetRepo" -ForegroundColor Red
+        exit 1
+    }
+    Set-Location $TargetRepo
+} else {
+    Set-Location $ProjectRoot
+}
 
 Write-Host "=== 本地开发预检 ===" -ForegroundColor Cyan
 
