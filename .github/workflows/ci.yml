@@ -58,8 +58,22 @@ jobs:
 
       - name: 运行代码类型检查
         run: |
-          echo "=== 运行类型检查 ==="
-          mypy agent/ --ignore-missing-imports || true
+          echo "=== 运行类型检查（非阻塞）==="
+          mypy agent/ --ignore-missing-imports --warn-no-return --warn-return-any || true
+
+      - name: 关键模块严格类型检查（阻塞）
+        run: |
+          echo "=== 关键模块严格类型检查 ==="
+          # Why env_config_manager 阻塞: 单例工厂 return 缺失曾导致 P1 故障
+          #   (v1.2.1-fix-secure-manager-return)，该模块已清零历史类型债，可阻塞。
+          mypy agent/env_config_manager.py --warn-no-return --warn-return-any --ignore-missing-imports --follow-imports=silent
+
+          echo "=== network_config.py 类型检查（非阻塞，待清理历史债后转阻塞）==="
+          # TODO(tech-debt): network_config.py 当前有 29 个历史类型错误
+          #   (隐式 Optional / None 不可索引 / Returning Any)，
+          #   非 return 缺失类问题。修复后去掉 || true 转为阻塞。
+          #   详见 docs/dashboards/ci_health_dashboard.md 跟踪项。
+          mypy agent/network_config.py --warn-no-return --warn-return-any --ignore-missing-imports --follow-imports=silent || true
 
       - name: 运行代码风格检查
         run: |
@@ -233,6 +247,76 @@ jobs:
           retention-days: 30
 
   # ============================================================================
+  # CI 健康度看板自动更新
+  # ============================================================================
+  # Why 独立 job: 隔离写权限（contents: write），不污染 unit-tests matrix 的最小权限
+  # Why needs unit-tests: 必须等 junit.xml artifact 生成后下载解析
+  # Why 仅主分支 push: PR 不应污染合入趋势记录；定时任务也不更新（仅追踪真实合入）
+  # Why 同时检查 main 与 master: 本仓库主分支为 master，ci.yml 触发分支含两者
+  update-ci-dashboard:
+    name: 更新 CI 健康度看板
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+    permissions:
+      contents: write
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          # Why fetch-depth: 0: 确保能获取最新 main 用于 push（避免落后远程被拒）
+          fetch-depth: 0
+          # Why token: 用默认 GITHUB_TOKEN，触发 push 不会递归触发 CI（GitHub 设计）
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 下载测试结果 artifact (py3.10)
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results-unit-py3.10
+          # Why path: test-results + merge-multiple: 还原 ci.yml 上传时的原始目录结构
+          #   上传时 path: test-results/，下载到 test-results/ 后脚本可按默认路径读取
+          path: test-results
+          merge-multiple: true
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 提取 commit message 摘要作为趋势行备注
+        id: note
+        run: |
+          # 取 commit subject 首行，截断到 80 字符避免表格变形
+          MSG=$(git log -1 --pretty=format:%s ${{ github.sha }})
+          MSG_TRIMMED=$(echo "$MSG" | cut -c1-80)
+          echo "note=$MSG_TRIMMED" >> $GITHUB_OUTPUT
+          echo "sha7=$(git rev-parse --short=7 ${{ github.sha }})" >> $GITHUB_OUTPUT
+
+      - name: 解析 junit.xml 并更新看板
+        run: |
+          echo "=== 更新 CI 健康度看板 ==="
+          python scripts/update_ci_health_dashboard.py \
+            --junit test-results/junit.xml \
+            --dashboard docs/dashboards/ci_health_dashboard.md \
+            --sha ${{ github.sha }} \
+            --note "${{ steps.note.outputs.note }}"
+
+      - name: 提交并推送看板更新
+        run: |
+          # Why [skip ci]: 避免本提交递归触发 CI（参考历史 590d3dba commit 风格）
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/dashboards/ci_health_dashboard.md
+          # 检查是否有变更（无 junit.xml 时脚本跳过，不会有变更）
+          if git diff --staged --quiet; then
+            echo "看板无变更，跳过提交"
+          else
+            git commit -m "docs(ci): 自动更新 CI 健康度看板趋势行 [skip ci]"
+            git push
+            echo "已推送看板更新"
+          fi
+
+  # ============================================================================
   # 集成测试
   # ============================================================================
   integration-tests:
@@ -356,7 +440,7 @@ jobs:
           set +e
           python scripts/monitor_l2_p99.py \
             --input test_reports/bench_ci.log \
-            --threshold 1000 \
+            --threshold 1 \
             --alert-log test_reports/p99_alerts.jsonl
           echo "exit_code=$?" >> $GITHUB_OUTPUT
           exit 0

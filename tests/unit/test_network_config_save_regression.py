@@ -24,39 +24,9 @@ from agent.network_config import NetworkConfigManager
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# CI 环境隔离：mock EnvConfigManager 文件 I/O，绕过 .env 写入失败
-# Why: CI (ubuntu-latest) 中 EnvConfigManager._atomic_write() 可能因
-#      overlayfs/权限问题抛异常，导致 os.environ 未更新，依赖
-#      os.getenv() 断言的测试失败。Mock 后直接设置 os.environ，
-#      跳过文件 I/O，仅激活于 SKILLS_OFFLINE 环境（CI 专用）。
+# CI 环境隔离 fixture _mock_env_config_in_ci 已提取至 tests/conftest.py
+# 作为全局 autouse fixture（SKILLS_OFFLINE=1 时激活），本文件零侵入复用。
 # ──────────────────────────────────────────────────────────────────────────
-
-@pytest.fixture(autouse=True)
-def _mock_env_config_in_ci():
-    """CI 环境中 mock EnvConfigManager.set/delete，绕过 .env 文件 I/O。
-
-    【不易】不改变测试断言语义——仍验证 NetworkConfigManager 正确调用
-           _save_secure 并传递正确的 key/value 到 EnvConfigManager。
-    【变易】仅 SKILLS_OFFLINE=1（CI 环境）激活，本地开发走真实 .env 写入。
-    【简易】mock 直接操作 os.environ，无文件 I/O，无副作用。
-    """
-    if not os.environ.get('SKILLS_OFFLINE'):
-        yield
-        return
-
-    from agent.env_config_manager import EnvConfigManager
-
-    def _mock_set(self, key, value):
-        """绕过 .env 文件写入，直接设置 os.environ（热重载等效）"""
-        os.environ[key] = value
-
-    def _mock_delete(self, key):
-        """绕过 .env 文件删除，直接移除 os.environ"""
-        os.environ.pop(key, None)
-
-    with patch.object(EnvConfigManager, 'set', _mock_set), \
-         patch.object(EnvConfigManager, 'delete', _mock_delete):
-        yield
 
 
 class _FakeSearchEngine:
