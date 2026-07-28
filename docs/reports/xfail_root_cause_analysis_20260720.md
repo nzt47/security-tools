@@ -414,7 +414,7 @@ todo2 已尝试优化 5 个工具 description(前置用户常用动词/关键词
 - 理解语义等价性(后台任务≈异步任务,Google 搜索≈网页搜索)
 - 阈值过滤(rerank_score < 0.05 剔除)可解决负样本泄漏
 
-**风险**:见 [集成方案 §8](../proposals/tool_router_reranker_integration_plan.md#8-风险与权衡)
+**风险**:见 ~~集成方案 §8~~ ⚠ (待确认)
 
 ---
 

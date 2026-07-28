@@ -197,9 +197,9 @@ pie title 专项测试分布（62 passed）
 
 ## 相关文档
 
-- [log_dict 重构技术总结](docs/observability/log_dict_refactoring_summary.md)
-- [log_dict 迁移路线图](docs/log_dict_migration_roadmap.md)
-- [Phase 2 分支遗留问题清单](docs/observability/phase2_branch_leftover_issues.md)
+- ~~log_dict 重构技术总结~~ ⚠ (待确认)
+- ~~log_dict 迁移路线图~~ ⚠ (待确认)
+- ~~Phase 2 分支遗留问题清单~~ ⚠ (待确认)
 
 ---
 

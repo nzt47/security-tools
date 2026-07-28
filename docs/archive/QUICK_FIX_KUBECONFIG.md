@@ -254,9 +254,9 @@ Test-NetConnection api.your-cluster.com -Port 6443
 | 资源 | 链接/命令 |
 |------|----------|
 | 完整文档 | [KUBECONFIG_COMPLETE_SOLUTION.md](KUBECONFIG_COMPLETE_SOLUTION.md) |
-| 配置脚本 | [setup-kubeconfig.ps1](setup-kubeconfig.ps1) |
-| 测试脚本 | [test-kubeconfig.ps1](test-kubeconfig.ps1) |
-| 示例配置 | [kubeconfig.example](kubeconfig.example) |
+| 配置脚本 | ~~setup-kubeconfig.ps1~~ ⚠ (已删除) |
+| 测试脚本 | ~~test-kubeconfig.ps1~~ ⚠ (已删除) |
+| 示例配置 | ~~kubeconfig.example~~ ⚠ (已删除) |
 | 故障排查 | [KUBECONFIG_TROUBLESHOOTING.md](KUBECONFIG_TROUBLESHOOTING.md) |
 
 ## 下一步

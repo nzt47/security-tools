@@ -145,9 +145,9 @@
 
 ## 相关文档
 
-- [setup_autostart.py](setup_autostart.py) - Windows 自动启动配置脚本
-- [setup_autostart_linux.sh](setup_autostart_linux.sh) - Linux systemd 配置脚本
-- [monitoring/README.md](monitoring/README.md) - 监控堆栈说明文档
+- ~~setup_autostart.py~~ ⚠ (待确认) - Windows 自动启动配置脚本
+- ~~setup_autostart_linux.sh~~ ⚠ (待确认) - Linux systemd 配置脚本
+- ~~monitoring/README.md~~ ⚠ (待确认) - 监控堆栈说明文档
 - [PROMETHEUS_IMPROVEMENT_SUMMARY.md](PROMETHEUS_IMPROVEMENT_SUMMARY.md) - 改进总结文档
 
 ---

@@ -284,7 +284,7 @@ aec41663  docs(ops): P6-2 回归测试报告 + 文档 + 对比脚本
 | [verify_production_deployment.ps1](../../scripts/verify_production_deployment.ps1) | 生产验收脚本（修复位置） | L407-L421 |
 | [test_verify_production_deployment.ps1](../../tests/unit/test_verify_production_deployment.ps1) | Pester 单元测试（7 个新用例） | L488-L559 |
 | [p62_regression_compare.ps1](../../scripts/p62_regression_compare.ps1) | PS 5.x/7.x 对比脚本（可执行） | - |
-| [generate_ops_daily_report.py](../../docker/ops-reporter/generate_ops_daily_report.py) | 日报脚本（未修改） | - |
+| ~~generate_ops_daily_report.py~~ ⚠ (待确认) | 日报脚本（未修改） | - |
 
 ### 10.2 文档
 

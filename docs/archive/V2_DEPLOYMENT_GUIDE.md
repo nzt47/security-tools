@@ -456,10 +456,10 @@ logging.getLogger().addHandler(handler)
 
 ## 📚 相关文档
 
-- [DigitalLife API 参考](api_digital_life.md)
-- [LifeTrace 记忆系统](lifetrace.md)
-- [Persona 人格系统](persona.md)
-- [性能监控指南](performance.md)
+- ~~DigitalLife API 参考~~ ⚠ (待确认)
+- ~~LifeTrace 记忆系统~~ ⚠ (待确认)
+- ~~Persona 人格系统~~ ⚠ (待确认)
+- ~~性能监控指南~~ ⚠ (待确认)
 
 ---
 

@@ -3,7 +3,7 @@
 > **分支**：`master`
 > **PR 标题建议**：`fix(observability): 注册 7 个诊断端点路由，E2E 通过率 41.7% → 100%`
 > **生成时间**：2026-07-06
-> **任务提词**：[task_prompt_register_diagnostic_endpoints.md](task_prompt_register_diagnostic_endpoints.md)
+> **任务提词**：~~task_prompt_register_diagnostic_endpoints.md~~ ⚠ (待确认)
 > **关联 CI Run**：Run #53（28713519807）— 验证了依赖修复但 7 端点返回 404
 
 ---
@@ -337,8 +337,8 @@ git push origin master
 
 ### 10.1 相关文档
 
-- [任务提词](task_prompt_register_diagnostic_endpoints.md)
-- [CI 工作流修复提交记录](ci_yml_workflow_fix_commit_record.md)
+- ~~任务提词~~ ⚠ (待确认)
+- ~~CI 工作流修复提交记录~~ ⚠ (待确认)
 - [E2E 测试报告](e2e_test_report.md)
 
 ### 10.2 相关 CI Run

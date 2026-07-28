@@ -221,8 +221,8 @@ curl http://localhost:8000/metrics
 ## 相关文档
 
 - [START_GUIDE.md](START_GUIDE.md) - 启动脚本使用指南
-- [monitoring/README.md](monitoring/README.md) - 监控堆栈说明
-- [monitoring/GRAFANA_SETUP_GUIDE.md](monitoring/GRAFANA_SETUP_GUIDE.md) - Grafana 配置指南
+- ~~monitoring/README.md~~ ⚠ (待确认) - 监控堆栈说明
+- ~~monitoring/GRAFANA_SETUP_GUIDE.md~~ ⚠ (待确认) - Grafana 配置指南
 
 ---
 

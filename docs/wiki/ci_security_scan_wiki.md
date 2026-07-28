@@ -195,7 +195,7 @@ gh api repos/<owner>/<repo>/actions/workflows --jq '.workflows[] | {name, state}
 
 ```toml
 # 错误（RE2 不支持）
-regex = '''SECRET_KEY\s*[:=]\s*['"](?!dev-secret-key)[^'"\s]{20,}['"]'''
+regex = '''SECRET_KEY\s*[:=]\s*``?!dev-secret-key``[^'"\s]{20,}['"]'''
 
 # 正确（用 allowlist 排除占位符）
 [[rules]]

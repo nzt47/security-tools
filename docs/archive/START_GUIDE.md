@@ -272,9 +272,9 @@ OSError: [Errno 48] Address already in use
 ## 相关文档
 
 - [V2_VERIFICATION_SUMMARY.md](V2_VERIFICATION_SUMMARY.md) - V2 功能验证总结
-- [monitoring/README.md](monitoring/README.md) - 监控堆栈详细说明
-- [monitoring/GRAFANA_SETUP_GUIDE.md](monitoring/GRAFANA_SETUP_GUIDE.md) - Grafana 配置指南
-- [monitoring/GRAFANA_EMAIL_ALERT_GUIDE.md](monitoring/GRAFANA_EMAIL_ALERT_GUIDE.md) - Email 告警配置
+- ~~monitoring/README.md~~ ⚠ (待确认) - 监控堆栈详细说明
+- ~~monitoring/GRAFANA_SETUP_GUIDE.md~~ ⚠ (待确认) - Grafana 配置指南
+- ~~monitoring/GRAFANA_EMAIL_ALERT_GUIDE.md~~ ⚠ (待确认) - Email 告警配置
 
 ---
 

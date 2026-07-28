@@ -1,0 +1,161 @@
+{
+  "timestamp": "2026-07-28 02:26:36",
+  "model": "C:/Users/Administrator/.cache/huggingface/hub/models--jinaai--jina-reranker-v2-base-multilingual",
+  "results": [
+    {
+      "variant": "int8",
+      "file": "model_int8.onnx",
+      "size_mb": 266.63,
+      "load_time_s": 2.67,
+      "iterations": 20,
+      "min_ms": 217.59,
+      "mean_ms": 245.74,
+      "p50_ms": 237.04,
+      "p95_ms": 272.27,
+      "p99_ms": 363.12,
+      "max_ms": 385.84,
+      "qps": 4.07,
+      "target_p99_ms": 500,
+      "passed": true,
+      "status": "ok",
+      "sort_correct": true,
+      "test_scores": [
+        2.2891,
+        -2.4806
+      ]
+    },
+    {
+      "variant": "uint8",
+      "file": "model_uint8.onnx",
+      "size_mb": 266.63,
+      "load_time_s": 2.72,
+      "iterations": 20,
+      "min_ms": 260.01,
+      "mean_ms": 304.31,
+      "p50_ms": 291.62,
+      "p95_ms": 348.64,
+      "p99_ms": 439.06,
+      "max_ms": 461.66,
+      "qps": 3.29,
+      "target_p99_ms": 500,
+      "passed": true,
+      "status": "ok",
+      "sort_correct": true,
+      "test_scores": [
+        2.5044,
+        -2.77
+      ]
+    },
+    {
+      "variant": "quantized",
+      "file": "model_quantized.onnx",
+      "size_mb": 266.63,
+      "load_time_s": 3.12,
+      "iterations": 20,
+      "min_ms": 226.91,
+      "mean_ms": 241.05,
+      "p50_ms": 239.65,
+      "p95_ms": 257.67,
+      "p99_ms": 258.14,
+      "max_ms": 258.26,
+      "qps": 4.15,
+      "target_p99_ms": 500,
+      "passed": true,
+      "status": "ok",
+      "sort_correct": true,
+      "test_scores": [
+        2.2891,
+        -2.4806
+      ]
+    },
+    {
+      "variant": "fp16",
+      "file": "model_fp16.onnx",
+      "size_mb": 531.35,
+      "load_time_s": 6.35,
+      "iterations": 20,
+      "min_ms": 468.87,
+      "mean_ms": 518.12,
+      "p50_ms": 507.43,
+      "p95_ms": 621.57,
+      "p99_ms": 621.96,
+      "max_ms": 622.05,
+      "qps": 1.93,
+      "target_p99_ms": 500,
+      "passed": false,
+      "status": "ok",
+      "sort_correct": true,
+      "test_scores": [
+        2.3003,
+        -2.8628
+      ]
+    },
+    {
+      "variant": "q4",
+      "file": "model_q4.onnx",
+      "size_mb": 789.06,
+      "load_time_s": 10.48,
+      "iterations": 20,
+      "min_ms": 259.48,
+      "mean_ms": 280.89,
+      "p50_ms": 279.41,
+      "p95_ms": 300.19,
+      "p99_ms": 301.79,
+      "max_ms": 302.18,
+      "qps": 3.56,
+      "target_p99_ms": 500,
+      "passed": true,
+      "status": "ok",
+      "sort_correct": true,
+      "test_scores": [
+        1.9273,
+        -3.3672
+      ]
+    },
+    {
+      "variant": "bnb4",
+      "file": "model_bnb4.onnx",
+      "size_mb": 784.0,
+      "load_time_s": 5.4,
+      "iterations": 20,
+      "min_ms": 368.07,
+      "mean_ms": 398.43,
+      "p50_ms": 388.09,
+      "p95_ms": 462.01,
+      "p99_ms": 464.77,
+      "max_ms": 465.46,
+      "qps": 2.51,
+      "target_p99_ms": 500,
+      "passed": true,
+      "status": "ok",
+      "sort_correct": true,
+      "test_scores": [
+        1.8048,
+        -2.9585
+      ]
+    },
+    {
+      "variant": "fp32",
+      "file": "model.onnx",
+      "size_mb": 1062.43,
+      "load_time_s": 5.4,
+      "iterations": 20,
+      "min_ms": 338.51,
+      "mean_ms": 383.36,
+      "p50_ms": 364.08,
+      "p95_ms": 501.6,
+      "p99_ms": 504.69,
+      "max_ms": 505.46,
+      "qps": 2.61,
+      "target_p99_ms": 500,
+      "passed": false,
+      "status": "ok",
+      "sort_correct": true,
+      "test_scores": [
+        2.3001,
+        -2.863
+      ]
+    }
+  ],
+  "all_passed": true
+}

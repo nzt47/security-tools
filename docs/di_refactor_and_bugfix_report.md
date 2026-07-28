@@ -157,7 +157,7 @@ def stress_test(
 
 ### 4.1 新增测试套件
 
-在 [`test_perf_monitor.py`](../tests/unit/test_perf_monitor.py#L459) 添加 `TestStressTestDependencyInjection` 类，21 个测试覆盖 7 个维度：
+在 ~~`test_perf_monitor.py`~~ ⚠ (待确认: test_perf_monitor.py#L459) 添加 `TestStressTestDependencyInjection` 类，21 个测试覆盖 7 个维度：
 
 | 维度 | 测试数 | 测试用例 |
 |------|--------|----------|

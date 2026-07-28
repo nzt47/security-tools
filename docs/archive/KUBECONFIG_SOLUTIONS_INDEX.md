@@ -43,14 +43,14 @@
 
 | 脚本 | 用途 | 使用场景 |
 |------|------|---------|
-| **[setup-kubeconfig.ps1](setup-kubeconfig.ps1)** | 自动化配置工具 | ⭐ 推荐使用 |
-| **[test-kubeconfig.ps1](test-kubeconfig.ps1)** | 环境验证脚本 | 运行诊断和验证 |
+| **~~setup-kubeconfig.ps1~~ ⚠ (已删除)** | 自动化配置工具 | ⭐ 推荐使用 |
+| **~~test-kubeconfig.ps1~~ ⚠ (已删除)** | 环境验证脚本 | 运行诊断和验证 |
 
 ### 示例文件
 
 | 文件 | 用途 |
 |------|------|
-| **[kubeconfig.example](kubeconfig.example)** | kubeconfig 模板 | 了解配置格式 |
+| **~~kubeconfig.example~~ ⚠ (已删除)** | kubeconfig 模板 | 了解配置格式 |
 | **[KUBECONFIG_TROUBLESHOOTING.md](KUBECONFIG_TROUBLESHOOTING.md)** | 详细故障排查 | 深度故障排除 |
 
 ---
@@ -100,7 +100,7 @@
 
 ### 运维推荐流程
 1. **故障排查**: 查看 [KUBECONFIG_TROUBLESHOOTING.md](KUBECONFIG_TROUBLESHOOTING.md)
-2. **自动化**: 使用 [setup-kubeconfig.ps1](setup-kubeconfig.ps1)
+2. **自动化**: 使用 ~~setup-kubeconfig.ps1~~ ⚠ (已删除)
 3. **配置多集群**: 参考高级配置部分
 4. **安全加固**: 实施最佳实践
 

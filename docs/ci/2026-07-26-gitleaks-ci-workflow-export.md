@@ -321,7 +321,7 @@ keywords = ["auth="]
 [[rules]]
 id = "common-weak-password"
 description = "常见弱密码（admin123, password123, 12345678 等）"
-regex = '''(?i)(password|admin)\s*[:=]\s*['"](admin123|password123|12345678|qwerty|letmein)['"]'''
+regex = '''(?i)(password|admin)\s*[:=]\s*``admin123|password123|12345678|qwerty|letmein``['"]'''
 tags = ["weak", "password", "p1"]
 keywords = ["admin123", "password123", "12345678"]
 ```
