@@ -216,6 +216,10 @@ powershell -ExecutionPolicy Bypass -File scripts\dev\sync_precommit_hook.ps1 -Sy
 - 已有 hook 自动备份到 `pre-commit.bak.{yyyyMMdd_HHmmss}` 后覆盖
 - 幂等性：已是最新版本则跳过，重复运行零破坏
 - 跳过列表：`node_modules` / `.venv` / `AppData` / `OneDrive` 等
+- **权限冲突自动修复**（`Invoke-SafeHookWrite`）：写入→检测→修复→验证的复合操作
+  - Windows：移除只读属性 + 重置 ACL 允许当前用户 FullControl
+  - Unix：`chmod +x` 添加执行位
+  - 修复幂等：不破坏 hook 已有内容，仅调整权限位
 
 **hook 三道 fail-safe 防护**（hook 内部）：
 1. `TLM_HOOK_SOURCE_REPO` 未设置 → exit 1
@@ -243,6 +247,7 @@ powershell -ExecutionPolicy Bypass -File scripts\dev\sync_precommit_hook.ps1 -Sy
 | 5 | hook 输出显示失效链接数与实际不符 | Get-Content/Test-Path 在 PS 5.1 下对中文路径处理有缺陷 | 确认 precheck_docs.ps1 已使用 .NET API（`[System.IO.File]::ReadAllText` + `[System.IO.File]::Exists`） | 仅本地脚本 |
 | 6 | `[pre-commit][ERROR] TLM_HOOK_SOURCE_REPO 未设置` | sync_precommit_hook.ps1 未运行过，或终端是 install 前打开的 | 重跑 `sync_precommit_hook.ps1 -Install <repo>`；或当前终端手动 `$env:TLM_HOOK_SOURCE_REPO = "C:\Users\Administrator\agent"` | 仅当前用户 |
 | 7 | `[pre-commit][ERROR] 源仓库脚本不存在: <path>` | 源仓库被移动/重命名/删除 | 重新定位源仓库后重跑 `sync_precommit_hook.ps1 -Sync`，自动更新环境变量与 hook marker | 仅当前用户 |
+| 8 | `error: cannot spawn .git/hooks/pre-commit: Permission denied` 或 hook 文件只读 | hook 文件权限不足（Windows 只读 / Unix 无执行位） | sync 脚本已内置 `Invoke-SafeHookWrite` 自动修复（Windows 移除只读+重置 ACL，Unix chmod +x）；若仍失败，手动 `attrib -r .git\hooks\pre-commit`（Windows）或 `chmod +x .git/hooks/pre-commit`（Unix） | 仅本地 hook 文件 |
 
 ### 5.2 Hook 报 "cannot spawn" 的修复代码
 
@@ -295,7 +300,8 @@ Write-Host "[OK] BOM added to precheck_docs.ps1"
 | 2026-07-28 | `b3cd60a7` | 批量修复 98 个失效 Markdown 链接 |
 | 2026-07-28 | `fef8c52e` | 修复预检脚本中文路径误报失效链接 + 阈值降到 0 |
 | 2026-07-29 | `d7fd5762` | 新增场景测试脚本 + 10 场景边界测试脚本 + 故障排查表格化 |
-| 2026-07-29 | 待提交 | 新增 sync_precommit_hook.ps1 跨仓库自动化部署 + precheck_docs.ps1 支持 -TargetRepo 参数 |
+| 2026-07-29 | `e558ed1f`/`63f335bf` | 新增 sync_precommit_hook.ps1 跨仓库自动化部署 + precheck_docs.ps1 支持 -TargetRepo 参数 + 提取 fail-safe 模块 |
+| 2026-07-29 | 本次提交 | fail-safe 模块扩展权限冲突自动修复（Test-HookExecutable/Repair-HookPermission/Invoke-SafeHookWrite）+ 真实仓库部署模拟脚本 + 权限修复单元测试 |
 
 ---
 

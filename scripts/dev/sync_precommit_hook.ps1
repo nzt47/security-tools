@@ -160,8 +160,21 @@ function Install-HookToRepo {
         return
     }
 
-    # 调用模块函数写入 hook（无 BOM）
-    Write-HookNoBom -Path $hookPath -Content $newContent
+    # 调用模块函数安全写入 hook（含权限自动修复）
+    $writeResult = Invoke-SafeHookWrite -HookPath $hookPath -Content $newContent
+    if ($writeResult.Repaired) {
+        Write-Host "  [$Index/$Total] FIX  $repoName 权限已自动修复: $($writeResult.Actions -join ', ')" -ForegroundColor Yellow
+    }
+    if (-not $writeResult.Written) {
+        Write-Host "  [$Index/$Total] FAIL $repoName hook 写入失败: $($writeResult.Error)" -ForegroundColor Red
+        $script:Results += [PSCustomObject]@{
+            Repo = $repoName; Status = 'FAIL'; Backup = $(if ($bakPath) { Split-Path $bakPath -Leaf } else { '-' }); Threshold = '-'
+        }
+        return
+    }
+    if (-not $writeResult.PermissionOk) {
+        Write-Host "  [$Index/$Total] WARN $repoName 权限异常: $($writeResult.Error)" -ForegroundColor Yellow
+    }
 
     Write-Host "  [$Index/$Total] DONE $repoName (hook 已部署，阈值 0)" -ForegroundColor Green
     $script:Results += [PSCustomObject]@{
