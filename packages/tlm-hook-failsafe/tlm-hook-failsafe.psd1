@@ -12,7 +12,7 @@
 RootModule = 'tlm-hook-failsafe.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.0.0'
+ModuleVersion = '1.1.0'
 
 # Supported PSEditions
 CompatiblePSEditions = 'Desktop', 'Core'
@@ -69,11 +69,12 @@ PowerShellVersion = '5.1'
 NestedModules = @()
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = 'Get-HookContent', 'Write-HookNoBom', 'Write-FileWithBom', 
-               'Backup-ExistingHook', 'Test-HookUpToDate', 'Set-SourceRepoEnv', 
-               'Test-SourceRepoEnv', 'Resolve-GitDir', 'Test-HookMarker', 
-               'Test-HookExecutable', 'Repair-HookPermission', 
-               'Invoke-SafeHookWrite'
+FunctionsToExport = 'Get-HookContent', 'Write-HookNoBom', 'Write-FileWithBom',
+               'Backup-ExistingHook', 'Test-HookUpToDate', 'Set-SourceRepoEnv',
+               'Test-SourceRepoEnv', 'Resolve-GitDir', 'Test-HookMarker',
+               'Test-HookExecutable', 'Repair-HookPermission',
+               'Invoke-SafeHookWrite',
+               'Get-HookExitCodeMap', 'Resolve-HookExitCode', 'Invoke-HookWithCapture'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = @()
@@ -114,7 +115,7 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = 'v1.0.0: initial release, 12 exported functions, sourced from scripts/dev/hook_fail_safe.psm1'
+        ReleaseNotes = 'v1.1.0: add exit code resolution layer (Get-HookExitCodeMap, Resolve-HookExitCode, Invoke-HookWithCapture). v1.0.0: initial release, 12 exported functions, sourced from scripts/dev/hook_fail_safe.psm1'
 
         # Prerelease string of this module
         # Prerelease = ''

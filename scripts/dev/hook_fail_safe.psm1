@@ -516,5 +516,197 @@ function Invoke-SafeHookWrite {
     return $result
 }
 
-# 导出所有函数
-Export-ModuleMember -Function Get-HookContent, Write-HookNoBom, Write-FileWithBom, Backup-ExistingHook, Test-HookUpToDate, Set-SourceRepoEnv, Test-SourceRepoEnv, Resolve-GitDir, Test-HookMarker, Test-HookExecutable, Repair-HookPermission, Invoke-SafeHookWrite
+# =================================================================
+# 9. hook 退出码解释层（变易：新增能力，不修改既有函数契约）
+# =================================================================
+# 设计说明：
+# - 不易：不修改 Get-HookContent 生成的 hook 内容（exit 1 阻塞语义不变，已分发旧 hook 不受影响）
+# - 变易：通过 stderr 文本回溯区分 exit 1 的 3 种具体原因；2/3/4 作为预留码供未来 -ExitCodeScheme v2 启用
+# - 简易：用 OrderedDictionary，不引入 enum 类型
+# =================================================================
+function Get-HookExitCodeMap {
+    <#
+    .SYNOPSIS
+        返回 hook 退出码 → 含义映射表（有序）
+    .DESCRIPTION
+        - 0=Success / 1=PreCheckFailed（兼容现有 hook）
+        - 2=EnvNotSet / 3=ScriptMissing / 4=PreCheckExecFailed（预留码，当前 hook 不输出）
+        - 126=PermissionDenied / 127=CommandNotFound / 130/137/143=Signal（bash 标准）
+        每个 entry: @{ Category; Meaning; Remediation; StderrPattern }
+    .PARAMETER IncludeBashStandard
+        是否包含 126/127/128+N bash 标准退出码（默认包含；显式传 -IncludeBashStandard:$false 可排除）
+    .OUTPUTS
+        [hashtable] 键=[int]exit code，值=[hashtable]@{ Category; Meaning; Remediation; StderrPattern }
+    #>
+    param([switch]$IncludeBashStandard)
+
+    # 默认包含 bash 标准码（switch 未传时 $IncludeBashStandard 为 $false，需显式判断未传状态）
+    $includeBash = if ($PSBoundParameters.ContainsKey('IncludeBashStandard')) { $IncludeBashStandard } else { $true }
+
+    # 用 hashtable + int key（PS 5.1 下 [ordered]@{} 用 int key 读写会触发只读 int 索引器导致异常）
+    # 顺序由调用者按 key 排序展示（错误码表数量少，顺序非功能性需求）
+    $map = @{}
+    $map[0]   = @{ Category='Success';            Meaning='hook 通过';                              Remediation=$null;                       StderrPattern=$null }
+    $map[1]   = @{ Category='PreCheckFailed';     Meaning='通用预检失败（需查 stderr 区分）';        Remediation='见 stderr 回溯';              StderrPattern=$null }
+    $map[2]   = @{ Category='EnvNotSet';          Meaning='TLM_HOOK_SOURCE_REPO 未设置';            Remediation='运行 sync_precommit_hook.ps1'; StderrPattern='TLM_HOOK_SOURCE_REPO 未设置' }
+    $map[3]   = @{ Category='ScriptMissing';      Meaning='源仓库 precheck_docs.ps1 不存在';        Remediation='检查 TLM_HOOK_SOURCE_REPO 路径'; StderrPattern='源仓库脚本不存在' }
+    $map[4]   = @{ Category='PreCheckExecFailed'; Meaning='powershell 预检执行失败';                Remediation='运行 fix_broken_links.ps1 -DryRun'; StderrPattern='预检失败，提交被阻止' }
+
+    if ($includeBash) {
+        $map[126] = @{ Category='PermissionDenied'; Meaning='命令不可执行（权限）'; Remediation='Repair-HookPermission 或 chmod +x'; StderrPattern=$null }
+        $map[127] = @{ Category='CommandNotFound';  Meaning='命令未找到';          Remediation='检查 PATH / powershell 安装';       StderrPattern=$null }
+        $map[130] = @{ Category='Signal';           Meaning='SIGINT (Ctrl+C)';    Remediation='检查是否被中断';                    StderrPattern=$null }
+        $map[137] = @{ Category='Signal';           Meaning='SIGKILL';            Remediation='检查 OOM / 强制终止';               StderrPattern=$null }
+        $map[143] = @{ Category='Signal';           Meaning='SIGTERM';            Remediation='检查终止信号来源';                  StderrPattern=$null }
+    }
+    return $map
+}
+
+function Resolve-HookExitCode {
+    <#
+    .SYNOPSIS
+        解释 hook exit code 的具体含义
+    .DESCRIPTION
+        - 不易：exit 1 永远映射到 PreCheckFailed（不静默通过失败）
+        - 变易：当提供 -Stderr 时，通过文本回溯区分 exit 1 的 3 种具体原因
+        - 简易：返回单一 hashtable，不抛异常
+    .PARAMETER ExitCode
+        hook 进程退出码
+    .PARAMETER Stderr
+        可选：hook 的 stderr 输出，用于 exit 1 时回溯具体原因
+    .PARAMETER IncludeBashStandard
+        是否在未知码时回退到 bash 标准码表（默认包含；显式传 -IncludeBashStandard:$false 可排除）
+    .OUTPUTS
+        [hashtable] @{ Code; Category; Meaning; Remediation; Matched; SubCategory }
+    #>
+    param(
+        [Parameter(Mandatory)][int]$ExitCode,
+        [string]$Stderr,
+        [switch]$IncludeBashStandard
+    )
+    # 默认包含 bash 标准码（switch 未传时视为 true）
+    if (-not $PSBoundParameters.ContainsKey('IncludeBashStandard')) {
+        $map = Get-HookExitCodeMap
+    } else {
+        $map = Get-HookExitCodeMap -IncludeBashStandard:$IncludeBashStandard
+    }
+    $result = @{
+        Code=$ExitCode; Category='Unknown'; Meaning="未知退出码: $ExitCode"
+        Remediation=$null; Matched=$false; SubCategory=$null
+    }
+    if ($map.Contains($ExitCode)) {
+        $entry = $map[$ExitCode]
+        $result.Category     = $entry.Category
+        $result.Meaning      = $entry.Meaning
+        $result.Remediation  = $entry.Remediation
+        $result.Matched      = $true
+
+        # exit 1 时通过 stderr 回溯具体子类（不易：不改变 exit 1 阻塞语义）
+        if ($ExitCode -eq 1 -and $Stderr) {
+            foreach($code in @(2,3,4)) {
+                $pattern = $map[$code].StderrPattern
+                if ($pattern -and ($Stderr -match [regex]::Escape($pattern))) {
+                    $result.SubCategory  = $map[$code].Category
+                    $result.Meaning      = $map[$code].Meaning
+                    $result.Remediation  = $map[$code].Remediation
+                    break
+                }
+            }
+        }
+    } elseif ($ExitCode -gt 128 -and $ExitCode -lt 256) {
+        $result.Category = 'Signal'
+        $result.Meaning  = "bash 信号终止 (signal $($ExitCode - 128))"
+        $result.Matched  = $true
+    }
+    return $result
+}
+
+function Invoke-HookWithCapture {
+    <#
+    .SYNOPSIS
+        执行 hook 并捕获 exit code + stdout + stderr
+    .DESCRIPTION
+        - 不易：超时不静默通过，返回非零 exit code（避免 hook 卡死导致提交误通过）
+        - 变易：-Resolve 自动调用 Resolve-HookExitCode 解释结果
+        - 简易：用 System.Diagnostics.Process，不依赖外部模块
+    .PARAMETER HookPath
+        hook 文件路径
+    .PARAMETER Arguments
+        传给 hook 的参数数组
+    .PARAMETER TimeoutSec
+        超时秒数（默认 60），超时返回 exit code 124
+    .PARAMETER Resolve
+        自动在返回结果的 Resolved 字段填充解释
+    .OUTPUTS
+        [hashtable] @{ ExitCode; Stdout; Stderr; TimedOut; Resolved }
+    #>
+    param(
+        [Parameter(Mandatory)][string]$HookPath,
+        [string[]]$Arguments = @(),
+        [int]$TimeoutSec = 60,
+        [switch]$Resolve
+    )
+    $result = @{ ExitCode=-1; Stdout=''; Stderr=''; TimedOut=$false; Resolved=$null }
+
+    # 路径存在性检查：纯文件名（无分隔符）依赖 PATH 查找，跳过 Test-Path；绝对/相对路径才检查
+    $isPlainName = $HookPath -notmatch '[/\\]'
+    if (-not $isPlainName -and -not (Test-Path $HookPath)) {
+        $result.ExitCode = 127
+        $result.Stderr    = "[Invoke-HookWithCapture] hook file not found: $HookPath"
+        if ($Resolve) { $result.Resolved = Resolve-HookExitCode -ExitCode 127 -IncludeBashStandard }
+        return $result
+    }
+
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName               = $HookPath
+    $psi.Arguments              = ($Arguments -join ' ')
+    $psi.UseShellExecute        = $false
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError  = $true
+    $psi.CreateNoWindow         = $true
+    # 强制 UTF-8 读取 stdout/stderr（避免中文系统下 GBK 编码导致中文 stderr 损坏）
+    $psi.StandardOutputEncoding = [System.Text.Encoding]::UTF8
+    $psi.StandardErrorEncoding  = [System.Text.Encoding]::UTF8
+
+    $proc = New-Object System.Diagnostics.Process
+    $proc.StartInfo = $psi
+
+    try {
+        [void]$proc.Start()
+    } catch {
+        # Process.Start 失败（文件不存在/无执行权限/不是有效可执行文件）
+        $result.ExitCode = 127
+        $result.Stderr    = "[Invoke-HookWithCapture] failed to start: $($_.Exception.Message)"
+        if ($Resolve) { $result.Resolved = Resolve-HookExitCode -ExitCode 127 -IncludeBashStandard }
+        return $result
+    }
+    # 同步读取 stdout/stderr（比异步事件更简单可靠，避免 PS 5.1 事件竞态）
+    # 注意：先 ReadToEndAsync 再 WaitForExit，避免死锁（进程 stdout buffer 满会阻塞）
+    $stdoutTask = $proc.StandardOutput.ReadToEndAsync()
+    $stderrTask = $proc.StandardError.ReadToEndAsync()
+    $exited = $proc.WaitForExit($TimeoutSec * 1000)
+    if (-not $exited) {
+        try { $proc.Kill() } catch {}
+        $result.TimedOut = $true
+        $result.ExitCode = 124
+        $result.Stderr   = "[Invoke-HookWithCapture] timeout after ${TimeoutSec}s"
+        # 仍尝试读取已缓冲的输出
+        try {
+            $result.Stdout = $stdoutTask.Result
+            $result.Stderr += "`n" + $stderrTask.Result
+        } catch {}
+    } else {
+        # 等待异步读取完成（进程已退出，数据已就绪）
+        $result.ExitCode = $proc.ExitCode
+        $result.Stdout   = $stdoutTask.Result
+        $result.Stderr   = $stderrTask.Result
+    }
+
+    if ($Resolve) {
+        $result.Resolved = Resolve-HookExitCode -ExitCode $result.ExitCode -Stderr $result.Stderr -IncludeBashStandard
+    }
+    return $result
+}
+
+# 导出所有函数（12 原有 + 3 新增 = 15）
+Export-ModuleMember -Function Get-HookContent, Write-HookNoBom, Write-FileWithBom, Backup-ExistingHook, Test-HookUpToDate, Set-SourceRepoEnv, Test-SourceRepoEnv, Resolve-GitDir, Test-HookMarker, Test-HookExecutable, Repair-HookPermission, Invoke-SafeHookWrite, Get-HookExitCodeMap, Resolve-HookExitCode, Invoke-HookWithCapture

@@ -1,0 +1,230 @@
+# =====================================================================
+# tlm-hook-failsafe PSGallery 发布 CI/CD 流水线
+#
+# 【不易】PSGallery API key 仅从 GitHub Secrets 读取（禁硬编码）
+#          同版本不可重发（PSGallery 拒绝）→ 版本预检必先于 push
+#          真相源 = scripts/dev/hook_fail_safe.psm1（sync 后才发布）
+# 【变易】触发：push 主分支/PR → 仅 dry-run 验证
+#                tag v* 或 手动 force_publish → 真实发布
+# 【简易】两 Job：dry-run-validate（always） → publish（门控条件）
+#
+# 触发条件:
+#   - push 到 master/main（包/源/工作流变更时）→ dry-run 验证
+#   - PR 到 master/main → dry-run 验证
+#   - push tag v* → dry-run + 真实发布
+#   - 手动触发（force_publish=true）→ dry-run + 真实发布
+#
+# 依赖文件:
+#   - packages/tlm-hook-failsafe/publish-to-psgallery.ps1
+#   - packages/tlm-hook-failsafe/sync-from-source.ps1
+#   - packages/tlm-hook-failsafe/tlm-hook-failsafe.psd1
+#   - scripts/dev/hook_fail_safe.psm1
+#
+# 所需 Secrets:
+#   - PSGALLERY_API_KEY: PSGallery NuGet API key（https://www.powershellgallery.com/account/api-keys）
+# =====================================================================
+name: Publish tlm-hook-failsafe
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'packages/tlm-hook-failsafe/**'
+      - 'scripts/dev/hook_fail_safe.psm1'
+      - '.github/workflows/publish-psgallery.yml'
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - 'packages/tlm-hook-failsafe/**'
+      - 'scripts/dev/hook_fail_safe.psm1'
+      - '.github/workflows/publish-psgallery.yml'
+  workflow_dispatch:
+    inputs:
+      force_publish:
+        description: '真实发布到 PSGallery（需 PSGALLERY_API_KEY secret）'
+        required: false
+        default: false
+        type: boolean
+      skip_version_check:
+        description: '跳过版本预检（用于首次发布或调试）'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  MODULE_NAME: tlm-hook-failsafe
+  POWERSHELL_VERSION: '5.1'
+
+jobs:
+  # =====================================================================
+  # Job 1: Dry-run 验证（always runs）
+  # 【不易】sync + pack 验证发布产物可生成；不上传到 PSGallery
+  # =====================================================================
+  dry-run-validate:
+    name: Dry-run 验证（sync + pack）
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 PowerShell 环境
+        shell: powershell
+        run: |
+          # 不易：TLS 1.2（PS 5.1 默认 TLS 1.0 已废弃）
+          try {
+            [Net.ServicePointManager]::SecurityProtocol =
+              [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+          } catch { }
+          Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
+
+      - name: Sync 源码到包（验证 15 函数导出）
+        shell: powershell
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $ErrorActionPreference = "Stop"
+          & .\sync-from-source.ps1
+          if ($LASTEXITCODE -ne 0) { throw "sync-from-source failed: exit $LASTEXITCODE" }
+
+      - name: Dry-run 发布（生成 .nupkg，不推送）
+        shell: powershell
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $ErrorActionPreference = "Stop"
+          & .\publish-to-psgallery.ps1 -NuGetApiKey 'dummy' -DryRun -SkipVersionCheck
+          if ($LASTEXITCODE -ne 0) { throw "dry-run failed: exit $LASTEXITCODE" }
+
+      - name: 验证 .nupkg 生成
+        shell: powershell
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $nupkg = Get-ChildItem -Filter "*.nupkg" | Select-Object -First 1
+          if (-not $nupkg) { throw ".nupkg not found after dry-run" }
+          $manifest = Test-ModuleManifest -Path .\tlm-hook-failsafe.psd1
+          $expectedName = "tlm-hook-failsafe.$($manifest.Version).nupkg"
+          if ($nupkg.Name -ne $expectedName) {
+            throw "nupkg name mismatch: $($nupkg.Name) != $expectedName"
+          }
+          Write-Host "✅ .nupkg verified: $($nupkg.Name) ($($nupkg.Length) bytes)" -ForegroundColor Green
+
+      - name: 上传 .nupkg 构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: tlm-hook-failsafe-nupkg
+          path: packages/tlm-hook-failsafe/*.nupkg
+          retention-days: 14
+
+      - name: Dry-run 总结
+        if: always()
+        shell: powershell
+        run: |
+          $result = "${{ job.status }}"
+          Write-Host "## Dry-run 验证结果" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| 项目 | 状态 |" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "|------|------|" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| sync-from-source | $result |" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| nuget pack | $result |" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| .nupkg 产物 | $result |" >> $env:GITHUB_STEP_SUMMARY
+
+  # =====================================================================
+  # Job 2: 真实发布到 PSGallery（门控：tag push 或 手动 force_publish）
+  # 【不易】仅在 dry-run 通过后执行；API key 从 Secrets 读取
+  # 【变易】触发条件：tag v* 或 workflow_dispatch.force_publish=true
+  # =====================================================================
+  publish-to-psgallery:
+    name: 发布到 PSGallery
+    runs-on: windows-latest
+    needs: dry-run-validate
+    if: |
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.force_publish == 'true')
+    timeout-minutes: 15
+    environment: psgallery-publish
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 验证 PSGALLERY_API_KEY secret 已配置
+        shell: powershell
+        run: |
+          if (-not $env:PSGALLERY_API_KEY) {
+            throw "PSGALLERY_API_KEY secret not set; configure it in repo Settings > Secrets > Actions"
+          }
+          Write-Host "✅ PSGALLERY_API_KEY is configured (length=$($env:PSGALLERY_API_KEY.Length))"
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
+
+      - name: 设置 PowerShell 环境
+        shell: powershell
+        run: |
+          try {
+            [Net.ServicePointManager]::SecurityProtocol =
+              [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+          } catch { }
+
+      - name: Sync 源码到包
+        shell: powershell
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $ErrorActionPreference = "Stop"
+          & .\sync-from-source.ps1
+          if ($LASTEXITCODE -ne 0) { throw "sync-from-source failed: exit $LASTEXITCODE" }
+
+      - name: 读取发布版本号
+        id: version
+        shell: powershell
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $manifest = Test-ModuleManifest -Path .\tlm-hook-failsafe.psd1
+          $version = $manifest.Version.ToString()
+          Write-Host "Publishing version: $version"
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: 发布到 PSGallery
+        shell: powershell
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $ErrorActionPreference = "Stop"
+          $skipCheck = '${{ github.event.inputs.skip_version_check }}' -eq 'true'
+          $args = @('.\publish-to-psgallery.ps1', '-NuGetApiKey', $env:PSGALLERY_API_KEY)
+          if ($skipCheck) { $args += '-SkipVersionCheck' }
+          & @args
+          if ($LASTEXITCODE -ne 0) {
+            throw "publish failed: exit $LASTEXITCODE (check API key / network / PSGallery rate limit)"
+          }
+        env:
+          PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
+
+      - name: 创建 GitHub Release（tag 触发时）
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: tlm-hook-failsafe v${{ steps.version.outputs.version }}
+          body: |
+            ## tlm-hook-failsafe v${{ steps.version.outputs.version }}
+
+            已发布到 PSGallery: https://www.powershellgallery.com/packages/tlm-hook-failsafe/${{ steps.version.outputs.version }}
+
+            ### 安装
+            ```powershell
+            Install-Module tlm-hook-failsafe -Repository PSGallery
+            ```
+          draft: false
+          prerelease: false
+
+      - name: 发布总结
+        if: always()
+        shell: powershell
+        run: |
+          $result = "${{ job.status }}"
+          $version = "${{ steps.version.outputs.version }}"
+          Write-Host "## PSGallery 发布结果" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| 项目 | 值 |" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "|------|-----|" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| 版本 | $version |" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| 状态 | $result |" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| PSGallery | https://www.powershellgallery.com/packages/tlm-hook-failsafe/$version |" >> $env:GITHUB_STEP_SUMMARY

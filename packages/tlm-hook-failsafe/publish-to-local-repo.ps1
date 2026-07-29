@@ -192,8 +192,8 @@ if (-not (Test-Path $expectedNupkg)) {
 }
 Write-Host "  [OK] $expectedNupkg" -ForegroundColor Green
 
-# Step [7/7] Find-Module + Save-Module verify 12 exports
-Write-Host "[7/7] Verify Find-Module + 12 exports..." -ForegroundColor Yellow
+# Step [7/7] Find-Module + Save-Module verify 15 exports
+Write-Host "[7/7] Verify Find-Module + 15 exports..." -ForegroundColor Yellow
 $found = Find-Module -Name tlm-hook-failsafe -Repository $RepoName -ErrorAction SilentlyContinue
 if (-not $found) { throw "Find-Module miss after publish" }
 Write-Host "  [OK] Find-Module: $($found.Name) v$($found.Version)" -ForegroundColor Green
@@ -211,11 +211,12 @@ try {
         'Backup-ExistingHook','Test-HookUpToDate',
         'Set-SourceRepoEnv','Test-SourceRepoEnv',
         'Resolve-GitDir','Test-HookMarker',
-        'Test-HookExecutable','Repair-HookPermission','Invoke-SafeHookWrite'
+        'Test-HookExecutable','Repair-HookPermission','Invoke-SafeHookWrite',
+        'Get-HookExitCodeMap','Resolve-HookExitCode','Invoke-HookWithCapture'
     )
     $missing = $expected | Where-Object { $_ -notin $mod.ExportedCommands.Keys }
     if ($missing) { throw "missing exported functions: $($missing -join ', ')" }
-    Write-Host "  [OK] 12 exported functions verified" -ForegroundColor Green
+    Write-Host "  [OK] 15 exported functions verified" -ForegroundColor Green
     Remove-Module tlm-hook-failsafe -Force -ErrorAction SilentlyContinue
 } finally {
     Remove-Item -Recurse -Force $tempInstall -ErrorAction SilentlyContinue
