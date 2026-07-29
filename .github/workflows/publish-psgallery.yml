@@ -117,7 +117,9 @@ jobs:
 
       - name: Dry-run 总结
         if: always()
-        shell: powershell
+        # 不易：pwsh(PS7) 默认 UTF-8；powershell(PS5.1) 用 Windows-1252 解码 UTF-8 中文，
+        #      '结果' 的 UTF-8 字节 0x93 恰为 Windows-1252 左引号，破坏引号匹配导致语法错误
+        shell: pwsh
         run: |
           $result = "${{ job.status }}"
           "## Dry-run 验证结果" >> $env:GITHUB_STEP_SUMMARY
@@ -217,7 +219,7 @@ jobs:
 
       - name: 发布总结
         if: always()
-        shell: powershell
+        shell: pwsh
         run: |
           $result = "${{ job.status }}"
           $version = "${{ steps.version.outputs.version }}"

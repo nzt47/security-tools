@@ -101,7 +101,8 @@ jobs:
 
       - name: 设置总结
         if: always()
-        shell: powershell
+        # 不易：pwsh(PS7) 默认 UTF-8，避免 PS5.1 Windows-1252 解码中文引号陷阱
+        shell: pwsh
         run: |
           $result = "${{ job.status }}"
           $version = "${{ steps.publish.outputs.version }}"
