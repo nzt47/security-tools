@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
+  <metadata>
+    <id>tlm-hook-failsafe</id>
+    <version>1.0.1</version>
+    <authors>agent-team</authors>
+    <owners>agent-team</owners>
+    <description>Pre-commit hook fail-safe module: BOM encoding contract + backup + permission auto-repair + cross-platform</description>
+    <releaseNotes>v1.0.0: initial release, 12 exported functions, sourced from scripts/dev/hook_fail_safe.psm1</releaseNotes>
+    <tags>PSModule pre-commit hook fail-safe powershell tlm cross-platform</tags>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <copyright>(c) agent-team. MIT license.</copyright>
+    <dependencies></dependencies>
+  </metadata>
+  <files>
+    <file src="tlm-hook-failsafe.psd1" target="" />
+    <file src="tlm-hook-failsafe.psm1" target="" />
+  </files>
+</package>
