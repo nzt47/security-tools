@@ -37,13 +37,14 @@ if (-not (Test-Path $sourcePsm1)) {
 Copy-Item -Path $sourcePsm1 -Destination $targetPsm1 -Force
 Write-Host "  [OK] copied" -ForegroundColor Green
 
-# 2. reverse verify: 12 exported functions
+# 2. reverse verify: 15 exported functions (12 original + 3 exit code resolution)
 $expected = @(
     'Get-HookContent','Write-HookNoBom','Write-FileWithBom',
     'Backup-ExistingHook','Test-HookUpToDate',
     'Set-SourceRepoEnv','Test-SourceRepoEnv',
     'Resolve-GitDir','Test-HookMarker',
-    'Test-HookExecutable','Repair-HookPermission','Invoke-SafeHookWrite'
+    'Test-HookExecutable','Repair-HookPermission','Invoke-SafeHookWrite',
+    'Get-HookExitCodeMap','Resolve-HookExitCode','Invoke-HookWithCapture'
 )
 
 # load module and check exports (use fresh module name to avoid conflict)

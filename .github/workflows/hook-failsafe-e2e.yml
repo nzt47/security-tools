@@ -1,0 +1,303 @@
+# =====================================================================
+# tlm-hook-failsafe 自动化回归测试 CI/CD 流水线
+#
+# 【不易】15 函数导出契约；hook 无 BOM + marker 编码契约；错误码解释层正确性
+# 【变易】矩阵：PS 5.1（powershell）+ PS 7（pwsh）；E2E 全程 -CI 模式（不污染源仓库）
+# 【简易】三 Job：setup-repo（注册 LocalPSRepo + 发布）→ unit-tests → e2e-tests
+#
+# 触发条件:
+#   - push 到 master/main（包/源/测试/工作流变更时）
+#   - PR 到 master/main
+#   - 每日 UTC 04:00（北京时间 12:00）定时执行
+#   - 手动触发（workflow_dispatch）
+#
+# 依赖文件:
+#   - packages/tlm-hook-failsafe/sync-from-source.ps1
+#   - packages/tlm-hook-failsafe/publish-to-local-repo.ps1
+#   - packages/tlm-hook-failsafe/tests/test_exit_code_resolution.ps1
+#   - packages/tlm-hook-failsafe/tests/test_team_integration_e2e.ps1
+#   - packages/tlm-hook-failsafe/tests/test_multi_repo_sync.ps1
+# =====================================================================
+name: tlm-hook-failsafe E2E
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'packages/tlm-hook-failsafe/**'
+      - 'scripts/dev/hook_fail_safe.psm1'
+      - '.github/workflows/hook-failsafe-e2e.yml'
+  pull_request:
+    paths:
+      - 'packages/tlm-hook-failsafe/**'
+      - 'scripts/dev/hook_fail_safe.psm1'
+      - '.github/workflows/hook-failsafe-e2e.yml'
+  schedule:
+    # UTC 04:00 = 北京时间 12:00（每日）
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      ps_version:
+        description: 'PowerShell 版本（5.1 / 7 / both）'
+        required: false
+        default: 'both'
+        type: choice
+        options:
+          - both
+          - '5.1'
+          - '7'
+
+env:
+  MODULE_NAME: tlm-hook-failsafe
+
+jobs:
+  # =====================================================================
+  # Job 1: 注册 LocalPSRepo + 发布模块（为后续 E2E 提供安装源）
+  # 【不易】LocalPSRepo 是 E2E 测试的安装源；发布失败则后续 Job 无法运行
+  # =====================================================================
+  setup-repo:
+    name: 注册 LocalPSRepo + 发布
+    runs-on: windows-latest
+    timeout-minutes: 10
+    outputs:
+      published-version: ${{ steps.publish.outputs.version }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 PowerShell 环境
+        shell: powershell
+        run: |
+          # 不易：TLS 1.2（PS 5.1 默认 TLS 1.0 已废弃）
+          try {
+            [Net.ServicePointManager]::SecurityProtocol =
+              [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+          } catch { }
+          Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
+
+      - name: Sync 源码到包
+        shell: powershell
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $ErrorActionPreference = "Stop"
+          & .\sync-from-source.ps1
+          if ($LASTEXITCODE -ne 0) { throw "sync-from-source failed: exit $LASTEXITCODE" }
+
+      - name: 注册 LocalPSRepo + 发布模块
+        id: publish
+        shell: powershell
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $ErrorActionPreference = "Stop"
+          & .\publish-to-local-repo.ps1
+          if ($LASTEXITCODE -ne 0) { throw "publish-to-local-repo failed: exit $LASTEXITCODE" }
+          $manifest = Test-ModuleManifest -Path .\tlm-hook-failsafe.psd1
+          "version=$($manifest.Version)" >> $env:GITHUB_OUTPUT
+          Write-Host "✅ Published v$($manifest.Version) to LocalPSRepo"
+
+      - name: 设置总结
+        if: always()
+        shell: powershell
+        run: |
+          $result = "${{ job.status }}"
+          $version = "${{ steps.publish.outputs.version }}"
+          Write-Host "## LocalPSRepo 注册与发布" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| 项目 | 值 |" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "|------|-----|" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| 模块版本 | $version |" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| 状态 | $result |" >> $env:GITHUB_STEP_SUMMARY
+
+  # =====================================================================
+  # Job 2: 单元测试（错误码解释层，无 LocalPSRepo 依赖）
+  # 【变易】矩阵：PS 5.1 + PS 7；独立于 setup-repo（可并行）
+  # =====================================================================
+  unit-tests:
+    name: 单元测试（错误码解释层）- PS ${{ matrix.ps-label }}
+    runs-on: windows-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ps-label: '5.1'
+            shell: powershell
+          - ps-label: '7'
+            shell: pwsh
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 PowerShell 环境
+        shell: ${{ matrix.shell }}
+        run: |
+          try {
+            [Net.ServicePointManager]::SecurityProtocol =
+              [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+          } catch { }
+          Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
+
+      - name: Sync 源码到包（确保 .psm1 最新）
+        shell: ${{ matrix.shell }}
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $ErrorActionPreference = "Stop"
+          & .\sync-from-source.ps1
+          if ($LASTEXITCODE -ne 0) { throw "sync-from-source failed: exit $LASTEXITCODE" }
+
+      - name: 运行错误码解释层单元测试
+        shell: ${{ matrix.shell }}
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $ErrorActionPreference = "Stop"
+          & .\tests\test_exit_code_resolution.ps1
+          if ($LASTEXITCODE -ne 0) { throw "unit tests failed: exit $LASTEXITCODE" }
+
+      - name: 单元测试总结
+        if: always()
+        shell: ${{ matrix.shell }}
+        run: |
+          $result = "${{ job.status }}"
+          Write-Host "## 单元测试结果 (PS ${{ matrix.ps-label }})" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| 项目 | 状态 |" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "|------|------|" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| 错误码解释层 (PS ${{ matrix.ps-label }}) | $result |" >> $env:GITHUB_STEP_SUMMARY
+
+  # =====================================================================
+  # Job 3: E2E 测试（团队集成 + 多仓库同步，-CI 模式）
+  # 【不易】依赖 setup-repo 提供的 LocalPSRepo；-CI 模式不污染源仓库
+  # 【变易】矩阵：PS 5.1 + PS 7
+  # =====================================================================
+  e2e-tests:
+    name: E2E 测试 - PS ${{ matrix.ps-label }}
+    runs-on: windows-latest
+    needs: setup-repo
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - ps-label: '5.1'
+            shell: powershell
+          - ps-label: '7'
+            shell: pwsh
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 PowerShell 环境
+        shell: ${{ matrix.shell }}
+        run: |
+          try {
+            [Net.ServicePointManager]::SecurityProtocol =
+              [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+          } catch { }
+          Write-Host "PowerShell version: $($PSVersionTable.PSVersion)"
+
+      - name: Sync 源码到包
+        shell: ${{ matrix.shell }}
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $ErrorActionPreference = "Stop"
+          & .\sync-from-source.ps1
+          if ($LASTEXITCODE -ne 0) { throw "sync-from-source failed: exit $LASTEXITCODE" }
+
+      - name: 注册 LocalPSRepo + 发布（确保 E2E 测试有安装源）
+        shell: ${{ matrix.shell }}
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $ErrorActionPreference = "Stop"
+          & .\publish-to-local-repo.ps1
+          if ($LASTEXITCODE -ne 0) { throw "publish-to-local-repo failed: exit $LASTEXITCODE" }
+          Write-Host "✅ LocalPSRepo ready for E2E tests"
+
+      - name: "E2E: 团队集成测试（-CI 模式）"
+        shell: ${{ matrix.shell }}
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $ErrorActionPreference = "Stop"
+          & .\tests\test_team_integration_e2e.ps1 -CI
+          if ($LASTEXITCODE -ne 0) { throw "team integration E2E failed: exit $LASTEXITCODE" }
+
+      - name: "E2E: 多仓库同步测试（-CI 模式）"
+        shell: ${{ matrix.shell }}
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $ErrorActionPreference = "Stop"
+          & .\tests\test_multi_repo_sync.ps1 -CI
+          if ($LASTEXITCODE -ne 0) { throw "multi-repo sync E2E failed: exit $LASTEXITCODE" }
+
+      - name: E2E 测试总结
+        if: always()
+        shell: ${{ matrix.shell }}
+        run: |
+          $result = "${{ job.status }}"
+          Write-Host "## E2E 测试结果 (PS ${{ matrix.ps-label }})" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| 测试 | 状态 |" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "|------|------|" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| 团队集成 (PS ${{ matrix.ps-label }}) | $result |" >> $env:GITHUB_STEP_SUMMARY
+          Write-Host "| 多仓库同步 (PS ${{ matrix.ps-label }}) | $result |" >> $env:GITHUB_STEP_SUMMARY
+
+  # =====================================================================
+  # Job 4: 测试总结与通知
+  # =====================================================================
+  test-summary:
+    name: 测试总结与通知
+    runs-on: ubuntu-latest
+    needs: [setup-repo, unit-tests, e2e-tests]
+    if: always()
+    steps:
+      - name: 生成测试总结
+        run: |
+          SETUP_RESULT="${{ needs.setup-repo.result }}"
+          UNIT_51_RESULT="${{ needs.unit-tests.result }}"
+          E2E_51_RESULT="${{ needs.e2e-tests.result }}"
+          VERSION="${{ needs.setup-repo.outputs.published-version }}"
+
+          echo "## tlm-hook-failsafe 回归测试总结" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 阶段 | 结果 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| LocalPSRepo 注册与发布 | ${SETUP_RESULT} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 单元测试（PS 5.1 + PS 7） | ${UNIT_51_RESULT} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E 测试（PS 5.1 + PS 7） | ${E2E_51_RESULT} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "发布版本: ${VERSION}" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${SETUP_RESULT}" == "failure" ]]; then
+            echo "❌ LocalPSRepo 注册/发布失败，E2E 测试可能未执行" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${UNIT_51_RESULT}" == "failure" ]]; then
+            echo "❌ 单元测试失败" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${E2E_51_RESULT}" == "failure" ]]; then
+            echo "❌ E2E 测试失败" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ 所有测试通过" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: PR 评论通知（失败时）
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                '## ❌ tlm-hook-failsafe 回归测试失败',
+                '',
+                '**失败阶段**:',
+                `- LocalPSRepo 注册与发布: ${{ needs.setup-repo.result }}`,
+                `- 单元测试: ${{ needs.unit-tests.result }}`,
+                `- E2E 测试: ${{ needs.e2e-tests.result }}`,
+                '',
+                `**查看详情**: [Workflow Run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+                '',
+                '**修复建议**:',
+                '1. 检查 `sync-from-source.ps1` 是否同步成功（15 函数导出）',
+                '2. 检查 `publish-to-local-repo.ps1` 是否注册 LocalPSRepo 成功',
+                '3. 检查 E2E 测试脚本的 -CI 模式是否通过'
+              ].join('\n')
+            })
