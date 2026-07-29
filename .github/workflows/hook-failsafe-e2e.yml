@@ -116,6 +116,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        ps-label: ['5.1', '7']
         include:
           - ps-label: '5.1'
             shell: powershell
@@ -174,6 +175,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        ps-label: ['5.1', '7']
         include:
           - ps-label: '5.1'
             shell: powershell
