@@ -17,6 +17,17 @@ from typing import Any, Dict, Iterator, List, Optional
 
 logger = logging.getLogger("agent.skills_mgmt")
 
+# 【不易修复】添加 NullHandler（库模块最佳实践，PEP 282）
+# 原因：评估脚本/独立脚本不经过 app_server.py 入口时，root logger 无 handler，
+# 导致 observability 的 INFO 日志走 lastResort（WARNING+）丢失，reranker 调用链
+# （reranker.init / rrf.rerank.applied / rerank.completed）全部不可见。
+# NullHandler 不输出日志，但阻止 "No handlers could be found" 警告；
+# 实际输出由调用方配置（app_server.py 用 basicConfig + setup_readable_logging，
+# 评估脚本用 basicConfig）。
+# 【简易】通过 propagate=True（默认）让日志传播到 root logger，由 root 的
+# handler 统一输出，避免重复 handler 和 formatter 冲突。
+logger.addHandler(logging.NullHandler())
+
 # 尝试引入业务指标收集器（按硬约束要求）；失败则降级为 no-op
 # 【不易】改用全局单例 get_business_metrics_collector()，与 app_server.py /metrics 端点
 # 共享同一实例，避免实例隔离导致 emit_metric 触发的指标不出现在 /metrics 端点。

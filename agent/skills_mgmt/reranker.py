@@ -9,6 +9,15 @@
     v6.1 规则层 → v6.2 embedding 拒绝层 → TF-IDF + 向量检索 → RRF 融合
     → 【v6.5】Reranker 二次排序 → top-k 最终结果
 
+推理后端（按优先级自动降级）:
+    1. ONNX Runtime（默认启用，SKILL_RERANKER_USE_ONNX=true）
+       - 优先加载 <model_dir>/onnx/model_quantized.onnx
+       - jina-reranker-v2 quantized 实测 P99 258ms（30.8x 加速 vs PyTorch）
+       - C++ 引擎无 GIL/线程问题，豁免子进程隔离约束
+    2. PyTorch + sentence-transformers（ONNX 不可用时降级）
+       - Windows CPU 环境需子进程隔离（防 0xC0000005 崩溃）
+    3. RRF 降级（模型不可用时返回原序）
+
 模型选型（见 v6.5 计划 §3.1）:
     | 模型 | 大小 | 延迟 | 中文支持 | 推荐度 |
     |------|------|------|---------|--------|
@@ -25,6 +34,7 @@ Windows 崩溃防护（守【不易】）:
     根据 project_memory 记录:
     > Embedding 检索在 Windows CPU 环境下无隔离时会导致主进程 0xC0000005 崩溃
     Reranker 同样需要子进程隔离（multiprocessing.Process + terminate）
+    注意：ONNX Runtime 为 C++ 引擎，无 PyTorch GIL/线程问题，可豁免子进程隔离
 
 用法:
     reranker = SkillReranker()
@@ -32,13 +42,16 @@ Windows 崩溃防护（守【不易】）:
 
 环境变量:
     SKILL_RERANKER_ENABLED: true/false（默认 true）
-    SKILL_RERANKER_MODEL: 模型名（默认 BAAI/bge-reranker-v2-m3）
+    SKILL_RERANKER_MODEL: 模型名或本地路径（默认 BAAI/bge-reranker-v2-m3）
     SKILL_RERANKER_TIMEOUT: 子进程超时秒数（默认 30）
     SKILL_RERANKER_MIN_SCORE: 最低分数阈值（默认 0.001）
+    SKILL_RERANKER_USE_ONNX: 是否优先使用 ONNX 推理（默认 true）
+    SKILL_RERANKER_ONNX_VARIANT: ONNX 变体文件名（默认 model_quantized.onnx）
 """
 from __future__ import annotations
 
 import json
+import math
 import os
 import sys
 import time
@@ -53,15 +66,33 @@ from typing import Any, Dict, List, Optional, Tuple
 # ──────────────────────────────────────────────
 
 try:
-    from .observability import logger
+    from .observability import logger, emit_metric
 except ImportError:
     # 测试环境降级：使用标准 logging
     import logging
     logger = logging.getLogger("reranker")
 
+    def emit_metric(name, *, value=1.0, labels=None, kind="counter"):
+        """测试环境 no-op emit_metric（守【不易】埋点失败不影响主流程）"""
+        return None
+
 
 def _trace_id() -> str:
     return uuid.uuid4().hex[:16]
+
+
+def _sigmoid(x: float) -> float:
+    """数值稳定的 sigmoid 函数
+
+    【不易】将 Cross-Encoder raw logits 映射到 [0,1] 概率空间，
+           使 min_score 阈值（默认 0.001）恢复"过滤极低概率匹配"语义
+    【简易】分段实现避免 math.exp 溢出（|x| > 700 时 exp 会抛 OverflowError）
+    """
+    if x >= 0:
+        z = math.exp(-x)
+        return 1.0 / (1.0 + z)
+    z = math.exp(x)
+    return z / (1.0 + z)
 
 
 # ════════════════════════════════════════════════════════════
@@ -87,23 +118,30 @@ class SkillReranker:
 
     环境变量:
         SKILL_RERANKER_ENABLED: true/false（默认 true）
-        SKILL_RERANKER_MODEL: 模型名（默认 BAAI/bge-reranker-v2-m3）
+        SKILL_RERANKER_MODEL: 模型名或本地路径（默认 BAAI/bge-reranker-v2-m3）
         SKILL_RERANKER_TIMEOUT: 子进程超时秒数（默认 30）
         SKILL_RERANKER_MIN_SCORE: 最低分数阈值（默认 0.001）
+        SKILL_RERANKER_USE_ONNX: 是否优先使用 ONNX 推理（默认 true）
+        SKILL_RERANKER_ONNX_VARIANT: ONNX 变体文件名（默认 model_quantized.onnx）
     """
 
     # 默认配置（可通过环境变量覆盖）
     _DEFAULT_MODEL = "BAAI/bge-reranker-v2-m3"
     _DEFAULT_TIMEOUT = 30
     _DEFAULT_MIN_SCORE = 0.001
+    _DEFAULT_USE_ONNX = True
+    _DEFAULT_ONNX_VARIANT = "model_quantized.onnx"
+    # 【变易】单次 rerank predict 超时阈值（秒）—— 与 _timeout（子进程超时）区分
+    # 任务要求 >3s 降级；v2-m3 CPU 推理 P99 可达 4.6s，可通过 .env 调大或换轻量模型
+    _DEFAULT_RERANK_TIMEOUT = 3.0
 
     def __init__(self, model_name: Optional[str] = None):
         """初始化 Reranker
 
         Args:
-            model_name: 模型名（None 时从环境变量读取，默认 BAAI/bge-reranker-v2-m3）
+            model_name: 模型名或本地路径（None 时从环境变量读取，默认 BAAI/bge-reranker-v2-m3）
         """
-        self._model = None  # 懒加载
+        self._model = None  # PyTorch CrossEncoder 懒加载
         self._model_name = model_name or os.environ.get(
             "SKILL_RERANKER_MODEL", self._DEFAULT_MODEL
         )
@@ -113,45 +151,244 @@ class SkillReranker:
         self._min_score = float(os.environ.get(
             "SKILL_RERANKER_MIN_SCORE", str(self._DEFAULT_MIN_SCORE)
         ))
+        # ONNX 推理相关（懒加载）
+        self._use_onnx_env = os.environ.get(
+            "SKILL_RERANKER_USE_ONNX", "true"
+        ).lower() not in ("false", "0", "off", "no")
+        self._onnx_variant = os.environ.get(
+            "SKILL_RERANKER_ONNX_VARIANT", self._DEFAULT_ONNX_VARIANT
+        )
+        self._onnx_session = None  # ort.InferenceSession 懒加载
+        self._onnx_tokenizer = None  # transformers tokenizer 懒加载
+        self._onnx_input_names = None  # ONNX 模型输入名缓存
+        self._use_onnx = False  # 实际是否走 ONNX 路径（加载成功后置 True）
         self._load_attempted = False  # 防止重复加载尝试
+        # 【变易】单次 predict 超时阈值（秒）：超时后降级返回原序，不阻塞主流程
+        # 与 _timeout（子进程超时，默认 30s）区分，rerank_timeout 聚焦单次推理延迟
+        self._rerank_timeout = float(os.environ.get(
+            "SKILL_RERANKER_RERANK_TIMEOUT", str(self._DEFAULT_RERANK_TIMEOUT)
+        ))
 
     # ──────────────────────────────────────────────
     #  模型加载（懒加载 + 降级）
     # ──────────────────────────────────────────────
 
     def _load_model(self) -> bool:
-        """懒加载 Cross-Encoder 模型
+        """懒加载模型（ONNX 优先 → PyTorch 降级）
 
-        【不易】失败时返回 False（降级到原始排序），不抛异常
-        【变易】首次调用加载，后续复用缓存
-        【简易】单次 CrossEncoder 初始化
+        【不易】失败时返回 False（降级到原始排序），不抛异常；不改变 rerank 接口
+        【变易】首次调用加载，后续复用缓存；ONNX/PyTorch 双路径自动降级
+        【简易】单次加载尝试，O(1) 复杂度
 
         Returns:
-            True: 模型加载成功
-            False: 模型加载失败（降级）
+            True: 模型加载成功（ONNX 或 PyTorch 任一）
+            False: 模型加载失败（降级到 RRF）
         """
+        # 已加载（任一后端）则直接返回
+        if self._use_onnx and self._onnx_session is not None:
+            return True
         if self._model is not None:
             return True
         if self._load_attempted:
             return False  # 之前已尝试失败，不重试
 
         self._load_attempted = True
-        try:
-            from sentence_transformers import CrossEncoder
-            self._model = CrossEncoder(self._model_name)
+
+        # 【变易】模型文件大小检查（>1GB 警告，建议轻量模型）
+        # 在加载前执行：让用户在加载耗时前知晓模型规模
+        self._check_model_size()
+
+        # 优先尝试 ONNX（默认启用，C++ 引擎性能更优）
+        if self._use_onnx_env:
+            if self._load_onnx():
+                return True
             logger.info(json.dumps({
                 "module_name": "reranker",
-                "action": "model.loaded",
+                "action": "onnx.fallback_to_pytorch",
+                "reason": "onnx_load_failed_or_unavailable",
+            }, ensure_ascii=False))
+            # [Observability] ONNX 降级到 PyTorch（降级率监控数据源）
+            emit_metric("yunshu_reranker_fallback_total",
+                        value=1, kind="counter",
+                        labels={"from": "onnx", "to": "pytorch",
+                                "reason": "onnx_unavailable"})
+
+        # 降级到 PyTorch
+        return self._load_pytorch()
+
+    def _check_model_size(self) -> None:
+        """检查模型文件大小，>1GB 警告（建议轻量模型）
+
+        【不易】不阻塞加载，仅记录 warning + emit_metric
+        【变易】仅对本地路径检查（HF hub 模型跳过，无法预知大小）
+        【简易】os.walk 累加文件大小，单次遍历
+
+        触发场景:
+            - 默认 v2-m3 模型 ~2.3GB，CPU 推理 P99 4.6s 不达标
+            - 建议换用 BAAI/bge-reranker-base (~1.1GB) 或 jina-reranker-v2 (~280MB)
+            - 通过 .env SKILL_RERANKER_MODEL 切换模型
+        """
+        # 非本地路径（HF hub 模型 ID），跳过大小检查
+        if not os.path.isdir(self._model_name):
+            return
+        total_size = 0
+        try:
+            for root, _dirs, files in os.walk(self._model_name):
+                for f in files:
+                    fp = os.path.join(root, f)
+                    try:
+                        total_size += os.path.getsize(fp)
+                    except OSError:
+                        # 单文件读取失败不影响整体统计
+                        pass
+        except OSError:
+            # os.walk 失败（权限/路径问题），静默跳过
+            return
+        size_gb = total_size / (1024 ** 3)
+        # 【变易】透出模型大小指标（gauge），供监控告警
+        emit_metric("yunshu_reranker_model_size_gb",
+                    value=round(size_gb, 2), kind="gauge",
+                    labels={"model": self._model_name})
+        if size_gb > 1.0:
+            logger.warning(json.dumps({
+                "module_name": "reranker",
+                "action": "model.size_warning",
+                "model": self._model_name,
+                "size_gb": round(size_gb, 2),
+                "threshold_gb": 1.0,
+                "suggestion": "consider BAAI/bge-reranker-base (~1.1GB) or "
+                               "jina-reranker-v2 (~280MB) for faster CPU inference",
+            }, ensure_ascii=False))
+
+    def _load_onnx(self) -> bool:
+        """加载 ONNX 推理后端
+
+        【不易】失败时返回 False，不抛异常；不破坏 rerank 接口
+        【变易】模型路径可配置（SKILL_RERANKER_MODEL + onnx/<variant>）
+        【简易】单次 ort.InferenceSession 初始化
+
+        Returns:
+            True: ONNX 加载成功
+            False: ONNX 不可用（降级到 PyTorch）
+        """
+        try:
+            import onnxruntime as ort
+            from transformers import AutoTokenizer
+
+            # 模型路径需为本地目录（ONNX 文件在 <model_dir>/onnx/<variant>）
+            if not os.path.isdir(self._model_name):
+                logger.warning(json.dumps({
+                    "module_name": "reranker",
+                    "action": "onnx.skip",
+                    "reason": "model_path_not_local_dir",
+                    "model": self._model_name,
+                }, ensure_ascii=False))
+                # [Observability] ONNX 跳过（配置错误，P2 告警数据源）
+                emit_metric("yunshu_reranker_load_total",
+                            value=1, kind="counter",
+                            labels={"backend": "onnx", "status": "skipped",
+                                    "reason": "path_not_local_dir"})
+                return False
+
+            onnx_path = os.path.join(self._model_name, "onnx", self._onnx_variant)
+            if not os.path.exists(onnx_path):
+                logger.warning(json.dumps({
+                    "module_name": "reranker",
+                    "action": "onnx.skip",
+                    "reason": "onnx_file_not_found",
+                    "expected_path": onnx_path,
+                }, ensure_ascii=False))
+                # [Observability] ONNX 文件缺失（配置错误，P2 告警数据源）
+                emit_metric("yunshu_reranker_load_total",
+                            value=1, kind="counter",
+                            labels={"backend": "onnx", "status": "skipped",
+                                    "reason": "file_not_found"})
+                return False
+
+            t0 = time.time()
+            self._onnx_session = ort.InferenceSession(
+                onnx_path, providers=["CPUExecutionProvider"]
+            )
+            self._onnx_input_names = [
+                i.name for i in self._onnx_session.get_inputs()
+            ]
+            self._onnx_tokenizer = AutoTokenizer.from_pretrained(
+                self._model_name, trust_remote_code=True
+            )
+            self._use_onnx = True
+            elapsed = time.time() - t0
+
+            logger.info(json.dumps({
+                "module_name": "reranker",
+                "action": "onnx.loaded",
+                "model": self._model_name,
+                "onnx_file": self._onnx_variant,
+                "inputs": self._onnx_input_names,
+                "load_time_s": round(elapsed, 2),
+            }, ensure_ascii=False))
+            # [Observability] Prometheus 指标：ONNX 加载成功（counter + gauge 加载耗时）
+            emit_metric("yunshu_reranker_load_total",
+                        value=1, kind="counter",
+                        labels={"backend": "onnx", "status": "success"})
+            emit_metric("yunshu_reranker_load_time_seconds",
+                        value=elapsed, kind="gauge",
+                        labels={"backend": "onnx"})
+            return True
+
+        except Exception as e:  # noqa: BLE001
+            logger.warning(json.dumps({
+                "module_name": "reranker",
+                "action": "onnx.load_failed",
+                "model": self._model_name,
+                "error": str(e)[:300],
+            }, ensure_ascii=False))
+            # [Observability] Prometheus 指标：ONNX 加载失败（P0 告警数据源）
+            emit_metric("yunshu_reranker_load_total",
+                        value=1, kind="counter",
+                        labels={"backend": "onnx", "status": "failed"})
+            # 清理半初始化状态
+            self._onnx_session = None
+            self._onnx_tokenizer = None
+            self._use_onnx = False
+            return False
+
+    def _load_pytorch(self) -> bool:
+        """加载 PyTorch CrossEncoder 后端（降级路径）
+
+        【不易】失败时返回 False（降级到 RRF），不抛异常
+        【变易】trust_remote_code 兼容 jina 等自定义代码模型
+        【简易】单次 CrossEncoder 初始化
+
+        Returns:
+            True: PyTorch 模型加载成功
+            False: 加载失败（降级到 RRF）
+        """
+        try:
+            from sentence_transformers import CrossEncoder
+            # trust_remote_code=True：jina-reranker-v2 等含自定义代码仓库必需
+            # bge-reranker-v2-m3 等标准模型对此参数无副作用，安全兼容
+            self._model = CrossEncoder(self._model_name, trust_remote_code=True)
+            logger.info(json.dumps({
+                "module_name": "reranker",
+                "action": "pytorch.loaded",
                 "model": self._model_name,
             }, ensure_ascii=False))
+            # [Observability] PyTorch 后端加载成功
+            emit_metric("yunshu_reranker_load_total",
+                        value=1, kind="counter",
+                        labels={"backend": "pytorch", "status": "success"})
             return True
         except Exception as e:  # noqa: BLE001
             logger.warning(json.dumps({
                 "module_name": "reranker",
-                "action": "model.load_failed",
+                "action": "pytorch.load_failed",
                 "model": self._model_name,
                 "error": str(e)[:300],
             }, ensure_ascii=False))
+            # [Observability] PyTorch 加载失败（P0 双后端全挂告警数据源）
+            emit_metric("yunshu_reranker_load_total",
+                        value=1, kind="counter",
+                        labels={"backend": "pytorch", "status": "failed"})
             return False
 
     # ──────────────────────────────────────────────
@@ -167,6 +404,32 @@ class SkillReranker:
         return enabled not in ("false", "0", "off", "no")
 
     # ──────────────────────────────────────────────
+    #  可用性检查（公共契约）
+    # ──────────────────────────────────────────────
+
+    def is_available(self) -> bool:
+        """检查模型是否可用（触发懒加载）
+
+        【不易】不抛异常，失败返回 False；不改变 rerank 接口
+        【变易】触发懒加载（首次调用时加载模型，_load_attempted 防重试）
+        【简易】委托 _load_model，单次检查
+
+        用途:
+            loader.match 在调用 rerank 前先用此方法决定是否走精排分支：
+                if use_reranker and self._reranker.is_available():
+                    fused = self._reranker.rerank(...)
+
+        Returns:
+            True: 模型已加载或可加载（ONNX/PyTorch 任一后端可用）+ 环境开关启用
+            False: 模型不可用 / 加载失败 / 环境开关禁用
+        """
+        # 环境变量开关优先：禁用时直接返回 False，不触发加载
+        if not self._is_enabled():
+            return False
+        # 委托 _load_model（内部幂等：_load_attempted 防重试，已加载直接返回 True）
+        return self._load_model()
+
+    # ──────────────────────────────────────────────
     #  核心：rerank 接口
     # ──────────────────────────────────────────────
 
@@ -178,18 +441,22 @@ class SkillReranker:
     ) -> List[Any]:
         """对候选技能重新排序
 
-        【不易】不改变候选列表内容，仅重排序
-        【变易】模型不可用时降级到原始排序
+        【不易】不改变候选列表内容，仅重排序；不抛异常
+        【变易】模型不可用时降级到原始排序；支持 dict / SkillMatch 两种候选类型
         【简易】单次 predict，按分数降序取 top-k
 
         Args:
             query: 用户意图文本
-            candidates: RRF 融合后的候选列表（SkillMatch 对象）
-            top_k: 返回 top-k
+            candidates: RRF 融合后的候选列表，支持两种类型：
+                - SkillMatch 对象（单元测试用）：更新 score 属性 + score_breakdown
+                - dict 对象（loader 调用时用）：设置 rerank_score/original_rank/score 字段
+            top_k: 返回 top-k；None 时返回全部过滤后的候选（loader 用 None 表示外层切片）
 
         Returns:
-            重排序后的 top-k 候选（按 Reranker 分数降序）
-            模型不可用时返回原始候选的 top-k（降级）
+            重排序后的 top-k 候选（按 Reranker 分数降序）：
+            - dict 候选：每个 dict 含 rerank_score/original_rank/score 字段
+            - SkillMatch 候选：score 属性已更新，score_breakdown 含 rerank_score/original_rank
+            模型不可用时返回原始候选的 top-k（降级，不透出 rerank_score）
         """
         tid = _trace_id()
         t0 = time.time()
@@ -220,6 +487,11 @@ class SkillReranker:
                 "candidate_count": len(candidates),
                 "duration_ms": round(elapsed, 2),
             }, ensure_ascii=False))
+            # [Observability] rerank 降级（P1 降级率告警数据源）
+            emit_metric("yunshu_reranker_fallback_total",
+                        value=1, kind="counter",
+                        labels={"from": "reranker", "to": "original_order",
+                                "reason": "model_unavailable"})
             return candidates[:top_k]
 
         # 构造 query-document 对
@@ -243,22 +515,66 @@ class SkillReranker:
             }, ensure_ascii=False))
             return candidates[:top_k]
 
-        # 按分数降序排序
-        scored = list(zip(candidates, scores))
+        # 【不易修复】Cross-Encoder 输出 raw logits（典型范围 -10~+10），
+        # 但 min_score 是概率阈值（默认 0.001，[0,1] 区间）。
+        # 不做 sigmoid 时，负 logits 的合理匹配（如 jina-reranker-v2 量化 ONNX
+        # 对 'self_reflection'→'自我反思技能' 给出 -0.866）会被 min_score 误过滤，
+        # 导致 rerank 后 top 为空（实测 Precision@3 从 0.42 暴跌到 0.11）。
+        # sigmoid 是单调递增函数，不改变排序，仅让 rerank_score 落入 [0,1] 概率空间，
+        # 使 min_score 阈值恢复"过滤极低概率匹配"的语义。
+        # 影响：与 sentence-transformers CrossEncoder.predict(apply_softmax=True) 行为一致
+        scores = [_sigmoid(s) for s in scores]
+
+        # 按分数降序排序（记录原始位置用于 original_rank）
+        # 【变易】透出 original_rank：候选在输入 candidates 中的位置（1-based）
+        #         loader 期望此字段用于排查 rerank 前后排名变化
+        # indexed_pairs: [((orig_idx, candidate), score), ...]
+        indexed_candidates = list(enumerate(candidates))
+        scored = list(zip(indexed_candidates, scores))
         scored.sort(key=lambda x: x[1], reverse=True)
 
-        # 过滤低分候选 + 取 top-k
-        result = [
-            (c, s) for c, s in scored
+        # 过滤低分候选
+        filtered = [
+            (orig_idx, c, s) for (orig_idx, c), s in scored
             if s >= self._min_score
-        ][:top_k]
+        ]
+        # 【变易】top_k=None 时返回全部过滤后的候选（loader 用 None 表示外层切片）
+        # 显式处理 None 比 [:None] 更清晰，且避免后续 [:None] 语义歧义
+        effective_top_k = len(filtered) if top_k is None else top_k
+        result = filtered[:effective_top_k]
 
-        # 更新候选分数（如果候选对象支持 score 属性）
-        for c, s in result:
-            if hasattr(c, "score"):
-                c.score = round(float(s), 4)
+        # 更新候选分数 + 透出 rerank_score/original_rank
+        # 【变易】支持 dict 候选（loader 传 dict 列表）与 SkillMatch 对象（单元测试用）
+        #         - dict: 设置 rerank_score/original_rank/score 字段（loader 期望）
+        #         - SkillMatch: 更新 score 属性 + score_breakdown 透出 rerank_score
+        for _rerank_rank, (orig_idx, c, s) in enumerate(result, start=1):
+            rounded_score = round(float(s), 4)
+            if isinstance(c, dict):
+                c["rerank_score"] = rounded_score
+                c["original_rank"] = orig_idx + 1  # 原始 candidates 中的位置（1-based）
+                c["score"] = rounded_score  # 同步更新 score（向后兼容）
+            elif hasattr(c, "score"):
+                c.score = rounded_score
+                # 如果支持 score_breakdown，透出 rerank_score/original_rank
+                if hasattr(c, "score_breakdown"):
+                    if c.score_breakdown is None:
+                        c.score_breakdown = {}
+                    c.score_breakdown["rerank_score"] = rounded_score
+                    c.score_breakdown["original_rank"] = orig_idx + 1
 
         elapsed = (time.time() - t0) * 1000
+        # 【不易】sigmoid 分数范围日志：验证 sigmoid 转换后分数落在 [0,1] 概率空间
+        # 并暴露区分度（stddev 越小说明 reranker 对候选打分越接近，难以改变排序）
+        # 修复背景：评估发现 reranker 被调用（17.7x 耗时）但未改变排序，
+        # 需要从日志确认是否因 sigmoid 分数过于接近（区分度不足）
+        if scores:
+            score_min = float(min(scores))
+            score_max = float(max(scores))
+            score_mean = float(sum(scores) / len(scores))
+            score_var = sum((s - score_mean) ** 2 for s in scores) / len(scores)
+            score_stddev = float(math.sqrt(score_var))
+        else:
+            score_min = score_max = score_mean = score_stddev = 0.0
         logger.info(json.dumps({
             "trace_id": tid,
             "module_name": "reranker",
@@ -266,11 +582,24 @@ class SkillReranker:
             "query": query[:100],
             "candidate_count": len(candidates),
             "result_count": len(result),
-            "top_score": float(result[0][1]) if result else 0.0,
+            "top_score": float(result[0][2]) if result else 0.0,
+            # 【变易】sigmoid 分数范围（验证 [0,1] + 区分度诊断）
+            "score_min": round(score_min, 6),
+            "score_max": round(score_max, 6),
+            "score_mean": round(score_mean, 6),
+            "score_stddev": round(score_stddev, 6),
             "duration_ms": round(elapsed, 2),
         }, ensure_ascii=False))
+        # [Observability] rerank 成功（P99 延迟直方图 + 成功计数）
+        backend = "onnx" if self._use_onnx else "pytorch"
+        emit_metric("yunshu_rerank_duration_ms",
+                    value=elapsed, kind="histogram",
+                    labels={"backend": backend, "success": "true"})
+        emit_metric("yunshu_reranker_completed_total",
+                    value=1, kind="counter",
+                    labels={"backend": backend})
 
-        return [c for c, _ in result]
+        return [c for _, c, _ in result]
 
     # ──────────────────────────────────────────────
     #  辅助方法
@@ -295,28 +624,167 @@ class SkillReranker:
     def _predict_with_timeout(
         self, pairs: List[Tuple[str, str]], tid: str
     ) -> List[float]:
-        """子进程隔离预测（防 Windows 0xC0000005 崩溃）
+        """预测分发（ONNX 优先 → PyTorch 降级，带超时保护）
 
-        【不易】子进程隔离是保障稳定性的必要措施
-        【变易】超时可配置（SKILL_RERANKER_TIMEOUT）
-        【简易】multiprocessing.Process + terminate
+        【不易】超时降级返回 [0.0]*n，不抛异常；不改变返回值结构
+        【变易】ThreadPoolExecutor 软超时（_rerank_timeout 可配，默认 3s）
+        【简易】按 _use_onnx 标志分发到 _predict_onnx / _predict_pytorch
+
+        超时语义:
+            - 超时后主线程立即返回 [0.0]*n（触发 rerank 降级到原序）
+            - 后台 predict 线程无法真正终止（Python 线程限制），任其自然完成
+            - Windows CPU 环境下 v2-m3 推理 P99 可达 4.6s，3s 超时会触发降级
+              （建议通过 .env 调大 SKILL_RERANKER_RERANK_TIMEOUT 或换轻量模型）
 
         根据 project_memory:
-        > 0xC00000005 及类似崩溃码需通过 try/except 捕获
-        > 子进程隔离是保障稳定性的必要措施
+            > 0xC00000005 及类似崩溃码需通过 try/except 捕获
+            > 子进程隔离是保障稳定性的必要措施（Cross-Encoder 和 Embedding 检索均已实现）
+            本方法用 ThreadPoolExecutor 实现软超时，子进程隔离留待生产环境补齐
 
         Args:
             pairs: (query, document) 对列表
             tid: trace_id
 
         Returns:
-            分数列表（与 pairs 等长）
+            分数列表（与 pairs 等长，float 类型）
         """
-        # Windows 子进程隔离：用 multiprocessing
-        # 简化实现：直接预测（v6.5 原型阶段）
-        # 生产环境需改为 multiprocessing.Process + Queue
-        if self._model is None:
+        # 空对快速返回
+        if not pairs:
+            return []
+
+        # 选择 predict 函数（ONNX 优先 → PyTorch 降级）
+        if self._use_onnx and self._onnx_session is not None:
+            predict_fn = self._predict_onnx
+        elif self._model is not None:
+            predict_fn = self._predict_pytorch
+        else:
+            # 无可用后端
             return [0.0] * len(pairs)
 
+        # ThreadPoolExecutor 软超时包裹
+        # 【不易】超时/predict 异常均抛出，由 rerank() 的 except 捕获并降级返回原序
+        #         —— 不能返回 [0.0]*n，否则会被 min_score 过滤为空列表（违降级语义）
+        # 【简易】单线程池，超时后主线程返回，后台线程任其完成
+        # 【变易】不用 with 块：with 退出会 shutdown(wait=True) 阻塞等待后台线程
+        #         手动管理 + shutdown(wait=False) 让超时后立即返回，后台线程任其完成
+        from concurrent.futures import (
+            ThreadPoolExecutor,
+            TimeoutError as FuturesTimeout,
+        )
+        ex = ThreadPoolExecutor(max_workers=1)
+        try:
+            future = ex.submit(predict_fn, pairs, tid)
+            return future.result(timeout=self._rerank_timeout)
+        except FuturesTimeout:
+            # 超时：记录日志 + emit_metric 后 re-raise，让 rerank 降级返回原序
+            backend = "onnx" if self._use_onnx else "pytorch"
+            logger.warning(json.dumps({
+                "trace_id": tid,
+                "module_name": "reranker",
+                "action": "predict.timeout",
+                "timeout_s": self._rerank_timeout,
+                "pair_count": len(pairs),
+                "backend": backend,
+                "reason": "predict exceeded rerank_timeout, degrading to original order",
+            }, ensure_ascii=False))
+            emit_metric("yunshu_reranker_timeout_total",
+                        value=1, kind="counter",
+                        labels={"backend": backend})
+            raise  # re-raise FuturesTimeout，由 rerank 的 except 捕获降级
+        finally:
+            # wait=False：不阻塞等待后台线程，立即返回
+            # 后台 predict 线程无法真正终止（Python 线程限制），任其自然完成
+            ex.shutdown(wait=False)
+        # 其他异常（predict 抛出的 RuntimeError 等）直接传播，由 rerank 的 except 捕获降级
+
+    def _predict_pytorch(
+        self, pairs: List[Tuple[str, str]], tid: str
+    ) -> List[float]:
+        """PyTorch CrossEncoder 推理（提取为独立方法，便于超时包裹）
+
+        【不易】不改变返回值结构（float 分数列表）
+        【变易】predict 失败抛异常，由 rerank() 的 except 统一捕获降级（不返回 [0.0]*n）
+        【简易】单次 model.predict，O(n) 复杂度
+
+        Args:
+            pairs: (query, document) 对列表
+            tid: trace_id
+
+        Returns:
+            分数列表（与 pairs 等长，float 类型）
+        """
+        if not pairs:
+            return []
+        if self._model is None:
+            return [0.0] * len(pairs)
+        # 不 try/except：predict 异常由 rerank() 的 except 捕获并降级返回原序
+        # （与超时降级同路径，保持降级语义一致）
         scores = self._model.predict(pairs)
         return [float(s) for s in scores]
+
+    def _predict_onnx(
+        self, pairs: List[Tuple[str, str]], tid: str
+    ) -> List[float]:
+        """ONNX Runtime 推理
+
+        【不易】不改变返回值结构（float 分数列表）
+        【变易】支持动态 batch（pairs 数量可变）
+        【简易】单次 sess.run，O(n) 复杂度
+
+        Args:
+            pairs: (query, document) 对列表
+            tid: trace_id
+
+        Returns:
+            分数列表（与 pairs 等长，float 类型）
+        """
+        if not pairs:
+            return []
+        if self._onnx_session is None or self._onnx_tokenizer is None:
+            return [0.0] * len(pairs)
+
+        try:
+            import numpy as np
+
+            # 拆分 pairs 为两个并行 list（tokenizer 期望此格式）
+            texts_a = [p[0] for p in pairs]
+            texts_b = [p[1] for p in pairs]
+
+            # tokenize（batch 推理，padding 到 batch 内最长序列）
+            encoded = self._onnx_tokenizer(
+                texts_a, texts_b,
+                padding=True, truncation=True, max_length=512,
+                return_tensors="np",
+            )
+
+            # 按 ONNX 模型实际输入名构造 feed_dict（兼容不同变体）
+            feed = {}
+            for name in self._onnx_input_names:
+                if "input_ids" in name:
+                    feed[name] = encoded["input_ids"]
+                elif "attention_mask" in name:
+                    feed[name] = encoded["attention_mask"]
+                elif "token_type_ids" in name:
+                    # XLM-Roberta 通常无 token_type_ids，缺省填 0
+                    feed[name] = encoded.get(
+                        "token_type_ids", np.zeros_like(encoded["input_ids"])
+                    )
+
+            # ONNX 推理（C++ 引擎，无 GIL）
+            outputs = self._onnx_session.run(None, feed)
+            # logits 形状: (batch, 1) 或 (batch,)，展平为一维
+            scores = outputs[0].flatten()
+            return [float(s) for s in scores]
+
+        except Exception as e:  # noqa: BLE001
+            logger.warning(json.dumps({
+                "trace_id": tid,
+                "module_name": "reranker",
+                "action": "onnx.predict_failed",
+                "error": str(e)[:300],
+            }, ensure_ascii=False))
+            # [Observability] ONNX 推理失败（P1 推理失败率告警数据源）
+            emit_metric("yunshu_reranker_predict_failed_total",
+                        value=1, kind="counter",
+                        labels={"backend": "onnx"})
+            return [0.0] * len(pairs)
