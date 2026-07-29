@@ -1,5 +1,5 @@
 {
-  "trace_id": "7bb2215eb8d74fb1",
+  "trace_id": "d52cfc21b514494c",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -5903,7 +5903,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 24,
+      "line": 35,
       "source_file": "agent/skills_mgmt/observability.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5916,7 +5916,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 193,
+      "line": 204,
       "source_file": "agent/skills_mgmt/observability.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9739,6 +9739,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 744.2156270000027
+    "build_duration_ms": 973.2544240000038
   }
 }
