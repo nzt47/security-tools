@@ -138,8 +138,9 @@ jobs:
     # --timeout=60 --timeout-method=signal 的 SIGALRM 无法中断 C 扩展调用
     # (sentence_transformers / chromadb / sqlite-vec 的阻塞 join)，导致 pytest
     # 进程无限挂起。timeout-minutes 由 GitHub runner 强制 kill，是最后防线。
-    # 45 分钟 = 单测试 60s × 8661 个测试理论最大值的合理上界（实际约 30 分钟）
-    timeout-minutes: 45
+    # 60 分钟 = run 30426327728 实测：8661 测试 42min 跑到 94%（平均 0.31s/测试），
+    # 45min 不够（cancelled at 94%），60min 留 15min 余量跑完全部 + update-ci-dashboard
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -228,6 +229,24 @@ jobs:
             tests/regression/test_p0_security_fix.py \
             -v --tb=short -q --timeout=300
           echo "=== 安全回归测试全部通过 ==="
+
+      - name: 运行 BM25 优化回归测试
+        # 【不易】验证 BM25 长度归一化参数 b=0.5 优化不退化（短文档虚高缓解）
+        # Why 每次提交运行: b 值改动直接影响检索排序质量，需持续守护
+        # Why 不需 SKILLS_OFFLINE: verify_bm25_optimization.py 只用 InvertedIndex 纯 Python 实现，
+        #   不依赖 chromadb/torch（vector_store.py 延迟导入）
+        run: |
+          echo "=== 运行 BM25 短文档归一化回归测试 ==="
+          python scripts/verify_bm25_optimization.py
+          echo "=== BM25 回归测试通过 ==="
+
+      - name: 运行 BM25 极端场景回归测试
+        # 【不易】验证 b=0.5 在极端短文档场景下虚高不超标（1-token/term_freq极端/空文档边界）
+        # Why 额外运行: 基础验证只覆盖常规场景，极端场景守护 b 值边界
+        run: |
+          echo "=== 运行 BM25 极端短文档场景回归测试 ==="
+          python scripts/verify_bm25_extreme_cases.py
+          echo "=== BM25 极端场景回归测试通过 ==="
 
       - name: 准备覆盖率数据
         run: |
