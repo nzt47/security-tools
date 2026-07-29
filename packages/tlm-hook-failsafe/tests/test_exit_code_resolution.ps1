@@ -145,8 +145,9 @@ Write-Host "[6/6] Invoke-HookWithCapture real hook + -Resolve..." -ForegroundCol
 
 # 跨平台：用 powershell.exe（Windows）/ pwsh（Unix）执行 .ps1 脚本
 # （System.Diagnostics.Process 在 UseShellExecute=false 时不走 shell 关联，.sh/.bat 不能直接执行）
-$isWindows = ($PSVersionTable.Platform -ne 'Unix') -and ($env:OS -eq 'Windows_NT')
-$pwshExe   = if ($isWindows) { 'powershell.exe' } else { 'pwsh' }
+# 不易：PS 7 内置 $IsWindows 为只读自动变量，不可赋值；改用 $env:OS 判断（PS 5.1/7 通用）
+$onWindows = ($env:OS -eq 'Windows_NT')
+$pwshExe   = if ($onWindows) { 'powershell.exe' } else { 'pwsh' }
 # 含中文的 .ps1 必须用 UTF-8 with BOM，否则 PS 5.1 用 GBK 解码导致中文损坏
 $utf8WithBom = New-Object System.Text.UTF8Encoding($true)
 
