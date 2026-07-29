@@ -32,9 +32,6 @@ on:
       - 'packages/tlm-hook-failsafe/**'
       - 'scripts/dev/hook_fail_safe.psm1'
       - '.github/workflows/hook-failsafe-e2e.yml'
-  schedule:
-    # UTC 04:00 = 北京时间 12:00（每日）
-    - cron: '0 4 * * *'
   workflow_dispatch:
     inputs:
       ps_version:
@@ -101,12 +98,12 @@ jobs:
         run: |
           $result = "${{ job.status }}"
           $version = "${{ steps.publish.outputs.version }}"
-          Write-Host "## LocalPSRepo 注册与发布" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| 项目 | 值 |" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "|------|-----|" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| 模块版本 | $version |" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| 状态 | $result |" >> $env:GITHUB_STEP_SUMMARY
+          "## LocalPSRepo 注册与发布" >> $env:GITHUB_STEP_SUMMARY
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "| 项目 | 值 |" >> $env:GITHUB_STEP_SUMMARY
+          "|------|-----|" >> $env:GITHUB_STEP_SUMMARY
+          "| 模块版本 | $version |" >> $env:GITHUB_STEP_SUMMARY
+          "| 状态 | $result |" >> $env:GITHUB_STEP_SUMMARY
 
   # =====================================================================
   # Job 2: 单元测试（错误码解释层，无 LocalPSRepo 依赖）
@@ -158,11 +155,11 @@ jobs:
         shell: ${{ matrix.shell }}
         run: |
           $result = "${{ job.status }}"
-          Write-Host "## 单元测试结果 (PS ${{ matrix.ps-label }})" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| 项目 | 状态 |" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "|------|------|" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| 错误码解释层 (PS ${{ matrix.ps-label }}) | $result |" >> $env:GITHUB_STEP_SUMMARY
+          "## 单元测试结果 (PS ${{ matrix.ps-label }})" >> $env:GITHUB_STEP_SUMMARY
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "| 项目 | 状态 |" >> $env:GITHUB_STEP_SUMMARY
+          "|------|------|" >> $env:GITHUB_STEP_SUMMARY
+          "| 错误码解释层 (PS ${{ matrix.ps-label }}) | $result |" >> $env:GITHUB_STEP_SUMMARY
 
   # =====================================================================
   # Job 3: E2E 测试（团队集成 + 多仓库同步，-CI 模式）
@@ -233,12 +230,12 @@ jobs:
         shell: ${{ matrix.shell }}
         run: |
           $result = "${{ job.status }}"
-          Write-Host "## E2E 测试结果 (PS ${{ matrix.ps-label }})" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| 测试 | 状态 |" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "|------|------|" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| 团队集成 (PS ${{ matrix.ps-label }}) | $result |" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| 多仓库同步 (PS ${{ matrix.ps-label }}) | $result |" >> $env:GITHUB_STEP_SUMMARY
+          "## E2E 测试结果 (PS ${{ matrix.ps-label }})" >> $env:GITHUB_STEP_SUMMARY
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "| 测试 | 状态 |" >> $env:GITHUB_STEP_SUMMARY
+          "|------|------|" >> $env:GITHUB_STEP_SUMMARY
+          "| 团队集成 (PS ${{ matrix.ps-label }}) | $result |" >> $env:GITHUB_STEP_SUMMARY
+          "| 多仓库同步 (PS ${{ matrix.ps-label }}) | $result |" >> $env:GITHUB_STEP_SUMMARY
 
   # =====================================================================
   # Job 4: 测试总结与通知

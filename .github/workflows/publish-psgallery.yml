@@ -120,13 +120,13 @@ jobs:
         shell: powershell
         run: |
           $result = "${{ job.status }}"
-          Write-Host "## Dry-run 验证结果" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| 项目 | 状态 |" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "|------|------|" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| sync-from-source | $result |" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| nuget pack | $result |" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| .nupkg 产物 | $result |" >> $env:GITHUB_STEP_SUMMARY
+          "## Dry-run 验证结果" >> $env:GITHUB_STEP_SUMMARY
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "| 项目 | 状态 |" >> $env:GITHUB_STEP_SUMMARY
+          "|------|------|" >> $env:GITHUB_STEP_SUMMARY
+          "| sync-from-source | $result |" >> $env:GITHUB_STEP_SUMMARY
+          "| nuget pack | $result |" >> $env:GITHUB_STEP_SUMMARY
+          "| .nupkg 产物 | $result |" >> $env:GITHUB_STEP_SUMMARY
 
   # =====================================================================
   # Job 2: 真实发布到 PSGallery（门控：tag push 或 手动 force_publish）
@@ -221,10 +221,10 @@ jobs:
         run: |
           $result = "${{ job.status }}"
           $version = "${{ steps.version.outputs.version }}"
-          Write-Host "## PSGallery 发布结果" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| 项目 | 值 |" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "|------|-----|" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| 版本 | $version |" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| 状态 | $result |" >> $env:GITHUB_STEP_SUMMARY
-          Write-Host "| PSGallery | https://www.powershellgallery.com/packages/tlm-hook-failsafe/$version |" >> $env:GITHUB_STEP_SUMMARY
+          "## PSGallery 发布结果" >> $env:GITHUB_STEP_SUMMARY
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "| 项目 | 值 |" >> $env:GITHUB_STEP_SUMMARY
+          "|------|-----|" >> $env:GITHUB_STEP_SUMMARY
+          "| 版本 | $version |" >> $env:GITHUB_STEP_SUMMARY
+          "| 状态 | $result |" >> $env:GITHUB_STEP_SUMMARY
+          "| PSGallery | https://www.powershellgallery.com/packages/tlm-hook-failsafe/$version |" >> $env:GITHUB_STEP_SUMMARY
