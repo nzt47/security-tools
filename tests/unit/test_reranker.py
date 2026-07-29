@@ -36,7 +36,11 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 if _PROJECT_ROOT not in sys.path:
     sys.path.insert(0, _PROJECT_ROOT)
 
-from agent.skills_mgmt.reranker import SkillReranker
+from agent.skills_mgmt.reranker import SkillReranker, _sigmoid
+
+# 【变易】reranker 输出经 sigmoid 映射到 [0,1] 概率空间（Cross-Encoder 标准）
+# 测试断言用 round(_sigmoid(mock_logit), 4) 计算预期值，自描述"mock 返回 logits"
+_exp_sigmoid = lambda x: round(_sigmoid(x), 4)
 
 
 # ════════════════════════════════════════════════════════════
@@ -256,7 +260,9 @@ class TestRerankInterface:
         assert result[0].skill_id == "voice_interaction"
 
     def test_rerank_filters_low_score(self, sample_candidates):
-        os.environ["SKILL_RERANKER_MIN_SCORE"] = "0.2"
+        # 【变易】sigmoid 后 mock [0.5, 0.8, 0.1] → [0.6225, 0.6900, 0.5250]
+        # min_score=0.55 时过滤 sigmoid(0.1)=0.5250 < 0.55，保留 2 个
+        os.environ["SKILL_RERANKER_MIN_SCORE"] = "0.55"
         reranker = SkillReranker()
         mock_model = MagicMock()
         mock_model.predict.return_value = [0.5, 0.8, 0.1]
@@ -268,7 +274,7 @@ class TestRerankInterface:
         assert all(r.skill_id != "pdf_parser" for r in result)
 
     def test_rerank_updates_score(self, sample_candidates):
-        """rerank 后候选的 score 属性被更新"""
+        """rerank 后候选的 score 属性被更新（sigmoid 后概率值）"""
         reranker = SkillReranker()
         mock_model = MagicMock()
         mock_model.predict.return_value = [0.5555, 0.8888, 0.1111]
@@ -277,7 +283,7 @@ class TestRerankInterface:
             reranker._load_model()
             result = reranker.rerank("test", sample_candidates, top_k=3)
         assert result[0].skill_id == "voice_interaction"
-        assert result[0].score == 0.8888  # round(0.8888, 4)
+        assert result[0].score == _exp_sigmoid(0.8888)  # sigmoid 后概率
 
     def test_rerank_predict_failure_fallback(self, sample_candidates):
         reranker = SkillReranker()
@@ -334,7 +340,7 @@ class TestIntegration:
             result = reranker.rerank("帮我反思", sample_candidates, top_k=2)
         assert len(result) == 2
         assert result[0].skill_id == "self_reflection"
-        assert result[0].score == 0.95
+        assert result[0].score == _exp_sigmoid(0.95)  # sigmoid 后概率
 
     def test_degradation_chain(self, sample_candidates):
         reranker = SkillReranker()
