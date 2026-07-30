@@ -106,6 +106,23 @@ class PrometheusMetricsExporter:
             buckets=[0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0]
         )
 
+        # 会话指标（比 interaction 更高一级：一个会话包含多次交互）
+        # [不易] status 标签对齐 alerts_production.yml 与 yunshu-alerts-monitor.json 的 {status="exception"} 过滤
+        # 取值：success（正常完成）/ exception（异常终止）
+        # PromQL: sum(rate(Yunshu_conversations_total{status="exception"}[5m])) / sum(rate(Yunshu_conversations_total[5m]))
+        self.conversation_total = Counter(
+            f"{namespace}_conversations_total",
+            "Total number of conversations",
+            ["status"]
+        )
+
+        # 活跃连接数（对齐 alerts_production.yml 的 HighActiveConnections 告警，阈值 100）
+        # 【不易】无标签 Gauge，与告警规则 Yunshu_active_connections > 100 用法一致
+        self.active_connections = Gauge(
+            f"{namespace}_active_connections",
+            "Number of active connections",
+        )
+
         self.memory_count = Gauge(
             f"{namespace}_memory_count",
             "Number of memories stored"
@@ -134,6 +151,56 @@ class PrometheusMetricsExporter:
                 "Circuit breaker state (0=closed, 1=open, 2=half_open)",
                 ["name"]
             )
+
+        # CI/CD 流水线指标（对齐 dashboard yunshu-full-monitoring.json）
+        # [不易] 标签严格匹配 dashboard PromQL：by(stage)→[stage]、{{environment}}→[environment]、by(status)→[status]
+        self.ci_pipeline_duration = Gauge(
+            f"{namespace}_ci_pipeline_duration_seconds",
+            "CI pipeline duration in seconds",
+        )
+        self.ci_test_coverage = Gauge(
+            f"{namespace}_ci_test_coverage_percent",
+            "CI test coverage percentage",
+        )
+        self.ci_test_failures = Counter(
+            f"{namespace}_ci_test_failures_total",
+            "Total CI test failures",
+        )
+        self.ci_build_failures = Counter(
+            f"{namespace}_ci_build_failures_total",
+            "Total CI build failures",
+        )
+        self.ci_pipeline_runs = Counter(
+            f"{namespace}_ci_pipeline_runs_total",
+            "Total CI pipeline runs",
+            ["stage"],
+        )
+
+        # 部署与回滚指标
+        # [不易] deployment_status 语义：0=Stable, 1=Deploying, 2=Rollback, 3=Failed（对齐 dashboard mappings）
+        self.deployment_status = Gauge(
+            f"{namespace}_deployment_status",
+            "Deployment status (0=Stable, 1=Deploying, 2=Rollback, 3=Failed)",
+            ["environment"],
+        )
+        self.deployment_duration = Gauge(
+            f"{namespace}_deployment_duration_seconds",
+            "Deployment duration in seconds",
+            ["environment"],
+        )
+        self.deployment_failures = Counter(
+            f"{namespace}_deployment_failures_total",
+            "Total deployment failures",
+        )
+        self.deployment_total = Counter(
+            f"{namespace}_deployment_total",
+            "Total deployments",
+            ["status"],
+        )
+        self.rollback_total = Counter(
+            f"{namespace}_rollback_total",
+            "Total rollbacks",
+        )
 
         self._server_thread: Optional[threading.Thread] = None
         self._running = False
@@ -205,6 +272,31 @@ class PrometheusMetricsExporter:
             logger.error("[ERROR] Failed to record interaction: %s", e)
             self._safe_record_error(e)
 
+    def record_conversation(self, status: str):
+        """记录一次会话（按 status 分组）
+
+        [不易] status 取值对齐 alerts_production.yml 的 {status="exception"} 过滤：
+            - success: 正常完成的会话
+            - exception: 异常终止的会话（触发 HighConversationErrorRate 告警）
+        """
+        try:
+            self.conversation_total.labels(status=status).inc()
+        except Exception as e:
+            logger.error("[ERROR] Failed to record conversation: %s", e)
+            self._safe_record_error(e, {"conversation_status": status})
+
+    def set_active_connections(self, count: int):
+        """设置当前活跃连接数
+
+        [不易] 对齐 alerts_production.yml 的 HighActiveConnections 告警（阈值 100）
+        建议在 HTTP 中间件中调用：连接建立时 +1，连接断开时 -1，定期 set 当前值
+        """
+        try:
+            self.active_connections.set(count)
+        except Exception as e:
+            logger.error("[ERROR] Failed to set active connections: %s", e)
+            self._safe_record_error(e)
+
     def set_memory_count(self, count: int):
         """设置记忆数量"""
         try:
@@ -220,6 +312,88 @@ class PrometheusMetricsExporter:
         except Exception as e:
             logger.error("[ERROR] Failed to record alert: %s", e)
             self._safe_record_error(e, {"alert_level": level})
+
+    # === CI/CD 指标记录方法 ===
+    def set_ci_pipeline_duration(self, duration_seconds: float):
+        """设置 CI 流水线耗时（秒）"""
+        try:
+            self.ci_pipeline_duration.set(duration_seconds)
+        except Exception as e:
+            logger.error("[ERROR] Failed to set CI pipeline duration: %s", e)
+            self._safe_record_error(e)
+
+    def set_ci_test_coverage(self, coverage_percent: float):
+        """设置测试覆盖率（百分比）"""
+        try:
+            self.ci_test_coverage.set(coverage_percent)
+        except Exception as e:
+            logger.error("[ERROR] Failed to set CI test coverage: %s", e)
+            self._safe_record_error(e)
+
+    def record_ci_test_failure(self):
+        """记录一次 CI 测试失败"""
+        try:
+            self.ci_test_failures.inc()
+        except Exception as e:
+            logger.error("[ERROR] Failed to record CI test failure: %s", e)
+            self._safe_record_error(e)
+
+    def record_ci_build_failure(self):
+        """记录一次 CI 构建失败"""
+        try:
+            self.ci_build_failures.inc()
+        except Exception as e:
+            logger.error("[ERROR] Failed to record CI build failure: %s", e)
+            self._safe_record_error(e)
+
+    def record_ci_pipeline_run(self, stage: str):
+        """记录一次 CI 流水线运行（按 stage 分组）"""
+        try:
+            self.ci_pipeline_runs.labels(stage=stage).inc()
+        except Exception as e:
+            logger.error("[ERROR] Failed to record CI pipeline run: %s", e)
+            self._safe_record_error(e)
+
+    # === 部署与回滚指标记录方法 ===
+    def set_deployment_status(self, environment: str, status: int):
+        """设置部署状态（0=Stable, 1=Deploying, 2=Rollback, 3=Failed）"""
+        try:
+            self.deployment_status.labels(environment=environment).set(status)
+        except Exception as e:
+            logger.error("[ERROR] Failed to set deployment status: %s", e)
+            self._safe_record_error(e)
+
+    def set_deployment_duration(self, environment: str, duration_seconds: float):
+        """设置部署耗时（秒）"""
+        try:
+            self.deployment_duration.labels(environment=environment).set(duration_seconds)
+        except Exception as e:
+            logger.error("[ERROR] Failed to set deployment duration: %s", e)
+            self._safe_record_error(e)
+
+    def record_deployment_failure(self):
+        """记录一次部署失败"""
+        try:
+            self.deployment_failures.inc()
+        except Exception as e:
+            logger.error("[ERROR] Failed to record deployment failure: %s", e)
+            self._safe_record_error(e)
+
+    def record_deployment(self, status: str):
+        """记录一次部署（按 status 分组：success/failure/rollback）"""
+        try:
+            self.deployment_total.labels(status=status).inc()
+        except Exception as e:
+            logger.error("[ERROR] Failed to record deployment: %s", e)
+            self._safe_record_error(e)
+
+    def record_rollback(self):
+        """记录一次回滚"""
+        try:
+            self.rollback_total.inc()
+        except Exception as e:
+            logger.error("[ERROR] Failed to record rollback: %s", e)
+            self._safe_record_error(e)
 
     def start(self):
         """启动 Prometheus HTTP 服务器（带重试机制）"""
@@ -476,3 +650,92 @@ def set_loaded_history_count(file_path, count):
 def set_invalid_ratio(file_path, ratio):
     """设置无效行比例"""
     yunshu_safe_file_reader_invalid_ratio.labels(file_path=file_path).set(ratio)
+
+
+# ============================================================================
+# 技能检索指标（供 HPA + Grafana dashboard 消费）
+# [不易] HPA 的 histogram_quantile 和 rate() 需要 prometheus_client 原生指标
+# BusinessMetricsCollector 的自管理字典不支持 prometheus_client 原生 histogram
+# bucket，故在此独立定义，与 emit_metric 的 yunshu_skill_* 并存（向后兼容）
+# [变易] buckets 覆盖 HPA P99 阈值 40ms 附近（压测报告 5000 技能 P99≈42ms）
+# ============================================================================
+
+skill_match_latency_ms = _safe_histogram(
+    'skill_match_latency_ms',
+    'Skill match latency in milliseconds (HPA P99 source)',
+    ['layer', 'method', 'success'],
+    # buckets 对齐 HPA 阈值 40ms：1/5/10/20/30/40/50/75/100/200/500/1000
+    # 40ms 是 HPA 扩容触发点，需精确覆盖以支持 histogram_quantile(0.99)
+    buckets=[1, 5, 10, 20, 30, 40, 50, 75, 100, 200, 500, 1000]
+)
+
+skill_match_count_total = _safe_counter(
+    'skill_match_count_total',
+    'Total skill match requests (Counter for HPA rate() / QPS calculation)',
+    ['layer', 'method', 'success']
+)
+
+
+def record_skill_match_latency(layer: str, method: str, success: bool, duration_ms: float):
+    """记录技能匹配延迟（prometheus_client 原生 Histogram，支持 histogram_quantile）
+
+    HPA 通过 Prometheus Adapter 查询:
+        histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket[5m])) by (le))
+
+    Args:
+        layer: 架构层级（"1"=元数据层）
+        method: 检索方法（tfidf / vector / rrf）
+        success: 是否成功
+        duration_ms: 延迟（毫秒）
+    """
+    skill_match_latency_ms.labels(
+        layer=layer, method=method, success="true" if success else "false"
+    ).observe(duration_ms)
+
+
+def record_skill_match_count(layer: str, method: str, success: bool):
+    """记录技能匹配请求计数（prometheus_client 原生 Counter，支持 rate() 计算 QPS）
+
+    HPA 通过 Prometheus Adapter 查询:
+        sum(rate(skill_match_count_total[1m]))
+
+    Args:
+        layer: 架构层级（"1"=元数据层）
+        method: 检索方法（tfidf / vector / rrf）
+        success: 是否成功
+    """
+    skill_match_count_total.labels(
+        layer=layer, method=method, success="true" if success else "false"
+    ).inc()
+
+
+# ============================================================================
+# 意图识别三层漏斗占比指标（任务5：三层占比统计）
+# 参考 skill_match_count_total 模块级定义模式
+# layer 取值: rule(规则层) / template(模板层) / semantic(语义层) / llm(大模型层) / reject(拒识)
+# ============================================================================
+
+yunshu_intent_layer_total = _safe_counter(
+    'yunshu_intent_layer_total',
+    'Intent routing layer hit counter (rule/template/semantic/llm/reject)',
+    ['layer']
+)
+
+
+def record_intent_layer(layer: str):
+    """记录意图识别各层命中次数（供三层占比统计）
+
+    Grafana 可通过以下 PromQL 计算各层占比:
+        sum by (layer) (rate(yunshu_intent_layer_total[5m]))
+        / on() sum(rate(yunshu_intent_layer_total[5m]))
+
+    Args:
+        layer: 命中层级
+            - "rule": 规则层(WorkflowEngine)命中
+            - "template": 模板层(IntentRouter+ResponseTemplates)命中
+            - "semantic": 语义层(SkillLoader RRF)命中
+            - "llm": 大模型层处理
+            - "reject": 未知意图拒识
+    """
+    yunshu_intent_layer_total.labels(layer=layer).inc()
+
