@@ -1,5 +1,5 @@
 {
-  "trace_id": "d52cfc21b514494c",
+  "trace_id": "d3a20704fd8d4099",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -351,7 +351,7 @@
       "name": "prometheus",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 5,
+      "in_degree": 6,
       "out_degree": 9
     },
     {
@@ -359,7 +359,7 @@
       "name": "state_manager",
       "layer": "core",
       "file_path": "agent/state_manager.py",
-      "in_degree": 9,
+      "in_degree": 10,
       "out_degree": 3
     },
     {
@@ -461,7 +461,7 @@
     {
       "path": "agent.response_workflows",
       "name": "response_workflows",
-      "layer": "response_workflows",
+      "layer": "core",
       "file_path": "",
       "in_degree": 2,
       "out_degree": 0
@@ -1072,7 +1072,7 @@
       "layer": "orchestrator",
       "file_path": "agent/orchestrator/orchestrator.py",
       "in_degree": 0,
-      "out_degree": 16
+      "out_degree": 19
     },
     {
       "path": "agent.guardrails.input_guard",
@@ -1109,6 +1109,14 @@
     {
       "path": "agent.orchestrator.response_builder",
       "name": "response_builder",
+      "layer": "orchestrator",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.orchestrator.dialog_state",
+      "name": "dialog_state",
       "layer": "orchestrator",
       "file_path": "",
       "in_degree": 1,
@@ -2924,11 +2932,11 @@
       "source": "agent.tool_calling",
       "target": "agent.response_workflows",
       "source_layer": "core",
-      "target_layer": "response_workflows",
+      "target_layer": "core",
       "import_type": "from_import",
       "line": 747,
       "source_file": "agent/tool_calling.py",
-      "is_cross_layer": true,
+      "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -4625,11 +4633,37 @@
     },
     {
       "source": "agent.orchestrator.orchestrator",
+      "target": "agent.monitoring.prometheus",
+      "source_layer": "orchestrator",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 72,
+      "source_file": "agent/orchestrator/orchestrator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.orchestrator",
+      "target": "agent.orchestrator.dialog_state",
+      "source_layer": "orchestrator",
+      "target_layer": "orchestrator",
+      "import_type": "from_import",
+      "line": 271,
+      "source_file": "agent/orchestrator/orchestrator.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.orchestrator",
       "target": "agent.response_workflows",
       "source_layer": "orchestrator",
-      "target_layer": "response_workflows",
+      "target_layer": "core",
       "import_type": "from_import",
-      "line": 251,
+      "line": 289,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4642,7 +4676,20 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1079,
+      "line": 564,
+      "source_file": "agent/orchestrator/orchestrator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.orchestrator",
+      "target": "agent.state_manager",
+      "source_layer": "orchestrator",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 1253,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4655,7 +4702,7 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 725,
+      "line": 899,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4668,7 +4715,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tool_schema_pruner",
       "import_type": "from_import",
-      "line": 738,
+      "line": 912,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4681,7 +4728,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tool_fewshot_store",
       "import_type": "from_import",
-      "line": 765,
+      "line": 939,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4694,7 +4741,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 766,
+      "line": 940,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9504,7 +9551,7 @@
       "source_layer": "monitoring",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 291,
+      "line": 465,
       "source_file": "agent/monitoring/prometheus.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9543,7 +9590,7 @@
       "source_layer": "monitoring",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 146,
+      "line": 213,
       "source_file": "agent/monitoring/prometheus.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9556,7 +9603,7 @@
       "source_layer": "monitoring",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 350,
+      "line": 524,
       "source_file": "agent/monitoring/prometheus.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9582,7 +9629,7 @@
       "source_layer": "monitoring",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 242,
+      "line": 416,
       "source_file": "agent/monitoring/prometheus.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9595,7 +9642,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 341,
+      "line": 515,
       "source_file": "agent/monitoring/prometheus.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9695,18 +9742,18 @@
     }
   ],
   "stats": {
-    "total_files": 338,
-    "total_nodes": 267,
-    "total_edges": 581,
-    "cross_layer_edges": 367,
+    "total_files": 339,
+    "total_nodes": 268,
+    "total_edges": 584,
+    "cross_layer_edges": 368,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
-      "core": 56,
+      "core": 57,
       "lazy_loader": 3,
       "monitoring": 27,
       "utils": 5,
-      "orchestrator": 10,
+      "orchestrator": 11,
       "tools": 19,
       "extensions": 15,
       "observability": 5,
@@ -9714,7 +9761,6 @@
       "skills_mgmt": 9,
       "workflow_learning": 3,
       "unknown": 1,
-      "response_workflows": 1,
       "caching": 2,
       "workflow_engine": 3,
       "network": 3,
@@ -9739,6 +9785,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 973.2544240000038
+    "build_duration_ms": 1210.7296979999944
   }
 }

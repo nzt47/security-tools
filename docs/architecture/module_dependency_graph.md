@@ -66,6 +66,7 @@ flowchart LR
         agent_permission_system["agent.permission_system"]
         agent_prometheus_exporter["agent.prometheus_exporter"]:::crosslayer
         agent_rate_limiter["agent.rate_limiter"]:::crosslayer
+        agent_response_workflows["agent.response_workflows"]:::crosslayer
         agent_scheduling["agent.scheduling"]:::crosslayer
         agent_search_aggregator["agent.search_aggregator"]:::crosslayer
         agent_search_performance_monitor["agent.search_performance_monitor"]:::crosslayer
@@ -208,6 +209,7 @@ flowchart LR
     end
     subgraph orchestrator [orchestrator]
         agent_orchestrator["agent.orchestrator"]:::crosslayer
+        agent_orchestrator_dialog_state["agent.orchestrator.dialog_state"]
         agent_orchestrator_lifecycle_manager["agent.orchestrator.lifecycle_manager"]
         agent_orchestrator_message_handler["agent.orchestrator.message_handler"]
         agent_orchestrator_observability["agent.orchestrator.observability"]
@@ -233,9 +235,6 @@ flowchart LR
     subgraph quality [quality]
         agent_quality_defect_tracker["agent.quality.defect_tracker"]
         agent_quality_observability["agent.quality.observability"]
-    end
-    subgraph response_workflows [response_workflows]
-        agent_response_workflows["agent.response_workflows"]:::crosslayer
     end
     subgraph server_routes [server_routes]
         agent_server_routes_extensions["agent.server_routes.extensions"]
@@ -403,7 +402,7 @@ flowchart LR
     agent_tool_calling --> agent_circuit_breaker
     agent_tool_calling --> agent_circuit_breaker
     agent_tool_calling -.-> agent_observability_tool_trace
-    agent_tool_calling -.-> agent_response_workflows
+    agent_tool_calling --> agent_response_workflows
     agent_scheduling --> agent_logging_utils
     agent_digital_life_state --> agent_state_manager
     agent_digital_life_state --> agent_logging_utils
@@ -534,7 +533,10 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_tool_calling
     agent_orchestrator_orchestrator -.-> agent_tool_router
     agent_orchestrator_orchestrator -.-> agent_tool_router_hybrid
+    agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
+    agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
     agent_orchestrator_orchestrator -.-> agent_response_workflows
+    agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator --> agent
     agent_orchestrator_orchestrator -.-> agent_tool_schema_pruner
@@ -932,10 +934,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 338
-- 模块节点数: 267
-- 依赖边数: 581
-- 跨层调用数: 367
+- 扫描文件数: 339
+- 模块节点数: 268
+- 依赖边数: 584
+- 跨层调用数: 368
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 973.25 ms
+- 构建耗时: 1210.73 ms
