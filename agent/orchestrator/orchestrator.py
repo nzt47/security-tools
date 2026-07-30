@@ -60,6 +60,21 @@ def _trace_id():
     except Exception:
         pass
     return uuid.uuid4().hex[:16]
+
+
+def _record_intent_layer(layer: str) -> None:
+    """记录意图识别各层命中（延迟导入 prometheus 避免循环依赖）
+
+    Args:
+        layer: rule / template / semantic / llm / reject
+    """
+    try:
+        from agent.monitoring.prometheus import record_intent_layer as _rec
+        _rec(layer)
+    except Exception:
+        pass  # 指标记录失败不影响主链路
+
+
 class Orchestrator:
     """云枢主编排器
 
@@ -186,6 +201,7 @@ class Orchestrator:
             self._memory.score_and_save_message("assistant", workflow_result.output)
             if trace_id:
                 trace_store.end_trace(trace_id, workflow_result.output)
+            _record_intent_layer("rule")
             return ResponseBuilder.workflow_result(
                 output=workflow_result.output,
                 intent=workflow_result.intent,
@@ -246,13 +262,35 @@ class Orchestrator:
                 reject_reason, self._current_mode.value
             ).to_dict()
 
+        # ── 第二步半：DST 指代消解（省略句补全）──
+        # 【变易】从上一轮对话状态继承关键词/意图，将"那个呢"/"然后呢"等
+        #         省略句补全为完整查询，使前序规则层和语义层能正确匹配。
+        #         补全后的输入仅用于路由决策，LLM 仍用原始输入。
+        routing_input = user_input
+        try:
+            from agent.orchestrator.dialog_state import get_dialog_state
+            _dst = get_dialog_state(getattr(self, '_session_id', 'default'))
+            _augmented = _dst.resolve(user_input)
+            if _augmented:
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.dst', 'trace_id_ctx': trace_id, 'message': '[DST] 省略句补全: "%s" → "%s"' % (user_input, _augmented)}))
+                routing_input = _augmented
+            # 更新 DST 关键词（供下一轮补全用；intent 在路由后由 _update_dst_after_route 更新）
+            try:
+                _kw = MessageHandler.extract_keywords(user_input)
+                if _kw:
+                    _dst.last_keywords = _kw
+            except Exception:
+                pass
+        except Exception as _dst_e:
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.dst.error', 'message': '[DST] 补全失败，用原始输入: %s' % (_dst_e,)}))
+
         # ── 第三步：意图路由 + 模板匹配（零 LLM 消耗）──
         try:
             from agent.response_workflows import (
                 IntentRouter, ResponseTemplates, Confidence,
             )
-            intent, confidence = IntentRouter.classify(user_input)
-            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '[路由] 意图=%s, 置信度=%s' % (intent, confidence)}))
+            intent, confidence = IntentRouter.classify(routing_input)
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '[路由] 意图=%s, 置信度=%s (routing_input="%s")' % (intent, confidence, routing_input[:40])}))
 
             is_follow_up = MessageHandler.is_follow_up({
                 'last_was_template': getattr(self, '_last_was_template', False),
@@ -293,14 +331,42 @@ class Orchestrator:
                                       "confidence": confidence.name},
                         ))
                         trace_store.end_trace(trace_id, response)
+                    _record_intent_layer("template")
                     return ResponseBuilder.success(response).to_dict()
-        except ImportError:
-            pass
+        except ImportError as _ie:
+            # 【不易】不再静默吞错：response_workflows 缺失意味着模板语义层失效，
+            # 所有意图将直落 LLM，违反三层漏斗架构。输出 WARNING 告警便于排查。
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.route.import_error', 'message': '[路由] response_workflows 导入失败，模板语义层失效，全部降级到 LLM: %s' % (_ie,)}))
         except Exception as e:
             logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.llm', 'message': '[路由] 路由失败，降级到 LLM: %s' % (e,)}))
         self._last_was_template = False
 
+        # ── 第三步半：语义层匹配（SkillLoader RRF 三路融合）──
+        # 【变易】语义层接入：规则层(WorkflowEngine)+模板层(IntentRouter)未命中后，
+        #         调用 SkillLoader.match 做向量+BM25+TF-IDF 三路 RRF 融合召回。
+        #         命中高置信度技能时记录语义层命中（供占比统计），并将技能列表
+        #         注入 self._semantic_matched_skills 供 _call_llm 增强上下文。
+        #         任何异常都降级到 LLM（守【不易】主链路稳定性）。
+        semantic_skills = self._semantic_layer_match(user_input, trace_id)
+
+        # ── 第三步三：未知意图拒识检查 ──
+        # 【不易】拒识条件：规则层+模板层+语义层三层均未命中，且输入过短/无意义
+        #         拒识阈值通过环境变量 ORCHESTRATOR_REJECT_THRESHOLD 配置（默认 3 字符）
+        # 【简易】软拒识——返回引导文案，不抛异常，记录 reject 指标
+        import os as _os_reject
+        _reject_min_len = int(_os_reject.environ.get("ORCHESTRATOR_REJECT_MIN_LENGTH", "3"))
+        _is_ellipsis = (routing_input != user_input)  # DST 补全过说明是指代句
+        if (not semantic_skills and not _is_ellipsis
+                and len(user_input.strip()) < _reject_min_len):
+            _record_intent_layer("reject")
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.reject', 'trace_id_ctx': trace_id, 'message': '[拒识] 输入过短且三层未命中 (len=%d < %d)，返回拒识' % (len(user_input.strip()), _reject_min_len)}))
+            _reject_msg = "抱歉，我不太理解你的意思。能否详细描述一下你想做什么？"
+            if trace_id:
+                trace_store.end_trace(trace_id, _reject_msg, status="rejected")
+            return ResponseBuilder.success(_reject_msg).to_dict()
+
         # ── 第四步：LLM 调用 ──
+        _record_intent_layer("llm")
         ts_llm = time.time()
         try:
             if self._v2_lifetrace and self._trace_recorder:
@@ -336,6 +402,18 @@ class Orchestrator:
                 "抱歉，处理您的请求时遇到了问题：%s" % e
             ).to_dict()
         llm_duration_ms = (time.time() - ts_llm) * 1000
+
+        # ── LLM 置信度校验（任务3：基于响应质量的启发式校验）──
+        # 【简易】空/过短/错误标记 → 低置信度；正常响应 → high
+        # 【变易】置信度阈值可扩展为 LLM 自评 confidence 字段
+        _llm_confidence = "high"
+        if not response or len(response.strip()) < 5:
+            _llm_confidence = "low"
+        elif any(_marker in response for _marker in ["抱歉，处理", "遇到了问题", "无法完成", "出错了"]):
+            _llm_confidence = "low"
+        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.llm.confidence', 'trace_id_ctx': trace_id, 'message': '[LLM] 置信度=%s, 耗时=%.2fms, 响应长度=%d' % (_llm_confidence, llm_duration_ms, len(response) if response else 0)}))
+        if _llm_confidence == "low":
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.llm.low_confidence', 'trace_id_ctx': trace_id, 'message': '[LLM] 低置信度响应，建议检查 LLM 服务状态或转人工'}))
 
         # 规划模式：追加 Planner 状态信息
         planning_mode = kwargs.get("planning_mode", False) or \
@@ -446,6 +524,102 @@ class Orchestrator:
     # (以下废弃方法已在 P12 统一链路中删除:
     #  _chat_v2, _chat_with_planning, _process_user_input)
     #  所有功能已合并到 process() 方法中
+
+    # ════════════════════════════════════════════════════════════════════
+    #  语义层 — SkillLoader RRF 三路融合召回（三层漏斗第 2 层）
+    # ════════════════════════════════════════════════════════════════════
+
+    def _semantic_layer_match(self, user_input: str,
+                              trace_id: Optional[str] = None) -> list:
+        """语义层匹配 — SkillLoader RRF 三路融合召回
+
+        架构层级：三层漏斗第 2 层（语义层）
+        调用时机：规则层(WorkflowEngine)+模板层(IntentRouter)未命中后，
+                  LLM 调用之前。
+
+        【不易】任何异常都返回空列表，主链路降级到 LLM（不抛异常）
+        【变易】RRF 启用开关与命中阈值通过环境变量配置：
+               ORCHESTRATOR_SEMANTIC_LAYER_ENABLED (默认 true)
+               ORCHESTRATOR_SEMANTIC_MIN_SCORE (默认 0.3)
+        【简易】命中时记录 INFO 日志 + 返回 skill_id 列表；
+               未命中返回空列表，调用方继续 LLM
+
+        Args:
+            user_input: 用户原始输入
+            trace_id: 链路追踪 ID
+
+        Returns:
+            匹配的 skill_id 列表（空列表表示未命中或降级）
+        """
+        import os as _os
+        # 语义层总开关（默认启用）
+        if _os.environ.get("ORCHESTRATOR_SEMANTIC_LAYER_ENABLED", "true").lower() not in ("true", "1", "yes"):
+            return []
+
+        min_score = float(_os.environ.get("ORCHESTRATOR_SEMANTIC_MIN_SCORE", "0.3"))
+        ts_sem = time.time()
+
+        try:
+            # 延迟导入避免循环依赖（state_manager 依赖较重）
+            from agent.state_manager import get_skills_mgmt_service
+            svc = get_skills_mgmt_service()
+            if svc is None or svc.loader is None:
+                logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.skip', 'trace_id_ctx': trace_id, 'message': '[语义层] skills_mgmt 服务未初始化，跳过'}))
+                return []
+
+            # 调用 SkillLoader.match 启用 RRF 三路融合
+            # 【变易】use_vector + use_bm25 触发 RRF 融合（tfidf+vector+bm25）
+            #         向量模型不可用时 SkillLoader 内部降级到 TF-IDF+BM25
+            result = svc.loader.match(
+                user_input,
+                top_k=5,
+                enabled_only=True,
+                min_score=min_score,
+                use_vector=True,
+                use_bm25=True,
+                use_reranker=False,   # reranker 较重，主链路默认不启用
+                fusion_mode="rrf",
+            )
+
+            elapsed_ms = (time.time() - ts_sem) * 1000
+
+            if not result.matches:
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.miss', 'trace_id_ctx': trace_id, 'message': '[语义层] 未命中 (min_score=%.2f, %.2fms, method=%s)' % (min_score, elapsed_ms, result.retrieval_method)}))
+                return []
+
+            top1 = result.matches[0]
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.hit', 'trace_id_ctx': trace_id, 'message': '[语义层] 命中 top1=%s score=%.3f (%d 命中, %.2fms, method=%s, reranked=%s, fallback=%s)' % (top1.skill_id, top1.score, len(result.matches), elapsed_ms, result.retrieval_method, result.reranked, result.fallback_used)}))
+            _record_intent_layer("semantic")
+
+            # 记录 trace span
+            if trace_id:
+                try:
+                    trace_store.add_span(trace_id, TraceSpan(
+                        span_id=f"{trace_id}_semantic",
+                        operation="semantic_match",
+                        start_time=ts_sem, end_time=time.time(),
+                        duration_ms=elapsed_ms,
+                        status="hit" if result.matches else "miss",
+                        metadata={
+                            "top1_skill": top1.skill_id,
+                            "top1_score": top1.score,
+                            "match_count": len(result.matches),
+                            "retrieval_method": result.retrieval_method,
+                        },
+                    ))
+                except Exception:
+                    pass
+
+            # 返回命中的 skill_id 列表（供 _call_llm 增强上下文）
+            skill_ids = [m.skill_id for m in result.matches]
+            self._semantic_matched_skills = skill_ids  # 缓存供后续使用
+            return skill_ids
+
+        except Exception as e:
+            elapsed_ms = (time.time() - ts_sem) * 1000
+            # 【不易】语义层任何异常都降级到 LLM，不阻断主链路
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.error', 'trace_id_ctx': trace_id, 'message': '[语义层] 异常降级到 LLM (%.2fms): %s' % (elapsed_ms, e)}))
+            return []
 
     # ════════════════════════════════════════════════════════════════════
     #  健康检查
