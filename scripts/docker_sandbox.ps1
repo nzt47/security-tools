@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿# Docker 沙盒环境切换脚本
+﻿# Docker 沙盒环境切换脚本
 # 使用方法：
 #   .\scripts\docker_sandbox.ps1 enable    — 启用沙盒
 #   .\scripts\docker_sandbox.ps1 disable   — 关闭沙盒
