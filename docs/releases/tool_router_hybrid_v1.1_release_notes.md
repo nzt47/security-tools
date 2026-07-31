@@ -136,7 +136,7 @@
 
 - 评估报告:[docs/reports/tool_retrieval_eval_report_20260719.md](../reports/tool_retrieval_eval_report_20260719.md)
 - 负样本扩充规划:[docs/reports/negative_samples_expansion_plan_20260719.md](../reports/negative_samples_expansion_plan_20260719.md)
-- 实施计划:[.trae/documents/tool_router_hybrid_completion_plan.md](../../.trae/documents/tool_router_hybrid_completion_plan.md)
+- 实施计划: `tool_router_hybrid_completion_plan.md`（IDE 内部文档，未纳入仓库）
 
 ---
 
