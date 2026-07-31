@@ -4,7 +4,7 @@ groups:
     rules:
       # ==================== 错误率告警 ====================
       - alert: HighErrorRate
-        expr: sum(rate(yunshu_http_requests_total{status=~"5.."}[5m])) / sum(rate(yunshu_http_requests_total[5m])) > 0.05
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
         for: 5m
         labels:
           severity: warning
@@ -13,7 +13,7 @@ groups:
           description: "应用 {{ $labels.instance }} 的错误率超过 5% (当前值：{{ $value | humanizePercentage }})"
           
       - alert: CriticalErrorRate
-        expr: sum(rate(yunshu_http_requests_total{status=~"5.."}[5m])) / sum(rate(yunshu_http_requests_total[5m])) > 0.20
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.20
         for: 3m
         labels:
           severity: critical
@@ -22,7 +22,7 @@ groups:
           description: "应用 {{ $labels.instance }} 的错误率超过 20% (当前值：{{ $value | humanizePercentage }})"
           
       - alert: VeryHighErrorRate
-        expr: sum(rate(yunshu_http_requests_total{status=~"5.."}[5m])) / sum(rate(yunshu_http_requests_total[5m])) > 0.50
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.50
         for: 2m
         labels:
           severity: emergency
@@ -32,7 +32,7 @@ groups:
       
       # ==================== 延迟告警 ====================
       - alert: HighLatency
-        expr: histogram_quantile(0.95, rate(yunshu_http_request_duration_seconds_bucket[5m])) > 0.5
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 0.5
         for: 5m
         labels:
           severity: warning
@@ -41,7 +41,7 @@ groups:
           description: "95 分位响应时间超过 500ms (当前值：{{ $value | humanizeDuration }})"
           
       - alert: VeryHighLatency
-        expr: histogram_quantile(0.95, rate(yunshu_http_request_duration_seconds_bucket[5m])) > 1.0
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1.0
         for: 3m
         labels:
           severity: critical
@@ -50,7 +50,7 @@ groups:
           description: "95 分位响应时间超过 1 秒 (当前值：{{ $value | humanizeDuration }})"
           
       - alert: ExtremeLatency
-        expr: histogram_quantile(0.99, rate(yunshu_http_request_duration_seconds_bucket[5m])) > 2.0
+        expr: histogram_quantile(0.99, rate(http_request_duration_seconds_bucket[5m])) > 2.0
         for: 2m
         labels:
           severity: emergency
@@ -60,7 +60,7 @@ groups:
       
       # ==================== 安全告警 ====================
       - alert: SecurityAttack
-        expr: sum(rate(yunshu_security_blocks_total[5m])) > 3
+        expr: sum(rate(security_blocks_total[5m])) > 3
         for: 1m
         labels:
           severity: warning
@@ -69,7 +69,7 @@ groups:
           description: "检测到频繁的安全拦截 (当前速率：{{ $value | humanize }} 次/分钟)"
           
       - alert: CriticalSecurityAttack
-        expr: sum(rate(yunshu_security_blocks_total[5m])) > 10
+        expr: sum(rate(security_blocks_total[5m])) > 10
         for: 1m
         labels:
           severity: critical
@@ -78,7 +78,7 @@ groups:
           description: "检测到频繁的严重级别安全拦截 (当前速率：{{ $value | humanize }} 次/分钟)"
           
       - alert: MassiveSecurityAttack
-        expr: sum(rate(yunshu_security_blocks_total[5m])) > 30
+        expr: sum(rate(security_blocks_total[5m])) > 30
         for: 1m
         labels:
           severity: emergency
@@ -88,7 +88,7 @@ groups:
       
       # ==================== 系统资源告警 ====================
       - alert: HighCPUUsage
-        expr: yunshu_cpu_usage_percent > 70
+        expr: system_cpu_usage_percent > 70
         for: 5m
         labels:
           severity: warning
@@ -97,7 +97,7 @@ groups:
           description: "CPU 使用率超过 70% (当前值：{{ $value | humanize }}%)"
           
       - alert: VeryHighCPUUsage
-        expr: yunshu_cpu_usage_percent > 90
+        expr: system_cpu_usage_percent > 90
         for: 2m
         labels:
           severity: critical
@@ -106,7 +106,7 @@ groups:
           description: "CPU 使用率超过 90% (当前值：{{ $value | humanize }}%)"
           
       - alert: HighMemoryUsage
-        expr: yunshu_memory_usage_percent > 80
+        expr: system_memory_usage_percent > 80
         for: 5m
         labels:
           severity: warning
@@ -115,7 +115,7 @@ groups:
           description: "内存使用率超过 80% (当前值：{{ $value | humanize }}%)"
           
       - alert: VeryHighMemoryUsage
-        expr: yunshu_memory_usage_percent > 90
+        expr: system_memory_usage_percent > 90
         for: 2m
         labels:
           severity: critical
@@ -125,7 +125,7 @@ groups:
       
       # ==================== 对话系统告警 ====================
       - alert: HighConversationErrorRate
-        expr: sum(rate(yunshu_conversations_total{status="exception"}[5m])) / sum(rate(yunshu_conversations_total[5m])) > 0.10
+        expr: sum(rate(Yunshu_conversations_total{status="exception"}[5m])) / sum(rate(Yunshu_conversations_total[5m])) > 0.10
         for: 5m
         labels:
           severity: warning
@@ -134,7 +134,7 @@ groups:
           description: "对话异常率超过 10% (当前值：{{ $value | humanizePercentage }})"
           
       - alert: CriticalConversationErrorRate
-        expr: sum(rate(yunshu_conversations_total{status="exception"}[5m])) / sum(rate(yunshu_conversations_total[5m])) > 0.30
+        expr: sum(rate(Yunshu_conversations_total{status="exception"}[5m])) / sum(rate(Yunshu_conversations_total[5m])) > 0.30
         for: 3m
         labels:
           severity: critical
@@ -163,7 +163,7 @@ groups:
           
       # ==================== 业务指标告警 ====================
       - alert: NoTraffic
-        expr: sum(rate(yunshu_http_requests_total[10m])) == 0
+        expr: sum(rate(http_requests_total[10m])) == 0
         for: 5m
         labels:
           severity: warning
@@ -172,7 +172,7 @@ groups:
           description: "系统已超过 10 分钟没有收到任何请求"
           
       - alert: HighActiveConnections
-        expr: yunshu_active_connections > 100
+        expr: Yunshu_active_connections > 100
         for: 5m
         labels:
           severity: warning

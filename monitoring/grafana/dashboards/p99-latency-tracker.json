@@ -1,0 +1,517 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "P99 延迟持续追踪面板 — 生产环境 SLO 监控专用\n基准线: 32ms (集群内直连压测实测) | SLO 阈值: 40ms (HPA 扩容触发)\n告警: P99 > 35ms (warning) / P99 > 40ms (critical)",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "P99 延迟趋势 (基准 32ms / SLO 40ms)",
+      "type": "timeseries",
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 32},
+              {"color": "orange", "value": 35},
+              {"color": "red", "value": 40}
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "pointSize": 5,
+            "spanNulls": false
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "mean", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "legendFormat": "P99 (全集群)",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[5m])) by (le))",
+          "legendFormat": "P99 (5m 平滑)",
+          "refId": "B"
+        }
+      ],
+      "thresholds": [
+        {"colorMode": "warning", "op": "gt", "value": 32, "fill": false, "line": true, "yaxis": "left"},
+        {"colorMode": "critical", "op": "gt", "value": 40, "fill": true, "line": true, "yaxis": "left"}
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "延迟百分位分布 (P50/P90/P95/P99)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 9},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 40}
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 5,
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "legendFormat": "P50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.90, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "legendFormat": "P90",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "legendFormat": "P95",
+          "refId": "C"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "legendFormat": "P99",
+          "refId": "D"
+        }
+      ],
+      "thresholds": [
+        {"colorMode": "critical", "op": "gt", "value": 40, "fill": false, "line": true, "yaxis": "left"}
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "P99 SLO 合规率 (目标 >99% 时间低于 40ms)",
+      "type": "gauge",
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 9},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "orange", "value": 0.95},
+              {"color": "yellow", "value": 0.99},
+              {"color": "green", "value": 0.999}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showThresholdLabels": true,
+        "showThresholdMarkers": true
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\",le=\"40.0\"}[5m])) / sum(rate(skill_match_latency_ms_count{namespace=\"$namespace\"}[5m]))",
+          "legendFormat": "P99 SLO 合规率",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "当前 P99 值 (实时)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 9},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 32},
+              {"color": "orange", "value": 35},
+              {"color": "red", "value": 40}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "legendFormat": "P99",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "当前 P95 值 (实时)",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 13},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 27},
+              {"color": "red", "value": 30}
+            ]
+          }
+        }
+      },
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "legendFormat": "P95",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "每副本 P99 分解 (定位慢节点)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 17},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 35},
+              {"color": "red", "value": 40}
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 5,
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le, pod))",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [
+        {"colorMode": "critical", "op": "gt", "value": 40, "fill": false, "line": true, "yaxis": "left"}
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "QPS vs P99 延迟相关性",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 17},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 5,
+            "showPoints": "never",
+            "axisPlacement": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "QPS"},
+            "properties": [
+              {"id": "unit", "value": "reqps"},
+              {"id": "custom.axisPlacement", "value": "right"}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "P99"},
+            "properties": [
+              {"id": "unit", "value": "ms"},
+              {"id": "custom.axisPlacement", "value": "left"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "legendFormat": "P99",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(skill_match_count_total{namespace=\"$namespace\"}[1m]))",
+          "legendFormat": "QPS",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "HPA 副本数 vs P99 延迟",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 25},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "副本数"},
+            "properties": [
+              {"id": "unit", "value": "short"},
+              {"id": "custom.axisPlacement", "value": "right"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "blue"}}
+            ]
+          },
+          {
+            "matcher": {"id": "byName", "options": "P99"},
+            "properties": [
+              {"id": "unit", "value": "ms"},
+              {"id": "custom.axisPlacement", "value": "left"},
+              {"id": "color", "value": {"mode": "fixed", "fixedColor": "red"}}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le))",
+          "legendFormat": "P99",
+          "refId": "A"
+        },
+        {
+          "expr": "kube_deployment_status_replicas{deployment=\"skill-retrieval-service\",namespace=\"$namespace\"}",
+          "legendFormat": "副本数",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "HPA 阈值超标率 (请求 > 40ms 占比)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 25},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.01},
+              {"color": "orange", "value": 0.05},
+              {"color": "red", "value": 0.10}
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 20,
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "1 - sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\",le=\"40.0\"}[1m])) / sum(rate(skill_match_latency_ms_count{namespace=\"$namespace\"}[1m]))",
+          "legendFormat": ">40ms 请求占比",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [
+        {"colorMode": "warning", "op": "gt", "value": 0.01, "fill": false, "line": true, "yaxis": "left"},
+        {"colorMode": "critical", "op": "gt", "value": 0.10, "fill": true, "line": true, "yaxis": "left"}
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "延迟直方图热力图 (Bucket 分布随时间)",
+      "type": "heatmap",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 33},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "scaleDistribution": {"type": "linear"}
+          }
+        }
+      },
+      "options": {
+        "calculate": false,
+        "cellGap": 1,
+        "color": {"scheme": "Spectral", "mode": "scheme", "fill": "dark-orange", "reverse": true},
+        "yAxis": {"unit": "ms", "decimals": 0},
+        "rowsFrame": {"layout": "auto"},
+        "tooltip": {"show": true, "yHistogram": true}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le)",
+          "legendFormat": "{{le}}",
+          "refId": "A",
+          "format": "time_series",
+          "instant": false
+        }
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "活跃连接数 + CPU 使用率",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 41},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byRegexp", "options": ".*CPU.*"},
+            "properties": [
+              {"id": "unit", "value": "percentunit"},
+              {"id": "custom.axisPlacement", "value": "right"}
+            ]
+          },
+          {
+            "matcher": {"id": "byRegexp", "options": ".*连接.*"},
+            "properties": [
+              {"id": "unit", "value": "short"},
+              {"id": "custom.axisPlacement", "value": "left"}
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "Yunshu_active_connections{namespace=\"$namespace\"}",
+          "legendFormat": "活跃连接数 ({{pod}})",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(container_cpu_usage_seconds_total{namespace=\"$namespace\",pod=~\"skill-retrieval.*\"}[1m]) / on(pod) kube_pod_container_resource_limits{resource=\"cpu\",namespace=\"$namespace\",pod=~\"skill-retrieval.*\"}",
+          "legendFormat": "CPU 使用率 ({{pod}})",
+          "refId": "B"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["skill-retrieval", "p99", "slo", "latency-tracking"],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {"text": "Prometheus", "value": "Prometheus"},
+        "hide": 0,
+        "label": "Prometheus 数据源"
+      },
+      {
+        "name": "namespace",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "query": "label_values(skill_match_latency_ms_bucket, namespace)",
+        "current": {"text": "production", "value": "production"},
+        "hide": 0,
+        "label": "Namespace",
+        "includeAll": false
+      }
+    ]
+  },
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "P99 延迟追踪 — 生产环境 SLO 监控",
+  "uid": "p99-latency-tracker",
+  "version": 1,
+  "weekStart": ""
+}

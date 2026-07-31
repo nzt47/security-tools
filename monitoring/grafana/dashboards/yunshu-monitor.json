@@ -57,7 +57,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "rate(yunshu_http_requests_total[5m])",
+          "expr": "rate(http_requests_total[5m])",
           "legendFormat": "Requests/sec",
           "refId": "A"
         }
@@ -117,7 +117,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "yunshu_cpu_usage_percent",
+          "expr": "system_cpu_usage_percent",
           "legendFormat": "CPU Usage",
           "refId": "A"
         }
@@ -173,7 +173,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "yunshu_memory_usage_percent",
+          "expr": "system_memory_usage_percent",
           "legendFormat": "Memory Usage",
           "refId": "A"
         }
@@ -233,7 +233,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "sum(yunshu_security_blocks_total)",
+          "expr": "sum(security_blocks_total)",
           "legendFormat": "Security Blocks",
           "refId": "A"
         }
@@ -289,7 +289,7 @@
       "pluginVersion": "10.0.0",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, rate(yunshu_http_request_duration_seconds_bucket[5m]))",
+          "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
           "legendFormat": "95th Percentile",
           "refId": "A"
         }
@@ -372,7 +372,7 @@
       },
       "targets": [
         {
-          "expr": "rate(yunshu_http_requests_total[5m])",
+          "expr": "rate(http_requests_total[5m])",
           "legendFormat": "{{endpoint}} - {{status}}",
           "refId": "A"
         }
