@@ -1,0 +1,30 @@
+# ════════════════════════════════════════════════════════════════════
+#  Mock 技能检索服务 Dockerfile — K8s 压测专用
+#
+#  【不易】自包含，不依赖 agent 包 — 仅 prometheus_client
+#  【变易】基于 python:3.11-slim，镜像小（~150MB），启动快
+#  【简易】单文件 COPY，无复杂构建步骤
+#
+#  构建: docker build -t skill-retrieval:local -f scripts/Dockerfile.mock scripts/
+#  验证: docker run --rm -p 8080:8080 skill-retrieval:local
+# ════════════════════════════════════════════════════════════════════
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# 【不易】安装依赖 — aiohttp（异步框架）+ prometheus_client（指标）
+# 重构后 mock_service_standalone.py 改用 aiohttp，缺少此依赖容器启动即崩溃
+# 【变易】使用清华镜像源解决 Docker 构建环境 yarl 等依赖下载失败问题
+RUN pip install --no-cache-dir \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    --trusted-host pypi.tuna.tsinghua.edu.cn \
+    aiohttp==3.9.5 prometheus_client==0.20.0
+
+# 复制自包含 mock 服务脚本
+COPY mock_service_standalone.py /app/
+
+# 暴露 HTTP 端口（/match /health /ready /metrics 全在 8080）
+EXPOSE 8080
+
+# -u 禁用输出缓冲，便于 kubectl logs 实时查看
+CMD ["python", "-u", "mock_service_standalone.py"]

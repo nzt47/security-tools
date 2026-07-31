@@ -159,12 +159,47 @@ _DEFAULT_MCP_SERVICE = {
     "max_retries": 3,
     "security_methods": [],
     "certificate_path": "",
+    "api_key": "",  # 敏感信息，通过 .env 单一数据源管理
+    "token": "",    # 敏感信息，通过 .env 单一数据源管理
     "description": "",
     "enabled": True,
     "created_at": "",
     "updated_at": "",
 }
 
+
+def _mask_value(value: str, strategy: str = "tail4") -> str:
+    """统一脱敏工具函数
+
+    【不易】脱敏不可逆——输出值不能反推原值
+    【变易】支持三种策略适配不同字段类型
+    【简易】单一职责：输入值+策略，输出脱敏值
+
+    Args:
+        value: 原始敏感值
+        strategy: 脱敏策略
+            - "tail4": 保留后4位（***1234），适合 API Key
+            - "full": 完全掩码（***），适合 webhook_url
+            - "url_auth": 剥离 URL 认证（http://user:pass@host → http://host），适合 proxy_url
+
+    Returns:
+        脱敏后的字符串（空值返回空字符串）
+    """
+    if not value:
+        return ""
+    if strategy == "full":
+        return "***"
+    if strategy == "tail4":
+        return f"***{value[-4:]}" if len(value) > 4 else "***"
+    if strategy == "url_auth":
+        from urllib.parse import urlparse, urlunparse
+        parsed = urlparse(value)
+        # 剥离 user:pass，仅保留 hostname + port
+        safe_netloc = parsed.hostname or ""
+        if parsed.port:
+            safe_netloc += f":{parsed.port}"
+        return urlunparse((parsed.scheme, safe_netloc, parsed.path, "", "", ""))
+    return "***"
 
 
 def _trace_id():
@@ -195,6 +230,8 @@ class NetworkConfigManager:
                                             （default 或空 → LLM_API_KEY）
             search_{engine_name}_key       → SEARCH_{ENGINE_NAME}_API_KEY
             search_{inst_id}_api_key       → SEARCH_{INST_ID}_API_KEY
+            mcp_{service_id}_api_key       → MCP_{SERVICE_ID}_API_KEY
+            mcp_{service_id}_token         → MCP_{SERVICE_ID}_TOKEN
             其他                            → KEY.UPPER()
         """
         special_map = {
@@ -215,6 +252,14 @@ class NetworkConfigManager:
             if key.endswith('_key'):
                 engine_name = key[7:-4]  # 'search_'(7) + '_key'(4)
                 return f'SEARCH_{engine_name.upper()}_API_KEY'
+        # MCP 服务凭证映射：mcp_{service_id}_api_key / mcp_{service_id}_token
+        if key.startswith('mcp_'):
+            if key.endswith('_api_key'):
+                service_id = key[4:-8]  # 'mcp_'(4) + '_api_key'(8)
+                return f'MCP_{service_id.upper()}_API_KEY'
+            if key.endswith('_token'):
+                service_id = key[4:-6]  # 'mcp_'(4) + '_token'(6)
+                return f'MCP_{service_id.upper()}_TOKEN'
         return key.upper()
 
     def _load(self) -> dict:
@@ -292,11 +337,12 @@ class NetworkConfigManager:
 
         【纯 .env 架构】所有 api_key 均通过 _save_secure 写入 .env 文件，
         network_config.json 中不应保留任何明文 api_key。
-        因此无条件移除以下位置的 api_key 字段：
+        因此无条件移除以下位置的敏感字段：
         - config["llm"]["api_key"]
         - config["external_services"]["error_reporting"]["webhook_url"]
         - config["llm_instances"][*]["api_key"]
         - config["search_instances"][*]["api_key"]
+        - config["mcp"]["services"][*]["api_key"] 和 ["token"]
 
         重要：同时更新 self._cache，保证后续 _load() 返回最新配置，
         避免 app_server.py 中 _save 后 apply_search_instances 读取旧缓存覆盖文件。
@@ -314,6 +360,10 @@ class NetworkConfigManager:
         # 移除 search_instances 中所有 api_key
         for inst in save_data.get('search_instances', []):
             inst.pop('api_key', None)
+        # 移除 mcp.services 中所有 api_key 和 token
+        for svc in save_data.get('mcp', {}).get('services', []):
+            svc.pop('api_key', None)
+            svc.pop('token', None)
         self._config_file.parent.mkdir(parents=True, exist_ok=True)
         with open(self._config_file, 'w', encoding='utf-8') as f:
             json.dump(save_data, f, ensure_ascii=False, indent=2)
@@ -405,28 +455,64 @@ class NetworkConfigManager:
                     env_var=f'SEARCH_{inst_id.upper()}_API_KEY'
                 )
 
-        # 脱敏处理
+        # 加载 MCP 服务凭证（api_key / token）
+        for svc in config.get('mcp', {}).get('services', []):
+            svc_id = svc.get('id', '')
+            if svc_id:
+                svc["api_key"] = self._load_secure(
+                    f'mcp_{svc_id}_api_key',
+                    svc.get('api_key', ''),
+                    env_var=f'MCP_{svc_id.upper()}_API_KEY'
+                )
+                svc["token"] = self._load_secure(
+                    f'mcp_{svc_id}_token',
+                    svc.get('token', ''),
+                    env_var=f'MCP_{svc_id.upper()}_TOKEN'
+                )
+
+        # 脱敏处理（统一使用 _mask_value 工具函数）
         safe_config = config
 
         # LLM API Key 脱敏
         if safe_config["llm"].get('api_key'):
-            safe_config["llm"]["api_key"] = '***' + safe_config["llm"]["api_key"][-4:] if len(safe_config["llm"]["api_key"]) > 4 else '***'
+            safe_config["llm"]["api_key"] = _mask_value(safe_config["llm"]["api_key"], "tail4")
 
         # 错误报告 Webhook 脱敏
         if safe_config["external_services"]["error_reporting"].get('webhook_url'):
-            safe_config["external_services"]["error_reporting"]["webhook_url"] = '***'
+            safe_config["external_services"]["error_reporting"]["webhook_url"] = _mask_value(
+                safe_config["external_services"]["error_reporting"]["webhook_url"], "full"
+            )
 
         # LLM 实例 API Key 脱敏
         for instance in safe_config.get('llm_instances', []):
             if instance.get('api_key'):
-                value = instance["api_key"]
-                instance["api_key"] = '***' + value[-4:] if len(value) > 4 else '***'
+                instance["api_key"] = _mask_value(instance["api_key"], "tail4")
 
         # 搜索实例 API Key 脱敏
         for inst in safe_config.get('search_instances', []):
             if inst.get('api_key'):
-                v = inst["api_key"]
-                inst["api_key"] = '***' + v[-4:] if len(v) > 4 else '***'
+                inst["api_key"] = _mask_value(inst["api_key"], "tail4")
+
+        # MCP 服务凭证脱敏（api_key / token）
+        for svc in safe_config.get('mcp', {}).get('services', []):
+            if svc.get('api_key'):
+                svc["api_key"] = _mask_value(svc["api_key"], "tail4")
+            if svc.get('token'):
+                svc["token"] = _mask_value(svc["token"], "tail4")
+
+        # 代理 URL 脱敏（剥离 user:pass@ 认证信息，仅显示脱敏）
+        # Why: proxy_url 需完整值供代理连接，仅在 get_all 输出时脱敏
+        proxy_url = safe_config.get('network', {}).get('proxy_url', '')
+        if proxy_url:
+            safe_config["network"]["proxy_url"] = _mask_value(proxy_url, "url_auth")
+
+        # 监控端点脱敏（剥离 URL 中的认证信息，仅显示脱敏）
+        # Why: endpoint 需完整值供监控上报，仅在 get_all 输出时脱敏
+        monitoring_endpoint = safe_config.get('external_services', {}).get('monitoring', {}).get('endpoint', '')
+        if monitoring_endpoint:
+            safe_config["external_services"]["monitoring"]["endpoint"] = _mask_value(
+                monitoring_endpoint, "url_auth"
+            )
 
         return safe_config
 
@@ -470,6 +556,21 @@ class NetworkConfigManager:
                     f'search_{inst_id}_api_key',
                     inst.get('api_key', ''),
                     env_var=f'SEARCH_{inst_id.upper()}_API_KEY'
+                )
+
+        # 加载 MCP 服务凭证（供内部模块使用完整凭证）
+        for svc in config.get('mcp', {}).get('services', []):
+            svc_id = svc.get('id', '')
+            if svc_id:
+                svc["api_key"] = self._load_secure(
+                    f'mcp_{svc_id}_api_key',
+                    svc.get('api_key', ''),
+                    env_var=f'MCP_{svc_id.upper()}_API_KEY'
+                )
+                svc["token"] = self._load_secure(
+                    f'mcp_{svc_id}_token',
+                    svc.get('token', ''),
+                    env_var=f'MCP_{svc_id.upper()}_TOKEN'
                 )
 
         return config
@@ -615,11 +716,15 @@ class NetworkConfigManager:
                 self._add_change_log('add', 'search_instance', {'id': inst_clean["id"], 'name': inst_clean.get('name')})
 
     def _update_mcp_config(self, mcp_config: dict):
-        """更新 MCP 配置"""
+        """更新 MCP 配置
+
+        【纯 .env 架构】MCP 服务凭证（api_key/token）通过 _save_secure 写入 .env 文件，
+        不保留在 network_config.json 中。前端传入的脱敏值（***xxxx）会被忽略。
+        """
         config = self._load()
         config["mcp"] = mcp_config
-        
-        # 添加变更日志
+
+        # 添加变更日志 + 保存凭证到 .env
         if 'services' in mcp_config:
             for service in mcp_config["services"]:
                 if 'id' in service:
@@ -631,6 +736,16 @@ class NetworkConfigManager:
                         service["created_at"] = datetime.datetime.now().isoformat()
                         service["updated_at"] = service["created_at"]
                         self._add_change_log('add', 'mcp_service', {'id': service["id"], 'name': service.get('name')})
+
+                    # 保存 api_key 到 .env（忽略脱敏值 ***xxxx）
+                    api_key = service.get('api_key', '')
+                    if api_key and api_key != '***' and not api_key.startswith('***'):
+                        self._save_secure(f'mcp_{service["id"]}_api_key', api_key)
+
+                    # 保存 token 到 .env（忽略脱敏值 ***xxxx）
+                    token = service.get('token', '')
+                    if token and token != '***' and not token.startswith('***'):
+                        self._save_secure(f'mcp_{service["id"]}_token', token)
 
     # ──────────────────────────────────────────────────────────────────────────
     # 通用集合 upsert 方法（迁移自 agent/network/config_manager.py 兼容层）
