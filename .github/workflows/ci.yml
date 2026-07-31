@@ -80,6 +80,14 @@ jobs:
           echo "=== 运行风格检查 ==="
           flake8 agent/ --max-line-length=120 --extend-ignore=E203,W503 || true
 
+      - name: workflow_run 守卫反模式检查
+        # Why: 阻塞把"跳过"误标为"失败"的守卫(exit 1 on non-success),
+        #   避免上游 cancelled 时发噪音失败邮件。详见 docs/ci_guidelines/workflow_run_guard.md
+        run: |
+          echo "=== 检查 workflow_run 守卫反模式 ==="
+          pip install pyyaml
+          python scripts/lint_workflow_guard.py .github/workflows
+
   # ============================================================================
   # 安全扫描
   # ============================================================================
