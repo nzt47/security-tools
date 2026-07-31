@@ -1,0 +1,240 @@
+# ════════════════════════════════════════════════════════════════════
+#  生产环境部署配置清单 — 5000 技能量级
+#  生成时间: 2026-07-30
+#  适用场景: 5000 技能（10 领域 × 500 技能/领域）RRF 融合检索
+#  前序报告: docs/RRF_5000SKILLS_CAPACITY_BOUNDARY_REPORT.md
+#           docs/RRF_CONCURRENT_BENCHMARK_REPORT.md
+# ════════════════════════════════════════════════════════════════════
+#
+#  文件结构:
+#    1. ConfigMap  — 环境变量配置（含降级参数）
+#    2. Deployment — Pod 配置（资源配额 + 探针 + 缓存配置）
+#    3. Service    — 服务暴露
+#
+#  部署方式:
+#    kubectl apply -f deploy/k8s/configmap.yaml
+#    kubectl apply -f deploy/k8s/deployment.yaml
+#    kubectl apply -f deploy/k8s/service.yaml
+#    kubectl apply -f deploy/k8s/hpa.yaml
+#
+# ════════════════════════════════════════════════════════════════════
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  1. ConfigMap — 环境变量配置
+# ════════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skill-service-config
+  namespace: production
+  labels:
+    app: skill-retrieval-service
+    scale: "5000-skills"
+data:
+  # ── 检索引擎配置 ──
+  # 【不易】倒排索引必须启用（5000 技能 O(n)→O(k) 加速 2.6x）
+  SKILLS_USE_INVERTED_INDEX: "true"
+
+  # 【变易】候选集上限 — 5000 技能降级推荐值
+  # 0=不限制（≤2000 技能安全），200=降级推荐（5000 技能 P99 41ms→10ms）
+  SKILLS_CANDIDATE_LIMIT: "200"
+
+  # ── 向量检索配置 ──
+  SKILLS_USE_VECTOR: "true"
+  SKILLS_FUSION_MODE: "rrf"
+  SKILLS_USE_BM25: "true"
+  SKILLS_USE_RERANKER: "false"  # 5000 技能暂不启用 reranker（资源敏感）
+
+  # ── LRU 缓存配置 ──
+  # 【变易】query embedding LRU 缓存 — 高频 query 跳过 BGE-m3 推理
+  SKILLS_QUERY_CACHE_MAXSIZE: "128"
+  SKILLS_PER_KEY_LOCKS_MAXSIZE: "256"
+
+  # ── 负样本质量门禁 ──
+  SKILLS_RRF_QUALITY_MIN: "0.3"
+
+  # ── 向量后端配置 ──
+  SKILLS_VECTOR_BACKEND: "sqlite-vec"
+  SKILLS_VECTOR_DIM: "1024"
+  SKILLS_VEC_TABLE: "memories_vec"
+
+  # ── 日志与监控 ──
+  MCP_LOG_LEVEL: "INFO"
+  SKILLS_OFFLINE: "0"
+
+  # ── SQLite 配置 ──
+  SQLITE_BUSY_TIMEOUT: "5000"
+
+  # ── 应用配置 ──
+  APP_ENV: "production"
+  APP_PORT: "8080"
+  APP_WORKERS: "4"  # gunicorn worker 数量
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  2. Deployment — Pod 配置
+# ════════════════════════════════════════════════════════════════════
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skill-retrieval-service
+  namespace: production
+  labels:
+    app: skill-retrieval-service
+    scale: "5000-skills"
+spec:
+  replicas: 3  # 初始副本数（HPA 会自动调整 2-10）
+  selector:
+    matchLabels:
+      app: skill-retrieval-service
+  template:
+    metadata:
+      labels:
+        app: skill-retrieval-service
+        scale: "5000-skills"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: skill-service
+          image: registry.example.com/skill-retrieval:v1.3.0
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+
+          # ── 环境变量（从 ConfigMap 注入）──
+          envFrom:
+            - configMapRef:
+                name: skill-service-config
+
+          # ── 资源配额（5000 技能推荐）──
+          # 基准: 5000 技能向量索引 ~20MB + 元数据 ~1MB + 倒排索引 ~0.5MB + LRU ~0.5MB ≈ 22MB
+          # 预留: BGE-m3 模型加载 ~500MB + 运行时开销
+          resources:
+            requests:
+              cpu: "1000m"    # 1 核（TF-IDF 倒排索引 + 向量检索）
+              memory: "1Gi"   # 1GB（模型 + 索引 + 缓存）
+            limits:
+              cpu: "2000m"    # 2 核上限（突发流量）
+              memory: "2Gi"   # 2GB 上限（模型加载峰值）
+
+          # ── 健康检查 ──
+          # 【不易】livenessProbe 失败会重启 Pod，必须可靠
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30    # 模型加载需要时间
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          # ── 就绪检查 ──
+          # 【变易】readinessProbe 失败会从 Service 摘除，不影响存量请求
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+
+          # ── 启动检查（模型加载完成前不接收流量）──
+          startupProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 30  # 最多等 5 分钟模型加载
+
+          # ── 持久化存储（向量索引 + SQLite）──
+          volumeMounts:
+            - name: skill-data
+              mountPath: /data/skills
+              readOnly: false
+            - name: model-cache
+              mountPath: /data/models
+              readOnly: false
+
+      volumes:
+        # 技能数据存储（向量索引 + SQLite + 技能元数据）
+        - name: skill-data
+          persistentVolumeClaim:
+            claimName: skill-data-pvc
+        # 模型缓存（BGE-m3 模型文件，避免每次启动重新下载）
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: model-cache-pvc
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  3. Service — 服务暴露
+# ════════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: Service
+metadata:
+  name: skill-retrieval-service
+  namespace: production
+  labels:
+    app: skill-retrieval-service
+spec:
+  type: ClusterIP
+  selector:
+    app: skill-retrieval-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  4. PVC — 持久化存储声明
+# ════════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: skill-data-pvc
+  namespace: production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi  # 5000 技能数据 ~1GB + 余量
+  storageClassName: fast-ssd
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-cache-pvc
+  namespace: production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi  # BGE-m3 模型 ~1.2GB + 余量
+  storageClassName: fast-ssd
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  5. PodDisruptionBudget — 高可用保障
+# ════════════════════════════════════════════════════════════════════
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: skill-service-pdb
+  namespace: production
+spec:
+  minAvailable: 2  # 至少保持 2 个副本可用
+  selector:
+    matchLabels:
+      app: skill-retrieval-service

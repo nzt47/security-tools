@@ -1,0 +1,44 @@
+# ════════════════════════════════════════════════════════════
+# 配置缓存指标采集器 systemd 单元 — 由 Ansible 渲染
+# 【不易】独立进程，挂掉不影响主应用（prometheus_client 不可用降级日志）
+# 【简易】单文件脚本，无额外依赖
+# ════════════════════════════════════════════════════════════
+[Unit]
+Description=Yunshu Config Cache Metrics Exporter (Prometheus)
+Documentation=file://{{ deploy_path }}/scripts/config_metrics_exporter.py
+After=network-online.target {{ app_service_name }}.service
+Wants=network-online.target
+# 主应用挂了指标无意义，但不强依赖（独立采集进程）
+After={{ app_service_name }}.service
+
+[Service]
+Type=simple
+User={{ deploy_user }}
+Group={{ deploy_group }}
+WorkingDirectory={{ deploy_path }}
+
+# 主应用 .env 复用（exporter 仅读 SkillLoader 内存计数器，不需密钥）
+EnvironmentFile={{ deploy_path }}/.env
+
+ExecStart={{ venv_path }}/bin/python scripts/config_metrics_exporter.py --port {{ metrics_exporter_port }}
+
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=15s
+
+# 指标采集进程资源占用低
+MemoryMax=256M
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier={{ metrics_service_name }}
+
+# 安全上下文（守不易）
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths={{ deploy_path }} {{ log_path }}
+
+[Install]
+WantedBy=multi-user.target

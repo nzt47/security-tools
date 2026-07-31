@@ -1,0 +1,165 @@
+# ════════════════════════════════════════════════════════════════════
+#  Kubernetes HPA — candidate_limit=200 降级方案的自动扩缩容
+#  生成时间: 2026-07-30
+#  适用场景: 5000 技能量级 RRF 融合检索服务
+#
+#  扩缩容策略:
+#    - 快速扩容: P99 > 40ms 或 CPU > 70% 时立即加副本
+#    - 慢速缩容: P99 < 25ms 且 CPU < 40% 持续 10 分钟后减副本
+#    - 最小 2 副本（高可用），最大 10 副本（成本控制）
+#
+#  前置条件:
+#    1. 部署 Prometheus Adapter（暴露自定义指标给 HPA）
+#    2. 配置 skill_match_latency_p99 自定义指标
+#    3. 部署 Metrics Server（提供 CPU/内存指标）
+#
+#  部署方式:
+#    kubectl apply -f deploy/k8s/hpa.yaml
+# ════════════════════════════════════════════════════════════════════
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  HPA — 基于 CPU + P99 延迟双触发
+# ════════════════════════════════════════════════════════════════════
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: skill-retrieval-hpa
+  namespace: production
+  labels:
+    app: skill-retrieval-service
+    scale: "5000-skills"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: skill-retrieval-service
+
+  # ── 副本数范围 ──
+  minReplicas: 3   # 【变易】最小 3 副本预热（减少突发扩容冷启动延迟，项目仿真验证优化建议）
+  maxReplicas: 10  # 【变易】最大 10 副本控制成本（5000 技能 × 10 = 50000 并发能力）
+
+  # ── 扩缩容行为 ──
+  behavior:
+    # 扩容策略：快速响应（P99 超标时立即加副本）
+    scaleUp:
+      stabilizationWindowSeconds: 0    # 无稳定窗口，立即扩容
+      policies:
+        # 策略 1: 每次最多加 4 个副本（突发流量快速扩容）
+        - type: Pods
+          value: 4
+          periodSeconds: 30
+        # 策略 2: 每分钟最多扩容 100%（百分比兜底）
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+      selectPolicy: Max  # 取两个策略的最大值
+
+    # 缩容策略：慢速缩容（避免流量波动导致频繁缩容）
+    scaleDown:
+      stabilizationWindowSeconds: 600  # 10 分钟稳定窗口（P99 恢复后等 10 分钟再缩）
+      policies:
+        # 策略 1: 每次最多减 1 个副本（保守缩容）
+        - type: Pods
+          value: 1
+          periodSeconds: 120  # 每 2 分钟最多减 1 个
+        # 策略 2: 每分钟最多缩容 10%
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+      selectPolicy: Min  # 取两个策略的最小值（保守缩容）
+
+  # ── 指标定义 ──
+  metrics:
+    # ── 指标 1: CPU 利用率（基础扩容指标）──
+    # 【不易】CPU > 70% 触发扩容（K8s 标准指标，无需额外组件）
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50  # 【变易】CPU > 50% 扩容（从 70% 调低，提前响应突发流量）
+
+    # ── 指标 2: P99 延迟（核心业务指标）──
+    # 【变易】P99 > 40ms 触发扩容（通过 Prometheus Adapter 暴露）
+    # 5000 技能 ON 模式 P99≈42ms，DEGRADED 模式 P99≈10ms
+    # 阈值 40ms = ON 模式临界值，留 10% 余量
+    - type: Pods
+      pods:
+        metric:
+          name: skill_match_latency_p99  # 自定义指标名（需 Prometheus Adapter 配置）
+        target:
+          type: AverageValue
+          averageValue: "40"  # 平均 P99 > 40ms 触发扩容（单位: ms）
+
+    # ── 指标 3: QPS 每秒查询数（流量驱动扩容）──
+    # 【变易】每副本 QPS > 200 触发扩容（5000 技能单副本约 200 QPS 容量）
+    - type: Pods
+      pods:
+        metric:
+          name: skill_match_qps  # 自定义指标名
+        target:
+          type: AverageValue
+          averageValue: "200"  # 每副本平均 QPS > 200 扩容
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  Prometheus Adapter 规则配置（参考，非 K8s 资源）
+#  部署到 Prometheus Adapter 的 rules 配置文件中
+# ════════════════════════════════════════════════════════════════════
+#
+#  # prometheus-adapter-config.yaml（部署到 adapter 的 ConfigMap）
+#  rules:
+#    # P99 延迟指标 — 从 Prometheus 查询并暴露给 HPA
+#    - seriesQuery: 'skill_match_latency_ms_bucket{namespace="production"}'
+#      resources:
+#        overrides:
+#          namespace: {resource: "namespace"}
+#          pod: {resource: "pod"}
+#      name:
+#        matches: "^(.*)_bucket"
+#        as: "skill_match_latency_p99"
+#      metricsQuery: |
+#        histogram_quantile(0.99,
+#          sum(rate(<<.Series>>{<<.LabelMatchers>>}[5m])) by (le, pod)
+#        )
+#
+#    # QPS 指标 — 每秒查询数
+#    - seriesQuery: 'skill_match_count_total{namespace="production"}'
+#      resources:
+#        overrides:
+#          namespace: {resource: "namespace"}
+#          pod: {resource: "pod"}
+#      name:
+#        matches: "^(.*)_total"
+#        as: "skill_match_qps"
+#      metricsQuery: |
+#        sum(rate(<<.Series>>{<<.LabelMatchers>>}[1m])) by (pod)
+#
+# ════════════════════════════════════════════════════════════════════
+#  扩缩容场景示例
+# ════════════════════════════════════════════════════════════════════
+#
+#  场景 1: 突发流量（QPS 从 200 → 1000）
+#  ┌─────────────────────────────────────────────────────┐
+#  │ 1. QPS > 200/副本 → HPA 触发扩容                    │
+#  │ 2. 30 秒内 +4 副本（2 → 6）                         │
+#  │ 3. P99 从 42ms → 15ms（负载分摊）                   │
+#  │ 4. 10 分钟后稳定，开始慢速缩容                       │
+#  └─────────────────────────────────────────────────────┘
+#
+#  场景 2: P99 超标（candidate_limit 未启用时）
+#  ┌─────────────────────────────────────────────────────┐
+#  │ 1. P99 > 40ms → HPA 触发扩容                        │
+#  │ 2. 30 秒内 +4 副本（2 → 6）                         │
+#  │ 3. 同时触发告警: DegradationNotEnabledButP99High    │
+#  │ 4. 建议: 同时启用 candidate_limit=200 降级           │
+#  └─────────────────────────────────────────────────────┘
+#
+#  场景 3: 低谷期缩容
+#  ┌─────────────────────────────────────────────────────┐
+#  │ 1. QPS < 50, P99 < 25ms, CPU < 40%                  │
+#  │ 2. 等待 10 分钟稳定窗口                              │
+#  │ 3. 每 2 分钟减 1 副本（6 → 5 → 4 → ... → 2）        │
+#  │ 4. 最小保持 2 副本（高可用）                         │
+#  └─────────────────────────────────────────────────────┘

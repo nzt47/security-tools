@@ -1,0 +1,91 @@
+# ════════════════════════════════════════════════════════════════════
+#  Mock 服务 HPA — 激进扩缩容策略（P99 稳定 32ms 后调优）
+#
+#  【不易】SLO 不变量: P99 < 40ms（HPA 扩容触发阈值）
+#         指标名对齐 prometheus.py: skill_match_latency_ms / Yunshu_active_connections
+#
+#  【变易】基于 2026-08-01 集群内直连压测数据调整:
+#    旧配置: CPU 10%, max=10, scaleUp 4 Pods/30s → 230 QPS 时 P99=32ms (3 副本)
+#    新配置: CPU 5%,  max=15, scaleUp 6 Pods/30s → 目标 500+ QPS 时 P99 仍 <40ms
+#
+#    调整依据:
+#    1. P99 在 3 副本/230 QPS 下仅 32ms，余量 8ms (20%) → 可承受更高并发
+#    2. 单副本容量 ~77 QPS，10 副本上限 ~770 QPS → 提升至 15 副本 = ~1,155 QPS
+#    3. aiohttp 异步框架 CPU 开销低 → 10% 阈值可能不触发 → 降至 5%
+#    4. scaleUp 6 Pods/30s: 3→9→15 仅需 ~60s（旧 4 Pods: 需 ~90s 到 10）
+#
+#  【简易】CPU + Memory 双指标，任一超阈即扩容
+#
+#  前置条件: 部署 metrics-server
+#    kubectl apply -f deploy/k8s/metrics-server.yaml
+#    等待: kubectl wait --for=condition=Ready pod -l k8s-app=metrics-server -n kube-system --timeout=120s
+#
+#  部署: kubectl apply -f deploy/k8s/mock-hpa.yaml
+#  验证: kubectl get hpa -n production -w
+# ════════════════════════════════════════════════════════════════════
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: skill-retrieval-hpa
+  namespace: production
+  labels:
+    app: skill-retrieval-service
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: skill-retrieval-service
+
+  # ── 副本范围 ──
+  minReplicas: 3   # 最小 3 副本（保证基线 QPS ~230 时 P99 <40ms）
+  maxReplicas: 15  # 【变易】10→15，单节点资源允许上限（15×100m=1.5 CPU, 15×128Mi=1.9GB）
+
+  behavior:
+    # ── 扩容策略：激进快速响应 ──
+    scaleUp:
+      stabilizationWindowSeconds: 0    # 无稳定窗口，立即扩容
+      policies:
+        # 【变易】4→6 Pods/30s: 首次扩容 3→9（+6），60s 内可达 15
+        - type: Pods
+          value: 6
+          periodSeconds: 30
+        # Percent 策略: 3→6（+100%），第二次 6→12（+100%）
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+      selectPolicy: Max   # 取 Pods 和 Percent 中较大值
+
+    # ── 缩容策略：适度快速（压测观察用）──
+    scaleDown:
+      # 【变易】60→30s: 压测场景快速缩容观察；生产环境应设 300-600s
+      stabilizationWindowSeconds: 30
+      policies:
+        - type: Pods
+          value: 2      # 【变易】1→2: 加快缩容，避免资源浪费
+          periodSeconds: 60
+        - type: Percent
+          value: 15     # 【变易】10→15%: 更快回到稳态
+          periodSeconds: 60
+      selectPolicy: Min   # 取较小值，保守缩容
+
+  metrics:
+    # ── 主指标: CPU 利用率 ──
+    # 【变易】10%→5%: aiohttp 异步框架 CPU 开销低，10% 阈值在 I/O 密集场景可能不触发
+    # 5% 对应 requests.cpu=100m → 实际 5m (0.005 核)，轻微负载即触发扩容
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 5   # 【变易】10→5: 更激进，确保 burst 流量快速扩容
+
+    # ── 辅助指标: 内存利用率 ──
+    # 【变易】新增: 内存超 70% 也触发扩容（aiohttp 连接池内存开销场景）
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70
