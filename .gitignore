@@ -168,3 +168,12 @@ test_results/
 # 真相源 = .psd1（元数据）+ .psm1（同步自 scripts/dev/hook_fail_safe.psm1）
 packages/tlm-hook-failsafe/tlm-hook-failsafe.nuspec
 packages/tlm-hook-failsafe/*.nupkg
+
+# 临时/备份/测试产物（2026-08-01 追加）
+.tmp-nodejs-ci-sim/
+.tmp-guard-commit/
+.env.backups/
+.github/workflows/backups/
+*.bak
+l2_perf_report.png
+coverage_report/
