@@ -1,5 +1,5 @@
 {
-  "trace_id": "b4ac6fd62538421b",
+  "trace_id": "87d76a9e06e04aa7",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -9785,6 +9785,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 984.571625000001
+    "build_duration_ms": 1256.1945890000034
   }
 }
