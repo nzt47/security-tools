@@ -185,3 +185,19 @@ completed.txt
 fb.txt
 init.txt
 scripts/_tmp_*.txt
+
+# 嵌套 Git 仓库 + 构建产物 + 自动生成报告（2026-08-01 追加）
+# security-tools/ 是独立的 nzt47/security-tools 仓库，禁止作为子目录提交
+security-tools/
+# Python 包构建产物
+packages/*/dist/
+# 性能测试运行时产物（由 bench_sqlite_vs_etcd.py / gen_perf_trend.py 生成）
+scripts/perf_history/
+scripts/perf_report_latest.json
+scripts/perf_baseline.json
+# 自动生成的覆盖率 HTML（由 generate_coverage_html_report.py 生成）
+docs/coverage_report.html
+# 自动生成的性能图表（由 gen_perf_trend.py 生成，保留 .md 手写文档）
+docs/perf-charts/*.png
+# 自动生成的性能报告
+PERFORMANCE_REPORT_sqlite_vs_etcd.md
