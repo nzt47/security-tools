@@ -213,7 +213,7 @@ flowchart LR
         agent_orchestrator_lifecycle_manager["agent.orchestrator.lifecycle_manager"]
         agent_orchestrator_message_handler["agent.orchestrator.message_handler"]
         agent_orchestrator_observability["agent.orchestrator.observability"]
-        agent_orchestrator_orchestrator["agent.orchestrator.orchestrator"]
+        agent_orchestrator_orchestrator["agent.orchestrator.orchestrator"]:::crosslayer
         agent_orchestrator_prompt_builder["agent.orchestrator.prompt_builder"]
         agent_orchestrator_response_builder["agent.orchestrator.response_builder"]
         agent_orchestrator_status_reporter["agent.orchestrator.status_reporter"]
@@ -268,6 +268,7 @@ flowchart LR
         agent_skills_mgmt["agent.skills_mgmt"]:::crosslayer
         agent_skills_mgmt_creator["agent.skills_mgmt.creator"]
         agent_skills_mgmt_enhancer["agent.skills_mgmt.enhancer"]:::crosslayer
+        agent_skills_mgmt_loader["agent.skills_mgmt.loader"]
         agent_skills_mgmt_memory_abstractor["agent.skills_mgmt.memory_abstractor"]:::crosslayer
         agent_skills_mgmt_models["agent.skills_mgmt.models"]:::crosslayer
         agent_skills_mgmt_observability["agent.skills_mgmt.observability"]
@@ -480,6 +481,7 @@ flowchart LR
     agent_log_system_safe_logger -.-> agent_utils_sensitive_data_filter
     agent_handoff_handoff_generator -.-> agent_utils_token_redactor
     agent_handoff_handoff_generator -.-> agent_state_manager
+    agent_orchestrator_message_handler --> agent_orchestrator_dialog_state
     agent_orchestrator_task_dispatcher --> agent
     agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
     agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
@@ -536,8 +538,11 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
     agent_orchestrator_orchestrator -.-> agent_response_workflows
+    agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_state_manager
+    agent_orchestrator_orchestrator -.-> agent_state_manager
+    agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
     agent_orchestrator_orchestrator --> agent
     agent_orchestrator_orchestrator -.-> agent_tool_schema_pruner
     agent_orchestrator_orchestrator -.-> agent_tool_fewshot_store
@@ -630,6 +635,7 @@ flowchart LR
     agent_memory_adapters_holographic_adapter --> agent_memory_observability
     agent_skills_mgmt_creator -.-> agent_extensions_market
     agent_skills_mgmt_enhancer -.-> agent_feedback
+    agent_skills_mgmt_loader -.-> agent_monitoring_prometheus
     agent_skills_mgmt_memory_abstractor -.-> agent_state_manager
     agent_skills_mgmt_memory_abstractor -.-> agent_workflow_learning_service
     agent_skills_mgmt_memory_abstractor -.-> agent_feedback_collector
@@ -647,7 +653,11 @@ flowchart LR
     agent_server_routes_routes_config --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_config -.-> agent_logging_utils
     agent_server_routes_routes_config -.-> agent_config_validation
+    agent_server_routes_routes_config -.-> agent_orchestrator_orchestrator
+    agent_server_routes_routes_config -.-> agent_orchestrator_orchestrator
+    agent_server_routes_routes_config -.-> agent_monitoring_metrics
     agent_server_routes_routes_config -.-> agent_tools
+    agent_server_routes_routes_config -.-> agent_monitoring_metrics
     agent_server_routes_routes_feedback -.-> agent_feedback
     agent_server_routes_routes_feedback -.-> agent_feedback
     agent_server_routes_routes_feedback -.-> agent_feedback
@@ -934,10 +944,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 339
-- 模块节点数: 268
-- 依赖边数: 584
-- 跨层调用数: 368
+- 扫描文件数: 341
+- 模块节点数: 269
+- 依赖边数: 593
+- 跨层调用数: 374
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 979.41 ms
+- 构建耗时: 1251.13 ms
