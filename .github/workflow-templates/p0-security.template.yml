@@ -94,16 +94,27 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Job 开始 — 记录环境与触发信息
+        run: |
+          echo "[P0-CI][static-scan] START @ $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "  触发: ${{ github.event_name }} @ ${{ github.ref_name }}"
+          echo "  提交: ${{ github.sha }}"
+          echo "  Runner: ${{ runner.os }} ${{ runner.arch }}"
+
       - name: 安装依赖
         run: |
+          echo "[P0-CI][static-scan] 安装依赖..."
           python -m pip install --upgrade pip
-          pip install -e . || echo "pip install -e . 失败，继续执行扫描"
+          pip install -e . || echo "[P0-CI][static-scan] ⚠️ pip install -e . 失败，继续执行扫描"
+          echo "[P0-CI][static-scan] 依赖安装完成"
 
       - name: 运行敏感数据正则静态扫描
         run: |
-          echo "=== 敏感数据正则静态扫描 ==="
-          python {{SCAN_SCRIPT}} --fix-hint || echo "扫描脚本执行完成（可能有警告）"
-          echo "=== 静态扫描完成 ==="
+          echo "[P0-CI][static-scan] 开始静态扫描..."
+          SCAN_START=$SECONDS
+          python {{SCAN_SCRIPT}} --fix-hint || echo "[P0-CI][static-scan] ⚠️ 扫描脚本退出非零（可能有警告）"
+          echo "[P0-CI][static-scan] 静态扫描完成 (耗时 ${SECONDS}s)"
+          echo "[P0-CI][static-scan] END @ $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
   # ============================================================================
   # Job 2: P0 回归测试 — 防复发测试用例
@@ -121,38 +132,84 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Job 开始 — 记录环境信息
+        run: |
+          echo "[P0-CI][p0-tests] START @ $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "  Python: $(python --version 2>&1)"
+          echo "  pytest: $(python -m pytest --version 2>&1 || echo '未安装')"
+
       - name: 安装依赖（带重试）
         run: |
+          echo "[P0-CI][p0-tests] 安装依赖（3次重试机制）..."
           python -m pip install --upgrade pip
           # 重试机制：应对 PyPI 网络瞬时问题
           for i in 1 2 3; do
             pip install pytest pytest-cov pytest-mock pytest-timeout && break
-            echo "⚠️ 依赖安装失败，尝试 $i/3，5 秒后重试..."
+            echo "[P0-CI][p0-tests] ⚠️ 依赖安装失败，尝试 $i/3，5 秒后重试..."
             sleep 5
           done
-          pip install -e . || echo "pip install -e . 失败，尝试继续"
+          pip install -e . || echo "[P0-CI][p0-tests] ⚠️ pip install -e . 失败，尝试继续"
+          echo "[P0-CI][p0-tests] 依赖安装完成，关键包版本:"
+          pip show pytest pytest-timeout 2>/dev/null | grep -E "^Name|^Version" || true
 
       - name: 运行 P0 安全回归测试
         run: |
-          echo "=== 运行 P0 安全修复防复发回归测试 ==="
+          echo "[P0-CI][p0-tests] 开始运行 P0 回归测试..."
+          echo "  测试文件: {{REGRESSION_TEST_FILE}}"
+          echo "  预期用例数: {{EXPECTED_TEST_COUNT}}"
           mkdir -p test_reports
+          TEST_START=$SECONDS
           python -m pytest \
             {{REGRESSION_TEST_FILE}} \
             -v \
             --tb=short \
             --junitxml=test_reports/p0-security-junit.xml \
             --timeout=300
-          echo "=== P0 安全回归测试全部通过 ==="
+          PYTEST_EXIT=$?
+          echo "[P0-CI][p0-tests] pytest 退出码: $PYTEST_EXIT (耗时 ${SECONDS}s)"
+          if [ $PYTEST_EXIT -eq 0 ]; then
+            echo "[P0-CI][p0-tests] ✅ P0 回归测试全部通过"
+          else
+            echo "[P0-CI][p0-tests] ❌ P0 回归测试失败（退出码 $PYTEST_EXIT）"
+            echo "  退出码含义: 0=通过 1=断言失败 2=中断 3=内部错误 4=用法错误 5=未收集到测试"
+          fi
+          exit $PYTEST_EXIT
 
       - name: 测试结果汇总
         if: always()
         run: |
-          echo "=== P0 安全回归测试结果汇总 ==="
-          echo "测试文件: {{REGRESSION_TEST_FILE}}"
-          echo "预期测试数: {{EXPECTED_TEST_COUNT}}"
+          echo "[P0-CI][p0-tests] === 测试结果汇总 ==="
+          echo "  测试文件: {{REGRESSION_TEST_FILE}}"
+          echo "  预期用例数: {{EXPECTED_TEST_COUNT}}"
           if [ -f test_reports/p0-security-junit.xml ]; then
-            echo "--- JUnit 报告 ---"
+            echo "[P0-CI][p0-tests] JUnit 报告存在，提取统计..."
+            # 从 JUnit XML 提取测试统计（兼容 testsuite 根节点属性）
+            python -c "
+            import xml.etree.ElementTree as ET
+            try:
+                tree = ET.parse('test_reports/p0-security-junit.xml')
+                root = tree.getroot()
+                # 兼容 pytest 和 junit 格式：属性在根节点或子 testsuite
+                node = root if root.tag == 'testsuite' else root.find('.//testsuite')
+                if root.tag == 'testsuites':
+                    suites = root.findall('testsuite')
+                    total = sum(int(s.get('tests', 0)) for s in suites)
+                    fail = sum(int(s.get('failures', 0)) for s in suites)
+                    err = sum(int(s.get('errors', 0)) for s in suites)
+                    skip = sum(int(s.get('skipped', 0)) for s in suites)
+                else:
+                    total = int(node.get('tests', 0))
+                    fail = int(node.get('failures', 0))
+                    err = int(node.get('errors', 0))
+                    skip = int(node.get('skipped', 0))
+                print(f'  总用例: {total}  通过: {total-fail-err-skip}  失败: {fail}  错误: {err}  跳过: {skip}')
+            except Exception as e:
+                print(f'  ⚠️ 解析 JUnit 失败: {e}')
+            " || echo "  ⚠️ JUnit 解析脚本执行失败"
+            echo "[P0-CI][p0-tests] JUnit 报告前50行:"
             head -50 test_reports/p0-security-junit.xml
+          else
+            echo "[P0-CI][p0-tests] ⚠️ JUnit 报告不存在（测试可能未执行或启动前崩溃）"
           fi
 
       - name: 上传测试结果
@@ -162,6 +219,11 @@ jobs:
           name: p0-security-test-results
           path: test_reports/
           retention-days: 30
+
+      - name: Job 结束
+        if: always()
+        run: |
+          echo "[P0-CI][p0-tests] END @ $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
   # ============================================================================
   # Job 3: 补丁完整性验证
@@ -179,63 +241,66 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Job 开始
+        run: echo "[P0-CI][patch-integrity] START @ $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+
       - name: 验证补丁文件存在
         run: |
-          echo "=== 验证补丁包文件完整性 ==="
+          echo "[P0-CI][patch-integrity] 验证补丁包文件完整性..."
           if [ ! -d {{PATCH_DIR}} ]; then
-            echo "{{PATCH_DIR}} 目录不存在"
+            echo "[P0-CI][patch-integrity] ❌ {{PATCH_DIR}} 目录不存在"
             exit 1
           fi
           if [ ! -f {{PATCH_DIR}}/README.md ]; then
-            echo "{{PATCH_DIR}}/README.md 不存在"
+            echo "[P0-CI][patch-integrity] ❌ {{PATCH_DIR}}/README.md 不存在"
             exit 1
           fi
           if [ ! -f {{PATCH_DIR}}/{{PATCH_FILE}} ]; then
-            echo "{{PATCH_DIR}}/{{PATCH_FILE}} 不存在"
+            echo "[P0-CI][patch-integrity] ❌ {{PATCH_DIR}}/{{PATCH_FILE}} 不存在"
             exit 1
           fi
-          echo "补丁包文件完整性验证通过"
-          echo "--- 补丁包内容 ---"
+          echo "[P0-CI][patch-integrity] ✅ 补丁包文件完整性验证通过"
+          echo "[P0-CI][patch-integrity] 补丁包内容:"
           ls -la {{PATCH_DIR}}/
 
       - name: 验证补丁格式
         run: |
-          echo "=== 验证补丁格式 ==="
+          echo "[P0-CI][patch-integrity] 验证补丁格式..."
           # 补丁可能已应用过，用 --reverse 检查或直接检查格式
           if git apply --check {{PATCH_DIR}}/{{PATCH_FILE}} 2>/dev/null; then
-            echo "补丁可以正常应用（新环境）"
+            echo "[P0-CI][patch-integrity] ✅ 补丁可以正常应用（新环境）"
           elif git apply --check --reverse {{PATCH_DIR}}/{{PATCH_FILE}} 2>/dev/null; then
-            echo "补丁已应用（逆向检查通过）"
+            echo "[P0-CI][patch-integrity] ✅ 补丁已应用（逆向检查通过）"
           else
-            echo "警告: 补丁格式检查失败，可能已应用或格式有误"
+            echo "[P0-CI][patch-integrity] ⚠️ 补丁格式检查失败，可能已应用或格式有误"
             # 不失败，因为补丁内容已在 commit 中
-            echo "补丁内容验证: 检查 patch 文件是否包含预期的测试类名"
+            echo "[P0-CI][patch-integrity] 检查 patch 文件是否包含预期的测试类名..."
             # 注意：此处测试类名需替换为你的补丁实际包含的类名
             if grep -q "{{PATCH_TEST_CLASS_1}}" {{PATCH_DIR}}/{{PATCH_FILE}}; then
-              echo "补丁包含 {{PATCH_TEST_CLASS_1}} 测试类"
+              echo "[P0-CI][patch-integrity] ✅ 补丁包含 {{PATCH_TEST_CLASS_1}} 测试类"
             else
-              echo "错误: 补丁缺少预期测试类"
+              echo "[P0-CI][patch-integrity] ❌ 补丁缺少预期测试类 {{PATCH_TEST_CLASS_1}}"
               exit 1
             fi
             if grep -q "{{PATCH_TEST_CLASS_2}}" {{PATCH_DIR}}/{{PATCH_FILE}}; then
-              echo "补丁包含 {{PATCH_TEST_CLASS_2}} 测试类"
+              echo "[P0-CI][patch-integrity] ✅ 补丁包含 {{PATCH_TEST_CLASS_2}} 测试类"
             else
-              echo "错误: 补丁缺少跨模块一致性测试类"
+              echo "[P0-CI][patch-integrity] ❌ 补丁缺少跨模块一致性测试类 {{PATCH_TEST_CLASS_2}}"
               exit 1
             fi
           fi
-          echo "补丁格式验证通过"
+          echo "[P0-CI][patch-integrity] ✅ 补丁格式验证通过"
 
       - name: 验证测试用例数量
         run: |
-          echo "=== 验证 P0 测试用例数量 ==="
+          echo "[P0-CI][patch-integrity] 验证 P0 测试用例数量..."
           # 安装依赖：必须包含 pytest-timeout（若 pytest.ini 配置了 --timeout）
           python -m pip install --upgrade pip
           pip install pytest pytest-timeout -q
-          pip install -e . 2>&1 | tail -3 || echo "警告: pip install -e . 失败，尝试仅用 pytest 收集"
+          pip install -e . 2>&1 | tail -3 || echo "[P0-CI][patch-integrity] ⚠️ pip install -e . 失败，尝试仅用 pytest 收集"
 
           # 收集测试并统计数量（兼容不同 pytest 版本输出格式）
-          echo "--- 收集测试用例 ---"
+          echo "[P0-CI][patch-integrity] 收集测试用例..."
           COLLECT_OUTPUT=$(python -m pytest {{REGRESSION_TEST_FILE}} --collect-only -q 2>&1 || true)
           echo "$COLLECT_OUTPUT" | tail -10
 
@@ -252,25 +317,22 @@ jobs:
             NUM=$(echo "$COLLECT_OUTPUT" | grep -cE 'def test_')
           fi
 
-          echo "实际测试用例数: $NUM"
+          echo "[P0-CI][patch-integrity] 实际测试用例数: $NUM (预期 {{EXPECTED_TEST_COUNT}})"
 
           if [ -z "$NUM" ] || [ "$NUM" -lt {{EXPECTED_TEST_COUNT}} ]; then
-            echo "⚠️ 测试用例数 ($NUM) 少于预期 ({{EXPECTED_TEST_COUNT}})"
-            echo "--- 完整收集输出 ---"
-            echo "$COLLECT_OUTPUT"
-            echo ""
-            echo "可能原因:"
-            echo "1. CI 环境依赖缺失导致 import 失败"
-            echo "2. pytest 版本输出格式差异"
-            echo "3. 测试文件被修改"
-            echo ""
-            echo "请在本地运行验证: python -m pytest {{REGRESSION_TEST_FILE}} --collect-only -q"
-            echo "注意: 数量验证降级为警告，实际测试执行见 P0 安全回归测试 Job"
+            echo "[P0-CI][patch-integrity] ⚠️ 测试用例数 ($NUM) 少于预期 ({{EXPECTED_TEST_COUNT}})"
+            echo "[P0-CI][patch-integrity] 可能原因: 依赖缺失/pytest版本差异/测试文件被修改"
+            echo "[P0-CI][patch-integrity] 本地验证: python -m pytest {{REGRESSION_TEST_FILE}} --collect-only -q"
+            echo "[P0-CI][patch-integrity] 注意: 数量验证降级为警告，实际测试执行见 p0-security-tests Job"
             # 降级为警告（exit 0），避免 CI 因收集格式/依赖问题阻塞
             # 实际测试执行在 p0-security-tests Job 中，那里失败才是真正的问题
           else
-            echo "✅ 测试用例数量验证通过 ($NUM >= {{EXPECTED_TEST_COUNT}})"
+            echo "[P0-CI][patch-integrity] ✅ 测试用例数量验证通过 ($NUM >= {{EXPECTED_TEST_COUNT}})"
           fi
+
+      - name: Job 结束
+        if: always()
+        run: echo "[P0-CI][patch-integrity] END @ $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
   # ============================================================================
   # Job 4: 跨模块一致性验证
@@ -288,21 +350,44 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Job 开始
+        run: |
+          echo "[P0-CI][cross-module] START @ $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "[P0-CI][cross-module] 将测试以下类（空格分隔）:"
+          echo "  {{CROSS_MODULE_TEST_CLASSES}}"
+
       - name: 安装依赖
         run: |
+          echo "[P0-CI][cross-module] 安装依赖..."
           python -m pip install --upgrade pip
           pip install pytest pytest-timeout
-          pip install -e . || echo "pip install -e . 失败，尝试继续"
+          pip install -e . || echo "[P0-CI][cross-module] ⚠️ pip install -e . 失败，尝试继续"
+          echo "[P0-CI][cross-module] 依赖安装完成"
 
       - name: 运行跨模块一致性测试
         run: |
-          echo "=== 运行跨模块脱敏一致性测试 ==="
+          echo "[P0-CI][cross-module] 开始跨模块一致性测试..."
           # 注意：此处测试类名必须与测试文件中的实际类名完全一致
           # 常见坑：Bearer vs BearerToken 拼写差异，引用前请用 grep 确认
+          CROSS_START=$SECONDS
           python -m pytest \
             {{CROSS_MODULE_TEST_CLASSES}} \
             -v --tb=short --timeout=300
-          echo "=== 跨模块一致性验证通过 ==="
+          PYTEST_EXIT=$?
+          echo "[P0-CI][cross-module] pytest 退出码: $PYTEST_EXIT (耗时 ${SECONDS}s)"
+          if [ $PYTEST_EXIT -eq 0 ]; then
+            echo "[P0-CI][cross-module] ✅ 跨模块一致性验证通过"
+          elif [ $PYTEST_EXIT -eq 4 ]; then
+            echo "[P0-CI][cross-module] ❌ 退出码4=用法错误：测试类名拼写错误或不存在的类"
+            echo "[P0-CI][cross-module] 排查: grep '^class Test' {{REGRESSION_TEST_FILE}} 确认实际类名"
+          else
+            echo "[P0-CI][cross-module] ❌ 跨模块一致性测试失败（退出码 $PYTEST_EXIT）"
+          fi
+          exit $PYTEST_EXIT
+
+      - name: Job 结束
+        if: always()
+        run: echo "[P0-CI][cross-module] END @ $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
   # ============================================================================
   # Job 5: 测试总结
@@ -316,34 +401,51 @@ jobs:
     steps:
       - name: 生成总结报告
         run: |
-          echo "=== P0 安全验证总结 ==="
-          echo "时间: $(date)"
-          echo ""
-          echo "| 验证项 | 状态 |"
-          echo "|--------|------|"
-          echo "| 静态扫描 | ${{ needs.static-scan.result == 'success' && '通过' || '失败' }} |"
-          echo "| P0 回归测试 | ${{ needs.p0-security-tests.result == 'success' && '通过' || '失败' }} |"
-          echo "| 补丁完整性 | ${{ needs.patch-integrity.result == 'success' && '通过' || '失败' }} |"
-          echo "| 跨模块一致性 | ${{ needs.cross-module-consistency.result == 'success' && '通过' || '失败' }} |"
-          echo ""
+          echo "[P0-CI][summary] ================================================"
+          echo "[P0-CI][summary] P0 安全验证总结 @ $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "[P0-CI][summary] 提交: ${{ github.sha }}  分支: ${{ github.ref_name }}"
+          echo "[P0-CI][summary] ------------------------------------------------"
+          echo "[P0-CI][summary] | 验证项           | 状态                           |"
+          echo "[P0-CI][summary] |------------------|--------------------------------|"
+          echo "[P0-CI][summary] | 静态扫描         | ${{ needs.static-scan.result == 'success' && '✅ 通过' || '❌ 失败' }} |"
+          echo "[P0-CI][summary] | P0 回归测试      | ${{ needs.p0-security-tests.result == 'success' && '✅ 通过' || '❌ 失败' }} |"
+          echo "[P0-CI][summary] | 补丁完整性       | ${{ needs.patch-integrity.result == 'success' && '✅ 通过' || '❌ 失败' }} |"
+          echo "[P0-CI][summary] | 跨模块一致性     | ${{ needs.cross-module-consistency.result == 'success' && '✅ 通过' || '❌ 失败' }} |"
+          echo "[P0-CI][summary] ------------------------------------------------"
           if [ "${{ needs.static-scan.result }}" == "success" ] && \
              [ "${{ needs.p0-security-tests.result }}" == "success" ] && \
              [ "${{ needs.patch-integrity.result }}" == "success" ] && \
              [ "${{ needs.cross-module-consistency.result }}" == "success" ]; then
-            echo "P0 安全验证全部通过！"
+            echo "[P0-CI][summary] ✅ P0 安全验证全部通过！"
           else
-            echo "P0 安全验证存在失败项，请检查！"
+            echo "[P0-CI][summary] ❌ P0 安全验证存在失败项"
             exit 1
           fi
 
-      - name: 失败通知
+      - name: 失败排查指引
         if: failure()
         run: |
-          echo "P0 安全验证失败！"
-          echo "请检查以下内容："
-          echo "1. 是否引入了贪婪正则模式"
-          echo "2. 是否破坏了 Bearer Token 脱敏逻辑"
-          echo "3. 是否破坏了 & 分隔的 URL 参数保留逻辑"
-          echo "4. 补丁包文件是否完整"
+          echo "[P0-CI][summary] ================================================"
+          echo "[P0-CI][summary] ❌ 失败排查指引"
+          echo "[P0-CI][summary] ================================================"
           echo ""
-          echo "修复指南: 参考 {{PATCH_DIR}}/README.md"
+          echo "[P0-CI][summary] 逐项排查（按失败项对照）："
+          echo ""
+          echo "[P0-CI][summary] 1. 静态扫描失败 → 检查是否引入贪婪正则模式"
+          echo "   排查: python {{SCAN_SCRIPT}} --fix-hint"
+          echo "   常见: .*贪婪匹配导致过度脱敏或 Bearer Token 被截断"
+          echo ""
+          echo "[P0-CI][summary] 2. P0 回归测试失败 → 检查脱敏逻辑是否被回归"
+          echo "   排查: python -m pytest {{REGRESSION_TEST_FILE}} -v --tb=long"
+          echo "   常见: Bearer Token 脱敏、& 分隔 URL 参数保留逻辑被破坏"
+          echo ""
+          echo "[P0-CI][summary] 3. 补丁完整性失败 → 检查补丁文件是否缺失或损坏"
+          echo "   排查: ls -la {{PATCH_DIR}}/ && git apply --check {{PATCH_DIR}}/{{PATCH_FILE}}"
+          echo "   常见: 补丁文件被误删、补丁格式损坏"
+          echo ""
+          echo "[P0-CI][summary] 4. 跨模块一致性失败 → 检查测试类名拼写或脱敏模块行为不一致"
+          echo "   排查: grep '^class Test' {{REGRESSION_TEST_FILE}} 确认类名"
+          echo "   常见: Bearer vs BearerToken 拼写差异（退出码4）、模块间脱敏行为不一致"
+          echo ""
+          echo "[P0-CI][summary] 修复指南: 参考 {{PATCH_DIR}}/README.md"
+          echo "[P0-CI][summary] END @ $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
