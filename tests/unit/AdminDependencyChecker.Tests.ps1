@@ -23,7 +23,10 @@ $projectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $script:modulePath = Join-Path $projectRoot 'scripts\AdminDependencyChecker.psm1'
 
 # 临时测试目录
-$script:testDir = Join-Path $env:TEMP ("AdminDepTest_$(Get-Random)")
+# [不易] 跨平台兼容: Linux pwsh 无 $env:TEMP, 用 [System.IO.Path]::GetTempPath()
+# 获取系统临时目录 (Linux: /tmp, Windows: %TEMP%). 避免 Join-Path $null 报错
+# 导致 Pester discovery 阶段中断 (只发现 1 个测试而非 41 个).
+$script:testDir = Join-Path ([System.IO.Path]::GetTempPath()) ("AdminDepTest_$(Get-Random)")
 $null = New-Item -ItemType Directory -Path $script:testDir -Force
 
 Describe "AdminDependencyChecker 模块加载" {
