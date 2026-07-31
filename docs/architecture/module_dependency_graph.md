@@ -492,8 +492,8 @@ flowchart LR
     agent_orchestrator_subagent_manager -.-> agent_subagent_container
     agent_orchestrator_subagent_manager -.-> agent_subagent_container
     agent_orchestrator_lifecycle_manager -.-> agent_logging_utils
-    agent_orchestrator_lifecycle_manager -.-> agent_digital_life
     agent_orchestrator_lifecycle_manager -.-> agent_monitoring_tracing
+    agent_orchestrator_lifecycle_manager -.-> agent_digital_life
     agent_orchestrator_lifecycle_manager -.-> agent_tools_core_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_file_tools_reg
     agent_orchestrator_lifecycle_manager -.-> agent_tools_web_tools
@@ -940,4 +940,4 @@ flowchart LR
 - 跨层调用数: 368
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1331.22 ms
+- 构建耗时: 1367.19 ms
