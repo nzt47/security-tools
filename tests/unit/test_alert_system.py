@@ -10,6 +10,8 @@ import time
 import sys
 import os
 
+import pytest  # 用于 slow 标记（CI 中 -m "not slow" 跳过慢测试）
+
 # 添加项目根目录到路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -133,6 +135,7 @@ class TestAlertNotifier(unittest.TestCase):
         """测试发送器初始化"""
         self.assertIn("test-channel", self.notifier._senders)
 
+    @pytest.mark.slow
     def test_send_webhook(self):
         """测试 Webhook 发送"""
         notification = AlertNotification(
@@ -251,6 +254,7 @@ class TestSelfHealer(unittest.TestCase):
 class TestAlertIntegration(unittest.TestCase):
     """告警系统集成测试"""
 
+    @pytest.mark.slow
     def test_full_flow(self):
         """测试完整流程"""
         # 创建评估器

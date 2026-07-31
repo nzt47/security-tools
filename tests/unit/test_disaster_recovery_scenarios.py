@@ -444,6 +444,7 @@ class TestConfigHotReloader:
 
     @pytest.mark.unit
     @pytest.mark.p0
+    @pytest.mark.slow
     def test_watch_config(self, tmp_path):
         """测试监听配置文件"""
         config_path = os.path.join(str(tmp_path), "config.json")
@@ -479,6 +480,7 @@ class TestConfigHotReloader:
 
     @pytest.mark.unit
     @pytest.mark.p0
+    @pytest.mark.slow
     def test_watch_config_callback_error(self, tmp_path):
         """测试回调函数出错时的处理"""
         config_path = os.path.join(str(tmp_path), "config.json")
@@ -508,6 +510,7 @@ class TestConfigHotReloader:
 
     @pytest.mark.unit
     @pytest.mark.p0
+    @pytest.mark.slow
     def test_watch_multiple_configs(self, tmp_path):
         """测试监听多个配置文件"""
         config_path1 = os.path.join(str(tmp_path), "config1.json")
@@ -552,6 +555,7 @@ class TestConfigHotReloader:
 
     @pytest.mark.unit
     @pytest.mark.p0
+    @pytest.mark.slow
     def test_watch_nonexistent_file(self, tmp_path):
         """测试监听不存在的文件"""
         config_path = os.path.join(str(tmp_path), "nonexistent.json")
@@ -614,6 +618,7 @@ class TestConfigHotReloader:
 
     @pytest.mark.unit
     @pytest.mark.p0
+    @pytest.mark.slow
     def test_watch_loop_exception(self, tmp_path):
         """测试监听循环异常处理"""
         config_path = os.path.join(str(tmp_path), "config.json")
@@ -968,6 +973,7 @@ class TestConfigHotReloaderExceptions:
 
     @pytest.mark.unit
     @pytest.mark.p0
+    @pytest.mark.slow
     def test_watch_loop_exception(self, tmp_path):
         """测试配置监听循环异常处理"""
         config_path = os.path.join(str(tmp_path), "config.json")

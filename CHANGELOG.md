@@ -6,6 +6,46 @@
 
 ---
 
+## [Unreleased] - 2026-08-01: model_cache_utils 路径解析工具 + 下载脚本迁移
+
+**影响模块**: `scripts/model_cache_utils.py`, `scripts/download_reranker.py`, `scripts/download_bge_reranker_v2_m3_modelscope.py`, `.github/workflows/test.yml`
+**质量验证**: 37 个单元测试全部通过 (含 9 个新增 get_hf_cache_base 测试)
+
+### Added — 新增功能
+
+- **model_cache_utils.py**: 通用模型缓存路径解析工具，跨平台 + 4 级环境变量优先级
+  - `get_hf_model_cache_dir(model_id, env_override)`: 返回模型特定缓存路径（含 `models--xxx`）
+  - `get_hf_cache_base(env_override)`: 返回缓存基础路径（供 `huggingface_hub.snapshot_download(cache_dir=...)`）
+  - `get_modelscope_cache_dir()`: modelscope 缓存路径
+  - 环境变量优先级: `env_override` > `HF_HOME` > `HUGGINGFACE_HUB_CACHE` > `TRANSFORMERS_CACHE` > 平台默认
+  - 跨平台: Windows 用 `%LOCALAPPDATA%`, Linux 用 `~/.cache`
+
+- **37 个单元测试**: 覆盖所有优先级分支 + 跨平台路径分隔符 + 优先级顺序验证
+  - `tests/unit/test_model_cache_utils.py`: 27 个测试
+  - `tests/unit/test_check_circular_deps.py`: 10 个测试（--verbose JSON 输出结构验证）
+
+- **CI 守卫步骤**: `code-quality` job 新增"工具脚本测试"步骤，路径逻辑退化时自动阻断 CI
+
+### Changed — 变更
+
+- **download_bge_reranker_v2_m3_modelscope.py**: 迁移到 model_cache_utils
+  - 删除 60 行内联路径函数定义，改为 2 行导入
+  - 路径优先级行为不变（已验证）
+
+- **download_reranker.py**: 加 `cache_dir` 参数，复用 `get_hf_cache_base()`
+  - 新增 `BGE_V2_M3_LOCAL_DIR` 环境变量支持
+  - 无环境变量时自动降级到平台默认路径（已验证）
+
+- **test.yml**: 集成测试加 `HF_HUB_OFFLINE`/`TRANSFORMERS_OFFLINE` 环境变量 + HuggingFace 模型缓存步骤
+
+### 降级行为
+
+同事在本地未设置 `BGE_V2_M3_LOCAL_DIR` 时，脚本自动降级到平台默认路径：
+- Windows: `%LOCALAPPDATA%\huggingface\hub`
+- Linux: `~/.cache/huggingface/hub`
+
+---
+
 ## [Release] v1.2.0 - 2026-07-14: config_manager 测试强化 + TLM Step 2 记忆系统 ✅ 已发布
 
 **Tag**: `v1.2.0` (commit `fc4d89ea`)
