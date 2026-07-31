@@ -29,7 +29,8 @@ git push origin master
 | 文件 | 用途 |
 |------|------|
 | `p0-security.template.yml` | Workflow 模板主体（含 11 个占位符 + 4 个最佳实践警示） |
-| `examples/flask-auth-p0-security.yml` | 完整复用示例（Flask 认证服务，含占位符替换对照表） |
+| `examples/flask-auth-p0-security.yml` | 完整复用示例（Flask 认证服务，Python 技术栈，含占位符替换对照表） |
+| `examples/nodejs-auth-p0-security.yml` | 完整复用示例（Node.js 认证服务，含 Python→Node.js 适配差异说明） |
 | `README.md` | 本文档（复用指南 + 占位符清单 + 验证清单） |
 
 > 单元测试：`tests/unit/test_p0_security_template.py` 验证模板占位符完整性、替换彻底性、YAML 有效性和结构完整性（16 项测试）。
@@ -77,6 +78,35 @@ git push origin master
 | `{{EXPECTED_TEST_COUNT}}` | `42` | 该项目的回归测试数量 |
 
 > **关键差异**：`push.paths` 中的敏感模块路径需替换为目标项目的实际文件（如 `app/auth/tokens.py` 而非 `agent/utils/sensitive_data_filter.py`）。
+
+## 复用示例：Node.js 认证服务
+
+完整示例见 `examples/nodejs-auth-p0-security.yml`，适用于 Express/Fastify 等 Node.js 后端服务。以下为占位符替换对照表及 Python→Node.js 关键差异：
+
+| 占位符 | Node.js 认证服务取值 | 说明 |
+|--------|---------------------|------|
+| `{{PYTHON_VERSION}}` | `20` | 替换为 Node.js LTS 版本（setup-node 用） |
+| `{{REGRESSION_TEST_FILE}}` | `test/security/auth-redaction.test.js` | jest 测试文件 |
+| `{{CROSS_MODULE_TEST_CLASSES}}` | `"(JWTTokenRedaction\|PasswordHashRedaction)"` | jest `-t` 正则匹配 describe 块名（非 `file::Class`） |
+| `{{SCAN_SCRIPT}}` | `scripts/scan-auth-secrets.js` | Node.js 扫描脚本 |
+| `{{PATCH_TEST_CLASS_1/2}}` | `JWTTokenRedaction` / `PasswordHashRedaction` | describe 块名（非 class 名，grep 验证 `describe('Xxx'`） |
+| `{{EXPECTED_TEST_COUNT}}` | `42` | jest 测试用例数量 |
+
+### Python → Node.js 关键适配差异
+
+| 维度 | Python（模板默认） | Node.js（适配后） |
+|------|-------------------|------------------|
+| actions | `setup-python@v5` | `setup-node@v4` |
+| 依赖安装 | `pip install -e .` | `npm ci`（从 package-lock.json 精确安装） |
+| 测试运行器 | `pytest` | `npx jest` |
+| 超时 | `--timeout=300`（秒） | `--testTimeout=300000`（**毫秒**，注意单位 ×1000） |
+| JUnit 报告 | `--junitxml=xxx.xml` | `--reporters=jest-junit` + `JEST_JUNIT_OUTPUT_DIR` 环境变量 |
+| 测试收集 | `--collect-only -q` | `--listTests`（仅列文件，用例数需 grep `test(` 统计） |
+| 跨模块测试 | `file::Class` 引用 | `-t "Pattern"` 正则匹配 describe/test 名 |
+| 补丁验证 | `grep "class TestXxx"` | `grep "describe('Xxx'"` |
+| 覆盖率 | `pytest-cov`（需安装） | `--coverage`（jest 内置） |
+
+> **Node.js 特有踩坑**：① `jest-junit` 必须在 `devDependencies` 中（否则 JUnit 报告不生成）；② `--testTimeout` 单位是毫秒，从 Python 迁移时务必 ×1000；③ `npm ci` 要求 `package-lock.json` 存在且与 `package.json` 同步。
 
 ## 4 层防护说明
 
