@@ -21,14 +21,8 @@ import re as _re
 from datetime import datetime, timezone
 from typing import Optional
 
-from agent.digital_life import (
-    _MONITORING_AVAILABLE, _PLANNING_AVAILABLE,
-    TraceContext, get_metrics_collector, get_trace_id,
-    get_error_reporter, AlertLevel,
-    BehaviorMode,
-    _get_template,
-    LLMServiceError,
-)
+# digital_life 符号延迟到文件末尾导入，避免与 digital_life.py:369 形成模块级循环导入
+# (orchestrator.py 顶层导入 → digital_life.py:369 → agent.orchestrator.Orchestrator → orchestrator.py 未完成)
 
 from agent.guardrails.input_guard import InputGuard, GuardAction
 from agent.guardrails.output_guard import OutputGuard
@@ -1559,3 +1553,17 @@ class Orchestrator:
     def check_health(self):
         """健康检查（代理至 StatusReporter）"""
         return self.status.check_health()
+
+
+# 延迟导入: 放在 Orchestrator 类定义之后，避免与 digital_life 形成模块级循环导入.
+# 不变量(不易): 这些符号仅在方法/函数内使用(运行时解析), 模块加载完成时已就绪.
+# 循环链(修复前): orchestrator.py:24→digital_life.py:369→agent.orchestrator.Orchestrator→orchestrator.py(未完成)
+# 修复后: Orchestrator 类先定义, digital_life.py:369 经 __getattr__ 获取 Orchestrator 时类已就绪.
+from agent.digital_life import (
+    _MONITORING_AVAILABLE, _PLANNING_AVAILABLE,
+    TraceContext, get_metrics_collector, get_trace_id,
+    get_error_reporter, AlertLevel,
+    BehaviorMode,
+    _get_template,
+    LLMServiceError,
+)

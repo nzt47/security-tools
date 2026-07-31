@@ -68,6 +68,9 @@ jobs:
   unit-tests:
     name: 单元测试 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -156,6 +159,9 @@ jobs:
   integration-tests:
     name: 集成测试 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -234,6 +240,9 @@ jobs:
   performance-tests:
     name: 性能测试 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -351,6 +360,9 @@ jobs:
   coverage-check:
     name: 覆盖率检查 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     needs: [unit-tests, integration-tests]
     strategy:
       fail-fast: false
