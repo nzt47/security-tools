@@ -88,12 +88,15 @@ services:
     volumes:
       - test-results:/app/test_results
       - hf-cache:/app/.hf_cache
+      # [修复] 挂载 tests 目录（.dockerignore 排除了 tests/，必须运行时挂载）
+      - ./tests:/app/tests:ro
     environment:
       - HF_HOME=/app/.hf_cache
       - OMP_NUM_THREADS=4
       - MKL_NUM_THREADS=4
       - PYTEST_TIMEOUT=120
-    entrypoint: ["python", "-m", "pytest", "tests/integration/", "-v", "--tb=short", "--timeout=120", "--timeout-method=thread"]
+    # [修复] 移除 --timeout/--timeout-method，避免与 pytest.ini addopts 重复冲突
+    entrypoint: ["python", "-m", "pytest", "tests/integration/", "-v", "--tb=short"]
 
   # ── 完整测试套件（unit + integration）──
   test-all:
@@ -105,12 +108,15 @@ services:
     volumes:
       - test-results:/app/test_results
       - hf-cache:/app/.hf_cache
+      # [修复] 挂载 tests 目录（.dockerignore 排除了 tests/，必须运行时挂载）
+      - ./tests:/app/tests:ro
     environment:
       - HF_HOME=/app/.hf_cache
       - OMP_NUM_THREADS=4
       - MKL_NUM_THREADS=4
       - PYTEST_TIMEOUT=120
-    entrypoint: ["python", "-m", "pytest", "tests/", "-v", "--tb=short", "--timeout=120", "--timeout-method=thread", "-q"]
+    # [修复] 移除 --timeout/--timeout-method，避免与 pytest.ini addopts 重复冲突
+    entrypoint: ["python", "-m", "pytest", "tests/", "-v", "--tb=short", "-q"]
 
   # ── sqlite-vec 专项测试 ──
   test-sqlite-vec:
@@ -122,17 +128,20 @@ services:
     volumes:
       - test-results:/app/test_results
       - hf-cache:/app/.hf_cache
+      # [修复] 挂载 tests 目录（.dockerignore 排除了 tests/，必须运行时挂载）
+      - ./tests:/app/tests:ro
     environment:
       - HF_HOME=/app/.hf_cache
       - OMP_NUM_THREADS=4
     entrypoint: ["python", "-m", "pytest"]
+    # [修复] 移除 --timeout/--timeout-method，避免与 pytest.ini addopts 重复冲突
     command: >
       tests/unit/test_long_term_memory_embedding.py
       tests/unit/test_tlm_memory_store.py
       tests/unit/test_memory_storage_boundary.py
       tests/unit/test_vector_store_sqlite_vec.py
       tests/unit/test_memory_vector_store.py
-      -v --tb=short --timeout=120 --timeout-method=thread
+      -v --tb=short
 
 volumes:
   test-results:

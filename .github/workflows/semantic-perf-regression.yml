@@ -1,0 +1,174 @@
+# 语义层配置读取性能回归检测
+# 每次代码提交后自动运行 5000 并发压力测试，防止性能回归
+# 触发: push/PR 到 main 分支 + 手动触发 + 每周自动更新基线
+name: 语义层性能回归检测
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'agent/orchestrator/**'
+      - 'agent/server_routes/routes_config.py'
+      - 'agent/config/**'
+      - 'config.yaml'
+      - 'scripts/ci_semantic_perf_regression.py'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'agent/orchestrator/**'
+      - 'agent/server_routes/routes_config.py'
+      - 'agent/config/**'
+      - 'config.yaml'
+      - 'scripts/ci_semantic_perf_regression.py'
+  workflow_dispatch:  # 支持手动触发
+  schedule:
+    # 每周一 02:00 UTC（北京时间 10:00）自动更新基线
+    # 选周一是为了让本周的 PR 都基于最新基线回归
+    - cron: '0 2 * * 1'
+
+# 基线更新 job 需要 write 权限以提交 perf_baseline.json
+permissions:
+  contents: write
+
+jobs:
+  perf-regression:
+    name: 5000 并发 P99 回归检测
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # 周一定时触发只更新基线，不跑回归（避免与 update-baseline 重复）
+    if: github.event_name != 'schedule'
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          pip install -r requirements.txt --quiet || true
+          pip install pyyaml --quiet
+
+      - name: 运行性能回归检测
+        id: perf
+        run: |
+          python scripts/ci_semantic_perf_regression.py --n 5000 --concurrency 10
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      - name: 上传性能报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-report
+          path: |
+            scripts/perf_report_latest.json
+            scripts/perf_baseline.json
+          retention-days: 30
+
+      - name: 性能回归时阻止合并
+        if: steps.perf.outputs.exit_code != '0'
+        run: |
+          echo "::error::性能回归检测未通过，详见 perf-report artifact"
+          exit 1
+
+      - name: 性能通过通知
+        if: steps.perf.outputs.exit_code == '0'
+        run: echo "::notice::性能回归检测通过 (SQLite P99 < 5ms, etcd P99 < 40ms)"
+
+  # ═══════════════════════════════════════════════════════════════
+  # 每周基线自动更新（仅 schedule 触发）
+  # ═══════════════════════════════════════════════════════════════
+  # 设计要点:
+  #   【不易】仅 schedule 触发，不干扰 PR 回归检测；用 [skip ci] 避免嵌套触发
+  #   【变易】基线漂移随硬件/依赖演进，每周重新校准避免误报
+  #   【简易】复用 ci_semantic_perf_regression.py --update-baseline，零新增脚本
+  update-baseline:
+    name: 每周基线自动更新
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name == 'schedule'
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          # 用 GITHUB_TOKEN 拉取，以便后续 push 回主分支
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 1
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          pip install -r requirements.txt --quiet || true
+          pip install pyyaml --quiet
+
+      - name: 生成新基线
+        id: gen
+        run: |
+          set -e
+          echo "[baseline] 运行 5000 并发压测以重新校准基线..."
+          python scripts/ci_semantic_perf_regression.py --n 5000 --concurrency 10 --update-baseline
+          # 提取 P99 值用于 commit message
+          SQLITE_P99=$(python -c "import json; print(json.load(open('scripts/perf_baseline.json'))['sqlite']['p99'])")
+          ETCD_P99=$(python -c "import json; print(json.load(open('scripts/perf_baseline.json'))['etcd']['p99'])")
+          echo "sqlite_p99=$SQLITE_P99" >> $GITHUB_OUTPUT
+          echo "etcd_p99=$ETCD_P99" >> $GITHUB_OUTPUT
+          echo "[baseline] 新基线: SQLite P99=${SQLITE_P99}ms, etcd P99=${ETCD_P99}ms"
+
+      - name: 提交并推送基线
+        id: commit_baseline
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/perf_baseline.json
+          # 检查是否有变更（基线值未变则跳过提交）
+          if git diff --cached --quiet; then
+            echo "[baseline] 基线值未变化，跳过提交"
+            echo "pushed=false" >> $GITHUB_OUTPUT
+          else
+            git commit -m "chore(perf): 每周基线自动更新 SQLite P99=${{ steps.gen.outputs.sqlite_p99 }}ms etcd P99=${{ steps.gen.outputs.etcd_p99 }}ms [skip ci]"
+            git push
+            echo "[baseline] 基线已推送到主分支"
+            echo "pushed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 安装图表依赖
+        run: pip install matplotlib --quiet
+
+      - name: 生成最近 5 次运行的性能趋势图
+        id: chart
+        run: |
+          # --source auto: 优先从 CI artifact 拉取，不足 5 次则回退本地
+          python scripts/gen_perf_trend.py --source auto --runs 5
+          echo "chart_path=docs/perf-charts/perf_trend_5runs.png" >> $GITHUB_OUTPUT
+
+      - name: 提交并推送趋势图
+        run: |
+          git add docs/perf-charts/perf_trend_5runs.png
+          # 趋势图是二进制文件，必有变更（除非首次生成失败）
+          if git diff --cached --quiet; then
+            echo "[chart] 趋势图未生成或未变化，跳过提交"
+          else
+            git commit -m "docs(perf): 每周性能趋势图更新 (最近 5 次 CI/CD P99) [skip ci]"
+            git push
+            echo "[chart] 趋势图已推送到 docs/perf-charts/"
+          fi
+
+      - name: 上传新基线 artifact（供趋势图脚本拉取）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-baseline-weekly
+          path: |
+            scripts/perf_baseline.json
+            scripts/perf_report_latest.json
+          retention-days: 90

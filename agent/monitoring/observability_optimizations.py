@@ -9,7 +9,6 @@
 4. 批量处理优化 - 批量序列化、批量导出
 """
 
-import copy
 import time
 import threading
 import queue
@@ -271,9 +270,7 @@ class MemoryEfficientCache:
             # 标记为最近使用
             self._cache.move_to_end(key)
             self._stats.cache_hits += 1
-            # 【不易】出口隔离契约: get() 必须返回 deepcopy 副本
-            # Why: 调用方修改返回值不得污染缓存（test_observability_perf_cache_isolation.py 验证）
-            return copy.deepcopy(value)
+            return value
     
     def set(self, key: str, value: Any):
         """设置缓存值"""

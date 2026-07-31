@@ -1,0 +1,429 @@
+# =====================================================================
+# L3 层 Docker 完整回归测试 CI/CD 流水线
+#
+# 【不易】Docker 构建不阻断——模型下载失败不影响镜像构建
+# 【变易】支持 push/PR 触发 + 手动触发 + 定时执行
+# 【简易】四阶段：检出 → 构建镜像 → 运行测试 → 上传报告
+#
+# 触发条件:
+#   - push 到 master 分支（Dockerfile/tests/scripts 变更时）
+#   - PR 到 master 分支
+#   - 每日 UTC 03:00（北京时间 11:00）定时执行
+#   - 手动触发（workflow_dispatch）
+#
+# 依赖文件:
+#   - Dockerfile.linux-test
+#   - docker-compose.linux-test.yml
+#   - scripts/predownload_models.py
+#   - scripts/run_l3_regression_tests.ps1（参考逻辑，CI 用 bash 实现）
+# =====================================================================
+name: L3 Docker Tests
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'Dockerfile.linux-test'
+      - 'docker-compose.linux-test.yml'
+      - 'scripts/predownload_models.py'
+      - 'agent/memory/**'
+      - 'memory/vector_store/**'
+      - 'tests/unit/test_long_term_memory_embedding.py'
+      - 'tests/unit/test_tlm_memory_store.py'
+      - 'tests/unit/test_memory_storage_boundary.py'
+      - 'tests/unit/test_vector_store_sqlite_vec.py'
+      - 'tests/unit/test_memory_vector_store.py'
+      - '.github/workflows/l3-docker-tests.yml'
+  pull_request:
+    branches: [master, main]
+    paths:
+      - 'Dockerfile.linux-test'
+      - 'docker-compose.linux-test.yml'
+      - 'agent/memory/**'
+      - 'memory/vector_store/**'
+  schedule:
+    # UTC 03:00 = 北京时间 11:00（每日）
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: '测试模式（sqlite-vec / all / integration）'
+        required: false
+        default: 'sqlite-vec'
+        type: choice
+        options:
+          - sqlite-vec
+          - all
+          - integration
+      rebuild_image:
+        description: '强制重建 Docker 镜像（不使用缓存）'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PYTHON_VERSION: '3.12'
+  DOCKER_IMAGE_NAME: agent-test-sqlite-vec
+
+jobs:
+  # =====================================================================
+  # Job 1: 构建 Docker 镜像
+  # 【不易】模型预下载失败不阻断构建（predownload_models.py sys.exit(0) + Dockerfile || echo）
+  # =====================================================================
+  build-image:
+    name: 构建 Docker 镜像
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 构建镜像元数据
+        id: meta
+        run: |
+          # 生成唯一标签：分支名-短SHA-时间戳
+          BRANCH=$(echo "${{ github.ref }}" | sed 's|refs/heads/||')
+          SHA_SHORT=$(git rev-parse --short=7 HEAD)
+          TIMESTAMP=$(date -u +%Y%m%d%H%M)
+          TAG="${BRANCH}-${SHA_SHORT}-${TIMESTAMP}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "构建镜像标签: ${TAG}"
+
+      - name: 构建 Docker 镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.linux-test
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
+          tags-secondary: ${{ env.DOCKER_IMAGE_NAME }}:latest
+          load: true
+          # [不易] 不使用 no-cache，除非手动触发且明确要求
+          no-cache: ${{ github.event.inputs.rebuild_image == 'true' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 验证镜像构建成功
+        run: |
+          echo "=== 验证镜像 ==="
+          docker images | grep ${{ env.DOCKER_IMAGE_NAME }}
+          echo "=== 验证关键模块可导入 ==="
+          docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:latest python -c "
+          import sqlite_vec; print(f'sqlite-vec: {sqlite_vec.__version__}')
+          import torch; print(f'torch: {torch.__version__}')
+          import sentence_transformers; print('sentence-transformers: OK')
+          from agent.memory.long_term_memory import LongTermMemory; print('LongTermMemory: OK')
+          "
+
+      - name: 上传镜像构建日志
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-build-log
+          path: |
+            .docker/
+          retention-days: 7
+
+  # =====================================================================
+  # Job 2: 运行 L3 测试（含覆盖率）
+  # 【变易】支持三种测试模式：sqlite-vec / all / integration
+  # =====================================================================
+  l3-tests:
+    name: L3 回归测试 (${{ matrix.test-mode }})
+    runs-on: ubuntu-latest
+    needs: build-image
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        # 默认只跑 sqlite-vec 模式，手动触发时可选择
+        test-mode:
+          - ${{ github.event.inputs.test_mode || 'sqlite-vec' }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 下载构建的镜像
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.linux-test
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:latest
+          load: true
+          cache-from: type=gha
+
+      - name: 创建测试结果目录
+        run: mkdir -p test-results coverage-report
+
+      - name: 运行 L3 测试（sqlite-vec 模式）
+        if: matrix.test-mode == 'sqlite-vec'
+        run: |
+          echo "=== 运行 L3 sqlite-vec 测试 ==="
+          docker run --rm \
+            -v "${PWD}/tests:/app/tests:ro" \
+            -v "${PWD}/coverage-report:/app/htmlcov" \
+            -v "${PWD}/test-results:/app/test_results" \
+            --entrypoint bash \
+            ${{ env.DOCKER_IMAGE_NAME }}:latest \
+            -c "
+              pip install pytest-timeout pytest-cov -q && \
+              python -m pytest \
+                tests/unit/test_long_term_memory_embedding.py \
+                tests/unit/test_tlm_memory_store.py \
+                tests/unit/test_memory_storage_boundary.py \
+                tests/unit/test_vector_store_sqlite_vec.py \
+                tests/unit/test_memory_vector_store.py \
+                --cov --cov-report=html --cov-report=term --cov-report=xml \
+                -v --tb=short \
+                --junitxml=/app/test_results/junit.xml
+            "
+
+      - name: 运行 L3 测试（all 模式）
+        if: matrix.test-mode == 'all'
+        run: |
+          echo "=== 运行 L3 all 测试 ==="
+          docker run --rm \
+            -v "${PWD}/tests:/app/tests:ro" \
+            -v "${PWD}/coverage-report:/app/htmlcov" \
+            -v "${PWD}/test-results:/app/test_results" \
+            --entrypoint bash \
+            ${{ env.DOCKER_IMAGE_NAME }}:latest \
+            -c "
+              pip install pytest-timeout pytest-cov -q && \
+              python -m pytest tests/ \
+                --cov --cov-report=html --cov-report=term --cov-report=xml \
+                -v --tb=short -q \
+                --junitxml=/app/test_results/junit.xml
+            "
+
+      - name: 运行 L3 测试（integration 模式）
+        if: matrix.test-mode == 'integration'
+        run: |
+          echo "=== 运行 L3 integration 测试 ==="
+          docker run --rm \
+            -v "${PWD}/tests:/app/tests:ro" \
+            -v "${PWD}/coverage-report:/app/htmlcov" \
+            -v "${PWD}/test-results:/app/test_results" \
+            --entrypoint bash \
+            ${{ env.DOCKER_IMAGE_NAME }}:latest \
+            -c "
+              pip install pytest-timeout pytest-cov -q && \
+              python -m pytest tests/integration/ \
+                --cov --cov-report=html --cov-report=term --cov-report=xml \
+                -v --tb=short \
+                --junitxml=/app/test_results/junit.xml
+            "
+
+      - name: 解析测试结果
+        if: always()
+        run: |
+          echo "=== 测试结果汇总 ==="
+          if [ -f test-results/junit.xml ]; then
+            # 使用 Python 解析 junit.xml
+            python -c "
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('test-results/junit.xml')
+          root = tree.getroot()
+          tests = root.get('tests', '0')
+          failures = root.get('failures', '0')
+          errors = root.get('errors', '0')
+          skipped = root.get('skipped', '0')
+          time = root.get('time', '0')
+          passed = int(tests) - int(failures) - int(errors) - int(skipped)
+          print(f'测试总数: {tests}')
+          print(f'通过: {passed}')
+          print(f'失败: {failures}')
+          print(f'错误: {errors}')
+          print(f'跳过: {skipped}')
+          print(f'耗时: {time}s')
+          if int(failures) > 0 or int(errors) > 0:
+              print('❌ 测试失败！')
+          else:
+              print('✅ 所有测试通过！')
+          " || echo "junit.xml 解析失败"
+          else
+            echo "⚠️ junit.xml 不存在，测试可能未正常执行"
+          fi
+
+      - name: 上传覆盖率报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ matrix.test-mode }}
+          path: |
+            coverage-report/
+            coverage.xml
+          retention-days: 30
+
+      - name: 上传测试结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.test-mode }}
+          path: test-results/
+          retention-days: 30
+
+  # =====================================================================
+  # Job 3: 覆盖率分析
+  # 【不易】核心模块覆盖率不低于 80% 的守卫
+  # =====================================================================
+  coverage-analysis:
+    name: 覆盖率分析
+    runs-on: ubuntu-latest
+    needs: l3-tests
+    if: always()
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 下载覆盖率报告
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report-sqlite-vec
+          path: coverage-data/
+
+      - name: 分析核心模块覆盖率
+        run: |
+          echo "=== 核心模块覆盖率分析 ==="
+          if [ -f coverage-data/coverage.xml ]; then
+            python -c "
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('coverage-data/coverage.xml')
+          root = tree.getroot()
+
+          # 核心模块列表
+          core_modules = {
+              'agent/memory/long_term_memory.py': 'LongTermMemory（TLM 核心）',
+              'memory/vector_store/vector_store.py': 'VectorStore（向量存储）',
+              'memory/vector_store/sqlite_vec_backend.py': 'SqliteVecBackend（KNN 后端）',
+              'agent/env_config_manager.py': 'EnvConfigManager（配置管理）',
+          }
+
+          print('| 模块 | 覆盖率 | 状态 |')
+          print('|------|--------|------|')
+
+          below_threshold = []
+          for cls in root.findall('.//class'):
+              filename = cls.get('filename', '')
+              line_rate = float(cls.get('line-rate', '0'))
+              coverage_pct = line_rate * 100
+
+              # 匹配核心模块
+              for pattern, name in core_modules.items():
+                  if pattern in filename:
+                      status = '✅' if coverage_pct >= 80 else '❌'
+                      print(f'| {name} | {coverage_pct:.1f}% | {status} |')
+                      if coverage_pct < 80:
+                          below_threshold.append((name, coverage_pct))
+
+          if below_threshold:
+              print()
+              print('## 覆盖率不足 80% 的核心模块：')
+              for name, pct in below_threshold:
+                  print(f'  - {name}: {pct:.1f}%')
+              print()
+              print('⚠️ 建议补充测试用例提升覆盖率')
+          else:
+              print()
+              print('✅ 所有核心模块覆盖率 ≥ 80%')
+          " || echo "coverage.xml 解析失败"
+          else
+            echo "⚠️ coverage.xml 不存在"
+          fi
+
+      - name: 上传覆盖率分析报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-analysis
+          path: |
+            coverage-data/
+          retention-days: 30
+
+  # =====================================================================
+  # Job 4: 测试总结与通知
+  # =====================================================================
+  test-summary:
+    name: 测试总结与通知
+    runs-on: ubuntu-latest
+    needs: [build-image, l3-tests, coverage-analysis]
+    if: always()
+    steps:
+      - name: 生成测试总结
+        run: |
+          BUILD_RESULT="${{ needs.build-image.result }}"
+          TEST_RESULT="${{ needs.l3-tests.result }}"
+          COV_RESULT="${{ needs.coverage-analysis.result }}"
+
+          echo "## L3 Docker 测试总结" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 阶段 | 结果 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 镜像构建 | ${BUILD_RESULT} |" >> $GITHUB_STEP_SUMMARY
+          echo "| L3 测试 | ${TEST_RESULT} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 覆盖率分析 | ${COV_RESULT} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${BUILD_RESULT}" == "failure" ]]; then
+            echo "❌ Docker 镜像构建失败" >> $GITHUB_STEP_SUMMARY
+          elif [[ "${TEST_RESULT}" == "failure" ]]; then
+            echo "❌ L3 测试失败" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ 所有阶段通过" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: PR 评论通知（失败时）
+        if: failure() && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: [
+                '## ❌ L3 Docker 测试失败',
+                '',
+                '**失败阶段**:',
+                `- 镜像构建: ${{ needs.build-image.result }}`,
+                `- L3 测试: ${{ needs.l3-tests.result }}`,
+                `- 覆盖率分析: ${{ needs.coverage-analysis.result }}`,
+                '',
+                f'**查看详情**: [Workflow Run]({{ context.serverUrl }}/{{ context.repo.owner }}/{{ context.repo.repo }}/actions/runs/{{ context.runId }})',
+                '',
+                '**排查建议**:',
+                '1. 检查 Docker 构建日志（模型预下载失败不阻断构建）',
+                '2. 检查 L3 测试输出中的 FAILED 项',
+                '3. 检查覆盖率报告是否正常生成',
+              ].join('\n')
+            })
+
+      - name: Slack 通知
+        if: always()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "L3 Docker 测试 ${{ job.status }}",
+              "attachments": [{
+                "color": "${{ job.status == 'success' && '#36a64f' || '#ff0000' }}",
+                "fields": [
+                  {"title": "状态", "value": "${{ job.status }}"},
+                  {"title": "分支", "value": "${{ github.ref }}"},
+                  {"title": "提交", "value": "${{ github.sha }}"},
+                  {"title": "触发者", "value": "${{ github.actor }}"},
+                  {"title": "构建", "value": "${{ needs.build-image.result }}"},
+                  {"title": "测试", "value": "${{ needs.l3-tests.result }}"}
+                ]
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
