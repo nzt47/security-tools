@@ -138,6 +138,16 @@ function Show-Status {
             Write-Host "  ℹ️  分支 '$Branch' 未配置 Branch Protection" -ForegroundColor Yellow
             return
         }
+        # [不易] CI 环境 GITHUB_TOKEN 默认仅 contents: read, 无 admin 权限读取
+        # Branch Protection 配置 → HTTP 403 "Resource not accessible by integration".
+        # status 是只读信息查询, 403 时打印提示并 return, 不阻断 CI 流水线.
+        # 本地 admin token 或显式配置 permissions 后仍可正常读取.
+        if ($_.Exception.Message -match '403|Resource not accessible') {
+            Write-Host "  ℹ️  当前 token 无 Branch Protection 读权限 (HTTP 403)" -ForegroundColor Yellow
+            Write-Host "     CI 默认 GITHUB_TOKEN 无 admin 权限, 跳过状态查询" -ForegroundColor Yellow
+            Write-Host "     本地执行 'gh auth login' 使用 admin 账户可查看完整状态" -ForegroundColor Gray
+            return
+        }
         throw
     }
 
