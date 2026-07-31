@@ -192,12 +192,15 @@ security-tools/
 # Python 包构建产物
 packages/*/dist/
 # 性能测试运行时产物（由 bench_sqlite_vs_etcd.py / gen_perf_trend.py 生成）
-scripts/perf_history/
+# 注意: perf_baseline.json 和 perf_history/run_*.json 由 CI workflow 提交，不能忽略
+# perf_report_latest.json 是最新一次运行报告，每次变化，不提交
+scripts/perf_history/__pycache__/
 scripts/perf_report_latest.json
-scripts/perf_baseline.json
 # 自动生成的覆盖率 HTML（由 generate_coverage_html_report.py 生成）
 docs/coverage_report.html
 # 自动生成的性能图表（由 gen_perf_trend.py 生成，保留 .md 手写文档）
+# 例外: perf_trend_*.png 由 CI workflow 提交，需要跟踪
 docs/perf-charts/*.png
+!docs/perf-charts/perf_trend_*.png
 # 自动生成的性能报告
 PERFORMANCE_REPORT_sqlite_vs_etcd.md
