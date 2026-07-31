@@ -1,4 +1,4 @@
-﻿<#
+﻿﻿﻿﻿﻿﻿﻿﻿﻿<#
 .SYNOPSIS
     tlm-hook-failsafe 模块安装脚本（3 种模式 + 跨平台）
 

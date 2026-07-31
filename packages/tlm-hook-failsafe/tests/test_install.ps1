@@ -1,4 +1,4 @@
-﻿<#
+﻿﻿﻿﻿﻿﻿﻿﻿﻿<#
 .SYNOPSIS
     tlm-hook-failsafe 安装后冒烟测试
 

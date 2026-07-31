@@ -1,4 +1,4 @@
-﻿<#
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<#
 .SYNOPSIS
     批量修复 docs/ 中的失效 Markdown 链接
 

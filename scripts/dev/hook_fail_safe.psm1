@@ -1,4 +1,4 @@
-﻿<#
+﻿﻿﻿﻿﻿﻿﻿<#
 .SYNOPSIS
     Pre-commit Hook Fail-Safe 模块（可复用核心能力）
 
