@@ -868,7 +868,9 @@ class TestProcessUserInput:
         """测试正常处理用户输入"""
         memory = MagicMock()
         orch = _make_test_orch(_memory=memory, _call_llm=MagicMock(return_value="Response"))
-        result = orch.process("Hello")
+        # 禁用模板匹配, 强制走 LLM 路径 (测试 _call_llm 而非 greeting 模板)
+        with patch('agent.response_workflows.ResponseTemplates.for_intent', return_value=None):
+            result = orch.process("Hello")
         assert result["success"] is True
         assert result["data"] == "Response"
 
@@ -974,7 +976,9 @@ class TestChatV2Flow:
             _v2_lifetrace=True, _trace_recorder=trace_recorder,
             _call_llm_v2=MagicMock(return_value="Response"),
         )
-        result = orch.process("Hello")
+        # 禁用模板匹配, 强制走 LLM 路径 (测试 _call_llm_v2 而非 greeting 模板)
+        with patch('agent.response_workflows.ResponseTemplates.for_intent', return_value=None):
+            result = orch.process("Hello")
         assert result["success"] is True
         assert result["data"] == "Response"
 
@@ -1008,7 +1012,9 @@ class TestChatMethodComplete:
             _v2_lifetrace=True, _trace_recorder=trace_recorder,
             _call_llm_v2=MagicMock(return_value="V2 Response"),
         )
-        result = orch.chat("Hello")
+        # 禁用模板匹配, 强制走 LLM 路径 (测试 _call_llm_v2 而非 greeting 模板)
+        with patch('agent.response_workflows.ResponseTemplates.for_intent', return_value=None):
+            result = orch.chat("Hello")
         assert result == "V2 Response"
 
     def test_chat_planning_mode_enabled(self):
@@ -1017,7 +1023,9 @@ class TestChatMethodComplete:
             _v2_lifetrace=True, _trace_recorder=MagicMock(),
             _call_llm_v2=MagicMock(return_value="Planning Response"),
         )
-        result = orch.chat("Hello")
+        # 禁用模板匹配, 强制走 LLM 路径 (测试 _call_llm_v2 而非 greeting 模板)
+        with patch('agent.response_workflows.ResponseTemplates.for_intent', return_value=None):
+            result = orch.chat("Hello")
         assert result == "Planning Response"
 
 @pytest.mark.p1
