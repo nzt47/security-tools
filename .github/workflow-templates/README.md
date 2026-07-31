@@ -108,6 +108,20 @@ git push origin master
 
 > **Node.js 特有踩坑**：① `jest-junit` 必须在 `devDependencies` 中（否则 JUnit 报告不生成）；② `--testTimeout` 单位是毫秒，从 Python 迁移时务必 ×1000；③ `npm ci` 要求 `package-lock.json` 存在且与 `package.json` 同步。
 
+### 失败邮件通知（Node.js 示例独有）
+
+Node.js 示例在 summary job 增加了 `dawidd6/action-send-mail@v3` 邮件通知步骤，CI 失败时自动发送告警邮件。需在仓库 **Settings → Secrets and variables → Actions** 中配置 5 个 Secrets：
+
+| Secret | 说明 | 示例 |
+|--------|------|------|
+| `SMTP_SERVER` | SMTP 服务器地址 | `smtp.qq.com` |
+| `SMTP_PORT` | SMTP 端口 | `465`（SSL）/ `587`（STARTTLS） |
+| `SMTP_USERNAME` | 发件邮箱账号 | `bot@team.com` |
+| `SMTP_PASSWORD` | 发件邮箱授权码（非登录密码） | QQ/163 需单独生成 |
+| `ALERT_MAIL_TO` | 收件邮箱（逗号分隔） | `ops@team.com,dev@team.com` |
+
+> **安全不变量**：凭证只走 secrets，不得硬编码；邮件正文只含 GitHub 元数据（仓库/分支/提交/CI 链接），不含源码或敏感数据。如暂未配置 Secrets，该步骤会因 secrets 为空而跳过，不影响 CI 主流程。Python（Flask）示例可按相同模式添加。
+
 ## 4 层防护说明
 
 | Job | 防护目标 | 失败退出码 |

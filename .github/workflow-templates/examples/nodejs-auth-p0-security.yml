@@ -341,3 +341,50 @@ jobs:
           echo "6. Node.js 版本是否为 LTS（推荐 20+）"
           echo ""
           echo "修复指南: 参考 patches/auth_security/README.md"
+
+      # ============================================================================
+      # 邮件通知（失败时触发）— 需配置 5 个 Repository Secrets
+      # ============================================================================
+      # 必需的 Secrets 清单（在 GitHub 仓库 Settings → Secrets and variables → Actions 中配置）：
+      #   SMTP_SERVER     SMTP 服务器地址（如 smtp.qq.com / smtp.gmail.com / smtp.163.com）
+      #   SMTP_PORT       SMTP 端口（465=SSL / 587=STARTTLS）
+      #   SMTP_USERNAME   发件邮箱账号
+      #   SMTP_PASSWORD   发件邮箱授权码（非登录密码，QQ/163 等需单独生成）
+      #   ALERT_MAIL_TO   收件邮箱（多个用逗号分隔，如 ops@team.com,dev@team.com）
+      #
+      # [安全不变量] 凭证只走 secrets，不得硬编码；邮件正文只含 GitHub 元数据，不含源码/敏感数据
+      # [简易] 如暂未配置 SMTP secrets，本步骤会因 secrets 为空而跳过，不影响 CI 主流程
+      - name: 发送失败邮件通知
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server: ${{ secrets.SMTP_SERVER }}
+          port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          to: ${{ secrets.ALERT_MAIL_TO }}
+          from: GitHub Actions <${{ secrets.SMTP_USERNAME }}>
+          subject: "[P0-CI] ❌ Node.js 认证服务安全验证失败 #${{ github.run_number }}"
+          body: |
+            P0 安全验证失败，请尽快排查！
+
+            ── 基本信息 ──
+            仓库: ${{ github.repository }}
+            分支: ${{ github.ref_name }}
+            提交: ${{ github.sha }}
+            触发: ${{ github.event_name }}
+            运行编号: #${{ github.run_number }}
+
+            ── 失败的验证项 ──
+            - 静态扫描: ${{ needs.static-scan.result }}
+            - P0 回归测试: ${{ needs.p0-security-tests.result }}
+            - 补丁完整性: ${{ needs.patch-integrity.result }}
+            - 跨模块一致性: ${{ needs.cross-module-consistency.result }}
+
+            ── 排查指引 ──
+            1. 查看 CI 详情: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            2. 本地复现: git checkout ${{ github.sha }} && npm ci && npx jest test/security/auth-redaction.test.js
+            3. 修复指南: 参考 patches/auth_security/README.md
+
+            本邮件由 GitHub Actions 自动发送，请勿回复。
+          priority: high
