@@ -238,7 +238,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "yunshu_cpu_usage_percent",
+          "expr": "system_cpu_usage_percent",
           "legendFormat": "CPU",
           "refId": "A"
         }
@@ -304,7 +304,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "yunshu_memory_usage_percent",
+          "expr": "system_memory_usage_percent",
           "legendFormat": "Memory",
           "refId": "A"
         }
@@ -537,7 +537,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(yunshu_http_requests_total[5m])) by (endpoint)",
+          "expr": "sum(rate(http_requests_total[5m])) by (endpoint)",
           "legendFormat": "{{endpoint}}",
           "refId": "A"
         }
@@ -844,7 +844,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(increase(yunshu_error_total[5m])) by (severity)",
+          "expr": "sum(increase(Yunshu_error_total[5m])) by (severity)",
           "legendFormat": "{{severity}}",
           "refId": "A"
         }
@@ -963,7 +963,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(increase(yunshu_alert_total[1h])) by (severity)",
+          "expr": "sum(increase(Yunshu_alert_total[1h])) by (severity)",
           "legendFormat": "{{severity}}",
           "refId": "A"
         }
@@ -1060,7 +1060,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "yunshu_deployment_status",
+          "expr": "Yunshu_deployment_status",
           "legendFormat": "{{environment}}",
           "refId": "A"
         }
@@ -1126,7 +1126,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(increase(yunshu_rollback_total[24h]))",
+          "expr": "sum(increase(Yunshu_rollback_total[24h]))",
           "legendFormat": "Rollbacks",
           "refId": "A"
         }
@@ -1192,7 +1192,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "yunshu_deployment_duration_seconds",
+          "expr": "Yunshu_deployment_duration_seconds",
           "legendFormat": "{{environment}}",
           "refId": "A"
         }
@@ -1258,7 +1258,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(increase(yunshu_deployment_failures_total[24h]))",
+          "expr": "sum(increase(Yunshu_deployment_failures_total[24h]))",
           "legendFormat": "Failures",
           "refId": "A"
         }
@@ -1392,7 +1392,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(increase(yunshu_deployment_total[1h])) by (status)",
+          "expr": "sum(increase(Yunshu_deployment_total[1h])) by (status)",
           "legendFormat": "{{status}}",
           "refId": "A"
         }
@@ -1471,7 +1471,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "yunshu_ci_pipeline_duration_seconds",
+          "expr": "Yunshu_ci_pipeline_duration_seconds",
           "legendFormat": "Pipeline",
           "refId": "A"
         }
@@ -1537,7 +1537,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "yunshu_ci_test_coverage_percent",
+          "expr": "Yunshu_ci_test_coverage_percent",
           "legendFormat": "Coverage",
           "refId": "A"
         }
@@ -1603,7 +1603,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(increase(yunshu_ci_test_failures_total[24h]))",
+          "expr": "sum(increase(Yunshu_ci_test_failures_total[24h]))",
           "legendFormat": "Failures",
           "refId": "A"
         }
@@ -1669,7 +1669,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(increase(yunshu_ci_build_failures_total[24h]))",
+          "expr": "sum(increase(Yunshu_ci_build_failures_total[24h]))",
           "legendFormat": "Build Failures",
           "refId": "A"
         }
@@ -1757,7 +1757,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(rate(yunshu_ci_pipeline_runs_total[1h])) by (stage)",
+          "expr": "sum(rate(Yunshu_ci_pipeline_runs_total[1h])) by (stage)",
           "legendFormat": "{{stage}}",
           "refId": "A"
         }
@@ -1828,7 +1828,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "yunshu_memory_count",
+          "expr": "Yunshu_memory_count",
           "legendFormat": "Memories",
           "refId": "A"
         }
@@ -1944,7 +1944,7 @@
             "type": "prometheus",
             "uid": "${DS_PROMETHEUS}"
           },
-          "expr": "sum(yunshu_security_blocks_total)",
+          "expr": "sum(security_blocks_total)",
           "legendFormat": "Blocks",
           "refId": "A"
         }
@@ -2161,7 +2161,7 @@
           "type": "prometheus",
           "uid": "${DS_PROMETHEUS}"
         },
-        "definition": "label_values(yunshu_http_requests_total, endpoint)",
+        "definition": "label_values(http_requests_total, endpoint)",
         "hide": 0,
         "includeAll": true,
         "label": "Endpoint",
@@ -2169,7 +2169,7 @@
         "name": "endpoint",
         "options": [],
         "query": {
-          "query": "label_values(yunshu_http_requests_total, endpoint)",
+          "query": "label_values(http_requests_total, endpoint)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,
