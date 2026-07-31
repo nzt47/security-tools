@@ -51,7 +51,7 @@ jobs:
       - name: 安装依赖
         run: |
           pip install -r requirements.txt --quiet || true
-          pip install pyyaml --quiet
+          pip install pyyaml watchdog --quiet
 
       - name: 运行性能回归检测
         id: perf
@@ -111,7 +111,7 @@ jobs:
       - name: 安装依赖
         run: |
           pip install -r requirements.txt --quiet || true
-          pip install pyyaml --quiet
+          pip install pyyaml watchdog matplotlib --quiet
 
       - name: 生成新基线
         id: gen
