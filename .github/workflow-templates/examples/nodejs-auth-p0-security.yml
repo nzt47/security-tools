@@ -142,7 +142,7 @@ jobs:
         run: |
           # 重试机制：应对 npm registry 网络瞬时问题
           for i in 1 2 3; do
-            npm ci && break
+            npm ci --prefer-offline && break
             echo "⚠️ 依赖安装失败，尝试 $i/3，5 秒后重试..."
             sleep 5
           done
@@ -161,9 +161,11 @@ jobs:
           mkdir -p test_reports
           # jest 配置：--testTimeout 毫秒（注意：300秒=300000ms，与 pytest --timeout=300 等价）
           # --reporters=default --reporters=jest-junit 生成 JUnit XML 报告
+          # --maxWorkers=2: 限制 worker 数量（runner 仅 2 核，避免默认多 worker 浪费内存，降低内存占用 ~30-50%）
           npx jest test/security/auth-redaction.test.js \
             --verbose \
             --testTimeout=300000 \
+            --maxWorkers=2 \
             --reporters=default \
             --reporters=jest-junit \
             --coverage
@@ -283,7 +285,8 @@ jobs:
 
       - name: 安装依赖
         run: |
-          npm ci || echo "npm ci 失败，尝试继续"
+          # --prefer-offline: 优先用本地 npm 缓存，减少网络等待
+          npm ci --prefer-offline || echo "npm ci 失败，尝试继续"
 
       - name: 运行跨模块一致性测试
         run: |
@@ -291,9 +294,11 @@ jobs:
           # [Node.js 差异] pytest 用 file::Class 引用测试类
           # jest 用 -t "Pattern" 正则匹配 describe/test 名称
           # 多个 describe 块用正则 OR: -t "(JWTTokenRedaction|PasswordHashRedaction)"
+          # --maxWorkers=2: 限制 worker 数量（runner 仅 2 核，降低内存占用）
           npx jest test/security/auth-redaction.test.js \
             -t "(JWTTokenRedaction|PasswordHashRedaction)" \
-            --verbose --testTimeout=300000
+            --verbose --testTimeout=300000 \
+            --maxWorkers=2
           echo "=== 跨模块一致性验证通过 ==="
 
   # ============================================================================
