@@ -237,7 +237,7 @@ jobs:
             Install-Module Pester -RequiredVersion 4.10.1 -Force -Scope CurrentUser -SkipPublisherCheck -AcceptLicense
           }
           Import-Module Pester -RequiredVersion 4.10.1 -Force
-          $r = Invoke-Pester -Path tests/unit/AdminDependencyChecker.Tests.ps1 -PassThru -Quiet
+          $r = Invoke-Pester -Path tests/unit/AdminDependencyChecker.Tests.ps1 -PassThru
           Write-Host "::endgroup::"
           Write-Host "测试结果: $($r.PassedCount) 通过 / $($r.FailedCount) 失败 / $($r.TotalCount) 总计"
           if ($r.FailedCount -gt 0) {
