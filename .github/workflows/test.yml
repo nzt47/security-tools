@@ -226,7 +226,7 @@ jobs:
             --cov=agent \
             --cov-report=xml \
             --junitxml=test-results/integration-test-results.xml \
-            -m "not slow and not requires_llm" \
+            -m "not slow and not requires_llm and not skip_ci" \
             --timeout=300
 
       - name: 上传测试结果

@@ -33,30 +33,13 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Optional, Tuple
 from agent.logging_utils import log_dict
 
-# 从 digital_life 导入模块级可用性标志
-# 注意: digital_life.py 在导入本模块前已执行了模块级代码
-from agent.digital_life import (
-    _LIFETRACE_AVAILABLE, _PERSONA_AVAILABLE, _PLANNING_AVAILABLE,
-    _MEMORY_AVAILABLE, _MONITORING_AVAILABLE, _VOICE_AVAILABLE,
-    _OCR_AVAILABLE, _P6_SNAPSHOT_AVAILABLE,
-    BodySensor, SensorReading, PromptInjector, PromptConfig,
-    MemoryManager, BlackBox, LLMService, LLMServiceError,
-    BehaviorController, BehaviorMode,
-    PermissionSystem, PermissionResult,
-    get_safety_monitor, AgentSafetyMonitor,
-    tools,
-    Timer, log_module_load_time, get_performance_recorder,
-    PlanningCore, ToolRegistry, ReActLoop, PlanningError,
-    TraceRecorder, MemoryRetriever,
-    PersonaModel, PersonaInjector, PersonalityPreferenceExtractor,
-    VectorStore, KnowledgeBase,
-    TraceContext, get_metrics_collector, get_trace_id,
-    get_error_reporter, AlertLevel, _ERROR_REPORTING_CONFIG,
-    VoiceManager, OcrSensor,
-    StateSnapshotManager, SnapshotResult,
-    _safe_import, _safe_import_from, ModuleLoadError,
-    _get_template,
-)
+# digital_life 符号延迟到文件末尾导入，避免与 digital_life.py:369 形成模块级循环导入.
+# 不变量(不易): 这些符号仅在方法/函数内使用(运行时解析), 模块加载完成时已就绪.
+# 循环链(修复前): lifecycle_manager.py:38→digital_life.py:369→agent.orchestrator.LifecycleManager
+#   →lifecycle_manager.py(未完成, LifecycleManager 类未定义) → ImportError.
+# 修复后: LifecycleManager 类先定义, digital_life.py:369 经 __getattr__ 获取
+#   LifecycleManager 时类已就绪; 本文件末尾的 digital_life import 此时 digital_life
+#   在 sys.modules 中部分初始化, 但所需符号(369 行前已定义)可被安全获取.
 import uuid
 
 # 导入 set_trace_id 用于后台线程设置专属 trace_id
@@ -1098,3 +1081,34 @@ class LifecycleManager:
                 "distillation": self._v2_distillation,
             },
         }
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  延迟导入: digital_life 符号（放在 LifecycleManager 类定义之后）
+# ════════════════════════════════════════════════════════════════════════════
+# Why: digital_life.py:369 `from agent.orchestrator import ...LifecycleManager`
+#   需在本类定义完成后才能解析. 本块所有符号仅被方法体引用(运行时), 类定义级别零依赖
+#   (已用 AST 校验: 51 个符号无一用于基类/类属性/默认参数/装饰器/类型注解).
+# 向后兼容: 模块完全加载后, 这些符号进入 globals(), 所有方法运行时正常访问.
+from agent.digital_life import (
+    _LIFETRACE_AVAILABLE, _PERSONA_AVAILABLE, _PLANNING_AVAILABLE,
+    _MEMORY_AVAILABLE, _MONITORING_AVAILABLE, _VOICE_AVAILABLE,
+    _OCR_AVAILABLE, _P6_SNAPSHOT_AVAILABLE,
+    BodySensor, SensorReading, PromptInjector, PromptConfig,
+    MemoryManager, BlackBox, LLMService, LLMServiceError,
+    BehaviorController, BehaviorMode,
+    PermissionSystem, PermissionResult,
+    get_safety_monitor, AgentSafetyMonitor,
+    tools,
+    Timer, log_module_load_time, get_performance_recorder,
+    PlanningCore, ToolRegistry, ReActLoop, PlanningError,
+    TraceRecorder, MemoryRetriever,
+    PersonaModel, PersonaInjector, PersonalityPreferenceExtractor,
+    VectorStore, KnowledgeBase,
+    TraceContext, get_metrics_collector, get_trace_id,
+    get_error_reporter, AlertLevel, _ERROR_REPORTING_CONFIG,
+    VoiceManager, OcrSensor,
+    StateSnapshotManager, SnapshotResult,
+    _safe_import, _safe_import_from, ModuleLoadError,
+    _get_template,
+)
