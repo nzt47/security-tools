@@ -32,14 +32,20 @@ import json
 import re
 import time
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 
 from .loader import SkillLoader, MatchResult, SkillMatch, estimate_tokens
 from .executor import ExecutionResult
 from .file_store import SkillFileStore
 from .observability import logger, emit_metric
 from .exceptions import SkillNotFoundError
-from .models import Skill
+# [不易] Skill 仅作类型注解 (本文件无 isinstance/Skill() 构造调用),
+# 配合 from __future__ import annotations 可延迟求值.
+# 移到 TYPE_CHECKING 下, 避免拉入 .models→pydantic 重依赖链,
+# 让 CI 脚本 (verify_migrated_skills.py 经 skill_manager→context_injector)
+# 在无 pydantic 环境下也能导入.
+if TYPE_CHECKING:
+    from .models import Skill
 from .output_guard import SkillOutputGuard
 
 

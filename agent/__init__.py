@@ -72,14 +72,46 @@ _LAZY_IMPORTS = {
 
 
 def __getattr__(name):
-    """PEP 562: 仅在访问时才导入重依赖, 避免 import agent 触发整包重依赖加载."""
+    """PEP 562: 仅在访问时才导入重依赖, 避免 import agent 触发整包重依赖加载.
+
+    两层解析:
+      1. _LAZY_IMPORTS 命中 → 按映射导入具体符号 (如 DigitalLife).
+      2. 否则尝试按子包导入 (如 agent.orchestrator).
+         对 _CIRCULAR_DEP_SUBPKGS 中的子包, 先导入 digital_life 建立正确的
+         加载顺序, 否则 orchestrator↔digital_life 循环依赖无法解析
+         (原 agent/__init__.py eager-import digital_life 隐式建立此顺序).
+    """
+    import importlib
+    import importlib.util
+    # 层 1: 显式符号映射
     if name in _LAZY_IMPORTS:
-        import importlib
         module_path, attr_name = _LAZY_IMPORTS[name]
         attr = getattr(importlib.import_module(module_path), attr_name)
         globals()[name] = attr  # 缓存到全局, 后续访问零开销
         return attr
-    raise AttributeError(f"module {_PKG!r} has no attribute {name!r}")
+    # 层 2: 子包 fallback (agent.orchestrator / agent.monitoring / ...)
+    subpkg_path = f"{_PKG}.{name}"
+    try:
+        spec = importlib.util.find_spec(subpkg_path)
+    except (ModuleNotFoundError, ValueError):
+        spec = None
+    if spec is None:
+        raise AttributeError(f"module {_PKG!r} has no attribute {name!r}")
+    # 子包存在: 对有循环依赖的子包, 先导入 digital_life 建立加载顺序.
+    # 不变量(不易): 此处仅对 _CIRCULAR_DEP_SUBPKGS 中的子包预加载 digital_life,
+    #   不影响 agent.skills_mgmt 等轻量子包的独立导入 (CI 脚本不被 psutil 绑架).
+    if name in _CIRCULAR_DEP_SUBPKGS:
+        importlib.import_module(f"{_PKG}.digital_life")
+    subpkg = importlib.import_module(subpkg_path)
+    globals()[name] = subpkg  # 缓存, 后续访问零开销
+    return subpkg
+
+
+# 与 digital_life 存在循环依赖的子包: 必须先加载 digital_life 才能导入.
+# digital_life.py line 369: from agent.orchestrator import Orchestrator, ... (基类)
+# orchestrator/lifecycle_manager.py line 38: from agent.digital_life import (...) (运行时符号)
+# 原 agent/__init__.py eager-import digital_life 隐式解开此循环, PEP 562 后需显式处理.
+_CIRCULAR_DEP_SUBPKGS = frozenset({"orchestrator"})
 
 
 def __dir__():
