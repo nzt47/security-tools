@@ -58,7 +58,7 @@ jobs:
           PUSHGATEWAY_URL: ${{ env.PUSHGATEWAY_URL }}
         run: |
           pip install prometheus_client -q 2>/dev/null || true
-          python scripts/cicd_metrics_push.py --stage build ${{ success() && '--success' || '' }}
+          python scripts/cicd_metrics_push.py --stage build ${{ job.status == 'success' && '--success' || '' }}
 
   stress-test:
     name: Stress Test
@@ -104,7 +104,7 @@ jobs:
           PUSHGATEWAY_URL: ${{ env.PUSHGATEWAY_URL }}
         run: |
           pip install prometheus_client -q 2>/dev/null || true
-          python scripts/cicd_metrics_push.py --stage test ${{ success() && '--success' || '' }}
+          python scripts/cicd_metrics_push.py --stage test ${{ job.status == 'success' && '--success' || '' }}
 
   integration-test:
     name: Integration Test
@@ -146,7 +146,7 @@ jobs:
           PUSHGATEWAY_URL: ${{ env.PUSHGATEWAY_URL }}
         run: |
           pip install prometheus_client -q 2>/dev/null || true
-          ARGS="--stage test ${{ success() && '--success' || '' }}"
+          ARGS="--stage test ${{ job.status == 'success' && '--success' || '' }}"
           if [ -n "$COVERAGE" ] && [ "$COVERAGE" != "0" ]; then
             ARGS="$ARGS --coverage $COVERAGE"
           fi
@@ -198,7 +198,7 @@ jobs:
           PUSHGATEWAY_URL: ${{ env.PUSHGATEWAY_URL }}
         run: |
           pip install prometheus_client -q 2>/dev/null || true
-          python scripts/cicd_metrics_push.py --stage test ${{ success() && '--success' || '' }}
+          python scripts/cicd_metrics_push.py --stage test ${{ job.status == 'success' && '--success' || '' }}
 
   docker-build:
     name: Docker Build and Test
@@ -237,7 +237,7 @@ jobs:
           PUSHGATEWAY_URL: ${{ env.PUSHGATEWAY_URL }}
         run: |
           pip install prometheus_client -q 2>/dev/null || true
-          python scripts/cicd_metrics_push.py --stage build ${{ success() && '--success' || '' }}
+          python scripts/cicd_metrics_push.py --stage build ${{ job.status == 'success' && '--success' || '' }}
 
   nightly-full-test:
     name: Nightly Full Test
@@ -406,7 +406,7 @@ jobs:
           python scripts/cicd_metrics_push.py \
             --stage build \
             --env ci \
-            ${{ success() && '--success' || '' }} \
+            ${{ job.status == 'success' && '--success' || '' }} \
             || true
 
   deployment-ready:
@@ -457,7 +457,7 @@ jobs:
           PUSHGATEWAY_URL: ${{ env.PUSHGATEWAY_URL }}
         run: |
           pip install prometheus_client -q 2>/dev/null || true
-          ARGS="--stage deploy --env production ${{ success() && '--success' || '' }}"
+          ARGS="--stage deploy --env production ${{ job.status == 'success' && '--success' || '' }}"
           if [ -n "$DEPLOY_DURATION" ]; then
             ARGS="$ARGS --duration $DEPLOY_DURATION"
           fi
