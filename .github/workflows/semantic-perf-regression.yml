@@ -90,7 +90,9 @@ jobs:
     name: 每周基线自动更新
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name == 'schedule'
+    # schedule: 每周自动更新基线
+    # workflow_dispatch: 允许手动触发（用于测试基线更新 + 趋势图生成）
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: 检出代码
@@ -144,23 +146,45 @@ jobs:
       - name: 安装图表依赖
         run: pip install matplotlib --quiet
 
+      - name: 快照本次报告到 perf_history/
+        # 将本次 perf_report_latest.json 快照到 perf_history/run_{N}.json
+        # 持续累积历史数据，供趋势图 local 模式使用（CI artifact 不足时兜底）
+        run: |
+          mkdir -p scripts/perf_history
+          # 计算下一个 run 序号（已有文件数 + 1，上限 99）
+          EXISTING=$(ls scripts/perf_history/run_*.json 2>/dev/null | wc -l)
+          NEXT_IDX=$((EXISTING + 1))
+          if [ "$NEXT_IDX" -gt 99 ]; then
+            # 超过 99 个 → 滚动覆盖最旧的（保留最近 99 次）
+            rm -f scripts/perf_history/run_1.json
+            # 重命名 run_2~99 → run_1~98
+            cd scripts/perf_history && for f in run_*.json; do
+              n=$(echo "$f" | sed 's/run_\([0-9]*\)\.json/\1/')
+              new_n=$((n - 1))
+              mv "$f" "run_${new_n}.json"
+            done && cd ../..
+            NEXT_IDX=99
+          fi
+          cp scripts/perf_report_latest.json "scripts/perf_history/run_${NEXT_IDX}.json"
+          echo "[history] 快照已保存: scripts/perf_history/run_${NEXT_IDX}.json (共 ${NEXT_IDX} 条历史)"
+
       - name: 生成最近 5 次运行的性能趋势图
         id: chart
         run: |
-          # --source auto: 优先从 CI artifact 拉取，不足 5 次则回退本地
+          # --source auto: 优先从 CI artifact 拉取，不足 5 次则回退本地 perf_history/
           python scripts/gen_perf_trend.py --source auto --runs 5
           echo "chart_path=docs/perf-charts/perf_trend_5runs.png" >> $GITHUB_OUTPUT
 
-      - name: 提交并推送趋势图
+      - name: 提交并推送趋势图 + 历史快照
         run: |
-          git add docs/perf-charts/perf_trend_5runs.png
-          # 趋势图是二进制文件，必有变更（除非首次生成失败）
+          git add docs/perf-charts/perf_trend_5runs.png scripts/perf_history/
+          # 检查是否有变更
           if git diff --cached --quiet; then
-            echo "[chart] 趋势图未生成或未变化，跳过提交"
+            echo "[chart] 趋势图和历史未变化，跳过提交"
           else
-            git commit -m "docs(perf): 每周性能趋势图更新 (最近 5 次 CI/CD P99) [skip ci]"
+            git commit -m "docs(perf): 每周性能趋势图更新 + 历史快照 (最近 5 次 CI/CD P99) [skip ci]"
             git push
-            echo "[chart] 趋势图已推送到 docs/perf-charts/"
+            echo "[chart] 趋势图 + 历史快照已推送"
           fi
 
       - name: 上传新基线 artifact（供趋势图脚本拉取）
