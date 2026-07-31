@@ -175,5 +175,13 @@ packages/tlm-hook-failsafe/*.nupkg
 .env.backups/
 .github/workflows/backups/
 *.bak
+*.bak.*
 l2_perf_report.png
 coverage_report/
+
+# 临时标记文件 + 调试产物（2026-08-01 追加）
+applied.txt
+completed.txt
+fb.txt
+init.txt
+scripts/_tmp_*.txt
