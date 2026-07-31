@@ -61,19 +61,35 @@ jobs:
     name: Nightly Build Guard
     runs-on: ubuntu-latest
     if: always()
+    # 【变易】用 output 串联下游,取代 exit 1;cancelled/failure 静默跳过,不发失败邮件
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
     steps:
       - name: Check upstream conclusion
+        id: check
         run: |
           EVENT="${{ github.event_name }}"
           CONCLUSION="${{ github.event.workflow_run.conclusion }}"
           echo "event_name=${EVENT}"
           echo "workflow_run.conclusion=${CONCLUSION}"
-          # workflow_run 触发时,仅当上游成功才继续;其他事件直接放行
-          if [[ "${EVENT}" == "workflow_run" && "${CONCLUSION}" != "success" ]]; then
-            echo "❌ nightly 构建未成功(conclusion=${CONCLUSION}),跳过回归测试"
-            exit 1
+          # 【不易】守卫只做门禁不告警:上游失败由 ci.yml 自身通知,回归"跳过"不算回归"失败"
+          # workflow_run 触发时,仅当上游 success 才执行回归;cancelled/failure 静默跳过
+          if [[ "${EVENT}" == "workflow_run" ]]; then
+            if [[ "${CONCLUSION}" == "success" ]]; then
+              echo "should_run=true" >> "$GITHUB_OUTPUT"
+              echo "✅ 上游 nightly 构建成功,继续执行回归测试"
+            elif [[ "${CONCLUSION}" == "cancelled" ]]; then
+              echo "should_run=false" >> "$GITHUB_OUTPUT"
+              echo "⏭️ 上游 nightly 构建被取消,静默跳过回归测试(不触发失败通知)"
+            else
+              echo "should_run=false" >> "$GITHUB_OUTPUT"
+              echo "❌ nightly 构建失败(conclusion=${CONCLUSION}),跳过回归测试"
+            fi
+          else
+            # schedule / PR / dispatch 路径直接放行
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "✅ 非 workflow_run 触发,放行回归测试"
           fi
-          echo "✅ 守卫通过,继续执行回归测试"
 
   # =====================================================================
   # Job 1: 单元测试(LoRA checkpoint 保存/加载)
@@ -84,6 +100,7 @@ jobs:
     needs: [nightly-build-guard]
     if: |
       always() && needs.nightly-build-guard.result == 'success'
+      && needs.nightly-build-guard.outputs.should_run == 'true'
       && github.event.inputs.test_suite != 'e2e'
     steps:
       - name: Checkout code
@@ -135,6 +152,7 @@ jobs:
     needs: [nightly-build-guard]
     if: |
       always() && needs.nightly-build-guard.result == 'success'
+      && needs.nightly-build-guard.outputs.should_run == 'true'
       && github.event.inputs.test_suite != 'unit'
     steps:
       - name: Checkout code
