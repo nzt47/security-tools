@@ -1,5 +1,5 @@
 {
-  "trace_id": "4b15236415984ec5",
+  "trace_id": "a7d2e7da718f4821",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -351,7 +351,7 @@
       "name": "prometheus",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 6,
+      "in_degree": 7,
       "out_degree": 9
     },
     {
@@ -359,7 +359,7 @@
       "name": "state_manager",
       "layer": "core",
       "file_path": "agent/state_manager.py",
-      "in_degree": 10,
+      "in_degree": 11,
       "out_degree": 3
     },
     {
@@ -495,7 +495,7 @@
       "name": "metrics",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 9,
+      "in_degree": 11,
       "out_degree": 0
     },
     {
@@ -867,6 +867,22 @@
       "out_degree": 0
     },
     {
+      "path": "agent.orchestrator.message_handler",
+      "name": "message_handler",
+      "layer": "orchestrator",
+      "file_path": "agent/orchestrator/message_handler.py",
+      "in_degree": 1,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.orchestrator.dialog_state",
+      "name": "dialog_state",
+      "layer": "orchestrator",
+      "file_path": "",
+      "in_degree": 4,
+      "out_degree": 0
+    },
+    {
       "path": "agent.orchestrator.task_dispatcher",
       "name": "task_dispatcher",
       "layer": "orchestrator",
@@ -1071,8 +1087,8 @@
       "name": "orchestrator",
       "layer": "orchestrator",
       "file_path": "agent/orchestrator/orchestrator.py",
-      "in_degree": 0,
-      "out_degree": 19
+      "in_degree": 2,
+      "out_degree": 22
     },
     {
       "path": "agent.guardrails.input_guard",
@@ -1099,24 +1115,8 @@
       "out_degree": 0
     },
     {
-      "path": "agent.orchestrator.message_handler",
-      "name": "message_handler",
-      "layer": "orchestrator",
-      "file_path": "",
-      "in_degree": 1,
-      "out_degree": 0
-    },
-    {
       "path": "agent.orchestrator.response_builder",
       "name": "response_builder",
-      "layer": "orchestrator",
-      "file_path": "",
-      "in_degree": 1,
-      "out_degree": 0
-    },
-    {
-      "path": "agent.orchestrator.dialog_state",
-      "name": "dialog_state",
       "layer": "orchestrator",
       "file_path": "",
       "in_degree": 1,
@@ -1403,6 +1403,14 @@
       "out_degree": 1
     },
     {
+      "path": "agent.skills_mgmt.loader",
+      "name": "loader",
+      "layer": "skills_mgmt",
+      "file_path": "agent/skills_mgmt/loader.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
       "path": "agent.skills_mgmt.memory_abstractor",
       "name": "memory_abstractor",
       "layer": "skills_mgmt",
@@ -1472,7 +1480,7 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_config.py",
       "in_degree": 0,
-      "out_degree": 6
+      "out_degree": 10
     },
     {
       "path": "agent.config_validation",
@@ -3943,6 +3951,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.orchestrator.message_handler",
+      "target": "agent.orchestrator.dialog_state",
+      "source_layer": "orchestrator",
+      "target_layer": "orchestrator",
+      "import_type": "from_import",
+      "line": 94,
+      "source_file": "agent/orchestrator/message_handler.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.orchestrator.task_dispatcher",
       "target": "agent",
       "source_layer": "orchestrator",
@@ -4624,7 +4645,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1562,
+      "line": 1934,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4650,7 +4671,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 265,
+      "line": 267,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4663,7 +4684,33 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 283,
+      "line": 307,
+      "source_file": "agent/orchestrator/orchestrator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.orchestrator",
+      "target": "agent.orchestrator.dialog_state",
+      "source_layer": "orchestrator",
+      "target_layer": "orchestrator",
+      "import_type": "from_import",
+      "line": 595,
+      "source_file": "agent/orchestrator/orchestrator.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.orchestrator",
+      "target": "agent.state_manager",
+      "source_layer": "orchestrator",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 874,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4676,7 +4723,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 558,
+      "line": 1619,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4689,9 +4736,22 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1247,
+      "line": 271,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.orchestrator",
+      "target": "agent.orchestrator.dialog_state",
+      "source_layer": "orchestrator",
+      "target_layer": "orchestrator",
+      "import_type": "from_import",
+      "line": 385,
+      "source_file": "agent/orchestrator/orchestrator.py",
+      "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -4702,7 +4762,7 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 893,
+      "line": 1265,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4715,7 +4775,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tool_schema_pruner",
       "import_type": "from_import",
-      "line": 906,
+      "line": 1278,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4728,7 +4788,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tool_fewshot_store",
       "import_type": "from_import",
-      "line": 933,
+      "line": 1305,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4741,7 +4801,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 934,
+      "line": 1306,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5893,6 +5953,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.skills_mgmt.loader",
+      "target": "agent.monitoring.prometheus",
+      "source_layer": "skills_mgmt",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 114,
+      "source_file": "agent/skills_mgmt/loader.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.skills_mgmt.memory_abstractor",
       "target": "agent.state_manager",
       "source_layer": "skills_mgmt",
@@ -6115,11 +6188,63 @@
     },
     {
       "source": "agent.server_routes.routes_config",
+      "target": "agent.orchestrator.orchestrator",
+      "source_layer": "server_routes",
+      "target_layer": "orchestrator",
+      "import_type": "from_import",
+      "line": 666,
+      "source_file": "agent/server_routes/routes_config.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_config",
+      "target": "agent.orchestrator.orchestrator",
+      "source_layer": "server_routes",
+      "target_layer": "orchestrator",
+      "import_type": "from_import",
+      "line": 689,
+      "source_file": "agent/server_routes/routes_config.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_config",
+      "target": "agent.monitoring.metrics",
+      "source_layer": "server_routes",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 744,
+      "source_file": "agent/server_routes/routes_config.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_config",
       "target": "agent.tools",
       "source_layer": "server_routes",
       "target_layer": "tools",
       "import_type": "from_import",
       "line": 581,
+      "source_file": "agent/server_routes/routes_config.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_config",
+      "target": "agent.monitoring.metrics",
+      "source_layer": "server_routes",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 762,
       "source_file": "agent/server_routes/routes_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9742,10 +9867,10 @@
     }
   ],
   "stats": {
-    "total_files": 339,
-    "total_nodes": 268,
-    "total_edges": 584,
-    "cross_layer_edges": 368,
+    "total_files": 341,
+    "total_nodes": 269,
+    "total_edges": 593,
+    "cross_layer_edges": 374,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -9758,7 +9883,7 @@
       "extensions": 15,
       "observability": 5,
       "cognitive": 11,
-      "skills_mgmt": 9,
+      "skills_mgmt": 10,
       "workflow_learning": 3,
       "unknown": 1,
       "caching": 2,
@@ -9785,6 +9910,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 979.4141330000059
+    "build_duration_ms": 1251.1284290000049
   }
 }
