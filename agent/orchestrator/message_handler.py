@@ -65,14 +65,52 @@ class MessageHandler:
 
     @staticmethod
     def is_follow_up(context: Dict) -> bool:
-        """判断是否追问场景"""
-        # 检查是否有当前消息和历史记录
-        text = context.get("text", "")
-        history = context.get("history_count", 0)
-        if history > 0 and any(p.match(text) for p in FOLLOW_UP_PATTERNS):
+        """判断是否追问场景（委托 DST 做省略句检测 + 正则兜底）
+
+        修复说明（【不易】接口契约对齐）:
+            原 is_follow_up 读 context['text']/['history_count']，但调用方
+            （orchestrator.py）传的是 {'last_was_template','confidence'}，
+            导致永远取不到 text → 恒返回 False，追问降级 LLM 逻辑失效。
+            现对齐调用方实际传入的键，并委托 DST.is_ellipsis_query 做指代/省略检测。
+
+        支持的 context 键（向后兼容，缺省退化为纯正则）:
+            - text: str              当前用户输入（必需）
+            - last_was_template: bool 上一轮是否模板回复
+            - confidence: Confidence  本轮意图置信度（保留字段，暂未用作判据）
+            - session_id: str         会话 ID；提供则委托 DST 检测省略句
+            - history_count: int      兼容旧调用方（保留）
+        """
+        text = (context.get("text") or "").strip()
+        last_was_template = bool(context.get("last_was_template", False))
+        history_count = int(context.get("history_count", 0))
+
+        if not text:
+            return False
+
+        # 1. 【变易】委托 DST 做省略句/指代句检测（"那个呢"/"然后呢"等）
+        session_id = context.get("session_id")
+        if session_id:
+            try:
+                from agent.orchestrator.dialog_state import get_dialog_state
+                dst = get_dialog_state(session_id)
+                if dst.is_ellipsis_query(text):
+                    return True
+            except Exception as e:  # noqa: BLE001
+                logger.debug(json.dumps({
+                    "trace_id": _trace_id(),
+                    "module_name": "message_handler",
+                    "action": "is_follow_up.dst.error",
+                    "error": f"{type(e).__name__}: {e}",
+                }, ensure_ascii=False))
+
+        # 2. 正则追问模式兜底（"为什么"/"详细"/"继续"等）
+        if any(p.match(text) for p in FOLLOW_UP_PATTERNS):
             return True
-        if history > 2 and len(text) < 20:
+
+        # 3. 模板后短句追问（兼容旧逻辑：history_count>2 或 last_was_template）
+        if (history_count > 2 or last_was_template) and len(text) < 20:
             return True
+
         return False
 
     @staticmethod

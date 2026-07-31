@@ -99,6 +99,27 @@ def _match_score(meta_text: str, query_tokens: List[str]) -> float:
     return hits / len(query_tokens)  # 命中率
 
 
+def _record_skill_match_prometheus(layer: str, method: str, success: bool, elapsed_ms: float):
+    """[变易] prometheus_client 原生指标记录（供 HPA + Grafana dashboard 消费）
+
+    与 emit_metric 并存（向后兼容）:
+        - emit_metric → BusinessMetricsCollector（自管理字典，不支持 histogram_quantile）
+        - 本函数 → prometheus_client 原生（支持 HPA 的 histogram_quantile / rate()）
+
+    HPA 消费链路:
+        - skill_match_latency_ms_bucket → Prometheus Adapter → skill_match_latency_p99
+        - skill_match_count_total → Prometheus Adapter → skill_match_qps
+    """
+    try:
+        from agent.monitoring.prometheus import (
+            record_skill_match_latency, record_skill_match_count
+        )
+        record_skill_match_latency(layer=layer, method=method, success=success, duration_ms=elapsed_ms)
+        record_skill_match_count(layer=layer, method=method, success=success)
+    except Exception:  # noqa: BLE001  埋点失败不影响主流程
+        pass
+
+
 # ════════════════════════════════════════════════════════════
 #  匹配结果数据模型
 # ════════════════════════════════════════════════════════════
@@ -506,6 +527,8 @@ class SkillLoader:
                 emit_metric("yunshu_skill_match_count",
                             value=len(vector_results.matches), kind="gauge",
                             labels={"layer": "1", "method": "vector"})
+                # [变易] prometheus_client 原生指标（供 HPA histogram_quantile / rate()）
+                _record_skill_match_prometheus("1", "vector", True, elapsed)
 
                 from .observability import report_retrieval_observability
                 report_retrieval_observability(
@@ -579,6 +602,8 @@ class SkillLoader:
         emit_metric("yunshu_skill_match_count",
                     value=len(top), kind="gauge",
                     labels={"layer": "1"})
+        # [变易] prometheus_client 原生指标（供 HPA histogram_quantile / rate()）
+        _record_skill_match_prometheus("1", "tfidf", True, elapsed)
 
         result = MatchResult(
             matches=top,
@@ -1907,6 +1932,8 @@ class SkillLoader:
         emit_metric("yunshu_skill_match_count",
                     value=len(top), kind="gauge",
                     labels={"layer": "1", "method": retrieval_method})
+        # [变易] prometheus_client 原生指标（供 HPA histogram_quantile / rate()）
+        _record_skill_match_prometheus("1", retrieval_method, True, elapsed)
 
         result = MatchResult(
             matches=top,

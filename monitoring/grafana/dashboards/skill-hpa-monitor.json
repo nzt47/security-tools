@@ -1,0 +1,370 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "技能检索服务 HPA 扩容监控 — P99 延迟/QPS/副本数/CPU/连接数/错误率/k6 压测指标\n对齐 deploy/k8s/hpa.yaml 阈值: CPU 50% / P99 40ms / QPS 200",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "P99 延迟趋势 (HPA 阈值 40ms)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 25},
+              {"color": "red", "value": 40}
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le, pod))",
+          "legendFormat": "{{pod}} P99",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le, pod))",
+          "legendFormat": "{{pod}} P95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(skill_match_latency_ms_bucket{namespace=\"$namespace\"}[1m])) by (le, pod))",
+          "legendFormat": "{{pod}} P50",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [
+        {"colorMode": "critical", "op": "gt", "value": 40, "fill": true, "line": true, "yaxis": "left"}
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "QPS 每秒查询数 (HPA 阈值 200/副本)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 20,
+            "showPoints": "never",
+            "stacking": {"mode": "normal"}
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "sum"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(skill_match_count_total{namespace=\"$namespace\"}[1m])) by (pod)",
+          "legendFormat": "{{pod}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(skill_match_count_total{namespace=\"$namespace\"}[1m]))",
+          "legendFormat": "总 QPS",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "HPA 副本数 (min=3, max=10)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "max": 10,
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "fillOpacity": 30,
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "kube_deployment_status_replicas{deployment=\"skill-retrieval-service\",namespace=\"$namespace\"}",
+          "legendFormat": "当前副本数",
+          "refId": "A"
+        },
+        {
+          "expr": "kube_deployment_status_ready_replicas{deployment=\"skill-retrieval-service\",namespace=\"$namespace\"}",
+          "legendFormat": "就绪副本数",
+          "refId": "B"
+        },
+        {
+          "expr": "kube_hpa_status_current_replicas{hpa=\"skill-retrieval-hpa\",namespace=\"$namespace\"}",
+          "legendFormat": "HPA 目标副本",
+          "refId": "C"
+        }
+      ],
+      "thresholds": [
+        {"colorMode": "critical", "op": "gt", "value": 10, "fill": false, "line": true, "yaxis": "left"}
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "CPU 使用率 (HPA 阈值 50%)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.4},
+              {"color": "red", "value": 0.5}
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "rate(container_cpu_usage_seconds_total{namespace=\"$namespace\",pod=~\"skill-retrieval.*\"}[1m]) / on(pod) kube_pod_container_resource_limits{resource=\"cpu\",namespace=\"$namespace\",pod=~\"skill-retrieval.*\"}",
+          "legendFormat": "{{pod}} CPU 使用率",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [
+        {"colorMode": "critical", "op": "gt", "value": 0.5, "fill": true, "line": true, "yaxis": "left"}
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "活跃连接数 Yunshu_active_connections",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 20,
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "Yunshu_active_connections",
+          "legendFormat": "活跃连接数",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "检索错误率 (阈值 <1%)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 0.005},
+              {"color": "red", "value": 0.01}
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(skill_match_count_total{namespace=\"$namespace\",success=\"false\"}[1m])) / sum(rate(skill_match_count_total{namespace=\"$namespace\"}[1m]))",
+          "legendFormat": "错误率",
+          "refId": "A"
+        }
+      ],
+      "thresholds": [
+        {"colorMode": "critical", "op": "gt", "value": 0.01, "fill": true, "line": true, "yaxis": "left"}
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "k6 压测指标 (Remote Write)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "smooth",
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        }
+      },
+      "options": {
+        "legend": {"displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "desc"}
+      },
+      "targets": [
+        {
+          "expr": "rate(k6_http_reqs_total{scenario=\"$scenario\"}[1m])",
+          "legendFormat": "k6 QPS ({{scenario}})",
+          "refId": "A",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(k6_http_req_duration_bucket{scenario=\"$scenario\"}[1m])) by (le))",
+          "legendFormat": "k6 P99 延迟 ({{scenario}})",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(k6_match_failure_total{scenario=\"$scenario\"}[1m])",
+          "legendFormat": "k6 失败请求/s",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+      "title": "HPA 扩缩容决策事件",
+      "type": "state_timeline",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            {"options": {"0": {"text": "稳态", "color": "green"}, "1": {"text": "扩容中", "color": "yellow"}, "2": {"text": "缩容中", "color": "blue"}}, "type": "value"}
+          ]
+        }
+      },
+      "options": {
+        "showLegend": true,
+        "rowHeight": 30,
+        "mergeValues": true
+      },
+      "targets": [
+        {
+          "expr": "(kube_deployment_status_replicas{deployment=\"skill-retrieval-service\",namespace=\"$namespace\"} > bool kube_deployment_status_replicas{deployment=\"skill-retrieval-service\",namespace=\"$namespace\"} offset 1m) + (kube_deployment_status_replicas{deployment=\"skill-retrieval-service\",namespace=\"$namespace\"} < bool kube_deployment_status_replicas{deployment=\"skill-retrieval-service\",namespace=\"$namespace\"} offset 1m) * 2",
+          "legendFormat": "HPA 决策",
+          "refId": "A"
+        },
+        {
+          "expr": "kube_hpa_status_current_replicas{hpa=\"skill-retrieval-hpa\",namespace=\"$namespace\"}",
+          "legendFormat": "HPA 当前副本",
+          "refId": "B",
+          "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"}
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["skill-retrieval", "hpa", "5000-skills"],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {"text": "Prometheus", "value": "Prometheus"},
+        "hide": 0,
+        "label": "Prometheus 数据源"
+      },
+      {
+        "name": "namespace",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "query": "label_values(kube_deployment_status_replicas, namespace)",
+        "current": {"text": "production", "value": "production"},
+        "hide": 0,
+        "label": "Namespace",
+        "includeAll": false
+      },
+      {
+        "name": "scenario",
+        "type": "query",
+        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "query": "label_values(k6_http_reqs_total, scenario)",
+        "current": {"text": "baseline", "value": "baseline"},
+        "hide": 0,
+        "label": "k6 压测场景",
+        "includeAll": true,
+        "multi": true
+      }
+    ]
+  },
+  "time": {"from": "now-30m", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "技能检索服务 — HPA 扩容监控",
+  "uid": "skill-hpa-monitor",
+  "version": 1,
+  "weekStart": ""
+}

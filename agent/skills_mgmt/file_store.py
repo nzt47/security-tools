@@ -53,7 +53,7 @@ import time
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import yaml
 
@@ -313,7 +313,44 @@ class SkillFileStore:
         self._repo = Path(repo_path) if repo_path else _DEFAULT_REPO_PATH
         self._lock = threading.RLock()
         self._meta_index: Optional[Dict[str, Dict[str, Any]]] = None
+        # [变易] 写入钩子列表 — skill.md 变更时通知外部订阅者（如向量索引增量更新）
+        # 守 project_memory 硬约束：钩子触发在锁外执行，避免回调阻塞拖垮写操作
+        self._write_hooks: List[Callable[[str, str], None]] = []
         self._ensure_repo()
+
+    # ──────────────────────────────────────────────
+    #  写入钩子（供向量索引等外部订阅者增量同步）
+    # ──────────────────────────────────────────────
+
+    def register_write_hook(self, callback: Callable[[str, str], None]) -> None:
+        """注册写入钩子 — skill.md create/update/delete 后触发
+
+        Args:
+            callback: 签名 (skill_id: str, action: str) -> None
+                      action ∈ {"create", "update", "delete"}
+
+        【不易】钩子在写操作锁外触发，回调内禁止持锁（守 project_memory 硬约束）
+        【简易】单个钩子失败不影响主流程和其他钩子（_notify_hooks 内 try/except）
+        """
+        self._write_hooks.append(callback)
+
+    def _notify_hooks(self, skill_id: str, action: str) -> None:
+        """锁外触发所有写入钩子（单个失败不阻断）
+
+        【不易】必须在 with self._lock 块外调用 — 回调可能含 I/O（如向量编码），
+                锁内触发会导致整个模块卡死（project_memory 教训）
+        """
+        for hook in list(self._write_hooks):
+            try:
+                hook(skill_id, action)
+            except Exception as e:  # noqa: BLE001
+                logger.warning(json.dumps({
+                    "module_name": "file_store",
+                    "action": "write_hook.failed",
+                    "skill_id": skill_id,
+                    "hook_action": action,
+                    "error": str(e)[:200],
+                }, ensure_ascii=False))
 
     # ──────────────────────────────────────────────
     #  仓库管理
@@ -587,7 +624,12 @@ class SkillFileStore:
                 "scripts": list(scripts.keys()) if scripts else [],
                 "temp_files": list(temp_files.keys()) if temp_files else [],
             }, ensure_ascii=False))
-            return skill_dir
+            created_skill_dir = skill_dir
+
+        # [变易] 锁外触发写入钩子 — 守 project_memory 硬约束（锁内禁外部回调）
+        # 让向量索引等订阅者增量 upsert 新技能
+        self._notify_hooks(skill_id, "create")
+        return created_skill_dir
 
     def read(self, skill_id: str) -> Tuple[Dict[str, Any], str,
                                             List[str], List[str]]:
@@ -621,6 +663,10 @@ class SkillFileStore:
             skill_dir = self._skill_dir(skill_id)
             (skill_dir / _SKILL_MD).write_text(md_content, encoding="utf-8")
             self._meta_index = None
+
+        # [变易] 锁外触发写入钩子 — 守 project_memory 硬约束（锁内禁外部回调）
+        # 让向量索引订阅者感知 meta/body 变更并 upsert
+        self._notify_hooks(skill_id, "update")
 
     def add_script(self, skill_id: str, filename: str, code: str) -> None:
         """添加/更新脚本"""
@@ -662,7 +708,11 @@ class SkillFileStore:
                 "duration_ms": round(elapsed, 2),
                 "skill_id": skill_id,
             }, ensure_ascii=False))
-            return True
+
+        # [变易] 锁外触发写入钩子 — 守 project_memory 硬约束（锁内禁外部回调）
+        # 让向量索引订阅者感知删除事件并清理对应向量
+        self._notify_hooks(skill_id, "delete")
+        return True
 
     # ──────────────────────────────────────────────
     #  与现有 Skill 模型互操作
