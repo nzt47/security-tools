@@ -264,8 +264,8 @@ pyperclip==1.11.0
     #   mouseinfo
 pypika==0.51.1
     # via chromadb
-pypiwin32==223
-    # via pyttsx3
+pypiwin32==223; sys_platform == 'win32'
+    # via pyttsx3 (Windows-only, 环境标记避免 Linux CI 安装失败)
 pyproject-hooks==1.2.0
     # via build
 pyrect==0.2.0
@@ -284,10 +284,10 @@ pyttsx3==2.99
     # via Yunshu (pyproject.toml)
 pytweening==1.2.0
     # via pyautogui
-pywin32==311
+pywin32==311; sys_platform == 'win32'
     # via
     #   pypiwin32
-    #   pyttsx3
+    #   pyttsx3 (Windows-only, 环境标记避免 Linux CI 安装失败)
 pyyaml==6.0.3
     # via
     #   chromadb
