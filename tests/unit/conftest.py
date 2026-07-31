@@ -148,10 +148,18 @@ def _disable_optional_systems_safety():
     fixture 覆盖启用真实 sqlite_vec 模块。
     """
     with ExitStack() as stack:
-        stack.enter_context(patch('agent.orchestrator.lifecycle_manager._MEMORY_AVAILABLE', False))
-        stack.enter_context(patch('agent.orchestrator.lifecycle_manager._VOICE_AVAILABLE', False))
-        stack.enter_context(patch('agent.orchestrator.lifecycle_manager._OCR_AVAILABLE', False))
-        stack.enter_context(patch('agent.orchestrator.lifecycle_manager._P6_SNAPSHOT_AVAILABLE', False))
+        # [不易] patch 目标模块不可导入时 (CI 缺 tiktoken/chromadb 等重依赖) 跳过:
+        # 可选系统本就不可用, 无需 patch. 避免 patch('agent.orchestrator...')
+        # 触发 agent.__getattr__ → digital_life → memory → tiktoken 导入链失败.
+        def _safe_patch(target, value):
+            try:
+                stack.enter_context(patch(target, value))
+            except (ModuleNotFoundError, ImportError):
+                pass
+        _safe_patch('agent.orchestrator.lifecycle_manager._MEMORY_AVAILABLE', False)
+        _safe_patch('agent.orchestrator.lifecycle_manager._VOICE_AVAILABLE', False)
+        _safe_patch('agent.orchestrator.lifecycle_manager._OCR_AVAILABLE', False)
+        _safe_patch('agent.orchestrator.lifecycle_manager._P6_SNAPSHOT_AVAILABLE', False)
         # 全局禁用 sqlite-vec：让所有 VectorStore 实例化降级到 JSON fallback
         stack.enter_context(patch.dict(sys.modules, {'sqlite_vec': None}))
         if _CI_LINUX:
