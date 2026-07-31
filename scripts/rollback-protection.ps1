@@ -341,3 +341,8 @@ switch ($Action) {
 }
 
 Write-Host ""
+# [不易] 显式 exit 0: 成功完成时退出码必须为 0.
+# gh api 等外部命令失败时设置 $LASTEXITCODE=1, 即使异常已被 catch 块处理,
+# pwsh -Command 仍可能用 $LASTEXITCODE 作为进程退出码 → 误报 CI 失败.
+# 显式 exit 0 覆盖 $LASTEXITCODE 污染, 不影响函数内 exit 1 (前置检查/备份缺失) 的错误路径.
+exit 0
