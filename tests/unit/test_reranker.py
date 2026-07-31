@@ -99,17 +99,10 @@ def clean_env():
             "SKILL_RERANKER_MODEL",
             "SKILL_RERANKER_TIMEOUT",
             "SKILL_RERANKER_MIN_SCORE",
-            "SKILL_RERANKER_USE_ONNX",
-            "SKILL_RERANKER_ONNX_VARIANT",
-            "SKILL_RERANKER_RERANK_TIMEOUT",
         ]
     }
     for key in original:
         os.environ.pop(key, None)
-    # 【不易修复】强制测试走 PyTorch mock 路径，避免 shell 残留的 USE_ONNX=true
-    # 导致 reranker 走真实 ONNX 加载（测试 mock 的是 sentence_transformers.CrossEncoder，
-    # ONNX 路径会用真实模型推理，mock 失效，分数不可控）
-    os.environ["SKILL_RERANKER_USE_ONNX"] = "false"
     # 【变易】conftest 的 _skills_offline_mode 会把 sentence_transformers 设为 None,
     # 但本测试需要 patch("sentence_transformers.CrossEncoder"), None 上无法 patch
     # 恢复为 MagicMock 让 patch 正常工作（测试用 mock，不触发真实 C 扩展加载）
@@ -196,9 +189,8 @@ class TestEnvironmentSwitch:
 
     def test_model_name_default(self):
         reranker = SkillReranker()
-        # 【不易】_DEFAULT_MODEL 为 jina 路径（与 .env 默认一致），不再用 v2-m3
-        # 原因：v2-m3 PyTorch 路径在 Windows CPU 触发 0xC0000005 崩溃
-        assert reranker._model_name == "C:/Users/Administrator/.cache/huggingface/hub/models--jinaai--jina-reranker-v2-base-multilingual"
+        # 【变易】2026-07-28 页面文件扩容后回退为 v2-m3（已验证可用）
+        assert reranker._model_name == "BAAI/bge-reranker-v2-m3"
 
     def test_model_name_explicit_param(self):
         os.environ["SKILL_RERANKER_MODEL"] = "env-model"

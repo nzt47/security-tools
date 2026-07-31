@@ -18,12 +18,12 @@
        - Windows CPU 环境需子进程隔离（防 0xC0000005 崩溃）
     3. RRF 降级（模型不可用时返回原序）
 
-模型选型（见 v6.5 计划 §3.1，2026-07-31 实测更新）:
-    | 模型 | 大小 | ONNX INT8 P99 | 中文支持 | 推荐度 |
-    |------|------|---------------|---------|--------|
-    | jinaai/jina-reranker-v2-base-multilingual | ~280MB | 258ms ✅ | ✅ 良好 | ⭐⭐⭐ 当前默认 |
-    | BAAI/bge-reranker-base | 266MB(量化) | 487ms ✅达标 | ✅ 良好 | ⭐⭐ 备选（区分度待评估）|
-    | BAAI/bge-reranker-v2-m3 | ~2.3GB | 4641ms(PyTorch)❌ | ✅ SOTA | ⭐ 谨慎（需 ONNX 量化）|
+模型选型（见 v6.5 计划 §3.1）:
+    | 模型 | 大小 | 延迟 | 中文支持 | 推荐度 |
+    |------|------|------|---------|--------|
+    | BAAI/bge-reranker-v2-m3 | ~2.3GB | ~200ms | ✅ 优秀 | ⭐⭐⭐ 推荐（默认）|
+    | BAAI/bge-reranker-base | ~1.1GB | ~100ms | ✅ 良好 | ⭐⭐ 备选 |
+    | jinaai/jina-reranker-v2-base-multilingual | ~280MB | ~80ms | ✅ 良好 | ⭐ 轻量备选 |
 
     选择 BAAI/bge-reranker-v2-m3 的理由:
     1. 与 BGE-m3 embedding 同系列，编码空间一致
@@ -44,7 +44,7 @@ Windows 崩溃防护（守【不易】）:
     SKILL_RERANKER_ENABLED: true/false（默认 true）
     SKILL_RERANKER_MODEL: 模型名或本地路径（默认 BAAI/bge-reranker-v2-m3）
     SKILL_RERANKER_TIMEOUT: 子进程超时秒数（默认 30）
-    SKILL_RERANKER_MIN_SCORE: 最低分数阈值（默认 0.05，软拒识）
+    SKILL_RERANKER_MIN_SCORE: 最低分数阈值（默认 0.001）
     SKILL_RERANKER_USE_ONNX: 是否优先使用 ONNX 推理（默认 true）
     SKILL_RERANKER_ONNX_VARIANT: ONNX 变体文件名（默认 model_quantized.onnx）
 """
@@ -54,9 +54,7 @@ import json
 import math
 import os
 import sys
-import threading
 import time
-import traceback
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -122,23 +120,15 @@ class SkillReranker:
         SKILL_RERANKER_ENABLED: true/false（默认 true）
         SKILL_RERANKER_MODEL: 模型名或本地路径（默认 BAAI/bge-reranker-v2-m3）
         SKILL_RERANKER_TIMEOUT: 子进程超时秒数（默认 30）
-        SKILL_RERANKER_MIN_SCORE: 最低分数阈值（默认 0.05，软拒识）
+        SKILL_RERANKER_MIN_SCORE: 最低分数阈值（默认 0.001）
         SKILL_RERANKER_USE_ONNX: 是否优先使用 ONNX 推理（默认 true）
         SKILL_RERANKER_ONNX_VARIANT: ONNX 变体文件名（默认 model_quantized.onnx）
     """
 
     # 默认配置（可通过环境变量覆盖）
-    # 【不易】_DEFAULT_MODEL fallback 为 jina 路径（与 .env 默认一致），不再用 v2-m3
-    # 原因：v2-m3 PyTorch 路径在 Windows CPU 触发 0xC0000005 崩溃；.env 未设置时需安全 fallback
-    _DEFAULT_MODEL = "C:/Users/Administrator/.cache/huggingface/hub/models--jinaai--jina-reranker-v2-base-multilingual"
+    _DEFAULT_MODEL = "BAAI/bge-reranker-v2-m3"
     _DEFAULT_TIMEOUT = 30
-    # 【变易】min_score 软拒识阈值：从 0.001 提到 0.05，过滤极低分候选
-    # 实测依据（2026-07-31 RERANKER_DISCRIMINATION_COMPARE_REPORT.json）：
-    #   - bge-base 正样本 top1 最低 0.0623（case_020 'context_aware'），0.05 不误杀
-    #   - 0.1 会误杀 bge case_020（top1=0.0623 < 0.1），故选 0.05 而非 0.1
-    # 局限：jina 对 case_042 负样本给出 0.0562，0.05 仍无法过滤；
-    #       真正解决负样本拒识靠 bge 模型本身（bge 给 case_042 分数 < 0.001 已被默认阈值过滤）
-    _DEFAULT_MIN_SCORE = 0.05
+    _DEFAULT_MIN_SCORE = 0.001
     _DEFAULT_USE_ONNX = True
     _DEFAULT_ONNX_VARIANT = "model_quantized.onnx"
     # 【变易】单次 rerank predict 超时阈值（秒）—— 与 _timeout（子进程超时）区分
@@ -178,223 +168,6 @@ class SkillReranker:
         self._rerank_timeout = float(os.environ.get(
             "SKILL_RERANKER_RERANK_TIMEOUT", str(self._DEFAULT_RERANK_TIMEOUT)
         ))
-        # 【变易】分阶段耗时侧信道：predict 阶段写入，rerank 阶段读取后清空
-        # Why 侧信道: 不改 _predict_onnx/_predict_pytorch 返回值结构（守【不易】）
-        # Why 实例变量而非返回值: predict 可能在 ThreadPoolExecutor 中执行，
-        #   闭包捕获复杂；实例变量线程安全由 GIL 单写保证，rerank 主线程读取足够
-        self._last_tokenize_ms: float = 0.0
-        self._last_inference_ms: float = 0.0
-        # 【变易】热重载机制：监听 .env mtime 变化，SKILL_RERANKER_ONNX_VARIANT
-        #         变化时无需重启进程即可切换 ONNX 模型变体（INT8 ↔ FP32）
-        # 设计原则:
-        #   - 不双模型常驻（2.3GB×2 内存浪费，违【简易】）
-        #   - 不引入 SIGHUP（Windows 支持差，违【变易】）
-        #   - mtime 轮询 + RLock 指针替换，新会话在锁外加载（避免阻塞推理）
-        # Why RLock 而非 RWLock: Python 标准库无 RWLock，RLock 仅在指针替换时
-        #   短暂持锁（<1ms），推理全程无锁，性能可接受
-        # Why 推理无锁安全: Python 字节码 LOAD_ATTR 读取 session 引用到栈顶后，
-        #   即使 self._onnx_session 被替换，栈顶引用仍持有旧 session，GC 不回收，
-        #   C++ 端 run() 能安全完成
-        self._env_file = os.environ.get(
-            "SKILL_RERANKER_ENV_FILE",
-            os.path.join(os.getcwd(), ".env"),
-        )
-        self._env_mtime: float = self._get_env_mtime()
-        self._env_check_interval = float(os.environ.get(
-            "SKILL_RERANKER_HOT_RELOAD_INTERVAL", "30"
-        ))  # mtime 轮询间隔（秒），默认 30s
-        self._last_env_check: float = 0.0  # 上次检查时间戳（0 触发首次检查）
-        self._reload_lock = threading.RLock()  # 保护会话指针替换
-        # 当前已加载的 variant（与 _onnx_variant 区分：
-        # _onnx_variant 是"期望加载的"，_onnx_variant_loaded 是"实际已加载的"）
-        self._onnx_variant_loaded: str = self._onnx_variant
-        # 【变易】加载失败原因侧信道：_load_onnx 写入，_hot_reload_onnx_variant 读取
-        # Why 侧信道: _load_onnx 返回 bool 不暴露失败原因，热重载 failed_rollback
-        #   日志需要根因信息辅助排障（variant 文件不存在 / 路径错误 / 加载异常）
-        self._last_load_error: Optional[str] = None
-        self._last_load_traceback: Optional[str] = None
-
-    def _get_env_mtime(self) -> float:
-        """获取 .env 文件 mtime（不存在返回 0）
-
-        【不易】OSError 静默处理，不抛异常
-        【简易】os.path.getmtime 单次调用
-        """
-        try:
-            return os.path.getmtime(self._env_file)
-        except OSError:
-            return 0.0
-
-    def _read_variant_from_env_file(self) -> Optional[str]:
-        """从 .env 文件读取 SKILL_RERANKER_ONNX_VARIANT（不污染 os.environ）
-
-        【不易】仅读取不写入 os.environ，避免影响其他模块
-        【变易】支持 KEY="VALUE" 带引号格式
-        【简易】逐行扫描，找到即返回
-
-        Returns:
-            variant 字符串（如 "model_quantized.onnx"），未找到返回 None
-        """
-        try:
-            with open(self._env_file, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    # 跳过注释和空行
-                    if not line or line.startswith("#") or "=" not in line:
-                        continue
-                    key, _, value = line.partition("=")
-                    if key.strip() == "SKILL_RERANKER_ONNX_VARIANT":
-                        return value.strip().strip('"').strip("'")
-        except OSError:
-            # 文件不存在或读取失败，返回 None 让调用方保留原值
-            pass
-        return None
-
-    def _check_hot_reload(self) -> None:
-        """检查 .env 是否变化，触发热重载
-
-        【不易】失败时保留旧会话，不抛异常，不阻塞 rerank 主流程
-        【变易】mtime 轮询节流（30s 间隔），避免每次 rerank 都查文件系统
-        【简易】mtime 未变直接返回，变化时重读 variant 对比
-
-        调用时机: rerank() 入口处，仅在 ONNX 已加载时触发
-        """
-        # 仅在 ONNX 已加载且启用时检查（未加载时 _load_model 会处理）
-        if not self._use_onnx or self._onnx_session is None:
-            return
-
-        # 节流：间隔内不重复检查
-        now = time.time()
-        if now - self._last_env_check < self._env_check_interval:
-            return
-        self._last_env_check = now
-
-        current_mtime = self._get_env_mtime()
-        if current_mtime == self._env_mtime:
-            return  # mtime 未变，无需重载
-
-        # mtime 变化，重读 .env 提取最新 variant
-        new_variant = self._read_variant_from_env_file()
-        if new_variant is None:
-            # .env 中未配置 ONNX_VARIANT 或读取失败，仅更新 mtime 避免重复检查
-            self._env_mtime = current_mtime
-            return
-
-        if new_variant == self._onnx_variant_loaded:
-            # variant 未变化（可能是 .env 其他配置变了），仅更新 mtime
-            self._env_mtime = current_mtime
-            return
-
-        # variant 变化，触发热重载
-        logger.info(json.dumps({
-            "module_name": "reranker",
-            "action": "hot_reload.detected",
-            "old_variant": self._onnx_variant_loaded,
-            "new_variant": new_variant,
-            "env_file": self._env_file,
-        }, ensure_ascii=False))
-        self._hot_reload_onnx_variant(new_variant)
-        self._env_mtime = current_mtime
-
-    def _hot_reload_onnx_variant(self, new_variant: str) -> None:
-        """热重载 ONNX 会话（variant 切换）
-
-        【不易】失败时保留旧会话，不抛异常；不改变 rerank 接口
-        【变易】新会话在锁外加载（避免阻塞推理），仅指针替换时持锁
-        【简易】复用 _load_onnx 内部加载逻辑，通过临时实例隔离加载过程
-
-        安全保证:
-            1. 新会话加载失败 → 旧会话保留，记录告警
-            2. 加载过程异常 → 回滚到旧会话
-            3. 指针替换是原子操作（Python 赋值），推理无锁安全
-        """
-        with self._reload_lock:
-            old_variant = self._onnx_variant_loaded
-            old_session = self._onnx_session
-            old_tokenizer = self._onnx_tokenizer
-            old_input_names = self._onnx_input_names
-
-            # 临时切换 variant 并重置加载状态
-            # Why 重置 _load_attempted: _load_onnx 内部会检查此标志，
-            # 需重置才能触发重新加载；finally 中恢复避免影响失败重试语义
-            self._onnx_variant = new_variant
-            self._onnx_session = None
-            self._onnx_tokenizer = None
-            self._onnx_input_names = None
-            self._load_attempted = False
-            self._use_onnx = False  # 临时置 False，让 _load_onnx 重新走加载流程
-
-            try:
-                if self._load_onnx():
-                    # 加载成功：新 session 已写入 self._onnx_session
-                    # 【不易修复】显式恢复 _use_onnx=True：
-                    # 真实 _load_onnx 成功时会设 _use_onnx=True，但 mock 测试
-                    # 时 mock 不执行内部逻辑，需显式保证状态一致（幂等）
-                    self._use_onnx = True
-                    self._onnx_variant_loaded = new_variant
-                    logger.info(json.dumps({
-                        "module_name": "reranker",
-                        "action": "hot_reload.success",
-                        "old_variant": old_variant,
-                        "new_variant": new_variant,
-                    }, ensure_ascii=False))
-                    emit_metric("yunshu_reranker_hot_reload_total",
-                                value=1, kind="counter",
-                                labels={"status": "success"})
-                else:
-                    # 加载失败：回滚到旧会话
-                    self._onnx_session = old_session
-                    self._onnx_tokenizer = old_tokenizer
-                    self._onnx_input_names = old_input_names
-                    self._onnx_variant = old_variant
-                    self._onnx_variant_loaded = old_variant
-                    self._use_onnx = old_session is not None
-                    # 【可观测性】读取 _load_onnx 侧信道记录的失败根因
-                    # Why 读取侧信道: _load_onnx 返回 False 不暴露原因，
-                    #   侧信道记录了具体根因（文件不存在 / 路径错误 / 加载异常）
-                    load_error = self._last_load_error or "unknown"
-                    load_traceback = self._last_load_traceback
-                    rollback_log = {
-                        "module_name": "reranker",
-                        "action": "hot_reload.failed_rollback",
-                        "target_variant": new_variant,
-                        "kept_variant": old_variant,
-                        "reason": "new_variant_load_failed",
-                        "load_error": load_error,
-                    }
-                    # 异常场景才追加 traceback（非异常场景为 None 时省略）
-                    if load_traceback:
-                        rollback_log["traceback"] = load_traceback
-                    logger.warning(json.dumps(rollback_log, ensure_ascii=False))
-                    emit_metric("yunshu_reranker_hot_reload_total",
-                                value=1, kind="counter",
-                                labels={"status": "failed"})
-            except Exception as e:  # noqa: BLE001
-                # 异常回滚（防御性：_load_onnx 内部已有 try/except，此处兜底）
-                self._onnx_session = old_session
-                self._onnx_tokenizer = old_tokenizer
-                self._onnx_input_names = old_input_names
-                self._onnx_variant = old_variant
-                self._onnx_variant_loaded = old_variant
-                self._use_onnx = old_session is not None
-                # 【可观测性】捕获完整异常堆栈，定位热重载过程中的意外崩溃
-                # Why 完整堆栈: exception_rollback 是兜底分支，需堆栈定位
-                #   是 _load_onnx 之外还是内部的异常
-                tb_str = traceback.format_exc()
-                logger.warning(json.dumps({
-                    "module_name": "reranker",
-                    "action": "hot_reload.exception_rollback",
-                    "target_variant": new_variant,
-                    "error": str(e)[:300],
-                    "traceback": tb_str[:2000],
-                }, ensure_ascii=False))
-                emit_metric("yunshu_reranker_hot_reload_total",
-                            value=1, kind="counter",
-                            labels={"status": "exception"})
-            finally:
-                # 恢复 _load_attempted=True，保持"加载已尝试，不重试"语义
-                # （热重载是显式触发，下次热重载会再次重置）
-                self._load_attempted = True
 
     # ──────────────────────────────────────────────
     #  模型加载（懒加载 + 降级）
@@ -515,9 +288,6 @@ class SkillReranker:
                             value=1, kind="counter",
                             labels={"backend": "onnx", "status": "skipped",
                                     "reason": "path_not_local_dir"})
-                # 【变易】记录失败原因到侧信道，供热重载 failed_rollback 日志引用
-                self._last_load_error = f"model_path_not_local_dir: {self._model_name}"
-                self._last_load_traceback = None  # 非异常场景无堆栈
                 return False
 
             onnx_path = os.path.join(self._model_name, "onnx", self._onnx_variant)
@@ -533,9 +303,6 @@ class SkillReranker:
                             value=1, kind="counter",
                             labels={"backend": "onnx", "status": "skipped",
                                     "reason": "file_not_found"})
-                # 【变易】记录失败原因到侧信道（这是"无效 variant 回滚"最常见的根因）
-                self._last_load_error = f"onnx_file_not_found: {onnx_path}"
-                self._last_load_traceback = None
                 return False
 
             t0 = time.time()
@@ -569,23 +336,16 @@ class SkillReranker:
             return True
 
         except Exception as e:  # noqa: BLE001
-            # 【可观测性】捕获完整堆栈，供热重载 exception_rollback 日志引用
-            # Why 完整堆栈: str(e) 仅含错误消息，traceback 含调用链定位根因
-            tb_str = traceback.format_exc()
             logger.warning(json.dumps({
                 "module_name": "reranker",
                 "action": "onnx.load_failed",
                 "model": self._model_name,
                 "error": str(e)[:300],
-                "traceback": tb_str[:2000],  # 截断避免日志过长
             }, ensure_ascii=False))
             # [Observability] Prometheus 指标：ONNX 加载失败（P0 告警数据源）
             emit_metric("yunshu_reranker_load_total",
                         value=1, kind="counter",
                         labels={"backend": "onnx", "status": "failed"})
-            # 【变易】记录失败原因 + 完整堆栈到侧信道
-            self._last_load_error = f"{type(e).__name__}: {str(e)[:300]}"
-            self._last_load_traceback = tb_str[:2000]
             # 清理半初始化状态
             self._onnx_session = None
             self._onnx_tokenizer = None
@@ -734,12 +494,6 @@ class SkillReranker:
                                 "reason": "model_unavailable"})
             return candidates[:top_k]
 
-        # 【变易】热重载检查：.env 中 SKILL_RERANKER_ONNX_VARIANT 变化时
-        # 无需重启进程即可切换 ONNX 模型变体（INT8 ↔ FP32）
-        # Why 放在 _load_model 之后: 仅在 ONNX 已加载时才有热重载意义
-        # Why 放在构造 pairs 之前: 热重载会替换 session，需在推理前完成
-        self._check_hot_reload()
-
         # 构造 query-document 对
         pairs = []
         for c in candidates:
@@ -821,15 +575,6 @@ class SkillReranker:
             score_stddev = float(math.sqrt(score_var))
         else:
             score_min = score_max = score_mean = score_stddev = 0.0
-        # 【变易】读取 predict 阶段侧信道耗时（分阶段定位延迟瓶颈）
-        # Why 读取后清零: 防止降级路径（_predict 未调用）残留上次数据污染日志
-        # 排查路径: duration_ms >> tokenize_ms + inference_ms → 瓶颈在排序/过滤/sigmoid 后处理
-        #          tokenize_ms 占比高 → tokenizer 慢（检查 max_length/ batch_size）
-        #          inference_ms 占比高 → ONNX 推理慢（检查模型量化/并发）
-        tokenize_ms = self._last_tokenize_ms
-        inference_ms = self._last_inference_ms
-        self._last_tokenize_ms = 0.0
-        self._last_inference_ms = 0.0
         logger.info(json.dumps({
             "trace_id": tid,
             "module_name": "reranker",
@@ -844,9 +589,6 @@ class SkillReranker:
             "score_mean": round(score_mean, 6),
             "score_stddev": round(score_stddev, 6),
             "duration_ms": round(elapsed, 2),
-            # 【变易】分阶段耗时：定位 P99 > 500ms 告警的延迟瓶颈
-            "tokenize_ms": round(tokenize_ms, 2),
-            "inference_ms": round(inference_ms, 2),
         }, ensure_ascii=False))
         # [Observability] rerank 成功（P99 延迟直方图 + 成功计数）
         backend = "onnx" if self._use_onnx else "pytorch"
@@ -867,25 +609,14 @@ class SkillReranker:
         """将候选对象转为文本（用于 Reranker 输入）
 
         【简易】复用 name + description + tags
-        【不易修复】支持 dict 候选（loader/compare 脚本传 dict）和对象（单元测试用）
-                   修复前：getattr(dict, "name", "") 返回 ""，导致所有 dict 候选 doc_text
-                   为空，ONNX 推理对所有候选返回相同分数（stddev=0.0），reranker 完全失效
         """
-        # dict 用 .get()，对象用 getattr()——统一访问接口
-        if isinstance(candidate, dict):
-            def getter(key, default=""):
-                return candidate.get(key, default)
-        else:
-            def getter(key, default=""):
-                return getattr(candidate, key, default)
-
         parts = []
         for attr in ("name", "description", "category"):
-            val = getter(attr)
+            val = getattr(candidate, attr, "")
             if val:
                 parts.append(str(val))
         # tags 可能是列表
-        tags = getter("tags", [])
+        tags = getattr(candidate, "tags", [])
         if tags:
             parts.append(" ".join(tags) if isinstance(tags, list) else str(tags))
         return " ".join(parts)
@@ -988,13 +719,7 @@ class SkillReranker:
             return [0.0] * len(pairs)
         # 不 try/except：predict 异常由 rerank() 的 except 捕获并降级返回原序
         # （与超时降级同路径，保持降级语义一致）
-        # 【可观测性】PyTorch 路径 tokenize+inference 在 CrossEncoder.predict 内部，
-        # 无法分离，统一记为 inference_ms（tokenize_ms 留 0）
-        # Why 不分离: sentence_transformers API 不暴露分阶段耗时，强行 monkey-patch 违【简易】
-        t_predict_start = time.perf_counter()
         scores = self._model.predict(pairs)
-        self._last_inference_ms = (time.perf_counter() - t_predict_start) * 1000
-        self._last_tokenize_ms = 0.0  # PyTorch 路径无法分离 tokenize
         return [float(s) for s in scores]
 
     def _predict_onnx(
@@ -1025,16 +750,12 @@ class SkillReranker:
             texts_a = [p[0] for p in pairs]
             texts_b = [p[1] for p in pairs]
 
-            # 【可观测性】分阶段耗时埋点：tokenize 阶段
-            # Why perf_counter 而非 time.time: 单调时钟，不受系统时间回拨影响
-            t_tokenize_start = time.perf_counter()
             # tokenize（batch 推理，padding 到 batch 内最长序列）
             encoded = self._onnx_tokenizer(
                 texts_a, texts_b,
                 padding=True, truncation=True, max_length=512,
                 return_tensors="np",
             )
-            self._last_tokenize_ms = (time.perf_counter() - t_tokenize_start) * 1000
 
             # 按 ONNX 模型实际输入名构造 feed_dict（兼容不同变体）
             feed = {}
@@ -1049,12 +770,8 @@ class SkillReranker:
                         "token_type_ids", np.zeros_like(encoded["input_ids"])
                     )
 
-            # 【可观测性】分阶段耗时埋点：ONNX 推理阶段
-            # Why 单独测推理: 区分 tokenize 瓶颈 vs 推理瓶颈，定位 P99 > 500ms 根因
-            t_inference_start = time.perf_counter()
             # ONNX 推理（C++ 引擎，无 GIL）
             outputs = self._onnx_session.run(None, feed)
-            self._last_inference_ms = (time.perf_counter() - t_inference_start) * 1000
             # logits 形状: (batch, 1) 或 (batch,)，展平为一维
             scores = outputs[0].flatten()
             return [float(s) for s in scores]
@@ -1070,7 +787,4 @@ class SkillReranker:
             emit_metric("yunshu_reranker_predict_failed_total",
                         value=1, kind="counter",
                         labels={"backend": "onnx"})
-            # 【不易】异常时清零侧信道，避免脏数据污染下一次 rerank.completed 日志
-            self._last_tokenize_ms = 0.0
-            self._last_inference_ms = 0.0
             return [0.0] * len(pairs)
