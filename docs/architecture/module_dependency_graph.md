@@ -523,7 +523,6 @@ flowchart LR
     agent_orchestrator_lifecycle_manager --> agent
     agent_orchestrator_lifecycle_manager -.-> agent_tool_calling
     agent_orchestrator_lifecycle_manager -.-> agent_web
-    agent_orchestrator_orchestrator -.-> agent_digital_life
     agent_orchestrator_orchestrator -.-> agent_guardrails_input_guard
     agent_orchestrator_orchestrator -.-> agent_guardrails_output_guard
     agent_orchestrator_orchestrator -.-> agent_observability_subscriber
@@ -533,6 +532,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_tool_calling
     agent_orchestrator_orchestrator -.-> agent_tool_router
     agent_orchestrator_orchestrator -.-> agent_tool_router_hybrid
+    agent_orchestrator_orchestrator -.-> agent_digital_life
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
     agent_orchestrator_orchestrator -.-> agent_response_workflows
@@ -940,4 +940,4 @@ flowchart LR
 - 跨层调用数: 368
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1256.19 ms
+- 构建耗时: 1331.22 ms
