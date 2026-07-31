@@ -1,0 +1,210 @@
+# ════════════════════════════════════════════════════════════════════
+#  Prometheus Adapter Rules 配置 — skill_match 自定义指标
+#
+#  作用: 把 Prometheus 采集的 skill_match_* 指标暴露为 K8s 自定义指标，
+#        供 HPA 读取实现 P99 延迟 + QPS 驱动的自动扩缩容
+#
+#  指标映射链路:
+#    代码侧(prometheus.py)           Prometheus         Adapter            HPA
+#    ─────────────────────────────────────────────────────────────────────────
+#    skill_match_latency_ms          → _bucket 序列     → p99 计算        → skill_match_latency_p99
+#      (Histogram, buckets含40ms)      (Prometheus采集)   (histogram_quantile)  (HPA type: Pods)
+#    skill_match_count_total         → _total 序列      → rate 计算        → skill_match_qps
+#      (Counter, [layer,method,success]) (Prometheus采集)  (rate[1m])           (HPA type: Pods)
+#
+#  【不易】seriesQuery 必须匹配代码实际暴露的指标名:
+#    - skill_match_latency_ms_bucket (prometheus_client Histogram 自动生成 _bucket 后缀)
+#    - skill_match_count_total (prometheus_client Counter 注册名)
+#  【变易】namespace 参数化（默认 production，可通过 ConfigMap 修改）
+#  【简易】单个 ConfigMap 包含所有 rules，一键部署
+#
+#  部署方式:
+#    1. 确保 Prometheus Adapter 已部署（helm install）
+#    2. kubectl apply -f deploy/k8s/prometheus-adapter-config.yaml
+#    3. 重启 Prometheus Adapter Pod 加载新 rules
+#    4. 验证: kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta1/..."
+#
+#  前置条件:
+#    - Prometheus 已配置 K8s SD（自动发现 Pod 并附加 namespace/pod 标签）
+#    - Deployment 已添加 prometheus.io/scrape 注解（见 deployment.yaml L97-99）
+#    - skill_match_latency_ms 和 skill_match_count_total 已在代码中定义（prometheus.py L644-657）
+# ════════════════════════════════════════════════════════════════════
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-adapter-skill-rules
+  namespace: monitoring
+  labels:
+    app: prometheus-adapter
+    component: skill-retrieval-monitoring
+data:
+  skill-rules.yaml: |
+    rules:
+      # ════════════════════════════════════════════════════════════
+      #  指标 1: skill_match_latency_p99（P99 延迟，毫秒）
+      #
+      #  HPA 配置（hpa.yaml L87-93）:
+      #    - type: Pods
+      #      pods:
+      #        metric: {name: skill_match_latency_p99}
+      #        target: {type: AverageValue, averageValue: "40"}
+      #
+      #  数据流:
+      #    skill_match_latency_ms_bucket (Prometheus) 
+      #    → histogram_quantile(0.99, ...) (Adapter 计算)
+      #    → skill_match_latency_p99 (自定义指标)
+      #    → HPA 读取，阈值 40ms
+      # ════════════════════════════════════════════════════════════
+      - seriesQuery: 'skill_match_latency_ms_bucket{namespace!="",pod!=""}'
+        resources:
+          overrides:
+            namespace: {resource: "namespace"}
+            pod: {resource: "pod"}
+        name:
+          matches: "^(.*)_bucket"
+          as: "skill_match_latency_p99"
+        metricsQuery: |
+          histogram_quantile(0.99,
+            sum(rate(<<.Series>>{<<.LabelMatchers>>}[5m])) by (le, <<.GroupBy>>)
+          )
+
+      # ════════════════════════════════════════════════════════════
+      #  指标 2: skill_match_qps（每秒查询数）
+      #
+      #  HPA 配置（hpa.yaml L97-103）:
+      #    - type: Pods
+      #      pods:
+      #        metric: {name: skill_match_qps}
+      #        target: {type: AverageValue, averageValue: "200"}
+      #
+      #  数据流:
+      #    skill_match_count_total (Prometheus Counter)
+      #    → rate(...[1m]) (Adapter 计算每秒速率)
+      #    → skill_match_qps (自定义指标)
+      #    → HPA 读取，阈值 200/副本
+      # ════════════════════════════════════════════════════════════
+      - seriesQuery: 'skill_match_count_total{namespace!="",pod!=""}'
+        resources:
+          overrides:
+            namespace: {resource: "namespace"}
+            pod: {resource: "pod"}
+        name:
+          matches: "^(.*)_total"
+          as: "skill_match_qps"
+        metricsQuery: |
+          sum(rate(<<.Series>>{<<.LabelMatchers>>}[1m])) by (<<.GroupBy>>)
+
+      # ════════════════════════════════════════════════════════════
+      #  指标 3（可选）: skill_match_error_rate（错误率）
+      #
+      #  用途: 监控检索失败率，可用于告警或未来 HPA 扩展
+      #  数据流:
+      #    skill_match_count_total{success="false"} / skill_match_count_total
+      #    → 错误率百分比
+      # ════════════════════════════════════════════════════════════
+      - seriesQuery: 'skill_match_count_total{namespace!="",pod!=""}'
+        resources:
+          overrides:
+            namespace: {resource: "namespace"}
+            pod: {resource: "pod"}
+        name:
+          matches: "^(.*)_total"
+          as: "skill_match_error_rate"
+        metricsQuery: |
+          sum(rate(<<.Series>>{<<.LabelMatchers>>,success="false"}[5m]))
+          /
+          sum(rate(<<.Series>>{<<.LabelMatchers>>}[5m]))
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  Prometheus Adapter 部署参考（helm 方式）
+#
+#  若集群尚未部署 Prometheus Adapter，使用以下命令:
+#
+#  # 添加 helm 仓库
+#  helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#  helm repo update
+#
+#  # 创建 adapter values 文件
+#  cat > /tmp/adapter-values.yaml <<'EOF'
+#  prometheus:
+#    url: http://prometheus-server.monitoring.svc.cluster.local
+#    port: 9090
+#  rules:
+#    default: false
+#  # 额外 rules 从 ConfigMap 挂载
+#  extraVolumes:
+#    - name: skill-rules
+#      configMap:
+#        name: prometheus-adapter-skill-rules
+#  extraVolumeMounts:
+#    - name: skill-rules
+#      mountPath: /etc/adapter/skill-rules.yaml
+#      subPath: skill-rules.yaml
+#  # 合并 rules 配置
+#  config:
+#    rules:
+#      - seriesQuery: 'skill_match_latency_ms_bucket{namespace!="",pod!=""}'
+#        resources:
+#          overrides:
+#            namespace: {resource: "namespace"}
+#            pod: {resource: "pod"}
+#        name:
+#          matches: "^(.*)_bucket"
+#          as: "skill_match_latency_p99"
+#        metricsQuery: |
+#          histogram_quantile(0.99,
+#            sum(rate(<<.Series>>{<<.LabelMatchers>>}[5m])) by (le, <<.GroupBy>>)
+#          )
+#      - seriesQuery: 'skill_match_count_total{namespace!="",pod!=""}'
+#        resources:
+#          overrides:
+#            namespace: {resource: "namespace"}
+#            pod: {resource: "pod"}
+#        name:
+#          matches: "^(.*)_total"
+#          as: "skill_match_qps"
+#        metricsQuery: |
+#          sum(rate(<<.Series>>{<<.LabelMatchers>>}[1m])) by (<<.GroupBy>>)
+#  EOF
+#
+#  # 部署
+#  helm install prometheus-adapter prometheus-community/prometheus-adapter \
+#    -n monitoring \
+#    -f /tmp/adapter-values.yaml
+#
+#  # 等待 APIService 就绪
+#  kubectl wait --for=condition=Available apiservice/v1beta1.custom.metrics.k8s.io --timeout=120s
+# ════════════════════════════════════════════════════════════════════
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  验证步骤（部署后执行）
+# ════════════════════════════════════════════════════════════════════
+#
+#  1. 确认 APIService Available
+#     kubectl get apiservice v1beta1.custom.metrics.k8s.io
+#
+#  2. 先发起请求产生指标数据（Prometheus 需要有数据才能查询）
+#     kubectl run curl-test -n production --image=curlimages/curl --rm -it --restart=Never -- \
+#       curl -X POST http://skill-retrieval-service:8080/match \
+#       -H "Content-Type: application/json" \
+#       -d '{"query":"测试查询","top_k":5}'
+#
+#  3. 等待 30s（Prometheus 采集间隔 + Adapter 缓存）
+#
+#  4. 验证自定义指标可达
+#     kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta1/namespaces/production/pods/*/skill_match_latency_p99"
+#     kubectl get --raw "/apis/custom.metrics.k8s.io/v1beta1/namespaces/production/pods/*/skill_match_qps"
+#
+#  5. 验证 HPA 能读取指标（TARGETS 列应有值）
+#     kubectl get hpa skill-retrieval-hpa -n production
+#
+#  6. 在 Prometheus 中验证原始指标存在
+#     kubectl port-forward -n monitoring svc/prometheus-server 9090:9090
+#     # 浏览器访问 http://localhost:9090 查询:
+#     #   skill_match_latency_ms_bucket
+#     #   skill_match_count_total
+# ════════════════════════════════════════════════════════════════════

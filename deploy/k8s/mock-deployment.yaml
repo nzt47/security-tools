@@ -1,0 +1,121 @@
+# ════════════════════════════════════════════════════════════════════
+#  Mock 技能检索服务 K8s 部署清单 — 压测专用
+#
+#  【不易】指标暴露对齐 deployment.yaml 的 prometheus.io/scrape 注解
+#  【变易】无 PVC（mock 无状态）/ imagePullPolicy: IfNotPresent（本地镜像）
+#  【简易】ConfigMap + Deployment + Service 三件套，最小化部署
+#
+#  部署: kubectl apply -f deploy/k8s/mock-deployment.yaml
+#  镜像: skill-retrieval:local（本地构建，不推送 registry）
+# ════════════════════════════════════════════════════════════════════
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: production
+  labels:
+    app: skill-retrieval-service
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: skill-service-config
+  namespace: production
+data:
+  APP_ENV: "production"
+  APP_PORT: "8080"
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  Deployment — Mock 服务（本地镜像，无 PVC）
+# ════════════════════════════════════════════════════════════════════
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: skill-retrieval-service
+  namespace: production
+  labels:
+    app: skill-retrieval-service
+    scale: "mock-loadtest"
+spec:
+  replicas: 3  # 初始 3 副本（对齐 HPA minReplicas=3）
+  selector:
+    matchLabels:
+      app: skill-retrieval-service
+  template:
+    metadata:
+      labels:
+        app: skill-retrieval-service
+        scale: "mock-loadtest"
+      annotations:
+        # 【不易】Prometheus scrape 注解 — 对齐 prometheus-adapter-config 的 seriesQuery
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: skill-service
+          image: skill-retrieval:local  # 本地构建镜像
+          imagePullPolicy: IfNotPresent  # 【变易】本地镜像不拉取
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: skill-service-config
+          # 资源配额（mock 服务轻量，降低配额便于 HPA 在单节点上扩容）
+          resources:
+            requests:
+              cpu: "100m"    # 0.1 核（mock 轻量）
+              memory: "128Mi"
+            limits:
+              cpu: "500m"    # 0.5 核上限
+              memory: "256Mi"
+          # 健康检查（mock 服务启动快，缩短延迟）
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          startupProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 12  # 最多等 60s
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  Service — 集群内访问
+# ════════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: Service
+metadata:
+  name: skill-retrieval-service
+  namespace: production
+  labels:
+    app: skill-retrieval-service
+spec:
+  type: ClusterIP
+  selector:
+    app: skill-retrieval-service
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP

@@ -1,0 +1,48 @@
+# ════════════════════════════════════════════════════════════
+# 云枢 Web 应用 systemd 单元 — 由 Ansible 渲染
+# 【不易】非 root 运行 + 只读关键路径，安全上下文不弱化
+# 【简易】waitress 原生 serve，无额外进程管理器
+# ════════════════════════════════════════════════════════════
+[Unit]
+Description=Yunshu Digital Life Web App (Flask + waitress)
+Documentation=file://{{ deploy_path }}/docs/ops_daily/production_deployment_guide.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ deploy_user }}
+Group={{ deploy_group }}
+WorkingDirectory={{ deploy_path }}
+
+# 【不易】.env 由 Ansible 渲染，通过 EnvironmentFile 注入，禁止硬编码密钥
+EnvironmentFile={{ deploy_path }}/.env
+
+# waitress 原生 serve（app_server.py:4870 用 waitress.serve）
+ExecStart={{ venv_path }}/bin/python app_server.py
+
+# 仅监听 127.0.0.1，前置网关代理
+# app_server.py 内部 serve(host="127.0.0.1", port=5678, threads=8)
+
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+
+# 资源限制（测试环境保守值，生产按 profile 上调）
+LimitNOFILE=65536
+MemoryMax=2G
+
+# 日志重定向到 journald（便于 journalctl 查询）
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier={{ app_service_name }}
+
+# 安全上下文（守不易：非 root + 不提权）
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths={{ deploy_path }} {{ log_path }} {{ data_path }}
+
+[Install]
+WantedBy=multi-user.target

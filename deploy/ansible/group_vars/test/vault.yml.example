@@ -1,0 +1,48 @@
+# ════════════════════════════════════════════════════════════
+# 敏感变量模板 — 所有密钥/密码集中于此
+# ════════════════════════════════════════════════════════════
+# 【不易】此文件为明文模板，禁止直接使用；实际 vault.yml 必须加密:
+#
+#   # 1. 复制模板
+#   cp vault.yml.example vault.yml
+#
+#   # 2. 填入真实密钥后加密
+#   ansible-vault encrypt deploy/ansible/group_vars/test/vault.yml
+#
+#   # 3. 运行时通过 --vault-id 或 --ask-vault-pass 解密
+#   ansible-playbook -i inventory.ini site.yml --ask-vault-pass
+#
+# 【简易】密钥即变量名，不发明新约定
+# ════════════════════════════════════════════════════════════
+
+# ────────────────────────────────────────────────────────────
+# LLM 服务（唯一来源）
+# ────────────────────────────────────────────────────────────
+llm_provider: DeepSeek
+llm_api_key: sk-REPLACE-ME            # 【敏感】LLM API Key
+llm_model: deepseek-v4-flash
+llm_base_url: https://api.deepseek.com/anthropic
+
+# ────────────────────────────────────────────────────────────
+# 搜索引擎 API Keys（按需填入）
+# ────────────────────────────────────────────────────────────
+search_firecrawl_api_key: ""          # 【敏感】
+search_tavily_api_key: ""             # 【敏感】
+search_bing_api_key: ""               # 【敏感】
+search_google_api_key: ""             # 【敏感】
+
+# ────────────────────────────────────────────────────────────
+# 错误上报 Webhook（可选）
+# ────────────────────────────────────────────────────────────
+error_reporting_webhook_url: ""       # 【敏感】Slack/钉钉 webhook
+
+# ────────────────────────────────────────────────────────────
+# GlitchTip 错误追踪平台（可选，docker compose 部署时用）
+# ────────────────────────────────────────────────────────────
+glitchtip_admin_password: ""          # 【敏感】>=12 字符强密码
+glitchtip_admin_email: admin@local.test
+glitchtip_domain: http://localhost:8000
+postgres_db: glitchtip
+postgres_user: glitchtip
+postgres_password: ""                 # 【敏感】
+secret_key: ""                        # 【敏感】Django SECRET_KEY，生产务必修改
