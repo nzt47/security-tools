@@ -1,4 +1,4 @@
-﻿<#
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<#
 .SYNOPSIS
     pre-commit hook 自动化部署与同步工具
 

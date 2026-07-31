@@ -86,8 +86,8 @@ if ($LASTEXITCODE -ne 0) {
 if ($Mode -eq "wiki") {
     Write-Host "[Wiki] 准备推送到 GitHub Wiki..." -ForegroundColor Yellow
 
-    # Wiki 仓库 URL：owner/repo.wiki.git
-    $wikiUrl = "https://github.com/$Repo.wiki.git"
+    # [网络适配] Wiki 仓库 URL：使用 SSH 协议（HTTPS 443 可能被阻塞）
+    $wikiUrl = "git@github.com:$Repo.wiki.git"
     $wikiCloneDir = Join-Path $env:TEMP "tlm_wiki_deploy_$(Get-Random)"
 
     try {
@@ -150,22 +150,41 @@ if ($Mode -eq "pages") {
     $workDir = Join-Path $env:TEMP "tlm_pages_deploy_$(Get-Random)"
 
     try {
+        # [安全修复] 无论 gh-pages 是否存在，都使用独立克隆目录操作
+        # Why: 原脚本在主项目目录删除文件会造成代码丢失风险
+        # [网络适配] 使用 SSH 协议（HTTPS 443 可能被阻塞，SSH 22 通常可用）
+        $pagesUrl = "git@github.com:$Repo.git"
+        Write-Host "  克隆仓库到独立临时目录（避免污染主工作区）..."
+
         # 检查 gh-pages 分支是否存在
-        $branchExists = git -C $ProjectRoot ls-remote --heads origin gh-pages 2>&1
-        if (-not $branchExists) {
-            Write-Host "  gh-pages 分支不存在，创建中..."
-            git -C $ProjectRoot checkout -b gh-pages 2>&1 | Out-Null
-            # 清空工作区，只保留必要文件
-            Get-ChildItem -Path $ProjectRoot -Force | Where-Object {
-                $_.Name -notin @('.git', '.github')
-            } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        $branchCheck = git ls-remote --heads $pagesUrl gh-pages 2>&1
+        $ghPagesExists = $branchCheck -match "gh-pages"
+
+        if ($ghPagesExists) {
+            # 分支存在：克隆时指定分支
+            git clone --branch gh-pages $pagesUrl $workDir 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "[!] 克隆 gh-pages 分支失败"
+                exit 1
+            }
         } else {
-            # 克隆 gh-pages 分支
-            git -C $ProjectRoot worktree add $workDir gh-pages 2>&1 | Out-Null
+            # 分支不存在：完整克隆后创建 orphan 分支（不含历史，干净起步）
+            Write-Host "  gh-pages 分支不存在，创建 orphan 分支..."
+            git clone $pagesUrl $workDir 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) {
+                Write-Error "[!] 克隆仓库失败"
+                exit 1
+            }
+            # 清空工作区文件（仅在临时克隆中操作，不影响主项目）
+            Get-ChildItem -Path $workDir -Force | Where-Object {
+                $_.Name -notin @('.git')
+            } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+            # 创建 orphan 分支
+            git -C $workDir checkout --orphan gh-pages 2>&1 | Out-Null
         }
 
         # 准备 Pages 目录结构
-        $pagesDir = if (Test-Path $workDir) { $workDir } else { $ProjectRoot }
+        $pagesDir = $workDir
         $docsDir = Join-Path $pagesDir "docs"
         if (-not (Test-Path $docsDir)) {
             New-Item -ItemType Directory -Path $docsDir -Force | Out-Null
@@ -213,9 +232,9 @@ description: TLM 架构设计 + P3/P4 优化完整文档
             Write-Error "[!] Pages 推送失败，请检查 gh-pages 分支权限"
         }
     } finally {
-        # 清理 worktree
-        if (Test-Path $workDir) {
-            git -C $ProjectRoot worktree remove $workDir --force 2>&1 | Out-Null
+        # [安全修复] 清理独立克隆目录（不使用 worktree，避免影响主项目）
+        if ($workDir -and (Test-Path $workDir)) {
+            Remove-Item -Recurse -Force $workDir -ErrorAction SilentlyContinue
         }
     }
 }
