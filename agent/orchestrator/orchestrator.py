@@ -19,7 +19,7 @@ import json
 import os
 import re as _re
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Dict, Any, Tuple
 
 # digital_life 符号延迟到文件末尾导入，避免与 digital_life.py:369 形成模块级循环导入
 # (orchestrator.py 顶层导入 → digital_life.py:369 → agent.orchestrator.Orchestrator → orchestrator.py 未完成)
@@ -260,21 +260,45 @@ class Orchestrator:
         # 【变易】从上一轮对话状态继承关键词/意图，将"那个呢"/"然后呢"等
         #         省略句补全为完整查询，使前序规则层和语义层能正确匹配。
         #         补全后的输入仅用于路由决策，LLM 仍用原始输入。
+        # 【变易】向量置信度：若 SkillLoader 的 vector_adapter 已"热"（语义层跑过），
+        #         注入 DST 做软门控；未热则走纯正则（不强制拉起模型，守性能）。
         routing_input = user_input
         try:
             from agent.orchestrator.dialog_state import get_dialog_state
             _dst = get_dialog_state(getattr(self, '_session_id', 'default'))
-            _augmented = _dst.resolve(user_input)
-            if _augmented:
-                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.dst', 'trace_id_ctx': trace_id, 'message': '[DST] 省略句补全: "%s" → "%s"' % (user_input, _augmented)}))
-                routing_input = _augmented
-            # 更新 DST 关键词（供下一轮补全用；intent 在路由后由 _update_dst_after_route 更新）
+            # 注入已初始化的 vector_adapter（仅当热，避免冷启动延迟）
             try:
-                _kw = MessageHandler.extract_keywords(user_input)
-                if _kw:
-                    _dst.last_keywords = _kw
+                from agent.state_manager import get_skills_mgmt_service
+                _svc = get_skills_mgmt_service()
+                if _svc and _svc.loader and getattr(_svc.loader, "_vector_adapter", None) is not None:
+                    _dst.vector_adapter = _svc.loader._vector_adapter
             except Exception:
                 pass
+            _augmented = _dst.resolve(user_input)
+            _is_ellipsis = _dst.is_ellipsis_query(user_input)
+            _sim = getattr(_dst, 'last_similarity', None)
+            _sim_msg = ('%.4f' % _sim) if isinstance(_sim, float) else 'N/A'
+            if _augmented:
+                # 【不易】意图路由前详细日志：记录 DST 补全前后输入 + 向量相似度
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.dst', 'trace_id_ctx': trace_id,
+                    'message': '[DST] 省略句补全: "%s" → "%s" (sim=%s, turn=%d)' % (user_input, _augmented, _sim_msg, _dst.turn_count),
+                    'original_input': user_input,
+                    'augmented_input': _augmented,
+                    'similarity': _sim,
+                    'turn': _dst.turn_count,
+                    'result': 'augmented'}))
+                routing_input = _augmented
+            elif _is_ellipsis:
+                # 省略句但被门控拒绝/无上下文 — 记录便于排查为何未补全
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.dst', 'trace_id_ctx': trace_id,
+                    'message': '[DST] 省略句未补全: "%s" (sim=%s, turn=%d, 用原始输入路由)' % (user_input, _sim_msg, _dst.turn_count),
+                    'original_input': user_input,
+                    'augmented_input': None,
+                    'similarity': _sim,
+                    'turn': _dst.turn_count,
+                    'result': 'rejected_or_no_context'}))
+            # 状态回写（intent/skill/keywords/user_input）统一由 _update_dst_after_route
+            # 在路由后处理，此处不再直接写 last_keywords（消除笨拙直写）
         except Exception as _dst_e:
             logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.dst.error', 'message': '[DST] 补全失败，用原始输入: %s' % (_dst_e,)}))
 
@@ -286,9 +310,15 @@ class Orchestrator:
             intent, confidence = IntentRouter.classify(routing_input)
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '[路由] 意图=%s, 置信度=%s (routing_input="%s")' % (intent, confidence, routing_input[:40])}))
 
+            # 【不易】路由后回写 DST 状态（intent/user_input/keywords），
+            # 供下一轮指代消解继承；原注释承诺的 _update_dst_after_route 落地
+            self._update_dst_after_route(intent, None, user_input)
+
             is_follow_up = MessageHandler.is_follow_up({
+                'text': user_input,
                 'last_was_template': getattr(self, '_last_was_template', False),
                 'confidence': confidence,
+                'session_id': getattr(self, '_session_id', 'default'),
             })
             dissatisfaction = MessageHandler.detect_dissatisfaction(user_input)
             if dissatisfaction:
@@ -338,10 +368,35 @@ class Orchestrator:
         # ── 第三步半：语义层匹配（SkillLoader RRF 三路融合）──
         # 【变易】语义层接入：规则层(WorkflowEngine)+模板层(IntentRouter)未命中后，
         #         调用 SkillLoader.match 做向量+BM25+TF-IDF 三路 RRF 融合召回。
-        #         命中高置信度技能时记录语义层命中（供占比统计），并将技能列表
-        #         注入 self._semantic_matched_skills 供 _call_llm 增强上下文。
-        #         任何异常都降级到 LLM（守【不易】主链路稳定性）。
-        semantic_skills = self._semantic_layer_match(user_input, trace_id)
+        #         命中高置信度技能时加载其 instruction（Layer 2）短路返回
+        #         （与 WorkflowEngine.output 契约对称，无副作用）；
+        #         未命中/异常降级到 LLM（守【不易】主链路稳定性）。
+        semantic_result = self._semantic_layer_match(user_input, trace_id)
+
+        if semantic_result is not None:
+            # 语义层命中：短路返回技能 instruction
+            output_text = semantic_result["output"]
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.semantic_hit', 'trace_id_ctx': trace_id, 'message': '[语义层] 命中短路返回: skill=%s score=%.3f method=%s' % (semantic_result['skill_id'], semantic_result['score'], semantic_result['retrieval_method'])}))
+
+            # 【不易】语义层命中时回写 skill 到 DST（供下一轮"技能继承"分支）
+            # 直接 set last_skill，避免再次调用 _update_dst_after_route(update) 导致
+            # turn_count 重复递增；intent/user_input/keywords 已在路由后回写过
+            try:
+                from agent.orchestrator.dialog_state import get_dialog_state
+                _dst_sk = get_dialog_state(getattr(self, '_session_id', 'default'))
+                _dst_sk.last_skill = semantic_result["skill_id"]
+            except Exception:
+                pass
+
+            # 记忆保存（与 WorkflowEngine/模板层命中分支保持一致）
+            self._memory.score_and_save_message("user", user_input)
+            self._memory.score_and_save_message("assistant", output_text)
+            self._last_was_template = False
+            if trace_id:
+                trace_store.end_trace(trace_id, output_text)
+            return ResponseBuilder.success(
+                output_text, msg="handled_by_semantic_layer"
+            ).to_dict()
 
         # ── 第三步三：未知意图拒识检查 ──
         # 【不易】拒识条件：规则层+模板层+语义层三层均未命中，且输入过短/无意义
@@ -350,7 +405,7 @@ class Orchestrator:
         import os as _os_reject
         _reject_min_len = int(_os_reject.environ.get("ORCHESTRATOR_REJECT_MIN_LENGTH", "3"))
         _is_ellipsis = (routing_input != user_input)  # DST 补全过说明是指代句
-        if (not semantic_skills and not _is_ellipsis
+        if (semantic_result is None and not _is_ellipsis
                 and len(user_input.strip()) < _reject_min_len):
             _record_intent_layer("reject")
             logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.reject', 'trace_id_ctx': trace_id, 'message': '[拒识] 输入过短且三层未命中 (len=%d < %d)，返回拒识' % (len(user_input.strip()), _reject_min_len)}))
@@ -520,38 +575,299 @@ class Orchestrator:
     #  所有功能已合并到 process() 方法中
 
     # ════════════════════════════════════════════════════════════════════
+    #  DST 状态回写 — 路由后写入 intent/skill/keywords/user_input
+    # ════════════════════════════════════════════════════════════════════
+
+    def _update_dst_after_route(self, intent: Optional[str],
+                                skill: Optional[str] = None,
+                                user_input: str = "") -> None:
+        """路由后回写 DST 状态（供下一轮指代消解继承）
+
+        架构层级：[TLM-L0] DST 状态回写 — 兜底原本只存于注释的承诺
+
+        【不易】每轮仅调用一次（turn_count 单次递增）；skill 由语义层命中后
+               直接 set last_skill 单独写入（不重复调用本方法）
+        【变易】keywords 为空时不覆盖（保留上一轮非省略句的关键词，避免"那个呢"
+               这类省略句把 last_keywords 清空导致下一轮无法继承）
+        【简易】任何异常降级为 DEBUG 日志，不阻断主链路
+        """
+        try:
+            from agent.orchestrator.dialog_state import get_dialog_state
+            dst = get_dialog_state(getattr(self, '_session_id', 'default'))
+            kw = MessageHandler.extract_keywords(user_input) if user_input else []
+            dst.update(
+                intent=intent,
+                skill=skill,
+                keywords=(kw if kw else None),  # 空关键词不覆盖
+                user_input=(user_input or None),
+            )
+        except Exception as e:
+            logger.debug(log_dict({
+                'module_name': 'orchestrator',
+                'action': 'orchestrator.dst.update_after_route.error',
+                'message': '[DST] 回写失败: %s' % (e,),
+            }))
+
+    # ════════════════════════════════════════════════════════════════════
     #  语义层 — SkillLoader RRF 三路融合召回（三层漏斗第 2 层）
     # ════════════════════════════════════════════════════════════════════
 
+    # 语义层配置缓存（复用 loader.py:L1079-1177 的 mtime 缓存模式）
+    # _SEM_CONFIG_CACHE: (mtime_timestamp, config_dict)；mtime 变化时自动失效
+    _SEM_CONFIG_CACHE: Optional[Tuple[float, Dict[str, Any]]] = None
+    _SEM_CONFIG_PATH: Optional[Any] = None  # Path 对象，延迟初始化
+
+    # 语义层硬编码默认值（最终兜底，与 config.yaml orchestrator.semantic_layer 同源）
+    _SEM_DEFAULTS: Dict[str, Any] = {
+        "enabled": True,
+        "min_score": 0.3,
+        "top_k": 5,
+        "use_vector": True,
+        "use_bm25": True,
+        "use_reranker": False,
+        "fusion_mode": "rrf",
+    }
+
+    # 语义层 API 热更覆盖层（优先级最高，由 HTTP API /api/orchestrator/semantic-config 设置）
+    # 【变易】运行时动态覆盖，重启后从 SQLite 恢复（_load_semantic_override_from_db）
+    _SEM_API_OVERRIDE: Optional[Dict[str, Any]] = None
+
+    # SQLite 持久化（语义层配置热更）— 复用 HolographicAdapter thread-local + busy_timeout 模式
+    _SEM_DB_PATH: Optional[Any] = None
+    _SEM_DB_CONN_LOCAL: Any = None  # 延迟初始化为 threading.local()
+    _SEM_DB_LOADED: bool = False  # 启动加载标志（首次调用 _load_semantic_layer_config 时触发）
+
+    @classmethod
+    def _load_semantic_layer_config(cls) -> Dict[str, Any]:
+        """读取语义层配置 — 优先级: 环境变量 > config.yaml > 硬编码默认值
+
+        架构层级：[TLM-L2] 语义层配置加载
+
+        分层配置架构（与 loader.py _get_default_weights 同源模式）:
+            层0: 硬编码默认值（_SEM_DEFAULTS，最终兜底）
+            层1: config.yaml orchestrator.semantic_layer（业务配置主源，mtime 缓存）
+            层2: 环境变量（运维 hotfix 覆盖，优先级最高）
+
+        config.yaml 路径: orchestrator.semantic_layer.{enabled,min_score,top_k,...}
+        环境变量: ORCHESTRATOR_SEMANTIC_LAYER_ENABLED / ORCHESTRATOR_SEMANTIC_MIN_SCORE
+
+        【不易】硬编码默认值作为最终兜底，config.yaml 缺失/解析失败不影响主链路
+        【变易】config.yaml mtime 缓存避免每次调用都解析 YAML；env 允许运维临时覆盖
+        【简易】逐层覆盖，每层失败静默降级；返回新 dict（线程安全）
+        """
+        from pathlib import Path
+
+        # 首次调用时从 SQLite 加载持久化的热更配置（延迟加载，避免模块导入时 I/O）
+        if not cls._SEM_DB_LOADED:
+            cls._SEM_DB_LOADED = True
+            cls._load_semantic_override_from_db()
+
+        # 层0: 硬编码默认值（最终兜底）
+        config = dict(cls._SEM_DEFAULTS)
+
+        # 层1: config.yaml（带 mtime 缓存）
+        try:
+            if cls._SEM_CONFIG_PATH is None:
+                cls._SEM_CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config.yaml"
+            cfg_path = cls._SEM_CONFIG_PATH
+
+            if cfg_path.exists():
+                try:
+                    current_mtime = cfg_path.stat().st_mtime
+                except OSError:
+                    current_mtime = 0.0
+
+                yaml_cfg: Optional[Dict[str, Any]] = None
+                # 缓存命中检查（mtime 未变 → 复用缓存）
+                _cache_invalid_reason = None  # 监控用：记录缓存失效原因
+                if cls._SEM_CONFIG_CACHE is not None:
+                    cached_mtime, cached_cfg = cls._SEM_CONFIG_CACHE
+                    if cached_mtime == current_mtime:
+                        yaml_cfg = cached_cfg
+                    else:
+                        # 【变易】mtime 变化 → 缓存失效，记录监控日志便于线上排查
+                        _cache_invalid_reason = "mtime_changed"
+                        import datetime as _dt
+                        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.config.cache_invalidated', 'message': '[语义层] config.yaml 缓存失效 (mtime 变化): old=%.3f new=%.3f invalidated_at=%s' % (cached_mtime, current_mtime, _dt.datetime.now().isoformat())}))
+                        yaml_cfg = None  # mtime 变化，触发重建
+                else:
+                    _cache_invalid_reason = "first_load"
+                    yaml_cfg = None
+
+                # 缓存未命中或失效 → 重新解析
+                if yaml_cfg is None:
+                    import yaml as _yaml
+                    with open(cfg_path, "r", encoding="utf-8") as f:
+                        data = _yaml.safe_load(f) or {}
+                    yaml_cfg = (data.get("orchestrator", {}) or {}).get("semantic_layer", {}) or {}
+                    cls._SEM_CONFIG_CACHE = (current_mtime, yaml_cfg)
+                    # 【变易】记录配置加载日志（首次加载 + mtime 变化后重载）
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.config.loaded', 'message': '[语义层] config.yaml 已加载 (reason=%s): mtime=%.3f keys=%s' % (_cache_invalid_reason or "cache_hit_miss", current_mtime, list(yaml_cfg.keys()))}))
+
+                # 用 config.yaml 值覆盖默认值（仅覆盖已知键，类型与默认值一致才接受）
+                for key in cls._SEM_DEFAULTS:
+                    if key in yaml_cfg and yaml_cfg[key] is not None:
+                        config[key] = yaml_cfg[key]
+        except Exception as e:
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.config.fallback', 'message': '[语义层] config.yaml 读取失败，降级到默认值: %s' % (e,)}))
+
+        # 层2: 环境变量覆盖（最高优先级，运维 hotfix）
+        env_enabled = os.environ.get("ORCHESTRATOR_SEMANTIC_LAYER_ENABLED")
+        if env_enabled is not None and env_enabled.strip():
+            config["enabled"] = env_enabled.strip().lower() in ("true", "1", "yes")
+        env_min_score = os.environ.get("ORCHESTRATOR_SEMANTIC_MIN_SCORE")
+        if env_min_score is not None and env_min_score.strip():
+            try:
+                config["min_score"] = float(env_min_score.strip())
+            except (ValueError, TypeError):
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.config.invalid_min_score', 'message': '[语义层] ORCHESTRATOR_SEMANTIC_MIN_SCORE 非法值已忽略: %s' % (env_min_score,)}))
+
+        # 层3: API 热更覆盖（最高优先级，由 /api/orchestrator/semantic-config 设置）
+        # 【变易】运行时动态覆盖，不持久化；None 值跳过（允许部分覆盖）
+        if cls._SEM_API_OVERRIDE is not None:
+            for key in cls._SEM_DEFAULTS:
+                if key in cls._SEM_API_OVERRIDE and cls._SEM_API_OVERRIDE[key] is not None:
+                    config[key] = cls._SEM_API_OVERRIDE[key]
+
+        return config
+
+    @classmethod
+    def _clear_semantic_config_cache(cls) -> None:
+        """手动清除语义层配置缓存（测试用 / config.yaml 修改后强制刷新）"""
+        cls._SEM_CONFIG_CACHE = None
+
+    # ═══════════════════════════════════════════════════════════════
+    # SQLite 持久化（语义层配置热更）
+    # 复用 HolographicAdapter thread-local + busy_timeout 模式
+    # 【不易】持久化失败不影响内存热更（降级到纯内存模式）
+    # 【变易】启动时延迟加载，热更时 UPSERT 写入
+    # 【简易】独立 db 文件（orchestrator_config.db），不污染 holographic.db
+    # ═══════════════════════════════════════════════════════════════
+
+    @classmethod
+    def _get_semantic_db_conn(cls):
+        """获取语义层配置持久化 SQLite 连接（thread-local + busy_timeout）
+
+        架构层级：[TLM-L1] 配置持久化 - 复用 HolographicAdapter 连接模式
+        """
+        import sqlite3 as _sqlite3
+        import threading as _threading
+
+        if cls._SEM_DB_CONN_LOCAL is None:
+            cls._SEM_DB_CONN_LOCAL = _threading.local()
+
+        if hasattr(cls._SEM_DB_CONN_LOCAL, 'conn'):
+            return cls._SEM_DB_CONN_LOCAL.conn
+
+        if cls._SEM_DB_PATH is None:
+            from pathlib import Path as _Path
+            cls._SEM_DB_PATH = _Path(__file__).resolve().parent.parent.parent / "data" / "orchestrator_config.db"
+
+        # 确保目录存在
+        cls._SEM_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+        conn = _sqlite3.connect(str(cls._SEM_DB_PATH), check_same_thread=False)
+        conn.execute("PRAGMA busy_timeout=5000")  # 【不易】处理 SQLITE_BUSY
+        conn.execute("PRAGMA journal_mode=WAL")   # WAL 模式提升并发读写
+
+        # 建表（幂等）
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS semantic_config_overrides (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+
+        cls._SEM_DB_CONN_LOCAL.conn = conn
+        return conn
+
+    @classmethod
+    def _load_semantic_override_from_db(cls) -> None:
+        """启动时从 SQLite 加载热更配置到 _SEM_API_OVERRIDE
+
+        【不易】加载失败降级到纯内存模式（_SEM_API_OVERRIDE 保持 None/现有值）
+        """
+        try:
+            conn = cls._get_semantic_db_conn()
+            rows = conn.execute("SELECT key, value FROM semantic_config_overrides").fetchall()
+            if rows:
+                import json as _json
+                overrides = {}
+                for key, value in rows:
+                    try:
+                        overrides[key] = _json.loads(value)
+                    except (ValueError, TypeError):
+                        pass  # 非法 JSON 跳过
+                if overrides:
+                    # 合并到现有 _SEM_API_OVERRIDE（不覆盖已设置的值）
+                    if cls._SEM_API_OVERRIDE is None:
+                        cls._SEM_API_OVERRIDE = {}
+                    cls._SEM_API_OVERRIDE.update(overrides)
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.config.db_loaded', 'message': '[语义层] 从 SQLite 恢复热更配置: keys=%s' % list(overrides.keys())}))
+        except Exception as e:
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.config.db_load_failed', 'message': '[语义层] SQLite 加载热更配置失败（降级到内存模式）: %s' % (e,)}))
+
+    @classmethod
+    def _save_semantic_override_to_db(cls, overrides: Dict[str, Any]) -> None:
+        """热更时将配置写入 SQLite（UPSERT）
+
+        【不易】持久化失败不影响内存热更（已更新 _SEM_API_OVERRIDE）
+        【变易】使用 INSERT ... ON CONFLICT DO UPDATE（HolographicAdapter 同款 UPSERT）
+        """
+        try:
+            import json as _json
+            import datetime as _dt
+            conn = cls._get_semantic_db_conn()
+            now = _dt.datetime.now().isoformat()
+            for key, value in overrides.items():
+                conn.execute(
+                    "INSERT INTO semantic_config_overrides (key, value, updated_at) VALUES (?, ?, ?) "
+                    "ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=excluded.updated_at",
+                    (key, _json.dumps(value), now)
+                )
+            conn.commit()
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.config.db_saved', 'message': '[语义层] 热更配置已持久化到 SQLite: keys=%s' % list(overrides.keys())}))
+        except Exception as e:
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.config.db_save_failed', 'message': '[语义层] SQLite 持久化失败（不影响内存热更）: %s' % (e,)}))
+
     def _semantic_layer_match(self, user_input: str,
-                              trace_id: Optional[str] = None) -> list:
-        """语义层匹配 — SkillLoader RRF 三路融合召回
+                              trace_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """语义层匹配 — SkillLoader RRF 三路融合召回 + 技能 instruction 加载
 
         架构层级：三层漏斗第 2 层（语义层）
         调用时机：规则层(WorkflowEngine)+模板层(IntentRouter)未命中后，
                   LLM 调用之前。
 
-        【不易】任何异常都返回空列表，主链路降级到 LLM（不抛异常）
-        【变易】RRF 启用开关与命中阈值通过环境变量配置：
-               ORCHESTRATOR_SEMANTIC_LAYER_ENABLED (默认 true)
-               ORCHESTRATOR_SEMANTIC_MIN_SCORE (默认 0.3)
-        【简易】命中时记录 INFO 日志 + 返回 skill_id 列表；
-               未命中返回空列表，调用方继续 LLM
+        【不易】任何异常都返回 None，主链路降级到 LLM（不抛异常）
+        【变易】配置来自 config.yaml orchestrator.semantic_layer
+               （env ORCHESTRATOR_SEMANTIC_LAYER_ENABLED/MIN_SCORE 可覆盖）
+        【简易】命中 top1 score ≥ 阈值 → 加载 instruction → 返回结果 dict；
+               未命中/instruction 为空/异常 → 返回 None，调用方继续 LLM
 
         Args:
             user_input: 用户原始输入
             trace_id: 链路追踪 ID
 
         Returns:
-            匹配的 skill_id 列表（空列表表示未命中或降级）
+            命中时: {"output": str, "skill_id": str, "score": float,
+                     "retrieval_method": str, "reranked": bool,
+                     "fallback_used": bool, "elapsed_ms": float}
+            未命中/降级: None
         """
-        import os as _os
-        # 语义层总开关（默认启用）
-        if _os.environ.get("ORCHESTRATOR_SEMANTIC_LAYER_ENABLED", "true").lower() not in ("true", "1", "yes"):
-            return []
+        cfg = self._load_semantic_layer_config()
+        if not cfg["enabled"]:
+            # 【排查】语义层关闭时明确记录降级原因，避免"为什么没走语义层"的困惑
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.disabled', 'trace_id_ctx': trace_id, 'message': '[语义层] 已关闭(enabled=false)，降级 LLM'}))
+            return None
 
-        min_score = float(_os.environ.get("ORCHESTRATOR_SEMANTIC_MIN_SCORE", "0.3"))
+        min_score = float(cfg["min_score"])
         ts_sem = time.time()
+
+        # 【排查】调用前打印配置摘要 + 入参摘要（截断 50 字符避免敏感信息泄漏）
+        _input_preview = user_input[:50] + ("..." if len(user_input) > 50 else "")
+        logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.invoke', 'trace_id_ctx': trace_id, 'message': '[语义层] 调用 SkillLoader.match: input="%s" min_score=%.2f top_k=%d vector=%s bm25=%s reranker=%s fusion=%s' % (_input_preview, min_score, cfg["top_k"], cfg["use_vector"], cfg["use_bm25"], cfg["use_reranker"], cfg["fusion_mode"])}))
 
         try:
             # 延迟导入避免循环依赖（state_manager 依赖较重）
@@ -559,31 +875,58 @@ class Orchestrator:
             svc = get_skills_mgmt_service()
             if svc is None or svc.loader is None:
                 logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.skip', 'trace_id_ctx': trace_id, 'message': '[语义层] skills_mgmt 服务未初始化，跳过'}))
-                return []
+                return None
 
             # 调用 SkillLoader.match 启用 RRF 三路融合
             # 【变易】use_vector + use_bm25 触发 RRF 融合（tfidf+vector+bm25）
             #         向量模型不可用时 SkillLoader 内部降级到 TF-IDF+BM25
             result = svc.loader.match(
                 user_input,
-                top_k=5,
+                top_k=int(cfg["top_k"]),
                 enabled_only=True,
                 min_score=min_score,
-                use_vector=True,
-                use_bm25=True,
-                use_reranker=False,   # reranker 较重，主链路默认不启用
-                fusion_mode="rrf",
+                use_vector=bool(cfg["use_vector"]),
+                use_bm25=bool(cfg["use_bm25"]),
+                use_reranker=bool(cfg["use_reranker"]),
+                fusion_mode=str(cfg["fusion_mode"]),
             )
 
             elapsed_ms = (time.time() - ts_sem) * 1000
 
+            # 【排查】打印候选列表详情（skill_id/score），便于诊断"为什么 top1 没过阈值"
+            # 仅 DEBUG 级别输出，生产环境调高日志级别即可隐藏
+            if result.matches:
+                _candidates = ", ".join("%s=%.3f" % (m.skill_id, m.score) for m in result.matches[:5])
+                logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.candidates', 'trace_id_ctx': trace_id, 'message': '[语义层] 候选列表 (top%d): %s | 阈值=%.2f' % (len(result.matches[:5]), _candidates, min_score)}))
+
             if not result.matches:
                 logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.miss', 'trace_id_ctx': trace_id, 'message': '[语义层] 未命中 (min_score=%.2f, %.2fms, method=%s)' % (min_score, elapsed_ms, result.retrieval_method)}))
-                return []
+                return None
 
             top1 = result.matches[0]
+            # 【变易】二次校验阈值 — 防御 SkillLoader.match 未过滤的低分候选
+            # 不依赖 SkillLoader.match 内部过滤行为，orchestrator 层面独立把控阈值
+            if top1.score < min_score:
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.miss', 'trace_id_ctx': trace_id, 'message': '[语义层] 未命中 (top1 score=%.3f < min_score=%.2f, %.2fms, method=%s)' % (top1.score, min_score, elapsed_ms, result.retrieval_method)}))
+                return None
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.hit', 'trace_id_ctx': trace_id, 'message': '[语义层] 命中 top1=%s score=%.3f (%d 命中, %.2fms, method=%s, reranked=%s, fallback=%s)' % (top1.skill_id, top1.score, len(result.matches), elapsed_ms, result.retrieval_method, result.reranked, result.fallback_used)}))
             _record_intent_layer("semantic")
+
+            # 加载 top1 技能的 instruction（Layer 2）— 命中后短路返回的关键
+            # 【不易】load_instruction 失败或返回空 → 降级 LLM（不抛异常）
+            try:
+                instr_data = svc.loader.load_instruction(top1.skill_id)
+                if isinstance(instr_data, dict):
+                    instruction = instr_data.get("instruction", "") or ""
+                else:
+                    instruction = str(instr_data) if instr_data else ""
+            except Exception as instr_e:
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.instruction_failed', 'trace_id_ctx': trace_id, 'message': '[语义层] load_instruction 失败，降级 LLM: skill=%s err=%s' % (top1.skill_id, instr_e)}))
+                return None
+
+            if not instruction.strip():
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.empty_instruction', 'trace_id_ctx': trace_id, 'message': '[语义层] instruction 为空，降级 LLM: skill=%s' % (top1.skill_id,)}))
+                return None
 
             # 记录 trace span
             if trace_id:
@@ -593,27 +936,56 @@ class Orchestrator:
                         operation="semantic_match",
                         start_time=ts_sem, end_time=time.time(),
                         duration_ms=elapsed_ms,
-                        status="hit" if result.matches else "miss",
+                        status="hit",
                         metadata={
                             "top1_skill": top1.skill_id,
                             "top1_score": top1.score,
                             "match_count": len(result.matches),
                             "retrieval_method": result.retrieval_method,
+                            "instruction_len": len(instruction),
                         },
                     ))
                 except Exception:
                     pass
 
-            # 返回命中的 skill_id 列表（供 _call_llm 增强上下文）
-            skill_ids = [m.skill_id for m in result.matches]
-            self._semantic_matched_skills = skill_ids  # 缓存供后续使用
-            return skill_ids
+            # 缓存 skill_ids 供 _call_llm 增强上下文（向后兼容现有属性）
+            self._semantic_matched_skills = [m.skill_id for m in result.matches]
+
+            return {
+                "output": instruction,
+                "skill_id": top1.skill_id,
+                "score": top1.score,
+                "retrieval_method": result.retrieval_method,
+                "reranked": result.reranked,
+                "fallback_used": result.fallback_used,
+                "elapsed_ms": elapsed_ms,
+            }
 
         except Exception as e:
             elapsed_ms = (time.time() - ts_sem) * 1000
             # 【不易】语义层任何异常都降级到 LLM，不阻断主链路
             logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.error', 'trace_id_ctx': trace_id, 'message': '[语义层] 异常降级到 LLM (%.2fms): %s' % (elapsed_ms, e)}))
-            return []
+            # 【变易】发送告警到监控系统，便于线上排查（上报失败不影响主链路）
+            try:
+                if _MONITORING_AVAILABLE:
+                    collector = get_metrics_collector()
+                    collector.increment_counter("count.orchestrator.semantic.error")
+                if self._error_reporter:
+                    self._error_reporter.report_error(
+                        error=e, level=AlertLevel.WARNING,
+                        context={
+                            'layer': 'semantic',
+                            'user_input': user_input[:200],
+                            'trace_id': trace_id,
+                            'elapsed_ms': round(elapsed_ms, 2),
+                            'fallback': 'llm',
+                            'session_id': getattr(self, '_session_id', 'unknown'),
+                        },
+                    )
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.error_reported', 'trace_id_ctx': trace_id, 'message': '[语义层] 异常已上报监控系统'}))
+            except Exception as report_error:
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.report_failed', 'trace_id_ctx': trace_id, 'message': '[语义层] 告警上报失败（不影响主链路）: %s' % (report_error,)}))
+            return None
 
     # ════════════════════════════════════════════════════════════════════
     #  健康检查

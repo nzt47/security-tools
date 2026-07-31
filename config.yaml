@@ -384,6 +384,31 @@ visibility_thresholds:
     impact_analysis_coverage: 80
 
 # ═══════════════════════════════════════════════════════════════
+#  Orchestrator 语义层配置 (Semantic Layer)
+#  三层漏斗第 2 层：规则层(WorkflowEngine)未命中后，LLM 之前
+#  模块入口：agent/orchestrator/orchestrator.py _semantic_layer_match()
+#  配置优先级：环境变量 > config.yaml > 硬编码默认值
+# ═══════════════════════════════════════════════════════════════
+orchestrator:
+  semantic_layer:
+    # 总开关 - 关闭后语义层跳过，直接降级 LLM
+    # 环境变量 ORCHESTRATOR_SEMANTIC_LAYER_ENABLED 覆盖此值
+    enabled: true
+    # top1 最低匹配分阈值（< 此值视为未命中，降级 LLM）
+    # 环境变量 ORCHESTRATOR_SEMANTIC_MIN_SCORE 覆盖此值
+    min_score: 0.3
+    # 返回前 K 个候选（仅 top1 用于短路返回，其余供 LLM 增强上下文）
+    top_k: 5
+    # 启用向量检索（sqlite-vec 不可用时 SkillLoader 内部自动降级 TF-IDF+BM25）
+    use_vector: true
+    # 启用 BM25 辅助检索（与 TF-IDF+向量 RRF 融合）
+    use_bm25: true
+    # 启用 Cross-Encoder 精排（较重，主链路默认关闭）
+    use_reranker: false
+    # 融合模式：none | rrf | rrf_rerank（use_vector/use_bm25 启用时自动升 rrf）
+    fusion_mode: rrf
+
+# ═══════════════════════════════════════════════════════════════
 #  综合技能管理系统配置 (Skills Management)
 #  灵感来源：Claude Skills / Code Skills / Trae / OpenClaw / Hermes
 #  模块入口：agent/skills_mgmt/service.py
@@ -426,7 +451,7 @@ skills_mgmt:
     # 模板兜底模式（LLM 不可用时使用模板生成）
     template_fallback: true
 
-  # 检索配置（预留，当前仅 tfidf 生效，未来扩展点已在 SkillLoader.match 接口预留）
+  # 检索配置（TF-IDF 默认生效；vector/bm25/reranker 通过 SkillLoader.match 启用）
   retrieval:
     method: tfidf  # tfidf | vector | bm25 | fused
     vector:
@@ -437,12 +462,14 @@ skills_mgmt:
     reranker:
       enabled: false
       model: BAAI/bge-reranker-base
-    # 多路融合权重（仅 method=fused 时生效，当前预留）
+    # 多路融合权重（use_bm25=True 时生效，加权 RRF 融合 tfidf+vector+bm25）
+    # 由 SkillLoader._get_default_weights() 读取（优先级: .env > config.yaml > 硬编码）
+    # 运行时也可通过 match(retrieval_weights=...) 覆盖
     fusion:
       weights:
         tfidf: 0.2
         vector: 0.6
-        bm25: 0.2
+        bm25: 0.5   # 2026-07-29 验证通过：专有名词命中率 86%→100%
 
   # 规模监控（技能数超过阈值时建议升级检索方式）
   scale:

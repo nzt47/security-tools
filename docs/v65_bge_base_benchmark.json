@@ -1,15 +1,15 @@
 {
-  "timestamp": "2026-07-28 02:13:38",
+  "timestamp": "2026-07-31 00:39:38",
   "model": "BAAI/bge-reranker-base",
   "results": [
     {
       "test": "memory",
-      "load_time_s": 51.82,
-      "rss_before_mb": 66.9,
-      "rss_after_load_mb": 1141.2,
-      "model_memory_mb": 1074.2,
+      "load_time_s": 36.46,
+      "rss_before_mb": 66.3,
+      "rss_after_load_mb": 2187.9,
+      "model_memory_mb": 2121.6,
       "target_rss_mb": 1536,
-      "passed": true
+      "passed": false
     },
     {
       "test": "sort_correctness",
@@ -18,13 +18,13 @@
     {
       "test": "bge_base_single",
       "iterations": 20,
-      "min_ms": 598.62,
-      "mean_ms": 701.47,
-      "p50_ms": 691.85,
-      "p95_ms": 804.82,
-      "p99_ms": 876.48,
-      "max_ms": 894.4,
-      "qps": 1.43,
+      "min_ms": 562.06,
+      "mean_ms": 690.53,
+      "p50_ms": 643.74,
+      "p95_ms": 952.4,
+      "p99_ms": 1075.31,
+      "max_ms": 1106.04,
+      "qps": 1.45,
       "target_p99_ms": 500,
       "passed": false
     },
@@ -34,9 +34,9 @@
       "per_thread": 5,
       "total_requests": 20,
       "error_count": 0,
-      "total_s": 15.53,
-      "p99_ms": 4105.73,
-      "qps": 1.29,
+      "total_s": 13.07,
+      "p99_ms": 2782.47,
+      "qps": 1.53,
       "passed": true
     }
   ],

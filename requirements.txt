@@ -298,6 +298,8 @@ pyyaml==6.0.3
     #   uvicorn
 prometheus-client==0.22.0
     # via Prometheus monitoring
+rank-bm25==0.2.2
+    # via Yunshu (TLM L1 技能检索 BM25 辅助路径 — 匹配专有名词与确定性锚点)
 referencing==0.37.0
     # via
     #   jsonschema

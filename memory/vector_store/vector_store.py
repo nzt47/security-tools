@@ -29,6 +29,12 @@ from collections import OrderedDict, defaultdict
 
 logger = logging.getLogger(__name__)
 
+# BM25 参数（环境变量可配置，启动时一次性读取）
+# Why: b=0.75 默认值对短文档虚高（短/长得分比 1.67x），降至 0.5 缓解（1.40x）；
+# 保留可配置性供调优，可通过 BM25_B=0.75 回滚原行为
+_DEFAULT_K1 = float(os.environ.get("BM25_K1", "1.5"))
+_DEFAULT_B = float(os.environ.get("BM25_B", "0.5"))
+
 # 延迟导入：chromadb / sentence_transformers（→ torch）是重量级依赖，
 # CI 上首次导入可能需要 2-3 分钟。模块导入时不加载，仅在首次实例化 VectorStore 时检测。
 # 通过 _check_chroma_available() 更新这两个标志。
@@ -91,12 +97,15 @@ class InvertedIndex:
     BM25 是业界标准的文本检索算法，能提供更准确的排序结果。
     """
 
-    def __init__(self):
+    def __init__(self, k1: float = None, b: float = None):
         self._index: Dict[str, List[Tuple[str, int]]] = {}  # term -> [(doc_id, frequency), ...]
         self._doc_lengths: Dict[str, int] = {}  # doc_id -> number of terms
         self._total_docs = 0
         self._avg_doc_length = 0.0
         self._lock = threading.RLock()
+        # BM25 参数：显式传入优先，否则用环境变量默认值（向后兼容无参调用）
+        self._k1 = _DEFAULT_K1 if k1 is None else k1
+        self._b = _DEFAULT_B if b is None else b
 
     def _tokenize(self, text: str) -> List[str]:
         """分词处理 — 仅提取有意义的英文单词（>=3 字符）
@@ -106,16 +115,17 @@ class InvertedIndex:
         """
         return [w.lower() for w in re.findall(r'[a-zA-Z]{3,}', text)]
 
-    def _compute_bm25(self, term: str, term_freq: int, doc_length: int,
-                       k1: float = 1.5, b: float = 0.75) -> float:
-        """计算 BM25 评分
+    def _compute_bm25(self, term: str, term_freq: int, doc_length: int) -> float:
+        """计算 BM25 评分（k1/b 由实例配置决定）
 
         参数:
             term: 查询词项（用于计算 IDF）
             term_freq: 词项在文档中的出现频率
             doc_length: 文档长度（词数）
-            k1: 饱和度参数
-            b: 长度归一化参数
+
+        Note:
+            k1（饱和度）和 b（长度归一化）由 __init__ 配置，可通过环境变量
+            BM25_K1/BM25_B 调整。默认 b=0.5 缓解短文档虚高（原 0.75）。
         """
         if term not in self._index:
             return 0.0
@@ -124,6 +134,7 @@ class InvertedIndex:
         if idf <= 0:
             return 0.0
 
+        k1, b = self._k1, self._b
         numerator = term_freq * (k1 + 1)
         denominator = term_freq + k1 * (1 - b + b * doc_length / (self._avg_doc_length or 1))
         return idf * numerator / denominator

@@ -1,0 +1,2839 @@
+{
+  "summary": {
+    "total_cases": 45,
+    "valid_cases": 41,
+    "models": {
+      "jina_reranker_v2": {
+        "model": "C:/Users/Administrator/.cache/huggingface/hub/models--jinaai--jina-reranker-v2-base-multilingual",
+        "use_onnx": true,
+        "avg_precision_at_3": 0.3577,
+        "avg_score_stddev": 0.110566,
+        "rank_change_rate": 0.6585,
+        "changed_cases": 27
+      },
+      "bge_reranker_v2_m3": {
+        "model": "C:/Users/Administrator/.cache/huggingface/hub/models--BAAI--bge-reranker-base",
+        "use_onnx": true,
+        "avg_precision_at_3": 0.3902,
+        "avg_score_stddev": 0.244348,
+        "rank_change_rate": 0.5854,
+        "changed_cases": 24
+      }
+    },
+    "comparison": {
+      "stddev_lift_pct": 121.0,
+      "precision_lift_pct": 9.09,
+      "bge_more_discriminative": true,
+      "bge_higher_precision": true
+    }
+  },
+  "config": {
+    "jina_model": "C:/Users/Administrator/.cache/huggingface/hub/models--jinaai--jina-reranker-v2-base-multilingual",
+    "bge_model": "C:/Users/Administrator/.cache/huggingface/hub/models--BAAI--bge-reranker-base",
+    "use_onnx": "true",
+    "candidate_pool_size": 10,
+    "top_k": 3
+  },
+  "cases": [
+    {
+      "case_id": "case_001",
+      "query": "self_reflection",
+      "difficulty": "easy",
+      "expected": [
+        "self_reflection"
+      ],
+      "rrf_order": [
+        "self_reflection"
+      ],
+      "pool_size": 1,
+      "jina": {
+        "order": [
+          "self_reflection"
+        ],
+        "top3": [
+          "self_reflection"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.8583,
+          "max": 0.8583,
+          "mean": 0.8583,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [
+          "self_reflection"
+        ],
+        "top3": [
+          "self_reflection"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.9982,
+          "max": 0.9982,
+          "mean": 0.9982,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_002",
+      "query": "请帮我反思刚才的回答",
+      "difficulty": "hard",
+      "expected": [
+        "self_reflection"
+      ],
+      "rrf_order": [
+        "self_reflection",
+        "proactive_suggestion",
+        "scripted-selftest",
+        "context_aware",
+        "memory_summary",
+        "emotion_expression",
+        "safety_guard"
+      ],
+      "pool_size": 7,
+      "jina": {
+        "order": [
+          "self_reflection",
+          "scripted-selftest",
+          "emotion_expression",
+          "safety_guard",
+          "context_aware",
+          "proactive_suggestion",
+          "memory_summary"
+        ],
+        "top3": [
+          "self_reflection",
+          "scripted-selftest",
+          "emotion_expression"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0755,
+          "max": 0.3211,
+          "mean": 0.184157,
+          "stddev": 0.092059,
+          "range": 0.2456
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.2381,
+          "swaps": 8
+        }
+      },
+      "bge": {
+        "order": [
+          "self_reflection",
+          "proactive_suggestion",
+          "emotion_expression"
+        ],
+        "top3": [
+          "self_reflection",
+          "proactive_suggestion",
+          "emotion_expression"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0028,
+          "max": 0.2193,
+          "mean": 0.0849,
+          "stddev": 0.095811,
+          "range": 0.2165
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 1
+        }
+      }
+    },
+    {
+      "case_id": "case_003",
+      "query": "帮我复查刚才的回答有没有逻辑漏洞",
+      "difficulty": "hard",
+      "expected": [
+        "self_reflection"
+      ],
+      "rrf_order": [
+        "self_reflection",
+        "proactive_suggestion",
+        "context_aware",
+        "scripted-selftest",
+        "memory_summary",
+        "emotion_expression",
+        "safety_guard"
+      ],
+      "pool_size": 7,
+      "jina": {
+        "order": [
+          "self_reflection",
+          "emotion_expression",
+          "scripted-selftest",
+          "safety_guard",
+          "context_aware",
+          "proactive_suggestion",
+          "memory_summary"
+        ],
+        "top3": [
+          "self_reflection",
+          "emotion_expression",
+          "scripted-selftest"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0681,
+          "max": 0.4829,
+          "mean": 0.172914,
+          "stddev": 0.133985,
+          "range": 0.4148
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.0476,
+          "swaps": 10
+        }
+      },
+      "bge": {
+        "order": [
+          "self_reflection",
+          "context_aware",
+          "safety_guard",
+          "proactive_suggestion"
+        ],
+        "top3": [
+          "self_reflection",
+          "context_aware",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.011,
+          "max": 0.7313,
+          "mean": 0.195825,
+          "stddev": 0.309182,
+          "range": 0.7203
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.0,
+          "swaps": 3
+        }
+      }
+    },
+    {
+      "case_id": "case_004",
+      "query": "self_reflection 技能",
+      "difficulty": "medium",
+      "expected": [
+        "self_reflection"
+      ],
+      "rrf_order": [
+        "self_reflection",
+        "scripted-selftest",
+        "memory_summary"
+      ],
+      "pool_size": 3,
+      "jina": {
+        "order": [
+          "self_reflection",
+          "memory_summary",
+          "scripted-selftest"
+        ],
+        "top3": [
+          "self_reflection",
+          "memory_summary",
+          "scripted-selftest"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0657,
+          "max": 0.9115,
+          "mean": 0.357,
+          "stddev": 0.392258,
+          "range": 0.8458
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 1
+        }
+      },
+      "bge": {
+        "order": [
+          "self_reflection",
+          "memory_summary",
+          "scripted-selftest"
+        ],
+        "top3": [
+          "self_reflection",
+          "memory_summary",
+          "scripted-selftest"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0033,
+          "max": 0.9997,
+          "mean": 0.340733,
+          "stddev": 0.466005,
+          "range": 0.9964
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 1
+        }
+      }
+    },
+    {
+      "case_id": "case_005",
+      "query": "memory_summary",
+      "difficulty": "easy",
+      "expected": [
+        "memory_summary"
+      ],
+      "rrf_order": [
+        "memory_summary"
+      ],
+      "pool_size": 1,
+      "jina": {
+        "order": [
+          "memory_summary"
+        ],
+        "top3": [
+          "memory_summary"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.8255,
+          "max": 0.8255,
+          "mean": 0.8255,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [
+          "memory_summary"
+        ],
+        "top3": [
+          "memory_summary"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.9994,
+          "max": 0.9994,
+          "mean": 0.9994,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_006",
+      "query": "请总结一下之前的对话历史",
+      "difficulty": "hard",
+      "expected": [
+        "memory_summary"
+      ],
+      "rrf_order": [
+        "memory_summary",
+        "context_aware",
+        "proactive_suggestion",
+        "safety_guard",
+        "emotion_expression",
+        "self_reflection",
+        "scripted-selftest"
+      ],
+      "pool_size": 7,
+      "jina": {
+        "order": [
+          "memory_summary",
+          "emotion_expression",
+          "proactive_suggestion",
+          "self_reflection",
+          "context_aware",
+          "safety_guard",
+          "scripted-selftest"
+        ],
+        "top3": [
+          "memory_summary",
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0611,
+          "max": 0.5414,
+          "mean": 0.1522,
+          "stddev": 0.159568,
+          "range": 0.4803
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.4286,
+          "swaps": 6
+        }
+      },
+      "bge": {
+        "order": [
+          "memory_summary",
+          "context_aware",
+          "proactive_suggestion",
+          "safety_guard",
+          "emotion_expression",
+          "self_reflection"
+        ],
+        "top3": [
+          "memory_summary",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0017,
+          "max": 0.8938,
+          "mean": 0.2017,
+          "stddev": 0.315887,
+          "range": 0.8921
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_007",
+      "query": "帮我梳理历史记忆并压缩",
+      "difficulty": "hard",
+      "expected": [
+        "memory_summary"
+      ],
+      "rrf_order": [
+        "memory_summary",
+        "self_reflection",
+        "context_aware"
+      ],
+      "pool_size": 3,
+      "jina": {
+        "order": [
+          "memory_summary",
+          "self_reflection",
+          "context_aware"
+        ],
+        "top3": [
+          "memory_summary",
+          "self_reflection",
+          "context_aware"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0598,
+          "max": 0.6096,
+          "mean": 0.247333,
+          "stddev": 0.256215,
+          "range": 0.5498
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [
+          "memory_summary",
+          "context_aware"
+        ],
+        "top3": [
+          "memory_summary",
+          "context_aware"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0313,
+          "max": 0.958,
+          "mean": 0.49465,
+          "stddev": 0.46335,
+          "range": 0.9267
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_008",
+      "query": "memory_summary 技能",
+      "difficulty": "medium",
+      "expected": [
+        "memory_summary"
+      ],
+      "rrf_order": [
+        "memory_summary",
+        "scripted-selftest",
+        "self_reflection"
+      ],
+      "pool_size": 3,
+      "jina": {
+        "order": [
+          "memory_summary",
+          "self_reflection",
+          "scripted-selftest"
+        ],
+        "top3": [
+          "memory_summary",
+          "self_reflection",
+          "scripted-selftest"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0847,
+          "max": 0.8973,
+          "mean": 0.3564,
+          "stddev": 0.382475,
+          "range": 0.8126
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 1
+        }
+      },
+      "bge": {
+        "order": [
+          "memory_summary",
+          "self_reflection",
+          "scripted-selftest"
+        ],
+        "top3": [
+          "memory_summary",
+          "self_reflection",
+          "scripted-selftest"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0019,
+          "max": 0.9999,
+          "mean": 0.337,
+          "stddev": 0.468751,
+          "range": 0.998
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 1
+        }
+      }
+    },
+    {
+      "case_id": "case_009",
+      "query": "情感",
+      "difficulty": "easy",
+      "expected": [
+        "emotion_expression"
+      ],
+      "rrf_order": [
+        "emotion_expression",
+        "context_aware",
+        "safety_guard"
+      ],
+      "pool_size": 3,
+      "jina": {
+        "order": [
+          "emotion_expression",
+          "context_aware",
+          "safety_guard"
+        ],
+        "top3": [
+          "emotion_expression",
+          "context_aware",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.1391,
+          "max": 0.3504,
+          "mean": 0.229933,
+          "stddev": 0.088771,
+          "range": 0.2113
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [
+          "emotion_expression",
+          "context_aware",
+          "safety_guard"
+        ],
+        "top3": [
+          "emotion_expression",
+          "context_aware",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0015,
+          "max": 0.9649,
+          "mean": 0.325533,
+          "stddev": 0.452114,
+          "range": 0.9634
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_010",
+      "query": "我想让你说话带点感情色彩",
+      "difficulty": "medium",
+      "expected": [
+        "emotion_expression"
+      ],
+      "rrf_order": [
+        "emotion_expression",
+        "self_reflection",
+        "proactive_suggestion",
+        "scripted-selftest",
+        "context_aware",
+        "safety_guard",
+        "memory_summary"
+      ],
+      "pool_size": 7,
+      "jina": {
+        "order": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "safety_guard",
+          "context_aware",
+          "scripted-selftest",
+          "self_reflection",
+          "memory_summary"
+        ],
+        "top3": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0544,
+          "max": 0.5275,
+          "mean": 0.1838,
+          "stddev": 0.152265,
+          "range": 0.4731
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 7
+        }
+      },
+      "bge": {
+        "order": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "top3": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0035,
+          "max": 0.9746,
+          "mean": 0.337033,
+          "stddev": 0.450989,
+          "range": 0.9711
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 1
+        }
+      }
+    },
+    {
+      "case_id": "case_011",
+      "query": "让回答更有感情",
+      "difficulty": "easy",
+      "expected": [
+        "emotion_expression"
+      ],
+      "rrf_order": [
+        "emotion_expression",
+        "self_reflection",
+        "proactive_suggestion",
+        "context_aware",
+        "safety_guard"
+      ],
+      "pool_size": 5,
+      "jina": {
+        "order": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "self_reflection",
+          "safety_guard",
+          "context_aware"
+        ],
+        "top3": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0806,
+          "max": 0.4605,
+          "mean": 0.17642,
+          "stddev": 0.144909,
+          "range": 0.3799
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.6,
+          "swaps": 2
+        }
+      },
+      "bge": {
+        "order": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "top3": [
+          "emotion_expression",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0085,
+          "max": 0.8912,
+          "mean": 0.3135,
+          "stddev": 0.408708,
+          "range": 0.8827
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 1
+        }
+      }
+    },
+    {
+      "case_id": "case_012",
+      "query": "请调整回应语气加点感情",
+      "difficulty": "hard",
+      "expected": [
+        "emotion_expression"
+      ],
+      "rrf_order": [
+        "emotion_expression",
+        "context_aware",
+        "voice_interaction",
+        "safety_guard",
+        "scripted-selftest",
+        "self_reflection"
+      ],
+      "pool_size": 6,
+      "jina": {
+        "order": [
+          "emotion_expression",
+          "context_aware",
+          "safety_guard",
+          "self_reflection",
+          "scripted-selftest",
+          "voice_interaction"
+        ],
+        "top3": [
+          "emotion_expression",
+          "context_aware",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0718,
+          "max": 0.2594,
+          "mean": 0.136167,
+          "stddev": 0.065665,
+          "range": 0.1876
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.4667,
+          "swaps": 4
+        }
+      },
+      "bge": {
+        "order": [
+          "emotion_expression",
+          "context_aware",
+          "safety_guard",
+          "self_reflection",
+          "voice_interaction"
+        ],
+        "top3": [
+          "emotion_expression",
+          "context_aware",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0027,
+          "max": 0.4024,
+          "mean": 0.09282,
+          "stddev": 0.155667,
+          "range": 0.3997
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.2,
+          "swaps": 4
+        }
+      }
+    },
+    {
+      "case_id": "case_013",
+      "query": "建议",
+      "difficulty": "easy",
+      "expected": [
+        "proactive_suggestion"
+      ],
+      "rrf_order": [
+        "proactive_suggestion"
+      ],
+      "pool_size": 1,
+      "jina": {
+        "order": [
+          "proactive_suggestion"
+        ],
+        "top3": [
+          "proactive_suggestion"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.3682,
+          "max": 0.3682,
+          "mean": 0.3682,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [
+          "proactive_suggestion"
+        ],
+        "top3": [
+          "proactive_suggestion"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.7545,
+          "max": 0.7545,
+          "mean": 0.7545,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_014",
+      "query": "你能主动给我点建议吗",
+      "difficulty": "medium",
+      "expected": [
+        "proactive_suggestion"
+      ],
+      "rrf_order": [
+        "proactive_suggestion",
+        "self_reflection",
+        "context_aware",
+        "scripted-selftest",
+        "emotion_expression",
+        "memory_summary"
+      ],
+      "pool_size": 6,
+      "jina": {
+        "order": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "context_aware",
+          "scripted-selftest",
+          "self_reflection",
+          "memory_summary"
+        ],
+        "top3": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "context_aware"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0607,
+          "max": 0.5313,
+          "mean": 0.185283,
+          "stddev": 0.160555,
+          "range": 0.4706
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 5
+        }
+      },
+      "bge": {
+        "order": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "self_reflection"
+        ],
+        "top3": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "self_reflection"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0128,
+          "max": 0.9927,
+          "mean": 0.340533,
+          "stddev": 0.461153,
+          "range": 0.9799
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 1
+        }
+      }
+    },
+    {
+      "case_id": "case_015",
+      "query": "请主动提建议",
+      "difficulty": "easy",
+      "expected": [
+        "proactive_suggestion"
+      ],
+      "rrf_order": [
+        "proactive_suggestion",
+        "context_aware",
+        "emotion_expression"
+      ],
+      "pool_size": 3,
+      "jina": {
+        "order": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "context_aware"
+        ],
+        "top3": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "context_aware"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.1594,
+          "max": 0.6181,
+          "mean": 0.4174,
+          "stddev": 0.191597,
+          "range": 0.4587
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 1
+        }
+      },
+      "bge": {
+        "order": [
+          "proactive_suggestion",
+          "emotion_expression"
+        ],
+        "top3": [
+          "proactive_suggestion",
+          "emotion_expression"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0109,
+          "max": 0.9952,
+          "mean": 0.50305,
+          "stddev": 0.49215,
+          "range": 0.9843
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_016",
+      "query": "主动识别我的潜在需求",
+      "difficulty": "medium",
+      "expected": [
+        "proactive_suggestion"
+      ],
+      "rrf_order": [
+        "proactive_suggestion",
+        "self_reflection",
+        "safety_guard",
+        "context_aware",
+        "voice_interaction",
+        "emotion_expression",
+        "scripted-selftest",
+        "memory_summary"
+      ],
+      "pool_size": 8,
+      "jina": {
+        "order": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "voice_interaction",
+          "safety_guard",
+          "context_aware",
+          "self_reflection",
+          "scripted-selftest",
+          "memory_summary"
+        ],
+        "top3": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "voice_interaction"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0491,
+          "max": 0.6777,
+          "mean": 0.152688,
+          "stddev": 0.199394,
+          "range": 0.6286
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3571,
+          "swaps": 9
+        }
+      },
+      "bge": {
+        "order": [
+          "proactive_suggestion",
+          "safety_guard",
+          "voice_interaction",
+          "self_reflection",
+          "emotion_expression"
+        ],
+        "top3": [
+          "proactive_suggestion",
+          "safety_guard",
+          "voice_interaction"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0012,
+          "max": 0.9962,
+          "mean": 0.21854,
+          "stddev": 0.389443,
+          "range": 0.995
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.2,
+          "swaps": 4
+        }
+      }
+    },
+    {
+      "case_id": "case_017",
+      "query": "上下文",
+      "difficulty": "easy",
+      "expected": [
+        "context_aware"
+      ],
+      "rrf_order": [
+        "context_aware",
+        "proactive_suggestion",
+        "voice_interaction"
+      ],
+      "pool_size": 3,
+      "jina": {
+        "order": [
+          "context_aware",
+          "proactive_suggestion",
+          "voice_interaction"
+        ],
+        "top3": [
+          "context_aware",
+          "proactive_suggestion",
+          "voice_interaction"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.2001,
+          "max": 0.4424,
+          "mean": 0.328,
+          "stddev": 0.099378,
+          "range": 0.2423
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [
+          "context_aware",
+          "proactive_suggestion",
+          "voice_interaction"
+        ],
+        "top3": [
+          "context_aware",
+          "proactive_suggestion",
+          "voice_interaction"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.016,
+          "max": 0.8385,
+          "mean": 0.5636,
+          "stddev": 0.387213,
+          "range": 0.8225
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_018",
+      "query": "刚才说的上下文你记住了吗，根据之前的话题调整一下",
+      "difficulty": "medium",
+      "expected": [
+        "context_aware"
+      ],
+      "rrf_order": [
+        "context_aware",
+        "proactive_suggestion",
+        "memory_summary",
+        "scripted-selftest",
+        "safety_guard",
+        "voice_interaction",
+        "self_reflection",
+        "emotion_expression"
+      ],
+      "pool_size": 8,
+      "jina": {
+        "order": [
+          "safety_guard",
+          "emotion_expression",
+          "context_aware",
+          "scripted-selftest",
+          "voice_interaction",
+          "proactive_suggestion",
+          "self_reflection",
+          "memory_summary"
+        ],
+        "top3": [
+          "safety_guard",
+          "emotion_expression",
+          "context_aware"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0909,
+          "max": 0.3449,
+          "mean": 0.223887,
+          "stddev": 0.070126,
+          "range": 0.254
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": true,
+          "kendall_tau": -0.0714,
+          "swaps": 15
+        }
+      },
+      "bge": {
+        "order": [
+          "context_aware",
+          "proactive_suggestion",
+          "memory_summary",
+          "self_reflection",
+          "emotion_expression"
+        ],
+        "top3": [
+          "context_aware",
+          "proactive_suggestion",
+          "memory_summary"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.001,
+          "max": 0.8283,
+          "mean": 0.2394,
+          "stddev": 0.324024,
+          "range": 0.8273
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.2,
+          "swaps": 4
+        }
+      }
+    },
+    {
+      "case_id": "case_019",
+      "query": "检测话题切换",
+      "difficulty": "easy",
+      "expected": [
+        "context_aware"
+      ],
+      "rrf_order": [
+        "context_aware",
+        "safety_guard",
+        "self_reflection",
+        "memory_summary",
+        "emotion_expression",
+        "proactive_suggestion"
+      ],
+      "pool_size": 6,
+      "jina": {
+        "order": [
+          "context_aware",
+          "emotion_expression",
+          "proactive_suggestion",
+          "memory_summary",
+          "safety_guard",
+          "self_reflection"
+        ],
+        "top3": [
+          "context_aware",
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.074,
+          "max": 0.2055,
+          "mean": 0.131517,
+          "stddev": 0.050695,
+          "range": 0.1315
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": -0.0667,
+          "swaps": 8
+        }
+      },
+      "bge": {
+        "order": [
+          "context_aware",
+          "proactive_suggestion",
+          "safety_guard",
+          "self_reflection",
+          "emotion_expression"
+        ],
+        "top3": [
+          "context_aware",
+          "proactive_suggestion",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0016,
+          "max": 0.1355,
+          "mean": 0.0414,
+          "stddev": 0.049112,
+          "range": 0.1339
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.6,
+          "swaps": 2
+        }
+      }
+    },
+    {
+      "case_id": "case_020",
+      "query": "根据之前的话题调整策略",
+      "difficulty": "medium",
+      "expected": [
+        "context_aware"
+      ],
+      "rrf_order": [
+        "context_aware",
+        "memory_summary",
+        "scripted-selftest",
+        "safety_guard",
+        "proactive_suggestion",
+        "emotion_expression",
+        "self_reflection"
+      ],
+      "pool_size": 7,
+      "jina": {
+        "order": [
+          "context_aware",
+          "proactive_suggestion",
+          "emotion_expression",
+          "safety_guard",
+          "memory_summary",
+          "self_reflection",
+          "scripted-selftest"
+        ],
+        "top3": [
+          "context_aware",
+          "proactive_suggestion",
+          "emotion_expression"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0473,
+          "max": 0.2346,
+          "mean": 0.107629,
+          "stddev": 0.059459,
+          "range": 0.1873
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.1429,
+          "swaps": 9
+        }
+      },
+      "bge": {
+        "order": [
+          "proactive_suggestion",
+          "context_aware",
+          "safety_guard"
+        ],
+        "top3": [
+          "proactive_suggestion",
+          "context_aware",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0064,
+          "max": 0.0623,
+          "mean": 0.035433,
+          "stddev": 0.022872,
+          "range": 0.0559
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": true,
+          "kendall_tau": -0.3333,
+          "swaps": 2
+        }
+      }
+    },
+    {
+      "case_id": "case_021",
+      "query": "安全",
+      "difficulty": "easy",
+      "expected": [
+        "safety_guard"
+      ],
+      "rrf_order": [
+        "safety_guard"
+      ],
+      "pool_size": 1,
+      "jina": {
+        "order": [
+          "safety_guard"
+        ],
+        "top3": [
+          "safety_guard"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.2706,
+          "max": 0.2706,
+          "mean": 0.2706,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [
+          "safety_guard"
+        ],
+        "top3": [
+          "safety_guard"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.6149,
+          "max": 0.6149,
+          "mean": 0.6149,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_022",
+      "query": "这个操作安全吗，帮我过滤一下危险内容",
+      "difficulty": "medium",
+      "expected": [
+        "safety_guard"
+      ],
+      "rrf_order": [
+        "safety_guard",
+        "self_reflection",
+        "voice_interaction",
+        "memory_summary",
+        "context_aware",
+        "proactive_suggestion",
+        "scripted-selftest"
+      ],
+      "pool_size": 7,
+      "jina": {
+        "order": [
+          "safety_guard",
+          "voice_interaction",
+          "scripted-selftest",
+          "proactive_suggestion",
+          "context_aware",
+          "self_reflection",
+          "memory_summary"
+        ],
+        "top3": [
+          "safety_guard",
+          "voice_interaction",
+          "scripted-selftest"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.1025,
+          "max": 0.3141,
+          "mean": 0.170229,
+          "stddev": 0.073211,
+          "range": 0.2116
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.0476,
+          "swaps": 10
+        }
+      },
+      "bge": {
+        "order": [
+          "safety_guard",
+          "proactive_suggestion"
+        ],
+        "top3": [
+          "safety_guard",
+          "proactive_suggestion"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0021,
+          "max": 0.9683,
+          "mean": 0.4852,
+          "stddev": 0.4831,
+          "range": 0.9662
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_023",
+      "query": "帮我拦截危险操作",
+      "difficulty": "easy",
+      "expected": [
+        "safety_guard"
+      ],
+      "rrf_order": [
+        "safety_guard",
+        "self_reflection",
+        "voice_interaction",
+        "scripted-selftest"
+      ],
+      "pool_size": 4,
+      "jina": {
+        "order": [
+          "safety_guard",
+          "voice_interaction",
+          "scripted-selftest",
+          "self_reflection"
+        ],
+        "top3": [
+          "safety_guard",
+          "voice_interaction",
+          "scripted-selftest"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0904,
+          "max": 0.3271,
+          "mean": 0.163275,
+          "stddev": 0.096922,
+          "range": 0.2367
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 2
+        }
+      },
+      "bge": {
+        "order": [
+          "safety_guard",
+          "voice_interaction",
+          "scripted-selftest"
+        ],
+        "top3": [
+          "safety_guard",
+          "voice_interaction",
+          "scripted-selftest"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0012,
+          "max": 0.9535,
+          "mean": 0.327233,
+          "stddev": 0.442963,
+          "range": 0.9523
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_024",
+      "query": "检测敏感信息泄露",
+      "difficulty": "medium",
+      "expected": [
+        "safety_guard"
+      ],
+      "rrf_order": [
+        "safety_guard",
+        "context_aware",
+        "emotion_expression",
+        "self_reflection"
+      ],
+      "pool_size": 4,
+      "jina": {
+        "order": [
+          "emotion_expression",
+          "safety_guard",
+          "self_reflection",
+          "context_aware"
+        ],
+        "top3": [
+          "emotion_expression",
+          "safety_guard",
+          "self_reflection"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0749,
+          "max": 0.2482,
+          "mean": 0.14775,
+          "stddev": 0.071542,
+          "range": 0.1733
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": true,
+          "kendall_tau": 0.0,
+          "swaps": 3
+        }
+      },
+      "bge": {
+        "order": [
+          "safety_guard",
+          "context_aware"
+        ],
+        "top3": [
+          "safety_guard",
+          "context_aware"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0077,
+          "max": 0.3171,
+          "mean": 0.1624,
+          "stddev": 0.1547,
+          "range": 0.3094
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_025",
+      "query": "语音",
+      "difficulty": "easy",
+      "expected": [
+        "voice_interaction"
+      ],
+      "rrf_order": [
+        "voice_interaction"
+      ],
+      "pool_size": 1,
+      "jina": {
+        "order": [
+          "voice_interaction"
+        ],
+        "top3": [
+          "voice_interaction"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.322,
+          "max": 0.322,
+          "mean": 0.322,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [
+          "voice_interaction"
+        ],
+        "top3": [
+          "voice_interaction"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.9142,
+          "max": 0.9142,
+          "mean": 0.9142,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_026",
+      "query": "我想用语音跟你说话",
+      "difficulty": "medium",
+      "expected": [
+        "voice_interaction"
+      ],
+      "rrf_order": [
+        "voice_interaction",
+        "proactive_suggestion",
+        "self_reflection",
+        "memory_summary",
+        "context_aware",
+        "safety_guard",
+        "emotion_expression"
+      ],
+      "pool_size": 7,
+      "jina": {
+        "order": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "context_aware",
+          "voice_interaction",
+          "safety_guard",
+          "self_reflection",
+          "memory_summary"
+        ],
+        "top3": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "context_aware"
+        ],
+        "precision_at_3": 0.0,
+        "score_stats": {
+          "min": 0.0642,
+          "max": 0.2158,
+          "mean": 0.134843,
+          "stddev": 0.051902,
+          "range": 0.1516
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": true,
+          "kendall_tau": -0.0476,
+          "swaps": 11
+        }
+      },
+      "bge": {
+        "order": [
+          "voice_interaction",
+          "emotion_expression",
+          "proactive_suggestion",
+          "safety_guard"
+        ],
+        "top3": [
+          "voice_interaction",
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0087,
+          "max": 0.3815,
+          "mean": 0.17495,
+          "stddev": 0.136512,
+          "range": 0.3728
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 2
+        }
+      }
+    },
+    {
+      "case_id": "case_027",
+      "query": "请识别语音指令",
+      "difficulty": "easy",
+      "expected": [
+        "voice_interaction"
+      ],
+      "rrf_order": [
+        "voice_interaction",
+        "proactive_suggestion",
+        "self_reflection"
+      ],
+      "pool_size": 3,
+      "jina": {
+        "order": [
+          "voice_interaction",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "top3": [
+          "voice_interaction",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0569,
+          "max": 0.3066,
+          "mean": 0.1703,
+          "stddev": 0.103218,
+          "range": 0.2497
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [
+          "voice_interaction",
+          "proactive_suggestion"
+        ],
+        "top3": [
+          "voice_interaction",
+          "proactive_suggestion"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0857,
+          "max": 0.7555,
+          "mean": 0.4206,
+          "stddev": 0.3349,
+          "range": 0.6698
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_028",
+      "query": "请进行 TTS 合成",
+      "difficulty": "medium",
+      "expected": [
+        "voice_interaction"
+      ],
+      "rrf_order": [
+        "voice_interaction",
+        "safety_guard",
+        "self_reflection",
+        "scripted-selftest"
+      ],
+      "pool_size": 4,
+      "jina": {
+        "order": [
+          "voice_interaction",
+          "safety_guard",
+          "self_reflection",
+          "scripted-selftest"
+        ],
+        "top3": [
+          "voice_interaction",
+          "safety_guard",
+          "self_reflection"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0554,
+          "max": 0.1351,
+          "mean": 0.079275,
+          "stddev": 0.032716,
+          "range": 0.0797
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [
+          "voice_interaction",
+          "safety_guard",
+          "scripted-selftest"
+        ],
+        "top3": [
+          "voice_interaction",
+          "safety_guard",
+          "scripted-selftest"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0079,
+          "max": 0.1171,
+          "mean": 0.046,
+          "stddev": 0.050318,
+          "range": 0.1092
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 1
+        }
+      }
+    },
+    {
+      "case_id": "case_029",
+      "query": "脚本示例",
+      "difficulty": "easy",
+      "expected": [
+        "scripted-selftest"
+      ],
+      "rrf_order": [
+        "scripted-selftest"
+      ],
+      "pool_size": 1,
+      "jina": {
+        "order": [
+          "scripted-selftest"
+        ],
+        "top3": [
+          "scripted-selftest"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.5525,
+          "max": 0.5525,
+          "mean": 0.5525,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [
+          "scripted-selftest"
+        ],
+        "top3": [
+          "scripted-selftest"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.9766,
+          "max": 0.9766,
+          "mean": 0.9766,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_030",
+      "query": "调用带脚本的技能示例",
+      "difficulty": "medium",
+      "expected": [
+        "scripted-selftest"
+      ],
+      "rrf_order": [
+        "scripted-selftest",
+        "context_aware",
+        "self_reflection",
+        "memory_summary",
+        "safety_guard",
+        "proactive_suggestion",
+        "voice_interaction"
+      ],
+      "pool_size": 7,
+      "jina": {
+        "order": [
+          "scripted-selftest",
+          "proactive_suggestion",
+          "self_reflection",
+          "memory_summary",
+          "safety_guard",
+          "context_aware",
+          "voice_interaction"
+        ],
+        "top3": [
+          "scripted-selftest",
+          "proactive_suggestion",
+          "self_reflection"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0702,
+          "max": 0.6456,
+          "mean": 0.180214,
+          "stddev": 0.1925,
+          "range": 0.5754
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 7
+        }
+      },
+      "bge": {
+        "order": [
+          "scripted-selftest",
+          "memory_summary",
+          "safety_guard",
+          "context_aware",
+          "proactive_suggestion",
+          "voice_interaction",
+          "self_reflection"
+        ],
+        "top3": [
+          "scripted-selftest",
+          "memory_summary",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0091,
+          "max": 0.9991,
+          "mean": 0.185414,
+          "stddev": 0.333018,
+          "range": 0.99
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.4286,
+          "swaps": 6
+        }
+      }
+    },
+    {
+      "case_id": "case_031",
+      "query": "三层架构示例",
+      "difficulty": "easy",
+      "expected": [
+        "scripted-selftest"
+      ],
+      "rrf_order": [
+        "scripted-selftest",
+        "memory_summary"
+      ],
+      "pool_size": 2,
+      "jina": {
+        "order": [
+          "scripted-selftest",
+          "memory_summary"
+        ],
+        "top3": [
+          "scripted-selftest",
+          "memory_summary"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0867,
+          "max": 0.6271,
+          "mean": 0.3569,
+          "stddev": 0.2702,
+          "range": 0.5404
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [
+          "scripted-selftest",
+          "memory_summary"
+        ],
+        "top3": [
+          "scripted-selftest",
+          "memory_summary"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0046,
+          "max": 0.9924,
+          "mean": 0.4985,
+          "stddev": 0.4939,
+          "range": 0.9878
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_032",
+      "query": "请运行带脚本的技能",
+      "difficulty": "medium",
+      "expected": [
+        "scripted-selftest"
+      ],
+      "rrf_order": [
+        "scripted-selftest",
+        "self_reflection",
+        "memory_summary",
+        "safety_guard",
+        "voice_interaction",
+        "proactive_suggestion",
+        "context_aware"
+      ],
+      "pool_size": 7,
+      "jina": {
+        "order": [
+          "scripted-selftest",
+          "proactive_suggestion",
+          "memory_summary",
+          "self_reflection",
+          "context_aware",
+          "safety_guard",
+          "voice_interaction"
+        ],
+        "top3": [
+          "scripted-selftest",
+          "proactive_suggestion",
+          "memory_summary"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0739,
+          "max": 0.5369,
+          "mean": 0.1756,
+          "stddev": 0.152364,
+          "range": 0.463
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 7
+        }
+      },
+      "bge": {
+        "order": [
+          "scripted-selftest",
+          "memory_summary",
+          "safety_guard",
+          "proactive_suggestion",
+          "context_aware",
+          "voice_interaction",
+          "self_reflection"
+        ],
+        "top3": [
+          "scripted-selftest",
+          "memory_summary",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0051,
+          "max": 0.9798,
+          "mean": 0.171543,
+          "stddev": 0.332718,
+          "range": 0.9747
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 7
+        }
+      }
+    },
+    {
+      "case_id": "case_033",
+      "query": "上下文感知与安全守护",
+      "difficulty": "hard",
+      "expected": [
+        "context_aware",
+        "safety_guard"
+      ],
+      "rrf_order": [
+        "safety_guard",
+        "context_aware",
+        "proactive_suggestion",
+        "voice_interaction",
+        "emotion_expression",
+        "self_reflection",
+        "memory_summary"
+      ],
+      "pool_size": 7,
+      "jina": {
+        "order": [
+          "safety_guard",
+          "context_aware",
+          "proactive_suggestion",
+          "voice_interaction",
+          "memory_summary",
+          "self_reflection",
+          "emotion_expression"
+        ],
+        "top3": [
+          "safety_guard",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "precision_at_3": 0.6667,
+        "score_stats": {
+          "min": 0.0671,
+          "max": 0.3935,
+          "mean": 0.186929,
+          "stddev": 0.132879,
+          "range": 0.3264
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.7143,
+          "swaps": 3
+        }
+      },
+      "bge": {
+        "order": [
+          "safety_guard",
+          "context_aware",
+          "proactive_suggestion",
+          "voice_interaction",
+          "emotion_expression",
+          "self_reflection",
+          "memory_summary"
+        ],
+        "top3": [
+          "safety_guard",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "precision_at_3": 0.6667,
+        "score_stats": {
+          "min": 0.0029,
+          "max": 0.8048,
+          "mean": 0.239443,
+          "stddev": 0.306679,
+          "range": 0.8019
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_034",
+      "query": "情感表达与主动建议",
+      "difficulty": "hard",
+      "expected": [
+        "emotion_expression",
+        "proactive_suggestion"
+      ],
+      "rrf_order": [
+        "emotion_expression",
+        "proactive_suggestion",
+        "context_aware",
+        "safety_guard",
+        "voice_interaction",
+        "self_reflection",
+        "memory_summary"
+      ],
+      "pool_size": 7,
+      "jina": {
+        "order": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "voice_interaction",
+          "safety_guard",
+          "memory_summary",
+          "context_aware",
+          "self_reflection"
+        ],
+        "top3": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "voice_interaction"
+        ],
+        "precision_at_3": 0.6667,
+        "score_stats": {
+          "min": 0.0696,
+          "max": 0.4899,
+          "mean": 0.182214,
+          "stddev": 0.149305,
+          "range": 0.4203
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": true,
+          "kendall_tau": 0.4286,
+          "swaps": 6
+        }
+      },
+      "bge": {
+        "order": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "voice_interaction",
+          "self_reflection",
+          "safety_guard",
+          "context_aware"
+        ],
+        "top3": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "voice_interaction"
+        ],
+        "precision_at_3": 0.6667,
+        "score_stats": {
+          "min": 0.0035,
+          "max": 0.9873,
+          "mean": 0.318817,
+          "stddev": 0.422048,
+          "range": 0.9838
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": true,
+          "kendall_tau": 0.2,
+          "swaps": 6
+        }
+      }
+    },
+    {
+      "case_id": "case_035",
+      "query": "请识别语音指令并保障安全",
+      "difficulty": "hard",
+      "expected": [
+        "voice_interaction",
+        "safety_guard"
+      ],
+      "rrf_order": [
+        "voice_interaction",
+        "safety_guard",
+        "self_reflection",
+        "proactive_suggestion",
+        "memory_summary"
+      ],
+      "pool_size": 5,
+      "jina": {
+        "order": [
+          "proactive_suggestion",
+          "voice_interaction",
+          "safety_guard",
+          "memory_summary",
+          "self_reflection"
+        ],
+        "top3": [
+          "proactive_suggestion",
+          "voice_interaction",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.6667,
+        "score_stats": {
+          "min": 0.0542,
+          "max": 0.1958,
+          "mean": 0.1259,
+          "stddev": 0.062011,
+          "range": 0.1416
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": true,
+          "kendall_tau": 0.2,
+          "swaps": 4
+        }
+      },
+      "bge": {
+        "order": [
+          "safety_guard",
+          "voice_interaction",
+          "proactive_suggestion"
+        ],
+        "top3": [
+          "safety_guard",
+          "voice_interaction",
+          "proactive_suggestion"
+        ],
+        "precision_at_3": 0.6667,
+        "score_stats": {
+          "min": 0.0789,
+          "max": 0.3817,
+          "mean": 0.205933,
+          "stddev": 0.128331,
+          "range": 0.3028
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": true,
+          "kendall_tau": -0.3333,
+          "swaps": 2
+        }
+      }
+    },
+    {
+      "case_id": "case_036",
+      "query": "请运行三层架构示例并保障安全",
+      "difficulty": "hard",
+      "expected": [
+        "scripted-selftest",
+        "safety_guard"
+      ],
+      "rrf_order": [
+        "scripted-selftest",
+        "safety_guard",
+        "memory_summary",
+        "self_reflection",
+        "voice_interaction"
+      ],
+      "pool_size": 5,
+      "jina": {
+        "order": [
+          "scripted-selftest",
+          "voice_interaction",
+          "safety_guard",
+          "self_reflection",
+          "memory_summary"
+        ],
+        "top3": [
+          "scripted-selftest",
+          "voice_interaction",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.6667,
+        "score_stats": {
+          "min": 0.0615,
+          "max": 0.4329,
+          "mean": 0.17642,
+          "stddev": 0.133394,
+          "range": 0.3714
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.2,
+          "swaps": 4
+        }
+      },
+      "bge": {
+        "order": [
+          "scripted-selftest",
+          "safety_guard",
+          "voice_interaction"
+        ],
+        "top3": [
+          "scripted-selftest",
+          "safety_guard",
+          "voice_interaction"
+        ],
+        "precision_at_3": 0.6667,
+        "score_stats": {
+          "min": 0.0016,
+          "max": 0.1861,
+          "mean": 0.0672,
+          "stddev": 0.084225,
+          "range": 0.1845
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 1
+        }
+      }
+    },
+    {
+      "case_id": "case_037",
+      "query": "请检测话题切换并主动提建议",
+      "difficulty": "hard",
+      "expected": [
+        "context_aware",
+        "proactive_suggestion"
+      ],
+      "rrf_order": [
+        "proactive_suggestion",
+        "context_aware",
+        "safety_guard",
+        "self_reflection",
+        "emotion_expression",
+        "memory_summary"
+      ],
+      "pool_size": 6,
+      "jina": {
+        "order": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "context_aware",
+          "self_reflection",
+          "memory_summary",
+          "safety_guard"
+        ],
+        "top3": [
+          "proactive_suggestion",
+          "emotion_expression",
+          "context_aware"
+        ],
+        "precision_at_3": 0.6667,
+        "score_stats": {
+          "min": 0.081,
+          "max": 0.3903,
+          "mean": 0.187183,
+          "stddev": 0.122055,
+          "range": 0.3093
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 5
+        }
+      },
+      "bge": {
+        "order": [
+          "proactive_suggestion",
+          "context_aware",
+          "safety_guard",
+          "self_reflection",
+          "emotion_expression"
+        ],
+        "top3": [
+          "proactive_suggestion",
+          "context_aware",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.6667,
+        "score_stats": {
+          "min": 0.0028,
+          "max": 0.9173,
+          "mean": 0.1983,
+          "stddev": 0.359789,
+          "range": 0.9145
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_042",
+      "query": "帮我订一张机票",
+      "difficulty": "tricky",
+      "expected": [],
+      "rrf_order": [
+        "self_reflection"
+      ],
+      "pool_size": 1,
+      "jina": {
+        "order": [
+          "self_reflection"
+        ],
+        "top3": [
+          "self_reflection"
+        ],
+        "precision_at_3": 0.0,
+        "score_stats": {
+          "min": 0.0562,
+          "max": 0.0562,
+          "mean": 0.0562,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [],
+        "top3": [],
+        "precision_at_3": 1.0,
+        "score_stats": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_043",
+      "query": "请帮我反思",
+      "difficulty": "hard",
+      "expected": [
+        "self_reflection"
+      ],
+      "rrf_order": [
+        "self_reflection"
+      ],
+      "pool_size": 1,
+      "jina": {
+        "order": [
+          "self_reflection"
+        ],
+        "top3": [
+          "self_reflection"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.2722,
+          "max": 0.2722,
+          "mean": 0.2722,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      },
+      "bge": {
+        "order": [
+          "self_reflection"
+        ],
+        "top3": [
+          "self_reflection"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.1352,
+          "max": 0.1352,
+          "mean": 0.1352,
+          "stddev": 0.0,
+          "range": 0.0
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    },
+    {
+      "case_id": "case_044",
+      "query": "请总结一下之前的记忆",
+      "difficulty": "hard",
+      "expected": [
+        "memory_summary"
+      ],
+      "rrf_order": [
+        "memory_summary",
+        "context_aware",
+        "proactive_suggestion",
+        "safety_guard",
+        "scripted-selftest",
+        "self_reflection"
+      ],
+      "pool_size": 6,
+      "jina": {
+        "order": [
+          "memory_summary",
+          "safety_guard",
+          "proactive_suggestion",
+          "self_reflection",
+          "context_aware",
+          "scripted-selftest"
+        ],
+        "top3": [
+          "memory_summary",
+          "safety_guard",
+          "proactive_suggestion"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0739,
+          "max": 0.4608,
+          "mean": 0.168183,
+          "stddev": 0.133054,
+          "range": 0.3869
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.3333,
+          "swaps": 5
+        }
+      },
+      "bge": {
+        "order": [
+          "memory_summary",
+          "context_aware",
+          "self_reflection",
+          "proactive_suggestion",
+          "safety_guard"
+        ],
+        "top3": [
+          "memory_summary",
+          "context_aware",
+          "self_reflection"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0011,
+          "max": 0.6063,
+          "mean": 0.13206,
+          "stddev": 0.237666,
+          "range": 0.6052
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": false,
+          "kendall_tau": 0.4,
+          "swaps": 3
+        }
+      }
+    },
+    {
+      "case_id": "case_045",
+      "query": "刚才回答有没有问题，请帮我检查",
+      "difficulty": "hard",
+      "expected": [
+        "self_reflection"
+      ],
+      "rrf_order": [
+        "self_reflection",
+        "proactive_suggestion",
+        "context_aware",
+        "safety_guard",
+        "emotion_expression"
+      ],
+      "pool_size": 5,
+      "jina": {
+        "order": [
+          "emotion_expression",
+          "self_reflection",
+          "safety_guard",
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "top3": [
+          "emotion_expression",
+          "self_reflection",
+          "safety_guard"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.0891,
+          "max": 0.2565,
+          "mean": 0.18022,
+          "stddev": 0.056548,
+          "range": 0.1674
+        },
+        "rank_change": {
+          "changed": true,
+          "top1_changed": true,
+          "kendall_tau": -0.4,
+          "swaps": 7
+        }
+      },
+      "bge": {
+        "order": [
+          "self_reflection",
+          "proactive_suggestion"
+        ],
+        "top3": [
+          "self_reflection",
+          "proactive_suggestion"
+        ],
+        "precision_at_3": 0.3333,
+        "score_stats": {
+          "min": 0.004,
+          "max": 0.0139,
+          "mean": 0.00895,
+          "stddev": 0.00495,
+          "range": 0.0099
+        },
+        "rank_change": {
+          "changed": false,
+          "top1_changed": false,
+          "kendall_tau": 1.0,
+          "swaps": 0
+        }
+      }
+    }
+  ]
+}
