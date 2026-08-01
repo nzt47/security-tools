@@ -151,10 +151,15 @@ def _disable_optional_systems_safety():
         # [不易] patch 目标模块不可导入时 (CI 缺 tiktoken/chromadb 等重依赖) 跳过:
         # 可选系统本就不可用, 无需 patch. 避免 patch('agent.orchestrator...')
         # 触发 agent.__getattr__ → digital_life → memory → tiktoken 导入链失败.
+        # [CHG-2026-0801] 补捕获 AttributeError: agent/orchestrator/__init__.py 的
+        # PEP 562 __getattr__ 仅暴露 LifecycleManager 类，不暴露 lifecycle_manager 子模块。
+        # CI 未预导入该子模块时，mock.patch 解析 agent.orchestrator.lifecycle_manager.*
+        # 会抛 AttributeError（非 ImportError），导致 reranker 等未预导入 orchestrator 的
+        # 测试在 autouse fixture setup 阶段全部失败。
         def _safe_patch(target, value):
             try:
                 stack.enter_context(patch(target, value))
-            except (ModuleNotFoundError, ImportError):
+            except (ModuleNotFoundError, ImportError, AttributeError):
                 pass
         _safe_patch('agent.orchestrator.lifecycle_manager._MEMORY_AVAILABLE', False)
         _safe_patch('agent.orchestrator.lifecycle_manager._VOICE_AVAILABLE', False)
