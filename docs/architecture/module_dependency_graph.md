@@ -29,6 +29,9 @@ flowchart LR
     subgraph common [common]
         agent_common_stop_mixin["agent.common.stop_mixin"]:::crosslayer
     end
+    subgraph config [config]
+        agent_config_etcd_config_client["agent.config.etcd_config_client"]
+    end
     subgraph core [core]
         agent_api_gateway["agent.api_gateway"]
         agent_async_executor["agent.async_executor"]:::crosslayer
@@ -633,6 +636,12 @@ flowchart LR
     agent_memory_adapters_holographic_adapter --> agent_memory_file_watcher
     agent_memory_adapters_holographic_adapter -.-> agent_caching_multi_level_cache
     agent_memory_adapters_holographic_adapter --> agent_memory_observability
+    agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
+    agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
+    agent_config_etcd_config_client -.-> agent_monitoring_metrics
+    agent_config_etcd_config_client -.-> agent_error_handler
+    agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
+    agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
     agent_skills_mgmt_creator -.-> agent_extensions_market
     agent_skills_mgmt_enhancer -.-> agent_feedback
     agent_skills_mgmt_loader -.-> agent_monitoring_prometheus
@@ -944,10 +953,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 341
-- 模块节点数: 269
-- 依赖边数: 593
-- 跨层调用数: 374
+- 扫描文件数: 343
+- 模块节点数: 270
+- 依赖边数: 599
+- 跨层调用数: 380
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1251.13 ms
+- 构建耗时: 1265.45 ms
