@@ -168,7 +168,7 @@ jobs:
       - name: Install dependencies
         run: |
           grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
-          pip install pydantic
+          pip install "pydantic>=2.0.0"
 
       - name: Run post-deploy inspection
         run: |
@@ -461,7 +461,7 @@ jobs:
       - name: Install dependencies
         run: |
           grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
-          pip install pydantic
+          pip install "pydantic>=2.0.0"
 
       - name: Run circuit breaker alert check
         run: |
