@@ -99,18 +99,21 @@ function Clear-PythonCache {
     $cacheDirs = @("__pycache__", ".pytest_cache", ".mypy_cache")
     $excludedTop = @("venv", "env", ".venv", "node_modules", ".git")
 
-    # 收集所有缓存目录（顶层 + 各子目录递归），避免清理时动态遍历导致遗漏
+    # 收集所有缓存目录（顶层非递归 + 各子目录递归），避免清理时动态遍历导致遗漏
     # 【变易】从源头排除 venv/env/node_modules：递归遍历虚拟环境会扫描数万
     # 个 __pycache__（Windows 上可达分钟级），且这些目录本就不应被清理。
+    # 【简易】顶层用非递归（只取 $Root 自身目录下的缓存），子目录再各自递归，
+    # 避免"顶层递归 + 子目录递归"双重收集导致的重复删除（2026-08-02 实测
+    # 曾重复收集导致 99 个 "Cannot find path" 误报）。
     $all = @()
-    # 顶层自身 + 排除虚拟环境后的子目录
-    $topLevels = @($Root) + (
-        Get-ChildItem -Path $Root -Directory -Force -ErrorAction SilentlyContinue |
-        Where-Object { $_.Name -notin $excludedTop }
-    )
     foreach ($dir in $cacheDirs) {
-        foreach ($top in $topLevels) {
-            $all += Get-ChildItem -Path $top.FullName -Directory -Filter $dir -Recurse -Force -ErrorAction SilentlyContinue
+        # 顶层：$Root 自身目录下直接查找（非递归）
+        $all += Get-ChildItem -Path $Root -Directory -Filter $dir -Force -ErrorAction SilentlyContinue
+        # 子目录：排除 venv/env 等后逐个递归
+        $subs = Get-ChildItem -Path $Root -Directory -Force -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -notin $excludedTop }
+        foreach ($sub in $subs) {
+            $all += Get-ChildItem -Path $sub.FullName -Directory -Filter $dir -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 
@@ -140,27 +143,27 @@ function Clear-PythonCache {
     }
 }
 
-# ========== 清理 WMI ADAP 性能库缓存（需管理员权限） ==========
+# ========== 清理 WMI 性能库缓存（需管理员权限） ==========
 function Clear-WmiAdapterCache {
     if (-not (Test-Admin)) {
         Write-Warn "非管理员权限，跳过 WMI 清理。请以管理员身份运行以启用 WMI 部分。"
         return
     }
     if ($DryRun) {
-        Write-Host "  [DRY] 将执行: winmgmt /clearadap (清除 WMI ADAP 性能库缓存)" -ForegroundColor DarkYellow
+        Write-Host "  [DRY] 将执行: winmgmt /resyncperf (重新注册系统性能库，清除 WMI 性能计数器缓存)" -ForegroundColor DarkYellow
         return
     }
-    Write-Host "  [RUN] 执行 winmgmt /clearadap ..." -ForegroundColor Cyan
+    Write-Host "  [RUN] 执行 winmgmt /resyncperf ..." -ForegroundColor Cyan
     try {
-        $out = & winmgmt /clearadap 2>&1
+        $out = & winmgmt /resyncperf 2>&1
         $code = $LASTEXITCODE
         if ($code -eq 0) {
-            Write-Ok "WMI ADAP 性能库缓存已清除"
+            Write-Ok "WMI 性能库缓存已重新注册"
         } else {
-            Write-Warn "winmgmt /clearadap 返回码 $code : $out"
+            Write-Warn "winmgmt /resyncperf 返回码 $code : $out"
         }
     } catch {
-        Write-Warn "winmgmt /clearadap 执行异常: $_"
+        Write-Warn "winmgmt /resyncperf 执行异常: $_"
     }
 }
 
