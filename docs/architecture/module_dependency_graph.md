@@ -546,6 +546,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
+    agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator --> agent
     agent_orchestrator_orchestrator -.-> agent_tool_schema_pruner
     agent_orchestrator_orchestrator -.-> agent_tool_fewshot_store
@@ -948,8 +949,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 343
 - 模块节点数: 270
-- 依赖边数: 592
-- 跨层调用数: 380
+- 依赖边数: 593
+- 跨层调用数: 381
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1250.69 ms
+- 构建耗时: 1005.22 ms
