@@ -59,14 +59,79 @@ def _trace_id():
 def _record_intent_layer(layer: str) -> None:
     """记录意图识别各层命中（延迟导入 prometheus 避免循环依赖）
 
+    【不易】统一入口：5 个命中点（rule/template/semantic/llm/reject）均经此函数，
+           在此打印诊断日志可全覆盖埋点是否触发，避免逐点加日志的冗余
+    【简易】埋点失败隔离：异常降级为 WARNING 日志，不向上传播
+
     Args:
         layer: rule / template / semantic / llm / reject
     """
+    _tid = _trace_id()
     try:
         from agent.monitoring.prometheus import record_intent_layer as _rec
         _rec(layer)
-    except Exception:
-        pass  # 指标记录失败不影响主链路
+        # [埋点诊断] 成功记录：layer + trace_id，便于日志检索"埋点是否触发"
+        logger.info(log_dict({
+            'module_name': 'orchestrator',
+            'action': 'orchestrator.intent_layer.metric_recorded',
+            'trace_id_ctx': _tid,
+            'message': '[埋点] intent_layer 指标已记录: layer=%s' % layer,
+            'layer': layer,
+            'metric': 'yunshu_intent_layer_total',
+        }))
+    except Exception as _e:
+        # [埋点诊断] 失败：记录失败原因，便于排查埋点漏掉（指标丢失）
+        logger.warning(log_dict({
+            'module_name': 'orchestrator',
+            'action': 'orchestrator.intent_layer.metric_failed',
+            'trace_id_ctx': _tid,
+            'message': '[埋点] intent_layer 指标记录失败: layer=%s err=%s' % (layer, _e),
+            'layer': layer,
+            'error': str(_e),
+        }))
+
+
+# ════════════════════════════════════════════════════════════════════
+#  拒识/兜底文案常量 + LLM 置信度判定（模块级，供测试 import 消除同源复制）
+#  【不易】测试侧须 import 此处定义，禁止在测试中重新复制（漂移风险）
+# ════════════════════════════════════════════════════════════════════
+
+_REJECT_MSG = (
+    "抱歉，我不太理解你的意思。能否详细描述一下你想做什么？"
+    "如需人工帮助，请说「转人工」。"
+)
+
+_FALLBACK_MSG = (
+    "抱歉，我暂时无法给出令人满意的回答。"
+    "请尝试换种方式描述你的问题，或说「转人工」由人工协助处理。"
+)
+
+# 错误标记清单（LLM 响应含此标记 → 低置信度）
+_LLM_ERROR_MARKERS = ("抱歉，处理", "遇到了问题", "无法完成", "出错了")
+
+
+def _judge_llm_confidence(response: Optional[str]) -> Tuple[str, str]:
+    """LLM 置信度启发式判定 — 基于响应质量
+
+    【简易】空/过短/错误标记 → low；正常响应 → high
+    【变易】未来可扩展为 LLM 自评 confidence 字段或工具调用成功率后验
+
+    Args:
+        response: LLM 响应文本（可能为 None 或空字符串）
+
+    Returns:
+        (confidence, low_reason): confidence="high"|"low",
+        low_reason="normal"|"empty_or_too_short"|"error_marker_detected"
+    """
+    confidence = "high"
+    low_reason = "normal"
+    if not response or len(response.strip()) < 5:
+        confidence = "low"
+        low_reason = "empty_or_too_short"
+    elif any(_marker in response for _marker in _LLM_ERROR_MARKERS):
+        confidence = "low"
+        low_reason = "error_marker_detected"
+    return confidence, low_reason
 
 
 class Orchestrator:
@@ -398,18 +463,42 @@ class Orchestrator:
                 output_text, msg="handled_by_semantic_layer"
             ).to_dict()
 
-        # ── 第三步三：未知意图拒识检查 ──
-        # 【不易】拒识条件：规则层+模板层+语义层三层均未命中，且输入过短/无意义
-        #         拒识阈值通过环境变量 ORCHESTRATOR_REJECT_THRESHOLD 配置（默认 3 字符）
-        # 【简易】软拒识——返回引导文案，不抛异常，记录 reject 指标
+        # ── 第三步三：未知意图拒识检查（任务3）──
+        # 【不易】拒识条件：(a) 输入过短 OR (b) 规则层+语义层双未命中且语义最高分 < 阈值
+        # 【变易】阈值通过 ORCHESTRATOR_REJECT_THRESHOLD 配置（默认 0.3，与 min_score 解耦）
+        # 【简易】软拒识——返回统一文案 + 转人工建议，不抛异常，记录 reject 指标
         import os as _os_reject
+        _reject_cfg = self._load_reject_config()
         _reject_min_len = int(_os_reject.environ.get("ORCHESTRATOR_REJECT_MIN_LENGTH", "3"))
         _is_ellipsis = (routing_input != user_input)  # DST 补全过说明是指代句
-        if (semantic_result is None and not _is_ellipsis
-                and len(user_input.strip()) < _reject_min_len):
+
+        # (a) 长度拒识（保留现有逻辑：输入过短且非指代句）
+        _len_reject = (not _is_ellipsis and len(user_input.strip()) < _reject_min_len)
+
+        # (b) 语义+规则双未命中拒识（新增：基于 _should_reject 隐式判定）
+        _semantic_reject, _reject_reason = self._should_reject(intent, confidence, semantic_result)
+        # 指代句不拒识（DST 已补全，说明有上下文继承，不应判为未知意图）
+        if _is_ellipsis:
+            _semantic_reject = False
+
+        if _len_reject or _semantic_reject:
+            _reject_type = "input_too_short" if _len_reject else "semantic_miss"
             _record_intent_layer("reject")
-            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.reject', 'trace_id_ctx': trace_id, 'message': '[拒识] 输入过短且三层未命中 (len=%d < %d)，返回拒识' % (len(user_input.strip()), _reject_min_len)}))
-            _reject_msg = "抱歉，我不太理解你的意思。能否详细描述一下你想做什么？"
+            # 【不易】拒识日志记录原因与各层分数（intent/confidence/semantic_result/threshold）
+            logger.warning(log_dict({
+                'module_name': 'orchestrator',
+                'action': 'orchestrator.process.reject',
+                'trace_id_ctx': trace_id,
+                'message': '[拒识] %s: %s' % (_reject_type, _reject_reason),
+                'reject_type': _reject_type,
+                'intent': intent,
+                'confidence': str(confidence),
+                'semantic_result': semantic_result,
+                'reject_threshold': _reject_cfg['threshold'],
+                'input_length': len(user_input.strip()),
+                'is_ellipsis': _is_ellipsis,
+            }))
+            _reject_msg = _REJECT_MSG  # 模块级常量，供测试 import 消除同源复制
             if trace_id:
                 trace_store.end_trace(trace_id, _reject_msg, status="rejected")
             return ResponseBuilder.success(_reject_msg).to_dict()
@@ -452,17 +541,56 @@ class Orchestrator:
             ).to_dict()
         llm_duration_ms = (time.time() - ts_llm) * 1000
 
-        # ── LLM 置信度校验（任务3：基于响应质量的启发式校验）──
+        # ── LLM 置信度校验（任务3：基于响应质量的启发式校验 + 低置信度降级）──
         # 【简易】空/过短/错误标记 → 低置信度；正常响应 → high
-        # 【变易】置信度阈值可扩展为 LLM 自评 confidence 字段
-        _llm_confidence = "high"
-        if not response or len(response.strip()) < 5:
-            _llm_confidence = "low"
-        elif any(_marker in response for _marker in ["抱歉，处理", "遇到了问题", "无法完成", "出错了"]):
-            _llm_confidence = "low"
-        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.llm.confidence', 'trace_id_ctx': trace_id, 'message': '[LLM] 置信度=%s, 耗时=%.2fms, 响应长度=%d' % (_llm_confidence, llm_duration_ms, len(response) if response else 0)}))
+        # 【变易】低置信度直接返回兜底文案（含转人工建议），不调用 HITL 异步审批
+        #         未来可扩展为 LLM 自评 confidence 字段或工具调用成功率后验启发式
+        _llm_confidence, _low_reason = _judge_llm_confidence(response)  # 模块级函数，供测试 import
+        # 【日志】置信度判定过程（DEBUG 级别，记录触发 low 的具体原因便于排查）
+        logger.debug(log_dict({
+            'module_name': 'orchestrator',
+            'action': 'orchestrator.process.llm.confidence_judge',
+            'trace_id_ctx': trace_id,
+            'message': '[LLM] 置信度判定: %s (reason=%s, response_length=%d, llm_duration=%.2fms)' % (
+                _llm_confidence, _low_reason, len(response) if response else 0, llm_duration_ms
+            ),
+            'llm_confidence': _llm_confidence,
+            'low_reason': _low_reason,
+            'response_length': len(response) if response else 0,
+            'llm_duration_ms': round(llm_duration_ms, 2),
+        }))
+        logger.info(log_dict({
+            'module_name': 'orchestrator',
+            'action': 'orchestrator.process.llm.confidence',
+            'trace_id_ctx': trace_id,
+            'message': '[LLM] 置信度=%s, 耗时=%.2fms, 响应长度=%d' % (
+                _llm_confidence, llm_duration_ms, len(response) if response else 0
+            ),
+            'llm_confidence': _llm_confidence,
+            'llm_duration_ms': round(llm_duration_ms, 2),
+            'response_length': len(response) if response else 0,
+        }))
+
+        # 【不易】低置信度触发兜底回复（任务3）：返回统一文案 + 转人工建议
+        # 提前 return 跳过 OutputGuard/反思/向量记忆（低质量响应无需反思和持久化向量）
+        # 但仍保存到对话记忆（便于后续分析低置信度场景）
         if _llm_confidence == "low":
-            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.llm.low_confidence', 'trace_id_ctx': trace_id, 'message': '[LLM] 低置信度响应，建议检查 LLM 服务状态或转人工'}))
+            logger.warning(log_dict({
+                'module_name': 'orchestrator',
+                'action': 'orchestrator.process.llm.low_confidence_fallback',
+                'trace_id_ctx': trace_id,
+                'message': '[LLM] 低置信度响应，返回兜底文案 + 转人工建议',
+                'original_response_preview': (response[:100] if response else ""),
+                'llm_duration_ms': round(llm_duration_ms, 2),
+            }))
+            _record_intent_layer("llm_low_confidence_fallback")
+            _fallback_msg = _FALLBACK_MSG  # 模块级常量，供测试 import 消除同源复制
+            # 兜底响应仍走对话记忆保存（便于后续分析低置信度场景）
+            self._memory.score_and_save_message("user", user_input)
+            self._memory.score_and_save_message("assistant", _fallback_msg)
+            if trace_id:
+                trace_store.end_trace(trace_id, _fallback_msg, status="low_confidence_fallback")
+            return ResponseBuilder.success(_fallback_msg).to_dict()
 
         # 规划模式：追加 Planner 状态信息
         planning_mode = kwargs.get("planning_mode", False) or \
@@ -910,7 +1038,8 @@ class Orchestrator:
                 logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.miss', 'trace_id_ctx': trace_id, 'message': '[语义层] 未命中 (top1 score=%.3f < min_score=%.2f, %.2fms, method=%s)' % (top1.score, min_score, elapsed_ms, result.retrieval_method)}))
                 return None
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.hit', 'trace_id_ctx': trace_id, 'message': '[语义层] 命中 top1=%s score=%.3f (%d 命中, %.2fms, method=%s, reranked=%s, fallback=%s)' % (top1.skill_id, top1.score, len(result.matches), elapsed_ms, result.retrieval_method, result.reranked, result.fallback_used)}))
-            _record_intent_layer("semantic")
+            # 【不易】埋点后移（P0 修复）：仅在 instruction 加载成功且非空后才记录 semantic，
+            # 避免 load_instruction 失败 / 空 instruction 降级 LLM 时与 L418 llm 埋点双重计数。
 
             # 加载 top1 技能的 instruction（Layer 2）— 命中后短路返回的关键
             # 【不易】load_instruction 失败或返回空 → 降级 LLM（不抛异常）
@@ -951,6 +1080,34 @@ class Orchestrator:
             # 缓存 skill_ids 供 _call_llm 增强上下文（向后兼容现有属性）
             self._semantic_matched_skills = [m.skill_id for m in result.matches]
 
+            # 【不易】语义层埋点（P0 修复后移至此）：仅在确认命中（instruction 加载成功且非空）
+            # 后记录，守 INV-2（业务结果已确定后才埋点）。
+            # 上方 load_instruction 失败和空 instruction 的降级路径已 return None，不会执行本行。
+            _record_intent_layer("semantic")
+            # 【排查】打印 semantic 埋点触发时的 total 计数值 + instruction 加载状态
+            # 验证两件事：(1) 分母同步——ratio 总和恒 = 1.0；(2) INV-2——instruction 已成功加载才埋点。
+            # 注：能执行到此行说明 instruction 已加载成功且非空（上方失败/空路径已 return None），
+            #     故 instruction_loaded 恒为 True，此字段用于 dashboard 显式过滤"埋点时机正确性"。
+            try:
+                from agent.monitoring.prometheus import _intent_layer_counts as _ilc
+                _sem_total = sum(_ilc.values())
+                logger.info(log_dict({
+                    'module_name': 'orchestrator',
+                    'action': 'orchestrator.semantic.metric_total',
+                    'trace_id_ctx': trace_id,
+                    'message': '[埋点] semantic 触发, total=%d, counts=%s, skill=%s, score=%.3f, instr_len=%d, instr_loaded=success' % (
+                        _sem_total, dict(_ilc), top1.skill_id, top1.score, len(instruction)
+                    ),
+                    'metric_total': _sem_total,
+                    'layer_counts': dict(_ilc),
+                    'skill_id': top1.skill_id,
+                    'top1_score': float(top1.score),
+                    'instruction_len': len(instruction),
+                    'instruction_loaded': True,
+                }))
+            except Exception:
+                pass
+
             return {
                 "output": instruction,
                 "skill_id": top1.skill_id,
@@ -986,6 +1143,140 @@ class Orchestrator:
             except Exception as report_error:
                 logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.report_failed', 'trace_id_ctx': trace_id, 'message': '[语义层] 告警上报失败（不影响主链路）: %s' % (report_error,)}))
             return None
+
+    # ════════════════════════════════════════════════════════════════════
+    #  主链路拒识 — 未知意图判定（三层漏斗第 3 层，LLM 调用之前）
+    # ════════════════════════════════════════════════════════════════════
+
+    # 拒识配置硬编码默认值（与 config.yaml orchestrator.reject 同源）
+    _REJECT_DEFAULTS: Dict[str, Any] = {
+        "enabled": True,
+        "threshold": 0.3,
+        "llm_min_confidence": 0.5,
+    }
+
+    @classmethod
+    def _load_reject_config(cls) -> Dict[str, Any]:
+        """读取拒识配置 — 优先级: 环境变量 > config.yaml > 硬编码默认值
+
+        架构层级：[TLM-L2] 拒识配置加载
+
+        分层配置架构（与 _load_semantic_layer_config 同源模式）:
+            层0: 硬编码默认值（_REJECT_DEFAULTS，最终兜底）
+            层1: config.yaml orchestrator.reject（业务配置主源）
+            层2: 环境变量（运维 hotfix 覆盖，优先级最高）
+
+        config.yaml 路径: orchestrator.reject.{enabled,threshold,llm_min_confidence}
+        环境变量: ORCHESTRATOR_REJECT_ENABLED / ORCHESTRATOR_REJECT_THRESHOLD
+                  / ORCHESTRATOR_LLM_MIN_CONFIDENCE
+
+        【不易】硬编码默认值作为最终兜底，config.yaml 缺失/解析失败不影响主链路
+        【变易】复用 _SEM_CONFIG_PATH（共享 config.yaml 路径，避免重复初始化）
+        【简易】无 SQLite 持久化（拒识配置无需热更，简化实现）
+        """
+        config = dict(cls._REJECT_DEFAULTS)
+
+        # 层1: config.yaml（复用 _SEM_CONFIG_PATH，避免重复路径初始化）
+        try:
+            if cls._SEM_CONFIG_PATH is None:
+                from pathlib import Path
+                cls._SEM_CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config.yaml"
+            if cls._SEM_CONFIG_PATH.exists():
+                import yaml as _yaml
+                with open(cls._SEM_CONFIG_PATH, "r", encoding="utf-8") as f:
+                    data = _yaml.safe_load(f) or {}
+                reject_cfg = (data.get("orchestrator", {}) or {}).get("reject", {}) or {}
+                # 仅覆盖已知键，类型与默认值一致才接受
+                for key in cls._REJECT_DEFAULTS:
+                    if key in reject_cfg and reject_cfg[key] is not None:
+                        config[key] = reject_cfg[key]
+        except Exception as e:
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.reject.config.fallback', 'message': '[拒识] config.yaml 读取失败，降级到默认值: %s' % (e,)}))
+
+        # 层2: 环境变量覆盖（最高优先级，运维 hotfix）
+        env_enabled = os.environ.get("ORCHESTRATOR_REJECT_ENABLED")
+        if env_enabled is not None and env_enabled.strip():
+            config["enabled"] = env_enabled.strip().lower() in ("true", "1", "yes")
+
+        env_threshold = os.environ.get("ORCHESTRATOR_REJECT_THRESHOLD")
+        if env_threshold is not None and env_threshold.strip():
+            try:
+                config["threshold"] = float(env_threshold.strip())
+            except (ValueError, TypeError):
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.reject.config.invalid_threshold', 'message': '[拒识] ORCHESTRATOR_REJECT_THRESHOLD 非法值已忽略: %s' % (env_threshold,)}))
+
+        env_llm_conf = os.environ.get("ORCHESTRATOR_LLM_MIN_CONFIDENCE")
+        if env_llm_conf is not None and env_llm_conf.strip():
+            try:
+                config["llm_min_confidence"] = float(env_llm_conf.strip())
+            except (ValueError, TypeError):
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.reject.config.invalid_llm_confidence', 'message': '[拒识] ORCHESTRATOR_LLM_MIN_CONFIDENCE 非法值已忽略: %s' % (env_llm_conf,)}))
+
+        return config
+
+    def _should_reject(
+        self,
+        intent: Optional[str],
+        confidence: Any,
+        semantic_result: Optional[Dict[str, Any]],
+    ) -> Tuple[bool, str]:
+        """未知意图拒识判定 — 规则层+语义层双未命中 + 语义最高分 < 阈值
+
+        架构层级：三层漏斗第 3 层（拒识层，LLM 调用之前）
+
+        判定逻辑（隐式判定，守【简易】）:
+        - 规则层未命中：执行到此处即 WorkflowEngine + 模板层均未命中（已隐含）
+        - 语义层未命中：semantic_result is None
+        - 语义最高分 < 阈值：semantic_result is None 隐含 top1.score < semantic_layer.min_score
+          （_semantic_layer_match 已用 min_score 过滤低分候选）
+        - 规则层置信度低：confidence 非 HIGH（IntentRouter 返回 Confidence 枚举）
+
+        【不易】拒识返回统一文案 + 转人工建议，不抛异常
+        【变易】阈值通过 ORCHESTRATOR_REJECT_THRESHOLD 配置，默认 0.3
+        【简易】隐式判定，不修改 _semantic_layer_match 返回契约
+
+        Args:
+            intent: IntentRouter.classify 返回的意图字符串
+            confidence: IntentRouter.classify 返回的 Confidence 枚举
+            semantic_result: _semantic_layer_match 返回的 dict（含 score）或 None
+
+        Returns:
+            (should_reject, reason): should_reject=True 时 reason 含拒识原因（供日志记录）
+        """
+        cfg = self._load_reject_config()
+        if not cfg["enabled"]:
+            # 【日志】拒识总开关关闭，记录便于排查"为何未拒识"
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.should_reject.disabled', 'message': '[拒识判定] 拒识已禁用 (ORCHESTRATOR_REJECT_ENABLED=false)，放行到 LLM'}))
+            return False, "reject_disabled"
+
+        threshold = float(cfg["threshold"])
+
+        # 条件1：语义层未命中（隐含语义最高分 < min_score，即 < 阈值默认 0.3）
+        # semantic_result 非 None 表示语义层已命中，不应拒识
+        if semantic_result is not None:
+            _sem_score = semantic_result.get('score', 0.0) if isinstance(semantic_result, dict) else 0.0
+            # 【日志】语义层命中，记录分数便于排查"为何放行"
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.should_reject.semantic_hit', 'message': '[拒识判定] 语义层已命中 (score=%.3f >= threshold=%.2f)，放行' % (_sem_score, threshold), 'semantic_score': _sem_score, 'reject_threshold': threshold}))
+            return False, "semantic_hit"
+
+        # 条件2：规则层置信度非 HIGH（confidence 为 Confidence 枚举）
+        # Confidence 枚举名兼容多种实现（HIGH/HIGH_CONFIDENCE 等），用字符串包含判定
+        _conf_str = str(confidence).upper() if confidence is not None else "UNKNOWN"
+        _is_high = ("HIGH" in _conf_str)
+        if _is_high:
+            # 【日志】规则层高置信度，记录 confidence 值便于排查"为何放行"
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.should_reject.rule_high_confidence', 'message': '[拒识判定] 规则层高置信度 (%s)，放行到 LLM' % (_conf_str,), 'confidence': _conf_str}))
+            return False, "rule_high_confidence"
+
+        # 双未命中 + 低置信度 → 拒识
+        # 语义层 None 时无法获取分数，按隐式判定（top1.score < min_score ≤ threshold 期望值）
+        # 若 min_score 与 threshold 解耦调优，此处的隐式判定仍保守正确（语义层未命中即拒识候选）
+        reason = "rule_and_semantic_both_miss: intent=%s confidence=%s semantic=None threshold=%.2f" % (
+            intent, _conf_str, threshold
+        )
+        # 【日志】拒识触发，记录完整判定上下文（各层分数 + 阈值 + 意图）
+        logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.should_reject.rejected', 'message': '[拒识判定] 规则层+语义层双未命中 + 低置信度 → 拒识: %s' % (reason,), 'intent': intent, 'confidence': _conf_str, 'semantic_result': semantic_result, 'reject_threshold': threshold}))
+        return True, reason
 
     # ════════════════════════════════════════════════════════════════════
     #  健康检查
