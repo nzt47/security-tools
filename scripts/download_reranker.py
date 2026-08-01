@@ -18,6 +18,14 @@ os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
 os.environ.setdefault("HF_XET_HIGH_PERFORMANCE", "0")
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")
 
+# 复用通用路径解析工具 (跨平台 + 环境变量优先级, 供所有下载脚本共享)
+# 详见 scripts/model_cache_utils.py
+from model_cache_utils import get_hf_cache_base
+
+# 模型配置
+_MODEL_ID = "BAAI/bge-reranker-v2-m3"
+_LOCAL_DIR_ENV = "BGE_V2_M3_LOCAL_DIR"  # 脚本专用环境变量 (覆盖默认缓存路径)
+
 
 def main():
     print(f"[start] downloading BAAI/bge-reranker-v2-m3 ...", flush=True)
@@ -34,7 +42,9 @@ def main():
     t0 = time.time()
     try:
         path = snapshot_download(
-            repo_id="BAAI/bge-reranker-v2-m3",
+            repo_id=_MODEL_ID,
+            # 缓存路径: 复用 model_cache_utils 的 4 级优先级解析 (env_override > HF_HOME > HUB_CACHE > 平台默认)
+            cache_dir=str(get_hf_cache_base(env_override=_LOCAL_DIR_ENV)),
             # 仅下载必需文件，避免 .gitattributes 等无关文件拖慢
             allow_patterns=["*.json", "*.txt", "*.safetensors", "*.bin", "tokenizer*"],
         )
