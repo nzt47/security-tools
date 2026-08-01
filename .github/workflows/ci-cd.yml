@@ -331,9 +331,10 @@ jobs:
           SKILLS_OFFLINE: "1"
           PYTHONIOENCODING: utf-8
         run: |
-          echo "=== 热重载稳定性测试（并发 rerank + variant 切换）==="
+          echo "=== 热重载稳定性测试（并发 rerank + 三态 variant 切换）==="
+          # [CHG-2026-0801] concurrency 4→8 验证竞态边界；duration 15→20 确保三态循环充分触发
           python scripts/test_hot_reload_stability.py \
-            --duration 15 --concurrency 4 --ci-mode
+            --duration 20 --concurrency 8 --ci-mode
 
       - name: Verify traceback capture on invalid variant rollback
         env:

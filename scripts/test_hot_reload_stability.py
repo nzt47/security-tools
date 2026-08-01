@@ -2,13 +2,14 @@
 """Reranker 热重载稳定性测试（最小实现）
 
 【不易】不加载真实模型（patch 加载与推理路径），聚焦热重载+回滚逻辑正确性
-【变易】线程并发 rerank + 主线程周期切换 env variant（valid ↔ invalid）
+【变易】线程并发 rerank + 主线程三态循环切换 env variant（valid ↔ invalid ↔ exception）
 【简易】--duration/--concurrency 参数；--ci-mode 退出码语义（0 通过 / 1 失败）
 
 验证点（对应验收清单 3.4）：
 1. 并发 rerank 不崩溃，成功率 ≥ 95%
-2. 无效 variant 触发 hot_reload.failed_rollback，保留旧 session（服务不中断）
-3. 回滚前 traceback 被捕获（self._last_load_traceback 非空）—— 任务2核心
+2. 无效 variant 触发 hot_reload.failed_rollback，保留旧 session（清单 3.2）
+3. ONNX 加载崩溃触发 hot_reload.exception_rollback，保留旧 session（清单 3.3，本次新增）
+4. 回滚前 traceback 被捕获（self._last_load_traceback 非空）—— 任务2核心
 
 用法:
     python scripts/test_hot_reload_stability.py --duration 30 --concurrency 4
@@ -28,6 +29,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 VALID_VARIANT = "model_quantized.onnx"
 INVALID_VARIANT = "nonexistent.onnx"
+# 【变易】模拟 ONNX 加载崩溃的 variant：文件存在但模型图损坏/不兼容
+# 触发 hot_reload.exception_rollback 路径（验收清单 3.3，P1）
+EXCEPTION_VARIANT = "corrupted_model.onnx"
 
 
 class _FakeSession:
@@ -45,13 +49,23 @@ class _FakeSession:
 
 
 def _patched_try_load(self, variant: str):
-    """替代 _try_load_onnx_variant：valid 返回 fake session，invalid 抛 FileNotFoundError。
+    """替代 _try_load_onnx_variant：按 variant 名分三路覆盖清单 3.2/3.3。
 
     【不易】不修改真实文件系统，纯内存模拟
-    【变易】按 variant 名判定 valid/invalid，覆盖回滚场景
+    【变易】三路分类对齐验收清单：
+      - nonexistent/invalid → FileNotFoundError（清单 3.2 failed_rollback）
+      - corrupted/exception → RuntimeError 模拟 ONNX 加载崩溃（清单 3.3 exception_rollback）
+      - 其他 → fake session（正常加载）
     """
     if "nonexistent" in variant or "invalid" in variant:
         raise FileNotFoundError(f"onnx_file_not_found: /fake/models/{variant}")
+    if "corrupted" in variant or "exception" in variant:
+        # 模拟 ONNX Runtime 加载崩溃：模型文件存在但图架构损坏/算子未注册
+        # 对应 reranker.py:471 的 is_config_error=False 分支 → exception_rollback
+        raise RuntimeError(
+            f"onnxruntime_runtime_error: Invalid ONNX model graph "
+            f"(node type 'Unknown' not registered) /fake/models/{variant}"
+        )
     return _FakeSession(), MagicMock(), ["input_ids", "attention_mask"]
 
 
@@ -99,6 +113,9 @@ class _StabilityRunner:
         self.success = 0
         self.failure = 0
         self.rollback_count = 0
+        # 【变易】区分两种回滚路径计数（对齐验收清单 3.2/3.3）
+        self.failed_rollback_count = 0       # FileNotFoundError → 3.2
+        self.exception_rollback_count = 0    # RuntimeError 等 → 3.3
         self.traceback_captured = 0
         self.exceptions: list[str] = []
 
@@ -109,13 +126,21 @@ class _StabilityRunner:
             try:
                 result = r.rerank("测试查询", list(candidates), top_k=1)
                 ok = isinstance(result, list)
-                # 检测回滚是否捕获了 traceback
+                # 检测回滚是否捕获了 traceback，并区分两种回滚路径
                 if r._last_load_traceback:
                     with self._lock:
                         self.traceback_captured += 1
                         self.rollback_count += 1
+                        # 【变易】按 _last_load_error 区分 failed/exception 回滚
+                        # _last_load_error 是 traceback 最后一行，含异常类型名
+                        err = r._last_load_error or ""
+                        if "RuntimeError" in err:
+                            self.exception_rollback_count += 1
+                        elif "FileNotFoundError" in err:
+                            self.failed_rollback_count += 1
                         # 清空避免重复计数（直到下次失败再次写入）
                         r._last_load_traceback = None
+                        r._last_load_error = None
                 with self._lock:
                     if ok:
                         self.success += 1
@@ -128,13 +153,19 @@ class _StabilityRunner:
             time.sleep(0.02)  # 让出 CPU，避免空转
 
     def _variant_cycler(self) -> None:
-        """主线程：周期切换 env variant（valid ↔ invalid）触发热重载。"""
-        toggle = False
+        """主线程：周期切换 env variant 三态循环触发热重载。
+
+        【变易】三态循环覆盖验收清单 3.2 + 3.3：
+          VALID → INVALID → EXCEPTION → VALID → ...
+          - VALID: 正常加载（_patched_try_load 返回 fake session）
+          - INVALID: FileNotFoundError → failed_rollback（清单 3.2）
+          - EXCEPTION: RuntimeError → exception_rollback（清单 3.3）
+        """
+        cycle = (VALID_VARIANT, INVALID_VARIANT, EXCEPTION_VARIANT)
+        idx = 0
         while not self._stop.is_set():
-            toggle = not toggle
-            os.environ["SKILL_RERANKER_ONNX_VARIANT"] = (
-                INVALID_VARIANT if toggle else VALID_VARIANT
-            )
+            os.environ["SKILL_RERANKER_ONNX_VARIANT"] = cycle[idx % len(cycle)]
+            idx += 1
             time.sleep(0.5)
 
     def run(self) -> int:
@@ -173,13 +204,24 @@ class _StabilityRunner:
         print(f"失败数        : {self.failure}")
         print(f"成功率        : {success_rate:.1f}%")
         print(f"回滚次数      : {self.rollback_count}")
+        print(f"  failed_rollback  (清单 3.2): {self.failed_rollback_count}")
+        print(f"  exception_rollback(清单 3.3): {self.exception_rollback_count}")
         print(f"traceback 捕获: {self.traceback_captured}")
         if self.exceptions:
             print(f"异常样本(前3) : {self.exceptions[:3]}")
         print("=" * 50)
 
-        # 通过标准：成功率 ≥ 95% + traceback 至少捕获 1 次（验证回滚追踪生效）
-        passed = success_rate >= 95.0 and self.traceback_captured >= 1
+        # 通过标准（对齐验收清单 3.4）：
+        # 1. 成功率 ≥ 95%（服务不中断）
+        # 2. traceback 至少捕获 1 次（回滚追踪生效）
+        # 3. failed_rollback ≥ 1（清单 3.2 路径覆盖）
+        # 4. exception_rollback ≥ 1（清单 3.3 路径覆盖，本次新增）
+        passed = (
+            success_rate >= 95.0
+            and self.traceback_captured >= 1
+            and self.failed_rollback_count >= 1
+            and self.exception_rollback_count >= 1
+        )
         if self.ci_mode:
             return 0 if passed else 1
         return 0 if passed else 1
