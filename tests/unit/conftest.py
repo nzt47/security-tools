@@ -76,17 +76,24 @@ def _isolate_test_loggers():
     动态 logger 是按需创建的，session 快照抓不到，故用「强制清理」策略。
 
     保留 pytest 框架自身的 logger（以 "pytest" 开头），避免干扰测试框架行为。
+
+    【不易·死锁修复】setLevel 会触发 manager._clear_cache()，后者持 logging 全局锁
+    遍历全部 logger。N 个 logger 各调一次 setLevel = N 次持锁遍历（O(N²)），与
+    tool_trace 后台 daemon 线程的 logger.warning（持锁调 handler IO）竞争，偶发
+    fixture teardown 死锁。改为直接赋值 level 绕过 _clear_cache，循环外一次性
+    _clear_cache，将 N 次持锁降为 1 次，大幅压缩锁竞争窗口。
     """
-    manager = logging.Logger.manager.loggerDict
-    for name, obj in list(manager.items()):
+    manager = logging.Logger.manager
+    for name, obj in list(manager.loggerDict.items()):
         if name.startswith("pytest"):
             continue
         if not isinstance(obj, logging.Logger):
             continue  # 跳过 Placeholder
         obj.handlers.clear()
-        obj.setLevel(logging.NOTSET)
+        obj.level = logging.NOTSET  # 直接赋值，绕过 setLevel 的 _clear_cache（避免 N 次持锁）
         obj.filters.clear()
         obj.propagate = True
+    manager._clear_cache()  # 一次性清所有 logger cache（仅持锁 1 次）
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -99,6 +106,25 @@ def _unit_logger_golden_snapshot():
     """
     _snapshot_golden()
     yield
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _unit_stop_tool_trace_writer():
+    """session 结束时优雅停止 tool_trace 后台写入线程。
+
+    Why: ToolTraceRecorder.__init__（tool_trace.py:179-184）启动 daemon 后台
+    线程 tool-trace-writer，测试期间一旦实例化则线程持续运行。其 _writer_loop
+    在 SQLite 写入失败时调 logger.warning/debug（持 logging 全局锁调 handler IO），
+    与 _isolate_test_loggers 的 _clear_cache 持锁遍历竞争，是 logger teardown
+    死锁的竞争源之一。session 结束统一 reset 单例（内部先 stop() 优雅退出），
+    确保后台线程在进程退出前终止。
+    """
+    yield
+    try:
+        from agent.observability.tool_trace import ToolTraceRecorder
+        ToolTraceRecorder.reset()  # 幂等：_instance 为 None 时无副作用
+    except Exception:
+        pass  # 兜底：清理失败不阻断测试退出
 
 
 @pytest.fixture(scope="function", autouse=True)
