@@ -146,9 +146,10 @@ jobs:
     # --timeout=60 --timeout-method=signal 的 SIGALRM 无法中断 C 扩展调用
     # (sentence_transformers / chromadb / sqlite-vec 的阻塞 join)，导致 pytest
     # 进程无限挂起。timeout-minutes 由 GitHub runner 强制 kill，是最后防线。
-    # 60 分钟 = run 30426327728 实测：8661 测试 42min 跑到 94%（平均 0.31s/测试），
-    # 45min 不够（cancelled at 94%），60min 留 15min 余量跑完全部 + update-ci-dashboard
-    timeout-minutes: 60
+    # 90 分钟 = 启用 -n auto 并行后实测 ~15-20min，90min 留充足余量。
+    # 历史背景: 单线程 8661 测试需 ~60min，曾撞 timeout-minutes:60 被强制取消（97% 处）。
+    # 2026-08-01 修复: 加 -n auto 并行执行，4 worker 各 ~2165 测试，预计 ~15min 完成。
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -179,8 +180,10 @@ jobs:
           SKILLS_OFFLINE: '1'
         run: |
           mkdir -p test-results
-          echo "=== 运行单元测试（signal 超时法，避免线程耗尽 INTERNALERROR）==="
+          echo "=== 运行单元测试（-n auto 并行 + signal 超时法）==="
           pytest tests/unit/ \
+            -n auto \
+            --dist=loadscope \
             -v \
             --tb=short \
             --cov=agent \
@@ -201,6 +204,8 @@ jobs:
           #   1. signal 不创建线程,无累积开销
           #   2. SIGALRM 可中断 join 阻塞和 C 扩展调用
           #   3. Linux 原生支持(Windows 不支持,本地仍用 thread)
+          # 【xdist 交互】-n auto 下 worker 进程自动降级为 thread 方法,
+          #   但每 worker 仅 ~2165 测试（8661/4），远低于线程耗尽阈值，安全。
           # --junitxml: 写结构化测试结果,即使 INTERNALERROR 也能下载查看失败列表
           # --timeout=60: 单测试 60s 超时,平衡灵敏度与误报率
       - name: 失败时打印最近测试日志（定位挂起）
