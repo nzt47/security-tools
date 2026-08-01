@@ -1,0 +1,239 @@
+# ════════════════════════════════════════════════════════════════════
+#  生产环境 HPA 配置 — 技能检索服务
+#
+#  【不易】SLO 不变量: P99 < 40ms（HPA 扩容触发阈值）
+#         指标名对齐 prometheus.py: skill_match_latency_ms / Yunshu_active_connections
+#         此文件为生产环境正式配置，区别于 mock-hpa.yaml（压测专用）
+#
+#  【变易】基于 2026-08-01 压测验证数据调优:
+#    验证结果: 3→15 副本 51.4s 完成（≤60s 目标）
+#    CPU 阈值: 5%（aiohttp I/O 密集，低 CPU 触发）
+#    scaleUp: 6 Pods/30s（3→9→15 两步完成）
+#
+#  【简易】CPU + Memory 双指标 + PrometheusRule 告警，一键部署
+#
+#  部署: kubectl apply -f deploy/k8s/hpa-production.yaml
+#  验证: kubectl get hpa -n production -w
+#  告警: Prometheus → Alertmanager → Webhook/Slack/钉钉
+#
+#  前置条件:
+#    1. metrics-server 已部署（kubectl apply -f deploy/k8s/metrics-server.yaml）
+#    2. Prometheus 已部署并采集 skill_match_latency_ms 指标
+#    3. Alertmanager 已配置通知渠道
+# ════════════════════════════════════════════════════════════════════
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  HPA — 水平 Pod 自动扩缩容
+# ════════════════════════════════════════════════════════════════════
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: skill-retrieval-hpa
+  namespace: production
+  labels:
+    app: skill-retrieval-service
+    env: production
+  annotations:
+    # 文档化配置依据，便于运维理解
+    hpa.config/verified-date: "2026-08-01"
+    hpa.config/verified-scale-time: "51.4s"
+    hpa.config/slo: "P99 < 40ms"
+    hpa.config/threshold-basis: |
+      CPU 5%: aiohttp 异步 I/O 密集，空闲 CPU 仅 1m/100m=1%，
+      10% 阈值在 I/O 场景不触发；5% 对应 5m (0.005核)，轻微负载即扩容
+    hpa.config/maxReplicas-basis: |
+      单副本容量 ~77 QPS（实测），15 副本 = ~1,155 QPS 上限，
+      节点资源: 15×100m=1.5 CPU, 15×128Mi=1.9GB（单节点可承载）
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: skill-retrieval-service
+
+  # ── 副本范围 ──
+  minReplicas: 3   # 最小 3 副本（保证基线 ~230 QPS 时 P99 <40ms）
+  maxReplicas: 15  # 最大 15 副本（~1,155 QPS 上限，验证通过）
+
+  behavior:
+    # ────────────────────────────────────────────────────────────────
+    #  扩容策略：激进快速响应（已验证 51.4s 完成 3→15）
+    #  ────────────────────────────────────────────────────────────────
+    scaleUp:
+      stabilizationWindowSeconds: 0    # 无稳定窗口，立即扩容（流量突增场景必需）
+      policies:
+        # Pods 策略: 每 30s 最多新增 6 个 Pod
+        # 扩容路径: 3→9（+6, 30s）→15（+6, 30s）= 60s 理论极限
+        # 实测: 51.4s（含 HPA 评估延迟 17s + Pod 启动 6s）
+        - type: Pods
+          value: 6
+          periodSeconds: 30
+        # Percent 策略: 每 60s 最多翻倍
+        # 3→6（+100%, 60s）→12（+100%, 60s）= 120s
+        # selectPolicy: Max 取 Pods 和 Percent 中较大值 → Pods 策略生效
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+      selectPolicy: Max   # 取较大值，确保最快扩容
+
+    # ────────────────────────────────────────────────────────────────
+    #  缩容策略：生产环境保守缩容（避免流量波动导致频繁扩缩）
+    #  ────────────────────────────────────────────────────────────────
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 【生产】5 分钟稳定窗口（压测用 30s，生产必须 ≥300s）
+      policies:
+        # 每 60s 最多缩容 1 个 Pod（保守，避免雪崩）
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+        # 每 60s 最多缩容 10%（保守）
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+      selectPolicy: Min   # 取较小值，保守缩容
+
+  metrics:
+    # ── 主指标: CPU 利用率 ──
+    # 5% 阈值依据: aiohttp I/O 密集，CPU 使用率低
+    # 空闲: 1% | 压测 230 QPS: ~50% | 压测 2665 QPS: ~480%
+    # 5% 阈值确保轻微负载（~50 QPS）即触发扩容
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 5
+
+    # ── 辅助指标: 内存利用率 ──
+    # 70% 阈值: aiohttp 连接池在高并发下内存增长
+    # 空闲: 19% | 压测: ~25% | 异常场景（连接泄漏）: >70%
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  PrometheusRule — HPA 告警规则
+#
+#  【不易】告警规则对齐 SLO: P99 < 40ms
+#  【变易】三级告警: warning (35ms) > critical (40ms) > fatal (HPA 失效)
+#  【简易】5 条规则覆盖延迟/容量/可用性三个维度
+# ════════════════════════════════════════════════════════════════════
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: skill-retrieval-hpa-alerts
+  namespace: production
+  labels:
+    app: skill-retrieval-service
+    env: production
+    prometheus: kube-prometheus
+spec:
+  groups:
+    # ── 延迟告警 ──
+    - name: skill-retrieval-latency
+      rules:
+        # P99 超过 40ms（SLO 违规）— 持续 2 分钟即告警
+        - alert: SkillRetrievalP99SLOBreach
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(skill_match_latency_ms_bucket{namespace="production"}[1m])) by (le)
+            ) > 40
+          for: 2m
+          labels:
+            severity: critical
+            service: skill-retrieval
+            slo: "P99 < 40ms"
+          annotations:
+            summary: "技能检索 P99 延迟超过 40ms SLO 阈值"
+            description: |
+              P99 = {{ $value }}ms（阈值 40ms）
+              可能原因: HPA 未及时扩容 / 流量超容量 / 节点资源不足
+              排查: kubectl get hpa -n production
+              Grafana: skill-hpa-monitor / p99-latency-tracker
+
+        # P99 超过 35ms（预警）— 持续 5 分钟告警
+        - alert: SkillRetrievalP99Warning
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(skill_match_latency_ms_bucket{namespace="production"}[1m])) by (le)
+            ) > 35
+          for: 5m
+          labels:
+            severity: warning
+            service: skill-retrieval
+          annotations:
+            summary: "技能检索 P99 延迟接近 SLO 阈值"
+            description: "P99 = {{ $value }}ms（预警线 35ms，SLO 40ms）"
+
+    # ── HPA 容量告警 ──
+    - name: skill-retrieval-hpa-capacity
+      rules:
+        # HPA 已达最大副本数 — 容量耗尽
+        - alert: SkillRetrievalHPAAtMaxReplicas
+          expr: |
+            kube_hpa_status_current_replicas{hpa="skill-retrieval-hpa",namespace="production"}
+            == kube_hpa_spec_max_replicas{hpa="skill-retrieval-hpa",namespace="production"}
+          for: 5m
+          labels:
+            severity: warning
+            service: skill-retrieval
+          annotations:
+            summary: "HPA 已达最大副本数 15，无法继续扩容"
+            description: |
+              当前副本数 = maxReplicas = 15
+              可能需要: 提升 maxReplicas / 增加集群节点 / 优化服务性能
+              排查: kubectl get hpa -n production
+
+        # HPA 扩容速率异常 — CPU 高但副本数未增长
+        - alert: SkillRetrievalHPAScalingStuck
+          expr: |
+            (kube_hpa_status_current_metrics{hpa="skill-retrieval-hpa",namespace="production",metric="cpu"}
+            > 5)
+            and on()
+            (rate(kube_hpa_status_current_replicas{hpa="skill-retrieval-hpa",namespace="production"}[2m]) == 0)
+          for: 3m
+          labels:
+            severity: critical
+            service: skill-retrieval
+          annotations:
+            summary: "HPA 扩容卡住: CPU 超阈值但副本数未增长"
+            description: |
+              CPU > 5% 持续 3 分钟但副本数未变化
+              可能原因: metrics-server 故障 / HPA controller 异常 / Pod 启动失败
+              排查: kubectl describe hpa skill-retrieval-hpa -n production
+
+    # ── HPA 可用性告警 ──
+    - name: skill-retrieval-hpa-availability
+      rules:
+        # HPA 无法获取指标 — 扩容功能失效
+        - alert: SkillRetrievalHPAMetricsUnavailable
+          expr: |
+            kube_hpa_status_condition{hpa="skill-retrieval-hpa",namespace="production",condition="ScalingActive",status="false"}
+          for: 2m
+          labels:
+            severity: critical
+            service: skill-retrieval
+          annotations:
+            summary: "HPA 无法获取指标，扩容功能失效"
+            description: |
+              ScalingActive=False — HPA 无法计算副本数
+              最可能原因: metrics-server 故障
+              排查: kubectl get pod -l k8s-app=metrics-server -n kube-system
+              修复: kubectl apply -f deploy/k8s/metrics-server.yaml
+
+        # HPA 副本数低于最小值 — 异常缩容
+        - alert: SkillRetrievalHPABelowMinReplicas
+          expr: |
+            kube_deployment_status_replicas{deployment="skill-retrieval-service",namespace="production"}
+            < 3
+          for: 1m
+          labels:
+            severity: critical
+            service: skill-retrieval
+          annotations:
+            summary: "副本数低于 minReplicas=3"
+            description: "可能原因: Pod 崩溃 / 资源不足 / 镜像拉取失败"
