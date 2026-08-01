@@ -24,6 +24,10 @@ services:
       - SKILL_RERANKER_USE_ONNX=${SKILL_RERANKER_USE_ONNX:-true}
       - SKILL_RERANKER_ONNX_VARIANT=${SKILL_RERANKER_ONNX_VARIANT:-model_quantized.onnx}
       - SKILL_RERANKER_HOT_RELOAD_INTERVAL=${SKILL_RERANKER_HOT_RELOAD_INTERVAL:-30}
+      # [CHG-2026-0801] OpenMP/MKL 线程数限制：预防 torch/sqlite-vec DLL 线程竞争导致的 0xC0000005
+      #   与 docker-compose.linux-test.yml 保持一致（OMP=4, MKL=4），值可由 .env 覆盖
+      - OMP_NUM_THREADS=${OMP_NUM_THREADS:-4}
+      - MKL_NUM_THREADS=${MKL_NUM_THREADS:-4}
 
     ports:
       - "5678:5678"
