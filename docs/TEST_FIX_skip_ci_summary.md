@@ -107,8 +107,8 @@ AssertionError: Expected 'add_message' to have been called.
 | 项 | 内容 |
 |---|------|
 | **测试目标** | 验证禁用 V2 功能时的向后兼容性 |
-| **输入** | "你好" (2 字符, 触发拒识但返回 success=True) |
-| **修复内容** | 无需修复——拒识返回 `ResponseBuilder.success()`，success=True；V2 属性断言通过 |
+| **输入** | "你好" (2 字符) |
+| **修复内容** | 无需修复——未禁用模板/语义层，但无论走哪条路径（模板匹配③/语义层④/拒识⑤），`ResponseBuilder` 均返回 `success=True`；V2 属性断言通过 |
 | **skip_ci 状态** | ✅ 已移除 |
 | **本地验证** | 1 passed |
 
