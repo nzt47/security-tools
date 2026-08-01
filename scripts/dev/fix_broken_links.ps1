@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<#
+﻿<#
 .SYNOPSIS
     批量修复 docs/ 中的失效 Markdown 链接
 
@@ -185,11 +185,14 @@ function Fix-File {
     $filePath = Join-Path $ProjectRoot $MdFile
     if (-not (Test-Path $filePath)) { return }
 
-    $content = Get-Content $filePath -Raw
+    # 【不易】必须显式指定 UTF8：PS 5.x 默认用 GBK 读取无 BOM 的 UTF-8 文件，
+    # 中文链接路径会乱码导致 Test-Path 误判失效
+    $content = Get-Content $filePath -Raw -Encoding UTF8
     $originalContent = $content
     $fileFixed = 0
 
-    $matches = [regex]::Matches($content, '\[([^\]]+)\]\(([^)]+)\)')
+    # 【不易】链接文本/路径均不可跨行：排除 \r\n 防止全角括号(如 】)导致跨行贪婪匹配
+    $matches = [regex]::Matches($content, '\[([^\]\r\n]+)\]\(([^)\r\n]+)\)')
     $sortedMatches = $matches | Sort-Object -Property Index -Descending
 
     foreach ($match in $sortedMatches) {
@@ -234,14 +237,18 @@ function Fix-File {
     }
 
     if (-not $DryRun -and $content -ne $originalContent -and $fileFixed -gt 0) {
-        Set-Content -Path $filePath -Value $content -NoNewline -Encoding utf8
+        # 【不易】用 .NET 写无 BOM UTF-8：PS 5.x 的 Set-Content -Encoding utf8 会写入 BOM，
+        # 改变原文件编码状态；WriteAllText 保持无 BOM，不破坏现有文件
+        $utf8NoBom = New-Object System.Text.UTF8Encoding $false
+        [System.IO.File]::WriteAllText($filePath, $content, $utf8NoBom)
         $stats.filesModified += $MdFile
         Write-Host "  [SAVED] $MdFile (修复 $fileFixed 处)" -ForegroundColor Green
     }
 }
 
 # ── 主流程 ──
-Write-Host '[1/2] 扫描失效链接...`n' -ForegroundColor Yellow
+# 【简易】双引号才能让 `n 被解释为换行；单引号会原样输出 `n
+Write-Host "[1/2] 扫描失效链接...`n" -ForegroundColor Yellow
 
 if ($File) {
     Fix-File -MdFile $File
