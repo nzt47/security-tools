@@ -287,14 +287,27 @@ def test_data_manager():
 # 测试环境管理
 # ============================================================================
 
+# CI 上验证 EnvConfigManager 自身 .env 文件写入/审计日志/权限行为的测试，
+# 契约是真实文件 I/O，必须排除在 _mock_env_config_in_ci 之外（mock 的
+# set/delete 只操作 os.environ，会导致审计文件永不创建、.env 内容为空）。
+_MOCK_ENV_CONFIG_EXCLUDED_FILES = (
+    'test_env_config_audit.py',
+    'test_env_hot_reload.py',
+    'test_env_file_permissions.py',
+)
+
+
 @pytest.fixture(scope="function", autouse=True)
-def _mock_env_config_in_ci():
+def _mock_env_config_in_ci(request):
     """CI 环境中 mock EnvConfigManager.set/delete，绕过 .env 文件 I/O。
 
     【不易】不改变测试断言语义——仍验证 NetworkConfigManager 正确调用
            _save_secure 并传递正确的 key/value 到 EnvConfigManager。
     【变易】仅 SKILLS_OFFLINE=1（CI 环境）激活，本地开发走真实 .env 写入；
            全局 autouse 对非 CI 环境为 no-op（早返回），零副作用。
+           【CHG-2026-0801】黑名单排除验证 EnvConfigManager 自身文件写入/
+           审计日志/权限契约的测试（见 _MOCK_ENV_CONFIG_EXCLUDED_FILES），
+           否则 mock 的 set/delete 会破坏其断言（CI 上 13+8+4=25 个失败）。
     【简易】mock 直接操作 os.environ，无文件 I/O。
 
     Why 集中到 conftest.py: 原 test_network_config.py 与
@@ -305,6 +318,12 @@ def _mock_env_config_in_ci():
          断言语义不变（仍校验 key/value 正确传递）。
     """
     if not os.environ.get('SKILLS_OFFLINE'):
+        yield
+        return
+
+    # 【不易】黑名单排除：验证 EnvConfigManager 自身文件写入/审计日志/权限
+    # 契约的测试需要真实 I/O，全局 mock 会破坏断言，必须放行。
+    if any(f in request.node.nodeid for f in _MOCK_ENV_CONFIG_EXCLUDED_FILES):
         yield
         return
 
