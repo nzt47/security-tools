@@ -186,7 +186,13 @@ return {"output": output_text, ...}
 
 ### 命中点 6: llm_low_confidence_fallback 层（LLM 低置信度兜底）
 
-> ⚠️ **版本说明**：本节分析基于含 LLM 低置信度兜底功能的版本。当前生产版本 orchestrator.py 中该功能（`_record_intent_layer("llm_low_confidence_fallback")`）**尚未启用**（仅 5 个调用点：rule/template/semantic/llm/reject）。以下分析为该功能上线后的**预防性审查**，相关单元测试（`tests/unit/test_llm_low_confidence_dual_counting.py`）已用模拟 layer 值验证 ratio 计算逻辑的通用正确性。
+> **版本说明（2026-08-01 更新）**：`llm_low_confidence_fallback` 层**已启用**。`agent/orchestrator/orchestrator.py:553` 存在调用，共 **6 个调用点**（rule/template/semantic/llm/llm_low_confidence_fallback/reject）。
+>
+> **【不易】子指标定性**：`llm_low_confidence_fallback` 是 `llm` 的**设计性子指标**（非独立意图层）——L467 记 `llm`（LLM 调用前，守 INV-4），L544 低置信度判定后 L553 记 `fallback`，一次低置信度请求被计 2 次。这是**设计性双重计数**（llm 父 / fallback 子），**非 bug**：ratio 总和仍 = 1.0（分母同步），但若 dashboard 将 6 层并列展示，`llm` 占比会被 `fallback` 稀释虚低。
+>
+> **隔离方案**：见下方「方案 A（推荐）」的 PromQL，将 fallback 从意图层分布饼图隔离，单独作"LLM 兜底率"展示。
+>
+> 相关单元测试（`tests/unit/test_llm_low_confidence_dual_counting.py`）已用模拟 layer 值验证 ratio 计算逻辑的通用正确性。
 
 **位置**：`agent/orchestrator/orchestrator.py:553`（位于 `process` 方法内，LLM 调用成功后的低置信度判断分支）
 
@@ -260,16 +266,51 @@ ratio 总和 = Σ(count_i / total) = (Σ count_i) / total = total / total = 1.0
 
 **方案 A（推荐）：保留埋点，dashboard 独立展示**
 
-`llm_low_confidence_fallback` 是有业务意义的子指标（LLM 兜底率），不应删除。但需确保 dashboard 不把它纳入"四层占比"饼图：
+`llm_low_confidence_fallback` 是有业务意义的子指标（LLM 兜底率），不应删除。但需确保 dashboard 不把它纳入"意图层分布"饼图，而是单独作"LLM 兜底率"展示。
+
+**推荐 PromQL（基于 `yunshu_intent_layer_total` Counter 的 `rate()`，反映实时流量分布）**：
 
 ```promql
-# 四层占比饼图（排除 fallback）
-yunshu_intent_layer_ratio{layer=~"rule|template|semantic|llm|reject"}
+# ── 1. 意图层分布饼图（5 主层，排除 fallback，归一化到 1.0）──
+# llm 包含所有进入 LLM 路径的请求（含后续 fallback），符合"链路处理"语义
+sum by (layer) (rate(yunshu_intent_layer_total{layer=~"rule|template|semantic|llm|reject"}[5m]))
+  / on() group_left
+sum(rate(yunshu_intent_layer_total{layer=~"rule|template|semantic|llm|reject"}[5m]))
 
-# LLM 低置信率（独立面板）
-yunshu_intent_layer_total{layer="llm_low_confidence_fallback"} 
-  / yunshu_intent_layer_total{layer="llm"}
+# ── 2. LLM 兜底率（独立面板，fallback 占 llm 的比例）──
+sum(rate(yunshu_intent_layer_total{layer="llm_low_confidence_fallback"}[5m]))
+  / on() group_left
+sum(rate(yunshu_intent_layer_total{layer="llm"}[5m]))
+
+# ── 3. 各层原始 QPS（调试用，含 fallback 全 6 层）──
+sum by (layer) (rate(yunshu_intent_layer_total[5m]))
+
+# ── 4. fallback 绝对 QPS（独立面板备选）──
+sum(rate(yunshu_intent_layer_total{layer="llm_low_confidence_fallback"}[5m]))
 ```
+
+**备选 PromQL（基于 `yunshu_intent_layer_ratio` Gauge，反映进程级累计占比）**：
+
+```promql
+# 累计意图层分布（5 主层，排除 fallback，归一化）
+yunshu_intent_layer_ratio{layer=~"rule|template|semantic|llm|reject"}
+  / on() group_left
+sum(yunshu_intent_layer_ratio{layer=~"rule|template|semantic|llm|reject"})
+
+# 累计 LLM 兜底率
+yunshu_intent_layer_ratio{layer="llm_low_confidence_fallback"}
+  / yunshu_intent_layer_ratio{layer="llm"}
+```
+
+**Grafana 面板配置建议**：
+- 主饼图（Panel 1）：用 PromQL #1，`Pie chart` 类型，legend 显示 layer 名
+- 兜底率面板（Panel 2）：用 PromQL #2，`Gauge` 或 `Stat` 类型，阈值 10%（warning）/ 30%（critical）
+- 原始 QPS 面板（Panel 3）：用 PromQL #3，`Time series` 或 `Bar chart`，6 层对比
+
+**为什么用 `rate(Counter)` 而非 `Gauge`**：
+- Counter `rate()` 反映**实时流量分布**（5 分钟窗口），适合监控告警
+- Gauge 反映**进程启动以来的累计占比**（受 `reset_intent_layer_counts()` 影响），适合整体趋势分析
+- 两者兜底率公式等价：`(fallback/total)/(llm/total) = fallback/llm`
 
 **方案 B：L467 不记 llm，改为 L553 后按置信度分别记**
 
@@ -381,6 +422,7 @@ grep -n "_record_intent_layer" agent/orchestrator/orchestrator.py  # 确认行�
 | 日期 | 版本 | 变更 |
 |------|------|------|
 | 2026-08-01 | v1.0 | 初版：基于 orchestrator.py 当前版本生成 5 命中点审查清单 |
+| 2026-08-01 | v1.1 | 修正命中点 6 版本说明（fallback 已启用，6 个调用点）；完善方案 A PromQL（rate+归一化+Gauge 备选+Grafana 面板配置） |
 
 ---
 
