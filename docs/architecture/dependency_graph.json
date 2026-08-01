@@ -1,5 +1,5 @@
 {
-  "trace_id": "a7d2e7da718f4821",
+  "trace_id": "ca3cd569c7c24479",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -495,7 +495,7 @@
       "name": "metrics",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 11,
+      "in_degree": 12,
       "out_degree": 0
     },
     {
@@ -543,7 +543,7 @@
       "name": "error_handler",
       "layer": "core",
       "file_path": "agent/error_handler.py",
-      "in_degree": 14,
+      "in_degree": 15,
       "out_degree": 6
     },
     {
@@ -1087,7 +1087,7 @@
       "name": "orchestrator",
       "layer": "orchestrator",
       "file_path": "agent/orchestrator/orchestrator.py",
-      "in_degree": 2,
+      "in_degree": 6,
       "out_degree": 22
     },
     {
@@ -1385,6 +1385,14 @@
       "file_path": "",
       "in_degree": 2,
       "out_degree": 2
+    },
+    {
+      "path": "agent.config.etcd_config_client",
+      "name": "etcd_config_client",
+      "layer": "config",
+      "file_path": "agent/config/etcd_config_client.py",
+      "in_degree": 0,
+      "out_degree": 6
     },
     {
       "path": "agent.skills_mgmt.creator",
@@ -2643,7 +2651,7 @@
       "source_layer": "core",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 899,
+      "line": 1014,
       "source_file": "agent/network_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5927,6 +5935,84 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.config.etcd_config_client",
+      "target": "agent.orchestrator.orchestrator",
+      "source_layer": "config",
+      "target_layer": "orchestrator",
+      "import_type": "from_import",
+      "line": 165,
+      "source_file": "agent/config/etcd_config_client.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.config.etcd_config_client",
+      "target": "agent.orchestrator.orchestrator",
+      "source_layer": "config",
+      "target_layer": "orchestrator",
+      "import_type": "from_import",
+      "line": 196,
+      "source_file": "agent/config/etcd_config_client.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.config.etcd_config_client",
+      "target": "agent.monitoring.metrics",
+      "source_layer": "config",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 70,
+      "source_file": "agent/config/etcd_config_client.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.config.etcd_config_client",
+      "target": "agent.error_handler",
+      "source_layer": "config",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 86,
+      "source_file": "agent/config/etcd_config_client.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.config.etcd_config_client",
+      "target": "agent.orchestrator.orchestrator",
+      "source_layer": "config",
+      "target_layer": "orchestrator",
+      "import_type": "from_import",
+      "line": 359,
+      "source_file": "agent/config/etcd_config_client.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.config.etcd_config_client",
+      "target": "agent.orchestrator.orchestrator",
+      "source_layer": "config",
+      "target_layer": "orchestrator",
+      "import_type": "from_import",
+      "line": 403,
+      "source_file": "agent/config/etcd_config_client.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.skills_mgmt.creator",
       "target": "agent.extensions.market",
       "source_layer": "skills_mgmt",
@@ -9104,7 +9190,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 23,
+      "line": 22,
       "source_file": "agent/monitoring/observability_optimizations.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9377,7 +9463,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 25,
+      "line": 24,
       "source_file": "agent/monitoring/performance_optimization.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9390,7 +9476,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 834,
+      "line": 831,
       "source_file": "agent/monitoring/performance_optimization.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9403,7 +9489,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 22,
+      "line": 21,
       "source_file": "agent/monitoring/tracing_cache.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9416,7 +9502,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 325,
+      "line": 322,
       "source_file": "agent/monitoring/tracing_cache.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9867,10 +9953,10 @@
     }
   ],
   "stats": {
-    "total_files": 341,
-    "total_nodes": 269,
-    "total_edges": 593,
-    "cross_layer_edges": 374,
+    "total_files": 343,
+    "total_nodes": 270,
+    "total_edges": 599,
+    "cross_layer_edges": 380,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -9901,6 +9987,7 @@
       "tool_fewshot_store": 1,
       "audit": 3,
       "prompt_manager": 3,
+      "config": 1,
       "feedback_collector": 1,
       "model_router": 2,
       "server_routes": 26,
@@ -9910,6 +9997,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1251.1284290000049
+    "build_duration_ms": 1265.4541670000015
   }
 }
