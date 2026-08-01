@@ -471,44 +471,49 @@ class TestToolCallingIntegration:
                     assert digital_life._tool_calling_service is None
 
     @pytest.mark.skip_ci
-    def test_tool_calling_chat_flow(self, mock_behavior_controller, 
+    def test_tool_calling_chat_flow(self, mock_behavior_controller,
                                      mock_memory_manager, mock_permission_system):
         """测试工具调用对话流程"""
         from agent.digital_life import DigitalLife
-        
+
         mock_llm = MagicMock()
         mock_memory_manager._llm_service = mock_llm
-        
+
         mock_tc = MagicMock()
         mock_tc.chat_with_steps.return_value = {
             "text": "工具调用结果",
             "steps": []
         }
-        
+
         mock_workflow = MagicMock()
         mock_workflow.try_match.return_value = MagicMock(matched=False)
-        
+
         config = {'tool_calling': {'enabled': True}}
-        
-        with patch('agent.orchestrator.lifecycle_manager.BehaviorController', 
+
+        with patch('agent.orchestrator.lifecycle_manager.BehaviorController',
                    return_value=mock_behavior_controller):
-            with patch('agent.orchestrator.lifecycle_manager.MemoryManager', 
+            with patch('agent.orchestrator.lifecycle_manager.MemoryManager',
                        return_value=mock_memory_manager):
-                with patch('agent.orchestrator.lifecycle_manager.PermissionSystem', 
+                with patch('agent.orchestrator.lifecycle_manager.PermissionSystem',
                            return_value=mock_permission_system):
-                    with patch('agent.workflow_engine.engine.WorkflowEngine', 
+                    with patch('agent.workflow_engine.engine.WorkflowEngine',
                                return_value=mock_workflow):
                         with patch('agent.tool_calling.ToolCallingService', return_value=mock_tc):
-                            digital_life = DigitalLife(config=config)
-                            digital_life._v2_lifetrace = True
-                            digital_life._trace_recorder = MagicMock()
-                            digital_life.start()
-                            
-                            # 触发 _call_llm_v2 路径
-                            result = digital_life.process("搜索天气")
-                            
-                            assert result["success"] is True
-                            mock_tc.chat_with_steps.assert_called()
+                            # 【不易】禁用模板匹配和语义层匹配，确保走 V2 LLM 路径
+                            with patch('agent.response_workflows.ResponseTemplates.for_intent',
+                                       return_value=None):
+                                digital_life = DigitalLife(config=config)
+                                digital_life._v2_lifetrace = True
+                                digital_life._trace_recorder = MagicMock()
+                                # 【变易】禁用语义层短路返回
+                                digital_life._semantic_layer_match = MagicMock(return_value=None)
+                                digital_life.start()
+
+                                # 触发 _call_llm_v2 路径
+                                result = digital_life.process("搜索天气信息")
+
+                                assert result["success"] is True
+                                mock_tc.chat_with_steps.assert_called()
 
 
 class TestPermissionIntegration:
