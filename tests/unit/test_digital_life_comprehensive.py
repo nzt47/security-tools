@@ -899,8 +899,13 @@ class TestProcessUserInput:
         """测试向量记忆保存失败时仍返回响应"""
         vm = MagicMock()
         vm.add.side_effect = Exception("Memory save failed")
-        orch = _make_test_orch(_vector_memory=vm,
-                               _call_llm=MagicMock(return_value="Response"))
+        orch = _make_test_orch(
+            _vector_memory=vm,
+            _call_llm=MagicMock(return_value="Response"),
+            # 绕过拒识（拒识行为由 test_orchestrator_reject.py 独立守卫），
+            # 本用例只聚焦"向量记忆保存失败仍返回 LLM 响应"这一容错契约
+            _should_reject=MagicMock(return_value=(False, "test: bypass reject")),
+        )
         result = orch.process("Test input")
         assert result["success"] is True
         assert result["data"] == "Response"

@@ -11,6 +11,7 @@
 
 import time
 import json
+import copy
 import threading
 import queue
 import uuid
@@ -41,7 +42,7 @@ class LRUCache:
         self._lock = threading.RLock()
     
     def get(self, key: str) -> Optional[Any]:
-        """获取缓存值"""
+        """获取缓存值（【不易】出口隔离：返回 deepcopy 副本，防调用方污染缓存）"""
         with self._lock:
             if key not in self._cache:
                 return None
@@ -54,7 +55,7 @@ class LRUCache:
             
             # 标记为最近使用
             self._cache.move_to_end(key)
-            return value
+            return copy.deepcopy(value)
     
     def set(self, key: str, value: Any):
         """设置缓存值"""

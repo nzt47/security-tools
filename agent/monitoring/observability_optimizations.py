@@ -13,6 +13,7 @@ import time
 import threading
 import queue
 import json
+import copy
 import hashlib
 import uuid
 import logging
@@ -253,7 +254,7 @@ class MemoryEfficientCache:
         self._stats = OptimizationStats()
     
     def get(self, key: str) -> Optional[Any]:
-        """获取缓存值"""
+        """获取缓存值（【不易】出口隔离：返回 deepcopy 副本，防调用方污染缓存）"""
         with self._lock:
             if key not in self._cache:
                 self._stats.cache_misses += 1
@@ -270,7 +271,7 @@ class MemoryEfficientCache:
             # 标记为最近使用
             self._cache.move_to_end(key)
             self._stats.cache_hits += 1
-            return value
+            return copy.deepcopy(value)
     
     def set(self, key: str, value: Any):
         """设置缓存值"""
