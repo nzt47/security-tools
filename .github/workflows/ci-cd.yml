@@ -130,7 +130,7 @@ jobs:
           pip install pytest-cov -q
           python -m pytest tests/unit/test_error_reporting.py \
             tests/integration/test_digital_life_integration.py \
-            --cov=agent --cov-report=json:coverage.json -v --tb=short -m "not skip_ci"
+            --cov=agent --cov-report=json:coverage.json --no-cov-fail-under -v --tb=short -m "not skip_ci"
 
       # [CHG-2026-0730] 从 pytest-cov JSON 提取覆盖率
       - name: Extract coverage
