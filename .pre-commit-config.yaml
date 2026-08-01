@@ -75,3 +75,15 @@ repos:
           以及 subprocess 退出码一致性。任一断言失败 exit 1 阻断提交，
           并自动打印完整调用堆栈（--traceback）到 stderr 供快速定位。
           静默模式（--pre-commit）不污染 hook 输出。
+      - id: ps-script-analyzer
+        name: PowerShell 静态分析 (PSScriptAnalyzer)
+        entry: pwsh -NoProfile -File scripts/dev/run_psscriptanalyzer.ps1
+        language: system
+        pass_filenames: false
+        files: '^scripts/dev/.*\.ps1$'
+        stages: [commit]
+        description: >
+          扫描 scripts/dev/ 下 PowerShell 脚本的静态分析（语法错误、
+          不良实践、潜在 bug）。发现 Error 级别问题时阻断提交。
+          首次运行自动安装 PSScriptAnalyzer 模块。覆盖 fix_broken_links.ps1
+          的 BOM/正则/编码类 bug，防止同类问题复发（2026-08-01 提案）。
