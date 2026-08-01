@@ -330,7 +330,6 @@ class TestBehaviorLoop:
                             assert digital_life._interaction_count == 1
                             assert response == "测试响应"
 
-    @pytest.mark.skip_ci
     def test_behavior_can_execute_rejects_request(self, mock_behavior_controller, 
                                                   mock_memory_manager, mock_permission_system):
         """测试行为控制器拒绝请求"""
@@ -469,7 +468,6 @@ class TestToolCallingIntegration:
                     
                     assert digital_life._tool_calling_service is None
 
-    @pytest.mark.skip_ci
     def test_tool_calling_chat_flow(self, mock_behavior_controller,
                                      mock_memory_manager, mock_permission_system):
         """测试工具调用对话流程"""
@@ -623,7 +621,6 @@ class TestStatePersistence:
                     assert digital_life.is_running is False
                     mock_memory_manager.generate_summary_levels.assert_called()
 
-    @pytest.mark.skip_ci
     def test_memory_logging(self, mock_behavior_controller,
                             mock_memory_manager, mock_permission_system):
         """测试记忆日志记录"""
@@ -1088,7 +1085,6 @@ class TestV2DistillationIntegration:
 class TestV2Compatibility:
     """P1: V2 功能与旧版本兼容性测试"""
 
-    @pytest.mark.skip_ci
     def test_v2_features_disabled_backward_compatible(self, mock_behavior_controller, 
                                                      mock_memory_manager, mock_permission_system):
         """测试禁用 V2 功能时与旧版本兼容"""
