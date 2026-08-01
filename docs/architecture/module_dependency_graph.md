@@ -891,13 +891,6 @@ flowchart LR
     agent_monitoring_resource_monitor -.-> agent_logging_utils
     agent_monitoring_resource_monitor --> agent_monitoring_business_metrics
     agent_monitoring_resource_monitor --> agent_monitoring_observability_config
-    agent_monitoring --> agent_monitoring_tracing
-    agent_monitoring --> agent_monitoring_metrics
-    agent_monitoring --> agent_monitoring_error_reporter
-    agent_monitoring --> agent_monitoring_decorators
-    agent_monitoring --> agent_monitoring_performance
-    agent_monitoring --> agent_monitoring_search
-    agent_monitoring --> agent_monitoring_prometheus
     agent_monitoring_error_reporter --> agent_monitoring_tracing
     agent_monitoring_error_reporter -.-> agent_error_handler
     agent_monitoring_error_reporter -.-> agent_error_reporting_config
@@ -955,8 +948,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 343
 - 模块节点数: 270
-- 依赖边数: 599
+- 依赖边数: 592
 - 跨层调用数: 380
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1265.45 ms
+- 构建耗时: 1273.27 ms

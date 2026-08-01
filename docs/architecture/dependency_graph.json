@@ -1,5 +1,5 @@
 {
-  "trace_id": "ca3cd569c7c24479",
+  "trace_id": "0277c9b0b8fa4e09",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -88,7 +88,7 @@
       "layer": "monitoring",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 7
+      "out_degree": 0
     },
     {
       "path": "agent.system_prompt_manager",
@@ -111,7 +111,7 @@
       "name": "performance",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 4,
+      "in_degree": 3,
       "out_degree": 1
     },
     {
@@ -143,7 +143,7 @@
       "name": "tracing",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 38,
+      "in_degree": 37,
       "out_degree": 2
     },
     {
@@ -255,7 +255,7 @@
       "name": "search",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 2,
+      "in_degree": 1,
       "out_degree": 3
     },
     {
@@ -351,7 +351,7 @@
       "name": "prometheus",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 7,
+      "in_degree": 6,
       "out_degree": 9
     },
     {
@@ -495,7 +495,7 @@
       "name": "metrics",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 12,
+      "in_degree": 11,
       "out_degree": 0
     },
     {
@@ -2062,17 +2062,9 @@
       "path": "agent.monitoring.error_reporter",
       "name": "error_reporter",
       "layer": "monitoring",
-      "file_path": "",
-      "in_degree": 2,
-      "out_degree": 3
-    },
-    {
-      "path": "agent.monitoring.decorators",
-      "name": "decorators",
-      "layer": "monitoring",
-      "file_path": "",
+      "file_path": "agent/monitoring/error_reporter.py",
       "in_degree": 1,
-      "out_degree": 5
+      "out_degree": 3
     },
     {
       "path": "agent.monitoring.config_observability",
@@ -2121,6 +2113,14 @@
       "file_path": "",
       "in_degree": 1,
       "out_degree": 0
+    },
+    {
+      "path": "agent.monitoring.decorators",
+      "name": "decorators",
+      "layer": "monitoring",
+      "file_path": "agent/monitoring/decorators.py",
+      "in_degree": 0,
+      "out_degree": 5
     },
     {
       "path": "agent.task_planner.enhanced_dag",
@@ -9250,97 +9250,6 @@
       "is_dynamic": false
     },
     {
-      "source": "agent.monitoring",
-      "target": "agent.monitoring.tracing",
-      "source_layer": "monitoring",
-      "target_layer": "monitoring",
-      "import_type": "from_import",
-      "line": 34,
-      "source_file": "agent/monitoring/__init__.py",
-      "is_cross_layer": false,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.monitoring",
-      "target": "agent.monitoring.metrics",
-      "source_layer": "monitoring",
-      "target_layer": "monitoring",
-      "import_type": "from_import",
-      "line": 61,
-      "source_file": "agent/monitoring/__init__.py",
-      "is_cross_layer": false,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.monitoring",
-      "target": "agent.monitoring.error_reporter",
-      "source_layer": "monitoring",
-      "target_layer": "monitoring",
-      "import_type": "from_import",
-      "line": 71,
-      "source_file": "agent/monitoring/__init__.py",
-      "is_cross_layer": false,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.monitoring",
-      "target": "agent.monitoring.decorators",
-      "source_layer": "monitoring",
-      "target_layer": "monitoring",
-      "import_type": "from_import",
-      "line": 87,
-      "source_file": "agent/monitoring/__init__.py",
-      "is_cross_layer": false,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.monitoring",
-      "target": "agent.monitoring.performance",
-      "source_layer": "monitoring",
-      "target_layer": "monitoring",
-      "import_type": "from_import",
-      "line": 96,
-      "source_file": "agent/monitoring/__init__.py",
-      "is_cross_layer": false,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.monitoring",
-      "target": "agent.monitoring.search",
-      "source_layer": "monitoring",
-      "target_layer": "monitoring",
-      "import_type": "from_import",
-      "line": 119,
-      "source_file": "agent/monitoring/__init__.py",
-      "is_cross_layer": false,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.monitoring",
-      "target": "agent.monitoring.prometheus",
-      "source_layer": "monitoring",
-      "target_layer": "monitoring",
-      "import_type": "from_import",
-      "line": 131,
-      "source_file": "agent/monitoring/__init__.py",
-      "is_cross_layer": false,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
       "source": "agent.monitoring.error_reporter",
       "target": "agent.monitoring.tracing",
       "source_layer": "monitoring",
@@ -9955,7 +9864,7 @@
   "stats": {
     "total_files": 343,
     "total_nodes": 270,
-    "total_edges": 599,
+    "total_edges": 592,
     "cross_layer_edges": 380,
     "violation_edges": 0,
     "dynamic_edges": 1,
@@ -9997,6 +9906,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1265.4541670000015
+    "build_duration_ms": 1273.2726939999993
   }
 }
