@@ -358,8 +358,7 @@ class TestBehaviorLoop:
                         response = result.get("response", "") or result.get("data", "") or str(result)
                         assert "资源不足" in response or "拒绝" in response or "rejected" in response.lower()
 
-    @pytest.mark.skip_ci
-    def test_workflow_engine_match(self, mock_behavior_controller, 
+    def test_workflow_engine_match(self, mock_behavior_controller,
                                    mock_memory_manager, mock_permission_system):
         """测试工作流引擎规则匹配（零Token消耗路径）"""
         from agent.digital_life import DigitalLife
@@ -625,33 +624,38 @@ class TestStatePersistence:
                     mock_memory_manager.generate_summary_levels.assert_called()
 
     @pytest.mark.skip_ci
-    def test_memory_logging(self, mock_behavior_controller, 
+    def test_memory_logging(self, mock_behavior_controller,
                             mock_memory_manager, mock_permission_system):
         """测试记忆日志记录"""
         from agent.digital_life import DigitalLife
-        
+
         mock_workflow = MagicMock()
         mock_workflow.try_match.return_value = MagicMock(matched=False)
-        
-        with patch('agent.orchestrator.lifecycle_manager.BehaviorController', 
+
+        with patch('agent.orchestrator.lifecycle_manager.BehaviorController',
                    return_value=mock_behavior_controller):
-            with patch('agent.orchestrator.lifecycle_manager.MemoryManager', 
+            with patch('agent.orchestrator.lifecycle_manager.MemoryManager',
                        return_value=mock_memory_manager):
-                with patch('agent.orchestrator.lifecycle_manager.PermissionSystem', 
+                with patch('agent.orchestrator.lifecycle_manager.PermissionSystem',
                            return_value=mock_permission_system):
-                    with patch('agent.workflow_engine.engine.WorkflowEngine', 
+                    with patch('agent.workflow_engine.engine.WorkflowEngine',
                                return_value=mock_workflow):
-                        digital_life = DigitalLife(config={})
-                        digital_life._v2_lifetrace = False
-                        digital_life.start()
-                        
-                        # Mock LLM 调用
-                        digital_life._call_llm = MagicMock(return_value="响应")
-                        
-                        digital_life.chat("测试")
-                        
-                        mock_memory_manager.score_and_save_message.assert_called()
-                        mock_memory_manager.add_message.assert_called()
+                        # 【不易】禁用模板匹配和语义层匹配，确保走 LLM 路径触发 add_message
+                        with patch('agent.response_workflows.ResponseTemplates.for_intent',
+                                   return_value=None):
+                            digital_life = DigitalLife(config={})
+                            digital_life._v2_lifetrace = False
+                            digital_life._semantic_layer_match = MagicMock(return_value=None)
+                            digital_life.start()
+
+                            # Mock LLM 调用
+                            digital_life._call_llm = MagicMock(return_value="响应")
+
+                            # 【不易】输入需 ≥3 字符以越过拒识阈值
+                            digital_life.chat("测试记忆功能")
+
+                            mock_memory_manager.score_and_save_message.assert_called()
+                            mock_memory_manager.add_message.assert_called()
 
 
 class TestLifecycleManagement:
