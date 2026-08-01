@@ -70,7 +70,9 @@ dependencies = [
   "pypiwin32>=223; sys_platform == 'win32'",
   "comtypes>=1.4.0; sys_platform == 'win32'",
   "wmi>=1.5.0,<1.6.0; sys_platform == 'win32'",
-  "pythoncom>=0.0.1; sys_platform == 'win32'"
+  "pythoncom>=0.0.1; sys_platform == 'win32'",
+  "pydantic>=2.0.0,<3.0.0",
+  "prometheus-client>=0.20.0"
 ]
 
 [project.optional-dependencies]
@@ -80,8 +82,10 @@ dev = [
   "pytest-mock>=3.10.0",
   "pytest-xdist>=3.0.0",
   "pytest-asyncio>=0.21.0",
+  "pytest-timeout>=2.0.0",
   "flake8>=6.0.0",
   "black>=23.0.0",
+  "ruff>=0.4.0",
   "isort>=5.12.0",
   "mypy>=1.0.0",
   "bandit>=1.7.0",
