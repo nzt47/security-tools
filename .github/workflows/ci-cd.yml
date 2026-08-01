@@ -290,10 +290,101 @@ jobs:
           path: logs/
           retention-days: 90
 
+  # [CHG-2026-0801] Reranker 热重载 + 无效 variant 回滚追踪验证（任务1/2 CI 集成）
+  reranker-hot-reload:
+    name: Reranker Hot Reload & Log Verification
+    runs-on: ubuntu-latest
+    needs: lint-and-typecheck
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-reranker-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-reranker-
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest pytest-timeout pytest-asyncio -q
+
+      - name: Run reranker unit tests (含日志优化与热重载)
+        env:
+          SKILLS_OFFLINE: "1"
+          PYTHONIOENCODING: utf-8
+        run: |
+          mkdir -p reports
+          python -m pytest tests/unit/test_reranker.py tests/unit/test_reranker_hot_reload.py \
+            -v --tb=short --junitxml=reports/reranker-test-results.xml
+
+      - name: Run hot reload stability test
+        env:
+          SKILLS_OFFLINE: "1"
+          PYTHONIOENCODING: utf-8
+        run: |
+          echo "=== 热重载稳定性测试（并发 rerank + variant 切换）==="
+          python scripts/test_hot_reload_stability.py \
+            --duration 15 --concurrency 4 --ci-mode
+
+      - name: Verify traceback capture on invalid variant rollback
+        env:
+          SKILLS_OFFLINE: "1"
+          PYTHONIOENCODING: utf-8
+        run: |
+          echo "=== 验证无效 variant 回滚 traceback 捕获（任务2）==="
+          python -c "
+          import os, sys
+          sys.path.insert(0, '.')
+          from unittest.mock import patch, MagicMock
+          os.environ['SKILLS_OFFLINE']='1'
+          os.environ['SKILL_RERANKER_USE_ONNX']='true'
+          os.environ['SKILL_RERANKER_ONNX_VARIANT']='model_quantized.onnx'
+          os.environ['SKILL_RERANKER_HOT_RELOAD_INTERVAL']='0'
+          from agent.skills_mgmt.reranker import SkillReranker
+          r = SkillReranker()
+          r._onnx_session = MagicMock(); r._onnx_tokenizer = MagicMock()
+          r._onnx_input_names = ['input_ids']; r._use_onnx = True; r._load_attempted = True
+          def _boom(self, variant):
+              raise FileNotFoundError(f'onnx_file_not_found: /fake/{variant}')
+          with patch.object(SkillReranker, '_try_load_onnx_variant', _boom):
+              os.environ['SKILL_RERANKER_ONNX_VARIANT']='nonexistent.onnx'
+              r._maybe_hot_reload()
+          assert r._last_load_traceback is not None, 'traceback 未捕获'
+          assert 'Traceback' in r._last_load_traceback, 'traceback 格式异常'
+          assert 'FileNotFoundError' in r._last_load_traceback, '异常类型未记录'
+          print('[P0-CI] traceback 捕获验证通过')
+          print('[P0-CI] traceback 片段:', r._last_load_traceback.splitlines()[-1][:120])
+          "
+
+      - name: Upload reranker test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reranker-test-results
+          path: reports/reranker-test-results.xml
+          retention-days: 30
+
+      - name: Record CI test metrics
+        if: always()
+        env:
+          PUSHGATEWAY_URL: ${{ env.PUSHGATEWAY_URL }}
+        run: |
+          pip install prometheus_client -q 2>/dev/null || true
+          python scripts/cicd_metrics_push.py --stage test ${{ job.status == 'success' && '--success' || '' }}
+
   deployment-ready:
     name: Deployment Ready
     runs-on: ubuntu-latest
-    needs: [stress-test, integration-test, circuit-breaker-inspection]
+    needs: [stress-test, integration-test, circuit-breaker-inspection, reranker-hot-reload]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       # [CHG-2026-0730] 记录部署开始时间戳

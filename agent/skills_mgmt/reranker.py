@@ -47,6 +47,7 @@ Windows 崩溃防护（守【不易】）:
     SKILL_RERANKER_MIN_SCORE: 最低分数阈值（默认 0.001）
     SKILL_RERANKER_USE_ONNX: 是否优先使用 ONNX 推理（默认 true）
     SKILL_RERANKER_ONNX_VARIANT: ONNX 变体文件名（默认 model_quantized.onnx）
+    SKILL_RERANKER_HOT_RELOAD_INTERVAL: 热重载 env 检查间隔秒（默认 30，惰性触发，不启后台线程）
 """
 from __future__ import annotations
 
@@ -54,7 +55,9 @@ import json
 import math
 import os
 import sys
+import threading
 import time
+import traceback
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -168,6 +171,20 @@ class SkillReranker:
         self._rerank_timeout = float(os.environ.get(
             "SKILL_RERANKER_RERANK_TIMEOUT", str(self._DEFAULT_RERANK_TIMEOUT)
         ))
+        # ── 热重载状态（最小实现：惰性检查 + RLock 保护 session 交换）──
+        # 【不易】_onnx_variant_loaded：当前已加载 session 对应的 variant（回滚基准）
+        # 【不易】_onnx_variant_attempted：最近尝试的 variant（含失败），避免无效 variant 无限重试
+        self._onnx_variant_loaded = self._onnx_variant
+        self._onnx_variant_attempted = self._onnx_variant
+        self._last_reload_check = 0.0  # 上次 env 检查时间戳（节流用）
+        self._hot_reload_interval = float(os.environ.get(
+            "SKILL_RERANKER_HOT_RELOAD_INTERVAL", "30"
+        ))
+        # 【不易】RLock 仅保护 session 引用交换（内存状态），锁内不做 I/O（守 project_memory 约束）
+        self._reload_lock = threading.RLock()
+        # 【变易】最近一次加载失败的错误信息 + traceback（side-channel，供验收检查读取）
+        self._last_load_error: Optional[str] = None
+        self._last_load_traceback: Optional[str] = None
 
     # ──────────────────────────────────────────────
     #  模型加载（懒加载 + 降级）
@@ -392,6 +409,145 @@ class SkillReranker:
             return False
 
     # ──────────────────────────────────────────────
+    #  热重载（最小实现：惰性检查 variant 变化 → 加载 → 锁内交换/回滚）
+    # ──────────────────────────────────────────────
+
+    def _maybe_hot_reload(self) -> None:
+        """惰性检查 .env 中 ONNX variant 是否变化，变化则触发热重载。
+
+        【不易】无 session 或非 ONNX 后端时直接返回（首次加载交给 _load_model）
+        【变易】间隔节流（_hot_reload_interval，默认 30s）避免每次 rerank 都读 env
+        【简易】无后台线程，仅在 rerank 调用路径上顺带检查
+
+        触发时机：每次 rerank() 调用、_load_model() 成功之后。
+        无效 variant 不会无限重试：_onnx_variant_attempted 标记已尝试的 variant。
+        """
+        # 仅 ONNX 后端已加载时才检查热重载
+        if self._onnx_session is None or not self._use_onnx:
+            return
+        # 节流：未到检查间隔则跳过
+        now = time.time()
+        if now - self._last_reload_check < self._hot_reload_interval:
+            return
+        self._last_reload_check = now
+        env_variant = os.environ.get(
+            "SKILL_RERANKER_ONNX_VARIANT", self._DEFAULT_ONNX_VARIANT
+        )
+        # 与最近尝试的 variant 相同（成功或失败）→ 跳过，避免重复加载/重试
+        if env_variant == self._onnx_variant_attempted:
+            return
+        self._hot_reload(env_variant)
+
+    def _hot_reload(self, new_variant: str) -> None:
+        """热重载到新 variant；失败时捕获异常堆栈并回滚到旧 session。
+
+        【不易】加载失败保留旧 session（不中断服务），并记录 traceback（任务2核心）
+        【变易】加载在锁外执行（I/O），session 引用交换在 RLock 内（仅内存状态）
+        【简易】_try_load_onnx_variant 不捕获异常，由本方法统一捕获 + 记录堆栈
+        """
+        t0 = time.time()
+        old_variant = self._onnx_variant_loaded
+        logger.info(json.dumps({
+            "module_name": "reranker",
+            "action": "hot_reload.detected",
+            "old_variant": old_variant,
+            "new_variant": new_variant,
+        }, ensure_ascii=False))
+
+        try:
+            new_session, new_tokenizer, new_inputs = self._try_load_onnx_variant(
+                new_variant
+            )
+        except Exception:  # noqa: BLE001 —— 统一捕获，记录回滚前的异常堆栈
+            # 【任务2核心】捕获回滚前的异常堆栈，确保可追溯失败根因
+            tb_str = traceback.format_exc()
+            self._last_load_error = tb_str.splitlines()[-1] if tb_str else ""
+            self._last_load_traceback = tb_str
+            # 标记已尝试，避免无效 variant 在每次 rerank 时无限重试
+            self._onnx_variant_attempted = new_variant
+            # 区分预期配置错误（FileNotFoundError）与意外异常，对齐验收清单 3.2/3.3：
+            # - 无效 variant（文件缺失）→ hot_reload.failed_rollback（清单 3.2）
+            # - 意外异常（ONNX 加载/tokenizer 崩溃）→ hot_reload.exception_rollback（清单 3.3）
+            is_config_error = "FileNotFoundError" in tb_str or "onnx_file_not_found" in tb_str
+            status = "failed" if is_config_error else "exception"
+            action = (
+                "hot_reload.failed_rollback" if is_config_error
+                else "hot_reload.exception_rollback"
+            )
+            logger.warning(json.dumps({
+                "module_name": "reranker",
+                "action": action,
+                "target_variant": new_variant,
+                "kept_variant": old_variant,
+                "load_error": (self._last_load_error or "")[:300],
+                "traceback": tb_str[:2000],  # 异常堆栈追踪（验收清单 3.2/3.3 校验字段）
+                "status": status,
+            }, ensure_ascii=False))
+            emit_metric("yunshu_reranker_hot_reload_total",
+                        value=1, kind="counter",
+                        labels={"status": status})
+            return
+
+        # 加载成功：锁内交换 session 引用（仅内存状态变更，守 project_memory 锁约束）
+        with self._reload_lock:
+            self._onnx_session = new_session
+            self._onnx_tokenizer = new_tokenizer
+            self._onnx_input_names = new_inputs
+            self._onnx_variant = new_variant
+            self._onnx_variant_loaded = new_variant
+            self._onnx_variant_attempted = new_variant
+            self._use_onnx = True
+
+        elapsed = time.time() - t0
+        logger.info(json.dumps({
+            "module_name": "reranker",
+            "action": "hot_reload.success",
+            "old_variant": old_variant,
+            "new_variant": new_variant,
+            "reload_time_s": round(elapsed, 2),
+        }, ensure_ascii=False))
+        emit_metric("yunshu_reranker_hot_reload_total",
+                    value=1, kind="counter",
+                    labels={"status": "success"})
+
+    def _try_load_onnx_variant(self, variant: str):
+        """加载指定 variant 的 ONNX session（不修改实例状态，不捕获异常）。
+
+        【不易】不修改 self.* 状态——成功返回三元组，异常由调用方 _hot_reload 捕获
+        【变易】路径校验失败时抛 FileNotFoundError（预期配置错误，status=failed）
+        【简易】复用 _load_onnx 的加载逻辑，但返回值而非写实例
+
+        Args:
+            variant: ONNX 文件名（如 model_quantized.onnx / model.onnx）
+
+        Returns:
+            (ort.InferenceSession, AutoTokenizer, List[str]) 三元组
+
+        Raises:
+            FileNotFoundError: 模型路径非目录或 ONNX 文件不存在（无效 variant）
+            Exception: ONNX 加载/tokenizer 初始化的意外异常（status=exception）
+        """
+        import onnxruntime as ort
+        from transformers import AutoTokenizer
+
+        # 模型路径需为本地目录（ONNX 文件在 <model_dir>/onnx/<variant>）
+        if not os.path.isdir(self._model_name):
+            raise FileNotFoundError(
+                f"model_path_not_local_dir: {self._model_name}"
+            )
+        onnx_path = os.path.join(self._model_name, "onnx", variant)
+        if not os.path.exists(onnx_path):
+            raise FileNotFoundError(f"onnx_file_not_found: {onnx_path}")
+        session = ort.InferenceSession(
+            onnx_path, providers=["CPUExecutionProvider"]
+        )
+        input_names = [i.name for i in session.get_inputs()]
+        tokenizer = AutoTokenizer.from_pretrained(
+            self._model_name, trust_remote_code=True
+        )
+        return session, tokenizer, input_names
+
+    # ──────────────────────────────────────────────
     #  环境变量开关
     # ──────────────────────────────────────────────
 
@@ -493,6 +649,10 @@ class SkillReranker:
                         labels={"from": "reranker", "to": "original_order",
                                 "reason": "model_unavailable"})
             return candidates[:top_k]
+
+        # 【变易】热重载检查：首次加载成功后，惰性检查 .env variant 是否变化
+        # 无 session 时 no-op（_maybe_hot_reload 内部守卫），不影响首次加载路径
+        self._maybe_hot_reload()
 
         # 构造 query-document 对
         pairs = []
