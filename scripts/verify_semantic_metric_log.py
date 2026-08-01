@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""验证 semantic 埋点 structured log 字段（orchestrator.py L1057 增强）
+"""验证 semantic 埋点 structured log 字段（orchestrator.py L1086 增强）
 
-模拟场景：低置信度请求前置（L467 llm → L553 fallback）→ 后续 semantic 命中
-验证 L1057 增强的 structured log 字段是否正确输出：
+模拟场景：低置信度请求前置（L507 llm → L586 fallback）→ 后续 semantic 命中
+验证 L1086 增强的 structured log 字段是否正确输出：
   metric_total / layer_counts / skill_id / top1_score / instruction_len / instruction_loaded
 
-【不易】不调用完整 Orchestrator，直接复用 L1057 日志模板（log_dict）验证字段格式
+【不易】不调用完整 Orchestrator，直接复用 L1086 日志模板（log_dict）验证字段格式
 【简易】独立可运行：python scripts/verify_semantic_metric_log.py
 """
 import os
@@ -24,25 +24,25 @@ from agent.monitoring.prometheus import (
 
 
 def verify_semantic_metric_log() -> int:
-    """模拟低置信度 + semantic 命中，验证 L1057 structured log 字段
+    """模拟低置信度 + semantic 命中，验证 L1086 structured log 字段
 
     Returns:
         0 = 全部字段验证通过；1 = 存在失败
     """
-    # ── 场景：低置信度请求前置（orchestrator.py L467 → L553 控制流）──
+    # ── 场景：低置信度请求前置（orchestrator.py L507 → L586 控制流）──
     reset_intent_layer_counts()
-    record_intent_layer("llm")                          # L467: 进入 LLM 路径
-    record_intent_layer("llm_low_confidence_fallback") # L553: 低置信度兜底
+    record_intent_layer("llm")                          # L507: 进入 LLM 路径
+    record_intent_layer("llm_low_confidence_fallback") # L586: 低置信度兜底
 
-    # ── 后续另一次请求命中 semantic（L1056 埋点 + L1057 structured log）──
-    record_intent_layer("semantic")                     # L1056
+    # ── 后续另一次请求命中 semantic（L1086 埋点 + L1087 structured log）──
+    record_intent_layer("semantic")                     # L1086
 
     # 构造 fake top1 + instruction（模拟 semantic 命中上下文）
     fake_top1 = SimpleNamespace(skill_id="verify_skill_001", score=0.875)
     fake_instruction = "这是一条测试 instruction，用于验证 structured log 字段"
-    trace_id = "verify_l1057_001"
+    trace_id = "verify_l1086_001"
 
-    # 复用 L1057 的日志逻辑（orchestrator.py:1057-1079）
+    # 复用 L1086 的日志逻辑（orchestrator.py:1086-1108）
     _sem_total = sum(_ilc.values())
     log_entry = log_dict({
         'module_name': 'orchestrator',
@@ -61,7 +61,7 @@ def verify_semantic_metric_log() -> int:
 
     # ── 字段验证 ──
     print("=" * 70)
-    print("L1057 semantic 埋点 structured log 字段验证")
+    print("L1086 semantic 埋点 structured log 字段验证")
     print("场景：llm + fallback + semantic → total 应 = 3")
     print("=" * 70)
     print()
@@ -117,14 +117,14 @@ def verify_semantic_metric_log() -> int:
     print()
     print("=" * 70)
     if all_pass:
-        print("✓ 所有字段验证通过！L1057 structured log 增强工作正常。")
+        print("✓ 所有字段验证通过！L1086 structured log 增强工作正常。")
         print("  - 低置信度前置（llm + fallback）正确计入分母（total=3）")
         print("  - ratio 总和=1.0（分母同步不变量守恒）")
         print("  - instruction_loaded=True 确认 INV-2（加载成功才埋点）")
         print("  - 所有新增结构化字段（metric_total/layer_counts/skill_id/")
         print("    top1_score/instruction_len/instruction_loaded）正确输出")
     else:
-        print("✗ 存在字段验证失败，请检查 L1057 日志逻辑（orchestrator.py:1057-1079）。")
+        print("✗ 存在字段验证失败，请检查 L1086 日志逻辑（orchestrator.py:1086-1108）。")
     print("=" * 70)
 
     # 清理
