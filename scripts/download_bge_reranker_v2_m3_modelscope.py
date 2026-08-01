@@ -47,10 +47,12 @@ from pathlib import Path
 MODELSCOPE_MODEL_ID = "BAAI/bge-reranker-v2-m3"
 HF_MODEL_ID = "BAAI/bge-reranker-v2-m3"
 
-# 默认下载路径（与 HF 缓存结构对齐）
-DEFAULT_LOCAL_DIR = os.path.expanduser(
-    "~/.cache/huggingface/hub/models--BAAI--bge-reranker-v2-m3"
-)
+# 脚本专用环境变量 (覆盖默认缓存路径, 供测试/定制用)
+_LOCAL_DIR_ENV = "BGE_V2_M3_LOCAL_DIR"
+
+# 复用通用路径解析工具 (跨平台 + 环境变量优先级, 供所有下载脚本共享)
+# 详见 scripts/model_cache_utils.py
+from model_cache_utils import get_hf_model_cache_dir, get_modelscope_cache_dir
 
 # v2-m3 模型预期文件（用于完整性校验）
 EXPECTED_FILES = [
@@ -102,10 +104,7 @@ def download_via_modelscope(local_dir: str) -> bool:
     try:
         from modelscope import snapshot_download
         t0 = time.time()
-        cache_dir = os.environ.get(
-            "MODELSCOPE_CACHE",
-            os.path.expanduser("~/.cache/modelscope"),
-        )
+        cache_dir = get_modelscope_cache_dir()
         print(f"  modelscope 缓存: {cache_dir}")
 
         downloaded_path = snapshot_download(
@@ -235,7 +234,7 @@ def main() -> int:
     print(f"  模型大小: ~2.3GB（下载耗时较长）")
     print("=" * 72)
 
-    local_dir = os.environ.get("BGE_V2_M3_LOCAL_DIR", DEFAULT_LOCAL_DIR)
+    local_dir = get_hf_model_cache_dir(MODELSCOPE_MODEL_ID, env_override=_LOCAL_DIR_ENV)
 
     # 已存在则直接验证
     if Path(local_dir).exists() and any(Path(local_dir).iterdir()):

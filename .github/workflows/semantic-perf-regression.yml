@@ -100,7 +100,8 @@ jobs:
         with:
           # 用 GITHUB_TOKEN 拉取，以便后续 push 回主分支
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 1
+          # fetch-depth: 0 拉取完整历史，确保 git pull --rebase 有 base commit 可用
+          fetch-depth: 0
 
       - name: 设置 Python
         uses: actions/setup-python@v5
@@ -138,6 +139,8 @@ jobs:
             echo "pushed=false" >> $GITHUB_OUTPUT
           else
             git commit -m "chore(perf): 每周基线自动更新 SQLite P99=${{ steps.gen.outputs.sqlite_p99 }}ms etcd P99=${{ steps.gen.outputs.etcd_p99 }}ms [skip ci]"
+            # 拉取远程更新并 rebase，避免 push 被拒绝（远程可能在 CI 运行期间被其他推送更新）
+            git pull --rebase
             git push
             echo "[baseline] 基线已推送到主分支"
             echo "pushed=true" >> $GITHUB_OUTPUT
@@ -183,6 +186,8 @@ jobs:
             echo "[chart] 趋势图和历史未变化，跳过提交"
           else
             git commit -m "docs(perf): 每周性能趋势图更新 + 历史快照 (最近 5 次 CI/CD P99) [skip ci]"
+            # 拉取远程更新并 rebase，避免 push 被拒绝
+            git pull --rebase
             git push
             echo "[chart] 趋势图 + 历史快照已推送"
           fi
