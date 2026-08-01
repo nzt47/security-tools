@@ -1,5 +1,5 @@
 {
-  "trace_id": "30bb64ade2934a48",
+  "trace_id": "b986a6fad1e6464c",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -351,7 +351,7 @@
       "name": "prometheus",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 6,
+      "in_degree": 7,
       "out_degree": 9
     },
     {
@@ -1088,7 +1088,7 @@
       "layer": "orchestrator",
       "file_path": "agent/orchestrator/orchestrator.py",
       "in_degree": 6,
-      "out_degree": 22
+      "out_degree": 23
     },
     {
       "path": "agent.guardrails.input_guard",
@@ -4653,7 +4653,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1934,
+      "line": 2225,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4666,7 +4666,7 @@
       "source_layer": "orchestrator",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 66,
+      "line": 71,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4679,7 +4679,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 267,
+      "line": 332,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4692,7 +4692,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 307,
+      "line": 372,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4705,7 +4705,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 595,
+      "line": 723,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4718,7 +4718,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 874,
+      "line": 1002,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4731,7 +4731,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1619,
+      "line": 1910,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4744,7 +4744,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 271,
+      "line": 336,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4757,9 +4757,22 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 385,
+      "line": 450,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.orchestrator",
+      "target": "agent.monitoring.prometheus",
+      "source_layer": "orchestrator",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 1092,
+      "source_file": "agent/orchestrator/orchestrator.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -4770,7 +4783,7 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 1265,
+      "line": 1556,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4783,7 +4796,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tool_schema_pruner",
       "import_type": "from_import",
-      "line": 1278,
+      "line": 1569,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4796,7 +4809,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tool_fewshot_store",
       "import_type": "from_import",
-      "line": 1305,
+      "line": 1596,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4809,7 +4822,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 1306,
+      "line": 1597,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9864,8 +9877,8 @@
   "stats": {
     "total_files": 343,
     "total_nodes": 270,
-    "total_edges": 592,
-    "cross_layer_edges": 380,
+    "total_edges": 593,
+    "cross_layer_edges": 381,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -9906,6 +9919,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1250.6888869999955
+    "build_duration_ms": 1005.221051999996
   }
 }
