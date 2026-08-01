@@ -295,7 +295,6 @@ class TestBehaviorLoop:
         
         assert "唤醒" in response or "start" in response.lower()
 
-    @pytest.mark.skip_ci
     def test_chat_increment_interaction_count(self, mock_behavior_controller,
                                                mock_memory_manager, mock_permission_system):
         """测试对话增加交互计数"""
@@ -310,20 +309,26 @@ class TestBehaviorLoop:
                        return_value=mock_memory_manager):
                 with patch('agent.orchestrator.lifecycle_manager.PermissionSystem', 
                            return_value=mock_permission_system):
-                    with patch('agent.workflow_engine.engine.WorkflowEngine', 
+                    with patch('agent.workflow_engine.engine.WorkflowEngine',
                                return_value=mock_workflow):
-                        digital_life = DigitalLife(config={})
-                        digital_life.start()
-                        
-                        assert digital_life._interaction_count == 0
-                        
-                        digital_life._call_llm = MagicMock(return_value="测试响应")
-                        digital_life._call_llm_v2 = MagicMock(return_value="测试响应")
-                        
-                        response = digital_life.chat("你好")
-                        
-                        assert digital_life._interaction_count == 1
-                        assert response == "测试响应"
+                        # 【不易】禁用模板匹配（时间问候）和语义层匹配，确保走 LLM 路径
+                        with patch('agent.response_workflows.ResponseTemplates.for_intent',
+                                   return_value=None):
+                            digital_life = DigitalLife(config={})
+                            digital_life.start()
+                            # 【变易】禁用语义层短路返回，让请求走到 _call_llm
+                            digital_life._semantic_layer_match = MagicMock(return_value=None)
+
+                            assert digital_life._interaction_count == 0
+
+                            digital_life._call_llm = MagicMock(return_value="测试响应")
+                            digital_life._call_llm_v2 = MagicMock(return_value="测试响应")
+
+                            # 【不易】输入需 ≥3 字符以越过拒识阈值（ORCHESTRATOR_REJECT_MIN_LENGTH=3）
+                            response = digital_life.chat("你好，请帮我")
+
+                            assert digital_life._interaction_count == 1
+                            assert response == "测试响应"
 
     @pytest.mark.skip_ci
     def test_behavior_can_execute_rejects_request(self, mock_behavior_controller, 
