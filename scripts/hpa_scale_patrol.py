@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -39,6 +40,14 @@ import urllib.error
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Optional
+
+# 【不易】兼容性校验逻辑复用共享模块 compat_check（与 warmup_before_patrol.py 同源），
+#        避免双份维护导致判定逻辑漂移；compat_check 为纯标准库，不破坏本脚本"零外部依赖"特性
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from compat_check import (  # noqa: E402
+    check_k8s_compatibility,
+    print_compat_result,
+)
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -571,8 +580,8 @@ class HPAScalePatrol:
 #  CLI 入口
 # ════════════════════════════════════════════════════════════════════
 
-def parse_args() -> tuple[PatrolConfig, Optional[str]]:
-    """解析 CLI 参数，返回 (配置, 输出文件路径)"""
+def parse_args() -> tuple[PatrolConfig, Optional[str], bool]:
+    """解析 CLI 参数，返回 (配置, 输出文件路径, 是否跳过兼容性校验)"""
     parser = argparse.ArgumentParser(
         description="HPA 扩容时效自动化巡检",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -602,10 +611,15 @@ def parse_args() -> tuple[PatrolConfig, Optional[str]]:
                         help="结果输出 JSON 文件路径（不指定则仅打印）")
     parser.add_argument("--verbose", action="store_true",
                         help="详细日志模式")
+    parser.add_argument(
+        "--skip-compat-check", action="store_true",
+        help="跳过 K8s 版本与 metrics-server API 兼容性校验（紧急场景使用）",
+    )
     args = parser.parse_args()
 
     # 【简易】output 单独提取，不传入 PatrolConfig（不属于业务配置）
     output_path = args.output
+    skip_compat_check = args.skip_compat_check
     config_fields = {
         "hpa_name", "namespace", "target_replicas", "max_scale_time",
         "probe_vu", "probe_duration", "cooldown_time", "webhook_url",
@@ -615,11 +629,25 @@ def parse_args() -> tuple[PatrolConfig, Optional[str]]:
         k: getattr(args, k) for k in config_fields
         if getattr(args, k) is not None or k in ["hpa_name", "namespace", "verbose"]
     }
-    return PatrolConfig(**config_kwargs), output_path
+    return PatrolConfig(**config_kwargs), output_path, skip_compat_check
 
 
 def main() -> int:
-    config, output_path = parse_args()
+    config, output_path, skip_compat_check = parse_args()
+
+    # ── 前置: K8s 兼容性校验 ──
+    # 【不易】hard error 默认中止（exit 2），避免在不兼容集群上无效巡检。
+    #        与 warmup_before_patrol.py 复用同一 compat_check 模块，判定逻辑同源。
+    if not skip_compat_check:
+        compat = check_k8s_compatibility()
+        print_compat_result(compat)
+        if not compat.ok:
+            print(f"\n  [ERROR] 兼容性校验未通过，中止巡检。"
+                  f"如需强制执行请加 --skip-compat-check")
+            return 2
+    else:
+        print("  [WARN] 已跳过 K8s 兼容性校验（--skip-compat-check）")
+
     patrol = HPAScalePatrol(config)
     result = patrol.run()
 

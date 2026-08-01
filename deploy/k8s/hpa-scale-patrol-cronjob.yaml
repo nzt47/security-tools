@@ -1,0 +1,305 @@
+# ════════════════════════════════════════════════════════════════════
+#  HPA 扩容时效巡检 — CronJob 部署清单
+#
+#  【不易】SLO 不变量: HPA 3→15 副本扩容时效 ≤ 60s
+#         巡检失败必须告警（Alertmanager → 钉钉/Slack）
+#
+#  【变易】定时周期可调: 默认每 2 小时巡检一次（生产环境）
+#         流量探测参数可调: VU / 持续时间 / 目标副本数
+#
+#  【简易】复用集群内压测 Pod（loadtest-pod），巡检 Job 仅负责触发+监控
+#
+#  部署前置条件:
+#    1. HPA 已部署: kubectl apply -f deploy/k8s/hpa-production.yaml
+#    2. 压测 Pod 已部署: kubectl apply -f deploy/k8s/loadtest-pod.yaml
+#    3. RBAC 已配置: kubectl apply -f deploy/k8s/loadtest-rbac.yaml
+#    4. Alertmanager 已部署并可访问
+#
+#  部署: kubectl apply -f deploy/k8s/hpa-scale-patrol-cronjob.yaml
+#  验证: kubectl get cronjob -n production
+#  手动触发: kubectl create job --from=cronjob/hpa-scale-patrol -n production hpa-scale-patrol-manual
+#  查看日志: kubectl logs -n production job/hpa-scale-patrol-manual
+# ════════════════════════════════════════════════════════════════════
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  ServiceAccount — 巡检 Job 专用
+# ════════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hpa-scale-patrol
+  namespace: production
+  labels:
+    app: hpa-scale-patrol
+    env: production
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  Role — 巡检所需最小权限
+#  【不易】最小权限原则: 仅读 HPA/Deployment/Pod，写 Pod（清理用）
+# ════════════════════════════════════════════════════════════════════
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: hpa-scale-patrol
+  namespace: production
+  labels:
+    app: hpa-scale-patrol
+rules:
+  # 读取 HPA 状态（核心依赖）
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch"]
+  # 读取 Deployment 状态（确认副本就绪）
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+  # 读取/执行 Pod（在压测 Pod 内执行探测脚本）
+  - apiGroups: [""]
+    resources: ["pods", "pods/exec"]
+    verbs: ["get", "list", "watch"]
+  # 创建/删除临时 Pod（备用：动态创建压测 Pod）
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["create", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: hpa-scale-patrol
+  namespace: production
+  labels:
+    app: hpa-scale-patrol
+subjects:
+  - kind: ServiceAccount
+    name: hpa-scale-patrol
+    namespace: production
+roleRef:
+  kind: Role
+  name: hpa-scale-patrol
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  ConfigMap — 巡检配置（避免硬编码，便于运维调整）
+# ════════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: hpa-scale-patrol-config
+  namespace: production
+  labels:
+    app: hpa-scale-patrol
+data:
+  # ── 通用参数（预热 + 巡检共用，编排脚本读取这些环境变量）──
+  NAMESPACE: "production"
+  HPA_NAME: "skill-retrieval-hpa"
+  SERVICE_NAME: "skill-retrieval-service"
+  SERVICE_PORT: "8080"
+  PROBE_ENDPOINT: "/match"
+  # ── 巡检参数 ──
+  TARGET_REPLICAS: "15"
+  MAX_SCALE_TIME: "60"              # SLO: 扩容 ≤ 60s
+  PROBE_VU: "100"                   # 巡检探测并发数
+  PROBE_DURATION: "90"              # 巡检探测持续时间（秒）
+  # ── 预热参数（每次巡检前自动触发，消除 metrics-server 冷启动）──
+  WARMUP_VU: "10"                   # 预热并发数（少量，不触发扩容）
+  WARMUP_DURATION: "20"             # 预热持续时间（秒，需 ≥ 采集间隔）
+  # ── 输出路径（结果 JSON，供报告生成）──
+  OUTPUT_DIR: "/tmp"
+  # ── 告警 Webhook（Alertmanager）──
+  PATROL_WEBHOOK_URL: "http://alertmanager.monitoring.svc.cluster.local:9093/api/v2/alerts"
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  CronJob — 定时巡检
+#
+#  【变易】调度周期:
+#    schedule: "0 */2 * * *" = 每 2 小时执行一次（生产推荐）
+#    高频场景: "0 * * * *" = 每小时（调试期）
+#    低频场景: "0 2,14 * * *" = 每天 02:00 和 14:00（稳定期）
+# ════════════════════════════════════════════════════════════════════
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: hpa-scale-patrol
+  namespace: production
+  labels:
+    app: hpa-scale-patrol
+    env: production
+  annotations:
+    patrol.config/slo: "HPA 3→15 ≤ 60s"
+    patrol.config/verified-date: "2026-08-01"
+    patrol.config/warmup: "enabled（每次巡检前自动预热 metrics-server）"
+    patrol.config/description: |
+      定期验证 HPA 扩容时效。流程: 预热 metrics-server（消除冷启动）→ 触发流量突增 → 记录扩容时间线。
+      预热失败不阻断巡检；巡检失败自动发送告警到 Alertmanager。
+spec:
+  schedule: "0 */2 * * *"          # 每 2 小时
+  timeZone: "Asia/Shanghai"        # 【变易】按业务时区调度
+  concurrencyPolicy: Forbid        # 禁止并发执行（避免压测叠加）
+  successfulJobsHistoryLimit: 3    # 保留 3 次成功记录
+  failedJobsHistoryLimit: 5        # 保留 5 次失败记录（便于排查）
+  startingDeadlineSeconds: 300     # 错过调度窗口 5 分钟内仍可执行
+  jobTemplate:
+    spec:
+      # 【变易】超时保护: 预热(~3min) + 巡检探测(90s) + 缩容等待(300s) + 余量
+      activeDeadlineSeconds: 900
+      backoffLimit: 0              # 失败不重试（避免重复压测）
+      template:
+        metadata:
+          labels:
+            app: hpa-scale-patrol
+          annotations:
+            # 不采集巡检 Pod 指标（避免干扰 HPA 判断）
+            prometheus.io/scrape: "false"
+        spec:
+          serviceAccountName: hpa-scale-patrol
+          restartPolicy: Never
+          # 【不易】反亲和性: 避免与服务 Pod 同节点（防止资源竞争影响 SLO）
+          affinity:
+            podAntiAffinity:
+              preferredDuringSchedulingIgnoredDuringExecution:
+                - weight: 100
+                  podAffinityTerm:
+                    labelSelector:
+                      matchExpressions:
+                        - key: app
+                          operator: In
+                          values: ["skill-retrieval-service"]
+                    topologyKey: kubernetes.io/hostname
+          containers:
+            - name: patrol
+              # 【变易】复用服务镜像（含 Python + 巡检脚本）
+              # 生产环境建议单独构建巡检镜像: <registry>/hpa-scale-patrol:v1.0.0
+              image: skill-retrieval:local
+              imagePullPolicy: IfNotPresent
+              # 【变易】入口改为编排脚本: 预热 → 巡检 → 汇总
+              # 编排脚本通过环境变量读取参数（见 ConfigMap hpa-scale-patrol-config）
+              command: ["bash", "/app/scripts/patrol_with_warmup.sh"]
+              envFrom:
+                - configMapRef:
+                    name: hpa-scale-patrol-config
+              env:
+                # 集群内 Pod 使用 in-cluster kubeconfig
+                - name: KUBECONFIG
+                  value: ""
+              resources:
+                # 【简易】巡检 Pod 资源配额（轻量）
+                requests:
+                  cpu: "50m"
+                  memory: "64Mi"
+                limits:
+                  cpu: "200m"
+                  memory: "256Mi"
+              volumeMounts:
+                - name: patrol-script
+                  mountPath: /app/scripts
+                  readOnly: true
+                - name: result-volume
+                  mountPath: /tmp
+          volumes:
+            # 挂载巡检脚本（从 ConfigMap，包含编排脚本 + 预热脚本 + 巡检脚本）
+            - name: patrol-script
+              configMap:
+                name: hpa-scale-patrol-script
+                defaultMode: 0755
+            - name: result-volume
+              emptyDir: {}
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  ConfigMap — 巡检脚本（挂载到 Pod 内）
+#  【简易】避免重新构建镜像，脚本通过 ConfigMap 注入
+#  【变易】生产环境建议改为 initContainer 从 git 拉取或构建专用镜像
+# ════════════════════════════════════════════════════════════════════
+# 注意: 此 ConfigMap 需通过脚本生成（包含编排脚本 + 预热脚本 + 巡检脚本 + 共享模块 + 报告生成 + 依赖）
+# 生成命令:
+#   kubectl create configmap hpa-scale-patrol-script -n production \
+#     --from-file=patrol_with_warmup.sh=scripts/patrol_with_warmup.sh \
+#     --from-file=warmup_before_patrol.py=scripts/warmup_before_patrol.py \
+#     --from-file=metrics_server_warmup.py=scripts/metrics_server_warmup.py \
+#     --from-file=hpa_scale_patrol.py=scripts/hpa_scale_patrol.py \
+#     --from-file=compat_check.py=scripts/compat_check.py \
+#     --from-file=generate_patrol_report.py=scripts/generate_patrol_report.py
+#
+# 更新（已有 ConfigMap 时）:
+#   kubectl create configmap hpa-scale-patrol-script -n production \
+#     --from-file=patrol_with_warmup.sh=scripts/patrol_with_warmup.sh \
+#     --from-file=warmup_before_patrol.py=scripts/warmup_before_patrol.py \
+#     --from-file=metrics_server_warmup.py=scripts/metrics_server_warmup.py \
+#     --from-file=hpa_scale_patrol.py=scripts/hpa_scale_patrol.py \
+#     --from-file=compat_check.py=scripts/compat_check.py \
+#     --from-file=generate_patrol_report.py=scripts/generate_patrol_report.py \
+#     --dry-run=client -o yaml | kubectl apply -f -
+
+---
+# ════════════════════════════════════════════════════════════════════
+#  PrometheusRule — 巡检自身监控（元监控）
+#  【不易】巡检自身必须被监控，避免"巡检失效但无人知晓"
+# ════════════════════════════════════════════════════════════════════
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: hpa-scale-patrol-alerts
+  namespace: production
+  labels:
+    app: hpa-scale-patrol
+    prometheus: kube-prometheus
+spec:
+  groups:
+    - name: hpa-scale-patrol-meta
+      rules:
+        # 巡检任务长时间未执行 — 可能 CronJob 失效
+        - alert: HPAScalePatrolNotRunning
+          expr: |
+            time() - kube_cronjob_status_last_schedule_time{cronjob="hpa-scale-patrol",namespace="production"}
+            > 86400
+          for: 10m
+          labels:
+            severity: warning
+            service: hpa-scale-patrol
+          annotations:
+            summary: "HPA 巡检 CronJob 超过 24 小时未执行"
+            description: |
+              最后调度时间距今 > 24h
+              可能原因: CronJob 被误删 / 调度器故障 / 时区配置错误
+              排查: kubectl get cronjob hpa-scale-patrol -n production
+
+        # 巡检任务连续失败 — HPA 可能已失效
+        - alert: HPAScalePatrolContinuousFailure
+          expr: |
+            kube_cronjob_status_failed{cronjob="hpa-scale-patrol",namespace="production"}
+            - kube_cronjob_status_failed{cronjob="hpa-scale-patrol",namespace="production"} offset 6h
+            >= 3
+          for: 5m
+          labels:
+            severity: critical
+            service: hpa-scale-patrol
+          annotations:
+            summary: "HPA 巡检连续失败 ≥ 3 次（6 小时内）"
+            description: |
+              6 小时内失败次数增长 ≥ 3
+              可能原因: HPA 真实失效 / 压测 Pod 不可用 / RBAC 权限丢失
+              排查: kubectl logs -n production job/$(kubectl get jobs -n production -l job-name -o jsonpath='{.items[-1].metadata.name}')
+
+        # 巡检触发但 HPA 未扩容 — 流量探测可能失效
+        - alert: HPAScalePatrolNoScalingTriggered
+          expr: |
+            (kube_cronjob_status_last_schedule_time{cronjob="hpa-scale-patrol",namespace="production"} > 0)
+            and on()
+            (increase(kube_deployment_status_replicas{deployment="skill-retrieval-service",namespace="production"}[30m]) == 0)
+            and on()
+            (time() - kube_cronjob_status_last_schedule_time{cronjob="hpa-scale-patrol",namespace="production"} < 1800)
+          for: 15m
+          labels:
+            severity: warning
+            service: hpa-scale-patrol
+          annotations:
+            summary: "巡检刚执行但 HPA 未触发扩容"
+            description: |
+              最近一次巡检后 15 分钟内副本数无变化
+              可能原因: 探测流量不足 / CPU 阈值过高 / 服务已满载
+              排查: kubectl describe hpa skill-retrieval-hpa -n production
