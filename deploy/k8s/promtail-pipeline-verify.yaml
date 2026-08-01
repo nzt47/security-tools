@@ -1,0 +1,62 @@
+# =====================================================================
+# Promtail pipeline 解析验证 Pod（K8s 环境端到端验证）
+#
+# 目的：将 deploy/k8s/promtail-structured-log.yaml 挂载为 ConfigMap，
+#       用 promtail -dry-run 模式消费一条真实 semantic 埋点日志，
+#       验证 6 个结构化字段（metric_total/layer_counts/skill_id/
+#       top1_score/instruction_len/instruction_loaded）解析正确。
+#
+# dry-run 模式不推送 Loki，仅打印解析结果到 stdout——
+# 无需部署 Loki 即可验证 pipeline_stages。
+#
+# 依赖前置（先执行）：
+#   kubectl create configmap promtail-structured-log \
+#     --from-file=deploy/k8s/promtail-structured-log.yaml -n monitoring
+#
+# 应用方式：
+#   kubectl apply -f deploy/k8s/promtail-pipeline-verify.yaml
+#   kubectl logs -n monitoring promtail-pipeline-verify promtail
+#   kubectl delete -f deploy/k8s/promtail-pipeline-verify.yaml  # 验证完成清理
+# =====================================================================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: promtail-pipeline-verify
+  namespace: monitoring
+  labels:
+    app: promtail-pipeline-verify
+spec:
+  restartPolicy: Never
+  initContainers:
+    # 预写一条 orchestrator.semantic.metric_total 结构化日志（模拟 L1086 输出）
+    - name: seed-sample-log
+      image: busybox:1.36
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          mkdir -p /var/log/yunshu/orchestrator
+          cat > /var/log/yunshu/orchestrator/semantic.log <<'EOF'
+          {"module_name": "orchestrator", "action": "orchestrator.semantic.metric_total", "trace_id_ctx": "k8s_verify_001", "message": "[埋点] semantic 触发, total=5, counts={'rule': 1, 'semantic': 2, 'llm': 2}, skill=verify_skill_001, score=0.875, instr_len=42, instr_loaded=success", "metric_total": 5, "layer_counts": {"rule": 1, "semantic": 2, "llm": 2}, "skill_id": "verify_skill_001", "top1_score": 0.875, "instruction_len": 42, "instruction_loaded": true}
+          EOF
+          echo "样本日志已写入 /var/log/yunshu/orchestrator/semantic.log"
+      volumeMounts:
+        - name: logs
+          mountPath: /var/log/yunshu
+  containers:
+    # promtail dry-run：读取样本日志，打印解析后的 entries/labels
+    - name: promtail
+      image: grafana/promtail:3.2.1
+      args:
+        - -config.file=/etc/promtail/structured-log.yaml
+        - -dry-run
+      volumeMounts:
+        - name: promtail-config
+          mountPath: /etc/promtail
+        - name: logs
+          mountPath: /var/log/yunshu
+  volumes:
+    - name: promtail-config
+      configMap:
+        name: promtail-structured-log
+    - name: logs
+      emptyDir: {}

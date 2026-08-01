@@ -88,17 +88,20 @@
 - **指标**：`record_intent_layer("reject")`
 
 ### 第四步：LLM 大模型层
-- **调用前**：`record_intent_layer("llm")`
+- **调用前**：`record_intent_layer("llm")`（INV-4：调用前埋点，计"尝试"）
 - **置信度校验**：`orchestrator.process.llm.confidence`（INFO）
   - 字段：`置信度=high/low`、`耗时`、`响应长度`
 - **低置信度告警**：`orchestrator.process.llm.low_confidence`（WARNING）
-- **调用失败**：`orchestrator.process.fail`（ERROR）
+- **调用失败（TD-1，2026-08-02 实施）**：`record_intent_layer("llm_error")`
+  - 位于 except 分支，为 llm 的失败子指标（与 fallback 同模式）
+  - 面板 10 用 `llm_error / llm` 计算 LLM 错误率（llm 计全部尝试，分母不为 0）
+- **失败日志**：`orchestrator.process.fail`（ERROR）
 
 ## 三、Prometheus 指标
 
 | 指标名 | 类型 | Labels | 用途 |
 |---|---|---|---|
-| `yunshu_intent_layer_total` | Counter | `layer` | 各层命中次数（rule/template/semantic/llm/llm_low_confidence_fallback/reject） |
+| `yunshu_intent_layer_total` | Counter | `layer` | 各层命中次数（rule/template/semantic/llm/llm_low_confidence_fallback/llm_error/reject） |
 | `yunshu_intent_layer_ratio` | Gauge | `layer` | 各层实时占比（基于模块级 `_intent_layer_counts` 分母同步，总和恒 = 1.0） |
 
 ### Grafana 占比计算 PromQL

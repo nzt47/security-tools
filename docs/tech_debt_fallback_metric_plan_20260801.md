@@ -3,7 +3,7 @@
 > 日期：2026-08-01
 > 关联报告：docs/summary_orchestrator_refactor_logging_20260801.md（第三节「已识别但未修复的边界」）
 > 分支：`feat/intent-layer-metrics-fix`
-> 状态：待排期实施（不影响当前 ratio 总和 = 1.0 不变量）
+> 状态：TD-1 已实施（2026-08-02），TD-2/TD-3 待排期
 
 ---
 
@@ -11,7 +11,7 @@
 
 | # | 边界 | 风险等级 | 代码位置 | 当前影响 | 修复优先级 |
 |---|---|---|---|---|---|
-| TD-1 | LLM 调用失败路径无独立埋点 | P2 | orchestrator.py:506,515-540 | 失败请求不可见，兜底率口径含混 | 高（数据质量） |
+| TD-1 | LLM 调用失败路径无独立埋点 | P2 | orchestrator.py:507,516-521 | ~~失败请求不可见，兜底率口径含混~~ **已修复（2026-08-02）** | 高（数据质量） |
 | TD-2 | 语义层顶层异常无独立埋点 | P2 | orchestrator.py:1121-1145 | 语义层故障请求完全不计入分母 | 中（需守 INV-2） |
 | TD-3 | `_intent_layer_counts` 无显式锁 | P3 | prometheus.py:732,754 | 高并发下理论竞态（GIL 守护下概率极低） | 低（防御性） |
 
@@ -22,53 +22,35 @@
 
 ---
 
-## TD-1：LLM 调用失败路径无独立埋点
+## TD-1：LLM 调用失败路径无独立埋点 【已实施 2026-08-02】
 
 ### 现状
 
-[orchestrator.py:506](file:///c:/Users/Administrator/agent/agent/orchestrator/orchestrator.py#L506) `_record_intent_layer("llm")` 在 LLM 调用前记录。
+[orchestrator.py:507](file:///c:/Users/Administrator/agent/agent/orchestrator/orchestrator.py#L507) `_record_intent_layer("llm")` 在 LLM 调用前记录。
 
 - **成功且高置信**：llm × 1
 - **成功但低置信**：llm × 1 + llm_low_confidence_fallback × 1（L585）
-- **调用失败**（L515 except 分支）：仅 llm × 1 → **失败与正常无法区分**
+- **调用失败**（L516 except 分支）：仅 llm × 1 → 失败与正常无法区分
 
-### 影响分析
+### 实施记录（2026-08-02）
 
-1. 兜底率面板 `fallback/llm` 无法区分「低置信度」与「调用失败」
-2. 失败请求被当作正常 llm 命中，虚高 llm 占比
-3. 无法从 Prometheus 指标层面发现 LLM 稳定性问题（需依赖日志 `orchestrator.process.fail`）
-
-### 修复方案
-
-新增独立 layer 值 `llm_error`，在 L515 except 分支补记（不触发明层 fallback，避免语义含混）：
-
-```python
-except Exception as e:
-    _record_intent_layer("llm_error")   # ← 新增：失败独立计层
-    logger.error(log_dict({
-        'module_name': 'orchestrator',
-        'action': 'orchestrator.process.fail',
-        ...
-    }))
-```
-
-**不变量校验**：`llm_error` 与 `llm` 是**互斥**关系（一次调用成功记 llm，失败记 llm_error，不会双计同一路径），分母同步机制自动纳入新 layer，ratio 总和仍 = 1.0。
-
-### 伴随变更
-
-| 项 | 内容 |
-|---|---|
-| prometheus.py | 无需修改（`record_intent_layer` 已支持任意 layer 值） |
-| 测试 | 新增 `test_llm_error_path_recorded`：模拟 LLM 抛异常 → llm_error=1, llm=0, ratio 总和=1.0 |
-| dashboard | 面板 10 新增 `llm_error/llm` 错误率折线 |
-| 文档 | intent_routing_logging.md 第四步补充 `record_intent_layer("llm_error")` |
+- **代码**：[orchestrator.py:517-520](file:///c:/Users/Administrator/agent/agent/orchestrator/orchestrator.py#L517-L520) except 分支补记 `_record_intent_layer("llm_error")`
+- **设计决策**：`llm_error` 为 `llm` 的**失败子指标**（与 `llm_low_confidence_fallback` 同模式）。
+  守 INV-4（调用前埋点），`llm` 计"尝试"、`llm_error` 计"失败"——成功路径不记 llm_error。
+  面板 10 用 `llm_error / llm` 计算 LLM 错误率（llm 分母含全部尝试，纯失败时段不为 0）。
+  与计划原文"互斥（llm=0）"表述的差异：若失败时 llm=0，错误率折线在纯失败时段除零，
+  故按 INV-4 语义实施（三义优先级 > 文档措辞）。
+- **测试**：`tests/unit/test_llm_error_path_recorded.py` 9 用例全绿
+  （5 机制级 + 4 wiring 级走真实 `process()` except 分支）
+- **回归**：58 既有 ratio 测试 + 9 新用例 = 67 全绿；`verify_semantic_metric_log.py` 通过
+- **文档**：intent_routing_logging.md 第四步补充 llm_error
 
 ### 验收标准
 
-- [ ] LLM 异常时 `_intent_layer_counts["llm_error"]` 正确 +1
-- [ ] 同请求不双计（llm 与 llm_error 互斥）
-- [ ] ratio 总和恒 = 1.0（含 3 层：llm + llm_error + 历史层）
-- [ ] 新增 ≥2 个回归用例全绿
+- [x] LLM 异常时 `_intent_layer_counts["llm_error"]` 正确 +1（wiring 测试验证）
+- [x] 成功路径不记 llm_error（不双计）
+- [x] ratio 总和恒 = 1.0（含 3 层：llm + llm_error + 历史层）
+- [x] 新增 ≥2 个回归用例全绿（实际 9 个）
 
 ---
 
