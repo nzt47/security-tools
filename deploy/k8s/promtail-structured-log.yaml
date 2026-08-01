@@ -1,0 +1,112 @@
+# Promtail 日志采集配置 — orchestrator.semantic.metric_total 结构化字段解析
+#
+# 用途：采集 yunshu 应用日志，精确解析 semantic 埋点诊断日志
+#   action="orchestrator.semantic.metric_total" 的 6 个结构化字段：
+#   metric_total / layer_counts / skill_id / top1_score / instruction_len / instruction_loaded
+#
+# 关联代码：agent/orchestrator/orchestrator.py L1086-1108（log_dict 输出 JSON）
+# 关联文档：docs/observability/intent_routing_logging.md
+#
+# 部署方式：
+#   kubectl create configmap promtail-structured-log --from-file=promtail-structured-log.yaml -n monitoring
+#   或在 promtail DaemonSet 的 volumes/volumeMounts 中挂载为 /etc/promtail/structured-log.yaml
+#
+# 【不易】仅解析不改写；数值字段以 LogQL 运行时转换；action 作为核心过滤 label
+# 【简易】单 scrape_config，仅含 semantic 埋点诊断流，避免干扰业务日志流
+#
+# ⚠ Promtail 语法说明：
+#   - template stage 仅支持 Go 模板基础函数（toLower/toJson/replace/trim 等），
+#     不支持 toFloat/toBool——数值字段类型转换统一在 LogQL 侧完成。
+#   - match stage 的 selector 基于 label 匹配（需先 labels 设置 action）。
+
+clients:
+  # Loki 推送端点（按生产环境调整）
+  - url: http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push
+
+scrape_configs:
+  # ──────────────────────────────────────────────────────────────
+  #  semantic 埋点诊断日志流（orchestrator.semantic.metric_total）
+  # ──────────────────────────────────────────────────────────────
+  - job_name: yunshu-orchestrator-semantic
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: yunshu-orchestrator
+          __path__: /var/log/yunshu/orchestrator/*.log
+
+    pipeline_stages:
+      # 1. 多行合并（JSON 日志单行输出，此处防日志被截断/换行）
+      - multiline:
+          firstline: '^\{"module_name":\s*"orchestrator"'
+          max_lines: 128
+          max_wait_time: 3s
+
+      # 2. 解析 JSON 顶层字段（6 个目标字段 + 辅助字段）
+      - json:
+          expressions:
+            module_name: module_name
+            action: action
+            trace_id_ctx: trace_id_ctx
+            message: message
+            # ── 6 个目标字段 ──
+            metric_total: metric_total
+            layer_counts_raw: layer_counts
+            skill_id: skill_id
+            top1_score: top1_score
+            instruction_len: instruction_len
+            instruction_loaded: instruction_loaded
+
+      # 3. 设置低基数字段为 Loki label（供面板 selector 使用）
+      #    ⚠ 高基数字段（skill_id/trace_id_ctx）禁止设 label——会撑爆索引
+      - labels:
+          action: action
+          instruction_loaded: instruction_loaded
+
+      # 4. 仅保留 semantic 埋点诊断日志（action 不匹配的整行丢弃）
+      - match:
+          selector: '{job="yunshu-orchestrator"}'
+          stages:
+            - match:
+                selector: '{action!="orchestrator.semantic.metric_total"}'
+                action: drop
+            # 对保留的日志，展开嵌套 layer_counts dict → 独立字段
+            # 原始字段保留为 layer_counts_raw，不覆盖
+            - json:
+                expressions:
+                  layer_llm: llm
+                  layer_semantic: semantic
+                  layer_reject: reject
+                  layer_rule: rule
+                  layer_template: template
+                  layer_llm_low_confidence_fallback: llm_low_confidence_fallback
+                source: layer_counts_raw
+                drop_malformed: true
+
+      # 5. 规范化 message（仅对保留的日志），便于 LogQL 直接展示
+      - template:
+          source: message
+          template: 'semantic[total={{ .metric_total }}][skill={{ .skill_id }}][score={{ .top1_score }}][instr_len={{ .instruction_len }}][loaded={{ .instruction_loaded }}]'
+
+# ──────────────────────────────────────────────────────────────
+#  LogQL 使用示例（Grafana 面板 11「semantic 埋点分母同步」）
+# ──────────────────────────────────────────────────────────────
+#
+# 1. semantic 埋点触发频率（面板 11）：
+#    sum by (action) (rate({job="yunshu-orchestrator", action="orchestrator.semantic.metric_total"}[5m]))
+#
+# 2. 按层过滤（layer_counts 展开后的字段，Loki json parser 运行时数值化）：
+#    {job="yunshu-orchestrator", action="orchestrator.semantic.metric_total", instruction_loaded="true"}
+#    | json layer_llm, layer_semantic
+#    | layer_llm > 0
+#
+# 3. 异常 skill 排查（高基数不设 label，用 json parser 查询）：
+#    {job="yunshu-orchestrator", action="orchestrator.semantic.metric_total"}
+#    | json skill_id, top1_score
+#    | top1_score < 0.3
+#
+# 4. 验证分母同步不变量（metric_total == layer_counts 各层总和）：
+#    {job="yunshu-orchestrator", action="orchestrator.semantic.metric_total"}
+#    | json metric_total, layer_llm, layer_semantic, layer_reject, layer_rule, layer_template, layer_llm_low_confidence_fallback
+#    | metric_total != (layer_llm + layer_semantic + layer_reject + layer_rule + layer_template + layer_llm_low_confidence_fallback)
+#    → 命中该查询即分母不同步，需告警
