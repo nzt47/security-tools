@@ -95,7 +95,7 @@
   $env:SKILLS_OFFLINE="1"
   python -m pytest tests/unit/test_reranker.py tests/unit/test_reranker_hot_reload.py -v
   ```
-  预期：**47 passed**（33 原有 + 14 热重载）
+  预期：**49 passed**（33 原有 + 16 热重载，含 action 名契约校验）
 
 ---
 
@@ -376,7 +376,7 @@
   python -m pytest tests/unit/test_reranker.py tests/unit/test_reranker_hot_reload.py -v
   python scripts/test_hot_reload_stability.py --duration 30 --concurrency 4 --ci-mode
   ```
-  预期：47 passed + 稳定性测试通过
+  预期：49 passed + 稳定性测试通过
 
 ---
 
