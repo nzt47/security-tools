@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<#
+﻿<#
 .SYNOPSIS
     模拟真实仓库部署场景：在 D:\code\real-project 下验证 sync 脚本实际效果
 

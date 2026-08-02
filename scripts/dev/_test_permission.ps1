@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿# Test permission repair logic (PS 5.1 compatible)
+﻿# Test permission repair logic (PS 5.1 compatible)
 $ErrorActionPreference = "Continue"
 Import-Module (Resolve-Path "scripts\dev\hook_fail_safe.psm1").Path -Force
 
