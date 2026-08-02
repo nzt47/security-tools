@@ -58,5 +58,10 @@ spec:
     - name: promtail-config
       configMap:
         name: promtail-structured-log
+        # ConfigMap key 为源文件名 promtail-structured-log.yaml，
+        # 通过 items 映射到 promtail 配置约定路径 /etc/promtail/structured-log.yaml
+        items:
+          - key: promtail-structured-log.yaml
+            path: structured-log.yaml
     - name: logs
       emptyDir: {}

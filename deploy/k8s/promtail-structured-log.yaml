@@ -84,9 +84,13 @@ scrape_configs:
                 drop_malformed: true
 
       # 5. 规范化 message（仅对保留的日志），便于 LogQL 直接展示
+      #    【简易】output stage 将规范化后的 message 作为最终日志行，
+      #            否则模板仅更新内部字段、日志行仍是原始 JSON，规范化不生效
       - template:
           source: message
-          template: 'semantic[total={{ .metric_total }}][skill={{ .skill_id }}][score={{ .top1_score }}][instr_len={{ .instruction_len }}][loaded={{ .instruction_loaded }}]'
+          template: 'semantic[total={{ .metric_total }}][skill={{ .skill_id }}][score={{ .top1_score }}][instr_len={{ .instruction_len }}][loaded={{ .instruction_loaded }}][layers={{ .layer_counts_raw }}]'
+      - output:
+          source: message
 
 # ──────────────────────────────────────────────────────────────
 #  LogQL 使用示例（Grafana 面板 11「semantic 埋点分母同步」）
