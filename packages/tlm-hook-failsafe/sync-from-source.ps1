@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿<#
+﻿<#
 .SYNOPSIS
     开发用同步脚本：从源 scripts/dev/hook_fail_safe.psm1 同步到包内快照
 
