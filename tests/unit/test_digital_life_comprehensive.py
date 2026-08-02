@@ -850,6 +850,8 @@ def _make_test_orch(**overrides):
         "_memory_token_limit": 4096,
         "_planning_enabled": False, "_planner": None, "_needs_planning": lambda x: False,
         "_is_skill_enabled": lambda x: False,
+        # 【不易】拒识兜底：默认放行，避免双未命中时 _should_reject 拦截 LLM 降级路径
+        "_should_reject": MagicMock(return_value=(False, "test_allow")),
         "check_health": MagicMock(return_value=[]),
     }
     for k, v in defaults.items():

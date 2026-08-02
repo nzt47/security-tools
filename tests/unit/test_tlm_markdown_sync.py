@@ -208,9 +208,10 @@ class TestReverseSync:
         assert reverse_calls[0][0] == "k000"
         assert reverse_calls[0][1] == new_content
 
-        # SQLite 已更新
-        raw = adapter.get_raw_memory("k000")
-        assert raw["data"] == new_content
+        # SQLite 已更新（反向写为异步线程，等待落库）
+        assert _wait_for(
+            lambda: adapter.get_raw_memory("k000")["data"] == new_content, timeout=2.0
+        ), "反向同步后 SQLite 未更新"
 
     def test_vector_reindex_triggered(self, adapter, syncer, watcher, md_dir):
         """反向同步经 save_with_embedding 入口 → 向量重索引路径已挂接"""
