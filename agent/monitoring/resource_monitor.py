@@ -52,6 +52,11 @@ except ImportError:
     _PSUTIL_AVAILABLE = False
     logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'psutil', 'msg': '[ResourceMonitor] psutil 未安装，文件句柄监控降级为不可用'}))
 
+# 【变易】tracemalloc 快照聚合超时(秒)。take_snapshot().statistics() 会遍历并聚合
+# 全量内存分配记录，追踪数据量大（长时间运行/全量测试会话）时耗时可达数十秒，
+# 甚至与其他线程的分配锁竞争导致近乎死锁，必须超时兜底降级。
+_TRACEMALLOC_SNAPSHOT_TIMEOUT = 5.0
+
 # 业务指标收集器（惰性导入避免循环依赖）
 _business_collector = None
 
@@ -176,6 +181,9 @@ class ResourceMonitor:
         # tracemalloc 启动状态（幂等）
         self._tracemalloc_started = False
         self._init_tracemalloc()
+        # tracemalloc 快照聚合降级标记：首次聚合超时后置位，
+        # 后续采样直接跳过聚合（避免每次采样残留超时线程积累）
+        self._tracemalloc_snapshot_degraded = False
         # 后台采样线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
         self._monitor_trace_id = f"resource-monitor-{uuid.uuid4().hex[:16]}"
 
@@ -443,22 +451,50 @@ class ResourceMonitor:
         return snap
 
     def _sample_memory(self) -> MemoryStat:
-        """采样内存统计（tracemalloc top 10）"""
+        """采样内存统计（tracemalloc top 10）
+
+        【变易】take_snapshot().statistics() 需遍历聚合全量分配记录，
+        数据量大时耗时可达数十秒（全量测试会话实测触发 60s 超时挂起）。
+        用 daemon 线程 + join(timeout) 隔离；超时降级为仅返回内存总量，
+        并置位 degraded 标记，后续采样直接跳过聚合（避免残留线程积累）。
+        """
         if not self._tracemalloc_started:
             return MemoryStat()
 
         current, peak = tracemalloc.get_traced_memory()
-        # 获取 top 10 内存分配点（按分配大小）
-        stats = tracemalloc.take_snapshot().statistics("lineno")
-        top = []
-        for stat in stats[:10]:
-            top.append({
-                "file": stat.traceback[0].filename if stat.traceback else "",
-                "line": stat.traceback[0].lineno if stat.traceback else 0,
-                "size_bytes": stat.size,
-                "count": stat.count,
-            })
-        return MemoryStat(current_bytes=current, peak_bytes=peak, top_allocations=top)
+        if self._tracemalloc_snapshot_degraded:
+            return MemoryStat(current_bytes=current, peak_bytes=peak)
+
+        result: Dict[str, Any] = {}
+
+        def _collect() -> None:
+            try:
+                stats = tracemalloc.take_snapshot().statistics("lineno")
+                top = []
+                for stat in stats[:10]:
+                    top.append({
+                        "file": stat.traceback[0].filename if stat.traceback else "",
+                        "line": stat.traceback[0].lineno if stat.traceback else 0,
+                        "size_bytes": stat.size,
+                        "count": stat.count,
+                    })
+                result["top"] = top
+            except Exception as e:  # 聚合失败降级，不影响采样主流程
+                result["error"] = e
+
+        t = threading.Thread(target=_collect, daemon=True)
+        t.start()
+        t.join(_TRACEMALLOC_SNAPSHOT_TIMEOUT)
+        if t.is_alive():
+            # 聚合超时：标记降级，后续采样不再尝试（守简易：一次性兜底）
+            self._tracemalloc_snapshot_degraded = True
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'tracemalloc.snapshot.timeout', 'msg': f'[ResourceMonitor] tracemalloc 快照聚合超时(>{_TRACEMALLOC_SNAPSHOT_TIMEOUT}s)，降级为仅返回内存总量'}))
+            return MemoryStat(current_bytes=current, peak_bytes=peak)
+        if "error" in result:
+            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'tracemalloc.snapshot.error', 'msg': f'[ResourceMonitor] tracemalloc 快照聚合失败，降级: {result["error"]}'}))
+            return MemoryStat(current_bytes=current, peak_bytes=peak)
+        # 【简易】get("top", []) 防御：极端情况（线程被 BaseException 中断）下 result 可能为空
+        return MemoryStat(current_bytes=current, peak_bytes=peak, top_allocations=result.get("top", []))
 
     def _sample_thread_pool(self) -> ThreadPoolStat:
         """采样线程池统计"""
