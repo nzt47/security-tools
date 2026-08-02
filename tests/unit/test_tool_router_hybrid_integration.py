@@ -27,6 +27,16 @@ import pytest
 def _disable_embedding_probe(monkeypatch):
     """所有集成测试默认禁用 Embedding 探测,走纯 BM25"""
     monkeypatch.setenv("AGENT_HYBRID_EMBEDDING", "0")
+    # 【不易】阻止 HybridRetriever 构造时启动 hybrid-embedding-preheat
+    # daemon 线程:__init__ 无条件启动它(不检查 AGENT_HYBRID_EMBEDDING),
+    # CI 无网时该线程连接 hf-mirror 失败需 ~5.6s 才退出,若跨越相邻测试
+    # teardown 窗口,其日志输出与 pytest logging 插件恢复竞争,触发
+    # "dictionary changed size during iteration"(3.12 历史失败)。
+    # mock 让线程立即完成,不影响本套件任何断言(BM25 纯路径不依赖预热结果)。
+    monkeypatch.setattr(
+        "agent.tool_router_hybrid.EmbeddingIndex.preheat",
+        lambda self: None,
+    )
 
 
 @pytest.fixture(autouse=True)
