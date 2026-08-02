@@ -397,7 +397,7 @@ def get_hpa_replicas(hpa_name: str) -> tuple[int, int]:
 
 - [HPA 巡检脚本](../scripts/hpa_scale_patrol.py) — 本规范的实践示例
 - [扩容基准测试脚本](../scripts/hpa_scale_3to15_benchmark.py) — 遵循本规范
-- [Mock Webhook 脚本](../scripts/mock_alert_webhook.py) — urllib HTTP 服务器示例
+- [本地 Webhook 服务器](../scripts/webhook_server.py) — 测试用 HTTP 服务器示例
 - [巡检测试报告](HPA_PATROL_TEST_REPORT.md) — 错误复盘记录
 
 ---

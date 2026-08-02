@@ -1,0 +1,390 @@
+# =====================================================================
+# Grafana 告警规则 — 意图层 Semantic 埋点监控
+#
+# 数据源：Loki（promtail 规范化行：semantic[total=..][skill=..][score=..]
+#                 [instr_len=..][loaded=..][layers={...}]）
+# 格式：Grafana Unified Alerting provisioning（Grafana 10.x）
+#   挂载到 /etc/grafana/provisioning/alerting/ 后由 Grafana 自动导入
+#
+# 告警规则一览：
+#   A. semantic-metric-no-data        metric_total 采集中断（埋点速率归零）
+#   B. metric-total-abnormal-spike    metric_total 分母异常波动（当前 5m vs 历史 30m 相对偏差 > 50%）
+#   C. llm-error-threshold            llm_error 数量超阈值（5m 累计 > 3）
+#   D. metric-total-denominator-drift 分母同步不变量：metric_total != layer_counts 总和
+#
+# 通知策略：data.notification_policy.yml 与告警规则合并于同一 ConfigMap
+#   （Grafana provisioning.alerting 非递归扫描 alerting 目录下所有 *.yml，
+#    故两个 yml 同挂载目录即生效）。webhook 指向 mock-alert-webhook（monitoring 命名空间）。
+#
+# 应用方式（集成在 deploy/k8s/grafana.yaml，或手动）：
+#   kubectl apply -f deploy/k8s/grafana-alerting.yaml
+#   然后更新 grafana Deployment，挂载 alerting ConfigMap 到 /etc/grafana/provisioning/alerting
+#   验证：kubectl logs deploy/grafana -n monitoring | grep -i alert
+#
+# 通知：webhook 指向 mock-alert-webhook（deploy/k8s/mock-webhook-pod.yaml），
+#       也可在 Grafana UI 中替换为邮件/钉钉等接收器
+# =====================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-alert-rules
+  namespace: monitoring
+data:
+  # ────────────────────────────────────────────────
+  # Alert Rules（Loki 数据源 uid 固定为 loki）
+  # Grafana provisioning.alerting 会扫描本目录下所有 *.yml 文件，
+  # 因此告警规则与通知策略合并到同一个 ConfigMap 挂载。
+  # ────────────────────────────────────────────────
+  semantic_metric_alerts.yml: |
+    apiVersion: 1
+    groups:
+      - orgId: 1
+        name: semantic-metric-alerts
+        folder: yunshu-semantic
+        interval: 1m
+        rules:
+          # ── A. metric_total 采集中断 ──
+          # 语义埋点 5m 速率归零：Promtail/Loki 链路中断或应用停止埋点
+          - uid: semantic-metric-no-data
+            title: "[语义埋点] metric_total 采集中断"
+            condition: C
+            data:
+              - refId: A
+                datasourceUid: loki
+                model:
+                  refId: A
+                  datasource:
+                    type: loki
+                    uid: loki
+                  expr: 'sum(rate({action="orchestrator.semantic.metric_total"} |~ "semantic\\[total="[5m]))'
+                  queryType: range
+                  editorMode: code
+                  range: true
+                  maxLines: 1000
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+              - refId: B
+                datasourceUid: __expr__
+                model:
+                  refId: B
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: A
+                  type: reduce
+                  reducer: last
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  refId: C
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: B
+                  type: threshold
+                  conditions:
+                    - evaluator:
+                        type: lt
+                        params: [0.001]
+                      operator:
+                        type: and
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+            noDataState: NoData
+            execErrState: Error
+            for: 5m
+            labels:
+              severity: critical
+              service: orchestrator
+            annotations:
+              summary: "语义埋点 5 分钟无新日志（rate=0）"
+              description: "action=orchestrator.semantic.metric_total 在最近 5m 内无任何日志，疑似 Promtail 未采集 / Loki 不可用 / 应用停止埋点。检查：kubectl get pods -n monitoring | grep -E 'promtail|loki'"
+
+          # ── B. metric_total 分母异常波动 ──
+          # 当前 5m 均值 vs 历史 30m 均值，相对偏差 > 50%（分母同步异常/埋点逻辑 bug）
+          - uid: metric-total-abnormal-spike
+            title: "[语义埋点] metric_total 分母异常波动"
+            condition: D
+            data:
+              - refId: A
+                datasourceUid: loki
+                model:
+                  refId: A
+                  datasource:
+                    type: loki
+                    uid: loki
+                  expr: 'sum(avg_over_time({action="orchestrator.semantic.metric_total"} |~ "semantic\\[total=" | regexp "semantic\\[total=(?P<total>[0-9.]+)" | unwrap total [5m]))'
+                  queryType: range
+                  editorMode: code
+                  range: true
+                  maxLines: 1000
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+              - refId: B
+                datasourceUid: loki
+                model:
+                  refId: B
+                  datasource:
+                    type: loki
+                    uid: loki
+                  expr: 'sum(avg_over_time({action="orchestrator.semantic.metric_total"} |~ "semantic\\[total=" | regexp "semantic\\[total=(?P<total>[0-9.]+)" | unwrap total [30m]))'
+                  queryType: range
+                  editorMode: code
+                  range: true
+                  maxLines: 1000
+                relativeTimeRange:
+                  from: 1800
+                  to: 0
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  refId: C
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: '(abs($A - $B) / $B)'
+                  type: math
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+              - refId: D
+                datasourceUid: __expr__
+                model:
+                  refId: D
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: C
+                  type: reduce
+                  reducer: max
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+              - refId: E
+                datasourceUid: __expr__
+                model:
+                  refId: E
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: D
+                  type: threshold
+                  conditions:
+                    - evaluator:
+                        type: gt
+                        params: [0.5]
+                      operator:
+                        type: and
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+            noDataState: OK
+            execErrState: Error
+            for: 5m
+            labels:
+              severity: warning
+              service: orchestrator
+            annotations:
+              summary: "metric_total 分母相对历史基线波动超过 50%"
+              description: "当前 5m 均值 {{ $values.A }} vs 历史 30m 均值 {{ $values.B }}。分母突增/突降可能对应埋点逻辑变更或并发量异常。"
+
+          # ── C. llm_error 数量阈值 ──
+          # 5m 窗口内 llm_error 层累计计数 > 3：LLM 调用失败偏多
+          - uid: llm-error-threshold
+            title: "[语义埋点] llm_error 数量超阈值"
+            condition: C
+            data:
+              - refId: A
+                datasourceUid: loki
+                model:
+                  refId: A
+                  datasource:
+                    type: loki
+                    uid: loki
+                  expr: 'sum(sum_over_time({action="orchestrator.semantic.metric_total"} |~ "semantic\\[total=" | regexp "\"llm_error\":\\s*(?P<llm_error>\\d+)" | unwrap llm_error [5m]))'
+                  queryType: range
+                  editorMode: code
+                  range: true
+                  maxLines: 1000
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+              - refId: B
+                datasourceUid: __expr__
+                model:
+                  refId: B
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: A
+                  type: reduce
+                  reducer: last
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  refId: C
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: B
+                  type: threshold
+                  conditions:
+                    - evaluator:
+                        type: gt
+                        params: [3]
+                      operator:
+                        type: and
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+            noDataState: OK
+            execErrState: Error
+            for: 2m
+            labels:
+              severity: warning
+              service: orchestrator
+            annotations:
+              summary: "llm_error 层 5m 累计 {{ $values.A }} 次，超过阈值 3"
+              description: "LLM 调用失败（llm_error 层）近期偏多，检查 LLM API key / 超时 / 限流配置。关联面板：layer_counts 各层计数（llm_error 系列）"
+
+          # ── D. 分母同步不变量 ──
+          # metric_total != layer_counts 各层总和 → 埋点逻辑 bug（不变量 INV：sum(layer_counts)==metric_total）
+          # ⚠ 误报修复（2026-08-02）：Loki 的 `| regexp`（带命名组）是 parser，不丢弃不匹配行；
+          #   原始 JSON 残留行（Promtail 修复前）的 layer_counts 字段会穿透第二层 `"rule":` 正则。
+          #   修复：所有查询前置 `|~ "semantic\\[total="`（line filter，真正丢弃非规范化行）。
+          - uid: metric-total-denominator-drift
+            title: "[语义埋点] 分母同步不变量被破坏"
+            condition: F
+            data:
+              - refId: A
+                datasourceUid: loki
+                model:
+                  refId: A
+                  datasource:
+                    type: loki
+                    uid: loki
+                  expr: 'sum(avg_over_time({action="orchestrator.semantic.metric_total"} |~ "semantic\\[total=" | regexp "semantic\\[total=(?P<total>[0-9.]+)" | unwrap total [5m]))'
+                  queryType: range
+                  editorMode: code
+                  range: true
+                  maxLines: 1000
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+              - refId: B
+                datasourceUid: loki
+                model:
+                  refId: B
+                  datasource:
+                    type: loki
+                    uid: loki
+                  expr: 'sum(sum_over_time({action="orchestrator.semantic.metric_total"} |~ "semantic\\[total=" | regexp "semantic\\[total=(?P<total>[0-9.]+)" | unwrap total [5m]))'
+                  queryType: range
+                  editorMode: code
+                  range: true
+                  maxLines: 1000
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+              - refId: C
+                datasourceUid: loki
+                model:
+                  refId: C
+                  datasource:
+                    type: loki
+                    uid: loki
+                  expr: 'sum(sum_over_time({action="orchestrator.semantic.metric_total"} |~ "semantic\\[total=" | regexp "\"rule\":\\s*(?P<rule>\\d+)" | unwrap rule [5m])) + sum(sum_over_time({action="orchestrator.semantic.metric_total"} |~ "semantic\\[total=" | regexp "\"semantic\":\\s*(?P<semantic>\\d+)" | unwrap semantic [5m])) + sum(sum_over_time({action="orchestrator.semantic.metric_total"} |~ "semantic\\[total=" | regexp "\"llm\":\\s*(?P<llm>\\d+)" | unwrap llm [5m])) + sum(sum_over_time({action="orchestrator.semantic.metric_total"} |~ "semantic\\[total=" | regexp "\"reject\":\\s*(?P<reject>\\d+)" | unwrap reject [5m])) + sum(sum_over_time({action="orchestrator.semantic.metric_total"} |~ "semantic\\[total=" | regexp "\"template\":\\s*(?P<template>\\d+)" | unwrap template [5m])) + sum(sum_over_time({action="orchestrator.semantic.metric_total"} |~ "semantic\\[total=" | regexp "\"llm_error\":\\s*(?P<llm_error>\\d+)" | unwrap llm_error [5m])) + sum(sum_over_time({action="orchestrator.semantic.metric_total"} |~ "semantic\\[total=" | regexp "\"llm_low_confidence_fallback\":\\s*(?P<llm_low_confidence_fallback>\\d+)" | unwrap llm_low_confidence_fallback [5m]))'
+                  queryType: range
+                  editorMode: code
+                  range: true
+                  maxLines: 1000
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+              - refId: D
+                datasourceUid: __expr__
+                model:
+                  refId: D
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: 'abs($B - $C)'
+                  type: math
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+              - refId: E
+                datasourceUid: __expr__
+                model:
+                  refId: E
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: D
+                  type: reduce
+                  reducer: max
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+              - refId: F
+                datasourceUid: __expr__
+                model:
+                  refId: F
+                  datasource:
+                    type: __expr__
+                    uid: __expr__
+                  expression: E
+                  type: threshold
+                  conditions:
+                    - evaluator:
+                        type: gt
+                        params: [1]
+                      operator:
+                        type: and
+                relativeTimeRange:
+                  from: 300
+                  to: 0
+            noDataState: OK
+            execErrState: Error
+            for: 5m
+            labels:
+              severity: critical
+              service: orchestrator
+            annotations:
+              summary: "分母同步不变量被破坏：metric_total != layer_counts 总和"
+              description: "sum(layer_counts) 与 metric_total 出现偏差，埋点计数逻辑存在 bug。不变量：sum(layer_counts.values()) == metric_total，ratio 总和恒=1.0。"
+  # ────────────────────────────────────────────────
+  # 通知策略：默认接收器 → webhook（mock-alert-webhook）
+  # ⚠ 与语义告警规则同一挂载目录，Grafana provisioning.alerting 会一并扫描
+  # ────────────────────────────────────────────────
+  notification_policy.yml: |
+    apiVersion: 1
+    contactPoints:
+      - orgId: 1
+        name: alert-webhook
+        receivers:
+          - uid: webhook-default
+            type: webhook
+            settings:
+              url: http://mock-alert-webhook.monitoring:9093/api/v2/alerts
+              httpMethod: POST
+            disableResolveMessage: false
+    policies:
+      - orgId: 1
+        receiver: alert-webhook
+        group_by:
+          - alertname
+          - severity
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 4h
+        routes: []
