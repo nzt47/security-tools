@@ -1,5 +1,5 @@
 {
-  "trace_id": "fae805d487854c90",
+  "trace_id": "4ce1273561c74229",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -9242,7 +9242,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 64,
+      "line": 69,
       "source_file": "agent/monitoring/resource_monitor.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9255,7 +9255,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 364,
+      "line": 372,
       "source_file": "agent/monitoring/resource_monitor.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9919,6 +9919,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1231.4957399999998
+    "build_duration_ms": 1296.0324840000085
   }
 }
