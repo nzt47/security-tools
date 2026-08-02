@@ -320,6 +320,13 @@ jobs:
             throw "文档链接预检 / 锚点回归测试失败: exit $LASTEXITCODE"
           }
 
+      - name: 运行 hook 拦截回归测试（模拟坏文档提交）
+        # Why: 在临时 git 仓库模拟「提交含失效锚点/失效链接的文档」，
+        #   验证检查入口返回非零 + 真实 git commit 被 hook 拦截。
+        #   详见 tests/regression/test_precommit_hook_blocking.py
+        run: |
+          python -m pytest tests/regression/test_precommit_hook_blocking.py -q -p no:randomly
+
   # ============================================================================
   # CI 健康度看板自动更新
   # ============================================================================
