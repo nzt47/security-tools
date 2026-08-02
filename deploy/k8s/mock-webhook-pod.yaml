@@ -1,0 +1,139 @@
+# ════════════════════════════════════════════════════════════════════
+#  Mock Alertmanager Pod — 告警接收验证器（测试用，勿用于生产）
+#
+#  【不易】接收 Alertmanager v2 API 格式告警，原样打印到日志
+#  【简易】复用 skill-retrieval:local 镜像（含 Python）
+#
+#  ⚠ 命名空间必须为 monitoring：Grafana 告警通知策略中的 webhook 地址
+#    固定指向 http://mock-alert-webhook.monitoring:9093（见 grafana-alerting.yaml）
+#
+#  部署: kubectl apply -f deploy/k8s/mock-webhook-pod.yaml
+#  查看告警: kubectl logs -n monitoring mock-alert-webhook
+#  验证已收告警: kubectl exec -n monitoring mock-alert-webhook -- curl -s localhost:9093/api/v2/alerts
+# ════════════════════════════════════════════════════════════════════
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mock-alert-webhook-script
+  namespace: monitoring
+data:
+  # 脚本来源：scripts/mock_alert_webhook.py（修改后需同步本文件）
+  mock_alert_webhook.py: |
+    #!/usr/bin/env python3
+    # -*- coding: utf-8 -*-
+    """Mock Alertmanager — 告警接收验证器"""
+    import argparse
+    import json
+    import sys
+    from datetime import datetime
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+
+    class AlertHandler(BaseHTTPRequestHandler):
+        received_alerts = []
+
+        def do_POST(self):
+            length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(length).decode('utf-8') if length > 0 else '[]'
+            ts = datetime.now().isoformat()
+            print("\n" + "=" * 60, flush=True)
+            print("[ALERT RECEIVED] %s" % ts, flush=True)
+            print("  Path: %s" % self.path, flush=True)
+            try:
+                alerts = json.loads(body)
+                for i, alert in enumerate(alerts):
+                    print("  -- Alert #%d --" % (i + 1), flush=True)
+                    print("    alertname: %s" % alert.get('labels', {}).get('alertname'), flush=True)
+                    print("    severity:  %s" % alert.get('labels', {}).get('severity'), flush=True)
+                    print("    service:   %s" % alert.get('labels', {}).get('service'), flush=True)
+                    summary = alert.get('annotations', {}).get('summary', '')
+                    print("    summary:   %s" % summary, flush=True)
+                    self.received_alerts.append(alert)
+            except json.JSONDecodeError:
+                print("  [raw] %s" % body, flush=True)
+            print("=" * 60, flush=True)
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(b'{"status":"received"}')
+
+        def do_GET(self):
+            if self.path in ('/api/v2/alerts', '/alerts'):
+                body = json.dumps(self.received_alerts, ensure_ascii=False, indent=2)
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(body.encode('utf-8'))
+            elif self.path == '/health':
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b'ok')
+            else:
+                self.send_response(404)
+                self.end_headers()
+
+        def log_message(self, *args):
+            pass
+
+    def main():
+        parser = argparse.ArgumentParser(description="Mock Alertmanager 告警接收器")
+        parser.add_argument('--port', type=int, default=9093)
+        args = parser.parse_args()
+        print("Mock Alertmanager listening on 0.0.0.0:%d" % args.port, flush=True)
+        server = HTTPServer(('0.0.0.0', args.port), AlertHandler)
+        try:
+            server.serve_forever()
+        except KeyboardInterrupt:
+            server.server_close()
+
+    if __name__ == '__main__':
+        main()
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mock-alert-webhook
+  namespace: monitoring
+  labels:
+    app: mock-alert-webhook
+spec:
+  restartPolicy: Never
+  containers:
+    - name: webhook
+      image: skill-retrieval:local
+      imagePullPolicy: IfNotPresent
+      command: ["python", "/app/scripts/mock_alert_webhook.py", "--port", "9093"]
+      ports:
+        - containerPort: 9093
+          name: webhook
+      resources:
+        requests:
+          cpu: "20m"
+          memory: "32Mi"
+        limits:
+          cpu: "100m"
+          memory: "128Mi"
+      volumeMounts:
+        - name: script-volume
+          mountPath: /app/scripts
+          readOnly: true
+  volumes:
+    - name: script-volume
+      configMap:
+        name: mock-alert-webhook-script
+        defaultMode: 0755
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-alert-webhook
+  namespace: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    app: mock-alert-webhook
+  ports:
+    - name: webhook
+      port: 9093
+      targetPort: 9093
+      protocol: TCP
