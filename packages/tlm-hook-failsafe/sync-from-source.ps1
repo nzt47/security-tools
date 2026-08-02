@@ -74,8 +74,26 @@ if ($extra) {
 }
 
 # 3. hash consistency report
-$srcHash = (Get-FileHash $sourcePsm1).Hash
-$pkgHash = (Get-FileHash $targetPsm1).Hash
+# 变易：用 .NET SHA256 而非 Get-FileHash —— Git bash 触发的 post-commit 场景下
+#      $env:PSModulePath 指向 pwsh 7 模块路径，Windows PowerShell 5.1 无法加载
+#      Microsoft.PowerShell.Utility，Get-FileHash 不可用。.NET 类型不依赖模块加载。
+function Get-Sha256Hex([string]$Path) {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $stream = [System.IO.File]::OpenRead($Path)
+        try {
+            $bytes = $sha.ComputeHash($stream)
+            return (($bytes | ForEach-Object { $_.ToString("x2") }) -join "")
+        } finally {
+            $stream.Dispose()
+        }
+    } finally {
+        $sha.Dispose()
+    }
+}
+
+$srcHash = Get-Sha256Hex $sourcePsm1
+$pkgHash = Get-Sha256Hex $targetPsm1
 if ($srcHash -eq $pkgHash) {
     Write-Host "  [OK] hash match: $srcHash" -ForegroundColor Green
 } else {
