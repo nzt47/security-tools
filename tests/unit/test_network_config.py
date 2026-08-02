@@ -940,11 +940,16 @@ class TestChangeLog:
         assert logs[0]['action'] == 'update'
 
     def test_change_log_limit(self):
-        """测试变更日志限制（最多 100 条）"""
+        """测试变更日志限制（最多 100 条）
+
+        【不易】循环 110 次:>100 即可验证截断语义。原 150 次全量
+        _save 磁盘写 + json 序列化 O(n²),CI 共享 runner 高负载下
+        >60s 超时(3.12 历史失败);110 次仍保留 10 次截断后写入验证。
+        """
         manager = NetworkConfigManager(config_file=self.config_path)
 
         # 添加超过 100 条日志
-        for i in range(150):
+        for i in range(110):
             manager.update({'llm': {'timeout': 30 + i}})
 
         logs = manager.get_change_log(limit=200)
