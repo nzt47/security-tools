@@ -17,10 +17,12 @@
 
 from __future__ import annotations
 import hashlib
+import http.client
 import json
 import os
 import re
 import threading
+import time
 import urllib.parse
 import urllib.request
 from datetime import datetime
@@ -316,24 +318,62 @@ class SkillInstaller:
 
     # ─── HTTP 工具 ───
 
+    @staticmethod
+    def _build_retry_policy():
+        """构造下载重试策略（统一 RetryPolicy，env 可配）
+
+        env 覆盖:
+            SKILL_INSTALL_MAX_RETRIES   最大重试次数（默认 3）
+            SKILL_INSTALL_RETRY_BACKOFF 初始退避秒数（默认 0.5，指数退避）
+        """
+        from agent.error_handler import RetryPolicy
+        max_retries = int(os.environ.get("SKILL_INSTALL_MAX_RETRIES", "3"))
+        initial_delay = float(os.environ.get("SKILL_INSTALL_RETRY_BACKOFF", "0.5"))
+        return RetryPolicy(max_retries=max_retries, initial_delay=initial_delay,
+                           max_delay=10.0, strategy="exponential", jitter_factor=0.0)
+
     def _fetch_json(self, url: str, *, source: str) -> Dict[str, Any]:
-        try:
-            req = urllib.request.Request(
-                url, headers={"User-Agent": "Yunshu-SkillInstaller/1.0"})
-            with urllib.request.urlopen(req, timeout=self._http_timeout) as resp:
-                if resp.status >= 400:
+        """拉取并解析技能 JSON（带统一重试策略，应对网络瞬时中断）
+
+        可重试的网络级异常（URLError / TimeoutError / IncompleteRead 等）按
+        RetryPolicy 指数退避重试；HTTP>=400 与 JSON 解析失败不重试，
+        直接转 SkillInstallError（契约：下载失败 → INSTALL_SOURCE_UNREACHABLE）。
+        """
+        # 可重试网络级异常：连接失败/超时/下载中途断流(IncompleteRead)/连接重置
+        retryable = (urllib.error.URLError, TimeoutError,
+                     http.client.HTTPException, ConnectionResetError, OSError)
+        policy = self._build_retry_policy()
+        attempt = 0
+        while True:
+            try:
+                req = urllib.request.Request(
+                    url, headers={"User-Agent": "Yunshu-SkillInstaller/1.0"})
+                with urllib.request.urlopen(req, timeout=self._http_timeout) as resp:
+                    if resp.status >= 400:
+                        raise SkillInstallError(
+                            f"HTTP {resp.status}: {url}",
+                            code=ErrorCode.INSTALL_SOURCE_UNREACHABLE,
+                            details={"url": url, "status": resp.status},
+                        )
+                    data = resp.read().decode("utf-8")
+                break  # 下载成功，跳出重试循环
+            except SkillInstallError:
+                raise  # HTTP 错误码不重试
+            except retryable as e:
+                if not policy.should_retry(e, attempt):
                     raise SkillInstallError(
-                        f"HTTP {resp.status}: {url}",
+                        f"网络请求失败（已尝试 {attempt + 1} 次）: {e}",
                         code=ErrorCode.INSTALL_SOURCE_UNREACHABLE,
-                        details={"url": url, "status": resp.status},
-                    )
-                data = resp.read().decode("utf-8")
-        except urllib.error.URLError as e:
-            raise SkillInstallError(
-                f"网络请求失败: {e}",
-                code=ErrorCode.INSTALL_SOURCE_UNREACHABLE,
-                details={"url": url},
-            ) from e
+                        details={"url": url, "attempts": attempt + 1,
+                                 "timeout_s": self._http_timeout},
+                    ) from e
+                delay = policy.calculate_delay(attempt)
+                logger.warning(
+                    "[Installer] 网络请求失败，%.2fs 后重试 (%d/%d): %s: %s",
+                    delay, attempt + 1, policy.max_retries, url, e,
+                )
+                time.sleep(delay)
+                attempt += 1
         try:
             payload = json.loads(data)
         except json.JSONDecodeError as e:
