@@ -1,5 +1,5 @@
 {
-  "trace_id": "b986a6fad1e6464c",
+  "trace_id": "0414d6a113414eec",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -9203,7 +9203,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 22,
+      "line": 23,
       "source_file": "agent/monitoring/observability_optimizations.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9385,7 +9385,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 24,
+      "line": 25,
       "source_file": "agent/monitoring/performance_optimization.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9398,7 +9398,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 831,
+      "line": 832,
       "source_file": "agent/monitoring/performance_optimization.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9411,7 +9411,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 21,
+      "line": 22,
       "source_file": "agent/monitoring/tracing_cache.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9424,7 +9424,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 322,
+      "line": 323,
       "source_file": "agent/monitoring/tracing_cache.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9919,6 +9919,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1005.221051999996
+    "build_duration_ms": 998.268822
   }
 }
