@@ -1,0 +1,30 @@
+{
+  "invariants": {
+    "ratio_sum_equals_1": true,
+    "tolerance": 1e-09,
+    "failures": []
+  },
+  "rounds": [
+    {
+      "threads": 64,
+      "iters_per_thread": 30000,
+      "expected_total": 1920000,
+      "actual_total": 1798969,
+      "lost_updates": 121031,
+      "lost_rate": 0.063037,
+      "elapsed_sec": 30.186,
+      "ratio_sum": 1.0
+    },
+    {
+      "threads": 64,
+      "iters_per_thread": 30000,
+      "expected_total": 1920000,
+      "actual_total": 1838555,
+      "lost_updates": 81445,
+      "lost_rate": 0.042419,
+      "elapsed_sec": 29.295,
+      "ratio_sum": 1.0
+    }
+  ],
+  "generated_at": "2026-08-02T04:25:06.005711+00:00"
+}
