@@ -75,7 +75,9 @@ dependencies = [
   "prometheus-client>=0.20.0",
   "httpx>=0.27.0,<1.0.0",
   "requests>=2.31.0,<3.0.0",
-  "scipy>=1.13.0,<2.0.0"
+  "scipy>=1.13.0,<2.0.0",
+  # 技能 BM25 检索（TLM L1 确定性锚点匹配，纯 Python 无 native 依赖）
+  "rank-bm25==0.2.2"
 ]
 
 [project.optional-dependencies]
