@@ -308,7 +308,9 @@ jobs:
       - name: 安装pytest
         run: |
           python -m pip install --upgrade pip
-          pip install pytest
+          # 【简易】pytest.ini 全局配置了 --timeout，必须装 pytest-timeout 插件
+          #   否则 pytest 报 unrecognized arguments 直接失败
+          pip install pytest pytest-timeout
 
       - name: 运行文档链接预检 + 锚点回归测试
         # Why pwsh 外壳 + powershell.exe 调用: 与本地 pre-commit hook 部署方式一致
