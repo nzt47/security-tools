@@ -10,23 +10,23 @@
 避免污染真实 docs/ 目录。退出码为唯一可靠的行为信号
 （PS 5.x 重定向输出编码可能非 UTF-8，故断言只用 ASCII 片段）。
 """
-import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
-PRECHECK_SCRIPT = (
-    Path(__file__).resolve().parents[2] / "scripts" / "dev" / "precheck_docs.ps1"
+# 【不易】本测试通过 subprocess 调用 Windows PowerShell（precheck_docs.ps1），
+# 仅 Windows 可运行。docs-precheck-tests job（windows-latest）显式运行；
+# unit-tests job（ubuntu）也会收集 tests/unit/，缺 powershell 会 FileNotFoundError，
+# 故与 test_precommit_hook_blocking.py 一致加 skipif 隔离平台。
+pytestmark = pytest.mark.skipif(
+    sys.platform != "win32",
+    reason="依赖 Windows PowerShell（precheck_docs.ps1），仅 Windows 可运行",
 )
 
-# 【简易】precheck_docs.ps1 是 PowerShell 脚本，仅 Windows runner 有 powershell 命令。
-# Linux 上的 CI 单元测试 job 无法执行 → 平台不满足时跳过（文档链接预检已有独立
-# windows-latest job 覆盖该逻辑）。
-pytestmark = pytest.mark.skipif(
-    not shutil.which("powershell") or sys.platform.startswith("linux"),
-    reason="需要 PowerShell（仅 Windows 环境可执行 precheck_docs.ps1）",
+PRECHECK_SCRIPT = (
+    Path(__file__).resolve().parents[2] / "scripts" / "dev" / "precheck_docs.ps1"
 )
 
 

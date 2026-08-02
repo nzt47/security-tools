@@ -92,11 +92,41 @@ def _setup_git_repo(tmp_path: Path) -> Path:
 
 
 def _install_local_hook(repo_root: Path) -> None:
-    """把本仓库部署的 pre-commit hook 复制到临时仓库（模拟 sync 部署结果）。"""
-    assert LOCAL_HOOK.exists(), f"本仓库未部署 hook: {LOCAL_HOOK}"
+    """把本仓库部署的 pre-commit hook 复制到临时仓库（模拟 sync 部署结果）。
+
+    【变易】hook 内容优先取本仓库已部署的 .git/hooks/pre-commit（本地已 sync）；
+    缺失时（CI 全新 checkout，.git/hooks 不随 git 跟踪）回退用跟踪的
+    hook_fail_safe.psm1 模块生成同一内容，保证 E2E 拦截测试不依赖本地部署状态。
+    """
+    if LOCAL_HOOK.exists():
+        hook_content = LOCAL_HOOK.read_bytes()
+    else:
+        module = REPO_ROOT / "scripts" / "dev" / "hook_fail_safe.psm1"
+        hooks_dir = repo_root / ".git" / "hooks"
+        hooks_dir.mkdir(parents=True, exist_ok=True)
+        # 用 PowerShell 调用模块直接写文件，避免 stdout 中文编码不一致
+        result = subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-Command",
+                f"Import-Module '{module}'; "
+                f"$c = Get-HookContent -SourceRepo '{REPO_ROOT}'; "
+                f"Write-HookNoBom -Path '{hooks_dir / 'pre-commit'}' -Content $c",
+            ],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=120,
+        )
+        assert result.returncode == 0, result.stdout + result.stderr
+        return
     hooks_dir = repo_root / ".git" / "hooks"
     hooks_dir.mkdir(parents=True, exist_ok=True)
-    (hooks_dir / "pre-commit").write_bytes(LOCAL_HOOK.read_bytes())
+    (hooks_dir / "pre-commit").write_bytes(hook_content)
 
 
 # ────────────────────────────────────────────────────────────
