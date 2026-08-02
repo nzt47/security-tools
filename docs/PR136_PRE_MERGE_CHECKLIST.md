@@ -18,8 +18,9 @@
 | 5 | `scripts/bench_skill_install_retry.py` | 性能基准脚本 | ✅ 已提交 |
 | 6 | `docs/SKILL_INSTALL_RETRY_CHANGELOG.md` | Change Log | ✅ 已提交 |
 | 7 | `docs/PERF_BENCHMARK_RETRY_REPORT.md` | 性能基准报告 | ✅ 已提交 |
+| 8 | `docs/PR136_PRE_MERGE_CHECKLIST.md` | 合并前检查清单（本文档） | ✅ 已提交 |
 
-**待处理（见第六节）**：PR diff 额外含 `docs/IO_TIMEOUT_TEST_HANG_ROOTCAUSE_20260802.md`（本地 `master` 未推送提交 `5cd773bd` 被带入）。
+**说明**：`docs/IO_TIMEOUT_TEST_HANG_ROOTCAUSE_20260802.md` 曾短暂出现在 PR diff（本地 `master` 未推送提交 `5cd773bd` 带入），已通过推送 `origin/master` 至 `5cd773bd` 解决，当前 PR diff 仅含上表 8 个文件（本地验证 `git diff 5cd773bd HEAD` 确认）。
 
 ---
 
@@ -73,11 +74,8 @@
 
 ## 六、待处理项（合并前需确认）
 
-1. **PR diff 多余文件**：`docs/IO_TIMEOUT_TEST_HANG_ROOTCAUSE_20260802.md` 来自本地 `master` 未推送提交 `5cd773bd`，不属于本 PR。处理选项：
-   - A. 将本地 `master`（含 `5cd773bd`）推送到 `origin/master` → PR diff 自动变干净（推荐，该提交本属 master）
-   - B. 保持现状，合入 master 后该文件自然归入 master（PR diff 会一直显示直至 master 同步）
-   - C. 用 `rebase --onto origin/master` 重建分支并 force push（破坏性，需显式同意）
-2. **CI 状态**：新一轮 CI 尚未完成，需复查 `gh pr checks 136` 直至全绿。
+1. **~~PR diff 多余文件~~** ✅ 已解决：`origin/master` 已同步至 `5cd773bd`，PR diff 现仅含本 PR 8 个文件。
+2. **CI 状态**：新一轮 CI 尚未完成，需复查 `gh pr checks 136` 直至全绿（重点：安全扫描、Gitleaks、单元测试 3.10/3.11/3.12）。
 3. **合并方式**：建议 `Rebase and merge` 或 `Squash and merge`，保持 master 历史线性。
 
 ---
