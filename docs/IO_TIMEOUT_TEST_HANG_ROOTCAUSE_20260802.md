@@ -191,3 +191,55 @@ schtasks /Query /TN YunshuIOCacheCleanup /FO LIST /V
 - **不易**：VectorStore 接口/后端优先级（sqlite-vec > chromadb > JSON）未变，仅增加超时降级与缓存。
 - **变易**：探测超时/离线策略均常量可调；子进程探测兼容有网/无网/高负载环境。
 - **简易**：统一 `_probe_import` 子进程方案替代 daemon 线程，规避 import 锁毒化，一处实现多处复用。
+
+---
+
+## 八、2026-08-02 收尾：PowerShell 脚本批量 BOM 叠加问题（hook 预检静默失败）
+
+### 现象
+
+提交 `tlm-hook-failsafe.psm1` 时 `git commit` **静默失败**（exit 1 且无任何错误输出）：
+- 首次怀疑 hook 环境变量缺失（`TLM_HOOK_SOURCE_REPO`），设置后仍失败；
+- 手动运行 `git_precommit_check.ps1` 才发现 `precheck_docs.ps1` 抛 `ParserError: Unexpected token '重新生成性能图表'`。
+
+### 根因
+
+16 个 PowerShell 脚本被**批量叠加双重 UTF-8 BOM**（文件头 `EF BB BF EF BB BF`）：
+
+```
+WORKING first8: EF BB BF EF BB BF 3C 23  size=13025   ← 双重 BOM
+HEAD    first8: EF BB BF 3C 23 0A 2E 53  size=12749   ← 单 BOM
+```
+
+第一个 BOM 字符被当作脚本内容，PowerShell 解析整个 comment-based help 时报语法错误 →
+`precheck_docs.ps1` 无法运行 → 文档链接预检（hook 第一阶段）失败 → **所有 commit 被 hook 拦截**，
+且 hook 的 stderr 在工具化终端中不可见（表现为"静默失败"）。
+
+波及文件（同一批叠加操作产生，均仅 BOM 差异、无实质内容改动）：
+- `scripts/dev/`：`precheck_docs.ps1`、`fix_broken_links.ps1`、`sync_precommit_hook.ps1`、
+  `hook_fail_safe.psm1`、`simulate_batch_sync.ps1`、`simulate_real_deploy.ps1`、
+  `_test_permission.ps1`、`test_hook_chinese_path*.ps1` 等
+- `packages/tlm-hook-failsafe/`：`install.ps1`、`sync-from-source.ps1`、`tlm-hook-failsafe.psd1`、
+  `tests/test_*.ps1` 等
+
+该问题是仓库历史反复出现的模式（提交 `53b0f034`/`869a0e35`/`af45f8dc` 均为"清理 BOM 叠加"）。
+
+### 修复
+
+```powershell
+# 检测并移除多余 BOM（保留单个 UTF-8 BOM）
+$b = [System.IO.File]::ReadAllBytes($path)
+if ($b[0..2] -eq (0xEF, 0xBB, 0xBF) -and $b[3..5] -eq (0xEF, 0xBB, 0xBF)) {
+    [System.IO.File]::WriteAllBytes($path, $b[3..($b.Length-1)])
+}
+```
+
+- 批量修复 16 个文件（其中 `hook_fail_safe.psm1` 修复后被外部进程再次叠加，直接 `git checkout` 恢复 HEAD）；
+- 修复后 `git status` 中这些文件全部消失（恢复 HEAD 状态），hook 预检恢复通过；
+- 随后的 `274d80ab`（hook VERBOSE）与 `7187be91`（文档复盘）提交均正常放行。
+
+### 经验教训
+
+- 写入 BOM 的工具/脚本必须**先检测是否已存在 BOM**（幂等），避免叠加；
+- hook 失败在 CI/工具化终端中可能"静默"，排障时应直接手动运行 `git_precommit_check.ps1` 观察真实输出；
+- 涉及 `docs/` 的提交前预检链路较长（链接预检 + 锚点回归），任何脚本语法错误都会阻塞全部提交。
