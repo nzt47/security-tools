@@ -149,3 +149,45 @@ schtasks /Query /TN YunshuIOCacheCleanup /FO LIST /V
 | `pytest.ini` | 修改 | addopts 新增 2 条 `--ignore`（附根因注释） |
 | `scripts/cleanup_io_cache.ps1` | 新增 | IO 缓存清理脚本（DryRun/WMI/Python 缓存/计划任务） |
 | 计划任务 `YunshuIOCacheCleanup` | 新增 | 每日 02:00 自动清理 |
+
+---
+
+## 七、2026-08-02 第二轮：代码级卡死点修复（全量测试 run5~run12）
+
+`--ignore` 跳过策略只能拦 WMI/importlib 两个文件；全量测试 run5~run9 仍逐轮卡死。
+逐轮定位并修复 4 个真实缺陷后，run12 全量 **9044 passed, 0 failed, 0 errors**（`-n auto` 并行 4:00 完成，无挂起）。
+
+### 1. tracemalloc 快照聚合挂起（`agent/monitoring/resource_monitor.py`，run5，已在 HEAD `e26c3ef7`）
+
+- 根因：`_sample_memory` 的 `take_snapshot().statistics("lineno")` 聚合全量分配记录，大会话中耗时 60s+。
+- 修复：`_collect()` 移入 daemon 线程 + `join(_TRACEMALLOC_SNAPSHOT_TIMEOUT=5.0)`，超时置 `_tracemalloc_snapshot_degraded` 并降级返回基础 `MemoryStat`。
+
+### 2. worker 就绪 readline 阻塞（`agent/tool_router_hybrid.py`，run7）
+
+- 根因：`_ensure_worker()` 同步 `stdout.readline()` 等待 worker 就绪，Windows 上 select 不可用、readline 永久阻塞。
+- 修复：`_readline_with_timeout(stream, _WORKER_READY_TIMEOUT=30.0)`（daemon 线程 + join 超时），超时 kill worker + `_init_failed=True` 降级纯 BM25。
+
+### 3. chromadb import 卡死无法 try/except 拦截（`agent/memory_optimized.py`，run8）
+
+- 根因：chromadb 1.5.9 + pydantic 2.x 在部分环境 import 卡死（UserIdentity 双加载 / pydantic_settings dotenv 解析），非异常、`try/except ImportError` 拦不住。
+- 修复：`_create_client` 的 import 移入 daemon 线程 + `join(_CHROMADB_IMPORT_TIMEOUT=30.0)`，超时/失败降级 `MockChromaClient`。
+
+### 4. VectorStore 构造三重卡死（`memory/vector_store/vector_store.py`，run9 根因 + 新发现）
+
+1. **同步 `import chromadb` 无超时**（原 line 59）：改为子进程探测 `_probe_import`（`subprocess.run(timeout=30)`）。
+2. **daemon 线程 import 锁毒化**：卡死的 daemon 线程持有全局 import 锁，超时返回后主线程任何后续 import 死锁。改用子进程隔离——卡死只发生在子进程，被 timeout 杀掉，不影响主进程 import 锁。
+3. **SentenceTransformer 联网重试挂起**：即使模型已完整缓存，加载时仍对 HF 发 HEAD 请求检查 PEFT adapter 文件；HF 不可达时重试 5 次（每次数十秒）导致构造挂起。修复：`_is_model_fully_cached` 命中（含 `sentence-transformers--` 无 org 前缀变体）则设 `HF_HUB_OFFLINE=1`/`TRANSFORMERS_OFFLINE=1` 走离线加载；未缓存才子进程探测在线下载。
+4. 附带优化：`_get_shared_encoder` 模块级单例缓存，同进程多次构造复用模型（二次构造 0.0s）；ST 探测在并行测试高负载下可能 30s 超时被杀，模型缓存完整时不再因此降级 json。
+
+### 全量验证结论
+
+- run12（对齐 CI unit job 命令）：`pytest tests/unit/ -n auto --dist=loadscope --timeout=300 -m "not slow and not skip_ci" --ignore=tests/unit/test_sandbox_multiprocess_boundary.py`
+- **9044 passed, 44 skipped, 13 xfailed, 4 xpassed, 364 warnings, 0 failed, 0 errors**
+- 拒识相关测试（`test_orchestrator_reject.py` 等）全部通过，无遗留拒识逻辑失败。
+- 备注：`tests/unit/test_tool_trace.py` 存在既有异步竞态（`flush()` 队列空即返回、不等 writer 线程 commit），全量时偶发失败，与本轮修复无关，建议后续加固。
+
+### 三义自检
+
+- **不易**：VectorStore 接口/后端优先级（sqlite-vec > chromadb > JSON）未变，仅增加超时降级与缓存。
+- **变易**：探测超时/离线策略均常量可调；子进程探测兼容有网/无网/高负载环境。
+- **简易**：统一 `_probe_import` 子进程方案替代 daemon 线程，规避 import 锁毒化，一处实现多处复用。
