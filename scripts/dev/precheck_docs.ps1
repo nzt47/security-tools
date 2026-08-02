@@ -129,6 +129,14 @@ foreach ($file in $mdFiles) {
         # 跳过 http/https/mailto/file:///绝对路径/锚点链接
         if ($linkPath -match '^(https?|mailto:|file:///|#|/)') { continue }
         $totalLinks++
+        # 【不易】合法相对链接可带 #锚点（如 ./guide.md#四、告警规则），
+        # Path::Combine + File.Exists 无法解析锚点后缀，必须先剥离，
+        # 仅校验文件部分（与 fix_broken_links.ps1 类型 9 逻辑保持一致）
+        if ($linkPath -match '^([^#]+)#') {
+            $linkPath = $Matches[1]
+        }
+        # 归一化 ./ 前缀，避免 Combine 拼接出「目录\./文件」混合分隔符
+        $linkPath = $linkPath -replace '^\./', ''
         # 解析相对路径（.NET API 正确处理 Unicode 字符）
         $fullPath = [System.IO.Path]::Combine($file.DirectoryName, $linkPath)
         if (-not ([System.IO.File]::Exists($fullPath) -or [System.IO.Directory]::Exists($fullPath))) {
