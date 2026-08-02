@@ -514,6 +514,10 @@ class Orchestrator:
                 # 标准路径
                 response = self._call_llm(user_input, body_status)
         except Exception as e:
+            # 【TD-1】LLM 调用失败独立计层（llm_error 为 llm 的失败子指标）
+            # llm（L507，INV-4 调用前埋点）计"尝试"；llm_error 计"失败"，
+            # 成功路径不记 llm_error，面板 10 用 llm_error/llm 计算错误率
+            _record_intent_layer("llm_error")
             logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.fail', 'message': '[FAIL] 对话处理异常: %s' % (e,), 'error': str(e)}))
             tb_str = __import__('traceback').format_exc()
             logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '堆栈:\n%s' % (tb_str,), 'error': str(tb_str)}))

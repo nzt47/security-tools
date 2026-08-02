@@ -177,6 +177,13 @@ def verify_integrity(local_dir: str) -> bool:
                 size_mb = safetensors.stat().st_size / 1024 / 1024
                 print(f"  ✅ 找到 model.safetensors ({size_mb:.1f}MB)，可替代 pytorch_model.bin")
                 missing.remove("pytorch_model.bin")
+        # v2-m3 使用 sentencepiece 分词器，模型不含 vocab.txt，以 sentencepiece.bpe.model 替代
+        if "vocab.txt" in missing:
+            spm = local_path / "sentencepiece.bpe.model"
+            if spm.exists():
+                size_mb = spm.stat().st_size / 1024 / 1024
+                print(f"  ✅ 找到 sentencepiece.bpe.model ({size_mb:.1f}MB)，可替代 vocab.txt")
+                missing.remove("vocab.txt")
 
     if missing:
         print(f"\n  ❌ 关键文件缺失，建议删除目录后重新下载")
