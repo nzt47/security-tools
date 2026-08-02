@@ -69,7 +69,9 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-timeout psutil
+          # 【不易】pytest.ini 全局配置 asyncio_mode=auto + --strict-config，
+          #   pytest 9.1.x 下缺 pytest-asyncio 会报 "Unknown config option: asyncio_mode"
+          pip install pytest pytest-timeout pytest-asyncio psutil
           # 安装本项目(允许失败,失败时靠 PYTHONPATH=. 兜底)
           pip install -e . || true
 
@@ -117,7 +119,9 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-timeout psutil
+          # 【不易】pytest.ini 全局配置 asyncio_mode=auto + --strict-config，
+          #   pytest 9.1.x 下缺 pytest-asyncio 会报 "Unknown config option: asyncio_mode"
+          pip install pytest pytest-timeout pytest-asyncio psutil
           pip install -e . || true
 
       - name: 运行负样本回归测试
