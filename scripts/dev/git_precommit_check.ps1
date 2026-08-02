@@ -18,12 +18,19 @@
     .\scripts\dev\git_precommit_check.ps1 -TargetRepo D:\code\my-repo
     .\scripts\dev\git_precommit_check.ps1
 #>
-[CmdletBinding()]
 param(
-    [string]$TargetRepo
+    [string]$TargetRepo,
+    # 字节级调试模式（即 -Verbose 模式）：PS 5.1 的 -File 调用会把 -Verbose 作为保留参数名
+    # 处理、不绑定到显式 switch，因此用 -BomDiag 实现（hook 经 TLM_HOOK_VERBOSE=1 透传）
+    [switch]$BomDiag
 )
 
 $ErrorActionPreference = 'Continue'
+
+# -BomDiag → 提升 Verbose 流偏好，并向下游 precheck_docs.ps1 传递
+if ($BomDiag) {
+    $VerbosePreference = 'Continue'
+}
 
 if (-not $TargetRepo) {
     $TargetRepo = (Get-Location).Path
@@ -38,6 +45,13 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $pass = 0
 $fail = 0
 
+# -BomDiag 时向子进程传递调试开关，输出字节级 BOM/路径诊断
+$verboseArgs = @()
+if ($VerbosePreference -eq 'Continue') {
+    $verboseArgs = @('-BomDiag')
+    Write-Verbose "字节级调试开启：失效链接将输出 BOM 状态 / 锚点剥离 / 路径解析"
+}
+
 # ── 检查 1: 文档链接预检（阻塞模式，阈值 0 不可绕过） ──
 $precheck = Join-Path $scriptDir 'precheck_docs.ps1'
 if (-not (Test-Path $precheck)) {
@@ -45,7 +59,7 @@ if (-not (Test-Path $precheck)) {
     exit 1
 }
 Write-Host "`n[1/2] 文档链接预检..." -ForegroundColor Yellow
-& powershell -ExecutionPolicy Bypass -File $precheck -SkipChart -BlockMode -AllowBroken 0 -TargetRepo $TargetRepo
+& powershell -ExecutionPolicy Bypass -File $precheck -SkipChart -BlockMode -AllowBroken 0 -TargetRepo $TargetRepo @verboseArgs
 if ($LASTEXITCODE -eq 0) {
     $pass++
     Write-Host "  [OK] 链接预检通过" -ForegroundColor Green

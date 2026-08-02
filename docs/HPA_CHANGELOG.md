@@ -221,7 +221,7 @@ kubectl patch hpa skill-retrieval-hpa -n production --type=merge -p '{
 - [生产 HPA 配置](../deploy/k8s/hpa-production.yaml)
 - [迁移指南: port-forward → 集群内直连](MIGRATION_PORT_FORWARD_TO_IN_CLUSTER.md)
 - [HPA 扩容巡检脚本](../scripts/hpa_scale_patrol.py)
-- [资源成本对比报告](RESOURCE_COST_COMPARISON.md)
+- [port-forward 开销对比报告](PORT_FORWARD_OVERHEAD_COMPARISON.md)
 - [HPA 对比压测计划](HPA_COMPARISON_LOADTEST_PLAN.md)
 
 ---
