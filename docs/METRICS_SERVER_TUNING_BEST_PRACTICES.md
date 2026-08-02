@@ -301,5 +301,5 @@ kind load docker-image registry.k8s.io/metrics-server/metrics-server:v0.7.2
 - [metrics-server 配置文件](../deploy/k8s/metrics-server.yaml)
 - [metrics-server 预热脚本](../scripts/metrics_server_warmup.py)
 - [巡检前预热 + 延迟基准脚本](../scripts/warmup_before_patrol.py)
-- [HPA 巡检报告模板](templates/HPA_PATROL_REPORT_TEMPLATE.md)
+- [HPA 对比压测计划](HPA_COMPARISON_LOADTEST_PLAN.md)
 - [开发规范](DEVELOPMENT_STANDARDS_K8S_SCRIPTS.md)

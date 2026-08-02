@@ -18,7 +18,7 @@
 本地 k6/Python 客户端 → kubectl port-forward (kube-proxy) → Pod
 ```
 
-**实测开销**（见 `docs/RESOURCE_COST_COMPARISON.md`）:
+**实测开销**（见 `docs/PORT_FORWARD_OVERHEAD_COMPARISON.md`）:
 
 | 指标 | port-forward | 集群内直连 | 差异 |
 |------|-------------|-----------|------|
@@ -400,7 +400,7 @@ Test-Path scripts/_archived/run_port_forward_loadtest.ps1.bak
 
 ## 7. 附录: 资源成本对比
 
-详细数据见 `docs/RESOURCE_COST_COMPARISON.md`，关键指标:
+详细数据见 `docs/PORT_FORWARD_OVERHEAD_COMPARISON.md`，关键指标:
 
 | 维度 | port-forward | 集群内直连 | 改善 |
 |------|-------------|-----------|------|
@@ -423,6 +423,6 @@ Test-Path scripts/_archived/run_port_forward_loadtest.ps1.bak
 
 **相关文档**:
 - [HPA 对比压测计划](HPA_COMPARISON_LOADTEST_PLAN.md)
-- [资源成本对比报告](RESOURCE_COST_COMPARISON.md)
+- [port-forward 开销对比报告](PORT_FORWARD_OVERHEAD_COMPARISON.md)
 - [HPA 生产配置](../deploy/k8s/hpa-production.yaml)
 - [HPA 扩容巡检脚本](../scripts/hpa_scale_patrol.py)

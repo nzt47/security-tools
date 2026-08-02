@@ -30,16 +30,49 @@
     .\scripts\dev\precheck_docs.ps1 -InstallHook
     .\scripts\dev\precheck_docs.ps1 -BlockMode -AllowBroken 98
 #>
-[CmdletBinding()]
 param(
     [switch]$SkipChart,
     [switch]$InstallHook,
     [switch]$BlockMode,
     [int]$AllowBroken = 0,
-    [string]$TargetRepo
+    [string]$TargetRepo,
+    # 字节级调试模式（即 -Verbose 模式）：PS 5.1 的 -File 调用会把 -Verbose 作为保留参数名
+    # 处理、不绑定到显式 switch，因此用 -BomDiag 实现（hook 经 TLM_HOOK_VERBOSE=1 透传）
+    [switch]$BomDiag
 )
 
 $ErrorActionPreference = "Continue"
+
+# -BomDiag → 提升 Verbose 流偏好，后续 Write-Verbose 均生效
+if ($BomDiag) {
+    $VerbosePreference = 'Continue'
+}
+
+# ── 字节级 BOM 诊断（-Verbose 时用于定位 BOM 相关边缘问题） ──
+function Test-FileBomSignature {
+    <#
+    .SYNOPSIS
+        检测文件开头的 UTF-8 BOM 状态（None / Single / Stacked）
+    .DESCRIPTION
+        - None:   无 BOM（bash hook / python 约定）
+        - Single: 单 BOM（PowerShell 5.1 中文兼容，期望状态）
+        - Stacked: 叠加 BOM（≥2 个连续 EF BB BF），会破坏 <# 块注释，是历史事故根因
+    .OUTPUTS
+        [PSCustomObject] @{ State; BomCount; HeadHex }
+    #>
+    param([string]$Path)
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $count = 0
+    $i = 0
+    while ($i + 2 -lt $bytes.Length -and $bytes[$i] -eq 0xEF -and $bytes[$i + 1] -eq 0xBB -and $bytes[$i + 2] -eq 0xBF) {
+        $count++
+        $i += 3
+    }
+    $state = if ($count -ge 2) { 'Stacked' } elseif ($count -eq 1) { 'Single' } else { 'None' }
+    $last = [Math]::Min(8, $bytes.Length - 1)
+    $hex = ($bytes[0..$last] | ForEach-Object { $_.ToString('X2') }) -join ' '
+    return [PSCustomObject]@{ State = $state; BomCount = $count; HeadHex = $hex }
+}
 $ProjectRoot = (Resolve-Path "$PSScriptRoot\..\..").Path
 # 若指定 -TargetRepo（被 sync_precommit_hook.ps1 部署的 hook 调用），切换到目标仓库根目录；
 # 否则保持原行为（cd 到脚本所在源仓库根目录）
@@ -118,21 +151,34 @@ Write-Host "`n[2/3] 检查 docs/ Markdown 链接..." -ForegroundColor Yellow
 $mdFiles = Get-ChildItem -Path docs -Filter "*.md" -Recurse -ErrorAction SilentlyContinue
 $totalLinks = 0
 $brokenLinks = 0
+# -Verbose 时收集 BOM 异常文件，拦截失败时输出字节级诊断
+$bomIssues = @()
 
 foreach ($file in $mdFiles) {
     # 用 .NET API + UTF8 显式编码读取，避免 PowerShell 5.1 默认 GBK 解码中文导致路径乱码
     $content = [System.IO.File]::ReadAllText($file.FullName, [System.Text.Encoding]::UTF8)
+    # -Verbose: 检测 Markdown 文件自身的 BOM 状态（叠加 BOM 会破坏文档解析/锚点匹配）
+    if ($VerbosePreference -eq 'Continue') {
+        $bom = Test-FileBomSignature -Path $file.FullName
+        if ($bom.State -eq 'Stacked') {
+            Write-Verbose "  [BOM] 叠加 BOM: $($file.FullName) (BOM x$($bom.BomCount), head: $($bom.HeadHex))"
+            $bomIssues += $file.FullName
+        }
+    }
     # 匹配 [text](path) 格式的相对链接
     $links = [regex]::Matches($content, '\[([^\]]+)\]\(([^)]+)\)')
     foreach ($link in $links) {
         $linkPath = $link.Groups[2].Value
+        $linkText = $link.Groups[1].Value
         # 跳过 http/https/mailto/file:///绝对路径/锚点链接
         if ($linkPath -match '^(https?|mailto:|file:///|#|/)') { continue }
         $totalLinks++
         # 【不易】合法相对链接可带 #锚点（如 ./guide.md#四、告警规则），
         # Path::Combine + File.Exists 无法解析锚点后缀，必须先剥离，
         # 仅校验文件部分（与 fix_broken_links.ps1 类型 9 逻辑保持一致）
+        $anchorSuffix = ''
         if ($linkPath -match '^([^#]+)#') {
+            $anchorSuffix = $linkPath.Substring($Matches[1].Length)
             $linkPath = $Matches[1]
         }
         # 归一化 ./ 前缀，避免 Combine 拼接出「目录\./文件」混合分隔符
@@ -141,6 +187,19 @@ foreach ($file in $mdFiles) {
         $fullPath = [System.IO.Path]::Combine($file.DirectoryName, $linkPath)
         if (-not ([System.IO.File]::Exists($fullPath) -or [System.IO.Directory]::Exists($fullPath))) {
             Write-Host "  [BROKEN] $($file.Name): $linkPath" -ForegroundColor Red
+            if ($VerbosePreference -eq 'Continue') {
+                # 字节级诊断：链接原文 / 锚点剥离 / 路径解析全过程
+                Write-Verbose "    [DIAG] 链接原文: [$linkText]($($link.Groups[2].Value))"
+                Write-Verbose "    [DIAG] 剥离锚点: 后缀=$anchorSuffix 文件部分=$linkPath"
+                Write-Verbose "    [DIAG] 解析路径: $fullPath"
+                Write-Verbose "    [DIAG] 存在性:   File=$(Test-Path $fullPath -PathType Leaf) Dir=$(Test-Path $fullPath -PathType Container)"
+                $fileBom = Test-FileBomSignature -Path $file.FullName
+                Write-Verbose "    [DIAG] 宿主文件 BOM: $($fileBom.State) (BOM x$($fileBom.BomCount), head: $($fileBom.HeadHex))"
+                if ($fullPath -match '\.(ps1|psm1)$' -and (Test-Path $fullPath)) {
+                    $targetBom = Test-FileBomSignature -Path $fullPath
+                    Write-Verbose "    [DIAG] 目标脚本 BOM: $($targetBom.State) (BOM x$($targetBom.BomCount), head: $($targetBom.HeadHex))"
+                }
+            }
             $brokenLinks++
         }
     }
@@ -188,6 +247,23 @@ if ($BlockMode) {
         Write-Host "  修复方案: .\scripts\dev\fix_broken_links.ps1 -DryRun" -ForegroundColor Yellow
         Write-Host "  临时跳过: git commit --no-verify" -ForegroundColor Yellow
         Write-Host "  调整阈值: -AllowBroken $brokenLinks（渐进式修复）" -ForegroundColor Yellow
+        if ($VerbosePreference -eq 'Continue') {
+            # 字节级诊断汇总：定位 BOM 相关边缘问题（叠加 BOM 会破坏解析）
+            Write-Verbose ""
+            Write-Verbose "=== 字节级调试诊断 ==="
+            if ($bomIssues.Count -gt 0) {
+                Write-Verbose "  [BOM] 发现 $($bomIssues.Count) 个叠加 BOM 的 Markdown 文件（EF BB BF 连续出现 ≥2 次）:"
+                foreach ($bomFile in $bomIssues) {
+                    $b = Test-FileBomSignature -Path $bomFile
+                    Write-Verbose "    - $bomFile"
+                    Write-Verbose "      head: $($b.HeadHex)  (BOM x$($b.BomCount))"
+                }
+                Write-Verbose "  修复: 对 .ps1/.psm1 用单 BOM（TrimStart FEFF + UTF8Encoding(true) 写回）；对 .md 建议去 BOM"
+            } else {
+                Write-Verbose "  [BOM] 未检测到叠加 BOM 的 Markdown 文件（如需检查 .ps1/.psm1 请直接扫描 scripts/）"
+            }
+            Write-Verbose "  提示: 叠加 BOM 是 <# 块注释解析失败 / 中文乱码的常见根因，详见 docs/ci_guidelines/precommit_hook_bom_incident_report.md"
+        }
         exit 1
     } else {
         Write-Host ""
