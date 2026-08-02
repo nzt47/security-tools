@@ -10,6 +10,7 @@ import time
 import random
 import logging
 import threading
+import urllib.request
 from typing import Optional, List, Dict, Any
 from collections import deque
 from urllib.parse import urlparse
@@ -53,6 +54,11 @@ DEFAULT_USER_AGENTS = [
     # Brave
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
 ]
+
+
+# 【变易】robots.txt 抓取超时(秒)。RobotFileParser.read() 底层 urlopen 无 timeout,
+# 网络不可达(防火墙丢弃 SYN/TLS 握手无响应)时无限阻塞,导致 can_fetch 挂起。
+_ROBOTS_TIMEOUT = 10.0
 
 
 class CrawlerController:
@@ -315,7 +321,16 @@ class CrawlerController:
                 rp = RobotFileParser()
                 rp.set_url(f"{base}/robots.txt")
                 try:
-                    rp.read()
+                    # 【变易】RobotFileParser.read() 底层 urlopen 无 timeout,
+                    # 网络不可达时 SSL 握手/TCP 连接会无限阻塞。
+                    # 改为带超时抓取内容再 parse,超时后按"无法读取"默认允许。
+                    req = urllib.request.Request(
+                        f"{base}/robots.txt",
+                        headers={"User-Agent": user_agent},
+                    )
+                    with urllib.request.urlopen(req, timeout=_ROBOTS_TIMEOUT) as resp:
+                        content = resp.read().decode("utf-8", errors="replace")
+                    rp.parse(content.splitlines())
                 except Exception:
                     return True  # 无法读取 robots.txt 时默认允许
                 self._robots_cache[base] = rp
