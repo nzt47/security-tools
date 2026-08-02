@@ -1,5 +1,5 @@
 {
-  "trace_id": "0414d6a113414eec",
+  "trace_id": "fae805d487854c90",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -4653,7 +4653,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 2225,
+      "line": 2229,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4705,7 +4705,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 723,
+      "line": 727,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4718,7 +4718,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1002,
+      "line": 1006,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4731,7 +4731,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1910,
+      "line": 1914,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4770,7 +4770,7 @@
       "source_layer": "orchestrator",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 1092,
+      "line": 1096,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4783,7 +4783,7 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 1556,
+      "line": 1560,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4796,7 +4796,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tool_schema_pruner",
       "import_type": "from_import",
-      "line": 1569,
+      "line": 1573,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4809,7 +4809,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tool_fewshot_store",
       "import_type": "from_import",
-      "line": 1596,
+      "line": 1600,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4822,7 +4822,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 1597,
+      "line": 1601,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9919,6 +9919,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 998.268822
+    "build_duration_ms": 1231.4957399999998
   }
 }
