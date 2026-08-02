@@ -16,10 +16,12 @@
 """
 
 import os
+import sys
 import json
 import re
 import heapq
 import asyncio
+import subprocess
 import threading
 import logging
 from typing import List, Dict, Any, Optional, Tuple
@@ -43,31 +45,140 @@ HAS_SENTENCE_TRANSFORMERS = False
 
 _chroma_deps_checked = False
 
+# 【变易】依赖导入超时(秒)。chromadb 1.5.9 + pydantic 2.x 在部分环境 import 会
+# 长时间卡死(非异常,try/except ImportError 无法拦截);sentence_transformers → torch
+# 在 CI 上首次导入也可能 2-3 分钟。均用 daemon 线程 + join(timeout) 兜底降级。
+_DEPS_IMPORT_TIMEOUT = 30.0
+
+
+def _probe_import(code: str) -> bool:
+    """在子进程中执行依赖导入探测，超时按"不可用"处理
+
+    Why: chromadb 1.5.9 + pydantic 2.x 在部分环境 import 会长时间卡死（非异常，
+    try/except ImportError 无法拦截）。早期用 daemon 线程 + join(timeout) 兜底，
+    但卡死的 daemon 线程持有全局 import 锁——超时返回后主线程任何后续 import
+    都会死锁（VectorStore 构造挂起的根因）。子进程隔离：卡死只发生在子进程，
+    subprocess.run 超时后直接 terminate，不影响主进程 import 锁。
+    """
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", code],
+            timeout=_DEPS_IMPORT_TIMEOUT,
+            capture_output=True,
+        )
+        return proc.returncode == 0
+    except Exception:
+        return False
+
 
 def _check_chroma_available():
     """延迟检测 chromadb + sentence_transformers 是否可用
 
     避免模块导入时拉起 torch/chromadb 等重量级依赖（CI 上首次导入 torch 可能需要 2-3 分钟）。
-    首次调用时执行导入检测，后续调用直接返回。检测结果会更新模块级
+    首次调用时执行子进程探测，后续调用直接返回。检测结果会更新模块级
     HAS_CHROMA / HAS_SENTENCE_TRANSFORMERS 标志。
     """
     global HAS_CHROMA, HAS_SENTENCE_TRANSFORMERS, _chroma_deps_checked
     if _chroma_deps_checked:
         return
     _chroma_deps_checked = True
-    try:
-        import chromadb  # noqa: F401
-        from chromadb.config import Settings  # noqa: F401
+
+    if _probe_import("import chromadb; from chromadb.config import Settings"):
         HAS_CHROMA = True
         logger.info("[OK] ChromaDB loaded")
-    except ImportError:
-        logger.warning("[WARN] ChromaDB not installed, using JSON fallback")
-    try:
-        from sentence_transformers import SentenceTransformer  # noqa: F401
+    else:
+        logger.warning("[WARN] ChromaDB not installed or import timeout, using JSON fallback")
+
+    if _probe_import("from sentence_transformers import SentenceTransformer"):
         HAS_SENTENCE_TRANSFORMERS = True
         logger.info("[OK] Sentence Transformers loaded")
-    except ImportError:
-        logger.warning("[WARN] Sentence Transformers not installed, using keyword search")
+    else:
+        logger.warning("[WARN] Sentence Transformers not installed or import timeout, using keyword search")
+
+
+_MODEL_AVAIL_CACHE: Dict[str, bool] = {}
+
+
+def _is_model_fully_cached(model_name: str) -> bool:
+    """检查 HF hub 本地缓存中该模型权重文件是否完整存在"""
+    try:
+        # HF 无 org 前缀模型（如 paraphrase-multilingual-MiniLM-L12-v2）实际存储为
+        # sentence-transformers 组织名下，缓存目录带 sentence-transformers-- 前缀
+        # （sentence_transformers 加载时自动补全 org）。两种形式都检查。
+        dir_names = ["models--" + model_name.replace("/", "--")]
+        if "/" not in model_name:
+            dir_names.append("models--sentence-transformers--" + model_name)
+        cache_root = os.environ.get("HF_HOME") or os.path.join(
+            os.path.expanduser("~"), ".cache", "huggingface"
+        )
+        weight_files = (
+            "pytorch_model.bin",
+            "model.safetensors",
+            "model.safetensors.index.json",
+        )
+        for dir_name in dir_names:
+            snapshots = os.path.join(cache_root, "hub", dir_name, "snapshots")
+            if not os.path.isdir(snapshots):
+                continue
+            for entry in os.listdir(snapshots):
+                snap_dir = os.path.join(snapshots, entry)
+                if os.path.isdir(snap_dir) and any(
+                    os.path.exists(os.path.join(snap_dir, f)) for f in weight_files
+                ):
+                    return True
+        return False
+    except Exception:
+        return False
+
+
+def _resolve_encoder_availability(model_name: str) -> bool:
+    """判定编码模型是否可加载（结果缓存）
+
+    Why: SentenceTransformer 加载模型时即使本地缓存完整，仍会对 HF 发 HEAD 请求
+    检查 PEFT adapter 文件；HF 不可达时该请求重试 5 次（每次数十秒连接超时）导致
+    VectorStore 构造挂起。策略：
+    1. 缓存完整 → 启用 HF 离线模式，走本地加载（快速，无网络依赖）；
+    2. 无缓存 → 子进程探测在线加载（有网环境可正常下载，无网/卡死 30s 后降级）。
+    """
+    if model_name in _MODEL_AVAIL_CACHE:
+        return _MODEL_AVAIL_CACHE[model_name]
+    if _is_model_fully_cached(model_name):
+        os.environ.setdefault("HF_HUB_OFFLINE", "1")
+        os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+        ok = True
+    else:
+        code = (
+            "from sentence_transformers import SentenceTransformer\n"
+            f"m = SentenceTransformer({model_name!r})\n"
+        )
+        ok = _probe_import(code)
+    _MODEL_AVAIL_CACHE[model_name] = ok
+    return ok
+
+
+_shared_encoder_cache: Dict[str, Any] = {}
+_shared_encoder_lock = threading.Lock()
+
+
+def _get_shared_encoder(model_name: str) -> Optional[Any]:
+    """获取共享 SentenceTransformer 编码器（模块级单例）
+
+    Why: VectorStore 每次构造都会执行 _init_sqlite_vec/_init_chroma，若每次都
+    SentenceTransformer(model_name) 加载模型（~20s），同进程内多次构造会重复
+    加载拖慢测试。共享单例后首次加载、后续直接复用。
+    """
+    if model_name in _shared_encoder_cache:
+        return _shared_encoder_cache[model_name]
+    with _shared_encoder_lock:
+        if model_name in _shared_encoder_cache:
+            return _shared_encoder_cache[model_name]
+        try:
+            from sentence_transformers import SentenceTransformer
+            encoder = SentenceTransformer(model_name)
+            _shared_encoder_cache[model_name] = encoder
+            return encoder
+        except Exception:
+            return None
 
 
 @dataclass
@@ -334,11 +445,18 @@ class VectorStore:
 
         _check_chroma_available()
 
+        # 【变易】编码器可用性判定：模型缓存完整则离线加载（避免 HF 不可达时
+        # HEAD 请求重试挂起）；无缓存则子进程探测在线加载，超时降级 JSON
+        encoder_ok = _resolve_encoder_availability(self.model_name)
+        # ST 模块子进程探测可能因并行测试高负载超时（30s 被杀），但模型缓存完整
+        # 说明 sentence-transformers 曾可用且离线加载可行——不因探测超时降级 json
+        st_ok = HAS_SENTENCE_TRANSFORMERS or encoder_ok
+
         # 优先级 1: sqlite-vec（轻量级，需 sentence_transformers 编码）
-        if HAS_SENTENCE_TRANSFORMERS and self._init_sqlite_vec():
+        if st_ok and self._init_sqlite_vec():
             self._backend = "sqlite_vec"
         # 优先级 2: ChromaDB（重量级，需 chromadb + sentence_transformers）
-        elif HAS_CHROMA and HAS_SENTENCE_TRANSFORMERS:
+        elif st_ok and HAS_CHROMA:
             self._backend = "chromadb"
             self._init_chroma()  # 内部失败时会将 _backend 改为 "json"
         # 优先级 3: JSON Fallback + BM25
@@ -370,12 +488,14 @@ class VectorStore:
         """
         try:
             import sqlite_vec  # noqa: F401
-            from sentence_transformers import SentenceTransformer
             # 延迟导入，避免模块导入时拉起 sqlite-vec 扩展
             from .sqlite_vec_backend import SqliteVecBackend
 
-            # 先初始化 encoder，再从 encoder 动态获取向量维度
-            self._encoder = SentenceTransformer(self.model_name)
+            # 复用共享编码器（避免每次构造重复加载模型）
+            self._encoder = _get_shared_encoder(self.model_name)
+            if self._encoder is None:
+                logger.info("sentence-transformers 编码器加载失败，降级")
+                return False
             dim = self._encoder.get_sentence_embedding_dimension()
 
             db_path = os.path.join(self.persist_dir, f"{self.collection_name}_vec.db")
@@ -400,7 +520,6 @@ class VectorStore:
             # 避免在模块导入时拉起 torch。_check_chroma_available() 已确认这些模块可用。
             import chromadb
             from chromadb.config import Settings
-            from sentence_transformers import SentenceTransformer
             # chromadb 0.4.x：PersistentClient 才真正持久化到磁盘
             # 旧版用 chromadb.Client(Settings(persist_directory=...)) 实际创建的是 ephemeral 客户端，
             # 且 ephemeral client 有单例缓存，第二次以不同 settings 实例化会报
@@ -413,7 +532,10 @@ class VectorStore:
                 name=self.collection_name,
                 metadata={"description": "云枢智能体记忆库"}
             )
-            self._encoder = SentenceTransformer(self.model_name)
+            # 复用共享编码器（避免每次构造重复加载模型）
+            self._encoder = _get_shared_encoder(self.model_name)
+            if self._encoder is None:
+                raise RuntimeError("sentence-transformers 编码器加载失败")
             logger.info(f"✅ ChromaDB 集合创建成功: {self.collection_name}")
         except Exception as e:
             logger.warning(f"⚠️ ChromaDB 初始化失败: {e}，使用 fallback")
