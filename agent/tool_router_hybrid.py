@@ -56,6 +56,7 @@ _DEFAULT_ALPHA = 0.5      # BM25 与 Embedding 等权
 _DEFAULT_TOP_K = 10       # 默认返回 10 个候选
 _COSINE_CUTOFF = 0.2      # Embedding 余弦相似度剪枝阈值(低于此值不进入融合)
 _PROBE_TIMEOUT = 60       # 子进程探测超时(秒)
+_WORKER_READY_TIMEOUT = 30.0  # worker ready 信号读取超时(秒)
 
 # 原生崩溃退出码(用于诊断 Embedding 子进程崩溃原因)
 _WIN_ACCESS_VIOLATION = -1073741819   # 0xC0000005
@@ -86,6 +87,39 @@ def _diagnose_crash(returncode: Optional[int]) -> str:
     if returncode == _LINUX_SIGILL:
         return "Linux SIGILL - 非法指令,常见于 CPU 不支持 AVX/AVX2"
     return f"未知退出码: {returncode}"
+
+
+class _ReadlineTimedOut:
+    """stdout.readline() 超时哨兵值"""
+
+
+_READLINE_TIMED_OUT = _ReadlineTimedOut()
+
+
+def _readline_with_timeout(stream, timeout: float) -> str | _ReadlineTimedOut:
+    """带超时的 stdout.readline()。
+
+    Windows 上 select 不支持普通管道,无法用 select 实现超时读,
+    故用 daemon 线程 + join(timeout):
+      - reader 线程阻塞 readline()
+      - 主线程等待 timeout 秒,超时返回哨兵 _READLINE_TIMED_OUT
+    """
+    result: dict = {}
+
+    def _reader():
+        try:
+            result["line"] = stream.readline()
+        except Exception as e:
+            result["error"] = e
+
+    t = threading.Thread(target=_reader, daemon=True)
+    t.start()
+    t.join(timeout)
+    if t.is_alive():
+        return _READLINE_TIMED_OUT
+    if "error" in result:
+        raise result["error"]
+    return result.get("line")
 
 # 安全导入 ToolTraceRecorder(不可用时降级)
 try:
@@ -496,13 +530,30 @@ class EmbeddingIndex:
         json_errors = 0
         while True:
             try:
-                line = self._proc.stdout.readline()
+                line = _readline_with_timeout(self._proc.stdout, _WORKER_READY_TIMEOUT)
             except OSError as e:
                 logger.warning(json.dumps({
                     "module_name": "tool_router_hybrid",
                     "action": "embedding.worker.stdout_read_failed",
                     "error": str(e),
                 }, ensure_ascii=False))
+                self._init_failed = True
+                return False
+
+            if line is _READLINE_TIMED_OUT:
+                # worker 未在超时时间内输出 ready 信号:kill 并降级为纯 BM25
+                logger.warning(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.worker.ready_timeout",
+                    "timeout_sec": _WORKER_READY_TIMEOUT,
+                    "model": self._model_name,
+                }, ensure_ascii=False))
+                self._proc.kill()
+                try:
+                    self._proc.wait(timeout=3)
+                except Exception:
+                    pass
+                self._proc = None
                 self._init_failed = True
                 return False
 

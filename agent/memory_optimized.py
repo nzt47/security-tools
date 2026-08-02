@@ -56,6 +56,11 @@ warnings.warn(
 
 logger = logging.getLogger(__name__)
 
+# 【变易】chromadb import/客户端创建超时(秒)。chromadb 1.5.9 + pydantic 2.x 在部分
+# 环境下 import 会长时间卡死(pydantic_settings dotenv 解析)或抛 UserIdentity 双加载错误,
+# try/except ImportError 无法拦截"卡死",需超时线程兜底降级为 MockChromaClient。
+_CHROMADB_IMPORT_TIMEOUT = 30.0
+
 def _trace_id():
     """生成 trace_id"""
     return uuid.uuid4().hex[:16]
@@ -403,11 +408,38 @@ class OptimizedChromaDB:
             pass
     
     def _create_client(self):
-        """创建 ChromaDB 客户端"""
+        """创建 ChromaDB 客户端
+
+        【变易】chromadb import 在部分环境可能长时间卡死(非异常,try/except 无法拦截),
+        客户端创建也可能因 UserIdentity 双加载 bug 失败。两者均置于超时线程,
+        超时/失败降级为 MockChromaClient,不阻塞主流程。
+        """
+        result: Dict[str, Any] = {}
+
+        def _try_real():
+            try:
+                import chromadb
+                from chromadb.config import Settings
+                result["chromadb"] = chromadb
+                result["settings"] = Settings
+            except Exception as e:
+                result["import_error"] = e
+
+        t = threading.Thread(target=_try_real, daemon=True)
+        t.start()
+        t.join(_CHROMADB_IMPORT_TIMEOUT)
+        if t.is_alive():
+            logger.warning(log_dict({'module_name': 'memory_optimized', 'action': 'chromadb.timeout', 'msg': f'[ChromaDB] import 超时(>{_CHROMADB_IMPORT_TIMEOUT}s)，使用模拟实现'}))
+            self._client = MockChromaClient()
+            return
+        if "import_error" in result:
+            logger.warning(log_dict({'module_name': 'memory_optimized', 'action': 'chromadb', 'msg': f'[ChromaDB] ChromaDB 不可用，使用模拟实现: {result["import_error"]}'}))
+            self._client = MockChromaClient()
+            return
+
+        chromadb = result["chromadb"]
+        Settings = result["settings"]
         try:
-            import chromadb
-            from chromadb.config import Settings
-            
             self._client = chromadb.PersistentClient(
                 path=self.persist_directory,
                 settings=Settings(
@@ -415,8 +447,8 @@ class OptimizedChromaDB:
                     allow_reset=True
                 )
             )
-        except ImportError:
-            logger.warning(log_dict({'module_name': 'memory_optimized', 'action': 'chromadb', 'msg': '[ChromaDB] ChromaDB 未安装，使用模拟实现'}))
+        except Exception as e:
+            logger.warning(log_dict({'module_name': 'memory_optimized', 'action': 'chromadb.client_failed', 'msg': f'[ChromaDB] 客户端创建失败，使用模拟实现: {e}'}))
             self._client = MockChromaClient()
     
     def _verify_connection(self):
