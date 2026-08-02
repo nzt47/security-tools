@@ -318,17 +318,24 @@ class TestBehaviorLoop:
                             digital_life.start()
                             # 【变易】禁用语义层短路返回，让请求走到 _call_llm
                             digital_life._semantic_layer_match = MagicMock(return_value=None)
+                            # 【不易】绕过语义拒识（_should_reject）——本用例聚焦
+                            # "对话递增交互计数"契约，拒识行为由 test_orchestrator_reject.py
+                            # 独立守卫。长度拒识（_len_reject）不受影响。
+                            digital_life._should_reject = MagicMock(
+                                return_value=(False, "test: bypass reject"))
 
                             assert digital_life._interaction_count == 0
 
-                            digital_life._call_llm = MagicMock(return_value="测试响应")
-                            digital_life._call_llm_v2 = MagicMock(return_value="测试响应")
+                            # 【不易】响应需 ≥5 字符，否则触发 LLM 低置信度兜底
+                            # （_judge_llm_confidence: len(strip) < 5 → low → _FALLBACK_MSG）
+                            digital_life._call_llm = MagicMock(return_value="测试响应成功")
+                            digital_life._call_llm_v2 = MagicMock(return_value="测试响应成功")
 
                             # 【不易】输入需 ≥3 字符以越过拒识阈值（ORCHESTRATOR_REJECT_MIN_LENGTH=3）
                             response = digital_life.chat("你好，请帮我")
 
                             assert digital_life._interaction_count == 1
-                            assert response == "测试响应"
+                            assert response == "测试响应成功"
 
     def test_behavior_can_execute_rejects_request(self, mock_behavior_controller, 
                                                   mock_memory_manager, mock_permission_system):
@@ -504,6 +511,10 @@ class TestToolCallingIntegration:
                                 digital_life._trace_recorder = MagicMock()
                                 # 【变易】禁用语义层短路返回
                                 digital_life._semantic_layer_match = MagicMock(return_value=None)
+                                # 【不易】绕过语义拒识（_should_reject）——本用例聚焦 V2
+                                # 工具调用流程，语义拒识由 test_orchestrator_reject.py 独立守卫。
+                                digital_life._should_reject = MagicMock(
+                                    return_value=(False, "test: bypass reject"))
                                 digital_life.start()
 
                                 # 触发 _call_llm_v2 路径
@@ -643,10 +654,14 @@ class TestStatePersistence:
                             digital_life = DigitalLife(config={})
                             digital_life._v2_lifetrace = False
                             digital_life._semantic_layer_match = MagicMock(return_value=None)
+                            # 【不易】绕过语义拒识（_should_reject）——本用例聚焦记忆日志
+                            # 记录契约，语义拒识由 test_orchestrator_reject.py 独立守卫。
+                            digital_life._should_reject = MagicMock(
+                                return_value=(False, "test: bypass reject"))
                             digital_life.start()
 
-                            # Mock LLM 调用
-                            digital_life._call_llm = MagicMock(return_value="响应")
+                            # Mock LLM 调用（【不易】响应 ≥5 字符，避免触发低置信度兜底）
+                            digital_life._call_llm = MagicMock(return_value="响应内容成功")
 
                             # 【不易】输入需 ≥3 字符以越过拒识阈值
                             digital_life.chat("测试记忆功能")

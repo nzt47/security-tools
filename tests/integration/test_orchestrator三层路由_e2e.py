@@ -174,6 +174,10 @@ def _make_mock_orchestrator():
     orch._is_smart_tool_selection_enabled = MagicMock(return_value=False)
     orch._select_model_for_request = MagicMock(return_value=(None, "mock-model"))
     orch._build_reject_response = MagicMock(return_value="REJECT_RESPONSE")
+    # 【不易】默认绕过语义拒识（_should_reject）——本套件聚焦三层路由分支与
+    # 降级链路，语义拒识行为由 test_orchestrator_reject.py 独立守卫。长度拒识
+    # （_len_reject，不依赖 _should_reject）仍生效，test_输入过短且三层未命中_拒识 不受影响。
+    orch._should_reject = MagicMock(return_value=(False, "test: bypass reject"))
     orch._run_persona_distillation = MagicMock()
     orch._guard_llm_output = MagicMock(side_effect=lambda resp, *a, **kw: resp)
 
