@@ -180,6 +180,9 @@ def _make_mock_orchestrator():
     orch._should_reject = MagicMock(return_value=(False, "test: bypass reject"))
     orch._run_persona_distillation = MagicMock()
     orch._guard_llm_output = MagicMock(side_effect=lambda resp, *a, **kw: resp)
+    # 【不易】拒识兜底：默认放行，避免双未命中时 _should_reject 拦截 LLM 降级路径
+    # （3 个降级 LLM 场景测试依赖此 mock：语义层未命中/异常/关闭）
+    orch._should_reject = MagicMock(return_value=(False, "test_allow"))
 
     return orch
 
