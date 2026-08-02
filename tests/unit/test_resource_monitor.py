@@ -532,7 +532,12 @@ class TestBackgroundThread:
         monitor.start()
         status = monitor.get_status()
         assert status["running"] is True
-        time.sleep(1.5)  # 等待至少一次采样
+        # 【不易】后台采样线程首次写入存在调度延迟，固定 sleep(1.5) 在 CI 共享
+        # runner 高负载下偶发竞态（history 仍为空）。改为轮询等待（最多 5s），
+        # 契约不变：启动后至少完成一次采样。
+        deadline = time.time() + 5.0
+        while time.time() < deadline and len(monitor.get_history()) == 0:
+            time.sleep(0.1)
         monitor.stop()
         assert monitor.get_status()["running"] is False
         assert len(monitor.get_history()) >= 1
