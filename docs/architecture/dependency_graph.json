@@ -1,5 +1,5 @@
 {
-  "trace_id": "4ce1273561c74229",
+  "trace_id": "da61349b0f604f40",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -2820,7 +2820,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 92,
+      "line": 126,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -2833,7 +2833,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 98,
+      "line": 132,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9919,6 +9919,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1296.0324840000085
+    "build_duration_ms": 1270.7266190000014
   }
 }
