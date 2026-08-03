@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
-"""将 tests/unit 下的测试文件按 round-robin 均分到多个 shard。
+"""将 tests/unit 下的测试文件按"测试数均衡"分配到多个 shard。
 
-【背景】GitHub 公共 runner 会回收运行超过 ~20min 的长 job（单元测试
-全量 8661 个在 runner 上连续 6 次于 85% 进度被 shutdown signal 回收，
-pytest 本身 0 失败）。拆分为多个短 job 可显著降低被回收概率。
+【背景】GitHub 公共 runner 会回收运行过长的 job（单元测试全量 8661 个
+在 runner 上连续 6 次于 85% 进度被 shutdown signal 回收，pytest 本身
+0 失败）。拆分为多个短 job 可显著降低被回收概率。
+
+【不易】按测试数贪心均衡而非 round-robin 文件数均分：round-robin 按字母
+序轮询只保证文件数均衡，会把超大文件扎堆（test_system_tools_core.py 407
+测试 + test_error_handler.py 340 测试曾同在 Shard3），导致该 shard 运行
+10+ 分钟远超其他 shard 的 4-7 分钟，2026-08-03 连续两轮 CI 的 3 个
+Shard3 job 全部被 runner 回收。贪心分配保证每个 shard 测试数均衡
+（约 2245），重文件均匀分散，各 shard 运行时间接近。
 
 用法（CI unit-tests job）:
     python scripts/split_unit_tests.py --shard 1 --shards 4
 
 输出: 当前 shard 应执行的测试文件路径（空格分隔，可直接传给 pytest）。
 
-【简易】单文件零依赖，仅标准库；round-robin 分配保证文件数均衡。
+【简易】单文件零依赖，仅标准库；贪心分配 ~15 行实现。
 【变易】--shards 可调，便于未来增减并行度。
 """
 from __future__ import annotations
@@ -30,6 +37,16 @@ def collect_test_files(root: Path) -> list[str]:
     return [p.relative_to(root).as_posix() for p in files]
 
 
+def count_tests(root: Path, rel_path: str) -> int:
+    """统计单个测试文件内的测试数（def test_* 行数，近似耗时权重）。"""
+    n = 0
+    for line in (root / rel_path).read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("def test_") or stripped.startswith("async def test_"):
+            n += 1
+    return max(n, 1)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="按文件均分 tests/unit 测试到多个 shard"
@@ -44,10 +61,16 @@ def main() -> int:
         parser.error(f"--shard 必须在 [1, {args.shards}] 内，当前 {args.shard}")
 
     files = collect_test_files(ROOT)
-    # round-robin：第 i 个文件（按排序）进入第 (i % shards) 个 shard，
-    # 比连续分块更均衡（避免某 shard 恰好集中大量重测试文件）
-    my_files = files[args.shard - 1:: args.shards]
-    print(" ".join(my_files))
+    # 贪心均衡: 按测试数降序, 每次放入当前测试总数最少的 shard
+    # （重文件优先分配，避免大文件扎堆导致单 shard 运行时间过长）
+    counts = {f: count_tests(ROOT, f) for f in files}
+    buckets: list[list[str]] = [[] for _ in range(args.shards)]
+    totals = [0] * args.shards
+    for f in sorted(files, key=lambda x: -counts[x]):
+        idx = totals.index(min(totals))
+        buckets[idx].append(f)
+        totals[idx] += counts[f]
+    print(" ".join(buckets[args.shard - 1]))
     return 0
 
 
