@@ -140,7 +140,7 @@ jobs:
   # 单元测试
   # ============================================================================
   unit-tests:
-    name: 单元测试 (Python ${{ matrix.python-version }})
+    name: 单元测试 (Python ${{ matrix.python-version }} / Shard ${{ matrix.shard }})
     # 【不易】runner 池选择：2026-08-03 连续 4 次 attempt 的单元测试 job 均在
     # 进度 ~85% 处被 "The runner has received a shutdown signal" 强制回收
     # （pytest 0 失败，非代码问题）。换用 ubuntu-22.04 避开 ubuntu-latest
@@ -155,11 +155,17 @@ jobs:
     # 2026-08-01 修复: 加 -n auto 并行执行，4 worker 各 ~2165 测试，预计 ~15min 完成。
     # 2026-08-03 调整: -n auto → -n 2。原因同 runner 池更换（-n auto 在高峰
     # 时段抢占 4 个 worker 资源放大被回收概率），固定 2 worker 降低资源占用。
+    # 2026-08-03 二次调整: 按测试文件 round-robin 拆分为 4 个 shard
+    # （scripts/split_unit_tests.py），每个 shard ~69 文件 / ~2165 测试。
+    # 原因: 全量 8661 测试在 runner 上运行 ~20-50min 仍可能被基础设施回收
+    # （shutdown signal / lost communication，6 次 attempt 全部失败，pytest
+    # 均 0 失败）。拆分后每个 shard 预计 ~8-12min，远低于回收阈值。
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         python-version: ['3.10', '3.11', '3.12']
+        shard: ['1', '2', '3', '4']
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -186,8 +192,10 @@ jobs:
           SKILLS_OFFLINE: '1'
         run: |
           mkdir -p test-results
-          echo "=== 运行单元测试（-n 2 并行 + signal 超时法）==="
-          pytest tests/unit/ \
+          echo "=== 运行单元测试（Shard ${{ matrix.shard }}/4，-n 2 并行 + signal 超时法）==="
+          # 【变易】--shards 4 与 scripts/split_unit_tests.py 的总分片数保持一致，
+          # 若调整分片数需同步修改两处
+          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 4) \
             -n 2 \
             --dist=loadscope \
             -v \
@@ -201,7 +209,7 @@ jobs:
             --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
             --timeout=60 \
             --timeout-method=signal \
-            --junitxml=test-results/junit.xml \
+            --junitxml=test-results/junit-shard${{ matrix.shard }}.xml \
             -rA
           # 【不易根因修复】--timeout-method=signal: 用 SIGALRM 信号做超时检测,
           # 不启动新线程。原 thread 方法每个测试启动一个超时检测线程,
@@ -226,6 +234,8 @@ jobs:
           git log --oneline -5 -- tests/unit/ 2>/dev/null || true
 
       - name: 运行新模块专项测试
+        # 【不易】专项测试与 shard 无关，仅在 shard 1 执行避免 12 个矩阵 job 重复
+        if: matrix.shard == '1'
         run: |
           echo "=== 运行新模块专项测试 ==="
           python -m pytest \
@@ -242,6 +252,7 @@ jobs:
           echo "=== 新模块专项测试全部通过 ==="
 
       - name: 运行安全回归测试（P0 防复发）
+        if: matrix.shard == '1'
         run: |
           echo "=== 运行 P0 安全修复防复发回归测试 ==="
           python -m pytest \
@@ -254,6 +265,7 @@ jobs:
         # Why 每次提交运行: b 值改动直接影响检索排序质量，需持续守护
         # Why 不需 SKILLS_OFFLINE: verify_bm25_optimization.py 只用 InvertedIndex 纯 Python 实现，
         #   不依赖 chromadb/torch（vector_store.py 延迟导入）
+        if: matrix.shard == '1'
         run: |
           echo "=== 运行 BM25 短文档归一化回归测试 ==="
           python scripts/verify_bm25_optimization.py
@@ -262,6 +274,7 @@ jobs:
       - name: 运行 BM25 极端场景回归测试
         # 【不易】验证 b=0.5 在极端短文档场景下虚高不超标（1-token/term_freq极端/空文档边界）
         # Why 额外运行: 基础验证只覆盖常规场景，极端场景守护 b 值边界
+        if: matrix.shard == '1'
         run: |
           echo "=== 运行 BM25 极端短文档场景回归测试 ==="
           python scripts/verify_bm25_extreme_cases.py
@@ -269,24 +282,24 @@ jobs:
 
       - name: 准备覆盖率数据
         run: |
-          cp .coverage coverage_raw.data
-          ls -la coverage_raw.data coverage.xml
+          cp .coverage coverage_raw_shard${{ matrix.shard }}.data
+          ls -la coverage_raw_shard${{ matrix.shard }}.data coverage.xml
 
       - name: 上传覆盖率报告
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report-py${{ matrix.python-version }}
+          name: coverage-report-py${{ matrix.python-version }}-shard${{ matrix.shard }}
           path: |
             htmlcov/
             coverage.xml
-            coverage_raw.data
+            coverage_raw_shard${{ matrix.shard }}.data
           retention-days: 30
 
       - name: 上传测试结果
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results-unit-py${{ matrix.python-version }}
+          name: test-results-unit-py${{ matrix.python-version }}-shard${{ matrix.shard }}
           path: test-results/
           retention-days: 30
 
@@ -362,10 +375,11 @@ jobs:
           # Why token: 用默认 GITHUB_TOKEN，触发 push 不会递归触发 CI（GitHub 设计）
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 下载测试结果 artifact (py3.10)
+      - name: 下载测试结果 artifacts (py3.10)
+        # 【变易】单元测试已拆分为 4 个 shard，下载全部 shard 的 junit 后合并
         uses: actions/download-artifact@v4
         with:
-          name: test-results-unit-py3.10
+          pattern: test-results-unit-py3.10-*
           # Why path: test-results + merge-multiple: 还原 ci.yml 上传时的原始目录结构
           #   上传时 path: test-results/，下载到 test-results/ 后脚本可按默认路径读取
           path: test-results
@@ -384,6 +398,36 @@ jobs:
           MSG_TRIMMED=$(echo "$MSG" | cut -c1-80)
           echo "note=$MSG_TRIMMED" >> $GITHUB_OUTPUT
           echo "sha7=$(git rev-parse --short=7 ${{ github.sha }})" >> $GITHUB_OUTPUT
+
+      - name: 合并 shard junit 报告
+        # 【变易】4 个 shard 各自生成 junit-shardN.xml，合并为单个 junit.xml
+        #   供 update_ci_health_dashboard.py 解析（脚本支持 testsuites 聚合）
+        run: |
+          echo "=== 合并 shard junit 报告 ==="
+          ls -la test-results/ 2>/dev/null || true
+          python - <<'EOF'
+          import glob
+          import xml.etree.ElementTree as ET
+
+          files = sorted(glob.glob("test-results/junit-shard*.xml"))
+          if not files:
+              print("[dashboard] 未找到 junit-shard*.xml，跳过合并")
+              raise SystemExit(0)
+
+          root = ET.Element("testsuites")
+          for f in files:
+              tree = ET.parse(f)
+              r = tree.getroot()
+              if r.tag == "testsuites":
+                  for suite in r:
+                      root.append(suite)
+              else:
+                  root.append(r)
+
+          merged = "test-results/junit.xml"
+          ET.ElementTree(root).write(merged, encoding="utf-8", xml_declaration=True)
+          print(f"[dashboard] 已合并 {len(files)} 个 shard junit -> {merged}")
+          EOF
 
       - name: 解析 junit.xml 并更新看板
         run: |
@@ -619,18 +663,25 @@ jobs:
           pip install -e .
 
       - name: 下载覆盖率报告
+        # 【变易】单元测试已拆分为 4 个 shard，用 pattern 下载全部 shard 的
+        # coverage 数据再合并；integration-tests 无独立 coverage artifact
         uses: actions/download-artifact@v4
         with:
-          name: coverage-report-py${{ env.PYTHON_VERSION }}
-          path: .
+          pattern: coverage-report-py${{ env.PYTHON_VERSION }}-*
+          path: covdata/
+          merge-multiple: true
 
       - name: 检查覆盖率
         run: |
           echo "=== 检查覆盖率 ==="
-          ls -la coverage_raw.data coverage.xml || true
+          ls -la covdata/ || true
 
-          # 恢复 .coverage 数据文件
-          cp coverage_raw.data .coverage
+          # 恢复各 shard 数据为 .coverage.<shard> 供 coverage combine 合并
+          for f in covdata/coverage_raw_shard*.data; do
+            [ -f "$f" ] || continue
+            cp "$f" ".coverage.$(basename "$f" .data)"
+            echo "已恢复: $f"
+          done
 
           # 合并覆盖率数据
           coverage combine || true
