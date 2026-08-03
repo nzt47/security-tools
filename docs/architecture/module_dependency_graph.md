@@ -643,6 +643,7 @@ flowchart LR
     agent_config_etcd_config_client -.-> agent_error_handler
     agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
     agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
+    agent_skills_mgmt_creator -.-> agent_error_handler
     agent_skills_mgmt_creator -.-> agent_extensions_market
     agent_skills_mgmt_enhancer -.-> agent_feedback
     agent_skills_mgmt_loader -.-> agent_monitoring_prometheus
@@ -949,8 +950,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 343
 - 模块节点数: 270
-- 依赖边数: 593
-- 跨层调用数: 381
+- 依赖边数: 594
+- 跨层调用数: 382
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1270.73 ms
+- 构建耗时: 1399.58 ms

@@ -1,5 +1,5 @@
 {
-  "trace_id": "da61349b0f604f40",
+  "trace_id": "62edac9f90404bfe",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -543,7 +543,7 @@
       "name": "error_handler",
       "layer": "core",
       "file_path": "agent/error_handler.py",
-      "in_degree": 15,
+      "in_degree": 16,
       "out_degree": 6
     },
     {
@@ -1400,7 +1400,7 @@
       "layer": "skills_mgmt",
       "file_path": "agent/skills_mgmt/creator.py",
       "in_degree": 0,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.skills_mgmt.enhancer",
@@ -6027,11 +6027,24 @@
     },
     {
       "source": "agent.skills_mgmt.creator",
+      "target": "agent.error_handler",
+      "source_layer": "skills_mgmt",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 329,
+      "source_file": "agent/skills_mgmt/creator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.creator",
       "target": "agent.extensions.market",
       "source_layer": "skills_mgmt",
       "target_layer": "extensions",
       "import_type": "from_import",
-      "line": 295,
+      "line": 297,
       "source_file": "agent/skills_mgmt/creator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9877,8 +9890,8 @@
   "stats": {
     "total_files": 343,
     "total_nodes": 270,
-    "total_edges": 593,
-    "cross_layer_edges": 381,
+    "total_edges": 594,
+    "cross_layer_edges": 382,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -9919,6 +9932,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1270.7266190000014
+    "build_duration_ms": 1399.5833569999972
   }
 }
