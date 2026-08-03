@@ -1,12 +1,17 @@
-# PR #136 合并报告：技能安装 TimeoutError 修复与网络重试机制
+### 回归测试数据（CSV 导出）
 
-> **合并时间**：2026-08-03 04:24:43 UTC
-> **合并方式**：Squash Merge（`gh pr merge 136 --squash --delete-branch`）
-> **Merge Commit**：`f39ba4952273ff4c06a8056ec17ddd3d5c0b9473`
-> **合并者**：nzt47
-
----
-
+| category | scenario | metric | before_fix | after_fix | unit | recorded_at |
+|---|---|---|---|---|---|---|
+| retry | instant_interrupt | success_rate | 0 | 100 | percent | 2026-08-03 |
+| retry | instant_interrupt | p50_latency_ms | 16.9 | 306.9 | ms | 2026-08-03 |
+| retry | persistent_interrupt | request_count | 1 | 3 | count | 2026-08-03 |
+| retry | persistent_interrupt | backoff_delay_s | 0 | 0.9 | second | 2026-08-03 |
+| retry | persistent_interrupt | error_code | SKILL_INSTALL_SOURCE_UNREACHABLE | SKILL_INSTALL_SOURCE_UNREACHABLE | code | 2026-08-03 |
+| tests | ci_integration | passed |  | 1989 | count | 2026-08-03 |
+| tests | ci_integration | skipped |  | 3 | count | 2026-08-03 |
+| tests | path_traversal_unit | passed |  | 34 | count | 2026-08-03 |
+| tests | local_security_suite | passed |  | 267 | count | 2026-08-03 |
+| tests | local_regression | passed |  | 151 | count | 2026-08-03 |
 ## 一、PR 概览
 
 | 项目 | 内容 |
