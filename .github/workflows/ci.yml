@@ -201,6 +201,10 @@ jobs:
           # 业务代码走 fallback 路径 (130/130 测试本地验证通过)
           SKILLS_OFFLINE: '1'
         run: |
+          # 【不易】--ignore 与 scripts/split_unit_tests.py 的 EXCLUDED 必须一致：
+          # 分片脚本会把该文件显式传给 pytest，--ignore 无法排除显式传入路径。
+          # 2026-08-03 教训：该文件曾流入 Shard1/Shard2 导致 worker 崩溃
+          # （node down）→ pytest 挂起 48min → runner 回收，连续多轮 job 失败。
           mkdir -p test-results
           echo "=== 运行单元测试（Shard ${{ matrix.shard }}/6，-n 2 并行 + signal 超时法）==="
           # 【变易】--shards 6 与 scripts/split_unit_tests.py 的总分片数保持一致，
