@@ -155,11 +155,16 @@ jobs:
     # 2026-08-01 修复: 加 -n auto 并行执行，4 worker 各 ~2165 测试，预计 ~15min 完成。
     # 2026-08-03 调整: -n auto → -n 2。原因同 runner 池更换（-n auto 在高峰
     # 时段抢占 4 个 worker 资源放大被回收概率），固定 2 worker 降低资源占用。
-    # 2026-08-03 二次调整: 按测试文件 round-robin 拆分为 4 个 shard
-    # （scripts/split_unit_tests.py），每个 shard ~69 文件 / ~2165 测试。
+    # 2026-08-03 二次调整: 按测试文件拆分为 4 个 shard
+    # （scripts/split_unit_tests.py），每个 shard ~68 文件 / ~2245 测试。
     # 原因: 全量 8661 测试在 runner 上运行 ~20-50min 仍可能被基础设施回收
     # （shutdown signal / lost communication，6 次 attempt 全部失败，pytest
     # 均 0 失败）。拆分后每个 shard 预计 ~8-12min，远低于回收阈值。
+    # 2026-08-03 三次调整: round-robin 文件数均分 → 按测试数贪心均衡。
+    # 原因: round-robin 把超大文件扎堆（test_system_tools_core.py 407 测试 +
+    # test_error_handler.py 340 测试同在 Shard3），该 shard 运行 10+ min
+    # 远超其他 4-7 min，连续两轮 run 的 3 个 Shard3 job 全部被 runner
+    # shutdown signal 回收（0 测试失败）。贪心分配保证各 shard 测试数均衡。
     timeout-minutes: 90
     strategy:
       fail-fast: false
