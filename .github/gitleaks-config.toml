@@ -1,0 +1,194 @@
+# Gitleaks 配置 - 硬编码密码扫描
+#
+# 目的：防止 P1 硬编码密码问题复发
+# 扫描范围：Python/YAML/Docker Compose/Shell 脚本
+# 白名单：环境变量引用、占位符、.env.example、文档
+#
+# 使用方式：
+#   本地: gitleaks detect --config .github/gitleaks-config.toml --source .
+#   CI: 通过 p0-security.yml 的 hardcoded-password-scan Job 自动运行
+
+title = "Yunshu Project - 硬编码密码扫描配置（P1 防复发）"
+
+[allowlist]
+description = "允许的密码占位符和环境变量引用（白名单）"
+paths = [
+    # 示例文件允许占位符
+    '''\.env\.example$''',
+    '''\.env\.backup''',
+    # 文档允许示例密码
+    '''docs/.*\.md$''',
+    '''README.*\.md$''',
+    # gitleaks 自身配置
+    '''\.github/gitleaks-config\.toml$''',
+    # 测试文件中的 mock 密码
+    '''tests/.*\.py$''',
+    # v1.3.1 新增: 非业务代码路径排除（避免误报）
+    # 虚拟环境（第三方依赖, 非项目代码）
+    '''venv/.*''',
+    '''\.venv/.*''',
+    # 历史测试日志（仅记录运行结果, 非源代码）
+    '''test_reports/.*''',
+    # 通用日志文件
+    '''\.log$''',
+    # v1.3.1: 测试脱敏器的测试代码与测试报告（包含原始密码字符串用于验证）
+    '''scripts/quick_test\.py$''',
+    '''scripts/test_report_pdf\.html$''',
+    # BFG 清理脚本: 注释中的示例字符串（非真实密码）
+    '''scripts/bfg_force_push\.ps1$''',
+    # v1.3.2: 复盘修复（CHG-2026-0801c）新增放行项 —— 预防密钥规则误报
+    # 构建产物（打包后的前端 bundle 可能包含代码示例字符串，非源代码）
+    '''static/assets/.*''',
+    '''static/.*\.map$''',
+    # 第三方技能目录（claude-mem 等外部技能，非本项目代码）
+    '''\.superpowers/.*''',
+    # 归档代码（已停用的旧测试，含示例字符串）
+    '''scripts/archive/.*''',
+    # 敏感数据脱敏器的内置自测值（agent/security_utils.py __main__ 块）
+    '''agent/security_utils\.py$''',
+    # LLM 注入测试示例（generate_guard_json_example.py 含模拟泄露文本）
+    '''generate_guard_json_example\.py$''',
+    # 脱敏器自测白名单与测试用例表格（mock / 测试值，非真实密钥）
+    '''scripts/scan_sensitive_data\.py$''',
+    '''scripts/generate_report\.py$''',
+    # 环境变量回滚备份（本地自动生成，非提交物）
+    '''\.env\.rollback_backup.*''',
+]
+regexes = [
+    # Python 环境变量读取（os.environ.get / os.getenv）
+    '''os\.environ\.get\s*\(''',
+    '''os\.getenv\s*\(''',
+    # Docker Compose 变量插值 ${VAR:-default}
+    '''\$\{[A-Z_]+_PASSWORD(:-[^}]*)?\}''',
+    '''\$\{[A-Z_]+_USER(:-[^}]*)?\}''',
+    # 占位符
+    '''CHANGE_ME''',
+    '''YOUR_PASSWORD_HERE''',
+    '''<your-password>''',
+    '''<your-secret>''',
+    ''' Placeholder ''',
+    '''example\.com''',
+    '''local\.test''',
+    # 注释中的说明
+    '''#\s*.*密码.*环境变量''',
+    '''#\s*.*password.*env''',
+    # v1.3.2: 复盘修复（CHG-2026-0801c）新增占位符/测试值放行
+    # 注意：仅精确匹配占位符/官方示例，避免宽泛前缀放行真实密钥
+    '''AKIA[A-Z0-9]*EXAMPLE''',            # AWS 官方示例（AKIAIOSFODNN7EXAMPLE）
+    '''ghp_xxx''',                          # GitHub PAT 占位符
+    '''sk-\.\.\..*''',                      # 文档占位符 sk-...
+]
+
+# ── 规则 1: 硬编码密码赋值 ──────────────────────────────────────
+[[rules]]
+id = "hardcoded-password-assignment"
+description = "硬编码密码赋值（password = 'xxx'）"
+regex = '''(?i)(password|passwd|pwd)\s*[:=]\s*['"][^'"\s]{4,}['"]'''
+tags = ["password", "hardcoded", "p1"]
+keywords = ["password", "passwd", "pwd"]
+
+# ── 规则 2: Grafana admin 密码硬编码 ───────────────────────────
+[[rules]]
+id = "grafana-admin-password"
+description = "Grafana admin 密码硬编码（GF_SECURITY_ADMIN_PASSWORD）"
+regex = '''GF_SECURITY_ADMIN_PASSWORD\s*[:=]\s*['"][^'"\s]{4,}['"]'''
+tags = ["grafana", "password", "p1"]
+keywords = ["GF_SECURITY_ADMIN_PASSWORD"]
+
+# ── 规则 3: GlitchTip 密码硬编码 ────────────────────────────────
+[[rules]]
+id = "glitchtip-password"
+description = "GlitchTip admin 密码硬编码"
+regex = '''GLITCHTIP_ADMIN_PASSWORD\s*[:=]\s*['"][^'"\s]{4,}['"]'''
+tags = ["glitchtip", "password", "p1"]
+keywords = ["GLITCHTIP_ADMIN_PASSWORD"]
+
+# ── 规则 4: PostgreSQL 密码硬编码 ───────────────────────────────
+[[rules]]
+id = "postgres-password"
+description = "PostgreSQL 密码硬编码"
+regex = '''POSTGRES_PASSWORD\s*[:=]\s*['"][^'"\s]{4,}['"]'''
+tags = ["postgres", "password", "p1"]
+keywords = ["POSTGRES_PASSWORD"]
+
+# ── 规则 5: Django SECRET_KEY 硬编码 ────────────────────────────
+# 注: 原 regex 使用 (?!...) Perl lookahead, Go RE2 不支持, 改用 allowlist 排除占位符
+[[rules]]
+id = "django-secret-key"
+description = "Django SECRET_KEY 硬编码（非 dev-secret-key 占位符）"
+regex = '''SECRET_KEY\s*[:=]\s*['"][^'"\s]{20,}['"]'''
+tags = ["django", "secret", "p1"]
+keywords = ["SECRET_KEY"]
+
+  [rules.allowlist]
+  regexes = [
+    '''dev-secret-key''',
+    '''change-me''',
+    '''your-secret''',
+  ]
+
+# ── 规则 6: HTTP Basic Auth 密码 ────────────────────────────────
+[[rules]]
+id = "http-basic-auth-password"
+description = "HTTP Basic Auth 密码硬编码（auth=(user, 'password')）"
+regex = '''auth\s*=\s*\([^)]*['"][^'"\s]{4,}['"]'''
+tags = ["http", "auth", "password", "p1"]
+keywords = ["auth="]
+
+# ── 规则 7: admin/admin123 常见弱密码 ───────────────────────────
+[[rules]]
+id = "common-weak-password"
+description = "常见弱密码（admin123, password123, 12345678 等）"
+regex = '''(?i)(password|admin)\s*[:=]\s*['"](admin123|password123|12345678|qwerty|letmein)['"]'''
+tags = ["weak", "password", "p1"]
+keywords = ["admin123", "password123", "12345678"]
+
+# ── 规则 8: OpenAI / Anthropic API Key ─────────────────────────
+# v1.3.2: 复盘修复（CHG-2026-0801c）新增
+# 仅匹配 sk- 前缀 ≥20 字符的 key（覆盖 sk- 与 sk-ant-），短测试值由 allowlist 兜底
+[[rules]]
+id = "openai-api-key"
+description = "OpenAI/Anthropic API Key 硬编码（sk-/sk-ant- 前缀 ≥20 字符）"
+regex = '''\b(sk|sk-ant)-[A-Za-z0-9_\-]{20,}\b'''
+tags = ["api-key", "openai", "anthropic", "p1"]
+keywords = ["sk-", "sk-ant-"]
+
+# ── 规则 9: AWS Access Key ID ───────────────────────────────────
+# v1.3.2: 复盘修复（CHG-2026-0801c）新增
+# AKIA 前缀 16 位大写字母数字（官方示例 AKIAIOSFODNN7EXAMPLE 由 allowlist 放行）
+[[rules]]
+id = "aws-access-key-id"
+description = "AWS Access Key ID 硬编码（AKIA 前缀）"
+regex = '''\bAKIA[0-9A-Z]{16}\b'''
+tags = ["aws", "access-key", "p1"]
+keywords = ["AKIA"]
+
+# ── 规则 10: GitHub Personal Access Token ───────────────────────
+# v1.3.2: 复盘修复（CHG-2026-0801c）新增
+# ghp_ 前缀 ≥20 字符（占位符 ghp_xxx 由 allowlist 放行）
+[[rules]]
+id = "github-pat"
+description = "GitHub Personal Access Token 硬编码（ghp_ 前缀）"
+regex = '''\bghp_[A-Za-z0-9]{20,}\b'''
+tags = ["github", "token", "p1"]
+keywords = ["ghp_"]
+
+# ── 规则 11: 通用 API Token 赋值 ────────────────────────────────
+# v1.3.2: 复盘修复（CHG-2026-0801c）新增
+# 覆盖 client_id/client_secret/access_token 等命名（值 ≥20 字符降低误报）
+[[rules]]
+id = "generic-api-token"
+description = "通用 API Token / Secret 硬编码（client_secret/access_token 等命名）"
+regex = '''(?i)\b(client_secret|client-secret|access_token|access-token|api_token|api-token)\s*[:=]\s*['"][A-Za-z0-9_\-]{20,}['"]'''
+tags = ["token", "secret", "p1"]
+keywords = ["client_secret", "access_token", "api_token"]
+
+# ── 规则 12: PEM 私钥块 ─────────────────────────────────────────
+# v1.3.2: 复盘修复（CHG-2026-0801c）新增
+# 完整 PEM 块头（测试样例由 allowlist 兜底放行）
+[[rules]]
+id = "pem-private-key"
+description = "PEM 私钥块硬编码（-----BEGIN PRIVATE KEY-----）"
+regex = '''-----BEGIN (RSA |EC |DSA |OPENSSH |ENCRYPTED )?PRIVATE KEY-----'''
+tags = ["private-key", "pem", "p1"]
+keywords = ["BEGIN", "PRIVATE KEY"]
