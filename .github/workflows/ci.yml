@@ -204,6 +204,7 @@ jobs:
             --cov-report=xml \
             --cov-report=html \
             --cov-report=term-missing \
+            --cov-fail-under=0 \
             -p no:randomly \
             -m "not slow and not skip_ci" \
             --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
@@ -211,6 +212,10 @@ jobs:
             --timeout-method=signal \
             --junitxml=test-results/junit-shard${{ matrix.shard }}.xml \
             -rA
+          # 【不易】--cov-fail-under=0: 拆分后每个 shard 仅测 ~1/4 代码,
+          # 单 shard 覆盖率 ~25% 必然低于 pyproject.toml 的 fail_under=40。
+          # 覆盖率门槛由 coverage-check job 对合并后的完整数据统一断言
+          # (coverage report --fail-under=40)，单 shard 阶段不设门槛。
           # 【不易根因修复】--timeout-method=signal: 用 SIGALRM 信号做超时检测,
           # 不启动新线程。原 thread 方法每个测试启动一个超时检测线程,
           # 8661 个测试累积导致 "RuntimeError: can't start new thread" INTERNALERROR

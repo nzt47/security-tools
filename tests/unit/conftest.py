@@ -27,6 +27,45 @@ import pytest
 _CI_LINUX = sys.platform == 'linux' and bool(os.environ.get('CI'))
 
 
+class _BlockModules:
+    """仅封禁指定模块名的上下文管理器，退出时只恢复/删除这些键。
+
+    Why 替代 patch.dict(sys.modules, {...}):
+    mock._patch_dict.__exit__ 先 _clear_dict(sys.modules) 清空整个
+    sys.modules 再恢复快照。测试运行期间首次导入的模块（如
+    agent.data_analytics）不在快照中 → 被从 sys.modules 删除，但父包
+    agent 的属性仍指向旧模块对象，形成「sys.modules 与包属性不一致」的
+    残留状态。Python 3.10 的 mock._importer 解析 patch 目标时用
+    getattr(agent, 'data_analytics') 拿到残留旧模块，而业务代码运行时
+    `from agent.data_analytics import ...` 走 __import__ 重新导入新模块，
+    patch 落在旧模块上不生效（CI Shard4 3.10 的 test_analytics_* 2 例）。
+    Python 3.12 的 pkgutil.resolve_name 先 import_module 重新导入，
+    因此本地无法复现。本实现仅封禁/恢复指定键，不触碰 sys.modules 其他键。
+    """
+
+    def __init__(self, names):
+        self._names = set(names)
+        self._saved = {}
+        self._added = set()
+
+    def __enter__(self):
+        for name in self._names:
+            if name in sys.modules:
+                self._saved[name] = sys.modules[name]
+            else:
+                self._added.add(name)
+            sys.modules[name] = None  # None → `import name` 抛 ImportError
+        return self
+
+    def __exit__(self, *exc):
+        for name in self._names:
+            if name in self._added:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = self._saved[name]
+        return False
+
+
 _GOLDEN_HANDLERS = None
 _GOLDEN_LEVEL = None
 _GOLDEN_HANDLER_STATE = {}  # {id(handler): (level, formatter, filters)}
@@ -160,8 +199,8 @@ def _disable_optional_systems_safety():
     显式 patch 为 True 的测试不受影响：mock.patch 嵌套时内层 patch 覆盖外层，
     内层退出后恢复到本 fixture 设置的 False，外层退出后恢复到原始值。
 
-    CI Linux 额外防护：通过 patch.dict(sys.modules) 将 chromadb /
-    sentence_transformers 设为 None，使 `import chromadb` 抛 ImportError 而非
+    CI Linux 额外防护：通过 _BlockModules 将 chromadb /
+    sentence_transformers 封禁为 None，使 `import chromadb` 抛 ImportError 而非
     触发 native 扩展加载。复用业务代码已有的 ImportError fallback 路径
     （VectorStore→JSON fallback，OptimizedChromaDB→MockChromaClient），
     无需改动业务逻辑。本地 Windows 不触发此防护，仍用真实 chromadb。
@@ -192,15 +231,15 @@ def _disable_optional_systems_safety():
         _safe_patch('agent.orchestrator.lifecycle_manager._OCR_AVAILABLE', False)
         _safe_patch('agent.orchestrator.lifecycle_manager._P6_SNAPSHOT_AVAILABLE', False)
         # 全局禁用 sqlite-vec：让所有 VectorStore 实例化降级到 JSON fallback
-        stack.enter_context(patch.dict(sys.modules, {'sqlite_vec': None}))
+        stack.enter_context(_BlockModules(['sqlite_vec']))
         if _CI_LINUX:
             # sys.modules[name] = None 会让 `import name` 抛 ImportError，而非
-            # 加载真实 native 扩展。patch.dict 退出后自动恢复 sys.modules 原状。
-            stack.enter_context(patch.dict(sys.modules, {
-                'chromadb': None,
-                'chromadb.config': None,
-                'sentence_transformers': None,
-            }))
+            # 加载真实 native 扩展。用 _BlockModules（非 patch.dict）仅封禁指定
+            # 键并原样恢复，避免 patch.dict 退出时清空整个 sys.modules 造成
+            # 「模块被删但父包属性残留」的不一致（见 _BlockModules 类注释）。
+            stack.enter_context(_BlockModules([
+                'chromadb', 'chromadb.config', 'sentence_transformers',
+            ]))
         yield
 
 
@@ -341,13 +380,16 @@ def _skills_offline_mode():
 
     # 1. 禁用重量级 C 扩展 import (torch/chromadb/onnxruntime/sentence_transformers)
     #    sys.modules[name]=None 让 `import name` 抛 ImportError, 复用业务 fallback
-    #    用 patch.dict 确保测试退出后自动恢复, 避免污染后续测试
-    _block_mods = {m: None for m in (
+    #    用 _BlockModules（非 patch.dict）仅封禁指定键并原样恢复:
+    #    patch.dict 退出时清空整个 sys.modules 再恢复快照, 会把测试期间首次
+    #    导入的模块删掉但父包属性残留, 导致 Python 3.10 mock patch 失效
+    #    (见 _BlockModules 类注释, CI Shard4 3.10 test_analytics_* 复现)。
+    _block_mods = [m for m in (
         "torch", "chromadb", "chromadb.config",
         "onnxruntime", "sentence_transformers", "sqlite_vec",
-    ) if m not in sys.modules}
+    ) if m not in sys.modules]
     if _block_mods:
-        patches.append(patch.dict(sys.modules, _block_mods))
+        patches.append(_BlockModules(_block_mods))
 
     # 2. patch observability 外部上报为 no-op
     try:
