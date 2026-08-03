@@ -28,13 +28,23 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
+# 【不易】排除清单必须与 ci.yml 的 --ignore 保持一致：
+# test_sandbox_multiprocess_boundary.py 含 CPU 密集型/子进程崩溃测试，
+# CI 用 --ignore 隔离。但 --ignore 无法排除命令行显式传入的文件路径，
+# 若分片脚本把该文件分配进某 shard，pytest 会绕过 --ignore 直接运行，
+# 触发 worker 崩溃（node down）→ pytest 挂起 48min → runner 回收。
+# 历史教训：4-shard 时代该文件在 Shard 2、6-shard 时代在 Shard 1，
+# 均导致对应 shard 连续多轮 job 全部被回收，且曾误判为"大文件 OOM"。
+EXCLUDED = {"tests/unit/test_sandbox_multiprocess_boundary.py"}
+
 
 def collect_test_files(root: Path) -> list[str]:
-    """收集 tests/unit 下所有 test_*.py，按路径排序。"""
+    """收集 tests/unit 下所有 test_*.py（排除 EXCLUDED），按路径排序。"""
     unit_dir = root / "tests" / "unit"
     files = sorted(p for p in unit_dir.glob("test_*.py"))
     # as_posix(): CI 在 Linux runner 上执行，路径必须用正斜杠分隔
-    return [p.relative_to(root).as_posix() for p in files]
+    rel = [p.relative_to(root).as_posix() for p in files]
+    return [f for f in rel if f not in EXCLUDED]
 
 
 def count_tests(root: Path, rel_path: str) -> int:

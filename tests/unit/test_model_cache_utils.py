@@ -8,12 +8,22 @@ from pathlib import Path
 
 import pytest
 
-# 导入 model_cache_utils (在 agent/scripts/ 下, 非 security-tools/scripts/)
-# parents[0]=unit, [1]=tests, [2]=security-tools, [3]=agent
-_AGENT_ROOT = Path(__file__).resolve().parents[3]
-_SCRIPTS_DIR = _AGENT_ROOT / "scripts"
-if str(_SCRIPTS_DIR) not in sys.path:
-    sys.path.insert(0, str(_SCRIPTS_DIR))
+# 导入 model_cache_utils — 优先仓库内 scripts/（CI 工作目录下存在），
+# 回退外层 agent/scripts/（本地多仓库布局，旧逻辑路径）。
+# Why: 原逻辑固定 parents[3]/scripts（外层 agent 目录），本地存在但
+# CI 工作目录为 /home/runner/work/security-tools/security-tools，
+# parents[3] 指向不存在的 /home/runner/work/scripts → ModuleNotFoundError。
+# 两份 scripts/model_cache_utils.py 内容相同（diff 为空），等价替换。
+# parents[0]=unit, [1]=tests, [2]=security-tools(仓库根), [3]=agent(外层目录)
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+for _scripts_dir in (
+    _REPO_ROOT / "scripts",  # 仓库内（CI/本地均可用）
+    Path(__file__).resolve().parents[3] / "scripts",  # 旧布局兼容
+):
+    if (_scripts_dir / "model_cache_utils.py").exists():
+        if str(_scripts_dir) not in sys.path:
+            sys.path.insert(0, str(_scripts_dir))
+        break
 
 from model_cache_utils import (
     _model_id_to_subdir,
