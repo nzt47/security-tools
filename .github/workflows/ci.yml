@@ -165,12 +165,17 @@ jobs:
     # test_error_handler.py 340 测试同在 Shard3），该 shard 运行 10+ min
     # 远超其他 4-7 min，连续两轮 run 的 3 个 Shard3 job 全部被 runner
     # shutdown signal 回收（0 测试失败）。贪心分配保证各 shard 测试数均衡。
+    # 2026-08-03 四次调整: 4 shard → 6 shard。原因: 贪心 4 shard 下含
+    # test_error_handler.py 的 Shard2 连续 4-5 次 job 全部在运行中途被
+    # 回收（[gw0] node down: Not properly terminated，worker 崩溃→OOM 疑似），
+    # 其他 shard 稳定通过。6 shard 每个 ~1500 测试，运行时间与内存峰值
+    # 均显著降低（预计 3-5min），进一步远离回收阈值。
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         python-version: ['3.10', '3.11', '3.12']
-        shard: ['1', '2', '3', '4']
+        shard: ['1', '2', '3', '4', '5', '6']
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -197,10 +202,10 @@ jobs:
           SKILLS_OFFLINE: '1'
         run: |
           mkdir -p test-results
-          echo "=== 运行单元测试（Shard ${{ matrix.shard }}/4，-n 2 并行 + signal 超时法）==="
-          # 【变易】--shards 4 与 scripts/split_unit_tests.py 的总分片数保持一致，
+          echo "=== 运行单元测试（Shard ${{ matrix.shard }}/6，-n 2 并行 + signal 超时法）==="
+          # 【变易】--shards 6 与 scripts/split_unit_tests.py 的总分片数保持一致，
           # 若调整分片数需同步修改两处
-          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 4) \
+          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6) \
             -n 2 \
             --dist=loadscope \
             -v \
@@ -217,8 +222,8 @@ jobs:
             --timeout-method=signal \
             --junitxml=test-results/junit-shard${{ matrix.shard }}.xml \
             -rA
-          # 【不易】--cov-fail-under=0: 拆分后每个 shard 仅测 ~1/4 代码,
-          # 单 shard 覆盖率 ~25% 必然低于 pyproject.toml 的 fail_under=40。
+          # 【不易】--cov-fail-under=0: 拆分后每个 shard 仅测 ~1/6 代码,
+          # 单 shard 覆盖率 ~17% 必然低于 pyproject.toml 的 fail_under=40。
           # 覆盖率门槛由 coverage-check job 对合并后的完整数据统一断言
           # (coverage report --fail-under=40)，单 shard 阶段不设门槛。
           # 【不易根因修复】--timeout-method=signal: 用 SIGALRM 信号做超时检测,
@@ -386,7 +391,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 下载测试结果 artifacts (py3.10)
-        # 【变易】单元测试已拆分为 4 个 shard，下载全部 shard 的 junit 后合并
+        # 【变易】单元测试已拆分为 6 个 shard，下载全部 shard 的 junit 后合并
         uses: actions/download-artifact@v4
         with:
           pattern: test-results-unit-py3.10-*
@@ -410,7 +415,7 @@ jobs:
           echo "sha7=$(git rev-parse --short=7 ${{ github.sha }})" >> $GITHUB_OUTPUT
 
       - name: 合并 shard junit 报告
-        # 【变易】4 个 shard 各自生成 junit-shardN.xml，合并为单个 junit.xml
+        # 【变易】6 个 shard 各自生成 junit-shardN.xml，合并为单个 junit.xml
         #   供 update_ci_health_dashboard.py 解析（脚本支持 testsuites 聚合）
         run: |
           echo "=== 合并 shard junit 报告 ==="
@@ -673,7 +678,7 @@ jobs:
           pip install -e .
 
       - name: 下载覆盖率报告
-        # 【变易】单元测试已拆分为 4 个 shard，用 pattern 下载全部 shard 的
+        # 【变易】单元测试已拆分为 6 个 shard，用 pattern 下载全部 shard 的
         # coverage 数据再合并；integration-tests 无独立 coverage artifact
         uses: actions/download-artifact@v4
         with:
