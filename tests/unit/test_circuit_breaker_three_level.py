@@ -477,17 +477,21 @@ class TestPerformance:
         b = default_three_level_breaker
         # 预热(确保字典已填充)
         b.record_result("sess-warm", "user-warm", "tool-warm", True)
-        # 测量 1000 次取平均
+        # 测量 3 轮各 1000 次, 取最小均值 (微基准标准做法, 消除单次调度抢占噪声)
         iterations = 1000
-        start = time.perf_counter()
-        for _ in range(iterations):
-            b.allow_request("sess-warm", "user-warm", "tool-warm")
-        elapsed = time.perf_counter() - start
-        avg_ms = (elapsed / iterations) * 1000
-        # 【不易】阈值 0.5ms：allow_request 为纯内存查询，正常 <0.05ms；
-        # CI 共享 runner 高负载下偶发 0.22ms（3.10/3.12 历史失败）。
-        # 0.5ms 仍可捕获数量级性能退化，同时消除负载波动误报。
-        assert avg_ms < 0.5, f"三级检查平均耗时 {avg_ms:.4f}ms 超过 0.5ms 阈值"
+        samples = []
+        for _ in range(3):
+            start = time.perf_counter()
+            for _ in range(iterations):
+                b.allow_request("sess-warm", "user-warm", "tool-warm")
+            elapsed = time.perf_counter() - start
+            samples.append((elapsed / iterations) * 1000)
+        avg_ms = min(samples)
+        # 【不易】阈值 2ms：allow_request 为纯内存查询，正常 <0.05ms。
+        # CI 拆分 12 个并行 shard job 后 CPU 竞争加剧，单轮测量实测 0.54ms
+        # 曾超 0.5ms 误报（Shard1 3.12）。min(3 轮) 只受「3 轮全部被抢占」
+        # 影响，概率极低；2ms 仍可捕获数量级性能退化。
+        assert avg_ms < 2.0, f"三级检查平均耗时 {avg_ms:.4f}ms 超过 2ms 阈值"
 
 
 # ════════════════════════════════════════════════════════════════
