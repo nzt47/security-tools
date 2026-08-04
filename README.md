@@ -58,6 +58,16 @@ set LLM_MODEL=claude-sonnet-4-20250514
 
 不配置 LLM 时，云枢运行在离线模式，提供基础回复。
 
+## Git Hook 与 CI 预检
+
+提交时 pre-commit hook 自动检查 Markdown 链接、BOM 编码与核心不变量。PR 阶段 CI 以 `-BomDiag` 字节级调试模式复跑同一判定链，BOM 边缘问题在 PR 页面直接可见：
+
+![BomDiag PR 拦截演示](docs/ci_guidelines/assets/bomdiag_pr_demo.gif)
+
+> 演示：PR 触发时 `-BomDiag` 拦截「叠加 BOM + 失效链接」的过程（真实输出，exit 1 阻断）。
+> 详细排查指南见 [Git Hook 与 BOM 排查避坑指南](docs/ci_guidelines/git_hook_bom_guide.md)，
+> 本次升级汇总见 [Git Hook 与 CI 升级总结](docs/ci_guidelines/git_hook_ci_upgrade_summary.md)。
+
 ## 行为模式
 
 | 模式 | 触发条件 | 表现 |
