@@ -85,6 +85,145 @@ function Get-HookContent {
         '    exit 1',
         'fi',
         'echo "[pre-commit] 预检通过"',
+        '',
+        '# ── PowerShell 编码检查(UTF-8 BOM 契约): 可选增强, 脚本存在才执行 ──',
+        '# 检测 hook 关键文件(hook_fail_safe.psm1)是否丢失 BOM——PS 5.1 中文系统',
+        '# 按 GBK 解码无 BOM 文件会乱码/解析失败(2026-08-03 事故复盘, 见',
+        '# docs/observability/ps1_encoding_bom_troubleshooting.md)。',
+        '# - BLOCK 级(关键文件缺 BOM/非法 UTF-8)阻止提交; 存量 WARN 仅提示不阻塞',
+        '# - SKIP_ENCODING_CHECK=1 显式跳过; 脚本缺失时静默跳过(跨仓库安全)',
+        'ENCODING_CHECK="$TLM_HOOK_SOURCE_REPO/scripts/check_ps1_encoding.py"',
+        'if [ -f "$ENCODING_CHECK" ]; then',
+        '    if [ -n "$SKIP_ENCODING_CHECK" ]; then',
+        '        echo "[pre-commit][WARN] SKIP_ENCODING_CHECK=1, 跳过编码检查" 1>&2',
+        '    else',
+        '        echo "[pre-commit] 运行 PowerShell 编码检查(UTF-8 BOM)..."',
+        '        python "$ENCODING_CHECK" --quiet --repo-root "$TLM_HOOK_SOURCE_REPO"',
+        '        enc_result=$?',
+        '        if [ $enc_result -ne 0 ]; then',
+        '            echo "" 1>&2',
+        '            echo "[pre-commit][ERROR] 编码检查未通过, 提交被阻止" 1>&2',
+        '            echo "  修复: python \\"$ENCODING_CHECK\\" --fix --repo-root \\"$TLM_HOOK_SOURCE_REPO\\"" 1>&2',
+        '            echo "  临时跳过: SKIP_ENCODING_CHECK=1 git commit 或 git commit --no-verify" 1>&2',
+        '            exit 1',
+        '        fi',
+        '        echo "[pre-commit] 编码检查通过"',
+        '    fi',
+        'else',
+        '    echo "[pre-commit][INFO] 编码检查脚本不存在, 跳过(跨仓库安全)" 1>&2',
+        'fi',
+        '',
+        '# ── CI 守卫(reranker-timeout-guard 模拟): 可选增强, 脚本存在才执行 ──',
+        '# 复用 simulate_ci_guard_failure.py 的判定链(exit 0=允许/1=阻止)。',
+        '# - 脚本缺失时静默跳过(守【不易】: hook 可复制到任意仓库, 不因缺脚本误阻塞)',
+        '# - SKIP_CI_GUARD=1 显式跳过(本地临时豁免)',
+        '# - 守卫失败 exit 1 阻止提交(与 GH Actions 阻止 PR 合并语义一致)',
+        'CI_GUARD="$TLM_HOOK_SOURCE_REPO/scripts/simulate_ci_guard_failure.py"',
+        'if [ -f "$CI_GUARD" ]; then',
+        '    if [ -n "$SKIP_CI_GUARD" ]; then',
+        '        echo "[pre-commit][WARN] SKIP_CI_GUARD=1, 跳过 CI 守卫检查" 1>&2',
+        '    else',
+        '        echo "[pre-commit] 运行 CI 守卫检查(reranker-timeout-guard 模拟)..."',
+        '        python "$CI_GUARD" --assert-allowed',
+        '        guard_result=$?',
+        '        if [ $guard_result -ne 0 ]; then',
+        '            echo "" 1>&2',
+        '            echo "[pre-commit][ERROR] CI 守卫未通过, 提交被阻止" 1>&2',
+        '            echo "  临时跳过: SKIP_CI_GUARD=1 git commit 或 git commit --no-verify" 1>&2',
+        '            exit 1',
+        '        fi',
+        '        echo "[pre-commit] CI 守卫通过"',
+        '    fi',
+        'else',
+        '    echo "[pre-commit][INFO] CI 守卫脚本不存在, 跳过(跨仓库安全)" 1>&2',
+        'fi',
+        '',
+        '# ── 核心不变量校验(tool_trace 计数机制 / hook 三段式模板): 可选增强 ──',
+        '# 2026-08-04 回滚复盘: tool_trace.py 计数机制与 hook 模板曾被回滚, git 历史',
+        '# 无对应提交导致静默回归(见 docs/observability/rollback_recovery_report.md)。',
+        '# 静态校验关键文件不变量, 被破坏 → BLOCK exit 1 阻止提交。',
+        '# - SKIP_INVARIANT=1 显式跳过; 脚本缺失时静默跳过(跨仓库安全)',
+        'INVARIANT="$TLM_HOOK_SOURCE_REPO/scripts/verify_core_invariants.py"',
+        'if [ -f "$INVARIANT" ]; then',
+        '    if [ -n "$SKIP_INVARIANT" ]; then',
+        '        echo "[pre-commit][WARN] SKIP_INVARIANT=1, 跳过核心不变量校验" 1>&2',
+        '    else',
+        '        echo "[pre-commit] 运行核心不变量校验..."',
+        '        python "$INVARIANT" --quiet --repo-root "$TLM_HOOK_SOURCE_REPO"',
+        '        inv_result=$?',
+        '        if [ $inv_result -ne 0 ]; then',
+        '            echo "" 1>&2',
+        '            echo "[pre-commit][ERROR] 核心不变量校验未通过, 提交被阻止" 1>&2',
+        '            echo "  修复: 按 docs/observability/rollback_recovery_report.md 恢复不变量" 1>&2',
+        '            echo "  临时跳过: SKIP_INVARIANT=1 git commit 或 git commit --no-verify" 1>&2',
+        '            exit 1',
+        '        fi',
+        '        echo "[pre-commit] 核心不变量校验通过"',
+        '    fi',
+        'else',
+        '    echo "[pre-commit][INFO] 不变量校验脚本不存在, 跳过(跨仓库安全)" 1>&2',
+        'fi',
+        'exit 0'
+    )
+    return ($lines -join "`n") + "`n"
+}
+
+# =================================================================
+# 1.1 pre-push hook 内容模板（不易：push 前核心不变量校验）
+# =================================================================
+function Get-PrePushContent {
+    <#
+    .SYNOPSIS
+        生成 pre-push hook 的 bash 内容
+    .DESCRIPTION
+        push 前运行核心不变量校验(verify_core_invariants.py):
+        - 不变量被破坏 → BLOCK exit 1 阻止 push
+        - TLM_HOOK_SOURCE_REPO 未设置 → exit 1
+        - SKIP_INVARIANT=1 显式跳过; 脚本缺失静默跳过(跨仓库安全)
+        预检/编码检查/CI 守卫由 pre-commit 覆盖, pre-push 仅保留不变量校验。
+    .PARAMETER SourceRepo
+        源仓库根目录路径（写入 marker 行用于审计）
+    .OUTPUTS
+        [string] hook bash 脚本内容
+    #>
+    param([string]$SourceRepo)
+
+    $lines = @(
+        '#!/bin/bash',
+        "# TLM-HOOK-PREPUSH v1 source_repo=$SourceRepo",
+        '# Auto-generated by scripts/dev/sync_precommit_hook.ps1',
+        '# push 前核心不变量校验: 不变量被破坏 → BLOCK exit 1 阻止 push',
+        '',
+        'echo "[pre-push] 运行核心不变量校验(tool_trace 计数机制 / hook 模板)..."',
+        '# 通过环境变量 TLM_HOOK_SOURCE_REPO 间接寻址源仓库, hook 可复制到任意仓库',
+        'if [ -z "$TLM_HOOK_SOURCE_REPO" ]; then',
+        '    echo "[pre-push][ERROR] TLM_HOOK_SOURCE_REPO 未设置，请运行 sync_precommit_hook.ps1" 1>&2',
+        '    exit 1',
+        'fi',
+        '',
+        '# ── 核心不变量校验(2026-08-04 回滚复盘): 被破坏 → 阻止 push ──',
+        '# 静态校验关键文件不变量, 与 pre-commit 的 INVARIANT 段同源(同一判定)。',
+        '# - SKIP_INVARIANT=1 显式跳过; 脚本缺失时静默跳过(跨仓库安全)',
+        'INVARIANT="$TLM_HOOK_SOURCE_REPO/scripts/verify_core_invariants.py"',
+        'if [ -f "$INVARIANT" ]; then',
+        '    if [ -n "$SKIP_INVARIANT" ]; then',
+        '        echo "[pre-push][WARN] SKIP_INVARIANT=1, 跳过核心不变量校验" 1>&2',
+        '    else',
+        '        echo "[pre-push] 运行核心不变量校验..."',
+        '        python "$INVARIANT" --quiet --repo-root "$TLM_HOOK_SOURCE_REPO"',
+        '        inv_result=$?',
+        '        if [ $inv_result -ne 0 ]; then',
+        '            echo "" 1>&2',
+        '            echo "[pre-push][ERROR] 核心不变量校验未通过, push 被阻止" 1>&2',
+        '            echo "  修复: 按 docs/observability/rollback_recovery_report.md 恢复不变量" 1>&2',
+        '            echo "  临时跳过: SKIP_INVARIANT=1 git push 或 git push --no-verify" 1>&2',
+        '            exit 1',
+        '        fi',
+        '        echo "[pre-push] 核心不变量校验通过"',
+        '    fi',
+        'else',
+        '    echo "[pre-push][INFO] 不变量校验脚本不存在, 跳过(跨仓库安全)" 1>&2',
+        'fi',
         'exit 0'
     )
     return ($lines -join "`n") + "`n"
@@ -714,5 +853,5 @@ function Invoke-HookWithCapture {
     return $result
 }
 
-# 导出所有函数（12 原有 + 3 新增 = 15）
-Export-ModuleMember -Function Get-HookContent, Write-HookNoBom, Write-FileWithBom, Backup-ExistingHook, Test-HookUpToDate, Set-SourceRepoEnv, Test-SourceRepoEnv, Resolve-GitDir, Test-HookMarker, Test-HookExecutable, Repair-HookPermission, Invoke-SafeHookWrite, Get-HookExitCodeMap, Resolve-HookExitCode, Invoke-HookWithCapture
+# 导出所有函数（15 原有 + 1 新增 = 16）
+Export-ModuleMember -Function Get-HookContent, Get-PrePushContent, Write-HookNoBom, Write-FileWithBom, Backup-ExistingHook, Test-HookUpToDate, Set-SourceRepoEnv, Test-SourceRepoEnv, Resolve-GitDir, Test-HookMarker, Test-HookExecutable, Repair-HookPermission, Invoke-SafeHookWrite, Get-HookExitCodeMap, Resolve-HookExitCode, Invoke-HookWithCapture
