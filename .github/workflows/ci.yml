@@ -357,9 +357,13 @@ jobs:
       - name: 运行文档链接预检 + 锚点回归测试
         # Why pwsh 外壳 + powershell.exe 调用: 与本地 pre-commit hook 部署方式一致
         #   （git_precommit_check.ps1 内部用 powershell.exe 运行 precheck_docs.ps1）
+        # Why -BomDiag: PR 阶段开启字节级调试，拦截失败时输出 BOM/路径/锚点剥离诊断，
+        #   便于在 PR 页面直接定位 BOM 相关边缘问题（与本地 TLM_HOOK_VERBOSE=1 同源）。
+        # Why -JsonOutput: 日志输出单行 JSON（ELK/Filebeat 可采集），msg 字段保留
+        #   [BROKEN]/[BLOCK] 文本标记，GitHub Actions 页面仍可直接阅读。
         shell: pwsh
         run: |
-          & powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev/git_precommit_check.ps1 -TargetRepo $env:GITHUB_WORKSPACE
+          & powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev/git_precommit_check.ps1 -TargetRepo $env:GITHUB_WORKSPACE -BomDiag -JsonOutput
           if ($LASTEXITCODE -ne 0) {
             throw "文档链接预检 / 锚点回归测试失败: exit $LASTEXITCODE"
           }

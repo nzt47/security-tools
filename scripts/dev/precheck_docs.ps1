@@ -38,7 +38,11 @@ param(
     [string]$TargetRepo,
     # 字节级调试模式（即 -Verbose 模式）：PS 5.1 的 -File 调用会把 -Verbose 作为保留参数名
     # 处理、不绑定到显式 switch，因此用 -BomDiag 实现（hook 经 TLM_HOOK_VERBOSE=1 透传）
-    [switch]$BomDiag
+    [switch]$BomDiag,
+    # JSON 结构化输出（面向 ELK/Filebeat 采集）：每条日志输出单行 JSON，
+    # msg 字段保留 [BROKEN]/[BLOCK]/[OK] 等文本标记，回归测试断言不受影响。
+    # 未开启时保持原有人类可读彩色输出。
+    [switch]$JsonOutput
 )
 
 $ErrorActionPreference = "Continue"
@@ -46,6 +50,66 @@ $ErrorActionPreference = "Continue"
 # -BomDiag → 提升 Verbose 流偏好，后续 Write-Verbose 均生效
 if ($BomDiag) {
     $VerbosePreference = 'Continue'
+}
+
+# ── 统一日志输出（简易：单一入口；-JsonOutput 时输出单行 JSON 供 ELK 采集） ──
+function Write-Log {
+    <#
+    .SYNOPSIS
+        统一日志输出：默认人类可读（Write-Host），-JsonOutput 时输出单行 JSON
+    .DESCRIPTION
+        JSON 模式每条日志为一行：{"ts","level","event","msg","data"}
+        - msg 字段保留 [BROKEN]/[BLOCK]/[OK] 等文本标记，回归测试断言不变
+        - level: INFO / WARN / ERROR / OK / DEBUG
+        - event: 日志事件名（供 ELK 过滤），如 broken_link / block / summary
+        - data:  可选附加字段（如 BOM hex、解析路径）
+    .PARAMETER Message
+        日志正文
+    .PARAMETER Level
+        日志级别
+    .PARAMETER Event
+        事件名（默认 log）
+    .PARAMETER Data
+        附加字段 hashtable（仅 JSON 模式输出）
+    .PARAMETER ForegroundColor
+        人类可读模式的颜色（缺省按 Level 推断）
+    #>
+    param(
+        # 允许空串（人类可读模式的排版空行）；JSON 模式自动跳过空行
+        [string]$Message,
+        [ValidateSet('INFO','WARN','ERROR','OK','DEBUG')][string]$Level = 'INFO',
+        [string]$Event = 'log',
+        [hashtable]$Data = $null,
+        [string]$ForegroundColor = $null
+    )
+    # DEBUG 级（字节级诊断）仅在 -BomDiag 开启时输出，避免默认刷屏
+    if ($Level -eq 'DEBUG' -and $VerbosePreference -ne 'Continue') { return }
+    if ($JsonOutput) {
+        # 空消息（排版空行）在 JSON 模式跳过，避免污染 ELK 采集
+        if ([string]::IsNullOrWhiteSpace($Message)) { return }
+        $entry = [ordered]@{
+            ts    = (Get-Date).ToUniversalTime().ToString('o')
+            level = $Level
+            event = $Event
+            msg   = $Message
+        }
+        if ($Data) { $entry.data = $Data }
+        [Console]::Out.WriteLine(($entry | ConvertTo-Json -Compress -Depth 6))
+    } else {
+        if (-not $ForegroundColor) {
+            $ForegroundColor = switch ($Level) {
+                'ERROR' { 'Red' }
+                'WARN'  { 'Yellow' }
+                'OK'    { 'Green' }
+                default { $null }
+            }
+        }
+        if ($ForegroundColor) {
+            Write-Host $Message -ForegroundColor $ForegroundColor
+        } else {
+            Write-Host $Message
+        }
+    }
 }
 
 # ── 字节级 BOM 诊断（-Verbose 时用于定位 BOM 相关边缘问题） ──
@@ -78,7 +142,7 @@ $ProjectRoot = (Resolve-Path "$PSScriptRoot\..\..").Path
 # 否则保持原行为（cd 到脚本所在源仓库根目录）
 if ($TargetRepo) {
     if (-not (Test-Path $TargetRepo)) {
-        Write-Host "[ERROR] -TargetRepo 指定的路径不存在: $TargetRepo" -ForegroundColor Red
+        Write-Log "[ERROR] -TargetRepo 指定的路径不存在: $TargetRepo" -Level ERROR
         exit 1
     }
     Set-Location $TargetRepo
@@ -86,11 +150,11 @@ if ($TargetRepo) {
     Set-Location $ProjectRoot
 }
 
-Write-Host "=== 本地开发预检 ===" -ForegroundColor Cyan
+Write-Log "=== 本地开发预检 ===" -Event header
 
 # ── 安装 pre-commit hook 模式 ──
 if ($InstallHook) {
-    Write-Host "[安装] 配置 git pre-commit hook..." -ForegroundColor Yellow
+    Write-Log "[安装] 配置 git pre-commit hook..." -Level WARN
     $hookPath = ".git/hooks/pre-commit"
     $hookLines = @(
         '#!/bin/bash',
@@ -113,41 +177,41 @@ if ($InstallHook) {
     $hookContent = $hookLines -join "`n"
     try {
         Set-Content -Path $hookPath -Value $hookContent -Encoding utf8 -ErrorAction Stop
-        Write-Host "[OK] pre-commit hook 已安装到 $hookPath" -ForegroundColor Green
-        Write-Host "  策略: 阻塞模式（失效链接超过阈值时阻止提交）" -ForegroundColor Yellow
-        Write-Host "  可手动跳过: git commit --no-verify" -ForegroundColor Gray
+        Write-Log "[OK] pre-commit hook 已安装到 $hookPath" -Level OK
+        Write-Log "  策略: 阻塞模式（失效链接超过阈值时阻止提交）" -Level WARN
+        Write-Log "  可手动跳过: git commit --no-verify" -Level INFO
     } catch {
-        Write-Host "[!] 自动安装被拦截（沙盒保护 .git/ 目录）" -ForegroundColor Yellow
-        Write-Host "  请手动创建 .git/hooks/pre-commit 文件，内容如下:" -ForegroundColor Gray
-        Write-Host "  ----"
-        Write-Host $hookContent -ForegroundColor Gray
-        Write-Host "  ----"
-        Write-Host "  或直接手动调用: .\scripts\dev\precheck_docs.ps1 -SkipChart" -ForegroundColor Gray
+        Write-Log "[!] 自动安装被拦截（沙盒保护 .git/ 目录）" -Level WARN
+        Write-Log "  请手动创建 .git/hooks/pre-commit 文件，内容如下:" -Level INFO
+        Write-Log "  ----" -Level INFO
+        Write-Log $hookContent -Level INFO
+        Write-Log "  ----" -Level INFO
+        Write-Log "  或直接手动调用: .\scripts\dev\precheck_docs.ps1 -SkipChart" -Level INFO
     }
     exit 0
 }
 
 # ── 步骤 1: 生成性能图表（可选） ──
 if (-not $SkipChart) {
-    Write-Host "`n[1/3] 生成性能图表..." -ForegroundColor Yellow
+    Write-Log "`n[1/3] 生成性能图表..." -Level INFO
     $chartScript = Join-Path $ProjectRoot "scripts\gen_tlm_perf_chart.py"
     if (Test-Path $chartScript) {
         $env:PYTHONIOENCODING = "utf-8"
         python $chartScript 2>&1 | Select-Object -Last 3
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "  [OK] 性能图表已生成" -ForegroundColor Green
+            Write-Log "  [OK] 性能图表已生成" -Level OK
         } else {
-            Write-Host "  [WARN] 图表生成失败（不影响提交）" -ForegroundColor Yellow
+            Write-Log "  [WARN] 图表生成失败（不影响提交）" -Level WARN
         }
     } else {
-        Write-Host "  [SKIP] 未找到图表生成脚本" -ForegroundColor Gray
+        Write-Log "  [SKIP] 未找到图表生成脚本" -Level INFO
     }
 } else {
-    Write-Host "`n[1/3] 跳过图表生成（-SkipChart）" -ForegroundColor Gray
+    Write-Log "`n[1/3] 跳过图表生成（-SkipChart）" -Level INFO
 }
 
 # ── 步骤 2: 检查 Markdown 链接 ──
-Write-Host "`n[2/3] 检查 docs/ Markdown 链接..." -ForegroundColor Yellow
+Write-Log "`n[2/3] 检查 docs/ Markdown 链接..." -Level INFO
 $mdFiles = Get-ChildItem -Path docs -Filter "*.md" -Recurse -ErrorAction SilentlyContinue
 $totalLinks = 0
 $brokenLinks = 0
@@ -161,7 +225,7 @@ foreach ($file in $mdFiles) {
     if ($VerbosePreference -eq 'Continue') {
         $bom = Test-FileBomSignature -Path $file.FullName
         if ($bom.State -eq 'Stacked') {
-            Write-Verbose "  [BOM] 叠加 BOM: $($file.FullName) (BOM x$($bom.BomCount), head: $($bom.HeadHex))"
+            Write-Log "  [BOM] 叠加 BOM: $($file.FullName) (BOM x$($bom.BomCount), head: $($bom.HeadHex))" -Level WARN -Event bom -Data @{ file = $file.FullName; bom_count = $bom.BomCount; head_hex = $bom.HeadHex }
             $bomIssues += $file.FullName
         }
     }
@@ -186,88 +250,88 @@ foreach ($file in $mdFiles) {
         # 解析相对路径（.NET API 正确处理 Unicode 字符）
         $fullPath = [System.IO.Path]::Combine($file.DirectoryName, $linkPath)
         if (-not ([System.IO.File]::Exists($fullPath) -or [System.IO.Directory]::Exists($fullPath))) {
-            Write-Host "  [BROKEN] $($file.Name): $linkPath" -ForegroundColor Red
+            Write-Log "  [BROKEN] $($file.Name): $linkPath" -Level ERROR -Event broken_link -Data @{ file = $file.Name; link = $linkPath; host = $file.FullName }
             if ($VerbosePreference -eq 'Continue') {
                 # 字节级诊断：链接原文 / 锚点剥离 / 路径解析全过程
-                Write-Verbose "    [DIAG] 链接原文: [$linkText]($($link.Groups[2].Value))"
-                Write-Verbose "    [DIAG] 剥离锚点: 后缀=$anchorSuffix 文件部分=$linkPath"
-                Write-Verbose "    [DIAG] 解析路径: $fullPath"
-                Write-Verbose "    [DIAG] 存在性:   File=$(Test-Path $fullPath -PathType Leaf) Dir=$(Test-Path $fullPath -PathType Container)"
+                Write-Log "    [DIAG] 链接原文: [$linkText]($($link.Groups[2].Value))" -Level DEBUG -Event diag
+                Write-Log "    [DIAG] 剥离锚点: 后缀=$anchorSuffix 文件部分=$linkPath" -Level DEBUG -Event diag
+                Write-Log "    [DIAG] 解析路径: $fullPath" -Level DEBUG -Event diag -Data @{ path = $fullPath }
+                Write-Log "    [DIAG] 存在性:   File=$(Test-Path $fullPath -PathType Leaf) Dir=$(Test-Path $fullPath -PathType Container)" -Level DEBUG -Event diag
                 $fileBom = Test-FileBomSignature -Path $file.FullName
-                Write-Verbose "    [DIAG] 宿主文件 BOM: $($fileBom.State) (BOM x$($fileBom.BomCount), head: $($fileBom.HeadHex))"
+                Write-Log "    [DIAG] 宿主文件 BOM: $($fileBom.State) (BOM x$($fileBom.BomCount), head: $($fileBom.HeadHex))" -Level DEBUG -Event diag -Data @{ state = $fileBom.State; bom_count = $fileBom.BomCount; head_hex = $fileBom.HeadHex }
                 if ($fullPath -match '\.(ps1|psm1)$' -and (Test-Path $fullPath)) {
                     $targetBom = Test-FileBomSignature -Path $fullPath
-                    Write-Verbose "    [DIAG] 目标脚本 BOM: $($targetBom.State) (BOM x$($targetBom.BomCount), head: $($targetBom.HeadHex))"
+                    Write-Log "    [DIAG] 目标脚本 BOM: $($targetBom.State) (BOM x$($targetBom.BomCount), head: $($targetBom.HeadHex))" -Level DEBUG -Event diag -Data @{ state = $targetBom.State; bom_count = $targetBom.BomCount; head_hex = $targetBom.HeadHex }
                 }
             }
             $brokenLinks++
         }
     }
 }
-Write-Host "  [OK] 检查 $($mdFiles.Count) 个文件，$totalLinks 个链接，$brokenLinks 个失效" -ForegroundColor $(if ($brokenLinks -eq 0) {'Green'} else {'Red'})
+Write-Log "  [OK] 检查 $($mdFiles.Count) 个文件，$totalLinks 个链接，$brokenLinks 个失效" -Level $(if ($brokenLinks -eq 0) {'OK'} else {'ERROR'}) -Event summary -Data @{ files = $mdFiles.Count; links = $totalLinks; broken = $brokenLinks }
 
 # ── 步骤 3: 待提交文件摘要 ──
-Write-Host "`n[3/3] 待提交文件摘要..." -ForegroundColor Yellow
+Write-Log "`n[3/3] 待提交文件摘要..." -Level INFO
 $staged = git diff --cached --name-only --diff-filter=ACM 2>&1
 $unstagedDocs = git diff --name-only -- docs/ 2>&1
 
 if ($staged) {
-    Write-Host "  已暂存文件 ($($staged.Count)):"
-    $staged | Select-Object -First 10 | ForEach-Object { Write-Host "    + $_" -ForegroundColor Green }
+    Write-Log "  已暂存文件 ($($staged.Count)):"
+    $staged | Select-Object -First 10 | ForEach-Object { Write-Log "    + $_" -Level OK }
     if ($staged.Count -gt 10) {
-        Write-Host "    ... 共 $($staged.Count) 个" -ForegroundColor Gray
+        Write-Log "    ... 共 $($staged.Count) 个" -Level INFO
     }
 }
 
 if ($unstagedDocs) {
-    Write-Host "  docs/ 未暂存变更 ($($unstagedDocs.Count)):"
-    $unstagedDocs | ForEach-Object { Write-Host "    M $_" -ForegroundColor Yellow }
-    Write-Host "  提示: 使用 git add docs/ 暂存" -ForegroundColor Gray
+    Write-Log "  docs/ 未暂存变更 ($($unstagedDocs.Count)):"
+    $unstagedDocs | ForEach-Object { Write-Log "    M $_" -Level WARN }
+    Write-Log "  提示: 使用 git add docs/ 暂存" -Level INFO
 }
 
 if (-not $staged -and -not $unstagedDocs) {
-    Write-Host "  [INFO] 无待提交变更" -ForegroundColor Gray
+    Write-Log "  [INFO] 无待提交变更" -Level INFO
 }
 
 # ── 总结 ──
-Write-Host "`n=== 预检完成 ===" -ForegroundColor Cyan
+Write-Log "`n=== 预检完成 ===" -Event header
 if ($brokenLinks -gt 0) {
-    Write-Host "[!] 发现 $brokenLinks 个失效链接" -ForegroundColor Red
+    Write-Log "[!] 发现 $brokenLinks 个失效链接" -Level ERROR
 } else {
-    Write-Host "[OK] 预检通过" -ForegroundColor Green
+    Write-Log "[OK] 预检通过" -Level OK
 }
-Write-Host "  提交: git commit -m 'docs: 更新文档'"
-Write-Host "  推送: git push origin master（自动触发 Pages 部署）"
+Write-Log "  提交: git commit -m 'docs: 更新文档'"
+Write-Log "  推送: git push origin master（自动触发 Pages 部署）"
 
 # ── 阻塞模式：根据失效链接数决定退出码 ──
 if ($BlockMode) {
     if ($brokenLinks -gt $AllowBroken) {
-        Write-Host ""
-        Write-Host "[BLOCK] 阻塞模式：失效链接 $brokenLinks > 阈值 $AllowBroken" -ForegroundColor Red
-        Write-Host "  修复方案: .\scripts\dev\fix_broken_links.ps1 -DryRun" -ForegroundColor Yellow
-        Write-Host "  临时跳过: git commit --no-verify" -ForegroundColor Yellow
-        Write-Host "  调整阈值: -AllowBroken $brokenLinks（渐进式修复）" -ForegroundColor Yellow
+        Write-Log "" -Level INFO
+        Write-Log "[BLOCK] 阻塞模式：失效链接 $brokenLinks > 阈值 $AllowBroken" -Level ERROR -Event block -Data @{ broken = $brokenLinks; threshold = $AllowBroken }
+        Write-Log "  修复方案: .\scripts\dev\fix_broken_links.ps1 -DryRun" -Level WARN
+        Write-Log "  临时跳过: git commit --no-verify" -Level WARN
+        Write-Log "  调整阈值: -AllowBroken $brokenLinks（渐进式修复）" -Level WARN
         if ($VerbosePreference -eq 'Continue') {
             # 字节级诊断汇总：定位 BOM 相关边缘问题（叠加 BOM 会破坏解析）
-            Write-Verbose ""
-            Write-Verbose "=== 字节级调试诊断 ==="
+            Write-Log "" -Level DEBUG
+            Write-Log "=== 字节级调试诊断 ===" -Level DEBUG -Event diag
             if ($bomIssues.Count -gt 0) {
-                Write-Verbose "  [BOM] 发现 $($bomIssues.Count) 个叠加 BOM 的 Markdown 文件（EF BB BF 连续出现 ≥2 次）:"
+                Write-Log "  [BOM] 发现 $($bomIssues.Count) 个叠加 BOM 的 Markdown 文件（EF BB BF 连续出现 ≥2 次）:" -Level WARN -Event bom -Data @{ bom_files = $bomIssues.Count }
                 foreach ($bomFile in $bomIssues) {
                     $b = Test-FileBomSignature -Path $bomFile
-                    Write-Verbose "    - $bomFile"
-                    Write-Verbose "      head: $($b.HeadHex)  (BOM x$($b.BomCount))"
+                    Write-Log "    - $bomFile" -Level WARN -Event bom
+                    Write-Log "      head: $($b.HeadHex)  (BOM x$($b.BomCount))" -Level WARN -Event bom -Data @{ file = $bomFile; bom_count = $b.BomCount; head_hex = $b.HeadHex }
                 }
-                Write-Verbose "  修复: 对 .ps1/.psm1 用单 BOM（TrimStart FEFF + UTF8Encoding(true) 写回）；对 .md 建议去 BOM"
+                Write-Log "  修复: 对 .ps1/.psm1 用单 BOM（TrimStart FEFF + UTF8Encoding(true) 写回）；对 .md 建议去 BOM" -Level WARN
             } else {
-                Write-Verbose "  [BOM] 未检测到叠加 BOM 的 Markdown 文件（如需检查 .ps1/.psm1 请直接扫描 scripts/）"
+                Write-Log "  [BOM] 未检测到叠加 BOM 的 Markdown 文件（如需检查 .ps1/.psm1 请直接扫描 scripts/）" -Level DEBUG
             }
-            Write-Verbose "  提示: 叠加 BOM 是 <# 块注释解析失败 / 中文乱码的常见根因，详见 docs/ci_guidelines/precommit_hook_bom_incident_report.md"
+            Write-Log "  提示: 叠加 BOM 是 <# 块注释解析失败 / 中文乱码的常见根因，详见 docs/ci_guidelines/precommit_hook_bom_incident_report.md" -Level DEBUG
         }
         exit 1
     } else {
-        Write-Host ""
-        Write-Host "[PASS] 阻塞模式：失效链接 $brokenLinks <= 阈值 $AllowBroken" -ForegroundColor Green
+        Write-Log "" -Level INFO
+        Write-Log "[PASS] 阻塞模式：失效链接 $brokenLinks <= 阈值 $AllowBroken" -Level OK -Event pass -Data @{ broken = $brokenLinks; threshold = $AllowBroken }
         exit 0
     }
 }
