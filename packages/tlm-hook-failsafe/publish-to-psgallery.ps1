@@ -129,6 +129,11 @@ $licenseUri    = $manifest.PrivateData.PSData.LicenseUri
 if (-not $licenseUri) {
     Write-Host "  [WARN] .psd1 LicenseUri is empty; PSGallery license warning will appear" -ForegroundColor Yellow
 }
+# 不易：XML 转义 releaseNotes/description/licenseUri，避免 < > & 等字符破坏 .nuspec 的 XML 结构
+#       （ReleaseNotes 中如包含 <licenseUrl> 等文本会被 XML 解析器误认为标签）
+$releaseNotes  = $releaseNotes -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'
+$description   = $description  -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'
+$licenseUri    = $licenseUri   -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'
 
 $nuspec = @"
 <?xml version="1.0" encoding="utf-8"?>
