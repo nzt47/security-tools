@@ -163,6 +163,12 @@ class ToolTraceRecorder:
         self._write_lock = threading.Lock()
         self._local = threading.local()
         self._critical_patterns: List[re.Pattern] = self._load_critical_patterns()
+        # 写入完成计数(修复 flush 异步竞态): _enqueue_count 已入队记录数,
+        # _commit_count 已持久化记录数。flush() 等待 commit 追平 enqueue。
+        # 锁内仅做内存计数增减(守【不易】: 持锁操作严禁 I/O/外部回调)。
+        self._enqueue_count = 0
+        self._commit_count = 0
+        self._count_lock = threading.Lock()
 
         # SQLite 初始化(失败则降级)
         if self._db_path == ":memory:":
@@ -304,6 +310,9 @@ class ToolTraceRecorder:
         # 入队(不阻塞主路径)
         try:
             self._queue.put_nowait(record)
+            # 仅统计真正入队的记录(ring buffer 兜底为同步写入, 无异步竞态)
+            with self._count_lock:
+                self._enqueue_count += 1
         except queue_module.Full:
             # 队列满,降级到 ring buffer
             self._fallback_ring_buffer.append(record)
@@ -645,12 +654,17 @@ class ToolTraceRecorder:
             conn.commit()
 
     def _write_to_db(self, records: List[ToolTraceRecord]) -> None:
-        """批量写入 SQLite(失败则降级到 ring buffer)"""
+        """批量写入 SQLite(失败则降级到 ring buffer)
+
+        两条路径结尾均调 _mark_committed(正常落盘 / ring buffer 降级),
+        保证 flush() 的 commit 计数能追平 enqueue 计数(异步竞态修复)。
+        """
         if not records:
             return
         if self._degraded:
             for r in records:
                 self._fallback_ring_buffer.append(r)
+            self._mark_committed(len(records))
             return
         try:
             conn = self._get_conn()
@@ -668,11 +682,21 @@ class ToolTraceRecorder:
                     ]
                 )
                 conn.commit()
+            self._mark_committed(len(records))
         except Exception as e:
             logger.warning(f"SQLite 批量写入失败,降级到 ring buffer: {e}")
             self._degraded = True
             for r in records:
                 self._fallback_ring_buffer.append(r)
+            self._mark_committed(len(records))
+
+    def _mark_committed(self, n: int) -> None:
+        """记录 n 条记录已持久化(正常 SQLite 落盘或 ring buffer 降级)
+
+        flush() 据此判定"快照已入队记录是否全部可见", 修复仅查队列空的竞态。
+        """
+        with self._count_lock:
+            self._commit_count += n
 
     def _writer_loop(self) -> None:
         """后台写入线程: 批量消费队列写 SQLite"""
@@ -719,22 +743,28 @@ class ToolTraceRecorder:
         )
 
     def flush(self, timeout: float = 2.0) -> bool:
-        """等待队列清空 + DB 写入完成(测试用)
+        """等待已入队记录全部持久化完成(测试用)
+
+        修复 flush 异步竞态(2026-08-03): 旧实现仅查队列空——高负载下 writer
+        已取走批次(队列空)但 DB 未 commit, flush() 误报 True, 查询返回空(flaky)。
+        修复后: 快照入队数, 等待 commit 计数追平, 返回 True 时数据必然可查。
 
         Args:
             timeout: 最大等待时间(秒)
 
         Returns:
-            bool: 队列是否已清空
+            bool: 快照时刻已入队的记录是否已全部持久化(对查询可见)
         """
+        with self._count_lock:
+            target = self._enqueue_count
         deadline = time.time() + timeout
         while time.time() < deadline:
-            if self._queue.empty():
-                # 队列空,但 writer 线程可能正在写入 DB,等待一小段时间确保写入完成
-                time.sleep(0.02)
+            with self._count_lock:
+                committed = self._commit_count
+            if committed >= target:
                 return True
             time.sleep(0.01)
-        return self._queue.empty()
+        return False
 
     def clear(self) -> None:
         """清空数据库表 + ring buffer(测试用)"""
