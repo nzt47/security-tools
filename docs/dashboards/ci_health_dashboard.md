@@ -37,6 +37,7 @@
 | 2026-08-04 | `cd15739` | 99.0% (1489/1504) | 0 | 15 | 76.05 | — | 0 | ↑ | release(pypi): 升级 l2-p99-monitor 到 1.0.1 |
 | 2026-08-04 | `65a186b` | 99.0% (1489/1504) | 0 | 15 | 75.25 | — | 0 | ↑ | fix(ci): 修复 core-invariants-guard 的 secrets-in-if 违规导致 workflow � |
 | 2026-08-04 | `0056efd` | 99.0% (1489/1504) | 0 | 15 | 66.33 | — | 0 | ↑ | chore(hooks): 同步 packages 版 tlm-hook-failsafe 到源版(含编码检查/CI |
+| 2026-08-04 | `ff83ff4` | 99.0% (1490/1505) | 0 | 15 | 76.04 | — | 0 | ↑ | fix(reranker): verify 脚本对齐真实实现(类名 SkillReranker/类属性默 |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
