@@ -112,6 +112,34 @@ event: block AND msg: "*BOM*"
 data.bom_count: >= 2
 ```
 
+### 2.5 过滤非 JSON 格式日志行
+
+日志流可能混入非 JSON 行（如 pytest 原始输出）。`json.add_error_key: true`
+会在解析失败时写入 `error.message` 字段，配合 `drop_event` 处理器按条件丢弃：
+
+```yaml
+processors:
+  # 方式一：解析失败（含 error.message）的坏行直接丢弃
+  - drop_event:
+      when:
+        has_fields: ['error.message']
+
+  # 方式二：仅保留 precheck JSON 行（必含 ts/level/event），其余一律丢弃
+  - drop_event:
+      when:
+        not:
+          all:
+            - has_fields: ['ts']
+            - has_fields: ['level']
+            - has_fields: ['event']
+```
+
+说明：
+
+- **方式一** 依赖 `json.add_error_key: true`（4.4 节 Filebeat 配置已含）；非 JSON 行解析失败时 Filebeat 写入 `error.message`，条件命中即丢弃。
+- **方式二** 与 `json.keys_under_root: true` 配合：JSON 行字段被提升到文档根，非 JSON 行缺失 `ts/level/event` 任一即被丢弃。
+- 若仍需保留非 JSON 行做审计（默认行为：它们作为普通 message 保留），只配置方式一即可，**不要**同时配置方式二。
+
 ---
 
 ## 三、`-BomDiag` 调试用法
