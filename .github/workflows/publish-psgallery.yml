@@ -193,10 +193,13 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $skipCheck = '${{ github.event.inputs.skip_version_check }}' -eq 'true'
-          # 不易：$args 是 PowerShell 自动变量，不能显式赋值；改用 $publishArgs
-          $publishArgs = @('.\publish-to-psgallery.ps1', '-NuGetApiKey', $env:PSGALLERY_API_KEY)
-          if ($skipCheck) { $publishArgs += '-SkipVersionCheck' }
-          & $publishArgs
+          # 不易：PS 5.1 的 & $array 不会 splat 数组，整个数组被当作单命令名
+          # 简易：直接显式调用脚本，用 if 拼接可选参数（最直白可读）
+          if ($skipCheck) {
+            & .\publish-to-psgallery.ps1 -NuGetApiKey $env:PSGALLERY_API_KEY -SkipVersionCheck
+          } else {
+            & .\publish-to-psgallery.ps1 -NuGetApiKey $env:PSGALLERY_API_KEY
+          }
           if ($LASTEXITCODE -ne 0) {
             throw "publish failed: exit $LASTEXITCODE (check API key / network / PSGallery rate limit)"
           }
