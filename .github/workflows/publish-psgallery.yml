@@ -53,15 +53,15 @@ on:
   workflow_dispatch:
     inputs:
       force_publish:
-        description: '真实发布到 PSGallery（需 PSGALLERY_API_KEY secret）'
+        description: '真实发布到 PSGallery（需 PSGALLERY_API_KEY secret，输入 true 触发）'
         required: false
-        default: false
-        type: boolean
+        default: 'false'
+        type: string
       skip_version_check:
-        description: '跳过版本预检（用于首次发布或调试）'
+        description: '跳过版本预检（用于首次发布或调试，输入 true 跳过）'
         required: false
-        default: false
-        type: boolean
+        default: 'false'
+        type: string
 
 env:
   MODULE_NAME: tlm-hook-failsafe
@@ -136,9 +136,8 @@ jobs:
           $commitSha = "${{ github.sha }}"
           Write-Host "Creating tag $tagName at commit $commitSha"
 
-          # 不易：用 gh api 创建 tag（通过 API 创建的 tag 会触发其他工作流）
-          #        git push 用 GITHUB_TOKEN 创建的 push 不会触发工作流（防循环），故必须用 API
-          # 简易：直接创建 lightweight tag（refs/tags/*），足够触发 on.push.tags
+          # 不易：用 gh api 创建 tag（GITHUB_TOKEN 创建的 tag 不会触发 on.push，防循环）
+          # 简易：直接创建 lightweight tag（refs/tags/*），再用 gh workflow run 触发发布
           $result = gh api repos/${{ github.repository }}/git/refs `
             --method POST `
             -f "ref=refs/tags/$tagName" `
@@ -150,6 +149,27 @@ jobs:
           } else {
             Write-Host "❌ Failed to create tag: $result"
             "tagged=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: 触发发布工作流（绕过 GITHUB_TOKEN 防循环）
+        if: steps.create-tag.outputs.tagged == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.read-version.outputs.version }}
+        run: |
+          # 不易：GITHUB_TOKEN 创建的 tag 不会触发 on.push.tags（GitHub 防循环机制）
+          #        所以 auto-tag 创建 tag 后，必须主动触发发布工作流
+          # 简易：用 gh workflow run + string 类型 input（boolean 类型有 gh CLI bug）
+          Write-Host "Triggering publish workflow for v$env:VERSION..."
+          $result = gh workflow run publish-psgallery.yml `
+            --repo ${{ github.repository }} `
+            --ref master `
+            --field force_publish=true `
+            --field skip_version_check=false 2>&1
+          Write-Host "Trigger result: $result"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "⚠️ Failed to trigger publish workflow: $result"
           }
 
       - name: auto-tag 总结
