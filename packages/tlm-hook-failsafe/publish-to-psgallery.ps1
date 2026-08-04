@@ -124,16 +124,17 @@ $releaseNotes  = $manifest.PrivateData.PSData.ReleaseNotes
 $tags          = ($manifest.PrivateData.PSData.Tags) -join ' '
 # Ensure PSModule tag is present so Find-Module recognizes it as a PS module
 if ($tags -notmatch '\bPSModule\b') { $tags = "PSModule $tags" }
-# 不易：读取 .psd1 的 LicenseUri，写入 .nuspec 的 <licenseUrl>（消除 PSGallery license 警告）
+# 不易：使用 <license type="expression">MIT</license> 替代 <licenseUrl>（NuGet 4.9.2+ 推荐）
+#       两者不能共存（NuGet 报 licenseUrl and license elements cannot be used together）
+#       LicenseUri 仍保留在 .psd1（PSGallery UI 显示用），但不写入 .nuspec
 $licenseUri    = $manifest.PrivateData.PSData.LicenseUri
 if (-not $licenseUri) {
-    Write-Host "  [WARN] .psd1 LicenseUri is empty; PSGallery license warning will appear" -ForegroundColor Yellow
+    Write-Host "  [WARN] .psd1 LicenseUri is empty; PSGallery UI license link will be missing" -ForegroundColor Yellow
 }
-# 不易：XML 转义 releaseNotes/description/licenseUri，避免 < > & 等字符破坏 .nuspec 的 XML 结构
-#       （ReleaseNotes 中如包含 <licenseUrl> 等文本会被 XML 解析器误认为标签）
+# 不易：XML 转义 releaseNotes/description，避免 < > & 等字符破坏 .nuspec 的 XML 结构
+#       （ReleaseNotes 中如包含 <license> 等文本会被 XML 解析器误认为标签）
 $releaseNotes  = $releaseNotes -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'
 $description   = $description  -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'
-$licenseUri    = $licenseUri   -replace '&', '&amp;' -replace '<', '&lt;' -replace '>', '&gt;'
 
 $nuspec = @"
 <?xml version="1.0" encoding="utf-8"?>
@@ -143,7 +144,7 @@ $nuspec = @"
     <version>$version</version>
     <authors>$author</authors>
     <owners>$author</owners>
-    <licenseUrl>$licenseUri</licenseUrl>
+    <license type="expression">MIT</license>
     <description>$description</description>
     <releaseNotes>$releaseNotes</releaseNotes>
     <tags>$tags</tags>

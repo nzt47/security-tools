@@ -328,11 +328,23 @@ jobs:
         env:
           PSGALLERY_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
 
-      - name: 创建 GitHub Release（tag 触发时）
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: 创建 GitHub Release（publish 成功后）
+        # 不易：auto-tag 同工作流内创建 tag 但 github.ref 仍是 master，原条件 startsWith(ref,'refs/tags/v')
+        #       在 auto-tag 触发路径下不满足 → Release 被跳过。扩展条件覆盖三种触发路径：
+        #       1. 手动 tag push（github.ref = refs/tags/v*）
+        #       2. auto-tag 同工作流（needs.auto-tag.outputs.tagged == 'true'）
+        #       3. workflow_dispatch force_publish（手动触发强制发布）
+        # tag_name 显式用 version 输出构造，不依赖 github.ref_name（tag push 时才有值）
+        if: |
+          success() &&
+          (
+            startsWith(github.ref, 'refs/tags/v') ||
+            needs.auto-tag.outputs.tagged == 'true' ||
+            (github.event_name == 'workflow_dispatch' && github.event.inputs.force_publish == 'true')
+          )
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: v${{ steps.version.outputs.version }}
           name: tlm-hook-failsafe v${{ steps.version.outputs.version }}
           body: |
             ## tlm-hook-failsafe v${{ steps.version.outputs.version }}
