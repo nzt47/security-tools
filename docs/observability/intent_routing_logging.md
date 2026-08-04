@@ -242,8 +242,6 @@ yunshu_intent_layer_ratio{layer=~"rule|template|semantic|llm|reject"}
 ## 八、实战案例：复杂路由决策漏斗（mock 请求）
 
 > 目标：用一条 mock 请求演示「日志可还原完整路由链路」，并作为新埋点的验收样例。
-> 详细链路追踪报告见 [trace_tracking_report.md](./trace_tracking_report.md)；
-> 可直接导入日志分析系统的实测日志样本见 [trace_tracking_sample_logs.json](./trace_tracking_sample_logs.json)。
 
 ### 8.1 场景
 
