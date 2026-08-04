@@ -408,6 +408,21 @@ orchestrator:
     # 融合模式：none | rrf | rrf_rerank（use_vector/use_bm25 启用时自动升 rrf）
     fusion_mode: rrf
 
+  # ═══════════════════════════════════════════════════════════════
+  #  Workflow Learning 拦截层配置 (自动闭环 v1)
+  #  位置：模板层(IntentRouter)未命中后、语义层(SkillLoader)之前
+  #  命中并成功执行本地工作流 → 短路返回（跳过 LLM，0 Token）
+  #  未命中/执行失败/异常 → 降级继续 LLM（守主链路稳定）
+  #  模块入口：agent/orchestrator/orchestrator.py _workflow_learning_layer_match()
+  # ═══════════════════════════════════════════════════════════════
+  workflow_learning_layer:
+    # 总开关 - 关闭后拦截层跳过
+    # 环境变量 ORCHESTRATOR_WORKFLOW_LEARNING_LAYER_ENABLED 覆盖此值
+    enabled: true
+    # top1 综合分阈值（相似度*置信度*优先级权重，与 workflow_learning.executor.min_score 对齐）
+    # 环境变量 ORCHESTRATOR_WORKFLOW_LEARNING_MIN_SCORE 覆盖此值
+    min_score: 0.25
+
 # ═══════════════════════════════════════════════════════════════
 #  综合技能管理系统配置 (Skills Management)
 #  灵感来源：Claude Skills / Code Skills / Trae / OpenClaw / Hermes
@@ -512,4 +527,20 @@ workflow_learning:
     max_keywords: 8
     # 同任务签名去重窗口（天）
     dedup_window_days: 7
+
+  # 自动学习钩子（自动闭环 v1）— LLM 成功交互后自动 learn_from_interaction
+  # 环境变量 ORCHESTRATOR_WF_LEARN_ENABLED 覆盖此值
+  learn_from_interaction:
+    # 总开关 - 关闭后仅保留手动 API 学习
+    enabled: true
+
+  # 定时自动升格（自动闭环 v1）— 达标工作流自动转换并注册为 Agent Skill
+  # 守质量门控：success_count>=5 / confidence>=0.7 / priority 达标 / ACTIVE / 未转换过
+  auto_upgrade:
+    # 总开关
+    enabled: true
+    # 检查间隔（秒），挂载于 LifecycleManager 自主维护循环
+    interval_seconds: 300
+    # 环境变量 WF_SKILL_AUTO_UPGRADE_ENABLED / WF_SKILL_AUTO_UPGRADE_INTERVAL 覆盖
+
 

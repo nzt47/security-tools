@@ -32,6 +32,19 @@ from agent.orchestrator.response_builder import ResponseBuilder, Response
 import uuid
 from agent.logging_utils import log_dict
 
+# 任务6: 主业务链路路由可观测性埋点（各层耗时 / 流量分布 / 路由决策）
+from agent.orchestrator.routing_observability import (
+    log_layer_result,
+    emit_route_decision,
+    RouteContext,
+    LAYER_INPUT_GUARD, LAYER_WORKFLOW, LAYER_TEMPLATE, LAYER_SEMANTIC,
+    LAYER_WORKFLOW_LEARNING,
+    LAYER_LLM, LAYER_OUTPUT_GUARD, LAYER_REJECT, LAYER_BEHAVIOR,
+    DECISION_HIT, DECISION_MISS, DECISION_BLOCK, DECISION_PASS,
+    DECISION_MODIFIED, DECISION_SUCCESS, DECISION_FALLBACK, DECISION_ERROR,
+    DECISION_REJECT,
+)
+
 # tool_calling 和 tool_router 无循环依赖，直接模块级导入（替代原 5 处方法体内延迟导入）
 from agent.tool_calling import (
     ToolCallingService,
@@ -227,6 +240,10 @@ class Orchestrator:
 
         self._interaction_count += 1
 
+        # ── 路由可观测性: 初始化单次请求上下文（累积各层中间结果）──
+        # 任务6: 所有 log_layer_result / emit_route_decision 共享此上下文
+        RouteContext.init(trace_id)
+
         # ── Trace: 开始记录 ──
         if trace_id:
             trace_store.start_trace(trace_id, user_input)
@@ -242,20 +259,62 @@ class Orchestrator:
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '[上下文] %s（%.1f%%）' % (self._last_context_warning['message'], self._last_context_warning['pct'])}))
 
         # ── 第零步：InputGuard 输入安全检查 ──
+        _ts_guard = time.perf_counter()
         guard_result = self._input_guard.check(user_input)
+        _dur_guard = (time.perf_counter() - _ts_guard) * 1000
         if guard_result.action == GuardAction.BLOCK:
-            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.guard', 'message': '[Guard] ⛔ 输入被 InputGuard 拦截: %s（匹配: %s）' % (guard_result.reason, guard_result.matched_pattern)}))
+            # 任务6: 统一层日志（layer/decision/duration_ms）+ 最终路由决策
+            log_layer_result(
+                LAYER_INPUT_GUARD, DECISION_BLOCK, trace_id,
+                level=logging.WARNING,
+                action='orchestrator.process.guard',
+                message='[Guard] ⛔ 输入被 InputGuard 拦截: %s（匹配: %s）' % (
+                    guard_result.reason, guard_result.matched_pattern),
+                duration_ms=_dur_guard,
+                reason=guard_result.reason,
+                matched_pattern=guard_result.matched_pattern,
+            )
+            emit_route_decision(LAYER_INPUT_GUARD, DECISION_BLOCK, trace_id,
+                                message='[输入护栏] 输入被拦截')
             if trace_id:
                 trace_store.end_trace(trace_id, guard_result.reason, status="blocked")
             return ResponseBuilder.guard_blocked(
                 guard_result.reason, guard_result.matched_pattern
             ).to_dict()
+        else:
+            # 未命中（中间结果）→ DEBUG
+            log_layer_result(
+                LAYER_INPUT_GUARD, DECISION_PASS, trace_id,
+                level=logging.DEBUG,
+                action='orchestrator.process.guard',
+                message='[Guard] 输入检查通过',
+                duration_ms=_dur_guard,
+            )
 
         # ── 第一步：Workflow Engine 匹配（0 Token 消耗）──
-        ts_wf = time.time()
+        # 【变易】耗时用 perf_counter 配对计时; TraceSpan 时间戳单独用墙上时钟（time.time）
+        _ts_wf_wall = time.time()            # span 绝对时间戳
+        ts_wf = time.perf_counter()          # 耗时统计
         workflow_result = self._workflow_engine.try_match(user_input)
+        _dur_wf = (time.perf_counter() - ts_wf) * 1000
         if workflow_result is not None and workflow_result.matched:
-            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.workflow', 'message': '[Workflow] 命中规则: %s, 置信度=%.2f, 耗时=%.2fms' % (workflow_result.intent, workflow_result.confidence, workflow_result.execution_time_ms)}))
+            # 任务6: 统一层日志（决策点 INFO）
+            log_layer_result(
+                LAYER_WORKFLOW, DECISION_HIT, trace_id,
+                action='orchestrator.process.workflow',
+                message='[Workflow] 命中规则: %s, 置信度=%.2f, 耗时=%.2fms' % (
+                    workflow_result.intent, workflow_result.confidence,
+                    workflow_result.execution_time_ms),
+                duration_ms=_dur_wf,
+                score=workflow_result.confidence,
+                intent=workflow_result.intent,
+                confidence=workflow_result.confidence,
+                execution_time_ms=workflow_result.execution_time_ms,
+            )
+            emit_route_decision(LAYER_WORKFLOW, DECISION_HIT, trace_id,
+                                message='[规则层] 命中 workflow 规则',
+                                basis_extra={'intent': workflow_result.intent,
+                                             'confidence': workflow_result.confidence})
             self._memory.score_and_save_message("user", user_input)
             self._memory.score_and_save_message("assistant", workflow_result.output)
             if trace_id:
@@ -266,12 +325,20 @@ class Orchestrator:
                 intent=workflow_result.intent,
                 confidence=workflow_result.confidence,
             ).to_dict()
+        # 未命中（中间结果）→ DEBUG
+        log_layer_result(
+            LAYER_WORKFLOW, DECISION_MISS, trace_id,
+            level=logging.DEBUG,
+            action='orchestrator.process.workflow',
+            message='[Workflow] 未命中规则',
+            duration_ms=_dur_wf,
+        )
         if trace_id:
             trace_store.add_span(trace_id, TraceSpan(
                 span_id=f"{trace_id}_workflow",
                 operation="workflow_match",
-                start_time=ts_wf, end_time=time.time(),
-                duration_ms=(time.time() - ts_wf) * 1000,
+                start_time=_ts_wf_wall, end_time=time.time(),
+                duration_ms=_dur_wf,
                 status="no_match",
             ))
 
@@ -315,6 +382,10 @@ class Orchestrator:
                     role="assistant", content=response,
                     metadata={"rejected": True, "reason": reject_reason},
                 )
+            # 任务6: 最终路由决策（行为能力拒绝）
+            emit_route_decision(LAYER_BEHAVIOR, DECISION_REJECT, trace_id,
+                                message='[行为能力] 任务被拒绝',
+                                basis_extra={'reason': (reject_reason or "")[:200]})
             if trace_id:
                 trace_store.end_trace(trace_id, response)
             return ResponseBuilder.rejection(
@@ -386,6 +457,20 @@ class Orchestrator:
                 'session_id': getattr(self, '_session_id', 'default'),
             })
             dissatisfaction = MessageHandler.detect_dissatisfaction(user_input)
+            # 【排查】追问/不满判定依据（DEBUG 输出判定输入与结果，便于排查
+            # "为什么没走模板层/为什么走了模板层"的中间结果异常）
+            logger.debug(log_dict({
+                'module_name': 'orchestrator',
+                'action': 'orchestrator.process.template.decision',
+                'trace_id_ctx': trace_id,
+                'message': '[模板层] 判定依据: is_follow_up=%s dissatisfaction=%s last_was_template=%s confidence=%s' % (
+                    is_follow_up, dissatisfaction, getattr(self, '_last_was_template', False),
+                    getattr(confidence, 'name', str(confidence))),
+                'is_follow_up': is_follow_up,
+                'dissatisfaction': dissatisfaction,
+                'last_was_template': getattr(self, '_last_was_template', False),
+                'confidence': getattr(confidence, 'name', str(confidence)),
+            }))
             if dissatisfaction:
                 logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.llm', 'message': '[路由] 检测到用户不满/纠正，降级到 LLM'}))
                 is_follow_up = True
@@ -399,7 +484,25 @@ class Orchestrator:
                     hour=datetime.now().hour,
                 )
                 if template_response:
-                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.llm', 'message': '[路由] 使用本地模板，跳过 LLM 调用'}))
+                    # 任务6: 统一层日志（模板层命中, 决策点 INFO）
+                    log_layer_result(
+                        LAYER_TEMPLATE, DECISION_HIT, trace_id,
+                        action='orchestrator.process.llm',
+                        message='[路由] 使用本地模板，跳过 LLM 调用 (intent=%s, confidence=%s)' % (
+                            intent, confidence.name if hasattr(confidence, 'name') else confidence),
+                        duration_ms=0.0,
+                        score=getattr(confidence, 'value', None),
+                        intent=intent,
+                        confidence=confidence.name if hasattr(confidence, 'name') else str(confidence),
+                    )
+                    emit_route_decision(
+                        LAYER_TEMPLATE, DECISION_HIT, trace_id,
+                        message='[模板层] 模板命中跳过 LLM',
+                        basis_extra={
+                            'intent': intent,
+                            'confidence': confidence.name if hasattr(confidence, 'name') else str(confidence),
+                        },
+                    )
                     self._set_thinking_mode("instinct")
                     response = template_response
                     self._last_was_template = True
@@ -412,9 +515,13 @@ class Orchestrator:
                         pass
                     logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '[路由] 模板回复完成 (#%d)' % (self._interaction_count,)}))
                     if trace_id:
+                        _ts_tpl_wall = time.time()  # 模板 span 时间戳（墙上时钟, 与耗时计时不混用）
                         trace_store.add_span(trace_id, TraceSpan(
                             span_id=f"{trace_id}_template",
                             operation="template_reply",
+                            start_time=_ts_tpl_wall,
+                            end_time=time.time(),
+                            duration_ms=0.0,
                             status="success",
                             metadata={"intent": intent,
                                       "confidence": confidence.name},
@@ -422,6 +529,19 @@ class Orchestrator:
                         trace_store.end_trace(trace_id, response)
                     _record_intent_layer("template")
                     return ResponseBuilder.success(response).to_dict()
+                # 【排查】模板层查表未命中原因（DEBUG 记录 intent 查表结果与下沉方向，
+                # 便于排查"为何没走模板层"——是意图未知，还是模板库无对应意图）
+                logger.debug(log_dict({
+                    'module_name': 'orchestrator',
+                    'action': 'orchestrator.process.template.miss',
+                    'trace_id_ctx': trace_id,
+                    'message': '[模板层] 未命中: intent=%s confidence=%s（for_intent 返回 None, 继续下沉 工作流学习层→语义层）' % (
+                        intent, getattr(confidence, 'name', str(confidence))),
+                    'intent': intent,
+                    'confidence': getattr(confidence, 'name', str(confidence)),
+                    'follow_up': is_follow_up,
+                    'routing_input': (routing_input or '')[:80],
+                }))
         except ImportError as _ie:
             # 【不易】不再静默吞错：response_workflows 缺失意味着模板语义层失效，
             # 所有意图将直落 LLM，违反三层漏斗架构。输出 WARNING 告警便于排查。
@@ -429,6 +549,54 @@ class Orchestrator:
         except Exception as e:
             logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.llm', 'message': '[路由] 路由失败，降级到 LLM: %s' % (e,)}))
         self._last_was_template = False
+
+        # ── 第三步零：工作流学习层匹配（自动闭环 v1，0 Token 短路）──
+        # 【变易】本地优先：模板层未命中后、语义层之前，尝试命中并执行 learned workflow。
+        #         命中且成功 → 短路返回（跳过 LLM，0 Token）；未命中/失败/异常 → 降级语义层。
+        #         用 DST 补全后的 routing_input 匹配（省略句需补全才能命中 TF-IDF 索引）。
+        #         【不易】工作流执行是真实工具调用（有副作用），置于行为能力检查之后，
+        #         可被 persona/行为拒绝先行拦截；任何异常不影响主链路。
+        _wfl_cfg_ = self._load_workflow_learning_layer_config()
+        logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.enter', 'trace_id_ctx': trace_id,
+            'message': '[工作流层] 进入拦截: enabled=%s min_score=%.2f input=%r' % (
+                _wfl_cfg_['enabled'], float(_wfl_cfg_['min_score']), (routing_input or '')[:60])}))
+        wf_learning_result = self._workflow_learning_layer_match(routing_input, trace_id)
+
+        # 任务6: 统一降级路径日志（命中与否，本层都要明确退出方向，便于链路追踪）
+        logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.exit', 'trace_id_ctx': trace_id,
+            'message': '[工作流层] 退出: hit=%s wf=%s elapsed_ms=%s → 后续路径=%s' % (
+                bool(wf_learning_result is not None),
+                (wf_learning_result or {}).get('workflow_id', '-'),
+                (wf_learning_result or {}).get('elapsed_ms', '-'),
+                '短路返回(跳过LLM)' if wf_learning_result is not None else '降级→语义层(SkillLoader)' )}))
+
+        if wf_learning_result is not None:
+            output_text = wf_learning_result["output"]
+            # 任务6: 统一路由决策（命中已在 _workflow_learning_layer_match 内记录层日志）
+            emit_route_decision(
+                LAYER_WORKFLOW_LEARNING, DECISION_HIT, trace_id,
+                message='[工作流层] 命中短路返回: wf=%s score=%.3f' % (
+                    wf_learning_result['workflow_id'], wf_learning_result['score']),
+                basis_extra={
+                    'workflow_id': wf_learning_result['workflow_id'],
+                    'workflow_name': wf_learning_result['workflow_name'],
+                    'score': wf_learning_result['score'],
+                    'confidence': wf_learning_result['confidence'],
+                    'steps_executed': wf_learning_result['steps_executed'],
+                    'skipped_llm': wf_learning_result['skipped_llm'],
+                },
+            )
+
+            # 记忆保存（与 WorkflowEngine/模板层/语义层命中分支保持一致）
+            self._memory.score_and_save_message("user", user_input)
+            self._memory.score_and_save_message("assistant", output_text)
+            self._last_was_template = False
+            if trace_id:
+                trace_store.end_trace(trace_id, output_text)
+            _record_intent_layer("workflow_learning")
+            return ResponseBuilder.success(
+                output_text, msg="handled_by_workflow_learning"
+            ).to_dict()
 
         # ── 第三步半：语义层匹配（SkillLoader RRF 三路融合）──
         # 【变易】语义层接入：规则层(WorkflowEngine)+模板层(IntentRouter)未命中后，
@@ -441,7 +609,21 @@ class Orchestrator:
         if semantic_result is not None:
             # 语义层命中：短路返回技能 instruction
             output_text = semantic_result["output"]
-            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.semantic_hit', 'trace_id_ctx': trace_id, 'message': '[语义层] 命中短路返回: skill=%s score=%.3f method=%s' % (semantic_result['skill_id'], semantic_result['score'], semantic_result['retrieval_method'])}))
+            # 任务6: 统一层日志（语义层命中已在 _semantic_layer_match 内记录,
+            #          此处仅输出最终路由决策 + 决策依据）
+            emit_route_decision(
+                LAYER_SEMANTIC, DECISION_HIT, trace_id,
+                message='[语义层] 命中短路返回: skill=%s score=%.3f method=%s' % (
+                    semantic_result['skill_id'], semantic_result['score'],
+                    semantic_result['retrieval_method']),
+                basis_extra={
+                    'skill_id': semantic_result['skill_id'],
+                    'score': semantic_result['score'],
+                    'retrieval_method': semantic_result['retrieval_method'],
+                    'reranked': semantic_result.get('reranked', False),
+                    'fallback_used': semantic_result.get('fallback_used', False),
+                },
+            )
 
             # 【不易】语义层命中时回写 skill 到 DST（供下一轮"技能继承"分支）
             # 直接 set last_skill，避免再次调用 _update_dst_after_route(update) 导致
@@ -481,6 +663,26 @@ class Orchestrator:
         if _is_ellipsis:
             _semantic_reject = False
 
+        # 【排查】拒识判定中间结果（DEBUG 记录判定输入/输出，便于排查
+        # "为何没拒识/为何拒识"——intent、各层分数、阈值都在此处可见）
+        logger.debug(log_dict({
+            'module_name': 'orchestrator',
+            'action': 'orchestrator.process.reject.decision',
+            'trace_id_ctx': trace_id,
+            'message': '[拒识] 判定: len_reject=%s semantic_reject=%s reason=%r (intent=%s confidence=%s is_ellipsis=%s) → %s' % (
+                _len_reject, _semantic_reject, (_reject_reason or '')[:80],
+                intent, getattr(confidence, 'name', str(confidence)), _is_ellipsis,
+                '拒识' if (_len_reject or _semantic_reject) else '放行→LLM'),
+            'len_reject': _len_reject,
+            'semantic_reject': _semantic_reject,
+            'reject_reason': (_reject_reason or '')[:200],
+            'intent': intent,
+            'confidence': getattr(confidence, 'name', str(confidence)),
+            'is_ellipsis': _is_ellipsis,
+            'reject_threshold': _reject_cfg['threshold'],
+            'final': 'reject' if (_len_reject or _semantic_reject) else 'pass_to_llm',
+        }))
+
         if _len_reject or _semantic_reject:
             _reject_type = "input_too_short" if _len_reject else "semantic_miss"
             _record_intent_layer("reject")
@@ -498,6 +700,30 @@ class Orchestrator:
                 'input_length': len(user_input.strip()),
                 'is_ellipsis': _is_ellipsis,
             }))
+            # 任务6: 统一层日志（拒识层 WARNING）+ 最终路由决策（拒识）
+            log_layer_result(
+                LAYER_REJECT, DECISION_REJECT, trace_id,
+                level=logging.WARNING,
+                action='orchestrator.process.reject',
+                message='[拒识] %s: %s' % (_reject_type, _reject_reason),
+                duration_ms=0.0,
+                reject_type=_reject_type,
+                intent=intent,
+                confidence=str(confidence),
+                semantic_result=semantic_result,
+                reject_threshold=_reject_cfg['threshold'],
+            )
+            emit_route_decision(
+                LAYER_REJECT, DECISION_REJECT, trace_id,
+                message='[拒识] 未知意图软拒识',
+                basis_extra={
+                    'reject_type': _reject_type,
+                    'reason': (_reject_reason or "")[:200],
+                    'intent': intent,
+                    'confidence': str(confidence),
+                    'reject_threshold': _reject_cfg['threshold'],
+                },
+            )
             _reject_msg = _REJECT_MSG  # 模块级常量，供测试 import 消除同源复制
             if trace_id:
                 trace_store.end_trace(trace_id, _reject_msg, status="rejected")
@@ -505,6 +731,8 @@ class Orchestrator:
 
         # ── 第四步：LLM 调用 ──
         _record_intent_layer("llm")
+        # 【变易】耗时用 perf_counter 配对计时; ts_llm（墙上时钟）仅供 TraceSpan 时间戳
+        _ts_llm_pf = time.perf_counter()
         ts_llm = time.time()
         try:
             if self._v2_lifetrace and self._trace_recorder:
@@ -518,9 +746,24 @@ class Orchestrator:
             # llm（L507，INV-4 调用前埋点）计"尝试"；llm_error 计"失败"，
             # 成功路径不记 llm_error，面板 10 用 llm_error/llm 计算错误率
             _record_intent_layer("llm_error")
+            _llm_err_ms = (time.perf_counter() - _ts_llm_pf) * 1000
             logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.fail', 'message': '[FAIL] 对话处理异常: %s' % (e,), 'error': str(e)}))
             tb_str = __import__('traceback').format_exc()
             logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '堆栈:\n%s' % (tb_str,), 'error': str(tb_str)}))
+            # 任务6: 统一层日志（LLM 错误）+ 最终路由决策（错误）
+            log_layer_result(
+                LAYER_LLM, DECISION_ERROR, trace_id,
+                level=logging.ERROR,
+                action='orchestrator.process.llm',
+                message='[LLM] 调用失败: %s' % (e,),
+                duration_ms=_llm_err_ms,
+                error=str(e)[:200],
+            )
+            emit_route_decision(
+                LAYER_LLM, DECISION_ERROR, trace_id,
+                message='[LLM] 调用异常，返回错误响应',
+                basis_extra={'error': str(e)[:200]},
+            )
             if trace_id:
                 trace_store.end_trace(trace_id, str(e)[:200], status="error")
             if _MONITORING_AVAILABLE:
@@ -543,7 +786,7 @@ class Orchestrator:
             return ResponseBuilder.error(
                 "抱歉，处理您的请求时遇到了问题：%s" % e
             ).to_dict()
-        llm_duration_ms = (time.time() - ts_llm) * 1000
+        llm_duration_ms = (time.perf_counter() - _ts_llm_pf) * 1000
 
         # ── LLM 置信度校验（任务3：基于响应质量的启发式校验 + 低置信度降级）──
         # 【简易】空/过短/错误标记 → 低置信度；正常响应 → high
@@ -574,6 +817,15 @@ class Orchestrator:
             'llm_duration_ms': round(llm_duration_ms, 2),
             'response_length': len(response) if response else 0,
         }))
+        # 任务6: 统一层日志（LLM 层决策点, 含耗时 + 置信度作为决策依据）
+        log_layer_result(
+            LAYER_LLM, DECISION_SUCCESS, trace_id,
+            message='[LLM] 调用完成, 置信度=%s' % _llm_confidence,
+            duration_ms=llm_duration_ms,
+            llm_confidence=_llm_confidence,
+            low_reason=_low_reason,
+            response_length=len(response) if response else 0,
+        )
 
         # 【不易】低置信度触发兜底回复（任务3）：返回统一文案 + 转人工建议
         # 提前 return 跳过 OutputGuard/反思/向量记忆（低质量响应无需反思和持久化向量）
@@ -588,6 +840,16 @@ class Orchestrator:
                 'llm_duration_ms': round(llm_duration_ms, 2),
             }))
             _record_intent_layer("llm_low_confidence_fallback")
+            # 任务6: 最终路由决策（LLM 低置信度降级兜底）
+            emit_route_decision(
+                LAYER_LLM, DECISION_FALLBACK, trace_id,
+                message='[LLM] 低置信度降级兜底',
+                basis_extra={
+                    'llm_confidence': _llm_confidence,
+                    'low_reason': (_low_reason or "")[:200],
+                    'llm_duration_ms': round(llm_duration_ms, 2),
+                },
+            )
             _fallback_msg = _FALLBACK_MSG  # 模块级常量，供测试 import 消除同源复制
             # 兜底响应仍走对话记忆保存（便于后续分析低置信度场景）
             self._memory.score_and_save_message("user", user_input)
@@ -609,10 +871,29 @@ class Orchestrator:
                 pass
 
         # ── 第五步：OutputGuard 输出安全检查（PII 遮盖）──
+        # 【变易】耗时用 perf_counter 配对计时
+        _ts_og = time.perf_counter()
         output_result = self._output_guard.check(response)
+        _dur_og = (time.perf_counter() - _ts_og) * 1000
         if output_result.modified:
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.guard', 'message': '[Guard] 🔒 输出已过滤，遮盖字段: %s' % (', '.join(output_result.redacted_fields),)}))
+            # 任务6: 统一层日志（OutputGuard 修改决策点 INFO）
+            log_layer_result(
+                LAYER_OUTPUT_GUARD, DECISION_MODIFIED, trace_id,
+                message='[Guard] 输出已过滤（PII 遮盖）',
+                duration_ms=_dur_og,
+                redacted_fields=list(output_result.redacted_fields),
+            )
             response = output_result.filtered
+        else:
+            # 未修改（中间结果）→ DEBUG
+            log_layer_result(
+                LAYER_OUTPUT_GUARD, DECISION_PASS, trace_id,
+                level=logging.DEBUG,
+                action='orchestrator.process.guard',
+                message='[Guard] 输出检查通过',
+                duration_ms=_dur_og,
+            )
 
         # Trace: 记录 LLM 调用 Span
         if trace_id:
@@ -640,6 +921,13 @@ class Orchestrator:
             self._memory.infer_working_memory(user_input, response)
         except Exception as e:
             logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wm', 'message': '[WM] 工作记忆更新失败: %s' % (e,)}))
+
+        # ── 第七步半：工作流自动学习（自动闭环 v1）──
+        # 【变易】走到这里说明 LLM 成功且非低置信度（低置信度已在前面 return 兜底）。
+        #         从 _last_tool_steps 提取成功的工具调用序列自动 learn_from_interaction，
+        #         沉淀为本地工作流供下次 0 Token 命中。
+        #         【不易】内部异常只记日志，不影响主链路；失败的工具步骤被过滤不学习。
+        self._learn_workflow_from_interaction(user_input)
 
         # 向量记忆保存
         if self._vector_memory:
@@ -696,6 +984,18 @@ class Orchestrator:
         # ── Trace: 结束记录 ──
         if trace_id:
             trace_store.end_trace(trace_id, response)
+
+        # 任务6: 最终路由决策（LLM 正常完成, 含全链路各层耗时与中间结果）
+        emit_route_decision(
+            LAYER_LLM, DECISION_SUCCESS, trace_id,
+            message='[LLM] 正常完成',
+            basis_extra={
+                'llm_duration_ms': round(llm_duration_ms, 2),
+                'output_guard_modified': bool(output_result.modified),
+                'redacted_fields': list(output_result.redacted_fields)
+                if output_result.modified else [],
+            },
+        )
 
         if _MONITORING_AVAILABLE:
             collector.increment_counter("count.digital_life.chat.success")
@@ -759,6 +1059,20 @@ class Orchestrator:
         "use_reranker": False,
         "fusion_mode": "rrf",
     }
+
+    # Workflow Learning 拦截层配置默认值（自动闭环 v1）
+    # 配置优先级: 环境变量 > config.yaml orchestrator.workflow_learning_layer > 此处硬编码
+    # 【不易】硬编码默认值兜底，config.yaml 缺失/解析失败不影响主链路
+    _WFL_DEFAULTS: Dict[str, Any] = {
+        "enabled": True,
+        "min_score": 0.25,
+    }
+
+    # 自动学习钩子开关默认值（LLM 成功交互后自动 learn_from_interaction）
+    _WF_LEARN_ENABLED: bool = True
+
+    # 懒加载缓存: 是否已完成 ToolExecutor 注入（避免重复注入）
+    _WFL_TOOL_EXECUTOR_INJECTED: bool = False
 
     # 语义层 API 热更覆盖层（优先级最高，由 HTTP API /api/orchestrator/semantic-config 设置）
     # 【变易】运行时动态覆盖，重启后从 SQLite 恢复（_load_semantic_override_from_db）
@@ -867,6 +1181,268 @@ class Orchestrator:
     def _clear_semantic_config_cache(cls) -> None:
         """手动清除语义层配置缓存（测试用 / config.yaml 修改后强制刷新）"""
         cls._SEM_CONFIG_CACHE = None
+
+    # ═══════════════════════════════════════════════════════════════
+    # Workflow Learning 拦截层（自动闭环 v1）
+    # 位置：模板层(IntentRouter)未命中后、语义层(SkillLoader)之前
+    # 命中并成功执行本地工作流 → 短路返回（跳过 LLM，0 Token）
+    # 未命中/执行失败/异常 → 返回 None，调用方继续 LLM（守【不易】主链路稳定）
+    # 模块入口：process() 第三步与第三步半之间
+    # ═══════════════════════════════════════════════════════════════
+
+    @classmethod
+    def _load_workflow_learning_layer_config(cls) -> Dict[str, Any]:
+        """读取工作流拦截层配置 — 优先级: 环境变量 > config.yaml > 硬编码默认值
+
+        config.yaml 路径: orchestrator.workflow_learning_layer.{enabled,min_score}
+        环境变量: ORCHESTRATOR_WORKFLOW_LEARNING_LAYER_ENABLED /
+                 ORCHESTRATOR_WORKFLOW_LEARNING_MIN_SCORE
+
+        【不易】硬编码默认值兜底，config.yaml 缺失/解析失败不影响主链路
+        """
+        from pathlib import Path
+
+        config = dict(cls._WFL_DEFAULTS)
+        try:
+            cfg_path = Path(__file__).resolve().parent.parent.parent / "config.yaml"
+            if cfg_path.exists():
+                import yaml as _yaml
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    data = _yaml.safe_load(f) or {}
+                yaml_cfg = (data.get("orchestrator", {}) or {}).get("workflow_learning_layer", {}) or {}
+                for key in cls._WFL_DEFAULTS:
+                    if key in yaml_cfg and yaml_cfg[key] is not None:
+                        config[key] = yaml_cfg[key]
+        except Exception as e:
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.config.fallback', 'message': '[工作流层] config.yaml 读取失败，降级到默认值: %s' % (e,)}))
+
+        env_enabled = os.environ.get("ORCHESTRATOR_WORKFLOW_LEARNING_LAYER_ENABLED")
+        if env_enabled is not None and env_enabled.strip():
+            config["enabled"] = env_enabled.strip().lower() in ("true", "1", "yes")
+        env_min = os.environ.get("ORCHESTRATOR_WORKFLOW_LEARNING_MIN_SCORE")
+        if env_min is not None and env_min.strip():
+            try:
+                config["min_score"] = float(env_min.strip())
+            except (ValueError, TypeError):
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.config.invalid_min_score', 'message': '[工作流层] ORCHESTRATOR_WORKFLOW_LEARNING_MIN_SCORE 非法值已忽略: %s' % (env_min,)}))
+        return config
+
+    def _workflow_learning_layer_match(self, routing_input: str,
+                                       trace_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """工作流拦截层 — 尝试匹配并执行本地工作流（0 Token 短路）
+
+        架构层级：三层漏斗第 2.5 层（工作流学习层）
+        调用时机：模板层未命中后、语义层之前；使用 DST 补全后的 routing_input 匹配
+                  （省略句"那个呢/然后呢"必须经 DST 补全才能命中 TF-IDF 索引）
+
+        【不易】任何异常都返回 None，主链路降级到 LLM（不抛异常）
+        【变易】配置来自 config.yaml orchestrator.workflow_learning_layer
+                （env ORCHESTRATOR_WORKFLOW_LEARNING_LAYER_ENABLED/MIN_SCORE 可覆盖）
+        【简易】命中且执行成功 → 返回结果 dict；未命中/失败/异常 → None
+
+        Returns:
+            命中时: {"output": str, "workflow_id": str, "workflow_name": str,
+                     "score": float, "confidence": float, "steps_executed": int,
+                     "elapsed_ms": float, "skipped_llm": bool}
+            未命中/降级: None
+        """
+        cfg = self._load_workflow_learning_layer_config()
+        if not cfg["enabled"]:
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.disabled', 'trace_id_ctx': trace_id, 'message': '[工作流层] 已关闭(enabled=false)，继续语义层'}))
+            return None
+
+        _ts_pf = time.perf_counter()
+        try:
+            # 延迟导入避免循环依赖（state_manager 依赖较重）
+            from agent.state_manager import get_workflow_learning_service
+            svc = get_workflow_learning_service()
+            if svc is None:
+                return None
+
+            # 懒注入 ToolExecutor（agent.tools.call 签名与 ToolExecutor 一致，仅注入一次）
+            if not self._WFL_TOOL_EXECUTOR_INJECTED:
+                try:
+                    from agent.tools import call as _tool_call
+                    svc.set_tool_executor(
+                        lambda tool_name, params: _tool_call(tool_name, **params)
+                    )
+                    self._WFL_TOOL_EXECUTOR_INJECTED = True
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.tool_executor', 'trace_id_ctx': trace_id, 'message': '[工作流层] ToolExecutor 已注入（agent.tools.call）'}))
+                except Exception as inj_e:
+                    logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.tool_executor_failed', 'trace_id_ctx': trace_id, 'message': '[工作流层] ToolExecutor 注入失败，降级 LLM: %s' % (inj_e,)}))
+                    return None
+
+            result = svc.try_execute(routing_input, min_score=float(cfg["min_score"]))
+            elapsed_ms = (time.perf_counter() - _ts_pf) * 1000
+
+            if not result.matched:
+                # 任务6: 统一层日志（未命中, 中间结果 → DEBUG）
+                log_layer_result(
+                    LAYER_WORKFLOW_LEARNING, DECISION_MISS, trace_id,
+                    level=logging.DEBUG,
+                    action='orchestrator.wfl.miss',
+                    message='[工作流层] 未命中 (%.2fms, min_score=%.2f)' % (
+                        elapsed_ms, float(cfg["min_score"])),
+                    duration_ms=elapsed_ms,
+                )
+                return None
+
+            if not result.success:
+                # 执行失败：executor 已更新 failure_count 并降低 confidence，降级 LLM
+                log_layer_result(
+                    LAYER_WORKFLOW_LEARNING, DECISION_ERROR, trace_id,
+                    level=logging.WARNING,
+                    action='orchestrator.wfl.exec_failed',
+                    message='[工作流层] 执行失败，降级 LLM: wf=%s err=%s' % (
+                        result.workflow_id, (result.error or "")[:200]),
+                    duration_ms=elapsed_ms,
+                    workflow_id=result.workflow_id,
+                    error=(result.error or "")[:200],
+                )
+                return None
+
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.hit', 'trace_id_ctx': trace_id,
+                'message': '[工作流层] 命中 wf=%s name=%s score=%.3f conf=%.3f (%d 步, %.2fms, 跳过LLM=%s)' % (
+                    result.workflow_id, result.workflow_name, result.similarity,
+                    result.confidence, result.steps_executed, elapsed_ms, result.skipped_llm)}))
+            # 任务6: 统一层日志（命中, 决策点 INFO）
+            log_layer_result(
+                LAYER_WORKFLOW_LEARNING, DECISION_HIT, trace_id,
+                action='orchestrator.wfl.hit',
+                message='[工作流层] 命中短路返回: wf=%s score=%.3f' % (
+                    result.workflow_id, result.similarity),
+                duration_ms=elapsed_ms,
+                score=result.similarity,
+                workflow_id=result.workflow_id,
+                workflow_name=result.workflow_name,
+                confidence=result.confidence,
+                steps_executed=result.steps_executed,
+                skipped_llm=result.skipped_llm,
+            )
+            return {
+                "output": str(result.output or ""),
+                "workflow_id": result.workflow_id,
+                "workflow_name": result.workflow_name,
+                "score": result.similarity,
+                "confidence": result.confidence,
+                "steps_executed": result.steps_executed,
+                "elapsed_ms": elapsed_ms,
+                "skipped_llm": result.skipped_llm,
+            }
+        except Exception as e:
+            # 【不易】异常降级 LLM，不中断主链路
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.error', 'trace_id_ctx': trace_id, 'message': '[工作流层] 异常，降级 LLM: %s' % (e,)}))
+            log_layer_result(
+                LAYER_WORKFLOW_LEARNING, DECISION_ERROR, trace_id,
+                level=logging.DEBUG,
+                action='orchestrator.wfl.error',
+                message='[工作流层] 异常降级: %s' % (str(e)[:200],),
+            )
+            return None
+
+    # ─── 自动学习钩子（自动闭环 v1）───
+
+    @classmethod
+    def _wf_learn_enabled(cls) -> bool:
+        """自动学习开关 — 优先级: 环境变量 > config.yaml workflow_learning.learn_from_interaction.enabled > 默认"""
+        env = os.environ.get("ORCHESTRATOR_WF_LEARN_ENABLED")
+        if env is not None and env.strip():
+            return env.strip().lower() in ("true", "1", "yes")
+        try:
+            from pathlib import Path
+            cfg_path = Path(__file__).resolve().parent.parent.parent / "config.yaml"
+            if cfg_path.exists():
+                import yaml as _yaml
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    data = _yaml.safe_load(f) or {}
+                learn_cfg = (data.get("workflow_learning", {}) or {}).get("learn_from_interaction", {}) or {}
+                if "enabled" in learn_cfg and learn_cfg["enabled"] is not None:
+                    return bool(learn_cfg["enabled"])
+        except Exception:
+            pass
+        return cls._WF_LEARN_ENABLED
+
+    @staticmethod
+    def _extract_tool_calls_from_steps(steps: list) -> list:
+        """把 tool_calling steps 转成 LearningRecord.tool_calls 格式
+
+        steps 格式（tool_calling.py chat_with_steps 产出）:
+            [{"type":"tool_call","tool":name,"args":{...},"status":"running"},
+             {"type":"tool_result","tool":name,"status":"success"|"error","summary":...}]
+        输出格式:
+            [{"name":..., "params":..., "output":summary, "success":bool}]
+
+        【简易】按出现顺序配对 tool_call→tool_result，同一工具多次调用分别保留；
+                执行失败的工具调用被丢弃（守学习质量，失败流程不可学）
+        """
+        pending: Dict[str, list] = {}
+        calls: list = []
+        for s in steps or []:
+            if not isinstance(s, dict):
+                continue
+            stype = s.get("type")
+            if stype == "tool_call":
+                tool = s.get("tool")
+                if tool:
+                    pending.setdefault(tool, []).append({
+                        "name": tool,
+                        "params": s.get("args") or {},
+                    })
+            elif stype == "tool_result":
+                tool = s.get("tool")
+                q = pending.get(tool)
+                if q:
+                    entry = q.pop(0)
+                    if s.get("status") == "success":
+                        calls.append({
+                            "name": entry["name"],
+                            "params": entry["params"],
+                            "output": s.get("summary", ""),
+                            "success": True,
+                        })
+        return calls
+
+    def _learn_workflow_from_interaction(self, user_input: str) -> bool:
+        """从成功的 LLM 交互自动学习方法（自动闭环 v1）
+
+        数据源: self._last_tool_steps（由 _call_llm/_call_llm_v2 填充）
+        触发条件: 自动学习开关开启 + 工具调用序列非空（≥ learner.min_tool_calls）
+        【不易】任何异常只记日志，不影响主链路
+        """
+        try:
+            if not self._wf_learn_enabled():
+                logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.learn_skip',
+                    'message': '[工作流] 自动学习跳过: 开关关闭(ORCHESTRATOR_WF_LEARN_ENABLED / config workflow_learning.learn_from_interaction.enabled)'}))
+                return False
+            steps = getattr(self, "_last_tool_steps", None) or []
+            tool_calls = self._extract_tool_calls_from_steps(steps)
+            if not tool_calls:
+                logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.learn_skip',
+                    'message': '[工作流] 自动学习跳过: 本次交互无成功工具调用(共 %d 个 steps)' % (len(steps),)}))
+                return False
+
+            from agent.state_manager import get_workflow_learning_service
+            svc = get_workflow_learning_service()
+            if svc is None:
+                logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.learn_skip',
+                    'message': '[工作流] 自动学习跳过: 服务未初始化(get_workflow_learning_service 返回 None)'}))
+                return False
+            from agent.workflow_learning.models import LearningRecord
+            record = LearningRecord(
+                session_id=getattr(self, "_session_id", "default"),
+                user_input=user_input,
+                tool_calls=tool_calls,
+                success=True,
+            )
+            wf = svc.learn_from_interaction(record)
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.learned',
+                'message': '[工作流] 自动学习成功: wf=%s 步骤=%d 触发词=%s' % (
+                    wf.id, len(wf.steps), (wf.trigger_patterns or [])[:3])}))
+            return True
+        except Exception as e:
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.learn_failed',
+                'message': '[工作流] 自动学习失败（不影响主链路）: %s' % (e,)}))
+            return False
 
     # ═══════════════════════════════════════════════════════════════
     # SQLite 持久化（语义层配置热更）
@@ -995,7 +1571,9 @@ class Orchestrator:
             return None
 
         min_score = float(cfg["min_score"])
+        # 【变易】耗时用 perf_counter 配对计时; ts_sem（墙上时钟）仅供 TraceSpan 时间戳
         ts_sem = time.time()
+        _ts_sem_pf = time.perf_counter()
 
         # 【排查】调用前打印配置摘要 + 入参摘要（截断 50 字符避免敏感信息泄漏）
         _input_preview = user_input[:50] + ("..." if len(user_input) > 50 else "")
@@ -1023,7 +1601,7 @@ class Orchestrator:
                 fusion_mode=str(cfg["fusion_mode"]),
             )
 
-            elapsed_ms = (time.time() - ts_sem) * 1000
+            elapsed_ms = (time.perf_counter() - _ts_sem_pf) * 1000
 
             # 【排查】打印候选列表详情（skill_id/score），便于诊断"为什么 top1 没过阈值"
             # 仅 DEBUG 级别输出，生产环境调高日志级别即可隐藏
@@ -1032,14 +1610,33 @@ class Orchestrator:
                 logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.candidates', 'trace_id_ctx': trace_id, 'message': '[语义层] 候选列表 (top%d): %s | 阈值=%.2f' % (len(result.matches[:5]), _candidates, min_score)}))
 
             if not result.matches:
-                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.miss', 'trace_id_ctx': trace_id, 'message': '[语义层] 未命中 (min_score=%.2f, %.2fms, method=%s)' % (min_score, elapsed_ms, result.retrieval_method)}))
+                # 任务6: 统一层日志（语义层未命中, 中间结果 → DEBUG）
+                log_layer_result(
+                    LAYER_SEMANTIC, DECISION_MISS, trace_id,
+                    level=logging.DEBUG,
+                    action='orchestrator.semantic.miss',
+                    message='[语义层] 未命中 (min_score=%.2f, %.2fms, method=%s)' % (
+                        min_score, elapsed_ms, result.retrieval_method),
+                    duration_ms=elapsed_ms,
+                    retrieval_method=result.retrieval_method,
+                )
                 return None
 
             top1 = result.matches[0]
             # 【变易】二次校验阈值 — 防御 SkillLoader.match 未过滤的低分候选
             # 不依赖 SkillLoader.match 内部过滤行为，orchestrator 层面独立把控阈值
             if top1.score < min_score:
-                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.miss', 'trace_id_ctx': trace_id, 'message': '[语义层] 未命中 (top1 score=%.3f < min_score=%.2f, %.2fms, method=%s)' % (top1.score, min_score, elapsed_ms, result.retrieval_method)}))
+                # 任务6: 统一层日志（语义层未命中, 中间结果 → DEBUG, 含 top1 分数作为决策依据）
+                log_layer_result(
+                    LAYER_SEMANTIC, DECISION_MISS, trace_id,
+                    level=logging.DEBUG,
+                    action='orchestrator.semantic.miss',
+                    message='[语义层] 未命中 (top1 score=%.3f < min_score=%.2f, %.2fms, method=%s)' % (
+                        top1.score, min_score, elapsed_ms, result.retrieval_method),
+                    duration_ms=elapsed_ms,
+                    score=top1.score,
+                    retrieval_method=result.retrieval_method,
+                )
                 return None
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.hit', 'trace_id_ctx': trace_id, 'message': '[语义层] 命中 top1=%s score=%.3f (%d 命中, %.2fms, method=%s, reranked=%s, fallback=%s)' % (top1.skill_id, top1.score, len(result.matches), elapsed_ms, result.retrieval_method, result.reranked, result.fallback_used)}))
             # 【不易】埋点后移（P0 修复）：仅在 instruction 加载成功且非空后才记录 semantic，
@@ -1055,10 +1652,30 @@ class Orchestrator:
                     instruction = str(instr_data) if instr_data else ""
             except Exception as instr_e:
                 logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.instruction_failed', 'trace_id_ctx': trace_id, 'message': '[语义层] load_instruction 失败，降级 LLM: skill=%s err=%s' % (top1.skill_id, instr_e)}))
+                # 任务6: 统一层日志（instruction 加载失败 → 降级算未命中, 中间结果 → DEBUG）
+                log_layer_result(
+                    LAYER_SEMANTIC, DECISION_MISS, trace_id,
+                    level=logging.DEBUG,
+                    action='orchestrator.semantic.instruction_failed',
+                    message='[语义层] load_instruction 失败，降级 LLM: skill=%s' % (top1.skill_id,),
+                    duration_ms=elapsed_ms,
+                    score=top1.score,
+                    skill_id=top1.skill_id,
+                )
                 return None
 
             if not instruction.strip():
                 logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.empty_instruction', 'trace_id_ctx': trace_id, 'message': '[语义层] instruction 为空，降级 LLM: skill=%s' % (top1.skill_id,)}))
+                # 任务6: 统一层日志（检索命中但 instruction 为空 → 降级算未命中, 中间结果 → DEBUG）
+                log_layer_result(
+                    LAYER_SEMANTIC, DECISION_MISS, trace_id,
+                    level=logging.DEBUG,
+                    action='orchestrator.semantic.empty_instruction',
+                    message='[语义层] instruction 为空，降级 LLM: skill=%s' % (top1.skill_id,),
+                    duration_ms=elapsed_ms,
+                    score=top1.score,
+                    skill_id=top1.skill_id,
+                )
                 return None
 
             # 记录 trace span
@@ -1088,6 +1705,19 @@ class Orchestrator:
             # 后记录，守 INV-2（业务结果已确定后才埋点）。
             # 上方 load_instruction 失败和空 instruction 的降级路径已 return None，不会执行本行。
             _record_intent_layer("semantic")
+            # 任务6: 统一层日志（语义层命中, 决策点 INFO, 含 top1 score 作为决策依据）
+            log_layer_result(
+                LAYER_SEMANTIC, DECISION_HIT, trace_id,
+                message='[语义层] 命中 top1=%s score=%.3f (%d 命中, %.2fms, method=%s)' % (
+                    top1.skill_id, top1.score, len(result.matches), elapsed_ms,
+                    result.retrieval_method),
+                duration_ms=elapsed_ms,
+                score=top1.score,
+                skill_id=top1.skill_id,
+                retrieval_method=result.retrieval_method,
+                reranked=result.reranked,
+                fallback_used=result.fallback_used,
+            )
             # 【排查】打印 semantic 埋点触发时的 total 计数值 + instruction 加载状态
             # 验证两件事：(1) 分母同步——ratio 总和恒 = 1.0；(2) INV-2——instruction 已成功加载才埋点。
             # 注：能执行到此行说明 instruction 已加载成功且非空（上方失败/空路径已 return None），
@@ -1123,9 +1753,18 @@ class Orchestrator:
             }
 
         except Exception as e:
-            elapsed_ms = (time.time() - ts_sem) * 1000
+            elapsed_ms = (time.perf_counter() - _ts_sem_pf) * 1000
             # 【不易】语义层任何异常都降级到 LLM，不阻断主链路
             logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.error', 'trace_id_ctx': trace_id, 'message': '[语义层] 异常降级到 LLM (%.2fms): %s' % (elapsed_ms, e)}))
+            # 任务6: 统一层日志（语义层异常 → WARNING）
+            log_layer_result(
+                LAYER_SEMANTIC, DECISION_ERROR, trace_id,
+                level=logging.WARNING,
+                action='orchestrator.semantic.error',
+                message='[语义层] 异常降级到 LLM',
+                duration_ms=elapsed_ms,
+                error=str(e)[:200],
+            )
             # 【变易】发送告警到监控系统，便于线上排查（上报失败不影响主链路）
             try:
                 if _MONITORING_AVAILABLE:

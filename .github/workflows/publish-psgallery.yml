@@ -157,19 +157,31 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ steps.read-version.outputs.version }}
+          REPO: ${{ github.repository }}
         run: |
           # 不易：GITHUB_TOKEN 创建的 tag 不会触发 on.push.tags（GitHub 防循环机制）
           #        所以 auto-tag 创建 tag 后，必须主动触发发布工作流
-          # 简易：用 gh workflow run + string 类型 input（boolean 类型有 gh CLI bug）
+          # 简易：用 Invoke-RestMethod 直接调用 API（gh workflow run 对 inputs 传递有 bug）
           Write-Host "Triggering publish workflow for v$env:VERSION..."
-          $result = gh workflow run publish-psgallery.yml `
-            --repo ${{ github.repository }} `
-            --ref master `
-            --field force_publish=true `
-            --field skip_version_check=false 2>&1
-          Write-Host "Trigger result: $result"
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "⚠️ Failed to trigger publish workflow: $result"
+          $body = @{
+            ref = "master"
+            inputs = @{
+              force_publish = "true"
+              skip_version_check = "false"
+            }
+          } | ConvertTo-Json -Compress
+          $token = gh auth token
+          $headers = @{
+            Authorization = "Bearer $token"
+            Accept = "application/vnd.github+json"
+            "X-GitHub-Api-Version" = "2022-11-28"
+          }
+          $uri = "https://api.github.com/repos/$env:REPO/actions/workflows/publish-psgallery.yml/dispatches"
+          try {
+            Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -Body $body -ContentType "application/json" -ErrorAction Stop
+            Write-Host "✅ Publish workflow triggered"
+          } catch {
+            Write-Host "⚠️ Failed to trigger: $($_.Exception.Message)"
           }
 
       - name: auto-tag 总结
