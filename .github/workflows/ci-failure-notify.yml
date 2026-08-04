@@ -28,8 +28,8 @@ permissions:
 jobs:
   notify:
     name: 发送失败通知
-    # 仅在失败时触发（或手动模拟失败）
-    if: ${{ (github.event.workflow_run != null && github.event.workflow_run.conclusion == 'failure') || inputs.simulate_failure == 'true' }}
+    # 仅在失败时触发（或手动模拟失败；boolean input 在表达式里是布尔 true，直接 truthy 判断）
+    if: ${{ (github.event.workflow_run != null && github.event.workflow_run.conclusion == 'failure') || inputs.simulate_failure }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
     # [修复 CHG-2026-0801] secrets 不能在 if: 中使用，映射到 job env 供 step if 判断
