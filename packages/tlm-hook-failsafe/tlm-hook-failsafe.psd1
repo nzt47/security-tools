@@ -12,7 +12,7 @@
 RootModule = 'tlm-hook-failsafe.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.1.2'
+ModuleVersion = '1.1.3'
 
 # Supported PSEditions
 CompatiblePSEditions = 'Desktop', 'Core'
@@ -115,7 +115,7 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = 'v1.1.2: auto-tag CI/CD full chain validation. v1.1.1: auto-tag CI/CD validation release. v1.1.0: add exit code resolution layer (Get-HookExitCodeMap, Resolve-HookExitCode, Invoke-HookWithCapture). v1.0.0: initial release, 12 exported functions, sourced from scripts/dev/hook_fail_safe.psm1'
+        ReleaseNotes = 'v1.1.3: auto-tag CI/CD full chain with actions:write permission. v1.1.2: auto-tag CI/CD full chain validation. v1.1.1: auto-tag CI/CD validation release. v1.1.0: add exit code resolution layer (Get-HookExitCodeMap, Resolve-HookExitCode, Invoke-HookWithCapture). v1.0.0: initial release, 12 exported functions, sourced from scripts/dev/hook_fail_safe.psm1'
 
         # Prerelease string of this module
         # Prerelease = ''

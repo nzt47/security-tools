@@ -67,9 +67,11 @@ env:
   MODULE_NAME: tlm-hook-failsafe
   POWERSHELL_VERSION: '5.1'
 
-# 不易：GITHUB_TOKEN 默认 contents:read，无法创建 Release；显式声明 contents:write
+# 不易：GITHUB_TOKEN 默认 contents:read，无法创建 Release；显式声明所需权限
+#        触发 workflow_dispatch 需要 actions:write
 permissions:
   contents: write
+  actions: write
 
 jobs:
   # =====================================================================
