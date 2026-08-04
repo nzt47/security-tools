@@ -3,7 +3,15 @@ services:
     # [CHG-2026-0801] 热重载镜像：基于 agent-test-sqlite-vec:latest 增量更新代码（含 _hot_reload）
     #   原 build 方式: Dockerfile（需 apt 安装 gcc/g++，网络受限时构建卡死）
     #   agent-test-sqlite-vec: torch + sentence-transformers + sqlite-vec + chromadb
+    #
+    # [CHG-2026-0805] CI fallback: 添加 build 段，本地有 image 用 image，CI 环境无 image 时自动 build
+    #   修复 ci-cd.yml Docker Build and Test job 历史失败（image 不存在导致 pull access denied）
+    #   本地开发：保留 image 优先（hot-reload 镜像含预装 torch/sentence-transformers/sqlite-vec）
+    #   CI 环境：fallback 到 Dockerfile 构建（基础镜像，不含 torch 等重依赖，但足以验证 app_server.py 启动）
     image: agent-test-sqlite-vec:hot-reload
+    build:
+      context: .
+      dockerfile: Dockerfile
     # [CHG-2026-0801] 覆盖镜像默认 pytest entrypoint，改为启动应用服务
     #   镜像缺 flask/waitress/prometheus_flask_exporter，启动前先补齐（幂等，--quiet）
     #   同时打印 OMP/MKL 线程数供验证（0xC0000005 崩溃预防）
