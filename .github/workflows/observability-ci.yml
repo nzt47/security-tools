@@ -119,10 +119,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -144,7 +144,7 @@ jobs:
           python scripts/observability_config_validator.py
 
       - name: 上传配置验证报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: observability-config-report
@@ -167,7 +167,7 @@ jobs:
       contents: read
     steps:
       - name: 检出代码（完整历史用于 git diff）
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -180,7 +180,7 @@ jobs:
           echo "已清理 .claude/worktrees/ 的无效 submodule 注册"
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -261,7 +261,7 @@ jobs:
 
       # ── 上传架构可见性报告 ──
       - name: 上传架构可见性报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: architecture-visibility-report
@@ -300,10 +300,10 @@ jobs:
         python-version: ['3.10', '3.11', '3.12']
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -427,7 +427,7 @@ jobs:
             --timeout=300
 
       - name: 上传测试结果
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: observability-unit-test-results-py${{ matrix.python-version }}
@@ -453,10 +453,10 @@ jobs:
     needs: [observability-config-validation, observability-unit-tests]
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -484,7 +484,7 @@ jobs:
           python tests/trace_context_test.py || true
 
       - name: 上传集成测试结果
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: observability-integration-test-results
@@ -510,10 +510,10 @@ jobs:
     # 手动启动 Prometheus 容器，确保配置文件已存在后再挂载。
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -622,7 +622,7 @@ jobs:
           docker rm prometheus 2>/dev/null || true
 
       - name: 上传端到端验证报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: observability-e2e-report
@@ -644,12 +644,12 @@ jobs:
       contents: read
     steps:
       - name: 检出代码（完整历史用于 git diff 检测新增模块）
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -714,7 +714,7 @@ jobs:
         continue-on-error: false
 
       - name: 上传边界覆盖报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: boundary-coverage-report
@@ -776,10 +776,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -808,7 +808,7 @@ jobs:
           fi
 
       - name: 上传契约测试结果
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: contract-test-results
@@ -846,10 +846,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -915,7 +915,7 @@ jobs:
           fi
 
       - name: 上传 coverage.xml artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: full-coverage-report
           path: coverage.xml
@@ -942,10 +942,10 @@ jobs:
     needs: [boundary-coverage-check, contract-test, observability-unit-tests, full-project-tests]
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -956,7 +956,7 @@ jobs:
           pip install pyyaml
 
       - name: 下载全项目覆盖率报告
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: full-coverage-report
           path: .
@@ -1025,7 +1025,7 @@ jobs:
         continue-on-error: true
 
       - name: 上传可见性报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: visibility-report
@@ -1078,15 +1078,15 @@ jobs:
     if: always() && (github.event_name == 'push' || github.event_name == 'schedule')
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: 下载所有验证结果
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: all-observability-results/
 
@@ -1100,7 +1100,7 @@ jobs:
             --require-e2e-pass true
 
       - name: 上传质量门禁报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: observability-quality-gate-report
@@ -1117,7 +1117,7 @@ jobs:
     if: always()
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 准备通知内容
         id: notify
@@ -1198,10 +1198,10 @@ jobs:
       contents: read
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -1296,7 +1296,7 @@ jobs:
 
       - name: 上传混沌测试日志
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: chaos-test-logs
           path: |
@@ -1397,10 +1397,10 @@ jobs:
       (github.event_name == 'workflow_dispatch' && inputs.trend_period != 'skip')
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -1436,7 +1436,7 @@ jobs:
 
       - name: 上传趋势报告 Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: visibility-trend-${{ steps.period.outputs.period }}-${{ github.run_id }}
           path: docs/observability/trends/
@@ -1486,10 +1486,10 @@ jobs:
       (github.event_name == 'workflow_dispatch' && inputs.mock_test_enable == true)
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -1663,7 +1663,7 @@ jobs:
 
       - name: 上传趋势报告 Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: visibility-trend-mock-test-${{ github.run_id }}
           path: |

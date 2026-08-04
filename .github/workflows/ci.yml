@@ -32,10 +32,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -96,10 +96,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -130,7 +130,7 @@ jobs:
           python scripts/scan_sensitive_regex.py --fix-hint
 
       - name: 上传安全报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: security-reports
@@ -178,10 +178,10 @@ jobs:
         shard: ['1', '2', '3', '4', '5', '6']
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -305,7 +305,7 @@ jobs:
           ls -la coverage_raw_shard${{ matrix.shard }}.data coverage.xml
 
       - name: 上传覆盖率报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report-py${{ matrix.python-version }}-shard${{ matrix.shard }}
           path: |
@@ -315,7 +315,7 @@ jobs:
           retention-days: 30
 
       - name: 上传测试结果
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-unit-py${{ matrix.python-version }}-shard${{ matrix.shard }}
@@ -336,10 +336,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -391,7 +391,7 @@ jobs:
       contents: write
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # Why fetch-depth: 0: 确保能获取最新 main 用于 push（避免落后远程被拒）
           fetch-depth: 0
@@ -400,7 +400,7 @@ jobs:
 
       - name: 下载测试结果 artifacts (py3.10)
         # 【变易】单元测试已拆分为 6 个 shard，下载全部 shard 的 junit 后合并
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: test-results-unit-py3.10-*
           # Why path: test-results + merge-multiple: 还原 ci.yml 上传时的原始目录结构
@@ -409,7 +409,7 @@ jobs:
           merge-multiple: true
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -484,10 +484,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -511,7 +511,7 @@ jobs:
             --timeout=300
 
       - name: 上传测试结果
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-integration
@@ -531,10 +531,10 @@ jobs:
       issues: write
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -650,7 +650,7 @@ jobs:
             --label "performance,alert,automated" || echo "Issue 创建失败（可能标签不存在）"
 
       - name: 上传性能报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-report
           path: |
@@ -671,10 +671,10 @@ jobs:
     needs: [unit-tests, integration-tests]
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -688,7 +688,7 @@ jobs:
       - name: 下载覆盖率报告
         # 【变易】单元测试已拆分为 6 个 shard，用 pattern 下载全部 shard 的
         # coverage 数据再合并；integration-tests 无独立 coverage artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: coverage-report-py${{ env.PYTHON_VERSION }}-*
           path: covdata/
@@ -721,7 +721,7 @@ jobs:
           coverage xml -o test_reports/coverage.xml
 
       - name: 上传完整覆盖率报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: full-coverage-report
           path: test_reports/
@@ -734,10 +734,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -773,7 +773,7 @@ jobs:
           kill $SERVER_PID 2>/dev/null || true
 
       - name: 上传测试结果
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-e2e
@@ -789,10 +789,10 @@ jobs:
     if: always()
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 下载所有测试结果
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: all-results/
 
@@ -829,7 +829,7 @@ jobs:
           echo "测试报告已生成"
 
       - name: 上传测试报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-summary-report
           path: test_reports/
