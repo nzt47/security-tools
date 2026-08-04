@@ -145,7 +145,7 @@ CI:  .github/workflows/ci.yml docs-precheck-tests job
 ```
 [BOM] 叠加 BOM: ...\docs\guide.md (BOM x2, head: EF BB BF EF BB BF 23 20 E9)
 [BROKEN] guide.md: missing.md
-  [DIAG] 链接原文: [详细说明] (./missing.md)
+  [DIAG] 链接原文: \[详细说明\] (./missing.md)
   [DIAG] 剥离锚点: 后缀= 文件部分=missing.md
   [DIAG] 解析路径: C:\...\docs\missing.md
   [DIAG] 存在性:   File=False Dir=False
@@ -185,4 +185,4 @@ CI:  .github/workflows/ci.yml docs-precheck-tests job
 - [BOM 事故复盘](precommit_hook_bom_incident_report.md) — 事故时间线与根因
 - [Hook 复用指南](precommit_hook_reuse_guide.md) — 多仓库部署 / 同步 / 回滚
 - [演示 GIF](assets/bomdiag_pr_demo.gif) — PR 阶段 `-BomDiag` 拦截过程
-- 编码 BOM 排查清单：`../observability/ps1_encoding_bom_troubleshooting.md`（自动化清单脚本，详见主指南 3.3 节）
+- 编码 BOM 排查清单：`scripts/check_ps1_encoding.py`（自动化清单脚本，详见主指南 3.3 节）
