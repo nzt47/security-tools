@@ -326,6 +326,50 @@ class TestOrchestrator三层路由E2E:
         # 语义层命中后不应调用 LLM
         assert llm_called == []
 
+    def test_模板层命中_带trace_真正短路返回(self, orch, monkeypatch):
+        """场景8(回归): 模板命中 + trace 启用（get_trace_id 非 None）→ 必须真正短路
+
+        回归 2026-08-03 bug: 模板命中分支构造 TraceSpan 时缺必填字段 start_time，
+        抛 TypeError 被 except Exception 吞掉，导致模板命中后继续下沉 wfl→semantic→LLM，
+        产生 2 条 route_decision 且白耗 Token。修复后模板命中应恰好 1 条决策且不调 LLM/语义层。
+        """
+        monkeypatch.setattr("agent.orchestrator.orchestrator._MONITORING_AVAILABLE", True)
+        monkeypatch.setattr("agent.orchestrator.orchestrator.get_trace_id",
+                            lambda: "trace_tpl_001")
+        monkeypatch.setattr("agent.orchestrator.orchestrator.trace_store", MagicMock())
+        monkeypatch.setattr("agent.orchestrator.orchestrator.get_metrics_collector",
+                            lambda: MagicMock())
+
+        llm_called = []
+        orch._call_llm = MagicMock(side_effect=lambda *a, **kw: llm_called.append(1) or "LLM")
+        sem_called = []
+        orch._semantic_layer_match = MagicMock(
+            side_effect=lambda *a, **kw: sem_called.append(1) or None)
+
+        from agent.orchestrator.routing_observability import RouteContext
+        RouteContext._var.set(None)
+
+        with patch("agent.response_workflows.IntentRouter.classify",
+                   return_value=("schedule", MagicMock(name="HIGH", value=1))), \
+             patch("agent.response_workflows.ResponseTemplates.for_intent",
+                   return_value="模板回复"), \
+             patch("agent.orchestrator.message_handler.MessageHandler.is_follow_up",
+                   return_value=False), \
+             patch("agent.orchestrator.message_handler.MessageHandler.detect_dissatisfaction",
+                   return_value=False), \
+             patch("agent.orchestrator.message_handler.MessageHandler.extract_keywords",
+                   return_value=[]), \
+             patch("agent.orchestrator.dialog_state.get_dialog_state",
+                   return_value=MagicMock(last_keywords=None, resolve=MagicMock(return_value=None))):
+            result = orch.process("帮我把明天的会议改到下午")
+
+        assert result["success"] is True
+        assert result["data"] == "模板回复"
+        assert result["msg"] == "ok"
+        # 模板命中必须真正短路：不调 LLM、不调语义层
+        assert llm_called == []
+        assert sem_called == []
+
     def test_语义层未命中_降级LLM(self, orch, monkeypatch):
         """场景3: 规则层未命中 + 语义层未命中(matches=[]) → 调用 LLM"""
         sem_cfg = {"enabled": True, "min_score": 0.3, "top_k": 5,

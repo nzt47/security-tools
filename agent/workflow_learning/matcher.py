@@ -31,6 +31,17 @@ def _tokenize(text: str) -> List[str]:
     return _TOKEN_RE.findall((text or "").lower())
 
 
+def _idf(n_docs: int, df: int) -> float:
+    """平滑 IDF：原公式在单文档退化（N==df==1）时恒为 0，
+    导致所有权重归零、余弦相似度恒为 0、索引永远无法匹配首个工作流
+    （自动闭环首环失效）。加下界 0.001 保证恒正；多文档场景原值>0 不受影响。
+
+    归一化后 idf 下界会相互抵消，相似度退化为纯 TF 余弦（词重叠度），
+    完全相同的文本相似度≈1.0，部分重叠>0。
+    """
+    return max(math.log((n_docs + 1) / (1 + df)), 0.001)
+
+
 class TfidfIndex:
     """简易 TF-IDF 索引"""
 
@@ -65,14 +76,13 @@ class TfidfIndex:
             for t in tokens:
                 tf[t] = tf.get(t, 0) + 1
             length = math.sqrt(sum(
-                (cnt / len(tokens)) ** 2 * (math.log((N + 1) / (1 + self._df.get(t, 0)))) ** 2
+                (cnt / len(tokens)) ** 2 * (_idf(N, self._df.get(t, 0))) ** 2
                 for t, cnt in tf.items()
             )) or 1.0
             vec: Dict[str, float] = {}
             for t, cnt in tf.items():
                 tf_val = cnt / len(tokens)
-                idf_val = math.log((N + 1) / (1 + self._df.get(t, 0)))
-                vec[t] = tf_val * idf_val / length
+                vec[t] = tf_val * _idf(N, self._df.get(t, 0)) / length
             self._cache[doc_id] = vec
         self._dirty = False
 
@@ -93,8 +103,7 @@ class TfidfIndex:
         q_length = 0.0
         for t, cnt in tf.items():
             tf_val = cnt / len(q_tokens)
-            idf_val = math.log((N + 1) / (1 + self._df.get(t, 0)))
-            v = tf_val * idf_val
+            v = tf_val * _idf(N, self._df.get(t, 0))
             q_vec[t] = v
             q_length += v * v
         q_length = math.sqrt(q_length) or 1.0

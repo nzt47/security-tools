@@ -116,6 +116,44 @@ class TestWorkflowMatching:
         assert isinstance(matches, list)
 
 
+class TestTfidfSingleDocRegression:
+    """TF-IDF 单文档退化回归（自动闭环首环）
+
+    原缺陷: N==1 时 idf=log(2/2)=0 → 所有权重归零 → 余弦恒为 0
+    → 首个工作流永远无法被匹配 → 自动学习闭环首环失效。
+    修复: idf 加平滑下界 0.001，归一化后相似度退化为纯 TF 余弦。
+    """
+
+    def _idx(self):
+        from agent.workflow_learning.matcher import TfidfIndex
+        return TfidfIndex()
+
+    def test_single_doc_similar_text_matches(self):
+        """单文档 + 相同任务文本 → 应返回高相似度候选"""
+        idx = self._idx()
+        idx.add("wf-1", "搜索最新的科技新闻并翻译成英文")
+        r = idx.query("搜索最新的科技新闻并翻译成英文", top_k=3)
+        assert len(r) == 1
+        assert r[0][0] == "wf-1"
+        assert r[0][1] > 0.5
+
+    def test_single_doc_unrelated_text_no_match(self):
+        """单文档 + 无关文本 → 无候选"""
+        idx = self._idx()
+        idx.add("wf-1", "搜索最新的科技新闻并翻译成英文")
+        assert idx.query("今天天气怎么样", top_k=3) == []
+
+    def test_multi_doc_distinguishes(self):
+        """多文档场景区分度不受修复影响"""
+        idx = self._idx()
+        idx.add("wf-1", "搜索最新科技新闻并翻译成英文")
+        idx.add("wf-2", "查询今日天气")
+        r1 = idx.query("搜索最新科技新闻并翻译成英文", top_k=3)
+        r2 = idx.query("查询今日天气", top_k=3)
+        assert r1 and r1[0][0] == "wf-1"
+        assert r2 and r2[0][0] == "wf-2"
+
+
 # ═══════════════════════════════════════════════════════════════════
 #  3. 执行功能测试
 # ═══════════════════════════════════════════════════════════════════

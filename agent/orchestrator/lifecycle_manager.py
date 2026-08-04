@@ -404,6 +404,20 @@ class LifecycleManager:
         self._maint_interval_prune = maint_cfg.get("prune", 120)
         self._maint_interval_summary = maint_cfg.get("summary", 300)
 
+        # ── 工作流技能自动升格（自动闭环 v1）──
+        # 达标工作流（success_count>=5 / confidence>=0.7 / ACTIVE / 未转换过）
+        # 定时自动 convert_to_skill 注册为 Agent Skill
+        # 配置: config.yaml workflow_learning.auto_upgrade.{enabled,interval_seconds}
+        # env: WF_SKILL_AUTO_UPGRADE_ENABLED / WF_SKILL_AUTO_UPGRADE_INTERVAL 覆盖
+        _au_cfg = self._config.get("workflow_learning", {}).get("auto_upgrade", {}) or {}
+        self._maint_interval_wf_upgrade = int(_au_cfg.get("interval_seconds", 300))
+        self._last_wf_upgrade_time = 0.0
+        _au_env = os.environ.get("WF_SKILL_AUTO_UPGRADE_ENABLED")
+        if _au_env is not None and _au_env.strip():
+            self._wf_auto_upgrade_enabled = _au_env.strip().lower() in ("true", "1", "yes")
+        else:
+            self._wf_auto_upgrade_enabled = bool(_au_cfg.get("enabled", True))
+
         # ── 9. 安全监控器 ──
         self._safety_monitor = get_safety_monitor()
         logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.ok', 'message': '[ok] 安全监控器已激活'}))
@@ -671,9 +685,48 @@ class LifecycleManager:
                 self._run_maint_summary()
                 self._last_summary_time = now
 
+            if (self._wf_auto_upgrade_enabled
+                    and now - self._last_wf_upgrade_time >= self._maint_interval_wf_upgrade):
+                self._run_maint_workflow_skill_upgrade()
+                self._last_wf_upgrade_time = now
+
             self._stop_event.wait(5)
 
         logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._autonomous_loop.log', 'message': '[维护] 自主循环已停止'}))
+
+    def _run_maint_workflow_skill_upgrade(self):
+        """工作流技能自动升格（自动闭环 v1）
+
+        定时检查达标工作流（success_count>=5 / confidence>=0.7 / priority 达标 /
+        ACTIVE / 未转换过），自动 convert_to_skill 注册为 Agent Skill。
+        【不易】守质量门控（不传 force）；逐条 try/except，单条失败不影响其他；
+                整体异常只记日志，不影响自主维护循环。
+        """
+        try:
+            from agent.state_manager import get_workflow_learning_service
+            svc = get_workflow_learning_service()
+            if svc is None:
+                return
+            candidates = svc.list_convertible_workflows()
+            if not candidates:
+                return
+            converted, failed = 0, 0
+            for c in candidates:
+                try:
+                    res = svc.convert_to_skill(c["workflow_id"])
+                    converted += 1
+                    logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager.wf_upgrade.ok',
+                        'message': '[自动升格] wf=%s → skill=%s (%s)' % (
+                            c["workflow_id"], res.get("skill_id"), res.get("action"))}))
+                except Exception as e:
+                    failed += 1
+                    logger.warning(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager.wf_upgrade.failed',
+                        'message': '[自动升格] 转换失败: wf=%s err=%s' % (c["workflow_id"], str(e)[:200])}))
+            logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager.wf_upgrade.done',
+                'message': '[自动升格] 本轮完成: 候选=%d 成功=%d 失败=%d' % (len(candidates), converted, failed)}))
+        except Exception as e:
+            logger.debug(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager.wf_upgrade.error',
+                'message': '[自动升格] 检查失败（不影响主循环）: %s' % (e,)}))
 
     def _run_maint_health(self):
         """健康自检"""

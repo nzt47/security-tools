@@ -63,9 +63,14 @@ class WorkflowLearningService:
     # ─── 匹配执行入口 (主接口) ───
 
     def try_execute(self, task_text: str, *,
-                    params: Optional[Dict[str, Any]] = None) -> WorkflowExecutionResult:
-        """新任务到达时先尝试本地工作流"""
-        return self.executor.try_execute(task_text, params=params)
+                    params: Optional[Dict[str, Any]] = None,
+                    min_score: Optional[float] = None) -> WorkflowExecutionResult:
+        """新任务到达时先尝试本地工作流
+
+        min_score: 覆盖本次执行的匹配阈值（如 orchestrator 拦截层按层配置），
+                   None 时使用构造时默认值
+        """
+        return self.executor.try_execute(task_text, params=params, min_score=min_score)
 
     def execute_by_id(self, wf_id: str, task_text: str, *,
                       params: Optional[Dict[str, Any]] = None) -> WorkflowExecutionResult:

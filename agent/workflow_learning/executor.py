@@ -149,13 +149,22 @@ class WorkflowExecutor:
     # ─── 主入口: 尝试本地工作流 ───
 
     def try_execute(self, task_text: str, *,
-                    params: Optional[Dict[str, Any]] = None) -> WorkflowExecutionResult:
+                    params: Optional[Dict[str, Any]] = None,
+                    min_score: Optional[float] = None) -> WorkflowExecutionResult:
         """尝试匹配并执行本地工作流
+
+        Args:
+            task_text: 任务文本（建议使用 DST 补全后的输入）
+            params: 附加参数（注入上下文 param）
+            min_score: 覆盖本次执行的匹配阈值；None 时使用构造时默认值
 
         Returns:
             WorkflowExecutionResult — matched=False 表示无匹配，调用方应转 LLM
         """
         t0 = time.time()
+        # 【变易】允许调用方按层覆盖阈值（如 orchestrator 拦截层配置），
+        # 默认值保持兼容（不影响既有测试与调用方）
+        score_threshold = self.min_score if min_score is None else min_score
         with traced_action("wf_try_execute", task_text=task_text[:80]) as ctx:
             candidates = self._matcher.match(task_text, top_k=3)
             if not candidates:
@@ -165,9 +174,9 @@ class WorkflowExecutor:
                 )
 
             wf, score = candidates[0]
-            if score < self.min_score:
+            if score < score_threshold:
                 ctx["matched"] = False
-                ctx["reason"] = f"score {score:.3f} < {self.min_score}"
+                ctx["reason"] = f"score {score:.3f} < {score_threshold}"
                 return WorkflowExecutionResult(
                     matched=False, execution_time_ms=round((time.time() - t0) * 1000, 2),
                 )
