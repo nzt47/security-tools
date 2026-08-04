@@ -58,7 +58,7 @@
 
 ## 6. 相关文档
 
-- [熔断器架构说明](../docs/TLM_CIRCUIT_BREAKER_ARCH.md)
-- [埋点审查报告](../docs/CIRCUIT_BREAKER_METRICS_AUDIT.md)
-- [Prometheus 告警规则](../deploy/prometheus/circuit_breaker_alerts.yml)
-- [性能对比报告](../docs/PERF_COMPARE_CIRCUIT_BREAKER.md)
+- ~~熔断器架构说明~~ ⚠ (待确认)
+- ~~埋点审查报告~~ ⚠ (待确认)
+- ~~Prometheus 告警规则~~ ⚠ (待确认: circuit_breaker_alerts.yml)
+- ~~性能对比报告~~ ⚠ (待确认)

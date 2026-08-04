@@ -781,8 +781,10 @@ class TestStressTestDependencyInjection:
             log_dict_factory=counting_log_dict,
             report_interval=None,
         )
-        # 吞吐量应大于 1000 ops/sec（宽松阈值，避免 CI 噪声）
-        assert result["throughput_ops_per_sec"] > 1000, (
+        # 【不易】吞吐量应大于 500 ops/sec（宽松阈值，避免 CI 噪声）
+        # 共享 runner 高负载下实测 786.8 ops/sec（3.12 历史失败），
+        # 500 仍可捕获数量级吞吐退化（正常 >2000），同时消除负载波动误报。
+        assert result["throughput_ops_per_sec"] > 500, (
             f"吞吐量 {result['throughput_ops_per_sec']} 过低"
         )
 

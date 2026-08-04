@@ -1,0 +1,78 @@
+# ════════════════════════════════════════════════════════════
+# 测试环境非敏感变量
+# ════════════════════════════════════════════════════════════
+# 【不易】此处仅放可公开的非敏感配置；密钥/密码一律在 vault.yml（加密）
+# 【变易】按环境隔离：复制此目录为 staging/prod 即可换环境部署
+# 【简易】变量名即业务语义，30s 可读
+# ════════════════════════════════════════════════════════════
+
+# ────────────────────────────────────────────────────────────
+# 部署拓扑
+# ────────────────────────────────────────────────────────────
+deploy_user: yunshu
+deploy_group: yunshu
+deploy_path: /opt/yunshu
+venv_path: /opt/yunshu/venv
+log_path: /var/log/yunshu
+data_path: /opt/yunshu/data
+python_version: "3.12"
+
+# ────────────────────────────────────────────────────────────
+# 代码源
+# ────────────────────────────────────────────────────────────
+# 【不易】git 仓库地址需测试机有读权限（部署 key 或 https token）
+git_repo: git@github.com:your-org/yunshu.git
+git_version: master
+git_accept_hostkey: true
+
+# ────────────────────────────────────────────────────────────
+# 服务端口
+# ────────────────────────────────────────────────────────────
+app_host: "127.0.0.1"        # 仅本地监听（前置 Nginx/网关时）
+app_port: 5678
+metrics_exporter_port: 9101
+
+# ────────────────────────────────────────────────────────────
+# 应用配置（非敏感）
+# ────────────────────────────────────────────────────────────
+log_level: INFO
+enable_sandbox: false
+enable_long_term_memory: false
+
+# Hybrid 检索降级链路（守不易：不得弱化降级机制）
+# AGENT_HYBRID_EMBEDDING=1 子进程隔离 0xC0000005 崩溃
+agent_hybrid_embedding: "1"
+# Cross-Encoder 精排：测试环境默认禁用（避免模型下载耗时）
+agent_hybrid_reranker: "0"
+
+# Skill Reranker（v6.5 ONNX 量化）
+skill_reranker_enabled: "true"
+skill_reranker_use_onnx: "true"
+skill_reranker_onnx_variant: model_quantized.onnx
+# 测试环境模型路径（Linux；为空则走降级链路 RRF）
+skill_reranker_model: ""
+
+# 离线模型（测试环境默认关闭，允许联网下载）
+hf_hub_offline: "0"
+transformers_offline: "0"
+
+# ────────────────────────────────────────────────────────────
+# 监控接入
+# ────────────────────────────────────────────────────────────
+# 是否在目标机部署 Prometheus 抓取配置（需目标机已装 prometheus）
+deploy_prometheus_scrape: false
+prometheus_config_path: /etc/prometheus/prometheus.yml
+# 指标采集间隔
+scrape_interval: 15s
+
+# ────────────────────────────────────────────────────────────
+# systemd 服务名
+# ────────────────────────────────────────────────────────────
+app_service_name: yunshu-app
+metrics_service_name: yunshu-config-metrics
+
+# ────────────────────────────────────────────────────────────
+# 健康检查
+# ────────────────────────────────────────────────────────────
+health_check_retries: 6
+health_check_delay: 5

@@ -99,6 +99,26 @@ docs/
 | [风险分析](security/potential_risks_analysis.md) | 潜在风险评估 |
 | [安全检查清单](security/DEPLOYMENT_CHECKLIST.md) | 部署安全检查 |
 
+#### 🔍 CI 安全扫描专题（2026-07-26）
+
+gitleaks 硬编码密码扫描 workflow 的修复链路与配置归档, 防止 P1 硬编码密码问题复发。
+
+| 文档 | 描述 |
+|------|------|
+| [CI 安全扫描 Wiki](wiki/ci_security_scan_wiki.md) | 团队使用指南: 触发条件 / 配置说明 / 故障排查 / FAQ |
+| [CI 配置归档](archive/CI_GITLEAKS_SECURITY_SCAN_ARCHIVE.md) | 修复 commits 链路 / 验证证据 / 文件清单 |
+| [CI 修复复盘报告](postmortems/2026-07-26-gitleaks-ci-fix-postmortem.md) | 7 类根因分析 + 改进建议 + 经验教训 |
+| [Workflow 与配置导出](ci/2026-07-26-gitleaks-ci-workflow-export.md) | workflow YAML + gitleaks TOML 全文 + 字段表 |
+
+**相关代码与配置**：
+
+| 文件 | 说明 |
+|------|------|
+| [.github/workflows/hardcoded-password-scan.yml](../.github/workflows/hardcoded-password-scan.yml) | gitleaks 全分支扫描工作流（168 行） |
+| [.github/gitleaks-config.toml](../.github/gitleaks-config.toml) | gitleaks 规则与白名单配置（7 条规则 / 13 条白名单） |
+
+**CI 防护体系**：修改监控/安全/代码文件时, CI 自动触发 gitleaks 扫描。详见 [gitleaks 扫描工作流](https://github.com/nzt47/security-tools/actions/workflows/hardcoded-password-scan.yml)。
+
 #### 🚨 P0 安全修复专题（2026-07-02）
 
 P0-SEC-001（Bearer Token 脱敏失败）与 P0-SEC-002（贪婪正则吞噬 URL 参数）的完整修复记录。

@@ -1,0 +1,62 @@
+# TLM P3+P4 迁移 Docker Compose
+# 一键执行：数据库备份 → P3 BLOB 迁移 → P4 vec0 索引重建 → 服务重启
+#
+# 用法：
+#   docker-compose -f docker-compose.tlm-migrate.yml run migrate   # 仅执行迁移
+#   docker-compose -f docker-compose.tlm-migrate.yml up -d agent   # 迁移成功后启动 agent
+#
+# 安全机制：
+# - 备份含 SHA256 校验，失败自动回滚（trap EXIT）
+# - 迁移日志持久化到 ./backups/migration_<timestamp>.log
+# - migrate 成功（exit 0）后 agent 才会启动（depends_on: service_completed_successfully）
+
+version: "3.8"
+
+services:
+  # ── 迁移服务（一次性运行，失败自动回滚）──
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.tlm-migrate
+    container_name: tlm-migrate
+    restart: "no"  # 一次性任务，不重启
+    volumes:
+      # 挂载数据目录（读写）
+      - ./data/memory:/data/memory
+      # 挂载迁移脚本
+      - ./scripts:/scripts:ro
+      # 挂载备份输出目录（备份 + 日志都写到这里）
+      - ./backups:/backups
+    environment:
+      - DB_PATH=/data/memory/long_term.db
+      - BACKUP_DIR=/backups
+      - MIGRATE_P3=true       # 执行 P3: JSON TEXT → BLOB
+      - MIGRATE_P4=true       # 执行 P4: 创建 vec0 索引表
+      - LOG_LEVEL=INFO
+    entrypoint: ["/scripts/tlm_migrate_entrypoint.sh"]
+    # 健康检查：迁移是一次性任务，依赖 exit code 即可（depends_on 机制）
+
+  # ── Agent 服务（迁移后启动）──
+  agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tlm-agent
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config:ro
+    environment:
+      - LOG_LEVEL=INFO
+      - DB_PATH=/app/data/memory/long_term.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

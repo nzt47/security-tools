@@ -1,0 +1,279 @@
+# =====================================================================
+# 每日回归测试 CI/CD 流水线
+#
+# 【不易】不修改测试代码,仅编排执行顺序和失败通知
+# 【变易】支持手动触发(workflow_dispatch) + 每日定时(cron) + PR 触发
+#         + nightly 构建完成后自动触发(workflow_run)
+# 【简易】三阶段:依赖安装 → 单元测试 → 端到端恢复测试
+#
+# 触发条件:
+#   - nightly 构建完成后自动触发(ci.yml 完成且 conclusion=success)
+#   - 每日 UTC 02:00(北京时间 10:00)定时兜底执行
+#   - PR 到 master 分支时执行
+#   - 手动触发(workflow_dispatch)
+# =====================================================================
+name: Daily Regression Tests
+
+on:
+  # 【变易】nightly 构建完成后自动触发回归测试
+  # 仅当 ci.yml(云枢系统测试流程) 成功完成时触发,避免在失败构建上跑回归
+  workflow_run:
+    workflows: ["云枢系统测试流程"]
+    types: [completed]
+    branches: [master, main]
+  schedule:
+    # UTC 02:00 = 北京时间 10:00(每日)
+    # 兜底机制:即使 nightly 构建未触发,回归测试仍定时执行
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: '测试套件(all / unit / e2e / checkpoint)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - unit
+          - e2e
+          - checkpoint
+  pull_request:
+    branches: [ master ]
+    paths:
+      - 'scripts/finetune_reranker.py'
+      - 'agent/tool_router_hybrid.py'
+      - 'tests/test_checkpoint_*.py'
+      - 'tests/test_lora_checkpoint.py'
+      - '.github/workflows/daily_regression.yml'
+
+env:
+  PYTHON_VERSION: '3.12'
+  HF_HUB_OFFLINE: '1'
+  TRANSFORMERS_OFFLINE: '1'
+
+jobs:
+  # =====================================================================
+  # Job 0: nightly 构建成功守卫(workflow_run 触发时检查上游 conclusion)
+  # 【不易】非 workflow_run 触发时直接放行,不影响 schedule/PR/dispatch 路径
+  # 【简易】单一职责:仅做条件判断,无 step,通过 needs 串联到所有测试 job
+  # =====================================================================
+  nightly-build-guard:
+    name: Nightly Build Guard
+    runs-on: ubuntu-latest
+    if: always()
+    # 【变易】用 output 串联下游,取代 exit 1;cancelled/failure 静默跳过,不发失败邮件
+    outputs:
+      should_run: ${{ steps.check.outputs.should_run }}
+    steps:
+      - name: Check upstream conclusion
+        id: check
+        run: |
+          EVENT="${{ github.event_name }}"
+          CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+          echo "event_name=${EVENT}"
+          echo "workflow_run.conclusion=${CONCLUSION}"
+          # 【不易】守卫只做门禁不告警:上游失败由 ci.yml 自身通知,回归"跳过"不算回归"失败"
+          # workflow_run 触发时,仅当上游 success 才执行回归;cancelled/failure 静默跳过
+          if [[ "${EVENT}" == "workflow_run" ]]; then
+            if [[ "${CONCLUSION}" == "success" ]]; then
+              echo "should_run=true" >> "$GITHUB_OUTPUT"
+              echo "✅ 上游 nightly 构建成功,继续执行回归测试"
+            elif [[ "${CONCLUSION}" == "cancelled" ]]; then
+              echo "should_run=false" >> "$GITHUB_OUTPUT"
+              echo "⏭️ 上游 nightly 构建被取消,静默跳过回归测试(不触发失败通知)"
+            else
+              echo "should_run=false" >> "$GITHUB_OUTPUT"
+              echo "❌ nightly 构建失败(conclusion=${CONCLUSION}),跳过回归测试"
+            fi
+          else
+            # schedule / PR / dispatch 路径直接放行
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+            echo "✅ 非 workflow_run 触发,放行回归测试"
+          fi
+
+  # =====================================================================
+  # Job 1: 单元测试(LoRA checkpoint 保存/加载)
+  # =====================================================================
+  unit-tests:
+    name: Unit Tests (LoRA Checkpoint)
+    runs-on: ubuntu-latest
+    needs: [nightly-build-guard]
+    if: |
+      always() && needs.nightly-build-guard.result == 'success'
+      && needs.nightly-build-guard.outputs.should_run == 'true'
+      && github.event.inputs.test_suite != 'e2e'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install peft accelerate sentence-transformers transformers numpy
+          # 安装项目依赖(最小集,避免加载完整 agent)
+          pip install pytest pytest-cov
+
+      - name: Run LoRA checkpoint unit tests
+        run: |
+          python -m unittest tests.test_lora_checkpoint -v
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+
+      - name: Run checkpoint resume failure tests
+        run: |
+          python -m unittest tests.test_checkpoint_resume_failure -v
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: |
+            .pytest_cache/
+            **/test_*.xml
+          retention-days: 7
+
+  # =====================================================================
+  # Job 2: 端到端断点续训恢复测试(核心回归套件)
+  # =====================================================================
+  e2e-recovery-tests:
+    name: E2E Recovery Tests
+    runs-on: ubuntu-latest
+    needs: [nightly-build-guard]
+    if: |
+      always() && needs.nightly-build-guard.result == 'success'
+      && needs.nightly-build-guard.outputs.should_run == 'true'
+      && github.event.inputs.test_suite != 'unit'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install peft accelerate sentence-transformers transformers numpy
+          pip install pytest pytest-cov
+
+      - name: Run E2E checkpoint recovery tests
+        run: |
+          python -m unittest tests.test_checkpoint_recovery_e2e -v
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+
+      - name: Run LRU cache logging verification
+        run: |
+          python scripts/verify_lru_cache_logging.py
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+          AGENT_HYBRID_EMBEDDING: '0'  # CI 环境不加载真实模型
+
+      - name: Upload E2E test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: |
+            .pytest_cache/
+            **/test_*.xml
+          retention-days: 7
+
+  # =====================================================================
+  # Job 3: 测试汇总与通知
+  # =====================================================================
+  test-summary:
+    name: Test Summary & Notification
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-recovery-tests]
+    if: always()
+    steps:
+      - name: Check test results
+        id: results
+        run: |
+          UNIT_RESULT="${{ needs.unit-tests.result }}"
+          E2E_RESULT="${{ needs.e2e-recovery-tests.result }}"
+          echo "unit_tests=${UNIT_RESULT}" >> $GITHUB_OUTPUT
+          echo "e2e_tests=${E2E_RESULT}" >> $GITHUB_OUTPUT
+
+          if [[ "${UNIT_RESULT}" == "failure" ]] || [[ "${E2E_RESULT}" == "failure" ]]; then
+            echo "overall=failed" >> $GITHUB_OUTPUT
+            echo "❌ 回归测试失败" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "overall=passed" >> $GITHUB_OUTPUT
+            echo "✅ 所有回归测试通过" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "## 回归测试汇总" >> $GITHUB_STEP_SUMMARY
+          echo "| 套件 | 结果 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests (LoRA Checkpoint) | ${UNIT_RESULT} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Recovery Tests | ${E2E_RESULT} |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Send notification on failure
+        if: steps.results.outputs.overall == 'failed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ **回归测试失败**\n\n请检查 [Workflow Run](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ')\n\n失败套件:\n- Unit Tests: ${{ needs.unit-tests.result }}\n- E2E Recovery Tests: ${{ needs.e2e-recovery-tests.result }}'
+            })
+
+  # =====================================================================
+  # Job 4: 代码覆盖率报告(可选)
+  # =====================================================================
+  coverage-report:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install peft accelerate sentence-transformers transformers numpy
+          pip install pytest pytest-cov
+
+      - name: Run tests with coverage
+        run: |
+          python -m pytest tests/test_checkpoint_recovery_e2e.py \
+                         tests/test_checkpoint_resume_failure.py \
+                         tests/test_lora_checkpoint.py \
+                         --cov=scripts/finetune_reranker \
+                         --cov-report=xml \
+                         --cov-report=term-missing
+        env:
+          HF_HUB_OFFLINE: '1'
+          TRANSFORMERS_OFFLINE: '1'
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false

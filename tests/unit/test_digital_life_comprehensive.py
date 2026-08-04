@@ -850,6 +850,8 @@ def _make_test_orch(**overrides):
         "_memory_token_limit": 4096,
         "_planning_enabled": False, "_planner": None, "_needs_planning": lambda x: False,
         "_is_skill_enabled": lambda x: False,
+        # 【不易】拒识兜底：默认放行，避免双未命中时 _should_reject 拦截 LLM 降级路径
+        "_should_reject": MagicMock(return_value=(False, "test_allow")),
         "check_health": MagicMock(return_value=[]),
     }
     for k, v in defaults.items():
@@ -868,7 +870,9 @@ class TestProcessUserInput:
         """测试正常处理用户输入"""
         memory = MagicMock()
         orch = _make_test_orch(_memory=memory, _call_llm=MagicMock(return_value="Response"))
-        result = orch.process("Hello")
+        # 禁用模板匹配, 强制走 LLM 路径 (测试 _call_llm 而非 greeting 模板)
+        with patch('agent.response_workflows.ResponseTemplates.for_intent', return_value=None):
+            result = orch.process("Hello")
         assert result["success"] is True
         assert result["data"] == "Response"
 
@@ -897,8 +901,13 @@ class TestProcessUserInput:
         """测试向量记忆保存失败时仍返回响应"""
         vm = MagicMock()
         vm.add.side_effect = Exception("Memory save failed")
-        orch = _make_test_orch(_vector_memory=vm,
-                               _call_llm=MagicMock(return_value="Response"))
+        orch = _make_test_orch(
+            _vector_memory=vm,
+            _call_llm=MagicMock(return_value="Response"),
+            # 绕过拒识（拒识行为由 test_orchestrator_reject.py 独立守卫），
+            # 本用例只聚焦"向量记忆保存失败仍返回 LLM 响应"这一容错契约
+            _should_reject=MagicMock(return_value=(False, "test: bypass reject")),
+        )
         result = orch.process("Test input")
         assert result["success"] is True
         assert result["data"] == "Response"
@@ -974,7 +983,9 @@ class TestChatV2Flow:
             _v2_lifetrace=True, _trace_recorder=trace_recorder,
             _call_llm_v2=MagicMock(return_value="Response"),
         )
-        result = orch.process("Hello")
+        # 禁用模板匹配, 强制走 LLM 路径 (测试 _call_llm_v2 而非 greeting 模板)
+        with patch('agent.response_workflows.ResponseTemplates.for_intent', return_value=None):
+            result = orch.process("Hello")
         assert result["success"] is True
         assert result["data"] == "Response"
 
@@ -1008,7 +1019,9 @@ class TestChatMethodComplete:
             _v2_lifetrace=True, _trace_recorder=trace_recorder,
             _call_llm_v2=MagicMock(return_value="V2 Response"),
         )
-        result = orch.chat("Hello")
+        # 禁用模板匹配, 强制走 LLM 路径 (测试 _call_llm_v2 而非 greeting 模板)
+        with patch('agent.response_workflows.ResponseTemplates.for_intent', return_value=None):
+            result = orch.chat("Hello")
         assert result == "V2 Response"
 
     def test_chat_planning_mode_enabled(self):
@@ -1017,7 +1030,9 @@ class TestChatMethodComplete:
             _v2_lifetrace=True, _trace_recorder=MagicMock(),
             _call_llm_v2=MagicMock(return_value="Planning Response"),
         )
-        result = orch.chat("Hello")
+        # 禁用模板匹配, 强制走 LLM 路径 (测试 _call_llm_v2 而非 greeting 模板)
+        with patch('agent.response_workflows.ResponseTemplates.for_intent', return_value=None):
+            result = orch.chat("Hello")
         assert result == "Planning Response"
 
 @pytest.mark.p1
@@ -1185,6 +1200,11 @@ class TestCallLLMV2:
         digital_life._memory = MockMemory()
         digital_life._select_model_for_request = MagicMock(return_value=(mock_llm, mock_llm.model))
         digital_life._tool_calling_service = None
+        # 【变易】_call_llm_v2 内部调用 self._guard_llm_output(response, ...) 并将其
+        # 返回值作为最终结果（orchestrator.py:1043）。MagicMock 自动生成的属性返回
+        # MagicMock 对象而非字符串，需显式配置透传 response，模拟"护栏跳过校验"场景
+        # （对应 _guard_llm_output 中 svc is None 的 return response 分支）
+        digital_life._guard_llm_output.side_effect = lambda response, *a, **kw: response
 
         result = DigitalLife._call_llm_v2(digital_life, "Hello", "Body status")
 
@@ -1206,6 +1226,8 @@ class TestCallLLMV2:
         digital_life._memory = MockMemory()
         digital_life._select_model_for_request = MagicMock(return_value=(mock_llm, mock_llm.model))
         digital_life._tool_calling_service = None
+        # 【变易】同上：让 _guard_llm_output 透传 response，聚焦 persona 注入逻辑测试
+        digital_life._guard_llm_output.side_effect = lambda response, *a, **kw: response
 
         result = DigitalLife._call_llm_v2(digital_life, "Hello", "Body status")
 

@@ -58,6 +58,25 @@ def clean_tracing_env(monkeypatch):
     yield
 
 
+@pytest.fixture(autouse=True)
+def _no_async_config_push(monkeypatch):
+    """阻止 set() 启动 config-change-loki/alert daemon 线程
+
+    【原因】ObservabilityConfig.set() 每次变更都会经 on_config_changed 启动
+    daemon 线程异步推送 Loki。CI 环境无 Loki 服务，线程在连接重试期间仍可能
+    活跃并写日志；若恰好跨越 pytest 测试 teardown 窗口，会与 logging 插件
+    恢复全局日志状态（迭代 loggerDict/handlers）竞争，触发
+    "RuntimeError: dictionary changed size during iteration"（3.12 历史失败）。
+
+    【不易】本套件只验证配置热修改委托链，不验证可观测性推送，
+    mock 不影响任何断言路径（变易：CI 可复现、本地无 Loki 时均安全）。
+    """
+    monkeypatch.setattr(
+        "agent.monitoring.config_observability.on_config_changed",
+        lambda change_record: None,
+    )
+
+
 @pytest.fixture
 def fresh_config() -> ObservabilityConfig:
     """返回独立的 ObservabilityConfig 实例（不污染全局单例）"""

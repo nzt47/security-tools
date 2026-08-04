@@ -264,8 +264,8 @@ pyperclip==1.11.0
     #   mouseinfo
 pypika==0.51.1
     # via chromadb
-pypiwin32==223
-    # via pyttsx3
+pypiwin32==223; sys_platform == 'win32'
+    # via pyttsx3 (Windows-only, 环境标记避免 Linux CI 安装失败)
 pyproject-hooks==1.2.0
     # via build
 pyrect==0.2.0
@@ -284,10 +284,10 @@ pyttsx3==2.99
     # via Yunshu (pyproject.toml)
 pytweening==1.2.0
     # via pyautogui
-pywin32==311
+pywin32==311; sys_platform == 'win32'
     # via
     #   pypiwin32
-    #   pyttsx3
+    #   pyttsx3 (Windows-only, 环境标记避免 Linux CI 安装失败)
 pyyaml==6.0.3
     # via
     #   chromadb
@@ -298,6 +298,8 @@ pyyaml==6.0.3
     #   uvicorn
 prometheus-client==0.22.0
     # via Prometheus monitoring
+rank-bm25==0.2.2
+    # via Yunshu (TLM L1 技能检索 BM25 辅助路径 — 匹配专有名词与确定性锚点)
 referencing==0.37.0
     # via
     #   jsonschema
@@ -325,6 +327,8 @@ safetensors==0.7.0
     # via transformers
 scikit-learn==1.8.0
     # via sentence-transformers
+sqlite-vec>=0.1.9
+    # via Yunshu (TLM L3 向量存储后端)
 scipy==1.17.1
     # via
     #   scikit-learn

@@ -29,9 +29,9 @@ classifiers = [
 keywords = ["AI", "digital-life", "agent", "cognitive"]
 dependencies = [
   "psutil>=5.9.0,<6.0.0",
-  "openai>=1.0.0,<2.0.0",
-  "anthropic>=0.30.0,<0.40.0",
-  "tiktoken>=0.5.0,<0.7.0",
+  "openai>=2.0.0,<3.0.0",
+  "anthropic>=0.40.0,<1.0.0",
+  "tiktoken>=0.7.0,<1.0.0",
   "pyyaml>=6.0,<7.0",
   "torch>=2.0.0,<2.5.0",
   "torchvision>=0.15.0,<0.20.0",
@@ -39,7 +39,7 @@ dependencies = [
   "opencv-python-headless>=4.8.0,<5.0.0",
   "chromadb>=0.4.0,<0.5.0",
   "sentence-transformers>=2.2.0,<3.0.0",
-  "numpy>=1.24.0,<2.0.0",
+  "numpy>=2.0.0,<3.0.0",
   "pyttsx3>=2.90,<2.92",
   "SpeechRecognition>=3.10.0,<3.11.0",
   "pyautogui>=0.9.53,<0.9.60",
@@ -70,7 +70,14 @@ dependencies = [
   "pypiwin32>=223; sys_platform == 'win32'",
   "comtypes>=1.4.0; sys_platform == 'win32'",
   "wmi>=1.5.0,<1.6.0; sys_platform == 'win32'",
-  "pythoncom>=0.0.1; sys_platform == 'win32'"
+  "pythoncom>=0.0.1; sys_platform == 'win32'",
+  "pydantic>=2.0.0,<3.0.0",
+  "prometheus-client>=0.20.0",
+  "httpx>=0.27.0,<1.0.0",
+  "requests>=2.31.0,<3.0.0",
+  "scipy>=1.13.0,<2.0.0",
+  # 技能 BM25 检索（TLM L1 确定性锚点匹配，纯 Python 无 native 依赖）
+  "rank-bm25==0.2.2"
 ]
 
 [project.optional-dependencies]
@@ -80,8 +87,10 @@ dev = [
   "pytest-mock>=3.10.0",
   "pytest-xdist>=3.0.0",
   "pytest-asyncio>=0.21.0",
+  "pytest-timeout>=2.0.0",
   "flake8>=6.0.0",
   "black>=23.0.0",
+  "ruff>=0.4.0",
   "isort>=5.12.0",
   "mypy>=1.0.0",
   "bandit>=1.7.0",
@@ -125,6 +134,27 @@ python_version = "3.10"
 ignore_missing_imports = true
 show_error_codes = true
 strict = false
+warn_no_return = true       # 检测缺少 return 的函数（防止 f8a457f2 回归重演）
+warn_return_any = true      # 检测返回 Any 类型的函数
+
+# 关键模块严格模式（单例工厂 / 配置管理 —— 缺少 return 曾导致 P1 故障）
+# 注：不使用 strict=true 避免跟踪导入的其他模块误报，仅启用 return 相关检查
+# Why network_config 加入: 该模块大量调用 EnvConfigManager.set/delete，
+#   若内部工厂方法（如 _save_secure 返回值）出现 return 缺失会引发同类 P1 故障。
+#   2026-07-29 v1.2.1-fix-secure-manager-return 修复后纳入预防范围。
+# 现状: env_config_manager CI 阻塞; network_config 非阻塞（29 个历史类型债，
+#   详见 .github/workflows/ci.yml TODO 与 docs/dashboards/ci_health_dashboard.md）
+[[tool.mypy.overrides]]
+module = "agent.env_config_manager"
+warn_no_return = true
+warn_return_any = true
+follow_imports = "silent"
+
+[[tool.mypy.overrides]]
+module = "agent.network_config"
+warn_no_return = true
+warn_return_any = true
+follow_imports = "silent"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,7 +1,7 @@
 # guard_trace 链路追踪日志示例
 
 > 展示 `orchestrator._call_llm_v2` 跨服务调用时，`guard_trace` 如何串联护栏的 start / end 事件。
-> 生成方式：`python demo_guard_trace.py`（脚本见 [demo_guard_trace.py](../demo_guard_trace.py)）。
+> 生成方式：`python demo_guard_trace.py`（脚本未纳入仓库，示例日志见 `guard_trace_log_example.json`）。
 
 ## 1. 场景
 

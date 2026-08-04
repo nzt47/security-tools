@@ -76,7 +76,14 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install watchdog  # verify_migrated_skills.py --watch 需要 (CI 不用 --watch 但保持依赖一致)
+          # watchdog: verify_migrated_skills.py --watch 需要 (CI 不用 --watch 但保持依赖一致)
+          # psutil: 单元测试 + 部分集成测试经 agent.digital_life → sensor 链需要
+          # pyyaml: file_store.py 解析 skill.md (YAML front matter) 的核心运行时依赖
+          #         compare_skills_legacy_vs_repo.py / verify_migrated_skills.py 均经
+          #         agent.skills_mgmt.file_store → import yaml 读技能元数据
+          # 注: PEP 562 懒加载后 agent/__init__.py 不再 eager-import digital_life,
+          #     CI 脚本不再经此链路触发 psutil, 但 pyyaml 仍是 file_store 硬依赖.
+          pip install watchdog psutil pyyaml
 
       - name: 新旧格式元数据对比
         run: |
@@ -152,7 +159,10 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install watchdog
+          # watchdog + psutil + pyyaml: 见 skills-consistency job 说明
+          # pytest + pytest-timeout: 本 job 末尾"单元测试"步骤需要
+          #   (pytest.ini 要求 --timeout=60, 缺 pytest-timeout 会报 unrecognized arguments)
+          pip install watchdog psutil pyyaml pytest pytest-timeout
 
       - name: 一致性验证
         run: |
@@ -218,12 +228,16 @@ jobs:
         shell: pwsh
         run: |
           Write-Host "::group::Pester 单元测试 (41 例)"
-          # Pester 兼容性: 5.x 默认装, 3.4 (Windows 内置) 兜底. -Quiet 在两版本都支持.
-          if (-not (Get-Module -ListAvailable Pester)) {
-            Write-Host "Pester 未安装, 安装到 CurrentUser..."
-            Install-Module Pester -Force -Scope CurrentUser -SkipPublisherCheck -AcceptLicense
+          # 测试文件使用 Pester 3.4 兼容语法 (Should Not Throw / Should Not Be $null),
+          # Pester 5.x/6.x 不兼容 → discovery 失败 (0 测试发现 + 进程 exit 1, 导致长期误报失败).
+          # 强制 Pester 4.10.1: 兼容 3.4 语法 + 跨平台 + 本地验证 41 例全过.
+          $pester = Get-Module -ListAvailable Pester | Where-Object { $_.Version -eq '4.10.1' } | Select-Object -First 1
+          if (-not $pester) {
+            Write-Host "安装 Pester 4.10.1 (兼容现有 3.4 语法测试)..."
+            Install-Module Pester -RequiredVersion 4.10.1 -Force -Scope CurrentUser -SkipPublisherCheck -AcceptLicense
           }
-          $r = Invoke-Pester -Path tests/unit/AdminDependencyChecker.Tests.ps1 -PassThru -Quiet
+          Import-Module Pester -RequiredVersion 4.10.1 -Force
+          $r = Invoke-Pester -Path tests/unit/AdminDependencyChecker.Tests.ps1 -PassThru
           Write-Host "::endgroup::"
           Write-Host "测试结果: $($r.PassedCount) 通过 / $($r.FailedCount) 失败 / $($r.TotalCount) 总计"
           if ($r.FailedCount -gt 0) {

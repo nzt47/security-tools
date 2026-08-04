@@ -295,7 +295,6 @@ class TestBehaviorLoop:
         
         assert "唤醒" in response or "start" in response.lower()
 
-    @pytest.mark.skip_ci
     def test_chat_increment_interaction_count(self, mock_behavior_controller,
                                                mock_memory_manager, mock_permission_system):
         """测试对话增加交互计数"""
@@ -310,22 +309,34 @@ class TestBehaviorLoop:
                        return_value=mock_memory_manager):
                 with patch('agent.orchestrator.lifecycle_manager.PermissionSystem', 
                            return_value=mock_permission_system):
-                    with patch('agent.workflow_engine.engine.WorkflowEngine', 
+                    with patch('agent.workflow_engine.engine.WorkflowEngine',
                                return_value=mock_workflow):
-                        digital_life = DigitalLife(config={})
-                        digital_life.start()
-                        
-                        assert digital_life._interaction_count == 0
-                        
-                        digital_life._call_llm = MagicMock(return_value="测试响应")
-                        digital_life._call_llm_v2 = MagicMock(return_value="测试响应")
-                        
-                        response = digital_life.chat("你好")
-                        
-                        assert digital_life._interaction_count == 1
-                        assert response == "测试响应"
+                        # 【不易】禁用模板匹配（时间问候）和语义层匹配，确保走 LLM 路径
+                        with patch('agent.response_workflows.ResponseTemplates.for_intent',
+                                   return_value=None):
+                            digital_life = DigitalLife(config={})
+                            digital_life.start()
+                            # 【变易】禁用语义层短路返回，让请求走到 _call_llm
+                            digital_life._semantic_layer_match = MagicMock(return_value=None)
+                            # 【不易】绕过语义拒识（_should_reject）——本用例聚焦
+                            # "对话递增交互计数"契约，拒识行为由 test_orchestrator_reject.py
+                            # 独立守卫。长度拒识（_len_reject）不受影响。
+                            digital_life._should_reject = MagicMock(
+                                return_value=(False, "test: bypass reject"))
 
-    @pytest.mark.skip_ci
+                            assert digital_life._interaction_count == 0
+
+                            # 【不易】响应需 ≥5 字符，否则触发 LLM 低置信度兜底
+                            # （_judge_llm_confidence: len(strip) < 5 → low → _FALLBACK_MSG）
+                            digital_life._call_llm = MagicMock(return_value="测试响应成功")
+                            digital_life._call_llm_v2 = MagicMock(return_value="测试响应成功")
+
+                            # 【不易】输入需 ≥3 字符以越过拒识阈值（ORCHESTRATOR_REJECT_MIN_LENGTH=3）
+                            response = digital_life.chat("你好，请帮我")
+
+                            assert digital_life._interaction_count == 1
+                            assert response == "测试响应成功"
+
     def test_behavior_can_execute_rejects_request(self, mock_behavior_controller, 
                                                   mock_memory_manager, mock_permission_system):
         """测试行为控制器拒绝请求"""
@@ -353,8 +364,7 @@ class TestBehaviorLoop:
                         response = result.get("response", "") or result.get("data", "") or str(result)
                         assert "资源不足" in response or "拒绝" in response or "rejected" in response.lower()
 
-    @pytest.mark.skip_ci
-    def test_workflow_engine_match(self, mock_behavior_controller, 
+    def test_workflow_engine_match(self, mock_behavior_controller,
                                    mock_memory_manager, mock_permission_system):
         """测试工作流引擎规则匹配（零Token消耗路径）"""
         from agent.digital_life import DigitalLife
@@ -465,45 +475,53 @@ class TestToolCallingIntegration:
                     
                     assert digital_life._tool_calling_service is None
 
-    @pytest.mark.skip_ci
-    def test_tool_calling_chat_flow(self, mock_behavior_controller, 
+    def test_tool_calling_chat_flow(self, mock_behavior_controller,
                                      mock_memory_manager, mock_permission_system):
         """测试工具调用对话流程"""
         from agent.digital_life import DigitalLife
-        
+
         mock_llm = MagicMock()
         mock_memory_manager._llm_service = mock_llm
-        
+
         mock_tc = MagicMock()
         mock_tc.chat_with_steps.return_value = {
             "text": "工具调用结果",
             "steps": []
         }
-        
+
         mock_workflow = MagicMock()
         mock_workflow.try_match.return_value = MagicMock(matched=False)
-        
+
         config = {'tool_calling': {'enabled': True}}
-        
-        with patch('agent.orchestrator.lifecycle_manager.BehaviorController', 
+
+        with patch('agent.orchestrator.lifecycle_manager.BehaviorController',
                    return_value=mock_behavior_controller):
-            with patch('agent.orchestrator.lifecycle_manager.MemoryManager', 
+            with patch('agent.orchestrator.lifecycle_manager.MemoryManager',
                        return_value=mock_memory_manager):
-                with patch('agent.orchestrator.lifecycle_manager.PermissionSystem', 
+                with patch('agent.orchestrator.lifecycle_manager.PermissionSystem',
                            return_value=mock_permission_system):
-                    with patch('agent.workflow_engine.engine.WorkflowEngine', 
+                    with patch('agent.workflow_engine.engine.WorkflowEngine',
                                return_value=mock_workflow):
                         with patch('agent.tool_calling.ToolCallingService', return_value=mock_tc):
-                            digital_life = DigitalLife(config=config)
-                            digital_life._v2_lifetrace = True
-                            digital_life._trace_recorder = MagicMock()
-                            digital_life.start()
-                            
-                            # 触发 _call_llm_v2 路径
-                            result = digital_life.process("搜索天气")
-                            
-                            assert result["success"] is True
-                            mock_tc.chat_with_steps.assert_called()
+                            # 【不易】禁用模板匹配和语义层匹配，确保走 V2 LLM 路径
+                            with patch('agent.response_workflows.ResponseTemplates.for_intent',
+                                       return_value=None):
+                                digital_life = DigitalLife(config=config)
+                                digital_life._v2_lifetrace = True
+                                digital_life._trace_recorder = MagicMock()
+                                # 【变易】禁用语义层短路返回
+                                digital_life._semantic_layer_match = MagicMock(return_value=None)
+                                # 【不易】绕过语义拒识（_should_reject）——本用例聚焦 V2
+                                # 工具调用流程，语义拒识由 test_orchestrator_reject.py 独立守卫。
+                                digital_life._should_reject = MagicMock(
+                                    return_value=(False, "test: bypass reject"))
+                                digital_life.start()
+
+                                # 触发 _call_llm_v2 路径
+                                result = digital_life.process("搜索天气信息")
+
+                                assert result["success"] is True
+                                mock_tc.chat_with_steps.assert_called()
 
 
 class TestPermissionIntegration:
@@ -614,34 +632,42 @@ class TestStatePersistence:
                     assert digital_life.is_running is False
                     mock_memory_manager.generate_summary_levels.assert_called()
 
-    @pytest.mark.skip_ci
-    def test_memory_logging(self, mock_behavior_controller, 
+    def test_memory_logging(self, mock_behavior_controller,
                             mock_memory_manager, mock_permission_system):
         """测试记忆日志记录"""
         from agent.digital_life import DigitalLife
-        
+
         mock_workflow = MagicMock()
         mock_workflow.try_match.return_value = MagicMock(matched=False)
-        
-        with patch('agent.orchestrator.lifecycle_manager.BehaviorController', 
+
+        with patch('agent.orchestrator.lifecycle_manager.BehaviorController',
                    return_value=mock_behavior_controller):
-            with patch('agent.orchestrator.lifecycle_manager.MemoryManager', 
+            with patch('agent.orchestrator.lifecycle_manager.MemoryManager',
                        return_value=mock_memory_manager):
-                with patch('agent.orchestrator.lifecycle_manager.PermissionSystem', 
+                with patch('agent.orchestrator.lifecycle_manager.PermissionSystem',
                            return_value=mock_permission_system):
-                    with patch('agent.workflow_engine.engine.WorkflowEngine', 
+                    with patch('agent.workflow_engine.engine.WorkflowEngine',
                                return_value=mock_workflow):
-                        digital_life = DigitalLife(config={})
-                        digital_life._v2_lifetrace = False
-                        digital_life.start()
-                        
-                        # Mock LLM 调用
-                        digital_life._call_llm = MagicMock(return_value="响应")
-                        
-                        digital_life.chat("测试")
-                        
-                        mock_memory_manager.score_and_save_message.assert_called()
-                        mock_memory_manager.add_message.assert_called()
+                        # 【不易】禁用模板匹配和语义层匹配，确保走 LLM 路径触发 add_message
+                        with patch('agent.response_workflows.ResponseTemplates.for_intent',
+                                   return_value=None):
+                            digital_life = DigitalLife(config={})
+                            digital_life._v2_lifetrace = False
+                            digital_life._semantic_layer_match = MagicMock(return_value=None)
+                            # 【不易】绕过语义拒识（_should_reject）——本用例聚焦记忆日志
+                            # 记录契约，语义拒识由 test_orchestrator_reject.py 独立守卫。
+                            digital_life._should_reject = MagicMock(
+                                return_value=(False, "test: bypass reject"))
+                            digital_life.start()
+
+                            # Mock LLM 调用（【不易】响应 ≥5 字符，避免触发低置信度兜底）
+                            digital_life._call_llm = MagicMock(return_value="响应内容成功")
+
+                            # 【不易】输入需 ≥3 字符以越过拒识阈值
+                            digital_life.chat("测试记忆功能")
+
+                            mock_memory_manager.score_and_save_message.assert_called()
+                            mock_memory_manager.add_message.assert_called()
 
 
 class TestLifecycleManagement:
@@ -1074,7 +1100,6 @@ class TestV2DistillationIntegration:
 class TestV2Compatibility:
     """P1: V2 功能与旧版本兼容性测试"""
 
-    @pytest.mark.skip_ci
     def test_v2_features_disabled_backward_compatible(self, mock_behavior_controller, 
                                                      mock_memory_manager, mock_permission_system):
         """测试禁用 V2 功能时与旧版本兼容"""

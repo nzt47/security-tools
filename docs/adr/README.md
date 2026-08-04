@@ -8,10 +8,10 @@
 
 | 编号 | 标题 | 状态 | 创建日期 |
 |------|------|------|----------|
-| [001](001-hierarchical-architecture.md) | 采用感知-认知-记忆-行动四层架构 | ✅ Accepted | 2026-05-31 |
-| [002](002-v2-modular-design.md) | V2模块采用可插拔开关设计 | ✅ Accepted | 2026-05-31 |
+| ~~001~~ ⚠ (待确认) | 采用感知-认知-记忆-行动四层架构 | ✅ Accepted | 2026-05-31 |
+| ~~002~~ ⚠ (待确认) | V2模块采用可插拔开关设计 | ✅ Accepted | 2026-05-31 |
 | [003](003-error-handling-retry.md) | 统一错误处理与自动重试机制 | ✅ Accepted | 2026-05-31 |
-| [004](004-prometheus-monitoring.md) | Prometheus监控体系 | ✅ Accepted | 2026-05-31 |
+| ~~004~~ ⚠ (待确认) | Prometheus监控体系 | ✅ Accepted | 2026-05-31 |
 
 ---
 

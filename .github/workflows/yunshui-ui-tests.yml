@@ -1,0 +1,205 @@
+# =============================================================================
+# yunshu-ui 前端测试 CI — 基于 P0 模板优化参数（vitest 适配版）
+# =============================================================================
+# 优化参数（从 nodejs-auth-p0-security.yml 沉淀的最佳实践）:
+#   1. npm ci --prefer-offline     — 优先用本地缓存，减少网络等待
+#   2. --poolOptions.threads.maxThreads=2 — 限制 vitest 线程数（runner 2 核，降内存 ~40%）
+#
+# 触发条件: yunshu-ui/ 目录下的源码、测试、配置文件变更时自动触发
+# =============================================================================
+name: yunshu-ui 前端测试
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths:
+      - 'yunshu-ui/src/**'
+      - 'yunshu-ui/package.json'
+      - 'yunshu-ui/package-lock.json'
+      - 'yunshu-ui/vitest.config.ts'
+      - 'yunshu-ui/tsconfig.json'
+      - 'yunshu-ui/eslint.config.js'
+      - '.github/workflows/yunshui-ui-tests.yml'
+  pull_request:
+    branches: [main, master, develop]
+    paths:
+      - 'yunshu-ui/src/**'
+      - 'yunshu-ui/package.json'
+      - 'yunshu-ui/package-lock.json'
+      - 'yunshu-ui/vitest.config.ts'
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ============================================================================
+  # Job 1: 代码质量检查（lint + type check）
+  # ============================================================================
+  lint-and-typecheck:
+    name: Lint + TypeScript 类型检查
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: yunshu-ui/package-lock.json
+
+      - name: 安装依赖（离线优先）
+        run: |
+          cd yunshu-ui
+          # --prefer-offline: 优先用本地 npm 缓存，减少网络等待（不改变依赖版本）
+          npm ci --prefer-offline
+
+      - name: ESLint 代码检查
+        run: |
+          cd yunshu-ui
+          npm run lint
+
+      - name: TypeScript 类型检查
+        run: |
+          cd yunshu-ui
+          npm run check
+
+  # ============================================================================
+  # Job 2: 单元测试 + 覆盖率（vitest，优化参数应用）
+  # ============================================================================
+  unit-tests:
+    name: 单元测试 + 覆盖率
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: yunshu-ui/package-lock.json
+
+      - name: 安装依赖（离线优先）
+        run: |
+          cd yunshu-ui
+          # --prefer-offline: 优先用本地 npm 缓存
+          npm ci --prefer-offline
+
+      - name: 运行 vitest 单元测试（限制线程数 + 覆盖率）
+        run: |
+          cd yunshu-ui
+          echo "=== 运行 vitest 单元测试 ==="
+          mkdir -p test_reports
+          # --poolOptions.threads.maxThreads=2: 限制线程数（runner 2 核，降低内存 ~40%，时间 ~30%）
+          # --reporter=junit: 生成 JUnit XML 报告
+          # --coverage: 覆盖率报告（vitest.config.ts 配置了 80% 门槛）
+          npx vitest run \
+            --poolOptions.threads.maxThreads=2 \
+            --reporter=verbose \
+            --reporter=junit \
+            --outputFile=test_reports/vitest-junit.xml \
+            --coverage
+          echo "=== 单元测试全部通过 ==="
+
+      - name: 测试结果汇总
+        if: always()
+        run: |
+          echo "=== vitest 测试结果汇总 ==="
+          if [ -f yunshu-ui/test_reports/vitest-junit.xml ]; then
+            echo "--- JUnit 报告 ---"
+            head -30 yunshu-ui/test_reports/vitest-junit.xml
+          else
+            echo "⚠️ JUnit 报告不存在"
+          fi
+
+      - name: 上传测试结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yunshu-ui-test-results
+          path: yunshu-ui/test_reports/
+          retention-days: 30
+
+      - name: 上传覆盖率报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: yunshu-ui-coverage
+          path: yunshu-ui/coverage/
+          retention-days: 14
+
+  # ============================================================================
+  # Job 3: 构建验证（确保生产构建无错误）
+  # ============================================================================
+  build:
+    name: 生产构建验证
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    needs: [lint-and-typecheck, unit-tests]
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Node.js 环境
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: yunshu-ui/package-lock.json
+
+      - name: 安装依赖（离线优先）
+        run: |
+          cd yunshu-ui
+          npm ci --prefer-offline
+
+      - name: 生产构建
+        run: |
+          cd yunshu-ui
+          echo "=== 执行生产构建 ==="
+          npm run build
+          echo "=== 构建成功 ==="
+          echo "--- 构建产物 ---"
+          ls -la dist/
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: yunshu-ui-dist
+          path: yunshu-ui/dist/
+          retention-days: 7
+
+  # ============================================================================
+  # Job 4: 总结
+  # ============================================================================
+  summary:
+    name: CI 总结
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    needs: [lint-and-typecheck, unit-tests, build]
+    if: always()
+    steps:
+      - name: 生成总结报告
+        run: |
+          echo "=== yunshu-ui 前端测试 CI 总结 ==="
+          echo "时间: $(date)"
+          echo ""
+          echo "| 验证项 | 状态 |"
+          echo "|--------|------|"
+          echo "| Lint + 类型检查 | ${{ needs.lint-and-typecheck.result == 'success' && '✅ 通过' || '❌ 失败' }} |"
+          echo "| 单元测试 + 覆盖率 | ${{ needs.unit-tests.result == 'success' && '✅ 通过' || '❌ 失败' }} |"
+          echo "| 生产构建 | ${{ needs.build.result == 'success' && '✅ 通过' || '❌ 失败' }} |"
+          echo ""
+          if [ "${{ needs.lint-and-typecheck.result }}" == "success" ] && \
+             [ "${{ needs.unit-tests.result }}" == "success" ] && \
+             [ "${{ needs.build.result }}" == "success" ]; then
+            echo "✅ yunshu-ui 前端 CI 全部通过！"
+          else
+            echo "❌ yunshu-ui 前端 CI 存在失败项，请检查！"
+            exit 1
+          fi

@@ -1,0 +1,64 @@
+{
+  "timestamp": "2026-07-28 01:26:39",
+  "model": "jinaai/jina-reranker-v2-base-multilingual",
+  "results": [
+    {
+      "test": "memory",
+      "load_time_s": 45.29,
+      "rss_before_mb": 65.9,
+      "rss_after_load_mb": 471.0,
+      "model_memory_mb": 405.1,
+      "target_rss_mb": 1536,
+      "passed": true
+    },
+    {
+      "test": "sort_correctness",
+      "passed": false
+    },
+    {
+      "test": "jina_single",
+      "iterations": 50,
+      "min_ms": 0.0,
+      "mean_ms": 0.01,
+      "p50_ms": 0.0,
+      "p95_ms": 0.0,
+      "p99_ms": 0.27,
+      "max_ms": 0.53,
+      "qps": 94893.76,
+      "target_p99_ms": 500,
+      "passed": true
+    },
+    {
+      "test": "jina_throughput",
+      "iterations": 100,
+      "total_s": 0.0,
+      "qps": 26032.17,
+      "avg_latency_ms": 0.04,
+      "target_qps": 3,
+      "passed": true
+    },
+    {
+      "test": "jina_concurrency",
+      "threads": 4,
+      "per_thread": 10,
+      "total_requests": 40,
+      "error_count": 0,
+      "total_s": 0.01,
+      "p99_ms": 2.0,
+      "qps": 6107.02,
+      "passed": true
+    },
+    {
+      "test": "jina_tail",
+      "iterations": 200,
+      "p50_ms": 0.0,
+      "p95_ms": 0.02,
+      "p99_ms": 1.0,
+      "p999_ms": 1.0,
+      "max_ms": 1.0,
+      "target_p999_ms": 2000,
+      "passed": true
+    }
+  ],
+  "all_passed": false
+}

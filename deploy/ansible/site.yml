@@ -1,0 +1,329 @@
+# ════════════════════════════════════════════════════════════
+# 云枢测试环境一键部署 Playbook
+# ════════════════════════════════════════════════════════════
+# 输入: docs/reviews/deployment_checklist.md（生产部署清单）
+# 输出: 测试机运行 app_server + config_metrics_exporter + Prometheus 接入
+#
+# 用法:
+#   全量部署:   ansible-playbook -i inventory.ini site.yml --ask-vault-pass
+#   仅验证:     ansible-playbook -i inventory.ini site.yml --tags verify
+#   仅监控:     ansible-playbook -i inventory.ini site.yml --tags monitoring
+#   回滚:       ansible-playbook -i inventory.ini site.yml --tags rollback -e rollback_to=HEAD~1
+#
+# 【不易】守住安全边界: .env 0600 + 非root运行 + 密钥走Vault + 降级链路不弱化
+# 【变易】幂等可重入: git pull/pip install/template 均幂等, 多次执行无副作用
+# 【简易】单文件5个block, tags分組控制, 30s可读流程
+# ════════════════════════════════════════════════════════════
+---
+- name: 云枢测试环境部署
+  hosts: test
+  become: true
+  gather_facts: true
+
+  # 【不易】前置断言: 缺失 vault 变量直接终止, 避免部署半成品
+  pre_tasks:
+    - name: 校验必需的 Vault 变量已注入
+      ansible.builtin.assert:
+        that:
+          - llm_api_key is defined
+          - llm_api_key | length > 0
+          - llm_api_key != 'sk-REPLACE-ME'
+        fail_msg: >
+          [不易约束] llm_api_key 未注入或仍为占位符。
+          请先执行: cp vault.yml.example vault.yml && 填入真实密钥
+          && ansible-vault encrypt vault.yml && 重新运行 --ask-vault-pass
+        success_msg: "Vault 变量校验通过"
+
+    - name: 显示部署目标概要
+      ansible.builtin.debug:
+        msg: >
+          部署目标: {{ inventory_hostname }} ({{ ansible_host }}) |
+          路径: {{ deploy_path }} | 端口: app={{ app_port }} metrics={{ metrics_exporter_port }}
+          | Git: {{ git_repo }} @ {{ git_version }}
+
+  tasks:
+    # ════════════════════════════════════════════════════════════
+    # BLOCK 1: preflight — 前置检查（对应清单 3.x）
+    # ════════════════════════════════════════════════════════════
+    - name: "【preflight】前置环境检查"
+      tags: [preflight, always]
+      block:
+        - name: 检查 Python 版本 ≥ 3.12
+          ansible.builtin.command: python3 --version
+          changed_when: false
+          register: _py_ver
+
+        - name: 断言 Python 版本
+          ansible.builtin.assert:
+            that:
+              - _py_ver.stdout is regex('^Python 3\.(1[2-9]|[2-9][0-9])')
+            fail_msg: "Python ≥ 3.12 必需, 实际 {{ _py_ver.stdout }}"
+            success_msg: "Python 版本 OK: {{ _py_ver.stdout }}"
+
+        - name: 检查 git 可用
+          ansible.builtin.command: "git --version"
+          changed_when: false
+
+        - name: 检查部署路径磁盘可用空间（仅提示, 测试环境不强制）
+          ansible.builtin.command: "df -h {{ deploy_path }}"
+          changed_when: false
+          register: _disk_info
+
+        - name: 显示磁盘空间
+          ansible.builtin.debug:
+            var: _disk_info.stdout_lines
+
+    # ════════════════════════════════════════════════════════════
+    # BLOCK 2: deploy — 部署应用（对应清单 4.1）
+    # ════════════════════════════════════════════════════════════
+    - name: "【deploy】部署应用代码与配置"
+      tags: [deploy]
+      block:
+        - name: 创建部署用户与组
+          ansible.builtin.user:
+            name: "{{ deploy_user }}"
+            group: "{{ deploy_group }}"
+            system: false
+            create_home: true
+            shell: /bin/bash
+          register: _user_created
+
+        - name: 创建目录结构
+          ansible.builtin.file:
+            path: "{{ item.path }}"
+            state: directory
+            owner: "{{ deploy_user }}"
+            group: "{{ deploy_group }}"
+            mode: "{{ item.mode }}"
+          loop:
+            - { path: "{{ deploy_path }}", mode: "0755" }
+            - { path: "{{ log_path }}", mode: "0755" }
+            - { path: "{{ data_path }}", mode: "0750" }
+
+        - name: 同步代码（git clone / pull, 幂等）
+          ansible.builtin.git:
+            repo: "{{ git_repo }}"
+            dest: "{{ deploy_path }}"
+            version: "{{ git_version }}"
+            accept_hostkey: "{{ git_accept_hostkey }}"
+            force: true
+          become_user: "{{ deploy_user }}"
+          register: _git_result
+
+        - name: 记录部署前 commit（供回滚用）
+          ansible.builtin.command: git rev-parse HEAD
+          args:
+            chdir: "{{ deploy_path }}"
+          changed_when: false
+          become_user: "{{ deploy_user }}"
+          register: _pre_commit
+          when: _git_result.changed
+
+        - name: 持久化部署前 commit 到事实
+          ansible.builtin.set_fact:
+            pre_deploy_commit: "{{ _pre_commit.stdout }}"
+          when: _git_result.changed
+
+        - name: 创建 Python 虚拟环境
+          ansible.builtin.command:
+            cmd: "python3 -m venv {{ venv_path }}"
+            creates: "{{ venv_path }}/bin/activate"
+          become_user: "{{ deploy_user }}"
+
+        - name: 安装 Python 依赖（幂等, 仅 requirements.txt 变化时升级）
+          ansible.builtin.pip:
+            requirements: "{{ deploy_path }}/requirements.txt"
+            virtualenv: "{{ venv_path }}"
+            virtualenv_command: python3 -m venv
+          become_user: "{{ deploy_user }}"
+
+        - name: 渲染 .env（密钥来自 Vault, 文件 0600）
+          ansible.builtin.template:
+            src: env.j2
+            dest: "{{ deploy_path }}/.env"
+            owner: "{{ deploy_user }}"
+            group: "{{ deploy_group }}"
+            mode: "0600"
+          no_log: true  # 【不易】.env 含密钥, 日志中不回显
+
+        - name: "校验 config.yaml 存在且可解析（守不易: 篡改降级前置）"
+          ansible.builtin.command: >
+            {{ venv_path }}/bin/python -c
+            "import yaml; yaml.safe_load(open('{{ deploy_path }}/config.yaml')); print('config.yaml OK')"
+          args:
+            chdir: "{{ deploy_path }}"
+          changed_when: false
+          become_user: "{{ deploy_user }}"
+
+        - name: 部署 systemd 单元 — app-server
+          ansible.builtin.template:
+            src: app-server.service.j2
+            dest: "/etc/systemd/system/{{ app_service_name }}.service"
+            mode: "0644"
+          notify: systemd daemon-reload
+
+        - name: 部署 systemd 单元 — metrics-exporter
+          ansible.builtin.template:
+            src: metrics-exporter.service.j2
+            dest: "/etc/systemd/system/{{ metrics_service_name }}.service"
+            mode: "0644"
+          notify: systemd daemon-reload
+
+        - name: 启动并 enable app-server 服务
+          ansible.builtin.systemd:
+            name: "{{ app_service_name }}"
+            state: restarted
+            enabled: true
+            daemon_reload: true
+
+  # ════════════════════════════════════════════════════════════
+  # BLOCK 3: monitoring — 监控接入
+  # ════════════════════════════════════════════════════════════
+    - name: "【monitoring】部署监控采集"
+      tags: [monitoring]
+      block:
+        - name: 启动并 enable config-metrics-exporter 服务
+          ansible.builtin.systemd:
+            name: "{{ metrics_service_name }}"
+            state: restarted
+            enabled: true
+            daemon_reload: true
+
+        - name: 注入 Prometheus 抓取配置片段
+          ansible.builtin.blockinfile:
+            path: "{{ prometheus_config_path }}"
+            marker: "# {mark} yunshu-scrape"
+            block: "{{ lookup('template', 'prometheus-scrape.j2') }}"
+          when: deploy_prometheus_scrape | bool
+          notify: reload prometheus
+
+  # ════════════════════════════════════════════════════════════
+  # BLOCK 4: verify — 部署后验证（对应清单 4.2）
+  # ════════════════════════════════════════════════════════════
+    - name: "【verify】部署后验证"
+      tags: [verify]
+      block:
+        - name: 等待 app-server 端口就绪
+          ansible.builtin.wait_for:
+            host: "{{ app_host }}"
+            port: "{{ app_port }}"
+            delay: "{{ health_check_delay }}"
+            retries: "{{ health_check_retries }}"
+            timeout: 10
+
+        - name: 验证关键模块可导入（对应清单 3.1）
+          ansible.builtin.command: >
+            {{ venv_path }}/bin/python -c
+            "from agent.config_validation import SEARCH_INSTANCE_VALIDATION_RULES, validate_dict_against_rules; print('import OK')"
+          args:
+            chdir: "{{ deploy_path }}"
+          changed_when: false
+          become_user: "{{ deploy_user }}"
+
+        - name: 验证 validate_search_instance 5 个用例（对应清单 4.2）
+          ansible.builtin.shell: |
+            set -e
+            {{ venv_path }}/bin/python - <<'PYEOF'
+            from agent.server_routes.routes_config import validate_search_instance
+            cases = [
+                ({'name':'test','engine_type':'tavily','timeout':30}, [], '合法配置'),
+                ({'engine_type':'tavily'}, ['名称不能为空'], '空名称'),
+                ({'name':'test','engine_type':'tavily','timeout':500}, ['超时必须在 1-300 秒之间'], '超时范围'),
+                ({'name':'test','engine_type':'unknown_engine'}, ['未知的内置引擎类型'], '未知引擎'),
+                ({'name':'test','engine_type':'custom'}, ['自定义引擎必须提供 API 端点 URL'], '自定义引擎端点'),
+            ]
+            failed = 0
+            for cfg, expect, name in cases:
+                errors = validate_search_instance(cfg)
+                ok = (all(any(e in err for err in errors) for e in expect)
+                      if expect else (len(errors) == 0))
+                print(f"  {'PASS' if ok else 'FAIL'}: {name}")
+                if not ok:
+                    print(f"    期望 {expect}, 实际 {errors}")
+                    failed += 1
+            assert failed == 0, f"{failed} 个用例失败"
+            print("validate_search_instance: 5/5 PASS")
+            PYEOF
+          args:
+            chdir: "{{ deploy_path }}"
+            executable: /bin/bash
+          changed_when: false
+          become_user: "{{ deploy_user }}"
+
+        - name: 验证 HTTP /metrics 端点可达
+          ansible.builtin.command: >
+            {{ venv_path }}/bin/python -c
+            "import urllib.request; r=urllib.request.urlopen('http://{{ app_host }}:{{ app_port }}/metrics', timeout=5);
+            assert r.status==200; print('/metrics OK, bytes=', len(r.read()))"
+          args:
+            chdir: "{{ deploy_path }}"
+          changed_when: false
+          become_user: "{{ deploy_user }}"
+
+        - name: 验证 config_metrics_exporter 端口 9101 可达
+          ansible.builtin.command: >
+            {{ venv_path }}/bin/python -c
+            "import urllib.request; r=urllib.request.urlopen('http://127.0.0.1:{{ metrics_exporter_port }}/', timeout=5);
+            print('metrics exporter OK, status=', r.status)"
+          args:
+            chdir: "{{ deploy_path }}"
+          changed_when: false
+          become_user: "{{ deploy_user }}"
+
+        - name: "运行 config.yaml 篡改降级验证（守不易: 6 场景不抛异常）"
+          ansible.builtin.command: >
+            {{ venv_path }}/bin/python scripts/verify_config_tamper.py
+          args:
+            chdir: "{{ deploy_path }}"
+          changed_when: false
+          become_user: "{{ deploy_user }}"
+
+        - name: 部署验证全部通过
+          ansible.builtin.debug:
+            msg: "✅ 部署验证通过: import + 5 用例 + /metrics + 9101 + 篡改降级"
+
+  # ════════════════════════════════════════════════════════════
+  # BLOCK 5: rollback — 回滚（对应清单 5.1, 需显式 --tags rollback 触发）
+  # ════════════════════════════════════════════════════════════
+    - name: "【rollback】回滚到指定 commit"
+      tags: [rollback]
+      when: rollback_to is defined
+      block:
+        - name: 显示回滚目标
+          ansible.builtin.debug:
+            msg: "回滚 {{ deploy_path }} 到 {{ rollback_to }} (部署前: {{ pre_deploy_commit | default('N/A') }})"
+
+        - name: git reset 到目标 commit
+          ansible.builtin.command: "git reset --hard {{ rollback_to }}"
+          args:
+            chdir: "{{ deploy_path }}"
+          become_user: "{{ deploy_user }}"
+
+        - name: 重装依赖（requirements 可能变化）
+          ansible.builtin.pip:
+            requirements: "{{ deploy_path }}/requirements.txt"
+            virtualenv: "{{ venv_path }}"
+          become_user: "{{ deploy_user }}"
+
+        - name: 重启服务
+          ansible.builtin.systemd:
+            name: "{{ app_service_name }}"
+            state: restarted
+
+        - name: 回滚完成提示
+          ansible.builtin.debug:
+            msg: "✅ 已回滚到 {{ rollback_to }}, 服务已重启。如需撤销回滚: -e rollback_to={{ pre_deploy_commit | default('HEAD') }}"
+
+  # ════════════════════════════════════════════════════════════
+  # Handlers
+  # ════════════════════════════════════════════════════════════
+  handlers:
+    - name: systemd daemon-reload
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: reload prometheus
+      ansible.builtin.systemd:
+        name: prometheus
+        state: reloaded
+      ignore_errors: true  # 目标机未装 prometheus 时容忍

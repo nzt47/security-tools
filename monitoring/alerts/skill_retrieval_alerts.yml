@@ -1,0 +1,242 @@
+# Prometheus 告警规则 — RRF 检索性能保障
+#
+# 生成时间: 2026-07-30
+# 适用场景: 5000+ 技能规模下 RRF 融合检索 P99 延迟监控与降级触发
+# 降级方案: candidate_limit=200 候选集截断 + query embedding LRU 缓存
+#
+# 部署方式:
+#   1. 将此文件复制到 Prometheus rules 目录
+#   2. 在 prometheus.yml 中添加 rule_files 引用
+#   3. 重载 Prometheus: curl -X POST http://localhost:9090/-/reload
+#
+# 前序文档: docs/RRF_PRODUCTION_DEGRADATION_PLAN.md
+
+groups:
+  # ═══════════════════════════════════════════════════════════════
+  #  Group 1: P99 延迟告警 — 核心实时性保障
+  # ═══════════════════════════════════════════════════════════════
+  - name: skill_retrieval_latency_alerts
+    interval: 30s
+    rules:
+      # ── P99 超标告警（Warning 级别）──
+      # 触发条件: P99 > 45ms 持续 5 分钟
+      # 建议操作: 启用 candidate_limit=200 降级
+      - alert: SkillMatchP99High
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(skill_match_latency_ms_bucket[5m])) by (le)
+          ) > 45
+        for: 5m
+        labels:
+          severity: warning
+          team: skill-platform
+          runbook: docs/RRF_PRODUCTION_DEGRADATION_PLAN.md
+        annotations:
+          summary: "技能检索 P99 延迟超标 ({{ $value }}ms > 45ms)"
+          description: |
+            RRF 融合检索 P99 延迟持续超标，建议启用降级方案:
+            1. 设置 SKILLS_CANDIDATE_LIMIT=200
+            2. 重启服务生效
+            3. 观察降级后 P99 是否回落至 35ms 以下
+          dashboard: "https://grafana.example.com/d/skill-retrieval"
+
+      # ── P99 严重超标告警（Critical 级别）──
+      # 触发条件: P99 > 60ms 持续 2 分钟
+      # 建议操作: 立即人工介入 + 检查是否有异常 query
+      - alert: SkillMatchP99Critical
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(skill_match_latency_ms_bucket[5m])) by (le)
+          ) > 60
+        for: 2m
+        labels:
+          severity: critical
+          team: skill-platform
+          runbook: docs/RRF_PRODUCTION_DEGRADATION_PLAN.md
+        annotations:
+          summary: "技能检索 P99 延迟严重超标 ({{ $value }}ms > 60ms)"
+          description: |
+            P99 延迟严重超标，需立即介入:
+            1. 检查是否有异常长 query 或突发流量
+            2. 确认 candidate_limit=200 是否已启用
+            3. 若已降级仍超标，考虑临时关闭向量检索（use_vector=False）
+            4. 联系 oncall 工程师
+
+      # ── P99 恢复通知（Info 级别）──
+      # 触发条件: 降级后 P99 < 35ms 持续 10 分钟
+      # 建议操作: 可考虑关闭降级恢复正常模式
+      - alert: SkillMatchP99Recovered
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(skill_match_latency_ms_bucket[5m])) by (le)
+          ) < 35
+        for: 10m
+        labels:
+          severity: info
+          team: skill-platform
+        annotations:
+          summary: "技能检索 P99 延迟已恢复正常 ({{ $value }}ms < 35ms)"
+          description: |
+            P99 延迟持续 10 分钟低于 35ms，可考虑:
+            1. 若已启用 candidate_limit=200，可评估关闭降级
+            2. 将 SKILLS_CANDIDATE_LIMIT 改回 0
+            3. 观察是否仍维持实时性
+
+  # ═══════════════════════════════════════════════════════════════
+  #  Group 2: candidate_limit 降级监控
+  # ═══════════════════════════════════════════════════════════════
+  - name: skill_candidate_limit_alerts
+    interval: 30s
+    rules:
+      # ── candidate_limit 截断频率过高 ──
+      # 触发条件: 5 分钟内截断次数 > 1000
+      # 影响: 大量候选集被截断，可能丢失有效匹配
+      - alert: CandidateLimitTruncationHigh
+        expr: |
+          increase(tfidf_scan_candidate_limit_applied_total[5m]) > 1000
+        for: 5m
+        labels:
+          severity: warning
+          team: skill-platform
+        annotations:
+          summary: "candidate_limit 截断频率过高 ({{ $value }}次/5min)"
+          description: |
+            5 分钟内 candidate_limit 截断超过 1000 次:
+            1. 检查是否有异常流量（如批量查询）
+            2. 考虑提高 candidate_limit 至 300-500
+            3. 或优化技能元数据质量（减少低质量匹配）
+
+      # ── candidate_limit 截断比例过高 ──
+      # 触发条件: 截断候选数 / 总候选数 > 50%
+      # 影响: 超过一半候选被丢弃，精度损失显著
+      - alert: CandidateLimitTruncationRatioHigh
+        expr: |
+          sum(rate(tfidf_scan_candidate_truncated_total[5m]))
+          /
+          sum(rate(tfidf_scan_candidate_total_total[5m]))
+          > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          team: skill-platform
+        annotations:
+          summary: "candidate_limit 截断比例过高 ({{ $value | humanizePercentage }})"
+          description: |
+            超过 50% 的候选集被截断，精度损失显著:
+            1. 检查技能规模是否超过 10000
+            2. 考虑启用分片检索（按领域分片）
+            3. 或升级到 BM25 替代 TF-IDF
+
+      # ── 降级模式未启用但 P99 超标 ──
+      # 触发条件: candidate_limit=0（未降级）且 P99 > 45ms
+      - alert: DegradationNotEnabledButP99High
+        expr: |
+          (skill_candidate_limit_current == 0)
+          and
+          (histogram_quantile(0.99,
+            sum(rate(skill_match_latency_ms_bucket[5m])) by (le)
+          ) > 45)
+        for: 3m
+        labels:
+          severity: warning
+          team: skill-platform
+        annotations:
+          summary: "P99 超标但降级模式未启用"
+          description: |
+            P99 延迟超标但 candidate_limit=0（未降级）:
+            1. 立即设置 SKILLS_CANDIDATE_LIMIT=200
+            2. 重启服务生效
+            3. 预期 P99 从 ~45ms 降至 ~30ms
+
+  # ═══════════════════════════════════════════════════════════════
+  #  Group 3: LRU 缓存监控
+  # ═══════════════════════════════════════════════════════════════
+  - name: skill_query_cache_alerts
+    interval: 30s
+    rules:
+      # ── LRU 缓存命中率低 ──
+      # 触发条件: 命中率 < 30% 持续 10 分钟
+      # 影响: query 重复率低，缓存收益有限
+      - alert: QueryCacheHitRateLow
+        expr: query_cache_hit_rate < 30
+        for: 10m
+        labels:
+          severity: info
+          team: skill-platform
+        annotations:
+          summary: "query embedding LRU 缓存命中率低 ({{ $value }}%)"
+          description: |
+            LRU 缓存命中率低于 30%，query 重复率低:
+            1. 检查是否有异常多样化 query（如爬虫/自动化）
+            2. 考虑缩小缓存容量（128 → 64）减少内存占用
+            3. 或保持现状（缓存对低重复率场景收益有限）
+
+      # ── LRU 缓存命中率恢复 ──
+      # 触发条件: 命中率 > 70% 持续 10 分钟
+      - alert: QueryCacheHitRateHealthy
+        expr: query_cache_hit_rate > 70
+        for: 10m
+        labels:
+          severity: info
+          team: skill-platform
+        annotations:
+          summary: "query embedding LRU 缓存运行良好 ({{ $value }}%)"
+          description: "缓存命中率 > 70%，LRU 缓存有效减少 BGE-m3 推理开销"
+
+      # ── LRU 缓存未命中激增 ──
+      # 触发条件: 5 分钟内未命中 > 500
+      # 影响: 可能是冷启动或 query 模式突变
+      - alert: QueryCacheMissesSpike
+        expr: increase(query_cache_misses_total[5m]) > 500
+        for: 5m
+        labels:
+          severity: warning
+          team: skill-platform
+        annotations:
+          summary: "query embedding 缓存未命中激增 ({{ $value }}次/5min)"
+          description: |
+            5 分钟内缓存未命中超过 500 次:
+            1. 检查是否有冷启动（进程重启后缓存为空）
+            2. 检查是否有 query 模式突变（新业务上线）
+            3. 若持续激增，考虑扩大缓存容量（128 → 256）
+
+  # ═══════════════════════════════════════════════════════════════
+  #  Group 4: 倒排索引健康监控
+  # ═══════════════════════════════════════════════════════════════
+  - name: skill_inverted_index_alerts
+    interval: 30s
+    rules:
+      # ── 倒排索引构建异常 ──
+      # 触发条件: 1 小时内构建次数 > 10（正常应仅启动时构建 1 次）
+      - alert: InvertedIndexRebuildFrequent
+        expr: increase(inverted_index_built_total[1h]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: skill-platform
+        annotations:
+          summary: "倒排索引频繁重建 ({{ $value }}次/小时)"
+          description: |
+            倒排索引在 1 小时内重建超过 10 次:
+            1. 检查是否有频繁的技能增删操作
+            2. 检查 _meta_index 是否被异常刷新
+            3. 正常情况仅进程启动时构建 1 次
+
+      # ── 倒排索引未启用 ──
+      # 触发条件: use_inverted_index=0 且数据量 > 2000
+      - alert: InvertedIndexNotEnabled
+        expr: |
+          (skill_use_inverted_index == 0)
+          and
+          (skill_total_count > 2000)
+        for: 5m
+        labels:
+          severity: warning
+          team: skill-platform
+        annotations:
+          summary: "倒排索引未启用但技能规模较大 ({{ $labels.instance }})"
+          description: |
+            技能数量超过 2000 但倒排索引未启用:
+            1. 检查配置 SKILLS_USE_INVERTED_INDEX 是否为 true
+            2. 未启用时 TF-IDF 路 O(n) 全量遍历，P99 可能超标
+            3. 预期启用后 P99 降低 2-3 倍

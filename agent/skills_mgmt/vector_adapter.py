@@ -31,6 +31,7 @@ import json
 import logging
 import re
 import threading
+from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Tuple
 
 from .file_store import SkillFileStore
@@ -119,6 +120,19 @@ class SkillVectorAdapter:
         self._indexed_skill_ids: set = set()  # 已索引的技能 ID（用于增量同步）
         self._lock = threading.Lock()
         self._index_built = False
+        # 【变易】query embedding LRU 缓存 — 高频重复 query 跳过 BGE-m3 推理（5-10ms → 0ms）
+        # 缓存 key: query 文本, value: 归一化向量 (dim=1024,)
+        # 与 _st_backend 绑定：模型切换时调用 _invalidate_query_cache() 清空
+        self._query_cache: OrderedDict[str, Any] = OrderedDict()
+        self._query_cache_maxsize: int = 128  # LRU 容量，可配
+        self._query_cache_hits: int = 0       # 命中计数（可观测性）
+        self._query_cache_misses: int = 0     # 未命中计数
+        # 【变易】per-key 锁 — 解决 Thundering herd 问题
+        # 多线程同时请求同一未缓存 query 时，仅一个线程执行 model.encode
+        # 其他线程等待 per-key 锁后走 double-checked locking 直接取缓存
+        self._per_key_locks: Dict[str, threading.Lock] = {}
+        self._per_key_locks_maxsize: int = 256  # 略大于 query_cache 防过早清理
+        self._thundering_herd_avoided: int = 0  # 被 per-key 锁避免的重复推理次数
 
     # ──────────────────────────────────────────────
     #  索引构建
@@ -313,14 +327,55 @@ class SkillVectorAdapter:
         - 首次调用：构建全量索引
         - 后续调用：增量同步（仅索引新增的技能）
         - force=True：强制重建全量索引
+        - 维度不匹配：自动重建（模型切换/升级时保护）
 
         Returns: 已索引的技能数量
         """
         vs = self._ensure_vector_store()
         if vs is None:
+            logger.info(json.dumps({
+                "module_name": "vector_adapter",
+                "action": "ensure_indexed.skipped_no_backend",
+                "reason": "vector_store unavailable",
+            }, ensure_ascii=False))
             return 0
 
         with self._lock:
+            # [不易] 维度校验 — 模型切换/升级导致维度不一致时重建索引
+            # 场景：persist_dir 中残留旧维度向量，但 model_name 已变更
+            # 策略：检测到不一致则清空内存索引，触发全量重建（不报错）
+            if self._st_backend is not None:
+                model, doc_ids, doc_vectors, doc_metas = self._st_backend
+                if len(doc_vectors) > 0:
+                    try:
+                        expected_dim = model.get_sentence_embedding_dimension()
+                        actual_dim = int(doc_vectors.shape[1])
+                        if actual_dim != expected_dim:
+                            logger.warning(json.dumps({
+                                "module_name": "vector_adapter",
+                                "action": "dimension_mismatch_rebuild",
+                                "expected": expected_dim,
+                                "actual": actual_dim,
+                                "model": self.model_name,
+                            }, ensure_ascii=False))
+                            self._st_backend = (model, [], [], [])
+                            self._indexed_skill_ids.clear()
+                            self._index_built = False
+                        else:
+                            logger.info(json.dumps({
+                                "module_name": "vector_adapter",
+                                "action": "ensure_indexed.dim_check_ok",
+                                "expected": expected_dim,
+                                "actual": actual_dim,
+                                "doc_count": len(doc_ids),
+                            }, ensure_ascii=False))
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning(json.dumps({
+                            "module_name": "vector_adapter",
+                            "action": "dimension_check_failed",
+                            "error": str(e)[:200],
+                        }, ensure_ascii=False))
+
             index = self.fs.load_metadata_index()
             current_ids = set(index.keys())
 
@@ -332,7 +387,20 @@ class SkillVectorAdapter:
             new_ids = current_ids - self._indexed_skill_ids
             if not new_ids and self._index_built:
                 # 无新增，跳过
+                logger.info(json.dumps({
+                    "module_name": "vector_adapter",
+                    "action": "ensure_indexed.no_new_skills",
+                    "indexed_count": len(self._indexed_skill_ids),
+                }, ensure_ascii=False))
                 return len(self._indexed_skill_ids)
+
+            logger.info(json.dumps({
+                "module_name": "vector_adapter",
+                "action": "ensure_indexed.building",
+                "new_skill_count": len(new_ids),
+                "already_indexed": len(self._indexed_skill_ids),
+                "total_in_repo": len(current_ids),
+            }, ensure_ascii=False))
 
             # 批量构建向量文本并添加
             items_to_add = []
@@ -413,12 +481,287 @@ class SkillVectorAdapter:
             self._index_built = True
             count = len(self._indexed_skill_ids)
 
+            logger.info(json.dumps({
+                "module_name": "vector_adapter",
+                "action": "ensure_indexed.done",
+                "newly_indexed": len(new_ids),
+                "total_indexed": count,
+                "backend": "st_backend" if self._st_backend is not None
+                           else ("native_chroma" if self._native_chroma is not None
+                                 else "vector_store"),
+            }, ensure_ascii=False))
+
             emit_metric(
                 "yunshu_skill_vector_index_count",
                 value=count, kind="gauge",
                 labels={"success": "true"},
             )
             return count
+
+    # ──────────────────────────────────────────────
+    #  增量更新（skill.md 变更钩子触发）
+    # ──────────────────────────────────────────────
+
+    def upsert(self, skill_id: str) -> bool:
+        """增量更新单个技能的向量（由 SkillFileStore 写入钩子触发）
+
+        策略（DELETE+INSERT 模拟 upsert，参考 project_memory 教训）:
+            1. 刷新 meta 索引读最新 skill.md
+            2. 若 skill 已被删除 → 清理残留向量后返回 False
+            3. 否则删除旧向量 → 调用 ensure_indexed 自动添加新向量
+
+        Args:
+            skill_id: 技能 ID
+
+        Returns:
+            True 表示成功更新；False 表示后端不可用或 skill 已不存在
+
+        【不易】不破坏 _st_backend 元组结构 (model, doc_ids, doc_vectors, doc_metas)
+        【变易】同时支持 _st_backend / _native_chroma 两种后端；VectorStore 模式
+               由 ensure_indexed 全量重建兜底
+        【简易】复用 ensure_indexed 的添加逻辑，避免重复实现
+        """
+        vs = self._ensure_vector_store()
+        if vs is None:
+            logger.info(json.dumps({
+                "module_name": "vector_adapter",
+                "action": "upsert.skipped_no_backend",
+                "skill_id": skill_id,
+            }, ensure_ascii=False))
+            return False
+
+        logger.info(json.dumps({
+            "module_name": "vector_adapter",
+            "action": "upsert.start",
+            "skill_id": skill_id,
+            "backend": "st_backend" if self._st_backend is not None
+                       else ("native_chroma" if self._native_chroma is not None
+                             else "vector_store"),
+        }, ensure_ascii=False))
+
+        # 刷新 meta 索引，确保读到最新 skill.md（钩子由 file_store 锁外触发，
+        # 此刻 skill.md 已落盘，load_metadata_index(refresh=True) 可读到最新内容）
+        index = self.fs.load_metadata_index(refresh=True)
+        if skill_id not in index:
+            # skill 已被删除 → 清理索引中的残留向量
+            self._remove_skill_vector(skill_id)
+            logger.info(json.dumps({
+                "module_name": "vector_adapter",
+                "action": "upsert.skill_deleted_cleaned",
+                "skill_id": skill_id,
+            }, ensure_ascii=False))
+            return False
+
+        # 先删除旧向量（若存在），再让 ensure_indexed 增量添加新向量
+        self._remove_skill_vector(skill_id)
+        self.ensure_indexed()
+
+        updated = skill_id in self._indexed_skill_ids
+        logger.info(json.dumps({
+            "module_name": "vector_adapter",
+            "action": "upsert." + ("ok" if updated else "failed"),
+            "skill_id": skill_id,
+            "indexed_count": len(self._indexed_skill_ids),
+        }, ensure_ascii=False))
+        return updated
+
+    def _remove_skill_vector(self, skill_id: str) -> None:
+        """从索引中删除单个技能的向量（DELETE+INSERT 的 DELETE 部分）
+
+        三路后端分别处理:
+            - _st_backend: numpy 数组 + 列表同步移除
+            - _native_chroma: collection.delete(ids=[...])
+            - _indexed_skill_ids: discard，让 ensure_indexed 重新添加
+
+        【不易】_st_backend 元组结构不变，只替换 doc_ids/doc_vectors/doc_metas 内容
+        【简易】单 skill 移除是 O(N)，N=技能数（百级），可接受
+        """
+        with self._lock:
+            # _st_backend 模式：numpy 数组 + 列表移除
+            if self._st_backend is not None:
+                model, doc_ids, doc_vectors, doc_metas = self._st_backend
+                if skill_id in doc_ids:
+                    try:
+                        import numpy as np
+                        idx = doc_ids.index(skill_id)
+                        doc_ids.pop(idx)
+                        doc_metas.pop(idx)
+                        if len(doc_vectors) > 1:
+                            doc_vectors = np.delete(doc_vectors, idx, axis=0)
+                        else:
+                            # 最后一个：清空为 0 行数组，保留列数
+                            doc_vectors = np.empty((0, doc_vectors.shape[1]))
+                        self._st_backend = (model, doc_ids, doc_vectors, doc_metas)
+                        logger.info(json.dumps({
+                            "module_name": "vector_adapter",
+                            "action": "remove_skill.st_backend.ok",
+                            "skill_id": skill_id,
+                            "remaining_docs": len(doc_ids),
+                        }, ensure_ascii=False))
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning(json.dumps({
+                            "module_name": "vector_adapter",
+                            "action": "remove_skill.st_backend.failed",
+                            "skill_id": skill_id,
+                            "error": str(e)[:200],
+                        }, ensure_ascii=False))
+
+            # _native_chroma 模式：collection.delete
+            if self._native_chroma is not None:
+                try:
+                    _, collection = self._native_chroma
+                    collection.delete(ids=[f"skill_{skill_id}"])
+                    logger.info(json.dumps({
+                        "module_name": "vector_adapter",
+                        "action": "remove_skill.native_chroma.ok",
+                        "skill_id": skill_id,
+                    }, ensure_ascii=False))
+                except Exception as e:  # noqa: BLE001
+                    logger.warning(json.dumps({
+                        "module_name": "vector_adapter",
+                        "action": "remove_skill.native_chroma.failed",
+                        "skill_id": skill_id,
+                        "error": str(e)[:200],
+                    }, ensure_ascii=False))
+
+            # 从已索引集合移除（让 ensure_indexed 重新添加）
+            self._indexed_skill_ids.discard(skill_id)
+
+    # ──────────────────────────────────────────────
+    #  查询编码
+    # ──────────────────────────────────────────────
+
+    def _get_per_key_lock(self, query: str) -> threading.Lock:
+        """获取 query 专属锁（per-key lock，避免 Thundering herd）
+
+        【不易】每个 query 有独立锁，不影响不同 query 的并发
+        【变易】超容量时清理最旧的锁（仅从字典移除，不影响已持有的锁对象）
+        【简易】dict + threading.Lock，无第三方依赖
+        """
+        with self._lock:
+            if query not in self._per_key_locks:
+                self._per_key_locks[query] = threading.Lock()
+                # 超容量清理：移除最早的锁（不影响已持有的锁对象，仅从字典删除）
+                while len(self._per_key_locks) > self._per_key_locks_maxsize:
+                    oldest_key = next(iter(self._per_key_locks))
+                    self._per_key_locks.pop(oldest_key)
+            return self._per_key_locks[query]
+
+    def _encode_query_cached(self, query: str) -> Optional[Any]:
+        """编码 query 为归一化向量（带 LRU 缓存 + per-key 锁防 Thundering herd）
+
+        【不易】编码方式与 encode_query 完全一致（normalize_embeddings=True）
+        【变易】LRU 缓存高频 query + per-key 锁防 Thundering herd
+               多线程同时请求同一未缓存 query 时，仅一个线程执行 model.encode
+        【简易】double-checked locking 模式，逻辑清晰
+
+        缓存策略（三阶段）:
+        1. 快速路径: self._lock 检查缓存，命中则直接返回
+        2. per-key 锁: 未命中时获取 query 专属锁，防止重复推理
+        3. double-check: 获取锁后再次检查缓存（可能已被其他线程填充）
+
+        Args:
+            query: 用户查询文本
+        Returns:
+            归一化向量 (dim=1024,)，或 None（后端不可用/编码失败）
+        """
+        if self._st_backend is None:
+            return None
+
+        # ── 阶段 1: 快速路径（缓存命中检查）──
+        with self._lock:
+            if query in self._query_cache:
+                self._query_cache.move_to_end(query)
+                self._query_cache_hits += 1
+                return self._query_cache[query]
+            # 【不易】未命中计数在锁内执行，避免 += 竞态导致计数偏低
+            self._query_cache_misses += 1
+
+        # ── 阶段 2: per-key 锁（避免 Thundering herd）──
+        # 多线程同时请求同一 query 时，仅第一个线程执行 model.encode
+        # 其他线程等待锁释放后走 double-check 直接取缓存
+        per_key_lock = self._get_per_key_lock(query)
+        with per_key_lock:
+            # ── 阶段 3: double-checked locking ──
+            # 获取锁后再次检查缓存（可能已被其他线程填充）
+            with self._lock:
+                if query in self._query_cache:
+                    self._query_cache.move_to_end(query)
+                    self._thundering_herd_avoided += 1
+                    return self._query_cache[query]
+
+            # 仍然未命中：执行 model.encode（持 per-key 锁，不持 self._lock）
+            try:
+                model, _, _, _ = self._st_backend
+                vec = model.encode(
+                    [query], normalize_embeddings=True,
+                    show_progress_bar=False,
+                )[0]
+
+                # 存入缓存（线程安全）
+                with self._lock:
+                    self._query_cache[query] = vec
+                    # LRU 淘汰：超容量时删除最久未使用
+                    while len(self._query_cache) > self._query_cache_maxsize:
+                        self._query_cache.popitem(last=False)
+
+                return vec
+            except Exception as e:  # noqa: BLE001
+                logger.warning(json.dumps({
+                    "module_name": "vector_adapter",
+                    "action": "encode_query.failed",
+                    "error": str(e)[:300],
+                }, ensure_ascii=False))
+                return None
+
+    def _invalidate_query_cache(self) -> None:
+        """清空 query embedding 缓存 + per-key 锁（模型切换/索引重建时调用）"""
+        with self._lock:
+            evicted = len(self._query_cache)
+            self._query_cache.clear()
+            self._per_key_locks.clear()
+            self._query_cache_hits = 0
+            self._query_cache_misses = 0
+            self._thundering_herd_avoided = 0
+        if evicted > 0:
+            logger.info(json.dumps({
+                "module_name": "vector_adapter",
+                "action": "query_cache.invalidated",
+                "evicted": evicted,
+            }, ensure_ascii=False))
+
+    def get_query_cache_stats(self) -> Dict[str, Any]:
+        """获取 query embedding 缓存统计（可观测性）"""
+        with self._lock:
+            total = self._query_cache_hits + self._query_cache_misses
+            hit_rate = (self._query_cache_hits / total * 100) if total > 0 else 0.0
+            return {
+                "size": len(self._query_cache),
+                "maxsize": self._query_cache_maxsize,
+                "hits": self._query_cache_hits,
+                "misses": self._query_cache_misses,
+                "hit_rate": round(hit_rate, 2),
+                "per_key_locks": len(self._per_key_locks),
+                "thundering_herd_avoided": self._thundering_herd_avoided,
+            }
+
+    def encode_query(self, query: str) -> Optional[Any]:
+        """编码 query 为 BGE-m3 归一化向量（供 NegativeIntentDetector 使用）
+
+        复用 _st_backend 的 SentenceTransformer 模型，编码方式与
+        _search_sentence_transformers 完全一致，保证相似度计算无失真。
+
+        【不易】编码方式必须与 search 一致（normalize_embeddings=True）
+        【变易】带 LRU 缓存（_encode_query_cached），高频 query 跳过推理
+        【简易】委托 _encode_query_cached，单次调用
+
+        Args:
+            query: 用户查询文本
+
+        Returns:
+            归一化向量 (dim=1024,)，或 None（后端不可用/编码失败）
+        """
+        return self._encode_query_cached(query)
 
     # ──────────────────────────────────────────────
     #  搜索
@@ -471,12 +814,124 @@ class SkillVectorAdapter:
 
         # 延迟构建索引
         if not self._index_built:
+            logger.info(json.dumps({
+                "module_name": "vector_adapter",
+                "action": "search.lazy_build_index",
+                "query": query[:50],
+            }, ensure_ascii=False))
             self.ensure_indexed()
 
         vs = self._vector_store
         if vs is None:
             logger.warning("VectorStore unavailable, returning empty results")
             return []
+
+        logger.info(json.dumps({
+            "module_name": "vector_adapter",
+            "action": "search.start",
+            "query": query[:50],
+            "top_k": top_k,
+            "enabled_only": enabled_only,
+            "min_score": min_score,
+            "backend": "st_backend" if self._st_backend is not None
+                       else ("native_chroma" if self._native_chroma is not None
+                             else "vector_store"),
+        }, ensure_ascii=False))
+
+        # [变易] 2s 超时降级 — 模型 encode/向量计算卡住时返回空列表，
+        # 触发外层 SkillLoader 降级 TF-IDF（守任务防御性要求）
+        # Windows 兼容：signal.alarm 不适用，用 ThreadPoolExecutor.future.result(timeout=2)
+        return self._search_with_timeout(query, top_k, enabled_only, min_score)
+
+    # 向量检索默认超时（秒）— 超过则降级为空列表 → 外层 TF-IDF fallback
+    _SEARCH_TIMEOUT_SECONDS = 2.0
+
+    def _search_with_timeout(
+        self,
+        query: str,
+        top_k: int,
+        enabled_only: bool,
+        min_score: float,
+    ) -> List[Dict[str, Any]]:
+        """包裹实际查询逻辑，超时降级返回空列表
+
+        【不易】超时不抛异常，返回空列表让外层 SkillLoader 降级 TF-IDF
+        【变易】超时阈值通过 _SEARCH_TIMEOUT_SECONDS 类属性可配
+        【简易】ThreadPoolExecutor + future.result(timeout) 是 Windows 兼容的唯一方案
+               （signal.alarm 仅 Unix；线程池超时后工作线程继续跑但结果被丢弃）
+        """
+        import time as _time
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+
+        t0 = _time.time()
+        try:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(
+                    self._search_impl, query, top_k, enabled_only, min_score,
+                )
+                results = future.result(timeout=self._SEARCH_TIMEOUT_SECONDS)
+                elapsed_ms = (_time.time() - t0) * 1000
+                logger.info(json.dumps({
+                    "module_name": "vector_adapter",
+                    "action": "search.done",
+                    "query": query[:50],
+                    "result_count": len(results),
+                    "elapsed_ms": round(elapsed_ms, 2),
+                    "top1_skill_id": results[0]["skill_id"] if results else None,
+                    "top1_score": round(results[0]["score"], 4) if results else None,
+                }, ensure_ascii=False))
+                return results
+        except FutureTimeout:
+            logger.warning(json.dumps({
+                "module_name": "vector_adapter",
+                "action": "search.timeout_fallback",
+                "query": query[:50],
+                "timeout_seconds": self._SEARCH_TIMEOUT_SECONDS,
+                "fallback": "empty_list",
+            }, ensure_ascii=False))
+            return []
+        except Exception as e:  # noqa: BLE001
+            logger.warning(json.dumps({
+                "module_name": "vector_adapter",
+                "action": "search.exception_fallback",
+                "query": query[:50],
+                "error": str(e)[:200],
+                "fallback": "empty_list",
+            }, ensure_ascii=False))
+            return []
+
+    def _search_impl(
+        self,
+        query: str,
+        top_k: int,
+        enabled_only: bool,
+        min_score: float,
+    ) -> List[Dict[str, Any]]:
+        """实际查询逻辑（无超时保护，由 _search_with_timeout 包裹）
+
+        三路后端按优先级分发:
+            1. _st_backend（BGE-m3 + numpy）→ _search_sentence_transformers
+            2. _native_chroma（chromadb PersistentClient）→ _search_native_chroma
+            3. _vector_store（VectorStore fallback）→ vs.search + 后处理
+
+        【不易】从原 search 方法抽取，逻辑完全等价（向后兼容）
+        """
+        vs = self._vector_store
+
+        # 三路分发选择日志（排查"为什么走向量却没结果"的关键）
+        if self._st_backend is not None:
+            backend_chosen = "st_backend"
+        elif self._native_chroma is not None:
+            backend_chosen = "native_chroma"
+        else:
+            backend_chosen = "vector_store"
+        logger.info(json.dumps({
+            "module_name": "vector_adapter",
+            "action": "search_impl.dispatch",
+            "query": query[:50],
+            "backend": backend_chosen,
+            "indexed_count": len(self._indexed_skill_ids),
+        }, ensure_ascii=False))
 
         # ── BGE-m3 sentence-transformers 模式：自管理向量库 ──
         if self._st_backend is not None:
@@ -558,11 +1013,10 @@ class SkillVectorAdapter:
 
         try:
             import numpy as np
-            # 编码 query
-            q_vec = model.encode(
-                [query], normalize_embeddings=True,
-                show_progress_bar=False,
-            )[0]  # (dim,)
+            # 【变易】编码 query（带 LRU 缓存，高频 query 跳过 BGE-m3 推理）
+            q_vec = self._encode_query_cached(query)
+            if q_vec is None:
+                return []
 
             # 计算相似度（点积，已归一化）
             sims = doc_vectors @ q_vec  # (N,)
@@ -570,6 +1024,19 @@ class SkillVectorAdapter:
             # 取 top_k * 3 用于 enabled 过滤
             n_candidates = min(len(sims), top_k * 3)
             top_idx = np.argsort(-sims)[:n_candidates]
+
+            # 相似度计算结果日志（排查"为什么 top1 不是期望 skill"的关键）
+            top1_idx = int(top_idx[0]) if len(top_idx) > 0 else -1
+            logger.info(json.dumps({
+                "module_name": "vector_adapter",
+                "action": "st_backend.sims_computed",
+                "query": query[:50],
+                "doc_count": len(doc_ids),
+                "q_vec_dim": int(q_vec.shape[0]),
+                "top1_skill_id": doc_ids[top1_idx] if top1_idx >= 0 else None,
+                "top1_similarity": round(float(sims[top1_idx]), 4) if top1_idx >= 0 else None,
+                "candidates": n_candidates,
+            }, ensure_ascii=False))
         except Exception as e:  # noqa: BLE001
             logger.warning(json.dumps({
                 "module_name": "vector_adapter",

@@ -24,6 +24,7 @@ from .models import (
     Insight, ActionItem, KnowledgeFinding,
     LogCategory, LogLevel, LogEntry,
 )
+from agent.common.stop_mixin import StopMixin
 from .analyzer import LogAnalyzer
 from agent.logging_utils import log_dict
 
@@ -341,10 +342,15 @@ class ActionGenerator:
 # 内省引擎主类
 # ════════════════════════════════════════════════════════════
 
-class IntrospectionEngine:
-    """内省式学习引擎 — 组合空闲检测、分析、洞察提取、行动生成"""
+class IntrospectionEngine(StopMixin):
+    """内省式学习引擎 — 组合空闲检测、分析、洞察提取、行动生成
+
+    继承 StopMixin 统一线程优雅关闭范式 [TLM-AUDIT-002]：
+    stop_background_loop 内部调用 self.stop(timeout)，确保 join 等待线程退出。
+    """
 
     def __init__(self):
+        super().__init__()  # 初始化 StopMixin 的 _stop_event / _registered_threads
         self.idle_detector = IdleDetector()
         self.analyzer = LogAnalyzer()
         self.extractor = InsightExtractor()
@@ -459,22 +465,36 @@ class IntrospectionEngine:
             logger.warning(log_dict({'module_name': 'introspection', 'action': 'log', 'msg': '[Introspection] 后台循环已在运行'}))
             return
 
+        # 重置停止信号（支持重启场景）
+        self._stop_event.clear()
+
         def _loop():
             logger.info("[Introspection] 后台循环已启动，间隔 %d 秒", interval_seconds)
-            while True:
+            # [TLM-AUDIT-002] 用 _should_stop() 替代 while True，支持优雅关闭
+            while not self._should_stop():
                 try:
                     self.run_cycle()
                 except Exception as e:
                     logger.error("[Introspection] 后台循环异常: %s", e)
-                time.sleep(interval_seconds)
+                # 用 Event.wait 替代 time.sleep，stop 时立即唤醒（无需等到 interval 超时）
+                self._stop_event.wait(timeout=interval_seconds)
 
         self._thread = threading.Thread(target=_loop, daemon=True, name='introspection-loop')
         self._thread.start()
+        # [TLM-AUDIT-002] 注册到 StopMixin，stop() 时统一 join
+        self.register_thread(self._thread)
 
-    def stop_background_loop(self):
-        """停止后台循环"""
+    def stop_background_loop(self, timeout: float = 5.0) -> bool:
+        """停止后台循环（含 join 等待线程退出）
+
+        [TLM-AUDIT-002] 修复原实现仅置 None 不 join 的问题：
+        原实现线程内部 while True 无停止检查，进程退出时被强终止可能留下半完成状态。
+        现通过 StopMixin.stop() 设置 _stop_event + join(timeout) 确保线程优雅退出。
+        """
+        result = self.stop(timeout=timeout)
         self._thread = None
-        logger.info(log_dict({'module_name': 'introspection', 'action': 'log', 'msg': '[Introspection] 后台循环已停止'}))
+        logger.info(log_dict({'module_name': 'introspection', 'action': 'log', 'msg': f'[Introspection] 后台循环已停止 (joined={result})'}))
+        return result
 
     def get_status(self) -> dict:
         """获取内省引擎状态"""

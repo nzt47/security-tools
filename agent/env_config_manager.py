@@ -58,7 +58,7 @@ class EnvConfigManager:
         value = manager.get('LLM_API_KEY')     # 从 os.environ 读取
     """
 
-    def __init__(self, env_file_path: str | Path = None):
+    def __init__(self, env_file_path: str | Path | None = None):
         """初始化
 
         Args:
@@ -85,7 +85,7 @@ class EnvConfigManager:
         # 已存在文件可能由其他工具创建（如 vim touch），权限未必符合要求
         self._secure_file_permissions()
 
-    def get(self, key: str, default: str = None) -> str:
+    def get(self, key: str, default: str | None = None) -> str | None:
         """从环境变量读取配置值
 
         Args:
@@ -154,7 +154,7 @@ class EnvConfigManager:
         re.IGNORECASE
     )
 
-    def _mask_sensitive_value(self, key: str, value: str) -> str:
+    def _mask_sensitive_value(self, key: str, value: str | None) -> str | None:
         """脱敏敏感配置值
 
         规则:
@@ -190,7 +190,7 @@ class EnvConfigManager:
         logs_dir.mkdir(parents=True, exist_ok=True)
         return logs_dir / 'config_audit.jsonl'
 
-    def _audit_log(self, action: str, key: str, old_value: str, new_value: str):
+    def _audit_log(self, action: str, key: str, old_value: str | None, new_value: str | None):
         """写入配置变更审计日志
 
         Args:
@@ -405,3 +405,7 @@ def get_env_config_manager() -> EnvConfigManager:
     global _instance
     if _instance is None:
         _instance = EnvConfigManager()
+    # [mypy 窄化] _instance 全局声明为 EnvConfigManager | None，
+    # mypy 无法通过 if 窄化 global 变量类型，assert 显式收窄为 EnvConfigManager
+    assert _instance is not None
+    return _instance

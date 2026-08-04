@@ -228,9 +228,9 @@ jobs:
             docs/architecture/violation_events/
           retention-days: 30
 
-      # ── 自动提交依赖图文档（仅 main/master 分支 push）──
+      # ── 自动提交依赖图文档（main/master 分支 push 或手动触发）──
       - name: 提交依赖图文档
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

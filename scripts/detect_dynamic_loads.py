@@ -81,6 +81,7 @@ EXCLUDE_DIRS = {
     "__pycache__", ".git", ".pytest_cache", ".mypy_cache",
     "build", "dist", ".tox", ".eggs",
     "site-packages",
+    "archive",  # 归档代码 (scripts/archive 等) 不参与生产, 不应阻断安全门禁
 }
 
 

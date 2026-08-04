@@ -3,8 +3,8 @@
 > **文档日期**：2026-07-19
 > **安全等级**：P0（紧急）
 > **关联文档**：
-> - [DEEPSEEK_KEY_REVOKE_GUIDE.md](./DEEPSEEK_KEY_REVOKE_GUIDE.md)
-> - [BFG_CLEANUP_REPORT_20260719.md](./BFG_CLEANUP_REPORT_20260719.md)
+> - ~~DEEPSEEK_KEY_REVOKE_GUIDE.md~~ ⚠ (待确认)
+> - ~~BFG_CLEANUP_REPORT_20260719.md~~ ⚠ (待确认)
 > - 自动化脚本：[scripts/verify_key_revocation.ps1](../../scripts/verify_key_revocation.ps1)
 
 ---
@@ -391,8 +391,8 @@ notepad $latestReport.FullName
 
 - [DeepSeek API 官方文档](https://platform.deepseek.com/api-docs/)
 - [OpenAI API Keys 管理](https://platform.openai.com/api-keys)
-- 内部文档：[DEEPSEEK_KEY_REVOKE_GUIDE.md](./DEEPSEEK_KEY_REVOKE_GUIDE.md)
-- 内部文档：[BFG_CLEANUP_REPORT_20260719.md](./BFG_CLEANUP_REPORT_20260719.md)
+- 内部文档：~~DEEPSEEK_KEY_REVOKE_GUIDE.md~~ ⚠ (待确认)
+- 内部文档：~~BFG_CLEANUP_REPORT_20260719.md~~ ⚠ (待确认)
 - 自动化脚本：[scripts/verify_key_revocation.ps1](../../scripts/verify_key_revocation.ps1)
 
 ---

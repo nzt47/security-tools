@@ -1,0 +1,30 @@
+{
+  "test_name": "k8s_loadtest_baseline",
+  "timestamp": "2026-07-31T16:43:15.977Z",
+  "config": {
+    "scenario": "baseline",
+    "endpoint": "http://localhost:8080/match",
+    "namespace": "production",
+    "vus": 20,
+    "duration": "1m0s",
+    "target_qps": 100
+  },
+  "results": {
+    "total_requests": 5458,
+    "actual_qps": 90.66,
+    "latency_p50": 0,
+    "latency_p90": 25.82,
+    "latency_p95": 28.88,
+    "latency_p99": 43.32,
+    "latency_p99_source": "estimated_from_hpa_rate",
+    "latency_avg": 19.36,
+    "latency_max": 104.46,
+    "error_rate": 0,
+    "hpa_threshold_exceeded_rate": 0.007695126419934042,
+    "hpa_threshold_exceeded_count": 42,
+    "match_success": 5458,
+    "match_failure": 0
+  },
+  "thresholds": {},
+  "thresholds_all_passed": false
+}

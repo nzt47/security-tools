@@ -1,0 +1,30 @@
+{
+  "test_name": "k8s_loadtest_burst",
+  "timestamp": "2026-07-31T16:45:20.719Z",
+  "config": {
+    "scenario": "burst",
+    "endpoint": "http://localhost:8080/match",
+    "namespace": "production",
+    "vus": "stages",
+    "duration": "[{\"duration\":\"5s\",\"target\":10},{\"duration\":\"10s\",\"target\":40},{\"duration\":\"30s\",\"target\":40},{\"duration\":\"10s\",\"target\":20},{\"duration\":\"5s\",\"target\":0}]",
+    "target_qps": "variable"
+  },
+  "results": {
+    "total_requests": 8350,
+    "actual_qps": 139.12,
+    "latency_p50": 0,
+    "latency_p90": 25.32,
+    "latency_p95": 27.68,
+    "latency_p99": 41.52,
+    "latency_p99_source": "estimated_from_hpa_rate",
+    "latency_avg": 18.75,
+    "latency_max": 81.51,
+    "error_rate": 0,
+    "hpa_threshold_exceeded_rate": 0.002874251497005988,
+    "hpa_threshold_exceeded_count": 24,
+    "match_success": 8350,
+    "match_failure": 0
+  },
+  "thresholds": {},
+  "thresholds_all_passed": false
+}

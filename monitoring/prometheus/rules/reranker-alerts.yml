@@ -1,0 +1,257 @@
+# Prometheus Alert Rules — v6.5 ONNX Reranker 监控告警
+#
+# 适用版本: v6.5 ONNX 量化方案 (commit d7d2f5a1+)
+# 维护责任人: skills_mgmt 模块 owner
+# 挂载位置: monitoring/prometheus/rules/reranker-alerts.yml
+# 关联文档: docs/V65_ONNX_MONITORING_ALERTS.md
+#           docs/V65_ONNX_DEPLOYMENT_PLAYBOOK.md
+#
+# 告警分级:
+#   P0 (critical): 立即处理（5min 内响应，钉钉+Issue+邮件）
+#   P1 (warning):  15min 内响应（钉钉+Issue）
+#   P2 (info):     1h 内关注（钉钉）
+#
+# 指标来源 (agent/skills_mgmt/reranker.py emit_metric 埋点):
+#   - yunshu_rerank_duration_ms{backend,success}                 (histogram, rerank 耗时)
+#   - yunshu_reranker_load_total{backend,status,reason}          (counter, 加载次数)
+#   - yunshu_reranker_load_time_seconds{backend}                 (gauge, 加载耗时)
+#   - yunshu_reranker_fallback_total{from,to,reason}             (counter, 降级次数)
+#   - yunshu_reranker_completed_total{backend}                   (counter, 成功次数)
+#   - yunshu_reranker_predict_failed_total{backend}              (counter, 推理失败次数)
+#
+# 日志来源 (reranker.py JSON 日志，Loki/ELK 查询):
+#   action="onnx.loaded"            (L235)
+#   action="onnx.load_failed"       (L253)
+#   action="onnx.skip"              (L204/L219, reason=model_path_not_local_dir/onnx_file_not_found)
+#   action="onnx.fallback_to_pytorch" (L178)
+#   action="onnx.predict_failed"    (L561)
+#   action="pytorch.loaded"         (L300)
+#   action="pytorch.load_failed"    (L311)
+#   action="rerank.completed"       (L433)
+#   action="rerank.fallback"        (L381)
+#   action="rerank.disabled"        (L370)
+#
+# 验证命令:
+#   promtool check rules monitoring/prometheus/rules/reranker-alerts.yml
+#   promtool test rules test-reranker-alerts.yml
+#
+# SLO 基线 (实测数据):
+#   P99 延迟: 258ms (ONNX quantized)  → SLO 500ms (1.94x 裕度)
+#   加载耗时: 1.12s                   → 告警阈值 10s
+#   降级率:   0%                      → 告警阈值 10%
+#   推理失败率: 0%                    → 告警阈值 5%
+
+groups:
+  # ════════════════════════════════════════════════════════════
+  #  P0 级告警（critical）— 立即处理，5min SLA
+  # ════════════════════════════════════════════════════════════
+  - name: yunshu_reranker_p0
+    interval: 30s
+    rules:
+      # ── P0-1: ONNX 模型加载失败 ──
+      # 触发条件: 5min 内出现 onnx.load_failed
+      # 影响: 推理延迟可能从 258ms 飙升到 7960ms（30x 劣化）
+      - alert: RerankerOnnxLoadFailed
+        expr: increase(yunshu_reranker_load_total{backend="onnx",status="failed"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          level: P0
+          team: skills_mgmt
+          category: onnx-load-failure
+        annotations:
+          summary: "ONNX Reranker 模型加载失败"
+          description: |
+            ONNX 后端加载失败，已降级到 PyTorch。
+            影响: 推理延迟可能从 258ms 飙升到 7960ms（30x 劣化），可能触发 SLO 违规。
+            排查命令:
+              grep '"action":"onnx.load_failed"' logs/digital_life.log | tail -5
+              ls -lh $SKILL_RERANKER_MODEL/onnx/
+            响应: 参考 V65_ONNX_DEPLOYMENT_PLAYBOOK.md §4.2.1 切换 ONNX 变体
+          runbook_url: "https://github.com/nzt47/security-tools/blob/master/docs/V65_ONNX_DEPLOYMENT_PLAYBOOK.md"
+
+      # ── P0-2: 双后端全挂（ONNX + PyTorch 均失败）──
+      # 触发条件: 5min 内 ONNX 和 PyTorch 均加载失败
+      # 影响: reranker 完全失效，降级到 RRF 原始排序，P@3 下降 18.5%
+      - alert: RerankerAllBackendsDown
+        expr: |
+          increase(yunshu_reranker_load_total{backend="onnx",status="failed"}[5m]) > 0
+          and
+          increase(yunshu_reranker_load_total{backend="pytorch",status="failed"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          level: P0
+          team: skills_mgmt
+          category: dual-backend-failure
+        annotations:
+          summary: "Reranker 双后端全部失败，已降级到 RRF 原始排序"
+          description: |
+            ONNX 和 PyTorch 后端均加载失败，reranker 完全失效。
+            当前所有 rerank 调用降级为 RRF 排序（无 Cross-Encoder 精排）。
+            影响: P@3 精度预期下降 18.5%，用户体验劣化。
+            紧急操作:
+              1. 检查模型文件: ls -lh $SKILL_RERANKER_MODEL/onnx/
+              2. 临时关闭 reranker: SKILL_RERANKER_ENABLED=false（避免日志噪声）
+              3. 排查系统资源: 是否 OOM/磁盘满
+            响应: 参考 V65_ONNX_DEPLOYMENT_PLAYBOOK.md §4.2.3
+          runbook_url: "https://github.com/nzt47/security-tools/blob/master/docs/V65_ONNX_DEPLOYMENT_PLAYBOOK.md"
+
+  # ════════════════════════════════════════════════════════════
+  #  P1 级告警（warning）— 15min 内响应
+  # ════════════════════════════════════════════════════════════
+  - name: yunshu_reranker_p1
+    interval: 30s
+    rules:
+      # ── P1-1: P99 延迟超过 SLO（500ms）──
+      # 基线: 258ms；SLO: 500ms；持续 5min 超阈值才告警（避免毛刺）
+      # 【误报防护】增加最小样本数保护: 5min 内至少 150 次请求（0.5 req/s）
+      # 避免低流量时段单次慢请求导致 P99 飙升误报
+      - alert: RerankerP99LatencySLOBreach
+        expr: |
+          histogram_quantile(0.99, sum(rate(yunshu_rerank_duration_ms_bucket[5m])) by (le)) > 500
+          and
+          sum(rate(yunshu_rerank_duration_ms_count[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          level: P1
+          team: skills_mgmt
+          category: latency-slo-breach
+        annotations:
+          summary: "Reranker P99 延迟 {{ $value }}ms 超过 500ms SLO"
+          description: |
+            当前 P99 延迟: {{ $value }}ms（SLO: 500ms，基线: 258ms）。
+            可能原因:
+              1. ONNX 降级到 PyTorch（检查 onnx.fallback_to_pytorch 日志）
+              2. CPU 负载过高（检查 system load）
+              3. batch_size 异常增大（检查 candidate_count 分布）
+              4. 模型文件损坏导致 retry 风暴
+            排查命令:
+              grep '"action":"onnx.fallback_to_pytorch"' logs/digital_life.log | tail -20
+              grep '"action":"rerank.completed"' logs/digital_life.log | jq '.duration_ms' | sort -n | tail -10
+
+      # ── P1-2: P99 延迟突增（相对 1h 前基线 2 倍以上）──
+      # 捕获"未超 SLO 但异常增长"的趋势，提前预警性能劣化
+      # 【误报防护 1】冷启动保护: 1h 前基线必须有流量（offset 1h count > 0.5）
+      #   避免服务刚启动时 1h 前基线为 0 导致 2*0=0 任何 P99>300 都触发
+      # 【误报防护 2】低流量保护: 当前 5min 内至少 150 次请求
+      #   避免低流量时段 P99 分位数不稳定
+      - alert: RerankerP99LatencySpike
+        expr: |
+          histogram_quantile(0.99, sum(rate(yunshu_rerank_duration_ms_bucket[5m])) by (le)) >
+          2 * histogram_quantile(0.99, sum(rate(yunshu_rerank_duration_ms_bucket[5m] offset 1h)) by (le))
+          and
+          histogram_quantile(0.99, sum(rate(yunshu_rerank_duration_ms_bucket[5m])) by (le)) > 300
+          and
+          sum(rate(yunshu_rerank_duration_ms_count[5m] offset 1h)) > 0.5
+          and
+          sum(rate(yunshu_rerank_duration_ms_count[5m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          level: P1
+          team: skills_mgmt
+          category: latency-spike
+        annotations:
+          summary: "Reranker P99 延迟突增（相对 1h 基线 2 倍以上）"
+          description: |
+            当前 P99: {{ $value }}ms，相对 1 小时前基线翻倍且超过 300ms 警戒线。
+            常见诱因:
+              - CPU 频率降频（笔记本省电模式）
+              - 其他进程争抢 CPU
+              - ONNX Runtime 内存碎片化（长稳压测显示 1000 次迭代 RSS 增量 -0.01MB）
+
+      # ── P1-3: ONNX 推理失败率 > 5% ──
+      # 【误报防护】增加最小样本数: 5min 内至少 60 次请求（completed + failed > 1 req/s）
+      # 避免低流量时 1 次失败就超过 5% 误报
+      - alert: RerankerOnnxPredictFailureRateHigh
+        expr: |
+          sum(rate(yunshu_reranker_predict_failed_total[5m]))
+          /
+          (sum(rate(yunshu_reranker_completed_total[5m])) + sum(rate(yunshu_reranker_predict_failed_total[5m])))
+          > 0.05
+          and
+          (sum(rate(yunshu_reranker_completed_total[5m])) + sum(rate(yunshu_reranker_predict_failed_total[5m]))) > 1
+        for: 5m
+        labels:
+          severity: warning
+          level: P1
+          team: skills_mgmt
+          category: predict-failure-rate
+        annotations:
+          summary: "ONNX 推理失败率 {{ $value | humanizePercentage }}（阈值 5%）"
+          description: |
+            ONNX 推理失败率持续超过 5%，可能原因:
+              - ONNX 模型文件部分损坏（load 成功但 predict 失败）
+              - 输入数据格式异常（tokenizer 输出与模型输入不匹配）
+              - 内存不足导致推理中断
+            排查: grep '"action":"onnx.predict_failed"' logs/digital_life.log | tail -20
+
+      # ── P1-4: rerank 降级率 > 10% ──
+      # 注: reranker.disabled（手动关闭）不计入降级率，仅统计 fallback
+      # 【误报防护】增加最小样本数: 5min 内至少 60 次请求
+      # 避免低流量时 1 次降级就超过 10% 误报
+      - alert: RerankerFallbackRateHigh
+        expr: |
+          sum(rate(yunshu_reranker_fallback_total[5m]))
+          /
+          (sum(rate(yunshu_reranker_completed_total[5m])) + sum(rate(yunshu_reranker_fallback_total[5m])))
+          > 0.10
+          and
+          (sum(rate(yunshu_reranker_completed_total[5m])) + sum(rate(yunshu_reranker_fallback_total[5m]))) > 1
+        for: 10m
+        labels:
+          severity: warning
+          level: P1
+          team: skills_mgmt
+          category: fallback-rate
+        annotations:
+          summary: "Reranker 降级率 {{ $value | humanizePercentage }}（阈值 10%）"
+          description: |
+            降级率持续超过 10%，意味着 10% 的查询未走 Cross-Encoder 精排。
+            影响: 整体排序质量下降，但功能可用。
+            响应: 参考 V65_ONNX_DEPLOYMENT_PLAYBOOK.md §4 故障排查
+
+  # ════════════════════════════════════════════════════════════
+  #  P2 级告警（info）— 1h 内关注
+  # ════════════════════════════════════════════════════════════
+  - name: yunshu_reranker_p2
+    interval: 1m
+    rules:
+      # ── P2-1: ONNX 配置错误（model_path_not_local_dir / onnx_file_not_found）──
+      - alert: RerankerOnnxConfigError
+        expr: increase(yunshu_reranker_load_total{backend="onnx",status="skipped"}[1h]) > 0
+        for: 1m
+        labels:
+          severity: info
+          level: P2
+          team: skills_mgmt
+          category: config-error
+        annotations:
+          summary: "ONNX 跳过：{{ $labels.reason }}"
+          description: |
+            原因: {{ $labels.reason }}
+              - path_not_local_dir: SKILL_RERANKER_MODEL 指向 HF 仓库 ID 而非本地路径
+              - file_not_found: onnx/<variant> 文件不存在
+            当前已降级到 PyTorch，但性能劣化 30x。
+            修复: 检查 .env 中 SKILL_RERANKER_MODEL 和 SKILL_RERANKER_ONNX_VARIANT
+
+      # ── P2-2: ONNX 加载耗时过长 ──
+      # 基线: 1.12s；告警阈值: 10s
+      - alert: RerankerOnnxLoadSlow
+        expr: yunshu_reranker_load_time_seconds{backend="onnx"} > 10
+        for: 5m
+        labels:
+          severity: info
+          level: P2
+          team: skills_mgmt
+          category: slow-load
+        annotations:
+          summary: "ONNX 加载耗时 {{ $value }}s（基线 1.12s）"
+          description: |
+            ONNX 模型加载耗时异常，可能原因:
+              - 磁盘 I/O 慢（HDD 读取 266MB 模型）
+              - 模型文件碎片化
+              - 首次加载需 mmap，后续应缓存
+            注: 此告警仅在进程重启后触发，常驻进程不影响。

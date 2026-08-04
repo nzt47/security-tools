@@ -102,5 +102,5 @@ task_scheduler.py 57%    →   85%      →   100%   →   +43% ↑↑↑
 
 - [最终覆盖率验收报告](final_coverage_acceptance_report.md) - 完整数据
 - [周报总结](weekly_report_summary.md) - 简洁版
-- [浏览器状态泄漏 Bug 修复总结](docs/browser_state_leak_bugfix_summary.md)
-- [README 测试章节](README.md#三大核心模块-80-覆盖率)
+- ~~浏览器状态泄漏 Bug 修复总结~~ ⚠ (待确认)
+- ~~README 测试章节~~ ⚠ (文件缺失)

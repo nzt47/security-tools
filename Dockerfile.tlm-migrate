@@ -1,0 +1,20 @@
+# TLM 迁移服务 Dockerfile
+# 基于 Python 3.12 + sqlite-vec
+FROM python:3.12-slim
+
+LABEL description="TLM P3+P4 迁移服务：JSON TEXT → BLOB + vec0 索引重建"
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    sqlite3 \
+    bash \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 Python 依赖
+RUN pip install --no-cache-dir sqlite-vec>=0.1.9
+
+# 工作目录
+WORKDIR /app
+
+# 默认入口（由 docker-compose 覆盖）
+CMD ["echo", "TLM migrate service. Use docker-compose to run."]

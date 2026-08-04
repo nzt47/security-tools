@@ -168,6 +168,35 @@ def is_whitelisted_value(value: str) -> bool:
     return False
 
 
+# 【不易】代码语法误报特征：PASSWORD 匹配值含这些 PowerShell/Shell 代码结构时为误报
+# 真实密码值不会含 cmdlet 名/运算符，用于排除变量名匹配语法被误判为硬编码密码
+# 2026-08-01 修复：verify_monitoring_setup.ps1 的 $_ -match "^GLITCHTIP_ADMIN_PASSWORD="
+# 被旧正则误判（PASSWORD=" 后跟代码片段），详见 PR #77 / Issue #78
+_CODE_INDICATORS = (
+    'Select-Object',
+    'Where-Object',
+    'ForEach-Object',
+    'Invoke-',
+    '-replace',
+    '-match',
+    '$_',
+)
+
+
+def is_code_context(matched_text: str) -> bool:
+    """检查 PASSWORD 匹配值是否含代码结构（变量名匹配语法误报）
+
+    解决场景：PowerShell 的 ``$_ -match`` 语句匹配形如
+    ``GLITCHTIP_ADMIN_PASSWORD`` 的变量名时，变量名后缀紧跟赋值符号与引号，
+    被旧正则误判为硬编码密码。误报匹配值含 cmdlet/运算符
+    （Select-Object/-replace/$_ 等），真实密码值不会含这些代码结构。
+
+    【不易】仅对 PASSWORD 类别生效，不影响 API_KEY/PRIVATE_KEY/DB_URL 检测
+    【简易】特征选用密码中不会出现的 cmdlet 名，避免漏检真实密码
+    """
+    return any(indicator in matched_text for indicator in _CODE_INDICATORS)
+
+
 def scan_file(filepath: Path) -> list:
     """扫描单个文件，返回敏感信息匹配列表
 
@@ -196,6 +225,9 @@ def scan_file(filepath: Path) -> list:
                 matched_text = match.group()
                 # 白名单值跳过
                 if is_whitelisted_value(matched_text):
+                    continue
+                # 排除代码语法误报：PASSWORD 匹配值含 cmdlet/运算符时跳过
+                if category == 'PASSWORD' and is_code_context(matched_text):
                     continue
                 findings.append((line_no, category, desc, matched_text))
 

@@ -2,7 +2,7 @@
 
 > **文档日期**：2026-07-19
 > **安全等级**：P0（紧急）
-> **关联文档**：[BFG_CLEANUP_REPORT_20260719.md](./BFG_CLEANUP_REPORT_20260719.md)
+> **关联文档**：~~BFG_CLEANUP_REPORT_20260719.md~~ ⚠ (待确认)
 
 ---
 
@@ -395,4 +395,4 @@ git log --all --format='%ae' | sort -u
 ---
 
 > **文档生成时间**：2026-07-19
-> **关联操作**：BFG 历史清理（详见 [BFG_CLEANUP_REPORT_20260719.md](./BFG_CLEANUP_REPORT_20260719.md)）
+> **关联操作**：BFG 历史清理（详见 ~~BFG_CLEANUP_REPORT_20260719.md~~ ⚠ (待确认)）

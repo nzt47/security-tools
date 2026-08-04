@@ -214,9 +214,9 @@ alert_config = AlertConfig(
 ## 📚 相关文档
 
 1. [测试管理方案详细文档](./TEST_MANAGEMENT_PLAN.md) - 完整的方案说明
-2. [测试系统使用指南](./tests/README.md) - 快速上手
-3. [pytest配置参考](./pytest.ini) - 配置详解
-4. [测试用例设计规范](./tests/TEST_CASE_DESIGN_GUIDELINES.py) - 设计原则
+2. ~~测试系统使用指南~~ ⚠ (待确认) - 快速上手
+3. ~~pytest配置参考~~ ⚠ (待确认) - 配置详解
+4. ~~测试用例设计规范~~ ⚠ (待确认) - 设计原则
 
 ## ⚠️ 后续工作
 

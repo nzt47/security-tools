@@ -162,3 +162,45 @@ test_results/
 
 # SQLite3 数据库文件（运行时,不入库）
 *.sqlite3
+
+# === tlm-hook-failsafe 构建产物（2026-07-30）===
+# .nuspec / .nupkg 由 publish-to-local-repo.ps1 / publish-to-psgallery.ps1 动态生成
+# 真相源 = .psd1（元数据）+ .psm1（同步自 scripts/dev/hook_fail_safe.psm1）
+packages/tlm-hook-failsafe/tlm-hook-failsafe.nuspec
+packages/tlm-hook-failsafe/*.nupkg
+
+# 临时/备份/测试产物（2026-08-01 追加）
+.tmp-nodejs-ci-sim/
+.tmp-guard-commit/
+.env.backups/
+.github/workflows/backups/
+*.bak
+*.bak.*
+l2_perf_report.png
+coverage_report/
+
+# 临时标记文件 + 调试产物（2026-08-01 追加）
+applied.txt
+completed.txt
+fb.txt
+init.txt
+scripts/_tmp_*.txt
+
+# 嵌套 Git 仓库 + 构建产物 + 自动生成报告（2026-08-01 追加）
+# security-tools/ 是独立的 nzt47/security-tools 仓库，禁止作为子目录提交
+security-tools/
+# Python 包构建产物
+packages/*/dist/
+# 性能测试运行时产物（由 bench_sqlite_vs_etcd.py / gen_perf_trend.py 生成）
+# 注意: perf_baseline.json 和 perf_history/run_*.json 由 CI workflow 提交，不能忽略
+# perf_report_latest.json 是最新一次运行报告，每次变化，不提交
+scripts/perf_history/__pycache__/
+scripts/perf_report_latest.json
+# 自动生成的覆盖率 HTML（由 generate_coverage_html_report.py 生成）
+docs/coverage_report.html
+# 自动生成的性能图表（由 gen_perf_trend.py 生成，保留 .md 手写文档）
+# 例外: perf_trend_*.png 由 CI workflow 提交，需要跟踪
+docs/perf-charts/*.png
+!docs/perf-charts/perf_trend_*.png
+# 自动生成的性能报告
+PERFORMANCE_REPORT_sqlite_vs_etcd.md

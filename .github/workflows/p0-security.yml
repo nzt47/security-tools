@@ -28,6 +28,7 @@ on:
   push:
     branches:
       - main
+      - master
       - develop
       - 'phase2-**'
       - 'release/**'
@@ -45,6 +46,7 @@ on:
   pull_request:
     branches:
       - main
+      - master
       - develop
     paths:
       - 'agent/error_reporting_config.py'
@@ -78,10 +80,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -105,10 +107,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -148,7 +150,7 @@ jobs:
 
       - name: 上传测试结果
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: p0-security-test-results
           path: test_reports/
@@ -163,10 +165,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -221,7 +223,7 @@ jobs:
           echo "=== 验证 P0 测试用例数量 ==="
           # 安装依赖（不抑制错误，确保 pytest 可用且测试模块可导入）
           python -m pip install --upgrade pip
-          pip install pytest -q
+          pip install pytest pytest-timeout -q
           pip install -e . 2>&1 | tail -3 || echo "警告: pip install -e . 失败，尝试仅用 pytest 收集"
 
           # 收集测试并统计数量（兼容不同 pytest 版本输出格式）
@@ -271,10 +273,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -292,7 +294,7 @@ jobs:
             tests/regression/test_p0_security_fix.py::TestLoggingUtilsGreedyRegexRegression \
             tests/regression/test_p0_security_fix.py::TestLoggingUtilsBearerTokenRegression \
             tests/regression/test_p0_security_fix.py::TestSensitiveDataFilterGreedyRegexRegression \
-            tests/regression/test_p0_security_fix.py::TestSensitiveDataFilterBearerTokenRegression \
+            tests/regression/test_p0_security_fix.py::TestSensitiveDataFilterBearerRegression \
             -v --tb=short --timeout=300
           echo "=== 跨模块一致性验证通过 ==="
 

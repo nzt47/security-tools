@@ -1,0 +1,677 @@
+{
+  "_comment": "【意图层 Semantic 埋点解析监控】可视化 promtail 解析出的 6 个字段：metric_total / layer_counts / skill_id / top1_score / instruction_len / instruction_loaded。数据源为 Loki（promtail 输出规范化行：semantic[total=...][skill=...][score=...][instr_len=...][loaded=...][layers={...}]），labels: action / instruction_loaded / job。",
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "可视化 promtail pipeline 解析的 semantic 埋点 6 字段：metric_total 分母值 / layer_counts 各层计数 / skill_id 命中技能 / top1_score 相似度 / instruction_len 指令长度 / instruction_loaded 加载状态。关联配置：deploy/k8s/promtail-structured-log.yaml",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "title": "埋点触发速率（semantic.metric_total）",
+      "description": "sum(rate({action=\"orchestrator.semantic.metric_total\"}[$__rate_interval])) — 语义层埋点每秒触发次数",
+      "type": "timeseries",
+      "id": 1,
+      "datasource": {
+        "type": "loki",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "$datasource"
+          },
+          "expr": "sum(rate({job=\"yunshu-orchestrator\", action=\"orchestrator.semantic.metric_total\"}[$__rate_interval]))",
+          "legendFormat": "rate",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "events/s",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "title": "metric_total 分母值（字段 1）",
+      "description": "avg_over_time(unwrap total) — 语义埋点记录的 total 分母，用于验证分母同步（应等于 layer_counts 各层总和）",
+      "type": "timeseries",
+      "id": 2,
+      "datasource": {
+        "type": "loki",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "$datasource"
+          },
+          "expr": "sum(avg_over_time({job=\"yunshu-orchestrator\", action=\"orchestrator.semantic.metric_total\"} | regexp \"semantic\\\\[total=(?P<total>[0-9.]+)\" | unwrap total [$__interval]))",
+          "legendFormat": "total",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "count",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "title": "layer_counts 各层计数（字段 2）",
+      "description": "按层 unwrap layers JSON 字典对应字段（rule/semantic/llm/reject/template/llm_error/llm_low_confidence_fallback）。分母同步不变量：各层之和应等于 metric_total",
+      "type": "timeseries",
+      "id": 3,
+      "datasource": {
+        "type": "loki",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "$datasource"
+          },
+          "expr": "sum(sum_over_time({job=\"yunshu-orchestrator\", action=\"orchestrator.semantic.metric_total\"} | regexp \"\\\"rule\\\":\\\\s*(?P<rule>\\\\d+)\" | unwrap rule [$__interval]))",
+          "legendFormat": "rule",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "$datasource"
+          },
+          "expr": "sum(sum_over_time({job=\"yunshu-orchestrator\", action=\"orchestrator.semantic.metric_total\"} | regexp \"\\\"semantic\\\":\\\\s*(?P<semantic>\\\\d+)\" | unwrap semantic [$__interval]))",
+          "legendFormat": "semantic",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "$datasource"
+          },
+          "expr": "sum(sum_over_time({job=\"yunshu-orchestrator\", action=\"orchestrator.semantic.metric_total\"} | regexp \"\\\"llm\\\":\\\\s*(?P<llm>\\\\d+)\" | unwrap llm [$__interval]))",
+          "legendFormat": "llm",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "$datasource"
+          },
+          "expr": "sum(sum_over_time({job=\"yunshu-orchestrator\", action=\"orchestrator.semantic.metric_total\"} | regexp \"\\\"reject\\\":\\\\s*(?P<reject>\\\\d+)\" | unwrap reject [$__interval]))",
+          "legendFormat": "reject",
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "$datasource"
+          },
+          "expr": "sum(sum_over_time({job=\"yunshu-orchestrator\", action=\"orchestrator.semantic.metric_total\"} | regexp \"\\\"template\\\":\\\\s*(?P<template>\\\\d+)\" | unwrap template [$__interval]))",
+          "legendFormat": "template",
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "$datasource"
+          },
+          "expr": "sum(sum_over_time({job=\"yunshu-orchestrator\", action=\"orchestrator.semantic.metric_total\"} | regexp \"\\\"llm_error\\\":\\\\s*(?P<llm_error>\\\\d+)\" | unwrap llm_error [$__interval]))",
+          "legendFormat": "llm_error",
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "$datasource"
+          },
+          "expr": "sum(sum_over_time({job=\"yunshu-orchestrator\", action=\"orchestrator.semantic.metric_total\"} | regexp \"\\\"llm_low_confidence_fallback\\\":\\\\s*(?P<llm_low_confidence_fallback>\\\\d+)\" | unwrap llm_low_confidence_fallback [$__interval]))",
+          "legendFormat": "llm_low_confidence_fallback",
+          "refId": "G"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "count",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "title": "instruction_loaded 分布（字段 6）",
+      "description": "按 label instruction_loaded 分组计数（true/false），验证加载状态解析与 label 提取",
+      "type": "piechart",
+      "id": 4,
+      "datasource": {
+        "type": "loki",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "$datasource"
+          },
+          "expr": "sum by (instruction_loaded) (count_over_time({job=\"yunshu-orchestrator\", action=\"orchestrator.semantic.metric_total\"}[$__interval]))",
+          "legendFormat": "{{instruction_loaded}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [
+            {
+              "options": {
+                "false": {
+                  "color": "red",
+                  "index": 1,
+                  "text": "加载失败"
+                },
+                "true": {
+                  "color": "green",
+                  "index": 0,
+                  "text": "加载成功"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "displayLabels": [
+          "name",
+          "value",
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "title": "top1_score 均值（字段 4）",
+      "description": "avg_over_time(unwrap score) — 语义层 top1 相似度均值，辅助判断检索质量（低于 0.3 触发误召回判定）",
+      "type": "timeseries",
+      "id": 5,
+      "datasource": {
+        "type": "loki",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "$datasource"
+          },
+          "expr": "sum(avg_over_time({job=\"yunshu-orchestrator\", action=\"orchestrator.semantic.metric_total\"} | regexp \"\\\\[score=(?P<score>[0-9.]+)\" | unwrap score [$__interval]))",
+          "legendFormat": "top1_score",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "score",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.3
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "title": "instruction_len 趋势（字段 5）",
+      "description": "max_over_time(unwrap instr_len) — 指令长度最大值，用于发现超长指令引发的性能/超时风险",
+      "type": "timeseries",
+      "id": 6,
+      "datasource": {
+        "type": "loki",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "$datasource"
+          },
+          "expr": "sum(max_over_time({job=\"yunshu-orchestrator\", action=\"orchestrator.semantic.metric_total\"} | regexp \"\\\\[instr_len=(?P<instr_len>\\\\d+)\" | unwrap instr_len [$__interval]))",
+          "legendFormat": "instr_len",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "chars",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "gradientMode": "none",
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      }
+    },
+    {
+      "title": "低分 skill 异常日志（skill_id / top1_score < 0.3）",
+      "description": "过滤 top1_score < 0.3 的命中日志，展示 skill_id 与 score，辅助误召回排查（字段 3/4）",
+      "type": "logs",
+      "id": 7,
+      "datasource": {
+        "type": "loki",
+        "uid": "$datasource"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "$datasource"
+          },
+          "expr": "{job=\"yunshu-orchestrator\", action=\"orchestrator.semantic.metric_total\"} | regexp \"semantic\\\\[total=(?P<total>[0-9.]+)\\\\]\\\\[skill=(?P<skill>\\\\S+)\\\\]\\\\[score=(?P<score>[0-9.]+)\" | score < 0.3 | line_format \"skill={{.skill}} | score={{.score}} | {{__line__}}\"",
+          "legendFormat": "{{skill}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "text",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": [
+    "yunshu",
+    "intent-layer",
+    "semantic",
+    "loki",
+    "promtail"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "label": "数据源",
+        "hide": 0,
+        "query": "loki",
+        "current": {
+          "text": "Loki",
+          "value": "Loki"
+        },
+        "description": "Loki 数据源（promtail 推送的语义埋点日志）"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "意图层 Semantic 埋点解析监控",
+  "uid": "intent-layer-semantic",
+  "version": 1,
+  "weekStart": ""
+}

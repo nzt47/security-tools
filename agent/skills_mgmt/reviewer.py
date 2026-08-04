@@ -100,8 +100,10 @@ class DuplicateDetector:
 # 安全规则 — 灵感来源: 项目 dangerous_commands.json + OWASP Top 10
 _SECURITY_PATTERNS: List[Dict[str, Any]] = [
     # 命令注入 / 危险 shell
+    # 注: fork bomb ":(){" 以非单词字符 ':' 开头，置于 \b 组合内将永远无法命中
+    #     （\b 要求词边界），因此独立为无边界分支，避免安全漏报。
     {"id": "SEC_CMD_INJECTION", "severity": "critical",
-     "pattern": re.compile(r"\b(?:rm\s+-rf\s+/|mkfs|dd\s+if=|:()\{\s*:\|:&\s*\};:)", re.I),
+     "pattern": re.compile(r"\b(?:rm\s+-rf\s+/|mkfs|dd\s+if=)|:\(\)\{\s*:\|:&\s*\};:", re.I),
      "msg": "危险 shell 命令 (rm -rf / fork bomb 等)"},
     {"id": "SEC_EVAL", "severity": "error",
      "pattern": re.compile(r"\b(?:eval|exec)\s*\(", re.I),

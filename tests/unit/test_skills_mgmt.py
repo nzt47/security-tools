@@ -400,23 +400,26 @@ class TestRetrievalExtension:
         assert d["matches"][0]["score_breakdown"] is None
 
     def test_match_accepts_extension_params(self, svc, caplog):
-        """传入 use_vector=True 等扩展参数不报错，并记录 warning 日志"""
+        """传入 use_vector/use_bm25 等扩展参数不报错，优雅降级返回有效结果
+
+        【变易】use_bm25 已实现（触发 rrf 融合），不再记录 extension_not_implemented warning；
+                向量后端不可用时降级 tfidf+bm25，仍返回有效 MatchResult。
+                use_reranker 需真模型，由 test_reranker.py 独立覆盖，此处不引入。
+        """
         svc.create_manual(_make_skill_data(name="ext-skill", description="邮件处理"))
         loader = svc.loader
 
         with caplog.at_level(logging.WARNING, logger="agent.skills_mgmt"):
             result = loader.match("邮件", use_vector=True, use_bm25=True,
-                                   use_reranker=True,
                                    retrieval_weights={"tfidf": 0.2, "vector": 0.8})
 
-        # 应在 WARNING 日志中找到扩展点未实现的记录
-        found_warning = False
+        # use_bm25 已实现，不应再出现 extension_not_implemented 警告
         for record in caplog.records:
-            if "match.extension_not_implemented" in record.getMessage():
-                found_warning = True
-                break
-        assert found_warning, "未记录扩展点未实现的 warning"
-        # 仍应返回有效 MatchResult（降级 TF-IDF）
+            assert "extension_not_implemented" not in record.getMessage(), (
+                "use_bm25 已实现，不应记录 extension_not_implemented warning"
+            )
+        # 仍应返回有效 MatchResult（向量后端不可用时降级 tfidf+bm25 或 tfidf）
+        # 注：svc 用 JSON store，loader.file_store 用默认 repo，可能无匹配但不报错
         assert isinstance(result, MatchResult)
 
     def test_match_fallback_flag_when_vector_requested(self, svc):
@@ -453,6 +456,136 @@ class TestRetrievalExtension:
         sm = health["scale_monitoring"]
         assert sm["total_skills"] == 30
         assert sm["upgrade_recommended"] is True, "技能数达 30 应触发升级建议"
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  7.5 BM25 自动升级 RRF 融合的降级链路测试
+# ═══════════════════════════════════════════════════════════════════
+
+class TestBM25AutoUpgradeRRF:
+    """BM25 自动升级 RRF 融合的降级链路测试
+
+    验证 use_bm25=True 时的完整降级契约（loader.py:288-289 自动升级逻辑）：
+    1. fusion_mode "none" → "rrf" 自动升级
+    2. 向量路不可用（SKILLS_OFFLINE）→ tfidf+bm25 降级
+    3. 三路均空 → 返回 None 触发外层 TF-IDF 兜底
+
+    【不易】降级链路不可破坏：use_bm25=True 必须走 RRF，向量路失败必须降级
+    【变易】SKILLS_OFFLINE 下向量路被 block，验证降级路径正确性
+    【简易】直接写 skill.md 文件，确保技能数据对 loader 可见（svc fixture 的
+            JSON store 与 loader.file_store 不共享数据，需独立构造）
+    """
+
+    @pytest.fixture
+    def loader_with_skills(self, tmp_path):
+        """构建含技能数据的 SkillLoader（skill.md 文件对 loader 可见）
+
+        与 svc fixture 不同：直接写 skill.md 到 file_store 的 repo 目录，
+        确保 loader.match 能通过 file_store.load_metadata_index 读取到技能。
+        """
+        import yaml
+        from agent.skills_mgmt.file_store import SkillFileStore
+
+        repo = tmp_path / "skills_repo"
+        repo.mkdir()
+
+        skills = [
+            {
+                "id": "email-helper", "name": "邮件助手",
+                "description": "处理邮件收发和回复",
+                "category": "communication", "tags": ["email"],
+                "version": "1.0.0", "enabled": True,
+            },
+            {
+                "id": "code-reviewer", "name": "代码审查",
+                "description": "审查代码质量和规范",
+                "category": "engineering", "tags": ["code"],
+                "version": "1.0.0", "enabled": True,
+            },
+        ]
+        for skill in skills:
+            skill_dir = repo / skill["id"]
+            skill_dir.mkdir()
+            yaml_block = yaml.safe_dump(
+                skill, allow_unicode=True, sort_keys=False
+            ).strip()
+            body = f"# {skill['name']}\n\n{skill['description']}技能使用说明。"
+            (skill_dir / "skill.md").write_text(
+                f"---\n{yaml_block}\n---\n\n{body}", encoding="utf-8"
+            )
+
+        file_store = SkillFileStore(repo_path=str(repo))
+        return SkillLoader(file_store=file_store)
+
+    def test_bm25_auto_upgrades_to_rrf(self, loader_with_skills):
+        """use_bm25=True 时 fusion_mode 自动升级为 "rrf"，走 RRF 融合路径
+
+        【不易】loader.py:288-289 use_bm25=True 必须触发 fusion_mode="rrf"，
+                retrieval_method 应为 "rrf"（而非 tfidf）
+        """
+        result = loader_with_skills.match("邮件", use_bm25=True, top_k=5)
+
+        assert isinstance(result, MatchResult)
+        assert result.retrieval_method == "rrf", (
+            f"use_bm25=True 应自动升级为 rrf，实际 {result.retrieval_method}"
+        )
+        # TF-IDF 路应命中 email-helper，RRF 融合后保留
+        assert len(result.matches) > 0, "RRF 融合应返回匹配结果"
+        assert result.matches[0].skill_id == "email-helper"
+
+    def test_bm25_rrf_vector_unavailable_degrades(self, loader_with_skills, caplog):
+        """向量路不可用（SKILLS_OFFLINE）时，RRF 降级到 tfidf+bm25
+
+        【不易】向量路 BM25 fallback 检测（loader.py:1064-1074）必须将 adapter 置 None，
+                触发 rrf.vector_unavailable_bm25_fallback 降级日志
+        【变易】SKILLS_OFFLINE block sentence_transformers → _st_backend=None → 降级
+        """
+        with caplog.at_level(logging.INFO, logger="agent.skills_mgmt"):
+            result = loader_with_skills.match(
+                "邮件", use_bm25=True, use_vector=True, top_k=5
+            )
+
+        assert isinstance(result, MatchResult)
+        # 向量路不可用时应记录降级日志（INFO 级别）
+        log_text = " ".join(r.getMessage() for r in caplog.records)
+        assert (
+            "rrf.vector_unavailable_bm25_fallback" in log_text
+            or "rrf.vector.skipped_bm25_fallback" in log_text
+        ), "向量路不可用时应记录降级日志"
+
+    def test_bm25_without_vector_triggers_rrf(self, loader_with_skills):
+        """use_bm25=True + use_vector=False 也触发 RRF 融合
+
+        【不易】loader.py:300: (use_vector or use_bm25) → use_bm25 单独即可触发 RRF，
+                无需 use_vector=True
+        """
+        result = loader_with_skills.match(
+            "邮件", use_bm25=True, use_vector=False, top_k=5
+        )
+
+        assert isinstance(result, MatchResult)
+        assert result.retrieval_method == "rrf", (
+            f"use_bm25=True 单独应触发 rrf，实际 {result.retrieval_method}"
+        )
+        assert len(result.matches) > 0
+        assert result.matches[0].skill_id == "email-helper"
+
+    def test_bm25_rrf_empty_query_degrades_to_tfidf(self, loader_with_skills):
+        """三路均空时 RRF 返回 None，外层降级到 TF-IDF 单路
+
+        【不易】loader.py:1152: 三路均空 → return None → 外层 fallback_used=True
+        【简易】用不存在的关键词确保三路均无匹配
+        """
+        # "zzzxxx" 不匹配任何技能元数据，TF-IDF/BM25/向量三路均空
+        result = loader_with_skills.match(
+            "zzzxxx", use_bm25=True, top_k=5
+        )
+
+        assert isinstance(result, MatchResult)
+        # 三路均空 → RRF 返回 None → 外层降级 TF-IDF → fallback_used=True
+        assert result.fallback_used is True, (
+            "三路均空时应降级到 TF-IDF，fallback_used 应为 True"
+        )
 
 
 # ═══════════════════════════════════════════════════════════════════

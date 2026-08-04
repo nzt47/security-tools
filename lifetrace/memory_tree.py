@@ -105,15 +105,22 @@ class MemoryTree:
     def _save_tree(self):
         """保存记忆树到磁盘"""
         try:
+            # 【不易】并发安全: 先取快照再迭代。add_node 等写路径与
+            # MemoryRetriever 读路径可跨线程并发 (TraceRecorder.record_chat 持锁,
+            # 但 retrieve 无锁), 直接迭代 self.nodes 的活视图会抛
+            # "dictionary changed size during iteration" (CI Shard4 3.12
+            # test_concurrent_access 复现)。list(dict.items()) 在 GIL 下单次
+            # C 调用内完成拷贝, 不会中途感知到其他线程的写入。
+            nodes_snapshot = list(self.nodes.items())
             index = {
                 "root_id": self.root_id,
-                "nodes": list(self.nodes.keys()),
+                "nodes": [nid for nid, _ in nodes_snapshot],
                 "updated_at": datetime.now().isoformat(),
             }
             with open(self.data_dir / "index.json", "w", encoding="utf-8") as f:
                 json.dump(index, f, ensure_ascii=False, indent=2)
 
-            for node_id, node in self.nodes.items():
+            for node_id, node in nodes_snapshot:
                 with open(self._get_node_path(node_id), "w", encoding="utf-8") as f:
                     json.dump(node.to_dict(), f, ensure_ascii=False, indent=2)
 
@@ -162,21 +169,26 @@ class MemoryTree:
 
     def search_by_tag(self, tag: str) -> List[MemoryNode]:
         """按标签搜索"""
-        return [node for node in self.nodes.values() if tag in node.tags]
+        # 【不易】list(values()) GIL 原子快照: 见 _save_tree 注释, 避免与写路径
+        # 并发迭代时抛 "dictionary changed size during iteration"
+        nodes = list(self.nodes.values())
+        return [node for node in nodes if tag in node.tags]
 
     def search_by_content(self, keyword: str) -> List[MemoryNode]:
         """按内容搜索"""
         keyword = keyword.lower()
+        nodes = list(self.nodes.values())
         return [
             node
-            for node in self.nodes.values()
+            for node in nodes
             if keyword in node.content.lower()
         ]
 
     def get_recent_nodes(self, limit: int = 10) -> List[MemoryNode]:
         """获取最近的节点"""
+        nodes = list(self.nodes.values())
         sorted_nodes = sorted(
-            self.nodes.values(),
+            nodes,
             key=lambda n: n.created_at,
             reverse=True
         )
@@ -274,9 +286,10 @@ class TopicTree(MemoryTree):
 
     def get_topic_content(self, topic: str) -> List[MemoryNode]:
         """获取主题内容"""
-        if topic in self.topics:
-            return [self.get_node(nid) for nid in self.topics[topic] if self.get_node(nid)]
-        return []
+        # 【不易】list() 快照: add_to_topic 并发 append 时迭代活列表会抛
+        # "list changed size during iteration" (与 search_by_content 同源)
+        topic_ids = list(self.topics.get(topic, []))
+        return [self.get_node(nid) for nid in topic_ids if self.get_node(nid)]
 
 
 class GlobalTree(MemoryTree):

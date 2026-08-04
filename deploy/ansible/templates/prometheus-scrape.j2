@@ -1,0 +1,32 @@
+# ════════════════════════════════════════════════════════════
+# Prometheus 抓取配置片段 — 由 Ansible 渲染并追加到 prometheus.yml
+# 【不易】仅追加 scrape_configs 段，不重写目标机原有配置
+# 【简易】两个 job：主应用 /metrics + 缓存指标 exporter
+# ════════════════════════════════════════════════════════════
+# 由 ansible site.yml 的 monitoring block 通过 blockinfile 注入
+# 标记块: # BEGIN yunshu-scrape / # END yunshu-scrape
+
+  # ────────────────────────────────────────────────────────────
+  # 云枢主应用 — HTTP /metrics 端点（prometheus_flask_exporter）
+  # ────────────────────────────────────────────────────────────
+  - job_name: 'yunshu-app'
+    scrape_interval: {{ scrape_interval }}
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['{{ app_host }}:{{ app_port }}']
+        labels:
+          service: yunshu-app
+          env: test
+
+  # ────────────────────────────────────────────────────────────
+  # 配置缓存指标 — 独立 exporter 进程（端口 9101）
+  # 指标: yunshu_config_cache_hits_total / invalidations_total /
+  #       yunshu_config_read_failures_total / yunshu_config_cache_hit_ratio
+  # ────────────────────────────────────────────────────────────
+  - job_name: 'yunshu-config-cache'
+    scrape_interval: {{ scrape_interval }}
+    static_configs:
+      - targets: ['127.0.0.1:{{ metrics_exporter_port }}']
+        labels:
+          service: yunshu-config-metrics
+          env: test

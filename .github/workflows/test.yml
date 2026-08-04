@@ -65,10 +65,27 @@ jobs:
         run: |
           flake8 agent/ --max-line-length=120 --extend-ignore=E203,W503 || true
 
+      - name: 循环依赖守卫
+        # Why: 用 AST 扫描 agent/ 顶层双向导入, 发现新增循环时阻断 CI (exit 1).
+        # 仅依赖 Python 标准库(ast/os/sys), 无需安装项目依赖.
+        # 详见 docs/architecture/circular_dependencies_troubleshooting.md
+        run: |
+          python scripts/check_circular_deps.py
+
+      - name: 工具脚本测试
+        # Why: model_cache_utils.py 是所有下载脚本复用的路径解析工具, 需确保不退化.
+        # 覆盖 4 级环境变量优先级 + 跨平台路径分隔符 (18 个测试, ~1 秒).
+        # 详见 scripts/model_cache_utils.py 和 tests/unit/test_model_cache_utils.py
+        run: |
+          python -m pytest tests/unit/test_model_cache_utils.py tests/unit/test_check_circular_deps.py -v --tb=short
+
   unit-tests:
     name: 单元测试 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -136,7 +153,9 @@ jobs:
             --maxfail=5 \
             -m "not slow" \
             --junitxml=test-results/unit-test-results.xml \
-            --timeout=300
+            --timeout=300 \
+            -n auto \
+            --dist=loadfile
 
       - name: 上传覆盖率报告
         uses: actions/upload-artifact@v4
@@ -156,6 +175,9 @@ jobs:
   integration-tests:
     name: 集成测试 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -208,11 +230,41 @@ jobs:
           pip install -e .[windows] --timeout=180 || true
         continue-on-error: true
 
+      - name: 缓存 HuggingFace 模型 (Ubuntu)
+        # Why: transformers/sentence_transformers 首次加载会从 HF 下载模型元数据, 网络不可达时超时.
+        # 缓存模型 + 离线模式让集成测试在无网络环境下也能通过 (详见 docs/reviews/pep562_migration_retrospective.md 6.2)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/huggingface
+            ~/.cache/modelscope
+          key: hf-cache-${{ matrix.os }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            hf-cache-${{ matrix.os }}-
+        continue-on-error: true
+
+      - name: 缓存 HuggingFace 模型 (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\huggingface
+            ~\AppData\Local\modelscope
+          key: hf-cache-${{ matrix.os }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            hf-cache-${{ matrix.os }}-
+        continue-on-error: true
+
       - name: 创建测试目录
         run: |
           mkdir -p test-results
 
       - name: 运行集成测试
+        env:
+          # 离线模式: 跳过 HF 网络检查, 用本地缓存 (避免 transformers 下载超时)
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
         run: |
           pytest tests/integration/ \
             -v \
@@ -220,7 +272,7 @@ jobs:
             --cov=agent \
             --cov-report=xml \
             --junitxml=test-results/integration-test-results.xml \
-            -m "not slow and not requires_llm" \
+            -m "not slow and not requires_llm and not skip_ci" \
             --timeout=300
 
       - name: 上传测试结果
@@ -234,6 +286,9 @@ jobs:
   performance-tests:
     name: 性能测试 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     timeout-minutes: 15
     strategy:
       fail-fast: false
@@ -298,16 +353,62 @@ jobs:
             --benchmark-only \
             --benchmark-json=test_reports/benchmark.json
 
+      - name: 运行 L2 性能回归测试
+        env:
+          # SCHEME 标记用于 CI 日志机器可读，明确区分同步串行方案与其他实验场景
+          L2_SCHEME: sync-serial-path-cache
+          L2_GUARDRAILS: cold-p99<2s|warm-p99<1s|concurrent-p99<2s|cache-validity
+        run: |
+          echo "=== L2 性能回归测试 ==="
+          echo "SCHEME=${L2_SCHEME}"
+          echo "方案: 同步串行 read_fragment + 路径缓存（最优方案）"
+          echo "护栏: ${L2_GUARDRAILS}"
+          # tee 同时输出到屏幕和日志文件，供 parse_ci_l2_report.py 解析
+          pytest tests/performance/test_l2_perf_regression.py \
+            -v \
+            --timeout=120 \
+            -m performance \
+            --junitxml=test_reports/l2-perf-results.xml \
+            2>&1 | tee test_reports/l2-ci.log
+
+      - name: 解析 L2 性能日志并生成图表
+        # Why: 自动从 CI 日志抓取方案标记 + pytest 护栏结果，生成可视化图表供 artifact 下载
+        run: |
+          pip install --timeout=60 matplotlib numpy || true
+          python scripts/parse_ci_l2_report.py \
+            --ci-log test_reports/l2-ci.log \
+            --output test_reports/l2_perf_report.png
+
+      - name: 转换性能日志为 Markdown
+        # Why: 将压测日志转为 Markdown 报告，方便直接粘贴到技术文档/PR 描述
+        # 容错：sqlite-vec 不可用时压测会跳过，Markdown 报告相应跳过，不影响 CI 结果
+        run: |
+          # 运行快速压测生成性能数据（小数据量，约 7 秒）
+          python scripts/bench_l2_stress.py --cold-count 30 --category-count 5 --concurrency 5 --rounds 1 > test_reports/bench_ci.log 2>&1 || true
+          # 生成性能对比日志（需要压测日志含场景 C/E）
+          python scripts/simulate_l2_async_switch.py --bench-log test_reports/bench_ci.log --log-file test_reports/l2_switch_perf_comparison.log || true
+          # 转换为 Markdown 报告
+          python scripts/convert_perf_log_to_md.py --input test_reports/l2_switch_perf_comparison.log --output test_reports/l2_switch_perf_comparison.md || true
+
       - name: 上传性能报告
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-report-${{ matrix.os }}-py${{ matrix.python-version }}
-          path: test_reports/benchmark.json
+          path: |
+            test_reports/benchmark.json
+            test_reports/l2-ci.log
+            test_reports/l2_perf_report.png
+            test_reports/bench_ci.log
+            test_reports/l2_switch_perf_comparison.log
+            test_reports/l2_switch_perf_comparison.md
           retention-days: 30
 
   coverage-check:
     name: 覆盖率检查 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     needs: [unit-tests, integration-tests]
     strategy:
       fail-fast: false

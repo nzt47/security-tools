@@ -56,6 +56,70 @@ _DEFAULT_ALPHA = 0.5      # BM25 与 Embedding 等权
 _DEFAULT_TOP_K = 10       # 默认返回 10 个候选
 _COSINE_CUTOFF = 0.2      # Embedding 余弦相似度剪枝阈值(低于此值不进入融合)
 _PROBE_TIMEOUT = 60       # 子进程探测超时(秒)
+_WORKER_READY_TIMEOUT = 30.0  # worker ready 信号读取超时(秒)
+
+# 原生崩溃退出码(用于诊断 Embedding 子进程崩溃原因)
+_WIN_ACCESS_VIOLATION = -1073741819   # 0xC0000005
+_WIN_STACK_OVERFLOW = -1073741571     # 0xC00000FD
+_WIN_ILLEGAL_INSTRUCTION = -1073741795 # 0xC000001D
+_LINUX_SIGSEGV = -11
+_LINUX_SIGILL = -4
+
+
+def _diagnose_crash(returncode: Optional[int]) -> str:
+    """根据子进程退出码诊断原生崩溃原因
+
+    Why: 0xC0000005 / SIGILL 等原生崩溃不会抛 Python 异常,
+        只能通过 returncode 识别。诊断信息写入日志便于排查。
+    """
+    if returncode is None or returncode == 0:
+        return ""
+    if returncode == _WIN_ACCESS_VIOLATION:
+        return ("Windows ACCESS_VIOLATION (0xC0000005) - 原生内存访问违规,"
+                "常见于 PyTorch C 扩展或 SentenceTransformer 加载大模型")
+    if returncode == _WIN_STACK_OVERFLOW:
+        return "Windows STACK_OVERFLOW (0xC00000FD) - 栈溢出,常见于递归过深"
+    if returncode == _WIN_ILLEGAL_INSTRUCTION:
+        return ("Windows ILLEGAL_INSTRUCTION (0xC000001D) - 非法指令,"
+                "常见于 CPU 不支持 AVX/AVX2")
+    if returncode == _LINUX_SIGSEGV:
+        return "Linux SIGSEGV - 段错误,常见于 PyTorch C 扩展内存访问违规"
+    if returncode == _LINUX_SIGILL:
+        return "Linux SIGILL - 非法指令,常见于 CPU 不支持 AVX/AVX2"
+    return f"未知退出码: {returncode}"
+
+
+class _ReadlineTimedOut:
+    """stdout.readline() 超时哨兵值"""
+
+
+_READLINE_TIMED_OUT = _ReadlineTimedOut()
+
+
+def _readline_with_timeout(stream, timeout: float) -> str | _ReadlineTimedOut:
+    """带超时的 stdout.readline()。
+
+    Windows 上 select 不支持普通管道,无法用 select 实现超时读,
+    故用 daemon 线程 + join(timeout):
+      - reader 线程阻塞 readline()
+      - 主线程等待 timeout 秒,超时返回哨兵 _READLINE_TIMED_OUT
+    """
+    result: dict = {}
+
+    def _reader():
+        try:
+            result["line"] = stream.readline()
+        except Exception as e:
+            result["error"] = e
+
+    t = threading.Thread(target=_reader, daemon=True)
+    t.start()
+    t.join(timeout)
+    if t.is_alive():
+        return _READLINE_TIMED_OUT
+    if "error" in result:
+        raise result["error"]
+    return result.get("line")
 
 # 安全导入 ToolTraceRecorder(不可用时降级)
 try:
@@ -331,145 +395,543 @@ class BM25Index:
 
 
 # ════════════════════════════════════════════════════════════
-#  EmbeddingIndex — SentenceTransformer 语义索引
+#  EmbeddingIndex — 子进程隔离 + 二进制序列化 + LRU 缓存
 # ════════════════════════════════════════════════════════════
+
+# Embedding worker 脚本(子进程隔离,通过 python -c 启动)
+# 【不易】JSON Lines 通信协议,encode 请求 → embeddings 响应
+# 【变易】二进制序列化:base64(numpy.tobytes()) 替代 JSON float 列表(省 ~2ms/次)
+_WORKER_SCRIPT_EMBEDDING = """
+import json, os, sys, base64
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+os.environ.setdefault("HF_HUB_DISABLE_XET", "1")
+
+def main():
+    model_name = sys.argv[1] if len(sys.argv) > 1 else "paraphrase-multilingual-MiniLM-L12-v2"
+    try:
+        from sentence_transformers import SentenceTransformer
+        import time
+        t0 = time.time()
+        model = SentenceTransformer(model_name)
+        load_time = time.time() - t0
+        print(json.dumps({"type": "ready", "load_time_sec": round(load_time, 2),
+                          "load_source": model_name}), flush=True)
+    except Exception as e:
+        print(json.dumps({"type": "init_failed", "error": str(e)}), flush=True)
+        sys.exit(1)
+
+    import numpy as np
+    for line in sys.stdin:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            req = json.loads(line)
+            if req.get("type") == "exit":
+                break
+            if req.get("type") == "encode":
+                texts = req.get("texts", [])
+                vecs = model.encode(texts, show_progress_bar=False)
+                arr = np.array(vecs, dtype=np.float32)
+                # 二进制序列化:base64(bytes) 比 JSON float 列表快 ~5x
+                raw_bytes = arr.tobytes()
+                b64_data = base64.b64encode(raw_bytes).decode("ascii")
+                print(json.dumps({
+                    "type": "embeddings",
+                    "data": b64_data,
+                    "shape": list(arr.shape),
+                    "dtype": "float32",
+                }), flush=True)
+        except Exception as e:
+            print(json.dumps({"type": "error", "error": str(e)}), flush=True)
+
+if __name__ == "__main__":
+    main()
+"""
 
 
 class EmbeddingIndex:
-    """SentenceTransformer 语义索引 — 索引工具 description
+    """子进程隔离的 SentenceTransformer 语义索引
 
     【不易】模型加载失败时 available=False,hybrid 降级到纯 BM25
-    【变易】延迟加载:首次 search 时才加载模型 + 编码文档
-    【简易】内存存 numpy 数组(80×384≈122KB),余弦相似度用 numpy 矩阵乘
+    【变易】子进程隔离:避免 SentenceTransformer 原生崩溃(0xC0000005/SIGILL)影响主进程
+    【变易】二进制序列化:base64+numpy.tobytes() 替代 JSON float 列表(省 ~2ms/次)
+    【变易】query embedding LRU 缓存:重复查询跳过子进程通信
+    【简易】Worker 只负责 encode,主进程存 numpy 数组 + 计算 cosine similarity
     """
 
-    def __init__(self, model_name: str = _DEFAULT_MODEL):
+    _WORKER_STARTUP_TIMEOUT = 60
+    _DEFAULT_QUERY_CACHE_SIZE = 128
+
+    def __init__(self, model_name: str = _DEFAULT_MODEL,
+                 query_cache_size: int = _DEFAULT_QUERY_CACHE_SIZE) -> None:
         self._model_name = model_name
-        self._model = None  # 延迟加载
-        self._doc_ids: list[str] = []  # doc_id 列表(与 embeddings 行对齐)
-        self._embeddings = None  # numpy 数组 (N, dim)
-        self._pending: list[tuple[str, str]] = []  # [(doc_id, content)] 待编码
+        self._proc: Optional[subprocess.Popen] = None
         self._lock = threading.RLock()
-        self._load_failed = False  # 加载失败标志(避免重复尝试)
+        self._doc_ids: list[str] = []
+        self._embeddings = None
+        self._pending: list[tuple[str, str]] = []
+        self._init_failed = False
+        self._load_time_sec: Optional[float] = None
+        self._load_source: Optional[str] = None
+        self._project_root = _PROJECT_ROOT
+        # query embedding LRU 缓存
+        self._query_cache_size = max(query_cache_size, 1)
+        self._query_cache: dict = {}
+        self._cache_hits = 0
+        self._cache_misses = 0
 
     @property
     def available(self) -> bool:
-        """模型已加载且有已编码文档"""
-        with self._lock:
-            return self._model is not None and self._embeddings is not None and len(self._doc_ids) > 0
+        """子进程存活 + embeddings 已计算 + doc_ids 非空 + 未失败"""
+        if self._init_failed:
+            return False
+        if self._proc is None or self._proc.poll() is not None:
+            return False
+        return self._embeddings is not None and len(self._doc_ids) > 0
 
     def add_document(self, doc_id: str, content: str) -> None:
-        """添加文档(延迟编码,首次 search 时统一编码)"""
+        """添加文档到 pending 列表(延迟编码)"""
         with self._lock:
-            # 覆盖语义:若 doc_id 已存在,先移除
             if doc_id in self._doc_ids:
                 idx = self._doc_ids.index(doc_id)
                 self._doc_ids.pop(idx)
                 if self._embeddings is not None:
                     self._embeddings = np.delete(self._embeddings, idx, axis=0)
-            # 同时移除 pending 中的旧条目(避免重复编码同一 doc_id)
             self._pending = [(d, c) for d, c in self._pending if d != doc_id]
             self._pending.append((doc_id, content))
 
-    def _ensure_model(self) -> bool:
-        """加载模型 + 编码所有 pending 文档。成功返回 True。"""
-        with self._lock:
-            if self._model is not None:
-                # 模型已加载,只需编码 pending
-                if self._pending:
-                    self._encode_pending_locked()
-                return True
+    def _ensure_worker(self) -> bool:
+        """启动子进程 worker + 等待 ready 信号 + 编码 pending 文档"""
+        if self._init_failed:
+            return False
+        if self._proc is not None and self._proc.poll() is None:
+            return True
 
-            if self._load_failed:
-                return False  # 避免重复尝试加载
+        try:
+            self._proc = subprocess.Popen(
+                [sys.executable, "-c", _WORKER_SCRIPT_EMBEDDING, self._model_name],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                cwd=self._project_root,
+            )
+        except (OSError, ValueError) as e:
+            logger.warning(json.dumps({
+                "module_name": "tool_router_hybrid",
+                "action": "embedding.worker.popen_failed",
+                "error": str(e),
+            }, ensure_ascii=False))
+            self._init_failed = True
+            return False
 
-            # 检测 sentence_transformers 可用性
-            if not _ensure_st_checked():
-                self._load_failed = True
+        # 等待 ready 信号(带超时)
+        json_errors = 0
+        while True:
+            try:
+                line = _readline_with_timeout(self._proc.stdout, _WORKER_READY_TIMEOUT)
+            except OSError as e:
+                logger.warning(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.worker.stdout_read_failed",
+                    "error": str(e),
+                }, ensure_ascii=False))
+                self._init_failed = True
+                return False
+
+            if line is _READLINE_TIMED_OUT:
+                # worker 未在超时时间内输出 ready 信号:kill 并降级为纯 BM25
+                logger.warning(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.worker.ready_timeout",
+                    "timeout_sec": _WORKER_READY_TIMEOUT,
+                    "model": self._model_name,
+                }, ensure_ascii=False))
+                self._proc.kill()
+                try:
+                    self._proc.wait(timeout=3)
+                except Exception:
+                    pass
+                self._proc = None
+                self._init_failed = True
+                return False
+
+            if not line:
+                rc = self._proc.poll()
+                diag = _diagnose_crash(rc)
+                stderr_msg = ""
+                try:
+                    stderr_msg = self._proc.stderr.read()[:500] if self._proc.stderr else ""
+                except Exception:
+                    pass
+                logger.warning(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.worker.crash",
+                    "returncode": rc,
+                    "diagnosis": diag,
+                    "stderr_preview": stderr_msg,
+                }, ensure_ascii=False))
+                self._init_failed = True
                 return False
 
             try:
-                from sentence_transformers import SentenceTransformer
-                self._model = SentenceTransformer(self._model_name)
-                logger.info(
-                    "[tool_router_hybrid] SentenceTransformer 加载成功: %s",
-                    self._model_name,
-                )
+                msg = json.loads(line)
+            except json.JSONDecodeError:
+                json_errors += 1
+                if json_errors >= 3:
+                    logger.warning(json.dumps({
+                        "module_name": "tool_router_hybrid",
+                        "action": "embedding.worker.invalid_json",
+                        "consecutive_errors": json_errors,
+                    }, ensure_ascii=False))
+                    self._init_failed = True
+                    return False
+                continue
+
+            msg_type = msg.get("type")
+            if msg_type == "ready":
+                self._load_time_sec = msg.get("load_time_sec")
+                self._load_source = msg.get("load_source")
+                logger.info(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.worker.ready",
+                    "model": self._model_name,
+                    "load_time_sec": self._load_time_sec,
+                    "load_source": self._load_source,
+                }, ensure_ascii=False))
                 # 编码 pending 文档
                 if self._pending:
                     self._encode_pending_locked()
                 return True
-            except Exception as e:
-                logger.warning(
-                    "[tool_router_hybrid] SentenceTransformer 加载失败: %s(降级到纯 BM25)", e
-                )
-                self._load_failed = True
-                self._model = None
+            elif msg_type == "init_failed":
+                logger.warning(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.worker.init_failed",
+                    "error": msg.get("error", "unknown"),
+                }, ensure_ascii=False))
+                self._init_failed = True
                 return False
+            else:
+                logger.warning(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.worker.unknown_message",
+                    "msg_type": msg_type,
+                }, ensure_ascii=False))
+                self._init_failed = True
+                return False
+
+    def _encode_via_worker(self, texts: list[str]) -> "list | None":
+        """通过子进程编码文本,返回向量列表"""
+        if self._init_failed or self._proc is None:
+            return None
+        if self._proc.poll() is not None:
+            rc = self._proc.poll()
+            diag = _diagnose_crash(rc)
+            logger.warning(json.dumps({
+                "module_name": "tool_router_hybrid",
+                "action": "embedding.encode.proc_dead",
+                "returncode": rc,
+                "diagnosis": diag,
+            }, ensure_ascii=False))
+            self._init_failed = True
+            return None
+
+        try:
+            req = json.dumps({"type": "encode", "texts": texts})
+            self._proc.stdin.write(req + "\n")
+            self._proc.stdin.flush()
+        except (BrokenPipeError, OSError) as e:
+            rc = self._proc.poll()
+            diag = _diagnose_crash(rc)
+            logger.warning(json.dumps({
+                "module_name": "tool_router_hybrid",
+                "action": "embedding.encode.write_failed",
+                "error": str(e),
+                "returncode": rc,
+                "diagnosis": diag,
+            }, ensure_ascii=False))
+            self._init_failed = True
+            return None
+
+        try:
+            line = self._proc.stdout.readline()
+        except OSError as e:
+            logger.warning(json.dumps({
+                "module_name": "tool_router_hybrid",
+                "action": "embedding.encode.read_failed",
+                "error": str(e),
+            }, ensure_ascii=False))
+            self._init_failed = True
+            return None
+
+        if not line:
+            rc = self._proc.poll()
+            diag = _diagnose_crash(rc)
+            logger.warning(json.dumps({
+                "module_name": "tool_router_hybrid",
+                "action": "embedding.encode.eof",
+                "returncode": rc,
+                "diagnosis": diag,
+            }, ensure_ascii=False))
+            self._init_failed = True
+            return None
+
+        try:
+            msg = json.loads(line)
+        except json.JSONDecodeError:
+            logger.warning(json.dumps({
+                "module_name": "tool_router_hybrid",
+                "action": "embedding.encode.invalid_json",
+            }, ensure_ascii=False))
+            return None
+
+        if msg.get("type") != "embeddings":
+            logger.warning(json.dumps({
+                "module_name": "tool_router_hybrid",
+                "action": "embedding.encode.unexpected_msg",
+                "msg_type": msg.get("type"),
+                "error": msg.get("error", ""),
+            }, ensure_ascii=False))
+            return None
+
+        # 优先解析二进制序列化(base64+numpy),fallback 到 JSON 列表
+        import base64
+        if "data" in msg and _HAS_NUMPY:
+            try:
+                raw = base64.b64decode(msg["data"])
+                arr = np.frombuffer(raw, dtype=np.float32)
+                shape = msg.get("shape")
+                if shape:
+                    arr = arr.reshape(shape)
+                return arr.tolist()
+            except Exception:
+                pass
+        return msg.get("vectors")
 
     def _encode_pending_locked(self) -> None:
         """编码所有 pending 文档(调用方持锁)"""
-        if not self._pending or self._model is None:
+        if not self._pending:
+            return
+        contents = [c for _, c in self._pending]
+        vectors = self._encode_via_worker(contents)
+        if vectors is None or len(vectors) == 0:
+            logger.warning(json.dumps({
+                "module_name": "tool_router_hybrid",
+                "action": "embedding.encode_pending.failed",
+                "n_pending": len(self._pending),
+            }, ensure_ascii=False))
+            return
+        new_embeddings = np.array(vectors, dtype=np.float32)
+        if self._embeddings is None:
+            self._embeddings = new_embeddings
+            self._doc_ids = [d for d, _ in self._pending]
+        else:
+            self._embeddings = np.vstack([self._embeddings, new_embeddings])
+            self._doc_ids.extend(d for d, _ in self._pending)
+        logger.info(json.dumps({
+            "module_name": "tool_router_hybrid",
+            "action": "embedding.encode_pending.complete",
+            "n_pending": len(self._pending),
+            "total_docs": len(self._doc_ids),
+            "shape": list(new_embeddings.shape),
+        }, ensure_ascii=False))
+        self._pending.clear()
+
+    def _cleanup_proc(self) -> None:
+        """清理子进程资源"""
+        if self._proc is None:
             return
         try:
-            contents = [c for _, c in self._pending]
-            new_embeddings = self._model.encode(contents, show_progress_bar=False)
-            new_embeddings = np.array(new_embeddings, dtype=np.float32)
-
-            if self._embeddings is None:
-                self._embeddings = new_embeddings
-                self._doc_ids = [d for d, _ in self._pending]
-            else:
-                self._embeddings = np.vstack([self._embeddings, new_embeddings])
-                self._doc_ids.extend(d for d, _ in self._pending)
-            self._pending.clear()
+            if self._proc.poll() is None:
+                try:
+                    self._proc.stdin.write(json.dumps({"type": "exit"}) + "\n")
+                    self._proc.stdin.flush()
+                    self._proc.wait(timeout=5)
+                except Exception:
+                    self._proc.kill()
+                    self._proc.wait(timeout=3)
         except Exception as e:
-            logger.warning("[tool_router_hybrid] 文档编码失败: %s", e)
+            logger.warning(json.dumps({
+                "module_name": "tool_router_hybrid",
+                "action": "embedding.cleanup.error",
+                "error": str(e),
+            }, ensure_ascii=False))
+        finally:
+            self._proc = None
 
     def search(self, query: str, top_k: int = 10) -> list[tuple[str, float]]:
-        """搜索查询,返回 [(doc_id, cosine_similarity)] 列表(按相似度降序)"""
+        """搜索查询,返回 [(doc_id, cosine_similarity)] 列表(按相似度降序)
+
+        【变易】query embedding LRU 缓存:重复查询跳过子进程通信
+        """
         if not _HAS_NUMPY:
             return []
-        if not self._ensure_model():
+        if not self._ensure_worker():
             return []
         with self._lock:
             if self._embeddings is None or len(self._doc_ids) == 0:
                 return []
-            try:
-                query_emb = self._model.encode([query], show_progress_bar=False)
-                query_emb = np.array(query_emb, dtype=np.float32)[0]  # (dim,)
 
-                # 余弦相似度 = dot(a, b) / (|a| * |b|)
-                # 矩阵化:embeddings (N, dim) @ query (dim,) / (norms * query_norm)
-                norms = np.linalg.norm(self._embeddings, axis=1)  # (N,)
-                query_norm = np.linalg.norm(query_emb)  # scalar
+            # LRU 缓存查找
+            cache_hit = query in self._query_cache
+            t_encode_start = time.perf_counter()
+            if cache_hit:
+                query_emb = self._query_cache.pop(query)
+                self._query_cache[query] = query_emb
+                self._cache_hits += 1
+                t_encode_ms = (time.perf_counter() - t_encode_start) * 1000
+                logger.debug(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.cache.hit",
+                    "query_preview": query[:60],
+                    "query_len": len(query),
+                    "encode_ms": round(t_encode_ms, 4),
+                    "cache_size": len(self._query_cache),
+                    "cumulative_hits": self._cache_hits,
+                    "cumulative_misses": self._cache_misses,
+                }, ensure_ascii=False))
+            else:
+                self._cache_misses += 1
+                logger.debug(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.cache.miss",
+                    "query_preview": query[:60],
+                    "query_len": len(query),
+                    "cache_size_before": len(self._query_cache),
+                }, ensure_ascii=False))
+                query_vectors = self._encode_via_worker([query])
+                t_encode_ms = (time.perf_counter() - t_encode_start) * 1000
+                if query_vectors is None or len(query_vectors) == 0:
+                    logger.warning(json.dumps({
+                        "module_name": "tool_router_hybrid",
+                        "action": "embedding.search.encode_failed",
+                        "encode_ms": round(t_encode_ms, 2),
+                        "query_len": len(query),
+                    }, ensure_ascii=False))
+                    return []
+                query_emb = np.array(query_vectors[0], dtype=np.float32)
+                self._query_cache[query] = query_emb
+                # LRU 淘汰:缓存满时移除最久未使用的条目
+                if len(self._query_cache) > self._query_cache_size:
+                    evicted_key = next(iter(self._query_cache))
+                    self._query_cache.pop(evicted_key)
+                    logger.debug(json.dumps({
+                        "module_name": "tool_router_hybrid",
+                        "action": "embedding.cache.evict",
+                        "evicted_preview": evicted_key[:60],
+                        "cache_size": len(self._query_cache),
+                        "cache_capacity": self._query_cache_size,
+                    }, ensure_ascii=False))
+                logger.debug(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.cache.miss_complete",
+                    "query_preview": query[:60],
+                    "encode_ms": round(t_encode_ms, 2),
+                    "cache_size_after": len(self._query_cache),
+                    "cumulative_hits": self._cache_hits,
+                    "cumulative_misses": self._cache_misses,
+                }, ensure_ascii=False))
+
+            try:
+                t_cosine_start = time.perf_counter()
+                norms = np.linalg.norm(self._embeddings, axis=1)
+                query_norm = np.linalg.norm(query_emb)
                 if query_norm < 1e-9:
                     return []
                 denom = norms * query_norm
-                # 避免除零
                 denom = np.where(denom < 1e-9, 1e-9, denom)
-                sims = self._embeddings @ query_emb / denom  # (N,)
-
-                # 按相似度降序取 top_k
+                sims = self._embeddings @ query_emb / denom
                 top_indices = np.argsort(-sims)[:top_k]
-                return [(self._doc_ids[i], float(sims[i])) for i in top_indices]
+                results = [(self._doc_ids[i], float(sims[i])) for i in top_indices]
+                t_cosine_ms = (time.perf_counter() - t_cosine_start) * 1000
+                total_cached = self._cache_hits + self._cache_misses
+                hit_rate = self._cache_hits / max(total_cached, 1)
+                logger.info(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.search.complete",
+                    "encode_ms": round(t_encode_ms, 2),
+                    "cosine_ms": round(t_cosine_ms, 2),
+                    "total_ms": round(t_encode_ms + t_cosine_ms, 2),
+                    "n_docs": len(self._doc_ids),
+                    "top_k": top_k,
+                    "returned": len(results),
+                    "top1_score": round(results[0][1], 4) if results else 0.0,
+                    "cache_hit": cache_hit,
+                    "cache_hit_rate": round(hit_rate, 4),
+                    "cache_size": len(self._query_cache),
+                }, ensure_ascii=False))
+                return results
             except Exception as e:
-                logger.warning("[tool_router_hybrid] Embedding 搜索失败: %s", e)
+                logger.warning(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.search.failed",
+                    "error": f"{type(e).__name__}: {e}",
+                    "encode_ms": round(t_encode_ms, 2),
+                    "query_len": len(query),
+                }, ensure_ascii=False))
                 return []
 
     def clear(self) -> None:
-        """清空索引(不卸载模型,避免重复加载)"""
+        """清空索引(不关闭子进程)"""
         with self._lock:
             self._doc_ids.clear()
             self._embeddings = None
             self._pending.clear()
+            self._query_cache.clear()
+            self._cache_hits = 0
+            self._cache_misses = 0
+
+    def get_cache_stats(self) -> dict:
+        """返回 LRU query 缓存统计信息(用于运行时缓存效率验证)
+
+        Returns:
+            {"hits", "misses", "hit_rate", "cache_size", "cache_capacity"}
+        """
+        with self._lock:
+            total = self._cache_hits + self._cache_misses
+            return {
+                "hits": self._cache_hits,
+                "misses": self._cache_misses,
+                "hit_rate": round(self._cache_hits / max(total, 1), 4),
+                "cache_size": len(self._query_cache),
+                "cache_capacity": self._query_cache_size,
+            }
 
     def preheat(self) -> None:
-        """预热:加载模型 + 编码所有 pending 文档(后台线程调用)"""
+        """预热:启动子进程 + 编码 pending 文档"""
+        t0 = time.perf_counter()
+        pending_count = len(self._pending)
+        logger.info(json.dumps({
+            "module_name": "tool_router_hybrid",
+            "action": "embedding.preheat.start",
+            "pending_docs": pending_count,
+        }, ensure_ascii=False))
         try:
-            self._ensure_model()
+            ok = self._ensure_worker()
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+            if ok:
+                logger.info(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.preheat.success",
+                    "elapsed_ms": round(elapsed_ms, 2),
+                    "pending_docs": pending_count,
+                    "encoded_docs": len(self._doc_ids),
+                    "load_time_sec": self._load_time_sec,
+                }, ensure_ascii=False))
+            else:
+                logger.warning(json.dumps({
+                    "module_name": "tool_router_hybrid",
+                    "action": "embedding.preheat.failed",
+                    "elapsed_ms": round(elapsed_ms, 2),
+                    "init_failed": self._init_failed,
+                }, ensure_ascii=False))
         except Exception as e:
-            logger.warning("[tool_router_hybrid] 预热失败: %s", e)
+            logger.warning(json.dumps({
+                "module_name": "tool_router_hybrid",
+                "action": "embedding.preheat.error",
+                "error": str(e),
+            }, ensure_ascii=False))
 
 
 # ════════════════════════════════════════════════════════════

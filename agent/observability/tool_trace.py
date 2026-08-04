@@ -196,11 +196,12 @@ class ToolTraceRecorder:
     def reset(cls) -> None:
         """重置单例(测试用)
 
-        Why: 测试间需隔离单例状态,避免数据库文件残留
+        Why: 测试间需隔离单例状态,避免数据库文件残留。
+        会先调 stop() 优雅关闭 writer 线程，避免队列残留数据丢失。
         """
         with cls._instance_lock:
             if cls._instance is not None:
-                cls._instance._stopped = True
+                cls._instance.stop(timeout=2.0)
                 cls._instance = None
 
     # ── 公共接口: trace 生命周期 ──────────────────────────────
@@ -513,6 +514,37 @@ class ToolTraceRecorder:
             "blocked": bool(blocked),
         }, ensure_ascii=False))
 
+    def record_tool_retrieval(
+        self,
+        query: str,
+        top_k: int,
+        latency_ms: float,
+        bm25_candidates: int,
+        embed_candidates: int,
+        fused_candidates: int,
+        alpha: float,
+        degraded: bool,
+        tools_preview: list,
+    ) -> None:
+        """记录工具检索决策(结构化日志,不持久化到 SQLite)
+
+        Why: 检索决策是轻量事件,沿用 record_tool_selection/record_circuit_event 风格,
+             SQLite 只持久化 ToolTraceRecord(执行 trace)。
+        """
+        logger.info(json.dumps({
+            "module_name": "tool_trace",
+            "action": "tool_retrieval",
+            "query_hash": self.hash_content(query),
+            "top_k": top_k,
+            "latency_ms": round(latency_ms, 2),
+            "bm25_candidates": bm25_candidates,
+            "embed_candidates": embed_candidates,
+            "fused_candidates": fused_candidates,
+            "alpha": alpha,
+            "degraded": degraded,
+            "tools_preview": tools_preview[:10],
+        }, ensure_ascii=False))
+
     # ── 脱敏与危险检测 ────────────────────────────────────────
 
     def hash_content(self, data: Any) -> str:
@@ -649,11 +681,16 @@ class ToolTraceRecorder:
             try:
                 # 阻塞等待第一条
                 first = self._queue.get(timeout=WRITER_POLL_INTERVAL)
+                if first is None:
+                    continue  # 哨兵，跳过（stop() 唤醒用）
                 batch.append(first)
                 # 非阻塞批量获取更多(最多 WRITER_BATCH_SIZE)
                 while len(batch) < WRITER_BATCH_SIZE:
                     try:
-                        batch.append(self._queue.get_nowait())
+                        item = self._queue.get_nowait()
+                        if item is None:
+                            continue  # 跳过哨兵
+                        batch.append(item)
                     except queue_module.Empty:
                         break
             except queue_module.Empty:
@@ -711,6 +748,62 @@ class ToolTraceRecorder:
                     conn.commit()
             except Exception as e:
                 logger.warning(f"清空 tool_traces 失败: {e}")
+
+    def stop(self, timeout: float = 5.0) -> bool:
+        """优雅停止 writer 线程，flush 残留队列数据
+
+        【TLM-AUDIT-001】确保进程退出前 trace 数据不丢。
+        步骤：
+        1. _stopped = True（让 _writer_loop 退出 while 循环）
+        2. _queue.put(None) 唤醒阻塞在 _queue.get() 的 writer 线程
+        3. join(timeout) 等待 writer 线程退出
+        4. 残留队列数据强制写入 DB（兜底）
+
+        幂等：二次调用时 _stopped 已 True，直接返回。
+        """
+        if self._stopped:
+            return True
+        self._stopped = True
+        # 唤醒阻塞在 _queue.get(timeout=...) 的 writer 线程
+        try:
+            self._queue.put(None, timeout=1.0)
+        except Exception:
+            pass
+        # join writer 线程
+        if self._writer_thread.is_alive():
+            self._writer_thread.join(timeout=timeout)
+            if self._writer_thread.is_alive():
+                logger.warning(
+                    f"writer 线程 join 超时({timeout}s)，可能仍有数据未写入"
+                )
+        # 残留队列数据强制 flush
+        self._flush_residual()
+        return not self._writer_thread.is_alive()
+
+    def _flush_residual(self) -> None:
+        """强制写入队列残留数据（stop 后兜底）
+
+        场景：writer 线程被 join 超时强终止，或 _stopped 设置后队列仍有数据。
+        直接从队列取出所有非 None 记录，批量写入 DB。
+        """
+        residual: List[ToolTraceRecord] = []
+        while True:
+            try:
+                item = self._queue.get_nowait()
+                if item is None:
+                    continue  # 跳过哨兵
+                residual.append(item)
+            except queue_module.Empty:
+                break
+        if not residual:
+            return
+        try:
+            self._write_to_db(residual)
+            logger.info(f"stop 残留 flush 写入 {len(residual)} 条 trace")
+        except Exception as e:
+            logger.warning(f"stop 残留 flush 失败，降级到 ring buffer: {e}")
+            for r in residual:
+                self._fallback_ring_buffer.append(r)
 
 
 # ════════════════════════════════════════════════════════════

@@ -58,13 +58,35 @@ jobs:
 
       - name: 运行代码类型检查
         run: |
-          echo "=== 运行类型检查 ==="
-          mypy agent/ --ignore-missing-imports || true
+          echo "=== 运行类型检查（非阻塞）==="
+          mypy agent/ --ignore-missing-imports --warn-no-return --warn-return-any || true
+
+      - name: 关键模块严格类型检查（阻塞）
+        run: |
+          echo "=== 关键模块严格类型检查 ==="
+          # Why env_config_manager 阻塞: 单例工厂 return 缺失曾导致 P1 故障
+          #   (v1.2.1-fix-secure-manager-return)，该模块已清零历史类型债，可阻塞。
+          mypy agent/env_config_manager.py --warn-no-return --warn-return-any --ignore-missing-imports --follow-imports=silent
+
+          echo "=== network_config.py 类型检查（非阻塞，待清理历史债后转阻塞）==="
+          # TODO(tech-debt): network_config.py 当前有 29 个历史类型错误
+          #   (隐式 Optional / None 不可索引 / Returning Any)，
+          #   非 return 缺失类问题。修复后去掉 || true 转为阻塞。
+          #   详见 docs/dashboards/ci_health_dashboard.md 跟踪项。
+          mypy agent/network_config.py --warn-no-return --warn-return-any --ignore-missing-imports --follow-imports=silent || true
 
       - name: 运行代码风格检查
         run: |
           echo "=== 运行风格检查 ==="
           flake8 agent/ --max-line-length=120 --extend-ignore=E203,W503 || true
+
+      - name: workflow_run 守卫反模式检查
+        # Why: 阻塞把"跳过"误标为"失败"的守卫(exit 1 on non-success),
+        #   避免上游 cancelled 时发噪音失败邮件。详见 docs/ci_guidelines/workflow_run_guard.md
+        run: |
+          echo "=== 检查 workflow_run 守卫反模式 ==="
+          pip install pyyaml
+          python scripts/lint_workflow_guard.py .github/workflows
 
   # ============================================================================
   # 安全扫描
@@ -98,6 +120,11 @@ jobs:
           safety check --json --output test_reports/safety_report.json || true
 
       - name: 敏感数据正则静态扫描
+        # [CI 日志增强] 多通道输出 (与 skills-check.yml / p0-security.yml 保持一致):
+        #   1. stdout: ::error file=,line= workflow command (GitHub UI 红色高亮)
+        #   2. $GITHUB_STEP_SUMMARY: Markdown 表格 (PR 检查页面底部汇总)
+        env:
+          GITHUB_STEP_SUMMARY: ${{ env.GITHUB_STEP_SUMMARY }}
         run: |
           echo "=== 敏感数据正则静态扫描 ==="
           python scripts/scan_sensitive_regex.py --fix-hint
@@ -113,12 +140,42 @@ jobs:
   # 单元测试
   # ============================================================================
   unit-tests:
-    name: 单元测试 (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
+    name: 单元测试 (Python ${{ matrix.python-version }} / Shard ${{ matrix.shard }})
+    # 【不易】runner 池选择：2026-08-03 连续 4 次 attempt 的单元测试 job 均在
+    # 进度 ~85% 处被 "The runner has received a shutdown signal" 强制回收
+    # （pytest 0 失败，非代码问题）。换用 ubuntu-22.04 避开 ubuntu-latest
+    # 公共 runner 池高峰时段的长时间 job 回收。
+    runs-on: ubuntu-22.04
+    # 【不易】job 级硬超时兜底：2026-07-29 排查 9c53ae88 run 卡住 16 小时发现
+    # --timeout=60 --timeout-method=signal 的 SIGALRM 无法中断 C 扩展调用
+    # (sentence_transformers / chromadb / sqlite-vec 的阻塞 join)，导致 pytest
+    # 进程无限挂起。timeout-minutes 由 GitHub runner 强制 kill，是最后防线。
+    # 90 分钟 = 启用 -n 2 并行后实测余量充足（见下方 2026-08-03 调整记录）。
+    # 历史背景: 单线程 8661 测试需 ~60min，曾撞 timeout-minutes:60 被强制取消（97% 处）。
+    # 2026-08-01 修复: 加 -n auto 并行执行，4 worker 各 ~2165 测试，预计 ~15min 完成。
+    # 2026-08-03 调整: -n auto → -n 2。原因同 runner 池更换（-n auto 在高峰
+    # 时段抢占 4 个 worker 资源放大被回收概率），固定 2 worker 降低资源占用。
+    # 2026-08-03 二次调整: 按测试文件拆分为 4 个 shard
+    # （scripts/split_unit_tests.py），每个 shard ~68 文件 / ~2245 测试。
+    # 原因: 全量 8661 测试在 runner 上运行 ~20-50min 仍可能被基础设施回收
+    # （shutdown signal / lost communication，6 次 attempt 全部失败，pytest
+    # 均 0 失败）。拆分后每个 shard 预计 ~8-12min，远低于回收阈值。
+    # 2026-08-03 三次调整: round-robin 文件数均分 → 按测试数贪心均衡。
+    # 原因: round-robin 把超大文件扎堆（test_system_tools_core.py 407 测试 +
+    # test_error_handler.py 340 测试同在 Shard3），该 shard 运行 10+ min
+    # 远超其他 4-7 min，连续两轮 run 的 3 个 Shard3 job 全部被 runner
+    # shutdown signal 回收（0 测试失败）。贪心分配保证各 shard 测试数均衡。
+    # 2026-08-03 四次调整: 4 shard → 6 shard。原因: 贪心 4 shard 下含
+    # test_error_handler.py 的 Shard2 连续 4-5 次 job 全部在运行中途被
+    # 回收（[gw0] node down: Not properly terminated，worker 崩溃→OOM 疑似），
+    # 其他 shard 稳定通过。6 shard 每个 ~1500 测试，运行时间与内存峰值
+    # 均显著降低（预计 3-5min），进一步远离回收阈值。
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         python-version: ['3.10', '3.11', '3.12']
+        shard: ['1', '2', '3', '4', '5', '6']
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -136,25 +193,68 @@ jobs:
           pip install -e .
 
       - name: 运行单元测试
+        env:
+          # 【不易】CI 必须启用 SKILLS_OFFLINE,避免 sentence_transformers/transformers
+          # 导入时递归扫描文件系统触发 pytest-timeout 300s (transformers/utils/import_utils.py
+          # 的 create_import_structure_from_path 在 ubuntu runner 上扫描超时)
+          # conftest.py 的 _skills_offline_mode fixture 会 patch 这些重量级模块为 None,
+          # 业务代码走 fallback 路径 (130/130 测试本地验证通过)
+          SKILLS_OFFLINE: '1'
         run: |
-          echo "=== 运行快速单元测试（固定顺序，禁用 pytest-randomly 避免 OOM）==="
-          pytest tests/unit/ \
+          # 【不易】--ignore 与 scripts/split_unit_tests.py 的 EXCLUDED 必须一致：
+          # 分片脚本会把该文件显式传给 pytest，--ignore 无法排除显式传入路径。
+          # 2026-08-03 教训：该文件曾流入 Shard1/Shard2 导致 worker 崩溃
+          # （node down）→ pytest 挂起 48min → runner 回收，连续多轮 job 失败。
+          mkdir -p test-results
+          echo "=== 运行单元测试（Shard ${{ matrix.shard }}/6，-n 2 并行 + signal 超时法）==="
+          # 【变易】--shards 6 与 scripts/split_unit_tests.py 的总分片数保持一致，
+          # 若调整分片数需同步修改两处
+          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6) \
+            -n 2 \
+            --dist=loadscope \
             -v \
             --tb=short \
             --cov=agent \
             --cov-report=xml \
             --cov-report=html \
             --cov-report=term-missing \
+            --cov-fail-under=0 \
             -p no:randomly \
             -m "not slow and not skip_ci" \
             --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
-            --timeout=300
-          # 方案 A：禁用 pytest-randomly 随机顺序，避免某些测试组合下内存累积导致 OOM (exit 137)。
-          # 彻底隔离方案见 coverage-ci.yml 的 --forked（方案 B）。
-          # 本地复现失败测试：
-          #   pytest tests/unit/ -v --tb=short
+            --timeout=60 \
+            --timeout-method=signal \
+            --junitxml=test-results/junit-shard${{ matrix.shard }}.xml \
+            -rA
+          # 【不易】--cov-fail-under=0: 拆分后每个 shard 仅测 ~1/6 代码,
+          # 单 shard 覆盖率 ~17% 必然低于 pyproject.toml 的 fail_under=40。
+          # 覆盖率门槛由 coverage-check job 对合并后的完整数据统一断言
+          # (coverage report --fail-under=40)，单 shard 阶段不设门槛。
+          # 【不易根因修复】--timeout-method=signal: 用 SIGALRM 信号做超时检测,
+          # 不启动新线程。原 thread 方法每个测试启动一个超时检测线程,
+          # 8661 个测试累积导致 "RuntimeError: can't start new thread" INTERNALERROR
+          # Why signal 优于 thread:
+          #   1. signal 不创建线程,无累积开销
+          #   2. SIGALRM 可中断 join 阻塞和 C 扩展调用
+          #   3. Linux 原生支持(Windows 不支持,本地仍用 thread)
+          # 【xdist 交互】-n 2 下 worker 进程自动降级为 thread 方法,
+          #   但每 worker 仅 ~4330 测试（8661/2），远低于线程耗尽阈值，安全。
+          # --junitxml: 写结构化测试结果,即使 INTERNALERROR 也能下载查看失败列表
+          # --timeout=60: 单测试 60s 超时,平衡灵敏度与误报率
+      - name: 失败时打印最近测试日志（定位挂起）
+        if: failure()
+        run: |
+          echo "=== 单元测试失败/挂起,打印诊断信息 ==="
+          echo "HEAD commit: $(git rev-parse HEAD)"
+          echo "Python: $(python --version)"
+          echo "pytest plugins: $(pip list 2>/dev/null | grep -i pytest)"
+          echo "SKILLS_OFFLINE: ${SKILLS_OFFLINE:-not set}"
+          echo "=== 最近修改的测试文件 ==="
+          git log --oneline -5 -- tests/unit/ 2>/dev/null || true
 
       - name: 运行新模块专项测试
+        # 【不易】专项测试与 shard 无关，仅在 shard 1 执行避免 12 个矩阵 job 重复
+        if: matrix.shard == '1'
         run: |
           echo "=== 运行新模块专项测试 ==="
           python -m pytest \
@@ -171,6 +271,7 @@ jobs:
           echo "=== 新模块专项测试全部通过 ==="
 
       - name: 运行安全回归测试（P0 防复发）
+        if: matrix.shard == '1'
         run: |
           echo "=== 运行 P0 安全修复防复发回归测试 ==="
           python -m pytest \
@@ -178,28 +279,198 @@ jobs:
             -v --tb=short -q --timeout=300
           echo "=== 安全回归测试全部通过 ==="
 
+      - name: 运行 BM25 优化回归测试
+        # 【不易】验证 BM25 长度归一化参数 b=0.5 优化不退化（短文档虚高缓解）
+        # Why 每次提交运行: b 值改动直接影响检索排序质量，需持续守护
+        # Why 不需 SKILLS_OFFLINE: verify_bm25_optimization.py 只用 InvertedIndex 纯 Python 实现，
+        #   不依赖 chromadb/torch（vector_store.py 延迟导入）
+        if: matrix.shard == '1'
+        run: |
+          echo "=== 运行 BM25 短文档归一化回归测试 ==="
+          python scripts/verify_bm25_optimization.py
+          echo "=== BM25 回归测试通过 ==="
+
+      - name: 运行 BM25 极端场景回归测试
+        # 【不易】验证 b=0.5 在极端短文档场景下虚高不超标（1-token/term_freq极端/空文档边界）
+        # Why 额外运行: 基础验证只覆盖常规场景，极端场景守护 b 值边界
+        if: matrix.shard == '1'
+        run: |
+          echo "=== 运行 BM25 极端短文档场景回归测试 ==="
+          python scripts/verify_bm25_extreme_cases.py
+          echo "=== BM25 极端场景回归测试通过 ==="
+
       - name: 准备覆盖率数据
         run: |
-          cp .coverage coverage_raw.data
-          ls -la coverage_raw.data coverage.xml
+          cp .coverage coverage_raw_shard${{ matrix.shard }}.data
+          ls -la coverage_raw_shard${{ matrix.shard }}.data coverage.xml
 
       - name: 上传覆盖率报告
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report-py${{ matrix.python-version }}
+          name: coverage-report-py${{ matrix.python-version }}-shard${{ matrix.shard }}
           path: |
             htmlcov/
             coverage.xml
-            coverage_raw.data
+            coverage_raw_shard${{ matrix.shard }}.data
           retention-days: 30
 
       - name: 上传测试结果
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results-unit-py${{ matrix.python-version }}
+          name: test-results-unit-py${{ matrix.python-version }}-shard${{ matrix.shard }}
           path: test-results/
           retention-days: 30
+
+  # ============================================================================
+  # 文档链接预检 + 锚点回归测试
+  # ============================================================================
+  # Why 复用通用检查脚本: git_precommit_check.ps1 同时封装链接预检（precheck_docs.ps1
+  #   阻塞模式，阈值 0）与锚点链接回归测试（pytest），CI 直接调用它，保证 CI 与
+  #   本地 pre-commit hook 行为一致（同一入口）。
+  # Why windows-latest: precheck_docs.ps1 是 PowerShell 脚本，需 Windows runner；
+  #   powershell.exe 即 PS 5.1，验证中文 BOM 编码契约。
+  docs-precheck-tests:
+    name: 文档链接预检与锚点回归测试
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 安装pytest
+        run: |
+          python -m pip install --upgrade pip
+          # 【不易】插件集必须覆盖 pytest.ini 全部配置项，缺任一会使锚点回归测试失败：
+          #   1. pytest-timeout: 对齐 --timeout=60 / --timeout-method=thread
+          #      （历史失败: "unrecognized arguments: --timeout=60"）
+          #   2. pytest-asyncio: 注册 asyncio_mode = auto 配置项
+          #      （历史失败: pytest 9.1.x + --strict-config 下 "Unknown config
+          #      option: asyncio_mode"，本地 9.0.3 仅告警不阻塞，CI 升级后变错误）
+          pip install pytest pytest-timeout pytest-asyncio
+
+      - name: 运行文档链接预检 + 锚点回归测试
+        # Why pwsh 外壳 + powershell.exe 调用: 与本地 pre-commit hook 部署方式一致
+        #   （git_precommit_check.ps1 内部用 powershell.exe 运行 precheck_docs.ps1）
+        shell: pwsh
+        run: |
+          & powershell -NoProfile -ExecutionPolicy Bypass -File scripts/dev/git_precommit_check.ps1 -TargetRepo $env:GITHUB_WORKSPACE
+          if ($LASTEXITCODE -ne 0) {
+            throw "文档链接预检 / 锚点回归测试失败: exit $LASTEXITCODE"
+          }
+
+      - name: 运行 hook 拦截回归测试（模拟坏文档提交）
+        # Why: 在临时 git 仓库模拟「提交含失效锚点/失效链接的文档」，
+        #   验证检查入口返回非零 + 真实 git commit 被 hook 拦截。
+        #   详见 tests/regression/test_precommit_hook_blocking.py
+        run: |
+          python -m pytest tests/regression/test_precommit_hook_blocking.py -q -p no:randomly
+
+  # ============================================================================
+  # CI 健康度看板自动更新
+  # ============================================================================
+  # Why 独立 job: 隔离写权限（contents: write），不污染 unit-tests matrix 的最小权限
+  # Why needs unit-tests: 必须等 junit.xml artifact 生成后下载解析
+  # Why 仅主分支 push: PR 不应污染合入趋势记录；定时任务也不更新（仅追踪真实合入）
+  # Why 同时检查 main 与 master: 本仓库主分支为 master，ci.yml 触发分支含两者
+  update-ci-dashboard:
+    name: 更新 CI 健康度看板
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') && github.event_name == 'push'
+    permissions:
+      contents: write
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          # Why fetch-depth: 0: 确保能获取最新 main 用于 push（避免落后远程被拒）
+          fetch-depth: 0
+          # Why token: 用默认 GITHUB_TOKEN，触发 push 不会递归触发 CI（GitHub 设计）
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 下载测试结果 artifacts (py3.10)
+        # 【变易】单元测试已拆分为 6 个 shard，下载全部 shard 的 junit 后合并
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-unit-py3.10-*
+          # Why path: test-results + merge-multiple: 还原 ci.yml 上传时的原始目录结构
+          #   上传时 path: test-results/，下载到 test-results/ 后脚本可按默认路径读取
+          path: test-results
+          merge-multiple: true
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 提取 commit message 摘要作为趋势行备注
+        id: note
+        run: |
+          # 取 commit subject 首行，截断到 80 字符避免表格变形
+          MSG=$(git log -1 --pretty=format:%s ${{ github.sha }})
+          MSG_TRIMMED=$(echo "$MSG" | cut -c1-80)
+          echo "note=$MSG_TRIMMED" >> $GITHUB_OUTPUT
+          echo "sha7=$(git rev-parse --short=7 ${{ github.sha }})" >> $GITHUB_OUTPUT
+
+      - name: 合并 shard junit 报告
+        # 【变易】6 个 shard 各自生成 junit-shardN.xml，合并为单个 junit.xml
+        #   供 update_ci_health_dashboard.py 解析（脚本支持 testsuites 聚合）
+        run: |
+          echo "=== 合并 shard junit 报告 ==="
+          ls -la test-results/ 2>/dev/null || true
+          python - <<'EOF'
+          import glob
+          import xml.etree.ElementTree as ET
+
+          files = sorted(glob.glob("test-results/junit-shard*.xml"))
+          if not files:
+              print("[dashboard] 未找到 junit-shard*.xml，跳过合并")
+              raise SystemExit(0)
+
+          root = ET.Element("testsuites")
+          for f in files:
+              tree = ET.parse(f)
+              r = tree.getroot()
+              if r.tag == "testsuites":
+                  for suite in r:
+                      root.append(suite)
+              else:
+                  root.append(r)
+
+          merged = "test-results/junit.xml"
+          ET.ElementTree(root).write(merged, encoding="utf-8", xml_declaration=True)
+          print(f"[dashboard] 已合并 {len(files)} 个 shard junit -> {merged}")
+          EOF
+
+      - name: 解析 junit.xml 并更新看板
+        run: |
+          echo "=== 更新 CI 健康度看板 ==="
+          python scripts/update_ci_health_dashboard.py \
+            --junit test-results/junit.xml \
+            --dashboard docs/dashboards/ci_health_dashboard.md \
+            --sha ${{ github.sha }} \
+            --note "${{ steps.note.outputs.note }}"
+
+      - name: 提交并推送看板更新
+        run: |
+          # Why [skip ci]: 避免本提交递归触发 CI（参考历史 590d3dba commit 风格）
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/dashboards/ci_health_dashboard.md
+          # 检查是否有变更（无 junit.xml 时脚本跳过，不会有变更）
+          if git diff --staged --quiet; then
+            echo "看板无变更，跳过提交"
+          else
+            git commit -m "docs(ci): 自动更新 CI 健康度看板趋势行 [skip ci]"
+            git push
+            echo "已推送看板更新"
+          fi
 
   # ============================================================================
   # 集成测试
@@ -248,6 +519,12 @@ jobs:
   performance-tests:
     name: 性能测试
     runs-on: ubuntu-latest
+    # 【不易】最小权限原则：仅本 job 需要 issues: write 以创建 P99 告警 Issue
+    # Why: GITHUB_TOKEN 默认只读，gh issue create 会返回 403 FORBIDDEN
+    # Why job 级别而非全局：其他 job（单元测试/安全扫描）不需要写 Issue 权限
+    permissions:
+      contents: read
+      issues: write
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -262,6 +539,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pytest pytest-benchmark pytest-timeout
+          pip install sqlite-vec || true  # L2 性能测试依赖，不可用时降级跳过
           pip install -e .
 
       - name: 运行性能基准测试
@@ -273,11 +551,112 @@ jobs:
             -o "python_files=benchmark_*.py" \
             --timeout=300
 
+      - name: 运行 L2 性能回归测试
+        env:
+          L2_SCHEME: sync-serial-path-cache
+        run: |
+          mkdir -p test_reports
+          echo "SCHEME=${L2_SCHEME}"
+          echo "方案: 同步串行 read_fragment + 路径缓存（最优方案）"
+          echo "护栏: cold-p99<2s|warm-p99<1s|concurrent-p99<2s|cache-validity"
+          echo "=== L2 性能回归测试 ==="
+          pytest tests/performance/test_l2_perf_regression.py \
+            -v \
+            -m performance \
+            --junitxml=test_reports/l2-perf-results.xml \
+            2>&1 | tee test_reports/l2-ci.log
+
+      - name: 解析 L2 性能日志并生成图表
+        # Why: 自动从 CI 日志抓取方案标记 + pytest 护栏结果，生成可视化图表供 artifact 下载
+        run: |
+          pip install --timeout=60 matplotlib numpy || true
+          python scripts/parse_ci_l2_report.py \
+            --ci-log test_reports/l2-ci.log \
+            --output test_reports/l2_perf_report.png
+
+      - name: 转换性能日志为 Markdown
+        # Why: 将压测日志转为 Markdown 报告，方便直接粘贴到技术文档/PR 描述
+        # 容错：sqlite-vec 不可用时压测会跳过，Markdown 报告相应跳过，不影响 CI 结果
+        run: |
+          # 运行快速压测生成性能数据（小数据量，约 7 秒）
+          python scripts/bench_l2_stress.py --cold-count 30 --category-count 5 --concurrency 5 --rounds 3 > test_reports/bench_ci.log 2>&1 || true
+          # 生成性能对比日志（需要压测日志含场景 C/E）
+          python scripts/simulate_l2_async_switch.py --bench-log test_reports/bench_ci.log --log-file test_reports/l2_switch_perf_comparison.log || true
+          # 转换为 Markdown 报告
+          python scripts/convert_perf_log_to_md.py --input test_reports/l2_switch_perf_comparison.log --output test_reports/l2_switch_perf_comparison.md || true
+
+      - name: 监控 P99 告警
+        id: p99-monitor
+        # Why: 自动检查场景 C P99 是否超阈值，超阈值时打印告警 + 发送 Slack 通知
+        # 容错：监控失败不影响 CI 结果，退出码写入 GITHUB_OUTPUT 供后续 step 使用
+        # 退出码：0=正常，1=告警，2=解析失败
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set +e
+          python scripts/monitor_l2_p99.py \
+            --input test_reports/bench_ci.log \
+            --threshold 1 \
+            --alert-log test_reports/p99_alerts.jsonl
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          exit 0
+
+      - name: 创建 P99 告警 Issue
+        # Why: P99 告警时自动创建 GitHub Issue，便于团队跟踪性能退化
+        # 条件触发：监控脚本退出码为 1（告警）
+        if: steps.p99-monitor.outputs.exit_code == '1'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 读取最新告警记录
+          ALERT_DATA=$(tail -1 test_reports/p99_alerts.jsonl)
+          P99=$(echo "$ALERT_DATA" | python -c "import json,sys; d=json.load(sys.stdin); print(f'{d[\"p99\"]:.2f}')")
+          THRESHOLD=$(echo "$ALERT_DATA" | python -c "import json,sys; d=json.load(sys.stdin); print(f'{d[\"threshold\"]:.0f}')")
+          RATIO=$(python -c "print(f'{$P99/$THRESHOLD:.2f}')")
+          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
+
+          gh issue create \
+            --title "🚨 L2 P99 告警 - P99=${P99}ms 超阈值 ${THRESHOLD}ms" \
+            --body "## P99 告警详情
+
+          | 项 | 值 |
+          |----|-----|
+          | 告警时间 | ${TIMESTAMP} |
+          | 场景 | C - 高并发同步串行 |
+          | P99 | ${P99}ms |
+          | 阈值 | ${THRESHOLD}ms |
+          | 超阈值倍数 | ${RATIO}x |
+          | CI 运行 | ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} |
+
+          ## 告警日志
+
+          \`\`\`json
+          ${ALERT_DATA}
+          \`\`\`
+
+          ## 排查建议
+
+          - 检查 CI 环境磁盘 IO 性能
+          - 检查并发竞争情况
+          - 检查事件循环阻塞
+          - 对比历史 P99 数据趋势
+
+          > 此 Issue 由 CI 自动创建，请勿手动关闭直到 P99 恢复正常。
+          " \
+            --label "performance,alert,automated" || echo "Issue 创建失败（可能标签不存在）"
+
       - name: 上传性能报告
         uses: actions/upload-artifact@v4
         with:
           name: benchmark-report
-          path: test_reports/benchmark.json
+          path: |
+            test_reports/benchmark.json
+            test_reports/l2-ci.log
+            test_reports/l2_perf_report.png
+            test_reports/bench_ci.log
+            test_reports/l2_switch_perf_comparison.log
+            test_reports/l2_switch_perf_comparison.md
+            test_reports/p99_alerts.jsonl
 
   # ============================================================================
   # 覆盖率检查
@@ -303,18 +682,25 @@ jobs:
           pip install -e .
 
       - name: 下载覆盖率报告
+        # 【变易】单元测试已拆分为 6 个 shard，用 pattern 下载全部 shard 的
+        # coverage 数据再合并；integration-tests 无独立 coverage artifact
         uses: actions/download-artifact@v4
         with:
-          name: coverage-report-py${{ env.PYTHON_VERSION }}
-          path: .
+          pattern: coverage-report-py${{ env.PYTHON_VERSION }}-*
+          path: covdata/
+          merge-multiple: true
 
       - name: 检查覆盖率
         run: |
           echo "=== 检查覆盖率 ==="
-          ls -la coverage_raw.data coverage.xml || true
+          ls -la covdata/ || true
 
-          # 恢复 .coverage 数据文件
-          cp coverage_raw.data .coverage
+          # 恢复各 shard 数据为 .coverage.<shard> 供 coverage combine 合并
+          for f in covdata/coverage_raw_shard*.data; do
+            [ -f "$f" ] || continue
+            cp "$f" ".coverage.$(basename "$f" .data)"
+            echo "已恢复: $f"
+          done
 
           # 合并覆盖率数据
           coverage combine || true

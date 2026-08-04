@@ -1,0 +1,30 @@
+{
+  "test_name": "k8s_loadtest_stress",
+  "timestamp": "2026-07-31T16:49:22.880Z",
+  "config": {
+    "scenario": "stress",
+    "endpoint": "http://localhost:8080/match",
+    "namespace": "production",
+    "vus": 50,
+    "duration": "2m0s",
+    "target_qps": 250
+  },
+  "results": {
+    "total_requests": 27209,
+    "actual_qps": 226.31,
+    "latency_p50": 0,
+    "latency_p90": 26.76,
+    "latency_p95": 30.04,
+    "latency_p99": 45.06,
+    "latency_p99_source": "estimated_from_hpa_rate",
+    "latency_avg": 19.88,
+    "latency_max": 106.32,
+    "error_rate": 0,
+    "hpa_threshold_exceeded_rate": 0.010033444816053512,
+    "hpa_threshold_exceeded_count": 273,
+    "match_success": 27209,
+    "match_failure": 0
+  },
+  "thresholds": {},
+  "thresholds_all_passed": false
+}

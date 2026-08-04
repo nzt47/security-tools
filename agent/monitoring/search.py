@@ -22,6 +22,7 @@ from typing import Dict, List, Optional
 # 结构化日志必需：get_trace_id() 提供上下文追踪 ID
 # set_trace_id() 用于跨线程传递 trace_id（ContextVar 不自动继承到子线程）
 from agent.monitoring.tracing import get_trace_id, set_trace_id
+from agent.common.stop_mixin import StopMixin
 
 logger = logging.getLogger(__name__)
 
@@ -32,10 +33,15 @@ PERFORMANCE_DATA_FILE = os.path.join(
 )
 
 
-class SearchPerformanceMonitor:
-    """搜索引擎性能监控器"""
+class SearchPerformanceMonitor(StopMixin):
+    """搜索引擎性能监控器
+
+    继承 StopMixin 统一线程优雅关闭范式 [TLM-AUDIT-002]：
+    原 stop()+join() 逻辑保留，新增 _stop_event 支持循环内立即唤醒。
+    """
 
     def __init__(self, base_url: str = "http://localhost:5678"):
+        super().__init__()  # 初始化 StopMixin 的 _stop_event / _registered_threads
         self.base_url = base_url
         self._running = False
         self._thread: Optional[threading.Thread] = None
@@ -132,9 +138,11 @@ class SearchPerformanceMonitor:
                 "duration_ms": 0,
             }, ensure_ascii=False))
             return
+        self._stop_event.clear()  # [TLM-AUDIT-002] 重置停止信号（支持重启）
         self._running = True
         self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
         self._thread.start()
+        self.register_thread(self._thread)  # [TLM-AUDIT-002] 注册到 StopMixin
         logger.info(json.dumps({
             "trace_id": get_trace_id(),
             "module_name": "search_monitor",
@@ -145,9 +153,10 @@ class SearchPerformanceMonitor:
 
     def stop(self):
         """停止性能监控"""
+        # [TLM-AUDIT-002] 调用 StopMixin.stop 统一设置 _stop_event + join
+        # 用 super() 显式调用父类方法，避免递归
         self._running = False
-        if self._thread:
-            self._thread.join(timeout=self._thread_join_timeout)
+        super().stop(timeout=self._thread_join_timeout)
         logger.info(json.dumps({
             "trace_id": get_trace_id(),
             "module_name": "search_monitor",
@@ -159,13 +168,14 @@ class SearchPerformanceMonitor:
         """监控循环"""
         # 后台线程入口：显式设置 trace_id，解决 ContextVar 不跨线程继承导致 get_trace_id() 返回 None 的问题
         set_trace_id(self._monitor_trace_id)
-        while self._running:
+        # [TLM-AUDIT-002] 用 _should_stop() + _stop_event.wait 替代 _running + sleep
+        # 优势：stop() 时 Event.set 自动唤醒 wait，无需等到下次 sleep 超时
+        while not self._should_stop():
             try:
                 self._perform_check()
-                for _ in range(self._interval):
-                    if not self._running:
-                        break
-                    time.sleep(1)
+                # 等待 interval 秒，可被 stop_event 立即唤醒（替代 for+sleep 循环）
+                if self._stop_event.wait(timeout=self._interval):
+                    break
             except Exception as e:
                 logger.error(json.dumps({
                     "trace_id": get_trace_id(),
@@ -174,7 +184,9 @@ class SearchPerformanceMonitor:
                     "duration_ms": 0,
                     "error": str(e),
                 }, ensure_ascii=False))
-                time.sleep(60)
+                # 异常后等待 60 秒，可被 stop_event 唤醒
+                if self._stop_event.wait(timeout=60):
+                    break
 
     def _perform_check(self):
         """执行性能检测"""

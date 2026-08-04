@@ -1,0 +1,41 @@
+{
+  "_comment": "check_circular_deps.py --verbose 的标准输出示例 (fixture)",
+  "_source": "由 scripts/check_circular_deps.py 的 build_cycles_json() 生成",
+  "_usage": "供测试/脚本引用验证 JSON 结构: cycles[] -> edges[] -> locations[]",
+  "cycles": [
+    {
+      "modules": [
+        "agent.module_a",
+        "agent.module_b"
+      ],
+      "edges": [
+        {
+          "from": "agent.module_a",
+          "to": "agent.module_b",
+          "locations": [
+            {
+              "file": "agent/module_a.py",
+              "line": 5,
+              "statement": "from agent.module_b import ..."
+            }
+          ]
+        },
+        {
+          "from": "agent.module_b",
+          "to": "agent.module_a",
+          "locations": [
+            {
+              "file": "agent/module_b.py",
+              "line": 3,
+              "statement": "from agent.module_a import ..."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_cycles": 1,
+    "total_edges": 2
+  }
+}

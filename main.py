@@ -74,10 +74,25 @@ def main():
     parser.add_argument("--log-level", type=str, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], 
                         help="设置日志级别")
     parser.add_argument("--log-target", type=str, default=None, help="指定日志记录器名称（默认根记录器）")
+    # 启动时预下载 embedding 模型（默认跳过，按需开启）
+    parser.add_argument(
+        "--preload-models", action="store_true",
+        help="启动前预下载 embedding 模型到本地缓存（默认跳过；首次运行或离线环境建议开启）",
+    )
     args = parser.parse_args()
 
-    # 重新配置日志（根据debug参数）
-    setup_agent_logging(debug_mode=args.debug)
+    # 加载 .env 到 os.environ（守 user_rules「配置走 .env」）
+    # Why: env_config_manager.reload() 把 .env 写入 os.environ，
+    #      后续 os.getenv("LOG_LEVEL") 等才能读到 .env 里的配置
+    # 注意: reload() 会覆盖现有同名环境变量（.env 为单一数据源，符合项目设计）
+    try:
+        from agent.env_config_manager import get_env_config_manager
+        get_env_config_manager().reload()
+    except Exception as _e:
+        logger.warning(f".env 加载失败（继续使用系统环境变量）: {_e}")
+    # 重新配置日志（优先级: --debug 命令行参数 > LOG_LEVEL 环境变量 > 默认 INFO）
+    _env_debug = os.getenv("LOG_LEVEL", "INFO").upper() == "DEBUG"
+    setup_agent_logging(debug_mode=args.debug or _env_debug)
 
     if args.debug:
         logger.info("调试模式已启用")
@@ -110,6 +125,10 @@ def main():
         print("       set LLM_MODEL=gpt-4（或 claude-sonnet-4-20250514）")
         print()
         logger.warning("⚠️ LLM未配置，部分功能将受限")
+
+    # 启动前预下载 embedding 模型（按需开启，容错不阻断启动）
+    if args.preload_models:
+        _preload_embedding_models()
 
     logger.info("📦 初始化 DigitalLife 实例...")
     Yunshu = DigitalLife(config.merged)
@@ -381,6 +400,38 @@ def main():
         _run_repl(Yunshu, voice_mode=args.voice)
 
     Yunshu.stop()
+
+
+def _preload_embedding_models():
+    """启动前预下载 embedding 模型（容错，失败不阻断启动）
+
+    【不易】复用 docker_fault_tolerance 三层容错，任何失败仅 warning 不抛异常
+    【变易】通过 --preload-models 显式触发，默认跳过避免拖慢日常启动
+    【简易】复用 download_hf_models_safely，不重复实现下载逻辑
+    """
+    try:
+        from pathlib import Path
+        from agent.utils.docker_fault_tolerance import download_hf_models_safely
+        # 模型列表与 scripts/predownload_models.py DEFAULT_MODELS 保持一致
+        models = [
+            "paraphrase-multilingual-MiniLM-L12-v2",
+            "all-MiniLM-L6-v2",
+            "BAAI/bge-small-zh-v1.5",
+        ]
+        # cache_dir 优先读 HF_HOME；本地默认 ./.hf_cache
+        # Why: docker_fault_tolerance.download_hf_models_safely 默认 /app/.hf_cache 是 Docker 路径，
+        #      Windows 本地运行会因根目录不可写失败，故 fallback 到项目根目录
+        cache_dir = os.getenv("HF_HOME") or str(Path(__file__).parent / ".hf_cache")
+        timeout = int(os.getenv("HF_HUB_DOWNLOAD_TIMEOUT", "300"))
+        logger.info(f"📦 预下载 embedding 模型到 {cache_dir}（timeout={timeout}s）...")
+        result = download_hf_models_safely(
+            models=models, cache_dir=cache_dir, timeout=timeout
+        )
+        logger.info(f"预下载完成: {result.succeeded}/{result.total} 成功")
+        if result.failed > 0:
+            logger.warning(f"部分模型下载失败: {result.failed_resources}（不阻断启动）")
+    except Exception as _e:
+        logger.warning(f"模型预下载失败（不阻断启动）: {_e}")
 
 
 # ── 导入 Agent 模块的安全工具 ──

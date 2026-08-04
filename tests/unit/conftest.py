@@ -27,6 +27,45 @@ import pytest
 _CI_LINUX = sys.platform == 'linux' and bool(os.environ.get('CI'))
 
 
+class _BlockModules:
+    """仅封禁指定模块名的上下文管理器，退出时只恢复/删除这些键。
+
+    Why 替代 patch.dict(sys.modules, {...}):
+    mock._patch_dict.__exit__ 先 _clear_dict(sys.modules) 清空整个
+    sys.modules 再恢复快照。测试运行期间首次导入的模块（如
+    agent.data_analytics）不在快照中 → 被从 sys.modules 删除，但父包
+    agent 的属性仍指向旧模块对象，形成「sys.modules 与包属性不一致」的
+    残留状态。Python 3.10 的 mock._importer 解析 patch 目标时用
+    getattr(agent, 'data_analytics') 拿到残留旧模块，而业务代码运行时
+    `from agent.data_analytics import ...` 走 __import__ 重新导入新模块，
+    patch 落在旧模块上不生效（CI Shard4 3.10 的 test_analytics_* 2 例）。
+    Python 3.12 的 pkgutil.resolve_name 先 import_module 重新导入，
+    因此本地无法复现。本实现仅封禁/恢复指定键，不触碰 sys.modules 其他键。
+    """
+
+    def __init__(self, names):
+        self._names = set(names)
+        self._saved = {}
+        self._added = set()
+
+    def __enter__(self):
+        for name in self._names:
+            if name in sys.modules:
+                self._saved[name] = sys.modules[name]
+            else:
+                self._added.add(name)
+            sys.modules[name] = None  # None → `import name` 抛 ImportError
+        return self
+
+    def __exit__(self, *exc):
+        for name in self._names:
+            if name in self._added:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = self._saved[name]
+        return False
+
+
 _GOLDEN_HANDLERS = None
 _GOLDEN_LEVEL = None
 _GOLDEN_HANDLER_STATE = {}  # {id(handler): (level, formatter, filters)}
@@ -76,17 +115,24 @@ def _isolate_test_loggers():
     动态 logger 是按需创建的，session 快照抓不到，故用「强制清理」策略。
 
     保留 pytest 框架自身的 logger（以 "pytest" 开头），避免干扰测试框架行为。
+
+    【不易·死锁修复】setLevel 会触发 manager._clear_cache()，后者持 logging 全局锁
+    遍历全部 logger。N 个 logger 各调一次 setLevel = N 次持锁遍历（O(N²)），与
+    tool_trace 后台 daemon 线程的 logger.warning（持锁调 handler IO）竞争，偶发
+    fixture teardown 死锁。改为直接赋值 level 绕过 _clear_cache，循环外一次性
+    _clear_cache，将 N 次持锁降为 1 次，大幅压缩锁竞争窗口。
     """
-    manager = logging.Logger.manager.loggerDict
-    for name, obj in list(manager.items()):
+    manager = logging.Logger.manager
+    for name, obj in list(manager.loggerDict.items()):
         if name.startswith("pytest"):
             continue
         if not isinstance(obj, logging.Logger):
             continue  # 跳过 Placeholder
         obj.handlers.clear()
-        obj.setLevel(logging.NOTSET)
+        obj.level = logging.NOTSET  # 直接赋值，绕过 setLevel 的 _clear_cache（避免 N 次持锁）
         obj.filters.clear()
         obj.propagate = True
+    manager._clear_cache()  # 一次性清所有 logger cache（仅持锁 1 次）
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -99,6 +145,25 @@ def _unit_logger_golden_snapshot():
     """
     _snapshot_golden()
     yield
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _unit_stop_tool_trace_writer():
+    """session 结束时优雅停止 tool_trace 后台写入线程。
+
+    Why: ToolTraceRecorder.__init__（tool_trace.py:179-184）启动 daemon 后台
+    线程 tool-trace-writer，测试期间一旦实例化则线程持续运行。其 _writer_loop
+    在 SQLite 写入失败时调 logger.warning/debug（持 logging 全局锁调 handler IO），
+    与 _isolate_test_loggers 的 _clear_cache 持锁遍历竞争，是 logger teardown
+    死锁的竞争源之一。session 结束统一 reset 单例（内部先 stop() 优雅退出），
+    确保后台线程在进程退出前终止。
+    """
+    yield
+    try:
+        from agent.observability.tool_trace import ToolTraceRecorder
+        ToolTraceRecorder.reset()  # 幂等：_instance 为 None 时无副作用
+    except Exception:
+        pass  # 兜底：清理失败不阻断测试退出
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -134,25 +199,47 @@ def _disable_optional_systems_safety():
     显式 patch 为 True 的测试不受影响：mock.patch 嵌套时内层 patch 覆盖外层，
     内层退出后恢复到本 fixture 设置的 False，外层退出后恢复到原始值。
 
-    CI Linux 额外防护：通过 patch.dict(sys.modules) 将 chromadb /
-    sentence_transformers 设为 None，使 `import chromadb` 抛 ImportError 而非
+    CI Linux 额外防护：通过 _BlockModules 将 chromadb /
+    sentence_transformers 封禁为 None，使 `import chromadb` 抛 ImportError 而非
     触发 native 扩展加载。复用业务代码已有的 ImportError fallback 路径
     （VectorStore→JSON fallback，OptimizedChromaDB→MockChromaClient），
     无需改动业务逻辑。本地 Windows 不触发此防护，仍用真实 chromadb。
+
+    sqlite-vec 全局禁用（所有环境）：VectorStore.__init__ 优先级为
+    sqlite-vec > chromadb > JSON，sqlite-vec 后端会加载 sentence_transformers
+    模型（55s+）并可能触发 HuggingFace 下载。任何间接实例化 VectorStore 的
+    测试（如 weekly_report_generator / task_scheduler 调用链）都会受影响。
+    sqlite-vec 专项测试在 test_vector_store_sqlite_vec.py 中通过 autouse
+    fixture 覆盖启用真实 sqlite_vec 模块。
     """
     with ExitStack() as stack:
-        stack.enter_context(patch('agent.orchestrator.lifecycle_manager._MEMORY_AVAILABLE', False))
-        stack.enter_context(patch('agent.orchestrator.lifecycle_manager._VOICE_AVAILABLE', False))
-        stack.enter_context(patch('agent.orchestrator.lifecycle_manager._OCR_AVAILABLE', False))
-        stack.enter_context(patch('agent.orchestrator.lifecycle_manager._P6_SNAPSHOT_AVAILABLE', False))
+        # [不易] patch 目标模块不可导入时 (CI 缺 tiktoken/chromadb 等重依赖) 跳过:
+        # 可选系统本就不可用, 无需 patch. 避免 patch('agent.orchestrator...')
+        # 触发 agent.__getattr__ → digital_life → memory → tiktoken 导入链失败.
+        # [CHG-2026-0801] 补捕获 AttributeError: agent/orchestrator/__init__.py 的
+        # PEP 562 __getattr__ 仅暴露 LifecycleManager 类，不暴露 lifecycle_manager 子模块。
+        # CI 未预导入该子模块时，mock.patch 解析 agent.orchestrator.lifecycle_manager.*
+        # 会抛 AttributeError（非 ImportError），导致 reranker 等未预导入 orchestrator 的
+        # 测试在 autouse fixture setup 阶段全部失败。
+        def _safe_patch(target, value):
+            try:
+                stack.enter_context(patch(target, value))
+            except (ModuleNotFoundError, ImportError, AttributeError):
+                pass
+        _safe_patch('agent.orchestrator.lifecycle_manager._MEMORY_AVAILABLE', False)
+        _safe_patch('agent.orchestrator.lifecycle_manager._VOICE_AVAILABLE', False)
+        _safe_patch('agent.orchestrator.lifecycle_manager._OCR_AVAILABLE', False)
+        _safe_patch('agent.orchestrator.lifecycle_manager._P6_SNAPSHOT_AVAILABLE', False)
+        # 全局禁用 sqlite-vec：让所有 VectorStore 实例化降级到 JSON fallback
+        stack.enter_context(_BlockModules(['sqlite_vec']))
         if _CI_LINUX:
             # sys.modules[name] = None 会让 `import name` 抛 ImportError，而非
-            # 加载真实 native 扩展。patch.dict 退出后自动恢复 sys.modules 原状。
-            stack.enter_context(patch.dict(sys.modules, {
-                'chromadb': None,
-                'chromadb.config': None,
-                'sentence_transformers': None,
-            }))
+            # 加载真实 native 扩展。用 _BlockModules（非 patch.dict）仅封禁指定
+            # 键并原样恢复，避免 patch.dict 退出时清空整个 sys.modules 造成
+            # 「模块被删但父包属性残留」的不一致（见 _BlockModules 类注释）。
+            stack.enter_context(_BlockModules([
+                'chromadb', 'chromadb.config', 'sentence_transformers',
+            ]))
         yield
 
 
@@ -293,13 +380,16 @@ def _skills_offline_mode():
 
     # 1. 禁用重量级 C 扩展 import (torch/chromadb/onnxruntime/sentence_transformers)
     #    sys.modules[name]=None 让 `import name` 抛 ImportError, 复用业务 fallback
-    #    用 patch.dict 确保测试退出后自动恢复, 避免污染后续测试
-    _block_mods = {m: None for m in (
+    #    用 _BlockModules（非 patch.dict）仅封禁指定键并原样恢复:
+    #    patch.dict 退出时清空整个 sys.modules 再恢复快照, 会把测试期间首次
+    #    导入的模块删掉但父包属性残留, 导致 Python 3.10 mock patch 失效
+    #    (见 _BlockModules 类注释, CI Shard4 3.10 test_analytics_* 复现)。
+    _block_mods = [m for m in (
         "torch", "chromadb", "chromadb.config",
         "onnxruntime", "sentence_transformers", "sqlite_vec",
-    ) if m not in sys.modules}
+    ) if m not in sys.modules]
     if _block_mods:
-        patches.append(patch.dict(sys.modules, _block_mods))
+        patches.append(_BlockModules(_block_mods))
 
     # 2. patch observability 外部上报为 no-op
     try:
@@ -455,6 +545,24 @@ def guard_result_example_data():
     if not json_path.exists():
         import pytest
         pytest.skip("guard_result_example.json 不存在, 运行 generate_guard_json_example.py 生成")
+    with open(json_path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+@pytest.fixture(scope="session")
+def guard_trace_log_example_data():
+    """从 docs/guard_trace_log_example.json 加载链路追踪日志示例 (回归测试复用)
+
+    来源: demo_guard_trace.py 运行产出的结构化日志, 整理为 JSON fixture
+    用途: 回归测试验证 guard_trace 串联结构 (start/end 事件 + trace_id 一致性 + 时序)
+    若文件不存在则跳过 (需先运行 demo_guard_trace.py 并整理为 JSON)
+    """
+    import json
+    from pathlib import Path
+    json_path = Path(__file__).parent.parent.parent / "docs" / "guard_trace_log_example.json"
+    if not json_path.exists():
+        import pytest
+        pytest.skip("guard_trace_log_example.json 不存在, 参考 docs/guard_trace_log_example.md 整理")
     with open(json_path, encoding="utf-8") as f:
         return json.load(f)
 

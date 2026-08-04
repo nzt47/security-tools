@@ -129,7 +129,7 @@ egress:                        # 仅放行 DNS
 | 测试套件 | 用例数 | 状态 | 文件 |
 |----------|--------|------|------|
 | Compose 本地测试环境 | 6 | ✅ 全部通过 | [verify_compose_test.py](../../scripts/verify_compose_test.py) |
-| 重试逻辑测试 | 9 | ✅ 全部通过 | [test_retry_logic.ps1](../../scripts/test_retry_logic.ps1) |
+| 重试逻辑测试 | 9 | ✅ 全部通过 | ~~test_retry_logic.ps1~~ ⚠ (待确认) |
 | NetworkPolicy kind 测试 | 5 | ⏳ 待运行 | [test_networkpolicy_kind.ps1](../../scripts/test_networkpolicy_kind.ps1) |
 
 ---

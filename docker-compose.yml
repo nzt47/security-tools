@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   digital-life:
     build:
@@ -7,6 +5,10 @@ services:
       dockerfile: Dockerfile
     container_name: digital-life-test
     restart: unless-stopped
+    # [CHG-2026-0801] 锁定 linux/amd64：Windows Docker Desktop 下保证一致的镜像架构
+    platform: linux/amd64
+    # [CHG-2026-0801] 启用 init 进程：容器内信号优雅处理，避免 SQLite WAL 残留
+    init: true
     
     environment:
       - ERROR_REPORTING_CONSOLE_LEVEL=warning
@@ -17,11 +19,27 @@ services:
       - ERROR_REPORTING_SLACK_ENABLED=false
       # 功能开关
       - YUNSHU_FEATURE_SANDBOX=${YUNSHU_FEATURE_SANDBOX:-false}
-    
+      # [CHG-2026-0801] Reranker 热重载配置（Linux Docker 环境可安全启用）
+      - SKILL_RERANKER_ENABLED=${SKILL_RERANKER_ENABLED:-false}
+      - SKILL_RERANKER_USE_ONNX=${SKILL_RERANKER_USE_ONNX:-true}
+      - SKILL_RERANKER_ONNX_VARIANT=${SKILL_RERANKER_ONNX_VARIANT:-model_quantized.onnx}
+      - SKILL_RERANKER_HOT_RELOAD_INTERVAL=${SKILL_RERANKER_HOT_RELOAD_INTERVAL:-30}
+      # [CHG-2026-0801] OpenMP/MKL 线程数限制：预防 torch/sqlite-vec DLL 线程竞争导致的 0xC0000005
+      #   与 docker-compose.linux-test.yml 保持一致（OMP=4, MKL=4），值可由 .env 覆盖
+      - OMP_NUM_THREADS=${OMP_NUM_THREADS:-4}
+      - MKL_NUM_THREADS=${MKL_NUM_THREADS:-4}
+
+    ports:
+      - "5678:5678"
+
     volumes:
       - ./logs:/app/logs
       - ./data:/app/data
       - ./.backups:/app/.backups
+      # [CHG-2026-0801] HuggingFace 模型缓存（Windows 宿主路径经 HUGGINGFACE_CACHE_DIR 变量注入）
+      #   Windows 默认: C:\Users\<用户>\.cache\huggingface（与 .env SKILL_RERANKER_MODEL 指向一致）
+      #   Linux 默认:   ~/.cache/huggingface
+      - ${HUGGINGFACE_CACHE_DIR:-~/.cache/huggingface}:/root/.cache/huggingface
     
     networks:
       - digital-life-network

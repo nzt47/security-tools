@@ -1,8 +1,8 @@
 """微调 bge-reranker-v2-m3(LoRA)— Phase 2 P2.3
 
 【不易】不修改预训练模型权重,仅训练 LoRA 适配器(可回滚)
-【变易】支持早停、学习率调度、验证集评估
-【简易】单脚本完成训练 + 评估 + 保存
+【变易】支持早停、断点续训、多种优化器、自定义 PyTorch 训练循环
+【简易】单脚本完成训练 + 评估 + checkpoint 保存
 
 用法:
     python scripts/finetune_reranker.py \\
@@ -10,6 +10,12 @@
         --val data/reranker_valset.jsonl \\
         --output data/reranker_finetuned/ \\
         --epochs 5 --batch-size 16 --lr 2e-5
+
+    # 断点续训
+    python scripts/finetune_reranker.py --resume ... 
+
+    # 全量微调(禁用 LoRA)
+    python scripts/finetune_reranker.py --no-lora ...
 
 依赖:
     pip install peft accelerate sentence-transformers
@@ -50,7 +56,7 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
 
 
 # ════════════════════════════════════════════════════════════
-#  LoRA 配置与训练
+#  LoRA 配置
 # ════════════════════════════════════════════════════════════
 
 def apply_lora_to_cross_encoder(model, lora_rank: int, lora_alpha: int):
@@ -61,81 +67,355 @@ def apply_lora_to_cross_encoder(model, lora_rank: int, lora_alpha: int):
     """
     from peft import LoraConfig, get_peft_model
 
-    # CrossEncoder.model 是 AutoModelForSequenceClassification
     base_model = model.model
 
     lora_config = LoraConfig(
         r=lora_rank,
         lora_alpha=lora_alpha,
-        target_modules=["query", "value"],  # XLM-RoBERTa attention 投影层
+        target_modules=["query", "value"],
         lora_dropout=0.1,
         bias="none",
-        task_type="SEQ_CLS",  # 序列分类任务
+        task_type="SEQ_CLS",
     )
     base_model = get_peft_model(base_model, lora_config)
-    # 把包装后的模型替换回去
     model.model = base_model
     return model
 
 
+# ════════════════════════════════════════════════════════════
+#  Checkpoint 保存/加载(LoRA adapter,非完整模型)
+# ════════════════════════════════════════════════════════════
+
+def save_lora_checkpoint(peft_model, ckpt_path: Path, training_state: dict) -> None:
+    """保存 LoRA adapter checkpoint
+
+    【不易】只保存 LoRA adapter 权重(~1MB),不保存 base model(~2.2GB)
+    【变易】优先用 PEFT 原生 save_pretrained,失败时 fallback 到手动 state_dict
+    【简易】training_state.json 独立保存,与 adapter 权重分离
+    """
+    ckpt_path.mkdir(parents=True, exist_ok=True)
+
+    try:
+        from peft import PeftModel
+        if isinstance(peft_model, PeftModel):
+            # 方法 1: PEFT 原生 save_pretrained(应输出 adapter_config.json + adapter_model.safetensors)
+            peft_model.save_pretrained(str(ckpt_path))
+
+            # 验证 adapter 文件是否真正生成
+            adapter_safetensors = ckpt_path / "adapter_model.safetensors"
+            adapter_bin = ckpt_path / "adapter_model.bin"
+
+            if not adapter_safetensors.exists() and not adapter_bin.exists():
+                # 方法 2: Fallback — 手动提取 LoRA state_dict
+                print(f"  [checkpoint] PEFT 未生成 adapter 文件,使用 fallback", flush=True)
+                from peft import get_peft_model_state_dict
+                lora_state = get_peft_model_state_dict(peft_model)
+                import torch
+                torch.save(lora_state, ckpt_path / "adapter_model.pt")
+            else:
+                print(f"  [checkpoint] LoRA adapter 已保存: {ckpt_path}", flush=True)
+                # 清理可能被 PEFT 误存的完整模型文件(节省磁盘)
+                for full_model_name in ["model.safetensors", "pytorch_model.bin"]:
+                    full_model = ckpt_path / full_model_name
+                    if full_model.exists():
+                        full_model.unlink()
+                        print(f"  [checkpoint] 清理误存的完整模型: {full_model_name}", flush=True)
+        else:
+            # 非 PeftModel(全量微调):保存完整 state_dict
+            print(f"  [checkpoint] 非 PeftModel,保存完整 state_dict", flush=True)
+            import torch
+            torch.save(peft_model.state_dict(), ckpt_path / "model_state.pt")
+    except Exception as e:
+        print(f"  [checkpoint] 保存失败: {e}", flush=True)
+
+    # 保存训练状态(epoch/best_val_loss/patience_counter 等)
+    state_path = ckpt_path / "training_state.json"
+    try:
+        with open(state_path, "w", encoding="utf-8") as f:
+            json.dump(training_state, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"  [checkpoint] training_state 保存失败: {e}", flush=True)
+
+
+def load_lora_checkpoint(peft_model, ckpt_path: Path) -> tuple[bool, "dict | None"]:
+    """加载 LoRA adapter checkpoint
+
+    【不易】优先用 PEFT 原生 load_adapter,失败时 fallback 到 set_peft_model_state_dict
+    【变易】training_state.json 损坏时不影响 adapter 加载,返回 None
+    【简易】返回 (success, training_state) 二元组
+
+    Returns:
+        (True, state_dict) — adapter 加载成功,training_state 可用
+        (True, None)       — adapter 加载成功,但 training_state 不可用
+        (False, None)      — adapter 加载失败
+    """
+    ckpt_path = Path(ckpt_path)
+    training_state = None
+
+    # 加载 training_state.json(损坏不影响 adapter 加载)
+    state_path = ckpt_path / "training_state.json"
+    if state_path.exists():
+        try:
+            with open(state_path, "r", encoding="utf-8") as f:
+                training_state = json.load(f)
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"  [resume] ⚠ training_state.json 解析失败: {e}", flush=True)
+            training_state = None
+
+    # 加载 adapter 权重
+    try:
+        from peft import PeftModel
+        if isinstance(peft_model, PeftModel):
+            adapter_safetensors = ckpt_path / "adapter_model.safetensors"
+            adapter_bin = ckpt_path / "adapter_model.bin"
+            adapter_pt = ckpt_path / "adapter_model.pt"
+
+            # 路径 1: PEFT 原生 load_adapter
+            if adapter_safetensors.exists() or adapter_bin.exists():
+                try:
+                    peft_model.load_adapter(str(ckpt_path), adapter_name="default")
+                    print(f"  [resume] LoRA adapter 已加载(PEFT native): {ckpt_path}", flush=True)
+                    return True, training_state
+                except Exception as e:
+                    print(f"  [resume] ⚠ PEFT load_adapter 失败: {e}", flush=True)
+
+            # 路径 2: Fallback — 手动加载 state_dict
+            if adapter_pt.exists():
+                try:
+                    import torch
+                    from peft import set_peft_model_state_dict
+                    lora_state = torch.load(adapter_pt, map_location="cpu")
+                    set_peft_model_state_dict(peft_model, lora_state)
+                    print(f"  [resume] LoRA adapter 已加载(fallback): {ckpt_path}", flush=True)
+                    return True, training_state
+                except Exception as e:
+                    print(f"  [resume] ⚠ 手动加载失败: {e}", flush=True)
+
+            # 没有 adapter 文件
+            print(f"  [resume] ⚠ 未找到 adapter 文件: {ckpt_path}", flush=True)
+            return False, None
+        else:
+            # 非 PeftModel:加载完整 state_dict
+            model_state = ckpt_path / "model_state.pt"
+            if model_state.exists():
+                try:
+                    import torch
+                    state = torch.load(model_state, map_location="cpu")
+                    peft_model.load_state_dict(state, strict=False)
+                    print(f"  [resume] 完整 state_dict 已加载", flush=True)
+                    return True, training_state
+                except Exception as e:
+                    print(f"  [resume] ⚠ state_dict 加载失败: {e}", flush=True)
+
+            return False, None
+    except Exception as e:
+        print(f"  [resume] ⚠ 加载异常: {e}", flush=True)
+        return False, None
+
+
+def find_latest_checkpoint(output_dir: Path) -> "tuple[Path, int] | None":
+    """扫描 checkpoint 目录,返回最新 checkpoint 的路径和 epoch 编号
+
+    Why: 将 main() 中的 checkpoint 扫描逻辑提取为独立函数,便于测试和复用。
+         扫描 {output_dir}/checkpoints/epoch_N/ 目录,找最大 N。
+
+    Returns:
+        (ckpt_path, epoch_num) 或 None(无 checkpoint)
+    """
+    checkpoint_dir = output_dir / "checkpoints"
+    if not checkpoint_dir.exists():
+        return None
+
+    ckpt_dirs = [d for d in checkpoint_dir.iterdir()
+                 if d.is_dir() and d.name.startswith("epoch_")]
+    if not ckpt_dirs:
+        return None
+
+    def _extract_epoch(d: Path) -> int:
+        try:
+            return int(d.name.split("_")[1])
+        except (IndexError, ValueError):
+            return 0
+
+    ckpt_dirs.sort(key=_extract_epoch, reverse=True)
+    latest_ckpt = ckpt_dirs[0]
+    return latest_ckpt, _extract_epoch(latest_ckpt)
+
+
+# ════════════════════════════════════════════════════════════
+#  自定义 PyTorch 训练循环(替代 CrossEncoder.fit,兼容 PEFT)
+# ════════════════════════════════════════════════════════════
+
 def train_loop(model, train_samples: list[dict], val_samples: list[dict],
                epochs: int, batch_size: int, lr: float,
-               early_stopping_patience: int) -> dict[str, Any]:
-    """训练循环
+               early_stopping_patience: int,
+               optimizer_name: str = "adamw",
+               checkpoint_dir: "Path | None" = None,
+               resume_epoch: int = 0,
+               resume_state: "dict | None" = None) -> dict[str, Any]:
+    """自定义 PyTorch 训练循环(支持 LoRA checkpoint 断点续训)
 
-    【变易】用 BinaryCrossEntropy + AdamW,早停监控 val_loss
-    【简易】直接调用 CrossEncoder.fit,封装早停逻辑
+    Why: CrossEncoder.fit() 与 PEFT 包装后的 model 不兼容
+        (FitMixinLoss.forward() 收到意外参数 'prompt'),
+        必须用自定义循环直接调用 peft_model(input_ids=..., attention_mask=...)。
+
+    【不易】BCEWithLogitsLoss + AdamW,早停监控 val_loss
+    【变易】每 epoch 保存 checkpoint,resume_epoch>0 时跳过已训练 epoch
     """
-    from sentence_transformers import InputExample
-    from torch.utils.data import DataLoader
+    import torch
+    from torch.utils.data import Dataset, DataLoader
 
-    # 构造 InputExample
-    train_examples = [
-        InputExample(texts=[s["query"], s["doc"]], label=float(s["label"]))
-        for s in train_samples
-    ]
-    val_examples = [
-        InputExample(texts=[s["query"], s["doc"]], label=float(s["label"]))
-        for s in val_samples
-    ]
+    class RerankerDataset(Dataset):
+        def __init__(self, samples, tokenizer, max_length):
+            self.samples = samples
+            self.tokenizer = tokenizer
+            self.max_length = max_length
 
-    train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=batch_size)
+        def __len__(self):
+            return len(self.samples)
 
-    # sentence-transformers 5.x 正确 API
-    # 【不易】BinaryCrossEntropyLoss 适配 label ∈ {0, 1} 的二分类
-    from sentence_transformers.cross_encoder.losses import BinaryCrossEntropyLoss
-    from sentence_transformers.cross_encoder.evaluation import CECorrelationEvaluator
+        def __getitem__(self, idx):
+            s = self.samples[idx]
+            encoded = self.tokenizer(
+                s["query"], s["doc"],
+                truncation=True, padding="max_length",
+                max_length=self.max_length, return_tensors="pt",
+            )
+            return {
+                "input_ids": encoded["input_ids"].squeeze(0),
+                "attention_mask": encoded["attention_mask"].squeeze(0),
+                "label": torch.tensor(float(s["label"]), dtype=torch.float32),
+            }
 
-    # 评估器(用于早停监控 + save_best_model)
-    evaluator = CECorrelationEvaluator.from_input_examples(
-        val_examples, name="reranker_val", show_progress_bar=False
-    )
+    # 获取 tokenizer 和 peft_model
+    peft_model = model.model
+    tokenizer = model.tokenizer
 
-    print(f"  训练配置: epochs={epochs}, batch_size={batch_size}, lr={lr}")
+    train_dataset = RerankerDataset(train_samples, tokenizer, model.max_length)
+    val_dataset = RerankerDataset(val_samples, tokenizer, model.max_length)
+    train_dataloader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size)
+    val_dataloader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size)
+
+    # 选择优化器
+    if optimizer_name == "adamw":
+        optimizer = torch.optim.AdamW(peft_model.parameters(), lr=lr, weight_decay=0.01)
+    elif optimizer_name == "sgd":
+        optimizer = torch.optim.SGD(peft_model.parameters(), lr=lr, momentum=0.9)
+    elif optimizer_name == "adafactor":
+        from transformers import Adafactor
+        optimizer = Adafactor(peft_model.parameters(), lr=lr, scale_parameter=False,
+                              relative_step=False, warmup_init=False)
+    else:
+        optimizer = torch.optim.AdamW(peft_model.parameters(), lr=lr, weight_decay=0.01)
+
+    loss_fct = torch.nn.BCEWithLogitsLoss()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    peft_model.to(device)
+
+    print(f"  训练配置: epochs={epochs}, batch_size={batch_size}, lr={lr}, optimizer={optimizer_name}")
+    print(f"  设备: {device}")
     print(f"  训练样本: {len(train_samples)}, 验证样本: {len(val_samples)}")
     print(f"  早停 patience: {early_stopping_patience}")
+    if resume_epoch > 0:
+        print(f"  [resume] 从 epoch {resume_epoch+1} 继续(跳过前 {resume_epoch} 个 epoch)")
 
-    # CrossEncoder.fit 内置 evaluator + save_best_model,天然支持早停
-    # 【变易】用临时目录让 fit 自动保存最佳模型,训练结束后再合并 LoRA
-    import tempfile
-    with tempfile.TemporaryDirectory() as tmp_best_dir:
-        t0 = time.time()
-        model.fit(
-            train_dataloader=train_dataloader,
-            evaluator=evaluator,
-            epochs=epochs,
-            loss_fct=BinaryCrossEntropyLoss(model=model),
-            warmup_steps=int(0.1 * len(train_dataloader) * epochs),
-            optimizer_params={"lr": lr, "weight_decay": 0.01},
-            output_path=tmp_best_dir,  # 最佳模型保存到此临时目录
-            save_best_model=True,
-            show_progress_bar=True,
-            use_amp=False,  # CPU 不支持 AMP
-        )
-        elapsed = time.time() - t0
-        print(f"  训练耗时: {elapsed:.1f}s")
+    # 恢复训练状态
+    best_val_loss = float("inf")
+    patience_counter = 0
+    best_epoch = 0
+    if resume_state is not None:
+        best_val_loss = resume_state.get("best_val_loss", float("inf"))
+        patience_counter = resume_state.get("patience_counter", 0)
+        best_epoch = resume_state.get("best_epoch", 0)
 
-    # 最终评估(用最后状态的模型,fit 已加载最佳权重)
+    train_losses = []
+    val_losses = []
+    val_accuracies = []
+
+    t0 = time.time()
+    for epoch in range(epochs):
+        # 跳过已训练的 epoch
+        if epoch < resume_epoch:
+            continue
+
+        # --- 训练 ---
+        peft_model.train()
+        epoch_loss = 0.0
+        for batch in train_dataloader:
+            input_ids = batch["input_ids"].to(device)
+            attention_mask = batch["attention_mask"].to(device)
+            labels = batch["label"].to(device)
+
+            optimizer.zero_grad()
+            outputs = peft_model(input_ids=input_ids, attention_mask=attention_mask)
+            logits = outputs.logits.squeeze(-1) if outputs.logits.size(-1) == 1 else outputs.logits[:, 0]
+            loss = loss_fct(logits, labels)
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item()
+
+        avg_train_loss = epoch_loss / len(train_dataloader)
+        train_losses.append(avg_train_loss)
+
+        # --- 验证 ---
+        peft_model.eval()
+        val_loss = 0.0
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for batch in val_dataloader:
+                input_ids = batch["input_ids"].to(device)
+                attention_mask = batch["attention_mask"].to(device)
+                labels = batch["label"].to(device)
+
+                outputs = peft_model(input_ids=input_ids, attention_mask=attention_mask)
+                logits = outputs.logits.squeeze(-1) if outputs.logits.size(-1) == 1 else outputs.logits[:, 0]
+                loss = loss_fct(logits, labels)
+                val_loss += loss.item()
+
+                probs = torch.sigmoid(logits)
+                preds = (probs > 0.5).long()
+                correct += (preds == labels.long()).sum().item()
+                total += len(labels)
+
+        avg_val_loss = val_loss / len(val_dataloader)
+        val_accuracy = correct / total if total > 0 else 0.0
+        val_losses.append(avg_val_loss)
+        val_accuracies.append(val_accuracy)
+
+        epoch_num = epoch + 1
+        print(f"  Epoch {epoch_num}/{epochs}: train_loss={avg_train_loss:.4f}, "
+              f"val_loss={avg_val_loss:.4f}, val_acc={val_accuracy:.2%}", flush=True)
+
+        # --- 保存 checkpoint ---
+        if checkpoint_dir is not None:
+            ckpt_path = checkpoint_dir / f"epoch_{epoch_num}"
+            training_state = {
+                "epoch": epoch_num,
+                "best_val_loss": best_val_loss,
+                "patience_counter": patience_counter,
+                "best_epoch": best_epoch,
+                "train_loss": avg_train_loss,
+                "val_loss": avg_val_loss,
+                "val_acc": val_accuracy,
+            }
+            save_lora_checkpoint(peft_model, ckpt_path, training_state)
+
+        # --- 早停 ---
+        if avg_val_loss < best_val_loss:
+            best_val_loss = avg_val_loss
+            best_epoch = epoch_num
+            patience_counter = 0
+        else:
+            patience_counter += 1
+            if patience_counter >= early_stopping_patience:
+                print(f"  早停: val_loss 连续 {patience_counter} epoch 未改善", flush=True)
+                break
+
+    elapsed = time.time() - t0
+    print(f"  训练耗时: {elapsed:.1f}s, 最佳 epoch: {best_epoch}")
+
+    # 最终评估
     val_score = evaluate_model(model, val_samples)
     print(f"  验证集准确率: {val_score['accuracy']:.2%}")
     print(f"  验证集 loss: {val_score['loss']:.4f}")
@@ -144,6 +424,10 @@ def train_loop(model, train_samples: list[dict], val_samples: list[dict],
         "val_accuracy": val_score["accuracy"],
         "val_loss": val_score["loss"],
         "train_time_sec": elapsed,
+        "best_epoch": best_epoch,
+        "train_losses": train_losses,
+        "val_losses": val_losses,
+        "val_accuracies": val_accuracies,
     }
 
 
@@ -160,10 +444,8 @@ def evaluate_model(model, samples: list[dict]) -> dict[str, float]:
         logits = model.predict(pairs, convert_to_tensor=True)
         if logits.dim() == 1:
             logits = logits.unsqueeze(-1)
-        # BCE loss
         loss_fct = BCEWithLogitsLoss()
         loss = loss_fct(logits.squeeze(-1) if logits.size(-1) == 1 else logits[:, 0], labels).item()
-        # 准确率(score > 0.5 视为正样本)
         probs = torch.sigmoid(logits.squeeze(-1) if logits.size(-1) == 1 else logits[:, 0])
         preds = (probs > 0.5).long()
         accuracy = (preds == labels.long()).float().mean().item()
@@ -188,6 +470,10 @@ def main():
     parser.add_argument("--lora-rank", type=int, default=8)
     parser.add_argument("--lora-alpha", type=int, default=16)
     parser.add_argument("--early-stopping-patience", type=int, default=2)
+    parser.add_argument("--optimizer", default="adamw", choices=["adamw", "sgd", "adafactor"])
+    parser.add_argument("--resume", action="store_true", help="从最后 checkpoint 恢复训练")
+    parser.add_argument("--no-checkpoint", action="store_true", help="禁用 checkpoint 保存")
+    parser.add_argument("--no-lora", action="store_true", help="全量微调(禁用 LoRA)")
     args = parser.parse_args()
 
     output_path = Path(args.output)
@@ -206,7 +492,7 @@ def main():
     print(f"\n[2/5] 加载基础模型: {args.base_model}")
     from sentence_transformers import CrossEncoder
 
-    # 优先从本地缓存加载(避免重复下载)
+    # 优先从本地缓存加载
     repo_dir = args.base_model.replace("/", "--")
     hf_root = Path.home() / ".cache" / "huggingface" / "hub" / f"models--{repo_dir}" / "snapshots"
     load_source = args.base_model
@@ -221,28 +507,58 @@ def main():
     print(f"  模型加载完成")
 
     # 3. 应用 LoRA
-    print(f"\n[3/5] 应用 LoRA(rank={args.lora_rank}, alpha={args.lora_alpha})")
-    model = apply_lora_to_cross_encoder(model, args.lora_rank, args.lora_alpha)
-    # 打印可训练参数
-    trainable_params = sum(p.numel() for p in model.model.parameters() if p.requires_grad)
-    total_params = sum(p.numel() for p in model.model.parameters())
-    print(f"  可训练参数: {trainable_params:,} / {total_params:,} ({100*trainable_params/total_params:.2f}%)")
+    if args.no_lora:
+        print(f"\n[3/5] 跳过 LoRA(全量微调)")
+    else:
+        print(f"\n[3/5] 应用 LoRA(rank={args.lora_rank}, alpha={args.lora_alpha})")
+        model = apply_lora_to_cross_encoder(model, args.lora_rank, args.lora_alpha)
+        trainable_params = sum(p.numel() for p in model.model.parameters() if p.requires_grad)
+        total_params = sum(p.numel() for p in model.model.parameters())
+        print(f"  可训练参数: {trainable_params:,} / {total_params:,} ({100*trainable_params/total_params:.2f}%)")
 
     # 4. 训练
     print(f"\n[4/5] 开始训练")
+
+    # 断点续训:扫描 checkpoint 目录,找到最新 checkpoint
+    checkpoint_dir = None if args.no_checkpoint else output_path / "checkpoints"
+    resume_epoch = 0
+    resume_state = None
+
+    if args.resume and checkpoint_dir is not None:
+        found = find_latest_checkpoint(output_path)
+        if found is not None:
+            latest_ckpt, latest_epoch = found
+            print(f"  [resume] 找到 checkpoint: {latest_ckpt} (epoch {latest_epoch})", flush=True)
+
+            # 加载 LoRA adapter 权重 + 训练状态
+            success, resume_state = load_lora_checkpoint(model.model, latest_ckpt)
+            if success:
+                resume_epoch = latest_epoch
+                print(f"  [resume] 从 epoch {resume_epoch+1} 继续", flush=True)
+            else:
+                print(f"  [resume] ⚠ adapter 加载失败,从头开始训练", flush=True)
+                resume_state = None
+        else:
+            print(f"  [resume] ⚠ --resume 但 checkpoint 目录不存在或为空,从头开始", flush=True)
+
+    if checkpoint_dir is not None:
+        checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
     result = train_loop(
         model, train_samples, val_samples,
         epochs=args.epochs,
         batch_size=args.batch_size,
         lr=args.lr,
         early_stopping_patience=args.early_stopping_patience,
+        optimizer_name=args.optimizer,
+        checkpoint_dir=checkpoint_dir,
+        resume_epoch=resume_epoch,
+        resume_state=resume_state,
     )
 
     # 5. 保存
     print(f"\n[5/5] 保存模型到: {output_path}")
-    # 保存合并后的模型(LoRA 已合并,生产可用)
     try:
-        # 尝试合并 LoRA 权重到 base model
         merged_model = model.model.merge_and_unload()
         model.model = merged_model
         print(f"  LoRA 已合并到 base model")
@@ -260,11 +576,13 @@ def main():
         "epochs": args.epochs,
         "batch_size": args.batch_size,
         "lr": args.lr,
+        "optimizer": args.optimizer,
         "train_samples": len(train_samples),
         "val_samples": len(val_samples),
         "val_accuracy": result["val_accuracy"],
         "val_loss": result["val_loss"],
         "train_time_sec": result["train_time_sec"],
+        "best_epoch": result.get("best_epoch", 0),
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
     meta_path = output_path / "training_meta.json"
@@ -276,8 +594,6 @@ def main():
     print(f"  验证集准确率: {result['val_accuracy']:.2%}")
     print(f"  验证集 loss: {result['val_loss']:.4f}")
     print(f"  训练耗时: {result['train_time_sec']:.1f}s")
-    print(f"\n下一步:运行评估脚本验证 12 个 xfail case")
-    print(f"  python scripts/eval_reranker_zero_shot.py --model {output_path}")
 
 
 if __name__ == "__main__":

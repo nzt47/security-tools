@@ -16,11 +16,17 @@ import json
 import copy
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock, MagicMock, patch
 
 import pytest
 
 from agent.network_config import NetworkConfigManager
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# CI 环境隔离 fixture _mock_env_config_in_ci 已提取至 tests/conftest.py
+# 作为全局 autouse fixture（SKILLS_OFFLINE=1 时激活），本文件零侵入复用。
+# ──────────────────────────────────────────────────────────────────────────
 
 
 class _FakeSearchEngine:

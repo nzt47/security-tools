@@ -2,9 +2,27 @@
 Memory 模块单元测试
 测试 VectorStore 和 KnowledgeBase 的完整功能
 """
+import sys
 import pytest
 import tempfile
+from unittest.mock import patch
 from memory import VectorStore, MemoryItem, KnowledgeBase
+
+
+@pytest.fixture(autouse=True)
+def _disable_sqlite_vec_for_legacy_tests():
+    """禁用 sqlite-vec 后端，让现有测试使用 JSON fallback。
+
+    Why: sqlite-vec 后端需要加载 sentence_transformers 模型（55s+），
+    会导致现有测试超时。这些测试原本就使用 JSON fallback（HAS_CHROMA=False），
+    保持原有行为以避免回归。sqlite-vec 后端的测试在
+    test_vector_store_sqlite_vec.py 中独立覆盖。
+    """
+    original = sys.modules.get('sqlite_vec')
+    with patch.dict(sys.modules, {'sqlite_vec': None}):
+        yield
+    if original is not None:
+        sys.modules['sqlite_vec'] = original
 
 
 class TestMemoryItem:
