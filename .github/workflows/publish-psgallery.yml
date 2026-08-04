@@ -178,6 +178,9 @@ jobs:
   dry-run-validate:
     name: Dry-run 验证（sync + pack）
     needs: auto-tag
+    # 不易：PR 时 auto-tag 被 if 跳过，needs 默认会跳过依赖 Job；
+    #        但 dry-run 是 PR 的核心验证，必须运行 → 用 success() || skipped() 确保不被跳过
+    if: ${{ success() || needs.auto-tag.result == 'skipped' }}
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
