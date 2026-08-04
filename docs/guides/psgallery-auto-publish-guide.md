@@ -4,6 +4,7 @@
 > **工作流文件**: `.github/workflows/publish-psgallery.yml`
 > **维护者**: agent-team
 > **最后更新**: 2026-08-04
+> **当前已验证版本**: v1.1.4（auto-tag 完整链路成功）
 
 ## 一、发布架构概览
 
@@ -19,23 +20,27 @@ push 到 master/main
 │  读取 .psd1 ModuleVersion       │
 │  检查远程 v* tag 是否存在        │
 │  不存在 → gh api 创建 tag        │
+│  outputs.tagged = true          │
 └─────────────┬───────────────────┘
-              │ tag 创建触发新的工作流运行
+              │
               ▼
 ┌─────────────────────────────────┐
 │  Job 1: dry-run-validate         │
 │  sync 源码 → pack → 验证 .nupkg  │
-│  （always runs）                 │
+│  if: success() || skipped       │
 └─────────────┬───────────────────┘
-              │ tag push 时继续
+              │
               ▼
 ┌─────────────────────────────────┐
 │  Job 2: publish-to-psgallery     │
-│  仅 tag push 或 force_publish 时  │
+│  if: tag push || force_publish  │
+│     || needs.auto-tag.tagged    │
 │  发布到 PSGallery                 │
 │  创建 GitHub Release              │
 └─────────────────────────────────┘
 ```
+
+**关键设计**：auto-tag 和 publish 在**同一工作流**内执行，通过 `needs.auto-tag.outputs.tagged` 传递状态，避免跨工作流触发的 inputs 传递 bug。
 
 ## 二、三种发布场景
 
