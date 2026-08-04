@@ -26,6 +26,9 @@
 name: Publish tlm-hook-failsafe
 
 on:
+  # 不易：branches 和 tags 同时定义时为 OR 关系（branch 推送或 tag 推送任一满足即触发）
+  #        但 branches/tags 与 paths 为 AND 关系（必须同时满足）
+  #        tag 推送时 paths 默认匹配所有文件（tag 不带 diff），故 v* tag 总会触发
   push:
     branches: [master, main]
     paths:
@@ -190,9 +193,10 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $skipCheck = '${{ github.event.inputs.skip_version_check }}' -eq 'true'
-          $args = @('.\publish-to-psgallery.ps1', '-NuGetApiKey', $env:PSGALLERY_API_KEY)
-          if ($skipCheck) { $args += '-SkipVersionCheck' }
-          & @args
+          # 不易：$args 是 PowerShell 自动变量，不能显式赋值；改用 $publishArgs
+          $publishArgs = @('.\publish-to-psgallery.ps1', '-NuGetApiKey', $env:PSGALLERY_API_KEY)
+          if ($skipCheck) { $publishArgs += '-SkipVersionCheck' }
+          & $publishArgs
           if ($LASTEXITCODE -ne 0) {
             throw "publish failed: exit $LASTEXITCODE (check API key / network / PSGallery rate limit)"
           }
