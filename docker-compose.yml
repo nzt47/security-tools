@@ -1,10 +1,13 @@
 services:
   digital-life:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: digital-life-test
-    restart: unless-stopped
+    # [CHG-2026-0801] 热重载镜像：基于 agent-test-sqlite-vec:latest 增量更新代码（含 _hot_reload）
+    #   原 build 方式: Dockerfile（需 apt 安装 gcc/g++，网络受限时构建卡死）
+    #   agent-test-sqlite-vec: torch + sentence-transformers + sqlite-vec + chromadb
+    image: agent-test-sqlite-vec:hot-reload
+    # [CHG-2026-0801] 覆盖镜像默认 pytest entrypoint，改为启动应用服务
+    #   镜像缺 flask/waitress/prometheus_flask_exporter，启动前先补齐（幂等，--quiet）
+    #   同时打印 OMP/MKL 线程数供验证（0xC0000005 崩溃预防）
+    entrypoint: ["sh", "-c", "echo \"[OMP] OMP_NUM_THREADS=$OMP_NUM_THREADS / MKL_NUM_THREADS=$MKL_NUM_THREADS\"; pip install --no-cache-dir --quiet flask waitress prometheus_flask_exporter; python app_server.py"]
     # [CHG-2026-0801] 锁定 linux/amd64：Windows Docker Desktop 下保证一致的镜像架构
     platform: linux/amd64
     # [CHG-2026-0801] 启用 init 进程：容器内信号优雅处理，避免 SQLite WAL 残留
@@ -20,10 +23,14 @@ services:
       # 功能开关
       - YUNSHU_FEATURE_SANDBOX=${YUNSHU_FEATURE_SANDBOX:-false}
       # [CHG-2026-0801] Reranker 热重载配置（Linux Docker 环境可安全启用）
-      - SKILL_RERANKER_ENABLED=${SKILL_RERANKER_ENABLED:-false}
+      - SKILL_RERANKER_ENABLED=${SKILL_RERANKER_ENABLED:-true}
       - SKILL_RERANKER_USE_ONNX=${SKILL_RERANKER_USE_ONNX:-true}
       - SKILL_RERANKER_ONNX_VARIANT=${SKILL_RERANKER_ONNX_VARIANT:-model_quantized.onnx}
       - SKILL_RERANKER_HOT_RELOAD_INTERVAL=${SKILL_RERANKER_HOT_RELOAD_INTERVAL:-30}
+      # [CHG-2026-0801] 容器内模型路径（固定，与下方 HUGGINGFACE_CACHE_DIR 挂载对应）
+      #   必须指向 jina 模型：其 onnx/ 目录含 8 个变体（model_quantized.onnx 等），热重载依赖这些文件
+      #   注意: 不读取 .env 的 SKILL_RERANKER_MODEL（那是 Windows 宿主路径，容器内无效）
+      - SKILL_RERANKER_MODEL=/root/.cache/huggingface/hub/models--jinaai--jina-reranker-v2-base-multilingual
       # [CHG-2026-0801] OpenMP/MKL 线程数限制：预防 torch/sqlite-vec DLL 线程竞争导致的 0xC0000005
       #   与 docker-compose.linux-test.yml 保持一致（OMP=4, MKL=4），值可由 .env 覆盖
       - OMP_NUM_THREADS=${OMP_NUM_THREADS:-4}
@@ -43,6 +50,14 @@ services:
     
     networks:
       - digital-life-network
+
+    # [CHG-2026-0801] 覆盖镜像自带 HEALTHCHECK（其多行 python -c 有缩进错误导致 unhealthy）
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5678/api/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
     
     logging:
       driver: "json-file"
