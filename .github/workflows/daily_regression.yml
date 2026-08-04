@@ -117,7 +117,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install peft accelerate sentence-transformers transformers numpy
           # 安装项目依赖(最小集,避免加载完整 agent)
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov pytest-timeout pytest-asyncio
 
       - name: Run LoRA checkpoint unit tests
         run: |
@@ -168,7 +168,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install peft accelerate sentence-transformers transformers numpy
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov pytest-timeout pytest-asyncio
 
       - name: Run E2E checkpoint recovery tests
         run: |
@@ -258,7 +258,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install peft accelerate sentence-transformers transformers numpy
-          pip install pytest pytest-cov
+          pip install pytest pytest-cov pytest-timeout pytest-asyncio
 
       - name: Run tests with coverage
         run: |
