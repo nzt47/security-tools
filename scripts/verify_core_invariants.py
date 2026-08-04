@@ -213,4 +213,12 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    # 【修复】Windows CI runner 默认 stdout 编码为 cp1252，输出中文报告时
+    # UnicodeEncodeError 崩溃，导致 hook 误判「提交被阻止」
+    # （test_precommit_hook_blocking 回归测试失败）。强制 UTF-8 输出。
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     sys.exit(main())
