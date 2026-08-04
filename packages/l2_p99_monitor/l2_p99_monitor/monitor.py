@@ -26,7 +26,7 @@ from .parser import ScenarioData
 
 # ── 颜色输出 ──
 
-class Colors:
+class _Colors:
     GREEN = "\033[92m"
     RED = "\033[91m"
     YELLOW = "\033[93m"
@@ -51,7 +51,7 @@ _COLOR = _supports_color()
 
 
 def _color(text: str, color: str) -> str:
-    return f"{color}{text}{Colors.RESET}" if _COLOR else text
+    return f"{color}{text}{_Colors.RESET}" if _COLOR else text
 
 
 # ── 监控结果 ──
@@ -85,9 +85,9 @@ class ConsoleChannel(AlertChannel):
         p99 = data.p99
 
         print()
-        print(_color("=" * 60, Colors.BLUE))
-        print(_color("  P99 监控报告", Colors.BOLD))
-        print(_color("=" * 60, Colors.BLUE))
+        print(_color("=" * 60, _Colors.BLUE))
+        print(_color("  P99 监控报告", _Colors.BOLD))
+        print(_color("=" * 60, _Colors.BLUE))
         print(f"  时间:     {result.timestamp}")
         print(f"  来源:     {data.source} ({data.file})")
         print(f"  场景:     {data.scenario} - {data.description}")
@@ -101,12 +101,12 @@ class ConsoleChannel(AlertChannel):
 
         if result.alerted:
             ratio = p99 / result.threshold
-            print(_color(f"❌ ALERT（超阈值 {ratio:.2f}x）", Colors.RED))
-            print(_color(f"  建议:     检查 IO / 并发竞争 / 事件循环阻塞", Colors.YELLOW))
+            print(_color(f"❌ ALERT（超阈值 {ratio:.2f}x）", _Colors.RED))
+            print(_color(f"  建议:     检查 IO / 并发竞争 / 事件循环阻塞", _Colors.YELLOW))
         else:
-            print(_color(f"✅ OK（余量 {result.margin_pct:.1f}%）", Colors.GREEN))
+            print(_color(f"✅ OK（余量 {result.margin_pct:.1f}%）", _Colors.GREEN))
 
-        print(_color("=" * 60, Colors.BLUE))
+        print(_color("=" * 60, _Colors.BLUE))
 
 
 class JsonlLogChannel(AlertChannel):

@@ -54,11 +54,30 @@ jobs:
 
       - name: 生成 API 文档
         # Why: pdoc3 递归生成所有模块的 HTML 文档
+        # __all__ 中声明的 public 符号会出现在 index.html
+        # 下划线前缀的 private 符号（如 _Colors）会被自动排除
         run: |
           mkdir -p docs_build
           pdoc --html --output-dir docs_build l2_p99_monitor
           echo "=== 文档生成完成 ==="
           find docs_build -type f -name "*.html" | head -20
+
+      - name: 验证文档完整性
+        # Why: 确保 __all__ 声明的所有 public 符号都出现在文档中
+        # 防止重构后遗漏 public API 文档
+        run: |
+          python -c "
+          import l2_p99_monitor, os, sys
+          declared = getattr(l2_p99_monitor, '__all__', [])
+          index_html = open('docs_build/l2_p99_monitor/index.html', encoding='utf-8').read()
+          missing = [s for s in declared if s not in index_html]
+          print(f'__all__ 声明: {len(declared)} 个符号')
+          print(f'index.html 检查: {len(declared) - len(missing)}/{len(declared)} 通过')
+          if missing:
+              print(f'[FAIL] 缺失符号: {missing}')
+              sys.exit(1)
+          print('[OK] 所有 public API 均已生成文档')
+          "
 
       - name: 添加版本元信息
         # Why: 在文档根目录添加版本信息，方便用户确认文档对应版本
