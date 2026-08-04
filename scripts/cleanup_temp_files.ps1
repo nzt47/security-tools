@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     一键清理 TEMP 目录中 BFG/GitHub Actions 清理过程产生的非敏感残留文件
     生成日期：2026-07-20

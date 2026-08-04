@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     一键复制 AdminDependencyChecker 模块到目标项目
 

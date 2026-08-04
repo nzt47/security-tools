@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     通过 GitHub REST API 触发 workflow_dispatch（绕过 gh CLI inputs 传递 bug）。
 

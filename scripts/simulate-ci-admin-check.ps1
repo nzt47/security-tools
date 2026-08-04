@@ -1,4 +1,4 @@
-<#PSScriptInfo
+﻿<#PSScriptInfo
 .VERSION 1.0.0
 .AUTHOR agent-team
 .GUID 5d2e8f7a-3b6c-4d9e-a1f2-8c3b4d5e6f7a

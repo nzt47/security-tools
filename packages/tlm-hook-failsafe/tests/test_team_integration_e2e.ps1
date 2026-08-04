@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Team Integration E2E Test (Install-Module / Import / 3-line example / Update-Module)
 

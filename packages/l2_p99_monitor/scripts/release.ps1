@@ -1,4 +1,4 @@
-#!/usr/bin/env powershell
+﻿#!/usr/bin/env powershell
 # l2_p99_monitor PyPI 发布脚本（Windows）
 #
 # 用法：

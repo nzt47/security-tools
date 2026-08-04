@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Skills Check Branch Protection 紧急回滚脚本
 

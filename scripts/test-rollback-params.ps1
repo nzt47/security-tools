@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     验证 rollback-protection.ps1 的 -Confirm 和 -WhatIf 参数组合行为
 

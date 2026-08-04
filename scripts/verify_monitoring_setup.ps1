@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     [security] P1 修复后 Docker Compose 监控组件启动验证脚本
 .DESCRIPTION

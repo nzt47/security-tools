@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Config regression test: verify Reranker hot-reload + OMP settings still valid in Docker.
 

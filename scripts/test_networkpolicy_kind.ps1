@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   P2-4 NetworkPolicy 本地测试脚本（kind 集群实测）
 
