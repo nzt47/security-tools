@@ -229,7 +229,7 @@ jobs:
           Write-Host "✅ .nupkg verified: $($nupkg.Name) ($($nupkg.Length) bytes)" -ForegroundColor Green
 
       - name: 上传 .nupkg 构建产物
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: tlm-hook-failsafe-nupkg
           path: packages/tlm-hook-failsafe/*.nupkg
