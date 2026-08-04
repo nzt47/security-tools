@@ -21,6 +21,10 @@ jobs:
     name: core-invariants-guard
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # [契约] secrets 不能在 if: 中使用(workflow 解析失败), 映射到 job env 供 step if 判断
+    # (同 ci-failure-notify.yml CHG-2026-0801 修复先例)
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 
     steps:
       - name: 检出代码
@@ -95,7 +99,7 @@ jobs:
       # - 优先读取 invariant_report.json(失败时仍在, 因重定向先于 exit 1),
       #   缺失则回退通用文案
       - name: Slack 通知(core-invariants-guard 失败)
-        if: failure() && steps.precheck.outputs.skip != 'true' && secrets.SLACK_WEBHOOK_URL != ''
+        if: failure() && steps.precheck.outputs.skip != 'true' && env.SLACK_WEBHOOK_URL != ''
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
