@@ -1,7 +1,7 @@
 # BOM 修复与失效链接清理总结报告（2026-08-03）
 
 > 范围：develop 分支 PowerShell 脚本 BOM 污染修复 + 文档失效链接清理
-> 关联：Issue 模板 [issue-template-broken-links-20260803.md](../issues/issue-template-broken-links-20260803.md)、CI 失败分析 [ci_failure_analysis_yunshu_test_20260803.md](./ci_failure_analysis_yunshu_test_20260803.md)
+> 关联：Issue 模板 [issue-template-broken-links-20260803.md](../issues/issue-template-broken-links-20260803.md)
 
 ---
 
