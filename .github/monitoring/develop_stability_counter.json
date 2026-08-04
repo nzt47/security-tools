@@ -1,9 +1,9 @@
 {
-  "remaining_checks": 3,
+  "remaining_checks": 2,
   "total_checks": 3,
   "started_at": "2026-08-04T22:00:00Z",
-  "last_check_at": null,
-  "last_check_commit": null,
+  "last_check_at": "2026-08-04T10:13:16Z",
+  "last_check_commit": "c63cabaa7b33b01f51699d07b72d813bc2227685",
   "monitored_workflows": [
     "kwarg-docker-scan.yml",
     "kwarg-conflict-check.yml",
@@ -11,5 +11,14 @@
     "hardcoded-password-scan.yml",
     "hook-failsafe-e2e.yml"
   ],
-  "history": []
+  "history": [
+    {
+      "check_no": 3,
+      "commit": "c63cabaa7b33b01f51699d07b72d813bc2227685",
+      "checked_at": "2026-08-04T10:13:16Z",
+      "stable": true,
+      "failure_count": 0,
+      "report": "# CI 稳定性快照 (commit c63caba)\n# 检查时间: 2026-08-04T10:13:16Z\n\n| Workflow | Status | Conclusion | Run ID |\n|----------|--------|------------|--------|\n| kwarg-docker-scan.yml | not_triggered | - | - |\n| kwarg-conflict-check.yml | not_triggered | - | - |\n| ci.yml | not_triggered | - | - |\n| hardcoded-password-scan.yml | not_triggered | - | - |\n| hook-failsafe-e2e.yml | not_triggered | - | - |"
+    }
+  ]
 }
