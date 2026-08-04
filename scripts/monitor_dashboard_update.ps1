@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     监控 CI run 的 update-ci-dashboard job 直到看板更新完成
 

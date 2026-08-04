@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Chaos regression test script (Windows PowerShell)
 .DESCRIPTION

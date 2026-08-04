@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   kind (Kubernetes in Docker) 手动安装脚本
 

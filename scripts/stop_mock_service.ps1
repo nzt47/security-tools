@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     停止 mock_skill_service 并清理相关临时数据
 

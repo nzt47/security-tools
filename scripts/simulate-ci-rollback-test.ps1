@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     本地模拟 GitHub Actions 的 CI 环境, 运行 test-rollback-params.ps1 验证参数优先级
 

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Prometheus rules hot-reload automation (config validation + reload)
 

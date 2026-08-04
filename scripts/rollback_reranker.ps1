@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Reranker 热重载紧急回滚脚本（对应部署清单第 5 节回滚预案）
 .DESCRIPTION

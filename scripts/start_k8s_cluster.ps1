@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     启动 Docker Desktop K8s 集群并等待所有服务就绪
 

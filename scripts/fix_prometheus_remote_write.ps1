@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     修复 Prometheus Remote Write 404 错误（启用 --web.enable-remote-write-receiver）
 

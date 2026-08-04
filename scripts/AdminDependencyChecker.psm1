@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     AdminDependencyChecker 模块 - 静态扫描 PowerShell 脚本中的 admin-only 依赖
 

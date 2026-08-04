@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     自动化扫描 Node.js 子项目，识别 jest/vitest，在 CI workflow 中应用优化参数
 

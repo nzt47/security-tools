@@ -1,4 +1,4 @@
-$taskName = "YunshuDailyQualityReport"
+﻿$taskName = "YunshuDailyQualityReport"
 $scriptPath = "C:\Users\Administrator\agent\scripts\run_daily_report.bat"
 $logPath = "C:\Users\Administrator\agent\test_reports\scheduler.log"
 

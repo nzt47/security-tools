@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     BFG Repo-Cleaner 历史清理 + force push 完整命令序列
 .DESCRIPTION

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     [security] DeepSeek + OpenAI 密钥撤销验证脚本
 .DESCRIPTION

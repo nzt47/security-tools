@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Publish tlm-hook-failsafe to local private PSRepository using nuget.exe.
 

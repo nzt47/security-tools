@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Prometheus rules change rollback script (config restore + container recreate)
 
