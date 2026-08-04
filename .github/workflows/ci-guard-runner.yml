@@ -1,0 +1,105 @@
+# CI 守卫全流程 —— 合并前强制调用 run_ci_guard.py(JSON 模式) 并解析退出码
+# 覆盖: 检测 reranker 改动 → 回滚模拟 → 守卫验证(verify 6 场景 + pytest 9 用例)
+# 【全过才合并】job 名称 ci-guard-runner 即分支保护 required status check:
+#   仓库 Settings → Branches → 勾选 "Require status checks to pass before merging"
+#   并选中 ci-guard-runner。任何一步失败 → JSON 解析 exit_code=1 → job 失败 → 阻止合并。
+name: CI 守卫全流程(run_ci_guard)
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'agent/tool_router_reranker.py'
+      - 'agent/skills_mgmt/reranker_utils.py'
+      - 'tests/unit/test_reranker_utils.py'
+      - 'scripts/verify_reranker_timeout_health.py'
+      - 'scripts/detect_reranker_changes.py'
+      - 'scripts/simulate_pr_merge_guard.py'
+      - 'scripts/safe_git_revert.py'
+      - 'scripts/run_ci_guard.py'
+  workflow_dispatch:  # 手动触发兜底
+
+jobs:
+  ci-guard-runner:
+    name: ci-guard-runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 检测需 base..HEAD 差异历史
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装 pytest
+        run: pip install pytest --quiet
+
+      - name: 运行统一 CI 守卫(JSON 模式)
+        id: guard
+        run: |
+          python scripts/run_ci_guard.py --json > guard_report.json
+          echo "report_path=guard_report.json" >> $GITHUB_OUTPUT
+
+      - name: 解析退出码并输出关键字段
+        id: parse
+        run: |
+          python - <<'PY'
+          import json, os
+          report = json.load(open("guard_report.json"))
+          overall = report["overall"]
+          steps = {s["step"]: s["status"] for s in report["steps"]}
+          blocked = next((s for s in report["steps"] if s["step"] == "guard_verify"),
+                         {}).get("details", {}).get("blocked_reasons", [])
+          print(f"overall_status={overall['status']}")
+          print(f"overall_exit_code={overall['exit_code']}")
+          print(f"steps={steps}")
+          print(f"blocked_reasons={blocked}")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write(f"overall_exit_code={overall['exit_code']}\n")
+              f.write(f"overall_status={overall['status']}\n")
+              f.write(f"blocked_reasons={'|'.join(blocked)}\n")
+          PY
+
+      - name: 失败上传守卫报告(可审计)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-guard-report
+          path: guard_report.json
+          if-no-files-found: ignore
+
+      - name: 退出码校验(任一失败 → 阻止合并)
+        run: |
+          code=$(python -c "import json;print(json.load(open('guard_report.json'))['overall']['exit_code'])")
+          if [ "$code" != "0" ]; then
+            echo "::error::CI 守卫退出码=$code(非 0)，PR 被阻止合并。详见 guard_report.json"
+            python -c "import json,os;d=json.load(open('guard_report.json'));[print('::error::',s['step'],s['status'],s.get('details')) for s in d['steps'] if s['exit_code']!=0]"
+            exit 1
+          fi
+          echo "::notice::CI 守卫全部通过: detect/rollback_sim/guard_verify"
+
+      - name: 汇总守卫结果到 Job Summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os
+          d = json.load(open("guard_report.json"))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
+              f.write("## CI 守卫结果\n\n")
+              f.write(f"- **总体**: {d['overall']['status'].upper()} (exit={d['overall']['exit_code']})\n")
+              if d['steps']:
+                  f.write(f"- **分支**: {d['steps'][0]['details'].get('branch', '-')} "
+                          f"(base={d['steps'][0]['details'].get('base', '-')})\n")
+              for s in d['steps']:
+                  f.write(f"- `{s['step']}`: {s['status']} (exit={s['exit_code']})\n")
+              if d['steps']:
+                  checks = d['steps'][-1]['details']['checks']
+                  for c in checks:
+                      f.write(f"  - [{'PASS' if c['passed'] else 'FAIL'}] {c['name']} exit={c['exit_code']}\n")
+          PY
