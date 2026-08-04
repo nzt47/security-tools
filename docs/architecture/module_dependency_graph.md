@@ -219,6 +219,7 @@ flowchart LR
         agent_orchestrator_orchestrator["agent.orchestrator.orchestrator"]:::crosslayer
         agent_orchestrator_prompt_builder["agent.orchestrator.prompt_builder"]
         agent_orchestrator_response_builder["agent.orchestrator.response_builder"]
+        agent_orchestrator_routing_observability["agent.orchestrator.routing_observability"]
         agent_orchestrator_status_reporter["agent.orchestrator.status_reporter"]
         agent_orchestrator_subagent_manager["agent.orchestrator.subagent_manager"]
         agent_orchestrator_task_dispatcher["agent.orchestrator.task_dispatcher"]
@@ -343,6 +344,7 @@ flowchart LR
     end
     subgraph workflow_learning [workflow_learning]
         agent_workflow_learning["agent.workflow_learning"]:::crosslayer
+        agent_workflow_learning_models["agent.workflow_learning.models"]:::crosslayer
         agent_workflow_learning_observability["agent.workflow_learning.observability"]
         agent_workflow_learning_service["agent.workflow_learning.service"]:::crosslayer
     end
@@ -512,6 +514,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_memory_router
     agent_orchestrator_lifecycle_manager -.-> agent_workflow_engine_engine
     agent_orchestrator_lifecycle_manager -.-> agent_workflow_engine_builtin_rules
+    agent_orchestrator_lifecycle_manager -.-> agent_state_manager
     agent_orchestrator_lifecycle_manager -.-> agent_extensions_manager
     agent_orchestrator_lifecycle_manager -.-> agent_network_config
     agent_orchestrator_lifecycle_manager --> agent
@@ -534,6 +537,7 @@ flowchart LR
     agent_orchestrator_orchestrator --> agent_orchestrator_message_handler
     agent_orchestrator_orchestrator --> agent_orchestrator_response_builder
     agent_orchestrator_orchestrator -.-> agent_logging_utils
+    agent_orchestrator_orchestrator --> agent_orchestrator_routing_observability
     agent_orchestrator_orchestrator -.-> agent_tool_calling
     agent_orchestrator_orchestrator -.-> agent_tool_router
     agent_orchestrator_orchestrator -.-> agent_tool_router_hybrid
@@ -544,10 +548,14 @@ flowchart LR
     agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_state_manager
+    agent_orchestrator_orchestrator -.-> agent_workflow_learning_models
+    agent_orchestrator_orchestrator -.-> agent_state_manager
+    agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator --> agent
+    agent_orchestrator_orchestrator -.-> agent_tools
     agent_orchestrator_orchestrator -.-> agent_tool_schema_pruner
     agent_orchestrator_orchestrator -.-> agent_tool_fewshot_store
     agent_orchestrator_orchestrator --> agent_orchestrator_prompt_builder
@@ -949,9 +957,9 @@ flowchart LR
 
 ## 统计信息
 - 扫描文件数: 344
-- 模块节点数: 270
-- 依赖边数: 594
-- 跨层调用数: 382
+- 模块节点数: 272
+- 依赖边数: 600
+- 跨层调用数: 387
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 933.64 ms
+- 构建耗时: 1291.35 ms
