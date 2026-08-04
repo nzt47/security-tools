@@ -78,15 +78,33 @@ PS 5.1 的 `-File` 调用会把 `-Verbose` 当作保留参数名、不绑定到�
 ### 3.3 编码契约自动检查 `check_ps1_encoding.py`（CI/Commit 级）
 
 ```bash
-# BLOCK 级问题（非法 UTF-8 / 关键契约文件缺 BOM）→ exit 1
+# BLOCK 级问题（非法 UTF-8 / 叠加 BOM / 关键契约文件缺 BOM）→ exit 1
 python scripts/check_ps1_encoding.py --repo-root . --quiet
-# 自动修复（补 BOM / 去叠加 BOM）
+# 自动修复（去叠加 BOM / 关键契约文件补 BOM）
 python scripts/check_ps1_encoding.py --repo-root . --fix
+# 存量文件缺 BOM 仅 WARN 提示；--strict 可将 WARN 升级为 BLOCK
+python scripts/check_ps1_encoding.py --repo-root . --strict
 # 临时豁免（仅限明确场景）
 SKIP_ENCODING_CHECK=1 git commit
 ```
 
-分级策略：**BLOCK**（阻止提交）只针对关键契约文件；存量文件缺 BOM 仅 **WARN** 提示。
+分级策略：**BLOCK**（阻止提交）= 非法 UTF-8 / 叠加 BOM / 关键契约文件缺 BOM；
+存量文件缺 BOM 仅 **WARN** 提示（可用 `--strict` 升级为 BLOCK）。
+关键契约文件默认 `scripts/dev/hook_fail_safe.psm1`，可用 `--require-bom <path>` 追加。
+
+### 3.3b 一键批量修复 `fix_ps_bom.py`（运维场景）
+
+其他进程/工具批量写入叠加 BOM 时（见第六节 #8），一键检测并修复：
+
+```bash
+python scripts/fix_ps_bom.py            # dry-run 预览（不写盘）
+python scripts/fix_ps_bom.py --apply    # 实际写入（去叠加 BOM / 补关键文件 BOM）
+python scripts/fix_ps_bom.py --check    # 仅检测：存在异常 exit 1（适合接入 CI）
+python scripts/fix_ps_bom.py --roots src  # 追加扫描目录（默认 scripts/ packages/）
+```
+
+2026-08-04 实测：`rollback_cicd_metrics.ps1` 被写入叠加 BOM x4，`--apply` 一键
+恢复为单 BOM（x4 → x1）。
 
 ### 3.4 核心不变量校验 `verify_core_invariants.py`（防无痕回滚）
 
@@ -258,6 +276,15 @@ CI:  .github/workflows/ci.yml docs-precheck-tests job
 7. **WSL bash 不继承 Windows 环境变量**
    本地跑 bash 脚本调试时，`TLM_HOOK_SOURCE_REPO` 可能取不到。git for windows 自带的
    sh（真实 git commit/push 场景）会继承，与 WSL 行为不同，测试 hook 用 git 原生触发。
+
+8. **其他进程/工具批量写入叠加 BOM 破坏块注释（2026-08-04 实测）**
+   并行工作流/脚本写入 `.ps1`/`.psm1` 时在文件头叠加多个 `EF BB BF`，导致 PS 5.1
+   把 `<#` 当正文、注释内容被当代码（`Missing expression after unary operator`）。
+   本轮实际波及 `git_precommit_check.ps1` / `precheck_docs.ps1` /
+   `deploy_monitoring_stack.ps1` / `rollback_cicd_metrics.ps1`（后者修复后仍复发一次）。
+   症状特征：`git_precommit_check.ps1` 报第 8-9 行中文注释解析错误、`Import-Module`
+   或 `-File` 调用报 ParserError。
+   一键修复：`python scripts/fix_ps_bom.py --apply`；门禁防复发：3.3 节 `check_ps1_encoding.py`。
 
 ---
 
