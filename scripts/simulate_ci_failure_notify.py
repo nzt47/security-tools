@@ -241,8 +241,8 @@ def run_recover_job(scenario: Dict[str, Any], out: List[str]) -> None:
     out.append("##[endgroup]")
 
 
-def boundary_checks(out: List[str]) -> None:
-    """边界情况清单（B1-B8）"""
+def boundary_checks() -> tuple:
+    """边界情况清单（B1-B8），返回 (通过数, 总数)"""
     checks = [
         ("B1  webhook 空时 notify job 不中断", lambda: True,
          "钉钉 step 跳过但 Issue/邮件 step 继续，job 仍 success"),
@@ -269,6 +269,7 @@ def boundary_checks(out: List[str]) -> None:
         print(f"  [{'PASS' if passed else 'FAIL'}] {name} — {note}")
     print(f"  边界检查通过: {ok}/{len(checks)}")
     print("##[endgroup]")
+    return ok, len(checks)
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -351,12 +352,14 @@ def main() -> None:
         parser.error("必须指定 --scenario 或 --all")
 
     # 预检：yml 无残留失效 action 引用（仅匹配代码行 `uses:`，排除注释提及）
+    blocked = False
     if os.path.exists(WORKFLOW_FILE):
         content = open(WORKFLOW_FILE, encoding="utf-8").read()
         # 过滤注释行（# 开头）后查找 uses: 引用
         code_lines = [ln for ln in content.splitlines() if ln.strip() and not ln.lstrip().startswith("#")]
         if any("uses: visiblelabs/dingtalk-action" in ln for ln in code_lines):
             print(f"[BLOCK] {WORKFLOW_FILE} 仍含代码级 visiblelabs/dingtalk-action 引用，修复不完整！")
+            blocked = True
         else:
             print(f"[OK] {WORKFLOW_FILE} 无代码级 visiblelabs/dingtalk-action 引用（仅注释提及）")
     else:
@@ -381,10 +384,18 @@ def main() -> None:
         print("\n" + "=" * 72)
         print("边界情况检查（所有场景）")
         print("=" * 72)
-        boundary_checks([])
+        ok, total = boundary_checks()
+        if ok < total:
+            blocked = True
     else:
         out: List[str] = []
         run_one(args.scenario, out)
+
+    # 退出码语义：--all 时 BLOCK/边界失败 → exit 1（供 pre-commit hook 阻塞）
+    if blocked:
+        print("\n[RESULT] 校验未通过 → exit 1（提交应被阻止）")
+        sys.exit(1)
+    print("\n[RESULT] 校验通过 → exit 0")
 
 
 if __name__ == "__main__":
