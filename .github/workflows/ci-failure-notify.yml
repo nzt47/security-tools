@@ -12,6 +12,13 @@ on:
       - "关键字参数冲突扫描 (Docker)"
     types:
       - completed
+  # 【变易】支持手动触发：验证通知链路（无需等待真实 workflow 失败）
+  workflow_dispatch:
+    inputs:
+      simulate_failure:
+        description: "手动模拟失败通知（绕过 workflow_run 判定）"
+        type: boolean
+        default: false
 
 # 权限：仅需读取 workflow 运行结果
 permissions:
@@ -21,13 +28,14 @@ permissions:
 jobs:
   notify:
     name: 发送失败通知
-    # 仅在失败时触发
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    # 仅在失败时触发（或手动模拟失败）
+    if: ${{ (github.event.workflow_run != null && github.event.workflow_run.conclusion == 'failure') || inputs.simulate_failure == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
     # [修复 CHG-2026-0801] secrets 不能在 if: 中使用，映射到 job env 供 step if 判断
+    # [修复] secret 名统一为 DINGTALK_WEBHOOK（与 observability-ci.yml 一致；原 DINGTANG 拼写未配置任何 secret）
     env:
-      DINGTANG_WEBHOOK: ${{ secrets.DINGTANG_WEBHOOK }}
+      DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -35,31 +43,32 @@ jobs:
       - name: 准备通知内容
         id: prep
         run: |
-          echo "workflow_name=${{ github.event.workflow_run.name }}" >> $GITHUB_OUTPUT
-          echo "run_id=${{ github.event.workflow_run.id }}" >> $GITHUB_OUTPUT
-          echo "run_url=${{ github.event.workflow_run.html_url }}" >> $GITHUB_OUTPUT
-          echo "branch=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
-          echo "commit=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_OUTPUT
-          echo "actor=${{ github.event.workflow_run.actor.login }}" >> $GITHUB_OUTPUT
+          # workflow_dispatch 手动触发时 workflow_run 为 null，用默认值兜底
+          echo "workflow_name=${{ github.event.workflow_run.name || '手动触发(workflow_dispatch)' }}" >> $GITHUB_OUTPUT
+          echo "run_id=${{ github.event.workflow_run.id || 'N/A' }}" >> $GITHUB_OUTPUT
+          echo "run_url=${{ github.event.workflow_run.html_url || 'https://github.com/nzt47/security-tools/actions' }}" >> $GITHUB_OUTPUT
+          echo "branch=${{ github.event.workflow_run.head_branch || 'N/A' }}" >> $GITHUB_OUTPUT
+          echo "commit=${{ github.event.workflow_run.head_sha || 'N/A' }}" >> $GITHUB_OUTPUT
+          echo "actor=${{ github.event.workflow_run.actor.login || 'N/A' }}" >> $GITHUB_OUTPUT
 
       # ── 通知渠道 1: 钉钉机器人（推荐，实时） ──
+      # [修复] 原 visiblelabs/dingtalk-action 仓库不存在导致 job 在 Set up job 阶段直接失败，
+      #       改用项目自维护 observability_dingtalk_notify.py（与 observability-ci.yml 同源，零第三方 Action 依赖）
       - name: 发送钉钉通知
-        if: ${{ env.DINGTANG_WEBHOOK != '' }}
-        uses: visiblelabs/dingtalk-action@v1
-        with:
-          webhook: ${{ secrets.DINGTANG_WEBHOOK }}
-          msgtype: markdown
-          title: "CI 失败告警"
-          text: |
-            ## CI 失败告警
-
-            - Workflow: ${{ steps.prep.outputs.workflow_name }}
-            - 分支: ${{ steps.prep.outputs.branch }}
-            - 触发者: ${{ steps.prep.outputs.actor }}
-            - Commit: ${{ steps.prep.outputs.commit }}
-            - 运行详情: [查看日志](${{ steps.prep.outputs.run_url }})
-
-            请尽快处理。
+        if: ${{ env.DINGTALK_WEBHOOK != '' }}
+        run: |
+          python -m pip install requests -q || true
+          python scripts/observability_dingtalk_notify.py \
+            --webhook "${{ secrets.DINGTALK_WEBHOOK }}" \
+            --status failure \
+            --workflow "${{ steps.prep.outputs.workflow_name }}" \
+            --branch "${{ steps.prep.outputs.branch }}" \
+            --commit "${{ steps.prep.outputs.commit }}" \
+            --actor "${{ steps.prep.outputs.actor }}" \
+            --message "CI 失败告警，运行详情: ${{ steps.prep.outputs.run_url }}"
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+        continue-on-error: true
       # ── 通知渠道 2: GitHub Issue（自动创建） ──
       - name: 创建 GitHub Issue
         # 仅在 master 分支失败时创建 Issue，避免 PR 失败产生噪声
@@ -142,7 +151,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     env:
-      DINGTANG_WEBHOOK: ${{ secrets.DINGTANG_WEBHOOK }}
+      DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -179,27 +188,26 @@ jobs:
             core.setOutput('prev_url', prevRun.html_url);
             core.setOutput('prev_sha', prevRun.head_sha.substring(0, 7));
 
+      # [修复] 同 notify job：visiblelabs/dingtalk-action 不存在，改用自维护脚本
       - name: 发送钉钉恢复通知
-        if: ${{ steps.detect.outputs.recovered == 'true' && env.DINGTANG_WEBHOOK != '' }}
-        uses: visiblelabs/dingtalk-action@v1
-        with:
-          webhook: ${{ secrets.DINGTANG_WEBHOOK }}
-          msgtype: markdown
-          title: "✅ Docker kwarg 扫描已恢复"
-          text: |
-            ## ✅ Docker kwarg 扫描已恢复
-
-            - 分支: ${{ github.event.workflow_run.head_branch }}
-            - 本次 Commit: ${{ github.event.workflow_run.head_sha }}
-            - 上次失败 Commit: ${{ steps.detect.outputs.prev_sha }}
-            - 本次运行: [查看日志](${{ github.event.workflow_run.html_url }})
-            - 上次失败: [查看日志](${{ steps.detect.outputs.prev_url }})
-
-            HIGH 风险扫描已从 **失败** 恢复为 **通过**。
+        if: ${{ steps.detect.outputs.recovered == 'true' && env.DINGTALK_WEBHOOK != '' }}
+        run: |
+          python -m pip install requests -q || true
+          python scripts/observability_dingtalk_notify.py \
+            --webhook "${{ secrets.DINGTALK_WEBHOOK }}" \
+            --status success \
+            --workflow "${{ github.event.workflow_run.name }}" \
+            --branch "${{ github.event.workflow_run.head_branch }}" \
+            --commit "${{ github.event.workflow_run.head_sha }}" \
+            --actor "${{ github.event.workflow_run.actor.login }}" \
+            --message "Docker kwarg 扫描已恢复。本次运行: ${{ github.event.workflow_run.html_url }}，上次失败: ${{ steps.detect.outputs.prev_url }}"
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+        continue-on-error: true
 
       - name: 恢复通知说明（无 webhook 时）
-        if: ${{ steps.detect.outputs.recovered == 'true' && env.DINGTANG_WEBHOOK == '' }}
+        if: ${{ steps.detect.outputs.recovered == 'true' && env.DINGTALK_WEBHOOK == '' }}
         run: |
-          echo "✓ Docker 扫描已从失败恢复,但未配置 DINGTANG_WEBHOOK secret"
+          echo "✓ Docker 扫描已从失败恢复,但未配置 DINGTALK_WEBHOOK secret"
           echo "  邮件通知仍由 GitHub 默认机制发送给 commit 作者"
-          echo "  配置钉钉 webhook: 仓库 Settings → Secrets → 添加 DINGTANG_WEBHOOK"
+          echo "  配置钉钉 webhook: 仓库 Settings → Secrets → 添加 DINGTALK_WEBHOOK"
