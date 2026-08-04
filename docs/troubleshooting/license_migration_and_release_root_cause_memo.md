@@ -2,9 +2,11 @@
 
 > **创建日期**: 2026-08-05  
 > **适用范围**: tlm-hook-failsafe PSGallery 发布工作流（publish-psgallery.yml）  
-> **关联版本**: v1.1.5 → v1.1.8  
-> **关联 CI Runs**: #30919434635（起点）/ #30928367863（v1.1.5）/ #30933929583（v1.1.7）/ #30934961843（v1.1.8 终点）  
-> **关联文档**: [node20_deprecation_action_upgrade_memo.md](./node20_deprecation_action_upgrade_memo.md)
+> **关联版本**: v1.1.5 → v1.1.9（v1.1.9 修复 action-gh-release@v2 残留警告，详见 §5.3）  
+> **关联 CI Runs**: #30919434635（起点）/ #30928367863（v1.1.5）/ #30933929583（v1.1.7）/ #30934961843（v1.1.8）/ v1.1.9（action-gh-release@v3）  
+> **关联文档**:
+> - [node20_deprecation_action_upgrade_memo.md](./node20_deprecation_action_upgrade_memo.md)
+> - [v1_1_4_to_v1_1_9_release_postmortem_and_workflow_audit.md](./v1_1_4_to_v1_1_9_release_postmortem_and_workflow_audit.md) — 综合复盘 + 全仓审计 + v1.1.10 规划
 
 ---
 
@@ -243,15 +245,17 @@ Complete job                         success
 
 ### 5.2 警告检查
 
-| 警告类型 | v1.1.5 | v1.1.6 | v1.1.7 | v1.1.8 |
-|----------|--------|--------|--------|--------|
-| license information specified | ❌ | ✅ 消除 | ✅ | ✅ |
-| NU5125 licenseUrl deprecated | - | ❌ 出现 | ✅ 消除 | ✅ |
-| Node 20 deprecation (action-gh-release@v2) | - | - | - | ❌ 残留 |
+| 警告类型 | v1.1.5 | v1.1.6 | v1.1.7 | v1.1.8 | v1.1.9 |
+|----------|--------|--------|--------|--------|--------|
+| license information specified | ❌ | ✅ 消除 | ✅ | ✅ | ✅ |
+| NU5125 licenseUrl deprecated | - | ❌ 出现 | ✅ 消除 | ✅ | ✅ |
+| Node 20 deprecation (action-gh-release@v2) | - | - | - | ❌ 残留 | ✅ 消除（升级 @v3） |
 
-### 5.3 遗留项（非阻断）
+### 5.3 遗留项状态（v1.1.9 已全部消除）
 
-- **action-gh-release@v2 Node 20 警告**: v1.1.8 CI 发现 `softprops/action-gh-release@v2` 仍基于 Node 20（之前 Release step 被 skipped 未触发）。已升级到 `@v3`（Node 24 native），待下一个版本验证。
+- ~~**action-gh-release@v2 Node 20 警告**~~: v1.1.8 CI 发现 `softprops/action-gh-release@v2` 仍基于 Node 20（之前 Release step 被 skipped 未触发）。**v1.1.9 已升级到 `@v3`（Node 24 native），CI 验证 Release step success 且无 Node 20 deprecation 警告**。
+
+> **v1.1.9 终态汇总**: license 三阶段迁移 + GitHub Release 两层根因修复 + action-gh-release@v3 升级，至此 publish-psgallery.yml 范围内 Node 20 警告全部消除。完整修复链与全仓 action 兼容性审计见 [v1_1_4_to_v1_1_9_release_postmortem_and_workflow_audit.md](./v1_1_4_to_v1_1_9_release_postmortem_and_workflow_audit.md)。
 
 ---
 
