@@ -38,7 +38,8 @@ jobs:
           cache: 'pip'
 
       - name: 安装 pytest
-        run: pip install pytest --quiet
+        # pytest.ini addopts 含 --timeout/--timeout-method, 需 pytest-timeout 插件(与本地 venv 一致)
+        run: pip install pytest pytest-timeout --quiet
 
       - name: 运行统一 CI 守卫(JSON 模式)
         id: guard
