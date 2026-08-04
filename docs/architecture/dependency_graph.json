@@ -1,5 +1,5 @@
 {
-  "trace_id": "2c853104ce3b4c39",
+  "trace_id": "f9517a9d79e2480b",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -31,7 +31,7 @@
       "name": "logging_utils",
       "layer": "core",
       "file_path": "",
-      "in_degree": 72,
+      "in_degree": 73,
       "out_degree": 1
     },
     {
@@ -883,6 +883,14 @@
       "out_degree": 0
     },
     {
+      "path": "agent.orchestrator.routing_observability",
+      "name": "routing_observability",
+      "layer": "orchestrator",
+      "file_path": "agent/orchestrator/routing_observability.py",
+      "in_degree": 1,
+      "out_degree": 1
+    },
+    {
       "path": "agent.orchestrator.task_dispatcher",
       "name": "task_dispatcher",
       "layer": "orchestrator",
@@ -1117,14 +1125,6 @@
     {
       "path": "agent.orchestrator.response_builder",
       "name": "response_builder",
-      "layer": "orchestrator",
-      "file_path": "",
-      "in_degree": 1,
-      "out_degree": 0
-    },
-    {
-      "path": "agent.orchestrator.routing_observability",
-      "name": "routing_observability",
       "layer": "orchestrator",
       "file_path": "",
       "in_degree": 1,
@@ -3983,6 +3983,19 @@
       "line": 94,
       "source_file": "agent/orchestrator/message_handler.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.routing_observability",
+      "target": "agent.logging_utils",
+      "source_layer": "orchestrator",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 31,
+      "source_file": "agent/orchestrator/routing_observability.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -9982,10 +9995,10 @@
     }
   ],
   "stats": {
-    "total_files": 344,
+    "total_files": 345,
     "total_nodes": 272,
-    "total_edges": 600,
-    "cross_layer_edges": 387,
+    "total_edges": 601,
+    "cross_layer_edges": 388,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -10026,6 +10039,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1291.3498330000266
+    "build_duration_ms": 1082.1757290000137
   }
 }
