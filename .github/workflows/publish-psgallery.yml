@@ -258,7 +258,11 @@ jobs:
   publish-to-psgallery:
     name: 发布到 PSGallery
     runs-on: windows-latest
-    needs: dry-run-validate
+    # 不易：显式声明 needs auto-tag（不只是传递依赖 dry-run-validate）
+    #       原因：GitHub Actions 中 needs.auto-tag.outputs.* 只在直接 needs 关系中可访问
+    #       传递依赖（publish → dry-run → auto-tag）的 outputs 在 publish job 中为空
+    #       导致 Release step 的 needs.auto-tag.outputs.tagged 求值失败
+    needs: [auto-tag, dry-run-validate]
     # 不易：两种发布触发方式
     #   1. tag push（on.push.tags 匹配 v*，手动打 tag）
     #   2. auto-tag 创建 tag 后直接执行（needs.auto-tag.outputs.tagged == 'true'）
