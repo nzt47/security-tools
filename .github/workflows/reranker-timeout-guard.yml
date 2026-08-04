@@ -1,0 +1,66 @@
+# Reranker 超时配置守卫 —— CI 流水线
+# 校验 tool_router_reranker 超时保护(AGENT_RERANKER_TIMEOUT)相关改动：
+#   - health()['rerank_timeout'] 随 env 正确更新(verify 脚本 6 场景)
+#   - 并发闸门单元测试 9 用例
+# 触发: 涉及 reranker/超时相关文件的 push/PR
+# 【全过才合并】本 workflow 的 job 名称即 GitHub 分支保护 required status check
+#   名称: reranker-timeout-guard。需在仓库 Settings → Branches → 分支保护规则中
+#   勾选 "Require status checks to pass before merging" 并选中该 check。
+name: reranker 超时配置守卫
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'agent/tool_router_reranker.py'
+      - 'agent/skills_mgmt/reranker_utils.py'
+      - 'tests/unit/test_reranker_utils.py'
+      - 'scripts/verify_reranker_timeout_health.py'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'agent/tool_router_reranker.py'
+      - 'agent/skills_mgmt/reranker_utils.py'
+      - 'tests/unit/test_reranker_utils.py'
+      - 'scripts/verify_reranker_timeout_health.py'
+  workflow_dispatch:  # 手动触发兜底
+
+jobs:
+  reranker-timeout-guard:
+    name: reranker-timeout-guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装 pytest
+        run: pip install pytest --quiet
+
+      - name: 运行超时配置验证（health 随 env 更新 6 场景）
+        id: verify
+        run: |
+          python scripts/verify_reranker_timeout_health.py
+          echo "exit_code=$?" >> $GITHUB_OUTPUT
+
+      - name: 运行并发闸门单元测试（9 用例）
+        id: unit
+        run: |
+          python -m pytest tests/unit/test_reranker_utils.py -q
+
+      - name: 任一失败 → 阻止合并
+        if: steps.verify.outputs.exit_code != '0' || failure()
+        run: |
+          echo "::error::reranker 超时配置验证失败，请修复后重新推送"
+          exit 1
+
+      - name: 全部通过通知
+        if: steps.verify.outputs.exit_code == '0' && success()
+        run: echo "::notice::reranker 超时配置验证全部通过 (verify 6/6 + 单元测试 9/9)"

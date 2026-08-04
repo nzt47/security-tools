@@ -1,0 +1,113 @@
+# 核心不变量监控 —— 每次 push/PR 后自动运行 verify_core_invariants.py 并报告
+# 背景: 2026-08-04 tool_trace 计数机制与 hook 模板曾"无痕回滚"(修复未入 git,
+#   工作区被还原), 本地 pre-commit hook 已有 INVARIANT 段拦截; 本 workflow 在
+#   CI 侧兜底: 任何分支 push 后自动校验 12 项不变量并产出可审计报告。
+# 行为:
+#   - 不变量被破坏 → 脚本 exit 1 → job 失败(可在分支保护勾选本 job 阻止合并)
+#   - 报告: 每步自动写入 Job Summary + 上传 JSON artifact
+#   - 跨分支/仓库安全: 分支无脚本(如 gh-pages)时静默跳过, 不失败
+name: 核心不变量监控(verify_core_invariants)
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:  # 手动触发兜底
+
+permissions:
+  contents: read
+
+jobs:
+  core-invariants-guard:
+    name: core-invariants-guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 检查脚本存在(跨分支/仓库安全)
+        id: precheck
+        run: |
+          if [ ! -f scripts/verify_core_invariants.py ]; then
+            echo "::notice::verify_core_invariants.py 不存在, 跳过(跨分支/仓库安全)"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 运行不变量校验(JSON 模式)
+        if: steps.precheck.outputs.skip != 'true'
+        run: |
+          # stdout 仅 JSON(脚本已保证), 供下游解析
+          python scripts/verify_core_invariants.py --json > invariant_report.json
+          # 脚本 exit 1(不变量被破坏) → 本步失败 → job 失败
+
+      - name: 解析结果并输出关键字段
+        if: steps.precheck.outputs.skip != 'true'
+        id: parse
+        run: |
+          python - <<'PY'
+          import json, os
+          r = json.load(open("invariant_report.json", encoding="utf-8"))
+          blocked = [i for i in r["items"] if i["status"] == "BLOCK"]
+          print(f"overall_status={r['status']}")
+          print(f"total={r['total']} blocked={r['blocked']}")
+          for b in blocked:
+              print(f"::error::BLOCK {b['id']} {b['path']}: {b['detail']}")
+          if blocked:
+              print("::notice::不变量被破坏, 修复参考 docs/observability/rollback_recovery_report.md")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+              f.write(f"overall_status={r['status']}\n")
+              f.write(f"blocked={r['blocked']}\n")
+          PY
+
+      - name: 上传不变量报告(可审计)
+        if: always() && steps.precheck.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-invariants-report
+          path: invariant_report.json
+          if-no-files-found: ignore
+
+      - name: 汇总不变量结果到 Job Summary
+        if: always() && steps.precheck.outputs.skip != 'true'
+        run: |
+          python - <<'PY'
+          import json, os
+          r = json.load(open("invariant_report.json", encoding="utf-8"))
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
+              f.write("## 核心不变量校验结果\n\n")
+              f.write(f"- **总体**: {r['status'].upper()} (BLOCK={r['blocked']}/{r['total']})\n")
+              for i in r["items"]:
+                  mark = "PASS" if i["status"] == "pass" else "FAIL"
+                  f.write(f"- [{mark}] `{i['id']}` {i['path']}: {i['detail']}\n")
+          PY
+
+      # ── Slack 通知(core-invariants-guard 失败场景) ──
+      # 任一上游步骤失败 → failure() 为 true → 自动发 Slack 通知。
+      # - 未配置 SLACK_WEBHOOK_URL secret 时跳过(不产生噪音失败)
+      # - 优先读取 invariant_report.json(失败时仍在, 因重定向先于 exit 1),
+      #   缺失则回退通用文案
+      - name: Slack 通知(core-invariants-guard 失败)
+        if: failure() && steps.precheck.outputs.skip != 'true' && secrets.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ ! -f invariant_report.json ]; then
+            python scripts/slack_notify.py \
+              --title "core-invariants-guard 失败" \
+              --text "workflow 在生成报告前失败, 详见 Actions 日志" \
+              --repo "${{ github.repository }}" \
+              --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          else
+            python scripts/slack_notify.py --json-file invariant_report.json \
+              --title "core-invariants-guard 失败" \
+              --repo "${{ github.repository }}" \
+              --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          fi
