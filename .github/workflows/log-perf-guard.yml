@@ -64,10 +64,10 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || github.event.inputs.mode == 'both' || github.event.inputs.mode == 'stress-only'
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -103,7 +103,7 @@ jobs:
 
       - name: 上传压力测试报告
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: log-perf-stress-test-report
           path: logs/log_perf_stress_test.json
@@ -122,12 +122,12 @@ jobs:
       pull-requests: write
     steps:
       - name: 检出代码（完整历史用于 git diff）
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -228,10 +228,10 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || github.event.inputs.mode == 'both' || github.event.inputs.mode == 'stress-only'
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -296,7 +296,7 @@ jobs:
 
       - name: 上传测试报告
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: di-unit-test-report
           path: |

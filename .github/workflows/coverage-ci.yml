@@ -38,10 +38,10 @@ jobs:
           - '3.12'
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -87,7 +87,7 @@ jobs:
 
       # 关键修复 2：上传三个产物（原始 SQLite 数据 + XML 报告 + HTML 报告）
       - name: 上传覆盖率报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report-py${{ matrix.python-version }}
           path: |
@@ -97,7 +97,7 @@ jobs:
           retention-days: 30
 
       - name: 上传测试结果
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-unit-py${{ matrix.python-version }}
@@ -113,10 +113,10 @@ jobs:
     needs: [unit-tests]
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -129,7 +129,7 @@ jobs:
 
       # 关键修复 3：下载到 path: .（当前目录），让文件直接落在根目录
       - name: 下载覆盖率报告
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: coverage-report-py${{ env.PYTHON_VERSION }}
           path: .
@@ -157,7 +157,7 @@ jobs:
           coverage xml -o test_reports/coverage.xml || true
 
       - name: 上传完整覆盖率报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: full-coverage-report
           path: test_reports/

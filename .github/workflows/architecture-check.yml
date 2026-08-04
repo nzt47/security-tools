@@ -50,12 +50,12 @@ jobs:
       contents: write
     steps:
       - name: 检出代码（完整历史用于 git diff）
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -212,7 +212,7 @@ jobs:
 
       # ── 上传报告 Artifact ──
       - name: 上传架构检查报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: architecture-check-report

@@ -78,7 +78,7 @@ jobs:
       image-tag: ${{ steps.meta.outputs.tag }}
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -121,7 +121,7 @@ jobs:
 
       - name: 上传镜像构建日志
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docker-build-log
           path: |
@@ -145,7 +145,7 @@ jobs:
           - ${{ github.event.inputs.test_mode || 'sqlite-vec' }}
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -254,7 +254,7 @@ jobs:
 
       - name: 上传覆盖率报告
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report-${{ matrix.test-mode }}
           path: |
@@ -264,7 +264,7 @@ jobs:
 
       - name: 上传测试结果
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ matrix.test-mode }}
           path: test-results/
@@ -281,10 +281,10 @@ jobs:
     if: always()
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 下载覆盖率报告
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: coverage-report-sqlite-vec
           path: coverage-data/
@@ -340,7 +340,7 @@ jobs:
 
       - name: 上传覆盖率分析报告
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-analysis
           path: |
