@@ -12,7 +12,7 @@
 RootModule = 'tlm-hook-failsafe.psm1'
 
 # Version number of this module.
-ModuleVersion = '1.1.6'
+ModuleVersion = '1.1.7'
 
 # Supported PSEditions
 CompatiblePSEditions = 'Desktop', 'Core'
@@ -115,7 +115,7 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = 'v1.1.6: fix PSGallery license warning by adding licenseUrl to nuspec template (read from .psd1 LicenseUri). v1.1.5: fix Node 20 deprecation (checkout@v5, upload-artifact@v6) + add LICENSE + enable LicenseUri + fix sync-from-source.ps1 double BOM. v1.1.4: auto-tag publish in same workflow (no cross-workflow trigger). v1.1.3: auto-tag CI/CD full chain with actions:write permission. v1.1.2: auto-tag CI/CD full chain validation. v1.1.1: auto-tag CI/CD validation release. v1.1.0: add exit code resolution layer (Get-HookExitCodeMap, Resolve-HookExitCode, Invoke-HookWithCapture). v1.0.0: initial release, 12 exported functions, sourced from scripts/dev/hook_fail_safe.psm1'
+        ReleaseNotes = 'v1.1.7: migrate licenseUrl to license type=expression MIT (NuGet 4.9.2+ recommended) + fix GitHub Release not created (expand if condition to cover auto-tag and workflow_dispatch paths). v1.1.6: fix PSGallery license warning by adding licenseUrl to nuspec template (read from .psd1 LicenseUri). v1.1.5: fix Node 20 deprecation (checkout@v5, upload-artifact@v6) + add LICENSE + enable LicenseUri + fix sync-from-source.ps1 double BOM. v1.1.4: auto-tag publish in same workflow (no cross-workflow trigger). v1.1.3: auto-tag CI/CD full chain with actions:write permission. v1.1.2: auto-tag CI/CD full chain validation. v1.1.1: auto-tag CI/CD validation release. v1.1.0: add exit code resolution layer (Get-HookExitCodeMap, Resolve-HookExitCode, Invoke-HookWithCapture). v1.0.0: initial release, 12 exported functions, sourced from scripts/dev/hook_fail_safe.psm1'
 
         # Prerelease string of this module
         # Prerelease = ''
