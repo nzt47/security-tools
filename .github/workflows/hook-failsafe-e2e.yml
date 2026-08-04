@@ -67,7 +67,7 @@ jobs:
       published-version: ${{ steps.publish.outputs.version }}
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置 PowerShell 环境
         shell: powershell
@@ -128,7 +128,7 @@ jobs:
         ps_label: ['5.1', '7']
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 选择目标 PowerShell 可执行文件
         # 不易：shell: 字段静态验证不支持 matrix，固定 pwsh 作外壳；
@@ -191,7 +191,7 @@ jobs:
         ps_label: ['5.1', '7']
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 选择目标 PowerShell 可执行文件
         shell: pwsh

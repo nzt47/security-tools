@@ -38,7 +38,7 @@ jobs:
       DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 准备通知内容
         id: prep
@@ -154,7 +154,7 @@ jobs:
       DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 检测状态变化（上次失败→本次成功）
         id: detect

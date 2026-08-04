@@ -46,10 +46,10 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -72,7 +72,7 @@ jobs:
             --timeout=300
 
       - name: 上传覆盖率报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: processor-coverage-${{ matrix.os }}
@@ -90,10 +90,10 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -116,7 +116,7 @@ jobs:
             --timeout=300
 
       - name: 上传覆盖率报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: crawler-coverage-${{ matrix.os }}
@@ -131,10 +131,10 @@ jobs:
     if: ${{ github.event.inputs.run_integration == 'true' || github.event_name == 'schedule' }}
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
@@ -155,7 +155,7 @@ jobs:
         continue-on-error: true
 
       - name: 上传集成测试日志
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: integration-test-logs
@@ -170,10 +170,10 @@ jobs:
     if: always()
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置 Python 环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -186,14 +186,14 @@ jobs:
           mkdir -p docs/test_reports
 
       - name: 下载 Processor 覆盖率
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: processor-coverage-ubuntu-latest
           path: coverage/
         continue-on-error: true
 
       - name: 下载 Crawler 覆盖率
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: crawler-coverage-ubuntu-latest
           path: coverage/
@@ -211,7 +211,7 @@ jobs:
           echo "**测试时间**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> docs/test_reports/COVERAGE_SUMMARY.md
 
       - name: 上传覆盖率汇总
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-summary-report
           path: docs/test_reports/COVERAGE_SUMMARY.md

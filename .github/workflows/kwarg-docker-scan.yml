@@ -53,7 +53,7 @@ jobs:
       built_locally: ${{ steps.decide.outputs.built_locally }}
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 决定镜像来源
         id: decide
@@ -106,7 +106,7 @@ jobs:
     needs: prepare-image
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 本地构建镜像（如需）
         if: needs.prepare-image.outputs.built_locally == 'true'
@@ -154,7 +154,7 @@ jobs:
 
       - name: 上传 HIGH 风险报告
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kwarg-docker-high-risk-report
           path: |
@@ -175,7 +175,7 @@ jobs:
     needs: prepare-image
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 本地构建镜像（如需）
         if: needs.prepare-image.outputs.built_locally == 'true'
@@ -215,7 +215,7 @@ jobs:
 
       - name: 上传 MEDIUM 风险报告
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kwarg-docker-medium-risk-report
           path: |
@@ -233,7 +233,7 @@ jobs:
     if: github.event_name == 'workflow_dispatch'
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 本地构建镜像（如需）
         if: needs.prepare-image.outputs.built_locally == 'true'
