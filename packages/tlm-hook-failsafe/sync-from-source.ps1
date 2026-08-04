@@ -48,9 +48,9 @@ if (Test-Path $sourceLicense) {
     Write-Host "  [WARN] LICENSE not found at $sourceLicense (PSGallery license 警告将出现)" -ForegroundColor Yellow
 }
 
-# 2. reverse verify: 15 exported functions (12 original + 3 exit code resolution)
+# 2. reverse verify: 16 exported functions (12 original + 3 exit code resolution + 1 pre-push)
 $expected = @(
-    'Get-HookContent','Write-HookNoBom','Write-FileWithBom',
+    'Get-HookContent','Get-PrePushContent','Write-HookNoBom','Write-FileWithBom',
     'Backup-ExistingHook','Test-HookUpToDate',
     'Set-SourceRepoEnv','Test-SourceRepoEnv',
     'Resolve-GitDir','Test-HookMarker',
