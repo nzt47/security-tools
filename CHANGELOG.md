@@ -48,10 +48,13 @@ tlm-hook-failsafe 的 PSGallery 自动发布链路（auto-tag → dry-run → pu
 
 #### 5. Node.js 20 deprecation 警告（action 运行时弃用）
 
-- **根因**: `actions/checkout@v4` 和 `actions/upload-artifact@v4` 依赖 Node.js 20 运行时，而 GitHub Actions runner 已默认使用 Node.js 24。三个 job 的 `Complete job` step 均打印 `##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24`。upload-artifact@v4 内部还触发 `punycode` (DEP0040) 和 `url.parse()` (DEP0169) DeprecationWarning。
-- **修复**: 升级 `actions/checkout@v4 → @v5`（3 处：auto-tag/dry-run/publish）+ `actions/upload-artifact@v4 → @v5`（1 处：dry-run 上传 .nupkg）。v5 原生支持 Node.js 24。
-- **文件**: `.github/workflows/publish-psgallery.yml`（第 98/190/274 行 checkout，第 232 行 upload-artifact）
-- **状态**: 本次工作区已修改，待提交后下次运行验证警告消除。
+- **根因**: `actions/checkout@v4` 和 `actions/upload-artifact@v4` 依赖 Node.js 20 运行时，而 GitHub Actions runner 已默认使用 Node.js 24。三个 job 的 `Complete job` step 均打印 `##[warning]Node.js 20 is deprecated`。upload-artifact 内部还触发 `punycode` (DEP0040) 和 `url.parse()` (DEP0169) DeprecationWarning。
+- **修复**（分两步）:
+  - 第一步：`actions/checkout@v4 → @v5`（3 处，Node 24 native，CI 验证警告消除 ✅）+ `actions/upload-artifact@v4 → @v5`（1 处）
+  - 第二步：CI 验证发现 `upload-artifact@v5` 仍基于 Node 20（upstream 已知问题），升级 `@v5 → @v6`（Node 24 native，`runs.using: node24`，最低 runner 版本 2.327.1）
+- **文件**: `.github/workflows/publish-psgallery.yml`（checkout 第 98/190/274 行，upload-artifact 第 232 行）
+- **验证**: checkout@v5 警告已消除（Run #30922653841 dry-run 日志无 checkout 警告）；upload-artifact@v6 待下次运行验证。
+- **参考**: [upload-artifact v6 Node 24 迁移说明](https://github.com/actions/upload-artifact) — `@v5 is still node20, @v6 is node24 native`
 
 ### Added — 新增功能
 
