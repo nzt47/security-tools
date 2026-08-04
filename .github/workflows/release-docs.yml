@@ -1,0 +1,154 @@
+# 文档自动构建工作流
+# 触发条件：新版本发布（GitHub Release）或推送 v* tag
+# 功能：自动从 PyPI 安装包 + pdoc3 生成 API 文档 + 上传 artifact + 部署到 GitHub Pages
+
+name: 文档自动构建
+
+on:
+  release:
+    types: [published]  # 仅在 Release 发布时触发
+  push:
+    tags:
+      - 'v*'  # 推送 v* tag 也触发（兼容 tag-based 发布流程）
+  workflow_dispatch:  # 支持手动触发（调试用）
+
+env:
+  PYTHON_VERSION: '3.10'
+  PACKAGE_NAME: 'l2-p99-monitor'
+
+permissions:
+  contents: read
+  pages: write          # 部署到 GitHub Pages 需要
+  id-token: write       # Pages 部署需要
+  actions: read         # 读取 artifact 需要
+
+jobs:
+  # ============================================================================
+  # 构建 API 文档
+  # ============================================================================
+  build-docs:
+    name: 构建 API 文档
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装文档工具
+        # Why pdoc3: 自动从 docstring 生成 HTML 文档，零配置，适合纯 Python 包
+        run: |
+          python -m pip install --upgrade pip
+          pip install pdoc3
+
+      - name: 从 PyPI 安装包
+        # Why 从 PyPI 安装而非源码：确保文档对应已发布的真实版本
+        run: |
+          pip install ${{ env.PACKAGE_NAME }}
+          echo "已安装版本:"
+          pip show ${{ env.PACKAGE_NAME }} | grep -E "^(Name|Version|Summary)"
+
+      - name: 生成 API 文档
+        # Why: pdoc3 递归生成所有模块的 HTML 文档
+        run: |
+          mkdir -p docs_build
+          pdoc --html --output-dir docs_build l2_p99_monitor
+          echo "=== 文档生成完成 ==="
+          find docs_build -type f -name "*.html" | head -20
+
+      - name: 添加版本元信息
+        # Why: 在文档根目录添加版本信息，方便用户确认文档对应版本
+        run: |
+          VERSION=$(pip show ${{ env.PACKAGE_NAME }} | grep "^Version:" | awk '{print $2}')
+          BUILD_TIME=$(date -u '+%Y-%m-%d %H:%M UTC')
+          cat > docs_build/l2_p99_monitor/VERSION.md << EOF
+          # 文档版本信息
+
+          | 项 | 值 |
+          |----|-----|
+          | 包版本 | ${VERSION} |
+          | 构建时间 | ${BUILD_TIME} |
+          | PyPI | https://pypi.org/project/${{ env.PACKAGE_NAME }}/${VERSION}/ |
+          | 源码 | ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY} |
+
+          > 此文档由 GitHub Actions 自动生成，对应 PyPI 已发布版本。
+          EOF
+
+      - name: 上传文档 artifact
+        # Why: 方便下载查看，也供 deploy-pages job 使用
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-docs-${{ github.ref_name }}
+          path: docs_build/
+          retention-days: 30
+
+  # ============================================================================
+  # 部署到 GitHub Pages
+  # ============================================================================
+  deploy-pages:
+    name: 部署到 GitHub Pages
+    needs: build-docs
+    runs-on: ubuntu-latest
+    # Why environment: GitHub Pages 部署需要 environment 配置
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # Why if: 仅 release 和 tag 触发时部署，手动触发不部署（避免误操作）
+    if: github.event_name == 'release' || github.event_name == 'push'
+    steps:
+      - name: 下载文档 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-docs-${{ github.ref_name }}
+          path: docs_site/
+
+      - name: 配置 GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上传 Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs_site/l2_p99_monitor/
+
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: 输出部署结果
+        run: |
+          echo "=== GitHub Pages 部署完成 ==="
+          echo "文档地址: ${{ steps.deployment.outputs.page_url }}"
+          echo "对应版本: ${{ github.ref_name }}"
+
+  # ============================================================================
+  # 发布通知
+  # ============================================================================
+  notify:
+    name: 发布通知
+    needs: [build-docs, deploy-pages]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: 汇总构建结果
+        # Why: 一目了然查看整个文档构建流程的状态
+        run: |
+          echo "=== 文档构建流程汇总 ==="
+          echo "触发事件: ${{ github.event_name }}"
+          echo "版本/Tag: ${{ github.ref_name }}"
+          echo "构建文档: ${{ needs.build-docs.result }}"
+          echo "部署 Pages: ${{ needs.deploy-pages.result }}"
+          echo "========================"
+          if [ "${{ needs.build-docs.result }}" != "success" ]; then
+            echo "❌ 文档构建失败"
+            exit 1
+          fi
+          echo "✅ 文档构建成功"
+          if [ "${{ needs.deploy-pages.result }}" == "success" ]; then
+            echo "✅ GitHub Pages 部署成功"
+          elif [ "${{ needs.deploy-pages.result }}" == "skipped" ]; then
+            echo "ℹ️ GitHub Pages 部署已跳过（手动触发不部署）"
+          fi

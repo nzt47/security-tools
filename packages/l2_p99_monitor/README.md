@@ -1,6 +1,13 @@
 # l2_p99_monitor
 
+![PyPI version](https://img.shields.io/pypi/v/l2-p99-monitor.svg)
+![PyPI downloads](https://img.shields.io/pypi/dm/l2-p99-monitor.svg)
+![License](https://img.shields.io/pypi/l/l2-p99-monitor.svg)
+![Python version](https://img.shields.io/pypi/pyversions/l2-p99-monitor.svg)
+
 通用 P99 监控告警包：解析性能日志 + 阈值检查 + 多渠道告警。
+
+> 📦 **PyPI**: https://pypi.org/project/l2-p99-monitor/
 
 ## 特性
 
@@ -13,28 +20,61 @@
 
 ## 安装
 
+### 从 PyPI 安装（推荐）
+
 ```bash
-# 从源码安装
+# 最新版
+pip install l2-p99-monitor
+
+# 指定版本
+pip install l2-p99-monitor==1.0.0
+
+# 升级到最新版
+pip install --upgrade l2-p99-monitor
+```
+
+### 从源码安装（开发用）
+
+```bash
 cd packages/l2_p99_monitor
 pip install -e .
+```
 
-# 或直接使用（无需安装）
-python -m l2_p99_monitor --input bench_ci.log
+### 验证安装
+
+```bash
+# 验证 CLI 可用
+l2-p99-monitor --help
+
+# 验证库导入
+python -c "from l2_p99_monitor import P99Monitor; print('OK')"
+
+# 查看版本
+pip show l2-p99-monitor
 ```
 
 ## 快速开始
 
 ### CLI 使用
 
+安装后可直接使用 `l2-p99-monitor` 命令（无需 `python -m`）：
+
 ```bash
-# 基本用法
-python -m l2_p99_monitor --input bench_ci.log
+# 基本用法（默认阈值 1000ms）
+l2-p99-monitor --input bench_ci.log
 
 # 自定义阈值 + 告警日志
-python -m l2_p99_monitor --input bench_ci.log --threshold 500 --alert-log alerts.jsonl
+l2-p99-monitor --input bench_ci.log --threshold 500 --alert-log alerts.jsonl
 
 # 指定场景和格式
-python -m l2_p99_monitor --input bench_ci.log --scenario C --format bench
+l2-p99-monitor --input bench_ci.log --scenario C --format bench
+
+# 完整示例：检查 P99 是否超阈值并记录告警
+l2-p99-monitor \
+  --input test_reports/l2_switch_perf_comparison.log \
+  --threshold 1000 \
+  --alert-log test_reports/p99_alerts.jsonl
+# 退出码：0=正常，1=告警，2=解析失败
 ```
 
 ### 库导入
@@ -159,11 +199,14 @@ export SLACK_WEBHOOK_URL="<your-slack-webhook-url>"
 ## CI 集成
 
 ```yaml
+- name: 安装 l2-p99-monitor
+  run: pip install l2-p99-monitor
+
 - name: 监控 P99 告警
   env:
     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
   run: |
-    python -m l2_p99_monitor \
+    l2-p99-monitor \
       --input test_reports/bench_ci.log \
       --threshold 1000 \
       --alert-log test_reports/p99_alerts.jsonl || true
