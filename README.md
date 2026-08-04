@@ -58,6 +58,27 @@ set LLM_MODEL=claude-sonnet-4-20250514
 
 不配置 LLM 时，云枢运行在离线模式，提供基础回复。
 
+## Docker 部署与 Reranker 热重载
+
+生产环境通过 docker-compose 在 Linux 容器部署（规避 Windows ChromaDB 崩溃）：
+
+```bash
+docker compose up -d
+docker compose ps  # 容器应显示 Up (healthy)
+```
+
+关键机制：
+- **Reranker 热重载**：ONNX 推理（C++ 引擎豁免子进程隔离），`SKILL_RERANKER_HOT_RELOAD_INTERVAL`（默认 30s）惰性检查 env 切换 ONNX 变体（`model_quantized.onnx` → `model_int8.onnx`），加载失败自动回滚保留旧 session
+- **OMP/MKL 线程限制**：`OMP_NUM_THREADS=4` / `MKL_NUM_THREADS=4`，预防 torch/sqlite-vec DLL 线程竞争导致的 0xC0000005 崩溃
+- **healthcheck**：探测 `/api/health`，`start_period 60s`
+- **配置原则**：`.env` 为唯一数据源，docker-compose 通过 `${VAR:-default}` 引用；容器内模型路径固定（不读 .env 的 Windows 路径）
+
+快速查阅：
+- [环境变量对照表](docs/CONFIG_ENV_REFERENCE.md) — 热重载 8 项 + OMP/MKL 2 项 + 分环境模型路径
+- [热重载最终验收报告](docs/RERANKER_HOT_RELOAD_FINAL_ACCEPTANCE_REPORT.md) — 三态验证结果
+- [部署交付清单](docs/DEPLOYMENT_DELIVERY_CHECKLIST_20260804.md) — 已验证指标与归档链接
+- [配置回归测试脚本](scripts/dev/verify_config_regression.ps1) — 7 类 16 项自动化校验（`powershell -File .\scripts\dev\verify_config_regression.ps1`）
+
 ## Git Hook 与 CI 预检
 
 提交时 pre-commit hook 自动检查 Markdown 链接、BOM 编码与核心不变量。PR 阶段 CI 以 `-BomDiag` 字节级调试模式复跑同一判定链，BOM 边缘问题在 PR 页面直接可见：
