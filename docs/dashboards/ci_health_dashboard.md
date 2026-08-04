@@ -40,6 +40,7 @@
 | 2026-08-04 | `ff83ff4` | 99.0% (1490/1505) | 0 | 15 | 76.04 | — | 0 | ↑ | fix(reranker): verify 脚本对齐真实实现(类名 SkillReranker/类属性默 |
 | 2026-08-04 | `8b78511` | 98.7% (1494/1513) | 0 | 19 | 108.10 | — | 0 | ↑ | release(tlm-hook-failsafe): bump to 1.1.7 + license 迁移 + Release 修复 + AP |
 | 2026-08-04 | `8ffe05c` | 98.7% (1494/1513) | 0 | 19 | 96.23 | — | 0 | ↑ | chore(hooks): 同步 WORKFLOW_SIM 段到发布包副本, 保持与 dev 版模板 |
+| 2026-08-04 | `657daae` | 98.7% (1494/1513) | 0 | 19 | 106.81 | — | 0 | ↑ | fix(ci): docker-compose.yml 添加 build 段作为 CI fallback |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
