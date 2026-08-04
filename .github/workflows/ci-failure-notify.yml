@@ -9,6 +9,7 @@ on:
       - "Error Reporting System CI/CD"
       - "日志性能守护"
       - "硬编码密码扫描（全分支）"
+      - "关键字参数冲突扫描 (Docker)"
     types:
       - completed
 
@@ -131,3 +132,74 @@ jobs:
           echo "  配置位置: https://github.com/settings/notifications"
           echo ""
           echo "如需自定义邮件规则，访问上述链接调整"
+
+  # ── Docker kwarg 扫描状态变化监控（失败→恢复 才通知，避免每次成功噪声） ──
+  # 【不易】只在「上次 failure → 本次 success」时通知,贴合"状态变化"语义
+  # 【变易】用 github-script 查历史 run 判断真实变化,非每次 success 都通知
+  docker-scan-recover-notify:
+    name: Docker 扫描恢复通知
+    if: ${{ github.event.workflow_run.name == '关键字参数冲突扫描 (Docker)' && github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      DINGTANG_WEBHOOK: ${{ secrets.DINGTANG_WEBHOOK }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 检测状态变化（上次失败→本次成功）
+        id: detect
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const currentId = context.payload.workflow_run.id;
+            const branch = context.payload.workflow_run.head_branch;
+            // 查询同分支该 workflow 最近 5 次 completed run,排除当前 run
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'kwarg-docker-scan.yml',
+              branch: branch,
+              status: 'completed',
+              per_page: 5
+            });
+            const prevRun = runs.data.workflow_runs.find(r => r.id !== currentId);
+            if (!prevRun) {
+              core.info('无历史 run,跳过恢复通知');
+              core.setOutput('recovered', 'false');
+              return;
+            }
+            core.info(`prev conclusion=${prevRun.conclusion}, current=success`);
+            if (prevRun.conclusion !== 'failure') {
+              core.info('上次非 failure,非状态变化,不通知');
+              core.setOutput('recovered', 'false');
+              return;
+            }
+            core.setOutput('recovered', 'true');
+            core.setOutput('prev_url', prevRun.html_url);
+            core.setOutput('prev_sha', prevRun.head_sha.substring(0, 7));
+
+      - name: 发送钉钉恢复通知
+        if: ${{ steps.detect.outputs.recovered == 'true' && env.DINGTANG_WEBHOOK != '' }}
+        uses: visiblelabs/dingtalk-action@v1
+        with:
+          webhook: ${{ secrets.DINGTANG_WEBHOOK }}
+          msgtype: markdown
+          title: "✅ Docker kwarg 扫描已恢复"
+          text: |
+            ## ✅ Docker kwarg 扫描已恢复
+
+            - 分支: ${{ github.event.workflow_run.head_branch }}
+            - 本次 Commit: ${{ github.event.workflow_run.head_sha }}
+            - 上次失败 Commit: ${{ steps.detect.outputs.prev_sha }}
+            - 本次运行: [查看日志](${{ github.event.workflow_run.html_url }})
+            - 上次失败: [查看日志](${{ steps.detect.outputs.prev_url }})
+
+            HIGH 风险扫描已从 **失败** 恢复为 **通过**。
+
+      - name: 恢复通知说明（无 webhook 时）
+        if: ${{ steps.detect.outputs.recovered == 'true' && env.DINGTANG_WEBHOOK == '' }}
+        run: |
+          echo "✓ Docker 扫描已从失败恢复,但未配置 DINGTANG_WEBHOOK secret"
+          echo "  邮件通知仍由 GitHub 默认机制发送给 commit 作者"
+          echo "  配置钉钉 webhook: 仓库 Settings → Secrets → 添加 DINGTANG_WEBHOOK"

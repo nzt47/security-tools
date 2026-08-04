@@ -42,7 +42,8 @@ jobs:
           cache: 'pip'
 
       - name: 安装 pytest
-        run: pip install pytest --quiet
+        # pytest.ini addopts 含 --timeout/--timeout-method, 需 pytest-timeout 插件(与本地 venv 一致)
+        run: pip install pytest pytest-timeout --quiet
 
       - name: 运行超时配置验证（health 随 env 更新 6 场景）
         id: verify

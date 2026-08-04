@@ -53,7 +53,9 @@ RUN pip install --no-cache-dir /tmp/build/ \
 
 # 复制 CI 入口脚本
 COPY --chown=scanner:scanner docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# 【不易】强制去除 CRLF:Windows 编辑器可能写入 \r\n,导致 Linux 容器
+# shebang #!/bin/sh\r 找不到解释器(exec: no such file or directory)
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh && sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh
 
 # 切换到非 root 用户
 USER scanner

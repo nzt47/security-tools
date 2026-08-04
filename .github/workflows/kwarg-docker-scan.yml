@@ -117,25 +117,40 @@ jobs:
         id: scan
         run: |
           echo "=== Docker 容器内运行 HIGH 风险扫描 ==="
-          # 挂载工作区到 /project，容器内扫描 /project/agent
-          # 结构化日志输出到 stderr，扫描报告输出到 stdout
+          # 【不易】容器内 scanner 用户对宿主挂载根目录无写权限,
+          #   报告必须写入预创建的 777 临时目录(挂载为 /output)。
+          # 【变易】/project 改为只读挂载(:ro),符合最小权限原则。
+          mkdir -p scan-output && chmod 777 scan-output
           docker run --rm \
-            -v "${{ github.workspace }}:/project" \
+            -v "${{ github.workspace }}:/project:ro" \
+            -v "${{ github.workspace }}/scan-output:/output" \
             -e MIN_RISK=HIGH \
             -e OUTPUT_FORMAT=json \
-            -e OUTPUT_FILE=/project/kwarg-high-risk-report.json \
+            -e OUTPUT_FILE=/output/kwarg-high-risk-report.json \
             -e ENABLE_LOGGING=true \
             ${{ needs.prepare-image.outputs.image }} \
             --path /project/agent 2>&1 | tee docker-scan-high.log
+          # 【简易】报告落到宿主 scan-output/ 下,复制到 workspace 根目录供后续步骤读取
+          if [ -f scan-output/kwarg-high-risk-report.json ]; then
+            cp scan-output/kwarg-high-risk-report.json kwarg-high-risk-report.json
+          fi
           echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
 
       - name: 判断扫描结果
         if: steps.scan.outputs.exit_code != '0'
         run: |
-          echo "::error::Docker 扫描检测到 HIGH 风险，CI 已阻断 (exit=${{ steps.scan.outputs.exit_code }})"
-          echo "::error::查看报告: kwarg-high-risk-report.json"
-          echo "::error::修复提示: 在 **kwargs 展开前过滤保留键，使用 safe_ 前缀命名变量"
-          exit 1
+          # 【不易】exit!=0 需区分: exit 1 = 真有 HIGH(报告为证); exit 3 = 扫描器异常
+          if [ "${{ steps.scan.outputs.exit_code }}" = "1" ] && [ -f kwarg-high-risk-report.json ]; then
+            # 【简易】单行 python3 -c:YAML run 块多行会因保留缩进致 IndentationError
+            HIGH_COUNT=$(python3 -c "import json;print(json.load(open('kwarg-high-risk-report.json')).get('summary',{}).get('HIGH',0))" 2>/dev/null || echo 0)
+            echo "::error::Docker 扫描检测到 ${HIGH_COUNT} 处 HIGH 风险,CI 已阻断"
+            echo "::error::查看报告: kwarg-high-risk-report.json"
+            echo "::error::修复提示: 在 **kwargs 展开前过滤保留键,使用 safe_ 前缀命名变量"
+            exit 1
+          else
+            echo "::error::Docker 扫描器异常 (exit=${{ steps.scan.outputs.exit_code }}),请查看 docker-scan-high.log"
+            exit 1
+          fi
 
       - name: 上传 HIGH 风险报告
         if: always()
@@ -170,24 +185,26 @@ jobs:
       - name: 运行 MEDIUM 风险扫描
         run: |
           echo "=== Docker 容器内运行 MEDIUM 风险扫描 ==="
+          # 【不易】同 high-risk-scan:报告写入预创建 777 临时目录,/project 只读挂载
+          mkdir -p scan-output && chmod 777 scan-output
           docker run --rm \
-            -v "${{ github.workspace }}:/project" \
+            -v "${{ github.workspace }}:/project:ro" \
+            -v "${{ github.workspace }}/scan-output:/output" \
             -e MIN_RISK=MEDIUM \
             -e OUTPUT_FORMAT=json \
-            -e OUTPUT_FILE=/project/kwarg-medium-risk-report.json \
+            -e OUTPUT_FILE=/output/kwarg-medium-risk-report.json \
             -e ENABLE_LOGGING=true \
             ${{ needs.prepare-image.outputs.image }} \
             --path /project/agent 2>&1 | tee docker-scan-medium.log || true
+          # 【简易】报告复制到 workspace 根目录,供后续统计步骤读取
+          [ -f scan-output/kwarg-medium-risk-report.json ] && \
+            cp scan-output/kwarg-medium-risk-report.json kwarg-medium-risk-report.json || true
 
       - name: 统计 MEDIUM 风险数量
         run: |
           if [ -f kwarg-medium-risk-report.json ]; then
-            COUNT=$(python3 -c "
-              import json
-              with open('kwarg-medium-risk-report.json') as f:
-                d = json.load(f)
-              print(d.get('summary', {}).get('MEDIUM', 0))
-            " 2>/dev/null || echo "0")
+            # 【简易】单行 python3 -c:避免 YAML 缩进致 IndentationError
+            COUNT=$(python3 -c "import json;print(json.load(open('kwarg-medium-risk-report.json')).get('summary',{}).get('MEDIUM',0))" 2>/dev/null || echo "0")
             echo "medium_count=$COUNT" >> $GITHUB_ENV
             if [ "$COUNT" -gt 0 ]; then
               echo "::warning::检测到 $COUNT 处 MEDIUM 级别风险（不阻断，建议审查）"

@@ -247,15 +247,39 @@ case $SCAN_EXIT_CODE in
         exit 0
         ;;
     1)
-        log_json "scan_complete" \
-            result "blocked" \
-            exit_code "$SCAN_EXIT_CODE" \
-            total_duration_ms "$TOTAL_DURATION_MS" \
-            reason "high_risk_detected"
-        trackEvent "scan_blocked" "{\"duration_ms\":$TOTAL_DURATION_MS,\"reason\":\"high_risk_detected\"}"
-        echo "[CI] 扫描阻断: 发现 HIGH 风险，请修复后再提交" >&2
-        echo "[CI] 提示: 在 **kwargs 展开前过滤保留键，使用 safe_ 前缀命名变量" >&2
-        exit 1
+        # 【不易】exit 1 必须有「报告存在且 HIGH 计数 > 0」作证,否则视为扫描器异常崩溃
+        #   (如 PermissionError/OOM/段错误),不能误判为 high_risk_detected
+        HIGH_COUNT="0"
+        if [ -n "$OUTPUT_FILE" ] && [ -f "$OUTPUT_FILE" ]; then
+            HIGH_COUNT=$(python3 -c "
+import json
+try:
+    d = json.load(open('$OUTPUT_FILE'))
+    print(d.get('summary', {}).get('HIGH', 0))
+except Exception:
+    print(0)
+" 2>/dev/null || echo "0")
+        fi
+
+        if [ "$HIGH_COUNT" -gt 0 ] 2>/dev/null; then
+            log_json "scan_complete" \
+                result "blocked" \
+                exit_code "$SCAN_EXIT_CODE" \
+                total_duration_ms "$TOTAL_DURATION_MS" \
+                reason "high_risk_detected" \
+                high_risk_count "$HIGH_COUNT" \
+                report_file "$OUTPUT_FILE"
+            trackEvent "scan_blocked" "{\"duration_ms\":$TOTAL_DURATION_MS,\"reason\":\"high_risk_detected\",\"high_count\":$HIGH_COUNT}"
+            echo "[CI] 扫描阻断: 发现 $HIGH_COUNT 处 HIGH 风险,请修复后再提交" >&2
+            echo "[CI] 提示: 在 **kwargs 展开前过滤保留键,使用 safe_ 前缀命名变量" >&2
+            echo "[CI] 报告: $OUTPUT_FILE" >&2
+            exit 1
+        else
+            # 【变易】exit 1 但无有效 HIGH 报告 → 扫描器异常,不阻断为 HIGH
+            die "E_SCAN_CRASHED" \
+                "扫描器 exit 1 但无有效 HIGH 风险报告(report=$OUTPUT_FILE, high_count=$HIGH_COUNT),疑似进程崩溃或权限错误" \
+                3
+        fi
         ;;
     2)
         die "E_INVALID_ARGS" "参数错误: 请检查 --path/--min-risk 参数" 2
