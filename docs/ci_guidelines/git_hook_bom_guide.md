@@ -72,6 +72,9 @@ PS 5.1 的 `-File` 调用会把 `-Verbose` 当作保留参数名、不绑定到�
 
 对应 `write-log --level debug` 的 `event=diag` 行（JSON 模式 `"level":"DEBUG"`）。
 
+> **演示**：`assets/bomdiag_pr_demo.gif` 用真实输出演示了 PR 阶段 `-BomDiag`
+> 拦截「叠加 BOM + 失效链接」的过程（人类可读 + JSON/ELK 双视角，exit 1 阻断）。
+
 ### 3.3 编码契约自动检查 `check_ps1_encoding.py`（CI/Commit 级）
 
 ```bash
@@ -134,6 +137,75 @@ python scripts/verify_core_invariants.py --repo-root . --html report.html
 - **DEBUG 级默认不输出**：仅 `-BomDiag` 时出现，默认场景日志量可控。
 - **Filebeat 建议配置**：`json.keys_under_root: true` + `json.add_error_key: true`，
   非 JSON 行（如 pytest 原始输出）作为普通 message 保留，不丢弃。
+
+### 4.4 Filebeat 解析配置示例
+
+以下片段可直接套用，将 `-JsonOutput` 的单行 JSON 解析为独立字段（ELK/Filebeat 采集）：
+
+```yaml
+# filebeat.yml（片段）
+filebeat.inputs:
+  - type: filestream
+    id: ci-precheck-json
+    enabled: true
+    paths:
+      # GitHub Actions 日志导出后落盘的路径，或 CI runner 挂载的日志卷
+      - /var/log/ci/precheck/*.log
+    parsers:
+      # 按行解析；非 JSON 行（pytest 原始输出）保留为 message 字段
+      - ndjson:
+          target: ""
+    json:
+      # keys_under_root: 把 ts/level/event/msg/data 提升到文档根字段
+      keys_under_root: true
+      # add_error_key: 解析失败时标记 error.message，便于 ELK 侧发现坏行
+      add_error_key: true
+      # 覆盖：让日志自身的 ts 覆盖 Filebeat 采集时间
+      overwrite_keys: true
+
+processors:
+  - timestamp:
+      field: ts
+      layouts:
+        - '2006-01-02T15:04:05.999999999Z07:00'   # 对应 PowerShell 的 ISO-8601 'o' 格式
+      timezone: UTC
+  - drop_fields:
+      fields: ["ecs", "agent", "log"]
+      ignore_missing: true
+```
+
+配套的 Elasticsearch ingest pipeline（可选，为字段建立正确类型与聚合友好字段）：
+
+```json
+{
+  "description": "precheck_docs JSON 日志管道",
+  "processors": [
+    { "date": { "field": "ts", "target_field": "@timestamp",
+                "formats": ["iso8601"], "timezone": "UTC" } },
+    { "lowercase": { "field": "level", "target_field": "level" } },
+    { "set": { "field": "event.kind", "value": "ci-precheck" } },
+    { "set": { "field": "event.category", "value": "build" } }
+  ]
+}
+```
+
+字段映射速查：
+
+| 字段 | 类型建议 | 用途 |
+|------|---------|------|
+| `ts` / `@timestamp` | `date` | 时间线分析（UTC） |
+| `level` | `keyword` | 过滤 `ERROR` / `BLOCK` 事件 |
+| `event` | `keyword` | 按事件聚合：`broken_link` / `block` / `pass` / `diag` |
+| `msg` | `text` + `keyword` | 全文检索 + 关键词匹配 `[BLOCK]` |
+| `data.*` | 动态映射 | BOM hex、文件路径、计数等结构化载荷 |
+
+典型查询示例（Kibana / Lucene）：
+
+```
+level: ERROR AND event: broken_link
+event: block AND msg: "*BOM*"
+data.bom_count: >= 2
+```
 
 ---
 
