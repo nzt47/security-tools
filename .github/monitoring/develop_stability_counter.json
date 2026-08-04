@@ -1,0 +1,15 @@
+{
+  "remaining_checks": 3,
+  "total_checks": 3,
+  "started_at": "2026-08-04T22:00:00Z",
+  "last_check_at": null,
+  "last_check_commit": null,
+  "monitored_workflows": [
+    "kwarg-docker-scan.yml",
+    "kwarg-conflict-check.yml",
+    "ci.yml",
+    "hardcoded-password-scan.yml",
+    "hook-failsafe-e2e.yml"
+  ],
+  "history": []
+}
