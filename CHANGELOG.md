@@ -6,6 +6,30 @@
 
 ---
 
+## [Unreleased] - 2026-08-04: Workflow Learning 自动闭环验证 + 路由可观测性埋点补提交
+
+**影响模块**: `agent/orchestrator/routing_observability.py`, `agent/orchestrator/orchestrator.py`, `agent/workflow_learning/*`, `agent/orchestrator/lifecycle_manager.py`
+**关联提交**: `041ceeaa`（主线 2 路由埋点）、`5f53c393`（主线 1 验证工具链）
+**详细报告**: [docs/CHANGELOG_WORKFLOW_LEARNING_ROUTING_20260804.md](./docs/CHANGELOG_WORKFLOW_LEARNING_ROUTING_20260804.md)
+
+### Added — 新增功能
+
+- **routing_observability.py**: 统一层日志入口（四字段契约 trace_id_ctx/layer/decision/duration_ms）+ RouteTraffic 流量计数（每 N 次请求 INFO 汇总）+ RouteContext 单请求上下文（ContextVar 累积中间结果）+ emit_route_decision 最终决策日志
+- **验证工具链**: `simulate_workflow_closed_loop.py`（8 轮闭环模拟）、`parse_wfl_interception_logs.py`（日志解析报表）、`stress_workflow_interception_upgrade.py`（拦截与升格并发压测）、`verify_routing_logging.py`（埋点采样验证）
+- **单元测试**: `test_routing_observability.py`（17 用例）、`test_orchestrator_workflow_learning_layer.py`（19 用例）
+
+### Fixed — 修复
+
+- 测试/脚本断言对齐 Python dict repr 格式（log_dict 输出非 JSON 行）
+- simulate 脚本 Windows 临时目录清理错误（`ignore_cleanup_errors=True`）
+- intent_routing_logging.md 移除指向已丢失文件的失效链接
+
+### 质量验证
+
+60/60 测试通过 + simulate 8 轮闭环符合预期 + 核心不变量 12/12 + 链接预检 593 链接 0 失效
+
+---
+
 ## [Unreleased] - 2026-08-01: model_cache_utils 路径解析工具 + 下载脚本迁移
 
 **影响模块**: `scripts/model_cache_utils.py`, `scripts/download_reranker.py`, `scripts/download_bge_reranker_v2_m3_modelscope.py`, `.github/workflows/test.yml`
