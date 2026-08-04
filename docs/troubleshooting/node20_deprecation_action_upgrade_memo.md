@@ -2,9 +2,12 @@
 
 > **创建日期**: 2026-08-04  
 > **适用范围**: GitHub Actions 工作流中 `actions/*` 系列 action 的 Node 20 → Node 24 迁移  
-> **关联版本**: tlm-hook-failsafe v1.1.4  
-> **关联 CI Run**: #30919434635（修复前）/ #30922653841（v5 验证）/ #30925271334（v6 验证）  
-> **关联文档**: [release-note-tlm-hook-failsafe-v1.1.4-20260804.md](../releases/release-note-tlm-hook-failsafe-v1.1.4-20260804.md)
+> **关联版本**: tlm-hook-failsafe v1.1.4 → v1.1.9（v1.1.9 完成最后一步 action-gh-release@v3 升级，详见 §九）  
+> **关联 CI Run**: #30919434635（修复前）/ #30922653841（v5 验证）/ #30925271334（v6 验证）/ v1.1.9（action-gh-release@v3 终态）  
+> **关联文档**:
+> - [license_migration_and_release_root_cause_memo.md](./license_migration_and_release_root_cause_memo.md) — License 迁移 + Release 修复根因
+> - [v1_1_4_to_v1_1_9_release_postmortem_and_workflow_audit.md](./v1_1_4_to_v1_1_9_release_postmortem_and_workflow_audit.md) — 综合复盘 + 全仓 33 个 workflow 审计 + v1.1.10 规划
+> - [release-note-tlm-hook-failsafe-v1.1.4-20260804.md](../releases/release-note-tlm-hook-failsafe-v1.1.4-20260804.md)
 
 ---
 
@@ -196,3 +199,53 @@ Current runner version: '2.336.0'  ← 需 ≥ 2.327.1
 - [msupply-foundation Node 24 迁移 issue](https://github.com/msupply-foundation/open-msupply/issues/12489)
 - [HostsFileEditor Node 24 bump PR](https://github.com/scottlerch/HostsFileEditor/pull/134)
 - [v1.1.4 发布报告](../releases/release-note-tlm-hook-failsafe-v1.1.4-20260804.md)
+
+---
+
+## 九、v1.1.9 终态（action-gh-release@v3 升级）
+
+### 9.1 残留警告发现
+
+v1.1.4 完成 checkout@v5 + upload-artifact@v6 升级后，publish-psgallery.yml 范围内 Node 20 警告基本消除。但 v1.1.8 修复 GitHub Release（详见 [license 文档 §3.2](./license_migration_and_release_root_cause_memo.md)）后，Release step 首次真正运行 —— 才发现 `softprops/action-gh-release@v2` 仍基于 Node 20，触发新的 deprecation 警告。
+
+**这是"修复 A 暴露 B"的典型链式发现**：v1.1.4-v1.1.7 期间 Release step 一直被 skipped，所以 action-gh-release 的 Node 20 警告从未暴露，直到 v1.1.8 修复 Release 创建后才显现。
+
+### 9.2 v1.1.9 升级
+
+```yaml
+# publish-psgallery.yml 第 349 行
+uses: softprops/action-gh-release@v3   # v2 → v3 (Node 24 native)
+```
+
+### 9.3 终态验证
+
+v1.1.9 CI 中 publish-to-psgallery job 所有 step 均 success，**publish-psgallery.yml 范围内 Node 20 deprecation 警告全部消除**。
+
+---
+
+## 十、全仓 GitHub Actions 兼容性审计（2026-08-05）
+
+### 10.1 审计范围
+
+本备忘录原聚焦 publish-psgallery.yml 单文件迁移，但 Node 20 弃用是全仓性问题。2026-08-05 完成全仓 33 个 workflow × 18 类 action 的扫描审计，详见 [v1_1_4_to_v1_1_9_release_postmortem_and_workflow_audit.md §三](./v1_1_4_to_v1_1_9_release_postmortem_and_workflow_audit.md)。
+
+### 10.2 关键发现
+
+| 项目 | 状态 |
+|------|------|
+| 已升级 workflow | 仅 `publish-psgallery.yml`（1/33） |
+| 仍用 checkout@v4 的 workflow | 32 个，共 96 处违规 |
+| 仍用 upload-artifact@v4 的 workflow | 32 个，共 73 处违规（**注意 v5 仍 Node 20**） |
+| 仍用 setup-python@v5 的 workflow | 多数 workflow，共 76 处违规（v5 仍 Node 20） |
+| 距 9 月 16 日 Node 20 完全移除 | 仅剩 42 天 |
+
+### 10.3 升级优先级与批量升级脚本
+
+详见 [汇总文档 §3.4 升级优先级建议](./v1_1_4_to_v1_1_9_release_postmortem_and_workflow_audit.md#34-升级优先级建议) 与 [§3.5 批量升级 PowerShell 脚本](./v1_1_4_to_v1_1_9_release_postmortem_and_workflow_audit.md#35-批量升级-powershell-脚本参考)。
+
+### 10.4 后续行动
+
+- P1 优先级（本周）: ci.yml、ci-cd.yml、observability-ci.yml、test.yml 升级
+- P2 优先级（本月）: 其余 28 个 workflow 批量升级 checkout/upload-artifact
+- P3 优先级（9 月 16 日前）: setup-python、cache、download-artifact 升级
+- v1.1.10 发布规划: 见 [汇总文档 §四](./v1_1_4_to_v1_1_9_release_postmortem_and_workflow_audit.md#四v1110-发布规划)
