@@ -95,7 +95,7 @@ jobs:
       version: ${{ steps.read-version.outputs.version }}
     steps:
       - name: 检出代码（fetch-depth=0 获取所有 tag）
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -187,7 +187,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 设置 PowerShell 环境
         shell: powershell
@@ -229,7 +229,7 @@ jobs:
           Write-Host "✅ .nupkg verified: $($nupkg.Name) ($($nupkg.Length) bytes)" -ForegroundColor Green
 
       - name: 上传 .nupkg 构建产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: tlm-hook-failsafe-nupkg
           path: packages/tlm-hook-failsafe/*.nupkg
@@ -271,7 +271,7 @@ jobs:
     environment: psgallery-publish
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: 验证 PSGALLERY_API_KEY secret 已配置
         shell: powershell

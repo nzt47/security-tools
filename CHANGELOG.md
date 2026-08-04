@@ -6,6 +6,77 @@
 
 ---
 
+## [Release] v1.1.4 - 2026-08-04: tlm-hook-failsafe PSGallery 自动发布链路 5 大问题修复 ✅ 已发布
+
+**Tag**: `v1.1.4` (commit `76545d77`)
+**影响模块**: `.github/workflows/publish-psgallery.yml`, `packages/tlm-hook-failsafe/tlm-hook-failsafe.psd1`
+**关联提交**: `76545d77`(fix(ci): auto-tag 与 publish 合并到同一工作流) / `c954472b`(docs 更新指南) / 本次工作区修改(action 版本升级)
+**发布状态**: ✅ 已发布 (PSGallery v1.1.4，Run #30919434635 全 job success)
+**详细指南**: [docs/guides/psgallery-auto-publish-guide.md](./docs/guides/psgallery-auto-publish-guide.md)
+
+### 背景
+
+tlm-hook-failsafe 的 PSGallery 自动发布链路（auto-tag → dry-run → publish）在 v1.1.2/v1.1.3 调试期间暴露 5 个技术问题。v1.1.4 通过「auto-tag 与 publish 合并到同一工作流」彻底闭环，并补齐 action 版本升级。
+
+### Fixed — 修复（5 个问题）
+
+#### 1. GITHUB_TOKEN 创建的 tag 不触发 on.push（防循环机制）
+
+- **根因**: GitHub 为防止工作流递归触发，规定由 `GITHUB_TOKEN` 创建的 tag/ref **不会**触发 `on.push.tags`。v1.1.2/v1.1.3 早期方案用「auto-tag 工作流创建 tag → 触发另一个 publish 工作流」，导致 publish job 始终 `skipped`（日志证据：output.log 显示 `{"conclusion":"skipped","name":"发布到 PSGallery"}`）。
+- **修复**: auto-tag 与 publish 合并到**同一工作流**，通过 `needs.auto-tag.outputs.tagged` 在工作流内传递状态，绕开跨工作流触发限制。
+- **文件**: `.github/workflows/publish-psgallery.yml`（Job 0 auto-tag 输出 `tagged`，Job 2 publish 的 `if` 条件包含 `needs.auto-tag.outputs.tagged == 'true'`）
+- **验证**: Run #30919434635 三个 job 全部 success，publish 实际推送 `[DONE] published to PSGallery`。
+
+#### 2. gh workflow run 无法传递 workflow_dispatch 的 boolean inputs
+
+- **根因**: `gh` CLI 对 `type: boolean` 的 workflow_dispatch input 存在传递 bug，`gh api` 查询显示 `inputs: {}`，`github.event.inputs.force_publish` 始终为空，手动触发无法真正发布。
+- **修复**: workflow_dispatch input 类型从 `boolean` 改为 `string`，通过 `gh workflow run --field force_publish=true` 传递字符串 `"true"`，工作流内用 `== 'true'` 比较。
+- **文件**: `.github/workflows/publish-psgallery.yml`（第 53-64 行 `workflow_dispatch.inputs.force_publish/skip_version_check` 均为 `type: string`）
+
+#### 3. Invoke-RestMethod 触发 workflow_dispatch 返回 403 Forbidden
+
+- **根因**: 默认 `GITHUB_TOKEN` 只有 `contents:read`，缺少 `actions:write` 权限，调用 `POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches` 被拒绝。
+- **修复**: 工作流顶层显式声明 `permissions: actions: write`（同时保留 `contents: write` 用于创建 Release）。
+- **文件**: `.github/workflows/publish-psgallery.yml`（第 72-74 行 `permissions` 块）
+- **验证**: 再次调用 dispatch API 返回 204 No Content。
+
+#### 4. PR 触发时 dry-run-validate 被连带跳过
+
+- **根因**: auto-tag 的 `if` 条件限定仅 master/main push 运行，PR 时 auto-tag 被跳过；dry-run-validate 通过 `needs: auto-tag` 依赖它，GitHub Actions 默认会跳过依赖被跳过 job 的下游 job。但 dry-run 是 PR 的核心验证，必须运行。
+- **修复**: dry-run-validate 添加 `if: ${{ success() || needs.auto-tag.result == 'skipped' }}`，确保 auto-tag 被跳过时 dry-run 仍执行。
+- **文件**: `.github/workflows/publish-psgallery.yml`（第 185 行）
+
+#### 5. Node.js 20 deprecation 警告（action 运行时弃用）
+
+- **根因**: `actions/checkout@v4` 和 `actions/upload-artifact@v4` 依赖 Node.js 20 运行时，而 GitHub Actions runner 已默认使用 Node.js 24。三个 job 的 `Complete job` step 均打印 `##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24`。upload-artifact@v4 内部还触发 `punycode` (DEP0040) 和 `url.parse()` (DEP0169) DeprecationWarning。
+- **修复**: 升级 `actions/checkout@v4 → @v5`（3 处：auto-tag/dry-run/publish）+ `actions/upload-artifact@v4 → @v5`（1 处：dry-run 上传 .nupkg）。v5 原生支持 Node.js 24。
+- **文件**: `.github/workflows/publish-psgallery.yml`（第 98/190/274 行 checkout，第 232 行 upload-artifact）
+- **状态**: 本次工作区已修改，待提交后下次运行验证警告消除。
+
+### Added — 新增功能
+
+- **手动触发按钮（紧急回滚/强制发布）**: workflow_dispatch 新增 `force_publish` 和 `skip_version_check` 两个 string 类型入参。在 Actions UI 点击 "Run workflow" 并设置 `force_publish=true` 即可绕过 auto-tag 直接真实发布；`skip_version_check=true` 用于回滚或调试时跳过 PSGallery 版本预检。
+- **publish 门控三选一**: `if` 条件支持三种发布路径——① tag push（手动打 tag）② workflow_dispatch.force_publish=true（紧急发布）③ needs.auto-tag.outputs.tagged=true（版本号变化自动发布）。
+
+### Fixed（补充）— license 警告本次已修复
+
+- **PSGallery license 警告**: `WARNING: All published packages should have license information specified`。本次修复：① 创建仓库根 `LICENSE`（MIT 标准文本，与 .psd1 第 30 行 `Copyright` 声明一致）② `sync-from-source.ps1` 补充 LICENSE 复制逻辑（真相源=根 LICENSE，sync 到包目录供 nuget pack 包含）③ `.psd1` 第 109 行 `LicenseUri` 启用，指向 `https://github.com/nzt47/security-tools/blob/master/packages/tlm-hook-failsafe/LICENSE`。
+
+### Pending — 待修复警告（本次未处理）
+
+- **nuget pack readme 警告**: `The package tlm-hook-failsafe.1.1.4 is missing a readme`。非阻断性警告，不影响发布。后续可在 .nuspec 模板中补充 `<readme>README.md</readme>` 并提供 README 文件。
+
+### 质量验证
+
+- **发布成功证据** (Run #30919434635 publish job 日志):
+  - `Publishing version: 1.1.4` → `[OK] version = 1.1.4`
+  - `Pushing tlm-hook-failsafe.1.1.4.nupkg to 'https://www.powershellgallery.com/api/v2/package'`
+  - `Your package was pushed.` → `[OK] PSGallery now has v1.1.4` → `[DONE] published to PSGallery`
+- **tag 状态**: 远程 `refs/tags/v1.1.4` 指向 `76545d77`（本地需 `git fetch --tags` 同步）
+- **历史失败对照**: 修复前的 Run（output.log）publish job 为 `skipped`；修复后 Run #30919434635 publish job 为 `success`。
+
+---
+
 ## [Unreleased] - 2026-08-04: Workflow Learning 自动闭环验证 + 路由可观测性埋点补提交
 
 **影响模块**: `agent/orchestrator/routing_observability.py`, `agent/orchestrator/orchestrator.py`, `agent/workflow_learning/*`, `agent/orchestrator/lifecycle_manager.py`
