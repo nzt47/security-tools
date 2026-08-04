@@ -106,7 +106,7 @@ PrivateData = @{
         Tags = 'pre-commit','hook','fail-safe','powershell','tlm','cross-platform'
 
         # A URL to the license for this module.
-        # LicenseUri = ''
+        LicenseUri = 'https://github.com/nzt47/security-tools/blob/master/packages/tlm-hook-failsafe/LICENSE'
 
         # A URL to the main website for this project.
         # ProjectUri = ''

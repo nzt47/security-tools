@@ -37,6 +37,17 @@ if (-not (Test-Path $sourcePsm1)) {
 Copy-Item -Path $sourcePsm1 -Destination $targetPsm1 -Force
 Write-Host "  [OK] copied" -ForegroundColor Green
 
+# 1.1 copy LICENSE from repo root to package (PSGallery license metadata 要求)
+#      不易：真相源 = 仓库根 LICENSE，sync 同步到包目录供 nuget pack 包含
+$sourceLicense = Join-Path $repoRoot "LICENSE"
+$targetLicense = Join-Path $packageDir "LICENSE"
+if (Test-Path $sourceLicense) {
+    Copy-Item -Path $sourceLicense -Destination $targetLicense -Force
+    Write-Host "  [OK] LICENSE copied" -ForegroundColor Green
+} else {
+    Write-Host "  [WARN] LICENSE not found at $sourceLicense (PSGallery license 警告将出现)" -ForegroundColor Yellow
+}
+
 # 2. reverse verify: 15 exported functions (12 original + 3 exit code resolution)
 $expected = @(
     'Get-HookContent','Write-HookNoBom','Write-FileWithBom',
