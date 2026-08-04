@@ -25,16 +25,16 @@ jobs:
       status: ${{ job.status }}
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
       - name: 快速安装依赖
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/pyproject.toml') }}
@@ -93,17 +93,17 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
       - name: 快速安装依赖 (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
@@ -121,7 +121,7 @@ jobs:
 
       - name: 快速安装依赖 (Windows)
         if: matrix.os == 'windows-latest'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
@@ -158,14 +158,14 @@ jobs:
             --dist=loadfile
 
       - name: 上传覆盖率报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report-${{ matrix.os }}-py${{ matrix.python-version }}
           path: htmlcov/
           retention-days: 30
 
       - name: 上传测试结果
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-unit-${{ matrix.os }}-py${{ matrix.python-version }}
@@ -186,17 +186,17 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
       - name: 快速安装依赖 (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
@@ -214,7 +214,7 @@ jobs:
 
       - name: 快速安装依赖 (Windows)
         if: matrix.os == 'windows-latest'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
@@ -234,7 +234,7 @@ jobs:
         # Why: transformers/sentence_transformers 首次加载会从 HF 下载模型元数据, 网络不可达时超时.
         # 缓存模型 + 离线模式让集成测试在无网络环境下也能通过 (详见 docs/reviews/pep562_migration_retrospective.md 6.2)
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.cache/huggingface
@@ -246,7 +246,7 @@ jobs:
 
       - name: 缓存 HuggingFace 模型 (Windows)
         if: matrix.os == 'windows-latest'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~\AppData\Local\huggingface
@@ -276,7 +276,7 @@ jobs:
             --timeout=300
 
       - name: 上传测试结果
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: test-results-integration-${{ matrix.os }}-py${{ matrix.python-version }}
@@ -297,17 +297,17 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
       - name: 快速安装依赖 (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
@@ -325,7 +325,7 @@ jobs:
 
       - name: 快速安装依赖 (Windows)
         if: matrix.os == 'windows-latest'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/pyproject.toml') }}
@@ -391,7 +391,7 @@ jobs:
           python scripts/convert_perf_log_to_md.py --input test_reports/l2_switch_perf_comparison.log --output test_reports/l2_switch_perf_comparison.md || true
 
       - name: 上传性能报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-report-${{ matrix.os }}-py${{ matrix.python-version }}
           path: |
@@ -417,10 +417,10 @@ jobs:
         os: [ubuntu-latest, windows-latest]
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 设置Python环境
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -444,7 +444,7 @@ jobs:
           mkdir -p test_reports
 
       - name: 下载覆盖率报告
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: coverage-report-${{ matrix.os }}-py${{ matrix.python-version }}
           path: htmlcov/
@@ -461,7 +461,7 @@ jobs:
           coverage xml -o test_reports/coverage.xml
 
       - name: 上传覆盖率报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: full-coverage-report-${{ matrix.os }}-py${{ matrix.python-version }}
           path: test_reports/
@@ -474,10 +474,10 @@ jobs:
     if: always()
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: 下载所有测试结果
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: all-results/
 
@@ -517,7 +517,7 @@ jobs:
           EOF
 
       - name: 上传测试报告
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-summary-report
           path: test_reports/
