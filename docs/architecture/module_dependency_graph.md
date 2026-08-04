@@ -487,6 +487,7 @@ flowchart LR
     agent_handoff_handoff_generator -.-> agent_utils_token_redactor
     agent_handoff_handoff_generator -.-> agent_state_manager
     agent_orchestrator_message_handler --> agent_orchestrator_dialog_state
+    agent_orchestrator_routing_observability -.-> agent_logging_utils
     agent_orchestrator_task_dispatcher --> agent
     agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
     agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
@@ -956,10 +957,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 344
+- 扫描文件数: 345
 - 模块节点数: 272
-- 依赖边数: 600
-- 跨层调用数: 387
+- 依赖边数: 601
+- 跨层调用数: 388
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1291.35 ms
+- 构建耗时: 1082.18 ms
