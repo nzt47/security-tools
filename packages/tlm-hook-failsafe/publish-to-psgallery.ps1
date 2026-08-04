@@ -124,6 +124,11 @@ $releaseNotes  = $manifest.PrivateData.PSData.ReleaseNotes
 $tags          = ($manifest.PrivateData.PSData.Tags) -join ' '
 # Ensure PSModule tag is present so Find-Module recognizes it as a PS module
 if ($tags -notmatch '\bPSModule\b') { $tags = "PSModule $tags" }
+# 不易：读取 .psd1 的 LicenseUri，写入 .nuspec 的 <licenseUrl>（消除 PSGallery license 警告）
+$licenseUri    = $manifest.PrivateData.PSData.LicenseUri
+if (-not $licenseUri) {
+    Write-Host "  [WARN] .psd1 LicenseUri is empty; PSGallery license warning will appear" -ForegroundColor Yellow
+}
 
 $nuspec = @"
 <?xml version="1.0" encoding="utf-8"?>
@@ -133,6 +138,7 @@ $nuspec = @"
     <version>$version</version>
     <authors>$author</authors>
     <owners>$author</owners>
+    <licenseUrl>$licenseUri</licenseUrl>
     <description>$description</description>
     <releaseNotes>$releaseNotes</releaseNotes>
     <tags>$tags</tags>
