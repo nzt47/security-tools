@@ -66,7 +66,8 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          pip install prometheus-client pyyaml pytest
+          # pytest.ini addopts 含 --timeout + asyncio_mode, 需 pytest-timeout/pytest-asyncio
+          pip install prometheus-client pyyaml pytest pytest-timeout pytest-asyncio
 
       # ── 步骤 1：L1086 semantic 埋点结构化字段验证（已有脚本）──
       - name: 验证 semantic 埋点 structured log 字段
