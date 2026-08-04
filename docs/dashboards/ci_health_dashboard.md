@@ -38,6 +38,7 @@
 | 2026-08-04 | `65a186b` | 99.0% (1489/1504) | 0 | 15 | 75.25 | — | 0 | ↑ | fix(ci): 修复 core-invariants-guard 的 secrets-in-if 违规导致 workflow � |
 | 2026-08-04 | `0056efd` | 99.0% (1489/1504) | 0 | 15 | 66.33 | — | 0 | ↑ | chore(hooks): 同步 packages 版 tlm-hook-failsafe 到源版(含编码检查/CI |
 | 2026-08-04 | `ff83ff4` | 99.0% (1490/1505) | 0 | 15 | 76.04 | — | 0 | ↑ | fix(reranker): verify 脚本对齐真实实现(类名 SkillReranker/类属性默 |
+| 2026-08-04 | `8b78511` | 98.7% (1494/1513) | 0 | 19 | 108.10 | — | 0 | ↑ | release(tlm-hook-failsafe): bump to 1.1.7 + license 迁移 + Release 修复 + AP |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
