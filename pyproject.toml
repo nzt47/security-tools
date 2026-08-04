@@ -70,7 +70,6 @@ dependencies = [
   "pypiwin32>=223; sys_platform == 'win32'",
   "comtypes>=1.4.0; sys_platform == 'win32'",
   "wmi>=1.5.0,<1.6.0; sys_platform == 'win32'",
-  "pythoncom>=0.0.1; sys_platform == 'win32'",
   "pydantic>=2.0.0,<3.0.0",
   "prometheus-client>=0.20.0",
   "httpx>=0.27.0,<1.0.0",
