@@ -110,6 +110,44 @@ function Find-GitRepos {
     return $found
 }
 
+# --- pre-push hook 部署(核心不变量校验, 简易: 仅 INVARIANT 段) ---
+function Install-PrePushHook {
+    param([string]$GitDir, [string]$RepoName, [int]$Index, [int]$Total, [switch]$DryRun)
+
+    $hookPath = Join-Path $GitDir "hooks\pre-push"
+    $hooksDir = Split-Path $hookPath -Parent
+    if (-not (Test-Path $hooksDir)) {
+        if (-not $DryRun) {
+            New-Item -ItemType Directory -Path $hooksDir -Force | Out-Null
+        }
+    }
+
+    # 调用模块函数生成 pre-push 内容(仅 INVARIANT 段)
+    $newContent = Get-PrePushContent -SourceRepo $script:SourceRepo
+
+    # 幂等检测：已是最新则跳过
+    if (Test-HookUpToDate -HookPath $hookPath -NewContent $newContent) {
+        Write-Host "  [$Index/$Total] OK   $repoName (pre-push 已是最新，跳过)" -ForegroundColor DarkGray
+        return
+    }
+
+    # 调用模块函数备份已有 hook
+    Backup-ExistingHook -HookPath $hookPath -DryRun:$DryRun | Out-Null
+
+    if ($DryRun) {
+        Write-Host "  [$Index/$Total] DRY  $repoName (将写入 pre-push)" -ForegroundColor Cyan
+        return
+    }
+
+    # 调用模块函数安全写入 hook(含权限自动修复)
+    $writeResult = Invoke-SafeHookWrite -HookPath $hookPath -Content $newContent
+    if ($writeResult.Written) {
+        Write-Host "  [$Index/$Total] DONE $repoName (pre-push 已部署)" -ForegroundColor Green
+    } else {
+        Write-Host "  [$Index/$Total] FAIL $repoName pre-push 写入失败: $($writeResult.Error)" -ForegroundColor Red
+    }
+}
+
 # --- 单仓库部署编排（简易：编排清晰） ---
 function Install-HookToRepo {
     param([string]$RepoPath, [int]$Index, [int]$Total)
@@ -125,6 +163,9 @@ function Install-HookToRepo {
         }
         return
     }
+
+    # pre-push hook(核心不变量校验): 与 pre-commit 独立部署, 各自幂等
+    Install-PrePushHook -GitDir $gitDir -RepoName $repoName -Index $Index -Total $Total -DryRun:$DryRun
 
     $hookPath = Join-Path $gitDir "hooks\pre-commit"
     $hooksDir = Split-Path $hookPath -Parent

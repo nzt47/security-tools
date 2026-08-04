@@ -4,14 +4,22 @@
 # 【不易】PSGallery API key 仅从 GitHub Secrets 读取（禁硬编码）
 #          同版本不可重发（PSGallery 拒绝）→ 版本预检必先于 push
 #          真相源 = scripts/dev/hook_fail_safe.psm1（sync 后才发布）
-# 【变易】触发：push 主分支/PR → 仅 dry-run 验证
-#                tag v* 或 手动 force_publish → 真实发布
-# 【简易】两 Job：dry-run-validate（always） → publish（门控条件）
+# 【变易】触发：push 主分支 → auto-tag 检查版本变化 → 自动打 tag → 触发发布
+#                PR → 仅 dry-run 验证
+#                手动 force_publish → dry-run + 真实发布
+# 【简易】三 Job：auto-tag → dry-run-validate → publish（门控条件）
+#
+# 自动发布流程（方案 B：版本号变化自动打 tag）:
+#   1. 开发者修改 .psd1 的 ModuleVersion（如 1.1.0 → 1.2.0）
+#   2. push 到 master/main
+#   3. auto-tag Job 检测到版本变化，用 gh api 创建 v1.2.0 tag
+#   4. tag 创建触发新的工作流运行 → dry-run + 真实发布
+#   5. 发布成功后自动创建 GitHub Release
 #
 # 触发条件:
-#   - push 到 master/main（包/源/工作流变更时）→ dry-run 验证
-#   - PR 到 master/main → dry-run 验证
-#   - push tag v* → dry-run + 真实发布
+#   - push 到 master/main（包/源/工作流变更时）→ auto-tag + dry-run 验证
+#   - PR 到 master/main → 仅 dry-run 验证（不打 tag 不发布）
+#   - push tag v*（auto-tag 创建或手动）→ dry-run + 真实发布
 #   - 手动触发（force_publish=true）→ dry-run + 真实发布
 #
 # 依赖文件:
@@ -65,11 +73,111 @@ permissions:
 
 jobs:
   # =====================================================================
+  # Job 0: auto-tag（仅 master/main push 时运行）
+  # 【不易】版本号是唯一真相源：.psd1 的 ModuleVersion 变化时自动打 v* tag
+  #        tag 推送后触发 dry-run-validate + publish-to-psgallery Job
+  # 【变易】仅在 master/main 分支检查；PR 时不执行（PR 仅 dry-run）
+  # 【简易】用 gh api 创建 tag（通过 API 创建的 tag 会触发工作流，避免 GITHUB_TOKEN 循环限制）
+  # =====================================================================
+  auto-tag:
+    name: 自动打 Tag（版本号变化时）
+    runs-on: ubuntu-latest
+    # 不易：仅 master/main 分支 push 时运行；PR 和 tag push 时不运行（避免循环）
+    if: |
+      github.event_name == 'push' &&
+      startsWith(github.ref, 'refs/heads/') &&
+      (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    timeout-minutes: 5
+    outputs:
+      tagged: ${{ steps.create-tag.outputs.tagged }}
+      version: ${{ steps.read-version.outputs.version }}
+    steps:
+      - name: 检出代码（fetch-depth=0 获取所有 tag）
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 读取 .psd1 版本号
+        id: read-version
+        shell: pwsh
+        working-directory: packages/tlm-hook-failsafe
+        run: |
+          $manifest = Test-ModuleManifest -Path .\tlm-hook-failsafe.psd1 -ErrorAction Stop
+          $version = $manifest.Version.ToString()
+          Write-Host "ModuleVersion: $version"
+          "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: 检查对应 tag 是否已存在
+        id: check-tag
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.read-version.outputs.version }}
+        run: |
+          $tagName = "v$env:VERSION"
+          # 查询远程是否存在该 tag
+          $exists = git ls-remote --tags origin "refs/tags/$tagName" 2>&1
+          if ([string]::IsNullOrWhiteSpace($exists)) {
+            Write-Host "Tag $tagName does not exist, will create"
+            "exists=false" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "Tag $tagName already exists, skip"
+            "exists=true" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: 创建并推送 tag
+        id: create-tag
+        if: steps.check-tag.outputs.exists == 'false'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.read-version.outputs.version }}
+        run: |
+          $tagName = "v$env:VERSION"
+          $commitSha = "${{ github.sha }}"
+          Write-Host "Creating tag $tagName at commit $commitSha"
+
+          # 不易：用 gh api 创建 tag（通过 API 创建的 tag 会触发其他工作流）
+          #        git push 用 GITHUB_TOKEN 创建的 push 不会触发工作流（防循环），故必须用 API
+          # 简易：直接创建 lightweight tag（refs/tags/*），足够触发 on.push.tags
+          $result = gh api repos/${{ github.repository }}/git/refs `
+            --method POST `
+            -f "ref=refs/tags/$tagName" `
+            -f "sha=$commitSha" 2>&1
+
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "✅ Tag $tagName created via API"
+            "tagged=true" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "❌ Failed to create tag: $result"
+            "tagged=false" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: auto-tag 总结
+        if: always()
+        shell: pwsh
+        run: |
+          $version = "${{ steps.read-version.outputs.version }}"
+          $exists = "${{ steps.check-tag.outputs.exists }}"
+          $tagged = "${{ steps.create-tag.outputs.tagged }}"
+          "## 自动打 Tag 结果" >> $env:GITHUB_STEP_SUMMARY
+          "" >> $env:GITHUB_STEP_SUMMARY
+          "| 项目 | 值 |" >> $env:GITHUB_STEP_SUMMARY
+          "|------|-----|" >> $env:GITHUB_STEP_SUMMARY
+          "| 检测到的版本 | $version |" >> $env:GITHUB_STEP_SUMMARY
+          "| Tag 已存在 | $exists |" >> $env:GITHUB_STEP_SUMMARY
+          "| 本次已创建 | $tagged |" >> $env:GITHUB_STEP_SUMMARY
+          if ($tagged -eq "true") {
+            "" >> $env:GITHUB_STEP_SUMMARY
+            "✅ Tag v$version 已创建，将触发 dry-run + 发布流程" >> $env:GITHUB_STEP_SUMMARY
+          }
+
+  # =====================================================================
   # Job 1: Dry-run 验证（always runs）
   # 【不易】sync + pack 验证发布产物可生成；不上传到 PSGallery
   # =====================================================================
   dry-run-validate:
     name: Dry-run 验证（sync + pack）
+    needs: auto-tag
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
