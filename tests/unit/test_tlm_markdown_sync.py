@@ -287,8 +287,18 @@ class TestIdempotency:
             f.write(body)
 
         # 第一次处理触发反向更新；后续 2 次（内容已与 DB 一致）应跳过
+        # 【不易】等待条件必须是"refresh_single 完成"而非"save 开始"：
+        #   counting_save 在 await original 之前 +=1（L278），write_count>=1 时
+        #   save 可能尚未 commit；此时第 2 次 _do_process 的 get_raw_memory 无锁读
+        #   会读到旧值 → db_hash==base_hash → 再次触发反向同步（CI Linux 3 次写入）。
+        #   改为等文件 Front Matter content_hash 更新为新值（refresh_single 完成标志），
+        #   此时 db 已 commit 且 file_hash==db_hash，后续 _do_process 走幂等跳过分支。
+        expected_hash = compute_content_hash(new_content)
         watcher._do_process(fp)
-        assert _wait_for(lambda: write_count[0] >= 1, timeout=2.0)
+        assert _wait_for(
+            lambda: parse_markdown_file(fp)["front_matter"].get("content_hash") == expected_hash,
+            timeout=2.0,
+        ), "等待第 1 次反向同步 + refresh_single 完成（file content_hash 应更新为新值）"
         watcher._do_process(fp)
         watcher._do_process(fp)
         time.sleep(0.5)
