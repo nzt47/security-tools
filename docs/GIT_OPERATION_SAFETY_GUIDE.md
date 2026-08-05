@@ -173,4 +173,6 @@ git checkout master                 # 确认工作无误后切回
 - [ ] 9. **清理未跟踪日志/产物**（确认来源后删除）
       `docs/troubleshooting/*.log`、`docs/troubleshooting/_diag_*.py`、`docs/observability/*_report.md` 等逐个核对
 - [ ] 10. **定期体检（预防）**
+      ⚡ 一键体检（自动执行本清单步骤 1-7，含 WARN/BLOCK 分级与清理提示）：
+      `python scripts/env_health_check.py`（含 hook 拦截实测加 `--with-hook-test`）
       计划任务挂 `stop_agitator_processes.ps1`（仅报告模式）或每周人工跑一次 §9 清单
