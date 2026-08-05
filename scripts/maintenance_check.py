@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """维护巡检脚本: 将 BOM 修复与环境加固总结报告 §6 的 7 条维护建议自动化
 
-覆盖(映射总结报告 7 条建议):
+覆盖(映射总结报告 7 条建议 + 2026-08-05 新增防护):
   M1 定期体检     调 env_health_check.py --json 汇总(可透传 --with-hook-test)   [建议1]
   M2 提交前核对   git status 未跟踪/暂存/已修改 + 最新提交                        [建议2]
   M3 BOM 回归防护 调 check_ps1_encoding.py, 全仓 BLOCK 计数                       [建议3]
@@ -9,6 +9,7 @@
   M5 CI 守卫演进  guard-master-commit-origin.yml 存在 + 默认 dry-run              [建议5]
   M6 Slack 待办   workflow 中 SLACK_WEBHOOK_URL 引用状态(配置需人工确认)          [建议6]
   M7 已知残留     CI_FIX_INDEX.md 未提交修改状态                                  [建议7]
+  M8 污染监控     调 guard_bom_pollution.py, 受保护文件叠加 BOM 防复发            [2026-08-05 新增]
 
 状态分级: pass/WARN(需人工关注不阻止)/BLOCK(环境异常); 退出码仅按 BLOCK 判定。
 清理类动作(§9 步骤 8/9)仅提示, 不自动执行(守【不易】)。
@@ -151,6 +152,18 @@ def check_m7() -> dict:
     return _item("M7", KNOWN_REMAINING, desc, "pass", "无未提交修改(残留已清除)")
 
 
+def check_m8(root: Path) -> dict:
+    """2026-08-05 新增: 受保护 PS 文件 BOM 污染监控(防并行会话叠加复发)。"""
+    desc = "受保护 PS 文件 BOM 污染监控(guard_bom_pollution.py)"
+    r = _run([sys.executable, "scripts/guard_bom_pollution.py",
+              "--quiet", "--repo-root", str(root)])
+    if r.returncode == 0:
+        return _item("M8", "scripts/guard_bom_pollution.py", desc, "pass",
+                     "受保护文件清单无叠加 BOM/缺 BOM")
+    return _item("M8", "scripts/guard_bom_pollution.py", desc, "BLOCK",
+                 "受保护文件被污染: python scripts/guard_bom_pollution.py --repo-root .")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="维护巡检(总结报告 §6 建议自动化)")
     ap.add_argument("--repo-root", default=".", help="仓库根目录(默认当前目录)")
@@ -173,6 +186,7 @@ def main() -> int:
         check_m5(root),
         check_m6(root),
         check_m7(),
+        check_m8(root),
     ]
 
     blocked = [i for i in items if i["status"] == "BLOCK"]
