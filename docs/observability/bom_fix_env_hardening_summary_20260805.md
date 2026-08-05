@@ -70,7 +70,7 @@ PS 5.1 中文系统上，`.ps1`/`.psm1` 出现**叠加 BOM**（`EF BB BF` 连续
 |--------|------|------|
 | C1 干扰进程 | ✅ PASS | 无 `verify_bom_hook_stability`/`simulate_workflow_closed_loop` 匹配进程 |
 | C2 计划任务 | ✅ PASS | 无自定义 `agent|python|git` 计划任务 |
-| C3 提交时间线 | ⚠️ WARN | 今日 52 条提交（4 workflow 自动 + 48 本地），详见核对清单 |
+| C3 提交时间线 | ⚠️ WARN | 今日 53 条提交（4 workflow 自动 + 49 本地），详见核对清单 |
 | C4 工作区污染 | ⚠️ WARN | 未跟踪 0 / 暂存 0 / 已修改 1（`CI_FIX_INDEX.md`，并行会话进行中） |
 | C5 BOM 污染 | ✅ PASS | BLOCK 0，编码契约通过 |
 | C6 hook 拦截实测 | ✅ PASS | 真实提交验证，叠加 BOM 提交均被拦截，HEAD 稳定、无残留 |
@@ -85,7 +85,7 @@ PS 5.1 中文系统上，`.ps1`/`.psm1` 出现**叠加 BOM**（`EF BB BF` 连续
 
 | WARN | 内容 | 原因 | 处置 |
 |------|------|------|------|
-| C3 | 今日 48 条 +0800 本地提交 | 人工 + 并行 AI 会话（`nzt47` 同身份）的修复链/CI 演进提交，均非 workflow 自动 | 按 `commit_source_audit_20260805.md` 逐条核对；保留 workflow 自动 4 条 |
+| C3 | 今日 49 条 +0800 本地提交 | 人工 + 并行 AI 会话（`nzt47` 同身份）的修复链/CI 演进提交，均非 workflow 自动 | 按 `commit_source_audit_20260805.md` 逐条核对；保留 workflow 自动 4 条 |
 | C4 | `CI_FIX_INDEX.md` 已修改未暂存 | 并行会话进行中，未随本次任务提交 | 保持现状或由并行会话自行提交 |
 
 ---
