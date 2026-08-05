@@ -276,6 +276,41 @@ CI Run #28673837240 的「全项目测试覆盖率」job 截至文档生成时�
 | `533cfae4` | https://github.com/nzt47/security-tools/commit/533cfae4 |
 | `64e565cd` | https://github.com/nzt47/security-tools/commit/64e565cd |
 | `60d8ea06` | https://github.com/nzt47/security-tools/commit/60d8ea06 |
+| `9f57d52b` | https://github.com/nzt47/security-tools/commit/9f57d52b (PR #247, P0 修复) |
+| `d52dd1e3` | https://github.com/nzt47/security-tools/commit/d52dd1e3 (PR #249, 通知联动) |
+
+---
+
+## 十、CI 流程演进记录（2026-08-05）— master commit 来源守卫从引入到 enforce
+
+### 演进背景
+
+2026-08-05 复盘发现 `scripts/publish_fix_to_docs.py` 可用本地 git 身份(nzt47)直接 commit + push 到 master, 与人工 commit 无法通过 author email 区分。引入 `verify_commit_origin.py` + `guard-master-commit-origin.yml`, 通过"白名单 + GitHub 关联 PR 校验"识别脚本直接 push 的 commit。
+
+### 演进里程碑
+
+| 阶段 | 时间 (UTC) | 内容 | 产物 |
+|------|-----------|------|------|
+| 1. 机制引入 | 08-05 11:40 前 | PR #240: 守卫脚本 + workflow(dry-run 模式) + `publish_fix_to_docs.py` bot 身份修复 | commit `ddc56c1a` |
+| 2. 首次验证发现问题 | 08-05 11:40 | workflow_dispatch run 31002391217: pyyaml 不可用(降级默认配置) + ORIGIN-01 误阻断 squash merge committer | 修复前基线 |
+| 3. 生效修复 | 08-05 12:19 | PR #241: workflow 加 `pip install pyyaml` + ORIGIN-01 拆分校验(committer 放行 GitHub 平台邮箱) | commit `4f304fcb`, run 31005119462 (master push, pass) |
+| 4. 文档归档 | 08-05 12:19-12:20 | PR #243: 验证报告 + 管理员简报 | commit `e264d91c` |
+| 5. P0 修复 ORIGIN-04 降级 | 08-05 12:55 | PR #247: workflow 注入 `GITHUB_TOKEN` + urllib 异常兜底(ssl/Timeout/通用 Exception) | commit `9f57d52b`, run 31007480305 (ORIGIN-04 真正校验 `PRs=#247`) |
+| 6. 通知联动补齐 | 08-05 13:03 | PR #249: guard workflow 加入 ci-failure-notify 白名单 → 失败联动 GitHub Issue + 邮件 | commit `d52dd1e3` |
+| 7. **enforce 切换** | 08-05 13:11 | 创建 Variable `COMMIT_ORIGIN_GUARD_MODE=enforce`; 首次运行 run 31009087519: `mode=enforce, overall_status=pass, blocked=0`, squash merge commit `d52dd1e3` 正确关联 PR #249 | run 31009087519 |
+
+### 演进过程中的关键决策
+
+1. **三阶段灰度上线**(【不易】不锁死 master push): dry-run(仅告警) → enforce(push 后阻断) → 分支保护(required status check)
+2. **ORIGIN-01 拆分校验**: author email 严格白名单(防伪造) + committer 放行 GitHub 平台邮箱(适配 squash merge)
+3. **ORIGIN-04 降级不阻断**: GitHub API 不可用时降级为 warning(守【不易】), P0 修复后 CI 中真正校验
+4. **通知对齐**: guard workflow 加入 ci-failure-notify 白名单, 与其余 6 个 workflow 失败通知行为一致
+
+### 演进结果
+
+- enforce 模式已开启, 合法 commit(含 squash merge)正常放行
+- 非法 commit 将 exit 1 阻断, 联动 GitHub Issue + 邮件通知
+- 完整监控见: docs/observability/guard_master_commit_origin_enforce_monitoring_report.md
 
 ---
 
