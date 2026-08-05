@@ -80,7 +80,7 @@
 |------|------|
 | commit `a422a64f` | 重建并入库 `simulate_pr_merge_guard.py` / `safe_git_revert.py` |
 | 本次修改（未提交） | `safe_git_revert.py` dry-run 日志 stdout→stderr |
-| 临时诊断脚本（不入库） | `scripts/_scan_missing_deps.py` / `scripts/_simulate_ci_pipeline.py` |
+| 临时诊断脚本 | `scripts/_scan_missing_deps.py` / `_simulate_ci_pipeline.py`（已转正：`scan_missing_deps.py` / `simulate_ci_guard_pipeline.py`） |
 
 ### 3.2 本地完整 CI 流水线模拟（3 个 workflow）
 
@@ -93,7 +93,7 @@
 复现命令：
 
 ```bash
-python scripts/_simulate_ci_pipeline.py   # 汇总 ALL PASS
+python scripts/simulate_ci_guard_pipeline.py   # 汇总 ALL PASS
 python scripts/run_ci_guard.py --json 2>$null | python -c "import json,sys;d=json.load(sys.stdin);print(d['overall'])"
 ```
 
@@ -116,8 +116,8 @@ python scripts/run_ci_guard.py --json 2>$null | python -c "import json,sys;d=jso
 
 ## 五、遗留清单（待决策）
 
-- [ ] `scripts/ci_guard_types.py`：重建 / 移除 `--validate` 分支
+- [x] `scripts/ci_guard_types.py`：已按 run_ci_guard 输出契约重建并入库（`--validate` 分支已验证通过）
 - [ ] `agent/knowledge/` 三个源文件：恢复 / 确认废弃
 - [ ] 其余 13 项 LOST 脚本与测试：恢复 / 清理 .pyc 归档
-- [ ] `scripts/_scan_missing_deps.py` / `_simulate_ci_pipeline.py`：转正入库 / 删除
-- [ ] safe_git_revert stdout 修复提交（当前工作区未提交）
+- [x] `scripts/_scan_missing_deps.py` / `_simulate_ci_pipeline.py`：已转正为 `scan_missing_deps.py` / `simulate_ci_guard_pipeline.py` 入库
+- [x] safe_git_revert stdout 修复：已提交（commit `e859f22e`）
