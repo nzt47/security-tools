@@ -69,14 +69,14 @@ python scripts/maintenance_check.py --repo-root C:\path\to\repo
 
 将修复后的 BOM 拦截逻辑（`check_ps1_encoding.py` / `fix_ps_bom.py`）与 hook 配置（`scripts/dev/hook_fail_safe.psm1`）打包为独立回归用例。**重构后一键验证拦截机制未被破坏**（测试 = 不易护城河）。
 
-### 覆盖范围（6 组 23 个测试）
+### 覆盖范围（6 组 24 个测试）
 
 | 组 | 覆盖点 |
 |----|--------|
 | 1. BOM 契约基础 | `BOM` 常量 / `count_leading_bom` / `is_utf8` / `hex_head` |
 | 2. 检测判定规则 | 叠加 BOM 是合法 UTF-8 但必须拦截；BLOCK/WARN 分级语义 |
 | 3. 修复公式 | 去叠加 BOM（保留 1 个）/ 补 BOM（关键契约文件） |
-| 4. hook 模板完整性 | 六段拦截链标记 + 5 个跳过开关 + pre-push INVARIANT + 编码检查命令 |
+| 4. hook 模板完整性 | run_check 四段检查标记 + 4 个跳过开关 + 合并编码段守卫 + pre-push INVARIANT + 编码检查命令 |
 | 5. 稳定性测试契约 | 归因标记覆盖 / 叠加 BOM 文件构造 / analyze_commit 归因判定 |
 | 6. 端到端回归 | 真实子进程检出叠加 BOM → exit 1；detect_direct 双脚本归因 |
 
@@ -95,10 +95,10 @@ python -m pytest tests/unit/test_bom_encoding_hook.py -v -k "end_to_end"
 
 ### 与 hook 的契约（测试会校验，勿随意改动）
 
-- hook 模板 `scripts/dev/hook_fail_safe.psm1` 必须包含五段标记：`ENCODING_CHECK=` / `BOMFIX=` / `CI_GUARD=` / `INVARIANT=` / `WORKFLOW_SIM=`（pre-commit 共六段，含文档链接预检）
-- 五个跳过开关：`SKIP_ENCODING_CHECK` / `SKIP_BOM_FIX_CHECK` / `SKIP_CI_GUARD` / `SKIP_INVARIANT` / `SKIP_WORKFLOW_SIM`
-- 两个检查脚本的 `BOM` 常量与 `REQUIRE_BOM_DEFAULT` 清单必须一致（单一事实源）
-- `verify_bom_hook_stability.py` 的 `BOM_BLOCK_MARKERS` 归因顺序：编码检查未通过 → 叠加 BOM → BOM 修复预检未通过 → 待修复 → 临时文件前缀
+- hook 模板 `scripts/dev/hook_fail_safe.psm1` 必须包含四段标记：`ENCODING_CHECK=` / `CI_GUARD=` / `INVARIANT=` / `WORKFLOW_SIM=`（pre-commit 共五段：文档链接预检 + 四段 run_check 检查；2026-08-05 P0 已把 BOMFIX 合并进 ENCODING_CHECK）
+- 四个跳过开关：`SKIP_ENCODING_CHECK` / `SKIP_CI_GUARD` / `SKIP_INVARIANT` / `SKIP_WORKFLOW_SIM`
+- 两个检查脚本的 `BOM` 常量与 `REQUIRE_BOM_DEFAULT` 清单必须一致（单一事实源，源自 `ps_bom_contract.py`）
+- `verify_bom_hook_stability.py` 的 `BOM_BLOCK_MARKERS` 归因顺序：编码检查(UTF-8 BOM 契约) 未通过 → 叠加 BOM → 临时文件前缀
 
 ---
 
@@ -115,7 +115,7 @@ python -m pytest tests/unit/test_bom_encoding_hook.py -q
 $env:TLM_HOOK_SOURCE_REPO = "C:\Users\Administrator\agent"
 python scripts/maintenance_check.py --with-hook-test
 
-# 4. 提交前固定动作：确认工作区干净 → git add → commit（hook 自动执行六段拦截链）
+# 4. 提交前固定动作：确认工作区干净 → git add → commit（hook 自动执行文档预检 + run_check 四段检查）
 ```
 
 ## 注意事项

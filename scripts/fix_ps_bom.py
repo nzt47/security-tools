@@ -25,29 +25,16 @@ import argparse
 import sys
 from pathlib import Path
 
-BOM = b"\xef\xbb\xbf"
+# BOM 契约单一事实源: 常量与纯函数见 ps_bom_contract.py(check_ps1_encoding 与
+# fix_ps_bom 共用, 消除重复实现——2026-08-05 P0 合并)。此处重导出保持旧接口兼容。
+import ps_bom_contract as _contract
 
-# 关键契约文件：缺 BOM 需要补上（相对仓库根目录）
-REQUIRE_BOM_DEFAULT = ["scripts/dev/hook_fail_safe.psm1"]
-
-
-def count_leading_bom(data: bytes) -> int:
-    i = 0
-    while data.startswith(BOM, i):
-        i += 3
-    return i // 3
-
-
-def is_utf8(data: bytes) -> bool:
-    try:
-        data.decode("utf-8")
-        return True
-    except UnicodeDecodeError:
-        return False
-
-
-def hex_head(data: bytes, n: int = 8) -> str:
-    return " ".join(f"{b:02X}" for b in data[:n])
+BOM = _contract.BOM
+REQUIRE_BOM_DEFAULT = _contract.REQUIRE_BOM_DEFAULT
+count_leading_bom = _contract.count_leading_bom
+is_utf8 = _contract.is_utf8
+hex_head = _contract.hex_head
+iter_ps_files = _contract.iter_ps_files
 
 
 def main() -> int:
@@ -72,25 +59,19 @@ def main() -> int:
     to_fix = []   # (path, action)
     problems = []  # (path, reason) 非法 UTF-8 等不可自动修复
 
-    for base in args.roots:
-        d = root / base
-        if not d.is_dir():
-            continue
-        for p in sorted(d.rglob("*")):
-            if p.suffix.lower() not in (".ps1", ".psm1") or not p.is_file():
-                continue
-            data = p.read_bytes()
-            n_bom = count_leading_bom(data)
-            rel = p.relative_to(root)
+    for p in iter_ps_files(root, bases=args.roots):
+        data = p.read_bytes()
+        n_bom = count_leading_bom(data)
+        rel = p.relative_to(root)
 
-            if not is_utf8(data):
-                problems.append((rel, f"非法 UTF-8 (head: {hex_head(data)})"))
-                continue
-            if n_bom > 1:
-                to_fix.append((rel, f"去叠加 BOM x{n_bom} → x1 (head: {hex_head(data)})"))
-            elif n_bom == 0 and (rel in require_bom or args.fill_missing):
-                note = "" if rel in require_bom else "（非关键文件）"
-                to_fix.append((rel, f"补 BOM{note}"))
+        if not is_utf8(data):
+            problems.append((rel, f"非法 UTF-8 (head: {hex_head(data)})"))
+            continue
+        if n_bom > 1:
+            to_fix.append((rel, f"去叠加 BOM x{n_bom} → x1 (head: {hex_head(data)})"))
+        elif n_bom == 0 and (rel in require_bom or args.fill_missing):
+            note = "" if rel in require_bom else "（非关键文件）"
+            to_fix.append((rel, f"补 BOM{note}"))
 
     # 报告：问题行始终输出（--quiet 仅隐藏汇总，hook 失败时可诊断）
     for rel, action in to_fix:

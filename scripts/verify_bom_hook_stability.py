@@ -4,33 +4,31 @@
 
 目的: 循环模拟「每次提交前故意写入叠加 BOM 的临时 PS 文件」的真实 git commit,
 断言 pre-commit hook 每次都稳定拦截(exit != 0 且 HEAD 不变), 验证拦截机制
-(ENCODING_CHECK + BOMFIX 双段)在连续提交场景下的稳定性与冗余性。
+(合并后 ENCODING_CHECK 单段)在连续提交场景下的稳定性。
 
 背景: 2026-08-04 事故中 .ps1/.psm1 多次被批量写入叠加 BOM(EF BB BF xN),
-check_ps1_encoding.py 与 fix_ps_bom.py 已集成进 hook 的 ENCODING_CHECK /
-BOMFIX 段。本脚本把「手动演示一次拦截」升级为「自动化连续 N 次验证拦截」,
+check_ps1_encoding.py 已集成进 hook 的 ENCODING_CHECK 段(2026-08-05 P0 合并
+原 BOMFIX 段)。本脚本把「手动演示一次拦截」升级为「自动化连续 N 次验证拦截」,
 防止机制被后续改动无意破坏(守【不易】: 拦截机制 = 不变量)。
 
 工作原理(每轮迭代 i):
   1. 写入 scripts/__bom_hook_stability_<i>__.ps1(前导 EF BB BF x2 的叠加 BOM)
-  2. 直连两个检查脚本确认临时文件被检出(归因前置: 拦截来源可追溯)
+  2. 直连检查脚本确认临时文件被检出(归因前置: 拦截来源可追溯)
   3. git add <临时文件>; 记录 HEAD
   4. git commit(真实 hook, TLM_HOOK_SOURCE_REPO=<repo>, 跳过无关段)
   5. 断言: commit 返回非零(被拦截) 且 HEAD 未变 且 输出含 BOM 检查标记
   6. 清理: git reset 取消暂存 + 删除临时文件(失败也走 finally 清理)
 
-拦截层级(--mode, 默认 both = 双段拦截, 验证冗余):
-  both     = ENCODING_CHECK + BOMFIX 同时生效(ENCODING 先触发)
-  encoding = 仅 ENCODING_CHECK(SKIP_BOM_FIX_CHECK=1)
-  bomfix   = 仅 BOMFIX(SKIP_ENCODING_CHECK=1, 验证独立冗余层)
+拦截层级(--mode, 默认 both): P0 合并后仅存在单一 ENCODING_CHECK 段,
+encoding/bomfix 历史值保留兼容, 与 both 等效(不再有独立 BOMFIX 冗余层)。
 
 默认跳过与 BOM 无关的 CI_GUARD / INVARIANT / WORKFLOW_SIM 段(工作区可能
 存在历史遗留未跟踪文件, 会误触发 CI 守卫); 如需全段运行用 --no-skip-extra。
 
 用法:
-  python scripts/verify_bom_hook_stability.py                 # 5 轮迭代, 双段拦截
+  python scripts/verify_bom_hook_stability.py                 # 5 轮迭代, 合并编码段拦截
   python scripts/verify_bom_hook_stability.py --iterations 10
-  python scripts/verify_bom_hook_stability.py --mode bomfix   # 仅 BOMFIX 冗余层
+  python scripts/verify_bom_hook_stability.py --mode bomfix   # 历史兼容, 与 both 等效
   python scripts/verify_bom_hook_stability.py --json          # stdout 仅单行 JSON
   python scripts/verify_bom_hook_stability.py --repo-root <repo>
 
@@ -52,11 +50,11 @@ TEMP_PREFIX = "__bom_hook_stability_"
 TEMP_SUFFIX = ".ps1"
 
 # hook 输出中的 BOM 拦截归因标记(命中任一即视为「由 BOM 检查段拦截」)
+# 2026-08-05 P0: ENCODING_CHECK 已合并原 BOMFIX 段, 拦截输出来自
+# run_check 失败行 + check_ps1_encoding.py 的 BLOCK 明细(始终输出)。
 BOM_BLOCK_MARKERS = (
-    "编码检查未通过",          # ENCODING_CHECK 段 exit 分支
+    "编码检查(UTF-8 BOM 契约) 未通过",  # run_check ENCODING_CHECK 段失败行
     "叠加 BOM",                # check_ps1_encoding.py BLOCK 文案
-    "BOM 修复预检未通过",      # BOMFIX 段 exit 分支
-    "待修复",                  # fix_ps_bom.py --check 问题行文案
     TEMP_PREFIX,               # 临时文件名(直连脚本输出会带路径)
 )
 
@@ -85,10 +83,8 @@ def build_env(repo: Path, mode: str, skip_extra: bool) -> dict:
         env["SKIP_CI_GUARD"] = "1"
         env["SKIP_INVARIANT"] = "1"
         env["SKIP_WORKFLOW_SIM"] = "1"
-    if mode == "encoding":
-        env["SKIP_BOM_FIX_CHECK"] = "1"
-    elif mode == "bomfix":
-        env["SKIP_ENCODING_CHECK"] = "1"
+    # 2026-08-05 P0: ENCODING_CHECK/BOMFIX 已合并为单一 ENCODING_CHECK 段,
+    # 不再存在独立 BOMFIX 冗余层, encoding/bomfix 模式与 both 等效(仅走合并段)。
     return env
 
 
@@ -161,7 +157,7 @@ def main() -> int:
         return 1
 
     env = build_env(repo, args.mode, skip_extra=not args.no_skip_extra)
-    mode_desc = {"both": "双段拦截", "encoding": "仅 ENCODING_CHECK", "bomfix": "仅 BOMFIX"}[args.mode]
+    mode_desc = {"both": "合并编码段(单段拦截)", "encoding": "同 both", "bomfix": "同 both"}[args.mode]
 
     log(f"[bom-stability] 仓库: {repo}")
     log(f"[bom-stability] hook: {hook.name} | 模式: {mode_desc} | 迭代: {args.iterations}")
