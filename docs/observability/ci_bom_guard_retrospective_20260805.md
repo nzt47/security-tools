@@ -103,13 +103,12 @@
 | 维度 | 结果 |
 |---|---|
 | 触发 | push master（b12f82a6）自动触发，run 31019046160（2026-08-05 15:11 UTC） |
-| 调度 | ✅ 已入队，全部 24 个 job 正常创建；文档预检 job 已 success |
-| code-quality job | ⏳ 排队中（runner 高峰，2026-08-05 15:1x UTC 时点） |
-| BOM 监控 step | ⏳ 待 job 分发后执行 |
+| code-quality job | ✅ **success**（13/13 step 全部通过，含 BOM step） |
+| BOM 监控 step | ✅ **success**（受保护文件清单无污染，退出码 0） |
+| 证据链接 | [job 92350676145](https://github.com/nzt47/security-tools/actions/runs/31019046160/job/92350676145) |
 
-> 追踪命令: `gh run view 31019046160 --job <code-quality job id>` 或 `gh run list --workflow=ci.yml --limit 5`
-> 说明: BOM 监控 step 的判定逻辑已在本地双态验证（正常 exit 0 / 污染 exit 1），CI 实跑为最终确认项；
-> runner 高峰排队不影响 step 正确性（纯标准库脚本，<1s 执行）。
+> 追踪命令: `gh run view 31019046160 --job 92350676145`（run 全量完成后可查看 step 日志）
+> 说明: BOM 监控 step 为 code-quality job 最后一个 step，前置 10 个检查（格式/排序/类型/风格/守卫反模式）全绿后执行；纯标准库脚本，<1s 完成。
 
 ### 5.3 归档证据链
 
