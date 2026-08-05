@@ -6,24 +6,30 @@
     WARN  — 有风险但可继续（不阻断）
     BLOCK — 阻断发布（退出码 1）
 
+仓库根目录定位（通用化，供独立 GitHub Action 复用）:
+    1. 环境变量 GITHUB_WORKSPACE（CI 中 = 调用方仓库根，action 通过 github.action_path 运行本脚本）
+    2. 回退: 本脚本所在目录的父目录（本地运行）
+
 用法:
-    python scripts/verify_release_readiness.py --version v1.5.0-bm25-normalization
-    python scripts/verify_release_readiness.py --version v1.5.0 --remote origin,gitee --json
-    python scripts/verify_release_readiness.py --version v1.5.0 --quiet   # 仅输出 BLOCK
+    python verify_release_readiness.py --version v1.5.0-bm25-normalization
+    python verify_release_readiness.py --version v1.5.0 --remote origin,gitee --json
+    python verify_release_readiness.py --version v1.5.0 --quiet   # 仅输出 BLOCK
 
 【不易】BLOCK 项必须解决才能发布；WARN 项记录风险不阻断
-【变易】--remote 可扩展多远程；--json 供 CI 消费
-【简易】8 项检查对应模板 §8 检查清单，逐项独立可读
+【变易】--remote 可扩展多远程；--json 供 CI 消费；GITHUB_WORKSPACE 使同一脚本 CI/本地复用
+【简易】10 项检查对应模板 §8 检查清单，逐项独立可读
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+# 仓库根: CI 中由调用方 checkout 决定，本地运行时回退到脚本父目录
+REPO_ROOT = Path(os.environ.get("GITHUB_WORKSPACE") or Path(__file__).resolve().parent.parent)
 # 临时文件残留模式（发布后应收尾清理）
 TMP_PATTERNS = ("*.tmp", ".commit_msg_*", ".release_notes_*", "__bom_hook_stability_*")
 
@@ -174,6 +180,7 @@ def main() -> int:
     if args.json:
         print(json.dumps({
             "version": args.version,
+            "repo_root": str(REPO_ROOT),
             "checks": [{"name": n, "status": st, "message": msg} for n, (st, msg) in checks],
             "blocked": blocked,
         }, ensure_ascii=False, indent=2))
