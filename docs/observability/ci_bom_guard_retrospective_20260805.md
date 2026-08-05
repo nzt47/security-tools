@@ -27,7 +27,73 @@
 
 ---
 
-## 2. 根因分析（五问法摘要）
+## 2. 完整时间线流程图（从复发到 CI 接入）
+
+```mermaid
+flowchart TD
+    classDef fail fill:#ff4444,stroke:#cc0000,color:#fff,stroke-width:2px
+    classDef fix fill:#28a745,stroke:#1e7e34,color:#fff,stroke-width:2px
+    classDef warn fill:#fff3cd,stroke:#ffc107,color:#664d03,stroke-width:2px
+    classDef ok fill:#d4edda,stroke:#28a745,color:#155724
+
+    subgraph P1["阶段1 · 污染复发 x2（2026-08-05 上午）"]
+        T0["T0 首次检出叠加 BOM x3<br/>run_l3_regression_tests.ps1"] --> T1["T1 git restore 恢复 HEAD"]
+        T1 -. "只修症状, 写入方未治理" .-> T2["T2 数分钟后二次复发<br/>guard_bom_pollution 首跑即检出"]
+        T2 --> T3["T3 二次 git restore"]
+    end
+
+    subgraph P2["阶段2 · 根因诊断"]
+        T3 --> A1{"五问法根因分析"}
+        A1 --> A2["失效链路: 直接写盘 / --no-verify /<br/>SKIP_ENCODING_CHECK=1 → hook 完全绕过"]
+        A2 --> A3["根本原因: 编码契约缺 hook 之外<br/>不可绕过的自动防线"]
+    end
+
+    subgraph P3["阶段3 · 修复落地（3 连发提交）"]
+        A3 --> R1["修复1 ac93aa6b<br/>ps_bom_contract 单一事实源<br/>+ hook run_check 函数化"]
+        R1 --> R2["修复2 77181b25<br/>guard_bom_pollution.py<br/>+ maintenance_check M8"]
+        R2 --> R3["修复3 b12f82a6<br/>ci.yml code-quality 新增<br/>BOM 监控阻塞 step（L3）"]
+    end
+
+    subgraph P4["阶段4 · 验证与归档"]
+        R3 --> V1["CI 实跑 run 31019046160<br/>code-quality 13/13 success<br/>BOM step success"]
+        V1 --> V2["复盘报告归档 621741ea+e5eade01<br/>防线闭环 L1 hook → L4 独立脚本"]
+    end
+
+    class T1,T3 warn
+    class A2 fail
+    class R1,R2,R3 fix
+    class V1,V2 ok
+```
+
+### 节点图例
+
+| 类型 | 颜色 | 含义 |
+|---|---|---|
+| 失效节点 | 红 | 防线被绕过或修复无效（防线失效点） |
+| 症状级修复 | 黄 | git restore 只修文件状态，未治理写入方行为 |
+| 修复点 | 绿 | 本次落地防护，构成防复发闭环 |
+| 验证 | 浅绿 | 实跑验证通过 |
+
+### 时间线节点明细
+
+| 节点 | 类型 | 事件 | 证据/提交 |
+|---|---|---|---|
+| T0 | 事故 | 首次检出叠加 BOM x3 | `check_ps1_encoding` → BLOCK |
+| T1 | 症状级修复（失效点） | git restore 恢复 HEAD，未治理写入方 | 数分钟后复发证明无效 |
+| T2 | 事故 | 二次复发 | `guard_bom_pollution` 首跑即检出 |
+| T3 | 症状级修复（失效点） | 二次 git restore，仍可能三犯 | — |
+| A1 | 诊断 | 五问法根因分析 | postmortem 文档 |
+| A2 | 失效节点 | hook 完全绕过链路（直接写盘 / `--no-verify` / `SKIP_*`） | pre-commit 对绕行路径零防御 |
+| A3 | 诊断 | 根本原因结论 | 缺不可绕过的自动防线 |
+| R1 | 修复点 | `ps_bom_contract` 单一事实源 + hook 函数化 | `ac93aa6b` |
+| R2 | 修复点 | `guard_bom_pollution.py` + maintenance_check M8 | `77181b25` |
+| R3 | 修复点 | ci.yml `code-quality` 新增 BOM 监控阻塞 step（L3） | `b12f82a6` |
+| V1 | 验证 | CI 实跑：code-quality 13/13 + BOM step success | run 31019046160 |
+| V2 | 归档 | 复盘报告归档（含本流程图） | `621741ea` + `e5eade01` |
+
+---
+
+## 3. 根因分析（五问法摘要）
 
 | 层级 | 结论 |
 |---|---|
@@ -39,7 +105,7 @@
 
 ---
 
-## 3. 防护方案：纵深防御（L1→L4）
+## 4. 防护方案：纵深防御（L1→L4）
 
 | 层 | 机制 | 可被绕过? | 触发时机 | 状态 |
 |---|---|---|---|---|
@@ -54,7 +120,7 @@
 
 ---
 
-## 4. CI 接入内容（b12f82a6）
+## 5. CI 接入内容（b12f82a6）
 
 ### 4.1 变更文件
 
@@ -75,7 +141,7 @@
     python scripts/guard_bom_pollution.py --repo-root "$GITHUB_WORKSPACE"
 ```
 
-### 4.3 关键设计决策
+### 5.3 关键设计决策
 
 | 决策点 | 选择 | 理由 |
 |---|---|---|
@@ -86,9 +152,9 @@
 
 ---
 
-## 5. 验证结果
+## 6. 验证结果
 
-### 5.1 本地验证（提交前）
+### 6.1 本地验证（提交前）
 
 | 验证项 | 方法 | 结果 |
 |---|---|---|
@@ -98,7 +164,7 @@
 | pre-commit 全链 | 提交 b12f82a6 时实跑 | ✅ 链接预检 0 失效 + 锚点回归 4/4 + 核心不变量 12/12 |
 | pre-push | 推送 origin + gitee | ✅ 核心不变量 12/12，双远端推送成功 |
 
-### 5.2 CI 实跑验证（run 31019046160）
+### 6.2 CI 实跑验证（run 31019046160）
 
 | 维度 | 结果 |
 |---|---|
@@ -110,7 +176,7 @@
 > 追踪命令: `gh run view 31019046160 --job 92350676145`（run 全量完成后可查看 step 日志）
 > 说明: BOM 监控 step 为 code-quality job 最后一个 step，前置 10 个检查（格式/排序/类型/风格/守卫反模式）全绿后执行；纯标准库脚本，<1s 完成。
 
-### 5.3 归档证据链
+### 6.3 归档证据链
 
 ```
 污染复发(2 次) → 根因复盘(postmortem) → guard_bom_pollution.py(77181b25)
@@ -119,7 +185,7 @@
 
 ---
 
-## 6. 归档学习要点
+## 7. 归档学习要点
 
 1. **hook 是"提高门槛"而非"绝对保障"**：凡有 `--no-verify` 逃生通道的防线，必须在 CI 侧有不可绕过的对等防线（L3 兜底）。
 2. **git restore 修复 ≠ 问题解决**：持续写入方不识别并干预，同款污染必然复发——识别并治理写入方行为才是根因修复。
@@ -129,7 +195,7 @@
 
 ---
 
-## 7. 后续建议
+## 8. 后续建议
 
 | 项 | 建议 | 优先级 |
 |---|---|---|
