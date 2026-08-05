@@ -331,7 +331,7 @@ def main():
   │  6. 日报捕获:     {'✅' if circuit_break_count > 0 else '❌'} 日报中包含告警事件                          │
   ├─────────────────────────────────────────────────────────┤
   │  触发的告警:                                             │
-  {''.join(f'  │    🔴 {a[0]["name"]} (severity={a[0]["severity"]})\n' for a in triggered_alerts) if triggered_alerts else '  │    （无）                                              │'}
+  {''.join(f'  │    🔴 {a[0]["name"]} (severity={a[0]["severity"]})' + '\n' for a in triggered_alerts) if triggered_alerts else '  │    （无）                                              │'}
   └─────────────────────────────────────────────────────────┘
 
   验证文件:
