@@ -12,13 +12,16 @@
 Shard3 job 全部被 runner 回收。贪心分配保证每个 shard 测试数均衡
 （约 2245），重文件均匀分散，各 shard 运行时间接近。
 
-用法（CI unit-tests job）:
+用法（CI unit-tests job，默认扫描 tests/unit）:
     python scripts/split_unit_tests.py --shard 1 --shards 4
+
+用法（observability-ci.yml full-project-tests，扫描全 tests/）:
+    python scripts/split_unit_tests.py --shard 1 --shards 6 --root tests
 
 输出: 当前 shard 应执行的测试文件路径（空格分隔，可直接传给 pytest）。
 
 【简易】单文件零依赖，仅标准库；贪心分配 ~15 行实现。
-【变易】--shards 可调，便于未来增减并行度。
+【变易】--shards 可调，便于未来增减并行度；--root 可切换 tests/unit 与 tests 全集。
 """
 from __future__ import annotations
 
@@ -38,10 +41,19 @@ ROOT = Path(__file__).resolve().parent.parent
 EXCLUDED = {"tests/unit/test_sandbox_multiprocess_boundary.py"}
 
 
-def collect_test_files(root: Path) -> list[str]:
-    """收集 tests/unit 下所有 test_*.py（排除 EXCLUDED），按路径排序。"""
-    unit_dir = root / "tests" / "unit"
-    files = sorted(p for p in unit_dir.glob("test_*.py"))
+def collect_test_files(root: Path, test_root: str = "tests/unit") -> list[str]:
+    """收集指定子树下所有 test_*.py（排除 EXCLUDED），按路径排序。
+
+    【不易】test_root="tests/unit" 用 glob（非递归），保持 ci.yml 行为完全一致。
+    【变易】test_root="tests" 用 rglob（递归），覆盖 unit/integration/e2e/regression 全集。
+    """
+    target_dir = root / test_root
+    if test_root == "tests":
+        # 全项目模式：递归扫描所有子目录
+        files = sorted(p for p in target_dir.rglob("test_*.py"))
+    else:
+        # 默认模式：仅 tests/unit/test_*.py（非递归，与 ci.yml 一致）
+        files = sorted(p for p in target_dir.glob("test_*.py"))
     # as_posix(): CI 在 Linux runner 上执行，路径必须用正斜杠分隔
     rel = [p.relative_to(root).as_posix() for p in files]
     return [f for f in rel if f not in EXCLUDED]
@@ -59,18 +71,26 @@ def count_tests(root: Path, rel_path: str) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="按文件均分 tests/unit 测试到多个 shard"
+        description="按文件均分测试到多个 shard（贪心均衡，支持 tests/unit 与全 tests/）"
     )
     parser.add_argument("--shard", type=int, required=True,
                         help="当前分片序号（从 1 开始）")
     parser.add_argument("--shards", type=int, default=4,
                         help="总分片数（默认 4）")
+    # 【变易】--root：默认 tests/unit 保持 ci.yml 向后兼容；
+    # observability-ci.yml 传 tests 走全项目模式（rglob 递归）
+    parser.add_argument("--root", type=str, default="tests/unit",
+                        help="测试根目录（默认 tests/unit；传 tests 走全项目模式）")
     args = parser.parse_args()
 
     if args.shard < 1 or args.shard > args.shards:
         parser.error(f"--shard 必须在 [1, {args.shards}] 内，当前 {args.shard}")
 
-    files = collect_test_files(ROOT)
+    # 【简易】白名单校验，避免误传任意路径
+    if args.root not in ("tests/unit", "tests"):
+        parser.error(f"--root 仅支持 tests/unit 或 tests，当前 {args.root}")
+
+    files = collect_test_files(ROOT, args.root)
     # 贪心均衡: 按测试数降序, 每次放入当前测试总数最少的 shard
     # （重文件优先分配，避免大文件扎堆导致单 shard 运行时间过长）
     counts = {f: count_tests(ROOT, f) for f in files}
