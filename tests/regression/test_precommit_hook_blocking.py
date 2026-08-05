@@ -64,8 +64,15 @@ def _run_check(repo_root: Path, timeout: int = 180) -> subprocess.CompletedProce
 
 
 def _run_git(repo_root: Path, *args: str, timeout: int = 180) -> subprocess.CompletedProcess:
-    """在临时仓库执行 git 命令；始终注入 TLM_HOOK_SOURCE_REPO 供 hook 寻址。"""
-    env = {**os.environ, "TLM_HOOK_SOURCE_REPO": str(REPO_ROOT)}
+    """在临时仓库执行 git 命令；始终注入 TLM_HOOK_SOURCE_REPO 供 hook 寻址。
+
+    【不易】SKIP_WORKFLOW_SIM=1：跳过 hook 的「工作流模拟校验」段。
+    本测试意图验证 hook 对失效链接的拦截行为，不验证 ci-failure-notify
+    通知链路（那由 simulate_ci_failure_notify.py 的独立测试覆盖）。
+    simulate_ci_failure_notify.py 被 git 跟踪，CI checkout 后存在于 runner，
+    若不跳过会因 Linux 环境差异误失败（输出被 hook >/dev/null 吞掉，难排查）。
+    """
+    env = {**os.environ, "TLM_HOOK_SOURCE_REPO": str(REPO_ROOT), "SKIP_WORKFLOW_SIM": "1"}
     return subprocess.run(
         ["git", "-C", str(repo_root), *args],
         capture_output=True,
