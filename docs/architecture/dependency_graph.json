@@ -1,5 +1,5 @@
 {
-  "trace_id": "f9517a9d79e2480b",
+  "trace_id": "b2f0e861e49a4e56",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -3980,7 +3980,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 94,
+      "line": 110,
       "source_file": "agent/orchestrator/message_handler.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -10039,6 +10039,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1082.1757290000137
+    "build_duration_ms": 1282.6389989999996
   }
 }
