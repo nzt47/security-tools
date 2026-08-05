@@ -220,6 +220,21 @@ jobs:
           echo "=== 运行单元测试（Shard ${{ matrix.shard }}/6，-n 2 并行 + signal 超时法）==="
           # 【变易】--shards 6 与 scripts/split_unit_tests.py 的总分片数保持一致，
           # 若调整分片数需同步修改两处
+          # 【不易】线程资源监控（2026-08-05 Shard 3 py3.12 "can't start new thread"）：
+          #   xdist worker 下 --timeout-method=signal 自动降级为 thread 方法
+          #   （pytest-timeout 设计，SIGALRM 无法在 worker 进程注册），每测试 1 个
+          #   Timer 线程，叠加测试自身线程后瞬时线程/进程数逼近容器 pids.max。
+          #   原注释假设"每 worker 仅 4330 测试远低于线程耗尽阈值"已被实跑证伪，
+          #   因此后台采样监控，pytest 结束后输出峰值报告（数据随 artifact 上传），
+          #   为 -n/超时方法调优提供实测依据。详见
+          #   docs/observability/shard3_cannot_start_new_thread_analysis_20260805.md
+          python scripts/ci_thread_monitor.py \
+            --output test-results/thread-monitor-shard${{ matrix.shard }}.log \
+            --interval 5 &
+          MONITOR_PID=$!
+          # 【不易】捕获 pytest 退出码而非 || true：INTERNALERROR 时监控报告
+          #   正是关键归因数据，必须保证报告输出后再退出。
+          set +e
           pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6) \
             -n 2 \
             --dist=loadscope \
@@ -237,6 +252,14 @@ jobs:
             --timeout-method=signal \
             --junitxml=test-results/junit-shard${{ matrix.shard }}.xml \
             -rA
+          PYTEST_RC=$?
+          set -e
+          kill $MONITOR_PID 2>/dev/null || true
+          wait $MONITOR_PID 2>/dev/null || true
+          echo "=== 单元测试 pytest 退出码: $PYTEST_RC ==="
+          # 【不易】报告必须输出：pytest 失败时该报告是判断"线程耗尽"与
+          #   代码失败的关键证据，且 CI 日志可检索（threads= / pids.max=）。
+          python scripts/ci_thread_monitor.py --report test-results/thread-monitor-shard${{ matrix.shard }}.log
           # 【不易】--cov-fail-under=0: 拆分后每个 shard 仅测 ~1/6 代码,
           # 单 shard 覆盖率 ~17% 必然低于 pyproject.toml 的 fail_under=40。
           # 覆盖率门槛由 coverage-check job 对合并后的完整数据统一断言
@@ -248,10 +271,14 @@ jobs:
           #   1. signal 不创建线程,无累积开销
           #   2. SIGALRM 可中断 join 阻塞和 C 扩展调用
           #   3. Linux 原生支持(Windows 不支持,本地仍用 thread)
-          # 【xdist 交互】-n 2 下 worker 进程自动降级为 thread 方法,
-          #   但每 worker 仅 ~4330 测试（8661/2），远低于线程耗尽阈值，安全。
+          # 【xdist 交互】-n 2 下 worker 进程自动降级为 thread 方法，
+          #   SIGALRM 无法在 worker 注册（pytest-timeout 设计）。原注释假设
+          #   "每 worker 仅 ~4330 测试远低于线程耗尽阈值" 已被 2026-08-05
+          #   Shard 3 py3.12 实跑证伪（INTERNALERROR: can't start new thread），
+          #   具体峰值数据由上方 ci_thread_monitor.py 报告提供。
           # --junitxml: 写结构化测试结果,即使 INTERNALERROR 也能下载查看失败列表
           # --timeout=60: 单测试 60s 超时,平衡灵敏度与误报率
+          exit $PYTEST_RC
       - name: 失败时打印最近测试日志（定位挂起）
         if: failure()
         run: |
@@ -260,6 +287,12 @@ jobs:
           echo "Python: $(python --version)"
           echo "pytest plugins: $(pip list 2>/dev/null | grep -i pytest)"
           echo "SKILLS_OFFLINE: ${SKILLS_OFFLINE:-not set}"
+          # 【变易】线程/进程快照：归因 "can't start new thread"（2026-08-05 Shard 3）。
+          #   若线程/进程数接近 pids.max → 线程耗尽；否则为代码失败/超时。
+          echo "=== 线程/进程快照（归因 can't start new thread）==="
+          echo "threads: $(ps -eLf --no-headers 2>/dev/null | wc -l)"
+          echo "procs: $(ps -e --no-headers 2>/dev/null | wc -l)"
+          echo "pids.max: $(cat /sys/fs/cgroup/pids.max 2>/dev/null || echo N/A)"
           echo "=== 最近修改的测试文件 ==="
           git log --oneline -5 -- tests/unit/ 2>/dev/null || true
 
