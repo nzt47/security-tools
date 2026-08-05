@@ -1,0 +1,42 @@
+name: 'Release Readiness Check'
+description: >-
+  发布就绪检查 — RELEASE_PROCESS_TEMPLATE.md §8 检查清单自动化。
+  三态分级（PASS/WARN/BLOCK），BLOCK 项阻断发布（退出码 1）。
+  CI 与本地同一脚本，防止发布漏检。
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  version:
+    description: '版本号或 tag 名，如 v1.5.0 / v1.5.0-bm25-normalization'
+    required: true
+  remote:
+    description: '远程列表（逗号分隔）。默认 origin；多远程可传 origin,gitee'
+    required: false
+    default: 'origin'
+
+outputs:
+  status:
+    description: '最终状态：PASS（无 BLOCK）或 BLOCK'
+    value: ${{ steps.check.outputs.status }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: 设置 Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.10'
+
+    - name: 运行发布就绪检查
+      id: check
+      shell: bash
+      # Why exit $rc: 显式传播脚本退出码，BLOCK → 步骤失败 → job 失败 → 阻断下游（强制卡点）
+      run: |
+        echo "=== 发布就绪检查（RELEASE_PROCESS_TEMPLATE.md §8 自动化）==="
+        python "${{ github.action_path }}/verify_release_readiness.py" \
+          --version "${{ inputs.version }}" --remote "${{ inputs.remote }}"
+        rc=$?
+        echo "status=$([ $rc -eq 0 ] && echo PASS || echo BLOCK)" >> "$GITHUB_OUTPUT"
+        exit $rc
