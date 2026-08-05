@@ -1,0 +1,41 @@
+# master commit 来源白名单
+# 【不易】白名单 email 与 bot 路径作为业务内核不变量, 修改需走 PR review
+# 【变易】新增自动生成路径只改本文件 allowed_paths, 无需改 verify_commit_origin.py
+#
+# 校验项(verify_commit_origin.py):
+#   ORIGIN-01  author/committer email 不在白名单 → BLOCK
+#   ORIGIN-02  bot commit 修改非白名单路径 → BLOCK
+#   ORIGIN-03  bot commit subject 缺 [skip ci] → BLOCK
+#   ORIGIN-04  人工身份 commit 无 GitHub 关联 PR(疑似脚本直接 push) → BLOCK
+#   ORIGIN-05  subject 命中脚本特征黑名单(可选, 过渡期) → BLOCK
+
+allowed_authors:
+  - email: "13539371839@139.com"
+    name: "nzt47"
+    # 人工身份 commit 必须有 GitHub 关联 PR(脚本直接 push 无 PR 关联 → 阻断)
+    # 注意: 阶段 1(dry-run)仅告警; 阶段 2(enforce)才阻断; 阶段 3 开启分支保护后所有 commit 走 PR
+    require_pr: true
+
+  - email: "github-actions[bot]@users.noreply.github.com"
+    name: "github-actions[bot]"
+    # bot commit 通常无 PR, 不要求 PR 关联
+    require_pr: false
+    # bot 只能修改这些路径(fnmatch glob 模式, 修改其他路径 → BLOCK)
+    # 实际自动生成路径(2026-08-05 校正):
+    #   docs/architecture/*   依赖图自动更新(module_dependency_graph.md / dependency_graph.json)
+    #   docs/observability/*  CI 修复记录索引(CI_FIX_INDEX.md, publish_fix_to_docs.py 写入)
+    #   docs/dashboards/*     CI 健康度看板(ci_health_dashboard.md)
+    #   docs/ci-health/*      预留扩展
+    #   VERSION.md             发布相关
+    allowed_paths:
+      - "docs/architecture/*"
+      - "docs/observability/*"
+      - "docs/dashboards/*"
+      - "docs/ci-health/*"
+      - "VERSION.md"
+    # bot commit subject 必须含 [skip ci](防止触发链式 CI 噪音)
+    require_skip_ci: true
+
+# subject 黑名单正则(可选, 过渡期识别已知脚本 subject)
+# 【不易】enforce 上线前应清空, 改用 PR 关联校验作为主判定
+subject_denylist_regex: []
