@@ -204,3 +204,11 @@ docs/perf-charts/*.png
 !docs/perf-charts/perf_trend_*.png
 # 自动生成的性能报告
 PERFORMANCE_REPORT_sqlite_vs_etcd.md
+
+# === 后台干扰进程产物（2026-08-05）===
+# 自动提交机制产生的未跟踪文件（见 docs/GIT_OPERATION_SAFETY_GUIDE.md），
+# 防止再次被 git add . / git commit 混入。
+# 注意: 已跟踪文件不受 ignore 影响; 若已被 git add，需 git restore --staged 移出。
+docs/releases/release-note-v1.1.10-20260804.md
+scripts/safe_git_revert.py
+scripts/simulate_pr_merge_guard.py
