@@ -29,6 +29,20 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TARGET_REL = ".github/workflows/ci-failure-notify.yml"
 ISSUES_LINE = "  issues: write"
 
+# 【不易】issues.* API 需要的权限映射（2026-08-05 精确判定增强）：
+#   - issues.create/update/listForRepo/addLabels → 独立 issue 读写，需 issues: write
+#   - issues.createComment → PR 评论场景（GitHub 的 PR 评论复用 issues API），需 pull-requests: write
+# 旧扫描器用 "issues:" 子串判定，把已配 pull-requests: write 的 workflow（如
+# observability-ci.yml 各评论 job）误标 WARN。按 API 区分后消除误报。
+ISSUES_API_RE = re.compile(r"github\.rest\.issues\.(\w+)\(")
+PERM_BY_API = {
+    "create": "issues",
+    "update": "issues",
+    "listForRepo": "issues",
+    "addLabels": "issues",
+    "createComment": "pull-requests",
+}
+
 
 def _find_permissions_block(lines: list[str]) -> tuple[int, int] | None:
     """定位顶层 permissions 块 [start, end)；未找到返回 None。
@@ -71,19 +85,80 @@ def ensure_issues_write(path: Path, check_only: bool) -> tuple[bool, str]:
     return True, "已补 issues: write"
 
 
-def scan_other_workflows() -> list[tuple[str, str]]:
-    """扫描其他 workflow：github-script 调 issues.* API 但无 issues 权限 → WARN。"""
-    warns: list[tuple[str, str]] = []
+def _top_permissions(lines: list[str]) -> set[str]:
+    """顶层 permissions 块（无缩进的 permissions:）→ 完整权限项集合（如 {"issues: write"}）。"""
+    perms: set[str] = set()
+    for i, line in enumerate(lines):
+        if line.strip() == "permissions:" and not line.startswith((" ", "\t")):
+            j = i + 1
+            while j < len(lines) and lines[j].startswith("  ") and lines[j].strip():
+                item = lines[j].strip()
+                if not item.startswith("#"):  # 跳过注释行
+                    perms.add(item)
+                j += 1
+            break
+    return perms
+
+
+def _job_context(lines: list[str], idx: int) -> tuple[str, set[str]]:
+    """定位调用行所属 job，返回 (job 名, 该 job permissions 的 scope 集合)。"""
+    job = "(top-level)"
+    job_start = 0
+    for i in range(idx - 1, -1, -1):
+        line = lines[i]
+        if line.strip() == "jobs:" and not line.startswith((" ", "\t")):
+            break
+        # job 定义: 2 空格缩进 + 名称 + 冒号（jobs: 下的直接子项）
+        if re.match(r"^  [a-zA-Z0-9_-]+:$", line):
+            job = line.strip()[:-1]
+            job_start = i
+            break
+    perms: set[str] = set()
+    if job != "(top-level)":
+        # 该 job 内的 permissions 块（4 空格缩进），从 job 定义到调用行之间
+        for i in range(job_start + 1, idx):
+            line = lines[i]
+            if re.match(r"^  [a-zA-Z0-9_-]+:$", line):
+                break  # 已越过本 job（防御，正常不会发生）
+            if line.startswith("    permissions:"):
+                j = i + 1
+                while j < len(lines) and lines[j].startswith("      ") and lines[j].strip():
+                    item = lines[j].strip()
+                    if not item.startswith("#"):  # 跳过注释行
+                        perms.add(item)
+                    j += 1
+                break
+    return job, perms
+
+
+def scan_other_workflows() -> tuple[list[tuple[str, str, str, str]], list[tuple[str, str, str, str]]]:
+    """扫描其他 workflow 的 issues.* 调用权限缺口。
+
+    返回 (warns, infos)：warn 为缺权限调用点 (文件, job, API, 所需权限)；
+    info 为已满足权限的调用点（消除误报）。【不易】只读扫描，不自动修复。
+    """
+    warns: list[tuple[str, str, str, str]] = []
+    infos: list[tuple[str, str, str, str]] = []
     wf_dir = PROJECT_ROOT / ".github" / "workflows"
     for wf in sorted(wf_dir.glob("*.yml")):
         if wf.name == Path(TARGET_REL).name:
             continue
-        text = wf.read_text(encoding="utf-8", errors="replace")
-        if not re.search(r"issues\.(create|listForRepo|update|addLabels)", text):
-            continue
-        if "issues:" not in text:
-            warns.append((wf.name, "github-script 调用 issues.* API 但文件内无 issues 权限"))
-    return warns
+        lines = wf.read_text(encoding="utf-8", errors="replace").splitlines()
+        top = _top_permissions(lines)
+        for i, line in enumerate(lines):
+            m = ISSUES_API_RE.search(line)
+            if not m:
+                continue
+            perm = PERM_BY_API.get(m.group(1))
+            if perm is None:
+                continue
+            job, job_perms = _job_context(lines, i)
+            scope = f"{perm}: write"
+            if scope in job_perms or scope in top:
+                infos.append((wf.name, job, m.group(1), perm))
+            else:
+                warns.append((wf.name, job, m.group(1), perm))
+    return warns, infos
 
 
 def main() -> int:
@@ -111,8 +186,11 @@ def main() -> int:
         if changed:
             print(f"[FIXED] 已写入: {ISSUES_LINE}")
 
-    for fname, reason in scan_other_workflows():
-        print(f"[WARN] {fname}: {reason}")
+    warns, infos = scan_other_workflows()
+    for fname, job, api, perm in warns:
+        print(f"[WARN] {fname} ({job}): {api} 需 {perm}: write 但缺失")
+    for fname, job, api, perm in infos:
+        print(f"[INFO] {fname} ({job}): {api} 已有 {perm}: write")
 
     return 1 if (args.check and changed) else 0
 
