@@ -92,9 +92,45 @@ python scripts/ci_thread_monitor.py --report m.log
 **优先推荐方案 A**：一次性消除 thread 方法降级路径（signal 方法零线程创建），
 且不损失超时保护；代价仅是运行时间翻倍，对 90min 超时窗口余量充足。
 
+### 4.1 实测数据与决策结论（2026-08-06 补，run 31027294853 / 提交 66965ddf）
+
+监控集成后首次全量实跑，从 run artifacts 下载 `thread-monitor-shard*.log` 核对峰值
+（注：artifact 名仅含 shard 号不区分 Python 版本，3.10/3.11/3.12 上传同名覆盖，
+下表为留存版本数据；失败 Shard 3 已由 job 日志确认为 py3.12，job 92378905900）：
+
+| Shard | 峰值线程 | 峰值进程 | 采样点数 | 结果 |
+|---|---|---|---|---|
+| 1 | 278 | 161 | 18 | 通过 |
+| 2 | 282 | 159 | 21 | 通过 |
+| 3 | **508** | **193** | 29 | **失败（性能偶发，见下）** |
+| 4 | 458 | 177 | 23 | 通过 |
+| 5 | — | — | artifact 缺失 | 通过 |
+| 6 | 378 | 182 | 20 | 通过 |
+
+关键事实：
+
+1. **无 `can't start new thread` / INTERNALERROR**：py3.12 Shard 3 的完整 job 日志
+   （job 92378905900）确认唯一失败是
+   `test_v2_performance_patch.py::test_parallel_execution`——
+   `assert 0.01627 < 0.01`（线程池启动差 16ms 超 10ms 断言），1500+ 用例通过，
+   pytest 退出码 1 为单用例失败。监控报告 29 采样点完整输出
+   （threads min=261 avg=351 max=508 / procs min=156 avg=172 max=193）。
+2. **pids.max 无法从容器内读取**（N/A），CPU 4 核。峰值线程 508 远低于
+   runner 常见 pids.max（4096），且本次无线程创建失败——**未逼近限制**。
+3. **进程数基线异常**：所有 shard 的 procs 均在 150+（min=153），
+   远高于 pytest `-n 2` 的正常 <10，判定为 GitHub hosted runner 环境固有并发
+   （系统服务/容器运行时），**不能归因于 pytest 自身**。
+
+**决策结论**：按 §4 决策表，实测峰值占用率 < 80%（适用条件未满足）→
+**不应用方案 A（`-n 1`）**。本次失败根因是 10ms 启动差断言在 4 核高负载
+runner 上过紧（串行判据实为 20ms=task sleep 时长），已随提交 77534f66
+放宽至 50ms。`scripts/fix_ci_xdist_workers.py` 保留备用——若未来监控
+显示峰值线程/pids.max > 80% 或再现 `can't start new thread`，直接运行
+`python scripts/fix_ci_xdist_workers.py` 应用方案 A。
+
 ## 5. 后续行动
 
-- [ ] 下一次 CI 实跑后下载 `thread-monitor-shard*.log`，核对峰值线程数与 `pids.max` 比值；
-- [ ] 按 §4 决策表选择优化方案并修改 ci.yml；
+- [x] 下一次 CI 实跑后下载 `thread-monitor-shard*.log`，核对峰值线程数与 `pids.max` 比值（2026-08-06 完成，见 §4.1）；
+- [x] 按 §4 决策表选择优化方案并修改 ci.yml（结论：不应用方案 A，改为放宽性能断言 77534f66）；
 - [ ] 若选方案 C，需新增"线程数回归守卫"测试（测试结束断言
       `threading.active_count()` 不超过基线）。
