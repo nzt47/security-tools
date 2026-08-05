@@ -34,6 +34,7 @@ import fnmatch
 import json
 import os
 import re
+import ssl
 import subprocess
 import sys
 import urllib.error
@@ -299,7 +300,17 @@ def query_associated_prs_urllib(full_sha: str, repo: str, token: str) -> list[di
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode("utf-8"))
             return [{"number": d.get("number"), "state": d.get("state")} for d in data]
-    except (urllib.error.URLError, urllib.error.HTTPError, json.JSONDecodeError, OSError):
+    except (urllib.error.URLError, urllib.error.HTTPError,
+            json.JSONDecodeError, OSError, ssl.SSLError, TimeoutError) as e:
+        # 【变易】网络/解析异常降级为 None, 让上游走"API 不可用"路径不阻断
+        # (【不易】不锁死 master push); 详见 query_associated_prs 的降级语义
+        print(f"::warning::urllib 查关联 PR 失败({type(e).__name__}: {e}), 降级",
+              file=sys.stderr)
+        return None
+    except Exception as e:
+        # 兜底: 未知异常也降级, 避免脚本崩溃阻塞 CI(【不易】不锁死 master push)
+        print(f"::warning::urllib 查关联 PR 未知异常({type(e).__name__}: {e}), 降级",
+              file=sys.stderr)
         return None
 
 

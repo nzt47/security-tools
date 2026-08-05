@@ -91,6 +91,11 @@ jobs:
 
       - name: 运行 commit 来源校验
         if: steps.precheck.outputs.skip != 'true'
+        env:
+          # 【不易】显式注入 GITHUB_TOKEN, 让 verify_commit_origin.py 的 urllib 兜底
+          # (query_associated_prs_urllib) 能查 commit 关联 PR, 否则 ORIGIN-04 降级
+          # GitHub Actions 的 GITHUB_TOKEN secret 不会自动注入 step 环境, 必须显式声明
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # GUARD_MODE=dry-run: 检测到问题仅 ::warning:: 告警, exit 0(不阻断)
           # GUARD_MODE=enforce: 检测到问题 exit 1 → 本步失败 → job 失败
