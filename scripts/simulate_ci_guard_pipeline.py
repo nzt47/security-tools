@@ -92,7 +92,7 @@ def simulate() -> dict:
         else all(s["exit_code"] == 0 for s in wf["steps"])
         for wf in results)
     return {
-        "tool": "simulate_ci_pipeline",
+        "tool": "simulate_ci_guard_pipeline",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "workflows": results,
         "overall": {"status": "pass" if all_ok else "fail",
