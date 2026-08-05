@@ -319,6 +319,15 @@ def main():
     # ── 总结 ──
     print_section("总结", "告警链路验证结果")
 
+    # 【不易】把含 '\n' 的 join 表达式提取到 f-string 外面的变量中：
+    # Python 3.11 不允许 f-string 表达式内部出现反斜杠（PEP 701 在 3.12 才放宽），
+    # 即使 '\n' 在内层 f-string 之外，仍属于外层 f-string 的 {} 表达式，会触发
+    # "f-string expression part cannot include a backslash" 导致 coverage 解析失败。
+    triggered_lines = ''.join(
+        '  │    🔴 ' + a[0]["name"] + ' (severity=' + a[0]["severity"] + ')\n'
+        for a in triggered_alerts
+    ) if triggered_alerts else '  │    （无）                                              │'
+
     print(f"""
   ┌─────────────────────────────────────────────────────────┐
   │  告警链路验证结果                                        │
@@ -331,7 +340,7 @@ def main():
   │  6. 日报捕获:     {'✅' if circuit_break_count > 0 else '❌'} 日报中包含告警事件                          │
   ├─────────────────────────────────────────────────────────┤
   │  触发的告警:                                             │
-  {''.join(f'  │    🔴 {a[0]["name"]} (severity={a[0]["severity"]})' + '\n' for a in triggered_alerts) if triggered_alerts else '  │    （无）                                              │'}
+  {triggered_lines}
   └─────────────────────────────────────────────────────────┘
 
   验证文件:
