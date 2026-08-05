@@ -974,10 +974,11 @@ jobs:
           echo "已恢复 $DATA_COUNT 个 coverage 数据文件"
           # 【不易】对齐 ci.yml L710：|| true 容错部分 shard 失败
           coverage combine || true
-          # 【不易】|| true：pyproject.toml fail_under=40 会让 coverage xml 在
-          # 覆盖率<40% 时 exit 2（全项目当前 ~0.6%）。coverage.xml 在 fail-under
-          # 检查前已写入，用 || true 吞掉退出码 + 下方文件存在检查兜底
-          coverage xml || true
+          # 【不易】-i/--ignore-errors：scripts/ 下多个文件含 Python 3.11 不兼容的
+          # f-string 反斜杠（PEP 701 在 3.12 才放宽），tokenize 解析失败会导致
+          # coverage xml 中断。-i 让 coverage 跳过这些文件继续生成 coverage.xml。
+          # f-string 兼容性债务单独跟踪，不阻塞 coverage.xml 生成。
+          coverage xml -i || true
           if [ ! -f coverage.xml ]; then
             echo "::error::coverage.xml 未生成"
             exit 1
