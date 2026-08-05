@@ -13,6 +13,7 @@ Why(dry-run 默认):
 
 import os
 import subprocess
+import sys
 
 _PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -51,11 +52,14 @@ def safe_revert(target: str, dry_run: bool = True) -> dict:
     files = _affected_files(verify.stdout.strip())
 
     if dry_run:
-        print(f"[safe_git_revert][dry-run] 目标 commit: {target}")
-        print(f"[safe_git_revert][dry-run] 受影响文件({len(files)} 个):")
+        # 日志走 stderr: 不污染 stdout(调用方 run_ci_guard --json 依赖纯净 stdout)
+        print(f"[safe_git_revert][dry-run] 目标 commit: {target}", file=sys.stderr)
+        print(f"[safe_git_revert][dry-run] 受影响文件({len(files)} 个):",
+              file=sys.stderr)
         for f in files:
-            print(f"  - {f}")
-        print(f"[safe_git_revert][dry-run] 建议: git revert --no-commit {target}")
+            print(f"  - {f}", file=sys.stderr)
+        print(f"[safe_git_revert][dry-run] 建议: git revert --no-commit {target}",
+              file=sys.stderr)
         return {"affected_files": files, "exit_code": 0}
 
     # 非 dry-run: 生成反向补丁到工作区, 不提交、不丢弃任何数据
