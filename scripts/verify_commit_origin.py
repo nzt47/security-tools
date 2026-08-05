@@ -7,7 +7,7 @@
 脚本 push 的 commit 在 GitHub 上无关联 PR(因未走 PR 流程), 人工 commit 通常走 PR。
 
 校验项:
-  ORIGIN-01  author/committer email 不在白名单 → BLOCK
+  ORIGIN-01  author email 不在白名单 → BLOCK; committer 非白名单且非 GitHub 平台邮箱 → BLOCK
   ORIGIN-02  bot commit 修改非白名单路径 → BLOCK
   ORIGIN-03  bot commit subject 缺 [skip ci] → BLOCK
   ORIGIN-04  人工身份 commit 无 GitHub 关联 PR(疑似脚本直接 push) → BLOCK
@@ -347,25 +347,38 @@ def verify_commit(meta: CommitMeta, rules: list[AuthorRule],
     items: list[dict] = []
     sha_label = meta.short_sha
 
-    # ── ORIGIN-01: author/committer email 都必须在白名单 ──
-    # 【不易】author 与 committer 任一不在白名单即阻断(防 author 伪造但 committer 真实)
+    # ── ORIGIN-01: author email 严格白名单; committer email 放行 GitHub 平台邮箱 ──
+    # 【不易】author email 必须在白名单(防脚本用本地 git 身份伪造 author push 到 master)
+    # 【变易】committer email 由 GitHub 平台在 squash merge / web 编辑 / API 提交时
+    #         改写为 noreply@github.com(平台行为不可控), 此场景放行不阻断;
+    #         但若 committer 既不在白名单也不是 GitHub 平台邮箱, 仍阻断(防 author 伪造
+    #         但用真实 committer 蒙混)。
     author_rule = next((r for r in rules if r.email == meta.author_email), None)
-    committer_rule = next((r for r in rules if r.email == meta.committer_email), None)
-    if not author_rule or not committer_rule:
-        missing = []
-        if not author_rule:
-            missing.append(f"author={meta.author_email}")
-        if not committer_rule:
-            missing.append(f"committer={meta.committer_email}")
+    if not author_rule:
         items.append(_item(
             "ORIGIN-01", sha_label,
-            "author/committer email 不在白名单",
+            "author email 不在白名单",
             "BLOCK",
-            f"{' & '.join(missing)} | subject={meta.subject[:60]}",
+            f"author={meta.author_email} | subject={meta.subject[:60]}",
         ))
-        return items  # 后续校验无意义
+        return items  # author 不合法, 后续校验无意义
 
-    rule = author_rule  # author 与 committer 应为同一规则(白名单 email 匹配)
+    # committer 校验: 白名单命中 OR GitHub 平台邮箱(noreply.github.com 域)放行
+    committer_rule = next((r for r in rules if r.email == meta.committer_email), None)
+    committer_is_github_platform = (
+        meta.committer_email.endswith("@noreply.github.com")
+        or meta.committer_email == "noreply@github.com"
+    )
+    if not committer_rule and not committer_is_github_platform:
+        items.append(_item(
+            "ORIGIN-01", sha_label,
+            "committer email 不在白名单且非 GitHub 平台邮箱",
+            "BLOCK",
+            f"committer={meta.committer_email} | subject={meta.subject[:60]}",
+        ))
+        return items
+
+    rule = author_rule  # 后续路径/PR 校验基于 author 规则(防 bot 越权)
 
     # ── bot 身份校验(ORIGIN-02/03) ──
     if rule.is_bot:

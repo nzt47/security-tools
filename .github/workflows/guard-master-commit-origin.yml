@@ -49,6 +49,14 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: 安装依赖
+        # 【变易】CI 环境默认无 pyyaml, 需安装以加载 commit_origin_whitelist.yaml
+        # 缺失时 verify_commit_origin.py 会降级用内置默认值(【不易】不阻断), 但白名单
+        # 配置(bot allowed_paths 等)将无法生效, 故显式安装避免降级
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
       - name: 检查脚本存在(跨分支/仓库安全)
         id: precheck
         run: |
