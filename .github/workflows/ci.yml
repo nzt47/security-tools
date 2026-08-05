@@ -88,6 +88,17 @@ jobs:
           pip install pyyaml
           python scripts/lint_workflow_guard.py .github/workflows
 
+      - name: BOM 污染监控（受保护文件第二道防线）
+        # Why 阻塞: 并行会话/自动脚本可用 `git commit --no-verify` 或
+        #   SKIP_ENCODING_CHECK=1 绕过 pre-commit hook（run_l3_regression_tests.ps1
+        #   2026-08-05 连续两次叠加 BOM x3 即此路径），本地防线失效后 CI 必须兜底。
+        #   guard_bom_pollution.py 复用 ps_bom_contract 单一事实源, 受保护清单
+        #   WATCH_DEFAULT = REQUIRE_BOM_DEFAULT + 历史污染点, 可 --watch 追加。
+        #   详见 docs/troubleshooting/bom_pollution_recurrence_postmortem_20260805.md
+        run: |
+          echo "=== BOM 污染监控(受保护文件清单) ==="
+          python scripts/guard_bom_pollution.py --repo-root "$GITHUB_WORKSPACE"
+
   # ============================================================================
   # 安全扫描
   # ============================================================================
