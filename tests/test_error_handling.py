@@ -46,6 +46,13 @@ class TestConfigValidation(unittest.TestCase):
             "behavior": {"check_interval": 30},
             "permission": {"backup_dir": "./.backups"},
             "security": {"enable_encryption": True},
+            # circuit_breaker：2026-08 新增为必需配置节（三级熔断器配置，
+            # 对应 ConfigModel.circuit_breaker / agent/circuit_breaker.py）
+            "circuit_breaker": {
+                "session": {"failure_threshold": 5, "cool_down_seconds": 30},
+                "user": {"failure_threshold": 20, "cool_down_seconds": 60},
+                "global": {"failure_threshold": 100, "cool_down_seconds": 300},
+            },
         }
         errors = self.validate_config(config)
         self.assertEqual(len(errors), 0)

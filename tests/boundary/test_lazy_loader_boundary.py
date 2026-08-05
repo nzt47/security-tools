@@ -238,16 +238,15 @@ class TestAsyncBoundary:
 
     def test_async_load_unregistered_returns_none(self, async_loader):
         """异步 load 未注册 name 返回 None"""
-        result = asyncio.get_event_loop().run_until_complete(
-            async_loader.load("not_registered")
-        )
+        # 【不易】Python 3.10+ 弃用 asyncio.get_event_loop()（无运行 loop 时抛
+        # RuntimeError），改用 asyncio.run() 创建临时事件循环执行协程。
+        # 守 Python 3.11/3.12 兼容（run 30978517711 Shard6 在 3.11 上失败）。
+        result = asyncio.run(async_loader.load("not_registered"))
         assert result is None
 
     def test_async_load_level_empty_returns_empty_dict(self, async_loader):
         """异步加载空级别返回空字典"""
-        result = asyncio.get_event_loop().run_until_complete(
-            async_loader.load_level(LoadLevel.CRITICAL)
-        )
+        result = asyncio.run(async_loader.load_level(LoadLevel.CRITICAL))
         assert result == {}
 
     def test_async_load_failing_loader_returns_none(self, async_loader):
@@ -257,9 +256,7 @@ class TestAsyncBoundary:
             _make_failing_loader_func(RuntimeError("异步加载失败")),
             level=LoadLevel.CRITICAL,
         )
-        result = asyncio.get_event_loop().run_until_complete(
-            async_loader.load("async_broken")
-        )
+        result = asyncio.run(async_loader.load("async_broken"))
         assert result is None
         info = async_loader.modules["async_broken"]
         assert info.error is not None

@@ -74,15 +74,31 @@ class MessageHandler:
             现对齐调用方实际传入的键，并委托 DST.is_ellipsis_query 做指代/省略检测。
 
         支持的 context 键（向后兼容，缺省退化为纯正则）:
-            - text: str              当前用户输入（必需）
+            - text: str              当前用户输入（必需；传 None 抛 TypeError，
+                                     守"调用方契约违约应显式失败而非静默兜底"原则）
             - last_was_template: bool 上一轮是否模板回复
             - confidence: Confidence  本轮意图置信度（保留字段，暂未用作判据）
             - session_id: str         会话 ID；提供则委托 DST 检测省略句
             - history_count: int      兼容旧调用方（保留）
         """
-        text = (context.get("text") or "").strip()
+        # text 契约校验：区分"键缺失"与"显式 None"
+        # - 键缺失（"text" not in context）：向后兼容旧调用方 → 返回 False
+        #   守 test_dialog_state.test_follow_up_text_missing_returns_false
+        # - 显式 None（context["text"] is None）：
+        #   * history_count == 0 → 返回 False（短路不触发 p.match）
+        #     守 test_null_is_follow_up_none_text_zero_history
+        #   * history_count > 0 → 抛 TypeError（会走到 p.match(None) 导致 TypeError）
+        #     守 test_invalid_is_follow_up_none_text
+        if "text" not in context:
+            return False
+        text = context["text"]
         last_was_template = bool(context.get("last_was_template", False))
         history_count = int(context.get("history_count", 0))
+        if text is None:
+            if history_count == 0:
+                return False
+            raise TypeError("is_follow_up context['text'] must be str when history_count > 0, got None")
+        text = text.strip()
 
         if not text:
             return False

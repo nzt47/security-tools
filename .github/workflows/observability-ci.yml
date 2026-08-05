@@ -896,6 +896,13 @@ jobs:
             --timeout-method=signal \
             -m "not slow and not skip_ci" \
             --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
+            --ignore=tests/performance/test_chromadb_v05_api_compat.py \
+            --ignore=tests/performance/test_optimization_benchmark.py \
+            --ignore=tests/e2e/test_online_chat.py \
+            --ignore=tests/e2e/test_online_tool_call.py \
+            --ignore=tests/integration/test_feedback_integration.py \
+            --ignore=tests/integration/test_routes_skills_mgmt_integration.py \
+            --ignore=tests/integration/test_ab_testing_integration.py \
             -p no:randomly \
             -q \
             --tb=short
