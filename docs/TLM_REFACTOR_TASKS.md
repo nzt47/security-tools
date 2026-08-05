@@ -321,3 +321,39 @@ flowchart LR
 - [ ] Step 6: `import agent.memory_optimized` 触发 `DeprecationWarning`
 - [ ] 全程 API 契约白名单未被破坏
 - [ ] CHANGELOG.md 每步都有更新
+
+---
+
+## 7. 附录：BM25 后续优化任务（P0 网格扫描）
+
+> **来源**: [BM25_TECHNICAL_RETROSPECTIVE.md](./wiki/BM25_TECHNICAL_RETROSPECTIVE.md) §4 P0 建议
+> **背景**: v1.5.0 已调优 b=0.75→0.5（缓解短文档虚高，降幅 25%），
+>         当前仅验证了单一 b 值，未做 k1+b 联合网格扫描。
+> **分支建议**: `perf/bm25-k1b-grid-scan`
+> **状态**: 待启动
+
+### P0-1: k1+b 联合网格扫描
+
+| # | 任务 | 文件 | 验收标准 | 状态 |
+|---|------|------|----------|------|
+| 7.1 | 构建真实查询基准集（50-100 组技能检索 query + 期望 top1） | `tests/fixtures/bm25_eval_queries.json` | 覆盖短查询(1-2 token)/长查询(5+ token)/专有名词/语义相近干扰项 | ☐ |
+| 7.2 | 实现网格扫描脚本（k1∈[1.0,1.5,2.0] × b∈[0.3,0.5,0.7] = 9 组合） | `scripts/bm25_grid_scan.py` | 输出每组合的 NDCG@5/Recall@5 对比表 | ☐ |
+| 7.3 | 评估当前默认（k1=1.5, b=0.5）在网格中的位置 | 同上 | 确认当前配置非最差组合，记录最优组合 | ☐ |
+| 7.4 | 若最优组合与当前默认差异显著，更新 `_DEFAULT_K1`/`_DEFAULT_B` | `memory/vector_store/vector_store.py` | 更新默认值 + 更新 BM25_B_PARAMETER_RATIONALE.md | ☐ |
+| 7.5 | 基准集接入 CI（新增 `scripts/verify_bm25_eval.py`，复用基准集断言 Recall@5 ≥ 阈值） | `.github/workflows/ci.yml` | CI 新增 step，防基准集漂移 | ☐ |
+
+### 验收标准
+
+- [ ] 基准集 ≥ 50 组真实 query，覆盖 4 类场景
+- [ ] 网格扫描输出 9 组合的 NDCG/Recall 对比表（可归档）
+- [ ] 当前默认（k1=1.5, b=0.5）有明确的位置评估结论
+- [ ] 若调整默认值：单测 + 极端场景验证 + CI 全部通过
+- [ ] CHANGELOG.md 记录扫描结果
+
+### 回滚策略
+
+| 阶段 | 回滚方式 |
+|------|----------|
+| 仅新增基准集/脚本（7.1-7.3） | `git revert <commit>` 无副作用 |
+| 调整默认值（7.4） | 环境变量 `BM25_K1`/`BM25_B` 一键回滚 |
+| CI 接入（7.5） | `git revert` 移除 step |
