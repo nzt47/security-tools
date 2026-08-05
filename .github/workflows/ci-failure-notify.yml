@@ -23,10 +23,15 @@ on:
         type: boolean
         default: false
 
-# 权限：仅需读取 workflow 运行结果
+# 权限：读取 workflow 运行结果 + 创建 GitHub Issue
+# 【不易根因修复 CHG-2026-0805】"创建 GitHub Issue" 步骤调 issues.create/listForRepo,
+# 顶层缺 issues: write 时 github-script 报 403 "Resource not accessible by integration"
+# （2026-08-05 实跑: run 31022043462/31022373915 failure）。补权限后与 observability-ci.yml
+# visibility-report 的 pull-requests: write 修复同契约。
 permissions:
   actions: read
   contents: read
+  issues: write
 
 jobs:
   notify:
