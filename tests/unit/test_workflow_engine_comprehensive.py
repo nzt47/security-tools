@@ -829,3 +829,53 @@ class TestIntegration:
         # engine2 不应受影响
         assert engine1.registry.count() == 8
         assert engine2.registry.count() == 0
+
+
+# ═══════════════════════════════════════════════════════════════
+# 规则关键词外置到环境变量（2026-08-06 新增）
+# 覆盖：_env_keywords 追加合并去重 + env 变体命中 + confirmation 默认补齐
+# ═══════════════════════════════════════════════════════════════
+
+
+class TestRuleKeywordEnv:
+    """规则关键词外置 ORCHESTRATOR_RULE_KEYWORDS_*（追加合并去重）"""
+
+    def test_env_keywords_append_dedupe(self, monkeypatch):
+        """env 关键词追加到默认并去重（重复关键词只保留一份）"""
+        from agent.workflow_engine.builtin_rules import _env_keywords
+        defaults = ["现在几点", "几点了"]
+        monkeypatch.setenv(
+            "ORCHESTRATOR_RULE_KEYWORDS_CHECK_TIME",
+            "现在几点了, 几点了, 几点钟了")
+        merged = _env_keywords("ORCHESTRATOR_RULE_KEYWORDS_CHECK_TIME", defaults)
+        assert merged == ["现在几点", "几点了", "现在几点了", "几点钟了"]
+
+    def test_env_keywords_missing_returns_defaults(self, monkeypatch):
+        """未配置 env 时返回默认值（追加而非覆盖，守【不易】）"""
+        from agent.workflow_engine.builtin_rules import _env_keywords
+        monkeypatch.delenv(
+            "ORCHESTRATOR_RULE_KEYWORDS_CHECK_TIME", raising=False)
+        assert _env_keywords("ORCHESTRATOR_RULE_KEYWORDS_CHECK_TIME", ["a"]) == ["a"]
+
+    def test_env_keywords_blank_returns_defaults(self, monkeypatch):
+        """env 为空白时返回默认值"""
+        from agent.workflow_engine.builtin_rules import _env_keywords
+        monkeypatch.setenv("ORCHESTRATOR_RULE_KEYWORDS_CHECK_TIME", "  , ")
+        assert _env_keywords("ORCHESTRATOR_RULE_KEYWORDS_CHECK_TIME", ["a"]) == ["a"]
+
+    def test_env_only_variant_keyword_matches(self, monkeypatch):
+        """env 追加的默认中不存在的新词能命中（证明外置真正生效）"""
+        monkeypatch.setenv("ORCHESTRATOR_RULE_KEYWORDS_CHECK_TIME", "几点钟啦")
+        engine = WorkflowEngine()
+        register_builtin_rules(engine.registry)
+        result = engine.try_match("几点钟啦")
+        assert result.matched is True
+        assert result.rule_name == "check_time"
+
+    def test_confirmation_default_has_wu_wen_ti(self):
+        """【修复】confirmation 默认关键词补齐"没问题"变体（7 条变体唯一缺失项）"""
+        engine = WorkflowEngine()
+        register_builtin_rules(engine.registry)
+        result = engine.try_match("没问题")
+        assert result.matched is True
+        assert result.rule_name == "confirmation"

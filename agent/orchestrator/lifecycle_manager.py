@@ -102,6 +102,53 @@ class LifecycleManager:
         config = config or {}
         self._config = config
 
+        # 【修复】预导入 sentence_transformers，规避 Windows 上 0xC0000005 崩溃
+        # 根因：DigitalLife 构造时 VectorStore._get_shared_encoder 首次 import
+        #       sentence_transformers，其内部 datasets/pyarrow(native) 与已加载
+        #       的库冲突导致 ACCESS_VIOLATION。在构造早期(相对干净环境)完成包导入，
+        #       后续 _get_shared_encoder 直接复用 sys.modules 不再走崩溃路径。
+        # 失败仅降级日志，不阻断启动（VectorStore 回退 JSON/BM25，守【不易】主链路稳定）。
+        # 【日志埋点】记录预导入耗时/是否命中缓存/异常明细，便于 0xC0000005 复现排查
+        _st_t0 = time.time()
+        _st_in_cache = "sentence_transformers" in _sys.modules
+        try:
+            import sentence_transformers  # noqa: F401
+            logger.info(log_dict({
+                "module_name": "lifecycle_manager",
+                "action": "lifecycle_manager.pre_import_sentence_transformers.ok",
+                "message": "[修复埋点] sentence_transformers 预导入成功(耗时 %.1fms, 预缓存=%s)，"
+                           "后续 VectorStore 将复用 sys.modules 避开崩溃路径"
+                           % ((time.time() - _st_t0) * 1000, _st_in_cache),
+                "elapsed_ms": round((time.time() - _st_t0) * 1000, 1),
+                "cached": _st_in_cache,
+            }))
+        except Exception as _st_e:
+            logger.warning(log_dict({
+                "module_name": "lifecycle_manager",
+                "action": "lifecycle_manager.pre_import_sentence_transformers.failed",
+                "message": "[修复埋点] sentence_transformers 预导入失败(耗时 %.1fms)，"
+                           "向量检索将降级（不阻断启动）: %s"
+                           % ((time.time() - _st_t0) * 1000, _st_e),
+                "error": "%s: %s" % (type(_st_e).__name__, _st_e),
+                "elapsed_ms": round((time.time() - _st_t0) * 1000, 1),
+            }))
+
+        # 【兼容补丁】Python 3.12 + multiprocess resource_tracker 的 _recursion_count
+        # site-packages 手工补丁会在 pip 重装 multiprocess 后丢失，此处由应用层注入兜底：
+        # 给 threading.RLock 补回 3.12 移除的 _recursion_count（语义与 3.11 一致），
+        # 消除 shutdown 时 "Exception ignored" 告警。失败仅降级，不阻断启动。
+        try:
+            from agent.utils.compatibility import apply_multiprocess_compat_patch
+            if apply_multiprocess_compat_patch():
+                logger.info(log_dict({
+                    "module_name": "lifecycle_manager",
+                    "action": "lifecycle_manager.apply_multiprocess_compat_patch.ok",
+                    "message": "[兼容补丁] 已注入 threading.RLock._recursion_count "
+                               "(Python 3.12 + multiprocess 兼容)",
+                }))
+        except Exception:
+            pass  # 补丁失败仅降级，不阻断启动
+
         # 后台自主循环线程专属 trace_id（解决 ContextVar 不自动继承到子线程问题）
         # 子线程在 _autonomous_loop 入口调用 set_trace_id(self._lifecycle_trace_id) 显式注入
         self._lifecycle_trace_id = f"lifecycle-{uuid.uuid4().hex[:16]}"

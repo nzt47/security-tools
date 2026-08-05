@@ -37,6 +37,24 @@ def _greeting_time() -> str:
         return "晚上好"
 
 
+def _env_keywords(env_key: str, defaults: list) -> list:
+    """规则关键词外置（【变易】）：读取 ``ORCHESTRATOR_RULE_KEYWORDS_<规则名>`` 环境变量，
+    逗号分隔的追加关键词与默认值合并去重。
+
+    追加而非覆盖（【不易】）：.env 缺配时默认规则不受影响；重复关键词自动去重。
+    配置单一数据源约定：.env 定义追加变体，代码保留内置默认。
+    """
+    import os
+    raw = os.environ.get(env_key, "").strip()
+    if not raw:
+        return list(defaults)
+    merged = list(defaults)
+    for kw in (k.strip() for k in raw.split(",")):
+        if kw and kw not in merged:
+            merged.append(kw)
+    return merged
+
+
 def register_builtin_rules(registry):
     """注册 8 条内置规则"""
 
@@ -44,7 +62,9 @@ def register_builtin_rules(registry):
     registry.register(Rule(
         name="check_time",
         description="现在几点/当前时间",
-        match_fn=keyword_match(["现在几点", "当前时间", "几点了", "什么时间", "几点钟"]),
+        match_fn=keyword_match(_env_keywords(
+            "ORCHESTRATOR_RULE_KEYWORDS_CHECK_TIME",
+            ["现在几点", "当前时间", "几点了", "什么时间", "几点钟"])),
         execute_fn=lambda _: f"现在是 {_current_time_fmt()}",
         priority=100,
         category="query",
@@ -54,7 +74,9 @@ def register_builtin_rules(registry):
     registry.register(Rule(
         name="check_date",
         description="今天几号/今天日期",
-        match_fn=keyword_match(["今天几号", "今天日期", "今天周", "今天星期", "什么日子"]),
+        match_fn=keyword_match(_env_keywords(
+            "ORCHESTRATOR_RULE_KEYWORDS_CHECK_DATE",
+            ["今天几号", "今天日期", "今天周", "今天星期", "什么日子"])),
         execute_fn=lambda _: f"今天是 {_current_date_fmt()} {_current_weekday()}",
         priority=100,
         category="query",
@@ -64,7 +86,9 @@ def register_builtin_rules(registry):
     registry.register(Rule(
         name="check_health",
         description="你还好吗/状态查询",
-        match_fn=keyword_match(["还好吗", "状态", "在吗", "在不在", "hello", "hi", "你好"]),
+        match_fn=keyword_match(_env_keywords(
+            "ORCHESTRATOR_RULE_KEYWORDS_CHECK_HEALTH",
+            ["还好吗", "状态", "在吗", "在不在", "hello", "hi", "你好"])),
         execute_fn=lambda _: f"{_greeting_time()}！我在线，一切正常 😊",
         priority=90,
         category="greeting",
@@ -84,7 +108,9 @@ def register_builtin_rules(registry):
     registry.register(Rule(
         name="greeting",
         description="自动分时段问候",
-        match_fn=keyword_match(["早上好", "下午好", "晚上好", "你好", "大家好"]),
+        match_fn=keyword_match(_env_keywords(
+            "ORCHESTRATOR_RULE_KEYWORDS_GREETING",
+            ["早上好", "下午好", "晚上好", "你好", "大家好"])),
         execute_fn=lambda _: f"{_greeting_time()}！有什么我可以帮你的吗？",
         priority=80,
         category="greeting",
@@ -94,7 +120,9 @@ def register_builtin_rules(registry):
     registry.register(Rule(
         name="farewell",
         description="告别回复",
-        match_fn=keyword_match(["再见", "拜拜", "bye", "goodbye", "下次见", "明天见"]),
+        match_fn=keyword_match(_env_keywords(
+            "ORCHESTRATOR_RULE_KEYWORDS_FAREWELL",
+            ["再见", "拜拜", "bye", "goodbye", "下次见", "明天见"])),
         execute_fn=lambda _: "再见！有需要随时找我 😊",
         priority=80,
         category="farewell",
@@ -104,17 +132,22 @@ def register_builtin_rules(registry):
     registry.register(Rule(
         name="thanks",
         description="感谢回复",
-        match_fn=keyword_match(["谢谢", "感谢", "多谢", "thank", "thanks", "thx"]),
+        match_fn=keyword_match(_env_keywords(
+            "ORCHESTRATOR_RULE_KEYWORDS_THANKS",
+            ["谢谢", "感谢", "多谢", "thank", "thanks", "thx"])),
         execute_fn=lambda _: "不客气！很高兴能帮到你 😊",
         priority=70,
         category="polite",
     ))
 
     # 8. 确认
+    # 【修复】默认关键词补齐"没问题"变体（2026-08-06 规则层变体审计唯一缺失项）
     registry.register(Rule(
         name="confirmation",
         description="确认回复",
-        match_fn=keyword_match(["好的", "可以", "明白", "懂了", "知道了", "收到"]),
+        match_fn=keyword_match(_env_keywords(
+            "ORCHESTRATOR_RULE_KEYWORDS_CONFIRMATION",
+            ["好的", "可以", "明白", "懂了", "知道了", "收到", "没问题"])),
         execute_fn=lambda _: "好的，明白了！",
         priority=50,
         category="polite",
