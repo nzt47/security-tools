@@ -83,7 +83,8 @@ jobs:
           remote: origin,gitee
       - name: 打印卡点结果
         if: always()
-        run: echo "发布就绪状态: ${{ steps.check.outputs.status }}"
+        run: |
+          echo "发布就绪状态: ${{ steps.check.outputs.status }}"
 ```
 
 ### 示例 4：手动触发跳过卡点（调试用）
