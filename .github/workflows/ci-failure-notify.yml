@@ -10,6 +10,9 @@ on:
       - "日志性能守护"
       - "硬编码密码扫描（全分支）"
       - "关键字参数冲突扫描 (Docker)"
+      # 【变易】guard workflow enforce 模式下会阻断非法 commit(exit 1),
+      # 加入白名单使其失败时联动 GitHub Issue + 邮件通知, 与其余 workflow 对齐
+      - "master commit 来源守卫(verify_commit_origin)"
     types:
       - completed
   # 【变易】支持手动触发：验证通知链路（无需等待真实 workflow 失败）
