@@ -128,3 +128,49 @@ git checkout master                 # 确认工作无误后切回
 | 08-05 06:51 | 后台提交 `a95e2dce`（Wiki 页面 + verify 脚本混合），消息为 test(ci) |
 | 08-05 | 4 个 .ps1 被叠加 BOM（BLOCK 级），修复后恢复 |
 | 08-05 | 分支被切到 `fix/observability-ci-shard`，3 个后台文件被提交跟踪 |
+
+## 8. 真相澄清（2026-08-05 复核，重要）
+
+本章更正前述章节中的错误归因。经全仓排查（进程列表 / 计划任务 / 端口监听 / 提交时间线）确认：
+
+| 结论 | 依据 |
+|------|------|
+| **不存在恶意守护进程** | 当前无 python/git 后台常驻进程、无自定义计划任务、无独立监听端口（33030 为 Trae 自身 SSE 端口） |
+| **"干扰"主源 = 并发 AI 会话** | 08-05 白天 08:38~21:43 存在另一 Trae 会话持续提交（`fix(ci)`/`docs(ci)`/`chore(ci)` 数十个），其 git add/commit/rebase 与人工操作并发，表现为"提交被混入无关文件 / 工作区被还原 / 分支变化" |
+| **06:47 的 `verify_bom_hook_stability` 运行 = 人工验证测试** | 该脚本设计即"循环 git add/reset/commit 触发 hook 拦截"（见脚本 docstring），06:47-06:49 的 5 轮运行是人工执行的 BOM 拦截稳定性验证，**非调度实例，不应被终止** |
+| **GitHub 自动提交 = workflow 正常行为** | `ab4f3670` 等 `[skip ci]` 提交（+0000 时区、github-actions bot 身份）来自模块依赖图 / CI 健康度看板自动更新 workflow |
+
+### 处置要点（守【不易】）
+
+1. ⚠️ **不要执行 `stop_agitator_processes.ps1 -Kill` 去杀 `verify_bom_hook_stability` 进程**——该默认模式会匹配人工验证测试脚本本身，误杀合法验证。仅在确认存在「你自己运行的、不再需要的」同名调度时才可终止。
+2. 若确认另一会话不再需要，由**人工手动关闭**该 Trae 对话即可；没有独立守护进程可杀。
+3. §6 的提交前固定动作（`git status --short` → `git diff --cached --name-only` → 提交 → 核对 `git log -1`）依旧适用，用于规避并发会话的 git 竞争。
+
+## 9. 排查清单（速查 · 手动验证/清理用）
+
+按顺序执行，每步记录结果：
+
+- [ ] 1. **确认无活跃干扰进程**
+      `powershell -File scripts/stop_agitator_processes.ps1`（DryRun 仅报告，勿盲目 `-Kill`）
+      `Get-Process | Where-Object { $_.ProcessName -match 'python|git' }` → 期望为空
+- [ ] 2. **确认无自定义计划任务**
+      `schtasks /query /fo CSV | ConvertFrom-Csv | Where-Object { $_.'Task To Run' -match 'agent|python|git' }` → 期望无自定义项
+- [ ] 3. **核对提交时间线（区分来源）**
+      `git log --since='今天' --format='%h %ci %s'`
+      - `+0000` 且 `[skip ci]` → GitHub workflow 自动提交（正常行为，保留）
+      - `+0800` 且非本人操作 → 并发会话提交（人工评估是否保留）
+- [ ] 4. **检查工作区污染**
+      `git status --porcelain`（未跟踪文件逐个确认来源）
+      `git diff --cached --name-only`（暂存区应仅含目标文件）
+- [ ] 5. **检查 BOM 污染**
+      `python scripts/check_ps1_encoding.py --repo-root .` → 期望 BLOCK 0
+- [ ] 6. **验证 hook 拦截能力（可选）**
+      `python scripts/verify_bom_hook_stability.py --iterations 2` → 期望 2/2 PASS
+- [ ] 7. **关键文件不变量**
+      `python scripts/verify_core_invariants.py --repo-root .` → 期望 12/12 PASS
+- [ ] 8. **清理误跟踪**（若后台已把干扰产物 `git add`）
+      `git restore --staged <文件>`（只动 index，不动工作区）
+- [ ] 9. **清理未跟踪日志/产物**（确认来源后删除）
+      `docs/troubleshooting/*.log`、`docs/troubleshooting/_diag_*.py`、`docs/observability/*_report.md` 等逐个核对
+- [ ] 10. **定期体检（预防）**
+      计划任务挂 `stop_agitator_processes.ps1`（仅报告模式）或每周人工跑一次 §9 清单
