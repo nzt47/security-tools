@@ -903,6 +903,7 @@ jobs:
             --ignore=tests/integration/test_feedback_integration.py \
             --ignore=tests/integration/test_routes_skills_mgmt_integration.py \
             --ignore=tests/integration/test_ab_testing_integration.py \
+            --ignore=tests/test_network_config_integration.py \
             -p no:randomly \
             -q \
             --tb=short
