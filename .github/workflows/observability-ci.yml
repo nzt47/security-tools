@@ -1017,6 +1017,13 @@ jobs:
   visibility-report:
     name: 四层可见性报告
     runs-on: ubuntu-latest
+    # 【不易】修复 run 30990656229 的 403 Resource not accessible by integration：
+    # PR 评论步骤调用 github.rest.issues.createComment 需要 pull-requests: write 权限。
+    # 其余 3 个会写 PR 评论的 job（架构影响可见性检查 / 边界覆盖检查 / 混沌测试）
+    # 均已声明 permissions: pull-requests: write，仅本 job 漏写。
+    permissions:
+      pull-requests: write
+      contents: read
     needs: [boundary-coverage-check, contract-test, observability-unit-tests, coverage-combine]
     steps:
       - name: 检出代码
