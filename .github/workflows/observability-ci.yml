@@ -322,7 +322,7 @@ jobs:
         run: |
           echo "=== 运行可观测性单元测试 ==="
           # --cov-fail-under=0：本 job 仅测可观测性子模块，覆盖率不用于阻断
-          # 全项目覆盖率由 full-project-tests job 生成 coverage.xml，
+          # 全项目覆盖率由 coverage-combine job 生成 coverage.xml，
           # visibility-report job 下载后由 visibility_report.py 读取 line-rate（不再降级到 pyproject.toml）
           # test_visibility_export.py：防回归 — 验证四层可见性指标导出命名规范
           #   重点：arch_rule_violations 必须规范化为 rule_violations，禁止双重 arch 前缀
@@ -354,7 +354,7 @@ jobs:
           echo "=== 可观测性模块覆盖率 ==="
           # --fail-under=0 覆盖 pyproject.toml 中的 fail_under=40：
           # 本 job 仅测可观测性子模块（7 个测试文件），覆盖率仅用于显示不用于阻断。
-          # 全项目覆盖率由 full-project-tests job 检查。
+          # 全项目覆盖率由 coverage-combine job 检查。
           coverage report --fail-under=0 --include="*/monitoring/*,*/observability/*,*/prometheus_exporter*"
 
       # ── 优化脚本单元测试（仅 Python 3.11 matrix 运行，避免重复）──
@@ -440,7 +440,7 @@ jobs:
       # 原因：本 job 仅测 5 个可观测性测试文件，生成的 coverage.xml 只覆盖
       #       agent.monitoring/agent.observability/agent.prometheus_exporter 三个子模块，
       #       line-rate≈19.7%，远低于全项目 40% 阈值，会导致 visibility-report 误判失败。
-      # 修复：visibility-report job 改为下载 full-project-tests job 生成的 full-coverage-report
+      # 修复：visibility-report job 改为下载 coverage-combine job 生成的 full-coverage-report
       #       artifact（覆盖 agent + scripts 全量代码），visibility_report.py 直接读取
       #       coverage.xml 的 line-rate；缺失时返回 0.0 并输出 error 日志（不再降级到 pyproject.toml）。
 
@@ -842,8 +842,17 @@ jobs:
   # 阶段4：全项目测试覆盖率（生成真实 coverage.xml 供 visibility-report 消费）
   # ============================================================================
   full-project-tests:
-    name: 全项目测试覆盖率
-    runs-on: ubuntu-latest
+    name: 全项目测试覆盖率 (Shard ${{ matrix.shard }}/6)
+    # 【不易】runner 选择对齐 ci.yml：2026-08-03 起观察 ubuntu-latest 公共 runner 池
+    # 在高峰时段回收长 job（exit 143 / shutdown signal）。ubuntu-22.04 避开高峰回收。
+    # 历史：本 job 单 pytest 跑全 tests/ 21min，连续两次被 runner shutdown（59%/92% 处）
+    runs-on: ubuntu-22.04
+    # 【不易】硬超时兜底：单 shard 预计 5-10min，30min 留足缓冲
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ['1', '2', '3', '4', '5', '6']
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
@@ -857,41 +866,29 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
-          # pytest-timeout：为全项目测试提供 --timeout 参数，防止单个测试卡住整个 CI
-          pip install pytest pytest-cov pytest-mock pytest-asyncio pytest-timeout
+          # pytest-xdist：-n 2 并行；pytest-timeout：--timeout 兜底
+          pip install pytest pytest-cov pytest-xdist pytest-mock pytest-asyncio pytest-timeout
           pip install prometheus-client opentelemetry-api opentelemetry-sdk
           pip install pyyaml
           pip install -e .
 
-      - name: 运行全项目测试并生成 coverage.xml
+      - name: 运行分片测试并生成 coverage 数据
         env:
-          # 【不易】CI 必须启用 SKILLS_OFFLINE,避免 sentence_transformers/transformers
-          # 导入时递归扫描文件系统触发超时（与 ci.yml unit-tests job 保持一致）
-          # conftest.py 的 _skills_offline_mode fixture 会 patch 重量级模块为 None,
-          # 业务代码走 fallback 路径
+          # 【不易】SKILLS_OFFLINE=1 与 ci.yml 一致：避免 transformers/sentence_transformers
+          # 导入时递归扫描文件系统触发 timeout（conftest.py 的 _skills_offline_mode patch）
           SKILLS_OFFLINE: '1'
         run: |
-          echo "=== 运行全项目测试（SKILLS_OFFLINE=1，对齐 ci.yml 配置）==="
-          # --cov=agent --cov=scripts：同时测量 agent 和 scripts 两个源目录
-          # --cov-report=xml：生成 coverage.xml 供 visibility-report job 消费
-          # --maxfail=0：覆盖 pytest.ini 的 --maxfail=10，避免 collection errors 过早停止
-          #   原因：pytest.ini 配置了 --maxfail=10，全项目测试中若有测试文件 import 失败
-          #         （如依赖外部服务），会在 10 个 errors 后停止，导致 coverage.xml line-rate=0
-          # --continue-on-collection-errors：部分测试文件 collection 失败时仍继续执行其他测试
-          # --cov-fail-under=0：不因覆盖率低而失败，阻断交由 visibility-report 的 test_coverage 阈值
-          # --timeout=300 --timeout-method=signal：单个测试超过 300 秒则信号杀掉
-          #   signal 法不创建线程，避免大量测试累积导致 "can't start new thread" INTERNALERROR
-          #   （与 ci.yml 的 --timeout-method=signal 保持一致，Linux 原生支持）
-          # -m "not slow and not skip_ci"：过滤慢测试和 CI 跳过标记，与 ci.yml 一致
-          # --ignore=test_sandbox_multiprocess_boundary.py：CI Linux spawn pickle 错误，与 ci.yml 一致
-          # -p no:randomly：禁用随机排序，避免测试顺序依赖导致的 flaky
-          # 注意：不使用 --cov-config=.coveragerc_scripts，因为该配置的 omit 包含 agent/*
-          #       会排除 agent 目录下所有文件，与全项目覆盖率目标冲突
-          python -m pytest tests/ \
+          echo "=== 运行全项目测试 Shard ${{ matrix.shard }}/6（SKILLS_OFFLINE=1，-n 2 并行）==="
+          # 【变易】--root tests：调用扩展后的 split_unit_tests.py 扫描全 tests/
+          #   （含 unit/integration/regression/e2e，rglob 递归）
+          # 【不易】--shards 6 与 matrix.shard 元素数一致，调整需同步两处
+          # 【不易】--ignore 与 split_unit_tests.py 的 EXCLUDED 必须一致
+          #   （split 脚本会显式传文件给 pytest，--ignore 无法拦截显式传入路径）
+          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6 --root tests) \
+            -n 2 \
+            --dist=loadscope \
             --cov=agent \
             --cov=scripts \
-            --cov-report=xml \
-            --cov-report=term-missing \
             --maxfail=0 \
             --continue-on-collection-errors \
             --cov-fail-under=0 \
@@ -902,27 +899,95 @@ jobs:
             -p no:randomly \
             -q \
             --tb=short
+          # 【变易】对齐 ci.yml coverage-check 命名约定：coverage_raw_shardN.data
+          # 不生成 coverage.xml（单 shard ~16%，由 coverage-combine job 合并后生成）
+          mv .coverage coverage_raw_shard${{ matrix.shard }}.data
 
-      - name: 验证 coverage.xml
+      - name: 上传 coverage 数据
+        uses: actions/upload-artifact@v7
+        if: always()  # 【不易】测试失败也上传，保证 coverage-combine 能合并部分数据
+        with:
+          name: coverage-data-shard${{ matrix.shard }}
+          path: coverage_raw_shard${{ matrix.shard }}.data
+          retention-days: 3
+
+  # ============================================================================
+  # 阶段4.5：合并覆盖率数据（生成完整 coverage.xml 供 visibility-report 消费）
+  # ============================================================================
+  # 【不易】此 job 是 visibility-report 消费契约的唯一生产者：
+  #   - artifact 名必须为 full-coverage-report
+  #   - artifact 内含根目录 coverage.xml（line-rate 阈值 40% 由 visibility-report 验证）
+  # 复用 ci.yml coverage-check job（L668-727）的合并模板，已生产验证。
+  coverage-combine:
+    name: 合并覆盖率数据
+    runs-on: ubuntu-22.04
+    needs: [full-project-tests]
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装依赖
         run: |
-          echo "=== 验证 coverage.xml ==="
-          if [ -f coverage.xml ]; then
-            echo "✅ coverage.xml 已生成"
-            python -c "import xml.etree.ElementTree as ET; r=ET.parse('coverage.xml').getroot(); print(f'line-rate={r.attrib.get(\"line-rate\")}')"
-          else
-            echo "❌ coverage.xml 未生成"
+          python -m pip install --upgrade pip
+          # coverage 命令由 pytest-cov 提供；pip install -e . 让 source 路径可解析
+          pip install pytest-cov
+          pip install -e .
+
+      - name: 下载所有 shard 的 coverage 数据
+        uses: actions/download-artifact@v8
+        with:
+          # 【变易】pattern 匹配 6 个 coverage-data-shardN artifact
+          # merge-multiple: true 把所有 coverage_raw_shardN.data 平铺到 covdata/
+          pattern: coverage-data-*
+          path: covdata/
+          merge-multiple: true
+
+      - name: 合并 coverage 数据并生成 coverage.xml
+        run: |
+          echo "=== 合并 coverage 数据 ==="
+          ls -la covdata/ || true
+          # 【不易】对齐 ci.yml L702-707：恢复为 .coverage.* 供 coverage combine 自动发现
+          for f in covdata/coverage_raw_shard*.data; do
+            [ -f "$f" ] || continue
+            cp "$f" ".coverage.$(basename "$f" .data)"
+            echo "已恢复: $f"
+          done
+          DATA_COUNT=$(ls .coverage.* 2>/dev/null | wc -l)
+          if [ "$DATA_COUNT" -eq 0 ]; then
+            echo "::error::未下载到任何 coverage 数据，无法合并"
             exit 1
           fi
+          echo "已恢复 $DATA_COUNT 个 coverage 数据文件"
+          # 【不易】对齐 ci.yml L710：|| true 容错部分 shard 失败
+          coverage combine || true
+          # 【不易】|| true：pyproject.toml fail_under=40 会让 coverage xml 在
+          # 覆盖率<40% 时 exit 2（全项目当前 ~0.6%）。coverage.xml 在 fail-under
+          # 检查前已写入，用 || true 吞掉退出码 + 下方文件存在检查兜底
+          coverage xml || true
+          if [ ! -f coverage.xml ]; then
+            echo "::error::coverage.xml 未生成"
+            exit 1
+          fi
+          echo "=== 验证 coverage.xml ==="
+          python -c "import xml.etree.ElementTree as ET; r=ET.parse('coverage.xml').getroot(); print(f'line-rate={r.attrib.get(\"line-rate\")}')"
 
-      - name: 上传 coverage.xml artifact
+      - name: 上传 full-coverage-report artifact
         uses: actions/upload-artifact@v7
         with:
+          # 【不易】artifact 名必须为 full-coverage-report（visibility-report 消费契约）
+          # path 必须为 coverage.xml 单文件（download-artifact 后落在根目录，匹配 visibility_report.py L368）
           name: full-coverage-report
           path: coverage.xml
           retention-days: 7
 
   # ============================================================================
-  # 阶段5：四层可见性报告（消费 full-project-tests 的 coverage.xml）
+  # 阶段5：四层可见性报告（消费 coverage-combine 的 coverage.xml）
   #
   # ===== 阈值分阶段收敛计划（当前：阶段 1，部分实施）=====
   # 阶段 0（已完成）：基线校准，所有指标在阈值以下通过
@@ -939,7 +1004,7 @@ jobs:
   visibility-report:
     name: 四层可见性报告
     runs-on: ubuntu-latest
-    needs: [boundary-coverage-check, contract-test, observability-unit-tests, full-project-tests]
+    needs: [boundary-coverage-check, contract-test, observability-unit-tests, coverage-combine]
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
@@ -965,7 +1030,7 @@ jobs:
         run: |
           echo "=== 确认 coverage.xml 是否就位 ==="
           if [ -f coverage.xml ]; then
-            echo "✅ coverage.xml 已从 full-project-tests 下载"
+            echo "✅ coverage.xml 已从 coverage-combine 下载"
             python -c "import xml.etree.ElementTree as ET; r=ET.parse('coverage.xml').getroot(); print(f'line-rate={r.attrib.get(\"line-rate\")}')"
           else
             echo "⚠️ coverage.xml 未就位，visibility_report.py 将返回 0.0 并输出 error 日志（不再降级到 pyproject.toml fail_under）"
