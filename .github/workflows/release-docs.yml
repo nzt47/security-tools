@@ -24,10 +24,38 @@ permissions:
 
 jobs:
   # ============================================================================
+  # 发布就绪检查（发布前强制卡点）
+  # 【不易】发布前必须通过 RELEASE_PROCESS_TEMPLATE.md §8 检查清单自动化校验，
+  #   BLOCK 项（工作树脏/RELEASE_NOTES 缺章节/本地 tag 缺失）直接阻断后续构建与部署
+  # 【变易】--remote origin（CI 无 gitee 远程，避免 WARN 噪音）；workflow_dispatch 调试不阻断
+  # 【简易】退出码即通过标准：BLOCK → exit 1 → 下游 job 不运行
+  # ============================================================================
+  readiness-check:
+    name: 发布就绪检查（BLOCK 阻断）
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置 Python 3.10
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 运行发布就绪检查
+        # Why if: workflow_dispatch 仅用于手动调试文档构建，不作为正式发布，跳过强制卡点
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          echo "=== 发布就绪检查（RELEASE_PROCESS_TEMPLATE.md §8 自动化）==="
+          python scripts/verify_release_readiness.py --version "${{ github.ref_name }}" --remote origin
+          echo "=== 发布就绪检查通过 ==="
+
+  # ============================================================================
   # 构建 API 文档
   # ============================================================================
   build-docs:
     name: 构建 API 文档
+    needs: readiness-check
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
