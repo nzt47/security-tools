@@ -26,6 +26,11 @@ on:
       - 'data/tool_negative_samples.json'
       # 本 workflow 自身
       - '.github/workflows/tool-retrieval-ci.yml'
+      # 专有名词验证脚本
+      - 'scripts/verify_bm25_proper_noun.py'
+      # 检索器实现(BM25SkillSearcher 变更影响专有名词匹配)
+      - 'agent/skills_mgmt/bm25_searcher.py'
+      - 'agent/skills_mgmt/loader.py'
   pull_request:
     branches: [main, master, develop]
     paths:
@@ -37,6 +42,10 @@ on:
       - 'tests/fixtures/tool_retrieval_eval.json'
       - 'data/tool_negative_samples.json'
       - '.github/workflows/tool-retrieval-ci.yml'
+      # 专有名词验证脚本(与 push 触发路径保持一致)
+      - 'scripts/verify_bm25_proper_noun.py'
+      - 'agent/skills_mgmt/bm25_searcher.py'
+      - 'agent/skills_mgmt/loader.py'
   schedule:
     # 每天凌晨 3 点运行(防止 tool_index.json 漂移未被察觉)
     - cron: '0 3 * * *'
@@ -129,7 +138,7 @@ jobs:
           pytest tests/unit/test_tool_negative_samples.py \
                 -v --tb=short --timeout=60
 
-      - name: 输出 xfail 漂移监控摘要
+      - name: 输出负样本回归 CI 摘要
         if: always()
         run: |
           echo "=== 负样本回归 CI 摘要 ==="
@@ -141,3 +150,48 @@ jobs:
           echo "- xfail 数量增加:说明工具描述变更引入新的 BM25 缺陷 case"
           echo "- xfail 数量减少:说明工具描述优化或 Reranker 上线修复了 case"
           echo "- 两者都需同步更新 _XFAIL_CASES 字典与 test_xfail_cases_count_is_15 断言"
+
+  # ============================================================================
+  # 专有名词精确匹配验证(BM25 对字面缩写优势)
+  # 【不易】专有名词(k8s/gitleaks/sqlite-vec/helm)必须精确匹配,依赖语义向量的
+  #   检索会漏召回。BM25 对字面 token 匹配强,需持续守护。
+  # 【变易】SemanticFakeAdapter 离线模拟向量特性,CI 无需真实模型/网络。
+  # 【简易】运行验证脚本,退出码即通过标准。
+  # ============================================================================
+  proper-noun:
+    name: 专有名词匹配验证 (BM25)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置 Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-timeout pytest-asyncio psutil pyyaml
+          pip install -e . || true
+
+      - name: 运行专有名词匹配验证
+        run: |
+          echo "=== 运行 BM25 专有名词精确匹配验证 ==="
+          python scripts/verify_bm25_proper_noun.py
+          echo "=== 专有名词匹配验证通过 ==="
+
+      - name: 输出专有名词验证摘要
+        if: always()
+        run: |
+          echo "=== 专有名词匹配 CI 摘要 ==="
+          echo "脚本: scripts/verify_bm25_proper_noun.py"
+          echo "验证: BM25 对 k8s/gitleaks/sqlite-vec/helm 字面缩写精确匹配 (期望 100%)"
+          echo "对比: 向量检索(模拟)对字面缩写不敏感,易漏召回"
+          echo ""
+          echo "若本 CI 失败,说明 BM25 或检索融合权重变更削弱了专有名词匹配,"
+          echo "请检查对 agent/skills_mgmt/bm25_searcher.py 或检索权重的修改。"
