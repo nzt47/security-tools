@@ -17,7 +17,7 @@
 CLI:
   --repo-root PATH    仓库根目录（默认当前目录）
   --strict            WARN 升级为 BLOCK（存量缺 BOM 也阻止）
-  --quiet             仅输出结果汇总
+  --quiet             仅输出结果汇总（BLOCK 明细始终输出，供 hook 失败诊断）
   --fix               自动修复：去叠加 BOM（保留 1 个）/ 关键契约文件补 BOM
   --require-bom PATH  追加关键契约文件（可多次，相对 --repo-root）
 
@@ -27,41 +27,16 @@ import argparse
 import sys
 from pathlib import Path
 
-BOM = b"\xef\xbb\xbf"
+# BOM 契约单一事实源: 常量与纯函数见 ps_bom_contract.py(check_ps1_encoding 与
+# fix_ps_bom 共用, 消除重复实现——2026-08-05 P0 合并)。此处重导出保持旧接口兼容。
+import ps_bom_contract as _contract
 
-# 关键契约文件：缺 BOM → BLOCK（相对仓库根目录）
-REQUIRE_BOM_DEFAULT = ["scripts/dev/hook_fail_safe.psm1"]
-
-
-def count_leading_bom(data: bytes) -> int:
-    """统计前导 EF BB BF 连续出现次数。"""
-    i = 0
-    while data.startswith(BOM, i):
-        i += 3
-    return i // 3
-
-
-def is_utf8(data: bytes) -> bool:
-    try:
-        data.decode("utf-8")
-        return True
-    except UnicodeDecodeError:
-        return False
-
-
-def hex_head(data: bytes, n: int = 8) -> str:
-    return " ".join(f"{b:02X}" for b in data[:n])
-
-
-def iter_ps_files(root: Path):
-    """遍历仓库 scripts/ 与 packages/ 下的 .ps1/.psm1。"""
-    for base in ("scripts", "packages"):
-        d = root / base
-        if not d.is_dir():
-            continue
-        for p in sorted(d.rglob("*")):
-            if p.suffix.lower() in (".ps1", ".psm1") and p.is_file():
-                yield p
+BOM = _contract.BOM
+REQUIRE_BOM_DEFAULT = _contract.REQUIRE_BOM_DEFAULT
+count_leading_bom = _contract.count_leading_bom
+is_utf8 = _contract.is_utf8
+hex_head = _contract.hex_head
+iter_ps_files = _contract.iter_ps_files
 
 
 def main() -> int:
@@ -69,7 +44,8 @@ def main() -> int:
         description="PS 脚本编码契约检查（BLOCK/WARN 分级，支持 --fix 修复）")
     ap.add_argument("--repo-root", default=".", help="仓库根目录（默认当前目录）")
     ap.add_argument("--strict", action="store_true", help="WARN 升级为 BLOCK")
-    ap.add_argument("--quiet", action="store_true", help="仅输出结果汇总")
+    ap.add_argument("--quiet", action="store_true",
+                    help="仅输出结果汇总（BLOCK 明细始终输出，供 hook 失败诊断）")
     ap.add_argument("--fix", action="store_true", help="自动修复（去叠加 BOM / 关键文件补 BOM）")
     ap.add_argument("--require-bom", action="append", default=[],
                     help="追加关键契约文件（相对 --repo-root，可多次）")
@@ -118,11 +94,13 @@ def main() -> int:
                 warned.append((rel, "缺 BOM（存量文件仅提示，不自动修改）"))
         # n_bom == 1：契约态，通过
 
+    # BLOCK 明细始终输出(与 fix_ps_bom 同契约, 问题行不被 --quiet 吞掉):
+    # hook 的 run_check 失败时会重跑本脚本过滤诊断行, 需据此定位具体文件。
+    for rel, reason in blocked:
+        print(f"[BLOCK] {rel}: {reason}")
     if not args.quiet:
         for rel, reason in fixed:
             print(f"[FIXED] {rel}: {reason}")
-        for rel, reason in blocked:
-            print(f"[BLOCK] {rel}: {reason}")
         for rel, reason in warned:
             print(f"[WARN]  {rel}: {reason}")
         print(f"---")

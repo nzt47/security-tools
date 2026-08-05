@@ -8,7 +8,7 @@ unary operator` 错误。本次将修复后的拦截逻辑与 hook 配置打包�
   1. BOM 契约基础函数   count_leading_bom / is_utf8 / hex_head
   2. 检测判定规则       check_ps1_encoding.py 的 BLOCK/WARN 分级语义
   3. 修复公式           fix_ps_bom.py 去叠加 BOM / 补 BOM
-  4. hook 模板完整性    hook_fail_safe.psm1 六段拦截链 + 跳过开关 + pre-push
+  4. hook 模板完整性    hook_fail_safe.psm1 run_check 四段拦截链 + 合并编码段 + pre-push
   5. 稳定性测试契约     verify_bom_hook_stability.py 归因标记 / 文件构造 / 归因判定
   6. 端到端回归         真实子进程检出叠加 BOM → exit 1; detect_direct 归因
 
@@ -31,12 +31,14 @@ import verify_bom_hook_stability as vhs  # noqa: E402
 BOM = b"\xef\xbb\xbf"
 HOOK_PSM1 = SCRIPTS_DIR / "dev" / "hook_fail_safe.psm1"
 
-# hook 模板必须包含的六段拦截链与跳过开关(与 hook_fail_safe.psm1 契约一致)
+# hook 模板必须包含的拦截链段标记与跳过开关(与 hook_fail_safe.psm1 契约一致)
+# 2026-08-05 P0: ENCODING_CHECK 已合并原 BOMFIX 段(单一编码契约检查),
+# BOMFIX=/SKIP_BOM_FIX_CHECK 不再存在于模板, 由合并守卫测试保证不复活。
 HOOK_SEGMENTS = (
-    "ENCODING_CHECK=", "BOMFIX=", "CI_GUARD=", "INVARIANT=", "WORKFLOW_SIM=",
+    "ENCODING_CHECK=", "CI_GUARD=", "INVARIANT=", "WORKFLOW_SIM=",
 )
 HOOK_SKIP_SWITCHES = (
-    "SKIP_ENCODING_CHECK", "SKIP_BOM_FIX_CHECK", "SKIP_CI_GUARD",
+    "SKIP_ENCODING_CHECK", "SKIP_CI_GUARD",
     "SKIP_INVARIANT", "SKIP_WORKFLOW_SIM",
 )
 
@@ -132,7 +134,7 @@ def test_fix_fill_missing_bom(tmp_path):
 
 
 # ──────────────────────────────────────────────────────────────
-# 4. hook 模板完整性(hook_fail_safe.psm1 六段拦截链)
+# 4. hook 模板完整性(hook_fail_safe.psm1 run_check 四段拦截链)
 # ──────────────────────────────────────────────────────────────
 
 def _hook_source() -> str:
@@ -167,13 +169,21 @@ def test_hook_template_encoding_command():
     assert "--repo-root" in src
 
 
+def test_hook_template_encoding_merged_no_bomfix():
+    """P0 合并守卫: BOMFIX 独立段必须彻底移除, 编码检查统一走 run_check。"""
+    src = _hook_source()
+    assert "BOMFIX=" not in src, "BOMFIX 段应已合并进 ENCODING_CHECK"
+    assert "SKIP_BOM_FIX_CHECK" not in src, "SKIP_BOM_FIX_CHECK 开关应已移除"
+    assert "run_check" in src, "四段检查必须由 run_check 函数封装"
+
+
 # ──────────────────────────────────────────────────────────────
 # 5. verify_bom_hook_stability 契约
 # ──────────────────────────────────────────────────────────────
 
 def test_stability_block_markers_cover_attribution():
-    """归因标记必须覆盖 ENCODING_CHECK/BOMFIX 两段的拦截文案。"""
-    for marker in ("编码检查未通过", "叠加 BOM", "BOM 修复预检未通过", "待修复", vhs.TEMP_PREFIX):
+    """归因标记必须覆盖合并后 ENCODING_CHECK 段的拦截文案。"""
+    for marker in ("编码检查(UTF-8 BOM 契约) 未通过", "叠加 BOM", vhs.TEMP_PREFIX):
         assert marker in vhs.BOM_BLOCK_MARKERS
 
 
@@ -192,13 +202,13 @@ def test_analyze_commit_detects_encoding_block():
     assert "叠加 BOM" in reason
 
 
-def test_analyze_commit_detects_bomfix_block():
-    """提交被 BOMFIX 段拦截 → 归因成功(标记按 BOM_BLOCK_MARKERS 顺序取首个)。"""
-    proc = _fake_proc(1, "[待修复] scripts/x.ps1: 去叠加 BOM x2 → x1", "")
-    ok, reason = vhs.analyze_commit(proc, "bomfix")
+def test_analyze_commit_detects_merged_encoding_block():
+    """提交被合并后 ENCODING_CHECK 段拦截 → 归因成功(标记按 BOM_BLOCK_MARKERS 顺序取首个)。"""
+    proc = _fake_proc(1, "[pre-commit][ERROR] 编码检查(UTF-8 BOM 契约) 未通过, 提交被阻止", "")
+    ok, reason = vhs.analyze_commit(proc, "both")
     assert ok is True
     assert reason.startswith("归因标记: ")
-    assert "待修复" in reason or "叠加 BOM" in reason
+    assert "编码检查" in reason
 
 
 def test_analyze_commit_unattributed_is_false():
