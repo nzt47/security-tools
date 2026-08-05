@@ -56,6 +56,7 @@ OBSERVABILITY_CI_ONLY = {
     "tests/integration/test_feedback_integration.py",           # fixture 'feedback_manager' 未定义
     "tests/integration/test_routes_skills_mgmt_integration.py",  # fixture 'skills_mgmt_client' 未定义
     "tests/integration/test_ab_testing_integration.py",         # fixture 'ab_test_manager' 未定义
+    "tests/test_network_config_integration.py",                 # 脚本式测试，模块级代码在 collection 时执行，需 .env 文件
 }
 
 
