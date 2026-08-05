@@ -930,6 +930,10 @@ jobs:
     name: 合并覆盖率数据
     runs-on: ubuntu-22.04
     needs: [full-project-tests]
+    # 【不易】if: always()：部分 shard 因 flaky test 失败时仍运行 coverage-combine。
+    # 每个 shard 用 if: always() 上传 coverage 数据，所以即使 shard 失败，
+    # coverage 数据仍可用。flaky test 不应阻塞覆盖率报告生成。
+    if: always()
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
