@@ -3,7 +3,9 @@
 # 【变易】新增自动生成路径只改本文件 allowed_paths, 无需改 verify_commit_origin.py
 #
 # 校验项(verify_commit_origin.py):
-#   ORIGIN-01  author/committer email 不在白名单 → BLOCK
+#   ORIGIN-01  author email 不在白名单 → BLOCK;
+#              committer 非白名单且非 GitHub 平台邮箱(noreply.github.com 域) → BLOCK
+#              (squash merge 等 GitHub 平台行为将 committer 改写为 noreply@github.com 时放行)
 #   ORIGIN-02  bot commit 修改非白名单路径 → BLOCK
 #   ORIGIN-03  bot commit subject 缺 [skip ci] → BLOCK
 #   ORIGIN-04  人工身份 commit 无 GitHub 关联 PR(疑似脚本直接 push) → BLOCK
