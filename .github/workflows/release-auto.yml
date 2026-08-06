@@ -1,14 +1,18 @@
 # 自动发布（一键 Release）— push v* tag 或手动触发时自动生成发布备注并创建 Release
 #
 # 【不易】发布动作由 git tag 驱动，version 单一事实源 = tag 名
-# 【变易】支持 workflow_dispatch 手动指定版本；Gitee 同步失败自动重试，重试耗尽自动创建告警 Issue
-# 【简易】复用 update_changelog.py（发布备注）+ gh CLI（GitHub）+ create_gitee_release.ps1（Gitee）
+# 【变易】支持 workflow_dispatch 手动指定版本；GitHub Release 与 Gitee 同步失败均自动重试
+#        （3 次×10s，409/422 幂等冲突不重试），重试耗尽自动创建告警 Issue
+# 【简易】复用 update_changelog.py（发布备注）+ GitHub REST API（创建 Release）+
+#        create_gitee_release.ps1（Gitee）
 #
 # 排查入口：
 #   - 运行日志: Actions → 本 workflow → job 日志（关键 step 已启用 set -x 详细输出）
 #   - 发布备注: 从运行页 Artifacts 下载 release-notes 核对
 #   - Gitee 同步跳过: 未配置 GITEE_TOKEN secret 时 step 显示 Skipped（非失败，不告警）
 #   - Gitee 同步失败: step 自动重试 3 次（间隔 10s）；耗尽后 job 失败 → 自动触发 alert-on-failure
+#   - GitHub Release 失败: step 自动重试 3 次（间隔 10s）；HTTP 409/422 为 tag 已存在
+#     Release（幂等冲突，重试无意义）→ 直接失败并提示改用 PATCH 编辑接口
 #   - 子包 tag 守卫: guard job 检查 tag commit message，以 release(pypi) 开头（子包发布）时跳过主项目发布
 #   - 告警 Issue: 仓库 Issues 中标题含「发布失败告警」的 Issue 附运行链接与排查指引
 
@@ -110,16 +114,44 @@ jobs:
             --out notes.md
           echo "notes.md 已生成: $(wc -l < notes.md) 行"
 
-      - name: 创建 GitHub Release
+      - name: 创建 GitHub Release（失败自动重试 3 次×10s；409/422 幂等冲突不重试）
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euxo pipefail
-          gh release create "${{ steps.ver.outputs.VERSION }}" \
-            --title "Release ${{ steps.ver.outputs.VERSION }}" \
-            --notes-file notes.md
-          echo "GitHub Release 创建成功:"
-          echo "  ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.ver.outputs.VERSION }}"
+          VERSION="${{ steps.ver.outputs.VERSION }}"
+          MAX_RETRY=3
+          RETRY=1
+          while :; do
+            echo "=== GitHub Release 创建尝试 $RETRY/$MAX_RETRY ==="
+            BODY=$(python -c "import json,sys;print(json.dumps(open(sys.argv[1],encoding='utf-8').read()))" notes.md)
+            CODE=$(curl -s -o gh_resp.json -w '%{http_code}' -X POST \
+              "https://api.github.com/repos/${{ github.repository }}/releases" \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -d "{\"tag_name\":\"$VERSION\",\"name\":\"Release $VERSION\",\"body\":$BODY}")
+            echo "GitHub API 响应: HTTP $CODE"
+            if [ "$CODE" -lt 400 ]; then
+              echo "GitHub Release 创建成功:"
+              echo "  ${{ github.server_url }}/${{ github.repository }}/releases/tag/$VERSION"
+              rm -f gh_resp.json
+              break
+            fi
+            echo "API 响应体: $(head -c 300 gh_resp.json)"
+            if [ "$CODE" -eq 409 ] || [ "$CODE" -eq 422 ]; then
+              echo "::error::HTTP $CODE: 该 tag 已存在 Release（幂等冲突，重试无意义），需改用 PATCH /releases/{id} 编辑接口"
+              rm -f gh_resp.json
+              exit 1
+            fi
+            if [ "$RETRY" -ge "$MAX_RETRY" ]; then
+              echo "::error::GitHub Release 创建重试 $MAX_RETRY 次均失败，触发告警 job"
+              rm -f gh_resp.json
+              exit 1
+            fi
+            echo "GitHub Release 创建失败，10s 后第 $((RETRY+1)) 次重试..."
+            RETRY=$((RETRY+1))
+            sleep 10
+          done
 
       - name: 同步 Gitee Release（失败自动重试 3 次，间隔 10s）
         if: env.GITEE_TOKEN != ''
