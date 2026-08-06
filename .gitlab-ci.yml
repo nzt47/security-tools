@@ -1,0 +1,184 @@
+# 自动发布（GitLab CI 版）— push v* tag 或手动触发时自动生成发布备注并创建 Release
+#
+# 迁移自 .github/workflows/release-auto.yml（对照 docs/release_workflow_manual.md §7）
+# 【不易】发布由 tag 驱动，version 单一事实源；守卫/重试/告警逻辑与 GH 版一致
+# 【变易】GitLab 语法适配：workflow rules / dotenv 传守卫结果 / when: on_failure 告警
+# 【简易】复用 update_changelog.py（发布备注）+ create_gitee_release.ps1（Gitee），
+#        GitHub Release 走 REST API（无需在 runner 安装 gh CLI）
+#
+# 前置配置（Settings → CI/CD → Variables，勾选 Masked / Protected 按需）：
+#   GITEE_TOKEN   Gitee 私人令牌（projects 权限，40 位）— 未配置则跳过 Gitee 同步
+#   GH_TOKEN      GitHub PAT（repo 权限）— 未配置则跳过 GitHub Release 创建
+#   GITLAB_TOKEN  GitLab PAT（api 权限）— 仅告警建 Issue 用，未配置则只输出日志
+#
+# 触发方式：
+#   - push v* tag（如 git push origin v1.1.0）
+#   - 手动：CI/CD → Pipelines → Run pipeline → 填变量 version（如 v1.1.0）
+#
+# 要求：GitLab 15.0+（dotenv reports 传守卫变量）
+
+workflow:
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v.*/          # tag 推送自动触发
+    - if: $CI_PIPELINE_SOURCE == "web"      # 手动触发
+    - when: never
+
+stages:
+  - gate
+  - release
+  - notify
+
+variables:
+  GIT_DEPTH: 0          # 全量 clone，保证 git log vPREV..HEAD 拿到完整提交
+
+# ============ 阶段 1：子包 tag 守卫 ============
+# 目的：仓库混有 l2-p99-monitor 子包 tag（v1.0.1/v1.1.x，PyPI 发布），
+#       commit message 以 release(pypi) 开头时判定为子包发布，跳过主项目自动发布。
+# 调整方式：修改下方正则（勿用宽泛关键词如 pypi|l2-p99-monitor，会误拦主项目提交）。
+guard:
+  stage: gate
+  image: ubuntu:22.04
+  script:
+    - |
+      set -euo pipefail
+      VERSION="${CI_COMMIT_TAG:-$version}"
+      SKIP="false"
+      if [ -n "$VERSION" ] && git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null 2>&1; then
+        MSG=$(git log -1 --format=%s "$VERSION")
+        echo "tag commit message: $MSG"
+        if echo "$MSG" | grep -qiE '^release\(pypi\)'; then
+          SKIP="true"
+          echo "==> 子包发布 tag，跳过主项目自动发布"
+        fi
+      else
+        echo "==> 手动触发或 tag 本地不存在，默认放行"
+      fi
+      echo "SKIP=$SKIP" > guard.env
+  artifacts:
+    reports:
+      dotenv: guard.env
+
+# ============ 阶段 2a：生成发布备注 + 创建 GitHub Release ============
+auto-release:
+  stage: release
+  image: ubuntu:22.04
+  needs:
+    - guard
+  rules:
+    - if: $SKIP == "true"
+      when: never                      # 守卫判定子包发布 → 整条发布链跳过
+    - when: on_success
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3 curl >/dev/null
+  script:
+    - |
+      set -euo pipefail
+      VERSION="${CI_COMMIT_TAG:-$version}"
+      echo "==> 版本号: $VERSION"
+      PREV=$(git tag --sort=-creatordate | sed -n '2p')
+      echo "==> 上一版本 tag: $PREV"
+      echo "--- 变更提交清单 (${PREV}..HEAD) ---"
+      git log --oneline "${PREV}..HEAD"
+      python3 scripts/update_changelog.py --version "$VERSION" --prev-tag "$PREV" --out notes.md
+      echo "==> notes.md 已生成: $(wc -l < notes.md) 行"
+
+      echo "==> 创建 GitHub Release (REST API)"
+      if [ -z "$GH_TOKEN" ]; then
+        echo "==> 未配置 GH_TOKEN，跳过 GitHub Release 创建（仅生成发布备注）"
+      else
+        BODY=$(python3 -c "import json,sys;print(json.dumps(open(sys.argv[1],encoding='utf-8').read()))" notes.md)
+        CODE=$(curl -s -o gh_resp.json -w '%{http_code}' -X POST \
+          "https://api.github.com/repos/${CI_PROJECT_PATH}/releases" \
+          -H "Authorization: Bearer $GH_TOKEN" \
+          -H "Accept: application/vnd.github+json" \
+          -d "{\"tag_name\":\"$VERSION\",\"name\":\"Release $VERSION\",\"body\":$BODY}")
+        echo "GitHub API 响应: HTTP $CODE"
+        if [ "$CODE" -ge 400 ]; then
+          echo "==> GitHub Release 创建失败:"; cat gh_resp.json
+          rm -f gh_resp.json
+          exit 1
+        fi
+        rm -f gh_resp.json
+        echo "==> GitHub Release: https://github.com/${CI_PROJECT_PATH}/releases/tag/$VERSION"
+      fi
+  artifacts:
+    paths:
+      - notes.md
+    expire_in: 1 week
+
+# ============ 阶段 2b：同步 Gitee Release（失败自动重试 3 次×10s）============
+# 幂等性注意：create_gitee_release.ps1 创建模式对已存在 Release 报 409/422，
+#            需改用 -Update 更新模式；重试只对瞬时失败（网络/限流 403）有意义。
+gitee-sync:
+  stage: release
+  image: mcr.microsoft.com/powershell:7.4-ubuntu-22.04
+  needs:
+    - auto-release
+  rules:
+    - if: '$GITEE_TOKEN == ""'
+      when: never                      # 未配置 GITEE_TOKEN → 安全跳过（同 GH 版 if 语义）
+    - when: on_success
+  script:
+    - |
+      set -euo pipefail
+      VERSION="${CI_COMMIT_TAG:-$version}"
+      MAX_RETRY=3
+      RETRY=1
+      while :; do
+        echo "=== Gitee 同步尝试 $RETRY/$MAX_RETRY (create_gitee_release.ps1) ==="
+        if pwsh -NoProfile -File scripts/create_gitee_release.ps1 \
+            -TagName "$VERSION" \
+            -Title "Release $VERSION" \
+            -BodyFile notes.md; then
+          echo "==> Gitee Release 同步成功"
+          break
+        fi
+        if [ "$RETRY" -ge "$MAX_RETRY" ]; then
+          echo "::error::Gitee 同步重试 $MAX_RETRY 次均失败，触发告警 job" >&2
+          exit 1
+        fi
+        echo "==> Gitee 同步失败，10s 后第 $((RETRY+1)) 次重试..."
+        RETRY=$((RETRY+1))
+        sleep 10
+      done
+
+# ============ 阶段 3：失败告警（任一发布 job 失败时创建 GitLab Issue）============
+alert-on-failure:
+  stage: notify
+  image: ubuntu:22.04
+  needs:
+    - auto-release
+    - gitee-sync
+  rules:
+    - when: on_failure
+  script:
+    - |
+      set -euo pipefail
+      VERSION="${CI_COMMIT_TAG:-$version}"
+      echo "==> 发布失败告警: $VERSION"
+      echo "==> Pipeline: $CI_PIPELINE_URL"
+      if [ -z "$GITLAB_TOKEN" ]; then
+        echo "==> 未配置 GITLAB_TOKEN，跳过 GitLab Issue 创建（失败信息见上方日志）"
+        exit 0
+      fi
+      DESC="自动发布流程执行失败，请检查 Pipeline 日志。
+
+      - 版本: $VERSION
+      - Pipeline: $CI_PIPELINE_URL
+      - 触发方式: $CI_PIPELINE_SOURCE
+      - 失败时间: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+      排查入口：
+      1. 打开上方 Pipeline 链接，查看失败 job 日志
+      2. Gitee 同步失败 → 查看 create_gitee_release.ps1 输出的 HTTP 状态码：
+         - 401: token 无效/过期，重新生成并更新 GITEE_TOKEN
+         - 404: 仓库路径/tag 不存在，或 token 无该仓库权限
+         - 409/422: 该 tag 已存在 Release，需改用 -Update 更新模式
+      3. GitHub Release 失败 → 检查 GH_TOKEN 权限（repo scope）与 API 响应体"
+      curl -s -X POST "$CI_API_V4_URL/projects/$CI_PROJECT_ID/issues" \
+        -H "PRIVATE-TOKEN: $GITLAB_TOKEN" \
+        --data-urlencode "title=发布失败告警: $VERSION (自动发布)" \
+        --data-urlencode "description=$DESC" \
+        -o issue_resp.json -w "GitLab API 响应: HTTP %{http_code}\n"
+      if [ -s issue_resp.json ]; then head -c 400 issue_resp.json; echo; fi
+      rm -f issue_resp.json
