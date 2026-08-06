@@ -316,6 +316,8 @@ class SkillFileStore:
         # [变易] 写入钩子列表 — skill.md 变更时通知外部订阅者（如向量索引增量更新）
         # 守 project_memory 硬约束：钩子触发在锁外执行，避免回调阻塞拖垮写操作
         self._write_hooks: List[Callable[[str, str], None]] = []
+        # [变易] 技能索引缓存（SkillIndexCache）— 由缓存构造时挂载（SkillFileStore 接口不变）
+        self._index_cache: Optional[Any] = None
         self._ensure_repo()
 
     # ──────────────────────────────────────────────
@@ -404,6 +406,19 @@ class SkillFileStore:
         t0 = time.time()
         tid = _trace_id()
 
+        # [变易] 技能索引缓存优先 — 命中缓存跳过全量扫描/解析（未挂载时走原逻辑）
+        if self._index_cache is not None:
+            index = self._index_cache.get_all_metadata(refresh=refresh)
+            elapsed = (time.time() - t0) * 1000
+            logger.info(json.dumps({
+                "trace_id": tid, "module_name": "file_store",
+                "action": "load_metadata_index.cache",
+                "duration_ms": round(elapsed, 2),
+                "skill_count": len(index),
+                "cache_type": type(self._index_cache).__name__,
+            }, ensure_ascii=False))
+            return index
+
         with self._lock:
             if self._meta_index is not None and not refresh:
                 elapsed = (time.time() - t0) * 1000
@@ -453,8 +468,29 @@ class SkillFileStore:
 
     def get_metadata(self, skill_id: str) -> Optional[Dict[str, Any]]:
         """获取单个技能的元数据（第一层，不读 body）"""
+        # [变易] 挂载缓存时走单技能 mtime/hash 校验（失效即回源），未挂载走原逻辑
+        if self._index_cache is not None:
+            return self._index_cache.get_metadata(skill_id)
         index = self.load_metadata_index()
         return index.get(skill_id)
+
+    def _invalidate_index_cache(self, skill_id: str) -> None:
+        """写入/删除操作后同步失效技能索引缓存（锁外调用）
+
+        【不易】仅内存状态变更 + 防御式兜底（缓存异常不影响写操作主流程）
+        """
+        cache = getattr(self, "_index_cache", None)
+        if cache is None:
+            return
+        try:
+            cache.invalidate(skill_id)
+        except Exception as e:  # noqa: BLE001
+            logger.warning(json.dumps({
+                "module_name": "file_store",
+                "action": "index_cache.invalidate.failed",
+                "skill_id": skill_id,
+                "error": str(e)[:200],
+            }, ensure_ascii=False))
 
     # ──────────────────────────────────────────────
     #  第二层：使用说明（skill.md body）
@@ -629,6 +665,8 @@ class SkillFileStore:
         # [变易] 锁外触发写入钩子 — 守 project_memory 硬约束（锁内禁外部回调）
         # 让向量索引等订阅者增量 upsert 新技能
         self._notify_hooks(skill_id, "create")
+        # [变易] 同步失效技能索引缓存（下一次访问时回源重解析）
+        self._invalidate_index_cache(skill_id)
         return created_skill_dir
 
     def read(self, skill_id: str) -> Tuple[Dict[str, Any], str,
@@ -667,6 +705,8 @@ class SkillFileStore:
         # [变易] 锁外触发写入钩子 — 守 project_memory 硬约束（锁内禁外部回调）
         # 让向量索引订阅者感知 meta/body 变更并 upsert
         self._notify_hooks(skill_id, "update")
+        # [变易] 同步失效技能索引缓存（下一次访问时回源重解析）
+        self._invalidate_index_cache(skill_id)
 
     def add_script(self, skill_id: str, filename: str, code: str) -> None:
         """添加/更新脚本"""
@@ -712,6 +752,8 @@ class SkillFileStore:
         # [变易] 锁外触发写入钩子 — 守 project_memory 硬约束（锁内禁外部回调）
         # 让向量索引订阅者感知删除事件并清理对应向量
         self._notify_hooks(skill_id, "delete")
+        # [变易] 同步失效技能索引缓存（下一次访问时回源重解析）
+        self._invalidate_index_cache(skill_id)
         return True
 
     # ──────────────────────────────────────────────
