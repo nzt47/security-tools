@@ -9,6 +9,7 @@
 #   - 发布备注: 从运行页 Artifacts 下载 release-notes 核对
 #   - Gitee 同步跳过: 未配置 GITEE_TOKEN secret 时 step 显示 Skipped（非失败，不告警）
 #   - Gitee 同步失败: step 自动重试 3 次（间隔 10s）；耗尽后 job 失败 → 自动触发 alert-on-failure
+#   - 子包 tag 守卫: guard job 检查 tag commit，含 pypi/l2-p99-monitor（子包发布）时跳过主项目发布
 #   - 告警 Issue: 仓库 Issues 中标题含「发布失败告警」的 Issue 附运行链接与排查指引
 
 name: 自动发布
@@ -27,8 +28,34 @@ permissions:
   issues: write   # alert-on-failure 创建告警 Issue 用
 
 jobs:
+  guard:
+    name: 子包 tag 守卫（跳过 l2-p99-monitor 发布）
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      skip: ${{ steps.g.outputs.skip }}
+    steps:
+      - name: 检出代码（含 tag 历史）
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: 判断是否为子包发布 tag
+        id: g
+        run: |
+          set -euo pipefail
+          MSG=$(git log -1 --format=%s "${GITHUB_REF_NAME}")
+          echo "tag commit message: $MSG"
+          if echo "$MSG" | grep -qiE 'pypi|l2-p99-monitor'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::子包发布 tag（commit 含 pypi/l2-p99-monitor），跳过主项目自动发布"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
   auto-release:
     name: 生成发布备注并创建 Release
+    needs: guard
+    if: needs.guard.outputs.skip != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
