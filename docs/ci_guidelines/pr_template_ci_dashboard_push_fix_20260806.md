@@ -35,6 +35,8 @@ ci.yml 与操作指南均调用该工具。
       attempt2 重试收敛；sim4 工具竞争收敛；sim5 工具 `--fail` 耗尽 exit 1
 - [x] `bash -n` 语法 + 参数校验（-h / 缺分支 / 非法 retries）
 - [x] 两个 workflow YAML 解析通过
+- [x] 基线修复实测：boundary-guard 硬编码边界值扫描 pass（run 31100387544，
+      基线 114→115 消除 master 预存在误报）
 - [ ] CI 实测：PR checks 全绿后 squash 合入，观察下一次 push 的
       `update-ci-dashboard` job 结论
 
