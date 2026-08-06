@@ -134,6 +134,7 @@ flowchart LR
     end
     subgraph knowledge [knowledge]
         agent_knowledge["agent.knowledge"]
+        agent_knowledge_ingest["agent.knowledge.ingest"]
         agent_knowledge_lifecycle["agent.knowledge.lifecycle"]
         agent_knowledge_schema["agent.knowledge.schema"]
     end
@@ -456,6 +457,7 @@ flowchart LR
     agent_workflow_engine_observability -.-> agent_monitoring_business_metrics
     agent_knowledge --> agent_knowledge_schema
     agent_knowledge --> agent_knowledge_lifecycle
+    agent_knowledge_ingest -.-> agent_utils_sensitive_data_filter
     agent_network -.-> agent_network_config
     agent_network --> agent_network_config_validator
     agent_network_observability -.-> agent_monitoring_business_metrics
@@ -974,10 +976,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 353
-- 模块节点数: 279
-- 依赖边数: 607
-- 跨层调用数: 389
+- 扫描文件数: 354
+- 模块节点数: 280
+- 依赖边数: 608
+- 跨层调用数: 390
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1358.24 ms
+- 构建耗时: 1306.91 ms
