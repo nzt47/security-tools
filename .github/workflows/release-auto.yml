@@ -1,8 +1,15 @@
 # 自动发布（一键 Release）— push v* tag 或手动触发时自动生成发布备注并创建 Release
 #
 # 【不易】发布动作由 git tag 驱动，version 单一事实源 = tag 名
-# 【变易】支持 workflow_dispatch 手动指定版本；Gitee 同步按 secret 可选
+# 【变易】支持 workflow_dispatch 手动指定版本；Gitee 同步失败自动重试，重试耗尽自动创建告警 Issue
 # 【简易】复用 update_changelog.py（发布备注）+ gh CLI（GitHub）+ create_gitee_release.ps1（Gitee）
+#
+# 排查入口：
+#   - 运行日志: Actions → 本 workflow → job 日志（关键 step 已启用 set -x 详细输出）
+#   - 发布备注: 从运行页 Artifacts 下载 release-notes 核对
+#   - Gitee 同步跳过: 未配置 GITEE_TOKEN secret 时 step 显示 Skipped（非失败，不告警）
+#   - Gitee 同步失败: step 自动重试 3 次（间隔 10s）；耗尽后 job 失败 → 自动触发 alert-on-failure
+#   - 告警 Issue: 仓库 Issues 中标题含「发布失败告警」的 Issue 附运行链接与排查指引
 
 name: 自动发布
 
@@ -17,13 +24,29 @@ on:
 
 permissions:
   contents: write
+  issues: write   # alert-on-failure 创建告警 Issue 用
 
 jobs:
   auto-release:
     name: 生成发布备注并创建 Release
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      version: ${{ steps.ver.outputs.VERSION }}
     steps:
+      - name: 打印发布环境信息（排查用）
+        run: |
+          echo "::group::发布上下文"
+          echo "event_name=${{ github.event_name }}"
+          echo "ref=${{ github.ref }}"
+          echo "ref_name=${{ github.ref_name }}"
+          echo "sha=${{ github.sha }}"
+          echo "repository=${{ github.repository }}"
+          echo "actor=${{ github.actor }}"
+          echo "run_id=${{ github.run_id }}"
+          echo "run_url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "::endgroup::"
+
       - name: 检出代码（含 tag 历史）
         uses: actions/checkout@v6
         with:
@@ -32,11 +55,14 @@ jobs:
       - name: 解析版本号
         id: ver
         run: |
+          set -euxo pipefail
           if [ "${{ github.event_name }}" = "push" ]; then
-            echo "VERSION=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+            VERSION="${{ github.ref_name }}"
           else
-            echo "VERSION=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+            VERSION="${{ github.event.inputs.version }}"
           fi
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "已解析版本号: $VERSION"
 
       - name: 设置 Python 3.12
         uses: actions/setup-python@v6
@@ -45,30 +71,54 @@ jobs:
 
       - name: 生成发布备注（git log 分类）
         run: |
+          set -euxo pipefail
           PREV=$(git tag --sort=-creatordate | sed -n '2p')
           echo "上一版本 tag: $PREV"
+          echo "--- 变更提交清单 (${PREV}..HEAD) ---"
+          git log --oneline "${PREV}..HEAD"
+          echo "共 $(git log --oneline "${PREV}..HEAD" | wc -l) 条提交"
           python scripts/update_changelog.py \
             --version "${{ steps.ver.outputs.VERSION }}" \
             --prev-tag "$PREV" \
             --out notes.md
+          echo "notes.md 已生成: $(wc -l < notes.md) 行"
 
       - name: 创建 GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euxo pipefail
           gh release create "${{ steps.ver.outputs.VERSION }}" \
             --title "Release ${{ steps.ver.outputs.VERSION }}" \
             --notes-file notes.md
+          echo "GitHub Release 创建成功:"
+          echo "  ${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ steps.ver.outputs.VERSION }}"
 
-      - name: 同步 Gitee Release（需配置 GITEE_TOKEN secret）
+      - name: 同步 Gitee Release（失败自动重试 3 次，间隔 10s）
         if: env.GITEE_TOKEN != ''
         env:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
-          pwsh -NoProfile -File scripts/create_gitee_release.ps1 \
-            -TagName "${{ steps.ver.outputs.VERSION }}" \
-            -Title "Release ${{ steps.ver.outputs.VERSION }}" \
-            -BodyFile notes.md
+          set -euo pipefail
+          MAX_RETRY=3
+          RETRY=1
+          while :; do
+            echo "=== Gitee 同步尝试 $RETRY/$MAX_RETRY (create_gitee_release.ps1) ==="
+            if pwsh -NoProfile -File scripts/create_gitee_release.ps1 \
+                -TagName "${{ steps.ver.outputs.VERSION }}" \
+                -Title "Release ${{ steps.ver.outputs.VERSION }}" \
+                -BodyFile notes.md; then
+              echo "Gitee Release 同步成功"
+              exit 0
+            fi
+            if [ "$RETRY" -ge "$MAX_RETRY" ]; then
+              echo "::error::Gitee 同步重试 $MAX_RETRY 次均失败，触发告警 job"
+              exit 1
+            fi
+            echo "Gitee 同步失败，10s 后第 $((RETRY+1)) 次重试..."
+            RETRY=$((RETRY+1))
+            sleep 10
+          done
 
       - name: 上传发布备注产物
         if: always()
@@ -76,3 +126,37 @@ jobs:
         with:
           name: release-notes
           path: notes.md
+
+  alert-on-failure:
+    name: 发布失败告警（创建 GitHub Issue）
+    needs: auto-release
+    if: failure()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 创建告警 Issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euxo pipefail
+          VERSION="${{ needs.auto-release.outputs.version }}"
+          [ -n "$VERSION" ] || VERSION="${{ github.ref_name }}"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "=== 创建告警 Issue (version=$VERSION) ==="
+          gh issue create \
+            --title "发布失败告警: $VERSION (${{ github.workflow }})" \
+            --body "自动发布流程执行失败，请检查运行日志。
+
+            - 版本: $VERSION
+            - 工作流: ${{ github.workflow }}
+            - 运行链接: $RUN_URL
+            - 触发方式: ${{ github.event_name }}
+            - 失败时间: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+            排查入口：
+            1. 打开上方运行链接，点开失败 step 查看详细日志（关键 step 已启用 set -x）
+            2. Gitee 同步失败 → 查看 create_gitee_release.ps1 输出的 HTTP 状态码：
+               - 401: token 无效/过期，重新生成并更新 GITEE_TOKEN secret
+               - 404: 仓库路径/tag 不存在，或 token 无该仓库权限
+               - 409/422: 该 tag 已存在 Release，需在脚本后加 -Update
+            3. 发布备注核对: 从运行页 Artifacts 下载 release-notes"
