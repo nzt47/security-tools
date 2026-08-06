@@ -159,6 +159,9 @@ jobs:
           GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
         run: |
           set -euo pipefail
+          echo "===== Gitee 同步开始 ====="
+          echo "==> GITEE_TOKEN 已配置（长度 ${#GITEE_TOKEN}）"
+          echo "==> 目标仓库: gitee.com/${{ github.repository }}"
           MAX_RETRY=3
           RETRY=1
           while :; do
@@ -167,14 +170,16 @@ jobs:
                 -TagName "${{ steps.ver.outputs.VERSION }}" \
                 -Title "Release ${{ steps.ver.outputs.VERSION }}" \
                 -BodyFile notes.md; then
-              echo "Gitee Release 同步成功"
+              echo "==> Gitee Release 同步成功:"
+              echo "    https://gitee.com/${{ github.repository }}/releases/${{ steps.ver.outputs.VERSION }}"
               exit 0
             fi
+            RC=$?
             if [ "$RETRY" -ge "$MAX_RETRY" ]; then
-              echo "::error::Gitee 同步重试 $MAX_RETRY 次均失败，触发告警 job"
+              echo "::error::Gitee 同步重试 $MAX_RETRY 次均失败（最后一次退出码 $RC），触发告警 job"
               exit 1
             fi
-            echo "Gitee 同步失败，10s 后第 $((RETRY+1)) 次重试..."
+            echo "==> Gitee 同步失败（退出码 $RC），10s 后第 $((RETRY+1)) 次重试..."
             RETRY=$((RETRY+1))
             sleep 10
           done
@@ -198,24 +203,39 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euxo pipefail
+          echo "===== alert-on-failure 开始 ====="
           VERSION="${{ needs.auto-release.outputs.version }}"
           [ -n "$VERSION" ] || VERSION="${{ github.ref_name }}"
           RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          echo "=== 创建告警 Issue (version=$VERSION) ==="
-          gh issue create \
-            --title "发布失败告警: $VERSION (${{ github.workflow }})" \
-            --body "自动发布流程执行失败，请检查运行日志。
+          echo "==> 版本号: $VERSION"
+          echo "==> 触发方式: ${{ github.event_name }}"
+          echo "==> 运行链接: $RUN_URL"
+          echo "==> GITHUB_TOKEN 可用（长度 ${#GH_TOKEN}，workflow 级 permissions: issues: write）"
+          echo "--- 创建告警 Issue ---"
+          if ISSUE_URL=$(gh issue create \
+              --title "发布失败告警: $VERSION (${{ github.workflow }})" \
+              --body "自动发布流程执行失败，请检查运行日志。
 
-            - 版本: $VERSION
-            - 工作流: ${{ github.workflow }}
-            - 运行链接: $RUN_URL
-            - 触发方式: ${{ github.event_name }}
-            - 失败时间: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+              - 版本: $VERSION
+              - 工作流: ${{ github.workflow }}
+              - 运行链接: $RUN_URL
+              - 触发方式: ${{ github.event_name }}
+              - 失败时间: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
 
-            排查入口：
-            1. 打开上方运行链接，点开失败 step 查看详细日志（关键 step 已启用 set -x）
-            2. Gitee 同步失败 → 查看 create_gitee_release.ps1 输出的 HTTP 状态码：
-               - 401: token 无效/过期，重新生成并更新 GITEE_TOKEN secret
-               - 404: 仓库路径/tag 不存在，或 token 无该仓库权限
-               - 409/422: 该 tag 已存在 Release，需在脚本后加 -Update
-            3. 发布备注核对: 从运行页 Artifacts 下载 release-notes"
+              排查入口：
+              1. 打开上方运行链接，点开失败 step 查看详细日志（关键 step 已启用 set -x）
+              2. Gitee 同步失败 → 查看 create_gitee_release.ps1 输出的 HTTP 状态码：
+                 - 401: token 无效/过期，重新生成并更新 GITEE_TOKEN secret
+                 - 404: 仓库路径/tag 不存在，或 token 无该仓库权限
+                 - 409/422: 该 tag 已存在 Release，需在脚本后加 -Update
+              3. GitHub Release 失败 → 查看 step 输出的 API 响应体（前 300 字符）：
+                 - 401: GITHUB_TOKEN 无 repo 权限
+                 - 409/422: tag 已存在 Release，改用 PATCH 编辑接口
+              4. 发布备注核对: 从运行页 Artifacts 下载 release-notes"); then
+            echo "==> 告警 Issue 创建成功: $ISSUE_URL"
+          else
+            RC=$?
+            echo "::error::gh issue create 失败（退出码 $RC），请手动创建 Issue：标题「发布失败告警: $VERSION」"
+            exit "$RC"
+          fi
+          echo "===== alert-on-failure 结束 (exit 0) ====="
