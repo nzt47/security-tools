@@ -50,8 +50,9 @@ $ErrorActionPreference = "Stop"
 $Base = "https://gitee.com/api/v5"
 
 function Write-Step($msg) { Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
-function Invoke-Gitee($Method, $Path, $Body = $null) {
-    $params = @{ Method = $Method; Uri = "$Base$Path" }
+function Invoke-Gitee($Method, $Path, $Body = $null, $TimeoutSec = 30) {
+    # TimeoutSec 防 Gitee API 挂起：无超时会导致外层重试 step 静默拖满 10min 才失败
+    $params = @{ Method = $Method; Uri = "$Base$Path"; TimeoutSec = $TimeoutSec }
     if ($Body) {
         $params.ContentType = "application/json;charset=UTF-8"
         $params.Body = ($Body | ConvertTo-Json -Depth 3)
