@@ -57,6 +57,9 @@ $stats = @{
 function Test-LinkBroken {
     param([string]$MdFile, [string]$LinkPath)
     if ($LinkPath -match '^(https?|mailto:|file:///|#|/)') { return $false }
+    # 剥离 #锚点：链接路径的锚点（#35-xxx）不参与文件存在性检查，
+    # 否则 Test-Path 对含 # 的"文件名"必然 false → 锚点链接全部误判失效
+    if ($LinkPath -match '^(.+?)#') { $LinkPath = $Matches[1] }
     $basePath = Split-Path $MdFile -Parent
     $fullPath = Join-Path $basePath $LinkPath
     return -not (Test-Path $fullPath)
@@ -167,6 +170,12 @@ function Get-FixAction {
                     Reason = '锚点链接的目标文件不存在'
                     NewText = "~~$LinkText~~ " + [char]0x26A0 + " (文件缺失)"
                 }
+            }
+            # 文件存在 → 锚点链接有效：显式跳过（防止穿透到类型 10 误报 MarkMissing）
+            return @{
+                Action = 'Skip'
+                Reason = '锚点链接目标文件存在'
+                NewText = ''
             }
         }
     }
