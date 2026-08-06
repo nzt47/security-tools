@@ -1,10 +1,10 @@
 # Release 自动化指南（Gitee / GitHub）
 
-> **定位**: 将 [create_gitee_release.ps1](../../scripts/create_gitee_release.ps1)（诊断 + 创建/更新）与
-> [update_changelog.py](../../scripts/update_changelog.py)（CHANGELOG + 发布备注）整合为一条龙流程。
+> **定位**: 将 [create_gitee_release.ps1](../scripts/create_gitee_release.ps1)（诊断 + 创建/更新）与
+> [update_changelog.py](../scripts/update_changelog.py)（CHANGELOG + 发布备注）整合为一条龙流程。
 > **来源**: v1.0.0 发布实操沉淀（含 400/404/401 三连错 → PowerShell 变量拼接 Bug 事故复盘）。
 > **配套**: [gitee_release_api_troubleshooting.md](./troubleshooting/gitee_release_api_troubleshooting.md)（排查细节）、
-> [RELEASE_PROCESS_TEMPLATE.md](../../RELEASE_PROCESS_TEMPLATE.md)（8 阶段模板）。
+> [RELEASE_PROCESS_TEMPLATE.md](../RELEASE_PROCESS_TEMPLATE.md)（8 阶段模板）。
 
 ---
 
