@@ -118,6 +118,40 @@ if echo "$MSG" | grep -qiE '^release\(pypi\)'; then skip=true; else skip=false; 
 | Gitee 同步 step 显示 Skipped | — | 未配置 GITEE_TOKEN，非故障 |
 | GitHub Release 创建失败（5xx/网络） | 5xx | step 自动重试 3 次×10s，耗尽触发告警 |
 | GitHub Release tag 已存在 | GitHub 409/422 | 幂等冲突不重试；改用 PATCH `/releases/{id}` 编辑接口 |
+| Gitee 网络超时（连接挂起） | curl exit 28 / ps1 超时 | 走重试 3 次×10s（v1.0.6 模拟验证：超时×2 → 第 3 次成功） |
+| Gitee 服务不可用 | 503 | 走重试 3 次×10s（v1.0.7 模拟验证：503×2 → 第 3 次成功） |
+| GitHub API 网络层失败（超时/拒连） | curl exit 28/7，HTTP 000 | `\|\| CODE=500` 映射进重试，不再被 `set -e` 跳过（见下） |
+
+### 6.1 网络超时与静默失败修复（2026-08-06）
+
+**两类外部调用，两种失败形态**：
+
+| 调用 | 失败形态 | 处理 |
+|---|---|---|
+| GitHub Release `curl` | ①网络层失败（超时 exit 28 / 拒连 exit 7，HTTP 000）②HTTP 5xx（503 等） | ①`\|\| CODE=500` 映射进重试；②HTTP 码直接进重试 |
+| Gitee `pwsh`（Invoke-Gitee） | 网络超时 / HTTP 5xx / 4xx | `if pwsh ... else RC=$?` 捕获后进重试（if 豁免 `set -e`） |
+
+**已修复的两个静默失败点**：
+
+1. **GitHub curl 网络失败跳过重试**（release-auto.yml「创建 GitHub Release」step）：
+   `CODE=$(curl ...)` 在 `set -e` 下，curl 网络层失败（退出码非零）会直接终止 step、
+   跳过 while 重试循环——网络瞬时故障第一次就 abort 并误触发告警。修复：
+   ```bash
+   CODE=$(curl -s -o gh_resp.json -w '%{http_code}' --max-time 30 -X POST ...) || CODE=500
+   ```
+   - `|| CODE=500`：网络失败（HTTP 000）映射为 500 进入重试
+   - `--max-time 30`：防 API 挂起拖满 step 超时（timeout-minutes: 10）
+   - `[ -s gh_resp.json ]`：网络失败时响应文件可能不存在/为空，读取前容错
+
+2. **Gitee 脚本无超时挂死**（scripts/create_gitee_release.ps1）：
+   `Invoke-RestMethod` 默认无限等待，Gitee API 挂起时脚本静默拖满 10min 才失败。
+   修复：`Invoke-Gitee` 增加 `TimeoutSec = 30` 默认值，超时即抛异常 → exit 1 →
+   外层 else 捕获 → 进重试。
+
+**重试行为速查**（Gitee 同步 step，3 次×10s）：
+- 超时（exit 28，v1.0.6 模拟）、503（v1.0.7 模拟）、401/404/403 → 均走 else 捕获 → 重试
+- 409/422（幂等冲突）→ 重试无意义，耗尽后按失败处理并提示 `-Update`
+- 3 次均失败 → `exit 1` → 自动触发 alert-on-failure 建告警 Issue
 
 **安全测试方法**：用测试 tag（如 `v1.0.1-test`）跑全流程，验证后删除：
 GitHub：`gh release delete vX-test --yes --cleanup-tag`
