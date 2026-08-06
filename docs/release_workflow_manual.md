@@ -383,3 +383,64 @@ CODE=$(curl -s -o gh_resp.json -w '%{http_code}' --max-time 30 -X POST ...) || C
    有 JSON 则看 `message` 字段（401 token / 409·422 幂等冲突 / 5xx 服务端）
 3. Gitee step 的 `create_gitee_release.ps1` 自带 HTTP 状态码分类输出（401/404/403/409/422）
 4. 从 Artifacts 下载 release-notes 核对发布备注是否正常生成（定位在生成备注 step 还是发布 step）
+
+## 11. 测试验证记录
+
+历次本地模拟验证（不碰真实 GitHub/Gitee API，验证后测试 tag 与 mock 均清理）。
+
+| 验证 tag | 场景 | 模拟方式 | 结论 |
+|---|---|---|---|
+| v1.0.5 | GitHub 500×2 → 201；Gitee 401 → 第 2 次成功 | mock API + stub ps1 | 重试循环正常推进；else 内 RC 正确捕获 |
+| v1.0.6 | Gitee 网络超时（curl exit 28）×2 → 第 3 次成功 | stub ps1 模拟超时退出码 | 超时走 else 捕获 → 重试，10s 间隔正确 |
+| v1.0.7 | Gitee 503×2 → 第 3 次成功 | stub ps1 打印 `HTTP 503` + exit 1 | 5xx 服务端瞬时故障走重试，恢复后成功 |
+| v1.0.8 | GitHub 403 速率限制 | mock API 返回 403 | 见下方记录 |
+
+### 11.1 v1.0.7 — Gitee 503 服务不可用重试验证（2026-08-06）
+
+**目的**：验证 Gitee 同步 step 在 API 返回 503（服务端瞬时故障）时，重试逻辑能正确触发并最终成功。
+
+**模拟方法**：`fake_gitee_503.ps1` 前 2 次打印 `HTTP 503 Service Unavailable` + `exit 1`，
+第 3 次 `exit 0`；通过计数文件判断调用次数。GitHub 侧 mock 一次 201 通过。
+
+**实测日志**：
+```
+[15:01:52] Gitee 同步尝试 1/3 → HTTP 503 → 退出码 1 → 10s 后重试
+[15:02:03] Gitee 同步尝试 2/3 → HTTP 503 → 退出码 1 → 10s 后重试
+[15:02:14] Gitee 同步尝试 3/3 → 成功（服务恢复）→ Gitee Release 同步成功
+```
+
+**结论**：
+- 503（5xx 服务端瞬时故障）与超时（exit 28）、401 一样，均走 `else RC=$?` 捕获 → 进入重试
+- 时间戳间隔 10s 精确；第 3 次成功后 `exit 0`，不触发告警
+- 重试耗尽（3 次均失败）才 `exit 1` → 触发 alert-on-failure 建告警 Issue
+- 409/422 幂等冲突仍不重试（重试无意义）
+
+### 11.2 v1.0.8 — GitHub 403 速率限制验证（2026-08-06）
+
+**目的**：验证创建 GitHub Release 的 curl 逻辑在 API 返回 403（Rate Limiting）时，
+既会触发重试（场景 A：403×2 → 201 成功），也会在重试耗尽后正确失败触发告警
+（场景 B：403×3 → exit 1）。
+
+**模拟方法**：mock GitHub API 对 `POST /repos/*/releases` 返回 403（含
+`message: API rate limit exceeded`），按调用次数控制返回码。
+
+**场景 A 实测（403×2 → 201）**：
+```
+[15:07:06] GitHub Release 创建尝试 1/3 → HTTP 403 → 重试（模拟 sleep 2s，生产 10s）
+[15:07:09] GitHub Release 创建尝试 2/3 → HTTP 403 → 重试（模拟 sleep 2s，生产 10s）
+[15:07:11] GitHub Release 创建尝试 3/3 → HTTP 201 → 创建成功
+```
+
+**场景 B 实测（403×3 → 耗尽）**：
+```
+[15:07:41] GitHub Release 创建尝试 1/3 → HTTP 403 → 重试
+[15:07:43] GitHub Release 创建尝试 2/3 → HTTP 403 → 重试
+[15:07:45] GitHub Release 创建尝试 3/3 → HTTP 403
+::error::GitHub Release 创建重试 3 次均失败（最后一次 HTTP 403），触发告警 job
+exit 1 → job 失败 → alert-on-failure 创建告警 Issue
+```
+
+**结论**：
+- 403 不在「409/422 幂等冲突不重试」白名单内 → 与其他 4xx/5xx 一样走重试
+- 瞬时 403（限流抖动）恢复后第 3 次成功；持续 403（配额耗尽）3 次后 `exit 1` 触发告警
+- 告警路径由 `alert-on-failure`（`if: failure()` + `gh issue create`）承接
