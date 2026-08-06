@@ -17,7 +17,7 @@ git tag vX.Y.Z + git push origin vX.Y.Z
        ▼
 ┌─────────────┐
 │ auto-release│ ① 生成发布备注（update_changelog.py，vPREV..HEAD 分类）
-│             │ ② 创建 GitHub Release（gh release create）
+│             │ ② 创建 GitHub Release（REST API，失败重试 3 次×10s；409/422 幂等冲突不重试）
 │             │ ③ 同步 Gitee Release（create_gitee_release.ps1，失败重试 3 次×10s）
 └──────┬──────┘
        │ 失败
@@ -116,6 +116,8 @@ if echo "$MSG" | grep -qiE '^release\(pypi\)'; then skip=true; else skip=false; 
 | 仓库/tag 不存在或无权限 | Gitee 404 | 确认 tag 已推送 gitee、token 有仓库权限 |
 | tag 已存在 Release | Gitee 409/422 | 用 `-Update` 更新模式 |
 | Gitee 同步 step 显示 Skipped | — | 未配置 GITEE_TOKEN，非故障 |
+| GitHub Release 创建失败（5xx/网络） | 5xx | step 自动重试 3 次×10s，耗尽触发告警 |
+| GitHub Release tag 已存在 | GitHub 409/422 | 幂等冲突不重试；改用 PATCH `/releases/{id}` 编辑接口 |
 
 **安全测试方法**：用测试 tag（如 `v1.0.1-test`）跑全流程，验证后删除：
 GitHub：`gh release delete vX-test --yes --cleanup-tag`
@@ -148,3 +150,37 @@ Gitee：API 删 Release（`DELETE /releases/{id}`）+
 4. tag 守卫/发布备注/脚本逻辑（update_changelog.py、create_gitee_release.ps1）
    全部可原样复用，只需换 YAML 外壳
 5. `GIT_DEPTH: 0` 保证 `git log vPREV..HEAD` 拿到完整提交（否则浅克隆截断）
+
+## 8. 迁移回 GitHub Actions 关键配置对照（反向）
+
+适用场景：从 `.gitlab-ci.yml` 迁回 `.github/workflows/release-auto.yml`。
+GitHub 版工作流本来就存在且经过 v1.0.1-test 全流程验证，**无需从零重写**，
+只需做语法适配层映射 + 回填 GitLab 版新增强的能力（GitHub Release 重试）。
+
+| 能力 | GitLab CI（.gitlab-ci.yml） | GitHub Actions（release-auto.yml） |
+|---|---|---|
+| tag 触发 | `rules: - if: '$CI_COMMIT_TAG =~ /^v.*/'` | `on.push.tags: ['v*']` |
+| 手动触发 | `$CI_PIPELINE_SOURCE == "web"` + 变量 `version` | `workflow_dispatch` + `inputs.version` |
+| 全量 git 历史 | `GIT_DEPTH: 0` | `actions/checkout@v6` + `fetch-depth: 0` |
+| 守卫传参 | `artifacts.reports.dotenv: guard.env` + `$SKIP` | `outputs.skip` + `$GITHUB_OUTPUT` |
+| 条件跳过 | `rules: - if: '$SKIP == "true"' → when: never` | `if: needs.guard.outputs.skip != 'true'` |
+| 版本号 | `$CI_COMMIT_TAG` / `$version` | `github.ref_name` / `github.event.inputs.version` |
+| 仓库路径 | `$CI_PROJECT_PATH` | `github.repository` |
+| 触发方式 | `$CI_PIPELINE_SOURCE` | `github.event_name` |
+| Pipeline 链接 | `$CI_PIPELINE_URL` | `server_url/repository/actions/runs/{run_id}` |
+| 创建 GitHub Release | curl + GitHub REST API（需 `GH_TOKEN` PAT） | 同左（curl + REST API），token 用自动注入 `GITHUB_TOKEN` |
+| 创建 Gitee Release | 独立 job（`needs: [auto-release]`，powershell 镜像） | auto-release 内 step（`if: env.GITEE_TOKEN != ''`） |
+| 失败告警 | `when: on_failure` + `GITLAB_TOKEN` 建 GitLab Issue | `if: failure()` + `gh issue create`（GITHUB_TOKEN 零依赖） |
+| 产物 | `artifacts.paths: [notes.md]` | 同 job 内共享工作区；跨 job 用 upload/download-artifact |
+| Runner | 逐 job `image:`（ubuntu / powershell 镜像） | `runs-on: ubuntu-latest`（git/python/pwsh 预装） |
+
+**迁移要点**：
+1. **凭据**（最关键）：`GH_TOKEN`（GitLab Variable）删除 → 改用内置 `GITHUB_TOKEN`
+   （自动注入，配合 workflow 级 `permissions: contents: write`）；`GITLAB_TOKEN` 删除
+   （告警改走 GitHub Issue）；`GITEE_TOKEN` 从 CI/CD Variables 挪到 GitHub Secrets
+2. gitee-sync 从独立 job 收敛回 auto-release 内 step，notes.md 同 job 共享，
+   无需 `artifacts` 跨 job 传递（GitLab 版独立 job 是语法限制所致，非业务需要）
+3. GitLab 版新增的「GitHub Release 3 次×10s 重试 + 409/422 幂等冲突不重试」逻辑
+   需回填到「创建 GitHub Release」step（`gh release create` 无内建重试，改用 curl + REST API）
+4. 守卫正则（`^release\(pypi\)`）/ 发布备注 / 脚本逻辑（update_changelog.py、
+   create_gitee_release.ps1）全部原样复用，只需换 YAML 外壳
