@@ -14,7 +14,8 @@
 #   - GitHub Release 失败: step 自动重试 3 次（间隔 10s）；HTTP 409/422 为 tag 已存在
 #     Release（幂等冲突，重试无意义）→ 直接失败并提示改用 PATCH 编辑接口
 #   - 子包 tag 守卫: guard job 检查 tag commit message，以 release(pypi) 开头（子包发布）时跳过主项目发布
-#   - 告警 Issue: 仓库 Issues 中标题含「发布失败告警」的 Issue 附运行链接与排查指引
+#   - 告警 Issue: 仓库 Issues 中标题含「发布失败告警」的 Issue 附运行链接与排查指引；
+#     guard 失败（守卫 job 自身出错）或 auto-release 失败均会触发（needs 含 guard）
 
 name: 自动发布
 
@@ -208,7 +209,10 @@ jobs:
 
   alert-on-failure:
     name: 发布失败告警（创建 GitHub Issue）
-    needs: auto-release
+    # 需包含 guard：guard 失败时 auto-release 因 needs 失败被跳过（skipped），
+    # 原 `needs: auto-release` 下 if: failure() 对 skipped 返回 false → 无告警静默中断。
+    # 含 guard 后：guard 失败 → failure() 为 true → 正常触发告警；skip=true 拦截场景仍不告警
+    needs: [guard, auto-release]
     if: failure()
     runs-on: ubuntu-latest
     timeout-minutes: 5
