@@ -173,8 +173,10 @@ jobs:
               echo "==> Gitee Release 同步成功:"
               echo "    https://gitee.com/${{ github.repository }}/releases/${{ steps.ver.outputs.VERSION }}"
               exit 0
+            else
+              # 注意：$? 必须在 else 分支内捕获——bash 中 if 条件为假且无 else 时，if 构造返回 0
+              RC=$?
             fi
-            RC=$?
             if [ "$RETRY" -ge "$MAX_RETRY" ]; then
               echo "::error::Gitee 同步重试 $MAX_RETRY 次均失败（最后一次退出码 $RC），触发告警 job"
               exit 1
