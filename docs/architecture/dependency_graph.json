@@ -1,5 +1,5 @@
 {
-  "trace_id": "feeeccd0e9b6466f",
+  "trace_id": "be39e22b106d4bda",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -447,7 +447,7 @@
       "name": "agent",
       "layer": "unknown",
       "file_path": "",
-      "in_degree": 18,
+      "in_degree": 19,
       "out_degree": 0
     },
     {
@@ -1915,6 +1915,30 @@
       "out_degree": 1
     },
     {
+      "path": "agent.preflight.runner",
+      "name": "runner",
+      "layer": "preflight",
+      "file_path": "agent/preflight/runner.py",
+      "in_degree": 2,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.preflight",
+      "name": "preflight",
+      "layer": "preflight",
+      "file_path": "agent/preflight/__init__.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.preflight.__main__",
+      "name": "__main__",
+      "layer": "preflight",
+      "file_path": "agent/preflight/__main__.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
       "path": "agent.cognitive.critic",
       "name": "critic",
       "layer": "cognitive",
@@ -2530,7 +2554,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 48,
+      "line": 49,
       "source_file": "agent/memory_optimized.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -6339,7 +6363,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 252,
+      "line": 279,
       "source_file": "agent/skills_mgmt/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6352,7 +6376,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 353,
+      "line": 380,
       "source_file": "agent/skills_mgmt/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -7470,7 +7494,7 @@
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 475,
+      "line": 479,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -7483,7 +7507,7 @@
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 627,
+      "line": 631,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -7496,7 +7520,7 @@
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 895,
+      "line": 899,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -7509,7 +7533,7 @@
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 1124,
+      "line": 1128,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8856,6 +8880,45 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.preflight.runner",
+      "target": "agent",
+      "source_layer": "preflight",
+      "target_layer": "unknown",
+      "import_type": "from_import",
+      "line": 22,
+      "source_file": "agent/preflight/runner.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.preflight",
+      "target": "agent.preflight.runner",
+      "source_layer": "preflight",
+      "target_layer": "preflight",
+      "import_type": "from_import",
+      "line": 16,
+      "source_file": "agent/preflight/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.preflight.__main__",
+      "target": "agent.preflight.runner",
+      "source_layer": "preflight",
+      "target_layer": "preflight",
+      "import_type": "from_import",
+      "line": 15,
+      "source_file": "agent/preflight/__main__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.cognitive.critic",
       "target": "agent.monitoring.tracing",
       "source_layer": "cognitive",
@@ -10066,9 +10129,9 @@
     }
   ],
   "stats": {
-    "total_files": 348,
-    "total_nodes": 276,
-    "total_edges": 604,
+    "total_files": 353,
+    "total_nodes": 279,
+    "total_edges": 607,
     "cross_layer_edges": 389,
     "violation_edges": 0,
     "dynamic_edges": 1,
@@ -10107,10 +10170,11 @@
       "server_routes": 26,
       "health": 4,
       "quality": 2,
+      "preflight": 3,
       "human_in_the_loop": 1,
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1310.8496220000063
+    "build_duration_ms": 1302.2506660000063
   }
 }

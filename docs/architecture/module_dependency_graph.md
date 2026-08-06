@@ -236,6 +236,11 @@ flowchart LR
         agent_p6_performance["agent.p6.performance"]
         agent_p6_snapshot["agent.p6.snapshot"]
     end
+    subgraph preflight [preflight]
+        agent_preflight["agent.preflight"]
+        agent_preflight___main__["agent.preflight.__main__"]
+        agent_preflight_runner["agent.preflight.runner"]
+    end
     subgraph prompt_manager [prompt_manager]
         agent_prompt_manager_deployment["agent.prompt_manager.deployment"]
         agent_prompt_manager_observability["agent.prompt_manager.observability"]
@@ -865,6 +870,9 @@ flowchart LR
     agent_quality_defect_tracker -.-> agent_monitoring_observability_config
     agent_health_observability -.-> agent_monitoring_business_metrics
     agent_health_dashboard --> agent_health_assessor
+    agent_preflight_runner --> agent
+    agent_preflight --> agent_preflight_runner
+    agent_preflight___main__ --> agent_preflight_runner
     agent_cognitive_critic -.-> agent_monitoring_tracing
     agent_cognitive_critic -.-> agent_circuit_breaker
     agent_cognitive_critic -.-> agent_graceful_degrade
@@ -966,10 +974,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 348
-- 模块节点数: 276
-- 依赖边数: 604
+- 扫描文件数: 353
+- 模块节点数: 279
+- 依赖边数: 607
 - 跨层调用数: 389
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1310.85 ms
+- 构建耗时: 1302.25 ms
