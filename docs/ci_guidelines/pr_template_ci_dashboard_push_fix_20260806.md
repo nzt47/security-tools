@@ -14,20 +14,33 @@
 
 **修复**：push 前先 `git pull --rebase origin master`，最多重试 3 次；
 耗尽后 `::warning::` 跳过（看板为可丢失更新，不阻塞 CI、不产生失败通知）。
+逻辑封装为通用脚本 `scripts/git_push_with_retry.sh`（单一事实源），
+ci.yml 与操作指南均调用该工具。
 
 ## Changes
 
+- `scripts/git_push_with_retry.sh`（新增）：pull --rebase + 重试通用工具，
+  支持 `--retries/--sleep/--remote/--fail` 参数
 - `.github/workflows/ci.yml`：`update-ci-dashboard` job 的"提交并推送看板更新"步骤
-  增加 pull --rebase + 3 次重试逻辑
+  内联重试逻辑替换为调用 `bash scripts/git_push_with_retry.sh master`
+- `.github/workflows/boundary-guard.yml`：硬编码边界值基线 114→115
+  （preflight 工具包存量入基线，消除 master 本身 115 > 114 的误报）
+- `docs/observability/push_race_retry_simulation_retrospective_20260806.md`（新增）：
+  技术复盘（事件时间线 / 五问法根因 / sim1-3 模拟验证 / 完整日志 / 学习要点）
+- `docs/ci_guidelines/dev_pr_merge_guide_20260806.md`：§4.2 示例同步为脚本调用
 
 ## Validation
 
-- [x] 本地模拟：双工作副本模拟并发推送竞争场景，重试机制成功收敛（见
-      `docs/troubleshooting/ci_failures_tracking_20260806.md` §2）
-- [x] bash 语法校验通过
-- [ ] CI 实测：合并后观察下一次 push 的 `update-ci-dashboard` job 结论
+- [x] 本地模拟：sim1 远端推进 2 commit 一次收敛；sim2/sim3 attempt1 失败 →
+      attempt2 重试收敛；sim4 工具竞争收敛；sim5 工具 `--fail` 耗尽 exit 1
+- [x] `bash -n` 语法 + 参数校验（-h / 缺分支 / 非法 retries）
+- [x] 两个 workflow YAML 解析通过
+- [ ] CI 实测：PR checks 全绿后 squash 合入，观察下一次 push 的
+      `update-ci-dashboard` job 结论
 
 ## 关联
 
 - 问题跟踪单：`docs/troubleshooting/ci_failures_tracking_20260806.md`（#2）
+- 技术复盘：`docs/observability/push_race_retry_simulation_retrospective_20260806.md`
+- 操作指南：`docs/ci_guidelines/dev_pr_merge_guide_20260806.md`
 - 失败 run：云枢系统测试流程 31072885508（job `update-ci-dashboard`）
