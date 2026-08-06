@@ -75,14 +75,14 @@ git branch -d feat/your-change
 for i in 1 2 3; do
   if git pull --rebase origin master; then
     if git push origin master; then
-      echo "已推送 (attempt $i)"
+      echo "已推送看板更新 (attempt $i)"
       exit 0
     fi
   fi
-  echo "push 竞争失败 (attempt $i/3)，5s 后重试"
+  echo "[dashboard] push 竞争失败 (attempt $i/3)，5s 后重试"
   sleep 5
 done
-echo "::warning::3 次重试仍失败，本次跳过（下次推送自动补齐）"
+echo "::warning::看板更新 3 次重试仍失败，本次跳过（下次推送自动补齐）"
 ```
 
 要点：
