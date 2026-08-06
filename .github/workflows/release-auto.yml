@@ -120,10 +120,14 @@ jobs:
         run: |
           set -euxo pipefail
           VERSION="${{ steps.ver.outputs.VERSION }}"
+          echo "===== GitHub Release 创建开始 ====="
+          echo "==> 版本号: $VERSION"
+          echo "==> API: POST https://api.github.com/repos/${{ github.repository }}/releases"
+          echo "==> GH_TOKEN 可用（长度 ${#GH_TOKEN}）"
           MAX_RETRY=3
           RETRY=1
           while :; do
-            echo "=== GitHub Release 创建尝试 $RETRY/$MAX_RETRY ==="
+            echo "=== [$(date -u +'%H:%M:%S')] GitHub Release 创建尝试 $RETRY/$MAX_RETRY ==="
             BODY=$(python -c "import json,sys;print(json.dumps(open(sys.argv[1],encoding='utf-8').read()))" notes.md)
             CODE=$(curl -s -o gh_resp.json -w '%{http_code}' -X POST \
               "https://api.github.com/repos/${{ github.repository }}/releases" \
@@ -132,23 +136,24 @@ jobs:
               -d "{\"tag_name\":\"$VERSION\",\"name\":\"Release $VERSION\",\"body\":$BODY}")
             echo "GitHub API 响应: HTTP $CODE"
             if [ "$CODE" -lt 400 ]; then
-              echo "GitHub Release 创建成功:"
-              echo "  ${{ github.server_url }}/${{ github.repository }}/releases/tag/$VERSION"
+              echo "==> GitHub Release 创建成功:"
+              echo "    ${{ github.server_url }}/${{ github.repository }}/releases/tag/$VERSION"
+              echo "==> 响应体: $(head -c 200 gh_resp.json)"
               rm -f gh_resp.json
               break
             fi
-            echo "API 响应体: $(head -c 300 gh_resp.json)"
+            echo "==> 响应体: $(head -c 300 gh_resp.json)"
             if [ "$CODE" -eq 409 ] || [ "$CODE" -eq 422 ]; then
               echo "::error::HTTP $CODE: 该 tag 已存在 Release（幂等冲突，重试无意义），需改用 PATCH /releases/{id} 编辑接口"
               rm -f gh_resp.json
               exit 1
             fi
             if [ "$RETRY" -ge "$MAX_RETRY" ]; then
-              echo "::error::GitHub Release 创建重试 $MAX_RETRY 次均失败，触发告警 job"
+              echo "::error::GitHub Release 创建重试 $MAX_RETRY 次均失败（最后一次 HTTP $CODE），触发告警 job"
               rm -f gh_resp.json
               exit 1
             fi
-            echo "GitHub Release 创建失败，10s 后第 $((RETRY+1)) 次重试..."
+            echo "==> GitHub Release 创建失败（HTTP $CODE），10s 后第 $((RETRY+1)) 次重试..."
             RETRY=$((RETRY+1))
             sleep 10
           done
@@ -162,10 +167,11 @@ jobs:
           echo "===== Gitee 同步开始 ====="
           echo "==> GITEE_TOKEN 已配置（长度 ${#GITEE_TOKEN}）"
           echo "==> 目标仓库: gitee.com/${{ github.repository }}"
+          echo "==> 脚本: scripts/create_gitee_release.ps1"
           MAX_RETRY=3
           RETRY=1
           while :; do
-            echo "=== Gitee 同步尝试 $RETRY/$MAX_RETRY (create_gitee_release.ps1) ==="
+            echo "=== [$(date -u +'%H:%M:%S')] Gitee 同步尝试 $RETRY/$MAX_RETRY (create_gitee_release.ps1) ==="
             if pwsh -NoProfile -File scripts/create_gitee_release.ps1 \
                 -TagName "${{ steps.ver.outputs.VERSION }}" \
                 -Title "Release ${{ steps.ver.outputs.VERSION }}" \
@@ -177,6 +183,7 @@ jobs:
               # 注意：$? 必须在 else 分支内捕获——bash 中 if 条件为假且无 else 时，if 构造返回 0
               RC=$?
             fi
+            echo "==> 失败退出码: $RC（create_gitee_release.ps1 已输出 HTTP 状态码分类，见上方日志）"
             if [ "$RETRY" -ge "$MAX_RETRY" ]; then
               echo "::error::Gitee 同步重试 $MAX_RETRY 次均失败（最后一次退出码 $RC），触发告警 job"
               exit 1
@@ -213,6 +220,7 @@ jobs:
           echo "==> 触发方式: ${{ github.event_name }}"
           echo "==> 运行链接: $RUN_URL"
           echo "==> GITHUB_TOKEN 可用（长度 ${#GH_TOKEN}，workflow 级 permissions: issues: write）"
+          echo "==> 告警 Issue 标题: 发布失败告警: $VERSION (${{ github.workflow }})"
           echo "--- 创建告警 Issue ---"
           if ISSUE_URL=$(gh issue create \
               --title "发布失败告警: $VERSION (${{ github.workflow }})" \
