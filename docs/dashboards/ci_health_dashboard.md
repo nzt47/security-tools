@@ -42,6 +42,7 @@
 | 2026-08-04 | `8ffe05c` | 98.7% (1494/1513) | 0 | 19 | 96.23 | — | 0 | ↑ | chore(hooks): 同步 WORKFLOW_SIM 段到发布包副本, 保持与 dev 版模板 |
 | 2026-08-04 | `657daae` | 98.7% (1494/1513) | 0 | 19 | 106.81 | — | 0 | ↑ | fix(ci): docker-compose.yml 添加 build 段作为 CI fallback |
 | 2026-08-05 | `26a9c07` | 98.7% (1505/1525) | 0 | 20 | 100.62 | — | 0 | ↑ | docs(observability): 补充 Shard3 实测监控数据与 -n 1 决策依据（不 |
+| 2026-08-06 | `60182b1` | 98.5% (1493/1516) | 0 | 23 | 80.07 | — | 0 | ↑ | Merge pull request #308 from nzt47/fix/ci-validation-clean |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
