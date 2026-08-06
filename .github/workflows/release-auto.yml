@@ -129,11 +129,13 @@ jobs:
           while :; do
             echo "=== [$(date -u +'%H:%M:%S')] GitHub Release 创建尝试 $RETRY/$MAX_RETRY ==="
             BODY=$(python -c "import json,sys;print(json.dumps(open(sys.argv[1],encoding='utf-8').read()))" notes.md)
-            CODE=$(curl -s -o gh_resp.json -w '%{http_code}' -X POST \
+            # 陷阱：curl 网络层失败（超时/连接拒绝，退出码非零）会触发 set -e 终止整个 step、跳过重试循环
+            # 用 || CODE=500 把网络失败映射为 HTTP 500 进入重试；--max-time 30 防 GitHub API 挂起拖满 step 超时
+            CODE=$(curl -s -o gh_resp.json -w '%{http_code}' --max-time 30 -X POST \
               "https://api.github.com/repos/${{ github.repository }}/releases" \
               -H "Authorization: Bearer $GH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
-              -d "{\"tag_name\":\"$VERSION\",\"name\":\"Release $VERSION\",\"body\":$BODY}")
+              -d "{\"tag_name\":\"$VERSION\",\"name\":\"Release $VERSION\",\"body\":$BODY}") || CODE=500
             echo "GitHub API 响应: HTTP $CODE"
             if [ "$CODE" -lt 400 ]; then
               echo "==> GitHub Release 创建成功:"
@@ -142,7 +144,11 @@ jobs:
               rm -f gh_resp.json
               break
             fi
-            echo "==> 响应体: $(head -c 300 gh_resp.json)"
+            if [ -s gh_resp.json ]; then
+              echo "==> 响应体: $(head -c 300 gh_resp.json)"
+            else
+              echo "==> 响应体: (无——网络层失败，已按 HTTP 500 进入重试)"
+            fi
             if [ "$CODE" -eq 409 ] || [ "$CODE" -eq 422 ]; then
               echo "::error::HTTP $CODE: 该 tag 已存在 Release（幂等冲突，重试无意义），需改用 PATCH /releases/{id} 编辑接口"
               rm -f gh_resp.json

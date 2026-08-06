@@ -285,3 +285,67 @@ echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT  # 不能用 $?：分支内 echo s
 - 修复：初始化 `EXIT_CODE=0`，每个 python 调用后立即 `EXIT_CODE=$?`，`fi` 后写
   `echo "exit_code=$EXIT_CODE"`。行为不变（step 仍以 echo 成功结束，提示而非阻断），
   仅让退出码真实传播。
+
+## 10. 常见问题（FAQ）
+
+### Q1. bash 命令退出码恒为 0，真实失败被吞？
+
+这是 §9 记录的 **bash if 构造吞退出码陷阱**：`if cmd; then ...; fi` 中 cmd 失败且无
+`else` 时，if 构造整体返回 0。快速自查：
+
+```bash
+if pwsh -NoProfile -File script.ps1; then echo SUCC; else RC=$?; fi  # ✅ RC 在 else 内
+pwsh ... && { echo SUCC; }                                            # ✅ && 短路，失败时 $? 正确
+if cmd; then echo A; fi; RC=$?                                        # ❌ 若 if 内最后命令是 echo，$? 恒 0
+```
+
+排查清单：凡 `$?` 出现在 `if/fi`、`while/done`、`&&/||` 之后，检查「真正关心成败的
+命令」与捕获之间是否夹了必然成功的命令（echo/printf/赋值）。详见 §9。
+
+### Q2. 本地模拟发布流程时 python/pwsh/curl 报 not found 或路径 FileNotFound？
+
+**根因**：Windows 上 `bash` 命令实际是 WSL 的 Linux bash，与 Windows 网络栈、路径体系隔离。
+
+| 现象 | 原因 | 解法 |
+|---|---|---|
+| `curl: (7) Failed to connect to 127.0.0.1` | Linux curl 走 WSL 网络栈，连不上 Windows 宿主上的 mock | 用 Windows curl：`/mnt/c/Windows/System32/curl.exe` |
+| `python: command not found` / `pwsh: command not found` | WSL 里无 Linux 版 python/pwsh | 用 `python.exe` / `pwsh.exe`（WSL interop 调 Windows 程序） |
+| `FileNotFoundError: '\\mnt\\c\\...'` | Windows 程序（python/curl/pwsh）解析不了 WSL 路径 | 传参前 `wslpath -w` 转成 `C:\...` 风格：`WIN_SIM_DIR=$(wslpath -w "$SIM_DIR")` |
+
+**成功模板**（2026-08-06 v1.0.5 模拟验证）：
+```bash
+PY="python.exe"; PS="pwsh.exe"
+CURL="/mnt/c/Windows/System32/curl.exe"        # 走 Windows 网络栈访问 mock
+WIN_SIM_DIR=$(wslpath -w "$SIM_DIR")            # Windows 程序收参用
+# bash 侧读文件用 WSL 路径（$SIM_DIR/...），Windows 程序收参用 WIN 路径（$WIN_SIM_DIR\...）
+```
+注意：以上只影响**本地模拟**；真实 GitHub Actions runner 是 Ubuntu，bash/pwsh/python
+同一 Linux 环境、路径一致，不存在该问题。
+
+### Q3. 网络超时（curl timeout）时不走重试、直接失败？
+
+**隐患**（2026-08-06 修复）：创建 GitHub Release 的 `CODE=$(curl ...)` 在 curl 网络层
+失败（超时/连接拒绝，退出码非零）时，会触发 `set -e` 终止整个 step，**跳过 while 重试
+循环**——网络瞬时故障本应重试 3 次却第一次就 abort 并误触发告警。
+
+**修复**（release-auto.yml「创建 GitHub Release」step）：
+```bash
+CODE=$(curl -s -o gh_resp.json -w '%{http_code}' --max-time 30 -X POST ...) || CODE=500
+```
+- `|| CODE=500`：把网络层失败（curl 退出码非零，`-w` 输出 000）映射为 HTTP 500 进入重试
+- `--max-time 30`：防 GitHub API 挂起拖满 step 超时（timeout-minutes: 10）
+- 响应体容错：网络失败时 `gh_resp.json` 可能不存在/为空，读前用 `[ -s gh_resp.json ]` 判断
+
+**Gitee 侧对应防御**：`create_gitee_release.ps1` 的 `Invoke-Gitee` 增加
+`TimeoutSec = 30` 默认值——否则 Gitee API 挂起时脚本无限等待，外层重试 step 静默拖满
+10min 才失败。注意 Gitee step 用 `if pwsh ...; then else RC=$?; fi` 结构，pwsh 失败能
+正确进 else 捕获（§9 写法一），不触发 set -e，重试循环本身是安全的。
+
+### Q4. 发布失败但日志看不出原因？
+
+按顺序排查：
+1. 打开运行页 → 失败 step 的日志（关键 step 已启用 `set -x` 与时间戳 `[HH:MM:SS]`）
+2. 看「响应体」输出：`==> 响应体: (无——网络层失败...)` 表示网络问题（对应 Q3）；
+   有 JSON 则看 `message` 字段（401 token / 409·422 幂等冲突 / 5xx 服务端）
+3. Gitee step 的 `create_gitee_release.ps1` 自带 HTTP 状态码分类输出（401/404/403/409/422）
+4. 从 Artifacts 下载 release-notes 核对发布备注是否正常生成（定位在生成备注 step 还是发布 step）
