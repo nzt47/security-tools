@@ -132,6 +132,11 @@ flowchart LR
     subgraph human_in_the_loop [human_in_the_loop]
         agent_human_in_the_loop_observability["agent.human_in_the_loop.observability"]
     end
+    subgraph knowledge [knowledge]
+        agent_knowledge["agent.knowledge"]
+        agent_knowledge_lifecycle["agent.knowledge.lifecycle"]
+        agent_knowledge_schema["agent.knowledge.schema"]
+    end
     subgraph lazy_loader [lazy_loader]
         agent_lazy_loader["agent.lazy_loader"]:::crosslayer
         agent_lazy_loader__core["agent.lazy_loader._core"]:::crosslayer
@@ -325,6 +330,7 @@ flowchart LR
     end
     subgraph utils [utils]
         agent_utils["agent.utils"]:::crosslayer
+        agent_utils_compatibility["agent.utils.compatibility"]:::crosslayer
         agent_utils_observability["agent.utils.observability"]
         agent_utils_perf_monitor["agent.utils.perf_monitor"]
         agent_utils_sensitive_data_filter["agent.utils.sensitive_data_filter"]:::crosslayer
@@ -443,6 +449,8 @@ flowchart LR
     agent_utils_perf_monitor -.-> agent_logging_utils
     agent_utils_perf_monitor -.-> agent_logging_utils
     agent_workflow_engine_observability -.-> agent_monitoring_business_metrics
+    agent_knowledge --> agent_knowledge_schema
+    agent_knowledge --> agent_knowledge_lifecycle
     agent_network -.-> agent_network_config
     agent_network --> agent_network_config_validator
     agent_network_observability -.-> agent_monitoring_business_metrics
@@ -511,6 +519,7 @@ flowchart LR
     agent_orchestrator_lifecycle_manager -.-> agent_tools_system_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_code_tools
     agent_orchestrator_lifecycle_manager -.-> agent_tools_core_tools
+    agent_orchestrator_lifecycle_manager -.-> agent_utils_compatibility
     agent_orchestrator_lifecycle_manager -.-> agent_system_prompt_config
     agent_orchestrator_lifecycle_manager -.-> agent_memory_router
     agent_orchestrator_lifecycle_manager -.-> agent_workflow_engine_engine
@@ -957,10 +966,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 345
-- 模块节点数: 272
-- 依赖边数: 601
-- 跨层调用数: 388
+- 扫描文件数: 348
+- 模块节点数: 276
+- 依赖边数: 604
+- 跨层调用数: 389
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1282.64 ms
+- 构建耗时: 1310.85 ms
