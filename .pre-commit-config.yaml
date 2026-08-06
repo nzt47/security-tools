@@ -59,3 +59,18 @@ repos:
           数据库连接串 / 敏感文件名）。检测到敏感信息时阻断提交，
           防止敏感数据误进入 Git 历史。支持白名单（测试 mock /
           文档示例 / 部署配置），详见 scripts/scan_sensitive_data.py。
+
+      - id: knowledge-cli-verify
+        name: 知识卡片 CLI 全生命周期校验 (16 项断言)
+        entry: python scripts/dev/verify_knowledge_cli.py --pre-commit
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: >
+          在临时目录构造 mock 数据，全量运行知识卡片引擎 CLI 主入口
+          （python -m agent.knowledge）的 5 个子命令断言：card-list 列出/
+          过滤、card-transition 合法迁移（归档重链）/非法迁移/不存在、
+          check-links 断链门禁、orphans 孤儿检测、index-rebuild 落盘，
+          以及 subprocess 退出码一致性。任一断言失败 exit 1 阻断提交。
+          静默模式（--pre-commit）不污染 hook 输出。

@@ -1,0 +1,391 @@
+"""任务2 · 知识卡片 CRUD/持久化/索引/日志 回归测试
+
+覆盖（评估标准）：创建/读取/更新/删除、同 slug 冲突（CardConflictError）、
+跨 type 全局查重、原子写、list 过滤、正文双链同步 links、index 全量/增量一致性、
+log.md 写操作登记、slug 路径穿越防御、损坏卡片容错。
+"""
+
+from __future__ import annotations
+
+import pytest
+
+from agent.knowledge.card import (
+    CardConflictError,
+    CardNotFoundError,
+    CardStore,
+)
+from agent.knowledge.index import rebuild_index, update_index_delta
+from agent.knowledge.logbook import append_log
+from agent.knowledge.schema import Card, slugify
+
+
+def make_card(
+    title: str = "驾驭工程",
+    status: str = "current",
+    type: str = "concepts",
+    content: str = "",
+    links=None,
+    insight: str = "一句话核心洞见",
+    **kw,
+) -> Card:
+    card = Card(
+        title=title,
+        slug=kw.pop("slug", slugify(title)),
+        status=status,
+        type=type,
+        source=kw.pop("source", "inbox/test.md"),
+        date=kw.pop("date", "2026-08-02"),
+        tags=kw.pop("tags", []),
+        links=links if links is not None else [],
+        insight=insight,
+        **kw,
+    )
+    card.content = content
+    return card
+
+
+@pytest.fixture
+def store(tmp_path):
+    """临时知识库布局：<tmp>/kb/{wiki,archives,index.md,log.md}"""
+    return CardStore(tmp_path / "kb" / "wiki")
+
+
+def _strip_time(text: str) -> str:
+    """剔除时间戳行，用于 rebuild 与 delta 叠加结果的一致性比对。"""
+    return "\n".join(
+        line
+        for line in text.splitlines()
+        if not line.startswith("> 此文件由 AI 自动维护")
+    )
+
+
+# ---------- create / get ----------
+
+
+def test_create_and_get_roundtrip(store):
+    a = make_card("驾驭工程", content="正文内容", tags=["工程"])
+    store.create(a)
+    got = store.get("驾驭工程")
+    assert got is not None
+    assert got.title == "驾驭工程"
+    assert got.slug == "驾驭工程"
+    assert got.status == "current"
+    assert got.type == "concepts"
+    assert got.content == "正文内容"
+    assert got.tags == ["工程"]
+    assert got.insight == "一句话核心洞见"
+
+
+def test_create_duplicate_slug_raises_conflict(store):
+    store.create(make_card("驾驭工程"))
+    with pytest.raises(CardConflictError):
+        store.create(make_card("驾驭工程"))
+
+
+def test_create_duplicate_slug_across_types_raises(store):
+    """同 slug 跨 type 也冲突（slug 全局唯一，不静默覆盖）。"""
+    store.create(make_card("驾驭工程", type="concepts"))
+    with pytest.raises(CardConflictError):
+        store.create(make_card("驾驭工程", type="entities"))
+
+
+def test_create_invalid_card_raises_valueerror(store):
+    card = make_card("驾驭工程")
+    card.insight = ""  # validate_card 契约：核心洞见必填
+    with pytest.raises(ValueError, match="核心洞见"):
+        store.create(card)
+
+
+def test_create_illegal_slug_raises_valueerror(store):
+    """路径穿越防御：slug 不允许含路径分隔符。"""
+    card = make_card("驾驭工程")
+    card.slug = "../evil"
+    with pytest.raises(ValueError, match="非法 slug"):
+        store.create(card)
+
+
+def test_create_empty_slug_raises_valueerror(store):
+    card = make_card("驾驭工程")
+    card.slug = ""
+    with pytest.raises(ValueError, match="slug 不能为空"):
+        store.create(card)
+
+
+def test_get_missing_returns_none(store):
+    assert store.get("不存在") is None
+
+
+def test_get_corrupted_card_returns_none(store, tmp_path):
+    p = tmp_path / "kb" / "wiki" / "concepts" / "坏卡.md"
+    p.parent.mkdir(parents=True)
+    p.write_text("没有 frontmatter", encoding="utf-8")
+    assert store.get("坏卡") is None
+    assert store.list() == []  # 损坏卡片被列举时跳过
+
+
+def test_get_invalid_yaml_frontmatter_returns_none(store, tmp_path):
+    """frontmatter 非法 YAML → 视为不存在（不抛异常）。"""
+    p = tmp_path / "kb" / "wiki" / "concepts" / "坏卡.md"
+    p.parent.mkdir(parents=True)
+    p.write_text("---\ntitle: [未闭合\n---\n正文", encoding="utf-8")
+    assert store.get("坏卡") is None
+
+
+def test_get_archives_prefixed_target(store):
+    store.create(make_card("驾驭工程", status="current"))
+    store.transition("驾驭工程", "archive")
+    archived = store.get("archives/驾驭工程")
+    assert archived is not None
+    assert archived.slug == "驾驭工程"
+    assert archived.status == "archive"
+
+
+def test_get_archives_traversal_returns_none(store):
+    assert store.get("archives/../evil") is None
+
+
+def test_create_writes_frontmatter_format(store, tmp_path):
+    a = make_card("驾驭工程", content="正文内容", links=["提示词工程"])
+    store.create(a)
+    text = (
+        tmp_path / "kb" / "wiki" / "concepts" / "驾驭工程.md"
+    ).read_text(encoding="utf-8")
+    assert text.startswith("---\ntitle: 驾驭工程\n")
+    assert "slug: 驾驭工程" in text
+    assert "status: current" in text
+    assert "links: [提示词工程]" in text or "links:\n- 提示词工程" in text
+    assert "insight: 一句话核心洞见" in text
+    assert text.strip().endswith("正文内容")
+
+
+def test_create_atomic_no_tmp_leftover(store, tmp_path):
+    store.create(make_card("驾驭工程"))
+    leftovers = list((tmp_path / "kb" / "wiki" / "concepts").glob("*.tmp"))
+    assert leftovers == []
+
+
+# ---------- update ----------
+
+
+def test_update_persists_changes(store):
+    a = make_card("驾驭工程")
+    store.create(a)
+    a.insight = "更新后的摘要"
+    a.content = "更新后的正文"
+    store.update(a)
+    got = store.get("驾驭工程")
+    assert got.insight == "更新后的摘要"
+    assert got.content == "更新后的正文"
+
+
+def test_update_syncs_links_from_content(store):
+    """【不易】update 以正文双链解析结果同步 links 字段。"""
+    a = make_card("驾驭工程")
+    store.create(a)
+    assert store.get("驾驭工程").links == []  # create 保持传入值
+    a.content = "参见 [[提示词工程]] 与 [[第一性原理|原理]]"
+    store.update(a)
+    assert store.get("驾驭工程").links == ["提示词工程", "第一性原理"]
+
+
+def test_update_missing_raises_not_found(store):
+    with pytest.raises(CardNotFoundError):
+        store.update(make_card("不存在"))
+
+
+def test_update_type_change_migrates_file(store, tmp_path):
+    a = make_card("驾驭工程", type="concepts")
+    store.create(a)
+    old = tmp_path / "kb" / "wiki" / "concepts" / "驾驭工程.md"
+    assert old.exists()
+    a.type = "entities"
+    store.update(a)
+    assert not old.exists()
+    assert (tmp_path / "kb" / "wiki" / "entities" / "驾驭工程.md").exists()
+
+
+def test_update_type_change_moves_index_entry(store, tmp_path):
+    """【评估标准】type 变更后 index 条目迁移到新 section（增量 == 全量重建）。"""
+    index_path = tmp_path / "kb" / "index.md"
+    a = make_card("驾驭工程", type="concepts")
+    store.create(a)
+    store.create(make_card("张三", type="entities"))
+    a.type = "entities"
+    store.update(a)
+    delta_text = _strip_time(index_path.read_text(encoding="utf-8"))
+    assert rebuild_index(tmp_path / "kb" / "wiki", index_path) == 2
+    rebuilt = _strip_time(index_path.read_text(encoding="utf-8"))
+    assert rebuilt == delta_text
+    # 旧 section 无残留、新 section 含条目
+    concepts_part = delta_text.split("## 实体 (Entities)")[0]
+    assert "驾驭工程" not in concepts_part
+    assert "- [[驾驭工程]]" in delta_text.split("## 实体 (Entities)")[1]
+
+
+def test_update_refreshes_index_entry(store, tmp_path):
+    a = make_card("驾驭工程")
+    store.create(a)
+    a.insight = "更新后的摘要"
+    store.update(a)
+    text = (tmp_path / "kb" / "index.md").read_text(encoding="utf-8")
+    assert "更新后的摘要" in text
+
+
+# ---------- delete ----------
+
+
+def test_delete_removes_card(store):
+    store.create(make_card("驾驭工程"))
+    assert store.delete("驾驭工程") is True
+    assert store.get("驾驭工程") is None
+
+
+def test_delete_with_incoming_links_rejected(store):
+    """【评估标准】有入链时拒绝删除并返回 False。"""
+    store.create(make_card("提示词工程", links=["驾驭工程"]))
+    store.create(make_card("驾驭工程"))
+    assert store.delete("驾驭工程") is False
+    assert store.get("驾驭工程") is not None
+
+
+def test_delete_not_blocked_by_archives_link(store):
+    """【边界】archives/ 前缀链接指向归档，不算 wiki 入链，不阻止删除。"""
+    store.create(make_card("驾驭工程"))
+    store.create(make_card("提示词工程", links=["archives/驾驭工程"]))
+    assert store.delete("驾驭工程") is True
+    assert store.get("驾驭工程") is None
+
+
+def test_delete_missing_returns_false(store):
+    assert store.delete("不存在") is False
+
+
+def test_delete_removes_index_entry(store, tmp_path):
+    store.create(make_card("驾驭工程"))
+    store.create(make_card("提示词工程"))
+    assert store.delete("提示词工程") is True
+    text = (tmp_path / "kb" / "index.md").read_text(encoding="utf-8")
+    assert "- [[提示词工程]]" not in text
+    assert "- [[驾驭工程]]" in text
+
+
+# ---------- list ----------
+
+
+def test_list_all_and_filters(store):
+    store.create(make_card("驾驭工程", type="concepts"))
+    store.create(make_card("提示词工程", status="draft", type="concepts"))
+    store.create(make_card("张三", type="entities"))
+    assert len(store.list()) == 3
+    assert {c.slug for c in store.list(status="draft")} == {"提示词工程"}
+    assert {c.slug for c in store.list(type="entities")} == {"张三"}
+    assert {c.slug for c in store.list(status="current", type="concepts")} == {
+        "驾驭工程"
+    }
+    assert store.list(status="archive") == []
+
+
+def test_list_empty_wiki(store):
+    assert store.list() == []
+
+
+# ---------- index.md 维护 ----------
+
+
+def test_rebuild_index_format(store, tmp_path):
+    store.create(make_card("驾驭工程", content=""))
+    store.create(make_card("提示词工程", status="draft", type="concepts"))
+    index_path = tmp_path / "kb" / "index.md"
+    assert rebuild_index(tmp_path / "kb" / "wiki", index_path) == 2
+    text = index_path.read_text(encoding="utf-8")
+    assert text.startswith("# 知识库全局索引")
+    assert "## 概念 (Concepts)" in text
+    assert "## 实体 (Entities)" in text
+    assert "## 洞察 (Insights)" in text
+    assert "- [[驾驭工程]] `current` — 一句话核心洞见" in text
+    assert "- [[提示词工程]] `draft` — 一句话核心洞见" in text
+
+
+def test_rebuild_index_matches_delta_accumulation(store, tmp_path):
+    """【评估标准】rebuild_index 与逐卡 update_index_delta 叠加结果一致。"""
+    index_path = tmp_path / "kb" / "index.md"
+    cards = [
+        make_card("驾驭工程", type="concepts"),
+        make_card("提示词工程", status="draft", type="concepts"),
+        make_card("张三", type="entities"),
+        make_card("关于复杂系统", type="insights"),
+    ]
+    for c in cards:
+        store.create(c)
+    delta_text = _strip_time(index_path.read_text(encoding="utf-8"))
+    assert rebuild_index(tmp_path / "kb" / "wiki", index_path) == len(cards)
+    rebuilt = _strip_time(index_path.read_text(encoding="utf-8"))
+    assert rebuilt == delta_text
+
+
+def test_update_index_delta_repairs_missing_section(store, tmp_path):
+    """防御：index 骨架被手工破坏（缺 section 头）时增量更新能自愈。"""
+    index_path = tmp_path / "kb" / "index.md"
+    index_path.parent.mkdir(parents=True)
+    index_path.write_text("# 知识库全局索引\n", encoding="utf-8")
+    assert update_index_delta("驾驭工程", make_card("驾驭工程"), index_path) is True
+    text = index_path.read_text(encoding="utf-8")
+    assert "## 概念 (Concepts)" in text
+    assert "- [[驾驭工程]]" in text
+
+
+def test_update_index_delta_remove_missing_noop(store, tmp_path):
+    """移除不存在的条目 → 无变更返回 False。"""
+    index_path = tmp_path / "kb" / "index.md"
+    store.create(make_card("驾驭工程"))
+    assert update_index_delta("不存在", None, index_path) is False
+    assert "- [[驾驭工程]]" in index_path.read_text(encoding="utf-8")
+
+
+def test_update_index_delta_insert_without_section_gap(store, tmp_path):
+    """防御：index 缺 section 间空行时，条目仍插到下一个 section 头之前。"""
+    index_path = tmp_path / "kb" / "index.md"
+    index_path.parent.mkdir(parents=True)
+    index_path.write_text(
+        "# 知识库全局索引\n> 时间\n\n## 概念 (Concepts)\n- [[a]]\n## 实体 (Entities)\n",
+        encoding="utf-8",
+    )
+    card_b = make_card("B", slug="b")
+    assert update_index_delta("b", card_b, index_path) is True
+    text = index_path.read_text(encoding="utf-8")
+    assert "- [[a]]\n- [[b]]" in text
+    assert "## 实体 (Entities)" in text
+
+
+def test_update_index_delta_unknown_type_noop(store, tmp_path):
+    index_path = tmp_path / "kb" / "index.md"
+    card = make_card("驾驭工程")
+    card.type = "bogus"
+    assert update_index_delta("驾驭工程", card, index_path) is False
+    assert not index_path.exists()  # 未知类型不建骨架、不写盘
+
+
+# ---------- log.md 登记 ----------
+
+
+def test_create_logs_logbook(store, tmp_path):
+    store.create(make_card("驾驭工程"))
+    log = (tmp_path / "kb" / "log.md").read_text(encoding="utf-8")
+    assert "create | 驾驭工程 | type=concepts" in log
+
+
+def test_append_log_marker_insert_and_top(store, tmp_path):
+    """append_log 顶部追加：有 marker 插其后；无 marker 插最顶。"""
+    log = tmp_path / "log.md"
+    log.write_text("# 头\n\n<!-- 新记录追加到此行下方（顶部） -->\n", encoding="utf-8")
+    append_log("create", "A", "d1", log_path=log)
+    text = log.read_text(encoding="utf-8")
+    assert "create | A | d1" in text
+    assert text.index("<!-- ") < text.index("create | A | d1")
+
+    log2 = tmp_path / "log2.md"
+    append_log("update", "B", "d2", log_path=log2)
+    assert log2.read_text(encoding="utf-8").startswith("## [")
+    append_log("delete", "C", log_path=log2)
+    text3 = log2.read_text(encoding="utf-8")
+    assert text3.index("delete | C") < text3.index("update | B | d2")

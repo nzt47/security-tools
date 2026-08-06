@@ -21,6 +21,16 @@
 ## 3. 索引规则
 
 每次在 `wiki/` 中创建/大幅更新页面，必须同步更新 `index.md`（链接 + 一句话摘要）。
+`index.md` 与 `log.md` 由 `agent/knowledge/`（任务2 卡片引擎）自动维护，请勿手动修改。
+
+### 3.1 双链约定（任务2 链接解析约定）
+
+- 卡片互链语法：`[[目标]]` 或 `[[目标|别名]]`；目标即卡片 frontmatter `slug` 字段（任务0 schema）。
+- 解析规则：
+  - 无前缀目标（如 `[[驾驭工程]]`）：在 `wiki/concepts|entities|insights/<目标>.md` 下按 slug 查找。
+  - `archives/` 前缀目标（如 `[[archives/驾驭工程|驾驭工程]]`）：在 `knowledge/archives/<目标>.md` 下查找。
+- Archive 归档时，指向该卡片的全部入链（`links` 字段与正文双链）改写为
+  `[[archives/<slug>|旧名]]`（已有别名则保留别名），保证 `parse_links` 无死链。
 
 ## 4. 日志规则
 

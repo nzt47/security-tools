@@ -16,6 +16,13 @@ from agent.knowledge.schema import (REQUIRED_FIELDS,
                                     VALID_TYPES, Card, slugify, validate_card)
 from agent.knowledge.lifecycle import (TRANSITIONS, CardStatus, can_transition,
                                        validate_transition)
+from agent.knowledge.logbook import append_log
+from agent.knowledge.links import (find_broken_links, find_orphans,
+                                   parse_links, resolve_link,
+                                   rewrite_link_targets)
+from agent.knowledge.card import (CardConflictError, CardNotFoundError,
+                                  CardStore, InvalidTransitionError)
+from agent.knowledge.index import rebuild_index, update_index_delta
 
 __all__ = [
     # schema
@@ -23,4 +30,14 @@ __all__ = [
     "VALID_TYPES", "Card", "slugify", "validate_card",
     # lifecycle
     "TRANSITIONS", "CardStatus", "can_transition", "validate_transition",
+    # logbook（任务1 契约最小落地）
+    "append_log",
+    # links（任务2）
+    "parse_links", "find_orphans", "resolve_link", "find_broken_links",
+    "rewrite_link_targets",
+    # card（任务2 核心引擎）
+    "CardStore", "CardConflictError", "CardNotFoundError",
+    "InvalidTransitionError",
+    # index（任务2）
+    "rebuild_index", "update_index_delta",
 ]
