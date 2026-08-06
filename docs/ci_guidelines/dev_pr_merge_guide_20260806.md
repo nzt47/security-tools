@@ -69,26 +69,20 @@ git branch -d feat/your-change
 
 ### 4.2 CI 自动写回（R3，本次已落地）
 
-参考 `ci.yml` `update-ci-dashboard` job（已修复）：commit 后
+参考 `ci.yml` `update-ci-dashboard` job（已修复）：commit 后调用通用工具
+`scripts/git_push_with_retry.sh`（原内联 `pull --rebase` + 重试循环的单一事实源封装）：
 
 ```bash
-for i in 1 2 3; do
-  if git pull --rebase origin master; then
-    if git push origin master; then
-      echo "已推送看板更新 (attempt $i)"
-      exit 0
-    fi
-  fi
-  echo "[dashboard] push 竞争失败 (attempt $i/3)，5s 后重试"
-  sleep 5
-done
-echo "::warning::看板更新 3 次重试仍失败，本次跳过（下次推送自动补齐）"
+bash scripts/git_push_with_retry.sh master             # 默认 3 次重试、间隔 5s、origin
+bash scripts/git_push_with_retry.sh master --fail      # 耗尽后 exit 1（必须成功的写回场景）
+bash scripts/git_push_with_retry.sh master -r 5 -s 10  # 自定义重试次数与间隔
 ```
 
 要点：
 - `fetch-depth: 0`（checkout 需完整历史才能 rebase）
 - 权限 `contents: write` + 默认 GITHUB_TOKEN（不递归触发 CI）
 - 3 次重试耗尽后 `::warning::` 跳过而非 exit 非 0（可丢失更新不阻塞 CI）
+- 模拟验证与学习要点见 `docs/observability/push_race_retry_simulation_retrospective_20260806.md`
 
 ## 5. 冲突处理指引
 
