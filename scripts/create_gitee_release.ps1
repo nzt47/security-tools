@@ -42,7 +42,9 @@ param(
     [string]$Owner = "nzt47",
     [string]$Repo = "security-tools",
     [switch]$Prerelease,
-    [switch]$Diagnose
+    [switch]$Diagnose,
+    [switch]$Update,
+    [switch]$GenChangelog
 )
 $ErrorActionPreference = "Stop"
 $Base = "https://gitee.com/api/v5"
@@ -93,26 +95,60 @@ if ($BodyFile) {
     if (-not (Test-Path $BodyFile)) { Write-Host "[BLOCK] 正文文件不存在: $BodyFile" -ForegroundColor Red; exit 1 }
     $body = Get-Content $BodyFile -Raw -Encoding UTF8
 }
+if ($GenChangelog) {
+    # 一键发布：由 update_changelog.py 生成发布备注 + 更新 CHANGELOG.md，正文自动填充
+    Write-Step "生成发布备注 + 更新 CHANGELOG (update_changelog.py)"
+    $tmpBody = Join-Path $PSScriptRoot "..\.release_body_$TagName.md"
+    python (Join-Path $PSScriptRoot "update_changelog.py") --version $TagName --write --out $tmpBody
+    if ($LASTEXITCODE -ne 0) { Write-Host "[BLOCK] update_changelog.py 执行失败" -ForegroundColor Red; exit 1 }
+    $body = Get-Content $tmpBody -Raw -Encoding UTF8
+    Remove-Item $tmpBody -Force
+}
 
-Write-Step "创建 Release (POST /repos/$Owner/$Repo/releases)"
-$payload = @{
-    access_token     = $token
-    tag_name         = $TagName
-    name             = $Title
-    body             = $body
-    prerelease       = [bool]$Prerelease
-    target_commitish = "master"   # Gitee API 必填（分支名或 commit SHA）
+if ($Update) {
+    # 更新模式：先查该 tag 对应的已有 release id，再 PATCH
+    Write-Step "查找已有 Release (GET /repos/$Owner/$Repo/releases)"
+    $ls = Invoke-Gitee GET "/repos/$Owner/$($Repo)/releases?access_token=$($token)"
+    $existing = $ls | Where-Object { $_.tag_name -eq $TagName } | Select-Object -First 1
+    if (-not $existing) {
+        Write-Host "[BLOCK] 未找到 tag=$TagName 的已有 Release（去掉 -Update 可新建）" -ForegroundColor Red
+        exit 1
+    }
+    Write-Step "更新 Release (PATCH /repos/$Owner/$Repo/releases/$($existing.id))"
+    $Method = "PATCH"
+    $Path = "/repos/$Owner/$($Repo)/releases/$($existing.id)"
+    $payload = @{
+        access_token = $token
+        tag_name     = $TagName   # Gitee PATCH 也要求 tag_name
+        name         = $Title
+        body         = $body
+        prerelease   = [bool]$Prerelease
+    }
+} else {
+    Write-Step "创建 Release (POST /repos/$Owner/$Repo/releases)"
+    $Method = "POST"
+    $Path = "/repos/$Owner/$($Repo)/releases"
+    $payload = @{
+        access_token     = $token
+        tag_name         = $TagName
+        name             = $Title
+        body             = $body
+        prerelease       = [bool]$Prerelease
+        target_commitish = "master"   # Gitee API 必填（分支名或 commit SHA）
+    }
 }
 try {
-    $resp = Invoke-Gitee POST "/repos/$Owner/$Repo/releases" $payload
-    Write-Host "成功: $($resp.html_url) (id=$($resp.id))" -ForegroundColor Green
+    $resp = Invoke-Gitee $Method $Path $payload
+    $act = if ($Update) { "更新" } else { "创建" }
+    Write-Host "成功: $act tag=$($resp.tag_name) id=$($resp.id)" -ForegroundColor Green
 } catch {
+    $code = $_.Exception.Response.StatusCode.value__
     $msg = $_.ErrorDetails.Message
-    Write-Host "失败: $msg" -ForegroundColor Red
-    if ($msg -match "401") { Write-Host "排查: token 无效/已过期，重新生成（见头部注释）" }
-    elseif ($msg -match "404") { Write-Host "排查: 仓库路径或 tag 不存在；或 token 无该仓库权限（Gitee 对无权限统一返回 404）" }
-    elseif ($msg -match "400.*target_commitish") { Write-Host "排查: target_commitish 缺失（本脚本已内置 master 兜底）" }
-    elseif ($msg -match "403") { Write-Host "排查: 权限不足或触发限流" }
-    elseif ($msg -match "409|422") { Write-Host "排查: 该 tag 已存在 Release，先 GET /releases 确认" }
+    Write-Host "失败: HTTP $code $msg" -ForegroundColor Red
+    if ($code -eq 401) { Write-Host "排查: token 无效/已过期，重新生成（见头部注释）" }
+    elseif ($code -eq 404) { Write-Host "排查: 仓库路径或 tag 不存在；或 token 无该仓库权限（Gitee 对无权限统一返回 404）" }
+    elseif ($code -eq 400 -and $msg -match "target_commitish") { Write-Host "排查: target_commitish 缺失（本脚本已内置 master 兜底）" }
+    elseif ($code -eq 403) { Write-Host "排查: 权限不足或触发限流" }
+    elseif ($code -in 409, 422) { Write-Host "排查: 该 tag 已存在 Release（用 -Update 更新，或先 GET /releases 确认）" }
     exit 1
 }

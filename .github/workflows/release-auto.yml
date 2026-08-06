@@ -1,0 +1,78 @@
+# 自动发布（一键 Release）— push v* tag 或手动触发时自动生成发布备注并创建 Release
+#
+# 【不易】发布动作由 git tag 驱动，version 单一事实源 = tag 名
+# 【变易】支持 workflow_dispatch 手动指定版本；Gitee 同步按 secret 可选
+# 【简易】复用 update_changelog.py（发布备注）+ gh CLI（GitHub）+ create_gitee_release.ps1（Gitee）
+
+name: 自动发布
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '版本号（如 v1.1.0）'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  auto-release:
+    name: 生成发布备注并创建 Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 检出代码（含 tag 历史）
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 解析版本号
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "VERSION=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "VERSION=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 设置 Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: 生成发布备注（git log 分类）
+        run: |
+          PREV=$(git tag --sort=-creatordate | sed -n '2p')
+          echo "上一版本 tag: $PREV"
+          python scripts/update_changelog.py \
+            --version "${{ steps.ver.outputs.VERSION }}" \
+            --prev-tag "$PREV" \
+            --out notes.md
+
+      - name: 创建 GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ steps.ver.outputs.VERSION }}" \
+            --title "Release ${{ steps.ver.outputs.VERSION }}" \
+            --notes-file notes.md
+
+      - name: 同步 Gitee Release（需配置 GITEE_TOKEN secret）
+        if: env.GITEE_TOKEN != ''
+        env:
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          pwsh -NoProfile -File scripts/create_gitee_release.ps1 \
+            -TagName "${{ steps.ver.outputs.VERSION }}" \
+            -Title "Release ${{ steps.ver.outputs.VERSION }}" \
+            -BodyFile notes.md
+
+      - name: 上传发布备注产物
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: notes.md
