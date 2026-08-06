@@ -41,6 +41,7 @@ import json
 import uuid
 import tempfile
 import hashlib
+import subprocess
 from typing import Optional, List, Dict, Any, Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -58,8 +59,39 @@ logger = logging.getLogger(__name__)
 
 # 【变易】chromadb import/客户端创建超时(秒)。chromadb 1.5.9 + pydantic 2.x 在部分
 # 环境下 import 会长时间卡死(pydantic_settings dotenv 解析)或抛 UserIdentity 双加载错误,
-# try/except ImportError 无法拦截"卡死",需超时线程兜底降级为 MockChromaClient。
+# try/except ImportError 无法拦截"卡死"，需子进程探测兜底降级为 MockChromaClient。
 _CHROMADB_IMPORT_TIMEOUT = 30.0
+# 子进程探测结果缓存：探测一次后全进程复用，避免每次 _create_client 都起子进程
+_CHROMADB_IMPORT_OK: Optional[bool] = None
+
+
+def _probe_import(code: str) -> bool:
+    """在子进程中执行依赖导入探测，超时按"不可用"处理（带模块级缓存）
+
+    Why（不易·死锁根除）：chromadb import 在部分环境可能长时间卡死（非异常，
+    try/except 无法拦截）。旧实现用 daemon 线程 + join(timeout) 兜底，但卡死的
+    daemon 线程持有全局 import 锁——超时返回后主进程任何后续 import 都会死锁
+    （本地全量测试挂起根因）。子进程隔离：卡死只发生在子进程，subprocess.run
+    超时后直接 terminate，不影响主进程 import 锁。与 memory/vector_store/
+    vector_store.py 的 _probe_import 同一策略。
+
+    探测结果缓存于模块级 _CHROMADB_IMPORT_OK：子进程探测每次约 1-5s（含解释器
+    启动 + chromadb 导入），_create_client 可能被多次调用，缓存避免重复开销。
+    """
+    global _CHROMADB_IMPORT_OK
+    if _CHROMADB_IMPORT_OK is not None:
+        return _CHROMADB_IMPORT_OK
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", code],
+            timeout=_CHROMADB_IMPORT_TIMEOUT,
+            capture_output=True,
+        )
+        _CHROMADB_IMPORT_OK = (proc.returncode == 0)
+    except Exception:
+        # 超时(TimeoutExpired)/子进程启动失败(OSError)等一律按不可用处理
+        _CHROMADB_IMPORT_OK = False
+    return _CHROMADB_IMPORT_OK
 
 def _trace_id():
     """生成 trace_id"""
@@ -410,35 +442,33 @@ class OptimizedChromaDB:
     def _create_client(self):
         """创建 ChromaDB 客户端
 
-        【变易】chromadb import 在部分环境可能长时间卡死(非异常,try/except 无法拦截),
-        客户端创建也可能因 UserIdentity 双加载 bug 失败。两者均置于超时线程,
-        超时/失败降级为 MockChromaClient,不阻塞主流程。
+        【变易·死锁根除】chromadb import 在部分环境可能长时间卡死(非异常,
+        try/except 无法拦截)。旧实现用 daemon 线程 + join(timeout) 兜底，但卡死的
+        daemon 线程持有全局 import 锁——超时返回后主进程任何后续 import 都会死锁
+        （本地全量测试挂起根因）。现改为与 memory/vector_store/vector_store.py
+        一致的子进程探测：卡死只发生在子进程，超时直接 terminate，不影响主进程
+        import 锁。
+
+        日志决策链（排查用）：probe_start → (probe_ok → [chromadb|client_failed|ready] | timeout)
         """
-        result: Dict[str, Any] = {}
-
-        def _try_real():
-            try:
-                import chromadb
-                from chromadb.config import Settings
-                result["chromadb"] = chromadb
-                result["settings"] = Settings
-            except Exception as e:
-                result["import_error"] = e
-
-        t = threading.Thread(target=_try_real, daemon=True)
-        t.start()
-        t.join(_CHROMADB_IMPORT_TIMEOUT)
-        if t.is_alive():
-            logger.warning(log_dict({'module_name': 'memory_optimized', 'action': 'chromadb.timeout', 'msg': f'[ChromaDB] import 超时(>{_CHROMADB_IMPORT_TIMEOUT}s)，使用模拟实现'}))
-            self._client = MockChromaClient()
-            return
-        if "import_error" in result:
-            logger.warning(log_dict({'module_name': 'memory_optimized', 'action': 'chromadb', 'msg': f'[ChromaDB] ChromaDB 不可用，使用模拟实现: {result["import_error"]}'}))
+        # 1. 子进程探测 import 可用性（超时按不可用处理，不持锁）
+        logger.info(log_dict({'module_name': 'memory_optimized', 'action': 'chromadb.probe_start', 'msg': f'[ChromaDB] 子进程探测 import 可用性（超时 {_CHROMADB_IMPORT_TIMEOUT}s）'}))
+        if not _probe_import("import chromadb; from chromadb.config import Settings"):
+            logger.warning(log_dict({'module_name': 'memory_optimized', 'action': 'chromadb.timeout', 'msg': f'[ChromaDB] import 超时(>{_CHROMADB_IMPORT_TIMEOUT}s)或不可用，使用模拟实现'}))
             self._client = MockChromaClient()
             return
 
-        chromadb = result["chromadb"]
-        Settings = result["settings"]
+        # 2. 探测成功后才在主进程导入（与 vector_store._init_chroma 同一策略）
+        logger.info(log_dict({'module_name': 'memory_optimized', 'action': 'chromadb.probe_ok', 'msg': '[ChromaDB] 子进程探测可用，开始主进程导入'}))
+        try:
+            import chromadb
+            from chromadb.config import Settings
+        except Exception as e:
+            logger.warning(log_dict({'module_name': 'memory_optimized', 'action': 'chromadb', 'msg': f'[ChromaDB] ChromaDB 不可用，使用模拟实现: {e}'}))
+            self._client = MockChromaClient()
+            return
+
+        # 3. 客户端创建（含 UserIdentity 双加载 bug 兜底）
         try:
             self._client = chromadb.PersistentClient(
                 path=self.persist_directory,
@@ -450,6 +480,8 @@ class OptimizedChromaDB:
         except Exception as e:
             logger.warning(log_dict({'module_name': 'memory_optimized', 'action': 'chromadb.client_failed', 'msg': f'[ChromaDB] 客户端创建失败，使用模拟实现: {e}'}))
             self._client = MockChromaClient()
+            return
+        logger.info(log_dict({'module_name': 'memory_optimized', 'action': 'chromadb.ready', 'msg': f'[ChromaDB] 真实 PersistentClient 就绪（path={self.persist_directory}）'}))
     
     def _verify_connection(self):
         """验证连接"""

@@ -1,65 +1,25 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual Environment
-venv/
-ENV/
-env/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Logs
-logs/
+# 预检镜像构建上下文排除（保持轻量、避免携带敏感/大数据）
+.git
+.github
+.vscode
+.idea
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.mypy_cache
+*.egg-info
+memory
+data
+sandbox
+docs
+scripts
+node_modules
+*.db
+*.sqlite
 *.log
-
-# Data
-data/
-.backups/
-
-# Docker
-Dockerfile
-docker-compose.yml
-.dockerignore
-
-# Deployment
-deploy.sh
-deploy.ps1
+test_run.log
+venv
+.venv
 .env
-
-# Git
-.git/
-.gitignore
-
-# OS
-.DS_Store
-Thumbs.db
-
-# 文档与部署资源（不被 Dockerfile COPY 引用，排除以减小构建上下文）
-docs/
-deploy/
-tests/
-*.md
+.env.*

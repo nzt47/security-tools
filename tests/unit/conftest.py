@@ -26,6 +26,12 @@ import pytest
 # （exit code 132）。本地 Windows 不受影响。
 _CI_LINUX = sys.platform == 'linux' and bool(os.environ.get('CI'))
 
+# 本地 Windows 亦可显式屏蔽原生扩展（DISABLE_NATIVE_EXT=1），与 CI Linux 同路径：
+# chromadb 1.5.9 + pydantic_settings 在 Windows 上 import 偶发卡死，且卡死发生在
+# 持全局 import 锁的线程内，会死锁后续所有 import（本地全量测试挂起根因）。
+# 本地日常验证：$env:DISABLE_NATIVE_EXT="1"; python -m pytest tests/unit ...
+_DISABLE_NATIVE_EXT = os.environ.get("DISABLE_NATIVE_EXT") == "1"
+
 
 class _BlockModules:
     """仅封禁指定模块名的上下文管理器，退出时只恢复/删除这些键。
@@ -232,7 +238,7 @@ def _disable_optional_systems_safety():
         _safe_patch('agent.orchestrator.lifecycle_manager._P6_SNAPSHOT_AVAILABLE', False)
         # 全局禁用 sqlite-vec：让所有 VectorStore 实例化降级到 JSON fallback
         stack.enter_context(_BlockModules(['sqlite_vec']))
-        if _CI_LINUX:
+        if _CI_LINUX or _DISABLE_NATIVE_EXT:
             # sys.modules[name] = None 会让 `import name` 抛 ImportError，而非
             # 加载真实 native 扩展。用 _BlockModules（非 patch.dict）仅封禁指定
             # 键并原样恢复，避免 patch.dict 退出时清空整个 sys.modules 造成

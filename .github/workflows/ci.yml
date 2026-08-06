@@ -148,10 +148,45 @@ jobs:
           path: test_reports/
 
   # ============================================================================
+  # ChromaDB 导入降级预检
+  # ============================================================================
+  # Why 独立轻量 job: memory_optimized._create_client 的「子进程探测 → 主进程导入
+  #   → Mock 兜底」三段式是本地全量测试挂起的根因修复。预检已容器化（Dockerfile，
+  #   仅源码+pytest，无 torch/chromadb 重依赖），两道防线：
+  #   1) CLI（python -m agent.preflight）：12 条导入路径（含 30s 子进程超时降级）
+  #   2) pytest 用例：分支级 test_memory_optimized_import.py（14 用例）
+  #      + 整体级 test_preflight_runner.py（复用 runner 单事实源）
+  #   合计秒级完成，作为 unit-tests 之前的快速预检；失败即阻断后续矩阵（needs）。
+  # Why 容器: CI/本地统一 python -m 入口，消除环境差异（chromadb 卡死、SIGILL 等）。
+  chromadb-preflight:
+    name: ChromaDB 导入降级预检（容器化）
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 构建预检镜像
+        run: docker build -t yunshu-preflight .
+
+      - name: 运行预检（容器）
+        run: |
+          echo "=== 1/2 CLI：12 条导入路径 ==="
+          docker run --rm yunshu-preflight
+          echo "=== 2/2 pytest 用例（分支级 + 整体级）==="
+          docker run --rm -e CI=true --entrypoint python yunshu-preflight -m pytest \
+            tests/unit/test_memory_optimized_import.py \
+            tests/unit/test_preflight_runner.py -q -p no:cacheprovider --no-header
+          echo "=== ChromaDB 导入降级预检通过 ==="
+
+  # ============================================================================
   # 单元测试
   # ============================================================================
   unit-tests:
     name: 单元测试 (Python ${{ matrix.python-version }} / Shard ${{ matrix.shard }})
+    # 【预检依赖】先跑 chromadb-preflight（demo 12 条路径 + pytest 14 用例全 mock
+    # 验证），失败即阻断，避免在已知的导入挂起/降级回归上浪费 6 shard 矩阵资源。
+    needs: [chromadb-preflight]
     # 【不易】runner 池选择：2026-08-03 连续 4 次 attempt 的单元测试 job 均在
     # 进度 ~85% 处被 "The runner has received a shutdown signal" 强制回收
     # （pytest 0 失败，非代码问题）。换用 ubuntu-22.04 避开 ubuntu-latest
