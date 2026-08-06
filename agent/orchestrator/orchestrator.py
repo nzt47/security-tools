@@ -448,7 +448,14 @@ class Orchestrator:
 
             # 【不易】路由后回写 DST 状态（intent/user_input/keywords），
             # 供下一轮指代消解继承；原注释承诺的 _update_dst_after_route 落地
-            self._update_dst_after_route(intent, None, user_input)
+            # 【变易】省略句（routing_input != user_input，即本轮已发生 DST 补全）
+            #         仅回写 intent，keywords/user_input 传 None 保留上一轮真实查询，
+            #         守"省略句不得覆盖上一轮真实查询关键词"（与 funnel 回归对齐，
+            #         修复连续省略句互相污染：'那个呢'→'然后呢' 的级联问题）
+            if routing_input != user_input:
+                self._update_dst_after_route(intent, None, None)
+            else:
+                self._update_dst_after_route(intent, None, user_input)
 
             is_follow_up = MessageHandler.is_follow_up({
                 'text': user_input,
