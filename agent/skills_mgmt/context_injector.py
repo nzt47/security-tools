@@ -47,6 +47,7 @@ from .exceptions import SkillNotFoundError
 if TYPE_CHECKING:
     from .models import Skill
 from .output_guard import SkillOutputGuard
+from .few_shot_injector import FewShotInjector
 
 
 def _trace_id() -> str:
@@ -367,11 +368,15 @@ class ContextInjector:
     def __init__(self, loader: Optional[SkillLoader] = None,
                  *, meta_budget: int = _DEFAULT_META_BUDGET,
                  instr_budget: int = _DEFAULT_INSTR_BUDGET,
-                 result_budget: int = _DEFAULT_RESULT_BUDGET):
+                 result_budget: int = _DEFAULT_RESULT_BUDGET,
+                 few_shot_injector: Optional[FewShotInjector] = None):
         self.loader = loader or SkillLoader()
         self.meta_budget = meta_budget
         self.instr_budget = instr_budget
         self.result_budget = result_budget
+        # [变易] Dynamic Few-shot（Layer 2.5）：可选注入成功案例，替代 SFT 微调
+        # 缺省自动构造；无示例库 / 数据不足 / 评分不达标时不注入，不影响主流程（守不易）
+        self._few_shot_injector = few_shot_injector or FewShotInjector()
 
     # ──────────────────────────────────────────────
     #  第一层：元数据注入
@@ -809,11 +814,12 @@ class ContextInjector:
                       top_k: int = 5,
                       auto_load_instruction: bool = False,
                       skill_id: Optional[str] = None) -> Dict[str, Any]:
-        """一站式构建上下文（三层联动）
+        """一站式构建上下文（三层联动 + Layer 2.5 Few-shot 可选）
 
         流程:
             1. 第一层: match(intent) → 匹配技能元数据
             2. 第二层: 如指定 skill_id 或 auto_load_instruction=True → 加载使用说明
+            2.5 第二层半: 有目标技能时可选注入 Dynamic Few-shot 成功案例
             3. 第三层: （不在此方法执行，需显式调用 execute + inject_result）
 
         Args:
@@ -842,6 +848,7 @@ class ContextInjector:
 
         prompts = []
         total_tokens = 0
+        fewshot_injected = False  # Layer 2.5 Dynamic Few-shot 是否注入
         boundary_declaration: Dict[str, Any] = {
             "text": "", "tokens": 0, "loaded": [], "unloaded": []
         }
@@ -910,6 +917,37 @@ class ContextInjector:
                         "skill_id": target_id,
                         "error": str(e),
                     }, ensure_ascii=False))
+
+            # 第二层半：Dynamic Few-shot 可选注入（替代 SFT 微调）
+            # 【不易】无目标技能 / 无示例库 / 评分不达标 / 预算不足 → 不注入主流程不受影响
+            if target_id and total_tokens < max_tokens:
+                try:
+                    fewshot_ctx = self._few_shot_injector.inject(
+                        target_id, intent,
+                        max_tokens=max_tokens - total_tokens,
+                    )
+                    if fewshot_ctx["has_examples"]:
+                        prompts.append(fewshot_ctx["prompt"])
+                        total_tokens += fewshot_ctx["estimated_tokens"]
+                        fewshot_injected = True
+                        logger.info(json.dumps({
+                            "trace_id": tid,
+                            "module_name": "context_injector",
+                            "action": "build_context.layer2_5_done",
+                            "skill_id": target_id,
+                            "fewshot_tokens": fewshot_ctx["estimated_tokens"],
+                            "injected_count": len(fewshot_ctx["examples"]),
+                            "cumulative_tokens": total_tokens,
+                            "budget": max_tokens,
+                        }, ensure_ascii=False))
+                except Exception as e:  # noqa: BLE001 注入失败不影响主流程
+                    logger.warning(json.dumps({
+                        "trace_id": tid,
+                        "module_name": "context_injector",
+                        "action": "build_context.fewshot_failed",
+                        "skill_id": target_id,
+                        "error": str(e),
+                    }, ensure_ascii=False))
         else:
             # 关键分支日志：无匹配技能，boundary_declaration 保持空结构
             logger.info(json.dumps({
@@ -970,6 +1008,7 @@ class ContextInjector:
             "layers": {
                 "layer1_metadata": len(match_result.matches) > 0,
                 "layer2_instruction": len(prompts) > 1,
+                "layer2_5_fewshot": fewshot_injected,
                 "layer3_execution": False,  # 需显式调用
             },
             "boundary_declaration": boundary_declaration,

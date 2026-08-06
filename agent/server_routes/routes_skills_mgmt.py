@@ -436,7 +436,9 @@ def register_routes(app, state):
 
         Body: {success: bool, latency_ms: number,
                feedback_rating?: int(0-5), feedback_id?: str, trace_id?: str,
-               params_used?: dict}  # Item 4: 参数级追踪
+               params_used?: dict,  # Item 4: 参数级追踪
+               input_text?: str, output_text?: str}
+               # Dynamic Few-shot: feedback_rating=5 且 success=True 时自动采集
         """
         try:
             data = request.get_json() or {}
@@ -454,6 +456,8 @@ def register_routes(app, state):
                 feedback_id=str(data.get("feedback_id", "") or ""),
                 trace_id=str(data.get("trace_id", "") or ""),
                 params_used=params_used,
+                input_text=str(data.get("input_text", "") or "") or None,
+                output_text=str(data.get("output_text", "") or "") or None,
             )
             return jsonify({"ok": True})
         except SkillMgmtError as e:
