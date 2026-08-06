@@ -141,6 +141,9 @@ jobs:
         id: scan
         run: |
           echo "=== 双重序列化反模式扫描 ==="
+          # 陷阱：$? 若在 fi 后捕获，会被分支内最后一条命令（echo scan_mode，成功）覆盖为 0
+          # 必须在每个 python 调用后立即捕获（见下方 EXIT_CODE=$?）
+          EXIT_CODE=0
           if [ "${{ github.event_name }}" = "schedule" ] && \
              [ "${{ github.event.inputs.full_scan }}" = "true" ]; then
             echo "全量扫描模式（更新豁免清单）"
@@ -148,6 +151,7 @@ jobs:
               --full-scan \
               --update-exemptions \
               --exemption-file .trae/double_serialization_exemptions.json
+            EXIT_CODE=$?
             echo "scan_mode=full" >> $GITHUB_OUTPUT
           elif [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "增量扫描模式：origin/${{ github.base_ref }} → HEAD"
@@ -156,6 +160,7 @@ jobs:
               --base "origin/${{ github.base_ref }}" \
               --head HEAD \
               --exemption-file .trae/double_serialization_exemptions.json
+            EXIT_CODE=$?
             echo "scan_mode=diff" >> $GITHUB_OUTPUT
           else
             echo "增量扫描模式：HEAD~1 → HEAD"
@@ -164,9 +169,10 @@ jobs:
               --base HEAD~1 \
               --head HEAD \
               --exemption-file .trae/double_serialization_exemptions.json
+            EXIT_CODE=$?
             echo "scan_mode=diff" >> $GITHUB_OUTPUT
           fi
-          echo "exit_code=$?" >> $GITHUB_OUTPUT
+          echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT
         continue-on-error: false
 
       - name: PR 评论：双重序列化扫描结果

@@ -184,3 +184,104 @@ GitHub 版工作流本来就存在且经过 v1.0.1-test 全流程验证，**无�
    需回填到「创建 GitHub Release」step（`gh release create` 无内建重试，改用 curl + REST API）
 4. 守卫正则（`^release\(pypi\)`）/ 发布备注 / 脚本逻辑（update_changelog.py、
    create_gitee_release.ps1）全部原样复用，只需换 YAML 外壳
+
+## 9. bash 退出码捕获与调试经验
+
+本节为 2026-08-06 在发布流程中发现的 bash 退出码陷阱的完整记录，
+适用于本仓库所有含 bash `run:` 块的 workflow 排查。
+
+### 9.1 陷阱机制
+
+`if cmd; then ...; fi` 中 cmd 失败且无 `else` 时，**if 构造整体返回 0**，
+其后的 `$?` 恒为 0（真实失败被吞）。
+
+根因：if 构造的退出码 = 最后一个执行分支的最后一条命令的退出码；
+条件为假且无 else 时，bash 约定返回 0。
+
+### 9.2 三种调用形式实测（2026-08-06）
+
+```bash
+# FORM_A：直接捕获（安全）
+cmd
+FORM_A_RC=$?            # = cmd 退出码（1）
+
+# FORM_B：if 构造后捕获（陷阱！）
+if cmd; then :; fi
+FORM_B_RC=$?            # = 0（真实失败被吞！）
+
+# FORM_C：&& 短路后捕获（安全）
+cmd && { echo SUCC; }
+FORM_C_RC=$?            # cmd 失败时 = cmd 退出码（1）
+```
+
+实测结果：`FORM_A_RC=1`、`FORM_B_RC=0`、`FORM_C_RC=1`。
+
+### 9.3 正确写法
+
+```bash
+# 写法一：else 分支内捕获（release-auto.yml Gitee step）
+if pwsh -NoProfile -File scripts/create_gitee_release.ps1 ...; then
+  echo "成功"
+  exit 0
+else
+  RC=$?                 # $? 必须在 else 内，这里才等于失败命令的退出码
+fi
+
+# 写法二：&& 短路（.gitlab-ci.yml gitee-sync）
+pwsh ... && { echo "成功"; break; }
+RC=$?                   # 失败时 = pwsh 退出码
+
+# 写法三：if 多分支时在每个命令后立即捕获（log-perf-guard.yml 修复后）
+EXIT_CODE=0
+if cond; then
+  python scan.py
+  EXIT_CODE=$?
+else
+  python scan.py --diff
+  EXIT_CODE=$?
+fi
+echo "exit_code=$EXIT_CODE" >> $GITHUB_OUTPUT  # 不能用 $?：分支内 echo scan_mode 已覆盖
+```
+
+### 9.4 调试经验
+
+1. **分层排查**：先用最小脚本验证跨语言退出码传播正常（`pwsh -File` 调用
+   PowerShell 脚本，`$?` 可正确拿到 `exit 1`）→ 再直接验证脚本自身退出码
+   （PowerShell `$LASTEXITCODE`）→ 最后用三种形式对比定位吞码点。
+2. **排查清单**：凡 `$?` 出现在 `if/fi`、`while/done`、`&&/||` 之后，都要检查
+   「真正关心其成败的命令」与捕获之间是否夹了必然成功的命令（echo、printf、
+   赋值等）——任何成功命令都会覆盖 `$?`。
+3. **set -e 注意**：GitHub Actions 的 `run:` 默认不开启 `set -e`，命令失败后脚本
+   继续执行；若想在失败时立即退出，需显式 `set -e`（release-auto.yml 已启用
+   `set -euo pipefail`）。两者结合时：`set -e` 下失败即退出、捕获逻辑仅对
+   `set +e`/`||`/if 条件等场景生效。
+4. **模拟验证**：本地可写临时 bash 脚本 + `pwsh -File` 直接验证退出码传播，
+   不碰真实网络；验证后清理临时文件。
+
+### 9.5 全仓库排查结果（2026-08-06）
+
+全量扫描 `.github/workflows/*.yml` 与 `.gitlab-ci.yml` 中 21 处 `$?` 捕获点：
+
+| 文件 | 位置 | 结论 |
+|---|---|---|
+| release-auto.yml | 178/239 | ✅ 已修复（else 内捕获，提交 1094a1c6） |
+| .gitlab-ci.yml | 165 | ✅ 安全（`&&` 短路形式，见 §9.3 写法二） |
+| ci-cd.yml | 177/470/481 | ✅ 安全（命令后直接捕获，无 if 包裹） |
+| ci.yml | 290/689 | ✅ 安全（命令后直接捕获） |
+| **log-perf-guard.yml** | **169** | ❌→✅ **本次修复**（fi 后 `$?` 被分支内 `echo scan_mode` 覆盖恒 0，改为分支内立即捕获） |
+| reranker-timeout-guard.yml | 52 | ✅ 安全（命令后直接捕获） |
+| semantic-perf-regression.yml | 60 | ✅ 安全（命令后直接捕获） |
+| observability-ci.yml | 668/1110/1635/1670/1680 | ✅ 安全（直接捕获；1110 为 `EXIT_CODE=$?` + `exit $EXIT_CODE` 显式传播） |
+| architecture-check.yml | 92 | ✅ 安全 |
+| import-linter.yml | 70 | ✅ 安全 |
+| kwarg-docker-scan.yml | 257 | ✅ 安全 |
+| hardcoded-password-scan.yml | 138 | ✅ 安全 |
+| config-drift-guard.yml | 67 | ✅ 安全（`cmd \|\| EXIT_CODE=$?` 标准写法） |
+
+**本次修复详情（log-perf-guard.yml:169）**：
+- 原缺陷：`if/elif/else` 三分支内最后一条命令均为 `echo "scan_mode=..."`（必然成功），
+  `fi` 之后的 `echo "exit_code=$?"` 恒为 0 → python 扫描失败被吞 → 下游 PR 评论永远
+  显示「✅ 无新增违规」。
+- 修复：初始化 `EXIT_CODE=0`，每个 python 调用后立即 `EXIT_CODE=$?`，`fi` 后写
+  `echo "exit_code=$EXIT_CODE"`。行为不变（step 仍以 echo 成功结束，提示而非阻断），
+  仅让退出码真实传播。
