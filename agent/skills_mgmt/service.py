@@ -31,6 +31,7 @@ from .reviewer import SkillReviewer, ReviewThresholds
 from .searcher import SkillSearcher
 from .enhancer import SkillEnhancer, VersionBump, IntegrationHook
 from .file_store import SkillFileStore
+from .index_cache import SkillIndexCache
 from .loader import SkillLoader, MatchResult
 from .executor import SkillExecutor, ExecutionResult
 from .context_injector import ContextInjector
@@ -54,6 +55,10 @@ class SkillsMgmtService:
 
         # 三层架构组件
         self.file_store = SkillFileStore(repo_path=repo_path)
+        # [变易] 技能索引缓存：预解析 front matter，启动时加载
+        # （缓存加载失败自动降级为运行时解析，不影响功能；守【不易】接口不变）
+        self.index_cache = SkillIndexCache(self.file_store)
+        self.index_cache.load_on_startup()
         self.loader = SkillLoader(self.file_store)
         self.executor = SkillExecutor(self.file_store)
         self.injector = ContextInjector(self.loader)
@@ -189,7 +194,12 @@ class SkillsMgmtService:
                          params_used: Optional[Dict[str, Any]] = None,
                          # [变易] 全链路可观测性扩展：端到端评估得分（可选）
                          # 缺省 None 保证旧调用方不受影响（守不易）
-                         eval_score: Optional[Dict[str, Any]] = None) -> None:
+                         eval_score: Optional[Dict[str, Any]] = None,
+                         # [变易] Dynamic Few-shot 自动采集（可选）
+                         # 仅 feedback_rating=5 且 success=True 且提供输入/输出文本时
+                         # 才采集成功案例入示例库；缺省 None 不影响旧调用方（守不易）
+                         input_text: Optional[str] = None,
+                         output_text: Optional[str] = None) -> None:
         """记录一次技能执行并可选持久化端到端评估得分
 
         Args:
@@ -197,6 +207,9 @@ class SkillsMgmtService:
                 hallucination_detected, score}；提供时发射
                 yunshu_skill_eval_score / yunshu_skill_hallucination_total
                 指标并持久化到 trace span（失败不影响主流程）。
+            input_text: 可选用户输入文本；feedback_rating=5 且 success=True 时
+                自动采集为 Few-shot 示例（带去重）。
+            output_text: 可选执行输出文本；同上，仅成功案例采集。
         """
         self.enhancer.record_execution(
             skill_id, success=success, latency_ms=latency_ms,
@@ -218,6 +231,20 @@ class SkillsMgmtService:
                 eval_score.get("hallucination_detected"),
                 eval_score.get("score"),
             )
+
+        # [变易] Dynamic Few-shot 示例自动采集：
+        # 仅 rating=5 的成功案例（宁缺毋滥），失败不影响主流程
+        if feedback_rating == 5 and success and input_text and output_text:
+            try:
+                self._collect_few_shot_example(
+                    skill_id, input_text=input_text,
+                    output_text=output_text, trace_id=trace_id,
+                )
+            except Exception as e:  # noqa: BLE001 采集失败不影响主流程
+                logger.warning(
+                    "[Service] few-shot 示例采集失败 skill_id=%s: %s",
+                    skill_id, e,
+                )
 
     # ─── 反馈绑定 ───
 
@@ -709,6 +736,36 @@ class SkillsMgmtService:
         }
 
     # ─── 内部 ───
+
+    def _collect_few_shot_example(self, skill_id: str, *,
+                                  input_text: str, output_text: str,
+                                  trace_id: str = "") -> bool:
+        """将一次成功执行采集为 Few-shot 示例（带去重）
+
+        仅由 record_execution 在 feedback_rating=5 且 success=True 时调用；
+        示例库写入失败由调用方兜底，不影响主流程。
+        """
+        import uuid
+        from datetime import datetime
+        from .few_shot_injector import FewShotInjector, FewShotExample
+
+        injector = FewShotInjector()
+        example = FewShotExample(
+            example_id=f"ex_{uuid.uuid4().hex[:8]}",
+            intent=input_text,
+            input=input_text,
+            output=output_text,
+            rating=5,
+            tags=[skill_id],
+            created_at=datetime.now().isoformat(timespec="seconds"),
+        )
+        added = injector.add_example(skill_id, example)
+        logger.info(
+            "[Service] few-shot 示例%s采集 skill_id=%s trace_id=%s",
+            "" if added else "（重复，跳过）",
+            skill_id, trace_id or "(none)",
+        )
+        return added
 
     def _require(self, skill_id: str) -> Skill:
         skill = self.store.get(skill_id)
