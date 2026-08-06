@@ -104,6 +104,9 @@ WHITELIST_PATHS = {
     # 备份文件
     '.backups/',
     '_backup',
+    # gitleaks 扫描配置本身（含 PEM 测试样例与正则示例，非真实密钥；
+    # 注释已声明"测试样例由 allowlist 兜底放行"）
+    'gitleaks-config.toml',
     # 测试输出报告（含 mock key）
     'coverage_report/',
     'htmlcov/',
