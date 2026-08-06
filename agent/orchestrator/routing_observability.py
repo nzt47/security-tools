@@ -252,8 +252,14 @@ def log_layer_result(layer: str, decision: str, trace_id: str, *,
         RouteTraffic.record(layer, decision)
         ctx = RouteContext.get()
         if ctx is not None:
+            # 【不易】duration_ms/score 是 add_layer 的结构化字段，调用方若经
+            # **fields 误传同名键会与显式参数冲突（TypeError 被外层降级吞掉）。
+            # 展开前过滤保留键，保证层日志契约字段不被 fields 覆盖。
+            _reserved = {"duration_ms", "score"}
+            safe_fields = {k: v for k, v in fields.items()
+                           if k not in _reserved}
             ctx.add_layer(layer, decision, duration_ms=duration_ms,
-                          score=score, **fields)
+                          score=score, **safe_fields)
     except Exception:
         # 【不易】埋点失败静默降级，绝不影响主链路
         logger.debug("routing_observability.log_layer_result 失败: layer=%s decision=%s",
