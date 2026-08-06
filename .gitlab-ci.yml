@@ -3,6 +3,7 @@
 # 迁移自 .github/workflows/release-auto.yml（对照 docs/release_workflow_manual.md §7）
 # 【不易】发布由 tag 驱动，version 单一事实源；守卫/重试/告警逻辑与 GH 版一致
 # 【变易】GitLab 语法适配：workflow rules / dotenv 传守卫结果 / when: on_failure 告警
+#        GitHub Release 与 Gitee 同步均带失败重试（3 次×10s，409/422 幂等冲突不重试）
 # 【简易】复用 update_changelog.py（发布备注）+ create_gitee_release.ps1（Gitee），
 #        GitHub Release 走 REST API（无需在 runner 安装 gh CLI）
 #
@@ -74,32 +75,56 @@ auto-release:
     - |
       set -euo pipefail
       VERSION="${CI_COMMIT_TAG:-$version}"
+      echo "===== auto-release 开始 ====="
       echo "==> 版本号: $VERSION"
+      echo "==> 触发方式: $CI_PIPELINE_SOURCE"
+      echo "==> Pipeline: $CI_PIPELINE_URL"
       PREV=$(git tag --sort=-creatordate | sed -n '2p')
       echo "==> 上一版本 tag: $PREV"
       echo "--- 变更提交清单 (${PREV}..HEAD) ---"
       git log --oneline "${PREV}..HEAD"
+      echo "==> 提交总数: $(git log --oneline "${PREV}..HEAD" | wc -l)"
       python3 scripts/update_changelog.py --version "$VERSION" --prev-tag "$PREV" --out notes.md
       echo "==> notes.md 已生成: $(wc -l < notes.md) 行"
 
-      echo "==> 创建 GitHub Release (REST API)"
+      echo ""
+      echo "===== 创建 GitHub Release (REST API) ====="
       if [ -z "$GH_TOKEN" ]; then
-        echo "==> 未配置 GH_TOKEN，跳过 GitHub Release 创建（仅生成发布备注）"
+        echo "==> [跳过] GH_TOKEN 未配置（仅生成发布备注，不创建 Release）"
       else
-        BODY=$(python3 -c "import json,sys;print(json.dumps(open(sys.argv[1],encoding='utf-8').read()))" notes.md)
-        CODE=$(curl -s -o gh_resp.json -w '%{http_code}' -X POST \
-          "https://api.github.com/repos/${CI_PROJECT_PATH}/releases" \
-          -H "Authorization: Bearer $GH_TOKEN" \
-          -H "Accept: application/vnd.github+json" \
-          -d "{\"tag_name\":\"$VERSION\",\"name\":\"Release $VERSION\",\"body\":$BODY}")
-        echo "GitHub API 响应: HTTP $CODE"
-        if [ "$CODE" -ge 400 ]; then
-          echo "==> GitHub Release 创建失败:"; cat gh_resp.json
-          rm -f gh_resp.json
-          exit 1
-        fi
-        rm -f gh_resp.json
-        echo "==> GitHub Release: https://github.com/${CI_PROJECT_PATH}/releases/tag/$VERSION"
+        echo "==> GH_TOKEN 已配置（长度 ${#GH_TOKEN}），POST /repos/${CI_PROJECT_PATH}/releases"
+        MAX_RETRY=3
+        RETRY=1
+        while :; do
+          echo "--- GitHub Release 创建尝试 $RETRY/$MAX_RETRY ---"
+          BODY=$(python3 -c "import json,sys;print(json.dumps(open(sys.argv[1],encoding='utf-8').read()))" notes.md)
+          CODE=$(curl -s -o gh_resp.json -w '%{http_code}' -X POST \
+            "https://api.github.com/repos/${CI_PROJECT_PATH}/releases" \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -d "{\"tag_name\":\"$VERSION\",\"name\":\"Release $VERSION\",\"body\":$BODY}")
+          echo "==> GitHub API 响应: HTTP $CODE"
+          if [ "$CODE" -lt 400 ]; then
+            echo "==> GitHub Release 创建成功:"
+            echo "    https://github.com/${CI_PROJECT_PATH}/releases/tag/$VERSION"
+            rm -f gh_resp.json
+            break
+          fi
+          echo "==> API 响应体: $(head -c 300 gh_resp.json)"
+          if [ "$CODE" -eq 409 ] || [ "$CODE" -eq 422 ]; then
+            echo "::error::HTTP $CODE: 该 tag 已存在 Release（幂等冲突，重试无意义），需改用编辑接口" >&2
+            rm -f gh_resp.json
+            exit 1
+          fi
+          if [ "$RETRY" -ge "$MAX_RETRY" ]; then
+            echo "::error::GitHub Release 创建重试 $MAX_RETRY 次均失败，触发告警 job" >&2
+            rm -f gh_resp.json
+            exit 1
+          fi
+          echo "==> 10s 后重试..."
+          RETRY=$((RETRY+1))
+          sleep 10
+        done
       fi
   artifacts:
     paths:
@@ -122,22 +147,27 @@ gitee-sync:
     - |
       set -euo pipefail
       VERSION="${CI_COMMIT_TAG:-$version}"
+      echo "===== gitee-sync 开始 ====="
+      echo "==> 版本号: $VERSION"
+      echo "==> GITEE_TOKEN 已配置（长度 ${#GITEE_TOKEN}）"
       MAX_RETRY=3
       RETRY=1
       while :; do
-        echo "=== Gitee 同步尝试 $RETRY/$MAX_RETRY (create_gitee_release.ps1) ==="
-        if pwsh -NoProfile -File scripts/create_gitee_release.ps1 \
-            -TagName "$VERSION" \
-            -Title "Release $VERSION" \
-            -BodyFile notes.md; then
-          echo "==> Gitee Release 同步成功"
+        echo "--- Gitee 同步尝试 $RETRY/$MAX_RETRY (create_gitee_release.ps1) ---"
+        pwsh -NoProfile -File scripts/create_gitee_release.ps1 \
+          -TagName "$VERSION" \
+          -Title "Release $VERSION" \
+          -BodyFile notes.md && {
+          echo "==> Gitee Release 同步成功:"
+          echo "    https://gitee.com/${CI_PROJECT_PATH}/releases/$VERSION"
           break
-        fi
+        }
+        RC=$?
         if [ "$RETRY" -ge "$MAX_RETRY" ]; then
-          echo "::error::Gitee 同步重试 $MAX_RETRY 次均失败，触发告警 job" >&2
+          echo "::error::Gitee 同步重试 $MAX_RETRY 次均失败（最后一次退出码 $RC），触发告警 job" >&2
           exit 1
         fi
-        echo "==> Gitee 同步失败，10s 后第 $((RETRY+1)) 次重试..."
+        echo "==> Gitee 同步失败（退出码 $RC），10s 后第 $((RETRY+1)) 次重试..."
         RETRY=$((RETRY+1))
         sleep 10
       done
