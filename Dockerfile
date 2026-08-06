@@ -1,44 +1,30 @@
-# Dockerfile for Digital Life
-# 使用 Python 3.11 官方镜像
-FROM python:3.11-slim
+# 预检工具包容器 — 守护 agent/memory_optimized 导入降级逻辑
+#
+# 轻量设计（变易）：预检全 mock，不依赖 chromadb/torch 等重库。因此只 COPY
+# agent/ + tests/ 源码并安装 pytest，绝不执行 `pip install -e .`（项目依赖
+# 含 torch 等约 3GB，容器无需背负；agent/preflight 仅依赖标准库 +
+# agent.logging_utils，且 agent/__init__.py 采用 PEP 562 懒加载）。
+#
+# 用法：
+#   docker build -t yunshu-preflight .
+#   docker run --rm yunshu-preflight                        # 12 条导入路径
+#   docker run --rm --entrypoint python yunshu-preflight -m pytest \
+#       tests/unit/test_memory_optimized_import.py \
+#       tests/unit/test_preflight_runner.py -q              # pytest 用例
+#   PREFLIGHT_FAKE_FAIL=1 docker run --rm yunshu-preflight  # 故障演练（CI 阻断验证）
 
-# 设置工作目录
+FROM python:3.12-slim
+
 WORKDIR /app
 
-# 设置环境变量
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-# 功能开关（可通过 docker run -e 或 docker-compose 覆盖）
-ENV YUNSHU_FEATURE_SANDBOX=false
+# 仅复制预检所需源码（conftest 链：tests/conftest.py + tests/unit/conftest.py）
+COPY agent/ /app/agent/
+COPY tests/conftest.py /app/tests/conftest.py
+COPY tests/unit/ /app/tests/unit/
 
-# 安装系统依赖
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir pytest
 
-# 复制依赖文件
-COPY requirements.txt .
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONIOENCODING=utf-8
 
-# 安装 Python 依赖（过滤 Windows-only 包：pywin32/pypiwin32/comtypes 在 Linux 上无法安装）
-RUN grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install --no-cache-dir -r /dev/stdin
-
-# 复制应用代码
-COPY . .
-
-# 创建必要的目录
-RUN mkdir -p /app/logs /app/data /app/.backups
-
-# 设置非 root 用户运行
-RUN useradd -m -u 1000 digital && chown -R digital:digital /app
-USER digital
-
-# 暴露端口（如果需要）
-EXPOSE 8000
-
-# 健康检查
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "print('ok')" || exit 1
-
-# 默认命令（可覆盖）
-CMD ["python", "-c", "print('Digital Life container is ready!')"]
+ENTRYPOINT ["python", "-m", "agent.preflight"]
