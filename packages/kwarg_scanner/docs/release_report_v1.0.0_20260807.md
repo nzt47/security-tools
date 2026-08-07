@@ -58,20 +58,31 @@
 | medium-risk-scan | `-e MIN_RISK=MEDIUM --path /project/agent` | ✅ MEDIUM=0 / exit 0 |
 | SonarQube GIIF | `-e OUTPUT_FORMAT=sonarqube` | ✅ GIIF issues 输出正常 |
 
-### 4.2 远端真实触发（推送 `119f13a` 后 GitHub Actions）
+### 4.2 远端真实触发（推送 `f975c0d9` 后 GitHub Actions）
 
 | Workflow | 状态 |
 |----------|------|
+| **关键字参数冲突扫描 (Docker)** | ✅ **completed / success** |
+| ├─ 准备扫描器镜像（prepare-image） | ✅ success（PAT 登录 + 拉取 + 健康检查） |
+| ├─ HIGH 风险扫描 (Docker, 阻断) | ✅ success（exit 0，无 HIGH） |
+| ├─ MEDIUM 风险扫描 (Docker, 提醒) | ✅ success |
+| └─ 构建并推送镜像到 GHCR / 自定义扫描 | ⏭ skipped（非 main 分支 / 非手动触发，预期行为） |
+| kwarg 扫描 → SonarQube | ❌ failure（SONAR_HOST_URL secret 未配置，与镜像无关） |
 | 核心不变量监控 (verify_core_invariants) | ✅ completed / success（12/12 通过） |
-| tlm-hook-failsafe E2E | 🔄 in_progress |
-| Error Reporting System CI/CD | 🔄 in_progress |
-| 部署文档到 GitHub Pages / 日志性能守护 / 可观测性质量保障 | ⏳ queued |
 
-### 4.3 ⚠️ 已知问题：kwarg 扫描工作流未被触发
+### 4.3 问题修复记录（本发布后续迭代）
 
-**根因**: [kwarg-docker-scan.yml](file:///c:/Users/Administrator/agent/.github/workflows/kwarg-docker-scan.yml#L11-L20) 与 `kwarg-sonarqube.yml` 的 `push.branches` 仅配置 `main` / `develop` / `release/**`，而项目主分支为 **`master`**，导致推送到 master 不会自动触发镜像扫描流水线。
+**问题 1：工作流未被触发**（已修复 commit `c6def20f`）
+- 根因: `push.branches` 仅配 `main`/`develop`/`release/**`，项目主分支为 `master`
+- 修复: 两个 kwarg 工作流 `push.branches` + `pull_request.branches` 加入 `master`
 
-**建议修复**: 在 `on.push.branches` 中加入 `master`（或统一分支策略）。
+**问题 2：GHCR 私有镜像拉取 denied**（已修复 commit `1b0d0794`）
+- 根因: 包 `ghcr.io/nzt47/kwarg-scanner` 为用户空间私有包且未关联仓库，`GITHUB_TOKEN` 仅能访问与工作流仓库关联的包
+- 修复: 3 处 GHCR 登录（publish-image / prepare-image / sonarqube）改用 `secrets.GHCR_TOKEN`（PAT，已配置仓库 Secret）
+
+**问题 3：扫描 job 拉镜像 unauthorized**（已修复 commit `f975c0d9`）
+- 根因: high-risk-scan / medium-risk-scan / custom-scan 每个 job 独立 runner，prepare-image 的 `docker login` 不跨 job 共享
+- 修复: 三个扫描 job 在 `docker run` 前补充 `docker/login-action`（`BUILD_LOCALLY=true` 时跳过）
 
 ## 5. SonarQube 集成验证（GIIF 数据准确性）
 
