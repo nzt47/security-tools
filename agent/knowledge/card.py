@@ -228,6 +228,16 @@ class CardStore:
     def _md_to_card(self, path: Path) -> Card:
         return _md_to_card(path, path.read_text(encoding="utf-8"))
 
+    def _exists(self, slug: str) -> bool:
+        """slug 对应的卡片文件是否存在（纯文件检查，不解析 YAML）。
+
+        P1-3 lazy 解析：create/import 判重路径只关心「文件已存在」这一结论，
+        无需把 frontmatter 完整解析为 Card（解析留给真正需要字段的读路径）。
+        【不易】写入保护契约「同 slug 已存在，绝不静默覆盖」以文件存在为界，
+        损坏文件同样视为已占用，拒绝 create 覆盖。
+        """
+        return self._find_path(slug) is not None
+
     def _validate(self, card: Card) -> None:
         """持久化前校验（schema 契约）；违规抛 ValueError。"""
         errors = validate_card(asdict(card))
@@ -247,7 +257,7 @@ class CardStore:
         with self._rwlock.write():  # 写串行化：写卡 + index + log 三步原子可见
             self._check_slug(card.slug)
             self._validate(card)
-            if self.get(card.slug) is not None:  # 写锁内重入读（同线程放行）
+            if self._exists(card.slug):  # 写锁内重入读（同线程放行）；仅文件存在性，免 YAML 解析
                 logger.warning("创建冲突: slug=%s 已存在，拒绝覆盖（CardConflictError）", card.slug)
                 raise CardConflictError(f"卡片已存在: {card.slug}")
             path = self._wiki_root / card.type / f"{card.slug}.md"
@@ -362,7 +372,7 @@ class CardStore:
         for p in sorted(src.glob("*.md")):
             try:
                 card = self._md_to_card(p)
-                if self.get(card.slug) is not None:
+                if self._exists(card.slug):  # 判重仅需存在性（免 YAML 解析，P1-3）
                     if not force:
                         result.skipped += 1
                         logger.info("批量导入跳过: %s（同 slug 已存在，force=False）", p.name)

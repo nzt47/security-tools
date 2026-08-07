@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 
+from agent.knowledge import ingest as ingest_module
 from agent.knowledge.ingest import (
     LOG_MARKER,
     IngestError,
@@ -171,6 +172,29 @@ def test_log_line_direct_idempotency(tmp_path, kb):
     assert _append_log_line(log, line) is True
     assert _append_log_line(log, line) is False
     assert _read_log(kb).count("ingest | note | thought") == 1
+
+
+class _BoomLock:
+    """进入即抛异常的假文件锁：若判重短路未命中（仍进锁路径）测试即失败。"""
+
+    def __enter__(self):
+        raise AssertionError("短路未命中：不该进入文件锁路径")
+
+    def __exit__(self, *exc):
+        return False
+
+
+def test_log_shortcut_skips_lock_on_repeat(tmp_path, kb, monkeypatch):
+    """P0-1.1 判重短路：同路径同记录重复写入时跳过「锁 + 全量读改写」（O(1)）。"""
+    log = kb / "log.md"
+    log.parent.mkdir(parents=True)
+    line = "## [2026-08-06] ingest | shortcut | thought"
+    assert _append_log_line(log, line) is True
+
+    # 第二次调用应命中进程内短路，不再进入 _FileLock（进入即抛异常）
+    monkeypatch.setattr(ingest_module, "_FileLock", _BoomLock)
+    assert _append_log_line(log, line) is False
+    assert _read_log(kb).count("ingest | shortcut | thought") == 1
 
 
 def test_unknown_source_type_log_detail(tmp_path, kb):

@@ -259,6 +259,46 @@ def _line_exists(content: str, line: str) -> bool:
     return any(l.strip() == target for l in content.splitlines())
 
 
+# 进程内最近写入 log.md 的记录集合（(log_path, line) 对，容量 _LOG_RECENT_MAX）。
+# 【不易】P0-1.1 判重短路：仅覆盖「本进程近期成功写入」的记录——日志契约只追加
+# 不改写既有行，命中即代表文件里必然已存在该行，可直接幂等返回 False；
+# 跨进程/历史记录/写失败均未登记，仍走文件全量判重，幂等语义不变。
+# 键含 log_path：不同知识库/测试目录互不串扰。
+_LOG_RECENT: set[tuple[str, str]] = set()
+_LOG_RECENT_LOCK = threading.Lock()
+_LOG_RECENT_MAX = 100
+
+
+def _append_log_line(log_path: Path, line: str) -> bool:
+    """向 log.md 顶部追加记录行（幂等）。已存在返回 False。
+
+    写回逻辑：读 → 判重 → 组装 → 单 fd 原地写（持锁期间完成，无外部调用；
+    Windows CRT 下复用锁定句柄避免共享冲突，见 _FileLock.fh）。
+    性能（P0-1.1）：持锁前先查进程内最近写入集合，命中则跳过「锁 + 全量读 +
+    逐行判重」，批量重复入库主场景从 O(L) 降为 O(1)。
+    """
+    key = (str(log_path), line.strip())
+    with _LOG_RECENT_LOCK:
+        if key in _LOG_RECENT:
+            return False  # 本进程刚写入过 → 文件必然已存在（日志只追加）
+    with _FileLock(log_path) as lock:
+        fh = lock.fh
+        fh.seek(0)
+        content = fh.read().decode("utf-8")
+        if _line_exists(content, line):
+            return False
+        new_content = _insert_line(content, line)
+        fh.seek(0)
+        fh.truncate()
+        fh.write(new_content.encode("utf-8"))
+        fh.flush()
+    with _LOG_RECENT_LOCK:
+        if len(_LOG_RECENT) >= _LOG_RECENT_MAX:
+            _LOG_RECENT.clear()  # 超容清空：最坏清空后首次写多读一次文件，无正确性影响
+        _LOG_RECENT.add(key)
+    return True
+
+
 def _insert_line(content: str, line: str) -> str:
     """在 log.md 顶部标记行之后插入记录；无标记文件则顶部直接插入。
 
@@ -272,26 +312,6 @@ def _insert_line(content: str, line: str) -> str:
         end = pos + len(LOG_MARKER)
         return content[:end] + nl + line + nl + content[end:].lstrip("\r\n")
     return line + nl + content
-
-
-def _append_log_line(log_path: Path, line: str) -> bool:
-    """向 log.md 顶部追加记录行（幂等）。已存在返回 False。
-
-    写回逻辑：读 → 判重 → 组装 → 单 fd 原地写（持锁期间完成，无外部调用；
-    Windows CRT 下复用锁定句柄避免共享冲突，见 _FileLock.fh）。
-    """
-    with _FileLock(log_path) as lock:
-        fh = lock.fh
-        fh.seek(0)
-        content = fh.read().decode("utf-8")
-        if _line_exists(content, line):
-            return False
-        new_content = _insert_line(content, line)
-        fh.seek(0)
-        fh.truncate()
-        fh.write(new_content.encode("utf-8"))
-        fh.flush()
-    return True
 
 
 def _log_line(slug: str, source_type: Optional[str]) -> str:
