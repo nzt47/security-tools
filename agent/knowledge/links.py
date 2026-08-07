@@ -18,12 +18,9 @@ from __future__ import annotations
 import logging
 import re
 import time
-from typing import TYPE_CHECKING, Optional
+from typing import Any, Optional
 
 from agent.knowledge.schema import Card
-
-if TYPE_CHECKING:
-    from agent.knowledge.card import CardStore
 
 logger = logging.getLogger(__name__)
 
@@ -73,11 +70,13 @@ def find_orphans(cards: list[Card]) -> list[str]:
     return orphans
 
 
-def resolve_link(slug: str, store: "CardStore") -> Optional[Card]:
+def resolve_link(slug: str, store: Any) -> Optional[Card]:
     """解析链接；目标不存在返回 None（断链），不抛异常。
 
     目标可为纯 slug（wiki 卡片）或 `archives/<slug>`（归档卡片），
     解析规则见 CardStore.get。
+    `store` 采用鸭子类型（仅调用 `.get(slug)`），不引用 CardStore 类型，
+    避免 links→card 依赖边（架构 no_circular_dependency 约束）。
     """
     _is_archives = slug.startswith(ARCHIVES_PREFIX)
     logger.debug(
