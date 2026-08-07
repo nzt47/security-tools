@@ -30,7 +30,8 @@ import yaml
 
 from agent.knowledge.index import update_index_delta
 from agent.knowledge.lifecycle import CardStatus, can_transition, validate_transition
-from agent.knowledge.links import parse_links, rewrite_link_targets
+from agent.knowledge.links import ARCHIVES_PREFIX, parse_links, rewrite_link_targets
+from agent.knowledge.links_index import read_links_index, update_links_delta
 from agent.knowledge.logbook import append_log
 from agent.knowledge.schema import Card, validate_card
 
@@ -170,6 +171,7 @@ class CardStore:
         archives_dir: Optional[str | Path] = None,
         index_path: Optional[str | Path] = None,
         log_path: Optional[str | Path] = None,
+        links_index_path: Optional[str | Path] = None,
     ):
         """构造 CardStore。
 
@@ -183,6 +185,9 @@ class CardStore:
         )
         self._index_path = Path(index_path) if index_path else root / "index.md"
         self._log_path = Path(log_path) if log_path else root / "log.md"
+        self._links_index_path = (
+            Path(links_index_path) if links_index_path else root / "index_links.md"
+        )
         self._rwlock = _RWLock()  # 读写锁：写串行化（index/log 一致性），读并发
 
     # ---------- 内部工具 ----------
@@ -245,10 +250,32 @@ class CardStore:
             raise ValueError("卡片校验失败: " + "; ".join(errors))
 
     def _has_incoming_links(self, slug: str) -> bool:
-        """是否有其他 wiki 卡片指向该 slug（纯 slug 入链）。"""
+        """是否有其他 wiki 卡片指向该 slug（纯 slug 入链）。
+
+        P0-2 入链索引优化：优先查 index_links.md（O(1) 查表）；
+        索引文件缺失/解析失败时回退全库扫描（容错，保证行为不退化）。
+        """
+        path = self._links_index_path
+        if path.exists():
+            try:
+                return bool(read_links_index(path).get(slug))
+            except (ValueError, OSError) as exc:
+                logger.warning("入链索引解析失败，回退全库扫描: %s (%s)", path, exc)
         return any(
             slug in card.links for card in self.list() if card.slug != slug
         )
+
+    def _sync_links_index_add(self, card: Card) -> None:
+        """create/update 后：将卡片 links 的引用关系登记入入链索引。"""
+        for link in card.links:
+            if not link.startswith(ARCHIVES_PREFIX):
+                update_links_delta(link, card.slug, self._links_index_path, add=True)
+
+    def _sync_links_index_remove(self, slug: str, links: list[str]) -> None:
+        """delete 后：移除被删卡片 links 产生的引用关系（入链已校验为空）。"""
+        for link in links:
+            if not link.startswith(ARCHIVES_PREFIX):
+                update_links_delta(link, slug, self._links_index_path, add=False)
 
     # ---------- CRUD ----------
 
@@ -264,6 +291,7 @@ class CardStore:
             self._write_card(path, card)
             update_index_delta(card.slug, card, self._index_path)
             append_log("create", card.slug, f"type={card.type}", log_path=self._log_path)
+            self._sync_links_index_add(card)  # 入链索引同步（P0-2）
             logger.info("创建卡片: slug=%s type=%s path=%s", card.slug, card.type, path)
             return card
 
@@ -298,6 +326,14 @@ class CardStore:
             if old_path is None:
                 raise CardNotFoundError(f"卡片不存在: {card.slug}")
             _t0 = time.perf_counter()
+            # 入链索引同步：先移除旧引用（读旧卡 links；损坏卡容错为空）
+            try:
+                old_links = self._md_to_card(old_path).links
+            except (ValueError, TypeError):
+                old_links = []
+            for link in old_links:
+                if not link.startswith(ARCHIVES_PREFIX):
+                    update_links_delta(link, card.slug, self._links_index_path, add=False)
             card.links = parse_links(card.content)
             logger.info(
                 "更新卡片: slug=%s 正文双链同步 links=%s 耗时=%.2fms",
@@ -312,6 +348,7 @@ class CardStore:
                 self._write_card(old_path, card)
             update_index_delta(card.slug, card, self._index_path)
             append_log("update", card.slug, f"type={card.type}", log_path=self._log_path)
+            self._sync_links_index_add(card)  # 入链索引同步：登记新引用（P0-2）
             return card
 
     def delete(self, slug: str) -> bool:
@@ -325,11 +362,60 @@ class CardStore:
             if path is None:
                 logger.warning("删除未命中: slug=%s 不存在", slug)
                 return False
+            # 入链索引同步：读被删卡 links（损坏卡容错为空，仍可删除）
+            try:
+                old_links = self._md_to_card(path).links
+            except (ValueError, TypeError):
+                old_links = []
             path.unlink()
             update_index_delta(slug, None, self._index_path)
             append_log("delete", slug, "", log_path=self._log_path)
+            self._sync_links_index_remove(slug, old_links)  # 入链索引同步（P0-2）
             logger.info("删除卡片: slug=%s path=%s", slug, path)
             return True
+
+    def delete_many(self, slugs: list[str]) -> dict[str, bool]:
+        """批量删除；返回 {slug: 是否删除成功}（P1-1 批量删除优化）。
+
+        【不易】入链判定语义与单删 delete 一致：待删集合**外**的引用方仍指向
+        slug → 拒绝；待删集合内部的互相引用不阻止删除（整批同时消失，
+        不产生残留断链）。复杂度：一次全库扫描 O(N) 构建入链映射 +
+        O(K) 逐张删除（原逐次 delete 为 O(K·N)）。
+        """
+        with self._rwlock.write():  # 写串行化：一次扫描 + K 次删除原子可见
+            # 1. 一次扫描构建「被引用 slug → 引用方列表」（archives/ 前缀不列入链）
+            incoming: dict[str, list[str]] = {}
+            for card in self.list():
+                for link in card.links:
+                    if not link.startswith(ARCHIVES_PREFIX):
+                        incoming.setdefault(link, []).append(card.slug)
+            pending = set(slugs)
+            result: dict[str, bool] = {}
+            for slug in slugs:
+                self._check_slug(slug)
+                refs = [r for r in incoming.get(slug, []) if r not in pending]
+                if refs:
+                    logger.warning(
+                        "批量删除被拒: slug=%s 存在外部入链=%s", slug, refs,
+                    )
+                    result[slug] = False
+                    continue
+                path = self._find_path(slug)
+                if path is None:
+                    logger.warning("批量删除未命中: slug=%s 不存在", slug)
+                    result[slug] = False
+                    continue
+                try:
+                    old_links = self._md_to_card(path).links
+                except (ValueError, TypeError):
+                    old_links = []
+                path.unlink()
+                update_index_delta(slug, None, self._index_path)
+                append_log("delete", slug, "batch", log_path=self._log_path)
+                self._sync_links_index_remove(slug, old_links)  # 入链索引同步（P0-2）
+                logger.info("批量删除卡片: slug=%s path=%s", slug, path)
+                result[slug] = True
+            return result
 
     def list(
         self, status: Optional[str] = None, type: Optional[str] = None

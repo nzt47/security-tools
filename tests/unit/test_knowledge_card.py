@@ -269,6 +269,59 @@ def test_delete_removes_index_entry(store, tmp_path):
     assert "- [[驾驭工程]]" in text
 
 
+# ---------- 批量删除（P1-1） ----------
+
+
+def test_delete_many_no_external_refs(store, tmp_path):
+    """无外部引用的整批删除：全部成功，文件与 index 条目清除。"""
+    for title in ("驾驭工程", "提示词工程", "知识蒸馏"):
+        store.create(make_card(title))
+    result = store.delete_many(["驾驭工程", "提示词工程", "知识蒸馏"])
+    assert result == {"驾驭工程": True, "提示词工程": True, "知识蒸馏": True}
+    assert store.list() == []
+    text = (tmp_path / "kb" / "index.md").read_text(encoding="utf-8")
+    for title in ("驾驭工程", "提示词工程", "知识蒸馏"):
+        assert f"- [[{title}]]" not in text
+
+
+def test_delete_many_internal_refs_allowed(store):
+    """待删集合内部的互相引用不阻止删除（整批同时消失，无残留断链）。"""
+    store.create(make_card("驾驭工程", links=["提示词工程"]))
+    store.create(make_card("提示词工程", links=["驾驭工程"]))
+    result = store.delete_many(["驾驭工程", "提示词工程"])
+    assert result == {"驾驭工程": True, "提示词工程": True}
+    assert store.list() == []
+
+
+def test_delete_many_external_ref_rejected(store):
+    """待删集合外的引用方仍指向 slug → 该张拒绝且文件保留，其余正常删除。"""
+    store.create(make_card("提示词工程"))
+    store.create(make_card("驾驭工程", links=["提示词工程"]))
+    store.create(make_card("知识蒸馏", links=["提示词工程"]))
+    result = store.delete_many(["驾驭工程", "提示词工程"])
+    assert result == {"驾驭工程": True, "提示词工程": False}
+    assert store.get("驾驭工程") is None       # 无入链，正常删除
+    assert store.get("提示词工程") is not None  # 外部引用（知识蒸馏）仍在 → 保留
+
+
+def test_delete_many_matches_sequential_delete(tmp_path):
+    """无内部互相引用时，批量判定 == 逐次 delete 判定（一致性不变量）。"""
+
+    def build(i: int):
+        s = CardStore(tmp_path / f"kb{i}" / "wiki")
+        s.create(make_card("A卡"))
+        s.create(make_card("B卡"))
+        s.create(make_card("C卡", links=["A卡"]))  # C → A：A 有外部入链
+        return s
+
+    slugs = ["A卡", "B卡"]
+    batch = build(0).delete_many(list(slugs))
+    store_seq = build(1)
+    seq = {s: store_seq.delete(s) for s in slugs}
+    assert batch == seq  # {A卡: False, B卡: True}：判定一致
+    assert batch == {"A卡": False, "B卡": True}
+
+
 # ---------- list ----------
 
 
@@ -321,6 +374,73 @@ def test_rebuild_index_matches_delta_accumulation(store, tmp_path):
     assert rebuild_index(tmp_path / "kb" / "wiki", index_path) == len(cards)
     rebuilt = _strip_time(index_path.read_text(encoding="utf-8"))
     assert rebuilt == delta_text
+
+
+def _section_slugs(text: str) -> dict[str, list[str]]:
+    """按 section 解析条目 slug 列表（用于 append 模式集合对比）。"""
+    secs: dict[str, list[str]] = {}
+    cur = None
+    for line in text.splitlines():
+        if line.startswith("## "):
+            cur = line
+            secs[cur] = []
+        elif line.startswith("- [["):
+            secs.setdefault(cur, []).append(line.split("[[")[1].split("]]")[0])
+    return secs
+
+
+def test_index_append_mode_set_equivalence(store, tmp_path):
+    """【P1-2】append 叠加的每 section slug 集合 == 全量重建集合（内容集合不变式）。"""
+    index_path = tmp_path / "kb" / "index.md"
+    cards = [
+        make_card("驾驭工程", type="concepts"),
+        make_card("提示词工程", status="draft", type="concepts"),
+        make_card("张三", type="entities"),
+        make_card("关于复杂系统", type="insights"),
+    ]
+    for c in cards:
+        store.create(c)     # 卡片落库（rebuild 依赖）
+    index_path.unlink()     # 重置骨架：以下模拟高频写路径只走 append 叠加
+    for c in cards:
+        update_index_delta(c.slug, c, index_path, append=True)
+    delta_text = _strip_time(index_path.read_text(encoding="utf-8"))
+    rebuild_index(tmp_path / "kb" / "wiki", index_path)
+    rebuilt = _strip_time(index_path.read_text(encoding="utf-8"))
+    assert {k: set(v) for k, v in _section_slugs(delta_text).items()} == {
+        k: set(v) for k, v in _section_slugs(rebuilt).items()
+    }
+
+
+def test_index_append_mode_converges_after_rebuild(store, tmp_path):
+    """【P1-2】append 状态执行一次 rebuild_index 即收敛为字典序（重整收敛不变式）。"""
+    index_path = tmp_path / "kb" / "index.md"
+    cards = [
+        make_card("驾驭工程", type="concepts"),
+        make_card("提示词工程", status="draft", type="concepts"),
+        make_card("张三", type="entities"),
+        make_card("关于复杂系统", type="insights"),
+    ]
+    for c in cards:
+        store.create(c)
+    index_path.unlink()
+    for c in cards:
+        update_index_delta(c.slug, c, index_path, append=True)
+    assert rebuild_index(tmp_path / "kb" / "wiki", index_path) == len(cards)
+    converged = _strip_time(index_path.read_text(encoding="utf-8"))
+    index_path.unlink()
+    rebuild_index(tmp_path / "kb" / "wiki", index_path)
+    fresh = _strip_time(index_path.read_text(encoding="utf-8"))
+    assert converged == fresh  # 重整结果 == 全新重建，逐字节一致
+
+
+def test_index_append_mode_idempotent(store, tmp_path):
+    """【P1-2】append 重复写同 slug → 更新已有条目，不产生重复行（幂等）。"""
+    index_path = tmp_path / "kb" / "index.md"
+    card = make_card("驾驭工程")
+    assert update_index_delta(card.slug, card, index_path, append=True) is True
+    assert update_index_delta(card.slug, card, index_path, append=True) is True
+    text = index_path.read_text(encoding="utf-8")
+    assert text.count("- [[驾驭工程]]") == 1
 
 
 def test_update_index_delta_repairs_missing_section(store, tmp_path):

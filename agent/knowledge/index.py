@@ -111,11 +111,19 @@ def rebuild_index(wiki_root: str | Path, index_path: str | Path) -> int:
 
 
 def update_index_delta(
-    slug: str, card: Optional[Card], index_path: str | Path
+    slug: str,
+    card: Optional[Card],
+    index_path: str | Path,
+    *,
+    append: bool = False,
 ) -> bool:
     """增量更新单个卡片对应的 index 条目（不重扫全库）。
 
-    - `card` 非 None：插入/更新该 slug 条目（按 slug 字典序定位插入点）。
+    - `card` 非 None：插入/更新该 slug 条目。`append=False`（默认）按 slug
+      字典序定位插入，保证「逐卡叠加 == 全量重建」逐字节不变式；
+      `append=True` 追加到 section 末尾（高频写路径，P1-2），配合定期
+      `rebuild_index` 重整收敛排序——该模式的不变式为「内容集合相等 +
+      重整收敛」（见测试）。
     - `card` 为 None：移除该 slug 条目（删除 / Archive 归档）。
     - 返回是否发生了写盘变更。
     """
@@ -124,7 +132,7 @@ def update_index_delta(
     logger.info(
         "update_index_delta: 操作开始 slug=%s 动作=%s index_path=%s",
         slug,
-        "移除条目" if card is None else f"写入(type={card.type})",
+        "移除条目" if card is None else f"写入(type={card.type}, append={append})",
         index_path,
     )
     lines = (
@@ -170,18 +178,22 @@ def update_index_delta(
     if heading not in lines:  # 骨架缺失时补 section 头（防御手工删改）
         lines = _fresh_lines()
     idx = lines.index(heading) + 1
-    # 条目紧贴 heading：遇到空行（section 结束标记）即停止，避免
-    # 插到下一个 section 头之前造成「空行在条目前」的格式漂移
+    # 定位插入点：append 模式追加到 section 末尾（高频写路径，配合定期
+    # rebuild_index 重整收敛排序）；默认模式按 slug 字典序扫描定位，保证
+    # 「逐卡叠加 == 全量重建」逐字节不变式。两种模式都在遇空行（section
+    # 结束标记）即停止，避免插到下一个 section 头之前造成「空行在条目前」
+    # 的格式漂移
     insert_at = idx
     while idx < len(lines):
         line = lines[idx]
         if line == "":
             break
-        m = _ENTRY_RE.match(line)
-        if m and m.group(1) > card.slug:
-            break
         if line.startswith("## "):
             break
+        if not append:
+            m = _ENTRY_RE.match(line)
+            if m and m.group(1) > card.slug:
+                break
         insert_at = idx + 1
         idx += 1
     lines.insert(insert_at, entry)
