@@ -15,11 +15,58 @@
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import uuid
-from typing import Any, Optional
+from contextlib import contextmanager
+from typing import Any, Iterator, Optional
 
 logger = logging.getLogger("agent.knowledge")
+
+# 当前知识操作链路的 trace_id（ContextVar，线程/异步隔离）。
+# 【变易】同一链路（一次 kb_* 工具调用 / WorkflowRunner 操作）内的所有
+# emit_structured_log 共享该 trace_id，分布式场景下可在 ELK 按 trace_id
+# 聚合整条链路日志（对齐 orchestrator trace_id_ctx 的传播机制）。
+_CTX: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "knowledge_trace_id", default=""
+)
+
+
+@contextmanager
+def knowledge_trace(trace_id: Optional[str] = None) -> Iterator[str]:
+    """进入一条知识操作链路：设置当前上下文的 trace_id，退出时恢复。
+
+    - 同一链路内的 emit_structured_log 共享 trace_id（链路追踪完整）。
+    - ContextVar 天然隔离并发请求/线程，分布式多节点各自独立生成。
+    - 支持显式传入 trace_id（外部编排系统透传，跨工具关联链路）。
+
+    异常恢复（【不易】不变量，勿改动）：
+    - 实现为 try/finally + ContextVar.reset(token)：yield 体内抛任意异常
+      （含嵌套链路内层中断）都会在 finally 中精确恢复进入前的值，
+      不会把 trace_id 泄露到链路外部——reset(token) 是栈式复位，
+      嵌套时内层异常只回退到内层入口前的链路段。
+    - 已由测试锁定：test_knowledge_trace_no_leak_on_exception（异常中断恢复）、
+      test_knowledge_trace_nested_restore_on_exception（嵌套精确复位）、
+      scripts/dev/verify_knowledge_pipeline.py 场景5（1000 并发 +
+      143 次异常中断注入，全部恢复无泄露）。
+
+    Args:
+        trace_id: 显式链路 id（缺省自动生成 128 bit UUID4）。
+
+    Yields:
+        当前链路 trace_id。
+    """
+    tid = trace_id or uuid.uuid4().hex
+    token = _CTX.set(tid)
+    try:
+        yield tid
+    finally:
+        _CTX.reset(token)
+
+
+def get_trace_id() -> str:
+    """当前链路的 trace_id（未在链路内时为空串，表示单条日志级）。"""
+    return _CTX.get()
 
 
 def _trace_id() -> str:
@@ -39,13 +86,14 @@ def emit_structured_log(action: str, *, trace_id: Optional[str] = None,
 
     Args:
         action: 事件名，形如 <module>.<action>（如 distill.llm_ok）。
-        trace_id: 显式 trace_id（缺省自动生成 128 bit UUID4）。
+        trace_id: 显式 trace_id（缺省取当前链路 knowledge_trace 的 id，
+            均无则自动生成 128 bit UUID4）。
         duration_ms: 耗时（毫秒），自动 round 到 2 位小数。
         level: info / warning / error。
         payload: 业务字段（slug/source/reason/error 等）。
     """
     record = {
-        "trace_id": trace_id or _trace_id(),
+        "trace_id": trace_id or _CTX.get() or uuid.uuid4().hex,
         "module_name": "knowledge",
         "action": action,
         "duration_ms": round(duration_ms, 2),

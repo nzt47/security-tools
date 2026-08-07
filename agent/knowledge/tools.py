@@ -14,6 +14,7 @@ register_knowledge_tools() 显式注册（不侵入全局，由宿主按需调�
 """
 from __future__ import annotations
 
+import functools
 import logging
 import os
 import tempfile
@@ -21,7 +22,7 @@ import time
 from pathlib import Path
 
 from agent.knowledge.card import CardConflictError
-from agent.knowledge.observability import emit_structured_log
+from agent.knowledge.observability import emit_structured_log, knowledge_trace
 from agent.knowledge.workflow import WorkflowRunner
 
 logger = logging.getLogger(__name__)
@@ -40,10 +41,26 @@ def _get_runner() -> WorkflowRunner:
     return _runner
 
 
+def _trace_wrap(fn):
+    """工具入口包装：一次工具调用 = 一条知识操作链路。
+
+    同一 kb_* 调用内的所有 emit_structured_log 共享 trace_id（ContextVar 传播），
+    分布式场景下可在 ELK 按 trace_id 聚合单次操作的全链路日志。
+    """
+
+    @functools.wraps(fn)
+    def wrapper(**kw):
+        with knowledge_trace():
+            return fn(**kw)
+
+    return wrapper
+
+
 # ════════════════════════════════════════════════════════════
 #  工具实现（handler 签名：**kwargs，返回 dict）
 # ════════════════════════════════════════════════════════════
 
+@_trace_wrap
 def kb_capture(**kw) -> dict:
     """收集素材入库（Step1）：text 或 file_path → inbox/（敏感自动标记）。"""
     text = kw.get("text")
@@ -81,6 +98,7 @@ def kb_capture(**kw) -> dict:
             os.unlink(tmp)
 
 
+@_trace_wrap
 def kb_distill(**kw) -> dict:
     """提炼结构化笔记（Step2）：source_path → processed/ 笔记（LLM 离线自动降级）。"""
     source_path = kw.get("source_path")
@@ -111,6 +129,7 @@ def kb_distill(**kw) -> dict:
         return {"ok": False, "error": str(exc)}
 
 
+@_trace_wrap
 def kb_discuss(**kw) -> dict:
     """深度讨论（Step3）：围绕笔记发起讨论，返回讨论记录路径。"""
     note_slug = kw.get("note_slug")
@@ -129,6 +148,7 @@ def kb_discuss(**kw) -> dict:
         return {"ok": False, "error": str(exc)}
 
 
+@_trace_wrap
 def kb_card(**kw) -> dict:
     """产卡（Step4）：note_slug（已 approve 笔记）或 discussion_path → wiki/ 卡片。
 
@@ -166,6 +186,7 @@ def kb_card(**kw) -> dict:
         return {"ok": False, "error": str(exc)}
 
 
+@_trace_wrap
 def kb_lint(**kw) -> dict:
     """健康巡检（Step5）：断链 + 孤儿检测，返回健康报告。"""
     try:
@@ -179,6 +200,7 @@ def kb_lint(**kw) -> dict:
         return {"ok": False, "error": str(exc)}
 
 
+@_trace_wrap
 def kb_search(**kw) -> dict:
     """知识检索：query → 融合检索命中（任务4 KnowledgeSearch）。"""
     query = kw.get("query")
