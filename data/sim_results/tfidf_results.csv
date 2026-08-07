@@ -1,0 +1,49 @@
+﻿case_id,query,tool,tfidf_sim,combined_score,hit
+1,帮我解析pdf文件,wf-pdf-parse,0.525268,0.425467,yes
+1,帮我解析pdf文件,wf-translate-en,0.01204,,no
+1,帮我解析pdf文件,wf-img-ocr,0.005843,,no
+1,帮我解析pdf文件,wf-sql-query,0.0,,no
+2,把这段话转成英语,wf-pdf-parse,0.0,,no
+2,把这段话转成英语,wf-translate-en,0.194488,,no
+2,把这段话转成英语,wf-img-ocr,0.0,,no
+2,把这段话转成英语,wf-sql-query,0.0,,no
+3,帮我看看图里有啥字,wf-pdf-parse,0.006355,,no
+3,帮我看看图里有啥字,wf-translate-en,0.0,,no
+3,帮我看看图里有啥字,wf-img-ocr,0.115555,,no
+3,帮我看看图里有啥字,wf-sql-query,0.0,,no
+4,跑个sql看下数据,wf-pdf-parse,0.0,,no
+4,跑个sql看下数据,wf-translate-en,0.0,,no
+4,跑个sql看下数据,wf-img-ocr,0.0,,no
+4,跑个sql看下数据,wf-sql-query,0.31108,0.28075,yes
+5,今天天气怎么样,wf-pdf-parse,0.0,,no
+5,今天天气怎么样,wf-translate-en,0.0,,no
+5,今天天气怎么样,wf-img-ocr,0.0,,no
+5,今天天气怎么样,wf-sql-query,0.0,,no
+6,把图片里的英文翻译成中文,wf-pdf-parse,0.015337,,no
+6,把图片里的英文翻译成中文,wf-translate-en,0.602164,0.435063,yes
+6,把图片里的英文翻译成中文,wf-img-ocr,0.359279,0.229938,yes
+6,把图片里的英文翻译成中文,wf-sql-query,0.0,,no
+7,识别并翻译图片里的文字,wf-pdf-parse,0.016421,,no
+7,识别并翻译图片里的文字,wf-translate-en,0.312968,0.22612,yes
+7,识别并翻译图片里的文字,wf-img-ocr,0.574034,0.367382,yes
+7,识别并翻译图片里的文字,wf-sql-query,0.0,,no
+8,extract text from pdf,wf-pdf-parse,0.206575,,no
+8,extract text from pdf,wf-translate-en,0.0,,no
+8,extract text from pdf,wf-img-ocr,0.0,,no
+8,extract text from pdf,wf-sql-query,0.0,,no
+9,translate this into english,wf-pdf-parse,0.0,,no
+9,translate this into english,wf-translate-en,0.0,,no
+9,translate this into english,wf-img-ocr,0.0,,no
+9,translate this into english,wf-sql-query,0.0,,no
+10,translate the text in this pdf,wf-pdf-parse,0.163227,,no
+10,translate the text in this pdf,wf-translate-en,0.0,,no
+10,translate the text in this pdf,wf-img-ocr,0.0,,no
+10,translate the text in this pdf,wf-sql-query,0.0,,no
+11,把pdf里的表格提取出来,wf-pdf-parse,0.243958,,no
+11,把pdf里的表格提取出来,wf-translate-en,0.020525,,no
+11,把pdf里的表格提取出来,wf-img-ocr,0.02324,,no
+11,把pdf里的表格提取出来,wf-sql-query,0.0,,no
+12,what is the weather today,wf-pdf-parse,0.0,,no
+12,what is the weather today,wf-translate-en,0.0,,no
+12,what is the weather today,wf-img-ocr,0.0,,no
+12,what is the weather today,wf-sql-query,0.0,,no

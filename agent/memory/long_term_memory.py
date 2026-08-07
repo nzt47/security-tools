@@ -245,6 +245,7 @@ class LongTermMemory:
 
     _TABLE_NAME = "long_term_memory"
     _VEC_TABLE_NAME = "ltm_vec_index"  # [P4] vec0 虚拟表名
+    _USER_PROFILE_TABLE = "user_profile"  # [用户档案卡] 结构化长期事实表（与迁移脚本 migrate_user_profile.sql 同构）
 
     def __init__(
         self,
@@ -317,6 +318,42 @@ class LongTermMemory:
         conn.execute(f"""
             CREATE INDEX IF NOT EXISTS idx_ltm_last_accessed
             ON {self._TABLE_NAME}(last_accessed)
+        """)
+        # [用户档案卡] 结构化长期事实表（user_id 主键，upsert 保证事实唯一性）
+        # Why: 与 scripts/dev/migrate_user_profile.sql 同构幂等，运行时自动迁移，
+        #      存量库不依赖手工执行迁移脚本（守"代码是真相源"）
+        conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {self._USER_PROFILE_TABLE} (
+                user_id TEXT PRIMARY KEY,
+                name TEXT,
+                occupation TEXT,
+                core_goals TEXT DEFAULT '[]',
+                preferences TEXT DEFAULT '{{}}',
+                communication_style TEXT,
+                timezone TEXT,
+                device_type TEXT,
+                locale TEXT,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL
+            )
+        """)
+        # [用户档案卡] 旧表补列迁移：存量库已建表但缺 timezone/device_type/locale 时自动 ALTER（幂等）
+        # Why: 与 scripts/dev/migrate_user_profile.sql 保持列集一致，守"代码是真相源"
+        profile_columns = [
+            col[1]
+            for col in conn.execute(f"PRAGMA table_info({self._USER_PROFILE_TABLE})").fetchall()
+        ]
+        for _col, _ddl in (
+            ("timezone", "ALTER TABLE {t} ADD COLUMN timezone TEXT"),
+            ("device_type", "ALTER TABLE {t} ADD COLUMN device_type TEXT"),
+            ("locale", "ALTER TABLE {t} ADD COLUMN locale TEXT"),
+        ):
+            if _col not in profile_columns:
+                conn.execute(_ddl.format(t=self._USER_PROFILE_TABLE))
+                logger.info("[LongTermMemory] 迁移: 已为 user_profile 表添加 %s 列", _col)
+        conn.execute(f"""
+            CREATE INDEX IF NOT EXISTS idx_user_profile_updated_at
+            ON {self._USER_PROFILE_TABLE}(updated_at)
         """)
         conn.commit()
         conn.close()
@@ -973,6 +1010,180 @@ class LongTermMemory:
             except Exception as e:
                 logger.error("[LongTermMemory] 审查标记失败: key=%s, error=%s", key, e)
                 return False
+
+    # ── 用户档案卡 ──
+    # 四层记忆架构之"用户记忆档案卡"层：长期事实（姓名/职业/核心目标等）
+    # 使用强 Schema 结构化存储（user_id 主键），ON CONFLICT upsert 保证
+    # 事实唯一性与可覆盖更新，规避纯向量库方案的"幽灵数据/新旧记录同时召回"。
+
+    async def save_profile(
+        self,
+        user_id: str,
+        name: Optional[str] = None,
+        occupation: Optional[str] = None,
+        core_goals: Optional[list[str]] = None,
+        preferences: Optional[dict] = None,
+        communication_style: Optional[str] = None,
+        timezone: Optional[str] = None,
+        device_type: Optional[str] = None,
+        locale: Optional[str] = None,
+    ) -> bool:
+        """保存（upsert）用户档案卡
+
+        仅更新传入的非 None 字段；未传入字段保持不变，避免覆盖既有事实。
+        核心目标/偏好以 JSON 字符串存储，返回时解析为原结构。
+
+        Args:
+            user_id: 用户唯一标识（事实唯一性锚点，同 id 不会产生第二条记录）
+            name: 用户姓名
+            occupation: 职业
+            core_goals: 核心目标列表（JSON array）
+            preferences: 偏好设置（JSON object）
+            communication_style: 沟通风格偏好（影响说话风格）
+            timezone: 时区（如 "Asia/Shanghai"）
+            device_type: 设备类型（如 "mobile"/"desktop"）
+            locale: 语言环境（如 "zh-CN"）
+
+        Returns:
+            True 表示保存成功
+        """
+        if not user_id:
+            logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'save_profile.key', 'msg': '[LongTermMemory] save_profile 失败: user_id 为空'}))
+            return False
+
+        now = time.time()
+        with self._lock:
+            try:
+                with self._get_conn() as conn:
+                    # 先查已有记录，仅更新传入的字段（null 字段不覆盖）
+                    row = conn.execute(
+                        f"SELECT * FROM {self._USER_PROFILE_TABLE} WHERE user_id = ?",
+                        (user_id,),
+                    ).fetchone()
+
+                    if row is None:
+                        # 首次建档：全字段插入
+                        conn.execute(f"""
+                            INSERT INTO {self._USER_PROFILE_TABLE}
+                            (user_id, name, occupation, core_goals, preferences,
+                             communication_style, timezone, device_type, locale,
+                             created_at, updated_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            user_id,
+                            name,
+                            occupation,
+                            json.dumps(core_goals, ensure_ascii=False) if core_goals is not None else None,
+                            json.dumps(preferences, ensure_ascii=False) if preferences is not None else None,
+                            communication_style,
+                            timezone,
+                            device_type,
+                            locale,
+                            now,
+                            now,
+                        ))
+                    else:
+                        # upsert：动态拼接 SET 子句，仅更新非 None 字段
+                        sets: list[str] = ["updated_at = ?"]
+                        values: list[Any] = [now]
+                        for col, val in (
+                            ("name", name),
+                            ("occupation", occupation),
+                            ("core_goals", json.dumps(core_goals, ensure_ascii=False) if core_goals is not None else None),
+                            ("preferences", json.dumps(preferences, ensure_ascii=False) if preferences is not None else None),
+                            ("communication_style", communication_style),
+                            ("timezone", timezone),
+                            ("device_type", device_type),
+                            ("locale", locale),
+                        ):
+                            if val is not None:
+                                sets.append(f"{col} = ?")
+                                values.append(val)
+                        values.append(user_id)
+                        conn.execute(
+                            f"UPDATE {self._USER_PROFILE_TABLE} SET {', '.join(sets)} WHERE user_id = ?",
+                            values,
+                        )
+                    conn.commit()
+
+                logger.debug("[LongTermMemory] 用户档案保存成功: user_id=%s", user_id)
+                return True
+            except Exception as e:
+                logger.error("[LongTermMemory] 用户档案保存失败: user_id=%s, error=%s", user_id, e)
+                return False
+
+    async def get_profile(self, user_id: str) -> Optional[dict[str, Any]]:
+        """获取用户档案卡
+
+        Args:
+            user_id: 用户唯一标识
+
+        Returns:
+            档案字典（core_goals/preferences 已解析为原结构），不存在时返回 None
+        """
+        if not user_id:
+            return None
+
+        with self._lock:
+            try:
+                with self._get_conn() as conn:
+                    row = conn.execute(
+                        f"SELECT * FROM {self._USER_PROFILE_TABLE} WHERE user_id = ?",
+                        (user_id,),
+                    ).fetchone()
+                if not row:
+                    return None
+
+                row = dict(row)
+                profile = {
+                    "user_id": row["user_id"],
+                    "name": row.get("name"),
+                    "occupation": row.get("occupation"),
+                    "core_goals": self._parse_profile_json(row.get("core_goals"), default=[]),
+                    "preferences": self._parse_profile_json(row.get("preferences"), default={}),
+                    "communication_style": row.get("communication_style"),
+                    "timezone": row.get("timezone"),
+                    "device_type": row.get("device_type"),
+                    "locale": row.get("locale"),
+                    "created_at": row.get("created_at"),
+                    "updated_at": row.get("updated_at"),
+                }
+                return profile
+            except Exception as e:
+                logger.error("[LongTermMemory] 用户档案获取失败: user_id=%s, error=%s", user_id, e)
+                return None
+
+    @staticmethod
+    def _parse_profile_json(raw: Any, default: Any) -> Any:
+        """解析 user_profile 的 JSON 字符串列；空/非法时返回默认值"""
+        if not raw:
+            return default
+        try:
+            return json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return default
+
+    def list_profiles(self, limit: int = 50) -> list[dict[str, Any]]:
+        """列出用户档案卡（按 updated_at 降序）
+
+        Args:
+            limit: 返回数量上限
+
+        Returns:
+            档案字典列表
+        """
+        with self._lock:
+            try:
+                with self._get_conn() as conn:
+                    rows = conn.execute(f"""
+                        SELECT * FROM {self._USER_PROFILE_TABLE}
+                        ORDER BY updated_at DESC
+                        LIMIT ?
+                    """, (limit,)).fetchall()
+                return [dict(row) for row in rows]
+            except Exception as e:
+                logger.error("[LongTermMemory] 列出用户档案失败: %s", e)
+                return []
 
     # ── 统计与审查 ──
 

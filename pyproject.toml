@@ -168,4 +168,8 @@ source = ["agent", "sensor", "memory", "planning", "persona", "core", "cognitive
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 40
+# 【变易】fail_under=0：单文件/单模块测试（如 --cov=agent.knowledge 仅测 distill）
+# 整体覆盖率必然偏低（34%），若按 40% 门槛会误报失败。真正的覆盖率门禁
+# 由 .github/workflows/ci.yml 的 coverage-check job 对合并后的全量数据
+# 以 --fail-under=40（env.COVERAGE_THRESHOLD）统一断言，此处不再重复设门槛。
+fail_under = 0

@@ -19,12 +19,15 @@ import argparse
 import logging
 import sys
 from collections import Counter
+from pathlib import Path
 
 from agent.knowledge.card import (
+    CardConflictError,
     CardNotFoundError,
     CardStore,
     InvalidTransitionError,
 )
+from agent.knowledge.distill import promote_to_card
 from agent.knowledge.index import rebuild_index
 from agent.knowledge.links import find_broken_links, find_orphans
 
@@ -158,6 +161,28 @@ def cmd_list(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_card_from_note(args: argparse.Namespace) -> int:
+    """从 processed/ 已确认笔记产卡（任务3 → 任务2 对接）；失败 → exit 1。"""
+    wiki_root = Path(args.wiki)
+    knowledge_root = Path(args.knowledge) if args.knowledge else wiki_root.parent
+    logger.info("CLI card-from-note: slug=%s card_type=%s wiki=%s knowledge=%s",
+                args.slug, args.card_type, args.wiki, knowledge_root)
+    try:
+        card = promote_to_card(
+            args.slug,
+            card_type=args.card_type,
+            knowledge_root=knowledge_root,
+            wiki_root=wiki_root,
+        )
+    except (FileNotFoundError, ValueError, CardConflictError) as exc:
+        logger.warning("CLI card-from-note: 产卡失败 slug=%s 原因=%s", args.slug, exc)
+        print(f"产卡失败: {exc}", file=sys.stderr)
+        return 1
+    print(f"产卡成功: {card.slug}（type={card.type} status={card.status}）")
+    logger.info("CLI card-from-note: 产卡成功 slug=%s type=%s", card.slug, card.type)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m agent.knowledge",
@@ -217,6 +242,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--wiki", default=_DEFAULT_WIKI)
     p.add_argument("--verbose", action="store_true")
     p.set_defaults(func=cmd_list)
+
+    p = sub.add_parser(
+        "card-from-note",
+        help="从 processed/ 已确认笔记产卡（任务3 → 任务2 对接）",
+    )
+    p.add_argument("slug", help="processed/ 笔记 slug（须已 approve）")
+    p.add_argument("--card-type", default="concepts",
+                   help="卡片类型（concepts/entities/insights）")
+    p.add_argument("--wiki", default=_DEFAULT_WIKI)
+    p.add_argument("--knowledge", default=None,
+                   help="knowledge 根（含 processed/），默认取 --wiki 的父目录")
+    p.add_argument("--verbose", action="store_true")
+    p.set_defaults(func=cmd_card_from_note)
 
     return parser
 

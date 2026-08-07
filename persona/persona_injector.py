@@ -25,8 +25,18 @@ class PersonaInjector:
         memory_context: Optional[str] = None,
         additional_rules: Optional[List[str]] = None,
         tool_status: Optional[str] = None,
+        user_context: Optional[str] = None,
     ) -> str:
-        """构建完整的系统提示词（固定前置、动态后置以提升前缀缓存命中率）"""
+        """构建完整的系统提示词（固定前置、动态后置以提升前缀缓存命中率）
+
+        Args:
+            body_status: Agent 身体状态（感知层）
+            memory_context: 记忆上下文（记忆层）
+            additional_rules: 额外规则
+            tool_status: 工具与技能状态
+            user_context: 用户上下文（时区/设备/语言等会话元数据），
+                用于调整说话风格与临场感（如移动设备用简洁表达、中文环境用中文）
+        """
         parts = []
 
         # ── 固定区（前缀稳定，最大化 Provider 端缓存命中）──
@@ -45,6 +55,11 @@ class PersonaInjector:
             parts.append(tool_status)
 
         # ── 动态区（每次请求可能变化）──
+        # 用户上下文（会话元数据层）：时区/设备/语言决定说话风格与临场感
+        if user_context:
+            parts.append("\n# 用户上下文")
+            parts.append(user_context)
+
         # 身体状态（感知层）
         if body_status:
             parts.append("\n# 当前状态")
@@ -67,6 +82,7 @@ class PersonaInjector:
             'message': '[PromptOrder] fixed=[persona, 表达要求%s] dynamic=[%s]' % (
                 ', tool_status' if tool_status else '',
                 ', '.join(filter(None, [
+                    'user_context' if user_context else '',
                     'body_status' if body_status else '',
                     'memory_context' if memory_context else '',
                     'additional_rules' if additional_rules else '',

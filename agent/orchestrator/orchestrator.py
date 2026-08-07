@@ -186,7 +186,7 @@ class Orchestrator:
     #  核心闭环：感知 → 认知 → 行动 → 反思
     # ════════════════════════════════════════════════════════════════════
 
-    def chat(self, user_input: str) -> str:
+    def chat(self, user_input: str, *, session_id: Optional[str] = None, session_mgr=None) -> str:
         """与云枢对话——P12 统一入口
 
         这是与云枢交互的唯一外部入口。
@@ -194,11 +194,21 @@ class Orchestrator:
 
         Args:
             user_input: 用户说给云枢的话
+            session_id: 会话元数据所属的会话 ID（sess_*，与 SessionManager 对齐）。
+                显式传入以根治多用户并发时的全局状态覆盖（不再依赖实例全局 _session_id）
+            session_mgr: SessionManager 实例，用于读取会话元数据（时区/设备/语言）
 
         Returns:
             云枢的回复文本
         """
-        result = self.process(user_input)
+        # 【审计改进】参数传递埋点：记录 chat 入口收到的显式会话上下文，
+        # 与 process.session_ctx / user_context.source 串联，便于排查参数传递是否正确
+        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.chat.session_ctx', 'session_id': session_id or getattr(self, '_session_id', 'default'), 'session_mgr_present': session_mgr is not None, 'message': '[chat] 显式传参: session_id=%s, session_mgr=%s' % (session_id or '(未传，回退实例)', '已传入' if session_mgr is not None else '未传入(回退实例)')}))
+        result = self.process(
+            user_input,
+            session_id=session_id,
+            session_mgr=session_mgr,
+        )
         if isinstance(result, dict):
             text = result.get("response", "")
             if not text:
@@ -401,7 +411,7 @@ class Orchestrator:
         routing_input = user_input
         try:
             from agent.orchestrator.dialog_state import get_dialog_state
-            _dst = get_dialog_state(getattr(self, '_session_id', 'default'))
+            _dst = get_dialog_state(_sid)
             # 注入已初始化的 vector_adapter（仅当热，避免冷启动延迟）
             try:
                 from agent.state_manager import get_skills_mgmt_service
@@ -453,15 +463,15 @@ class Orchestrator:
             #         守"省略句不得覆盖上一轮真实查询关键词"（与 funnel 回归对齐，
             #         修复连续省略句互相污染：'那个呢'→'然后呢' 的级联问题）
             if routing_input != user_input:
-                self._update_dst_after_route(intent, None, None)
+                self._update_dst_after_route(intent, None, None, session_id=_sid)
             else:
-                self._update_dst_after_route(intent, None, user_input)
+                self._update_dst_after_route(intent, None, user_input, session_id=_sid)
 
             is_follow_up = MessageHandler.is_follow_up({
                 'text': user_input,
                 'last_was_template': getattr(self, '_last_was_template', False),
                 'confidence': confidence,
-                'session_id': getattr(self, '_session_id', 'default'),
+                'session_id': _sid,
             })
             dissatisfaction = MessageHandler.detect_dissatisfaction(user_input)
             # 【排查】追问/不满判定依据（DEBUG 输出判定输入与结果，便于排查
@@ -637,7 +647,7 @@ class Orchestrator:
             # turn_count 重复递增；intent/user_input/keywords 已在路由后回写过
             try:
                 from agent.orchestrator.dialog_state import get_dialog_state
-                _dst_sk = get_dialog_state(getattr(self, '_session_id', 'default'))
+                _dst_sk = get_dialog_state(_sid)
                 _dst_sk.last_skill = semantic_result["skill_id"]
             except Exception:
                 pass
@@ -744,7 +754,12 @@ class Orchestrator:
         try:
             if self._v2_lifetrace and self._trace_recorder:
                 # V2 路径：Persona 系统 + ToolCallingService
-                response = self._call_llm_v2(user_input, body_status)
+                # 会话元数据经 kwargs 显式传递，避免依赖实例全局 _session_id（并发安全）
+                response = self._call_llm_v2(
+                    user_input, body_status,
+                    session_id=kwargs.get("session_id"),
+                    session_mgr=kwargs.get("session_mgr"),
+                )
             else:
                 # 标准路径
                 response = self._call_llm(user_input, body_status)
@@ -784,7 +799,7 @@ class Orchestrator:
                                 'user_input': user_input[:200],
                                 'trace_id': trace_id,
                                 'interaction_count': self._interaction_count,
-                                'session_id': getattr(self, '_session_id', 'unknown'),
+                                'session_id': _sid,
                             },
                         )
                         logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.error_reported', 'trace_id_ctx': trace_id, 'message': '[OK] 错误已自动上报'}))
@@ -934,7 +949,7 @@ class Orchestrator:
         #         从 _last_tool_steps 提取成功的工具调用序列自动 learn_from_interaction，
         #         沉淀为本地工作流供下次 0 Token 命中。
         #         【不易】内部异常只记日志，不影响主链路；失败的工具步骤被过滤不学习。
-        self._learn_workflow_from_interaction(user_input)
+        self._learn_workflow_from_interaction(user_input, session_id=_sid)
 
         # 向量记忆保存
         if self._vector_memory:
@@ -1019,10 +1034,14 @@ class Orchestrator:
 
     def _update_dst_after_route(self, intent: Optional[str],
                                 skill: Optional[str] = None,
-                                user_input: str = "") -> None:
+                                user_input: str = "",
+                                session_id: Optional[str] = None) -> None:
         """路由后回写 DST 状态（供下一轮指代消解继承）
 
         架构层级：[TLM-L0] DST 状态回写 — 兜底原本只存于注释的承诺
+
+        Args:
+            session_id: 会话 ID（显式传参，并发安全）；None 时回退实例 _session_id
 
         【不易】每轮仅调用一次（turn_count 单次递增）；skill 由语义层命中后
                直接 set last_skill 单独写入（不重复调用本方法）
@@ -1032,7 +1051,7 @@ class Orchestrator:
         """
         try:
             from agent.orchestrator.dialog_state import get_dialog_state
-            dst = get_dialog_state(getattr(self, '_session_id', 'default'))
+            dst = get_dialog_state(session_id or getattr(self, '_session_id', 'default'))
             kw = MessageHandler.extract_keywords(user_input) if user_input else []
             dst.update(
                 intent=intent,
@@ -1409,12 +1428,16 @@ class Orchestrator:
                         })
         return calls
 
-    def _learn_workflow_from_interaction(self, user_input: str) -> bool:
+    def _learn_workflow_from_interaction(self, user_input: str,
+                                         session_id: Optional[str] = None) -> bool:
         """从成功的 LLM 交互自动学习方法（自动闭环 v1）
 
         数据源: self._last_tool_steps（由 _call_llm/_call_llm_v2 填充）
         触发条件: 自动学习开关开启 + 工具调用序列非空（≥ learner.min_tool_calls）
         【不易】任何异常只记日志，不影响主链路
+
+        Args:
+            session_id: 会话 ID（显式传参，并发安全）；None 时回退实例 _session_id
         """
         try:
             if not self._wf_learn_enabled():
@@ -1436,7 +1459,7 @@ class Orchestrator:
                 return False
             from agent.workflow_learning.models import LearningRecord
             record = LearningRecord(
-                session_id=getattr(self, "_session_id", "default"),
+                session_id=session_id or getattr(self, "_session_id", "default"),
                 user_input=user_input,
                 tool_calls=tool_calls,
                 success=True,
@@ -1786,7 +1809,7 @@ class Orchestrator:
                             'trace_id': trace_id,
                             'elapsed_ms': round(elapsed_ms, 2),
                             'fallback': 'llm',
-                            'session_id': getattr(self, '_session_id', 'unknown'),
+                            'session_id': _sid,
                         },
                     )
                     logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.error_reported', 'trace_id_ctx': trace_id, 'message': '[语义层] 异常已上报监控系统'}))
@@ -2411,18 +2434,86 @@ class Orchestrator:
             self._set_thinking_mode("instinct")
             return self._build_offline_response(user_input)
 
-    def _call_llm_v2(self, user_input: str, body_status: str) -> str:
-        """V2 调用 LLM 生成响应（使用 Persona 系统）"""
+    def _get_user_context(self, session_id: Optional[str] = None,
+                          session_mgr=None) -> Optional[str]:
+        """获取会话的用户上下文（时区/设备/语言），用于调整说话风格与临场感
+
+        显式参数优先，未传时回退实例全局 _session_id/_session_mgr
+        （兼容 CLI 等未接入 SessionManager 的调用方）。
+
+        防御性实现：
+        - 无 session_mgr 时返回 None（不注入）
+        - 会话不存在或元数据为空时返回 None（优雅降级，不影响对话链路）
+
+        Args:
+            session_id: 会话 ID（sess_*），显式传入以根治并发全局覆盖
+            session_mgr: SessionManager 实例；None 时回退 getattr(self, '_session_mgr')
+
+        Returns:
+            形如 "用户时区: Asia/Shanghai；设备类型: mobile；语言环境: zh-CN" 的文本，或 None
+        """
+        # ── 来源判定：显式参数优先，未传才回退实例全局属性 ──
+        # 显式传入 = 修复后链路（chat(session_id=..., session_mgr=...)），并发安全；
+        # 实例回退 = CLI 等未接入 SessionManager 的调用方，仅单会话场景安全。
+        _mgr_source = "显式参数"
+        if session_mgr is None:
+            session_mgr = getattr(self, '_session_mgr', None)
+            _mgr_source = "实例回退"
+        if session_mgr is None:
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.user_context.skip', 'message': '[user_context] 无 session_mgr（未接入会话元数据），跳过注入'}))
+            return None
+
+        _sid_source = "显式参数"
+        if not session_id:
+            session_id = getattr(self, '_session_id', None)
+            _sid_source = "实例回退"
+        if not session_id:
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.user_context.skip', 'message': '[user_context] 无 session_id，跳过注入'}))
+            return None
+
+        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.user_context.source', 'session_id': session_id, 'session_mgr_source': _mgr_source, 'session_id_source': _sid_source, 'message': '[user_context] 来源: session_mgr=%s, session_id=%s (id=%s)' % (_mgr_source, _sid_source, session_id)}))
+        try:
+            meta = session_mgr.get_session_metadata(session_id)
+            if not meta:
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.user_context.empty', 'session_id': session_id, 'message': '[user_context] 会话无元数据（timezone/device/locale 均空），跳过注入'}))
+                return None
+            parts = []
+            for _k, _label in (("timezone", "用户时区"), ("device_type", "设备类型"), ("locale", "语言环境")):
+                if meta.get(_k):
+                    parts.append(f"{_label}: {meta[_k]}")
+            ctx = "；".join(parts) if parts else None
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.user_context.generated', 'session_id': session_id, 'user_context': ctx, 'message': '[user_context] 生成: %s' % (ctx,)}))
+            return ctx
+        except Exception as e:
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._get_user_context.fail', 'message': '[user_context] 获取失败（忽略）: %s' % (e,)}))
+            return None
+
+    def _call_llm_v2(self, user_input: str, body_status: str, *,
+                     session_id: Optional[str] = None,
+                     session_mgr=None) -> str:
+        """V2 调用 LLM 生成响应（使用 Persona 系统）
+
+        Args:
+            user_input: 用户输入
+            body_status: 身体状态描述
+            session_id: 会话 ID（显式传入，并发安全；None 时回退实例全局）
+            session_mgr: SessionManager 实例（显式传入，并发安全）
+        """
         profile = self._behavior.profile
         self._set_thinking_mode()
 
         if self._v2_persona and self._persona_injector:
             memory_context = self._get_lifetrace_context(user_input)
             tool_status_text = self._build_tool_status_text()
+            user_context = self._get_user_context(
+                session_id=session_id,
+                session_mgr=session_mgr,
+            )
             system_prompt = self._persona_injector.build_system_prompt(
                 body_status=body_status,
                 memory_context=memory_context,
                 tool_status=tool_status_text,
+                user_context=user_context,
             )
         else:
             memory_context = self._get_lifetrace_context(user_input) if self._v2_lifetrace else ""

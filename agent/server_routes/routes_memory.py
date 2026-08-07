@@ -290,30 +290,6 @@ def register_routes(app, state):
             logger.error("清空向量记忆失败: %s", e)
             return jsonify({"ok": False, "error": str(e)}), 500
 
-    @app.route("/api/knowledge/query", methods=["POST"])
-    @trace_route("Memory")
-    @require_token
-    @log_request()
-    def api_knowledge_query():
-        """知识库查询"""
-        data = request.get_json() or {}
-        question = data.get("question", "").strip()
-        top_k = min(int(data.get("top_k", 3)), 20)
-
-        if not question:
-            return jsonify({"ok": False, "error": "查询问题不能为空"}), 400
-
-        kb = getattr(Yunshu, '_knowledge_base', None)
-        if not kb:
-            return jsonify({"available": False, "error": "知识库未初始化"}), 503
-
-        try:
-            result = kb.query(question, top_k)
-            return jsonify({"ok": True, "result": result})
-        except Exception as e:
-            logger.error("知识库查询失败: %s", e)
-            return jsonify({"ok": False, "error": str(e)}), 500
-
     @app.route("/api/knowledge/add", methods=["POST"])
     @trace_route("Memory")
     @require_token

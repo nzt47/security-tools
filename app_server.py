@@ -847,7 +847,12 @@ def api_chat():
     chat_start = time.time()
     try:
         logs.append(f"[CHAT] 开始调用 DigitalLife.chat()")
-        response = _Yunshu.chat(user_input)
+        # 会话元数据显式传入（并发安全），避免全局 _session_id 被并发覆盖
+        response = _Yunshu.chat(
+            user_input,
+            session_id=session_id,
+            session_mgr=_session_mgr,
+        )
         chat_time = (time.time() - chat_start) * 1000
         logs.append(f"[CHAT] 对话响应生成完成 - 耗时: {chat_time:.2f}ms")
         logs.append(f"[CHAT] 响应长度: {len(response)} 字符")

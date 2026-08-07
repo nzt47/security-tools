@@ -39,7 +39,8 @@
 | 清理对象 | `agent/knowledge/ingest.py`、`scripts/verify_knowledge_plan_deps.py`、`tests/unit/test_knowledge_ingest.py`、`docs/zh/知识库重构计划.md`、`docs/zh/知识库重构计划/` 下 8 个 untracked 任务文档 |
 | 备份位置 | `backup/knowledge_refactor_20260806/`（17 个文件，含 docs_zh 子目录） |
 | 意外事件 | 该目录下 5 个文件实为 **HEAD 已跟踪文件**（CI_预检工具集成指南、任务0_核心逻辑速查、发布日志、回滚指南、测试报告_v1.0.0），非 untracked |
-| 补救 | 已 `git checkout -- docs/zh/知识库重构计划` **全部恢复**，无数据丢失 |
+| 补救 | 已 `git checkout -- docs/zh/知识库重构计划` **全部恢复**，无数据丢失；双保险：误删前所有 17 个文件已备份至 `backup/knowledge_refactor_20260806/`，即使无 git 也可还原 |
+| 教训工具化 | 新增 [auto_backup_untracked.ps1](../../scripts/dev/auto_backup_untracked.ps1)：清理前自动检测+备份 untracked（2026-08-07 验证：quotepath=false 修复中文路径排除失效 bug） |
 
 ## 操作 5：最终状态验证
 

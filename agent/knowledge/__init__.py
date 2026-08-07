@@ -24,6 +24,8 @@ from agent.knowledge.card import (BatchImportResult, CardConflictError,
                                   CardNotFoundError, CardStore,
                                   InvalidTransitionError)
 from agent.knowledge.index import rebuild_index, update_index_delta
+from agent.knowledge.search import (BM25Index, KnowledgeHit, KnowledgeSearch,
+                                    format_context, rrf_fuse)
 
 __all__ = [
     # schema
@@ -41,4 +43,6 @@ __all__ = [
     "InvalidTransitionError", "BatchImportResult",
     # index（任务2）
     "rebuild_index", "update_index_delta",
+    # search（任务4 检索层）
+    "BM25Index", "KnowledgeHit", "KnowledgeSearch", "format_context", "rrf_fuse",
 ]

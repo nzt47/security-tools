@@ -44,6 +44,10 @@ def register_all_routes(app, state):
     from .routes_memory import register_routes as reg_memory
     reg_memory(app, state)
 
+    # 知识库检索（任务4：融合检索 + 双链扩展 + rerank）
+    from .routes_knowledge import register_routes as reg_knowledge
+    reg_knowledge(app, state)
+
     # 工作区 & 系统工具
     from .routes_workspace import register_routes as reg_workspace
     reg_workspace(app, state)

@@ -359,6 +359,7 @@ def _resolve_dest(layer_dir: Path, name: str, digest: str) -> Path:
     while True:
         cand = layer_dir / f"{stem}-{n}{ext}"
         if not cand.exists():
+            logger.info("[ingest] 目标名冲突且内容不同，追加去重后缀 %s → %s", name, cand.name)
             return cand
         if _sha256_file(cand) == digest:
             return cand
@@ -379,6 +380,8 @@ def _register(source: Path, dest_path: Path, layer: str, digest: str,
     meta_path = _meta_path_for(dest_path)
     existing = _load_meta(meta_path)
     if existing is not None:
+        logger.info("[ingest] 幂等命中 slug=%s（meta 已存在，零副作用）layer=%s",
+                    slug, layer)
         return IngestResult(
             src_path=str(source), dest_path=str(dest_path), layer=layer,
             slug=slug, sha256=existing.get("sha256", digest),
@@ -398,7 +401,8 @@ def _register(source: Path, dest_path: Path, layer: str, digest: str,
     _write_meta(meta_path, meta)
     line = _log_line(slug, source_type)
     appended = _append_log_line(root / "log.md", line)
-    logger.info("[ingest] 已登记 %s（sensitive=%s）", dest_path, sensitive)
+    logger.info("[ingest] 已登记 slug=%s → %s sensitive=%s patterns=%s log_appended=%s",
+                slug, dest_path, sensitive, patterns, appended)
     return IngestResult(
         src_path=str(source), dest_path=str(dest_path), layer=layer,
         slug=slug, sha256=digest, sensitive=sensitive,
@@ -438,17 +442,22 @@ def ingest_file(src_path: str, dest_layer: str = "inbox", source_type: Optional[
 
     # 素材已在目标层内（监听器/手工直接放入）→ 只登记，不复制（不易：原样只读）
     if _is_within(src, layer_dir):
+        logger.info("[ingest] 素材已在层内，只登记不复制 source=%s layer=%s",
+                    src, dest_layer)
         return _register(src, src, dest_layer, digest, source_type, root)
 
     dest = _resolve_dest(layer_dir, src.name, digest)
     if dest.exists():
         # 已入库且内容一致 → 幂等（_register 内部再判定 meta 是否齐备）
+        logger.info("[ingest] 目标已存在且内容一致（幂等判定）: %s", dest)
         return _register(src, dest, dest_layer, digest, source_type, root)
 
     # 复制（非移动），并校验字节不变（【不易】验收线：raw/inbox 内源文件字节不变）
     shutil.copy2(src, dest)
     if _sha256_file(dest) != digest:
         raise IngestError(f"复制后 hash 不一致（素材只读性校验失败）: {dest}")
+    logger.info("[ingest] 复制入库 %s → %s（sha256=%s...）hash 校验一致",
+                src, dest, digest[:12])
     return _register(src, dest, dest_layer, digest, source_type, root)
 
 

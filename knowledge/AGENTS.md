@@ -49,6 +49,25 @@
 AI 负责簿记（交叉引用、摘要更新、格式转换、矛盾标记）；人类负责判断与决策。
 AI 禁止替用户做人生决策或写入"个人日记"类内容。
 
+### 6.1 敏感素材护栏（任务7 · 边界护栏）
+
+- 含 PII / 人生决策 / 个人日记类内容**不得进入 wiki 成品库**：素材层仅允许在
+  `raw/` 与 `inbox/` 保存，且 meta 标记 `sensitive=true`（任务1 只标记不阻断）；
+  中间层提炼跳过该素材（`distilled=false` + `reason=sensitive`），
+  敏感正文不进入 `processed/`，更不产卡。
+
+### 6.2 矛盾处理（任务7 · 只标记不裁决）
+
+- 深度讨论发现用户提问与既有卡片判断相悖时，用 `[冲突: <slug>]` 标记并记入
+  卡片 `contradictions`（`status=conflict`）；AI **只标记矛盾、建议归档，
+  不自动裁决**——裁决由人触发 `resolve_conflict`。
+
+### 6.3 产卡状态（任务7 · 人工确认）
+
+- 一切产卡结果（`promote_to_card` / `card_from_discussion`）状态**恒为 `draft`**，
+  必须人工 `transition(slug, "current")` 才成为当前有效卡片；
+  AI 不自动升级任何卡片状态。
+
 ## 7. 生命周期状态
 
 卡片状态由 frontmatter `status` 字段表达（`draft` / `current` / `archive` / `unknown`），

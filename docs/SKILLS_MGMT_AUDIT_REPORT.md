@@ -228,3 +228,15 @@ $ python -c "from agent.skills_mgmt import SkillsMgmtService; from agent.workflo
 - **自解释 UI**: 帮助提示 + 状态徽章 + 空状态文案
 
 遗留 3 个低优先级问题（网络安装/条件执行/metrics 分支的测试覆盖），不影响主流程，建议后续迭代补充。
+
+---
+
+## 八、检索基线说明（2026-07 更新）
+
+> 本小节为技能检索评估体系落地后补充，与上方 2026-06-29 原始审计结论相互独立。
+
+**当前状态（TF-IDF 基线）**：技能检索评估用例 `test_skill_retrieval_precision_above_threshold` 实测 `Precision@3 = 0.4222 < 0.6` 阈值，按设计标记为预期失败（XFAIL），非代码缺陷。
+
+**根因**：`self_reflection` / `memory_summary` 等技能的 `description` 为空，TF-IDF 无法用中文语义查询命中（7 个用例 Precision=0）。
+
+**演进计划**：向量检索（`SkillVectorAdapter`，BGE-m3 语义向量）落地后，该测试应自动转为通过（XFAIL 不再触发，`assert` 生效）。评估脚本 `scripts/eval_skill_retrieval.py` 可用于对比升级前后 Precision@3 提升幅度。

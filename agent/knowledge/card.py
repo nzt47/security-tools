@@ -19,7 +19,9 @@ from __future__ import annotations
 import logging
 import os
 import re
+import threading
 import time
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
@@ -36,6 +38,69 @@ logger = logging.getLogger(__name__)
 
 # wiki 类型目录固定顺序（AGENTS.md §2）
 _TYPE_DIRS = ("concepts", "entities", "insights")
+
+
+class _RWLock:
+    """写者优先读写锁（CardStore 用）：多读者并发、写者独占、写者可重入读。
+
+    Why 需要（并发风险排查结论）：create/update/delete 是多步写操作
+    （写卡 + 增量 index + 追加 log），写写并发会交错破坏 index/log 一致性；
+    读（get/list 读文件）与写并发虽已被 _atomic_write + 容错兜底，仍加
+    「读锁 vs 写锁」互斥，让写操作整体串行且不被读打断。
+
+    - 写者等待所有在读读者完成；写者持有期间新读者等待（写者优先，防写饿死）。
+    - 持有写锁的同一线程可重入获取读锁（如 delete→_has_incoming_links→list、
+      create→冲突检查 get），避免同线程自锁死锁。
+    """
+
+    def __init__(self) -> None:
+        self._cond = threading.Condition()
+        self._readers = 0
+        self._writer = False
+        self._writer_tid: Optional[int] = None
+
+    def acquire_read(self) -> None:
+        me = threading.get_ident()
+        with self._cond:
+            while self._writer and self._writer_tid != me:
+                self._cond.wait()
+            self._readers += 1
+
+    def release_read(self) -> None:
+        with self._cond:
+            self._readers -= 1
+            if self._readers == 0:
+                self._cond.notify_all()
+
+    def acquire_write(self) -> None:
+        me = threading.get_ident()
+        with self._cond:
+            while self._writer or self._readers > 0:
+                self._cond.wait()
+            self._writer = True
+            self._writer_tid = me
+
+    def release_write(self) -> None:
+        with self._cond:
+            self._writer = False
+            self._writer_tid = None
+            self._cond.notify_all()
+
+    @contextmanager
+    def read(self):
+        self.acquire_read()
+        try:
+            yield
+        finally:
+            self.release_read()
+
+    @contextmanager
+    def write(self):
+        self.acquire_write()
+        try:
+            yield
+        finally:
+            self.release_write()
 
 
 class CardConflictError(Exception):
@@ -70,6 +135,7 @@ def _card_to_md(card: Card) -> str:
     """
     data = asdict(card)
     content = data.pop("content", "")
+    data.pop("explicit_slug", None)  # 仅内存豁免标记，不写入 frontmatter
     if not data.get("metadata"):
         data.pop("metadata", None)
     frontmatter = yaml.safe_dump(
@@ -117,6 +183,7 @@ class CardStore:
         )
         self._index_path = Path(index_path) if index_path else root / "index.md"
         self._log_path = Path(log_path) if log_path else root / "log.md"
+        self._rwlock = _RWLock()  # 读写锁：写串行化（index/log 一致性），读并发
 
     # ---------- 内部工具 ----------
 
@@ -177,17 +244,18 @@ class CardStore:
 
     def create(self, card: Card) -> Card:
         """创建卡片；同 slug 已存在时抛 CardConflictError（不覆盖）。"""
-        self._check_slug(card.slug)
-        self._validate(card)
-        if self.get(card.slug) is not None:
-            logger.warning("创建冲突: slug=%s 已存在，拒绝覆盖（CardConflictError）", card.slug)
-            raise CardConflictError(f"卡片已存在: {card.slug}")
-        path = self._wiki_root / card.type / f"{card.slug}.md"
-        self._write_card(path, card)
-        update_index_delta(card.slug, card, self._index_path)
-        append_log("create", card.slug, f"type={card.type}", log_path=self._log_path)
-        logger.info("创建卡片: slug=%s type=%s path=%s", card.slug, card.type, path)
-        return card
+        with self._rwlock.write():  # 写串行化：写卡 + index + log 三步原子可见
+            self._check_slug(card.slug)
+            self._validate(card)
+            if self.get(card.slug) is not None:  # 写锁内重入读（同线程放行）
+                logger.warning("创建冲突: slug=%s 已存在，拒绝覆盖（CardConflictError）", card.slug)
+                raise CardConflictError(f"卡片已存在: {card.slug}")
+            path = self._wiki_root / card.type / f"{card.slug}.md"
+            self._write_card(path, card)
+            update_index_delta(card.slug, card, self._index_path)
+            append_log("create", card.slug, f"type={card.type}", log_path=self._log_path)
+            logger.info("创建卡片: slug=%s type=%s path=%s", card.slug, card.type, path)
+            return card
 
     def get(self, slug: str) -> Optional[Card]:
         """按 slug 读取；不存在返回 None。
@@ -195,16 +263,17 @@ class CardStore:
         支持 `archives/<slug>` 前缀（解析归档链接）；损坏卡片视为不存在（返回
         None，不抛异常，保证断链容错）。
         """
-        path = self._find_path(slug)
-        if path is None:
-            return None
-        try:
-            return self._md_to_card(path)
-        except (ValueError, TypeError):
-            logger.debug(
-                "get: slug=%r 卡片文件解析失败视为不存在 path=%s", slug, path,
-            )
-            return None
+        with self._rwlock.read():  # 与写锁互斥：读不打断多步写
+            path = self._find_path(slug)
+            if path is None:
+                return None
+            try:
+                return self._md_to_card(path)
+            except (ValueError, TypeError):
+                logger.debug(
+                    "get: slug=%r 卡片文件解析失败视为不存在 path=%s", slug, path,
+                )
+                return None
 
     def update(self, card: Card) -> Card:
         """更新卡片（按 slug 定位，frontmatter + 正文原子写）。
@@ -212,64 +281,67 @@ class CardStore:
         【不易】以正文双链解析结果同步 `links` 字段（双向链接一致性）。
         若 type 变更，文件迁移到新类型目录（旧文件删除）。
         """
-        self._check_slug(card.slug)
-        self._validate(card)
-        old_path = self._find_path(card.slug)
-        if old_path is None:
-            raise CardNotFoundError(f"卡片不存在: {card.slug}")
-        _t0 = time.perf_counter()
-        card.links = parse_links(card.content)
-        logger.info(
-            "更新卡片: slug=%s 正文双链同步 links=%s 耗时=%.2fms",
-            card.slug, card.links, (time.perf_counter() - _t0) * 1000,
-        )
-        new_path = self._wiki_root / card.type / f"{card.slug}.md"
-        if old_path != new_path:
-            logger.info("更新卡片: slug=%s type 变更迁移文件 %s → %s", card.slug, old_path, new_path)
-            self._write_card(new_path, card)
-            old_path.unlink()
-        else:
-            self._write_card(old_path, card)
-        update_index_delta(card.slug, card, self._index_path)
-        append_log("update", card.slug, f"type={card.type}", log_path=self._log_path)
-        return card
+        with self._rwlock.write():  # 写串行化：迁移 + 写卡 + index + log 原子可见
+            self._check_slug(card.slug)
+            self._validate(card)
+            old_path = self._find_path(card.slug)
+            if old_path is None:
+                raise CardNotFoundError(f"卡片不存在: {card.slug}")
+            _t0 = time.perf_counter()
+            card.links = parse_links(card.content)
+            logger.info(
+                "更新卡片: slug=%s 正文双链同步 links=%s 耗时=%.2fms",
+                card.slug, card.links, (time.perf_counter() - _t0) * 1000,
+            )
+            new_path = self._wiki_root / card.type / f"{card.slug}.md"
+            if old_path != new_path:
+                logger.info("更新卡片: slug=%s type 变更迁移文件 %s → %s", card.slug, old_path, new_path)
+                self._write_card(new_path, card)
+                old_path.unlink()
+            else:
+                self._write_card(old_path, card)
+            update_index_delta(card.slug, card, self._index_path)
+            append_log("update", card.slug, f"type={card.type}", log_path=self._log_path)
+            return card
 
     def delete(self, slug: str) -> bool:
         """删除卡片（校验入链，有入链时拒绝并返回 False）。"""
-        self._check_slug(slug)
-        if self._has_incoming_links(slug):
-            logger.warning("删除被拒: slug=%s 存在入链（引用方需先解除引用）", slug)
-            return False
-        path = self._find_path(slug)
-        if path is None:
-            logger.warning("删除未命中: slug=%s 不存在", slug)
-            return False
-        path.unlink()
-        update_index_delta(slug, None, self._index_path)
-        append_log("delete", slug, "", log_path=self._log_path)
-        logger.info("删除卡片: slug=%s path=%s", slug, path)
-        return True
+        with self._rwlock.write():  # 写串行化：入链检查 + 删除 + index + log 原子可见
+            self._check_slug(slug)
+            if self._has_incoming_links(slug):  # 写锁内重入读（list）
+                logger.warning("删除被拒: slug=%s 存在入链（引用方需先解除引用）", slug)
+                return False
+            path = self._find_path(slug)
+            if path is None:
+                logger.warning("删除未命中: slug=%s 不存在", slug)
+                return False
+            path.unlink()
+            update_index_delta(slug, None, self._index_path)
+            append_log("delete", slug, "", log_path=self._log_path)
+            logger.info("删除卡片: slug=%s path=%s", slug, path)
+            return True
 
     def list(
         self, status: Optional[str] = None, type: Optional[str] = None
     ) -> list[Card]:
         """列出卡片，可按状态/类型过滤（按 slug 字典序）。"""
-        cards: list[Card] = []
-        for t in _TYPE_DIRS:
-            if type is not None and t != type:
-                continue
-            d = self._wiki_root / t
-            if not d.exists():
-                continue
-            for p in sorted(d.glob("*.md")):
-                try:
-                    card = self._md_to_card(p)
-                except (ValueError, TypeError):
-                    continue  # 跳过损坏卡片，不阻断全库列举
-                if status is not None and card.status != status:
+        with self._rwlock.read():  # 与写锁互斥：全库列举不被多步写打断
+            cards: list[Card] = []
+            for t in _TYPE_DIRS:
+                if type is not None and t != type:
                     continue
-                cards.append(card)
-        return cards
+                d = self._wiki_root / t
+                if not d.exists():
+                    continue
+                for p in sorted(d.glob("*.md")):
+                    try:
+                        card = self._md_to_card(p)
+                    except (ValueError, TypeError):
+                        continue  # 跳过损坏卡片，不阻断全库列举
+                    if status is not None and card.status != status:
+                        continue
+                    cards.append(card)
+            return cards
 
     # ---------- 批量导入 ----------
 

@@ -1,6 +1,7 @@
 """MemoryManager — 记忆管理系统的核心编排层"""
 
 import asyncio
+import collections
 import logging
 import threading
 import time
@@ -265,6 +266,14 @@ class MemoryManager:
         self._token_limit = config.get("token_limit", 4096)
         self._compress_threshold = config.get("compress_threshold", 0.8)
 
+        # [审计改进] 内存消息窗口（滑动窗口 LRU 缓存）：
+        # 最近的消息在内存中保留，get_context 不再每次读文件，
+        # 提升代词指代等即时语境响应速度；文件仍作持久化兜底。
+        # deque(maxlen=N) 天然是"最近的 N 条"滑动窗口，超限自动丢弃最旧。
+        self._message_window = collections.deque(
+            maxlen=config.get("message_window_size", 200)
+        )
+
         self._need_compress = False
         logger.info("MemoryManager 初始化完成")
 
@@ -369,6 +378,8 @@ class MemoryManager:
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         msg_id = self._storage.save_message(message)
+        # [审计改进] 追加到内存滑动窗口（提供即时语境，避免重复读文件）
+        self._message_window.append(message)
 
         # 记录黑匣子
         self._black_box.log("message_added", {
@@ -376,8 +387,8 @@ class MemoryManager:
             "tokens": self._token_counter.count(content)
         })
 
-        # 检查 Token 占用
-        recent = self._storage.load_recent_messages(limit=200)
+        # 检查 Token 占用（优先窗口，空则回退文件）
+        recent = list(self._message_window)[-200:] or self._storage.load_recent_messages(limit=200)
         total_tokens = self._token_counter.count_messages(recent)
         if self._summarizer.should_compress(total_tokens, self._token_limit,
                                             self._compress_threshold):
@@ -409,6 +420,8 @@ class MemoryManager:
             "timestamp": datetime.now(timezone.utc).isoformat()
         }
         msg_id = self._storage.save_message(message)
+        # [审计改进] 追加到内存滑动窗口（提供即时语境，避免重复读文件）
+        self._message_window.append(message)
 
         # 记录评分到黑匣子
         self._black_box.log("message_scored", {
@@ -419,7 +432,7 @@ class MemoryManager:
 
         # 高重要性消息（>=7）触发快速压缩检查
         if score >= 7:
-            recent = self._storage.load_recent_messages(limit=200)
+            recent = list(self._message_window)[-200:] or self._storage.load_recent_messages(limit=200)
             total_tokens = self._token_counter.count_messages(recent)
             if self._summarizer.should_compress(total_tokens, self._token_limit,
                                                 self._compress_threshold):
@@ -510,9 +523,27 @@ class MemoryManager:
             logger.warning("│ ✅ [同步压缩] 压缩需求标记已清除")
             logger.warning("└═══════════════════════════════════════════════")
 
-        # 加载摘要和最近消息
+        # [审计改进] 加载摘要和最近消息：
+        # 优先从内存滑动窗口读取（零文件 IO，提升代词指代等即时语境响应速度），
+        # 窗口为空（如进程刚重启）时回退文件读取（保持既有持久化兜底）。
+        logger.info("┌═══════════════════════════════════════════════")
+        logger.info("│ 🪟 [上下文来源] 内存滑动窗口大小: %d 条 (maxlen=%d)",
+                    len(self._message_window), self._message_window.maxlen)
         summary = self._storage.load_summary()
-        recent = self._storage.load_recent_messages(limit=20)
+        logger.info("│    └─ 摘要: %s", "已加载 ✓" if summary else "无摘要（首次对话）")
+        recent = list(self._message_window)[-20:]
+        if recent:
+            logger.info("│    ├─ [窗口命中] 从内存滑动窗口取最近 %d 条（零文件 IO）", len(recent))
+            logger.info("│    │    └─ 最新一条: role=%s content=%s…",
+                        recent[-1].get("role"), str(recent[-1].get("content"))[:60])
+        else:
+            logger.info("│    ├─ [窗口为空] 进程重启或首次调用，回退文件读取…")
+            recent = self._storage.load_recent_messages(limit=20)
+            if recent:
+                logger.info("│    │    └─ [文件回退] 从 messages.jsonl 恢复 %d 条", len(recent))
+            else:
+                logger.info("│    │    └─ [文件回退] 文件亦无历史消息")
+        logger.info("└═══════════════════════════════════════════════")
 
         if not recent:
             return []
@@ -569,6 +600,7 @@ class MemoryManager:
     def clear_memory(self):
         """清空记忆（保留摘要和黑匣子日志）"""
         self._storage.clear_messages()
+        self._message_window.clear()  # [审计改进] 同步清空内存滑动窗口
         self._need_compress = False
         self._black_box.log("memory_cleared", {})
         logger.info("记忆已清空")

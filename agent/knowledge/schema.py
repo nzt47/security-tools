@@ -42,6 +42,10 @@ class Card:
     scope: str = ""
     content: str = ""
     metadata: dict = field(default_factory=dict)
+    # 显式 slug 豁免：slug 被消歧（如 distill 同题笔记 -N 后缀）时置 True，
+    # 跳过 validate_card 的「slug == slugify(title)」一致性检查。
+    # 仅内存标记，落盘时由 _card_to_md pop，不写入 frontmatter。
+    explicit_slug: bool = False
 
 
 def validate_card(card: dict) -> list[str]:

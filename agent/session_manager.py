@@ -61,10 +61,30 @@ class SessionManager:
             sessions.sort(key=lambda s: s.get("updated_at", ""), reverse=True)
             return sessions[:limit]
 
-    def create_session(self, title: str = "", mode: str = "normal") -> dict:
-        """创建新会话"""
+    def create_session(
+        self,
+        title: str = "",
+        mode: str = "normal",
+        timezone: str | None = None,
+        device_type: str | None = None,
+        locale: str | None = None,
+    ) -> dict:
+        """创建新会话
+
+        Args:
+            title: 会话标题
+            mode: 会话模式（normal 等）
+            timezone: 用户时区（如 "Asia/Shanghai"），用于调整说话风格与临场感
+            device_type: 设备类型（如 "mobile"/"desktop"），来自 User-Agent 启发式
+            locale: 语言环境（如 "zh-CN"），来自 Accept-Language
+
+        Returns:
+            会话信息字典（含 timezone/device_type/locale 元数据）
+        """
         session_id = self._generate_id()
-        now = datetime.now(timezone.utc).isoformat()
+        # 注意：timezone 参数遮蔽了模块级 datetime.timezone，本地别名导入规避
+        from datetime import timezone as _dt_timezone
+        now = datetime.now(_dt_timezone.utc).isoformat()
         session_info = {
             "id": session_id,
             "title": title or f"会话 {datetime.now().strftime('%m-%d %H:%M')}",
@@ -72,6 +92,9 @@ class SessionManager:
             "updated_at": now,
             "message_count": 0,
             "mode": mode,
+            "timezone": timezone,
+            "device_type": device_type,
+            "locale": locale,
         }
 
         session_dir = self._sessions_dir / session_id
@@ -89,8 +112,8 @@ class SessionManager:
             index = self._read_index()
             index.append(session_info)
             self._write_index(index)
-
-        self._current_id = session_id
+            # 【审计改进】_current_id 赋值移入锁内，保证与索引写入原子
+            self._current_id = session_id
         logger.info("会话已创建: %s — %s", session_id, title)
         return session_info
 
@@ -102,6 +125,68 @@ class SessionManager:
                 if s["id"] == session_id:
                     return dict(s)
         return None
+
+    def get_session_metadata(self, session_id: str) -> dict | None:
+        """获取会话元数据（时区/设备/语言等），用于决定系统说话风格与临场感
+
+        优先读 meta.json（真实文件），回退到索引中的信息（可能缺少新字段）。
+
+        Args:
+            session_id: 会话标识
+
+        Returns:
+            元数据字典 {timezone, device_type, locale, mode, title, ...} 或 None
+        """
+        session_dir = self._sessions_dir / session_id
+        meta_path = session_dir / "meta.json"
+        meta: dict = {}
+        # 【审计改进】文件读取加锁（与 update_session_metadata 写锁互斥）；
+        # 锁内不调用任何其他锁方法（避免非重入锁死锁）
+        with self._lock:
+            if meta_path.exists():
+                try:
+                    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                except (json.JSONDecodeError, OSError):
+                    meta = {}
+        # 索引兜底合并（get_session 内部取锁，须在锁外调用）
+        index_info = self.get_session(session_id)
+        if index_info:
+            for k, v in index_info.items():
+                meta.setdefault(k, v)
+        return meta or None
+
+    def update_session_metadata(self, session_id: str, **fields) -> bool:
+        """更新会话元数据字段（时区/设备/语言等）
+
+        Args:
+            session_id: 会话标识
+            **fields: 要更新的字段（如 timezone="Asia/Shanghai"）
+
+        Returns:
+            True 表示更新成功（会话不存在返回 False）
+        """
+        session_dir = self._sessions_dir / session_id
+        meta_path = session_dir / "meta.json"
+        if not session_dir.exists():
+            return False
+
+        with self._lock:
+            try:
+                meta: dict = {}
+                if meta_path.exists():
+                    try:
+                        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                    except (json.JSONDecodeError, OSError):
+                        meta = {}
+                meta.update(fields)
+                meta["updated_at"] = datetime.now(timezone.utc).isoformat()
+                meta_path.write_text(
+                    json.dumps(meta, ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+                return True
+            except OSError:
+                return False
 
     def delete_session(self, session_id: str) -> bool:
         """删除会话"""
@@ -117,8 +202,10 @@ class SessionManager:
         if session_dir.exists():
             shutil.rmtree(session_dir)
 
-        if self._current_id == session_id:
-            self._current_id = None
+        # 【审计改进】_current_id 读写加锁（与 set_current/get_current_id 一致）
+        with self._lock:
+            if self._current_id == session_id:
+                self._current_id = None
 
         logger.info("会话已删除: %s", session_id)
         return True
@@ -147,20 +234,30 @@ class SessionManager:
         return False
 
     def set_current(self, session_id: str) -> bool:
-        """设置当前会话"""
+        """设置当前会话（UI 选中态）
+
+        【审计改进】加锁保护读写原子性。注意：Web 前端始终显式传
+        session_id（localStorage + query 参数），本方法仅维护 UI
+        "当前选中会话"展示态，不参与对话链路的会话归属决策。
+        """
+        # 【审计改进】会话存在性校验放锁外：get_session 内部会再取
+        # self._lock（非重入锁），锁内嵌套调用将死锁（Timeout）
         if not self.get_session(session_id):
             return False
-        self._current_id = session_id
+        with self._lock:
+            self._current_id = session_id
         return True
-
     def get_current(self) -> dict | None:
         """获取当前会话信息"""
-        if not self._current_id:
+        with self._lock:
+            _cid = self._current_id
+        if not _cid:
             return None
-        return self.get_session(self._current_id)
+        return self.get_session(_cid)
 
     def get_current_id(self) -> str | None:
-        return self._current_id
+        with self._lock:
+            return self._current_id
 
     def add_message(self, session_id: str, role: str, content: str,
                     tool_calls: list | None = None,
@@ -199,16 +296,21 @@ class SessionManager:
 
     def get_messages(self, session_id: str, limit: int = 50,
                      offset: int = 0) -> list[dict]:
-        """获取会话消息"""
-        msg_file = self._sessions_dir / session_id / "messages.jsonl"
-        if not msg_file.exists():
-            return []
+        """获取会话消息
 
-        try:
-            with open(msg_file, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-        except OSError:
-            return []
+        【审计改进】读取加锁，与 add_message 的写锁互斥，避免读-写竞态
+        （读到写入中的不完整行）。锁内仅做文件 IO，不调用其他锁方法。
+        """
+        msg_file = self._sessions_dir / session_id / "messages.jsonl"
+        with self._lock:
+            if not msg_file.exists():
+                return []
+
+            try:
+                with open(msg_file, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+            except OSError:
+                return []
 
         messages = []
         for line in lines:
@@ -228,15 +330,19 @@ class SessionManager:
         return messages
 
     def get_message_count(self, session_id: str) -> int:
-        """获取会话消息总数"""
+        """获取会话消息总数
+
+        【审计改进】读取加锁（与 add_message/clear_messages 写锁互斥）。
+        """
         msg_file = self._sessions_dir / session_id / "messages.jsonl"
-        if not msg_file.exists():
-            return 0
-        try:
-            with open(msg_file, "r", encoding="utf-8") as f:
-                return sum(1 for line in f if line.strip())
-        except OSError:
-            return 0
+        with self._lock:
+            if not msg_file.exists():
+                return 0
+            try:
+                with open(msg_file, "r", encoding="utf-8") as f:
+                    return sum(1 for line in f if line.strip())
+            except OSError:
+                return 0
 
     def clear_messages(self, session_id: str) -> bool:
         """清空会话消息"""

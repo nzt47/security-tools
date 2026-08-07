@@ -81,10 +81,20 @@ def _save_conversation_record(user_input, response, Yunshu, mode="normal", healt
 
 
 def _get_current_session_id(session_mgr):
-    """获取当前会话 ID，如无则创建新会话"""
+    """获取当前会话 ID，如无则创建新会话（带时区/设备/语言元数据）
+
+    【审计改进】并发安全说明：Web 前端始终显式传 session_id（query 参数），
+    本函数仅在无显式 session 时兜底。读取 _current_id 后校验会话真实存在，
+    避免读到脏值；不存在则创建新会话。
+    """
     session_id = session_mgr.get_current_id()
-    if not session_id:
-        session = session_mgr.create_session("新会话")
+    if not session_id or not session_mgr.get_session(session_id):
+        try:
+            from agent.server_routes.routes_sessions import _extract_session_meta
+            meta = _extract_session_meta(request)
+        except Exception:
+            meta = {}
+        session = session_mgr.create_session("新会话", **meta)
         session_id = session["id"]
     return session_id
 
@@ -282,7 +292,14 @@ def register_routes(app, state):
 
         chat_start = time.time()
         try:
-            response = Yunshu.chat(user_input)
+            # 会话元数据链路（并发安全）：
+            # session_id/session_mgr 显式传入 chat()，不再对全局 Yunshu 实例赋值，
+            # 根治多用户并发时 _session_id 互相覆盖导致用户上下文串扰的竞态
+            response = Yunshu.chat(
+                user_input,
+                session_id=session_id,
+                session_mgr=session_mgr,
+            )
             chat_time = (time.time() - chat_start) * 1000
             logs.append(f"[CHAT] 对话响应生成完成 - 耗时: {chat_time:.2f}ms")
         except Exception as e:
