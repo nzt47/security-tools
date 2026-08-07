@@ -1,0 +1,84 @@
+# 关键字参数冲突扫描 → SonarQube 集成工作流
+#
+# 功能:
+#   1. 运行 kwarg-scanner（Docker 镜像）生成 SonarQube GIIF 格式报告
+#   2. 通过 sonar-scanner 将外部问题上传到 SonarQube
+#   3. HIGH 风险同时阻断 CI
+#
+# 前置条件:
+#   - 已配置 SonarQube 服务
+#   - GitHub Secrets 配置:
+#       SONAR_HOST_URL — SonarQube 服务地址（如 https://sonar.example.com）
+#       SONAR_TOKEN    — SonarQube 访问令牌（需外部问题导入权限）
+#
+# 参考: https://docs.sonarqube.org/latest/analyzing-source-code/importing-external-issues/
+
+name: kwarg 扫描 → SonarQube
+
+on:
+  push:
+    branches: [main, develop, 'release/**']
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  MIN_RISK: MEDIUM            # SonarQube 报告收录 MEDIUM 及以上
+  CI_BLOCK_RISK: HIGH         # CI 阻断等级
+
+jobs:
+  kwarg-sonarqube:
+    name: kwarg 扫描 → SonarQube
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 构建扫描器镜像
+        run: |
+          docker build -t kwarg-scanner:local ./packages/kwarg_scanner
+
+      - name: 生成 SonarQube GIIF 报告
+        id: scan
+        run: |
+          echo "=== 生成 kwarg-scanner GIIF 报告 ==="
+          docker run --rm \
+            -v "${{ github.workspace }}:/project" \
+            -e MIN_RISK=${{ env.MIN_RISK }} \
+            -e OUTPUT_FORMAT=sonarqube \
+            -e OUTPUT_FILE=/project/kwarg-sonar-issues.json \
+            kwarg-scanner:local
+          SCAN_EXIT=$?
+          echo "扫描退出码: $SCAN_EXIT"
+          echo "scan_exit=$SCAN_EXIT" >> $GITHUB_OUTPUT
+
+      - name: 上传 GIIF 报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kwarg-sonar-issues
+          path: kwarg-sonar-issues.json
+          retention-days: 30
+
+      - name: HIGH 风险阻断检查
+        if: steps.scan.outputs.scan_exit != '0'
+        run: |
+          echo "::error::检测到 HIGH 风险，CI 已阻断 (exit=${{ steps.scan.outputs.scan_exit }})"
+          echo "::error::请在 **kwargs 展开前过滤保留键，或查看 kwarg-sonar-issues.json"
+          exit 1
+
+      - name: SonarQube 扫描（上传外部问题）
+        if: always()
+        uses: sonarsource/sonarqube-scan-action@v2
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: ${{ github.workspace }}
+          args: >
+            -Dsonar.projectKey=kwarg-scanner
+            -Dsonar.sources=agent,packages
+            -Dsonar.externalIssuesReportPaths=kwarg-sonar-issues.json
+            -Dsonar.qualitygate.wait=false

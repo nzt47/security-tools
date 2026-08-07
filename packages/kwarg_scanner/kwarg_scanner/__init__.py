@@ -1,4 +1,4 @@
-"""kwarg_scanner — Python 关键字参数冲突风险静态扫描器
+"""kwarg_scanner — Python 关键字参数冲突风险静态扫描器（v1.0.0，支持 SonarQube GIIF 输出）
 
 检测 `func(explicit_kwarg=x, **dict)` 模式中 dict 含同名键的冲突风险。
 
@@ -24,7 +24,11 @@ CLI:
 
 from .types import ConflictFinding, FuncSignature, ScanConfig, RiskLevel
 from .scanner import KwargScanner, scan_file, scan_directory
-from .reporter import format_text_report, format_json_report
+from .reporter import (
+    format_text_report,
+    format_json_report,
+    format_sonarqube_report,
+)
 
 __version__ = "1.0.0"
 __all__ = [
@@ -37,4 +41,5 @@ __all__ = [
     "scan_directory",
     "format_text_report",
     "format_json_report",
+    "format_sonarqube_report",
 ]

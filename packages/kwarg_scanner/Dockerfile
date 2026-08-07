@@ -19,11 +19,36 @@
 # 环境变量:
 #   SCAN_PATH        — 扫描路径（默认 /project）
 #   MIN_RISK         — 最低风险等级 LOW/MEDIUM/HIGH（默认 HIGH）
-#   OUTPUT_FORMAT    — 输出格式 text/json（默认 text）
+#   OUTPUT_FORMAT    — 输出格式 text/json/sonarqube（默认 text）
 #   OUTPUT_FILE      — 输出文件路径（可选）
 #   ENABLE_LOGGING   — 启用结构化日志 true/false（默认 false）
 
-FROM python:3.12-slim AS base
+# ════════════════════════════════════════════════════════════
+# 阶段 1: builder — 预构建 wheel，缓存构建依赖
+# 优化点: 基础镜像无 setuptools，pip 构建隔离会每次下载依赖（~34s）。
+#         本阶段预装构建依赖并生成 wheel，避免运行时重复下载。
+# ════════════════════════════════════════════════════════════
+FROM python:3.12-slim AS builder
+
+# 预装构建依赖（仅首次构建下载，后续利用层缓存）
+RUN pip install --no-cache-dir setuptools wheel
+
+WORKDIR /build
+
+# 先复制包描述文件（pyproject.toml 变更才使该层失效）
+COPY pyproject.toml /build/
+# 再复制源码（源码变更只影响该层 + wheel 层）
+COPY kwarg_scanner/ /build/kwarg_scanner/
+
+# 使用 --no-build-isolation 跳过重复下载构建依赖，生成纯 wheel
+RUN pip wheel --no-cache-dir --no-build-isolation --no-deps \
+    -w /tmp/wheels /build/ \
+    && rm -rf /build
+
+# ════════════════════════════════════════════════════════════
+# 阶段 2: runtime — 精简运行时，从本地 wheel 安装
+# ════════════════════════════════════════════════════════════
+FROM python:3.12-slim AS runtime
 
 # OCI 标准标签
 LABEL org.opencontainers.image.title="kwarg-scanner" \
@@ -36,24 +61,18 @@ LABEL org.opencontainers.image.title="kwarg-scanner" \
 # 创建非 root 用户（安全最佳实践）
 RUN groupadd -r scanner && useradd -r -g scanner -d /home/scanner -m scanner
 
-# awk 已包含在 python:3.12-slim 基础镜像中（mawk），无需额外安装
-# 如需 gawk 高级功能，可取消注释以下行:
-# RUN apt-get update && apt-get install -y --no-install-recommends gawk && rm -rf /var/lib/apt/lists/*
-
 # 设置工作目录（CI 挂载点）
 WORKDIR /project
 
-# 复制包文件并安装
-COPY --chown=scanner:scanner pyproject.toml /tmp/build/
-COPY --chown=scanner:scanner kwarg_scanner/ /tmp/build/kwarg_scanner/
-
-RUN pip install --no-cache-dir /tmp/build/ \
-    && rm -rf /tmp/build \
+# 从 builder 阶段复制 wheel 并离线安装（--no-index 无网络、无构建）
+COPY --from=builder --chown=scanner:scanner /tmp/wheels/ /tmp/wheels/
+RUN pip install --no-cache-dir --no-index --find-links=/tmp/wheels kwarg-scanner \
+    && rm -rf /tmp/wheels \
     && pip cache purge
 
 # 复制 CI 入口脚本
 COPY --chown=scanner:scanner docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-# 【不易】强制去除 CRLF:Windows 编辑器可能写入 \r\n,导致 Linux 容器
+# 强制去除 CRLF:Windows 编辑器可能写入 \r\n,导致 Linux 容器
 # shebang #!/bin/sh\r 找不到解释器(exec: no such file or directory)
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh && sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh
 

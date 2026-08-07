@@ -15,7 +15,7 @@ from kwarg_scanner import (
     KwargScanner, ScanConfig, RiskLevel,
     ConflictFinding, FuncSignature,
     scan_file, scan_directory,
-    format_text_report, format_json_report,
+    format_text_report, format_json_report, format_sonarqube_report,
 )
 
 
@@ -258,6 +258,98 @@ class TestReporter:
         assert data["total"] == 0
 
 
+class TestSonarQubeReporter:
+    """测试 SonarQube GIIF 报告生成"""
+
+    def test_sonarqube_format(self):
+        """GIIF 基本格式"""
+        findings = [
+            ConflictFinding(
+                file="a.py", lineno=1, col=0,
+                func_name="f", explicit_kwargs=["x"],
+                spread_expr="kwargs", risk_level="HIGH",
+                reason="test", conflicting_params=["x"],
+            ),
+            ConflictFinding(
+                file="b.py", lineno=5, col=2,
+                func_name="g", explicit_kwargs=["y"],
+                spread_expr="payload", risk_level="MEDIUM",
+                reason="test medium",
+            ),
+        ]
+        report = format_sonarqube_report(findings)
+        data = json.loads(report)
+        assert len(data["issues"]) == 2
+        issue = data["issues"][0]
+        assert issue["engineId"] == "kwarg-scanner"
+        assert issue["ruleId"] == "python:kwarg-conflict"
+        assert issue["severity"] == "MAJOR"
+        assert issue["type"] == "BUG"
+        assert issue["primaryLocation"]["filePath"] == "a.py"
+        assert issue["primaryLocation"]["textRange"]["startLine"] == 1
+
+    def test_sonarqube_severity_mapping(self):
+        """风险等级 → SonarQube 严重度/类型映射"""
+        findings = [
+            ConflictFinding(
+                file="a.py", lineno=1, col=0,
+                func_name="f", explicit_kwargs=["x"],
+                spread_expr="kwargs", risk_level="HIGH",
+                reason="high",
+            ),
+            ConflictFinding(
+                file="b.py", lineno=2, col=0,
+                func_name="g", explicit_kwargs=["y"],
+                spread_expr="kwargs", risk_level="MEDIUM",
+                reason="medium",
+            ),
+            ConflictFinding(
+                file="c.py", lineno=3, col=0,
+                func_name="h", explicit_kwargs=["z"],
+                spread_expr="kwargs", risk_level="LOW",
+                reason="low",
+            ),
+        ]
+        data = json.loads(format_sonarqube_report(findings))
+        sev_type = [(i["severity"], i["type"]) for i in data["issues"]]
+        assert sev_type == [
+            ("MAJOR", "BUG"),
+            ("MINOR", "BUG"),
+            ("INFO", "CODE_SMELL"),
+        ]
+
+    def test_sonarqube_path_normalization(self):
+        """路径规范化: ./ 前缀去除 + 反斜杠转正斜杠"""
+        findings = [
+            ConflictFinding(
+                file=".\\src\\a.py", lineno=1, col=0,
+                func_name="f", explicit_kwargs=["x"],
+                spread_expr="kwargs", risk_level="HIGH",
+                reason="test",
+            ),
+        ]
+        data = json.loads(format_sonarqube_report(findings))
+        assert data["issues"][0]["primaryLocation"]["filePath"] == "src/a.py"
+
+    def test_sonarqube_fix_message(self):
+        """修复建议应拼接到 message"""
+        findings = [
+            ConflictFinding(
+                file="a.py", lineno=1, col=0,
+                func_name="f", explicit_kwargs=["x"],
+                spread_expr="kwargs", risk_level="HIGH",
+                reason="冲突风险", suggested_fix="过滤保留键",
+            ),
+        ]
+        data = json.loads(format_sonarqube_report(findings))
+        assert "过滤保留键" in data["issues"][0]["primaryLocation"]["message"]
+
+    def test_sonarqube_empty(self):
+        """无发现 → 空 issues"""
+        data = json.loads(format_sonarqube_report([]))
+        assert data["issues"] == []
+
+
 class TestFilteredVar:
     """测试已过滤变量识别"""
 
@@ -321,3 +413,19 @@ class TestCLI:
         assert output_file.exists()
         data = json.loads(output_file.read_text(encoding="utf-8"))
         assert data["total"] > 0
+
+    def test_cli_sonarqube_output(self, temp_project, tmp_path):
+        """SonarQube GIIF 输出到文件"""
+        from kwarg_scanner.cli import main
+        output_file = tmp_path / "sonar-issues.json"
+        code = main([
+            "--path", str(temp_project / "bad"),
+            "--min-risk", "LOW",
+            "--format", "sonarqube",
+            "--output", str(output_file),
+        ])
+        assert output_file.exists()
+        data = json.loads(output_file.read_text(encoding="utf-8"))
+        assert "issues" in data
+        assert len(data["issues"]) > 0
+        assert data["issues"][0]["engineId"] == "kwarg-scanner"

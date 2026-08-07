@@ -85,7 +85,7 @@ kwarg-scanner CI 镜像 — 关键字参数冲突扫描器
 环境变量:
   SCAN_PATH        扫描路径（默认 /project）
   MIN_RISK         最低风险等级 LOW/MEDIUM/HIGH（默认 HIGH）
-  OUTPUT_FORMAT    输出格式 text/json（默认 text）
+  OUTPUT_FORMAT    输出格式 text/json/sonarqube（默认 text）
   OUTPUT_FILE      输出文件路径（可选）
   ENABLE_LOGGING   启用结构化日志 true/false（默认 false）
 
@@ -103,6 +103,9 @@ kwarg-scanner CI 镜像 — 关键字参数冲突扫描器
 
   # JSON 格式输出到文件
   docker run --rm -v "\$(pwd):/project" -e OUTPUT_FORMAT=json -e OUTPUT_FILE=/project/report.json kwarg-scanner
+
+  # SonarQube 兼容格式输出（GIIF）
+  docker run --rm -v "\$(pwd):/project" -e OUTPUT_FORMAT=sonarqube -e OUTPUT_FILE=/project/sonar.json kwarg-scanner
 
   # 扫描 MEDIUM 及以上风险
   docker run --rm -v "\$(pwd):/project" -e MIN_RISK=MEDIUM kwarg-scanner
@@ -188,9 +191,9 @@ esac
 
 # 校验 OUTPUT_FORMAT 值
 case "$OUTPUT_FORMAT" in
-    text|json) ;;
+    text|json|sonarqube) ;;
     *)
-        die "E_INVALID_FORMAT" "无效的输出格式: $OUTPUT_FORMAT（支持: text/json）" 2
+        die "E_INVALID_FORMAT" "无效的输出格式: $OUTPUT_FORMAT（支持: text/json/sonarqube）" 2
         ;;
 esac
 
@@ -247,11 +250,29 @@ case $SCAN_EXIT_CODE in
         exit 0
         ;;
     1)
-        # 【不易】exit 1 必须有「报告存在且 HIGH 计数 > 0」作证,否则视为扫描器异常崩溃
-        #   (如 PermissionError/OOM/段错误),不能误判为 high_risk_detected
+        # 【不易】exit 1 = kwarg-scan 检测到 HIGH 风险（kwarg-scan 仅在 high_count>0 时返回 1）
+        # 若配置了 OUTPUT_FILE，额外校验报告文件内容，防止扫描器异常退出被误判为阻断
+        # （如 PermissionError/OOM/段错误导致 exit 1 且无有效报告）
+        # 不同输出格式的 HIGH 计数统计方式:
+        #   json       — summary.HIGH 字段
+        #   sonarqube  — issues[] 中 severity=MAJOR 的数量
+        #   text       — 不写入 OUTPUT_FILE（除非显式指定），按 HIGH_COUNT=1 处理
         HIGH_COUNT="0"
         if [ -n "$OUTPUT_FILE" ] && [ -f "$OUTPUT_FILE" ]; then
-            HIGH_COUNT=$(python3 -c "
+            if [ "$OUTPUT_FORMAT" = "sonarqube" ]; then
+                # 【变易】GIIF 格式: 统计 severity=MAJOR 的 issue 数量
+                HIGH_COUNT=$(python3 -c "
+import json
+try:
+    d = json.load(open('$OUTPUT_FILE'))
+    issues = d.get('issues', [])
+    print(sum(1 for i in issues if i.get('severity') == 'MAJOR'))
+except Exception:
+    print(0)
+" 2>/dev/null || echo "0")
+            else
+                # json 格式: 读取 summary.HIGH
+                HIGH_COUNT=$(python3 -c "
 import json
 try:
     d = json.load(open('$OUTPUT_FILE'))
@@ -259,27 +280,33 @@ try:
 except Exception:
     print(0)
 " 2>/dev/null || echo "0")
+            fi
+
+            if [ "$HIGH_COUNT" -eq 0 ] 2>/dev/null; then
+                # 【变易】配置了报告文件但 HIGH 计数为 0 且 exit 1 → 扫描器异常
+                die "E_SCAN_CRASHED" \
+                    "扫描器 exit 1 但报告文件 HIGH 计数为 0(report=$OUTPUT_FILE, format=$OUTPUT_FORMAT, high_count=$HIGH_COUNT),疑似进程崩溃或权限错误" \
+                    3
+            fi
+        else
+            # 【不易】未配置 OUTPUT_FILE（报告输出到 stdout）：kwarg-scan exit 1 即代表存在 HIGH 风险
+            HIGH_COUNT="1"
         fi
 
-        if [ "$HIGH_COUNT" -gt 0 ] 2>/dev/null; then
-            log_json "scan_complete" \
-                result "blocked" \
-                exit_code "$SCAN_EXIT_CODE" \
-                total_duration_ms "$TOTAL_DURATION_MS" \
-                reason "high_risk_detected" \
-                high_risk_count "$HIGH_COUNT" \
-                report_file "$OUTPUT_FILE"
-            trackEvent "scan_blocked" "{\"duration_ms\":$TOTAL_DURATION_MS,\"reason\":\"high_risk_detected\",\"high_count\":$HIGH_COUNT}"
-            echo "[CI] 扫描阻断: 发现 $HIGH_COUNT 处 HIGH 风险,请修复后再提交" >&2
-            echo "[CI] 提示: 在 **kwargs 展开前过滤保留键,使用 safe_ 前缀命名变量" >&2
+        log_json "scan_complete" \
+            result "blocked" \
+            exit_code "$SCAN_EXIT_CODE" \
+            total_duration_ms "$TOTAL_DURATION_MS" \
+            reason "high_risk_detected" \
+            high_risk_count "$HIGH_COUNT" \
+            report_file "$OUTPUT_FILE"
+        trackEvent "scan_blocked" "{\"duration_ms\":$TOTAL_DURATION_MS,\"reason\":\"high_risk_detected\",\"high_count\":$HIGH_COUNT}"
+        echo "[CI] 扫描阻断: 发现 HIGH 风险,请修复后再提交" >&2
+        echo "[CI] 提示: 在 **kwargs 展开前过滤保留键,使用 safe_ 前缀命名变量" >&2
+        if [ -n "$OUTPUT_FILE" ]; then
             echo "[CI] 报告: $OUTPUT_FILE" >&2
-            exit 1
-        else
-            # 【变易】exit 1 但无有效 HIGH 报告 → 扫描器异常,不阻断为 HIGH
-            die "E_SCAN_CRASHED" \
-                "扫描器 exit 1 但无有效 HIGH 风险报告(report=$OUTPUT_FILE, high_count=$HIGH_COUNT),疑似进程崩溃或权限错误" \
-                3
         fi
+        exit 1
         ;;
     2)
         die "E_INVALID_ARGS" "参数错误: 请检查 --path/--min-risk 参数" 2

@@ -15,7 +15,11 @@ from typing import List
 
 from .types import ScanConfig, RiskLevel
 from .scanner import KwargScanner
-from .reporter import format_text_report, format_json_report
+from .reporter import (
+    format_text_report,
+    format_json_report,
+    format_sonarqube_report,
+)
 
 
 def create_parser() -> argparse.ArgumentParser:
@@ -40,8 +44,8 @@ def create_parser() -> argparse.ArgumentParser:
         help="扫描路径（文件或目录，默认: 当前目录）",
     )
     parser.add_argument(
-        "--format", "-f", choices=["text", "json"], default="text",
-        help="输出格式（默认: text）",
+        "--format", "-f", choices=["text", "json", "sonarqube"], default="text",
+        help="输出格式: text / json / sonarqube (GIIF，默认: text)",
     )
     parser.add_argument(
         "--min-risk", "-m",
@@ -96,6 +100,8 @@ def main(argv: List[str] = None) -> int:
     # 生成报告
     if args.format == "json":
         report = format_json_report(findings)
+    elif args.format == "sonarqube":
+        report = format_sonarqube_report(findings)
     else:
         report = format_text_report(findings)
 

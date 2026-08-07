@@ -179,6 +179,36 @@ docker run --rm kwarg-scanner --health
     docker run --rm -v "${{ github.workspace }}:/project" kwarg-scanner:local
 ```
 
+**SonarQube 集成**（生成 GIIF 报告并上传统一展示）:
+
+```bash
+# 生成 SonarQube Generic Issue Import Format (GIIF) 报告
+docker run --rm -v "$(pwd):/project" \
+  -e MIN_RISK=MEDIUM \
+  -e OUTPUT_FORMAT=sonarqube \
+  -e OUTPUT_FILE=/project/kwarg-sonar-issues.json \
+  kwarg-scanner
+
+# 通过 sonar-scanner 上传
+sonar-scanner -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN
+```
+
+风险等级 → SonarQube 严重度/类型映射:
+
+| 扫描风险 | SonarQube Severity | SonarQube Type |
+|---------|-------------------|----------------|
+| HIGH   | MAJOR             | BUG            |
+| MEDIUM | MINOR             | BUG            |
+| LOW    | INFO              | CODE_SMELL     |
+
+完整配置见 `packages/kwarg_scanner/sonar-project.properties` 与
+`.github/workflows/kwarg-sonarqube.yml`。
+
+**部署与性能文档**:
+
+- [部署操作手册](docs/deployment_guide.md) — 构建/本地运行/CI 集成/故障排查
+- [构建性能报告](docs/build_performance_report.md) — 增量构建 4.2 倍加速分析
+
 ## 风险等级
 
 | 等级 | 条件 | 处理 |

@@ -92,3 +92,69 @@ def format_json_report(findings: List[ConflictFinding]) -> str:
         },
         "findings": [f.to_dict() for f in findings],
     }, ensure_ascii=False, indent=2)
+
+
+# ── SonarQube Generic Issue Import Format (GIIF) ──────────────────────────────
+# 参考: https://docs.sonarqube.org/latest/analyzing-source-code/importing-external-issues/
+
+# 风险等级 → SonarQube 严重度 / 类型 映射
+_SEVERITY_MAP = {
+    "HIGH": "MAJOR",
+    "MEDIUM": "MINOR",
+    "LOW": "INFO",
+}
+_TYPE_MAP = {
+    "HIGH": "BUG",
+    "MEDIUM": "BUG",
+    "LOW": "CODE_SMELL",
+}
+
+
+def format_sonarqube_report(findings: List[ConflictFinding]) -> str:
+    """生成 SonarQube Generic Issue Import Format (GIIF) 报告
+
+    生成的外部问题报告可直接通过 sonar-scanner 上传到 SonarQube，
+    与项目原有分析结果统一展示。
+
+    Args:
+        findings: 冲突发现列表
+
+    Returns:
+        str — GIIF JSON 字符串
+
+    Example:
+        >>> from kwarg_scanner import scan_directory, format_sonarqube_report
+        >>> findings = scan_directory("src/")
+        >>> print(format_sonarqube_report(findings))
+    """
+    issues = []
+    for f in findings:
+        # 组装修复建议消息
+        message = f.reason
+        if f.suggested_fix:
+            message = f"{message} 修复: {f.suggested_fix}"
+
+        # 路径规范化: 去除 ./ 前缀，统一正斜杠
+        file_path = f.file.replace("\\", "/")
+        if file_path.startswith("./"):
+            file_path = file_path[2:]
+
+        issue = {
+            "engineId": "kwarg-scanner",
+            "ruleId": "python:kwarg-conflict",
+            "severity": _SEVERITY_MAP.get(f.risk_level, "INFO"),
+            "type": _TYPE_MAP.get(f.risk_level, "CODE_SMELL"),
+            "primaryLocation": {
+                "message": message,
+                "filePath": file_path,
+                "textRange": {
+                    "startLine": f.lineno,
+                    "endLine": f.lineno,
+                    "startColumn": max(f.col, 0),
+                    "endColumn": max(f.col, 0) + 1,
+                },
+            },
+        }
+        issues.append(issue)
+
+    return json.dumps({"issues": issues}, ensure_ascii=False, indent=2)

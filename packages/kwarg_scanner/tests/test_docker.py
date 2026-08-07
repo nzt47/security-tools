@@ -208,11 +208,7 @@ emit("x", trace_id="t", **payload)
         name = "test_empty_directory"
         print(f"\n[边界测试] {name}")
         with tempfile.TemporaryDirectory() as tmpdir:
-            result = run_docker(
-                ["--path", "/project"],
-                env={"MIN_RISK": "HIGH"}
-            )
-            # 改用挂载空目录
+            # 挂载空临时目录作为 /project
             cmd = [
                 "docker", "run", "--rm",
                 "-v", f"{tmpdir}:/project",
@@ -303,6 +299,50 @@ emit("x", trace_id="t", **payload)
 
     # ── 运行所有测试 ───────────────────────────────────────────
 
+    def test_sonarqube_output_format(self) -> None:
+        """测试 SonarQube GIIF 输出格式"""
+        name = "test_sonarqube_output_format"
+        print(f"\n[兼容性测试] {name}")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # 写入高风险代码触发 GIIF 报告
+            risk_code = 'def emit(action, *, trace_id=None, **kw):\n    pass\n\npayload = {"trace_id": "x", "e": 1}\nemit("x", trace_id="t", **payload)\n'
+            (Path(tmpdir) / "risk.py").write_text(risk_code, encoding="utf-8")
+            cmd = [
+                "docker", "run", "--rm",
+                "-v", f"{tmpdir}:/project",
+                "-e", "MIN_RISK=MEDIUM",
+                "-e", "OUTPUT_FORMAT=sonarqube",
+                "-e", "OUTPUT_FILE=/project/sonar-issues.json",
+                IMAGE,
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            report_file = Path(tmpdir) / "sonar-issues.json"
+            if not report_file.exists():
+                self._fail(name, "未生成 sonar-issues.json")
+                return
+            try:
+                report = json.loads(report_file.read_text(encoding="utf-8"))
+                issues = report.get("issues", [])
+                if not issues:
+                    self._fail(name, "GIIF 报告无 issues")
+                    return
+                issue = issues[0]
+                if issue.get("engineId") != "kwarg-scanner":
+                    self._fail(name, f"engineId 错误: {issue.get('engineId')}")
+                    return
+                if issue.get("severity") != "MAJOR":
+                    self._fail(name, f"HIGH 风险应映射为 MAJOR: {issue.get('severity')}")
+                    return
+                if "filePath" not in issue.get("primaryLocation", {}):
+                    self._fail(name, "缺少 primaryLocation.filePath")
+                    return
+            except json.JSONDecodeError as e:
+                self._fail(name, f"报告非有效 JSON: {e}")
+                return
+        self._ok(name)
+
+    # ── 运行所有测试 ───────────────────────────────────────────
+
     def run_all(self) -> bool:
         """运行所有测试，返回是否全部通过"""
         print("=" * 60)
@@ -324,6 +364,7 @@ emit("x", trace_id="t", **payload)
             self.test_structured_logging,
             self.test_exit_code_mapping,
             self.test_json_output_format,
+            self.test_sonarqube_output_format,
         ]
 
         for test in tests:
