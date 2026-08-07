@@ -311,15 +311,19 @@ def test_delete_many_matches_sequential_delete(tmp_path):
         s = CardStore(tmp_path / f"kb{i}" / "wiki")
         s.create(make_card("A卡"))
         s.create(make_card("B卡"))
-        s.create(make_card("C卡", links=["A卡"]))  # C → A：A 有外部入链
+        s.create(make_card("C卡", links=[slugify("A卡")]))  # C → a卡：a卡 有外部入链（links 存 slug）
         return s
 
-    slugs = ["A卡", "B卡"]
+    # 【不易】delete/delete_many API 接收 slug（slugify 小写化）。此前用未
+    # slugify 的 title（大写）调用：Windows 大小写不敏感文件系统掩盖了该
+    # 差异（能找到 b卡.md），Linux 大小写敏感直接「删除未命中」→ CI 回归
+    # （2026-08-07 Shard 6/6）。统一用 slugify 后的 slug，跨平台行为一致。
+    slugs = [slugify("A卡"), slugify("B卡")]
     batch = build(0).delete_many(list(slugs))
     store_seq = build(1)
     seq = {s: store_seq.delete(s) for s in slugs}
-    assert batch == seq  # {A卡: False, B卡: True}：判定一致
-    assert batch == {"A卡": False, "B卡": True}
+    assert batch == seq  # {a卡: False, b卡: True}：判定一致
+    assert batch == {slugify("A卡"): False, slugify("B卡"): True}
 
 
 def test_delete_many_index_missing_fallback(store, tmp_path):
