@@ -322,6 +322,21 @@ def test_delete_many_matches_sequential_delete(tmp_path):
     assert batch == {"A卡": False, "B卡": True}
 
 
+def test_delete_many_index_missing_fallback(store, tmp_path):
+    """入链索引缺失时 delete_many 回退全库扫描，判定语义与索引存在时一致。"""
+    links_index = tmp_path / "kb" / "index_links.md"
+    store.create(make_card("提示词工程", links=["驾驭工程"]))
+    store.create(make_card("驾驭工程", links=["提示词工程"]))
+    store.create(make_card("知识蒸馏", links=["提示词工程"]))
+    assert links_index.exists()          # create 挂接已建索引
+    links_index.unlink()                 # 制造索引缺失 → 回退全扫
+    result = store.delete_many(["驾驭工程", "提示词工程"])
+    assert result == {"驾驭工程": True, "提示词工程": False}
+    assert store.get("驾驭工程") is None
+    assert store.get("提示词工程") is not None   # 外部引用（知识蒸馏）仍在 → 保留
+    assert store.get("知识蒸馏") is not None
+
+
 # ---------- list ----------
 
 

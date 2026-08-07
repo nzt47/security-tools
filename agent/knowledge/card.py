@@ -379,16 +379,26 @@ class CardStore:
 
         【不易】入链判定语义与单删 delete 一致：待删集合**外**的引用方仍指向
         slug → 拒绝；待删集合内部的互相引用不阻止删除（整批同时消失，
-        不产生残留断链）。复杂度：一次全库扫描 O(N) 构建入链映射 +
-        O(K) 逐张删除（原逐次 delete 为 O(K·N)）。
+        不产生残留断链）。复杂度：优先一次解析入链索引 O(M)（缺失/损坏时
+        回退全库扫描 O(N)）构建入链映射 + O(K) 逐张删除（原逐次 delete
+        为 O(K·N)，且索引存在时逐次 delete 每次 O(M) 解析索引）。
         """
         with self._rwlock.write():  # 写串行化：一次扫描 + K 次删除原子可见
-            # 1. 一次扫描构建「被引用 slug → 引用方列表」（archives/ 前缀不列入链）
-            incoming: dict[str, list[str]] = {}
-            for card in self.list():
-                for link in card.links:
-                    if not link.startswith(ARCHIVES_PREFIX):
-                        incoming.setdefault(link, []).append(card.slug)
+            # 1. 构建「被引用 slug → 引用方列表」（archives/ 前缀不列入链）。
+            #    优先复用入链索引（读一次 O(M)），缺失/损坏时回退全库扫描
+            #    （降级铁律：行为不退化，与 _has_incoming_links 一致）。
+            incoming: Optional[dict[str, list[str]]] = None
+            if self._links_index_path.exists():
+                try:
+                    incoming = read_links_index(self._links_index_path)
+                except (ValueError, OSError) as exc:
+                    logger.warning("入链索引解析失败，回退全库扫描: %s (%s)", self._links_index_path, exc)
+            if incoming is None:
+                incoming = {}
+                for card in self.list():
+                    for link in card.links:
+                        if not link.startswith(ARCHIVES_PREFIX):
+                            incoming.setdefault(link, []).append(card.slug)
             pending = set(slugs)
             result: dict[str, bool] = {}
             for slug in slugs:
