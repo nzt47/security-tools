@@ -13,6 +13,9 @@
   6. orphans：孤儿检测（草稿卡无入链）退出码 0
   7. index-rebuild：全量重建落盘 index.md，索引数正确（归档卡不计数）
   8. subprocess 模式退出码与直接 main() 一致（python -m agent.knowledge 真实入口）
+  9. import：全合法成功 / 含损坏文件 rc=1（CI 门禁）/ 目录不存在 rc=1
+     export：导出计数 + 落盘 + round-trip（export → import 回读）+ --type 过滤
+     list：分组输出 + 状态统计 + --status 过滤 + subprocess 一致性
 
 说明：全部在临时目录中构造 mock 数据，不污染真实 knowledge/ 目录；
 日志级别 INFO，可观察 __main__.py 各 cmd_* 分支与 card/links/index 模块的
@@ -128,6 +131,25 @@ def make_card(
     )
 
 
+def _write_src_card(path: Path, title: str, *, type: str = "concepts") -> None:
+    """写一张合法 frontmatter 源卡文件（slug 契约: slug == slugify(title)）。"""
+    path.write_text(
+        f"---\n"
+        f"title: {title}\n"
+        f"slug: {slugify(title)}\n"
+        f"status: current\n"
+        f"type: {type}\n"
+        f"source: mock/{path.name}\n"
+        f"date: 2026-08-02\n"
+        f"tags: []\n"
+        f"links: []\n"
+        f"insight: 一句话核心洞见\n"
+        f"---\n\n"
+        f"正文\n",
+        encoding="utf-8",
+    )
+
+
 def run_cli(args: list[str], cwd: str | Path) -> subprocess.CompletedProcess:
     """subprocess 跑 `python -m agent.knowledge`（UTF-8 防 Windows 控制台编码）。"""
     env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
@@ -212,6 +234,71 @@ def run() -> int:
     proc = run_cli(["orphans", "--wiki", str(wiki)], cwd=repo_root)
     check("subprocess orphans rc=0", proc.returncode == 0, f"rc={proc.returncode}")
 
+    _p("\n== 9. import / export / list 批量处理 ==")
+    batch_wiki = tmp / "batch-wiki"
+    src = tmp / "src"
+    src.mkdir()
+    _write_src_card(src / "a.md", "批量卡A")
+    _write_src_card(src / "b.md", "批量卡B", type="insights")
+    (src / "broken.md").write_text("# 无 frontmatter\n", encoding="utf-8")
+
+    # 9.1 全合法导入 → exit 0，计数正确
+    src2 = tmp / "src2"
+    src2.mkdir()
+    _write_src_card(src2 / "c.md", "干净卡")
+    out = run_main(["import", str(src2), "--wiki", str(batch_wiki)])
+    check("import 全合法 rc=0 且计数正确", "成功 1 / 跳过冲突 0 / 失败 0" in out)
+
+    # 9.2 含损坏文件 → exit 1（CI 门禁），失败明细进 stderr
+    buf, err = io.StringIO(), io.StringIO()
+    with redirect_stdout(buf), redirect_stderr(err):
+        rc = cli_main(["import", str(src), "--wiki", str(batch_wiki)])
+    check("import 含损坏文件 rc=1", rc == 1, f"rc={rc}")
+    check("import 失败计数 stdout", "失败 1" in buf.getvalue())
+    check("import 失败明细 stderr 含文件名", "broken.md" in err.getvalue())
+
+    # 9.3 目录不存在 → exit 1
+    rc = run_quiet(["import", str(tmp / "nope"), "--wiki", str(batch_wiki)])
+    check("import 目录不存在 rc=1", rc == 1, f"rc={rc}")
+
+    # 9.4 export → import round-trip（数量一致）
+    dst = tmp / "export"
+    out = run_main(["export", str(dst), "--wiki", str(batch_wiki)])
+    check("export 导出 3 张卡", "导出 3 张卡片" in out)
+    check("export 落盘文件", (dst / "批量卡a.md").exists())  # 文件名=slug（小写）
+    wiki3 = tmp / "wiki3"
+    out = run_main(["import", str(dst), "--wiki", str(wiki3)])
+    check("round-trip import 成功 3 张", "成功 3" in out)
+    check("round-trip 数量一致", len(CardStore(wiki3).list()) == 3)
+
+    # 9.5 export --type 过滤
+    dst2 = tmp / "export2"
+    out = run_main(
+        ["export", str(dst2), "--type", "insights", "--wiki", str(batch_wiki)]
+    )
+    check("export --type 过滤 1 张", "导出 1 张卡片" in out)
+    check("export 过滤后仅 insights 文件",
+          list(dst2.glob("*.md")) == [dst2 / "批量卡b.md"])
+
+    # 9.6 list 分组 + 状态统计
+    out = run_main(["list", "--wiki", str(batch_wiki)])
+    check("list 分组输出",
+          "[concepts] 批量卡a (current)" in out
+          and "[insights] 批量卡b (current)" in out)
+    check("list 状态统计", "共 3 张卡片（current 3）" in out)
+
+    # 9.7 list --status 过滤
+    out = run_main(["list", "--status", "draft", "--wiki", str(batch_wiki)])
+    check("list --status draft 空结果", "共 0 张卡片" in out)
+
+    # 9.8 subprocess 模式一致性
+    proc = run_cli(
+        ["import", str(src2), "--wiki", str(tmp / "wiki-s")], cwd=repo_root
+    )
+    check("subprocess import rc=0", proc.returncode == 0, f"rc={proc.returncode}")
+    proc = run_cli(["list", "--wiki", str(batch_wiki)], cwd=repo_root)
+    check("subprocess list rc=0", proc.returncode == 0, f"rc={proc.returncode}")
+
     _p(f"\n=== 全部通过：{_passed} 项断言 PASS ===")
     return 0
 
@@ -221,7 +308,7 @@ def main(argv: list[str] | None = None) -> int:
     global _QUIET, _TRACEBACK
     parser = argparse.ArgumentParser(
         prog="python scripts/dev/verify_knowledge_cli.py",
-        description="知识卡片 CLI 全生命周期 mock 断言（16 项）",
+        description="知识卡片 CLI 全生命周期 mock 断言（32 项）",
     )
     parser.add_argument(
         "--pre-commit",

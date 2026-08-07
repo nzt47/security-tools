@@ -36,7 +36,7 @@ def make_card(
     # 只传其一即可，缺省的另一方自动补齐，避免双传不一致。
     slug = slug or slugify(title)
     title = title or slug
-    return Card(
+    card = Card(
         title=title,
         slug=slug,
         status=status,
@@ -47,6 +47,8 @@ def make_card(
         links=links if links is not None else [],
         insight="一句话核心洞见",
     )
+    card.content = content
+    return card
 
 
 def _run_cli(args: list[str], cwd: str | Path) -> subprocess.CompletedProcess:
@@ -376,3 +378,161 @@ def test_main_card_transition_archive_rewrites_referrer_links(tmp_path):
         == 0
     )
     assert store.get("driving-engineering").links == ["archives/prompt-engineering"]
+
+
+# ---------- import / export / list（任务2 批量处理） ----------
+
+
+def _write_src_card(path: Path, slug: str, *, status: str = "current",
+                    type: str = "concepts", content: str = "正文") -> None:
+    """写一张合法 frontmatter 卡片文件（slug 契约: slug == slugify(title)）。"""
+    path.write_text(
+        f"---\n"
+        f"title: {slug}\n"
+        f"slug: {slug}\n"
+        f"status: {status}\n"
+        f"type: {type}\n"
+        f"source: inbox/{slug}.md\n"
+        f"date: 2026-08-02\n"
+        f"tags: []\n"
+        f"links: []\n"
+        f"insight: 一句话核心洞见\n"
+        f"---\n\n"
+        f"{content}\n",
+        encoding="utf-8",
+    )
+
+
+def test_cli_import_success_exit_zero(tmp_path):
+    """import 2 张合法卡 → exit 0，输出计数，落盘 + index 更新。"""
+    wiki = tmp_path / "wiki"
+    src = tmp_path / "src"
+    src.mkdir()
+    _write_src_card(src / "a.md", "driving-engineering")
+    _write_src_card(src / "b.md", "prompt-engineering")
+    proc = _run_cli(["import", str(src), "--wiki", str(wiki)], cwd=_REPO_ROOT)
+    assert proc.returncode == 0, f"stderr={proc.stderr}"
+    assert "成功 2 / 跳过冲突 0 / 失败 0" in proc.stdout
+    store = _store(wiki)
+    assert {c.slug for c in store.list()} == {"driving-engineering", "prompt-engineering"}
+
+
+def test_cli_import_failure_exit_one(tmp_path):
+    """含损坏文件 → exit 1，stderr 输出失败明细（CI 门禁语义）。"""
+    wiki = tmp_path / "wiki"
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "broken.md").write_text("# 无 frontmatter\n", encoding="utf-8")
+    _write_src_card(src / "ok.md", "driving-engineering")
+    proc = _run_cli(["import", str(src), "--wiki", str(wiki)], cwd=_REPO_ROOT)
+    assert proc.returncode == 1
+    assert "失败 1" in proc.stdout
+    assert "broken.md" in proc.stderr
+    assert "frontmatter" in proc.stderr
+
+
+def test_cli_import_missing_dir_exit_one(tmp_path):
+    """目录不存在 → exit 1，stderr 提示导入失败。"""
+    proc = _run_cli(
+        ["import", str(tmp_path / "nope"), "--wiki", str(tmp_path / "wiki")],
+        cwd=_REPO_ROOT,
+    )
+    assert proc.returncode == 1
+    assert "导入失败" in proc.stderr
+
+
+def test_cli_import_force_updates_conflict(tmp_path):
+    """--force：同 slug 冲突改走 update，内容被覆盖且 exit 0。"""
+    wiki = tmp_path / "wiki"
+    store = _store(wiki)
+    store.create(make_card(slug="driving-engineering"))
+    src = tmp_path / "src"
+    src.mkdir()
+    _write_src_card(src / "a.md", "driving-engineering", content="新正文")
+    proc = _run_cli(["import", str(src), "--force", "--wiki", str(wiki)],
+                    cwd=_REPO_ROOT)
+    assert proc.returncode == 0, f"stderr={proc.stderr}"
+    assert "成功 1" in proc.stdout
+    assert store.get("driving-engineering").content.strip() == "新正文"
+
+
+def test_cli_export_roundtrip(tmp_path):
+    """export 导出 → 空库 import 回读：slug/status/type/content 全等。"""
+    wiki = tmp_path / "wiki"
+    store = _store(wiki)
+    store.create(make_card(slug="driving-engineering", type="concepts",
+                           content="原文 A"))
+    store.create(make_card(slug="prompt-engineering", type="insights",
+                           status="draft", content="原文 B"))
+    dst = tmp_path / "export"
+    proc = _run_cli(["export", str(dst), "--wiki", str(wiki)], cwd=_REPO_ROOT)
+    assert proc.returncode == 0, f"stderr={proc.stderr}"
+    assert "导出 2 张卡片" in proc.stdout
+    assert (dst / "driving-engineering.md").exists()
+
+    wiki2 = tmp_path / "wiki2"
+    proc2 = _run_cli(["import", str(dst), "--wiki", str(wiki2)], cwd=_REPO_ROOT)
+    assert proc2.returncode == 0, f"stderr={proc2.stderr}"
+    cards2 = {c.slug: c for c in _store(wiki2).list()}
+    assert cards2["driving-engineering"].content.strip() == "原文 A"
+    assert cards2["prompt-engineering"].status == "draft"
+    assert cards2["prompt-engineering"].type == "insights"
+
+
+def test_cli_export_filter_type(tmp_path):
+    """export --type 过滤：仅导出指定类型。"""
+    wiki = tmp_path / "wiki"
+    store = _store(wiki)
+    store.create(make_card(slug="driving-engineering", type="concepts"))
+    store.create(make_card(slug="prompt-engineering", type="insights"))
+    dst = tmp_path / "export"
+    proc = _run_cli(["export", str(dst), "--type", "insights", "--wiki", str(wiki)],
+                    cwd=_REPO_ROOT)
+    assert proc.returncode == 0
+    assert "导出 1 张卡片" in proc.stdout
+    assert list(dst.glob("*.md")) == [dst / "prompt-engineering.md"]
+
+
+def test_cli_list_grouped_and_stats(tmp_path):
+    """list 分组 + 状态统计：不同 type/status 卡片分类正确。"""
+    wiki = tmp_path / "wiki"
+    store = _store(wiki)
+    store.create(make_card(slug="driving-engineering", type="concepts"))
+    store.create(make_card(slug="prompt-engineering", type="insights",
+                           status="draft"))
+    proc = _run_cli(["list", "--wiki", str(wiki)], cwd=_REPO_ROOT)
+    assert proc.returncode == 0
+    assert "[concepts] driving-engineering (current)" in proc.stdout
+    assert "[insights] prompt-engineering (draft)" in proc.stdout
+    assert "共 2 张卡片（current 1 / draft 1）" in proc.stdout
+
+
+def test_cli_list_status_filter(tmp_path):
+    """list --status 过滤：仅列出指定状态卡片。"""
+    wiki = tmp_path / "wiki"
+    store = _store(wiki)
+    store.create(make_card(slug="driving-engineering"))
+    store.create(make_card(slug="prompt-engineering", status="draft"))
+    proc = _run_cli(["list", "--status", "draft", "--wiki", str(wiki)],
+                    cwd=_REPO_ROOT)
+    assert proc.returncode == 0
+    assert "prompt-engineering" in proc.stdout
+    assert "driving-engineering" not in proc.stdout
+    assert "共 1 张卡片" in proc.stdout
+
+
+def test_main_import_export_list_direct(tmp_path):
+    """直接 main() 三命令返回值（供覆盖率统计）。"""
+    from agent.knowledge.__main__ import main
+
+    wiki = tmp_path / "wiki"
+    store = _store(wiki)
+    store.create(make_card(slug="driving-engineering"))
+    src = tmp_path / "src"
+    src.mkdir()
+    _write_src_card(src / "a.md", "prompt-engineering")
+    assert main(["import", str(src), "--wiki", str(wiki)]) == 0
+    assert main(["list", "--wiki", str(wiki)]) == 0
+    assert main(["export", str(tmp_path / "out"), "--wiki", str(wiki)]) == 0
+    # 目录不存在 → import exit 1
+    assert main(["import", str(tmp_path / "nope"), "--wiki", str(wiki)]) == 1

@@ -20,7 +20,7 @@ import logging
 import os
 import re
 import time
-from dataclasses import asdict
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -48,6 +48,16 @@ class CardNotFoundError(Exception):
 
 class InvalidTransitionError(Exception):
     """非法状态迁移"""
+
+
+@dataclass
+class BatchImportResult:
+    """批量导入结果汇总（CLI 打印与测试断言用）。"""
+
+    imported: int = 0
+    skipped: int = 0
+    failed: int = 0
+    failures: list[tuple[str, str]] = field(default_factory=list)
 
 
 _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---\n?(.*)$", re.DOTALL)
@@ -260,6 +270,67 @@ class CardStore:
                     continue
                 cards.append(card)
         return cards
+
+    # ---------- 批量导入 ----------
+
+    def import_from_dir(
+        self, src_dir: str | Path, *, force: bool = False
+    ) -> BatchImportResult:
+        """批量导入目录下全部 `*.md` 卡片文件（YAML frontmatter）。
+
+        【不易】同 slug 冲突默认跳过不覆盖（create 契约）；force=True 时改走
+        update（含正文双链同步）。单卡失败仅记录计数，不中断批次。
+        文件处理顺序按文件名排序，保证结果可复现。
+        """
+        src = Path(src_dir)
+        if not src.is_dir():
+            raise ValueError(f"批量导入目录不存在: {src}")
+        _t0 = time.perf_counter()
+        result = BatchImportResult()
+        for p in sorted(src.glob("*.md")):
+            try:
+                card = self._md_to_card(p)
+                if self.get(card.slug) is not None:
+                    if not force:
+                        result.skipped += 1
+                        logger.info("批量导入跳过: %s（同 slug 已存在，force=False）", p.name)
+                        continue
+                    self.update(card)
+                    result.imported += 1
+                    continue
+                self.create(card)
+                result.imported += 1
+            except (ValueError, TypeError, CardConflictError) as exc:
+                result.failed += 1
+                result.failures.append((p.name, str(exc)))
+                logger.warning("批量导入失败: %s: %s", p.name, exc)
+        logger.info(
+            "批量导入完成: 导入=%d 跳过=%d 失败=%d 耗时=%.2fms",
+            result.imported, result.skipped, result.failed,
+            (time.perf_counter() - _t0) * 1000,
+        )
+        return result
+
+    def export_dir(
+        self,
+        dst_dir: str | Path,
+        *,
+        status: Optional[str] = None,
+        type: Optional[str] = None,
+    ) -> int:
+        """导出卡片为 frontmatter md 到目录（可再被 import_from_dir 回读）。
+
+        【不易】复用 _card_to_md（单一事实源），文件名 `<slug>.md` 与
+        import_from_dir 的 `*.md` 扫描兼容（round-trip 可逆）。
+        """
+        dst = Path(dst_dir)
+        dst.mkdir(parents=True, exist_ok=True)
+        n = 0
+        for card in self.list(status=status, type=type):
+            self._atomic_write(dst / f"{card.slug}.md", _card_to_md(card))
+            n += 1
+        logger.info("导出卡片: %d 张 → %s", n, dst)
+        return n
 
     # ---------- 生命周期状态机 ----------
 
