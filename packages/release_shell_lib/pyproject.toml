@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "release-shell-lib"
+version = "0.1.0"
+description = "发布流程 Shell 函数库的 Python 等价实现：curl 网络失败映射 500 / 数值正则兜底 / gh api JSON 污染容错 / 响应体容错读取"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Yunshu Team"}
+]
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: Utilities",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/nzt47/security-tools/tree/master/packages/release_shell_lib"
+Repository = "https://github.com/nzt47/security-tools"
+Documentation = "https://nzt47.github.io/security-tools/"
+
+[tool.setuptools.packages.find]
+include = ["release_shell_lib*"]
