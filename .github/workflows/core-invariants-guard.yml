@@ -28,6 +28,10 @@ jobs:
 
     steps:
       - name: 检出代码
+        # continue-on-error: release 流程会频繁前移 v* tag，触发后 tag 被更新导致
+        # checkout 报 ref 不匹配（2026-08-07 run 31149481064 实证）。竞态失败时
+        # 交给下游 precheck 静默跳过（脚本不存在即 skip），避免噪音失败。
+        continue-on-error: true
         uses: actions/checkout@v6
 
       - name: 设置 Python
@@ -82,6 +86,12 @@ jobs:
       - name: 汇总不变量结果到 Job Summary
         if: always() && steps.precheck.outputs.skip != 'true'
         run: |
+          # 文件存在性守卫：上游步骤未执行/失败（如 checkout 竞态）时跳过汇总，
+          # 避免 FileNotFoundError 噪音失败掩盖真实根因（2026-08-07 修复）
+          if [ ! -f invariant_report.json ]; then
+            echo "::notice::invariant_report.json 不存在（上游步骤未执行或失败），跳过汇总"
+            exit 0
+          fi
           python - <<'PY'
           import json, os
           r = json.load(open("invariant_report.json", encoding="utf-8"))
