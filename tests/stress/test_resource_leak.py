@@ -28,24 +28,47 @@ from agent.monitoring.resource_monitor import (
 )
 
 
-def _hf_endpoint_reachable(timeout: float = 3.0) -> bool:
-    """检测 HF 模型下载源（HF_ENDPOINT）可达性。
+def _hf_model_available() -> bool:
+    """检测 embedding 模型是否可下载（HF_ENDPOINT + 模型仓库探测）。
 
-    Why: 2026-08-07 实测 CI runner 无法访问 hf-mirror.com（两次独立 run 复现），
-    embedding 预热失败（init_failed）拖慢采样性能测试导致误报
-    （test_single_sample_under_600ms：990ms/746ms > 600ms）。
-    不可达时跳过 embedding 相关性能测试，网络正常时仍执行完整断言。
+    Why: 2026-08-07 实测 CI runner 网络问题导致 embedding 预热失败
+    （域名可达 ≠ 模型可下载；hf-mirror.com 与 huggingface.co 在 runner 均加载失败），
+    30s×N 重试拖累 CPU → 采样性能测试误报（990ms/1039ms > 600ms）。
+    模型仓库不可达时跳过性能测试；网络正常仍执行完整断言。
     """
-    endpoint = os.environ.get("HF_ENDPOINT", "https://hf-mirror.com")
-    try:
-        with urllib.request.urlopen(endpoint, timeout=timeout) as resp:
-            return resp.status < 400
-    except Exception:
+    endpoint = os.environ.get("HF_ENDPOINT", "https://hf-mirror.com").rstrip("/")
+    # 探针 1：模型 API（BAAI/bge-m3 为 EmbeddingIndex 常用模型）
+    # 探针 2：默认模型 resolve 路径（paraphrase-multilingual-MiniLM-L12-v2）
+    probes = (
+        f"{endpoint}/api/models/BAAI/bge-m3",
+        f"{endpoint}/paraphrase-multilingual-MiniLM-L12-v2/resolve/main/config.json",
+    )
+    for probe in probes:
+        try:
+            req = urllib.request.Request(probe, method="HEAD")
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                if resp.status < 400:
+                    return True
+        except Exception:
+            continue
+    return False
+
+
+def _should_skip_embedding_perf() -> bool:
+    """网络不可达且未显式禁用 embedding 时跳过性能测试。
+
+    CI 设 AGENT_HYBRID_EMBEDDING=0 属受控禁用（环境干净，性能测试正常执行
+    以验证约束）；未显式禁用且模型不可下载 → 环境劣化，跳过避免误报。
+    """
+    env = os.environ.get("AGENT_HYBRID_EMBEDDING", "").strip().lower()
+    if env in ("0", "false", "no", "off"):
         return False
+    return not _hf_model_available()
 
 
-# 模块级检测一次：CI runner 网络不可达 → 跳过性能测试（非代码回归，环境问题）
-HF_OFFLINE = not _hf_endpoint_reachable()
+# 模块级检测一次
+SKIP_EMBEDDING_PERF = _should_skip_embedding_perf()
+
 
 
 @pytest.fixture(autouse=True)
@@ -245,7 +268,7 @@ class TestLeakDetectionUnderStress:
         del stable
 
 
-@pytest.mark.skipif(HF_OFFLINE, reason="HF_ENDPOINT 不可达，跳过 embedding 相关性能测试（CI 网络环境问题）")
+@pytest.mark.skipif(SKIP_EMBEDDING_PERF, reason="embedding 模型不可下载，跳过性能测试（CI 网络环境问题）")
 class TestSamplingPerformance:
     """采样性能开销测试"""
 

@@ -877,10 +877,13 @@ jobs:
           # 【不易】SKILLS_OFFLINE=1 与 ci.yml 一致：避免 transformers/sentence_transformers
           # 导入时递归扫描文件系统触发 timeout（conftest.py 的 _skills_offline_mode patch）
           SKILLS_OFFLINE: '1'
-          # 【变易】HF_ENDPOINT 覆盖代码默认 hf-mirror.com（agent 内 setdefault，不覆盖已设环境变量）：
-          # 2026-08-07 实测 GitHub runner 无法访问 hf-mirror.com → embedding 预热失败（init_failed）
-          # → 拖慢采样性能测试误报（990ms/746ms > 600ms）。官方源 huggingface.co 在 runner 可达。
-          # 若仍不可达，tests/stress/test_resource_leak.py 已加 HF_ENDPOINT 可达性检测自动 skip。
+          # 【不易】AGENT_HYBRID_EMBEDDING=0：CI 网络无法访问 HF 模型仓库（hf-mirror 与
+          # 官方源均不可达），显式禁用 Embedding（纯 BM25）避免子进程探测 30s×N 重试
+          # 拖累 CPU → 采样性能测试误报（2026-08-07 三次复现：990/746/1039ms > 600ms）。
+          # 受控禁用下性能测试正常执行以验证约束。
+          AGENT_HYBRID_EMBEDDING: '0'
+          # 【变易】HF_ENDPOINT 覆盖代码默认 hf-mirror.com：若未来网络恢复官方源可达，
+          # 模型下载走官方源（agent 内 setdefault 不覆盖已设环境变量）。
           HF_ENDPOINT: 'https://huggingface.co'
         run: |
           echo "=== 运行全项目测试 Shard ${{ matrix.shard }}/6（SKILLS_OFFLINE=1，-n 2 并行）==="
