@@ -67,7 +67,7 @@
 | ├─ HIGH 风险扫描 (Docker, 阻断) | ✅ success（exit 0，无 HIGH） |
 | ├─ MEDIUM 风险扫描 (Docker, 提醒) | ✅ success |
 | └─ 构建并推送镜像到 GHCR / 自定义扫描 | ⏭ skipped（非 main 分支 / 非手动触发，预期行为） |
-| kwarg 扫描 → SonarQube | ❌ failure（SONAR_HOST_URL secret 未配置，与镜像无关） |
+| kwarg 扫描 → SonarQube | ❌ 首跑失败（3 项根因：写权限 / 误判 HIGH / 步骤中断，见 4.3 问题 4-6 与 4.4） |
 | 核心不变量监控 (verify_core_invariants) | ✅ completed / success（12/12 通过） |
 
 ### 4.3 问题修复记录（本发布后续迭代）
@@ -84,6 +84,35 @@
 - 根因: high-risk-scan / medium-risk-scan / custom-scan 每个 job 独立 runner，prepare-image 的 `docker login` 不跨 job 共享
 - 修复: 三个扫描 job 在 `docker run` 前补充 `docker/login-action`（`BUILD_LOCALLY=true` 时跳过）
 
+**问题 4：GIIF 报告写入 PermissionError**（已修复）
+- 根因: 镜像内 scanner 用户为非 root（UID 100），runner workspace 属主为 runner（UID 1001），容器无法写 `/project/kwarg-sonar-issues.json`
+- 修复: GIIF 扫描前 `sudo chmod -R a+rwX ${github.workspace}` 放开写权限
+
+**问题 5：写权限崩溃被误判为 HIGH 阻断**
+- 根因: `kwarg-scan` 因写失败崩溃 exit 1，入口脚本 `docker-entrypoint.sh` 在报告文件缺失时走 else 分支默认 `HIGH_COUNT=1` → 误报 "发现 HIGH 风险"（同镜像同树本地复跑实际 **HIGH=0 / exit 0**）
+- 修复: 同问题 4（权限放开后不再崩溃）；GIIF 步骤改用 `docker run ... && SCAN_EXIT=0 || SCAN_EXIT=$?` 捕获真实退出码，避免 `set -e` 直接中断步骤
+
+**问题 6：扫描容器无法连通 SonarQube + 步骤中断链**（已修复）
+- 根因1: GIIF 步骤失败后，"启动 SonarQube"/"等待就绪" 步骤无 `if: always()` 被跳过 → `SONAR_TOKEN` 为空 → 扫描连接拒绝
+- 根因2: `sonarqube-scan-action@v2` 容器运行于 bridge 网络，`localhost:9000` 指向容器自身，无法访问同机 SonarQube 容器；且 `sonar-scanner-cli:latest` 已升级为 Scanner 8.0（仅支持 SonarQube Cloud，强制要求 `sonar.organization`）
+- 修复: 启动/等待步骤加 `if: always()`；改用 `docker run --network host` + 固定 `sonar-scanner-cli:10.0`（Scanner 5.0.1，兼容 9.9 LTS）；加 `-Dsonar.scm.disabled=true` 规避 SCM git 探测
+
+### 4.4 SonarQube 自包含链路修复与本地端到端验证
+
+CI 首跑（`b28dd107`, run `31198301660`）失败后，本地用同镜像（digest `24e14607…`）完整复现并验证：
+
+| 验证项 | 结果 |
+|--------|------|
+| 9.9 LTS 容器就绪（首次 ES 初始化） | ✅ ~45s 达到 UP |
+| token 生成（admin/admin → ci-token） | ✅ 44 字符 |
+| Scanner 5.0.1 连接服务器（`--network host`） | ✅ `Analyzing on SonarQube server 9.9.8.100196` |
+| GIIF 外部问题导入 | ✅ `Imported 0 issues`（空报告基线） |
+| 分析执行与上传 | ✅ `ANALYSIS SUCCESSFUL / EXECUTION SUCCESS` |
+
+结论:
+- **CI 自包含方案成立**：job 内起 9.9 LTS 容器 + 动态生成 token，**无需 SONAR_HOST_URL / SONAR_TOKEN 仓库 Secrets**
+- 同镜像同树本地复跑 HIGH=0，证实 CI 的 HIGH=1 为写权限崩溃误判（问题 5）
+
 ## 5. SonarQube 集成验证（GIIF 数据准确性）
 
 | 验证项 | 结果 |
@@ -92,9 +121,12 @@
 | severity/type 映射 | ✅ HIGH→MAJOR/BUG、MEDIUM→MINOR/BUG、LOW→INFO/CODE_SMELL |
 | 文件路径关联 | ✅ 剥离 `/project` 前缀后与 `sonar.sources` 相对路径精确匹配 |
 | 行号/列号 | ✅ 与实际代码位置一致 |
+| CI 自包含链路（9.9 LTS + Scanner 5.0.1） | ✅ 本地端到端 ANALYSIS SUCCESSFUL（见 4.4） |
 
 ## 6. 结论与后续
 
 - 镜像从 **191MB → 87.4MB（-54%）**，增量构建 **42s → 5.7s**，满足优化目标
 - 预构建镜像已推送 GHCR 并被 CI 配置引用，本地模拟全链路验证通过
-- **待办**: 修复 kwarg 工作流 `push.branches` 分支名不匹配（master vs main），使推送后自动触发扫描
+- kwarg 工作流 `push.branches` 已加 master（commit `c6def20f`），推送后自动触发扫描
+- SonarQube 自包含链路已本地端到端验证（4.4），修复提交后将重跑 CI 确认 success
+- **后续建议**: ① 轮换 `GHCR_TOKEN`（多次出现在会话/推送记录）；② 清理本地 `.tmp-sq-*` 临时目录；③ 可选加固 `docker-entrypoint.sh`（配置了 OUTPUT_FILE 但文件缺失时应返回 `E_SCAN_CRASHED` 而非默认 `HIGH_COUNT=1`），需重建并重推镜像
