@@ -1,5 +1,5 @@
 {
-  "trace_id": "dbf038711757496c",
+  "trace_id": "1c3e4342d4a744f3",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -608,14 +608,14 @@
       "layer": "knowledge",
       "file_path": "agent/knowledge/__init__.py",
       "in_degree": 0,
-      "out_degree": 2
+      "out_degree": 6
     },
     {
       "path": "agent.knowledge.schema",
       "name": "schema",
       "layer": "knowledge",
       "file_path": "",
-      "in_degree": 1,
+      "in_degree": 4,
       "out_degree": 0
     },
     {
@@ -623,8 +623,48 @@
       "name": "lifecycle",
       "layer": "knowledge",
       "file_path": "",
-      "in_degree": 1,
+      "in_degree": 2,
       "out_degree": 0
+    },
+    {
+      "path": "agent.knowledge.logbook",
+      "name": "logbook",
+      "layer": "knowledge",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.knowledge.links",
+      "name": "links",
+      "layer": "knowledge",
+      "file_path": "",
+      "in_degree": 3,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.knowledge.card",
+      "name": "card",
+      "layer": "knowledge",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 5
+    },
+    {
+      "path": "agent.knowledge.index",
+      "name": "index",
+      "layer": "knowledge",
+      "file_path": "",
+      "in_degree": 3,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.knowledge.__main__",
+      "name": "__main__",
+      "layer": "knowledge",
+      "file_path": "agent/knowledge/__main__.py",
+      "in_degree": 0,
+      "out_degree": 3
     },
     {
       "path": "agent.knowledge.ingest",
@@ -3506,6 +3546,110 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.knowledge",
+      "target": "agent.knowledge.logbook",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 19,
+      "source_file": "agent/knowledge/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge",
+      "target": "agent.knowledge.links",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 20,
+      "source_file": "agent/knowledge/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge",
+      "target": "agent.knowledge.card",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 23,
+      "source_file": "agent/knowledge/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge",
+      "target": "agent.knowledge.index",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 26,
+      "source_file": "agent/knowledge/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.index",
+      "target": "agent.knowledge.schema",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 32,
+      "source_file": "agent/knowledge/index.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.__main__",
+      "target": "agent.knowledge.card",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 23,
+      "source_file": "agent/knowledge/__main__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.__main__",
+      "target": "agent.knowledge.index",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 28,
+      "source_file": "agent/knowledge/__main__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.__main__",
+      "target": "agent.knowledge.links",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 29,
+      "source_file": "agent/knowledge/__main__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.knowledge.ingest",
       "target": "agent.utils.sensitive_data_filter",
       "source_layer": "knowledge",
@@ -3514,6 +3658,84 @@
       "line": 171,
       "source_file": "agent/knowledge/ingest.py",
       "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.card",
+      "target": "agent.knowledge.index",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 29,
+      "source_file": "agent/knowledge/card.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.card",
+      "target": "agent.knowledge.lifecycle",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 30,
+      "source_file": "agent/knowledge/card.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.card",
+      "target": "agent.knowledge.links",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 31,
+      "source_file": "agent/knowledge/card.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.card",
+      "target": "agent.knowledge.logbook",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 32,
+      "source_file": "agent/knowledge/card.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.card",
+      "target": "agent.knowledge.schema",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 33,
+      "source_file": "agent/knowledge/card.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.links",
+      "target": "agent.knowledge.schema",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 23,
+      "source_file": "agent/knowledge/links.py",
+      "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -10150,9 +10372,9 @@
     }
   ],
   "stats": {
-    "total_files": 354,
-    "total_nodes": 280,
-    "total_edges": 608,
+    "total_files": 359,
+    "total_nodes": 285,
+    "total_edges": 622,
     "cross_layer_edges": 390,
     "violation_edges": 0,
     "dynamic_edges": 1,
@@ -10171,7 +10393,7 @@
       "unknown": 1,
       "caching": 2,
       "workflow_engine": 3,
-      "knowledge": 4,
+      "knowledge": 9,
       "network": 3,
       "subagent": 5,
       "web": 5,
@@ -10196,6 +10418,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1306.9132250000025
+    "build_duration_ms": 1051.4064879999978
   }
 }
