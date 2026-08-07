@@ -20,8 +20,9 @@ from agent.knowledge.logbook import append_log
 from agent.knowledge.links import (find_broken_links, find_orphans,
                                    parse_links, resolve_link,
                                    rewrite_link_targets)
-from agent.knowledge.card import (CardConflictError, CardNotFoundError,
-                                  CardStore, InvalidTransitionError)
+from agent.knowledge.card import (BatchImportResult, CardConflictError,
+                                  CardNotFoundError, CardStore,
+                                  InvalidTransitionError)
 from agent.knowledge.index import rebuild_index, update_index_delta
 
 __all__ = [
@@ -37,7 +38,7 @@ __all__ = [
     "rewrite_link_targets",
     # card（任务2 核心引擎）
     "CardStore", "CardConflictError", "CardNotFoundError",
-    "InvalidTransitionError",
+    "InvalidTransitionError", "BatchImportResult",
     # index（任务2）
     "rebuild_index", "update_index_delta",
 ]

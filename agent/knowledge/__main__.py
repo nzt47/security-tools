@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from collections import Counter
 
 from agent.knowledge.card import (
     CardNotFoundError,
@@ -105,6 +106,58 @@ def cmd_orphans(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_import(args: argparse.Namespace) -> int:
+    """批量导入目录下 *.md 卡片；有失败 → exit 1（CI 门禁）。"""
+    store = CardStore(args.wiki)
+    logger.info("CLI import: 批量导入 dir=%s force=%s wiki=%s",
+                args.dir, args.force, args.wiki)
+    try:
+        result = store.import_from_dir(args.dir, force=args.force)
+    except ValueError as exc:
+        logger.warning("CLI import: 导入失败 dir=%s 原因=%s", args.dir, exc)
+        print(f"导入失败: {exc}", file=sys.stderr)
+        return 1
+    print(f"导入完成: 成功 {result.imported} / 跳过冲突 {result.skipped} / 失败 {result.failed}")
+    for name, reason in result.failures:
+        print(f"  失败 {name}: {reason}", file=sys.stderr)
+        logger.warning("CLI import: 文件失败 name=%s 原因=%s", name, reason)
+    return 1 if result.failed else 0
+
+
+def cmd_export(args: argparse.Namespace) -> int:
+    """导出卡片为 frontmatter md（可再 import 回读）；纯报告命令恒 exit 0。"""
+    store = CardStore(args.wiki)
+    logger.info("CLI export: 导出到 dir=%s 过滤 status=%s type=%s wiki=%s",
+                args.dir, args.status, args.type, args.wiki)
+    try:
+        n = store.export_dir(args.dir, status=args.status, type=args.type)
+    except (OSError, ValueError) as exc:
+        logger.warning("CLI export: 导出失败 dir=%s 原因=%s", args.dir, exc)
+        print(f"导出失败: {exc}", file=sys.stderr)
+        return 1
+    print(f"导出 {n} 张卡片 → {args.dir}")
+    logger.info("CLI export: 完成，导出卡片数=%d", n)
+    return 0
+
+
+def cmd_list(args: argparse.Namespace) -> int:
+    """列出卡片（按 type 分组 + 状态统计摘要）。"""
+    store = CardStore(args.wiki)
+    cards = store.list(status=args.status, type=args.type)
+    by_type: dict[str, list] = {}
+    for c in cards:
+        by_type.setdefault(c.type, []).append(c)
+    for t, group in sorted(by_type.items()):
+        for c in group:
+            print(f"  [{t}] {c.slug} ({c.status})")
+    stats = Counter(c.status for c in cards)
+    summary = " / ".join(f"{k} {v}" for k, v in sorted(stats.items()))
+    print(f"共 {len(cards)} 张卡片（{summary}）")
+    logger.info("CLI list: wiki=%s 过滤 status=%s type=%s 命中卡片数=%d",
+                args.wiki, args.status, args.type, len(cards))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m agent.knowledge",
@@ -141,6 +194,29 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--wiki", default=_DEFAULT_WIKI)
     p.add_argument("--verbose", action="store_true")
     p.set_defaults(func=cmd_orphans)
+
+    p = sub.add_parser("import", help="批量导入目录下 *.md 卡片")
+    p.add_argument("dir")
+    p.add_argument("--force", action="store_true",
+                   help="同 slug 冲突时改走 update（默认跳过不覆盖）")
+    p.add_argument("--wiki", default=_DEFAULT_WIKI)
+    p.add_argument("--verbose", action="store_true")
+    p.set_defaults(func=cmd_import)
+
+    p = sub.add_parser("export", help="导出卡片为 frontmatter md（可再 import）")
+    p.add_argument("dir")
+    p.add_argument("--status", default=None, help="按状态过滤（draft/current/unknown）")
+    p.add_argument("--type", default=None, help="按类型过滤（concepts/entities/insights）")
+    p.add_argument("--wiki", default=_DEFAULT_WIKI)
+    p.add_argument("--verbose", action="store_true")
+    p.set_defaults(func=cmd_export)
+
+    p = sub.add_parser("list", help="列出卡片（按 type 分组 + 状态统计）")
+    p.add_argument("--status", default=None, help="按状态过滤（draft/current/unknown）")
+    p.add_argument("--type", default=None, help="按类型过滤（concepts/entities/insights）")
+    p.add_argument("--wiki", default=_DEFAULT_WIKI)
+    p.add_argument("--verbose", action="store_true")
+    p.set_defaults(func=cmd_list)
 
     return parser
 

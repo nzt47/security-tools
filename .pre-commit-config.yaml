@@ -61,7 +61,7 @@ repos:
           文档示例 / 部署配置），详见 scripts/scan_sensitive_data.py。
 
       - id: knowledge-cli-verify
-        name: 知识卡片 CLI 全生命周期校验 (16 项断言)
+        name: 知识卡片 CLI 全生命周期校验 (32 项断言)
         entry: python scripts/dev/verify_knowledge_cli.py --pre-commit --traceback
         language: system
         pass_filenames: false

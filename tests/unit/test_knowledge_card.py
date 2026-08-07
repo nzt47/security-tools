@@ -389,3 +389,125 @@ def test_append_log_marker_insert_and_top(store, tmp_path):
     append_log("delete", "C", log_path=log2)
     text3 = log2.read_text(encoding="utf-8")
     assert text3.index("delete | C") < text3.index("update | B | d2")
+
+
+# ---------- 批量导入（import_from_dir） ----------
+
+
+def _write_card_md(path, title, *, slug=None, type="concepts", content="正文"):
+    """写一张合法 frontmatter 卡片文件（slug 契约: slug == slugify(title)）。"""
+    slug = slug if slug is not None else slugify(title)
+    path.write_text(
+        f"---\n"
+        f"title: {title}\n"
+        f"slug: {slug}\n"
+        f"status: current\n"
+        f"type: {type}\n"
+        f"source: import/{path.name}\n"
+        f"date: 2026-08-07\n"
+        f"tags: []\n"
+        f"links: []\n"
+        f"insight: 一句话核心洞见\n"
+        f"---\n\n"
+        f"{content}\n",
+        encoding="utf-8",
+    )
+
+
+def test_import_from_dir_basic(store, tmp_path):
+    """2 张合法卡：导入计数、落盘、index 增量、log 登记。"""
+    src = tmp_path / "src"
+    src.mkdir()
+    _write_card_md(src / "a.md", "驾驭工程")
+    _write_card_md(src / "b.md", "提示词工程")
+    result = store.import_from_dir(src)
+    assert result.imported == 2 and result.skipped == 0 and result.failed == 0
+    assert result.failures == []
+    assert {c.slug for c in store.list()} == {"驾驭工程", "提示词工程"}
+    assert (tmp_path / "kb" / "wiki" / "concepts" / "驾驭工程.md").exists()
+    idx = (tmp_path / "kb" / "index.md").read_text(encoding="utf-8")
+    assert "- [[驾驭工程]]" in idx and "- [[提示词工程]]" in idx
+    log = (tmp_path / "kb" / "log.md").read_text(encoding="utf-8")
+    assert log.count("create |") == 2
+
+
+def test_import_from_dir_skips_conflict(store, tmp_path):
+    """同 slug 冲突默认跳过不覆盖（create 契约），其余照常导入。"""
+    store.create(make_card("驾驭工程"))
+    src = tmp_path / "src"
+    src.mkdir()
+    _write_card_md(src / "a.md", "驾驭工程")
+    _write_card_md(src / "b.md", "提示词工程")
+    result = store.import_from_dir(src)
+    assert result.imported == 1 and result.skipped == 1 and result.failed == 0
+    assert result.failures == []
+    # 原卡未被覆盖
+    assert store.get("驾驭工程").content.strip() == ""
+
+
+def test_import_from_dir_force_updates(store, tmp_path):
+    """force=True 时冲突改走 update（内容覆盖 + log update 登记）。"""
+    store.create(make_card("驾驭工程"))
+    src = tmp_path / "src"
+    src.mkdir()
+    _write_card_md(src / "a.md", "驾驭工程", content="新正文")
+    result = store.import_from_dir(src, force=True)
+    assert result.imported == 1 and result.skipped == 0 and result.failed == 0
+    got = store.get("驾驭工程")
+    assert got is not None and got.content.strip() == "新正文"
+    log = (tmp_path / "kb" / "log.md").read_text(encoding="utf-8")
+    assert "update |" in log and "create |" in log
+
+
+def test_import_from_dir_skips_corrupt(store, tmp_path):
+    """无 frontmatter 的损坏文件计入失败并附明细，不中断批次。"""
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "broken.md").write_text("# 无 frontmatter\n", encoding="utf-8")
+    _write_card_md(src / "ok.md", "驾驭工程")
+    result = store.import_from_dir(src)
+    assert result.imported == 1 and result.failed == 1
+    assert result.failures[0][0] == "broken.md"
+    assert "frontmatter" in result.failures[0][1]
+
+
+def test_import_from_dir_missing_dir(store, tmp_path):
+    """目录不存在 → ValueError（调用方错误）。"""
+    with pytest.raises(ValueError, match="目录不存在"):
+        store.import_from_dir(tmp_path / "nope")
+
+
+def test_import_from_dir_invalid_schema(store, tmp_path):
+    """frontmatter 缺必填字段（title/source/date）→ Card 构造 TypeError 计入 failed。"""
+    src = tmp_path / "src"
+    src.mkdir()
+    (src / "bad.md").write_text(
+        "---\nslug: bad\nstatus: current\ntype: concepts\n---\n",
+        encoding="utf-8",
+    )
+    result = store.import_from_dir(src)
+    assert result.imported == 0 and result.failed == 1
+    assert result.failures[0][0] == "bad.md"
+    assert "missing" in result.failures[0][1]
+
+
+def test_import_from_dir_validate_failure(store, tmp_path):
+    """字段齐全但值非法（status=bogus）→ validate_card 失败计入 failed。"""
+    src = tmp_path / "src"
+    src.mkdir()
+    _write_card_md(src / "ok.md", "驾驭工程")
+    (src / "bad.md").write_text(
+        "---\n"
+        "title: 坏卡\n"
+        "slug: bad\n"
+        "status: bogus\n"
+        "type: concepts\n"
+        "source: import/bad.md\n"
+        "date: 2026-08-07\n"
+        "---\n",
+        encoding="utf-8",
+    )
+    result = store.import_from_dir(src)
+    assert result.imported == 1 and result.failed == 1
+    assert result.failures[0][0] == "bad.md"
+    assert "卡片校验失败" in result.failures[0][1]
