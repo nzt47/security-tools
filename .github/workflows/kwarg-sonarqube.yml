@@ -40,8 +40,9 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          # 【不易】用户空间私有包（ghcr.io/nzt47/*）GITHUB_TOKEN 无法读取，需 PAT
+          username: nzt47
+          password: ${{ secrets.GHCR_TOKEN }}
 
       - name: 生成 SonarQube GIIF 报告
         id: scan
