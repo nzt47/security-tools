@@ -4,7 +4,7 @@
 # 适用于跨项目复用、CI 环境隔离、以及非 Python 主项目的场景。
 #
 # 镜像构建: docker build -t kwarg-scanner:latest ./packages/kwarg_scanner
-# 镜像推送: docker push ghcr.io/yunshu/kwarg-scanner:latest
+# 镜像推送: docker push ghcr.io/nzt47/kwarg-scanner:latest
 
 name: 关键字参数冲突扫描 (Docker)
 
@@ -36,14 +36,49 @@ on:
         type: string
 
 env:
-  # 镜像地址（优先使用 GHCR，回退到本地构建）
-  SCANNER_IMAGE: ghcr.io/yunshu/kwarg-scanner:latest
-  # 若 GHCR 镜像不可用，设置为 true 触发本地构建
-  BUILD_LOCALLY: 'true'
+  # 镜像地址（GHCR 私有仓库预构建镜像，避免 CI 每次本地构建）
+  SCANNER_IMAGE: ghcr.io/nzt47/kwarg-scanner:latest
+  # 拉取私有镜像需要 GHCR 登录；若 GHCR 镜像不可用，设置为 true 触发本地构建
+  BUILD_LOCALLY: 'false'
 
 jobs:
   # ============================================================================
+  # 镜像发布: 构建并推送 GHCR（仅 main 分支 / 手动触发）
+  # ============================================================================
+  publish-image:
+    name: 构建并推送镜像到 GHCR
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    # 【不易】GITHUB_TOKEN 默认 read-only，推 GHCR 必须显式授予 packages: write
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 构建并推送镜像
+        run: |
+          docker build \
+            -t ghcr.io/nzt47/kwarg-scanner:latest \
+            -t ghcr.io/nzt47/kwarg-scanner:1.0.0 \
+            -t ghcr.io/nzt47/kwarg-scanner:${{ github.sha }} \
+            ./packages/kwarg_scanner
+          docker push ghcr.io/nzt47/kwarg-scanner:latest
+          docker push ghcr.io/nzt47/kwarg-scanner:1.0.0
+          docker push ghcr.io/nzt47/kwarg-scanner:${{ github.sha }}
+          echo "✓ 镜像已推送到 GHCR"
+
+  # ============================================================================
   # 镜像准备: 登录 GHCR 或本地构建
+  # 注意: 不依赖 publish-image（PR 场景 publish-image 会跳过，此处需独立运行）
   # ============================================================================
   prepare-image:
     name: 准备扫描器镜像
@@ -79,7 +114,7 @@ jobs:
           echo "✓ 镜像构建完成"
           docker images kwarg-scanner
 
-      - name: 登录 GHCR（仅远程镜像模式）
+      - name: 登录 GHCR（拉取私有镜像）
         if: steps.decide.outputs.built_locally == 'false'
         uses: docker/login-action@v3
         with:

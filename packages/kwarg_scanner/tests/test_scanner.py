@@ -331,6 +331,32 @@ class TestSonarQubeReporter:
         data = json.loads(format_sonarqube_report(findings))
         assert data["issues"][0]["primaryLocation"]["filePath"] == "src/a.py"
 
+    def test_sonarqube_base_path_strip(self):
+        """容器场景: base_path 剥离扫描根前缀（/project/agent/x.py → agent/x.py）"""
+        findings = [
+            ConflictFinding(
+                file="/project/agent/x.py", lineno=1, col=0,
+                func_name="f", explicit_kwargs=["x"],
+                spread_expr="kwargs", risk_level="HIGH",
+                reason="test",
+            ),
+        ]
+        data = json.loads(format_sonarqube_report(findings, base_path="/project"))
+        assert data["issues"][0]["primaryLocation"]["filePath"] == "agent/x.py"
+
+    def test_sonarqube_base_path_no_match_keeps_original(self):
+        """base_path 不匹配时保留原路径"""
+        findings = [
+            ConflictFinding(
+                file="/workspace/src/a.py", lineno=1, col=0,
+                func_name="f", explicit_kwargs=["x"],
+                spread_expr="kwargs", risk_level="HIGH",
+                reason="test",
+            ),
+        ]
+        data = json.loads(format_sonarqube_report(findings, base_path="/project"))
+        assert data["issues"][0]["primaryLocation"]["filePath"] == "/workspace/src/a.py"
+
     def test_sonarqube_fix_message(self):
         """修复建议应拼接到 message"""
         findings = [

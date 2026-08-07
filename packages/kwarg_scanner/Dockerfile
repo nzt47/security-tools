@@ -28,7 +28,7 @@
 # 优化点: 基础镜像无 setuptools，pip 构建隔离会每次下载依赖（~34s）。
 #         本阶段预装构建依赖并生成 wheel，避免运行时重复下载。
 # ════════════════════════════════════════════════════════════
-FROM python:3.12-slim AS builder
+FROM python:3.12-alpine AS builder
 
 # 预装构建依赖（仅首次构建下载，后续利用层缓存）
 RUN pip install --no-cache-dir setuptools wheel
@@ -48,18 +48,19 @@ RUN pip wheel --no-cache-dir --no-build-isolation --no-deps \
 # ════════════════════════════════════════════════════════════
 # 阶段 2: runtime — 精简运行时，从本地 wheel 安装
 # ════════════════════════════════════════════════════════════
-FROM python:3.12-slim AS runtime
+FROM python:3.12-alpine AS runtime
 
 # OCI 标准标签
 LABEL org.opencontainers.image.title="kwarg-scanner" \
       org.opencontainers.image.description="Python 关键字参数冲突风险静态扫描器（CI 流水线专用镜像）" \
       org.opencontainers.image.version="1.0.0" \
-      org.opencontainers.image.source="https://github.com/yunshu/kwarg-scanner" \
+      org.opencontainers.image.source="https://github.com/nzt47/security-tools" \
       org.opencontainers.image.licenses="MIT" \
       org.opencontainers.image.usage="docker run --rm -v $(pwd):/project kwarg-scanner"
 
 # 创建非 root 用户（安全最佳实践）
-RUN groupadd -r scanner && useradd -r -g scanner -d /home/scanner -m scanner
+# alpine 使用 busybox 的 addgroup/adduser（slim 的 groupadd/useradd 不存在）
+RUN addgroup -S scanner && adduser -S -G scanner -s /sbin/nologin -D scanner
 
 # 设置工作目录（CI 挂载点）
 WORKDIR /project

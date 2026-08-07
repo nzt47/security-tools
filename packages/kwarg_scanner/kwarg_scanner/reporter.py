@@ -110,7 +110,7 @@ _TYPE_MAP = {
 }
 
 
-def format_sonarqube_report(findings: List[ConflictFinding]) -> str:
+def format_sonarqube_report(findings: List[ConflictFinding], base_path: str = None) -> str:
     """生成 SonarQube Generic Issue Import Format (GIIF) 报告
 
     生成的外部问题报告可直接通过 sonar-scanner 上传到 SonarQube，
@@ -118,6 +118,10 @@ def format_sonarqube_report(findings: List[ConflictFinding]) -> str:
 
     Args:
         findings: 冲突发现列表
+        base_path: 扫描根路径（可选）。容器场景下 findings 的 file 为
+            容器内绝对路径（如 /project/agent/x.py），传入挂载根
+            （如 /project）后剥离为 sonar.sources 相对路径（agent/x.py），
+            否则 SonarQube 无法将外部问题关联到已分析文件。
 
     Returns:
         str — GIIF JSON 字符串
@@ -127,6 +131,11 @@ def format_sonarqube_report(findings: List[ConflictFinding]) -> str:
         >>> findings = scan_directory("src/")
         >>> print(format_sonarqube_report(findings))
     """
+    # 规范化 base_path: 统一正斜杠 + 去尾斜杠
+    base = None
+    if base_path:
+        base = base_path.replace("\\", "/").rstrip("/")
+
     issues = []
     for f in findings:
         # 组装修复建议消息
@@ -134,8 +143,12 @@ def format_sonarqube_report(findings: List[ConflictFinding]) -> str:
         if f.suggested_fix:
             message = f"{message} 修复: {f.suggested_fix}"
 
-        # 路径规范化: 去除 ./ 前缀，统一正斜杠
+        # 路径规范化: 统一正斜杠
         file_path = f.file.replace("\\", "/")
+
+        # 剥离扫描根前缀（容器场景 /project → sonar.sources 相对路径）
+        if base and file_path.startswith(base + "/"):
+            file_path = file_path[len(base) + 1:]
         if file_path.startswith("./"):
             file_path = file_path[2:]
 

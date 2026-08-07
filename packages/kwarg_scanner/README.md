@@ -201,6 +201,10 @@ sonar-scanner -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.token=$SONAR_TOKEN
 | MEDIUM | MINOR             | BUG            |
 | LOW    | INFO              | CODE_SMELL     |
 
+> **路径规则**: Docker 场景下扫描根为挂载点 `/project`，GIIF 报告的 `filePath`
+> 会自动剥离该前缀（`/project/agent/x.py` → `agent/x.py`），与 `sonar.sources`
+> 的相对路径对齐，确保外部问题能关联到已分析文件。
+
 完整配置见 `packages/kwarg_scanner/sonar-project.properties` 与
 `.github/workflows/kwarg-sonarqube.yml`。
 

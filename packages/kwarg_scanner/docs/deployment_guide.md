@@ -258,13 +258,18 @@ pipeline {
 ### 4.4 使用预构建镜像（推荐，省去每次构建）
 
 ```bash
-# 1. 打标签并推送到私有 Registry
-docker tag kwarg-scanner:1.0.0 registry.example.com/tools/kwarg-scanner:1.0.0
-docker push registry.example.com/tools/kwarg-scanner:1.0.0
+# 1. 打标签并推送到 GHCR 私有仓库
+docker tag kwarg-scanner:1.0.0 ghcr.io/nzt47/kwarg-scanner:1.0.0
+docker login ghcr.io -u <username> --password-stdin
+docker push ghcr.io/nzt47/kwarg-scanner:1.0.0
 
-# 2. CI 直接拉取使用
-docker run --rm -v "$(pwd):/project" registry.example.com/tools/kwarg-scanner:1.0.0
+# 2. CI 直接拉取使用（私有仓库需先登录）
+docker login ghcr.io -u <username> --password-stdin
+docker run --rm -v "$(pwd):/project" ghcr.io/nzt47/kwarg-scanner:1.0.0
 ```
+
+> **镜像体积**: 优化后镜像约 87MB（`python:3.12-alpine` 基础镜像，多阶段构建）。
+> 详细构建性能分析见 [build_performance_report.md](./build_performance_report.md)。
 
 ---
 
@@ -314,6 +319,10 @@ docker run --rm -v "$(pwd):/project" \
 | HIGH   | MAJOR             | BUG            |
 | MEDIUM | MINOR             | BUG            |
 | LOW    | INFO              | CODE_SMELL     |
+
+> **路径规则**: 容器内扫描根为挂载点 `/project`，生成 GIIF 时 `filePath`
+> 自动剥离该前缀（`/project/src/x.py` → `src/x.py`），与 sonar-scanner
+> 分析的相对路径对齐，确保外部问题可关联到已分析文件。
 
 ### 5.3 通过 sonar-scanner 上传（CI 场景）
 

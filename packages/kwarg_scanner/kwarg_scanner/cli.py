@@ -101,7 +101,14 @@ def main(argv: List[str] = None) -> int:
     if args.format == "json":
         report = format_json_report(findings)
     elif args.format == "sonarqube":
-        report = format_sonarqube_report(findings)
+        # 容器场景: 扫描根为挂载点 /project（镜像契约），剥离后得到
+        # sonar.sources 相对路径（/project/agent/x.py → agent/x.py），
+        # 否则 SonarQube 无法关联外部问题到已分析文件。
+        base = None
+        norm_path = args.path.replace("\\", "/")
+        if norm_path.startswith("/project"):
+            base = "/project"
+        report = format_sonarqube_report(findings, base_path=base)
     else:
         report = format_text_report(findings)
 
