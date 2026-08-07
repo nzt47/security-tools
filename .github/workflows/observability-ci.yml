@@ -877,6 +877,11 @@ jobs:
           # 【不易】SKILLS_OFFLINE=1 与 ci.yml 一致：避免 transformers/sentence_transformers
           # 导入时递归扫描文件系统触发 timeout（conftest.py 的 _skills_offline_mode patch）
           SKILLS_OFFLINE: '1'
+          # 【变易】HF_ENDPOINT 覆盖代码默认 hf-mirror.com（agent 内 setdefault，不覆盖已设环境变量）：
+          # 2026-08-07 实测 GitHub runner 无法访问 hf-mirror.com → embedding 预热失败（init_failed）
+          # → 拖慢采样性能测试误报（990ms/746ms > 600ms）。官方源 huggingface.co 在 runner 可达。
+          # 若仍不可达，tests/stress/test_resource_leak.py 已加 HF_ENDPOINT 可达性检测自动 skip。
+          HF_ENDPOINT: 'https://huggingface.co'
         run: |
           echo "=== 运行全项目测试 Shard ${{ matrix.shard }}/6（SKILLS_OFFLINE=1，-n 2 并行）==="
           # 【变易】--root tests：调用扩展后的 split_unit_tests.py 扫描全 tests/
