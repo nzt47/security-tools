@@ -250,6 +250,11 @@ class Orchestrator:
 
         self._interaction_count += 1
 
+        # 会话 ID：kwargs 显式传参优先，回退实例全局 _session_id（并发安全）
+        # 修复：重构时 _sid 定义行丢失，仅剩 8 处引用（get_dialog_state/_learn_workflow 等），
+        #       导致 CI Shard 1/6、6/6 NameError: name '_sid' is not defined
+        _sid = kwargs.get("session_id") or getattr(self, "_session_id", None)
+
         # ── 路由可观测性: 初始化单次请求上下文（累积各层中间结果）──
         # 任务6: 所有 log_layer_result / emit_route_decision 共享此上下文
         RouteContext.init(trace_id)
