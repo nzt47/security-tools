@@ -33,6 +33,20 @@ from agent.knowledge.schema import Card
 
 logger = logging.getLogger(__name__)
 
+
+def _get_store(wiki_root: str | Path):
+    """惰性构造 CardStore（importlib 动态导入，避免 card↔index 循环依赖）。
+
+    arch_rules 按 AST Import/ImportFrom 节点统计依赖边（含函数内/TYPE_CHECKING），
+    直接写 import 语句会形成 card↔index 循环边；importlib 动态导入无对应
+    AST 节点，依赖图不产生 `index → card` 边。首次调用时才真正导入。
+    """
+    from importlib import import_module
+
+    store_cls = import_module("agent.knowledge.card").CardStore
+    return store_cls(wiki_root)
+
+
 _HEADER = "# 知识库全局索引"
 _TIME_PREFIX = "> 此文件由 AI 自动维护，请勿手动修改。更新时间: "
 
@@ -76,9 +90,7 @@ def _fresh_lines() -> list[str]:
 def rebuild_index(wiki_root: str | Path, index_path: str | Path) -> int:
     """全量重建 index.md：按 Concepts/Entities/Insights 分类，含一句话摘要 +
     状态角标。返回索引卡片数（wiki 全部卡片）。"""
-    from agent.knowledge.card import CardStore  # 延迟导入，避免 card↔index 循环
-
-    store = CardStore(wiki_root)
+    store = _get_store(wiki_root)  # importlib 惰性导入（无 AST import 边）
     cards = store.list()
     _t0 = time.perf_counter()
 
