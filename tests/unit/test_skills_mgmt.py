@@ -836,6 +836,284 @@ def _make_skill_match(skill_id, name=None, tokens=50):
     )
 
 
+class TestSensitiveSkillIsolation:
+    """敏感技能独立上下文窗口隔离测试
+
+    【不易】主上下文只声明敏感技能存在，不暴露其内容；
+            敏感技能使用说明必须走隔离注入（sensitive_contexts）
+    【变易】隔离策略由技能元数据 is_sensitive/isolation_strategy 驱动，
+            loader → SkillMatch → ContextInjector 全链路透传
+    """
+
+    # ── 混合场景 Mock 数据：敏感(safety-guard/secret-ops) + 普通(pdf-helper) ──
+
+    @pytest.fixture
+    def sensitive_loader(self, tmp_path):
+        """混合场景 Mock 数据：skill.md 落盘，走真实 loader.match 全链路
+
+        敏感技能：
+            - safety-guard  隔离策略 separate_session（安全审核）
+            - secret-ops    隔离策略 separate_agent（密钥操作）
+        普通技能：
+            - pdf-helper    走原注入流程
+        """
+        from agent.skills_mgmt.file_store import SkillFileStore, SkillMDParser
+
+        repo = tmp_path / "skills_repo"
+        skills = {
+            "safety-guard": {
+                "name": "安全审核",
+                "description": "安全审核与违规内容审查，含密钥操作，需独立上下文",
+                "is_sensitive": True,
+                "isolation_strategy": "separate_session",
+                "body": "## 安全审核步骤\n1. 检查\n2. 复核",
+            },
+            "secret-ops": {
+                "name": "密钥操作",
+                "description": "密钥生成与轮换操作，涉及敏感凭据",
+                "is_sensitive": True,
+                "isolation_strategy": "separate_agent",
+                "body": "## 密钥操作步骤\n1. 生成\n2. 轮换",
+            },
+            "pdf-helper": {
+                "name": "PDF 解析",
+                "description": "PDF 文档解析与文本提取",
+                "is_sensitive": False,
+                "body": "## PDF 解析步骤\n1. 读取\n2. 提取",
+            },
+        }
+        for sid, s in skills.items():
+            (repo / sid).mkdir(parents=True, exist_ok=True)
+            front = {
+                "id": sid,
+                "name": s["name"],
+                "description": s["description"],
+                "is_sensitive": s.get("is_sensitive", False),
+                "isolation_strategy": s.get("isolation_strategy", "separate_turn"),
+            }
+            (repo / sid / "skill.md").write_text(
+                SkillMDParser.serialize(front, body=s["body"]),
+                encoding="utf-8",
+            )
+        return SkillLoader(file_store=SkillFileStore(repo_path=str(repo)))
+
+    # ── Skill 模型 ──
+
+    def test_skill_model_sensitive_defaults(self):
+        from agent.skills_mgmt.models import Skill
+        skill = Skill(id="safety-guard", name="安全审核")
+        assert skill.is_sensitive is False
+        assert skill.isolation_strategy == "separate_turn"
+
+    def test_skill_model_sensitive_fields_settable(self):
+        from agent.skills_mgmt.models import Skill
+        skill = Skill(
+            id="safety-guard", name="安全审核",
+            is_sensitive=True, isolation_strategy="separate_agent",
+        )
+        assert skill.is_sensitive is True
+        assert skill.isolation_strategy == "separate_agent"
+
+    def test_skill_md_roundtrip_preserves_sensitive_fields(self):
+        """skill.md 序列化往返须保留敏感标记（守卫 file_store 白名单）"""
+        from agent.skills_mgmt.file_store import SkillMDParser
+        meta = {
+            "id": "safety-guard", "name": "安全审核",
+            "is_sensitive": True, "isolation_strategy": "separate_agent",
+        }
+        text = SkillMDParser.serialize(meta, body="# 说明")
+        parsed_meta, _ = SkillMDParser.parse(text)
+        assert parsed_meta["is_sensitive"] is True
+        assert parsed_meta["isolation_strategy"] == "separate_agent"
+
+    def test_agentskills_io_roundtrip_preserves_sensitive_fields(self):
+        """agentskills.io 标准格式往返须保留敏感标记（守卫 _YUNSHU_RESERVED_FIELDS）"""
+        from agent.skills_mgmt.file_store import SkillMDParser
+        meta = {
+            "id": "secret-ops", "name": "密钥操作",
+            "description": "密钥生成与轮换操作，涉及敏感凭据",
+            "is_sensitive": True, "isolation_strategy": "separate_agent",
+        }
+        text = SkillMDParser.to_agentskills_io(meta, body="## 密钥操作步骤\n1. 生成\n2. 轮换")
+        parsed = SkillMDParser.from_agentskills_io(text)
+        assert parsed["is_sensitive"] is True
+        assert parsed["isolation_strategy"] == "separate_agent"
+
+    # ── SkillMatch / loader 透传 ──
+
+    def test_skill_match_sensitive_defaults(self):
+        m = _make_skill_match("skill-a")
+        assert m.is_sensitive is False
+        assert m.isolation_strategy == "separate_turn"
+        d = m.to_dict()
+        assert d["is_sensitive"] is False
+        assert d["isolation_strategy"] == "separate_turn"
+
+    def test_loader_propagates_sensitive_flag(self, sensitive_loader):
+        result = sensitive_loader.match("审核 密钥 解析", top_k=5)
+        matches = {m.skill_id: m for m in result.matches}
+        assert matches["safety-guard"].is_sensitive is True
+        assert matches["safety-guard"].isolation_strategy == "separate_session"
+        assert matches["secret-ops"].is_sensitive is True
+        assert matches["pdf-helper"].is_sensitive is False
+        d = matches["safety-guard"].to_dict()
+        assert d["is_sensitive"] is True
+        assert d["isolation_strategy"] == "separate_session"
+
+    # ── inject_sensitive_skill 三策略 ──
+
+    @staticmethod
+    def _mock_injector(strategy):
+        from unittest.mock import MagicMock
+        loader = MagicMock()
+        loader.list_all_metadata.return_value = [{
+            "skill_id": "safety-guard", "isolation_strategy": strategy,
+        }]
+        instruction = "## 安全审核步骤\n1. 检查\n2. 复核"
+        loader.load_instruction.return_value = {
+            "skill_id": "safety-guard",
+            "instruction": instruction,
+            "estimated_tokens": estimate_tokens(instruction),
+            "instruction_chars": len(instruction),
+            "layer": 2,
+        }
+        return ContextInjector(loader=loader)
+
+    def test_inject_sensitive_skill_separate_turn(self):
+        injector = self._mock_injector("separate_turn")
+        result = injector.inject_sensitive_skill("safety-guard")
+        assert result["isolation_strategy"] == "separate_turn"
+        assert result["layer"] == "sensitive"
+        assert "安全审核步骤" in result["prompt"]
+        assert result["isolation"]["clear_after_turn"] is True
+        assert result["isolation"]["summary_only"] is False
+        assert result["isolation"]["session_key"] is None
+
+    def test_inject_sensitive_skill_separate_session(self):
+        injector = self._mock_injector("separate_session")
+        result = injector.inject_sensitive_skill("safety-guard")
+        assert result["isolation_strategy"] == "separate_session"
+        assert result["isolation"]["clear_after_turn"] is False
+        assert result["isolation"]["session_key"] is not None
+        assert result["isolation"]["session_key"].startswith("sens-safety-guard-")
+
+    def test_inject_sensitive_skill_separate_agent(self):
+        injector = self._mock_injector("separate_agent")
+        result = injector.inject_sensitive_skill("safety-guard")
+        assert result["isolation_strategy"] == "separate_agent"
+        assert result["isolation"]["summary_only"] is True
+        assert "独立 Agent" in result["prompt"]
+
+    # ── build_context 隔离分流 ──
+
+    def test_build_context_only_sensitive_declared_not_injected(
+            self, sensitive_loader):
+        """仅命中敏感技能时：主上下文只含存在声明，不含技能内容"""
+        injector = ContextInjector(loader=sensitive_loader)
+        ctx = injector.build_context("安全审核", top_k=5)
+
+        assert ctx["sensitive_declaration"]["text"]
+        assert "safety-guard" in ctx["prompt"]
+        # 技能使用说明（body 内容）绝不进入主上下文
+        assert "技能使用说明" not in ctx["prompt"]
+        skills = ctx["sensitive_declaration"]["skills"]
+        assert skills[0]["skill_id"] == "safety-guard"
+        assert skills[0]["isolation_strategy"] == "separate_session"
+        # 无显式请求时不产出隔离窗口
+        assert ctx["sensitive_contexts"] == []
+        assert ctx["layers"]["layer4_sensitive_isolation"] is False
+
+    def test_build_context_sensitive_instruction_isolated(self, sensitive_loader):
+        """skill_id 指向敏感技能时：使用说明进入隔离窗口，不进主 prompt"""
+        injector = ContextInjector(loader=sensitive_loader)
+        ctx = injector.build_context("安全审核", top_k=5, skill_id="safety-guard")
+
+        assert len(ctx["sensitive_contexts"]) == 1
+        sens = ctx["sensitive_contexts"][0]
+        assert sens["skill_id"] == "safety-guard"
+        assert sens["isolation_strategy"] == "separate_session"
+        # 隔离内容在敏感上下文，主 prompt 仅声明存在
+        assert "敏感技能隔离上下文" in sens["prompt"]
+        assert "安全审核步骤" in sens["prompt"]
+        assert "敏感技能隔离上下文" not in ctx["prompt"]
+        assert "安全审核步骤" not in ctx["prompt"]
+        assert ctx["layers"]["layer4_sensitive_isolation"] is True
+
+    def test_build_context_mixed_sensitive_and_normal(self, sensitive_loader):
+        """混合场景：敏感技能仅声明隔离，普通技能走原注入流程"""
+        injector = ContextInjector(loader=sensitive_loader)
+        ctx = injector.build_context("审核 PDF 解析", top_k=5)
+
+        # 普通技能 pdf-helper 正常注入元数据（原流程不变）
+        assert "pdf-helper" in ctx["prompt"]
+        assert ctx["layers"]["layer1_metadata"] is True
+        # 敏感技能仅声明，其内容不在主上下文
+        assert "safety-guard" in ctx["sensitive_declaration"]["text"]
+        assert "技能使用说明" not in ctx["prompt"]
+        # 边界声明仅统计普通技能已加载
+        bd = ctx["boundary_declaration"]
+        assert "pdf-helper" in bd["loaded"]
+        # 敏感技能不进入边界声明的已加载列表
+        assert "safety-guard" not in bd["loaded"]
+
+    def test_build_context_mixed_strategy_declaration(self, sensitive_loader):
+        """混合场景：两个敏感技能按各自策略声明，主上下文不含任何敏感内容"""
+        injector = ContextInjector(loader=sensitive_loader)
+        ctx = injector.build_context("审核 密钥 解析", top_k=5)
+
+        skills = {s["skill_id"]: s for s in ctx["sensitive_declaration"]["skills"]}
+        assert set(skills.keys()) == {"safety-guard", "secret-ops"}
+        assert skills["safety-guard"]["isolation_strategy"] == "separate_session"
+        assert skills["secret-ops"]["isolation_strategy"] == "separate_agent"
+        # 主上下文不含敏感技能 body 内容
+        assert "密钥操作步骤" not in ctx["prompt"]
+        assert "安全审核步骤" not in ctx["prompt"]
+
+    def test_separate_agent_cross_session_isolation(self, sensitive_loader):
+        """separate_agent 跨会话：每次调用独立 session_key，主上下文无状态残留
+
+        【不易】隔离内容不进主上下文：连续两轮 build_context 均不含敏感 body；
+               且隔离 tokens 独立预算，不计入主上下文 total_tokens
+        【变易】separate_agent 每次调用 = 一次独立 Agent 调用（session_key 不同），
+               跨会话互不污染（无缓存 / 无共享窗口）
+        """
+        injector = ContextInjector(loader=sensitive_loader)
+
+        # 会话 A：显式请求敏感技能 → 独立 Agent 隔离窗口
+        ctx_a = injector.build_context("密钥操作", top_k=5, skill_id="secret-ops")
+        assert ctx_a["layers"]["layer4_sensitive_isolation"] is True
+        sens_a = ctx_a["sensitive_contexts"][0]
+        assert sens_a["skill_id"] == "secret-ops"
+        assert sens_a["isolation_strategy"] == "separate_agent"
+        assert sens_a["isolation"]["summary_only"] is True
+        assert sens_a["isolation"]["clear_after_turn"] is False
+        key_a = sens_a["isolation"]["session_key"]
+        assert key_a.startswith("sens-secret-ops-")
+        # 会话 A 主上下文干净，隔离窗口含完整说明
+        assert "密钥操作步骤" not in ctx_a["prompt"]
+        assert "密钥操作步骤" in sens_a["prompt"]
+
+        # 会话 B：模拟跨会话的下一轮调用 → 新的独立 Agent 会话
+        ctx_b = injector.build_context("密钥操作", top_k=5, skill_id="secret-ops")
+        sens_b = ctx_b["sensitive_contexts"][0]
+        key_b = sens_b["isolation"]["session_key"]
+        assert key_b.startswith("sens-secret-ops-")
+        assert key_b != key_a  # 跨会话不共享隔离会话（每次独立 Agent 调用）
+        assert sens_b["isolation"]["summary_only"] is True
+        assert "密钥操作步骤" not in ctx_b["prompt"]
+        assert "密钥操作步骤" in sens_b["prompt"]
+
+        # 会话 A 的结果不泄漏到会话 B：隔离窗口独立（无共享 session / 主上下文干净）
+        assert ctx_b["sensitive_contexts"][0]["skill_id"] == "secret-ops"
+        assert "安全审核步骤" not in ctx_b["prompt"]  # 他敏感技能 body 不进主上下文
+        assert "密钥操作步骤" not in ctx_b["prompt"]
+        # 隔离 tokens 独立预算：主上下文 total_tokens 不含隔离窗口
+        assert ctx_a["total_tokens"] < ctx_a["budget"]
+        assert ctx_b["total_tokens"] < ctx_b["budget"]
+        # summary_only 贯穿两次调用（独立 Agent 结果仅以摘要返回主 Agent）
+        assert sens_a["isolation"]["summary_only"] == sens_b["isolation"]["summary_only"] is True
+
+
 class TestContextInjectorBoundaryDeclaration:
     """ContextInjector.inject_metadata 技能边界声明（防幻觉）测试"""
 

@@ -152,7 +152,9 @@ class SkillsMgmtService:
         # 白名单字段
         allowed = {"name", "description", "tags", "content", "content_type",
                    "config_schema", "default_params", "dependencies",
-                   "author", "enabled"}
+                   "author", "enabled",
+                   # [变易] 敏感技能隔离字段透传（create/update 双向闭环）
+                   "is_sensitive", "isolation_strategy"}
         for k, v in patch.items():
             if k in allowed:
                 data[k] = v

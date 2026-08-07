@@ -199,6 +199,14 @@ class Skill(BaseModel):
     tags: List[str] = Field(default_factory=list)
     status: SkillStatus = SkillStatus.DRAFT
     enabled: bool = True
+    # [变易] 敏感技能隔离 — 独立上下文窗口，防止认知污染
+    is_sensitive: bool = Field(
+        False, description="是否为敏感技能（独立上下文隔离）"
+    )
+    isolation_strategy: str = Field(
+        "separate_turn",
+        description="隔离策略: separate_turn | separate_session | separate_agent",
+    )
 
     # 版本
     version: str = "0.1.0"

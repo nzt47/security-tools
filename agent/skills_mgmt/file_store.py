@@ -75,6 +75,8 @@ _META_FIELDS = {
     "enabled", "status", "author", "source", "source_url",
     "content_type", "default_params", "dependencies",
     "config_schema", "output_schema",
+    # [变易] 敏感技能隔离字段（须持久化，否则 skill.md 往返丢失标记）
+    "is_sensitive", "isolation_strategy",
 }
 
 
@@ -178,6 +180,8 @@ class SkillMDParser:
         "category", "content_type", "default_params",
         "dependencies", "config_schema", "output_schema",
         "source", "source_url", "enabled", "status",
+        # [变易] 敏感标记须在 agentskills.io 往返中保留（安全边界守不易）
+        "is_sensitive", "isolation_strategy",
     )
 
     @classmethod

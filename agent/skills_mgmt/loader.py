@@ -132,7 +132,10 @@ class SkillMatch:
                  category: str = "", tags: Optional[List[str]] = None,
                  version: str = "", enabled: bool = True,
                  # 以下为预留扩展字段，向后兼容（默认 None 不影响现有调用）
-                 score_breakdown: Optional[Dict[str, Any]] = None):
+                 score_breakdown: Optional[Dict[str, Any]] = None,
+                 # [变易] 敏感技能隔离扩展字段（默认 False 不影响现有调用）
+                 is_sensitive: bool = False,
+                 isolation_strategy: str = "separate_turn"):
         self.skill_id = skill_id
         self.name = name
         self.description = description
@@ -145,6 +148,9 @@ class SkillMatch:
         # 预留：未来多路检索（tfidf/vector/bm25）的分项得分
         # 示例: {"tfidf": 0.8, "vector": 0.9}，当前 TF-IDF 不填充
         self.score_breakdown = score_breakdown
+        # [变易] 敏感技能隔离标记（ContextInjector 分流依据）
+        self.is_sensitive = is_sensitive
+        self.isolation_strategy = isolation_strategy
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -158,6 +164,8 @@ class SkillMatch:
             "version": self.version,
             "enabled": self.enabled,
             "score_breakdown": self.score_breakdown,
+            "is_sensitive": self.is_sensitive,
+            "isolation_strategy": self.isolation_strategy,
         }
 
 
@@ -378,6 +386,8 @@ class SkillLoader:
                 tags=meta.get("tags", []),
                 version=meta.get("version", ""),
                 enabled=meta.get("enabled", True),
+                is_sensitive=bool(meta.get("is_sensitive", False)),
+                isolation_strategy=meta.get("isolation_strategy", "separate_turn"),
             ))
         return matches
 
@@ -772,6 +782,8 @@ class SkillLoader:
                 tags=meta.get("tags", []),
                 version=meta.get("version", ""),
                 enabled=meta.get("enabled", True),
+                is_sensitive=bool(meta.get("is_sensitive", False)),
+                isolation_strategy=meta.get("isolation_strategy", "separate_turn"),
             ))
 
         if not matches:
@@ -902,6 +914,8 @@ class SkillLoader:
                 version=meta.get("version", ""),
                 enabled=meta.get("enabled", True),
                 score_breakdown={"bm25_raw": round(r.score, 4)},
+                is_sensitive=bool(meta.get("is_sensitive", False)),
+                isolation_strategy=meta.get("isolation_strategy", "separate_turn"),
             ))
 
         logger.info(json.dumps({
@@ -1056,6 +1070,8 @@ class SkillLoader:
                     "rrf_score": round(info["rrf_score"], 6),
                     "rrf_normalized": round(normalized_score, 4),
                 },
+                is_sensitive=m.is_sensitive,
+                isolation_strategy=m.isolation_strategy,
             ))
 
         # 按 RRF 归一化分数降序
@@ -1403,6 +1419,8 @@ class SkillLoader:
                 version=m.version,
                 enabled=m.enabled,
                 score_breakdown=breakdown,
+                is_sensitive=m.is_sensitive,
+                isolation_strategy=m.isolation_strategy,
             ))
 
         result.sort(key=lambda x: x.score, reverse=True)
@@ -1542,6 +1560,8 @@ class SkillLoader:
                         tags=meta.get("tags", []),
                         version=meta.get("version", ""),
                         enabled=meta.get("enabled", True),
+                        is_sensitive=bool(meta.get("is_sensitive", False)),
+                        isolation_strategy=meta.get("isolation_strategy", "separate_turn"),
                     ))
             except Exception as e:  # noqa: BLE001
                 logger.warning(json.dumps({
@@ -1848,6 +1868,8 @@ class SkillLoader:
                         version=orig_match.version,
                         enabled=orig_match.enabled,
                         score_breakdown=new_breakdown,
+                        is_sensitive=orig_match.is_sensitive,
+                        isolation_strategy=orig_match.isolation_strategy,
                     ))
                 retrieval_method = "rrf_rerank"
                 logger.info(json.dumps({

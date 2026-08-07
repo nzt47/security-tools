@@ -10,9 +10,14 @@
     - inject_metadata(matches): 第一层 — 将匹配技能的元数据注入系统提示词
       末尾追加技能边界声明（防幻觉：告知 LLM 已加载/未加载的技能范围）
     - inject_instruction(skill_id): 第二层 — 按需注入完整使用说明
+    - (FewShotInjector.inject): 第二层半 — 可选注入 Dynamic Few-shot 成功案例
+      （替代 SFT 微调；Layer 2 之后按需注入，宁缺毋滥）
+    - inject_sensitive_skill(skill_id): 敏感层 — 敏感技能独立上下文窗口隔离注入
+      （separate_turn / separate_session / separate_agent 三策略，防认知污染）
     - inject_result(execution_result): 第三层 — 注入脚本执行结果
-    - build_context(intent, max_tokens): 一站式构建上下文（三层联动）
-      返回值包含 boundary_declaration 字段，透传自 inject_metadata
+    - build_context(intent, max_tokens): 一站式构建上下文（三层联动 + 敏感隔离分流）
+      返回值包含 boundary_declaration 字段，透传自 inject_metadata；
+      敏感技能仅以 sensitive_declaration 声明存在，隔离内容在 sensitive_contexts
 
 token 预算管理:
     - 第一层: 每技能约 100 token，可一次注入多个
@@ -366,16 +371,16 @@ class ContextInjector:
     """
 
     def __init__(self, loader: Optional[SkillLoader] = None,
-                 *, meta_budget: int = _DEFAULT_META_BUDGET,
+                 *,
+                 meta_budget: int = _DEFAULT_META_BUDGET,
                  instr_budget: int = _DEFAULT_INSTR_BUDGET,
                  result_budget: int = _DEFAULT_RESULT_BUDGET,
+                 # [变易] Layer 2.5 Dynamic Few-shot（可选，缺省自动创建）
                  few_shot_injector: Optional[FewShotInjector] = None):
         self.loader = loader or SkillLoader()
         self.meta_budget = meta_budget
         self.instr_budget = instr_budget
         self.result_budget = result_budget
-        # [变易] Dynamic Few-shot（Layer 2.5）：可选注入成功案例，替代 SFT 微调
-        # 缺省自动构造；无示例库 / 数据不足 / 评分不达标时不注入，不影响主流程（守不易）
         self._few_shot_injector = few_shot_injector or FewShotInjector()
 
     # ──────────────────────────────────────────────
@@ -540,6 +545,50 @@ class ContextInjector:
         }
 
     # ──────────────────────────────────────────────
+    #  敏感层：敏感技能隔离声明（主上下文仅声明存在）
+    # ──────────────────────────────────────────────
+
+    def _build_sensitive_declaration(
+        self, sensitive_matches: List[SkillMatch], *, trace_id: str = ""
+    ) -> Dict[str, Any]:
+        """构建敏感技能隔离声明（主上下文仅声明存在，不暴露内容）
+
+        [不易] 只出现技能 ID 与隔离策略，不出现 description / instruction，
+                防止敏感技能内容进入主上下文造成认知污染。
+        Returns: {text, tokens, skills: [{skill_id, name, isolation_strategy}]}
+        """
+        empty = {"text": "", "tokens": 0, "skills": []}
+        if not sensitive_matches:
+            return empty
+
+        lines = ["## 敏感技能隔离声明"]
+        lines.append("以下敏感技能已识别，其内容运行在独立上下文窗口中，不注入主上下文：")
+        skills = []
+        for m in sensitive_matches:
+            skills.append({
+                "skill_id": m.skill_id,
+                "name": m.name,
+                "isolation_strategy": m.isolation_strategy,
+            })
+            lines.append(f"- `{m.skill_id}`（隔离策略: {m.isolation_strategy}）")
+        lines.append("")
+        lines.append("如需使用敏感技能，请通过其隔离上下文显式调用；主上下文不承载其内容。")
+
+        text = "\n".join(lines)
+        tokens = estimate_tokens(text)
+
+        if trace_id:
+            logger.info(json.dumps({
+                "trace_id": trace_id,
+                "module_name": "context_injector",
+                "action": "sensitive_decl.built",
+                "sensitive_count": len(skills),
+                "estimated_tokens": tokens,
+            }, ensure_ascii=False))
+
+        return {"text": text, "tokens": tokens, "skills": skills}
+
+    # ──────────────────────────────────────────────
     #  第二层：使用说明注入
     # ──────────────────────────────────────────────
 
@@ -628,6 +677,109 @@ class ContextInjector:
             "estimated_tokens": est_tokens,
             "truncated": truncated,
             "layer": 2,
+        }
+
+    # ──────────────────────────────────────────────
+    #  敏感层：敏感技能独立上下文窗口隔离注入
+    # ──────────────────────────────────────────────
+
+    _VALID_ISOLATION_STRATEGIES = (
+        "separate_turn", "separate_session", "separate_agent",
+    )
+
+    def inject_sensitive_skill(self, skill_id: str) -> Dict[str, Any]:
+        """敏感技能隔离注入 — 独立上下文窗口，防止认知污染
+
+        策略（由技能元数据 isolation_strategy 驱动，非法值回退 separate_turn）:
+            - separate_turn:   当前轮次独立注入，下一轮次清除
+            - separate_session: 独立会话，技能上下文不进入主会话历史
+            - separate_agent:  独立 Agent 调用，结果以 JSON 摘要返回主 Agent
+
+        [不易] 隔离内容只进入敏感上下文窗口，绝不并入主 prompt；
+              主上下文仅由 build_context 的 _build_sensitive_declaration 声明存在。
+
+        Returns: {prompt, skill_id, isolation_strategy, estimated_tokens,
+                  isolation: {strategy, hint, session_key, summary_only,
+                              clear_after_turn}, layer}
+        """
+        t0 = time.time()
+        tid = _trace_id()
+
+        # 1. 读取隔离策略（元数据缺失/非法 → 回退 separate_turn）
+        strategy = "separate_turn"
+        for meta in self.loader.list_all_metadata():
+            if meta.get("skill_id") == skill_id:
+                raw = meta.get("isolation_strategy")
+                if raw in self._VALID_ISOLATION_STRATEGIES:
+                    strategy = raw
+                else:
+                    logger.warning(json.dumps({
+                        "trace_id": tid,
+                        "module_name": "context_injector",
+                        "action": "inject_sensitive_skill.invalid_strategy",
+                        "skill_id": skill_id,
+                        "raw_strategy": raw,
+                        "fallback": "separate_turn",
+                    }, ensure_ascii=False))
+                break
+
+        # 2. 加载使用说明（隔离窗口内注入，不进主上下文）
+        instr_data = self.loader.load_instruction(skill_id)
+        instruction = instr_data["instruction"]
+        est_tokens = instr_data["estimated_tokens"]
+
+        # 3. 按策略构造隔离提示
+        strategy_hints = {
+            "separate_turn": "本窗口仅在当前轮次有效，下一轮次自动清除",
+            "separate_session": "本窗口为独立会话，内容不进入主会话历史",
+            "separate_agent": "本窗口由独立 Agent 调用，结果以 JSON 摘要返回主 Agent",
+        }
+        hint = strategy_hints[strategy]
+        summary_only = strategy == "separate_agent"
+        clear_after_turn = strategy == "separate_turn"
+        session_key = (
+            None if strategy == "separate_turn"
+            else f"sens-{skill_id}-{uuid.uuid4().hex[:8]}"
+        )
+
+        prompt = (
+            f"## 敏感技能隔离上下文：{skill_id}\n\n"
+            f"{instruction}\n\n[隔离策略] {hint}"
+        )
+
+        elapsed = (time.time() - t0) * 1000
+        logger.info(json.dumps({
+            "trace_id": tid,
+            "module_name": "context_injector",
+            "action": "inject_sensitive_skill.ok",
+            "duration_ms": round(elapsed, 2),
+            "layer": "sensitive",
+            "skill_id": skill_id,
+            "isolation_strategy": strategy,
+            "summary_only": summary_only,
+            "clear_after_turn": clear_after_turn,
+            "session_key": session_key,
+            "estimated_tokens": est_tokens,
+        }, ensure_ascii=False))
+
+        emit_metric("yunshu_skill_sensitive_inject_tokens",
+                    value=est_tokens, kind="histogram",
+                    labels={"skill_id": skill_id,
+                            "isolation_strategy": strategy})
+
+        return {
+            "prompt": prompt,
+            "skill_id": skill_id,
+            "isolation_strategy": strategy,
+            "estimated_tokens": est_tokens,
+            "isolation": {
+                "strategy": strategy,
+                "hint": hint,
+                "session_key": session_key,
+                "summary_only": summary_only,
+                "clear_after_turn": clear_after_turn,
+            },
+            "layer": "sensitive",
         }
 
     # ──────────────────────────────────────────────
@@ -814,12 +966,12 @@ class ContextInjector:
                       top_k: int = 5,
                       auto_load_instruction: bool = False,
                       skill_id: Optional[str] = None) -> Dict[str, Any]:
-        """一站式构建上下文（三层联动 + Layer 2.5 Few-shot 可选）
+        """一站式构建上下文（三层联动）
 
         流程:
             1. 第一层: match(intent) → 匹配技能元数据
             2. 第二层: 如指定 skill_id 或 auto_load_instruction=True → 加载使用说明
-            2.5 第二层半: 有目标技能时可选注入 Dynamic Few-shot 成功案例
+            2.5 第二层半: Layer 2 之后按需注入 Dynamic Few-shot 成功案例（可选）
             3. 第三层: （不在此方法执行，需显式调用 execute + inject_result）
 
         Args:
@@ -829,7 +981,8 @@ class ContextInjector:
             auto_load_instruction: 是否自动加载最高分技能的使用说明
             skill_id: 指定加载某技能的使用说明
 
-        Returns: {intent, layers: {layer1, layer2?}, total_tokens, prompts}
+        Returns: {intent, layers: {layer1, layer2, layer2_5?, layer3},
+                  total_tokens, prompts}
         """
         t0 = time.time()
         tid = _trace_id()
@@ -848,15 +1001,38 @@ class ContextInjector:
 
         prompts = []
         total_tokens = 0
-        fewshot_injected = False  # Layer 2.5 Dynamic Few-shot 是否注入
+        has_instruction = False  # 第二层：是否已注入使用说明
+        fewshot_injected = False  # Layer 2.5: Dynamic Few-shot 是否注入
         boundary_declaration: Dict[str, Any] = {
             "text": "", "tokens": 0, "loaded": [], "unloaded": []
         }
 
         # 第一层：元数据匹配
         match_result = self.loader.match(intent, top_k=top_k)
-        if match_result.matches:
-            meta_ctx = self.inject_metadata(match_result.matches)
+
+        # [不易] 敏感技能隔离分流：敏感技能不注入主上下文，仅声明存在，
+        #        防止安全审核/密钥操作等技能内容污染主上下文认知
+        sensitive_matches = [
+            m for m in match_result.matches
+            if getattr(m, "is_sensitive", False)
+        ]
+        normal_matches = [
+            m for m in match_result.matches
+            if not getattr(m, "is_sensitive", False)
+        ]
+        sensitive_ids = {m.skill_id for m in sensitive_matches}
+
+        # 敏感技能隔离声明（主上下文仅声明存在，不暴露内容）
+        sensitive_declaration = self._build_sensitive_declaration(
+            sensitive_matches, trace_id=tid)
+        sensitive_contexts: List[Dict[str, Any]] = []
+        # [变易] target_id 提前计算：敏感隔离注入需在 normal_matches 为空时也可用
+        target_id = skill_id or (
+            match_result.matches[0].skill_id if auto_load_instruction else None
+        )
+
+        if normal_matches:
+            meta_ctx = self.inject_metadata(normal_matches)
             prompts.append(meta_ctx["prompt"])
             total_tokens += meta_ctx["estimated_tokens"]
             # 透传边界声明（防幻觉）
@@ -868,7 +1044,8 @@ class ContextInjector:
                 "trace_id": tid,
                 "module_name": "context_injector",
                 "action": "build_context.layer1_done",
-                "match_count": len(match_result.matches),
+                "match_count": len(normal_matches),
+                "sensitive_match_count": len(sensitive_matches),
                 "layer1_tokens": meta_ctx["estimated_tokens"],
                 "boundary_passthrough": {
                     "text_len": len(boundary_declaration.get("text", "")),
@@ -878,16 +1055,15 @@ class ContextInjector:
                 },
             }, ensure_ascii=False))
 
-            # 第二层：按需加载使用说明
-            target_id = skill_id or (
-                match_result.matches[0].skill_id if auto_load_instruction else None
-            )
-            if target_id and total_tokens < max_tokens:
+            # 第二层：按需加载使用说明（普通技能走原注入流程）
+            # [不易] 敏感技能使用说明走隔离注入（sensitive_contexts），不进入主 prompt
+            if target_id and target_id not in sensitive_ids and total_tokens < max_tokens:
                 try:
                     instr_ctx = self.inject_instruction(target_id)
                     if total_tokens + instr_ctx["estimated_tokens"] <= max_tokens:
                         prompts.append(instr_ctx["prompt"])
                         total_tokens += instr_ctx["estimated_tokens"]
+                        has_instruction = True
                         # 关键分支日志：Layer 2 instruction 加载成功
                         logger.info(json.dumps({
                             "trace_id": tid,
@@ -918,9 +1094,11 @@ class ContextInjector:
                         "error": str(e),
                     }, ensure_ascii=False))
 
-            # 第二层半：Dynamic Few-shot 可选注入（替代 SFT 微调）
-            # 【不易】无目标技能 / 无示例库 / 评分不达标 / 预算不足 → 不注入主流程不受影响
-            if target_id and total_tokens < max_tokens:
+            # Layer 2.5: Dynamic Few-shot（可选，替代 SFT 微调）
+            # 在 Layer 2 使用说明注入后按需注入最匹配的成功案例；
+            # 失败/无示例均不影响主流程（宁缺毋滥）。
+            # [不易] 敏感技能跳过 few-shot（其隔离窗口不承载主上下文示例）
+            if target_id and target_id not in sensitive_ids and total_tokens < max_tokens:
                 try:
                     fewshot_ctx = self._few_shot_injector.inject(
                         target_id, intent,
@@ -936,9 +1114,10 @@ class ContextInjector:
                             "action": "build_context.layer2_5_done",
                             "skill_id": target_id,
                             "fewshot_tokens": fewshot_ctx["estimated_tokens"],
-                            "injected_count": len(fewshot_ctx["examples"]),
+                            "fewshot_examples": len(fewshot_ctx["examples"]),
                             "cumulative_tokens": total_tokens,
                             "budget": max_tokens,
+                            "remaining_budget": max_tokens - total_tokens,
                         }, ensure_ascii=False))
                 except Exception as e:  # noqa: BLE001 注入失败不影响主流程
                     logger.warning(json.dumps({
@@ -956,8 +1135,51 @@ class ContextInjector:
                 "action": "build_context.no_match",
                 "intent": intent[:100],
                 "top_k": top_k,
+                "sensitive_match_count": len(sensitive_matches),
                 "boundary_state": "empty_default",
                 "reason": "no_match_skipped_inject_metadata",
+            }, ensure_ascii=False))
+
+        # [不易] 敏感技能隔离注入与 normal_matches 解耦：
+        #       纯敏感场景（无普通技能匹配）同样产出隔离窗口；
+        #       隔离窗口独立预算，token 不计入主上下文 total_tokens
+        if target_id and target_id in sensitive_ids and total_tokens < max_tokens:
+            try:
+                sens_ctx = self.inject_sensitive_skill(target_id)
+                sensitive_contexts.append(sens_ctx)
+                logger.info(json.dumps({
+                    "trace_id": tid,
+                    "module_name": "context_injector",
+                    "action": "build_context.sensitive_isolated",
+                    "skill_id": target_id,
+                    "isolation_strategy": sens_ctx["isolation_strategy"],
+                    "isolated_tokens": sens_ctx["estimated_tokens"],
+                    "session_key": sens_ctx["isolation"].get("session_key"),
+                }, ensure_ascii=False))
+            except SkillNotFoundError as e:
+                logger.warning(json.dumps({
+                    "trace_id": tid,
+                    "module_name": "context_injector",
+                    "action": "build_context.sensitive_skill_not_found",
+                    "skill_id": target_id,
+                    "error": str(e),
+                }, ensure_ascii=False))
+
+        # 敏感技能仅声明存在（防认知污染：主上下文不含其内容）
+        if sensitive_declaration["text"]:
+            prompts.append(sensitive_declaration["text"])
+            total_tokens += sensitive_declaration["tokens"]
+            logger.info(json.dumps({
+                "trace_id": tid,
+                "module_name": "context_injector",
+                "action": "build_context.sensitive_declared",
+                "sensitive_count": len(sensitive_matches),
+                "declaration_tokens": sensitive_declaration["tokens"],
+                "strategy_map": [
+                    {"skill_id": s["skill_id"],
+                     "isolation_strategy": s["isolation_strategy"]}
+                    for s in sensitive_declaration["skills"]
+                ],
             }, ensure_ascii=False))
 
         elapsed = (time.time() - t0) * 1000
@@ -980,6 +1202,8 @@ class ContextInjector:
             "total_tokens": total_tokens,
             "budget": max_tokens,
             "match_count": len(match_result.matches),
+            "sensitive_match_count": len(sensitive_matches),
+            "sensitive_context_count": len(sensitive_contexts),
             "has_instruction": len(prompts) > 1,
             "boundary_tokens": boundary_declaration.get("tokens", 0),
             "loaded_count": len(boundary_declaration.get("loaded", [])),
@@ -1006,12 +1230,17 @@ class ContextInjector:
             "total_tokens": total_tokens,
             "budget": max_tokens,
             "layers": {
-                "layer1_metadata": len(match_result.matches) > 0,
-                "layer2_instruction": len(prompts) > 1,
+                "layer1_metadata": len(normal_matches) > 0,
+                "layer2_instruction": has_instruction,
                 "layer2_5_fewshot": fewshot_injected,
                 "layer3_execution": False,  # 需显式调用
+                # [变易] 敏感技能隔离层：sensitive_contexts 非空说明已产出隔离窗口
+                "layer4_sensitive_isolation": bool(sensitive_contexts),
             },
             "boundary_declaration": boundary_declaration,
+            # [变易] 敏感技能隔离：主上下文仅含存在声明，隔离内容在 sensitive_contexts
+            "sensitive_declaration": sensitive_declaration,
+            "sensitive_contexts": sensitive_contexts,
             "elapsed_ms": round(elapsed, 2),
             # [变易] 可观测性扩展字段：透传 retrieved_chunks 供上游 traced_action 上报
             "retrieved_chunks": retrieved_chunks,
