@@ -152,6 +152,15 @@ jobs:
         run: |
           docker build -t kwarg-scanner:local ./packages/kwarg_scanner
 
+      # 【不易】每个 job 独立 runner，prepare-image 的登录不共享；私有镜像需重新登录
+      - name: 登录 GHCR（拉取私有镜像）
+        if: needs.prepare-image.outputs.built_locally == 'false'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: nzt47
+          password: ${{ secrets.GHCR_TOKEN }}
+
       - name: 运行 HIGH 风险扫描
         id: scan
         run: |
@@ -221,6 +230,15 @@ jobs:
         run: |
           docker build -t kwarg-scanner:local ./packages/kwarg_scanner
 
+      # 【不易】每个 job 独立 runner，prepare-image 的登录不共享；私有镜像需重新登录
+      - name: 登录 GHCR（拉取私有镜像）
+        if: needs.prepare-image.outputs.built_locally == 'false'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: nzt47
+          password: ${{ secrets.GHCR_TOKEN }}
+
       - name: 运行 MEDIUM 风险扫描
         run: |
           echo "=== Docker 容器内运行 MEDIUM 风险扫描 ==="
@@ -278,6 +296,15 @@ jobs:
         if: needs.prepare-image.outputs.built_locally == 'true'
         run: |
           docker build -t kwarg-scanner:local ./packages/kwarg_scanner
+
+      # 【不易】每个 job 独立 runner，prepare-image 的登录不共享；私有镜像需重新登录
+      - name: 登录 GHCR（拉取私有镜像）
+        if: needs.prepare-image.outputs.built_locally == 'false'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: nzt47
+          password: ${{ secrets.GHCR_TOKEN }}
 
       - name: 运行自定义扫描
         run: |
