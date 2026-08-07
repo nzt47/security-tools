@@ -1,0 +1,155 @@
+# 发布前自动检查（Pre-Release Checklist）
+#
+# 【不易】发布动作由 git tag 驱动，本工作流在打 tag 前手动运行，逐项核对 release_checklist.md 中
+#         可自动化的检查项（A 前置 / B 密钥 / C 建 tag 约束），任一 ❌ 即阻断（exit 1）
+# 【变易】workflow_dispatch 手动触发，输入 version；检查结果写入 Step Summary 表格与 fail_count 输出
+# 【简易】单 job 单 step 内联 bash，逐项容错（不用 set -e，避免一项失败中断后续检查）
+#
+# 用法：Actions → 发布前检查 → Run workflow → 填 version（如 v1.1.0）
+# 配套文档：docs/release_checklist.md（完整手动清单，本工作流只覆盖可自动化的部分）
+#
+# 检查项对应关系：
+#   1  版本号格式            → checklist A「版本号确认」
+#   2  master 与远端同步     → checklist A「本地 pull 同步」
+#   3  tag 尚未创建          → checklist C「建 tag」前置
+#   4  上一版本 tag 可确定   → checklist A（首发布需手工确认备注生成）
+#   5  CHANGELOG 含版本号    → checklist A「CHANGELOG 确认」
+#   6  GITEE_TOKEN 已配置    → checklist B「密钥」
+#   7  已存在 tag 的 guard 判定 → checklist C「commit message 前缀」
+
+name: 发布前检查
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '待发布版本号（如 v1.1.0）'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read   # 查询 HEAD 的 CI check-runs 用
+
+jobs:
+  precheck:
+    name: 发布前自动检查（Pre-Release Checklist）
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      fail_count: ${{ steps.run.outputs.fail_count }}
+      warn_count: ${{ steps.run.outputs.warn_count }}
+    steps:
+      - name: 检出代码（含 tag 历史）
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: 运行检查项
+        id: run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+        run: |
+          set -uo pipefail   # 不用 set -e：每项检查需独立容错，失败项累积到最后统一判定
+          VERSION="${{ github.event.inputs.version }}"
+          FAIL=0
+          WARN=0
+          fail_items=""
+          warn_items=""
+          mark() { # $1=级别(PASS/FAIL/WARN)  $2=检查名  $3=说明
+            local lvl="$1" name="$2" desc="$3"
+            case "$lvl" in
+              FAIL) FAIL=$((FAIL+1)); fail_items="$fail_items| $name | $desc" ;;
+              WARN) WARN=$((WARN+1)); warn_items="$warn_items| $name | $desc" ;;
+            esac
+            echo "| $name | $lvl | $desc |" >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          echo "## 发布前检查：$VERSION" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 检查项 | 结果 | 说明 |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|---|" >> "$GITHUB_STEP_SUMMARY"
+
+          # 1. 版本号格式
+          if echo "$VERSION" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            mark PASS "版本号格式" "$VERSION"
+          else
+            mark FAIL "版本号格式" "必须是 vX.Y.Z（语义化版本），收到: $VERSION"
+          fi
+
+          # 2. master 与 origin/master 同步
+          git fetch origin master --quiet 2>/dev/null || true
+          if [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/master 2>/dev/null)" ]; then
+            mark PASS "远端同步" "本地 HEAD 与 origin/master 一致"
+          else
+            mark FAIL "远端同步" "本地与 origin/master 不一致，先 git pull --rebase"
+          fi
+
+          # 3. tag 尚未创建（避免重复发布）
+          if git ls-remote --exit-code origin "refs/tags/$VERSION" >/dev/null 2>&1; then
+            mark FAIL "tag 唯一性" "远端已存在 tag $VERSION，重复发布会触发 409/422 幂等失败"
+          else
+            mark PASS "tag 唯一性" "远端无 $VERSION tag"
+          fi
+
+          # 4. 上一版本 tag 可确定（首发布警告）
+          PREV=$(git tag --sort=-creatordate | sed -n '2p')
+          if [ -n "$PREV" ]; then
+            mark PASS "上一版本确定" "PREV=$PREV"
+          else
+            mark WARN "上一版本确定" "仓库仅 1 个 tag（首发布）: update_changelog.py 需 --prev-tag 支持，发布备注生成可能失败"
+          fi
+
+          # 5. CHANGELOG.md 包含版本号（软检查）
+          if [ -f CHANGELOG.md ] && grep -qF "$VERSION" CHANGELOG.md; then
+            mark PASS "CHANGELOG" "CHANGELOG.md 已包含 $VERSION"
+          else
+            mark WARN "CHANGELOG" "CHANGELOG.md 未找到 $VERSION 条目（发布备注由 update_changelog.py 自动生成，仅提示核对）"
+          fi
+
+          # 6. GITEE_TOKEN 已配置（软检查）
+          if [ -n "${GITEE_TOKEN:-}" ]; then
+            mark PASS "GITEE_TOKEN" "已配置（长度 ${#GITEE_TOKEN}）"
+          else
+            mark WARN "GITEE_TOKEN" "未配置：Gitee 同步 step 将 Skipped（非失败不告警），确认这是预期"
+          fi
+
+          # 7. 若 tag 已存在，检查其 commit message 是否会被 guard 拦截
+          if git ls-remote --exit-code origin "refs/tags/$VERSION" >/dev/null 2>&1; then
+            MSG=$(git log -1 --format=%s "$VERSION" 2>/dev/null || true)
+            if echo "$MSG" | grep -qiE '^release\(pypi\)'; then
+              mark FAIL "guard 判定" "tag $VERSION commit message 以 release(pypi) 开头，会被 guard 拦截跳过发布"
+            else
+              mark PASS "guard 判定" "tag commit message: $MSG"
+            fi
+          else
+            mark PASS "guard 判定" "tag 未创建，发布时 guard 会检查 commit message 前缀（勿用 release(pypi) 开头）"
+          fi
+
+          # 8. HEAD 最近 CI 状态（软检查，GITHUB_TOKEN + actions: read）
+          BAD_CI=$(gh api "repos/${{ github.repository }}/commits/$(git rev-parse HEAD)/check-runs" --jq '[.check_runs[] | select(.conclusion != "success" and .conclusion != "skipped" and .conclusion != "neutral")] | length' 2>/dev/null || echo 0)
+          # 容错：gh 失败时错误 JSON 可能混入 stdout，需确认是纯数字才生效
+          if ! [[ "$BAD_CI" =~ ^[0-9]+$ ]]; then BAD_CI=0; fi
+          if [ "$BAD_CI" -gt 0 ]; then
+            mark WARN "CI 状态" "HEAD 有 $BAD_CI 个非通过 check-run，建议先确认再发布"
+          else
+            mark PASS "CI 状态" "HEAD 无非通过 check-run（或查询不可用）"
+          fi
+
+          echo "---" >> "$GITHUB_STEP_SUMMARY"
+          echo "**汇总：$FAIL 个阻断项 / $WARN 个警告项**" >> "$GITHUB_STEP_SUMMARY"
+          echo "fail_count=$FAIL" >> "$GITHUB_OUTPUT"
+          echo "warn_count=$WARN" >> "$GITHUB_OUTPUT"
+
+          # 输出失败/警告明细到日志（Step Summary 之外再打一份，方便日志页查看）
+          echo "===== 发布前检查结果: $VERSION ====="
+          echo "阻断项 FAIL=$FAIL, 警告项 WARN=$WARN"
+          if [ -n "$fail_items" ]; then echo "--- 阻断项 ---"; echo "$fail_items"; fi
+          if [ -n "$warn_items" ]; then echo "--- 警告项 ---"; echo "$warn_items"; fi
+
+          if [ "$FAIL" -gt 0 ]; then
+            echo "::error::发布前检查未通过（$FAIL 个阻断项），修复后重跑。阻断项：$(echo "$fail_items" | tr '\n' ' ')"
+            exit 1
+          fi
+          echo "::notice::发布前检查通过（$WARN 个警告项可手动确认）"
