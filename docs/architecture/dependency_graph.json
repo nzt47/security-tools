@@ -1,5 +1,5 @@
 {
-  "trace_id": "2813c7f183ed4fd1",
+  "trace_id": "56e3324931f84616",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -10422,7 +10422,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 23,
+      "line": 24,
       "source_file": "agent/knowledge/tools.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -10435,7 +10435,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 24,
+      "line": 25,
       "source_file": "agent/knowledge/tools.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -10448,7 +10448,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 25,
+      "line": 26,
       "source_file": "agent/knowledge/tools.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -10461,7 +10461,7 @@
       "source_layer": "knowledge",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 280,
+      "line": 302,
       "source_file": "agent/knowledge/tools.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10474,7 +10474,7 @@
       "source_layer": "knowledge",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 294,
+      "line": 316,
       "source_file": "agent/knowledge/tools.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10487,7 +10487,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 189,
+      "line": 211,
       "source_file": "agent/knowledge/tools.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -10500,7 +10500,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 190,
+      "line": 212,
       "source_file": "agent/knowledge/tools.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -10932,6 +10932,6 @@
       "prompt_manager": 3,
       "p6": 5
     },
-    "build_duration_ms": 973.0129010000041
+    "build_duration_ms": 1361.4674419999915
   }
 }
