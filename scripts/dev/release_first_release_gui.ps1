@@ -231,6 +231,7 @@ function Start-Release {
 # 构建界面
 # ============================================================================
 $form = New-Object System.Windows.Forms.Form
+$form.Name = "ReleaseFirstReleaseForm"
 $form.Text = "Release 首次发布引导 (WinForms)"
 $form.Size = New-Object System.Drawing.Size(680, 560)
 $form.StartPosition = 'CenterScreen'
@@ -245,12 +246,14 @@ $lblVersion.AutoSize = $true
 $form.Controls.Add($lblVersion)
 
 $txtVersion = New-Object System.Windows.Forms.TextBox
+$txtVersion.Name = "txtVersion"
 $txtVersion.Location = New-Object System.Drawing.Point(130, 18)
 $txtVersion.Size = New-Object System.Drawing.Size(180, 23)
 $form.Controls.Add($txtVersion)
 $script:txtVersion = $txtVersion
 
 $btnStart = New-Object System.Windows.Forms.Button
+$btnStart.Name = "btnStart"
 $btnStart.Text = "开始发布流程"
 $btnStart.Location = New-Object System.Drawing.Point(330, 16)
 $btnStart.Size = New-Object System.Drawing.Size(140, 28)
@@ -273,7 +276,8 @@ $form.Controls.Add($grpSteps)
 
 for ($i = 0; $i -lt 5; $i++) {
     $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Location = New-Object System.Drawing.Point(15, 20 + $i * 28)
+    $stepY = 20 + $i * 28   # 先算变量，避免 New-Object Point(a, b+c) 参数模式拆包
+    $lbl.Location = New-Object System.Drawing.Point(15, $stepY)
     $lbl.AutoSize = $true
     $lbl.ForeColor = [System.Drawing.Color]::Gray
     $grpSteps.Controls.Add($lbl)
@@ -289,6 +293,7 @@ $grpLog.Size = New-Object System.Drawing.Size(630, 265)
 $form.Controls.Add($grpLog)
 
 $logBox = New-Object System.Windows.Forms.RichTextBox
+$logBox.Name = "logBox"
 $logBox.Location = New-Object System.Drawing.Point(10, 22)
 $logBox.Size = New-Object System.Drawing.Size(608, 228)
 $logBox.ReadOnly = $true
