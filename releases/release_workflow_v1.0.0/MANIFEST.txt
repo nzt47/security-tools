@@ -1,0 +1,44 @@
+# Release 发布流程工具集 v1.0.0 归档包
+
+归档文件：`release_workflow_v1.0.0.zip`
+来源提交：`e42b1ab0`（master HEAD，2026-08-07）
+生成日期：2026-08-07
+
+## 内容清单
+
+| 模块 | 路径（zip 内） | 说明 |
+|---|---|---|
+| Shell 函数库 | scripts/release_shell_lib.sh | curl 网络失败映射 500 / 数值安全兜底 / gh 容错（4 函数） |
+| 命令行引导 | scripts/dev/release_first_release.ps1 | 首次发布 5 步交互式引导（命令行版） |
+| GUI 引导 | scripts/dev/release_first_release_gui.ps1 | 首次发布 5 步引导（WinForms 可视化版，已修 UIA Name + Point 拆包） |
+| Docker 镜像 | docker/release-sim/Dockerfile + docker-entrypoint.sh | release-sim:1.0.0 构建配置（gh-proxy 加速源） |
+| pip 包 | packages/release_shell_lib/ | release-shell-lib 0.1.0（15 项单测全过） |
+| CI 工作流 | .github/workflows/release-auto.yml | guard → auto-release → alert-on-failure 发布工作流 |
+| CI 预检 | .github/workflows/release-precheck.yml | 发布前 8 项自动检查 |
+| 排障手册 | docs/release_workflow_manual.md | 发布流程排障总纲 |
+| 总结 | docs/release_workflow_summary.md | 演进历程 + 18 项优化点 |
+| 检查清单 | docs/release_checklist.md | 发布前/中/后检查清单 |
+| 模板 | docs/release_workflow_template.md | 可复用工作流模板 |
+| 复盘 | docs/release_workflow_retrospective.md | 团队分享技术文章 |
+| 新手引导 | docs/release_quickstart.md | 首次发布五步走 |
+| 自动化指南 | docs/release_automation_guide.md | 发布自动化配套指南 |
+| 避坑指南 | docs/release_testing_guide.md | Release 自动化测试 8 大坑位与解法 |
+
+## 验证状态（2026-08-07 实测）
+
+- pip 包 15 项单测：Ran 15 tests OK
+- curl_http_code 网络失败映射：拒连 / DNS 失败 / 超时均返回 500
+- WinForms GUI：按钮点击、日志输出、写操作确认框点「否」中止，全部通过
+
+## 验证方法
+
+```powershell
+# Shell 函数库自检（需 release-sim 镜像或本机 bash）
+bash -c "source scripts/release_shell_lib.sh && _release_shell_lib_selfcheck"
+
+# pip 包单测
+python -m unittest discover -s packages/release_shell_lib/tests -v
+
+# GUI 冒烟（避坑指南 §5 骨架）
+pwsh -Sta -File scripts/dev/release_first_release_gui.ps1
+```
