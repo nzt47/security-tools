@@ -1,13 +1,13 @@
 # v1.0.0 发布变更日志
 
-> 生成时间：2026-08-07 | 发布点：`v1.0.0` tag = `004ce23e` | 远程 master = `28ad68fc`
+> 生成时间：2026-08-07 | 发布点：`v1.0.0` tag = `004ce23e` | 远程 master = `5449eb68`
 
 ## 一、新增功能
 
 ### 知识层卡片引擎（agent/knowledge）
 - **素材层 ingest 管道**（`1932869c`）：收集即入库，素材统一落库
 - **卡片引擎核心**（`11028240`）：CardStore CRUD / 生命周期状态机（draft/current/archive/unknown）/ 双向链接解析 / 孤儿与断链检测 / index.md 全量与增量一致性
-- **CLI 主入口** `python -m agent.knowledge`（`11028240`）：index-rebuild / card-list / card-transition / check-links / orphans 五子命令，退出码契约 0/1
+- **CLI 主入口** `python -m agent.knowledge`（`11028240`）：index-rebuild / card-list / card-transition / check-links / orphans 五子命令，退出码契约 0/1（后续 `24f8c4d4` 批量处理再增 import / export / list，现共 8 子命令）
 - **CLI 批量处理**（`24f8c4d4`）：`import`（目录批量导入，同 slug 冲突跳过，`--force` 走 update）、`export`（frontmatter md 导出，round-trip 兼容 import）、`list`（分组 + 状态统计）
 - **预提交自动化**：`knowledge-cli-verify` hook（32 项全生命周期断言，`--pre-commit --traceback` 静默模式）
 
@@ -32,7 +32,7 @@
 - **失效链接检查误报**（`01a57e3f`）：`Test-LinkBroken` 未剥离 `#锚点` 误判 + 类型 9 缺 return 穿透 → 修复后 docs 失效链接 5 → 0
 
 ### 数据安全
-- **误删恢复**（`dd87c306`）：无路径提交误带入 4 份 v1.0.0 归档报告删除 → 恢复提交重新纳入版本控制
+- **误删恢复**（远程 `28ad68fc`，本地对应 `dd87c306`）：无路径提交误带入 4 份 v1.0.0 归档报告删除 → 恢复提交重新纳入版本控制
 
 ## 三、测试与验证记录
 
