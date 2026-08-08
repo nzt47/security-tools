@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Optional
@@ -39,6 +39,14 @@ class HealthReport:
     unresolved_conflicts: list[dict] = field(default_factory=list)  # [{source_slug, target_slug, summary}] 矛盾未裁决
     health_score: float = 100.0
     suggestions: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        """序列化为 API 响应 dict（asdict 展开嵌套结构）。
+
+        【不易】字段名即 API 契约：路由层 report.to_dict() 与测试断言
+        （total_cards/health_score/orphans/suggestions）一一对应，不得改名。
+        """
+        return asdict(self)
 
 
 # 扣分规则：{检测项: (每单位扣分, 封顶)}
