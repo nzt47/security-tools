@@ -19,10 +19,10 @@ from unittest.mock import patch
 import pytest
 
 
-# 【已知部分命中缺口登记】数据层优化完成前（web_search 描述/embedding 恢复），
-# q01/q19 因 web_search 未进 top-5 维持 recall=0.5，属已知可接受状态。
-# 仅作登记注释，test_partial_recall_trend 的 MAX_PARTIAL=4 已含该基线。
-KNOWN_PARTIAL = {"q01", "q19"}  # 均因 web_search 未进 top-5
+# 【已知部分命中缺口登记】2026-08-08 D1 数据层优化（web_search 描述补充
+# 「网页内容/联网查询」措辞）后 q01/q19 已转完整命中，无已知缺口。
+# 若未来出现新部分命中，登记于此并同步 MAX_PARTIAL 余量评估。
+KNOWN_PARTIAL: set[str] = set()
 
 
 # ════════════════════════════════════════════════════════════
@@ -145,8 +145,8 @@ class TestRetrievalQuality:
     def test_partial_recall_trend(self, eval_data, retriever):
         """部分命中(query 数)趋势门禁：recall<1.0 的 query 数 ≤ MAX_PARTIAL。
 
-        【不易】当前基线 2 个部分命中(q01/q19，见 KNOWN_PARTIAL)，MAX_PARTIAL=4
-        留 2 个余量；超过则说明检索质量系统性退化，立即告警。
+        【不易】当前基线 0 个部分命中（D1 描述优化后 20/20 完全命中），MAX_PARTIAL=4
+        留 4 个余量；超过则说明检索质量系统性退化，立即告警。
         【简易】直接统计全部部分命中，KNOWN_PARTIAL 仅作登记注释，不做排除逻辑。
         """
         partial = []
