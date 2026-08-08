@@ -266,16 +266,35 @@ class CardStore:
         )
 
     def _sync_links_index_add(self, card: Card) -> None:
-        """create/update 后：将卡片 links 的引用关系登记入入链索引。"""
-        for link in card.links:
-            if not link.startswith(ARCHIVES_PREFIX):
-                update_links_delta(link, card.slug, self._links_index_path, add=True)
+        """create/update 后：将卡片 links 的引用关系登记入入链索引。
+
+        容错降级：入链索引是可重建的辅助文件，写失败（OSError/ValueError）
+        仅告警不阻断卡片主操作（与 _has_incoming_links 降级风格一致）。
+        """
+        try:
+            for link in card.links:
+                if not link.startswith(ARCHIVES_PREFIX):
+                    update_links_delta(link, card.slug, self._links_index_path, add=True)
+        except (ValueError, OSError) as exc:
+            logger.warning(
+                "入链索引登记失败（已降级，卡片操作继续）: %s (%s)",
+                self._links_index_path, exc,
+            )
 
     def _sync_links_index_remove(self, slug: str, links: list[str]) -> None:
-        """delete 后：移除被删卡片 links 产生的引用关系（入链已校验为空）。"""
-        for link in links:
-            if not link.startswith(ARCHIVES_PREFIX):
-                update_links_delta(link, slug, self._links_index_path, add=False)
+        """delete 后：移除被删卡片 links 产生的引用关系（入链已校验为空）。
+
+        容错降级：同上，索引写失败仅告警不阻断卡片主操作。
+        """
+        try:
+            for link in links:
+                if not link.startswith(ARCHIVES_PREFIX):
+                    update_links_delta(link, slug, self._links_index_path, add=False)
+        except (ValueError, OSError) as exc:
+            logger.warning(
+                "入链索引移除失败（已降级，卡片操作继续）: %s (%s)",
+                self._links_index_path, exc,
+            )
 
     # ---------- CRUD ----------
 
@@ -331,9 +350,15 @@ class CardStore:
                 old_links = self._md_to_card(old_path).links
             except (ValueError, TypeError):
                 old_links = []
-            for link in old_links:
-                if not link.startswith(ARCHIVES_PREFIX):
-                    update_links_delta(link, card.slug, self._links_index_path, add=False)
+            try:
+                for link in old_links:
+                    if not link.startswith(ARCHIVES_PREFIX):
+                        update_links_delta(link, card.slug, self._links_index_path, add=False)
+            except (ValueError, OSError) as exc:
+                logger.warning(
+                    "入链索引移除旧引用失败（已降级，卡片操作继续）: %s (%s)",
+                    self._links_index_path, exc,
+                )
             card.links = parse_links(card.content)
             logger.info(
                 "更新卡片: slug=%s 正文双链同步 links=%s 耗时=%.2fms",
