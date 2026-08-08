@@ -16,6 +16,10 @@ scripts/_token.txt
 # alertmanager.yml 为 compose 运行时挂载源，防止 git add . 误提交真实授权码
 deploy/monitoring/prometheus/alertmanager.yml
 
+# 浏览器本地配置（Edge 配置目录，含 Login Data/Cookies/Vpn Tokens 等真实凭据）
+# 2026-08-08 扫描发现 359 个文件已被跟踪 → 需 git rm -r --cached _edge_profile 后再忽略
+_edge_profile/
+
 # 本地调试/验证脚本（临时工具，不入库）
 scripts/verify_delete_priority_cleanup.py
 scripts/demo_delete_log_output.py
