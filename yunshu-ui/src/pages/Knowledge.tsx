@@ -132,17 +132,22 @@ const Knowledge: React.FC = () => {
   };
 
   // ── 详情抽屉 ──
+  // 竞态守卫：快速切换卡片时，仅接受最新一次请求的响应（过期响应丢弃）
+  const detailSeqRef = useRef(0);
   const openDetail = async (slug: string) => {
+    const seq = ++detailSeqRef.current;
     setDetailLoading(true);
     setDetailCard(null);
     try {
       const res = await getCard(slug);
+      if (seq !== detailSeqRef.current) return; // 已有更新的请求，丢弃过期响应
       setDetailCard(res.card);
     } catch (e) {
+      if (seq !== detailSeqRef.current) return;
       setDetailCard(null);
       setListError(e instanceof Error ? e.message : String(e));
     } finally {
-      setDetailLoading(false);
+      if (seq === detailSeqRef.current) setDetailLoading(false);
     }
   };
 

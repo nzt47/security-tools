@@ -164,6 +164,37 @@ describe('Knowledge 页面', () => {
     expect(apiMock.getCard).toHaveBeenCalledWith('test-concept');
   });
 
+  it('快速切换卡片时丢弃过期详情响应（竞态守卫）', async () => {
+    let resolveA!: (v: unknown) => void;
+    let resolveB!: (v: unknown) => void;
+    apiMock.getCard
+      .mockImplementationOnce(() => new Promise((res) => { resolveA = res; }))
+      .mockImplementationOnce(() => new Promise((res) => { resolveB = res; }));
+
+    const secondCard: Card = { ...BASE_CARD, slug: 'second', title: '第二张卡' };
+    apiMock.listCards.mockResolvedValue({ ok: true, cards: [BASE_CARD, secondCard], count: 2 });
+
+    render(<Knowledge />);
+    await waitFor(() => {
+      expect(screen.getByText('测试概念卡')).toBeTruthy();
+    });
+
+    // 先点 A（test-concept），随即点 B（second），A 响应后到
+    fireEvent.click(screen.getByText('测试概念卡'));
+    fireEvent.click(screen.getByText('第二张卡'));
+
+    resolveB({ ok: true, card: { ...BASE_DETAIL, slug: 'second', title: '第二张卡', incoming_links: [] } });
+    await waitFor(() => {
+      expect(screen.getByText('入链 (0)')).toBeTruthy(); // B 详情已展示
+    });
+
+    // A 的过期响应到达：应被丢弃，不覆盖 B 详情
+    resolveA({ ok: true, card: { ...BASE_DETAIL, incoming_links: ['parent-x'] } });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText('入链 (1)')).toBeNull();
+    expect(screen.getByText('入链 (0)')).toBeTruthy();
+  });
+
   it('搜索交互：输入问题并检索，展示命中结果与来源标记', async () => {
     const hits: KnowledgeHit[] = [
       {
