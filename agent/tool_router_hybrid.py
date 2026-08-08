@@ -1009,7 +1009,12 @@ class HybridRetriever:
         self._load_and_build_index()
 
         # 启动后台 daemon thread 预热 EmbeddingIndex
-        if self._tools_loaded and self._embedding is not None:
+        # 【不易】AGENT_HYBRID_EMBEDDING=0/false/no/off 时禁用预热:CI 无 HF 网络时
+        # 子进程加载模型 30s×N 超时,拖累采样性能断言误报(2026-08-07 三次复现)。
+        # 注意:tool_router_hybrid._ensure_st_checked 无调用点,此处为实际 env gate。
+        _embed_env = os.environ.get("AGENT_HYBRID_EMBEDDING", "").strip().lower()
+        _embed_disabled = _embed_env in ("0", "false", "no", "off")
+        if self._tools_loaded and self._embedding is not None and not _embed_disabled:
             t = threading.Thread(
                 target=self._embedding.preheat,
                 name="hybrid-embedding-preheat",

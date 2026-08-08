@@ -870,7 +870,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           # pytest-xdist：-n 2 并行；pytest-timeout：--timeout 兜底
-          pip install pytest pytest-cov pytest-xdist pytest-mock pytest-asyncio pytest-timeout
+          # 【不易】pytest==9.0.3 pin：pytest 9.1.1 引入 conftest fixture 可见性回归
+          #   （pytest-dev/pytest#14635/#14683：父目录在参数列表中出现多次时，子目录
+          #   conftest 的 fixture 不可见）。全项目模式（--root tests 传分散文件路径）触发，
+          #   表现为 `fixture 'mock_sandbox_spawn' not found`（11 ERROR，2026-08-08 Shard 2）。
+          #   上游修复 #14694 已 merged main 但未发布（最新版仍 9.1.1），故 pin 9.0.3。
+          pip install pytest==9.0.3 pytest-cov pytest-xdist pytest-mock pytest-asyncio pytest-timeout
           pip install prometheus-client opentelemetry-api opentelemetry-sdk
           pip install pyyaml
           pip install -e .
@@ -880,6 +885,14 @@ jobs:
           # 【不易】SKILLS_OFFLINE=1 与 ci.yml 一致：避免 transformers/sentence_transformers
           # 导入时递归扫描文件系统触发 timeout（conftest.py 的 _skills_offline_mode patch）
           SKILLS_OFFLINE: '1'
+          # 【不易】AGENT_HYBRID_EMBEDDING=0：CI 网络无法访问 HF 模型仓库（hf-mirror 与
+          # 官方源均不可达），显式禁用 Embedding（纯 BM25）避免子进程探测 30s×N 重试
+          # 拖累 CPU → 采样性能测试误报（2026-08-07 三次复现：990/746/1039ms > 600ms）。
+          # 受控禁用下性能测试正常执行以验证约束。
+          AGENT_HYBRID_EMBEDDING: '0'
+          # 【变易】HF_ENDPOINT 覆盖代码默认 hf-mirror.com：若未来网络恢复官方源可达，
+          # 模型下载走官方源（agent 内 setdefault 不覆盖已设环境变量）。
+          HF_ENDPOINT: 'https://huggingface.co'
         run: |
           echo "=== 运行全项目测试 Shard ${{ matrix.shard }}/6（SKILLS_OFFLINE=1，-n 2 并行）==="
           # 【变易】--root tests：调用扩展后的 split_unit_tests.py 扫描全 tests/
