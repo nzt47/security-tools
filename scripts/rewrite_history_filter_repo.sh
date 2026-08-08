@@ -54,7 +54,8 @@ log "前置检查"
 command -v git >/dev/null 2>&1 || die "未找到 git 命令" 2
 # git-filter-repo 常随 pip 装入 Windows Python Scripts（Git Bash 的 PATH 可能不含该目录）
 for d in "${LOCALAPPDATA:-$HOME/AppData/Local}/Programs/Python/"*/Scripts \
-         /c/Users/*/AppData/Local/Programs/Python/*/Scripts; do
+         /c/Users/*/AppData/Local/Programs/Python/*/Scripts \
+         "$HOME/.local/bin"; do
   [ -d "$d" ] && PATH="$d:$PATH"
 done
 if ! command -v git-filter-repo >/dev/null 2>&1 && ! git filter-repo --version >/dev/null 2>&1; then
