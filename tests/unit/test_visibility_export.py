@@ -616,6 +616,7 @@ class TestServeMetricsIntegration:
 
             # 在子线程调用 serve_metrics（避免主线程被 serve_forever 阻塞）
             result_holder: dict = {}
+            stop_event = threading.Event()
 
             def _run():
                 try:
@@ -625,6 +626,7 @@ class TestServeMetricsIntegration:
                         project_root=fake_root,
                         thresholds={},
                         host="127.0.0.1",
+                        stop_event=stop_event,
                     )
                     result_holder["exit_code"] = exit_code
                 except Exception as e:
@@ -642,6 +644,9 @@ class TestServeMetricsIntegration:
             mock_http_cls.assert_called_once()
             # 验证 serve_forever 被调用
             mock_server.serve_forever.assert_called_once()
+            # 停止 refresh 线程，避免 daemon 线程泄漏：patch 退出后 refresh 线程
+            # 若仍在运行会调用真实 generate_report（重量级扫描），拖慢后续测试
+            stop_event.set()
 
     @pytest.mark.unit
     @pytest.mark.p1
@@ -654,11 +659,15 @@ class TestServeMetricsIntegration:
             # 模拟端口绑定失败
             mock_http_cls.side_effect = OSError("Address already in use")
 
+            stop_event = threading.Event()
             exit_code = serve_metrics(
                 port=9999,
                 refresh_interval=60,
                 project_root=fake_root,
                 thresholds={},
                 host="127.0.0.1",
+                stop_event=stop_event,
             )
             assert exit_code == 1, f"端口绑定失败应返回 1, 实际: {exit_code}"
+            # 停止 refresh 线程（HTTPServer 抛异常前已启动），避免 daemon 泄漏
+            stop_event.set()

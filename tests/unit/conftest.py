@@ -279,11 +279,35 @@ class _FakeMPQueue:
         pass
 
 
+def _async_raise_thread(t) -> None:
+    """向目标线程注入 KeyboardInterrupt，用于中断死循环/长任务线程。
+
+    Why: Python 无 Thread.kill；死循环线程（while True: pass）若无法终止会
+    残留吃满 CPU 并跨测试累积。SetAsyncExc 在下一次字节码执行时抛异步异常，
+    对无 except BaseException 包裹的死循环 code 有效。
+    """
+    if t is None or t.ident is None or not t.is_alive():
+        return
+    try:
+        import ctypes
+        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+            ctypes.c_long(t.ident),
+            ctypes.py_object(KeyboardInterrupt),
+        )
+        if res > 1:  # 罕见：多个线程状态被设置，回滚避免副作用
+            ctypes.pythonapi.PyThreadState_SetAsyncExc(t.ident, None)
+    except Exception:
+        pass
+
+
 class _FakeMPProcess:
     """模拟 multiprocessing.Process，在线程中执行 target
 
     force_timeout=True 时不执行 target，is_alive 总返回 True，
     用于模拟超时场景（threading 无法安全终止死循环线程）。
+
+    terminate/kill 通过 _async_raise_thread 真正中断线程，
+    避免 run_sandbox 超时后死循环线程残留吃满 CPU 并跨测试累积。
     """
 
     def __init__(self, target, args=(), daemon=False, force_timeout=False):
@@ -299,7 +323,9 @@ class _FakeMPProcess:
         if self._force_timeout:
             return
         self._thread = _threading_module.Thread(
-            target=self._run, daemon=self._daemon
+            target=self._run,
+            daemon=self._daemon,
+            name=f"sandbox-mock-{id(self)}",  # 命名以便 teardown 时清理残留线程
         )
         self._thread.start()
 
@@ -322,10 +348,12 @@ class _FakeMPProcess:
         return self._thread is not None and self._thread.is_alive()
 
     def terminate(self):
-        pass
+        """真正中断目标线程（对应 run_sandbox 超时后的 process.terminate）"""
+        if self._thread is not None and self._thread.is_alive():
+            _async_raise_thread(self._thread)
 
     def kill(self):
-        pass
+        self.terminate()
 
 
 class _FakeSpawnContext:
@@ -353,11 +381,30 @@ def mock_sandbox_spawn():
             self._spawn = mock_sandbox_spawn
 
     超时测试设置 self._spawn.force_timeout = True 模拟进程不退出。
+
+    teardown 清理：中断并 join 残留的 sandbox-mock 线程（1s 短超时）。
+    Why: 若测试的 sandbox code 为死循环/长任务（如 while True），线程无法被
+    普通 join 终止；若残留会累积吃满 CPU 拖慢后续测试（test_concurrent_recording
+    60s 超时、tmp_path teardown 的 os.scandir 超时）。这里用 _async_raise_thread
+    注入 KeyboardInterrupt 打断死循环，再 join(1) 等待退出，超时记警告暴露。
     """
     import multiprocessing
     ctx = _FakeSpawnContext()
     with patch.object(multiprocessing, 'get_context', return_value=ctx):
         yield ctx
+        import threading as _th
+        for t in _th.enumerate():
+            if t is _th.main_thread():
+                continue
+            if getattr(t, "name", "").startswith("sandbox-mock-") and t.is_alive():
+                _async_raise_thread(t)  # 打断死循环线程
+                t.join(timeout=1)       # 给 1s 退出（每个线程最多 1s，避免 N×5s 拖慢）
+                if t.is_alive():
+                    logging.getLogger("pytest").warning(
+                        "[mock_sandbox_spawn] 残留 sandbox 线程未终止: %s "
+                        "(code 可能为死循环/长任务，全量负载下会拖慢其他测试)",
+                        t.name,
+                    )
 
 
 # ════════════════════════════════════════════════════════════
