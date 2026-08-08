@@ -82,14 +82,27 @@ def collect_test_files(root: Path, test_root: str = "tests/unit") -> list[str]:
     return [f for f in rel if f not in excluded]
 
 
-def count_tests(root: Path, rel_path: str) -> int:
-    """统计单个测试文件内的测试数（def test_* 行数，近似耗时权重）。"""
+def count_tests(root: Path, rel_path: str, use_lines: bool = False) -> int:
+    """统计单个测试文件内的测试数（def test_* 行数，近似耗时权重）。
+
+    【变易】use_lines：全项目模式（--root tests）下叠加行数权重。
+    背景：纯测试数贪心只保证「测试数均衡」不保证「耗时均衡」——大文件
+    （comprehensive 类单测耗时长）会扎堆进同一 shard。2026-08-08 实测 Shard 1
+    测试数 2089 与其他 shard 完全均衡，却跑 52min 被 runner 回收（其余 shard
+    4-6min）；而 slow 目录文件（chaos/performance）实测 7 个也仅 4min，测试数
+    反而严重高估了这些目录。因此对全项目模式按行数加权（每 4 行 ≈ 1 测试），
+    让大文件均匀分散。tests/unit 模式保持纯测试数（ci.yml 4-shard 已稳定）。
+    """
     n = 0
-    for line in (root / rel_path).read_text(encoding="utf-8").splitlines():
+    lines = (root / rel_path).read_text(encoding="utf-8").splitlines()
+    for line in lines:
         stripped = line.strip()
         if stripped.startswith("def test_") or stripped.startswith("async def test_"):
             n += 1
-    return max(n, 1)
+    n = max(n, 1)
+    if use_lines:
+        n += len(lines) // 4
+    return n
 
 
 def main() -> int:
@@ -116,7 +129,7 @@ def main() -> int:
     files = collect_test_files(ROOT, args.root)
     # 贪心均衡: 按测试数降序, 每次放入当前测试总数最少的 shard
     # （重文件优先分配，避免大文件扎堆导致单 shard 运行时间过长）
-    counts = {f: count_tests(ROOT, f) for f in files}
+    counts = {f: count_tests(ROOT, f, use_lines=(args.root == "tests")) for f in files}
     buckets: list[list[str]] = [[] for _ in range(args.shards)]
     totals = [0] * args.shards
     for f in sorted(files, key=lambda x: -counts[x]):
