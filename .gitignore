@@ -233,3 +233,5 @@ build/
 backup/untracked_backup_*/
 # 豁免：backup/logs/ 备份日志可入库（其余 logs/ 仍按上方规则忽略）
 !backup/logs/
+# 并行会话临时备份中的 release-merge 快照包（含浏览器登录凭据/VPN Tokens，禁止提交）
+backup/parallel_session_tmp_20260806/dot-tmp-release-merge.tar.gz
