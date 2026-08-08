@@ -1,5 +1,11 @@
 name: CI 失败通知
 
+# 【变易·P2-4】concurrency: 通知类操作不可中途取消(cancel-in-progress: false),
+# 避免新触发取消未发出的失败通知。2026-08-08 排队治理延伸。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 # 触发条件：任何 workflow 失败时
 on:
   workflow_run:

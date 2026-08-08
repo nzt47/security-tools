@@ -13,6 +13,12 @@
 #
 name: Skills Check
 
+# 【变易·P2-4】concurrency: 同 workflow 同 ref 连续触发取消旧 run 只留最新。
+# 2026-08-08 排队风暴治理延伸: 全项目 workflow 批量统一。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
     branches: [master, main]
