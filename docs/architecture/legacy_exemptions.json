@@ -53,6 +53,16 @@
       "owner": "observability-team",
       "tech_debt_ticket": "ARCH-DEBT-007",
       "mitigation": "prometheus.py:291 使用函数内延迟 import（方法体内 from agent.error_handler import RetryPolicy），运行期不会触发循环。后续应通过依赖注入将 RetryPolicy 实例作为参数传入 PrometheusMetricsExporter，彻底消除 prometheus→error_handler 静态依赖边。"
+    },
+    {
+      "rule_id": "no_circular_dependency",
+      "source": "agent.knowledge.links_index",
+      "target": "agent.knowledge.card",
+      "reason": "入链索引惰性导入：links_index.py:88 的 rebuild_links_index 函数内延迟 import CardStore，运行期安全（card.py 顶层导入 links_index 的 read_links_index/update_links_delta 时不会触发循环）。arch_rules 静态分析仍检测到函数内 from 语句，与 ARCH-DEBT-003~006 同模式（commit cea078d3 的惰性导入修复，当时漏登此豁免）。",
+      "added_at": "2026-08-08",
+      "owner": "knowledge-team",
+      "tech_debt_ticket": "ARCH-DEBT-008",
+      "mitigation": "links_index.py:88 使用函数内延迟 import（rebuild_links_index 方法体内 from agent.knowledge.card import CardStore），运行期不会触发循环。后续应将 CardStore 实例作为参数传入 rebuild_links_index，彻底消除 links_index→card 静态依赖边。"
     }
   ],
   "guidelines": [

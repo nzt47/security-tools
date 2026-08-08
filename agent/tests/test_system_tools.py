@@ -23,7 +23,7 @@ class TestShellExecute:
     def test_shell_success(self):
         """正常执行命令"""
         from agent.system_tools import execute_shell
-        with patch("agent.system_tools.subprocess.run") as mock_run:
+        with patch("agent.tools.shell_tools.subprocess.run") as mock_run:
             mock_proc = MagicMock()
             mock_proc.returncode = 0
             mock_proc.stdout = b"hello world"
@@ -39,7 +39,7 @@ class TestShellExecute:
     def test_shell_failure(self):
         """命令执行失败"""
         from agent.system_tools import execute_shell
-        with patch("agent.system_tools.subprocess.run") as mock_run:
+        with patch("agent.tools.shell_tools.subprocess.run") as mock_run:
             mock_proc = MagicMock()
             mock_proc.returncode = 1
             mock_proc.stdout = b""
@@ -56,7 +56,7 @@ class TestShellExecute:
         from agent.system_tools import execute_shell
         from subprocess import TimeoutExpired
 
-        with patch("agent.system_tools.subprocess.run",
+        with patch("agent.tools.shell_tools.subprocess.run",
                    side_effect=TimeoutExpired("cmd", 5)):
             result = execute_shell("sleep 100", shell="bash", timeout=5)
 
@@ -80,7 +80,7 @@ class TestShellExecute:
     def test_shell_auto_detect(self):
         """shell 类型自动检测"""
         from agent.system_tools import execute_shell
-        with patch("agent.system_tools.subprocess.run") as mock_run:
+        with patch("agent.tools.shell_tools.subprocess.run") as mock_run:
             mock_proc = MagicMock()
             mock_proc.returncode = 0
             mock_proc.stdout = b"ok"
@@ -96,7 +96,7 @@ class TestShellExecute:
         from agent.system_tools import execute_shell
         long_output = b"x" * 200000  # ~200KB
 
-        with patch("agent.system_tools.subprocess.run") as mock_run:
+        with patch("agent.tools.shell_tools.subprocess.run") as mock_run:
             mock_proc = MagicMock()
             mock_proc.returncode = 0
             mock_proc.stdout = long_output
@@ -120,7 +120,7 @@ class TestProcessManagement:
     def test_start_process_whitelisted(self):
         """启动白名单程序"""
         from agent.system_tools import start_process
-        with patch("agent.system_tools.subprocess.Popen") as mock_popen:
+        with patch("agent.tools.process_tools.subprocess.Popen") as mock_popen:
             mock_proc = MagicMock()
             mock_proc.pid = 12345
             mock_popen.return_value = mock_proc
@@ -214,7 +214,7 @@ class TestWhitelist:
     def test_add_custom_whitelist_entry(self):
         """添加自定义白名单条目"""
         from agent.system_tools import add_whitelist_entry
-        with patch("agent.system_tools._save_custom_whitelist") as mock_save:
+        with patch("agent.tools.process_tools._save_custom_whitelist") as mock_save:
             result = add_whitelist_entry("myapp.exe")
         assert result["ok"] is True
 

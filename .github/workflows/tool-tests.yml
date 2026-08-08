@@ -52,6 +52,11 @@ jobs:
           pip install -e . || true
 
       - name: 运行工具模块测试
+        # 【CHG-2026-0808】Windows runner 默认 shell 是 PowerShell，
+        # 不支持 bash 的 "\" 行尾续行，导致多行 pytest 命令解析失败
+        # （ParserError: Missing expression after unary operator '--'）。
+        # 显式指定 bash：git-bash 随 GitHub Windows runner 预装，行为与 Linux 一致。
+        shell: bash
         run: |
           pytest agent/tests/test_file_tools.py \
                 agent/tests/test_web_tools.py \
