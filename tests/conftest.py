@@ -420,7 +420,7 @@ def reset_global_singletons():
     # 4. TraceStorage: 懒加载单例，置 None 触发下次访问重建
     try:
         import agent.monitoring.tracing as _tr
-        _tr._trace_storage_singleton = None
+        _tr.reset_trace_storage()
     except Exception:
         pass
     # 5. ContextVar 重置：circuit_breaker / disaster_recovery / graceful_degrade / tracing
@@ -476,7 +476,7 @@ def reset_global_singletons():
     # 的配置查询读到陈旧缓存。重置确保每个测试拿到干净的配置管理器。
     try:
         import agent.system_prompt_config as _spc
-        _spc._manager = None
+        _spc.reset_system_prompt_manager()
     except Exception:
         pass
     # 11. sqlite_vec: 清理 sys.modules 中所有 sqlite_vec 相关键

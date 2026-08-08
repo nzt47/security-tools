@@ -42,6 +42,16 @@ from typing import Any, Dict, List, Optional, Pattern, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
+# SingletonManager 统一收口（保留 fallback 变量 _default_filter 向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = None
+
 
 class SensitiveLevel(Enum):
     """敏感等级枚举
@@ -832,7 +842,12 @@ class SensitiveDataFilter(logging.Filter):
         return True
 
 
-_default_filter: Optional[SensitiveDataFilter] = None
+_default_filter: Optional[SensitiveDataFilter] = None  # 保留作为 fallback
+
+
+def _create_default_filter(config=None):
+    """SensitiveDataFilter 工厂（供 SingletonManager 使用）"""
+    return SensitiveDataFilter()
 
 
 def get_default_filter() -> SensitiveDataFilter:
@@ -844,10 +859,20 @@ def get_default_filter() -> SensitiveDataFilter:
     Returns:
         默认 SensitiveDataFilter 实例
     """
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("sensitive_data_filter")
     global _default_filter
     if _default_filter is None:
-        _default_filter = SensitiveDataFilter()
+        _default_filter = _create_default_filter()
     return _default_filter
+
+
+def reset_default_filter():
+    """重置全局默认过滤器单例（仅用于测试）"""
+    global _default_filter
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("sensitive_data_filter")
+    _default_filter = None
 
 
 def filter_sensitive_data(data: Any) -> Any:
@@ -946,6 +971,12 @@ def mask_ip(ip: str) -> str:
     return ip
 
 
+# 注册单例工厂（置于文件末尾，确保 getter / 便捷函数均已定义）
+# 无 cleanup 钩子：纯函数无状态过滤器，无资源生命周期
+if _SINGLETON_AVAILABLE:
+    register_singleton("sensitive_data_filter", _create_default_filter)
+
+
 __all__ = [
     'SensitiveDataFilter',
     'SensitiveLevel',
@@ -957,6 +988,7 @@ __all__ = [
     'sensitive_filter',
     'create_filter',
     'get_default_filter',
+    'reset_default_filter',
     'mask_ip',
     'REDACTED_VALUE',
     'REDACTED_PARTIAL',

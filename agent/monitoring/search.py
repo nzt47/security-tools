@@ -26,6 +26,16 @@ from agent.common.stop_mixin import StopMixin
 
 logger = logging.getLogger(__name__)
 
+# SingletonManager 统一收口（保留 fallback 变量 _performance_monitor 向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = None
+
 # 性能检测数据文件
 PERFORMANCE_DATA_FILE = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -409,15 +419,39 @@ class SearchPerformanceMonitor(StopMixin):
 
 
 # 全局监控器实例
-_performance_monitor: Optional[SearchPerformanceMonitor] = None
+_performance_monitor: Optional[SearchPerformanceMonitor] = None  # 保留作为 fallback
+
+
+def _create_performance_monitor(config=None):
+    """SearchPerformanceMonitor 工厂（供 SingletonManager 使用）"""
+    return SearchPerformanceMonitor()
+
+
+def _cleanup_performance_monitor(monitor):
+    """清理钩子：停止性能监控线程（仅测试重置时调用）"""
+    if monitor is not None:
+        try:
+            monitor.stop()
+        except Exception:
+            pass
 
 
 def get_performance_monitor() -> SearchPerformanceMonitor:
     """获取全局性能监控器实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("search_performance_monitor")
     global _performance_monitor
     if _performance_monitor is None:
-        _performance_monitor = SearchPerformanceMonitor()
+        _performance_monitor = _create_performance_monitor()
     return _performance_monitor
+
+
+def reset_performance_monitor():
+    """重置全局性能监控器单例（仅用于测试）"""
+    global _performance_monitor
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("search_performance_monitor")
+    _performance_monitor = None
 
 
 def start_performance_monitor(interval_sec: int = 300):
@@ -457,3 +491,9 @@ def get_performance_summary() -> Dict:
     """获取性能摘要"""
     monitor = get_performance_monitor()
     return monitor.get_performance_summary()
+
+
+# 注册单例工厂（置于文件末尾，确保类已定义）
+if _SINGLETON_AVAILABLE:
+    register_singleton("search_performance_monitor", _create_performance_monitor,
+                       cleanup_fn=_cleanup_performance_monitor)

@@ -15,6 +15,16 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# SingletonManager 统一收口（保留 fallback 变量 _monitor 向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = None
+
 MAX_RECORDS = 500  # 环形缓冲区大小（向后兼容别名，运行时从 Config 读取）
 
 
@@ -308,18 +318,74 @@ class LLMMonitor:
 
 
 # ── 全局单例 ──
-_monitor: Optional[LLMMonitor] = None
+_monitor: Optional[LLMMonitor] = None  # 保留作为 fallback
+
+# 安装钩子时备份的原始方法（uninstall_hooks 恢复用，避免闭包悬空引用旧实例）
+_orig_do_chat = None
+_orig_do_summarize = None
+_orig_get_client = None
+
+
+def _create_llm_monitor(config=None):
+    """LLMMonitor 工厂（供 SingletonManager 使用）"""
+    return LLMMonitor()
+
+
+def _cleanup_llm_monitor(monitor):
+    """清理钩子：卸载 LLMService 钩子（仅测试重置时调用，幂等）"""
+    if monitor is not None:
+        uninstall_hooks()
+        monitor._hooks_installed = False
 
 
 def get_monitor() -> LLMMonitor:
+    """获取全局 LLM 监控器单例
+
+    Returns:
+        LLMMonitor 实例
+    """
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("llm_monitor")
     global _monitor
     if _monitor is None:
-        _monitor = LLMMonitor()
+        _monitor = _create_llm_monitor()
     return _monitor
+
+
+def reset_llm_monitor():
+    """重置全局 LLM 监控器单例（仅用于测试）
+
+    注意：reset 会触发 cleanup 钩子卸载 LLMService 钩子，避免闭包悬空引用。
+    """
+    global _monitor
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("llm_monitor")
+    _monitor = None
+
+
+def uninstall_hooks():
+    """卸载 LLMService 钩子，恢复原始方法（幂等）
+
+    供 reset 清理钩子调用；仅恢复本次安装的补丁，
+    未安装过钩子时安全跳过。
+    """
+    global _orig_do_chat, _orig_do_summarize, _orig_get_client
+    try:
+        from memory.llm_service import LLMService
+    except Exception:
+        return
+    if _orig_do_chat is not None:
+        LLMService._do_chat = _orig_do_chat
+    if _orig_do_summarize is not None:
+        LLMService._do_summarize = _orig_do_summarize
+    if _orig_get_client is not None:
+        LLMService._get_client = _orig_get_client
+    _orig_do_chat = _orig_do_summarize = _orig_get_client = None
 
 
 def install_hooks():
     """安装 LLMService 钩子"""
+    global _orig_do_chat, _orig_do_summarize
     monitor = get_monitor()
     if monitor._hooks_installed:
         return
@@ -327,9 +393,12 @@ def install_hooks():
     try:
         from memory.llm_service import LLMService
 
-        # 保存原始方法
-        orig_do_chat = LLMService._do_chat
-        orig_do_summarize = LLMService._do_summarize
+        # 保存原始方法（模块级，供 uninstall_hooks 恢复）
+        _orig_do_chat = LLMService._do_chat
+        _orig_do_summarize = LLMService._do_summarize
+
+        orig_do_chat = _orig_do_chat
+        orig_do_summarize = _orig_do_summarize
 
         def _patched_do_chat(self, messages, system_prompt="",
                              max_tokens=1024, temperature=0.7):
@@ -402,10 +471,14 @@ def install_hooks():
 
 def _wrap_get_client_for_tool_calling(monitor):
     """修补 LLMService._get_client，确保任何通过它创建的 client 的 create 方法被包装"""
+    global _orig_get_client
     try:
         from memory.llm_service import LLMService
 
-        orig_get_client = LLMService._get_client
+        # 保存原始方法（模块级，供 uninstall_hooks 恢复）
+        _orig_get_client = LLMService._get_client
+
+        orig_get_client = _orig_get_client
 
         def _patched_get_client(self):
             client = orig_get_client(self)
@@ -467,3 +540,9 @@ def _wrap_get_client_for_tool_calling(monitor):
 
     except Exception as e:
         logger.debug("安装 client.create 钩子失败: %s", e)
+
+
+# 注册单例工厂（置于文件末尾，确保 get_monitor / install_hooks 均已定义）
+if _SINGLETON_AVAILABLE:
+    register_singleton("llm_monitor", _create_llm_monitor,
+                       cleanup_fn=_cleanup_llm_monitor)

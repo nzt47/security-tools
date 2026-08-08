@@ -23,6 +23,16 @@ from agent.monitoring.tracing import get_trace_id, set_trace_id
 
 logger = logging.getLogger(__name__)
 
+# SingletonManager 统一收口（保留 fallback 变量 _alert_manager 向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton, is_initialized,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = is_initialized = None
+
 
 # ============================================================================
 # 性能监控基础
@@ -490,15 +500,46 @@ def create_default_alert_callback() -> Callable[[str, Dict], None]:
     return default_callback
 
 
-_alert_manager: Optional[PerformanceAlertManager] = None
+_alert_manager: Optional[PerformanceAlertManager] = None  # 保留作为 fallback
+
+
+def _create_alert_manager(config=None):
+    """PerformanceAlertManager 工厂（供 SingletonManager 使用）
+
+    config 可能以两种形态传入，需区分：
+    - SingletonManager dict 通道：{"alert_config": AlertConfig}，需解包
+    - 直接传入的 AlertConfig 对象：原样传给 PerformanceAlertManager
+    """
+    if isinstance(config, dict) and "alert_config" in config:
+        config = config["alert_config"]
+    return PerformanceAlertManager(config)
 
 
 def get_alert_manager(config: Optional[AlertConfig] = None) -> PerformanceAlertManager:
-    """获取全局告警管理器实例"""
+    """获取全局告警管理器实例
+
+    Args:
+        config: 告警规则配置（仅在未初始化时生效）
+
+    Returns:
+        PerformanceAlertManager 实例
+    """
+    if _SINGLETON_AVAILABLE:
+        if config is not None and not is_initialized("performance_alert_manager"):
+            return get_singleton("performance_alert_manager", {"alert_config": config})
+        return get_singleton("performance_alert_manager")
     global _alert_manager
     if _alert_manager is None:
-        _alert_manager = PerformanceAlertManager(config)
+        _alert_manager = _create_alert_manager(config)
     return _alert_manager
+
+
+def reset_performance_alert_manager():
+    """重置全局告警管理器单例（仅用于测试）"""
+    global _alert_manager
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("performance_alert_manager")
+    _alert_manager = None
 
 
 def setup_performance_monitoring(
@@ -796,3 +837,8 @@ class PerformanceLogger:
 llm_cache = LLMCache()
 async_save_monitor = AsyncSaveMonitor()
 perf_logger = PerformanceLogger()
+
+# 注册单例工厂（置于文件末尾，确保 get_alert_manager / AlertConfig 均已定义）
+# 单例名用 performance_alert_manager，与 agent.monitoring.alert_manager 区分
+if _SINGLETON_AVAILABLE:
+    register_singleton("performance_alert_manager", _create_alert_manager)

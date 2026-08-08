@@ -426,7 +426,7 @@ class TestGlobalFunctions:
         """测试带配置获取告警管理器"""
         # 重置全局实例（实际全局变量在 agent.monitoring.performance,非薄包装模块）
         import agent.monitoring.performance as perf
-        perf._alert_manager = None
+        perf.reset_performance_alert_manager()
 
         config = AlertConfig(cpu_threshold=75.0)
         manager = get_alert_manager(config)

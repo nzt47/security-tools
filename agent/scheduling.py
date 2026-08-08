@@ -24,6 +24,16 @@ from pathlib import Path
 from typing import Callable, Dict, List, Any, Optional
 from agent.logging_utils import log_dict
 
+# SingletonManager 统一收口（保留 fallback 变量 _schedule_scheduler 向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = None
+
 logger = logging.getLogger(__name__)
 
 def _trace_id():
@@ -566,12 +576,42 @@ class Scheduler:
 #  全局单例
 # ════════════════════════════════════════════════════════════
 
-_schedule_scheduler: Optional[Scheduler] = None
+_schedule_scheduler: Optional[Scheduler] = None  # 保留作为 fallback
+
+
+def _create_schedule_scheduler(config=None):
+    """Scheduler 工厂（供 SingletonManager 使用）"""
+    return Scheduler()
+
+
+def _cleanup_schedule_scheduler(scheduler):
+    """清理钩子：停止后台调度线程（stop 幂等：置标志 + 持久化）"""
+    if scheduler is not None:
+        scheduler.stop()
 
 
 def get_schedule_scheduler() -> Scheduler:
     """获取调度器单例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("schedule_scheduler")
     global _schedule_scheduler
     if _schedule_scheduler is None:
-        _schedule_scheduler = Scheduler()
+        _schedule_scheduler = _create_schedule_scheduler()
     return _schedule_scheduler
+
+
+def reset_schedule_scheduler():
+    """重置全局调度器单例（仅用于测试）
+
+    注意：reset 会触发 cleanup 钩子 stop 后台线程并持久化。
+    """
+    global _schedule_scheduler
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("schedule_scheduler")
+    _schedule_scheduler = None
+
+
+# 注册单例工厂（置于文件末尾，确保 getter / 便捷函数均已定义）
+if _SINGLETON_AVAILABLE:
+    register_singleton("schedule_scheduler", _create_schedule_scheduler,
+                       cleanup_fn=_cleanup_schedule_scheduler)

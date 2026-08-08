@@ -39,6 +39,16 @@ _MCP_LOG_LEVEL = os.environ.get("MCP_LOG_LEVEL", "INFO").upper()
 _LOG_LEVEL_FALLBACK = False       # True 表示发生了无效值回退
 _LOG_LEVEL_ORIGINAL: Optional[str] = None  # 原始无效值(回退时填充)
 logger = logging.getLogger(__name__)
+
+# SingletonManager 统一收口（保留 fallback 变量 _executor 向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = None
 # 模块加载时校验:CRITICAL 等非白名单值回退 INFO(防止抑制 ERROR 日志)
 # CRITICAL 虽是 Python logging 内置级别(logging.CRITICAL=50),但会抑制
 # ERROR(40)及以下日志,不属于运维白名单,视为恶意值/误配回退 INFO
@@ -454,15 +464,40 @@ class McpExecutor:
 #  模块级单例 + 便捷接口
 # ════════════════════════════════════════════════════════════════
 
-_executor: Optional[McpExecutor] = None
+_executor: Optional[McpExecutor] = None  # 保留作为 fallback
+
+
+def _create_mcp_executor(config=None):
+    """McpExecutor 工厂（供 SingletonManager 使用）
+
+    config 走 dict 通道（{"default_timeout": <float>}），
+    仅当 dict 含该键才解包，否则用默认 30s。
+    """
+    if isinstance(config, dict) and "default_timeout" in config:
+        return McpExecutor(default_timeout=config["default_timeout"])
+    return McpExecutor()
 
 
 def get_mcp_executor() -> McpExecutor:
-    """获取 MCP 执行器单例"""
+    """获取 MCP 执行器单例
+
+    Returns:
+        McpExecutor 实例
+    """
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("mcp_executor")
     global _executor
     if _executor is None:
-        _executor = McpExecutor()
+        _executor = _create_mcp_executor()
     return _executor
+
+
+def reset_mcp_executor():
+    """重置 MCP 执行器单例（仅用于测试）"""
+    global _executor
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("mcp_executor")
+    _executor = None
 
 
 def execute_mcp_tool(tool_name: str, arguments: dict) -> McpResponse:
@@ -497,6 +532,12 @@ def is_mcp_tool(tool_name: str) -> bool:
 #   python agent/mcp_executor.py              # 默认 INFO 级别自检
 #   python agent/mcp_executor.py --verbose    # DEBUG 级别,输出详细协议日志
 #   python agent/mcp_executor.py -v --tool db_query --endpoint https://...
+
+# 注册单例工厂（置于 __main__ 块之前，确保 get_mcp_executor / 便捷函数均已定义）
+# 无 cleanup 钩子：McpExecutor 持有的是内存模拟连接池（_mock_call），无真实资源
+if _SINGLETON_AVAILABLE:
+    register_singleton("mcp_executor", _create_mcp_executor)
+
 if __name__ == "__main__":
     import argparse
 
