@@ -18,6 +18,11 @@ from unittest.mock import patch
 
 import pytest
 
+# 【已知部分命中缺口登记】2026-08-08 D1 数据层优化（web_search 描述补充
+# 「网页内容/联网查询」措辞）后 q01/q19 已转完整命中，无已知缺口。
+# 若未来出现新部分命中，登记于此并同步 MAX_PARTIAL 余量评估。
+KNOWN_PARTIAL: set[str] = set()
+
 
 # ════════════════════════════════════════════════════════════
 #  公共 fixture
@@ -132,6 +137,25 @@ class TestRetrievalQuality:
                 f"selected={tool_names}  ground_truth={q['ground_truth']}  "
                 f"missing={missing}"
             )
+
+    def test_partial_recall_trend(self, eval_data, retriever):
+        """部分命中(query 数)趋势门禁：recall<1.0 的 query 数 ≤ MAX_PARTIAL。
+
+        【不易】当前基线 0 个部分命中（D1 描述优化后 20/20 完全命中），MAX_PARTIAL=4
+        留 4 个余量；超过则说明检索质量系统性退化，立即告警。
+        【简易】直接统计全部部分命中，KNOWN_PARTIAL 仅作登记注释，不做排除逻辑。
+        """
+        partial = []
+        with patch("agent.tool_router_hybrid.get_hybrid_retriever", return_value=retriever):
+            for q in eval_data["queries"]:
+                tool_names = [name for name, _ in (retriever.query(q["query"], top_k=5) or [])[:5]]
+                recall = _compute_recall(tool_names, q["ground_truth"])
+                if recall < 1.0:
+                    partial.append((q["id"], recall))
+        max_partial = 4  # 当前基线 2，余量 2
+        assert len(partial) <= max_partial, (
+            f"部分命中 query {len(partial)} 个 > {max_partial}: {partial}"
+        )
 
     def test_fixture_integrity(self, eval_data):
         """fixture 结构完整性:20 query,每个含 id/query/ground_truth"""

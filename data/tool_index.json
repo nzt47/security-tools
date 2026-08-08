@@ -761,7 +761,7 @@
     {
       "name": "web_search",
       "category": "web",
-      "description": "搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）。Search the web, find information online, internet search",
+      "description": "在互联网上搜索网页内容和最新信息，联网查询资料、浏览网页搜索结果（搜索引擎）。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）。Search the web, find information online, internet search",
       "version": "1.0.0",
       "deprecated": false,
       "parameter_names": [
