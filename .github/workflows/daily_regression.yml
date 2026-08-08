@@ -14,6 +14,12 @@
 # =====================================================================
 name: Daily Regression Tests
 
+# 【变易·P2-4】concurrency: 同 workflow 同 ref 连续触发取消旧 run 只留最新。
+# 2026-08-08 排队风暴治理延伸: 全项目 workflow 批量统一。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   # 【变易】nightly 构建完成后自动触发回归测试
   # 仅当 ci.yml(云枢系统测试流程) 成功完成时触发,避免在失败构建上跑回归

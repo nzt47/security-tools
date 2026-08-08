@@ -33,6 +33,12 @@
 # =====================================================================
 name: Publish tlm-hook-failsafe
 
+# 【变易·P2-4】concurrency: 发布类操作不可中途取消(cancel-in-progress: false),
+# 同 workflow 同 ref 重复触发时排队等待,避免半发布状态。2026-08-08 排队治理延伸。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 on:
   # 不易：branches 和 tags 同时定义时为 OR 关系（branch 推送或 tag 推送任一满足即触发）
   #        但 branches/tags 与 paths 为 AND 关系（必须同时满足）

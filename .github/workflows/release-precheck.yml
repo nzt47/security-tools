@@ -19,6 +19,12 @@
 
 name: 发布前检查
 
+# 【变易·P2-4】concurrency: 发布类操作不可中途取消(cancel-in-progress: false),
+# 同 workflow 同 ref 重复触发时排队等待,避免半发布状态。2026-08-08 排队治理延伸。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 on:
   workflow_dispatch:
     inputs:
