@@ -6,6 +6,44 @@
 
 ---
 
+## [CHG] - 2026-08-08: 工具混合检索 alpha=0.5 生产固化 + 混合语言召回验证 ✅
+
+**影响模块**: `.env`, `agent/tool_router_hybrid.py`, `data/tool_definitions/*.yaml`(10 个核心工具), `scripts/dev/verify_english_recall.py`, `tests/unit/test_tool_multilingual_recall_regression.py`
+**关联报告**: `data/sim_results/hybrid_perf_regression_report.md`
+
+### 背景
+
+纯中文工具描述对英文查询零字面命中（top1 命中率 20%），通过「description 末尾追加语义独占英文别名」形成混合语言描述，并在 BM25/Embedding 双路融合下验证跨语言召回稳定。
+
+### Changed — 配置固化（生产）
+
+- `.env` L532: `AGENT_HYBRID_ALPHA=0.5`（BM25/Embedding 等权，跨语言验证 10/10）
+- `.env` L527: `AGENT_HYBRID_EMBEDDING=1`（Embedding 子进程隔离，0xC0000005 崩溃隔离）
+- 优先级契约：`hybrid_select_tools(alpha=...)` 显式参数 > `AGENT_HYBRID_ALPHA` > 代码默认 0.5（`_resolve_alpha_from_env` 实现，非法/越界 env 值回退 0.5）
+
+### Added — 功能与测试
+
+- 10 个核心工具 YAML description 追加语义独占英文别名（如 `read_pdf`: `Extract text from PDF files, parse PDF documents`），`sync_tool_index.py` 重生成 `tool_index.json`（70 工具）
+- 新增 `tests/unit/test_tool_multilingual_recall_regression.py`（混合语言回归：中英混合 10 查询 + 日/法别名通用性 alias/native/negative），5 passed
+
+### Fixed — 脚本修复
+
+- `verify_english_recall.py`: `--bm25-only` 参数原为死代码（定义但从未读取，行为与默认相同）→ 修复为只跑真实索引 BM25 组(1/2/3)
+- `--alpha` 增加 [0,1] 范围校验，非法值 fail-fast（CLI 显式传参错误不应静默回退）
+- 组4 负向(negative)用例结果补齐入统计与返回结构
+
+### 验证结果（`verify_english_recall.py --hybrid --alpha 0.5`）
+
+| 检索路 | 英文(10) | 中英混合(10) | 中文回归(5) |
+|--------|----------|--------------|-------------|
+| BM25 | 10/10 | 10/10 | 5/5 |
+| 融合路(alpha=0.5, degraded=True) | 10/10 | 10/10 | 5/5 |
+
+- 别名通用性：日/法描述+别名英文召回 2/2、原语言匹配 1/1、负向无泄漏
+- 耗时：单查询 <0.07ms（远低于 50ms 预算）；测试套件 58 passed / 0 failed
+
+---
+
 ## [Release] v1.1.4 - 2026-08-04: tlm-hook-failsafe PSGallery 自动发布链路 5 大问题修复 ✅ 已发布
 
 **Tag**: `v1.1.4` (commit `76545d77`)

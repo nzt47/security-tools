@@ -24,6 +24,7 @@ from agent.knowledge.card import (BatchImportResult, CardConflictError,
                                   CardNotFoundError, CardStore,
                                   InvalidTransitionError)
 from agent.knowledge.index import rebuild_index, update_index_delta
+from agent.knowledge.link_cache import LinkCache
 from agent.knowledge.search import (BM25Index, KnowledgeHit, KnowledgeSearch,
                                     format_context, rrf_fuse)
 
@@ -43,6 +44,8 @@ __all__ = [
     "InvalidTransitionError", "BatchImportResult",
     # index（任务2）
     "rebuild_index", "update_index_delta",
+    # link_cache（任务4 性能优化：预计算双链解析缓存）
+    "LinkCache",
     # search（任务4 检索层）
     "BM25Index", "KnowledgeHit", "KnowledgeSearch", "format_context", "rrf_fuse",
 ]

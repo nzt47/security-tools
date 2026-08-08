@@ -1,6 +1,7 @@
 name: get_weather
 category: system
-description: 查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）
+description: 查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）。Get
+  weather forecast, temperature for a city
 deprecated: false
 version: 1.0.0
 schema:

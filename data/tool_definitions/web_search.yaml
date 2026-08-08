@@ -1,6 +1,7 @@
 name: web_search
 category: web
-description: 搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）
+description: 搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）。Search
+  the web, find information online, internet search
 deprecated: false
 version: 1.0.0
 schema:

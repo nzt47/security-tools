@@ -117,6 +117,8 @@ docs/observability/boundary_coverage_report.md
 
 # 运行时数据库（SQLite/向量索引，不入库）
 *.db
+*.db-shm
+*.db-wal
 agent/data/tool_trace.db
 data/memory/long_term.db
 data/skill_vectors/

@@ -58,6 +58,32 @@ _COSINE_CUTOFF = 0.2      # Embedding 余弦相似度剪枝阈值(低于此值�
 _PROBE_TIMEOUT = 60       # 子进程探测超时(秒)
 _WORKER_READY_TIMEOUT = 30.0  # worker ready 信号读取超时(秒)
 
+
+def _resolve_alpha_from_env() -> float:
+    """解析融合权重:环境变量 AGENT_HYBRID_ALPHA 覆盖,非法值回退默认 0.5
+
+    Why: 生产配置统一走 .env(守项目配置契约),代码不硬编码运行时值。
+         alpha ∈ [0,1]:0=纯语义,1=纯字面,0.5=等权。
+    """
+    raw = os.environ.get("AGENT_HYBRID_ALPHA", "").strip()
+    if not raw:
+        return _DEFAULT_ALPHA
+    try:
+        val = float(raw)
+    except ValueError:
+        logger.warning(
+            "[tool_router_hybrid] AGENT_HYBRID_ALPHA=%r 非数字,回退 %.1f",
+            raw, _DEFAULT_ALPHA,
+        )
+        return _DEFAULT_ALPHA
+    if not (0.0 <= val <= 1.0):
+        logger.warning(
+            "[tool_router_hybrid] AGENT_HYBRID_ALPHA=%r 超出 [0,1],回退 %.1f",
+            raw, _DEFAULT_ALPHA,
+        )
+        return _DEFAULT_ALPHA
+    return val
+
 # 原生崩溃退出码(用于诊断 Embedding 子进程崩溃原因)
 _WIN_ACCESS_VIOLATION = -1073741819   # 0xC0000005
 _WIN_STACK_OVERFLOW = -1073741571     # 0xC00000FD
@@ -965,10 +991,11 @@ class HybridRetriever:
 
     def __init__(
         self,
-        alpha: float = _DEFAULT_ALPHA,
+        alpha: Optional[float] = None,
         index_path: str = _INDEX_PATH,
     ):
-        self._alpha = alpha
+        # alpha 优先级:显式参数 > 环境变量 AGENT_HYBRID_ALPHA > 默认 0.5
+        self._alpha = _resolve_alpha_from_env() if alpha is None else alpha
         self._index_path = index_path
         self._bm25 = BM25Index()
         self._embedding = EmbeddingIndex()
@@ -1210,12 +1237,12 @@ def hybrid_select_tools(
     enabled_whitelist: Optional[list[str]] = None,
     max_tools: int = 25,
     top_k: int = _DEFAULT_TOP_K,
-    alpha: float = _DEFAULT_ALPHA,
+    alpha: Optional[float] = None,
 ) -> Optional[list[str]]:
     """混合检索选择工具 — 失败返回 None 让调用方回退
 
     【不易】任何异常都返回 None,让调用方回退到 get_tools_for_input(关键词分类)
-    【变易】alpha 可配,默认 0.5;top_k 默认 10
+    【变易】alpha 可配:显式参数 > 环境变量 AGENT_HYBRID_ALPHA > 默认 0.5;top_k 默认 10
     【简易】调用方 1 行改造:`hybrid_select_tools(...) or get_tools_for_input(...)`
 
     Args:
@@ -1223,7 +1250,7 @@ def hybrid_select_tools(
         enabled_whitelist: 启用工具白名单,None 表示不限制
         max_tools: 返回工具数上限,默认 25
         top_k: 检索候选数,默认 10
-        alpha: BM25/Embedding 融合权重,默认 0.5
+        alpha: BM25/Embedding 融合权重,None 表示用环境变量/默认 0.5
 
     Returns:
         排序+截断后的工具名列表;None 表示本次未启用/检索失败/无候选
@@ -1244,9 +1271,10 @@ def hybrid_select_tools(
     tools_preview: list[str] = []
 
     try:
-        # 覆盖 alpha(若调用方指定了非默认值)
-        if alpha != _DEFAULT_ALPHA:
+        # 覆盖 alpha(调用方显式指定时;否则沿用 retriever 默认=环境变量/0.5)
+        if alpha is not None:
             retriever._alpha = alpha
+        effective_alpha = retriever._alpha
 
         results = retriever.query(user_input, top_k=top_k)
         if results is None:
@@ -1297,7 +1325,7 @@ def hybrid_select_tools(
                     bm25_candidates=bm25_count,
                     embed_candidates=embed_count,
                     fused_candidates=fused_count,
-                    alpha=alpha,
+                    alpha=effective_alpha,
                     degraded=degraded,
                     tools_preview=tools_preview,
                 )

@@ -37,8 +37,9 @@ from dataclasses import dataclass
 from typing import Optional
 
 from agent.knowledge.card import Card, CardStore
-from agent.knowledge.links import resolve_link
+from agent.knowledge.link_cache import LinkCache
 from agent.knowledge.schema import Card as _SchemaCard  # noqa: F401  (类型别名，防误用)
+from agent.utils.periodic_sampler import PeriodicSampler
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,8 @@ _ENV_RERANK_MIN_SCORE = "KNOWLEDGE_RERANK_MIN_SCORE"
 _ENV_RERANK_TOP_N = "KNOWLEDGE_RERANK_TOP_N"
 _ENV_RRF_K = "KNOWLEDGE_RRF_K"
 _ENV_HIDE_SENSITIVE = "KNOWLEDGE_SENSITIVE_HIDE_SNIPPET"
+_ENV_TIMING_SAMPLE_RATE = "KNOWLEDGE_TIMING_SAMPLE_RATE"
+_DEFAULT_TIMING_SAMPLE_RATE = 0.1  # 耗时日志默认采样率：每 10 次 search 输出 1 条（生产降噪）
 
 
 def _env_float(name: str, default: float) -> float:
@@ -314,8 +317,9 @@ class KnowledgeSearch:
         rerank_top_n: Optional[int] = None,
         rrf_k: Optional[int] = None,
         hide_sensitive_snippet: Optional[bool] = None,
+        timing_sample_rate: Optional[float] = None,
     ):
-        """构造检索器（一次性构建 BM25 索引）。
+        """构造检索器（一次性构建 BM25 索引 + 链接解析缓存）。
 
         Args:
             card_store: 卡片存储（CardStore，检索事实源）。
@@ -328,6 +332,9 @@ class KnowledgeSearch:
             rrf_k: RRF 平滑参数（默认 KNOWLEDGE_RRF_K / 60）。
             hide_sensitive_snippet: 敏感命中是否隐藏 snippet
                 （默认 KNOWLEDGE_SENSITIVE_HIDE_SNIPPET / False）。
+            timing_sample_rate: search_stage_timing 耗时日志采样率 (0,1]，
+                rate=1.0 全量，0<rate<1 按周期确定性抽样
+                （默认 KNOWLEDGE_TIMING_SAMPLE_RATE / 0.1，生产降噪）。
         """
         self._card_store = card_store
         self._vector_store = vector_store
@@ -349,21 +356,35 @@ class KnowledgeSearch:
             hide_sensitive_snippet if hide_sensitive_snippet is not None
             else _env_bool(_ENV_HIDE_SENSITIVE)
         )
+        self._timing_sample_rate = (
+            timing_sample_rate if timing_sample_rate is not None
+            else _env_float(_ENV_TIMING_SAMPLE_RATE, _DEFAULT_TIMING_SAMPLE_RATE)
+        )
+        self._timing_sampler = PeriodicSampler(self._timing_sample_rate)
 
         self._bm25 = BM25Index()
         self._cards: dict[str, Card] = {}
+        self._link_cache = LinkCache({})  # _build_index 里基于快照重建
         self._build_index()
 
     # ---------- 内部：索引 ----------
 
     def _build_index(self) -> None:
-        """从卡片库构建 BM25 索引 + slug → Card 内存映射（检索零 I/O）。"""
-        for card in self._card_store.list():
+        """从卡片库构建 BM25 索引 + slug→Card 映射 + 链接解析缓存（检索零 I/O）。
+
+        链接缓存（Why 性能：双链扩展此前每次 search 逐条 resolve_link→store.get
+        文件 I/O，实测占总耗时 99%+）：构造期一次性预计算为内存 slug（LinkCache），
+        热路径 _link_recall 纯内存查缓存，零文件 I/O、零读锁等待。快照式语义
+        （与 _cards/_bm25 同待遇）：构造后写入的卡不入缓存，重建 searcher 即刷新。
+        """
+        cards = self._card_store.list()
+        for card in cards:
             self._cards[card.slug] = card
             self._bm25.add_document(card.slug, _card_text(card))
+        self._link_cache = LinkCache(self._cards)
         logger.info(
-            "KnowledgeSearch: 索引构建完成 卡片数=%d bm25_size=%d",
-            len(self._cards), self._bm25.size,
+            "KnowledgeSearch: 索引构建完成 卡片数=%d bm25_size=%d 链接缓存卡数=%d",
+            len(self._cards), self._bm25.size, self._link_cache.size,
         )
 
     # ---------- 内部：三路召回 ----------
@@ -400,33 +421,28 @@ class KnowledgeSearch:
         return results
 
     def _link_recall(self, seeds: list[str], trace_id: Optional[str] = None) -> list[str]:
-        """双链一跳扩展：取种子卡片 links 对应卡片 slug（保序去重）。
+        """双链一跳扩展：取种子卡片 links 的一跳目标（查预计算缓存，纯内存零 I/O）。
 
-        支持纯 slug 与 `archives/<slug>` 两种目标（resolve_link 解析）；
-        断链/损坏卡自动跳过（resolve_link 返回 None），不抛异常。
-        归档卡不参与检索（_cards 仅含 wiki 卡片），故仅保留可索引目标。
+        语义与实时 resolve_link 完全等价（_build_index 时以 _MemoryCardStore 解析，
+        与 store.get 的容错语义对齐，守【不易】）：
+        - 只取一跳，不递归；断链/归档目标跳过（缓存中解析为 None）；
+        - 已见 slug（种子或已纳入）重复跳过，不双计。
         """
         expanded: list[str] = []
         seen = set(seeds)
         details: list[str] = []
         for seed in seeds:
-            card = self._cards.get(seed)
-            if card is None:
-                continue
-            for target in card.links:
-                resolved = resolve_link(target, self._card_store)
-                if resolved is None:
-                    details.append(f"{seed}→{target}(断链跳过)")
+            for target, resolved_slug in self._link_cache.expanded_links(seed):
+                if resolved_slug is None:
+                    reason = "归档跳过" if target.startswith("archives/") else "断链跳过"
+                    details.append(f"{seed}→{target}({reason})")
                     continue
-                if resolved.slug in seen:
-                    details.append(f"{seed}→{resolved.slug}(重复跳过)")
+                if resolved_slug in seen:
+                    details.append(f"{seed}→{resolved_slug}(重复跳过)")
                     continue
-                if resolved.slug not in self._cards:  # 归档/不可索引目标跳过
-                    details.append(f"{seed}→{resolved.slug}(不可索引跳过)")
-                    continue
-                seen.add(resolved.slug)
-                expanded.append(resolved.slug)
-                details.append(f"{seed}→{resolved.slug}(纳入)")
+                seen.add(resolved_slug)
+                expanded.append(resolved_slug)
+                details.append(f"{seed}→{resolved_slug}(纳入)")
         logger.info(
             "知识检索-双链扩展: seeds=%s 明细=%s 纳入=%s trace=%s",
             seeds, details, expanded, trace_id or "",
@@ -666,21 +682,24 @@ class KnowledgeSearch:
             hits.append(self._make_hit(card, fused_score, rerank_score))
         t_hits = (time.perf_counter() - _t_stage) * 1000
         _total_ms = (time.perf_counter() - _t0) * 1000
-        logger.info(json.dumps({
-            "trace_id": _trace,
-            "module_name": "knowledge_search",
-            "action": "search_stage_timing",
-            "query": query,
-            "ms": {
-                "bm25": round(t_bm25, 2),
-                "vector": round(t_vector, 2),
-                "link": round(t_link, 2),
-                "rrf": round(t_rrf, 2),
-                "rerank": round(t_rerank, 2),
-                "assemble": round(t_hits, 2),
-                "total": round(_total_ms, 2),
-            },
-        }, ensure_ascii=False))
+        # 耗时日志采样（生产降噪，PeriodicSampler 线程安全）：rate=1.0 全量；
+        # 0<rate<1 按周期确定性抽样（如 0.1 → 每 10 次 1 条）。
+        if self._timing_sampler.should_sample():
+            logger.info(json.dumps({
+                "trace_id": _trace,
+                "module_name": "knowledge_search",
+                "action": "search_stage_timing",
+                "query": query,
+                "ms": {
+                    "bm25": round(t_bm25, 2),
+                    "vector": round(t_vector, 2),
+                    "link": round(t_link, 2),
+                    "rrf": round(t_rrf, 2),
+                    "rerank": round(t_rerank, 2),
+                    "assemble": round(t_hits, 2),
+                    "total": round(_total_ms, 2),
+                },
+            }, ensure_ascii=False))
         logger.info(
             "知识检索: query=%r top_k=%d bm25=%d vector=%d links=%d fused=%d hits=%d "
             "trace=%s 耗时=%.2fms",

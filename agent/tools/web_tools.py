@@ -86,7 +86,7 @@ def register_all(dl):
     #  HTTP 请求工具
     # ════════════════════════════════════════════════════════════
 
-    @_tools.register("web_get", "发送 HTTP GET 请求获取网页内容。返回页面标题、文本、链接等结构化信息", schema={
+    @_tools.register("web_get", "发送 HTTP GET 请求获取网页内容。返回页面标题、文本、链接等结构化信息。Fetch a web page by URL, get page content via HTTP GET", schema={
         "type": "object",
         "properties": {
             "url": {"type": "string", "description": "请求的 URL"},
@@ -192,7 +192,7 @@ def register_all(dl):
     #  搜索工具
     # ════════════════════════════════════════════════════════════
 
-    @_tools.register("web_search", "搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）", schema={
+    @_tools.register("web_search", "搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）。Search the web, find information online, internet search", schema={
         "type": "object",
         "properties": {
             "query": {"type": "string", "description": "搜索关键词（必填）"},

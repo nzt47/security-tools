@@ -87,6 +87,41 @@ services:
       prometheus:
         condition: service_healthy
 
+  # ─── Alertmanager 告警通知 ───
+  # 2026-08-07 纳入 compose 统一管理（原为历史遗留容器，11 天宕机后由
+  # scripts/repair_alertmanager.py 修复）。映射 9093 端口便于宿主机直接访问。
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: yunshu-prod-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+      - '--web.external-url=http://localhost:9093'
+    restart: unless-stopped
+    networks:
+      - monitoring-net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9093/-/healthy || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
   # ─── 四层可见性指标导出器 ───
   # 运行 visibility_report.py --serve-metrics，暴露 /metrics 与 /health
   visibility-exporter:
@@ -166,4 +201,6 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  alertmanager_data:
     driver: local

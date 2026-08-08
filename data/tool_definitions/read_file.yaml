@@ -1,6 +1,7 @@
 name: read_file
 category: file
-description: 读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径
+description: 读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径。Read the content of a local text
+  file, open a file
 deprecated: false
 version: 1.0.0
 schema:

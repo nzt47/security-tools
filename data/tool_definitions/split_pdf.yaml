@@ -1,6 +1,7 @@
 name: split_pdf
 category: pdf
-description: 拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件
+description: 拆分 PDF 文件为多个独立的 PDF。支持按指定页范围拆分或每页拆为一个文件。Split a PDF into separate pages
+  or files, divide PDF
 deprecated: false
 version: 1.0.0
 schema:

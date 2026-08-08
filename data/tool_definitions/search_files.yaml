@@ -1,6 +1,7 @@
 name: search_files
 category: file
-description: 按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）
+description: 按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）。Find files by name or pattern,
+  search filesystem
 deprecated: false
 version: 1.0.0
 schema:

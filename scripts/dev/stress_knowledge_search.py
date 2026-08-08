@@ -112,13 +112,19 @@ def _writer_task(store, tid, ops):
 
 
 def _new_env() -> tuple[CardStore, KnowledgeSearch]:
-    """构造隔离的临时复杂知识库 + 检索器（含 fake 向量路，RRF 多路累加）。"""
+    """构造隔离的临时复杂知识库 + 检索器（含 fake 向量路，RRF 多路累加）。
+
+    timing_sample_rate=1.0：压测需全量采集 search_stage_timing 统计，
+    显式覆盖生产默认采样率（KNOWLEDGE_TIMING_SAMPLE_RATE 默认 0.1）。
+    """
     tmp = tempfile.mkdtemp(prefix="kb-stress-")
     wiki = Path(tmp) / "wiki"
     wiki.mkdir(parents=True, exist_ok=True)
     store = vks.build_complex_wiki(wiki)
     vector = vks._KeywordVectorStore(store.list())
-    searcher = KnowledgeSearch(store, vector_store=vector, min_score=0.3)
+    searcher = KnowledgeSearch(
+        store, vector_store=vector, min_score=0.3, timing_sample_rate=1.0,
+    )
     return store, searcher
 
 

@@ -22,7 +22,7 @@ def register_all(dl):
         get_file_info, search_files,
     )
 
-    @_tools.register("read_file", "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径", schema={
+    @_tools.register("read_file", "读取本地文件的全部内容（文本），支持指定编码。路径可以是绝对路径或相对路径。Read the content of a local text file, open a file", schema={
         "type": "object",
         "properties": {
             "path": {"type": "string", "description": "文件路径"},
@@ -101,7 +101,7 @@ def register_all(dl):
             return {"ok": False, "error": "请提供路径（path）"}
         return get_file_info(path)
 
-    @_tools.register("search_files", "按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）", schema={
+    @_tools.register("search_files", "按文件名模式搜索文件（支持 glob 通配符，如 *.py, **/*.md）。Find files by name or pattern, search filesystem", schema={
         "type": "object",
         "properties": {
             "pattern": {"type": "string", "description": "搜索模式，如 *.txt"},

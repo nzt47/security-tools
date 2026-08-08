@@ -1,6 +1,6 @@
 name: read_pdf
 category: pdf
-description: 读取 PDF 文件中的文本内容（支持指定页码范围）
+description: 读取 PDF 文件中的文本内容（支持指定页码范围）。Extract text from PDF files, parse PDF documents
 deprecated: false
 version: 1.0.0
 schema:

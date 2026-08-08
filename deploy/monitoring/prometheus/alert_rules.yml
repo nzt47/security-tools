@@ -139,3 +139,58 @@ groups:
           summary: "阈值违规项数过多"
           description: "四层可见性阈值违规项总数超过 3（当前 {{ $value }}），应作为 PR 合并门槛阻断。"
           runbook_url: "https://wiki.internal/yunshu/runbooks/threshold-violations-increased"
+
+  # ═══════════════════════════════════════════════════════════════════════
+  # LinkCache 监控（知识检索任务4 性能优化护栏，2026-08-07 追加）
+  # 来源: deploy/monitoring/alerts_link_cache.yml（单事实源，ExporterDown
+  #   规则已通过 Docker Prometheus 端到端验证：up==0 + for → firing）
+  # 依赖指标: exporter_link_cache.py 暴露的 yunshu_link_cache_* 系列
+  # ═══════════════════════════════════════════════════════════════════════
+  - name: yunshu_link_cache
+    interval: 30s
+    rules:
+      # 内存超阈值（持续 2 分钟才告警，防瞬时抖动误报）
+      - alert: LinkCacheMemoryHigh
+        expr: yunshu_link_cache_alerted == 1
+        for: 2m
+        labels:
+          severity: critical
+          team: knowledge
+        annotations:
+          summary: "LinkCache 内存超阈值"
+          description: "当前 used={{ $value }}（阈值见 exporter 启动参数），请核查知识库规模或缓存策略"
+
+      # 内存异常增长（10 分钟内涨幅超 100MB，趋势类告警，覆盖泄漏场景）
+      - alert: LinkCacheMemorySurging
+        expr: |
+          increase(yunshu_link_cache_used_bytes[10m]) > 100 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: warning
+          team: knowledge
+        annotations:
+          summary: "LinkCache 内存 10 分钟增长超 100MB"
+          description: "增量={{ $value | humanize1024 }}B，疑似连接泄漏/缓存膨胀，请介入排查"
+
+      # 指标抓取中断（exporter 宕机 5 分钟）—— 已验证规则逻辑（Docker 端到端）
+      - alert: LinkCacheExporterDown
+        expr: up{job="yunshu_link_cache"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          team: knowledge
+        annotations:
+          summary: "LinkCache exporter 无指标"
+          description: "prometheus 已 5 分钟无法抓取 yunshu_link_cache，监控链中断，请检查 exporter 进程"
+
+      # 告警触发频率异常（24 小时内告警次数 >= 6 次 → 持续性问题，非偶发）
+      - alert: LinkCacheAlertStorm
+        expr: |
+          increase(yunshu_link_cache_alerts_total[24h]) >= 6
+        for: 0m
+        labels:
+          severity: warning
+          team: knowledge
+        annotations:
+          summary: "LinkCache 24 小时告警 >= 6 次"
+          description: "告警计数={{ $value }}，高频率触发说明阈值过紧或存在持续性问题"

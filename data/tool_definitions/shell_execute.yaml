@@ -1,7 +1,8 @@
 name: shell_execute
 category: code
 description: 在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回
-  stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止
+  stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止。Run shell commands, execute terminal
+  commands
 deprecated: false
 version: 1.0.0
 schema:

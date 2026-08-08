@@ -19,6 +19,8 @@
 """
 
 import asyncio
+import json
+import logging
 import math
 from concurrent.futures import ThreadPoolExecutor
 
@@ -603,3 +605,48 @@ class TestConcurrency:
                 assert [h.slug for h in hits[:3]] == baseline[:3]
         with ThreadPoolExecutor(max_workers=8) as pool:
             list(pool.map(reader, range(8)))
+
+
+class TestLinkCachePerfRegression:
+    """双链扩展性能回归（防缓存策略退化，CI 自动收集）。
+
+    - 结构断言：search 热路径不读 CardStore（monkeypatch store.get 抛异常仍
+      正常检索）——若缓存退化到逐条 resolve_link→store.get 即触发异常失败；
+    - 耗时断言：link 阶段 < 20ms（缓存路径 ~0.03ms，legacy 文件 I/O ~40ms，
+      阈值远宽于缓存、远窄于退化，抗 CI 环境波动）。
+    """
+
+    def test_search_never_reads_store_on_hot_path(self, complex_store, monkeypatch):
+        # 构造后热路径（双链扩展/检索）若回退到 CardStore.get 文件 I/O → 抛异常
+        def _blocking_get(self, slug):
+            raise AssertionError(f"search 热路径不应读 CardStore.get: {slug}")
+        monkeypatch.setattr(CardStore, "get", _blocking_get)
+        searcher = KnowledgeSearch(complex_store, min_score=0.3)
+        hits = searcher.search("机器学习")
+        assert hits and hits[0].slug == "模型训练"
+
+    def test_link_stage_below_io_bound(self, complex_store):
+        links_ms: list[float] = []
+        class _TimingHandler(logging.Handler):
+            def emit(self, record):
+                msg = record.getMessage()
+                if '"action": "search_stage_timing"' not in msg:
+                    return
+                links_ms.append(json.loads(msg)["ms"]["link"])
+        handler = _TimingHandler(level=logging.INFO)
+        sl = logging.getLogger("agent.knowledge.search")
+        sl.setLevel(logging.INFO)
+        sl.propagate = False
+        sl.addHandler(handler)
+        try:
+            searcher = KnowledgeSearch(
+                complex_store, min_score=0.3, timing_sample_rate=1.0,
+            )
+            for _ in range(10):
+                searcher.search("机器学习")
+        finally:
+            sl.removeHandler(handler)
+        assert links_ms, "应采集到 search_stage_timing 日志"
+        assert max(links_ms) < 20.0, (
+            f"link 阶段退化到文件 I/O: max={max(links_ms):.2f}ms（缓存应 <1ms）"
+        )

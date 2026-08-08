@@ -1,6 +1,7 @@
 name: merge_pdf
 category: pdf
-description: 合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径
+description: 合并多个 PDF 文件为一个。paths 是要合并的源文件列表，output_path 是输出路径。Merge multiple PDF
+  files into one, combine PDFs
 deprecated: false
 version: 1.0.0
 schema:

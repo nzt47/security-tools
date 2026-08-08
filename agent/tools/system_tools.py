@@ -18,7 +18,7 @@ def register_all(dl):
 
     from agent.system_tools import get_weather
 
-    @_tools.register("get_weather", "查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）", schema={
+    @_tools.register("get_weather", "查询天气信息。使用 wttr.in 服务，无需 API Key。支持三种格式：text（简洁文本）、json（完整JSON数据）、full（完整文本预报）。Get weather forecast, temperature for a city", schema={
         "type": "object",
         "properties": {
             "city": {"type": "string", "description": "城市名称，如 Beijing、Shanghai、Tokyo，留空自动查询当前IP所在地天气"},
@@ -88,7 +88,7 @@ def register_all(dl):
     #  Shell 执行工具
     # ════════════════════════════════════════════════════════════
 
-    @_tools.register("shell_execute", "在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止", schema={
+    @_tools.register("shell_execute", "在本地执行 shell 命令。Windows 默认使用 cmd，Linux/Mac 使用 bash。支持自动检测或手动指定 shell 类型。返回 stdout、stderr 和退出码。注意：危险命令（如 rm -rf）会被安全系统阻止。Run shell commands, execute terminal commands", schema={
         "type": "object",
         "properties": {
             "command": {"type": "string", "description": "要执行的 shell 命令"},

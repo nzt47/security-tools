@@ -16,6 +16,12 @@ rule_files:
   - "alert_rules.yml"
   - "recording_rules.yml"
 
+# 告警推送：Alertmanager（2026-08-07 修复后健康运行，同 monitoring-net）
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['yunshu-prod-alertmanager:9093']
+
 scrape_configs:
   # 1. 四层可见性指标导出器（visibility_report.py --serve-metrics）
   #    报告每 5 分钟刷新一次，30s 抓取足够保证时效性
@@ -45,3 +51,11 @@ scrape_configs:
   - job_name: 'grafana'
     static_configs:
       - targets: ['grafana:3000']
+
+  # 6. LinkCache 内存监控 exporter（知识检索任务4 性能优化护栏）
+  #    宿主机 9108 端口，由 systemd exporter-link-cache.service 守护（Restart=always）
+  - job_name: 'yunshu_link_cache'
+    static_configs:
+      - targets: ['host.docker.internal:9108']
+    metrics_path: /metrics
+    scrape_interval: 15s
