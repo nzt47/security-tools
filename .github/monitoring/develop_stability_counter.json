@@ -1,9 +1,9 @@
 {
-  "remaining_checks": 1,
+  "remaining_checks": 0,
   "total_checks": 3,
   "started_at": "2026-08-04T22:00:00Z",
-  "last_check_at": "2026-08-08T13:41:22Z",
-  "last_check_commit": "d7127748dea9cc64cbf33ba820c3b1e6ed6e9a3e",
+  "last_check_at": "2026-08-08T16:32:50Z",
+  "last_check_commit": "232eba47736130d77cc839d68db2145335f1a83d",
   "monitored_workflows": [
     "kwarg-docker-scan.yml",
     "kwarg-conflict-check.yml",
@@ -27,6 +27,14 @@
       "stable": false,
       "failure_count": 1,
       "report": "# CI 稳定性快照 (commit d712774)\n# 检查时间: 2026-08-08T13:41:22Z\n\n| Workflow | Status | Conclusion | Run ID |\n|----------|--------|------------|--------|\n| kwarg-docker-scan.yml | queued | - | 31257839431 |\n| kwarg-conflict-check.yml | completed | success | 31257839428 |\n| ci.yml | queued | - | 31257839409 |\n| hardcoded-password-scan.yml | completed | failure | 31257839426 |\n| hook-failsafe-e2e.yml | queued | - | 31257841137 |"
+    },
+    {
+      "check_no": 1,
+      "commit": "232eba47736130d77cc839d68db2145335f1a83d",
+      "checked_at": "2026-08-08T16:32:50Z",
+      "stable": false,
+      "failure_count": 1,
+      "report": "# CI 稳定性快照 (commit 232eba4)\n# 检查时间: 2026-08-08T16:32:50Z\n\n| Workflow | Status | Conclusion | Run ID |\n|----------|--------|------------|--------|\n| kwarg-docker-scan.yml | queued | - | 31264712819 |\n| kwarg-conflict-check.yml | queued | - | 31264712816 |\n| ci.yml | queued | - | 31264712827 |\n| hardcoded-password-scan.yml | completed | failure | 31264712839 |\n| hook-failsafe-e2e.yml | not_triggered | - | - |"
     }
   ]
 }
