@@ -22,6 +22,12 @@ on:
       - 'agent/error_reporting_config.py'
       - 'monitoring/**'
       - 'lifetrace/**'
+      # 【变易】2026-08-08 P2-2: 与全项目 job(--root tests 扫描全部 tests/)对齐,
+      # 任何测试文件改动均触发 CI 验证(此前 tests/unit/*、tests/stress/* 改动
+      # 不触发, 导致 B1/C2/K1 修复无法独立验证, 需空提交或借触发路径 commit)。
+      # agent/knowledge/** 同步纳入(K1 lint 修复验证)。
+      - 'tests/**'
+      - 'agent/knowledge/**'
       - 'tests/**/test_*tracing*.py'
       - 'tests/**/test_*lifetrace*.py'
       - 'tests/**/test_*metrics*.py'
