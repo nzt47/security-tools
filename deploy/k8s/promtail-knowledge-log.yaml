@@ -1,0 +1,116 @@
+# Promtail 日志采集配置 — knowledge 模块结构化日志
+#
+# 用途：采集知识模块（agent/knowledge）的结构化日志，解析顶层 JSON 字段
+#   （trace_id/module_name/action/duration_ms + 业务字段），接入 Loki/ELK。
+#
+# 关联代码：
+#   - agent/knowledge/observability.py emit_structured_log（dict msg 输出）
+#   - 生产过滤器 agent/logging_utils.py DictToJsonFilter（单行 JSON 序列化）
+#   - 日志行样例：
+#     {"trace_id": "e97857e9947b48c3af5d07a7b8557d4c", "module_name": "knowledge",
+#      "action": "distill.llm_failed", "duration_ms": 50.31,
+#      "source": "a.md", "reason": "error", "error": "超时"}
+#
+# 部署方式（与 promtail-structured-log.yaml 同款）：
+#   kubectl create configmap promtail-knowledge-log \
+#     --from-file=promtail-knowledge-log.yaml -n monitoring
+#   或在 promtail DaemonSet 的 volumes/volumeMounts 中挂载为
+#   /etc/promtail/knowledge-log.yaml
+#
+# 日志路径说明：
+#   __path__ 指向知识模块日志落盘目录。知识模块日志随主应用 root logger
+#   输出（setup_production_logging 的 log_file，默认 logs/production.log），
+#   生产挂载后按实际路径调整；K8s 约定路径与 orchestrator 一致用
+#   /var/log/yunshu/knowledge/*.log。
+#
+# 【不易】仅解析不改写；action 作低基数 label；trace_id 为高基数禁止设 label
+# 【简易】单 scrape_config，仅 knowledge 流，不干扰 orchestrator 等其他流
+#
+# ⚠ Promtail 语法与混流说明：
+#   - 知识模块日志文件混合两种行：结构化 JSON 行（emit_structured_log → dict msg
+#     → DictToJsonFilter 单行序列化）与普通中文日志行（[distill] 提炼成功…）。
+#     若使用 multiline 且 firstline 只匹配 JSON 行，JSON 行后的普通文本行会被
+#     并入 JSON 块导致 json 解析失败（污染块）。
+#   - 因此【不启用 multiline】：结构化日志由 DictToJsonFilter 保证单行输出，
+#     无多行截断风险；非 JSON 行由 json stage 的 drop_malformed 丢弃（普通日志
+#     信息在结构化行中已有等价字段，丢弃不损失可观测信息）。
+#   - json stage 的 expressions 显式列出核心字段；业务字段（slug/source/
+#     reason/error/model/mode/distilled/type）按需扩展或运行时用 LogQL
+#     | json 解析。
+#   - 数值字段（duration_ms）类型转换统一在 LogQL 侧完成。
+
+clients:
+  # Loki 推送端点（按生产环境调整）
+  - url: http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push
+
+scrape_configs:
+  - job_name: yunshu-knowledge
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: yunshu-knowledge
+          __path__: /var/log/yunshu/knowledge/*.log
+
+    pipeline_stages:
+      # 1. 解析 JSON 顶层字段（核心字段 + 常用业务字段）
+      #    drop_malformed=true：非 JSON 行（普通中文日志/截断行）整行丢弃，
+      #    不产生解析失败噪音；纯 JSON 行正常提取字段。
+      - json:
+          drop_malformed: true
+          expressions:
+            trace_id: trace_id
+            module_name: module_name
+            action: action
+            duration_ms: duration_ms
+            message: message
+            # ── 常用业务字段（缺失时为空串，不阻断解析）──
+            slug: slug
+            source: source
+            reason: reason
+            error: error
+            model: model
+            mode: mode
+            distilled: distilled
+            card_type: type
+
+      # 3. 设置低基数字段为 Loki label（供面板 selector 使用）
+      #    ⚠ trace_id/slug 等高基数字段禁止设 label——会撑爆索引
+      - labels:
+          action: action
+          module_name: module_name
+
+      # 4. 仅保留 knowledge 模块日志（非 knowledge 行整行丢弃，防噪音）
+      - match:
+          selector: '{job="yunshu-knowledge"}'
+          stages:
+            - match:
+                selector: '{module_name!="knowledge"}'
+                action: drop
+
+      # 5. 规范化 message（便于 LogQL 直接展示与告警）
+      #    【简易】output stage 将模板结果作为最终日志行
+      - template:
+          source: message
+          template: 'knowledge[{{ .action }}][dur_ms={{ .duration_ms }}][slug={{ .slug }}][reason={{ .reason }}]'
+      - output:
+          source: message
+
+# ──────────────────────────────────────────────────────────────
+#  LogQL 使用示例（Grafana 面板）
+# ──────────────────────────────────────────────────────────────
+#
+# 1. 知识模块操作频率：
+#    sum by (action) (rate({job="yunshu-knowledge"}[5m]))
+#
+# 2. LLM 降级告警（reason=error/offline，最近 5 分钟 > 0）：
+#    {job="yunshu-knowledge", action="distill.llm_failed"}
+#    | json reason | reason = "error"
+#
+# 3. 耗时监控（P99）：
+#    {job="yunshu-knowledge", action="promote.card_ok"}
+#    | json duration_ms | unwrap duration_ms | quantile_over_time(0.99, [1h])
+#
+# 4. 高基数排查（trace_id 用 json parser 查询，不设 label）：
+#    {job="yunshu-knowledge", action="distill.llm_failed"}
+#    | json trace_id, error

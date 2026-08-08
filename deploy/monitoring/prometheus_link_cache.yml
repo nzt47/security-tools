@@ -1,0 +1,26 @@
+# 云枢 LinkCache 监控 Prometheus 抓取配置（片段，合并到生产 prometheus.yml）
+# ═══════════════════════════════════════════════════════════════════════
+# 前置:
+#   1. 启动 exporter（常驻，被监控端）:
+#      python3 scripts/exporter_link_cache.py \
+#          --cards-dir /opt/yunshu/knowledge/wiki --port 9108 --threshold-mb 256
+#      建议接入 systemd 管理（Type=simple，Restart=always），确保重启自启。
+#   2. 将本文件内容合并进 Prometheus 的 prometheus.yml（rule_files + scrape_configs）
+#   3. 加载并验证: promtool check config && curl -X POST localhost:9090/-/reload
+# ═══════════════════════════════════════════════════════════════════════
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 1m
+
+rule_files:
+  - /etc/prometheus/alerts_link_cache.yml
+
+scrape_configs:
+  - job_name: yunshu_link_cache
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['127.0.0.1:9108']
+        labels:
+          service: yunshu-knowledge
+          component: link-cache

@@ -1,0 +1,27 @@
+# 云枢 LinkCache Prometheus exporter systemd 单元（生产 Linux 环境）
+# ═══════════════════════════════════════════════════════════════════
+# 由 install_monitor_link_cache.sh 一键安装（勿手改路径，脚本会 sed 修正）。
+# 设计要点:
+#   - Type=simple + Restart=always: 进程被意外杀死后 5s 自动拉起，
+#     保证 /metrics 持续可抓取（ExporterDown 告警只在真正宕机时触发）
+#   - WantedBy=multi-user.target: 服务器重启后自动启动并暴露指标
+# 验证:
+#   systemctl status exporter-link-cache        # active (running)
+#   curl -s localhost:9108/metrics | head       # 指标可抓
+# ═══════════════════════════════════════════════════════════════════
+
+[Unit]
+Description=Yunshu LinkCache Prometheus exporter
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/yunshu
+ExecStart=/usr/bin/python3 /opt/yunshu/scripts/exporter_link_cache.py --cards-dir /opt/yunshu/knowledge/wiki --port 9108 --threshold-mb 256
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

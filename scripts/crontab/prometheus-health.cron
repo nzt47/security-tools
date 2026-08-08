@@ -1,0 +1,17 @@
+# 云枢 LinkCache 监控：Prometheus 健康探针定时任务（生产 Linux 服务器）
+# ═══════════════════════════════════════════════════════════════════════
+# 安装（追加到当前用户 crontab，去重）:
+#   crontab -l 2>/dev/null | grep -v "check_prometheus_alive" \
+#     | cat - scripts/crontab/prometheus-health.cron | crontab -
+# 验证:
+#   crontab -l | grep check_prometheus_alive
+#   tail -f /var/log/yunshu/prom-health.log          # 每 1 分钟一条探测日志
+# 说明:
+#   - 每 1 分钟探测生产 Prometheus（宿主机 9091 端口，Docker 映射 9090）
+#   - --fail-threshold 3: 连续 3 次失败才告警（防单次抖动误报，约 3 分钟）
+#   - 未配置 webhook 时告警写 journald/stderr，可被日志采集
+#   - 探针独立于 Prometheus/Alertmanager 运行，是其宕机时的降级兜底
+# ═══════════════════════════════════════════════════════════════════════
+
+# 每分钟探测 Prometheus 健康状态
+*/1 * * * * cd /opt/yunshu && /usr/bin/python3 scripts/check_prometheus_alive.py --prom-url http://127.0.0.1:9091 --once --fail-threshold 3 --webhook-url https://your-ops-webhook/alert >> /var/log/yunshu/prom-health.log 2>&1

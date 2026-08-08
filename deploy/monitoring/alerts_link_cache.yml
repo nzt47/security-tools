@@ -1,0 +1,58 @@
+# 云枢 LinkCache 告警规则（Prometheus Alertmanager 消费）
+# ═══════════════════════════════════════════════════════════════════════
+# 配合 exporter_link_cache.py 指标使用。导入后执行:
+#   promtool check rules alerts_link_cache.yml
+# 通知路由（Alertmanager）示例:
+#   routes:
+#     - match: { team: knowledge }
+#       receiver: ops-webhook   # 钉钉/飞书/邮件均可
+# ═══════════════════════════════════════════════════════════════════════
+
+groups:
+  - name: yunshu_link_cache
+    rules:
+      # 内存超阈值（持续 2 分钟才告警，防瞬时抖动误报）
+      - alert: LinkCacheMemoryHigh
+        expr: yunshu_link_cache_alerted == 1
+        for: 2m
+        labels:
+          severity: critical
+          team: knowledge
+        annotations:
+          summary: "LinkCache 内存超阈值"
+          description: "当前 used={{ $value }}（阈值见 exporter 启动参数），请核查知识库规模或缓存策略"
+
+      # 内存异常增长（10 分钟内涨幅超 100MB，趋势类告警）
+      - alert: LinkCacheMemorySurging
+        expr: |
+          increase(yunshu_link_cache_used_bytes[10m]) > 100 * 1024 * 1024
+        for: 5m
+        labels:
+          severity: warning
+          team: knowledge
+        annotations:
+          summary: "LinkCache 内存 10 分钟增长超 100MB"
+          description: "增量={{ $value | humanize1024 }}B，疑似连接泄漏/缓存膨胀，请介入排查"
+
+      # 指标抓取中断（exporter 宕机 5 分钟）
+      - alert: LinkCacheExporterDown
+        expr: up{job="yunshu_link_cache"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          team: knowledge
+        annotations:
+          summary: "LinkCache exporter 无指标"
+          description: "prometheus 已 5 分钟无法抓取 yunshu_link_cache，监控链中断，请检查 exporter 进程"
+
+      # 告警触发频率异常（24 小时内告警次数 >= 6 次 → 持续性问题，非偶发）
+      - alert: LinkCacheAlertStorm
+        expr: |
+          increase(yunshu_link_cache_alerts_total[24h]) >= 6
+        for: 0m
+        labels:
+          severity: warning
+          team: knowledge
+        annotations:
+          summary: "LinkCache 24 小时告警 >= 6 次"
+          description: "告警计数={{ $value }}，高频率触发说明阈值过紧或存在持续性问题"

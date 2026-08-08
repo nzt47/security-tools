@@ -12,6 +12,10 @@ scripts/_token.txt
 .env
 .secure_config.json
 
+# 生产监控配置模板（含 SMTP 授权码占位符；真实授权码注入后禁止入库）
+# alertmanager.yml 为 compose 运行时挂载源，防止 git add . 误提交真实授权码
+deploy/monitoring/prometheus/alertmanager.yml
+
 # 本地调试/验证脚本（临时工具，不入库）
 scripts/verify_delete_priority_cleanup.py
 scripts/demo_delete_log_output.py
@@ -30,6 +34,7 @@ tests/unit/temp/
 
 # 运行时备份/数据/工作区
 .file_backups/
+backups/
 workspace/
 data/state/
 data/lifetrace/sources/
@@ -214,3 +219,13 @@ PERFORMANCE_REPORT_sqlite_vs_etcd.md
 docs/releases/release-note-v1.1.10-20260804.md
 scripts/safe_git_revert.py
 scripts/simulate_pr_merge_guard.py
+
+# === 临时调试工作区 + 构建产物（2026-08-08 追加）===
+# .tmp-* 为调试/CI 模拟临时目录（.tmp-know-fix / .tmp-merge407 / .tmp-sq-* 等），不入库
+.tmp-*/
+# Python 构建产物目录
+build/
+# 未跟踪文件备份快照（含浏览器令牌库/密码脚本等敏感数据，禁止提交；仅 backup/logs/ 日志可入库）
+backup/untracked_backup_*/
+# 豁免：backup/logs/ 备份日志可入库（其余 logs/ 仍按上方规则忽略）
+!backup/logs/

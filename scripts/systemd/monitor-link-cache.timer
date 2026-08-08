@@ -1,0 +1,20 @@
+# 云枢 LinkCache 内存监控定时器（生产 Linux 环境）
+# ═══════════════════════════════════════════════════════════════
+# 与同目录 monitor-link-cache.service 配套使用。
+# 调度策略：
+#   - OnCalendar=*:0/5       每 5 分钟触发一次（可改为 *:0/1、*-*-* 00:00:00 等）
+#   - Persistent=true        错过触发点（机器休眠/停机）后启动时补跑
+#   - RandomizedDelaySec=10  随机延迟 0-10s，避免多节点同时打点
+# ═══════════════════════════════════════════════════════════════
+
+[Unit]
+Description=Schedule Yunshu LinkCache memory monitor every 5 minutes
+
+[Timer]
+OnCalendar=*:0/5
+Persistent=true
+RandomizedDelaySec=10
+Unit=monitor-link-cache.service
+
+[Install]
+WantedBy=timers.target

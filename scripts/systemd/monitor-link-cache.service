@@ -1,0 +1,29 @@
+# 云枢 LinkCache 内存监控 systemd 单元（生产 Linux 环境）
+# ═══════════════════════════════════════════════════════════════
+# 安装步骤（root）：
+#   1. 复制本文件与同名 .timer 到 /etc/systemd/system/
+#   2. 按实际安装位置修改下方路径（示例：/opt/yunshu）
+#   3. systemctl daemon-reload
+#   4. systemctl enable --now monitor-link-cache.timer
+#   5. systemctl list-timers | grep monitor-link-cache   # 确认调度
+# 说明：
+#   - 本单元 Type=oneshot：每次触发执行一次采样后即退出
+#   - 监控脚本退出码 1 = 内存超阈值（systemd 将记录为 failed 状态，
+#     便于通过 systemctl --failed 或监控系统发现）
+#   - 需要外部告警通知（钉钉/邮件）时，把 ExecStart 换成包装脚本，
+#     消费 --json 输出（alarmed 字段）即可，退出码契约不变
+# ═══════════════════════════════════════════════════════════════
+
+[Unit]
+Description=Yunshu LinkCache memory monitor (oneshot check, rc=1 on alert)
+Documentation=file:/opt/yunshu/docs/zh/知识库重构计划/部署操作手册_LinkCache_20260807.md
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/yunshu
+# --cards-dir 指向生产知识库 wiki 根目录；--once 单次采样后退出
+ExecStart=/usr/bin/python3 /opt/yunshu/scripts/monitor_link_cache_memory.py --cards-dir /opt/yunshu/knowledge/wiki --once --json
+# 阈值默认 256MB；如需调整追加 --threshold-mb <MB>
+StandardOutput=journal
+StandardError=journal
