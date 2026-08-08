@@ -21,6 +21,13 @@ import argparse
 import os
 import sys
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()  # 配置一律走 .env（项目约定）
+except ImportError:  # dotenv 未安装时退化为纯环境变量
+    pass
+
 import requests
 
 # Release Notes §6 后续计划（与 docs/zh/知识模块性能优化_Jira任务清单.md 对齐）
