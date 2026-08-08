@@ -10,6 +10,8 @@
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from agent.knowledge.card import CardStore
@@ -200,3 +202,24 @@ def test_delete_many_hooks_keep_delta_in_sync(tmp_path, store):
     delta = read_links_index(index_path)
     rebuild_links_index(tmp_path / "kb" / "wiki", index_path)
     assert delta == read_links_index(index_path) == {}
+
+
+# ---------- 6. 读路径容错（异常分支） ----------
+
+
+def test_read_links_index_missing_returns_empty(tmp_path):
+    """索引文件不存在 → 返回空 dict（调用方据此回退全库扫描）。"""
+    assert read_links_index(_links_index_path(tmp_path)) == {}
+
+
+def test_read_links_index_skips_polluted_lines(tmp_path, caplog):
+    """索引含无法识别行（污染）→ 跳过并告警，正确段照常解析。"""
+    index_path = _links_index_path(tmp_path)
+    index_path.parent.mkdir(parents=True)
+    index_path.write_text(
+        "# 知识库入链索引\n\n## b\n- [[a]]\n垃圾行！\n> 自动维护注释\n",
+        encoding="utf-8",
+    )
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.links_index"):
+        assert read_links_index(index_path) == {"b": ["a"]}
+    assert "无法识别" in caplog.text   # 污染行已计入排查告警
