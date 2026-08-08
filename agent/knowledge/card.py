@@ -255,15 +255,23 @@ class CardStore:
         P0-2 入链索引优化：优先查 index_links.md（O(1) 查表）；
         索引文件缺失/解析失败时回退全库扫描（容错，保证行为不退化）。
         """
+        return bool(self._incoming_sources(slug))
+
+    def _incoming_sources(self, slug: str) -> list[str]:
+        """返回指向该 slug 的引用方 slug 列表（入链明细，供删除日志排查）。
+
+        索引读取失败/缺失时回退全库扫描，行为与 _has_incoming_links 一致。
+        """
         path = self._links_index_path
         if path.exists():
             try:
-                return bool(read_links_index(path).get(slug))
+                return list(read_links_index(path).get(slug, []))
             except (ValueError, OSError) as exc:
                 logger.warning("入链索引解析失败，回退全库扫描: %s (%s)", path, exc)
-        return any(
-            slug in card.links for card in self.list() if card.slug != slug
-        )
+        return [
+            card.slug for card in self.list()
+            if card.slug != slug and slug in card.links
+        ]
 
     def _sync_links_index_add(self, card: Card) -> None:
         """create/update 后：将卡片 links 的引用关系登记入入链索引。
@@ -299,18 +307,49 @@ class CardStore:
     # ---------- CRUD ----------
 
     def create(self, card: Card) -> Card:
-        """创建卡片；同 slug 已存在时抛 CardConflictError（不覆盖）。"""
+        """创建卡片；同 slug 已存在时抛 CardConflictError（不覆盖）。
+
+        正文双链为链接事实源：links 显式传入时优先保留（兼容既有调用方），
+        为空则从正文解析（与 update 语义对齐，保证入链索引完整登记）。
+        """
         with self._rwlock.write():  # 写串行化：写卡 + index + log 三步原子可见
             self._check_slug(card.slug)
             self._validate(card)
+            logger.debug(
+                "create: slug=%s type=%s 校验通过 显式links=%s",
+                card.slug, card.type, card.links,
+            )
             if self._exists(card.slug):  # 写锁内重入读（同线程放行）；仅文件存在性，免 YAML 解析
                 logger.warning("创建冲突: slug=%s 已存在，拒绝覆盖（CardConflictError）", card.slug)
                 raise CardConflictError(f"卡片已存在: {card.slug}")
             path = self._wiki_root / card.type / f"{card.slug}.md"
+            # 入链追踪：正文双链为链接事实源（显式传入优先，为空则从正文解析）
+            links_source = "显式传入" if card.links else "正文双链解析"
+            if not card.links:
+                card.links = parse_links(card.content)
+            logger.debug(
+                "create[链接解析]: slug=%s 来源=%s 解析前links=%s 解析后links=%s",
+                card.slug, links_source, [], card.links,
+            )
+            logger.info(
+                "创建卡片[入链追踪]: slug=%s type=%s links来源=%s links=%s 正文长度=%d 双链解析=%s",
+                card.slug, card.type, links_source, card.links,
+                len(card.content), parse_links(card.content),
+            )
             self._write_card(path, card)
             update_index_delta(card.slug, card, self._index_path)
             append_log("create", card.slug, f"type={card.type}", log_path=self._log_path)
             self._sync_links_index_add(card)  # 入链索引同步（P0-2）
+            logger.debug(
+                "create[入链登记]: slug=%s 每个引用目标逐项登记 add=True index=%s",
+                card.slug, self._links_index_path,
+            )
+            logger.info(
+                "创建卡片[入链追踪]: slug=%s 入链索引登记完成 引用目标=%s index=%s",
+                card.slug,
+                [l for l in card.links if not l.startswith(ARCHIVES_PREFIX)],
+                self._links_index_path,
+            )
             logger.info("创建卡片: slug=%s type=%s path=%s", card.slug, card.type, path)
             return card
 
@@ -380,8 +419,17 @@ class CardStore:
         """删除卡片（校验入链，有入链时拒绝并返回 False）。"""
         with self._rwlock.write():  # 写串行化：入链检查 + 删除 + index + log 原子可见
             self._check_slug(slug)
-            if self._has_incoming_links(slug):  # 写锁内重入读（list）
-                logger.warning("删除被拒: slug=%s 存在入链（引用方需先解除引用）", slug)
+            # 入链检查：优先索引查表，缺失/失败回退全库扫描
+            incoming = self._incoming_sources(slug)
+            logger.info(
+                "删除卡片[入链追踪]: slug=%s 入链检查 引用方=%s index=%s",
+                slug, incoming, self._links_index_path,
+            )
+            if incoming:  # 写锁内重入读（list）
+                logger.warning(
+                    "删除被拒[入链追踪]: slug=%s 存在入链 引用方=%s（引用方需先解除引用）",
+                    slug, incoming,
+                )
                 return False
             path = self._find_path(slug)
             if path is None:
@@ -391,11 +439,32 @@ class CardStore:
             try:
                 old_links = self._md_to_card(path).links
             except (ValueError, TypeError):
+                logger.debug(
+                    "delete: slug=%s 卡片解析失败 links 容错为空 path=%s", slug, path,
+                )
                 old_links = []
+            logger.debug(
+                "delete: slug=%s 读被删卡成功 path=%s links=%s",
+                slug, path, old_links,
+            )
+            logger.info(
+                "删除卡片[入链追踪]: slug=%s 入链检查通过(无引用方) path=%s 被删卡links=%s",
+                slug, path, old_links,
+            )
             path.unlink()
             update_index_delta(slug, None, self._index_path)
             append_log("delete", slug, "", log_path=self._log_path)
             self._sync_links_index_remove(slug, old_links)  # 入链索引同步（P0-2）
+            logger.debug(
+                "delete[入链移除]: slug=%s 每个引用目标逐项移除 add=False index=%s",
+                slug, self._links_index_path,
+            )
+            logger.info(
+                "删除卡片[入链追踪]: slug=%s 入链索引移除完成 引用目标=%s index=%s",
+                slug,
+                [l for l in old_links if not l.startswith(ARCHIVES_PREFIX)],
+                self._links_index_path,
+            )
             logger.info("删除卡片: slug=%s path=%s", slug, path)
             return True
 

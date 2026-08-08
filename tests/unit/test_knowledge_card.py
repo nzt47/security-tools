@@ -262,6 +262,30 @@ def test_delete_missing_returns_false(store):
     assert store.delete("不存在") is False
 
 
+def test_create_parses_wikilinks_when_links_empty(store):
+    """create 时 links 为空则从正文解析双链（与 update 事实源对齐）。"""
+    a = make_card("引用卡", content="细节见 [[目标卡]] 的说明")
+    store.create(a)
+    got = store.get("引用卡")
+    assert got is not None
+    assert "目标卡" in got.links
+
+
+def test_create_keeps_explicit_links_over_content(store):
+    """显式传入 links 优先于正文（兼容既有调用方）。"""
+    a = make_card("引用卡", content="正文无双链", links=["目标卡"])
+    store.create(a)
+    assert store.get("引用卡").links == ["目标卡"]
+
+
+def test_create_wikilink_registers_incoming_index_for_delete(store):
+    """正文双链建卡后，删除被引用卡被拒（入链索引已登记 → delete 返回 False）。"""
+    store.create(make_card("引用卡", content="指向 [[目标卡]]"))
+    store.create(make_card("目标卡"))
+    assert store.delete("目标卡") is False
+    assert store.get("目标卡") is not None
+
+
 def test_delete_removes_index_entry(store, tmp_path):
     store.create(make_card("驾驭工程"))
     store.create(make_card("提示词工程"))

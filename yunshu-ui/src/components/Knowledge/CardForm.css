@@ -1,0 +1,89 @@
+/* 新建/编辑卡片表单（知识库） */
+.kb-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.kb-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.kb-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kb-form-label {
+  font-size: 12px;
+  color: #9aa1ac;
+}
+
+.kb-form-input {
+  background: #14171c;
+  border: 1px solid #2a2e38;
+  border-radius: 6px;
+  color: #e8eaed;
+  padding: 7px 10px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.kb-form-input:focus {
+  border-color: #4a9eff;
+}
+
+.kb-form-textarea {
+  resize: vertical;
+  min-height: 90px;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.kb-form-error {
+  color: #ff7a7a;
+  font-size: 12px;
+  background: rgba(255, 80, 80, 0.1);
+  border-radius: 4px;
+  padding: 6px 10px;
+}
+
+.kb-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.kb-form-btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.kb-form-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kb-form-btn-secondary {
+  background: #232730;
+  color: #b8bdc7;
+  border-color: #2a2e38;
+}
+
+.kb-form-btn-primary {
+  background: #2d6cdf;
+  color: #fff;
+}
+
+.kb-form-btn-primary:hover:not(:disabled) {
+  background: #3a7bf0;
+}

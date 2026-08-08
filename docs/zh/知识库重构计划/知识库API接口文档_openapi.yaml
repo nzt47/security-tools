@@ -1,0 +1,692 @@
+openapi: 3.0.3
+info:
+  title: 云枢知识库 API（Knowledge API）
+  description: |
+    知识库卡片 CRUD + 融合检索 + 健康巡检 API（任务4 + 任务6）。
+
+    ## 对接要点
+    - 基础地址：`http://127.0.0.1:5678`（前端 dev server 通过 Vite 代理 `/api → http://127.0.0.1:5678`，同源无需 CORS）
+    - 认证：若环境变量 `FLASK_API_TOKEN` 已设置，需携带 `Authorization: Bearer <token>` 或 `X-API-Token: <token>`；未设置时免认证（当前默认未启用）
+    - 所有错误均返回 JSON（不抛 HTML）：404 不存在 / 422 校验失败 / 409 冲突 / 503 知识库未初始化
+    - 卡片存储布局：`knowledge/wiki/<type>/<slug>.md`（YAML frontmatter + 正文），type ∈ concepts | entities | insights
+    - 双链语法：正文中的 `[[slug]]` 或 `[[slug|别名]]` 自动解析进 `links` 字段，并登记入链索引
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:5678
+    description: 本地 Flask 服务
+tags:
+  - name: cards
+    description: 卡片 CRUD（列表 / 详情 / 创建 / 更新 / 删除）
+  - name: retrieval
+    description: 融合检索
+  - name: governance
+    description: 索引 / 健康巡检 / 关系图
+
+paths:
+  /api/knowledge/cards:
+    get:
+      tags: [cards]
+      summary: 卡片列表
+      description: 返回全部卡片，可按 `status` 与 `type` 过滤。
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [draft, current, archive, unknown]
+          description: 按状态过滤；不传返回全部
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [concepts, entities, insights]
+          description: 按类型过滤；未知 type 返回空列表（200）
+      responses:
+        "200":
+          description: 卡片列表
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, cards, count]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  cards:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Card"
+                  count:
+                    type: integer
+                    example: 3
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/StoreUnavailable"
+    post:
+      tags: [cards]
+      summary: 创建卡片
+      description: |
+        创建新卡片。正文中的双链 `[[slug]]` / `[[slug|别名]]` 自动解析进 `links`
+        并登记入链索引（显式传入 `links` 时优先保留）。同 slug 已存在返回 409。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CardInput"
+      responses:
+        "201":
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, card]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  card:
+                    $ref: "#/components/schemas/Card"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/StoreUnavailable"
+
+  /api/knowledge/cards/{slug}:
+    parameters:
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+        description: 卡片 slug（URL 编码后的 slug 值）
+    get:
+      tags: [cards]
+      summary: 卡片详情
+      description: 返回卡片完整字段，另附 `incoming_links`（指向该卡的引用方 slug 列表）。
+      responses:
+        "200":
+          description: 卡片详情
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, card]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  card:
+                    allOf:
+                      - $ref: "#/components/schemas/Card"
+                      - type: object
+                        properties:
+                          incoming_links:
+                            type: array
+                            description: 指向该卡的引用方 slug 列表
+                            items:
+                              type: string
+                            example: ["smoke-beta", "smoke-gamma"]
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "503":
+          $ref: "#/components/responses/StoreUnavailable"
+    patch:
+      tags: [cards]
+      summary: 更新卡片（字段或状态迁移）
+      description: |
+        两种用法：
+        1. 部分字段更新：body 传任意可更新字段（`slug` 不可变），空值字段忽略。
+        2. 状态迁移：body 传 `{"transition": "current"}`，合法迁移见下方枚举。
+           亦可同时传字段 + `transition`（先更新字段再迁移）。
+        非法迁移（如 draft → archive 直跳）返回 409。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: 任意可更新字段，或 transition 状态迁移
+              properties:
+                transition:
+                  type: string
+                  enum: [draft, current, unknown, archive]
+                  description: 目标状态（合法迁移：draft→current|unknown、current→archive|draft、unknown→draft|current；archive 为终态）
+                title:
+                  type: string
+                status:
+                  type: string
+                  enum: [draft, current, archive, unknown]
+                type:
+                  type: string
+                  enum: [concepts, entities, insights]
+                source:
+                  type: string
+                date:
+                  type: string
+                tags:
+                  type: array
+                  items:
+                    type: string
+                links:
+                  type: array
+                  items:
+                    type: string
+                contradictions:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/Contradiction"
+                insight:
+                  type: string
+                scope:
+                  type: string
+                content:
+                  type: string
+                metadata:
+                  type: object
+              example:
+                insight: 更新后的核心洞见
+      responses:
+        "200":
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, card]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  card:
+                    $ref: "#/components/schemas/Card"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "503":
+          $ref: "#/components/responses/StoreUnavailable"
+    delete:
+      tags: [cards]
+      summary: 删除卡片
+      description: 有入链时拒绝删除，返回 409 并附 `incoming_links` 列表（引用方需先解除引用）。
+      responses:
+        "200":
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, deleted]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  deleted:
+                    type: string
+                    description: 被删除的 slug
+                    example: smoke-beta
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          description: 存在入链，删除被拒
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, error, incoming_links]
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "卡片存在入链，删除被拒: alpha"
+                  incoming_links:
+                    type: array
+                    items:
+                      type: string
+                    example: ["beta", "gamma"]
+        "503":
+          $ref: "#/components/responses/StoreUnavailable"
+
+  /api/knowledge/query:
+    post:
+      tags: [retrieval]
+      summary: 知识库融合检索
+      description: |
+        RRF 融合 + 双链扩展 + rerank 精排（可选）检索。返回命中卡片列表
+        （`hits`）与兼容旧调用方的引用块文本（`result`）。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question:
+                  type: string
+                  description: 查询问题（非空）
+                  example: "什么是双链？"
+                top_k:
+                  type: integer
+                  minimum: 1
+                  maximum: 20
+                  default: 5
+                  description: 返回命中数（自动钳制到 1-20）
+      responses:
+        "200":
+          description: 检索成功
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, hits, result]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  hits:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Hit"
+                  result:
+                    type: string
+                    description: 引用块文本（format_context），兼容旧调用方
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "503":
+          $ref: "#/components/responses/StoreUnavailable"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/knowledge/index:
+    get:
+      tags: [governance]
+      summary: 全局索引内容
+      description: 返回 `knowledge/index.md` 原文（任务2 自动维护，勿手动修改）。
+      responses:
+        "200":
+          description: 索引内容
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, content]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  content:
+                    type: string
+                    description: index.md 全文
+        "404":
+          description: index.md 不存在
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "index.md 不存在"
+        "503":
+          $ref: "#/components/responses/StoreUnavailable"
+
+  /api/knowledge/lint:
+    get:
+      tags: [governance]
+      summary: 知识库健康巡检
+      description: 全量巡检：孤儿卡片 / 死链 / 索引漂移 / 超期未访问 / 未裁决矛盾，并给出健康分与建议。
+      responses:
+        "200":
+          description: 健康报告
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, report]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  report:
+                    $ref: "#/components/schemas/HealthReport"
+        "503":
+          $ref: "#/components/responses/StoreUnavailable"
+        "500":
+          $ref: "#/components/responses/ServerError"
+
+  /api/knowledge/graph:
+    get:
+      tags: [governance]
+      summary: 关系图数据
+      description: 返回知识库节点与双链边（仅保留指向 wiki 节点的纯 slug 边，过滤 archives/ 目标）。
+      responses:
+        "200":
+          description: 节点-边数据
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok, nodes, edges]
+                properties:
+                  ok:
+                    type: boolean
+                    example: true
+                  nodes:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GraphNode"
+                  edges:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/GraphEdge"
+        "503":
+          $ref: "#/components/responses/StoreUnavailable"
+
+components:
+  schemas:
+    Card:
+      type: object
+      description: 知识卡片（frontmatter 字段 + 正文）
+      required: [title, slug, status, type, source, date]
+      properties:
+        title:
+          type: string
+          description: 卡片标题
+          example: "双链母卡"
+        slug:
+          type: string
+          description: 唯一标识（文件名）；默认等于 slugify(title)
+          example: "双链母卡"
+        status:
+          type: string
+          enum: [draft, current, archive, unknown]
+          example: "current"
+        type:
+          type: string
+          enum: [concepts, entities, insights]
+          example: "concepts"
+        source:
+          type: string
+          description: 来源（文章/播客/资产等）
+          example: "手动验证"
+        date:
+          type: string
+          description: 创建日期（YYYY-MM-DD）
+          example: "2026-08-08"
+        tags:
+          type: array
+          items:
+            type: string
+          example: ["双链", "测试"]
+        links:
+          type: array
+          description: 双链目标 slug 列表（正文自动解析，显式传入优先）
+          items:
+            type: string
+          example: ["双链子卡", "双链伙伴"]
+        contradictions:
+          type: array
+          description: 矛盾标记（status ∈ reviewed | conflict | resolved）
+          items:
+            $ref: "#/components/schemas/Contradiction"
+        insight:
+          type: string
+          description: 一句话核心洞见（必填）
+          example: "核心洞见"
+        scope:
+          type: string
+          description: 适用范围
+          example: ""
+        content:
+          type: string
+          description: 卡片正文 Markdown（双链语法 [[slug]] / [[slug|别名]]）
+          example: "引用 [[双链子卡]] 与 [[双链伙伴]]"
+        metadata:
+          type: object
+          additionalProperties: true
+          description: 扩展元数据（可选）
+    CardInput:
+      type: object
+      description: 创建卡片请求体（字段同 Card；未知字段忽略，缺失字段按默认值补全后校验）
+      required: [title, slug, status, type, source, date, insight]
+      allOf:
+        - $ref: "#/components/schemas/Card"
+        - type: object
+          description: insight 必填；links 可省略（自动从正文解析）
+    Contradiction:
+      type: object
+      required: [target_slug, status]
+      properties:
+        target_slug:
+          type: string
+          description: 矛盾对象 slug
+        status:
+          type: string
+          enum: [reviewed, conflict, resolved]
+        note:
+          type: string
+          description: 矛盾说明（可选）
+    Hit:
+      type: object
+      description: 检索命中项
+      required: [slug, title, status, type, score]
+      properties:
+        slug:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+          enum: [draft, current, archive, unknown]
+        type:
+          type: string
+          enum: [concepts, entities, insights]
+        score:
+          type: number
+          description: 融合得分（RRF）
+        rerank_score:
+          type: number
+          nullable: true
+          description: 精排得分（reranker 不可用时为 null）
+        source_ref:
+          type: string
+          description: "来源引用（格式 [来源: slug|status]）"
+        snippet:
+          type: string
+          description: 命中片段
+    GraphNode:
+      type: object
+      required: [id, label, type, status]
+      properties:
+        id:
+          type: string
+          description: 卡片 slug
+        label:
+          type: string
+          description: 卡片标题
+        type:
+          type: string
+          enum: [concepts, entities, insights]
+        status:
+          type: string
+          enum: [draft, current, archive, unknown]
+    GraphEdge:
+      type: object
+      required: [source, target]
+      properties:
+        source:
+          type: string
+          description: 引用方 slug
+        target:
+          type: string
+          description: 被引用方 slug（仅 wiki 内节点）
+    HealthReport:
+      type: object
+      description: 健康巡检报告（lint_all 输出）
+      required: [checked_at, total_cards, health_score]
+      properties:
+        checked_at:
+          type: string
+          description: 巡检时间
+        total_cards:
+          type: integer
+          description: 卡片总数
+        orphans:
+          type: array
+          description: 孤儿卡片（无入链）
+          items:
+            type: string
+        broken_links:
+          type: array
+          description: 死链（目标不存在）
+          items:
+            type: object
+            properties:
+              from_slug:
+                type: string
+              to_slug:
+                type: string
+        index_drift:
+          type: array
+          description: index.md 与实际不同步的卡片
+          items:
+            type: string
+        stale_cards:
+          type: array
+          description: current 态超期未访问的卡片
+          items:
+            type: object
+            properties:
+              slug:
+                type: string
+              days_unaccessed:
+                type: integer
+        unresolved_conflicts:
+          type: array
+          description: 未裁决矛盾
+          items:
+            type: object
+            properties:
+              slug:
+                type: string
+              target_slug:
+                type: string
+        health_score:
+          type: number
+          format: float
+          description: 健康分（0-100，100 满分）
+        suggestions:
+          type: array
+          items:
+            type: string
+
+  responses:
+    BadRequest:
+      description: 请求体非 JSON 对象
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ok, error]
+            properties:
+              ok:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "请求体必须是 JSON 对象"
+    NotFound:
+      description: 卡片不存在
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ok, error]
+            properties:
+              ok:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "卡片不存在: some-slug"
+    ConflictError:
+      description: 创建冲突或非法状态迁移
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ok, error]
+            properties:
+              ok:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "卡片已存在: some-slug"
+    ValidationError:
+      description: schema 校验失败（violations 列出全部违规项）
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ok, error, violations]
+            properties:
+              ok:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "卡片 schema 校验失败"
+              violations:
+                type: array
+                items:
+                  type: string
+                example: ["缺少必填字段: insight"]
+    StoreUnavailable:
+      description: 知识库 CardStore 未初始化
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ok, error]
+            properties:
+              ok:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "知识库未初始化"
+    ServerError:
+      description: 服务端异常
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [ok, error]
+            properties:
+              ok:
+                type: boolean
+                example: false
+              error:
+                type: string
+                example: "检索失败: <detail>"

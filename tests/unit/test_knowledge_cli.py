@@ -14,6 +14,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -31,6 +32,7 @@ def make_card(
     status: str = "current",
     content: str = "",
     links=None,
+    contradictions=None,
 ) -> Card:
     # 契约（schema.validate_card）：slug 必须等于 slugify(title)；
     # 只传其一即可，缺省的另一方自动补齐，避免双传不一致。
@@ -45,6 +47,7 @@ def make_card(
         date="2026-08-02",
         tags=[],
         links=links if links is not None else [],
+        contradictions=contradictions if contradictions is not None else [],
         insight="一句话核心洞见",
     )
     card.content = content
@@ -314,6 +317,133 @@ def test_main_module_entrypoint(tmp_path):
         with pytest.raises(SystemExit) as excinfo:
             runpy.run_module("agent.knowledge", run_name="__main__")
     assert excinfo.value.code == 0
+
+
+def test_main_audit_direct(tmp_path, capsys):
+    """audit 子命令：完成巡检、报告落盘（md+html）、无 SMTP 时邮件静默。"""
+    from agent.knowledge.__main__ import main
+
+    wiki = tmp_path / "wiki"
+    reports = tmp_path / "reports"
+    store = _store(wiki)
+    store.create(make_card(slug="solo-card"))
+    assert (
+        main(
+            [
+                "audit",
+                "--wiki", str(wiki),
+                "--index", str(tmp_path / "index.md"),
+                "--reports-dir", str(reports),
+            ]
+        )
+        == 0
+    )
+    out = capsys.readouterr().out
+    assert "巡检完成" in out
+    assert "健康分 98.0" in out
+    assert "未发送（SMTP 未配置" in out  # 静默降级不抛错
+    assert (reports / f"knowledge_health_{date.today().strftime('%Y%m%d')}.md").exists()
+    assert (reports / f"knowledge_health_{date.today().strftime('%Y%m%d')}.html").exists()
+
+
+def test_main_audit_no_email_direct(tmp_path, capsys):
+    """audit --no-email：跳过邮件发送，不打印邮件行。"""
+    from agent.knowledge.__main__ import main
+
+    wiki = tmp_path / "wiki"
+    assert main(["audit", "--wiki", str(wiki), "--no-email"]) == 0
+    assert "健康报告邮件" not in capsys.readouterr().out
+
+
+def test_main_audit_open_browser(tmp_path, capsys, monkeypatch):
+    """audit --open：巡检完成后调用 webbrowser.open 打开 HTML 报告。"""
+    from agent.knowledge.__main__ import main
+
+    opened: list[str] = []
+    monkeypatch.setattr(
+        "webbrowser.open",
+        lambda uri: opened.append(uri) or True,
+    )
+    wiki = tmp_path / "wiki"
+    reports = tmp_path / "reports"
+    assert (
+        main(
+            [
+                "audit",
+                "--wiki", str(wiki),
+                "--reports-dir", str(reports),
+                "--no-email",
+                "--open",
+            ]
+        )
+        == 0
+    )
+    out = capsys.readouterr().out
+    assert "已在浏览器打开" in out
+    assert len(opened) == 1  # 只打开一次
+    assert opened[0].endswith(
+        f"knowledge_health_{date.today().strftime('%Y%m%d')}.html"
+    )
+
+
+def test_main_audit_open_reports_dir_default(tmp_path, capsys, monkeypatch):
+    """audit --open 未指定 --reports-dir 时，打开默认目录下的 HTML。"""
+    from agent.knowledge.__main__ import main
+
+    opened: list[str] = []
+    monkeypatch.setattr(
+        "webbrowser.open",
+        lambda uri: opened.append(uri) or True,
+    )
+    assert main(["audit", "--wiki", str(tmp_path / "wiki"), "--no-email", "--open"]) == 0
+    assert len(opened) == 1
+    assert "data/knowledge/reports" in opened[0]
+
+
+def test_main_resolve_conflict_direct(tmp_path, capsys):
+    """resolve-conflict 子命令：人工裁决成功（被否卡归档 + 矛盾置 resolved）。"""
+    from agent.knowledge.__main__ import main
+
+    wiki = tmp_path / "wiki"
+    store = _store(wiki)
+    store.create(make_card(slug="card-a", contradictions=[
+        {"target_slug": "card-b", "status": "conflict", "summary": "观点冲突"}
+    ]))
+    store.create(make_card(slug="card-b"))
+    store.create(make_card(slug="verdict"))
+    assert (
+        main(
+            [
+                "resolve-conflict",
+                "card-a", "card-b", "verdict",
+                "--wiki", str(wiki),
+            ]
+        )
+        == 0
+    )
+    assert "裁决完成" in capsys.readouterr().out
+    # 双方矛盾已置 resolved（矛盾条目随卡片归档）
+    archived_a = store.get("archives/card-a")
+    assert archived_a is not None
+    assert all(it["status"] == "resolved" for it in archived_a.contradictions)
+    # 第三方裁决：双方均归档
+    assert (wiki / "concepts" / "card-a.md").exists() is False
+    assert (wiki / "concepts" / "card-b.md").exists() is False
+    assert (tmp_path / "archives" / "card-a.md").exists()
+    assert (tmp_path / "archives" / "card-b.md").exists()
+
+
+def test_main_resolve_conflict_missing_direct(tmp_path, capsys):
+    """resolve-conflict 子命令：矛盾不存在 → exit 1，stderr 含裁决失败。"""
+    from agent.knowledge.__main__ import main
+
+    wiki = tmp_path / "wiki"
+    _store(wiki).create(make_card(slug="card-a"))
+    assert (
+        main(["resolve-conflict", "card-a", "ghost", "card-a", "--wiki", str(wiki)])
+        == 1
+    )
+    assert "裁决失败" in capsys.readouterr().err
 
 
 # ---------- 归档副作用集成断言（verify_knowledge_cli.py 场景固化） ----------

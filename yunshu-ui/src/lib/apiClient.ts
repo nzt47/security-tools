@@ -78,7 +78,8 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
       (p.code as string) || 'API_HTTP_ERROR',
       (p.error as string) || `HTTP ${res.status}`,
       res.status,
-      p.details,
+      // 将完整错误 body 作为 details（后端错误字段如 incoming_links/violations 均在顶层）
+      p,
     );
   }
 

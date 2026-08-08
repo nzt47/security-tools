@@ -1,0 +1,411 @@
+/* 知识库主页（任务6）：三区布局 */
+.kb-page {
+  padding: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.kb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.kb-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #e8eaed;
+}
+
+.kb-new-btn {
+  background: #2d6cdf;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.kb-new-btn:hover {
+  background: #3a7bf0;
+}
+
+.kb-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+}
+
+.kb-panel {
+  background: #1b1e24;
+  border: 1px solid #2a2e38;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.kb-panel-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #9aa1ac;
+}
+
+.kb-error-text {
+  color: #ff7a7a;
+  font-size: 12px;
+  background: rgba(255, 80, 80, 0.1);
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin: 6px 0;
+  word-break: break-all;
+}
+
+.kb-loading {
+  color: #6f7683;
+  font-size: 13px;
+  padding: 12px 0;
+  text-align: center;
+}
+
+.kb-loading-fixed {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #232730;
+  border-radius: 8px;
+  padding: 14px 24px;
+  z-index: 1100;
+  border: 1px solid #2a2e38;
+}
+
+/* ── 搜索区 ── */
+.kb-search-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.kb-search-input {
+  flex: 1;
+  background: #14171c;
+  border: 1px solid #2a2e38;
+  border-radius: 6px;
+  color: #e8eaed;
+  padding: 7px 10px;
+  font-size: 13px;
+  outline: none;
+}
+
+.kb-search-input:focus {
+  border-color: #4a9eff;
+}
+
+.kb-search-btn {
+  background: #232730;
+  color: #e8eaed;
+  border: 1px solid #2a2e38;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.kb-search-btn:hover:not(:disabled) {
+  border-color: #4a9eff;
+}
+
+.kb-search-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kb-hit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.kb-hit-item {
+  padding: 8px 0;
+  border-bottom: 1px dashed #262b33;
+}
+
+.kb-hit-title {
+  background: none;
+  border: none;
+  color: #7db6ff;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.kb-hit-title:hover {
+  text-decoration: underline;
+}
+
+.kb-hit-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #6f7683;
+}
+
+.kb-hit-source {
+  color: #9aa1ac;
+}
+
+.kb-hit-snippet {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #b8bdc7;
+  line-height: 1.5;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ── 列表区 ── */
+.kb-filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.kb-filter-select {
+  background: #14171c;
+  border: 1px solid #2a2e38;
+  border-radius: 6px;
+  color: #e8eaed;
+  padding: 5px 8px;
+  font-size: 12px;
+  outline: none;
+}
+
+.kb-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.kb-card-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 4px;
+  border-bottom: 1px dashed #262b33;
+}
+
+.kb-card-main {
+  background: none;
+  border: none;
+  color: inherit;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  padding: 0;
+}
+
+.kb-card-title {
+  color: #e8eaed;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 40%;
+}
+
+.kb-card-title:hover {
+  color: #7db6ff;
+}
+
+.kb-card-slug {
+  color: #6f7683;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 35%;
+}
+
+.kb-card-type {
+  color: #9aa1ac;
+  font-size: 11px;
+  background: rgba(148, 155, 168, 0.12);
+  border-radius: 9px;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.kb-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.kb-icon-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.kb-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── 健康区 ── */
+.kb-health-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.kb-health-score {
+  font-size: 34px;
+  font-weight: 700;
+  text-align: center;
+  padding: 10px 0 4px;
+}
+
+.kb-health-score-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: #6f7683;
+}
+
+.kb-score-good {
+  color: #6fd39b;
+}
+
+.kb-score-mid {
+  color: #ffb35c;
+}
+
+.kb-score-bad {
+  color: #ff7a7a;
+}
+
+.kb-health-meta {
+  text-align: center;
+  font-size: 12px;
+  color: #6f7683;
+  margin-bottom: 12px;
+}
+
+.kb-health-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.kb-health-stat {
+  background: #14171c;
+  border: 1px solid #262b33;
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+  font-size: 12px;
+  color: #9aa1ac;
+}
+
+.kb-health-num {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  color: #e8eaed;
+}
+
+.kb-health-section {
+  margin-bottom: 12px;
+}
+
+.kb-health-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9aa1ac;
+  margin-bottom: 4px;
+}
+
+.kb-health-line {
+  font-size: 12px;
+  color: #b8bdc7;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.kb-health-broken {
+  color: #ff7a7a;
+}
+
+.kb-suggest-list {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+  color: #b8bdc7;
+  line-height: 1.7;
+}
+
+/* ── 表单弹层 ── */
+.kb-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kb-modal {
+  width: 520px;
+  max-width: 92vw;
+  max-height: 86vh;
+  overflow-y: auto;
+  background: #1b1e24;
+  border: 1px solid #2a2e38;
+  border-radius: 10px;
+  padding: 18px;
+  box-sizing: border-box;
+  color: #e8eaed;
+}
+
+.kb-modal-title {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
