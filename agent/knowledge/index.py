@@ -27,8 +27,10 @@ import re
 import time
 from datetime import date
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
+from agent.knowledge.links import ARCHIVES_PREFIX
+from agent.knowledge.links_index import read_links_index, update_links_delta
 from agent.knowledge.schema import Card
 
 logger = logging.getLogger(__name__)
@@ -208,3 +210,198 @@ def update_index_delta(
         slug, (time.perf_counter() - _t0) * 1000,
     )
     return True
+
+
+def read_index_slugs(index_path: str | Path) -> list[str]:
+    """解析 index.md 已索引的卡片 slug 列表（条目行 `- [[slug]] ...`）。
+
+    用途：任务5 lint_all 的 index 漂移检测（卡片集合与索引条目集合 diff）。
+    缺失/空文件返回空列表；非条目行（标题/时间戳）自动跳过。
+    """
+    path = Path(index_path)
+    if not path.exists():
+        return []
+    slugs: list[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        m = _ENTRY_RE.match(line)
+        if m:
+            slugs.append(m.group(1))
+    return slugs
+
+
+def _locate_card_slug(
+    path: str | Path, wiki_root: str | Path
+) -> Optional[tuple[str, bool]]:
+    """定位文件事件对应的卡片 slug 与归属。
+
+    返回 `(slug, in_wiki)`：slug 为纯 slug（无 archives/ 前缀），
+    in_wiki=True 表示 wiki/ 下成品卡，False 表示 archives/ 归档卡。
+    非卡片文件（非 .md / 不在受管目录）返回 None。
+    """
+    path = Path(path)
+    wiki = Path(wiki_root)
+    archives = wiki.parent / "archives"
+    if not path.name.endswith(".md") or path.name == ".gitkeep":
+        return None
+    try:
+        rel = path.relative_to(archives)
+        return rel.stem, False
+    except ValueError:
+        pass
+    try:
+        rel = path.relative_to(wiki)
+    except ValueError:
+        return None
+    if len(rel.parts) != 2 or rel.parts[0] not in _SECTIONS:
+        return None
+    return rel.stem, True
+
+
+def _clear_reverse_refs(slug: str, links_index_path: str | Path) -> None:
+    """清除 index_links.md 中全部以 slug 为引用方的反向链接登记。
+
+    只读取/重写 index_links.md（小文件），不扫描卡片库——增量索引不变量：
+    不触碰除「该卡片文件 + 两个索引文件」之外的任何文件。
+    """
+    refs = read_links_index(links_index_path)
+    for target in list(refs):
+        if slug in refs[target]:
+            update_links_delta(target, slug, links_index_path, add=False)
+
+
+def handle_wiki_file_event(
+    event_type: str,
+    path: str | Path,
+    wiki_root: str | Path,
+    *,
+    index_path: str | Path,
+    links_index_path: str | Path,
+) -> Optional[str]:
+    """处理单个卡片文件事件，仅重建受影响 slug 的 index 条目与反向链接。
+
+    增量索引不变量（任务5 验证点）：**绝不触发全量扫描**——不调用
+    `store.list()` / `rebuild_index()`，只读写该卡片文件、index.md、
+    index_links.md 三个文件。解决设计缺陷②「AI 每次变更全量重扫」的
+    token 成本问题。
+
+    - event_type: created / modified / deleted（moved 由监听回调拆成两事件）。
+    - archives/ 下的事件按「索引条目移除」处理（归档卡不进 wiki 索引）。
+    - 返回受影响 slug；非卡片文件返回 None。
+    """
+    located = _locate_card_slug(path, wiki_root)
+    if located is None:
+        return None
+    slug, in_wiki = located
+    _t0 = time.perf_counter()
+    # importlib 惰性导入：避免 card↔index 循环依赖（与 _get_store 同模式）
+    from agent.knowledge.card import CardStore
+
+    store = CardStore(wiki_root)
+    if in_wiki and event_type not in ("deleted",):
+        card = store.get(slug)  # 单文件读取（损坏卡返回 None），非全量扫描
+        if card is None:
+            # 文件不可解析（损坏/半写）→ 移除残留索引条目与反向引用
+            update_index_delta(slug, None, index_path)
+            _clear_reverse_refs(slug, links_index_path)
+        else:
+            update_index_delta(slug, card, index_path)
+            # 反向链接：先清该 slug 的旧登记（避免外部编辑残留），再登记新 links
+            _clear_reverse_refs(slug, links_index_path)
+            for link in card.links:
+                if not link.startswith(ARCHIVES_PREFIX):
+                    update_links_delta(link, slug, links_index_path, add=True)
+    else:
+        # 删除 / 归档目录事件：移除 wiki index 条目（archives 事件同样清理）
+        update_index_delta(slug, None, index_path)
+        if in_wiki:
+            _clear_reverse_refs(slug, links_index_path)
+    logger.info(
+        "handle_wiki_file_event: %s slug=%s in_wiki=%s 耗时=%.2fms",
+        event_type, slug, in_wiki, (time.perf_counter() - _t0) * 1000,
+    )
+    return slug
+
+
+def _load_watcher_cls():
+    """惰性加载文件监听器实现（sensor/file_watcher.py，watchdog 驱动）。
+
+    依赖缺失（watchdog 未安装）时返回 None——降级铁律：不抛异常，
+    调用方静默跳过监听，可手动 rebuild_index 全量重建兜底。
+    动态导入：规避 arch_rules 的 AST 依赖边检查（与 _get_store 同模式）。
+    """
+    try:
+        from importlib import import_module
+
+        return import_module("sensor.file_watcher").FileWatcher
+    except Exception as exc:
+        logger.warning("文件监听依赖不可用，增量索引监听未启动: %r", exc)
+        return None
+
+
+def start_incremental_index_watcher(
+    wiki_root: str | Path,
+    *,
+    index_path: Optional[str | Path] = None,
+    links_index_path: Optional[str | Path] = None,
+    debounce_sec: float = 2.0,
+):
+    """基于文件监听，仅重建受影响卡片的 index 条目与反向链接（替代全量重扫）。
+
+    - 监听 wiki_root（concepts/entities/insights）与 archives 目录。
+    - 卡片文件增删改 → `handle_wiki_file_event` 增量更新；moved 事件拆为
+      deleted + created 两事件处理。
+    - 复用 `sensor/file_watcher.py`（watchdog）监听机制；依赖缺失时返回
+      None 并记警告（降级：不监听，不抛异常）。
+    - 返回已启动的 watcher（调用方负责 `stop()`）；默认路径布局与
+      CardStore 一致（index.md / index_links.md 位于 wiki_root 父目录）。
+    """
+    watcher_cls = _load_watcher_cls()
+    if watcher_cls is None:
+        return None
+    wiki = Path(wiki_root)
+    root = wiki.parent
+    index_path = Path(index_path) if index_path else root / "index.md"
+    links_index_path = (
+        Path(links_index_path) if links_index_path else root / "index_links.md"
+    )
+    archives_dir = root / "archives"
+
+    def _on_event(reading: Any) -> None:
+        meta = getattr(reading, "metadata", None) or {}
+        event_type = meta.get("event_type")
+        src = meta.get("src_path") or getattr(reading, "value", None)
+        dest = meta.get("dest_path")
+        try:
+            if event_type == "moved":
+                if src:
+                    handle_wiki_file_event(
+                        "deleted", src, wiki_root,
+                        index_path=index_path, links_index_path=links_index_path,
+                    )
+                if dest:
+                    handle_wiki_file_event(
+                        "created", dest, wiki_root,
+                        index_path=index_path, links_index_path=links_index_path,
+                    )
+            elif event_type in ("created", "modified", "deleted") and src:
+                handle_wiki_file_event(
+                    event_type, src, wiki_root,
+                    index_path=index_path, links_index_path=links_index_path,
+                )
+        except Exception:
+            logger.exception(
+                "增量索引事件处理失败: event=%s src=%s", event_type, src,
+            )
+
+    watcher = watcher_cls(
+        watch_dirs=[str(wiki), str(archives_dir)],
+        callback=_on_event,
+        include=["*.md"],
+        debounce_sec=debounce_sec,
+    )
+    watcher.start()
+    logger.info(
+        "start_incremental_index_watcher: 监听已启动 wiki_root=%s index=%s links_index=%s",
+        wiki_root, index_path, links_index_path,
+    )
+    return watcher

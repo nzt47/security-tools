@@ -1,0 +1,30 @@
+
+[1m[13:33:38][0m 推前镜像完整性复验
+  ✓ 对象残留=0
+  ✓ 分支数=14  commit 数=2423
+
+[1m[13:33:43][0m 配置远端 origin = git@github.com:nzt47/security-tools.git
+
+[1m[13:33:43][0m 强推准备就绪（目标: git@github.com:nzt47/security-tools.git，分支 14 个）
+  ⚠️ 强制推送会覆盖远端全部历史，影响所有协作者与未合并 PR。Ctrl+C 可中止。
+
+[1m[13:33:46][0m 强推所有分支
+remote: error: GH006: Protected branch update failed for refs/heads/master.        
+remote: 
+remote: - Cannot force-push to this branch        
+To github.com:nzt47/security-tools.git
+ + 70faf29b...1be6e7b1 develop -> develop (forced update)
+ + 2c963185...a6b25b59 docs/release-ops-log -> docs/release-ops-log (forced update)
+ + ed32c564...5dfe828a docs/v100-release-summary -> docs/v100-release-summary (forced update)
+ + 3d090432...c0724e3c feat/ci-dashboard-push-retry -> feat/ci-dashboard-push-retry (forced update)
+ + b906673f...e2044fd5 fix/arch-circular-deps -> fix/arch-circular-deps (forced update)
+ + 91fe9702...03e3e4b2 fix/ci-embedding-offline -> fix/ci-embedding-offline (forced update)
+ + 3c12b7aa...82ca729f fix/ci-observability-flaky -> fix/ci-observability-flaky (forced update)
+ + e3c83f16...338f66cb fix/ci-skills-check-403 -> fix/ci-skills-check-403 (forced update)
+ + f8d59bd1...9dbf6219 fix/ci-validation-clean -> fix/ci-validation-clean (forced update)
+ + 6d14685e...755fef17 fix/cleanup-script-missing -> fix/cleanup-script-missing (forced update)
+ + 85091b2b...0ad913e7 fix/p0-p2-ci-regression -> fix/p0-p2-ci-regression (forced update)
+ + 32bd26db...99edafdc staging -> staging (forced update)
+ ! [remote rejected]   master -> master (protected branch hook declined)
+error: failed to push some refs to 'github.com:nzt47/security-tools.git'
+[ERROR] 强推分支失败（网络/权限），远端可能未变化 1

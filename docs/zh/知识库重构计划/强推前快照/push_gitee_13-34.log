@@ -1,0 +1,82 @@
+
+[1m[13:34:35][0m 推前镜像完整性复验
+  ✓ 对象残留=0
+  ✓ 分支数=17  commit 数=1929
+
+[1m[13:34:37][0m 配置远端 origin = git@gitee.com:nzt47/security-tools.git
+
+[1m[13:34:38][0m 强推准备就绪（目标: git@gitee.com:nzt47/security-tools.git，分支 17 个）
+  ⚠️ 强制推送会覆盖远端全部历史，影响所有协作者与未合并 PR。Ctrl+C 可中止。
+
+[1m[13:34:41][0m 强推所有分支
+remote: Powered by GITEE.COM [1.1.23]        
+remote: Set trace flag d0452dbf        
+To gitee.com:nzt47/security-tools.git
+ + f3e9227a...3d64fdb5 archive/v100-tag-final -> archive/v100-tag-final (forced update)
+ + 70faf29b...1be6e7b1 develop -> develop (forced update)
+ + 2c963185...a6b25b59 docs/release-ops-log -> docs/release-ops-log (forced update)
+ + ed32c564...5dfe828a docs/v100-release-summary -> docs/v100-release-summary (forced update)
+ + 3d090432...c0724e3c feat/ci-dashboard-push-retry -> feat/ci-dashboard-push-retry (forced update)
+ + c614b3dc...0cacf490 feature/tlm-l3-markdown-bidirectional-sync -> feature/tlm-l3-markdown-bidirectional-sync (forced update)
+ + 875a6423...0d732b83 feature/tlm-step2-enable-stm-reviewer -> feature/tlm-step2-enable-stm-reviewer (forced update)
+ + a98a2c7d...d17cbd8b feature/tlm-step3-vectorstore-sqlite-vec -> feature/tlm-step3-vectorstore-sqlite-vec (forced update)
+ + b906673f...0b0d088d fix/arch-circular-deps -> fix/arch-circular-deps (forced update)
+ + 3c12b7aa...82ca729f fix/ci-observability-flaky -> fix/ci-observability-flaky (forced update)
+ + e3c83f16...338f66cb fix/ci-skills-check-403 -> fix/ci-skills-check-403 (forced update)
+ + f8d59bd1...9dbf6219 fix/ci-validation-clean -> fix/ci-validation-clean (forced update)
+ + 85091b2b...0ad913e7 fix/p0-p2-ci-regression -> fix/p0-p2-ci-regression (forced update)
+ + 896b7ba4...0c3055e5 master -> master (forced update)
+ + 8f1cb922...3854a3b6 phase2-visibility-convergence -> phase2-visibility-convergence (forced update)
+ + 32bd26db...99edafdc staging -> staging (forced update)
+
+[1m[13:34:59][0m 强推所有 tags
+remote: Powered by GITEE.COM [1.1.23]        
+remote: Set trace flag e54a3ba2        
+To gitee.com:nzt47/security-tools.git
+ + 896b7ba4...0c3055e5 v1.0.0 -> v1.0.0 (forced update)
+ + b0b1a433...54f49fb6 v1.0.0-preflight -> v1.0.0-preflight (forced update)
+ + cd157395...24b48aa3 v1.0.1 -> v1.0.1 (forced update)
+ + 68f4b769...0e1eb69b v1.1.0 -> v1.1.0 (forced update)
+ + 2e11e143...27fc6df1 v1.1.1 -> v1.1.1 (forced update)
+ + a95e2dce...68ace381 v1.1.10 -> v1.1.10 (forced update)
+ + 85261df8...6ad7e711 v1.1.2 -> v1.1.2 (forced update)
+ + fd7c06e4...8679549b v1.1.3 -> v1.1.3 (forced update)
+ + 76545d77...4f3317f9 v1.1.4 -> v1.1.4 (forced update)
+ + bdfd687f...1cbe8811 v1.1.5 -> v1.1.5 (forced update)
+ + f958fd0b...85d8585c v1.1.6 -> v1.1.6 (forced update)
+ + 8b78511d...e52783b0 v1.1.7 -> v1.1.7 (forced update)
+ + 1dc2aaf0...b0d54913 v1.1.8 -> v1.1.8 (forced update)
+ + c17ecce9...3eb6a8d4 v1.1.9 -> v1.1.9 (forced update)
+ + d0572688...f1aea134 v1.2.0 -> v1.2.0 (forced update)
+ + d4ea2406...b79fb6b2 v1.2.1-fix-secure-manager-return -> v1.2.1-fix-secure-manager-return (forced update)
+ + 4d1d2874...427f3157 v1.3.0 -> v1.3.0 (forced update)
+ + 56b3402f...ca66d359 v1.4.0 -> v1.4.0 (forced update)
+ + 1191173e...de76ec5c v1.5.0-bm25-normalization -> v1.5.0-bm25-normalization (forced update)
+ + c108f015...958ef7a5 v2.0.0-dependency-fix -> v2.0.0-dependency-fix (forced update)
+ + ab5928bb...cdddc306 v2.0.0-feature-tools-router -> v2.0.0-feature-tools-router (forced update)
+
+[1m[13:35:02][0m 推后校验：远端 hash 与镜像逐分支比对
+  [PASS] archive/v100-tag-final  hash=3d64fdb57f
+  [PASS] develop  hash=1be6e7b130
+  [PASS] docs/release-ops-log  hash=a6b25b59f3
+  [PASS] docs/v100-release-summary  hash=5dfe828a2c
+  [PASS] feat/ci-dashboard-push-retry  hash=c0724e3c22
+  [PASS] feature/tlm-l3-markdown-bidirectional-sync  hash=0cacf490e8
+  [PASS] feature/tlm-step2-enable-stm-reviewer  hash=0d732b8390
+  [PASS] feature/tlm-step3-vectorstore-sqlite-vec  hash=d17cbd8b09
+  [PASS] fix/arch-circular-deps  hash=0b0d088d3d
+  [PASS] fix/ci-observability-flaky  hash=82ca729fa6
+  [PASS] fix/ci-skills-check-403  hash=338f66cbf8
+  [PASS] fix/ci-validation-clean  hash=9dbf621925
+  [PASS] fix/p0-p2-ci-regression  hash=0ad913e799
+  [PASS] gh-pages  hash=1a2fa13cff
+  [PASS] master  hash=0c3055e5c1
+  [PASS] phase2-visibility-convergence  hash=3854a3b60b
+  [PASS] staging  hash=99edafdc5e
+
+[1m[13:35:27][0m 强推完成并校验通过
+  ✓ git@gitee.com:nzt47/security-tools.git 全部 17 个分支 hash 与重写后镜像一致
+  ── 后续必做 ──
+  1. 执行《验收报告_强推后验证》逐项确认（PR 重建/账号轮换）
+  2. 通知协作者: 重新 clone 或强制重置到新历史
+  3. 本地旧仓库禁止再次 push（旧对象仍含凭据）

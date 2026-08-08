@@ -6,6 +6,7 @@ import { ToastContainer, ToastData } from './components/Status';
 import { useChatStream } from './hooks/useChatStream';
 import { trackEvent, TrackEventName } from './config/observability';
 import SkillManagement from './components/SkillsMgmt/SkillManagement';
+import Knowledge from './pages/Knowledge';
 import './styles/theme.css';
 import './App.css';
 
@@ -22,6 +23,7 @@ const App: React.FC = () => {
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [systemStatus, setSystemStatus] = useState<string>('offline');
   const [skillMgmtOpen, setSkillMgmtOpen] = useState(false);
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false);
 
   const { state, send, reset } = useChatStream(API_BASE);
 
@@ -252,6 +254,43 @@ const App: React.FC = () => {
             </button>
           </div>
 
+          {/* 知识库入口（任务6：点击切换视图，会话主界面不动） */}
+          <div style={{ padding: '0 12px 8px' }}>
+            <button
+              onClick={() => setKnowledgeOpen(v => !v)}
+              style={{
+                width: '100%',
+                background: knowledgeOpen ? 'var(--accent-primary, #4a9eff)' : 'var(--bg-hover, #232730)',
+                border: `1px solid ${knowledgeOpen ? 'var(--accent-primary, #4a9eff)' : 'var(--border-subtle, #2a2e38)'}`,
+                color: knowledgeOpen ? '#0a0a0f' : 'var(--text-primary, #e8eaed)',
+                padding: '8px 12px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 13,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                transition: 'all 0.15s',
+                fontWeight: knowledgeOpen ? 600 : 400,
+              }}
+              onMouseEnter={(e) => {
+                if (!knowledgeOpen) {
+                  e.currentTarget.style.borderColor = 'var(--accent-primary, #4a9eff)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!knowledgeOpen) {
+                  e.currentTarget.style.borderColor = 'var(--border-subtle, #2a2e38)';
+                }
+              }}
+              type="button"
+              title="打开知识库（卡片/检索/健康报告）"
+            >
+              <span>🗂</span> 知识库
+            </button>
+          </div>
+
           <div className="mascot-wrapper">
             <Mascot
               initialMood={mood}
@@ -310,23 +349,27 @@ const App: React.FC = () => {
           </div>
         </aside>
 
-        {/* 聊天区 */}
+        {/* 聊天区 / 知识库视图 */}
         <main className="main-content">
-          {(() => {
-            // streaming 时追加 typing 占位消息
-            const displayMsgs = state.streaming
-              ? [...messages, { id: 'typing', type: 'assistant' as const, content: '', timestamp: new Date(), typing: true }]
-              : messages;
-            return (
-              <ChatWindow
-                messages={displayMsgs}
-                onSendMessage={handleSendMessage}
-                inputValue={inputValue}
-                onInputChange={setInputValue}
-                disabled={state.streaming}
-              />
-            );
-          })()}
+          {knowledgeOpen ? (
+            <Knowledge />
+          ) : (
+            (() => {
+              // streaming 时追加 typing 占位消息
+              const displayMsgs = state.streaming
+                ? [...messages, { id: 'typing', type: 'assistant' as const, content: '', timestamp: new Date(), typing: true }]
+                : messages;
+              return (
+                <ChatWindow
+                  messages={displayMsgs}
+                  onSendMessage={handleSendMessage}
+                  inputValue={inputValue}
+                  onInputChange={setInputValue}
+                  disabled={state.streaming}
+                />
+              );
+            })()
+          )}
         </main>
       </div>
 
