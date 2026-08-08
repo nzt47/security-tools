@@ -1093,6 +1093,7 @@ def serve_metrics(
     project_root: Path,
     thresholds: Dict[str, Any],
     host: str = "0.0.0.0",
+    stop_event: Optional[threading.Event] = None,
 ) -> int:
     """启动 Prometheus 指标 HTTP 服务
 
@@ -1106,6 +1107,10 @@ def serve_metrics(
         project_root: 项目根目录
         thresholds: 可见性阈值配置
         host: 绑定地址
+        stop_event: 可选停止信号。传入后 _refresh_loop 会监听该信号，
+                    收到后立即退出（用 wait 替代 sleep，避免测试环境
+                    daemon 线程泄漏持续触发重量级 generate_report）。
+                    默认 None 时行为与旧版完全一致。
 
     Returns:
         进程退出码（0=正常退出，1=端口占用/初始化失败）
@@ -1116,7 +1121,7 @@ def serve_metrics(
     def _refresh_loop() -> None:
         """后台刷新线程：周期性重新采集指标"""
         thread_trace = _trace_id()
-        while True:
+        while not (stop_event is not None and stop_event.is_set()):
             t0 = time.time()
             try:
                 report = generate_report(project_root, thresholds)
@@ -1127,7 +1132,12 @@ def serve_metrics(
                 # 边界显性化：捕获异常并写入 state.error，不静默吞掉
                 logger.error(log_dict({'module_name': 'visibility_report', 'action': 'serve_metrics.refresh.failed', 'error': f'{type(e).__name__}: {e}', 'stack': traceback.format_exc()}))
                 state.update("", "degraded", error=f"{type(e).__name__}: {e}")
-            time.sleep(max(refresh_interval, 10))
+            # 停止信号优先：wait 返回 True 立即退出，否则按刷新间隔休眠
+            if stop_event is not None:
+                if stop_event.wait(timeout=max(refresh_interval, 10)):
+                    return
+            else:
+                time.sleep(max(refresh_interval, 10))
 
     # 启动后台刷新线程（daemon=True，主进程退出时自动终止）
     refresh_thread = threading.Thread(target=_refresh_loop, name="visibility-refresh", daemon=True)
