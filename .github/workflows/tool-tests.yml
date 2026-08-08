@@ -1,4 +1,9 @@
 name: 云枢工具模块测试
+# 【变易·P2-4】concurrency: 同 workflow 同 ref 连续触发取消旧 run 只留最新。
+# 2026-08-08 实测 36 queued run 竞争 runner 排队 30+ 分钟；本配置缓解排队风暴。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 on:
   push:
     branches: [main, develop, 'fix/**', 'feature/**']
