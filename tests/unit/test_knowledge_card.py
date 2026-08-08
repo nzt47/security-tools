@@ -7,6 +7,8 @@ log.md 写操作登记、slug 路径穿越防御、损坏卡片容错。
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from agent.knowledge.card import (
@@ -339,6 +341,56 @@ def test_delete_many_index_missing_fallback(store, tmp_path):
     assert store.get("驾驭工程") is None
     assert store.get("提示词工程") is not None   # 外部引用（知识蒸馏）仍在 → 保留
     assert store.get("知识蒸馏") is not None
+
+
+# ---------- 入链索引写路径降级（异常捕获加固） ----------
+
+
+def _boom_index_sync(*args, **kwargs):
+    """模拟入链索引写失败（磁盘满/权限等 OSError）。"""
+    raise OSError("入链索引写入失败（模拟磁盘故障）")
+
+
+def test_create_index_sync_failure_degrades(store, monkeypatch, caplog):
+    """create 时入链索引登记失败 → 卡片主操作不阻断，仅告警降级。"""
+    monkeypatch.setattr("agent.knowledge.card.update_links_delta", _boom_index_sync)
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        store.create(make_card("驾驭工程", links=["提示词工程"]))
+    assert store.get("驾驭工程") is not None   # 卡片已落库，主操作成功
+    assert "入链索引登记失败" in caplog.text   # 降级告警已记录
+
+
+def test_update_index_sync_failure_degrades(store, monkeypatch, caplog):
+    """update 时索引写失败（旧引用移除 + 新引用登记均失败）→ 更新不阻断。"""
+    store.create(make_card("驾驭工程", content="旧正文"))
+    monkeypatch.setattr("agent.knowledge.card.update_links_delta", _boom_index_sync)
+    card = store.get("驾驭工程")
+    card.content = "新正文 [[提示词工程]]"
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        store.update(card)
+    got = store.get("驾驭工程")
+    assert got.content == "新正文 [[提示词工程]]"   # 正文更新成功（主操作不阻断）
+    assert "入链索引" in caplog.text
+
+
+def test_delete_index_sync_failure_degrades(store, monkeypatch, caplog):
+    """delete 时索引移除失败 → 删除成功，仅告警。"""
+    store.create(make_card("驾驭工程"))
+    monkeypatch.setattr("agent.knowledge.card.update_links_delta", _boom_index_sync)
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        assert store.delete("驾驭工程") is True
+    assert store.get("驾驭工程") is None
+
+
+def test_delete_many_index_sync_failure_degrades(store, monkeypatch, caplog):
+    """delete_many 时索引同步失败 → 批量删除不阻断，全部成功。"""
+    store.create(make_card("驾驭工程"))
+    store.create(make_card("提示词工程"))
+    monkeypatch.setattr("agent.knowledge.card.update_links_delta", _boom_index_sync)
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        result = store.delete_many(["驾驭工程", "提示词工程"])
+    assert result == {"驾驭工程": True, "提示词工程": True}
+    assert store.list() == []
 
 
 # ---------- list ----------
