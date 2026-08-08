@@ -847,8 +847,11 @@ jobs:
     # 在高峰时段回收长 job（exit 143 / shutdown signal）。ubuntu-22.04 避开高峰回收。
     # 历史：本 job 单 pytest 跑全 tests/ 21min，连续两次被 runner shutdown（59%/92% 处）
     runs-on: ubuntu-22.04
-    # 【不易】硬超时兜底：单 shard 预计 5-10min，30min 留足缓冲
-    timeout-minutes: 30
+    # 【不易】硬超时兜底：单 shard 预计 5-10min。Shard 1 因贪心按「测试数」
+    # 均分把 performance/chaos 类「测试数少、单测慢」文件集中在同一 shard，
+    # 实测 35min 才跑到 85%（2026-08-08 两轮均在 30min 超时被 cancel，exit 143），
+    # 缓冲调至 45min（其余 shard 4-6min 不受影响）。
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
