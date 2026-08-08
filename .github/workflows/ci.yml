@@ -3,6 +3,13 @@
 
 name: 云枢系统测试流程
 
+# 【变易·P2-4】concurrency: 同一 workflow + 同一 ref 连续触发时取消旧 run 只留最新。
+# 2026-08-08 实测 36 queued run 竞争公共 runner 排队 30+ 分钟；本配置使密集 push
+# 只跑最新一次，排队长度显著下降。不同 ref（分支/PR）的 run 仍并行，互不影响。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches:
