@@ -393,6 +393,44 @@ def test_delete_many_index_sync_failure_degrades(store, monkeypatch, caplog):
     assert store.list() == []
 
 
+def test_update_inline_remove_failure_degrades(store, monkeypatch, caplog):
+    """update 内联「移除旧引用」失败（旧卡含 links）→ 更新不阻断，仅告警。"""
+    store.create(make_card("驾驭工程", content="旧正文 [[提示词工程]]", links=["提示词工程"]))
+    assert store.get("驾驭工程").links == ["提示词工程"]   # create 保持传入值
+    monkeypatch.setattr("agent.knowledge.card.update_links_delta", _boom_index_sync)
+    card = store.get("驾驭工程")
+    card.content = "新正文"
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        store.update(card)
+    got = store.get("驾驭工程")
+    assert got.content == "新正文"                  # 主操作成功
+    assert "移除旧引用失败" in caplog.text          # 内联 remove 降级告警
+
+
+def test_create_index_sync_valueerror_degrades(store, monkeypatch, caplog):
+    """索引写失败抛 ValueError（如索引损坏 UnicodeDecodeError 传播）→ 同样降级。"""
+    def _boom_valueerror(*args, **kwargs):
+        raise ValueError("入链索引解析失败（模拟损坏索引）")
+    monkeypatch.setattr("agent.knowledge.card.update_links_delta", _boom_valueerror)
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        store.create(make_card("驾驭工程", links=["提示词工程"]))
+    assert store.get("驾驭工程") is not None
+    assert "入链索引登记失败" in caplog.text
+
+
+def test_delete_incoming_check_index_corrupt_fallback(store, tmp_path, caplog):
+    """读路径：索引文件损坏（非法 UTF-8）→ _has_incoming_links 回退全扫，判定正确。"""
+    store.create(make_card("提示词工程", links=["驾驭工程"]))
+    store.create(make_card("驾驭工程"))
+    links_index = tmp_path / "kb" / "index_links.md"
+    assert links_index.exists()
+    links_index.write_bytes(b"\xff\xfe\x00\x01")   # 非法 UTF-8 → read_text 抛 UnicodeDecodeError
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        assert store.delete("驾驭工程") is False    # 回退全扫：提示词工程 仍引用 → 拒绝
+    assert store.get("驾驭工程") is not None
+    assert "回退全库扫描" in caplog.text            # 损坏回退告警已记录
+
+
 # ---------- list ----------
 
 
