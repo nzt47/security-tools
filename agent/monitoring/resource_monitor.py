@@ -598,23 +598,41 @@ class ResourceMonitor:
 
     @staticmethod
     def _linear_regression(series: List[Tuple[int, float]]) -> Tuple[float, float, float]:
-        """最小二乘法线性回归，返回 (slope, intercept, r_squared)"""
+        """稳健线性回归（Theil-Sen 中位数斜率），返回 (slope, intercept, r_squared)
+
+        【变易】原 OLS 对单个异常点敏感：tracemalloc 采样偶发尖刺会把斜率带偏
+        （2026-08-08 CI 实测注入 10KB/次泄漏却得 slope=-8671，泄漏检测误判）。
+        Theil-Sen 取所有点对斜率的中位数，对异常点不敏感；理想线性数据下与
+        OLS 一致（既有精确断言 slope=10/-10/2 均不受影响）。历史窗口默认 100，
+        n≤数百时 O(n²) 开销可接受。
+        """
         n = len(series)
         if n < 2:
             return 0.0, 0.0, 0.0
-        sum_x = sum(s[0] for s in series)
-        sum_y = sum(s[1] for s in series)
-        sum_xx = sum(s[0] * s[0] for s in series)
-        sum_xy = sum(s[0] * s[1] for s in series)
-        mean_x = sum_x / n
-        mean_y = sum_y / n
-        # 分母判零，避免除零异常
-        denom = sum_xx - n * mean_x * mean_x
-        if denom == 0:
+        # Theil-Sen 斜率：所有点对斜率的中位数（抗异常点）
+        slopes: List[float] = []
+        for i in range(n):
+            x0, y0 = series[i]
+            for j in range(i + 1, n):
+                x1, y1 = series[j]
+                dx = x1 - x0
+                if dx != 0:
+                    slopes.append((y1 - y0) / dx)
+        if not slopes:
+            # x 全部相同（原 OLS denom==0 退化），斜率为 0
+            mean_y = sum(s[1] for s in series) / n
             return 0.0, mean_y, 0.0
-        slope = (sum_xy - n * mean_x * mean_y) / denom
+        slopes.sort()
+        mid = len(slopes) // 2
+        if len(slopes) % 2 == 0:
+            slope = (slopes[mid - 1] + slopes[mid]) / 2.0
+        else:
+            slope = slopes[mid]
+
+        mean_x = sum(s[0] for s in series) / n
+        mean_y = sum(s[1] for s in series) / n
         intercept = mean_y - slope * mean_x
-        # 计算 R²
+        # R²（基于 Theil-Sen 拟合线）
         ss_tot = sum((s[1] - mean_y) ** 2 for s in series)
         if ss_tot == 0:
             r_squared = 1.0 if slope == 0 else 0.0
