@@ -1275,15 +1275,35 @@ class ABTestManager:
         }
 
 
-_global_ab_test_manager = None
+_global_ab_test_manager = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_ab_test_manager(config=None):
+    """ABTestManager 工厂函数（供 SingletonManager 使用）"""
+    obj = ABTestManager()
+    obj.initialize()
+    return obj
 
 
 def get_ab_test_manager() -> ABTestManager:
     global _global_ab_test_manager
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("ab_test_manager")
     if _global_ab_test_manager is None:
-        _global_ab_test_manager = ABTestManager()
-        _global_ab_test_manager.initialize()
+        _global_ab_test_manager = _create_ab_test_manager()
     return _global_ab_test_manager
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("ab_test_manager", _create_ab_test_manager)
 
 
 __all__ = [

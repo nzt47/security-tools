@@ -453,12 +453,34 @@ class TraceContextCache:
 
 _global_trace_cache = None
 
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_trace_cache(config=None):
+    """TraceContextCache 工厂函数（供 SingletonManager 使用）"""
+    return TraceContextCache()
+
+
 def get_trace_cache() -> TraceContextCache:
     """获取全局追踪缓存实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("trace_cache")
     global _global_trace_cache
     if _global_trace_cache is None:
-        _global_trace_cache = TraceContextCache()
+        _global_trace_cache = _create_trace_cache()
     return _global_trace_cache
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("trace_cache", _create_trace_cache)
 
 
 # ==================== 性能优化装饰器 ====================

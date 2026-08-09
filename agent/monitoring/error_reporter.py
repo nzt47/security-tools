@@ -772,14 +772,38 @@ class ErrorReporter:
 _global_reporter = None
 _global_lock = threading.Lock()
 
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_error_reporter(config=None):
+    """ErrorReporter 工厂函数（供 SingletonManager 使用）"""
+    return ErrorReporter(config)
+
+
 def get_error_reporter(config: Dict[str, Any] = None) -> ErrorReporter:
     """获取全局错误上报器"""
+    if _SINGLETON_AVAILABLE:
+        if config:
+            return get_singleton("error_reporter", config)
+        return get_singleton("error_reporter")
     global _global_reporter
     if _global_reporter is None:
         with _global_lock:
             if _global_reporter is None:
-                _global_reporter = ErrorReporter(config)
+                _global_reporter = _create_error_reporter(config)
     return _global_reporter
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("error_reporter", _create_error_reporter)
 
 
 def report_error(

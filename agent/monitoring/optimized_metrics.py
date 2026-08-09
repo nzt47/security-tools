@@ -473,14 +473,45 @@ class OptimizedMetricsCollector:
 # 全局优化指标收集器实例
 _global_optimized_collector = None
 
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_optimized_metrics_collector(config=None):
+    """OptimizedMetricsCollector 工厂函数（供 SingletonManager 使用）"""
+    if config:
+        return OptimizedMetricsCollector(
+            config.get("sampling_enabled", True),
+            config.get("sample_rate", 0.1),
+        )
+    return OptimizedMetricsCollector()
+
 
 def get_optimized_metrics_collector(sampling_enabled: bool = True, 
                                     sample_rate: float = 0.1) -> OptimizedMetricsCollector:
     """获取全局优化指标收集器"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton(
+            "optimized_metrics_collector",
+            {"sampling_enabled": sampling_enabled, "sample_rate": sample_rate},
+        )
     global _global_optimized_collector
     if _global_optimized_collector is None:
-        _global_optimized_collector = OptimizedMetricsCollector(sampling_enabled, sample_rate)
+        _global_optimized_collector = _create_optimized_metrics_collector(
+            {"sampling_enabled": sampling_enabled, "sample_rate": sample_rate}
+        )
     return _global_optimized_collector
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("optimized_metrics_collector", _create_optimized_metrics_collector)
 
 
 __all__ = [

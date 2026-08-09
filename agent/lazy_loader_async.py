@@ -351,12 +351,32 @@ class AsyncParallelPreloader(_BaseParallelPreloader):
         return self.results
 
 
-_global_async_loader: Optional[AsyncLazyModuleLoader] = None
+_global_async_loader: Optional[AsyncLazyModuleLoader] = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
+
+
+def _create_async_lazy_loader(config=None):
+    """AsyncLazyModuleLoader 工厂函数（供 SingletonManager 使用）"""
+    return AsyncLazyModuleLoader()
 
 
 def get_async_lazy_loader() -> AsyncLazyModuleLoader:
     """获取全局异步懒加载器实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("async_lazy_loader")
     global _global_async_loader
     if _global_async_loader is None:
-        _global_async_loader = AsyncLazyModuleLoader()
+        _global_async_loader = _create_async_lazy_loader()
     return _global_async_loader
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("async_lazy_loader", _create_async_lazy_loader)

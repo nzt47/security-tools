@@ -457,11 +457,31 @@ class VersionDeploymentManager:
 
 
 # 全局部署管理器实例
-_global_deployment_manager = None
+_global_deployment_manager = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_deployment_manager(config=None):
+    """VersionDeploymentManager 工厂函数（供 SingletonManager 使用）"""
+    return VersionDeploymentManager()
+
 
 def get_deployment_manager() -> VersionDeploymentManager:
     """获取全局部署管理器实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("prompt_deployment_manager")
     global _global_deployment_manager
     if _global_deployment_manager is None:
-        _global_deployment_manager = VersionDeploymentManager()
+        _global_deployment_manager = _create_deployment_manager()
     return _global_deployment_manager
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("prompt_deployment_manager", _create_deployment_manager)

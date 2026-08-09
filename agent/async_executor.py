@@ -342,12 +342,42 @@ class AsyncExecutor:
         logger.info("异步执行器线程池已关闭")
 
 
-# 全局单例（由 DigitalLife 初始化）
+# 全局单例（由 DigitalLife 初始化，保留作为 fallback）
 _global_executor: AsyncExecutor | None = None
 
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
 
-def get_async_executor(max_workers: int = 3,
-                       result_ttl: int = 3600) -> AsyncExecutor:
+
+def _create_async_executor(config=None):
+    """AsyncExecutor 工厂函数（供 SingletonManager 使用）"""
+    config = config or {}
+    max_workers = config.get("max_workers", 3)
+    result_ttl = config.get("result_ttl", 3600)
+    executor = AsyncExecutor(
+        max_workers=max_workers,
+        result_ttl=result_ttl,
+    )
+    logger.info(
+        "全局异步执行器已初始化（max_workers=%d, result_ttl=%d）",
+        max_workers, result_ttl,
+    )
+    return executor
+
+
+def _cleanup_async_executor(instance):
+    """AsyncExecutor 清理钩子（供 SingletonManager 使用）"""
+    instance.shutdown(wait=False)
+
+
+def get_async_executor(max_workers: int | None = None,
+                       result_ttl: int | None = None) -> AsyncExecutor:
     """获取全局异步执行器单例
 
     首次调用时创建，后续调用返回同一实例。
@@ -359,22 +389,32 @@ def get_async_executor(max_workers: int = 3,
     Returns:
         AsyncExecutor 全局实例
     """
+    if _SINGLETON_AVAILABLE:
+        _config = {}
+        if max_workers is not None:
+            _config["max_workers"] = max_workers
+        if result_ttl is not None:
+            _config["result_ttl"] = result_ttl
+        return get_singleton("async_executor", _config or None)
     global _global_executor
     if _global_executor is None:
-        _global_executor = AsyncExecutor(
-            max_workers=max_workers,
-            result_ttl=result_ttl,
-        )
-        logger.info(
-            "全局异步执行器已初始化（max_workers=%d, result_ttl=%d）",
-            max_workers, result_ttl,
-        )
+        _global_executor = _create_async_executor({
+            "max_workers": max_workers if max_workers is not None else 3,
+            "result_ttl": result_ttl if result_ttl is not None else 3600,
+        })
     return _global_executor
 
 
 def reset_async_executor():
     """重置全局异步执行器（主要用于测试）"""
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("async_executor")
+        return
     global _global_executor
     if _global_executor is not None:
         _global_executor.shutdown(wait=False)
     _global_executor = None
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("async_executor", _create_async_executor, cleanup_fn=_cleanup_async_executor)

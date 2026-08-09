@@ -316,15 +316,34 @@ class LokiClient:
 
 
 # 全局单例
-_loki_client = None
+_loki_client = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_loki_client(config=None):
+    """LokiClient 工厂函数（供 SingletonManager 使用）"""
+    return LokiClient()
 
 
 def get_loki_client() -> LokiClient:
     """获取 Loki 客户端实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("loki_client")
     global _loki_client
     if _loki_client is None:
-        _loki_client = LokiClient()
+        _loki_client = _create_loki_client()
     return _loki_client
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("loki_client", _create_loki_client)
 
 
 def log_to_loki(message: str, labels: Dict[str, str] = None, timestamp: float = None):

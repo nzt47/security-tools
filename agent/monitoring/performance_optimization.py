@@ -809,15 +809,52 @@ class OptimizedObservabilityManager:
 
 
 # 全局优化管理器实例
-_global_optimization_manager = None
+_global_optimization_manager = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton, is_initialized
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
+    is_initialized = None
+
+
+def _create_optimization_manager(config=None):
+    """OptimizedObservabilityManager 工厂函数（供 SingletonManager 使用）"""
+    # SingletonManager config 为 dict 通道；兼容直接传 OptimizationConfig 对象的调用
+    cfg = config.get("optimization_config") if isinstance(config, dict) else config
+    return OptimizedObservabilityManager(cfg)
 
 
 def get_optimization_manager(config: OptimizationConfig = None) -> OptimizedObservabilityManager:
     """获取全局优化管理器"""
+    if _SINGLETON_AVAILABLE:
+        if config and not is_initialized("performance_optimization_manager"):
+            # 仅在首次创建时传入 config（对象包为 dict 走统一通道）
+            return get_singleton(
+                "performance_optimization_manager",
+                {"optimization_config": config},
+            )
+        return get_singleton("performance_optimization_manager")
     global _global_optimization_manager
     if _global_optimization_manager is None:
-        _global_optimization_manager = OptimizedObservabilityManager(config)
+        _global_optimization_manager = _create_optimization_manager(config)
     return _global_optimization_manager
+
+
+def reset_optimization_manager() -> None:
+    """重置全局优化管理器（仅用于测试）"""
+    global _global_optimization_manager
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("performance_optimization_manager")
+    _global_optimization_manager = None
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("performance_optimization_manager", _create_optimization_manager)
 
 
 # 优化装饰器

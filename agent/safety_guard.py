@@ -184,12 +184,40 @@ def register_alert_callback(callback):
     _alert_callbacks.append(callback)
 
 
-_safety_guard = None
+_safety_guard = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
+
+
+def _create_safety_guard(config=None):
+    """SafetyGuard 工厂函数（供 SingletonManager 使用）"""
+    return SafetyGuard()
 
 
 def get_safety_guard():
     """获取全局安全守护实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("safety_guard")
     global _safety_guard
     if _safety_guard is None:
-        _safety_guard = SafetyGuard()
+        _safety_guard = _create_safety_guard()
     return _safety_guard
+
+
+def reset_safety_guard():
+    """重置全局安全守护实例（仅用于测试）"""
+    global _safety_guard
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("safety_guard")
+    _safety_guard = None
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("safety_guard", _create_safety_guard)

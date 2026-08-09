@@ -682,19 +682,49 @@ class ChaosInjector:
 
 
 # 全局单例
-_global_chaos_injector = None
+_global_chaos_injector = None  # 保留作为 fallback
 _global_chaos_lock = threading.Lock()
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
+
+
+def _create_chaos_injector(config=None):
+    """ChaosInjector 工厂函数（供 SingletonManager 使用）"""
+    injector = ChaosInjector()
+    logger.info(log_dict({'module_name': 'chaos_injector', 'action': 'log', 'msg': '[Chaos] 全局故障注入器已初始化'}))
+    return injector
 
 
 def get_chaos_injector() -> ChaosInjector:
     """获取全局故障注入器实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("chaos_injector")
     global _global_chaos_injector
     if _global_chaos_injector is None:
         with _global_chaos_lock:
             if _global_chaos_injector is None:
-                _global_chaos_injector = ChaosInjector()
-                logger.info(log_dict({'module_name': 'chaos_injector', 'action': 'log', 'msg': '[Chaos] 全局故障注入器已初始化'}))
+                _global_chaos_injector = _create_chaos_injector()
     return _global_chaos_injector
+
+
+def reset_chaos_injector() -> None:
+    """重置全局故障注入器（仅用于测试）"""
+    global _global_chaos_injector
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("chaos_injector")
+    with _global_chaos_lock:
+        _global_chaos_injector = None
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("chaos_injector", _create_chaos_injector)
 
 
 # 装饰器：在函数调用前检查并注入故障
