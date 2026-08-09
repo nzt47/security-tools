@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+﻿﻿#Requires -Version 5.1
 <#
 保护核心源文件脚本（防止 IDE 自动还原导致修改丢失）
 
