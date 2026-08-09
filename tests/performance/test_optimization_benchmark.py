@@ -11,6 +11,7 @@ import random
 import json
 import os
 import sys
+import pytest
 from typing import Dict, List, Callable, Any
 from datetime import datetime
 
@@ -53,6 +54,17 @@ BASELINE_DATA = {
     'concurrent_sampling': {'ops_per_sec': 100000, 'avg_latency_ms': 0.008},
     'optimized_manager': {'ops_per_sec': 50000, 'avg_latency_ms': 0.02}
 }
+
+
+@pytest.fixture
+def pb():
+    """返回本项目自定义 PerformanceBenchmark（避免与 pytest-benchmark 的 benchmark fixture 冲突）。
+
+    Why: 本文件用自定义 PerformanceBenchmark.run_test 统计性能；参数名不能用
+    `benchmark`（pytest-benchmark 插件会强制其必须是 BenchmarkFixture 并报错），
+    故使用独立 fixture 名 `pb`。
+    """
+    return PerformanceBenchmark()
 
 
 class PerformanceBenchmark:
@@ -116,7 +128,7 @@ class PerformanceBenchmark:
         return result
 
 
-def test_fast_sampler_performance(benchmark: PerformanceBenchmark):
+def test_fast_sampler_performance(pb: PerformanceBenchmark):
     """测试快速采样器性能"""
     sampler = FastSampler(ratio=0.1)
     
@@ -124,7 +136,7 @@ def test_fast_sampler_performance(benchmark: PerformanceBenchmark):
         trace_id = f"trace-{random.randint(0, 1000000)}"
         sampler.should_sample(trace_id)
     
-    benchmark.run_test(
+    pb.run_test(
         'fast_sampler',
         test_func,
         iterations=100000,
@@ -132,7 +144,7 @@ def test_fast_sampler_performance(benchmark: PerformanceBenchmark):
     )
 
 
-def test_adaptive_sampler_performance(benchmark: PerformanceBenchmark):
+def test_adaptive_sampler_performance(pb: PerformanceBenchmark):
     """测试自适应采样器性能"""
     config = OptimizationConfig()
     sampler = AdaptiveSampler(config)
@@ -141,7 +153,7 @@ def test_adaptive_sampler_performance(benchmark: PerformanceBenchmark):
         trace_id = f"trace-{random.randint(0, 1000000)}"
         sampler.should_sample(trace_id)
     
-    benchmark.run_test(
+    pb.run_test(
         'adaptive_sampler',
         test_func,
         iterations=100000,
@@ -149,14 +161,14 @@ def test_adaptive_sampler_performance(benchmark: PerformanceBenchmark):
     )
 
 
-def test_lock_free_counter(benchmark: PerformanceBenchmark):
+def test_lock_free_counter(pb: PerformanceBenchmark):
     """测试无锁计数器性能"""
     counter = LockFreeCounter()
     
     def test_func():
         counter.increment()
     
-    benchmark.run_test(
+    pb.run_test(
         'lock_free_counter',
         test_func,
         iterations=100000,
@@ -164,14 +176,14 @@ def test_lock_free_counter(benchmark: PerformanceBenchmark):
     )
 
 
-def test_lock_free_histogram(benchmark: PerformanceBenchmark):
+def test_lock_free_histogram(pb: PerformanceBenchmark):
     """测试无锁直方图性能"""
     histogram = LockFreeHistogram()
     
     def test_func():
         histogram.record(random.randint(100, 100000))
     
-    benchmark.run_test(
+    pb.run_test(
         'lock_free_histogram',
         test_func,
         iterations=50000,
@@ -179,7 +191,7 @@ def test_lock_free_histogram(benchmark: PerformanceBenchmark):
     )
 
 
-def test_memory_cache(benchmark: PerformanceBenchmark):
+def test_memory_cache(pb: PerformanceBenchmark):
     """测试内存缓存性能"""
     config = OptimizationConfig()
     cache = MemoryEfficientCache(config)
@@ -191,7 +203,7 @@ def test_memory_cache(benchmark: PerformanceBenchmark):
         else:
             cache.set(key, {'value': random.random()})
     
-    benchmark.run_test(
+    pb.run_test(
         'memory_cache',
         test_func,
         iterations=50000,
@@ -199,7 +211,7 @@ def test_memory_cache(benchmark: PerformanceBenchmark):
     )
 
 
-def test_circuit_breaker(benchmark: PerformanceBenchmark):
+def test_circuit_breaker(pb: PerformanceBenchmark):
     """测试熔断器性能"""
     config = OptimizationConfig()
     breaker = CircuitBreaker(config)
@@ -211,7 +223,7 @@ def test_circuit_breaker(benchmark: PerformanceBenchmark):
         else:
             breaker.record_success()
     
-    benchmark.run_test(
+    pb.run_test(
         'circuit_breaker',
         test_func,
         iterations=50000,
@@ -219,7 +231,7 @@ def test_circuit_breaker(benchmark: PerformanceBenchmark):
     )
 
 
-def test_batch_log_writer(benchmark: PerformanceBenchmark):
+def test_batch_log_writer(pb: PerformanceBenchmark):
     """测试批量日志写入器性能"""
     records_written = []
     
@@ -235,7 +247,7 @@ def test_batch_log_writer(benchmark: PerformanceBenchmark):
             'level': 'info'
         })
     
-    benchmark.run_test(
+    pb.run_test(
         'batch_log_writer',
         test_func,
         iterations=10000,
@@ -246,7 +258,7 @@ def test_batch_log_writer(benchmark: PerformanceBenchmark):
     print(f"  Total records written: {len(records_written)}")
 
 
-def test_metrics_collector(benchmark: PerformanceBenchmark):
+def test_metrics_collector(pb: PerformanceBenchmark):
     """测试优化的指标收集器性能"""
     collector = OptimizedMetricsCollector(sampling_enabled=True, sample_rate=0.1)
     
@@ -254,7 +266,7 @@ def test_metrics_collector(benchmark: PerformanceBenchmark):
         collector.increment_counter('test.counter')
         collector.record_latency('test.latency', random.random() * 0.1)
     
-    benchmark.run_test(
+    pb.run_test(
         'metrics_collector',
         test_func,
         iterations=50000,
@@ -262,7 +274,7 @@ def test_metrics_collector(benchmark: PerformanceBenchmark):
     )
 
 
-def test_concurrent_sampling(benchmark: PerformanceBenchmark):
+def test_concurrent_sampling(pb: PerformanceBenchmark):
     """测试并发采样性能"""
     config = OptimizationConfig()
     sampler = AdaptiveSampler(config)
@@ -300,7 +312,7 @@ def test_concurrent_sampling(benchmark: PerformanceBenchmark):
         'threads': num_threads
     }
     
-    benchmark.add_result('concurrent_sampling', result)
+    pb.add_result('concurrent_sampling', result)
     
     print(f"Concurrent sampling test completed:")
     print(f"  Threads: {num_threads}")
@@ -309,7 +321,7 @@ def test_concurrent_sampling(benchmark: PerformanceBenchmark):
     print(f"  Ops/sec: {result['ops_per_sec']:.1f}")
 
 
-def test_optimized_observability_manager(benchmark: PerformanceBenchmark):
+def test_optimized_observability_manager(pb: PerformanceBenchmark):
     """测试优化的可观测性管理器综合性能"""
     config = OptimizationConfig()
     manager = OptimizedObservabilityManager(config)
@@ -321,7 +333,7 @@ def test_optimized_observability_manager(benchmark: PerformanceBenchmark):
             manager.cache_context(trace_id, {'test': 'data'})
             manager.submit_for_processing({'trace_id': trace_id, 'data': 'test'})
     
-    benchmark.run_test(
+    pb.run_test(
         'optimized_manager',
         test_func,
         iterations=20000,
@@ -452,7 +464,7 @@ def main():
     print("性能优化基准测试")
     print("=" * 70)
     
-    benchmark = PerformanceBenchmark()
+    pb = PerformanceBenchmark()
     
     # 运行所有测试
     tests = [
@@ -469,7 +481,7 @@ def main():
     ]
     
     for test in tests:
-        test(benchmark)
+        test(pb)
         print()
     
     # 生成对比报告
@@ -477,7 +489,7 @@ def main():
     print("生成优化前后对比报告...")
     print("=" * 70)
     
-    report = generate_comparison_report(benchmark.get_results())
+    report = generate_comparison_report(pb.get_results())
     
     # 输出报告
     print(report)
@@ -494,7 +506,7 @@ def main():
     
     # 输出JSON格式结果（包含优化前后对比）
     json_results = []
-    for result in benchmark.get_results():
+    for result in pb.get_results():
         test_name = result['test_name']
         baseline = BASELINE_DATA.get(test_name)
         
