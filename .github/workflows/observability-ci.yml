@@ -56,6 +56,9 @@ on:
       - 'tests/contract/**'
       - '.github/workflows/observability-ci.yml'
       - '.coveragerc_scripts'
+      # 【变易·P3-1】pyproject.toml 纳入触发：覆盖率 omit/source/阈值改动需能自动验证门禁。
+      # 历史问题：f52c0e11 路径 A（omit 排除 tests/scripts）未触发本 workflow，门禁验证需手动 dispatch。
+      - 'pyproject.toml'
       - 'scripts/verify_*.py'
       - 'scripts/observability_*.py'
       - 'scripts/impact_analysis.py'
