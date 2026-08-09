@@ -171,7 +171,7 @@ def register_routes(app, state):
         except (ValueError, OSError) as exc:
             logger.warning("知识库: 入链索引解析失败，回退全库扫描: %s", exc)
         return [
-            c.slug for c in store.list()
+            c.slug for c in store.list(use_cache=True)
             if c.slug != slug and slug in c.links
         ]
 
@@ -194,7 +194,7 @@ def register_routes(app, state):
         status = request.args.get("status") or None
         type_ = request.args.get("type") or None
         try:
-            cards = store.list(status=status, type=type_)
+            cards = store.list(status=status, type=type_, use_cache=True)
             return jsonify({
                 "ok": True,
                 "cards": [_card_to_dict(c) for c in cards],
@@ -371,7 +371,7 @@ def register_routes(app, state):
         store, err = _store_required()
         if err:
             return err
-        cards = store.list()
+        cards = store.list(use_cache=True)
         nodes = [
             {"id": c.slug, "label": c.title, "type": c.type, "status": c.status}
             for c in cards
