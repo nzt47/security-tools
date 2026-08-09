@@ -944,6 +944,11 @@ jobs:
             -q \
             --tb=short
           # 【变易·P3】串行段：serial 日志断言测试，--cov-append 追加覆盖率
+          # 【变易·R3】串行段尾加 || [ $? -eq 5 ]：serial 测试经 split_unit_tests.py
+          #   按文件分片，只落在少数 shard；无 serial 测试的 shard 串行段收集 0 个
+          #   测试 → pytest exit code 5（no tests collected）→ run 块 set -e 提前中止
+          #   → mv .coverage 不执行 → artifact 丢失（2026-08-09 run 31315288856 Shard 3）。
+          #   exit 5 是"无测试收集"而非测试失败，应视为可接受状态；真实失败(exit 1)仍阻断。
           pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6 --root tests) \
             --cov=agent \
             --cov=scripts \
@@ -965,10 +970,25 @@ jobs:
             --ignore=tests/test_network_config_integration.py \
             -p no:randomly \
             -q \
-            --tb=short
-          # 【变易】对齐 ci.yml coverage-check 命名约定：coverage_raw_shardN.data
+            --tb=short \
+            || [ $? -eq 5 ]
+
+      # 【变易·R2】coverage 数据保护 step（独立于测试 run 块）：
+      #   pytest 失败（exit 1）时 run 块 set -e 会提前中止，若 mv 留在 run 块内
+      #   则永不执行 → 覆盖率数据未改名 → artifact 丢失（2026-08-09 run 31315288856
+      #   仅 shard 4/5 有 artifact）。pytest-cov 在 sessionfinish 写盘 .coverage，
+      #   即使测试失败数据也在，故用 if: always() + 文件存在性判断保证改名必达。
+      - name: 保护 coverage 数据（测试失败也改名，供上传）
+        if: always()
+        run: |
+          # 【不易】对齐 ci.yml coverage-check 命名约定：coverage_raw_shardN.data
           # 不生成 coverage.xml（单 shard ~16%，由 coverage-combine job 合并后生成）
-          mv .coverage coverage_raw_shard${{ matrix.shard }}.data
+          if [ -f .coverage ]; then
+            mv .coverage coverage_raw_shard${{ matrix.shard }}.data
+            echo "coverage 数据已保护: coverage_raw_shard${{ matrix.shard }}.data"
+          else
+            echo "::warning::未找到 .coverage（pytest 可能在写盘前被中止），跳过改名"
+          fi
 
       - name: 上传 coverage 数据
         uses: actions/upload-artifact@v7
