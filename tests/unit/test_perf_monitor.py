@@ -465,6 +465,10 @@ class TestStressTestDependencyInjection:
     - 幂等性：每个测试用独立 factory 实例，互不干扰
     - 竞态防御：计数器用 threading.Lock 保护
     - 完全解耦：注入模式不依赖 agent.logging_utils 模块
+    - 【变易·serial】依赖 filter 挂载生效的测试加 @pytest.mark.serial：
+      pytest-xdist 并行时全局 logging 状态竞争（与 Shard5/6 assertLogs 同源），
+      filter 链未被挂载导致 call_count==0 偶发失败（CI Shard 2 实测 7 例），
+      串行段（-p no:randomly）下无状态竞争，稳定通过
     """
 
     def test_filter_chain_factory_is_called(self):
@@ -484,6 +488,7 @@ class TestStressTestDependencyInjection:
         assert factory_call_count[0] >= 1, "filter_chain_factory 应至少被调用一次"
         assert result["errors"] == 0
 
+    @pytest.mark.serial
     def test_filter_chain_factory_filters_actually_applied(self):
         """factory 返回的 filter 应被实际应用到日志记录"""
         counting_filter = _CountingFilter("applied")
@@ -516,6 +521,7 @@ class TestStressTestDependencyInjection:
         )
         assert result["errors"] == 0, "空 filter 列表不应导致错误"
 
+    @pytest.mark.serial
     def test_filter_chain_factory_single_filter(self):
         """单个 filter 注入正常工作"""
         single_filter = _CountingFilter("single")
@@ -532,6 +538,7 @@ class TestStressTestDependencyInjection:
         assert single_filter.call_count > 0
         assert result["errors"] == 0
 
+    @pytest.mark.serial
     def test_filter_chain_factory_multiple_filters(self):
         """多个 filter 都应被应用到每个 record"""
         filter_a = _CountingFilter("A")
@@ -601,6 +608,7 @@ class TestStressTestDependencyInjection:
         assert first_payload["message"] == "test_payload"
         assert first_payload["custom_field"] == "abc"
 
+    @pytest.mark.serial
     def test_both_factories_injected_simultaneously(self):
         """同时注入 filter_chain_factory 和 log_dict_factory"""
         counting_filter = _CountingFilter("combined")
@@ -643,6 +651,7 @@ class TestStressTestDependencyInjection:
         assert result["total_ops"] > 0
         assert result["throughput_ops_per_sec"] > 0
 
+    @pytest.mark.serial
     def test_filter_chain_factory_raises_exception(self):
         """边界显性化：filter 抛异常时被计入 error_rate，而非静默吞掉"""
         failing_filter = _FailingFilter()
@@ -709,6 +718,7 @@ class TestStressTestDependencyInjection:
         )
         assert result["errors"] == 0
 
+    @pytest.mark.serial
     def test_custom_filter_invoked_per_record(self):
         """每个 LogRecord 都应触发自定义 filter 的 filter() 方法"""
         counting_filter = _CountingFilter("per_record")
@@ -854,6 +864,7 @@ class TestStressTestDependencyInjection:
         # mode 应为 "new"（use_log_dict=True 默认）
         assert injected_result["mode"] == "new"
 
+    @pytest.mark.serial
     def test_filter_chain_factory_thread_safety(self):
         """多线程下 factory 计数器应线程安全"""
         filter_calls = [0]
