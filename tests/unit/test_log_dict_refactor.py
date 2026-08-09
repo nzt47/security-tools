@@ -452,6 +452,7 @@ class TestIntegrationSetup:
             filter_types = [type(f).__name__ for f in h.filters]
             assert "DictToJsonFilter" not in filter_types, "控制台 handler 不应挂载 DictToJsonFilter"
 
+    @pytest.mark.serial  # 【P3】日志采集断言：xdist 并行时全局 logging 状态竞争 → 串行段执行
     def test_file_log_json_parseable(self, tmp_path):
         """文件日志中的 dict 应被序列化为合法 JSON"""
         log_file = str(tmp_path / "test.log")

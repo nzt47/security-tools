@@ -917,6 +917,9 @@ jobs:
           # 【不易】--shards 6 与 matrix.shard 元素数一致，调整需同步两处
           # 【不易】--ignore 与 split_unit_tests.py 的 EXCLUDED 必须一致
           #   （split 脚本会显式传文件给 pytest，--ignore 无法拦截显式传入路径）
+          # 【变易·P3】serial 日志断言测试拆为串行段：pytest-xdist 并行时全局 logging
+          #   状态竞争导致 assertLogs 偶发失败（2026-08-09 Shard5/6 六例），故分两段执行。
+          rm -f .coverage
           pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6 --root tests) \
             -n 2 \
             --dist=loadscope \
@@ -927,7 +930,30 @@ jobs:
             --cov-fail-under=0 \
             --timeout=300 \
             --timeout-method=signal \
-            -m "not slow and not skip_ci" \
+            -m "not slow and not skip_ci and not serial" \
+            --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
+            --ignore=tests/performance/test_chromadb_v05_api_compat.py \
+            --ignore=tests/performance/test_optimization_benchmark.py \
+            --ignore=tests/e2e/test_online_chat.py \
+            --ignore=tests/e2e/test_online_tool_call.py \
+            --ignore=tests/integration/test_feedback_integration.py \
+            --ignore=tests/integration/test_routes_skills_mgmt_integration.py \
+            --ignore=tests/integration/test_ab_testing_integration.py \
+            --ignore=tests/test_network_config_integration.py \
+            -p no:randomly \
+            -q \
+            --tb=short
+          # 【变易·P3】串行段：serial 日志断言测试，--cov-append 追加覆盖率
+          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6 --root tests) \
+            --cov=agent \
+            --cov=scripts \
+            --cov-append \
+            --maxfail=0 \
+            --continue-on-collection-errors \
+            --cov-fail-under=0 \
+            --timeout=300 \
+            --timeout-method=signal \
+            -m "not slow and not skip_ci and serial" \
             --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
             --ignore=tests/performance/test_chromadb_v05_api_compat.py \
             --ignore=tests/performance/test_optimization_benchmark.py \

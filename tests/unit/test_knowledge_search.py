@@ -625,6 +625,7 @@ class TestLinkCachePerfRegression:
         hits = searcher.search("机器学习")
         assert hits and hits[0].slug == "模型训练"
 
+    @pytest.mark.serial  # 【P3】日志采集断言：xdist 并行时全局 logging 状态竞争 → 串行段执行
     def test_link_stage_below_io_bound(self, complex_store):
         links_ms: list[float] = []
         class _TimingHandler(logging.Handler):
