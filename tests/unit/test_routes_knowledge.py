@@ -80,6 +80,22 @@ def test_list_cards_empty(kb_env):
     assert data["count"] == 0
 
 
+def test_list_cards_uses_cache(kb_env, monkeypatch):
+    """列表路由经 use_cache=True 读取（读路径走内存缓存）。"""
+    client, store = kb_env
+    captured: dict = {}
+    original = store.list
+
+    def spy(*args, **kwargs):
+        captured["kwargs"] = kwargs
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(store, "list", spy)
+    resp = client.get("/api/knowledge/cards")
+    assert resp.status_code == 200
+    assert captured["kwargs"].get("use_cache") is True
+
+
 def test_list_cards_filter_by_status_and_type(kb_env):
     client, _ = kb_env
     client.post("/api/knowledge/cards", json=_card_dict("Card A", type="concepts"))
