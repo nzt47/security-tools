@@ -279,6 +279,11 @@ def generate_chart(
 
 
 def main() -> int:
+    # 【CHG-2026-0809】Windows CI stdout 默认 cp1252 无法编码中文（UnicodeEncodeError: 'charmap'）。
+    # 显式 UTF-8 输出（Python 3.7+ 支持 reconfigure），保证脚本在任何 locale 下均可打印中文。
+    if sys.stdout is not None and hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
     parser = argparse.ArgumentParser(description="CI L2 性能日志解析与可视化")
     parser.add_argument("--ci-log", type=str, help="CI 日志文件路径（test.yml 输出）")
     parser.add_argument("--bench-log", type=str, help="压测日志文件路径（bench_l2_stress.py 输出）")

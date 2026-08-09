@@ -18,6 +18,11 @@ from unittest.mock import patch
 
 import pytest
 
+# 【已知部分命中缺口登记】2026-08-08 D1 数据层优化（web_search 描述补充
+# 「网页内容/联网查询」措辞）后 q01/q19 已转完整命中，无已知缺口。
+# 若未来出现新部分命中，登记于此并同步 MAX_PARTIAL 余量评估。
+KNOWN_PARTIAL: set[str] = set()
+
 
 # 【已知部分命中缺口登记】2026-08-08 D1 数据层优化（web_search 描述补充
 # 「网页内容/联网查询」措辞）后 q01/q19 已转完整命中，无已知缺口。

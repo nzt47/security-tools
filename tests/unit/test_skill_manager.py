@@ -20,6 +20,8 @@ import zipfile
 import unittest
 from pathlib import Path
 
+import pytest  # 【变易·P3】@pytest.mark.serial：日志采集断言需串行执行
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from agent.skills_mgmt.skill_manager import SkillManager
@@ -611,6 +613,7 @@ class TestBuildContext(unittest.TestCase):
             self.assertIn("（无）", result["prompt"])
             self.assertGreaterEqual(result["total_tokens"], bd["tokens"])
 
+    @pytest.mark.serial  # 【P3】日志采集断言：xdist 并行时全局 logging 状态竞争 → 串行段执行
     def test_build_context_scenario_budget_exceeded_skip_instruction(self):
         """异常场景1：预算超限时跳过 instruction 加载
 
@@ -650,6 +653,7 @@ class TestBuildContext(unittest.TestCase):
                      if "build_context.skip_instruction" in r.getMessage()]
         self.assertGreater(len(skip_logs), 0, "应有 skip_instruction 日志")
 
+    @pytest.mark.serial  # 【P3】日志采集断言：xdist 并行时全局 logging 状态竞争 → 串行段执行
     def test_build_context_scenario_skill_not_found(self):
         """异常场景2：指定不存在的 skill_id 加载 instruction
 
@@ -678,6 +682,7 @@ class TestBuildContext(unittest.TestCase):
         # 无匹配则走 no_match 分支，两种情况都不应崩溃
         self.assertIsInstance(result, dict)
 
+    @pytest.mark.serial  # 【P3】日志采集断言：xdist 并行时全局 logging 状态竞争 → 串行段执行
     def test_build_context_scenario_no_match_logs_boundary_state(self):
         """异常场景3：无匹配时日志应记录 boundary_state=empty_default
 

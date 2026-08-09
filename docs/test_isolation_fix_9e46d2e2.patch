@@ -1,0 +1,226 @@
+diff --git a/scripts/visibility_report.py b/scripts/visibility_report.py
+index bd8bb207..7542c9fc 100644
+--- a/scripts/visibility_report.py
++++ b/scripts/visibility_report.py
+@@ -1093,6 +1093,7 @@ def serve_metrics(
+     project_root: Path,
+     thresholds: Dict[str, Any],
+     host: str = "0.0.0.0",
++    stop_event: Optional[threading.Event] = None,
+ ) -> int:
+     """启动 Prometheus 指标 HTTP 服务
+ 
+@@ -1106,6 +1107,10 @@ def serve_metrics(
+         project_root: 项目根目录
+         thresholds: 可见性阈值配置
+         host: 绑定地址
++        stop_event: 可选停止信号。传入后 _refresh_loop 会监听该信号，
++                    收到后立即退出（用 wait 替代 sleep，避免测试环境
++                    daemon 线程泄漏持续触发重量级 generate_report）。
++                    默认 None 时行为与旧版完全一致。
+ 
+     Returns:
+         进程退出码（0=正常退出，1=端口占用/初始化失败）
+@@ -1116,7 +1121,7 @@ def serve_metrics(
+     def _refresh_loop() -> None:
+         """后台刷新线程：周期性重新采集指标"""
+         thread_trace = _trace_id()
+-        while True:
++        while not (stop_event is not None and stop_event.is_set()):
+             t0 = time.time()
+             try:
+                 report = generate_report(project_root, thresholds)
+@@ -1127,7 +1132,12 @@ def serve_metrics(
+                 # 边界显性化：捕获异常并写入 state.error，不静默吞掉
+                 logger.error(log_dict({'module_name': 'visibility_report', 'action': 'serve_metrics.refresh.failed', 'error': f'{type(e).__name__}: {e}', 'stack': traceback.format_exc()}))
+                 state.update("", "degraded", error=f"{type(e).__name__}: {e}")
+-            time.sleep(max(refresh_interval, 10))
++            # 停止信号优先：wait 返回 True 立即退出，否则按刷新间隔休眠
++            if stop_event is not None:
++                if stop_event.wait(timeout=max(refresh_interval, 10)):
++                    return
++            else:
++                time.sleep(max(refresh_interval, 10))
+ 
+     # 启动后台刷新线程（daemon=True，主进程退出时自动终止）
+     refresh_thread = threading.Thread(target=_refresh_loop, name="visibility-refresh", daemon=True)
+diff --git a/tests/conftest.py b/tests/conftest.py
+index 995eb0e2..c561989a 100644
+--- a/tests/conftest.py
++++ b/tests/conftest.py
+@@ -479,6 +479,32 @@ def reset_global_singletons():
+         _spc._manager = None
+     except Exception:
+         pass
++    # 11. sqlite_vec: 清理 sys.modules 中所有 sqlite_vec 相关键
++    # Why: test_vector_store_sqlite_vec.py 的 _enable_sqlite_vec_for_tests 用
++    # patch.dict(sys.modules, ...) 覆盖 _BlockModules 封禁，其 __exit__ 会
++    # _clear_dict 清空测试期间新导入的模块键（如 sqlite_vec.util）但父包属性
++    # 仍引用旧模块对象，形成 sys.modules 与包属性不一致的残留。删除所有
++    # sqlite_vec* 键，强制后续测试全新导入（或被 _BlockModules 封禁），
++    # 避免 C 扩展重复加载/引用残留导致偶发 ERROR。
++    try:
++        import sys as _sys
++        for _key in [k for k in list(_sys.modules) if k == "sqlite_vec" or k.startswith("sqlite_vec.")]:
++            _sys.modules.pop(_key, None)
++    except Exception:
++        pass
++    # 12. memory.vector_store: 清空共享编码器单例缓存
++    # Why: VectorStore._get_shared_encoder（vector_store.py）是模块级单例缓存，
++    # 前序测试若在 sentence_transformers 被 mock（MagicMock 模块）的上下文中
++    # 实例化 VectorStore，会把 mock 编码器缓存进 _shared_encoder_cache。后续
++    # sqlite-vec 测试即使 patch 了 SentenceTransformer，_get_shared_encoder 仍
++    # 命中缓存返回 mock 编码器，get_sentence_embedding_dimension() 得到 MagicMock，
++    # vec0 DDL 构造失败降级 json → "expected sqlite_vec, got json"（随机序
++    # TestVectorStoreSqliteVecIntegration 8 ERROR + backend 1 FAILED 根因）。
++    try:
++        import memory.vector_store.vector_store as _vstore
++        _vstore._shared_encoder_cache.clear()
++    except Exception:
++        pass
+ 
+ # ============================================================================
+ # 测试断言辅助函数
+diff --git a/tests/unit/conftest.py b/tests/unit/conftest.py
+index cbac49da..c630cf6f 100644
+--- a/tests/unit/conftest.py
++++ b/tests/unit/conftest.py
+@@ -279,11 +279,35 @@ class _FakeMPQueue:
+         pass
+ 
+ 
++def _async_raise_thread(t) -> None:
++    """向目标线程注入 KeyboardInterrupt，用于中断死循环/长任务线程。
++
++    Why: Python 无 Thread.kill；死循环线程（while True: pass）若无法终止会
++    残留吃满 CPU 并跨测试累积。SetAsyncExc 在下一次字节码执行时抛异步异常，
++    对无 except BaseException 包裹的死循环 code 有效。
++    """
++    if t is None or t.ident is None or not t.is_alive():
++        return
++    try:
++        import ctypes
++        res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
++            ctypes.c_long(t.ident),
++            ctypes.py_object(KeyboardInterrupt),
++        )
++        if res > 1:  # 罕见：多个线程状态被设置，回滚避免副作用
++            ctypes.pythonapi.PyThreadState_SetAsyncExc(t.ident, None)
++    except Exception:
++        pass
++
++
+ class _FakeMPProcess:
+     """模拟 multiprocessing.Process，在线程中执行 target
+ 
+     force_timeout=True 时不执行 target，is_alive 总返回 True，
+     用于模拟超时场景（threading 无法安全终止死循环线程）。
++
++    terminate/kill 通过 _async_raise_thread 真正中断线程，
++    避免 run_sandbox 超时后死循环线程残留吃满 CPU 并跨测试累积。
+     """
+ 
+     def __init__(self, target, args=(), daemon=False, force_timeout=False):
+@@ -299,7 +323,9 @@ class _FakeMPProcess:
+         if self._force_timeout:
+             return
+         self._thread = _threading_module.Thread(
+-            target=self._run, daemon=self._daemon
++            target=self._run,
++            daemon=self._daemon,
++            name=f"sandbox-mock-{id(self)}",  # 命名以便 teardown 时清理残留线程
+         )
+         self._thread.start()
+ 
+@@ -322,10 +348,12 @@ class _FakeMPProcess:
+         return self._thread is not None and self._thread.is_alive()
+ 
+     def terminate(self):
+-        pass
++        """真正中断目标线程（对应 run_sandbox 超时后的 process.terminate）"""
++        if self._thread is not None and self._thread.is_alive():
++            _async_raise_thread(self._thread)
+ 
+     def kill(self):
+-        pass
++        self.terminate()
+ 
+ 
+ class _FakeSpawnContext:
+@@ -353,11 +381,30 @@ def mock_sandbox_spawn():
+             self._spawn = mock_sandbox_spawn
+ 
+     超时测试设置 self._spawn.force_timeout = True 模拟进程不退出。
++
++    teardown 清理：中断并 join 残留的 sandbox-mock 线程（1s 短超时）。
++    Why: 若测试的 sandbox code 为死循环/长任务（如 while True），线程无法被
++    普通 join 终止；若残留会累积吃满 CPU 拖慢后续测试（test_concurrent_recording
++    60s 超时、tmp_path teardown 的 os.scandir 超时）。这里用 _async_raise_thread
++    注入 KeyboardInterrupt 打断死循环，再 join(1) 等待退出，超时记警告暴露。
+     """
+     import multiprocessing
+     ctx = _FakeSpawnContext()
+     with patch.object(multiprocessing, 'get_context', return_value=ctx):
+         yield ctx
++        import threading as _th
++        for t in _th.enumerate():
++            if t is _th.main_thread():
++                continue
++            if getattr(t, "name", "").startswith("sandbox-mock-") and t.is_alive():
++                _async_raise_thread(t)  # 打断死循环线程
++                t.join(timeout=1)       # 给 1s 退出（每个线程最多 1s，避免 N×5s 拖慢）
++                if t.is_alive():
++                    logging.getLogger("pytest").warning(
++                        "[mock_sandbox_spawn] 残留 sandbox 线程未终止: %s "
++                        "(code 可能为死循环/长任务，全量负载下会拖慢其他测试)",
++                        t.name,
++                    )
+ 
+ 
+ # ════════════════════════════════════════════════════════════
+diff --git a/tests/unit/test_visibility_export.py b/tests/unit/test_visibility_export.py
+index f715bbda..ba151c1e 100644
+--- a/tests/unit/test_visibility_export.py
++++ b/tests/unit/test_visibility_export.py
+@@ -616,6 +616,7 @@ class TestServeMetricsIntegration:
+ 
+             # 在子线程调用 serve_metrics（避免主线程被 serve_forever 阻塞）
+             result_holder: dict = {}
++            stop_event = threading.Event()
+ 
+             def _run():
+                 try:
+@@ -625,6 +626,7 @@ class TestServeMetricsIntegration:
+                         project_root=fake_root,
+                         thresholds={},
+                         host="127.0.0.1",
++                        stop_event=stop_event,
+                     )
+                     result_holder["exit_code"] = exit_code
+                 except Exception as e:
+@@ -642,6 +644,9 @@ class TestServeMetricsIntegration:
+             mock_http_cls.assert_called_once()
+             # 验证 serve_forever 被调用
+             mock_server.serve_forever.assert_called_once()
++            # 停止 refresh 线程，避免 daemon 线程泄漏：patch 退出后 refresh 线程
++            # 若仍在运行会调用真实 generate_report（重量级扫描），拖慢后续测试
++            stop_event.set()
+ 
+     @pytest.mark.unit
+     @pytest.mark.p1
+@@ -654,11 +659,15 @@ class TestServeMetricsIntegration:
+             # 模拟端口绑定失败
+             mock_http_cls.side_effect = OSError("Address already in use")
+ 
++            stop_event = threading.Event()
+             exit_code = serve_metrics(
+                 port=9999,
+                 refresh_interval=60,
+                 project_root=fake_root,
+                 thresholds={},
+                 host="127.0.0.1",
++                stop_event=stop_event,
+             )
+             assert exit_code == 1, f"端口绑定失败应返回 1, 实际: {exit_code}"
++            # 停止 refresh 线程（HTTPServer 抛异常前已启动），避免 daemon 泄漏
++            stop_event.set()
