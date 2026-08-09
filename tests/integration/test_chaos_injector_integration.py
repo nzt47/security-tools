@@ -46,10 +46,9 @@ def injector():
 def reset_singleton():
     """重置全局单例"""
     import agent.monitoring.chaos_injector as module
-    old = module._global_chaos_injector
-    module._global_chaos_injector = None
+    module.reset_chaos_injector()
     yield
-    module._global_chaos_injector = old
+    module.reset_chaos_injector()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -658,6 +657,6 @@ class TestGlobalSingleton:
     def test_singleton_reset(self, reset_singleton):
         inj1 = get_chaos_injector()
         import agent.monitoring.chaos_injector as module
-        module._global_chaos_injector = None
+        module.reset_chaos_injector()
         inj2 = get_chaos_injector()
         assert inj1 is not inj2

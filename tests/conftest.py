@@ -12,7 +12,11 @@ pytest配置文件
 import os
 import sys
 import json
+import copy
+import time
+import tempfile
 import pytest
+from unittest.mock import Mock
 
 # ── Windows GBK 编码兼容：避免 emoji 日志吐乱码 ──
 # 注释：不要在这里 reconfig stdout/stderr，会导致 pytest 的 capture 模块冲突
@@ -372,6 +376,167 @@ def reset_environment():
     os.environ.update(original_env)
 
 
+# ════════════════════════════════════════════════════════════
+# 测试污染强制清理 helpers（黄金快照 + 强制恢复）
+# ════════════════════════════════════════════════════════════
+# Why: 完整套件下（pytest-randomly 随机顺序）失败集随种子漂移（默认 31 / seed=12345 28），
+# 核心机制是全局状态/类静态方法被前序测试 patch 泄漏或修改。与其逐个定位污染源，
+# 采用「conftest 加载时快照真实引用 → 每测试后若发现被替换为 Mock 则强制恢复」兜底。
+# 验证：9 个"看似恒定"失败（boundary 5 + message_handler 2 + singleton 2）单独运行
+# 全部通过（9 passed in 2.15s）→ 均为污染受害方而非真实缺陷。
+
+_GOLDEN_METHODS = {}
+
+
+def _snapshot_golden_methods():
+    """conftest 加载时（早于任何测试）快照易被 patch 泄漏的类静态方法真实引用。
+
+    patch("agent.orchestrator.message_handler.MessageHandler.is_follow_up", ...)
+    若在异常/嵌套场景下未恢复，后续测试读到 MagicMock（name='is_follow_up'），
+    assert False 失败。快照取真实函数引用，恢复时 setattr 回去即可。
+    """
+    global _GOLDEN_METHODS
+    try:
+        from agent.orchestrator.message_handler import MessageHandler
+        for _m in ("parse", "is_simple_query", "detect_dissatisfaction",
+                   "is_follow_up", "extract_keywords"):
+            _GOLDEN_METHODS[("MessageHandler", _m)] = getattr(MessageHandler, _m)
+    except Exception:
+        pass  # 模块暂不可导入时跳过，fixture 内再延迟快照
+
+
+def _force_restore_golden_methods():
+    """若类静态方法被 mock 泄漏替换为 MagicMock，强制恢复为真实引用。"""
+    for (_cls, _m), _orig in list(_GOLDEN_METHODS.items()):
+        try:
+            import agent.orchestrator.message_handler as _mod
+            _cur = getattr(_mod.MessageHandler, _m)
+            if isinstance(_cur, Mock):
+                setattr(_mod.MessageHandler, _m, _orig)
+        except Exception:
+            pass
+
+
+def _force_reset_intent_rules():
+    """强制重置 IntentRouter._rules 为全新深拷贝默认规则。
+
+    Why deepcopy 而非 list()：list(_DEFAULT_RULES) 是浅拷贝，若前序测试
+    修改了规则对象的 patterns（append 正则），浅拷贝仍携带污染；深拷贝
+    保证每个测试拿到与源码完全一致的 8 条规则（意图全识别为 unknown 的根因）。
+    """
+    try:
+        from agent import response_workflows as _rw
+        _rw.IntentRouter._rules = copy.deepcopy(_rw._DEFAULT_RULES)
+    except Exception:
+        pass
+
+
+def _force_reset_scheduler_singleton():
+    """若 task_scheduler._scheduler 被 patch 泄漏为 MagicMock，置 None 触发重建。
+
+    Why: test_task_scheduler_integration.py L937 `patch("agent.task_scheduler._scheduler")`
+    不带 new 参数时会替换为 MagicMock；若未恢复，get_scheduler() 读到非 None 的
+    Mock → isinstance(_, TaskScheduler) 断言失败（test_get_scheduler_returns_instance）。
+    """
+    try:
+        import agent.task_scheduler as _ts
+        if isinstance(getattr(_ts, "_scheduler", None), Mock):
+            _ts._scheduler = None
+    except Exception:
+        pass
+
+
+_snapshot_golden_methods()
+
+
+# ════════════════════════════════════════════════════════════
+# 跨平台临时目录清理兜底（chroma sqlite 句柄占用）
+# ════════════════════════════════════════════════════════════
+# Why: seed=12345 下 memory_module 18 个失败，traceback 定位在 shutil.rmtree
+# （TemporaryDirectory.cleanup 阶段）：
+#   PermissionError [WinError 32] 文件被占用 → 链式 NotADirectoryError [WinError 267]
+# 根因：chromadb PersistentClient 的 sqlite 连接在测试结束时不释放文件句柄，
+# Windows 无法删除被占用文件（POSIX 允许删除打开中的文件，故仅 Windows 受影响）。
+
+# 模块加载时保存原始类：_safe_tmp_directory 会把 tempfile.TemporaryDirectory
+# 替换为 _RetryTemporaryDirectory，内部创建必须引用此原始类（防无限递归）
+_ORIG_TEMPFILE_TEMPDIR_CLS = tempfile.TemporaryDirectory
+
+
+class _RetryTemporaryDirectory:
+    """跨平台安全的临时目录：Windows 上 cleanup 重试 + 最终忽略而非抛错。
+
+    与 tempfile.TemporaryDirectory 接口兼容（with 模式），替换后对现有测试
+    零侵入——test_memory_module 等均以 `with tempfile.TemporaryDirectory() as d:`
+    方式使用，__enter__ 返回路径字符串、__exit__ 兜底清理。
+    """
+
+    def __init__(self, suffix=None, prefix=None, dir=None,
+                 *, ignore_cleanup_errors=False):
+        # 必须用模块加载时保存的原始类，而非 tempfile.TemporaryDirectory——
+        # 后者在 _safe_tmp_directory 运行期间已被替换为本类，直接引用会无限递归
+        self._inner = _ORIG_TEMPFILE_TEMPDIR_CLS(
+            suffix=suffix, prefix=prefix, dir=dir,
+            ignore_cleanup_errors=ignore_cleanup_errors,
+        )
+
+    @property
+    def name(self) -> str:
+        return self._inner.name
+
+    def cleanup(self) -> None:
+        self._try_cleanup()
+
+    def __enter__(self) -> str:
+        return self._inner.name
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
+        self._try_cleanup()
+        return False
+
+    def _try_cleanup(self) -> None:
+        if sys.platform != "win32":
+            # POSIX：删除打开中的文件合法，直接清理
+            self._inner.cleanup()
+            return
+        # Windows：chroma sqlite/segment 句柄可能延迟释放，短暂重试等待。
+        # 捕获 OSError（PermissionError 文件占用 / rmtree 重试后的半删状态
+        # NotADirectoryError），避免链式抛错。
+        for _ in range(5):
+            try:
+                self._inner.cleanup()
+                return
+            except OSError:
+                time.sleep(0.3)
+        # 最终仍失败：保留目录并告警，绝不阻断测试、
+        # 绝不让 rmtree 半删状态链式抛出 NotADirectoryError
+        logging.getLogger("pytest").warning(
+            "[_RetryTemporaryDirectory] 临时目录清理失败，已保留: %s",
+            self._inner.name,
+        )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _safe_tmp_directory():
+    """跨平台临时目录兜底（session 级，autouse）。
+
+    1. tempfile.tempdir 重定向到项目内 `.pytest_tmp`：
+       - 跨平台路径一致、可诊断（不再依赖 C:\\Windows\\TEMP）
+       - 避免系统 TEMP 的外部清理器/权限竞态干扰
+    2. 替换 tempfile.TemporaryDirectory 为 _RetryTemporaryDirectory：
+       - Windows 上 chroma sqlite 句柄占用时重试清理，最终保留+告警
+    """
+    _orig_dir = tempfile.tempdir
+    _orig_cls = tempfile.TemporaryDirectory
+    _base = PROJECT_ROOT / ".pytest_tmp"
+    _base.mkdir(exist_ok=True)
+    tempfile.tempdir = str(_base)
+    tempfile.TemporaryDirectory = _RetryTemporaryDirectory
+    yield
+    tempfile.tempdir = _orig_dir
+    tempfile.TemporaryDirectory = _orig_cls
+
+
 @pytest.fixture(scope="function", autouse=True)
 def reset_global_singletons():
     """每个测试后清理模块级全局单例与 ContextVar，防止测试间状态污染。
@@ -505,32 +670,17 @@ def reset_global_singletons():
         _vstore._shared_encoder_cache.clear()
     except Exception:
         pass
-    # 11. sqlite_vec: 清理 sys.modules 中所有 sqlite_vec 相关键
-    # Why: test_vector_store_sqlite_vec.py 的 _enable_sqlite_vec_for_tests 用
-    # patch.dict(sys.modules, ...) 覆盖 _BlockModules 封禁，其 __exit__ 会
-    # _clear_dict 清空测试期间新导入的模块键（如 sqlite_vec.util）但父包属性
-    # 仍引用旧模块对象，形成 sys.modules 与包属性不一致的残留。删除所有
-    # sqlite_vec* 键，强制后续测试全新导入（或被 _BlockModules 封禁），
-    # 避免 C 扩展重复加载/引用残留导致偶发 ERROR。
-    try:
-        import sys as _sys
-        for _key in [k for k in list(_sys.modules) if k == "sqlite_vec" or k.startswith("sqlite_vec.")]:
-            _sys.modules.pop(_key, None)
-    except Exception:
-        pass
-    # 12. memory.vector_store: 清空共享编码器单例缓存
-    # Why: VectorStore._get_shared_encoder（vector_store.py）是模块级单例缓存，
-    # 前序测试若在 sentence_transformers 被 mock（MagicMock 模块）的上下文中
-    # 实例化 VectorStore，会把 mock 编码器缓存进 _shared_encoder_cache。后续
-    # sqlite-vec 测试即使 patch 了 SentenceTransformer，_get_shared_encoder 仍
-    # 命中缓存返回 mock 编码器，get_sentence_embedding_dimension() 得到 MagicMock，
-    # vec0 DDL 构造失败降级 json → "expected sqlite_vec, got json"（随机序
-    # TestVectorStoreSqliteVecIntegration 8 ERROR + backend 1 FAILED 根因）。
-    try:
-        import memory.vector_store.vector_store as _vstore
-        _vstore._shared_encoder_cache.clear()
-    except Exception:
-        pass
+    # 13. 强制恢复被 patch 泄漏的类静态方法（MessageHandler 5 个）
+    # Why: e2e 测试大量 patch("agent.orchestrator.message_handler.MessageHandler.*")，
+    # 泄漏后 MagicMock 覆盖真实实现 → test_message_handler / test_orchestrator_boundary
+    # 的 is_follow_up/detect_dissatisfaction/extract_keywords 断言失败。
+    _force_restore_golden_methods()
+    # 14. 强制重置 IntentRouter._rules（deepcopy 默认规则）
+    # Why: 意图规则注册表被清空/污染后 classify 全部返回 unknown（response_workflows 17 失败）。
+    _force_reset_intent_rules()
+    # 15. 强制重置 task_scheduler 单例（Mock 泄漏时置 None 重建）
+    # Why: patch("agent.task_scheduler._scheduler") 泄漏 → get_scheduler() 返回 Mock。
+    _force_reset_scheduler_singleton()
 
 # ============================================================================
 # 测试断言辅助函数
