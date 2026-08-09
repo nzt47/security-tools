@@ -35,6 +35,7 @@ flowchart LR
     subgraph core [core]
         agent_api_gateway["agent.api_gateway"]
         agent_async_executor["agent.async_executor"]:::crosslayer
+        agent_auto_tuner["agent.auto_tuner"]
         agent_behavior_controller["agent.behavior_controller"]:::crosslayer
         agent_circuit_breaker["agent.circuit_breaker"]:::crosslayer
         agent_code_review["agent.code_review"]:::crosslayer
@@ -478,6 +479,7 @@ flowchart LR
     agent_error_handler -.-> agent_monitoring_metrics
     agent_performance_logging -.-> agent_monitoring_performance
     agent_security_utils --> agent_logging_utils
+    agent_auto_tuner -.-> agent_utils_singleton_manager
     agent_v2_performance_patch --> agent_logging_utils
     agent_utils_observability -.-> agent_monitoring_business_metrics
     agent_utils_sensitive_data_filter --> agent_utils_singleton_manager
@@ -1016,6 +1018,7 @@ flowchart LR
     agent_monitoring_loki -.-> agent_logging_utils
     agent_monitoring_loki --> agent_monitoring_observability_config
     agent_monitoring_optimized_metrics --> agent_monitoring_tracing
+    agent_monitoring_optimized_metrics -.-> agent_utils_singleton_manager
     agent_monitoring_alert_manager --> agent_monitoring_tracing
     agent_monitoring_alert_manager --> agent_monitoring_alert_evaluator
     agent_monitoring_alert_manager --> agent_monitoring_alert_notifier
@@ -1028,6 +1031,7 @@ flowchart LR
     agent_monitoring_resource_monitor --> agent_monitoring_observability_config
     agent_monitoring_error_reporter --> agent_monitoring_tracing
     agent_monitoring_error_reporter -.-> agent_error_handler
+    agent_monitoring_error_reporter -.-> agent_utils_singleton_manager
     agent_monitoring_error_reporter -.-> agent_error_reporting_config
     agent_monitoring_config_observability --> agent_monitoring_tracing
     agent_monitoring_config_observability --> agent_monitoring_prometheus
@@ -1038,6 +1042,7 @@ flowchart LR
     agent_monitoring_performance_optimization --> agent_monitoring_tracing
     agent_monitoring_performance_optimization --> agent_monitoring_tracing
     agent_monitoring_tracing_cache --> agent_monitoring_tracing
+    agent_monitoring_tracing_cache -.-> agent_utils_singleton_manager
     agent_monitoring_tracing_cache --> agent_monitoring_observability_config
     agent_monitoring_performance --> agent_monitoring_tracing
     agent_monitoring_performance -.-> agent_utils_singleton_manager
@@ -1086,9 +1091,9 @@ flowchart LR
 
 ## 统计信息
 - 扫描文件数: 375
-- 模块节点数: 302
-- 依赖边数: 695
-- 跨层调用数: 415
+- 模块节点数: 303
+- 依赖边数: 699
+- 跨层调用数: 419
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1508.86 ms
+- 构建耗时: 939.51 ms

@@ -1,5 +1,5 @@
 {
-  "trace_id": "d625026efd7f49cc",
+  "trace_id": "2e5d7850909340b8",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -63,7 +63,7 @@
       "name": "singleton_manager",
       "layer": "utils",
       "file_path": "",
-      "in_degree": 17,
+      "in_degree": 21,
       "out_degree": 0
     },
     {
@@ -583,6 +583,14 @@
       "name": "security_utils",
       "layer": "core",
       "file_path": "agent/security_utils.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.auto_tuner",
+      "name": "auto_tuner",
+      "layer": "core",
+      "file_path": "agent/auto_tuner.py",
       "in_degree": 0,
       "out_degree": 1
     },
@@ -2280,7 +2288,7 @@
       "layer": "monitoring",
       "file_path": "agent/monitoring/optimized_metrics.py",
       "in_degree": 0,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.monitoring.alert_manager",
@@ -2328,7 +2336,7 @@
       "layer": "monitoring",
       "file_path": "agent/monitoring/error_reporter.py",
       "in_degree": 1,
-      "out_degree": 3
+      "out_degree": 4
     },
     {
       "path": "agent.monitoring.config_observability",
@@ -2360,7 +2368,7 @@
       "layer": "monitoring",
       "file_path": "agent/monitoring/tracing_cache.py",
       "in_degree": 0,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.monitoring.utils",
@@ -3414,7 +3422,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 488,
+      "line": 495,
       "source_file": "agent/task_scheduler.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3664,6 +3672,19 @@
       "line": 17,
       "source_file": "agent/security_utils.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.auto_tuner",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "core",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 968,
+      "source_file": "agent/auto_tuner.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -10663,6 +10684,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.monitoring.optimized_metrics",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 477,
+      "source_file": "agent/monitoring/optimized_metrics.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.monitoring.alert_manager",
       "target": "agent.monitoring.tracing",
       "source_layer": "monitoring",
@@ -10820,6 +10854,19 @@
     },
     {
       "source": "agent.monitoring.error_reporter",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 776,
+      "source_file": "agent/monitoring/error_reporter.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.error_reporter",
       "target": "agent.error_reporting_config",
       "source_layer": "monitoring",
       "target_layer": "core",
@@ -10944,6 +10991,19 @@
       "line": 22,
       "source_file": "agent/monitoring/tracing_cache.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.tracing_cache",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 457,
+      "source_file": "agent/monitoring/tracing_cache.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -11458,13 +11518,13 @@
   ],
   "stats": {
     "total_files": 375,
-    "total_nodes": 302,
-    "total_edges": 695,
-    "cross_layer_edges": 415,
+    "total_nodes": 303,
+    "total_edges": 699,
+    "cross_layer_edges": 419,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
-      "core": 58,
+      "core": 59,
       "lazy_loader": 3,
       "monitoring": 27,
       "utils": 8,
@@ -11503,6 +11563,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1508.8617159999985
+    "build_duration_ms": 939.5056580000016
   }
 }
