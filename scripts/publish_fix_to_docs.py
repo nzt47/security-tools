@@ -40,6 +40,14 @@ def _git(args: list[str], cwd: str | None = None) -> subprocess.CompletedProcess
         encoding="utf-8", errors="replace")
 
 
+def _safe_relpath(path: str, start: str | None = None) -> str:
+    """跨盘符安全的相对路径（Windows runner 上 tmp 在 C: 而仓库在 D: 时 relpath 抛 ValueError）。"""
+    try:
+        return os.path.relpath(path, start)
+    except ValueError:
+        return os.path.abspath(path)
+
+
 def _fetch_commits(sha: str | None, count: int) -> list[dict]:
     """提取 commit 元数据列表(从新到旧)"""
     if sha:
@@ -146,18 +154,18 @@ def main() -> int:
         print(f"\n[{c['short']}] {c['subject']}")
         for pt in _body_fix_points(c["body"]):
             print(f"  - {pt}")
-    print(f"\n索引文件: {os.path.relpath(index_path, ROOT)}")
+    print(f"\n索引文件: {_safe_relpath(index_path, ROOT)}")
 
     if not args.push:
         print("\n[dry-run] 未推送。将执行的命令:")
-        print(f"    git add {os.path.relpath(index_path, ROOT)}")
+        print(f"    git add {_safe_relpath(index_path, ROOT)}")
         print(f"    git commit -m \"docs(ci): 更新 CI 修复记录索引({len(new_entries)} 条)\"")
         print(f"    git push {REMOTE} {BRANCH}  # 触发 deploy-pages.yml → Pages 部署")
         print("确认后加 --push 执行。")
         return 0
 
     # ── 执行推送 ──
-    rel = os.path.relpath(index_path, ROOT).replace("\\", "/")
+    rel = _safe_relpath(index_path, ROOT).replace("\\", "/")
     add = _git(["add", rel])
     if add.returncode != 0:
         print(f"::error::git add 失败: {add.stderr}", file=sys.stderr)
