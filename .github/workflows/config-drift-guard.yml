@@ -63,8 +63,9 @@ jobs:
         run: |
           # 对比 master 快照（已知良好状态）与当前分支运行时配置
           # --fail-on-drift 模式下，high/critical 漂移会以非零退出码退出
+          # PYTHONPATH=. 同上：check_config_drift.py 需 import agent 包
           EXIT_CODE=0
-          python scripts/check_config_drift.py \
+          PYTHONPATH=. python scripts/check_config_drift.py \
             --snapshot docs/observability/config_snapshot_master.json \
             --json \
             --output /tmp/drift_report.json \
