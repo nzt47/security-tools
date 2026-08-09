@@ -964,13 +964,35 @@ class AutoTuner:
 
 _global_auto_tuner = None
 
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_auto_tuner(config=None):
+    """AutoTuner 工厂函数（供 SingletonManager 使用）"""
+    tuner = AutoTuner()
+    tuner.initialize()
+    return tuner
+
 
 def get_auto_tuner() -> AutoTuner:
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("auto_tuner")
     global _global_auto_tuner
     if _global_auto_tuner is None:
-        _global_auto_tuner = AutoTuner()
-        _global_auto_tuner.initialize()
+        _global_auto_tuner = _create_auto_tuner()
     return _global_auto_tuner
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("auto_tuner", _create_auto_tuner)
 
 
 __all__ = [
