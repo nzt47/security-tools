@@ -1,0 +1,42 @@
+# 知识库 API 服务镜像（Dockerfile.knowledge-api）
+#
+# 【不易】知识库 API 最小依赖设计：
+#   - agent/__init__.py 采用 PEP 562 懒加载，本镜像仅装知识库链路实际依赖
+#     （flask / pyyaml / rank-bm25），不背负 torch/chromadb 等约 3GB 重库；
+#   - query 检索在无向量/精排接线时降级为 BM25 + 双链扩展（原序降级）。
+#
+# 【变易】wiki 根目录 / 端口 / 鉴权令牌均通过环境变量注入：
+#   - KNOWLEDGE_WIKI_ROOT  默认 knowledge/wiki（挂载卷时覆盖）
+#   - PORT                 默认 5678
+#   - FLASK_API_TOKEN      生产环境必设（未设时无鉴权，仅限内网）
+#
+# 构建：
+#   docker build -t ghcr.io/nzt47/yunshu-knowledge-api:2.0.0 -f Dockerfile.knowledge-api .
+# 运行（生产必须设置 FLASK_API_TOKEN）：
+#   docker run --rm -p 5678:5678 -e FLASK_API_TOKEN=<token> \
+#     -v <wiki_dir>:/app/knowledge/wiki \
+#     ghcr.io/nzt47/yunshu-knowledge-api:2.0.0
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# 仅复制知识库 API 所需源码（PEP 562 懒加载，其余重依赖模块不会被 import）
+COPY agent/ /app/agent/
+COPY docker/knowledge-api/entry.py /app/entry.py
+
+# 知识库链路实际依赖（对齐 pyproject: flask>=3.0, pyyaml, rank-bm25==0.2.2）
+# PIP_INDEX_URL 默认清华镜像（国内直连 files.pythonhosted.org 会 Read timeout），
+# 可用 --build-arg PIP_INDEX_URL=https://pypi.org/simple 覆盖为官方源。
+ARG PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+RUN pip install --no-cache-dir -i ${PIP_INDEX_URL} \
+      "flask>=3.0,<4.0" "pyyaml>=6.0,<7.0" "rank-bm25==0.2.2"
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONIOENCODING=utf-8 \
+    HF_HUB_OFFLINE=1 \
+    PORT=5678
+
+EXPOSE 5678
+
+CMD ["python", "entry.py"]

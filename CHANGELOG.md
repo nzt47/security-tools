@@ -6,6 +6,50 @@
 
 ---
 
+## [CHG] - 2026-08-09: 知识库列表内存缓存（use_cache）+ trace_id 并发安全加固 ✅
+
+**影响模块**: `agent/knowledge/card.py`, `agent/server_routes/routes_knowledge.py`, `agent/monitoring/tracing.py`, `tests/unit/test_knowledge_card.py`, `tests/unit/test_routes_knowledge.py`, `tests/performance/test_knowledge_link_perf.py`, `scripts/bench_list_cache_compare.py`, `scripts/probe_list_100k_perf.py`, `.github/workflows/test.yml`, `Dockerfile.knowledge-api`
+**关联提交**: `c7774023`（use_cache 实现 + 测试）、`5dc7fe6b`（API 接入）、`a025202a`（tracing 修复）
+**关联镜像**: `ghcr.io/nzt47/yunshu-knowledge-api:2.0.0`
+
+### 背景
+
+1. 知识库 10 万卡量级 `CardStore.list()` 每次全量 YAML 解析（约 69s，解析占 74%），成为知识库加载/健康巡检的性能瓶颈
+2. `TraceContext` 栈式管理在并发场景（线程池复用/协程污染）存在 trace_id 串号/污染风险
+
+### Changed — 性能优化（use_cache）
+
+- `CardStore.list(use_cache=True)` 内存缓存：文件系统指纹（目录/文件名/mtime_ns）自动失效；create/update/delete 写后即时增量同步；delete_many/import 批量整体失效；缺失类型目录被指纹跳过
+- API 层三处读路径接入缓存：`/api/knowledge/cards`（列表/筛选）、详情入链回退扫描、`/api/knowledge/graph`（关系图）
+- 缓存一致性由 CardStore 增量同步/指纹机制保证，API 层零额外处理；默认 `use_cache=False` 不改变原语义
+
+### Fixed — 并发安全（trace_id）
+
+- `TraceContext.__enter__/__exit__` 改用 ContextVar Token `reset()` 精确恢复，替代手动 set(旧值) 盲目覆盖；增加冲突检测告警 + 防御性降级（`__exit__` 永不抛异常）
+- `run_with_context` Token 逆序恢复；`error_handler.py` 锁升级 RLock 防重入死锁
+
+### Added — 测试、工具与部署
+
+- 单元测试 7 个（card 6 + 路由 use_cache spy 1）+ 性能回归 8 个（6000 卡断链正确性/加速/增量同步）
+- `scripts/bench_list_cache_compare.py`、`scripts/probe_list_100k_perf.py` 基准工具
+- `test.yml` performance-tests 新增「知识库 6000 卡性能回归测试」step
+- `Dockerfile.knowledge-api` + `docker/knowledge-api/entry.py`：知识库 API 最小部署镜像（PEP 562 懒加载，免 torch 约 3GB 重库）
+
+### 验证结果（`bench_list_cache_compare.py --cards 20000` 实测）
+
+| 场景 | 耗时 | 对比 |
+|------|------|------|
+| 无缓存冷读 list() | 14210ms | 基准 |
+| use_cache 首次加载 | 14487ms | ≈冷读（仅首查） |
+| use_cache 缓存命中（中位数） | 37ms | ≈380x |
+| 写后首查（增量同步） | 36ms | ≈404x（vs 失效重载 14436ms） |
+| 一致性（随机写 60 次后对比） | PASS | — |
+
+- 单元测试：知识库 94/94、tracing/error_handler 530 passed（3 skipped 为已知时间依赖用例）、前端 258/258
+- trace 透传：`[b0f343b8c2264ab2] START/END Knowledge.knowledge.list.cards` 同 trace_id 配对、无串号
+
+---
+
 ## [CHG] - 2026-08-08: 工具混合检索 alpha=0.5 生产固化 + 混合语言召回验证 ✅
 
 **影响模块**: `.env`, `agent/tool_router_hybrid.py`, `data/tool_definitions/*.yaml`(10 个核心工具), `scripts/dev/verify_english_recall.py`, `tests/unit/test_tool_multilingual_recall_regression.py`
