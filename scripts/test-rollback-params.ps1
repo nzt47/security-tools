@@ -177,17 +177,9 @@ for ($i = 0; $i -lt $testCases.Count; $i++) {
         $output = Get-Content $tempFile -Raw -ErrorAction SilentlyContinue
         if (-not $output) { $output = '(无输出)' }
     } catch {
-        # [变易] 异常时也要读取 transcript 已捕获的内容 (Write-Host 输出在异常前已写入),
-        # 再追加异常信息. 避免丢失被测脚本在抛异常前打印的关键输出 (如 '=== 状态 ===' 头),
-        # 导致 ShouldContain 断言误判.
-        Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
-        $transcriptContent = Get-Content $tempFile -Raw -ErrorAction SilentlyContinue
-        $output = if ($transcriptContent) {
-            $transcriptContent + "`n[异常] $($_.Exception.Message)"
-        } else {
-            "[异常] $($_.Exception.Message)"
-        }
+        $output = "异常: $($_.Exception.Message)"
         $exitCode = -1
+        Stop-Transcript -ErrorAction SilentlyContinue | Out-Null
     } finally {
         Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
     }

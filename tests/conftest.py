@@ -668,6 +668,17 @@ def reset_global_singletons():
     try:
         import memory.vector_store.vector_store as _vstore
         _vstore._shared_encoder_cache.clear()
+        # 12b. 移除被 mock 污染的 sentence_transformers 模块
+        # Why: test_reranker.py 模块级 `sys.modules["sentence_transformers"] =
+        # MagicMock()`（真实模块未导入时设置）会永久残留；VectorStore 从 Mock
+        # 模块取 SentenceTransformer 类（可调用不抛异常）→ 缓存 Mock 编码器 →
+        # memory 全链路 add 失败（assert 0 == N，seed 顺序下 11 个失败根因）。
+        # 移除后强制后续重新导入真实模块；真实模块不可导入时 _get_shared_encoder
+        # 返回 None（不缓存），VectorStore 正确降级 JSON。
+        import sys as _sys
+        _st_mod = _sys.modules.get("sentence_transformers")
+        if _st_mod is not None and hasattr(_st_mod, "mock_calls"):
+            _sys.modules.pop("sentence_transformers", None)
     except Exception:
         pass
     # 13. 强制恢复被 patch 泄漏的类静态方法（MessageHandler 5 个）

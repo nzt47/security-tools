@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Any, Optional
@@ -57,10 +57,6 @@ class HealthReport:
     unresolved_conflicts: list[dict] = field(default_factory=list)  # [{slug, target_slug}] 矛盾未裁决
     health_score: float = 100.0
     suggestions: list[str] = field(default_factory=list)
-
-    def to_dict(self) -> dict[str, Any]:
-        """序列化为 dict（lint 路由 JSON 输出用）。"""
-        return asdict(self)
 
 
 def compute_health_score(report: HealthReport) -> float:

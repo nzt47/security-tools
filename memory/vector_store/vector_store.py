@@ -166,6 +166,11 @@ def _get_shared_encoder(model_name: str) -> Optional[Any]:
     Why: VectorStore 每次构造都会执行 _init_sqlite_vec/_init_chroma，若每次都
     SentenceTransformer(model_name) 加载模型（~20s），同进程内多次构造会重复
     加载拖慢测试。共享单例后首次加载、后续直接复用。
+
+    防污染：测试环境可能把 sentence_transformers 模块 patch 为 MagicMock
+    （Mock 可调用不抛异常），直接 `SentenceTransformer(model)` 会得到 Mock
+    并缓存进单例，后续所有 VectorStore 复用坏编码器（add 全部失败）。
+    此处检测到 Mock 模块/类时返回 None 且**不缓存**，让调用方降级 JSON。
     """
     if model_name in _shared_encoder_cache:
         return _shared_encoder_cache[model_name]
@@ -173,7 +178,14 @@ def _get_shared_encoder(model_name: str) -> Optional[Any]:
         if model_name in _shared_encoder_cache:
             return _shared_encoder_cache[model_name]
         try:
+            import sentence_transformers as _st_mod
+            # duck-typing 检测 MagicMock：模块被 mock 时不应初始化编码器
+            if hasattr(_st_mod, "mock_calls"):
+                return None
             from sentence_transformers import SentenceTransformer
+            # 类级 Mock 检测：模块真实但类被 patch 为 Mock 时同样不缓存
+            if hasattr(SentenceTransformer, "mock_calls"):
+                return None
             encoder = SentenceTransformer(model_name)
             _shared_encoder_cache[model_name] = encoder
             return encoder

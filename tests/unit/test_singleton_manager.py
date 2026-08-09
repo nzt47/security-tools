@@ -16,6 +16,7 @@ from agent.utils.singleton_manager import (
     reset_all_singletons,
     is_registered,
     is_initialized,
+    _manager,
 )
 
 
@@ -215,10 +216,13 @@ class TestSingletonModuleIntegration:
         import agent.monitoring.optimized_metrics  # noqa: F401
         import agent.monitoring.tracing_cache  # noqa: F401
 
-        assert is_registered("auto_tuner")
-        assert is_registered("error_reporter")
-        assert is_registered("optimized_metrics_collector")
-        assert is_registered("trace_cache")
+        # 埋点：失败时输出当前注册表全量键，定位是「模块注册名不符」
+        # 还是「前序测试 reset_all 清空了注册表」（完整套件下的偶发失败）
+        for name in ("auto_tuner", "error_reporter",
+                     "optimized_metrics_collector", "trace_cache"):
+            assert is_registered(name), (
+                f"单例未注册: {name}；当前注册表: {sorted(_manager._factories.keys())}"
+            )
 
     def test_getters_return_same_instance(self):
         """迁移后的 getter 仍返回同一实例"""

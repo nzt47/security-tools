@@ -28,7 +28,7 @@ class QualityGateChecker:
     """质量门禁检查器"""
 
     def __init__(self, results_dir: str, min_unit_test_pass_rate: float = 95.0,
-                 min_coverage: float = 40.0, require_e2e_pass: bool = True,
+                 min_coverage: float = 60.0, require_e2e_pass: bool = True,
                  output_file: str = None):
         self.results_dir = Path(results_dir)
         self.min_unit_test_pass_rate = min_unit_test_pass_rate
@@ -148,78 +148,38 @@ class QualityGateChecker:
         })
         return True
 
-    def _parse_coverage_xml(self) -> Optional[float]:
-        """从 full-coverage-report/coverage.xml 解析全项目覆盖率（百分比）。
-
-        【不易】全项目覆盖率是门禁的唯一可信口径：
-          - coverage-combine job 合并 6 个 shard 的 .coverage 数据生成 coverage.xml，
-            覆盖 agent + scripts 全量代码（visibility-report 同契约）。
-          - 历史 bug：check_coverage 曾匹配到 observability-unit-test-results 上传的
-            局部覆盖率（仅 7 个可观测性测试文件，~22.8%），导致门禁两次误失败
-            （3703bd7d / 34f42cb6）。此处必须优先使用 full-coverage-report 的 coverage.xml。
-        【变易】若 full-coverage-report 缺失，回退到任意 coverage.xml；仍失败返回 None，
-                由 check_coverage 回退 JSON 提取逻辑。
-        """
-        if not self.results_dir.exists():
-            return None
-
-        candidates = list(self.results_dir.rglob("coverage.xml"))
-        if not candidates:
-            return None
-
-        # 优先 full-coverage-report artifact 下的 coverage.xml
-        preferred = [p for p in candidates if "full-coverage-report" in str(p)]
-        for xml_path in (preferred or candidates):
-            try:
-                import xml.etree.ElementTree as ET
-                root = ET.parse(xml_path).getroot()
-                rate = root.attrib.get("line-rate")
-                if rate is not None:
-                    # coverage.py 的 line-rate 是 0~1 小数，转换为百分比
-                    percent = float(rate) * 100.0
-                    print(f"✅ 读取全项目覆盖率: {xml_path} → {percent:.2f}%")
-                    return percent
-            except Exception as e:
-                print(f"⚠️  解析 coverage.xml 失败 {xml_path}: {e}")
-        return None
-
     def check_coverage(self, reports: Dict) -> bool:
         """检查测试覆盖率"""
         check_name = "test_coverage"
 
-        # 优先：读取全项目覆盖率 coverage.xml（覆盖 6 shard 合并结果）
-        coverage_percent = self._parse_coverage_xml()
-        source = "coverage.xml"
+        # 查找覆盖率报告
+        coverage_data = None
+        for path, data in reports.items():
+            if "coverage" in path.lower():
+                coverage_data = data
+                break
 
-        # 回退：从 JSON 覆盖率报告提取（兼容无 coverage.xml 的历史场景）
-        if coverage_percent is None:
-            coverage_data = None
-            for path, data in reports.items():
-                if "coverage" in path.lower():
-                    coverage_data = data
+        if not coverage_data:
+            self._record_check(check_name, "skipped",
+                             error="未找到覆盖率报告")
+            return True  # 跳过不算失败
+
+        # 尝试从覆盖率报告中提取覆盖率百分比
+        coverage_percent = None
+
+        # 不同格式的覆盖率报告可能有不同的结构
+        if "totals" in coverage_data:
+            coverage_percent = coverage_data["totals"].get("percent_covered", 0)
+        elif "coverage" in coverage_data:
+            coverage_percent = coverage_data["coverage"]
+        elif isinstance(coverage_data, dict):
+            # 尝试从常见格式中提取
+            for key in ["percent_covered", "coverage_percent", "total_coverage"]:
+                if key in coverage_data:
+                    coverage_percent = coverage_data[key]
                     break
 
-            if not coverage_data:
-                self._record_check(check_name, "skipped",
-                                 error="未找到覆盖率报告（无 coverage.xml 且无 JSON 覆盖率报告）")
-                return True  # 跳过不算失败
-
-            # 尝试从覆盖率报告中提取覆盖率百分比
-            # 不同格式的覆盖率报告可能有不同的结构
-            if "totals" in coverage_data:
-                coverage_percent = coverage_data["totals"].get("percent_covered", 0)
-            elif "coverage" in coverage_data:
-                coverage_percent = coverage_data["coverage"]
-            elif isinstance(coverage_data, dict):
-                # 尝试从常见格式中提取
-                for key in ["percent_covered", "coverage_percent", "total_coverage"]:
-                    if key in coverage_data:
-                        coverage_percent = coverage_data[key]
-                        break
-            source = "JSON 报告"
-
         details = {
-            "coverage_source": source,
             "coverage_report_found": True,
             "coverage_percent": coverage_percent,
             "threshold": self.min_coverage,
@@ -416,8 +376,8 @@ def main():
                        help="验证结果目录")
     parser.add_argument("--min-unit-test-pass-rate", type=float, default=95.0,
                        help="单元测试最小通过率阈值 (默认: 95%%)")
-    parser.add_argument("--min-coverage", type=float, default=40.0,
-                       help="测试覆盖率最小阈值 (默认: 40%%)")
+    parser.add_argument("--min-coverage", type=float, default=60.0,
+                       help="测试覆盖率最小阈值 (默认: 60%%)")
     parser.add_argument("--require-e2e-pass", type=lambda x: x.lower() == 'true',
                        default=True,
                        help="是否要求 E2E 测试必须通过 (默认: true)")

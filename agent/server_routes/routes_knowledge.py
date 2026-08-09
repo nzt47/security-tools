@@ -212,10 +212,7 @@ def register_routes(app, state):
         store, err = _store_required()
         if err:
             return err
-        try:
-            card = store.get(slug)
-        except ValueError as e:
-            return jsonify({"ok": False, "error": str(e)}), 400
+        card = store.get(slug)
         if card is None:
             return jsonify({"ok": False, "error": f"卡片不存在: {slug}"}), 404
         data = _card_to_dict(card)
@@ -323,12 +320,9 @@ def register_routes(app, state):
         store, err = _store_required()
         if err:
             return err
-        try:
-            if store.get(slug) is None:
-                return jsonify({"ok": False, "error": f"卡片不存在: {slug}"}), 404
-            deleted = store.delete(slug)
-        except ValueError as e:
-            return jsonify({"ok": False, "error": str(e)}), 400
+        if store.get(slug) is None:
+            return jsonify({"ok": False, "error": f"卡片不存在: {slug}"}), 404
+        deleted = store.delete(slug)
         if not deleted:
             incoming = _incoming_links(store, slug)
             return jsonify({
@@ -373,7 +367,7 @@ def register_routes(app, state):
     @require_token
     @log_request(show_response=False)
     def api_knowledge_graph():
-        """节点-边数据：{nodes: [{id, label, type, status}], edges: [{source, target}]}。"""
+        """节点-边数据（关系图入口）。"""
         store, err = _store_required()
         if err:
             return err
@@ -382,11 +376,12 @@ def register_routes(app, state):
             {"id": c.slug, "label": c.title, "type": c.type, "status": c.status}
             for c in cards
         ]
-        node_ids = {c.slug for c in cards}
-        # 只保留指向 wiki 卡片的纯 slug 边（archives/ 目标非节点，跳过）
+        # 只保留指向 wiki 节点的纯 slug 边（过滤 archives/ 目标）
+        wiki_slugs = {c.slug for c in cards}
         edges = [
             {"source": c.slug, "target": link}
-            for c in cards for link in c.links
-            if link in node_ids
+            for c in cards
+            for link in c.links
+            if link in wiki_slugs
         ]
         return jsonify({"ok": True, "nodes": nodes, "edges": edges})
