@@ -382,7 +382,7 @@ def _save_conversation_record(user_input, response, mode="normal", health_data=N
         "=" * 45 + "\n" +
         f"  会话记录 #{seq}\n" +
         "=" * 45 + "\n\n" +
-        f"🕒 时间：{now.strftime('%Y年%m月%d日 %H:%M')}\n" +
+        f"🕒 时间：{now.year}年{now.month}月{now.day}日 {now.strftime('%H:%M')}\n" +
         f"📋 模式：{mode}\n\n" +
         "---\n\n" +
         "💬 【对话内容】\n\n" +
@@ -1642,7 +1642,7 @@ def api_system_prompt_get():
     # 生成预览：尝试代入示例值
     try:
         preview = template.format(
-            current_date=datetime.datetime.now().strftime("%Y年%m月%d日"),
+            current_date=f"{datetime.datetime.now().year}年{datetime.datetime.now().month}月{datetime.datetime.now().day}日",
             body_status="🟢 CPU: 32°C | 内存: 45% | 磁盘: 128G/512G | 电池: 充电中",
             mode_name="对话",
             mode_description="日常交流模式",

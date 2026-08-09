@@ -59,7 +59,7 @@ def _save_conversation_record(user_input, response, Yunshu, mode="normal", healt
         "=" * 45 + "\n"
         f"  会话记录 #{seq}\n"
         "=" * 45 + "\n\n"
-        f"🕒 时间：{now.strftime('%Y年%m月%d日 %H:%M')}\n"
+        f"🕒 时间：{now.year}年{now.month}月{now.day}日 {now.strftime('%H:%M')}\n"
         f"📋 模式：{mode}\n\n"
         "---\n\n"
         "💬 【对话内容】\n\n"
