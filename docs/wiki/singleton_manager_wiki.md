@@ -49,7 +49,7 @@
 
 | 模块 | 暂缓理由 |
 |------|---------|
-| `rate_limiter` | 命名注册表语义（`_global_limiters` 按名缓存多实例）与单实例语义不匹配 |
+| `rate_limiter` | 命名注册表语义（`_global_limiters` 按名缓存多实例）与单实例语义不匹配；备选方案见 [rate_limiter 暂缓方案](rate_limiter_migration_wiki.md) |
 | `tool_router_hybrid` | 已双检锁 + reset 规范化，仅缺 register，收益有限 |
 
 ## 经验要点

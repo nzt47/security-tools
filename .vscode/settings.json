@@ -1,14 +1,27 @@
 {
-    "editor.gotoLocation.alternativeDeclarationCommand": "editor.action.revealDefinition",
-    "editor.gotoLocation.alternativeDefinitionCommand": "editor.action.revealDefinition",
-    "editor.gotoLocation.alternativeTypeDefinitionCommand": "editor.action.revealDefinition",
-    "editor.selectionHighlight": false,
-    "files.autoSave": "onFocusChange",
-    "editor.suggest.snippetsPreventQuickSuggestions": false,
-    "editor.quickSuggestions": {
-        "other": "on",
-        "comments": "off",
-        "strings": "on"
-    },
-    "python.defaultInterpreterPath": "c:\\Python314\\python.exe"
+  "editor.gotoLocation.alternativeDeclarationCommand": "editor.action.revealDefinition",
+  "editor.gotoLocation.alternativeDefinitionCommand": "editor.action.revealDefinition",
+  "editor.gotoLocation.alternativeTypeDefinitionCommand": "editor.action.revealDefinition",
+  "editor.selectionHighlight": false,
+  "files.autoSave": "onFocusChange",
+  "editor.suggest.snippetsPreventQuickSuggestions": false,
+  "editor.quickSuggestions": {
+    "other": "on",
+    "comments": "off",
+    "strings": "on"
+  },
+  "python.defaultInterpreterPath": "c:\\Python314\\python.exe",
+  "files.watcherExclude": {
+    "**/.fix_backups/**": true,
+    "**/.git/**": true,
+    "**/node_modules/**": true,
+    "**/.venv/**": true,
+    "**/__pycache__/**": true
+  },
+  "files.exclude": {
+    "**/.fix_backups/**": true
+  },
+  "search.exclude": {
+    "**/.fix_backups/**": true
+  }
 }

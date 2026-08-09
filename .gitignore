@@ -237,3 +237,6 @@ backup/untracked_backup_*/
 !backup/logs/
 # 并行会话临时备份中的 release-merge 快照包（含浏览器登录凭据/VPN Tokens，禁止提交）
 backup/parallel_session_tmp_20260806/dot-tmp-release-merge.tar.gz
+
+# 修复备份目录（防止 IDE 文件监视器自动还原）
+.fix_backups/

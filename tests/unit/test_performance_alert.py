@@ -24,6 +24,11 @@ from agent.performance_monitor import (
     create_default_alert_callback,
 )
 
+# 根因修复：_alert_manager 定义在 agent.monitoring.performance 模块，
+# 而非 agent.performance_monitor（后者只是从前者导入 get_alert_manager 函数）。
+# 因此必须重置 _perf_module._alert_manager，而不是 pm._alert_manager。
+import agent.monitoring.performance as _perf_module
+
 
 class TestAlertConfig:
     """告警配置类测试"""
