@@ -411,6 +411,28 @@ _cfg = Config()
 _Yunshu = DigitalLife(_cfg.merged)
 _Yunshu.start()
 
+# 知识库卡片存储接线（任务6）：知识库 API 路由的 CardStore 事实源。
+# 默认布局 knowledge/wiki（AGENTS.md 契约）；wiki 目录缺失时 CardStore 写入自动建目录。
+try:
+    from agent.knowledge.card import CardStore
+    _Yunshu._card_store = CardStore("knowledge/wiki")
+    print("[启动] 知识库 CardStore 已接线: knowledge/wiki")
+except Exception as _kb_e:
+    print(f"[启动] 知识库 CardStore 接线失败: {_kb_e}")
+    _Yunshu._card_store = None
+
+# 知识库 API 路由注册（任务6）：/api/knowledge/*（CRUD + index + lint + graph + query）
+try:
+    from types import SimpleNamespace
+    from agent.server_routes.routes_knowledge import register_routes as reg_knowledge
+    _kb_state = SimpleNamespace(Yunshu=_Yunshu)
+    reg_knowledge(app, _kb_state)
+    print("[启动] 知识库 API 路由已注册: /api/knowledge/*")
+except Exception as _kb_r:
+    print(f"[启动] 知识库 API 路由注册失败: {_kb_r}")
+    import traceback
+    traceback.print_exc()
+
 # 从网络配置文件加载 LLM 配置（修复 Web 界面配置 LLM 重启后不生效的问题）
 print("[启动] 开始加载网络配置...")
 try:

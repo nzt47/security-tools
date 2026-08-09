@@ -31,6 +31,16 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# SingletonManager 统一收口（保留 fallback 变量 _alert_manager 向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton, is_initialized,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = is_initialized = None
+
 
 # 导入子模块
 from agent.monitoring.alert_evaluator import (
@@ -182,9 +192,6 @@ class AlertManager:
 
         # 设置自愈回调
         self._healer.set_on_heal_executed(self._on_heal_executed)
-
-        # 设置告警回调
-        self._evaluator.set_on_alert_state_change(self._on_evaluator_state_change)
 
     def _register_rules(self):
         """注册告警规则"""
@@ -538,7 +545,25 @@ class AlertManager:
 
 
 # 全局单例
-_alert_manager: Optional[AlertManager] = None
+_alert_manager: Optional[AlertManager] = None  # 保留作为 fallback
+
+
+def _create_alert_manager(config=None):
+    """AlertManager 工厂（供 SingletonManager 使用）
+
+    config 可能以两种形态传入，需区分：
+    - SingletonManager dict 通道：{"config_path": <str>}，需解包
+    - 直接传入的 config_path（str 或 None）：原样传给 AlertManager
+    """
+    if isinstance(config, dict) and "config_path" in config:
+        config = config["config_path"]
+    return AlertManager(config)
+
+
+def _cleanup_alert_manager(manager):
+    """清理钩子：停止告警管理系统（仅测试重置时调用）"""
+    if manager is not None:
+        manager.stop()
 
 
 def get_alert_manager(config_path: Optional[str] = None) -> AlertManager:
@@ -550,10 +575,22 @@ def get_alert_manager(config_path: Optional[str] = None) -> AlertManager:
     Returns:
         AlertManager 实例
     """
+    if _SINGLETON_AVAILABLE:
+        if config_path is not None and not is_initialized("alert_manager"):
+            return get_singleton("alert_manager", {"config_path": config_path})
+        return get_singleton("alert_manager")
     global _alert_manager
     if _alert_manager is None:
-        _alert_manager = AlertManager(config_path)
+        _alert_manager = _create_alert_manager(config_path)
     return _alert_manager
+
+
+def reset_alert_manager():
+    """重置全局告警管理器单例（仅用于测试）"""
+    global _alert_manager
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("alert_manager")
+    _alert_manager = None
 
 
 def start_alert_manager(config_path: Optional[str] = None) -> AlertManager:
@@ -568,3 +605,9 @@ def start_alert_manager(config_path: Optional[str] = None) -> AlertManager:
     manager = get_alert_manager(config_path)
     manager.start()
     return manager
+
+
+# 注册单例工厂（置于文件末尾，确保类已定义）
+if _SINGLETON_AVAILABLE:
+    register_singleton("alert_manager", _create_alert_manager,
+                       cleanup_fn=_cleanup_alert_manager)

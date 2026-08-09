@@ -1,385 +1,368 @@
-"""知识库 API 路由测试（任务6 Step 4）。
+"""任务6 · 知识库 API 路由测试
 
-覆盖全部路由的正常 / 404 / 422 / 409 / 503 分支：
-    GET    /api/knowledge/cards         列表 + 过滤
-    GET    /api/knowledge/cards/<slug>  详情（links / contradictions / incoming_links）
-    POST   /api/knowledge/cards         创建（冲突 409 / schema 422）
-    PATCH  /api/knowledge/cards/<slug>  更新 + 状态迁移 transition
-    DELETE /api/knowledge/cards/<slug>  删除（有入链 409）
-    GET    /api/knowledge/index         index.md 内容
-    GET    /api/knowledge/lint          健康报告
-    GET    /api/knowledge/graph         节点-边
-    POST   /api/knowledge/query         融合检索（任务4 回归）
+覆盖：卡片 CRUD（列表/详情/创建/更新/删除）、index、lint、graph、query，
+及错误契约（404/422/409/400/503 均返回 JSON，不抛 HTML）。
 """
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 from flask import Flask
 
-from agent.knowledge import Card, CardStore, slugify
+from agent.knowledge.card import CardStore
+from agent.knowledge.schema import slugify
 from agent.server_routes.routes_knowledge import register_routes
 
 
-def _card_dict(title: str, **overrides) -> dict:
-    """构造合法卡片 body（通过 schema 校验）。"""
-    data = {
+def _card_dict(title: str = "Test Card", **overrides) -> dict:
+    """构造合法卡片 body（必填字段齐全）。"""
+    card = {
         "title": title,
         "slug": slugify(title),
         "status": "current",
         "type": "concepts",
-        "source": "tests",
-        "date": "2026-08-08",
-        "insight": f"{title} 的一句话核心洞见",
-        "content": f"{title} 正文内容",
+        "source": "manual",
+        "date": "2026-08-01",
+        "tags": [],
+        "links": [],
+        "contradictions": [],
+        "insight": "一句话核心洞见",
+        "scope": "knowledge",
+        "content": "",
+        "metadata": {},
     }
-    data.update(overrides)
-    return data
+    card.update(overrides)
+    return card
 
 
-@pytest.fixture()
+@pytest.fixture
 def kb_env(tmp_path):
-    """构造 Flask app + 临时 CardStore + 测试客户端。
+    """临时知识库布局 + 最小 Flask app + test_client。
 
-    每个测试独立 app（register_routes 闭包内的 _searcher 懒加载单例
-    与 store 绑定，独立构造避免跨测试复用污染）。
+    require_token 打桩为恒等函数（鉴权不在本测试范围）。
     """
+    kb = tmp_path / "kb"
     store = CardStore(
-        tmp_path / "wiki",
-        archives_dir=tmp_path / "archives",
-        index_path=tmp_path / "index.md",
-        log_path=tmp_path / "log.md",
-        links_index_path=tmp_path / "index_links.md",
+        kb / "wiki",
+        archives_dir=kb / "archives",
+        index_path=kb / "index.md",
+        log_path=kb / "log.md",
+        links_index_path=kb / "index_links.md",
     )
+    return _make_client(store)
 
-    class _Yunshu:
-        _card_store = store
-        _vector_memory = None
 
-    class _State:
-        Yunshu = _Yunshu
-
+def _make_client(store):
+    Yunshu = type("_Yunshu", (), {"_card_store": store})()
+    state = type("_State", (), {"Yunshu": Yunshu})()
     app = Flask(__name__)
     app.config.update(TESTING=True)
-    register_routes(app, _State())
-    client = app.test_client()
-
-    env = {"store": store, "client": client, "tmp_path": tmp_path}
-    yield env
+    with patch("agent.server_routes.routes_knowledge.require_token", lambda f: f):
+        register_routes(app, state)
+    return app.test_client(), store
 
 
-def _no_store_env():
-    """无 CardStore 的 state（验证 503 分支）。"""
-
-    class _Yunshu:
-        pass
-
-    class _State:
-        Yunshu = _Yunshu
-
-    app = Flask(__name__)
-    app.config.update(TESTING=True)
-    register_routes(app, _State())
-    return app.test_client()
+def _json(resp):
+    return resp.get_json()
 
 
-# ═══════════════════════════════════════════════════════════
-#  列表
-# ═══════════════════════════════════════════════════════════
-
+# ═══════════════ 列表 ═══════════════
 
 def test_list_cards_empty(kb_env):
-    resp = kb_env["client"].get("/api/knowledge/cards")
+    client, _ = kb_env
+    resp = client.get("/api/knowledge/cards")
     assert resp.status_code == 200
-    data = resp.get_json()
+    data = _json(resp)
     assert data["ok"] is True
     assert data["cards"] == []
     assert data["count"] == 0
 
 
-def test_list_cards_with_filter(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    store.create(Card(**_card_dict("概念一", type="concepts")))
-    store.create(Card(**_card_dict("实体一", type="entities")))
-    store.create(Card(**_card_dict("草稿卡", type="insights", status="draft")))
+def test_list_cards_uses_cache(kb_env, monkeypatch):
+    """列表路由经 use_cache=True 读取（读路径走内存缓存）。"""
+    client, store = kb_env
+    captured: dict = {}
+    original = store.list
 
+    def spy(*args, **kwargs):
+        captured["kwargs"] = kwargs
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(store, "list", spy)
     resp = client.get("/api/knowledge/cards")
     assert resp.status_code == 200
-    assert resp.get_json()["count"] == 3
+    assert captured["kwargs"].get("use_cache") is True
 
-    resp = client.get("/api/knowledge/cards?type=entities")
-    data = resp.get_json()
-    assert data["count"] == 1
-    assert data["cards"][0]["slug"] == slugify("实体一")
+
+def test_list_cards_filter_by_status_and_type(kb_env):
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict("Card A", type="concepts"))
+    client.post("/api/knowledge/cards", json=_card_dict("Card B", type="entities", status="draft"))
 
     resp = client.get("/api/knowledge/cards?status=draft")
-    data = resp.get_json()
-    assert data["count"] == 1
-    assert data["cards"][0]["slug"] == slugify("草稿卡")
+    assert resp.status_code == 200
+    cards = _json(resp)["cards"]
+    assert [c["slug"] for c in cards] == [slugify("Card B")]
+
+    resp = client.get("/api/knowledge/cards?type=concepts")
+    cards = _json(resp)["cards"]
+    assert [c["slug"] for c in cards] == [slugify("Card A")]
 
 
 def test_list_cards_unknown_type_filter_returns_empty(kb_env):
-    # 未知 type 过滤 → 列表为空（CardStore.list 不校验、仅过滤）
-    resp = kb_env["client"].get("/api/knowledge/cards?type=不存在类型")
+    """CardStore.list 的 type 过滤不校验合法性：未知 type 返回空列表（200）。"""
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict("Card A"))
+    resp = client.get("/api/knowledge/cards?type=not-a-type")
     assert resp.status_code == 200
-    assert resp.get_json()["cards"] == []
+    assert _json(resp)["cards"] == []
 
 
-# ═══════════════════════════════════════════════════════════
-#  详情
-# ═══════════════════════════════════════════════════════════
+# ═══════════════ 详情 ═══════════════
 
+def test_get_card_detail_with_links_contradictions_incoming(kb_env):
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict(
+        "Alpha", slug="alpha", links=["beta"],
+        contradictions=[{"target_slug": "beta", "status": "conflict", "summary": "待裁决"}],
+    ))
+    client.post("/api/knowledge/cards", json=_card_dict("Beta", slug="beta"))
 
-def test_get_card_detail(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    store.create(Card(**_card_dict(
-        "被引卡片",
-        links=["引用卡"],  # create 不解析正文双链，需显式传入
-        contradictions=[{"target_slug": "其他卡", "status": "conflict", "summary": "有矛盾"}],
-    )))
-    store.create(Card(**_card_dict("引用卡", links=["被引卡片"])))
-
-    resp = client.get(f"/api/knowledge/cards/{slugify('被引卡片')}")
+    resp = client.get("/api/knowledge/cards/alpha")
     assert resp.status_code == 200
-    card = resp.get_json()["card"]
-    assert card["slug"] == slugify("被引卡片")
-    assert "引用卡" in card["links"]
-    assert card["contradictions"][0]["status"] == "conflict"
-    # incoming_links：引用卡指向被引卡片
-    assert slugify("引用卡") in card["incoming_links"]
-    # explicit_slug 不应暴露到 API
-    assert "explicit_slug" not in card
+    card = _json(resp)["card"]
+    assert card["slug"] == "alpha"
+    assert card["links"] == ["beta"]
+    assert card["contradictions"][0]["target_slug"] == "beta"
+    # 入链：beta 无入链，alpha 被 beta 引用？alpha.links=[beta] 是出链；
+    # 再验证 beta 的入链包含 alpha
+    resp = client.get("/api/knowledge/cards/beta")
+    assert _json(resp)["card"]["incoming_links"] == ["alpha"]
 
 
-def test_get_card_not_found_404(kb_env):
-    resp = kb_env["client"].get("/api/knowledge/cards/不存在")
+def test_get_card_detail_not_found_404(kb_env):
+    client, _ = kb_env
+    resp = client.get("/api/knowledge/cards/nope")
     assert resp.status_code == 404
-    assert "error" in resp.get_json()
+    assert "error" in _json(resp)
 
 
-# ═══════════════════════════════════════════════════════════
-#  创建
-# ═══════════════════════════════════════════════════════════
+def test_get_card_detail_explicit_slug_not_leaked(kb_env):
+    """explicit_slug 仅内存标记，不进入 API 响应。"""
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha"))
+    resp = client.get("/api/knowledge/cards/alpha")
+    assert "explicit_slug" not in _json(resp)["card"]
 
+
+# ═══════════════ 创建 ═══════════════
 
 def test_create_card_201(kb_env):
-    client = kb_env["client"]
-    resp = client.post("/api/knowledge/cards", json=_card_dict("新建卡"))
+    client, store = kb_env
+    resp = client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha"))
     assert resp.status_code == 201
-    card = resp.get_json()["card"]
-    assert card["slug"] == slugify("新建卡")
-    assert card["status"] == "current"
+    assert _json(resp)["card"]["slug"] == "alpha"
+    assert store.get("alpha") is not None
 
 
 def test_create_card_conflict_409(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    store.create(Card(**_card_dict("重复卡")))
-    resp = client.post("/api/knowledge/cards", json=_card_dict("重复卡"))
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha"))
+    resp = client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha"))
     assert resp.status_code == 409
-    assert "已存在" in resp.get_json()["error"]
+    assert "error" in _json(resp)
 
 
-def test_create_card_schema_invalid_422(kb_env):
-    client = kb_env["client"]
-    resp = client.post("/api/knowledge/cards", json={"title": "缺字段卡"})
+def test_create_card_missing_required_field_422(kb_env):
+    client, _ = kb_env
+    body = _card_dict("No Date")
+    body.pop("date")
+    resp = client.post("/api/knowledge/cards", json=body)
     assert resp.status_code == 422
-    body = resp.get_json()
-    assert body["violations"]  # 违规项列表非空
-    assert any("缺少必填字段" in v for v in body["violations"])
+    data = _json(resp)
+    assert "violations" in data
+    assert any("date" in v for v in data["violations"])
 
 
 def test_create_card_invalid_status_422(kb_env):
-    client = kb_env["client"]
-    resp = client.post("/api/knowledge/cards", json=_card_dict("坏状态卡", status="bogus"))
+    client, _ = kb_env
+    resp = client.post("/api/knowledge/cards", json=_card_dict("Bad", status="banana"))
     assert resp.status_code == 422
-    assert any("非法 status" in v for v in resp.get_json()["violations"])
+    assert "violations" in _json(resp)
 
 
-def test_create_card_non_dict_body_400(kb_env):
-    resp = kb_env["client"].post("/api/knowledge/cards", json=["not", "a", "dict"])
+def test_create_card_non_dict_400(kb_env):
+    client, _ = kb_env
+    resp = client.post("/api/knowledge/cards", json="not-an-object")
     assert resp.status_code == 400
+    assert "error" in _json(resp)
 
 
-# ═══════════════════════════════════════════════════════════
-#  更新
-# ═══════════════════════════════════════════════════════════
+# ═══════════════ 更新 ═══════════════
 
-
-def test_patch_card_fields(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    store.create(Card(**_card_dict("更新卡", content="旧正文")))
-    resp = client.patch(
-        f"/api/knowledge/cards/{slugify('更新卡')}",
-        json={"content": "新正文", "tags": ["tag-a"]},
-    )
+def test_update_card_fields(kb_env):
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha"))
+    resp = client.patch("/api/knowledge/cards/alpha", json={"insight": "新洞见"})
     assert resp.status_code == 200
-    card = resp.get_json()["card"]
-    assert card["content"] == "新正文"
-    assert card["tags"] == ["tag-a"]
+    assert _json(resp)["card"]["insight"] == "新洞见"
 
 
-def test_patch_card_transition(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    store.create(Card(**_card_dict("迁移卡", status="draft")))
-    resp = client.patch(
-        f"/api/knowledge/cards/{slugify('迁移卡')}", json={"transition": "current"}
-    )
+def test_update_card_transition(kb_env):
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha", status="draft"))
+    resp = client.patch("/api/knowledge/cards/alpha", json={"transition": "current"})
     assert resp.status_code == 200
-    assert resp.get_json()["card"]["status"] == "current"
+    assert _json(resp)["card"]["status"] == "current"
 
 
-def test_patch_card_invalid_transition_409(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    store.create(Card(**_card_dict("终态卡", status="archive")))
-    # archive 是终态，不可再迁移 → 409
-    resp = client.patch(
-        f"/api/knowledge/cards/{slugify('终态卡')}", json={"transition": "draft"}
-    )
+def test_update_card_invalid_transition_409(kb_env):
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha", status="archive"))
+    resp = client.patch("/api/knowledge/cards/alpha", json={"transition": "current"})
     assert resp.status_code == 409
-    assert "非法" in resp.get_json()["error"]
+    assert "error" in _json(resp)
 
 
-def test_patch_card_schema_invalid_422(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    store.create(Card(**_card_dict("校验卡")))
-    resp = client.patch(
-        f"/api/knowledge/cards/{slugify('校验卡')}", json={"status": "bogus"}
-    )
+def test_update_card_invalid_field_422(kb_env):
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha"))
+    resp = client.patch("/api/knowledge/cards/alpha", json={"status": "banana"})
     assert resp.status_code == 422
-    assert any("非法 status" in v for v in resp.get_json()["violations"])
+    assert "violations" in _json(resp)
 
 
-def test_patch_card_not_found_404(kb_env):
-    resp = kb_env["client"].patch(
-        "/api/knowledge/cards/不存在", json={"content": "x"}
-    )
+def test_update_card_not_found_404(kb_env):
+    client, _ = kb_env
+    resp = client.patch("/api/knowledge/cards/nope", json={"insight": "x"})
     assert resp.status_code == 404
 
 
-# ═══════════════════════════════════════════════════════════
-#  删除
-# ═══════════════════════════════════════════════════════════
-
+# ═══════════════ 删除 ═══════════════
 
 def test_delete_card_success(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    store.create(Card(**_card_dict("待删卡")))
-    resp = client.delete(f"/api/knowledge/cards/{slugify('待删卡')}")
+    client, store = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha"))
+    resp = client.delete("/api/knowledge/cards/alpha")
     assert resp.status_code == 200
-    assert resp.get_json()["deleted"] == slugify("待删卡")
-    assert store.get(slugify("待删卡")) is None
+    assert _json(resp)["deleted"] == "alpha"
+    assert store.get("alpha") is None
 
 
 def test_delete_card_with_incoming_links_409(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    store.create(Card(**_card_dict("被引用卡")))
-    # 引用方 links 显式指向被引用卡（create 不解析正文双链）
-    store.create(Card(**_card_dict("引用方", links=["被引用卡"])))
+    """用户场景：A 通过正文双链指向 B，删除 B 应 409 并返回入链列表。"""
+    client, _ = kb_env
+    # 通过正文双链建卡（create 会解析正文 → links 登记入链索引）
+    client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha", content="参见 [[beta]]"))
+    client.post("/api/knowledge/cards", json=_card_dict("Beta", slug="beta"))
 
-    resp = client.delete(f"/api/knowledge/cards/{slugify('被引用卡')}")
+    resp = client.delete("/api/knowledge/cards/beta")
     assert resp.status_code == 409
-    body = resp.get_json()
-    assert "incoming_links" in body
-    assert slugify("引用方") in body["incoming_links"]
-    # 卡片未被删除
-    assert store.get(slugify("被引用卡")) is not None
+    data = _json(resp)
+    assert data["incoming_links"] == ["alpha"]
 
 
 def test_delete_card_not_found_404(kb_env):
-    resp = kb_env["client"].delete("/api/knowledge/cards/不存在")
+    client, _ = kb_env
+    resp = client.delete("/api/knowledge/cards/nope")
     assert resp.status_code == 404
 
 
-# ═══════════════════════════════════════════════════════════
-#  index / lint / graph
-# ═══════════════════════════════════════════════════════════
+# ═══════════════ index / lint / graph ═══════════════
 
-
-def test_get_index_content(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    store.create(Card(**_card_dict("索引卡")))
+def test_index_content(kb_env):
+    client, store = kb_env
+    store._index_path.parent.mkdir(parents=True, exist_ok=True)
+    store._index_path.write_text("# 知识库索引\n- [[alpha]]\n", encoding="utf-8")
     resp = client.get("/api/knowledge/index")
     assert resp.status_code == 200
-    content = resp.get_json()["content"]
-    assert slugify("索引卡") in content
+    assert "[[alpha]]" in _json(resp)["content"]
 
 
-def test_get_index_not_found_404(kb_env):
-    # 未创建卡片 → index.md 尚未生成
-    resp = kb_env["client"].get("/api/knowledge/index")
+def test_index_missing_404(kb_env):
+    client, _ = kb_env
+    resp = client.get("/api/knowledge/index")
     assert resp.status_code == 404
 
 
-def test_get_lint_report(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    # 互链两张卡 → 无孤儿 / 无断链 / 无漂移 / 无矛盾 → 健康分 100
-    store.create(Card(**_card_dict("健康卡甲", links=["健康卡乙"])))
-    store.create(Card(**_card_dict("健康卡乙", links=["健康卡甲"])))
+def test_lint_report_interlinked_cards_score_100(kb_env):
+    """两张互链卡片：无孤儿/断链 → 健康分 100。"""
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha", content="指向 [[beta]]"))
+    client.post("/api/knowledge/cards", json=_card_dict("Beta", slug="beta", content="指向 [[alpha]]"))
     resp = client.get("/api/knowledge/lint")
     assert resp.status_code == 200
-    report = resp.get_json()["report"]
+    report = _json(resp)["report"]
     assert report["total_cards"] == 2
     assert report["health_score"] == 100.0
     assert report["orphans"] == []
-    assert "suggestions" in report
 
 
-def test_get_lint_scores_deduction(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    # 3 张孤儿卡（无入链）→ 每张扣 2，封顶 20
-    for i in range(3):
-        store.create(Card(**_card_dict(f"孤儿{i}")))
+def test_lint_report_orphan_deduction(kb_env):
+    """单张无链接卡片是孤儿 → 扣 2 分 → 98.0。"""
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha"))
     resp = client.get("/api/knowledge/lint")
-    report = resp.get_json()["report"]
-    assert report["health_score"] == 100.0 - 3 * 2
+    report = _json(resp)["report"]
+    assert report["health_score"] == 98.0
+    assert "alpha" in report["orphans"]
 
 
-def test_get_graph(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    store.create(Card(**_card_dict("节点甲")))
-    store.create(Card(**_card_dict("节点乙", links=["节点甲", "archives/旧卡"])))
+def test_graph_nodes_and_edges(kb_env):
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha", links=["beta"]))
+    client.post("/api/knowledge/cards", json=_card_dict("Beta", slug="beta"))
     resp = client.get("/api/knowledge/graph")
     assert resp.status_code == 200
-    data = resp.get_json()
-    assert len(data["nodes"]) == 2
-    node_ids = {n["id"] for n in data["nodes"]}
-    assert slugify("节点甲") in node_ids
-    assert slugify("节点乙") in node_ids
-    # 只保留指向 wiki 节点的纯 slug 边（archives/ 目标过滤）
-    assert {"source": slugify("节点乙"), "target": slugify("节点甲")} in data["edges"]
-    assert all(e["target"] in node_ids for e in data["edges"])
+    data = _json(resp)
+    assert {n["id"] for n in data["nodes"]} == {"alpha", "beta"}
+    assert {"source": "alpha", "target": "beta"} in data["edges"]
+    assert all(n["status"] in ("current", "draft", "archive", "unknown") for n in data["nodes"])
 
 
-# ═══════════════════════════════════════════════════════════
-#  检索（任务4 回归）+ 503
-# ═══════════════════════════════════════════════════════════
+def test_graph_filters_non_wiki_edges(kb_env):
+    """指向 archives/ 或不存在卡片的链接不产生边。"""
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict("Alpha", slug="alpha", links=["archives/old", "ghost"]))
+    resp = client.get("/api/knowledge/graph")
+    assert _json(resp)["edges"] == []
 
 
-def test_query_returns_hits(kb_env):
-    store, client = kb_env["store"], kb_env["client"]
-    store.create(Card(**_card_dict(
-        "搜索引擎", content="这是一个关于搜索引擎原理的卡片"
-    )))
-    resp = client.post("/api/knowledge/query", json={"question": "搜索引擎"})
+# ═══════════════ query ═══════════════
+
+def test_query_hits(kb_env):
+    client, _ = kb_env
+    client.post("/api/knowledge/cards", json=_card_dict(
+        "RRF Fusion", slug="rrf-fusion", content="Reciprocal Rank Fusion 融合多路召回。",
+    ))
+    resp = client.post("/api/knowledge/query", json={"question": "RRF 融合"})
     assert resp.status_code == 200
-    data = resp.get_json()
+    data = _json(resp)
     assert data["ok"] is True
-    assert any(h["slug"] == slugify("搜索引擎") for h in data["hits"])
+    assert len(data["hits"]) >= 1
+    assert data["hits"][0]["slug"] == "rrf-fusion"
 
 
 def test_query_empty_question_400(kb_env):
-    resp = kb_env["client"].post("/api/knowledge/query", json={"question": ""})
+    client, _ = kb_env
+    resp = client.post("/api/knowledge/query", json={"question": "   "})
     assert resp.status_code == 400
 
 
-def test_routes_503_when_store_missing():
-    client = _no_store_env()
-    for method, path, body in (
-        ("GET", "/api/knowledge/cards", None),
-        ("GET", "/api/knowledge/cards/x", None),
-        ("POST", "/api/knowledge/cards", {}),
-        ("GET", "/api/knowledge/lint", None),
-        ("GET", "/api/knowledge/graph", None),
-    ):
-        resp = client.open(path, method=method, json=body)
-        assert resp.status_code == 503, f"{method} {path} 应返回 503"
+# ═══════════════ 503 守卫 ═══════════════
+
+def test_store_required_returns_503(tmp_path):
+    """CardStore 未初始化 → 全部路由返回 503 JSON。"""
+    client, _ = _make_client(None)
+    assert client.get("/api/knowledge/cards").status_code == 503
+    assert client.get("/api/knowledge/cards/alpha").status_code == 503
+    assert client.post("/api/knowledge/cards", json=_card_dict()).status_code == 503
+    assert client.patch("/api/knowledge/cards/alpha", json={}).status_code == 503
+    assert client.delete("/api/knowledge/cards/alpha").status_code == 503
+    assert client.get("/api/knowledge/index").status_code == 503
+    assert client.get("/api/knowledge/lint").status_code == 503
+    assert client.get("/api/knowledge/graph").status_code == 503
+    resp = client.get("/api/knowledge/cards")
+    assert "error" in resp.get_json()

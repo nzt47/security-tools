@@ -14,7 +14,7 @@ import logging
 import json
 import time
 from typing import Any, Optional
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ _current_trace_id: ContextVar[Optional[str]] = ContextVar('trace_id', default=No
 _current_span_id: ContextVar[Optional[str]] = ContextVar('span_id', default=None)
 
 class TraceContext:
-    """追踪上下文管理器（栈式 trace_id 管理）
+    """追踪上下文管理器（栈式 trace_id 管理，并发安全）
 
     核心设计：trace_id 栈式保存与恢复
     ----------------------------------------------
@@ -46,9 +46,30 @@ class TraceContext:
     4. 异常安全：无论 `with` 块内是否抛异常，`__exit__` 都会执行恢复，
        ⇒ 不会因异常导致 trace_id 泄漏到后续逻辑。
 
+    并发安全机制（防 trace_id 污染/冲突）
+    ----------------------------------------------
+    1. Token 式恢复：`__enter__` 用 `ContextVar.set()` 返回 Token，
+       `__exit__` 用 `ContextVar.reset(Token)` 精确恢复到"本次 set 之前"的值。
+       相比"手动保存旧值 + 手动 set(旧值)"，Token 方式不受 with 块内
+       其他 set 操作的影响，语义确定，是 ContextVar 官方推荐的恢复方式。
+
+    2. 冲突检测：`__exit__` 时若发现当前 trace_id 已被外部修改
+       （不等于本上下文内设置的值，如并发协程/线程池污染），
+       记录结构化告警日志，便于定位污染源。
+
+    3. 防御性降级：`reset(Token)` 跨 context 时可能抛 ValueError
+       （用户错误地在不同协程/线程中配对 __enter__/__exit__），
+       `__exit__` 捕获异常并降级为手动恢复，保证 __exit__ 绝不抛异常
+       （否则会掩盖 with 块内的原始异常）。
+
+    4. 线程/协程隔离：ContextVar 天然按线程、按 asyncio Task 隔离，
+       互不干扰；线程池任务不会继承主线程 trace_id，如需传播
+       请使用 `run_with_context` 或显式传递。
+
     不变量（Invariant）：
         - `__exit__` 执行后，`get_trace_id()` 的返回值等于进入前的值。
         - 嵌套场景下，内层退出不影响外层继续使用同一 trace_id。
+        - `__exit__` 永不抛出异常（异常安全）。
 
     使用示例:
         with TraceContext("DigitalLife", "chat") as ctx:
@@ -83,6 +104,9 @@ class TraceContext:
         # 保存进入前的 trace_id / span_id，用于 __exit__ 恢复（栈式管理的核心）
         self._old_trace_id: Optional[str] = None
         self._old_span_id: Optional[str] = None
+        # set() 返回的 Token，用于 __exit__ 精确恢复（并发安全，替代手动 set 旧值）
+        self._token: Optional[Token] = None
+        self._span_token: Optional[Token] = None
     
     def __enter__(self):
         """进入追踪上下文"""
@@ -93,8 +117,10 @@ class TraceContext:
         self.trace_id = self._old_trace_id or self._generate_trace_id()
         # span_id 总是生成新值：每个 with 块代表一个独立 span，即便嵌套也是不同的 span
         self.span_id = self._generate_span_id()
-        _current_trace_id.set(self.trace_id)
-        _current_span_id.set(self.span_id)
+        # 并发安全：用 set() 返回的 Token 记录旧状态，__exit__ 用 reset(Token) 精确恢复
+        # （Token 恢复是 ContextVar 官方推荐方式，不受 with 块内其他 set 操作影响）
+        self._token = _current_trace_id.set(self.trace_id)
+        self._span_token = _current_span_id.set(self.span_id)
         self.start_time = time.time()
         
         # 打印开始日志
@@ -145,12 +171,42 @@ class TraceContext:
                 }
             )
 
-        # 栈式管理第二步：恢复进入前的 trace_id / span_id 状态
-        # - 嵌套退出后回到外层值，保证外层继续使用同一上下文
-        # - 最外层退出后回到 None（或外部 set_*_id 设置的值），避免上下文泄漏
-        # 这是保证不变量（__exit__ 后 get_*_id() == 进入前的值）的关键
-        _current_trace_id.set(self._old_trace_id)
-        _current_span_id.set(self._old_span_id)
+        # 栈式管理第二步：并发安全地恢复进入前的 trace_id / span_id 状态
+        # - 冲突检测：当前值不等于本上下文设置的值 → 有外部/并发污染，记录告警
+        # - Token 精确恢复：reset(Token) 恢复到"本次 set 之前"的值，不受其他 set 影响
+        # - 防御降级：reset 跨 context 时可能抛 ValueError，捕获后手动恢复，
+        #   保证 __exit__ 永不抛异常（否则会掩盖 with 块内的原始异常）
+        try:
+            current_tid = _current_trace_id.get()
+            if self._token is not None and current_tid != self.trace_id:
+                # 并发冲突检测：with 块内 trace_id 被外部修改（线程池复用/协程污染等）
+                logger.warning(json.dumps({
+                    "trace_id": self.trace_id,
+                    "module_name": "tracing",
+                    "action": "trace_context.conflict_detected",
+                    "duration_ms": duration_ms,
+                    "message": "退出上下文时 trace_id 已被外部修改，存在并发污染风险",
+                    "expected": self.trace_id,
+                    "actual": current_tid,
+                }, ensure_ascii=False))
+            if self._token is not None:
+                _current_trace_id.reset(self._token)
+            if self._span_token is not None:
+                _current_span_id.reset(self._span_token)
+        except Exception as exc:  # noqa: BLE001  防御降级：__exit__ 绝不抛异常
+            logger.warning(json.dumps({
+                "trace_id": self.trace_id,
+                "module_name": "tracing",
+                "action": "trace_context.restore_fallback",
+                "duration_ms": duration_ms,
+                "error": f"{type(exc).__name__}: {exc}",
+                "message": "Token reset 失败（可能跨 context），降级为手动恢复",
+            }, ensure_ascii=False))
+            try:
+                _current_trace_id.set(self._old_trace_id)
+                _current_span_id.set(self._old_span_id)
+            except Exception:  # noqa: BLE001
+                pass
 
         return False
     
@@ -592,13 +648,30 @@ def restore_context(context: dict) -> None:
 
 
 def run_with_context(context: dict, func, *args, **kwargs):
-    """在指定上下文中执行函数（执行后恢复原上下文）"""
-    old = extract_trace_context()
+    """在指定上下文中执行函数（执行后恢复原上下文）
+
+    并发安全：使用 ContextVar Token 记录 set 操作，finally 中逆序 reset
+    精确恢复，避免手动 set(旧值) 在并发场景下盲目覆盖中间值。
+
+    Args:
+        context: 含 trace_id / span_id 的上下文字典（缺失字段保持原值）
+        func: 要执行的函数
+        *args / **kwargs: 传递给 func 的参数
+    """
+    tokens = []
     try:
-        inject_trace_context(context)
+        if isinstance(context, dict) and "trace_id" in context:
+            tokens.append((_current_trace_id, _current_trace_id.set(context["trace_id"])))
+        if isinstance(context, dict) and "span_id" in context:
+            tokens.append((_current_span_id, _current_span_id.set(context["span_id"])))
         return func(*args, **kwargs)
     finally:
-        inject_trace_context(old)
+        # 逆序 reset：后 set 的先恢复（栈式语义），保证嵌套安全
+        for var, token in reversed(tokens):
+            try:
+                var.reset(token)
+            except Exception:  # noqa: BLE001  恢复失败（如跨 context）不影响主流程
+                logger.debug("run_with_context 恢复上下文失败", exc_info=True)
 
 
 def is_opentelemetry_available() -> bool:
@@ -760,17 +833,46 @@ def _get_trace_storage_singleton():
     return TraceStore()
 
 
-_trace_storage_singleton = None
+_trace_storage_singleton = None  # 保留作为 fallback
 _trace_storage_lock = __import__('threading').Lock()
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
+
+
+def _create_trace_storage(config=None):
+    """TraceStore 工厂函数（供 SingletonManager 使用）"""
+    return _get_trace_storage_singleton()
 
 
 def get_trace_storage():
     """获取全局 TraceStorage 单例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("trace_storage")
     global _trace_storage_singleton
     with _trace_storage_lock:
         if _trace_storage_singleton is None:
-            _trace_storage_singleton = _get_trace_storage_singleton()
+            _trace_storage_singleton = _create_trace_storage()
         return _trace_storage_singleton
+
+
+def reset_trace_storage():
+    """重置全局 TraceStorage 单例（仅用于测试）"""
+    global _trace_storage_singleton
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("trace_storage")
+    with _trace_storage_lock:
+        _trace_storage_singleton = None
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("trace_storage", _create_trace_storage)
 
 
 # TraceStorage 作为 TraceStore 的别名（与测试导入对齐）

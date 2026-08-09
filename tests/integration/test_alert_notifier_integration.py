@@ -86,10 +86,9 @@ def webhook_config():
 @pytest.fixture
 def reset_singleton():
     import agent.monitoring.alert_notifier as module
-    old = module._alert_notifier
-    module._alert_notifier = None
+    module.reset_alert_notifier()
     yield
-    module._alert_notifier = old
+    module.reset_alert_notifier()
 
 
 # ============================================================================
@@ -834,7 +833,7 @@ class TestGlobalSingleton:
     def test_reset(self, reset_singleton):
         n1 = get_alert_notifier({})
         import agent.monitoring.alert_notifier as module
-        module._alert_notifier = None
+        module.reset_alert_notifier()
         n2 = get_alert_notifier({})
         assert n1 is not n2
 
@@ -842,7 +841,7 @@ class TestGlobalSingleton:
 class TestSendAlertNotification:
     def test_send_alert_notification(self, reset_singleton):
         import agent.monitoring.alert_notifier as module
-        module._alert_notifier = None
+        module.reset_alert_notifier()
 
         results = send_alert_notification(
             alert_name="test",
@@ -856,7 +855,7 @@ class TestSendAlertNotification:
 
     def test_send_alert_notification_with_labels(self, reset_singleton):
         import agent.monitoring.alert_notifier as module
-        module._alert_notifier = None
+        module.reset_alert_notifier()
 
         results = send_alert_notification(
             alert_name="test",

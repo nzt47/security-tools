@@ -205,7 +205,9 @@ def test_start_watcher_registers_and_starts(kb):
         )
     assert watcher is _FakeWatcher.instances[-1]
     assert watcher.started
-    assert str(wiki) in watcher.watch_dirs
+    # 监听三个类型子目录 + archives（比监听整个 wiki 更精准）
+    for t in ("concepts", "entities", "insights"):
+        assert str(wiki / t) in watcher.watch_dirs
     assert str(wiki.parent / "archives") in watcher.watch_dirs
     assert watcher.include == ["*.md"]
 
@@ -247,5 +249,7 @@ def test_start_watcher_missing_dependency_returns_none(kb):
 
 
 def test_load_watcher_cls_dependency_missing():
-    with patch("importlib.import_module", side_effect=ImportError("no watchdog")):
+    # _load_watcher_cls 内部 `from importlib import import_module`（局部绑定），
+    # 须 patch 模块命名空间下的绑定名才能生效
+    with patch("agent.knowledge.index.import_module", side_effect=ImportError("no watchdog")):
         assert index_mod._load_watcher_cls() is None

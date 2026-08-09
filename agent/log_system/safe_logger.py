@@ -18,6 +18,18 @@ from agent.utils.sensitive_data_filter import (
 
 logger = logging.getLogger(__name__)
 
+# SingletonManager 统一收口（保留 fallback 变量向后兼容）
+# 注：safe_logger 的审计/安全日志格式与 logging_utils 不同（module_name/action/字段名），
+# 独立注册唯一命名单例，避免共享实例改变日志语义。
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = None
+
 def _trace_id():
     """生成 trace_id"""
     return uuid.uuid4().hex[:16]
@@ -165,13 +177,30 @@ class AuditLogger:
 
 
 # 全局审计日志实例
-_audit_logger: Optional[AuditLogger] = None
+_audit_logger: Optional[AuditLogger] = None  # 保留作为 fallback
+
+
+def _create_audit_logger(config=None):
+    """AuditLogger 工厂（供 SingletonManager 使用）"""
+    return AuditLogger()
+
+
 def get_audit_logger() -> AuditLogger:
     """获取全局审计日志记录器（单例）"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("safe_logger_audit_logger")
     global _audit_logger
     if _audit_logger is None:
-        _audit_logger = AuditLogger()
+        _audit_logger = _create_audit_logger()
     return _audit_logger
+
+
+def reset_audit_logger():
+    """重置全局审计日志单例（仅用于测试）"""
+    global _audit_logger
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("safe_logger_audit_logger")
+    _audit_logger = None
 
 
 
@@ -324,13 +353,30 @@ class AgentSafetyMonitor:
 
 
 # 全局安全监控器实例
-_safety_monitor: Optional[AgentSafetyMonitor] = None
+_safety_monitor: Optional[AgentSafetyMonitor] = None  # 保留作为 fallback
+
+
+def _create_safety_monitor(config=None):
+    """AgentSafetyMonitor 工厂（供 SingletonManager 使用）"""
+    return AgentSafetyMonitor()
+
+
 def get_safety_monitor() -> AgentSafetyMonitor:
     """获取全局安全监控器（单例）"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("safe_logger_safety_monitor")
     global _safety_monitor
     if _safety_monitor is None:
-        _safety_monitor = AgentSafetyMonitor()
+        _safety_monitor = _create_safety_monitor()
     return _safety_monitor
+
+
+def reset_safety_monitor():
+    """重置全局安全监控器单例（仅用于测试）"""
+    global _safety_monitor
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("safe_logger_safety_monitor")
+    _safety_monitor = None
 
 
 
@@ -454,4 +500,11 @@ def safe_execute_async(
         return None, result_container['exception']
 
     return result_container['value'], None
+
+
+# 注册单例工厂（置于文件末尾，确保类已定义）
+# 唯一命名：safe_logger 的日志格式与 logging_utils 不同，独立注册避免冲突
+if _SINGLETON_AVAILABLE:
+    register_singleton("safe_logger_audit_logger", _create_audit_logger)
+    register_singleton("safe_logger_safety_monitor", _create_safety_monitor)
 

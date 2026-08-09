@@ -1,80 +1,61 @@
 /**
- * 通用轮询 Hook — 定时调用异步函数并暴露 { data, error }
+ * 轮询 Hook — 按固定间隔拉取数据（useContextMonitor 上下文监视器用）。
  *
  * 不变量【不易】：
- * - fetcher 接收 AbortSignal；卸载或下一轮触发时中止在途请求
- * - 卸载时清理定时器与 AbortController，避免内存泄漏与 setState on unmounted
- * - AbortError 静默（被中止不算错误），避免误报 error
- *
- * 简易【简易】：
- * - 仅暴露 { data, error }；loading 由调用方按 `data === undefined && !error` 推导
- * - 与 useChatStream.ts 风格一致：useRef 持有 AbortController
- * - fetcher 通过 ref 保鲜，避免 useEffect 因 fetcher 引用变化重置轮询节奏
- *   （仅 intervalMs 变化才重置轮询）
- *
- * 使用示例（见 useContextMonitor.ts）：
- *   const { data, error } = usePolling<ContextStatus>(
- *     (signal) => contextMonitorApi.status(signal),
- *     5000,
- *   );
+ * - 立即执行一次 + 每 intervalMs 重复
+ * - 使用 AbortSignal 取消在途请求（卸载/重启轮询时）
+ * - 失败不抛异常：错误放入返回值 error，等待下轮重试（与上下文监视器"轮询失败不阻塞"一致）
+ * - 卸载时清理定时器与在途请求
  */
 import { useEffect, useRef, useState } from 'react';
 
-export interface UsePollingReturn<T> {
+interface PollingResult<T> {
   data: T | undefined;
-  error: Error | null;
+  error: unknown;
 }
 
+/**
+ * @param fetcher 返回 Promise 的拉取函数，接收 AbortSignal 用于取消
+ * @param intervalMs 轮询间隔（毫秒）
+ */
 export function usePolling<T>(
   fetcher: (signal: AbortSignal) => Promise<T>,
   intervalMs: number,
-): UsePollingReturn<T> {
+): PollingResult<T> {
   const [data, setData] = useState<T | undefined>(undefined);
-  const [error, setError] = useState<Error | null>(null);
-
-  // 保鲜 fetcher：调用方每次渲染可能传入新闭包，但 effect 仅依赖 intervalMs
+  const [error, setError] = useState<unknown>(undefined);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
-  // 在途请求的 AbortController，便于清理时中止
-  const abortRef = useRef<AbortController | null>(null);
-
   useEffect(() => {
+    let disposed = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
-    let stopped = false;
+    const abort = new AbortController();
 
-    const tick = async () => {
-      // 中止前一个在途请求（防止重叠请求堆积）
-      abortRef.current?.abort();
-      const controller = new AbortController();
-      abortRef.current = controller;
-
+    const run = async () => {
       try {
-        const result = await fetcherRef.current(controller.signal);
-        // 卸载或被中止时不更新状态（防 setState on unmounted）
-        if (stopped || controller.signal.aborted) return;
-        setData(result);
-        setError(null);
-      } catch (err: unknown) {
-        if (stopped || controller.signal.aborted) return;
-        // AbortError 静默（被中止不算错误，常见于卸载/下一轮覆盖）
-        if (err instanceof DOMException && err.name === 'AbortError') return;
-        setError(err instanceof Error ? err : new Error(String(err)));
+        const result = await fetcherRef.current(abort.signal);
+        if (!disposed) {
+          setData(result);
+          setError(undefined);
+        }
+      } catch (e) {
+        if (!disposed && !(e instanceof DOMException && e.name === 'AbortError')) {
+          setError(e);
+        }
       } finally {
-        // 仅在仍在轮询时排程下一轮（卸载/中止后停止）
-        if (!stopped && !controller.signal.aborted) {
-          timer = setTimeout(tick, intervalMs);
+        if (!disposed) {
+          timer = setTimeout(run, intervalMs);
         }
       }
     };
 
-    // 首轮立即触发，后续按 intervalMs 排程
-    tick();
+    void run();
 
     return () => {
-      stopped = true;
+      disposed = true;
+      abort.abort();
       if (timer) clearTimeout(timer);
-      abortRef.current?.abort();
     };
   }, [intervalMs]);
 

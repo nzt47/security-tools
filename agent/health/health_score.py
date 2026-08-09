@@ -27,6 +27,16 @@ from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
+# SingletonManager 统一收口（保留 fallback 变量 _default_calculator 向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = None
+
 def _trace_id():
     """生成 trace_id"""
     return uuid.uuid4().hex[:16]
@@ -708,15 +718,40 @@ class HealthScoreCalculator:
         }
 
 
-_default_calculator: Optional[HealthScoreCalculator] = None
+_default_calculator: Optional[HealthScoreCalculator] = None  # 保留作为 fallback
+
+
+def _create_health_calculator(config=None):
+    """HealthScoreCalculator 工厂（供 SingletonManager 使用）
+
+    config 走 dict 通道（{"weights": {...}}），仅当 dict 含该键才解包，
+    否则用默认权重。
+    """
+    if isinstance(config, dict) and "weights" in config:
+        return HealthScoreCalculator(weights=config["weights"])
+    return HealthScoreCalculator()
 
 
 def get_health_calculator() -> HealthScoreCalculator:
-    """获取全局健康度计算器实例"""
+    """获取全局健康度计算器实例
+
+    Returns:
+        HealthScoreCalculator 实例
+    """
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("health_score_calculator")
     global _default_calculator
     if _default_calculator is None:
-        _default_calculator = HealthScoreCalculator()
+        _default_calculator = _create_health_calculator()
     return _default_calculator
+
+
+def reset_health_calculator():
+    """重置全局健康度计算器单例（仅用于测试）"""
+    global _default_calculator
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("health_score_calculator")
+    _default_calculator = None
 
 
 def calculate_health_score(metrics: Dict[str, Any]) -> HealthReport:
@@ -740,3 +775,9 @@ def _safe_call(func, *args, action="safe_call", **kwargs):
             "error": f"{type(e).__name__}: {e}",
         }, ensure_ascii=False))
         raise
+
+
+# 注册单例工厂（置于文件末尾，确保 get_health_calculator / 便捷函数均已定义）
+# 无 cleanup 钩子：轻量无状态计算器，无资源生命周期
+if _SINGLETON_AVAILABLE:
+    register_singleton("health_score_calculator", _create_health_calculator)

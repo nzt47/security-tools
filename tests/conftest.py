@@ -420,7 +420,7 @@ def reset_global_singletons():
     # 4. TraceStorage: 懒加载单例，置 None 触发下次访问重建
     try:
         import agent.monitoring.tracing as _tr
-        _tr._trace_storage_singleton = None
+        _tr.reset_trace_storage()
     except Exception:
         pass
     # 5. ContextVar 重置：circuit_breaker / disaster_recovery / graceful_degrade / tracing
@@ -476,7 +476,33 @@ def reset_global_singletons():
     # 的配置查询读到陈旧缓存。重置确保每个测试拿到干净的配置管理器。
     try:
         import agent.system_prompt_config as _spc
-        _spc._manager = None
+        _spc.reset_system_prompt_manager()
+    except Exception:
+        pass
+    # 11. sqlite_vec: 清理 sys.modules 中所有 sqlite_vec 相关键
+    # Why: test_vector_store_sqlite_vec.py 的 _enable_sqlite_vec_for_tests 用
+    # patch.dict(sys.modules, ...) 覆盖 _BlockModules 封禁，其 __exit__ 会
+    # _clear_dict 清空测试期间新导入的模块键（如 sqlite_vec.util）但父包属性
+    # 仍引用旧模块对象，形成 sys.modules 与包属性不一致的残留。删除所有
+    # sqlite_vec* 键，强制后续测试全新导入（或被 _BlockModules 封禁），
+    # 避免 C 扩展重复加载/引用残留导致偶发 ERROR。
+    try:
+        import sys as _sys
+        for _key in [k for k in list(_sys.modules) if k == "sqlite_vec" or k.startswith("sqlite_vec.")]:
+            _sys.modules.pop(_key, None)
+    except Exception:
+        pass
+    # 12. memory.vector_store: 清空共享编码器单例缓存
+    # Why: VectorStore._get_shared_encoder（vector_store.py）是模块级单例缓存，
+    # 前序测试若在 sentence_transformers 被 mock（MagicMock 模块）的上下文中
+    # 实例化 VectorStore，会把 mock 编码器缓存进 _shared_encoder_cache。后续
+    # sqlite-vec 测试即使 patch 了 SentenceTransformer，_get_shared_encoder 仍
+    # 命中缓存返回 mock 编码器，get_sentence_embedding_dimension() 得到 MagicMock，
+    # vec0 DDL 构造失败降级 json → "expected sqlite_vec, got json"（随机序
+    # TestVectorStoreSqliteVecIntegration 8 ERROR + backend 1 FAILED 根因）。
+    try:
+        import memory.vector_store.vector_store as _vstore
+        _vstore._shared_encoder_cache.clear()
     except Exception:
         pass
     # 11. sqlite_vec: 清理 sys.modules 中所有 sqlite_vec 相关键

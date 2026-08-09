@@ -29,11 +29,11 @@ def _reset_spc_manager():
 
     Why: is_section_enabled() 内部调用 get_manager() 读取配置文件。
     若前序测试已创建 _manager 单例并缓存配置，可能影响后续测试的 mock 行为。
-    重置为 None 确保每个测试从干净状态开始，改善测试隔离。
+    重置单例确保每个测试从干净状态开始，改善测试隔离。
     """
-    _spc_mod._manager = None
+    _spc_mod.reset_system_prompt_manager()
     yield
-    _spc_mod._manager = None
+    _spc_mod.reset_system_prompt_manager()
 
 
 # ============================================================================

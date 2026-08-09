@@ -36,6 +36,16 @@ _ERROR_HANDLER_AVAILABLE = True
 
 logger = logging.getLogger(__name__)
 
+# SingletonManager 统一收口（保留 fallback 变量 _self_healer 向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton, is_initialized,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = is_initialized = None
+
 
 class HealAction(Enum):
     """自愈动作类型"""
@@ -761,7 +771,25 @@ class SelfHealer:
 
 
 # 全局单例
-_self_healer: Optional[SelfHealer] = None
+_self_healer: Optional[SelfHealer] = None  # 保留作为 fallback
+
+
+def _create_self_healer(config=None):
+    """SelfHealer 工厂（供 SingletonManager 使用）
+
+    config 可能以两种形态传入，需区分：
+    - SingletonManager dict 通道：{"self_healer_config": <原配置>}，需解包
+    - 直接传入的自愈配置（dict 或 None）：原样传给 SelfHealer
+    """
+    if isinstance(config, dict) and "self_healer_config" in config:
+        config = config["self_healer_config"]
+    return SelfHealer(config)
+
+
+def _cleanup_self_healer(healer):
+    """清理钩子：停止自愈健康检查线程（仅测试重置时调用）"""
+    if healer is not None and healer._running:
+        healer.stop()
 
 
 def get_self_healer(config: Optional[Dict[str, Any]] = None) -> SelfHealer:
@@ -773,10 +801,22 @@ def get_self_healer(config: Optional[Dict[str, Any]] = None) -> SelfHealer:
     Returns:
         SelfHealer 实例
     """
+    if _SINGLETON_AVAILABLE:
+        if config is not None and not is_initialized("self_healer"):
+            return get_singleton("self_healer", {"self_healer_config": config})
+        return get_singleton("self_healer")
     global _self_healer
     if _self_healer is None:
-        _self_healer = SelfHealer(config)
+        _self_healer = _create_self_healer(config)
     return _self_healer
+
+
+def reset_self_healer():
+    """重置全局自愈管理器单例（仅用于测试）"""
+    global _self_healer
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("self_healer")
+    _self_healer = None
 
 
 def execute_heal_action(
@@ -794,3 +834,8 @@ def execute_heal_action(
     """
     healer = get_self_healer()
     return healer.execute_action(action, context)
+
+
+# 注册单例工厂（置于文件末尾，确保类已定义）
+if _SINGLETON_AVAILABLE:
+    register_singleton("self_healer", _create_self_healer, cleanup_fn=_cleanup_self_healer)

@@ -1,123 +1,112 @@
 /**
- * 新建/编辑卡片表单（任务6 Step 2）
- *
- * 新建：slug 由 title 自动生成（后端 slugify 幂等，前端仅做预览）。
- * 编辑：slug 只读（作为定位标识，不可变更）。
+ * 新建/编辑卡片表单（任务6）。
+ * 受控表单：父组件传 initial（编辑时），提交回调返回 CardInput。
+ * 空值提交由父组件负责（可前置校验 insight 等必填）。
  */
 import React, { useState } from 'react';
-import type { KnowledgeCard } from '../../api/knowledge';
+import type { Card, CardInput, CardStatus, CardType } from '../../api/knowledge-types';
+import './CardForm.css';
 
-export interface CardFormProps {
-  /** 编辑模式下传入待编辑卡片；新建模式为 null */
-  initial?: KnowledgeCard | null;
-  onSave: (card: Partial<KnowledgeCard>) => void;
+interface CardFormProps {
+  /** 编辑模式传入原卡（用于回填）；新建模式省略 */
+  initial?: Card;
+  /** 提交回调（payload 为创建/更新请求体） */
+  onSubmit: (payload: CardInput) => void;
   onCancel: () => void;
-  /** 保存失败信息（由父组件透传展示） */
-  error?: string | null;
+  /** 提交中（父组件禁用按钮） */
   submitting?: boolean;
 }
 
-const TYPE_OPTIONS = ['concepts', 'entities', 'insights'];
-const STATUS_OPTIONS = ['draft', 'current', 'archive', 'unknown'];
+const STATUS_OPTIONS: CardStatus[] = ['draft', 'current', 'archive', 'unknown'];
+const TYPE_OPTIONS: CardType[] = ['concepts', 'entities', 'insights'];
 
-export const CardForm: React.FC<CardFormProps> = ({
-  initial,
-  onSave,
-  onCancel,
-  error,
-  submitting,
-}) => {
-  const [title, setTitle] = useState(initial?.title || '');
-  const [slug, setSlug] = useState(initial?.slug || '');
-  const [type, setType] = useState(initial?.type || 'concepts');
-  const [status, setStatus] = useState(initial?.status || 'draft');
-  const [source, setSource] = useState(initial?.source || 'manual');
-  const [date, setDate] = useState(initial?.date || new Date().toISOString().slice(0, 10));
-  const [tags, setTags] = useState((initial?.tags || []).join(', '));
-  const [insight, setInsight] = useState(initial?.insight || '');
-  const [content, setContent] = useState(initial?.content || '');
-
-  const isEdit = Boolean(initial);
+const CardForm: React.FC<CardFormProps> = ({ initial, onSubmit, onCancel, submitting = false }) => {
+  const [title, setTitle] = useState(initial?.title ?? '');
+  const [slug, setSlug] = useState(initial?.slug ?? '');
+  const [status, setStatus] = useState<CardStatus>(initial?.status ?? 'draft');
+  const [type, setType] = useState<CardType>(initial?.type ?? 'concepts');
+  const [source, setSource] = useState(initial?.source ?? '');
+  const [date, setDate] = useState(initial?.date ?? new Date().toISOString().slice(0, 10));
+  const [insight, setInsight] = useState(initial?.insight ?? '');
+  const [content, setContent] = useState(initial?.content ?? '');
+  const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave({
-      title,
-      slug: slug || title,
-      type,
+    // 必填校验（与后端 validate_card 对齐的轻量前置）
+    if (!title.trim() || !slug.trim() || !insight.trim()) {
+      setError('标题 / slug / 核心洞见为必填项');
+      return;
+    }
+    setError('');
+    onSubmit({
+      title: title.trim(),
+      slug: slug.trim(),
       status,
-      source,
+      type,
+      source: source.trim(),
       date,
-      tags: tags
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean),
-      insight,
+      insight: insight.trim(),
       content,
     });
   };
 
   return (
-    <form className="kb-form" onSubmit={handleSubmit} data-testid="card-form">
-      {error && <div className="kb-form-error">{error}</div>}
-
-      <div className="kb-form-row">
-        <label className="kb-form-label">
-          标题 <span className="kb-form-required">*</span>
+    <form className="kb-form" onSubmit={handleSubmit}>
+      <div className="kb-form-grid">
+        <label className="kb-form-field">
+          <span className="kb-form-label">标题 *</span>
           <input
             className="kb-form-input"
             value={title}
-            onChange={(e) => {
-              setTitle(e.target.value);
-              if (!isEdit) setSlug(e.target.value);
-            }}
-            required
-            placeholder="卡片标题（slug 自动生成）"
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="卡片标题（slug 默认由此生成）"
           />
         </label>
-      </div>
-
-      <div className="kb-form-row">
-        <label className="kb-form-label">
-          slug
+        <label className="kb-form-field">
+          <span className="kb-form-label">slug *</span>
           <input
             className="kb-form-input"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
-            readOnly={isEdit}
-            disabled={isEdit}
-            placeholder="唯一标识"
+            placeholder="唯一标识（创建后不可修改）"
           />
         </label>
-      </div>
-
-      <div className="kb-form-grid">
-        <label className="kb-form-label">
-          类型
-          <select className="kb-form-input" value={type} onChange={(e) => setType(e.target.value)}>
+        <label className="kb-form-field">
+          <span className="kb-form-label">类型</span>
+          <select
+            className="kb-form-input"
+            value={type}
+            onChange={(e) => setType(e.target.value as CardType)}
+          >
             {TYPE_OPTIONS.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
         </label>
-        <label className="kb-form-label">
-          状态
-          <select className="kb-form-input" value={status} onChange={(e) => setStatus(e.target.value)}>
+        <label className="kb-form-field">
+          <span className="kb-form-label">状态</span>
+          <select
+            className="kb-form-input"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as CardStatus)}
+          >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
         </label>
-        <label className="kb-form-label">
-          来源
+        <label className="kb-form-field">
+          <span className="kb-form-label">来源</span>
           <input
             className="kb-form-input"
             value={source}
             onChange={(e) => setSource(e.target.value)}
+            placeholder="文章 / 播客 / 手动..."
           />
         </label>
-        <label className="kb-form-label">
-          日期
+        <label className="kb-form-field">
+          <span className="kb-form-label">日期</span>
           <input
             className="kb-form-input"
             type="date"
@@ -126,49 +115,34 @@ export const CardForm: React.FC<CardFormProps> = ({
           />
         </label>
       </div>
+      <label className="kb-form-field">
+        <span className="kb-form-label">核心洞见 *</span>
+        <input
+          className="kb-form-input"
+          value={insight}
+          onChange={(e) => setInsight(e.target.value)}
+          placeholder="一句话核心洞见（必填）"
+        />
+      </label>
+      <label className="kb-form-field">
+        <span className="kb-form-label">正文（支持 [[双链]] 语法）</span>
+        <textarea
+          className="kb-form-input kb-form-textarea"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder={'正文 Markdown，如：\n参考 [[其他卡片slug]] 或 [[其他卡片|别名]]'}
+          rows={5}
+        />
+      </label>
 
-      <div className="kb-form-row">
-        <label className="kb-form-label">
-          标签（逗号分隔）
-          <input
-            className="kb-form-input"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder="tag-a, tag-b"
-          />
-        </label>
-      </div>
-
-      <div className="kb-form-row">
-        <label className="kb-form-label">
-          核心洞见
-          <textarea
-            className="kb-form-input"
-            rows={2}
-            value={insight}
-            onChange={(e) => setInsight(e.target.value)}
-          />
-        </label>
-      </div>
-
-      <div className="kb-form-row">
-        <label className="kb-form-label">
-          正文（支持 [[双链]] 语法）
-          <textarea
-            className="kb-form-input"
-            rows={6}
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-          />
-        </label>
-      </div>
+      {error && <div className="kb-form-error">{error}</div>}
 
       <div className="kb-form-actions">
-        <button className="kb-btn kb-btn-primary" type="submit" disabled={submitting}>
-          {submitting ? '保存中...' : '保存'}
-        </button>
-        <button className="kb-btn" type="button" onClick={onCancel}>
+        <button type="button" className="kb-form-btn kb-form-btn-secondary" onClick={onCancel} disabled={submitting}>
           取消
+        </button>
+        <button type="submit" className="kb-form-btn kb-form-btn-primary" disabled={submitting}>
+          {submitting ? '提交中...' : initial ? '保存' : '创建'}
         </button>
       </div>
     </form>

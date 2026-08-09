@@ -25,6 +25,16 @@ from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
+# SingletonManager 统一收口（保留 fallback 变量 _scheduler 向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton, is_initialized,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = is_initialized = None
+
 def _trace_id():
     """生成 trace_id"""
     return uuid.uuid4().hex[:16]
@@ -417,30 +427,56 @@ class TaskScheduler:
         return result
 
 
-_scheduler: Optional[TaskScheduler] = None
+_scheduler: Optional[TaskScheduler] = None  # 保留作为 fallback
+
+
+def _create_scheduler(config=None):
+    """TaskScheduler 工厂（含预注册任务，供 SingletonManager 使用）
+
+    Why: 原 get_scheduler 内的创建 + 预注册逻辑整体移入工厂，
+    确保 SingletonManager 首次创建时行为与旧实现一致。
+    """
+    sched = TaskScheduler()
+    # 预注册 Python 函数任务
+    sched.add_cron_task(
+        name="生成周报",
+        func=generate_weekly_report,
+        day_of_week=0,
+        hour=9,
+        minute=0,
+    )
+    sched.add_cron_task(
+        name="清理旧日志",
+        func=cleanup_old_logs,
+        day_of_week=None,
+        hour=2,
+        minute=0,
+    )
+    return sched
+
+
+def _cleanup_scheduler(sched):
+    """清理钩子：停止调度器线程（仅测试重置时调用）"""
+    if sched is not None and sched.running:
+        sched.stop()
 
 
 def get_scheduler() -> TaskScheduler:
     """获取调度器实例（单例）"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("task_scheduler")
     global _scheduler
     if _scheduler is None:
-        _scheduler = TaskScheduler()
-        # 预注册 Python 函数任务
-        _scheduler.add_cron_task(
-            name="生成周报",
-            func=generate_weekly_report,
-            day_of_week=0,
-            hour=9,
-            minute=0,
-        )
-        _scheduler.add_cron_task(
-            name="清理旧日志",
-            func=cleanup_old_logs,
-            day_of_week=None,
-            hour=2,
-            minute=0,
-        )
+        _scheduler = _create_scheduler()
     return _scheduler
+
+
+def reset_scheduler():
+    """重置调度器单例（仅用于测试）"""
+    global _scheduler
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("task_scheduler")
+    _scheduler = None
 
 
 # ── 预定义任务函数 ──
@@ -545,12 +581,15 @@ def perform_heartbeat_check(yunshu_instance=None) -> Dict[str, Any]:
 
     # 4. 调度器状态
     try:
-        global _scheduler
-        if _scheduler and _scheduler.running:
+        if _SINGLETON_AVAILABLE and is_initialized("task_scheduler"):
+            sched = get_singleton("task_scheduler")
+        else:
+            sched = _scheduler
+        if sched and sched.running:
             checks["scheduler"] = {
                 "status": "ok",
                 "running": True,
-                "tasks": len(_scheduler.tasks),
+                "tasks": len(sched.tasks),
             }
         else:
             checks["scheduler"] = {"status": "stopped", "running": False, "tasks": 0}
@@ -586,3 +625,8 @@ def perform_heartbeat_check(yunshu_instance=None) -> Dict[str, Any]:
         "status": overall_status,
         "checks": checks,
     }
+
+
+# 注册单例工厂（置于文件末尾，确保预注册任务函数已定义）
+if _SINGLETON_AVAILABLE:
+    register_singleton("task_scheduler", _create_scheduler, cleanup_fn=_cleanup_scheduler)

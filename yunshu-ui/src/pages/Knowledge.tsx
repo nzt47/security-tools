@@ -1,430 +1,394 @@
 /**
- * 知识库主页（任务6 Step 2）
+ * 知识库主页（任务6）：三区布局
+ *   1. 搜索区   — /api/knowledge/query 融合检索（含状态角标 + [来源: slug|status]）
+ *   2. 列表区   — /api/knowledge/cards 按类型/状态筛选，点击打开详情抽屉
+ *   3. 健康区   — /api/knowledge/lint 健康分与问题列表
  *
- * 三区布局：
- *   1. 搜索区：调 /api/knowledge/query，展示融合检索结果（状态角标 + [来源: slug|status]）
- *   2. 列表区：调 /api/knowledge/cards，按类型/状态筛选，点击打开详情
- *   3. 健康区：调 /api/knowledge/lint，展示健康分与问题列表
- * 附带：关系图入口（getGraph 节点-边概览）、新建/编辑卡片（CardForm）、详情抽屉（CardDetail）。
+ * 错误约定：404/409/422 均展示为可读错误文本（ApiError.message）。
  */
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-  createCard,
-  deleteCard,
-  getCard,
-  getLint,
-  getGraph,
-  listCards,
-  searchKnowledge,
-  updateCard,
-  KnowledgeApiError,
-  KnowledgeCard,
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import type {
+  Card,
+  CardDetail as KnowledgeCardDetail,
+  CardInput,
+  CardStatus,
+  CardType,
+  HealthReport,
   KnowledgeHit,
-  LintReport,
-  GraphNode,
+} from '../api/knowledge-types';
+import {
+  listCards,
+  getCard,
+  createCard,
+  updateCard,
+  deleteCard,
+  searchKnowledge,
+  getLint,
 } from '../api/knowledge';
+import { ApiError } from '../lib/apiClient';
 import StatusBadge from '../components/Knowledge/StatusBadge';
 import CardDetail from '../components/Knowledge/CardDetail';
 import CardForm from '../components/Knowledge/CardForm';
 import './Knowledge.css';
 
-const TYPE_OPTIONS = ['', 'concepts', 'entities', 'insights'];
-const STATUS_OPTIONS = ['', 'draft', 'current', 'archive', 'unknown'];
+const TYPE_LABEL: Record<string, string> = { concepts: '概念', entities: '实体', insights: '洞见' };
 
-const EMPTY_LINT: LintReport = {
-  checked_at: '',
-  total_cards: 0,
-  orphans: [],
-  broken_links: [],
-  index_drift: [],
-  stale_cards: [],
-  unresolved_conflicts: [],
-  health_score: 100,
-  suggestions: [],
-};
-
-export const Knowledge: React.FC = () => {
-  // ─── 列表区 ───
-  const [cards, setCards] = useState<KnowledgeCard[]>([]);
-  const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [listLoading, setListLoading] = useState(true);
+const Knowledge: React.FC = () => {
+  // ── 列表区 ──
+  const [cards, setCards] = useState<Card[]>([]);
+  const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [typeFilter, setTypeFilter] = useState<string>('');
 
-  // ─── 详情抽屉 / 表单 ───
-  const [detailCard, setDetailCard] = useState<KnowledgeCard | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingCard, setEditingCard] = useState<KnowledgeCard | null>(null);
-  const [formError, setFormError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-
-  // ─── 搜索区 ───
+  // ── 搜索区 ──
   const [query, setQuery] = useState('');
   const [hits, setHits] = useState<KnowledgeHit[]>([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const searchedRef = useRef(false);
 
-  // ─── 健康区 ───
-  const [lint, setLint] = useState<LintReport>(EMPTY_LINT);
-  const [lintLoading, setLintLoading] = useState(true);
+  // ── 健康区 ──
+  const [report, setReport] = useState<HealthReport | null>(null);
   const [lintError, setLintError] = useState('');
 
-  // ─── 关系图 ───
-  const [graphNodes, setGraphNodes] = useState<GraphNode[]>([]);
-  const [graphEdgeCount, setGraphEdgeCount] = useState(0);
+  // ── 详情抽屉 ──
+  const [detailCard, setDetailCard] = useState<KnowledgeCardDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
-  const loadCards = useCallback(async () => {
-    setListLoading(true);
+  // ── 新建/编辑表单 ──
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Card | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  // ── 数据加载 ──
+  const loadCards = useCallback(async (status?: string, type?: string) => {
+    setLoading(true);
     setListError('');
     try {
-      const data = await listCards(
-        typeFilter || statusFilter
-          ? { type: typeFilter || undefined, status: statusFilter || undefined }
-          : undefined,
-      );
-      setCards(data);
+      const res = await listCards({ status: status as CardStatus, type: type as CardType });
+      setCards(res.cards);
     } catch (e) {
-      setListError(e instanceof Error ? e.message : '加载列表失败');
+      setListError(e instanceof Error ? e.message : String(e));
+      setCards([]);
     } finally {
-      setListLoading(false);
+      setLoading(false);
     }
-  }, [typeFilter, statusFilter]);
+  }, []);
 
   const loadLint = useCallback(async () => {
-    setLintLoading(true);
     setLintError('');
     try {
-      setLint(await getLint());
+      const res = await getLint();
+      setReport(res.report);
     } catch (e) {
-      setLintError(e instanceof Error ? e.message : '健康巡检失败');
-    } finally {
-      setLintLoading(false);
+      setLintError(e instanceof Error ? e.message : String(e));
+      setReport(null);
     }
   }, []);
 
-  const loadGraph = useCallback(async () => {
-    try {
-      const g = await getGraph();
-      setGraphNodes(g.nodes);
-      setGraphEdgeCount(g.edges.length);
-    } catch {
-      /* 关系图失败不阻塞主视图 */
-    }
-  }, []);
-
-  // ─── 初始化 ───
+  // 初始化：列表 + 健康报告
   useEffect(() => {
-    loadCards();
-    loadLint();
-    loadGraph();
-  }, [loadCards, loadLint, loadGraph]);
+    (async () => {
+      try {
+        await loadCards();
+        loadLint();
+      } catch (e) {
+        setListError(e instanceof Error ? e.message : String(e));
+        setLoading(false);
+      }
+    })();
+  }, [loadCards, loadLint]);
 
-  // ─── 动作 ───
+  // 筛选变化 → 重新加载
+  useEffect(() => {
+    if (!loading || cards.length > 0 || listError) {
+      loadCards(statusFilter, typeFilter);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, typeFilter]);
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // ── 搜索 ──
+  const handleSearch = async () => {
     const q = query.trim();
     if (!q) return;
     setSearching(true);
     setSearchError('');
     try {
-      setHits(await searchKnowledge(q, 5));
-    } catch (err) {
+      const res = await searchKnowledge(q, 5);
+      setHits(res.hits);
+      searchedRef.current = true;
+    } catch (e) {
+      setSearchError(e instanceof Error ? e.message : String(e));
       setHits([]);
-      setSearchError(err instanceof Error ? err.message : '检索失败');
     } finally {
       setSearching(false);
     }
   };
 
+  const handleQueryKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSearch();
+  };
+
+  // ── 详情抽屉 ──
+  // 竞态守卫：快速切换卡片时，仅接受最新一次请求的响应（过期响应丢弃）
+  const detailSeqRef = useRef(0);
   const openDetail = async (slug: string) => {
+    const seq = ++detailSeqRef.current;
+    setDetailLoading(true);
+    setDetailCard(null);
     try {
-      setDetailCard(await getCard(slug));
+      const res = await getCard(slug);
+      if (seq !== detailSeqRef.current) return; // 已有更新的请求，丢弃过期响应
+      setDetailCard(res.card);
     } catch (e) {
-      setListError(e instanceof Error ? e.message : '加载详情失败');
+      if (seq !== detailSeqRef.current) return;
+      setDetailCard(null);
+      setListError(e instanceof Error ? e.message : String(e));
+    } finally {
+      if (seq === detailSeqRef.current) setDetailLoading(false);
     }
   };
 
-  const openCreate = () => {
-    setEditingCard(null);
-    setFormError('');
-    setFormOpen(true);
-  };
-
-  const openEdit = (card: KnowledgeCard) => {
-    setEditingCard(card);
-    setFormError('');
-    setFormOpen(true);
-    setDetailCard(null);
-  };
-
-  const handleSave = async (data: Partial<KnowledgeCard>) => {
+  // ── 新建/编辑 ──
+  const handleSubmitForm = async (payload: CardInput) => {
     setSubmitting(true);
     setFormError('');
     try {
-      if (editingCard) {
-        await updateCard(editingCard.slug, data);
+      if (editing) {
+        await updateCard(editing.slug, payload);
       } else {
-        await createCard(data as Partial<KnowledgeCard>);
+        await createCard(payload);
       }
       setFormOpen(false);
-      await loadCards();
-      await loadLint();
-      await loadGraph();
-    } catch (err) {
-      if (err instanceof KnowledgeApiError && err.body?.violations) {
-        setFormError(`${err.message}：${err.body.violations.join('；')}`);
-      } else {
-        setFormError(err instanceof Error ? err.message : '保存失败');
-      }
+      setEditing(null);
+      await loadCards(statusFilter, typeFilter);
+      loadLint();
+    } catch (e) {
+      setFormError(e instanceof Error ? e.message : String(e));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDelete = async (card: KnowledgeCard) => {
-    if (!window.confirm(`确认删除卡片「${card.title}」？`)) return;
+  // ── 删除 ──
+  const handleDelete = async (slug: string) => {
+    if (!window.confirm(`确认删除卡片「${slug}」？`)) return;
     try {
-      await deleteCard(card.slug);
-      setDetailCard(null);
-      await loadCards();
-      await loadLint();
-      await loadGraph();
-    } catch (err) {
-      if (err instanceof KnowledgeApiError && err.body?.incoming_links) {
-        setListError(`删除被拒：存在入链 ${err.body.incoming_links.join(', ')}`);
+      await deleteCard(slug);
+      await loadCards(statusFilter, typeFilter);
+      loadLint();
+    } catch (e) {
+      // 409 入链保护：提示引用方
+      if (e instanceof ApiError && e.status === 409) {
+        const detail = e.details as { incoming_links?: string[] } | undefined;
+        const refs = detail?.incoming_links?.join(', ') ?? '未知';
+        window.alert(`删除被拒：该卡片存在入链，引用方需先解除引用。引用方: ${refs}`);
       } else {
-        setListError(err instanceof Error ? err.message : '删除失败');
+        setListError(e instanceof Error ? e.message : String(e));
       }
     }
   };
 
-  const scoreColor =
-    lint.health_score >= 90 ? 'kb-score-good' : lint.health_score >= 60 ? 'kb-score-warn' : 'kb-score-bad';
-
   return (
-    <div className="kb-page" data-testid="knowledge-page">
-      <div className="kb-header">
+    <div className="kb-page">
+      <header className="kb-header">
         <h2 className="kb-title">知识库</h2>
-        <span className="kb-subtitle">卡片管理 · 融合检索 · 健康巡检</span>
-      </div>
+        <button type="button" className="kb-new-btn" onClick={() => { setEditing(null); setFormOpen(true); }}>
+          ✚ 新建卡片
+        </button>
+      </header>
 
-      {/* 三区网格 */}
-      <div className="kb-grid">
-        {/* ── 1. 搜索区 ── */}
-        <section className="kb-zone kb-zone-search" aria-label="知识库检索">
-          <h3 className="kb-zone-title">检索</h3>
-          <form className="kb-search-form" onSubmit={handleSearch}>
+      <div className="kb-layout">
+        {/* ── 搜索区 ── */}
+        <section className="kb-panel kb-search-panel">
+          <h3 className="kb-panel-title">融合检索</h3>
+          <div className="kb-search-row">
             <input
               className="kb-search-input"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="输入问题，融合检索知识库..."
+              onKeyDown={handleQueryKeyDown}
+              placeholder="输入问题，检索知识库（RRF 融合）"
             />
-            <button className="kb-btn kb-btn-primary" type="submit" disabled={searching}>
+            <button
+              type="button"
+              className="kb-search-btn"
+              onClick={handleSearch}
+              disabled={searching || !query.trim()}
+            >
               {searching ? '检索中...' : '检索'}
             </button>
-          </form>
-          {searchError && <div className="kb-error">{searchError}</div>}
+          </div>
+          {searchError && <div className="kb-error-text">{searchError}</div>}
           {hits.length > 0 && (
             <ul className="kb-hit-list">
               {hits.map((h) => (
-                <li
-                  key={h.slug}
-                  className="kb-hit-item"
-                  onClick={() => openDetail(h.slug)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className="kb-hit-head">
-                    <span className="kb-hit-title">{h.title}</span>
+                <li key={h.slug} className="kb-hit-item">
+                  <button type="button" className="kb-hit-title" onClick={() => openDetail(h.slug)}>
+                    {h.title}
+                  </button>
+                  <div className="kb-hit-meta">
                     <StatusBadge status={h.status} />
+                    <span className="kb-hit-source">{h.source_ref}</span>
+                    <span className="kb-hit-score">score {h.score.toFixed(3)}</span>
                   </div>
-                  <div className="kb-hit-source">[来源: {h.source_ref} | {h.status}]</div>
-                  <p className="kb-hit-snippet">{h.snippet}</p>
+                  {h.snippet && <p className="kb-hit-snippet">{h.snippet}</p>}
                 </li>
               ))}
             </ul>
           )}
         </section>
 
-        {/* ── 2. 列表区 ── */}
-        <section className="kb-zone kb-zone-list" aria-label="卡片列表">
-          <div className="kb-zone-head">
-            <h3 className="kb-zone-title">卡片</h3>
-            <button className="kb-btn kb-btn-primary kb-btn-sm" onClick={openCreate} type="button">
-              + 新建
-            </button>
-          </div>
-          <div className="kb-filters">
+        {/* ── 列表区 ── */}
+        <section className="kb-panel kb-list-panel">
+          <h3 className="kb-panel-title">卡片列表 ({cards.length})</h3>
+          <div className="kb-filter-row">
             <select
-              className="kb-filter"
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              aria-label="按类型筛选"
-            >
-              {TYPE_OPTIONS.map((t) => (
-                <option key={t} value={t}>{t || '全部类型'}</option>
-              ))}
-            </select>
-            <select
-              className="kb-filter"
+              className="kb-filter-select"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              aria-label="按状态筛选"
             >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>{s || '全部状态'}</option>
-              ))}
+              <option value="">全部状态</option>
+              <option value="draft">草稿</option>
+              <option value="current">有效</option>
+              <option value="archive">归档</option>
+              <option value="unknown">未知</option>
+            </select>
+            <select
+              className="kb-filter-select"
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              <option value="">全部类型</option>
+              <option value="concepts">概念</option>
+              <option value="entities">实体</option>
+              <option value="insights">洞见</option>
             </select>
           </div>
-          {listError && <div className="kb-error">{listError}</div>}
-          {listLoading ? (
-            <div className="kb-empty">加载中...</div>
+
+          {listError && <div className="kb-error-text">{listError}</div>}
+          {loading ? (
+            <div className="kb-loading">加载中...</div>
           ) : cards.length === 0 ? (
-            <div className="kb-empty">暂无卡片</div>
+            <div className="kb-loading">暂无卡片（知识库为空或筛选无结果）</div>
           ) : (
             <ul className="kb-card-list">
               {cards.map((c) => (
-                <li
-                  key={c.slug}
-                  className="kb-card-item"
-                  onClick={() => openDetail(c.slug)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => e.key === 'Enter' && openDetail(c.slug)}
-                >
-                  <div className="kb-card-head">
+                <li key={c.slug} className="kb-card-item">
+                  <button type="button" className="kb-card-main" onClick={() => openDetail(c.slug)}>
                     <span className="kb-card-title">{c.title}</span>
-                    <StatusBadge status={c.status} />
-                  </div>
-                  <div className="kb-card-meta">
-                    <span className="kb-card-type">{c.type}</span>
                     <span className="kb-card-slug">{c.slug}</span>
+                    <span className="kb-card-type">{TYPE_LABEL[c.type] ?? c.type}</span>
+                  </button>
+                  <div className="kb-card-actions">
+                    <StatusBadge status={c.status} />
+                    <button
+                      type="button"
+                      className="kb-icon-btn"
+                      onClick={() => { setEditing(c); setFormOpen(true); }}
+                      title="编辑"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      type="button"
+                      className="kb-icon-btn kb-icon-danger"
+                      onClick={() => handleDelete(c.slug)}
+                      title="删除"
+                    >
+                      🗑
+                    </button>
                   </div>
-                  {c.insight && <p className="kb-card-insight">{c.insight}</p>}
                 </li>
               ))}
             </ul>
           )}
         </section>
 
-        {/* ── 3. 健康区 ── */}
-        <section className="kb-zone kb-zone-health" aria-label="健康报告">
-          <div className="kb-zone-head">
-            <h3 className="kb-zone-title">健康报告</h3>
-            <button className="kb-btn kb-btn-sm" onClick={loadLint} type="button">
-              刷新
-            </button>
-          </div>
-          {lintError ? (
-            <div className="kb-error">{lintError}</div>
-          ) : lintLoading ? (
-            <div className="kb-empty">巡检中...</div>
-          ) : (
-            <div className="kb-lint">
-              <div className="kb-score-row">
-                <span className={`kb-score ${scoreColor}`} data-testid="health-score">
-                  {lint.health_score}
-                </span>
-                <div className="kb-score-info">
-                  <div>共 {lint.total_cards} 张卡片</div>
-                  <div className="kb-score-time">巡检于 {lint.checked_at}</div>
+        {/* ── 健康区 ── */}
+        <section className="kb-panel kb-health-panel">
+          <h3 className="kb-panel-title">健康巡检</h3>
+          {lintError && <div className="kb-error-text">{lintError}</div>}
+          {report ? (
+            <div className="kb-health-body">
+              <div className={`kb-health-score ${report.health_score >= 90 ? 'kb-score-good' : report.health_score >= 70 ? 'kb-score-mid' : 'kb-score-bad'}`}>
+                {report.health_score.toFixed(1)}
+                <span className="kb-health-score-label">健康分</span>
+              </div>
+              <div className="kb-health-meta">
+                共 {report.total_cards} 张卡片 · 巡检于 {report.checked_at}
+              </div>
+              <div className="kb-health-grid">
+                <div className="kb-health-stat">
+                  <span className="kb-health-num">{report.orphans.length}</span> 孤儿卡片
+                </div>
+                <div className="kb-health-stat">
+                  <span className="kb-health-num">{report.broken_links.length}</span> 死链
+                </div>
+                <div className="kb-health-stat">
+                  <span className="kb-health-num">{report.index_drift.length}</span> 索引漂移
+                </div>
+                <div className="kb-health-stat">
+                  <span className="kb-health-num">{report.stale_cards.length}</span> 超期未访问
                 </div>
               </div>
-
-              <ul className="kb-issue-list">
-                <li className={`kb-issue ${lint.unresolved_conflicts.length ? 'kb-issue-bad' : ''}`}>
-                  未裁决矛盾：{lint.unresolved_conflicts.length}
-                </li>
-                <li className={`kb-issue ${lint.broken_links.length ? 'kb-issue-bad' : ''}`}>
-                  断链：{lint.broken_links.length}
-                </li>
-                <li className={`kb-issue ${lint.stale_cards.length ? 'kb-issue-warn' : ''}`}>
-                  过期声明：{lint.stale_cards.length}
-                </li>
-                <li className={`kb-issue ${lint.index_drift.length ? 'kb-issue-warn' : ''}`}>
-                  index 漂移：{lint.index_drift.length}
-                </li>
-                <li className={`kb-issue ${lint.orphans.length ? 'kb-issue-warn' : ''}`}>
-                  孤儿卡片：{lint.orphans.length}
-                </li>
-              </ul>
-
-              {lint.suggestions.length > 0 && (
-                <div className="kb-suggestions">
-                  <h4 className="kb-detail-section-title">建议</h4>
-                  <ul>
-                    {lint.suggestions.map((s) => (
-                      <li key={s} className="kb-suggestion">{s}</li>
+              {report.broken_links.length > 0 && (
+                <div className="kb-health-section">
+                  <div className="kb-health-section-title">死链明细</div>
+                  {report.broken_links.map((b, i) => (
+                    <div key={i} className="kb-health-line">
+                      {b.from_slug} → <span className="kb-health-broken">{b.to_slug}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {report.orphans.length > 0 && (
+                <div className="kb-health-section">
+                  <div className="kb-health-section-title">孤儿卡片（无入链）</div>
+                  <div className="kb-health-line">{report.orphans.join(', ')}</div>
+                </div>
+              )}
+              {report.suggestions.length > 0 && (
+                <div className="kb-health-section">
+                  <div className="kb-health-section-title">建议</div>
+                  <ul className="kb-suggest-list">
+                    {report.suggestions.map((s, i) => (
+                      <li key={i}>{s}</li>
                     ))}
                   </ul>
                 </div>
               )}
             </div>
+          ) : (
+            <div className="kb-loading">健康报告加载中...</div>
           )}
-
-          {/* 关系图入口 */}
-          <div className="kb-graph-summary">
-            <h4 className="kb-detail-section-title">关系图</h4>
-            {graphNodes.length === 0 ? (
-              <p className="kb-detail-empty">暂无节点</p>
-            ) : (
-              <p className="kb-graph-meta">{graphNodes.length} 节点 · {graphEdgeCount} 条引用边</p>
-            )}
-            <div className="kb-graph-chips">
-              {graphNodes.slice(0, 12).map((n) => (
-                <span
-                  key={n.id}
-                  className="kb-graph-chip"
-                  onClick={() => openDetail(n.id)}
-                  role="button"
-                  tabIndex={0}
-                  title={n.label}
-                >
-                  {n.label}
-                </span>
-              ))}
-              {graphNodes.length > 12 && <span className="kb-graph-chip kb-graph-more">+{graphNodes.length - 12}</span>}
-            </div>
-          </div>
         </section>
       </div>
 
-      {/* 详情抽屉 */}
+      {/* ── 详情抽屉 ── */}
+      {detailLoading && <div className="kb-loading kb-loading-fixed">加载详情中...</div>}
       {detailCard && (
         <CardDetail
           card={detailCard}
+          onOpenLink={openDetail}
           onClose={() => setDetailCard(null)}
-          onEdit={openEdit}
-          onDelete={handleDelete}
         />
       )}
 
-      {/* 新建/编辑表单 */}
+      {/* ── 新建/编辑表单弹层 ── */}
       {formOpen && (
-        <div className="kb-drawer-overlay" onClick={() => setFormOpen(false)}>
-          <div
-            className="kb-drawer"
-            role="dialog"
-            aria-label={editingCard ? '编辑卡片' : '新建卡片'}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="kb-drawer-header">
-              <h3 className="kb-detail-title">{editingCard ? '编辑卡片' : '新建卡片'}</h3>
-              <button className="kb-drawer-close" onClick={() => setFormOpen(false)} type="button" aria-label="关闭">
-                ×
-              </button>
-            </div>
-            <div className="kb-drawer-body">
-              <CardForm
-                initial={editingCard}
-                onSave={handleSave}
-                onCancel={() => setFormOpen(false)}
-                error={formError}
-                submitting={submitting}
-              />
-            </div>
+        <div className="kb-modal-overlay" onClick={() => { if (!submitting) { setFormOpen(false); setEditing(null); } }}>
+          <div className="kb-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 className="kb-modal-title">{editing ? `编辑卡片: ${editing.slug}` : '新建卡片'}</h3>
+            <CardForm
+              initial={editing ?? undefined}
+              onSubmit={handleSubmitForm}
+              onCancel={() => { setFormOpen(false); setEditing(null); }}
+              submitting={submitting}
+            />
+            {formError && <div className="kb-form-error">{formError}</div>}
           </div>
         </div>
       )}

@@ -54,14 +54,30 @@ def find_orphans(cards: list[Card]) -> list[str]:
 
     入链 = 其他卡片 `links` 字段中指向 wiki 的纯 slug；
     指向归档的 `archives/...` 链接不算入链。
+
+    性能：孤儿检测本身是纯内存 O(总链接数) 操作（无文件 IO），
+    优化点为——1) 推导式一次收集入链目标（省去显式循环）；2) 命中时
+    单次批量 warning（含每张孤儿卡所在文件），避免逐卡日志刷屏。
     """
-    incoming: set[str] = set()
     _t0 = time.perf_counter()
-    for card in cards:
-        for link in card.links:
-            if not link.startswith(ARCHIVES_PREFIX):
-                incoming.add(link)
+    incoming = {
+        link
+        for card in cards
+        for link in card.links
+        if not link.startswith(ARCHIVES_PREFIX)
+    }
     orphans = [c.slug for c in cards if c.slug not in incoming]
+    if orphans:
+        # 批量明细含触发文件：孤儿卡 slug@wiki/<type>/<slug>.md（无任何入链）
+        detail = ", ".join(
+            f"{c.slug}@wiki/{c.type}/{c.slug}.md"
+            for c in cards
+            if c.slug not in incoming
+        )
+        logger.warning(
+            "find_orphans: 发现 %d 张孤儿卡（无入链）明细=%s",
+            len(orphans), detail,
+        )
     logger.info(
         "find_orphans: 全库卡片=%d 入链目标=%s 孤儿=%s 耗时=%.2fms",
         len(cards), sorted(incoming), orphans,
@@ -116,17 +132,70 @@ def resolve_link(slug: str, store: Any) -> Optional[Card]:
     return card
 
 
+def _disk_slugs_of(store) -> Optional[set[str]]:
+    """一次目录遍历构建"磁盘存在 slug 集合"（wiki 三类型目录 + archives）。
+
+    返回 None 表示 store 无内部目录属性（如测试替身），调用方回退 store.get。
+    语义边界：集合只代表"文件名存在"（含 frontmatter 损坏文件）；目标命中
+    集合后仍须经 store.get 确认（损坏文件判断链），避免误判。
+    """
+    wiki_root = getattr(store, "_wiki_root", None)
+    archives_dir = getattr(store, "_archives_dir", None)
+    if wiki_root is None or archives_dir is None or not wiki_root.is_dir():
+        return None
+    slugs: set[str] = set()
+    for d in wiki_root.iterdir():
+        if d.is_dir():
+            slugs.update(p.stem for p in d.glob("*.md"))
+    if archives_dir.is_dir():
+        slugs.update(f"archives/{p.stem}" for p in archives_dir.glob("*.md"))
+    return slugs
+
+
 def find_broken_links(cards: list[Card], store: "CardStore") -> list[dict]:
-    """找出指向不存在卡片的链接：[{from_slug, to_slug}]。"""
+    """找出指向不存在卡片的链接：[{from_slug, to_slug}]。
+
+    断链 = 引用方卡片的 `links` 中某目标 resolve_link 返回 None。
+
+    性能（耗时分析优化）：`resolve_link` 每次都要对目标做文件系统探测
+    （archives + wiki 三类型目录），而知识库中：
+    1. 多个引用方常指向同一目标 → 按 slug 惰性缓存解析结果（本次调用内
+       同一目标只解析一次）；
+    2. wiki 卡片已由调用方传入（cards = store.list()）→ 用内存 slug 集合
+       判断 wiki 目标存在性，0 文件 IO；
+    3. 磁盘预扫描集合（_disk_slugs_of）：不在集合的目标 = 文件不存在 →
+       直接判断链，0 文件 IO；仅磁盘命中（含损坏文件）回退 store.get 确认
+       （语义与原实现完全一致：损坏/不存在均判断链）。
+
+    缓存与集合均只存于本次调用内，不改变 resolve_link 的公共行为与语义。
+    """
     broken: list[dict] = []
+    known: dict[str, Card] = {c.slug: c for c in cards}
+    disk_slugs = _disk_slugs_of(store)
+    resolve_cache: dict[str, Optional[Card]] = {}
+    cached_hits = 0
+    disk_misses = 0
     _t0 = time.perf_counter()
     for card in cards:
         for target in card.links:
-            if resolve_link(target, store) is None:
+            if target in resolve_cache:
+                cached_hits += 1
+            elif target in known and not target.startswith(ARCHIVES_PREFIX):
+                resolve_cache[target] = known[target]  # wiki 卡片内存命中，0 IO
+            elif disk_slugs is not None and target not in disk_slugs:
+                disk_misses += 1
+                resolve_cache[target] = None  # 磁盘不存在 → 断链（0 文件 IO）
+            else:
+                resolve_cache[target] = resolve_link(target, store)
+            if resolve_cache[target] is None:
                 broken.append({"from_slug": card.slug, "to_slug": target})
+                logger.warning(
+                    "find_broken_links: 断链触发于文件=wiki/%s/%s.md link=[[%s]]（目标不存在）",
+                    card.type, card.slug, target,
+                )
     logger.info(
-        "find_broken_links: 扫描卡片=%d 断链=%d 明细=%s 耗时=%.2fms",
-        len(cards), len(broken), broken,
+        "find_broken_links: 扫描卡片=%d 断链=%d 目标去重=%d 缓存命中=%d次 磁盘快速判定=%d次 明细=%s 耗时=%.2fms",
+        len(cards), len(broken), len(resolve_cache), cached_hits, disk_misses, broken,
         (time.perf_counter() - _t0) * 1000,
     )
     return broken

@@ -14,6 +14,16 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+# SingletonManager 统一收口（保留 fallback 变量 _manager 向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = None
+
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_FILE = os.path.join(_PROJECT_ROOT, "data", "system_prompt_config.json")
 
@@ -538,14 +548,33 @@ class SystemPromptConfigManager:
 
 
 # ── 全局单例 ──
-_manager: Optional[SystemPromptConfigManager] = None
+_manager: Optional[SystemPromptConfigManager] = None  # 保留作为 fallback
+
+
+def _create_manager(config=None):
+    """SystemPromptConfigManager 工厂（供 SingletonManager 使用）"""
+    return SystemPromptConfigManager()
 
 
 def get_manager() -> SystemPromptConfigManager:
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("system_prompt_manager")
     global _manager
     if _manager is None:
-        _manager = SystemPromptConfigManager()
+        _manager = _create_manager()
     return _manager
+
+
+def reset_system_prompt_manager():
+    """重置系统提示词配置管理器单例（仅用于测试）
+
+    Why: 前序测试调用 get_manager() 创建单例并缓存配置，可能导致后续测试
+    的配置查询读到陈旧缓存。重置确保每个测试拿到干净的配置管理器。
+    """
+    global _manager
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("system_prompt_manager")
+    _manager = None
 
 
 def is_section_enabled(section_name: str, default: bool = True) -> bool:
@@ -573,3 +602,8 @@ def is_section_enabled(section_name: str, default: bool = True) -> bool:
         return bool(section.get("enabled", default))
     except Exception:
         return default
+
+
+# 注册单例工厂（置于文件末尾）
+if _SINGLETON_AVAILABLE:
+    register_singleton("system_prompt_manager", _create_manager)

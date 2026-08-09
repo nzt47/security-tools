@@ -1,207 +1,272 @@
 /**
- * 知识库组件测试（任务6 Step 4）
+ * 知识库前端测试（任务6）
  *
- * 覆盖：列表渲染 / 状态角标 / 详情展示 / 搜索交互。
- * 参考 App.test.tsx 的 mock 模式：mock global.fetch 返回知识库各接口响应。
+ * 验证范围：
+ *  - 列表渲染与筛选
+ *  - 状态角标四色（StatusBadge）
+ *  - 详情抽屉（含入链/出链）
+ *  - 搜索交互（融合检索命中展示）
+ *  - 删除 409 入链保护提示
+ *
+ * 策略：mock ../api/knowledge 模块，避免真实 HTTP。
  */
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import type { Card, CardDetail, HealthReport, KnowledgeHit } from '../api/knowledge-types';
+import { ApiError } from '../lib/apiClient';
+import StatusBadge from '../components/Knowledge/StatusBadge';
+import CardDetailView from '../components/Knowledge/CardDetail';
 import Knowledge from '../pages/Knowledge';
 
-// ── 测试数据 ──────────────────────────────────────────────
+// ── mock API 模块 ──────────────────────────────────────────────
+const apiMock = vi.hoisted(() => ({
+  listCards: vi.fn(),
+  getCard: vi.fn(),
+  createCard: vi.fn(),
+  updateCard: vi.fn(),
+  deleteCard: vi.fn(),
+  searchKnowledge: vi.fn(),
+  getLint: vi.fn(),
+}));
 
-const CARD_A = {
-  title: 'RRF 融合检索',
-  slug: 'rrf-fusion',
+vi.mock('../api/knowledge', () => apiMock);
+
+const BASE_CARD: Card = {
+  title: '测试概念卡',
+  slug: 'test-concept',
   status: 'current',
   type: 'concepts',
-  source: 'task4',
-  date: '2026-08-01',
-  tags: ['retrieval'],
-  links: ['bm25'],
-  contradictions: [],
-  insight: 'RRF 稳定融合多路召回',
-  scope: 'knowledge',
-  content: 'Reciprocal Rank Fusion 是知识库检索的核心算法。',
-  metadata: {},
-};
-
-const CARD_B = {
-  title: 'BM25 基线',
-  slug: 'bm25',
-  status: 'draft',
-  type: 'entities',
-  source: 'manual',
-  date: '2026-08-02',
-  tags: [],
+  source: '测试',
+  date: '2026-08-08',
+  tags: ['测试'],
   links: [],
   contradictions: [],
-  insight: '',
-  scope: 'knowledge',
+  insight: '一句话洞见',
+  scope: '',
   content: '',
   metadata: {},
 };
 
-const LINT_OK = {
-  ok: true,
-  report: {
-    checked_at: '2026-08-08T10:00:00',
-    total_cards: 2,
-    orphans: [],
-    broken_links: [],
-    index_drift: [],
-    stale_cards: [],
-    unresolved_conflicts: [],
-    health_score: 100,
-    suggestions: [],
-  },
+const BASE_DETAIL: CardDetail = {
+  ...BASE_CARD,
+  links: ['child-a'],
+  incoming_links: ['parent-x'],
 };
 
-const GRAPH_OK = {
-  ok: true,
-  nodes: [
-    { id: 'rrf-fusion', label: 'RRF 融合检索', type: 'concepts', status: 'current' },
-    { id: 'bm25', label: 'BM25 基线', type: 'entities', status: 'draft' },
-  ],
-  edges: [{ source: 'rrf-fusion', target: 'bm25' }],
+const BASE_REPORT: HealthReport = {
+  checked_at: '2026-08-08T10:00:00',
+  total_cards: 1,
+  orphans: ['test-concept'],
+  broken_links: [{ from_slug: 'a', to_slug: 'missing' }],
+  index_drift: [],
+  stale_cards: [],
+  unresolved_conflicts: [],
+  health_score: 92.5,
+  suggestions: ['修复死链'],
 };
 
-function jsonResponse(body: unknown, status = 200): Response {
-  return {
-    ok: status >= 200 && status < 300,
-    status,
-    json: () => Promise.resolve(body),
-  } as Response;
-}
-
-function makeFetchMock() {
-  return vi.fn((url: string, init?: RequestInit) => {
-    // 详情：GET /api/knowledge/cards/<slug>（slug 非 cards）
-    if (url.startsWith('/api/knowledge/cards/')) {
-      const slug = url.split('/').pop();
-      if (slug === CARD_A.slug) {
-        return Promise.resolve(jsonResponse({ ok: true, card: { ...CARD_A, incoming_links: ['bm25'] } }));
-      }
-      return Promise.resolve(jsonResponse({ ok: false, error: `卡片不存在: ${slug}` }, 404));
-    }
-    // 列表：GET /api/knowledge/cards（含 ?status=&type= 过滤）
-    if (url === '/api/knowledge/cards' || url.startsWith('/api/knowledge/cards?')) {
-      return Promise.resolve(jsonResponse({ ok: true, cards: [CARD_A, CARD_B], count: 2 }));
-    }
-    if (url.startsWith('/api/knowledge/lint')) {
-      return Promise.resolve(jsonResponse(LINT_OK));
-    }
-    if (url.startsWith('/api/knowledge/graph')) {
-      return Promise.resolve(jsonResponse(GRAPH_OK));
-    }
-    if (url.startsWith('/api/knowledge/query')) {
-      const body = init?.body ? JSON.parse(String(init.body)) : {};
-      if (body.question === 'rrf') {
-        return Promise.resolve(
-          jsonResponse({
-            ok: true,
-            hits: [
-              {
-                slug: 'rrf-fusion',
-                title: 'RRF 融合检索',
-                status: 'current',
-                type: 'concepts',
-                score: 12.5,
-                rerank_score: 0,
-                source_ref: 'rrf-fusion',
-                snippet: 'Reciprocal Rank Fusion 是核心算法。',
-              },
-            ],
-          }),
-        );
-      }
-      return Promise.resolve(jsonResponse({ ok: true, hits: [] }));
-    }
-    if (url.startsWith('/api/knowledge/index')) {
-      return Promise.resolve(jsonResponse({ ok: true, content: '# 索引' }));
-    }
-    return Promise.resolve(jsonResponse({ ok: false, error: 'not found' }, 404));
+describe('StatusBadge', () => {
+  it('渲染四种状态文案且带 data-status 属性', () => {
+    const { container } = render(
+      <div>
+        <StatusBadge status="draft" />
+        <StatusBadge status="current" />
+        <StatusBadge status="archive" />
+        <StatusBadge status="unknown" />
+      </div>,
+    );
+    expect(screen.getByText('草稿')).toBeTruthy();
+    expect(screen.getByText('有效')).toBeTruthy();
+    expect(screen.getByText('归档')).toBeTruthy();
+    expect(screen.getByText('未知')).toBeTruthy();
+    const badges = container.querySelectorAll('.kb-status-badge');
+    expect(badges.length).toBe(4);
+    expect(badges[0].getAttribute('data-status')).toBe('draft');
+    expect(badges[1].getAttribute('data-status')).toBe('current');
+    expect(badges[2].getAttribute('data-status')).toBe('archive');
+    expect(badges[3].getAttribute('data-status')).toBe('unknown');
   });
-}
 
-// ── 测试套件 ──────────────────────────────────────────────
+  it('withText=false 时不渲染文字', () => {
+    const { container } = render(<StatusBadge status="current" withText={false} />);
+    expect(container.querySelector('.kb-status-badge')?.textContent).toBe('');
+  });
+});
 
-describe('知识库主页', () => {
-  let fetchMock: ReturnType<typeof makeFetchMock>;
+describe('CardDetail 抽屉', () => {
+  it('展示 frontmatter 字段、正文、入链与出链', () => {
+    render(
+      <CardDetailView card={BASE_DETAIL} onClose={() => {}} onOpenLink={() => {}} />,
+    );
+    expect(screen.getByText('测试概念卡')).toBeTruthy();
+    expect(screen.getByText(/一句话洞见/)).toBeTruthy();
+    expect(screen.getByText(/slug: test-concept/)).toBeTruthy();
+    expect(screen.getByText('child-a')).toBeTruthy();   // 出链
+    expect(screen.getByText('parent-x')).toBeTruthy();  // 入链
+    expect(screen.getByText('出链 (1)')).toBeTruthy();
+    expect(screen.getByText('入链 (1)')).toBeTruthy();
+  });
 
+  it('点击入链 chip 触发 onOpenLink', () => {
+    const onOpen = vi.fn();
+    render(<CardDetailView card={BASE_DETAIL} onClose={() => {}} onOpenLink={onOpen} />);
+    fireEvent.click(screen.getByText('parent-x'));
+    expect(onOpen).toHaveBeenCalledWith('parent-x');
+  });
+
+  it('点击遮罩触发 onClose', () => {
+    const onClose = vi.fn();
+    render(<CardDetailView card={BASE_DETAIL} onClose={onClose} />);
+    fireEvent.click(document.querySelector('.kb-detail-overlay') as HTMLElement);
+    expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe('Knowledge 页面', () => {
   beforeEach(() => {
-    fetchMock = makeFetchMock();
-    global.fetch = fetchMock as any;
+    vi.clearAllMocks();
+    apiMock.listCards.mockResolvedValue({ ok: true, cards: [BASE_CARD], count: 1 });
+    apiMock.getLint.mockResolvedValue({ ok: true, report: BASE_REPORT });
+    apiMock.getCard.mockResolvedValue({ ok: true, card: BASE_DETAIL });
   });
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('列表区渲染卡片标题与状态角标（current/draft 配色区分）', async () => {
+  it('初始化加载卡片列表与健康报告', async () => {
     render(<Knowledge />);
-
     await waitFor(() => {
-      expect(screen.getAllByText('RRF 融合检索').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('BM25 基线').length).toBeGreaterThan(0);
+      expect(screen.getByText('测试概念卡')).toBeTruthy();
     });
-
-    // 状态角标文案
-    expect(screen.getByText('现行')).toBeInTheDocument();
-    expect(screen.getByText('草稿')).toBeInTheDocument();
-
-    // 配色类名区分
-    const badges = screen.getAllByTestId('status-badge');
-    const cls = badges.map((b) => b.className);
-    expect(cls.some((c) => c.includes('kb-status-current'))).toBe(true);
-    expect(cls.some((c) => c.includes('kb-status-draft'))).toBe(true);
+    expect(apiMock.listCards).toHaveBeenCalled();
+    expect(apiMock.getLint).toHaveBeenCalled();
+    // 健康分渲染
+    await waitFor(() => {
+      expect(screen.getByText('92.5')).toBeTruthy();
+    });
   });
 
-  it('健康区展示健康分（100）与卡片总数', async () => {
+  it('知识库为空时不自动创建数据（空白状态）', async () => {
+    apiMock.listCards.mockResolvedValue({ ok: true, cards: [], count: 0 });
     render(<Knowledge />);
-
     await waitFor(() => {
-      expect(screen.getByTestId('health-score')).toHaveTextContent('100');
+      expect(screen.getByText(/暂无卡片/)).toBeTruthy();
     });
-    expect(screen.getByText(/共 2 张卡片/)).toBeInTheDocument();
-    // 五类问题计数均为 0
-    expect(screen.getByText('未裁决矛盾：0')).toBeInTheDocument();
-    expect(screen.getByText('断链：0')).toBeInTheDocument();
+    expect(apiMock.createCard).not.toHaveBeenCalled();
   });
 
-  it('点击卡片打开详情抽屉，展示正文与出链', async () => {
+  it('点击卡片打开详情抽屉', async () => {
     render(<Knowledge />);
-
     await waitFor(() => {
-      expect(screen.getAllByText('RRF 融合检索').length).toBeGreaterThan(0);
+      expect(screen.getByText('测试概念卡')).toBeTruthy();
     });
-
-    fireEvent.click(screen.getAllByText('RRF 融合检索')[0]);
-
-    const detail = await screen.findByTestId('card-detail');
-    expect(detail).toBeInTheDocument();
-    // 正文
-    expect(within(detail).getByText('Reciprocal Rank Fusion 是知识库检索的核心算法。')).toBeInTheDocument();
-    // 出链
-    expect(within(detail).getByText('出链 (1)')).toBeInTheDocument();
-    // bm25 出现在出链与入链（CARD_A.links 与 incoming_links 均含 bm25）
-    expect(within(detail).getAllByText('bm25').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByText('测试概念卡'));
+    await waitFor(() => {
+      expect(screen.getByText('出链 (1)')).toBeTruthy();
+    });
+    expect(apiMock.getCard).toHaveBeenCalledWith('test-concept');
   });
 
-  it('搜索交互：输入问题提交后展示命中结果与 [来源: slug|status] 标记', async () => {
+  it('快速切换卡片时丢弃过期详情响应（竞态守卫）', async () => {
+    let resolveA!: (v: unknown) => void;
+    let resolveB!: (v: unknown) => void;
+    apiMock.getCard
+      .mockImplementationOnce(() => new Promise((res) => { resolveA = res; }))
+      .mockImplementationOnce(() => new Promise((res) => { resolveB = res; }));
+
+    const secondCard: Card = { ...BASE_CARD, slug: 'second', title: '第二张卡' };
+    apiMock.listCards.mockResolvedValue({ ok: true, cards: [BASE_CARD, secondCard], count: 2 });
+
     render(<Knowledge />);
-
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('输入问题，融合检索知识库...')).toBeInTheDocument();
+      expect(screen.getByText('测试概念卡')).toBeTruthy();
     });
 
-    const input = screen.getByPlaceholderText('输入问题，融合检索知识库...');
-    fireEvent.change(input, { target: { value: 'rrf' } });
-    fireEvent.click(screen.getByRole('button', { name: '检索' }));
+    // 先点 A（test-concept），随即点 B（second），A 响应后到
+    fireEvent.click(screen.getByText('测试概念卡'));
+    fireEvent.click(screen.getByText('第二张卡'));
 
-    // [来源: slug|status] 标记（唯一文本，可证明搜索命中渲染）
+    resolveB({ ok: true, card: { ...BASE_DETAIL, slug: 'second', title: '第二张卡', incoming_links: [] } });
     await waitFor(() => {
-      expect(screen.getByText('[来源: rrf-fusion | current]')).toBeInTheDocument();
+      expect(screen.getByText('入链 (0)')).toBeTruthy(); // B 详情已展示
     });
+
+    // A 的过期响应到达：应被丢弃，不覆盖 B 详情
+    resolveA({ ok: true, card: { ...BASE_DETAIL, incoming_links: ['parent-x'] } });
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.queryByText('入链 (1)')).toBeNull();
+    expect(screen.getByText('入链 (0)')).toBeTruthy();
+  });
+
+  it('搜索交互：输入问题并检索，展示命中结果与来源标记', async () => {
+    const hits: KnowledgeHit[] = [
+      {
+        slug: 'test-concept',
+        title: '测试概念卡',
+        status: 'current',
+        type: 'concepts',
+        score: 0.85,
+        rerank_score: 0.9,
+        source_ref: '[来源: test-concept|current]',
+        snippet: '关于双链的说明片段',
+      },
+    ];
+    apiMock.searchKnowledge.mockResolvedValue({ ok: true, hits, result: '' });
+    render(<Knowledge />);
+    const input = screen.getByPlaceholderText('输入问题，检索知识库（RRF 融合）');
+    fireEvent.change(input, { target: { value: '什么是双链' } });
+    fireEvent.click(screen.getByText('检索'));
+    // 命中区独有来源标记 [来源: slug|status] 出现即代表搜索已渲染
+    await waitFor(() => {
+      expect(screen.getByText('[来源: test-concept|current]')).toBeTruthy();
+    });
+    expect(apiMock.searchKnowledge).toHaveBeenCalledWith('什么是双链', 5);
+    // 状态角标在命中项中可见（列表区也有角标，故用 getAll）
+    expect(screen.getAllByText('有效').length).toBeGreaterThan(0);
+  });
+
+  it('删除 409 时弹出入链保护提示', async () => {
+    const err = new ApiError('API_HTTP_ERROR', '卡片存在入链，删除被拒: test-concept', 409, {
+      incoming_links: ['parent-x'],
+    });
+    apiMock.deleteCard.mockRejectedValue(err);
+    const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+    const confirmSpy = vi.spyOn(window, 'confirm').mockImplementation(() => true);
+    render(<Knowledge />);
+    await waitFor(() => {
+      expect(screen.getByText('测试概念卡')).toBeTruthy();
+    });
+    fireEvent.click(screen.getByTitle('删除'));
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalled();
+    });
+    const alertMsg = alertSpy.mock.calls[0][0] as string;
+    expect(alertMsg).toContain('parent-x');
+    expect(alertMsg).toContain('删除被拒');
+    confirmSpy.mockRestore();
+    alertSpy.mockRestore();
+  });
+
+  it('新建卡片表单提交后刷新列表', async () => {
+    apiMock.createCard.mockResolvedValue({ ok: true, card: BASE_CARD });
+    render(<Knowledge />);
+    await waitFor(() => {
+      expect(screen.getByText('测试概念卡')).toBeTruthy();
+    });
+    fireEvent.click(screen.getByText('✚ 新建卡片'));
+    await waitFor(() => {
+      expect(screen.getByText('新建卡片')).toBeTruthy();
+    });
+    fireEvent.change(screen.getByPlaceholderText('卡片标题（slug 默认由此生成）'), {
+      target: { value: '新卡标题' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('唯一标识（创建后不可修改）'), {
+      target: { value: 'new-card' },
+    });
+    fireEvent.change(screen.getByPlaceholderText('一句话核心洞见（必填）'), {
+      target: { value: '新卡洞见' },
+    });
+    fireEvent.click(screen.getByText('创建'));
+    await waitFor(() => {
+      expect(apiMock.createCard).toHaveBeenCalled();
+    });
+    expect(apiMock.listCards).toHaveBeenCalled();
   });
 });

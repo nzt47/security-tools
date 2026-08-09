@@ -35,6 +35,16 @@ from agent.monitoring.tracing import get_trace_id
 
 logger = logging.getLogger(__name__)
 
+# SingletonManager 统一收口（保留 fallback 变量 _alert_notifier 向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton, is_initialized,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = is_initialized = None
+
 
 class NotificationChannel(Enum):
     """通知渠道类型"""
@@ -639,7 +649,19 @@ class AlertNotifier:
 
 
 # 全局单例
-_alert_notifier: Optional[AlertNotifier] = None
+_alert_notifier: Optional[AlertNotifier] = None  # 保留作为 fallback
+
+
+def _create_alert_notifier(config=None):
+    """AlertNotifier 工厂（供 SingletonManager 使用）
+
+    config 可能以两种形态传入，需区分：
+    - SingletonManager dict 通道：{"alert_notifier_config": <原配置>}，需解包
+    - 直接传入的通知配置（dict 或 None）：原样传给 AlertNotifier
+    """
+    if isinstance(config, dict) and "alert_notifier_config" in config:
+        config = config["alert_notifier_config"]
+    return AlertNotifier(config)
 
 
 def get_alert_notifier(config: Optional[Dict[str, Any]] = None) -> AlertNotifier:
@@ -651,10 +673,22 @@ def get_alert_notifier(config: Optional[Dict[str, Any]] = None) -> AlertNotifier
     Returns:
         AlertNotifier 实例
     """
+    if _SINGLETON_AVAILABLE:
+        if config is not None and not is_initialized("alert_notifier"):
+            return get_singleton("alert_notifier", {"alert_notifier_config": config})
+        return get_singleton("alert_notifier")
     global _alert_notifier
     if _alert_notifier is None:
-        _alert_notifier = AlertNotifier(config)
+        _alert_notifier = _create_alert_notifier(config)
     return _alert_notifier
+
+
+def reset_alert_notifier():
+    """重置全局告警通知器单例（仅用于测试）"""
+    global _alert_notifier
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("alert_notifier")
+    _alert_notifier = None
 
 
 def send_alert_notification(
@@ -701,3 +735,8 @@ def send_alert_notification(
 
     notifier = get_alert_notifier()
     return notifier.send(notification)
+
+
+# 注册单例工厂（置于文件末尾，确保类已定义）
+if _SINGLETON_AVAILABLE:
+    register_singleton("alert_notifier", _create_alert_notifier)

@@ -1,35 +1,29 @@
 /**
- * 卡片状态角标（任务6 Step 2）
- *
- * 四种状态配色（draft/current/archive/unknown），unknown 兜底任何未知状态。
+ * 状态角标（任务6）：draft / current / archive / unknown 四种配色。
+ * 渲染纯展示，无交互；通过 data-status 属性供 CSS 定制。
  */
 import React from 'react';
-import { cn } from '../../lib/utils';
+import type { CardStatus } from '../../api/knowledge-types';
+import './StatusBadge.css';
 
-const STATUS_LABELS: Record<string, string> = {
+/** 状态显示文案映射（与 lifecycle.py 命名一致） */
+const STATUS_TEXT: Record<CardStatus, string> = {
   draft: '草稿',
-  current: '现行',
-  archive: '已归档',
+  current: '有效',
+  archive: '归档',
   unknown: '未知',
 };
 
-export interface StatusBadgeProps {
-  status: string;
-  size?: 'sm' | 'md';
-  className?: string;
+interface StatusBadgeProps {
+  status: CardStatus;
+  /** 是否显示文字（默认显示） */
+  withText?: boolean;
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, size = 'sm', className }) => {
-  const key = STATUS_LABELS[status] ? status : 'unknown';
-  return (
-    <span
-      className={cn('kb-status-badge', `kb-status-${key}`, `kb-status-${size}`, className)}
-      title={`状态: ${status}`}
-      data-testid="status-badge"
-    >
-      {STATUS_LABELS[key]}
-    </span>
-  );
-};
+const StatusBadge: React.FC<StatusBadgeProps> = ({ status, withText = true }) => (
+  <span className={`kb-status-badge kb-status--${status}`} data-status={status} title={`状态: ${STATUS_TEXT[status] ?? status}`}>
+    {withText && (STATUS_TEXT[status] ?? status)}
+  </span>
+);
 
 export default StatusBadge;

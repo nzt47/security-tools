@@ -35,7 +35,9 @@ concurrency:
 
 on:
   push:
-    branches: [master, main]
+    # develop 分支也纳入触发：BOM/PS 契约变更（packages/tlm-hook-failsafe/**）需在
+    # develop push 时同样验证，否则 develop 上的 PS 脚本改动无法获得契约测试覆盖
+    branches: [master, main, develop]
     paths:
       - 'packages/tlm-hook-failsafe/**'
       - 'scripts/dev/hook_fail_safe.psm1'

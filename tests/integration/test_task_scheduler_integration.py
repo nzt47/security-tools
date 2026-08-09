@@ -53,10 +53,9 @@ def scheduler():
 def reset_scheduler_singleton():
     """重置全局 _scheduler 单例"""
     import agent.task_scheduler as module
-    old = module._scheduler
-    module._scheduler = None
+    module.reset_scheduler()
     yield
-    module._scheduler = old
+    module.reset_scheduler()
 
 
 @pytest.fixture

@@ -7,6 +7,8 @@ log.md 写操作登记、slug 路径穿越防御、损坏卡片容错。
 
 from __future__ import annotations
 
+import logging
+
 import pytest
 
 from agent.knowledge.card import (
@@ -260,6 +262,30 @@ def test_delete_missing_returns_false(store):
     assert store.delete("不存在") is False
 
 
+def test_create_parses_wikilinks_when_links_empty(store):
+    """create 时 links 为空则从正文解析双链（与 update 事实源对齐）。"""
+    a = make_card("引用卡", content="细节见 [[目标卡]] 的说明")
+    store.create(a)
+    got = store.get("引用卡")
+    assert got is not None
+    assert "目标卡" in got.links
+
+
+def test_create_keeps_explicit_links_over_content(store):
+    """显式传入 links 优先于正文（兼容既有调用方）。"""
+    a = make_card("引用卡", content="正文无双链", links=["目标卡"])
+    store.create(a)
+    assert store.get("引用卡").links == ["目标卡"]
+
+
+def test_create_wikilink_registers_incoming_index_for_delete(store):
+    """正文双链建卡后，删除被引用卡被拒（入链索引已登记 → delete 返回 False）。"""
+    store.create(make_card("引用卡", content="指向 [[目标卡]]"))
+    store.create(make_card("目标卡"))
+    assert store.delete("目标卡") is False
+    assert store.get("目标卡") is not None
+
+
 def test_delete_removes_index_entry(store, tmp_path):
     store.create(make_card("驾驭工程"))
     store.create(make_card("提示词工程"))
@@ -341,6 +367,94 @@ def test_delete_many_index_missing_fallback(store, tmp_path):
     assert store.get("知识蒸馏") is not None
 
 
+# ---------- 入链索引写路径降级（异常捕获加固） ----------
+
+
+def _boom_index_sync(*args, **kwargs):
+    """模拟入链索引写失败（磁盘满/权限等 OSError）。"""
+    raise OSError("入链索引写入失败（模拟磁盘故障）")
+
+
+def test_create_index_sync_failure_degrades(store, monkeypatch, caplog):
+    """create 时入链索引登记失败 → 卡片主操作不阻断，仅告警降级。"""
+    monkeypatch.setattr("agent.knowledge.card.update_links_delta", _boom_index_sync)
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        store.create(make_card("驾驭工程", links=["提示词工程"]))
+    assert store.get("驾驭工程") is not None   # 卡片已落库，主操作成功
+    assert "入链索引登记失败" in caplog.text   # 降级告警已记录
+
+
+def test_update_index_sync_failure_degrades(store, monkeypatch, caplog):
+    """update 时索引写失败（旧引用移除 + 新引用登记均失败）→ 更新不阻断。"""
+    store.create(make_card("驾驭工程", content="旧正文"))
+    monkeypatch.setattr("agent.knowledge.card.update_links_delta", _boom_index_sync)
+    card = store.get("驾驭工程")
+    card.content = "新正文 [[提示词工程]]"
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        store.update(card)
+    got = store.get("驾驭工程")
+    assert got.content == "新正文 [[提示词工程]]"   # 正文更新成功（主操作不阻断）
+    assert "入链索引" in caplog.text
+
+
+def test_delete_index_sync_failure_degrades(store, monkeypatch, caplog):
+    """delete 时索引移除失败 → 删除成功，仅告警。"""
+    store.create(make_card("驾驭工程"))
+    monkeypatch.setattr("agent.knowledge.card.update_links_delta", _boom_index_sync)
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        assert store.delete("驾驭工程") is True
+    assert store.get("驾驭工程") is None
+
+
+def test_delete_many_index_sync_failure_degrades(store, monkeypatch, caplog):
+    """delete_many 时索引同步失败 → 批量删除不阻断，全部成功。"""
+    store.create(make_card("驾驭工程"))
+    store.create(make_card("提示词工程"))
+    monkeypatch.setattr("agent.knowledge.card.update_links_delta", _boom_index_sync)
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        result = store.delete_many(["驾驭工程", "提示词工程"])
+    assert result == {"驾驭工程": True, "提示词工程": True}
+    assert store.list() == []
+
+
+def test_update_inline_remove_failure_degrades(store, monkeypatch, caplog):
+    """update 内联「移除旧引用」失败（旧卡含 links）→ 更新不阻断，仅告警。"""
+    store.create(make_card("驾驭工程", content="旧正文 [[提示词工程]]", links=["提示词工程"]))
+    assert store.get("驾驭工程").links == ["提示词工程"]   # create 保持传入值
+    monkeypatch.setattr("agent.knowledge.card.update_links_delta", _boom_index_sync)
+    card = store.get("驾驭工程")
+    card.content = "新正文"
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        store.update(card)
+    got = store.get("驾驭工程")
+    assert got.content == "新正文"                  # 主操作成功
+    assert "移除旧引用失败" in caplog.text          # 内联 remove 降级告警
+
+
+def test_create_index_sync_valueerror_degrades(store, monkeypatch, caplog):
+    """索引写失败抛 ValueError（如索引损坏 UnicodeDecodeError 传播）→ 同样降级。"""
+    def _boom_valueerror(*args, **kwargs):
+        raise ValueError("入链索引解析失败（模拟损坏索引）")
+    monkeypatch.setattr("agent.knowledge.card.update_links_delta", _boom_valueerror)
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        store.create(make_card("驾驭工程", links=["提示词工程"]))
+    assert store.get("驾驭工程") is not None
+    assert "入链索引登记失败" in caplog.text
+
+
+def test_delete_incoming_check_index_corrupt_fallback(store, tmp_path, caplog):
+    """读路径：索引文件损坏（非法 UTF-8）→ _has_incoming_links 回退全扫，判定正确。"""
+    store.create(make_card("提示词工程", links=["驾驭工程"]))
+    store.create(make_card("驾驭工程"))
+    links_index = tmp_path / "kb" / "index_links.md"
+    assert links_index.exists()
+    links_index.write_bytes(b"\xff\xfe\x00\x01")   # 非法 UTF-8 → read_text 抛 UnicodeDecodeError
+    with caplog.at_level(logging.WARNING, logger="agent.knowledge.card"):
+        assert store.delete("驾驭工程") is False    # 回退全扫：提示词工程 仍引用 → 拒绝
+    assert store.get("驾驭工程") is not None
+    assert "回退全库扫描" in caplog.text            # 损坏回退告警已记录
+
+
 # ---------- list ----------
 
 
@@ -359,6 +473,102 @@ def test_list_all_and_filters(store):
 
 def test_list_empty_wiki(store):
     assert store.list() == []
+
+
+# ---------- list(use_cache=True) 内存缓存 ----------
+
+
+def _seed_types(store):
+    """建齐三个类型目录 + 各一张卡（模拟真实知识库布局）。"""
+    store.create(make_card("驾驭工程", type="concepts"))
+    store.create(make_card("张三", type="entities"))
+    store.create(make_card("关于复杂系统", type="insights"))
+
+
+def test_list_cache_matches_default_semantics(store):
+    """【不易】use_cache=True 结果与默认实时读盘一致（语义不变式）。"""
+    _seed_types(store)
+    store.create(make_card("提示词工程", status="draft", type="concepts"))
+    assert [c.slug for c in store.list(use_cache=True)] == [
+        c.slug for c in store.list()
+    ]
+
+
+def test_list_cache_hit_skips_disk_read(store, monkeypatch):
+    """指纹未变时缓存命中：_list_from_disk 只执行一次（跳过重复 YAML 解析）。"""
+    _seed_types(store)
+    calls = {"n": 0}
+    orig = CardStore._list_from_disk
+
+    def counting(self):
+        calls["n"] += 1
+        return orig(self)
+
+    monkeypatch.setattr(CardStore, "_list_from_disk", counting)
+    store.list(use_cache=True)  # 冷加载 + 建缓存
+    store.list(use_cache=True)  # 命中
+    store.list(use_cache=True)  # 命中
+    assert calls["n"] == 1
+
+
+def test_list_cache_invalidates_on_create(store, monkeypatch):
+    """新增卡片 → 缓存增量同步 → 立即可见，且不触发全量重载。
+
+    【变易】2026-08-09 内存缓存优化：create 由「失效+全量重载」升级为
+    「增量同步」（写路径即时更新缓存与指纹），写后查询不再全量重载。
+    正确性契约不变：新卡立即可见。
+    """
+    _seed_types(store)
+    calls = {"n": 0}
+    orig = CardStore._list_from_disk
+
+    def counting(self):
+        calls["n"] += 1
+        return orig(self)
+
+    monkeypatch.setattr(CardStore, "_list_from_disk", counting)
+    assert len(store.list(use_cache=True)) == 3
+    store.create(make_card("提示词工程"))  # 新文件 → 增量同步入缓存
+    got = store.list(use_cache=True)
+    assert {c.slug for c in got} == {"驾驭工程", "张三", "关于复杂系统", "提示词工程"}
+    assert calls["n"] == 1  # 增量同步：不触发全量重载
+
+
+def test_list_cache_invalidates_on_delete(store):
+    """删除卡片 → 缓存增量同步 → 被删卡不再出现。"""
+    _seed_types(store)
+    assert len(store.list(use_cache=True)) == 3
+    store.delete("张三")
+    assert {c.slug for c in store.list(use_cache=True)} == {
+        "驾驭工程",
+        "关于复杂系统",
+    }
+
+
+def test_list_cache_filters_status_and_type(store):
+    """缓存路径下 status/type 过滤与默认路径语义一致。"""
+    _seed_types(store)
+    store.create(make_card("提示词工程", status="draft", type="concepts"))
+    assert {c.slug for c in store.list(use_cache=True, status="draft")} == {
+        "提示词工程"
+    }
+    assert {c.slug for c in store.list(use_cache=True, type="entities")} == {"张三"}
+    assert {
+        c.slug for c in store.list(use_cache=True, status="current", type="concepts")
+    } == {"驾驭工程"}
+
+
+def test_list_cache_skips_missing_type_dirs(store):
+    """缺失的类型目录被指纹跳过（目录存在与否不影响缓存可用性）。
+
+    【不易】缓存语义不变量：无论目录是否齐全，use_cache 结果都与默认
+    实时读盘一致；缺失目录仅影响指纹中出现的条目。
+    """
+    assert store.list(use_cache=True) == []  # 空 wiki：三目录均缺失
+    store.create(make_card("驾驭工程"))      # 仅 concepts 目录
+    assert [c.slug for c in store.list(use_cache=True)] == [
+        c.slug for c in store.list()
+    ]
 
 
 # ---------- index.md 维护 ----------

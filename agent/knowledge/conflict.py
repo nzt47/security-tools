@@ -79,14 +79,26 @@ def mark_conflict(
 
 def _resolve_side(card: Any, other_slug: str, decision_slug: str, store) -> None:
     """将卡片 contradictions 中指向 other_slug 的条目置为 resolved 并关联裁决卡。"""
-    changed = False
+    changed = 0
+    prev_status = None
     for item in card.contradictions or []:
         if item.get("target_slug") == other_slug:
+            prev_status = item.get("status")
             item["status"] = "resolved"
             item["decision_slug"] = decision_slug
-            changed = True
+            changed += 1
     if changed:
         store.update(card)
+        logger.info(
+            "resolve_conflict: 卡片 %s 的 %d 条矛盾已置 resolved "
+            "（target=%s decision_slug=%s status_before=%r）",
+            card.slug, changed, other_slug, decision_slug, prev_status,
+        )
+    else:
+        logger.info(
+            "resolve_conflict: 卡片 %s 无指向 %s 的矛盾条目（跳过更新）",
+            card.slug, other_slug,
+        )
 
 
 def resolve_conflict(
@@ -102,7 +114,7 @@ def resolve_conflict(
     归档时自动重链）；decision_slug 为第三方时双方均归档。
 
     顺序设计：先更新矛盾状态（归档后 wiki 读不到），再执行归档；归档失败
-    （如 draft → archive 非法迁移）记警告并返回 False。
+    （如 draft → archive 非法迁移）记警告不阻断——矛盾已裁决，仍返回 True。
     """
     store = _store_of(card_store)
     source = store.get(source_slug)
@@ -120,12 +132,22 @@ def resolve_conflict(
             source_slug, target_slug,
         )
         return False
+    logger.info(
+        "resolve_conflict: 开始裁决 source=%s target=%s decision=%s summary=%r",
+        source_slug, target_slug, decision_slug, entry.get("summary", ""),
+    )
 
     # 1. 双方 contradictions 置 resolved（须在归档前完成）
     _resolve_side(source, target_slug, decision_slug, store)
+    logger.info(
+        "resolve_conflict: source 侧矛盾已置 resolved（decision_slug=%s）", decision_slug,
+    )
     target = store.get(target_slug)
     if target is not None:
         _resolve_side(target, source_slug, decision_slug, store)
+        logger.info(
+            "resolve_conflict: target 侧矛盾已置 resolved（decision_slug=%s）", decision_slug,
+        )
 
     # 2. 被否卡片（非 decision 一方）迁移至 archive；第三方裁决时双方均归档
     if decision_slug == source_slug:
@@ -134,17 +156,29 @@ def resolve_conflict(
         denied = [source_slug]
     else:
         denied = [source_slug, target_slug]
+    logger.info(
+        "resolve_conflict: 被否卡片清单=%s（decision_slug=%s）",
+        denied, decision_slug,
+    )
     archived = 0
     for slug in denied:
-        if store.get(slug) is None:
+        denied_card = store.get(slug)
+        if denied_card is None:
+            logger.info("resolve_conflict: 被否卡不存在（跳过归档）slug=%s", slug)
             continue  # 已被归档/不存在，无需再迁
         try:
             store.transition(slug, "archive")
             archived += 1
+            logger.info(
+                "resolve_conflict: 被否卡已归档 slug=%s type=%s "
+                "（wiki/%s/%s.md → archives/%s.md）",
+                slug, denied_card.type, denied_card.type, slug, slug,
+            )
         except InvalidTransitionError as exc:
             logger.warning(
-                "resolve_conflict: 被否卡片归档失败（矛盾已裁决）slug=%s: %s",
-                slug, exc,
+                "resolve_conflict: 被否卡片归档失败（矛盾已裁决）slug=%s type=%s "
+                "当前状态=%s: %s",
+                slug, denied_card.type, denied_card.status, exc,
             )
     append_log(
         "resolve_conflict", source_slug,
@@ -152,7 +186,7 @@ def resolve_conflict(
         log_path=store._log_path,
     )
     logger.info(
-        "resolve_conflict: source=%s target=%s decision=%s archived=%d",
+        "resolve_conflict: 完成 source=%s target=%s decision=%s archived=%d 矛盾已裁决",
         source_slug, target_slug, decision_slug, archived,
     )
     return True
@@ -172,4 +206,5 @@ def list_unresolved(card_store) -> list[dict]:
                     "target_slug": item.get("target_slug", ""),
                     "summary": item.get("summary", ""),
                 })
+    logger.info("list_unresolved: 未裁决矛盾=%d 条 %s", len(result), result)
     return result

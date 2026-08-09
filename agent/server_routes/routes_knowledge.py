@@ -69,7 +69,7 @@ def _make_card(data: dict) -> Card:
 
 
 def register_routes(app, state):
-    """注册知识库检索路由。"""
+    """注册知识库路由（检索 + CRUD + index + lint + graph）。"""
 
     Yunshu = state.Yunshu
     _searcher = None  # 模块级懒加载单例（卡片/向量/精排接线一次完成）
@@ -171,7 +171,7 @@ def register_routes(app, state):
         except (ValueError, OSError) as exc:
             logger.warning("知识库: 入链索引解析失败，回退全库扫描: %s", exc)
         return [
-            c.slug for c in store.list()
+            c.slug for c in store.list(use_cache=True)
             if c.slug != slug and slug in c.links
         ]
 
@@ -194,7 +194,7 @@ def register_routes(app, state):
         status = request.args.get("status") or None
         type_ = request.args.get("type") or None
         try:
-            cards = store.list(status=status, type=type_)
+            cards = store.list(status=status, type=type_, use_cache=True)
             return jsonify({
                 "ok": True,
                 "cards": [_card_to_dict(c) for c in cards],
@@ -363,7 +363,7 @@ def register_routes(app, state):
             return err
         try:
             report = lint_all(store, index_path=store._index_path)
-            return jsonify({"ok": True, "report": report.to_dict()})
+            return jsonify({"ok": True, "report": asdict(report)})
         except Exception as e:
             logger.error("知识库: lint 巡检失败: %s", e)
             return jsonify({"ok": False, "error": str(e)}), 500
@@ -377,7 +377,7 @@ def register_routes(app, state):
         store, err = _store_required()
         if err:
             return err
-        cards = store.list()
+        cards = store.list(use_cache=True)
         nodes = [
             {"id": c.slug, "label": c.title, "type": c.type, "status": c.status}
             for c in cards

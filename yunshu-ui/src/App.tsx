@@ -254,15 +254,15 @@ const App: React.FC = () => {
             </button>
           </div>
 
-          {/* 知识库入口（任务6：点击切换视图，会话主界面不动） */}
-          <div style={{ padding: '0 12px 8px' }}>
+          {/* 知识库入口（任务6 增量） */}
+          <div style={{ padding: '8px 12px' }}>
             <button
-              onClick={() => setKnowledgeOpen(v => !v)}
+              onClick={() => setKnowledgeOpen((v) => !v)}
               style={{
                 width: '100%',
-                background: knowledgeOpen ? 'var(--accent-primary, #4a9eff)' : 'var(--bg-hover, #232730)',
-                border: `1px solid ${knowledgeOpen ? 'var(--accent-primary, #4a9eff)' : 'var(--border-subtle, #2a2e38)'}`,
-                color: knowledgeOpen ? '#0a0a0f' : 'var(--text-primary, #e8eaed)',
+                background: knowledgeOpen ? 'var(--accent-primary, #2d6cdf)' : 'var(--bg-hover, #232730)',
+                border: '1px solid var(--border-subtle, #2a2e38)',
+                color: knowledgeOpen ? '#fff' : 'var(--text-primary, #e8eaed)',
                 padding: '8px 12px',
                 borderRadius: 6,
                 cursor: 'pointer',
@@ -287,7 +287,7 @@ const App: React.FC = () => {
               type="button"
               title="打开知识库（卡片/检索/健康报告）"
             >
-              <span>🗂</span> 知识库
+              <span>📚</span> 知识库
             </button>
           </div>
 
@@ -349,7 +349,7 @@ const App: React.FC = () => {
           </div>
         </aside>
 
-        {/* 聊天区 / 知识库视图 */}
+        {/* 聊天区 / 知识库（任务6 增量，互不干扰） */}
         <main className="main-content">
           {knowledgeOpen ? (
             <Knowledge />

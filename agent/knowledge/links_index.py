@@ -55,9 +55,12 @@ def read_links_index(index_path: str | Path) -> dict[str, list[str]]:
     """解析入链索引 → {被引用 slug: [引用方 slug, ...]}（保序、去重）。"""
     path = Path(index_path)
     if not path.exists():
+        logger.debug("入链索引缺失（调用方将回退全库扫描）: %s", path)
         return {}
+    _t0 = time.perf_counter()
     refs: dict[str, list[str]] = {}
     cur: Optional[str] = None
+    unknown = 0
     for line in path.read_text(encoding="utf-8").splitlines():
         m = _SECTION_RE.match(line)
         if m:
@@ -69,6 +72,18 @@ def read_links_index(index_path: str | Path) -> dict[str, list[str]]:
             ref = e.group(1).strip()
             if ref not in refs[cur]:
                 refs[cur].append(ref)
+        elif line.strip() and not line.startswith(("#", ">")):
+            unknown += 1  # 非空且非注释/非条目行：疑似污染，计入排查日志
+    if unknown:
+        logger.warning(
+            "入链索引存在 %d 行无法识别（建议 rebuild_links_index 重整）: %s",
+            unknown, path,
+        )
+    logger.info(
+        "read_links_index: 解析完成 index_path=%s 被引用段=%d 引用方=%d 耗时=%.2fms",
+        path, len(refs), sum(len(v) for v in refs.values()),
+        (time.perf_counter() - _t0) * 1000,
+    )
     return refs
 
 
@@ -126,11 +141,23 @@ def update_links_delta(
         if ref_slug not in refs[target_slug]:
             refs[target_slug].append(ref_slug)
             changed = 1
+        else:
+            logger.debug(
+                "update_links_delta: add 幂等无变更 target=%s ref=%s", target_slug, ref_slug,
+            )
     elif target_slug in refs and ref_slug in refs[target_slug]:
         refs[target_slug].remove(ref_slug)
         changed = 1
         if not refs[target_slug]:
             del refs[target_slug]
+            logger.debug(
+                "update_links_delta: 引用清空移除空段 target=%s", target_slug,
+            )
+    else:
+        logger.debug(
+            "update_links_delta: remove 幂等无变更 target=%s ref=%s（不创建文件）",
+            target_slug, ref_slug,
+        )
     if changed:
         _atomic_write(path, _render(refs))
     logger.info(

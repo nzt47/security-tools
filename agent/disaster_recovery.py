@@ -34,6 +34,16 @@ from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
+# SingletonManager 统一收口（保留 fallback 变量与双检锁向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = None
+
 _trace_id_ctx: ContextVar[str] = ContextVar("trace_id", default="")
 
 
@@ -1170,12 +1180,34 @@ class ConfigHotReloader:
 # 全局单例与便捷函数
 # ============================================================================
 
-# 全局单例锁与实例
+# 全局单例锁与实例（fallback 路径仍走双检锁）
 _dr_singleton: Optional[DisasterRecovery] = None
 _dr_lock = threading.Lock()
 
 _reloader_singleton: Optional[ConfigHotReloader] = None
 _reloader_lock = threading.Lock()
+
+
+def _create_disaster_recovery(config=None):
+    """DisasterRecovery 工厂（供 SingletonManager 使用）"""
+    return DisasterRecovery()
+
+
+def _cleanup_disaster_recovery(dr):
+    """清理钩子：停止备份调度器（仅测试重置时调用，幂等）"""
+    if dr is not None:
+        dr.stop_backup_scheduler()
+
+
+def _create_config_reloader(config=None):
+    """ConfigHotReloader 工厂（供 SingletonManager 使用）"""
+    return ConfigHotReloader()
+
+
+def _cleanup_config_reloader(reloader):
+    """清理钩子：停止监听线程（仅测试重置时调用，幂等）"""
+    if reloader is not None:
+        reloader.stop()
 
 
 def get_disaster_recovery() -> DisasterRecovery:
@@ -1184,11 +1216,21 @@ def get_disaster_recovery() -> DisasterRecovery:
     Returns:
         DisasterRecovery 单例实例
     """
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("disaster_recovery")
     global _dr_singleton
     with _dr_lock:
         if _dr_singleton is None:
-            _dr_singleton = DisasterRecovery()
+            _dr_singleton = _create_disaster_recovery()
         return _dr_singleton
+
+
+def reset_disaster_recovery():
+    """重置全局 DisasterRecovery 单例（仅用于测试）"""
+    global _dr_singleton
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("disaster_recovery")
+    _dr_singleton = None
 
 
 def get_config_reloader() -> ConfigHotReloader:
@@ -1197,11 +1239,21 @@ def get_config_reloader() -> ConfigHotReloader:
     Returns:
         ConfigHotReloader 单例实例
     """
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("config_hot_reloader")
     global _reloader_singleton
     with _reloader_lock:
         if _reloader_singleton is None:
-            _reloader_singleton = ConfigHotReloader()
+            _reloader_singleton = _create_config_reloader()
         return _reloader_singleton
+
+
+def reset_config_reloader():
+    """重置全局 ConfigHotReloader 单例（仅用于测试）"""
+    global _reloader_singleton
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("config_hot_reloader")
+    _reloader_singleton = None
 
 
 def register_backup_provider(
@@ -1241,3 +1293,11 @@ def restore_from_backup(backup_id: str) -> bool:
         True 恢复成功，False 恢复失败
     """
     return get_disaster_recovery().restore_from_backup(backup_id)
+
+
+# 注册单例工厂（置于文件末尾，确保 getter / 便捷函数均已定义）
+if _SINGLETON_AVAILABLE:
+    register_singleton("disaster_recovery", _create_disaster_recovery,
+                       cleanup_fn=_cleanup_disaster_recovery)
+    register_singleton("config_hot_reloader", _create_config_reloader,
+                       cleanup_fn=_cleanup_config_reloader)

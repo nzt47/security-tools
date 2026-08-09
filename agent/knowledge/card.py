@@ -189,6 +189,9 @@ class CardStore:
             Path(links_index_path) if links_index_path else root / "index_links.md"
         )
         self._rwlock = _RWLock()  # 读写锁：写串行化（index/log 一致性），读并发
+        # 内存缓存（list(use_cache=True) 时启用）：指纹 = 文件系统快照
+        self._list_cache: Optional[list[Card]] = None
+        self._list_fingerprint: Optional[tuple] = None
 
     # ---------- 内部工具 ----------
 
@@ -255,43 +258,105 @@ class CardStore:
         P0-2 入链索引优化：优先查 index_links.md（O(1) 查表）；
         索引文件缺失/解析失败时回退全库扫描（容错，保证行为不退化）。
         """
+        return bool(self._incoming_sources(slug))
+
+    def _incoming_sources(self, slug: str) -> list[str]:
+        """返回指向该 slug 的引用方 slug 列表（入链明细，供删除日志排查）。
+
+        索引读取失败/缺失时回退全库扫描，行为与 _has_incoming_links 一致。
+        """
         path = self._links_index_path
         if path.exists():
             try:
-                return bool(read_links_index(path).get(slug))
+                return list(read_links_index(path).get(slug, []))
             except (ValueError, OSError) as exc:
                 logger.warning("入链索引解析失败，回退全库扫描: %s (%s)", path, exc)
-        return any(
-            slug in card.links for card in self.list() if card.slug != slug
-        )
+        return [
+            card.slug for card in self.list()
+            if card.slug != slug and slug in card.links
+        ]
 
     def _sync_links_index_add(self, card: Card) -> None:
-        """create/update 后：将卡片 links 的引用关系登记入入链索引。"""
-        for link in card.links:
-            if not link.startswith(ARCHIVES_PREFIX):
-                update_links_delta(link, card.slug, self._links_index_path, add=True)
+        """create/update 后：将卡片 links 的引用关系登记入入链索引。
+
+        容错降级：入链索引是可重建的辅助文件，写失败（OSError/ValueError）
+        仅告警不阻断卡片主操作（与 _has_incoming_links 降级风格一致）。
+        """
+        try:
+            for link in card.links:
+                if not link.startswith(ARCHIVES_PREFIX):
+                    update_links_delta(link, card.slug, self._links_index_path, add=True)
+        except (ValueError, OSError) as exc:
+            logger.warning(
+                "入链索引登记失败（已降级，卡片操作继续）: %s (%s)",
+                self._links_index_path, exc,
+            )
 
     def _sync_links_index_remove(self, slug: str, links: list[str]) -> None:
-        """delete 后：移除被删卡片 links 产生的引用关系（入链已校验为空）。"""
-        for link in links:
-            if not link.startswith(ARCHIVES_PREFIX):
-                update_links_delta(link, slug, self._links_index_path, add=False)
+        """delete 后：移除被删卡片 links 产生的引用关系（入链已校验为空）。
+
+        容错降级：同上，索引写失败仅告警不阻断卡片主操作。
+        """
+        try:
+            for link in links:
+                if not link.startswith(ARCHIVES_PREFIX):
+                    update_links_delta(link, slug, self._links_index_path, add=False)
+        except (ValueError, OSError) as exc:
+            logger.warning(
+                "入链索引移除失败（已降级，卡片操作继续）: %s (%s)",
+                self._links_index_path, exc,
+            )
 
     # ---------- CRUD ----------
 
     def create(self, card: Card) -> Card:
-        """创建卡片；同 slug 已存在时抛 CardConflictError（不覆盖）。"""
+        """创建卡片；同 slug 已存在时抛 CardConflictError（不覆盖）。
+
+        正文双链为链接事实源：links 显式传入时优先保留（兼容既有调用方），
+        为空则从正文解析（与 update 语义对齐，保证入链索引完整登记）。
+        """
         with self._rwlock.write():  # 写串行化：写卡 + index + log 三步原子可见
             self._check_slug(card.slug)
             self._validate(card)
+            logger.debug(
+                "create: slug=%s type=%s 校验通过 显式links=%s",
+                card.slug, card.type, card.links,
+            )
             if self._exists(card.slug):  # 写锁内重入读（同线程放行）；仅文件存在性，免 YAML 解析
                 logger.warning("创建冲突: slug=%s 已存在，拒绝覆盖（CardConflictError）", card.slug)
                 raise CardConflictError(f"卡片已存在: {card.slug}")
             path = self._wiki_root / card.type / f"{card.slug}.md"
+            # 入链追踪：正文双链为链接事实源（显式传入优先，为空则从正文解析）
+            links_source = "显式传入" if card.links else "正文双链解析"
+            if not card.links:
+                card.links = parse_links(card.content)
+            logger.debug(
+                "create[链接解析]: slug=%s 来源=%s 解析前links=%s 解析后links=%s",
+                card.slug, links_source, [], card.links,
+            )
+            logger.info(
+                "创建卡片[入链追踪]: slug=%s type=%s links来源=%s links=%s 正文长度=%d 双链解析=%s",
+                card.slug, card.type, links_source, card.links,
+                len(card.content), parse_links(card.content),
+            )
             self._write_card(path, card)
             update_index_delta(card.slug, card, self._index_path)
             append_log("create", card.slug, f"type={card.type}", log_path=self._log_path)
             self._sync_links_index_add(card)  # 入链索引同步（P0-2）
+            self._sync_list_cache(
+                added=card,
+                added_fp=self._fp_entry(card.type, card.slug, path),
+            )  # 内存缓存增量同步：写后查询不再全量重载
+            logger.debug(
+                "create[入链登记]: slug=%s 每个引用目标逐项登记 add=True index=%s",
+                card.slug, self._links_index_path,
+            )
+            logger.info(
+                "创建卡片[入链追踪]: slug=%s 入链索引登记完成 引用目标=%s index=%s",
+                card.slug,
+                [l for l in card.links if not l.startswith(ARCHIVES_PREFIX)],
+                self._links_index_path,
+            )
             logger.info("创建卡片: slug=%s type=%s path=%s", card.slug, card.type, path)
             return card
 
@@ -331,15 +396,22 @@ class CardStore:
                 old_links = self._md_to_card(old_path).links
             except (ValueError, TypeError):
                 old_links = []
-            for link in old_links:
-                if not link.startswith(ARCHIVES_PREFIX):
-                    update_links_delta(link, card.slug, self._links_index_path, add=False)
+            try:
+                for link in old_links:
+                    if not link.startswith(ARCHIVES_PREFIX):
+                        update_links_delta(link, card.slug, self._links_index_path, add=False)
+            except (ValueError, OSError) as exc:
+                logger.warning(
+                    "入链索引移除旧引用失败（已降级，卡片操作继续）: %s (%s)",
+                    self._links_index_path, exc,
+                )
             card.links = parse_links(card.content)
             logger.info(
                 "更新卡片: slug=%s 正文双链同步 links=%s 耗时=%.2fms",
                 card.slug, card.links, (time.perf_counter() - _t0) * 1000,
             )
             new_path = self._wiki_root / card.type / f"{card.slug}.md"
+            old_fp = self._fp_entry(old_path.parent.name, card.slug, old_path)  # unlink 前记录旧指纹
             if old_path != new_path:
                 logger.info("更新卡片: slug=%s type 变更迁移文件 %s → %s", card.slug, old_path, new_path)
                 self._write_card(new_path, card)
@@ -349,14 +421,29 @@ class CardStore:
             update_index_delta(card.slug, card, self._index_path)
             append_log("update", card.slug, f"type={card.type}", log_path=self._log_path)
             self._sync_links_index_add(card)  # 入链索引同步：登记新引用（P0-2）
+            self._sync_list_cache(
+                added=card,
+                removed=card.slug,
+                added_fp=self._fp_entry(card.type, card.slug, new_path),
+                removed_fp=old_fp,
+            )  # 内存缓存增量同步：写后查询不再全量重载
             return card
 
     def delete(self, slug: str) -> bool:
         """删除卡片（校验入链，有入链时拒绝并返回 False）。"""
         with self._rwlock.write():  # 写串行化：入链检查 + 删除 + index + log 原子可见
             self._check_slug(slug)
-            if self._has_incoming_links(slug):  # 写锁内重入读（list）
-                logger.warning("删除被拒: slug=%s 存在入链（引用方需先解除引用）", slug)
+            # 入链检查：优先索引查表，缺失/失败回退全库扫描
+            incoming = self._incoming_sources(slug)
+            logger.info(
+                "删除卡片[入链追踪]: slug=%s 入链检查 引用方=%s index=%s",
+                slug, incoming, self._links_index_path,
+            )
+            if incoming:  # 写锁内重入读（list）
+                logger.warning(
+                    "删除被拒[入链追踪]: slug=%s 存在入链 引用方=%s（引用方需先解除引用）",
+                    slug, incoming,
+                )
                 return False
             path = self._find_path(slug)
             if path is None:
@@ -366,12 +453,37 @@ class CardStore:
             try:
                 old_links = self._md_to_card(path).links
             except (ValueError, TypeError):
+                logger.debug(
+                    "delete: slug=%s 卡片解析失败 links 容错为空 path=%s", slug, path,
+                )
                 old_links = []
+            logger.debug(
+                "delete: slug=%s 读被删卡成功 path=%s links=%s",
+                slug, path, old_links,
+            )
+            logger.info(
+                "删除卡片[入链追踪]: slug=%s 入链检查通过(无引用方) path=%s 被删卡links=%s",
+                slug, path, old_links,
+            )
+            del_fp = self._fp_entry(path.parent.name, slug, path)  # unlink 前记录指纹
             path.unlink()
             update_index_delta(slug, None, self._index_path)
             append_log("delete", slug, "", log_path=self._log_path)
             self._sync_links_index_remove(slug, old_links)  # 入链索引同步（P0-2）
+            logger.debug(
+                "delete[入链移除]: slug=%s 每个引用目标逐项移除 add=False index=%s",
+                slug, self._links_index_path,
+            )
+            logger.info(
+                "删除卡片[入链追踪]: slug=%s 入链索引移除完成 引用目标=%s index=%s",
+                slug,
+                [l for l in old_links if not l.startswith(ARCHIVES_PREFIX)],
+                self._links_index_path,
+            )
             logger.info("删除卡片: slug=%s path=%s", slug, path)
+            self._sync_list_cache(
+                removed=slug, removed_fp=del_fp,
+            )  # 内存缓存增量同步：写后查询不再全量重载
             return True
 
     def delete_many(self, slugs: list[str]) -> dict[str, bool]:
@@ -425,12 +537,159 @@ class CardStore:
                 self._sync_links_index_remove(slug, old_links)  # 入链索引同步（P0-2）
                 logger.info("批量删除卡片: slug=%s path=%s", slug, path)
                 result[slug] = True
+            # 批量删除后一次性失效缓存：逐张增量同步为 O(K·N)，批量场景失效更优
+            if any(result.values()):
+                self._invalidate_list_cache()
             return result
 
+    def _fingerprint(self) -> tuple:
+        """文件系统指纹：{(目录, 文件名, mtime_ns)} 排序元组。
+
+        用于 list(use_cache=True) 的缓存失效判定：文件增删改（mtime 变化）
+        都会改变指纹 → 自动重载。指纹仅含文件名与 mtime（不读内容），
+        10 万卡量级扫描成本约秒级，远低于全量 YAML 解析（数分钟）。
+        目录缺失时跳过（与 list() 跳过不存在目录的语义一致，指纹仍可用）。
+        """
+        entries = []
+        for t in _TYPE_DIRS:
+            d = self._wiki_root / t
+            if not d.is_dir():
+                continue
+            with os.scandir(d) as it:
+                for e in it:
+                    if e.name.endswith(".md"):
+                        entries.append((t, e.name, e.stat().st_mtime_ns))
+        return tuple(sorted(entries))
+
+    def _list_from_disk(self) -> list[Card]:
+        """全量读盘：所有类型目录下的可解析卡片（按 slug 字典序）。"""
+        cards: list[Card] = []
+        for t in _TYPE_DIRS:
+            d = self._wiki_root / t
+            if not d.exists():
+                continue
+            for p in sorted(d.glob("*.md")):
+                try:
+                    card = self._md_to_card(p)
+                except (ValueError, TypeError):
+                    continue  # 跳过损坏卡片，不阻断全库列举
+                cards.append(card)
+        return cards
+
+    # ---------- 内存缓存失效/同步 ----------
+
+    @staticmethod
+    def _fp_entry(type_dir: str, slug: str, path: Path) -> Optional[tuple]:
+        """写操作后的单文件指纹条目 (type_dir, filename, mtime_ns)。
+
+        path 须为 stat 前的文件路径（update/delete 在 unlink 前调用）。
+        文件缺失返回 None（调用方忽略；指纹不一致时下次命中会全量比较
+        发现 → 自动重载，安全回退）。
+        """
+        try:
+            return (type_dir, f"{slug}.md", path.stat().st_mtime_ns)
+        except OSError:
+            return None
+
+    def _invalidate_list_cache(self) -> None:
+        """写路径缓存失效（批量操作用：delete_many / import_from_dir）。
+
+        置空缓存与指纹，下次 list(use_cache=True) 自动全量重载。
+        批量场景逐张增量同步为 O(K·N)，整体失效一次更优。
+        """
+        self._list_cache = None
+        self._list_fingerprint = None
+
+    def _sync_list_cache(
+        self,
+        *,
+        added: Optional[Card] = None,
+        removed: Optional[str] = None,
+        added_fp: Optional[tuple] = None,
+        removed_fp: Optional[tuple] = None,
+    ) -> None:
+        """写操作后增量同步内存缓存与指纹（缓存已加载时）。
+
+        缓存未加载（_list_cache is None）直接返回：下次 list(use_cache=True)
+        自动全量加载，无需同步。
+
+        【不易】安全边界：缓存内容与指纹在同一函数内同步，保证二者一致。
+        任一遗漏导致的指纹不一致，都会在下次 list 命中时被全量指纹比较
+        发现 → 自动全量重载（只慢不坏，绝不返回陈旧数据）。
+        """
+        if self._list_cache is None:
+            return
+        if removed is not None:
+            self._list_cache = [
+                c for c in self._list_cache if c.slug != removed
+            ]
+        if added is not None:
+            self._list_cache = [
+                c for c in self._list_cache if c.slug != added.slug
+            ]
+            self._list_cache.append(added)
+            # 与 _list_from_disk 顺序一致：按类型目录序 + 组内 slug 字典序
+            self._list_cache.sort(
+                key=lambda c: (_TYPE_DIRS.index(c.type), c.slug)
+            )
+        if added_fp is not None or removed_fp is not None:
+            fp = set(self._list_fingerprint or ())
+            if removed_fp is not None:
+                fp.discard(removed_fp)
+            if added_fp is not None:
+                fp.add(added_fp)
+            self._list_fingerprint = tuple(sorted(fp))
+
     def list(
-        self, status: Optional[str] = None, type: Optional[str] = None
+        self,
+        status: Optional[str] = None,
+        type: Optional[str] = None,
+        *,
+        use_cache: bool = False,
     ) -> list[Card]:
-        """列出卡片，可按状态/类型过滤（按 slug 字典序）。"""
+        """列出卡片，可按状态/类型过滤（按 slug 字典序）。
+
+        use_cache=True 时启用内存缓存（性能优化）：
+        - 首次调用全量读盘并缓存；指纹（文件名+mtime 快照）未变时直接
+          返回缓存副本（跳过 YAML 解析——10 万卡场景耗时从分钟级降到秒级）。
+        - 指纹在文件增删改时自动失效并重载，无需手动失效。
+        - 【边界】仅依赖 mtime 检测变化：人为还原 mtime 的文件可能漏检
+          （极端场景，可接受）；缓存仅在本次进程内有效。
+        - 默认 False 保持原语义（每次实时读盘），不改变既有调用行为。
+        """
+        if use_cache:
+            if self._list_cache is not None:
+                fp = self._fingerprint()
+                if fp == self._list_fingerprint:
+                    cards = [
+                        c
+                        for c in self._list_cache
+                        if (status is None or c.status == status)
+                        and (type is None or c.type == type)
+                    ]
+                    logger.info(
+                        "list: 缓存命中(use_cache) 指纹未变 返回卡片=%d（过滤 status=%s type=%s）",
+                        len(cards), status, type,
+                    )
+                    return cards
+            else:
+                # 缓存未加载（首次调用 或 批量写后失效）：跳过指纹扫描直接重载，
+                # 加载后重建指纹基线（10 万卡场景省一次全量 scandir+stat）
+                fp = None
+            with self._rwlock.read():
+                cards = self._list_from_disk()
+            self._list_cache = cards
+            if fp is None:
+                fp = self._fingerprint()  # 重建指纹基线
+            self._list_fingerprint = fp
+            if status is not None or type is not None:
+                cards = [
+                    c
+                    for c in cards
+                    if (status is None or c.status == status)
+                    and (type is None or c.type == type)
+                ]
+            return cards
         with self._rwlock.read():  # 与写锁互斥：全库列举不被多步写打断
             cards: list[Card] = []
             for t in _TYPE_DIRS:
@@ -482,6 +741,8 @@ class CardStore:
                 result.failed += 1
                 result.failures.append((p.name, str(exc)))
                 logger.warning("批量导入失败: %s: %s", p.name, exc)
+        if result.imported:
+            self._invalidate_list_cache()  # 批量导入后一次性失效缓存（避免逐张 O(K·N) 同步）
         logger.info(
             "批量导入完成: 导入=%d 跳过=%d 失败=%d 耗时=%.2fms",
             result.imported, result.skipped, result.failed,

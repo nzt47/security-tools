@@ -234,7 +234,7 @@ class CircuitBreaker:
         self.last_failure_time: Optional[datetime] = None
         self.last_success_time: Optional[datetime] = None
         self.half_open_start: Optional[datetime] = None
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "circuit_breaker.init", "duration_ms": 0, "name": name, "max_failures": max_failures}, ensure_ascii=False))
 
@@ -417,7 +417,7 @@ class ErrorHandler:
         """
         self._metrics: Dict[str, ErrorMetrics] = defaultdict(ErrorMetrics)
         self._circuit_breakers: Dict[str, CircuitBreaker] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._metrics_collector_factory: Optional[Callable[[], Any]] = metrics_collector_factory
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "error.handler.initialized", "msg": "Error handler initialized"}, ensure_ascii=False))
 

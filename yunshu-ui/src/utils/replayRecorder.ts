@@ -23,7 +23,8 @@
  *   captureReplayOnError(errorId, traceId);
  */
 
-import { record, type recordOptions, type eventWithTime } from 'rrweb';
+import { record } from 'rrweb';
+import type { recordOptions, eventWithTime } from 'rrweb';
 
 // ─── 业务错误码（边界显性化） ────────────────────────────────────────────
 

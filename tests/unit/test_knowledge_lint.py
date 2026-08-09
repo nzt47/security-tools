@@ -9,9 +9,11 @@
 
 from __future__ import annotations
 
+import os
 import time
 from datetime import date, timedelta
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -19,6 +21,7 @@ from agent.knowledge.audit_job import (
     DEFAULT_REPORTS_DIR,
     register_knowledge_audit_job,
     run_knowledge_audit,
+    send_knowledge_report_email,
 )
 from agent.knowledge.card import CardStore
 from agent.knowledge.lint import (
@@ -27,6 +30,7 @@ from agent.knowledge.lint import (
     lint_all,
     render_report,
 )
+from agent.knowledge.reporting import render_html_report
 from agent.knowledge.schema import Card, slugify
 
 
@@ -281,13 +285,29 @@ class _FakeScheduler:
         self.tasks.append((name, func, day_of_week, hour, minute))
 
 
-def test_register_audit_job_success():
+def test_register_audit_job_success_default_2am():
+    """默认每日 02:00 执行，执行体为无参 `_audit_runner`（调度器 func() 可直接调用）。"""
     sched = _FakeScheduler()
-    assert register_knowledge_audit_job(sched, run_hour=3) is True
+    assert register_knowledge_audit_job(sched) is True
     name, func, _, hour, minute = sched.tasks[0]
     assert name == "knowledge_audit"
-    assert hour == 3 and minute == 0
+    assert hour == 2 and minute == 0
     assert callable(func)
+
+
+def test_register_audit_job_custom_hour():
+    sched = _FakeScheduler()
+    assert register_knowledge_audit_job(sched, run_hour=6) is True
+    assert sched.tasks[0][3] == 6  # hour
+
+
+def test_audit_runner_noarg_callable():
+    """`_audit_runner` 无参可调用（TaskScheduler 以 func() 执行），不抛 TypeError。"""
+    from agent.knowledge.audit_job import _audit_runner
+
+    with patch("agent.knowledge.audit_job.run_knowledge_audit", return_value=None) as m:
+        _audit_runner()  # 无参调用
+        m.assert_called_once()
 
 
 def test_register_audit_job_none_scheduler_silent():
@@ -318,6 +338,7 @@ def test_run_audit_writes_report_and_log_fast(kb, tmp_path):
     assert report.total_cards == 1
     assert report.health_score == 98.0  # 1 孤儿
     assert (reports_dir / f"knowledge_health_{date.today().strftime('%Y%m%d')}.md").exists()
+    assert (reports_dir / f"knowledge_health_{date.today().strftime('%Y%m%d')}.html").exists()
     log_text = log_path.read_text(encoding="utf-8")
     assert f"audit | health | score={report.health_score:.2f}" in log_text
     assert elapsed < 5.0  # 小库单次执行 < 5s
@@ -339,3 +360,150 @@ def test_run_audit_default_reports_dir(tmp_path, monkeypatch):
     )
     assert expected.exists()
     assert report.health_score == 98.0
+
+
+# ---------- HTML 健康报告渲染（render_html_report） ----------
+
+
+def _report_with_issues() -> HealthReport:
+    """构造含五类问题的 HealthReport（方便渲染/邮件测试复用）。"""
+    return HealthReport(
+        checked_at="2026-08-08",
+        total_cards=4,
+        orphans=["孤儿卡"],
+        broken_links=[{"from_slug": "a", "to_slug": "ghost"}],
+        index_drift=["漂移卡"],
+        stale_cards=[{"slug": "旧卡", "days_unaccessed": 120}],
+        unresolved_conflicts=[{"source_slug": "x", "target_slug": "y", "summary": "观点冲突"}],
+        health_score=78.0,
+        suggestions=["建议补充引用或归档"],
+    )
+
+
+def test_render_html_report_basic():
+    """HTML 报告包含：DOCTYPE、SVG 环形仪表盘、五类条形图、明细与建议。"""
+    html = render_html_report(_report_with_issues())
+    assert html.startswith("<!DOCTYPE html>")
+    assert "知识库健康报告" in html
+    assert "<svg" in html  # 可视化环形仪表盘
+    assert "stroke-dasharray" in html
+    assert "bar-row" in html  # 五类问题条形图
+    assert "78.0" in html  # 健康分
+    assert "孤儿卡" in html
+    assert "ghost" in html
+    assert "建议补充引用或归档" in html
+    assert "2026-08-08" in html
+
+
+def test_render_html_report_empty_library():
+    """空库（score=100）渲染为绿色健康，各节显示“无”。"""
+    report = HealthReport(checked_at="2026-08-08", total_cards=0)
+    html = render_html_report(report)
+    assert "#2e7d32" in html  # 绿色健康
+    assert "100.0" in html
+    assert html.count("无") >= 5  # 五类问题均为空
+
+
+def test_render_html_report_escape_xss():
+    """恶意字符串经 html.escape 转义：原始标签不出现，转义实体保留。"""
+    report = HealthReport(
+        checked_at="<script>alert(1)</script>",
+        total_cards=1,
+        orphans=["<img src=x onerror=alert(1)>"],
+        suggestions=["<script>bad()</script>"],
+    )
+    html = render_html_report(report)
+    assert "<script>" not in html  # 原始标签不出现
+    assert "<img" not in html  # 原始 img 标签不出现（转义后成为文本）
+    assert "&lt;script&gt;" in html
+    assert "&lt;img" in html
+
+
+# ---------- 健康报告邮件（send_knowledge_report_email） ----------
+
+
+def test_send_report_email_no_config_silent(monkeypatch):
+    """未配置 SMTP → 静默返回 False，不抛异常（降级铁律）。"""
+    monkeypatch.delenv("SMTP_HOST", raising=False)
+    monkeypatch.delenv("MAIL_RECIPIENTS", raising=False)
+    monkeypatch.delenv("MAIL_FROM", raising=False)
+    monkeypatch.delenv("SMTP_USERNAME", raising=False)
+    assert send_knowledge_report_email(_report_with_issues()) is False
+
+
+def test_send_report_email_success(monkeypatch):
+    """配置齐全 + SMTP mock：发送成功、HTML 正文含报告、subject 含健康分。"""
+    from email import message_from_string
+    from email.header import decode_header
+
+    captured = {}
+
+    class _FakeSMTP:
+        def __init__(self, host, port, timeout=None):
+            captured["host"] = host
+            captured["port"] = port
+            captured["timeout"] = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def ehlo(self):
+            pass
+
+        def starttls(self):
+            pass
+
+        def login(self, user, pwd):
+            captured["login"] = (user, pwd)
+
+        def sendmail(self, from_addr, to_addrs, msg):
+            captured["from"] = from_addr
+            captured["to"] = to_addrs
+            captured["msg"] = msg
+
+    with patch("agent.knowledge.audit_job.smtplib.SMTP", _FakeSMTP):
+        ok = send_knowledge_report_email(
+            _report_with_issues(),
+            smtp_host="smtp.test.example",
+            smtp_port=587,
+            smtp_username="u@test",
+            smtp_password="pwd",
+            mail_from="from@test",
+            recipients=["a@test", "b@test"],
+        )
+    assert ok is True
+    assert captured["host"] == "smtp.test.example"
+    assert captured["login"] == ("u@test", "pwd")
+    assert captured["to"] == ["a@test", "b@test"]
+    # MIME 解析（正文/头可能被 base64/RFC2047 编码，不能直接按明文断言）
+    msg = message_from_string(captured["msg"])
+    subject = "".join(
+        part.decode(charset or "utf-8") if isinstance(part, bytes) else part
+        for part, charset in decode_header(msg["Subject"])
+    )
+    assert subject == "【知识库健康报告】2026-08-08 健康分 78.0"
+    html_parts = [
+        p for p in msg.walk() if p.get_content_type() == "text/html"
+    ]
+    assert len(html_parts) == 1
+    html_body = html_parts[0].get_payload(decode=True).decode("utf-8")
+    assert "<!DOCTYPE html>" in html_body
+    assert "知识库健康报告" in html_body
+    assert "孤儿卡" in html_body
+
+
+def test_send_report_email_failure_graceful():
+    """SMTP 异常 → 返回 False 不抛异常（邮件失败不影响任务状态）。"""
+    with patch(
+        "agent.knowledge.audit_job.smtplib.SMTP",
+        side_effect=ConnectionError("smtp down"),
+    ):
+        ok = send_knowledge_report_email(
+            _report_with_issues(),
+            smtp_host="smtp.test.example",
+            recipients=["a@test"],
+        )
+    assert ok is False

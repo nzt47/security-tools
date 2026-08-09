@@ -78,10 +78,9 @@ def healer_with_policies():
 def reset_singleton():
     """重置全局单例"""
     import agent.monitoring.self_healer as module
-    old = module._self_healer
-    module._self_healer = None
+    module.reset_self_healer()
     yield
-    module._self_healer = old
+    module.reset_self_healer()
 
 
 def _make_record(action, status, executed_at, message=""):
@@ -967,7 +966,7 @@ class TestGlobalSingleton:
     def test_singleton_reset(self, reset_singleton):
         h1 = get_self_healer()
         import agent.monitoring.self_healer as module
-        module._self_healer = None
+        module.reset_self_healer()
         h2 = get_self_healer()
         assert h1 is not h2
 

@@ -38,6 +38,16 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# SingletonManager 统一收口（保留 fallback 变量 _alert_evaluator 向后兼容）
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = get_singleton = reset_singleton = None
+
 
 class AlertState(Enum):
     """告警状态"""
@@ -534,7 +544,26 @@ class AlertEvaluator:
 
 
 # 全局单例
-_alert_evaluator: Optional[AlertEvaluator] = None
+_alert_evaluator: Optional[AlertEvaluator] = None  # 保留作为 fallback
+
+
+def _create_alert_evaluator(config=None):
+    """AlertEvaluator 工厂（供 SingletonManager 使用）
+
+    config 走 dict 通道（{"evaluation_interval"/"pending_duration"}），
+    仅当 dict 含这些键才解包，否则用默认参数。
+    """
+    if isinstance(config, dict) and (
+        "evaluation_interval" in config or "pending_duration" in config
+    ):
+        return AlertEvaluator(**config)
+    return AlertEvaluator()
+
+
+def _cleanup_alert_evaluator(evaluator):
+    """清理钩子：停止评估线程（仅测试重置时调用，stop 幂等）"""
+    if evaluator is not None:
+        evaluator.stop()
 
 
 def get_alert_evaluator() -> AlertEvaluator:
@@ -543,10 +572,20 @@ def get_alert_evaluator() -> AlertEvaluator:
     Returns:
         AlertEvaluator 实例
     """
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("alert_evaluator")
     global _alert_evaluator
     if _alert_evaluator is None:
-        _alert_evaluator = AlertEvaluator()
+        _alert_evaluator = _create_alert_evaluator()
     return _alert_evaluator
+
+
+def reset_alert_evaluator():
+    """重置全局告警评估器单例（仅用于测试）"""
+    global _alert_evaluator
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("alert_evaluator")
+    _alert_evaluator = None
 
 
 def start_alert_evaluator(evaluation_interval: float = 30.0) -> AlertEvaluator:
@@ -561,3 +600,9 @@ def start_alert_evaluator(evaluation_interval: float = 30.0) -> AlertEvaluator:
     evaluator = get_alert_evaluator()
     evaluator.start()
     return evaluator
+
+
+# 注册单例工厂（置于文件末尾，确保 get_alert_evaluator / start_alert_evaluator 均已定义）
+if _SINGLETON_AVAILABLE:
+    register_singleton("alert_evaluator", _create_alert_evaluator,
+                       cleanup_fn=_cleanup_alert_evaluator)

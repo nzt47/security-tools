@@ -204,6 +204,60 @@ def test_find_broken_links_empty_cards(store):
     assert find_broken_links([], store) == []
 
 
+def test_find_broken_links_matches_reference_extreme(store, tmp_path):
+    """优化后（内存集合 + 惰性缓存）与无缓存基准在极端数据下结果一致。
+
+    覆盖关键语义路径：同目标多卡引用（缓存命中）、archives/ 前缀目标
+    （走 store 探测）、跨 type 引用（known 命中）、frontmatter 损坏卡
+    （回退探测仍判断链）、别名链接（目标即 slug）。
+    """
+    for i in range(50):
+        store.create(make_card(f"o{i}", slug=f"o{i}", links=["ghost"]))
+    store.create(make_card("甲", slug="甲", links=["乙", "archives/旧卡", "实体卡"]))
+    store.create(make_card("乙", slug="乙", links=["甲"]))
+    store.create(make_card("实体卡", slug="实体卡", type="entities"))
+    # frontmatter 损坏卡：文件存在但不可解析 → 仍判断链（回退 store 探测）
+    bad_dir = tmp_path / "kb" / "wiki" / "concepts"
+    bad_dir.mkdir(parents=True, exist_ok=True)
+    (bad_dir / "损坏卡.md").write_text("无 frontmatter 的坏文件", encoding="utf-8")
+    store.create(make_card("引坏卡", slug="引坏卡", links=["损坏卡"]))
+    # 别名链接：目标文本含 |，视为独立目标（不存在 → 断链）
+    store.create(make_card("带别名", slug="带别名", links=["ghost|幽灵别名"]))
+
+    def reference(cards_, s):
+        """未优化基准：每个链接独立 resolve_link。"""
+        return sorted(
+            (
+                {"from_slug": c.slug, "to_slug": t}
+                for c in cards_
+                for t in c.links
+                if resolve_link(t, s) is None
+            ),
+            key=lambda b: (b["from_slug"], b["to_slug"]),
+        )
+
+    cards = store.list()
+    opt = sorted(
+        find_broken_links(cards, store),
+        key=lambda b: (b["from_slug"], b["to_slug"]),
+    )
+    assert opt == reference(cards, store)
+    assert len(opt) == 53  # 50×ghost + archives/旧卡 + 损坏卡 + 别名目标
+
+
+def test_find_broken_links_same_target_cached(store):
+    """性能路径：同一目标被多卡引用时只解析一次，结果仍逐卡完整。"""
+    store.create(make_card("a", slug="a", links=["ghost"]))
+    store.create(make_card("b", slug="b", links=["ghost"]))
+    store.create(make_card("c", slug="c", links=["ghost"]))
+    broken = find_broken_links(store.list(), store)
+    assert sorted(broken, key=lambda b: b["from_slug"]) == [
+        {"from_slug": "a", "to_slug": "ghost"},
+        {"from_slug": "b", "to_slug": "ghost"},
+        {"from_slug": "c", "to_slug": "ghost"},
+    ]
+
+
 # ---------- rewrite_link_targets（归档重链） ----------
 
 

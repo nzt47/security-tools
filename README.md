@@ -25,6 +25,16 @@
 | 记忆层 | `memory/` | 对话历史、滚动摘要、黑匣子日志、后台压缩 |
 | 行动层 | `agent/` | 行为控制、权限管理、MCP 工具、主循环编排 |
 
+## 统一单例管理（SingletonManager）
+
+2026-08 完成：项目内 **51 个**"模块级全局变量 + 延迟初始化"单例统一收口到 [`agent/utils/singleton_manager.py`](agent/utils/singleton_manager.py)（双重检查锁定、线程安全、可重置、config 注入、cleanup 钩子），每个模块保留 `try/except ImportError` 向后兼容 fallback。其中**高优先级 5 模块**（task_scheduler / system_prompt_config / logging_utils+safe_logger / self_healer / monitoring.search）、**中优先级 8 模块**（alert_notifier / alert_manager / alert_evaluator / performance._alert_manager / disaster_recovery / llm_monitor / mcp_executor / health_score）以及**低优先级修正收口 2 模块**（scheduling / sensitive_data_filter）共 15 模块全部迁移完成，详见 [迁移总结报告](docs/SingletonManager_Migration_Summary_Report.md) 与 [阶段性汇报](docs/SingletonManager_Migration_Progress_Report.md)。
+
+- **性能**：首次创建 1.93 us（旧 0.54 us）、重复获取 0.13 us（旧 0.06 us）、内存每单例 +0.62 KB —— 微秒级可忽略，详见 [性能基准测试报告](docs/SingletonManager_Performance_Report.md)。
+- **回归**：全量回归 12714 通过（排除 Windows C 扩展崩溃相关文件后）；迁移新增单测累计 **299 项**（15 个测试文件实测）全部通过，核心 `test_singleton_manager` + `test_singleton_performance` 26 项通过（详见 [迁移总结报告](docs/SingletonManager_Migration_Summary_Report.md)）。
+- **剩余旧模式**：原 18 个旧式单例模块中仅剩 **2 个**（`rate_limiter` 命名注册表语义不匹配、`tool_router_hybrid` 已双检锁规范化）维持暂缓，理由见 [迁移优先级评估报告](docs/SingletonManager_Migration_Priority_Report.md)。
+- **指南**：[迁移指南与清单](docs/SingletonManager_Migration_Guide.md)
+- **不迁移**：浏览器单例（`browser_tools.py`）、类级单例（`_instance` + `get_instance()`）、外部注入等，见迁移指南"例外与说明"。
+
 ## 快速开始
 
 ```bash

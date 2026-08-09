@@ -8,8 +8,10 @@
     card-transition    状态迁移（draft→current→archive，非法迁移报错）
     check-links        断链检测（find_broken_links，检出断链 exit 1）
     orphans            孤儿检测（find_orphans）
+    audit              手动触发完整健康巡检（lint + md/html 报告 + 可选邮件）
+    resolve-conflict   人工裁决矛盾（AGENTS.md §6.2：裁决必须由人触发）
 
-退出码约定（不易）：0 = 成功；1 = 运行出错（卡片不存在 / 非法状态迁移 / 检出断链）。
+退出码约定（不易）：0 = 成功；1 = 运行出错（卡片不存在 / 非法状态迁移 / 检出断链 / 裁决失败）。
 --verbose 打开 logging INFO，可观测各模块耗时统计与断链调试日志。
 """
 
@@ -106,6 +108,92 @@ def cmd_orphans(args: argparse.Namespace) -> int:
     for slug in orphans:
         print(f"孤儿: {slug}")
     print(f"共 {len(orphans)} 张孤儿卡片")
+    return 0
+
+
+def cmd_audit(args: argparse.Namespace) -> int:
+    """手动触发完整健康巡检：lint → md/html 报告落盘 → log.md → 可选邮件。
+
+    `--open` 时用默认浏览器打开生成的 HTML 报告（渲染效果即查即见）。
+    """
+    # 函数内惰性导入（与 audit_job 内部一致，避免 __main__ 顶层依赖面扩张）
+    from agent.knowledge.audit_job import (
+        DEFAULT_REPORTS_DIR,
+        run_knowledge_audit,
+        send_knowledge_report_email,
+    )
+
+    logger.info(
+        "CLI audit: 手动巡检 wiki=%s reports_dir=%s send_email=%s open_html=%s",
+        args.wiki, args.reports_dir, not args.no_email, args.open,
+    )
+    report = run_knowledge_audit(
+        args.wiki,
+        index_path=args.index,
+        reports_dir=args.reports_dir,
+    )
+    if not args.no_email:
+        ok = send_knowledge_report_email(report)
+        print(f"健康报告邮件: {'已发送 ✓' if ok else '未发送（SMTP 未配置或失败，详见日志）'}")
+    print(
+        f"巡检完成: 健康分 {report.health_score}/100，"
+        f"孤儿 {len(report.orphans)} / 断链 {len(report.broken_links)} / "
+        f"漂移 {len(report.index_drift)} / 过期 {len(report.stale_cards)} / "
+        f"矛盾 {len(report.unresolved_conflicts)}"
+    )
+    if args.open:
+        from datetime import date
+        import webbrowser
+
+        reports_dir = Path(args.reports_dir) if args.reports_dir else DEFAULT_REPORTS_DIR
+        html_path = reports_dir / f"knowledge_health_{date.today().strftime('%Y%m%d')}.html"
+        opened = webbrowser.open(html_path.resolve().as_uri())
+        print(f"HTML 报告: {'已在浏览器打开 ✓' if opened else '打开失败'} {html_path}")
+        logger.info("CLI audit: --open 尝试打开 HTML=%s success=%s", html_path, opened)
+    logger.info("CLI audit: 完成 score=%.1f", report.health_score)
+    return 0
+
+
+def cmd_resolve_conflict(args: argparse.Namespace) -> int:
+    """人工裁决矛盾（AGENTS.md §6.2：裁决必须由人触发，AI 不自动裁决）。
+
+    裁决规则：decision 一方获胜保留，被否卡片（另一方）归档并自动重链。
+    失败时输出三方卡片存在性诊断，便于人工排查。
+    """
+    from agent.knowledge.conflict import resolve_conflict
+
+    store = CardStore(args.wiki)
+    logger.info(
+        "CLI resolve-conflict: 人工裁决 source=%s target=%s decision=%s wiki=%s",
+        args.source, args.target, args.decision, args.wiki,
+    )
+    ok = resolve_conflict(
+        args.source, args.target, args.decision, card_store=store,
+    )
+    if not ok:
+        diag = {
+            "source": store.get(args.source) is not None,
+            "target": store.get(args.target) is not None,
+            "decision": store.get(args.decision) is not None,
+        }
+        print(
+            f"裁决失败: source={args.source} target={args.target} 矛盾不存在或卡片缺失"
+            f"（存在性诊断: {diag}）",
+            file=sys.stderr,
+        )
+        logger.warning(
+            "CLI resolve-conflict: 裁决失败 source=%s target=%s decision=%s 存在性=%s",
+            args.source, args.target, args.decision, diag,
+        )
+        return 1
+    print(
+        f"裁决完成: {args.source} ↔ {args.target} → 裁决卡 {args.decision}；"
+        f"被否卡片已归档（wiki → archives）"
+    )
+    logger.info(
+        "CLI resolve-conflict: 裁决成功 source=%s target=%s decision=%s",
+        args.source, args.target, args.decision,
+    )
     return 0
 
 
@@ -219,6 +307,31 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--wiki", default=_DEFAULT_WIKI)
     p.add_argument("--verbose", action="store_true")
     p.set_defaults(func=cmd_orphans)
+
+    p = sub.add_parser(
+        "audit",
+        help="手动触发完整健康巡检（lint + md/html 报告 + 可选邮件）",
+    )
+    p.add_argument("--wiki", default=_DEFAULT_WIKI)
+    p.add_argument("--index", default=_DEFAULT_INDEX)
+    p.add_argument("--reports-dir", default=None,
+                   help="报告落盘目录（默认 data/knowledge/reports/）")
+    p.add_argument("--no-email", action="store_true", help="跳过健康报告邮件")
+    p.add_argument("--open", action="store_true",
+                   help="巡检完成后自动在浏览器打开 HTML 报告")
+    p.add_argument("--verbose", action="store_true")
+    p.set_defaults(func=cmd_audit)
+
+    p = sub.add_parser(
+        "resolve-conflict",
+        help="人工裁决矛盾（决策卡获胜，被否卡归档；须由人触发）",
+    )
+    p.add_argument("source", help="矛盾源卡片 slug")
+    p.add_argument("target", help="矛盾目标卡片 slug")
+    p.add_argument("decision", help="裁决卡片 slug（获胜方保留）")
+    p.add_argument("--wiki", default=_DEFAULT_WIKI)
+    p.add_argument("--verbose", action="store_true")
+    p.set_defaults(func=cmd_resolve_conflict)
 
     p = sub.add_parser("import", help="批量导入目录下 *.md 卡片")
     p.add_argument("dir")
