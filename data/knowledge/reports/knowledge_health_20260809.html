@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>知识库健康报告</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; margin: 24px; color: #333; }
+  h1 { border-bottom: 2px solid #2e7d32; padding-bottom: 8px; }
+  .meta { color: #777; font-size: 14px; }
+  .overview { display: flex; align-items: center; gap: 32px; margin: 20px 0; }
+  .gauge-title { font-size: 14px; color: #777; text-align: center; }
+  .score-note { color: #2e7d32; font-weight: bold; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+  th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; font-size: 14px; }
+  th { background: #f5f5f5; }
+  .bar-row { display: flex; align-items: center; margin: 6px 0; gap: 8px; }
+  .bar-label { width: 110px; font-size: 13px; text-align: right; }
+  .bar-track { flex: 1; background: #f0f0f0; border-radius: 4px; height: 18px; }
+  .bar-fill { display: block; height: 100%; border-radius: 4px; background: #2e7d32; }
+  .bar-count { width: 40px; font-weight: bold; font-size: 13px; }
+  h2 { margin-top: 24px; font-size: 18px; }
+  ul { padding-left: 20px; font-size: 14px; }
+  .ok { color: #999; }
+  code { background: #f5f5f5; padding: 1px 5px; border-radius: 3px; font-size: 13px; }
+  .footer { margin-top: 32px; color: #aaa; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>📋 知识库健康报告</h1>
+<p class="meta">巡检时间：2026-08-09 ｜ 卡片总数：0 ｜ 过期阈值：90 天</p>
+
+<div class="overview">
+  <div>
+    <div class="gauge-title">健康分</div>
+    <svg width="150" height="150" viewBox="0 0 120 120" role="img" aria-label="健康分 100.0"><circle cx="60" cy="60" r="52" fill="none" stroke="#e0e0e0" stroke-width="12"/><circle cx="60" cy="60" r="52" fill="none" stroke="#2e7d32" stroke-width="12" stroke-linecap="round" stroke-dasharray="326.73 326.73" transform="rotate(-90 60 60)"/><text x="60" y="62" text-anchor="middle" font-size="26" font-weight="bold" fill="#2e7d32">100.0</text><text x="60" y="80" text-anchor="middle" font-size="12" fill="#999">健康</text></svg>
+  </div>
+  <div style="flex:1;">
+    <h2 style="margin-top:0;">五类问题统计</h2>
+    <div class="bar-row"><span class="bar-label">孤儿卡片</span><span class="bar-track"><span class="bar-fill" style="width:2%"></span></span><span class="bar-count">0</span></div><div class="bar-row"><span class="bar-label">断链</span><span class="bar-track"><span class="bar-fill" style="width:2%"></span></span><span class="bar-count">0</span></div><div class="bar-row"><span class="bar-label">index 漂移</span><span class="bar-track"><span class="bar-fill" style="width:2%"></span></span><span class="bar-count">0</span></div><div class="bar-row"><span class="bar-label">过期声明</span><span class="bar-track"><span class="bar-fill" style="width:2%"></span></span><span class="bar-count">0</span></div><div class="bar-row"><span class="bar-label">未裁决矛盾</span><span class="bar-track"><span class="bar-fill" style="width:2%"></span></span><span class="bar-count">0</span></div>
+  </div>
+</div>
+
+<h2>一、孤儿卡片（0）</h2>
+<ul><li class='ok'>无</li></ul>
+
+<h2>二、断链（0）</h2>
+<ul><li class='ok'>无</li></ul>
+
+<h2>三、index 漂移（0）</h2>
+<ul><li class='ok'>无</li></ul>
+
+<h2>四、过期声明（0）</h2>
+<ul><li class='ok'>无</li></ul>
+
+<h2>五、未裁决矛盾（0）</h2>
+<ul><li class='ok'>无</li></ul>
+
+<h2>六、处置建议</h2>
+<ul><li>知识库状态良好，无需处理</li></ul>
+
+<p class="footer">本报告由云枢知识库定时审计生成 · 每日 02:00 自动巡检</p>
+</body>
+</html>
