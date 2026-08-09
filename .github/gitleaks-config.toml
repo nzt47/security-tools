@@ -77,6 +77,9 @@ regexes = [
     '''AKIA[A-Z0-9]*EXAMPLE''',            # AWS 官方示例（AKIAIOSFODNN7EXAMPLE）
     '''ghp_xxx''',                          # GitHub PAT 占位符
     '''sk-\.\.\..*''',                      # 文档占位符 sk-...
+    # v1.2.0 (PR #499): SMTP 演示/运维脚本占位符 —— smtp_auth_password 为授权码占位，非真实凭据
+    '''\{code\}''',                        # 模板变量 f"smtp_auth_password: '{code}'"（apply_smtp_auth_code 等 3 个脚本）
+    '''REPLACE_WITH_SMTP_AUTH_CODE''',     # alertmanager 配置授权码占位符（repair_alertmanager.py）
 ]
 
 # ── 规则 1: 硬编码密码赋值 ──────────────────────────────────────

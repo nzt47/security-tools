@@ -40,7 +40,11 @@ jobs:
 
       - name: 重新生成快照（基于当前分支代码）
         run: |
-          python scripts/config_snapshot.py \
+          # PYTHONPATH=. 修复 2026-08-09：pip install -e . 后 agent 包不可导入
+          # （pyproject [tool.setuptools.packages.find].where 剥离 agent 前缀），
+          # 且脚本运行时 sys.path[0]=scripts/ 不含仓库根，需显式加入仓库根
+          # 否则 import agent.monitoring.observability_config 失败导致快照生成失败。
+          PYTHONPATH=. python scripts/config_snapshot.py \
             --output /tmp/current_snapshot.json
 
       - name: 加载 master 快照

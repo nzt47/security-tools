@@ -1,17 +1,17 @@
 {
-  "trace_id": "ab9d041bdefa418d",
+  "trace_id": "ed3cdbd7c1ff4535",
   "module_name": "hardcoded_boundary_scanner",
   "action": "scan.complete",
-  "duration_ms": 1616.78,
+  "duration_ms": 1511.18,
   "target": "agent/",
-  "files_scanned": 344,
-  "total_findings": 143,
-  "high_risk": 115,
+  "files_scanned": 375,
+  "total_findings": 144,
+  "high_risk": 116,
   "medium_risk": 0,
   "low_risk": 28,
   "category_breakdown": {
     "retry": 18,
-    "timeout": 87,
+    "timeout": 88,
     "capacity": 38
   },
   "configured_modules": [
@@ -810,6 +810,18 @@
       "risk": "high",
       "context": "default_arg",
       "pattern": "def __init__(..., timeout_seconds=300.0, ...)",
+      "configured": false
+    },
+    {
+      "file": "knowledge/audit_job.py",
+      "line": 157,
+      "col": 13,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 30.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "smtplib.SMTP(timeout=30.0)",
       "configured": false
     },
     {
