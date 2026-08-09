@@ -145,7 +145,7 @@ class PromptBuilder:
         _sp_template = get_template_fn()
 
         # 计算必要字段
-        current_date = datetime.now().strftime("%Y年%m月%d日")
+        current_date = f"{datetime.now().year}年{datetime.now().month}月{datetime.now().day}日"
         mode_name = profile.label
         mode_description = profile.description
 

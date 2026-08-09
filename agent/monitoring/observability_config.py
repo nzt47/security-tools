@@ -516,6 +516,16 @@ OBSERVABILITY_VALIDATION_RULES: List[ValidationRule] = [
         error_message="self_healer.thread_join_timeout_sec 必须在 1-60 秒之间",
         description="自愈健康检查线程清理超时，用于 monitoring/self_healer.py 的 _health_check_thread.join(timeout=)",
     ),
+
+    # ── 22. 知识库文件锁（knowledge） ──
+    # log.md 跨进程文件锁获取超时（ingest.py 的 _FileLock）
+    ValidationRule(
+        path="knowledge.file_lock_timeout_sec",
+        validator=_range_validator(1, 60),
+        default=10.0,
+        error_message="knowledge.file_lock_timeout_sec 必须在 1-60 秒之间",
+        description="log.md 文件锁获取超时（秒），用于 knowledge/ingest.py 的 _FileLock(timeout=)",
+    ),
 ]
 
 

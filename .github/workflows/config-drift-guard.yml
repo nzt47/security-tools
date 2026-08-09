@@ -46,7 +46,11 @@ jobs:
 
       - name: 重新生成快照（基于当前分支代码）
         run: |
-          python scripts/config_snapshot.py \
+          # PYTHONPATH=. 修复 2026-08-09：pip install -e . 后 agent 包不可导入
+          # （pyproject [tool.setuptools.packages.find].where 剥离 agent 前缀），
+          # 且脚本运行时 sys.path[0]=scripts/ 不含仓库根，需显式加入仓库根
+          # 否则 import agent.monitoring.observability_config 失败导致快照生成失败。
+          PYTHONPATH=. python scripts/config_snapshot.py \
             --output /tmp/current_snapshot.json
 
       - name: 加载 master 快照
@@ -65,8 +69,9 @@ jobs:
         run: |
           # 对比 master 快照（已知良好状态）与当前分支运行时配置
           # --fail-on-drift 模式下，high/critical 漂移会以非零退出码退出
+          # PYTHONPATH=. 同上：check_config_drift.py 需 import agent 包
           EXIT_CODE=0
-          python scripts/check_config_drift.py \
+          PYTHONPATH=. python scripts/check_config_drift.py \
             --snapshot docs/observability/config_snapshot_master.json \
             --json \
             --output /tmp/drift_report.json \
