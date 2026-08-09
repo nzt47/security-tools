@@ -142,6 +142,11 @@ jobs:
           mkdir -p test-results htmlcov
 
       - name: 运行单元测试
+        env:
+          # 【CHG-2026-0809】Windows CI 默认 locale cp1252：pytest 打印中文 docstring +
+          # 测试内 open() 写中文均报 UnicodeEncodeError。PYTHONUTF8=1 强制 UTF-8 模式
+          # （同时覆盖 stdio 与 open() 默认编码），根治 §8 类编码问题。
+          PYTHONUTF8: "1"
         run: |
           pytest tests/unit/ \
             -v \
