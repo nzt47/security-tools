@@ -353,6 +353,18 @@ jobs:
             --benchmark-only \
             --benchmark-json=test_reports/benchmark.json
 
+      - name: 运行知识库 6000 卡性能回归测试
+        # Why: 知识库 CardStore.list 与断链检测在 6000 卡量级下的性能回归护栏，
+        #      覆盖「正确性 + 确定性 + 耗时上限 + list 内存缓存加速」四重断言，
+        #      防止新增优化/重构引入功能退化或性能回退。
+        # 详见 tests/performance/test_knowledge_link_perf.py
+        run: |
+          pytest tests/performance/test_knowledge_link_perf.py \
+            -v \
+            --timeout=300 \
+            -m performance \
+            --junitxml=test_reports/knowledge-link-perf-results.xml
+
       - name: 运行 L2 性能回归测试
         env:
           # SCHEME 标记用于 CI 日志机器可读，明确区分同步串行方案与其他实验场景
@@ -396,6 +408,7 @@ jobs:
           name: benchmark-report-${{ matrix.os }}-py${{ matrix.python-version }}
           path: |
             test_reports/benchmark.json
+            test_reports/knowledge-link-perf-results.xml
             test_reports/l2-ci.log
             test_reports/l2_perf_report.png
             test_reports/bench_ci.log

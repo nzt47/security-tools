@@ -475,6 +475,102 @@ def test_list_empty_wiki(store):
     assert store.list() == []
 
 
+# ---------- list(use_cache=True) 内存缓存 ----------
+
+
+def _seed_types(store):
+    """建齐三个类型目录 + 各一张卡（模拟真实知识库布局）。"""
+    store.create(make_card("驾驭工程", type="concepts"))
+    store.create(make_card("张三", type="entities"))
+    store.create(make_card("关于复杂系统", type="insights"))
+
+
+def test_list_cache_matches_default_semantics(store):
+    """【不易】use_cache=True 结果与默认实时读盘一致（语义不变式）。"""
+    _seed_types(store)
+    store.create(make_card("提示词工程", status="draft", type="concepts"))
+    assert [c.slug for c in store.list(use_cache=True)] == [
+        c.slug for c in store.list()
+    ]
+
+
+def test_list_cache_hit_skips_disk_read(store, monkeypatch):
+    """指纹未变时缓存命中：_list_from_disk 只执行一次（跳过重复 YAML 解析）。"""
+    _seed_types(store)
+    calls = {"n": 0}
+    orig = CardStore._list_from_disk
+
+    def counting(self):
+        calls["n"] += 1
+        return orig(self)
+
+    monkeypatch.setattr(CardStore, "_list_from_disk", counting)
+    store.list(use_cache=True)  # 冷加载 + 建缓存
+    store.list(use_cache=True)  # 命中
+    store.list(use_cache=True)  # 命中
+    assert calls["n"] == 1
+
+
+def test_list_cache_invalidates_on_create(store, monkeypatch):
+    """新增卡片 → 缓存增量同步 → 立即可见，且不触发全量重载。
+
+    【变易】2026-08-09 内存缓存优化：create 由「失效+全量重载」升级为
+    「增量同步」（写路径即时更新缓存与指纹），写后查询不再全量重载。
+    正确性契约不变：新卡立即可见。
+    """
+    _seed_types(store)
+    calls = {"n": 0}
+    orig = CardStore._list_from_disk
+
+    def counting(self):
+        calls["n"] += 1
+        return orig(self)
+
+    monkeypatch.setattr(CardStore, "_list_from_disk", counting)
+    assert len(store.list(use_cache=True)) == 3
+    store.create(make_card("提示词工程"))  # 新文件 → 增量同步入缓存
+    got = store.list(use_cache=True)
+    assert {c.slug for c in got} == {"驾驭工程", "张三", "关于复杂系统", "提示词工程"}
+    assert calls["n"] == 1  # 增量同步：不触发全量重载
+
+
+def test_list_cache_invalidates_on_delete(store):
+    """删除卡片 → 缓存增量同步 → 被删卡不再出现。"""
+    _seed_types(store)
+    assert len(store.list(use_cache=True)) == 3
+    store.delete("张三")
+    assert {c.slug for c in store.list(use_cache=True)} == {
+        "驾驭工程",
+        "关于复杂系统",
+    }
+
+
+def test_list_cache_filters_status_and_type(store):
+    """缓存路径下 status/type 过滤与默认路径语义一致。"""
+    _seed_types(store)
+    store.create(make_card("提示词工程", status="draft", type="concepts"))
+    assert {c.slug for c in store.list(use_cache=True, status="draft")} == {
+        "提示词工程"
+    }
+    assert {c.slug for c in store.list(use_cache=True, type="entities")} == {"张三"}
+    assert {
+        c.slug for c in store.list(use_cache=True, status="current", type="concepts")
+    } == {"驾驭工程"}
+
+
+def test_list_cache_skips_missing_type_dirs(store):
+    """缺失的类型目录被指纹跳过（目录存在与否不影响缓存可用性）。
+
+    【不易】缓存语义不变量：无论目录是否齐全，use_cache 结果都与默认
+    实时读盘一致；缺失目录仅影响指纹中出现的条目。
+    """
+    assert store.list(use_cache=True) == []  # 空 wiki：三目录均缺失
+    store.create(make_card("驾驭工程"))      # 仅 concepts 目录
+    assert [c.slug for c in store.list(use_cache=True)] == [
+        c.slug for c in store.list()
+    ]
+
+
 # ---------- index.md 维护 ----------
 
 

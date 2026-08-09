@@ -189,6 +189,9 @@ class CardStore:
             Path(links_index_path) if links_index_path else root / "index_links.md"
         )
         self._rwlock = _RWLock()  # 读写锁：写串行化（index/log 一致性），读并发
+        # 内存缓存（list(use_cache=True) 时启用）：指纹 = 文件系统快照
+        self._list_cache: Optional[list[Card]] = None
+        self._list_fingerprint: Optional[tuple] = None
 
     # ---------- 内部工具 ----------
 
@@ -340,6 +343,10 @@ class CardStore:
             update_index_delta(card.slug, card, self._index_path)
             append_log("create", card.slug, f"type={card.type}", log_path=self._log_path)
             self._sync_links_index_add(card)  # 入链索引同步（P0-2）
+            self._sync_list_cache(
+                added=card,
+                added_fp=self._fp_entry(card.type, card.slug, path),
+            )  # 内存缓存增量同步：写后查询不再全量重载
             logger.debug(
                 "create[入链登记]: slug=%s 每个引用目标逐项登记 add=True index=%s",
                 card.slug, self._links_index_path,
@@ -404,6 +411,7 @@ class CardStore:
                 card.slug, card.links, (time.perf_counter() - _t0) * 1000,
             )
             new_path = self._wiki_root / card.type / f"{card.slug}.md"
+            old_fp = self._fp_entry(old_path.parent.name, card.slug, old_path)  # unlink 前记录旧指纹
             if old_path != new_path:
                 logger.info("更新卡片: slug=%s type 变更迁移文件 %s → %s", card.slug, old_path, new_path)
                 self._write_card(new_path, card)
@@ -413,6 +421,12 @@ class CardStore:
             update_index_delta(card.slug, card, self._index_path)
             append_log("update", card.slug, f"type={card.type}", log_path=self._log_path)
             self._sync_links_index_add(card)  # 入链索引同步：登记新引用（P0-2）
+            self._sync_list_cache(
+                added=card,
+                removed=card.slug,
+                added_fp=self._fp_entry(card.type, card.slug, new_path),
+                removed_fp=old_fp,
+            )  # 内存缓存增量同步：写后查询不再全量重载
             return card
 
     def delete(self, slug: str) -> bool:
@@ -451,6 +465,7 @@ class CardStore:
                 "删除卡片[入链追踪]: slug=%s 入链检查通过(无引用方) path=%s 被删卡links=%s",
                 slug, path, old_links,
             )
+            del_fp = self._fp_entry(path.parent.name, slug, path)  # unlink 前记录指纹
             path.unlink()
             update_index_delta(slug, None, self._index_path)
             append_log("delete", slug, "", log_path=self._log_path)
@@ -466,6 +481,9 @@ class CardStore:
                 self._links_index_path,
             )
             logger.info("删除卡片: slug=%s path=%s", slug, path)
+            self._sync_list_cache(
+                removed=slug, removed_fp=del_fp,
+            )  # 内存缓存增量同步：写后查询不再全量重载
             return True
 
     def delete_many(self, slugs: list[str]) -> dict[str, bool]:
@@ -519,12 +537,159 @@ class CardStore:
                 self._sync_links_index_remove(slug, old_links)  # 入链索引同步（P0-2）
                 logger.info("批量删除卡片: slug=%s path=%s", slug, path)
                 result[slug] = True
+            # 批量删除后一次性失效缓存：逐张增量同步为 O(K·N)，批量场景失效更优
+            if any(result.values()):
+                self._invalidate_list_cache()
             return result
 
+    def _fingerprint(self) -> tuple:
+        """文件系统指纹：{(目录, 文件名, mtime_ns)} 排序元组。
+
+        用于 list(use_cache=True) 的缓存失效判定：文件增删改（mtime 变化）
+        都会改变指纹 → 自动重载。指纹仅含文件名与 mtime（不读内容），
+        10 万卡量级扫描成本约秒级，远低于全量 YAML 解析（数分钟）。
+        目录缺失时跳过（与 list() 跳过不存在目录的语义一致，指纹仍可用）。
+        """
+        entries = []
+        for t in _TYPE_DIRS:
+            d = self._wiki_root / t
+            if not d.is_dir():
+                continue
+            with os.scandir(d) as it:
+                for e in it:
+                    if e.name.endswith(".md"):
+                        entries.append((t, e.name, e.stat().st_mtime_ns))
+        return tuple(sorted(entries))
+
+    def _list_from_disk(self) -> list[Card]:
+        """全量读盘：所有类型目录下的可解析卡片（按 slug 字典序）。"""
+        cards: list[Card] = []
+        for t in _TYPE_DIRS:
+            d = self._wiki_root / t
+            if not d.exists():
+                continue
+            for p in sorted(d.glob("*.md")):
+                try:
+                    card = self._md_to_card(p)
+                except (ValueError, TypeError):
+                    continue  # 跳过损坏卡片，不阻断全库列举
+                cards.append(card)
+        return cards
+
+    # ---------- 内存缓存失效/同步 ----------
+
+    @staticmethod
+    def _fp_entry(type_dir: str, slug: str, path: Path) -> Optional[tuple]:
+        """写操作后的单文件指纹条目 (type_dir, filename, mtime_ns)。
+
+        path 须为 stat 前的文件路径（update/delete 在 unlink 前调用）。
+        文件缺失返回 None（调用方忽略；指纹不一致时下次命中会全量比较
+        发现 → 自动重载，安全回退）。
+        """
+        try:
+            return (type_dir, f"{slug}.md", path.stat().st_mtime_ns)
+        except OSError:
+            return None
+
+    def _invalidate_list_cache(self) -> None:
+        """写路径缓存失效（批量操作用：delete_many / import_from_dir）。
+
+        置空缓存与指纹，下次 list(use_cache=True) 自动全量重载。
+        批量场景逐张增量同步为 O(K·N)，整体失效一次更优。
+        """
+        self._list_cache = None
+        self._list_fingerprint = None
+
+    def _sync_list_cache(
+        self,
+        *,
+        added: Optional[Card] = None,
+        removed: Optional[str] = None,
+        added_fp: Optional[tuple] = None,
+        removed_fp: Optional[tuple] = None,
+    ) -> None:
+        """写操作后增量同步内存缓存与指纹（缓存已加载时）。
+
+        缓存未加载（_list_cache is None）直接返回：下次 list(use_cache=True)
+        自动全量加载，无需同步。
+
+        【不易】安全边界：缓存内容与指纹在同一函数内同步，保证二者一致。
+        任一遗漏导致的指纹不一致，都会在下次 list 命中时被全量指纹比较
+        发现 → 自动全量重载（只慢不坏，绝不返回陈旧数据）。
+        """
+        if self._list_cache is None:
+            return
+        if removed is not None:
+            self._list_cache = [
+                c for c in self._list_cache if c.slug != removed
+            ]
+        if added is not None:
+            self._list_cache = [
+                c for c in self._list_cache if c.slug != added.slug
+            ]
+            self._list_cache.append(added)
+            # 与 _list_from_disk 顺序一致：按类型目录序 + 组内 slug 字典序
+            self._list_cache.sort(
+                key=lambda c: (_TYPE_DIRS.index(c.type), c.slug)
+            )
+        if added_fp is not None or removed_fp is not None:
+            fp = set(self._list_fingerprint or ())
+            if removed_fp is not None:
+                fp.discard(removed_fp)
+            if added_fp is not None:
+                fp.add(added_fp)
+            self._list_fingerprint = tuple(sorted(fp))
+
     def list(
-        self, status: Optional[str] = None, type: Optional[str] = None
+        self,
+        status: Optional[str] = None,
+        type: Optional[str] = None,
+        *,
+        use_cache: bool = False,
     ) -> list[Card]:
-        """列出卡片，可按状态/类型过滤（按 slug 字典序）。"""
+        """列出卡片，可按状态/类型过滤（按 slug 字典序）。
+
+        use_cache=True 时启用内存缓存（性能优化）：
+        - 首次调用全量读盘并缓存；指纹（文件名+mtime 快照）未变时直接
+          返回缓存副本（跳过 YAML 解析——10 万卡场景耗时从分钟级降到秒级）。
+        - 指纹在文件增删改时自动失效并重载，无需手动失效。
+        - 【边界】仅依赖 mtime 检测变化：人为还原 mtime 的文件可能漏检
+          （极端场景，可接受）；缓存仅在本次进程内有效。
+        - 默认 False 保持原语义（每次实时读盘），不改变既有调用行为。
+        """
+        if use_cache:
+            if self._list_cache is not None:
+                fp = self._fingerprint()
+                if fp == self._list_fingerprint:
+                    cards = [
+                        c
+                        for c in self._list_cache
+                        if (status is None or c.status == status)
+                        and (type is None or c.type == type)
+                    ]
+                    logger.info(
+                        "list: 缓存命中(use_cache) 指纹未变 返回卡片=%d（过滤 status=%s type=%s）",
+                        len(cards), status, type,
+                    )
+                    return cards
+            else:
+                # 缓存未加载（首次调用 或 批量写后失效）：跳过指纹扫描直接重载，
+                # 加载后重建指纹基线（10 万卡场景省一次全量 scandir+stat）
+                fp = None
+            with self._rwlock.read():
+                cards = self._list_from_disk()
+            self._list_cache = cards
+            if fp is None:
+                fp = self._fingerprint()  # 重建指纹基线
+            self._list_fingerprint = fp
+            if status is not None or type is not None:
+                cards = [
+                    c
+                    for c in cards
+                    if (status is None or c.status == status)
+                    and (type is None or c.type == type)
+                ]
+            return cards
         with self._rwlock.read():  # 与写锁互斥：全库列举不被多步写打断
             cards: list[Card] = []
             for t in _TYPE_DIRS:
@@ -576,6 +741,8 @@ class CardStore:
                 result.failed += 1
                 result.failures.append((p.name, str(exc)))
                 logger.warning("批量导入失败: %s: %s", p.name, exc)
+        if result.imported:
+            self._invalidate_list_cache()  # 批量导入后一次性失效缓存（避免逐张 O(K·N) 同步）
         logger.info(
             "批量导入完成: 导入=%d 跳过=%d 失败=%d 耗时=%.2fms",
             result.imported, result.skipped, result.failed,
