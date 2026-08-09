@@ -1,7 +1,0 @@
-{
-  "description": "139 邮箱 SMTP 授权码批量轮换清单（仅账号元数据，不含任何授权码明文）",
-  "accounts": [
-    {"email": "13539371839@139.com", "to": "13539371839@139.com", "note": "Alertmanager 告警接收邮箱"},
-    {"email": "REPLACE_WITH_ACCOUNT2@139.com", "to": "REPLACE_WITH_ACCOUNT2@139.com", "note": ""}
-  ]
-}
