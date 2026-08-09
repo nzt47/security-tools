@@ -49,7 +49,7 @@
     {
       "name": "list_async_tasks",
       "category": "async",
-      "description": "列出所有异步任务（含已完成、运行中、等待中）",
+      "description": "列出所有异步任务队列（后台任务调度：已完成/运行中/等待中，与操作系统进程无关）",
       "version": "1.0.0",
       "deprecated": false,
       "parameter_names": []
@@ -545,7 +545,7 @@
     {
       "name": "list_processes",
       "category": "system",
-      "description": "列出当前正在运行的白名单程序列表",
+      "description": "列出当前正在运行的操作系统进程（白名单程序，含 PID/进程名，与异步任务队列无关）",
       "version": "1.0.0",
       "deprecated": false,
       "parameter_names": []

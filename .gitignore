@@ -237,6 +237,19 @@ backup/untracked_backup_*/
 !backup/logs/
 # 并行会话临时备份中的 release-merge 快照包（含浏览器登录凭据/VPN Tokens，禁止提交）
 backup/parallel_session_tmp_20260806/dot-tmp-release-merge.tar.gz
+# 工具测试产物工作区（.fix407-tooltests 等，含测试样例副本，禁止提交）
+.fix*-tooltests/
 
 # 修复备份目录（防止 IDE 文件监视器自动还原）
 .fix_backups/
+
+# === 2026-08-08 凭据泄露处置归档：临时调试/CI 模拟产物（不入库）===
+/.s[0-9]*.txt
+/.fix-*.txt
+/.fix-watch-obs-ci.ps1
+/.mergeref-tests.txt
+/.prhead-tests.txt
+/.shard2-*
+/.split-407.py
+# 运行时生成的知识健康报告（data/knowledge 下仅 reports 为运行时产物，代码目录需另行评估）
+data/knowledge/reports/

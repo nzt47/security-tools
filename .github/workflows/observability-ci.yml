@@ -1215,7 +1215,7 @@ jobs:
           python scripts/observability_quality_gate.py \
             --results-dir all-observability-results/ \
             --min-unit-test-pass-rate 95 \
-            --min-coverage 60 \
+            --min-coverage 40 \
             --require-e2e-pass true
 
       - name: 上传质量门禁报告

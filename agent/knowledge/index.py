@@ -223,7 +223,10 @@ def update_index_delta(
 
 
 def read_index_slugs(index_path: str | Path) -> list[str]:
-    """解析 index.md 中全部条目 slug（- [[slug]] 行），按出现顺序返回。"""
+    """解析 index.md 中全部条目 slug（- [[slug]] 行），按出现顺序返回。
+
+    缺失/空文件返回空列表；非条目行（标题/时间戳）自动跳过。
+    """
     path = Path(index_path)
     if not path.exists():
         logger.info("read_index_slugs: index.md 缺失（视为空集合）: %s", path)
@@ -270,7 +273,11 @@ def _locate_card_slug(path: str | Path, wiki_root: str | Path) -> Optional[tuple
 
 
 def _clear_reverse_refs(slug: str, links_index_path: str | Path) -> None:
-    """清除入链索引中以 slug 为引用方的全部登记（该卡片已删除/归档）。"""
+    """清除入链索引中以 slug 为引用方的全部登记（该卡片已删除/归档）。
+
+    只读取/重写 index_links.md（小文件），不扫描卡片库——增量索引不变量：
+    不触碰除「该卡片文件 + 两个索引文件」之外的任何文件。
+    """
     refs = read_links_index(links_index_path)
     for target in list(refs):
         if slug in refs[target]:
@@ -383,23 +390,24 @@ def start_incremental_index_watcher(
     index_path = index_path or (wiki_root.parent / "index.md")
     links_index_path = links_index_path or (wiki_root.parent / "index_links.md")
 
-    def _on_event(reading) -> None:
-        meta = reading.metadata
+    def _on_event(reading: Any) -> None:
+        meta = getattr(reading, "metadata", None) or {}
         event_type = meta.get("event_type")
-        src = meta.get("src_path")
+        src = meta.get("src_path") or getattr(reading, "value", None)
+        dest = meta.get("dest_path")
         try:
             if event_type == "moved":
-                dest = meta.get("dest_path")
-                handle_wiki_file_event(
-                    "deleted", src, wiki_root,
-                    index_path=index_path, links_index_path=links_index_path,
-                )
+                if src:
+                    handle_wiki_file_event(
+                        "deleted", src, wiki_root,
+                        index_path=index_path, links_index_path=links_index_path,
+                    )
                 if dest:
                     handle_wiki_file_event(
                         "created", dest, wiki_root,
                         index_path=index_path, links_index_path=links_index_path,
                     )
-            else:
+            elif event_type in ("created", "modified", "deleted") and src:
                 handle_wiki_file_event(
                     event_type, src, wiki_root,
                     index_path=index_path, links_index_path=links_index_path,
