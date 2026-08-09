@@ -194,7 +194,14 @@ class _FileLock:
     - 锁只保护 log.md 的读改写（最小化持锁时长，锁内无外部调用）。
     """
 
-    def __init__(self, path: Path, timeout: float = 10.0):
+    def __init__(self, path: Path, timeout: Optional[float] = None):
+        # 默认超时从 observability_config 读取（配置化；显式传参时优先）
+        if timeout is None:
+            from agent.monitoring.observability_config import get_observability_config
+
+            timeout = float(
+                get_observability_config().get("knowledge.file_lock_timeout_sec", 10.0)
+            )
         self._path = path
         self._timeout = timeout
         self._fh = None

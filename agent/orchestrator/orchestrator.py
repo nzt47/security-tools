@@ -2147,7 +2147,7 @@ class Orchestrator:
 
         _sp_template = _get_template()
         system_prompt = _sp_template.format(
-            current_date=datetime.now().strftime("%Y年%m月%d日"),
+            current_date=f"{datetime.now().year}年{datetime.now().month}月{datetime.now().day}日",
             body_status=body_status,
             mode_name=profile.label,
             mode_description=profile.description,
@@ -2166,7 +2166,7 @@ class Orchestrator:
                 logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.token', 'message': '[Token] system prompt %d tokens 超预算 %d，截断工具状态' % (_sp_tokens, _sp_budget)}))
                 _brief_tools = (tool_status[:300] + "\n...（已截断）") if len(tool_status) > 300 else tool_status
                 system_prompt = _sp_template.format(
-                    current_date=datetime.now().strftime("%Y年%m月%d日"),
+                    current_date=f"{datetime.now().year}年{datetime.now().month}月{datetime.now().day}日",
                     body_status=body_status,
                     mode_name=profile.label,
                     mode_description=profile.description,
@@ -2526,7 +2526,7 @@ class Orchestrator:
             skill_instructions = self._build_skill_instructions()
             _sp_template = _get_template()
             system_prompt = _sp_template.format(
-                current_date=datetime.now().strftime("%Y年%m月%d日"),
+                current_date=f"{datetime.now().year}年{datetime.now().month}月{datetime.now().day}日",
                 body_status=body_status,
                 mode_name=profile.label,
                 mode_description=profile.description,

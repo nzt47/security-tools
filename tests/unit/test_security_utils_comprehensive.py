@@ -1861,6 +1861,7 @@ class TestCoverageSupplementary:
 
     @pytest.mark.unit
     @pytest.mark.p0
+    @pytest.mark.serial  # 【P3】日志采集断言：xdist 并行时全局 logging 状态竞争 → 串行段执行
     def test_data_sanitizer_init_logging(self):
         """测试 DataSanitizer 初始化时的日志输出"""
         import logging

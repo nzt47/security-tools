@@ -44,8 +44,16 @@ from pathlib import Path
 
 
 # 跳过条件: chromadb 未安装时跳过
-pytest.importorskip("chromadb")
-pytest.importorskip("sentence_transformers")
+# 【变易】部分 chromadb 1.5.9 build 在 NumPy 2.0 下导入失败
+# （np.float_ 已移除，见 chromadb/api/types.py），此时降级跳过而非 ERROR 阻断
+try:
+    pytest.importorskip("chromadb")
+    pytest.importorskip("sentence_transformers")
+except AttributeError as _exc:
+    pytest.skip(
+        f"chromadb 与 NumPy 2.0 不兼容，跳过兼容性测试: {_exc}",
+        allow_module_level=True,
+    )
 
 
 # Windows 跳过: chromadb 1.x Rust 绑定在 Windows 上不兼容

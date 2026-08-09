@@ -402,7 +402,7 @@ class TestFileOperations:
     def test_write_file_backup(self, temp_dir):
         """测试文件备份功能"""
         test_file = os.path.join(temp_dir, "existing.txt")
-        with open(test_file, "w") as f:
+        with open(test_file, "w", encoding="utf-8") as f:
             f.write("原始内容")
         
         result = write_file(test_file, "新内容")

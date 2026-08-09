@@ -165,6 +165,21 @@ filterwarnings = [
 
 [tool.coverage.run]
 source = ["agent", "sensor", "memory", "planning", "persona", "core", "cognitive", "lifetrace", "utils"]
+# 【不易·P3-1】omit 口径：排除非业务代码，保证全项目覆盖率门禁聚焦 agent 业务层。
+#   - */tests/*：测试代码自身不应计入分母。
+#     必须用 */tests/*（fnmatch 中 * 可跨目录）而非 tests/*：
+#     coverage .data 存的是运行时刻完整路径，CI 下为绝对路径
+#     /home/runner/work/security-tools/security-tools/tests/...，
+#     前缀模式 tests/* 无法匹配绝对路径 → omit 失效（2026-08-09 实测 38.02% 未排除）。
+#   - */scripts/*：CI/运维/工具脚本层，387 个文件仅 28 个有测试覆盖（覆盖率 6.9%，
+#     占 43.8% 有效行却严重稀释业务覆盖率）；已有 .coveragerc_scripts 独立跟踪体系
+#   - 效果（基于 6-shard 合并数据模拟）：37.96% → 67.92%
+#   - 注意：CI shard 的 --cov=scripts 数据将不再进入全项目 coverage.xml，
+#     脚本层质量由 .coveragerc_scripts 的架构影响检查独立把关
+omit = [
+  "*/tests/*",
+  "*/scripts/*",
+]
 
 [tool.coverage.report]
 show_missing = true

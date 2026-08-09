@@ -30,7 +30,12 @@ def extract(filepath, top_imports, func_imports, pep562_modules, import_location
             tree = ast.parse(source)
         except SyntaxError:
             return
-    rel = os.path.relpath(filepath).replace("\\", "/")
+    try:
+        rel = os.path.relpath(filepath).replace("\\", "/")
+    except ValueError:
+        # Windows 跨盘符（如 pytest tmp_path 在 C: 而仓库在 D:）无法计算相对路径，
+        # 降级为文件名（模块名仅作集合 key，测试不硬编码其值）。
+        rel = os.path.basename(filepath)
     # 模块路径归一化 (agent/orchestrator/lifecycle_manager.py -> agent.orchestrator.lifecycle_manager)
     mod_path = rel.replace(".py", "").replace("/", ".")
 
