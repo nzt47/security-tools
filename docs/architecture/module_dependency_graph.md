@@ -530,6 +530,7 @@ flowchart LR
     agent_knowledge_tools --> agent_knowledge_card
     agent_knowledge_tools --> agent_knowledge_search
     agent_knowledge_ingest -.-> agent_utils_sensitive_data_filter
+    agent_knowledge_ingest -.-> agent_monitoring_observability_config
     agent_knowledge_card --> agent_knowledge_index
     agent_knowledge_card --> agent_knowledge_lifecycle
     agent_knowledge_card --> agent_knowledge_links
@@ -1086,8 +1087,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 375
 - 模块节点数: 302
-- 依赖边数: 694
-- 跨层调用数: 414
+- 依赖边数: 695
+- 跨层调用数: 415
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1475.85 ms
+- 构建耗时: 1508.86 ms

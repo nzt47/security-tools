@@ -1,5 +1,5 @@
 {
-  "trace_id": "935be91ef14d4996",
+  "trace_id": "d625026efd7f49cc",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -47,7 +47,7 @@
       "name": "observability_config",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 30,
+      "in_degree": 31,
       "out_degree": 3
     },
     {
@@ -768,7 +768,7 @@
       "layer": "knowledge",
       "file_path": "",
       "in_degree": 3,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.knowledge.observability",
@@ -4338,6 +4338,19 @@
       "target_layer": "utils",
       "import_type": "from_import",
       "line": 171,
+      "source_file": "agent/knowledge/ingest.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.ingest",
+      "target": "agent.monitoring.observability_config",
+      "source_layer": "knowledge",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 200,
       "source_file": "agent/knowledge/ingest.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -11032,7 +11045,7 @@
       "source_layer": "monitoring",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 715,
+      "line": 725,
       "source_file": "agent/monitoring/observability_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -11045,7 +11058,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 673,
+      "line": 683,
       "source_file": "agent/monitoring/observability_config.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -11446,8 +11459,8 @@
   "stats": {
     "total_files": 375,
     "total_nodes": 302,
-    "total_edges": 694,
-    "cross_layer_edges": 414,
+    "total_edges": 695,
+    "cross_layer_edges": 415,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -11490,6 +11503,6 @@
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1475.8528170000318
+    "build_duration_ms": 1508.8617159999985
   }
 }
