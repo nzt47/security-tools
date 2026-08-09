@@ -23,7 +23,12 @@
 
 ## ⚠️ 注意事项
 
-- 暂缓 2 个模块：`rate_limiter`（命名注册表语义）、`tool_router_hybrid`（已规范化），含备选方案文档，待团队评审。
+**暂缓 2 个模块**（对外信息与 commit 记录保持一致）：
+
+- `rate_limiter`：命名注册表语义（`_global_limiters` 按名缓存多实例）与 SingletonManager 单实例语义不匹配，备选方案见 [rate_limiter_refactor_analysis.md](rate_limiter_refactor_analysis.md)。
+- `tool_router_hybrid`：已双检锁 + reset 规范化，仅缺 register，收益有限，维持暂缓。
+
+理由已在[迁移总结报告](SingletonManager_Migration_Summary_Report.md)与迁移清单登记，防止重复评估。
 
 ## 📚 文档
 
