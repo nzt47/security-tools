@@ -191,6 +191,8 @@ packages/tlm-hook-failsafe/*.nupkg
 .env.backups/
 .github/workflows/backups/
 *.bak
+# EnvConfigManager 跨进程文件锁（CHG-2026-0810 运行产物，防误提交）
+.env.lock
 *.bak.*
 l2_perf_report.png
 coverage_report/
