@@ -34,7 +34,20 @@ from typing import Dict, List, Any
 # 设置路径
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from agent.tests.test_tool_router import ToolRouterTester
+# agent/tests 已归档至 docs/archive/agent_tests_20260810（2026-08-10），
+# 包导入 agent.tests.* 不可用，测试类改由文件加载（与 cicd_pipeline.py 同构）。
+_ARCHIVED_TOOL_ROUTER = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "docs", "archive", "agent_tests_20260810", "test_tool_router.py")
+
+
+def load_tool_router_tester():
+    """从归档位置加载 ToolRouterTester。"""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("tool_router_tester", _ARCHIVED_TOOL_ROUTER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.ToolRouterTester
 
 
 class StressTestPipeline:
@@ -120,7 +133,7 @@ class StressTestPipeline:
         print("\n🔧 运行边界条件测试...")
         
         try:
-            tester = ToolRouterTester()
+            tester = load_tool_router_tester()()
             
             boundary_tests = [
                 ("空工具集", tester.test_empty_tool_set),
@@ -330,7 +343,7 @@ class StressTestPipeline:
         print("\n🔍 运行路由器功能测试...")
         
         try:
-            tester = ToolRouterTester()
+            tester = load_tool_router_tester()()
             
             functional_tests = [
                 ("关键词配置测试", tester.test_keywords_config),

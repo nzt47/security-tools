@@ -487,14 +487,14 @@ test_plan_content = '''# 云枢 Agent 测试计划文档
 
 **文档结束**'''
 
-# 写入文件
-with open('agent/tests/test_memory_manager.py', 'w', encoding='utf-8') as f:
+# 写入文件（agent/tests 已归档至 docs/archive/agent_tests_20260810，2026-08-10）
+with open('docs/archive/agent_tests_20260810/test_memory_manager.py', 'w', encoding='utf-8') as f:
     f.write(memory_test_content)
-print('Created: agent/tests/test_memory_manager.py')
+print('Created: docs/archive/agent_tests_20260810/test_memory_manager.py')
 
-with open('agent/tests/test_planning.py', 'w', encoding='utf-8') as f:
+with open('docs/archive/agent_tests_20260810/test_planning.py', 'w', encoding='utf-8') as f:
     f.write(planning_test_content)
-print('Created: agent/tests/test_planning.py')
+print('Created: docs/archive/agent_tests_20260810/test_planning.py')
 
 with open('TEST_PLAN.md', 'w', encoding='utf-8') as f:
     f.write(test_plan_content)

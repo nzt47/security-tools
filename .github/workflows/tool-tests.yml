@@ -14,8 +14,8 @@ on:
       - 'agent/web/**'
       - 'agent/extensions/**'
       - 'agent/software_manager.py'
-      - 'agent/tests/test_*tools*.py'
-      - 'agent/tests/test_file_tools.py'
+      - 'docs/archive/agent_tests_20260810/test_*tools*.py'
+      - 'docs/archive/agent_tests_20260810/test_file_tools.py'
   pull_request:
     branches: [main, develop]
     paths:
@@ -57,13 +57,23 @@ jobs:
           pip install -e . || true
 
       - name: 运行工具模块测试
+        # 【不易】必须 shell: bash：pytest 多行命令用 bash 的 \ 续行符，
+        # Windows runner 默认 shell 为 PowerShell，\ 被解析为除法运算符 → ParserError
+        # （2026-08-10 复现：run 31310871956 develop / 31377751010 归档分支均因此失败）
+        shell: bash
+        # 【不易】PYTHONPATH 必须指向 workspace：pytest console script 启动不把 cwd 加入
+        # sys.path，而 editable 安装（pip install -e . || true）失败被 || true 吞掉 →
+        # from agent.xxx import 报 ModuleNotFoundError（2026-08-10 shell:bash 修复后首次
+        # 实际运行暴露：6 矩阵组合 28 failed / 15 errors，归档前后行为一致属存量问题）。
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
-          pytest agent/tests/test_file_tools.py \
-                agent/tests/test_web_tools.py \
-                agent/tests/test_ext_tools.py \
-                agent/tests/test_pdf_tools.py \
-                agent/tests/test_software_tools.py \
-                agent/tests/test_system_tools.py \
+          pytest docs/archive/agent_tests_20260810/test_file_tools.py \
+                docs/archive/agent_tests_20260810/test_web_tools.py \
+                docs/archive/agent_tests_20260810/test_ext_tools.py \
+                docs/archive/agent_tests_20260810/test_pdf_tools.py \
+                docs/archive/agent_tests_20260810/test_software_tools.py \
+                docs/archive/agent_tests_20260810/test_system_tools.py \
                 -v --tb=short --cov=agent.system_tools --cov=agent.pdf_tools \
                 --cov=agent.web --cov=agent.extensions.manager \
                 --cov=agent.software_manager \
