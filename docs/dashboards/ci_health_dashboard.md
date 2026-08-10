@@ -54,6 +54,7 @@
 | 2026-08-07 | `0456b43` | 98.8% (1595/1614) | 0 | 19 | 116.24 | — | 0 | ↑ | fix(tests): delete_many 顺序删除测试改用 slugify slug（Linux 大小写� |
 | 2026-08-08 | `6dc9427` | 99.4% (1595/1604) | 0 | 9 | 83.80 | — | 0 | ↑ | fix(knowledge): HealthReport 新增 to_dict 序列化方法修复 lint 接口 50 |
 | 2026-08-09 | `23f9b64` | 99.5% (1708/1717) | 0 | 9 | 106.44 | — | 0 | ↑ | test(perf): 7 个 filter 依赖测试加 @pytest.mark.serial（Shard 2） |
+| 2026-08-10 | `33136c1` | 99.5% (1708/1717) | 0 | 9 | 112.73 | — | 0 | ↑ | test(knowledge): 4 个日志捕获测试加 @pytest.mark.serial（Shard 4 flake  |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
