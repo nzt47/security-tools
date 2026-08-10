@@ -19,6 +19,21 @@ import subprocess
 import time
 from datetime import datetime
 
+# agent/tests 已归档至 docs/archive/agent_tests_20260810（2026-08-10），
+# 包导入 agent.tests.* 不可用，测试类改由文件加载。
+ARCHIVED_TOOL_ROUTER = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "docs", "archive", "agent_tests_20260810", "test_tool_router.py")
+
+
+def load_tool_router_tester():
+    """从归档位置加载 ToolRouterTester。"""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("tool_router_tester", ARCHIVED_TOOL_ROUTER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.ToolRouterTester
+
 
 def run_command(cmd, cwd=None):
     """运行命令并返回结果"""
@@ -49,7 +64,7 @@ def run_unit_tests():
     """运行单元测试"""
     print("🔧 运行单元测试...")
     
-    cmd = ["python", "-m", "pytest", "agent/tests/test_tool_router.py", "-v"]
+    cmd = ["python", "-m", "pytest", ARCHIVED_TOOL_ROUTER, "-v"]
     result = run_command(cmd, cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
     if result["success"]:
@@ -65,7 +80,7 @@ def run_stress_tests():
     """运行压力测试"""
     print("🔧 运行压力测试...")
     
-    cmd = ["python", "-m", "agent.tests.test_tool_router"]
+    cmd = ["python", "-m", "pytest", ARCHIVED_TOOL_ROUTER, "-v", "--timeout=300"]
     result = run_command(cmd, cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
     if result["success"]:
@@ -83,8 +98,7 @@ def run_integration_tests():
     
     # 直接调用测试模块，而不是通过subprocess
     try:
-        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        from agent.tests.test_tool_router import ToolRouterTester
+        ToolRouterTester = load_tool_router_tester()
         
         tester = ToolRouterTester()
         results = tester.run_all_tests()
@@ -106,8 +120,7 @@ def run_boundary_tests():
     print("🔧 运行边界条件测试...")
     
     try:
-        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        from agent.tests.test_tool_router import ToolRouterTester
+        ToolRouterTester = load_tool_router_tester()
         
         tester = ToolRouterTester()
         
@@ -157,7 +170,7 @@ def run_lint_check():
     lint_available = run_command(cmd)["success"]
     
     if lint_available:
-        cmd = ["pylint", "agent/tool_router.py", "agent/tests/test_tool_router.py"]
+        cmd = ["pylint", "agent/tool_router.py", ARCHIVED_TOOL_ROUTER]
         result = run_command(cmd, cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         
         if result["success"]:
@@ -183,7 +196,7 @@ def run_type_check():
     mypy_available = run_command(cmd)["success"]
     
     if mypy_available:
-        cmd = ["mypy", "agent/tool_router.py", "agent/tests/test_tool_router.py"]
+        cmd = ["mypy", "agent/tool_router.py", ARCHIVED_TOOL_ROUTER]
         result = run_command(cmd, cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         
         if result["success"]:

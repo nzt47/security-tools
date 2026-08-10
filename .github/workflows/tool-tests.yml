@@ -14,8 +14,8 @@ on:
       - 'agent/web/**'
       - 'agent/extensions/**'
       - 'agent/software_manager.py'
-      - 'agent/tests/test_*tools*.py'
-      - 'agent/tests/test_file_tools.py'
+      - 'docs/archive/agent_tests_20260810/test_*tools*.py'
+      - 'docs/archive/agent_tests_20260810/test_file_tools.py'
   pull_request:
     branches: [main, develop]
     paths:
@@ -58,12 +58,12 @@ jobs:
 
       - name: 运行工具模块测试
         run: |
-          pytest agent/tests/test_file_tools.py \
-                agent/tests/test_web_tools.py \
-                agent/tests/test_ext_tools.py \
-                agent/tests/test_pdf_tools.py \
-                agent/tests/test_software_tools.py \
-                agent/tests/test_system_tools.py \
+          pytest docs/archive/agent_tests_20260810/test_file_tools.py \
+                docs/archive/agent_tests_20260810/test_web_tools.py \
+                docs/archive/agent_tests_20260810/test_ext_tools.py \
+                docs/archive/agent_tests_20260810/test_pdf_tools.py \
+                docs/archive/agent_tests_20260810/test_software_tools.py \
+                docs/archive/agent_tests_20260810/test_system_tools.py \
                 -v --tb=short --cov=agent.system_tools --cov=agent.pdf_tools \
                 --cov=agent.web --cov=agent.extensions.manager \
                 --cov=agent.software_manager \
