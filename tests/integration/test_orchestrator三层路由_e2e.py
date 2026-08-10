@@ -767,86 +767,87 @@ def test_高并发_频繁热更无线程竞争(orch, monkeypatch):
     import time as _time
     import logging as _logging
     _logging.disable(_logging.WARNING)
+    try:
+        Orchestrator._SEM_API_OVERRIDE = {"enabled": True, "min_score": 0.3}
+        Orchestrator._clear_semantic_config_cache()
 
-    Orchestrator._SEM_API_OVERRIDE = {"enabled": True, "min_score": 0.3}
-    Orchestrator._clear_semantic_config_cache()
+        mock_svc = _make_mock_skills_mgmt_service(matches=[], instruction="")
+        orch._call_llm = MagicMock(return_value="LLM 降级响应")
 
-    mock_svc = _make_mock_skills_mgmt_service(matches=[], instruction="")
-    orch._call_llm = MagicMock(return_value="LLM 降级响应")
+        errors = []
+        config_violations = []
+        process_count = [0]
+        reload_count = [0]
+        lock = threading.Lock()
 
-    errors = []
-    config_violations = []
-    process_count = [0]
-    reload_count = [0]
-    lock = threading.Lock()
-
-    def worker_process():
-        try:
-            with patch("agent.state_manager.get_skills_mgmt_service", return_value=mock_svc), \
-                 patch("agent.response_workflows.IntentRouter.classify",
-                       return_value=("unknown", _ConfidenceLow())), \
-                 patch("agent.response_workflows.ResponseTemplates.for_intent",
-                       return_value=None), \
-                 patch("agent.orchestrator.message_handler.MessageHandler.is_follow_up",
-                       return_value=False), \
-                 patch("agent.orchestrator.message_handler.MessageHandler.detect_dissatisfaction",
-                       return_value=False), \
-                 patch("agent.orchestrator.message_handler.MessageHandler.extract_keywords",
-                       return_value=[]), \
-                 patch("agent.orchestrator.dialog_state.get_dialog_state",
-                       return_value=MagicMock(last_keywords=None,
-                                               resolve=MagicMock(return_value=None))):
-                for _ in range(50):
-                    orch.process("帮我写一首关于春天的诗")
-                    # 检查配置一致性（min_score 应始终在 [0,1] 范围）
-                    cfg = Orchestrator._load_semantic_layer_config()
-                    if not (0.0 <= cfg["min_score"] <= 1.0):
+        def worker_process():
+            try:
+                with patch("agent.state_manager.get_skills_mgmt_service", return_value=mock_svc), \
+                     patch("agent.response_workflows.IntentRouter.classify",
+                           return_value=("unknown", _ConfidenceLow())), \
+                     patch("agent.response_workflows.ResponseTemplates.for_intent",
+                           return_value=None), \
+                     patch("agent.orchestrator.message_handler.MessageHandler.is_follow_up",
+                           return_value=False), \
+                     patch("agent.orchestrator.message_handler.MessageHandler.detect_dissatisfaction",
+                           return_value=False), \
+                     patch("agent.orchestrator.message_handler.MessageHandler.extract_keywords",
+                           return_value=[]), \
+                     patch("agent.orchestrator.dialog_state.get_dialog_state",
+                           return_value=MagicMock(last_keywords=None,
+                                                   resolve=MagicMock(return_value=None))):
+                    for _ in range(50):
+                        orch.process("帮我写一首关于春天的诗")
+                        # 检查配置一致性（min_score 应始终在 [0,1] 范围）
+                        cfg = Orchestrator._load_semantic_layer_config()
+                        if not (0.0 <= cfg["min_score"] <= 1.0):
+                            with lock:
+                                config_violations.append(cfg["min_score"])
                         with lock:
-                            config_violations.append(cfg["min_score"])
-                    with lock:
-                        process_count[0] += 1
-        except Exception as e:
-            with lock:
-                errors.append(e)
-
-    def worker_hot_reload():
-        try:
-            for _ in range(50):
-                new_score = round(random.uniform(0.1, 0.9), 3)
-                Orchestrator._SEM_API_OVERRIDE = {"enabled": True, "min_score": new_score}
-                Orchestrator._clear_semantic_config_cache()
+                            process_count[0] += 1
+            except Exception as e:
                 with lock:
-                    reload_count[0] += 1
-        except Exception as e:
-            with lock:
-                errors.append(e)
+                    errors.append(e)
 
-    # 5 process 线程 + 5 热更线程 = 10 线程并发
-    threads = [threading.Thread(target=worker_process) for _ in range(5)]
-    threads += [threading.Thread(target=worker_hot_reload) for _ in range(5)]
-    t_start = _time.perf_counter()
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-    t_elapsed = _time.perf_counter() - t_start
+        def worker_hot_reload():
+            try:
+                for _ in range(50):
+                    new_score = round(random.uniform(0.1, 0.9), 3)
+                    Orchestrator._SEM_API_OVERRIDE = {"enabled": True, "min_score": new_score}
+                    Orchestrator._clear_semantic_config_cache()
+                    with lock:
+                        reload_count[0] += 1
+            except Exception as e:
+                with lock:
+                    errors.append(e)
 
-    print("\n" + "=" * 60)
-    print(" 高并发测试: 频繁热更 + 并发 process")
-    print("=" * 60)
-    print("  并发线程      : 5 process + 5 hot_reload (共 10)")
-    print("  process 调用  : %d 次" % process_count[0])
-    print("  热更次数      : %d 次 (随机 min_score 0.1~0.9)" % reload_count[0])
-    print("  总耗时        : %.2f s" % t_elapsed)
-    print("  线程竞争异常  : %d %s" % (len(errors), "✅ 无" if not errors else "❌ " + str(errors[:3])))
-    print("  配置不一致    : %d %s" % (len(config_violations), "✅ 无" if not config_violations else "❌ " + str(config_violations[:3])))
-    print("=" * 60)
+        # 5 process 线程 + 5 热更线程 = 10 线程并发
+        threads = [threading.Thread(target=worker_process) for _ in range(5)]
+        threads += [threading.Thread(target=worker_hot_reload) for _ in range(5)]
+        t_start = _time.perf_counter()
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        t_elapsed = _time.perf_counter() - t_start
 
-    assert len(errors) == 0, "线程竞争异常: %s" % errors
-    assert len(config_violations) == 0, "配置不一致: %s" % config_violations
-    assert process_count[0] == 250
-    assert reload_count[0] == 250
+        print("\n" + "=" * 60)
+        print(" 高并发测试: 频繁热更 + 并发 process")
+        print("=" * 60)
+        print("  并发线程      : 5 process + 5 hot_reload (共 10)")
+        print("  process 调用  : %d 次" % process_count[0])
+        print("  热更次数      : %d 次 (随机 min_score 0.1~0.9)" % reload_count[0])
+        print("  总耗时        : %.2f s" % t_elapsed)
+        print("  线程竞争异常  : %d %s" % (len(errors), "✅ 无" if not errors else "❌ " + str(errors[:3])))
+        print("  配置不一致    : %d %s" % (len(config_violations), "✅ 无" if not config_violations else "❌ " + str(config_violations[:3])))
+        print("=" * 60)
 
-    Orchestrator._SEM_API_OVERRIDE = None
-    Orchestrator._clear_semantic_config_cache()
-    _logging.disable(_logging.NOTSET)
+        assert len(errors) == 0, "线程竞争异常: %s" % errors
+        assert len(config_violations) == 0, "配置不一致: %s" % config_violations
+        assert process_count[0] == 250
+        assert reload_count[0] == 250
+    finally:
+        # 恢复全局 logging 状态与单例缓存：断言失败时也执行，防污染同进程后续测试
+        Orchestrator._SEM_API_OVERRIDE = None
+        Orchestrator._clear_semantic_config_cache()
+        _logging.disable(_logging.NOTSET)
