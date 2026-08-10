@@ -281,6 +281,28 @@ class ReActLoop:
                 f"- {h}" for h in context["_hints"][-5:]
             )
 
+        # D17 修复：思考阶段复用 reflector 历史经验（get_advice_for_task），
+        # 成功模式/常见陷阱嵌入提示词；查询失败不影响思考主流程（降级为无经验）。
+        if self.reflector:
+            try:
+                advice = self.reflector.get_advice_for_task(str(task))
+                if advice:
+                    lines = []
+                    patterns = advice.get("successful_patterns") or []
+                    pitfalls = advice.get("common_pitfalls") or []
+                    if patterns:
+                        lines.append("成功模式（历史经验）:")
+                        for p in patterns:
+                            lines.append(f"- [{p['id']}] {p['description']} → {p['output']}")
+                    if pitfalls:
+                        lines.append("常见陷阱（历史教训）:")
+                        for p in pitfalls:
+                            lines.append(f"- [{p['id']}] {p['description']}（失败点: {p['failure']}）")
+                    if lines:
+                        prompt += "\n\n【历史经验】\n" + "\n".join(lines)
+            except Exception as e:
+                logger.warning(f"[D17] 获取历史经验失败: {e}")
+
         if self.planner.llm:
             try:
                 logger.debug("   [思考] 正在调用LLM...")

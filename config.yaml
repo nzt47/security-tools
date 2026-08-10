@@ -9,7 +9,9 @@ behavior:
   max_iterations: 10
   response_timeout: 60
 planning:
-  enabled: false
+  # D7 修复：规划引擎接入生产配置（原 false 使引擎"已建未用"）
+  # orchestrator 聊天主链路依此开启 planning 分支（lifecycle_manager 读取）
+  enabled: true
   max_depth: 5
   timeout_seconds: 30
   enable_chain_of_thought: false

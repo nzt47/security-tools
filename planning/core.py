@@ -70,6 +70,14 @@ class PlanningCore:
         self.memory = memory_manager
         self.config = config or {}
 
+        # D16 修复：规划可观测指标计数器（total_plans/success/iterations/cost）
+        # 埋点：execute_plan 开始 +1；收尾 COMPLETED +1 success；迭代数 = plan.current_step；
+        # total_cost 预留 token 计费接入点（当前 0.0）。
+        self._metrics_total_plans = 0
+        self._metrics_success_count = 0
+        self._metrics_total_iterations = 0
+        self._metrics_total_cost = 0.0
+
         logger.info("="*60)
         logger.info("开始初始化规划引擎核心...")
         logger.info(f"LLM服务: {'已配置' if llm_service else '未配置 (将使用规则模式)'}")
@@ -216,6 +224,9 @@ class PlanningCore:
             self._active_plans[plan.id] = plan
             logger.info(f"计划 {plan.id} 已添加到活跃计划列表")
 
+        # D16 修复：规划计数埋点（每次 execute_plan 记 1 次）
+        self._metrics_total_plans += 1
+
         logger.info("="*60)
         logger.info("🚀 [规划引擎] 开始执行计划")
         logger.info(f"   计划ID: {plan.id}")
@@ -254,6 +265,12 @@ class PlanningCore:
             logger.info("="*60)
             logger.info("✅ 计划执行完成")
             logger.info("="*60)
+
+            # D16 修复：收尾埋点（COMPLETED 计成功；迭代数 = 计划步数）
+            self._metrics_total_iterations += plan.current_step
+            if plan.state == PlanState.COMPLETED:
+                self._metrics_success_count += 1
+
             return plan
 
         except InvalidStateTransitionError as e:
@@ -461,10 +478,20 @@ class PlanningCore:
         logger.info(f"工具已注册到规划引擎: {name}")
 
     def get_stats(self) -> Dict:
-        """获取统计信息"""
+        """获取统计信息（D16 修复：暴露规划成功率/迭代数/成本可观测指标）"""
+        success_rate = (
+            round(self._metrics_success_count / self._metrics_total_plans, 4)
+            if self._metrics_total_plans > 0 else 0.0
+        )
         return {
             "active_plans": len(self._active_plans),
             "executor_history": len(self.executor.execution_history),
             "learning_stats": self.reflector.get_learning_stats() if self.reflector else {},
-            "registered_tools": self.tool_registry.list_tools()
+            "registered_tools": self.tool_registry.list_tools(),
+            # D16 新增：规划可观测指标
+            "total_plans": self._metrics_total_plans,
+            "success_count": self._metrics_success_count,
+            "success_rate": success_rate,
+            "total_iterations": self._metrics_total_iterations,
+            "total_cost": self._metrics_total_cost,
         }

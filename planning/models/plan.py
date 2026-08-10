@@ -115,6 +115,21 @@ class Plan:
             "updated_at": self.updated_at.isoformat(),
         }
 
+    def summarize(self) -> str:
+        """生成用户可读的结构化计划摘要（D15 修复）
+
+        与 to_dict()（开发向字典）互补：供 UI/日志面向用户展示
+        目标、任务清单与各自状态。
+        """
+        lines = [
+            f"计划目标: {self.original_task}",
+            f"状态: {self.state.value} | 进度: {self.progress():.1%}",
+            "任务清单:",
+        ]
+        for t in self.tasks:
+            lines.append(f"  - [{t.status.value}] {t.description}")
+        return "\n".join(lines)
+
     @classmethod
     def from_dict(cls, data: dict) -> "Plan":
         """从字典还原计划（与 to_dict 对称，D9 修复：持久化恢复）"""
