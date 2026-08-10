@@ -174,12 +174,23 @@ def main():
                         help="扫描根目录（默认当前目录）")
     parser.add_argument("--exclude", action="append", default=[],
                         help="额外排除的目录名（可重复传入）")
+    parser.add_argument("--only-under", action="append", default=[],
+                        help="仅扫描相对 root 的该路径前缀下的文件（可重复传入），"
+                             "用于对 tests/ 等风险目录强制阻断而不误伤 scripts/ 独立基准脚本")
     parser.add_argument("--exit-nonzero-on-risk", action="store_true",
                         help="存在未受保护调用时返回退出码 1（可接入 CI）")
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
     files = collect_py_files(root, args.exclude)
+    # --only-under 前缀过滤（如 tests → tests/**，不匹配 testsx/**）
+    only_under = [p.rstrip("/\\") for p in args.only_under]
+    if only_under:
+        files = [p for p in files if any(
+            rel == prefix or rel.startswith(prefix + "/")
+            for rel in [p.relative_to(root).as_posix()]
+            for prefix in only_under
+        )]
 
     total_findings = []
     for path in files:
