@@ -81,6 +81,13 @@ regexes = [
     '''AKIA[A-Z0-9]*EXAMPLE''',            # AWS 官方示例（AKIAIOSFODNN7EXAMPLE）
     '''ghp_xxx''',                          # GitHub PAT 占位符
     '''sk-\.\.\..*''',                      # 文档占位符 sk-...
+    # v2.0.1: SMTP 运维脚本误报豁免（CHG-2026-0809）——无硬编码密码
+    # 命中样例: smtp_auth_password: '{code}'（f-string 模板，运行时替换为 args.smtp_auth_code）
+    #          smtp_auth_password: 'REPLACE_WITH_SMTP_AUTH_CODE'（占位符）
+    # 涉及: apply_smtp_auth_code.py / demo_send_test_alert.py / simulate_prod_smtp_e2e.py / repair_alertmanager.py
+    # 注意: 正则末尾不得有字面空格（Match 文本无尾随空格，会导致匹配失败）
+    '''\{code\}''' ,
+    '''REPLACE_WITH_SMTP_AUTH_CODE''',
 ]
 
 # ── 规则 1: 硬编码密码赋值 ──────────────────────────────────────
