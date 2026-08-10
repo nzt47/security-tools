@@ -383,16 +383,37 @@ class FailureCollector:
         return summary
 
 
-# 全局收集器实例
+# 全局收集器实例（保留作为 fallback）
 _global_failure_collector = None
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_failure_collector(config=None):
+    """FailureCollector 工厂函数（供 SingletonManager 使用）"""
+    obj = FailureCollector()
+    obj.initialize()
+    return obj
+
 
 def get_failure_collector() -> FailureCollector:
     """获取全局失败案例收集器实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("failure_collector")
     global _global_failure_collector
     if _global_failure_collector is None:
-        _global_failure_collector = FailureCollector()
-        _global_failure_collector.initialize()
+        _global_failure_collector = _create_failure_collector()
     return _global_failure_collector
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("failure_collector", _create_failure_collector)
 
 
 def collect_failure(trace_id: str, message: str, source: str = "",

@@ -254,13 +254,33 @@ class IndexManager:
         }
 
 
-# 全局索引实例
+# 全局索引实例（保留作为 fallback）
 _global_index: Optional[IndexManager] = None
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
+
+
+def _create_global_index(config=None):
+    """IndexManager 工厂函数（供 SingletonManager 使用）"""
+    return IndexManager()
 
 
 def get_global_index() -> IndexManager:
     """获取全局索引实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("global_index")
     global _global_index
     if _global_index is None:
-        _global_index = IndexManager()
+        _global_index = _create_global_index()
     return _global_index
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("global_index", _create_global_index)

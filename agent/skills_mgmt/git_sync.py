@@ -197,6 +197,12 @@ class GitSync:
                 env=env,
                 capture_output=True,
                 text=True,
+                # 【不易】显式 UTF-8 解码 git 输出：Windows CI 默认 locale cp1252，
+                # 中文文件名/commit 信息（如 skill.md 冲突场景）解码失败或乱码，
+                # 曾导致 test_git_sync_e2e 报 AttributeError: 'NoneType' object has no attribute 'strip'。
+                # errors="replace" 保证极端字节流下也不抛异常（见 integration_s10 排查计划 H2）。
+                encoding="utf-8",
+                errors="replace",
                 check=False,
             )
         except FileNotFoundError as e:

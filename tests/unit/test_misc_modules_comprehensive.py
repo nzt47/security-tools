@@ -669,9 +669,8 @@ class TestSafetyGuardGlobal:
         _alert_callbacks.extend(original)
 
     def test_get_safety_guard_singleton(self):
-        from agent.safety_guard import get_safety_guard, _safety_guard
-        import agent.safety_guard as mod
-        mod._safety_guard = None
+        from agent.safety_guard import get_safety_guard, reset_safety_guard
+        reset_safety_guard()
         guard1 = get_safety_guard()
         guard2 = get_safety_guard()
         assert guard1 is guard2

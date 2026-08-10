@@ -10,6 +10,7 @@
 from __future__ import annotations
 import json
 import os
+import time
 import tempfile
 import logging
 import threading
@@ -63,7 +64,12 @@ class SkillStore:
             return self._cache
 
     def _persist(self) -> None:
-        """原子写入 (临时文件 + os.replace)"""
+        """原子写入 (临时文件 + os.replace)
+
+        Windows 注意: os.replace 在目标/源文件被短暂锁定（Defender 实时扫描、
+        其他句柄）时偶发 WinError 5 拒绝访问。tmp 与目标同目录时尤其容易
+        撞上扫描窗口 → 重试等待，最终仍失败再抛出。
+        """
         self._path.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(
             mode="w", encoding="utf-8", delete=False,
@@ -71,7 +77,14 @@ class SkillStore:
         ) as tmp:
             json.dump(self._cache or {}, tmp, ensure_ascii=False, indent=2)
             tmp_path = tmp.name
-        os.replace(tmp_path, self._path)
+        for attempt in range(3):
+            try:
+                os.replace(tmp_path, self._path)
+                return
+            except OSError:
+                if attempt == 2:
+                    raise
+                time.sleep(0.1)
 
     def _invalidate(self) -> None:
         self._cache = None

@@ -400,14 +400,34 @@ class OptimizedTraceContextManager:
 
 
 # 全局优化管理器实例
-_global_optimization_manager = None
+_global_optimization_manager = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_optimization_manager(config=None):
+    """OptimizedTraceContextManager 工厂函数（供 SingletonManager 使用）"""
+    return OptimizedTraceContextManager()
+
 
 def get_optimization_manager() -> OptimizedTraceContextManager:
     """获取全局优化管理器"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("observability_optimization_manager")
     global _global_optimization_manager
     if _global_optimization_manager is None:
-        _global_optimization_manager = OptimizedTraceContextManager()
+        _global_optimization_manager = _create_optimization_manager()
     return _global_optimization_manager
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("observability_optimization_manager", _create_optimization_manager)
 
 
 # 优化装饰器

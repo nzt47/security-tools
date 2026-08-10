@@ -128,7 +128,7 @@ jobs:
       - name: Install dependencies
         run: |
           grep -v -E 'pywin32|pypiwin32|comtypes' requirements.txt | pip install -r /dev/stdin
-          pip install "pytest==9.0.3" "pytest-timeout>=2.0.0" "pytest-asyncio>=0.21.0"
+          pip install "pytest>=7.0.0" "pytest-timeout>=2.0.0" "pytest-asyncio>=0.21.0"
 
       # [CHG-2026-0730] 合并测试 + 生成覆盖率报告
       - name: Run tests with coverage
@@ -321,7 +321,7 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          pip install "pytest==9.0.3" "pytest-timeout>=2.0.0" "pytest-asyncio>=0.21.0" -q
+          pip install "pytest>=7.0.0" "pytest-timeout>=2.0.0" "pytest-asyncio>=0.21.0" -q
 
       - name: Run reranker unit tests (含日志优化与热重载)
         env:

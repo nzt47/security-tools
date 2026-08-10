@@ -5,7 +5,7 @@
     Step2 提炼     → distill（任务3）
     Step3 深度讨论 → discuss / extract_card_insights（任务7 Step 2）
     Step4 产卡聚合 → promote_to_card（任务3→2） / card_from_discussion（任务7 Step 3）
-    Step5 审计健康 → find_broken_links / find_orphans（轻量治理，任务5 未做时兜底）
+    Step5 审计健康 → lint_all 五类检测（孤儿/断链/index 漂移/过期/未裁决矛盾）+ 健康分
 
 【不易】人机边界：所有产卡结果状态均为 draft，必须人工确认
 （transition → current）才转当前有效——AI 只簿记不裁决。
@@ -15,12 +15,13 @@
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import asdict
 from datetime import date
 from enum import Enum
 from pathlib import Path
 
-from agent.knowledge.card import CardStore
+from agent.knowledge.card import CardConflictError, CardStore
 from agent.knowledge.discuss import (
     discuss,
     extract_card_insights,
@@ -28,7 +29,7 @@ from agent.knowledge.discuss import (
 )
 from agent.knowledge.distill import Note, distill, promote_to_card
 from agent.knowledge.ingest import get_knowledge_root, ingest_file
-from agent.knowledge.links import find_broken_links, find_orphans
+from agent.knowledge.lint import lint_all, score_breakdown
 from agent.knowledge.logbook import append_log
 from agent.knowledge.schema import Card, slugify, validate_card
 
@@ -55,29 +56,51 @@ class WorkflowRunner:
     def run_ingest(self, src_path: str | Path, dest_layer: str = "inbox",
                    source_type: str | None = None) -> str:
         """调用任务1 ingest_file，返回入库 slug。"""
-        result = ingest_file(str(src_path), dest_layer=dest_layer,
-                             source_type=source_type,
-                             knowledge_root=str(self.root))
-        logger.info("[workflow] Step1 收集成功 slug=%s layer=%s",
-                    result.slug, result.layer)
+        _t0 = time.perf_counter()
+        try:
+            result = ingest_file(str(src_path), dest_layer=dest_layer,
+                                 source_type=source_type,
+                                 knowledge_root=str(self.root))
+        except Exception as exc:
+            logger.error("[workflow] Step1 收集失败 src=%s layer=%s: %s",
+                         src_path, dest_layer, exc, exc_info=True)
+            raise
+        logger.info("[workflow] Step1 收集成功 slug=%s layer=%s 敏感=%s 耗时=%.1fms",
+                    result.slug, result.layer, result.sensitive,
+                    (time.perf_counter() - _t0) * 1000)
         return result.slug
 
     # ── Step2: 提炼 ────────────────────────────────────────────
 
     def run_distill(self, src_path: str | Path) -> Note:
         """调用任务3 distill，返回结构化笔记（LLM 不可用自动降级骨架）。"""
-        note = distill(src_path, llm=self.llm, knowledge_root=str(self.root))
-        logger.info("[workflow] Step2 提炼完成 source=%s slug=%s distilled=%s reason=%s",
-                    src_path, note.slug, note.distilled, note.reason or "none")
+        _t0 = time.perf_counter()
+        try:
+            note = distill(src_path, llm=self.llm, knowledge_root=str(self.root))
+        except Exception as exc:
+            logger.error("[workflow] Step2 提炼失败 src=%s: %s", src_path, exc,
+                         exc_info=True)
+            raise
+        logger.info("[workflow] Step2 提炼完成 source=%s slug=%s distilled=%s "
+                    "reason=%s 耗时=%.1fms",
+                    src_path, note.slug, note.distilled,
+                    note.reason or "none", (time.perf_counter() - _t0) * 1000)
         return note
 
     # ── Step3: 深度讨论 ────────────────────────────────────────
 
     def run_discuss(self, note_slug: str, question: str) -> str:
         """深度讨论，返回讨论记录文件路径（LLM 不可用降级骨架记录）。"""
-        path = discuss(note_slug, question, llm=self.llm,
-                       knowledge_root=str(self.root))
-        logger.info("[workflow] Step3 讨论完成 note_slug=%s → %s", note_slug, path)
+        _t0 = time.perf_counter()
+        try:
+            path = discuss(note_slug, question, llm=self.llm,
+                           knowledge_root=str(self.root))
+        except FileNotFoundError as exc:
+            logger.error("[workflow] Step3 讨论失败（笔记不存在）note_slug=%s: %s",
+                         note_slug, exc)
+            raise
+        logger.info("[workflow] Step3 讨论完成 note_slug=%s → %s 耗时=%.1fms",
+                    note_slug, path, (time.perf_counter() - _t0) * 1000)
         return path
 
     # ── Step4: 产卡 ────────────────────────────────────────────
@@ -87,11 +110,17 @@ class WorkflowRunner:
 
         前置：笔记须人工 approve（promote_to_card 强制校验）。
         """
-        card = promote_to_card(note_slug, card_type=card_type,
-                               knowledge_root=str(self.root),
-                               wiki_root=str(self.root / "wiki"))
-        logger.info("[workflow] Step4 产卡成功 slug=%s（状态 draft，待人工转 current）",
-                    card.slug)
+        _t0 = time.perf_counter()
+        try:
+            card = promote_to_card(note_slug, card_type=card_type,
+                                   knowledge_root=str(self.root),
+                                   wiki_root=str(self.root / "wiki"))
+        except (ValueError, CardConflictError) as exc:
+            logger.warning("[workflow] Step4 产卡被拒 note_slug=%s card_type=%s: %s",
+                           note_slug, card_type, exc)
+            raise
+        logger.info("[workflow] Step4 产卡成功 slug=%s（状态 draft，待人工转 current）"
+                    "耗时=%.1fms", card.slug, (time.perf_counter() - _t0) * 1000)
         return card.slug
 
     def card_from_discussion(self, discussion_path: str | Path,
@@ -161,24 +190,78 @@ class WorkflowRunner:
     # ── Step5: 审计 ────────────────────────────────────────────
 
     def run_audit(self) -> dict:
-        """轻量治理：断链 + 孤儿检测，返回健康报告。
+        """Step5 审计健康：对接任务5 lint_all 五类检测 + 健康分推导。
 
-        任务5 完整治理（mark_conflict/resolve）未实现前，作为兜底巡检；
-        已复用任务2 links 模块（find_broken_links/find_orphans）。
+        核心三步（检测 → 计算 → 报告）分别计时并输出 logger.info，
+        便于运行时性能分析定位瓶颈；检测明细与扣分推导逐项打印。
         """
+        _t0 = time.perf_counter()
         store = CardStore(self.root / "wiki")
-        cards = store.list()
-        broken = find_broken_links(cards, store)
-        orphans = find_orphans(cards)
+        logger.info(
+            "[workflow] Step5 审计启动 wiki=%s index=%s 卡片=%d",
+            self.root / "wiki", self.root / "index.md", len(store.list()),
+        )
+
+        # ── 步骤1 检测：lint_all 五类检测（孤儿/断链/index漂移/过期/矛盾）──
+        _t_detect = time.perf_counter()
+        hr = lint_all(store, index_path=str(self.root / "index.md"))
+        t_detect = (time.perf_counter() - _t_detect) * 1000
+
+        # ── 步骤2 计算：健康分 + 扣分明细推导 ──
+        _t_score = time.perf_counter()
+        breakdown = score_breakdown(hr)
+        deducted = round(100.0 - hr.health_score, 1)
+        t_score = (time.perf_counter() - _t_score) * 1000
+
+        # 检测明细逐项列出（便于运行时排查五类问题）
+        logger.info(
+            "[workflow] Step5 检测明细 孤儿=%s 断链=%s index漂移=%s 过期=%s "
+            "未裁决矛盾=%s 耗时=%.2fms",
+            hr.orphans, hr.broken_links, hr.index_drift,
+            hr.stale_cards, hr.unresolved_conflicts, t_detect,
+        )
+        # 健康分推导（与 score_breakdown 同源 _PENALTIES：2/2/2/3/5 分，各类封顶）
+        logger.info(
+            "[workflow] Step5 健康分计算完成 base=100 扣分合计=%.1f 明细=%s（"
+            "孤儿=%d×2(封顶20) 断链=%d×2(封顶20) index漂移=%d×2(封顶10) "
+            "过期=%d×3(封顶20) 矛盾=%d×5(封顶30)）耗时=%.2fms",
+            deducted, breakdown or "无扣分",
+            len(hr.orphans), len(hr.broken_links), len(hr.index_drift),
+            len(hr.stale_cards), len(hr.unresolved_conflicts), t_score,
+        )
+
+        # ── 步骤3 报告：组装审计结果 dict ──
+        _t_report = time.perf_counter()
         report = {
-            "total_cards": len(cards),
-            "broken_links": broken,
-            "orphans": orphans,
-            "ok": not broken and not orphans,
-            "audited_at": date.today().isoformat(),
+            "total_cards": hr.total_cards,
+            "broken_links": hr.broken_links,
+            "orphans": hr.orphans,
+            "index_drift": hr.index_drift,
+            "stale_cards": hr.stale_cards,
+            "unresolved_conflicts": hr.unresolved_conflicts,
+            "health_score": hr.health_score,
+            "score_breakdown": breakdown,
+            "ok": not (hr.orphans or hr.broken_links or hr.index_drift
+                       or hr.stale_cards or hr.unresolved_conflicts),
+            "audited_at": hr.checked_at,
+            "suggestions": hr.suggestions,
         }
-        logger.info("[workflow] Step5 审计完成 卡片=%s 断链=%s 孤儿=%s ok=%s",
-                    report["total_cards"], len(broken), len(orphans), report["ok"])
+        t_report = (time.perf_counter() - _t_report) * 1000
+        t_total = (time.perf_counter() - _t0) * 1000
+
+        logger.info(
+            "[workflow] Step5 审计完成 卡片=%s 健康分=%s 孤儿=%s 断链=%s index漂移=%s "
+            "过期=%s 未裁决矛盾=%s ok=%s 总耗时=%.1fms",
+            report["total_cards"], report["health_score"],
+            len(report["orphans"]), len(report["broken_links"]),
+            len(report["index_drift"]), len(report["stale_cards"]),
+            len(report["unresolved_conflicts"]), report["ok"], t_total,
+        )
+        # 三阶段耗时汇总（检测/计算/报告），便于性能分析
+        logger.info(
+            "[workflow] Step5 耗时明细 检测=%.2fms 计算=%.2fms 报告=%.2fms 总=%.1fms",
+            t_detect, t_score, t_report, t_total,
+        )
         return report
 
 

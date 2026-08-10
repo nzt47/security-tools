@@ -182,7 +182,7 @@ class TestMetricsIntegration:
     
     def test_record_request_metrics(self):
         """测试记录请求指标"""
-        from agent.monitoring.tracing import record_request_metrics
+        from agent.server_routes.tracing_middleware import record_request_metrics
 
         # 记录指标（应该不抛出异常）
         record_request_metrics('GET', '/test', 200, 150.5)
@@ -196,7 +196,7 @@ class TestLoggingIntegration:
     
     def test_get_logger_with_context(self):
         """测试带上下文的 logger"""
-        from agent.monitoring.tracing import get_logger_with_context
+        from agent.server_routes.tracing_middleware import get_logger_with_context
 
         logger = get_logger_with_context('test')
         

@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "light-loader"
+version = "0.1.0"
+description = "知识库轻量检测视图加载器（P0 内存优化）——零依赖 frontmatter 扫描，支持保序并行读取"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["PyYAML>=6.0"]
+
+[project.urls]
+# 说明：本包源码与 agent/knowledge/light_loader.py 同源（仓库内 vendored 副本），
+# 详见 docs/reports/light_loader_package_install_20260811.md
+
+[tool.setuptools.packages.find]
+where = ["src"]

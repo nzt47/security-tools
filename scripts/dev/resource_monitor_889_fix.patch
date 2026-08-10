@@ -1,0 +1,16 @@
+diff --git a/agent/monitoring/resource_monitor.py b/agent/monitoring/resource_monitor.py
+--- a/agent/monitoring/resource_monitor.py
++++ b/agent/monitoring/resource_monitor.py
+@@ -886,11 +886,12 @@ try:
+ try:
+     from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+     _SINGLETON_AVAILABLE = True
+ except ImportError:
++    logger.warning("singleton 注册降级：可选依赖缺失，功能受限")
+     _SINGLETON_AVAILABLE = False
+     register_singleton = None
+     get_singleton = None
+     reset_singleton = None
+ 
+ 
+ def _create_resource_monitor(config=None):

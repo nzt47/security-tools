@@ -81,22 +81,16 @@ class TraceContext:
         [abc123def456] END DigitalLife.chat (duration=150.30ms)
     """
     
-    def __init__(self, service_name: str, operation: str,
-                 kind: Optional[str] = None):
+    def __init__(self, service_name: str, operation: str):
         """
         初始化追踪上下文
 
         Args:
             service_name: 服务名称 (如: DigitalLife, VectorMemory)
             operation: 操作名称 (如: chat, search, save)
-            kind: span 类型标记 (如: "internal"/"client"/"server")，仅用于
-                  日志归因，不参与 trace_id/span_id 生成逻辑；保持向后兼容
-                  （旧调用方仅传 2 参时不影响行为）。
         """
         self.service_name = service_name
         self.operation = operation
-        # span 类型标记：用于日志归因与可观测性分析（不影响核心追踪逻辑）
-        self.kind = kind
         self.trace_id: Optional[str] = None
         # span_id：每个 with 块生成新的 span_id（同一 trace 内多个 span）
         self.span_id: Optional[str] = None
@@ -247,45 +241,6 @@ class TraceContext:
             持续时间（秒），如果未开始则返回0
         """
         return self.duration_ms / 1000
-
-    def add_event(self, name: str, attributes: Optional[dict] = None) -> None:
-        """记录 span 事件（OpenTelemetry span API 兼容）
-
-        项目未集成 OpenTelemetry，采用结构化日志降级实现：将事件名与属性
-        写入 logger.info 的 JSON payload，供日志聚合做调用链分析。
-
-        Args:
-            name: 事件名（如 "test_event"）
-            attributes: 事件属性字典（可选）
-        """
-        logger.info(json.dumps({
-            "trace_id": self.trace_id,
-            "span_id": self.span_id,
-            "service": self.service_name,
-            "operation": self.operation,
-            "event": "span_event",
-            "name": name,
-            "attributes": attributes or {},
-        }, ensure_ascii=False))
-
-    def set_attribute(self, key: str, value: Any) -> None:
-        """设置 span 属性（OpenTelemetry span API 兼容）
-
-        采用结构化日志降级实现，与 add_event 同源。
-
-        Args:
-            key: 属性名
-            value: 属性值
-        """
-        logger.info(json.dumps({
-            "trace_id": self.trace_id,
-            "span_id": self.span_id,
-            "service": self.service_name,
-            "operation": self.operation,
-            "event": "span_attribute",
-            "key": key,
-            "value": str(value),
-        }, ensure_ascii=False))
 
 def get_trace_id() -> Optional[str]:
     """获取当前 Trace ID
@@ -468,14 +423,10 @@ def inject_trace_context(context: Optional[dict] = None) -> Optional[dict]:
         return None
 
     # 新行为：生成 W3C traceparent headers
-    # 若当前线程无 trace_id/span_id（独立调用场景），自动生成新的；
-    # 不再返回空字典，确保跨服务传播时总有 traceparent（守 W3C 标准）
     trace_id = get_trace_id()
     span_id = get_span_id()
-    if not trace_id:
-        trace_id = uuid.uuid4().hex[:16]
-    if not span_id:
-        span_id = uuid.uuid4().hex[:16]
+    if not trace_id or not span_id:
+        return {}
     return {"traceparent": f"00-{trace_id}-{span_id}-01"}
 
 def trace(service: str, operation: str):

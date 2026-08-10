@@ -65,7 +65,15 @@ def run_full_test():
     print("运行全量测试")
     print("=" * 80)
     
-    from agent.tests.test_tool_router import ToolRouterTester
+    # agent/tests 已归档至 docs/archive/agent_tests_20260810，包导入不可用，改文件加载
+    import importlib.util
+    _spec = importlib.util.spec_from_file_location(
+        "tool_router_tester",
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                     "docs", "archive", "agent_tests_20260810", "test_tool_router.py"))
+    _mod = importlib.util.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    ToolRouterTester = _mod.ToolRouterTester
     
     tester = ToolRouterTester()
     results = tester.run_all_tests()

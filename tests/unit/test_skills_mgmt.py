@@ -1113,6 +1113,7 @@ class TestSensitiveSkillIsolation:
         # summary_only 贯穿两次调用（独立 Agent 结果仅以摘要返回主 Agent）
         assert sens_a["isolation"]["summary_only"] == sens_b["isolation"]["summary_only"] is True
 
+
 class TestContextInjectorBoundaryDeclaration:
     """ContextInjector.inject_metadata 技能边界声明（防幻觉）测试"""
 

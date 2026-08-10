@@ -22,6 +22,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from contextlib import redirect_stdout
 
 import pytest
@@ -32,6 +33,29 @@ if SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, SCRIPTS_DIR)
 
 PY = sys.executable
+
+
+def _run_ci_cmd(args, timeout=300):
+    """运行 CI 脚本并埋点诊断（仅失败时输出，走 stderr 由 pytest 捕获）。
+
+    Why: 本文件 4 个测试在完整套件下偶发 `returncode=1 且 stderr 为空`
+    （疑似资源竞争导致子进程被杀/崩溃，单独运行均通过）。埋点输出：
+      - returncode 十六进制：区分「正常业务失败」(1/2) 与「进程被外部
+        杀死/崩溃」(如 0xC0000005 access violation / 0xC0000409)，定位是否被杀
+      - 耗时：判断是否接近 timeout 上限
+      - stdout/stderr 尾部：判断脚本自身报错内容
+    """
+    t0 = time.monotonic()
+    p = subprocess.run(
+        [PY] + args, cwd=PROJECT_ROOT, capture_output=True, text=True,
+        encoding="utf-8", errors="replace", timeout=timeout)
+    dt = time.monotonic() - t0
+    if p.returncode != 0:
+        print(f"[diag-ci] {os.path.basename(args[0])} returncode={p.returncode} "
+              f"(0x{p.returncode & 0xFFFFFFFF:08X}) elapsed={dt:.2f}s "
+              f"stdout_tail={p.stdout[-500:]!r} stderr_tail={p.stderr[-500:]!r}",
+              file=sys.stderr, flush=True)
+    return p
 
 
 # ═══════════════════════════════════════════════════════════
@@ -143,10 +167,7 @@ class TestCiGuardTypesContract:
 class TestRunCiGuardJson:
     def test_json输出可解析且overall一致(self):
         """--json 输出必须能被 json.loads 直接解析(本次修复核心)"""
-        p = subprocess.run(
-            [PY, os.path.join(SCRIPTS_DIR, "run_ci_guard.py"), "--json"],
-            cwd=PROJECT_ROOT, capture_output=True, text=True,
-            encoding="utf-8", errors="replace", timeout=300)
+        p = _run_ci_cmd([os.path.join(SCRIPTS_DIR, "run_ci_guard.py"), "--json"])
         assert p.returncode == 0, f"run_ci_guard 失败: {p.stderr}"
         report = json.loads(p.stdout)
         assert report["tool"] == "run_ci_guard"
@@ -155,11 +176,8 @@ class TestRunCiGuardJson:
 
     def test_stdout纯净为JSON(self):
         """stdout 首字符必须是 { (dry-run 日志不得混入)"""
-        p = subprocess.run(
-            [PY, os.path.join(SCRIPTS_DIR, "run_ci_guard.py"), "--json",
-             "--skip-detect"],
-            cwd=PROJECT_ROOT, capture_output=True, text=True,
-            encoding="utf-8", errors="replace", timeout=300)
+        p = _run_ci_cmd([os.path.join(SCRIPTS_DIR, "run_ci_guard.py"),
+                         "--json", "--skip-detect"])
         assert p.returncode == 0
         assert p.stdout.lstrip().startswith("{"), \
             f"stdout 被污染, 首字符={p.stdout[:30]!r}"
@@ -167,11 +185,8 @@ class TestRunCiGuardJson:
 
     def test_validate分支契约校验通过(self):
         """--validate 依赖重建的 ci_guard_types, 必须通过"""
-        p = subprocess.run(
-            [PY, os.path.join(SCRIPTS_DIR, "run_ci_guard.py"),
-             "--validate", "--skip-detect", "--json"],
-            cwd=PROJECT_ROOT, capture_output=True, text=True,
-            encoding="utf-8", errors="replace", timeout=300)
+        p = _run_ci_cmd([os.path.join(SCRIPTS_DIR, "run_ci_guard.py"),
+                         "--validate", "--skip-detect", "--json"])
         assert p.returncode == 0, f"validate 分支失败: {p.stderr}"
         json.loads(p.stdout)
 
@@ -207,11 +222,8 @@ class TestRenameConsistency:
         assert orig != new
 
     def test_guard_pipeline_json可运行(self):
-        p = subprocess.run(
-            [PY, os.path.join(SCRIPTS_DIR, "simulate_ci_guard_pipeline.py"),
-             "--json"],
-            cwd=PROJECT_ROOT, capture_output=True, text=True,
-            encoding="utf-8", errors="replace", timeout=600)
+        p = _run_ci_cmd([os.path.join(SCRIPTS_DIR, "simulate_ci_guard_pipeline.py"),
+                         "--json"], timeout=600)
         assert p.returncode == 0, f"模拟失败: {p.stderr}"
         report = json.loads(p.stdout)
         assert report["tool"] == "simulate_ci_guard_pipeline"

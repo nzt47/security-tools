@@ -1,0 +1,39 @@
+{
+  "id": "plan_f2948981",
+  "original_task": "复杂任务",
+  "state": "ready",
+  "progress": "0.0%",
+  "current_step": 0,
+  "max_steps": 50,
+  "result": null,
+  "error": null,
+  "context": {},
+  "tasks": [
+    {
+      "id": "step_1",
+      "description": "第一步",
+      "task_type": "atomic",
+      "priority": 3,
+      "dependencies": [],
+      "status": "pending",
+      "result": null,
+      "error": null,
+      "created_at": "2026-08-11T00:50:22.733716"
+    },
+    {
+      "id": "step_2",
+      "description": "第二步",
+      "task_type": "atomic",
+      "priority": 3,
+      "dependencies": [
+        "step_1"
+      ],
+      "status": "pending",
+      "result": null,
+      "error": null,
+      "created_at": "2026-08-11T00:50:22.733716"
+    }
+  ],
+  "created_at": "2026-08-11T00:50:22.731601",
+  "updated_at": "2026-08-11T00:50:22.733716"
+}

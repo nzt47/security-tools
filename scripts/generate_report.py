@@ -232,10 +232,10 @@ content = """# 云枢 Agent 安全测试用例文档
 
 ```bash
 # 运行所有安全测试
-python -m pytest agent/tests/test_permission_system.py agent/tests/test_safety_guard.py tests/unit/test_security_utils.py -v
+python -m pytest docs/archive/agent_tests_20260810/test_permission_system.py docs/archive/agent_tests_20260810/test_safety_guard.py tests/unit/test_security_utils.py -v
 
 # 运行特定测试类别
-python -m pytest agent/tests/test_safety_guard.py -k "malicious" -v
+python -m pytest docs/archive/agent_tests_20260810/test_safety_guard.py -k "malicious" -v
 
 # 生成测试报告
 python -m pytest --html=test_report.html --self-contained-html

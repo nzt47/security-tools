@@ -480,11 +480,31 @@ class ApiGateway:
         }
 
 
-_api_gateway = None
+_api_gateway = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_api_gateway(config=None):
+    """ApiGateway 工厂函数（供 SingletonManager 使用）"""
+    return ApiGateway()
+
 
 def get_api_gateway() -> ApiGateway:
     """获取 API 网关实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("api_gateway")
     global _api_gateway
     if _api_gateway is None:
-        _api_gateway = ApiGateway()
+        _api_gateway = _create_api_gateway()
     return _api_gateway
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("api_gateway", _create_api_gateway)

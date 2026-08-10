@@ -27,15 +27,34 @@ def _trace_id():
 
 
 # 全局健康度计算器实例
-_health_calculator = None
+_health_calculator = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_health_calculator(config=None):
+    """HealthScoreCalculator 工厂函数（供 SingletonManager 使用）"""
+    return HealthScoreCalculator()
 
 
 def get_calculator() -> HealthScoreCalculator:
     """获取健康度计算器单例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("health_calculator")
     global _health_calculator
     if _health_calculator is None:
-        _health_calculator = HealthScoreCalculator()
+        _health_calculator = _create_health_calculator()
     return _health_calculator
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("health_calculator", _create_health_calculator)
 
 
 def register_routes(app, state):

@@ -91,8 +91,9 @@ def validate_report(report: Any) -> list[str]:
                 f"status/exit_code 不一致: status={st!r} exit_code={code!r}"))
 
     # overall.exit_code 与 guard_verify 步骤一致
+    # 注意：steps 元素可能为非 dict（前面已记录错误），此处须过滤，否则 AttributeError
     if isinstance(steps, list) and steps:
-        guard = [s for s in steps if s.get("step") == "guard_verify"]
+        guard = [s for s in steps if isinstance(s, dict) and s.get("step") == "guard_verify"]
         if guard and isinstance(overall, dict):
             gcode = guard[-1].get("exit_code")
             if overall.get("exit_code") != gcode:

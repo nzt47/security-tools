@@ -22,7 +22,6 @@ import logging
 import re
 import sys
 import tempfile
-from datetime import date
 from pathlib import Path
 
 # 使脚本可在任意 cwd 下运行：把仓库根加入 sys.path
@@ -30,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from agent.knowledge.card import CardStore  # noqa: E402
 from agent.knowledge.distill import approve_note  # noqa: E402
+from agent.knowledge.lint import report_to_json  # noqa: E402
 from agent.knowledge.workflow import WorkflowRunner  # noqa: E402
 
 logging.basicConfig(
@@ -165,14 +165,18 @@ def _health_report(root: Path, report: dict) -> str:
     status = "健康 ✓" if report["ok"] else "需治理 ✗"
     return (
         "# 知识库健康报告\n\n"
-        f"- 审计时间：{date.today().isoformat()}\n"
+        f"- 审计时间：{report['audited_at']}\n"
         f"- 卡片总数：{len(cards)}（知识根：{root}，演示结束已清理）\n"
+        f"- 健康分：{report['health_score']} / 100\n"
         f"- 结论：{status}\n\n"
         "## 卡片清单\n\n"
         "| 卡片 | 状态 | 类型 | 一句话洞见 |\n"
         "|---|---|---|---|\n"
         + "\n".join(rows)
         + "\n\n"
+        "## 未裁决矛盾（AI 只标记不裁决，待人工 resolve_conflict）\n\n"
+        + _format_conflicts(report.get("unresolved_conflicts") or [])
+        + "\n"
         "## 断链检测\n\n"
         + ("无 ✓" if not report["broken_links"] else "\n".join(
             f"- {b['from_slug']} → {b['to_slug']}" for b in report["broken_links"]))
@@ -182,6 +186,20 @@ def _health_report(root: Path, report: dict) -> str:
             f"- {slug}" for slug in report["orphans"]))
         + "\n"
     )
+
+
+def _format_conflicts(conflicts: list[dict]) -> str:
+    """未裁决矛盾渲染：source → target + 状态 + 处置建议（无则占位）。"""
+    if not conflicts:
+        return "无 ✓\n"
+    lines = [
+        f"- {u['source_slug']} → {u['target_slug']}"
+        f"（status={u.get('status', 'conflict')}"
+        f"{'，' + u['summary'] if u.get('summary') else ''}，"
+        f"须人工调用 resolve_conflict 裁决）"
+        for u in conflicts
+    ]
+    return "\n".join(lines) + "\n"
 
 
 def main() -> int:
@@ -262,13 +280,19 @@ def main() -> int:
         index_lines = len((root / "index.md").read_text(encoding="utf-8").strip().splitlines())
         print(f"  log.md 已同步（{log_lines} 行）、index.md 已同步（{index_lines} 行）")
 
-        # ── 生成《知识库健康报告》 ─────────────────────────────
+        # ── 生成《知识库健康报告》（Markdown + JSON） ──────────
         report_text = _health_report(root, report)
         demo_dir.mkdir(parents=True, exist_ok=True)
         report_path = demo_dir / HEALTH_REPORT_NAME
         report_path.write_text(report_text, encoding="utf-8")
         _banner("产物：《知识库健康报告》")
         print(f"已写入: {report_path}")
+        json_path = demo_dir / "知识库健康报告.json"
+        json_path.write_text(
+            json.dumps(report_to_json(report, store), ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        print(f"已写入: {json_path}（结构化 JSON，供自动化审计）")
 
     print("\n演示完成：capture→distill→discuss→card→audit 最小闭环跑通 ✓")
     return 0

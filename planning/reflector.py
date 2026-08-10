@@ -209,54 +209,6 @@ class Reflector:
                 "improvements": ["改进错误处理"]
             }
 
-    async def learn_from_experience(self, task_description: str, result: ActionResult) -> None:
-        """
-        从经验中学习
-
-        将成功或失败的经验保存到知识库
-        """
-        task_type = self._classify_task(task_description)
-
-        if result.success:
-            pattern = {
-                "task_type": task_type,
-                "task_description": task_description,
-                "successful_pattern": True,
-                "output": str(result.output)[:200] if result.output else None,
-                "timestamp": datetime.now().isoformat()
-            }
-
-            if task_type not in self.learned_patterns:
-                self.learned_patterns[task_type] = []
-            self.learned_patterns[task_type].append(pattern)
-
-            logger.info(f"保存成功经验: {task_type}")
-
-        else:
-            lesson = {
-                "task_type": task_type,
-                "task_description": task_description,
-                "failure_point": result.error,
-                "timestamp": datetime.now().isoformat()
-            }
-
-            if task_type not in self.learned_lessons:
-                self.learned_lessons[task_type] = []
-            self.learned_lessons[task_type].append(lesson)
-
-            logger.warning(f"记录失败教训: {task_type}")
-
-        if self.memory:
-            try:
-                await self.memory.save_log("experience", {
-                    "type": "success" if result.success else "failure",
-                    "task_type": task_type,
-                    "description": task_description,
-                    "result": str(result.output) if result.output else result.error
-                })
-            except Exception as e:
-                logger.warning(f"保存到记忆失败: {e}")
-
     def _classify_task(self, task_description: str) -> str:
         """分类任务类型"""
         task_lower = task_description.lower()

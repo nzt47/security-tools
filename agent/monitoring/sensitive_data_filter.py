@@ -217,15 +217,34 @@ class AccessLogger:
         return codes
 
 
-_access_logger = None
+_access_logger = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_access_logger(config=None):
+    """AccessLogger 工厂函数（供 SingletonManager 使用）"""
+    return AccessLogger()
 
 
 def get_access_logger() -> AccessLogger:
     """获取全局访问日志记录器"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("access_logger")
     global _access_logger
     if _access_logger is None:
-        _access_logger = AccessLogger()
+        _access_logger = _create_access_logger()
     return _access_logger
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("access_logger", _create_access_logger)
 
 
 __all__ = [

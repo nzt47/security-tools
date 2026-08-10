@@ -9,7 +9,7 @@ import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-from .models import Plan, PlanState
+from .models import Plan, PlanState, Task
 from .models.action import Action, ActionType, ActionResult
 from .models.react import ReActStep, ReActResult, ThoughtResult
 
@@ -169,14 +169,36 @@ class ReActLoop:
                 steps.append(step)
                 logger.info(f"   📝 步骤已记录: 迭代={iteration}, 成功={action_result.success}")
 
+                if thought.action_type == "ask_user":
+                    # D3 修复：ask_user 为暂停信号——停止循环，返回"等待用户输入"，
+                    # 由调用方询问用户后恢复（不再继续执行后续行动）。
+                    logger.info("   ⏸️ 检测到 ask_user：暂停执行，等待用户输入")
+                    duration = (datetime.now() - start_time).total_seconds() * 1000
+                    return ReActResult(
+                        success=False,
+                        result=thought.result or "需要用户确认",
+                        error="等待用户输入",
+                        steps=steps,
+                        iterations=iteration + 1,
+                        total_duration_ms=int(duration)
+                    )
+
                 if self.reflector and action_result.success:
                     logger.info("   ┌──────────────────────────────────────────────────────────┐")
                     logger.info("   │ 🧠 步骤3: 反思阶段                                      │")
                     logger.info("   └──────────────────────────────────────────────────────────┘")
                     try:
-                        reflection = await self.reflector.step_reflect(task, action_result, context)
+                        # D2 修复：step_reflect 需要 Task 对象；ReAct 路径 task 为字符串 → 包装转换
+                        reflect_task = task if isinstance(task, Task) else Task(
+                            id=f"react_step_{iteration}", description=str(task)
+                        )
+                        reflection = await self.reflector.step_reflect(reflect_task, action_result, context)
                         if reflection.adjustments:
                             logger.info(f"   💡 反思建议: {reflection.adjustments[:100]}{'...' if len(reflection.adjustments) > 100 else ''}")
+                            # D12 修复：调整建议写入 context，供后续 _think 提示词消费（闭环）
+                            hints = context.setdefault("_hints", [])
+                            if isinstance(hints, list):
+                                hints.extend(str(a) for a in reflection.adjustments)
                         else:
                             logger.info(f"   ✅ 反思通过，无调整建议")
                     except Exception as e:
@@ -196,6 +218,10 @@ class ReActLoop:
                 if action_result.success:
                     key = f"_last_result_{iteration}"
                     context[key] = action_result.output
+                    # D19b：仅保留最近 2 条结果缓存，防止 context 无限膨胀
+                    stale_key = f"_last_result_{iteration - 2}"
+                    if stale_key in context:
+                        context.pop(stale_key, None)
                     logger.info(f"   💾 结果已缓存到上下文: {key}")
 
                 iter_duration = (datetime.now() - iter_start).total_seconds() * 1000
@@ -248,6 +274,12 @@ class ReActLoop:
             context=context_text,
             available_tools=tools_text
         )
+
+        # D12 修复：历史调整建议回灌提示词（闭环，仅最近 5 条防膨胀）
+        if context and context.get("_hints"):
+            prompt += "\n\n【历史调整建议（需遵循）】\n" + "\n".join(
+                f"- {h}" for h in context["_hints"][-5:]
+            )
 
         if self.planner.llm:
             try:

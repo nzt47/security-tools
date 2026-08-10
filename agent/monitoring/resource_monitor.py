@@ -883,21 +883,52 @@ class ResourceMonitor:
 _global_resource_monitor: Optional[ResourceMonitor] = None
 _global_monitor_lock = threading.Lock()
 
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    logger.warning("singleton 注册降级：可选依赖缺失，功能受限")
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
+
+
+def _create_resource_monitor(config=None):
+    """ResourceMonitor 工厂函数（供 SingletonManager 使用）"""
+    return ResourceMonitor()
+
+
+def _cleanup_resource_monitor(instance):
+    """ResourceMonitor 清理钩子（供 SingletonManager 使用）"""
+    stop = getattr(instance, "stop", None)
+    if callable(stop):
+        stop()
+
 
 def get_resource_monitor() -> ResourceMonitor:
     """获取全局资源监控器实例（惰性初始化，线程安全）"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("resource_monitor")
     global _global_resource_monitor
     if _global_resource_monitor is None:
         with _global_monitor_lock:
             if _global_resource_monitor is None:
-                _global_resource_monitor = ResourceMonitor()
+                _global_resource_monitor = _create_resource_monitor()
     return _global_resource_monitor
 
 
 def reset_resource_monitor() -> None:
     """重置全局实例（仅用于测试）"""
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("resource_monitor")
+        return
     global _global_resource_monitor
     with _global_monitor_lock:
         if _global_resource_monitor is not None:
             _global_resource_monitor.stop()
         _global_resource_monitor = None
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("resource_monitor", _create_resource_monitor, cleanup_fn=_cleanup_resource_monitor)

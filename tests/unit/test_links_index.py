@@ -59,7 +59,7 @@ def test_rebuild_matches_full_scan(tmp_path, store):
     store.create(make_card("B", links=["c"]))
     store.create(make_card("C", links=["archives/d"]))
     index_path = _links_index_path(tmp_path)
-    assert rebuild_links_index(tmp_path / "kb" / "wiki", index_path) == 2
+    assert rebuild_links_index(store.list(), index_path) == 2
     assert read_links_index(index_path) == {"b": ["a"], "c": ["a", "b"]}
 
 
@@ -77,7 +77,7 @@ def test_delta_accumulation_matches_rebuild(tmp_path, store):
             if not link.startswith("archives/"):
                 update_links_delta(link, card.slug, index_path, add=True)
     delta = read_links_index(index_path)
-    rebuild_links_index(tmp_path / "kb" / "wiki", index_path)
+    rebuild_links_index(store.list(), index_path)
     assert delta == read_links_index(index_path)
 
 
@@ -111,7 +111,7 @@ def test_delta_update_sequence_matches_rebuild(tmp_path, store):
             update_links_delta(new, "a", index_path, add=True)
 
     expected = read_links_index(index_path)
-    rebuild_links_index(tmp_path / "kb" / "wiki", index_path)
+    rebuild_links_index(store.list(), index_path)
     assert expected == read_links_index(index_path)
 
 
@@ -153,7 +153,7 @@ def test_archives_links_excluded(tmp_path, store):
     store.create(make_card("A", links=["archives/b"]))
     store.create(make_card("B"))
     index_path = _links_index_path(tmp_path)
-    rebuild_links_index(tmp_path / "kb" / "wiki", index_path)
+    rebuild_links_index(store.list(), index_path)
     assert read_links_index(index_path) == {}
 
 
@@ -184,7 +184,7 @@ def test_crud_hooks_keep_delta_in_sync(tmp_path, store):
 
     # 不变量：挂接叠加结果 == 全量重建结果
     delta = read_links_index(index_path)
-    rebuild_links_index(tmp_path / "kb" / "wiki", index_path)
+    rebuild_links_index(store.list(), index_path)
     assert delta == read_links_index(index_path)
 
 
@@ -200,7 +200,7 @@ def test_delete_many_hooks_keep_delta_in_sync(tmp_path, store):
     assert result == {"a": True, "b": True}
     # 表随删除清空，与全量重建一致
     delta = read_links_index(index_path)
-    rebuild_links_index(tmp_path / "kb" / "wiki", index_path)
+    rebuild_links_index(store.list(), index_path)
     assert delta == read_links_index(index_path) == {}
 
 

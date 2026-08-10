@@ -331,11 +331,31 @@ def _now():
 
 
 # 全局版本管理器实例
-_global_version_manager = None
+_global_version_manager = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_version_manager(config=None):
+    """VersionManager 工厂函数（供 SingletonManager 使用）"""
+    return VersionManager()
+
 
 def get_version_manager() -> VersionManager:
     """获取全局版本管理器实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("prompt_version_manager")
     global _global_version_manager
     if _global_version_manager is None:
-        _global_version_manager = VersionManager()
+        _global_version_manager = _create_version_manager()
     return _global_version_manager
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("prompt_version_manager", _create_version_manager)

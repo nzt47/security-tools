@@ -295,6 +295,26 @@ def test_main_verbose_branch(tmp_path):
     )
 
 
+def test_main_quiet_branch(tmp_path):
+    """--quiet 触发 logging ERROR 配置（CI 静默档），不影响返回值。"""
+    from agent.knowledge.__main__ import main
+
+    wiki = tmp_path / "wiki"
+    assert (
+        main(["orphans", "--quiet", "--wiki", str(wiki)]) == 0
+    )
+
+
+def test_main_quiet_precedes_verbose(tmp_path):
+    """--quiet 与 --verbose 同给时 quiet 优先（避免问题库明细刷屏）。"""
+    from agent.knowledge.__main__ import main
+
+    wiki = tmp_path / "wiki"
+    assert (
+        main(["orphans", "--quiet", "--verbose", "--wiki", str(wiki)]) == 0
+    )
+
+
 def test_main_requires_subcommand():
     """未提供子命令（add_subparsers required=True）→ SystemExit(2)。"""
     from agent.knowledge.__main__ import main

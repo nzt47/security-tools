@@ -1148,15 +1148,35 @@ class _TracingConfigCompat:
 _global_observability_config: Optional[ObservabilityConfig] = None
 _global_config_lock = threading.Lock()
 
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
+
+
+def _create_observability_config(config=None):
+    """ObservabilityConfig 工厂函数（供 SingletonManager 使用）"""
+    return ObservabilityConfig()
+
 
 def get_observability_config() -> ObservabilityConfig:
     """获取全局可观测性配置实例（惰性初始化，线程安全）"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("observability_config")
     global _global_observability_config
     if _global_observability_config is None:
         with _global_config_lock:
             if _global_observability_config is None:
-                _global_observability_config = ObservabilityConfig()
+                _global_observability_config = _create_observability_config()
     return _global_observability_config
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("observability_config", _create_observability_config)
 
 
 def get_max_analyze_days() -> int:
@@ -1554,6 +1574,8 @@ def get_self_healer_thread_join_timeout() -> int:
 def reset_observability_config() -> None:
     """重置全局实例（仅用于测试）"""
     global _global_observability_config
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("observability_config")
     with _global_config_lock:
         _global_observability_config = None
 

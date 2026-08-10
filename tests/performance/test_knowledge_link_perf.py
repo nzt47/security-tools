@@ -27,14 +27,14 @@ pytestmark = pytest.mark.performance
 
 
 @pytest.fixture(autouse=True)
-def _silence_broken_link_warnings():
-    """性能计时期间静默断链 warning；测试结束恢复全局 logging 状态。
+def _silence_knowledge_link_warnings():
+    """性能测试期间屏蔽逐条断链 warning，测试结束后必须恢复。
 
-    Why: 原实现为模块顶层 logging.disable(logging.CRITICAL)，是 import 副作用——
-    任何包含本文件的 pytest 进程在 collection 阶段即被全局禁用 INFO 日志
-    （manager.disable 0→50），导致同进程其他测试的 assertLogs/caplog 断言
-    静默失败（2026-08-10 实测：Shard 4 串行段 10 failed）。fixture 内禁用 +
-    finally 恢复，语义等价且无 import 副作用。
+    【不易】logging.disable() 是进程级全局开关：若模块顶层直接调用且不恢复，
+    会屏蔽同进程后续所有测试的日志输出（CI 2026-08-10 Shard 6 复现：
+    test_knowledge_observability 4 例捕获 buffer 为空而失败）。
+    try/finally 保证每个测试结束后恢复（logging.disable(NOTSET)），
+    污染不越出本模块；函数级 finally 满足 pre-commit logging-disable-leak-scan。
     """
     logging.disable(logging.CRITICAL)
     try:
