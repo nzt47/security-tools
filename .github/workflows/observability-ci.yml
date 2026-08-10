@@ -34,6 +34,11 @@ on:
       # 任何测试文件改动均触发 CI 验证(此前 tests/unit/*、tests/stress/* 改动
       # 不触发, 导致 B1/C2/K1 修复无法独立验证, 需空提交或借触发路径 commit)。
       # agent/knowledge/** 同步纳入(K1 lint 修复验证)。
+      # 【变易·2026-08-10】agent/log_system/** 纳入：Shard 1
+      # test_audit_safety_logging_singleton 覆盖该模块（safe_logger 缺 makedirs 致
+      # FileNotFoundError），此前不在 paths 内，修复提交未触发全项目分片验证，
+      # 该目录改动会静默绕过 observability CI。
+      - 'agent/log_system/**'
       - 'tests/**'
       - 'agent/knowledge/**'
       - 'tests/**/test_*tracing*.py'
