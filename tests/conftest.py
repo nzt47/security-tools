@@ -391,10 +391,17 @@ def reset_global_singletons():
     _root_logger = logging.getLogger()
     _saved_handlers = _root_logger.handlers[:]
     _saved_level = _root_logger.level
+    # 0.1 快照进程级 logging.disable 阈值：manager.disable 是进程级全局状态
+    #     （logging.disable() 落脚点），不在 handlers/level 内，上述快照覆盖不到；
+    #     若某测试调用 logging.disable 且未恢复（泄漏），同进程后续 caplog/
+    #     assertLogs 全部静默失效。故一并快照并在 yield 后恢复，形成最终兜底。
+    _saved_manager_disable = logging.root.manager.disable
     yield
     # 0. 恢复 root logger 状态
     _root_logger.handlers = _saved_handlers
     _root_logger.setLevel(_saved_level)
+    # 0.1 恢复进程级 disable 阈值
+    logging.root.manager.disable = _saved_manager_disable
     # 1. ErrorHandler: 清空错误计数与熔断器注册表
     try:
         from agent.error_handler import get_error_handler
