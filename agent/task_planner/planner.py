@@ -10,33 +10,13 @@ def _trace_id():
     """生成 trace_id"""
     return uuid.uuid4().hex[:16]
 
-"""规划器——将目标分解为子任务 DAG"""
-from .dag import DAG, TaskNode
+"""规划器——将目标分解为子任务 DAG
 
-class TaskPlanner:
-    PATTERNS = {
-        "代码": ["需求分析", "设计", "实现", "测试", "部署"],
-        "文章": ["大纲", "初稿", "修改", "终稿"],
-        "分析": ["数据收集", "数据清洗", "分析", "报告"],
-        "项目": ["需求", "设计", "开发", "测试", "上线"],
-    }
-
-    def plan(self, goal: str) -> DAG:
-        dag = DAG()
-        for keyword, steps in self.PATTERNS.items():
-            if keyword in goal:
-                return self._build_dag(steps)
-        return self._build_dag(["理解需求", "执行", "验证结果"])
-
-    def _build_dag(self, steps: list[str]) -> DAG:
-        dag = DAG()
-        prev = None
-        for i, step in enumerate(steps):
-            node = TaskNode(id=f"step_{i}", description=step,
-                          depends_on=[f"step_{i-1}"] if prev else [])
-            dag.add_task(node)
-            prev = step
-        return dag
+【D8 修复】TaskPlanner 实现已迁移至 planning/task_planner.py（统一规划模块），
+本模块保留薄壳重导出以兼容既有调用路径（builtin_plans / boundary / integration）。
+"""
+from .dag import DAG, TaskNode  # noqa: F401 保留重导出，兼容既有引用
+from planning.task_planner import TaskPlanner  # noqa: F401 重导出（实现归属 planning 模块）
 
 
 def _safe_call(func, *args, action="safe_call", **kwargs):

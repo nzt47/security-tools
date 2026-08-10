@@ -91,6 +91,9 @@ class ReActLoop:
         context = context or {}
         steps: List[ReActStep] = []
         start_time = datetime.now()
+        # D13 修复：deadline 预算（config["timeout_seconds"]，原配置保存但从未读取，
+        # 循环内每次迭代检查，超预算即终止返回预算错误）
+        deadline_seconds = self.config.get("timeout_seconds")
 
         logger.info("══════════════════════════════════════════════════════════════════")
         logger.info("🔄 [ReAct循环] =================================================")
@@ -103,6 +106,20 @@ class ReActLoop:
 
         for iteration in range(self.max_iterations):
             iter_start = datetime.now()
+
+            # D13 修复：deadline 预算检查（迭代级，超预算立即终止）
+            if deadline_seconds is not None:
+                elapsed = (iter_start - start_time).total_seconds()
+                if elapsed >= deadline_seconds:
+                    logger.warning(f"⚠️ [ReAct循环] 超出时间预算({deadline_seconds}s)，终止")
+                    return ReActResult(
+                        success=False,
+                        result=f"超出时间预算({deadline_seconds}s)",
+                        steps=steps,
+                        iterations=iteration,
+                        total_duration_ms=int(elapsed * 1000),
+                        error=f"超出时间预算({deadline_seconds}s)"
+                    )
             logger.info("──────────────────────────────────────────────────────────────────")
             logger.info(f"🔁 [迭代 {iteration + 1}/{self.max_iterations}] ────────────────")
             logger.info(f"🔁 [迭代 {iteration + 1}] 开始时间: {iter_start.strftime('%H:%M:%S.%f')[:-3]}")
@@ -280,6 +297,28 @@ class ReActLoop:
             prompt += "\n\n【历史调整建议（需遵循）】\n" + "\n".join(
                 f"- {h}" for h in context["_hints"][-5:]
             )
+
+        # D17 修复：思考阶段复用 reflector 历史经验（get_advice_for_task），
+        # 成功模式/常见陷阱嵌入提示词；查询失败不影响思考主流程（降级为无经验）。
+        if self.reflector:
+            try:
+                advice = self.reflector.get_advice_for_task(str(task))
+                if advice:
+                    lines = []
+                    patterns = advice.get("successful_patterns") or []
+                    pitfalls = advice.get("common_pitfalls") or []
+                    if patterns:
+                        lines.append("成功模式（历史经验）:")
+                        for p in patterns:
+                            lines.append(f"- [{p['id']}] {p['description']} → {p['output']}")
+                    if pitfalls:
+                        lines.append("常见陷阱（历史教训）:")
+                        for p in pitfalls:
+                            lines.append(f"- [{p['id']}] {p['description']}（失败点: {p['failure']}）")
+                    if lines:
+                        prompt += "\n\n【历史经验】\n" + "\n".join(lines)
+            except Exception as e:
+                logger.warning(f"[D17] 获取历史经验失败: {e}")
 
         if self.planner.llm:
             try:
