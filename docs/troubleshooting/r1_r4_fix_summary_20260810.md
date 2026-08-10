@@ -107,5 +107,4 @@ Shard 1 新失败（safe_logger FileNotFoundError）
 
 - [shard_coverage_artifact_and_omit_rootcause_20260809.md](shard_coverage_artifact_and_omit_rootcause_20260809.md)（R1-R4 排查报告：根因与证据链）
 - [shard56_log_assert_rootcause_archive_20260809.md](shard56_log_assert_rootcause_archive_20260809.md)（serial 根治归档）
-- [r1_r4_fix_pr_and_impact_20260809.md](r1_r4_fix_pr_and_impact_20260809.md)（实施前 PR 与影响评估）
 - 提交链：`33136c19`（serial）→ `305282cf`（logging.disable）→ `296c8e60`/`2b6d51d2`（makedirs + paths）
