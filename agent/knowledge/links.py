@@ -189,7 +189,9 @@ def find_broken_links(cards: list[Card], store: "CardStore") -> list[dict]:
                 resolve_cache[target] = resolve_link(target, store)
             if resolve_cache[target] is None:
                 broken.append({"from_slug": card.slug, "to_slug": target})
-                logger.warning(
+                # 逐条明细降级 debug（P0 日志治理）：命中汇总由 lint_all 批量
+                # warning 输出，避免数千行明细刷屏；需要明细时 --verbose/DEBUG 开启
+                logger.debug(
                     "find_broken_links: 断链触发于文件=wiki/%s/%s.md link=[[%s]]（目标不存在）",
                     card.type, card.slug, target,
                 )

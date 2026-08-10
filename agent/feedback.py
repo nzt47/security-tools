@@ -1101,15 +1101,35 @@ class FeedbackManager:
         return suggestions_map.get(category, ["持续收集更多反馈，分析具体问题"])
 
 
-_global_feedback_manager = None
+_global_feedback_manager = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_feedback_manager(config=None):
+    """FeedbackManager 工厂函数（供 SingletonManager 使用）"""
+    obj = FeedbackManager()
+    obj.initialize()
+    return obj
 
 
 def get_feedback_manager() -> FeedbackManager:
     global _global_feedback_manager
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("feedback_manager")
     if _global_feedback_manager is None:
-        _global_feedback_manager = FeedbackManager()
-        _global_feedback_manager.initialize()
+        _global_feedback_manager = _create_feedback_manager()
     return _global_feedback_manager
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("feedback_manager", _create_feedback_manager)
 
 
 __all__ = [

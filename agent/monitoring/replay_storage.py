@@ -722,8 +722,35 @@ class ReplayStorage:
 # 全局单例
 # ═══════════════════════════════════════════════════════════════
 
-_global_storage: Optional[ReplayStorage] = None
+_global_storage: Optional[ReplayStorage] = None  # 保留作为 fallback
 _global_storage_lock = threading.Lock()
+
+try:
+    from agent.utils.singleton_manager import (
+        register_singleton, get_singleton, reset_singleton, is_initialized,
+    )
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
+    is_initialized = None
+
+
+def _create_replay_storage(config=None):
+    """ReplayStorage 工厂函数（供 SingletonManager 使用）"""
+    action = "get_replay_storage"
+    t0 = time.time()
+    storage_root = config.get("storage_root") if config else None
+    root = storage_root or os.environ.get(
+        "REPLAY_STORAGE_ROOT",
+        os.path.join(os.getcwd(), "data", "replays"),
+    )
+    storage = ReplayStorage(root)
+    _emit_log(action, "info", None, result="created",
+              duration_ms=_ms(t0), storage_root=root)
+    return storage
 
 
 def get_replay_storage(storage_root: Optional[str] = None) -> ReplayStorage:
@@ -734,6 +761,9 @@ def get_replay_storage(storage_root: Optional[str] = None) -> ReplayStorage:
     Returns:
         ReplayStorage 全局实例
     """
+    if _SINGLETON_AVAILABLE:
+        config = {"storage_root": storage_root} if storage_root is not None else None
+        return get_singleton("replay_storage", config)
     global _global_storage
     action = "get_replay_storage"
     t0 = time.time()
@@ -754,6 +784,8 @@ def get_replay_storage(storage_root: Optional[str] = None) -> ReplayStorage:
 
 def _reset_global_for_test() -> None:
     """测试辅助：重置全局单例（仅测试用）"""
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("replay_storage")
     global _global_storage
     if _global_storage is not None:
         try:
@@ -761,6 +793,14 @@ def _reset_global_for_test() -> None:
         except Exception:
             pass
     _global_storage = None
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton(
+        "replay_storage",
+        _create_replay_storage,
+        cleanup_fn=lambda storage: storage.close(),
+    )
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -779,7 +819,12 @@ def storage_health_check() -> Dict[str, Any]:
         }
     """
     try:
-        storage = _global_storage
+        # 优先读取 SingletonManager 已初始化的实例（不触发创建），
+        # fallback 到旧全局变量。均未初始化时返回 "(not initialized)"。
+        if _SINGLETON_AVAILABLE:
+            storage = get_replay_storage() if is_initialized("replay_storage") else None
+        else:
+            storage = _global_storage
         if storage is None:
             return {
                 "storage_root": "(not initialized)",

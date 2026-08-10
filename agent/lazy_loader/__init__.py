@@ -502,12 +502,32 @@ class ParallelPreloader(_BaseParallelPreloader):
                 logger.error(log_dict({'module_name': '__init__', 'action': 'log', 'msg': f'[ParallelPreloader] 等待失败: {e}'}))
 
 
-_global_loader: Optional[LazyModuleLoader] = None
+_global_loader: Optional[LazyModuleLoader] = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
+
+
+def _create_lazy_loader(config=None):
+    """LazyModuleLoader 工厂函数（供 SingletonManager 使用）"""
+    return LazyModuleLoader()
 
 
 def get_lazy_loader() -> LazyModuleLoader:
     """获取全局懒加载器实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("lazy_loader")
     global _global_loader
     if _global_loader is None:
-        _global_loader = LazyModuleLoader()
+        _global_loader = _create_lazy_loader()
     return _global_loader
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("lazy_loader", _create_lazy_loader)

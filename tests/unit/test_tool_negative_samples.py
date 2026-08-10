@@ -23,11 +23,9 @@ _NEGATIVE_SAMPLES_PATH = os.path.join(_PROJECT_ROOT, "data", "tool_negative_samp
 # xfail 标记:BM25 单路检索的已知缺陷 case
 # key = (group_id, query),value = xfail 原因(分类 + 详细说明)
 #
-# 实测结果(2026-07-19,70 工具索引):25 个 case 中 9 个 PASS,16 个 xfail
-# 实测结果(2026-08-08,B2 数据层措辞优化后):25 个 case 中 14 个 PASS,11 个 xfail
-#   - xfail 分布:G1(1)/G4(2)/G5(1)/G6(2)/G7(2)/G8(2)/G9(1)
-#   - 转 PASS 的 5 个 case:B2 描述优化消除语义混淆(百度搜索/后台任务列表/
-#     定时任务/Google 搜索/读取 config.yaml),已从 _XFAIL_CASES 移除
+# 实测结果(2026-07-19,70 工具索引):
+#   - 25 个 case 中 9 个 PASS,16 个 xfail
+#   - xfail 分布:G1(2)/G4(3)/G5(1)/G6(3)/G7(2)/G8(2)/G9(2)/G10(1)
 #   - 失败类型:召回缺失(BM25 词频分散)/ 负样本泄漏(无法区分相似工具)/ 方向性混淆
 #
 # 这些 xfail 是引入 Cross-Encoder Reranker 的核心依据。
@@ -40,12 +38,20 @@ _XFAIL_CASES = {
         "方向性混淆:BM25 无法区分转换方向,待 Reranker(报告 q08)",
 
     # ── 召回缺失(BM25 词频分散,expected_positive 不在 top-5)──
+    ("G1_web_search_family", "在百度上搜索 Python 教程"):
+        "召回缺失:web_search 不在 top-5,search_* 工具族互相干扰",
     ("G1_web_search_family", "抓取 https://example.com 的 HTML 内容"):
         "召回缺失:web_get 不在 top-5,fetch_news 泄漏(BM25 对 URL 不敏感)",
     ("G4_list_family", "列出 /home/user 下的所有文件"):
         "召回缺失:list_directory 不在 top-5,list_async_tasks 泄漏",
+    ("G4_list_family", "查看提交的后台任务列表"):
+        "召回缺失:list_async_tasks 不在 top-5,submit_task 词频更高",
     ("G5_install_family", "安装 markdown 编辑器扩展"):
         "召回缺失:ext_install 不在 top-5,install_tool 词频更高",
+    ("G6_task_family", "创建每天凌晨 3 点执行的定时任务"):
+        "召回缺失:schedule_task 不在 top-5,list_scheduled_tasks 词频更高",
+    ("G9_search_semantic_family", "在 Google 上搜索 Python 异步教程"):
+        "召回缺失:web_search 不在 top-5,search_* 工具族互相干扰",
     ("G9_search_semantic_family", "回忆之前讨论过的项目架构"):
         "召回缺失:search_memory 不在 top-5,BM25 对「回忆」语义不敏感",
 
@@ -60,6 +66,8 @@ _XFAIL_CASES = {
         "负样本泄漏:compress 进入 top-5(BM25 无法区分压缩/解压方向)",
     ("G8_format_convert_direction", "读取 data.yaml 转成 JSON 对象"):
         "负样本泄漏:json_to_yaml 进入 top-5(BM25 无法区分转换方向)",
+    ("G10_read_write_direction", "读取 config.yaml 的内容"):
+        "负样本泄漏:write_file 进入 top-5(BM25 对「文件」匹配过宽)",
 }
 
 
@@ -243,17 +251,15 @@ class TestNegativeSamplesRetrieval:
 class TestNegativeSamplesStatistics:
     """整体统计:验证 xfail case 数量符合预期(防止 xfail 标记漂移)"""
 
-    def test_xfail_cases_count_is_11(self):
-        """xfail 标记的 case 数应为 11(B2 数据层优化后实测 BM25 缺陷 case)
+    def test_xfail_cases_count_is_16(self):
+        """xfail 标记的 case 数应为 16(实测 BM25 单路缺陷 case)
 
-        分布:G1(1)/G4(2)/G5(1)/G6(2)/G7(2)/G8(2)/G9(1)
-        G4 含「查看系统中运行的进程」(2026-08-08 噪音 B 治理:list_async_tasks 泄漏)
-        B2(2026-08-08)优化 tool_index.json 描述后 5 个 case 转 PASS,已移除
-        (百度搜索/后台任务列表/定时任务/Google 搜索/读取 config.yaml)
+        分布:G1(2)/G4(3)/G5(1)/G6(3)/G7(2)/G8(2)/G9(2)/G10(1)
+        G4 新增「查看系统中运行的进程」(2026-08-08 噪音 B 治理:list_async_tasks 泄漏)
         若 Reranker 上线后 case 转为 PASS,应同步减少 xfail 并更新本断言
         """
-        assert len(_XFAIL_CASES) == 11, (
-            f"xfail case 数应为 11,实际 {len(_XFAIL_CASES)}。"
+        assert len(_XFAIL_CASES) == 16, (
+            f"xfail case 数应为 16,实际 {len(_XFAIL_CASES)}。"
             f"若新增/移除 xfail,请同步更新本断言"
         )
 
@@ -265,11 +271,10 @@ class TestNegativeSamplesStatistics:
                 f"xfail case {xfail_key} 不存在于负样本库,请检查标记"
             )
 
-    def test_xfail_groups_cover_7_groups(self):
-        """xfail case 应覆盖 7 个组(G1/G4/G5/G6/G7/G8/G9)
+    def test_xfail_groups_cover_8_groups(self):
+        """xfail case 应覆盖 8 个组(G1/G4/G5/G6/G7/G8/G9/G10)
 
-        G2(pdf)、G3(execute)未出现 xfail,因 alias merge 后区分度足够;
-        G10(读写方向)在 B2 优化后全部转 PASS,不再覆盖
+        G2(pdf)和 G3(execute)未出现 xfail,因 alias merge 后区分度足够
         """
         xfail_groups = {key[0] for key in _XFAIL_CASES}
         expected_groups = {
@@ -280,16 +285,17 @@ class TestNegativeSamplesStatistics:
             "G7_compress_family",
             "G8_format_convert_direction",
             "G9_search_semantic_family",
+            "G10_read_write_direction",
         }
         assert xfail_groups == expected_groups, (
             f"xfail 组应为 {expected_groups},实际 {xfail_groups}"
         )
 
-    def test_passing_cases_count_is_14(self):
-        """通过 case 数应为 14(25 - 11 xfail)"""
+    def test_passing_cases_count_is_9(self):
+        """通过 case 数应为 9(25 - 16 xfail)"""
         passing_count = len(_ALL_CASES) - len(_XFAIL_CASES)
-        assert passing_count == 14, (
-            f"通过 case 数应为 14,实际 {passing_count}"
+        assert passing_count == 9, (
+            f"通过 case 数应为 9,实际 {passing_count}"
         )
 
 

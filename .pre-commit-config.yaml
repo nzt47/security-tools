@@ -17,7 +17,7 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        stages: [commit]
+        stages: [pre-commit]
         description: >
           扫描 agent/ 目录中所有 .py 文件，检测
           func(explicit_kwarg=x, **dict) 模式中 dict 含同名键的冲突风险。
@@ -29,7 +29,7 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        stages: [push]
+        stages: [pre-push]
         description: >
           扫描 MEDIUM 级别风险，仅提醒不拦截（push 阶段运行）。
           MEDIUM 风险为外部函数签名已知的 **kwargs 转发，建议人工审查。
@@ -40,7 +40,7 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        stages: [commit]
+        stages: [pre-commit]
         description: >
           校验 data/tool_definitions/*.yaml 的 schema 完整性
           （必填字段、semver、JSON-Schema 子集、文件名与 name 一致、
@@ -53,7 +53,7 @@ repos:
         language: system
         pass_filenames: true
         always_run: true
-        stages: [commit]
+        stages: [pre-commit]
         description: >
           扫描暂存文件中的敏感信息（API key / 私钥 / 硬编码密码 /
           数据库连接串 / 敏感文件名）。检测到敏感信息时阻断提交，
@@ -66,7 +66,7 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        stages: [commit]
+        stages: [pre-commit]
         description: >
           在临时目录构造 mock 数据，全量运行知识卡片引擎 CLI 主入口
           （python -m agent.knowledge）的 5 个子命令断言：card-list 列出/

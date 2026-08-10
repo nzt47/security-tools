@@ -274,7 +274,11 @@ class TestPlanningCore:
     def test_get_active_plans(self):
         """测试获取所有活跃计划"""
         with tempfile.TemporaryDirectory() as tmp_dir:
-            core = PlanningCore(config={"reflector": {"persist_dir": tmp_dir}})
+            # planning.persist_dir 指向独立临时目录，避免默认 data/plans 残留污染 _active_plans
+            core = PlanningCore(config={
+                "reflector": {"persist_dir": tmp_dir},
+                "planning": {"persist_dir": tmp_dir},
+            })
             
             plan1 = Plan(id="plan1", state=PlanState.READY)
             plan2 = Plan(id="plan2", state=PlanState.EXECUTING)

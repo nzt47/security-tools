@@ -393,15 +393,36 @@ class PromptStorage:
 
 
 # 全局存储实例
-_global_prompt_storage = None
+_global_prompt_storage = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_prompt_storage(config=None):
+    """PromptStorage 工厂函数（供 SingletonManager 使用）"""
+    storage = PromptStorage()
+    storage.initialize()
+    return storage
+
 
 def get_prompt_storage() -> PromptStorage:
     """获取全局提示词存储实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("prompt_storage")
     global _global_prompt_storage
     if _global_prompt_storage is None:
-        _global_prompt_storage = PromptStorage()
-        _global_prompt_storage.initialize()
+        _global_prompt_storage = _create_prompt_storage()
     return _global_prompt_storage
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("prompt_storage", _create_prompt_storage)
 
 
 def _safe_call(func, *args, action="safe_call", **kwargs):

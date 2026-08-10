@@ -606,16 +606,36 @@ class StateManager:
         logger.info(log_dict({'module_name': 'state_manager', 'action': 'interval', 'msg': f'自动保存间隔已更新为: {interval}秒'}))
 
 
-# 全局状态管理器实例
+# 全局状态管理器实例（保留作为 fallback）
 _global_state_manager: Optional[StateManager] = None
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
+
+
+def _create_state_manager(config=None):
+    """StateManager 工厂函数（供 SingletonManager 使用）"""
+    return StateManager()
 
 
 def get_state_manager() -> StateManager:
     """获取全局状态管理器（单例）"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("state_manager")
     global _global_state_manager
     if _global_state_manager is None:
-        _global_state_manager = StateManager()
+        _global_state_manager = _create_state_manager()
     return _global_state_manager
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("state_manager", _create_state_manager)
 
 
 # 便捷函数

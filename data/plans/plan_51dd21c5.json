@@ -1,0 +1,26 @@
+{
+  "id": "plan_51dd21c5",
+  "original_task": "使用test_tool",
+  "state": "ready",
+  "progress": "0.0%",
+  "current_step": 0,
+  "max_steps": 50,
+  "result": null,
+  "error": null,
+  "context": {},
+  "tasks": [
+    {
+      "id": "step_1",
+      "description": "使用test_tool",
+      "task_type": "atomic",
+      "priority": 3,
+      "dependencies": [],
+      "status": "pending",
+      "result": null,
+      "error": null,
+      "created_at": "2026-08-11T00:50:29.878101"
+    }
+  ],
+  "created_at": "2026-08-11T00:50:29.878101",
+  "updated_at": "2026-08-11T00:50:29.880347"
+}

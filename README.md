@@ -459,6 +459,40 @@ python scripts/rebuild_p0_workflow.py --yes
 - [P0 安全修复归档](docs/security/p0_security_fix_archive_20260703.md)
 - [Release Notes](docs/security/RELEASE_NOTES_P0_SECURITY_20260703.md)
 
+## 知识库审计 CLI
+
+知识卡片引擎提供 `python -m agent.knowledge <子命令>` 统一入口，其中 `audit`
+为完整健康巡检（孤儿/断链/index 漂移/过期/未裁决矛盾 → 健康分 + md/html/JSON 报告）。
+
+### 日志级别控制（--quiet / --verbose）
+
+所有子命令均支持日志分级（stderr 上的 logging 输出，不影响 stdout 报告与退出码契约）：
+
+| 参数 | 级别 | 典型场景 |
+|---|---|---|
+| `--quiet` | ERROR | CI 静默跑通，只看失败原因（默认推荐） |
+| （无参数） | WARNING | 问题批量汇总可见，明细不刷屏 |
+| `--verbose` | INFO | 运行时排查、性能分析（含各模块耗时明细） |
+
+优先级：`--quiet` 优先于 `--verbose`。
+
+```bash
+# CI 静默档（问题反映在 JSON 产物与退出码）
+python -m agent.knowledge audit --wiki knowledge/wiki --no-email --json audit.json --quiet
+
+# 排查档（输出检测/计算/报告各阶段耗时明细）
+python -m agent.knowledge audit --wiki knowledge/wiki --no-email --verbose
+```
+
+详细说明：见 [CLI 日志参数文档](docs/reports/knowledge_cli_logging_modes_20260811.md)。
+
+### 轻量检测视图（P0 内存优化）
+
+审计检测路径默认走 `CardStore.list_light()` 轻量视图（只解析检测六字段，
+不驻留正文/insight，单卡内存降 5~10 倍），核心逻辑封装为独立零依赖插件
+`agent/knowledge/light_loader.py`，亦可作为独立 pip 包复用
+（见 [light_loader 独立包安装说明](docs/reports/light_loader_package_install_20260811.md)）。
+
 ## 版本历史
 
 ### v1.2.0 (2026-07-14) ✅ 已发布

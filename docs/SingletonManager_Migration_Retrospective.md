@@ -125,7 +125,52 @@
 
 ---
 
-## 五、经验沉淀（团队可复用清单）
+## 五、Git 收尾阶段的问题与解决（P5/P6）
+
+> 以下为迁移项目收口（分叉合并、归档、清理、双远程同步）期间遇到的典型问题。多会话并行共享同一仓库是本阶段的常态。
+
+### 5.1 并行工作线导致 ref 漂移与判定不一致 ⚠️ 最具复用价值
+
+- **现象**：操作间隙 `develop` tip 被并行会话从 `0aa6dca1` 推进到 `5dc7fe6b` 再 `b1a4b983`；`fix/pr77-resolve` 的 ref 从 `8bc30dac` 变为 `72c12a03`（merge origin/master）再 `73a6a926`（merge develop）。
+- **后果**：`git branch --merged develop` 与 `git branch -d` 判定不一致（前者列出、后者报 not fully merged）；`git branch --contains` 结果异常。
+- **处理**：① 删除决策前用 `git rev-parse <分支>` + `git log` 复核真实 tip；② 归档 commit 用 `git merge-base --is-ancestor <commit> origin/develop` 验证仍在远程历史（本项三个归档 commit 全部确认安全）。
+- **教训**：多会话共享仓库时，任何删除/推送决策必须基于**最新 fetch 状态**，关键 commit 用 is-ancestor 验证，不轻信分支名的"已合并"标记。
+
+### 5.2 worktree 占用导致分支删除失败
+
+- **现象**：`git branch -d` 报 `cannot delete branch used by worktree`。
+- **处理**：`git worktree list` 定位占用路径 → `git worktree remove <path>`（一次一个，dirty 工作区会拒绝）→ 重试删除。
+- **注意**：worktree remove 拒绝时先排查 dirty 原因，**勿直接 `-f`**。
+
+### 5.3 本地落后远程导致 push 被拒（non-fast-forward）
+
+- **现象**：本地 `develop` 落后 origin 34 个 commit（并行工作线 dev-merge 已合入远程），直接 push 被拒。
+- **处理**：归档文档通过**独立临时 worktree**（基于 `origin/develop` 创建）提交并推送，完成后再移除 worktree/删除临时分支，全程不触碰主工作区的未提交文件。
+- **教训**：并行环境归档推送，优先用临时 worktree 隔离，**避免 stash 主工作区**（pop 冲突风险大且影响并行会话）。
+
+### 5.4 跨远程合并 12 冲突 → 等价性比对发现内容冗余
+
+- **现象**：为同步 gitee，`git merge gitee/develop` 产生 12 个冲突文件，密集于 `.github/workflows/*.yml`、`.pre-commit-config.yaml`、`pyproject.toml`、`packages/kwarg_scanner`。
+- **根因**：gitee 独有的 16 个 commit 来自旧工作线分叉，其内容在 origin/develop **已有等价修复**（同标题 commit 对照：BOM 修复 / pytest-asyncio 补装 / CI 稳定性监控 / PSScriptAnalyzer / PermissionError 误报等）。
+- **处理**：`git merge --abort` 中止；经用户确认改为 **`--force-with-lease` 覆盖 gitee**（16 个 commit 等同冗余，丢弃无损失）。
+- **教训**：合并跨远程历史前先做**等价性比对**（`git log` 标题/内容对照），避免为冗余内容引入大规模冲突。
+
+### 5.5 双远程分叉与同步策略
+
+- **现象**：gitee/develop 落后 origin 381 且有 16 个独有 commit；gitee/master 落后 74。
+- **处理**：先确认远程定位（镜像/归档 vs 独立工作线），再决定 merge / force 覆盖 / 保持现状；force 一律用 `--force-with-lease` 防并发误覆盖，且只对齐 develop/master，不触碰其他分支（gh-pages/staging）。
+- **验证**：`git rev-list --left-right --count origin/X...gitee/X` 归零确认。
+
+### 5.6 commit 边界污染（d65060ad 混入 6 个计划外文件）
+
+- **现象**：归档 commit 混入 fix(tracing) 工作线的 6 个文件（.gitignore / .vscode / error_handler.py / tracing.py 等）。
+- **根因**：commit 时暂存区遗留其他工作线的文件。
+- **处理**：如实记录在案；后续归档一律 `git add <具体文件>`，**禁 `git add -A`**。
+- **教训**：多工作线共享工作区，commit 前必须 `git status` 核对暂存范围。
+
+---
+
+## 六、经验沉淀（团队可复用清单）
 
 1. **config 通道双形态**：`isinstance(config, dict) and "xxx" in config` 才解包。
 2. **cleanup 钩子**：有资源生命周期的用 `stop()`（幂等）；无资源不注册。
@@ -134,8 +179,12 @@
 5. **测试隔离唯一入口是 reset 函数**；spy 替换类而非工厂。
 6. **注册名 ≠ getter 名**，重名场景显式区分。
 7. **文档数字以实测为准**，统计类数字工具验证。
+8. **并行环境 Git 决策**：先 fetch 最新；删除前 rev-parse 复核；归档 commit 用 `merge-base --is-ancestor` 验证。
+9. **归档推送优先临时 worktree**（基于远程 tip 创建），不 stash 主工作区。
+10. **跨远程合并先做等价性比对**（git log 标题对照）；force 一律用 `--force-with-lease`。
+11. **commit 精确暂存具体文件**，禁 `git add -A`；提交前 `git status` 核对范围。
 
-## 六、后续建议
+## 七、后续建议
 
 1. rate_limiter：按 [重构备选方案](rate_limiter_registry_refactor_draft.md) + [方案对比分析](rate_limiter_refactor_analysis.md) 评审后决定是否收口。
 2. tool_router_hybrid：已规范化，仅在追求全量一致性时低成本补 register。

@@ -272,20 +272,15 @@ const App: React.FC = () => {
                 justifyContent: 'center',
                 gap: 6,
                 transition: 'all 0.15s',
-                fontWeight: knowledgeOpen ? 600 : 400,
               }}
               onMouseEnter={(e) => {
-                if (!knowledgeOpen) {
-                  e.currentTarget.style.borderColor = 'var(--accent-primary, #4a9eff)';
-                }
+                e.currentTarget.style.borderColor = 'var(--accent-primary, #4a9eff)';
               }}
               onMouseLeave={(e) => {
-                if (!knowledgeOpen) {
-                  e.currentTarget.style.borderColor = 'var(--border-subtle, #2a2e38)';
-                }
+                e.currentTarget.style.borderColor = 'var(--border-subtle, #2a2e38)';
               }}
               type="button"
-              title="打开知识库（卡片/检索/健康报告）"
+              title="打开知识库（卡片/检索/健康巡检）"
             >
               <span>📚</span> 知识库
             </button>

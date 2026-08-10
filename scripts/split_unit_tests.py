@@ -68,6 +68,15 @@ OBSERVABILITY_CI_ONLY = {
     "tests/test_network_config_integration.py",             # 脚本式测试，模块级代码在 collection 时执行，需 .env 文件
 }
 
+# 【不易】performance/stress 目录级排除（全项目模式）：计时敏感 + 模块顶层副作用风险，
+# 混入并行分片会产生 flake（2026-08-10 Shard 6 实证：test_knowledge_link_perf.py 模块顶层
+# logging.disable 污染同进程日志捕获测试）。由独立串行 job 覆盖（见
+# docs/observability/scripts_serial_ci_segmentation_plan_20260810.md 阶段 B）。
+SERIAL_DIRS = (
+    "tests/performance/",
+    "tests/stress/",
+)
+
 
 def _is_excluded(rel_path: str, excluded: set[str]) -> bool:
     """文件是否被排除：精确文件匹配，或命中目录前缀（以 / 结尾）。"""
@@ -97,6 +106,10 @@ def collect_test_files(root: Path, test_root: str = "tests/unit") -> list[str]:
     else:
         # 默认模式：仅 tests/unit/test_*.py（非递归，与 ci.yml 一致）
         files = sorted(p for p in target_dir.glob("test_*.py"))
+    # 【不易】全项目模式：performance/stress 移出并行分片（独立串行 job 覆盖），
+    # 目录前缀匹配防止同进程污染与计时干扰型 flake。
+    if test_root == "tests":
+        files = [p for p in files if not any(d in p.as_posix() for d in SERIAL_DIRS)]
     # as_posix(): CI 在 Linux runner 上执行，路径必须用正斜杠分隔
     rel = [p.relative_to(root).as_posix() for p in files]
     return [f for f in rel if not _is_excluded(f, excluded)]

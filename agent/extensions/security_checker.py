@@ -374,16 +374,36 @@ class SkillSecurityChecker:
         return result
 
 
-# 全局安全检查器实例
+# 全局安全检查器实例（保留作为 fallback）
 _security_checker = None
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_security_checker(config=None):
+    """SkillSecurityChecker 工厂函数（供 SingletonManager 使用）"""
+    extension_store = (config or {}).get("extension_store")
+    return SkillSecurityChecker(extension_store)
 
 
 def get_security_checker(extension_store=None) -> SkillSecurityChecker:
     """获取全局安全检查器实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("security_checker", {"extension_store": extension_store})
     global _security_checker
     if _security_checker is None:
-        _security_checker = SkillSecurityChecker(extension_store)
+        _security_checker = _create_security_checker({"extension_store": extension_store})
     return _security_checker
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("security_checker", _create_security_checker)
 
 
 def test_security_checker():

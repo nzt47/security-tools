@@ -129,7 +129,6 @@ MODULE_INFO = [
     ("agent/quality", "质量管理", "缺陷追踪"),
     ("agent/server_routes", "服务路由", "Flask 路由"),
     ("agent/subagent", "子代理", "子代理生命周期/沙箱"),
-    ("agent/tests", "Agent 测试", "Agent 内部测试"),
     ("agent/workflow_engine", "工作流引擎", "工作流引擎/匹配"),
     ("agent/data", "Agent 数据", "Agent 数据/技能配置"),
     ("agent/", "Agent 核心", "Agent 顶层模块"),

@@ -2,6 +2,7 @@ import pytest
 import os
 import pickle
 import logging
+import time
 from unittest.mock import MagicMock, patch
 from agent.p6_snapshot import (
     StateSnapshotManager, 
@@ -454,15 +455,22 @@ class TestStateSnapshotManager:
         mock_digital_life._config = {"key": "value"}
         
         with patch.object(mgr, '_save_core_modules_with_delta', return_value=0):
+            t0 = time.monotonic()
             result = mgr.save_snapshot(mock_digital_life, force=True)
+            save_elapsed_ms = (time.monotonic() - t0) * 1000
             logger.info(f"保存结果: {result}")
             assert result.success
         
         summary = mgr.performance_monitor.get_performance_summary()
         logger.info(f"性能摘要: {summary}")
+        # 埋点：save_snapshot 全程耗时，区分「保存本身慢」与「性能统计未记录」
+        logger.info(f"保存耗时: {save_elapsed_ms:.2f}ms")
         
-        assert summary["total_saves"] == 1, f"总保存次数应为 1，得到: {summary['total_saves']}"
-        assert summary["last_save_ms"] > 0, f"上次保存时间应大于 0，得到: {summary['last_save_ms']}"
+        assert summary["total_saves"] == 1, f"总保存次数应为 1，得到: {summary['total_saves']}，完整摘要: {summary}"
+        assert summary["last_save_ms"] > 0, (
+            f"上次保存时间应大于 0，得到: {summary['last_save_ms']}，"
+            f"完整摘要: {summary}，保存耗时: {save_elapsed_ms:.2f}ms"
+        )
         
         logger.info("测试通过!")
         logger.info("="*60)

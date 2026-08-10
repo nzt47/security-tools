@@ -89,7 +89,7 @@ def alert_rules_file(tmp_path, monkeypatch):
 @pytest.fixture
 def reset_prometheus_exporter(monkeypatch):
     """重置 Prometheus 导出器单例"""
-    monkeypatch.setattr(routes_logging, "_prometheus_exporter", None)
+    routes_logging.reset_prometheus_exporter()
 
 
 @pytest.fixture

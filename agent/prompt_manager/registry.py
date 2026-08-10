@@ -202,13 +202,33 @@ def _now():
 
 
 # 全局注册中心实例
-_global_prompt_registry = None
+_global_prompt_registry = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_prompt_registry(config=None):
+    """PromptRegistry 工厂函数（供 SingletonManager 使用）"""
+    return PromptRegistry()
+
 
 def get_prompt_registry() -> PromptRegistry:
     """获取全局提示词注册中心实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("prompt_registry")
     global _global_prompt_registry
     if _global_prompt_registry is None:
-        _global_prompt_registry = PromptRegistry()
+        _global_prompt_registry = _create_prompt_registry()
     return _global_prompt_registry
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("prompt_registry", _create_prompt_registry)
 
 

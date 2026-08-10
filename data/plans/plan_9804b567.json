@@ -1,0 +1,65 @@
+{
+  "id": "plan_9804b567",
+  "original_task": "首先创建一个名为 report.txt 的文件，然后搜索关于销售数据的信息，接着将搜索结果写入 report.txt 文件，最后发送邮件通知管理员",
+  "state": "ready",
+  "progress": "0.0%",
+  "current_step": 0,
+  "max_steps": 50,
+  "result": null,
+  "error": null,
+  "context": {},
+  "tasks": [
+    {
+      "id": "step_1",
+      "description": "创建一个名为 report.txt 的文件，",
+      "task_type": "atomic",
+      "priority": 3,
+      "dependencies": [],
+      "status": "pending",
+      "result": null,
+      "error": null,
+      "created_at": "2026-08-11T00:50:29.940679"
+    },
+    {
+      "id": "step_2",
+      "description": "搜索关于销售数据的信息，",
+      "task_type": "atomic",
+      "priority": 3,
+      "dependencies": [
+        "step_1"
+      ],
+      "status": "pending",
+      "result": null,
+      "error": null,
+      "created_at": "2026-08-11T00:50:29.940679"
+    },
+    {
+      "id": "step_3",
+      "description": "将搜索结果写入 report.txt 文件，",
+      "task_type": "atomic",
+      "priority": 3,
+      "dependencies": [
+        "step_2"
+      ],
+      "status": "pending",
+      "result": null,
+      "error": null,
+      "created_at": "2026-08-11T00:50:29.940679"
+    },
+    {
+      "id": "step_4",
+      "description": "发送邮件通知管理员",
+      "task_type": "atomic",
+      "priority": 3,
+      "dependencies": [
+        "step_3"
+      ],
+      "status": "pending",
+      "result": null,
+      "error": null,
+      "created_at": "2026-08-11T00:50:29.940679"
+    }
+  ],
+  "created_at": "2026-08-11T00:50:29.938602",
+  "updated_at": "2026-08-11T00:50:29.940679"
+}

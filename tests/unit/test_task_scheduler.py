@@ -1272,6 +1272,16 @@ class TestMainBlock:
         """测试 __main__ 块的执行 - 使用 runpy 在当前进程中执行以便 coverage 统计"""
         import runpy
 
+        # 【修复：P0 单例 flaky 根因】
+        # runpy 以 __main__ 重新执行 task_scheduler.py 顶层代码时，会再次运行
+        # register_singleton("task_scheduler", ...)，把 SingletonManager 捕获的
+        # 工厂覆盖为 __main__ 命名空间中的 _create_scheduler——该命名空间内的
+        # TaskScheduler 是重新定义的独立类，后续测试替换 module.TaskScheduler
+        # 不再生效（并发测试 created=0，CI 3 环境失败的根因）。
+        # 执行后恢复为真实模块的工厂/清理钩子引用。
+        from agent.utils.singleton_manager import _manager as _sm
+        from agent import task_scheduler as _ts
+
         # 临时替换 stdout 以避免大量打印
         import io
         old_stdout = sys.stdout
@@ -1286,6 +1296,9 @@ class TestMainBlock:
         finally:
             sys.stdout = old_stdout
             sys.stderr = old_stderr
+            # 恢复被 runpy 覆盖的 task_scheduler 单例工厂（幂等：get 不存在时注册）
+            _sm._factories["task_scheduler"] = _ts._create_scheduler
+            _sm._cleanup_fns["task_scheduler"] = _ts._cleanup_scheduler
 
     @pytest.mark.unit
     @pytest.mark.p0

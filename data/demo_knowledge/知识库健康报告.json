@@ -1,0 +1,48 @@
+{
+  "total_cards": 3,
+  "broken_links": [],
+  "orphans": [],
+  "index_drift": [],
+  "stale_cards": [],
+  "unresolved_conflicts": [
+    {
+      "source_slug": "卡片盒写作法",
+      "target_slug": "知识降噪设计",
+      "summary": ""
+    }
+  ],
+  "health_score": 95.0,
+  "score_breakdown": {
+    "conflicts": 5
+  },
+  "ok": false,
+  "audited_at": "2026-08-10",
+  "suggestions": [
+    "存在 1 条未裁决矛盾，请人工调用 resolve_conflict 裁决"
+  ],
+  "cards": [
+    {
+      "slug": "卡片盒写作法",
+      "status": "current",
+      "type": "concepts",
+      "contradictions": [
+        {
+          "target_slug": "知识降噪设计",
+          "status": "conflict"
+        }
+      ]
+    },
+    {
+      "slug": "知识降噪设计",
+      "status": "current",
+      "type": "concepts",
+      "contradictions": []
+    },
+    {
+      "slug": "第一性原理笔记法",
+      "status": "current",
+      "type": "concepts",
+      "contradictions": []
+    }
+  ]
+}

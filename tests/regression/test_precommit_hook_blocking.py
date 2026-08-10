@@ -21,6 +21,7 @@
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -43,24 +44,32 @@ def _write(path: Path, content: str) -> None:
 
 
 def _run_check(repo_root: Path, timeout: int = 180) -> subprocess.CompletedProcess:
-    """调用 CI / hook 共用的检查入口 git_precommit_check.ps1。"""
-    return subprocess.run(
-        [
-            "powershell",
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-File",
-            str(CHECK_SCRIPT),
-            "-TargetRepo",
-            str(repo_root),
-        ],
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=timeout,
-    )
+    """调用 CI / hook 共用的检查入口 git_precommit_check.ps1。
+
+    埋点（仅失败时输出）：记录耗时 + returncode（含十六进制，Windows 崩溃码
+    0xC0000005/0xC0000409 可区分「被杀/崩溃」与「正常业务失败」）+ 输出尾部，
+    用于定位完整套件下的资源竞争偶发失败。
+    """
+    cmd = [
+        "powershell",
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-File",
+        str(CHECK_SCRIPT),
+        "-TargetRepo",
+        str(repo_root),
+    ]
+    t0 = time.monotonic()
+    p = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
+                       errors="replace", timeout=timeout)
+    dt = time.monotonic() - t0
+    if p.returncode != 0:
+        print(f"[diag-hook] returncode={p.returncode} "
+              f"(0x{p.returncode & 0xFFFFFFFF:08X}) elapsed={dt:.2f}s "
+              f"stdout_tail={p.stdout[-500:]!r} stderr_tail={p.stderr[-500:]!r}",
+              file=sys.stderr, flush=True)
+    return p
 
 
 def _run_git(repo_root: Path, *args: str, timeout: int = 180) -> subprocess.CompletedProcess:
@@ -73,7 +82,8 @@ def _run_git(repo_root: Path, *args: str, timeout: int = 180) -> subprocess.Comp
     若不跳过会因 Linux 环境差异误失败（输出被 hook >/dev/null 吞掉，难排查）。
     """
     env = {**os.environ, "TLM_HOOK_SOURCE_REPO": str(REPO_ROOT), "SKIP_WORKFLOW_SIM": "1"}
-    return subprocess.run(
+    t0 = time.monotonic()
+    p = subprocess.run(
         ["git", "-C", str(repo_root), *args],
         capture_output=True,
         text=True,
@@ -82,6 +92,13 @@ def _run_git(repo_root: Path, *args: str, timeout: int = 180) -> subprocess.Comp
         env=env,
         timeout=timeout,
     )
+    dt = time.monotonic() - t0
+    if p.returncode != 0:
+        print(f"[diag-git] {args[0]} returncode={p.returncode} "
+              f"(0x{p.returncode & 0xFFFFFFFF:08X}) elapsed={dt:.2f}s "
+              f"stdout_tail={p.stdout[-500:]!r} stderr_tail={p.stderr[-500:]!r}",
+              file=sys.stderr, flush=True)
+    return p
 
 
 def _setup_git_repo(tmp_path: Path) -> Path:

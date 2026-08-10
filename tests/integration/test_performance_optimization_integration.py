@@ -65,10 +65,9 @@ def small_config():
 def reset_manager():
     """重置全局管理器"""
     import agent.monitoring.performance_optimization as module
-    old = module._global_optimization_manager
-    module._global_optimization_manager = None
+    module.reset_optimization_manager()
     yield
-    module._global_optimization_manager = old
+    module.reset_optimization_manager()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -699,7 +698,7 @@ class TestGlobalManager:
     def test_singleton_reset(self, reset_manager):
         m1 = get_optimization_manager()
         import agent.monitoring.performance_optimization as module
-        module._global_optimization_manager = None
+        module.reset_optimization_manager()
         m2 = get_optimization_manager()
         assert m1 is not m2
 

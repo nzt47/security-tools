@@ -87,8 +87,24 @@ class Task:
             "description": self.description,
             "task_type": self.task_type.value,
             "priority": self.priority,
+            "dependencies": self.dependencies.copy(),
             "status": self.status.value,
             "result": str(self.result) if self.result else None,
             "error": self.error,
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Task":
+        """从字典还原任务（与 to_dict 对称，D9 修复：持久化恢复）"""
+        task = cls(
+            id=data["id"],
+            description=data.get("description", ""),
+            task_type=TaskType(data.get("task_type", "atomic")),
+            priority=data.get("priority", 3),
+            dependencies=data.get("dependencies", []),
+        )
+        task.status = TaskStatus(data.get("status", "pending"))
+        task.result = data.get("result")
+        task.error = data.get("error")
+        return task

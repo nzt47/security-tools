@@ -937,16 +937,37 @@ class FailureAnalyzer:
             raise
 
 
-# 全局失败分析器实例
+# 全局失败分析器实例（保留作为 fallback）
 _global_failure_analyzer = None
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_failure_analyzer(config=None):
+    """FailureAnalyzer 工厂函数（供 SingletonManager 使用）"""
+    obj = FailureAnalyzer()
+    obj.initialize()
+    return obj
+
 
 def get_failure_analyzer() -> FailureAnalyzer:
     """获取全局失败分析器实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("failure_analyzer")
     global _global_failure_analyzer
     if _global_failure_analyzer is None:
-        _global_failure_analyzer = FailureAnalyzer()
-        _global_failure_analyzer.initialize()
+        _global_failure_analyzer = _create_failure_analyzer()
     return _global_failure_analyzer
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("failure_analyzer", _create_failure_analyzer)
 
 
 def report_failure(trace_id: str, message: str, source: str = "", 

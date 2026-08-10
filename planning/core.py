@@ -4,11 +4,15 @@
 """
 
 import asyncio
+import json
 import logging
+import os
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 from .models import Plan, PlanState
+from .models.action import Action, ActionResult
+from .models.record import ExecutionRecord
 from .models.react import ReActResult
 from .decomposer import TaskDecomposer
 from .executor import PlanExecutor, ToolRegistry
@@ -95,6 +99,11 @@ class PlanningCore:
         self.state_machine = PlanStateMachine()
         logger.info("状态机初始化完成")
 
+        # 注入状态机：计划收尾状态变更（EXECUTING->COMPLETED/FAILED）走状态机，
+        # 触发钩子并记录转换历史（修复 C1 短路缺陷）
+        self.executor.state_machine = self.state_machine
+        logger.info("执行引擎已注入状态机")
+
         react_config = self.config.get("react", {})
         self.react_loop = ReActLoop(
             self,
@@ -104,13 +113,45 @@ class PlanningCore:
         )
         logger.info(f"ReAct循环初始化完成，最大迭代次数: {self.react_loop.max_iterations}")
 
-        self._active_plans: Dict[str, Plan] = {}
+        persist_config = self.config.get("planning", {}) or {}
+        self.persist_dir = persist_config.get("persist_dir") \
+            or self.config.get("persist_dir") or os.path.join("data", "plans")
+        os.makedirs(self.persist_dir, exist_ok=True)
+
+        self._active_plans: Dict[str, Plan] = self._load_plans_from_disk()
+        logger.info(f"已从检查点目录恢复 {len(self._active_plans)} 个未完成计划: {self.persist_dir}")
         self.complexity_threshold = self.config.get("complexity_threshold", 0.5)
         logger.info(f"复杂度阈值: {self.complexity_threshold}")
 
         logger.info("="*60)
         logger.info("✅ 规划引擎核心初始化完成")
         logger.info("="*60)
+
+    def save_plan_checkpoint(self, plan: Plan) -> str:
+        """保存计划检查点到磁盘（D9 修复：持久化恢复）"""
+        path = os.path.join(self.persist_dir, f"{plan.id}.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(plan.to_dict(), f, ensure_ascii=False, indent=2)
+        return path
+
+    def _load_plans_from_disk(self) -> Dict[str, Plan]:
+        """从检查点目录恢复未完成计划（D9 修复）"""
+        plans: Dict[str, Plan] = {}
+        if not os.path.isdir(self.persist_dir):
+            return plans
+        for fname in os.listdir(self.persist_dir):
+            if not fname.endswith(".json"):
+                continue
+            try:
+                with open(os.path.join(self.persist_dir, fname), encoding="utf-8") as f:
+                    data = json.load(f)
+                plan = Plan.from_dict(data)
+                if plan.state in (PlanState.INIT, PlanState.DECOMPOSING,
+                                  PlanState.READY, PlanState.EXECUTING, PlanState.PAUSED):
+                    plans[plan.id] = plan
+            except Exception as e:
+                logger.warning(f"加载计划检查点失败 {fname}: {e}")
+        return plans
 
     async def plan(self, task: str, context: Dict = None) -> Plan:
         """
@@ -144,7 +185,8 @@ class PlanningCore:
                     logger.info(f"      ... 还有 {len(plan.tasks) - 5} 个子任务")
 
                 self._active_plans[plan.id] = plan
-                logger.info(f"✅ 计划已添加到活跃计划列表 (当前活跃计划数: {len(self._active_plans)})")
+                self.save_plan_checkpoint(plan)
+                logger.info(f"✅ 计划已添加到活跃计划列表并保存检查点 (当前活跃计划数: {len(self._active_plans)})")
                 logger.info("="*60)
                 return plan
             else:
@@ -199,16 +241,14 @@ class PlanningCore:
                 except Exception as e:
                     logger.warning(f"   ⚠️ 反思执行失败: {e}")
 
-            logger.info("📋 步骤4: 最终状态判断...")
-            if plan.state == PlanState.EXECUTING:
-                if plan.is_success():
-                    logger.info("   检测到所有任务成功完成，执行 COMPLETED 转换")
-                    self.state_machine.transition(plan, PlanState.COMPLETED, "执行成功")
-                    logger.info(f"   ✅ 最终状态: {plan.state.value}")
-                else:
-                    logger.info("   检测到部分任务失败，执行 FAILED 转换")
-                    self.state_machine.transition(plan, PlanState.FAILED, "执行失败")
-                    logger.info(f"   ⚠️ 最终状态: {plan.state.value}")
+            logger.info("📋 步骤4: 校验最终状态（已由执行器经状态机完成收尾）...")
+            # 最终状态已由 executor._finalize_state 经状态机完成 EXECUTING -> COMPLETED/FAILED。
+            # 边界 #3：取消竞态下 executor.cancel_plan 异步 task（直接赋值）可能将状态改为 CANCELLED，
+            # 属合法终态，仅记录日志不抛错；其余非预期状态仍保持严格断言防回归。
+            if plan.state == PlanState.CANCELLED:
+                logger.warning("计划执行收尾后状态为 CANCELLED（取消竞态），跳过最终状态校验")
+            elif plan.state not in (PlanState.COMPLETED, PlanState.FAILED):
+                raise AssertionError(f"计划执行后状态异常: {plan.state.value}")
 
             logger.info(f"📈 执行进度: {plan.progress():.1%}")
             logger.info("="*60)
@@ -219,8 +259,10 @@ class PlanningCore:
         except InvalidStateTransitionError as e:
             logger.error(f"❌ 状态转换错误: {e}")
             logger.error(f"   当前状态: {plan.state.value}")
-            plan.state = PlanState.FAILED
             plan.error = str(e)
+            # 边界 #6：恢复路径统一经 _finalize_state（状态机优先、非法降级），
+            # 不再直接赋值绕过状态机；若计划已取消则保留 CANCELLED（边界 #2 同逻辑）
+            self.executor._finalize_state(plan, PlanState.FAILED, reason="状态转换失败，计划标记失败")
             logger.info("="*60)
             return plan
 
@@ -285,6 +327,26 @@ class PlanningCore:
         try:
             logger.info("🔄 步骤1: 启动ReAct循环...")
             react_result = await self.react_loop.run(message, context)
+
+            # D4 修复：ReAct 步骤写入统一执行记录（与 execute_plan 路径共享）
+            for step in react_result.steps:
+                self.executor.execution_history.append(ExecutionRecord(
+                    step=step.iteration,
+                    task_id=f"react_{step.iteration}",
+                    action=Action.llm_action(prompt=step.thought, description=step.action),
+                    result=ActionResult(success=step.success, output=step.observation, observation=step.observation),
+                    reasoning=step.thought,
+                ))
+
+            # D4 边界：一步 finish 完成（无中间步骤）也计入统一执行记录，保持双路径记录完整
+            if not react_result.steps and react_result.success:
+                self.executor.execution_history.append(ExecutionRecord(
+                    step=0,
+                    task_id="react_finish",
+                    action=Action.llm_action(prompt="", description="finish"),
+                    result=ActionResult(success=True, output=react_result.result, observation=react_result.result),
+                    reasoning="",
+                ))
 
             logger.info(f"📊 步骤2: ReAct循环执行结果")
             logger.info(f"   成功: {react_result.success}")

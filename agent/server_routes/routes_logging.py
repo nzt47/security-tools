@@ -72,18 +72,49 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Prometheus 全局导出器
-_prometheus_exporter = None
+_prometheus_exporter = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
+
+
+def _create_prometheus_exporter(config=None):
+    """PrometheusMetricsExporter 工厂函数（供 SingletonManager 使用）"""
+    try:
+        exporter = PrometheusMetricsExporter(port=0)  # 使用共享端口
+        logger.info(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': '[Prometheus] 指标导出器已初始化'}))
+        return exporter
+    except Exception as e:
+        logger.warning(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'[Prometheus] 初始化失败: {e}'}))
+        return None
+
 
 def get_prometheus_exporter():
     """获取 Prometheus 指标导出器"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("prometheus_exporter")
     global _prometheus_exporter
     if _prometheus_exporter is None:
-        try:
-            _prometheus_exporter = PrometheusMetricsExporter(port=0)  # 使用共享端口
-            logger.info(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': '[Prometheus] 指标导出器已初始化'}))
-        except Exception as e:
-            logger.warning(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'[Prometheus] 初始化失败: {e}'}))
+        _prometheus_exporter = _create_prometheus_exporter()
     return _prometheus_exporter
+
+
+def reset_prometheus_exporter():
+    """重置 Prometheus 指标导出器（仅用于测试）"""
+    global _prometheus_exporter
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("prometheus_exporter")
+    _prometheus_exporter = None
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("prometheus_exporter", _create_prometheus_exporter)
 
 # 告警规则存储
 _ALERT_RULES_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'monitoring', 'alerts.yml')

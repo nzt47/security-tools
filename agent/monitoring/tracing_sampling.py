@@ -453,14 +453,34 @@ class SamplingManager:
 
 
 # 全局采样管理器实例
-_global_sampling_manager = None
+_global_sampling_manager = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_sampling_manager(config=None):
+    """SamplingManager 工厂函数（供 SingletonManager 使用）"""
+    return SamplingManager()
+
 
 def get_sampling_manager() -> SamplingManager:
     """获取全局采样管理器"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("sampling_manager")
     global _global_sampling_manager
     if _global_sampling_manager is None:
-        _global_sampling_manager = SamplingManager()
+        _global_sampling_manager = _create_sampling_manager()
     return _global_sampling_manager
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("sampling_manager", _create_sampling_manager)
 
 
 def setup_default_samplers():

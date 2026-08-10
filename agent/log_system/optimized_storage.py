@@ -485,15 +485,34 @@ class OptimizedLogStorage:
 
 
 # 全局优化存储实例
-_global_optimized_storage = None
+_global_optimized_storage = None  # 保留作为 fallback
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+
+
+def _create_optimized_storage(config=None):
+    """OptimizedLogStorage 工厂函数（供 SingletonManager 使用）"""
+    return OptimizedLogStorage()
 
 
 def get_optimized_storage() -> OptimizedLogStorage:
     """获取全局优化日志存储实例"""
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("optimized_storage")
     global _global_optimized_storage
     if _global_optimized_storage is None:
-        _global_optimized_storage = OptimizedLogStorage()
+        _global_optimized_storage = _create_optimized_storage()
     return _global_optimized_storage
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton("optimized_storage", _create_optimized_storage)
 
 
 __all__ = [

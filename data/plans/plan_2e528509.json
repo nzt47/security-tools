@@ -1,0 +1,39 @@
+{
+  "id": "plan_2e528509",
+  "original_task": "首先打开文件，然后保存",
+  "state": "ready",
+  "progress": "0.0%",
+  "current_step": 0,
+  "max_steps": 50,
+  "result": null,
+  "error": null,
+  "context": {},
+  "tasks": [
+    {
+      "id": "step_1",
+      "description": "打开文件，",
+      "task_type": "atomic",
+      "priority": 3,
+      "dependencies": [],
+      "status": "pending",
+      "result": null,
+      "error": null,
+      "created_at": "2026-08-11T01:12:45.939670"
+    },
+    {
+      "id": "step_2",
+      "description": "保存",
+      "task_type": "atomic",
+      "priority": 3,
+      "dependencies": [
+        "step_1"
+      ],
+      "status": "pending",
+      "result": null,
+      "error": null,
+      "created_at": "2026-08-11T01:12:45.939670"
+    }
+  ],
+  "created_at": "2026-08-11T01:12:45.938671",
+  "updated_at": "2026-08-11T01:12:45.940670"
+}

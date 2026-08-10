@@ -509,8 +509,22 @@ class ToolReranker:
 #  模块级单例(可选使用)
 # ════════════════════════════════════════════════════════════
 
-_reranker_instance: Optional[ToolReranker] = None
+_reranker_instance: Optional[ToolReranker] = None  # 保留作为 fallback
 _reranker_lock = threading.Lock()
+
+try:
+    from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
+    _SINGLETON_AVAILABLE = True
+except ImportError:
+    _SINGLETON_AVAILABLE = False
+    register_singleton = None
+    get_singleton = None
+    reset_singleton = None
+
+
+def _create_tool_reranker(config=None):
+    """ToolReranker 工厂函数（供 SingletonManager 使用）"""
+    return ToolReranker()
 
 
 def get_tool_reranker() -> Optional[ToolReranker]:
@@ -518,22 +532,34 @@ def get_tool_reranker() -> Optional[ToolReranker]:
 
     【变易】当 AGENT_HYBRID_RERANKER != "1" 时返回 None,表示禁用 Reranker
     """
-    global _reranker_instance
     # 环境变量开关
     if os.environ.get("AGENT_HYBRID_RERANKER", "0") != "1":
         return None
+    if _SINGLETON_AVAILABLE:
+        return get_singleton("tool_reranker")
+    global _reranker_instance
     if _reranker_instance is not None:
         return _reranker_instance
     with _reranker_lock:
         if _reranker_instance is None:
-            _reranker_instance = ToolReranker()
+            _reranker_instance = _create_tool_reranker()
         return _reranker_instance
 
 
 def reset_tool_reranker() -> None:
     """重置单例(主要用于测试)"""
+    if _SINGLETON_AVAILABLE:
+        reset_singleton("tool_reranker")
     global _reranker_instance
     with _reranker_lock:
         if _reranker_instance is not None:
             _reranker_instance.close()
         _reranker_instance = None
+
+
+if _SINGLETON_AVAILABLE:
+    register_singleton(
+        "tool_reranker",
+        _create_tool_reranker,
+        cleanup_fn=lambda inst: inst.close(),
+    )

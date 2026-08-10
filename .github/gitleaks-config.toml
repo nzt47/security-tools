@@ -57,10 +57,6 @@ paths = [
     '''scripts/generate_report\.py$''',
     # 环境变量回滚备份（本地自动生成，非提交物）
     '''\.env\.rollback_backup.*''',
-    # 【CHG-2026-0808】归档的敏感扫描回归报告（脱敏 JSON, 含打码样例字符串 password='my***23' 等）
-    '''docs/zh/知识库重构计划/强推前快照/.*\.json$''',
-    # SMTP 授权码测试脚本（本地 mock SMTP server, 测试值非真实凭证）
-    '''scripts/test_smtp_auth_code\.py$''',
 ]
 regexes = [
     # Python 环境变量读取（os.environ.get / os.getenv）
@@ -85,15 +81,12 @@ regexes = [
     '''AKIA[A-Z0-9]*EXAMPLE''',            # AWS 官方示例（AKIAIOSFODNN7EXAMPLE）
     '''ghp_xxx''',                          # GitHub PAT 占位符
     '''sk-\.\.\..*''',                      # 文档占位符 sk-...
-    # 【CHG-2026-0808】SMTP 授权码轮换脚本误报放行
-    # 背景: apply_smtp_auth_code / demo_send_test_alert / rotate_smtp_auth_code /
-    #       simulate_prod_smtp_e2e 用 f-string 模板写入配置
-    #       （f"  smtp_auth_password: '{code}'"），code 由命令行参数注入非硬编码；
-    #       repair_alertmanager 用 REPLACE_WITH_SMTP_AUTH_CODE 占位符提示替换。
-    #       均被 hardcoded-password-assignment 规则以 '{code}' 视为 ≥4 字符密码值误报。
-    # f-string 模板变量插值（值运行时注入，非源码硬编码）
-    '''\{[a-zA-Z_][a-zA-Z0-9_]*\}''',
-    # SMTP 授权码占位符（脚本要求用户替换为真实 139 邮箱 SMTP 授权码）
+    # v2.0.1: SMTP 运维脚本误报豁免（CHG-2026-0809）——无硬编码密码
+    # 命中样例: smtp_auth_password: '{code}'（f-string 模板，运行时替换为 args.smtp_auth_code）
+    #          smtp_auth_password: 'REPLACE_WITH_SMTP_AUTH_CODE'（占位符）
+    # 涉及: apply_smtp_auth_code.py / demo_send_test_alert.py / simulate_prod_smtp_e2e.py / repair_alertmanager.py
+    # 注意: 正则末尾不得有字面空格（Match 文本无尾随空格，会导致匹配失败）
+    '''\{code\}''' ,
     '''REPLACE_WITH_SMTP_AUTH_CODE''',
 ]
 
