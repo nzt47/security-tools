@@ -51,6 +51,7 @@ def test_trace_id_full_uuid4_128bit():
     int(tid, 16)  # 必须为合法 hex
 
 
+@pytest.mark.serial
 def test_emit_produces_parseable_json_line():
     # 模拟生产文件 handler：DictToJsonFilter 把 dict msg 序列化为单行 JSON
     buf = io.StringIO()
@@ -80,6 +81,7 @@ def test_emit_produces_parseable_json_line():
     assert len(data["trace_id"]) == 32
 
 
+@pytest.mark.serial
 def test_knowledge_trace_shares_id_in_chain():
     """同一链路内多次 emit 共享 trace_id（ELK 按 trace_id 聚合整条链路）。"""
     with _capture_json_logs() as buf:
@@ -95,6 +97,7 @@ def test_knowledge_trace_shares_id_in_chain():
         "distill.llm_ok", "promote.card_ok", "kb_search.ok"}
 
 
+@pytest.mark.serial
 def test_knowledge_trace_explicit_param_priority():
     """显式 trace_id 传参优先于链路上下文。"""
     with _capture_json_logs() as buf:
@@ -136,6 +139,7 @@ def test_knowledge_trace_nested_restore_on_exception():
     assert get_trace_id() == ""
 
 
+@pytest.mark.serial
 def test_knowledge_trace_concurrent_isolation():
     """线程并发：ContextVar 隔离，各线程链路 trace_id 不串扰。"""
     with _capture_json_logs() as buf:
