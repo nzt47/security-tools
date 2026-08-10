@@ -26,10 +26,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# 【不易】防止 sentence_transformers 真实 import 导致 Windows 0xC0000005 崩溃
-# 必须在 import reranker 之前 mock，避免触发 C 扩展加载
-if "sentence_transformers" not in sys.modules:
-    sys.modules["sentence_transformers"] = MagicMock()
+# 【不易】Windows 0xC0000005 崩溃防护改为 autouse fixture clean_env 管理
+# （测试期临时注入 mock、用后恢复原状）。不再于模块顶层写 sys.modules——
+# 顶层写会永久污染全局注册表（import 即残留 Mock 模块，下游 VectorStore 会
+# 把 Mock 编码器缓存进单例，需 tests/conftest 兜底清理，属 P0 副作用）。
+# reranker 内部延迟导入 sentence_transformers（_load_model 内才 import），
+# 顶层 import reranker 不触发真实 C 扩展加载，故无需顶层 mock。
 
 # 确保项目根目录在 sys.path
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -91,7 +93,7 @@ def sample_candidates():
 
 @pytest.fixture(autouse=True)
 def clean_env():
-    """每个测试前后清理环境变量 + 恢复 sentence_transformers mock"""
+    """每个测试前后清理环境变量 + 临时注入/恢复 sentence_transformers mock"""
     original = {
         key: os.environ.get(key)
         for key in [
@@ -103,12 +105,21 @@ def clean_env():
     }
     for key in original:
         os.environ.pop(key, None)
-    # 【变易】conftest 的 _skills_offline_mode 会把 sentence_transformers 设为 None,
-    # 但本测试需要 patch("sentence_transformers.CrossEncoder"), None 上无法 patch
-    # 恢复为 MagicMock 让 patch 正常工作（测试用 mock，不触发真实 C 扩展加载）
-    if not sys.modules.get("sentence_transformers"):
-        sys.modules["sentence_transformers"] = MagicMock()
+    # 【变易】sentence_transformers mock 统一在此注入、yield 后恢复原状：
+    # - 曾于模块顶层永久写 sys.modules（P0 副作用：import 即污染全局注册表，
+    #   残留 Mock 模块会让下游 VectorStore 缓存 Mock 编码器，需 conftest 兜底）
+    # - conftest._skills_offline_mode 会把 sentence_transformers 设为 None，
+    #   None 上无法 patch；无条件注入 MagicMock 保证 patch 可解析
+    #   （测试用 mock，不触发真实 C 扩展加载）
+    _st_key = "sentence_transformers"
+    _st_was_present = _st_key in sys.modules
+    _st_original = sys.modules.get(_st_key)
+    sys.modules[_st_key] = MagicMock()
     yield
+    if _st_was_present:
+        sys.modules[_st_key] = _st_original
+    else:
+        sys.modules.pop(_st_key, None)
     for key, val in original.items():
         if val is not None:
             os.environ[key] = val

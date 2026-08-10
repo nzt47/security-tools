@@ -272,6 +272,17 @@ class TestWeeklyReportGenerator:
 
             assert not generator._analytics_loaded
 
+            # 【变易】显式导入对齐 sys.modules 与父包属性：
+            # 前序测试若用 patch.dict(sys.modules, ...) + del sys.modules[...]
+            # （如 test_vector_store_fallback.py），patch.dict __exit__ 会清空
+            # sys.modules 再恢复快照，测试期间首次导入的模块被删而父包属性残留，
+            # 形成「sys.modules 与包属性不一致」。Python 3.10 mock 解析 patch
+            # 目标走 getattr 拿残留旧模块，业务代码 from-import 却 __import__
+            # 重新导入新模块 → patch 落空（CI flaky：MockVectorStore Called 0）。
+            # 显式 import 让 importlib 同步父包属性，patch 与业务代码命中同一模块。
+            import memory.vector_store
+            import agent.data_analytics
+
             with patch("agent.data_analytics.DataAnalytics") as MockDataAnalytics, \
                  patch("memory.vector_store.VectorStore") as MockVectorStore:
 
