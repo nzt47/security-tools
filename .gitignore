@@ -245,3 +245,11 @@ backup/parallel_session_tmp_20260806/dot-tmp-release-merge.tar.gz
 
 # 修复备份目录（防止 IDE 文件监视器自动还原）
 .fix_backups/
+
+# === pre-commit 敏感扫描误报治理（2026-08-11）===
+# 并行会话/工具生成的临时备份补丁（含敏感数据的快照差异，禁止提交）
+mixed_files_backup_*.patch
+# 临时日志（/.tmp-*.log 显式化；/*.log 已覆盖根目录，此处兜底子目录）
+.tmp-*.log
+# 本地 CI 模拟日志副本（security-tools/ 已忽略，此处兜底根目录/子目录的 ci_*.log）
+ci_*.log

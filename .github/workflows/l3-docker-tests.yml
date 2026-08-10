@@ -105,8 +105,11 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.linux-test
-          tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
-          tags-secondary: ${{ env.DOCKER_IMAGE_NAME }}:latest
+          # [fix] actionlint: build-push-action 无 tags-secondary 输入，
+          # 多标签需用多行 tags（唯一标签 + latest 供下游验证步骤引用）
+          tags: |
+            ${{ env.DOCKER_IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
+            ${{ env.DOCKER_IMAGE_NAME }}:latest
           load: true
           # [不易] 不使用 no-cache，除非手动触发且明确要求
           no-cache: ${{ github.event.inputs.rebuild_image == 'true' }}
