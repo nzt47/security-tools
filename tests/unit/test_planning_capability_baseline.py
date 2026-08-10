@@ -5,8 +5,8 @@
 
 对应关系（2026-08-11 更新）：
 - 并行执行     → D5（已实现,已移除 skip）
-- 计划验证     → D11（已实现,已移除 skip）
-- 持久化恢复   → D9（JSON 检查点已实现;SQLite 落库为规格级差距,保留 skip 待排期）
+- 计划验证     → D11（已实现,已移除 skip;工具可用性预检为规格差距,见 defect d11 xfail 用例）
+- 持久化恢复   → D9（已实现 SQLite 落库,已移除 skip）
 - 预算超限     → D13（deadline 层已实现,已移除 skip;token/cost 层仍为规格差距）
 - 降级链       → D14（已实现,已移除 skip）
 """
@@ -76,9 +76,30 @@ async def test_plan_validation_before_execution():
     assert "循环" in (result2.error or "")
 
 
-@pytest.mark.skip(reason="待实现: 持久化恢复 (D9, 建议修复阶段 2)")
 def test_plan_persistence_and_recovery():
-    """目标：计划/任务/执行记录落库（SQLite），进程重启后恢复未完成计划"""
+    """目标：计划/任务/执行记录落库（SQLite），进程重启后恢复未完成计划（D9 已实现）"""
+    import asyncio
+    import os
+    import tempfile
+
+    from planning.core import PlanningCore
+    from planning.models import PlanState
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        cfg = {"planning": {"persist_dir": tmp_dir}}
+
+        core1 = PlanningCore(config=cfg)
+        plan = asyncio.run(core1.plan("首先打开文件然后保存"))
+        plan.state = PlanState.EXECUTING  # 模拟未完成
+        core1.save_plan_checkpoint(plan)
+
+        # SQLite 落库文件存在
+        db_path = os.path.join(tmp_dir, "plans.db")
+        assert os.path.exists(db_path)
+
+        # 进程重启：新实例恢复未完成计划
+        core2 = PlanningCore(config=cfg)
+        assert plan.id in core2._active_plans
 
 
 @pytest.mark.asyncio

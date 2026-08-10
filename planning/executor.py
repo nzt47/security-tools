@@ -145,6 +145,8 @@ class PlanExecutor:
         self.llm = llm_service
         self.max_retries = max_retries
         self.config = config or {}
+        # D9：执行记录审计后端（由 core 注入 PlanDB；未注入时静默跳过，不影响主流程）
+        self.persistence = None
         # D14：降级链配置（主工具名 -> 备份工具列表），主工具失败时逐个尝试
         # 【不易】仅 TOOL_CALL 动作生效；配置缺失时行为与原有完全一致（零回退成本）
         self.degrade_chain: Dict[str, List[str]] = self.config.get("degrade_chain") or {}
@@ -612,6 +614,21 @@ class PlanExecutor:
             reasoning=f"执行任务: {task.description}"
         )
         self.execution_history.append(record)
+
+        # D9 规格：执行记录落库（审计可追溯）；失败仅告警，不影响主流程
+        if self.persistence is not None:
+            try:
+                self.persistence.append_execution_log(
+                    plan_id=plan.id,
+                    task_id=task.id,
+                    action_type=record.action.action_type.value,
+                    tool_name=record.action.tool_name or None,
+                    success=result.success,
+                    output=str(result.output) if result.output is not None else None,
+                    error=result.error,
+                )
+            except Exception as e:
+                logger.warning(f"[D9] 执行记录落库失败: {e}")
 
     async def _trigger_callbacks(self, event: str, *args):
         """触发事件回调"""

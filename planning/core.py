@@ -16,6 +16,7 @@ from .models.record import ExecutionRecord
 from .models.react import ReActResult
 from .decomposer import TaskDecomposer
 from .executor import PlanExecutor, ToolRegistry
+from .persistence import PlanDB
 from .reflector import Reflector
 from .state_machine import PlanStateMachine, InvalidStateTransitionError
 from .react import ReActLoop
@@ -126,9 +127,19 @@ class PlanningCore:
             or self.config.get("persist_dir") or os.path.join("data", "plans")
         os.makedirs(self.persist_dir, exist_ok=True)
 
+        # D9 规格：SQLite 落库（persist_db 默认置于 persist_dir 下，兼容既有持久化路径语义）
+        self.persist_db_path = persist_config.get("persist_db") \
+            or self.config.get("persist_db") or os.path.join(self.persist_dir, "plans.db")
+        self.db = PlanDB(self.persist_db_path)
+        self.db.migrate_from_json(self.persist_dir)
+        # 执行记录审计埋点：executor 通过属性注入（与 state_machine 注入同模式，不改签名）
+        self.executor.persistence = self.db
+        logger.info(f"已初始化 SQLite 持久化: {self.persist_db_path}")
+
         self._active_plans: Dict[str, Plan] = self._load_plans_from_disk()
-        logger.info(f"已从检查点目录恢复 {len(self._active_plans)} 个未完成计划: {self.persist_dir}")
-        self.complexity_threshold = self.config.get("complexity_threshold", 0.5)
+        logger.info(f"已恢复 {len(self._active_plans)} 个未完成计划: {self.persist_dir}")
+        # D6 统一：与 _needs_planning 的默认判定阈值一致（1.0 = 等价原判定）
+        self.complexity_threshold = self.config.get("complexity_threshold", 1.0)
         logger.info(f"复杂度阈值: {self.complexity_threshold}")
 
         logger.info("="*60)
@@ -136,30 +147,13 @@ class PlanningCore:
         logger.info("="*60)
 
     def save_plan_checkpoint(self, plan: Plan) -> str:
-        """保存计划检查点到磁盘（D9 修复：持久化恢复）"""
-        path = os.path.join(self.persist_dir, f"{plan.id}.json")
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(plan.to_dict(), f, ensure_ascii=False, indent=2)
-        return path
+        """保存计划检查点（D9：SQLite 落库，返回落库路径保持调用方语义）"""
+        self.db.upsert_plan(plan)
+        return self.persist_db_path
 
     def _load_plans_from_disk(self) -> Dict[str, Plan]:
-        """从检查点目录恢复未完成计划（D9 修复）"""
-        plans: Dict[str, Plan] = {}
-        if not os.path.isdir(self.persist_dir):
-            return plans
-        for fname in os.listdir(self.persist_dir):
-            if not fname.endswith(".json"):
-                continue
-            try:
-                with open(os.path.join(self.persist_dir, fname), encoding="utf-8") as f:
-                    data = json.load(f)
-                plan = Plan.from_dict(data)
-                if plan.state in (PlanState.INIT, PlanState.DECOMPOSING,
-                                  PlanState.READY, PlanState.EXECUTING, PlanState.PAUSED):
-                    plans[plan.id] = plan
-            except Exception as e:
-                logger.warning(f"加载计划检查点失败 {fname}: {e}")
-        return plans
+        """从 SQLite 恢复未完成计划（D9 规格）"""
+        return self.db.load_unfinished_plans()
 
     async def plan(self, task: str, context: Dict = None) -> Plan:
         """
