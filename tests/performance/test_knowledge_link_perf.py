@@ -25,7 +25,20 @@ from agent.knowledge.schema import Card
 
 pytestmark = pytest.mark.performance
 
-logging.disable(logging.CRITICAL)  # 不输出逐条断链 warning（避免日志 I/O 干扰计时）
+
+@pytest.fixture(autouse=True)
+def _silence_knowledge_link_warnings():
+    """性能测试期间屏蔽逐条断链 warning，测试结束后必须恢复。
+
+    【不易】logging.disable() 是进程级全局开关：若模块顶层直接调用且不恢复，
+    会屏蔽同进程后续所有测试的日志输出（CI 2026-08-10 Shard 6 复现：
+    test_knowledge_observability 4 例捕获 buffer 为空而失败）。
+    用 autouse fixture 保证每个测试结束后恢复（logging.disable(NOTSET)），
+    污染不越出本模块。
+    """
+    logging.disable(logging.CRITICAL)
+    yield
+    logging.disable(logging.NOTSET)
 
 GHOST_POOL = 200
 
