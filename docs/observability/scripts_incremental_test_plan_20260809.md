@@ -118,3 +118,38 @@ python -m pytest \
 - **不**触碰 `scripts/dev/*`（PS1 辅助脚本，非 Python 覆盖目标）
 
 > 本计划为执行蓝图，批次 1 可在下一迭代直接开始；批次 2/3 视批次 1 后的覆盖率缺口动态调整优先级。
+
+---
+
+## 6. 批次 2/3 细化（2026-08-10 补充）
+
+> 批次 1 已完成（见 [scripts_batch1_test_cases_20260810.md](scripts_batch1_test_cases_20260810.md)，78 passed + 1 xfailed，
+> 4 个脚本 100% 覆盖）。本段为批次 2/3 的测试点级细化，供后续迭代直接执行。
+
+### 6.1 批次 2：CI 验证/分析类
+
+| 脚本 | 测试文件（建议） | 核心测试点 | 优先级 |
+|------|-----------------|-----------|--------|
+| `check_boundary_coverage.py` (994行) | `tests/unit/test_scripts_boundary_coverage.py` | ① 覆盖率/边界差异解析；② 违规清单发现与豁免清单合并；③ exit code 判定（有违规/无违规）；④ CLI 参数覆盖 | P0 |
+| `run_ci_guard.py` (115行) | `tests/unit/test_scripts_ci_guard.py` | ① 契约报告生成（含 `--json` 输出结构，需与 `ci_guard_types.validate_report` 对齐）；② 各步骤 exit_code 聚合；③ 状态 pass/fail 判定 | P0 |
+| `validate_ci_config.py` (190行) | `tests/unit/test_scripts_validate_ci.py` | ① 配置 schema 校验通过/失败；② 缺失字段错误消息；③ 多配置文件路径 | P1 |
+| `check_circular_deps.py` (185行) | `tests/unit/test_scripts_circular_deps.py` | ① 无环依赖图通过；② 单环/多环检出；③ 输出格式（节点对列表） | P1 |
+| `scan_sensitive_files.py` (165行) | `tests/unit/test_scripts_scan_sensitive.py` | ① 命中敏感模式→违规；② 白名单/豁免；③ 目录递归与文件类型过滤 | P1 |
+
+**执行顺序建议**：`run_ci_guard.py`（与批次 1 的 `ci_guard_types.py` 同链路，可联动验证契约）→ `check_boundary_coverage.py` → 其余按优先级。
+
+### 6.2 批次 3：报告生成类（大文件、已有部分覆盖）
+
+| 脚本 | 测试文件（建议） | 核心测试点 | 优先级 |
+|------|-----------------|-----------|--------|
+| `visibility_report.py` (1235行) | 扩展 `tests/unit/test_visibility_report_cache.py` | ① 报告聚合/渲染路径（补齐 cache 测试外的逻辑）；② 覆盖率 line-rate 读取；③ 输出 markdown 结构 | P1 |
+| `generate_visibility_trend.py` (1226行) | `tests/unit/test_scripts_visibility_trend.py` | ① 周/月趋势聚合；② 空数据降级；③ 报告生成幂等 | P2 |
+
+> 批次 3 文件大、逻辑深，建议先以**函数级冒烟 + 关键分支**切入（目标单脚本 ≥60%），
+> 而非追求 100%——其行数对 scripts 总量 pp 贡献大（见 §2），是覆盖率的**量**来源。
+
+### 6.3 依赖与风险
+
+- 批次 2 的 `run_ci_guard.py` 依赖 `ci_guard_types` 契约——批次 1 已修复/暴露的缺陷（非 dict 步骤崩溃）修复后可先行联动
+- 批次 3 依赖 CI 现产出的 `coverage.xml` 样例作为 fixture 输入（可从任一 run 的 artifact 提取）
+- 所有批次测试统一遵循 §3.1 写法规范，测量口径 `--cov-config=.coveragerc_scripts` 不变
