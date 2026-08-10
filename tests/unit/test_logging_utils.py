@@ -14,9 +14,22 @@ from agent.logging_utils import (
     safe_execute
 )
 
-# 配置测试日志
-logging.basicConfig(level=logging.INFO)
+# 【不易】不在模块顶层执行 logging.basicConfig：它是进程级 root logger 全局配置，
+# import 即生效且不恢复，曾与 shard6 的 logging.disable 同类污染同分片日志捕获测试。
+# 改为 autouse fixture 按测试启用 INFO，结束后恢复（对齐 test_knowledge_link_perf.py 修复模式）。
 logger = logging.getLogger("test_logging_utils")
+
+
+@pytest.fixture(autouse=True)
+def _enable_test_logging():
+    """测试期间临时启用 INFO 级日志，结束后恢复，避免污染其他测试"""
+    old_disable = logging.root.manager.disable
+    old_level = logger.level
+    logging.disable(logging.NOTSET)
+    logger.setLevel(logging.INFO)
+    yield
+    logger.setLevel(old_level)
+    logging.disable(old_disable)
 
 
 def test_log_rotation_config_default():
