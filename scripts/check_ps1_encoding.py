@@ -40,6 +40,13 @@ iter_ps_files = _contract.iter_ps_files
 
 
 def main() -> int:
+    # Windows runner 控制台默认 cp1252，print 中文 BLOCK 明细会 UnicodeEncodeError 崩溃，
+    # 强制 stdout/stderr 使用 UTF-8，保证 BLOCK 诊断始终可输出（CI 门禁可见性）
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser(
         description="PS 脚本编码契约检查（BLOCK/WARN 分级，支持 --fix 修复）")
     ap.add_argument("--repo-root", default=".", help="仓库根目录（默认当前目录）")
