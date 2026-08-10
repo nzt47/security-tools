@@ -1,5 +1,9 @@
 """文件系统工具集成测试 — 测试 system_tools.py 中的文件操作函数
 
+【归档说明】2026-08-10 自 agent/tests/test_file_tools.py 归档（git mv 保留历史）。
+归档目录仅作存档，pytest 通过 testpaths=tests 不收集；本文件由
+tool-tests.yml（云枢工具模块测试）显式指定路径运行。
+
 覆盖范围：
 - read_file — 正常读取、编码指定、行范围、文件不存在、超过大小限制、二进制文件
 - write_file — 写入新文件、覆盖已有文件、禁止写入可执行文件、路径遍历防护
