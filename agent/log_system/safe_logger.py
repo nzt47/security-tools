@@ -77,11 +77,13 @@ class AuditLogger:
         self._logger.setLevel(logging.INFO)
         
         # 确保审计日志有独立处理器（输出到单独文件）
+        # Why: FileHandler 不创建父目录，CI 全新 checkout 无 logs/ 目录时抛
+        # FileNotFoundError（2026-08-10 实测 Shard 1 test_audit_safety_logging_singleton
+        # 失败）。对齐 logging_utils.AuditLogger 的 makedirs 模式（agent/logging_utils.py）。
         if not self._logger.handlers:
-            handler = logging.FileHandler(
-                os.path.join(os.path.dirname(__file__), '..', '..', 'logs', 'audit.log'),
-                encoding='utf-8'
-            )
+            log_path = os.path.join(os.path.dirname(__file__), '..', '..', 'logs', 'audit.log')
+            os.makedirs(os.path.dirname(log_path), exist_ok=True)
+            handler = logging.FileHandler(log_path, encoding='utf-8')
             handler.setFormatter(logging.Formatter(
                 '%(asctime)s [%(levelname)s] %(message)s',
                 '%Y-%m-%d %H:%M:%S'
