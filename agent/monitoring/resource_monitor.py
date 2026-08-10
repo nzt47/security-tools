@@ -887,6 +887,7 @@ try:
     from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
     _SINGLETON_AVAILABLE = True
 except ImportError:
+    logger.warning("singleton 注册降级：可选依赖缺失，功能受限")
     _SINGLETON_AVAILABLE = False
     register_singleton = None
     get_singleton = None
