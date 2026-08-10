@@ -3,24 +3,77 @@
 这些测试编码《规划模块理想设计.md》中的目标能力规格，当前实现尚未具备。
 先以 pytest.mark.skip 标注"待实现"，在对应重构阶段完成后移除 skip 并使其通过。
 
-对应关系：
-- 并行执行     → D5（阶段 2）
-- 计划验证     → D11（阶段 2）
-- 持久化恢复   → D9（阶段 2）
-- 预算超限     → D13（阶段 3）
-- 降级链       → D14（阶段 3）
+对应关系（2026-08-11 更新）：
+- 并行执行     → D5（已实现,已移除 skip）
+- 计划验证     → D11（已实现,已移除 skip）
+- 持久化恢复   → D9（JSON 检查点已实现;SQLite 落库为规格级差距,保留 skip 待排期）
+- 预算超限     → D13（deadline 层已实现,已移除 skip;token/cost 层仍为规格差距）
+- 降级链       → D14（已实现,已移除 skip）
 """
 import pytest
 
 
-@pytest.mark.skip(reason="待实现: 并行执行 (D5, 建议修复阶段 2)")
-def test_parallel_execution_uses_parallel_groups():
-    """目标：decomposer 输出的 parallel_groups 应被 executor 并行执行，而非只取 next_tasks[0]"""
+@pytest.mark.asyncio
+async def test_parallel_execution_uses_parallel_groups():
+    """目标：互不依赖任务并行执行（D5 已实现：executor 对全部可执行任务 gather 并行）"""
+    import asyncio
+    import time
+
+    from planning.executor import PlanExecutor, ToolRegistry
+    from planning.models import Plan, PlanState, Task
+
+    registry = ToolRegistry()
+
+    async def tool_a():
+        await asyncio.sleep(0.2)
+
+    async def tool_b():
+        await asyncio.sleep(0.2)
+
+    registry.register("ta", tool_a)
+    registry.register("tb", tool_b)
+
+    executor = PlanExecutor(registry)
+    plan = Plan(original_task="并行任务", state=PlanState.READY)
+    plan.add_task(Task(id="a", description="调用ta"))
+    plan.add_task(Task(id="b", description="调用tb"))
+    plan.state = PlanState.READY
+
+    t0 = time.monotonic()
+    await executor.execute_plan(plan)
+    elapsed = time.monotonic() - t0
+
+    # 目标行为：两个 0.2s 任务并行执行，总耗时应显著小于串行和（0.4s）
+    assert elapsed < 0.4
 
 
-@pytest.mark.skip(reason="待实现: 计划验证 (D11, 建议修复阶段 2)")
-def test_plan_validation_before_execution():
-    """目标：执行前校验依赖完整性、环检测、工具可用性，拦截悬空依赖等畸形计划"""
+@pytest.mark.asyncio
+async def test_plan_validation_before_execution():
+    """目标：执行前校验依赖完整性、环检测（D11 已实现；工具可用性预检仍为规格差距）"""
+    from planning.executor import PlanExecutor, ToolRegistry
+    from planning.models import Plan, PlanState, Task
+
+    registry = ToolRegistry()
+    registry.register("ta", lambda: "ok")
+    executor = PlanExecutor(registry)
+
+    # 悬空依赖：执行前拦截，错误指明"依赖不存在"
+    plan = Plan(original_task="悬空依赖任务", state=PlanState.READY)
+    plan.add_task(Task(id="a", description="调用ta"))
+    plan.add_task(Task(id="b", description="调用ta", dependencies=["missing"]))
+    plan.state = PlanState.READY
+    result = await executor.execute_plan(plan)
+    assert result.state == PlanState.FAILED
+    assert "依赖" in (result.error or "")
+
+    # 环检测：循环依赖被验证器拦截
+    plan2 = Plan(original_task="循环依赖任务", state=PlanState.READY)
+    plan2.add_task(Task(id="a", description="调用ta", dependencies=["b"]))
+    plan2.add_task(Task(id="b", description="调用ta", dependencies=["a"]))
+    plan2.state = PlanState.READY
+    result2 = await executor.execute_plan(plan2)
+    assert result2.state == PlanState.FAILED
+    assert "循环" in (result2.error or "")
 
 
 @pytest.mark.skip(reason="待实现: 持久化恢复 (D9, 建议修复阶段 2)")
@@ -28,9 +81,50 @@ def test_plan_persistence_and_recovery():
     """目标：计划/任务/执行记录落库（SQLite），进程重启后恢复未完成计划"""
 
 
-@pytest.mark.skip(reason="待实现: 预算超限 (D13, 建议修复阶段 3)")
-def test_budget_exceeded_triggers_degrade():
-    """目标：token/cost/deadline 三层预算超限时触发降级或征求用户"""
+@pytest.mark.asyncio
+async def test_budget_exceeded_triggers_degrade():
+    """目标：deadline 预算超限终止（D13 已实现 deadline 层；token/cost 预算与征求用户仍为规格差距）"""
+    import asyncio
+    import json
+    import tempfile
+    from unittest.mock import AsyncMock
+
+    from planning.executor import ToolRegistry
+    from planning.react import ReActLoop
+    from planning.reflector import Reflector
+
+    async def slow_tool(**kwargs):
+        await asyncio.sleep(0.5)
+        return "慢工具完成"
+
+    mock_llm = AsyncMock()
+    mock_llm.chat.side_effect = [
+        json.dumps({
+            "reasoning": "调用慢工具",
+            "action_type": "tool_call",
+            "action": {"tool": "slow_tool", "params": {}, "description": "慢工具"},
+        }),
+        json.dumps({"reasoning": "完成", "action_type": "finish", "result": "完成"}),
+    ]
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        planner = type("P", (), {})()
+        planner.llm = mock_llm
+        planner.tool_registry = ToolRegistry()
+        planner.tool_registry.register("slow_tool", slow_tool)
+
+        loop = ReActLoop(
+            planner,
+            Reflector(persist_dir=tmp_dir),
+            max_iterations=3,
+            config={"timeout_seconds": 0.05},
+        )
+        result = await loop.run("超预算任务", {})
+
+        # 目标行为：超出 deadline 预算时应终止循环并返回预算/超时错误
+        assert result.success is False
+        assert result.error is not None
+        assert "预算" in result.error or "超时" in result.error
 
 
 @pytest.mark.asyncio
