@@ -31,3 +31,24 @@ class TestDefectD11:
         # 目标行为：验证器应在执行前拦截悬空依赖，错误指明"依赖不存在"
         assert result.state == PlanState.FAILED
         assert "依赖" in (result.error or "")
+
+    @pytest.mark.xfail(
+        reason="D11 规格缺口: 工具可用性预检未实现（validate_plan 仅校验依赖/环；"
+               "任务引用未注册工具时不会在执行前拦截）",
+        strict=False,
+    )
+    @pytest.mark.asyncio
+    async def test_unregistered_tool_detected_by_validator(self):
+        """能力基线规格: 执行前应预检工具可用性，引用未注册工具的任务被拦截"""
+        registry = ToolRegistry()  # 未注册任何工具
+        executor = PlanExecutor(registry)
+
+        plan = Plan(original_task="未注册工具任务", state=PlanState.READY)
+        plan.add_task(Task(id="a", description="调用一个不存在的工具"))
+        plan.state = PlanState.READY
+
+        result = await executor.execute_plan(plan)
+
+        # 目标行为：执行前拦截并指明工具不可用
+        assert result.state == PlanState.FAILED
+        assert "工具" in (result.error or "")

@@ -15,6 +15,9 @@ planning:
   max_depth: 5
   timeout_seconds: 30
   enable_chain_of_thought: false
+  # D9 规格：SQLite 持久化（默认 data/plans/plans.db；首次启动自动迁移旧 JSON 检查点）
+  persist_dir: data/plans
+  persist_db: data/plans/plans.db
 llm:
   provider: openai
   model: gpt-4

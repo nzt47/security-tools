@@ -6,6 +6,7 @@
 预期失败：新 PlanningCore 实例（模拟进程重启）应恢复未完成计划
 → 当前恢复列表为空 → 断言失败即复现成功。
 """
+import os
 import tempfile
 import pytest
 
@@ -28,6 +29,11 @@ class TestDefectD9:
             core1 = PlanningCore(config=cfg)
             plan = await core1.plan("首先打开文件然后保存")
             plan.state = PlanState.EXECUTING  # 模拟未完成计划
+            core1.save_plan_checkpoint(plan)
+
+            # D9 规格：SQLite 落库文件存在
+            db_path = os.path.join(tmp_dir, "plans.db")
+            assert os.path.exists(db_path)
 
             # 模拟进程重启：全新实例
             core2 = PlanningCore(config=cfg)
