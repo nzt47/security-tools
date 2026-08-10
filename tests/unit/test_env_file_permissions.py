@@ -23,6 +23,16 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 
+# 【变易】测试在非 win32 平台模拟 Windows 时，需同时注入 msvcrt mock：
+# patch('agent.env_config_manager.sys.platform', 'win32') 会让 _acquire_process_lock
+# / _release_process_lock 走 win32 分支真实 `import msvcrt`；msvcrt 是 Windows 专属
+# stdlib，Linux/CI 上 ModuleNotFoundError。注入 mock 后 msvcrt.locking() 可正常调用。
+# 生产代码（真实 win32 平台 msvcrt 必然存在）不改动，守【不易】安全边界。
+def _msvcrt_patch():
+    """构造 msvcrt mock 的 patch.dict 上下文（模拟 Windows 平台时使用）"""
+    return patch.dict(sys.modules, {'msvcrt': MagicMock()})
+
+
 # ─────────────────────────────────────────────────
 # 测试夹具
 # ─────────────────────────────────────────────────
@@ -132,7 +142,8 @@ class TestWindowsFilePermissions:
     def test_icacls_called_after_set(self, env_manager, temp_env_file):
         """Windows: set() 后再次调用 icacls"""
         with patch('agent.env_config_manager.sys.platform', 'win32'), \
-             patch('agent.env_config_manager.subprocess.run') as mock_run:
+             patch('agent.env_config_manager.subprocess.run') as mock_run, \
+             _msvcrt_patch():
             mock_run.return_value = MagicMock(returncode=0, stderr='', stdout='')
             env_manager.set('TEST_KEY', 'test_value')
 
@@ -216,7 +227,8 @@ class TestFailureDegradation:
         """权限失败时 set() 仍应完成写入"""
         with patch('agent.env_config_manager.sys.platform', 'win32'), \
              patch('agent.env_config_manager.subprocess.run',
-                   side_effect=PermissionError("blocked")):
+                   side_effect=PermissionError("blocked")), \
+             _msvcrt_patch():
             # set() 应成功完成（写入 .env + os.environ）
             env_manager.set('CRITICAL_KEY', 'critical_value')
 
@@ -282,7 +294,8 @@ class TestEndToEndPermissionFlow:
     def test_windows_full_lifecycle_calls_icacls(self, env_manager, temp_env_file):
         """Windows: 完整生命周期内 icacls 被多次调用"""
         with patch('agent.env_config_manager.sys.platform', 'win32'), \
-             patch('agent.env_config_manager.subprocess.run') as mock_run:
+             patch('agent.env_config_manager.subprocess.run') as mock_run, \
+             _msvcrt_patch():
             mock_run.return_value = MagicMock(returncode=0, stderr='', stdout='')
 
             env_manager.set('KEY1', 'val1')
