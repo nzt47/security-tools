@@ -1,0 +1,10 @@
+flowchart LR
+    LEAK["泄漏的 logging.disable"]
+    L1["① 测试内 try/finally 自恢复"]
+    L2["② conftest 兜底<br/>handlers/level + manager.disable"]
+    L3["③ 扫描器双防线<br/>pre-commit + ci.yml"]
+    R1["恢复全局状态"]
+    R2["阻断提交/CI"]
+    LEAK --> L1 --> R1
+    L1 -.漏网.-> L2 --> R1
+    L2 -.新增泄漏.-> L3 --> R2
