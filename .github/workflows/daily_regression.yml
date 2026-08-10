@@ -285,6 +285,7 @@ jobs:
   #   - 全过：不发送任何失败通知。
   test-summary:
     name: Test Summary & Notification
+    runs-on: ubuntu-latest
     needs: [unit-tests, e2e-recovery-tests, light-loader-stress, light-loader-bench]
     if: always()
     steps:
