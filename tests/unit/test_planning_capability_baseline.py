@@ -33,6 +33,35 @@ def test_budget_exceeded_triggers_degrade():
     """目标：token/cost/deadline 三层预算超限时触发降级或征求用户"""
 
 
-@pytest.mark.skip(reason="待实现: 降级链 (D14, 建议修复阶段 3)")
-def test_task_degrade_chain():
-    """目标：任务失败时按任务级降级链尝试 Plan B，而非直接标记失败/中断"""
+@pytest.mark.asyncio
+async def test_task_degrade_chain():
+    """目标：任务失败时按任务级降级链尝试 Plan B，而非直接标记失败/中断（D14 已实现）"""
+    from planning.executor import PlanExecutor, ToolRegistry
+    from planning.models import Plan, PlanState, Task
+
+    registry = ToolRegistry()
+
+    def primary(**kwargs):
+        raise RuntimeError("主工具故障")
+
+    def backup(**kwargs):
+        return "降级成功"
+
+    registry.register("primary_tool", primary)
+    registry.register("backup_tool", backup)
+
+    executor = PlanExecutor(
+        registry,
+        max_retries=1,
+        config={"degrade_chain": {"primary_tool": ["backup_tool"]}},
+    )
+
+    plan = Plan(original_task="降级链任务", state=PlanState.READY)
+    plan.add_task(Task(id="a", description="primary_tool 执行"))
+    plan.state = PlanState.READY
+
+    result = await executor.execute_plan(plan)
+    task_a = result.get_task("a")
+    assert task_a is not None
+    assert task_a.status.value == "completed"
+    assert "降级成功" in str(task_a.result)
