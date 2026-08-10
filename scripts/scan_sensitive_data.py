@@ -137,6 +137,10 @@ WHITELIST_VALUES = {
     'your_api_key_here',
     'YOUR_API_KEY',
     'REPLACE_ME',
+    # 通用占位符前缀：REPLACE_WITH_XXX（如 REPLACE_WITH_SMTP_AUTH_CODE）。
+    # 2026-08-11 修复：repair_alertmanager.py 的 SMTP 授权码占位符被误报，
+    # 前缀语义明确为"待替换占位符"，真实凭据不会以此命名。
+    'REPLACE_WITH_',
 }
 
 
