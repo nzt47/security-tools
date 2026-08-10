@@ -21,6 +21,7 @@
 
 import argparse
 import csv
+import re
 import sys
 from pathlib import Path
 
@@ -96,6 +97,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    import re  # 局部导入：仅报告插入路径需要
-
     raise SystemExit(main())
