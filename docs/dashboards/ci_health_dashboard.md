@@ -59,6 +59,7 @@
 | 2026-08-10 | `296c8e6` | 99.5% (1708/1717) | 0 | 9 | 113.68 | — | 0 | ↑ | fix(logging): safe_logger AuditLogger 补 makedirs 防 CI 全新 checkout 无 lo |
 | 2026-08-10 | `2b6d51d` | 99.5% (1708/1717) | 0 | 9 | 113.75 | — | 0 | ↑ | fix(ci): observability-ci 触发 paths 纳入 agent/log_system 防修复静默� |
 | 2026-08-10 | `6ada3dc` | 99.5% (1708/1717) | 0 | 9 | 104.13 | — | 0 | ↑ | test(integration): test_orchestrator logging.disable 包进 try/finally 防断� |
+| 2026-08-10 | `dbf9d57` | 99.5% (1708/1717) | 0 | 9 | 108.56 | — | 0 | ↑ | ci(guard): 集成 logging.disable 泄漏扫描双防线（pre-commit + ci.yml） |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
