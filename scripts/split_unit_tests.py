@@ -48,16 +48,36 @@ EXCLUDED = {
     "tests/unit/test_sandbox_multiprocess_boundary.py",
 }
 # observability-ci 全项目模式专属排除（ci.yml 的 tests/unit 模式不触及）
+# 【变易·2026-08-10】目录级排除（以 / 结尾）覆盖整目录：
+#   pytest.ini 已 --ignore=tests/performance + --ignore=tests/stress，但 --ignore
+#   无法拦截 split 脚本显式传入的文件路径。目录内文件被收集 import 即产生副作用
+#   （test_knowledge_link_perf.py 模块级 logging.disable(CRITICAL) 全局禁用 INFO
+#   日志，Shard 4 串行段 10 failed），或带性能阈值断言在并行段误报
+#   （test_verification_perf / test_resource_leak，Shard 5/6）。性能/压力基准由
+#   performance-tests job 专属运行（-m performance），不参与全项目分片。
 OBSERVABILITY_CI_ONLY = {
-    "tests/performance/test_chromadb_v05_api_compat.py",        # chromadb 0.4.x + numpy 2.0 不兼容
-    "tests/performance/test_optimization_benchmark.py",         # fixture 'benchmark' 未定义
-    "tests/e2e/test_online_chat.py",                            # 需后端服务（端口 5678 启动超时）
-    "tests/e2e/test_online_tool_call.py",                       # 需后端服务（端口 5678 启动超时）
-    "tests/integration/test_feedback_integration.py",           # fixture 'feedback_manager' 未定义
+    "tests/performance/",                                   # 性能基准专属 job 运行（pytest.ini --ignore=tests/performance）
+    "tests/stress/",                                        # 压力测试（pytest.ini --ignore=tests/stress）
+    "tests/performance/test_chromadb_v05_api_compat.py",    # chromadb 0.4.x + numpy 2.0 不兼容
+    "tests/performance/test_optimization_benchmark.py",     # fixture 'benchmark' 未定义
+    "tests/e2e/test_online_chat.py",                        # 需后端服务（端口 5678 启动超时）
+    "tests/e2e/test_online_tool_call.py",                   # 需后端服务（端口 5678 启动超时）
+    "tests/integration/test_feedback_integration.py",       # fixture 'feedback_manager' 未定义
     "tests/integration/test_routes_skills_mgmt_integration.py",  # fixture 'skills_mgmt_client' 未定义
-    "tests/integration/test_ab_testing_integration.py",         # fixture 'ab_test_manager' 未定义
-    "tests/test_network_config_integration.py",                 # 脚本式测试，模块级代码在 collection 时执行，需 .env 文件
+    "tests/integration/test_ab_testing_integration.py",     # fixture 'ab_test_manager' 未定义
+    "tests/test_network_config_integration.py",             # 脚本式测试，模块级代码在 collection 时执行，需 .env 文件
 }
+
+
+def _is_excluded(rel_path: str, excluded: set[str]) -> bool:
+    """文件是否被排除：精确文件匹配，或命中目录前缀（以 / 结尾）。"""
+    if rel_path in excluded:
+        return True
+    return any(
+        rel_path.startswith(prefix)
+        for prefix in excluded
+        if prefix.endswith("/")
+    )
 
 
 def collect_test_files(root: Path, test_root: str = "tests/unit") -> list[str]:
@@ -79,7 +99,7 @@ def collect_test_files(root: Path, test_root: str = "tests/unit") -> list[str]:
         files = sorted(p for p in target_dir.glob("test_*.py"))
     # as_posix(): CI 在 Linux runner 上执行，路径必须用正斜杠分隔
     rel = [p.relative_to(root).as_posix() for p in files]
-    return [f for f in rel if f not in excluded]
+    return [f for f in rel if not _is_excluded(f, excluded)]
 
 
 def count_tests(root: Path, rel_path: str, use_lines: bool = False) -> int:

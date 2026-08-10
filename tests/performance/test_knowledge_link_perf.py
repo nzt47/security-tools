@@ -25,7 +25,22 @@ from agent.knowledge.schema import Card
 
 pytestmark = pytest.mark.performance
 
-logging.disable(logging.CRITICAL)  # 不输出逐条断链 warning（避免日志 I/O 干扰计时）
+
+@pytest.fixture(autouse=True)
+def _silence_broken_link_warnings():
+    """性能计时期间静默断链 warning；测试结束恢复全局 logging 状态。
+
+    Why: 原实现为模块顶层 logging.disable(logging.CRITICAL)，是 import 副作用——
+    任何包含本文件的 pytest 进程在 collection 阶段即被全局禁用 INFO 日志
+    （manager.disable 0→50），导致同进程其他测试的 assertLogs/caplog 断言
+    静默失败（2026-08-10 实测：Shard 4 串行段 10 failed）。fixture 内禁用 +
+    finally 恢复，语义等价且无 import 副作用。
+    """
+    logging.disable(logging.CRITICAL)
+    try:
+        yield
+    finally:
+        logging.disable(logging.NOTSET)
 
 GHOST_POOL = 200
 
