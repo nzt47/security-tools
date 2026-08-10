@@ -102,3 +102,18 @@ repos:
           test_orchestrator 根因治理）。发现未受保护调用时阻断提交。
           --only-under tests：仅对风险目录强制；scripts/ 独立基准脚本的
           模块级 disable 属刻意设计，不误伤。
+
+      - id: docs-broken-links-diagnose
+        name: docs 链接预检诊断 (失效链接 + 修复建议)
+        entry: pwsh -NoProfile -File scripts/dev/check_docs_broken_links.ps1
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: >
+          运行链接预检（precheck_docs.ps1 -BlockMode -AllowBroken 0 -SkipChart，
+          参数对齐 CI）并解析失效链接，输出"本地/develop 分支存在性"诊断表
+          与修复建议（检出/删除引用/补建文档）。存在失效链接时阻断提交，
+          防止历史同类问题（2026-08-10 docs 失效链接）回归。
+          详见 docs/wiki/docs_link_precheck_fix_wiki.md。
+

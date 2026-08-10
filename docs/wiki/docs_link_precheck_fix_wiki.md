@@ -82,6 +82,57 @@ CI 的 git_precommit_check.ps1 内部调用 `precheck_docs.ps1 -SkipChart`（跳
 
 ---
 
+## 诊断脚本使用指南（check_docs_broken_links.ps1）
+
+> 新增：2026-08-10（commit `025feffa` 初版，`pwsh` 跨平台兼容）
+
+### 功能
+
+自动化本页修复流程的**诊断步骤**：运行链接预检 → 解析 `[BROKEN]` → 输出"本地 / develop 分支存在性"诊断表与修复建议。
+
+| 场景 | 诊断输出 | 建议处置 |
+|------|----------|----------|
+| 无失效链接 | `[PASS] 0 失效`，exit 0 | 无需处理 |
+| 目标本地不存在 + develop 存在 | 建议行 | `git checkout develop -- <path>` |
+| 双方都不存在 | 建议行 | 删除 host 中的引用，或补建目标文档 |
+| 目标不在仓库内（外部路径） | 建议行 | 检查引用是否应指向外部 URL/资源 |
+
+### 用法
+
+```powershell
+# 默认当前目录为仓库根
+pwsh -NoProfile -File scripts/dev/check_docs_broken_links.ps1
+
+# 指定仓库根目录
+pwsh -NoProfile -File scripts/dev/check_docs_broken_links.ps1 -TargetRepo C:\path\to\repo
+
+# 调试：跳过 precheck 运行，仅解析上次输出
+pwsh -NoProfile -File scripts/dev/check_docs_broken_links.ps1 -SkipCheck
+```
+
+退出码：`0` = 无失效链接；`1` = 存在失效链接（可用于 hook / CI 阻断）。
+
+### 诊断逻辑
+
+1. **运行链接预检**：调用 `precheck_docs.ps1 -BlockMode -AllowBroken 0 -SkipChart`（参数对齐 CI 的 `git_precommit_check.ps1` 内部调用；`-SkipChart` 跳过图表生成/检查，避免图表误报与工作区污染）
+2. **解析 `[BROKEN]`**：兼容 `[ERROR] [BROKEN] host: target` 与 `[BROKEN] host: target` 两种格式
+3. **逐条诊断**：
+   - **host 定位**：precheck 输出的 host 是纯文件名（如 `tmp_diag_test.md`），脚本在全仓库递归定位真实目录（`Get-ChildItem -Recurse -Filter`），host 含路径分隔符时直接使用——避免按仓库根误解析
+   - **目标绝对化**：`Path.GetFullPath(hostDir + target)`，与 precheck 的 `Path::Combine` 规则一致（支持 `../` 相对路径）
+   - **develop 存在性**：`git cat-file -e develop:<repo-relative-path>`，目标不在仓库内（外部/绝对路径）时跳过
+4. **汇总**：输出可检出 / 需删除补建的计数
+
+### 集成位置
+
+| 层 | 位置 | 行为 |
+|----|------|------|
+| 本地 pre-commit | `.pre-commit-config.yaml` → `docs-broken-links-diagnose`（commit 阶段） | 有失效链接阻断提交 |
+| 远端 CI | `ci.yml` code-quality job → `docs 链接预检诊断` step | 第二道防线，防 `git commit --no-verify` 绕过 |
+
+**跨平台说明**：ubuntu runner 无 `powershell.exe`，脚本内部优先用 `pwsh`（PowerShell 7），Windows PowerShell 5.1 环境回退 `powershell`。
+
+---
+
 ## 关联文档
 
 | 文档 | 说明 |

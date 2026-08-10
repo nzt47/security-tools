@@ -36,7 +36,10 @@ if (-not (Test-Path (Join-Path $TargetRepo "scripts/dev/precheck_docs.ps1"))) {
 $precheck = Join-Path $TargetRepo "scripts/dev/precheck_docs.ps1"
 if (-not $SkipCheck) {
     Write-Info "=== 运行链接预检（precheck_docs.ps1 -BlockMode -AllowBroken 0 -SkipChart）==="
-    $output = & powershell -NoProfile -ExecutionPolicy Bypass -File $precheck `
+    # 【变易】跨平台兼容：ubuntu runner（ci.yml code-quality）无 powershell.exe，
+    # 优先用 pwsh（PowerShell 7），Windows PowerShell 5.1 环境回退 powershell。
+    $shell = if (Get-Command pwsh -ErrorAction SilentlyContinue) { "pwsh" } else { "powershell" }
+    $output = & $shell -NoProfile -ExecutionPolicy Bypass -File $precheck `
         -TargetRepo $TargetRepo -BlockMode -AllowBroken 0 -SkipChart 2>&1
     $output | ForEach-Object { Write-Host $_ }
     if ($LASTEXITCODE -ne 0) { Write-Warn "[WARN] precheck 退出码非 0（$LASTEXITCODE），继续解析输出诊断" }
