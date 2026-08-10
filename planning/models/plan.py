@@ -76,6 +76,10 @@ class Plan:
             return False
         return all(t.status == TaskStatus.COMPLETED for t in self.tasks)
 
+    def all_tasks_succeeded(self) -> bool:
+        """所有任务均成功完成（与计划状态无关，供执行收尾判定使用，D1 修复）"""
+        return len(self.tasks) > 0 and all(t.status == TaskStatus.COMPLETED for t in self.tasks)
+
     def progress(self) -> float:
         """计算完成进度"""
         if not self.tasks:
@@ -101,7 +105,29 @@ class Plan:
             "original_task": self.original_task,
             "state": self.state.value,
             "progress": f"{self.progress():.1%}",
+            "current_step": self.current_step,
+            "max_steps": self.max_steps,
+            "result": str(self.result) if self.result else None,
+            "error": self.error,
+            "context": dict(self.context),
             "tasks": [t.to_dict() for t in self.tasks],
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Plan":
+        """从字典还原计划（与 to_dict 对称，D9 修复：持久化恢复）"""
+        plan = cls(
+            id=data["id"],
+            original_task=data.get("original_task", ""),
+            state=PlanState(data.get("state", "init")),
+            current_step=data.get("current_step", 0),
+            max_steps=data.get("max_steps", 50),
+            context=data.get("context", {}),
+            result=data.get("result"),
+            error=data.get("error"),
+        )
+        for task_data in data.get("tasks", []):
+            plan.add_task(Task.from_dict(task_data))
+        return plan

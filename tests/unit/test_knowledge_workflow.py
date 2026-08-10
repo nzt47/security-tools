@@ -118,6 +118,13 @@ def test_workflow_happy_path(tmp_path):
     assert report["total_cards"] == 1
     assert report["broken_links"] == []
     assert report["orphans"] == ["降噪设计"]
+    # Step5 已对接任务5 lint_all：健康分 + 扣分明细字段齐全（仅 lint_all 产生）
+    assert report["health_score"] == 98.0   # 100 - 孤儿1张×2分
+    assert report["score_breakdown"] == {"orphans": 2}
+    assert report["index_drift"] == []      # index.md 与卡片集合一致
+    assert report["stale_cards"] == []
+    assert report["unresolved_conflicts"] == []
+    assert report["ok"] is False            # 存在孤儿 → 需治理
 
     # log.md / index.md 全程同步
     log_text = (kb / "log.md").read_text(encoding="utf-8")
@@ -319,6 +326,67 @@ def test_kb_search_tool(tmp_path, monkeypatch):
                for h in result["hits"])
     # 缺 query → ok=False
     assert tools.kb_search()["ok"] is False
+
+
+def test_kb_capture_tool_text(tmp_path, monkeypatch):
+    """kb_capture 文本路径：text → inbox/ 入库成功，参数缺失 → ok=False。"""
+    from agent.knowledge import tools
+
+    kb = tmp_path / "kb"
+    runner = WorkflowRunner(knowledge_root=str(kb),
+                            llm=FakeLLM(responses=[HAPPY_LLM_JSON]))
+    monkeypatch.setattr(tools, "_runner", runner)
+
+    result = tools.kb_capture(text="# 收集测试\n\n临时文本素材")
+    assert result["ok"] is True
+    assert result["slug"]
+    assert any((kb / "inbox").glob("*.md"))          # 素材已落 inbox
+    # 参数缺失 / 文件不存在 → ok=False（不抛异常）
+    assert tools.kb_capture()["ok"] is False
+    assert tools.kb_capture(file_path=str(tmp_path / "nope.md"))["ok"] is False
+
+
+def test_kb_discuss_tool(tmp_path, monkeypatch):
+    """kb_discuss 正常路径：note_slug → 讨论记录路径；缺参/笔记不存在 → ok=False。"""
+    from agent.knowledge import tools
+
+    kb = tmp_path / "kb"
+    runner = WorkflowRunner(knowledge_root=str(kb),
+                            llm=FakeLLM(responses=[HAPPY_LLM_JSON]))
+    monkeypatch.setattr(tools, "_runner", runner)
+    src = _write_material(tmp_path)
+    runner.run_ingest(src)
+    note = runner.run_distill(src)
+
+    result = tools.kb_discuss(note_slug=note.slug, question="观点成立吗？")
+    assert result["ok"] is True
+    assert Path(result["discussion_path"]).is_file()
+    # 缺参 / 笔记不存在 → ok=False
+    assert tools.kb_discuss()["ok"] is False
+    assert tools.kb_discuss(note_slug="no-such-note")["ok"] is False
+
+
+def test_kb_lint_tool(tmp_path, monkeypatch):
+    """kb_lint 正常路径：健康巡检 → 报告含五类字段与健康分。"""
+    from agent.knowledge import tools
+
+    kb = tmp_path / "kb"
+    runner = WorkflowRunner(knowledge_root=str(kb),
+                            llm=FakeLLM(responses=[HAPPY_LLM_JSON]))
+    monkeypatch.setattr(tools, "_runner", runner)
+    src = _write_material(tmp_path)
+    runner.run_ingest(src)
+    note = runner.run_distill(src)
+    assert approve_note(note.slug, knowledge_root=str(kb))
+    runner.run_card(note.slug)
+
+    result = tools.kb_lint()
+    assert result["ok"] is True
+    report = result["report"]
+    assert report["total_cards"] == 1
+    assert report["health_score"] == 98.0          # 孤儿扣 2 分（lint_all 对接）
+    assert report["score_breakdown"] == {"orphans": 2}
+    assert report["ok"] is False                   # 存在孤儿 → 需治理
 
 
 # ════════════════════════════════════════════════════════════

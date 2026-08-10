@@ -500,7 +500,7 @@ def test_list_cache_hit_skips_disk_read(store, monkeypatch):
     calls = {"n": 0}
     orig = CardStore._list_from_disk
 
-    def counting(self):
+    def counting(self, parallel=False):
         calls["n"] += 1
         return orig(self)
 
@@ -522,7 +522,7 @@ def test_list_cache_invalidates_on_create(store, monkeypatch):
     calls = {"n": 0}
     orig = CardStore._list_from_disk
 
-    def counting(self):
+    def counting(self, parallel=False):
         calls["n"] += 1
         return orig(self)
 

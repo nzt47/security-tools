@@ -12,7 +12,8 @@
     resolve-conflict   人工裁决矛盾（AGENTS.md §6.2：裁决必须由人触发）
 
 退出码约定（不易）：0 = 成功；1 = 运行出错（卡片不存在 / 非法状态迁移 / 检出断链 / 裁决失败）。
---verbose 打开 logging INFO，可观测各模块耗时统计与断链调试日志。
+日志分级（所有子命令通用）：--verbose 打开 INFO（各模块耗时统计与断链调试明细）；
+--quiet 仅输出 ERROR（CI 静默）；默认 WARNING（汇总性问题可见）。
 """
 
 from __future__ import annotations
@@ -114,18 +115,22 @@ def cmd_orphans(args: argparse.Namespace) -> int:
 def cmd_audit(args: argparse.Namespace) -> int:
     """手动触发完整健康巡检：lint → md/html 报告落盘 → log.md → 可选邮件。
 
-    `--open` 时用默认浏览器打开生成的 HTML 报告（渲染效果即查即见）。
+    `--open` 时用默认浏览器打开生成的 HTML 报告（渲染效果即查即见）；
+    `--json` 时把结构化健康报告（含扣分明细/卡片矛盾标记）导出为 JSON。
     """
     # 函数内惰性导入（与 audit_job 内部一致，避免 __main__ 顶层依赖面扩张）
+    import json
+
     from agent.knowledge.audit_job import (
         DEFAULT_REPORTS_DIR,
         run_knowledge_audit,
         send_knowledge_report_email,
     )
+    from agent.knowledge.lint import report_to_json
 
     logger.info(
-        "CLI audit: 手动巡检 wiki=%s reports_dir=%s send_email=%s open_html=%s",
-        args.wiki, args.reports_dir, not args.no_email, args.open,
+        "CLI audit: 手动巡检 wiki=%s reports_dir=%s send_email=%s open_html=%s json=%s",
+        args.wiki, args.reports_dir, not args.no_email, args.open, args.json,
     )
     report = run_knowledge_audit(
         args.wiki,
@@ -141,6 +146,16 @@ def cmd_audit(args: argparse.Namespace) -> int:
         f"漂移 {len(report.index_drift)} / 过期 {len(report.stale_cards)} / "
         f"矛盾 {len(report.unresolved_conflicts)}"
     )
+    if args.json:
+        out = Path(args.json)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(
+            json.dumps(report_to_json(report, CardStore(args.wiki)),
+                       ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+        print(f"结构化 JSON 已导出: {out}")
+        logger.info("CLI audit: JSON 报告已导出 path=%s", out)
     if args.open:
         from datetime import date
         import webbrowser
@@ -281,31 +296,36 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("index-rebuild", help="全量重建 index.md")
     p.add_argument("--wiki", default=_DEFAULT_WIKI)
     p.add_argument("--index", default=_DEFAULT_INDEX)
-    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
+    p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
     p.set_defaults(func=cmd_index_rebuild)
 
     p = sub.add_parser("card-list", help="列出卡片")
     p.add_argument("--status", default=None, help="按状态过滤（draft/current/unknown）")
     p.add_argument("--type", default=None, help="按类型过滤（concepts/entities/insights）")
     p.add_argument("--wiki", default=_DEFAULT_WIKI)
-    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
+    p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
     p.set_defaults(func=cmd_card_list)
 
     p = sub.add_parser("card-transition", help="状态迁移")
     p.add_argument("slug")
     p.add_argument("to_status")
     p.add_argument("--wiki", default=_DEFAULT_WIKI)
-    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
+    p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
     p.set_defaults(func=cmd_card_transition)
 
     p = sub.add_parser("check-links", help="断链检测（有断链 exit 1）")
     p.add_argument("--wiki", default=_DEFAULT_WIKI)
-    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
+    p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
     p.set_defaults(func=cmd_check_links)
 
     p = sub.add_parser("orphans", help="孤儿检测")
     p.add_argument("--wiki", default=_DEFAULT_WIKI)
-    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
+    p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
     p.set_defaults(func=cmd_orphans)
 
     p = sub.add_parser(
@@ -317,9 +337,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--reports-dir", default=None,
                    help="报告落盘目录（默认 data/knowledge/reports/）")
     p.add_argument("--no-email", action="store_true", help="跳过健康报告邮件")
+    p.add_argument("--json", default=None, metavar="PATH",
+                   help="导出结构化健康报告 JSON（含扣分明细/卡片矛盾标记）到指定路径")
     p.add_argument("--open", action="store_true",
                    help="巡检完成后自动在浏览器打开 HTML 报告")
-    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
+    p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
     p.set_defaults(func=cmd_audit)
 
     p = sub.add_parser(
@@ -330,7 +353,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("target", help="矛盾目标卡片 slug")
     p.add_argument("decision", help="裁决卡片 slug（获胜方保留）")
     p.add_argument("--wiki", default=_DEFAULT_WIKI)
-    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
+    p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
     p.set_defaults(func=cmd_resolve_conflict)
 
     p = sub.add_parser("import", help="批量导入目录下 *.md 卡片")
@@ -338,7 +362,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--force", action="store_true",
                    help="同 slug 冲突时改走 update（默认跳过不覆盖）")
     p.add_argument("--wiki", default=_DEFAULT_WIKI)
-    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
+    p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
     p.set_defaults(func=cmd_import)
 
     p = sub.add_parser("export", help="导出卡片为 frontmatter md（可再 import）")
@@ -346,14 +371,16 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--status", default=None, help="按状态过滤（draft/current/unknown）")
     p.add_argument("--type", default=None, help="按类型过滤（concepts/entities/insights）")
     p.add_argument("--wiki", default=_DEFAULT_WIKI)
-    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
+    p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
     p.set_defaults(func=cmd_export)
 
     p = sub.add_parser("list", help="列出卡片（按 type 分组 + 状态统计）")
     p.add_argument("--status", default=None, help="按状态过滤（draft/current/unknown）")
     p.add_argument("--type", default=None, help="按类型过滤（concepts/entities/insights）")
     p.add_argument("--wiki", default=_DEFAULT_WIKI)
-    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
+    p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
     p.set_defaults(func=cmd_list)
 
     p = sub.add_parser(
@@ -366,7 +393,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--wiki", default=_DEFAULT_WIKI)
     p.add_argument("--knowledge", default=None,
                    help="knowledge 根（含 processed/），默认取 --wiki 的父目录")
-    p.add_argument("--verbose", action="store_true")
+    p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
+    p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
     p.set_defaults(func=cmd_card_from_note)
 
     return parser
@@ -375,7 +403,14 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
-    if args.verbose:
+    # 日志分级（每个子命令均支持 --verbose / --quiet）：
+    #   --quiet    → 仅 ERROR（CI 静默跑通，只看错误）
+    #   默认       → WARNING（不调用 basicConfig，保持现状：汇总性问题可见）
+    #   --verbose  → INFO（含各模块耗时统计与断链明细，运行时排查用）
+    # quiet 优先：二者同给时以 quiet 为准，避免问题库上明细刷屏。
+    if getattr(args, "quiet", False):
+        logging.basicConfig(level=logging.ERROR, format="%(levelname)s [%(name)s] %(message)s")
+    elif args.verbose:
         logging.basicConfig(level=logging.INFO, format="%(levelname)s [%(name)s] %(message)s")
     return args.func(args)
 

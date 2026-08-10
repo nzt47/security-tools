@@ -86,6 +86,8 @@ def compute_health_score(report: HealthReport) -> float:
             "compute_health_score: base=100 扣分明细=[%s] 得分=%.1f",
             ", ".join(deductions), max(0.0, score),
         )
+    else:
+        logger.info("compute_health_score: 无扣分 健康分=100.0")
     return round(max(0.0, score), 1)
 
 
@@ -158,13 +160,28 @@ def lint_all(
     card_store,
     index_path: str | Path = "knowledge/index.md",
     stale_days: int = 90,
+    parallel_read: bool = False,
+    light_read: bool = True,
 ) -> HealthReport:
     """全量巡检：孤儿/断链/index 漂移/过期声明/未裁决矛盾。
 
     只读巡检：不修改任何卡片、索引或日志文件。
+    parallel_read=True 时卡片读盘走线程池并发（IO 密集提速；检测结果与
+    串行完全一致，仅读盘加速）。
+    light_read=True（默认）时卡片加载走 CardStore.list_light() 轻量检测
+    视图（P0 内存优化：只解析检测六字段，不驻留正文/insight）；store 无
+    list_light 时自动回退 list()（第三方/测试替身兼容，检测语义不变）。
     """
     _t0 = time.perf_counter()
-    cards = list(card_store.list())
+    if light_read:
+        # 优先轻量检测视图（P0 内存优化）；store 无 list_light（第三方/替身）时回退 list()
+        getter = getattr(card_store, "list_light", None)
+        if getter is not None:
+            cards = list(getter(parallel=parallel_read))
+        else:
+            cards = list(card_store.list(parallel=parallel_read))
+    else:
+        cards = list(card_store.list(parallel=parallel_read))
     report = HealthReport(
         checked_at=date.today().isoformat(),
         total_cards=len(cards),
@@ -247,6 +264,7 @@ def lint_all(
     t_total = (time.perf_counter() - _t0) * 1000
     report.health_score = compute_health_score(report)
     report.suggestions = _collect_suggestions(report, stale_days)
+    logger.info("lint_all[建议]: 生成 %d 条处置建议", len(report.suggestions))
     # 统一耗时汇总：五步明细 + 总耗时，便于 grep 定位性能瓶颈
     logger.info(
         "lint_all[耗时汇总]: orphans=%.2fms broken=%.2fms drift=%.2fms stale=%.2fms "
@@ -310,3 +328,71 @@ def render_report(report: HealthReport, stale_days: int = 90) -> str:
     lines += ["", "## 六、建议", ""]
     lines.extend(f"- {s}" for s in report.suggestions)
     return "\n".join(lines) + "\n"
+
+
+def _breakdown_from_counts(counts: dict[str, int]) -> dict[str, int]:
+    """按 _PENALTIES 推导扣分明细：{类别: 实际扣分}，只含命中项。
+
+    与 compute_health_score 同源，保证「日志推导」与「JSON 导出」扣分一致。
+    """
+    breakdown: dict[str, int] = {}
+    for kind, (per, cap) in _PENALTIES.items():
+        n = counts.get(kind, 0)
+        if n:
+            breakdown[kind] = min(per * n, cap)
+    return breakdown
+
+
+def score_breakdown(report: HealthReport) -> dict[str, int]:
+    """从 HealthReport 五类数量推导扣分明细（供 workflow.run_audit 日志/报告）。"""
+    counts = {
+        "orphans": len(report.orphans),
+        "broken_links": len(report.broken_links),
+        "index_drift": len(report.index_drift),
+        "stale": len(report.stale_cards),
+        "conflicts": len(report.unresolved_conflicts),
+    }
+    return _breakdown_from_counts(counts)
+
+
+def report_to_json(report, store=None) -> dict:
+    """结构化健康报告 JSON（兼容 HealthReport / dict 双输入）。
+
+    输入：
+        report  HealthReport（lint_all / run_knowledge_audit 返回）
+                | dict（workflow.run_audit 返回，字段已含 score_breakdown）
+        store   CardStore 可选；提供时附加 cards[]（slug/status/type/contradictions）。
+    输出键（自动化审计契约）：
+        audited_at / total_cards / health_score / ok / score_breakdown
+        broken_links / orphans / index_drift / stale_cards
+        unresolved_conflicts / suggestions / cards[]（store 存在时）
+    """
+    if isinstance(report, HealthReport):
+        data: dict = {
+            "audited_at": report.checked_at,
+            "total_cards": report.total_cards,
+            "health_score": report.health_score,
+            "ok": not (report.orphans or report.broken_links
+                       or report.index_drift or report.stale_cards
+                       or report.unresolved_conflicts),
+            "score_breakdown": score_breakdown(report),
+            "broken_links": report.broken_links,
+            "orphans": report.orphans,
+            "index_drift": report.index_drift,
+            "stale_cards": report.stale_cards,
+            "unresolved_conflicts": report.unresolved_conflicts,
+            "suggestions": report.suggestions,
+        }
+    else:  # workflow.run_audit 返回的 dict（字段已齐）
+        data = dict(report)
+    if store is not None:
+        data["cards"] = [
+            {
+                "slug": c.slug,
+                "status": c.status,
+                "type": c.type,
+                "contradictions": c.contradictions or [],
+            }
+            for c in store.list()
+        ]
+    return data

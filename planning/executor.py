@@ -14,6 +14,7 @@ from datetime import datetime
 from .models import Task, TaskStatus, Plan, PlanState
 from .models.action import Action, ActionResult, ActionType
 from .models.record import ExecutionRecord
+from .state_machine import InvalidStateTransitionError, PlanStateMachine
 
 # 使用 Phase 3 的统一注册表抽象
 from core.registry import SimpleRegistry
@@ -22,6 +23,11 @@ from core.registry import SimpleRegistry
 from agent.error_handler import RecoverableError
 
 logger = logging.getLogger(__name__)
+
+
+class PlanValidationError(Exception):
+    """计划验证失败（D11 修复）"""
+    pass
 
 
 class ToolRegistry:
@@ -120,7 +126,8 @@ class PlanExecutor:
     (无改动，保持原样)
     """
 
-    def __init__(self, tool_registry: ToolRegistry, llm_service=None, max_retries: int = 3, config: Dict = None):
+    def __init__(self, tool_registry: ToolRegistry, llm_service=None, max_retries: int = 3, config: Dict = None,
+                 state_machine: Optional[PlanStateMachine] = None):
         """
         初始化执行器
 
@@ -129,11 +136,20 @@ class PlanExecutor:
             llm_service: LLM服务
             max_retries: 最大重试次数
             config: 配置
+            state_machine: 计划状态机（可选）。提供时收尾状态变更走状态机（触发钩子/记录转换历史）；
+                          不提供时保持原有直接赋值行为，兼容独立使用场景。
         """
         self.tool_registry = tool_registry
         self.llm = llm_service
         self.max_retries = max_retries
         self.config = config or {}
+        self.state_machine = state_machine
+
+        # 协作式取消（D18 主缺陷修复，阶段 3 方案 A）：
+        # _running_tasks 记录当前执行中的 execute_plan 任务（按 plan_id），供 cancel_plan 传播取消；
+        # _cancelled_plan_ids 为 per-plan 取消标志（多计划并发共享本实例时互相隔离）。
+        self._running_tasks: Dict[str, "asyncio.Task"] = {}
+        self._cancelled_plan_ids: set = set()
 
         self.execution_history: List[ExecutionRecord] = []
         self._callbacks: Dict[str, List[Callable]] = {
@@ -162,6 +178,37 @@ class PlanExecutor:
         if event in self._callbacks:
             self._callbacks[event].append(callback)
 
+    def validate_plan(self, plan: Plan) -> None:
+        """执行前验证计划结构：悬空依赖 / 循环依赖（D11 修复）
+
+        Raises:
+            PlanValidationError: 计划结构非法
+        """
+        task_ids = {t.id for t in plan.tasks}
+        for task in plan.tasks:
+            for dep in task.dependencies:
+                if dep not in task_ids:
+                    raise PlanValidationError(
+                        f"任务 '{task.id}' 依赖不存在的任务 '{dep}'（依赖不存在）"
+                    )
+
+        task_map = {t.id: t for t in plan.tasks}
+        visiting, visited = set(), set()
+
+        def _dfs(tid: str) -> None:
+            if tid in visiting:
+                raise PlanValidationError(f"检测到循环依赖（涉及任务 '{tid}'）")
+            if tid in visited:
+                return
+            visiting.add(tid)
+            for dep in task_map[tid].dependencies:
+                _dfs(dep)
+            visiting.discard(tid)
+            visited.add(tid)
+
+        for t in plan.tasks:
+            _dfs(t.id)
+
     async def execute_plan(self, plan: Plan) -> Plan:
         """
         执行完整计划
@@ -175,13 +222,29 @@ class PlanExecutor:
         if plan.state not in (PlanState.READY, PlanState.EXECUTING):
             raise ValueError(f"计划状态不正确: {plan.state}")
 
+        # D11 修复：执行前验证计划结构（悬空依赖/循环依赖），失败提前收尾而非执行期卡死
+        try:
+            self.validate_plan(plan)
+        except PlanValidationError as e:
+            plan.error = str(e)
+            logger.error(f"计划验证失败: {e}")
+            self._finalize_state(plan, PlanState.FAILED, reason="计划验证失败")
+            return plan
+
         plan.state = PlanState.EXECUTING
         plan.updated_at = datetime.now()
         logger.info(f"开始执行计划: {plan.id}")
 
         step_count = 0
+        # 登记当前执行任务，供 cancel_plan 传播取消（finally 中清理）
+        self._running_tasks[plan.id] = asyncio.current_task()
         try:
             while not plan.is_complete():
+                if plan.id in self._cancelled_plan_ids:
+                    # 协作式取消：停止调度后续任务（同步工具执行完当前调用后在此退出）
+                    logger.warning(f"计划已被取消，终止执行: {plan.id}")
+                    break
+
                 if step_count >= plan.max_steps:
                     logger.warning(f"达到最大步骤数: {plan.max_steps}")
                     break
@@ -191,46 +254,93 @@ class PlanExecutor:
                     logger.warning("无可执行任务,但计划未完成")
                     break
 
-                task = next_tasks[0]
-                result = await self._execute_task_with_retry(task)
-
-                self._record_execution(plan, task, result)
-
-                if result.success:
-                    task.mark_completed(result.output)
-                    await self._trigger_callbacks("on_task_complete", task, result)
+                if len(next_tasks) > 1:
+                    # D5 修复：互不依赖的任务并行执行
+                    # D5 边界修正：并行批不越过 max_steps 额度，超限时截断本批，
+                    # 剩余任务留待下轮循环（最终残留 PENDING → 收尾 FAILED，不误判成功）
+                    remaining = plan.max_steps - step_count
+                    if len(next_tasks) > remaining:
+                        next_tasks = next_tasks[:remaining]
+                    # D5 状态收尾修正：每任务独立执行+立即标记（不等整批 gather 结束），
+                    # 保证取消时已完成任务的结果/状态不滞留 RUNNING（竞态）。
+                    await asyncio.gather(
+                        *[self._execute_task_with_retry_and_record(plan, t) for t in next_tasks]
+                    )
+                    step_count += len(next_tasks)
+                    plan.current_step += len(next_tasks)
                 else:
-                    task.mark_failed(result.error or "未知错误")
-                    await self._trigger_callbacks("on_task_fail", task, result)
+                    task = next_tasks[0]
+                    result = await self._execute_task_with_retry(task)
 
-                    if task.priority >= 4:
-                        logger.error(f"高优先级任务失败: {task.id}")
-                        break
+                    self._record_execution(plan, task, result)
 
-                plan.current_step += 1
-                step_count += 1
+                    if result.success:
+                        task.mark_completed(result.output)
+                        await self._trigger_callbacks("on_task_complete", task, result)
+                    else:
+                        task.mark_failed(result.error or "未知错误")
+                        await self._trigger_callbacks("on_task_fail", task, result)
+
+                        if task.priority >= 4:
+                            logger.error(f"高优先级任务失败: {task.id}")
+                            break
+
+                    step_count += 1
+                    plan.current_step += 1
                 plan.updated_at = datetime.now()
 
-            if plan.is_success():
-                plan.state = PlanState.COMPLETED
+            if plan.id in self._cancelled_plan_ids:
+                # 取消优先于正常收尾：标记 CANCELLED，不触发部分失败/超时收尾
+                self._finalize_state(plan, PlanState.CANCELLED, reason="用户取消")
+            elif plan.all_tasks_succeeded():
+                self._finalize_state(plan, PlanState.COMPLETED, reason="所有任务执行成功")
                 plan.result = "所有任务执行成功"
             elif plan.is_complete():
-                plan.state = PlanState.COMPLETED
+                self._finalize_state(plan, PlanState.COMPLETED, reason="部分任务失败但计划完成")
                 plan.result = "计划执行完成,但部分任务失败"
             else:
-                plan.state = PlanState.FAILED
+                self._finalize_state(plan, PlanState.FAILED, reason="计划执行超时或异常终止")
                 plan.error = "计划执行超时或异常终止"
 
             await self._trigger_callbacks("on_plan_complete", plan)
 
+        except asyncio.CancelledError:
+            # 协作式取消：CancelledError 已传播到工具 await 点（经 wait_for），
+            # 计划标记 CANCELLED 并正常返回，不再向上传播（取消即为预期结束）。
+            logger.warning(f"计划执行被取消: {plan.id}")
+            self._finalize_state(plan, PlanState.CANCELLED, reason="用户取消")
+
         except Exception as e:
-            plan.state = PlanState.FAILED
+            self._finalize_state(plan, PlanState.FAILED, reason=f"计划执行异常: {e}")
             plan.error = str(e)
             logger.error(f"计划执行异常: {e}")
+
+        finally:
+            self._running_tasks.pop(plan.id, None)
+            self._cancelled_plan_ids.discard(plan.id)
 
         plan.updated_at = datetime.now()
         logger.info(f"计划执行{plan.state.value}: {plan.progress():.1%}")
         return plan
+
+    def _finalize_state(self, plan: Plan, target: PlanState, *, reason: str) -> None:
+        """收尾状态变更：优先走状态机（触发钩子/记录转换历史），无状态机时降级直接赋值
+
+        不变量：计划状态变更必须经状态机，确保合法性校验、转换历史与钩子回调不被旁路；
+        但兼容 executor 独立使用（未注入状态机）时的直接赋值行为。
+        边界 #2：若计划已处于 CANCELLED（取消竞态先行生效），保留取消状态不被收尾覆盖。
+        """
+        if self.state_machine is not None:
+            try:
+                self.state_machine.transition(plan, target, reason)
+                return
+            except InvalidStateTransitionError as e:
+                if plan.state == PlanState.CANCELLED:
+                    # 取消优先于收尾：取消竞态下不覆盖 CANCELLED（边界 #2）
+                    logger.warning(f"计划已取消（{plan.id}），保留 CANCELLED，跳过收尾变更: {target.value}")
+                    return
+                logger.warning(f"状态机收尾转换失败，降级直接赋值: {e}")
+        plan.state = target
 
     async def _do_execute_task(self, task: Task) -> ActionResult:
         """实际的任务执行逻辑（不含重试，失败抛出异常）"""
@@ -252,6 +362,24 @@ class PlanExecutor:
             last_error = str(e)
             logger.error(f"任务执行失败: {e}")
             return ActionResult.failure_result(last_error or "重试次数耗尽")
+
+    async def _execute_task_with_retry_and_record(self, plan: Plan, task: Task) -> ActionResult:
+        """执行单个任务并立即记录/标记状态（供并行批使用，D5 修复）
+
+        不变量：任务完成（成功/失败）即更新状态与记录，不等待整批并行任务收尾，
+        避免取消时已完成任务的状态滞留 RUNNING（竞态）。
+        """
+        result = await self._execute_task_with_retry(task)
+        self._record_execution(plan, task, result)
+        if result.success:
+            task.mark_completed(result.output)
+            await self._trigger_callbacks("on_task_complete", task, result)
+        else:
+            task.mark_failed(result.error or "未知错误")
+            await self._trigger_callbacks("on_task_fail", task, result)
+            if task.priority >= 4:
+                logger.error(f"高优先级任务失败: {task.id}")
+        return result
 
     def _determine_action(self, task: Task) -> Action:
         """根据任务确定执行动作"""
@@ -452,10 +580,19 @@ class PlanExecutor:
                 logger.error(f"回调执行失败: {e}")
 
     async def cancel_plan(self, plan: Plan) -> Plan:
-        """取消计划"""
+        """取消计划（协作式取消，D18 主缺陷修复）
+
+        设置 per-plan 取消标志，并取消正在执行的 execute_plan 任务，
+        使 CancelledError 传播到工具 await 点（异步工具可协作取消）；
+        同步工具无法中断，执行完当前调用后由循环标志检查退出。
+        """
+        self._cancelled_plan_ids.add(plan.id)
         plan.state = PlanState.CANCELLED
         plan.updated_at = datetime.now()
         logger.info(f"计划已取消: {plan.id}")
+        task = self._running_tasks.get(plan.id)
+        if task is not None and not task.done():
+            task.cancel()
         return plan
 
     def get_history(self, limit: int = 50) -> List[Dict]:
