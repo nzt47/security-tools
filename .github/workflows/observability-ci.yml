@@ -30,6 +30,8 @@ on:
       # 6-shard 捕获）。合并为 agent/** 消除该缺口。
       # 历史：2026-08-08 P2-2 曾按文件扩充（tests/**、agent/knowledge/**）；
       #       2026-08-10 曾补 agent/log_system/**（Shard 1 修复未触发 CI）。
+      # 2026-08-10 触发提交：前一 fix(ci) 提交被 [skip ci] HEAD 连带跳过未验证，
+      # 本提交无 skip 标记，用于验证 paths 修复后本 workflow 正常触发。
       - 'agent/**'
       - 'monitoring/**'
       - 'lifetrace/**'
