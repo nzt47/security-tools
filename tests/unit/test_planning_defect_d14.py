@@ -16,7 +16,6 @@ class TestDefectD14:
     """D14：任务失败时应按降级链尝试 Plan B"""
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="D14 降级链未实现：主工具失败后无 Plan B 尝试（2026-08-11 确认既有缺陷）", strict=False)
     async def test_task_failure_uses_degrade_chain(self):
         registry = ToolRegistry()
 

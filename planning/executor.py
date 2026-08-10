@@ -143,6 +143,9 @@ class PlanExecutor:
         self.llm = llm_service
         self.max_retries = max_retries
         self.config = config or {}
+        # D14：降级链配置（主工具名 -> 备份工具列表），主工具失败时逐个尝试
+        # 【不易】仅 TOOL_CALL 动作生效；配置缺失时行为与原有完全一致（零回退成本）
+        self.degrade_chain: Dict[str, List[str]] = self.config.get("degrade_chain") or {}
         self.state_machine = state_machine
 
         # 协作式取消（D18 主缺陷修复，阶段 3 方案 A）：
@@ -350,8 +353,48 @@ class PlanExecutor:
 
         if result.success:
             return result
-        else:
-            raise RecoverableError(f"任务执行失败: {result.error}")
+
+        # D14 降级链：主工具失败（无 Plan B）→ 沿配置链尝试备份工具，
+        # 任一成功即返回成功（observation 标注降级来源）；全部失败保留主工具错误
+        if action.action_type == ActionType.TOOL_CALL:
+            backup_result = await self._try_degrade_chain(action)
+            if backup_result is not None:
+                backup_result.duration_ms = 0
+                return backup_result
+
+        raise RecoverableError(f"任务执行失败: {result.error}")
+
+    async def _try_degrade_chain(self, action: Action) -> Optional[ActionResult]:
+        """D14：主工具失败后沿降级链尝试备份工具（Plan B）
+
+        Returns:
+            任一备份工具成功 -> 成功结果（observation 标注已降级）；否则 None。
+        失败语义：备份工具失败不中断，继续尝试下一个；全部失败由调用方
+        保留主工具错误并抛 RecoverableError（重试语义不变）。
+        """
+        backup_tools = self.degrade_chain.get(action.tool_name, [])
+        if not backup_tools:
+            return None
+
+        for backup_name in backup_tools:
+            if not self.tool_registry.has(backup_name):
+                logger.warning(f"[D14降级链] 备份工具不存在，跳过: {backup_name}")
+                continue
+            backup_action = Action.tool_action(
+                tool_name=backup_name,
+                params=action.tool_params,
+                description=action.description,
+            )
+            logger.info(f"[D14降级链] 主工具 {action.tool_name} 失败，尝试备份工具: {backup_name}")
+            result = await self._execute_action(backup_action)
+            if result.success:
+                result.observation = (
+                    f"主工具 {action.tool_name} 失败，已降级至备份工具 {backup_name} 执行成功"
+                )
+                logger.info(f"[D14降级链] 降级成功: {action.tool_name} -> {backup_name}")
+                return result
+            logger.warning(f"[D14降级链] 备份工具 {backup_name} 也失败: {result.error}")
+        return None
     
     async def _execute_task_with_retry(self, task: Task) -> ActionResult:
         """带重试的任务执行"""
