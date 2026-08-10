@@ -98,14 +98,16 @@ def _render(refs: dict[str, list[str]]) -> str:
     return "\n".join(lines)
 
 
-def rebuild_links_index(wiki_root: str | Path, index_path: str | Path) -> int:
-    """全量重建入链索引：一次 list() 构建全部入链关系，返回被引用 slug 数。"""
-    from agent.knowledge.card import CardStore  # importlib 惰性导入（无 AST 循环边）
+def rebuild_links_index(cards, index_path: str | Path) -> int:
+    """全量重建入链索引：遍历传入的卡片构建全部入链关系，返回被引用 slug 数。
 
-    store = CardStore(wiki_root)
+    cards: 可迭代对象，每项含 .links（list[str]）与 .slug（str）——鸭子类型，
+    由调用方构造（如 CardStore(wiki_root).list()）。本模块不依赖 card 模块，
+    静态依赖单向（card → links_index），无循环边。
+    """
     _t0 = time.perf_counter()
     refs: dict[str, list[str]] = {}
-    for card in store.list():
+    for card in cards:
         for link in card.links:
             if link.startswith(ARCHIVES_PREFIX):
                 continue

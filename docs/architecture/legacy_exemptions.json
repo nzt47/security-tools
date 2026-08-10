@@ -53,16 +53,6 @@
       "owner": "observability-team",
       "tech_debt_ticket": "ARCH-DEBT-007",
       "mitigation": "prometheus.py:291 使用函数内延迟 import（方法体内 from agent.error_handler import RetryPolicy），运行期不会触发循环。后续应通过依赖注入将 RetryPolicy 实例作为参数传入 PrometheusMetricsExporter，彻底消除 prometheus→error_handler 静态依赖边。"
-    },
-    {
-      "rule_id": "no_circular_dependency",
-      "source": "agent.knowledge.links_index",
-      "target": "agent.knowledge.card",
-      "reason": "rebuild_links_index 在函数内延迟 import CardStore（links_index.py:103），运行期模块已加载完全，不会触发循环；arch_rules 静态分析检测到 from 语句。",
-      "added_at": "2026-08-10",
-      "owner": "knowledge-team",
-      "tech_debt_ticket": "ARCH-DEBT-008",
-      "mitigation": "应将 CardStore 依赖以参数注入 rebuild_links_index（依赖注入断边，方案 A 已本地验证 0 违规），消除静态边后撤销本豁免。见 docs/architecture/knowledge_circular_dependency_fix_plan_20260810.md"
     }
   ],
   "guidelines": [
