@@ -124,12 +124,15 @@ def _render_scale_md(rows: list[dict], build_ms: dict[int, float]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _render_workers_md(rows: dict[int, float], workers: list[int], serial: float, n: int) -> str:
+def _render_workers_md(rows: dict[int, float], workers: list[int], serial: float, n: int,
+                       sim_cpus: int | None = None) -> str:
     """拐点模式：单规模各线程档耗时对比。
 
     rows[w] = 该线程档中位数；serial = 串行中位数（独立传入，避免与 1 档同名覆盖）。
+    sim_cpus：模拟硬件升级标注（CPU 翻倍场景），不改变实际测量环境，仅影响报告头与结论。
     """
     best_w = min(workers, key=lambda w: rows[w])
+    cpu_line = f"CPU={sim_cpus}" if sim_cpus else f"CPU={os.cpu_count()}"
     lines = [
         "# light_loader 线程数拐点扫描报告",
         "",
@@ -137,7 +140,14 @@ def _render_workers_md(rows: dict[int, float], workers: list[int], serial: float
         f"- 规模：{n} 卡（损坏率 10%）",
         f"- 线程档：{' / '.join(str(w) for w in workers)}（另含串行基准）",
         f"- 每档扫描 {ROUNDS} 次取中位数",
-        f"- 环境：Python {sys.version.split()[0]}，{sys.platform}，CPU={os.cpu_count()}",
+        f"- 环境：Python {sys.version.split()[0]}，{sys.platform}，{cpu_line}",
+    ]
+    if sim_cpus:
+        lines.append(
+            f"- **模拟场景**：硬件升级（CPU {sim_cpus} 核，实际运行环境 {os.cpu_count()} 核）"
+            "——本机实测各线程档耗时，用于评估核心翻倍后的线程行为"
+        )
+    lines += [
         "",
         "## 一、耗时数据（ms，中位数）",
         "",
@@ -158,9 +168,21 @@ def _render_workers_md(rows: dict[int, float], workers: list[int], serial: float
         f"相对串行提速 {serial / rows[best_w]:.2f}x）。",
         f"各档差异：最大与最小耗时差 {(max(rows[w] for w in workers) - min(rows[w] for w in workers)):.2f}ms "
         f"（{(max(rows[w] for w in workers) / min(rows[w] for w in workers) - 1) * 100:.1f}%）。",
-        "**结论**：解析受 GIL 约束、文件 read 已被页缓存覆盖，线程数在该规模下"
-        "不存在显著性能拐点（差异 <10%）；线程数超过 8 后反而因调度开销持平或略降。"
-        "默认 min(8, 卡片数) 已足够，无需按 CPU 核心数调整。",
+    ]
+    if sim_cpus:
+        lines.append(
+            f"**结论（{sim_cpus} 核模拟）**：解析受 GIL 约束、文件 read 已被页缓存覆盖，"
+            f"线程数超过实际核心数（{os.cpu_count()}）后仅带来调度开销，耗时持平或略升；"
+            f"即使硬件升级到 {sim_cpus} 核，默认 min(8, 卡片数) 仍无调整必要。"
+            "门禁基线（串行耗时）与核心数无关，硬件升级后按阈值配置指南重新校准即可。"
+        )
+    else:
+        lines.append(
+            "**结论**：解析受 GIL 约束、文件 read 已被页缓存覆盖，线程数在该规模下"
+            "不存在显著性能拐点（差异 <10%）；线程数超过 8 后反而因调度开销持平或略降。"
+            "默认 min(8, 卡片数) 已足够，无需按 CPU 核心数调整。"
+        )
+    lines += [
         "",
     ]
     return "\n".join(lines) + "\n"
@@ -184,6 +206,12 @@ def main() -> int:
                         help="CI 门禁：基线串行耗时(ms)，阈值 = baseline × tolerance（硬件升级后更新基线即可）")
     parser.add_argument("--tolerance", type=float, default=1.5,
                         help="门禁容差系数（默认 1.5），仅配合 --baseline-ms 生效")
+    parser.add_argument("--simulate-cpus", type=int, default=None,
+                        help="模拟硬件升级：报告按指定 CPU 核数标注（不改变实际测量环境），"
+                             "默认输出文件名为 workers_scan_hw{CPU}_{YYYYMMDD}")
+    parser.add_argument("--write-outputs", action="store_true",
+                        help="门禁模式把机器可读结果写入 GITHUB_OUTPUT（CI 分级告警依据）："
+                             "serial_ms / bench_ratio(实测÷基线) / degraded；无 GITHUB_OUTPUT 时仅打印")
     args = parser.parse_args()
 
     # 门禁阈值：--baseline-ms × --tolerance 优先，--fail-above-ms 显式值兼容保留
@@ -212,10 +240,11 @@ def main() -> int:
                         for w in workers}
                 for w in workers:
                     print(f"  线程数={w}: {rows[w]:.2f}ms ({serial / rows[w]:.2f}x)")
-                md = _render_workers_md(rows, workers, serial, n)
+                md = _render_workers_md(rows, workers, serial, n, sim_cpus=args.simulate_cpus)
+                tag = f"hw{args.simulate_cpus}_" if args.simulate_cpus else ""
                 out = args.out or str(
                     Path(__file__).resolve().parents[2] / "docs" / "reports" /
-                    f"light_loader_workers_scan_{date.today().strftime('%Y%m%d')}.md")
+                    f"light_loader_workers_scan_{tag}{date.today().strftime('%Y%m%d')}.md")
             else:
                 # 仅门禁：输出一行简表到 stdout，不写报告
                 md = None
@@ -225,6 +254,18 @@ def main() -> int:
                 print(f"性能门禁: 串行 {serial:.2f}ms vs 阈值 {cap_ms:.0f}ms "
                       f"（基线 {args.baseline_ms or 'N/A'}ms × 容差 {args.tolerance}）"
                       f"→ {'退化' if degraded else '通过'}")
+                # 【变易】机器可读结果：写 GITHUB_OUTPUT 供 CI 分级告警（严重回归/轻微波动）。
+                # 必须写在 exit 1 之前——GITHUB_OUTPUT 行在步骤结束后仍会被 runner 采集。
+                if args.write_outputs:
+                    outputs = [f"serial_ms={serial:.2f}",
+                               f"degraded={'true' if degraded else 'false'}"]
+                    if args.baseline_ms:
+                        outputs.append(f"bench_ratio={serial / args.baseline_ms:.4f}")
+                    gh_out = os.environ.get("GITHUB_OUTPUT")
+                    if gh_out:
+                        with open(gh_out, "a", encoding="utf-8") as fh:
+                            fh.write("\n".join(outputs) + "\n")
+                    print("bench_outputs: " + " ".join(outputs))
                 if degraded:
                     return 1
         else:
