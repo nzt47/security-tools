@@ -87,3 +87,18 @@ repos:
           不良实践、潜在 bug）。发现 Error 级别问题时阻断提交。
           首次运行自动安装 PSScriptAnalyzer 模块。覆盖 fix_broken_links.ps1
           的 BOM/正则/编码类 bug，防止同类问题复发（2026-08-01 提案）。
+
+      - id: logging-disable-leak-scan
+        name: logging.disable 泄漏扫描 (try/finally 保护)
+        entry: python scripts/check_logging_disable_leak.py --root . --only-under tests --exit-nonzero-on-risk
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: >
+          扫描 tests/ 下所有 .py 文件中未被 try/finally 保护的 logging.disable
+          调用。logging.disable() 修改进程级 manager.disable，泄漏会静默掉
+          同进程后续 caplog/assertLogs（2026-08-10 test_knowledge_link_perf /
+          test_orchestrator 根因治理）。发现未受保护调用时阻断提交。
+          --only-under tests：仅对风险目录强制；scripts/ 独立基准脚本的
+          模块级 disable 属刻意设计，不误伤。

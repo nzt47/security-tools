@@ -106,6 +106,17 @@ jobs:
           echo "=== BOM 污染监控(受保护文件清单) ==="
           python scripts/guard_bom_pollution.py --repo-root "$GITHUB_WORKSPACE"
 
+      - name: logging.disable 泄漏扫描（受保护文件第二道防线）
+        # Why 阻塞: 本扫描是 pre-commit hook logging-disable-leak-scan 的 CI 兜底，
+        #   防止 `git commit --no-verify` 绕过本地 hook 后 logging.disable 泄漏回归
+        #   （进程级 manager.disable 污染同进程 caplog/assertLogs）。
+        #   --only-under tests：仅对 tests/ 强制（风险目录）；scripts/ 独立基准脚本
+        #   的模块级 disable 属刻意设计（避免日志 I/O 干扰计时），不误伤。
+        #   详见 docs/troubleshooting/logging_leak_fix_review_20260810.md
+        run: |
+          echo "=== logging.disable 泄漏扫描(tests/) ==="
+          python scripts/check_logging_disable_leak.py --root . --only-under tests --exit-nonzero-on-risk
+
   # ============================================================================
   # 安全扫描
   # ============================================================================
