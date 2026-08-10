@@ -64,6 +64,10 @@ env:
   #   用新基线更新下方两个变量即可，无需改 workflow 逻辑。
   LIGHT_LOADER_SERIAL_BASELINE_MS: '1944'
   LIGHT_LOADER_BENCH_TOLERANCE: '1.5'
+  # 【变易】严重回归判定线：实测串行耗时 / 基线 > LIGHT_LOADER_SEVERE_RATIO 视为严重回归
+  #   （走钉钉 + PR 评论双渠道告警）；介于容差线(1.5x)与严重线(2.0x)之间为轻微波动（仅 PR 评论）。
+  #   如团队告警策略变化，只需调整该 env，无需改 workflow 逻辑。
+  LIGHT_LOADER_SEVERE_RATIO: '2.0'
 
 jobs:
   # =====================================================================
@@ -256,6 +260,10 @@ jobs:
       always() && needs.nightly-build-guard.result == 'success'
       && needs.nightly-build-guard.outputs.should_run == 'true'
       && github.event.inputs.test_suite != 'unit'
+    # 【变易】机器可读结果透出：test-summary 依据 bench_ratio 区分「严重回归/轻微波动」。
+    outputs:
+      serial_ms: ${{ steps.bench.outputs.serial_ms }}
+      bench_ratio: ${{ steps.bench.outputs.bench_ratio }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
@@ -271,10 +279,22 @@ jobs:
           pip install pyyaml
 
       - name: 运行性能门禁（基线 ${{ env.LIGHT_LOADER_SERIAL_BASELINE_MS }}ms × 容差 ${{ env.LIGHT_LOADER_BENCH_TOLERANCE }}）
+        id: bench
+        # 【变易】continue-on-error：门禁失败不中断步骤链，确保 serial_ms/bench_ratio
+        #   outputs 仍可被 test-summary 读取（分级告警依据）；失败语义由下一判定步骤承接，
+        #   退出码契约（脚本 exit 1 = 退化）不变。
+        continue-on-error: true
         run: python scripts/dev/bench_light_loader_serial_parallel.py \
           --scale 10000 --rounds 3 \
           --baseline-ms ${{ env.LIGHT_LOADER_SERIAL_BASELINE_MS }} \
-          --tolerance ${{ env.LIGHT_LOADER_BENCH_TOLERANCE }}
+          --tolerance ${{ env.LIGHT_LOADER_BENCH_TOLERANCE }} \
+          --write-outputs
+
+      - name: 判定门禁结果（退化 → job 失败）
+        if: steps.bench.outputs.degraded == 'true'
+        run: |
+          echo "::error::light_loader 串行耗时超门禁阈值（实测 ${{ steps.bench.outputs.serial_ms }}ms vs 阈值 ${{ env.LIGHT_LOADER_SERIAL_BASELINE_MS }}ms × ${{ env.LIGHT_LOADER_BENCH_TOLERANCE }}）"
+          exit 1
 
   # =====================================================================
   # Job 5: 测试汇总与通知（区分功能回归 / 性能退化）
@@ -288,6 +308,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [unit-tests, e2e-recovery-tests, light-loader-stress, light-loader-bench]
     if: always()
+    # 【不易】secrets 不能在 if: 中使用（CHG-2026-0801 同契约），映射到 job env
+    #   供「严重回归钉钉告警」步骤的 if 判断；step 级 env 在 if 中不可见，必须放 job 级。
+    env:
+      DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
     steps:
       - name: Check test results
         id: results
@@ -308,10 +332,19 @@ jobs:
             echo "kind=functional" >> $GITHUB_OUTPUT
             echo "❌ 功能回归失败" >> $GITHUB_STEP_SUMMARY
           elif [[ "${BENCH_RESULT}" == "failure" ]]; then
-            # 功能类全过但性能门禁失败 → 性能退化
+            # 功能类全过但性能门禁失败 → 按严重度分级告警
+            RATIO="${{ needs.light-loader-bench.outputs.bench_ratio }}"
+            SEVERE="${{ env.LIGHT_LOADER_SEVERE_RATIO }}"
             echo "overall=failed" >> $GITHUB_OUTPUT
-            echo "kind=performance" >> $GITHUB_OUTPUT
-            echo "⚠️ 性能退化（10000 卡串行耗时超阈值）" >> $GITHUB_STEP_SUMMARY
+            # 实测/基线 > 严重线 → 严重回归（钉钉 + PR 评论双渠道）；
+            # 介于容差线(1.5x)与严重线之间 → 轻微波动（仅 PR 评论）。
+            if [ -n "${RATIO}" ] && awk -v r="${RATIO}" -v s="${SEVERE}" 'BEGIN{exit !(r>s)}'; then
+              echo "kind=performance-severe" >> $GITHUB_OUTPUT
+              echo "🚨 性能严重回归（实测/基线=${RATIO} > ${SEVERE}）" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "kind=performance-minor" >> $GITHUB_OUTPUT
+              echo "⚠️ 性能轻微波动（超门禁阈值，未达严重线 ${SEVERE}）" >> $GITHUB_STEP_SUMMARY
+            fi
           else
             echo "overall=passed" >> $GITHUB_OUTPUT
             echo "kind=passed" >> $GITHUB_OUTPUT
@@ -331,6 +364,8 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            // 【变易】nightly(schedule/workflow_run)无 PR 上下文时静默跳过，避免 null 报错
+            if (!context.payload.pull_request) return;
             github.rest.issues.createComment({
               issue_number: context.payload.pull_request.number,
               owner: context.repo.owner,
@@ -338,16 +373,45 @@ jobs:
               body: '❌ **回归测试失败（功能回归）**\n\n请检查 [Workflow Run](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ')\n\n失败套件:\n- Unit Tests: ${{ needs.unit-tests.result }}\n- E2E Recovery Tests: ${{ needs.e2e-recovery-tests.result }}\n- light_loader 并行保序压力测试: ${{ needs.light-loader-stress.result }}'
             })
 
-      - name: Send performance degradation notification
-        if: steps.results.outputs.kind == 'performance'
+      - name: Send performance severe notification (PR comment)
+        if: steps.results.outputs.kind == 'performance-severe'
         uses: actions/github-script@v7
         with:
           script: |
+            // 【变易】nightly(schedule/workflow_run)无 PR 上下文时静默跳过，避免 null 报错
+            if (!context.payload.pull_request) return;
             github.rest.issues.createComment({
               issue_number: context.payload.pull_request.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '⚠️ **性能退化告警（light_loader）**\n\n10000 卡串行扫描耗时超过门禁阈值（基线 ${{ env.LIGHT_LOADER_SERIAL_BASELINE_MS }}ms × 容差 ${{ env.LIGHT_LOADER_BENCH_TOLERANCE }}），功能类回归全部通过。\n\n请检查 [Workflow Run](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ')\n\n建议排查:\n- 解析器是否回退到纯 Python SafeLoader（libyaml C 扩展缺失）\n- 单卡解析成本是否回归（参考 docs/reports/light_loader_serial_parallel_bench_20260811.md）\n- 若为硬件/runner 变更导致误报，按 docs/reports/light_loader_bench_threshold_guide_20260811.md 重新校准基线'
+              body: '🚨 **性能严重回归告警（light_loader）**\n\n10000 卡串行扫描耗时严重超出基线（实测 ${{ needs.light-loader-bench.outputs.serial_ms }}ms，基线 ${{ env.LIGHT_LOADER_SERIAL_BASELINE_MS }}ms，比率 ${{ needs.light-loader-bench.outputs.bench_ratio }} > 严重线 ${{ env.LIGHT_LOADER_SEVERE_RATIO }}），功能类回归全部通过。\n\n请检查 [Workflow Run](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ')\n\n建议立即排查:\n- 解析器是否回退到纯 Python SafeLoader（libyaml C 扩展缺失）\n- 单卡解析成本是否回归（参考 docs/reports/light_loader_serial_parallel_bench_20260811.md）\n- 若为硬件/runner 变更导致误报，按 docs/reports/light_loader_bench_threshold_guide_20260811.md 重新校准基线'
+            })
+
+      - name: 发送严重回归钉钉告警
+        if: steps.results.outputs.kind == 'performance-severe' && env.DINGTALK_WEBHOOK != ''
+        run: |
+          python -m pip install requests -q || true
+          python scripts/observability_dingtalk_notify.py \
+            --webhook "${{ secrets.DINGTALK_WEBHOOK }}" \
+            --status failure \
+            --workflow "Daily Regression Tests" \
+            --branch "${{ github.ref_name }}" \
+            --commit "${{ github.sha }}" \
+            --message "🚨 light_loader 性能严重回归: 实测 ${{ needs.light-loader-bench.outputs.serial_ms }}ms / 基线 ${{ env.LIGHT_LOADER_SERIAL_BASELINE_MS }}ms（比率 ${{ needs.light-loader-bench.outputs.bench_ratio }}）。运行: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        continue-on-error: true
+
+      - name: Send performance minor notification (PR comment)
+        if: steps.results.outputs.kind == 'performance-minor'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // 【变易】nightly(schedule/workflow_run)无 PR 上下文时静默跳过，避免 null 报错
+            if (!context.payload.pull_request) return;
+            github.rest.issues.createComment({
+              issue_number: context.payload.pull_request.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '⚠️ **性能轻微波动（light_loader）**\n\n10000 卡串行扫描耗时超过门禁阈值（基线 ${{ env.LIGHT_LOADER_SERIAL_BASELINE_MS }}ms × 容差 ${{ env.LIGHT_LOADER_BENCH_TOLERANCE }}），但实测/基线 ${{ needs.light-loader-bench.outputs.bench_ratio }} 未达严重线 ${{ env.LIGHT_LOADER_SEVERE_RATIO }}，功能类回归全部通过。\n\n请检查 [Workflow Run](' + context.serverUrl + '/' + context.repo.owner + '/' + context.repo.repo + '/actions/runs/' + context.runId + ')\n\n建议关注趋势，若持续超标将升级为严重回归告警（钉钉渠道）。'
             })
 
   # =====================================================================
