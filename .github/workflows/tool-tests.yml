@@ -57,6 +57,10 @@ jobs:
           pip install -e . || true
 
       - name: 运行工具模块测试
+        # 【不易】必须 shell: bash：pytest 多行命令用 bash 的 \ 续行符，
+        # Windows runner 默认 shell 为 PowerShell，\ 被解析为除法运算符 → ParserError
+        # （2026-08-10 复现：run 31310871956 develop / 31377751010 归档分支均因此失败）
+        shell: bash
         run: |
           pytest docs/archive/agent_tests_20260810/test_file_tools.py \
                 docs/archive/agent_tests_20260810/test_web_tools.py \
