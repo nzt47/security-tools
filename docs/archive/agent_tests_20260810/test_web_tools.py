@@ -1,5 +1,9 @@
 """网络工具集成测试 — 测试 agent.web 模块的 HttpClient/SearchEngine/Scraper
 
+【归档说明】2026-08-10 自 agent/tests/test_web_tools.py 归档（git mv 保留历史）。
+归档目录仅作存档，pytest 通过 testpaths=tests 不收集；本文件由
+tool-tests.yml（云枢工具模块测试）显式指定路径运行。
+
 覆盖范围：
 - HttpClient.get / .post — 正常返回、超时、404、自定义 headers
 - HttpClient.batch_request — 批量请求、并发限制

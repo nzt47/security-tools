@@ -61,6 +61,12 @@ jobs:
         # Windows runner 默认 shell 为 PowerShell，\ 被解析为除法运算符 → ParserError
         # （2026-08-10 复现：run 31310871956 develop / 31377751010 归档分支均因此失败）
         shell: bash
+        # 【不易】PYTHONPATH 必须指向 workspace：pytest console script 启动不把 cwd 加入
+        # sys.path，而 editable 安装（pip install -e . || true）失败被 || true 吞掉 →
+        # from agent.xxx import 报 ModuleNotFoundError（2026-08-10 shell:bash 修复后首次
+        # 实际运行暴露：6 矩阵组合 28 failed / 15 errors，归档前后行为一致属存量问题）。
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           pytest docs/archive/agent_tests_20260810/test_file_tools.py \
                 docs/archive/agent_tests_20260810/test_web_tools.py \
