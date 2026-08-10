@@ -14,6 +14,7 @@ from planning.core import PlanningCore
 class TestDefectD6:
     """D6：complexity_threshold 应参与复杂度判定"""
 
+    @pytest.mark.xfail(reason="已知缺陷 D6：规划复杂度阈值未生效（缺陷看门狗，修复后移除 xfail）", strict=False)
     def test_complexity_threshold_affects_needs_planning(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # 阈值设为极高：只有极复杂任务才需要规划

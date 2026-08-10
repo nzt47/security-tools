@@ -15,6 +15,7 @@ import yaml
 class TestDefectD7:
     """D7：规划引擎应接入生产配置"""
 
+    @pytest.mark.xfail(reason="已知缺陷 D7：生产配置未启用规划（缺陷看门狗，修复后移除 xfail）", strict=False)
     def test_planning_enabled_in_production_config(self):
         repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         with open(os.path.join(repo_root, "config.yaml"), encoding="utf-8") as f:

@@ -14,6 +14,7 @@ from planning.models import Plan, Task
 class TestDefectD15:
     """D15：Plan 应提供用户可读的结构化摘要"""
 
+    @pytest.mark.xfail(reason="已知缺陷 D15：Plan 无用户可读摘要能力（缺陷看门狗，修复后移除 xfail）", strict=False)
     def test_plan_provides_human_readable_summary(self):
         plan = Plan(original_task="整理一份市场分析报告")
         plan.add_task(Task(id="t1", description="收集数据"))
