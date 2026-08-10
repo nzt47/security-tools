@@ -53,6 +53,9 @@ class ReActResult:
     total_duration_ms: int = 0
     error: Optional[str] = None
     final_state: Dict[str, Any] = field(default_factory=dict)
+    # D13 优化：token/cost 预算可观测（估算值，默认 0 向后兼容）
+    token_used: int = 0
+    cost: float = 0.0
 
     def to_dict(self) -> dict:
         return {
@@ -62,11 +65,13 @@ class ReActResult:
             "steps_count": len(self.steps),
             "total_duration_ms": self.total_duration_ms,
             "error": self.error,
+            "token_used": self.token_used,
+            "cost": self.cost,
         }
 
     @property
     def summary(self) -> str:
         """生成执行摘要"""
         if self.success:
-            return f"成功完成,耗时{self.iterations}步"
-        return f"失败({self.error}),执行{self.iterations}步"
+            return f"成功完成,耗时{self.iterations}步,使用{self.token_used} tokens"
+        return f"失败({self.error}),执行{self.iterations}步,使用{self.token_used} tokens"

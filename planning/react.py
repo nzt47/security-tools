@@ -77,6 +77,20 @@ class ReActLoop:
         self.max_iterations = max_iterations
         self.config = config or {}
 
+        # D13 优化：三层预算 + token/cost 可观测
+        # - timeout_seconds   : deadline 预算（迭代级检查，既有 D13 修复）
+        # - token_budget      : token 预算（估算累计，超限终止）
+        # - cost_budget       : 成本预算（token × 单价，超限终止）
+        # - token_price_per_1k: 每千 token 单价（USD），默认 0.002
+        # - tool_timeout      : 异步工具调用硬超时（wait_for 包裹）；同步工具由 deadline 兜底
+        self.deadline_seconds = self.config.get("timeout_seconds")
+        self.token_budget = self.config.get("token_budget")
+        self.cost_budget = self.config.get("cost_budget")
+        self.token_price = self.config.get("token_price_per_1k", 0.002)
+        self.tool_timeout = self.config.get("tool_timeout_seconds")
+        self._token_used = 0
+        self._cost = 0.0
+
     async def run(self, task: str, context: Dict = None) -> ReActResult:
         """
         执行ReAct循环
@@ -91,9 +105,6 @@ class ReActLoop:
         context = context or {}
         steps: List[ReActStep] = []
         start_time = datetime.now()
-        # D13 修复：deadline 预算（config["timeout_seconds"]，原配置保存但从未读取，
-        # 循环内每次迭代检查，超预算即终止返回预算错误）
-        deadline_seconds = self.config.get("timeout_seconds")
 
         logger.info("══════════════════════════════════════════════════════════════════")
         logger.info("🔄 [ReAct循环] =================================================")
@@ -107,19 +118,35 @@ class ReActLoop:
         for iteration in range(self.max_iterations):
             iter_start = datetime.now()
 
-            # D13 修复：deadline 预算检查（迭代级，超预算立即终止）
-            if deadline_seconds is not None:
-                elapsed = (iter_start - start_time).total_seconds()
-                if elapsed >= deadline_seconds:
-                    logger.warning(f"⚠️ [ReAct循环] 超出时间预算({deadline_seconds}s)，终止")
-                    return ReActResult(
-                        success=False,
-                        result=f"超出时间预算({deadline_seconds}s)",
-                        steps=steps,
-                        iterations=iteration,
-                        total_duration_ms=int(elapsed * 1000),
-                        error=f"超出时间预算({deadline_seconds}s)"
-                    )
+            # D13 优化：三层预算检查（deadline / token / cost），超限立即终止
+            elapsed = (datetime.now() - start_time).total_seconds()
+            if self.deadline_seconds is not None and elapsed >= self.deadline_seconds:
+                logger.warning(f"⚠️ [ReAct循环] 超出时间预算({self.deadline_seconds}s)，终止")
+                return self._result(
+                    success=False,
+                    result=f"超出时间预算({self.deadline_seconds}s)",
+                    steps=steps, iterations=iteration,
+                    duration_ms=elapsed * 1000,
+                    error=f"超出时间预算({self.deadline_seconds}s)",
+                )
+            if self.token_budget is not None and self._token_used >= self.token_budget:
+                logger.warning(f"⚠️ [ReAct循环] 超出token预算({self._token_used}/{self.token_budget})，终止")
+                return self._result(
+                    success=False,
+                    result=f"超出token预算({self._token_used}/{self.token_budget})",
+                    steps=steps, iterations=iteration,
+                    duration_ms=elapsed * 1000,
+                    error=f"超出token预算({self._token_used}/{self.token_budget})",
+                )
+            if self.cost_budget is not None and self._cost >= self.cost_budget:
+                logger.warning(f"⚠️ [ReAct循环] 超出成本预算(${self._cost:.4f}/{self.cost_budget})，终止")
+                return self._result(
+                    success=False,
+                    result=f"超出成本预算(${self._cost:.4f}/{self.cost_budget})",
+                    steps=steps, iterations=iteration,
+                    duration_ms=elapsed * 1000,
+                    error=f"超出成本预算(${self._cost:.4f}/{self.cost_budget})",
+                )
             logger.info("──────────────────────────────────────────────────────────────────")
             logger.info(f"🔁 [迭代 {iteration + 1}/{self.max_iterations}] ────────────────")
             logger.info(f"🔁 [迭代 {iteration + 1}] 开始时间: {iter_start.strftime('%H:%M:%S.%f')[:-3]}")
@@ -153,12 +180,12 @@ class ReActLoop:
                     logger.info(f"      ├─ 总时长: {duration:.2f}ms")
                     logger.info(f"      └─ 结果: {thought.result[:80]}{'...' if len(thought.result or '') > 80 else ''}")
                     logger.info("══════════════════════════════════════════════════════════════════")
-                    return ReActResult(
+                    return self._result(
                         success=True,
                         result=thought.result or "任务完成",
                         steps=steps,
                         iterations=iteration + 1,
-                        total_duration_ms=int(duration)
+                        duration_ms=duration,
                     )
 
                 logger.info("   ┌──────────────────────────────────────────────────────────┐")
@@ -191,13 +218,13 @@ class ReActLoop:
                     # 由调用方询问用户后恢复（不再继续执行后续行动）。
                     logger.info("   ⏸️ 检测到 ask_user：暂停执行，等待用户输入")
                     duration = (datetime.now() - start_time).total_seconds() * 1000
-                    return ReActResult(
+                    return self._result(
                         success=False,
                         result=thought.result or "需要用户确认",
                         error="等待用户输入",
                         steps=steps,
                         iterations=iteration + 1,
-                        total_duration_ms=int(duration)
+                        duration_ms=duration,
                     )
 
                 if self.reflector and action_result.success:
@@ -268,13 +295,13 @@ class ReActLoop:
         logger.info(f"⚠️ [ReAct循环] 总时长: {duration:.2f}ms")
         logger.info(f"⚠️ [ReAct循环] 结束时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
         logger.warning("══════════════════════════════════════════════════════════════════")
-        return ReActResult(
+        return self._result(
             success=False,
             result="达到最大迭代次数,任务未完成",
             steps=steps,
             iterations=self.max_iterations,
-            total_duration_ms=int(duration),
-            error="超时"
+            duration_ms=duration,
+            error="超时",
         )
 
     async def _think(self, task: str, context: Dict, history: List[ReActStep]) -> ThoughtResult:
@@ -324,6 +351,11 @@ class ReActLoop:
             try:
                 logger.debug("   [思考] 正在调用LLM...")
                 response = await self.planner.llm.chat([{"role": "user", "content": prompt}])
+                # D13 优化：token/cost 可观测（估算：prompt + 响应按字符/3 近似，
+                # 不依赖 LLM 响应 usage 结构，兼容纯文本返回）
+                self._token_used += self._estimate_tokens(prompt) + self._estimate_tokens(response)
+                self._cost = self._token_used / 1000 * self.token_price
+                logger.debug(f"   [思考] token 累计: {self._token_used} (估算), cost: ${self._cost:.4f}")
                 logger.debug("   [思考] LLM响应已接收")
                 return self._parse_thought(response)
             except Exception as e:
@@ -362,7 +394,14 @@ class ReActLoop:
                 try:
                     logger.info(f"   [行动] 开始调用工具...")
                     if asyncio.iscoroutinefunction(tool):
-                        output = await tool(**thought.action.tool_params)
+                        # D13 优化：异步工具调用硬超时（wait_for 包裹，防慢工具拖死循环）；
+                        # 同步工具无法在事件循环内硬中断，由迭代级 deadline 预算兜底
+                        if self.tool_timeout is not None:
+                            output = await asyncio.wait_for(
+                                tool(**thought.action.tool_params), timeout=self.tool_timeout
+                            )
+                        else:
+                            output = await tool(**thought.action.tool_params)
                         logger.info(f"   [行动] ✅ 异步工具调用成功")
                     else:
                         output = tool(**thought.action.tool_params)
@@ -372,6 +411,9 @@ class ReActLoop:
                         output=output,
                         observation=f"{tool_name}执行成功"
                     )
+                except asyncio.TimeoutError:
+                    logger.error(f"   [行动] ❌ 工具调用超时(>{self.tool_timeout}s): {tool_name}")
+                    return ActionResult.failure_result(f"工具调用超时(>{self.tool_timeout}s): {tool_name}")
                 except Exception as e:
                     logger.error(f"   [行动] ❌ 工具执行失败: {e}")
                     return ActionResult.failure_result(f"工具执行失败: {e}")
@@ -504,3 +546,24 @@ class ReActLoop:
             return True
 
         return False
+
+    def _result(self, *, success: bool, result: Any, steps: List[ReActStep],
+                iterations: int, duration_ms: float, error: Optional[str] = None) -> ReActResult:
+        """统一构造 ReActResult，透出 token/cost 预算可观测字段"""
+        return ReActResult(
+            success=success,
+            result=result,
+            steps=steps,
+            iterations=iterations,
+            total_duration_ms=int(duration_ms),
+            error=error,
+            token_used=self._token_used,
+            cost=self._cost,
+        )
+
+    @staticmethod
+    def _estimate_tokens(text: Any) -> int:
+        """估算 token 数（字符/3 近似，中英混合通用；不依赖 LLM usage 结构）"""
+        if not text:
+            return 0
+        return max(1, len(str(text)) // 3)
