@@ -316,7 +316,7 @@ class PlanningCore:
             return await self._direct_chat(message, context)
 
     def _needs_planning(self, message: str) -> bool:
-        """判断是否需要规划"""
+        """判断是否需要规划（D6 修复：complexity_threshold 配置参与判定）"""
         complex_indicators = [
             "帮我完成", "帮我创建", "帮我分析",
             "帮我构建", "流程", "系统",
@@ -327,11 +327,16 @@ class PlanningCore:
         action_keywords = ["检查", "分析", "创建", "生成", "整理", "监控"]
         action_count = sum(1 for keyword in action_keywords if keyword in message.lower())
 
-        needs = complex_count >= 1 or action_count >= 2
+        # D6 修复：复杂度分数 = 复杂指示器数 + 0.5×动作关键词数，
+        # 超过 config.complexity_threshold（默认 1.0 = 等价原判定：复杂>=1 或 动作>=2）才规划。
+        # 调高阈值可收严判定（测试：threshold=10 时普通报告任务不再触发规划）。
+        threshold = self.config.get("complexity_threshold", 1.0)
+        score = complex_count + action_count * 0.5
+        needs = score >= threshold
 
         logger.info(f"   复杂指示器匹配: {complex_count} 个")
         logger.info(f"   动作关键词匹配: {action_count} 个")
-        logger.info(f"   阈值: 复杂>=1 或 动作>=2")
+        logger.info(f"   阈值: {threshold}（分数 {score}）")
         logger.info(f"   需要规划: {needs}")
 
         return needs
