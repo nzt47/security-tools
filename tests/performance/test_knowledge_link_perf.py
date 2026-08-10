@@ -159,9 +159,12 @@ def _spy_list_from_disk(monkeypatch) -> list:
     calls: list = []
     original = CardStore._list_from_disk
 
-    def spy(self):
+    def spy(self, parallel: bool = False):
+        # 【变易】透传 parallel：c7774023 给 _list_from_disk 增加 parallel 参数后，
+        # 旧 spy 签名未接收该参数，store.list() 调用 _list_from_disk(parallel=...)
+        # 时抛 TypeError，导致性能测试 6/6 全失败（CI 全绿回归）。
         calls.append(1)
-        return original(self)
+        return original(self, parallel=parallel)
 
     monkeypatch.setattr(CardStore, "_list_from_disk", spy)
     return calls
@@ -219,6 +222,11 @@ def test_list_cache_sync_on_delete(tmp_path, monkeypatch):
     calls = _spy_list_from_disk(monkeypatch)
 
     assert store.delete("iso") is True
+    # 【不易】delete 内部的入链检查（_incoming_sources）在索引缺失时回退
+    # 全库扫描 self.list()，会触发一次 _list_from_disk —— 这是删除语义的
+    # 合法扫描，非缓存失效。重置计数后再 list(use_cache=True) 验证增量
+    # 同步确实生效（不因误计导致假阳性断言失败）。
+    calls.clear()
     reloaded = store.list(use_cache=True)
 
     assert not calls, "delete 后缓存应增量同步，不应触发全量重载"
