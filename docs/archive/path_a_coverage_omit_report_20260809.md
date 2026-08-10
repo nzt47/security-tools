@@ -8,7 +8,7 @@
 
 ## 1. 改动内容
 
-[pyproject.toml](pyproject.toml) `[tool.coverage.run]` 新增 omit：
+[pyproject.toml](../../pyproject.toml) `[tool.coverage.run]` 新增 omit：
 
 ```toml
 omit = [

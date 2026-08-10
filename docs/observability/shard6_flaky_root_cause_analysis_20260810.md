@@ -67,7 +67,7 @@ def _silence_knowledge_link_warnings():
 
 | 类型 | 文件 |
 |------|------|
-| 修复 | [test_knowledge_link_perf.py](../tests/performance/test_knowledge_link_perf.py#L29-L41)（autouse fixture） |
+| 修复 | [test_knowledge_link_perf.py](../../tests/performance/test_knowledge_link_perf.py#L29-L41)（autouse fixture） |
 | 触发 commit | `da5f83ac`（fix(test)） |
 | 相关前置 | [knowledge_circular_dependency_fix_summary_20260810.md](../architecture/knowledge_circular_dependency_fix_summary_20260810.md) |
 

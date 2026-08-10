@@ -56,8 +56,8 @@
 | 类型 | 文件 |
 |------|------|
 | 修复方案 | [knowledge_circular_dependency_fix_plan_20260810.md](knowledge_circular_dependency_fix_plan_20260810.md) |
-| 代码修改 | [links_index.py](../agent/knowledge/links_index.py#L101-L114)（rebuild_links_index 签名） |
-| 测试修改 | [test_links_index.py](../tests/unit/test_links_index.py)（6 处调用） |
+| 代码修改 | [links_index.py](../../agent/knowledge/links_index.py#L101-L114)（rebuild_links_index 签名） |
+| 测试修改 | [test_links_index.py](../../tests/unit/test_links_index.py)（6 处调用） |
 | 豁免变更 | [legacy_exemptions.json](../architecture/legacy_exemptions.json)（加后撤，净变更 0） |
 | commits | `f35dbe6e`（B）→ `d354b4d0`（A + 撤 B） |
 

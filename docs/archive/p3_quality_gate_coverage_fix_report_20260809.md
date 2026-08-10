@@ -12,7 +12,7 @@ observability-ci 的「可观测性质量门禁」job（`observability-quality-g
 
 ### 1.1 读取口径错误（主因）
 
-[observability_quality_gate.py](scripts/observability_quality_gate.py) 的 `check_coverage` 遍历结果目录，**匹配第一个路径含 "coverage" 的 JSON 报告**：
+[observability_quality_gate.py](../../scripts/observability_quality_gate.py) 的 `check_coverage` 遍历结果目录，**匹配第一个路径含 "coverage" 的 JSON 报告**：
 
 - 匹配到的实际是 `observability-unit-test-results-py3.x` 上传的**可观测性子模块局部覆盖率**（仅 7 个测试文件、覆盖 3 个子模块，≈22.8%）
 - 真正的全项目覆盖率 `full-coverage-report/coverage.xml`（6 个 shard 合并）是 **XML 格式**，而脚本只收集 `.json` 文件——**全项目覆盖率从未被门禁读取过**

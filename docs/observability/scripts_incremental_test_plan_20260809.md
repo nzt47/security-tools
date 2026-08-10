@@ -2,7 +2,7 @@
 
 > 目标：将 scripts 层覆盖率从 **6.9%** 提升至 **50%**（S2 红线），分 3 批增量推进。
 > 背景：scripts/ 占全项目有效行 43.8%，是覆盖率缺口的**第一大来源**（3609/52175 行覆盖）。
-> 关联：[coverage_gap_short_term_plan](coverage_gap_short_term_plan_20260809.md) / [scripts_gate_integration_plan](scripts_gate_integration_plan_20260809.md)
+> 关联：[coverage_gap_short_term_plan](../archive/coverage_gap_short_term_plan_20260809.md) / [scripts_gate_integration_plan](../archive/scripts_gate_integration_plan_20260809.md)
 
 ---
 
