@@ -56,6 +56,7 @@
 | 2026-08-09 | `23f9b64` | 99.5% (1708/1717) | 0 | 9 | 106.44 | — | 0 | ↑ | test(perf): 7 个 filter 依赖测试加 @pytest.mark.serial（Shard 2） |
 | 2026-08-10 | `33136c1` | 99.5% (1708/1717) | 0 | 9 | 112.73 | — | 0 | ↑ | test(knowledge): 4 个日志捕获测试加 @pytest.mark.serial（Shard 4 flake  |
 | 2026-08-10 | `305282c` | 99.5% (1708/1717) | 0 | 9 | 116.13 | — | 0 | ↑ | fix(ci): 修复 performance 测试 import 副作用全局禁用日志致 Shard 4 |
+| 2026-08-10 | `296c8e6` | 99.5% (1708/1717) | 0 | 9 | 113.68 | — | 0 | ↑ | fix(logging): safe_logger AuditLogger 补 makedirs 防 CI 全新 checkout 无 lo |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
