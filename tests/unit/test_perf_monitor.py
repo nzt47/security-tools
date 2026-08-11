@@ -76,7 +76,10 @@ class TestPerfTrace:
         with perf_monitor.perf_trace("test", "disabled"):
             pass
         stats = perf_monitor.get_stats()
-        assert len(stats) == 0
+        # 【变易·CHG-2026-0811】断言改 key 级: 3.10-windows CI 上后台线程
+        # (observability/采样) 可能向全局 _STATS 写入其他 key, len==0 偶发 flaky。
+        # 测试意图是「disable 时本次埋点不记录」, 验证目标 key 不存在即可。
+        assert "test.disabled" not in stats
 
     def test_perf_trace_calculates_speedup(self):
         with perf_monitor.perf_trace("mod", "act", old_us=100.0):
@@ -117,10 +120,16 @@ class TestStatsAggregation:
         assert s["avg_old_us"] == 10.0
 
     def test_reset_stats(self):
-        perf_monitor.record_call("r", "t", 1.0, 2.0)
-        assert len(perf_monitor.get_stats()) == 1
+        # 【变易·CHG-2026-0811】断言改 key 级: 3.10-windows CI 实测
+        # assert 2 == 1 (setup reset 后后台线程写入其他 key)。测试意图是
+        # record 后目标 key 存在、reset 后消失, 不依赖全局 stats 纯净。
         perf_monitor.reset_stats()
-        assert len(perf_monitor.get_stats()) == 0
+        perf_monitor.record_call("r", "t", 1.0, 2.0)
+        stats = perf_monitor.get_stats()
+        assert "r.t" in stats
+        assert stats["r.t"]["count"] == 1
+        perf_monitor.reset_stats()
+        assert "r.t" not in perf_monitor.get_stats()
 
     def test_negative_duration_zeroed(self):
         """边界显性化：负数耗时归零"""
