@@ -133,3 +133,58 @@ class TestDefectD13:
         assert result.steps
         assert "超时" in result.steps[0].observation
         assert result.total_duration_ms < 10_000  # 未被 10s 慢工具拖死
+
+    @pytest.mark.asyncio
+    async def test_budget_ask_user_consultation(self):
+        """D13 规格补全：启用 budget_ask_user 时，预算超限降级为"征求用户"暂停而非直接终止"""
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            json.dumps({
+                "reasoning": "调用工具",
+                "action_type": "tool_call",
+                "action": {"tool": "missing_tool", "params": {}, "description": "调用"},
+            }),
+            json.dumps({"reasoning": "完成", "action_type": "finish", "result": "完成"}),
+        ]
+
+        planner = MagicMock()
+        planner.llm = mock_llm
+        planner.tool_registry = ToolRegistry()
+
+        # token 预算极小 + 启用征求用户：单次思考即超限
+        loop = ReActLoop(
+            planner, None, max_iterations=5,
+            config={"token_budget": 1, "budget_ask_user": True},
+        )
+        result = await loop.run("测试任务", {})
+
+        # 目标行为：不直接报预算错误终止，而是返回"等待用户输入"暂停信号，且携带预算详情
+        assert result.success is False
+        assert "等待用户输入" in result.error
+        assert "token" in result.error
+        assert "token" in result.result
+
+    @pytest.mark.asyncio
+    async def test_budget_ask_user_default_off(self):
+        """D13 规格补全：budget_ask_user 未配置时保持直接终止（向后兼容，默认分支不受影响）"""
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            json.dumps({
+                "reasoning": "调用工具",
+                "action_type": "tool_call",
+                "action": {"tool": "missing_tool", "params": {}, "description": "调用"},
+            }),
+            json.dumps({"reasoning": "完成", "action_type": "finish", "result": "完成"}),
+        ]
+
+        planner = MagicMock()
+        planner.llm = mock_llm
+        planner.tool_registry = ToolRegistry()
+
+        # 与 test_token_budget_exceeded 同配置，仅未设 budget_ask_user → 直接终止
+        loop = ReActLoop(planner, None, max_iterations=5, config={"token_budget": 10})
+        result = await loop.run("测试任务", {})
+
+        assert result.success is False
+        assert "等待用户输入" not in (result.error or "")
+        assert "token" in result.error

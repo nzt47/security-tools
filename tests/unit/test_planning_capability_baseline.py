@@ -1,13 +1,13 @@
 """规划模块缺失能力基线测试（阶段 0）
 
-这些测试编码《规划模块理想设计.md》中的目标能力规格，当前实现尚未具备。
-先以 pytest.mark.skip 标注"待实现"，在对应重构阶段完成后移除 skip 并使其通过。
+这些测试编码《规划模块理想设计.md》中的目标能力规格。
+各规格曾在对应重构阶段以 pytest.mark.skip 标注"待实现"，完成后移除 skip 并通过；当前 5 项全部启用。
 
 对应关系（2026-08-11 更新）：
 - 并行执行     → D5（已实现,已移除 skip）
-- 计划验证     → D11（已实现,已移除 skip;工具可用性预检为规格差距,见 defect d11 xfail 用例）
+- 计划验证     → D11（已实现：悬空依赖/环/工具可用性预检,已移除 skip）
 - 持久化恢复   → D9（已实现 SQLite 落库,已移除 skip）
-- 预算超限     → D13（deadline 层已实现,已移除 skip;token/cost 层仍为规格差距）
+- 预算超限     → D13（已实现 deadline/token/cost 三层预算 + 硬超时；预算超限征求用户分支可配 budget_ask_user 启用,默认关闭保持向后兼容）
 - 降级链       → D14（已实现,已移除 skip）
 """
 import pytest
@@ -49,7 +49,7 @@ async def test_parallel_execution_uses_parallel_groups():
 
 @pytest.mark.asyncio
 async def test_plan_validation_before_execution():
-    """目标：执行前校验依赖完整性、环检测（D11 已实现；工具可用性预检仍为规格差距）"""
+    """目标：执行前校验依赖完整性、环检测、工具可用性（D11 已实现三类检查）"""
     from planning.executor import PlanExecutor, ToolRegistry
     from planning.models import Plan, PlanState, Task
 
@@ -104,7 +104,7 @@ def test_plan_persistence_and_recovery():
 
 @pytest.mark.asyncio
 async def test_budget_exceeded_triggers_degrade():
-    """目标：deadline 预算超限终止（D13 已实现 deadline 层；token/cost 预算与征求用户仍为规格差距）"""
+    """目标：预算超限终止（D13 已实现 deadline/token/cost 三层预算；征求用户分支可配 budget_ask_user 启用）"""
     import asyncio
     import json
     import tempfile

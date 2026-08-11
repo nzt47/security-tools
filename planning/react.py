@@ -83,11 +83,14 @@ class ReActLoop:
         # - cost_budget       : 成本预算（token × 单价，超限终止）
         # - token_price_per_1k: 每千 token 单价（USD），默认 0.002
         # - tool_timeout      : 异步工具调用硬超时（wait_for 包裹）；同步工具由 deadline 兜底
+        # - budget_ask_user   : 预算超限行为——默认 False 直接终止（向后兼容）；
+        #                       置 True 时降级为"征求用户"暂停，由调用方决定继续/终止
         self.deadline_seconds = self.config.get("timeout_seconds")
         self.token_budget = self.config.get("token_budget")
         self.cost_budget = self.config.get("cost_budget")
         self.token_price = self.config.get("token_price_per_1k", 0.002)
         self.tool_timeout = self.config.get("tool_timeout_seconds")
+        self.budget_ask_user = self.config.get("budget_ask_user", False)
         self._token_used = 0
         self._cost = 0.0
 
@@ -119,33 +122,22 @@ class ReActLoop:
             iter_start = datetime.now()
 
             # D13 优化：三层预算检查（deadline / token / cost），超限立即终止
+            # （budget_ask_user 启用时降级为"征求用户"暂停，见 _budget_result）
             elapsed = (datetime.now() - start_time).total_seconds()
             if self.deadline_seconds is not None and elapsed >= self.deadline_seconds:
                 logger.warning(f"⚠️ [ReAct循环] 超出时间预算({self.deadline_seconds}s)，终止")
-                return self._result(
-                    success=False,
-                    result=f"超出时间预算({self.deadline_seconds}s)",
-                    steps=steps, iterations=iteration,
-                    duration_ms=elapsed * 1000,
-                    error=f"超出时间预算({self.deadline_seconds}s)",
+                return self._budget_result(
+                    f"超出时间预算({self.deadline_seconds}s)", steps, iteration, elapsed
                 )
             if self.token_budget is not None and self._token_used >= self.token_budget:
                 logger.warning(f"⚠️ [ReAct循环] 超出token预算({self._token_used}/{self.token_budget})，终止")
-                return self._result(
-                    success=False,
-                    result=f"超出token预算({self._token_used}/{self.token_budget})",
-                    steps=steps, iterations=iteration,
-                    duration_ms=elapsed * 1000,
-                    error=f"超出token预算({self._token_used}/{self.token_budget})",
+                return self._budget_result(
+                    f"超出token预算({self._token_used}/{self.token_budget})", steps, iteration, elapsed
                 )
             if self.cost_budget is not None and self._cost >= self.cost_budget:
                 logger.warning(f"⚠️ [ReAct循环] 超出成本预算(${self._cost:.4f}/{self.cost_budget})，终止")
-                return self._result(
-                    success=False,
-                    result=f"超出成本预算(${self._cost:.4f}/{self.cost_budget})",
-                    steps=steps, iterations=iteration,
-                    duration_ms=elapsed * 1000,
-                    error=f"超出成本预算(${self._cost:.4f}/{self.cost_budget})",
+                return self._budget_result(
+                    f"超出成本预算(${self._cost:.4f}/{self.cost_budget})", steps, iteration, elapsed
                 )
             logger.info("──────────────────────────────────────────────────────────────────")
             logger.info(f"🔁 [迭代 {iteration + 1}/{self.max_iterations}] ────────────────")
@@ -546,6 +538,31 @@ class ReActLoop:
             return True
 
         return False
+
+    def _budget_result(self, detail: str, steps: List[ReActStep], iteration: int,
+                       elapsed: float) -> ReActResult:
+        """预算超限结果（D13 征求用户分支）。
+
+        默认直接终止并返回预算错误（向后兼容既有语义）；
+        启用 budget_ask_user 时降级为"征求用户"暂停——与 D3 ask_user 同一
+        "等待用户输入"信号，由调用方向用户展示预算详情，用户可提高预算后
+        重新执行或终止。
+        """
+        if self.budget_ask_user:
+            return self._result(
+                success=False,
+                result=f"{detail}；等待用户确认（可提高预算后继续）",
+                steps=steps, iterations=iteration,
+                duration_ms=elapsed * 1000,
+                error=f"等待用户输入：{detail}",
+            )
+        return self._result(
+            success=False,
+            result=detail,
+            steps=steps, iterations=iteration,
+            duration_ms=elapsed * 1000,
+            error=detail,
+        )
 
     def _result(self, *, success: bool, result: Any, steps: List[ReActStep],
                 iterations: int, duration_ms: float, error: Optional[str] = None) -> ReActResult:

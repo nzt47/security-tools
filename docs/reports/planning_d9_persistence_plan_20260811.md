@@ -1,7 +1,7 @@
 # D9 持久化恢复：SQLite 落库技术方案
 
 > 生成日期: 2026-08-11
-> 状态: 技术方案（待排期实施）
+> 状态: 已实施（方案按文执行落地，见 [persistence.py](../../planning/persistence.py)；本文件保留为技术方案历史记录）
 > 关联: [test_planning_defect_d9.py](../../tests/unit/test_planning_defect_d9.py) · [capability 规格](../../tests/unit/test_planning_capability_baseline.py)
 
 ## 1. 现状与差距
