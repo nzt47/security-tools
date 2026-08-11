@@ -412,7 +412,13 @@ class TestCleanup:
 
     def test_cleanup_zero_days(self, storage):
         """days=0 清理所有记录"""
-        storage.store(replay_id="replay-c2", data='{"events": []}')
+        # 【变易·CHG-2026-0811】显式传 1 天前时间戳消除 wall-clock 竞态:
+        # 此前不传 timestamp, cutoff=now 与 store 时刻几乎重合, 若 CI VM
+        # 时钟回拨(NTP 校正)则 timestamp < cutoff 翻转, deleted=0 偶发
+        # flaky (run 31512615077 3.10-windows 实测 assert 0 >= 1)。
+        # 1 天时间差即使时钟回拨也不会翻转, 测试语义(days=0 清理旧记录)不变。
+        past_ts = (datetime.datetime.now() - datetime.timedelta(days=1)).isoformat()
+        storage.store(replay_id="replay-c2", data='{"events": []}', timestamp=past_ts)
         deleted = storage.cleanup_old_records(days=0)
         assert deleted >= 1
         storage.close()
