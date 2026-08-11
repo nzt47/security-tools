@@ -335,7 +335,14 @@ class _FakeMPProcess:
             self.exitcode = 0
         except SystemExit as e:
             self.exitcode = e.code if isinstance(e.code, int) else 1
-        except Exception:
+        except BaseException:
+            # Why 捕获 BaseException 而非 Exception: terminate() 通过
+            # _async_raise_thread 注入的 KeyboardInterrupt 是 BaseException,
+            # 不被 except Exception 捕获; 若不处理会从线程逃逸, 被 pytest
+            # threadexception 插件收集 → RuntimeError: Failed to process
+            # thread exception (CI 3.10-windows 偶发, run 31462960857)。
+            # 超时路径 (is_alive→terminate) 不读 exitcode, 置 1 仅表示
+            # 「被中断退出」, 不影响 run_sandbox 的 timed_out 断言语义。
             self.exitcode = 1
 
     def join(self, timeout=None):
