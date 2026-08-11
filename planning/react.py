@@ -13,6 +13,8 @@ from .models import Plan, PlanState, Task
 from .models.action import Action, ActionType, ActionResult
 from .models.react import ReActStep, ReActResult, ThoughtResult
 
+from agent.monitoring.tracing import get_trace_id
+
 logger = logging.getLogger(__name__)
 
 
@@ -193,6 +195,10 @@ class ReActLoop:
                     logger.info(f"      ├─ 错误: {action_result.error[:100]}{'...' if len(action_result.error or '') > 100 else ''}")
 
                 observation = self._format_observation(action_result, thought)
+                # D3 修复：保留 awaiting_user_input 专用观察标记（_format_observation 会将
+                # 失败结果格式化为"失败: ..."，这里还原为标记，供上层识别"等待用户输入"状态）
+                if action_result.observation == "awaiting_user_input":
+                    observation = "awaiting_user_input"
                 logger.info(f"      └─ 观察: {observation[:120]}{'...' if len(observation) > 120 else ''}")
 
                 step = ReActStep(
@@ -205,11 +211,21 @@ class ReActLoop:
                 steps.append(step)
                 logger.info(f"   📝 步骤已记录: 迭代={iteration}, 成功={action_result.success}")
 
-                if thought.action_type == "ask_user":
-                    # D3 修复：ask_user 为暂停信号——停止循环，返回"等待用户输入"，
-                    # 由调用方询问用户后恢复（不再继续执行后续行动）。
+                # D3 修复：ask_user 为暂停信号——检测到 awaiting_user_input 标记
+                # （或 ask_user 行动类型，向后兼容）即终止当前循环，返回"等待用户输入"，
+                # 由上层 orchestrator 向用户询问与恢复（不再继续执行后续行动）。
+                awaiting_user = (
+                    action_result.observation == "awaiting_user_input"
+                    or thought.action_type == "ask_user"
+                )
+                if awaiting_user:
                     logger.info("   ⏸️ 检测到 ask_user：暂停执行，等待用户输入")
                     duration = (datetime.now() - start_time).total_seconds() * 1000
+                    logger.info(
+                        f"   ⏸️ [ReAct循环] ask_user 终止循环 | 迭代数: {iteration + 1}"
+                        f" | 时长: {duration:.2f}ms"
+                        f" | result: {str(thought.result or '需要用户确认')[:60]}"
+                    )
                     return self._result(
                         success=False,
                         result=thought.result or "需要用户确认",
@@ -238,7 +254,12 @@ class ReActLoop:
                         else:
                             logger.info(f"   ✅ 反思通过，无调整建议")
                     except Exception as e:
-                        logger.warning(f"   ⚠️ 反思执行失败: {e}")
+                        # D2 修复：反思异常不得被静默吞掉——提升为 error 并记录 trace_id，
+                        # 便于追踪定位（ReAct 路径的反思闭环因此可被观测与修复）。
+                        logger.error(
+                            f"   ❌ 反思执行失败: {type(e).__name__}: {e}"
+                            f" (trace_id={get_trace_id()})"
+                        )
                 else:
                     logger.info(f"   ⏭️ 跳过反思阶段 (reflector={self.reflector is not None}, success={action_result.success})")
 
@@ -369,10 +390,18 @@ class ReActLoop:
             )
 
         if thought.action_type == "ask_user":
-            logger.info("   [行动] 行动类型: 询问用户")
-            return ActionResult.success_result(
+            logger.info(
+                "   [行动] 行动类型: 询问用户"
+                "（返回 success=False + awaiting_user_input 标记，等待用户输入）"
+            )
+            # D3 修复：ask_user 是"等待用户输入"的暂停信号，不是成功结果。
+            # 返回 success=False + 专用观察标记 awaiting_user_input，供 ReAct 循环
+            # 检测后终止当前循环，由上层 orchestrator 向用户询问并恢复。
+            return ActionResult(
+                success=False,
                 output=thought.result or "需要用户确认",
-                observation="等待用户输入"
+                observation="awaiting_user_input",
+                error="等待用户输入",
             )
 
         if thought.action and thought.action.tool_name:

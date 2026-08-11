@@ -251,7 +251,9 @@ class PlanExecutor:
 
         plan.state = PlanState.EXECUTING
         plan.updated_at = datetime.now()
-        logger.info(f"开始执行计划: {plan.id}")
+        logger.info(
+            f"开始执行计划: {plan.id} | 任务数: {len(plan.tasks)} | max_steps: {plan.max_steps}"
+        )
 
         step_count = 0
         # 登记当前执行任务，供 cancel_plan 传播取消（finally 中清理）
@@ -279,6 +281,10 @@ class PlanExecutor:
                     remaining = plan.max_steps - step_count
                     if len(next_tasks) > remaining:
                         next_tasks = next_tasks[:remaining]
+                    logger.info(
+                        f"[执行任务] 并行批: {len(next_tasks)} 个任务"
+                        f" | ids: {[t.id for t in next_tasks]}"
+                    )
                     # D5 状态收尾修正：每任务独立执行+立即标记（不等整批 gather 结束），
                     # 保证取消时已完成任务的结果/状态不滞留 RUNNING（竞态）。
                     await asyncio.gather(
@@ -288,6 +294,10 @@ class PlanExecutor:
                     plan.current_step += len(next_tasks)
                 else:
                     task = next_tasks[0]
+                    logger.info(
+                        f"[执行任务] 开始: {task.id} | 描述: {task.description[:60]}"
+                        f" | 优先级: {task.priority}"
+                    )
                     result = await self._execute_task_with_retry(task)
 
                     self._record_execution(plan, task, result)
@@ -295,9 +305,13 @@ class PlanExecutor:
                     if result.success:
                         task.mark_completed(result.output)
                         await self._trigger_callbacks("on_task_complete", task, result)
+                        logger.info(f"[执行任务] 成功: {task.id}")
                     else:
                         task.mark_failed(result.error or "未知错误")
                         await self._trigger_callbacks("on_task_fail", task, result)
+                        logger.warning(
+                            f"[执行任务] 失败: {task.id} | 错误: {str(result.error)[:100]}"
+                        )
 
                         if task.priority >= 4:
                             logger.error(f"高优先级任务失败: {task.id}")
@@ -309,16 +323,42 @@ class PlanExecutor:
 
             if plan.id in self._cancelled_plan_ids:
                 # 取消优先于正常收尾：标记 CANCELLED，不触发部分失败/超时收尾
+                logger.info(f"[收尾判定] -> CANCELLED（用户取消）: {plan.id}")
                 self._finalize_state(plan, PlanState.CANCELLED, reason="用户取消")
-            elif plan.all_tasks_succeeded():
-                self._finalize_state(plan, PlanState.COMPLETED, reason="所有任务执行成功")
-                plan.result = "所有任务执行成功"
-            elif plan.is_complete():
-                self._finalize_state(plan, PlanState.COMPLETED, reason="部分任务失败但计划完成")
-                plan.result = "计划执行完成,但部分任务失败"
             else:
-                self._finalize_state(plan, PlanState.FAILED, reason="计划执行超时或异常终止")
-                plan.error = "计划执行超时或异常终止"
+                # D1 修复：先基于任务状态计算 all_completed 与 any_failed，再据此设置
+                # COMPLETED 与 result。禁止在计划仍处于 EXECUTING 时调用 is_success()
+                # （其要求 state == COMPLETED）短路——否则"全部成功"分支永不触发，
+                # 全成功计划会被误判为"计划执行完成,但部分任务失败"。
+                all_completed = plan.all_tasks_succeeded()
+                any_failed = any(t.status == TaskStatus.FAILED for t in plan.tasks)
+                status_counts = {
+                    s.value: sum(1 for t in plan.tasks if t.status == s)
+                    for s in TaskStatus
+                }
+                logger.info(
+                    f"[收尾判定] plan={plan.id} | all_completed={all_completed}"
+                    f" | any_failed={any_failed} | 任务状态: {status_counts}"
+                )
+                if all_completed:
+                    logger.info(f"[收尾判定] -> COMPLETED（所有任务执行成功）: {plan.id}")
+                    self._finalize_state(plan, PlanState.COMPLETED, reason="所有任务执行成功")
+                    plan.result = "所有任务执行成功"
+                elif plan.is_complete() and any_failed:
+                    logger.info(f"[收尾判定] -> COMPLETED（部分任务失败）: {plan.id}")
+                    self._finalize_state(plan, PlanState.COMPLETED, reason="部分任务失败但计划完成")
+                    plan.result = "计划执行完成,但部分任务失败"
+                elif plan.is_complete():
+                    logger.info(f"[收尾判定] -> COMPLETED（计划执行完成）: {plan.id}")
+                    self._finalize_state(plan, PlanState.COMPLETED, reason="计划执行完成")
+                    plan.result = "计划执行完成"
+                else:
+                    logger.warning(
+                        f"[收尾判定] -> FAILED（超时或异常终止）: {plan.id}"
+                        f" | 已执行步数: {step_count}"
+                    )
+                    self._finalize_state(plan, PlanState.FAILED, reason="计划执行超时或异常终止")
+                    plan.error = "计划执行超时或异常终止"
 
             await self._trigger_callbacks("on_plan_complete", plan)
 
