@@ -6,9 +6,12 @@
 #   - 输出: 完整日志 artifact(knowledge-tasks-report.log) + Job Summary
 name: 知识库重构任务检查(run_knowledge_tasks)
 
-# 【变易·P2-4】concurrency: 同 ref 跨 workflow 连续触发取消旧 run 只留最新（仓库统一治理）
+# 【变易】concurrency 独立分组：主 CI 排队治理用共享组 ci-${{ github.ref }}，
+# 同 ref 多 workflow 并发时只有最新一个存活，其余全部取消（2026-08-11 实测
+# 本 workflow 被同批的「日志性能守护」取消）。守卫类流水线必须独立成组，
+# 保证 knowledge 变更必跑、不被主 CI 批次挤掉。仍保留"连续 push 只留最新"语义。
 concurrency:
-  group: ci-${{ github.ref }}
+  group: knowledge-tasks-${{ github.ref }}
   cancel-in-progress: true
 
 on:
