@@ -16,7 +16,7 @@
 
 | # | 能力规格 | 关联缺陷 | 实现位置 | 状态 |
 |---|---|---|---|---|
-| 1 | 并行执行（parallel_groups 消费） | D5 | [core.py](../../planning/core.py) `_execute_parallel` | ✅ 已启用 |
+| 1 | 并行执行（parallel_groups 消费） | D5 | [executor.py L275-288](../../planning/executor.py#L275-L288) `get_next_executable_tasks` + `asyncio.gather` | ✅ 已启用 |
 | 2 | 计划验证（依赖/环/工具可用性） | D11 | [executor.py L188-228](../../planning/executor.py#L188-L228) `validate_plan` | ✅ 本批启用 |
 | 3 | 持久化恢复（SQLite 落库） | D9 | [persistence.py](../../planning/persistence.py) `PlanDB` 三表 | ✅ 已启用 |
 | 4 | 预算超限（deadline/token/cost + 硬超时） | D13 | [react.py L80-92, L121-149](../../planning/react.py#L80-L92) | ✅ 已启用 |
