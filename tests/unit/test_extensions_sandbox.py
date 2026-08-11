@@ -256,7 +256,10 @@ def test_read_file_permission_denied(sb):
 def test_read_file_unsafe_path(sb):
     """读取系统危险路径应被拒绝（路径遍历防护）。"""
     sb.create_sandbox("p1", ["read_files"])
-    res = sb.read_file("p1", "C:\\Windows\\System32\\drivers\\etc\\hosts")
+    # 平台无关的危险路径: Windows 用 C:\Windows, 其余用 /etc
+    # (Linux 下 C:\Windows 经 abspath 拼到工作目录, 不命中危险前缀表)
+    unsafe = "C:\\Windows\\System32\\drivers\\etc\\hosts" if os.name == "nt" else "/etc/passwd"
+    res = sb.read_file("p1", unsafe)
     assert res.success is False
     assert "Access denied" in res.error
 
