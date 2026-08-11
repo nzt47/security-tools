@@ -200,12 +200,18 @@ class TestLogDictIntegration:
     def test_log_dict_records_when_enabled(self):
         """启用时记录埋点"""
         perf_monitor.enable()
+        # 【变易·CHG-2026-0811】增量断言: 模块 _STATS 为全局单例(设计允许并发,
+        # _LOCK 保护), CI 多 worker 场景下 enable 状态可能被同进程其他代码写入,
+        # 绝对值 count==1 偶发 flaky (run 31516398562 3.11-windows assert 2 == 1)。
+        # 改为验证本次 log_dict 调用恰好使计数 +1, 测试语义不变。
+        before = perf_monitor.get_stats()
         payload = {"message": "test", "module_name": "t", "action": "a"}
         result = log_dict(payload)
         assert "trace_id" in result
         stats = perf_monitor.get_stats()
-        assert "log_dict.normalize" in stats
-        assert stats["log_dict.normalize"]["count"] == 1
+        key = "log_dict.normalize"
+        delta = stats.get(key, {}).get("count", 0) - before.get(key, {}).get("count", 0)
+        assert delta == 1
 
     def test_log_dict_correctness_preserved_when_enabled(self):
         """启用埋点时功能正确性不受影响"""
