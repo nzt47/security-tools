@@ -32,14 +32,9 @@ class TestDefectD11:
         assert result.state == PlanState.FAILED
         assert "依赖" in (result.error or "")
 
-    @pytest.mark.xfail(
-        reason="D11 规格缺口: 工具可用性预检未实现（validate_plan 仅校验依赖/环；"
-               "任务引用未注册工具时不会在执行前拦截）",
-        strict=False,
-    )
     @pytest.mark.asyncio
     async def test_unregistered_tool_detected_by_validator(self):
-        """能力基线规格: 执行前应预检工具可用性，引用未注册工具的任务被拦截"""
+        """能力基线规格: 执行前应预检工具可用性，引用未注册工具的任务被拦截（D11 已实现）"""
         registry = ToolRegistry()  # 未注册任何工具
         executor = PlanExecutor(registry)
 

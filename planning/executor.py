@@ -186,7 +186,7 @@ class PlanExecutor:
             self._callbacks[event].append(callback)
 
     def validate_plan(self, plan: Plan) -> None:
-        """执行前验证计划结构：悬空依赖 / 循环依赖（D11 修复）
+        """执行前验证计划结构：悬空依赖 / 循环依赖 / 工具可用性（D11 修复）
 
         Raises:
             PlanValidationError: 计划结构非法
@@ -215,6 +215,17 @@ class PlanExecutor:
 
         for t in plan.tasks:
             _dfs(t.id)
+
+        # D11 规格：工具可用性预检——无 LLM 的纯工具执行路径下，任务引用的工具
+        # 必须可解析（find_tool 命中英文子串/中文关键词）；有 LLM 时任务可由推理
+        # 灵活完成，跳过预检避免误拦截（如"请思考并回答"类描述）。
+        if getattr(self, "llm", None) is None:
+            for task in plan.tasks:
+                if self.tool_registry.find_tool(task.description) is None:
+                    raise PlanValidationError(
+                        f"任务 '{task.id}' 引用的工具不可用"
+                        f"（描述 '{task.description}' 无法解析到已注册工具）"
+                    )
 
     async def execute_plan(self, plan: Plan) -> Plan:
         """
