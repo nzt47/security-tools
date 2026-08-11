@@ -173,16 +173,18 @@ jobs:
             -p no:randomly
 
       - name: 上传覆盖率报告
-        # 【变易·CHG-2026-0811】path 增加 coverage.xml 与 .coverage 数据文件:
+        # 【变易·CHG-2026-0811】path 增加 coverage.xml 与 .coverage* 数据文件:
         # coverage-check job 的 `coverage combine` 需要数据文件, 此前只上传
         # htmlcov/(纯 HTML)导致 "No data to combine" (run 31459766599 六个
-        # coverage-check 全红)。pytest-cov 生成的 .coverage 在仓库根目录。
+        # coverage-check 全红)。pytest.ini [coverage:run] parallel=True 使数据
+        # 文件名为 .coverage.<host>.<pid>.<rand> 带后缀, 须用 glob .coverage*
+        # 匹配 (精确名 .coverage 匹配不到, artifact 实测无数据文件)。
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report-${{ matrix.os }}-py${{ matrix.python-version }}
           path: |
             coverage.xml
-            .coverage
+            .coverage*
             htmlcov/
           retention-days: 30
 
@@ -325,13 +327,14 @@ jobs:
         # 数据文件, 合并只含 unit (62% < 70) 必然 fail-under。
         # 3.12 集成测试禁用 --cov (CHG-2026-0811 超时修复) 无数据文件, 跳过上传
         # (upload-artifact 对空 path 会报错 "No files were found")。
+        # parallel=True 数据文件为 .coverage.<host>.<pid>.<rand>, 用 glob .coverage*。
         if: matrix.python-version != '3.12'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-integration-${{ matrix.os }}-py${{ matrix.python-version }}
           path: |
             coverage.xml
-            .coverage
+            .coverage*
           retention-days: 30
 
       - name: 上传测试结果
@@ -540,12 +543,13 @@ jobs:
       - name: 检查覆盖率
         # 【变易·CHG-2026-0811】去掉 `|| true`: 此前吞掉 combine 失败导致
         # 后续静默 "No data to report" exit 1, 无法定位根因。数据齐备后
-        # combine 失败应直接暴露。必须用「文件参数」而非目录参数:
-        # coverage combine 的目录参数只搜索 *.coverage* 带后缀文件
-        # (.coverage.gw0 等多进程命名), 恰好名为 .coverage 的数据文件
-        # 不被目录搜索捕获 (本地 7.15.4 实测目录参数 → "No data to combine")。
+        # combine 失败应直接暴露。用「目录参数」而非文件参数:
+        # pytest.ini [coverage:run] parallel=True 使数据文件名为
+        # .coverage.<host>.<pid>.<rand> (带后缀), 目录参数搜索目录内所有
+        # .coverage* 数据文件 (本地 7.15.4 parallel 模式实测目录参数
+        # "Combined 2 files" 成功; 而精确文件参数 .coverage 匹配不到)。
         run: |
-          coverage combine coverage-unit/.coverage coverage-integration/.coverage
+          coverage combine coverage-unit coverage-integration
           coverage report
           coverage report --fail-under=${{ env.COVERAGE_THRESHOLD }}
 
