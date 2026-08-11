@@ -82,6 +82,25 @@ def _write_memories(adapter, count=10):
     asyncio.run(run())
 
 
+def _mutate_db_direct(adapter, key: str, data: str, metadata: dict):
+    """直接改 SQLite 绕过 syncer（模拟 SQLite 被外部进程修改）。
+
+    【不易】不能走 adapter.save：save 会 notify_change → syncer debounce
+    (1s) flush 把文件正向渲染成 DB 内容。慢 CI 环境下从 set_db 到断言
+    的耗时可能超过 debounce 窗口，flush 抢先覆盖测试改写的文件，导致
+    「文件不被覆盖」断言 flaky（run 31440430315 py3.10-windows 复现）。
+    冲突检测的真实场景是 SQLite 被外部修改（watcher 三路比较），
+    直接 SQL UPDATE 模拟该场景，syncer 不知情 → 无 forward flush 干扰。
+    """
+    import json as _json
+    with adapter._get_conn() as conn:
+        conn.execute(
+            "UPDATE memory_items SET data=?, metadata=? WHERE key=?",
+            (data, _json.dumps(metadata, ensure_ascii=False), key),
+        )
+        conn.commit()
+
+
 def _wait_for(predicate, timeout=2.0, interval=0.05):
     """轮询等待条件成立，避免硬编码 sleep 导致 flaky"""
     deadline = time.time() + timeout
@@ -317,11 +336,8 @@ class TestConflictDetection:
         parsed = parse_markdown_file(fp)
         fm = parsed["front_matter"]  # base hash
 
-        # DB 侧变更（偏离 base）
-        async def set_db():
-            await adapter.save("k000", "DB side changed", {"category": "preference"})
-        asyncio.run(set_db())
-        time.sleep(0.2)
+        # DB 侧变更（偏离 base）—— 直接改库绕过 syncer（见 _mutate_db_direct）
+        _mutate_db_direct(adapter, "k000", "DB side changed", {"category": "preference"})
 
         # 文件侧变更（偏离 base），保留旧 fm 的 content_hash 作为 base
         file_content = "FILE side changed"
@@ -351,9 +367,8 @@ class TestConflictDetection:
         db_before = "DB side changed"
         file_content = "FILE side changed"
 
-        async def set_db():
-            await adapter.save("k000", db_before, {"category": "preference"})
-        asyncio.run(set_db()); time.sleep(0.2)
+        # DB 侧变更（偏离 base）—— 直接改库绕过 syncer（见 _mutate_db_direct）
+        _mutate_db_direct(adapter, "k000", db_before, {"category": "preference"})
 
         body = (f"---\n{yaml.safe_dump(fm, allow_unicode=True, sort_keys=False)}---\n\n"
                 f"# {file_content[:50]}\n\n{file_content}\n")

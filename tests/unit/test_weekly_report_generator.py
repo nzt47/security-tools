@@ -3,6 +3,7 @@
 """
 
 import pytest
+import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
@@ -272,15 +273,18 @@ class TestWeeklyReportGenerator:
 
             assert not generator._analytics_loaded
 
-            # 【变易】显式导入对齐 sys.modules 与父包属性：
-            # 前序测试若用 patch.dict(sys.modules, ...) + del sys.modules[...]
-            # （如 test_vector_store_fallback.py），patch.dict __exit__ 会清空
-            # sys.modules 再恢复快照，测试期间首次导入的模块被删而父包属性残留，
-            # 形成「sys.modules 与包属性不一致」。Python 3.10 mock 解析 patch
-            # 目标走 getattr 拿残留旧模块，业务代码 from-import 却 __import__
-            # 重新导入新模块 → patch 落空（CI flaky：MockVectorStore Called 0）。
-            # 显式 import 让 importlib 同步父包属性，patch 与业务代码命中同一模块。
+            # 【不易】先 pop 键再导入，强制重建 sys.modules 与父包属性一致：
+            # 前序测试（如 test_vector_store_fallback.py）用 patch.dict(sys.modules)
+            # + del sys.modules['memory.vector_store'] 会留下「sys.modules 键存在
+            # （旧模块对象）但父包 memory.vector_store 属性指向污染期间重新导入的
+            # 新模块对象」的不一致。此时普通 import 因键已存在直接返回旧对象、
+            # 不重建父包属性 → mock.patch 解析目标走 __import__('memory') +
+            # getattr(父包属性) 打新对象，业务代码 from-import 却走 sys.modules
+            # 拿旧对象 → patch 落空（py3.10-windows CI 复现：Called 0 times）。
+            # pop 后重新导入，两者必然指向同一新对象。
+            sys.modules.pop("memory.vector_store", None)
             import memory.vector_store
+            sys.modules.pop("agent.data_analytics", None)
             import agent.data_analytics
 
             with patch("agent.data_analytics.DataAnalytics") as MockDataAnalytics, \

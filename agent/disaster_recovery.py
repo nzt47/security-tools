@@ -749,8 +749,13 @@ class DisasterRecovery:
             except Exception:
                 continue
 
-        # 按时间戳降序排列（最新的在前）
-        backups.sort(key=lambda b: b.timestamp, reverse=True)
+        # 按备份 ID 降序排列（最新的在前）。
+        # 【不易】不能按 timestamp 排序：timestamp 为 datetime.now().isoformat()
+        # 秒级精度，连续触发多个备份（如 test_disaster_recovery_data_zero_loss
+        # 循环内 4 次增量 + 1 次全量）可能落在同一秒 → 排序键相同 → 依赖 glob
+        # 不确定顺序 → 恢复"最新"备份可能不是真正最新（CI py3.11-windows 复现
+        # assert 16 == 20）。backup_id 含微秒时间戳 + 自增计数器，单调有序且唯一。
+        backups.sort(key=lambda b: b.backup_id, reverse=True)
         return backups
 
     def _cleanup_old_backups_new(self) -> None:
@@ -760,7 +765,9 @@ class DisasterRecovery:
             if not backup_dir.exists():
                 return
 
-            # 扫描元数据文件并按时间戳排序
+            # 扫描元数据文件并按备份 ID 排序（最新的在前）
+            # 【不易】同 get_backup_list：timestamp 秒级精度无法区分同秒内多个
+            # 备份，改用文件名（{backup_id}_meta.json）排序，backup_id 单调有序。
             metas: list[tuple[str, Path]] = []
             for meta_file in backup_dir.glob("*_meta.json"):
                 try:
@@ -771,7 +778,7 @@ class DisasterRecovery:
                     ts = ""
                 metas.append((ts, meta_file))
 
-            metas.sort(key=lambda x: x[0], reverse=True)
+            metas.sort(key=lambda x: x[1].name, reverse=True)
 
             for _ts, meta_file in metas[self._config.max_backups:]:
                 # 从元数据文件名推导 backup_id 和数据文件名

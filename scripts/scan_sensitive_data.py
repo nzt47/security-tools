@@ -243,12 +243,26 @@ def scan_file(filepath: Path) -> list:
 
 def main():
     """主入口：扫描所有暂存的文件"""
+    import subprocess
+    # 【不易】git 跟踪文件集合：只有跟踪文件才可能进 git 历史。
+    # pre-commit 在 stash 未暂存修改后可能把 gitignored 残留文件
+    # （.ci_*.log / .pytest_tmp / .secure_config.json 等本地 CI 调试产物）
+    # 也传入 hook，直接扫描它们只会误报阻断提交。统一在入口过滤。
+    tracked_set = set(
+        f for f in subprocess.run(
+            ['git', 'ls-files', '-z'], capture_output=True, text=True
+        ).stdout.split('\0') if f
+    )
+
     # pre-commit 传入暂存文件列表作为参数
     files = sys.argv[1:] if len(sys.argv) > 1 else []
 
     if not files:
-        # 手动运行时扫描整个仓库（排除 .git）
-        files = [str(p) for p in Path('.').rglob('*') if p.is_file() and '.git' not in str(p)]
+        # 手动运行时扫描整个仓库：直接复用跟踪文件集合（排除 .git）。
+        files = sorted(tracked_set)
+
+    # 参数分支兜底：丢弃非跟踪文件（本地残留 / 临时产物，永不进 git 历史）
+    files = [f for f in files if f in tracked_set]
 
     all_findings = []
     for filepath in files:
