@@ -21,6 +21,7 @@ on:
       - 'scripts/run_knowledge_tasks.py'
       - 'scripts/run_knowledge_tasks.ps1'
       - 'scripts/verify_knowledge_plan_deps.py'
+      - '.github/workflows/knowledge-tasks.yml'  # workflow 自身改动也自动自检
   pull_request:
     paths:
       - 'docs/zh/知识库重构计划/**'
@@ -30,6 +31,7 @@ on:
       - 'scripts/run_knowledge_tasks.py'
       - 'scripts/run_knowledge_tasks.ps1'
       - 'scripts/verify_knowledge_plan_deps.py'
+      - '.github/workflows/knowledge-tasks.yml'
   workflow_dispatch:  # 手动触发兜底
 
 permissions:
@@ -53,6 +55,8 @@ jobs:
       - name: 安装依赖
         run: |
           python -m pip install --upgrade pip
+          # 与主 ci.yml 测试作业同套 pytest 全家桶（pytest 不随 -e . 安装）
+          pip install pytest pytest-cov pytest-xdist pytest-mock pytest-timeout pytest-asyncio pytest-randomly
           pip install -e .
 
       - name: 检查脚本存在(跨分支/仓库安全)
