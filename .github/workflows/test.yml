@@ -193,7 +193,13 @@ jobs:
     defaults:
       run:
         shell: bash
-    timeout-minutes: 20
+    # 【变易·CHG-2026-0811】timeout 20→40:
+    # ① 3.12 集成测试在 coverage 下触发 CPython 3.12 tracing 二次复杂度 bug
+    #   (python/cpython#127953, 大 code object 的 line-number 查找二次方),
+    #   单文件慢 5-30 倍, 实测 20min 内只能跑到 99% (run 31457606205 超时);
+    # ② windows runner 整体比 ubuntu 慢 ~50% (3.10-windows 15.3min vs ubuntu 9.7min),
+    #    3.11-windows 曾贴线超时。40min 为最慢组合 (3.12-windows) 留足余量。
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -286,11 +292,21 @@ jobs:
           # 与 git_sync._run_git 显式 encoding="utf-8" 双保险（见 integration_s10 计划 H1/H2）。
           PYTHONUTF8: "1"
         run: |
+          # 【变易·CHG-2026-0811】3.12 禁用 --cov:
+          # CPython 3.12 tracing 二次复杂度 bug (python/cpython#127953) 使 coverage
+          # 下 3.12 集成测试慢 5-30 倍 (实测 test_routes_logging_integration.py
+          # 3.11=12s vs 3.12=103s, run 31457606205 3.12-ubuntu/windows 双双超时)。
+          # 3.12 覆盖率仍由 unit-tests job (--cov=agent) 收集, 无覆盖率盲区。
+          # 【不易】3.10/3.11 保持 --cov, 覆盖率契约不变。
+          if [ "${{ matrix.python-version }}" = "3.12" ]; then
+            COV_ARGS=""
+          else
+            COV_ARGS="--cov=agent --cov-report=xml"
+          fi
           pytest tests/integration/ \
             -v \
             --tb=short \
-            --cov=agent \
-            --cov-report=xml \
+            $COV_ARGS \
             --junitxml=test-results/integration-test-results.xml \
             -m "not slow and not requires_llm and not skip_ci" \
             --timeout=300
