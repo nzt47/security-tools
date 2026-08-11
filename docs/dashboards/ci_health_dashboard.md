@@ -63,6 +63,7 @@
 | 2026-08-10 | `363176d` | 99.5% (1708/1717) | 0 | 9 | 111.31 | — | 0 | ↑ | docs(troubleshooting): 归档 logging 防线全景 SVG 与 Mermaid 源文件 |
 | 2026-08-10 | `09a3d81` | 99.5% (1708/1717) | 0 | 9 | 114.13 | — | 0 | ↑ | docs(troubleshooting): 修复失效链接 - 检出 develop 归档文档并删除 |
 | 2026-08-10 | `57b6494` | 98.3% (1741/1772) | 0 | 31 | 138.32 | — | 0 | ↑ | Merge branch 'develop' into temp-fix |
+| 2026-08-11 | `edbe8cd` | 98.3% (1741/1772) | 0 | 31 | 124.91 | — | 0 | ↑ | test(ci): env 锁 msvcrt 跨平台 mock + defect 看门狗加 xfail(strict=False |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
