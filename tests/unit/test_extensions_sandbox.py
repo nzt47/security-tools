@@ -293,8 +293,10 @@ def test_write_file_permission_denied(sb):
 def test_write_file_unsafe_path(sb):
     """写入系统危险路径应被拒绝。"""
     sb.create_sandbox("p1", ["write_files"])
-    # Windows 下 /etc 经 abspath 归一化后不命中危险路径表，需用 Windows 危险路径
-    res = sb.write_file("p1", "C:\\Windows\\System32\\config\\SAM", "x")
+    # 平台无关的危险路径: Windows 用 C:\Windows, 其余用 /etc
+    # (Windows 下 /etc 经 abspath 归一化后不命中危险路径表, Linux 下相反)
+    unsafe = "C:\\Windows\\System32\\config\\SAM" if os.name == "nt" else "/etc/passwd"
+    res = sb.write_file("p1", unsafe, "x")
     assert res.success is False
     assert "Access denied" in res.error
 
