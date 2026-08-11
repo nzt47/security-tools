@@ -540,10 +540,12 @@ jobs:
       - name: 检查覆盖率
         # 【变易·CHG-2026-0811】去掉 `|| true`: 此前吞掉 combine 失败导致
         # 后续静默 "No data to report" exit 1, 无法定位根因。数据齐备后
-        # combine 失败应直接暴露。coverage combine 接受目录参数, 合并目录内
-        # 所有 .coverage* 数据文件 (unit + integration 同版本同平台)。
+        # combine 失败应直接暴露。必须用「文件参数」而非目录参数:
+        # coverage combine 的目录参数只搜索 *.coverage* 带后缀文件
+        # (.coverage.gw0 等多进程命名), 恰好名为 .coverage 的数据文件
+        # 不被目录搜索捕获 (本地 7.15.4 实测目录参数 → "No data to combine")。
         run: |
-          coverage combine coverage-unit coverage-integration
+          coverage combine coverage-unit/.coverage coverage-integration/.coverage
           coverage report
           coverage report --fail-under=${{ env.COVERAGE_THRESHOLD }}
 
