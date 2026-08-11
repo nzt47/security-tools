@@ -179,6 +179,10 @@ jobs:
         # coverage-check 全红)。pytest.ini [coverage:run] parallel=True 使数据
         # 文件名为 .coverage.<host>.<pid>.<rand> 带后缀, 须用 glob .coverage*
         # 匹配 (精确名 .coverage 匹配不到, artifact 实测无数据文件)。
+        # 【变易·CHG-2026-0811b】include-hidden-files: true:
+        # upload-artifact v4+ 默认忽略 dotfiles, .coverage* 以点开头被排除,
+        # 导致 artifact 实测只有 coverage.xml+htmlcov 无数据文件 (run 31492484437
+        # 下载验证), coverage-check 的 combine 依旧无数据可合并。
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report-${{ matrix.os }}-py${{ matrix.python-version }}
@@ -186,6 +190,7 @@ jobs:
             coverage.xml
             .coverage*
             htmlcov/
+          include-hidden-files: true
           retention-days: 30
 
       - name: 上传测试结果
@@ -328,6 +333,8 @@ jobs:
         # 3.12 集成测试禁用 --cov (CHG-2026-0811 超时修复) 无数据文件, 跳过上传
         # (upload-artifact 对空 path 会报错 "No files were found")。
         # parallel=True 数据文件为 .coverage.<host>.<pid>.<rand>, 用 glob .coverage*。
+        # 【变易·CHG-2026-0811b】include-hidden-files: true (同 unit-tests,
+        # upload-artifact v4+ 默认排除 dotfiles)。
         if: matrix.python-version != '3.12'
         uses: actions/upload-artifact@v7
         with:
@@ -335,6 +342,7 @@ jobs:
           path: |
             coverage.xml
             .coverage*
+          include-hidden-files: true
           retention-days: 30
 
       - name: 上传测试结果
