@@ -477,12 +477,13 @@ jobs:
 
   coverage-check:
     name: 覆盖率检查 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
-    # 【变易·CHG-2026-0811】3.12 跳过覆盖率检查:
+    # 【变易·CHG-2026-0811】矩阵不含 3.12:
     # 3.12 集成测试禁用 --cov (CHG-2026-0811, CPython 3.12 tracing 二次复杂度
     # bug python/cpython#127953 使 coverage 下集成测试慢 5-30 倍而超时),
     # 无 integration 覆盖率数据 → 合并只剩 unit (62%) 必然 fail-under。
     # 3.12 覆盖率信息仍由 unit-tests job 的 --cov-report=term-missing 输出。
-    if: matrix.python-version != '3.12'
+    # 注: 不采用 job 级 `if: matrix...` 排除, 因 job 级 if 上下文仅限
+    # github/needs/vars/inputs, 不允许 matrix (actionlint 校验确认)。
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -491,7 +492,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.10', '3.11']
         os: [ubuntu-latest, windows-latest]
     steps:
       - name: 检出代码
