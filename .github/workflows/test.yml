@@ -173,10 +173,17 @@ jobs:
             -p no:randomly
 
       - name: 上传覆盖率报告
+        # 【变易·CHG-2026-0811】path 增加 coverage.xml 与 .coverage 数据文件:
+        # coverage-check job 的 `coverage combine` 需要数据文件, 此前只上传
+        # htmlcov/(纯 HTML)导致 "No data to combine" (run 31459766599 六个
+        # coverage-check 全红)。pytest-cov 生成的 .coverage 在仓库根目录。
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report-${{ matrix.os }}-py${{ matrix.python-version }}
-          path: htmlcov/
+          path: |
+            coverage.xml
+            .coverage
+            htmlcov/
           retention-days: 30
 
       - name: 上传测试结果
@@ -310,6 +317,22 @@ jobs:
             --junitxml=test-results/integration-test-results.xml \
             -m "not slow and not requires_llm and not skip_ci" \
             --timeout=300
+
+      - name: 上传覆盖率数据
+        # 【变易·CHG-2026-0811】集成测试覆盖率数据上传:
+        # coverage-check 设计语义为「unit + integration 合并覆盖率 ≥70」
+        # (needs: [unit-tests, integration-tests]), 此前 integration 从未上传
+        # 数据文件, 合并只含 unit (62% < 70) 必然 fail-under。
+        # 3.12 集成测试禁用 --cov (CHG-2026-0811 超时修复) 无数据文件, 跳过上传
+        # (upload-artifact 对空 path 会报错 "No files were found")。
+        if: matrix.python-version != '3.12'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-integration-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: |
+            coverage.xml
+            .coverage
+          retention-days: 30
 
       - name: 上传测试结果
         uses: actions/upload-artifact@v7
@@ -454,6 +477,12 @@ jobs:
 
   coverage-check:
     name: 覆盖率检查 (Python ${{ matrix.python-version }} - ${{ matrix.os }})
+    # 【变易·CHG-2026-0811】3.12 跳过覆盖率检查:
+    # 3.12 集成测试禁用 --cov (CHG-2026-0811, CPython 3.12 tracing 二次复杂度
+    # bug python/cpython#127953 使 coverage 下集成测试慢 5-30 倍而超时),
+    # 无 integration 覆盖率数据 → 合并只剩 unit (62%) 必然 fail-under。
+    # 3.12 覆盖率信息仍由 unit-tests job 的 --cov-report=term-missing 输出。
+    if: matrix.python-version != '3.12'
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -492,15 +521,28 @@ jobs:
         run: |
           mkdir -p test_reports
 
-      - name: 下载覆盖率报告
+      - name: 下载单元测试覆盖率
+        # 【变易·CHG-2026-0811】下载到独立子目录 coverage-unit/:
+        # 与集成测试数据文件同名 (.coverage), 必须隔离存放避免互相覆盖,
+        # 再由 `coverage combine coverage-unit coverage-integration` 合并。
         uses: actions/download-artifact@v8
         with:
           name: coverage-report-${{ matrix.os }}-py${{ matrix.python-version }}
-          path: htmlcov/
+          path: coverage-unit/
+
+      - name: 下载集成测试覆盖率
+        uses: actions/download-artifact@v8
+        with:
+          name: coverage-integration-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: coverage-integration/
 
       - name: 检查覆盖率
+        # 【变易·CHG-2026-0811】去掉 `|| true`: 此前吞掉 combine 失败导致
+        # 后续静默 "No data to report" exit 1, 无法定位根因。数据齐备后
+        # combine 失败应直接暴露。coverage combine 接受目录参数, 合并目录内
+        # 所有 .coverage* 数据文件 (unit + integration 同版本同平台)。
         run: |
-          coverage combine || true
+          coverage combine coverage-unit coverage-integration
           coverage report
           coverage report --fail-under=${{ env.COVERAGE_THRESHOLD }}
 
