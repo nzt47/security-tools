@@ -102,6 +102,19 @@ def test_stop_without_active_is_noop(tmp_path):
     assert watcher_module._ACTIVE is None
 
 
+def test_start_replaces_stale_non_running_singleton(fake_watcher, tmp_path):
+    """单例存在但未运行（如 start 异常残留）时，再次 start 应替换为新实例。
+
+    覆盖 `_ACTIVE is not None and _ACTIVE.is_running` 中
+    "存在但 is_running=False" 的短路径分支（语义上与运行中幂等返回区分）。
+    """
+    watcher_module.start_knowledge_watcher(tmp_path / "kb")
+    watcher_module._ACTIVE._running = False  # 模拟"存在但未运行"残留态
+    watcher_module.start_knowledge_watcher(tmp_path / "kb")
+    assert fake_watcher.instances == [str(tmp_path / "kb"), str(tmp_path / "kb")]
+    assert watcher_module._ACTIVE.is_running
+
+
 # ════════════════════════════════════════════════════════════
 #  真实 watchdog 集成（文件落入 inbox → 自动登记）
 # ════════════════════════════════════════════════════════════
