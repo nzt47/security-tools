@@ -34,7 +34,7 @@ class TestDefectD5:
         registry.register("ta", tool_a)
         registry.register("tb", tool_b)
 
-        executor = PlanExecutor(registry)
+        executor = PlanExecutor(registry, config={"parallel_execution": True})
         plan = Plan(original_task="并行任务", state=PlanState.READY)
         plan.add_task(Task(id="a", description="调用ta"))
         plan.add_task(Task(id="b", description="调用tb"))

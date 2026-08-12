@@ -12,7 +12,7 @@ import logging
 import os
 import sqlite3
 import threading
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from planning.models import Plan, PlanState
 
@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS plans (
     result        TEXT,
     error         TEXT,
     context       TEXT,
+    metadata      TEXT,
     created_at    TEXT NOT NULL,
     updated_at    TEXT NOT NULL
 );
@@ -55,8 +56,17 @@ CREATE TABLE IF NOT EXISTS execution_log (
     error       TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS transition_history (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    plan_id    TEXT NOT NULL,
+    from_state TEXT,
+    to_state   TEXT NOT NULL,
+    reason     TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 CREATE INDEX IF NOT EXISTS idx_plans_state ON plans(state);
 CREATE INDEX IF NOT EXISTS idx_exec_log_plan ON execution_log(plan_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_transition_plan ON transition_history(plan_id, created_at);
 """
 
 
@@ -74,6 +84,14 @@ class PlanDB:
         with self._lock:
             self._conn.executescript(_SCHEMA)
             self._conn.commit()
+            self._migrate_legacy_schema()
+
+    def _migrate_legacy_schema(self) -> None:
+        """存量库结构迁移：老库 plans 表无 metadata 列时补列（幂等）"""
+        cols = [r["name"] for r in self._conn.execute("PRAGMA table_info(plans)").fetchall()]
+        if "metadata" not in cols:
+            self._conn.execute("ALTER TABLE plans ADD COLUMN metadata TEXT")
+            self._conn.commit()
 
     def close(self) -> None:
         """关闭连接（进程退出时调用）"""
@@ -87,18 +105,21 @@ class PlanDB:
         with self._lock:
             self._conn.execute(
                 """INSERT INTO plans (id, original_task, state, progress, current_step,
-                                     max_steps, result, error, context, created_at, updated_at)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                                     max_steps, result, error, context, metadata,
+                                     created_at, updated_at)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
                    ON CONFLICT(id) DO UPDATE SET
                      state=excluded.state, progress=excluded.progress,
                      current_step=excluded.current_step, result=excluded.result,
-                     error=excluded.error, updated_at=excluded.updated_at""",
+                     error=excluded.error, context=excluded.context,
+                     metadata=excluded.metadata, updated_at=excluded.updated_at""",
                 (
                     d["id"], d["original_task"], d["state"], d["progress"],
                     d["current_step"], d["max_steps"],
                     json.dumps(d["result"], ensure_ascii=False) if d["result"] is not None else None,
                     d["error"],
                     json.dumps(d["context"], ensure_ascii=False),
+                    json.dumps(d.get("metadata", {}), ensure_ascii=False),
                     d["created_at"], d["updated_at"],
                 ),
             )
@@ -131,6 +152,7 @@ class PlanDB:
                         "result": row["result"],
                         "error": row["error"],
                         "context": json.loads(row["context"]) if row["context"] else {},
+                        "metadata": json.loads(row["metadata"]) if row["metadata"] else {},
                         "created_at": row["created_at"],
                         "updated_at": row["updated_at"],
                     }
@@ -170,6 +192,34 @@ class PlanDB:
             else:
                 row = self._conn.execute("SELECT COUNT(*) AS c FROM execution_log").fetchone()
             return row["c"]
+
+    # ── 状态转换历史（阶段 2 / D9 升级）────────────────────────────
+    def record_transition(self, *, plan_id: str, from_state: Optional[str],
+                          to_state: str, reason: Optional[str]) -> None:
+        """追加一条状态转换记录（增量落库，审计可追溯）"""
+        with self._lock:
+            self._conn.execute(
+                "INSERT INTO transition_history (plan_id, from_state, to_state, reason)"
+                " VALUES (?,?,?,?)",
+                (plan_id, from_state, to_state, reason),
+            )
+            self._conn.commit()
+
+    def get_transition_history(self, plan_id: Optional[str] = None,
+                               limit: int = 50) -> List[Dict]:
+        """查询状态转换历史（按时间倒序）"""
+        with self._lock:
+            if plan_id:
+                rows = self._conn.execute(
+                    "SELECT * FROM transition_history WHERE plan_id=?"
+                    " ORDER BY id DESC LIMIT ?",
+                    (plan_id, limit),
+                ).fetchall()
+            else:
+                rows = self._conn.execute(
+                    "SELECT * FROM transition_history ORDER BY id DESC LIMIT ?", (limit,)
+                ).fetchall()
+        return [dict(r) for r in rows]
 
     # ── JSON 检查点迁移 ───────────────────────────────────────────
     def migrate_from_json(self, persist_dir: str) -> int:

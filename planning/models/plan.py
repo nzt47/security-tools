@@ -38,6 +38,8 @@ class Plan:
     max_steps: int = 50
     state: PlanState = PlanState.INIT
     context: Dict[str, Any] = field(default_factory=dict)
+    # 阶段 2（D5）：分解器元数据（parallel_groups 等）挂载于此，供执行器参考
+    metadata: Dict[str, Any] = field(default_factory=dict)
     result: Any = None
     error: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.now)
@@ -115,6 +117,7 @@ class Plan:
             "result": str(self.result) if self.result else None,
             "error": self.error,
             "context": dict(self.context),
+            "metadata": dict(self.metadata),
             "tasks": [t.to_dict() for t in self.tasks],
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
@@ -145,6 +148,7 @@ class Plan:
             current_step=data.get("current_step", 0),
             max_steps=data.get("max_steps", 50),
             context=data.get("context", {}),
+            metadata=data.get("metadata", {}),
             result=data.get("result"),
             error=data.get("error"),
         )

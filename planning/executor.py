@@ -15,6 +15,7 @@ from .models import Task, TaskStatus, Plan, PlanState
 from .models.action import Action, ActionResult, ActionType
 from .models.record import ExecutionRecord
 from .state_machine import InvalidStateTransitionError, PlanStateMachine
+from .validator import PlanValidationError, validate_plan_or_raise
 
 # 使用 Phase 3 的统一注册表抽象
 from core.registry import SimpleRegistry
@@ -23,11 +24,6 @@ from core.registry import SimpleRegistry
 from agent.error_handler import RecoverableError
 
 logger = logging.getLogger(__name__)
-
-
-class PlanValidationError(Exception):
-    """计划验证失败（D11 修复）"""
-    pass
 
 
 class ToolRegistry:
@@ -151,6 +147,9 @@ class PlanExecutor:
         # 【不易】仅 TOOL_CALL 动作生效；配置缺失时行为与原有完全一致（零回退成本）
         self.degrade_chain: Dict[str, List[str]] = self.config.get("degrade_chain") or {}
         self.state_machine = state_machine
+        # 阶段 2（D5）：并行执行开关——默认关闭保持串行（与重构前行为一致），
+        # 配置 executor.parallel_execution=true 才启用 asyncio.gather 并发，降低回归风险
+        self.parallel_execution = bool(self.config.get("parallel_execution", False))
 
         # 协作式取消（D18 主缺陷修复，阶段 3 方案 A）：
         # _running_tasks 记录当前执行中的 execute_plan 任务（按 plan_id），供 cancel_plan 传播取消；
@@ -186,46 +185,12 @@ class PlanExecutor:
             self._callbacks[event].append(callback)
 
     def validate_plan(self, plan: Plan) -> None:
-        """执行前验证计划结构：悬空依赖 / 循环依赖 / 工具可用性（D11 修复）
+        """执行前验证计划结构（D11）：委托独立 validator 模块（依赖/环/工具/空描述）
 
         Raises:
             PlanValidationError: 计划结构非法
         """
-        task_ids = {t.id for t in plan.tasks}
-        for task in plan.tasks:
-            for dep in task.dependencies:
-                if dep not in task_ids:
-                    raise PlanValidationError(
-                        f"任务 '{task.id}' 依赖不存在的任务 '{dep}'（依赖不存在）"
-                    )
-
-        task_map = {t.id: t for t in plan.tasks}
-        visiting, visited = set(), set()
-
-        def _dfs(tid: str) -> None:
-            if tid in visiting:
-                raise PlanValidationError(f"检测到循环依赖（涉及任务 '{tid}'）")
-            if tid in visited:
-                return
-            visiting.add(tid)
-            for dep in task_map[tid].dependencies:
-                _dfs(dep)
-            visiting.discard(tid)
-            visited.add(tid)
-
-        for t in plan.tasks:
-            _dfs(t.id)
-
-        # D11 规格：工具可用性预检——无 LLM 的纯工具执行路径下，任务引用的工具
-        # 必须可解析（find_tool 命中英文子串/中文关键词）；有 LLM 时任务可由推理
-        # 灵活完成，跳过预检避免误拦截（如"请思考并回答"类描述）。
-        if getattr(self, "llm", None) is None:
-            for task in plan.tasks:
-                if self.tool_registry.find_tool(task.description) is None:
-                    raise PlanValidationError(
-                        f"任务 '{task.id}' 引用的工具不可用"
-                        f"（描述 '{task.description}' 无法解析到已注册工具）"
-                    )
+        validate_plan_or_raise(plan, self.tool_registry, getattr(self, "llm", None))
 
     def _resolve_deadlocked_tasks(self, plan: Plan) -> bool:
         """死锁消解：将依赖已终结性失败（FAILED/SKIPPED）的 PENDING 任务标记为 SKIPPED。
@@ -319,13 +284,23 @@ class PlanExecutor:
                     logger.warning("无可执行任务,但计划未完成")
                     break
 
-                if len(next_tasks) > 1:
-                    # D5 修复：互不依赖的任务并行执行
+                if self.parallel_execution and len(next_tasks) > 1:
+                    # D5 修复：互不依赖的任务并行执行（executor.parallel_execution 开关控制，
+                    # 默认 false 串行，与重构前行为一致；配置 true 才启用并发）
                     # D5 边界修正：并行批不越过 max_steps 额度，超限时截断本批，
                     # 剩余任务留待下轮循环（最终残留 PENDING → 收尾 FAILED，不误判成功）
                     remaining = plan.max_steps - step_count
                     if len(next_tasks) > remaining:
                         next_tasks = next_tasks[:remaining]
+                    # 供执行器参考的并行组声明（分解器写入 plan.metadata["parallel_groups"]）
+                    parallel_groups = (plan.metadata or {}).get("parallel_groups") or []
+                    if parallel_groups:
+                        logger.info(
+                            f"[并行执行] 计划声明的并行组: {parallel_groups}"
+                            f" | 本批任务: {[t.id for t in next_tasks]}"
+                        )
+                    # 并发共享状态校验警告：同批任务不得写同一资源（如 file_contents 类工具）
+                    self._warn_parallel_resource_conflicts(next_tasks)
                     logger.info(
                         f"[执行任务] 并行批: {len(next_tasks)} 个任务"
                         f" | ids: {[t.id for t in next_tasks]}"
@@ -432,6 +407,39 @@ class PlanExecutor:
         logger.info(f"计划执行{plan.state.value}: {plan.progress():.1%}")
         return plan
 
+    def _warn_parallel_resource_conflicts(self, tasks: List[Task]) -> None:
+        """并发共享状态校验警告（阶段 2 / D5）：并发任务不得写同一资源。
+
+        启发式：解析每任务的目标工具与关键参数（filename/path/file/content），
+        同批内两任务命中同一（工具, 资源键）时打 WARNING。仅警告不阻断——
+        由上层依据工具语义决定是否规避并发写同一资源。
+        """
+        try:
+            signatures: List[tuple] = []
+            for task in tasks:
+                tool_name = self.tool_registry.find_tool(task.description) or ""
+                params = self._extract_params(task, tool_name)
+                key_params = tuple(sorted(
+                    (k, str(v)) for k, v in params.items()
+                    if k in ("filename", "path", "file", "content")
+                ))
+                signatures.append((tool_name, key_params))
+            seen = {}
+            for i, sig in enumerate(signatures):
+                tool_name, key_params = sig
+                if not tool_name or not key_params:
+                    continue
+                if sig in seen:
+                    logger.warning(
+                        f"[并行执行] 并发资源冲突警告: 任务 {seen[sig].id} 与任务 {tasks[i].id}"
+                        f" 均写 {tool_name}（资源键 {dict(key_params)}），"
+                        f"并发任务不得写同一资源"
+                    )
+                else:
+                    seen[sig] = tasks[i]
+        except Exception:
+            logger.debug("[并行执行] 资源冲突预检失败（跳过，不阻断）")
+
     def _finalize_state(self, plan: Plan, target: PlanState, *, reason: str) -> None:
         """收尾状态变更：优先走状态机（触发钩子/记录转换历史），无状态机时降级直接赋值
 
@@ -442,10 +450,10 @@ class PlanExecutor:
         CANCELLED）时，非法收尾转换保留原终态，不被降级覆盖。否则重复执行已完成计划
         会在状态转换异常路径被错误降级为 FAILED（成功计划被标记失败）。
         """
+        prev_state = plan.state
         if self.state_machine is not None:
             try:
                 self.state_machine.transition(plan, target, reason)
-                return
             except InvalidStateTransitionError as e:
                 if plan.state in (PlanState.COMPLETED, PlanState.FAILED, PlanState.CANCELLED):
                     # 终态优先于收尾：终态计划不被后续收尾覆盖（含取消竞态边界 #2）
@@ -455,7 +463,20 @@ class PlanExecutor:
                     )
                     return
                 logger.warning(f"状态机收尾转换失败，降级直接赋值: {e}")
-        plan.state = target
+                plan.state = target
+        else:
+            plan.state = target
+        # 阶段 2（D9）：状态转换增量落库（审计可追溯）；失败仅告警不影响主流程
+        if self.persistence is not None and plan.state != prev_state:
+            try:
+                self.persistence.record_transition(
+                    plan_id=plan.id,
+                    from_state=prev_state.value,
+                    to_state=plan.state.value,
+                    reason=reason,
+                )
+            except Exception as e:
+                logger.warning(f"[D9] 状态转换落库失败: {e}")
 
     async def _do_execute_task(self, task: Task) -> ActionResult:
         """实际的任务执行逻辑（不含重试，失败抛出异常）"""

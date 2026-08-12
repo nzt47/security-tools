@@ -108,7 +108,8 @@ class TestDegradeChainConcurrency:
 
     @staticmethod
     def _executor_with_chain(registry: ToolRegistry, chain: dict) -> PlanExecutor:
-        return PlanExecutor(registry, max_retries=1, config={"degrade_chain": chain})
+        # 并行批场景需显式开启 parallel_execution（默认串行，降低回归风险）
+        return PlanExecutor(registry, max_retries=1, config={"degrade_chain": chain, "parallel_execution": True})
 
     @pytest.mark.asyncio
     async def test_degrade_chain_in_parallel_batch(self):

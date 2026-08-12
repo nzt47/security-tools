@@ -16,7 +16,8 @@ from .models.record import ExecutionRecord
 from .models.react import ReActResult
 from .decomposer import TaskDecomposer
 from .executor import PlanExecutor, ToolRegistry
-from .persistence import PlanDB
+from .storage import PlanningStorage
+from .validator import PlanValidationError, validate_plan, validate_plan_or_raise
 from .reflector import Reflector
 from .state_machine import PlanStateMachine, InvalidStateTransitionError
 from .react import ReActLoop
@@ -127,14 +128,20 @@ class PlanningCore:
             or self.config.get("persist_dir") or os.path.join("data", "plans")
         os.makedirs(self.persist_dir, exist_ok=True)
 
-        # D9 规格：SQLite 落库（persist_db 默认置于 persist_dir 下，兼容既有持久化路径语义）
-        self.persist_db_path = persist_config.get("persist_db") \
-            or self.config.get("persist_db") or os.path.join(self.persist_dir, "plans.db")
-        self.db = PlanDB(self.persist_db_path)
-        self.db.migrate_from_json(self.persist_dir)
-        # 执行记录审计埋点：executor 通过属性注入（与 state_machine 注入同模式，不改签名）
-        self.executor.persistence = self.db
-        logger.info(f"已初始化 SQLite 持久化: {self.persist_db_path}")
+        # 阶段 2（D9 升级）：存储门面（planning.storage.enabled 可关闭；路径解析
+        # 优先级 storage.path > persist_db > persist_dir/plans.db > 默认 ./data/planning/plans.db）
+        self.storage_enabled = PlanningStorage.is_enabled(persist_config)
+        self.persist_db_path = PlanningStorage.resolve_db_path(persist_config)
+        if self.storage_enabled:
+            self.db = PlanningStorage(self.persist_db_path)
+            self.db.migrate_from_json(self.persist_dir)
+            # 执行记录审计埋点：executor 通过属性注入（与 state_machine 注入同模式，不改签名）
+            self.executor.persistence = self.db
+            logger.info(f"已初始化 SQLite 持久化: {self.persist_db_path}")
+        else:
+            self.db = None
+            self.executor.persistence = None
+            logger.info("计划存储已禁用（planning.storage.enabled=false），跳过 SQLite 初始化")
 
         self._active_plans: Dict[str, Plan] = self._load_plans_from_disk()
         logger.info(f"已恢复 {len(self._active_plans)} 个未完成计划: {self.persist_dir}")
@@ -147,12 +154,17 @@ class PlanningCore:
         logger.info("="*60)
 
     def save_plan_checkpoint(self, plan: Plan) -> str:
-        """保存计划检查点（D9：SQLite 落库，返回落库路径保持调用方语义）"""
+        """保存计划检查点（D9：SQLite 落库，返回落库路径保持调用方语义；
+        存储关闭（planning.storage.enabled=false）时静默跳过，仍返回路径）"""
+        if self.db is None:
+            return self.persist_db_path
         self.db.upsert_plan(plan)
         return self.persist_db_path
 
     def _load_plans_from_disk(self) -> Dict[str, Plan]:
-        """从 SQLite 恢复未完成计划（D9 规格）"""
+        """从 SQLite 恢复未完成计划（D9 规格；存储关闭时返回空）"""
+        if self.db is None:
+            return {}
         return self.db.load_unfinished_plans()
 
     async def plan(self, task: str, context: Dict = None) -> Plan:
@@ -185,6 +197,22 @@ class PlanningCore:
                     logger.info(f"      子任务{i+1}: {t.description[:50]}...")
                 if len(plan.tasks) > 5:
                     logger.info(f"      ... 还有 {len(plan.tasks) - 5} 个子任务")
+
+                # 阶段 2（D11）：创建期验证——结构性错误（悬空依赖/环/空描述）在此拦截，
+                # 标记 FAILED 并指明原因，而非进入执行期卡死。规则分解（无 LLM）下的
+                # tool_unavailable 属自由文本拆解的预期噪音，仅告警、交由执行期校验
+                # （与 executor.validate_plan 语义一致，避免误拦"打开文件"类规则任务）。
+                issues = validate_plan(plan, self.tool_registry, self.llm)
+                fatal = [i for i in issues
+                         if i.code in ("dangling_dependency", "circular_dependency", "empty_description")]
+                if fatal:
+                    plan.state = PlanState.FAILED
+                    plan.error = "；".join(i.message for i in fatal)
+                    logger.error(f"❌ 计划验证失败: {plan.error}")
+                    logger.info("="*60)
+                    raise PlanningError(f"计划验证失败: {plan.error}")
+                for i in issues:
+                    logger.warning(f"计划验证警告（不阻断创建）: {i.message}")
 
                 self._active_plans[plan.id] = plan
                 self.save_plan_checkpoint(plan)
@@ -230,6 +258,18 @@ class PlanningCore:
         logger.info("-"*60)
 
         try:
+            # 阶段 2（D11）：执行前验证——坏计划在进入执行器前被拦截（标记 FAILED + 指明原因），
+            # 避免执行期卡死；executor 内部亦验证（双重防线，语义一致）。
+            logger.info("📋 步骤0: 执行前规划验证...")
+            try:
+                validate_plan_or_raise(plan, self.tool_registry, self.llm)
+                logger.info("   ✅ 计划验证通过")
+            except PlanValidationError as e:
+                plan.error = str(e)
+                logger.error(f"❌ 计划验证失败: {e}")
+                self.executor._finalize_state(plan, PlanState.FAILED, reason="计划验证失败")
+                return plan
+
             logger.info("📊 步骤1: 状态转换 INIT -> EXECUTING")
             self.state_machine.transition(plan, PlanState.EXECUTING, "开始执行")
             logger.info(f"   ✅ 状态已转换到: {plan.state.value}")
@@ -241,8 +281,17 @@ class PlanningCore:
             if self.reflector:
                 try:
                     logger.info("🧠 步骤3: 执行计划反思...")
-                    await self.reflector.plan_reflect(plan)
+                    reflection = await self.reflector.plan_reflect(plan)
                     logger.info("   ✅ 反思完成")
+
+                    # 阶段 2（D4 反思闭环）：计划级调整激活 decomposer.refine()——
+                    # 反思结论转 feedback 文本，由 refine 生成新任务集合并更新 Plan
+                    # （首次激活该能力；无 LLM 时 refine 原样返回，天然幂等）。
+                    feedback = self._reflect_to_feedback(reflection)
+                    if feedback and self.decomposer.llm is not None:
+                        logger.info("🔧 步骤3.1: 依据反思反馈优化计划（refine 激活）...")
+                        await self.decomposer.refine(plan, feedback)
+                        self.save_plan_checkpoint(plan)
                 except Exception as e:
                     logger.warning(f"   ⚠️ 反思执行失败: {e}")
 
@@ -345,6 +394,8 @@ class PlanningCore:
             react_result = await self.react_loop.run(message, context)
 
             # D4 修复：ReAct 步骤写入统一执行记录（与 execute_plan 路径共享）
+            # 阶段 2（D4/D12 升级）：thought/observation 字段显式记录，与 ExecutionRecord
+            # 新增字段一一对应，保持 to_dict() 向后兼容（未赋值时 observation 回退 result）。
             for step in react_result.steps:
                 self.executor.execution_history.append(ExecutionRecord(
                     step=step.iteration,
@@ -352,6 +403,8 @@ class PlanningCore:
                     action=Action.llm_action(prompt=step.thought, description=step.action),
                     result=ActionResult(success=step.success, output=step.observation, observation=step.observation),
                     reasoning=step.thought,
+                    thought=step.thought,
+                    observation=step.observation,
                 ))
 
             # D4 边界：一步 finish 完成（无中间步骤）也计入统一执行记录，保持双路径记录完整
@@ -362,6 +415,8 @@ class PlanningCore:
                     action=Action.llm_action(prompt="", description="finish"),
                     result=ActionResult(success=True, output=react_result.result, observation=react_result.result),
                     reasoning="",
+                    thought="",
+                    observation=react_result.result,
                 ))
 
             logger.info(f"📊 步骤2: ReAct循环执行结果")
@@ -424,6 +479,22 @@ class PlanningCore:
         parts.append("\n请以云枢的身份回复用户")
 
         return "\n".join(parts)
+
+    @staticmethod
+    def _reflect_to_feedback(reflection: Optional[Dict[str, Any]]) -> str:
+        """将 plan_reflect 输出转换为 refine 的 feedback 文本（无输出/空内容返回空串）。
+
+        优先级：summary > insight > improvements 拼接 > 整包 JSON 序列化。
+        """
+        if not reflection:
+            return ""
+        feedback = reflection.get("summary") or reflection.get("insight") or ""
+        improvements = reflection.get("improvements") or []
+        if not feedback and improvements:
+            feedback = "；".join(str(i) for i in improvements)
+        if not feedback:
+            feedback = json.dumps(reflection, ensure_ascii=False)
+        return feedback
 
     def cancel_plan(self, plan_id: str) -> bool:
         """
