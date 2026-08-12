@@ -4,6 +4,9 @@
 > 实现多副本/跨重启的连续失败计数聚合。本文为**可直接复制的实现草稿**，
 > 落地时机由部署形态决定（多实例 app_server 或需要天级跨重启统计时）。
 >
+> **状态：已落地**。权威实现 = `agent/cognitive/failure_bucket.py`
+> （commit `cce30bcf`）；本文档为设计蓝本与接入说明，与本代码保持一致。
+>
 > 现状（已落地）：`agent/cognitive/prompt_optimizer.py` 的 `_record_failure_bucket`
 > 使用进程内 dict，单实例够用；本草稿保持其方法签名不变，仅替换存储后端。
 
