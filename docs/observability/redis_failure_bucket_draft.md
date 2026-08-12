@@ -281,3 +281,21 @@ def test_prompt_optimizer_with_redis_store(tmp_path, monkeypatch):
 最终 1 而非 2）。已加 `threading.Lock` 保护（锁内仅内存 dict 操作，无 I/O/回调，
 符合持锁纪律）；并发压力测试（8 线程 × 1000 次 incr）断言总数 = 8000 无丢失。
 Redis 路径 `INCR` 本身原子，无需锁；降级备用桶共享同一把锁。
+
+### 8.4 tool_calling 连续失败计数审计（纠正：局部变量，无需加锁）✅
+
+上轮并发风险审计曾将 `_consecutive_failures` 误标为"模块级"（仅看了使用处
+L462-467，未看定义处）。经完整检查纠正：
+
+- `_consecutive_failures` 是 `chat_with_steps` 方法内**局部变量**（L264，每次调用
+  独立创建），多线程并发调用时各对话互不共享；读-改-写在单线程循环内顺序执行，
+  **无跨线程竞态**。
+- 模拟验证（64 线程逻辑片段 + 16 线程真实方法并发）：各对话计数独立准确；对照
+  演示若误改为共享 dict 则计数合并污染（共享场景计数合并至 156 vs 期望每线程 3）。
+- 单测 `TestConsecutiveFailureIsolation`（tests/unit/test_tool_calling_comprehensive.py）
+  断言：共享 service 实例 8 线程并发各对话计数独立触发，L467/L518 warning 配对，
+  触发周期计数恒为 2 不跨线程累积。
+
+结论：**不加锁**——锁保护局部变量无意义（违简易）；若未来将计数提升为实例/模块
+级共享状态，须同步引入锁或原子计数。对应 commit `a02cf85f`。
+
