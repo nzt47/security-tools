@@ -2493,6 +2493,98 @@ class Orchestrator:
             logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._get_user_context.fail', 'message': '[user_context] 获取失败（忽略）: %s' % (e,)}))
             return None
 
+    # ── ContextAssembler 集成（D2D3 替代方案 · CEL 框架；learning.context_assembler.enabled 默认 false）──
+
+    def _load_context_assembler_config(self) -> Dict[str, Any]:
+        """读取 learning.context_assembler 配置（config.yaml + 环境变量覆盖，默认关闭）"""
+        cfg = {"enabled": False, "token_budget": 3000}
+        try:
+            import yaml
+            with open("config.yaml", "r", encoding="utf-8") as _f:
+                raw = yaml.safe_load(_f) or {}
+            lc = (raw.get("learning") or {}).get("context_assembler") or {}
+            cfg["enabled"] = bool(lc.get("enabled", False))
+            cfg["token_budget"] = int(lc.get("token_budget", 3000))
+        except Exception:
+            pass
+        env = os.environ.get("LEARNING_CONTEXT_ASSEMBLER_ENABLED", "").strip().lower()
+        if env in ("1", "true", "yes"):
+            cfg["enabled"] = True
+        return cfg
+
+    def _context_assembler_long_term(self, task: str) -> list:
+        """长期检索记忆提供者 — 反思经验文件 data/reflection/{experiences,lessons}.json"""
+        chunks = []
+        try:
+            for name in ("experiences.json", "lessons.json"):
+                p = os.path.join("data", "reflection", name)
+                if not os.path.exists(p):
+                    continue
+                with open(p, "r", encoding="utf-8") as _f:
+                    data = json.load(_f)
+                items = data if isinstance(data, list) else (data.get("items", []) if isinstance(data, dict) else [])
+                for it in items:
+                    if not isinstance(it, dict):
+                        continue
+                    note = it.get("note") or it.get("content") or it.get("lesson") or it.get("experience")
+                    if not note:
+                        continue
+                    chunks.append({
+                        "layer": "反思经验",
+                        "title": "%s·%s" % (name.split(".")[0], it.get("task_type", "general")),
+                        "content": str(note),
+                    })
+        except Exception:
+            pass
+        return chunks
+
+    def _context_assembler_procedural(self, task: str) -> Tuple[list, Optional[dict]]:
+        """程序性记忆提供者 — SkillLoader 真实数据（懒初始化单例）"""
+        try:
+            if getattr(self, "_ctx_skills_loader", None) is None:
+                from agent.skills_mgmt.loader import SkillLoader
+                self._ctx_skills_loader = SkillLoader()
+            result = self._ctx_skills_loader.match(task, top_k=2)
+            skills = []
+            for m in result.matches[:2]:
+                text = None
+                try:
+                    instr = self._ctx_skills_loader.load_instruction(m.skill_id) or {}
+                    text = instr.get("instruction") or instr.get("body") or instr.get("content")
+                except Exception:
+                    text = None
+                if not text:
+                    text = m.description
+                skills.append({"skill_id": m.skill_id, "name": m.name, "instruction": text})
+            return skills, None
+        except Exception:
+            return [], None
+
+    def _context_assembler_extra(self, user_input: str, mode: str = "default") -> Optional[str]:
+        """ContextAssembler 旁路注入 — 任何异常静默降级返回 None（主链路零影响）"""
+        try:
+            cfg = self._load_context_assembler_config()
+            if not cfg["enabled"]:
+                return None
+            from agent.context.assembler import ContextAssembler
+            assembler = ContextAssembler(
+                token_budget=int(cfg["token_budget"]),
+                working_memory_fn=(
+                    (lambda: self._memory.get_context(token_limit=self._memory_token_limit))
+                    if getattr(self, "_memory", None) else None
+                ),
+                long_term_fn=self._context_assembler_long_term,
+                procedural_fn=self._context_assembler_procedural,
+            )
+            ctx = assembler.assemble(user_input, mode=mode)
+            if not ctx.memory_sections and not ctx.skill_instructions and not ctx.workflow_hint:
+                return None
+            return assembler.render_text(ctx)
+        except Exception as exc:
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.context_assembler.degraded',
+                                   'message': '[ContextAssembler] 降级跳过: %s' % (exc,)}))
+            return None
+
     def _call_llm_v2(self, user_input: str, body_status: str, *,
                      session_id: Optional[str] = None,
                      session_mgr=None) -> str:
@@ -2534,6 +2626,12 @@ class Orchestrator:
                 tool_status=tool_status,
                 skill_instructions=skill_instructions,
             )
+
+        # ContextAssembler 旁路注入（learning.context_assembler.enabled 默认 false，观察模式；
+        # 任何异常静默降级，主链路零影响）
+        _ctx_extra = self._context_assembler_extra(user_input)
+        if _ctx_extra:
+            system_prompt = system_prompt + "\n\n" + _ctx_extra
 
         messages = []
         try:
