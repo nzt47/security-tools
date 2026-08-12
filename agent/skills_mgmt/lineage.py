@@ -57,7 +57,8 @@ _SCHEMA_VERSION = 1
 OBJECT_TYPES = ("skill", "prompt", "knowledge_card", "subagent_config", "tool_code")
 
 # 提交决策（任务 6 审批流/自动回滚的数据依据）
-DECISIONS = ("committed", "rejected", "pending_review", "rolled_back")
+# skipped：本次无建议产出（如无样本/未达阈值/变体生成失败），仅审计占位，不进入审批流
+DECISIONS = ("committed", "rejected", "skipped", "pending_review", "rolled_back")
 
 # 触发来源 / 执行者（trigger / actor 为自由字符串，未来任务可按需扩展）
 TRIGGERS = ("manual", "scheduler", "feedback", "api")

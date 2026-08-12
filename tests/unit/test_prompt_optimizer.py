@@ -349,7 +349,7 @@ class TestFailureBucket:
                    for c in mock_emit.call_args_list
                    if "failed_prompt_total" in str(c)]
         assert prompts == ["p1"]
-        assert opt._failure_bucket == {}  # 上报后移除，防桶膨胀
+        assert opt._failure_store._d == {}  # 上报后移除，防桶膨胀
 
     @patch("agent.skills_mgmt.observability.emit_metric")
     def test_success_resets_bucket(self, mock_emit, tmp_path):

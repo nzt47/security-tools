@@ -45,6 +45,7 @@ from agent.skills_mgmt.evaluator import (
     SkillExecutorEvaluator,
 )
 from agent.skills_mgmt.lineage import EvolutionRecord, get_default_archive
+from agent.cognitive.failure_bucket import create_failure_store
 
 logger = logging.getLogger(__name__)
 
@@ -236,6 +237,8 @@ class PromptOptimizer:
         abs_min_score: 绝对验证最低接受分（默认 .env PROMPT_OPT_ABS_MIN_SCORE=0.5）
         failure_emit_threshold: 服务端失败桶阈值——连续失败（no_improvement/no_samples）
             达该次数才上报带 prompt_id 的指标（降基数，默认 .env PROMPT_OPT_FAILURE_BUCKET=3）
+        failure_store: 失败桶存储后端（默认按 PROMPT_OPT_FAILURE_STORE 创建：
+            memory 进程内 / redis 跨重启聚合，Redis 不可用自动降级内存）
     """
 
     def __init__(self, *, pool: Optional[EvalSamplePool] = None,
@@ -249,7 +252,8 @@ class PromptOptimizer:
                  consistency_runs: Optional[int] = None,
                  timeout_sec: Optional[int] = None,
                  budget_tokens: Optional[int] = None,
-                 failure_emit_threshold: Optional[int] = None):
+                 failure_emit_threshold: Optional[int] = None,
+                 failure_store: Any = None):
         self._pool = pool or EvalSamplePool()
         self._llm = llm
         self._prompt_runner = prompt_runner or _default_prompt_runner(llm)
@@ -259,7 +263,9 @@ class PromptOptimizer:
         self.failure_emit_threshold = (failure_emit_threshold
                                        if failure_emit_threshold is not None
                                        else _env_int("PROMPT_OPT_FAILURE_BUCKET", 3))
-        self._failure_bucket: Dict[str, int] = {}
+        # 存储后端可切换：默认 memory；PROMPT_OPT_FAILURE_STORE=redis 时跨重启聚合
+        self._failure_store = failure_store if failure_store is not None \
+            else create_failure_store()
         self.improvement_threshold = (
             improvement_threshold if improvement_threshold is not None
             else _env_float("PROMPT_OPT_THRESHOLD", 0.03))
@@ -531,30 +537,31 @@ class PromptOptimizer:
             return ""
 
     def _record_failure_bucket(self, proposal: PromptOptimizationProposal) -> None:
-        """服务端聚合降基数：进程内计数，仅连续失败达阈值才产出带 prompt_id 的时序
+        """服务端聚合降基数：仅连续失败达阈值才产出带 prompt_id 的时序
 
         Why 不直接 emit 每个 prompt_id：prompt_id 每次评估动态生成，直接做 label 会
-        高基数撑爆指标存储。改为进程内桶计数（失败 +1、成功清零），连续失败达阈值才
+        高基数撑爆指标存储。改为失败桶计数（失败 +1、成功清零），连续失败达阈值才
         产出 `yunshu_prompt_optimization_failed_prompt_total{prompt_id=...}`，上报后
-        移除键防桶膨胀。进程内桶重启清零，跨重启聚合需外部存储（见设计文档）。
+        移除键防桶膨胀。计数存储委托 failure_bucket 后端（默认进程内，可切 Redis）。
         """
         pid = proposal.object_id
         if proposal.status in (STATUS_NO_IMPROVEMENT, STATUS_NO_SAMPLES):
-            self._failure_bucket[pid] = self._failure_bucket.get(pid, 0) + 1
+            count = self._failure_store.incr(pid)
         else:
-            self._failure_bucket.pop(pid, None)  # 成功即清零
-        if self._failure_bucket.get(pid, 0) >= self.failure_emit_threshold:
+            self._failure_store.reset(pid)  # 成功即清零
+            return
+        if count >= self.failure_emit_threshold:
             try:
                 from agent.skills_mgmt.observability import emit_metric
                 emit_metric("yunshu_prompt_optimization_failed_prompt_total",
                             labels={"prompt_id": pid, "outcome": proposal.status,
                                     "success": "true"})
                 logger.info("[PromptOpt] 失败桶触发 prompt_id=%s outcome=%s 连续失败=%d",
-                            pid, proposal.status, self._failure_bucket[pid])
+                            pid, proposal.status, count)
             except Exception:  # noqa: BLE001 埋点失败不影响主流程
                 logger.debug("[PromptOpt] 失败桶埋点失败", exc_info=True)
             finally:
-                self._failure_bucket.pop(pid, None)  # 上报即移除，防桶膨胀
+                self._failure_store.pop(pid)  # 上报即移除，防桶膨胀
 
     def _emit_metrics(self, proposal: PromptOptimizationProposal) -> None:
         """yunshu_prompt_optimization_* 埋点（对齐 yunshu_skill_* 系列）"""
