@@ -299,3 +299,68 @@ L462-467，未看定义处）。经完整检查纠正：
 结论：**不加锁**——锁保护局部变量无意义（违简易）；若未来将计数提升为实例/模块
 级共享状态，须同步引入锁或原子计数。对应 commit `a02cf85f`。
 
+### 8.5 subagent/lifecycle.py 无锁计数与 TOCTOU（加锁修复）✅
+
+审计清单 B 类最后一项。`SubagentLifecycleManager` 两处真实竞态：
+
+- **`_total_created` / `_total_destroyed`**：`+= 1` 为「读-改-写」序列（非原子），
+  并发 create/destroy 丢更新，`get_stats()` 计数失真。
+- **容量检查 TOCTOU**：`create` 的「检查 `len(_subagents) < max_subagents` → 写入
+  dict」两步骤间可被另一线程插入，并发下活跃数**超卖超过 max_subagents**
+  （资源耗尽防护失效）。查询方法迭代 `_subagents` 与 destroy 并发还会抛
+  RuntimeError（dict changed size during iteration）。
+
+修复（commit `f426cfde`）：统一 `threading.RLock` 保护 `_subagents` 与计数，
+覆盖 create / destroy / hot_reload（改名 pop/insert）/ gc（RLock 重入 destroy）/
+全部查询方法（get / get_by_id / list / count / get_stats 等）——读取锁内快照。
+RLock 选型原因：`gc → destroy` 同线程重入不互锁。锁内仅内存 dict/整数变更与
+纯内存容器构建（`SubagentContainer.__init__`、`get_memory_delta()` 均无 I/O），
+logger 移出锁块，符合持锁纪律。
+
+验证（tests/unit/test_subagent.py `TestSubagentLifecycleConcurrency`，4 用例）：
+- 30 线程 × 20 次并发 create：`count() == 600`、`total_created == 600` 无丢失；
+- 100 线程并发 create（max=20）：**恰好放行 20 个**（拒绝 80），`count() == 20`
+  不超卖——无锁时此用例必然超卖；
+- create+destroy 混合：`total_created - total_destroyed == count()` 守恒；
+- 4 读 + 4 写混合：查询不抛 RuntimeError，计数守恒。
+
+### 8.6 全量并发审计结论（2026-08-13）📋
+
+B 类处理完毕后对 `agent/` 全目录（388 个 Python 文件）做了第二轮并发审计（四路 grep
+候选 + 逐一读源码核验，交叉验证无锁共享状态 32 处）。按严重度分组：
+
+**高（5 处，影响业务正确性，需修复）**
+- `model_router/cost_tracker.py`：`record()` 的 `_daily_stats` 读-改-写 + TOCTOU
+  （L40-44），模块级单例——费用/调用计数并发丢失（关键业务数据）；
+- `orchestrator/orchestrator.py`：`_interaction_count += 1`（L251）全文件 14 处引用
+  均无锁，且用作 trace `interaction_id`（L369/978/1979）——并发下轮次计数失真、
+  interaction_id 重复（与 AsyncSaveMonitor task_id 同类问题）；
+- `monitoring/performance.py` `LLMCache`（L664-707）：无锁 OrderedDict
+  move_to_end/popitem/put 并发 → 结构损坏 RuntimeError（注意：与已加锁的
+  `llm_response_cache.LLMResponseCache` 是**不同类**）；
+- `utils/index_manager.py`：`add_item`/`remove_item` 无锁 defaultdict 变更 +
+  `remove_item` 检查后 del 的 TOCTOU（KeyError）；
+- `workflow_learning/matcher.py`：`_rebuild` 迭代 `_docs` 时另一线程 `add()` →
+  RuntimeError，`_dirty` 整表重建无锁。
+
+**中（11 处，计数/统计失真或结构风险，建议修复）**
+`web/crawler_control.py`（统计+UA/代理列表）、`web/search.py`（缓存 TOCTOU+整体
+重绑定）、`health/assessor.py`（`_history.append/pop(0)` 结构损坏）、`network_config.py`
+（缓存 TOCTOU）、`multi_tenant.py`（dict 变更+全量 dump 无原子写）、`safety_guard.py`、
+`permission_system.py`（计数+告警历史重绑定）、`utils/sensitive_data_filter.py`
+（迭代中改 dict → RuntimeError）、`monitoring/search.py`（`_performance_history` 追加）、
+`cognitive/reflection.py`（`_retry_counts` 读-改-写 + 删除 TOCTOU）、`memory/router.py`
+（adapters dict 注册/遍历）。
+
+**低（16 处，软指标可接受 / 单线程 / 视调用方式）**
+`p6` 快照频率、`workflow_learning/models.py` 成功率、`log_system/analyzer.py` 命中
+计数、`mcp_executor.py`/`extensions/manager.py` get-or-create、`tools/mcp_connector.py`
+连接 dict、`behavior_controller.py` 模式切换、`orchestrator/lifecycle_manager.py`
+engine_health、`cognitive/knowledge.py`（asyncio 单线程语义安全）、
+`log_system/introspection.py` `_run_count`（单线程）、`health/health_score.py`、
+`task_planner/dag.py`、`monitoring/performance.py` AsyncSaveMonitor/PerformanceLogger
+（list append/pop，结构风险但计数器按软指标）。
+
+修复策略建议（不变接口签名）：高优先 `cost_tracker` → `orchestrator` → `LLMCache`
+→ `index_manager` → `matcher`；与既有系列同模式（RLock 锁内仅内存操作）。
+
