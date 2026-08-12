@@ -360,7 +360,7 @@
           <div class="value" id="metric-requests">-</div>
         </div>
         <div class="metric-card success">
-          <div class="label">任务完成率</div>
+          <div class="label">L4 业务成功率</div>
           <div class="value" id="metric-task-success">-</div>
         </div>
         <div class="metric-card warning">
@@ -369,7 +369,7 @@
           <div class="sub">P99: <span id="metric-p99">-</span></div>
         </div>
         <div class="metric-card error">
-          <div class="label">错误率</div>
+          <div class="label">L3 LLM/工具</div>
           <div class="value" id="metric-error-rate">-</div>
         </div>
       </div>
@@ -438,29 +438,16 @@
       </div>
     </div>
     
-    <!-- 稳定性Tab -->
+    <!-- 稳定性Tab：L1 进程 / L2 依赖 / L3 LLM·工具（运行链路稳定） -->
     <div id="tab-stability" class="tab-content">
-      <div class="metrics-grid">
-        <div class="metric-card info">
-          <div class="label">错误率</div>
-          <div class="value" id="stab-error-rate">-</div>
-        </div>
-        <div class="metric-card warning">
-          <div class="label">崩溃次数</div>
-          <div class="value" id="stab-crash-count">-</div>
-        </div>
-        <div class="metric-card info">
-          <div class="label">重试次数</div>
-          <div class="value" id="stab-retry-count">-</div>
-        </div>
-        <div class="metric-card info">
-          <div class="label">重试率</div>
-          <div class="value" id="stab-retry-rate">-</div>
-        </div>
-      </div>
-      <div class="section-title"><span class="icon">🔄</span> 错误率趋势</div>
-      <div class="chart-container">
-        <canvas id="error-rate-chart"></canvas>
+      <div class="section-title"><span class="icon">🛡️</span> 运行稳定性探针（L1 进程 / L2 依赖 / L3 LLM·工具）</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>探针层</th><th>得分</th><th>状态</th><th>采集明细</th></tr></thead>
+          <tbody id="stab-probe-table">
+            <tr><td colspan="4" class="loading">加载中...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
     
@@ -490,25 +477,16 @@
       </div>
     </div>
     
-    <!-- 质量Tab -->
+    <!-- 质量Tab：L4 业务 / L5 语义（输出质量） -->
     <div id="tab-quality" class="tab-content">
-      <div class="metrics-grid">
-        <div class="metric-card success">
-          <div class="label">Schema通过率</div>
-          <div class="value" id="qual-schema">-</div>
-        </div>
-        <div class="metric-card info">
-          <div class="label">Critic评分</div>
-          <div class="value" id="qual-critic">-</div>
-        </div>
-        <div class="metric-card success">
-          <div class="label">任务完成率</div>
-          <div class="value" id="qual-task">-</div>
-        </div>
-        <div class="metric-card info">
-          <div class="label">工具成功率</div>
-          <div class="value" id="qual-tools">-</div>
-        </div>
+      <div class="section-title"><span class="icon">✨</span> 输出质量探针（L4 业务 / L5 语义）</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>探针层</th><th>得分</th><th>状态</th><th>采集明细</th></tr></thead>
+          <tbody id="qual-probe-table">
+            <tr><td colspan="4" class="loading">加载中...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
     
@@ -567,7 +545,6 @@
     let historyData = [];
     let alertsData = [];
     let trendChart = null;
-    let errorChart = null;
     let latencyChart = null;
     
     // ════════════════════════════════════════════════════════════
@@ -596,16 +573,16 @@
         document.getElementById('api-latency').textContent = (Date.now() - startTime) + 'ms';
         document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString();
         
-        updateHealthScore(health);
+        updateHealthScore(healthData);
         updateOverview(status, metrics);
-        updateStabilityMetrics(health);
+        updateStabilityMetrics(healthData);
         updatePerformanceMetrics(metrics);
-        updateQualityMetrics(health);
+        updateQualityMetrics(healthData);
         loadTrendData();
         loadProbeTrendChart();
         loadAlerts();
         loadHealthHistory();
-        loadSummaryTable(health);
+        loadSummaryTable(healthData);
       } catch (e) {
         console.error('加载数据失败:', e);
       }
@@ -725,15 +702,11 @@
         document.getElementById('metric-p99').textContent = (lat.p99 * 1000).toFixed(0) + 'ms';
       }
       
-      if (healthData?.dimensions?.stability?.indicators) {
-        const errRate = healthData.dimensions.stability.indicators.error_rate;
-        document.getElementById('metric-error-rate').textContent = errRate ? (100 - errRate).toFixed(1) + '%' : '-';
-      }
-      
-      if (healthData?.dimensions?.quality?.indicators) {
-        const taskRate = healthData.dimensions.quality.indicators.task_success_rate;
-        document.getElementById('metric-task-success').textContent = taskRate ? (taskRate * 100).toFixed(1) + '%' : '-';
-      }
+      // 五层探针：L3 LLM/工具（链路健康）、L4 业务（请求成功率）
+      const l3 = healthData?.dimensions?.l3_llm_tool;
+      const l4 = healthData?.dimensions?.l4_business;
+      document.getElementById('metric-error-rate').textContent = l3?.score != null ? l3.score.toFixed(0) : '无数据';
+      document.getElementById('metric-task-success').textContent = l4?.score != null ? l4.score.toFixed(0) : '无数据';
     }
     
     function getStatusDot(status) {
@@ -748,13 +721,9 @@
     // ════════════════════════════════════════════════════════════
     // 各维度指标更新
     // ════════════════════════════════════════════════════════════
+    // 稳定性 Tab：L1 进程 / L2 依赖 / L3 LLM·工具（运行链路稳定）
     function updateStabilityMetrics(health) {
-      const dims = health.dimensions || {};
-      const stab = dims.stability?.indicators || {};
-      document.getElementById('stab-error-rate').textContent = stab.error_rate ? stab.error_rate.toFixed(1) + '%' : '-';
-      document.getElementById('stab-crash-count').textContent = health.crash_count || 0;
-      document.getElementById('stab-retry-count').textContent = health.retry_count || 0;
-      document.getElementById('stab-retry-rate').textContent = stab.retry_rate ? stab.retry_rate.toFixed(1) + '%' : '-';
+      renderProbeTable('stab-probe-table', health.dimensions || {}, PROBE_LAYERS.slice(0, 3));
     }
     
     function updatePerformanceMetrics(metrics) {
@@ -766,13 +735,32 @@
       document.getElementById('perf-throughput').textContent = metrics.gauges?.['throughput.current'] || '-';
     }
     
+    // 质量 Tab：L4 业务 / L5 语义（输出质量）
     function updateQualityMetrics(health) {
-      const dims = health.dimensions || {};
-      const qual = dims.quality?.indicators || {};
-      document.getElementById('qual-schema').textContent = qual.schema_pass_rate ? (qual.schema_pass_rate * 100).toFixed(1) + '%' : '-';
-      document.getElementById('qual-critic').textContent = qual.critic_score ? qual.critic_score.toFixed(1) : '-';
-      document.getElementById('qual-task').textContent = qual.task_success_rate ? (qual.task_success_rate * 100).toFixed(1) + '%' : '-';
-      document.getElementById('qual-tools').textContent = qual.tool_success_rate ? (qual.tool_success_rate * 100).toFixed(1) + '%' : '-';
+      renderProbeTable('qual-probe-table', health.dimensions || {}, PROBE_LAYERS.slice(3));
+    }
+    
+    // 通用五层探针明细表渲染（score/available/detail → 页面格式）
+    function renderProbeTable(tbodyId, dims, layers) {
+      const tbody = document.getElementById(tbodyId);
+      if (!tbody) return;
+      const rows = layers.map(layer => {
+        const d = dims[layer.key] || {};
+        const score = d.score;
+        const available = d.available;
+        const stateCls = available ? 'success' : 'warning';
+        const stateText = available ? '正常采集' : '无数据';
+        const scoreText = score == null ? '无数据' : score.toFixed(0);
+        return `
+          <tr>
+            <td>${layer.label}</td>
+            <td><strong>${scoreText}</strong></td>
+            <td><span class="tag ${stateCls}">${stateText}</span></td>
+            <td>${escHtml(d.detail || '-')}</td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = rows.join('') || '<tr><td colspan="4" class="empty-state">暂无探针数据</td></tr>';
     }
     
     // ════════════════════════════════════════════════════════════
@@ -1088,18 +1076,22 @@
     // ════════════════════════════════════════════════════════════
     // 摘要表格
     // ════════════════════════════════════════════════════════════
+    // 近期摘要：最近一次评估的五层探针明细
     function loadSummaryTable(health) {
       const tbody = document.getElementById('summary-table');
-      const summary = health.summary || [];
-      const recommendations = health.recommendations || [];
-      
-      if (summary.length === 0 && recommendations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="empty-state">暂无摘要信息</td></tr>';
+      if (!health || health.overall_score == null) {
+        tbody.innerHTML = '<tr><td colspan="3" class="empty-state">暂无探针数据</td></tr>';
         return;
       }
-      
-      tbody.innerHTML = summary.map(s => `<tr><td>📋 摘要</td><td>${escHtml(s)}</td><td>${new Date().toLocaleTimeString()}</td></tr>`).join('') +
-        recommendations.map(r => `<tr><td>💡 建议</td><td>${escHtml(r)}</td><td>${new Date().toLocaleTimeString()}</td></tr>`).join('');
+      const dims = health.dimensions || {};
+      const time = health.timestamp ? new Date(health.timestamp).toLocaleString() : '-';
+      const rows = PROBE_LAYERS.map(layer => {
+        const d = dims[layer.key] || {};
+        const score = d.score;
+        const scoreText = score == null ? '无数据' : score.toFixed(0);
+        return `<tr><td>🔬 ${layer.label}</td><td>${scoreText}分 — ${escHtml(d.detail || '')}</td><td>${time}</td></tr>`;
+      });
+      tbody.innerHTML = rows.join('');
     }
     
     // ════════════════════════════════════════════════════════════
