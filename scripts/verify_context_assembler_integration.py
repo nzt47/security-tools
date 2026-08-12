@@ -28,6 +28,16 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import logging as _logging
+
+# 脚本自包含日志配置（生产环境由 setup_agent_logging 配置 root=INFO）：
+# CONTEXT_ASSEMBLER_LOG_LEVEL=DEBUG 时输出组装各层拉取/耗时明细，实时观察
+_log_level = os.environ.get("CONTEXT_ASSEMBLER_LOG_LEVEL", "").strip().upper()
+_logging.basicConfig(
+    level=getattr(_logging, _log_level, _logging.INFO),
+    format="%(asctime)s %(levelname)-7s %(name)-28s: %(message)s",
+)
+
 from agent.logging_utils import log_dict  # noqa: E402
 
 
@@ -102,8 +112,28 @@ def _verify_real_memory_manager() -> Path:
     return tmp
 
 
+def _benchmark_assemble(o, n: int = 20) -> None:
+    """性能基准：真实组件组装耗时统计（排除首次懒初始化预热）"""
+    import statistics
+    import time
+
+    tasks = ["解析 PDF 并提取表格", "帮我总结今天的对话", "传感器健康检查"]
+    samples = []
+    with mock.patch.object(o, "_load_context_assembler_config",
+                           return_value={"enabled": True, "token_budget": 3000}):
+        o._context_assembler_extra(tasks[0])  # 预热：懒初始化 SkillLoader
+        for i in range(n):
+            t0 = time.perf_counter()
+            o._context_assembler_extra(tasks[i % len(tasks)])
+            samples.append((time.perf_counter() - t0) * 1000)
+    samples_sorted = sorted(samples)
+    p95 = samples_sorted[int(len(samples_sorted) * 0.95) - 1]
+    print(f"  [OK] 性能基准 n={n}: 平均 {statistics.mean(samples):.2f}ms | "
+          f"p95 {p95:.2f}ms | max {max(samples):.2f}ms")
+
+
 def _verify_orchestrator_wiring(mm, tmp: Path) -> None:
-    """orchestrator 接线：默认关闭 → None；开启 → 组装文本"""
+    """orchestrator 接线：观察模式开启 → 组装文本；关闭 → None；异常 → None"""
     from agent.orchestrator.orchestrator import Orchestrator
 
     o = Orchestrator.__new__(Orchestrator)
@@ -111,20 +141,17 @@ def _verify_orchestrator_wiring(mm, tmp: Path) -> None:
     o._memory_token_limit = 8000
     o._ctx_skills_loader = None
 
-    # 1) 默认开关（真实读取 config.yaml，enabled=false）→ None
-    assert o._context_assembler_extra("解析 PDF 并提取表格") is None, \
-        "默认关闭时主链路必须零影响"
-    print("  [OK] 默认开关（config.yaml enabled=false）→ None，主链路零影响")
+    # 1) 观察模式已开启（真实读取 config.yaml，enabled=true）→ 返回组装文本
+    extra = o._context_assembler_extra("解析 PDF 并提取表格")
+    assert extra and "【ContextAssembler 增强上下文】" in extra, "观察模式应返回组装文本"
+    print("  [OK] 观察模式（config.yaml enabled=true）→ 返回组装文本")
 
-    # 2) 强制开启 → 组装文本（技能 + 记忆 + 反思经验）
+    # 2) 强制关闭（patch enabled=false）→ None（可回滚验证，主链路零影响）
     with mock.patch.object(o, "_load_context_assembler_config",
-                           return_value={"enabled": True, "token_budget": 3000}):
-        extra = o._context_assembler_extra("解析 PDF 并提取表格")
-    assert extra, "开启后应返回组装文本"
-    assert "【ContextAssembler 增强上下文】" in extra, "组装文本缺区块标记"
-    assert "工作记忆" in extra, "组装文本缺工作记忆"
-    print(f"  [OK] 强制开启 → 组装文本 {len(extra)} 字符，含工作记忆/反思经验"
-          + ("/技能指令" if "技能指令" in extra else "（当前技能数据未命中）"))
+                           return_value={"enabled": False, "token_budget": 3000}):
+        assert o._context_assembler_extra("解析 PDF 并提取表格") is None, \
+            "关闭时必须零影响"
+    print("  [OK] 强制关闭 → None，主链路零影响")
 
     # 3) 降级：全部提供者异常且无记忆 → None（主链路零影响）
     with mock.patch.object(o, "_load_context_assembler_config",
@@ -136,6 +163,9 @@ def _verify_orchestrator_wiring(mm, tmp: Path) -> None:
                 o._memory = None  # 工作记忆层缺省 → 三层全空 → None
                 assert o._context_assembler_extra("任意任务") is None, "异常必须静默降级"
     print("  [OK] 提供者异常 → 静默降级 None（主链路零影响）")
+
+    # 4) 性能基准（真实组件，n 次组装耗时统计）
+    _benchmark_assemble(o)
 
 
 def main() -> None:

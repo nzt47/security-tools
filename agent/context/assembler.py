@@ -19,10 +19,17 @@ Provider 契约（均为可调用对象）:
 from __future__ import annotations
 
 import logging
+import os
+import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
+# 项目规范：环境变量 > config.yaml > 硬编码默认值。
+# CONTEXT_ASSEMBLER_LOG_LEVEL=DEBUG 时输出各层拉取/组装明细，便于观察模式实时排查
+_LEVEL = os.environ.get("CONTEXT_ASSEMBLER_LOG_LEVEL", "").strip().upper()
+if _LEVEL in ("DEBUG", "INFO", "WARNING", "ERROR"):
+    logger.setLevel(getattr(logging, _LEVEL))
 
 
 def estimate_tokens(text: str) -> int:
@@ -99,6 +106,7 @@ class ContextAssembler:
             else:
                 text = "\n".join(f"{m.get('role', '?')}: {m.get('content', '')}" for m in raw)
             text = text[:500]
+            logger.debug("[context_assembler] 工作记忆拉取: 消息 %d 条 → %d 字符", len(raw or []), len(text))
             return [{"layer": "工作记忆", "title": "会话摘要+最近消息",
                      "content": text, "tokens": estimate_tokens(text)}] if text else []
         except Exception as exc:
@@ -119,6 +127,7 @@ class ContextAssembler:
                     continue
                 out.append({"layer": layer, "title": title, "content": content,
                             "tokens": estimate_tokens(content)})
+            logger.debug("[context_assembler] 长期检索拉取: 片段 %d 条", len(out))
             return out
         except Exception as exc:
             logger.debug("[context_assembler] 长期检索降级为空: %s", exc)
@@ -138,6 +147,8 @@ class ContextAssembler:
                         "instruction": s["instruction"],
                         "tokens": estimate_tokens(s["instruction"]),
                     })
+            logger.debug("[context_assembler] 程序性记忆拉取: 技能 %d 条, 工作流 %s",
+                         len(skill_out), wf.get("wf_id") if wf else None)
             return skill_out, wf
         except Exception as exc:
             logger.debug("[context_assembler] 程序性记忆降级为空: %s", exc)
@@ -146,6 +157,7 @@ class ContextAssembler:
     # ── 组装 ──
 
     def assemble(self, task: str, mode: str = "default") -> PromptContext:
+        _t0 = time.perf_counter()
         tools = ["search", "read_file", "write_file"] if mode == "default" else ["*"]
 
         mem_sections = self._pull_working_memory() + self._pull_long_term(task)
@@ -178,6 +190,10 @@ class ContextAssembler:
             # 截断策略：保留工作记忆与技能（守会话连续性），截断 LTM 片段文本
             system_text = system_text[: self._budget * 3]
             total = estimate_tokens(system_text)
+
+        logger.debug("[context_assembler] 组装完成 task=%r 耗时=%.1fms layer_tokens=%s total=%d/budget=%d truncated=%s",
+                     task, (time.perf_counter() - _t0) * 1000,
+                     {k: v for k, v in layer_tokens.items() if v}, total, self._budget, truncated)
 
         return PromptContext(
             task=task,

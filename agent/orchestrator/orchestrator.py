@@ -2561,10 +2561,19 @@ class Orchestrator:
             return [], None
 
     def _context_assembler_extra(self, user_input: str, mode: str = "default") -> Optional[str]:
-        """ContextAssembler 旁路注入 — 任何异常静默降级返回 None（主链路零影响）"""
+        """ContextAssembler 旁路注入 — 任何异常静默降级返回 None（主链路零影响）
+
+        观察模式日志（结构化，INFO 级实时可见）:
+            - injected:   注入成功（含耗时/token/各层命中统计）
+            - empty:      三层全空，跳过注入
+            - degraded:   组装异常，降级跳过（WARNING）
+        """
+        _t0 = time.time()
         try:
             cfg = self._load_context_assembler_config()
             if not cfg["enabled"]:
+                logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.context_assembler.disabled',
+                                       'trace_id_ctx': _trace_id(), 'message': '[ContextAssembler] 未启用，跳过'}))
                 return None
             from agent.context.assembler import ContextAssembler
             assembler = ContextAssembler(
@@ -2578,11 +2587,36 @@ class Orchestrator:
             )
             ctx = assembler.assemble(user_input, mode=mode)
             if not ctx.memory_sections and not ctx.skill_instructions and not ctx.workflow_hint:
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.context_assembler.empty',
+                                      'trace_id_ctx': _trace_id(),
+                                      'duration_ms': round((time.time() - _t0) * 1000, 2),
+                                      'task_preview': user_input[:60],
+                                      'message': '[ContextAssembler] 三层全空，跳过注入'}))
                 return None
-            return assembler.render_text(ctx)
+            text = assembler.render_text(ctx)
+            logger.info(log_dict({
+                'module_name': 'orchestrator', 'action': 'orchestrator.context_assembler.injected',
+                'trace_id_ctx': _trace_id(),
+                'duration_ms': round((time.time() - _t0) * 1000, 2),
+                'task_preview': user_input[:60],
+                'enabled': True,
+                'injected_chars': len(text),
+                'token_total': ctx.total_tokens,
+                'token_budget': ctx.budget,
+                'truncated': ctx.truncated,
+                'layer_tokens': ctx.layer_tokens,
+                'skills_hit': [s.get('skill_id') for s in ctx.skill_instructions],
+                'workflow_hit': ctx.workflow_hint.get('wf_id') if ctx.workflow_hint else None,
+                'reflections_hit': len(ctx.reflection_notes),
+                'message': '[ContextAssembler] 旁路注入: %d 字符, token=%d/%d' % (len(text), ctx.total_tokens, ctx.budget),
+            }))
+            return text
         except Exception as exc:
-            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.context_assembler.degraded',
-                                   'message': '[ContextAssembler] 降级跳过: %s' % (exc,)}))
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.context_assembler.degraded',
+                                     'trace_id_ctx': _trace_id(),
+                                     'duration_ms': round((time.time() - _t0) * 1000, 2),
+                                     'error': str(exc),
+                                     'message': '[ContextAssembler] 降级跳过（主链路零影响）: %s' % (exc,)}))
             return None
 
     def _call_llm_v2(self, user_input: str, body_status: str, *,

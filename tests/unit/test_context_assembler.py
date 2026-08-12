@@ -181,12 +181,12 @@ class TestOrchestratorWiring:
 # ═══════════════════════════════════════════════════════════════════
 
 class TestConfig:
-    def test_context_assembler_default_disabled(self):
+    def test_context_assembler_enabled_in_observation_mode(self):
         import yaml
 
         repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         with open(os.path.join(repo_root, "config.yaml"), encoding="utf-8") as f:
             cfg = yaml.safe_load(f)
         lc = cfg.get("learning", {}).get("context_assembler", {})
-        assert lc.get("enabled") is False, "默认必须关闭（观察模式）"
+        assert lc.get("enabled") is True, "集成验证通过后观察模式已开启"
         assert int(lc.get("token_budget", 0)) > 0
