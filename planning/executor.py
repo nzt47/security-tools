@@ -361,6 +361,12 @@ class PlanExecutor:
                 logger.info(f"[收尾判定] -> CANCELLED（用户取消）: {plan.id}")
                 self._finalize_state(plan, PlanState.CANCELLED, reason="用户取消")
             else:
+                # P2 修复补充：收尾期死锁消解兜底——覆盖 max_steps 耗尽/高优先级中断等
+                # 绕过"无可执行任务"分支的退出路径（这些路径未在循环内消解）。将依赖
+                # 已终结性失败（FAILED/SKIPPED）的 PENDING 任务标记 SKIPPED，使收尾能
+                # 正确判定为"部分任务失败"。max_steps 残留的 PENDING（无失败依赖）不受影响。
+                if self._resolve_deadlocked_tasks(plan):
+                    logger.info("[收尾判定] 死锁消解: 依赖已终结性失败的任务被标记 SKIPPED")
                 # D1 修复：先基于任务状态计算 all_completed 与 any_failed，再据此设置
                 # COMPLETED 与 result。通过 is_success(consider_state=False) 仅依据任务
                 # 状态判定成功（不要求 state == COMPLETED），避免计划仍处于 EXECUTING 时

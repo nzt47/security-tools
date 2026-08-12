@@ -352,3 +352,25 @@ class TestDependencyDeadlockResolution:
         # PENDING 保留，不因死锁消解被误标 SKIPPED
         assert result.get_task("b").status == TaskStatus.PENDING
         assert result.state == PlanState.FAILED
+
+    @pytest.mark.asyncio
+    async def test_max_steps_with_failed_dependency_resolved_at_finalization(self):
+        """边界：max_steps 恰好耗尽且存在依赖失败 → 收尾期死锁消解兜底，不误报超时"""
+        registry = ToolRegistry()
+        registry.register("fail_tool", lambda: 1 / 0)
+        registry.register("sum_tool", lambda: "汇总完成")
+
+        executor = PlanExecutor(registry, max_retries=1)
+
+        plan = Plan(original_task="边界测试", state=PlanState.READY)
+        plan.add_task(Task(id="a", description="调用 fail_tool 处理数据"))
+        plan.add_task(Task(id="b", description="调用 sum_tool 汇总结果", dependencies=["a"]))
+        plan.max_steps = 1
+
+        result = await executor.execute_plan(plan)
+
+        assert result.get_task("a").status == TaskStatus.FAILED
+        assert result.get_task("b").status == TaskStatus.SKIPPED
+        assert "超时" not in str(result.error)
+        assert result.state == PlanState.COMPLETED
+        assert result.result == "计划执行完成,但部分任务失败"
