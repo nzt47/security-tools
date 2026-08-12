@@ -167,6 +167,54 @@ class TestOrchestratorWiring:
         assert "技能指令" in extra
         assert "工作记忆" in extra
 
+    def test_metrics_recorded_on_injection(self):
+        """Prometheus 指标回归：注入成功必须递增 injected_total 并记录 token（持续观察护城河）"""
+        from agent.monitoring import prometheus as _P
+
+        o = self._make_orchestrator(enabled=True, memory=MockWorkingMemory())
+        o._context_assembler_long_term = lambda task: [
+            {"layer": "长期检索记忆", "title": "卡片：PDF 表格解析",
+             "content": "PDF 表格解析优先使用 pdfplumber 定位表格区域。"}]
+        o._context_assembler_procedural = lambda task: (
+            [{"skill_id": "pdf-parser", "name": "PDF 表格解析",
+              "instruction": "1. 用 pdfplumber 定位表格区域\n2. 按行提取输出 CSV"}], None)
+
+        _inj_before = _P.context_assembler_injected_total._value.get()
+        _tok_before = _P.context_assembler_injected_tokens._value.get()
+
+        extra = o._context_assembler_extra("解析这份 PDF")
+        assert extra is not None
+
+        assert _P.context_assembler_injected_total._value.get() - _inj_before >= 1, \
+            "注入成功但 injected_total 未递增（埋点失效）"
+        assert _P.context_assembler_injected_tokens._value.get() > _tok_before, \
+            "注入成功但 token gauge 未更新"
+
+    def test_metrics_recorded_on_degraded(self):
+        """指标回归：组装异常必须递增 degraded_total（告警源）
+
+        说明: provider 层异常会被 assemble 内部捕获降级为"空"（不计 degraded），
+        degraded 仅在 assemble 本身抛异常时触发（真实异常路径）。
+        """
+        from unittest import mock
+        from agent.context import assembler as _asm_mod
+        from agent.monitoring import prometheus as _P
+
+        o = self._make_orchestrator(enabled=True, memory=MockWorkingMemory())
+        o._context_assembler_long_term = lambda task: [
+            {"layer": "长期检索记忆", "title": "卡片：PDF 表格解析",
+             "content": "PDF 表格解析优先使用 pdfplumber 定位表格区域。"}]
+        o._context_assembler_procedural = lambda task: (
+            [{"skill_id": "pdf-parser", "name": "PDF 表格解析",
+              "instruction": "1. 用 pdfplumber 定位表格区域\n2. 按行提取输出 CSV"}], None)
+
+        _deg_before = _P.context_assembler_degraded_total._value.get()
+        with mock.patch.object(_asm_mod.ContextAssembler, "assemble",
+                               side_effect=RuntimeError("boom")):
+            assert o._context_assembler_extra("任意") is None, "异常必须静默降级"
+        assert _P.context_assembler_degraded_total._value.get() - _deg_before >= 1, \
+            "降级但 degraded_total 未递增（告警源失效）"
+
     def test_exception_degrades_to_none(self):
         from unittest import mock
 

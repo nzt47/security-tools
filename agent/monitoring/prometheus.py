@@ -768,3 +768,55 @@ def reset_intent_layer_counts():
     """
     _intent_layer_counts.clear()
 
+
+# ============================================================================
+# ContextAssembler 组装指标（CEL 旁路注入，供持续观察）
+# 依据集成验证总结报告 §6.1：
+#   组装耗时实测均值 4.10ms / p95 4.40ms → buckets 以 2.5ms 为主刻度覆盖 P99
+#   degraded 计数为降级告警源；injected_tokens 监控 budget 占用风险
+# [变易] 沿用 _safe_* 条件注册模式：prometheus_client 不可用 / 重复注册时安全降级
+# ============================================================================
+
+context_assembler_injected_total = _safe_counter(
+    'context_assembler_injected_total',
+    'ContextAssembler 旁路注入成功次数（观察模式注入量）',
+    []
+)
+
+context_assembler_degraded_total = _safe_counter(
+    'context_assembler_degraded_total',
+    'ContextAssembler 组装异常降级次数（告警源）',
+    []
+)
+
+context_assembler_duration_ms = _safe_histogram(
+    'context_assembler_duration_ms',
+    'ContextAssembler 组装耗时（毫秒，P95/P99 监控）',
+    [],
+    # buckets 对齐实测分布：均值 4.1ms / p95 4.4ms，正常 < 10ms，异常阈值 50ms
+    buckets=[1, 2.5, 5, 7.5, 10, 25, 50, 100],
+)
+
+context_assembler_injected_tokens = _safe_gauge(
+    'context_assembler_injected_tokens',
+    '最近一次注入的 token 数（budget 占用监控）',
+    []
+)
+
+
+def record_context_assembler_injected(duration_ms: float, tokens: int):
+    """记录一次成功的旁路注入（耗时 + 注入 token）"""
+    context_assembler_injected_total.inc()
+    context_assembler_duration_ms.observe(duration_ms)
+    context_assembler_injected_tokens.set(tokens)
+
+
+def record_context_assembler_degraded():
+    """记录一次组装异常降级（主链路零影响，但需持续观察占比）"""
+    context_assembler_degraded_total.inc()
+
+
+def record_context_assembler_duration(duration_ms: float):
+    """记录组装耗时（empty / degraded 路径也计时，反映真实开销）"""
+    context_assembler_duration_ms.observe(duration_ms)
+

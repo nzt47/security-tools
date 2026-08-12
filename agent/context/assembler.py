@@ -30,6 +30,20 @@ logger = logging.getLogger(__name__)
 _LEVEL = os.environ.get("CONTEXT_ASSEMBLER_LOG_LEVEL", "").strip().upper()
 if _LEVEL in ("DEBUG", "INFO", "WARNING", "ERROR"):
     logger.setLevel(getattr(logging, _LEVEL))
+    if _LEVEL == "DEBUG":
+        # 附加专用 DEBUG handler：宿主进程 root 可能为 INFO（如 app_server basicConfig），
+        # 单独 setLevel 会被 handler 级别二次过滤，故本模块自带仅放行 DEBUG 的 StreamHandler。
+        # 过滤器排除非 DEBUG 记录，避免 INFO 摘要重复输出
+        _DEBUG_HANDLER_NAME = "context_assembler_debug"
+        if not any(getattr(h, "name", None) == _DEBUG_HANDLER_NAME for h in logger.handlers):
+            _h = logging.StreamHandler()
+            _h.name = _DEBUG_HANDLER_NAME
+            _h.setLevel(logging.DEBUG)
+            _h.addFilter(lambda record: record.levelno == logging.DEBUG)
+            _h.setFormatter(logging.Formatter(
+                "%(asctime)s %(levelname)-7s [context_assembler] %(message)s"))
+            logger.addHandler(_h)
+            logger.info("CONTEXT_ASSEMBLER_LOG_LEVEL=DEBUG：组装明细日志已启用（专用 handler）")
 
 
 def estimate_tokens(text: str) -> int:

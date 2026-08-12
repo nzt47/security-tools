@@ -2158,6 +2158,13 @@ class Orchestrator:
         if wm_text:
             system_prompt += wm_text
 
+        # ── ContextAssembler 旁路注入（CEL，观察模式；异常静默降级零影响）──
+        # 标准路径（_call_llm）与 V2 路径（_call_llm_v2）双覆盖，
+        # 保证无论 lifetrace/persona 开关状态，主链路均注入组装产物
+        _ctx_extra = self._context_assembler_extra(user_input)
+        if _ctx_extra:
+            system_prompt = system_prompt + "\n\n" + _ctx_extra
+
         # ── System prompt Token 预算检查 ──
         try:
             _sp_tokens = self._memory._token_counter.count(system_prompt)
@@ -2560,6 +2567,31 @@ class Orchestrator:
         except Exception:
             return [], None
 
+    def _emit_context_assembler_metric(self, action: str, **kwargs) -> None:
+        """ContextAssembler 监控指标埋点（Prometheus，安全降级不影响主链路）
+
+        action:
+            - injected: 注入成功（耗时 + 注入 token）
+            - empty:    三层全空跳过（仅耗时）
+            - degraded: 组装异常降级（计数 + 耗时，告警源）
+        """
+        try:
+            from agent.monitoring.prometheus import (
+                record_context_assembler_injected,
+                record_context_assembler_degraded,
+                record_context_assembler_duration,
+            )
+            _ms = kwargs["duration_ms"]
+            if action == "injected":
+                record_context_assembler_injected(_ms, kwargs["tokens"])
+            elif action == "degraded":
+                record_context_assembler_degraded()
+                record_context_assembler_duration(_ms)
+            elif action == "empty":
+                record_context_assembler_duration(_ms)
+        except Exception:
+            pass  # 埋点失败不影响主链路（prometheus_client 不可用等）
+
     def _context_assembler_extra(self, user_input: str, mode: str = "default") -> Optional[str]:
         """ContextAssembler 旁路注入 — 任何异常静默降级返回 None（主链路零影响）
 
@@ -2592,6 +2624,8 @@ class Orchestrator:
                                       'duration_ms': round((time.time() - _t0) * 1000, 2),
                                       'task_preview': user_input[:60],
                                       'message': '[ContextAssembler] 三层全空，跳过注入'}))
+                self._emit_context_assembler_metric(
+                    "empty", duration_ms=(time.time() - _t0) * 1000)
                 return None
             text = assembler.render_text(ctx)
             logger.info(log_dict({
@@ -2610,6 +2644,8 @@ class Orchestrator:
                 'reflections_hit': len(ctx.reflection_notes),
                 'message': '[ContextAssembler] 旁路注入: %d 字符, token=%d/%d' % (len(text), ctx.total_tokens, ctx.budget),
             }))
+            self._emit_context_assembler_metric(
+                "injected", duration_ms=(time.time() - _t0) * 1000, tokens=ctx.total_tokens)
             return text
         except Exception as exc:
             logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.context_assembler.degraded',
@@ -2617,6 +2653,8 @@ class Orchestrator:
                                      'duration_ms': round((time.time() - _t0) * 1000, 2),
                                      'error': str(exc),
                                      'message': '[ContextAssembler] 降级跳过（主链路零影响）: %s' % (exc,)}))
+            self._emit_context_assembler_metric(
+                "degraded", duration_ms=(time.time() - _t0) * 1000)
             return None
 
     def _call_llm_v2(self, user_input: str, body_status: str, *,
