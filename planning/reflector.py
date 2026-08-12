@@ -6,6 +6,7 @@
 import json
 import logging
 import os
+import inspect
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from dataclasses import dataclass, asdict
@@ -111,7 +112,7 @@ class Reflector:
 }}"""
 
     def __init__(self, llm_service=None, memory_manager=None, config: Dict = None, 
-                 persist_dir: str = "./data/reflection"):
+                 persist_dir: str = "./data/reflection", lesson_channel=None):
         """
         初始化反思引擎
 
@@ -120,11 +121,17 @@ class Reflector:
             memory_manager: 记忆管理器
             config: 配置
             persist_dir: 持久化目录
+            lesson_channel: 可选输出通道（任务 EVO-T4 上下文进化闭环）：
+                反思产出的 Lesson 命中可验证类别时，自动转交该通道
+                进入评估验证 → 优化建议管道；None 时保持既有行为不变。
+                接口约定（duck-typing）: submit_lesson(lesson) -> Optional[str]
+                （同步或异步均可，本类自动适配）。
         """
         self.llm = llm_service
         self.memory = memory_manager
         self.config = config or {}
         self.persist_dir = persist_dir
+        self.lesson_channel = lesson_channel
 
         self.reflection_history: List[Dict] = []
         self.learned_patterns: Dict[str, Any] = {}
@@ -395,6 +402,10 @@ class Reflector:
         
         self._save_to_persistence()
         
+        if not result.success:
+            # 任务 EVO-T4：失败教训转交进化验证管道（可选通道，不影响既有行为）
+            await self._forward_lesson(lesson)
+        
         if self.memory:
             try:
                 await self.memory.save_log("experience", {
@@ -407,6 +418,37 @@ class Reflector:
             except Exception as e:
                 logger.warning(f"保存到记忆失败: {e}")
     
+    async def _forward_lesson(self, lesson: Lesson) -> None:
+        """任务 EVO-T4：Lesson → 进化验证管道（可选通道）
+
+        命中可验证类别时自动转交 lesson_channel 验证其有效性，验证通过的
+        Lesson 进入优化建议管道（PromptOptimizationProposal，不自动应用）。
+
+        通道失败/异常不阻断反思主流程（守不易：可选能力，必须向后兼容）。
+        同步/异步通道均适配（inspect.isawaitable 自动识别）。
+        """
+        channel = self.lesson_channel
+        if channel is None:
+            logger.debug("Lesson 未转交进化验证管道：未配置 lesson_channel lesson=%s",
+                         lesson.id)
+            return
+        if not hasattr(channel, "submit_lesson"):
+            logger.warning("Lesson 未转交进化验证管道：lesson_channel 缺少 submit_lesson "
+                           "接口 lesson=%s", lesson.id)
+            return
+        try:
+            logger.debug("Lesson 转交进化验证管道 lesson=%s task_type=%s",
+                         lesson.id, lesson.task_type)
+            result = channel.submit_lesson(lesson)
+            if inspect.isawaitable(result):
+                result = await result
+            logger.info(
+                f"Lesson 已转交进化验证管道 lesson={lesson.id} "
+                f"task_type={lesson.task_type} result={result}"
+            )
+        except Exception as e:
+            logger.warning(f"Lesson 转交进化验证管道失败 lesson={lesson.id}: {e}")
+
     def query_experiences(self, task_type: Optional[str] = None, limit: int = 10) -> List[Experience]:
         """查询经验库"""
         if task_type:
