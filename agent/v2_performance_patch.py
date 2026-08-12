@@ -149,6 +149,9 @@ def optimize_v2_initialization(V2Class):
         self._current_mode = None
         self._session_id = None
         self._interaction_count = 0
+        # 与 orchestrator.process 的 _interaction_count 递增配套：V2 路径不调用
+        # LifecycleManager.__init__，须同批创建锁（持锁纪律：锁内仅内存整数递增）
+        self._interaction_lock = threading.Lock()
         self._reflection_history = []
         self._started_at = None
         

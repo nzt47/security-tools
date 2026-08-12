@@ -14,6 +14,7 @@
 """
 
 import logging
+import threading
 import time
 import json
 import os
@@ -248,7 +249,12 @@ class Orchestrator:
                 "我还没有被唤醒。请先调用 start() 让我醒来。"
             ).to_dict()
 
-        self._interaction_count += 1
+        # _interaction_count 为「读-改-写」序列（非原子），多线程并发 process()
+        # 会丢更新（轮次计数失真 + trace interaction_id 重复）。锁内仅内存整数
+        # 递增，无 I/O（持锁纪律）；锁由宿主 LifecycleManager/V2 optimized_init
+        # 在 _interaction_count 初始化时同批创建（_interaction_lock）。
+        with self._interaction_lock:
+            self._interaction_count += 1
 
         # 会话 ID：kwargs 显式传参优先，回退实例全局 _session_id（并发安全）
         # 修复：重构时 _sid 定义行丢失，仅剩 8 处引用（get_dialog_state/_learn_workflow 等），
