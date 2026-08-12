@@ -297,34 +297,35 @@ class PromptOptimizer:
                                     sample_ids=sample_ids, prompt_id=prompt_id)
         cand = self.evaluate_prompt(candidate_prompt, category=category,
                                     sample_ids=sample_ids, prompt_id=prompt_id)
+        # Why 日志为单行固定顺序 kv：多行日志会被日志分析平台按行拆散，
+        # 字段顺序统一（orig_* → cand_* → improvement → verdict）便于 grok/dissect 提取
         no_samples = orig.status == STATUS_NO_SAMPLES or cand.status == STATUS_NO_SAMPLES
-        if not no_samples:
-            improvement = self._relative_improvement(orig.score, cand.score)
-            logger.info(
-                "[PromptOpt] 对比评估 prompt_id=%s category=%s\n"
-                "  original  score=%.4f status=%s\n"
-                "  candidate score=%.4f status=%s\n"
-                "  相对提升=%.4f 阈值=%.4f → %s",
-                prompt_id, category,
-                orig.score, orig.status,
-                cand.score, cand.status,
-                improvement, self.improvement_threshold,
-                ("建议产出（提升超阈值）" if improvement >= self.improvement_threshold
-                 else "不产出建议（提升未达阈值）"))
+        improvement = None if no_samples else self._relative_improvement(orig.score, cand.score)
+        if no_samples:
+            verdict = "no_samples"
+        elif improvement >= self.improvement_threshold:
+            verdict = "proposed"
         else:
-            logger.info("[PromptOpt] 对比评估 prompt_id=%s category=%s "
-                        "无评估样本（orig=%s cand=%s），跳过对比判定",
-                        prompt_id, category, orig.status, cand.status)
+            verdict = "no_improvement"
+        logger.info(
+            "[PromptOpt] 对比评估 prompt_id=%s category=%s "
+            "orig_score=%s orig_status=%s cand_score=%s cand_status=%s "
+            "improvement=%s threshold=%.4f verdict=%s",
+            prompt_id, category,
+            f"{orig.score:.4f}", orig.status,
+            f"{cand.score:.4f}", cand.status,
+            f"{improvement:.4f}" if improvement is not None else "N/A",
+            self.improvement_threshold, verdict)
         proposal = self._build_proposal(
             prompt_id, original_prompt, candidate_prompt, orig, cand,
             category=category, source=source, reason=reason,
             comparison=COMPARISON_PAIRED,
             cost_tokens=orig.cost_tokens + cand.cost_tokens,
             duration_ms=(time.time() - t0) * 1000)
-        logger.info("[PromptOpt] 对比判定结果 prompt_id=%s status=%s "
-                    "original=%s suggested=%s",
-                    prompt_id, proposal.status, proposal.original_score,
-                    proposal.suggested_score)
+        logger.info("[PromptOpt] 对比判定结果 prompt_id=%s category=%s "
+                    "status=%s original=%s suggested=%s",
+                    prompt_id, category, proposal.status,
+                    proposal.original_score, proposal.suggested_score)
         return proposal
 
     # ─── 优化（变体生成 + 择优）───
