@@ -617,3 +617,40 @@ class TestGlobalInstances:
         """测试性能日志记录器存在"""
         assert perf_logger is not None
         assert isinstance(perf_logger, PerformanceLogger)
+
+
+class TestAsyncSaveTaskIdConcurrency:
+    """AsyncSaveMonitor.start_save 并发 task_id 唯一性（threading.Lock 原子化）
+
+    修复前：_task_counter += 1 在锁外，并发下两线程读到同一计数值 → 重复 task_id。
+    修复后：计数 + task_id 生成 + records 写入并入同一锁块。
+    """
+
+    @pytest.mark.unit
+    def test_concurrent_start_save_unique_task_ids(self):
+        """100 线程 × 50 次并发 start_save：task_id 全局唯一、计数无丢失"""
+        manager = AsyncSaveMonitor(max_records=100000)
+        n_threads, per = 100, 50
+        total = n_threads * per
+        barrier = threading.Barrier(n_threads)
+        ids = []
+        errors = []
+
+        def worker():
+            try:
+                barrier.wait()  # 同步起跑，放大读-改-写竞争
+                for _ in range(per):
+                    ids.append(manager.start_save("memory"))
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker) for _ in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors
+        assert len(ids) == total
+        assert len(set(ids)) == total       # 全部唯一（无重复 task_id）
+        assert manager._task_counter == total  # 计数无丢失更新

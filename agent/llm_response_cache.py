@@ -270,16 +270,19 @@ class AsyncSaveMonitor:
         Returns:
             任务 ID
         """
-        self._task_counter += 1
-        task_id = f"{task_type}_{self._task_counter}"
-
-        record = AsyncSaveRecord(
-            task_id=task_id,
-            task_type=task_type,
-            start_time=time.perf_counter()
-        )
-
+        # Why 锁内生成 task_id：_task_counter 为「读-改-写」序列，并发下两个线程
+        # 会读到同一计数值 → 生成重复 task_id（破坏跟踪唯一性）。
+        # 锁内仅内存计数与 dict 变更，无 I/O；AsyncSaveRecord 为纯内存对象。
         with self._lock:
+            self._task_counter += 1
+            task_id = f"{task_type}_{self._task_counter}"
+
+            record = AsyncSaveRecord(
+                task_id=task_id,
+                task_type=task_type,
+                start_time=time.perf_counter()
+            )
+
             # 使用 OrderedDict 按插入顺序存储，便于快速查找和顺序遍历
             self.records[task_id] = record
             # 保持记录数量限制
