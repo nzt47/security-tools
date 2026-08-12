@@ -12,11 +12,37 @@ import logging
 import os
 import sqlite3
 import threading
+import time
+from contextlib import contextmanager
 from typing import Dict, List, Optional
 
 from planning.models import Plan, PlanState
 
 logger = logging.getLogger(__name__)
+
+
+def _ts() -> str:
+    """wall-clock 毫秒时间戳（锁竞争时序日志统一入口）"""
+    return time.strftime("%H:%M:%S", time.localtime()) + f".{int(time.time() * 1000) % 1000:03d}"
+
+
+@contextmanager
+def _locked(lock: threading.Lock, op: str):
+    """持锁操作统一入口：锁外记录等待开始/释放时刻（DEBUG 级，排查竞态时开启）。
+
+    不变量：日志均在锁外输出（持锁期间禁 I/O——logging 调用不持锁即可满足）。
+    用途：并发写 SQLite 时通过等待/持锁耗时定位锁竞争热点与死锁嫌疑。
+    """
+    t0 = time.monotonic()
+    logger.debug(f"[DB时序] {op} 等待锁 @{_ts()}")
+    lock.acquire()
+    wait_ms = (time.monotonic() - t0) * 1000
+    logger.debug(f"[DB时序] {op} 获取锁 @{_ts()} | 等待 {wait_ms:.1f}ms")
+    try:
+        yield
+    finally:
+        logger.debug(f"[DB时序] {op} 释放锁 @{_ts()} | 持锁 {(time.monotonic() - t0) * 1000:.1f}ms")
+        lock.release()
 
 # 未完成计划状态（恢复过滤，与 JSON 检查点语义一致）
 _RECOVERABLE_STATES = (
@@ -102,7 +128,7 @@ class PlanDB:
     def upsert_plan(self, plan: Plan) -> None:
         """upsert 计划及其子任务（事务写入）"""
         d = plan.to_dict()
-        with self._lock:
+        with _locked(self._lock, "upsert_plan"):
             self._conn.execute(
                 """INSERT INTO plans (id, original_task, state, progress, current_step,
                                      max_steps, result, error, context, metadata,
@@ -135,7 +161,7 @@ class PlanDB:
         """恢复未完成计划（状态过滤同 JSON 检查点语义）"""
         state_values = tuple(s.value for s in _RECOVERABLE_STATES)
         plans: Dict[str, Plan] = {}
-        with self._lock:
+        with _locked(self._lock, "load_unfinished_plans"):
             rows = self._conn.execute(
                 f"SELECT * FROM plans WHERE state IN ({','.join('?' * len(state_values))})",
                 state_values,
@@ -166,7 +192,7 @@ class PlanDB:
         return plans
 
     def count_plans(self) -> int:
-        with self._lock:
+        with _locked(self._lock, "count_plans"):
             return self._conn.execute("SELECT COUNT(*) AS c FROM plans").fetchone()["c"]
 
     # ── 执行记录审计 ──────────────────────────────────────────────
@@ -175,7 +201,7 @@ class PlanDB:
                              success: bool, output: Optional[str],
                              error: Optional[str]) -> None:
         """追加一条执行记录（审计/可追溯）"""
-        with self._lock:
+        with _locked(self._lock, "append_execution_log"):
             self._conn.execute(
                 "INSERT INTO execution_log (plan_id, task_id, action_type, tool_name,"
                 " success, output, error) VALUES (?,?,?,?,?,?,?)",
@@ -184,7 +210,7 @@ class PlanDB:
             self._conn.commit()
 
     def count_execution_logs(self, plan_id: Optional[str] = None) -> int:
-        with self._lock:
+        with _locked(self._lock, "count_execution_logs"):
             if plan_id:
                 row = self._conn.execute(
                     "SELECT COUNT(*) AS c FROM execution_log WHERE plan_id=?", (plan_id,)
@@ -197,7 +223,7 @@ class PlanDB:
     def record_transition(self, *, plan_id: str, from_state: Optional[str],
                           to_state: str, reason: Optional[str]) -> None:
         """追加一条状态转换记录（增量落库，审计可追溯）"""
-        with self._lock:
+        with _locked(self._lock, "record_transition"):
             self._conn.execute(
                 "INSERT INTO transition_history (plan_id, from_state, to_state, reason)"
                 " VALUES (?,?,?,?)",
@@ -208,7 +234,7 @@ class PlanDB:
     def get_transition_history(self, plan_id: Optional[str] = None,
                                limit: int = 50) -> List[Dict]:
         """查询状态转换历史（按时间倒序）"""
-        with self._lock:
+        with _locked(self._lock, "get_transition_history"):
             if plan_id:
                 rows = self._conn.execute(
                     "SELECT * FROM transition_history WHERE plan_id=?"

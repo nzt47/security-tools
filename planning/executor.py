@@ -27,6 +27,11 @@ from agent.error_handler import RecoverableError
 logger = logging.getLogger(__name__)
 
 
+def _ts() -> str:
+    """wall-clock 毫秒时间戳（并发时序日志统一入口，便于交叉比对任务时间线）"""
+    return datetime.now().strftime("%H:%M:%S.%f")[:-3]
+
+
 class ToolRegistry:
     """工具注册表
 
@@ -302,19 +307,22 @@ class PlanExecutor:
                         )
                     # 并发共享状态校验警告：同批任务不得写同一资源（如 file_contents 类工具）
                     self._warn_parallel_resource_conflicts(next_tasks)
+                    batch_start = time.monotonic()
                     logger.info(
-                        f"[执行任务] 并行批: {len(next_tasks)} 个任务"
+                        f"[时序] 并行批调度 @{_ts()} | {len(next_tasks)} 个任务"
                         f" | ids: {[t.id for t in next_tasks]}"
+                        f" | 计划总步数: {plan.current_step}/{plan.max_steps}"
                     )
                     # D5 状态收尾修正：每任务独立执行+立即标记（不等整批 gather 结束），
                     # 保证取消时已完成任务的结果/状态不滞留 RUNNING（竞态）。
                     await asyncio.gather(
                         *[self._execute_task_with_retry_and_record(plan, t) for t in next_tasks]
                     )
+                    batch_elapsed = time.monotonic() - batch_start
                     step_count += len(next_tasks)
                     plan.current_step += len(next_tasks)
                     logger.info(
-                        f"[并行执行] 批次完成: {len(next_tasks)} 个任务"
+                        f"[时序] 并行批完成 @{_ts()} | 批耗时: {batch_elapsed:.2f}s"
                         f" | ids: {[t.id for t in next_tasks]}"
                         f" | 批次状态: "
                         f"{[(t.id, t.status.value) for t in next_tasks]}"
@@ -323,7 +331,7 @@ class PlanExecutor:
                 else:
                     task = next_tasks[0]
                     logger.info(
-                        f"[执行任务] 开始: {task.id} | 描述: {task.description[:60]}"
+                        f"[时序] 任务开始 @{_ts()} | {task.id} | 描述: {task.description[:60]}"
                         f" | 优先级: {task.priority}"
                     )
                     result = await self._execute_task_with_retry(task)
@@ -461,6 +469,9 @@ class PlanExecutor:
         会在状态转换异常路径被错误降级为 FAILED（成功计划被标记失败）。
         """
         prev_state = plan.state
+        logger.info(
+            f"[时序] 收尾状态变更 @{_ts()} | {plan.id}: {prev_state.value} -> {target.value}"
+        )
         if self.state_machine is not None:
             try:
                 self.state_machine.transition(plan, target, reason)
@@ -567,12 +578,12 @@ class PlanExecutor:
         """
         start = time.monotonic()
         logger.info(
-            f"[并行任务] 开始: {task.id} | 描述: {str(task.description)[:80]}"
-            f" | 优先级: {task.priority}"
+            f"[时序] 并行任务开始 @{_ts()} | {task.id}"
+            f" | 描述: {str(task.description)[:80]} | 优先级: {task.priority}"
         )
         tool_name = self.tool_registry.find_tool(task.description) or ""
         logger.info(
-            f"[并行任务] 动作解析: {task.id} -> 工具: {tool_name or 'llm/response'}"
+            f"[时序] 动作解析 @{_ts()} | {task.id} -> 工具: {tool_name or 'llm/response'}"
             f" | 参数: {self._extract_params(task, tool_name or None)}"
         )
         result = await self._execute_task_with_retry(task)
@@ -582,14 +593,14 @@ class PlanExecutor:
             task.mark_completed(result.output)
             await self._trigger_callbacks("on_task_complete", task, result)
             logger.info(
-                f"[并行任务] 完成: {task.id} | 耗时: {elapsed:.2f}s"
+                f"[时序] 并行任务完成 @{_ts()} | {task.id} | 耗时: {elapsed:.2f}s"
                 f" | 输出: {str(result.output)[:100]}"
             )
         else:
             task.mark_failed(result.error or "未知错误")
             await self._trigger_callbacks("on_task_fail", task, result)
             logger.warning(
-                f"[并行任务] 失败: {task.id} | 耗时: {elapsed:.2f}s"
+                f"[时序] 并行任务失败 @{_ts()} | {task.id} | 耗时: {elapsed:.2f}s"
                 f" | 错误: {str(result.error)[:150]}"
             )
             if task.priority >= 4:
@@ -635,7 +646,7 @@ class PlanExecutor:
             logger.error(f"[工具调用] ERROR: 工具不存在: {action.tool_name}")
             return ActionResult.failure_result(f"工具不存在: {action.tool_name}")
 
-        logger.info(f"[工具调用] INFO: 开始执行: {action.tool_name}")
+        logger.info(f"[时序] 工具调用开始 @{_ts()} | {action.tool_name}")
         logger.debug(f"[工具调用] DEBUG: 参数: {action.tool_params}")
         
         try:
@@ -648,8 +659,7 @@ class PlanExecutor:
                         timeout=timeout
                     )
                 except asyncio.TimeoutError:
-                    logger.error(f"[工具调用] TIMEOUT: {action.tool_name}")
-                    logger.error(f"[工具调用] TIMEOUT: 超时时间: {timeout}秒")
+                    logger.error(f"[时序] 工具调用超时 @{_ts()} | {action.tool_name} | 超时时间: {timeout}秒")
                     logger.error(f"[工具调用] TIMEOUT: 参数: {action.tool_params}")
                     return ActionResult.failure_result(
                         f"工具调用超时: {action.tool_name} (超时时间: {timeout}秒)"
@@ -657,7 +667,7 @@ class PlanExecutor:
             else:
                 output = tool(**action.tool_params)
 
-            logger.info(f"[工具调用] SUCCESS: {action.tool_name}")
+            logger.info(f"[时序] 工具调用成功 @{_ts()} | {action.tool_name}")
             logger.debug(f"[工具调用] DEBUG: 输出: {str(output)[:100]}..." if len(str(output)) > 100 else f"[工具调用] DEBUG: 输出: {output}")
             
             return ActionResult.success_result(

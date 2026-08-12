@@ -1,0 +1,101 @@
+# 规划模块集成验证（并行执行 + 崩溃恢复真实场景）
+# 每次提交自动运行（路径过滤，避免无关改动触发）：
+#   1) 规划模块单元测试（阶段 2 持久化恢复 + DFS 循环依赖检测）
+#   2) scripts/planning_integration_verify.py 集成验证（真实并行 + subprocess 崩溃恢复）
+#   3) scripts/planning_db_inspect.py 独立复核验证库产物（状态分布/转换历史）
+# 参考 ci.yml 既有模式（checkout@v6 / setup-python@v6 / pip install -e .）。
+
+name: 规划模块集成验证
+
+# 【变易】路径过滤：仅规划模块/相关测试/验证脚本变更时触发，避免高频 push 空跑
+# 【变易】concurrency：同 ref 共享组，连续 push 只保留最新一批（与 ci.yml 排队治理一致）
+concurrency:
+  group: planning-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'planning/**'
+      - 'tests/unit/test_planning*.py'
+      - 'scripts/planning_integration_verify.py'
+      - 'scripts/planning_db_inspect.py'
+      - '.github/workflows/planning-integration.yml'
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'planning/**'
+      - 'tests/unit/test_planning*.py'
+      - 'scripts/planning_integration_verify.py'
+      - 'scripts/planning_db_inspect.py'
+      - '.github/workflows/planning-integration.yml'
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.10'
+  # 集成验证临时库（--keep-db 保留，供 inspect 复核与 artifact 排查）
+  PLANNING_CI_DB: data/planning/ci_verify.db
+
+jobs:
+  planning-integration:
+    name: 规划集成验证（并行 + 崩溃恢复）
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-asyncio pytest-timeout
+          pip install -e .
+
+      - name: 运行规划模块单元测试
+        env:
+          # 同 ci.yml：SKILLS_OFFLINE 避免重量级模型库导入递归扫描文件系统超时
+          SKILLS_OFFLINE: '1'
+        run: |
+          echo "=== 运行规划模块单元测试（阶段2 + 循环依赖检测）==="
+          python -m pytest \
+            tests/unit/test_planning_stage2.py \
+            tests/unit/test_planning_cycle_detection.py \
+            -q --tb=short --timeout=120 -p no:randomly
+          echo "=== 单元测试全部通过 ==="
+
+      - name: 运行集成验证（并行执行 + 崩溃恢复真实场景）
+        run: |
+          echo "=== 运行规划集成验证（真实场景：并行批 + subprocess 崩溃恢复）==="
+          python scripts/planning_integration_verify.py \
+            --db "${{ env.PLANNING_CI_DB }}" --keep-db
+          echo "=== 集成验证全部通过 ==="
+
+      - name: inspect 独立复核验证库产物
+        # 【变易】独立只读校验入口（不依赖 planning 包），复核集成脚本落库的
+        # 状态分布与转换历史，防止集成脚本与 inspect 脚本口径漂移
+        run: |
+          echo "=== 用独立 inspect 脚本复核验证库产物 ==="
+          python scripts/planning_db_inspect.py \
+            --db "${{ env.PLANNING_CI_DB }}" --tasks --transitions
+          echo "=== inspect 复核通过 ==="
+
+      - name: 上传验证产物（供故障排查）
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: planning-ci-verify-db
+          path: ${{ env.PLANNING_CI_DB }}
+          retention-days: 7
