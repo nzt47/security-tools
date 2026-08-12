@@ -507,3 +507,63 @@ class TestApiKeyConcurrency:
             t.join()
 
         assert not errors
+
+
+# ═══════════════════════════════════════════════════════════════
+# QuotaManager 并发扣减（threading.Lock 防超额放行）
+# ═══════════════════════════════════════════════════════════════
+
+class TestQuotaManagerConcurrency:
+    def test_concurrent_consume_no_oversell(self):
+        """limit=1000、100 线程 × 100 次并发消耗：恰好放行 1000 次，不超额"""
+        qm = QuotaManager()
+        qm.set_quota("u1", "api_calls", 1000, period="day")
+        n_threads, per = 100, 100
+        total = n_threads * per
+        barrier = threading.Barrier(n_threads)
+        results = []
+        errors = []
+
+        def worker():
+            try:
+                barrier.wait()  # 同步起跑，放大读-改-写竞争
+                for _ in range(per):
+                    results.append(qm.consume_quota("u1", "api_calls"))
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker) for _ in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        ok_count = sum(1 for r in results if r)
+        assert not errors
+        assert ok_count == 1000          # 恰好放行 limit 次
+        assert qm._quotas["u1:api_calls"]["used"] == 1000  # 无超额
+
+    def test_concurrent_check_consume_mixed_no_raise(self):
+        """并发 check/consume/get_quota_status 混合调用不抛异常（锁内无 I/O）"""
+        qm = QuotaManager()
+        qm.set_quota("u1", "api_calls", 500, period="day")
+        errors = []
+
+        def worker():
+            try:
+                for _ in range(200):
+                    qm.check_quota("u1", "api_calls")
+                    qm.consume_quota("u1", "api_calls")
+                    qm.get_quota_status("u1", "api_calls")
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker) for _ in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors
+        # 终态合法：used 不超过 limit（允许小于 limit，因部分请求被拒）
+        assert qm._quotas["u1:api_calls"]["used"] <= 500

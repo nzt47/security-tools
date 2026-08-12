@@ -218,45 +218,55 @@ class QuotaManager:
     
     def __init__(self):
         self._quotas: Dict[str, Dict] = {}
+        # Why 锁：consume_quota/check_quota 的「读-改-写」（used += amount）并发下
+        # 会超额放行；锁内仅内存 dict 变更（无 I/O）
+        self._lock = threading.Lock()
     
     def set_quota(self, user_id: str, quota_type: str, limit: int, period: str = "day"):
         """设置配额"""
         key = f"{user_id}:{quota_type}"
-        self._quotas[key] = {
-            "user_id": user_id,
-            "quota_type": quota_type,
-            "limit": limit,
-            "period": period,
-            "used": 0,
-            "last_reset": datetime.now().isoformat(),
-        }
+        with self._lock:
+            self._quotas[key] = {
+                "user_id": user_id,
+                "quota_type": quota_type,
+                "limit": limit,
+                "period": period,
+                "used": 0,
+                "last_reset": datetime.now().isoformat(),
+            }
     
     def check_quota(self, user_id: str, quota_type: str, amount: int = 1) -> bool:
         """检查配额"""
         key = f"{user_id}:{quota_type}"
-        quota = self._quotas.get(key)
-        
-        if not quota:
-            return True
-        
-        self._reset_if_needed(quota)
-        
-        return quota["used"] + amount <= quota["limit"]
+        with self._lock:
+            quota = self._quotas.get(key)
+
+            if not quota:
+                return True
+
+            self._reset_if_needed(quota)
+
+            return quota["used"] + amount <= quota["limit"]
     
     def consume_quota(self, user_id: str, quota_type: str, amount: int = 1) -> bool:
-        """消耗配额"""
+        """消耗配额（加锁保证读-改-写原子，防并发超额放行）
+
+        Why 锁：used += amount 在并发请求下会互相覆盖（都读到同一 used 都放行），
+        导致实际消耗超过 limit；锁内仅内存 dict 变更，无 I/O。
+        """
         key = f"{user_id}:{quota_type}"
-        quota = self._quotas.get(key)
-        
-        if not quota:
-            return True
-        
-        self._reset_if_needed(quota)
-        
-        if quota["used"] + amount <= quota["limit"]:
-            quota["used"] += amount
-            return True
-        return False
+        with self._lock:
+            quota = self._quotas.get(key)
+
+            if not quota:
+                return True
+
+            self._reset_if_needed(quota)
+
+            if quota["used"] + amount <= quota["limit"]:
+                quota["used"] += amount
+                return True
+            return False
     
     def _reset_if_needed(self, quota: Dict):
         """根据周期重置配额"""
@@ -279,21 +289,22 @@ class QuotaManager:
     def get_quota_status(self, user_id: str, quota_type: str) -> Dict:
         """获取配额状态"""
         key = f"{user_id}:{quota_type}"
-        quota = self._quotas.get(key)
-        
-        if not quota:
-            return {"user_id": user_id, "quota_type": quota_type, "limit": -1, "used": 0}
-        
-        self._reset_if_needed(quota)
-        
-        return {
-            "user_id": user_id,
-            "quota_type": quota_type,
-            "limit": quota["limit"],
-            "used": quota["used"],
-            "remaining": quota["limit"] - quota["used"],
-            "period": quota["period"],
-        }
+        with self._lock:
+            quota = self._quotas.get(key)
+
+            if not quota:
+                return {"user_id": user_id, "quota_type": quota_type, "limit": -1, "used": 0}
+
+            self._reset_if_needed(quota)
+
+            return {
+                "user_id": user_id,
+                "quota_type": quota_type,
+                "limit": quota["limit"],
+                "used": quota["used"],
+                "remaining": quota["limit"] - quota["used"],
+                "period": quota["period"],
+            }
 
 
 class ApiGateway:
