@@ -17,9 +17,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from agent.cognitive.prompt_optimizer import (
+    COMPARISON_PAIRED,
     LessonEvalChannel,
     PromptOptimizationProposal,
     PromptOptimizer,
+    SOURCE_EVALUATOR,
     STATUS_NO_IMPROVEMENT,
     STATUS_NO_SAMPLES,
     STATUS_NO_VARIANTS,
@@ -318,6 +320,72 @@ class TestNoAutoApplyAndLineage:
                  for call in mock_emit.call_args_list]
         assert any("yunshu_prompt_optimization_total" in n for n in names)
         assert any("yunshu_prompt_optimization_improvement" in n for n in names)
+
+
+# ════════════════════════════════════════════════════════════
+#  5.5 服务端失败桶（降基数）
+# ════════════════════════════════════════════════════════════
+
+def _bucket_prop(pid, status, score=0.5):
+    """构造 _record_failure_bucket 所需的 proposal（直接单元级调用，确定性高）"""
+    return PromptOptimizationProposal(
+        proposal_id="ppo-t", object_id=pid, original_prompt="orig",
+        suggested_prompt=None, original_score=score, suggested_score=None,
+        improvement=0.0, status=status, comparison=COMPARISON_PAIRED,
+        source=SOURCE_EVALUATOR, reason="test", category="search", sample_count=1)
+
+
+class TestFailureBucket:
+    """服务端聚合降基数：仅连续失败达阈值才 emit 带 prompt_id 的指标"""
+
+    @patch("agent.skills_mgmt.observability.emit_metric")
+    def test_continuous_failures_emit_once(self, mock_emit, tmp_path):
+        """同一 prompt 连续失败 3 次 → 仅触发一次，labels 含 prompt_id"""
+        opt = PromptOptimizer(evaluator=StubEvaluator({}),
+                              archive=make_archive(tmp_path))
+        for _ in range(3):
+            opt._record_failure_bucket(_bucket_prop("p1", STATUS_NO_IMPROVEMENT))
+        prompts = [c.kwargs.get("labels", {}).get("prompt_id")
+                   for c in mock_emit.call_args_list
+                   if "failed_prompt_total" in str(c)]
+        assert prompts == ["p1"]
+        assert opt._failure_bucket == {}  # 上报后移除，防桶膨胀
+
+    @patch("agent.skills_mgmt.observability.emit_metric")
+    def test_success_resets_bucket(self, mock_emit, tmp_path):
+        """失败 2 次后成功 → 清零不触发"""
+        opt = PromptOptimizer(evaluator=StubEvaluator({}),
+                              archive=make_archive(tmp_path))
+        for _ in range(2):
+            opt._record_failure_bucket(_bucket_prop("p1", STATUS_NO_SAMPLES))
+        opt._record_failure_bucket(_bucket_prop("p1", STATUS_PROPOSED))
+        assert not mock_emit.called
+
+    @patch("agent.skills_mgmt.observability.emit_metric")
+    def test_different_prompt_ids_separate(self, mock_emit, tmp_path):
+        """不同 prompt_id 各自计数，不互相累计（均未达阈值）"""
+        opt = PromptOptimizer(evaluator=StubEvaluator({}),
+                              archive=make_archive(tmp_path))
+        for _ in range(2):
+            opt._record_failure_bucket(_bucket_prop("p1", STATUS_NO_IMPROVEMENT))
+            opt._record_failure_bucket(_bucket_prop("p2", STATUS_NO_IMPROVEMENT))
+        assert not mock_emit.called
+
+    @patch("agent.skills_mgmt.observability.emit_metric")
+    def test_threshold_configurable(self, mock_emit, tmp_path):
+        """构造传阈值 2 → 连续失败 2 次即触发"""
+        opt = PromptOptimizer(evaluator=StubEvaluator({}),
+                              archive=make_archive(tmp_path),
+                              failure_emit_threshold=2)
+        for _ in range(2):
+            opt._record_failure_bucket(_bucket_prop("p1", STATUS_NO_IMPROVEMENT))
+        assert mock_emit.called
+
+    def test_default_threshold_three(self, tmp_path):
+        """默认阈值 3（与 .env PROMPT_OPT_FAILURE_BUCKET 对齐）"""
+        opt = PromptOptimizer(evaluator=StubEvaluator({}),
+                              archive=make_archive(tmp_path))
+        assert opt.failure_emit_threshold == 3
 
 
 # ════════════════════════════════════════════════════════════
