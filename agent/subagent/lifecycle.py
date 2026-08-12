@@ -11,6 +11,7 @@ SubagentLifecycleManager 管理所有分身容器的全生命周期：
 from __future__ import annotations  # 使 list[str] 等注解延迟求值，避免与类方法 list() 冲突
 
 import logging
+import threading
 import time
 from datetime import datetime, timezone
 from typing import Optional
@@ -41,6 +42,11 @@ class SubagentLifecycleManager:
         self._max_subagents = max_subagents
         self._total_created: int = 0
         self._total_destroyed: int = 0
+        # Why RLock 保护 _subagents 与计数：create 的「容量检查→写入」为 TOCTOU
+        # 序列（并发可超卖超过 max_subagents）；_total_created/_total_destroyed 为
+        # 读-改-写非原子。RLock 允许 gc→destroy 同线程重入，锁内仅内存 dict/
+        # 整数变更与纯内存容器构建，无 I/O。
+        self._lock = threading.RLock()
         logger.info("[SubagentLifecycle] 初始化完成，最大分身数: %d", max_subagents)
 
     # ════════════════════════════════════════════════════════════════════
@@ -65,24 +71,25 @@ class SubagentLifecycleManager:
         Raises:
             SubagentLifecycleError: 名称冲突或已达上限
         """
-        # 名称唯一性检查
-        if config.name in self._subagents:
-            raise SubagentLifecycleError(
-                f"分身名称已存在: {config.name}。如需替换，请先 destroy() 或使用 hot_reload()"
-            )
+        with self._lock:
+            # 名称唯一性检查
+            if config.name in self._subagents:
+                raise SubagentLifecycleError(
+                    f"分身名称已存在: {config.name}。如需替换，请先 destroy() 或使用 hot_reload()"
+                )
 
-        # 容量检查（先做一次 GC）
-        self.gc()
-        if len(self._subagents) >= self._max_subagents:
-            raise SubagentLifecycleError(
-                f"分身数量已达上限 ({self._max_subagents})。"
-                f"请先销毁不再使用的分身，或调整 max_subagents"
-            )
+            # 容量检查（先做一次 GC；RLock 同线程重入）
+            self.gc()
+            if len(self._subagents) >= self._max_subagents:
+                raise SubagentLifecycleError(
+                    f"分身数量已达上限 ({self._max_subagents})。"
+                    f"请先销毁不再使用的分身，或调整 max_subagents"
+                )
 
-        # 创建容器
-        container = SubagentContainer(config)
-        self._subagents[config.name] = container
-        self._total_created += 1
+            # 创建容器（纯内存构建，无 I/O，遵守持锁纪律）
+            container = SubagentContainer(config)
+            self._subagents[config.name] = container
+            self._total_created += 1
 
         logger.info("[SubagentLifecycle] 分身已创建: %s (id=%s, 活跃=%d, 总计=%d)",
                     config.name, container.id, len(self._subagents), self._total_created)
@@ -107,28 +114,30 @@ class SubagentLifecycleManager:
         Returns:
             包含记忆增量的清理报告
         """
-        name = subagent.config.name
-        memory_delta = subagent.get_memory_delta()
+        with self._lock:
+            name = subagent.config.name
+            # get_memory_delta 为纯内存 dict 拷贝（遵守持锁纪律：锁内无 I/O）
+            memory_delta = subagent.get_memory_delta()
 
-        # 标记销毁
-        subagent._is_destroyed = True
+            # 标记销毁
+            subagent._is_destroyed = True
 
-        # 从管理器中移除
-        if name in self._subagents:
-            del self._subagents[name]
+            # 从管理器中移除
+            if name in self._subagents:
+                del self._subagents[name]
 
-        self._total_destroyed += 1
+            self._total_destroyed += 1
 
-        cleanup_report = {
-            "name": name,
-            "id": subagent.id,
-            "model_id": subagent.config.model_id,
-            "memory_provider": subagent.config.memory_provider,
-            "context_size": len(subagent.context),
-            "memory_delta_keys": list(memory_delta.keys()),
-            "age_seconds": round(subagent.age_seconds, 1),
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
+            cleanup_report = {
+                "name": name,
+                "id": subagent.id,
+                "model_id": subagent.config.model_id,
+                "memory_provider": subagent.config.memory_provider,
+                "context_size": len(subagent.context),
+                "memory_delta_keys": list(memory_delta.keys()),
+                "age_seconds": round(subagent.age_seconds, 1),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
 
         logger.info("[SubagentLifecycle] 分身已销毁: %s (id=%s, 年龄=%.1fs, 记忆增量=%d项)",
                     name, subagent.id, subagent.age_seconds, len(memory_delta))
@@ -156,39 +165,40 @@ class SubagentLifecycleManager:
         Raises:
             SubagentLifecycleError: 新名称与其他分身冲突
         """
-        old_name = subagent.config.name
-        new_name = new_config.name
+        with self._lock:
+            old_name = subagent.config.name
+            new_name = new_config.name
 
-        # 如果改名，检查新名称是否可用
-        if new_name != old_name:
-            if new_name in self._subagents:
-                raise SubagentLifecycleError(
-                    f"分身名称已存在，无法热更新: {new_name}"
+            # 如果改名，检查新名称是否可用
+            if new_name != old_name:
+                if new_name in self._subagents:
+                    raise SubagentLifecycleError(
+                        f"分身名称已存在，无法热更新: {new_name}"
+                    )
+
+            # 记录变更日志
+            changes = []
+            if new_config.model_id != subagent.config.model_id:
+                changes.append(f"model: {subagent.config.model_id} -> {new_config.model_id}")
+            if new_config.memory_provider != subagent.config.memory_provider:
+                changes.append(f"memory: {subagent.config.memory_provider} -> {new_config.memory_provider}")
+            if new_config.tool_sources != subagent.config.tool_sources:
+                changes.append(f"tools: {subagent.config.tool_sources} -> {new_config.tool_sources}")
+            if new_config.permissions != subagent.config.permissions:
+                changes.append(f"permissions: {subagent.config.permissions} -> {new_config.permissions}")
+                # 权限变更立即更新沙箱（模块已由 container.py 加载，sys.modules 命中）
+                subagent._sandbox = __import__("agent.subagent.sandbox", fromlist=["Sandbox"]).Sandbox(
+                    allowed_permissions=set(new_config.permissions)
                 )
 
-        # 记录变更日志
-        changes = []
-        if new_config.model_id != subagent.config.model_id:
-            changes.append(f"model: {subagent.config.model_id} -> {new_config.model_id}")
-        if new_config.memory_provider != subagent.config.memory_provider:
-            changes.append(f"memory: {subagent.config.memory_provider} -> {new_config.memory_provider}")
-        if new_config.tool_sources != subagent.config.tool_sources:
-            changes.append(f"tools: {subagent.config.tool_sources} -> {new_config.tool_sources}")
-        if new_config.permissions != subagent.config.permissions:
-            changes.append(f"permissions: {subagent.config.permissions} -> {new_config.permissions}")
-            # 权限变更立即更新沙箱
-            subagent._sandbox = __import__("agent.subagent.sandbox", fromlist=["Sandbox"]).Sandbox(
-                allowed_permissions=set(new_config.permissions)
-            )
+            # 更新配置
+            subagent.config = new_config
 
-        # 更新配置
-        subagent.config = new_config
+            # 如果改名，更新索引（check→pop/insert 与 create 的 TOCTOU 同源，锁内原子）
+            if new_name != old_name:
+                self._subagents[new_name] = self._subagents.pop(old_name)
 
-        # 如果改名，更新索引
-        if new_name != old_name:
-            self._subagents[new_name] = self._subagents.pop(old_name)
-
-        subagent.updated_at = time.time()
+            subagent.updated_at = time.time()
 
         logger.info("[SubagentLifecycle] 分身热更新: %s -> %s (%s)",
                     old_name, new_name, "; ".join(changes) if changes else "无变更")
@@ -206,7 +216,8 @@ class SubagentLifecycleManager:
         Returns:
             SubagentContainer 或 None
         """
-        return self._subagents.get(name)
+        with self._lock:
+            return self._subagents.get(name)
 
     def get_by_id(self, subagent_id: str) -> Optional[SubagentContainer]:
         """按 ID 获取分身
@@ -217,9 +228,10 @@ class SubagentLifecycleManager:
         Returns:
             SubagentContainer 或 None
         """
-        for sa in self._subagents.values():
-            if sa.id == subagent_id:
-                return sa
+        with self._lock:
+            for sa in self._subagents.values():
+                if sa.id == subagent_id:
+                    return sa
         return None
 
     def list(self) -> list[SubagentContainer]:
@@ -228,7 +240,8 @@ class SubagentLifecycleManager:
         Returns:
             活跃分身列表
         """
-        return list(self._subagents.values())
+        with self._lock:
+            return list(self._subagents.values())
 
     def list_by_tag(self, tag: str) -> list[SubagentContainer]:
         """按标签列出分身
@@ -239,7 +252,8 @@ class SubagentLifecycleManager:
         Returns:
             匹配的分身列表
         """
-        return [sa for sa in self._subagents.values() if tag in sa.config.tags]
+        with self._lock:
+            return [sa for sa in self._subagents.values() if tag in sa.config.tags]
 
     def list_by_permission(self, permission: str) -> list[SubagentContainer]:
         """按权限列出分身
@@ -250,11 +264,13 @@ class SubagentLifecycleManager:
         Returns:
             匹配的分身列表
         """
-        return [sa for sa in self._subagents.values() if permission in sa.config.permissions]
+        with self._lock:
+            return [sa for sa in self._subagents.values() if permission in sa.config.permissions]
 
     def count(self) -> int:
         """当前活跃分身数"""
-        return len(self._subagents)
+        with self._lock:
+            return len(self._subagents)
 
     # ════════════════════════════════════════════════════════════════════
     #  垃圾回收
@@ -268,9 +284,11 @@ class SubagentLifecycleManager:
         Returns:
             回收的分身数量
         """
-        expired = [sa for sa in self._subagents.values() if sa.is_expired]
-        for sa in expired:
-            self.destroy(sa)
+        with self._lock:
+            # 读快照后逐一销毁（RLock 重入 destroy；快照避免迭代中 dict 变更崩溃）
+            expired = [sa for sa in self._subagents.values() if sa.is_expired]
+            for sa in expired:
+                self.destroy(sa)
         if expired:
             logger.info("[SubagentLifecycle] GC 回收 %d 个超时分身", len(expired))
         return len(expired)
@@ -281,27 +299,29 @@ class SubagentLifecycleManager:
 
     def get_stats(self) -> dict:
         """获取生命周期管理器统计信息"""
-        subagents = list(self._subagents.values())
-        return {
-            "active_count": len(subagents),
-            "max_subagents": self._max_subagents,
-            "total_created": self._total_created,
-            "total_destroyed": self._total_destroyed,
-            "usage_pct": round(len(subagents) / max(self._max_subagents, 1) * 100, 1),
-            "subagents": [
-                {
-                    "id": sa.id,
-                    "name": sa.config.name,
-                    "model_id": sa.config.model_id,
-                    "memory_provider": sa.config.memory_provider,
-                    "permissions": list(sa.config.permissions),
-                    "context_size": len(sa.context),
-                    "age_seconds": round(sa.age_seconds, 1),
-                    "is_expired": sa.is_expired,
-                }
-                for sa in subagents
-            ],
-        }
+        with self._lock:
+            subagents = list(self._subagents.values())
+            return {
+                "active_count": len(subagents),
+                "max_subagents": self._max_subagents,
+                "total_created": self._total_created,
+                "total_destroyed": self._total_destroyed,
+                "usage_pct": round(len(subagents) / max(self._max_subagents, 1) * 100, 1),
+                "subagents": [
+                    {
+                        "id": sa.id,
+                        "name": sa.config.name,
+                        "model_id": sa.config.model_id,
+                        "memory_provider": sa.config.memory_provider,
+                        "permissions": list(sa.config.permissions),
+                        "context_size": len(sa.context),
+                        "age_seconds": round(sa.age_seconds, 1),
+                        "is_expired": sa.is_expired,
+                    }
+                    for sa in subagents
+                ],
+            }
 
     def __repr__(self) -> str:
-        return f"<SubagentLifecycleManager 活跃={len(self._subagents)}/{self._max_subagents}>"
+        with self._lock:
+            return f"<SubagentLifecycleManager 活跃={len(self._subagents)}/{self._max_subagents}>"
