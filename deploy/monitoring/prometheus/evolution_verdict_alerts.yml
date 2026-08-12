@@ -1,0 +1,66 @@
+# 提示词优化（EVO-T4）verdict 异常波动监控告警规则
+# 生成时间：2026-08-13
+# 数据来源：agent/skills_mgmt/observability.emit_metric 埋点
+#   - yunshu_prompt_optimization_total      counter（每次评估事件，label: outcome/source）
+#       outcome 与 compare() 的 verdict 等价：proposed / no_improvement / no_samples
+#   - yunshu_prompt_optimization_improvement histogram（建议提升分布，label: source）
+#
+# 【接入方式】在 prometheus.yml 的 rule_files 中追加本文件：
+#   rule_files:
+#     - 'alert_rules.yml'
+#     - 'evolution_alerts.yml'
+#     - 'evolution_verdict_alerts.yml'
+#
+# 【注意事项（不易）】
+#   - 三条规则均依赖"指标存在性"：首次部署且 prompt_optimizer 未运行过
+#     评估时指标缺失，除法分母为 0 会触发 NaN → 误报。建议先运行一轮
+#     scripts/verify_evot4_flow.py 产生基线指标，再启用规则。
+#   - Evot4ProposalRateDrop 的 3% 基线阈值与 PROMPT_OPT_THRESHOLD=0.03 联动；
+#     调整 .env 阈值后需同步修改本规则。
+#   - 日志侧（Loki）如需按 verdict 查询，见 docs/observability/log_analysis_queries.md
+#     （Loki ruler 规则可另配，本文件为 Prometheus 指标侧）。
+
+groups:
+  - name: evolution_verdict_alerts
+    interval: 30s
+    rules:
+      # 1. 无样本占比异常升高（评估覆盖不足：多类别缺样本 → no_samples 降级）
+      - alert: Evot4NoSamplesRatioHigh
+        expr: |
+          sum by (source) (increase(yunshu_prompt_optimization_total{outcome="no_samples"}[15m]))
+          / sum by (source) (increase(yunshu_prompt_optimization_total[15m])) > 0.5
+        for: 15m
+        labels:
+          severity: warning
+          category: evolution
+          layer: evaluation
+        annotations:
+          summary: "提示词优化评估 no_samples 占比异常升高（{{ $labels.source }}）"
+          description: "最近 15 分钟 verdict=no_samples 占比 {{ $value | humanizePercentage }}，超过 50%。多类别缺评估样本将导致 no_samples 降级、不产建议，请检查 data/evals 样本覆盖。"
+
+      # 2. 建议产出率骤降（proposed 占比低于 3% 基线，持续 1h）
+      #    基线 = PROMPT_OPT_THRESHOLD（默认 0.03），与 .env 联动
+      - alert: Evot4ProposalRateDrop
+        expr: |
+          sum(increase(yunshu_prompt_optimization_total{outcome="proposed"}[1h]))
+          / sum(increase(yunshu_prompt_optimization_total[1h])) < 0.03
+        for: 1h
+        labels:
+          severity: warning
+          category: evolution
+          layer: outcome
+        annotations:
+          summary: "提示词优化建议产出率骤降"
+          description: "最近 1 小时 proposed 事件占比 {{ $value | humanizePercentage }}，低于基线 3%。可能原因：提示词已收敛、样本池变化、或评估器异常（多为 no_improvement）。请结合谱系 decision 分布判断。"
+
+      # 3. 评估事件异常突增（短时间大量评估 = 潜在失控循环或调度异常）
+      - alert: Evot4EvaluationBurst
+        expr: increase(yunshu_prompt_optimization_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          category: evolution
+          layer: scheduler
+        annotations:
+          summary: "提示词优化评估事件异常突增（{{ $value }} 次/5m）"
+          description: "最近 5 分钟评估事件 {{ $value }} 次，超过 100 次阈值。可能原因：优化调度重复触发、循环调用。请检查调度器与 PromptOptimizer 调用方。"
