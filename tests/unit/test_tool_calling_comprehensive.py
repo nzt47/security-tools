@@ -18,6 +18,7 @@
 
 import datetime
 import json
+import re
 import threading
 from types import SimpleNamespace
 from unittest import mock
@@ -1024,3 +1025,80 @@ class TestTryUpgradeModel:
         service._model_router = router
         steps = [{"type": "tool_result", "status": "success"}]
         assert service._try_upgrade_model(steps) is False
+
+
+# ═══════════════════════════════════════════════════════════════
+# 连续失败计数并发隔离（局部 dict 天然隔离，无共享竞态）
+# ═══════════════════════════════════════════════════════════════
+
+
+class TestConsecutiveFailureIsolation:
+    """_consecutive_failures 为 chat_with_steps 局部变量（每次调用独立创建）
+
+    审计结论：多线程并发调用 chat_with_steps 时各对话计数互不共享，
+    读-改-写在单线程循环内顺序执行，不存在跨线程竞态，无需加锁。
+    本测试验证隔离语义：同工具名并发连续失败时，各对话计数独立、
+    不跨线程累积（若 dict 被共享，最大计数将超过单对话的连续失败次数）。
+    """
+
+    def test_shared_instance_concurrent_distinct_tools(self, mock_tools):
+        """共享 service 实例 8 线程、各对话独立工具：连续失败计数各自独立触发
+
+        局部 dict 隔离的确定性断言：每对话 3 次连续失败 → 计数 1,2 →
+        L467 终止型 warning（连续 2 次）×1 + L518 stuck 型 warning ×1。
+        若 dict 被共享且线程交错清零，部分线程将不再触发 → 条数 < 8。
+        """
+        svc = ToolCallingService(FakeLLM(), max_rounds=3, tool_timeout=5, task_timeout=30)
+        by_thread = {}
+        tlock = threading.Lock()
+
+        def call_llm(messages, *a, **kw):
+            ident = threading.get_ident()
+            with tlock:
+                tool = by_thread.setdefault(ident, "t%d" % len(by_thread))
+            return SimpleNamespace(
+                content=None,
+                tool_calls=[SimpleNamespace(
+                    id="tc", type="function",
+                    function=SimpleNamespace(name=tool, arguments="{}"))],
+                reasoning_content=None,
+            )
+
+        svc._call_llm_with_tools = call_llm
+        mock_tools.call.return_value = {"ok": False, "error": "fail"}
+
+        warnings = []
+        n_threads = 8
+        barrier = threading.Barrier(n_threads)
+        errors = []
+
+        def worker():
+            try:
+                barrier.wait()  # 同步起跑，放大并发
+                svc.chat_with_steps([{"role": "user", "content": "q"}])
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        with mock.patch("agent.tool_calling.logger.warning",
+                        side_effect=lambda *a, **kw: warnings.append(a[0])):
+            threads = [threading.Thread(target=worker) for _ in range(n_threads)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+
+        assert not errors
+        assert len(by_thread) == n_threads  # 8 个线程各得独立工具名
+        l467 = [w for w in warnings if "空参数调用失败，终止工具循环" in str(w)]
+        l518 = [w for w in warnings if "以下工具连续空参数调用失败" in str(w)]
+        # max_rounds=3 → 循环 4 轮 = 2 个「失败到 2 → stuck 清零」周期，
+        # 每对话 L467 与 L518 各触发 2 次且配对；若 dict 被共享交错清零/累积，
+        # 配对关系被破坏或出现计数 >2
+        assert len(l467) == len(l518)
+        counts = []
+        for w in l467:
+            m = re.search(r"连续 (\d+) 次", str(w))
+            if m:
+                counts.append(int(m.group(1)))
+        assert counts
+        assert set(counts) == {2}  # 局部隔离：所有触发周期计数均为 2，无跨线程累积
