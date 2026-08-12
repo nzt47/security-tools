@@ -725,3 +725,70 @@ class TestLayeredConfig:
         assert abs(weights2["bm25"] - 0.8) < 1e-9, (
             f"mtime 变化后应读到新值 0.8，实际 {weights2['bm25']}"
         )
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  中文 bigram 分词回归测试（2026-08-12 语义层短路修复）
+# ═══════════════════════════════════════════════════════════════════
+
+class TestTokenizeBigram:
+    """中文 bigram 分词回归 — 守卫语义层短路修复（ContextAssembler 触发前置）
+
+    根因（修复前）: _tokenize 中文按单字切分，命中率 hits/len(query_tokens)
+        对 min_score=0.3 形同虚设——元技能元数据覆盖大量常用字，任何中文
+        输入的单字命中率都虚高（实测"费马小定理证明"命中"主动建议"技能并
+        短路返回），导致 process() 未到达 _call_llm、ContextAssembler 组装
+        与 Prometheus 指标均不触发。
+
+    【不易】英文按词分词行为必须零变化；任务词（解析/总结）命中能力保留
+    【变易】中文按相邻二元组切分，提升区分度
+    【简易】只改 _tokenize 一个函数，TF-IDF 单路与 RRF 融合的 tfidf 路同生效
+    """
+
+    def test_tokenize_chinese_bigram(self):
+        from agent.skills_mgmt.loader import _tokenize
+        # 中英混合：中文串切为相邻二元组，英文整词保留
+        assert _tokenize("解析PDF文件") == ["解析", "pdf", "文件"], (
+            f"中英混合分词错误: {_tokenize('解析PDF文件')}"
+        )
+        # 纯中文长句 → 相邻二元组
+        assert _tokenize("费马小定理证明") == [
+            "费马", "马小", "小定", "定理", "理证", "证明",
+        ], f"纯中文 bigram 分词错误: {_tokenize('费马小定理证明')}"
+
+    def test_tokenize_english_unchanged(self):
+        from agent.skills_mgmt.loader import _tokenize
+        assert _tokenize("Parse PDF document") == ["parse", "pdf", "document"], (
+            "英文按词分词行为必须保持不变"
+        )
+
+    def test_bm25_tokenize_synced_bigram(self):
+        """bm25 路分词必须与 loader 同步为 bigram（否则 RRF 融合 bm25 路仍短路）
+
+        根因复现: 修复前 bm25_searcher._tokenize 单字分词，
+            "费马小定理证明" bm25_rank=1 命中 proactive_suggestion，
+            rrf_normalized=1.0 ≥ min_score → 语义层短路。
+        """
+        from agent.skills_mgmt.bm25_searcher import _tokenize as bm25_tokenize
+        assert bm25_tokenize("费马小定理证明") == [
+            "费马", "马小", "小定", "定理", "理证", "证明",
+        ], f"bm25 分词未同步 bigram: {bm25_tokenize('费马小定理证明')}"
+
+    def test_irrelevant_chinese_query_no_meta_skill_hit(self, file_store):
+        """无关中文输入（数学证明）不得命中元技能 → 语义层不短路"""
+        loader = SkillLoader(file_store=file_store)
+        result = loader.match("费马小定理证明", top_k=3, enabled_only=True,
+                              min_score=0.3)
+        meta_ids = {"self_reflection", "memory_summary"}
+        assert not any(m.skill_id in meta_ids for m in result.matches), (
+            f"无关中文输入不应命中元技能，实际 matches={[(m.skill_id, m.score) for m in result.matches]}"
+        )
+
+    def test_task_chinese_query_hits_skill(self, file_store):
+        """任务中文输入（解析PDF）必须仍命中任务技能 → 语义层正常召回"""
+        loader = SkillLoader(file_store=file_store)
+        result = loader.match("解析PDF文件", top_k=3, enabled_only=True,
+                              min_score=0.3)
+        assert any(m.skill_id == "pdf_parser" for m in result.matches), (
+            f"任务中文输入应命中 pdf_parser，实际 matches={[(m.skill_id, m.score) for m in result.matches]}"
+        )

@@ -50,16 +50,25 @@ except ImportError:  # noqa: BLE001
 
 
 # ════════════════════════════════════════════════════════════
-#  分词（与 loader._tokenize / searcher._tokenize 同尺度）
+#  分词（与 loader._tokenize 同尺度 — 2026-08-12 同步 bigram）
 # ════════════════════════════════════════════════════════════
 # 【简易】本地副本而非跨模块导入，避免 loader ↔ bm25_searcher 循环依赖
 # （searcher.py 也采用同样的本地副本模式，保持模块独立性）
-_WORD_RE = re.compile(r"[a-zA-Z0-9_]+|[\u4e00-\u9fff]")
+# Why（不易）: loader._tokenize 已改为中文 bigram（修复中文输入误命中元技能
+#      导致语义层短路）；bm25 路必须同步，否则 RRF 融合中 bm25 路仍按单字
+#      激进命中，短路问题复发（实测"费马小定理证明" bm25_rank=1 命中）。
+_WORD_RE = re.compile(r"[a-zA-Z0-9_]+|[\u4e00-\u9fff]+")
 
 
 def _tokenize(text: str) -> List[str]:
-    """混合分词：英文按词，中文按字（与 loader/searcher 完全一致）"""
-    return _WORD_RE.findall((text or "").lower())
+    """混合分词：英文按词，中文按相邻二元组（bigram，与 loader._tokenize 同尺度）"""
+    tokens: List[str] = []
+    for seg in _WORD_RE.findall((text or "").lower()):
+        if len(seg) > 1 and not seg.isascii():
+            tokens.extend(seg[i:i + 2] for i in range(len(seg) - 1))
+        else:
+            tokens.append(seg)
+    return tokens
 
 
 def _skill_to_doc(skill: Union[Dict[str, Any], Any]) -> str:

@@ -180,6 +180,8 @@ class TestOrchestratorWiring:
               "instruction": "1. 用 pdfplumber 定位表格区域\n2. 按行提取输出 CSV"}], None)
 
         _inj_before = _P.context_assembler_injected_total._value.get()
+        # 清零 token gauge，避免被其他测试的组装污染（同值 token 会让 "> _tok_before" 误报）
+        _P.context_assembler_injected_tokens.set(0)
         _tok_before = _P.context_assembler_injected_tokens._value.get()
 
         extra = o._context_assembler_extra("解析这份 PDF")

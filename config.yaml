@@ -435,6 +435,23 @@ orchestrator:
     # 环境变量 ORCHESTRATOR_WORKFLOW_LEARNING_MIN_SCORE 覆盖此值
     min_score: 0.25
 
+  # ═══════════════════════════════════════════════════════════════
+  #  拒识层配置（三层漏斗第 3 层，LLM 调用之前）
+  #  模块入口：agent/orchestrator/orchestrator.py _should_reject()
+  #  说明（2026-08-12）：语义层修复后，当前部署技能库为 persona 元技能
+  #  （无任务技能），规则层+语义层双未命中导致一切正常中文请求被
+  #  「未知意图软拒识」拦截、不调 LLM。关闭 enabled 后仅保留
+  #  「输入过短拒识」（input_too_short，process() 内独立判定不受此开关影响）。
+  #  环境变量 ORCHESTRATOR_REJECT_ENABLED 覆盖此值（.env 已同步设置）
+  # ═══════════════════════════════════════════════════════════════
+  reject:
+    # 未知意图软拒识总开关 - false 时未知意图放行 LLM（守「组装流程可触发」）
+    enabled: false
+    # 语义最高分阈值（与 semantic_layer.min_score 解耦，预留调优）
+    threshold: 0.3
+    # LLM 最低置信度（预留，当前判定未使用）
+    llm_min_confidence: 0.5
+
 # ═══════════════════════════════════════════════════════════════
 #  综合技能管理系统配置 (Skills Management)
 #  灵感来源：Claude Skills / Code Skills / Trae / OpenClaw / Hermes
