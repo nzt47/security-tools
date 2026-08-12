@@ -9,6 +9,7 @@
 """
 import logging
 import os
+import threading
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -36,20 +37,28 @@ class FailureCounter:
 
 
 class InMemoryFailureCounter:
-    """进程内存储（单实例默认后端，语义与历史 PromptOptimizer._failure_bucket 一致）"""
+    """进程内存储（单实例默认后端，语义与历史 PromptOptimizer._failure_bucket 一致）
+
+    Why 锁：incr 的「读-改-写」在 CPython 下非原子，多线程并发评估同一 prompt
+    时会丢失更新；锁仅保护内存 dict 状态变更（无 I/O/回调，开销纳秒级）。
+    """
 
     def __init__(self) -> None:
         self._d: dict = {}
+        self._lock = threading.Lock()
 
     def incr(self, pid: str) -> int:
-        self._d[pid] = self._d.get(pid, 0) + 1
-        return self._d[pid]
+        with self._lock:
+            self._d[pid] = self._d.get(pid, 0) + 1
+            return self._d[pid]
 
     def reset(self, pid: str) -> None:
-        self._d.pop(pid, None)
+        with self._lock:
+            self._d.pop(pid, None)
 
     def pop(self, pid: str) -> None:
-        self._d.pop(pid, None)
+        with self._lock:
+            self._d.pop(pid, None)
 
 
 class RedisFailureCounter:

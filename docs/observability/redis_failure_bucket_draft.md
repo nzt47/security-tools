@@ -240,3 +240,44 @@ def test_prompt_optimizer_with_redis_store(tmp_path, monkeypatch):
   恢复后从新基线继续——可接受（降级是例外路径）。
 - **健康检查开销**：`create_failure_store` 构造时一次 `incr/pop __ping__`，之后
   每次操作自然降级，无需心跳。
+
+---
+
+## 八、落地验证记录（2026-08-12）
+
+> 权威实现对应 commit `cce30bcf`（failure_bucket.py / prompt_optimizer.py 接入），
+> 以下为落地后的实证记录，均可复现。
+
+### 8.1 Redis 连接超时降级（非完全不可用）✅
+
+`_TimeoutRedis` stub（`ping/incr/expire/delete` 全部抛超时）两个场景 PASS：
+
+- **场景 A（构造期超时）**：`create_failure_store` → `health_check().ping()` 抛
+  `TimeoutError` → 工厂 `except Exception` 捕获 → 降级 `InMemoryFailureCounter`。
+  证明连接超时（而非仅"完全不可用"）同样走通降级分支。
+- **场景 B（运行期超时）**：注入失败后端后连续 3 次 `incr` 均超时 → 每次降级
+  内存计数（日志 `Redis incr 失败，降级内存计数 pid=p1` ×3）→ 阈值 3 达标后
+  经 `emit_metric` 产出 1 条 `prompt_id=p1`，全程无异常。
+
+结论：**超时与完全不可用降级路径一致（fail-open），不阻断优化流程。**
+
+### 8.2 TTL 过期后计数重置（连续 86401 秒）✅
+
+带 TTL 过期语义 + 可推进时钟的假 Redis（`ttl_sec=86400` 与生产一致）验证：
+
+- **窗口内连续失败**：`incr`→1，推进 500s 后 `incr`→2（距上次 < 86400s 仍连续）。
+- **连续 86401 秒后**：总跨度 86901s 超过 86400s 窗口 → 键被服务端过期回收 →
+  下一次 `incr` 返回 **1**（计数重置，重新开始新窗口）。
+- **滑动窗口对照**：每次失败都刷新 TTL——推进 86000s 后 `incr`（刷新窗口），
+  再推进 1000s 后 `incr` 仍连续 +1；证明"连续"以**最后一次失败**为起点，
+  非固定周期。
+
+结论：**TTL=1 天为滑动窗口；窗口过期后计数自动归零，无需人工清理。**
+
+### 8.3 内存桶并发安全（加锁）✅
+
+`InMemoryFailureCounter` 的 `incr` 为「读-改-写」序列，CPython 下非原子，
+多线程并发评估同一 prompt 时可能**丢失更新**（如两线程同时读到 0，各写 1，
+最终 1 而非 2）。已加 `threading.Lock` 保护（锁内仅内存 dict 操作，无 I/O/回调，
+符合持锁纪律）；并发压力测试（8 线程 × 1000 次 incr）断言总数 = 8000 无丢失。
+Redis 路径 `INCR` 本身原子，无需锁；降级备用桶共享同一把锁。

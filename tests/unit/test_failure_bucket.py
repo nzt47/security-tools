@@ -6,6 +6,7 @@
     3. create_failure_store 工厂：默认 memory / Redis 不可用降级 InMemory
     4. PromptOptimizer 注入 Redis 后端集成（连续失败触发行为等价）
 """
+import threading
 from unittest.mock import patch
 
 import pytest
@@ -178,3 +179,58 @@ class TestPromptOptimizerWithRedisStore:
                    for c in mock_emit.call_args_list
                    if "failed_prompt_total" in str(c)]
         assert prompts == ["p1"]
+
+
+# ════════════════════════════════════════════════════════════
+#  InMemoryFailureCounter 并发安全（threading.Lock）
+# ════════════════════════════════════════════════════════════
+
+class TestInMemoryConcurrency:
+    def test_concurrent_incr_no_lost_update(self):
+        """8 线程 × 1000 次并发 incr：锁保证读-改-写原子，无丢失更新"""
+        c = InMemoryFailureCounter()
+        n_threads, per = 8, 1000
+        barrier = threading.Barrier(n_threads)
+        errors = []
+
+        def worker():
+            try:
+                barrier.wait()  # 同步起跑，放大竞态窗口
+                for _ in range(per):
+                    c.incr("p1")
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker) for _ in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors
+        assert c._d["p1"] == n_threads * per  # 无丢失更新
+
+    def test_concurrent_reset_pop_mixed_no_raise(self):
+        """并发 incr/reset/pop 混合操作不抛异常（锁内仅 dict 操作）"""
+        c = InMemoryFailureCounter()
+        errors = []
+
+        def worker():
+            try:
+                for _ in range(500):
+                    c.incr("p1")
+                    c.reset("p1")
+                    c.incr("p2")
+                    c.pop("p2")
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker) for _ in range(4)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors
+        # 终态合法：p1 计数非负（最后一次操作可能是 reset 置空，也可能残留）
+        assert c._d.get("p1", 0) >= 0
