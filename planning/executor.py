@@ -327,10 +327,10 @@ class PlanExecutor:
                 self._finalize_state(plan, PlanState.CANCELLED, reason="用户取消")
             else:
                 # D1 修复：先基于任务状态计算 all_completed 与 any_failed，再据此设置
-                # COMPLETED 与 result。禁止在计划仍处于 EXECUTING 时调用 is_success()
-                # （其要求 state == COMPLETED）短路——否则"全部成功"分支永不触发，
-                # 全成功计划会被误判为"计划执行完成,但部分任务失败"。
-                all_completed = plan.all_tasks_succeeded()
+                # COMPLETED 与 result。通过 is_success(consider_state=False) 仅依据任务
+                # 状态判定成功（不要求 state == COMPLETED），避免计划仍处于 EXECUTING 时
+                # 被短路——否则"全部成功"分支永不触发，全成功计划会被误判为"部分任务失败"。
+                all_completed = plan.is_success(consider_state=False)
                 any_failed = any(t.status == TaskStatus.FAILED for t in plan.tasks)
                 status_counts = {
                     s.value: sum(1 for t in plan.tasks if t.status == s)

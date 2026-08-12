@@ -163,6 +163,26 @@ class TestPlan:
         plan.state = PlanState.COMPLETED
         assert plan.is_success() is False
 
+    def test_plan_is_success_consider_state(self):
+        """D1 修复：is_success(consider_state=False) 仅依据任务状态判定
+
+        执行收尾阶段（计划仍处于 EXECUTING）也能正确识别"全部成功"，
+        避免被 state == COMPLETED 短路。
+        """
+        plan = Plan(state=PlanState.EXECUTING)
+        plan.add_task(Task(id="task1"))
+        plan.add_task(Task(id="task2"))
+        plan.tasks[0].mark_completed()
+        plan.tasks[1].mark_completed()
+
+        # 默认要求 COMPLETED 状态 → EXECUTING 下为 False
+        assert plan.is_success() is False
+        # 收尾判定语义：仅依据任务状态 → 全成功为 True
+        assert plan.is_success(consider_state=False) is True
+
+        plan.tasks[1].mark_failed("失败")
+        assert plan.is_success(consider_state=False) is False
+
     def test_plan_progress(self):
         plan = Plan()
         assert plan.progress() == 0.0
