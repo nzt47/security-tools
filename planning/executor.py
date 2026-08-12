@@ -438,15 +438,21 @@ class PlanExecutor:
         不变量：计划状态变更必须经状态机，确保合法性校验、转换历史与钩子回调不被旁路；
         但兼容 executor 独立使用（未注入状态机）时的直接赋值行为。
         边界 #2：若计划已处于 CANCELLED（取消竞态先行生效），保留取消状态不被收尾覆盖。
+        边界 #H（漏洞H修复）：终态保护扩展——计划已处于任一终态（COMPLETED/FAILED/
+        CANCELLED）时，非法收尾转换保留原终态，不被降级覆盖。否则重复执行已完成计划
+        会在状态转换异常路径被错误降级为 FAILED（成功计划被标记失败）。
         """
         if self.state_machine is not None:
             try:
                 self.state_machine.transition(plan, target, reason)
                 return
             except InvalidStateTransitionError as e:
-                if plan.state == PlanState.CANCELLED:
-                    # 取消优先于收尾：取消竞态下不覆盖 CANCELLED（边界 #2）
-                    logger.warning(f"计划已取消（{plan.id}），保留 CANCELLED，跳过收尾变更: {target.value}")
+                if plan.state in (PlanState.COMPLETED, PlanState.FAILED, PlanState.CANCELLED):
+                    # 终态优先于收尾：终态计划不被后续收尾覆盖（含取消竞态边界 #2）
+                    logger.warning(
+                        f"计划已处于终态（{plan.id}: {plan.state.value}），"
+                        f"保留原状态，跳过收尾变更: {target.value}"
+                    )
                     return
                 logger.warning(f"状态机收尾转换失败，降级直接赋值: {e}")
         plan.state = target

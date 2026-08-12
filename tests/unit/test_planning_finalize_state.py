@@ -53,16 +53,27 @@ class TestFinalizeState:
 
         assert fired == [plan.id]
 
-    def test_invalid_transition_falls_back_to_direct_assign(self):
-        """非法转换：状态机拒绝后捕获降级直接赋值，转换历史不记录"""
+    def test_terminal_state_preserved_on_invalid_transition(self):
+        """终态保护（漏洞H修复）：计划已处于终态（COMPLETED）时，收尾非法转换
+        保留原终态，不被降级覆盖为 FAILED（重复执行已完成计划的异常路径）"""
         sm = PlanStateMachine()
         executor = PlanExecutor(ToolRegistry(), state_machine=sm)
         plan = Plan(state=PlanState.COMPLETED)  # 已终态，COMPLETED -> FAILED 非法
 
         executor._finalize_state(plan, PlanState.FAILED, reason="异常")
 
-        assert plan.state == PlanState.FAILED  # 降级直接赋值，不抛异常
+        assert plan.state == PlanState.COMPLETED  # 终态保护：保留原状态
         assert sm.get_transition_history(plan_id=plan.id) == []  # 非法转换未记录
+
+    def test_non_terminal_invalid_transition_still_falls_back(self):
+        """非终态非法转换仍降级直接赋值（终态保护仅作用于终态，不破坏既有降级语义）"""
+        sm = PlanStateMachine()
+        executor = PlanExecutor(ToolRegistry(), state_machine=sm)
+        plan = Plan(state=PlanState.INIT)  # INIT -> FAILED 状态机不支持，非终态
+
+        executor._finalize_state(plan, PlanState.FAILED, reason="异常")
+
+        assert plan.state == PlanState.FAILED  # 非终态 → 降级赋值
 
 
 class TestFinalizeStateIntegration:
@@ -133,3 +144,31 @@ class TestFinalizeStateIntegration:
         assert result.error is not None
         history = sm.get_transition_history(plan_id=plan.id)
         assert history[-1]["to_state"] == "failed"
+
+    @pytest.mark.asyncio
+    async def test_core_reexecute_completed_plan_preserves_terminal_state(self, tmp_path):
+        """漏洞H 端到端：core.execute_plan 重复执行已完成计划 → COMPLETED 不被覆盖为 FAILED。
+
+        触发链：transition(COMPLETED->EXECUTING) 非法抛 InvalidStateTransitionError →
+        core 异常路径调 _finalize_state(FAILED) → 终态保护保留 COMPLETED。
+        """
+        from planning.core import PlanningCore
+
+        registry = ToolRegistry()
+        registry.register("echo", lambda: "ok")
+        core = PlanningCore(
+            llm_service=None,
+            tool_registry=registry,
+            config={
+                "persist_dir": str(tmp_path),
+                "planning": {"persist_db": str(tmp_path / "plans.db")},
+            },
+        )
+
+        plan = await core.plan("echo 任务", {})
+        result = await core.execute_plan(plan)
+        assert result.state == PlanState.COMPLETED
+
+        # 重复执行：状态转换异常路径不得覆盖终态
+        result2 = await core.execute_plan(plan)
+        assert result2.state == PlanState.COMPLETED
