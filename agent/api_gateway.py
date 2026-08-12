@@ -10,6 +10,7 @@
 
 import json
 import logging
+import threading
 import time
 import functools
 import enum
@@ -36,6 +37,9 @@ class ApiKeyManager:
     
     def __init__(self):
         self._api_keys: Dict[str, Dict] = {}
+        # Why 锁：increment_usage 的「读-改-写」（quota_remaining -= 1）在并发下
+        # 会超卖配额；锁仅保护内存 dict 变更（无 I/O，_save_keys 在锁外执行）
+        self._lock = threading.Lock()
         self._load_keys()
     
     def _load_keys(self):
@@ -103,12 +107,19 @@ class ApiKeyManager:
         return False
     
     def increment_usage(self, api_key: str):
-        """增加使用计数"""
-        if api_key in self._api_keys:
-            self._api_keys[api_key]["usage_count"] += 1
-            if self._api_keys[api_key]["quota_remaining"] > 0:
-                self._api_keys[api_key]["quota_remaining"] -= 1
-            self._api_keys[api_key]["last_used_at"] = datetime.now().isoformat()
+        """增加使用计数并扣减配额（加锁保证读-改-写原子，防并发超卖）
+
+        Why 锁：usage_count += 1 / quota_remaining -= 1 在并发请求下会互相覆盖，
+        导致配额被多扣成负数（超卖）；锁内仅内存 dict 变更，无 I/O。
+        """
+        with self._lock:
+            info = self._api_keys.get(api_key)
+            if info is None:
+                return
+            info["usage_count"] += 1
+            if info["quota_remaining"] > 0:
+                info["quota_remaining"] -= 1
+            info["last_used_at"] = datetime.now().isoformat()
     
     def get_key_info(self, api_key: str) -> Optional[Dict]:
         """获取 API Key 信息"""

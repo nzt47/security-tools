@@ -10,6 +10,7 @@
 """
 # pylint: disable=redefined-outer-name,missing-function-docstring,protected-access
 
+import threading
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
@@ -450,3 +451,59 @@ class TestApiGateway:
             g2 = get_api_gateway()
             assert g1 is g2
             factory.assert_called_once()
+
+
+# ═══════════════════════════════════════════════════════════════
+# ApiKeyManager 并发扣减（threading.Lock 防配额超卖）
+# ═══════════════════════════════════════════════════════════════
+
+class TestApiKeyConcurrency:
+    def test_concurrent_increment_no_oversell(self, api_key_manager):
+        """100 线程 × 100 次并发扣减：配额精确归零不超卖，usage_count 精确"""
+        key = api_key_manager.create_key("u1")["key"]
+        api_key_manager._api_keys[key]["quota_remaining"] = 1000
+        n_threads, per = 100, 100
+        total = n_threads * per
+        barrier = threading.Barrier(n_threads)
+        errors = []
+
+        def worker():
+            try:
+                barrier.wait()  # 同步起跑，放大读-改-写竞争
+                for _ in range(per):
+                    api_key_manager.increment_usage(key)
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker) for _ in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        info = api_key_manager._api_keys[key]
+        assert not errors
+        assert info["usage_count"] == total          # 无丢失更新
+        assert info["quota_remaining"] == 0          # 精确耗尽，不超卖为负
+        assert info["quota_remaining"] >= 0
+
+    def test_concurrent_increment_unknown_key_no_raise(self, api_key_manager):
+        """并发下未知 key 的 increment_usage 不抛异常"""
+        barrier = threading.Barrier(8)
+        errors = []
+
+        def worker():
+            try:
+                barrier.wait()
+                for _ in range(100):
+                    api_key_manager.increment_usage("nope")
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker) for _ in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors
