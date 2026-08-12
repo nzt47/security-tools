@@ -278,7 +278,13 @@ class PlanExecutor:
                     logger.warning(f"达到最大步骤数: {plan.max_steps}")
                     break
 
+                _sched_start = time.monotonic()
                 next_tasks = plan.get_next_executable_tasks()
+                _sched_elapsed = (time.monotonic() - _sched_start) * 1000
+                logger.debug(
+                    f"[时序] 调度决策 @{_ts()} | 耗时: {_sched_elapsed:.1f}ms"
+                    f" | 可执行任务: {len(next_tasks)}"
+                )
                 if not next_tasks:
                     # P2 修复：死锁消解——PENDING 任务若存在已终结性失败（FAILED/SKIPPED）
                     # 的依赖，则执行条件永远无法满足。将其标记 SKIPPED（终态）后重试，
@@ -306,7 +312,13 @@ class PlanExecutor:
                             f" | 本批任务: {[t.id for t in next_tasks]}"
                         )
                     # 并发共享状态校验警告：同批任务不得写同一资源（如 file_contents 类工具）
+                    _precheck_start = time.monotonic()
                     self._warn_parallel_resource_conflicts(next_tasks)
+                    _precheck_elapsed = (time.monotonic() - _precheck_start) * 1000
+                    logger.debug(
+                        f"[时序] 资源冲突预检 @{_ts()} | 耗时: {_precheck_elapsed:.1f}ms"
+                        f" | 任务数: {len(next_tasks)}"
+                    )
                     batch_start = time.monotonic()
                     logger.info(
                         f"[时序] 并行批调度 @{_ts()} | {len(next_tasks)} 个任务"
@@ -334,6 +346,7 @@ class PlanExecutor:
                         f"[时序] 任务开始 @{_ts()} | {task.id} | 描述: {task.description[:60]}"
                         f" | 优先级: {task.priority}"
                     )
+                    _task_start = time.monotonic()
                     result = await self._execute_task_with_retry(task)
 
                     self._record_execution(plan, task, result)
@@ -341,12 +354,17 @@ class PlanExecutor:
                     if result.success:
                         task.mark_completed(result.output)
                         await self._trigger_callbacks("on_task_complete", task, result)
-                        logger.info(f"[执行任务] 成功: {task.id}")
+                        logger.info(
+                            f"[时序] 任务完成 @{_ts()} | {task.id}"
+                            f" | 耗时: {time.monotonic() - _task_start:.2f}s"
+                        )
                     else:
                         task.mark_failed(result.error or "未知错误")
                         await self._trigger_callbacks("on_task_fail", task, result)
                         logger.warning(
-                            f"[执行任务] 失败: {task.id} | 错误: {str(result.error)[:100]}"
+                            f"[时序] 任务失败 @{_ts()} | {task.id}"
+                            f" | 耗时: {time.monotonic() - _task_start:.2f}s"
+                            f" | 错误: {str(result.error)[:100]}"
                         )
 
                         if task.priority >= 4:
@@ -368,6 +386,7 @@ class PlanExecutor:
                 # 正确判定为"部分任务失败"。max_steps 残留的 PENDING（无失败依赖）不受影响。
                 if self._resolve_deadlocked_tasks(plan):
                     logger.info("[收尾判定] 死锁消解: 依赖已终结性失败的任务被标记 SKIPPED")
+
                 # D1 修复：先基于任务状态计算 all_completed 与 any_failed，再据此设置
                 # COMPLETED 与 result。通过 is_success(consider_state=False) 仅依据任务
                 # 状态判定成功（不要求 state == COMPLETED），避免计划仍处于 EXECUTING 时
@@ -648,7 +667,8 @@ class PlanExecutor:
 
         logger.info(f"[时序] 工具调用开始 @{_ts()} | {action.tool_name}")
         logger.debug(f"[工具调用] DEBUG: 参数: {action.tool_params}")
-        
+        _call_start = time.monotonic()
+
         try:
             timeout = self.config.get('tool_timeout', 30)
             
@@ -659,7 +679,11 @@ class PlanExecutor:
                         timeout=timeout
                     )
                 except asyncio.TimeoutError:
-                    logger.error(f"[时序] 工具调用超时 @{_ts()} | {action.tool_name} | 超时时间: {timeout}秒")
+                    logger.error(
+                        f"[时序] 工具调用超时 @{_ts()} | {action.tool_name}"
+                        f" | 耗时: {(time.monotonic() - _call_start) * 1000:.0f}ms"
+                        f" | 超时时间: {timeout}秒"
+                    )
                     logger.error(f"[工具调用] TIMEOUT: 参数: {action.tool_params}")
                     return ActionResult.failure_result(
                         f"工具调用超时: {action.tool_name} (超时时间: {timeout}秒)"
@@ -667,7 +691,10 @@ class PlanExecutor:
             else:
                 output = tool(**action.tool_params)
 
-            logger.info(f"[时序] 工具调用成功 @{_ts()} | {action.tool_name}")
+            logger.info(
+                f"[时序] 工具调用成功 @{_ts()} | {action.tool_name}"
+                f" | 耗时: {(time.monotonic() - _call_start) * 1000:.0f}ms"
+            )
             logger.debug(f"[工具调用] DEBUG: 输出: {str(output)[:100]}..." if len(str(output)) > 100 else f"[工具调用] DEBUG: 输出: {output}")
             
             return ActionResult.success_result(

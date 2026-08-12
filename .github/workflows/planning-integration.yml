@@ -4,6 +4,13 @@
 #   2) scripts/planning_integration_verify.py 集成验证（真实并行 + subprocess 崩溃恢复）
 #   3) scripts/planning_db_inspect.py 独立复核验证库产物（状态分布/转换历史）
 # 参考 ci.yml 既有模式（checkout@v6 / setup-python@v6 / pip install -e .）。
+#
+# Windows 本地运行注意事项（Linux CI 无此问题）：
+#   - sqlite3 连接关闭后文件句柄可能延迟释放（WinError 32），导致脚本收尾删除
+#     临时库失败。集成脚本已内置幂等机制：每次运行前先清理残留库（上次删除失败
+#     的残留会累加写入、污染 count 类断言），并显式 close() 所有数据库连接、
+#     删除失败仅告警不阻断。CI（ubuntu）不受影响，本地重复运行时才可能看到
+#     "[集成验证] 清理残留库失败"警告——属预期降级，不必视为失败。
 
 name: 规划模块集成验证
 
