@@ -9,8 +9,14 @@
 """
 
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
+from .lineage import (
+    EvolutionArchive,
+    EvolutionRecord,
+    get_default_archive,
+    print_lineage,
+)
 from .models import (
     Skill,
     SkillSearchParams,
@@ -52,6 +58,8 @@ class SkillsMgmtService:
         self.reviewer = SkillReviewer(thresholds=review_thresholds)
         self.searcher = SkillSearcher()
         self.enhancer = SkillEnhancer(self.store)
+        # EVO-T1 谱系档案库：默认取全局单例，测试可注入隔离实例
+        self._lineage_archive = get_default_archive()
 
         # 三层架构组件
         self.file_store = SkillFileStore(repo_path=repo_path)
@@ -173,9 +181,11 @@ class SkillsMgmtService:
     # ─── 增强器代理 ───
 
     def bump_version(self, skill_id: str, kind: str, *,
-                     changelog: str = "", content: Optional[str] = None) -> VersionBump:
+                     changelog: str = "", content: Optional[str] = None,
+                     eval_result: Optional[Dict[str, Any]] = None) -> VersionBump:
         return self.enhancer.bump_version(
-            skill_id, kind, changelog=changelog, content=content)
+            skill_id, kind, changelog=changelog, content=content,
+            eval_result=eval_result)
 
     def list_versions(self, skill_id: str) -> List[SkillVersion]:
         return self.enhancer.list_versions(skill_id)
@@ -320,6 +330,29 @@ class SkillsMgmtService:
         """一键式：拉取反馈 + 触发参数优化"""
         self._require(skill_id)
         return self.enhancer.optimize_with_feedback(skill_id, days=days)
+
+    # ─── 进化谱系只读路由（EVO-T1）───
+
+    @property
+    def _evolution_archive(self) -> EvolutionArchive:
+        """当前谱系档案库（测试可注入隔离实例）"""
+        return self._lineage_archive
+
+    @_evolution_archive.setter
+    def _evolution_archive(self, archive: EvolutionArchive) -> None:
+        self._lineage_archive = archive
+
+    def set_lineage_hook(self, hook: Optional[Callable[[dict], None]]) -> None:
+        """注入外部谱系钩子（透传 enhancer，供审批/审计流复用）"""
+        self.enhancer.set_lineage_hook(hook)
+
+    def get_evolution_lineage(self, skill_id: str) -> List[EvolutionRecord]:
+        """查询技能完整进化链（只读路由；无记录返回空列表，不抛异常）"""
+        return self._lineage_archive.get_lineage(skill_id)
+
+    def print_evolution_lineage(self, skill_id: str) -> str:
+        """打印技能进化链文本（审计/CLI 用）"""
+        return print_lineage(skill_id, self._lineage_archive)
 
     # ─── 重复技能检测与合并 ───
 

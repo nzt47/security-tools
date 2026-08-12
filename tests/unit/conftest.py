@@ -506,6 +506,28 @@ def _skills_offline_mode():
         yield
 
 
+@pytest.fixture(scope="function", autouse=True)
+def _isolate_evolution_archive(tmp_path, monkeypatch):
+    """EVO-T1 默认档案库单例隔离：每次测试指向独立 tmp 路径。
+
+    Why: lineage.get_default_archive() 是进程级懒加载单例，默认路径指向
+    项目内 data/evolution_archive.jsonl。若不复位单例，bump_version 自动
+    记录的谱系会在多次测试间累积到同一文件，导致 query 精确断言
+    （如 test_auto_record_by_default 的 len(hits)==1）跨测试污染失败。
+    通过 env 重定向 + 复位 _default_archive，让每个测试拿到干净单例。
+    """
+    import agent.skills_mgmt.lineage as _lineage_mod
+    monkeypatch.setenv(
+        "EVOLUTION_ARCHIVE_PATH",
+        str(tmp_path / "evolution_archive.jsonl"))
+    monkeypatch.setenv(
+        "EVOLUTION_ARCHIVE_OLD_PATH",
+        str(tmp_path / "evolution_archive_old.jsonl"))
+    _lineage_mod._default_archive = None  # 下次访问按新 env 重建
+    yield
+    _lineage_mod._default_archive = None
+
+
 @pytest.fixture
 def mock_llm_client():
     """Mock LLM 客户端: 提供 .chat()/.complete() 接口, 返回固定内容

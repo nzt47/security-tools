@@ -66,6 +66,7 @@ class Variant:
     score: Optional[float] = None          # 综合评分 (越高越好)
     objectives: Optional[Dict[str, float]] = None  # 多目标值 {success_rate, neg_latency, satisfaction}
     metrics: Optional[SkillMetrics] = None  # 采样指标 (骨架阶段用历史指标占位)
+    eval_result: Optional[Dict[str, Any]] = None  # 真实评估结果快照（EVO-T2）
 
 
 @dataclass
@@ -159,7 +160,8 @@ class OfflineEvolver:
     # ════════════════════════════════════════════════════════════
 
     def evolve_once(self, skill_id: str, *,
-                    strategies: Optional[List[EvolutionStrategy]] = None) -> EvolutionResult:
+                    strategies: Optional[List[EvolutionStrategy]] = None,
+                    evaluator: Optional[Any] = None) -> EvolutionResult:
         """对单个技能执行一轮进化
 
         流程:
@@ -172,6 +174,8 @@ class OfflineEvolver:
         Args:
             skill_id: 技能ID
             strategies: 使用的变异策略列表 (None=按默认权重采样)
+            evaluator: 可选真实评估器（EVO-T2）。注入后基线/变异体均走真实评估；
+                       不传则保持既有启发式路径（向后兼容）。
 
         Returns:
             EvolutionResult — 包含提升幅度、是否提交、错误信息
@@ -210,18 +214,59 @@ class OfflineEvolver:
                           f"success_rate={skill.metrics.success_rate:.2f})",
                 )
 
-            # 步骤3: 评估基线
+            # 步骤3: 评估基线（注入真实评估器 → 走真实评估，绝不伪造指标）
             t_eval_base = time.time()
-            old_score = self._evaluate_skill(skill)
             old_version = skill.version
-            logger.info(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "evolve_once.baseline",
-                "skill_id": skill_id,
-                "old_score": old_score,
-                "old_version": old_version,
-                "baseline_eval_ms": round((time.time() - t_eval_base) * 1000, 2),
-            }, ensure_ascii=False))
+            eval_mode = "heuristic"
+            old_score = 0.0
+            if evaluator is not None:
+                try:
+                    base_eval = evaluator.evaluate(skill)
+                except Exception as e:  # noqa: BLE001 评估器异常回退启发式
+                    logger.warning(json.dumps({
+                        "module_name": "offline_evolver",
+                        "action": "evolve_once.baseline_real_eval.error",
+                        "skill_id": skill_id,
+                        "error": str(e),
+                    }, ensure_ascii=False))
+                    base_eval = None
+                if base_eval is not None:
+                    if base_eval.status in ("no_samples", "budget_exceeded",
+                                            "degraded"):
+                        # 真实评估不可用 → 跳过，绝不伪造指标
+                        return EvolutionResult(
+                            skill_id=skill_id, skipped=True,
+                            error=f"真实评估不可用 ({base_eval.status})："
+                                  f"{'; '.join(base_eval.notes[:1])}"
+                                  f"（绝不伪造指标）",
+                        )
+                    old_score = base_eval.score
+                    eval_mode = "real"
+                    logger.info(json.dumps({
+                        "module_name": "offline_evolver",
+                        "action": "evolve_once.baseline_real_eval",
+                        "skill_id": skill_id,
+                        "eval_mode": "real",
+                        "old_score": round(old_score, 4),
+                        "old_version": old_version,
+                        "status": base_eval.status,
+                        "samples": base_eval.sample_count,
+                        "used_tokens": base_eval.cost_tokens,
+                        "baseline_eval_ms": round(
+                            (time.time() - t_eval_base) * 1000, 2),
+                    }, ensure_ascii=False))
+            if eval_mode == "heuristic":
+                old_score = self._evaluate_skill(skill)
+                logger.info(json.dumps({
+                    "module_name": "offline_evolver",
+                    "action": "evolve_once.baseline",
+                    "skill_id": skill_id,
+                    "eval_mode": "heuristic",
+                    "old_score": old_score,
+                    "old_version": old_version,
+                    "baseline_eval_ms": round(
+                        (time.time() - t_eval_base) * 1000, 2),
+                }, ensure_ascii=False))
 
             # 步骤4: 生成变异体
             t_mutate = time.time()
@@ -239,11 +284,49 @@ class OfflineEvolver:
                     error="未生成任何变异体",
                 )
 
-            # 步骤5: 评估变异体
+            # 步骤5: 评估变异体（真实评估透传变异参数；熔断的变异体不参与比较）
             t_eval = time.time()
-            for v in variants:
-                v.score = self._evaluate(v)
-                v.objectives = self._compute_objectives(v)
+            if evaluator is not None and eval_mode == "real":
+                for v in variants:
+                    ev = evaluator.evaluate(skill, params=v.params)
+                    if ev.status in ("no_samples", "budget_exceeded",
+                                     "degraded"):
+                        # 绝不伪造分数：真实评估不可用 → 该变异体不参与比较
+                        v.score = None
+                        v.eval_result = ev.to_eval_result_dict()
+                        logger.warning(json.dumps({
+                            "module_name": "offline_evolver",
+                            "action": "evolve_once.variant_real_eval.unavailable",
+                            "skill_id": skill_id,
+                            "strategy": v.strategy.value,
+                            "status": ev.status,
+                            "variant_params": v.params,
+                        }, ensure_ascii=False))
+                        continue
+                    v.score = ev.score
+                    v.objectives = {
+                        "success_rate": ev.success_rate,
+                        "neg_latency": -ev.latency_ms,
+                        "satisfaction": ev.satisfaction,
+                    }
+                    v.eval_result = ev.to_eval_result_dict()
+                    logger.info(json.dumps({
+                        "module_name": "offline_evolver",
+                        "action": "evolve_once.variant_real_eval",
+                        "skill_id": skill_id,
+                        "eval_mode": "real",
+                        "strategy": v.strategy.value,
+                        "score": round(ev.score, 4),
+                        "success_rate": round(ev.success_rate, 4),
+                        "latency_ms": round(ev.latency_ms, 2),
+                        "samples": ev.sample_count,
+                        "used_tokens": ev.cost_tokens,
+                        "variant_params": v.params,
+                    }, ensure_ascii=False))
+            else:
+                for v in variants:
+                    v.score = self._evaluate(v)
+                    v.objectives = self._compute_objectives(v)
             eval_ms = (time.time() - t_eval) * 1000
 
             # 步骤6: 帕累托筛选 (性能热点)
@@ -324,12 +407,14 @@ class OfflineEvolver:
             return result
 
     def evolve_batch(self, skill_ids: Optional[List[str]] = None, *,
-                     max_rounds: int = 1) -> BatchEvolutionReport:
+                     max_rounds: int = 1,
+                     evaluator: Optional[Any] = None) -> BatchEvolutionReport:
         """批量进化多个技能
 
         Args:
             skill_ids: 待进化技能列表 (None=自动选择候选)
             max_rounds: 最大进化轮次 (每轮基于上一轮结果)
+            evaluator: 可选真实评估器（EVO-T2），透传给每次 evolve_once
 
         Returns:
             BatchEvolutionReport — 批量进化报告
@@ -351,7 +436,7 @@ class OfflineEvolver:
                 }, ensure_ascii=False))
 
                 for skill_id in candidates:
-                    result = self.evolve_once(skill_id)
+                    result = self.evolve_once(skill_id, evaluator=evaluator)
                     report.results.append(result)
                     if result.skipped:
                         report.skipped_count += 1
@@ -774,6 +859,7 @@ class OfflineEvolver:
                 variant.skill_id, "patch",
                 changelog=f"离线进化: strategy={variant.strategy.value}, "
                           f"improvement={variant.score}",
+                eval_result=variant.eval_result,
             )
             logger.info(json.dumps({
                 "module_name": "offline_evolver",

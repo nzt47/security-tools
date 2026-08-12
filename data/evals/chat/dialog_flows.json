@@ -1,0 +1,62 @@
+[
+  {
+    "id": "chat-001",
+    "category": "chat",
+    "task": "用户说：你好，请问你能做什么？请给出友好简洁的自我介绍",
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "user_message": "你好，请问你能做什么？"
+      },
+      "note": "开放域对话样本：走自一致性评分"
+    }
+  },
+  {
+    "id": "chat-002",
+    "category": "chat",
+    "task": "用户情绪低落时，请给出共情式回应",
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "user_message": "我今天心情很不好，工作又出错了"
+      },
+      "note": "开放域对话样本：走自一致性+反馈信号"
+    }
+  },
+  {
+    "id": "chat-003",
+    "category": "chat",
+    "task": "用户问：今天适合出门吗？请基于天气给出建议",
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "user_message": "今天适合出门吗？"
+      },
+      "note": "开放域建议类样本"
+    }
+  },
+  {
+    "id": "chat-004",
+    "category": "chat",
+    "task": "用户说：帮我规划明天的日程，我上午开会下午写报告",
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "user_message": "帮我规划明天的日程，我上午开会下午写报告"
+      },
+      "note": "开放域任务规划类样本"
+    }
+  },
+  {
+    "id": "chat-005",
+    "category": "chat",
+    "task": "用户表达感谢，请给出礼貌简洁的回应",
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "user_message": "太感谢你了！"
+      },
+      "note": "开放域礼貌回应样本"
+    }
+  }
+]

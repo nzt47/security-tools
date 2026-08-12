@@ -1,0 +1,93 @@
+[
+  {
+    "id": "search-001",
+    "category": "search",
+    "task": "查询「云枢 Digital Life」的定义与核心定位",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "云枢"
+      ]
+    },
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "query": "云枢 Digital Life 定义"
+      },
+      "note": "搜索类样本：校验输出包含关键词"
+    }
+  },
+  {
+    "id": "search-002",
+    "category": "search",
+    "task": "查询今天上海天气的实时气温",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "上海"
+      ]
+    },
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "query": "上海今天天气 气温"
+      },
+      "note": "开放结果类样本：仅校验主题相关性"
+    }
+  },
+  {
+    "id": "search-003",
+    "category": "search",
+    "task": "查询 Python 3.12 最新稳定版本号",
+    "expected_output": {
+      "type": "json",
+      "key": "found",
+      "value": true
+    },
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "query": "Python 3.12 latest version",
+        "require_json": true
+      },
+      "note": "结构化输出样本：校验 result.found == true"
+    }
+  },
+  {
+    "id": "search-004",
+    "category": "search",
+    "task": "查询「三义原则」中不易的含义",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "不易"
+      ]
+    },
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "query": "三义原则 不易 不变"
+      },
+      "note": "知识检索类样本"
+    }
+  },
+  {
+    "id": "search-005",
+    "category": "search",
+    "task": "查询用户本地记忆中存在的一个主题名称",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "主题"
+      ]
+    },
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "query": "记忆 主题 列表",
+        "source": "local_memory"
+      },
+      "note": "本地检索类样本"
+    }
+  }
+]

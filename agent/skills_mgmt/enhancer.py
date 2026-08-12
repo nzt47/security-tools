@@ -9,9 +9,11 @@
 
 from __future__ import annotations
 import hashlib
+import os
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
+from .lineage import EvolutionArchive, EvolutionRecord, get_default_archive
 from .models import Skill, SkillVersion, SkillStatus, SkillMetrics
 from .exceptions import (
     SkillNotFoundError,
@@ -71,15 +73,21 @@ class IntegrationHook:
 class SkillEnhancer:
     """技能增强器"""
 
-    def __init__(self, store: SkillStore):
+    def __init__(self, store: SkillStore, *,
+                 lineage_archive: Optional[EvolutionArchive] = None):
         self._store = store
         self._hooks: Dict[str, List[IntegrationHook]] = {}
+        # EVO-T1 谱系档案库：默认取全局单例，测试可注入隔离实例
+        self._lineage_archive = (
+            lineage_archive if lineage_archive is not None else get_default_archive())
+        self._lineage_hook: Optional[Callable[[dict], None]] = None
 
     # ─── 版本管理 ───
 
     def bump_version(self, skill_id: str, kind: str, *,
                      changelog: str = "",
-                     content: Optional[str] = None) -> VersionBump:
+                     content: Optional[str] = None,
+                     eval_result: Optional[Dict[str, Any]] = None) -> VersionBump:
         """升级技能版本
 
         Args:
@@ -87,6 +95,7 @@ class SkillEnhancer:
             kind: major / minor / patch
             changelog: 变更说明
             content: 新内容 (None 表示保持不变)
+            eval_result: 真实评估结果快照（EVO-T2 路径透传，写入进化谱系）
         """
         with traced_action("skill_bump_version", skill_id=skill_id, kind=kind) as ctx:
             skill = self._require(skill_id)
@@ -108,8 +117,13 @@ class SkillEnhancer:
             skill.touch()
             self._store.upsert(skill)
             self._fire_hooks("on_updated", skill)
+            ctx["skill_id"] = skill_id
             ctx["old_version"] = old_ver
             ctx["new_version"] = new_ver
+            ctx["changelog"] = changelog
+            if eval_result is not None:
+                ctx["eval_result"] = eval_result
+            self._record_lineage(ctx)
             emit_metric("yunshu_skill_version_bump_total",
                         labels={"success": "true", "kind": kind},
                         kind="counter")
@@ -692,6 +706,45 @@ class SkillEnhancer:
             except Exception as e:  # noqa: BLE001
                 logger.warning(
                     "[Enhancer] 钩子 %s 执行失败: %s", hook.name, e)
+
+    # ─── 进化谱系（EVO-T1）───
+
+    def _get_lineage_archive(self) -> Optional[EvolutionArchive]:
+        """返回当前谱系档案库（测试可注入隔离实例）"""
+        return self._lineage_archive
+
+    def set_lineage_hook(self, hook: Callable[[dict], None]) -> None:
+        """注入外部谱系钩子（覆盖内置自动记录，供审批/审计流复用）"""
+        self._lineage_hook = hook
+
+    def _record_lineage(self, ctx: dict) -> None:
+        """bump_version 后记录一次进化谱系事件（EVO-T1）
+
+        优先级:
+            1. 用户注入的 hook（覆盖内置逻辑，可走审批/审计流）
+            2. 内置自动记录（默认开启；EVOLUTION_ARCHIVE_AUTO_RECORD=0 关闭）
+        失败仅告警，不阻断版本升级（守不易：谱系记录为旁路能力）。
+        """
+        try:
+            if self._lineage_hook is not None:
+                self._lineage_hook(ctx)
+                return
+            if os.environ.get("EVOLUTION_ARCHIVE_AUTO_RECORD", "1") == "0":
+                return
+            archive = self._get_lineage_archive()
+            if archive is None:
+                return
+            rec = EvolutionRecord.from_bump(ctx, strategy="version_bump")
+            archive.append(rec)
+            logger.info(
+                "[Lineage] skill=%s %s → %s 已记录谱系 (record=%s, eval_result=%s)",
+                ctx.get("skill_id", ""), ctx.get("old_version", ""),
+                ctx.get("new_version", ""), rec.record_id,
+                "有" if ctx.get("eval_result") else "无",
+            )
+        except Exception as e:  # noqa: BLE001 谱系记录失败不阻断版本升级
+            logger.warning("[Lineage] skill=%s 谱系记录失败: %s",
+                           ctx.get("skill_id", ""), e)
 
     # ─── 内部 ───
 
