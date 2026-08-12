@@ -354,6 +354,114 @@ class SkillsMgmtService:
         """打印技能进化链文本（审计/CLI 用）"""
         return print_lineage(skill_id, self._lineage_archive)
 
+    # ─── 进化循环网关（EVO-T3）───
+
+    def _new_evolver(self) -> "OfflineEvolver":
+        """构建共享同一档案库实例的进化器（延迟导入避免循环依赖）"""
+        from .offline_evolver import OfflineEvolver
+        return OfflineEvolver(
+            self.store, self.enhancer, archive=self._evolution_archive)
+
+    def _build_real_evaluator(self, skill: Any) -> Optional[Any]:
+        """构建任务 2 真实评估器；失败返回 None（evolver 回退启发式）"""
+        try:
+            from .evaluator import get_default_evaluator
+            return get_default_evaluator(skill)
+        except Exception as e:  # noqa: BLE001 评估器不可用不阻塞进化
+            logger.warning("[SkillsMgmtService] 真实评估器构建失败: %s", e)
+            return None
+
+    def evolve_skill(self, skill_id: str, *,
+                     strategies: Optional[List[str]] = None,
+                     trigger: str = "api") -> Dict[str, Any]:
+        """手动触发单技能进化（默认接入真实评估器，EVO-T3）
+
+        触发即写谱系（提交/拒绝/跳过均产生 EvolutionRecord）。
+
+        Returns:
+            dict — {skill_id, committed, decision, improvement, score,
+                    new_version, parent_record_id, record_id, cost_tokens}
+        """
+        self._require(skill_id)
+        from .offline_evolver import EvolutionStrategy
+        strategies_enum = None
+        if strategies:
+            strategies_enum = [
+                EvolutionStrategy(s) for s in strategies
+                if EvolutionStrategy(s) in EvolutionStrategy]
+        evolver = self._new_evolver()
+        result = evolver.evolve_once(
+            skill_id,
+            strategies=strategies_enum,
+            evaluator=self._build_real_evaluator(self.store.get(skill_id)),
+            trigger=trigger)
+        return {
+            "skill_id": result.skill_id,
+            "committed": result.committed,
+            "decision": result.decision,
+            "improvement": result.improvement,
+            "score": result.score,
+            "new_version": result.new_version,
+            "parent_record_id": result.parent_record_id,
+            "record_id": result.record_id,
+            "cost_tokens": result.cost_tokens,
+            "budget_breached": result.budget_breached,
+            "error": result.error,
+        }
+
+    def evolve_batch(self, skill_ids: Optional[List[str]] = None, *,
+                     max_rounds: int = 1,
+                     trigger: str = "api") -> Dict[str, Any]:
+        """手动触发批量进化（默认接入真实评估器，EVO-T3）
+
+        Returns:
+            dict — 批量报告摘要（含成本汇总与评分序列）
+        """
+        evolver = self._new_evolver()
+        evaluator = None
+        if skill_ids:
+            try:
+                evaluator = self._build_real_evaluator(
+                    self.store.get(skill_ids[0]))
+            except Exception as e:  # noqa: BLE001
+                logger.warning("[SkillsMgmtService] 批量评估器构建失败: %s", e)
+        else:
+            candidates = evolver._select_candidates()
+            if candidates:
+                evaluator = self._build_real_evaluator(candidates[0])
+        report = evolver.evolve_batch(
+            skill_ids, max_rounds=max_rounds, evaluator=evaluator,
+            trigger=trigger)
+        return {
+            "trigger": report.trigger,
+            "total_skills": report.total_skills,
+            "evolved_count": report.evolved_count,
+            "skipped_count": report.skipped_count,
+            "failed_count": report.failed_count,
+            "avg_improvement": report.avg_improvement,
+            "cost_tokens": report.cost_tokens,
+            "total_duration_ms": report.total_duration_ms,
+            "budget_usage_ratio": report.budget_usage_ratio,
+            "budget_breached": report.budget_breached,
+            "score_series": report.score_series,
+            "finished_at": report.finished_at,
+        }
+
+    def schedule_evolution(self, cron_expr: str = "0 2 * * *", *,
+                           skill_ids: Optional[List[str]] = None,
+                           max_rounds: int = 1) -> Dict[str, Any]:
+        """注册进化 cron 调度（EVO-T3，默认关闭 — 安全底线）
+
+        EVOLUTION_SCHEDULE_ENABLED=false 时只返回 disabled 信息；
+        开启需 .env 配置 EVOLUTION_SCHEDULE_ENABLED=true。
+        """
+        return self._new_evolver().schedule(
+            cron_expr, skill_ids=skill_ids, max_rounds=max_rounds)
+
+    def unschedule_evolution(self) -> bool:
+        """注销进化 cron 调度"""
+        return self._new_evolver().unschedule()
+
     # ─── 重复技能检测与合并 ───
 
     def list_duplicates(self, min_jaccard: float = 0.7) -> List[Dict[str, Any]]:

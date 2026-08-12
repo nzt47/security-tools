@@ -117,7 +117,8 @@ def _env_timeout_sec() -> int:
 
 
 def _env_consistency_runs() -> int:
-    return _env_int("EVAL_CONSISTENCY_RUNS", 3)
+    # EVO-T2 性能调优：自一致性重复执行次数 3→2（每样本省 1 次子进程冷启动）
+    return _env_int("EVAL_CONSISTENCY_RUNS", 2)
 
 
 # ════════════════════════════════════════════════════════════
@@ -679,6 +680,8 @@ class SkillExecutorEvaluator:
         self._scorer = SelfConsistencyScorer(similarity=consistency_similarity)
         self._feedback = FeedbackSignalScorer(feedback_manager) if use_feedback else None
         self._allow_validator = allow_validator
+        # 冷启动统计：每次 evaluate() 前重置，结束时输出 exec.summary
+        self._exec_stats: List[Tuple[float, Optional[float]]] = []
 
     # ─── 公共 ───
 
@@ -692,6 +695,7 @@ class SkillExecutorEvaluator:
                  stage: str = "") -> EvaluationResult:
         category = self.resolve_category(skill)
         samples = self.pool.get(category, sample_ids=sample_ids)
+        self._exec_stats = []  # 本轮评估冷启动统计（stage1/stage2 各自独立）
         if not samples:
             logger.warning(
                 "[Evaluator] eval.no_samples skill=%s category=%s stage=%s "
@@ -728,8 +732,10 @@ class SkillExecutorEvaluator:
                     stage, skill.id, sample.id, est_out, budget.used,
                     budget.budget, len(results), len(samples) - len(results))
                 break  # 输出计入预算后超限
-        return self._aggregate(skill, results, budget,
-                               stage=stage, sample_total=len(samples))
+        result = self._aggregate(skill, results, budget,
+                                 stage=stage, sample_total=len(samples))
+        self._log_exec_summary(skill.id, stage)
+        return result
 
     # ─── 内部 ───
 
@@ -745,6 +751,7 @@ class SkillExecutorEvaluator:
         t0 = time.time()
         outcome = self._run(skill, run_params)
         latency = outcome.duration_ms if outcome.duration_ms else (time.time() - t0) * 1000
+        self._log_exec(skill.id, sample.id, run_idx=1, t0=t0, outcome=outcome)
 
         if outcome.timed_out:
             return SampleEvaluation(
@@ -778,7 +785,11 @@ class SkillExecutorEvaluator:
         outputs = [result]
         for _ in range(max(0, self._consistency_runs - 1)):
             run_params["sample_id"] = f"{sample.id}#{len(outputs)}"
+            t_repeat = time.time()
             again = self._run(skill, dict(run_params))
+            self._log_exec(skill.id, sample.id,
+                           run_idx=len(outputs) + 1,
+                           t0=t_repeat, outcome=again)
             if again.success:
                 outputs.append(again.result if again.result is not None else again.stdout)
         consistency = self._scorer.score(outputs)
@@ -808,6 +819,48 @@ class SkillExecutorEvaluator:
         except Exception as e:  # noqa: BLE001 执行异常 → 样本跳过
             logger.warning("[Evaluator] 样本执行异常 skill=%s: %s", skill.id, e)
             return ExecOutcome(success=False, exit_code=-1, stderr=str(e))
+
+    def _log_exec(self, skill_id: str, sample_id: str, *, run_idx: int,
+                  t0: float, outcome: ExecOutcome) -> None:
+        """记录单次沙盒执行的冷启动耗时（性能瓶颈分析）
+
+        wall_ms: 主进程墙钟（含子进程冷启动），exec_ms: executor 内部报告的
+        执行耗时。两者差值即子进程启动/解析等固定开销。
+        同时累积到 _exec_stats，供 evaluate() 结束时 exec.summary 汇总。
+        """
+        wall_ms = (time.time() - t0) * 1000
+        logger.info(
+            "[Evaluator] exec.run skill=%s sample=%s run=%d "
+            "wall_ms=%.1f exec_ms=%s success=%s exit=%s",
+            skill_id, sample_id, run_idx, wall_ms,
+            outcome.duration_ms if outcome.duration_ms is not None else "n/a",
+            outcome.success, outcome.exit_code)
+        self._record_exec(wall_ms, outcome.duration_ms)
+
+    def _record_exec(self, wall_ms: float, exec_ms: Optional[float]) -> None:
+        """累积单次执行统计（供 exec.summary 汇总冷启动开销）"""
+        self._exec_stats.append((wall_ms, exec_ms))
+
+    def _log_exec_summary(self, skill_id: str, stage: str) -> None:
+        """输出本轮评估的子进程冷启动统计汇总
+
+        avg_cold_ms = avg(wall_ms - exec_ms)：单次子进程启动/解析等固定开销；
+        cold_pct = 冷启动总耗时 / 执行墙钟总耗时（占比越高越值得复用子进程）。
+        """
+        if not self._exec_stats:
+            return
+        n = len(self._exec_stats)
+        sum_wall = sum(w for w, _ in self._exec_stats)
+        sum_exec = sum(e for _, e in self._exec_stats if e is not None)
+        avg_wall = sum_wall / n
+        avg_exec = sum_exec / n if sum_exec else 0.0
+        avg_cold = max(0.0, avg_wall - avg_exec)
+        cold_pct = max(0.0, (sum_wall - sum_exec) / sum_wall * 100) if sum_wall else 0.0
+        logger.info(
+            "[Evaluator] exec.summary skill=%s stage=%s runs=%d "
+            "sum_wall_ms=%.1f avg_wall_ms=%.1f avg_exec_ms=%.1f "
+            "avg_cold_ms=%.1f cold_pct=%.1f%%",
+            skill_id, stage, n, sum_wall, avg_wall, avg_exec, avg_cold, cold_pct)
 
     @staticmethod
     def _aggregate(skill: Any, results: List[SampleEvaluation],
