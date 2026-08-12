@@ -259,6 +259,10 @@ class ReActLoop:
                             hints = context.setdefault("_hints", [])
                             if isinstance(hints, list):
                                 hints.extend(str(a) for a in reflection.adjustments)
+                                # 漏洞 G 修复：限制 _hints 上限（保留最近 20 条），防止
+                                # context 无限膨胀并随计划持久化（D19b 仅清理结果缓存）
+                                if len(hints) > 20:
+                                    del hints[:-20]
                         else:
                             logger.info(f"   ✅ 反思通过，无调整建议")
                     except Exception as e:
@@ -585,14 +589,29 @@ class ReActLoop:
         )
 
     def _detect_loop(self, steps: List[ReActStep], max_similar: int = 3) -> bool:
-        """检测执行循环"""
+        """检测执行循环（连续重复 / 周期振荡两种模式）。
+
+        - 连续重复：最近 max_similar 步动作完全相同（既有行为）
+        - 周期振荡：最近 2*max_similar 步整体呈周期性（相邻等长段动作序列
+          一致），覆盖 A/B/A/B 交替振荡与 A/B/C 周期循环——此类模式连续
+          重复检测不到，会一直跑到迭代耗尽并被误报为超时（漏洞 F 修复）。
+        """
         if len(steps) < max_similar * 2:
             return False
 
-        recent_steps = steps[-max_similar:]
-        actions = [step.action for step in recent_steps]
-        if len(set(actions)) == 1 and actions:
+        actions = [s.action for s in steps]
+
+        # 模式1：连续重复——最近 max_similar 步完全相同
+        recent = actions[-max_similar:]
+        if len(set(recent)) == 1 and recent[0]:
             return True
+
+        # 模式2：周期振荡——窗口内每个位置与其同余周期位置动作一致
+        # （window[i] == window[i % p]，p 为候选周期；防止 A/B/A/B... 交替循环漏检）
+        window = actions[-(max_similar * 2):]
+        for p in range(1, max_similar + 1):
+            if all(window[i] == window[i % p] for i in range(len(window))):
+                return True
 
         return False
 
