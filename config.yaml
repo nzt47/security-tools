@@ -18,6 +18,15 @@ planning:
   # D9 规格：SQLite 持久化（默认 data/plans/plans.db；首次启动自动迁移旧 JSON 检查点）
   persist_dir: data/plans
   persist_db: data/plans/plans.db
+  # 阶段 3：高优先级任务失败时重规划（Plan B）开关（false 时保持原中断行为）
+  replan_on_failure: true
+  # 阶段 3：ask_user 等待用户确认超时（秒），超时自动以"用户未确认"结束
+  ask_user_timeout_seconds: 300
+  # 阶段 3：多维预算（budget.enabled=false 可整体关闭；各维度缺省 = 不限制）
+  budget:
+    enabled: true
+    max_seconds: 30
+    token_price_per_1k: 0.002
 llm:
   provider: openai
   model: gpt-4

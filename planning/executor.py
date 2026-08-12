@@ -17,6 +17,7 @@ from .models.action import Action, ActionResult, ActionType
 from .models.record import ExecutionRecord
 from .state_machine import InvalidStateTransitionError, PlanStateMachine
 from .validator import PlanValidationError, validate_plan_or_raise
+from .budget import BudgetManager, BudgetStatus, PlanBudget
 
 # 使用 Phase 3 的统一注册表抽象
 from core.registry import SimpleRegistry
@@ -131,7 +132,8 @@ class PlanExecutor:
     """
 
     def __init__(self, tool_registry: ToolRegistry, llm_service=None, max_retries: int = 3, config: Dict = None,
-                 state_machine: Optional[PlanStateMachine] = None):
+                 state_machine: Optional[PlanStateMachine] = None,
+                 decomposer=None, reflector=None):
         """
         初始化执行器
 
@@ -142,6 +144,9 @@ class PlanExecutor:
             config: 配置
             state_machine: 计划状态机（可选）。提供时收尾状态变更走状态机（触发钩子/记录转换历史）；
                           不提供时保持原有直接赋值行为，兼容独立使用场景。
+            decomposer: 任务分解器（可选）。阶段 3（D14）重规划 Plan B 依赖：高优先级任务
+                        失败时调用 decompose.refine() 调整任务集后继续执行；未注入则不触发重规划。
+            reflector: 反思引擎（可选）。阶段 3（D14）失败归因：learn_from_experience 记录教训。
         """
         self.tool_registry = tool_registry
         self.llm = llm_service
@@ -156,6 +161,16 @@ class PlanExecutor:
         # 阶段 2（D5）：并行执行开关——默认关闭保持串行（与重构前行为一致），
         # 配置 executor.parallel_execution=true 才启用 asyncio.gather 并发，降低回归风险
         self.parallel_execution = bool(self.config.get("parallel_execution", False))
+        # 阶段 3（D14）：高优先级任务失败重规划开关（planner.replan_on_failure，默认 true）
+        self.replan_on_failure = bool(self.config.get("replan_on_failure", True))
+        # 阶段 3（D14）：重规划与失败归因依赖（由 core 注入）
+        self.decomposer = decomposer
+        self.reflector = reflector
+        # 阶段 3（D13）：执行器级预算（默认全 None 不限制 = 零行为变化）
+        self.budget_manager = BudgetManager(
+            PlanBudget.from_config(self.config),
+            token_price_per_1k=self.config.get("token_price_per_1k", 0.002),
+        )
 
         # 协作式取消（D18 主缺陷修复，阶段 3 方案 A）：
         # _running_tasks 记录当前执行中的 execute_plan 任务（按 plan_id），供 cancel_plan 传播取消；
@@ -264,6 +279,11 @@ class PlanExecutor:
             f"开始执行计划: {plan.id} | 任务数: {len(plan.tasks)} | max_steps: {plan.max_steps}"
         )
 
+        # 阶段 3（D13）：开始预算记账（steps/elapsed 按本次执行计，token/cost 为实例生命周期累计），
+        # 初始快照写入 plan.metadata 供收尾/观测使用
+        self.budget_manager.start()
+        plan.metadata["budget"] = self.budget_manager.snapshot()
+
         step_count = 0
         # 登记当前执行任务，供 cancel_plan 传播取消（finally 中清理）
         self._running_tasks[plan.id] = asyncio.current_task()
@@ -276,6 +296,23 @@ class PlanExecutor:
 
                 if step_count >= plan.max_steps:
                     logger.warning(f"达到最大步骤数: {plan.max_steps}")
+                    break
+
+                # 阶段 3（D13）：预算超限检查——超出任一度量（steps/seconds/tokens/cost）
+                # 即正常收尾返回部分结果（不抛异常，区别于异常路径）；快照落 metadata 可观测
+                budget_status = self.budget_manager.check()
+                if budget_status != BudgetStatus.OK:
+                    snap = self.budget_manager.snapshot()
+                    logger.info(
+                        f"[预算] 超限快照 | steps={snap['steps']} iterations={snap['iterations']}"
+                        f" | elapsed={snap['elapsed_seconds']}s | tokens={snap['tokens']}"
+                        f" | cost=${snap['cost']}"
+                    )
+                    logger.warning(
+                        f"[预算] 超出预算（{budget_status.value}），正常收尾返回部分结果: {plan.id}"
+                    )
+                    plan.metadata["budget"] = self.budget_manager.snapshot()
+                    plan.metadata["budget"]["status"] = budget_status.value
                     break
 
                 _sched_start = time.monotonic()
@@ -333,6 +370,8 @@ class PlanExecutor:
                     batch_elapsed = time.monotonic() - batch_start
                     step_count += len(next_tasks)
                     plan.current_step += len(next_tasks)
+                    # 阶段 3（D13）：预算记步（并行批按批任务数累计，下一轮循环顶部 check）
+                    self.budget_manager.record_step(len(next_tasks))
                     logger.info(
                         f"[时序] 并行批完成 @{_ts()} | 批耗时: {batch_elapsed:.2f}s"
                         f" | ids: {[t.id for t in next_tasks]}"
@@ -366,13 +405,41 @@ class PlanExecutor:
                             f" | 耗时: {time.monotonic() - _task_start:.2f}s"
                             f" | 错误: {str(result.error)[:100]}"
                         )
+                        # 阶段 3（D14）：失败归因（分类写入 task.metadata + reflector 记教训），
+                        # 不阻断主流程（异常仅告警）
+                        await self._on_task_failed(plan, task, result)
 
                         if task.priority >= 4:
-                            logger.error(f"高优先级任务失败: {task.id}")
-                            break
+                            logger.warning(
+                                f"[重规划] 高优先级任务 {task.id} 失败"
+                                f"（priority={task.priority} ≥ 4，尝试重规划）"
+                                f" | fallback_actions={task.fallback_actions}"
+                            )
+                            if await self._replan_on_failure(plan, task):
+                                logger.warning(
+                                    f"[重规划] 高优先级任务 {task.id} 失败后计划已修正，继续执行"
+                                )
+                                # 失败步骤计入步数（本轮不随 continue 跳过）
+                                step_count += 1
+                                plan.current_step += 1
+                                self.budget_manager.record_step(1)
+                                continue
+                            else:
+                                logger.error(
+                                    f"[重规划] 高优先级任务 {task.id} 失败，"
+                                    f"重规划不可用或无调整空间 → 走中断路径"
+                                )
+                                break
+                        else:
+                            logger.warning(
+                                f"[重规划] 任务 {task.id} 失败（priority={task.priority} < 4），"
+                                f"不触发重规划，仅标记失败由收尾判定处理"
+                            )
 
                     step_count += 1
                     plan.current_step += 1
+                    # 阶段 3（D13）：预算记步（steps 维度按任务数累计，下一轮循环顶部 check）
+                    self.budget_manager.record_step(1)
                 plan.updated_at = datetime.now()
 
             if plan.id in self._cancelled_plan_ids:
@@ -557,24 +624,42 @@ class PlanExecutor:
         if not backup_tools:
             return None
 
-        for backup_name in backup_tools:
+        _chain_start = time.perf_counter()
+        total = len(backup_tools)
+        for idx, backup_name in enumerate(backup_tools, start=1):
             if not self.tool_registry.has(backup_name):
-                logger.warning(f"[D14降级链] 备份工具不存在，跳过: {backup_name}")
+                logger.warning(
+                    f"[D14降级链] 备份工具不存在，跳过 [{idx}/{total}]: {backup_name}"
+                )
                 continue
             backup_action = Action.tool_action(
                 tool_name=backup_name,
                 params=action.tool_params,
                 description=action.description,
             )
-            logger.info(f"[D14降级链] 主工具 {action.tool_name} 失败，尝试备份工具: {backup_name}")
+            _try_start = time.perf_counter()
+            logger.info(
+                f"[D14降级链] 主工具 {action.tool_name} 失败，尝试备份工具 [{idx}/{total}]: {backup_name}"
+            )
             result = await self._execute_action(backup_action)
+            _try_elapsed = time.perf_counter() - _try_start
             if result.success:
                 result.observation = (
                     f"主工具 {action.tool_name} 失败，已降级至备份工具 {backup_name} 执行成功"
                 )
-                logger.info(f"[D14降级链] 降级成功: {action.tool_name} -> {backup_name}")
+                logger.info(
+                    f"[D14降级链] 降级成功 [{idx}/{total}]: {action.tool_name} -> {backup_name}"
+                    f" | 单次耗时: {_try_elapsed:.3f}s"
+                    f" | 链总耗时: {time.perf_counter() - _chain_start:.3f}s"
+                )
                 return result
-            logger.warning(f"[D14降级链] 备份工具 {backup_name} 也失败: {result.error}")
+            logger.warning(
+                f"[D14降级链] 备份工具失败 [{idx}/{total}]: {backup_name}"
+                f" | 错误: {str(result.error)[:200]} | 单次耗时: {_try_elapsed:.3f}s"
+            )
+        logger.warning(
+            f"[D14降级链] 全部 {total} 个备份工具失败 | 链总耗时: {time.perf_counter() - _chain_start:.3f}s"
+        )
         return None
     
     async def _execute_task_with_retry(self, task: Task) -> ActionResult:
@@ -584,8 +669,152 @@ class PlanExecutor:
             return await self._execute_task_with_retry_internal(task)
         except Exception as e:
             last_error = str(e)
+            # 阶段 3（D14）：任务级降级链——主工具重试耗尽后按 Task.fallback_actions
+            # 顺序尝试备份工具；任一成功即返回成功，全部失败保留主工具错误
+            if task.fallback_actions:
+                logger.warning(
+                    f"[D14任务级降级链] 任务 {task.id} 重试耗尽({self.max_retries} 次)进入降级链"
+                    f" | fallback_actions={task.fallback_actions}"
+                    f" | 末次错误: {last_error[:300]}"
+                )
+                fallback_result = await self._try_task_fallback(task)
+                if fallback_result is not None:
+                    return fallback_result
             logger.error(f"任务执行失败: {e}")
             return ActionResult.failure_result(last_error or "重试次数耗尽")
+
+    async def _try_task_fallback(self, task: Task) -> Optional[ActionResult]:
+        """D14：任务级降级链——主工具重试耗尽后按 Task.fallback_actions 顺序尝试备份工具
+
+        Returns:
+            任一备份工具成功 -> 成功结果（observation 标注已降级）；否则 None
+            （由调用方保留主工具错误）。
+        """
+        fallback_start = time.perf_counter()
+        total = len(task.fallback_actions)
+        for idx, backup_name in enumerate(task.fallback_actions, start=1):
+            if not self.tool_registry.has(backup_name):
+                logger.warning(
+                    f"[D14任务级降级链] 备份工具未注册，跳过 [{idx}/{total}]: {backup_name}"
+                )
+                continue
+            _try_start = time.perf_counter()
+            logger.info(
+                f"[D14任务级降级链] 任务 {task.id} 主工具重试耗尽，尝试备份工具 {idx}/{total}: {backup_name}"
+            )
+            try:
+                result = await self._execute_action(
+                    Action.tool_action(
+                        tool_name=backup_name,
+                        params=self._extract_params(task, backup_name),
+                        description=task.description,
+                    )
+                )
+            except Exception as exc:
+                logger.warning(
+                    f"[D14任务级降级链] 备份工具 {backup_name} 抛异常: {exc}"
+                )
+                continue
+            _try_elapsed = time.perf_counter() - _try_start
+            if result.success:
+                result.observation = (
+                    f"主工具失败，已降级至备份工具 {backup_name} 执行成功（任务级降级链）"
+                )
+                logger.info(
+                    f"[D14任务级降级链] 降级成功 {idx}/{total}: 任务 {task.id}"
+                    f" | 备份工具: {backup_name} | 单次耗时: {_try_elapsed:.3f}s"
+                    f" | 链总耗时: {time.perf_counter() - fallback_start:.3f}s"
+                )
+                return result
+            logger.warning(
+                f"[D14任务级降级链] 备份工具失败 {idx}/{total}: {backup_name}"
+                f" | 错误: {str(result.error)[:200]} | 单次耗时: {_try_elapsed:.3f}s"
+            )
+        logger.warning(
+            f"[D14任务级降级链] 任务 {task.id} 全部 {total} 个备份工具失败，保留主错误"
+            f" | 链总耗时: {time.perf_counter() - fallback_start:.3f}s"
+        )
+        return None
+
+    async def _replan_on_failure(self, plan: Plan, failed_task: Task) -> bool:
+        """D14：高优先级任务失败后的重规划（Plan B）
+
+        条件：replan_on_failure 开关开启 + decomposer 已注入（缺任一不可重规划）。
+        流程：decomposer.refine(plan, feedback) 修正任务集 → 比对 refine 前后任务
+        id 集合是否有变化判定"有调整空间"；有 → 记录 replanned 元数据返回 True；
+        无（refine 原样返回/空调整/抛异常）→ 返回 False 由调用方走中断路径。
+
+        Returns:
+            True: 计划已修正，调用方应 continue 继续执行；
+            False: 重规划不可用或无调整空间，调用方走中断路径。
+        """
+        if not self.replan_on_failure:
+            logger.info(f"[重规划] replan_on_failure=false，跳过重规划: {failed_task.id}")
+            return False
+        if self.decomposer is None:
+            logger.info(f"[重规划] 未注入 decomposer，无法重规划: {failed_task.id}")
+            return False
+
+        previous_ids = {t.id for t in plan.tasks}
+        try:
+            feedback = (
+                f"任务 {failed_task.id}（优先级 {failed_task.priority}）执行失败："
+                f"{str(failed_task.error)[:300]}。请调整计划：移除该任务或替换为可行替代。"
+            )
+            await self.decomposer.refine(plan, feedback)
+        except Exception as e:
+            logger.warning(f"[重规划] refine 失败（降级走中断路径）: {e}")
+            return False
+
+        new_ids = {t.id for t in plan.tasks}
+        if new_ids == previous_ids:
+            logger.info(
+                f"[重规划] refine 无调整空间（任务集未变化），走中断路径: {failed_task.id}"
+            )
+            return False
+
+        logger.info(
+            f"[重规划] 任务集已调整 | 移除: {sorted(previous_ids - new_ids)}"
+            f" | 新增: {sorted(new_ids - previous_ids)}"
+        )
+        plan.metadata["replanned"] = {
+            "failed_task": failed_task.id,
+            "previous_tasks": sorted(previous_ids),
+            "new_tasks": sorted(new_ids),
+        }
+        return True
+
+    async def _on_task_failed(self, plan: Plan, task: Task, result: ActionResult) -> None:
+        """D14 失败归因：分类失败原因写入 task.metadata，并调 reflector 记录教训。
+
+        不变量：归因不阻断主流程——reflector 异常仅告警（学习失败不影响执行结果）。
+        """
+        reason = self._classify_failure(task, result)
+        task.metadata["failure_reason"] = reason
+        logger.info(
+            f"[失败归因] 任务 {task.id} 失败原因归类: {reason}"
+            f" | 错误: {str(result.error or '')[:200]}"
+        )
+        if self.reflector is not None:
+            try:
+                # 签名对齐：learn_from_experience(task_description: str, result: ActionResult)
+                # （旧实现误传单 dict，导致 TypeError 仅告警不落库；此处按现有接口传
+                #  任务描述与失败结果，lesson 以 result.error 为 failure_point 落盘）
+                await self.reflector.learn_from_experience(task.description, result)
+            except Exception as e:
+                logger.warning(f"[失败归因] reflector.learn_from_experience 失败（不阻断主流程）: {e}")
+
+    @staticmethod
+    def _classify_failure(task: Task, result: ActionResult) -> str:
+        """D14 失败归因四分类：工具缺失 / 超时 / LLM 错误 / 逻辑错误"""
+        error = str(result.error or "")
+        if "工具不存在" in error:
+            return "工具缺失"
+        if "超时" in error or "Timeout" in error.lower():
+            return "超时"
+        if "LLM" in error:
+            return "LLM错误"
+        return "逻辑错误"
 
     async def _execute_task_with_retry_and_record(self, plan: Plan, task: Task) -> ActionResult:
         """执行单个任务并立即记录/标记状态（供并行批使用，D5 修复）
@@ -622,8 +851,13 @@ class PlanExecutor:
                 f"[时序] 并行任务失败 @{_ts()} | {task.id} | 耗时: {elapsed:.2f}s"
                 f" | 错误: {str(result.error)[:150]}"
             )
+            # 阶段 3（D14）：失败归因（并行路径同样记录，便于统一审计）
+            await self._on_task_failed(plan, task, result)
             if task.priority >= 4:
-                logger.error(f"高优先级任务失败: {task.id}")
+                logger.error(
+                    f"高优先级任务失败: {task.id}"
+                    f"（并行路径不触发重规划，仅标记失败由收尾判定处理）"
+                )
         return result
 
     def _determine_action(self, task: Task) -> Action:

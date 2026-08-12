@@ -227,7 +227,9 @@ class TaskDecomposer:
                 priority=item.get("priority", 3),
                 dependencies=item.get("dependencies", []),
                 constraints=item.get("constraints", []),
-                estimated_steps=item.get("estimated_steps", 1)
+                estimated_steps=item.get("estimated_steps", 1),
+                # D14：透传 LLM 提供的任务级降级链（fallback_actions），缺省空列表
+                fallback_actions=item.get("fallback_actions", []),
             )
             tasks.append(task)
             logger.debug(f"   解析子任务{i+1}: {task.description[:50]}...")

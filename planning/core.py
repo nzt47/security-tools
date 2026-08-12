@@ -33,11 +33,14 @@ class PlanningError(Exception):
 class ChatResult:
     """对话结果"""
 
-    def __init__(self, response: str, plan: Plan = None, react_result: ReActResult = None, used_planning: bool = False):
+    def __init__(self, response: str, plan: Plan = None, react_result: ReActResult = None,
+                 used_planning: bool = False, pending_plan_id: str = None):
         self.response = response
         self.plan = plan
         self.react_result = react_result
         self.used_planning = used_planning
+        # 阶段 3（D18 恢复语义）：ask_user 暂停时记录挂起的 plan_id（供 resume_plan 恢复）
+        self.pending_plan_id = pending_plan_id
         self.timestamp = datetime.now()
 
     def to_dict(self) -> dict:
@@ -93,17 +96,30 @@ class PlanningCore:
         self.decomposer = TaskDecomposer(llm_service, decomposer_config)
         logger.info(f"任务分解器初始化完成，最大子任务数: {self.decomposer.max_subtasks}")
 
-        executor_config = self.config.get("executor", {})
+        executor_config = dict(self.config.get("executor", {}))
+        # 阶段 3（D13/D14）：预算与重规划配置下发——LifecycleManager 将 planning 段整体
+        # 传入（顶层即 planning 段），此处把顶层 budget/replan_on_failure/token_price_per_1k
+        # 合并进 executor 配置使其生效；显式配置 executor 段时以其覆盖的键为准
+        if self.config.get("budget") is not None:
+            executor_config["budget"] = self.config["budget"]
+        if self.config.get("replan_on_failure") is not None:
+            executor_config["replan_on_failure"] = self.config["replan_on_failure"]
+        if self.config.get("token_price_per_1k") is not None:
+            executor_config["token_price_per_1k"] = self.config["token_price_per_1k"]
         self.executor = PlanExecutor(
             self.tool_registry,
             llm_service,
             max_retries=executor_config.get("max_retries", 3),
             config=executor_config
         )
+        # 阶段 3（D14）：注入重规划与失败归因依赖（decomposer 已就绪；reflector 待创建后补注）
+        self.executor.decomposer = self.decomposer
         logger.info(f"执行引擎初始化完成，最大重试次数: {self.executor.max_retries}")
 
         reflector_config = self.config.get("reflector", {})
         self.reflector = Reflector(llm_service, memory_manager, reflector_config)
+        # 阶段 3（D14）：失败归因依赖补注（executor.reflector 在 reflector 创建后注入）
+        self.executor.reflector = self.reflector
         logger.info("反思引擎初始化完成")
 
         self.state_machine = PlanStateMachine()
@@ -114,7 +130,12 @@ class PlanningCore:
         self.executor.state_machine = self.state_machine
         logger.info("执行引擎已注入状态机")
 
-        react_config = self.config.get("react", {})
+        react_config = dict(self.config.get("react", {}))
+        # 阶段 3（D13）：预算配置下发——顶层 budget 段合并进 react 配置（ReActLoop 生效）
+        if self.config.get("budget") is not None:
+            react_config["budget"] = self.config["budget"]
+        if self.config.get("token_price_per_1k") is not None:
+            react_config["token_price_per_1k"] = self.config["token_price_per_1k"]
         self.react_loop = ReActLoop(
             self,
             self.reflector,
@@ -148,6 +169,12 @@ class PlanningCore:
         # D6 统一：与 _needs_planning 的默认判定阈值一致（1.0 = 等价原判定）
         self.complexity_threshold = self.config.get("complexity_threshold", 1.0)
         logger.info(f"复杂度阈值: {self.complexity_threshold}")
+
+        # 阶段 3（D18 恢复语义）：ask_user 等待用户确认超时（秒，默认 300；负数 = 立即超时），
+        # 超时自动以"用户未确认"结束；_pending_questions 登记等待中的问题供 resume_plan 恢复
+        self.ask_user_timeout = self.config.get("ask_user_timeout_seconds", 300)
+        self._pending_questions: Dict[str, Dict[str, Any]] = {}
+        logger.info(f"ask_user 等待超时: {self.ask_user_timeout}秒")
 
         logger.info("="*60)
         logger.info("✅ 规划引擎核心初始化完成")
@@ -431,6 +458,16 @@ class PlanningCore:
             if react_result.error:
                 logger.info(f"   错误: {react_result.error}")
 
+            # 阶段 3（D18 恢复语义）：ReAct 返回"等待用户输入"（ask_user 暂停）→
+            # 登记等待中的问题并标记挂起 plan_id（供 resume_plan 恢复执行）
+            pending_plan_id = None
+            if not react_result.success and "等待用户输入" in str(react_result.error or ""):
+                plan_id = context.get("session_id") or f"plan_{datetime.now().strftime('%H%M%S')}"
+                question = str(react_result.result or "需要用户确认")
+                self.ask_user(plan_id, question, task=message, context=context)
+                pending_plan_id = plan_id
+                logger.info(f"   ⏸️ ask_user 暂停登记: plan_id={plan_id} | 问题: {question[:60]}")
+
             if react_result.success:
                 logger.info("✅ 任务执行成功，生成响应...")
                 response = str(react_result.result)
@@ -448,7 +485,8 @@ class PlanningCore:
             return ChatResult(
                 response=response,
                 react_result=react_result,
-                used_planning=True
+                used_planning=True,
+                pending_plan_id=pending_plan_id,
             )
         except Exception as e:
             logger.error(f"❌ 规划处理失败: {e}")
@@ -500,6 +538,67 @@ class PlanningCore:
         if not feedback:
             feedback = json.dumps(reflection, ensure_ascii=False)
         return feedback
+
+    def ask_user(self, plan_id: str, question: str, task: str = None,
+                 context: Dict = None) -> bool:
+        """阶段 3（D18 恢复语义）：登记等待用户确认的问题（供 resume_plan 恢复）。
+
+        不变量：空问题拒绝登记（防脏数据）；同 plan_id 重复登记覆盖旧问题。
+        """
+        if not question or not str(question).strip():
+            logger.warning(f"[ask_user] 拒绝空问题登记: plan_id={plan_id}")
+            return False
+        self._pending_questions[plan_id] = {
+            "question": str(question),
+            "task": task,
+            "context": context or {},
+            "timed_out": False,
+            "created_at": datetime.now(),
+        }
+        logger.info(
+            f"[ask_user] 已登记等待中的问题 | plan_id={plan_id}"
+            f" | 问题: {str(question)[:60]}"
+        )
+        return True
+
+    def get_pending_question(self, plan_id: str) -> Optional[Dict]:
+        """查询等待中的问题（含超时标记）；无则返回 None"""
+        pending = self._pending_questions.get(plan_id)
+        if pending is None:
+            return None
+        return dict(pending)
+
+    async def resume_plan(self, plan_id: str, user_answer: str) -> ChatResult:
+        """阶段 3（D18 恢复语义）：恢复等待用户输入的计划。
+
+        流程：取等待中的问题 → 超时检查（ask_user_timeout_seconds，超时以"用户未确认"
+        结束）→ 用户答案写入执行上下文（user_answer 键）后重新进入规划模式处理。
+
+        Returns:
+            ChatResult: 恢复后的处理结果（used_planning=True）。
+        """
+        pending = self._pending_questions.get(plan_id)
+        if pending is None:
+            logger.warning(f"[ask_user] 无等待中的问题，无法恢复: {plan_id}")
+            return ChatResult(response="没有等待中的问题，无法恢复计划")
+
+        age = (datetime.now() - pending["created_at"]).total_seconds()
+        if age > self.ask_user_timeout:
+            self._pending_questions.pop(plan_id, None)
+            pending["timed_out"] = True
+            logger.warning(
+                f"[ask_user] 等待超时({self.ask_user_timeout}s)，以'用户未确认'结束: {plan_id}"
+            )
+            return ChatResult(response="用户未确认，计划已结束")
+
+        self._pending_questions.pop(plan_id, None)
+        context = dict(pending.get("context") or {})
+        context["user_answer"] = user_answer
+        task = pending.get("task") or str(pending.get("question", ""))
+        logger.info(
+            f"[ask_user] 恢复计划 {plan_id}，用户答案已写入上下文: {str(user_answer)[:50]}"
+        )
+        return await self._plan_chat(task, context)
 
     def cancel_plan(self, plan_id: str) -> bool:
         """

@@ -12,6 +12,7 @@ from datetime import datetime
 from .models import Plan, PlanState, Task
 from .models.action import Action, ActionType, ActionResult
 from .models.react import ReActStep, ReActResult, ThoughtResult
+from .budget import BudgetManager, BudgetStatus, PlanBudget
 
 from agent.monitoring.tracing import get_trace_id
 
@@ -95,6 +96,13 @@ class ReActLoop:
         self.budget_ask_user = self.config.get("budget_ask_user", False)
         self._token_used = 0
         self._cost = 0.0
+        # 阶段 3（D13）：统一预算管理器（嵌套 budget 段优先，兼容直连键
+        # token_budget→max_tokens / timeout_seconds→max_seconds / cost_budget→max_cost；
+        # budget.enabled=false 整体关闭 = 零行为变化）
+        self.budget_manager = BudgetManager(
+            PlanBudget.from_config(self.config),
+            token_price_per_1k=self.config.get("token_price_per_1k", 0.002),
+        )
 
     async def run(self, task: str, context: Dict = None) -> ReActResult:
         """
@@ -110,6 +118,9 @@ class ReActLoop:
         context = context or {}
         steps: List[ReActStep] = []
         start_time = datetime.now()
+
+        # 阶段 3（D13）：开始本次执行预算记账（iterations/elapsed 重置，token/cost 生命周期累计）
+        self.budget_manager.start()
 
         # P2 修复：区分三种终止原因（真超时/循环检测/迭代异常），
         # 避免三条 break 路径全部误报为"超时"（post-loop 按原因返回对应语义）。
@@ -129,24 +140,32 @@ class ReActLoop:
         for iteration in range(self.max_iterations):
             iter_start = datetime.now()
 
-            # D13 优化：三层预算检查（deadline / token / cost），超限立即终止
-            # （budget_ask_user 启用时降级为"征求用户"暂停，见 _budget_result）
+            # 阶段 3（D13）：统一预算检查（steps/iterations/seconds/tokens/cost 维度，
+            # 经 BudgetManager 单点判定），超限立即终止（budget_ask_user 启用时降级为
+            # "征求用户"暂停，见 _budget_result）；超限快照落日志便于排查
             elapsed = (datetime.now() - start_time).total_seconds()
-            if self.deadline_seconds is not None and elapsed >= self.deadline_seconds:
-                logger.warning(f"⚠️ [ReAct循环] 超出时间预算({self.deadline_seconds}s)，终止")
-                return self._budget_result(
-                    f"超出时间预算({self.deadline_seconds}s)", steps, iteration + 1, elapsed
+            budget_status = self.budget_manager.check()
+            if budget_status != BudgetStatus.OK:
+                snap = self.budget_manager.snapshot()
+                logger.info(
+                    f"[预算] 超限快照 | steps={snap['steps']} iterations={snap['iterations']}"
+                    f" | elapsed={snap['elapsed_seconds']}s | tokens={snap['tokens']}"
+                    f" | cost=${snap['cost']}"
                 )
-            if self.token_budget is not None and self._token_used >= self.token_budget:
-                logger.warning(f"⚠️ [ReAct循环] 超出token预算({self._token_used}/{self.token_budget})，终止")
-                return self._budget_result(
-                    f"超出token预算({self._token_used}/{self.token_budget})", steps, iteration + 1, elapsed
+                detail_map = {
+                    BudgetStatus.EXCEEDED_STEPS: f"超出步数预算({snap['steps']}步)",
+                    BudgetStatus.EXCEEDED_ITERATIONS: f"超出迭代预算({snap['iterations']}次)",
+                    BudgetStatus.EXCEEDED_SECONDS: f"超出时间预算({snap['elapsed_seconds']}s)",
+                    BudgetStatus.EXCEEDED_TOKENS: f"超出token预算({snap['tokens']})",
+                    BudgetStatus.EXCEEDED_COST: f"超出成本预算(${snap['cost']})",
+                }
+                detail = detail_map.get(budget_status, budget_status.value)
+                logger.warning(
+                    f"⚠️ [ReAct循环] 超出预算（{budget_status.value}），终止: {detail}"
                 )
-            if self.cost_budget is not None and self._cost >= self.cost_budget:
-                logger.warning(f"⚠️ [ReAct循环] 超出成本预算(${self._cost:.4f}/{self.cost_budget})，终止")
-                return self._budget_result(
-                    f"超出成本预算(${self._cost:.4f}/{self.cost_budget})", steps, iteration + 1, elapsed
-                )
+                return self._budget_result(detail, steps, iteration + 1, elapsed)
+            # 阶段 3（D13）：记录本次迭代（iterations 维度预算）
+            self.budget_manager.record_iteration(1)
             logger.info("──────────────────────────────────────────────────────────────────")
             logger.info(f"🔁 [迭代 {iteration + 1}/{self.max_iterations}] ────────────────")
             logger.info(f"🔁 [迭代 {iteration + 1}] 开始时间: {iter_start.strftime('%H:%M:%S.%f')[:-3]}")
@@ -396,10 +415,12 @@ class ReActLoop:
             try:
                 logger.debug("   [思考] 正在调用LLM...")
                 response = await self.planner.llm.chat([{"role": "user", "content": prompt}])
-                # D13 优化：token/cost 可观测（估算：prompt + 响应按字符/3 近似，
-                # 不依赖 LLM 响应 usage 结构，兼容纯文本返回）
-                self._token_used += self._estimate_tokens(prompt) + self._estimate_tokens(response)
-                self._cost = self._token_used / 1000 * self.token_price
+                # 阶段 3（D13）：token/cost 统一经 budget_manager 记账（字符/3 估算），
+                # _token_used/_cost 与管理器同步（单一来源，避免双轨漂移）
+                self.budget_manager.record_text(prompt)
+                self.budget_manager.record_text(response)
+                self._token_used = self.budget_manager.tokens
+                self._cost = self.budget_manager.cost
                 logger.debug(f"   [思考] token 累计: {self._token_used} (估算), cost: ${self._cost:.4f}")
                 logger.debug("   [思考] LLM响应已接收")
                 return self._parse_thought(response)
@@ -642,7 +663,13 @@ class ReActLoop:
 
     def _result(self, *, success: bool, result: Any, steps: List[ReActStep],
                 iterations: int, duration_ms: float, error: Optional[str] = None) -> ReActResult:
-        """统一构造 ReActResult，透出 token/cost 预算可观测字段"""
+        """统一构造 ReActResult，透出 token/cost 预算可观测字段与 final_state 快照"""
+        final_state: Dict[str, Any] = {}
+        # 阶段 3（D13）：预算快照写入 final_state（可观测）；预算未启用时保持空 dict（向后兼容）
+        if self.budget_manager.budget.enabled:
+            snap = self.budget_manager.snapshot()
+            snap["status"] = self.budget_manager.check().value
+            final_state["budget"] = snap
         return ReActResult(
             success=success,
             result=result,
@@ -652,6 +679,7 @@ class ReActLoop:
             error=error,
             token_used=self._token_used,
             cost=self._cost,
+            final_state=final_state,
         )
 
     @staticmethod
