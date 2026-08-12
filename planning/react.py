@@ -111,6 +111,12 @@ class ReActLoop:
         steps: List[ReActStep] = []
         start_time = datetime.now()
 
+        # P2 修复：区分三种终止原因（真超时/循环检测/迭代异常），
+        # 避免三条 break 路径全部误报为"超时"（post-loop 按原因返回对应语义）。
+        termination_reason: str = "timeout"  # 默认：迭代耗尽（真超时）
+        termination_iteration: int = self.max_iterations
+        termination_exception: Optional[Exception] = None
+
         logger.info("══════════════════════════════════════════════════════════════════")
         logger.info("🔄 [ReAct循环] =================================================")
         logger.info("🔄 [ReAct循环] 开始执行")
@@ -172,7 +178,9 @@ class ReActLoop:
                     logger.info(f"   ✅ 任务已完成")
                     logger.info(f"      ├─ 执行步数: {iteration + 1}")
                     logger.info(f"      ├─ 总时长: {duration:.2f}ms")
-                    logger.info(f"      └─ 结果: {thought.result[:80]}{'...' if len(thought.result or '') > 80 else ''}")
+                    # P2 修复：result 可能为 None（LLM 未返回 result 字段），
+                    # 直接切片会 TypeError 被误判为迭代异常 → 判空兜底
+                    logger.info(f"      └─ 结果: {(thought.result or '')[:80]}{'...' if len(thought.result or '') > 80 else ''}")
                     logger.info("══════════════════════════════════════════════════════════════════")
                     return self._result(
                         success=True,
@@ -270,6 +278,9 @@ class ReActLoop:
                     logger.warning("   ⚠️ ⚠️ ⚠️ 检测到执行循环！")
                     logger.warning(f"      最近3个动作: {[s.action for s in steps[-3:]]}")
                     logger.warning("      强制终止循环以避免无限循环")
+                    # P2 修复：记录终止原因为循环检测（区别于"超时"）
+                    termination_reason = "loop_detected"
+                    termination_iteration = iteration + 1
                     break
 
                 if action_result.success:
@@ -299,22 +310,39 @@ class ReActLoop:
                     observation=str(e),
                     success=False
                 ))
+                # P2 修复：记录终止原因为迭代异常（区别于"超时"）
+                termination_reason = "iteration_error"
+                termination_iteration = iteration + 1
+                termination_exception = e
                 break
 
         duration = (datetime.now() - start_time).total_seconds() * 1000
+        # P2 修复：按终止原因生成不同的错误语义（真超时/循环检测/迭代异常）
+        if termination_reason == "loop_detected":
+            result_text = "检测到反馈循环,已终止执行"
+            error_text = "检测到执行循环"
+        elif termination_reason == "iteration_error":
+            result_text = "迭代过程中发生异常"
+            error_text = (
+                f"迭代异常: {type(termination_exception).__name__}: {termination_exception}"
+                if termination_exception else "迭代异常"
+            )
+        else:
+            result_text = "达到最大迭代次数,任务未完成"
+            error_text = "超时"
         logger.warning("══════════════════════════════════════════════════════════════════")
-        logger.warning("⚠️ [ReAct循环] 达到最大迭代次数，任务未完成")
+        logger.warning(f"⚠️ [ReAct循环] 终止 | 终止原因: {termination_reason}")
         logger.info(f"⚠️ [ReAct循环] 实际执行步数: {len(steps)}")
         logger.info(f"⚠️ [ReAct循环] 总时长: {duration:.2f}ms")
         logger.info(f"⚠️ [ReAct循环] 结束时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
         logger.warning("══════════════════════════════════════════════════════════════════")
         return self._result(
             success=False,
-            result="达到最大迭代次数,任务未完成",
+            result=result_text,
             steps=steps,
-            iterations=self.max_iterations,
+            iterations=termination_iteration,
             duration_ms=duration,
-            error="超时",
+            error=error_text,
         )
 
     async def _think(self, task: str, context: Dict, history: List[ReActStep]) -> ThoughtResult:

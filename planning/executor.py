@@ -227,6 +227,34 @@ class PlanExecutor:
                         f"（描述 '{task.description}' 无法解析到已注册工具）"
                     )
 
+    def _resolve_deadlocked_tasks(self, plan: Plan) -> bool:
+        """死锁消解：将依赖已终结性失败（FAILED/SKIPPED）的 PENDING 任务标记为 SKIPPED。
+
+        迭代至不动点：被跳过任务的后续依赖任务同样不可满足，需继续处理（传递链）。
+        仅由"无可执行任务"分支调用——max_steps 中断导致的 PENDING 不受影响（防误伤）。
+
+        Returns:
+            是否有任务被标记（供主循环重新调度）。
+        """
+        terminal_failed = {TaskStatus.FAILED, TaskStatus.SKIPPED}
+        changed = False
+        while True:
+            blocked_ids = {t.id for t in plan.tasks if t.status in terminal_failed}
+            progressed = False
+            for task in plan.tasks:
+                if task.status == TaskStatus.PENDING and any(
+                    dep in blocked_ids for dep in task.dependencies
+                ):
+                    task.mark_skipped()
+                    logger.info(
+                        f"[死锁消解] 任务 {task.id} 的依赖已终结性失败，标记为 SKIPPED"
+                    )
+                    progressed = True
+                    changed = True
+            if not progressed:
+                break
+        return changed
+
     async def execute_plan(self, plan: Plan) -> Plan:
         """
         执行完整计划
@@ -271,6 +299,13 @@ class PlanExecutor:
 
                 next_tasks = plan.get_next_executable_tasks()
                 if not next_tasks:
+                    # P2 修复：死锁消解——PENDING 任务若存在已终结性失败（FAILED/SKIPPED）
+                    # 的依赖，则执行条件永远无法满足。将其标记 SKIPPED（终态）后重试，
+                    # 让收尾正确判定为"部分任务失败"而非误报"超时或异常终止"。
+                    # 仅在此分支触发：max_steps 中断导致的 PENDING 不受影响（防误伤）。
+                    if self._resolve_deadlocked_tasks(plan):
+                        logger.info("[执行任务] 死锁消解: 已标记 SKIPPED 的任务, 重新调度")
+                        continue
                     logger.warning("无可执行任务,但计划未完成")
                     break
 

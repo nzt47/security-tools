@@ -405,3 +405,76 @@ class TestReActLoop:
         assert result.success is False
         assert result.error == "超时"
         assert result.iterations == 3
+
+    # ── P2 修复测试：三种终止原因区分（真超时/循环检测/迭代异常） ──────────────
+
+    @pytest.mark.asyncio
+    async def test_run_loop_detection_distinct_error(self):
+        """P2 终止原因区分：循环检测不再误报'超时'，返回专属 error='检测到执行循环'"""
+        registry = ToolRegistry()
+        registry.register("tool_a", lambda x: f"结果{x}")
+
+        mock_planner = MagicMock()
+        mock_planner.tool_registry = registry
+        mock_planner.llm = AsyncMock()
+        # 每次思考返回同一工具调用 → 连续动作描述相同 → 第 6 步触发 _detect_loop
+        mock_planner.llm.chat.return_value = json.dumps({
+            "reasoning": "反复执行相同操作",
+            "action_type": "tool_call",
+            "action": {"tool": "tool_a", "params": {"x": 1}, "description": "调用tool_a"},
+        })
+
+        mock_reflector = MagicMock()
+        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=8)
+
+        result = await react_loop.run("循环任务", {})
+
+        assert result.success is False
+        assert result.error == "检测到执行循环"
+        assert "超时" not in result.error
+        # 在循环检测点（6 步）终止，而非耗尽 max_iterations（8）
+        assert result.iterations == 6
+
+    @pytest.mark.asyncio
+    async def test_run_iteration_error_distinct_error(self):
+        """P2 终止原因区分：迭代内部未捕获异常不再误报'超时'，返回专属 error='迭代异常: ...'"""
+        mock_planner = MagicMock()
+        mock_planner.llm = AsyncMock()
+        mock_reflector = MagicMock()
+        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=5)
+
+        # 注入迭代边界异常：验证循环以'迭代异常'终止而非落入'超时'桶
+        async def boom(*args, **kwargs):
+            raise RuntimeError("思考内部故障")
+
+        react_loop._think = boom
+
+        result = await react_loop.run("异常任务", {})
+
+        assert result.success is False
+        assert result.error.startswith("迭代异常")
+        assert "RuntimeError" in result.error
+        assert "思考内部故障" in result.error
+        assert "超时" not in result.error
+
+    # ── P2 修复测试：finish 空值防御 ─────────────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_run_finish_without_result(self):
+        """P2 finish 空值防御：LLM 返回 finish 缺 result 字段 → 不崩溃，正常成功返回"""
+        mock_planner = MagicMock()
+        mock_planner.llm = AsyncMock()
+        # 缺 result 字段 → thought.result 为 None（修复前日志行切片崩溃 → 误报超时）
+        mock_planner.llm.chat.return_value = json.dumps({
+            "reasoning": "任务已完成",
+            "action_type": "finish",
+        })
+
+        mock_reflector = MagicMock()
+        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=3)
+
+        result = await react_loop.run("简单任务", {})
+
+        assert result.success is True
+        assert result.result == "任务完成"  # 空值兜底语义
+        assert result.iterations == 1
