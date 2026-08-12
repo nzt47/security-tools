@@ -265,6 +265,41 @@ class TestPersistenceRecovery:
             assert history[0]["reason"] == "开始执行"
             storage.close()
 
+    @pytest.mark.asyncio
+    async def test_completed_plan_excluded_from_recovery(self):
+        """D9 恢复正确性：终态落库 + EXECUTING 幂等转换 + 重启排除已完成计划。
+
+        此前 plans.state 停留 READY（仅 transition_history 落库），而恢复状态
+        集合含 READY，崩溃恢复会把已完成的计划误判为未完成恢复；且恢复的
+        EXECUTING 计划重新执行时 EXECUTING->EXECUTING 非法转换被误判失败。
+        """
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            cfg = {
+                "reflector": {"persist_dir": tmp_dir},
+                "planning": {"persist_dir": tmp_dir},
+            }
+
+            async def fake_tool(*args, **kwargs):
+                return "ok"
+
+            core1 = PlanningCore(config=cfg)
+            core1.tool_registry.register("test_tool", fake_tool)
+            plan = await core1.plan("使用test_tool")
+            plan.state = PlanState.EXECUTING  # 模拟执行中崩溃
+            core1.save_plan_checkpoint(plan)
+
+            core2 = PlanningCore(config=cfg)  # 模拟进程重启
+            recovered = core2._active_plans.get(plan.id)
+            assert recovered is not None
+            assert recovered.state == PlanState.EXECUTING
+            # 恢复的计划可继续执行到 COMPLETED（幂等放行 EXECUTING，不被误判失败）
+            core2.tool_registry.register("test_tool", fake_tool)
+            await core2.execute_plan(recovered)
+            assert recovered.state == PlanState.COMPLETED
+
+            core3 = PlanningCore(config=cfg)  # 再重启：已完成计划必须被排除
+            assert plan.id not in core3._active_plans
+
 
 class TestLlmJson:
     """LLM 输出解析鲁棒性：markdown 围栏 / 裸 JSON / 带噪文本 / 校验 / 重试"""

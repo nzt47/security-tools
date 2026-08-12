@@ -270,9 +270,14 @@ class PlanningCore:
                 self.executor._finalize_state(plan, PlanState.FAILED, reason="计划验证失败")
                 return plan
 
-            logger.info("📊 步骤1: 状态转换 INIT -> EXECUTING")
-            self.state_machine.transition(plan, PlanState.EXECUTING, "开始执行")
-            logger.info(f"   ✅ 状态已转换到: {plan.state.value}")
+            logger.info("📊 步骤1: 状态转换 -> EXECUTING")
+            if plan.state != PlanState.EXECUTING:
+                self.state_machine.transition(plan, PlanState.EXECUTING, "开始执行")
+                logger.info(f"   ✅ 状态已转换到: {plan.state.value}")
+            else:
+                # 崩溃恢复路径：计划从库中恢复时已处于 EXECUTING，转换幂等放行
+                # （EXECUTING -> EXECUTING 非法，直接跳过，否则恢复的计划被误判失败）
+                logger.info("   ✅ 计划已处于 EXECUTING（恢复路径），跳过重复转换")
 
             logger.info("⚙️ 步骤2: 调用执行引擎...")
             plan = await self.executor.execute_plan(plan)

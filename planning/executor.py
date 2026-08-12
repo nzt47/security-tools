@@ -7,6 +7,7 @@
 
 import asyncio
 import logging
+import time
 import traceback
 from typing import Dict, Any, Optional, List, Callable
 from datetime import datetime
@@ -312,6 +313,13 @@ class PlanExecutor:
                     )
                     step_count += len(next_tasks)
                     plan.current_step += len(next_tasks)
+                    logger.info(
+                        f"[并行执行] 批次完成: {len(next_tasks)} 个任务"
+                        f" | ids: {[t.id for t in next_tasks]}"
+                        f" | 批次状态: "
+                        f"{[(t.id, t.status.value) for t in next_tasks]}"
+                        f" | 计划总步数: {plan.current_step}"
+                    )
                 else:
                     task = next_tasks[0]
                     logger.info(
@@ -431,7 +439,9 @@ class PlanExecutor:
                     continue
                 if sig in seen:
                     logger.warning(
-                        f"[并行执行] 并发资源冲突警告: 任务 {seen[sig].id} 与任务 {tasks[i].id}"
+                        f"[并行执行] 并发资源冲突警告: 任务 {seen[sig].id}"
+                        f"（{str(seen[sig].description)[:50]}）与任务 {tasks[i].id}"
+                        f"（{str(tasks[i].description)[:50]}）"
                         f" 均写 {tool_name}（资源键 {dict(key_params)}），"
                         f"并发任务不得写同一资源"
                     )
@@ -477,6 +487,14 @@ class PlanExecutor:
                 )
             except Exception as e:
                 logger.warning(f"[D9] 状态转换落库失败: {e}")
+            # D9 恢复正确性修复：同步计划终态到 plans 表。此前仅 record_transition 落
+            # transition_history，plans.state 停留 READY；而 _RECOVERABLE_STATES 含 READY，
+            # 崩溃恢复时会把已完成的计划误判为"未完成"恢复（执行记录/转换历史均已证明
+            # 完成）。收尾恰为最后一次状态变更，此处 upsert 一次即可（非整树循环落库）。
+            try:
+                self.persistence.upsert_plan(plan)
+            except Exception as e:
+                logger.warning(f"[D9] 计划终态落库失败: {e}")
 
     async def _do_execute_task(self, task: Task) -> ActionResult:
         """实际的任务执行逻辑（不含重试，失败抛出异常）"""
@@ -544,15 +562,36 @@ class PlanExecutor:
 
         不变量：任务完成（成功/失败）即更新状态与记录，不等待整批并行任务收尾，
         避免取消时已完成任务的状态滞留 RUNNING（竞态）。
+        日志：任务级开始/动作解析/完成结果与耗时全链路打印，配合并行批日志
+        还原并发时序，便于排查资源冲突等并行问题。
         """
+        start = time.monotonic()
+        logger.info(
+            f"[并行任务] 开始: {task.id} | 描述: {str(task.description)[:80]}"
+            f" | 优先级: {task.priority}"
+        )
+        tool_name = self.tool_registry.find_tool(task.description) or ""
+        logger.info(
+            f"[并行任务] 动作解析: {task.id} -> 工具: {tool_name or 'llm/response'}"
+            f" | 参数: {self._extract_params(task, tool_name or None)}"
+        )
         result = await self._execute_task_with_retry(task)
+        elapsed = time.monotonic() - start
         self._record_execution(plan, task, result)
         if result.success:
             task.mark_completed(result.output)
             await self._trigger_callbacks("on_task_complete", task, result)
+            logger.info(
+                f"[并行任务] 完成: {task.id} | 耗时: {elapsed:.2f}s"
+                f" | 输出: {str(result.output)[:100]}"
+            )
         else:
             task.mark_failed(result.error or "未知错误")
             await self._trigger_callbacks("on_task_fail", task, result)
+            logger.warning(
+                f"[并行任务] 失败: {task.id} | 耗时: {elapsed:.2f}s"
+                f" | 错误: {str(result.error)[:150]}"
+            )
             if task.priority >= 4:
                 logger.error(f"高优先级任务失败: {task.id}")
         return result
@@ -781,6 +820,12 @@ class PlanExecutor:
         plan.state = PlanState.CANCELLED
         plan.updated_at = datetime.now()
         logger.info(f"计划已取消: {plan.id}")
+        # D9：取消状态同步落库（保持 plans 表与 transition_history 一致，避免恢复误判）
+        if self.persistence is not None:
+            try:
+                self.persistence.upsert_plan(plan)
+            except Exception as e:
+                logger.warning(f"[D9] 取消状态落库失败: {e}")
         task = self._running_tasks.get(plan.id)
         if task is not None and not task.done():
             task.cancel()

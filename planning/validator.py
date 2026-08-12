@@ -41,6 +41,43 @@ class PlanValidationIssue:
         return f"PlanValidationIssue({self.code}: {self.message})"
 
 
+def find_circular_dependencies(tasks) -> List[str]:
+    """DFS 三色标记检测循环依赖，返回涉及环的任务 id 列表（去重）。
+
+    【简易】独立纯函数供单测直接验证 DFS 正确性；validator 内部复用，保证
+    错误语义（circular_dependency + 涉及任务 id）与抽离前完全一致。
+
+    算法：visiting 标记当前递归栈（灰），visited 标记已完成（黑）。
+    某任务依赖递归中再次进入 visiting 集合 ⇒ 存在环，记录该任务 id。
+    悬空依赖（引用不存在的 id）安全跳过（不崩溃，交由依赖完整性校验处理）。
+
+    Args:
+        tasks: 可迭代的 Task 对象集合（需含 .id 与 .dependencies）
+
+    Returns:
+        涉及环的任务 id 列表（触发环检测的节点，去重）；无环返回空列表。
+    """
+    task_map = {t.id: t for t in tasks}
+    visiting, visited = set(), set()
+    cycle_ids: List[str] = []
+
+    def _dfs(tid: str) -> None:
+        if tid in visiting:
+            cycle_ids.append(tid)
+            return
+        if tid in visited or tid not in task_map:
+            return
+        visiting.add(tid)
+        for dep in task_map[tid].dependencies:
+            _dfs(dep)
+        visiting.discard(tid)
+        visited.add(tid)
+
+    for t in tasks:
+        _dfs(t.id)
+    return cycle_ids
+
+
 def validate_plan(plan: Plan, tool_registry=None, llm=None) -> List[PlanValidationIssue]:
     """校验计划结构，返回结构化错误列表（空列表 = 通过）。
 
@@ -61,7 +98,6 @@ def validate_plan(plan: Plan, tool_registry=None, llm=None) -> List[PlanValidati
     """
     issues: List[PlanValidationIssue] = []
     task_ids = {t.id for t in plan.tasks}
-    task_map = {t.id: t for t in plan.tasks}
 
     # ④ 任务描述非空 + ① 依赖完整性
     for task in plan.tasks:
@@ -79,27 +115,13 @@ def validate_plan(plan: Plan, tool_registry=None, llm=None) -> List[PlanValidati
                     task_id=task.id,
                 ))
 
-    # ② 循环依赖（DFS 三色标记）
-    visiting, visited = set(), set()
-
-    def _dfs(tid: str) -> None:
-        if tid in visiting:
-            issues.append(PlanValidationIssue(
-                code="circular_dependency",
-                message=f"检测到循环依赖（涉及任务 '{tid}'）",
-                task_id=tid,
-            ))
-            return
-        if tid in visited or tid not in task_map:
-            return
-        visiting.add(tid)
-        for dep in task_map[tid].dependencies:
-            _dfs(dep)
-        visiting.discard(tid)
-        visited.add(tid)
-
-    for t in plan.tasks:
-        _dfs(t.id)
+    # ② 循环依赖（DFS 三色标记，公共函数 find_circular_dependencies）
+    for tid in find_circular_dependencies(plan.tasks):
+        issues.append(PlanValidationIssue(
+            code="circular_dependency",
+            message=f"检测到循环依赖（涉及任务 '{tid}'）",
+            task_id=tid,
+        ))
 
     # ③ 工具可用性预检（仅无 LLM 纯工具路径）
     if llm is None and tool_registry is not None:
