@@ -135,17 +135,17 @@ class ReActLoop:
             if self.deadline_seconds is not None and elapsed >= self.deadline_seconds:
                 logger.warning(f"⚠️ [ReAct循环] 超出时间预算({self.deadline_seconds}s)，终止")
                 return self._budget_result(
-                    f"超出时间预算({self.deadline_seconds}s)", steps, iteration, elapsed
+                    f"超出时间预算({self.deadline_seconds}s)", steps, iteration + 1, elapsed
                 )
             if self.token_budget is not None and self._token_used >= self.token_budget:
                 logger.warning(f"⚠️ [ReAct循环] 超出token预算({self._token_used}/{self.token_budget})，终止")
                 return self._budget_result(
-                    f"超出token预算({self._token_used}/{self.token_budget})", steps, iteration, elapsed
+                    f"超出token预算({self._token_used}/{self.token_budget})", steps, iteration + 1, elapsed
                 )
             if self.cost_budget is not None and self._cost >= self.cost_budget:
                 logger.warning(f"⚠️ [ReAct循环] 超出成本预算(${self._cost:.4f}/{self.cost_budget})，终止")
                 return self._budget_result(
-                    f"超出成本预算(${self._cost:.4f}/{self.cost_budget})", steps, iteration, elapsed
+                    f"超出成本预算(${self._cost:.4f}/{self.cost_budget})", steps, iteration + 1, elapsed
                 )
             logger.info("──────────────────────────────────────────────────────────────────")
             logger.info(f"🔁 [迭代 {iteration + 1}/{self.max_iterations}] ────────────────")

@@ -478,3 +478,20 @@ class TestReActLoop:
         assert result.success is True
         assert result.result == "任务完成"  # 空值兜底语义
         assert result.iterations == 1
+
+    # ── 边界检查修复测试：预算终止迭代计数一致性 ─────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_run_budget_timeout_iterations_consistent(self):
+        """边界：预算终止路径 iterations 与其他终止路径一致（1-based），首迭代即超限也应 >=1"""
+        mock_planner = MagicMock()
+        mock_planner.llm = None
+        mock_reflector = MagicMock()
+        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=5,
+                               config={"timeout_seconds": 0})
+
+        result = await react_loop.run("预算任务", {})
+
+        assert result.success is False
+        assert result.iterations >= 1  # 修复前首迭代超限返回 0（0-based 不一致）
+        assert "预算" in result.error

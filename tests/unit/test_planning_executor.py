@@ -374,3 +374,47 @@ class TestDependencyDeadlockResolution:
         assert "超时" not in str(result.error)
         assert result.state == PlanState.COMPLETED
         assert result.result == "计划执行完成,但部分任务失败"
+
+    @pytest.mark.asyncio
+    async def test_stale_running_task_reset_and_recover(self):
+        """边界：崩溃恢复残留的 RUNNING 任务（+下游 PENDING 依赖）→ 重置后重新调度，不悬挂"""
+        registry = ToolRegistry()
+        registry.register("sum_tool", lambda: "汇总完成")
+        executor = PlanExecutor(registry, max_retries=1)
+
+        plan = Plan(original_task="恢复场景", state=PlanState.EXECUTING)
+        a = Task(id="a", description="调用 sum_tool 汇总结果")
+        a.mark_running()  # 模拟崩溃时残留 RUNNING
+        plan.add_task(a)
+        plan.add_task(Task(id="b", description="调用 sum_tool 输出报告", dependencies=["a"]))
+        plan.max_steps = 10
+
+        result = await executor.execute_plan(plan)
+
+        # RUNNING 残留被重置后重新执行成功，依赖链全绿
+        assert result.get_task("a").status == TaskStatus.COMPLETED
+        assert result.get_task("b").status == TaskStatus.COMPLETED
+        assert result.state == PlanState.COMPLETED
+        assert result.is_success() is True
+
+    @pytest.mark.asyncio
+    async def test_stale_running_task_with_failed_dependency_chain(self):
+        """边界：残留 RUNNING 重置后执行失败 → 下游依赖被消解 SKIPPED，不误报超时"""
+        registry = ToolRegistry()
+        registry.register("fail_tool", lambda: 1 / 0)
+        registry.register("sum_tool", lambda: "汇总完成")
+        executor = PlanExecutor(registry, max_retries=1)
+
+        plan = Plan(original_task="恢复场景2", state=PlanState.EXECUTING)
+        a = Task(id="a", description="调用 fail_tool 处理数据")
+        a.mark_running()
+        plan.add_task(a)
+        plan.add_task(Task(id="b", description="调用 sum_tool 汇总结果", dependencies=["a"]))
+        plan.max_steps = 10
+
+        result = await executor.execute_plan(plan)
+
+        assert result.get_task("a").status == TaskStatus.FAILED
+        assert result.get_task("b").status == TaskStatus.SKIPPED
+        assert "超时" not in str(result.error)
+        assert result.state == PlanState.COMPLETED

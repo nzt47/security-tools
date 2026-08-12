@@ -238,6 +238,16 @@ class PlanExecutor:
         """
         terminal_failed = {TaskStatus.FAILED, TaskStatus.SKIPPED}
         changed = False
+        # 残留 RUNNING 重置：本方法仅在"无可执行任务"分支与收尾期调用（此刻无任务
+        # 执行中），RUNNING 只可能来自崩溃恢复/异常中断的遗留。重置为 PENDING 后由
+        # 主循环重新调度（依赖满足则重执行；依赖已终结性失败则下轮被消解为 SKIPPED），
+        # 避免 RUNNING 任务永不执行、下游 PENDING 依赖悬挂（与依赖悬挂同源边界）。
+        for task in plan.tasks:
+            if task.status == TaskStatus.RUNNING:
+                task.status = TaskStatus.PENDING
+                task.started_at = None
+                logger.info(f"[死锁消解] 任务 {task.id} 残留 RUNNING，重置为 PENDING 重新调度")
+                changed = True
         while True:
             blocked_ids = {t.id for t in plan.tasks if t.status in terminal_failed}
             progressed = False
