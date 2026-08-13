@@ -11,6 +11,7 @@
 import json
 import logging
 import enum
+import threading
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 from pathlib import Path
@@ -83,6 +84,13 @@ class TenantManager:
         self._tenants: Dict[str, Tenant] = {}
         self._users: Dict[str, User] = {}
         self._role_assignments: Dict[str, List[RoleAssignment]] = {}
+        # Why RLock 保护全部租户状态（模块级单例 tenant_manager 被 HTTP 路由
+        # 并发调用）：create/assign 的「检查-写入」读-改-写序列非原子（并发对同
+        # user 分配角色会重复 append）、delete_tenant 递归 del 与遍历并发抛
+        # RuntimeError。delete_tenant 递归调用自身需重入。锁内仅内存 dict/list
+        # 变更；文件持久化 _save_data 在锁外（持锁纪律：锁内严禁 I/O——磁盘写
+        # 可能阻塞）。
+        self._lock = threading.RLock()
         self._load_data()
     
     def _load_data(self):
@@ -140,13 +148,14 @@ class TenantManager:
             name=name,
             metadata=metadata or {}
         )
-        self._users[user_id] = user
-        self._save_data()
+        with self._lock:
+            self._users[user_id] = user
+        self._save_data()  # 锁外 I/O（持锁纪律）
         return user
     
     def get_user(self, user_id: str) -> Optional[User]:
         """获取用户"""
-        return self._users.get(user_id)
+        return self._users.get(user_id)  # 单键读原子（GIL）
     
     def create_organization(self, name: str, owner_id: str) -> Tenant:
         """创建组织"""
@@ -158,68 +167,73 @@ class TenantManager:
             type=TenantType.ORGANIZATION,
             parent_id=""
         )
-        self._tenants[org_id] = tenant
+        with self._lock:
+            self._tenants[org_id] = tenant
+        # assign_role 在锁外调用（方法自身管理锁与持久化，避免锁内嵌套 I/O）
         self.assign_role(owner_id, org_id, RoleType.OWNER)
         self._save_data()
         return tenant
     
     def create_workspace(self, name: str, organization_id: str, creator_id: str) -> Tenant:
         """创建工作空间"""
-        if organization_id not in self._tenants:
-            raise ValueError(f"组织不存在: {organization_id}")
-        
-        import secrets
-        workspace_id = "ws_" + secrets.token_hex(16)
-        tenant = Tenant(
-            id=workspace_id,
-            name=name,
-            type=TenantType.WORKSPACE,
-            parent_id=organization_id
-        )
-        self._tenants[workspace_id] = tenant
+        with self._lock:
+            if organization_id not in self._tenants:
+                raise ValueError(f"组织不存在: {organization_id}")
+
+            import secrets
+            workspace_id = "ws_" + secrets.token_hex(16)
+            tenant = Tenant(
+                id=workspace_id,
+                name=name,
+                type=TenantType.WORKSPACE,
+                parent_id=organization_id
+            )
+            self._tenants[workspace_id] = tenant
         self.assign_role(creator_id, workspace_id, RoleType.ADMIN)
         self._save_data()
         return tenant
     
     def get_tenant(self, tenant_id: str) -> Optional[Tenant]:
         """获取租户"""
-        return self._tenants.get(tenant_id)
+        return self._tenants.get(tenant_id)  # 单键读原子（GIL）
     
     def assign_role(self, user_id: str, tenant_id: str, role: RoleType):
         """分配角色"""
-        if tenant_id not in self._tenants:
-            raise ValueError(f"租户不存在: {tenant_id}")
+        with self._lock:
+            if tenant_id not in self._tenants:
+                raise ValueError(f"租户不存在: {tenant_id}")
+
+            # setdefault 消除「检查-懒创建」TOCTOU；existing 判断 + 修改/append
+            # 同一锁内原子——并发对同 user 分配不会重复 append 丢更新
+            assignments = self._role_assignments.setdefault(tenant_id, [])
+            existing = [a for a in assignments if a.user_id == user_id]
+            if existing:
+                existing[0].role = role
+                existing[0].assigned_at = datetime.now().isoformat()
+            else:
+                assignments.append(RoleAssignment(
+                    user_id=user_id,
+                    tenant_id=tenant_id,
+                    role=role
+                ))
         
-        if tenant_id not in self._role_assignments:
-            self._role_assignments[tenant_id] = []
-        
-        existing = [a for a in self._role_assignments[tenant_id] if a.user_id == user_id]
-        if existing:
-            existing[0].role = role
-            existing[0].assigned_at = datetime.now().isoformat()
-        else:
-            self._role_assignments[tenant_id].append(RoleAssignment(
-                user_id=user_id,
-                tenant_id=tenant_id,
-                role=role
-            ))
-        
-        self._save_data()
+        self._save_data()  # 锁外 I/O（持锁纪律）
     
     def get_user_roles(self, user_id: str, tenant_id: str) -> List[RoleType]:
         """获取用户在租户中的角色"""
-        roles = []
-        
-        current_id = tenant_id
-        while current_id:
-            assignments = self._role_assignments.get(current_id, [])
-            for a in assignments:
-                if a.user_id == user_id:
-                    roles.append(a.role)
-                    break
-            
-            tenant = self._tenants.get(current_id)
-            current_id = tenant.parent_id if tenant else ""
+        with self._lock:
+            # 锁内快照遍历：与 delete_tenant 的并发删除互斥（读链一致性）
+            roles = []
+            current_id = tenant_id
+            while current_id:
+                assignments = self._role_assignments.get(current_id, [])
+                for a in assignments:
+                    if a.user_id == user_id:
+                        roles.append(a.role)
+                        break
+
+                tenant = self._tenants.get(current_id)
+                current_id = tenant.parent_id if tenant else ""
         
         return roles
     
@@ -242,30 +256,34 @@ class TenantManager:
     
     def get_user_tenants(self, user_id: str, tenant_type: TenantType = None) -> List[Tenant]:
         """获取用户有权访问的租户"""
-        tenants = []
-        
-        for tenant_id, assignments in self._role_assignments.items():
-            for a in assignments:
-                if a.user_id == user_id:
-                    tenant = self._tenants.get(tenant_id)
-                    if tenant:
-                        if not tenant_type or tenant.type == tenant_type:
-                            tenants.append(tenant)
+        with self._lock:
+            # 锁内遍历+收集：与 delete_tenant 的 del 互斥（避免迭代中结构变更）
+            tenants = []
+            for tenant_id, assignments in self._role_assignments.items():
+                for a in assignments:
+                    if a.user_id == user_id:
+                        tenant = self._tenants.get(tenant_id)
+                        if tenant:
+                            if not tenant_type or tenant.type == tenant_type:
+                                tenants.append(tenant)
         
         return tenants
     
     def delete_tenant(self, tenant_id: str):
         """删除租户"""
-        if tenant_id in self._tenants:
-            del self._tenants[tenant_id]
-            if tenant_id in self._role_assignments:
-                del self._role_assignments[tenant_id]
-            
-            child_ids = [t.id for t in self._tenants.values() if t.parent_id == tenant_id]
-            for child_id in child_ids:
-                self.delete_tenant(child_id)
-            
-            self._save_data()
+        with self._lock:
+            # 锁内递归删除（RLock 重入）：del 与并发遍历互斥（不抛 RuntimeError），
+            # 递归子租户整体原子
+            if tenant_id in self._tenants:
+                del self._tenants[tenant_id]
+                if tenant_id in self._role_assignments:
+                    del self._role_assignments[tenant_id]
+
+                child_ids = [t.id for t in self._tenants.values() if t.parent_id == tenant_id]
+                for child_id in child_ids:
+                    self.delete_tenant(child_id)
+        
+        self._save_data()  # 锁外 I/O（持锁纪律）
 
 
 class TenantConfigManager:
@@ -273,19 +291,23 @@ class TenantConfigManager:
     
     def __init__(self):
         self._configs: Dict[str, Dict] = {}
+        # Why RLock 保护配置表（模块级单例，HTTP 路由并发）：set_config 的懒创建
+        # 与 delete_config 的「检查-删除」为读-改-写序列（并发丢配置/KeyError），
+        # get_config/get_all_configs 递归查询自身需重入。锁内仅内存 dict 变更。
+        self._lock = threading.RLock()
     
     def set_config(self, tenant_id: str, key: str, value: Any):
         """设置配置"""
-        if tenant_id not in self._configs:
-            self._configs[tenant_id] = {}
-        self._configs[tenant_id][key] = value
+        with self._lock:
+            config = self._configs.setdefault(tenant_id, {})  # TOCTOU 消除
+            config[key] = value
     
     def get_config(self, tenant_id: str, key: str, default: Any = None) -> Any:
         """获取配置（支持继承）"""
-        config = self._configs.get(tenant_id, {})
-        
-        if key in config:
-            return config[key]
+        with self._lock:  # 锁内读链（本表 + 父级继承链），RLock 递归重入
+            config = self._configs.get(tenant_id, {})
+            if key in config:
+                return config[key]
         
         tenant = tenant_manager.get_tenant(tenant_id)
         if tenant and tenant.parent_id:
@@ -303,15 +325,17 @@ class TenantConfigManager:
             parent_config = self.get_all_configs(tenant.parent_id)
             config.update(parent_config)
         
-        if tenant_id in self._configs:
-            config.update(self._configs[tenant_id])
+        with self._lock:
+            if tenant_id in self._configs:
+                config.update(self._configs[tenant_id])
         
         return config
     
     def delete_config(self, tenant_id: str, key: str):
         """删除配置"""
-        if tenant_id in self._configs and key in self._configs[tenant_id]:
-            del self._configs[tenant_id][key]
+        with self._lock:
+            if tenant_id in self._configs and key in self._configs[tenant_id]:
+                del self._configs[tenant_id][key]
 
 
 class BillingManager:
@@ -319,6 +343,11 @@ class BillingManager:
     
     def __init__(self):
         self._usage_records: List[Dict] = []
+        # Why RLock 保护用量记录（模块级单例，计费为真实多线程路径）：
+        # record_usage 的 append+截断读-改-写与 get_usage 遍历并发有结构风险，
+        # check_limit 的「读总量+amount」读-改-写并发超限；check_limit 调
+        # get_usage（重入）。锁内仅内存列表遍历/变更，无 I/O。
+        self._lock = threading.RLock()
         self._plans: Dict[str, Dict] = {
             "free": {
                 "name": "免费版",
@@ -346,10 +375,11 @@ class BillingManager:
             "timestamp": datetime.now().isoformat(),
             "trace_id": get_trace_id(),
         }
-        self._usage_records.append(record)
-        
-        if len(self._usage_records) > 100000:
-            self._usage_records = self._usage_records[-100000:]
+        with self._lock:
+            # append + 截断同一锁内原子（并发不丢记录、不越界）
+            self._usage_records.append(record)
+            if len(self._usage_records) > 100000:
+                self._usage_records = self._usage_records[-100000:]
     
     def get_usage(self, tenant_id: str, usage_type: str = None, period: str = "month") -> Dict:
         """获取用量统计"""
@@ -362,14 +392,14 @@ class BillingManager:
         else:
             start_time = now - timedelta(days=1)
         
-        filtered = [
-            r for r in self._usage_records
-            if r["tenant_id"] == tenant_id
-            and datetime.fromisoformat(r["timestamp"]) >= start_time
-            and (not usage_type or r["usage_type"] == usage_type)
-        ]
-        
-        total = sum(r["amount"] for r in filtered)
+        with self._lock:  # 锁内遍历：与 record_usage 并发互斥（快照一致性）
+            filtered = [
+                r for r in self._usage_records
+                if r["tenant_id"] == tenant_id
+                and datetime.fromisoformat(r["timestamp"]) >= start_time
+                and (not usage_type or r["usage_type"] == usage_type)
+            ]
+            total = sum(r["amount"] for r in filtered)
         
         return {
             "tenant_id": tenant_id,
