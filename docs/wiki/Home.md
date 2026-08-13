@@ -80,6 +80,7 @@ agent 内部保持零安装依赖，外部项目通过 `pip install light-loader
 - 安全配置：[security_config_wiki.md](security_config_wiki.md)
 - CI 安全扫描：[ci_security_scan_wiki.md](ci_security_scan_wiki.md)
 - Release 流程：[release_workflow_wiki.md](release_workflow_wiki.md)
+- 工作区维护规范：[workspace_maintenance_wiki.md](workspace_maintenance_wiki.md)
 - 仓库状态快照：[REPOSITORY_SNAPSHOT_REPORT.md](REPOSITORY_SNAPSHOT_REPORT.md)
 - BM25 相关：[BM25_OPTIMIZATION_WIKI.md](BM25_OPTIMIZATION_WIKI.md) ·
   [BM25_TECHNICAL_RETROSPECTIVE.md](BM25_TECHNICAL_RETROSPECTIVE.md) ·
