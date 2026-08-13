@@ -6,6 +6,44 @@
 
 ---
 
+## [CHG] - 2026-08-13: 中危 12 处 + 低危 7 处并发风险收口（回调快照遍历 / 单例 DCL / 统计计数加锁 / 锁外 logger 与 I/O）+ 并发测试 ✅
+
+**影响模块**: `agent/monitoring/performance.py`, `business_metrics.py`, `alert_evaluator.py`, `alert_manager.py`, `chaos_injector.py`, `observability_optimizations.py`, `self_healer.py`, `loki.py`, `utils.py`, `agent/log_system/optimized_storage.py`, `safe_logger.py`, `storage.py`, `introspection.py`, `agent/logging_utils.py`, `agent/utils/decision_logger.py`, `index_manager.py`, `agent/server_routes/routes_logging.py`, `agent/llm_response_cache.py`
+**关联提交**: `ed53d567`（fix: 修复中危/低危并发风险（回调快照遍历/单例DCL/统计计数加锁/锁外logger与I/O））
+
+### 背景
+
+上轮扫描遗留的中危 12 处 + 低危 7 处全部收口。中危集中于共享容器遍历、统计计数自增、懒加载单例 fallback；低危集中于锁内 logger、锁内文件 I/O、共享可变引用。
+
+### Fixed — 中危（12 处）
+
+- **`performance.py`**：`RuntimeSampler` 回调列表无锁 append/遍历 → 回调 append 持锁、`_sample_loop` 锁内快照锁外遍历；`PerformanceAlertManager` 新增独立锁保护 `_last_alert_time`；`start` 检查-置位原子化
+- **`business_metrics.py`**：锁外遍历共享 defaultdict（并发增 key → RuntimeError）→ 无锁入口 `get_metric_by_name`/`export_prometheus` 持锁访问
+- **`alert_evaluator.py`**：`get_stats` 无锁快照 → 锁内快照 `dict(self._stats)`；单例 fallback 双检锁；`start` 原子化
+- **`optimized_storage.py`**：`_stats` 多线程无锁自增 → 独立 `_stats_lock`；`get_optimized_storage` 单例 DCL；`initialize` 双检
+- **8 处模块级单例 fallback DCL**（optimized_storage / safe_logger / alert_evaluator / alert_manager / loki / self_healer / index_manager / routes_logging）：统一"模块级锁 + 双检"，消除并发首调 TOCTOU（safe_logger 双实例曾泄漏 FileHandler 句柄）
+- **`routes_logging.py`**：`_ALERT_RULES_CACHE` 无锁加载/保存 → `_alert_rules_lock` + 临时文件 + `os.replace` 原子替换
+- **`chaos_injector.py`**：锁内大内存分配 + 线程 join → 锁外 join 与分配，锁内仅配置更新
+- **`observability_optimizations.py`**：批量处理器无锁启动（可双后台线程）+ 采样适配锁外读 → `_init_lock` 双检、`start` 原子化、elapsed 判断移入锁内
+- **各 `start/initialize` 6 处**（performance / alert_evaluator / alert_manager / observability / optimized_storage / storage）：check-then-act 改为锁内"检查-置位"
+
+### Fixed — 低危（7 处）
+
+- **`monitoring/utils.py`**：`SingletonMeta` 锁自身懒创建无同步 → 类属性预建锁
+- **`log_system/safe_logger.py` + `logging_utils.py`**：`record_iteration`/`check_state` 锁内 logger → 锁内收集告警信息、锁外记录
+- **`log_system/introspection.py`**：`_get_llm_service` 懒加载无锁 → 实例锁双检
+- **`monitoring/self_healer.py`**：自愈回调在 action 锁内 → 锁内构建 `SelfHealRecord`、锁外触发回调
+- **`utils/decision_logger.py`**：共享可变 `current_log` 无锁 → 独立 `_log_lock` 保护引用读写
+- **`log_system/optimized_storage.py`**：`ShardedLogStorage` 锁内 `os.makedirs`/`writer.close()` → 创建与关闭移出锁外，锁内双检防重复创建
+- **`llm_response_cache.py`**：`get`/`put`/`clear`/`end_save` 锁内 logger → 锁内仅状态变更、锁外统一记录
+
+### 验证结果
+
+- 低危修复回归 290/290 通过（llmcache / safe_logger / self_healer / introspection / optimized_storage / audit_safety / monitoring_utils / decision_logger / 全部并发测试）
+- 上轮中危回归 499/499 + 并发全量 180/180 保持全绿，无回退
+
+---
+
 ## [CHG] - 2026-08-13: 批量修复低危并发风险（懒加载单例双检锁 + 遍历竞态 D/E）+ 并发测试 ✅
 
 **影响模块**: `agent/model_router/adapters.py`, `agent/memory_optimized.py`, `agent/utils/sensitive_data_filter.py`, `agent/api_gateway.py`, `agent/log_system/collectors.py`, `agent/log_system/dashboard.py`, `agent/monitoring/resource_monitor.py`, `agent/server_routes/tracing_middleware.py`, `agent/lazy_loader_async.py`
