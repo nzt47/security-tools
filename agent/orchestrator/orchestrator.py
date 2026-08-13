@@ -1873,6 +1873,8 @@ class Orchestrator:
 
         except Exception as e:
             elapsed_ms = (time.perf_counter() - _ts_sem_pf) * 1000
+            # TD-2: 语义层异常独立计层（与 semantic 互斥；与后续 llm 埋点不同阶段，不双计）
+            _record_intent_layer("semantic_failed")
             # 【不易】语义层任何异常都降级到 LLM，不阻断主链路
             logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.error', 'trace_id_ctx': trace_id, 'message': '[语义层] 异常降级到 LLM (%.2fms): %s' % (elapsed_ms, e)}))
             # 任务6: 统一层日志（语义层异常 → WARNING）

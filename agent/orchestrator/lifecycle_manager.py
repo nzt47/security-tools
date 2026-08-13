@@ -473,33 +473,52 @@ class LifecycleManager:
         logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.ok', 'message': '[ok] 安全监控器已激活'}))
 
     def _initialize_planning_engine(self):
-        """初始化规划引擎（可选）"""
-        if _PLANNING_AVAILABLE:
-            planning_cfg = self._config.get("planning", {})
-            self._planning_tools = ToolRegistry()
-            self._register_planning_tools()
+        """初始化规划引擎（可选）
 
-            self._planner = PlanningCore(
-                llm_service=self._llm,
-                tool_registry=self._planning_tools,
-                memory_manager=self._memory,
-                config=planning_cfg,
-            )
-
-            self._react_loop = ReActLoop(
-                planner=self._planner,
-                reflector=self._planner.reflector,
-                max_iterations=planning_cfg.get("max_iterations", 10),
-            )
-
-            self._planning_enabled = planning_cfg.get("enabled", True)
-            self._complexity_threshold = planning_cfg.get("complexity_threshold", 0.5)
-            logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_planning_engine.planningcore', 'message': '[ok] 规划引擎（PlanningCore）已激活'}))
-        else:
+        D6/D7 灰度开关（PLANNING_ENABLED 环境变量覆盖 config，三重保险）：
+          1. 模块不可用（_PLANNING_AVAILABLE=False）→ 强制禁用，复杂度阈值固定 1.0
+          2. PLANNING_ENABLED=true/1/yes → 强制启用；false/0/no → 强制禁用；
+             非法值/未设置 → 回退 config.planning.enabled（不误伤配置）
+          3. complexity_threshold 从 config 参数化下发（D6）
+        """
+        if not _PLANNING_AVAILABLE:
+            # 模块不可用：强制禁用（不可信路径不启用），阈值固定默认 1.0
             self._planner = None
             self._react_loop = None
             self._planning_enabled = False
-            self._complexity_threshold = 0.5
+            self._complexity_threshold = 1.0
+            logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_planning_engine.unavailable', 'message': '[ok] 规划引擎不可用，强制禁用（阈值默认 1.0）'}))
+            return
+
+        planning_cfg = self._config.get("planning", {})
+        self._planning_tools = ToolRegistry()
+        self._register_planning_tools()
+
+        self._planner = PlanningCore(
+            llm_service=self._llm,
+            tool_registry=self._planning_tools,
+            memory_manager=self._memory,
+            config=planning_cfg,
+        )
+
+        self._react_loop = ReActLoop(
+            planner=self._planner,
+            reflector=self._planner.reflector,
+            max_iterations=planning_cfg.get("max_iterations", 10),
+        )
+
+        # PLANNING_ENABLED 环境变量覆盖（true/1/yes 启用，false/0/no 禁用，其它回退 config）
+        env_val = os.environ.get("PLANNING_ENABLED", "").strip().lower()
+        if env_val in ("true", "1", "yes"):
+            cfg_enabled = True
+        elif env_val in ("false", "0", "no"):
+            cfg_enabled = False
+        else:
+            cfg_enabled = planning_cfg.get("enabled", True)
+
+        self._planning_enabled = cfg_enabled
+        self._complexity_threshold = planning_cfg.get("complexity_threshold", 1.0)
+        logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_planning_engine.planningcore', 'message': '[ok] 规划引擎（PlanningCore）已激活', 'planning_enabled': cfg_enabled, 'complexity_threshold': self._complexity_threshold}))
 
     def _initialize_optional_systems(self):
         """初始化可选系统：向量记忆、错误上报、语音、OCR、快照"""

@@ -48,6 +48,13 @@ _CONF_LOW = "LOW"
 class TestShouldReject:
     """_should_reject 拒识判定测试"""
 
+    @pytest.fixture(autouse=True)
+    def _enable_reject_for_judge(self):
+        """config.yaml 的 reject.enabled=false（有意运维变更，用于让正常请求不被拒识拦截）
+        会使判定用例短路到 reject_disabled，此处强制环境变量启用拒识，聚焦判定逻辑本身。"""
+        with reject_env_override(ORCHESTRATOR_REJECT_ENABLED="true"):
+            yield
+
     def test_semantic_miss_low_confidence_拒识(self):
         """语义层 None + confidence LOW → 拒识（核心拒识场景）"""
         orch = _make_orchestrator()
@@ -122,10 +129,20 @@ _REJECT_ENV_KEYS = [
 class TestLoadRejectConfig:
     """_load_reject_config 配置加载测试（优先级: 环境变量 > config.yaml > 硬编码默认值）"""
 
-    def test_config_yaml_加载默认值(self):
-        """config.yaml 存在时返回其配置值（默认 0.3/0.5/enabled=true）"""
+    def test_config_yaml_加载默认值(self, tmp_path):
+        """config.yaml 存在时返回其配置值（默认 0.3/0.5/enabled=true）
+
+        【简易】不耦合仓库 config.yaml 的运维值（reject.enabled 可能被有意关闭），
+        用 tmp_path 临时配置隔离验证加载逻辑本身。
+        """
+        cfg_file = tmp_path / "config.yaml"
+        cfg_file.write_text(
+            "reject:\n  enabled: true\n  threshold: 0.3\n  llm_min_confidence: 0.5\n",
+            encoding="utf-8",
+        )
         # 清除所有 reject 环境变量，让 config.yaml 生效
-        with reject_env_override(_clear_all=True):
+        with reject_env_override(_clear_all=True), \
+             patch.object(Orchestrator, "_SEM_CONFIG_PATH", cfg_file):
             cfg = Orchestrator._load_reject_config()
         # config.yaml 中 reject.threshold=0.3, llm_min_confidence=0.5, enabled=true
         assert cfg["enabled"] is True
@@ -328,6 +345,12 @@ class TestAcceptanceCriteria:
     - 提取判定函数：_judge_llm_confidence（AC-10,11,13）
     - 代码契约验证：inspect 检查 process 源代码（AC-8,9,14~19,20,21）
     """
+
+    @pytest.fixture(autouse=True)
+    def _enable_reject_for_judge(self):
+        """与 TestShouldReject 同款：强制环境变量启用拒识，隔离 config.yaml 运维值干扰"""
+        with reject_env_override(ORCHESTRATOR_REJECT_ENABLED="true"):
+            yield
 
     # ── AC-1 ~ AC-9: 拒识机制验收 ──
 
