@@ -20,6 +20,7 @@
 
 import os
 import sys
+import threading
 from unittest.mock import patch, MagicMock, PropertyMock
 
 import pytest
@@ -92,6 +93,10 @@ def _make_mock_orchestrator():
     # 基础状态
     orch._running = True
     orch._interaction_count = 0
+    # 【不易】process() L334 `with self._interaction_lock:` 依赖此属性；生产代码
+    # 由宿主 LifecycleManager/V2 optimized_init 创建，本工厂用 __new__ 绕过
+    # __init__ 必须手动补齐，否则直接实例化时 process() 抛 AttributeError。
+    orch._interaction_lock = threading.Lock()
     orch._session_id = "test_session"
     orch._last_was_template = False
     orch._last_context_warning = None
@@ -691,26 +696,12 @@ def test_并发热更_配置热更不影响正在处理的请求(orch, monkeypat
     lock = threading.Lock()
 
     def worker_process():
-        """模拟并发 process() 请求"""
+        """模拟并发 process() 请求（patch 由主线程统一管理，见下方 with）"""
         try:
-            with patch("agent.state_manager.get_skills_mgmt_service", return_value=mock_svc), \
-                 patch("agent.response_workflows.IntentRouter.classify",
-                       return_value=("unknown", _ConfidenceLow())), \
-                 patch("agent.response_workflows.ResponseTemplates.for_intent",
-                       return_value=None), \
-                 patch("agent.orchestrator.message_handler.MessageHandler.is_follow_up",
-                       return_value=False), \
-                 patch("agent.orchestrator.message_handler.MessageHandler.detect_dissatisfaction",
-                       return_value=False), \
-                 patch("agent.orchestrator.message_handler.MessageHandler.extract_keywords",
-                       return_value=[]), \
-                 patch("agent.orchestrator.dialog_state.get_dialog_state",
-                       return_value=MagicMock(last_keywords=None,
-                                               resolve=MagicMock(return_value=None))):
-                for _ in range(50):
-                    result = orch.process("帮我写一首关于春天的诗")
-                    with lock:
-                        process_count[0] += 1
+            for _ in range(50):
+                orch.process("帮我写一首关于春天的诗")
+                with lock:
+                    process_count[0] += 1
         except Exception as e:
             with lock:
                 errors.append(e)
@@ -726,13 +717,30 @@ def test_并发热更_配置热更不影响正在处理的请求(orch, monkeypat
             with lock:
                 errors.append(e)
 
-    # 启动 3 个 process 线程 + 1 个热更线程
-    threads = [threading.Thread(target=worker_process) for _ in range(3)]
-    threads.append(threading.Thread(target=worker_hot_reload))
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
+    # 【不易】patch 必须在主线程 start/stop：子线程内 `with patch(...)` 的
+    # start/stop 竞态会把 IntentRouter.classify 泄漏为 MagicMock，导致后续
+    # 测试 classify 恒返回 unknown（response_workflows 17 失败根因）。
+    with patch("agent.state_manager.get_skills_mgmt_service", return_value=mock_svc), \
+         patch("agent.response_workflows.IntentRouter.classify",
+               return_value=("unknown", _ConfidenceLow())), \
+         patch("agent.response_workflows.ResponseTemplates.for_intent",
+               return_value=None), \
+         patch("agent.orchestrator.message_handler.MessageHandler.is_follow_up",
+               return_value=False), \
+         patch("agent.orchestrator.message_handler.MessageHandler.detect_dissatisfaction",
+               return_value=False), \
+         patch("agent.orchestrator.message_handler.MessageHandler.extract_keywords",
+               return_value=[]), \
+         patch("agent.orchestrator.dialog_state.get_dialog_state",
+               return_value=MagicMock(last_keywords=None,
+                                       resolve=MagicMock(return_value=None))):
+        # 启动 3 个 process 线程 + 1 个热更线程
+        threads = [threading.Thread(target=worker_process) for _ in range(3)]
+        threads.append(threading.Thread(target=worker_hot_reload))
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
 
     # 验证无异常
     assert len(errors) == 0, "并发热更产生异常: %s" % errors
@@ -766,7 +774,12 @@ def test_高并发_频繁热更无线程竞争(orch, monkeypatch):
     import random
     import time as _time
     import logging as _logging
-    _logging.disable(_logging.WARNING)
+    # 【不易】不能用 logging.disable()：它是进程级全局开关（Manager.disable），
+    # 若本测试断言失败（如线程竞争异常）走不到末尾的恢复调用，会泄漏屏蔽
+    # 后续所有 < WARNING 日志 → perf_monitor 等依赖 INFO 级 filter 链的测试
+    # 静默失败（filter 永不触发，2026-08-13 全量 7 failed 根因）。monkeypatch
+    # setattr 在测试结束（无论成败）自动恢复属性原值，等价且防泄漏。
+    monkeypatch.setattr(_logging.root.manager, "disable", _logging.WARNING)
 
     Orchestrator._SEM_API_OVERRIDE = {"enabled": True, "min_score": 0.3}
     Orchestrator._clear_semantic_config_cache()
@@ -782,29 +795,15 @@ def test_高并发_频繁热更无线程竞争(orch, monkeypatch):
 
     def worker_process():
         try:
-            with patch("agent.state_manager.get_skills_mgmt_service", return_value=mock_svc), \
-                 patch("agent.response_workflows.IntentRouter.classify",
-                       return_value=("unknown", _ConfidenceLow())), \
-                 patch("agent.response_workflows.ResponseTemplates.for_intent",
-                       return_value=None), \
-                 patch("agent.orchestrator.message_handler.MessageHandler.is_follow_up",
-                       return_value=False), \
-                 patch("agent.orchestrator.message_handler.MessageHandler.detect_dissatisfaction",
-                       return_value=False), \
-                 patch("agent.orchestrator.message_handler.MessageHandler.extract_keywords",
-                       return_value=[]), \
-                 patch("agent.orchestrator.dialog_state.get_dialog_state",
-                       return_value=MagicMock(last_keywords=None,
-                                               resolve=MagicMock(return_value=None))):
-                for _ in range(50):
-                    orch.process("帮我写一首关于春天的诗")
-                    # 检查配置一致性（min_score 应始终在 [0,1] 范围）
-                    cfg = Orchestrator._load_semantic_layer_config()
-                    if not (0.0 <= cfg["min_score"] <= 1.0):
-                        with lock:
-                            config_violations.append(cfg["min_score"])
+            for _ in range(50):
+                orch.process("帮我写一首关于春天的诗")
+                # 检查配置一致性（min_score 应始终在 [0,1] 范围）
+                cfg = Orchestrator._load_semantic_layer_config()
+                if not (0.0 <= cfg["min_score"] <= 1.0):
                     with lock:
-                        process_count[0] += 1
+                        config_violations.append(cfg["min_score"])
+                with lock:
+                    process_count[0] += 1
         except Exception as e:
             with lock:
                 errors.append(e)
@@ -821,15 +820,31 @@ def test_高并发_频繁热更无线程竞争(orch, monkeypatch):
             with lock:
                 errors.append(e)
 
-    # 5 process 线程 + 5 热更线程 = 10 线程并发
-    threads = [threading.Thread(target=worker_process) for _ in range(5)]
-    threads += [threading.Thread(target=worker_hot_reload) for _ in range(5)]
-    t_start = _time.perf_counter()
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
-    t_elapsed = _time.perf_counter() - t_start
+    # 【不易】patch 必须在主线程 start/stop：子线程内 `with patch(...)` 的
+    # start/stop 竞态会把 IntentRouter.classify 泄漏为 MagicMock（同 test_并发热更）。
+    with patch("agent.state_manager.get_skills_mgmt_service", return_value=mock_svc), \
+         patch("agent.response_workflows.IntentRouter.classify",
+               return_value=("unknown", _ConfidenceLow())), \
+         patch("agent.response_workflows.ResponseTemplates.for_intent",
+               return_value=None), \
+         patch("agent.orchestrator.message_handler.MessageHandler.is_follow_up",
+               return_value=False), \
+         patch("agent.orchestrator.message_handler.MessageHandler.detect_dissatisfaction",
+               return_value=False), \
+         patch("agent.orchestrator.message_handler.MessageHandler.extract_keywords",
+               return_value=[]), \
+         patch("agent.orchestrator.dialog_state.get_dialog_state",
+               return_value=MagicMock(last_keywords=None,
+                                       resolve=MagicMock(return_value=None))):
+        # 5 process 线程 + 5 热更线程 = 10 线程并发
+        threads = [threading.Thread(target=worker_process) for _ in range(5)]
+        threads += [threading.Thread(target=worker_hot_reload) for _ in range(5)]
+        t_start = _time.perf_counter()
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        t_elapsed = _time.perf_counter() - t_start
 
     print("\n" + "=" * 60)
     print(" 高并发测试: 频繁热更 + 并发 process")
@@ -849,4 +864,4 @@ def test_高并发_频繁热更无线程竞争(orch, monkeypatch):
 
     Orchestrator._SEM_API_OVERRIDE = None
     Orchestrator._clear_semantic_config_cache()
-    _logging.disable(_logging.NOTSET)
+    # 注：manager.disable 由 monkeypatch 自动恢复（见上方 setattr 注释），无需手动复位
