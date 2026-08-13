@@ -289,7 +289,12 @@ class TestLineageEvalResult:
             "success_rate", "latency_norm", "satisfaction"}
 
     def test_no_commit_no_eval_result_record(self, tmp_path):
-        """未提交（真实评估无提升）→ 不产生谱系记录"""
+        """未提交（真实评估无提升）→ 写 rejected 谱系记录
+
+        Why: EVO-T3 验收『提交/拒绝/跳过均写谱系』——拒绝决策仍须落库
+        （decision=rejected），保证审计链完整；修复前因谱系写入静默失败
+        该路径恰好缺失，现已对齐新语义。
+        """
         evolver, _, archive = build_stack(tmp_path, threshold=0.05)
         evaluator = _SplitEvaluator(
             base=_result(success_rate=0.5, latency_ms=2000, satisfaction=0.5),
@@ -297,7 +302,10 @@ class TestLineageEvalResult:
         )
         r = evolver.evolve_once(_CANDIDATE_ID, strategies=_STRATEGIES, evaluator=evaluator)
         assert r.committed is False
-        assert archive.get_lineage(_CANDIDATE_ID) == []
+        assert r.decision == "rejected"
+        chain = archive.get_lineage(_CANDIDATE_ID)
+        assert chain, "拒绝决策应写入谱系（EVO-T3『拒绝也写谱系』）"
+        assert chain[-1].decision == "rejected"
 
 
 # ════════════════════════════════════════════════════════════
