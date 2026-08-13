@@ -136,37 +136,45 @@ class LLMResponseCache:
         start_time = time.perf_counter()
         prompt_hash = self._hash_prompt(prompt)
 
+        # [2026-08-13 并发审计] logger 调用移出锁外：锁内仅做状态变更，锁外统一记录
+        log_level = None
+        log_message = None
+        result = None
+
         with self._lock:
             # 先检查是否在已知集合中（区分"不存在"和"已过期"）
             if prompt_hash not in self._known_hashes:
                 self.total_misses += 1
-                logger.debug(f"[LLMCache] 未命中: {len(prompt)} chars")
-                return None
+                log_level = "debug"
+                log_message = f"[LLMCache] 未命中: {len(prompt)} chars"
+            else:
+                # 从 MultiLevelCache 获取（内部处理过期检查）
+                result = self._cache.get(prompt_hash)
+                if result is None:
+                    # 键在 _known_hashes 中但缓存返回 None → 已过期
+                    self._known_hashes.discard(prompt_hash)
+                    self.total_misses += 1
+                    self.total_evictions += 1
+                    log_level = "debug"
+                    log_message = f"[LLMCache] 已过期: {len(prompt)} chars"
+                else:
+                    # 命中：更新按类型统计
+                    self.total_hits += 1
+                    hit_type = self._classify_prompt(prompt)
+                    self.hits_by_type[hit_type] = self.hits_by_type.get(hit_type, 0) + 1
 
-            # 从 MultiLevelCache 获取（内部处理过期检查）
-            result = self._cache.get(prompt_hash)
-            if result is None:
-                # 键在 _known_hashes 中但缓存返回 None → 已过期
-                self._known_hashes.discard(prompt_hash)
-                self.total_misses += 1
-                self.total_evictions += 1
-                logger.debug(f"[LLMCache] 已过期: {len(prompt)} chars")
-                return None
+                    elapsed_ms = (time.perf_counter() - start_time) * 1000
+                    self.total_hit_time_ms += elapsed_ms
 
-            # 命中：更新按类型统计
-            self.total_hits += 1
-            hit_type = self._classify_prompt(prompt)
-            self.hits_by_type[hit_type] = self.hits_by_type.get(hit_type, 0) + 1
+                    log_level = "info"
+                    log_message = (
+                        f"[LLMCache] ✅ 命中: type={hit_type}, "
+                        f"time={elapsed_ms:.2f}ms"
+                    )
 
-            elapsed_ms = (time.perf_counter() - start_time) * 1000
-            self.total_hit_time_ms += elapsed_ms
-
-            logger.info(
-                f"[LLMCache] ✅ 命中: type={hit_type}, "
-                f"time={elapsed_ms:.2f}ms"
-            )
-
-            return result
+        if log_level is not None:
+            getattr(logger, log_level)(log_message)
+        return result
 
     def put(self, prompt: str, response: str, ttl_seconds: Optional[int] = None):
         """
@@ -180,6 +188,9 @@ class LLMResponseCache:
         start_time = time.perf_counter()
         prompt_hash = self._hash_prompt(prompt)
         ttl = ttl_seconds if ttl_seconds is not None else self.default_ttl
+
+        # [2026-08-13 并发审计] logger 调用移出锁外：锁内仅做状态变更，锁外统一记录
+        log_message = None
 
         with self._lock:
             was_known = prompt_hash in self._known_hashes
@@ -204,12 +215,14 @@ class LLMResponseCache:
             elapsed_ms = (time.perf_counter() - start_time) * 1000
             prompt_type = self._classify_prompt(prompt)
 
-            logger.info(
+            log_message = (
                 f"[LLMCache] 💾 保存: type={prompt_type}, "
                 f"size={len(response)} chars, "
                 f"ttl={ttl}s, "
                 f"time={elapsed_ms:.2f}ms"
             )
+
+        logger.info(log_message)
 
     def get_stats(self) -> Dict[str, Any]:
         """获取缓存统计信息"""
@@ -232,10 +245,11 @@ class LLMResponseCache:
 
     def clear(self):
         """清空缓存"""
+        # [2026-08-13 并发审计] logger 移出锁外
         with self._lock:
             self._cache.clear()
             self._known_hashes.clear()
-            logger.info("[LLMCache] 🗑️ 缓存已清空")
+        logger.info("[LLMCache] 🗑️ 缓存已清空")
 
 
 class AsyncSaveMonitor:
@@ -301,36 +315,41 @@ class AsyncSaveMonitor:
             success: 是否成功
             error: 错误信息（如果失败）
         """
+        # [2026-08-13 并发审计] logger 移出锁外：锁内仅做状态变更
+        log_level = None
+        log_message = None
         with self._lock:
             # 使用 OrderedDict 的直接键查找，O(1) 复杂度
             if task_id not in self.records:
-                logger.warning(f"[AsyncSave] 任务未找到: {task_id}")
-                return
-            
-            record = self.records[task_id]
-            record.end_time = time.perf_counter()
-            record.elapsed_ms = (record.end_time - record.start_time) * 1000
-            record.success = success
-            record.error = error
-
-            self.total_saves += 1
-            if success:
-                self.successful_saves += 1
-                self.total_save_time_ms += record.elapsed_ms
+                log_level = "warning"
+                log_message = f"[AsyncSave] 任务未找到: {task_id}"
             else:
-                self.failed_saves += 1
+                record = self.records[task_id]
+                record.end_time = time.perf_counter()
+                record.elapsed_ms = (record.end_time - record.start_time) * 1000
+                record.success = success
+                record.error = error
 
-            if success:
-                logger.info(
-                    f"[AsyncSave] ✅ 完成: {task_id}, "
-                    f"time={record.elapsed_ms:.2f}ms"
-                )
-            else:
-                logger.error(
-                    f"[AsyncSave] ❌ 失败: {task_id}, "
-                    f"error={error}, "
-                    f"time={record.elapsed_ms:.2f}ms"
-                )
+                self.total_saves += 1
+                if success:
+                    self.successful_saves += 1
+                    self.total_save_time_ms += record.elapsed_ms
+                    log_level = "info"
+                    log_message = (
+                        f"[AsyncSave] ✅ 完成: {task_id}, "
+                        f"time={record.elapsed_ms:.2f}ms"
+                    )
+                else:
+                    self.failed_saves += 1
+                    log_level = "error"
+                    log_message = (
+                        f"[AsyncSave] ❌ 失败: {task_id}, "
+                        f"error={error}, "
+                        f"time={record.elapsed_ms:.2f}ms"
+                    )
+
+        if log_message is not None:
+            getattr(logger, log_level)(log_message)
 
     def get_stats(self) -> Dict[str, Any]:
         """获取保存统计信息"""

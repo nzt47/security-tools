@@ -1276,7 +1276,11 @@ class BusinessMetricsCollector:
         definition = BUSINESS_METRICS_DEFINITIONS.get(metric_name)
         if not definition:
             return None
-        
+
+        # [2026-08-13 并发审计] 无锁入口需持锁读取：防遍历时其他线程
+        # 并发增删 defaultdict key 抛 RuntimeError
+        with self._lock:
+            data = self._get_metric_data(metric_name, definition.metric_type, 0)
         return {
             "definition": {
                 "name": definition.name,
@@ -1287,7 +1291,7 @@ class BusinessMetricsCollector:
                 "category": definition.category,
                 "business_value": definition.business_value,
             },
-            "data": self._get_metric_data(metric_name, definition.metric_type, 0),
+            "data": data,
         }
     
     def reset(self):
@@ -1307,38 +1311,41 @@ class BusinessMetricsCollector:
         """
         lines = []
         
-        for name, definition in BUSINESS_METRICS_DEFINITIONS.items():
-            metric_name = name.replace('.', '_')
-            lines.append(f"# HELP {metric_name} {definition.description}")
-            lines.append(f"# TYPE {metric_name} {definition.metric_type}")
-            
-            if definition.metric_type == "counter":
-                if name in self._counters:
-                    for label_key, value in self._counters[name].items():
-                        labels_dict = parse_label_key(label_key)
-                        labels_str = ",".join(f'{k}="{v}"' for k, v in labels_dict.items())
-                        lines.append(f'{metric_name}{{{labels_str}}} {value}')
-            
-            elif definition.metric_type == "gauge":
-                if name in self._gauges:
-                    for label_key, value in self._gauges[name].items():
-                        labels_dict = parse_label_key(label_key)
-                        labels_str = ",".join(f'{k}="{v}"' for k, v in labels_dict.items())
-                        lines.append(f'{metric_name}{{{labels_str}}} {value}')
-            
-            elif definition.metric_type == "histogram":
-                if name in self._histograms:
-                    for label_key, values in self._histograms[name].items():
-                        if values:
+        # [2026-08-13 并发审计] 全量导出持锁遍历：防并发增删 key 抛 RuntimeError
+        # （仅内存只读构建 lines，无 I/O）
+        with self._lock:
+            for name, definition in BUSINESS_METRICS_DEFINITIONS.items():
+                metric_name = name.replace('.', '_')
+                lines.append(f"# HELP {metric_name} {definition.description}")
+                lines.append(f"# TYPE {metric_name} {definition.metric_type}")
+
+                if definition.metric_type == "counter":
+                    if name in self._counters:
+                        for label_key, value in self._counters[name].items():
                             labels_dict = parse_label_key(label_key)
                             labels_str = ",".join(f'{k}="{v}"' for k, v in labels_dict.items())
-                            stats = calculate_percentiles(values)
-                            lines.append(f'{metric_name}_sum{{{labels_str}}} {stats["sum"]}')
-                            lines.append(f'{metric_name}_count{{{labels_str}}} {stats["count"]}')
-                            lines.append(f'{metric_name}{{{labels_str},quantile="0.5"}} {stats["p50"]}')
-                            lines.append(f'{metric_name}{{{labels_str},quantile="0.95"}} {stats["p95"]}')
-                            lines.append(f'{metric_name}{{{labels_str},quantile="0.99"}} {stats["p99"]}')
-        
+                            lines.append(f'{metric_name}{{{labels_str}}} {value}')
+
+                elif definition.metric_type == "gauge":
+                    if name in self._gauges:
+                        for label_key, value in self._gauges[name].items():
+                            labels_dict = parse_label_key(label_key)
+                            labels_str = ",".join(f'{k}="{v}"' for k, v in labels_dict.items())
+                            lines.append(f'{metric_name}{{{labels_str}}} {value}')
+
+                elif definition.metric_type == "histogram":
+                    if name in self._histograms:
+                        for label_key, values in self._histograms[name].items():
+                            if values:
+                                labels_dict = parse_label_key(label_key)
+                                labels_str = ",".join(f'{k}="{v}"' for k, v in labels_dict.items())
+                                stats = calculate_percentiles(values)
+                                lines.append(f'{metric_name}_sum{{{labels_str}}} {stats["sum"]}')
+                                lines.append(f'{metric_name}_count{{{labels_str}}} {stats["count"]}')
+                                lines.append(f'{metric_name}{{{labels_str},quantile="0.5"}} {stats["p50"]}')
+                                lines.append(f'{metric_name}{{{labels_str},quantile="0.95"}} {stats["p95"]}')
+                                lines.append(f'{metric_name}{{{labels_str},quantile="0.99"}} {stats["p99"]}')
+
         return '\n'.join(lines)
 
 

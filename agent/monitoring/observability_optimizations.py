@@ -87,13 +87,15 @@ class AdaptiveSampler:
     
     def _adapt(self):
         """根据负载调整采样比例"""
-        now = time.time()
-        elapsed = now - self._last_adaptation
-        
-        if elapsed < self.adaptation_interval:
-            return
-        
+        # [2026-08-13 并发审计] elapsed 判断整体移入锁内：锁外判断后
+        # 再进锁会以已被重置的 _request_count 重复适配（双重调整）
         with self._lock:
+            now = time.time()
+            elapsed = now - self._last_adaptation
+            
+            if elapsed < self.adaptation_interval:
+                return
+            
             actual_rps = self._request_count / elapsed
             if actual_rps > 0:
                 ratio_adjustment = self.target_rps / actual_rps
@@ -147,14 +149,17 @@ class BatchProcessor:
     
     def start(self):
         """启动批量处理器"""
+        # [2026-08-13 并发审计] 检查-置位原子化：防并发启动双后台刷新线程
         if not self._running:
-            self._running = True
-            self._flush_thread = threading.Thread(
-                target=self._flush_loop,
-                daemon=True,
-                name="BatchProcessor"
-            )
-            self._flush_thread.start()
+            with self._lock:
+                if not self._running:
+                    self._running = True
+                    self._flush_thread = threading.Thread(
+                        target=self._flush_loop,
+                        daemon=True,
+                        name="BatchProcessor"
+                    )
+                    self._flush_thread.start()
     
     def stop(self, timeout: float = 5.0):
         """停止批量处理器"""
@@ -346,17 +351,22 @@ class OptimizedTraceContextManager:
         self._batch_processor = None
         
         self._stats_lock = threading.Lock()
+        # [2026-08-13 并发审计] 批量处理器初始化双检锁
+        self._init_lock = threading.Lock()
         self._stats = OptimizationStats()
     
     def init_batch_processor(self, process_func: Callable[[List[Any]], None]):
         """初始化批量处理器"""
+        # [2026-08-13 并发审计] DCL：防并发首调启动两个后台刷新线程
         if self._batch_processor is None:
-            self._batch_processor = BatchProcessor(
-                process_func=process_func,
-                batch_size=200,
-                flush_interval=2.0
-            )
-            self._batch_processor.start()
+            with self._init_lock:
+                if self._batch_processor is None:
+                    self._batch_processor = BatchProcessor(
+                        process_func=process_func,
+                        batch_size=200,
+                        flush_interval=2.0
+                    )
+                    self._batch_processor.start()
     
     def should_sample(self, trace_id: str) -> bool:
         """判断是否采样"""

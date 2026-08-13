@@ -93,14 +93,18 @@ class InsightExtractor:
 
     def __init__(self):
         self._llm_service = None
+        # [2026-08-13 并发审计] 懒加载双检锁：防并发首调创建多个 LLM 服务实例
+        self._llm_lock = threading.Lock()
 
     def _get_llm_service(self):
         """延迟获取 LLM 服务"""
         if self._llm_service is None and _LLM_AVAILABLE:
-            try:
-                self._llm_service = ToolCallingService()
-            except Exception as e:
-                logger.warning("[Introspection] LLM 服务初始化失败: %s", e)
+            with self._llm_lock:
+                if self._llm_service is None and _LLM_AVAILABLE:
+                    try:
+                        self._llm_service = ToolCallingService()
+                    except Exception as e:
+                        logger.warning("[Introspection] LLM 服务初始化失败: %s", e)
         return self._llm_service
 
     def extract_from_analysis(self, analysis: dict) -> List[Insight]:

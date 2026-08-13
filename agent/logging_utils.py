@@ -1037,6 +1037,7 @@ class AgentSafetyMonitor:
         Returns:
             是否正常（未检测到异常）
         """
+        fast_loop_count = None
         with self._lock:
             current_time = datetime.now()
 
@@ -1057,14 +1058,19 @@ class AgentSafetyMonitor:
             else:
                 record['window_count'] += 1
 
-                # 检测快速循环
+                # 检测快速循环（锁内仅记录计数，logger 移出锁外）
                 if record['window_count'] > self.max_iterations_per_minute:
-                    self.logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "logging_utils", "action": "logging_utils.record_iteration.identifier", "duration_ms": 0, "message": f"⚠️ 检测到快速循环: {identifier}, "
-                        f"1分钟内迭代 {record['window_count']} 次"}, ensure_ascii=False))
-                    return False
+                    fast_loop_count = record['window_count']
 
-            record['total'] += 1
-            return True
+            if fast_loop_count is None:
+                record['total'] += 1
+
+        # [2026-08-13 并发审计] logger 移出锁外：日志写盘不受锁内竞争影响
+        if fast_loop_count is not None:
+            self.logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "logging_utils", "action": "logging_utils.record_iteration.identifier", "duration_ms": 0, "message": f"⚠️ 检测到快速循环: {identifier}, "
+                f"1分钟内迭代 {fast_loop_count} 次"}, ensure_ascii=False))
+            return False
+        return True
 
     def check_state(self, identifier: str, state: str) -> bool:
         """
@@ -1077,6 +1083,7 @@ class AgentSafetyMonitor:
         Returns:
             是否正常（未检测到卡死）
         """
+        stuck_info = None
         with self._lock:
             current_time = datetime.now()
 
@@ -1094,15 +1101,19 @@ class AgentSafetyMonitor:
                 ).total_seconds()
 
                 if stuck_time > self.state_stuck_threshold:
-                    self.logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "logging_utils", "action": "logging_utils.check_state.identifier", "duration_ms": 0, "message": f"⚠️ 检测到状态卡死: {identifier}, "
-                        f"状态 '{state}' 保持 {stuck_time:.1f} 秒"}, ensure_ascii=False))
-                    return False
+                    stuck_info = (identifier, state, stuck_time)
             else:
                 # 状态变化了，更新记录
                 self._last_state[identifier] = state
                 self._state_change_time[identifier] = current_time
 
-            return True
+        # [2026-08-13 并发审计] logger 移出锁外
+        if stuck_info is not None:
+            identifier, state, stuck_time = stuck_info
+            self.logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "logging_utils", "action": "logging_utils.check_state.identifier", "duration_ms": 0, "message": f"⚠️ 检测到状态卡死: {identifier}, "
+                f"状态 '{state}' 保持 {stuck_time:.1f} 秒"}, ensure_ascii=False))
+            return False
+        return True
 
     def reset(self, identifier: str = None):
         """重置监控数据"""

@@ -178,6 +178,9 @@ class AuditLogger:
 
 # 全局审计日志实例
 _audit_logger: Optional[AuditLogger] = None  # 保留作为 fallback
+# [2026-08-13 并发审计] fallback 单例双检锁：AuditLogger 含 FileHandler，
+# 双实例会泄漏文件句柄
+_audit_logger_lock = threading.Lock()
 
 
 def _create_audit_logger(config=None):
@@ -191,7 +194,11 @@ def get_audit_logger() -> AuditLogger:
         return get_singleton("safe_logger_audit_logger")
     global _audit_logger
     if _audit_logger is None:
-        _audit_logger = _create_audit_logger()
+        # [2026-08-13 并发审计] fallback 双检锁：防并发首调创建多个
+        # AuditLogger（含 FileHandler，双实例泄漏句柄）
+        with _audit_logger_lock:
+            if _audit_logger is None:
+                _audit_logger = _create_audit_logger()
     return _audit_logger
 
 
@@ -261,6 +268,7 @@ class AgentSafetyMonitor:
         Returns:
             是否正常（未检测到异常）
         """
+        fast_loop_count = None
         with self._lock:
             current_time = datetime.now()
 
@@ -281,14 +289,19 @@ class AgentSafetyMonitor:
             else:
                 record['window_count'] += 1
 
-                # 检测快速循环
+                # 检测快速循环（锁内仅记录计数，logger 移出锁外）
                 if record['window_count'] > self.max_iterations_per_minute:
-                    self.logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "identifier", "msg": f"⚠️ 检测到快速循环: {identifier}, "
-                        f"1分钟内迭代 {record['window_count']} 次"}, ensure_ascii=False))
-                    return False
+                    fast_loop_count = record['window_count']
 
-            record['total'] += 1
-            return True
+            if fast_loop_count is None:
+                record['total'] += 1
+
+        # [2026-08-13 并发审计] logger 移出锁外：日志写盘不受锁内竞争影响
+        if fast_loop_count is not None:
+            self.logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "identifier", "msg": f"⚠️ 检测到快速循环: {identifier}, "
+                f"1分钟内迭代 {fast_loop_count} 次"}, ensure_ascii=False))
+            return False
+        return True
 
     def check_state(self, identifier: str, state: str) -> bool:
         """
@@ -301,6 +314,7 @@ class AgentSafetyMonitor:
         Returns:
             是否正常（未检测到卡死）
         """
+        stuck_info = None
         with self._lock:
             current_time = datetime.now()
 
@@ -318,15 +332,19 @@ class AgentSafetyMonitor:
                 ).total_seconds()
 
                 if stuck_time > self.state_stuck_threshold:
-                    self.logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "identifier", "msg": f"⚠️ 检测到状态卡死: {identifier}, "
-                        f"状态 '{state}' 保持 {stuck_time:.1f} 秒"}, ensure_ascii=False))
-                    return False
+                    stuck_info = (identifier, state, stuck_time)
             else:
                 # 状态变化了，更新记录
                 self._last_state[identifier] = state
                 self._state_change_time[identifier] = current_time
 
-            return True
+        # [2026-08-13 并发审计] logger 移出锁外
+        if stuck_info is not None:
+            identifier, state, stuck_time = stuck_info
+            self.logger.error(json.dumps({"trace_id": _trace_id(), "module_name": "safe_logger", "action": "identifier", "msg": f"⚠️ 检测到状态卡死: {identifier}, "
+                f"状态 '{state}' 保持 {stuck_time:.1f} 秒"}, ensure_ascii=False))
+            return False
+        return True
 
     def reset(self, identifier: str = None):
         """重置监控数据"""

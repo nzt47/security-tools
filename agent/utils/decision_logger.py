@@ -12,6 +12,7 @@
 import logging
 import json
 import time
+import threading
 from typing import Any, Optional
 from dataclasses import dataclass, field, asdict
 from enum import Enum
@@ -177,6 +178,9 @@ class DecisionLogger:
         self.verbose = verbose
         self.output_format = self.OutputFormat(output_format.lower())
         self.logger = logger or logging.getLogger(__name__)
+        # [2026-08-13 并发审计] current_log 共享可变（start/end 与增量记录跨线程交叉），
+        # 加独立锁保护引用读写，防止并发 start_log 覆盖 / end_log 读到半初始化状态
+        self._log_lock = threading.Lock()
         self.current_log: Optional[DecisionLog] = None
     
     def start_log(self, context: str, input_data: Any = None) -> DecisionLog:
@@ -191,19 +195,21 @@ class DecisionLogger:
             DecisionLog 实例
         """
         import uuid
-        self.current_log = DecisionLog(
-            id=uuid.uuid4().hex[:12],
-            context=context,
-            start_time=time.time(),
-        )
-        
+        with self._log_lock:
+            self.current_log = DecisionLog(
+                id=uuid.uuid4().hex[:12],
+                context=context,
+                start_time=time.time(),
+            )
+            log = self.current_log
+
         if self.verbose:
             if self.output_format in (self.OutputFormat.TEXT, self.OutputFormat.BOTH):
                 print(f"\n[决策日志] 开始决策: {context}")
                 if input_data:
                     print(f"[决策日志] 输入数据: {input_data}")
-        
-        return self.current_log
+
+        return log
     
     def log_category(self, category: str, priority: int, label: str, item_count: int):
         """
@@ -228,8 +234,10 @@ class DecisionLogger:
             source: 来源类别/模块
             extra_info: 额外信息
         """
-        if self.current_log:
-            self.current_log.add_selected(item, source, extra_info)
+        with self._log_lock:
+            current_log = self.current_log
+        if current_log:
+            current_log.add_selected(item, source, extra_info)
         
         if self.verbose and self.output_format in (self.OutputFormat.TEXT, self.OutputFormat.BOTH):
             msg = f"  ✅ [{item}] 选中"
@@ -257,8 +265,10 @@ class DecisionLogger:
             source: 来源类别/模块
             detail: 详细说明
         """
-        if self.current_log:
-            self.current_log.add_skipped(item, reason, detail, source)
+        with self._log_lock:
+            current_log = self.current_log
+        if current_log:
+            current_log.add_skipped(item, reason, detail, source)
         
         if self.verbose and self.output_format in (self.OutputFormat.TEXT, self.OutputFormat.BOTH):
             reason_text = {
@@ -305,10 +315,11 @@ class DecisionLogger:
         Returns:
             DecisionLog 实例
         """
-        if not self.current_log:
+        with self._log_lock:
+            log = self.current_log
+        if not log:
             return DecisionLog(context="empty")
         
-        log = self.current_log
         log.end_time = time.time()
         log.duration_ms = (log.end_time - log.start_time) * 1000
         if summary:
@@ -372,10 +383,11 @@ class DecisionLogger:
         Returns:
             统计信息字典
         """
-        if not self.current_log:
+        with self._log_lock:
+            log = self.current_log
+        if not log:
             return {}
         
-        log = self.current_log
         return {
             "id": log.id,
             "context": log.context,
@@ -396,9 +408,11 @@ class DecisionLogger:
         Returns:
             JSON 字符串
         """
-        if not self.current_log:
+        with self._log_lock:
+            log = self.current_log
+        if not log:
             return "{}"
-        return self.current_log.to_json()
+        return log.to_json()
 
 
 def create_decision_logger(verbose: bool = False, 

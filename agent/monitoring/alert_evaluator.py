@@ -480,16 +480,18 @@ class AlertEvaluator:
 
     def start(self):
         """启动告警评估"""
-        if self._running:
-            return
+        # [2026-08-13 并发审计] 检查-置位原子化：防并发调用重复启动评估线程
+        with self._lock:
+            if self._running:
+                return
 
-        self._running = True
-        self._evaluation_thread = threading.Thread(
-            target=self._evaluation_loop,
-            name="alert-evaluator",
-            daemon=True
-        )
-        self._evaluation_thread.start()
+            self._running = True
+            self._evaluation_thread = threading.Thread(
+                target=self._evaluation_loop,
+                name="alert-evaluator",
+                daemon=True
+            )
+            self._evaluation_thread.start()
         # 结构化日志：评估器启动
         logger.info(json.dumps({
             "trace_id": get_trace_id(),
@@ -555,7 +557,9 @@ class AlertEvaluator:
 
     def get_stats(self) -> Dict:
         """获取统计信息"""
-        return dict(self._stats)
+        # [2026-08-13 并发审计] 锁内快照：防并发 evaluate 写入时 dict 拷贝竞态
+        with self._lock:
+            return dict(self._stats)
 
     def get_firing_alerts(self) -> List[Dict]:
         """获取当前触发的告警"""
@@ -568,6 +572,8 @@ class AlertEvaluator:
 
 # 全局单例
 _alert_evaluator: Optional[AlertEvaluator] = None  # 保留作为 fallback
+# [2026-08-13 并发审计] fallback 单例双检锁：防并发首调创建多个实例
+_alert_evaluator_lock = threading.Lock()
 
 
 def _create_alert_evaluator(config=None):
@@ -599,7 +605,10 @@ def get_alert_evaluator() -> AlertEvaluator:
         return get_singleton("alert_evaluator")
     global _alert_evaluator
     if _alert_evaluator is None:
-        _alert_evaluator = _create_alert_evaluator()
+        # [2026-08-13 并发审计] fallback 双检锁：防并发首调创建多个实例
+        with _alert_evaluator_lock:
+            if _alert_evaluator is None:
+                _alert_evaluator = _create_alert_evaluator()
     return _alert_evaluator
 
 

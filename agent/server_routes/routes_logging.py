@@ -31,6 +31,7 @@ import logging
 import json
 import time
 import os
+import threading
 from datetime import datetime
 from flask import request, jsonify, Response, stream_with_context
 
@@ -73,6 +74,8 @@ logger = logging.getLogger(__name__)
 
 # Prometheus 全局导出器
 _prometheus_exporter = None  # 保留作为 fallback
+# [2026-08-13 并发审计] fallback 单例双检锁：防并发首调创建多个实例
+_prometheus_exporter_lock = threading.Lock()
 
 try:
     from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
@@ -101,7 +104,10 @@ def get_prometheus_exporter():
         return get_singleton("prometheus_exporter")
     global _prometheus_exporter
     if _prometheus_exporter is None:
-        _prometheus_exporter = _create_prometheus_exporter()
+        # [2026-08-13 并发审计] fallback 双检锁：防并发首调创建多个实例
+        with _prometheus_exporter_lock:
+            if _prometheus_exporter is None:
+                _prometheus_exporter = _create_prometheus_exporter()
     return _prometheus_exporter
 
 
@@ -119,18 +125,23 @@ if _SINGLETON_AVAILABLE:
 # 告警规则存储
 _ALERT_RULES_FILE = os.path.join(os.path.dirname(__file__), '..', '..', 'monitoring', 'alerts.yml')
 _ALERT_RULES_CACHE = None
+# [2026-08-13 并发审计] 告警规则缓存读写互斥锁：Flask 多线程并发请求下
+# 防重复加载、并发保存互相覆盖（文件级 lost update）、缓存与磁盘不一致
+_alert_rules_lock = threading.Lock()
 
 def _load_alert_rules():
     """加载告警规则"""
     global _ALERT_RULES_CACHE
     if _ALERT_RULES_CACHE is None:
-        try:
-            import yaml
-            with open(_ALERT_RULES_FILE, 'r', encoding='utf-8') as f:
-                _ALERT_RULES_CACHE = yaml.safe_load(f)
-        except Exception as e:
-            logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'加载告警规则失败: {e}'}))
-            _ALERT_RULES_CACHE = {"groups": []}
+        with _alert_rules_lock:
+            if _ALERT_RULES_CACHE is None:
+                try:
+                    import yaml
+                    with open(_ALERT_RULES_FILE, 'r', encoding='utf-8') as f:
+                        _ALERT_RULES_CACHE = yaml.safe_load(f)
+                except Exception as e:
+                    logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'加载告警规则失败: {e}'}))
+                    _ALERT_RULES_CACHE = {"groups": []}
     return _ALERT_RULES_CACHE
 
 def _save_alert_rules(rules):
@@ -138,9 +149,11 @@ def _save_alert_rules(rules):
     global _ALERT_RULES_CACHE
     try:
         import yaml
-        with open(_ALERT_RULES_FILE, 'w', encoding='utf-8') as f:
-            yaml.dump(rules, f, default_flow_style=False, allow_unicode=True)
-        _ALERT_RULES_CACHE = rules
+        # 锁内"写文件→替换缓存"原子化：防并发保存互相覆盖
+        with _alert_rules_lock:
+            with open(_ALERT_RULES_FILE, 'w', encoding='utf-8') as f:
+                yaml.dump(rules, f, default_flow_style=False, allow_unicode=True)
+            _ALERT_RULES_CACHE = rules
         return True
     except Exception as e:
         logger.error(log_dict({'module_name': 'routes_logging', 'action': 'log', 'msg': f'保存告警规则失败: {e}'}))

@@ -364,10 +364,11 @@ class AlertManager:
 
     def start(self):
         """启动告警管理系统"""
-        if self._running:
-            return
-
-        self._running = True
+        # [2026-08-13 并发审计] 检查-置位原子化（子组件 start 移出锁外）
+        with self._lock:
+            if self._running:
+                return
+            self._running = True
 
         # 启动评估器
         if self._evaluator:
@@ -546,6 +547,8 @@ class AlertManager:
 
 # 全局单例
 _alert_manager: Optional[AlertManager] = None  # 保留作为 fallback
+# [2026-08-13 并发审计] fallback 单例双检锁：防并发首调创建多个实例
+_alert_manager_lock = threading.Lock()
 
 
 def _create_alert_manager(config=None):
@@ -581,7 +584,9 @@ def get_alert_manager(config_path: Optional[str] = None) -> AlertManager:
         return get_singleton("alert_manager")
     global _alert_manager
     if _alert_manager is None:
-        _alert_manager = _create_alert_manager(config_path)
+        with _alert_manager_lock:
+            if _alert_manager is None:
+                _alert_manager = _create_alert_manager(config_path)
     return _alert_manager
 
 

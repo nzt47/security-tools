@@ -305,6 +305,9 @@ class SelfHealer:
             return HealResult(action, HealStatus.SKIPPED, "动作正在执行中", 0)
 
         start_time = time.time()
+        # [2026-08-13 并发审计] 回调记录锁内构建、锁外触发：用户回调可能阻塞，
+        # 若在 action 锁内执行会卡死其他线程的自愈请求
+        callback_record = None
         try:
             logger.info(log_dict({'module_name': 'self_healer', 'action': 'heal_start', 'heal_action': action, 'context': context or {}}))
 
@@ -331,26 +334,28 @@ class SelfHealer:
             # 自愈完成日志（含 duration_ms，便于排查执行耗时与成功率）
             logger.info(log_dict({'module_name': 'self_healer', 'action': 'heal_complete', 'heal_action': action, 'status': result.status.value, 'message': result.message, 'verified': result.verified}))
 
-            # 触发回调
+            # 锁内仅构建回调记录
             if self._on_heal_executed:
-                try:
-                    self._on_heal_executed(
-                        SelfHealRecord(
-                            alert_name=context.get("alert_name", "") if context else "",
-                            action=action,
-                            status=result.status,
-                            executed_at=start_time,
-                            duration_ms=duration_ms,
-                            message=result.message
-                        )
-                    )
-                except Exception as e:
-                    logger.error(log_dict({'module_name': 'self_healer', 'action': 'heal_callback_error', 'heal_action': action, 'error': str(e)}))
-
-            return result
+                callback_record = SelfHealRecord(
+                    alert_name=context.get("alert_name", "") if context else "",
+                    action=action,
+                    status=result.status,
+                    executed_at=start_time,
+                    duration_ms=duration_ms,
+                    message=result.message
+                )
 
         finally:
             action_lock.release()
+
+        # 锁外触发回调（回调内可能做外部 I/O/通知，不能持锁）
+        if callback_record is not None and self._on_heal_executed:
+            try:
+                self._on_heal_executed(callback_record)
+            except Exception as e:
+                logger.error(log_dict({'module_name': 'self_healer', 'action': 'heal_callback_error', 'heal_action': action, 'error': str(e)}))
+
+        return result
 
     def _restart_service(self, context: Optional[Dict[str, Any]]) -> HealResult:
         """重启服务
@@ -772,6 +777,8 @@ class SelfHealer:
 
 # 全局单例
 _self_healer: Optional[SelfHealer] = None  # 保留作为 fallback
+# [2026-08-13 并发审计] fallback 单例双检锁：防并发首调创建多个实例
+_self_healer_lock = threading.Lock()
 
 
 def _create_self_healer(config=None):
@@ -807,7 +814,10 @@ def get_self_healer(config: Optional[Dict[str, Any]] = None) -> SelfHealer:
         return get_singleton("self_healer")
     global _self_healer
     if _self_healer is None:
-        _self_healer = _create_self_healer(config)
+        # [2026-08-13 并发审计] fallback 双检锁：防并发首调创建多个实例
+        with _self_healer_lock:
+            if _self_healer is None:
+                _self_healer = _create_self_healer(config)
     return _self_healer
 
 
