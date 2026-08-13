@@ -85,11 +85,16 @@ def _run_async_in_sync(coro, timeout: Optional[float] = None):
         asyncio.get_running_loop()
     except RuntimeError:
         # 无运行中事件循环：直接 run
+        # 【排查】同步桥模式记录：asyncio_run（无事件循环）——超时语义：wait_for 对
+        #         同步快路径（协程无 await 挂起点）无法中途插入超时，仅对挂起协程生效
+        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.async_bridge.mode', 'message': '[异步桥] 无运行中事件循环 → asyncio.run（timeout=%s）' % (timeout,), 'mode': 'asyncio_run', 'timeout_seconds': timeout}))
         return asyncio.run(
             asyncio.wait_for(coro, timeout) if timeout is not None else coro
         )
     # 有运行中事件循环：线程池隔离新循环（wait_for 已在协程内控制超时）
     import concurrent.futures
+    # 【排查】同步桥模式记录：thread_pool（async web 框架内）——超时由新循环 wait_for 生效
+    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.async_bridge.mode', 'message': '[异步桥] 有运行中事件循环 → 线程池新循环（timeout=%s）' % (timeout,), 'mode': 'thread_pool', 'timeout_seconds': timeout}))
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as _pool:
         _fut = _pool.submit(
             lambda: asyncio.run(
@@ -199,15 +204,25 @@ _WIRE_COMPLEX_KEYWORDS: Tuple[str, ...] = (
 _WIRE_ACTION_KEYWORDS: Tuple[str, ...] = ("检查", "分析", "创建", "生成", "整理", "监控")
 
 
+def _wire_complexity_detail(message: str) -> Tuple[float, list, list]:
+    """复杂度判定明细（TASK-01 wire 排查用）：返回 (score, complex_matches, action_matches)
+
+    【简易】与 _judge_wire_complexity 同源公式（complex_count + 0.5×action_count），
+           仅附加命中关键词明细，供入口日志定位"为什么判为 X 级"；不改判定语义
+    """
+    complex_matches = [k for k in _WIRE_COMPLEX_KEYWORDS if k in message]
+    action_matches = [k for k in _WIRE_ACTION_KEYWORDS if k in message]
+    score = len(complex_matches) + len(action_matches) * 0.5
+    return score, complex_matches, action_matches
+
+
 def _judge_wire_complexity(message: str) -> str:
     """任务复杂度分级（TASK-01 wire 接线用）
 
     【简易】分数 = 复杂指示词数 + 0.5×动作词数（与 PlanningCore._needs_planning 同源）；
     分级：≥1.5 → COMPLEX / ≥1.0 → NORMAL / ≥0.5 → SIMPLE / 其余 TRIVIAL
     """
-    complex_count = sum(1 for _k in _WIRE_COMPLEX_KEYWORDS if _k in message)
-    action_count = sum(1 for _k in _WIRE_ACTION_KEYWORDS if _k in message)
-    score = complex_count + action_count * 0.5
+    score, _complex_matches, _action_matches = _wire_complexity_detail(message)
     if score >= 1.5:
         return "COMPLEX"
     if score >= 1.0:
@@ -857,6 +872,8 @@ class Orchestrator:
         _wire_judged = _judge_wire_complexity(user_input) if _wire_cfg["enabled"] else None
         _wire_meets = _wire_complexity_meets(user_input, _wire_cfg["min_complexity"]) if _wire_cfg["enabled"] else False
         _wire_enter = bool(_wire_cfg["enabled"] and self._planner and _wire_meets)
+        # 【排查】复杂度判定明细：命中的复杂/动作关键词与得分，回答"为什么判为 X 级"
+        _wire_score, _wire_cx_matches, _wire_act_matches = _wire_complexity_detail(user_input) if _wire_cfg["enabled"] else (None, [], [])
         _wire_ingress_log = log_dict({
             'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.ingress',
             'trace_id_ctx': trace_id,
@@ -868,6 +885,9 @@ class Orchestrator:
             'wire_enabled': _wire_cfg["enabled"],
             'planner_available': self._planner is not None,
             'wire_trace_id': _wire_trace_id, 'judged_complexity': _wire_judged,
+            'complexity_score': _wire_score,
+            'complex_matches': _wire_cx_matches,
+            'action_matches': _wire_act_matches,
             'min_complexity': _wire_cfg["min_complexity"],
             'complexity_meets': _wire_meets,
             'enter_wire': _wire_enter,
