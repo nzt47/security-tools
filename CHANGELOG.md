@@ -6,6 +6,42 @@
 
 ---
 
+## [CHG] - 2026-08-13: AlertNotifier 并发修复（sender.send 网络 I/O 移出锁外）+ 高并发验证 ✅
+
+**影响模块**: `agent/monitoring/alert_notifier.py`, `tests/unit/test_alert_notifier_concurrency.py`(新增), `tests/unit/test_session_manager_concurrency.py`(新增)
+**关联提交**: `84ced25d`（fix(monitoring/alert_notifier): sender.send 网络 I/O 移出锁外（并发审计 A/C））
+
+### 背景
+
+并发审计标记的 2 处持锁纪律违反（网络 I/O 在锁内）：
+- A：`send_notification` 锁内调用 `sender.send()`——外部通知渠道（HTTP/webhook/钉钉）阻塞会拖住所有告警线程
+- C：`send_critical` 锁内遍历 + 锁内 `sender.send()`（遍历本身有锁，真实问题同为锁内网络 I/O）
+
+### Fixed — 并发竞态
+
+- `send_notification`：锁内仅取 sender 快照（含通配符匹配），`sender.send()` 移出锁外；history 改为锁内批量追加 + 尾部截断（`extend` + `[-max_history:]`，与原逐条 `pop(0)` 语义等价）
+- `send_critical`：锁内取 critical 渠道快照、send 移出锁外（与 A 同模式）
+
+### Added — 并发测试
+
+- 新增 2 个并发测试文件、共 6 用例（Barrier 同步起跑放大竞争窗口）：
+  1. `test_alert_notifier_concurrency.py`(4)：并发 send 结果数/history/stats 精确（8 线程×10 无丢失）；并发 send_critical 结果数==critical 渠道数且各渠道调用次数精确；**慢渠道（0.2s）4 线程并行 ~0.2s 不串行**（计时验证 send 锁外：串行约 0.8s）；history 超过 max_history 精确截断
+  2. `test_session_manager_concurrency.py`(2)：并发 add_message 不同会话无丢失；同会话 message_count 精确 + 消息无重复
+
+### Perf — 锁开销与并发度
+
+- send 移出锁外后，慢通知渠道不再阻塞其他告警线程（计时验证：4×0.2s 从串行 0.8s 降为并行 ~0.2s）；锁内仅剩取快照与内存 history 追加
+
+### 验证结果
+
+- 新增并发测试 6/6 通过；既有回归 155/155 通过（alert_notifier_singleton + alert_notifier_integration + session_manager_comprehensive），无回归
+
+### 副作用评估（已确认无严重副作用）
+
+- 单线程行为完全等价；history 有界截断语义（max_history=100）保持不变——调试中确认截断逻辑正确生效，初始测试断言错误（误以为 history 无限增长），已修正为总量 < max_history 验证无丢失
+
+---
+
 ## [CHG] - 2026-08-13: 熔断计数与采样率统计并发修复（并发审计遗留 #1/#2）+ 高并发验证 ✅
 
 **影响模块**: `agent/memory/adapters/holographic_adapter.py`, `agent/monitoring/performance_optimization.py`, `tests/unit/test_holographic_adapter_concurrency.py`(新增), `tests/unit/test_performance_optimization_concurrency.py`(新增)
