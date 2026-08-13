@@ -79,3 +79,40 @@ class TestSessionManagerConcurrency:
         assert entry["message_count"] == total, (
             f"message_count 应为 {total}，实际 {entry['message_count']}"
         )
+
+    def test_slow_append_does_not_block_reads(self, tmp_path, monkeypatch):
+        """核心验证 B：消息 append 移出锁外后，慢磁盘不阻塞读操作
+
+        模拟慢磁盘（open("a") 延迟 0.2s）：若 append 持锁（旧实现），并发
+        get_messages 需等待 ≈0.2s；锁外则读立即完成（<0.15s）。
+        """
+        import builtins
+        import time
+
+        mgr = SessionManager(sessions_dir=str(tmp_path / "sessions"))
+        sid = mgr.create_session("s1")["id"]
+        mgr.add_message(sid, "user", "init")
+
+        real_open = builtins.open
+
+        def slow_open(*args, **kwargs):
+            # 仅模拟"a"（消息追加）模式的慢磁盘，其他模式走原实现
+            if len(args) > 1 and args[1] == "a":
+                time.sleep(0.2)
+            return real_open(*args, **kwargs)
+
+        monkeypatch.setattr(builtins, "open", slow_open)
+
+        start = time.time()
+        t = threading.Thread(target=lambda: mgr.add_message(sid, "user", "slow-append"))
+        t.start()
+        time.sleep(0.05)  # 确保 append 线程已进入慢磁盘段
+        mgr.get_messages(sid, limit=50)  # 不应被 append 的 0.2s 磁盘延迟阻塞
+        elapsed = time.time() - start
+        t.join()
+
+        assert elapsed < 0.15, (
+            f"读操作不应被慢 append 阻塞（append 应持锁外）：旧实现约 0.2s，实际 {elapsed:.3f}s"
+        )
+        # 慢 append 最终仍成功写入（消息计数一致）
+        assert mgr.get_message_count(sid) == 2

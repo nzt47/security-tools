@@ -27,6 +27,10 @@ class SessionManager:
         self._index_path = self._sessions_dir / "sessions.json"
         self._current_id: str | None = None
         self._lock = threading.Lock()
+        # [2026-08-13 并发审计 B] 消息文件追加/清空专用锁：Windows 上 open("a")
+        # 的 O_APPEND 是 seek+write 组合（非原子），多线程并发追加会交错覆盖丢行；
+        # 此锁与主锁分离，慢磁盘只阻塞追加方、不阻塞会话管理/读操作。
+        self._append_lock = threading.Lock()
         self._sessions_dir.mkdir(parents=True, exist_ok=True)
         self._ensure_index()
 
@@ -281,9 +285,17 @@ class SessionManager:
             msg["reasoning"] = reasoning
 
         msg_file = session_dir / "messages.jsonl"
-        with self._lock:
+        # [2026-08-13 并发审计 B] 消息追加移出主锁 self._lock：慢磁盘不阻塞会话
+        # 管理/读操作。但 Windows 上 open("a") 的 O_APPEND 是 seek+write 组合
+        # （非原子），多线程并发追加会交错覆盖丢行——故用独立 _append_lock
+        # 保护"open→write→flush"单次写（与 clear_messages 的清空互斥）。
+        # index 读-改-写保持 self._lock 内：count 递增必须与写回原子（一致性
+        # 不变式），index 为小文件，锁内 I/O 时间短。
+        with self._append_lock:
             with open(msg_file, "a", encoding="utf-8") as f:
                 f.write(json.dumps(msg, ensure_ascii=False) + "\n")
+
+        with self._lock:
             index = self._read_index()
             for s in index:
                 if s["id"] == session_id:
@@ -351,8 +363,11 @@ class SessionManager:
             return False
 
         msg_file = session_dir / "messages.jsonl"
+        # [2026-08-13 并发审计 B] 清空消息文件与追加互斥（_append_lock），
+        # 避免清空与并发 add_message 交错产生残留行/丢消息。
         if msg_file.exists():
-            msg_file.write_text("", encoding="utf-8")
+            with self._append_lock:
+                msg_file.write_text("", encoding="utf-8")
 
         with self._lock:
             index = self._read_index()
