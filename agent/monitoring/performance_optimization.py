@@ -210,9 +210,14 @@ class AdaptiveSampler:
 
 
 class LockFreeRingBuffer:
-    """无锁环形缓冲区
-    
-    用于高并发场景下的数据收集，避免锁竞争
+    """环形缓冲区（RLock 保护，支持多生产者多消费者）
+
+    Why 加锁（2026-08-13 并发审计）：原实现「无锁」仅在单生产者+单消费者
+    （SPSC）下成立；实际被 BatchProcessor 多 HTTP 线程 submit 并发 push、
+    submit（队列满）与后台 _flush_loop 并发 drain，违反 SPSC 假设——
+    _head/_tail/_count 读-改-写非原子，会丢元素/丢计数。
+    改为 RLock 保护全部读写（锁内仅内存操作，遵守持锁纪律）；
+    类名保持 LockFreeRingBuffer 不变（__all__ 导出与既有引用兼容）。
     """
     
     def __init__(self, capacity: int = 1024):
@@ -224,95 +229,103 @@ class LockFreeRingBuffer:
         self._push_count = 0
         self._pop_count = 0
         self._overflow_count = 0
+        # RLock：drain 循环内调 pop（同锁重入）；锁内仅内存操作，无 I/O
+        self._lock = threading.RLock()
     
     def push(self, item: Any) -> bool:
         """添加元素（非阻塞）"""
-        head = self._head
-        next_head = (head + 1) % self._capacity
-        
-        if next_head == self._tail:
-            self._overflow_count += 1
-            logger.debug(
-                json.dumps({
-                    "trace_id": "ring_buffer",
-                    "module_name": "LockFreeRingBuffer",
-                    "action": "push_overflow",
-                    "capacity": self._capacity,
-                    "current_size": self._count,
-                    "head": head,
-                    "tail": self._tail,
-                    "overflow_count": self._overflow_count
-                })
-            )
-            return False  # 缓冲区满
-        
-        self._buffer[head] = item
-        self._head = next_head
-        self._count += 1
-        self._push_count += 1
-        
-        if self._push_count % 10000 == 0:
-            logger.debug(
-                json.dumps({
-                    "trace_id": "ring_buffer",
-                    "module_name": "LockFreeRingBuffer",
-                    "action": "push_stats",
-                    "push_count": self._push_count,
-                    "pop_count": self._pop_count,
-                    "overflow_count": self._overflow_count,
-                    "current_size": self._count,
-                    "capacity": self._capacity
-                })
-            )
-        
-        return True
+        with self._lock:
+            head = self._head
+            next_head = (head + 1) % self._capacity
+            
+            if next_head == self._tail:
+                self._overflow_count += 1
+                logger.debug(
+                    json.dumps({
+                        "trace_id": "ring_buffer",
+                        "module_name": "LockFreeRingBuffer",
+                        "action": "push_overflow",
+                        "capacity": self._capacity,
+                        "current_size": self._count,
+                        "head": head,
+                        "tail": self._tail,
+                        "overflow_count": self._overflow_count
+                    })
+                )
+                return False  # 缓冲区满
+            
+            self._buffer[head] = item
+            self._head = next_head
+            self._count += 1
+            self._push_count += 1
+            
+            if self._push_count % 10000 == 0:
+                logger.debug(
+                    json.dumps({
+                        "trace_id": "ring_buffer",
+                        "module_name": "LockFreeRingBuffer",
+                        "action": "push_stats",
+                        "push_count": self._push_count,
+                        "pop_count": self._pop_count,
+                        "overflow_count": self._overflow_count,
+                        "current_size": self._count,
+                        "capacity": self._capacity
+                    })
+                )
+            
+            return True
     
     def pop(self) -> Optional[Any]:
         """弹出元素（非阻塞）"""
-        tail = self._tail
-        
-        if tail == self._head:
-            return None  # 缓冲区空
-        
-        item = self._buffer[tail]
-        self._tail = (tail + 1) % self._capacity
-        self._count -= 1
-        self._pop_count += 1
-        return item
+        with self._lock:
+            tail = self._tail
+            
+            if tail == self._head:
+                return None  # 缓冲区空
+            
+            item = self._buffer[tail]
+            self._tail = (tail + 1) % self._capacity
+            self._count -= 1
+            self._pop_count += 1
+            return item
     
     def drain(self) -> List[Any]:
         """清空所有元素"""
-        items = []
-        while True:
-            item = self.pop()
-            if item is None:
-                break
-            items.append(item)
-        
-        if len(items) > 0:
-            logger.debug(
-                json.dumps({
-                    "trace_id": "ring_buffer",
-                    "module_name": "LockFreeRingBuffer",
-                    "action": "drain",
-                    "drained_count": len(items),
-                    "remaining_size": self._count
-                })
-            )
+        with self._lock:
+            items = []
+            while True:
+                item = self.pop()
+                if item is None:
+                    break
+                items.append(item)
+            
+            if len(items) > 0:
+                logger.debug(
+                    json.dumps({
+                        "trace_id": "ring_buffer",
+                        "module_name": "LockFreeRingBuffer",
+                        "action": "drain",
+                        "drained_count": len(items),
+                        "remaining_size": self._count
+                    })
+                )
         
         return items
     
     def is_empty(self) -> bool:
         """检查是否为空"""
-        return self._head == self._tail
+        with self._lock:
+            return self._head == self._tail
     
     def is_full(self) -> bool:
         """检查是否已满"""
-        return (self._head + 1) % self._capacity == self._tail
+        with self._lock:
+            return (self._head + 1) % self._capacity == self._tail
     
     def size(self) -> int:
         """获取元素数量"""
-        return self._count
+        with self._lock:
+            return self._count
 
 
 class BatchProcessor:
