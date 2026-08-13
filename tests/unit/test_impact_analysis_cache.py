@@ -1380,6 +1380,14 @@ class TestCollectTestFilesSymlinkP1:
             symlink_created = True
         except (OSError, NotImplementedError, PermissionError):
             # Windows 无管理员权限或平台不支持符号链接
+            # 【不易】os.symlink 失败后可能残留无效链接文件（2026-08-14 实测
+            # WinError 2 后 link 文件仍在磁盘），若不清理 rglob 仍会收集到，
+            # 与"降级仅收集真实文件"断言冲突（A-1 修复）。
+            if symlink_file.exists():
+                try:
+                    symlink_file.unlink()
+                except OSError:
+                    pass
             symlink_created = False
 
         result = analyzer._collect_test_files(tests_dir)

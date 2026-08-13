@@ -121,10 +121,18 @@ def _install_local_hook(repo_root: Path) -> None:
     【变易】hook 内容优先取本仓库已部署的 .git/hooks/pre-commit（本地已 sync）；
     缺失时（CI 全新 checkout，.git/hooks 不随 git 跟踪）回退用跟踪的
     hook_fail_safe.psm1 模块生成同一内容，保证 E2E 拦截测试不依赖本地部署状态。
+    【不易】本地 hook 即使存在，也须校验为 TLM 体系（含 TLM_HOOK_SOURCE_REPO
+    marker）；旧版 pre-commit 框架 hook（报 "No .pre-commit-config.yaml file
+    was found"，2026-08-14 A-2 实测）同样回退 psm1 生成，测试不依赖本地部署新旧。
     """
+    hook_content = None
     if LOCAL_HOOK.exists():
         hook_content = LOCAL_HOOK.read_bytes()
-    else:
+        if b"TLM_HOOK_SOURCE_REPO" not in hook_content:
+            print("[diag-hook] 本地 hook 缺 TLM marker，回退 psm1 生成",
+                  file=sys.stderr, flush=True)
+            hook_content = None
+    if hook_content is None:
         module = REPO_ROOT / "scripts" / "dev" / "hook_fail_safe.psm1"
         hooks_dir = repo_root / ".git" / "hooks"
         hooks_dir.mkdir(parents=True, exist_ok=True)

@@ -1522,7 +1522,12 @@ class TestSystemToolsDirectoryOperations:
                 f.write("target content")
             
             if hasattr(os, "symlink"):
-                os.symlink(target_path, link_path)
+                try:
+                    os.symlink(target_path, link_path)
+                except (OSError, NotImplementedError):
+                    # 【不易】Windows 无符号链接权限（WinError 2/1314）/平台不支持
+                    # 时跳过而非崩溃（A-4 修复；FileNotFoundError 是 OSError 子类）
+                    pytest.skip("符号链接不可用（Windows 需管理员/开发者模式）")
                 
                 result = get_file_info(link_path)
                 assert result["ok"] is True
@@ -3612,7 +3617,11 @@ class TestSystemToolsEdgeCases:
                 f.write("content")
             
             if hasattr(os, "symlink"):
-                os.symlink(target, link)
+                try:
+                    os.symlink(target, link)
+                except (OSError, NotImplementedError):
+                    # 【不易】Windows 无符号链接权限时跳过而非崩溃（A-5 修复）
+                    pytest.skip("符号链接不可用（Windows 需管理员/开发者模式）")
                 result = get_file_info(link)
                 assert result["ok"] is True
             else:

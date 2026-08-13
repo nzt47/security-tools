@@ -1,0 +1,75 @@
+# 环境健康检查 + 回归前工作区守卫（P0 T-8 / T-11 / T-18 落地）
+# 每次 push/PR 前置体检：必需依赖冒烟（--ci 模式可选依赖降级 WARN）+ 工作区干净检查。
+# Why 独立轻量 workflow 而非并入 ci.yml: 与 6 shard unit-tests 矩阵解耦，秒级完成；
+#   即使 unit-tests 因 runner 回收等基础设施问题失败，本体检仍独立给出环境结论。
+name: 环境健康检查与工作区守卫
+
+# 【不易】对齐 ci.yml L6-10 并发治理（2026-08-11 排队治理升级）：同 ref 下全部高频
+#   push workflow 共享 group `ci-${{ github.ref }}`，连续 push 只保留最新一批
+#   （跨 workflow 取消）。若用独立 group，高频 push 时本 workflow 不会被同 ref 新
+#   push 取消，将累积排队浪费 runner 配额。
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - 'release/**'
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  # ============================================================================
+  # 环境健康检查（env_health_check --ci）
+  # ============================================================================
+  env-health:
+    name: 环境健康检查（必需依赖冒烟）
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 安装必需依赖（flask/requests/pyyaml，轻量秒级）
+        # Why 不安装可选重型依赖(transformers/torch/chromadb): CI 用 SKILLS_OFFLINE=1
+        #   mock 降级路径，env_health_check --ci 对可选依赖缺失仅 WARN 不阻断。
+        run: |
+          python -m pip install --upgrade pip
+          pip install flask requests pyyaml
+
+      - name: 运行环境健康检查（--ci）
+        run: |
+          python scripts/env_health_check.py --ci
+
+  # ============================================================================
+  # 回归前工作区守卫（脏工作区阻断，T-11/T-18）
+  # ============================================================================
+  # Why: 未提交/未跟踪改动会污染回归判定（2026-08-13 orchestrator _interaction_lock
+  #   / parent_selection params 即其他会话未提交改动导致的失败）。CI checkout 后
+  #   工作区必须干净；若有残留（生成物、脚本产物）则阻断并输出差异清单。
+  workspace-guard:
+    name: 回归前工作区守卫（脏工作区阻断）
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 检查工作区干净（--strict）
+        run: |
+          python scripts/guard_workspace_clean.py --repo-root "$GITHUB_WORKSPACE" --strict
