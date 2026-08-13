@@ -567,7 +567,11 @@ class AlertNotifier:
         # 确定使用的接收者
         targets = receivers or [self.config.get("default_receiver", "default-notifications")]
 
+        # [2026-08-13 并发审计 A] sender.send 为外部网络 I/O，原实现锁内执行：
+        # 通知渠道阻塞会拖住所有告警线程（持锁纪律违反）。改为锁内仅取 sender
+        # 快照（含通配符匹配），send 移出锁外；history 为内存操作保留锁内。
         with self._lock:
+            senders_snapshot: List[tuple[str, NotificationSender]] = []
             for receiver_name in targets:
                 sender = self._senders.get(receiver_name)
                 if not sender:
@@ -582,26 +586,39 @@ class AlertNotifier:
                     results.append(NotificationResult(False, receiver_name, "渠道未找到"))
                     continue
 
-                # 发送通知
-                result = sender.send(notification)
-                results.append(result)
+                senders_snapshot.append((receiver_name, sender))
 
-                # 记录历史
-                self._history.append(result)
+        # 锁外发送（外部网络 I/O，不阻塞其他告警线程）
+        sent_results: List[NotificationResult] = []
+        for receiver_name, sender in senders_snapshot:
+            result = sender.send(notification)
+            sent_results.append(result)
+            results.append(result)
+
+        # 锁内记录历史（仅已发送结果；批量追加 + 尾部截断，与原逐条 pop(0) 语义等价）
+        if sent_results:
+            with self._lock:
+                self._history.extend(sent_results)
                 if len(self._history) > self._max_history:
-                    self._history.pop(0)
+                    self._history = self._history[-self._max_history:]
 
         return results
 
     def send_critical(self, notification: AlertNotification) -> List[NotificationResult]:
         """发送关键告警通知（同时发送到所有 critical 渠道）"""
-        results = []
-
+        # [2026-08-13 并发审计 C] 原实现锁内遍历 + 锁内 send（网络 I/O）：
+        # 改为锁内取 critical 渠道快照、send 移出锁外（持锁纪律，与 A 同模式）。
         with self._lock:
-            for name, sender in self._senders.items():
-                if "critical" in name.lower():
-                    result = sender.send(notification)
-                    results.append(result)
+            senders_snapshot = [
+                sender
+                for name, sender in self._senders.items()
+                if "critical" in name.lower()
+            ]
+
+        results = []
+        for sender in senders_snapshot:
+            result = sender.send(notification)
+            results.append(result)
 
         return results
 
