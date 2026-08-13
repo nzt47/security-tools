@@ -13,6 +13,7 @@
 import re
 import logging
 import shutil
+import threading
 from pathlib import Path
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
@@ -108,6 +109,14 @@ class PermissionSystem:
         self._backup_dir.mkdir(parents=True, exist_ok=True)
         self._permission_log: list[dict] = []
         
+        # Why RLock 保护权限日志/告警历史/计数器（模块级单例被多路请求并发调用）：
+        # _blocked_count/_warned_count 的 += 为读-改-写序列（并发丢计数）；
+        # _log_permission 的 len()+1 生成 id 为 TOCTOU（并发 id 重复）；
+        # confirm_action 遍历 _permission_log 与并发 append 抛 RuntimeError；
+        # _record_alert 的 append+截断重建读-改-写丢记录。锁内仅内存变更，
+        # logger 与 backup_file 的文件 I/O 在锁外（持锁纪律）。
+        self._lock = threading.RLock()
+
         # 整合 SafetyGuard 功能
         self._keywords_path = keywords_path
         self._loaded_keywords = self._load_keywords()
@@ -192,11 +201,16 @@ class PermissionSystem:
         Returns:
             是否确认成功
         """
-        for entry in self._permission_log:
-            if entry.get("id") == action_id and entry.get("requires_confirmation"):
-                entry["confirmed"] = True
-                logger.info(f"操作已确认: {action_id} — {entry['action'][:100]}")
-                return True
+        confirmed = None
+        with self._lock:  # 遍历与并发 append 互斥（防 list changed size RuntimeError）
+            for entry in self._permission_log:
+                if entry.get("id") == action_id and entry.get("requires_confirmation"):
+                    entry["confirmed"] = True
+                    confirmed = entry
+                    break
+        if confirmed:
+            logger.info(f"操作已确认: {action_id} — {confirmed['action'][:100]}")
+            return True
         logger.warning(f"未找到待确认操作: {action_id}")
         return False
 
@@ -230,7 +244,8 @@ class PermissionSystem:
 
     def get_permission_log(self, limit: int = 50) -> list[dict]:
         """获取权限检查历史"""
-        return self._permission_log[-limit:]
+        with self._lock:  # 切片快照原子（与 _log_permission append 互斥）
+            return self._permission_log[-limit:]
 
     def is_sensitive_path(self, path: str) -> bool:
         """检查路径是否属于敏感系统路径"""
@@ -242,17 +257,18 @@ class PermissionSystem:
 
     def _log_permission(self, action: str, result: PermissionResult, context: str):
         """记录权限检查日志"""
-        entry = {
-            "id": f"perm_{len(self._permission_log) + 1:04d}",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-            "action": action[:200],
-            "context": context[:200],
-            "allowed": result.allowed,
-            "reason": result.reason,
-            "requires_confirmation": result.requires_confirmation,
-            "confirmed": False if result.requires_confirmation else True,
-        }
-        self._permission_log.append(entry)
+        with self._lock:  # id 生成（len()+1）与 append 原子，防并发 id 重复
+            entry = {
+                "id": f"perm_{len(self._permission_log) + 1:04d}",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "action": action[:200],
+                "context": context[:200],
+                "allowed": result.allowed,
+                "reason": result.reason,
+                "requires_confirmation": result.requires_confirmation,
+                "confirmed": False if result.requires_confirmation else True,
+            }
+            self._permission_log.append(entry)
         logger.info(
             f"权限检查: {'✓' if result.allowed else '✗'} {action[:80]}"
             f" — {result.reason}" if result.reason else ""
@@ -324,10 +340,12 @@ class PermissionSystem:
         level = "safe"
         if any(m["level"] == "critical" for m in matches):
             level = "critical"
-            self._blocked_count += 1
+            with self._lock:  # blocked_count += 1 原子（读-改-写防丢计数）
+                self._blocked_count += 1
         elif matches:
             level = "warning"
-            self._warned_count += 1
+            with self._lock:  # warned_count += 1 原子
+                self._warned_count += 1
         
         result = {
             "safe": level == "safe",
@@ -342,30 +360,33 @@ class PermissionSystem:
     
     def _record_alert(self, text: str, result: Dict):
         """记录告警到历史"""
-        alert = {
-            "timestamp": datetime.now().isoformat(),
-            "text": text[:200],
-            "level": result["level"],
-            "match_count": len(result["matches"]),
-            "categories": list(set(m["category"] for m in result["matches"])),
-        }
-        self._alert_history.append(alert)
-        if len(self._alert_history) > 200:
-            self._alert_history = self._alert_history[-200:]
+        with self._lock:  # append + 截断重建原子（读-改-写防丢告警）
+            alert = {
+                "timestamp": datetime.now().isoformat(),
+                "text": text[:200],
+                "level": result["level"],
+                "match_count": len(result["matches"]),
+                "categories": list(set(m["category"] for m in result["matches"])),
+            }
+            self._alert_history.append(alert)
+            if len(self._alert_history) > 200:
+                self._alert_history = self._alert_history[-200:]
     
     def get_alerts(self, limit: int = 50) -> List[Dict]:
         """获取最近告警记录"""
-        return self._alert_history[-limit:]
+        with self._lock:  # 切片快照原子（与 _record_alert 重建互斥）
+            return self._alert_history[-limit:]
     
     def get_security_stats(self) -> Dict[str, Any]:
         """获取安全统计信息"""
-        return {
-            "blocked_count": self._blocked_count,
-            "warned_count": self._warned_count,
-            "total_alerts": len(self._alert_history),
-            "keywords_loaded": {
-                "critical": len(self._loaded_keywords.get("critical", [])),
-                "warning": len(self._loaded_keywords.get("warning", [])),
-            },
-            "permission_checks": len(self._permission_log),
-        }
+        with self._lock:  # 计数/长度快照原子（一致视图）
+            return {
+                "blocked_count": self._blocked_count,
+                "warned_count": self._warned_count,
+                "total_alerts": len(self._alert_history),
+                "keywords_loaded": {
+                    "critical": len(self._loaded_keywords.get("critical", [])),
+                    "warning": len(self._loaded_keywords.get("warning", [])),
+                },
+                "permission_checks": len(self._permission_log),
+            }
