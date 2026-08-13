@@ -15,8 +15,9 @@ from planning.core import PlanningCore
 class TestDefectD16:
     """D16：PlanningCore 应暴露规划可观测指标"""
 
-    def test_get_stats_exposes_planning_metrics(self):
-        core = PlanningCore()
+    def test_get_stats_exposes_planning_metrics(self, tmp_path):
+        # P2：reflector 隔离于 tmp_path，避免宿主 data/reflection 残留污染 get_stats
+        core = PlanningCore(config={"reflector": {"persist_dir": str(tmp_path)}})
 
         stats = core.get_stats()
 

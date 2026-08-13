@@ -21,9 +21,10 @@ def _ready_plan() -> Plan:
 
 
 @pytest.fixture
-def core() -> PlanningCore:
-    """无 LLM 规则模式规划引擎 + echo 工具"""
-    c = PlanningCore()
+def core(tmp_path) -> PlanningCore:
+    """无 LLM 规则模式规划引擎 + echo 工具
+    （P2：reflector 隔离于 tmp_path，不依赖宿主 data/reflection 历史残留）"""
+    c = PlanningCore(config={"reflector": {"persist_dir": str(tmp_path)}})
     c.register_tool("echo", lambda: "ok")
     return c
 

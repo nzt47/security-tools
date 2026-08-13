@@ -175,6 +175,42 @@ async def test_tool_failure_lesson_hint():
         assert "下一步提示（基于历史教训）" in prompt2
 
 
+@pytest.mark.asyncio
+async def test_empty_lessons_silent_no_next_hint():
+    """空经验库静默（P2）：教训库为空时工具失败不注入 _next_hint，下轮提示词无教训段
+
+    对齐 scripts/verify_lesson_guidance.py 场景 B 口径：显式清空 lessons_db/experiences，
+    验证"无同类教训时不注入"行为——不依赖宿主 data/reflection 残留数据。
+    """
+    mock_llm = AsyncMock()
+    mock_llm.chat.side_effect = [
+        json.dumps({
+            "reasoning": "调用工具", "action_type": "tool_call",
+            "action": {"tool": "bad_tool", "params": {}, "description": ""},
+            "confidence": 0.8, "result": None, "next_hint": None,
+        }),
+        json.dumps({"reasoning": "完成", "action_type": "finish", "result": "成功完成"}),
+    ]
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        core = PlanningCore(llm_service=mock_llm, config={"reflector": {"persist_dir": tmp_dir}})
+        # 显式清空经验库（即使 tmp_dir 为空也加固，防未来默认数据注入）
+        core.reflector.lessons_db.clear()
+        core.reflector.experiences.clear()
+
+        def bad_tool():
+            raise Exception("boom")
+        core.register_tool("bad_tool", bad_tool)
+
+        context = {"session": "test"}  # 非空 dict（chat 内部对空 dict 会重建，mutations 不可见）
+        result = await core.chat("帮我完成一个复杂任务", context)
+        assert result.used_planning is True
+        # 空库静默：不写入 next_hint
+        assert context.get("_next_hint") is None
+        # 下轮思考提示词不含教训引导段
+        prompt2 = mock_llm.chat.call_args_list[1][0][0][0]["content"]
+        assert "下一步提示（基于历史教训）" not in prompt2
+
+
 # ── 规划指标埋点（D16）──────────────────────────────────────────────────────
 
 @pytest.mark.asyncio

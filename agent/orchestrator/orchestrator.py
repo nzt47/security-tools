@@ -13,6 +13,7 @@
 - DigitalLifeStateMixin: 提供状态持久化方法
 """
 
+import asyncio
 import logging
 import threading
 import time
@@ -68,6 +69,34 @@ def _trace_id():
     except Exception:
         pass
     return uuid.uuid4().hex[:16]
+
+
+def _run_async_in_sync(coro, timeout: Optional[float] = None):
+    """同步桥：在同步上下文（Orchestrator.process）运行规划引擎 async 调用（D7 接入）
+
+    - 无运行中事件循环（典型同步部署）→ asyncio.run 直接执行；
+    - 有运行中事件循环（async web 框架内）→ 独立线程运行新循环，避免嵌套运行冲突。
+    - timeout 非 None 时经 asyncio.wait_for 硬超时（逃生通道超时依据）。
+
+    Returns:
+        coroutine 的返回值；异常/超时向上传播，由调用方决定回退路径。
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        # 无运行中事件循环：直接 run
+        return asyncio.run(
+            asyncio.wait_for(coro, timeout) if timeout is not None else coro
+        )
+    # 有运行中事件循环：线程池隔离新循环（wait_for 已在协程内控制超时）
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as _pool:
+        _fut = _pool.submit(
+            lambda: asyncio.run(
+                asyncio.wait_for(coro, timeout) if timeout is not None else coro
+            )
+        )
+        return _fut.result()
 
 
 def _record_intent_layer(layer: str) -> None:
@@ -460,6 +489,11 @@ class Orchestrator:
             logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.dst.error', 'message': '[DST] 补全失败，用原始输入: %s' % (_dst_e,)}))
 
         # ── 第三步：意图路由 + 模板匹配（零 LLM 消耗）──
+        # D7 前置：planning_mode（显式 planning_mode=True 或自动复杂任务判定）时，
+        # 跳过模板直答/拒识提前 return，强制下沉规划引擎（模板命中会提前 return，
+        # 否则显式规划入口在"你好"类低复杂度输入上不可达；拒识同理，复杂任务不拒识）
+        _planning_mode = bool(kwargs.get("planning_mode", False)) or \
+            (self._planning_enabled and self._planner and self._needs_planning(user_input))
         try:
             from agent.response_workflows import (
                 IntentRouter, ResponseTemplates, Confidence,
@@ -506,7 +540,7 @@ class Orchestrator:
                 logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.llm', 'message': '[路由] 检测到模板后追问，降级到 LLM'}))
                 self._last_was_template = False
 
-            if not is_follow_up:
+            if not is_follow_up and not _planning_mode:
                 template_response = ResponseTemplates.for_intent(
                     intent, confidence=confidence,
                     hour=datetime.now().hour,
@@ -711,7 +745,7 @@ class Orchestrator:
             'final': 'reject' if (_len_reject or _semantic_reject) else 'pass_to_llm',
         }))
 
-        if _len_reject or _semantic_reject:
+        if not _planning_mode and (_len_reject or _semantic_reject):
             _reject_type = "input_too_short" if _len_reject else "semantic_miss"
             _record_intent_layer("reject")
             # 【不易】拒识日志记录原因与各层分数（intent/confidence/semantic_result/threshold）
@@ -891,17 +925,55 @@ class Orchestrator:
                 trace_store.end_trace(trace_id, _fallback_msg, status="low_confidence_fallback")
             return ResponseBuilder.success(_fallback_msg).to_dict()
 
-        # 规划模式：追加 Planner 状态信息
-        planning_mode = kwargs.get("planning_mode", False) or \
-            (self._planning_enabled and self._planner and self._needs_planning(user_input))
+        # ── 第四步半：规划引擎策略增强（D7 接入，LLM 之上的策略层）──
+        # 【不易】复用四层路由判定结果（语义层判定"复杂任务"或显式 planning_mode=True），
+        #         不新增独立路由；规划响应仍进入既有 OutputGuard/记忆/反思/追踪链路。
+        # 【变易】逃生通道：规划失败/超时/预算超限/空响应 → 回退原 LLM 直答（下方 response 保留）。
+        # 【简易】get_stats() 仍暴露给状态面板（规划引擎能力不变），占位文本逻辑已移除。
+        planning_mode = _planning_mode
+        # 逃生通道依据：规划是否成功覆盖（供返回 metadata 携带 used_planning/plan_summary）
+        _planning_used = False
+        plan_result = None
         if planning_mode and self._planner:
+            _plan_timeout = float((self._config.get("planning") or {}).get("timeout_seconds", 30))
+            _plan_ctx = {"session_id": kwargs.get("session_id"), "user_input": user_input}
             try:
-                stats = self._planner.get_stats()
-                if stats and stats.get("registered_tools"):
-                    registered_tools = stats["registered_tools"]
-                    response += "\n\n（规划引擎已就绪，可用工具: %s）" % registered_tools
-            except Exception:
-                pass
+                plan_result = _run_async_in_sync(
+                    self._planner.chat(user_input, _plan_ctx), timeout=_plan_timeout
+                )
+                if plan_result is not None and getattr(plan_result, "response", ""):
+                    # 规划成功：其响应覆盖 LLM 直答结果，进入既有后链路
+                    _record_intent_layer("planning")
+                    _planning_used = True
+                    response = plan_result.response
+                    logger.info(log_dict({
+                        'module_name': 'orchestrator',
+                        'action': 'orchestrator.process.planning',
+                        'trace_id_ctx': trace_id,
+                        'message': '[规划] 复杂任务由规划引擎处理完成（used_planning=%s）' % (
+                            bool(getattr(plan_result, 'used_planning', False)),),
+                        'used_planning': bool(getattr(plan_result, 'used_planning', False)),
+                        'plan_id': (getattr(plan_result, 'plan', None).id
+                                    if getattr(plan_result, 'plan', None) else None),
+                        'response_length': len(response) if response else 0,
+                    }))
+                else:
+                    # 空响应/无结果 → 回退原 LLM 直答
+                    logger.warning(log_dict({
+                        'module_name': 'orchestrator',
+                        'action': 'orchestrator.process.planning.fallback',
+                        'trace_id_ctx': trace_id,
+                        'message': '[规划] 规划结果为空，回退 LLM 直答'}))
+            except Exception as e:
+                # 逃生通道：规划失败/超时/异常 → 回退原 LLM 直答响应
+                logger.warning(log_dict({
+                    'module_name': 'orchestrator',
+                    'action': 'orchestrator.process.planning.fallback',
+                    'trace_id_ctx': trace_id,
+                    'message': '[规划] 规划调用失败/超时，回退 LLM 直答: %s' % (e,),
+                    'error': str(e)[:200],
+                    'timeout_seconds': _plan_timeout,
+                }))
 
         # ── 第五步：OutputGuard 输出安全检查（PII 遮盖）──
         # 【变易】耗时用 perf_counter 配对计时
@@ -1033,7 +1105,13 @@ class Orchestrator:
         if _MONITORING_AVAILABLE:
             collector.increment_counter("count.digital_life.chat.success")
 
-        return ResponseBuilder.success(response).to_dict()
+        _resp = ResponseBuilder.success(response).to_dict()
+        # 评估标准：E2E 断言响应含 used_planning/plan_summary（D7 规划覆盖标识）
+        if _planning_used:
+            _resp.setdefault("metadata", {})["used_planning"] = True
+            if getattr(plan_result, "plan_summary", None) is not None:
+                _resp["metadata"]["plan_summary"] = plan_result.plan_summary
+        return _resp
 
     # (以下废弃方法已在 P12 统一链路中删除:
     #  _chat_v2, _chat_with_planning, _process_user_input)
