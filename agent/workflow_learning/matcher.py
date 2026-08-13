@@ -14,6 +14,7 @@ import time
 import json
 import uuid
 import logging
+import threading
 from typing import Dict, List, Set, Tuple
 
 from .models import LearnedWorkflow
@@ -132,29 +133,38 @@ class WorkflowMatcher:
         self.min_confidence = min_confidence
         self._index = TfidfIndex()
         self._workflows: Dict[str, LearnedWorkflow] = {}
+        # Why RLock 保护索引与工作流表：register/unregister 的 add/remove（写
+        # _docs/_df）与 match 触发的 _rebuild（遍历 _docs）并发会抛 RuntimeError
+        # （dictionary changed size during iteration），add 的 df 读-改-写也会丢
+        # 计数。锁内仅内存 dict 变更与 _tokenize（纯字符串处理）；match 的
+        # 观测/日志/metrics 在锁外（持锁纪律）。
+        self._lock = threading.RLock()
 
     def register(self, wf: LearnedWorkflow) -> None:
         """注册/更新一个工作流到索引"""
-        # 索引文本 = 名称 + 描述 + 任务签名 + 触发模式 + 标签
-        text = " ".join([
-            wf.name, wf.description, wf.task_signature,
-            " ".join(wf.trigger_patterns), " ".join(wf.tags),
-        ])
-        if wf.id in self._workflows:
-            self._index.remove(wf.id)
-        self._index.add(wf.id, text)
-        self._workflows[wf.id] = wf
+        with self._lock:
+            # 索引文本 = 名称 + 描述 + 任务签名 + 触发模式 + 标签
+            text = " ".join([
+                wf.name, wf.description, wf.task_signature,
+                " ".join(wf.trigger_patterns), " ".join(wf.tags),
+            ])
+            if wf.id in self._workflows:
+                self._index.remove(wf.id)
+            self._index.add(wf.id, text)
+            self._workflows[wf.id] = wf
 
     def unregister(self, wf_id: str) -> None:
-        self._index.remove(wf_id)
-        self._workflows.pop(wf_id, None)
+        with self._lock:
+            self._index.remove(wf_id)
+            self._workflows.pop(wf_id, None)
 
     def rebuild(self, workflows: List[LearnedWorkflow]) -> None:
         """从列表全量重建索引"""
-        self._index = TfidfIndex()
-        self._workflows = {}
-        for wf in workflows:
-            self.register(wf)
+        with self._lock:
+            self._index = TfidfIndex()
+            self._workflows = {}
+            for wf in workflows:
+                self.register(wf)
 
     def match(self, task_text: str, *, top_k: int = 5) -> List[Tuple[LearnedWorkflow, float]]:
         """匹配任务文本到工作流
@@ -165,7 +175,12 @@ class WorkflowMatcher:
         """
         t0 = time.time()
         with traced_action("wf_match", task_text=task_text[:80]) as ctx:
-            candidates = self._index.query(task_text, top_k=top_k)
+            # query 可能触发 _rebuild（遍历 _docs），须与 register/unregister 的
+            # 写互斥（锁内仅内存计算，无 I/O）
+            with self._lock:
+                candidates = self._index.query(task_text, top_k=top_k)
+            # 锁外过滤：workflows 弱一致读取（并发 unregister 时 get 返回 None 即
+            # 跳过，安全），日志/metrics 不占锁（持锁纪律）
             results: List[Tuple[LearnedWorkflow, float]] = []
             for wf_id, sim in candidates:
                 wf = self._workflows.get(wf_id)
