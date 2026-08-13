@@ -364,3 +364,58 @@ engine_health、`cognitive/knowledge.py`（asyncio 单线程语义安全）、
 修复策略建议（不变接口签名）：高优先 `cost_tracker` → `orchestrator` → `LLMCache`
 → `index_manager` → `matcher`；与既有系列同模式（RLock 锁内仅内存操作）。
 
+### 8.7 高危 5 处全部修复完成（2026-08-13）✅
+
+第二轮审计「高（5 处）」已全部落地，每处均含「加锁修复 + 高并发验证测试 + 独立提交」：
+
+| # | 文件 | 竞态 | 修复方式 | 验证（并发测试） | 提交 |
+|---|---|---|---|---|---|
+| 1 | `model_router/cost_tracker.py` | `_daily_stats` 读-改-写 + TOCTOU | `threading.Lock`，`setdefault` 原子初始化，文件写锁外 | 100 线程×50 次 record 计数精确、100 线程首日并发只初始化一次、多模型按单价精确、读写混合守恒 | `c3d04164` |
+| 2 | `orchestrator/orchestrator.py` | `_interaction_count += 1` 丢更新 + interaction_id 重复 | 递增在宿主创建的 `_interaction_lock` 锁内（LifecycleManager/V2 双初始化点） | 100 线程×50 次计数精确、递增取回值 5000 个全局唯一、宿主锁创建静态断言 | `ac7ae7c8` |
+| 3 | `monitoring/performance.py` `LLMCache` | OrderedDict 结构损坏 RuntimeError + 容量 TOCTOU | `threading.Lock`，get/put/clear/get_top_patterns 锁化，clear 日志锁外 | 100 线程 put 容量≤50 不超限+逐出守恒、同 key 并发无膨胀、100 线程 get 命中精确、读写混合守恒 | `a6ee5860` |
+| 4 | `utils/index_manager.py` | defaultdict 变更 + `remove_item` 检查后 del 的 TOCTOU | `threading.RLock`，全部索引操作锁化，`_tokenize` 锁外 | 100 线程×10 次计数精确+检索完整、读写混合不崩溃、100 线程重复 remove 无 KeyError、index+remove 混合一致 | `656143f0` |
+| 5 | `workflow_learning/matcher.py` | `_rebuild` 迭代 `_docs` 与 `add()` 并发 → RuntimeError | `WorkflowMatcher` RLock：register/unregister/rebuild 整体锁化，match 仅 query 段持锁（观测/日志/metrics 锁外） | 100 线程×10 次注册计数精确+索引完整、4 写+4 读不崩溃、20 线程重复 unregister+match 安全、register+rebuild 并发无孤儿 | `ee571c48` |
+
+共同模式（与 B 类 4 处一致）：锁内仅内存 dict/整数变更（持锁纪律：锁内无 I/O、无外部
+回调），日志/metrics 移出锁块；竞态可验证性靠测试的确定性断言（计数精确/唯一性/容量
+不超限），压测提供性能佐证。9 处竞态全部闭环，共 10 个提交。
+
+### 8.8 第三轮全量并发审计结论（2026-08-13）📋
+
+高危 5 处闭环后对 `agent/` 全目录（388 个 Python 文件）做第三轮独立审计（search 子代理
+全目录扫描 + 人工核验重点文件，与第二轮 32 处清单交叉比对）。结论：**前两轮成果稳固**
+（30+ 已加锁文件/模块复核无回退，9 处已处理竞态全部在位）；**仍有 12 处无锁共享状态**，
+其中 6 处因核实调用方后由第二轮"中危"升级为"高危"（崩溃级/真实并发热路径）：
+
+**高危 6 处（未处理，建议优先）**
+- `safety_guard.py`：`_alert_callbacks` 模块级 list，`register_alert_callback`（任意线程）
+  append 与 `_record_alert`（告警线程）迭代并发 → **RuntimeError**；且迭代中执行外部回调
+  （即便加锁也须锁外派发，遵守持锁纪律）；
+- `health/assessor.py`：`_history.append + pop(0)` 读-改-写并发 → **IndexError/历史错乱**
+  （自愈判定依据被污染）；模块级单例被 5+ 路由/采集/自愈多路调用；
+- `cognitive/reflection.py`：`_retry_counts` get→+1→写回 TOCTOU → 重试计数丢失（可能无限
+  重试），del/pop 与读取并发 KeyError；
+- `web/search.py`：搜索热路径 `_stats["searches"] += 1`、缓存整体重建 `_cache = {**...}`
+  （覆盖丢失窗口）、引擎注册/移除与搜索并发；
+- `web/crawler_control.py`：`_stats`/`_domain_delays`/`_proxy_stats`/`_robots_cache` 无锁
+  （仅限速 `_rate_lock` 已加锁），`can_fetch` 若加锁须先取结果再锁内写缓存（防锁内 I/O）；
+- `multi_tenant.py`：`delete_tenant` 递归删除 + `del dict[key]` 与遍历并发 → **RuntimeError**，
+  三个管理器均为模块级单例由 HTTP 路由触发（真实并发）。
+
+**中危 6 处（未处理，计数/结构风险）**
+`permission_system.py`（`_permission_log` append + 计数）、`network_config.py`（缓存 TOCTOU，
+并发度低）、`monitoring/search.py`（后台监控线程 append/`+=` vs HTTP 读，软指标）、
+`orchestrator/dialog_state.py`（`_SESSION_STATES` 懒创建 TOCTOU + `turn_count += 1`，真实
+HTTP 会话并发）、`monitoring/optimized_metrics.py` `_stats` 字典（LockFreeCounter 已修，
+仅此组计数遗漏，软指标）、`memory/router.py`（适配器注册 TOCTOU + 懒初始化，启动期为主）。
+
+**低危 6 处（安全/良性，无需处理）**：`utils/sensitive_data_filter.py`（无状态单例）、
+`digital_life.py` `_module_import_results`（导入期写入/运行期只读）、`monitoring/__init__.py`
+`_LAZY_IMPORTS`（import lock 保证）、`skills_mgmt/evaluator.py` `_executor_cache`（单键 put
+原子，重复构造无害）、`monitoring/self_healer.py` `_action_locks`（单键 put 原子）、
+`cognitive/failure_collector.py`（已加锁但**持锁调用外部回调**——违反持锁纪律，建议改
+"锁内收集、锁外派发"，属纪律项非竞态）。
+
+建议优先级：崩溃级 `safety_guard` / `multi_tenant` / `health/assessor` → 业务正确性
+`reflection` / `web/search` / `web/crawler_control` → 软指标 6 处。与既有系列同修复模式。
+
