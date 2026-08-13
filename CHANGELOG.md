@@ -6,6 +6,40 @@
 
 ---
 
+## [CHG] - 2026-08-13: 熔断计数与采样率统计并发修复（并发审计遗留 #1/#2）+ 高并发验证 ✅
+
+**影响模块**: `agent/memory/adapters/holographic_adapter.py`, `agent/monitoring/performance_optimization.py`, `tests/unit/test_holographic_adapter_concurrency.py`(新增), `tests/unit/test_performance_optimization_concurrency.py`(新增)
+**关联提交**: `3b9c6999`（fix: 熔断计数与采样率统计加锁（并发丢计数修复 #1/#2））
+
+### 背景
+
+并发审计遗留的 2 处低危-中危竞态：均为「读-改-写非原子」丢计数，一处影响熔断判定正确性，一处影响自适应采样率统计口径。
+
+### Fixed — 并发竞态
+
+- `holographic_adapter`（#1 熔断计数）：`_record_vec_failure`/`_reset_vec_circuit` 内部加 `_lock` 保护 `_vec_fail_count`/`_vec_available`——并发 save/search 失败与探活重置交错会丢计数、熔断判定不一致（第 N 次触发时机漂移）。熔断触发标志锁内计算，logger 移出锁外（遵守持锁纪律）；调用点均在锁外（search_vector/save 异常路径），Lock 无死锁风险
+- `performance_optimization`（#2 采样率统计）：`AdaptiveSampler.should_sample` 的 `_sample_count`/`_request_count` 自增移入现有 `_lock`——原实现锁外自增丢计数（`_maybe_adjust` 中 `actual_ratio` 失真），且与 `_maybe_adjust` 锁内周期重置竞态（重置后自增丢失）
+
+### Added — 并发测试
+
+- 新增 2 个并发测试文件、共 7 用例（Barrier 同步起跑放大竞争窗口）：
+  1. `test_holographic_adapter_concurrency.py`(4)：并发失败计数精确（低于阈值不熔断）；恰好第 5 次熔断（不早不晚）；失败+探活重置交错状态不变量成立（_vec_available=True ⇒ 计数<阈值）；熔断→重置→重新计数
+  2. `test_performance_optimization_concurrency.py`(3)：全采样 ratio=1.0 双计数精确（16 线程×100）；零采样 ratio=0.0 sample 恒 0/request 精确；调整周期重置后并发累计计数互斥不丢失
+
+### Perf — 锁开销
+
+- 熔断计数与采样自增均为热路径上的纯内存整数操作，RLock/Lock 单次 acquire 约 0.22µs 可忽略；锁内无 I/O 无外部回调
+
+### 验证结果
+
+- 新增并发测试 7/7 通过；既有回归 108/108 通过（performance_optimization 集成 81 + lockfree 5 + tlm_memory_store 22），无回归
+
+### 副作用评估（已确认无严重副作用）
+
+- 单线程行为完全等价（签名/返回/异常不变）；熔断阈值语义（连续失败 ≥5 触发）与计数重置时机不变
+
+---
+
 ## [CHG] - 2026-08-13: LockFreeRingBuffer 并发修复（多生产者/多消费者竞态）+ 高并发验证 ✅
 
 **影响模块**: `agent/monitoring/performance_optimization.py`, `tests/unit/test_lockfree_ring_buffer_concurrency.py`(新增)
