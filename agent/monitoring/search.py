@@ -52,6 +52,10 @@ class SearchPerformanceMonitor(StopMixin):
 
     def __init__(self, base_url: str = "http://localhost:5678"):
         super().__init__()  # 初始化 StopMixin 的 _stop_event / _registered_threads
+        # Why RLock：监控循环线程与 HTTP 路由线程并发访问共享状态（_check_count/
+        # _performance_history/_running），读-改-写非原子；RLock 允许 _perform_check
+        # 内部重入 _save_performance_data/get_status 等。
+        self._lock = threading.RLock()
         self.base_url = base_url
         self._running = False
         self._thread: Optional[threading.Thread] = None
@@ -111,11 +115,13 @@ class SearchPerformanceMonitor(StopMixin):
         """保存性能历史数据"""
         try:
             os.makedirs(os.path.dirname(PERFORMANCE_DATA_FILE), exist_ok=True)
-            data = {
-                'history': self._performance_history[-100:],
-                'check_count': self._check_count,
-                'last_check': self._last_check_time.isoformat() if self._last_check_time else None,
-            }
+            # 锁内构造快照（防并发 append/计数变化读到半更新状态），文件写入移出锁外
+            with self._lock:
+                data = {
+                    'history': self._performance_history[-100:],
+                    'check_count': self._check_count,
+                    'last_check': self._last_check_time.isoformat() if self._last_check_time else None,
+                }
             with open(PERFORMANCE_DATA_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
@@ -129,7 +135,8 @@ class SearchPerformanceMonitor(StopMixin):
 
     def set_interval(self, interval_sec: int):
         """设置检测间隔"""
-        self._interval = interval_sec
+        with self._lock:
+            self._interval = interval_sec
         logger.info(json.dumps({
             "trace_id": get_trace_id(),
             "module_name": "search_monitor",
@@ -140,19 +147,22 @@ class SearchPerformanceMonitor(StopMixin):
 
     def start(self):
         """启动性能监控"""
-        if self._running:
-            logger.warning(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "search_monitor",
-                "action": "start_duplicate",
-                "duration_ms": 0,
-            }, ensure_ascii=False))
-            return
-        self._stop_event.clear()  # [TLM-AUDIT-002] 重置停止信号（支持重启）
-        self._running = True
-        self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
-        self._thread.start()
-        self.register_thread(self._thread)  # [TLM-AUDIT-002] 注册到 StopMixin
+        # Why 锁内检查+设置：并发两次 start 的 if self._running 检查-赋值非原子（TOCTOU），
+        # 不加锁会启动两个监控线程
+        with self._lock:
+            if self._running:
+                logger.warning(json.dumps({
+                    "trace_id": get_trace_id(),
+                    "module_name": "search_monitor",
+                    "action": "start_duplicate",
+                    "duration_ms": 0,
+                }, ensure_ascii=False))
+                return
+            self._stop_event.clear()  # [TLM-AUDIT-002] 重置停止信号（支持重启）
+            self._running = True
+            self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
+            self._thread.start()
+            self.register_thread(self._thread)  # [TLM-AUDIT-002] 注册到 StopMixin
         logger.info(json.dumps({
             "trace_id": get_trace_id(),
             "module_name": "search_monitor",
@@ -202,8 +212,13 @@ class SearchPerformanceMonitor(StopMixin):
         """执行性能检测"""
         import requests
 
-        self._check_count += 1
-        self._last_check_time = datetime.now()
+        # Why 锁内取 check_id + 时间戳：_check_count 读-改-写非原子，并发调用会丢计数
+        # 且产生重复 check_id；网络 I/O 在锁外执行（可达 timeout 秒级，不得持锁）
+        with self._lock:
+            self._check_count += 1
+            check_id = self._check_count
+            self._last_check_time = datetime.now()
+            timestamp = self._last_check_time.isoformat()
 
         # 合并原分隔线日志为单条结构化日志（跳过纯分隔线 logger.info("=" * 80)）
         logger.info(json.dumps({
@@ -211,12 +226,12 @@ class SearchPerformanceMonitor(StopMixin):
             "module_name": "search_monitor",
             "action": "check_start",
             "duration_ms": 0,
-            "check_id": self._check_count,
+            "check_id": check_id,
         }, ensure_ascii=False))
 
         check_result = {
-            'check_id': self._check_count,
-            'timestamp': self._last_check_time.isoformat(),
+            'check_id': check_id,
+            'timestamp': timestamp,
             'engines': {},
             'status': 'ok',
             'errors': [],
@@ -338,8 +353,9 @@ class SearchPerformanceMonitor(StopMixin):
             else:
                 check_result['status'] = 'ok'
 
-            # 5. 记录历史
-            self._performance_history.append(check_result)
+            # 5. 记录历史（锁内 append，防并发读取 history 时 RuntimeError）
+            with self._lock:
+                self._performance_history.append(check_result)
             self._save_performance_data()
 
             # 合并原分隔线日志为单条结构化日志（跳过纯分隔线 logger.info("=" * 80)）
@@ -348,7 +364,7 @@ class SearchPerformanceMonitor(StopMixin):
                 "module_name": "search_monitor",
                 "action": "check_complete",
                 "duration_ms": 0,
-                "check_id": self._check_count,
+                "check_id": check_id,
                 "status": check_result['status'],
                 "errors_count": len(check_result['errors']),
             }, ensure_ascii=False))
@@ -359,39 +375,45 @@ class SearchPerformanceMonitor(StopMixin):
                 "module_name": "search_monitor",
                 "action": "check_error",
                 "duration_ms": 0,
-                "check_id": self._check_count,
+                "check_id": check_id,
                 "error": str(e),
             }, ensure_ascii=False))
             check_result['status'] = 'error'
             check_result['errors'].append(f"检测异常: {e}")
-            self._performance_history.append(check_result)
+            with self._lock:
+                self._performance_history.append(check_result)
             self._save_performance_data()
 
     def run_manual_check(self) -> Dict:
         """手动执行一次性能检测"""
         self._perform_check()
-        return self._performance_history[-1] if self._performance_history else {}
+        with self._lock:
+            return self._performance_history[-1] if self._performance_history else {}
 
     def get_status(self) -> Dict:
-        """获取监控器状态"""
-        return {
-            'running': self._running,
-            'interval': self._interval,
-            'check_count': self._check_count,
-            'last_check': self._last_check_time.isoformat() if self._last_check_time else None,
-            'history_count': len(self._performance_history),
-        }
+        """获取监控器状态（锁内快照，防读-改-写中途读到半更新状态）"""
+        with self._lock:
+            return {
+                'running': self._running,
+                'interval': self._interval,
+                'check_count': self._check_count,
+                'last_check': self._last_check_time.isoformat() if self._last_check_time else None,
+                'history_count': len(self._performance_history),
+            }
 
     def get_recent_history(self, limit: int = 10) -> List[Dict]:
-        """获取最近的历史记录"""
-        return self._performance_history[-limit:]
+        """获取最近的历史记录（锁内切片快照）"""
+        with self._lock:
+            return self._performance_history[-limit:]
 
     def get_performance_summary(self) -> Dict:
-        """获取性能摘要"""
-        if not self._performance_history:
+        """获取性能摘要（锁内取快照，锁外计算，缩短持锁时间）"""
+        with self._lock:
+            history_snapshot = self._performance_history[-10:]
+        if not history_snapshot:
             return {'status': 'no_data', 'message': '暂无性能数据'}
 
-        recent = self._performance_history[-10:]
+        recent = history_snapshot
 
         tavily_success = 0
         tavily_failed = 0
