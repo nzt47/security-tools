@@ -251,8 +251,8 @@ class AsyncWriter:
                 
                 # 等待新数据或超时
                 try:
-                    self._queue.get(block=True, timeout=0.5)
-                    self._queue.put(data)  # 放回
+                    item = self._queue.get(block=True, timeout=0.5)
+                    self._queue.put(item)  # 放回
                     self._flush()
                 except queue.Empty:
                     pass

@@ -59,6 +59,11 @@ class LogStorage:
         self.raw_log_dir = raw_log_dir or DEFAULT_RAW_DIR
         self._local = threading.local()
         self._write_lock = threading.Lock()
+        # [2026-08-13 并发审计] JSONL 追加独立锁：与 SQLite 写锁分离——
+        # Windows 上 open("a") 的 O_APPEND 是 seek+write 组合（非原子），
+        # 多线程并发追加会交错覆盖丢行，需独立锁保护单次写；慢磁盘只阻塞
+        # 原始日志追加方，不再拖住结构化日志（SQLite）写入路径
+        self._append_lock = threading.Lock()
         self._initialized = False
 
     # ── 数据库连接管理 ─────────────────────────────────────────
@@ -305,7 +310,7 @@ class LogStorage:
         os.makedirs(log_dir, exist_ok=True)
         log_file = os.path.join(log_dir, f"{category}.jsonl")
         line = json.dumps(data, ensure_ascii=False)
-        with self._write_lock:
+        with self._append_lock:
             with open(log_file, 'a', encoding='utf-8') as f:
                 f.write(line + '\n')
 
