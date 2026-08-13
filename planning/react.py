@@ -13,6 +13,7 @@ from .models import Plan, PlanState, Task
 from .models.action import Action, ActionType, ActionResult
 from .models.react import ReActStep, ReActResult, ThoughtResult
 from .budget import BudgetManager, BudgetStatus, PlanBudget
+from .reflector import format_advice_section, classify_task, Lesson
 
 from agent.monitoring.tracing import get_trace_id
 
@@ -389,25 +390,19 @@ class ReActLoop:
                 f"- {h}" for h in context["_hints"][-5:]
             )
 
+        # 阶段 4（D17）：工具失败后基于教训的下一步提示（_act 写入 context["_next_hint"]）
+        if context and context.get("_next_hint"):
+            prompt += f"\n\n【下一步提示（基于历史教训）】\n{context['_next_hint']}"
+
         # D17 修复：思考阶段复用 reflector 历史经验（get_advice_for_task），
-        # 成功模式/常见陷阱嵌入提示词；查询失败不影响思考主流程（降级为无经验）。
+        # 成功模式/常见陷阱嵌入提示词（format_advice_section 统一格式，注入段标注
+        # "历史经验"）；查询失败不影响思考主流程（降级为无经验）。
         if self.reflector:
             try:
                 advice = self.reflector.get_advice_for_task(str(task))
-                if advice:
-                    lines = []
-                    patterns = advice.get("successful_patterns") or []
-                    pitfalls = advice.get("common_pitfalls") or []
-                    if patterns:
-                        lines.append("成功模式（历史经验）:")
-                        for p in patterns:
-                            lines.append(f"- [{p['id']}] {p['description']} → {p['output']}")
-                    if pitfalls:
-                        lines.append("常见陷阱（历史教训）:")
-                        for p in pitfalls:
-                            lines.append(f"- [{p['id']}] {p['description']}（失败点: {p['failure']}）")
-                    if lines:
-                        prompt += "\n\n【历史经验】\n" + "\n".join(lines)
+                section = format_advice_section(advice)
+                if section:
+                    prompt += "\n\n" + section
             except Exception as e:
                 logger.warning(f"[D17] 获取历史经验失败: {e}")
 
@@ -487,12 +482,24 @@ class ReActLoop:
                     )
                 except asyncio.TimeoutError:
                     logger.error(f"   [行动] ❌ 工具调用超时(>{self.tool_timeout}s): {tool_name}")
+                    # 阶段 4（D17）：超时失败触发 lessons_db 检索 + next_hint 注入
+                    logger.info(f"   [教训引导] 失败类型=超时 | tool={tool_name} | 开始查询 lessons_db")
+                    lessons = self._write_lesson_hint(context, thought, tool_name)
+                    self._log_lessons_result(lessons, tool_name)
                     return ActionResult.failure_result(f"工具调用超时(>{self.tool_timeout}s): {tool_name}")
                 except Exception as e:
                     logger.error(f"   [行动] ❌ 工具执行失败: {e}")
+                    # 阶段 4（D17）：异常失败触发 lessons_db 检索 + next_hint 注入
+                    logger.info(f"   [教训引导] 失败类型=异常({type(e).__name__}) | tool={tool_name} | 开始查询 lessons_db")
+                    lessons = self._write_lesson_hint(context, thought, tool_name)
+                    self._log_lessons_result(lessons, tool_name)
                     return ActionResult.failure_result(f"工具执行失败: {e}")
             else:
                 logger.warning(f"   [行动] ⚠️ 工具不存在: {tool_name}")
+                # 阶段 4（D17）：工具缺失触发 lessons_db 检索 + next_hint 注入
+                logger.info(f"   [教训引导] 失败类型=工具不存在 | tool={tool_name} | 开始查询 lessons_db")
+                lessons = self._write_lesson_hint(context, thought, tool_name)
+                self._log_lessons_result(lessons, tool_name)
                 return ActionResult.failure_result(f"工具不存在: {tool_name}")
 
         if thought.result:
@@ -504,6 +511,63 @@ class ReActLoop:
 
         logger.warning("   [行动] ⚠️ 无法确定执行动作")
         return ActionResult.failure_result("无法确定执行动作")
+
+    def _log_lessons_result(self, lessons: List[Lesson], tool_name: str) -> None:
+        """打印 lessons_db 查询的具体返回内容（含 task_description/failure_point/
+        solution 全字段），便于验证教训注入逻辑；空结果时打印空列表。"""
+        details = [lesson.to_dict() for lesson in lessons]
+        logger.info(f"   [教训引导] lessons_db 查询返回内容: {details} | tool={tool_name}")
+
+    def _write_lesson_hint(self, context: Dict, thought: ThoughtResult, tool_name: str) -> List[Lesson]:
+        """阶段 4（D17）：工具失败时从教训库查询同类教训，生成下一步提示写入
+        context["_next_hint"]（供下轮 _think 注入提示词引导下一步）。
+
+        教训库无同类记录 / 查询失败时静默跳过（不改变失败语义，仅增强引导）。
+        日志：失败上下文 → 分类 → 查询 → 命中/未命中 → 注入，全链路可观测。
+
+        Returns:
+            List[Lesson]: 本次查询返回的教训列表（供 _act 打印具体内容验证）
+        """
+        if not self.reflector:
+            logger.debug(f"[教训引导] reflector 未配置，跳过 next_hint（tool={tool_name}）")
+            return []
+        try:
+            desc = thought.action.description if thought.action else ""
+            task_type = classify_task(desc or tool_name)
+            logger.info(
+                f"[教训引导] 检索开始 | tool={tool_name}"
+                f" | 失败描述: {str(desc)[:60] or '(空)'}"
+                f" | task_type={task_type}"
+            )
+            lessons = self.reflector.query_lessons(task_type, limit=1)
+            logger.info(
+                f"[教训引导] lessons_db 查询返回 {len(lessons)} 条同类教训"
+                f" | task_type={task_type} | tool={tool_name}"
+            )
+            if lessons:
+                lesson = lessons[0]
+                logger.info(
+                    f"[教训引导] 命中教训 | lesson_id={lesson.id}"
+                    f" | task_description={str(lesson.task_description)[:60]}"
+                    f" | failure_point={str(lesson.failure_point)[:60]}"
+                    f" | solution={str(lesson.solution)[:60]}"
+                )
+                hint = (
+                    f"工具 {tool_name} 执行失败；同类任务曾失败："
+                    f"{lesson.failure_point[:80]}。"
+                    f"建议 {lesson.solution or '参考该教训调整参数或更换工具后再试'}"
+                )
+                context["_next_hint"] = hint
+                logger.info(f"[教训引导] 已注入 context['_next_hint'] | hint={hint[:100]}")
+            else:
+                logger.info(
+                    f"[教训引导] 教训库无同类记录，跳过注入 | tool={tool_name}"
+                    f" | task_type={task_type}（不改变失败语义）"
+                )
+            return lessons
+        except Exception as e:
+            logger.warning(f"[教训引导] 教训查询失败（不阻断失败语义）: {e}")
+            return []
 
     def _format_history(self, history: List[ReActStep]) -> str:
         """格式化执行历史"""

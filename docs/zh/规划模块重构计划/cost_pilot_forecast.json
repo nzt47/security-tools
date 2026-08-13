@@ -1,0 +1,162 @@
+{
+  "params": {
+    "chars_per_token": 3.0,
+    "price_per_1k": 0.002
+  },
+  "aggregate": {
+    "cases_total": 13,
+    "llm_calls": 9,
+    "in_tokens": 1195.3,
+    "out_tokens": 411.5,
+    "cost_usd": 0.00321399,
+    "by_category": {
+      "failure_injection": {
+        "cases": 3,
+        "llm_calls": 0,
+        "in_tokens": 0.0,
+        "out_tokens": 0.0,
+        "cost_usd": 0.0
+      },
+      "multi_step": {
+        "cases": 4,
+        "llm_calls": 0,
+        "in_tokens": 0.0,
+        "out_tokens": 0.0,
+        "cost_usd": 0.0
+      },
+      "parallel": {
+        "cases": 3,
+        "llm_calls": 6,
+        "in_tokens": 1176.4,
+        "out_tokens": 404.6,
+        "cost_usd": 0.003162
+      },
+      "simple": {
+        "cases": 3,
+        "llm_calls": 3,
+        "in_tokens": 18.9,
+        "out_tokens": 6.9,
+        "cost_usd": 5.199e-05
+      }
+    }
+  },
+  "results": [
+    {
+      "id": "simple_greet",
+      "category": "simple",
+      "path": "chat",
+      "llm_calls": 1,
+      "in_tokens": 6.3,
+      "out_tokens": 2.3,
+      "cost_usd": 1.733e-05
+    },
+    {
+      "id": "simple_thanks",
+      "category": "simple",
+      "path": "chat",
+      "llm_calls": 1,
+      "in_tokens": 6.3,
+      "out_tokens": 2.3,
+      "cost_usd": 1.733e-05
+    },
+    {
+      "id": "simple_goodbye",
+      "category": "simple",
+      "path": "chat",
+      "llm_calls": 1,
+      "in_tokens": 6.3,
+      "out_tokens": 2.3,
+      "cost_usd": 1.733e-05
+    },
+    {
+      "id": "multi_open_save",
+      "category": "multi_step",
+      "path": "plan+execute",
+      "llm_calls": 0,
+      "in_tokens": 0.0,
+      "out_tokens": 0.0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "multi_three_steps",
+      "category": "multi_step",
+      "path": "plan+execute",
+      "llm_calls": 0,
+      "in_tokens": 0.0,
+      "out_tokens": 0.0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "multi_read_write",
+      "category": "multi_step",
+      "path": "plan+execute",
+      "llm_calls": 0,
+      "in_tokens": 0.0,
+      "out_tokens": 0.0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "multi_search_notify",
+      "category": "multi_step",
+      "path": "plan+execute",
+      "llm_calls": 0,
+      "in_tokens": 0.0,
+      "out_tokens": 0.0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "parallel_two",
+      "category": "parallel",
+      "path": "plan+execute",
+      "llm_calls": 2,
+      "in_tokens": 390.7,
+      "out_tokens": 108.3,
+      "cost_usd": 0.000998
+    },
+    {
+      "id": "parallel_three",
+      "category": "parallel",
+      "path": "plan+execute",
+      "llm_calls": 2,
+      "in_tokens": 392.0,
+      "out_tokens": 148.0,
+      "cost_usd": 0.00108
+    },
+    {
+      "id": "parallel_mixed_deps",
+      "category": "parallel",
+      "path": "plan+execute",
+      "llm_calls": 2,
+      "in_tokens": 393.7,
+      "out_tokens": 148.3,
+      "cost_usd": 0.001084
+    },
+    {
+      "id": "fail_tool_raises",
+      "category": "failure_injection",
+      "path": "plan+execute",
+      "llm_calls": 0,
+      "in_tokens": 0.0,
+      "out_tokens": 0.0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "fail_tool_timeout",
+      "category": "failure_injection",
+      "path": "plan+execute",
+      "llm_calls": 0,
+      "in_tokens": 0.0,
+      "out_tokens": 0.0,
+      "cost_usd": 0.0
+    },
+    {
+      "id": "fail_high_priority",
+      "category": "failure_injection",
+      "path": "plan+execute",
+      "llm_calls": 0,
+      "in_tokens": 0.0,
+      "out_tokens": 0.0,
+      "cost_usd": 0.0
+    }
+  ]
+}

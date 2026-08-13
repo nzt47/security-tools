@@ -18,9 +18,11 @@ from .decomposer import TaskDecomposer
 from .executor import PlanExecutor, ToolRegistry
 from .storage import PlanningStorage
 from .validator import PlanValidationError, validate_plan, validate_plan_or_raise
-from .reflector import Reflector
+from .reflector import Reflector, classify_task
 from .state_machine import PlanStateMachine, InvalidStateTransitionError
 from .react import ReActLoop
+from .metrics import PlanningMetrics
+from .summary import build_react_summary, build_react_summary_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +36,16 @@ class ChatResult:
     """对话结果"""
 
     def __init__(self, response: str, plan: Plan = None, react_result: ReActResult = None,
-                 used_planning: bool = False, pending_plan_id: str = None):
+                 used_planning: bool = False, pending_plan_id: str = None,
+                 plan_summary: Optional[Dict] = None):
         self.response = response
         self.plan = plan
         self.react_result = react_result
         self.used_planning = used_planning
         # 阶段 3（D18 恢复语义）：ask_user 暂停时记录挂起的 plan_id（供 resume_plan 恢复）
         self.pending_plan_id = pending_plan_id
+        # 阶段 4（D15）：结构化计划摘要（to_dict 追加输出；None 兼容既有调用）
+        self.plan_summary = plan_summary
         self.timestamp = datetime.now()
 
     def to_dict(self) -> dict:
@@ -50,7 +55,8 @@ class ChatResult:
             "plan_id": self.plan.id if self.plan else None,
             "iterations": self.react_result.iterations if self.react_result else None,
             "success": self.react_result.success if self.react_result else False,
-            "timestamp": self.timestamp.isoformat()
+            "timestamp": self.timestamp.isoformat(),
+            "plan_summary": self.plan_summary,
         }
 
 
@@ -82,6 +88,12 @@ class PlanningCore:
         self._metrics_success_count = 0
         self._metrics_total_iterations = 0
         self._metrics_total_cost = 0.0
+
+        # 阶段 4（D16）：规划指标收集器（planning.metrics.enabled 开关，默认 true；
+        # 关闭时 PlanningMetrics 全部方法静默跳过，零行为变化）
+        self.planning_metrics = PlanningMetrics(
+            enabled=self.config.get("metrics", {}).get("enabled", True)
+        )
 
         logger.info("="*60)
         logger.info("开始初始化规划引擎核心...")
@@ -120,6 +132,10 @@ class PlanningCore:
         self.reflector = Reflector(llm_service, memory_manager, reflector_config)
         # 阶段 3（D14）：失败归因依赖补注（executor.reflector 在 reflector 创建后注入）
         self.executor.reflector = self.reflector
+        # 阶段 4（D16/D17）：指标注入 reflector（get_advice_for_task 内部埋点）；
+        # 分解器经验注入补注（decomposer 先于 reflector 创建，创建后回填）
+        self.reflector.metrics = self.planning_metrics
+        self.decomposer.reflector = self.reflector
         logger.info("反思引擎初始化完成")
 
         self.state_machine = PlanStateMachine()
@@ -214,7 +230,12 @@ class PlanningCore:
 
         try:
             logger.info("📋 步骤1: 调用任务分解器...")
+            # 阶段 4（D16）：规划生成（decompose）耗时埋点
+            decompose_start = datetime.now()
             plan = await self.decomposer.decompose(task, context)
+            self.planning_metrics.record_decompose(
+                (datetime.now() - decompose_start).total_seconds() * 1000
+            )
 
             if plan.state == PlanState.READY:
                 logger.info(f"✅ 任务分解成功!")
@@ -275,6 +296,8 @@ class PlanningCore:
 
         # D16 修复：规划计数埋点（每次 execute_plan 记 1 次）
         self._metrics_total_plans += 1
+        # 阶段 4（D16）：执行耗时埋点计时起点
+        exec_start = datetime.now()
 
         logger.info("="*60)
         logger.info("🚀 [规划引擎] 开始执行计划")
@@ -295,6 +318,8 @@ class PlanningCore:
                 plan.error = str(e)
                 logger.error(f"❌ 计划验证失败: {e}")
                 self.executor._finalize_state(plan, PlanState.FAILED, reason="计划验证失败")
+                self._record_plan_result(plan, success=False,
+                                         duration_ms=(datetime.now() - exec_start).total_seconds() * 1000)
                 return plan
 
             logger.info("📊 步骤1: 状态转换 -> EXECUTING")
@@ -345,6 +370,9 @@ class PlanningCore:
             self._metrics_total_iterations += plan.current_step
             if plan.state == PlanState.COMPLETED:
                 self._metrics_success_count += 1
+            # 阶段 4（D16）：计划路径收尾埋点（task_type 复用 reflector 分类）
+            self._record_plan_result(plan, success=(plan.state == PlanState.COMPLETED),
+                                     duration_ms=(datetime.now() - exec_start).total_seconds() * 1000)
 
             return plan
 
@@ -355,8 +383,23 @@ class PlanningCore:
             # 边界 #6：恢复路径统一经 _finalize_state（状态机优先、非法降级），
             # 不再直接赋值绕过状态机；若计划已取消则保留 CANCELLED（边界 #2 同逻辑）
             self.executor._finalize_state(plan, PlanState.FAILED, reason="状态转换失败，计划标记失败")
+            # 阶段 4（D16）：状态转换失败同样计入埋点（failed）
+            self._record_plan_result(plan, success=False,
+                                     duration_ms=(datetime.now() - exec_start).total_seconds() * 1000)
             logger.info("="*60)
             return plan
+
+    def _record_plan_result(self, plan: Plan, *, success: bool, duration_ms: float) -> None:
+        """阶段 4（D16）：计划路径收尾埋点（task_type 复用 reflector 分类；
+        cost 优先取预算快照，缺省 0.0；埋点内部异常隔离不阻断主流程）"""
+        budget = (plan.metadata or {}).get("budget") or {}
+        self.planning_metrics.record_plan_result(
+            task_type=classify_task(plan.original_task),
+            success=success,
+            iterations=plan.current_step,
+            duration_ms=duration_ms,
+            cost=float(budget.get("cost") or 0.0),
+        )
 
     async def chat(self, message: str, context: Dict = None) -> ChatResult:
         """
@@ -482,11 +525,32 @@ class PlanningCore:
             logger.info("✅ 规划模式处理完成")
             logger.info("="*60)
 
+            # 阶段 4（D16/D15）：ReAct 结束点埋点 + 结构化执行摘要
+            # （task_type 复用 reflector 分类；cost 取 react_result 预算记账）
+            self.planning_metrics.record_plan_result(
+                task_type=classify_task(message),
+                success=react_result.success,
+                iterations=react_result.iterations,
+                duration_ms=react_result.total_duration_ms,
+                cost=react_result.cost,
+            )
+            plan_summary = build_react_summary(message, react_result)
+
+            # 阶段 4（D15）：markdown 计划摘要追加到响应流（控制台/调用方直接可见
+            # 格式化摘要）；摘要渲染失败仅告警，不影响主响应（不变量：response 可读）。
+            try:
+                summary_md = build_react_summary_markdown(plan_summary)
+                if summary_md:
+                    response += f"\n\n---\n\n{summary_md}"
+            except Exception as e:
+                logger.warning(f"[D15] 摘要追加响应失败（不阻断）: {e}")
+
             return ChatResult(
                 response=response,
                 react_result=react_result,
                 used_planning=True,
                 pending_plan_id=pending_plan_id,
+                plan_summary=plan_summary,
             )
         except Exception as e:
             logger.error(f"❌ 规划处理失败: {e}")
@@ -669,3 +733,8 @@ class PlanningCore:
             "total_iterations": self._metrics_total_iterations,
             "total_cost": self._metrics_total_cost,
         }
+
+    def get_planning_metrics(self) -> Dict:
+        """阶段 4（D16）：规划指标汇总（供状态面板/健康检查复用；
+        planning.metrics.enabled=false 时返回 {"enabled": False}）"""
+        return self.planning_metrics.get_metrics()

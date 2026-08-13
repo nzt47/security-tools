@@ -10,6 +10,7 @@ from datetime import datetime
 
 from .models import Task, TaskType, Plan, PlanState
 from .llm_json import extract_json, extract_json_with_retry
+from .reflector import format_advice_section
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +27,13 @@ class TaskDecomposer:
 
 上下文: {context}
 
+{experience_hints}
 要求:
 1. 识别任务中的关键动作步骤
 2. 确定动作的执行顺序(考虑依赖关系)
 3. 识别可以并行执行的动作
 4. 每个子任务应该是独立的、可验证的
+5. 优先参考任务下方给出的历史经验与常见陷阱（若存在），避开已验证的失败点
 
 输出JSON格式:
 {{
@@ -51,17 +54,20 @@ class TaskDecomposer:
 
 请直接输出JSON,不要有其他内容:"""
 
-    def __init__(self, llm_service=None, config: Dict = None):
+    def __init__(self, llm_service=None, config: Dict = None, reflector=None):
         """
         初始化分解器
 
         Args:
             llm_service: LLM服务实例
             config: 配置字典
+            reflector: 反思引擎（阶段 4 / D17：分解前注入【历史经验】段；
+                       None 时保持无经验场景行为不变）
         """
         self.llm = llm_service
         self.config = config or {}
         self.max_subtasks = self.config.get("max_subtasks", 20)
+        self.reflector = reflector
 
     async def decompose(self, task_description: str, context: Dict[str, Any] = None) -> Plan:
         """
@@ -143,9 +149,18 @@ class TaskDecomposer:
         context_str = json.dumps(context, ensure_ascii=False, indent=2)
 
         def _build_prompt() -> str:
+            # 阶段 4（D17）：分解前注入【历史经验】段（reflector 未注入/无经验 → 空段）
+            experience_hints = ""
+            if self.reflector is not None:
+                try:
+                    advice = self.reflector.get_advice_for_task(task)
+                    experience_hints = format_advice_section(advice)
+                except Exception as e:
+                    logger.warning(f"[经验回灌] 分解提示词注入失败: {e}")
             return self.DECOMPOSITION_PROMPT.format(
                 task_description=task,
-                context=context_str
+                context=context_str,
+                experience_hints=experience_hints + "\n" if experience_hints else ""
             )
 
         prompt = _build_prompt()
