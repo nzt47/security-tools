@@ -6,6 +6,42 @@
 
 ---
 
+## [CHG] - 2026-08-13: SessionManager 锁内 I/O 修复（消息追加移出主锁 + 独立 append 锁）+ 高并发验证 ✅
+
+**影响模块**: `agent/session_manager.py`, `tests/unit/test_session_manager_concurrency.py`
+**关联提交**: `41edffdc`（fix(session_manager): 消息追加移出主锁并加独立 append 锁（并发审计 B））
+
+### 背景
+
+并发审计 B：`add_message` 在 `self._lock` 内执行消息文件追加 + index 全量读写——磁盘 I/O 全程持锁，慢磁盘会拖住所有会话操作与读路径。
+
+### Fixed — 并发竞态
+
+- `add_message`：消息文件追加移出主锁 `self._lock`——慢磁盘不再阻塞会话管理/读操作
+- **Windows 平台 O_APPEND 非原子性**：`open("a")` 在 Windows 上是 seek+write 组合（非原子），多线程并发追加会交错覆盖丢行（POSIX 原子追加、Windows 非原子）——故新增独立 `_append_lock` 保护"open→write→flush"单次写
+- `clear_messages`：清空消息文件纳入 `_append_lock`，防清空与并发追加交错产生残留行/丢消息
+- index 读-改-写保持主锁内：count 递增必须与写回原子（锁外写回会被并发旧值覆盖丢计数，一致性不变式；index 为小文件，锁内 I/O 时间短）
+
+### Added — 并发测试
+
+- 新增计时验证用例 `test_slow_append_does_not_block_reads`：模拟慢磁盘（`open("a")` 延迟 0.2s）时 `get_messages` 不被阻塞（<0.15s，旧实现约 0.2s），且慢 append 最终写入成功
+- 既有并发用例回归：并发不同会话无丢失；并发同会话 200 条消息无丢失 + message_count 精确 + 无重复（3 轮 × 3 用例全绿）
+
+### Perf — 锁开销与并发度
+
+- 消息追加临界区从"主锁 + 大文件 I/O"降为"独立锁 + 单次写"；慢磁盘只阻塞追加方，不阻塞会话管理/读
+
+### 验证结果
+
+- 新增 + 既有并发测试 3/3 通过（3 轮稳定）；既有回归 test_session_manager_comprehensive 60/60 通过
+
+### 副作用评估（已确认无严重副作用）
+
+- 单线程行为完全等价；并发追加行顺序不保证（O_APPEND 语义本就如此），消息内容完整无丢失
+- 已知权衡：`get_messages` 与追加并发时可能读到 flush 中半行——`json.JSONDecodeError` 已有容忍（跳过半行），窗口为单次写微秒级，可接受
+
+---
+
 ## [CHG] - 2026-08-13: AlertNotifier 并发修复（sender.send 网络 I/O 移出锁外）+ 高并发验证 ✅
 
 **影响模块**: `agent/monitoring/alert_notifier.py`, `tests/unit/test_alert_notifier_concurrency.py`(新增), `tests/unit/test_session_manager_concurrency.py`(新增)
