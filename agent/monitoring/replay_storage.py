@@ -260,65 +260,68 @@ class ReplayStorage:
 
         file_path = self._file_path_for(replay_id, ts_iso, compressed)
 
-        with self._lock:
-            # 2. 写文件
-            try:
-                if compressed and encoding == "gzip-base64":
-                    # data 是 base64 编码的 gzip 数据，先解码
-                    try:
-                        gz_bytes = base64.b64decode(data)
-                    except Exception as e:
-                        err = ReplayStorageError(
-                            REPLAY_ERR_DECODE_FAILED,
-                            f"base64 解码失败: {e}",
-                        )
-                        _emit_log(action, "error", tid, result="b64_decode_failed",
-                                  duration_ms=_ms(t0), error=err.message, code=err.code)
-                        raise err from e
-                    with open(file_path, "wb") as f:
-                        f.write(gz_bytes)
-                    size_bytes = len(gz_bytes)
-                elif compressed:
-                    # data 是 gzip 字节（可能是 str 编码后的）
-                    try:
-                        if isinstance(data, str):
-                            data_bytes = data.encode("utf-8")
-                        else:
-                            data_bytes = data
-                        with gzip.open(file_path, "wb") as f:
-                            f.write(data_bytes)
-                        size_bytes = os.path.getsize(file_path)
-                    except Exception as e:
-                        err = ReplayStorageError(
-                            REPLAY_ERR_DECODE_FAILED,
-                            f"gzip 编码失败: {e}",
-                        )
-                        _emit_log(action, "error", tid, result="gzip_encode_failed",
-                                  duration_ms=_ms(t0), error=err.message, code=err.code)
-                        raise err from e
-                else:
-                    # 未压缩的 JSON 字符串
-                    with open(file_path, "w", encoding="utf-8") as f:
-                        f.write(data if isinstance(data, str) else data.decode("utf-8"))
+        # 2. 写文件（[2026-08-13 并发审计] 文件 I/O 移出 RLock——
+        #    慢磁盘/gzip 压缩不再阻塞查询/删除等其他锁路径；
+        #    同 replay_id 并发 store 属冲突操作，语义为"后写者胜"）
+        try:
+            if compressed and encoding == "gzip-base64":
+                # data 是 base64 编码的 gzip 数据，先解码
+                try:
+                    gz_bytes = base64.b64decode(data)
+                except Exception as e:
+                    err = ReplayStorageError(
+                        REPLAY_ERR_DECODE_FAILED,
+                        f"base64 解码失败: {e}",
+                    )
+                    _emit_log(action, "error", tid, result="b64_decode_failed",
+                              duration_ms=_ms(t0), error=err.message, code=err.code)
+                    raise err from e
+                with open(file_path, "wb") as f:
+                    f.write(gz_bytes)
+                size_bytes = len(gz_bytes)
+            elif compressed:
+                # data 是 gzip 字节（可能是 str 编码后的）
+                try:
+                    if isinstance(data, str):
+                        data_bytes = data.encode("utf-8")
+                    else:
+                        data_bytes = data
+                    with gzip.open(file_path, "wb") as f:
+                        f.write(data_bytes)
                     size_bytes = os.path.getsize(file_path)
+                except Exception as e:
+                    err = ReplayStorageError(
+                        REPLAY_ERR_DECODE_FAILED,
+                        f"gzip 编码失败: {e}",
+                    )
+                    _emit_log(action, "error", tid, result="gzip_encode_failed",
+                              duration_ms=_ms(t0), error=err.message, code=err.code)
+                    raise err from e
+            else:
+                # 未压缩的 JSON 字符串
+                with open(file_path, "w", encoding="utf-8") as f:
+                    f.write(data if isinstance(data, str) else data.decode("utf-8"))
+                size_bytes = os.path.getsize(file_path)
 
-                _emit_log(action, "debug", tid, result="file_written",
-                          duration_ms=_ms(t0),
-                          file_path=file_path,
-                          size_bytes=size_bytes)
-            except ReplayStorageError:
-                raise
-            except OSError as e:
-                err = ReplayStorageError(
-                    REPLAY_ERR_STORAGE_FAILED,
-                    f"文件写入失败: {e} (path={file_path})",
-                )
-                _emit_log(action, "error", tid, result="file_write_failed",
-                          duration_ms=_ms(t0), error=err.message, code=err.code,
-                          file_path=file_path, exception_type=type(e).__name__)
-                raise err from e
+            _emit_log(action, "debug", tid, result="file_written",
+                      duration_ms=_ms(t0),
+                      file_path=file_path,
+                      size_bytes=size_bytes)
+        except ReplayStorageError:
+            raise
+        except OSError as e:
+            err = ReplayStorageError(
+                REPLAY_ERR_STORAGE_FAILED,
+                f"文件写入失败: {e} (path={file_path})",
+            )
+            _emit_log(action, "error", tid, result="file_write_failed",
+                      duration_ms=_ms(t0), error=err.message, code=err.code,
+                      file_path=file_path, exception_type=type(e).__name__)
+            raise err from e
 
-            # 3. 写 SQLite（数据库失败需回滚已写文件）
+        # 3. 写 SQLite（锁内：共享连接需互斥；失败仅记录待回滚文件，锁外清理）
+        db_error: Optional[sqlite3.Error] = None
+        with self._lock:
             try:
                 self._conn.execute(
                     """
@@ -338,24 +341,27 @@ class ReplayStorage:
                 _emit_log(action, "debug", tid, result="db_written",
                           duration_ms=_ms(t0), replay_id=replay_id)
             except sqlite3.Error as e:
-                # 数据库失败 → 清理已写文件，避免磁盘泄漏
-                try:
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
-                    _emit_log(action, "warning", tid, result="file_rolled_back",
-                              file_path=file_path)
-                except OSError as cleanup_err:
-                    _emit_log(action, "error", tid, result="cleanup_failed",
-                              error=str(cleanup_err), file_path=file_path)
+                db_error = e
 
-                err = ReplayStorageError(
-                    REPLAY_ERR_DB_FAILED,
-                    f"SQLite 写入失败: {e}",
-                )
-                _emit_log(action, "error", tid, result="db_write_failed",
-                          duration_ms=_ms(t0), error=err.message, code=err.code,
-                          exception_type=type(e).__name__)
-                raise err from e
+        if db_error is not None:
+            # 锁外回滚已写文件，避免磁盘泄漏
+            try:
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                _emit_log(action, "warning", tid, result="file_rolled_back",
+                          file_path=file_path)
+            except OSError as cleanup_err:
+                _emit_log(action, "error", tid, result="cleanup_failed",
+                          error=str(cleanup_err), file_path=file_path)
+
+            err = ReplayStorageError(
+                REPLAY_ERR_DB_FAILED,
+                f"SQLite 写入失败: {db_error}",
+            )
+            _emit_log(action, "error", tid, result="db_write_failed",
+                      duration_ms=_ms(t0), error=err.message, code=err.code,
+                      exception_type=type(db_error).__name__)
+            raise err from db_error
 
         _emit_log(action, "info", tid, result="stored",
                   duration_ms=_ms(t0), replay_id=replay_id,
