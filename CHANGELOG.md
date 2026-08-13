@@ -6,6 +6,75 @@
 
 ---
 
+## [CHG] - 2026-08-13: 多租户三管理器 RLock 原子化（并发锁修复）+ 锁开销基准 ✅
+
+**影响模块**: `agent/multi_tenant.py`, `tests/unit/test_multi_tenant_concurrency.py`(新增), `tests/test_multi_tenant.py`(单线程基线), `docs/zh/多租户并发锁修复_回归测试计划.md`(新增)
+**关联提交**: `bb8d2ff6`（fix(multi_tenant): 三个管理器 RLock 原子化（_save_data 锁外守持锁纪律））
+**变更日志详情**: `docs/zh/多租户并发锁修复_回归测试计划.md`
+
+### 背景
+
+模块级单例 TenantManager / TenantConfigManager / BillingManager 被 HTTP 路由多线程调用，原实现存在 4 类竞态：assign_role 判断+append 非原子（并发对同 user 分配重复 append 丢更新）、delete_tenant 递归 del 与遍历并发抛 RuntimeError、set_config/delete_config「检查-删除」TOCTOU、record_usage append+截断读-改-写丢记录。
+
+### Fixed — 四类并发竞态
+
+- 三个管理器各持 `RLock`：delete_tenant 递归 / get_config 继承链 / check_limit 经 RLock 重入
+- 锁内仅内存 dict/list 变更；文件持久化 `_save_data` 一律锁外（持锁纪律：锁内严禁 I/O）
+- `setdefault` 消除懒创建 TOCTOU；读路径（get_user_roles / get_user_tenants / get_usage）锁内快照遍历
+
+### Added — 并发测试
+
+- `tests/unit/test_multi_tenant_concurrency.py` 5 用例：100 线程×50 次角色分配无重复、并发创建计数精确、20 线程递归删除不崩溃、100 线程×50 次用量计数精确、100 线程配置 set/get/delete 一致
+
+### Perf — 锁开销基准
+
+- `RLock` 单次 acquire/release **0.22µs**（100 万次共 215.6ms，本机实测）；10k QPS 场景锁总开销约 2.2ms/s，HTTP 请求级无感知影响
+- 读路径加锁为纯内存 µs 级操作，单线程无竞争、无串行化影响；无死锁（锁序单向 Config→Tenant，无反转路径）
+
+### 副作用评估（已确认无严重副作用）
+
+- 单线程行为完全等价（签名/返回/异常不变）
+- 已知权衡 1：锁外 `_save_data` 存在持久化窗口（磁盘短暂落后内存，后续写入 dump 收敛）
+- 已知权衡 2：create_organization/workspace 两步非原子（极端并发创建即删时 assign_role 抛"租户不存在"，与原语义一致，非修复引入）
+
+### 验证结果
+
+- 单线程基线 `tests/test_multi_tenant.py` 10 passed (0.59s)
+- 并发 5 用例 × 3 次独立运行全通过（1.40s / 1.63s / 1.49s）
+
+---
+
+## [CHG] - 2026-08-12: 五层健康探针采集与 L5 断线补全 ✅
+
+**影响模块**: `agent/health/probes.py`(新增), `agent/health/storage.py`(新增), `agent/health/collector.py`(新增), `tests/unit/test_health_probes_missing.py`(新增), `docs/zh/自我修复机制重构计划/五层健康探针归一化算法与L5断线补全.md`(新增), `tests/boundary/test_health_boundary.py`(断言修正)
+**关联提交**: `aa4b303d`（feat(health): 五层健康探针采集与L5断线补全模块）
+**变更日志详情**: `docs/CHANGELOG_HEALTH_PROBES_20260812.md`
+
+### 背景
+
+健康评估此前仅有评分逻辑、缺真实数据源：探针数据靠手工注入，无数据时 `overall` 被迫「假满分」(1.0) 掩盖故障；健康历史无持久化，Dashboard 断线后无法回补。
+
+### Added — 五层探针采集体系
+
+- `probes.py`：L1 进程资源 / L2 依赖服务 / L3 LLM工具 / L4 业务接口 / L5 语义质量五层探针；`available=False` 时 `score` 必须为 `None`（禁假满分），单层失败降级不抛异常，`run_all_probes()` 键序固定
+- `storage.py`：JSONL 按日滚动 `data/health/history-YYYY-MM-DD.jsonl`，`query_history(days)` 跨日聚合，写入失败仅告警；全局单例 `health_storage`
+- `collector.py`：60s 幂等 daemon 采集线程，`run_all_probes → assess_with_probes → append`，单轮失败不中断循环
+
+### Fixed — 假满分断言修正
+
+- `tests/boundary/test_health_boundary.py` 三处断言：`assess({})` / `assess(None)` 的 `overall` 由 `== 1.0` 改为 `is None`（无数据禁假满分）
+
+### Added — 测试与文档
+
+- `tests/unit/test_health_probes_missing.py`（10 项）：L1–L5 各层缺失组合 → `overall=None`；L5 缺失 L1–L4 重归一化（手算验证 0.7944…）；精度保留不 round
+- 归一化算法与不动点约束文档
+
+### 验证结果
+
+- 定向回归 42 passed；全量回归 14153 passed / 21 failed / 8 errors（21 个失败与本提交零交集，均为预存或本地 hook/环境所致）
+
+---
+
 ## [CHG] - 2026-08-09: 知识库列表内存缓存（use_cache）+ trace_id 并发安全加固 ✅
 
 **影响模块**: `agent/knowledge/card.py`, `agent/server_routes/routes_knowledge.py`, `agent/monitoring/tracing.py`, `tests/unit/test_knowledge_card.py`, `tests/unit/test_routes_knowledge.py`, `tests/performance/test_knowledge_link_perf.py`, `scripts/bench_list_cache_compare.py`, `scripts/probe_list_100k_perf.py`, `.github/workflows/test.yml`, `Dockerfile.knowledge-api`

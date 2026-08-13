@@ -1,0 +1,89 @@
+[
+  {
+    "id": "code-001",
+    "category": "code",
+    "task": "实现一个函数：输入整数 n，返回 1..n 的和",
+    "expected_output": {
+      "type": "validator",
+      "expression": "isinstance(result, (int, float)) and result == 15"
+    },
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "n": 5
+      },
+      "note": "校验 sum(1..5)==15"
+    }
+  },
+  {
+    "id": "code-002",
+    "category": "code",
+    "task": "实现一个函数：判断字符串是否为回文",
+    "expected_output": {
+      "type": "validator",
+      "expression": "isinstance(result, bool) and result is True"
+    },
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "text": "level"
+      },
+      "note": "校验回文判定"
+    }
+  },
+  {
+    "id": "code-003",
+    "category": "code",
+    "task": "实现一个函数：计算斐波那契数列第 n 项（n=10 → 55）",
+    "expected_output": {
+      "type": "validator",
+      "expression": "isinstance(result, (int, float)) and result == 55"
+    },
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "n": 10
+      },
+      "note": "校验斐波那契第 10 项==55"
+    }
+  },
+  {
+    "id": "code-004",
+    "category": "code",
+    "task": "实现一个函数：返回输入列表去重后的元素个数",
+    "expected_output": {
+      "type": "validator",
+      "expression": "isinstance(result, int) and result == 3"
+    },
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "items": [
+          1,
+          2,
+          2,
+          3,
+          3,
+          3
+        ]
+      },
+      "note": "校验去重后个数==3"
+    }
+  },
+  {
+    "id": "code-005",
+    "category": "code",
+    "task": "实现一个函数：将输入字符串转为大写",
+    "expected_output": {
+      "type": "validator",
+      "expression": "isinstance(result, str) and result == 'HELLO'"
+    },
+    "created_at": "2026-08-12T00:00:00",
+    "metadata": {
+      "input": {
+        "text": "hello"
+      },
+      "note": "校验大写转换"
+    }
+  }
+]

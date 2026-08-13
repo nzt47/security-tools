@@ -335,7 +335,14 @@ class _FakeMPProcess:
             self.exitcode = 0
         except SystemExit as e:
             self.exitcode = e.code if isinstance(e.code, int) else 1
-        except Exception:
+        except BaseException:
+            # Why 捕获 BaseException 而非 Exception: terminate() 通过
+            # _async_raise_thread 注入的 KeyboardInterrupt 是 BaseException,
+            # 不被 except Exception 捕获; 若不处理会从线程逃逸, 被 pytest
+            # threadexception 插件收集 → RuntimeError: Failed to process
+            # thread exception (CI 3.10-windows 偶发, run 31462960857)。
+            # 超时路径 (is_alive→terminate) 不读 exitcode, 置 1 仅表示
+            # 「被中断退出」, 不影响 run_sandbox 的 timed_out 断言语义。
             self.exitcode = 1
 
     def join(self, timeout=None):
@@ -497,6 +504,28 @@ def _skills_offline_mode():
             if hasattr(p, "__enter__"):
                 stack.enter_context(p)
         yield
+
+
+@pytest.fixture(scope="function", autouse=True)
+def _isolate_evolution_archive(tmp_path, monkeypatch):
+    """EVO-T1 默认档案库单例隔离：每次测试指向独立 tmp 路径。
+
+    Why: lineage.get_default_archive() 是进程级懒加载单例，默认路径指向
+    项目内 data/evolution_archive.jsonl。若不复位单例，bump_version 自动
+    记录的谱系会在多次测试间累积到同一文件，导致 query 精确断言
+    （如 test_auto_record_by_default 的 len(hits)==1）跨测试污染失败。
+    通过 env 重定向 + 复位 _default_archive，让每个测试拿到干净单例。
+    """
+    import agent.skills_mgmt.lineage as _lineage_mod
+    monkeypatch.setenv(
+        "EVOLUTION_ARCHIVE_PATH",
+        str(tmp_path / "evolution_archive.jsonl"))
+    monkeypatch.setenv(
+        "EVOLUTION_ARCHIVE_OLD_PATH",
+        str(tmp_path / "evolution_archive_old.jsonl"))
+    _lineage_mod._default_archive = None  # 下次访问按新 env 重建
+    yield
+    _lineage_mod._default_archive = None
 
 
 @pytest.fixture

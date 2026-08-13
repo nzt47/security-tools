@@ -8,7 +8,9 @@ Plan.is_success()（要求 state == COMPLETED），导致"全部成功"分支永
 导致 core.execute_plan() 步骤4 的 `if plan.state == PlanState.EXECUTING` 永不成立（死代码），
 (EXECUTING, COMPLETED) 状态机钩子永不触发、转换历史缺失。
 
-预期失败：当前代码 result 含"部分任务失败" → 断言失败即复现成功。
+预期失败（阶段 0 复现）：当前代码 result 含"部分任务失败" → 断言失败即复现成功。
+修复后（阶段 1）：executor 先基于任务状态计算 all_completed/any_failed 再设置 COMPLETED 与
+result，全成功计划 result="所有任务执行成功"；is_success() 对外语义不变（state==COMPLETED）。
 """
 import pytest
 from planning.core import PlanningCore
@@ -34,6 +36,7 @@ class TestDefectD1:
         # 目标行为：全成功计划应进入 COMPLETED 且 result 为成功语义
         assert result.is_success() is True
         assert "部分任务失败" not in str(result.result)
+        assert str(result.result) == "所有任务执行成功"
 
     @pytest.mark.asyncio
     async def test_final_transition_goes_through_state_machine(self):

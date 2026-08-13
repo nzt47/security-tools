@@ -76,7 +76,10 @@ class TestPerfTrace:
         with perf_monitor.perf_trace("test", "disabled"):
             pass
         stats = perf_monitor.get_stats()
-        assert len(stats) == 0
+        # 【变易·CHG-2026-0811】断言改 key 级: 3.10-windows CI 上后台线程
+        # (observability/采样) 可能向全局 _STATS 写入其他 key, len==0 偶发 flaky。
+        # 测试意图是「disable 时本次埋点不记录」, 验证目标 key 不存在即可。
+        assert "test.disabled" not in stats
 
     def test_perf_trace_calculates_speedup(self):
         with perf_monitor.perf_trace("mod", "act", old_us=100.0):
@@ -117,10 +120,16 @@ class TestStatsAggregation:
         assert s["avg_old_us"] == 10.0
 
     def test_reset_stats(self):
-        perf_monitor.record_call("r", "t", 1.0, 2.0)
-        assert len(perf_monitor.get_stats()) == 1
+        # 【变易·CHG-2026-0811】断言改 key 级: 3.10-windows CI 实测
+        # assert 2 == 1 (setup reset 后后台线程写入其他 key)。测试意图是
+        # record 后目标 key 存在、reset 后消失, 不依赖全局 stats 纯净。
         perf_monitor.reset_stats()
-        assert len(perf_monitor.get_stats()) == 0
+        perf_monitor.record_call("r", "t", 1.0, 2.0)
+        stats = perf_monitor.get_stats()
+        assert "r.t" in stats
+        assert stats["r.t"]["count"] == 1
+        perf_monitor.reset_stats()
+        assert "r.t" not in perf_monitor.get_stats()
 
     def test_negative_duration_zeroed(self):
         """边界显性化：负数耗时归零"""
@@ -191,12 +200,18 @@ class TestLogDictIntegration:
     def test_log_dict_records_when_enabled(self):
         """启用时记录埋点"""
         perf_monitor.enable()
+        # 【变易·CHG-2026-0811】增量断言: 模块 _STATS 为全局单例(设计允许并发,
+        # _LOCK 保护), CI 多 worker 场景下 enable 状态可能被同进程其他代码写入,
+        # 绝对值 count==1 偶发 flaky (run 31516398562 3.11-windows assert 2 == 1)。
+        # 改为验证本次 log_dict 调用恰好使计数 +1, 测试语义不变。
+        before = perf_monitor.get_stats()
         payload = {"message": "test", "module_name": "t", "action": "a"}
         result = log_dict(payload)
         assert "trace_id" in result
         stats = perf_monitor.get_stats()
-        assert "log_dict.normalize" in stats
-        assert stats["log_dict.normalize"]["count"] == 1
+        key = "log_dict.normalize"
+        delta = stats.get(key, {}).get("count", 0) - before.get(key, {}).get("count", 0)
+        assert delta == 1
 
     def test_log_dict_correctness_preserved_when_enabled(self):
         """启用埋点时功能正确性不受影响"""

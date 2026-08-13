@@ -431,6 +431,9 @@ class LifecycleManager:
         self._health_check_interval = self._config.get("behavior", {}).get("check_interval", 30)
         self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
         self._interaction_count = 0
+        # 与 orchestrator.process 的 _interaction_count 递增配套：锁内仅内存整数
+        # 递增（持锁纪律），防多线程并发 process() 丢更新
+        self._interaction_lock = threading.Lock()
         self._reflection_history = []
         self._last_tool_steps = []
         self._last_reasoning = None

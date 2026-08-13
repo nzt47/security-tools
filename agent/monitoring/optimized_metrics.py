@@ -26,32 +26,48 @@ except ImportError:
 
 
 class LockFreeCounter:
-    """无锁计数器
-    
-    使用线程本地存储减少锁竞争，在Python中通过GIL保证原子性
+    """计数器（监控软指标）
+
+    【变易】历史类名 LockFreeCounter 保留以兼容 __all__ 导出与既有调用点，
+    实际实现以 threading.Lock 保证计数精确：
+    - Python 的 `+=` 是「读-改-写」序列（LOAD_ATTR / BINARY_OP / STORE_ATTR
+      三条字节码），GIL 仅在字节码边界按检查间隔（默认 5ms）切换，并不保证
+      该序列原子 → 旧注释「GIL 保证原子性」系误判（多线程并发会丢更新）；
+    - 锁内仅内存整数变更，无 I/O；单次持锁 ~0.4µs，监控埋点热路径可接受。
     """
-    
+
     def __init__(self, initial: int = 0):
         self._value = initial
-    
+        self._lock = threading.Lock()
+
     def increment(self, delta: int = 1) -> int:
-        """原子增加（Python中GIL保证原子性）"""
-        self._value += delta
-        return self._value
-    
+        """原子增加（锁保护读-改-写序列）"""
+        with self._lock:
+            self._value += delta
+            return self._value
+
+    def set(self, value: int) -> None:
+        """原子赋值（直方图 min/max 更新用，避免绕过锁直接写 _value）"""
+        with self._lock:
+            self._value = value
+
     def get(self) -> int:
         """获取当前值"""
-        return self._value
-    
+        with self._lock:
+            return self._value
+
     def reset(self):
         """重置计数器"""
-        self._value = 0
+        with self._lock:
+            self._value = 0
 
 
 class LockFreeHistogram:
-    """无锁直方图
-    
-    使用分段存储和原子操作，避免锁竞争
+    """直方图统计（监控软指标）
+
+    分段计数 / sum / count 由 LockFreeCounter（锁保护）保证精确；
+    min/max 为「get→比较→set」近似更新（序列非原子，软指标可接受），
+    set 走锁，不绕过 LockFreeCounter 封装直接写 _value。
     """
     
     def __init__(self, buckets: List[int] = None):
@@ -74,14 +90,15 @@ class LockFreeHistogram:
         self._count.increment()
         self._sum.increment(duration_us)
         
-        # 更新 min/max（简单实现，可能有竞态但可接受）
+        # 更新 min/max（近似更新：get→比较→set 序列非原子，软指标可接受；
+        # set 走锁，不绕过 LockFreeCounter 封装）
         current_min = self._min.get()
         if current_min == 0 or duration_us < current_min:
-            self._min._value = duration_us
-        
+            self._min.set(duration_us)
+
         current_max = self._max.get()
         if duration_us > current_max:
-            self._max._value = duration_us
+            self._max.set(duration_us)
         
         # 找到对应的桶
         for i, bucket in enumerate(self._buckets):

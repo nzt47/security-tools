@@ -154,7 +154,7 @@
     }
     .chart-title { font-size: 14px; font-weight: 500; }
     .chart-actions { display: flex; gap: 8px; }
-    #health-trend-chart, #dimension-chart, #latency-chart { width: 100%; height: 250px; }
+    #health-trend-chart, #dimension-chart, #latency-chart, #probe-trend-chart { width: 100%; height: 250px; }
     
     /* 表格样式 */
     .table-wrap {
@@ -289,41 +289,35 @@
         <div class="health-timestamp" id="health-timestamp">-</div>
       </div>
       <div class="health-dimensions-grid" id="dimensions-grid">
-        <div class="dimension-card" data-dim="stability">
-          <div class="dim-icon">🛡️</div>
-          <div class="dim-name">稳定性</div>
-          <div class="dim-score" id="dim-stability-score" style="color: var(--green)">--</div>
-          <div class="dim-bar"><div class="dim-bar-fill" id="dim-stability-bar" style="width: 0%; background: var(--green)"></div></div>
+        <div class="dimension-card" data-dim="l1_process">
+          <div class="dim-icon">🖥️</div>
+          <div class="dim-name">L1 进程</div>
+          <div class="dim-score" id="dim-l1_process-score" style="color: var(--green)">--</div>
+          <div class="dim-bar"><div class="dim-bar-fill" id="dim-l1_process-bar" style="width: 0%; background: var(--green)"></div></div>
         </div>
-        <div class="dimension-card" data-dim="performance">
-          <div class="dim-icon">⚡</div>
-          <div class="dim-name">性能</div>
-          <div class="dim-score" id="dim-performance-score" style="color: var(--green)">--</div>
-          <div class="dim-bar"><div class="dim-bar-fill" id="dim-performance-bar" style="width: 0%; background: var(--green)"></div></div>
+        <div class="dimension-card" data-dim="l2_dependency">
+          <div class="dim-icon">🧩</div>
+          <div class="dim-name">L2 依赖</div>
+          <div class="dim-score" id="dim-l2_dependency-score" style="color: var(--green)">--</div>
+          <div class="dim-bar"><div class="dim-bar-fill" id="dim-l2_dependency-bar" style="width: 0%; background: var(--green)"></div></div>
         </div>
-        <div class="dimension-card" data-dim="quality">
-          <div class="dim-icon">✨</div>
-          <div class="dim-name">质量</div>
-          <div class="dim-score" id="dim-quality-score" style="color: var(--green)">--</div>
-          <div class="dim-bar"><div class="dim-bar-fill" id="dim-quality-bar" style="width: 0%; background: var(--green)"></div></div>
+        <div class="dimension-card" data-dim="l3_llm_tool">
+          <div class="dim-icon">🤖</div>
+          <div class="dim-name">L3 LLM/工具</div>
+          <div class="dim-score" id="dim-l3_llm_tool-score" style="color: var(--green)">--</div>
+          <div class="dim-bar"><div class="dim-bar-fill" id="dim-l3_llm_tool-bar" style="width: 0%; background: var(--green)"></div></div>
         </div>
-        <div class="dimension-card" data-dim="efficiency">
-          <div class="dim-icon">📊</div>
-          <div class="dim-name">效率</div>
-          <div class="dim-score" id="dim-efficiency-score" style="color: var(--green)">--</div>
-          <div class="dim-bar"><div class="dim-bar-fill" id="dim-efficiency-bar" style="width: 0%; background: var(--green)"></div></div>
+        <div class="dimension-card" data-dim="l4_business">
+          <div class="dim-icon">📡</div>
+          <div class="dim-name">L4 业务</div>
+          <div class="dim-score" id="dim-l4_business-score" style="color: var(--green)">--</div>
+          <div class="dim-bar"><div class="dim-bar-fill" id="dim-l4_business-bar" style="width: 0%; background: var(--green)"></div></div>
         </div>
-        <div class="dimension-card" data-dim="availability">
-          <div class="dim-icon">🌐</div>
-          <div class="dim-name">可用性</div>
-          <div class="dim-score" id="dim-availability-score" style="color: var(--green)">--</div>
-          <div class="dim-bar"><div class="dim-bar-fill" id="dim-availability-bar" style="width: 0%; background: var(--green)"></div></div>
-        </div>
-        <div class="dimension-card" data-dim="security">
-          <div class="dim-icon">🔒</div>
-          <div class="dim-name">安全性</div>
-          <div class="dim-score" id="dim-security-score" style="color: var(--green)">--</div>
-          <div class="dim-bar"><div class="dim-bar-fill" id="dim-security-bar" style="width: 0%; background: var(--green)"></div></div>
+        <div class="dimension-card" data-dim="l5_semantic">
+          <div class="dim-icon">💬</div>
+          <div class="dim-name">L5 语义</div>
+          <div class="dim-score" id="dim-l5_semantic-score" style="color: var(--green)">--</div>
+          <div class="dim-bar"><div class="dim-bar-fill" id="dim-l5_semantic-bar" style="width: 0%; background: var(--green)"></div></div>
         </div>
       </div>
     </div>
@@ -366,7 +360,7 @@
           <div class="value" id="metric-requests">-</div>
         </div>
         <div class="metric-card success">
-          <div class="label">任务完成率</div>
+          <div class="label">L4 业务成功率</div>
           <div class="value" id="metric-task-success">-</div>
         </div>
         <div class="metric-card warning">
@@ -375,7 +369,7 @@
           <div class="sub">P99: <span id="metric-p99">-</span></div>
         </div>
         <div class="metric-card error">
-          <div class="label">错误率</div>
+          <div class="label">L3 LLM/工具</div>
           <div class="value" id="metric-error-rate">-</div>
         </div>
       </div>
@@ -394,6 +388,21 @@
           </div>
         </div>
         <canvas id="health-trend-chart"></canvas>
+      </div>
+      
+      <div class="section-title"><span class="icon">🔬</span> 五层探针趋势与评分明细</div>
+      <div class="chart-container">
+        <div class="chart-header">
+          <div class="chart-title">健康评分 + 五层探针（L1~L5）变化</div>
+          <div class="chart-actions">
+            <select id="probe-range" onchange="loadProbeTrendChart()">
+              <option value="1" selected>最近1小时</option>
+              <option value="6">最近6小时</option>
+              <option value="24">最近24小时</option>
+            </select>
+          </div>
+        </div>
+        <canvas id="probe-trend-chart"></canvas>
       </div>
       
       <div class="section-title"><span class="icon">📋</span> 近期摘要</div>
@@ -429,29 +438,16 @@
       </div>
     </div>
     
-    <!-- 稳定性Tab -->
+    <!-- 稳定性Tab：L1 进程 / L2 依赖 / L3 LLM·工具（运行链路稳定） -->
     <div id="tab-stability" class="tab-content">
-      <div class="metrics-grid">
-        <div class="metric-card info">
-          <div class="label">错误率</div>
-          <div class="value" id="stab-error-rate">-</div>
-        </div>
-        <div class="metric-card warning">
-          <div class="label">崩溃次数</div>
-          <div class="value" id="stab-crash-count">-</div>
-        </div>
-        <div class="metric-card info">
-          <div class="label">重试次数</div>
-          <div class="value" id="stab-retry-count">-</div>
-        </div>
-        <div class="metric-card info">
-          <div class="label">重试率</div>
-          <div class="value" id="stab-retry-rate">-</div>
-        </div>
-      </div>
-      <div class="section-title"><span class="icon">🔄</span> 错误率趋势</div>
-      <div class="chart-container">
-        <canvas id="error-rate-chart"></canvas>
+      <div class="section-title"><span class="icon">🛡️</span> 运行稳定性探针（L1 进程 / L2 依赖 / L3 LLM·工具）</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>探针层</th><th>得分</th><th>状态</th><th>采集明细</th></tr></thead>
+          <tbody id="stab-probe-table">
+            <tr><td colspan="4" class="loading">加载中...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
     
@@ -481,25 +477,16 @@
       </div>
     </div>
     
-    <!-- 质量Tab -->
+    <!-- 质量Tab：L4 业务 / L5 语义（输出质量） -->
     <div id="tab-quality" class="tab-content">
-      <div class="metrics-grid">
-        <div class="metric-card success">
-          <div class="label">Schema通过率</div>
-          <div class="value" id="qual-schema">-</div>
-        </div>
-        <div class="metric-card info">
-          <div class="label">Critic评分</div>
-          <div class="value" id="qual-critic">-</div>
-        </div>
-        <div class="metric-card success">
-          <div class="label">任务完成率</div>
-          <div class="value" id="qual-task">-</div>
-        </div>
-        <div class="metric-card info">
-          <div class="label">工具成功率</div>
-          <div class="value" id="qual-tools">-</div>
-        </div>
+      <div class="section-title"><span class="icon">✨</span> 输出质量探针（L4 业务 / L5 语义）</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>探针层</th><th>得分</th><th>状态</th><th>采集明细</th></tr></thead>
+          <tbody id="qual-probe-table">
+            <tr><td colspan="4" class="loading">加载中...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
     
@@ -539,7 +526,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>时间</th><th>综合得分</th><th>等级</th><th>稳定性</th><th>性能</th><th>质量</th><th>效率</th><th>可用性</th><th>安全</th></tr></thead>
+          <thead><tr><th>时间</th><th>综合得分</th><th>等级</th><th>L1 进程</th><th>L2 依赖</th><th>L3 LLM/工具</th><th>L4 业务</th><th>L5 语义</th></tr></thead>
           <tbody id="history-table">
             <tr><td colspan="9" class="loading">加载中...</td></tr>
           </tbody>
@@ -558,7 +545,6 @@
     let historyData = [];
     let alertsData = [];
     let trendChart = null;
-    let errorChart = null;
     let latencyChart = null;
     
     // ════════════════════════════════════════════════════════════
@@ -574,28 +560,29 @@
       const startTime = Date.now();
       try {
         const [health, metrics, status, alerts] = await Promise.all([
-          fetch(API_BASE + '/health/score').then(r => r.ok ? r.json() : getDefaultHealth()),
+          fetch(API_BASE + '/health/probe-trend?hours=1').then(r => r.ok ? r.json() : getDefaultHealth()),
           fetch(API_BASE + '/diagnostics/metrics').then(r => r.json()),
           fetch(API_BASE + '/heartbeat').then(r => r.json()),
           fetch(API_BASE + '/observability/alerts').then(r => r.json()).catch(() => ({groups: []}))
         ]);
         
-        healthData = health;
+        healthData = mapProbePoint((health.points || []).slice(-1)[0] || {});
         metricsData = metrics;
         alertsData = alerts;
         
         document.getElementById('api-latency').textContent = (Date.now() - startTime) + 'ms';
         document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString();
         
-        updateHealthScore(health);
+        updateHealthScore(healthData);
         updateOverview(status, metrics);
-        updateStabilityMetrics(health);
+        updateStabilityMetrics(healthData);
         updatePerformanceMetrics(metrics);
-        updateQualityMetrics(health);
+        updateQualityMetrics(healthData);
         loadTrendData();
+        loadProbeTrendChart();
         loadAlerts();
         loadHealthHistory();
-        loadSummaryTable(health);
+        loadSummaryTable(healthData);
       } catch (e) {
         console.error('加载数据失败:', e);
       }
@@ -603,17 +590,29 @@
     
     function getDefaultHealth() {
       return {
-        overall_score: 85,
+        overall_score: null,
         level: 'good',
         timestamp: new Date().toISOString(),
-        dimensions: {
-          stability: { score: 90, indicators: {} },
-          performance: { score: 85, indicators: {} },
-          quality: { score: 88, indicators: {} },
-          efficiency: { score: 82, indicators: {} },
-          availability: { score: 95, indicators: {} },
-          security: { score: 90, indicators: {} }
-        }
+        dimensions: {}
+      };
+    }
+    
+    // 探针 point → 页面健康数据格式（overall 0~1 → 0~100 百分制）
+    function mapProbePoint(p) {
+      const dims = {};
+      PROBE_LAYERS.forEach(l => {
+        const d = p.probe_details?.[l.key];
+        dims[l.key] = {
+          score: d?.score == null ? null : Math.round(d.score * 100),
+          available: d?.available ?? false,
+          detail: d?.detail || ''
+        };
+      });
+      return {
+        timestamp: p.timestamp,
+        overall_score: p.overall == null ? null : Math.round(p.overall * 100),
+        level: getDimLevel(p.overall == null ? 0 : p.overall * 100),
+        dimensions: dims
       };
     }
     
@@ -621,23 +620,28 @@
     // 健康度评分更新
     // ════════════════════════════════════════════════════════════
     function updateHealthScore(data) {
-      const score = data.overall_score || 0;
-      const level = data.level || 'good';
+      const score = data.overall_score;
+      const level = data.level || 'warning';
       
       // 更新综合得分
       const scoreEl = document.getElementById('health-score');
       const labelEl = document.getElementById('health-label');
       const timestampEl = document.getElementById('health-timestamp');
       
-      scoreEl.textContent = score.toFixed(0);
-      scoreEl.className = 'health-score-value ' + level;
-      labelEl.className = 'health-score-label ' + level;
-      labelEl.textContent = getLevelText(level);
+      if (score == null) {
+        scoreEl.textContent = '--';
+        scoreEl.className = 'health-score-value warning';
+        labelEl.textContent = '无数据';
+      } else {
+        scoreEl.textContent = score.toFixed(0);
+        scoreEl.className = 'health-score-value ' + level;
+        labelEl.textContent = getLevelText(level);
+      }
       
       const levelMap = { excellent: '优秀', good: '良好', fair: '一般', warning: '警告', critical: '危险' };
       timestampEl.textContent = '评估时间: ' + new Date(data.timestamp).toLocaleString();
       
-      // 更新各维度
+      // 更新各维度（五层探针）
       const dims = data.dimensions || {};
       const dimColors = {
         excellent: 'var(--cyan)',
@@ -647,16 +651,19 @@
         critical: 'var(--red)'
       };
       
-      ['stability', 'performance', 'quality', 'efficiency', 'availability', 'security'].forEach(dim => {
-        const dimData = dims[dim] || { score: 0 };
-        const dimScore = dimData.score || 0;
-        const dimLevel = getDimLevel(dimScore);
+      PROBE_LAYERS.forEach(layer => {
+        const dimData = dims[layer.key] || {};
+        const dimScore = dimData.score;
+        const dimLevel = dimScore == null ? 'warning' : getDimLevel(dimScore);
         const color = dimColors[dimLevel];
-        
-        document.getElementById(`dim-${dim}-score`).textContent = dimScore.toFixed(0);
-        document.getElementById(`dim-${dim}-score`).style.color = color;
-        document.getElementById(`dim-${dim}-bar`).style.width = dimScore + '%';
-        document.getElementById(`dim-${dim}-bar`).style.background = color;
+        const scoreEl = document.getElementById(`dim-${layer.key}-score`);
+        const barEl = document.getElementById(`dim-${layer.key}-bar`);
+        if (!scoreEl || !barEl) return;
+        scoreEl.textContent = dimScore == null ? '无数据' : dimScore.toFixed(0);
+        scoreEl.style.color = color;
+        barEl.style.width = (dimScore ?? 0) + '%';
+        barEl.style.background = color;
+        scoreEl.title = dimData.detail || '';
       });
     }
     
@@ -695,15 +702,11 @@
         document.getElementById('metric-p99').textContent = (lat.p99 * 1000).toFixed(0) + 'ms';
       }
       
-      if (healthData?.dimensions?.stability?.indicators) {
-        const errRate = healthData.dimensions.stability.indicators.error_rate;
-        document.getElementById('metric-error-rate').textContent = errRate ? (100 - errRate).toFixed(1) + '%' : '-';
-      }
-      
-      if (healthData?.dimensions?.quality?.indicators) {
-        const taskRate = healthData.dimensions.quality.indicators.task_success_rate;
-        document.getElementById('metric-task-success').textContent = taskRate ? (taskRate * 100).toFixed(1) + '%' : '-';
-      }
+      // 五层探针：L3 LLM/工具（链路健康）、L4 业务（请求成功率）
+      const l3 = healthData?.dimensions?.l3_llm_tool;
+      const l4 = healthData?.dimensions?.l4_business;
+      document.getElementById('metric-error-rate').textContent = l3?.score != null ? l3.score.toFixed(0) : '无数据';
+      document.getElementById('metric-task-success').textContent = l4?.score != null ? l4.score.toFixed(0) : '无数据';
     }
     
     function getStatusDot(status) {
@@ -718,13 +721,9 @@
     // ════════════════════════════════════════════════════════════
     // 各维度指标更新
     // ════════════════════════════════════════════════════════════
+    // 稳定性 Tab：L1 进程 / L2 依赖 / L3 LLM·工具（运行链路稳定）
     function updateStabilityMetrics(health) {
-      const dims = health.dimensions || {};
-      const stab = dims.stability?.indicators || {};
-      document.getElementById('stab-error-rate').textContent = stab.error_rate ? stab.error_rate.toFixed(1) + '%' : '-';
-      document.getElementById('stab-crash-count').textContent = health.crash_count || 0;
-      document.getElementById('stab-retry-count').textContent = health.retry_count || 0;
-      document.getElementById('stab-retry-rate').textContent = stab.retry_rate ? stab.retry_rate.toFixed(1) + '%' : '-';
+      renderProbeTable('stab-probe-table', health.dimensions || {}, PROBE_LAYERS.slice(0, 3));
     }
     
     function updatePerformanceMetrics(metrics) {
@@ -736,13 +735,32 @@
       document.getElementById('perf-throughput').textContent = metrics.gauges?.['throughput.current'] || '-';
     }
     
+    // 质量 Tab：L4 业务 / L5 语义（输出质量）
     function updateQualityMetrics(health) {
-      const dims = health.dimensions || {};
-      const qual = dims.quality?.indicators || {};
-      document.getElementById('qual-schema').textContent = qual.schema_pass_rate ? (qual.schema_pass_rate * 100).toFixed(1) + '%' : '-';
-      document.getElementById('qual-critic').textContent = qual.critic_score ? qual.critic_score.toFixed(1) : '-';
-      document.getElementById('qual-task').textContent = qual.task_success_rate ? (qual.task_success_rate * 100).toFixed(1) + '%' : '-';
-      document.getElementById('qual-tools').textContent = qual.tool_success_rate ? (qual.tool_success_rate * 100).toFixed(1) + '%' : '-';
+      renderProbeTable('qual-probe-table', health.dimensions || {}, PROBE_LAYERS.slice(3));
+    }
+    
+    // 通用五层探针明细表渲染（score/available/detail → 页面格式）
+    function renderProbeTable(tbodyId, dims, layers) {
+      const tbody = document.getElementById(tbodyId);
+      if (!tbody) return;
+      const rows = layers.map(layer => {
+        const d = dims[layer.key] || {};
+        const score = d.score;
+        const available = d.available;
+        const stateCls = available ? 'success' : 'warning';
+        const stateText = available ? '正常采集' : '无数据';
+        const scoreText = score == null ? '无数据' : score.toFixed(0);
+        return `
+          <tr>
+            <td>${layer.label}</td>
+            <td><strong>${scoreText}</strong></td>
+            <td><span class="tag ${stateCls}">${stateText}</span></td>
+            <td>${escHtml(d.detail || '-')}</td>
+          </tr>
+        `;
+      });
+      tbody.innerHTML = rows.join('') || '<tr><td colspan="4" class="empty-state">暂无探针数据</td></tr>';
     }
     
     // ════════════════════════════════════════════════════════════
@@ -750,9 +768,9 @@
     // ════════════════════════════════════════════════════════════
     async function loadTrendData() {
       try {
-        const resp = await fetch(API_BASE + '/health/history?limit=100');
+        const resp = await fetch(API_BASE + '/health/probe-trend?hours=24');
         const data = await resp.json();
-        historyData = data.history || [];
+        historyData = (data.points || []).map(mapProbePoint);
         document.getElementById('history-count').textContent = historyData.length;
         renderTrendChart(historyData.slice(-50));
       } catch (e) {
@@ -796,11 +814,11 @@
         ctx.fillText(i + '', pad.left - 8, y + 3);
       }
       
-      // 数据线
-      const dimensions = ['overall_score', 'stability', 'performance', 'quality'];
-      const colors = ['#58a6ff', '#3fb950', '#d29922', '#a371f7'];
+      // 数据线（综合 + 五层探针，按权重选代表性层）
+      const dimKeys = ['overall_score', 'l1_process', 'l2_dependency', 'l3_llm_tool', 'l4_business', 'l5_semantic'];
+      const colors = ['#00d4ff', '#58a6ff', '#3fb950', '#d29922', '#a371f7', '#f85173'];
       
-      dimensions.forEach((dim, idx) => {
+      dimKeys.forEach((dim, idx) => {
         const values = data.map(d => {
           if (dim === 'overall_score') return d.overall_score || 0;
           return d.dimensions?.[dim]?.score || 0;
@@ -839,14 +857,145 @@
     function getDimLabel(dim) {
       const map = {
         overall_score: '综合',
-        stability: '稳定性',
-        performance: '性能',
-        quality: '质量',
-        efficiency: '效率',
-        availability: '可用性',
-        security: '安全'
+        l1_process: 'L1 进程',
+        l2_dependency: 'L2 依赖',
+        l3_llm_tool: 'L3 LLM/工具',
+        l4_business: 'L4 业务',
+        l5_semantic: 'L5 语义'
       };
       return map[dim] || dim;
+    }
+    
+    // ════════════════════════════════════════════════════════════
+    // 五层探针趋势图表（健康评分 + L1~L5 明细）
+    // ════════════════════════════════════════════════════════════
+    const PROBE_LAYERS = [
+      { key: 'l1_process',      label: 'L1 进程',     color: '#58a6ff' },
+      { key: 'l2_dependency',   label: 'L2 依赖',     color: '#3fb950' },
+      { key: 'l3_llm_tool',     label: 'L3 LLM/工具', color: '#d29922' },
+      { key: 'l4_business',     label: 'L4 业务',     color: '#a371f7' },
+      { key: 'l5_semantic',     label: 'L5 语义',     color: '#f85173' },
+    ];
+    
+    async function loadProbeTrendChart() {
+      try {
+        const hours = document.getElementById('probe-range').value;
+        const resp = await fetch(API_BASE + '/health/probe-trend?hours=' + hours);
+        const data = await resp.json();
+        renderProbeTrendChart(data.points || []);
+      } catch (e) {
+        console.error('加载探针趋势失败:', e);
+      }
+    }
+    
+    function renderProbeTrendChart(points) {
+      const canvas = document.getElementById('probe-trend-chart');
+      if (!canvas) return;
+      
+      const ctx = canvas.getContext('2d');
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = 250 * dpr;
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = '250px';
+      ctx.scale(dpr, dpr);
+      
+      const w = rect.width;
+      const h = 250;
+      const pad = { top: 20, right: 20, bottom: 40, left: 50 };
+      const chartW = w - pad.left - pad.right;
+      const chartH = h - pad.top - pad.bottom;
+      
+      ctx.clearRect(0, 0, w, h);
+      
+      // 网格线（0~100）
+      ctx.strokeStyle = '#21262d';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 100; i += 25) {
+        const y = pad.top + chartH - (i / 100) * chartH;
+        ctx.beginPath();
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(w - pad.right, y);
+        ctx.stroke();
+        ctx.fillStyle = '#8b949e';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(i + '', pad.left - 8, y + 3);
+      }
+      
+      // 无数据占位
+      if (points.length === 0) {
+        ctx.fillStyle = '#8b949e';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('暂无探针数据', w / 2, h / 2);
+        return;
+      }
+      
+      const valid = points.filter(p => p.overall != null || p.probe_details);
+      const n = valid.length;
+      if (n < 1) return;
+      
+      const xOf = (i) => pad.left + (i / Math.max(1, n - 1)) * chartW;
+      const yOf = (score) => pad.top + chartH - (score / 100) * chartH;
+      
+      // 探针明细线（L1~L5）
+      PROBE_LAYERS.forEach(layer => {
+        ctx.strokeStyle = layer.color;
+        ctx.lineWidth = 1.5;
+        ctx.globalAlpha = 0.75;
+        ctx.beginPath();
+        let started = false;
+        valid.forEach((p, i) => {
+          const score = p.probe_details?.[layer.key]?.score;
+          if (score == null) { started = false; return; }
+          const x = xOf(i);
+          const y = yOf(score * 100);
+          if (!started) { ctx.moveTo(x, y); started = true; }
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      });
+      
+      // 综合健康评分主线（overall 0~1 → 0~100）
+      ctx.strokeStyle = '#00d4ff';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      let overallStarted = false;
+      valid.forEach((p, i) => {
+        if (p.overall == null) { overallStarted = false; return; }
+        const x = xOf(i);
+        const y = yOf(p.overall * 100);
+        if (!overallStarted) { ctx.moveTo(x, y); overallStarted = true; }
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      
+      // 图例
+      ctx.font = '11px sans-serif';
+      ctx.textAlign = 'left';
+      const legendY = pad.top + 4;
+      ctx.fillStyle = '#00d4ff';
+      ctx.fillText('— 综合', w - 300, legendY);
+      PROBE_LAYERS.forEach((layer, idx) => {
+        ctx.fillStyle = layer.color;
+        ctx.fillText('— ' + layer.label, w - 300 + (idx + 1) * 62, legendY);
+      });
+      
+      // X轴时间标签
+      ctx.fillStyle = '#8b949e';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      const step = Math.max(1, Math.floor(n / 6));
+      valid.forEach((p, i) => {
+        if (i % step === 0 || i === n - 1) {
+          const x = xOf(i);
+          const time = new Date(p.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          ctx.fillText(time, x, h - 10);
+        }
+      });
     }
     
     // ════════════════════════════════════════════════════════════
@@ -890,52 +1039,59 @@
       tbody.innerHTML = '<tr><td colspan="9" class="loading">加载中...</td></tr>';
       
       try {
-        const resp = await fetch(API_BASE + '/health/history?limit=50');
+        const resp = await fetch(API_BASE + '/health/probe-trend?hours=24');
         const data = await resp.json();
-        const history = data.history || [];
+        const history = (data.points || []).map(mapProbePoint);
         
         if (history.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="9" class="empty-state">暂无历史数据</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" class="empty-state">暂无历史数据</td></tr>';
           return;
         }
         
         tbody.innerHTML = history.map(h => {
           const dims = h.dimensions || {};
           const level = h.level || 'good';
+          const dimVal = (key) => {
+            const v = dims[key]?.score;
+            return v == null ? '无数据' : v.toFixed(0);
+          };
           return `
             <tr>
               <td>${new Date(h.timestamp).toLocaleString()}</td>
-              <td><strong>${(h.overall_score || 0).toFixed(1)}</strong></td>
+              <td><strong>${h.overall_score == null ? '无数据' : h.overall_score.toFixed(1)}</strong></td>
               <td><span class="tag ${level === 'excellent' ? 'success' : level === 'good' ? 'success' : level === 'fair' ? 'warning' : level === 'warning' ? 'warning' : 'error'}">${getLevelText(level)}</span></td>
-              <td>${(dims.stability?.score || 0).toFixed(1)}</td>
-              <td>${(dims.performance?.score || 0).toFixed(1)}</td>
-              <td>${(dims.quality?.score || 0).toFixed(1)}</td>
-              <td>${(dims.efficiency?.score || 0).toFixed(1)}</td>
-              <td>${(dims.availability?.score || 0).toFixed(1)}</td>
-              <td>${(dims.security?.score || 0).toFixed(1)}</td>
+              <td>${dimVal('l1_process')}</td>
+              <td>${dimVal('l2_dependency')}</td>
+              <td>${dimVal('l3_llm_tool')}</td>
+              <td>${dimVal('l4_business')}</td>
+              <td>${dimVal('l5_semantic')}</td>
             </tr>
           `;
         }).join('');
       } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="9" class="empty-state">加载失败</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="empty-state">加载失败</td></tr>';
       }
     }
     
     // ════════════════════════════════════════════════════════════
     // 摘要表格
     // ════════════════════════════════════════════════════════════
+    // 近期摘要：最近一次评估的五层探针明细
     function loadSummaryTable(health) {
       const tbody = document.getElementById('summary-table');
-      const summary = health.summary || [];
-      const recommendations = health.recommendations || [];
-      
-      if (summary.length === 0 && recommendations.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" class="empty-state">暂无摘要信息</td></tr>';
+      if (!health || health.overall_score == null) {
+        tbody.innerHTML = '<tr><td colspan="3" class="empty-state">暂无探针数据</td></tr>';
         return;
       }
-      
-      tbody.innerHTML = summary.map(s => `<tr><td>📋 摘要</td><td>${escHtml(s)}</td><td>${new Date().toLocaleTimeString()}</td></tr>`).join('') +
-        recommendations.map(r => `<tr><td>💡 建议</td><td>${escHtml(r)}</td><td>${new Date().toLocaleTimeString()}</td></tr>`).join('');
+      const dims = health.dimensions || {};
+      const time = health.timestamp ? new Date(health.timestamp).toLocaleString() : '-';
+      const rows = PROBE_LAYERS.map(layer => {
+        const d = dims[layer.key] || {};
+        const score = d.score;
+        const scoreText = score == null ? '无数据' : score.toFixed(0);
+        return `<tr><td>🔬 ${layer.label}</td><td>${scoreText}分 — ${escHtml(d.detail || '')}</td><td>${time}</td></tr>`;
+      });
+      tbody.innerHTML = rows.join('');
     }
     
     // ════════════════════════════════════════════════════════════
@@ -1014,19 +1170,19 @@
     }
     
     function exportHistory() {
-      const csv = ['时间,综合得分,等级,稳定性,性能,质量,效率,可用性,安全'];
+      const csv = ['时间,综合得分,等级,L1 进程,L2 依赖,L3 LLM/工具,L4 业务,L5 语义'];
       historyData.forEach(h => {
         const d = h.dimensions || {};
+        const val = (key) => d[key]?.score?.toFixed(1) || '无数据';
         csv.push([
           h.timestamp,
-          h.overall_score?.toFixed(1) || 0,
+          h.overall_score?.toFixed(1) || '无数据',
           h.level || '',
-          d.stability?.score?.toFixed(1) || 0,
-          d.performance?.score?.toFixed(1) || 0,
-          d.quality?.score?.toFixed(1) || 0,
-          d.efficiency?.score?.toFixed(1) || 0,
-          d.availability?.score?.toFixed(1) || 0,
-          d.security?.score?.toFixed(1) || 0
+          val('l1_process'),
+          val('l2_dependency'),
+          val('l3_llm_tool'),
+          val('l4_business'),
+          val('l5_semantic')
         ].join(','));
       });
       const blob = new Blob([csv.join('\n')], {type: 'text/csv'});

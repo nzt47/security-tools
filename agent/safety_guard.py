@@ -13,6 +13,7 @@ import re
 import json
 import os
 import logging
+import threading
 from typing import List, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,12 @@ class SafetyGuard:
         self._max_alerts = 200
         self._blocked_count = 0
         self._warned_count = 0
+        # Why RLock 保护实例级共享状态（单例 get_safety_guard 被多线程调用）：
+        # check 的 _blocked_count/_warned_count 为「读-改-写」序列（并发丢计数），
+        # _record_alert 的 _alert_history.append+截断 与 get_alerts 遍历并发有结构
+        # 风险。锁内仅内存计数/列表变更与 re.search（纯 CPU）；外部回调派发在锁外
+        # （持锁纪律：锁内严禁外部回调——回调可能阻塞）。
+        self._lock = threading.RLock()
     
     def _get_default_keywords_path(self) -> str:
         """获取默认关键词库路径"""
@@ -107,10 +114,12 @@ class SafetyGuard:
         level = "safe"
         if any(m["level"] == "critical" for m in matches):
             level = "critical"
-            self._blocked_count += 1
+            with self._lock:
+                self._blocked_count += 1
         elif matches:
             level = "warning"
-            self._warned_count += 1
+            with self._lock:
+                self._warned_count += 1
         
         result = {
             "safe": level == "safe",
@@ -133,11 +142,14 @@ class SafetyGuard:
             "match_count": len(result["matches"]),
             "categories": list(set(m["category"] for m in result["matches"])),
         }
-        self._alert_history.append(alert)
-        if len(self._alert_history) > self._max_alerts:
-            self._alert_history = self._alert_history[-self._max_alerts:]
-        
-        for callback in _alert_callbacks:
+        with self._lock:
+            self._alert_history.append(alert)
+            if len(self._alert_history) > self._max_alerts:
+                self._alert_history = self._alert_history[-self._max_alerts:]
+            # 锁内仅取回调快照（模块级 list 的 append 与迭代并发会 RuntimeError）
+            callbacks = list(_alert_callbacks)
+        # 回调在锁外派发（持锁纪律：外部回调可能阻塞，不能持锁调用）
+        for callback in callbacks:
             try:
                 callback(alert)
             except Exception as e:
@@ -145,19 +157,21 @@ class SafetyGuard:
     
     def get_alerts(self, limit: int = 50) -> List[Dict]:
         """获取最近告警记录"""
-        return self._alert_history[-limit:]
+        with self._lock:
+            return self._alert_history[-limit:]
     
     def get_stats(self) -> Dict[str, Any]:
         """获取统计信息"""
-        return {
-            "blocked_count": self._blocked_count,
-            "warned_count": self._warned_count,
-            "total_alerts": len(self._alert_history),
-            "keywords_loaded": {
-                "critical": len(self._keywords.get("critical", [])),
-                "warning": len(self._keywords.get("warning", [])),
-            },
-        }
+        with self._lock:
+            return {
+                "blocked_count": self._blocked_count,
+                "warned_count": self._warned_count,
+                "total_alerts": len(self._alert_history),
+                "keywords_loaded": {
+                    "critical": len(self._keywords.get("critical", [])),
+                    "warning": len(self._keywords.get("warning", [])),
+                },
+            }
     
     def add_keyword(self, pattern: str, description: str, level: str = "warning", category: str = ""):
         """
@@ -170,18 +184,24 @@ class SafetyGuard:
             category: 类别
         """
         entry = {"pattern": pattern, "description": description, "category": category}
-        if level == "critical":
-            self._keywords.setdefault("critical", []).append(entry)
-        else:
-            self._keywords.setdefault("warning", []).append(entry)
+        with self._lock:
+            if level == "critical":
+                self._keywords.setdefault("critical", []).append(entry)
+            else:
+                self._keywords.setdefault("warning", []).append(entry)
 
 
 _alert_callbacks: List = []
+# Why Lock 保护模块级回调列表：register_alert_callback（任意线程可注册）与
+# _record_alert（告警线程）的 append/迭代并发会 RuntimeError（list changed size
+# during iteration）。锁内仅 list 变更/快照拷贝，回调派发在锁外（持锁纪律）。
+_alert_callbacks_lock = threading.Lock()
 
 
 def register_alert_callback(callback):
     """注册告警回调函数。回调接收一个 alert dict 参数。"""
-    _alert_callbacks.append(callback)
+    with _alert_callbacks_lock:
+        _alert_callbacks.append(callback)
 
 
 _safety_guard = None  # 保留作为 fallback

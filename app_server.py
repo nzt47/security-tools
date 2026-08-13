@@ -35,6 +35,16 @@ if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
+# 加载 .env 到 os.environ（守 user_rules「配置走 .env」单一数据源）
+# Why: main.py 已按此模式加载；app_server 若不加载，LLM 密钥 / HF_HUB_OFFLINE /
+#      LOG_LEVEL / CONTEXT_ASSEMBLER_LOG_LEVEL 等 .env 配置全部失效。
+#      必须在读取环境变量的模块级代码之前执行（reload 覆盖同名变量为 .env 值）。
+try:
+    from agent.env_config_manager import get_env_config_manager
+    get_env_config_manager().reload()
+except Exception as _e:
+    logging.getLogger(__name__).warning(f".env 加载失败（继续使用系统环境变量）: {_e}")
+
 from flask import Flask, jsonify, render_template, request, g
 
 # 导入 Prometheus 监控（使用 prometheus_flask_exporter）
@@ -112,6 +122,14 @@ try:
     logger.info("[启动] 日志系统仪表盘与 API 路由已注册")
 except Exception as e:
     logger.warning(f"[启动] 日志系统注册失败: {e}")
+
+# 注册健康看板蓝图（/api/health/dashboard、/api/health/probe-trend）
+try:
+    from agent.health.dashboard import health_bp
+    app.register_blueprint(health_bp)
+    logger.info("[启动] 健康看板 API 路由已注册 (/api/health/*)")
+except Exception as e:
+    logger.warning(f"[启动] 健康看板注册失败: {e}")
 
 # ════════════════════════════════════════════════════════════
 # Prometheus 监控初始化
@@ -4830,6 +4848,14 @@ if __name__ == "__main__":
             print("✅ 系统资源监控线程已启动")
         
         start_metrics_thread()
+
+    # 启动健康采集线程：五层探针 → 加权评分 → 落盘 data/health/history-*.jsonl
+    try:
+        from agent.health.collector import start_collector
+        start_collector()
+        logger.info("[健康] 五层健康探针采集线程已启动")
+    except Exception as e:
+        logger.error(f"[健康] 健康采集线程启动失败：{e}")
 
     # 启动前先清理 5678 端口的旧进程
     try:

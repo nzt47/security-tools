@@ -212,6 +212,45 @@ class TestTaskDecomposer:
         
         assert len(tasks) == 3  # 只保留前3个
 
+    def test_parse_subtasks_fallback_actions(self):
+        """D14：LLM 提供的 fallback_actions 应透传到 Task（任务级降级链）"""
+        decomposer = TaskDecomposer()
+
+        raw_data = {
+            "subtasks": [
+                {
+                    "id": "a",
+                    "description": "调用 primary_tool 执行主步骤",
+                    "type": "atomic",
+                    "priority": 5,
+                    "dependencies": [],
+                    "constraints": [],
+                    "estimated_steps": 1,
+                    "fallback_actions": ["backup_tool"],
+                },
+                {
+                    # 未提供 fallback_actions 时缺省为空列表（不破坏原行为）
+                    "id": "b",
+                    "description": "普通任务",
+                    "type": "atomic",
+                    "priority": 1,
+                    "dependencies": [],
+                    "constraints": [],
+                    "estimated_steps": 1,
+                },
+            ],
+            "execution_order": ["a", "b"],
+            "parallel_groups": [],
+        }
+
+        tasks = decomposer._parse_subtasks(raw_data)
+
+        assert len(tasks) == 2
+        # 提供 → 完整透传
+        assert tasks[0].fallback_actions == ["backup_tool"]
+        # 缺省 → 空列表（与修复前行为一致）
+        assert tasks[1].fallback_actions == []
+
     def test_extract_json_from_response_with_code_block(self):
         """测试从响应中提取JSON - 带代码块"""
         decomposer = TaskDecomposer()

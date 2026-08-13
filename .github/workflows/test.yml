@@ -173,17 +173,24 @@ jobs:
             -p no:randomly
 
       - name: 上传覆盖率报告
-        # 【变易·CHG-2026-0811】path 增加 coverage.xml 与 .coverage 数据文件:
+        # 【变易·CHG-2026-0811】path 增加 coverage.xml 与 .coverage* 数据文件:
         # coverage-check job 的 `coverage combine` 需要数据文件, 此前只上传
         # htmlcov/(纯 HTML)导致 "No data to combine" (run 31459766599 六个
-        # coverage-check 全红)。pytest-cov 生成的 .coverage 在仓库根目录。
+        # coverage-check 全红)。pytest.ini [coverage:run] parallel=True 使数据
+        # 文件名为 .coverage.<host>.<pid>.<rand> 带后缀, 须用 glob .coverage*
+        # 匹配 (精确名 .coverage 匹配不到, artifact 实测无数据文件)。
+        # 【变易·CHG-2026-0811b】include-hidden-files: true:
+        # upload-artifact v4+ 默认忽略 dotfiles, .coverage* 以点开头被排除,
+        # 导致 artifact 实测只有 coverage.xml+htmlcov 无数据文件 (run 31492484437
+        # 下载验证), coverage-check 的 combine 依旧无数据可合并。
         uses: actions/upload-artifact@v7
         with:
           name: coverage-report-${{ matrix.os }}-py${{ matrix.python-version }}
           path: |
             coverage.xml
-            .coverage
+            .coverage*
             htmlcov/
+          include-hidden-files: true
           retention-days: 30
 
       - name: 上传测试结果
@@ -325,13 +332,17 @@ jobs:
         # 数据文件, 合并只含 unit (62% < 70) 必然 fail-under。
         # 3.12 集成测试禁用 --cov (CHG-2026-0811 超时修复) 无数据文件, 跳过上传
         # (upload-artifact 对空 path 会报错 "No files were found")。
+        # parallel=True 数据文件为 .coverage.<host>.<pid>.<rand>, 用 glob .coverage*。
+        # 【变易·CHG-2026-0811b】include-hidden-files: true (同 unit-tests,
+        # upload-artifact v4+ 默认排除 dotfiles)。
         if: matrix.python-version != '3.12'
         uses: actions/upload-artifact@v7
         with:
           name: coverage-integration-${{ matrix.os }}-py${{ matrix.python-version }}
           path: |
             coverage.xml
-            .coverage
+            .coverage*
+          include-hidden-files: true
           retention-days: 30
 
       - name: 上传测试结果
@@ -525,7 +536,7 @@ jobs:
       - name: 下载单元测试覆盖率
         # 【变易·CHG-2026-0811】下载到独立子目录 coverage-unit/:
         # 与集成测试数据文件同名 (.coverage), 必须隔离存放避免互相覆盖,
-        # 再由 `coverage combine coverage-unit coverage-integration` 合并。
+        # 再由 combine 合并。
         uses: actions/download-artifact@v8
         with:
           name: coverage-report-${{ matrix.os }}-py${{ matrix.python-version }}
@@ -538,12 +549,16 @@ jobs:
           path: coverage-integration/
 
       - name: 检查覆盖率
-        # 【变易·CHG-2026-0811】去掉 `|| true`: 此前吞掉 combine 失败导致
-        # 后续静默 "No data to report" exit 1, 无法定位根因。数据齐备后
-        # combine 失败应直接暴露。coverage combine 接受目录参数, 合并目录内
-        # 所有 .coverage* 数据文件 (unit + integration 同版本同平台)。
+        # 【变易·CHG-2026-0811c】用「显式文件参数」而非「目录参数」:
+        # coverage.py combine 对目录参数只搜索 `<dir>/<data_file>.*`
+        # (带后缀, 见 coverage/data.py combinable_files), 而 pytest-cov
+        # 实际产物是无后缀的 .coverage (run 31508481884 artifact 实测,
+        # 4 个 coverage-check 全报 "No data to combine" 即此因)。
+        # WSL Linux 环境精确复现验证:
+        #   目录参数   -> "No data to combine" (失败)
+        #   文件参数   -> "Combined 2 files" -> TOTAL 71% (≥70 通过)
         run: |
-          coverage combine coverage-unit coverage-integration
+          coverage combine coverage-unit/.coverage coverage-integration/.coverage
           coverage report
           coverage report --fail-under=${{ env.COVERAGE_THRESHOLD }}
 

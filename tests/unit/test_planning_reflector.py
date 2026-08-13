@@ -343,3 +343,64 @@ class TestReflector:
             assert "total_reflections" in stats
             assert "learned_patterns_count" in stats
             assert "total_experiences" in stats
+
+
+class TestLessonChannel:
+    """任务 EVO-T4：反思 Lesson → 进化验证管道（可选通道，不改变既有行为）"""
+
+    @pytest.mark.asyncio
+    async def test_failure_lesson_forwarded_to_channel(self):
+        """失败 Lesson 转交通道（mock 通道返回 proposal_id）"""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            channel = MagicMock()
+            channel.submit_lesson.return_value = "ppo-001"
+            reflector = Reflector(persist_dir=tmp_dir, lesson_channel=channel)
+            result = ActionResult.failure_result("失败原因")
+            await reflector.learn_from_experience("创建文件", result)
+            channel.submit_lesson.assert_called_once()
+            lesson = channel.submit_lesson.call_args[0][0]
+            assert lesson.task_type == "create"
+            assert lesson.failure_point == "失败原因"
+
+    @pytest.mark.asyncio
+    async def test_async_channel_is_awaited(self):
+        """异步通道（返回 coroutine）自动 await"""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            channel = MagicMock()
+            channel.submit_lesson = AsyncMock(return_value="ppo-async")
+            reflector = Reflector(persist_dir=tmp_dir, lesson_channel=channel)
+            result = ActionResult.failure_result("失败原因")
+            await reflector.learn_from_experience("创建文件", result)
+            channel.submit_lesson.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_channel_exception_does_not_block(self):
+        """通道异常不阻断反思主流程（守不易：可选能力必须向后兼容）"""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            channel = MagicMock()
+            channel.submit_lesson.side_effect = RuntimeError("通道故障")
+            reflector = Reflector(persist_dir=tmp_dir, lesson_channel=channel)
+            result = ActionResult.failure_result("失败原因")
+            await reflector.learn_from_experience("创建文件", result)
+            assert len(reflector.lessons_db) == 1
+            assert reflector.lessons_db[0].failure_point == "失败原因"
+
+    @pytest.mark.asyncio
+    async def test_success_lesson_not_forwarded(self):
+        """成功经验不进入 Lesson 验证通道"""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            channel = MagicMock()
+            reflector = Reflector(persist_dir=tmp_dir, lesson_channel=channel)
+            result = ActionResult.success_result(output="OK")
+            await reflector.learn_from_experience("检查状态", result)
+            channel.submit_lesson.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_no_channel_keeps_behavior(self):
+        """未配置通道时行为与既有版本一致"""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            reflector = Reflector(persist_dir=tmp_dir)
+            result = ActionResult.failure_result("失败原因")
+            await reflector.learn_from_experience("创建文件", result)
+            assert len(reflector.lessons_db) == 1
+            assert reflector.lessons_db[0].task_type == "create"

@@ -162,14 +162,14 @@ class TestInvalidExecution:
     """非法执行路径的状态机保护验证"""
 
     @pytest.mark.asyncio
-    async def test_execute_terminal_plan_marked_failed(self, core):
-        """执行终态计划：COMPLETED -> EXECUTING 非法，execute_plan 捕获并标记 FAILED"""
+    async def test_execute_terminal_plan_preserved(self, core):
+        """执行终态计划（漏洞H修复）：COMPLETED -> EXECUTING 非法，
+        终态保护保留原状态，不再被错误覆盖为 FAILED"""
         plan = Plan(original_task="已结束", state=PlanState.COMPLETED)
 
         result = await core.execute_plan(plan)
 
-        assert result.state == PlanState.FAILED
-        assert "无法从 completed 转换" in result.error
+        assert result.state == PlanState.COMPLETED  # 终态保留，不被覆盖为 FAILED
 
     @pytest.mark.asyncio
     async def test_execute_plan_and_query_status(self, core):

@@ -62,9 +62,9 @@ def main():
         },
         {
             "name": "健康度评分上报",
-            "command": "python -c \"import requests; r=requests.post('http://localhost:5678/api/health/score'); print('Health:', r.json().get('overall_score', 'N/A'))\"",
+            "command": "python -c \"import requests; r=requests.get('http://localhost:5678/api/health/probe-trend?hours=1'); pts=r.json().get('points', []); print('Health:', pts[-1].get('overall') if pts else 'N/A')\"",
             "interval_sec": 60,
-            "description": "每分钟计算并上报健康度评分"
+            "description": "每分钟读取最新五层探针健康度评分"
         },
         {
             "name": "详细健康报告",

@@ -42,6 +42,8 @@ class Task:
     dependencies: List[str] = field(default_factory=list)
     estimated_steps: int = 1
     constraints: List[str] = field(default_factory=list)
+    # 阶段 3（D14）：主工具失败时的备份工具名列表（任务级降级链，顺序优先）
+    fallback_actions: List[str] = field(default_factory=list)
     status: TaskStatus = TaskStatus.PENDING
     result: Any = None
     error: Optional[str] = None
@@ -88,6 +90,7 @@ class Task:
             "task_type": self.task_type.value,
             "priority": self.priority,
             "dependencies": self.dependencies.copy(),
+            "fallback_actions": self.fallback_actions.copy(),
             "status": self.status.value,
             "result": str(self.result) if self.result else None,
             "error": self.error,
@@ -103,6 +106,7 @@ class Task:
             task_type=TaskType(data.get("task_type", "atomic")),
             priority=data.get("priority", 3),
             dependencies=data.get("dependencies", []),
+            fallback_actions=data.get("fallback_actions", []),
         )
         task.status = TaskStatus(data.get("status", "pending"))
         task.result = data.get("result")

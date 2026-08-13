@@ -80,12 +80,28 @@ def _meta_to_meta_text(meta: Dict[str, Any]) -> str:
 #  分词与匹配（第一层）
 # ════════════════════════════════════════════════════════════
 
-_WORD_RE = re.compile(r"[a-zA-Z0-9_]+|[\u4e00-\u9fff]")
+# 英文整词 + 连续中文串（中文不再按单字切分，见 _tokenize 的 Why）
+_WORD_RE = re.compile(r"[a-zA-Z0-9_]+|[\u4e00-\u9fff]+")
 
 
 def _tokenize(text: str) -> List[str]:
-    """混合分词：英文按词，中文按字"""
-    return _WORD_RE.findall((text or "").lower())
+    """混合分词：英文按词，中文按相邻二元组（bigram）
+
+    Why（不易）: 中文按单字切分时，命中率 hits/len(query_tokens) 对
+        min_score=0.3 阈值形同虚设——元技能元数据覆盖大量常用字，
+        任何中文输入的单字命中率都虚高（实测"费马小定理证明"命中
+        "主动建议"技能并短路返回，ContextAssembler 组装流程不触发）。
+        bigram 保留相邻字序信息，任务词（解析/总结/证明）才有区分度；
+        孤立单字仍保留（守向后兼容，避免短查询分词为空）。
+    """
+    tokens: List[str] = []
+    for seg in _WORD_RE.findall((text or "").lower()):
+        if len(seg) > 1 and not seg.isascii():
+            # 连续中文串 → 相邻二元组（如 "解析文件" → ["解析","析文","文件"]）
+            tokens.extend(seg[i:i + 2] for i in range(len(seg) - 1))
+        else:
+            tokens.append(seg)
+    return tokens
 
 
 def _match_score(meta_text: str, query_tokens: List[str]) -> float:

@@ -1,0 +1,96 @@
+# Promtail 日志采集配置 — evolution 模块（prompt_optimizer）文本日志
+#
+# 用途：采集提示词优化器（agent/cognitive/prompt_optimizer.py）的 [PromptOpt]
+#   单行 kv 日志，提取 verdict / category 为低基数 label，接入 Loki/ELK，
+#   支持按 verdict 统计建议产出率（proposed / no_improvement / no_samples）。
+#
+# 关联代码：agent/cognitive/prompt_optimizer.py（compare() 单行 kv 日志）
+# 关联文档：docs/observability/log_analysis_queries.md
+#
+# 部署方式（与 promtail-knowledge-log.yaml 同款）：
+#   kubectl create configmap promtail-evolution-log \
+#     --from-file=promtail-evolution-log.yaml -n monitoring
+#   或在 promtail DaemonSet 的 volumes/volumeMounts 中挂载为
+#   /etc/promtail/evolution-log.yaml
+#
+# 日志路径说明：
+#   __path__ 指向 evolution 模块日志落盘目录。prompt_optimizer 日志随主应用
+#   root logger 输出（setup_production_logging 的 log_file），生产挂载后
+#   按实际路径调整；K8s 约定路径与 orchestrator/knowledge 一致用
+#   /var/log/yunshu/evolution/*.log。
+#
+# 日志行样例（单行，字段顺序固定）：
+#   [PromptOpt] 对比评估 prompt_id=prompt:search:xxx category=search
+#     orig_score=0.9997 orig_status=completed cand_score=0.9997
+#     cand_status=completed improvement=0.0000 threshold=0.0300 verdict=no_improvement
+#
+# 【不易】仅解析不改写；verdict/category 为低基数可设 label；
+#         prompt_id/score 等为高基数/数值字段，禁止设 label（会撑爆索引），
+#         查询时用 LogQL | regexp 运行时解析。
+# 【简易】单 scrape_config，仅 evolution 流，不干扰 orchestrator/knowledge 流。
+#
+# ⚠ Promtail 语法与混流说明：
+#   - 文本日志无多行截断风险（DictToJsonFilter 不适用，[PromptOpt] 本身单行），
+#     故不启用 multiline；
+#   - 若日志文件混入非 [PromptOpt] 行，regex stage 不匹配即保持原样（无 label），
+#     可在 match stage 按 label 缺失丢弃（见下文 LogQL 示例 5）；
+#   - regex stage 使用 Go 正则命名捕获组 (?P<name>...)，与 LogQL | regexp 一致。
+
+clients:
+  # Loki 推送端点（按生产环境调整）
+  - url: http://loki-gateway.monitoring.svc.cluster.local/loki/api/v1/push
+
+scrape_configs:
+  - job_name: yunshu-evolution
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: yunshu-evolution
+          __path__: /var/log/yunshu/evolution/*.log
+
+    pipeline_stages:
+      # 1. 提取 category（低基数，按技能类别分析）
+      - regex:
+          expression: "category=(?P<category>[a-z_]+)"
+
+      # 2. 提取 verdict（低基数，建议产出率统计核心维度）
+      - regex:
+          expression: "verdict=(?P<verdict>[a-z_]+)"
+
+      # 3. 设置低基数字段为 Loki label
+      #    ⚠ prompt_id/score 等禁止设 label——高基数/高基数数值会撑爆索引
+      - labels:
+          category: category
+          verdict: verdict
+
+      # 4. 规范化 message，便于 LogQL 直接展示
+      #    【简易】output stage 将模板结果作为最终日志行
+      - template:
+          source: message
+          template: 'prompt_opt[verdict={{ .verdict }}][cat={{ .category }}]'
+      - output:
+          source: message
+
+# ──────────────────────────────────────────────────────────────
+#  LogQL 使用示例（Grafana 面板，详见 docs/observability/log_analysis_queries.md）
+# ──────────────────────────────────────────────────────────────
+#
+# 1. 建议产出率（核心查询，Stat 面板 percentunit）：
+#    sum(rate({job="yunshu-evolution", verdict="proposed"}[5m]))
+#    / sum(rate({job="yunshu-evolution"}[5m]))
+#
+# 2. 各 verdict 频率分布（堆叠柱状图）：
+#    sum by (verdict) (rate({job="yunshu-evolution"}[5m]))
+#
+# 3. 按技能类别产出率：
+#    sum by (category) (rate({job="yunshu-evolution",
+#      verdict="proposed"}[5m]))
+#
+# 4. no_samples 突增告警（占比 > 50%）：
+#    sum(rate({job="yunshu-evolution", verdict="no_samples"}[15m]))
+#    / sum(rate({job="yunshu-evolution"}[15m])) > 0.5
+#
+# 5. 混流过滤（日志文件混入非 [PromptOpt] 行时，LabelParser 运行时剔除）：
+#    {job="yunshu-evolution"} | label_format verdict=""
+#    | verdict != ""

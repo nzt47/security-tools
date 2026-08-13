@@ -12,6 +12,10 @@ from datetime import datetime
 from .models import Plan, PlanState, Task
 from .models.action import Action, ActionType, ActionResult
 from .models.react import ReActStep, ReActResult, ThoughtResult
+from .budget import BudgetManager, BudgetStatus, PlanBudget
+from .reflector import format_advice_section, classify_task, Lesson
+
+from agent.monitoring.tracing import get_trace_id
 
 logger = logging.getLogger(__name__)
 
@@ -93,6 +97,13 @@ class ReActLoop:
         self.budget_ask_user = self.config.get("budget_ask_user", False)
         self._token_used = 0
         self._cost = 0.0
+        # 阶段 3（D13）：统一预算管理器（嵌套 budget 段优先，兼容直连键
+        # token_budget→max_tokens / timeout_seconds→max_seconds / cost_budget→max_cost；
+        # budget.enabled=false 整体关闭 = 零行为变化）
+        self.budget_manager = BudgetManager(
+            PlanBudget.from_config(self.config),
+            token_price_per_1k=self.config.get("token_price_per_1k", 0.002),
+        )
 
     async def run(self, task: str, context: Dict = None) -> ReActResult:
         """
@@ -109,6 +120,15 @@ class ReActLoop:
         steps: List[ReActStep] = []
         start_time = datetime.now()
 
+        # 阶段 3（D13）：开始本次执行预算记账（iterations/elapsed 重置，token/cost 生命周期累计）
+        self.budget_manager.start()
+
+        # P2 修复：区分三种终止原因（真超时/循环检测/迭代异常），
+        # 避免三条 break 路径全部误报为"超时"（post-loop 按原因返回对应语义）。
+        termination_reason: str = "timeout"  # 默认：迭代耗尽（真超时）
+        termination_iteration: int = self.max_iterations
+        termination_exception: Optional[Exception] = None
+
         logger.info("══════════════════════════════════════════════════════════════════")
         logger.info("🔄 [ReAct循环] =================================================")
         logger.info("🔄 [ReAct循环] 开始执行")
@@ -121,24 +141,32 @@ class ReActLoop:
         for iteration in range(self.max_iterations):
             iter_start = datetime.now()
 
-            # D13 优化：三层预算检查（deadline / token / cost），超限立即终止
-            # （budget_ask_user 启用时降级为"征求用户"暂停，见 _budget_result）
+            # 阶段 3（D13）：统一预算检查（steps/iterations/seconds/tokens/cost 维度，
+            # 经 BudgetManager 单点判定），超限立即终止（budget_ask_user 启用时降级为
+            # "征求用户"暂停，见 _budget_result）；超限快照落日志便于排查
             elapsed = (datetime.now() - start_time).total_seconds()
-            if self.deadline_seconds is not None and elapsed >= self.deadline_seconds:
-                logger.warning(f"⚠️ [ReAct循环] 超出时间预算({self.deadline_seconds}s)，终止")
-                return self._budget_result(
-                    f"超出时间预算({self.deadline_seconds}s)", steps, iteration, elapsed
+            budget_status = self.budget_manager.check()
+            if budget_status != BudgetStatus.OK:
+                snap = self.budget_manager.snapshot()
+                logger.info(
+                    f"[预算] 超限快照 | steps={snap['steps']} iterations={snap['iterations']}"
+                    f" | elapsed={snap['elapsed_seconds']}s | tokens={snap['tokens']}"
+                    f" | cost=${snap['cost']}"
                 )
-            if self.token_budget is not None and self._token_used >= self.token_budget:
-                logger.warning(f"⚠️ [ReAct循环] 超出token预算({self._token_used}/{self.token_budget})，终止")
-                return self._budget_result(
-                    f"超出token预算({self._token_used}/{self.token_budget})", steps, iteration, elapsed
+                detail_map = {
+                    BudgetStatus.EXCEEDED_STEPS: f"超出步数预算({snap['steps']}步)",
+                    BudgetStatus.EXCEEDED_ITERATIONS: f"超出迭代预算({snap['iterations']}次)",
+                    BudgetStatus.EXCEEDED_SECONDS: f"超出时间预算({snap['elapsed_seconds']}s)",
+                    BudgetStatus.EXCEEDED_TOKENS: f"超出token预算({snap['tokens']})",
+                    BudgetStatus.EXCEEDED_COST: f"超出成本预算(${snap['cost']})",
+                }
+                detail = detail_map.get(budget_status, budget_status.value)
+                logger.warning(
+                    f"⚠️ [ReAct循环] 超出预算（{budget_status.value}），终止: {detail}"
                 )
-            if self.cost_budget is not None and self._cost >= self.cost_budget:
-                logger.warning(f"⚠️ [ReAct循环] 超出成本预算(${self._cost:.4f}/{self.cost_budget})，终止")
-                return self._budget_result(
-                    f"超出成本预算(${self._cost:.4f}/{self.cost_budget})", steps, iteration, elapsed
-                )
+                return self._budget_result(detail, steps, iteration + 1, elapsed)
+            # 阶段 3（D13）：记录本次迭代（iterations 维度预算）
+            self.budget_manager.record_iteration(1)
             logger.info("──────────────────────────────────────────────────────────────────")
             logger.info(f"🔁 [迭代 {iteration + 1}/{self.max_iterations}] ────────────────")
             logger.info(f"🔁 [迭代 {iteration + 1}] 开始时间: {iter_start.strftime('%H:%M:%S.%f')[:-3]}")
@@ -170,7 +198,9 @@ class ReActLoop:
                     logger.info(f"   ✅ 任务已完成")
                     logger.info(f"      ├─ 执行步数: {iteration + 1}")
                     logger.info(f"      ├─ 总时长: {duration:.2f}ms")
-                    logger.info(f"      └─ 结果: {thought.result[:80]}{'...' if len(thought.result or '') > 80 else ''}")
+                    # P2 修复：result 可能为 None（LLM 未返回 result 字段），
+                    # 直接切片会 TypeError 被误判为迭代异常 → 判空兜底
+                    logger.info(f"      └─ 结果: {(thought.result or '')[:80]}{'...' if len(thought.result or '') > 80 else ''}")
                     logger.info("══════════════════════════════════════════════════════════════════")
                     return self._result(
                         success=True,
@@ -193,6 +223,10 @@ class ReActLoop:
                     logger.info(f"      ├─ 错误: {action_result.error[:100]}{'...' if len(action_result.error or '') > 100 else ''}")
 
                 observation = self._format_observation(action_result, thought)
+                # D3 修复：保留 awaiting_user_input 专用观察标记（_format_observation 会将
+                # 失败结果格式化为"失败: ..."，这里还原为标记，供上层识别"等待用户输入"状态）
+                if action_result.observation == "awaiting_user_input":
+                    observation = "awaiting_user_input"
                 logger.info(f"      └─ 观察: {observation[:120]}{'...' if len(observation) > 120 else ''}")
 
                 step = ReActStep(
@@ -205,11 +239,21 @@ class ReActLoop:
                 steps.append(step)
                 logger.info(f"   📝 步骤已记录: 迭代={iteration}, 成功={action_result.success}")
 
-                if thought.action_type == "ask_user":
-                    # D3 修复：ask_user 为暂停信号——停止循环，返回"等待用户输入"，
-                    # 由调用方询问用户后恢复（不再继续执行后续行动）。
+                # D3 修复：ask_user 为暂停信号——检测到 awaiting_user_input 标记
+                # （或 ask_user 行动类型，向后兼容）即终止当前循环，返回"等待用户输入"，
+                # 由上层 orchestrator 向用户询问与恢复（不再继续执行后续行动）。
+                awaiting_user = (
+                    action_result.observation == "awaiting_user_input"
+                    or thought.action_type == "ask_user"
+                )
+                if awaiting_user:
                     logger.info("   ⏸️ 检测到 ask_user：暂停执行，等待用户输入")
                     duration = (datetime.now() - start_time).total_seconds() * 1000
+                    logger.info(
+                        f"   ⏸️ [ReAct循环] ask_user 终止循环 | 迭代数: {iteration + 1}"
+                        f" | 时长: {duration:.2f}ms"
+                        f" | result: {str(thought.result or '需要用户确认')[:60]}"
+                    )
                     return self._result(
                         success=False,
                         result=thought.result or "需要用户确认",
@@ -235,10 +279,19 @@ class ReActLoop:
                             hints = context.setdefault("_hints", [])
                             if isinstance(hints, list):
                                 hints.extend(str(a) for a in reflection.adjustments)
+                                # 漏洞 G 修复：限制 _hints 上限（保留最近 20 条），防止
+                                # context 无限膨胀并随计划持久化（D19b 仅清理结果缓存）
+                                if len(hints) > 20:
+                                    del hints[:-20]
                         else:
                             logger.info(f"   ✅ 反思通过，无调整建议")
                     except Exception as e:
-                        logger.warning(f"   ⚠️ 反思执行失败: {e}")
+                        # D2 修复：反思异常不得被静默吞掉——提升为 error 并记录 trace_id，
+                        # 便于追踪定位（ReAct 路径的反思闭环因此可被观测与修复）。
+                        logger.error(
+                            f"   ❌ 反思执行失败: {type(e).__name__}: {e}"
+                            f" (trace_id={get_trace_id()})"
+                        )
                 else:
                     logger.info(f"   ⏭️ 跳过反思阶段 (reflector={self.reflector is not None}, success={action_result.success})")
 
@@ -249,6 +302,9 @@ class ReActLoop:
                     logger.warning("   ⚠️ ⚠️ ⚠️ 检测到执行循环！")
                     logger.warning(f"      最近3个动作: {[s.action for s in steps[-3:]]}")
                     logger.warning("      强制终止循环以避免无限循环")
+                    # P2 修复：记录终止原因为循环检测（区别于"超时"）
+                    termination_reason = "loop_detected"
+                    termination_iteration = iteration + 1
                     break
 
                 if action_result.success:
@@ -278,22 +334,39 @@ class ReActLoop:
                     observation=str(e),
                     success=False
                 ))
+                # P2 修复：记录终止原因为迭代异常（区别于"超时"）
+                termination_reason = "iteration_error"
+                termination_iteration = iteration + 1
+                termination_exception = e
                 break
 
         duration = (datetime.now() - start_time).total_seconds() * 1000
+        # P2 修复：按终止原因生成不同的错误语义（真超时/循环检测/迭代异常）
+        if termination_reason == "loop_detected":
+            result_text = "检测到反馈循环,已终止执行"
+            error_text = "检测到执行循环"
+        elif termination_reason == "iteration_error":
+            result_text = "迭代过程中发生异常"
+            error_text = (
+                f"迭代异常: {type(termination_exception).__name__}: {termination_exception}"
+                if termination_exception else "迭代异常"
+            )
+        else:
+            result_text = "达到最大迭代次数,任务未完成"
+            error_text = "超时"
         logger.warning("══════════════════════════════════════════════════════════════════")
-        logger.warning("⚠️ [ReAct循环] 达到最大迭代次数，任务未完成")
+        logger.warning(f"⚠️ [ReAct循环] 终止 | 终止原因: {termination_reason}")
         logger.info(f"⚠️ [ReAct循环] 实际执行步数: {len(steps)}")
         logger.info(f"⚠️ [ReAct循环] 总时长: {duration:.2f}ms")
         logger.info(f"⚠️ [ReAct循环] 结束时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]}")
         logger.warning("══════════════════════════════════════════════════════════════════")
         return self._result(
             success=False,
-            result="达到最大迭代次数,任务未完成",
+            result=result_text,
             steps=steps,
-            iterations=self.max_iterations,
+            iterations=termination_iteration,
             duration_ms=duration,
-            error="超时",
+            error=error_text,
         )
 
     async def _think(self, task: str, context: Dict, history: List[ReActStep]) -> ThoughtResult:
@@ -317,25 +390,19 @@ class ReActLoop:
                 f"- {h}" for h in context["_hints"][-5:]
             )
 
+        # 阶段 4（D17）：工具失败后基于教训的下一步提示（_act 写入 context["_next_hint"]）
+        if context and context.get("_next_hint"):
+            prompt += f"\n\n【下一步提示（基于历史教训）】\n{context['_next_hint']}"
+
         # D17 修复：思考阶段复用 reflector 历史经验（get_advice_for_task），
-        # 成功模式/常见陷阱嵌入提示词；查询失败不影响思考主流程（降级为无经验）。
+        # 成功模式/常见陷阱嵌入提示词（format_advice_section 统一格式，注入段标注
+        # "历史经验"）；查询失败不影响思考主流程（降级为无经验）。
         if self.reflector:
             try:
                 advice = self.reflector.get_advice_for_task(str(task))
-                if advice:
-                    lines = []
-                    patterns = advice.get("successful_patterns") or []
-                    pitfalls = advice.get("common_pitfalls") or []
-                    if patterns:
-                        lines.append("成功模式（历史经验）:")
-                        for p in patterns:
-                            lines.append(f"- [{p['id']}] {p['description']} → {p['output']}")
-                    if pitfalls:
-                        lines.append("常见陷阱（历史教训）:")
-                        for p in pitfalls:
-                            lines.append(f"- [{p['id']}] {p['description']}（失败点: {p['failure']}）")
-                    if lines:
-                        prompt += "\n\n【历史经验】\n" + "\n".join(lines)
+                section = format_advice_section(advice)
+                if section:
+                    prompt += "\n\n" + section
             except Exception as e:
                 logger.warning(f"[D17] 获取历史经验失败: {e}")
 
@@ -343,10 +410,12 @@ class ReActLoop:
             try:
                 logger.debug("   [思考] 正在调用LLM...")
                 response = await self.planner.llm.chat([{"role": "user", "content": prompt}])
-                # D13 优化：token/cost 可观测（估算：prompt + 响应按字符/3 近似，
-                # 不依赖 LLM 响应 usage 结构，兼容纯文本返回）
-                self._token_used += self._estimate_tokens(prompt) + self._estimate_tokens(response)
-                self._cost = self._token_used / 1000 * self.token_price
+                # 阶段 3（D13）：token/cost 统一经 budget_manager 记账（字符/3 估算），
+                # _token_used/_cost 与管理器同步（单一来源，避免双轨漂移）
+                self.budget_manager.record_text(prompt)
+                self.budget_manager.record_text(response)
+                self._token_used = self.budget_manager.tokens
+                self._cost = self.budget_manager.cost
                 logger.debug(f"   [思考] token 累计: {self._token_used} (估算), cost: ${self._cost:.4f}")
                 logger.debug("   [思考] LLM响应已接收")
                 return self._parse_thought(response)
@@ -369,10 +438,18 @@ class ReActLoop:
             )
 
         if thought.action_type == "ask_user":
-            logger.info("   [行动] 行动类型: 询问用户")
-            return ActionResult.success_result(
+            logger.info(
+                "   [行动] 行动类型: 询问用户"
+                "（返回 success=False + awaiting_user_input 标记，等待用户输入）"
+            )
+            # D3 修复：ask_user 是"等待用户输入"的暂停信号，不是成功结果。
+            # 返回 success=False + 专用观察标记 awaiting_user_input，供 ReAct 循环
+            # 检测后终止当前循环，由上层 orchestrator 向用户询问并恢复。
+            return ActionResult(
+                success=False,
                 output=thought.result or "需要用户确认",
-                observation="等待用户输入"
+                observation="awaiting_user_input",
+                error="等待用户输入",
             )
 
         if thought.action and thought.action.tool_name:
@@ -405,12 +482,24 @@ class ReActLoop:
                     )
                 except asyncio.TimeoutError:
                     logger.error(f"   [行动] ❌ 工具调用超时(>{self.tool_timeout}s): {tool_name}")
+                    # 阶段 4（D17）：超时失败触发 lessons_db 检索 + next_hint 注入
+                    logger.info(f"   [教训引导] 失败类型=超时 | tool={tool_name} | 开始查询 lessons_db")
+                    lessons = self._write_lesson_hint(context, thought, tool_name)
+                    self._log_lessons_result(lessons, tool_name)
                     return ActionResult.failure_result(f"工具调用超时(>{self.tool_timeout}s): {tool_name}")
                 except Exception as e:
                     logger.error(f"   [行动] ❌ 工具执行失败: {e}")
+                    # 阶段 4（D17）：异常失败触发 lessons_db 检索 + next_hint 注入
+                    logger.info(f"   [教训引导] 失败类型=异常({type(e).__name__}) | tool={tool_name} | 开始查询 lessons_db")
+                    lessons = self._write_lesson_hint(context, thought, tool_name)
+                    self._log_lessons_result(lessons, tool_name)
                     return ActionResult.failure_result(f"工具执行失败: {e}")
             else:
                 logger.warning(f"   [行动] ⚠️ 工具不存在: {tool_name}")
+                # 阶段 4（D17）：工具缺失触发 lessons_db 检索 + next_hint 注入
+                logger.info(f"   [教训引导] 失败类型=工具不存在 | tool={tool_name} | 开始查询 lessons_db")
+                lessons = self._write_lesson_hint(context, thought, tool_name)
+                self._log_lessons_result(lessons, tool_name)
                 return ActionResult.failure_result(f"工具不存在: {tool_name}")
 
         if thought.result:
@@ -422,6 +511,63 @@ class ReActLoop:
 
         logger.warning("   [行动] ⚠️ 无法确定执行动作")
         return ActionResult.failure_result("无法确定执行动作")
+
+    def _log_lessons_result(self, lessons: List[Lesson], tool_name: str) -> None:
+        """打印 lessons_db 查询的具体返回内容（含 task_description/failure_point/
+        solution 全字段），便于验证教训注入逻辑；空结果时打印空列表。"""
+        details = [lesson.to_dict() for lesson in lessons]
+        logger.info(f"   [教训引导] lessons_db 查询返回内容: {details} | tool={tool_name}")
+
+    def _write_lesson_hint(self, context: Dict, thought: ThoughtResult, tool_name: str) -> List[Lesson]:
+        """阶段 4（D17）：工具失败时从教训库查询同类教训，生成下一步提示写入
+        context["_next_hint"]（供下轮 _think 注入提示词引导下一步）。
+
+        教训库无同类记录 / 查询失败时静默跳过（不改变失败语义，仅增强引导）。
+        日志：失败上下文 → 分类 → 查询 → 命中/未命中 → 注入，全链路可观测。
+
+        Returns:
+            List[Lesson]: 本次查询返回的教训列表（供 _act 打印具体内容验证）
+        """
+        if not self.reflector:
+            logger.debug(f"[教训引导] reflector 未配置，跳过 next_hint（tool={tool_name}）")
+            return []
+        try:
+            desc = thought.action.description if thought.action else ""
+            task_type = classify_task(desc or tool_name)
+            logger.info(
+                f"[教训引导] 检索开始 | tool={tool_name}"
+                f" | 失败描述: {str(desc)[:60] or '(空)'}"
+                f" | task_type={task_type}"
+            )
+            lessons = self.reflector.query_lessons(task_type, limit=1)
+            logger.info(
+                f"[教训引导] lessons_db 查询返回 {len(lessons)} 条同类教训"
+                f" | task_type={task_type} | tool={tool_name}"
+            )
+            if lessons:
+                lesson = lessons[0]
+                logger.info(
+                    f"[教训引导] 命中教训 | lesson_id={lesson.id}"
+                    f" | task_description={str(lesson.task_description)[:60]}"
+                    f" | failure_point={str(lesson.failure_point)[:60]}"
+                    f" | solution={str(lesson.solution)[:60]}"
+                )
+                hint = (
+                    f"工具 {tool_name} 执行失败；同类任务曾失败："
+                    f"{lesson.failure_point[:80]}。"
+                    f"建议 {lesson.solution or '参考该教训调整参数或更换工具后再试'}"
+                )
+                context["_next_hint"] = hint
+                logger.info(f"[教训引导] 已注入 context['_next_hint'] | hint={hint[:100]}")
+            else:
+                logger.info(
+                    f"[教训引导] 教训库无同类记录，跳过注入 | tool={tool_name}"
+                    f" | task_type={task_type}（不改变失败语义）"
+                )
+            return lessons
+        except Exception as e:
+            logger.warning(f"[教训引导] 教训查询失败（不阻断失败语义）: {e}")
+            return []
 
     def _format_history(self, history: List[ReActStep]) -> str:
         """格式化执行历史"""
@@ -528,14 +674,29 @@ class ReActLoop:
         )
 
     def _detect_loop(self, steps: List[ReActStep], max_similar: int = 3) -> bool:
-        """检测执行循环"""
+        """检测执行循环（连续重复 / 周期振荡两种模式）。
+
+        - 连续重复：最近 max_similar 步动作完全相同（既有行为）
+        - 周期振荡：最近 2*max_similar 步整体呈周期性（相邻等长段动作序列
+          一致），覆盖 A/B/A/B 交替振荡与 A/B/C 周期循环——此类模式连续
+          重复检测不到，会一直跑到迭代耗尽并被误报为超时（漏洞 F 修复）。
+        """
         if len(steps) < max_similar * 2:
             return False
 
-        recent_steps = steps[-max_similar:]
-        actions = [step.action for step in recent_steps]
-        if len(set(actions)) == 1 and actions:
+        actions = [s.action for s in steps]
+
+        # 模式1：连续重复——最近 max_similar 步完全相同
+        recent = actions[-max_similar:]
+        if len(set(recent)) == 1 and recent[0]:
             return True
+
+        # 模式2：周期振荡——窗口内每个位置与其同余周期位置动作一致
+        # （window[i] == window[i % p]，p 为候选周期；防止 A/B/A/B... 交替循环漏检）
+        window = actions[-(max_similar * 2):]
+        for p in range(1, max_similar + 1):
+            if all(window[i] == window[i % p] for i in range(len(window))):
+                return True
 
         return False
 
@@ -566,7 +727,13 @@ class ReActLoop:
 
     def _result(self, *, success: bool, result: Any, steps: List[ReActStep],
                 iterations: int, duration_ms: float, error: Optional[str] = None) -> ReActResult:
-        """统一构造 ReActResult，透出 token/cost 预算可观测字段"""
+        """统一构造 ReActResult，透出 token/cost 预算可观测字段与 final_state 快照"""
+        final_state: Dict[str, Any] = {}
+        # 阶段 3（D13）：预算快照写入 final_state（可观测）；预算未启用时保持空 dict（向后兼容）
+        if self.budget_manager.budget.enabled:
+            snap = self.budget_manager.snapshot()
+            snap["status"] = self.budget_manager.check().value
+            final_state["budget"] = snap
         return ReActResult(
             success=success,
             result=result,
@@ -576,6 +743,7 @@ class ReActLoop:
             error=error,
             token_used=self._token_used,
             cost=self._cost,
+            final_state=final_state,
         )
 
     @staticmethod

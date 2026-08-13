@@ -211,6 +211,43 @@ class TestPlanningCore:
             assert result.used_planning is True
 
     @pytest.mark.asyncio
+    async def test_chat_ask_user_waiting_semantics(self):
+        """D3 端到端：ask_user 行动后循环正确终止并返回"等待用户输入"语义
+
+        chat 规划路径（react_loop）首次思考即返回 ask_user：
+        - 循环在迭代 1 内终止（不得继续执行后续行动直到迭代耗尽）
+        - ReActResult 携带等待用户语义（success=False, error="等待用户输入"）
+        - ask_user 行动本身不假装成功（步骤 success=False + awaiting_user_input 标记）
+        - 对外行为保留：返回文案提示用户
+        """
+        mock_llm = AsyncMock()
+        mock_llm.chat.return_value = json.dumps({
+            "reasoning": "需要用户确认",
+            "action_type": "ask_user",
+            "result": "请确认是否继续",
+        })
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            core = PlanningCore(
+                llm_service=mock_llm,
+                config={"reflector": {"persist_dir": tmp_dir}}
+            )
+
+            result = await core.chat("帮我完成一个复杂的任务")
+
+            assert result.used_planning is True
+            assert result.react_result is not None
+            # 循环正确终止：ask_user 后即返回，不继续执行后续行动
+            assert result.react_result.success is False
+            assert result.react_result.error == "等待用户输入"
+            assert result.react_result.iterations == 1
+            # ask_user 行动不假装成功：步骤失败且带专用观察标记
+            assert result.react_result.steps[0].success is False
+            assert result.react_result.steps[0].observation == "awaiting_user_input"
+            # 对外行为：返回文案提示用户
+            assert "等待用户输入" in result.response
+
+    @pytest.mark.asyncio
     async def test_chat_fallback_without_llm(self):
         """测试无LLM时的对话回退"""
         with tempfile.TemporaryDirectory() as tmp_dir:

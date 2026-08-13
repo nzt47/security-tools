@@ -5,6 +5,7 @@
 """
 
 import logging
+import threading
 from typing import List, Dict, Any, Optional, Set
 from collections import defaultdict
 from datetime import datetime
@@ -43,6 +44,12 @@ class IndexManager:
         
         # 倒排索引: item_id -> set of keywords
         self.item_keywords: Dict[str, Set[str]] = defaultdict(set)
+        
+        # Why RLock 保护全部索引结构：index_item/remove_item 的「检查→变更」为
+        # TOCTOU（remove_item 检查后另一线程删除会 KeyError），search 遍历 set/dict
+        # 时与并发写冲突会抛 RuntimeError（set/dict changed size during iteration）。
+        # 锁内仅内存 dict/set 变更与 _tokenize（纯字符串处理），遵守持锁纪律。
+        self._lock = threading.RLock()
         
         logger.info("[IndexManager] 初始化完成")
     
@@ -97,32 +104,34 @@ class IndexManager:
         """
         logger.debug(f"[IndexManager] 索引项: {item_id}")
         
-        # 存储 item
-        self.id_to_item[item_id] = {
-            "id": item_id,
-            "content": content,
-            "metadata": metadata,
-            "timestamp": timestamp
-        }
-        
-        # 分词并建立关键词索引
+        # 分词为纯字符串处理，锁外计算缩短持锁时间
         tokens = self._tokenize(content)
-        for token in tokens:
-            self.keyword_index[token].add(item_id)
-        self.item_keywords[item_id] = tokens
-        
-        # 建立时间索引
-        date_key = timestamp[:10]  # YYYY-MM-DD
-        self.time_index[date_key].add(item_id)
-        
-        # 建立分类索引
-        if "category" in metadata:
-            category = metadata["category"]
-            self.category_index[category].add(item_id)
-        
-        if "type" in metadata:
-            item_type = metadata["type"]
-            self.category_index[item_type].add(item_id)
+        with self._lock:
+            # 存储 item
+            self.id_to_item[item_id] = {
+                "id": item_id,
+                "content": content,
+                "metadata": metadata,
+                "timestamp": timestamp
+            }
+            
+            # 建立关键词索引
+            for token in tokens:
+                self.keyword_index[token].add(item_id)
+            self.item_keywords[item_id] = tokens
+            
+            # 建立时间索引
+            date_key = timestamp[:10]  # YYYY-MM-DD
+            self.time_index[date_key].add(item_id)
+            
+            # 建立分类索引
+            if "category" in metadata:
+                category = metadata["category"]
+                self.category_index[category].add(item_id)
+            
+            if "type" in metadata:
+                item_type = metadata["type"]
+                self.category_index[item_type].add(item_id)
         
         logger.debug(f"[IndexManager] 索引完成: {item_id}, 关键词数: {len(tokens)}")
     
@@ -133,29 +142,31 @@ class IndexManager:
         Args:
             item_id: 记忆ID
         """
-        if item_id not in self.id_to_item:
-            return
-        
-        # 移除关键词索引
-        if item_id in self.item_keywords:
-            for keyword in self.item_keywords[item_id]:
-                self.keyword_index[keyword].discard(item_id)
-            del self.item_keywords[item_id]
-        
-        # 移除时间索引
-        item = self.id_to_item[item_id]
-        date_key = item["timestamp"][:10]
-        self.time_index[date_key].discard(item_id)
-        
-        # 移除分类索引
-        metadata = item["metadata"]
-        if "category" in metadata:
-            self.category_index[metadata["category"]].discard(item_id)
-        if "type" in metadata:
-            self.category_index[metadata["type"]].discard(item_id)
-        
-        # 移除 item
-        del self.id_to_item[item_id]
+        with self._lock:
+            # 检查与后续读取/删除在锁内原子，消除并发删除导致的 KeyError
+            if item_id not in self.id_to_item:
+                return
+            
+            # 移除关键词索引
+            if item_id in self.item_keywords:
+                for keyword in self.item_keywords[item_id]:
+                    self.keyword_index[keyword].discard(item_id)
+                del self.item_keywords[item_id]
+            
+            # 移除时间索引
+            item = self.id_to_item[item_id]
+            date_key = item["timestamp"][:10]
+            self.time_index[date_key].discard(item_id)
+            
+            # 移除分类索引
+            metadata = item["metadata"]
+            if "category" in metadata:
+                self.category_index[metadata["category"]].discard(item_id)
+            if "type" in metadata:
+                self.category_index[metadata["type"]].discard(item_id)
+            
+            # 移除 item
+            del self.id_to_item[item_id]
     
     def search_by_keywords(self, query: str, limit: int = 100) -> List[str]:
         """
@@ -175,18 +186,19 @@ class IndexManager:
         if not tokens:
             return []
         
-        # 收集匹配的文档
-        matched_docs: Dict[str, int] = defaultdict(int)
-        
-        for token in tokens:
-            if token in self.keyword_index:
-                for doc_id in self.keyword_index[token]:
-                    matched_docs[doc_id] += 1
-        
-        # 按匹配次数排序
-        sorted_docs = sorted(matched_docs.items(), key=lambda x: x[1], reverse=True)
-        
-        return [doc_id for doc_id, _ in sorted_docs[:limit]]
+        with self._lock:
+            # 遍历 keyword_index 的 set 时与并发写互斥，避免 set changed size
+            matched_docs: Dict[str, int] = defaultdict(int)
+            
+            for token in tokens:
+                if token in self.keyword_index:
+                    for doc_id in self.keyword_index[token]:
+                        matched_docs[doc_id] += 1
+            
+            # 按匹配次数排序
+            sorted_docs = sorted(matched_docs.items(), key=lambda x: x[1], reverse=True)
+            
+            return [doc_id for doc_id, _ in sorted_docs[:limit]]
     
     def search_by_time_range(self, start_date: str, end_date: str) -> List[str]:
         """
@@ -201,21 +213,22 @@ class IndexManager:
         """
         logger.debug(f"[IndexManager] 时间搜索: {start_date} ~ {end_date}")
         
-        matched = set()
-        current = start_date
-        
-        while current <= end_date:
-            if current in self.time_index:
-                matched.update(self.time_index[current])
-            # 简单日期递增
-            try:
-                from datetime import timedelta
-                dt = datetime.strptime(current, "%Y-%m-%d") + timedelta(days=1)
-                current = dt.strftime("%Y-%m-%d")
-            except:
-                break
-        
-        return list(matched)
+        with self._lock:
+            matched = set()
+            current = start_date
+            
+            while current <= end_date:
+                if current in self.time_index:
+                    matched.update(self.time_index[current])
+                # 简单日期递增
+                try:
+                    from datetime import timedelta
+                    dt = datetime.strptime(current, "%Y-%m-%d") + timedelta(days=1)
+                    current = dt.strftime("%Y-%m-%d")
+                except:
+                    break
+            
+            return list(matched)
     
     def search_by_category(self, category: str) -> List[str]:
         """
@@ -229,29 +242,34 @@ class IndexManager:
         """
         logger.debug(f"[IndexManager] 分类搜索: {category}")
         
-        return list(self.category_index.get(category, set()))
+        with self._lock:
+            return list(self.category_index.get(category, set()))
     
     def get_item(self, item_id: str) -> Optional[Dict[str, Any]]:
         """获取记忆项"""
-        return self.id_to_item.get(item_id)
+        with self._lock:
+            return self.id_to_item.get(item_id)
     
     def clear(self) -> None:
         """清空所有索引"""
+        with self._lock:
+            self.keyword_index.clear()
+            self.time_index.clear()
+            self.category_index.clear()
+            self.id_to_item.clear()
+            self.item_keywords.clear()
+        # 日志在锁外（持锁纪律：锁内无 I/O）
         logger.info("[IndexManager] 清空索引")
-        self.keyword_index.clear()
-        self.time_index.clear()
-        self.category_index.clear()
-        self.id_to_item.clear()
-        self.item_keywords.clear()
     
     def get_stats(self) -> Dict[str, Any]:
         """获取索引统计"""
-        return {
-            "total_items": len(self.id_to_item),
-            "keyword_count": len(self.keyword_index),
-            "date_count": len(self.time_index),
-            "category_count": len(self.category_index)
-        }
+        with self._lock:
+            return {
+                "total_items": len(self.id_to_item),
+                "keyword_count": len(self.keyword_index),
+                "date_count": len(self.time_index),
+                "category_count": len(self.category_index)
+            }
 
 
 # 全局索引实例（保留作为 fallback）

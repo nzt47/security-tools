@@ -18,12 +18,28 @@ planning:
   # D9 规格：SQLite 持久化（默认 data/plans/plans.db；首次启动自动迁移旧 JSON 检查点）
   persist_dir: data/plans
   persist_db: data/plans/plans.db
+  # 阶段 3：高优先级任务失败时重规划（Plan B）开关（false 时保持原中断行为）
+  replan_on_failure: true
+  # 阶段 3：ask_user 等待用户确认超时（秒），超时自动以"用户未确认"结束
+  ask_user_timeout_seconds: 300
+  # 阶段 3：多维预算（budget.enabled=false 可整体关闭；各维度缺省 = 不限制）
+  budget:
+    enabled: true
+    max_seconds: 30
+    token_price_per_1k: 0.002
 llm:
   provider: openai
   model: gpt-4
   temperature: 0.7
   max_tokens: 2000
   api_key: ${OPENAI_API_KEY}
+learning:
+  # TASK(集成): ContextAssembler 旁路注入（D2D3 替代方案 CEL 框架）
+  # 观察模式已开启（2026-08-12，集成验证通过后）：system prompt 追加三层记忆组装产物；
+  # 组装任何异常均静默降级，主链路零影响。环境变量 LEARNING_CONTEXT_ASSEMBLER_ENABLED 可覆盖
+  context_assembler:
+    enabled: true
+    token_budget: 3000
 tools:
   enabled: true
   timeout: 30
@@ -427,6 +443,23 @@ orchestrator:
     # top1 综合分阈值（相似度*置信度*优先级权重，与 workflow_learning.executor.min_score 对齐）
     # 环境变量 ORCHESTRATOR_WORKFLOW_LEARNING_MIN_SCORE 覆盖此值
     min_score: 0.25
+
+  # ═══════════════════════════════════════════════════════════════
+  #  拒识层配置（三层漏斗第 3 层，LLM 调用之前）
+  #  模块入口：agent/orchestrator/orchestrator.py _should_reject()
+  #  说明（2026-08-12）：语义层修复后，当前部署技能库为 persona 元技能
+  #  （无任务技能），规则层+语义层双未命中导致一切正常中文请求被
+  #  「未知意图软拒识」拦截、不调 LLM。关闭 enabled 后仅保留
+  #  「输入过短拒识」（input_too_short，process() 内独立判定不受此开关影响）。
+  #  环境变量 ORCHESTRATOR_REJECT_ENABLED 覆盖此值（.env 已同步设置）
+  # ═══════════════════════════════════════════════════════════════
+  reject:
+    # 未知意图软拒识总开关 - false 时未知意图放行 LLM（守「组装流程可触发」）
+    enabled: false
+    # 语义最高分阈值（与 semantic_layer.min_score 解耦，预留调优）
+    threshold: 0.3
+    # LLM 最低置信度（预留，当前判定未使用）
+    llm_min_confidence: 0.5
 
 # ═══════════════════════════════════════════════════════════════
 #  综合技能管理系统配置 (Skills Management)

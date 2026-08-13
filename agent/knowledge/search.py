@@ -31,6 +31,7 @@ import logging
 import math
 import os
 import re
+import threading
 import time
 import uuid
 from dataclasses import dataclass
@@ -123,6 +124,10 @@ class BM25Index:
         self._doc_lengths: dict[str, int] = {}
         self._total_docs = 0
         self._avg_doc_length = 0.0
+        # Why RLock 保护读写：add_document（写）与 search（读）并发时，
+        # 倒排表/doc 长度/统计量存在读-改-写竞态（KnowledgeSearcher 构建期写、
+        # 检索期读）。RLock 允许同线程重入，锁内仅内存 dict 操作，无 I/O。
+        self._lock = threading.RLock()
 
     def add_document(self, doc_id: str, content: str) -> None:
         """添加文档（doc_id 重复时覆盖旧文档）。"""
@@ -131,23 +136,24 @@ class BM25Index:
         for token in tokens:
             term_counts[token] = term_counts.get(token, 0) + 1
 
-        if doc_id in self._doc_lengths:  # 覆盖语义：先移除旧文档
-            for term in list(self._index.keys()):
-                self._index[term] = [
-                    (did, freq) for did, freq in self._index[term] if did != doc_id
-                ]
-                if not self._index[term]:
-                    del self._index[term]
-            self._total_docs -= 1
+        with self._lock:
+            if doc_id in self._doc_lengths:  # 覆盖语义：先移除旧文档
+                for term in list(self._index.keys()):
+                    self._index[term] = [
+                        (did, freq) for did, freq in self._index[term] if did != doc_id
+                    ]
+                    if not self._index[term]:
+                        del self._index[term]
+                self._total_docs -= 1
 
-        for term, freq in term_counts.items():
-            self._index.setdefault(term, []).append((doc_id, freq))
-        self._doc_lengths[doc_id] = len(tokens)
-        self._total_docs += 1
-        self._avg_doc_length = (
-            sum(self._doc_lengths.values()) / self._total_docs
-            if self._total_docs > 0 else 0.0
-        )
+            for term, freq in term_counts.items():
+                self._index.setdefault(term, []).append((doc_id, freq))
+            self._doc_lengths[doc_id] = len(tokens)
+            self._total_docs += 1
+            self._avg_doc_length = (
+                sum(self._doc_lengths.values()) / self._total_docs
+                if self._total_docs > 0 else 0.0
+            )
 
     def search(self, query: str, top_k: int = 10) -> list[tuple[str, float]]:
         """搜索查询，返回 [(doc_id, bm25_score)]（按分数降序）。"""
@@ -155,17 +161,19 @@ class BM25Index:
         if not query_tokens:
             return []
         scores: dict[str, float] = {}
-        for token in query_tokens:
-            for doc_id, freq in self._index.get(token, []):
-                doc_length = self._doc_lengths.get(doc_id, 0)
-                if doc_length > 0:
-                    scores[doc_id] = scores.get(doc_id, 0.0) + self._compute_bm25(
-                        token, freq, doc_length
-                    )
+        with self._lock:
+            for token in query_tokens:
+                for doc_id, freq in self._index.get(token, []):
+                    doc_length = self._doc_lengths.get(doc_id, 0)
+                    if doc_length > 0:
+                        scores[doc_id] = scores.get(doc_id, 0.0) + self._compute_bm25(
+                            token, freq, doc_length
+                        )
         return sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_k]
 
     def _compute_bm25(self, term: str, term_freq: int, doc_length: int) -> float:
         """BM25 评分（与 tool_router_hybrid.BM25Index._compute_bm25 一致）。"""
+        # Why 不加锁：调用方 search 已持锁（tool_router_hybrid 同约定）
         doc_count = len(self._index.get(term, []))
         idf = (self._total_docs - doc_count + 0.5) / (doc_count + 0.5)
         if idf <= 0:
@@ -179,7 +187,8 @@ class BM25Index:
     @property
     def size(self) -> int:
         """已索引文档数。"""
-        return self._total_docs
+        with self._lock:
+            return self._total_docs
 
 
 # ════════════════════════════════════════════════════════════

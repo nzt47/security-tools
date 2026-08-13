@@ -2,6 +2,7 @@
 
 测试 SubagentContainer、SubagentLifecycleManager、Sandbox
 """
+import threading
 import time
 
 import pytest
@@ -490,3 +491,141 @@ class TestSubagentSandbox:
         """PermissionDenied 可无操作描述"""
         e = PermissionDenied("execute")
         assert str(e) == "权限拒绝: execute"
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  SubagentLifecycleManager 并发安全测试
+# ═══════════════════════════════════════════════════════════════════
+
+class TestSubagentLifecycleConcurrency:
+    """SubagentLifecycleManager 并发读写（threading.RLock 原子化）。
+
+    修复前：
+    - _total_created/_total_destroyed 为「读-改-写」序列（非原子），并发丢更新；
+    - create 的「容量检查→写入」为 TOCTOU 序列，并发可超卖超过 max_subagents；
+    - 查询方法迭代 _subagents 时与 destroy 并发会抛 RuntimeError。
+    修复后：create/destroy/hot_reload/gc/查询统一 RLock，锁内仅内存操作。
+    """
+
+    def _make_config(self, name: str, **kw):
+        return SubagentConfig(name=name, model_id="gpt-4", **kw)
+
+    def test_concurrent_create_count_precise(self):
+        """30 线程 × 20 次并发 create：total_created 与活跃数精确无丢失"""
+        mgr = SubagentLifecycleManager(max_subagents=1000)
+        n_threads, per = 30, 20
+        total = n_threads * per
+        barrier = threading.Barrier(n_threads)  # 同步起跑，放大读-改-写竞争
+        errors = []
+
+        def worker(tid):
+            try:
+                barrier.wait()
+                for i in range(per):
+                    mgr.create(self._make_config(f"c_{tid}_{i}"))
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker, args=(t,)) for t in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors
+        assert mgr.count() == total                      # 活跃数精确
+        assert mgr.get_stats()["total_created"] == total  # 计数无丢失更新
+
+    def test_concurrent_capacity_no_oversell(self):
+        """100 线程并发 create（max=20）：恰好放行 20 个，不超卖（TOCTOU 修复）"""
+        mgr = SubagentLifecycleManager(max_subagents=20)
+        n_threads = 100
+        barrier = threading.Barrier(n_threads)
+        successes = []
+        rejected = []
+
+        def worker(tid):
+            barrier.wait()
+            try:
+                mgr.create(self._make_config(f"cap_{tid}"))
+                successes.append(tid)
+            except SubagentLifecycleError:
+                rejected.append(tid)
+
+        threads = [threading.Thread(target=worker, args=(t,)) for t in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert len(successes) == 20, "容量检查应精确放行 20 个（无超卖）"
+        assert len(rejected) == 80
+        assert mgr.count() == 20
+        assert mgr.count() <= mgr._max_subagents
+
+    def test_concurrent_create_destroy_balance(self):
+        """并发 create+destroy 混合：total_created - total_destroyed == count()"""
+        mgr = SubagentLifecycleManager(max_subagents=500)
+        n_threads, per = 10, 15
+        errors = []
+
+        def worker(tid):
+            try:
+                for i in range(per):
+                    sa = mgr.create(self._make_config(f"cd_{tid}_{i}"))
+                    mgr.destroy(sa)
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker, args=(t,)) for t in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors
+        stats = mgr.get_stats()
+        assert stats["total_created"] == n_threads * per
+        assert stats["total_destroyed"] == n_threads * per
+        assert stats["total_created"] - stats["total_destroyed"] == mgr.count() == 0
+
+    def test_concurrent_readers_and_writers_no_crash(self):
+        """读线程（list/get_by_id/get_stats）与写线程（create/destroy）并发：不抛异常"""
+        mgr = SubagentLifecycleManager(max_subagents=200)
+        for i in range(20):
+            mgr.create(self._make_config(f"seed_{i}"))
+        stop = threading.Event()
+        errors = []
+
+        def writer(tid):
+            try:
+                for i in range(30):
+                    sa = mgr.create(self._make_config(f"w_{tid}_{i}"))
+                    if i % 2 == 0:
+                        mgr.destroy(sa)
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        def reader(_):
+            try:
+                while not stop.is_set():
+                    mgr.list()
+                    mgr.get_by_id("ghost_id")
+                    mgr.get_stats()
+                    assert isinstance(mgr.count(), int)
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        writers = [threading.Thread(target=writer, args=(t,)) for t in range(4)]
+        readers = [threading.Thread(target=reader, args=(t,)) for t in range(4)]
+        for t in writers + readers:
+            t.start()
+        for t in writers:
+            t.join()
+        stop.set()
+        for t in readers:
+            t.join()
+
+        assert not errors, f"读写并发不应抛异常: {errors}"
+        stats = mgr.get_stats()
+        assert stats["total_created"] - stats["total_destroyed"] == mgr.count()

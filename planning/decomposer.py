@@ -9,6 +9,8 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 from .models import Task, TaskType, Plan, PlanState
+from .llm_json import extract_json, extract_json_with_retry
+from .reflector import format_advice_section
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +27,13 @@ class TaskDecomposer:
 
 上下文: {context}
 
+{experience_hints}
 要求:
 1. 识别任务中的关键动作步骤
 2. 确定动作的执行顺序(考虑依赖关系)
 3. 识别可以并行执行的动作
 4. 每个子任务应该是独立的、可验证的
+5. 优先参考任务下方给出的历史经验与常见陷阱（若存在），避开已验证的失败点
 
 输出JSON格式:
 {{
@@ -50,17 +54,20 @@ class TaskDecomposer:
 
 请直接输出JSON,不要有其他内容:"""
 
-    def __init__(self, llm_service=None, config: Dict = None):
+    def __init__(self, llm_service=None, config: Dict = None, reflector=None):
         """
         初始化分解器
 
         Args:
             llm_service: LLM服务实例
             config: 配置字典
+            reflector: 反思引擎（阶段 4 / D17：分解前注入【历史经验】段；
+                       None 时保持无经验场景行为不变）
         """
         self.llm = llm_service
         self.config = config or {}
         self.max_subtasks = self.config.get("max_subtasks", 20)
+        self.reflector = reflector
 
     async def decompose(self, task_description: str, context: Dict[str, Any] = None) -> Plan:
         """
@@ -111,6 +118,12 @@ class TaskDecomposer:
 
             plan.tasks = tasks
             plan.state = PlanState.READY
+            # 阶段 2（D5）：parallel_groups 写入 plan.metadata 供执行器参考
+            parallel_groups = subtasks_data.get("parallel_groups", [])
+            if isinstance(parallel_groups, list):
+                plan.metadata["parallel_groups"] = parallel_groups
+                if parallel_groups:
+                    logger.info(f"   并行组声明: {parallel_groups}")
 
             logger.info("📋 步骤3: 更新计划状态...")
             logger.info(f"   ✅ 任务分解完成!")
@@ -131,16 +144,42 @@ class TaskDecomposer:
         return plan
 
     async def _llm_decompose(self, task: str, context: Dict) -> Dict[str, Any]:
-        """使用LLM进行任务分解"""
+        """使用LLM进行任务分解（阶段 2 鲁棒性升级：提取校验 + 失败附反馈重试 1 次，
+        仍失败由 _extract_json_from_response 回退规则分解）"""
         context_str = json.dumps(context, ensure_ascii=False, indent=2)
 
-        prompt = self.DECOMPOSITION_PROMPT.format(
-            task_description=task,
-            context=context_str
-        )
+        def _build_prompt() -> str:
+            # 阶段 4（D17）：分解前注入【历史经验】段（reflector 未注入/无经验 → 空段）
+            experience_hints = ""
+            if self.reflector is not None:
+                try:
+                    advice = self.reflector.get_advice_for_task(task)
+                    experience_hints = format_advice_section(advice)
+                except Exception as e:
+                    logger.warning(f"[经验回灌] 分解提示词注入失败: {e}")
+            return self.DECOMPOSITION_PROMPT.format(
+                task_description=task,
+                context=context_str,
+                experience_hints=experience_hints + "\n" if experience_hints else ""
+            )
 
+        prompt = _build_prompt()
         response = await self.llm.chat([{"role": "user", "content": prompt}])
-        return self._extract_json_from_response(response)
+
+        def _build_retry_prompt(errors: List[str]) -> str:
+            return (
+                f"{_build_prompt()}\n\n"
+                "上轮输出解析失败，请修正后重新输出严格 JSON（只输出 JSON，不要其他内容）：\n"
+                + "\n".join(f"- {e}" for e in errors)
+            )
+
+        data, errors = await extract_json_with_retry(response, self.llm, _build_retry_prompt)
+        if data is not None:
+            return data
+
+        # 仍失败 → 回退规则分解（与阶段 1 行为一致）
+        logger.warning(f"LLM 分解输出解析失败（{'；'.join(errors)}），回退规则分解")
+        return self._rule_decompose(task)
 
     def _rule_decompose(self, task: str) -> Dict[str, Any]:
         """基于规则的任务分解(降级方案)"""
@@ -203,7 +242,9 @@ class TaskDecomposer:
                 priority=item.get("priority", 3),
                 dependencies=item.get("dependencies", []),
                 constraints=item.get("constraints", []),
-                estimated_steps=item.get("estimated_steps", 1)
+                estimated_steps=item.get("estimated_steps", 1),
+                # D14：透传 LLM 提供的任务级降级链（fallback_actions），缺省空列表
+                fallback_actions=item.get("fallback_actions", []),
             )
             tasks.append(task)
             logger.debug(f"   解析子任务{i+1}: {task.description[:50]}...")
@@ -212,25 +253,11 @@ class TaskDecomposer:
         return tasks
 
     def _extract_json_from_response(self, response: str) -> Dict[str, Any]:
-        """从LLM响应中提取JSON"""
-        import re
-
-        json_match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', response)
-        if json_match:
-            try:
-                return json.loads(json_match.group(1))
-            except json.JSONDecodeError:
-                pass
-
-        brace_start = response.find('{')
-        if brace_start != -1:
-            for brace_end in range(len(response) - 1, brace_start, -1):
-                try:
-                    candidate = response[brace_start:brace_end + 1]
-                    return json.loads(candidate)
-                except json.JSONDecodeError:
-                    continue
-
+        """从LLM响应中提取JSON（阶段 2 起委托 planning/llm_json.py 公共函数；
+        失败回退规则分解，行为与阶段 1 一致）"""
+        data = extract_json(response)
+        if data is not None:
+            return data
         return self._rule_decompose(response)
 
     async def refine(self, plan: Plan, feedback: str) -> Plan:
@@ -271,7 +298,9 @@ class TaskDecomposer:
 """
         try:
             response = await self.llm.chat([{"role": "user", "content": prompt}])
-            adjustments = json.loads(response).get("adjustments", [])
+            # 阶段 2：refine 输出解析复用 llm_json 公共函数（鲁棒性升级）
+            data = extract_json(response) or {}
+            adjustments = data.get("adjustments", [])
 
             for adj in adjustments:
                 self._apply_adjustment(plan, adj)

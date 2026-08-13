@@ -1,0 +1,107 @@
+# 知识库重构任务流水线 —— 每次 knowledge 相关变更自动执行 8 个任务门禁
+# 行为:
+#   - 触发: push/PR 触及 knowledge 相关路径（path filter）; 或 workflow_dispatch 手动
+#   - 门禁: 依赖闭环 → 交付物齐全 → 全任务 pytest（拓扑序 T0→T7）
+#   - 任一任务 MISSING/BLOCKED/FAIL → job 失败（分支保护可勾选本 job 阻止合并）
+#   - 输出: 完整日志 artifact(knowledge-tasks-report.log) + Job Summary
+name: 知识库重构任务检查(run_knowledge_tasks)
+
+# 【变易】concurrency 独立分组：主 CI 排队治理用共享组 ci-${{ github.ref }}，
+# 同 ref 多 workflow 并发时只有最新一个存活，其余全部取消（2026-08-11 实测
+# 本 workflow 被同批的「日志性能守护」取消）。守卫类流水线必须独立成组，
+# 保证 knowledge 变更必跑、不被主 CI 批次挤掉。仍保留"连续 push 只留最新"语义。
+concurrency:
+  group: knowledge-tasks-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    paths:
+      - 'docs/zh/知识库重构计划/**'
+      - 'agent/knowledge/**'
+      - 'tests/unit/test_knowledge*.py'
+      - 'tests/unit/test_routes_knowledge.py'
+      - 'scripts/run_knowledge_tasks.py'
+      - 'scripts/run_knowledge_tasks.ps1'
+      - 'scripts/verify_knowledge_plan_deps.py'
+      - '.github/workflows/knowledge-tasks.yml'  # workflow 自身改动也自动自检
+  pull_request:
+    paths:
+      - 'docs/zh/知识库重构计划/**'
+      - 'agent/knowledge/**'
+      - 'tests/unit/test_knowledge*.py'
+      - 'tests/unit/test_routes_knowledge.py'
+      - 'scripts/run_knowledge_tasks.py'
+      - 'scripts/run_knowledge_tasks.ps1'
+      - 'scripts/verify_knowledge_plan_deps.py'
+      - '.github/workflows/knowledge-tasks.yml'
+  workflow_dispatch:  # 手动触发兜底
+
+permissions:
+  contents: read
+
+jobs:
+  knowledge-tasks:
+    name: knowledge-tasks(T0-T7)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置 Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          # 与主 ci.yml 测试作业同套 pytest 全家桶（pytest 不随 -e . 安装）
+          pip install pytest pytest-cov pytest-xdist pytest-mock pytest-timeout pytest-asyncio pytest-randomly
+          pip install -e .
+
+      - name: 检查脚本存在(跨分支/仓库安全)
+        id: precheck
+        run: |
+          if [ ! -f scripts/run_knowledge_tasks.py ]; then
+            echo "::notice::run_knowledge_tasks.py 不存在, 跳过(跨分支/仓库安全)"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 依赖闭环检查
+        if: steps.precheck.outputs.skip != 'true'
+        run: |
+          python scripts/verify_knowledge_plan_deps.py --no-warn
+
+      - name: 交付物验证 + 全量任务测试(拓扑序)
+        if: steps.precheck.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          # pipefail: tee 不吞 python 退出码; 任一任务 MISSING/BLOCKED/FAIL → job 失败
+          python scripts/run_knowledge_tasks.py --verbose 2>&1 | tee knowledge_tasks_report.log
+
+      - name: 上传流水线日志(可审计)
+        if: always() && steps.precheck.outputs.skip != 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: knowledge-tasks-report
+          path: knowledge_tasks_report.log
+          if-no-files-found: ignore
+
+      - name: 汇总结果到 Job Summary
+        if: always() && steps.precheck.outputs.skip != 'true'
+        run: |
+          if [ ! -f knowledge_tasks_report.log ]; then
+            echo "::notice::knowledge_tasks_report.log 不存在(上游步骤未执行/失败), 跳过汇总"
+            exit 0
+          fi
+          {
+            echo "## 知识库重构任务检查结果"
+            echo '```text'
+            tail -n 40 knowledge_tasks_report.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -276,3 +276,191 @@ class TestPlanExecutor:
         executor = PlanExecutor(registry)
         
         assert len(executor.get_history()) == 0
+
+
+class TestDependencyDeadlockResolution:
+    """P2 修复测试：依赖失败 → 下游任务悬挂误报'超时'
+
+    修复前：依赖任务 FAILED 后，下游 PENDING 任务永远无法满足执行条件，
+    计划收尾误报 FAILED "计划执行超时或异常终止"。
+    修复后：下游任务被标记 SKIPPED（终态），收尾正确判定为 COMPLETED(部分任务失败)。
+    """
+
+    @pytest.mark.asyncio
+    async def test_failed_dependency_marks_downstream_skipped(self):
+        """任务 a 失败 → 依赖它的任务 b 应被标记 SKIPPED，计划 COMPLETED 且不误报超时"""
+        registry = ToolRegistry()
+        registry.register("fail_tool", lambda: 1 / 0)
+        registry.register("sum_tool", lambda: "汇总完成")
+
+        executor = PlanExecutor(registry, max_retries=1)
+
+        plan = Plan(original_task="依赖失败测试", state=PlanState.READY)
+        plan.add_task(Task(id="a", description="调用 fail_tool 处理数据"))
+        plan.add_task(Task(id="b", description="调用 sum_tool 汇总结果", dependencies=["a"]))
+
+        result = await executor.execute_plan(plan)
+
+        task_a = result.get_task("a")
+        task_b = result.get_task("b")
+        assert task_a.status == TaskStatus.FAILED
+        assert task_b.status == TaskStatus.SKIPPED
+        # 不再误报超时
+        assert "超时" not in str(result.error)
+        assert result.state == PlanState.COMPLETED
+        assert result.result == "计划执行完成,但部分任务失败"
+        assert result.is_success() is False
+
+    @pytest.mark.asyncio
+    async def test_transitive_dependency_chain_all_skipped(self):
+        """传递依赖链 a→b→c：a 失败 → b、c 均被标记 SKIPPED（迭代至不动点）"""
+        registry = ToolRegistry()
+        registry.register("fail_tool", lambda: 1 / 0)
+        registry.register("sum_tool", lambda: "汇总完成")
+
+        executor = PlanExecutor(registry, max_retries=1)
+
+        plan = Plan(original_task="传递依赖测试", state=PlanState.READY)
+        plan.add_task(Task(id="a", description="调用 fail_tool 处理数据"))
+        plan.add_task(Task(id="b", description="调用 sum_tool 汇总结果", dependencies=["a"]))
+        plan.add_task(Task(id="c", description="调用 sum_tool 输出报告", dependencies=["b"]))
+
+        result = await executor.execute_plan(plan)
+
+        assert result.get_task("a").status == TaskStatus.FAILED
+        assert result.get_task("b").status == TaskStatus.SKIPPED
+        assert result.get_task("c").status == TaskStatus.SKIPPED
+        assert result.state == PlanState.COMPLETED
+        assert "超时" not in str(result.error)
+
+    @pytest.mark.asyncio
+    async def test_max_steps_pending_not_marked_skipped(self):
+        """防误伤：max_steps 中断导致的 PENDING 任务不应被标记 SKIPPED"""
+        registry = ToolRegistry()
+        registry.register("slow_tool", lambda: "完成")
+
+        executor = PlanExecutor(registry, max_retries=1)
+
+        plan = Plan(original_task="步数上限测试", state=PlanState.READY)
+        plan.add_task(Task(id="a", description="调用 slow_tool"))
+        plan.add_task(Task(id="b", description="调用 slow_tool"))
+        plan.max_steps = 1
+
+        result = await executor.execute_plan(plan)
+
+        assert result.get_task("a").status == TaskStatus.COMPLETED
+        # PENDING 保留，不因死锁消解被误标 SKIPPED
+        assert result.get_task("b").status == TaskStatus.PENDING
+        assert result.state == PlanState.FAILED
+
+    @pytest.mark.asyncio
+    async def test_max_steps_with_failed_dependency_resolved_at_finalization(self):
+        """边界：max_steps 恰好耗尽且存在依赖失败 → 收尾期死锁消解兜底，不误报超时"""
+        registry = ToolRegistry()
+        registry.register("fail_tool", lambda: 1 / 0)
+        registry.register("sum_tool", lambda: "汇总完成")
+
+        executor = PlanExecutor(registry, max_retries=1)
+
+        plan = Plan(original_task="边界测试", state=PlanState.READY)
+        plan.add_task(Task(id="a", description="调用 fail_tool 处理数据"))
+        plan.add_task(Task(id="b", description="调用 sum_tool 汇总结果", dependencies=["a"]))
+        plan.max_steps = 1
+
+        result = await executor.execute_plan(plan)
+
+        assert result.get_task("a").status == TaskStatus.FAILED
+        assert result.get_task("b").status == TaskStatus.SKIPPED
+        assert "超时" not in str(result.error)
+        assert result.state == PlanState.COMPLETED
+        assert result.result == "计划执行完成,但部分任务失败"
+
+    @pytest.mark.asyncio
+    async def test_stale_running_task_reset_and_recover(self):
+        """边界：崩溃恢复残留的 RUNNING 任务（+下游 PENDING 依赖）→ 重置后重新调度，不悬挂"""
+        registry = ToolRegistry()
+        registry.register("sum_tool", lambda: "汇总完成")
+        executor = PlanExecutor(registry, max_retries=1)
+
+        plan = Plan(original_task="恢复场景", state=PlanState.EXECUTING)
+        a = Task(id="a", description="调用 sum_tool 汇总结果")
+        a.mark_running()  # 模拟崩溃时残留 RUNNING
+        plan.add_task(a)
+        plan.add_task(Task(id="b", description="调用 sum_tool 输出报告", dependencies=["a"]))
+        plan.max_steps = 10
+
+        result = await executor.execute_plan(plan)
+
+        # RUNNING 残留被重置后重新执行成功，依赖链全绿
+        assert result.get_task("a").status == TaskStatus.COMPLETED
+        assert result.get_task("b").status == TaskStatus.COMPLETED
+        assert result.state == PlanState.COMPLETED
+        assert result.is_success() is True
+
+    @pytest.mark.asyncio
+    async def test_stale_running_task_with_failed_dependency_chain(self):
+        """边界：残留 RUNNING 重置后执行失败 → 下游依赖被消解 SKIPPED，不误报超时"""
+        registry = ToolRegistry()
+        registry.register("fail_tool", lambda: 1 / 0)
+        registry.register("sum_tool", lambda: "汇总完成")
+        executor = PlanExecutor(registry, max_retries=1)
+
+        plan = Plan(original_task="恢复场景2", state=PlanState.EXECUTING)
+        a = Task(id="a", description="调用 fail_tool 处理数据")
+        a.mark_running()
+        plan.add_task(a)
+        plan.add_task(Task(id="b", description="调用 sum_tool 汇总结果", dependencies=["a"]))
+        plan.max_steps = 10
+
+        result = await executor.execute_plan(plan)
+
+        assert result.get_task("a").status == TaskStatus.FAILED
+        assert result.get_task("b").status == TaskStatus.SKIPPED
+        assert "超时" not in str(result.error)
+        assert result.state == PlanState.COMPLETED
+
+    @pytest.mark.asyncio
+    async def test_parallel_batch_partial_failure_dangling_dependency(self):
+        """边界组合：并行批内部分任务失败 → 依赖失败任务的 PENDING 下游被消解 SKIPPED，
+        其余并行成功任务不受影响，计划判定 COMPLETED(部分任务失败) 而非误报超时。"""
+        registry = ToolRegistry()
+        registry.register("fail_tool", lambda: 1 / 0)
+        registry.register("sum_tool", lambda: "汇总完成")
+        executor = PlanExecutor(registry, max_retries=1)
+
+        plan = Plan(original_task="并行批部分失败", state=PlanState.READY)
+        # a、b 互不依赖 → 同一并行批执行；c 依赖失败的 a（悬挂）
+        plan.add_task(Task(id="a", description="调用 fail_tool 处理数据"))
+        plan.add_task(Task(id="b", description="调用 sum_tool 汇总结果"))
+        plan.add_task(Task(id="c", description="调用 sum_tool 输出报告", dependencies=["a"]))
+        plan.max_steps = 10
+
+        result = await executor.execute_plan(plan)
+
+        assert result.get_task("a").status == TaskStatus.FAILED
+        assert result.get_task("b").status == TaskStatus.COMPLETED
+        assert result.get_task("c").status == TaskStatus.SKIPPED
+        assert "超时" not in str(result.error)
+        assert result.state == PlanState.COMPLETED
+        assert result.result == "计划执行完成,但部分任务失败"
+
+    @pytest.mark.asyncio
+    async def test_dangling_dependency_reference_fails_not_success(self):
+        """边界组合：任务依赖引用不存在的任务 id（悬挂引用）→ D11 前置结构校验拦截 →
+        计划以 FAILED(计划验证失败) 收尾，不进入执行循环、不误报成功、不卡死。"""
+        registry = ToolRegistry()
+        registry.register("sum_tool", lambda: "汇总完成")
+        executor = PlanExecutor(registry, max_retries=1)
+
+        plan = Plan(original_task="悬挂引用", state=PlanState.READY)
+        plan.add_task(Task(id="a", description="调用 sum_tool 汇总"))
+        plan.add_task(Task(id="b", description="调用 sum_tool 输出", dependencies=["ghost"]))
+        plan.max_steps = 10
+
+        result = await executor.execute_plan(plan)
+
+        # D11 前置校验拦截：所有任务保持 PENDING（未进入执行循环），计划以验证失败收尾
+        assert result.get_task("a").status == TaskStatus.PENDING
+        assert result.get_task("b").status == TaskStatus.PENDING
+        assert result.state == PlanState.FAILED
+        assert "依赖不存在" in str(result.error)

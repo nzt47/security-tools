@@ -4,8 +4,10 @@
 而签名期望 Task 对象并访问 task.description → AttributeError 被 try/except 静默吞掉，
 ReAct 路径的反思闭环完全断裂。
 
-预期失败：使用真实 Reflector + mock LLM（tool_call → finish），
+预期失败（阶段 0 复现）：使用真实 Reflector + mock LLM（tool_call → finish），
 断言反思真实执行（reflection_history 有记录）→ 当前为空 → 断言失败即复现成功。
+修复后（阶段 1）：react.py 构造最小 Task 传入 step_reflect，反思真实执行且异常
+不再被静默吞掉（日志提升为 error 并记录 trace_id）。
 """
 import json
 import tempfile
@@ -42,3 +44,5 @@ class TestDefectD2:
             # 目标行为：反思真实执行且无 AttributeError（step_reflect 不被吞异常）
             assert result.success is True
             assert len(core.reflector.reflection_history) == 1
+            # 反思结果确实写入 reflection_history（步骤级反思）
+            assert core.reflector.reflection_history[0]["type"] == "step"

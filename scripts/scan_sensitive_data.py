@@ -250,7 +250,11 @@ def main():
     # 也传入 hook，直接扫描它们只会误报阻断提交。统一在入口过滤。
     tracked_set = set(
         f for f in subprocess.run(
-            ['git', 'ls-files', '-z'], capture_output=True, text=True
+            # 【修复】中文 Windows 下 text=True 默认按 GBK 解码 git 输出，
+            # 遇到 UTF-8 中文路径（如 docs/zh/...）即 UnicodeDecodeError 崩溃。
+            # 显式按 UTF-8 解码，errors=replace 兜底非法字节。
+            ['git', 'ls-files', '-z'], capture_output=True, text=True,
+            encoding='utf-8', errors='replace',
         ).stdout.split('\0') if f
     )
 

@@ -119,11 +119,11 @@ class TestEmptyBoundary:
     """空值/空容器边界测试"""
 
     def test_empty_metrics_assessor(self, assessor):
-        """空 metrics 字典 — assess 返回默认满分"""
+        """空 metrics 字典 — assess 返回 overall=None（无数据禁假满分）"""
         score = assessor.assess({})
         assert isinstance(score, HealthScore)
-        assert score.overall == 1.0
-        assert score.issues == []
+        assert score.overall is None
+        assert "无数据" in score.issues
 
     def test_empty_metrics_calculator(self, calculator):
         """空 metrics 字典 — calculate 使用所有默认值，返回有效报告"""
@@ -162,10 +162,10 @@ class TestInvalidBoundary:
     """非法输入边界测试"""
 
     def test_invalid_metrics_none_assessor(self, assessor):
-        """None 作为 metrics — assessor.assess(None) 返回默认满分（None 是 falsy 跳过分支）"""
+        """None 作为 metrics — assessor.assess(None) 返回 overall=None（无数据禁假满分）"""
         score = assessor.assess(None)
         assert isinstance(score, HealthScore)
-        assert score.overall == 1.0
+        assert score.overall is None
 
     def test_invalid_metrics_none_calculator(self, calculator):
         """None 作为 metrics — calculator.calculate(None) 抛 AttributeError"""
@@ -374,9 +374,9 @@ class TestNullBoundary:
     """None/null 处理边界测试"""
 
     def test_null_metrics_assessor(self, assessor):
-        """None metrics — assessor 返回默认满分"""
+        """None metrics — assessor 返回 overall=None（无数据禁假满分）"""
         score = assessor.assess(None)
-        assert score.overall == 1.0
+        assert score.overall is None
 
     def test_null_get_history_n_assessor(self, assessor):
         """None n — get_history(None) 抛 TypeError（-None 非法）"""

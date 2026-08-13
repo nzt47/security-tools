@@ -5,6 +5,7 @@ import pytest
 import os
 import sys
 import logging
+import threading
 from datetime import datetime
 from unittest.mock import patch, MagicMock, Mock
 
@@ -832,6 +833,9 @@ def _make_test_orch(**overrides):
     defaults = {
         "_running": True,
         "_interaction_count": 1, "_last_context_warning": None, "_last_was_template": False,
+        # ac7ae7c8 后 process() 在 _interaction_count 递增时持 _interaction_lock，
+        # __new__ 绕过宿主初始化，测试 helper 需显式补齐该锁
+        "_interaction_lock": threading.Lock(),
         "_guardrails_input_guard": MagicMock(check=lambda x: GuardResult(GuardAction.ALLOW)),
         "_guardrails_output_guard": MagicMock(check=lambda x: OutputResult(filtered=x)),
         "_workflow_engine": MagicMock(try_match=lambda x: None),

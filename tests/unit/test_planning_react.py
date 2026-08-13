@@ -313,7 +313,8 @@ class TestReActLoop:
         assert react_loop._detect_loop([]) is False
 
     def test_detect_loop_alternating_actions(self):
-        """测试检测循环 - 交替动作不应检测为循环"""
+        """测试检测循环 - 交替振荡（A/B/A/B）应检测为循环（漏洞F修复：
+        交替模式连续重复检测不到，会一直跑到迭代耗尽并被误报为超时）"""
         mock_planner = MagicMock()
         mock_reflector = MagicMock()
         
@@ -326,6 +327,42 @@ class TestReActLoop:
             ReActStep(iteration=3, thought="思考4", action="动作B", observation="观察4", success=True),
             ReActStep(iteration=4, thought="思考5", action="动作A", observation="观察5", success=True),
             ReActStep(iteration=5, thought="思考6", action="动作B", observation="观察6", success=True)
+        ]
+        
+        assert react_loop._detect_loop(steps) is True
+
+    def test_detect_loop_cycle_three_oscillation_detected(self):
+        """测试检测循环 - 周期3振荡（A/B/C 循环）应检测为循环"""
+        mock_planner = MagicMock()
+        mock_reflector = MagicMock()
+        
+        react_loop = ReActLoop(mock_planner, mock_reflector)
+        
+        steps = [
+            ReActStep(iteration=0, thought="思考1", action="动作A", observation="观察1", success=True),
+            ReActStep(iteration=1, thought="思考2", action="动作B", observation="观察2", success=True),
+            ReActStep(iteration=2, thought="思考3", action="动作C", observation="观察3", success=True),
+            ReActStep(iteration=3, thought="思考4", action="动作A", observation="观察4", success=True),
+            ReActStep(iteration=4, thought="思考5", action="动作B", observation="观察5", success=True),
+            ReActStep(iteration=5, thought="思考6", action="动作C", observation="观察6", success=True)
+        ]
+        
+        assert react_loop._detect_loop(steps) is True
+
+    def test_detect_loop_alternating_then_break_not_loop(self):
+        """测试检测循环 - 前4步交替但后2步打破模式 → 不应误判为循环"""
+        mock_planner = MagicMock()
+        mock_reflector = MagicMock()
+        
+        react_loop = ReActLoop(mock_planner, mock_reflector)
+        
+        steps = [
+            ReActStep(iteration=0, thought="思考1", action="动作A", observation="观察1", success=True),
+            ReActStep(iteration=1, thought="思考2", action="动作B", observation="观察2", success=True),
+            ReActStep(iteration=2, thought="思考3", action="动作A", observation="观察3", success=True),
+            ReActStep(iteration=3, thought="思考4", action="动作B", observation="观察4", success=True),
+            ReActStep(iteration=4, thought="思考5", action="动作C", observation="观察5", success=True),
+            ReActStep(iteration=5, thought="思考6", action="动作D", observation="观察6", success=True)
         ]
         
         assert react_loop._detect_loop(steps) is False
@@ -405,3 +442,173 @@ class TestReActLoop:
         assert result.success is False
         assert result.error == "超时"
         assert result.iterations == 3
+
+    # ── P2 修复测试：三种终止原因区分（真超时/循环检测/迭代异常） ──────────────
+
+    @pytest.mark.asyncio
+    async def test_run_loop_detection_distinct_error(self):
+        """P2 终止原因区分：循环检测不再误报'超时'，返回专属 error='检测到执行循环'"""
+        registry = ToolRegistry()
+        registry.register("tool_a", lambda x: f"结果{x}")
+
+        mock_planner = MagicMock()
+        mock_planner.tool_registry = registry
+        mock_planner.llm = AsyncMock()
+        # 每次思考返回同一工具调用 → 连续动作描述相同 → 第 6 步触发 _detect_loop
+        mock_planner.llm.chat.return_value = json.dumps({
+            "reasoning": "反复执行相同操作",
+            "action_type": "tool_call",
+            "action": {"tool": "tool_a", "params": {"x": 1}, "description": "调用tool_a"},
+        })
+
+        mock_reflector = MagicMock()
+        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=8)
+
+        result = await react_loop.run("循环任务", {})
+
+        assert result.success is False
+        assert result.error == "检测到执行循环"
+        assert "超时" not in result.error
+        # 在循环检测点（6 步）终止，而非耗尽 max_iterations（8）
+        assert result.iterations == 6
+
+    @pytest.mark.asyncio
+    async def test_run_iteration_error_distinct_error(self):
+        """P2 终止原因区分：迭代内部未捕获异常不再误报'超时'，返回专属 error='迭代异常: ...'"""
+        mock_planner = MagicMock()
+        mock_planner.llm = AsyncMock()
+        mock_reflector = MagicMock()
+        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=5)
+
+        # 注入迭代边界异常：验证循环以'迭代异常'终止而非落入'超时'桶
+        async def boom(*args, **kwargs):
+            raise RuntimeError("思考内部故障")
+
+        react_loop._think = boom
+
+        result = await react_loop.run("异常任务", {})
+
+        assert result.success is False
+        assert result.error.startswith("迭代异常")
+        assert "RuntimeError" in result.error
+        assert "思考内部故障" in result.error
+        assert "超时" not in result.error
+
+    # ── P2 修复测试：finish 空值防御 ─────────────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_run_finish_without_result(self):
+        """P2 finish 空值防御：LLM 返回 finish 缺 result 字段 → 不崩溃，正常成功返回"""
+        mock_planner = MagicMock()
+        mock_planner.llm = AsyncMock()
+        # 缺 result 字段 → thought.result 为 None（修复前日志行切片崩溃 → 误报超时）
+        mock_planner.llm.chat.return_value = json.dumps({
+            "reasoning": "任务已完成",
+            "action_type": "finish",
+        })
+
+        mock_reflector = MagicMock()
+        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=3)
+
+        result = await react_loop.run("简单任务", {})
+
+        assert result.success is True
+        assert result.result == "任务完成"  # 空值兜底语义
+        assert result.iterations == 1
+
+    # ── 边界检查修复测试：预算终止迭代计数一致性 ─────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_run_budget_timeout_iterations_consistent(self):
+        """边界：预算终止路径 iterations 与其他终止路径一致（1-based），首迭代即超限也应 >=1"""
+        mock_planner = MagicMock()
+        mock_planner.llm = None
+        mock_reflector = MagicMock()
+        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=5,
+                               config={"timeout_seconds": 0})
+
+        result = await react_loop.run("预算任务", {})
+
+        assert result.success is False
+        assert result.iterations >= 1  # 修复前首迭代超限返回 0（0-based 不一致）
+        assert "预算" in result.error
+
+    # ── 漏洞F/G 修复测试：交替振荡循环检测 / _hints 无上限膨胀 ──────────────
+
+    @pytest.mark.asyncio
+    async def test_run_alternating_oscillation_detected(self):
+        """漏洞F 修复：LLM 交替调用两个工具（A/B/A/B 振荡）→ 第 6 步触发循环检测，
+        终止原因正确报 '检测到执行循环' 而非耗尽 max_iterations 误报超时"""
+        registry = ToolRegistry()
+        registry.register("tool_a", lambda x: f"结果A{x}")
+        registry.register("tool_b", lambda x: f"结果B{x}")
+
+        mock_planner = MagicMock()
+        mock_planner.tool_registry = registry
+        mock_planner.llm = AsyncMock()
+        # 交替返回 tool_a / tool_b 调用 → 动作序列 A,B,A,B,...（周期2振荡）
+        calls = [
+            json.dumps({"reasoning": "先A", "action_type": "tool_call",
+                        "action": {"tool": "tool_a", "params": {"x": 1}, "description": "调用tool_a"}}),
+            json.dumps({"reasoning": "再B", "action_type": "tool_call",
+                        "action": {"tool": "tool_b", "params": {"x": 1}, "description": "调用tool_b"}}),
+        ]
+        counter = {"i": 0}
+
+        def fake_chat(*a, **k):
+            resp = calls[counter["i"] % 2]
+            counter["i"] += 1
+            return resp
+
+        mock_planner.llm.chat.side_effect = fake_chat
+
+        mock_reflector = MagicMock()
+        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=10)
+
+        result = await react_loop.run("振荡任务", {})
+
+        assert result.success is False
+        assert result.error == "检测到执行循环"
+        assert "超时" not in result.error
+        # 在循环检测点（6 步）终止，而非耗尽 max_iterations（10）
+        assert result.iterations == 6
+
+    @pytest.mark.asyncio
+    async def test_run_hints_capped(self):
+        """漏洞G 修复：反思调整建议写回 context['_hints'] 后截断到上限（20 条），
+        防止 context 无限膨胀并随计划持久化"""
+        mock_planner = MagicMock()
+        mock_planner.llm = AsyncMock()
+        calls = [
+            json.dumps({"reasoning": "先A", "action_type": "tool_call",
+                        "action": {"tool": "tool_a", "params": {"x": 1}, "description": "调用tool_a"}}),
+            json.dumps({"reasoning": "再B", "action_type": "tool_call",
+                        "action": {"tool": "tool_b", "params": {"x": 1}, "description": "调用tool_b"}}),
+        ]
+        counter = {"i": 0}
+
+        def fake_chat(*a, **k):
+            resp = calls[counter["i"] % 2]
+            counter["i"] += 1
+            return resp
+
+        mock_planner.llm.chat.side_effect = fake_chat
+
+        registry = ToolRegistry()
+        registry.register("tool_a", lambda x: f"结果A{x}")
+        registry.register("tool_b", lambda x: f"结果B{x}")
+        mock_planner.tool_registry = registry
+
+        mock_reflector = MagicMock()
+        reflection = MagicMock()
+        reflection.adjustments = [f"建议{i}" for i in range(5)]  # 每轮反思追加 5 条
+        mock_reflector.step_reflect = AsyncMock(return_value=reflection)
+
+        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=10)
+        # 非空 context：run() 内 `context or {}` 对空 dict 会新建对象，需保持引用一致
+        context = {"_seed": 1}
+
+        await react_loop.run("振荡任务", context)
+
+        # 6 轮反思 × 5 条 = 30 条 → 截断后保留最近 20 条
+        assert len(context["_hints"]) == 20

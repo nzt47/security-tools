@@ -6,6 +6,7 @@
 import json
 import logging
 import os
+import inspect
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from dataclasses import dataclass, asdict
@@ -13,6 +14,52 @@ from dataclasses import dataclass, asdict
 from .models import Task, Plan, ActionResult
 
 logger = logging.getLogger(__name__)
+
+
+def format_advice_section(advice: Optional[Dict]) -> str:
+    """将经验建议格式化为提示词注入段（标注"历史经验"）
+
+    Returns:
+        注入段文本（含【历史经验】标题）；无可用内容返回空串（调用方不注入）。
+    """
+    if not advice:
+        return ""
+    lines = []
+    patterns = advice.get("successful_patterns") or []
+    pitfalls = advice.get("common_pitfalls") or []
+    if patterns:
+        lines.append("成功模式（历史经验）:")
+        for p in patterns:
+            lines.append(
+                f"- [{p.get('id')}] {p.get('description')} → {p.get('output')}"
+            )
+    if pitfalls:
+        lines.append("常见陷阱（历史教训）:")
+        for p in pitfalls:
+            lines.append(
+                f"- [{p.get('id')}] {p.get('description')}（失败点: {p.get('failure')}）"
+            )
+    if not lines:
+        return ""
+    return "【历史经验】\n" + "\n".join(lines)
+
+
+def classify_task(task_description: str) -> str:
+    """分类任务类型（模块级：供 TaskDecomposer/ReActLoop/PlanningCore 复用）"""
+    task_lower = task_description.lower()
+
+    if any(kw in task_lower for kw in ["检查", "查看", "获取"]):
+        return "query"
+    elif any(kw in task_lower for kw in ["创建", "生成", "制作"]):
+        return "create"
+    elif any(kw in task_lower for kw in ["删除", "移除", "清理"]):
+        return "delete"
+    elif any(kw in task_lower for kw in ["分析", "评估", "判断"]):
+        return "analyze"
+    elif any(kw in task_lower for kw in ["修改", "更新", "调整"]):
+        return "modify"
+    else:
+        return "general"
 
 
 @dataclass
@@ -111,7 +158,7 @@ class Reflector:
 }}"""
 
     def __init__(self, llm_service=None, memory_manager=None, config: Dict = None, 
-                 persist_dir: str = "./data/reflection"):
+                 persist_dir: str = "./data/reflection", lesson_channel=None):
         """
         初始化反思引擎
 
@@ -120,11 +167,17 @@ class Reflector:
             memory_manager: 记忆管理器
             config: 配置
             persist_dir: 持久化目录
+            lesson_channel: 可选输出通道（任务 EVO-T4 上下文进化闭环）：
+                反思产出的 Lesson 命中可验证类别时，自动转交该通道
+                进入评估验证 → 优化建议管道；None 时保持既有行为不变。
+                接口约定（duck-typing）: submit_lesson(lesson) -> Optional[str]
+                （同步或异步均可，本类自动适配）。
         """
         self.llm = llm_service
         self.memory = memory_manager
         self.config = config or {}
         self.persist_dir = persist_dir
+        self.lesson_channel = lesson_channel
 
         self.reflection_history: List[Dict] = []
         self.learned_patterns: Dict[str, Any] = {}
@@ -132,6 +185,16 @@ class Reflector:
         
         self.experiences: List[Experience] = []
         self.lessons_db: List[Lesson] = []
+
+        # 阶段 4（D17）：经验库数据管理——去重 + 上限（防无限膨胀），
+        # 默认经验 500 / 教训 300，可经 planning.reflector.max_experiences/max_lessons 配置
+        self.max_experiences = int(self.config.get("max_experiences", 500))
+        self.max_lessons = int(self.config.get("max_lessons", 300))
+        # 阶段 4（D17）：按任务类型的经验命中率统计（get_advice_for_task 每次调用计数）
+        self._advice_queries: Dict[str, int] = {}
+        self._advice_hits: Dict[str, int] = {}
+        # 阶段 4（D16）：规划指标埋点（由 PlanningCore 注入 PlanningMetrics；未注入跳过）
+        self.metrics = None
         
         self._ensure_persist_dir()
         self._load_from_persistence()
@@ -210,21 +273,8 @@ class Reflector:
             }
 
     def _classify_task(self, task_description: str) -> str:
-        """分类任务类型"""
-        task_lower = task_description.lower()
-
-        if any(kw in task_lower for kw in ["检查", "查看", "获取"]):
-            return "query"
-        elif any(kw in task_lower for kw in ["创建", "生成", "制作"]):
-            return "create"
-        elif any(kw in task_lower for kw in ["删除", "移除", "清理"]):
-            return "delete"
-        elif any(kw in task_lower for kw in ["分析", "评估", "判断"]):
-            return "analyze"
-        elif any(kw in task_lower for kw in ["修改", "更新", "调整"]):
-            return "modify"
-        else:
-            return "general"
+        """分类任务类型（委托模块级 classify_task，保持既有调用兼容）"""
+        return classify_task(task_description)
 
     def _parse_step_reflection(self, response: str) -> ReflectionResult:
         """解析步骤反思结果"""
@@ -295,6 +345,8 @@ class Reflector:
 
     def get_learning_stats(self) -> Dict[str, Any]:
         """获取学习统计"""
+        total_queries = sum(self._advice_queries.values())
+        total_hits = sum(self._advice_hits.values())
         return {
             "total_reflections": len(self.reflection_history),
             "learned_patterns_count": sum(len(p) for p in self.learned_patterns.values()),
@@ -302,7 +354,18 @@ class Reflector:
             "pattern_types": list(self.learned_patterns.keys()),
             "lesson_types": list(self.learned_lessons.keys()),
             "total_experiences": len(self.experiences),
-            "total_lessons": len(self.lessons_db)
+            "total_lessons": len(self.lessons_db),
+            # 阶段 4（D17）：按任务类型的经验命中率
+            "experience_hit_rate": {
+                "total_queries": total_queries,
+                "total_hits": total_hits,
+                "overall": round(total_hits / total_queries, 4) if total_queries else 0.0,
+                "by_task_type": {
+                    t: round(self._advice_hits.get(t, 0) / self._advice_queries[t], 4)
+                    if self._advice_queries.get(t, 0) else 0.0
+                    for t in sorted(set(self._advice_queries) | set(self._advice_hits))
+                },
+            },
         }
     
     def _ensure_persist_dir(self):
@@ -357,11 +420,19 @@ class Reflector:
         从经验中学习
         
         将成功或失败的经验保存到知识库
+
+        阶段 4（D17）数据管理：
+          - 去重：同 task_type + task_description + success 标志已存在时跳过写入
+            （避免同一任务反复产生重复经验）；
+          - 上限：超过 max_experiences/max_lessons 时丢弃最旧记录，防经验库无限膨胀。
         """
         task_type = self._classify_task(task_description)
         exp_id = f"exp_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
         
         if result.success:
+            if self._has_experience(task_type, task_description, True):
+                logger.debug(f"经验重复已跳过: [{task_type}] {task_description[:40]}")
+                return
             experience = Experience(
                 id=exp_id,
                 task_type=task_type,
@@ -372,12 +443,16 @@ class Reflector:
                 timestamp=datetime.now().isoformat()
             )
             self.experiences.append(experience)
+            self._trim_experiences()
             logger.info(f"✅ 保存成功经验: {exp_id} [{task_type}]")
             
             if task_type not in self.learned_patterns:
                 self.learned_patterns[task_type] = []
             self.learned_patterns[task_type].append(experience.to_dict())
         else:
+            if self._has_lesson(task_type, task_description):
+                logger.debug(f"教训重复已跳过: [{task_type}] {task_description[:40]}")
+                return
             lesson = Lesson(
                 id=f"lesson_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}",
                 task_type=task_type,
@@ -387,6 +462,7 @@ class Reflector:
                 timestamp=datetime.now().isoformat()
             )
             self.lessons_db.append(lesson)
+            self._trim_lessons()
             logger.warning(f"⚠️ 记录失败教训: {lesson.id} [{task_type}]")
             
             if task_type not in self.learned_lessons:
@@ -394,6 +470,10 @@ class Reflector:
             self.learned_lessons[task_type].append(lesson.to_dict())
         
         self._save_to_persistence()
+        
+        if not result.success:
+            # 任务 EVO-T4：失败教训转交进化验证管道（可选通道，不影响既有行为）
+            await self._forward_lesson(lesson)
         
         if self.memory:
             try:
@@ -406,7 +486,64 @@ class Reflector:
                 })
             except Exception as e:
                 logger.warning(f"保存到记忆失败: {e}")
+
+    def _has_experience(self, task_type: str, task_description: str, success: bool) -> bool:
+        """经验去重检查：同类型 + 同描述 + 同成功标志"""
+        return any(
+            e.task_type == task_type and e.task_description == task_description and e.success == success
+            for e in self.experiences
+        )
+
+    def _has_lesson(self, task_type: str, task_description: str) -> bool:
+        """教训去重检查：同类型 + 同描述"""
+        return any(
+            l.task_type == task_type and l.task_description == task_description
+            for l in self.lessons_db
+        )
+
+    def _trim_experiences(self) -> None:
+        """经验库上限截断：超过 max_experiences 时丢弃最旧记录"""
+        while len(self.experiences) > self.max_experiences:
+            removed = self.experiences.pop(0)
+            logger.debug(f"经验库达上限({self.max_experiences})，丢弃最旧: {removed.id}")
+
+    def _trim_lessons(self) -> None:
+        """教训库上限截断：超过 max_lessons 时丢弃最旧记录"""
+        while len(self.lessons_db) > self.max_lessons:
+            removed = self.lessons_db.pop(0)
+            logger.debug(f"教训库达上限({self.max_lessons})，丢弃最旧: {removed.id}")
     
+    async def _forward_lesson(self, lesson: Lesson) -> None:
+        """任务 EVO-T4：Lesson → 进化验证管道（可选通道）
+
+        命中可验证类别时自动转交 lesson_channel 验证其有效性，验证通过的
+        Lesson 进入优化建议管道（PromptOptimizationProposal，不自动应用）。
+
+        通道失败/异常不阻断反思主流程（守不易：可选能力，必须向后兼容）。
+        同步/异步通道均适配（inspect.isawaitable 自动识别）。
+        """
+        channel = self.lesson_channel
+        if channel is None:
+            logger.debug("Lesson 未转交进化验证管道：未配置 lesson_channel lesson=%s",
+                         lesson.id)
+            return
+        if not hasattr(channel, "submit_lesson"):
+            logger.warning("Lesson 未转交进化验证管道：lesson_channel 缺少 submit_lesson "
+                           "接口 lesson=%s", lesson.id)
+            return
+        try:
+            logger.debug("Lesson 转交进化验证管道 lesson=%s task_type=%s",
+                         lesson.id, lesson.task_type)
+            result = channel.submit_lesson(lesson)
+            if inspect.isawaitable(result):
+                result = await result
+            logger.info(
+                f"Lesson 已转交进化验证管道 lesson={lesson.id} "
+                f"task_type={lesson.task_type} result={result}"
+            )
+        except Exception as e:
+            logger.warning(f"Lesson 转交进化验证管道失败 lesson={lesson.id}: {e}")
+
     def query_experiences(self, task_type: Optional[str] = None, limit: int = 10) -> List[Experience]:
         """查询经验库"""
         if task_type:
@@ -422,12 +559,27 @@ class Reflector:
         return list(reversed(self.lessons_db[-limit:]))
     
     def get_advice_for_task(self, task_description: str) -> Optional[Dict]:
-        """为任务获取建议"""
-        task_type = self._classify_task(task_description)
-        
+        """为任务获取建议
+
+        阶段 4（D17）：每次检索计入按任务类型的命中率统计
+        （_advice_queries/_advice_hits），并透出到规划指标
+        （self.metrics 由 PlanningCore 注入；未注入时跳过，埋点失败不阻断）。
+        """
+        task_type = classify_task(task_description)
+
         related_experiences = self.query_experiences(task_type, limit=3)
         related_lessons = self.query_lessons(task_type, limit=3)
-        
+
+        hit = bool(related_experiences or related_lessons)
+        self._advice_queries[task_type] = self._advice_queries.get(task_type, 0) + 1
+        if hit:
+            self._advice_hits[task_type] = self._advice_hits.get(task_type, 0) + 1
+        if self.metrics is not None:
+            try:
+                self.metrics.record_experience_lookup(task_type, hit)
+            except Exception as e:  # 埋点失败隔离：不阻断检索
+                logger.warning(f"[经验回灌] 命中率埋点失败: {e}")
+
         if not related_experiences and not related_lessons:
             return None
         

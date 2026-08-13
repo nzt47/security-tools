@@ -22,11 +22,13 @@ import asyncio
 import json
 import logging
 import math
+import threading
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 
 from agent.knowledge import (
+    BM25Index,
     Card,
     CardStore,
     KnowledgeHit,
@@ -651,3 +653,105 @@ class TestLinkCachePerfRegression:
         assert max(links_ms) < 20.0, (
             f"link 阶段退化到文件 I/O: max={max(links_ms):.2f}ms（缓存应 <1ms）"
         )
+
+
+class TestBM25IndexConcurrency:
+    """BM25Index 并发读写（threading.RLock 原子化）。
+
+    修复前：add_document（写）与 search（读）并发时 _total_docs 为
+    「读-改-写」序列（非原子），并发写会丢失计数更新、倒排表遍历与修改
+    交错可能读到半更新结构。修复后：add_document / search / size 同一
+    RLock，锁内仅内存 dict 操作，无 I/O。
+    """
+
+    def test_concurrent_add_unique_docs_no_lost_count(self):
+        """100 线程 × 50 次并发 add_document：size 精确、检索可命中全量"""
+        idx = BM25Index()
+        n_threads, per = 100, 50
+        total = n_threads * per
+        barrier = threading.Barrier(n_threads)  # 同步起跑，放大读-改-写竞争
+        errors = []
+
+        def worker(tid):
+            try:
+                barrier.wait()
+                for i in range(per):
+                    idx.add_document(f"doc_{tid}_{i}", f"并发检索词{tid} 共享主题词")
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker, args=(t,)) for t in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors
+        assert idx.size == total           # _total_docs 无丢失更新
+        hits = idx.search("共享主题词", top_k=total)
+        assert len(hits) == total          # 倒排表结构完整，全量可检索
+
+    def test_concurrent_overwrite_same_doc_id(self):
+        """并发覆盖同一 doc_id：size 恒为 1，不膨胀"""
+        idx = BM25Index()
+        idx.add_document("fixed_doc", "初始内容")
+        n_threads, per = 20, 20
+        barrier = threading.Barrier(n_threads)
+        errors = []
+
+        def worker(_):
+            try:
+                barrier.wait()
+                for _ in range(per):
+                    idx.add_document("fixed_doc", "覆盖内容 共享词")
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        threads = [threading.Thread(target=worker, args=(t,)) for t in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors
+        assert idx.size == 1               # 覆盖语义：重复 doc_id 不产生多余条目
+        hits = idx.search("覆盖内容", top_k=10)
+        assert [doc_id for doc_id, _ in hits] == ["fixed_doc"]
+
+    def test_concurrent_mixed_read_write_deterministic(self):
+        """写线程 add + 读线程 search 并发：不抛异常、读结果稳定"""
+        idx = BM25Index()
+        for i in range(50):
+            idx.add_document(f"seed_{i}", f"种子主题词 {i}")
+        n_writers = 4
+        stop = threading.Event()
+        errors = []
+
+        def writer(tid):
+            try:
+                for i in range(100):
+                    idx.add_document(f"w_{tid}_{i}", "写线程主题词")
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        def reader(_):
+            try:
+                while not stop.is_set():
+                    hits = idx.search("种子主题词")
+                    assert hits, "检索应始终命中种子文档"
+                    assert isinstance(idx.size, int)
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        writers = [threading.Thread(target=writer, args=(t,)) for t in range(n_writers)]
+        readers = [threading.Thread(target=reader, args=(t,)) for t in range(4)]
+        for t in writers + readers:
+            t.start()
+        for t in writers:
+            t.join()
+        stop.set()  # 写完成后停止读线程
+        for t in readers:
+            t.join()
+
+        assert not errors
+        assert idx.size == 50 + n_writers * 100  # 读写混合下计数仍精确

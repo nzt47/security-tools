@@ -38,6 +38,8 @@ class Plan:
     max_steps: int = 50
     state: PlanState = PlanState.INIT
     context: Dict[str, Any] = field(default_factory=dict)
+    # 阶段 2（D5）：分解器元数据（parallel_groups 等）挂载于此，供执行器参考
+    metadata: Dict[str, Any] = field(default_factory=dict)
     result: Any = None
     error: Optional[str] = None
     created_at: datetime = field(default_factory=datetime.now)
@@ -70,14 +72,19 @@ class Plan:
         terminal_statuses = {TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.SKIPPED}
         return all(t.status in terminal_statuses for t in self.tasks)
 
-    def is_success(self) -> bool:
-        """检查计划是否成功"""
-        if self.state != PlanState.COMPLETED:
-            return False
-        return all(t.status == TaskStatus.COMPLETED for t in self.tasks)
+    def is_success(self, consider_state: bool = True) -> bool:
+        """检查计划是否成功
 
-    def all_tasks_succeeded(self) -> bool:
-        """所有任务均成功完成（与计划状态无关，供执行收尾判定使用，D1 修复）"""
+        Args:
+            consider_state: 是否要求计划状态为 COMPLETED。默认 True（对外语义不变）；
+                执行收尾判定时传 False，仅依据任务状态判定（D1 修复：避免计划仍处于
+                EXECUTING 时被 state == COMPLETED 短路，导致"全部成功"分支永不触发）。
+
+        Returns:
+            计划是否成功（需至少存在一个任务且全部 COMPLETED）。
+        """
+        if consider_state and self.state != PlanState.COMPLETED:
+            return False
         return len(self.tasks) > 0 and all(t.status == TaskStatus.COMPLETED for t in self.tasks)
 
     def progress(self) -> float:
@@ -110,6 +117,7 @@ class Plan:
             "result": str(self.result) if self.result else None,
             "error": self.error,
             "context": dict(self.context),
+            "metadata": dict(self.metadata),
             "tasks": [t.to_dict() for t in self.tasks],
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
@@ -140,6 +148,7 @@ class Plan:
             current_step=data.get("current_step", 0),
             max_steps=data.get("max_steps", 50),
             context=data.get("context", {}),
+            metadata=data.get("metadata", {}),
             result=data.get("result"),
             error=data.get("error"),
         )

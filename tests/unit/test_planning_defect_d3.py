@@ -3,8 +3,10 @@
 缺陷（P0 正确性）：ask_user 行动直接返回成功"等待用户输入"，不真正暂停等待用户，
 循环继续执行，人机协同名存实亡，用户无法在关键节点介入。
 
-预期失败：ask_user 后循环应停止等待用户（iterations==1）
+预期失败（阶段 0 复现）：ask_user 后循环应停止等待用户（iterations==1）
 → 当前继续执行直到迭代耗尽 → 断言失败即复现成功。
+修复后（阶段 1）：ask_user 行动返回 success=False + observation="awaiting_user_input"，
+ReAct 循环检测到该标记即终止循环并以 ReActResult(success=False, error="等待用户输入") 返回。
 """
 import json
 import tempfile
@@ -39,3 +41,7 @@ class TestDefectD3:
             assert result.success is False
             assert result.error == "等待用户输入"
             assert result.iterations == 1
+            # D3 修复规格：ask_user 行动不得假装成功——行动结果为失败，
+            # 且观察带 awaiting_user_input 专用标记（供上层识别等待用户状态）
+            assert result.steps[0].success is False
+            assert result.steps[0].observation == "awaiting_user_input"
