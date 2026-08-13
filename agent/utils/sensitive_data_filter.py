@@ -765,9 +765,17 @@ class SensitiveDataFilter(logging.Filter):
             "description": description,
         }
         try:
-            self._compiled_content[name] = re.compile(pattern)
+            compiled = re.compile(pattern)
         except re.error as e:
             logger.error("[SensitiveFilter] 模式编译失败: %s, error=%s", name, e)
+            return
+        # [2026-08-13 并发审计 E] 整体替换而非增量赋值：filter 锁外遍历
+        # _compiled_content，增量插入（check-then-insert）与遍历并发会抛
+        # RuntimeError（dictionary changed size during iteration）。重建新
+        # dict 整体替换后，遍历者持有的旧 dict 引用不可变，无竞态。
+        new_compiled = dict(self._compiled_content)
+        new_compiled[name] = compiled
+        self._compiled_content = new_compiled
 
     def get_stats(self) -> Dict[str, Any]:
         """获取过滤器的统计信息。

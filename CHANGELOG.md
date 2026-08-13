@@ -6,6 +6,34 @@
 
 ---
 
+## [CHG] - 2026-08-13: 批量修复低危并发风险（懒加载单例双检锁 + 遍历竞态 D/E）+ 并发测试 ✅
+
+**影响模块**: `agent/model_router/adapters.py`, `agent/memory_optimized.py`, `agent/utils/sensitive_data_filter.py`, `agent/api_gateway.py`, `agent/log_system/collectors.py`, `agent/log_system/dashboard.py`, `agent/monitoring/resource_monitor.py`, `agent/server_routes/tracing_middleware.py`, `agent/lazy_loader_async.py`
+**关联提交**: 本批次 commit（上轮扫描遗留 #3/#4/#5/#6/D/E 未修复项收口）
+
+### 背景
+
+上轮并发扫描遗留的低危风险：懒加载单例（client/collection）首调 TOCTOU、模块级单例并发首调创建多实例、锁外遍历被并发修改抛 RuntimeError。全部按"双检锁（DCL）+ 独立模块锁 + copy-on-write"模式收口。
+
+### Fixed — 并发竞态
+
+- **#3 `model_router/adapters.py`**：OpenAI/Claude `_get_client` 懒加载改双检锁——并发首次调用只创建一个 client
+- **#4 `memory_optimized.py`**：`LazyCollectionProxy._ensure_collection` 双检锁——并发首调只执行一次 `get_or_create_collection`
+- **#5 模块级懒加载单例 5 处**（collectors 5 个 getter / dashboard `get_introspection` / resource_monitor `_get_business_collector` / tracing_middleware `_get_tracer` / lazy_loader_async fallback）：统一"独立模块锁 + 双检"
+- **#6 `collectors.py` storage property 5 处**：双检锁，防并发首调重复构造
+- **D `api_gateway.py`**：新增端点注册/遍历互斥锁——`register_endpoint` 与 `generate_swagger_doc` 并发时 check-then-insert 原子化
+- **E `sensitive_data_filter.py`**：`add_pattern` 改 copy-on-write 整体替换（`dict(self._compiled_content)` → 赋值 → 整体回写）——遍历者持有的旧 dict 引用不可变，消除 `RuntimeError: dictionary changed size during iteration`
+
+### Added — 并发测试
+
+- 新增 `tests/unit/test_lazy_singleton_concurrency.py` 5 用例：并发首调只创建 1 个实例（`__new__` 计数断言）、并发 `_get_client`/`_ensure_collection` 工厂仅调用 1 次、并发 `filter` + `add_pattern` 无 RuntimeError 且新模式生效
+
+### 验证结果
+
+- 新并发测试 5/5 通过；全量相关回归 446/446 通过（api_gateway/sensitive/adapters/tracing 171、resource_monitor+import_smoke 117、server_routes 99、memory_optimized 32、log_system 22、adapters 5）
+
+---
+
 ## [CHG] - 2026-08-13: SessionManager 锁内 I/O 修复（消息追加移出主锁 + 独立 append 锁）+ 高并发验证 ✅
 
 **影响模块**: `agent/session_manager.py`, `tests/unit/test_session_manager_concurrency.py`

@@ -317,21 +317,27 @@ class ApiGateway:
         self._rate_limiter = get_rate_limiter("api_gateway")
         self._endpoints: Dict[str, Dict] = {}
         self._middleware: List[Callable] = []
+        # [2026-08-13 并发审计 D] 端点注册/遍历互斥锁：多路 HTTP 并发注册
+        # 端点时 check-then-insert 非原子
+        self._lock = threading.Lock()
     
     def register_endpoint(self, path: str, method: str, handler: Callable,
                          auth_required: bool = True, scopes: List[str] = None,
                          summary: str = "", description: str = ""):
         """注册 API 端点"""
         key = f"{method.upper()}:{path}"
-        self._endpoints[key] = {
-            "path": path,
-            "method": method.upper(),
-            "handler": handler,
-            "auth_required": auth_required,
-            "scopes": scopes or [],
-            "summary": summary,
-            "description": description,
-        }
+        # [2026-08-13 并发审计 D] 锁内写入：与 generate_swagger_doc 遍历互斥，
+        # 防 RuntimeError（dictionary changed size during iteration）
+        with self._lock:
+            self._endpoints[key] = {
+                "path": path,
+                "method": method.upper(),
+                "handler": handler,
+                "auth_required": auth_required,
+                "scopes": scopes or [],
+                "summary": summary,
+                "description": description,
+            }
     
     def add_middleware(self, middleware: Callable):
         """添加中间件"""
@@ -475,20 +481,23 @@ class ApiGateway:
             },
         }
         
-        for key, endpoint in self._endpoints.items():
-            method, path = key.split(":", 1)
-            
-            if path not in swagger["paths"]:
-                swagger["paths"][path] = {}
-            
-            swagger["paths"][path][method.lower()] = {
-                "summary": endpoint.get("summary", f"{method} {path}"),
-                "description": endpoint.get("description", ""),
-                "security": [{"ApiKeyAuth": []}] if endpoint["auth_required"] else [],
-                "responses": {
-                    "200": {"description": "Success"},
-                },
-            }
+        # [2026-08-13 并发审计 D] 锁内遍历：register_endpoint 并发注册时锁外
+        # 遍历会抛 RuntimeError（dictionary changed size during iteration）。
+        with self._lock:
+            for key, endpoint in self._endpoints.items():
+                method, path = key.split(":", 1)
+                
+                if path not in swagger["paths"]:
+                    swagger["paths"][path] = {}
+                
+                swagger["paths"][path][method.lower()] = {
+                    "summary": endpoint.get("summary", f"{method} {path}"),
+                    "description": endpoint.get("description", ""),
+                    "security": [{"ApiKeyAuth": []}] if endpoint["auth_required"] else [],
+                    "responses": {
+                        "200": {"description": "Success"},
+                    },
+                }
         
         return swagger
     
@@ -503,6 +512,8 @@ class ApiGateway:
 
 
 _api_gateway = None  # 保留作为 fallback
+# [2026-08-13 并发审计 #5] fallback 懒加载单例双检锁
+_api_gateway_lock = threading.Lock()
 
 try:
     from agent.utils.singleton_manager import register_singleton, get_singleton
@@ -524,7 +535,10 @@ def get_api_gateway() -> ApiGateway:
         return get_singleton("api_gateway")
     global _api_gateway
     if _api_gateway is None:
-        _api_gateway = _create_api_gateway()
+        # [2026-08-13 并发审计 #5] 双检锁：并发首次调用只创建一个实例
+        with _api_gateway_lock:
+            if _api_gateway is None:
+                _api_gateway = _create_api_gateway()
     return _api_gateway
 
 

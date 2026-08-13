@@ -96,7 +96,9 @@ class OperationCollector:
     @property
     def storage(self):
         if self._storage is None:
-            self._storage = get_storage()
+            with _collector_lock:
+                if self._storage is None:
+                    self._storage = get_storage()
         return self._storage
 
     def record(self, operation: str, status: str = "done",
@@ -130,7 +132,9 @@ class PerformanceCollector:
     @property
     def storage(self):
         if self._storage is None:
-            self._storage = get_storage()
+            with _collector_lock:
+                if self._storage is None:
+                    self._storage = get_storage()
         return self._storage
 
     def record(self, metric_name: str, value: float, unit: str = "ms",
@@ -198,7 +202,9 @@ class ErrorCollector:
     @property
     def storage(self):
         if self._storage is None:
-            self._storage = get_storage()
+            with _collector_lock:
+                if self._storage is None:
+                    self._storage = get_storage()
         return self._storage
 
     def record(self, message: str, severity: str = "error",
@@ -263,7 +269,9 @@ class BehaviorCollector:
     @property
     def storage(self):
         if self._storage is None:
-            self._storage = get_storage()
+            with _collector_lock:
+                if self._storage is None:
+                    self._storage = get_storage()
         return self._storage
 
     def record(self, user_id: str, action_type: str,
@@ -292,7 +300,9 @@ class SystemEventCollector:
     @property
     def storage(self):
         if self._storage is None:
-            self._storage = get_storage()
+            with _collector_lock:
+                if self._storage is None:
+                    self._storage = get_storage()
         return self._storage
 
     def record(self, event_type: str, source: str = "",
@@ -338,37 +348,51 @@ _error_collector = None
 _behavior_collector = None
 _system_event_collector = None
 
+# [2026-08-13 并发审计 #5/#6] 模块级懒加载单例与 storage 懒加载的双检锁：
+# 并发首次调用会创建两个实例（check-then-create TOCTOU），独立锁保证唯一。
+_collector_lock = threading.Lock()
+
 
 def get_operation_collector():
     global _operation_collector
     if _operation_collector is None:
-        _operation_collector = OperationCollector()
+        with _collector_lock:
+            if _operation_collector is None:
+                _operation_collector = OperationCollector()
     return _operation_collector
 
 
 def get_performance_collector():
     global _performance_collector
     if _performance_collector is None:
-        _performance_collector = PerformanceCollector()
+        with _collector_lock:
+            if _performance_collector is None:
+                _performance_collector = PerformanceCollector()
     return _performance_collector
 
 
 def get_error_collector():
     global _error_collector
     if _error_collector is None:
-        _error_collector = ErrorCollector()
+        with _collector_lock:
+            if _error_collector is None:
+                _error_collector = ErrorCollector()
     return _error_collector
 
 
 def get_behavior_collector():
     global _behavior_collector
     if _behavior_collector is None:
-        _behavior_collector = BehaviorCollector()
+        with _collector_lock:
+            if _behavior_collector is None:
+                _behavior_collector = BehaviorCollector()
     return _behavior_collector
 
 
 def get_system_event_collector():
     global _system_event_collector
     if _system_event_collector is None:
-        _system_event_collector = SystemEventCollector()
+        with _collector_lock:
+            if _system_event_collector is None:
+                _system_event_collector = SystemEventCollector()
     return _system_event_collector

@@ -59,17 +59,21 @@ _TRACEMALLOC_SNAPSHOT_TIMEOUT = 5.0
 
 # 业务指标收集器（惰性导入避免循环依赖）
 _business_collector = None
+# [2026-08-13 并发审计 #5] 懒加载单例双检锁：并发首次调用只创建一个实例
+_business_collector_lock = threading.Lock()
 
 
 def _get_business_collector():
     """惰性获取业务指标收集器（埋点失败不影响主流程）"""
     global _business_collector
     if _business_collector is None:
-        try:
-            from agent.monitoring.business_metrics import get_business_metrics_collector
-            _business_collector = get_business_metrics_collector()
-        except Exception as e:
-            logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 业务指标收集器不可用: {e}'}))
+        with _business_collector_lock:
+            if _business_collector is None:
+                try:
+                    from agent.monitoring.business_metrics import get_business_metrics_collector
+                    _business_collector = get_business_metrics_collector()
+                except Exception as e:
+                    logger.warning(log_dict({'module_name': 'resource_monitor', 'action': 'log', 'msg': f'[ResourceMonitor] 业务指标收集器不可用: {e}'}))
     return _business_collector
 
 
