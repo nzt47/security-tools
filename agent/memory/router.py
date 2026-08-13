@@ -20,6 +20,7 @@
 import logging
 import json
 import uuid
+import threading
 from typing import Optional, Tuple, Any, List
 
 from agent.memory.base import MemoryInterface, MemoryResult
@@ -120,6 +121,10 @@ class MemoryRouter:
         Args:
             default_adapter: 默认兜底适配器（默认为 HolographicAdapter）
         """
+        # Why RLock：HTTP 管理/路由线程并发 register/unregister/list/to_dict，
+        # 遍历与并发写会 RuntimeError；unregister 的 if-in-del 是 TOCTOU。
+        # route/route_tier 等读取路径用 dict.get（原子）不持锁，避免 async 混用。
+        self._lock = threading.RLock()
         self._adapters: dict[str, MemoryInterface] = {}
         self._default: MemoryInterface = default_adapter or HolographicAdapter()
         self._cache_layer = None
@@ -149,23 +154,28 @@ class MemoryRouter:
         """
         if not isinstance(adapter, MemoryInterface):
             raise TypeError(f"适配器必须实现 MemoryInterface: {name}")
-        self._adapters[name] = adapter
+        with self._lock:  # 赋值与并发遍历（list_adapters）互斥
+            self._adapters[name] = adapter
         logger.info("[MemoryRouter] 注册适配器: %s = %s", name, adapter.__class__.__name__)
 
     def unregister(self, name: str):
-        """注销适配器"""
-        if name in self._adapters:
-            del self._adapters[name]
-            logger.info("[MemoryRouter] 注销适配器: %s", name)
+        """注销适配器（锁内 if-in-del，防并发重复注销 KeyError）"""
+        with self._lock:
+            if name in self._adapters:
+                del self._adapters[name]
+        logger.info("[MemoryRouter] 注销适配器: %s", name)
 
     def get_adapter(self, name: str) -> Optional[MemoryInterface]:
-        """按名称获取适配器"""
+        """按名称获取适配器（dict.get 原子，无需持锁）"""
         return self._adapters.get(name)
 
     def list_adapters(self) -> list[dict]:
-        """列出所有已注册的适配器"""
+        """列出所有已注册的适配器（锁内遍历快照，防并发写 RuntimeError）"""
+        with self._lock:
+            adapters = list(self._adapters.items())
+            default = self._default
         result = []
-        for name, adapter in self._adapters.items():
+        for name, adapter in adapters:
             result.append({
                 "name": name,
                 "class": adapter.__class__.__name__,
@@ -175,9 +185,9 @@ class MemoryRouter:
         # 加入默认适配器
         result.append({
             "name": "__default__",
-            "class": self._default.__class__.__name__,
-            "capabilities": [c.value for c in self._default.capabilities],
-            "details": self._default.to_dict() if hasattr(self._default, "to_dict") else {},
+            "class": default.__class__.__name__,
+            "capabilities": [c.value for c in default.capabilities],
+            "details": default.to_dict() if hasattr(default, "to_dict") else {},
         })
         return result
 
@@ -219,7 +229,8 @@ class MemoryRouter:
         """替换默认适配器"""
         if not isinstance(adapter, MemoryInterface):
             raise TypeError("默认适配器必须实现 MemoryInterface")
-        self._default = adapter
+        with self._lock:  # 与 list_adapters/to_dict 读取互斥
+            self._default = adapter
         logger.info("[MemoryRouter] 更新默认适配器: %s", adapter.__class__.__name__)
 
     # ── 三层路由（L1/L2/L3）──
@@ -237,7 +248,8 @@ class MemoryRouter:
         tier_upper = tier.upper()
         if tier_upper not in _TIER_MAP:
             raise ValueError(f"tier 必须是 L1/L2/L3 之一: {tier}")
-        self._tier_adapters[tier_upper] = adapter
+        with self._lock:  # 与 to_dict 遍历互斥
+            self._tier_adapters[tier_upper] = adapter
         logger.info(
             "[MemoryRouter] 注册分层适配器: %s = %s",
             tier_upper, adapter.__class__.__name__,
@@ -440,9 +452,10 @@ class MemoryRouter:
                     filtered = re.sub(pattern, '[REDACTED]', filtered, flags=re.IGNORECASE)
             return (has_sensitive, filtered, matched_patterns)
 
-        # 延迟初始化敏感过滤器
-        if self._sensitive_filter is None:
-            self._sensitive_filter = _get_sensitive_filter()
+        # 延迟初始化敏感过滤器（锁内双检：并发首次调用只创建一个实例）
+        with self._lock:
+            if self._sensitive_filter is None:
+                self._sensitive_filter = _get_sensitive_filter()
 
         # 使用 detect 方法检测敏感信息
         result = self._sensitive_filter.detect(content)
@@ -567,18 +580,26 @@ class MemoryRouter:
     # ── 统计信息 ──
 
     def to_dict(self) -> dict:
-        """获取路由器的完整状态"""
-        return {
-            "type": self.__class__.__name__,
-            "adapters": self.list_adapters(),
-            "route_map": dict(self.ROUTE_MAP),
-            "cache_layer": self._cache_layer is not None,
-            "boundary_enabled": self._memory_boundary_enabled,
-            "sensitive_filter_enabled": self._sensitive_filter_enabled,
-            # 三层路由信息
-            "tier_map": dict(_TIER_MAP),
-            "tier_adapters": {
+        """获取路由器的完整状态（锁内遍历快照，防并发写 RuntimeError）"""
+        with self._lock:
+            adapters = self.list_adapters()  # RLock 可重入
+            route_map = dict(self.ROUTE_MAP)
+            cache_layer = self._cache_layer is not None
+            boundary_enabled = self._memory_boundary_enabled
+            sensitive_filter_enabled = self._sensitive_filter_enabled
+            tier_map = dict(_TIER_MAP)
+            tier_adapters = {
                 k: v.__class__.__name__
                 for k, v in self._tier_adapters.items()
-            },
+            }
+        return {
+            "type": self.__class__.__name__,
+            "adapters": adapters,
+            "route_map": route_map,
+            "cache_layer": cache_layer,
+            "boundary_enabled": boundary_enabled,
+            "sensitive_filter_enabled": sensitive_filter_enabled,
+            # 三层路由信息
+            "tier_map": tier_map,
+            "tier_adapters": tier_adapters,
         }
