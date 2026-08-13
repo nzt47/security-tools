@@ -6,6 +6,44 @@
 
 ---
 
+## [CHG] - 2026-08-13: 多租户三管理器 RLock 原子化（并发锁修复）+ 锁开销基准 ✅
+
+**影响模块**: `agent/multi_tenant.py`, `tests/unit/test_multi_tenant_concurrency.py`(新增), `tests/test_multi_tenant.py`(单线程基线), `docs/zh/多租户并发锁修复_回归测试计划.md`(新增)
+**关联提交**: `bb8d2ff6`（fix(multi_tenant): 三个管理器 RLock 原子化（_save_data 锁外守持锁纪律））
+**变更日志详情**: `docs/zh/多租户并发锁修复_回归测试计划.md`
+
+### 背景
+
+模块级单例 TenantManager / TenantConfigManager / BillingManager 被 HTTP 路由多线程调用，原实现存在 4 类竞态：assign_role 判断+append 非原子（并发对同 user 分配重复 append 丢更新）、delete_tenant 递归 del 与遍历并发抛 RuntimeError、set_config/delete_config「检查-删除」TOCTOU、record_usage append+截断读-改-写丢记录。
+
+### Fixed — 四类并发竞态
+
+- 三个管理器各持 `RLock`：delete_tenant 递归 / get_config 继承链 / check_limit 经 RLock 重入
+- 锁内仅内存 dict/list 变更；文件持久化 `_save_data` 一律锁外（持锁纪律：锁内严禁 I/O）
+- `setdefault` 消除懒创建 TOCTOU；读路径（get_user_roles / get_user_tenants / get_usage）锁内快照遍历
+
+### Added — 并发测试
+
+- `tests/unit/test_multi_tenant_concurrency.py` 5 用例：100 线程×50 次角色分配无重复、并发创建计数精确、20 线程递归删除不崩溃、100 线程×50 次用量计数精确、100 线程配置 set/get/delete 一致
+
+### Perf — 锁开销基准
+
+- `RLock` 单次 acquire/release **0.22µs**（100 万次共 215.6ms，本机实测）；10k QPS 场景锁总开销约 2.2ms/s，HTTP 请求级无感知影响
+- 读路径加锁为纯内存 µs 级操作，单线程无竞争、无串行化影响；无死锁（锁序单向 Config→Tenant，无反转路径）
+
+### 副作用评估（已确认无严重副作用）
+
+- 单线程行为完全等价（签名/返回/异常不变）
+- 已知权衡 1：锁外 `_save_data` 存在持久化窗口（磁盘短暂落后内存，后续写入 dump 收敛）
+- 已知权衡 2：create_organization/workspace 两步非原子（极端并发创建即删时 assign_role 抛"租户不存在"，与原语义一致，非修复引入）
+
+### 验证结果
+
+- 单线程基线 `tests/test_multi_tenant.py` 10 passed (0.59s)
+- 并发 5 用例 × 3 次独立运行全通过（1.40s / 1.63s / 1.49s）
+
+---
+
 ## [CHG] - 2026-08-12: 五层健康探针采集与 L5 断线补全 ✅
 
 **影响模块**: `agent/health/probes.py`(新增), `agent/health/storage.py`(新增), `agent/health/collector.py`(新增), `tests/unit/test_health_probes_missing.py`(新增), `docs/zh/自我修复机制重构计划/五层健康探针归一化算法与L5断线补全.md`(新增), `tests/boundary/test_health_boundary.py`(断言修正)
