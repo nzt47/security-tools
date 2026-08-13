@@ -177,6 +177,55 @@ def _judge_llm_confidence(response: Optional[str]) -> Tuple[str, str]:
     return confidence, low_reason
 
 
+# ════════════════════════════════════════════════════════════════════
+#  TASK-01：规划接线（wire）复杂度分级 — 轻量关键词+动作词加权
+#  【不易】评分逻辑复用 PlanningCore._needs_planning() 现成公式
+#          （complex_count + 0.5×action_count），分级语义对齐 enhanced_planner
+#          （TRIVIAL/SIMPLE/NORMAL/MODERATE/COMPLEX）；
+#          wire_enabled=false（默认）时本分级不参与任何决策（接线分支整体 inert）。
+#  【变易】后续可替换为 model_router.analyze_complexity / enhanced_planner 分级。
+# ════════════════════════════════════════════════════════════════════
+_WIRE_COMPLEXITY_LEVELS: Dict[str, int] = {
+    "TRIVIAL": 0,
+    "SIMPLE": 1,
+    "NORMAL": 2,
+    "MODERATE": 2,  # enhanced_planner 用 MODERATE，兼容别名
+    "COMPLEX": 3,
+}
+_WIRE_COMPLEX_KEYWORDS: Tuple[str, ...] = (
+    "架构", "系统", "平台", "重构", "迁移", "分布式",
+    "设计一个", "帮我构建", "多步骤", "第一步", "第二步", "完整方案",
+)
+_WIRE_ACTION_KEYWORDS: Tuple[str, ...] = ("检查", "分析", "创建", "生成", "整理", "监控")
+
+
+def _judge_wire_complexity(message: str) -> str:
+    """任务复杂度分级（TASK-01 wire 接线用）
+
+    【简易】分数 = 复杂指示词数 + 0.5×动作词数（与 PlanningCore._needs_planning 同源）；
+    分级：≥1.5 → COMPLEX / ≥1.0 → NORMAL / ≥0.5 → SIMPLE / 其余 TRIVIAL
+    """
+    complex_count = sum(1 for _k in _WIRE_COMPLEX_KEYWORDS if _k in message)
+    action_count = sum(1 for _k in _WIRE_ACTION_KEYWORDS if _k in message)
+    score = complex_count + action_count * 0.5
+    if score >= 1.5:
+        return "COMPLEX"
+    if score >= 1.0:
+        return "NORMAL"
+    if score >= 0.5:
+        return "SIMPLE"
+    return "TRIVIAL"
+
+
+def _wire_complexity_meets(message: str, min_complexity: str) -> bool:
+    """任务复杂度 ≥ wire_min_complexity 判定
+
+    【不易】未知级别按最高 COMPLEX（3）保守处理：配置非法时收严而非放行，守主链路稳定
+    """
+    min_level = _WIRE_COMPLEXITY_LEVELS.get(str(min_complexity).upper(), 3)
+    return _WIRE_COMPLEXITY_LEVELS.get(_judge_wire_complexity(message), 0) >= min_level
+
+
 class Orchestrator:
     """云枢主编排器
 
@@ -791,69 +840,103 @@ class Orchestrator:
                 trace_store.end_trace(trace_id, _reject_msg, status="rejected")
             return ResponseBuilder.success(_reject_msg).to_dict()
 
-        # ── 第四步：LLM 调用 ──
-        _record_intent_layer("llm")
-        # 【变易】耗时用 perf_counter 配对计时; ts_llm（墙上时钟）仅供 TraceSpan 时间戳
-        _ts_llm_pf = time.perf_counter()
-        ts_llm = time.time()
-        try:
-            if self._v2_lifetrace and self._trace_recorder:
-                # V2 路径：Persona 系统 + ToolCallingService
-                # 会话元数据经 kwargs 显式传递，避免依赖实例全局 _session_id（并发安全）
-                response = self._call_llm_v2(
-                    user_input, body_status,
-                    session_id=kwargs.get("session_id"),
-                    session_mgr=kwargs.get("session_mgr"),
+        # ── 第三步三半：规划引擎接线（TASK-01 D7 接线，LLM 调用前）──
+        # 【不易】wire_enabled=false（默认）时本分支整体 inert，生产行为与现状逐字节等价；
+        #         仅当 wire_enabled=true 且任务复杂度 ≥ wire_min_complexity 才走规划；
+        #         规划成功 → response 由 PlanningCore.chat() 生成并跳过 LLM 调用，
+        #         同时抑制旧"第四步半"规划段（_planning_mode=False）防双规划；
+        #         规划失败/超时/空响应 → 静默回退原 LLM 路径（守主链路稳定）。
+        _wire_cfg = self._load_planning_wire_config()
+        _wire_planning_used = False
+        _wire_plan_result = None
+        if _wire_cfg["enabled"] and self._planner and \
+           _wire_complexity_meets(user_input, _wire_cfg["min_complexity"]):
+            _ts_wire_pf = time.perf_counter()
+            _wire_ctx = {"session_id": kwargs.get("session_id"), "user_input": user_input}
+            try:
+                _wire_plan_result = _run_async_in_sync(
+                    self._planner.chat(user_input, _wire_ctx),
+                    timeout=float(_wire_cfg["timeout_seconds"]),
                 )
-            else:
-                # 标准路径
-                response = self._call_llm(user_input, body_status)
-        except Exception as e:
-            # 【TD-1】LLM 调用失败独立计层（llm_error 为 llm 的失败子指标）
-            # llm（L507，INV-4 调用前埋点）计"尝试"；llm_error 计"失败"，
-            # 成功路径不记 llm_error，面板 10 用 llm_error/llm 计算错误率
-            _record_intent_layer("llm_error")
-            _llm_err_ms = (time.perf_counter() - _ts_llm_pf) * 1000
-            logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.fail', 'message': '[FAIL] 对话处理异常: %s' % (e,), 'error': str(e)}))
-            tb_str = __import__('traceback').format_exc()
-            logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '堆栈:\n%s' % (tb_str,), 'error': str(tb_str)}))
-            # 任务6: 统一层日志（LLM 错误）+ 最终路由决策（错误）
-            log_layer_result(
-                LAYER_LLM, DECISION_ERROR, trace_id,
-                level=logging.ERROR,
-                action='orchestrator.process.llm',
-                message='[LLM] 调用失败: %s' % (e,),
-                duration_ms=_llm_err_ms,
-                error=str(e)[:200],
-            )
-            emit_route_decision(
-                LAYER_LLM, DECISION_ERROR, trace_id,
-                message='[LLM] 调用异常，返回错误响应',
-                basis_extra={'error': str(e)[:200]},
-            )
-            if trace_id:
-                trace_store.end_trace(trace_id, str(e)[:200], status="error")
-            if _MONITORING_AVAILABLE:
-                collector.increment_counter("count.digital_life.chat.error")
-                collector.increment_counter("count.digital_life.error.total")
-                if self._error_reporter:
-                    try:
-                        self._error_reporter.report_error(
-                            error=e, level=AlertLevel.ERROR,
-                            context={
-                                'user_input': user_input[:200],
-                                'trace_id': trace_id,
-                                'interaction_count': self._interaction_count,
-                                'session_id': _sid,
-                            },
-                        )
-                        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.error_reported', 'trace_id_ctx': trace_id, 'message': '[OK] 错误已自动上报'}))
-                    except Exception as report_error:
-                        logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.error_report_failed', 'trace_id_ctx': trace_id, 'error': str(report_error), 'message': '错误上报失败'}))
-            return ResponseBuilder.error(
-                "抱歉，处理您的请求时遇到了问题：%s" % e
-            ).to_dict()
-        llm_duration_ms = (time.perf_counter() - _ts_llm_pf) * 1000
+                if _wire_plan_result is not None and getattr(_wire_plan_result, "response", ""):
+                    _wire_planning_used = True
+                    _record_intent_layer("planning")
+                    response = _wire_plan_result.response
+                    _planning_mode = False  # 抑制旧"第四步半"段，避免双规划
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.planning', 'trace_id_ctx': trace_id, 'message': '[规划接线] wire 规划成功（%.1fms），跳过 LLM 调用' % ((time.perf_counter() - _ts_wire_pf) * 1000,), 'response_length': len(response) if response else 0, 'timeout_seconds': float(_wire_cfg["timeout_seconds"])}))
+                else:
+                    logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.fallback', 'trace_id_ctx': trace_id, 'message': '[规划接线] 规划结果为空，回退 LLM 直答'}))
+            except Exception as e:
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.fallback', 'trace_id_ctx': trace_id, 'message': '[规划接线] 规划失败/超时，回退 LLM 直答: %s' % (e,), 'error': str(e)[:200], 'error_type': type(e).__name__, 'timeout_seconds': float(_wire_cfg["timeout_seconds"])}))
+
+        # ── 第四步：LLM 调用（TASK-01 wire 规划成功时跳过，response 已由规划引擎生成）──
+        if not _wire_planning_used:
+            _record_intent_layer("llm")
+            # 【变易】耗时用 perf_counter 配对计时; ts_llm（墙上时钟）仅供 TraceSpan 时间戳
+            _ts_llm_pf = time.perf_counter()
+            ts_llm = time.time()
+            try:
+                if self._v2_lifetrace and self._trace_recorder:
+                    # V2 路径：Persona 系统 + ToolCallingService
+                    # 会话元数据经 kwargs 显式传递，避免依赖实例全局 _session_id（并发安全）
+                    response = self._call_llm_v2(
+                        user_input, body_status,
+                        session_id=kwargs.get("session_id"),
+                        session_mgr=kwargs.get("session_mgr"),
+                    )
+                else:
+                    # 标准路径
+                    response = self._call_llm(user_input, body_status)
+            except Exception as e:
+                # 【TD-1】LLM 调用失败独立计层（llm_error 为 llm 的失败子指标）
+                # llm（L507，INV-4 调用前埋点）计"尝试"；llm_error 计"失败"，
+                # 成功路径不记 llm_error，面板 10 用 llm_error/llm 计算错误率
+                _record_intent_layer("llm_error")
+                _llm_err_ms = (time.perf_counter() - _ts_llm_pf) * 1000
+                logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.fail', 'message': '[FAIL] 对话处理异常: %s' % (e,), 'error': str(e)}))
+                tb_str = __import__('traceback').format_exc()
+                logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '堆栈:\n%s' % (tb_str,), 'error': str(tb_str)}))
+                # 任务6: 统一层日志（LLM 错误）+ 最终路由决策（错误）
+                log_layer_result(
+                    LAYER_LLM, DECISION_ERROR, trace_id,
+                    level=logging.ERROR,
+                    action='orchestrator.process.llm',
+                    message='[LLM] 调用失败: %s' % (e,),
+                    duration_ms=_llm_err_ms,
+                    error=str(e)[:200],
+                )
+                emit_route_decision(
+                    LAYER_LLM, DECISION_ERROR, trace_id,
+                    message='[LLM] 调用异常，返回错误响应',
+                    basis_extra={'error': str(e)[:200]},
+                )
+                if trace_id:
+                    trace_store.end_trace(trace_id, str(e)[:200], status="error")
+                if _MONITORING_AVAILABLE:
+                    collector.increment_counter("count.digital_life.chat.error")
+                    collector.increment_counter("count.digital_life.error.total")
+                    if self._error_reporter:
+                        try:
+                            self._error_reporter.report_error(
+                                error=e, level=AlertLevel.ERROR,
+                                context={
+                                    'user_input': user_input[:200],
+                                    'trace_id': trace_id,
+                                    'interaction_count': self._interaction_count,
+                                    'session_id': _sid,
+                                },
+                            )
+                            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.error_reported', 'trace_id_ctx': trace_id, 'message': '[OK] 错误已自动上报'}))
+                        except Exception as report_error:
+                            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.error_report_failed', 'trace_id_ctx': trace_id, 'error': str(report_error), 'message': '错误上报失败'}))
+                return ResponseBuilder.error(
+                    "抱歉，处理您的请求时遇到了问题：%s" % e
+                ).to_dict()
+            llm_duration_ms = (time.perf_counter() - _ts_llm_pf) * 1000
+        else:
+            # wire 规划成功：跳过 LLM 调用与置信度兜底（规划结果视为高置信度）
+            ts_llm = time.time()
+            llm_duration_ms = 0.0
 
         # ── LLM 置信度校验（任务3：基于响应质量的启发式校验 + 低置信度降级）──
         # 【简易】空/过短/错误标记 → 低置信度；正常响应 → high
@@ -897,7 +980,8 @@ class Orchestrator:
         # 【不易】低置信度触发兜底回复（任务3）：返回统一文案 + 转人工建议
         # 提前 return 跳过 OutputGuard/反思/向量记忆（低质量响应无需反思和持久化向量）
         # 但仍保存到对话记忆（便于后续分析低置信度场景）
-        if _llm_confidence == "low":
+        # TASK-01：wire 规划成功时跳过置信度兜底（规划结果视为高置信度，不降级）
+        if not _wire_planning_used and _llm_confidence == "low":
             logger.warning(log_dict({
                 'module_name': 'orchestrator',
                 'action': 'orchestrator.process.llm.low_confidence_fallback',
@@ -1142,6 +1226,11 @@ class Orchestrator:
             _resp.setdefault("metadata", {})["used_planning"] = True
             if getattr(plan_result, "plan_summary", None) is not None:
                 _resp["metadata"]["plan_summary"] = plan_result.plan_summary
+        # TASK-01：wire 规划成功时标注 routed_by: planning（供 TASK-03 埋点）
+        if _wire_planning_used:
+            _resp.setdefault("metadata", {})["routed_by"] = "planning"
+            if getattr(_wire_plan_result, "plan_summary", None) is not None:
+                _resp["metadata"]["plan_summary"] = _wire_plan_result.plan_summary
         return _resp
 
     # (以下废弃方法已在 P12 统一链路中删除:
@@ -2006,6 +2095,63 @@ class Orchestrator:
                 config["llm_min_confidence"] = float(env_llm_conf.strip())
             except (ValueError, TypeError):
                 logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.reject.config.invalid_llm_confidence', 'message': '[拒识] ORCHESTRATOR_LLM_MIN_CONFIDENCE 非法值已忽略: %s' % (env_llm_conf,)}))
+
+        return config
+
+    # TASK-01：规划接线（wire）配置硬编码默认值（与 config.yaml planning.wire_* 同源）
+    _WIRE_DEFAULTS: Dict[str, Any] = {
+        "enabled": False,            # 灰度开关默认 false：未开启前生产行为与现状逐字节等价
+        "min_complexity": "COMPLEX",  # 触发规划的最低复杂度（TRIVIAL/SIMPLE/NORMAL/COMPLEX）
+        "timeout_seconds": 30,        # 规划调用超时（秒），超时回退 LLM
+    }
+
+    @classmethod
+    def _load_planning_wire_config(cls) -> Dict[str, Any]:
+        """读取规划接线配置（TASK-01）— 优先级: 环境变量 > config.yaml > 硬编码默认值
+
+        架构层级：[TLM-L2] 规划接线配置加载（与 _load_reject_config 同源模式）
+
+        config.yaml 路径: planning.wire_{enabled,min_complexity,timeout_seconds}
+        环境变量: PLANNING_WIRE_ENABLED / PLANNING_WIRE_MIN_COMPLEXITY
+                  / PLANNING_WIRE_TIMEOUT_SECONDS
+
+        【不易】硬编码默认值作为最终兜底，config.yaml 缺失/解析失败不影响主链路；
+               wire_enabled 默认 false（灰度开关），未开启前接线分支整体 inert。
+        """
+        config = dict(cls._WIRE_DEFAULTS)
+
+        # 层1: config.yaml（复用 _SEM_CONFIG_PATH，避免重复路径初始化）
+        try:
+            if cls._SEM_CONFIG_PATH is None:
+                from pathlib import Path
+                cls._SEM_CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config.yaml"
+            if cls._SEM_CONFIG_PATH.exists():
+                import yaml as _yaml
+                with open(cls._SEM_CONFIG_PATH, "r", encoding="utf-8") as f:
+                    data = _yaml.safe_load(f) or {}
+                plan_cfg = (data.get("planning", {}) or {})
+                if plan_cfg.get("wire_enabled") is not None:
+                    config["enabled"] = bool(plan_cfg.get("wire_enabled"))
+                if plan_cfg.get("wire_min_complexity") is not None:
+                    config["min_complexity"] = str(plan_cfg.get("wire_min_complexity"))
+                if plan_cfg.get("wire_timeout_seconds") is not None:
+                    config["timeout_seconds"] = float(plan_cfg.get("wire_timeout_seconds"))
+        except Exception as e:
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.planning_wire.config.fallback', 'message': '[规划接线] config.yaml 读取失败，降级到默认值: %s' % (e,)}))
+
+        # 层2: 环境变量覆盖（最高优先级，运维 hotfix）
+        env_enabled = os.environ.get("PLANNING_WIRE_ENABLED")
+        if env_enabled is not None and env_enabled.strip():
+            config["enabled"] = env_enabled.strip().lower() in ("true", "1", "yes")
+        env_min = os.environ.get("PLANNING_WIRE_MIN_COMPLEXITY")
+        if env_min is not None and env_min.strip():
+            config["min_complexity"] = env_min.strip().upper()
+        env_timeout = os.environ.get("PLANNING_WIRE_TIMEOUT_SECONDS")
+        if env_timeout is not None and env_timeout.strip():
+            try:
+                config["timeout_seconds"] = float(env_timeout.strip())
+            except (ValueError, TypeError):
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.planning_wire.config.invalid_timeout', 'message': '[规划接线] PLANNING_WIRE_TIMEOUT_SECONDS 非法值已忽略: %s' % (env_timeout,)}))
 
         return config
 
