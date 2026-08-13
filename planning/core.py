@@ -126,12 +126,18 @@ class PlanningCore:
         )
         # 阶段 3（D14）：注入重规划与失败归因依赖（decomposer 已就绪；reflector 待创建后补注）
         self.executor.decomposer = self.decomposer
+        # TD-4：分解器 LLM 成本记入 executor 实例（decompose 先于 execute_plan，
+        # budget.start() 不重置累计值，快照覆盖分解成本；None 兼容旧构造）
+        self.decomposer.budget_manager = self.executor.budget_manager
         logger.info(f"执行引擎初始化完成，最大重试次数: {self.executor.max_retries}")
 
         reflector_config = self.config.get("reflector", {})
         self.reflector = Reflector(llm_service, memory_manager, reflector_config)
         # 阶段 3（D14）：失败归因依赖补注（executor.reflector 在 reflector 创建后注入）
         self.executor.reflector = self.reflector
+        # TD-4：反思引擎默认记账实例挂 executor（step_reflect 走 ReAct 路径时
+        # 由 react.py 显式传 react 实例覆盖；plan_reflect 走计划路径显式传 executor 实例）
+        self.reflector.budget_manager = self.executor.budget_manager
         # 阶段 4（D16/D17）：指标注入 reflector（get_advice_for_task 内部埋点）；
         # 分解器经验注入补注（decomposer 先于 reflector 创建，创建后回填）
         self.reflector.metrics = self.planning_metrics
@@ -338,7 +344,9 @@ class PlanningCore:
             if self.reflector:
                 try:
                     logger.info("🧠 步骤3: 执行计划反思...")
-                    reflection = await self.reflector.plan_reflect(plan)
+                    reflection = await self.reflector.plan_reflect(
+                        plan, budget_manager=self.executor.budget_manager
+                    )
                     logger.info("   ✅ 反思完成")
 
                     # 阶段 2（D4 反思闭环）：计划级调整激活 decomposer.refine()——
@@ -351,6 +359,16 @@ class PlanningCore:
                         self.save_plan_checkpoint(plan)
                 except Exception as e:
                     logger.warning(f"   ⚠️ 反思执行失败: {e}")
+
+                # TD-4 收口：plan_reflect/refine 在 executor finally 回填后记账，
+                # 此处统一刷新 plan.metadata 预算快照（保留超限 status），
+                # 使反射/优化成本进入 _record_plan_result 埋点（可观测性闭环）
+                if getattr(self.executor, "budget_manager", None) is not None:
+                    _prev = (plan.metadata or {}).get("budget") or {}
+                    _prev_status = _prev.get("status")
+                    plan.metadata["budget"] = self.executor.budget_manager.snapshot()
+                    if _prev_status:
+                        plan.metadata["budget"]["status"] = _prev_status
 
             logger.info("📋 步骤4: 校验最终状态（已由执行器经状态机完成收尾）...")
             # 最终状态已由 executor._finalize_state 经状态机完成 EXECUTING -> COMPLETED/FAILED。

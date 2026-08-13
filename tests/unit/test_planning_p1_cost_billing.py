@@ -11,12 +11,16 @@
 - token_price_per_1k 配置透传生效（改单价后 cost 按比例变化）
 - ReAct 与 Plan 两路径计价口径一致（同一 price 与同一 token 估算方式）
 """
+import json
 import pytest
 
-from planning.budget import BudgetManager, BudgetStatus
+from planning.budget import BudgetManager, BudgetStatus, PlanBudget
+from planning.core import PlanningCore
+from planning.decomposer import TaskDecomposer
 from planning.executor import PlanExecutor, ToolRegistry
 from planning.models import Plan, PlanState, Task
 from planning.react import ReActLoop
+from planning.reflector import Reflector
 
 
 class _FakeLLM:
@@ -29,6 +33,19 @@ class _FakeLLM:
     async def chat(self, messages):
         self.calls += 1
         return self._response
+
+
+class _SeqLLM:
+    """序列 mock LLM：按调用顺序依次返回，超界回退最后一个（供多阶段记账测试）"""
+
+    def __init__(self, responses):
+        self._responses = list(responses)
+        self.calls = 0
+
+    async def chat(self, messages):
+        idx = min(self.calls, len(self._responses) - 1)
+        self.calls += 1
+        return self._responses[idx]
 
 
 class TestP1CostBilling:
@@ -100,3 +117,99 @@ class TestP1CostBilling:
         mgr.record_text("x" * 300)
         assert mgr.tokens == 100
         assert mgr.cost == pytest.approx(100 / 1000.0 * 0.002)
+
+    # ── TD-4 扩展：decomposer/reflector 记账生效性 ──
+
+    @pytest.mark.asyncio
+    async def test_decompose_billing_included(self):
+        """TD-4 R-1：LLM 分解成本计入注入的 budget_manager（非法 JSON 触发重试+规则回退，
+        但 LLM 调用已发生并记账——验证记账点不在解析成功路径上）"""
+        mgr = BudgetManager(token_price_per_1k=0.002)
+        decomposer = TaskDecomposer(
+            llm_service=_FakeLLM("这不是合法JSON"),
+            config={"max_subtasks": 3},
+            budget_manager=mgr,
+        )
+        plan = await decomposer.decompose("帮我创建文件并发送邮件", {})
+        assert plan is not None
+        assert mgr.tokens > 0
+        assert mgr.cost > 0
+
+    @pytest.mark.asyncio
+    async def test_plan_reflect_billing_included(self):
+        """TD-4 R-3/R-11：计划路径 plan_reflect 记账后 core 刷新快照，成本进入 metrics"""
+        cfg = {"budget": {"enabled": True}, "token_price_per_1k": 0.002}
+        llm = _SeqLLM([
+            "这不是JSON",  # decompose：触发规则回退，但 LLM 调用已记账
+            json.dumps({"overall_score": 8.0, "effectiveness": "执行成功",
+                        "lessons": ["保持"], "improvements": []}),  # plan_reflect
+        ])
+        core = PlanningCore(llm_service=llm, tool_registry=ToolRegistry(), config=cfg)
+        plan = await core.plan("帮我分析整个系统流程", {})
+        plan = await core.execute_plan(plan)
+
+        # 刷新后快照与实例一致（plan_reflect 记账被覆盖进 metadata）
+        assert plan.metadata["budget"]["cost"] > 0
+        assert plan.metadata["budget"]["cost"] == pytest.approx(core.executor.budget_manager.cost)
+        # 反射成本进入 metrics（_record_plan_result 读取刷新后快照）
+        metrics = core.get_planning_metrics()
+        assert metrics["cost_total"] > 0
+
+    @pytest.mark.asyncio
+    async def test_react_step_reflect_billing(self, tmp_path):
+        """TD-4 R-4：ReAct 路径 step_reflect 记账记入 react 实例，进入 react_result.cost"""
+        llm = _SeqLLM([
+            json.dumps({"reasoning": "先搜索", "action_type": "tool_call",
+                        "action": {"tool": "search", "params": {"query": "t"}, "description": "搜索"},
+                        "confidence": 0.9}),
+            json.dumps({"assessment": "需要调整", "confidence": 0.8,
+                        "adjustments": ["调整建议A"], "next_steps": []}),  # step_reflect
+            json.dumps({"reasoning": "完成", "action_type": "finish",
+                        "result": "完成", "confidence": 0.9}),
+        ])
+        planner = type("P", (), {})()
+        planner.llm = llm
+        planner.tool_registry = ToolRegistry()
+        planner.tool_registry.register("search", lambda query: "结果")
+
+        reflector = Reflector(llm_service=llm, config={},
+                              persist_dir=str(tmp_path / "reflection"))
+        loop = ReActLoop(planner, reflector, max_iterations=5,
+                         config={"token_price_per_1k": 0.002})
+        result = await loop.run("搜索测试", {"user": "u"})
+
+        assert result.success
+        assert llm.calls >= 3  # 思考1 + step_reflect + 思考2 均发生
+        # step_reflect 记账记入 react 实例 → 成本含反思分量
+        assert result.cost > 0
+        assert loop.budget_manager.tokens > 0
+
+    @pytest.mark.asyncio
+    async def test_exceeded_cost_with_decompose(self):
+        """TD-4 R-9：预算 max_cost 含分解成本——分解记账后 check 即超限"""
+        mgr = BudgetManager(PlanBudget(max_cost=1e-6), token_price_per_1k=0.002)
+        decomposer = TaskDecomposer(llm_service=_FakeLLM("bad"), config={}, budget_manager=mgr)
+        await decomposer.decompose("复杂分析任务", {})
+        assert mgr.check() == BudgetStatus.EXCEEDED_COST
+
+    @pytest.mark.asyncio
+    async def test_refresh_preserves_status(self):
+        """TD-4 R-10：core 刷新快照保留循环内写入的超限 status（不覆盖丢失）"""
+        cfg = {"budget": {"enabled": True, "max_cost": 1e-6}, "token_price_per_1k": 0.002}
+        executor = PlanExecutor(ToolRegistry(), config=cfg)
+        executor.llm = _FakeLLM("r" * 90)
+        plan = Plan(original_task="完成复杂分析任务", state=PlanState.READY)
+        plan.add_task(Task(id="t1", description="完成复杂分析任务"))
+        plan.add_task(Task(id="t2", description="生成数据报告"))
+        await executor.execute_plan(plan)  # t1 记账后循环顶部 check 超限 → 写入 status
+        assert plan.metadata["budget"]["status"] == "exceeded_cost"
+
+        # 模拟 core 刷新块（TD-4 收口：快照刷新 + status 保留）
+        _prev = (plan.metadata or {}).get("budget") or {}
+        _prev_status = _prev.get("status")
+        plan.metadata["budget"] = executor.budget_manager.snapshot()
+        if _prev_status:
+            plan.metadata["budget"]["status"] = _prev_status
+
+        assert plan.metadata["budget"]["status"] == "exceeded_cost"
+        assert plan.metadata["budget"]["cost"] > 0

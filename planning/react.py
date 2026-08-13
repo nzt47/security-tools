@@ -4,6 +4,7 @@
 """
 
 import asyncio
+import inspect
 import json
 import logging
 from typing import Dict, Any, Optional, List
@@ -104,6 +105,17 @@ class ReActLoop:
             PlanBudget.from_config(self.config),
             token_price_per_1k=self.config.get("token_price_per_1k", 0.002),
         )
+        # TD-4：探测 reflector.step_reflect 是否支持记账实例注入——
+        # 旧签名 stub/实现（无 budget_manager 参数）调用时不传参，保持向后兼容
+        self._reflect_supports_budget = False
+        if self.reflector is not None:
+            try:
+                self._reflect_supports_budget = (
+                    "budget_manager"
+                    in inspect.signature(self.reflector.step_reflect).parameters
+                )
+            except (TypeError, ValueError):
+                self._reflect_supports_budget = False
 
     async def run(self, task: str, context: Dict = None) -> ReActResult:
         """
@@ -272,7 +284,11 @@ class ReActLoop:
                         reflect_task = task if isinstance(task, Task) else Task(
                             id=f"react_step_{iteration}", description=str(task)
                         )
-                        reflection = await self.reflector.step_reflect(reflect_task, action_result, context)
+                        if self._reflect_supports_budget:
+                            reflection = await self.reflector.step_reflect(reflect_task, action_result, context,
+                                                                           budget_manager=self.budget_manager)
+                        else:
+                            reflection = await self.reflector.step_reflect(reflect_task, action_result, context)
                         if reflection.adjustments:
                             logger.info(f"   💡 反思建议: {reflection.adjustments[:100]}{'...' if len(reflection.adjustments) > 100 else ''}")
                             # D12 修复：调整建议写入 context，供后续 _think 提示词消费（闭环）
