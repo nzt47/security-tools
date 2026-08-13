@@ -6,6 +6,44 @@
 
 ---
 
+## [CHG] - 2026-08-13: LockFreeRingBuffer 并发修复（多生产者/多消费者竞态）+ 高并发验证 ✅
+
+**影响模块**: `agent/monitoring/performance_optimization.py`, `tests/unit/test_lockfree_ring_buffer_concurrency.py`(新增)
+**关联提交**: `e5d193bf`（fix(monitoring/performance_optimization): LockFreeRingBuffer 加 RLock 修复多生产者/多消费者竞态）
+
+### 背景
+
+`LockFreeRingBuffer` 名义为「无锁」环形缓冲区，但「无锁」仅在单生产者+单消费者（SPSC）下成立。实际被 `BatchProcessor` 以**多生产者/多消费者**模式使用：多 HTTP 线程 `submit` 并发 `push`，`submit`（队列满触发）与后台 `_flush_loop` 并发 `drain`。违反 SPSC 假设后 `_head`/`_tail`/`_count` 读-改-写非原子 → **丢元素 / 丢计数**。该处为并发审计「第三轮 12 处余 1 处未点名」的定位对象。
+
+### Fixed — 并发竞态
+
+- `LockFreeRingBuffer` 全部读写方法加 `threading.RLock` 保护：`push`/`pop`/`drain`/`is_empty`/`is_full`/`size`
+- RLock 选型：`drain` 循环内调 `pop`（同锁重入），避免 Lock 自锁死锁
+- 锁内仅内存操作，无 I/O 无外部回调（遵守持锁纪律）；类名与 `__all__` 导出保持不变（接口兼容）
+
+### Added — 并发测试
+
+- 新增 `tests/unit/test_lockfree_ring_buffer_concurrency.py` 5 用例（Barrier 同步起跑放大竞争窗口）：
+  1. 并发 push 计数精确（16 线程 × 200：`_push_count/_count == 3200`，drain 无丢失无重复）
+  2. 多消费者并发 drain（8 消费者：2000 元素不重复不丢失）
+  3. 满容量并发 push（成功数 + overflow 数 == 总尝试数，成功 ≤ 容量）
+  4. 生产/消费混合并发（最终 `_pop_count == 1000`、`_count == 0` 一致性）
+  5. `BatchProcessor.submit` 并发（16 线程 × 100：所有成功提交均被消费）
+
+### Perf — 锁开销
+
+- push 为热路径，RLock 单次 acquire/release 约 0.22µs（纯内存），相对 `_process_func` 批量 I/O 可忽略
+
+### 验证结果
+
+- 新增并发测试 5/5 通过（2.04s）；既有集成回归 `tests/integration/test_performance_optimization_integration.py` **81/81 通过**，无回归
+
+### 副作用评估（已确认无严重副作用）
+
+- 单线程行为完全等价（签名/返回/异常不变）；容量语义与 overflow 计数行为不变
+
+---
+
 ## [CHG] - 2026-08-13: 并发安全修复系列（三轮审计 + 10 模块锁化）✅
 
 **影响模块**: `agent/network_config.py`, `agent/monitoring/search.py`, `agent/orchestrator/dialog_state.py`, `agent/monitoring/optimized_metrics.py`, `agent/memory/router.py`, `agent/web/search.py`, `agent/web/crawler_control.py`, `agent/permission_system.py`, `agent/safety_guard.py`, `agent/health/assessor.py`（含 `tests/unit/test_*_concurrency.py` 新增 7 个并发测试文件）
