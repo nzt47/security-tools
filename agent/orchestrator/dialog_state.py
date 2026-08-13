@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import re
 import logging
+import threading
 from typing import Optional, List, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -81,6 +82,9 @@ class DialogState:
     """
 
     def __init__(self, vector_adapter: Optional[Any] = None):
+        # Why RLock：HTTP 路由线程可能并发调用 update/resolve/to_dict/reset，
+        # turn_count 读-改-写非原子；RLock 允许嵌套重入（update 内日志读字段）。
+        self._lock = threading.RLock()
         # 对话状态槽位
         self.last_intent: Optional[str] = None
         self.last_keywords: List[str] = []
@@ -111,27 +115,30 @@ class DialogState:
             response_topic: 本轮回复主题
             user_input: 本轮用户原始输入（供下轮向量置信度校验）
         """
-        if intent is not None:
-            self.last_intent = intent
-        if keywords is not None:
-            self.last_keywords = list(keywords)
-        if skill is not None:
-            self.last_skill = skill
-        if entity is not None:
-            self.last_entity = entity
-        if response_topic is not None:
-            self.last_response_topic = response_topic
-        if user_input is not None:
-            self.last_user_input = user_input
-        self.turn_count += 1
-
-        logger.debug(log_dict_safe({
-            "module_name": "dialog_state",
-            "action": "dst.update",
-            "turn": self.turn_count,
-            "last_intent": self.last_intent,
-            "last_keywords": self.last_keywords,
-        }))
+        # Why 整体持锁：字段组 + turn_count 必须原子更新——并发 update/resolve 交错
+        # 会读到"intent 已更新但 keywords 未更新"的半状态组合；turn_count 读-改-写
+        # 非原子会丢轮数
+        with self._lock:
+            if intent is not None:
+                self.last_intent = intent
+            if keywords is not None:
+                self.last_keywords = list(keywords)
+            if skill is not None:
+                self.last_skill = skill
+            if entity is not None:
+                self.last_entity = entity
+            if response_topic is not None:
+                self.last_response_topic = response_topic
+            if user_input is not None:
+                self.last_user_input = user_input
+            self.turn_count += 1
+            logger.debug(log_dict_safe({
+                "module_name": "dialog_state",
+                "action": "dst.update",
+                "turn": self.turn_count,
+                "last_intent": self.last_intent,
+                "last_keywords": self.last_keywords,
+            }))
 
     def is_ellipsis_query(self, text: str) -> bool:
         """检测是否为省略句/指代句
@@ -171,13 +178,23 @@ class DialogState:
         Returns:
             补全后的查询字符串；无需补全/置信度过低时返回 None
         """
-        # 每轮重置；仅当向量门控实际计算时才覆盖（供 orchestrator 日志读取）
-        self.last_similarity = None
+        # Why 锁内快照：状态槽位可能在并发 update 中变更，锁内一次性拷贝
+        # （keywords/intent/skill/turn_count/last_user_input），锁外完成计算；
+        # last_similarity 写入回锁，避免并发 resolve 互相覆盖可见性
+        with self._lock:
+            # 每轮重置；仅当向量门控实际计算时才覆盖（供 orchestrator 日志读取）
+            self.last_similarity = None
+            turn_count = self.turn_count
+            keywords = list(self.last_keywords)
+            intent = self.last_intent
+            skill = self.last_skill
+            last_user_input = self.last_user_input
+
         if not self.is_ellipsis_query(text):
             return None
 
         # 无历史状态可继承
-        if self.turn_count == 0:
+        if turn_count == 0:
             return None
 
         text = text.strip()
@@ -186,14 +203,14 @@ class DialogState:
         context_parts: List[str] = []
 
         # 优先用关键词
-        if self.last_keywords:
-            context_parts.extend(self.last_keywords[:3])  # 最多取3个关键词
+        if keywords:
+            context_parts.extend(keywords[:3])  # 最多取3个关键词
         # 关键词不足时用意图
-        elif self.last_intent and self.last_intent != "unknown":
-            context_parts.append(self.last_intent)
+        elif intent and intent != "unknown":
+            context_parts.append(intent)
         # 意图也不足时用技能
-        elif self.last_skill:
-            context_parts.append(self.last_skill)
+        elif skill:
+            context_parts.append(skill)
 
         if not context_parts:
             # 有历史但无可用上下文（如历史全是 unknown）
@@ -218,9 +235,11 @@ class DialogState:
             augmented = f"关于 {context_str}{suffix}"
 
         # 【变易】向量置信度软门控 — augmented 与 last_user_input 余弦相似度
-        sim, reject_reason = self._vector_confidence_check(augmented)
+        # （用锁内快照，锁外编码：encode_query 为 CPU 密集，不得持锁阻塞 update）
+        sim, reject_reason = self._vector_confidence_check(augmented, last_user_input)
         # 暴露给 orchestrator 日志（None=向量不可用/纯止则；float=实际相似度）
-        self.last_similarity = sim
+        with self._lock:
+            self.last_similarity = sim
         if reject_reason is not None:
             # 语义断裂或显式关闭 → 拒绝补全，返回 None
             logger.info(log_dict_safe({
@@ -230,7 +249,7 @@ class DialogState:
                 "augmented": augmented,
                 "similarity": (round(sim, 4) if sim is not None else None),
                 "reject_reason": reject_reason,
-                "turn": self.turn_count,
+                "turn": turn_count,
             }))
             return None
 
@@ -240,13 +259,17 @@ class DialogState:
             "original": text,
             "augmented": augmented,
             "similarity": (round(sim, 4) if sim is not None else None),
-            "turn": self.turn_count,
+            "turn": turn_count,
         }))
 
         return augmented
 
-    def _vector_confidence_check(self, augmented: str) -> tuple:
+    def _vector_confidence_check(self, augmented: str, last_user_input: Optional[str]) -> tuple:
         """[TLM-L0] 向量置信度软门控 — augmented vs last_user_input
+
+        Args:
+            augmented: 补全后的查询
+            last_user_input: 上一轮用户原始输入（锁外传入快照，避免持锁编码）
 
         Returns:
             (similarity, reject_reason):
@@ -259,12 +282,12 @@ class DialogState:
         if _os.environ.get("DST_VECTOR_ENABLED", "true").lower() not in ("true", "1", "yes"):
             return (None, None)
         # 无向量适配器或无上一轮输入 → 无法校验，回退纯正则（通过）
-        if self.vector_adapter is None or not self.last_user_input:
+        if self.vector_adapter is None or not last_user_input:
             return (None, None)
 
         try:
             vec_aug = self.vector_adapter.encode_query(augmented)
-            vec_last = self.vector_adapter.encode_query(self.last_user_input)
+            vec_last = self.vector_adapter.encode_query(last_user_input)
         except Exception as e:  # noqa: BLE001
             # 适配器异常不阻断主链路，回退纯正则
             logger.debug(log_dict_safe({
@@ -296,26 +319,28 @@ class DialogState:
         return (sim, None)
 
     def to_dict(self) -> Dict[str, Any]:
-        """导出状态快照（供日志/调试）"""
-        return {
-            "turn_count": self.turn_count,
-            "last_intent": self.last_intent,
-            "last_keywords": self.last_keywords,
-            "last_skill": self.last_skill,
-            "last_entity": self.last_entity,
-            "last_response_topic": self.last_response_topic,
-            "last_user_input": self.last_user_input,
-        }
+        """导出状态快照（供日志/调试，锁内读取防半状态）"""
+        with self._lock:
+            return {
+                "turn_count": self.turn_count,
+                "last_intent": self.last_intent,
+                "last_keywords": list(self.last_keywords),
+                "last_skill": self.last_skill,
+                "last_entity": self.last_entity,
+                "last_response_topic": self.last_response_topic,
+                "last_user_input": self.last_user_input,
+            }
 
     def reset(self) -> None:
-        """重置状态（新会话时调用）"""
-        self.last_intent = None
-        self.last_keywords = []
-        self.last_skill = None
-        self.last_entity = None
-        self.last_response_topic = None
-        self.last_user_input = None
-        self.turn_count = 0
+        """重置状态（新会话时调用，锁内整组重置）"""
+        with self._lock:
+            self.last_intent = None
+            self.last_keywords = []
+            self.last_skill = None
+            self.last_entity = None
+            self.last_response_topic = None
+            self.last_user_input = None
+            self.turn_count = 0
         # 注意：vector_adapter 不重置（模型加载昂贵，跨会话复用）
 
 
@@ -326,6 +351,10 @@ class DialogState:
 # 模块级会话状态表（session_id -> DialogState）
 # 【简易】纯内存，不持久化；会话结束由 GC 回收
 _SESSION_STATES: Dict[str, DialogState] = {}
+
+# Why RLock：多路 HTTP 请求并发首轮访问各自 session，get_dialog_state 的
+# check-then-create 非原子（TOCTOU），不加锁会为同一 session 创建多个实例
+_SESSION_LOCK = threading.RLock()
 
 
 def get_dialog_state(session_id: str = "default",
@@ -339,18 +368,23 @@ def get_dialog_state(session_id: str = "default",
     Returns:
         该会话的 DialogState 实例
     """
-    if session_id not in _SESSION_STATES:
-        _SESSION_STATES[session_id] = DialogState(vector_adapter=vector_adapter)
-    elif vector_adapter is not None:
-        # 幂等更新：语义层热后注入已初始化的适配器
-        _SESSION_STATES[session_id].vector_adapter = vector_adapter
-    return _SESSION_STATES[session_id]
+    with _SESSION_LOCK:  # 检查-创建-赋值原子（防并发重复实例）
+        state = _SESSION_STATES.get(session_id)
+        if state is None:
+            state = DialogState(vector_adapter=vector_adapter)
+            _SESSION_STATES[session_id] = state
+        elif vector_adapter is not None:
+            # 幂等更新：语义层热后注入已初始化的适配器
+            state.vector_adapter = vector_adapter
+        return state
 
 
 def reset_session_state(session_id: str) -> None:
     """重置会话状态（会话结束时调用）"""
-    if session_id in _SESSION_STATES:
-        _SESSION_STATES[session_id].reset()
+    with _SESSION_LOCK:
+        state = _SESSION_STATES.get(session_id)
+        if state is not None:
+            state.reset()
 
 
 # ════════════════════════════════════════════════════════════
