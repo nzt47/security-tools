@@ -19,11 +19,13 @@ flowchart LR
         agent_cognitive_critic["agent.cognitive.critic"]
         agent_cognitive_debate["agent.cognitive.debate"]
         agent_cognitive_failure_analysis["agent.cognitive.failure_analysis"]:::crosslayer
+        agent_cognitive_failure_bucket["agent.cognitive.failure_bucket"]
         agent_cognitive_failure_collector["agent.cognitive.failure_collector"]
         agent_cognitive_knowledge["agent.cognitive.knowledge"]
         agent_cognitive_logging_integration["agent.cognitive.logging_integration"]
         agent_cognitive_loop["agent.cognitive.loop"]
         agent_cognitive_observability["agent.cognitive.observability"]
+        agent_cognitive_prompt_optimizer["agent.cognitive.prompt_optimizer"]:::crosslayer
         agent_cognitive_reflection["agent.cognitive.reflection"]
     end
     subgraph common [common]
@@ -31,6 +33,9 @@ flowchart LR
     end
     subgraph config [config]
         agent_config_etcd_config_client["agent.config.etcd_config_client"]
+    end
+    subgraph context [context]
+        agent_context_assembler["agent.context.assembler"]:::crosslayer
     end
     subgraph core [core]
         agent_ab_testing["agent.ab_testing"]
@@ -129,9 +134,12 @@ flowchart LR
     end
     subgraph health [health]
         agent_health_assessor["agent.health.assessor"]:::crosslayer
+        agent_health_collector["agent.health.collector"]
         agent_health_dashboard["agent.health.dashboard"]
         agent_health_health_score["agent.health.health_score"]:::crosslayer
         agent_health_observability["agent.health.observability"]
+        agent_health_probes["agent.health.probes"]
+        agent_health_storage["agent.health.storage"]
     end
     subgraph human_in_the_loop [human_in_the_loop]
         agent_human_in_the_loop_observability["agent.human_in_the_loop.observability"]
@@ -144,6 +152,7 @@ flowchart LR
         agent_knowledge_conflict["agent.knowledge.conflict"]
         agent_knowledge_discuss["agent.knowledge.discuss"]
         agent_knowledge_distill["agent.knowledge.distill"]
+        agent_knowledge_distill_feedback["agent.knowledge.distill_feedback"]
         agent_knowledge_index["agent.knowledge.index"]
         agent_knowledge_ingest["agent.knowledge.ingest"]
         agent_knowledge_lifecycle["agent.knowledge.lifecycle"]
@@ -159,6 +168,7 @@ flowchart LR
         agent_knowledge_schema["agent.knowledge.schema"]
         agent_knowledge_search["agent.knowledge.search"]
         agent_knowledge_tools["agent.knowledge.tools"]
+        agent_knowledge_watcher["agent.knowledge.watcher"]
         agent_knowledge_workflow["agent.knowledge.workflow"]
     end
     subgraph lazy_loader [lazy_loader]
@@ -310,10 +320,12 @@ flowchart LR
         agent_skills_mgmt["agent.skills_mgmt"]:::crosslayer
         agent_skills_mgmt_creator["agent.skills_mgmt.creator"]
         agent_skills_mgmt_enhancer["agent.skills_mgmt.enhancer"]:::crosslayer
-        agent_skills_mgmt_loader["agent.skills_mgmt.loader"]
+        agent_skills_mgmt_evaluator["agent.skills_mgmt.evaluator"]:::crosslayer
+        agent_skills_mgmt_lineage["agent.skills_mgmt.lineage"]:::crosslayer
+        agent_skills_mgmt_loader["agent.skills_mgmt.loader"]:::crosslayer
         agent_skills_mgmt_memory_abstractor["agent.skills_mgmt.memory_abstractor"]:::crosslayer
         agent_skills_mgmt_models["agent.skills_mgmt.models"]:::crosslayer
-        agent_skills_mgmt_observability["agent.skills_mgmt.observability"]
+        agent_skills_mgmt_observability["agent.skills_mgmt.observability"]:::crosslayer
         agent_skills_mgmt_offline_evolver["agent.skills_mgmt.offline_evolver"]:::crosslayer
         agent_skills_mgmt_reviewer["agent.skills_mgmt.reviewer"]:::crosslayer
         agent_skills_mgmt_service["agent.skills_mgmt.service"]:::crosslayer
@@ -508,6 +520,9 @@ flowchart LR
     agent_knowledge_search --> agent_knowledge_schema
     agent_knowledge_search -.-> agent_utils_periodic_sampler
     agent_knowledge_links_index --> agent_knowledge_links
+    agent_knowledge_distill_feedback -.-> agent_cognitive_prompt_optimizer
+    agent_knowledge_distill_feedback -.-> agent_feedback
+    agent_knowledge_distill_feedback --> agent_knowledge_ingest
     agent_knowledge_conflict --> agent_knowledge_card
     agent_knowledge_conflict --> agent_knowledge_logbook
     agent_knowledge_lint --> agent_knowledge_index
@@ -533,6 +548,7 @@ flowchart LR
     agent_knowledge_distill --> agent_knowledge_prompts
     agent_knowledge_distill --> agent_knowledge_schema
     agent_knowledge_reporting --> agent_knowledge_lint
+    agent_knowledge_watcher --> agent_knowledge_ingest
     agent_knowledge___main__ --> agent_knowledge_card
     agent_knowledge___main__ --> agent_knowledge_distill
     agent_knowledge___main__ --> agent_knowledge_index
@@ -681,11 +697,14 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_workflow_learning_models
     agent_orchestrator_orchestrator -.-> agent_state_manager
+    agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
+    agent_orchestrator_orchestrator -.-> agent_context_assembler
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator --> agent
+    agent_orchestrator_orchestrator -.-> agent_skills_mgmt_loader
     agent_orchestrator_orchestrator -.-> agent_tools
     agent_orchestrator_orchestrator -.-> agent_tool_schema_pruner
     agent_orchestrator_orchestrator -.-> agent_tool_fewshot_store
@@ -791,12 +810,15 @@ flowchart LR
     agent_skills_mgmt_creator -.-> agent_extensions_market
     agent_skills_mgmt_enhancer -.-> agent_feedback
     agent_skills_mgmt_loader -.-> agent_monitoring_prometheus
+    agent_skills_mgmt_offline_evolver -.-> agent_task_scheduler
+    agent_skills_mgmt_offline_evolver -.-> agent_task_scheduler
     agent_skills_mgmt_memory_abstractor -.-> agent_state_manager
     agent_skills_mgmt_memory_abstractor -.-> agent_workflow_learning_service
     agent_skills_mgmt_memory_abstractor -.-> agent_feedback_collector
     agent_skills_mgmt_memory_abstractor -.-> agent_memory_long_term_memory
     agent_skills_mgmt_observability -.-> agent_monitoring_business_metrics
     agent_skills_mgmt_observability -.-> agent_monitoring_tracing
+    agent_skills_mgmt_evaluator -.-> agent_feedback
     agent_skills_mgmt_service -.-> agent_feedback
     agent_skills_mgmt_service -.-> agent_feedback
     agent_model_router_adapters -.-> agent_logging_utils
@@ -1001,6 +1023,15 @@ flowchart LR
     agent_health_health_score -.-> agent_utils_singleton_manager
     agent_health_observability -.-> agent_monitoring_business_metrics
     agent_health_dashboard --> agent_health_assessor
+    agent_health_dashboard --> agent_health_probes
+    agent_health_dashboard --> agent_health_storage
+    agent_health_probes -.-> agent_monitoring_metrics
+    agent_health_probes -.-> agent_monitoring_metrics
+    agent_health_probes -.-> agent_feedback
+    agent_health_probes -.-> agent_circuit_breaker
+    agent_health_collector --> agent_health_assessor
+    agent_health_collector --> agent_health_probes
+    agent_health_collector --> agent_health_storage
     agent_preflight_runner --> agent
     agent_preflight --> agent_preflight_runner
     agent_preflight___main__ --> agent_preflight_runner
@@ -1017,6 +1048,12 @@ flowchart LR
     agent_cognitive_loop --> agent_cognitive_actor_critic
     agent_cognitive_loop --> agent_cognitive_debate
     agent_cognitive_observability -.-> agent_monitoring_business_metrics
+    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_evaluator
+    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_lineage
+    agent_cognitive_prompt_optimizer --> agent_cognitive_failure_bucket
+    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_observability
+    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_observability
+    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_observability
     agent_cognitive_logging_integration --> agent_cognitive_failure_collector
     agent_cognitive_reflection -.-> agent_monitoring_observability_config
     agent_cognitive_failure_analysis -.-> agent_utils_singleton_manager
@@ -1127,10 +1164,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 376
-- 模块节点数: 310
-- 依赖边数: 729
-- 跨层调用数: 447
+- 扫描文件数: 387
+- 模块节点数: 320
+- 依赖边数: 754
+- 跨层调用数: 464
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1279.69 ms
+- 构建耗时: 909.77 ms
