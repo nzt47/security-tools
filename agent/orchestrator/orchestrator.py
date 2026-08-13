@@ -849,8 +849,32 @@ class Orchestrator:
         _wire_cfg = self._load_planning_wire_config()
         _wire_planning_used = False
         _wire_plan_result = None
-        if _wire_cfg["enabled"] and self._planner and \
-           _wire_complexity_meets(user_input, _wire_cfg["min_complexity"]):
+        # 【排查】wire 入口判定日志：开关开启时 INFO（灰度期"为什么走/没走规划"全量可观测），
+        #         开关关闭时 DEBUG（默认路径零噪音）——判定结果复用于后续分支，避免重复计算
+        _wire_judged = _judge_wire_complexity(user_input) if _wire_cfg["enabled"] else None
+        _wire_meets = _wire_complexity_meets(user_input, _wire_cfg["min_complexity"]) if _wire_cfg["enabled"] else False
+        _wire_enter = bool(_wire_cfg["enabled"] and self._planner and _wire_meets)
+        _wire_ingress_log = log_dict({
+            'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.ingress',
+            'trace_id_ctx': trace_id,
+            'message': '[规划接线] 入口判定: wire_enabled=%s planner_available=%s '
+                       'judged_complexity=%s min_complexity=%s meets=%s → %s' % (
+                _wire_cfg["enabled"], self._planner is not None, _wire_judged,
+                _wire_cfg["min_complexity"], _wire_meets,
+                '进入规划引擎' if _wire_enter else '跳过规划（LLM 直答）'),
+            'wire_enabled': _wire_cfg["enabled"],
+            'planner_available': self._planner is not None,
+            'judged_complexity': _wire_judged,
+            'min_complexity': _wire_cfg["min_complexity"],
+            'complexity_meets': _wire_meets,
+            'enter_wire': _wire_enter,
+            'timeout_seconds': float(_wire_cfg["timeout_seconds"]),
+        })
+        if _wire_cfg["enabled"]:
+            logger.info(_wire_ingress_log)
+        else:
+            logger.debug(_wire_ingress_log)
+        if _wire_cfg["enabled"] and self._planner and _wire_meets:
             _ts_wire_pf = time.perf_counter()
             _wire_ctx = {"session_id": kwargs.get("session_id"), "user_input": user_input}
             try:
@@ -863,11 +887,13 @@ class Orchestrator:
                     _record_intent_layer("planning")
                     response = _wire_plan_result.response
                     _planning_mode = False  # 抑制旧"第四步半"段，避免双规划
-                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.planning', 'trace_id_ctx': trace_id, 'message': '[规划接线] wire 规划成功（%.1fms），跳过 LLM 调用' % ((time.perf_counter() - _ts_wire_pf) * 1000,), 'response_length': len(response) if response else 0, 'timeout_seconds': float(_wire_cfg["timeout_seconds"])}))
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.planning', 'trace_id_ctx': trace_id, 'message': '[规划接线] wire 规划成功（%.1fms），跳过 LLM 调用' % ((time.perf_counter() - _ts_wire_pf) * 1000,), 'response_length': len(response) if response else 0, 'timeout_seconds': float(_wire_cfg["timeout_seconds"]), 'judged_complexity': _wire_judged}))
                 else:
-                    logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.fallback', 'trace_id_ctx': trace_id, 'message': '[规划接线] 规划结果为空，回退 LLM 直答'}))
+                    # 空响应回退：区分 None / 空字符串，记录判定上下文供排查
+                    logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.fallback', 'trace_id_ctx': trace_id, 'message': '[规划接线] 规划结果为空，回退 LLM 直答（result_is_none=%s）' % (_wire_plan_result is None,), 'fallback_reason': 'plan_result_is_none' if _wire_plan_result is None else 'empty_response', 'judged_complexity': _wire_judged, 'timeout_seconds': float(_wire_cfg["timeout_seconds"])}))
             except Exception as e:
-                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.fallback', 'trace_id_ctx': trace_id, 'message': '[规划接线] 规划失败/超时，回退 LLM 直答: %s' % (e,), 'error': str(e)[:200], 'error_type': type(e).__name__, 'timeout_seconds': float(_wire_cfg["timeout_seconds"])}))
+                # 逃生通道：异常/超时（asyncio.TimeoutError）回退，完整记录原因链
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.fallback', 'trace_id_ctx': trace_id, 'message': '[规划接线] 规划失败/超时，回退 LLM 直答: %s' % (e,), 'error': str(e)[:200], 'error_type': type(e).__name__, 'judged_complexity': _wire_judged, 'timeout_seconds': float(_wire_cfg["timeout_seconds"])}))
 
         # ── 第四步：LLM 调用（TASK-01 wire 规划成功时跳过，response 已由规划引擎生成）──
         if not _wire_planning_used:

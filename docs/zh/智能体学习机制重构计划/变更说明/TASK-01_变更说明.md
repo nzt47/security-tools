@@ -43,6 +43,18 @@
      响应 metadata 标注 `routed_by: planning`（供 TASK-03 埋点）；
    - 规划失败/超时/空响应：静默回退原 LLM 路径，WARNING 日志记录降级原因（不中断用户请求）。
 
+   关键节点日志（`module_name=orchestrator`，`action=orchestrator.process.wire.*`，供排障）：
+
+   | action | 级别 | 触发时机 | 关键字段 |
+   | --- | --- | --- | --- |
+   | `wire.ingress` | INFO（开关开启）/ DEBUG（开关关闭） | 每次请求到达 wire 分支 | `wire_enabled` / `planner_available` / `judged_complexity` / `min_complexity` / `complexity_meets` / `enter_wire` / `timeout_seconds` |
+   | `wire.planning` | INFO | 规划成功，跳过 LLM 调用 | `response_length` / `judged_complexity` / `timeout_seconds` |
+   | `wire.fallback`（空响应） | WARNING | `chat()` 返回 None / 空字符串 | `fallback_reason`（`plan_result_is_none` / `empty_response`）/ `judged_complexity` / `timeout_seconds` |
+   | `wire.fallback`（异常/超时） | WARNING | `chat()` 抛异常或 `asyncio.wait_for` 超时 | `error` / `error_type`（`asyncio.TimeoutError` 即超时）/ `judged_complexity` / `timeout_seconds` |
+
+   排查指南：先看 `wire.ingress` 确认任务是否进入规划（`judged_complexity` 与 `min_complexity` 对比可解释"为什么没走规划"）；
+   回退原因在 `wire.fallback` 的 `fallback_reason` / `error_type` 字段直接区分（空结果 / 异常 / 超时）。
+
 ### 2.3 测试
 
 - 新增 `tests/unit/test_planning_wire.py`（5 用例）：
@@ -106,14 +118,63 @@ $ python -m pytest tests/unit/test_planning_stage5_e2e.py \
   与本次改动文件（orchestrator.py / config.yaml / 两个测试文件）零交集，非本任务引入。
 - `ruff check`（本次改动文件）：✅ 通过（orchestrator.py 存量 12 处 F401/F821/F841 与本次改动无关，未触碰）。
 
+### 5.3 本地模拟场景验证（wire 接入效果实测）
+
+脚本：`scripts/task01_wire_simulate.py`（mock 前置层直达 wire 分支，驱动真实 `Orchestrator.process()`）。
+运行：`python scripts/task01_wire_simulate.py`。实测结果：
+
+| 场景 | 输入 | 结果 | 验证点 |
+| --- | --- | --- | --- |
+| A. wire=true + COMPLEX + 规划成功 | 帮我构建一个分布式系统架构 | data=【规划引擎】…；metadata={routed_by: planning, plan_summary} | 走规划、跳过 LLM、埋点标注 ✅ |
+| B. wire=true + COMPLEX + 规划异常 | 同上 | data=【LLM 直答】…；metadata 空 | 异常回退不中断 ✅ |
+| C. wire=true + COMPLEX + 规划超时（0.5s） | 同上 | data=【LLM 直答】…；耗时 0.55s（未等满挂起 2s） | 超时硬中断回退 ✅ |
+| D. wire=false + COMPLEX | 同上 | data=【LLM 直答】…；无 routed_by | 分支 inert，行为等价 ✅ |
+
+关键日志摘录（场景 A）：
+
+```
+[规划接线] 入口判定: wire_enabled=True planner_available=True judged_complexity=COMPLEX
+            min_complexity=COMPLEX meets=True → 进入规划引擎
+[规划接线] wire 规划成功（2.3ms），跳过 LLM 调用   response_length=45
+```
+
+### 5.4 CI 全量回归命令/脚本
+
+本地沙箱 chromadb 限制导致 `python -m pytest tests/unit -q` 无法在沙箱内完成；CI（GitHub Actions）无此限制。
+统一入口脚本：`scripts/ci/run_full_regression.ps1`（PowerShell，跨平台，CI/本地均可用）。
+
+```powershell
+# 1) unit 套件全量（TASK-01 验收标准：0 失败/0 error）
+.\scripts\ci\run_full_regression.ps1 -Suite unit
+
+# 2) 全量 tests/ 固定 seed 回归（顺序污染收敛验证，seed 与 pytest.ini 注释一致）
+.\scripts\ci\run_full_regression.ps1 -Suite all -Seed 20260813
+
+# 3) 禁用随机（对照 T-0 基线 failures_baseline.txt：2026-08-13 为 68 failed/14359 passed/10 errors）
+.\scripts\ci\run_full_regression.ps1 -Suite all -NoRandom
+```
+
+等价直接命令（Linux CI runner，bash）：
+
+```bash
+export PYTHONIOENCODING=utf-8 PYTHONUTF8=1
+python -m pytest tests/unit -q                # unit 验收
+python -m pytest tests/ -q --randomly-seed=20260813   # 全量固定 seed 回归
+```
+
+脚本要点：`PYTHONIOENCODING=utf-8`（Windows runner 中文日志编码）、退出码透传（CI 失败判定）、
+`all` 套件失败时提示与 `failures_baseline.txt` 比对确认是否新增回归。
+
 ## 6. 变更文件清单
 
 | 文件 | 变更类型 |
 | --- | --- |
 | `config.yaml` | 修改：`planning:` 段新增 `wire_enabled` / `wire_min_complexity` / `wire_timeout_seconds`（含注释） |
-| `agent/orchestrator/orchestrator.py` | 修改：模块级复杂度分级 + `_load_planning_wire_config()` + process() 接线分支 + metadata 标注 |
+| `agent/orchestrator/orchestrator.py` | 修改：模块级复杂度分级 + `_load_planning_wire_config()` + process() 接线分支 + wire 关键节点日志 + metadata 标注 |
 | `tests/unit/test_planning_wire.py` | 新增：5 用例 |
 | `tests/unit/test_planning_defect_d7.py` | 修改：D7 断言转正（4 用例） |
+| `scripts/task01_wire_simulate.py` | 新增：wire 接入效果本地模拟脚本（4 场景） |
+| `scripts/ci/run_full_regression.ps1` | 新增：CI 全量回归统一入口（unit / all 固定 seed / 无随机基线比对） |
 | 本文档 | 新增：变更说明 |
 
 ## 7. 范围外（明确不做）
