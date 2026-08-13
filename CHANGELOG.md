@@ -6,6 +6,46 @@
 
 ---
 
+## [CHG] - 2026-08-13: 并发安全修复系列（三轮审计 + 10 模块锁化）✅
+
+**影响模块**: `agent/network_config.py`, `agent/monitoring/search.py`, `agent/orchestrator/dialog_state.py`, `agent/monitoring/optimized_metrics.py`, `agent/memory/router.py`, `agent/web/search.py`, `agent/web/crawler_control.py`, `agent/permission_system.py`, `agent/safety_guard.py`, `agent/health/assessor.py`（含 `tests/unit/test_*_concurrency.py` 新增 7 个并发测试文件）
+**关联提交**: `3a9e75cc`, `b381e81d`, `e388eaa0`, `1b6f6547`, `ee840417`, `05b34b6d`, `193ee359`, `1775d176`, `9fa5cf2c`, `0b9dffc3`
+**变更日志详情**: `docs/zh/进化机制重构计划/13_并发安全修复总结_20260813.md`(新增)
+
+### 背景
+
+模块级单例被多路 HTTP 路由/后台线程并发调用，CPython 读-改-写非原子，产生四类竞态：丢计数/丢更新（`+= 1` 字节码交错）、TOCTOU 重复实例（check-then-create）、遍历 RuntimeError（dict/list 并发增删）、并发注销 KeyError（if-in-del 非原子）。三轮审计递进：46 → 32 → 12 处自增点，高危 6 处全部修复，中危 4 处收尾。
+
+### Fixed — 并发竞态（按模块）
+
+- `network_config`：`_load` 双重检查锁（缓存双检 + 文件 I/O 出锁）；`_save` 文件写入与缓存更新同锁（一致性不变式）；`update`/`apply_search_instances` 整体持锁原子；LLM/MCP 六个 CRUD 锁内 TOCTOU；快照方法锁内深拷贝
+- `monitoring/search`：`_perform_check` 锁内取 check_id、网络 I/O 锁外、append 锁内；`start` TOCTOU 防双线程；快照方法锁内
+- `orchestrator/dialog_state`：模块级会话表 check-then-create 加锁；`update` 字段组 + turn_count 原子；`resolve` 锁内快照/锁外向量编码；`to_dict`/`reset` 锁内
+- `monitoring/optimized_metrics`：`_stats` 读-改-写原子；直方图 check-then-create 锁内；遍历锁内快照；`BatchMetricsWriter` start/stop TOCTOU 与 **write 锁内 flush 重入死锁修复**；fallback 单例加锁
+- `memory/router`：register/unregister/register_tier 锁内；`list_adapters`/`to_dict` 锁内遍历快照；`unregister` TOCTOU 防 KeyError；敏感过滤器延迟初始化双检
+- `web/search` / `web/crawler_control` / `permission_system` / `safety_guard` / `health/assessor`：RLock/Lock 保护统计、缓存、代理/UA/限速、计数器、回调列表与实例计数
+
+### Added — 并发测试
+
+- 新增 7 个并发测试文件、共 35 用例：`test_network_config_concurrency.py`(6)、`test_search_monitor_concurrency.py`(4)、`test_dialog_state_concurrency.py`(5)、`test_optimized_metrics_concurrency.py`(5)、`test_memory_router_concurrency.py`(4)、`test_web_search_concurrency.py`(5)、`test_crawler_control_concurrency.py`(5)
+- 验证方法：`threading.Barrier` 同步起跑放大竞争窗口；计数精确（turn_count/_stats/check_id 唯一）与不抛异常断言；`tempfile.mkdtemp` 自包含不污染仓库
+
+### Perf — 锁开销
+
+- 读路径加锁为纯内存 µs 级操作（RLock 单次 acquire/release 约 0.22µs，与 multi_tenant 修复同量级）；`monitoring/search` 网络 I/O 全部移出锁外，最长可达 timeout 秒级请求不阻塞计数/快照
+
+### 验证结果
+
+- 本系列模块既有回归 + 新增并发共 **268 项全绿**；全量分批扫描约 5400+ 项，失败项均验证与本次修复无关（ci_guard/few_shot/impact_analysis/sqlite_vec 降级/网络依赖超时/WMI 崩溃等环境性、既有问题）
+
+### 副作用评估（已确认无严重副作用）
+
+- 单线程行为完全等价（签名/返回/异常不变）
+- 已知权衡 1：`network_config._save` 文件写入持锁（低频本地磁盘 I/O，一致性不变式优先）
+- 已知权衡 2：`dialog_state.resolve` 向量编码锁外执行，编码期间并发 update 可能读到快照时点之前的半状态（会话内串行语义，可接受）
+
+---
+
 ## [CHG] - 2026-08-13: 多租户三管理器 RLock 原子化（并发锁修复）+ 锁开销基准 ✅
 
 **影响模块**: `agent/multi_tenant.py`, `tests/unit/test_multi_tenant_concurrency.py`(新增), `tests/test_multi_tenant.py`(单线程基线), `docs/zh/多租户并发锁修复_回归测试计划.md`(新增)
