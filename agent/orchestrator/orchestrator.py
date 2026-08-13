@@ -934,13 +934,35 @@ class Orchestrator:
         # 逃生通道依据：规划是否成功覆盖（供返回 metadata 携带 used_planning/plan_summary）
         _planning_used = False
         plan_result = None
+        # 【排查】D7 规划入口判定日志（灰度开关/组件可用性/超时预算全量可观测，
+        #         方便定位"为什么没走规划/为什么走了规划"）
+        _planning_cfg = getattr(self, "_config", None) or getattr(self, "config", None) or {}
+        _planning_cfg = _planning_cfg.get("planning") or {}
+        _plan_timeout = float(_planning_cfg.get("timeout_seconds", 30))
+        _enter_planning = bool(planning_mode and self._planner)
+        logger.info(log_dict({
+            'module_name': 'orchestrator',
+            'action': 'orchestrator.process.planning.ingress',
+            'trace_id_ctx': trace_id,
+            'message': '[规划] 入口判定: planning_mode=%s planner_available=%s planning_enabled=%s → %s' % (
+                planning_mode, self._planner is not None, getattr(self, '_planning_enabled', False),
+                '进入规划引擎' if _enter_planning else '跳过规划（LLM 直答）'),
+            'planning_mode': planning_mode,
+            'planning_enabled': getattr(self, '_planning_enabled', False),
+            'planner_available': self._planner is not None,
+            'complexity_threshold': getattr(self, '_complexity_threshold', None),
+            'timeout_seconds': _plan_timeout,
+            'max_iterations': _planning_cfg.get('max_iterations', None),
+            'enter_planning': _enter_planning,
+        }))
         if planning_mode and self._planner:
-            _plan_timeout = float((self._config.get("planning") or {}).get("timeout_seconds", 30))
+            _ts_plan_pf = time.perf_counter()
             _plan_ctx = {"session_id": kwargs.get("session_id"), "user_input": user_input}
             try:
                 plan_result = _run_async_in_sync(
                     self._planner.chat(user_input, _plan_ctx), timeout=_plan_timeout
                 )
+                _plan_dur_ms = (time.perf_counter() - _ts_plan_pf) * 1000
                 if plan_result is not None and getattr(plan_result, "response", ""):
                     # 规划成功：其响应覆盖 LLM 直答结果，进入既有后链路
                     _record_intent_layer("planning")
@@ -950,29 +972,38 @@ class Orchestrator:
                         'module_name': 'orchestrator',
                         'action': 'orchestrator.process.planning',
                         'trace_id_ctx': trace_id,
-                        'message': '[规划] 复杂任务由规划引擎处理完成（used_planning=%s）' % (
-                            bool(getattr(plan_result, 'used_planning', False)),),
+                        'message': '[规划] 复杂任务由规划引擎处理完成（used_planning=%s, %.2fms）' % (
+                            bool(getattr(plan_result, 'used_planning', False)), _plan_dur_ms),
                         'used_planning': bool(getattr(plan_result, 'used_planning', False)),
                         'plan_id': (getattr(plan_result, 'plan', None).id
                                     if getattr(plan_result, 'plan', None) else None),
                         'response_length': len(response) if response else 0,
+                        'planning_duration_ms': round(_plan_dur_ms, 2),
                     }))
                 else:
                     # 空响应/无结果 → 回退原 LLM 直答
+                    _fallback_reason = 'plan_result_is_none' if plan_result is None else 'empty_response'
                     logger.warning(log_dict({
                         'module_name': 'orchestrator',
                         'action': 'orchestrator.process.planning.fallback',
                         'trace_id_ctx': trace_id,
-                        'message': '[规划] 规划结果为空，回退 LLM 直答'}))
+                        'message': '[规划] 规划结果为空，回退 LLM 直答 (reason=%s, %.2fms)' % (
+                            _fallback_reason, _plan_dur_ms),
+                        'fallback_reason': _fallback_reason,
+                        'planning_duration_ms': round(_plan_dur_ms, 2),
+                    }))
             except Exception as e:
                 # 逃生通道：规划失败/超时/异常 → 回退原 LLM 直答响应
+                _plan_dur_ms = (time.perf_counter() - _ts_plan_pf) * 1000
                 logger.warning(log_dict({
                     'module_name': 'orchestrator',
                     'action': 'orchestrator.process.planning.fallback',
                     'trace_id_ctx': trace_id,
-                    'message': '[规划] 规划调用失败/超时，回退 LLM 直答: %s' % (e,),
+                    'message': '[规划] 规划调用失败/超时，回退 LLM 直答: %s (%.2fms)' % (e, _plan_dur_ms),
                     'error': str(e)[:200],
+                    'error_type': type(e).__name__,
                     'timeout_seconds': _plan_timeout,
+                    'planning_duration_ms': round(_plan_dur_ms, 2),
                 }))
 
         # ── 第五步：OutputGuard 输出安全检查（PII 遮盖）──

@@ -504,6 +504,15 @@ class PlanExecutor:
         finally:
             self._running_tasks.pop(plan.id, None)
             self._cancelled_plan_ids.discard(plan.id)
+            # 阶段 5（D13 收口）：统一收尾回填最终 budget 快照——正常完成/部分失败/取消/
+            # 异常全覆盖（此前仅超限分支在循环内回填，其余收尾路径停留在 start() 初始
+            # 快照 cost=0，导致计划完成但成本不可观测）；保留超限分支写入的 status
+            # 字段（snapshot 本身不含 status）
+            _prev_budget = plan.metadata.get("budget") or {}
+            _prev_status = _prev_budget.get("status")
+            plan.metadata["budget"] = self.budget_manager.snapshot()
+            if _prev_status:
+                plan.metadata["budget"]["status"] = _prev_status
 
         plan.updated_at = datetime.now()
         logger.info(f"计划执行{plan.state.value}: {plan.progress():.1%}")
@@ -955,6 +964,10 @@ class PlanExecutor:
         try:
             prompt = action.tool_params.get("prompt", "")
             response = await self.llm.chat([{"role": "user", "content": prompt}])
+            # 阶段 3（D13）：token/cost 统一经 budget_manager 记账（字符/3 估算），
+            # 与 react.py 思考路径同口径（prompt+response 双记），防双轨漂移
+            self.budget_manager.record_text(prompt)
+            self.budget_manager.record_text(response)
 
             return ActionResult.success_result(
                 output=response,
