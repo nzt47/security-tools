@@ -134,10 +134,13 @@ class AdaptiveSampler:
         """判断是否采样（非阻塞）"""
         result = self._sampler.should_sample(trace_id)
         
-        # 记录采样结果（原子操作）
-        if result:
-            self._sample_count += 1
-        self._request_count += 1
+        # [2026-08-13 并发审计 #2] _sample_count/_request_count 读-改-写非原子：
+        # 原实现锁外自增丢计数，导致 _maybe_adjust 中 actual_ratio 失真；且与
+        # _maybe_adjust 锁内重置竞态（重置后自增丢失）。锁内仅内存整数递增，无 I/O。
+        with self._lock:
+            if result:
+                self._sample_count += 1
+            self._request_count += 1
         
         # 异步调整（非阻塞）
         self._maybe_adjust()
