@@ -649,6 +649,11 @@ class LLMCache:
         self.cache: OrderedDict[str, CacheEntry] = OrderedDict()
         self.stats = LLMCacheStats()
         self.hits_by_pattern: dict[str, int] = {}
+        # Why Lock 保护 cache/hits_by_pattern：get/put 的「检查→结构变更
+        # （move_to_end/popitem/删除）→计数」为 TOCTOU + 读-改-写序列，多线程
+        # 并发会损坏 OrderedDict 内部链表（RuntimeError）或丢计数/超容量。
+        # 锁内仅内存操作（_classify_prompt 为纯字符串处理），遵守持锁纪律。
+        self._lock = threading.Lock()
         logger.info(json.dumps({
             "trace_id": get_trace_id(),
             "module_name": "performance",
@@ -664,46 +669,48 @@ class LLMCache:
     def get(self, prompt: str) -> Optional[str]:
         start_time = time.perf_counter()
         prompt_hash = self._hash_prompt(prompt)
-        if prompt_hash not in self.cache:
-            self.stats.record_miss()
-            return None
-        entry = self.cache[prompt_hash]
-        if entry.is_expired():
-            del self.cache[prompt_hash]
-            self.stats.record_miss()
-            return None
-        entry.hit_count += 1
-        self.cache.move_to_end(prompt_hash)
-        elapsed_ms = (time.perf_counter() - start_time) * 1000
-        self.stats.record_hit(elapsed_ms)
-        pattern = self._classify_prompt(prompt)
-        self.hits_by_pattern[pattern] = self.hits_by_pattern.get(pattern, 0) + 1
-        return entry.response
+        with self._lock:
+            if prompt_hash not in self.cache:
+                self.stats.record_miss()
+                return None
+            entry = self.cache[prompt_hash]
+            if entry.is_expired():
+                del self.cache[prompt_hash]
+                self.stats.record_miss()
+                return None
+            entry.hit_count += 1
+            self.cache.move_to_end(prompt_hash)
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            self.stats.record_hit(elapsed_ms)
+            pattern = self._classify_prompt(prompt)
+            self.hits_by_pattern[pattern] = self.hits_by_pattern.get(pattern, 0) + 1
+            return entry.response
 
     def put(self, prompt: str, response: str, ttl_seconds: Optional[int] = None):
         start_time = time.perf_counter()
         prompt_hash = self._hash_prompt(prompt)
         ttl = ttl_seconds or self.default_ttl
-        if prompt_hash in self.cache:
-            self.cache.move_to_end(prompt_hash)
-            old_entry = self.cache[prompt_hash]
-            entry = CacheEntry(
-                prompt_hash=prompt_hash, response=response,
-                timestamp=time.time(), ttl_seconds=ttl,
-                hit_count=old_entry.hit_count,
-                generation_time_ms=old_entry.generation_time_ms
-            )
-        else:
-            if len(self.cache) >= self.max_size:
-                evicted_key, evicted_entry = self.cache.popitem(last=False)
-                self.stats.record_eviction()
-            entry = CacheEntry(
-                prompt_hash=prompt_hash, response=response,
-                timestamp=time.time(), ttl_seconds=ttl
-            )
-        self.cache[prompt_hash] = entry
-        elapsed_ms = (time.perf_counter() - start_time) * 1000
-        self.stats.record_save(elapsed_ms)
+        with self._lock:
+            if prompt_hash in self.cache:
+                self.cache.move_to_end(prompt_hash)
+                old_entry = self.cache[prompt_hash]
+                entry = CacheEntry(
+                    prompt_hash=prompt_hash, response=response,
+                    timestamp=time.time(), ttl_seconds=ttl,
+                    hit_count=old_entry.hit_count,
+                    generation_time_ms=old_entry.generation_time_ms
+                )
+            else:
+                if len(self.cache) >= self.max_size:
+                    evicted_key, evicted_entry = self.cache.popitem(last=False)
+                    self.stats.record_eviction()
+                entry = CacheEntry(
+                    prompt_hash=prompt_hash, response=response,
+                    timestamp=time.time(), ttl_seconds=ttl
+                )
+            self.cache[prompt_hash] = entry
+            elapsed_ms = (time.perf_counter() - start_time) * 1000
+            self.stats.record_save(elapsed_ms)
 
     def _classify_prompt(self, prompt: str) -> str:
         prompt_lower = prompt.lower()
@@ -721,8 +728,10 @@ class LLMCache:
             return 'long'
 
     def clear(self):
-        size = len(self.cache)
-        self.cache.clear()
+        with self._lock:
+            size = len(self.cache)
+            self.cache.clear()
+        # 日志在锁外（持锁纪律：锁内无 I/O）
         logger.info(json.dumps({
             "trace_id": get_trace_id(),
             "module_name": "performance",
@@ -735,7 +744,8 @@ class LLMCache:
         return self.stats.to_dict()
 
     def get_top_patterns(self, top_n: int = 5) -> list:
-        sorted_patterns = sorted(self.hits_by_pattern.items(), key=lambda x: x[1], reverse=True)
+        with self._lock:
+            sorted_patterns = sorted(self.hits_by_pattern.items(), key=lambda x: x[1], reverse=True)
         return sorted_patterns[:top_n]
 
 
