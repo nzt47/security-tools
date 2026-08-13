@@ -877,6 +877,8 @@ class Orchestrator:
         if _wire_cfg["enabled"] and self._planner and _wire_meets:
             _ts_wire_pf = time.perf_counter()
             _wire_ctx = {"session_id": kwargs.get("session_id"), "user_input": user_input}
+            # 【排查】规划调用开始标记（时间轴起点）：回退日志的 wire_duration_ms 与此对照可还原完整调用链路
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.call.start', 'trace_id_ctx': trace_id, 'message': '[规划接线] 调用 PlanningCore.chat()（超时上限 %.1fs）' % float(_wire_cfg["timeout_seconds"]), 'input_length': len(user_input), 'timeout_seconds': float(_wire_cfg["timeout_seconds"]), 'judged_complexity': _wire_judged}))
             try:
                 _wire_plan_result = _run_async_in_sync(
                     self._planner.chat(user_input, _wire_ctx),
@@ -887,13 +889,16 @@ class Orchestrator:
                     _record_intent_layer("planning")
                     response = _wire_plan_result.response
                     _planning_mode = False  # 抑制旧"第四步半"段，避免双规划
-                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.planning', 'trace_id_ctx': trace_id, 'message': '[规划接线] wire 规划成功（%.1fms），跳过 LLM 调用' % ((time.perf_counter() - _ts_wire_pf) * 1000,), 'response_length': len(response) if response else 0, 'timeout_seconds': float(_wire_cfg["timeout_seconds"]), 'judged_complexity': _wire_judged}))
+                    logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.planning', 'trace_id_ctx': trace_id, 'message': '[规划接线] wire 规划成功（%.1fms），跳过 LLM 调用' % ((time.perf_counter() - _ts_wire_pf) * 1000,), 'wire_duration_ms': round((time.perf_counter() - _ts_wire_pf) * 1000, 1), 'response_length': len(response) if response else 0, 'timeout_seconds': float(_wire_cfg["timeout_seconds"]), 'judged_complexity': _wire_judged}))
                 else:
-                    # 空响应回退：区分 None / 空字符串，记录判定上下文供排查
-                    logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.fallback', 'trace_id_ctx': trace_id, 'message': '[规划接线] 规划结果为空，回退 LLM 直答（result_is_none=%s）' % (_wire_plan_result is None,), 'fallback_reason': 'plan_result_is_none' if _wire_plan_result is None else 'empty_response', 'judged_complexity': _wire_judged, 'timeout_seconds': float(_wire_cfg["timeout_seconds"])}))
+                    # 空响应回退：区分 None / 空字符串，记录判定上下文与调用耗时供排查
+                    logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.fallback', 'trace_id_ctx': trace_id, 'message': '[规划接线] 规划结果为空，回退 LLM 直答（result_is_none=%s）' % (_wire_plan_result is None,), 'fallback_reason': 'plan_result_is_none' if _wire_plan_result is None else 'empty_response', 'wire_duration_ms': round((time.perf_counter() - _ts_wire_pf) * 1000, 1), 'judged_complexity': _wire_judged, 'timeout_seconds': float(_wire_cfg["timeout_seconds"])}))
+            except asyncio.TimeoutError:
+                # 逃生通道-超时：str(TimeoutError) 为空串，需显式超时文案与 is_timeout 标识（区别于一般异常）
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.fallback', 'trace_id_ctx': trace_id, 'message': '[规划接线] 规划超时（上限 %.1fs），回退 LLM 直答' % float(_wire_cfg["timeout_seconds"]), 'fallback_reason': 'timeout', 'is_timeout': True, 'wire_duration_ms': round((time.perf_counter() - _ts_wire_pf) * 1000, 1), 'judged_complexity': _wire_judged, 'timeout_seconds': float(_wire_cfg["timeout_seconds"])}))
             except Exception as e:
-                # 逃生通道：异常/超时（asyncio.TimeoutError）回退，完整记录原因链
-                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.fallback', 'trace_id_ctx': trace_id, 'message': '[规划接线] 规划失败/超时，回退 LLM 直答: %s' % (e,), 'error': str(e)[:200], 'error_type': type(e).__name__, 'judged_complexity': _wire_judged, 'timeout_seconds': float(_wire_cfg["timeout_seconds"])}))
+                # 逃生通道-异常：完整记录原因链 + 调用耗时
+                logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.wire.fallback', 'trace_id_ctx': trace_id, 'message': '[规划接线] 规划失败，回退 LLM 直答: %s' % (e,), 'fallback_reason': 'exception', 'is_timeout': False, 'wire_duration_ms': round((time.perf_counter() - _ts_wire_pf) * 1000, 1), 'error': str(e)[:200], 'error_type': type(e).__name__, 'judged_complexity': _wire_judged, 'timeout_seconds': float(_wire_cfg["timeout_seconds"])}))
 
         # ── 第四步：LLM 调用（TASK-01 wire 规划成功时跳过，response 已由规划引擎生成）──
         if not _wire_planning_used:

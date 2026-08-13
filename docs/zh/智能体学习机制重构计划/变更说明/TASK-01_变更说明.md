@@ -48,12 +48,16 @@
    | action | 级别 | 触发时机 | 关键字段 |
    | --- | --- | --- | --- |
    | `wire.ingress` | INFO（开关开启）/ DEBUG（开关关闭） | 每次请求到达 wire 分支 | `wire_enabled` / `planner_available` / `judged_complexity` / `min_complexity` / `complexity_meets` / `enter_wire` / `timeout_seconds` |
-   | `wire.planning` | INFO | 规划成功，跳过 LLM 调用 | `response_length` / `judged_complexity` / `timeout_seconds` |
-   | `wire.fallback`（空响应） | WARNING | `chat()` 返回 None / 空字符串 | `fallback_reason`（`plan_result_is_none` / `empty_response`）/ `judged_complexity` / `timeout_seconds` |
-   | `wire.fallback`（异常/超时） | WARNING | `chat()` 抛异常或 `asyncio.wait_for` 超时 | `error` / `error_type`（`asyncio.TimeoutError` 即超时）/ `judged_complexity` / `timeout_seconds` |
+   | `wire.call.start` | INFO | 确定进入规划、调用 `chat()` 前（时间轴起点） | `input_length` / `timeout_seconds` / `judged_complexity` |
+   | `wire.planning` | INFO | 规划成功，跳过 LLM 调用 | `wire_duration_ms` / `response_length` / `judged_complexity` / `timeout_seconds` |
+   | `wire.fallback`（空响应） | WARNING | `chat()` 返回 None / 空字符串 | `fallback_reason`（`plan_result_is_none` / `empty_response`）/ `wire_duration_ms` / `judged_complexity` / `timeout_seconds` |
+   | `wire.fallback`（超时） | WARNING | `asyncio.wait_for` 超时（显式捕获 `asyncio.TimeoutError`） | `fallback_reason=timeout` / `is_timeout=True` / `wire_duration_ms` / `timeout_seconds` |
+   | `wire.fallback`（异常） | WARNING | `chat()` 抛一般异常 | `fallback_reason=exception` / `is_timeout=False` / `wire_duration_ms` / `error` / `error_type` / `timeout_seconds` |
 
    排查指南：先看 `wire.ingress` 确认任务是否进入规划（`judged_complexity` 与 `min_complexity` 对比可解释"为什么没走规划"）；
-   回退原因在 `wire.fallback` 的 `fallback_reason` / `error_type` 字段直接区分（空结果 / 异常 / 超时）。
+   回退原因由 `fallback_reason` 字段一票定位：`timeout`（超时）/ `exception`（异常）/ `plan_result_is_none` / `empty_response`（空结果）；
+   `wire.call.start` 与回退日志的 `wire_duration_ms` 配对，可还原完整调用耗时。注意 `str(TimeoutError)` 为空串，
+   因此超时已单独捕获并输出显式文案"规划超时（上限 Xs），回退 LLM 直答"。
 
 ### 2.3 测试
 
@@ -164,6 +168,31 @@ python -m pytest tests/ -q --randomly-seed=20260813   # 全量固定 seed 回归
 
 脚本要点：`PYTHONIOENCODING=utf-8`（Windows runner 中文日志编码）、退出码透传（CI 失败判定）、
 `all` 套件失败时提示与 `failures_baseline.txt` 比对确认是否新增回归。
+
+### 5.5 本地全量 unit 回归实测（2026-08-14，沙箱环境）
+
+沙箱内 `pytest tests/unit` 因 chromadb（pydantic_settings 访问 `C:\nonexistent\*`）触发 60s Timeout 并
+被进程级拦截，无法直接全量执行。排除 19 个 chromadb 直接依赖文件（含 `test_memory_optimized.py` 间接触发者）后
+完成全量执行：
+
+```
+collected 10730 items / 1 skipped
+= 7 failed, 10663 passed, 44 skipped, 13 xfailed, 4 xpassed in 1970.18s (0:32:50) =
+```
+
+7 个失败与本次改动零相关（均为环境/存量问题）：
+
+| 失败测试 | 原因分类 |
+| --- | --- |
+| `test_system_tools_core.py` 符号链接 ×2 | Windows 无符号链接支持（环境） |
+| `test_impact_analysis_cache.py` 符号链接 | 同上（环境） |
+| `test_skill_index_cache.py::test_match_latency_halved_with_cache` | 性能阈值边缘（49% < 50%，缓存已生效，差 1%） |
+| `test_network_config.py::test_sensitive_api_key_encrypted_on_save` | API key 加密环境断言 |
+| `test_optimized_storage.py::test_create_optimized_storage` | 存量模块（`import_degraded` guard WARN 同源） |
+| `test_ci_guard_fix_regression.py::test_guard_pipeline_json可运行` | guard 回归模拟失败 |
+
+本次改动相关（wire / D7 / stage5 E2E / orchestrator）全部通过；退出码 1 为 pytest 摘要后 teardown 阶段
+chromadb 写文件被沙箱拦截所致，非测试失败。CI 无沙箱限制，执行 §5.4 命令即可全量验证。
 
 ## 6. 变更文件清单
 
