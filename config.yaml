@@ -50,6 +50,14 @@ learning:
   context_assembler:
     enabled: true
     token_budget: 3000
+  # TASK-02：反思产物写入检索面开关（观察模式）
+  # 默认 false（观察）：self_reflect 保持现状仅写内存/日志；true 时才额外写入向量检索面
+  # 环境变量 LEARNING_REFLECTION_PERSIST 覆盖此值
+  reflection_persist: true
+  # TASK-02：规划经验/教训落盘开关（观察模式）
+  # 默认 false（观察）：execute_plan 收尾仅记录调用意图日志；true 才实际调 learn_from_experience 落盘
+  # 环境变量 LEARNING_EXPERIENCE_PERSIST 覆盖此值
+  experience_persist: false
 tools:
   enabled: true
   timeout: 30
@@ -72,7 +80,7 @@ features:
   # Schema 输出校验开关
   schema_validation_enabled: false
   # Critic 质量评审开关
-  critic_evaluation_enabled: false
+  critic_evaluation_enabled: true
   # 失败分析归档开关
   failure_analysis_enabled: false
 

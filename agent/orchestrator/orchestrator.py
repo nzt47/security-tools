@@ -1210,7 +1210,10 @@ class Orchestrator:
         self._learn_workflow_from_interaction(user_input, session_id=_sid)
 
         # 向量记忆保存
-        if self._vector_memory:
+        # 【不易】显式判 None（不依赖对象真值语义）：真实 VectorStore 无 __len__ 恒真值，
+        #        但未来若有人添加 __len__（FakeVectorStore 曾因此误判为空而跳过写入），
+        #        真值判断会静默失效——is not None 消除该隐式契约（TASK-02 同步加固）
+        if self._vector_memory is not None:
             try:
                 memory_content = f"用户: {user_input}\n云枢: {response}"
                 item_id = self._vector_memory.add(
@@ -2212,6 +2215,56 @@ class Orchestrator:
                 config["timeout_seconds"] = float(env_timeout.strip())
             except (ValueError, TypeError):
                 logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.planning_wire.config.invalid_timeout', 'message': '[规划接线] PLANNING_WIRE_TIMEOUT_SECONDS 非法值已忽略: %s' % (env_timeout,)}))
+
+        return config
+
+    # TASK-02：学习机制接线（反思持久化 + 认知规则评估）配置硬编码默认值
+    _LEARNING_DEFAULTS: Dict[str, Any] = {
+        # 反思产物写入检索面开关（观察模式）：false 保持现状仅写内存/日志
+        "reflection_persist": False,
+        # ReflectionEngine 规则评估开关（保守模式）：false 不评估；true 只记录不干预
+        "critic_evaluation_enabled": False,
+    }
+
+    @classmethod
+    def _load_learning_config(cls) -> Dict[str, Any]:
+        """读取学习机制接线配置（TASK-02）— 优先级: 环境变量 > config.yaml > 硬编码默认值
+
+        架构层级：[TLM-L2] 学习接线配置加载（与 _load_planning_wire_config 同源模式）
+
+        config.yaml 路径: learning.reflection_persist / features.critic_evaluation_enabled
+        环境变量: LEARNING_REFLECTION_PERSIST / CRITIC_EVALUATION_ENABLED
+
+        【不易】硬编码默认值作为最终兜底，config.yaml 缺失/解析失败不影响主链路；
+               两开关默认 false（观察/保守模式），未开启前接线分支整体 inert。
+        """
+        config = dict(cls._LEARNING_DEFAULTS)
+
+        # 层1: config.yaml（复用 _SEM_CONFIG_PATH，避免重复路径初始化）
+        try:
+            if cls._SEM_CONFIG_PATH is None:
+                from pathlib import Path
+                cls._SEM_CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "config.yaml"
+            if cls._SEM_CONFIG_PATH.exists():
+                import yaml as _yaml
+                with open(cls._SEM_CONFIG_PATH, "r", encoding="utf-8") as f:
+                    data = _yaml.safe_load(f) or {}
+                learning_cfg = data.get("learning", {}) or {}
+                features_cfg = data.get("features", {}) or {}
+                if learning_cfg.get("reflection_persist") is not None:
+                    config["reflection_persist"] = bool(learning_cfg.get("reflection_persist"))
+                if features_cfg.get("critic_evaluation_enabled") is not None:
+                    config["critic_evaluation_enabled"] = bool(features_cfg.get("critic_evaluation_enabled"))
+        except Exception as e:
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.learning.config.fallback', 'message': '[学习接线] config.yaml 读取失败，降级到默认值: %s' % (e,)}))
+
+        # 层2: 环境变量覆盖（最高优先级，运维 hotfix）
+        env_reflect = os.environ.get("LEARNING_REFLECTION_PERSIST")
+        if env_reflect is not None and env_reflect.strip():
+            config["reflection_persist"] = env_reflect.strip().lower() in ("true", "1", "yes")
+        env_critic = os.environ.get("CRITIC_EVALUATION_ENABLED")
+        if env_critic is not None and env_critic.strip():
+            config["critic_evaluation_enabled"] = env_critic.strip().lower() in ("true", "1", "yes")
 
         return config
 
@@ -3259,8 +3312,94 @@ class Orchestrator:
             "reflection_preview": reflection_text[:200],
         })
 
+        # TASK-02：认知规则评估（保守模式）→ 反思产物持久化（观察模式）
+        # 【不易】两开关均默认 false：未开启前行为与现状逐字节等价（仅内存 + 日志）
+        # 【变易】开关经 _load_learning_config 三层优先级（环境变量 > config.yaml > 默认值）
+        # 【简易】只追加调用，不改 self_reflect 既有行为与返回格式
+        learning_cfg = self._load_learning_config()
+        # 【排查】接线入口一屏可见两开关状态——"为何未写检索面/未评估"先查此条
+        logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.self_reflect.learning_gate', 'message': '[学习接线] 反思接线开关（交互 #%d）: reflection_persist=%s critic_evaluation_enabled=%s' % (self._interaction_count, learning_cfg.get("reflection_persist"), learning_cfg.get("critic_evaluation_enabled"))}))
+        eval_result = None
+        if learning_cfg.get("critic_evaluation_enabled"):
+            eval_result = self._run_rule_evaluation(task, response)
+        if learning_cfg.get("reflection_persist"):
+            self._persist_reflection(entry, task, eval_result)
+
         logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.self_reflect.log', 'message': '反思完成 (#%d): %s...' % (self._interaction_count, reflection_text[:100])}))
         return entry
+
+    def _run_rule_evaluation(self, task: str, response: str) -> Optional[Any]:
+        """TASK-02：ReflectionEngine 规则评估（保守模式，只记录不干预）
+
+        features.critic_evaluation_enabled=true 时在 self_reflect 后调用；
+        6 维规则零 Token。评估结果（score/passed）写入 learning.eval_* 指标族
+        （TASK-03 度量体系消费）；不触发重试、不拦截响应（保守模式）。
+        【变易】评估器异常仅记 WARNING 降级返回 None，不影响主链路。
+
+        Returns:
+            ReflectionResult 或 None（评估异常时）
+        """
+        try:
+            from agent.cognitive.reflection import ReflectionEngine
+            # 【排查】评估入口：确认评估被触发及入参规模（评估器异常时与下方 WARNING 配对定位）
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.self_reflect.eval.start', 'message': '[评估] 规则评估开始（交互 #%d）: input_len=%d output_len=%d' % (self._interaction_count, len(task[:500]), len(response[:1000]))}))
+            engine = ReflectionEngine()
+            result = engine.evaluate(
+                task_id="interaction_%d" % self._interaction_count,
+                input_text=task[:500],
+                output=response[:1000],
+            )
+            if _MONITORING_AVAILABLE:
+                collector = get_metrics_collector()
+                collector.increment_counter("learning.eval.total")
+                if result.passed:
+                    collector.increment_counter("learning.eval.passed")
+                else:
+                    collector.increment_counter("learning.eval.failed")
+                collector.record_latency("learning.eval.score", result.score)
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.self_reflect.eval', 'message': '[评估] 规则评估完成 (#%d): score=%.2f passed=%s' % (self._interaction_count, result.score, result.passed)}))
+            return result
+        except Exception as e:
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.self_reflect.eval.fallback', 'message': '[评估] 规则评估异常，降级跳过: %s' % (e,)}))
+            return None
+
+    def _persist_reflection(self, entry: dict, task: str, eval_result: Optional[Any] = None) -> None:
+        """TASK-02：反思产物写入检索面（观察模式）
+
+        learning.reflection_persist=true 时在 self_reflect 后追加结构化写入
+        VectorStore（type=reflection），供后续对话注入与 TASK-04 沉淀管道消费。
+        【不易】反思产物 schema 写死（供 TASK-04 对接防漂移）：
+                {type, interaction, task_id, input_hash, score, suggestions, created_at}
+        【变易】写入失败静默降级（WARNING），不中断主链路。
+        """
+        try:
+            # 【不易】显式判 None（不依赖对象真值语义）：真实 VectorStore 无 __len__ 恒真值，
+            #        若未来有人添加 __len__（FakeVectorStore 曾因此把空存储误判为假而跳过写入），
+            #        真值判断会静默失效——is None 消除该隐式契约（TASK-02 同步加固）
+            if self._vector_memory is None:
+                # 【排查】明确记录"检索面未初始化导致跳过"（避免误判写入逻辑失效）
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.self_reflect.persist.skipped', 'message': '[反思] 向量检索面未初始化，跳过持久化（交互 #%d）' % (entry["interaction"],)}))
+                return
+            import hashlib
+            # 【排查】持久化入口：确认写入被触发（与下方 success/fallback 配对定位）
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.self_reflect.persist.start', 'message': '[反思] 反思产物写入检索面开始（交互 #%d, 反思长度=%d）' % (entry["interaction"], len(entry["reflection"]))}))
+            score = eval_result.score if eval_result is not None else 0.0
+            suggestions = list(eval_result.suggestions or []) if eval_result is not None else []
+            item_id = self._vector_memory.add(
+                content="反思(#%d): %s" % (entry["interaction"], entry["reflection"]),
+                metadata={
+                    "type": "reflection",
+                    "interaction": entry["interaction"],
+                    "task_id": str(entry["interaction"]),
+                    "input_hash": hashlib.sha1(task.encode("utf-8")).hexdigest()[:12],
+                    "score": score,
+                    "suggestions": suggestions,
+                    "created_at": entry["timestamp"],
+                },
+            )
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.self_reflect.persist', 'message': '[反思] 反思产物已写入检索面: %s' % (item_id,)}))
+        except Exception as e:
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.self_reflect.persist.fallback', 'message': '[反思] 反思产物写入失败，静默降级: %s' % (e,)}))
 
     @staticmethod
     def _local_reflect(task: str, response: str) -> str:

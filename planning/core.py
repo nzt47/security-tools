@@ -326,6 +326,8 @@ class PlanningCore:
                 self.executor._finalize_state(plan, PlanState.FAILED, reason="计划验证失败")
                 self._record_plan_result(plan, success=False,
                                          duration_ms=(datetime.now() - exec_start).total_seconds() * 1000)
+                # TASK-02：失败收尾沉淀教训（观察模式，默认不落盘）
+                await self._record_experience(plan, success=False)
                 return plan
 
             logger.info("📊 步骤1: 状态转换 -> EXECUTING")
@@ -391,6 +393,8 @@ class PlanningCore:
             # 阶段 4（D16）：计划路径收尾埋点（task_type 复用 reflector 分类）
             self._record_plan_result(plan, success=(plan.state == PlanState.COMPLETED),
                                      duration_ms=(datetime.now() - exec_start).total_seconds() * 1000)
+            # TASK-02：成功/失败收尾沉淀经验/教训（观察模式，默认不落盘）
+            await self._record_experience(plan, success=(plan.state == PlanState.COMPLETED))
 
             return plan
 
@@ -404,6 +408,8 @@ class PlanningCore:
             # 阶段 4（D16）：状态转换失败同样计入埋点（failed）
             self._record_plan_result(plan, success=False,
                                      duration_ms=(datetime.now() - exec_start).total_seconds() * 1000)
+            # TASK-02：失败收尾沉淀教训（观察模式，默认不落盘）
+            await self._record_experience(plan, success=False)
             logger.info("="*60)
             return plan
 
@@ -418,6 +424,64 @@ class PlanningCore:
             duration_ms=duration_ms,
             cost=float(budget.get("cost") or 0.0),
         )
+
+    # TASK-02：经验/教训落盘开关（观察模式）硬编码默认值
+    _EXPERIENCE_PERSIST_DEFAULT = False
+
+    @classmethod
+    def _load_experience_persist_config(cls) -> bool:
+        """读取学习经验落盘配置（TASK-02）— 优先级: 环境变量 > config.yaml > 硬编码默认值
+
+        config.yaml 路径: learning.experience_persist
+        环境变量: LEARNING_EXPERIENCE_PERSIST
+
+        【不易】硬编码默认值作为最终兜底；默认 false（观察模式），
+               execute_plan 收尾仅记调用意图日志，不实际调 learn_from_experience 落盘。
+        """
+        enabled = cls._EXPERIENCE_PERSIST_DEFAULT
+        try:
+            from pathlib import Path
+            config_path = Path(__file__).resolve().parent.parent / "config.yaml"
+            if config_path.exists():
+                import yaml as _yaml
+                with open(config_path, "r", encoding="utf-8") as f:
+                    data = _yaml.safe_load(f) or {}
+                learning_cfg = data.get("learning", {}) or {}
+                if learning_cfg.get("experience_persist") is not None:
+                    enabled = bool(learning_cfg.get("experience_persist"))
+        except Exception as e:
+            logger.debug(f"[经验落盘] config.yaml 读取失败，降级到默认值: {e}")
+
+        env_val = os.environ.get("LEARNING_EXPERIENCE_PERSIST")
+        if env_val is not None and env_val.strip():
+            enabled = env_val.strip().lower() in ("true", "1", "yes")
+        return enabled
+
+    async def _record_experience(self, plan: Plan, *, success: bool) -> None:
+        """TASK-02：execute_plan 收尾接线 learn_from_experience（观察模式）
+
+        learning.experience_persist=true 时在成功/失败收尾后调 reflector 沉淀经验/教训
+        至 data/reflection/{experiences,lessons}.json；false（默认）仅记录调用意图日志。
+        【不易】不改 reflector.learn_from_experience 签名与文件 schema；
+        【变易】learn 异常仅记 WARNING 降级，不中断主链路。
+        """
+        if not self.reflector:
+            logger.info(f"[经验落盘] reflector 未初始化，跳过（计划 {plan.id}, success={success}）")
+            return
+        if not self._load_experience_persist_config():
+            # 【排查】观察模式：明确记录开关状态（false 属预期行为，非故障）
+            logger.info(f"[经验落盘] 观察模式（experience_persist=false）：跳过 learn_from_experience（计划 {plan.id}, success={success}）")
+            return
+        try:
+            if success:
+                result = ActionResult.success_result(output=plan.result)
+            else:
+                result = ActionResult.failure_result(plan.error or "计划执行失败")
+            # 【排查】落盘入口：确认 learn 被触发（与 reflector 内部成功日志/下方 WARNING 配对定位）
+            logger.info(f"[经验落盘] 开始沉淀经验/教训（计划 {plan.id}, success={success}）")
+            await self.reflector.learn_from_experience(plan.original_task, result)
+        except Exception as e:
+            logger.warning(f"[经验落盘] learn_from_experience 调用失败，降级跳过: {e}")
 
     async def chat(self, message: str, context: Dict = None) -> ChatResult:
         """
