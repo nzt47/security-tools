@@ -170,8 +170,13 @@ class TestPlanningFallback:
         assert result["success"] is True
         assert result["data"] == "LLM 直答响应"
 
+    @pytest.mark.slow
     def test_planning_timeout_falls_back_within_budget(self):
-        """规划超时（timeout_seconds=0.1）→ wait_for 中断回退直答，链路耗时受控"""
+        """规划超时（timeout_seconds=0.1）→ wait_for 中断回退直答，链路耗时受控
+
+        【P1 A3】D 类时序敏感测试：负载高时 2.67s vs 1.5s 预算漂移（单独复跑通过），
+        fast 模式默认排除、slow 模式单独跑（2026-08-14 实测）。
+        """
         async def _hanging(*a, **k):
             await asyncio.sleep(2)
             return None

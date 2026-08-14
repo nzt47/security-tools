@@ -722,8 +722,14 @@ def test_get_optimized_storage_fallback_path(monkeypatch):
     assert mod.get_optimized_storage() is fake  # 第二次命中缓存
 
 
+@pytest.mark.slow
 def test_module_import_fallback_without_singleton_manager(monkeypatch):
-    """模拟 singleton_manager 不可导入：模块应 fallback 到 _SINGLETON_AVAILABLE=False。"""
+    """模拟 singleton_manager 不可导入：模块应 fallback 到 _SINGLETON_AVAILABLE=False。
+
+    【P1 A3】D 类测试：importlib.reload(mod) 会使模块顶层 import 的旧类引用失效，
+    随机序下污染后续 isinstance 断言（定义序全绿），fast 模式默认排除、
+    slow 模式单独跑（2026-08-14 实测）。
+    """
     import importlib
     import sys
 
