@@ -18,6 +18,11 @@
   9. Docker 镜像验证步骤 ENTRYPOINT 覆盖：docker run IMAGE python -c 被镜像
      ENTRYPOINT(pytest) 追加参数导致 "file or directory not found: python"（exit 4），
      需 --entrypoint python 覆盖（CI L3 Docker 构建验证失败）
+  10. build-image job timeout 20→40min：大镜像（~3.1GB）高负载构建 22min 被
+     20min 超时 cancel（CI L3 Docker build-image failure）
+  11. .dockerignore 误排除顶层业务包 memory/：L3 容器内报 ModuleNotFoundError
+     (memory.storage / memory.vector_store)——memory 是业务代码包（非运行时数据
+     目录），COPY . . 后 /app/memory 缺失；data 才是运行时数据目录（仍排除）
 
 运行方式：
   python -m pytest tests/regression/test_pr634_ci_fixes.py -v
@@ -231,3 +236,43 @@ class TestPytestImportGuard:
         text = self.D7_TEST.read_text(encoding="utf-8")
         assert "import pytest" in text, "使用 pytest 特性必须 import pytest"
         assert "@pytest.mark.xfail" in text
+
+
+# ═══════════════════════════════════════════════════════════════
+#  修复点 11：.dockerignore 误排除顶层业务包 memory/
+# ═══════════════════════════════════════════════════════════════
+
+class TestDockerIgnoreGuard:
+    """.dockerignore 不得排除顶层业务包 memory/（修复点 11）"""
+
+    DOCKERIGNORE = PROJECT_ROOT / ".dockerignore"
+
+    def _exclude_lines(self):
+        return [
+            line.strip()
+            for line in self.DOCKERIGNORE.read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.strip().startswith("#")
+        ]
+
+    def test_memory_package_not_excluded(self):
+        """.dockerignore 排除 memory 会致 L3 容器内 ModuleNotFoundError"""
+        excluded = self._exclude_lines()
+        assert "memory" not in excluded, \
+            "memory 是顶层业务包（storage/vector_store/memory_manager），" \
+            "被 .dockerignore 排除后 COPY . . 缺 /app/memory，L3 容器内测试收集报 ModuleNotFoundError"
+        # memory 是包目录，排除规则也不得以 memory/* 前缀形式存在
+        assert not any(p.startswith("memory") for p in excluded), \
+            f"memory 前缀排除规则误伤业务包: {[p for p in excluded if p.startswith('memory')]}"
+
+    def test_runtime_data_still_excluded(self):
+        """data 是运行时数据目录，必须保持排除（防镜像膨胀）"""
+        excluded = self._exclude_lines()
+        assert "data" in excluded, "data 运行时数据目录应保持排除"
+
+    def test_storage_module_importable_in_repo(self):
+        """memory.storage / memory.vector_store 源码须存在于仓库（防模块真缺失误判）"""
+        assert (PROJECT_ROOT / "memory" / "storage.py").is_file()
+        assert (PROJECT_ROOT / "memory" / "vector_store" / "__init__.py").is_file()
+        init_text = (PROJECT_ROOT / "memory" / "__init__.py").read_text(encoding="utf-8")
+        assert "from .storage import Storage" in init_text
+        assert "from .vector_store import VectorStore" in init_text
