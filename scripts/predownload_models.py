@@ -72,8 +72,14 @@ def _set_cache_env(cache_dir: Path, timeout: int):
 
 
 def list_cached_models(cache_dir: Path):
-    """列出已缓存的模型"""
-    models_dir = cache_dir / "models--"
+    """列出已缓存的模型
+
+    【不易】HF 实际缓存结构为 {HF_HOME}/hub/models--<org>--<name>/（无 org 前缀
+    模型自动补全 sentence-transformers 组织），早期实现漏了 hub/ 子目录导致
+    已下载模型被误报为"缓存目录无模型"（build 日志误导排查）。此处统一走
+    hub/ 子目录统计，与 vector_store._is_model_fully_cached 检查路径一致。
+    """
+    models_dir = cache_dir / "hub" / "models--"
     if not models_dir.exists():
         print(f"  缓存目录无模型: {cache_dir}")
         return
@@ -86,7 +92,8 @@ def list_cached_models(cache_dir: Path):
 
     total_size = 0
     for model_dir in models:
-        # models--paraphrase-multilingual-MiniLM-L12-v2 → paraphrase-multilingual-MiniLM-L12-v2
+        # models--sentence-transformers--paraphrase-multilingual-MiniLM-L12-v2
+        # → sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
         model_name = model_dir.name.replace("models--", "").replace("--", "/")
         size = sum(f.stat().st_size for f in model_dir.rglob("*") if f.is_file())
         size_mb = size / (1024 * 1024)
@@ -156,14 +163,24 @@ def main():
         test_vec = model.encode(["test"])
         dim = len(test_vec[0])
 
-        # 缓存大小统计（保留原行为）
-        model_path = cache_dir / "models--" / model_name.replace("/", "--")
+        # 缓存大小统计（路径需含 hub/ 子目录；无 org 前缀模型 HF 自动存为
+        # models--sentence-transformers--<name>，两种形式都探测，与
+        # vector_store._is_model_fully_cached 检查逻辑一致）
+        candidates = [
+            cache_dir / "hub" / "models--" / model_name.replace("/", "--"),
+        ]
+        if "/" not in model_name:
+            candidates.append(
+                cache_dir / "hub" / "models--sentence-transformers--" / model_name
+            )
         size_mb = 0.0
-        if model_path.exists():
-            for f in model_path.rglob("*"):
-                if f.is_file():
-                    size_mb += f.stat().st_size
-            size_mb = size_mb / (1024 * 1024)
+        for model_path in candidates:
+            if model_path.exists():
+                for f in model_path.rglob("*"):
+                    if f.is_file():
+                        size_mb += f.stat().st_size
+                size_mb = size_mb / (1024 * 1024)
+                break
         print(f"dim={dim} {size_mb:.1f}MB", end=" ")
 
     # 调用容错工具批量下载（替代手写 for 循环 + try/except）
