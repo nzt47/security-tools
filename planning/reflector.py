@@ -708,6 +708,7 @@ class Reflector:
         LLM 未配置或输出非 JSON 时返回 None（交规则兜底），不抛异常。
         """
         if not self.llm:
+            logger.info(f"[失败反思#{attempts}] 分支: LLM 未配置，直接走规则兜底")
             return None
         task_desc = getattr(task, "description", None) or str(task)
         history_lines = "\n".join(
@@ -727,12 +728,25 @@ class Reflector:
             diagnosis=diagnosis_json,
             history=history_lines,
         )
+        logger.info(
+            f"[失败反思#{attempts}] 分支: LLM prompt 组装完成"
+            f" | prompt_len={len(prompt)}"
+            f" | 历史条数={len(diagnosis.history)}"
+            f" | diagnosis={diagnosis_json}"
+        )
         response = await self.llm.chat([{"role": "user", "content": prompt}])
+        logger.info(
+            f"[失败反思#{attempts}] 分支: LLM 返回 | response_len={len(str(response))}"
+            f" | response={str(response)[:120]}"
+        )
         self._bill_llm(prompt, response)
         try:
             data = json.loads(response)
         except (json.JSONDecodeError, TypeError, ValueError):
-            logger.warning("失败反思 LLM 输出 JSON 解析失败，交规则兜底")
+            logger.warning(
+                f"[失败反思#{attempts}] 分支: LLM 输出 JSON 解析失败，交规则兜底"
+                f" | response={str(response)[:200]}"
+            )
             return None
         return {
             "root_cause": str(data.get("root_cause", ""))[:200] or None,
