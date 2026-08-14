@@ -12,6 +12,7 @@ import os
 import threading
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
 import yaml
 
 from agent.guardrails.input_guard import GuardAction, GuardResult

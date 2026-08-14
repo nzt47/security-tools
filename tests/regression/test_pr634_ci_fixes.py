@@ -11,6 +11,10 @@
   4. 集成测试：e2e mock 补 _interaction_lock（process() 持锁递增 _interaction_count）
   5. 边界覆盖检查：boundary_config.yaml 声明 self_healing 模块 + 边界测试补齐
   6. kwarg 扫描 HIGH：test_reviewer.py 5 处 make_skill(skill_id=..., **base) 改为 dict literal 合并
+  7. unit 孪生时序断言：test_task3_breaker_degrade_unify.py test_status_queries_consistent
+     同剔除 time_since_last_state_change（CI Shard 4/6 失败）
+  8. 缺 import pytest：test_planning_defect_d7.py 使用 @pytest.mark.xfail 但未导入
+     pytest，导致 CI 分片收集 NameError（CI Shard 5/6 失败）
 
 运行方式：
   python -m pytest tests/regression/test_pr634_ci_fixes.py -v
@@ -173,3 +177,37 @@ class TestCoverageChain:
         # l3-tests 依赖 build-image（产物 coverage-report-* 由上游生成）
         assert "needs: build-image" in text, "l3-tests 未依赖 build-image"
         assert "coverage-report-${{ matrix.test-mode }}" in text
+
+
+# ═══════════════════════════════════════════════════════════════
+#  修复点 7：unit 层孪生时序断言（CI Shard 4/6 失败）
+# ═══════════════════════════════════════════════════════════════
+
+class TestBreakerTimingUnit:
+    """unit 层 test_status_queries_consistent 剔除时序字段（修复点 7）"""
+
+    UNIT_TEST = PROJECT_ROOT / "tests" / "unit" / "test_task3_breaker_degrade_unify.py"
+
+    def test_strip_timing_in_unit_test(self):
+        """unit 层同源断言须同样剔除 time_since_last_state_change"""
+        text = self.UNIT_TEST.read_text(encoding="utf-8")
+        assert "test_status_queries_consistent" in text
+        assert "time_since_last_state_change" in text
+        assert "_strip_timing" in text, "unit 层缺时序字段剔除逻辑"
+        assert "assert _strip_timing(handler.get_circuit_breaker_status())" in text
+
+
+# ═══════════════════════════════════════════════════════════════
+#  修复点 8：缺 import pytest 收集错误（CI Shard 5/6 失败）
+# ═══════════════════════════════════════════════════════════════
+
+class TestPytestImportGuard:
+    """使用 pytest 特性的测试文件必须 import pytest（修复点 8）"""
+
+    D7_TEST = PROJECT_ROOT / "tests" / "unit" / "test_planning_defect_d7.py"
+
+    def test_d7_file_imports_pytest(self):
+        """@pytest.mark.xfail 所在文件须 import pytest（否则分片收集 NameError）"""
+        text = self.D7_TEST.read_text(encoding="utf-8")
+        assert "import pytest" in text, "使用 pytest 特性必须 import pytest"
+        assert "@pytest.mark.xfail" in text

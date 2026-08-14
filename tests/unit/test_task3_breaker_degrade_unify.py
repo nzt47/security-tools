@@ -174,7 +174,14 @@ class TestBreakerSingleSource:
         handler = self._fresh_handler()
         cb = CircuitBreaker(name="test_cb")
         handler.register_circuit_breaker("test_cb", cb)
-        assert handler.get_circuit_breaker_status() == get_all_circuit_breaker_status()
+        # 两套查询均实时计算 time_since_last_state_change（now - last_state_change），
+        # 两次调用间存在毫秒级时序差，比较前剔除该时序字段（与契约测试同源修复）
+        def _strip_timing(d):
+            return {name: {k: v for k, v in st.items()
+                           if k != "time_since_last_state_change"}
+                    for name, st in d.items()}
+        assert _strip_timing(handler.get_circuit_breaker_status()) == \
+            _strip_timing(get_all_circuit_breaker_status())
         assert handler.get_circuit_breaker("test_cb") is cb
 
     @pytest.mark.unit
