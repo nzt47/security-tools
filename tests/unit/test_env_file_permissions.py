@@ -37,6 +37,20 @@ def _msvcrt_patch():
 # 测试夹具
 # ─────────────────────────────────────────────────
 
+@pytest.fixture(autouse=True)
+def _windows_modules_mock():
+    """mock sys.platform='win32' 时，Linux CI 无 msvcrt 模块导致 import 崩溃。
+
+    EnvConfigManager._acquire_process_lock 在 win32 分支 import msvcrt；
+    测试用 patch('...sys.platform', 'win32') 模拟 Windows 时，Linux runner
+    上该模块不存在 → ModuleNotFoundError。此处注入假 msvcrt 保证锁逻辑
+    可被 mock 验证，而不依赖真实 Windows 平台。
+    """
+    fake_msvcrt = MagicMock()
+    with patch.dict(sys.modules, {'msvcrt': fake_msvcrt}):
+        yield
+
+
 @pytest.fixture
 def temp_env_file(tmp_path):
     """临时 .env 文件路径（不存在，由 EnvConfigManager 创建）"""

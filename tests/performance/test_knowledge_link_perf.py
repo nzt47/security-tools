@@ -33,12 +33,14 @@ def _silence_knowledge_link_warnings():
     【不易】logging.disable() 是进程级全局开关：若模块顶层直接调用且不恢复，
     会屏蔽同进程后续所有测试的日志输出（CI 2026-08-10 Shard 6 复现：
     test_knowledge_observability 4 例捕获 buffer 为空而失败）。
-    用 autouse fixture 保证每个测试结束后恢复（logging.disable(NOTSET)），
-    污染不越出本模块。
+    try/finally 保证每个测试结束后恢复（logging.disable(NOTSET)），
+    污染不越出本模块；函数级 finally 满足 pre-commit logging-disable-leak-scan。
     """
     logging.disable(logging.CRITICAL)
-    yield
-    logging.disable(logging.NOTSET)
+    try:
+        yield
+    finally:
+        logging.disable(logging.NOTSET)
 
 GHOST_POOL = 200
 

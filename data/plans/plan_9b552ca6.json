@@ -1,0 +1,26 @@
+{
+  "id": "plan_9b552ca6",
+  "original_task": "使用bad_tool",
+  "state": "ready",
+  "progress": "0.0%",
+  "current_step": 0,
+  "max_steps": 50,
+  "result": null,
+  "error": null,
+  "context": {},
+  "tasks": [
+    {
+      "id": "step_1",
+      "description": "使用bad_tool",
+      "task_type": "atomic",
+      "priority": 3,
+      "dependencies": [],
+      "status": "pending",
+      "result": null,
+      "error": null,
+      "created_at": "2026-08-11T01:12:38.469032"
+    }
+  ],
+  "created_at": "2026-08-11T01:12:38.468206",
+  "updated_at": "2026-08-11T01:12:38.470031"
+}

@@ -27,9 +27,11 @@ def _enable_test_logging():
     old_level = logger.level
     logging.disable(logging.NOTSET)
     logger.setLevel(logging.INFO)
-    yield
-    logger.setLevel(old_level)
-    logging.disable(old_disable)
+    try:
+        yield
+    finally:
+        logger.setLevel(old_level)
+        logging.disable(old_disable)
 
 
 def test_log_rotation_config_default():

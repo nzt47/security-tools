@@ -52,6 +52,19 @@
 | 2026-08-07 | `b08ae5f` | 98.7% (1628/1649) | 0 | 21 | 97.56 | — | 0 | ↑ | docs(release): v1.0.0 发布收尾最终执行归档报告（PR #354 合并 + � |
 | 2026-08-07 | `896b7ba` | 98.7% (1628/1649) | 0 | 21 | 95.31 | — | 0 | ↑ | docs(release): 新成员 Release v1.0.0 操作手册 + 流程知识库 Wiki 页� |
 | 2026-08-07 | `0456b43` | 98.8% (1595/1614) | 0 | 19 | 116.24 | — | 0 | ↑ | fix(tests): delete_many 顺序删除测试改用 slugify slug（Linux 大小写� |
+| 2026-08-08 | `6dc9427` | 99.4% (1595/1604) | 0 | 9 | 83.80 | — | 0 | ↑ | fix(knowledge): HealthReport 新增 to_dict 序列化方法修复 lint 接口 50 |
+| 2026-08-09 | `23f9b64` | 99.5% (1708/1717) | 0 | 9 | 106.44 | — | 0 | ↑ | test(perf): 7 个 filter 依赖测试加 @pytest.mark.serial（Shard 2） |
+| 2026-08-10 | `33136c1` | 99.5% (1708/1717) | 0 | 9 | 112.73 | — | 0 | ↑ | test(knowledge): 4 个日志捕获测试加 @pytest.mark.serial（Shard 4 flake  |
+| 2026-08-10 | `305282c` | 99.5% (1708/1717) | 0 | 9 | 116.13 | — | 0 | ↑ | fix(ci): 修复 performance 测试 import 副作用全局禁用日志致 Shard 4 |
+| 2026-08-10 | `296c8e6` | 99.5% (1708/1717) | 0 | 9 | 113.68 | — | 0 | ↑ | fix(logging): safe_logger AuditLogger 补 makedirs 防 CI 全新 checkout 无 lo |
+| 2026-08-10 | `2b6d51d` | 99.5% (1708/1717) | 0 | 9 | 113.75 | — | 0 | ↑ | fix(ci): observability-ci 触发 paths 纳入 agent/log_system 防修复静默� |
+| 2026-08-10 | `6ada3dc` | 99.5% (1708/1717) | 0 | 9 | 104.13 | — | 0 | ↑ | test(integration): test_orchestrator logging.disable 包进 try/finally 防断� |
+| 2026-08-10 | `dbf9d57` | 99.5% (1708/1717) | 0 | 9 | 108.56 | — | 0 | ↑ | ci(guard): 集成 logging.disable 泄漏扫描双防线（pre-commit + ci.yml） |
+| 2026-08-10 | `363176d` | 99.5% (1708/1717) | 0 | 9 | 111.31 | — | 0 | ↑ | docs(troubleshooting): 归档 logging 防线全景 SVG 与 Mermaid 源文件 |
+| 2026-08-10 | `09a3d81` | 99.5% (1708/1717) | 0 | 9 | 114.13 | — | 0 | ↑ | docs(troubleshooting): 修复失效链接 - 检出 develop 归档文档并删除 |
+| 2026-08-10 | `57b6494` | 98.3% (1741/1772) | 0 | 31 | 138.32 | — | 0 | ↑ | Merge branch 'develop' into temp-fix |
+| 2026-08-11 | `edbe8cd` | 98.3% (1741/1772) | 0 | 31 | 124.91 | — | 0 | ↑ | test(ci): env 锁 msvcrt 跨平台 mock + defect 看门狗加 xfail(strict=False |
+| 2026-08-11 | `b07399a` | 98.3% (1741/1772) | 0 | 31 | 139.99 | — | 0 | ↑ | Merge commit '2340eaa9' into temp-fix |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---

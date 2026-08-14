@@ -472,9 +472,16 @@ def get_scheduler() -> TaskScheduler:
 
 
 def reset_scheduler():
-    """重置调度器单例（仅用于测试）"""
+    """重置调度器单例（仅用于测试）
+
+    Why(不易): 必须同时清空 SingletonManager 缓存与 fallback 变量。
+    判定依据用 reset_singleton 是否可用，而非 _SINGLETON_AVAILABLE 的当前值——
+    否则该标志被测试 monkeypatch 为 False 时跳过 reset_singleton，
+    残留的 manager 缓存会让后续（顺序 shuffle 后）的并发测试拿到旧实例
+    （created==0，而非预期的 1）。
+    """
     global _scheduler
-    if _SINGLETON_AVAILABLE:
+    if reset_singleton is not None:
         reset_singleton("task_scheduler")
     _scheduler = None
 

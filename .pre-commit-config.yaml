@@ -91,3 +91,45 @@ repos:
           → 阻断，疑似并行会话 git add . 混入；
           (3) 检测到多 worktree（并行会话活跃）→ 打印警告并建议 detached worktree
           隔离 index。逃生通道：SKIP=check-index-isolation（pre-commit 标准机制）。
+
+      - id: ps-script-analyzer
+        name: PowerShell 静态分析 (PSScriptAnalyzer)
+        entry: pwsh -NoProfile -File scripts/dev/run_psscriptanalyzer.ps1
+        language: system
+        pass_filenames: false
+        files: '^scripts/dev/.*\.ps1$'
+        stages: [commit]
+        description: >
+          扫描 scripts/dev/ 下 PowerShell 脚本的静态分析（语法错误、
+          不良实践、潜在 bug）。发现 Error 级别问题时阻断提交。
+          首次运行自动安装 PSScriptAnalyzer 模块。覆盖 fix_broken_links.ps1
+          的 BOM/正则/编码类 bug，防止同类问题复发（2026-08-01 提案）。
+
+      - id: logging-disable-leak-scan
+        name: logging.disable 泄漏扫描 (try/finally 保护)
+        entry: python scripts/check_logging_disable_leak.py --root . --only-under tests --exit-nonzero-on-risk
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: >
+          扫描 tests/ 下所有 .py 文件中未被 try/finally 保护的 logging.disable
+          调用。logging.disable() 修改进程级 manager.disable，泄漏会静默掉
+          同进程后续 caplog/assertLogs（2026-08-10 test_knowledge_link_perf /
+          test_orchestrator 根因治理）。发现未受保护调用时阻断提交。
+          --only-under tests：仅对风险目录强制；scripts/ 独立基准脚本的
+          模块级 disable 属刻意设计，不误伤。
+
+      - id: docs-broken-links-diagnose
+        name: docs 链接预检诊断 (失效链接 + 修复建议)
+        entry: pwsh -NoProfile -File scripts/dev/check_docs_broken_links.ps1
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+        description: >
+          运行链接预检（precheck_docs.ps1 -BlockMode -AllowBroken 0 -SkipChart，
+          参数对齐 CI）并解析失效链接，输出"本地/develop 分支存在性"诊断表
+          与修复建议（检出/删除引用/补建文档）。存在失效链接时阻断提交，
+          防止历史同类问题（2026-08-10 docs 失效链接）回归。
+          详见 docs/wiki/docs_link_precheck_fix_wiki.md。

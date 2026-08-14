@@ -71,6 +71,11 @@ class TestTaskSchedulerConcurrency:
 
     def test_concurrent_first_get_initializes_once(self):
         """多线程并发首次 get_scheduler 只构造一个实例（双重检查锁）"""
+        # 【不易】前置断言：隔离失败时快速暴露。若 manager 缓存残留，
+        # get_scheduler 将直接返回旧实例（created==0），掩盖并发语义问题。
+        assert not is_initialized("task_scheduler"), (
+            "task_scheduler 单例残留：测试隔离失败，请检查 reset 语义"
+        )
         orig_cls = module.TaskScheduler
         created = []
 

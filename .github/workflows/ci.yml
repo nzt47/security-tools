@@ -108,6 +108,28 @@ jobs:
           echo "=== BOM 污染监控(受保护文件清单) ==="
           python scripts/guard_bom_pollution.py --repo-root "$GITHUB_WORKSPACE"
 
+      - name: logging.disable 泄漏扫描（受保护文件第二道防线）
+        # Why 阻塞: 本扫描是 pre-commit hook logging-disable-leak-scan 的 CI 兜底，
+        #   防止 `git commit --no-verify` 绕过本地 hook 后 logging.disable 泄漏回归
+        #   （进程级 manager.disable 污染同进程 caplog/assertLogs）。
+        #   --only-under tests：仅对 tests/ 强制（风险目录）；scripts/ 独立基准脚本
+        #   的模块级 disable 属刻意设计（避免日志 I/O 干扰计时），不误伤。
+        #   详见 docs/troubleshooting/logging_leak_fix_review_20260810.md
+        run: |
+          echo "=== logging.disable 泄漏扫描(tests/) ==="
+          python scripts/check_logging_disable_leak.py --root . --only-under tests --exit-nonzero-on-risk
+
+      - name: docs 链接预检诊断（失效链接阻断）
+        # Why 阻塞: 本诊断是 pre-commit hook docs-broken-links-diagnose 的 CI 兜底，
+        #   防止 `git commit --no-verify` 绕过本地 hook 后失效链接回归（2026-08-10
+        #   r1_r4_fix_summary 引用不存在文件首次全量 CI 暴露）。脚本自动运行链接
+        #   预检并输出"本地/develop 存在性"诊断表与修复建议，0 失效才通过。
+        #   pwsh 跨平台：ubuntu runner 无 powershell.exe，脚本内部优先用 pwsh。
+        #   详见 docs/wiki/docs_link_precheck_fix_wiki.md
+        run: |
+          echo "=== docs 链接预检诊断(失效链接阻断) ==="
+          pwsh -NoProfile -File scripts/dev/check_docs_broken_links.ps1
+
   # ============================================================================
   # 安全扫描
   # ============================================================================

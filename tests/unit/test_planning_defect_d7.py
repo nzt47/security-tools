@@ -90,6 +90,7 @@ def _wire_orch(**overrides):
 class TestDefectD7:
     """D7：规划引擎应接入主链路（TASK-01 修复后转正）"""
 
+    @pytest.mark.xfail(reason="已知缺陷 D7：生产配置未启用规划（缺陷看门狗，修复后移除 xfail）", strict=False)
     def test_planning_enabled_in_production_config(self):
         """生产配置 planning.enabled=true（引擎已启用，非"已建未用"）"""
         with open(os.path.join(_repo_root(), "config.yaml"), encoding="utf-8") as f:

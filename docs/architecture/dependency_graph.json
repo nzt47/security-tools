@@ -1,5 +1,5 @@
 {
-  "trace_id": "d625026efd7f49cc",
+  "trace_id": "36ba065a41474f7d",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -8,7 +8,7 @@
       "layer": "core",
       "file_path": "agent/lazy_loader_async.py",
       "in_degree": 0,
-      "out_degree": 3
+      "out_degree": 4
     },
     {
       "path": "agent.lazy_loader",
@@ -16,7 +16,7 @@
       "layer": "lazy_loader",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.lazy_loader._core",
@@ -35,6 +35,14 @@
       "out_degree": 2
     },
     {
+      "path": "agent.utils.singleton_manager",
+      "name": "singleton_manager",
+      "layer": "utils",
+      "file_path": "",
+      "in_degree": 50,
+      "out_degree": 0
+    },
+    {
       "path": "agent.data_analytics",
       "name": "data_analytics",
       "layer": "core",
@@ -48,7 +56,7 @@
       "layer": "monitoring",
       "file_path": "",
       "in_degree": 31,
-      "out_degree": 3
+      "out_degree": 4
     },
     {
       "path": "agent.weekly_report_generator",
@@ -59,12 +67,12 @@
       "out_degree": 2
     },
     {
-      "path": "agent.utils.singleton_manager",
-      "name": "singleton_manager",
-      "layer": "utils",
-      "file_path": "",
-      "in_degree": 17,
-      "out_degree": 0
+      "path": "agent.tool_router_reranker",
+      "name": "tool_router_reranker",
+      "layer": "core",
+      "file_path": "agent/tool_router_reranker.py",
+      "in_degree": 1,
+      "out_degree": 1
     },
     {
       "path": "agent.utils",
@@ -136,7 +144,7 @@
       "layer": "core",
       "file_path": "agent/api_gateway.py",
       "in_degree": 0,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.rate_limiter",
@@ -160,7 +168,7 @@
       "layer": "core",
       "file_path": "agent/async_executor.py",
       "in_degree": 1,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.tools",
@@ -233,6 +241,14 @@
       "file_path": "",
       "in_degree": 3,
       "out_degree": 0
+    },
+    {
+      "path": "agent.ab_testing",
+      "name": "ab_testing",
+      "layer": "core",
+      "file_path": "agent/ab_testing.py",
+      "in_degree": 0,
+      "out_degree": 1
     },
     {
       "path": "agent.test_permission_system",
@@ -335,8 +351,8 @@
       "name": "feedback",
       "layer": "core",
       "file_path": "agent/feedback.py",
-      "in_degree": 10,
-      "out_degree": 1
+      "in_degree": 13,
+      "out_degree": 2
     },
     {
       "path": "agent.cognitive.failure_analysis",
@@ -344,7 +360,7 @@
       "layer": "cognitive",
       "file_path": "",
       "in_degree": 3,
-      "out_degree": 0
+      "out_degree": 1
     },
     {
       "path": "agent.network_config",
@@ -367,7 +383,7 @@
       "name": "prometheus",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 7,
+      "in_degree": 8,
       "out_degree": 9
     },
     {
@@ -376,7 +392,7 @@
       "layer": "core",
       "file_path": "agent/state_manager.py",
       "in_degree": 14,
-      "out_degree": 3
+      "out_degree": 4
     },
     {
       "path": "agent.skills_mgmt",
@@ -435,6 +451,14 @@
       "out_degree": 2
     },
     {
+      "path": "agent.safety_guard",
+      "name": "safety_guard",
+      "layer": "core",
+      "file_path": "agent/safety_guard.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
       "path": "agent.system_prompt_config",
       "name": "system_prompt_config",
       "layer": "core",
@@ -479,7 +503,7 @@
       "name": "circuit_breaker",
       "layer": "core",
       "file_path": "",
-      "in_degree": 4,
+      "in_degree": 5,
       "out_degree": 0
     },
     {
@@ -519,7 +543,7 @@
       "name": "metrics",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 11,
+      "in_degree": 13,
       "out_degree": 0
     },
     {
@@ -527,7 +551,7 @@
       "name": "task_scheduler",
       "layer": "core",
       "file_path": "agent/task_scheduler.py",
-      "in_degree": 5,
+      "in_degree": 7,
       "out_degree": 9
     },
     {
@@ -587,10 +611,26 @@
       "out_degree": 1
     },
     {
+      "path": "agent.auto_tuner",
+      "name": "auto_tuner",
+      "layer": "core",
+      "file_path": "agent/auto_tuner.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
       "path": "agent.v2_performance_patch",
       "name": "v2_performance_patch",
       "layer": "core",
       "file_path": "agent/v2_performance_patch.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.utils.index_manager",
+      "name": "index_manager",
+      "layer": "utils",
+      "file_path": "agent/utils/index_manager.py",
       "in_degree": 0,
       "out_degree": 1
     },
@@ -647,8 +687,8 @@
       "name": "card",
       "layer": "knowledge",
       "file_path": "",
-      "in_degree": 9,
-      "out_degree": 6
+      "in_degree": 8,
+      "out_degree": 7
     },
     {
       "path": "agent.knowledge.link_cache",
@@ -680,15 +720,39 @@
       "layer": "knowledge",
       "file_path": "agent/knowledge/links_index.py",
       "in_degree": 3,
-      "out_degree": 2
+      "out_degree": 1
     },
     {
       "path": "agent.knowledge.links",
       "name": "links",
       "layer": "knowledge",
       "file_path": "",
-      "in_degree": 8,
+      "in_degree": 7,
       "out_degree": 1
+    },
+    {
+      "path": "agent.knowledge.distill_feedback",
+      "name": "distill_feedback",
+      "layer": "knowledge",
+      "file_path": "agent/knowledge/distill_feedback.py",
+      "in_degree": 0,
+      "out_degree": 3
+    },
+    {
+      "path": "agent.cognitive.prompt_optimizer",
+      "name": "prompt_optimizer",
+      "layer": "cognitive",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 6
+    },
+    {
+      "path": "agent.knowledge.ingest",
+      "name": "ingest",
+      "layer": "knowledge",
+      "file_path": "",
+      "in_degree": 5,
+      "out_degree": 2
     },
     {
       "path": "agent.knowledge.conflict",
@@ -711,7 +775,7 @@
       "name": "lint",
       "layer": "knowledge",
       "file_path": "agent/knowledge/lint.py",
-      "in_degree": 3,
+      "in_degree": 5,
       "out_degree": 2
     },
     {
@@ -763,14 +827,6 @@
       "out_degree": 6
     },
     {
-      "path": "agent.knowledge.ingest",
-      "name": "ingest",
-      "layer": "knowledge",
-      "file_path": "",
-      "in_degree": 3,
-      "out_degree": 2
-    },
-    {
       "path": "agent.knowledge.observability",
       "name": "observability",
       "layer": "knowledge",
@@ -787,12 +843,20 @@
       "out_degree": 0
     },
     {
+      "path": "agent.knowledge.watcher",
+      "name": "watcher",
+      "layer": "knowledge",
+      "file_path": "agent/knowledge/watcher.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
       "path": "agent.knowledge.__main__",
       "name": "__main__",
       "layer": "knowledge",
       "file_path": "agent/knowledge/__main__.py",
       "in_degree": 0,
-      "out_degree": 6
+      "out_degree": 7
     },
     {
       "path": "agent.knowledge.tools",
@@ -809,6 +873,14 @@
       "file_path": "",
       "in_degree": 1,
       "out_degree": 7
+    },
+    {
+      "path": "agent.knowledge.light_loader",
+      "name": "light_loader",
+      "layer": "knowledge",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
     },
     {
       "path": "agent.knowledge.discuss",
@@ -1056,7 +1128,7 @@
       "layer": "log_system",
       "file_path": "agent/log_system/optimized_storage.py",
       "in_degree": 0,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.handoff.handoff_generator",
@@ -1304,7 +1376,7 @@
       "layer": "orchestrator",
       "file_path": "agent/orchestrator/orchestrator.py",
       "in_degree": 6,
-      "out_degree": 28
+      "out_degree": 31
     },
     {
       "path": "agent.guardrails.input_guard",
@@ -1347,6 +1419,22 @@
       "out_degree": 0
     },
     {
+      "path": "agent.context.assembler",
+      "name": "assembler",
+      "layer": "context",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.skills_mgmt.loader",
+      "name": "loader",
+      "layer": "skills_mgmt",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 1
+    },
+    {
       "path": "agent.tool_schema_pruner",
       "name": "tool_schema_pruner",
       "layer": "tool_schema_pruner",
@@ -1387,6 +1475,22 @@
       "out_degree": 1
     },
     {
+      "path": "agent.prompt_manager.version_control",
+      "name": "version_control",
+      "layer": "prompt_manager",
+      "file_path": "agent/prompt_manager/version_control.py",
+      "in_degree": 2,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.prompt_manager.registry",
+      "name": "registry",
+      "layer": "prompt_manager",
+      "file_path": "agent/prompt_manager/registry.py",
+      "in_degree": 0,
+      "out_degree": 1
+    },
+    {
       "path": "agent.prompt_manager.observability",
       "name": "observability",
       "layer": "prompt_manager",
@@ -1400,15 +1504,15 @@
       "layer": "prompt_manager",
       "file_path": "agent/prompt_manager/deployment.py",
       "in_degree": 0,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
-      "path": "agent.prompt_manager.version_control",
-      "name": "version_control",
+      "path": "agent.prompt_manager.storage",
+      "name": "storage",
       "layer": "prompt_manager",
-      "file_path": "",
-      "in_degree": 2,
-      "out_degree": 0
+      "file_path": "agent/prompt_manager/storage.py",
+      "in_degree": 0,
+      "out_degree": 1
     },
     {
       "path": "agent.workflow_learning.observability",
@@ -1512,7 +1616,7 @@
       "layer": "extensions",
       "file_path": "",
       "in_degree": 2,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.extensions.dependency_manager",
@@ -1635,12 +1739,12 @@
       "out_degree": 1
     },
     {
-      "path": "agent.skills_mgmt.loader",
-      "name": "loader",
+      "path": "agent.skills_mgmt.offline_evolver",
+      "name": "offline_evolver",
       "layer": "skills_mgmt",
-      "file_path": "agent/skills_mgmt/loader.py",
-      "in_degree": 0,
-      "out_degree": 1
+      "file_path": "agent/skills_mgmt/offline_evolver.py",
+      "in_degree": 1,
+      "out_degree": 2
     },
     {
       "path": "agent.skills_mgmt.memory_abstractor",
@@ -1663,8 +1767,16 @@
       "name": "observability",
       "layer": "skills_mgmt",
       "file_path": "agent/skills_mgmt/observability.py",
-      "in_degree": 0,
+      "in_degree": 3,
       "out_degree": 2
+    },
+    {
+      "path": "agent.skills_mgmt.evaluator",
+      "name": "evaluator",
+      "layer": "skills_mgmt",
+      "file_path": "agent/skills_mgmt/evaluator.py",
+      "in_degree": 1,
+      "out_degree": 1
     },
     {
       "path": "agent.model_router.adapters",
@@ -1800,14 +1912,14 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_logging.py",
       "in_degree": 0,
-      "out_degree": 18
+      "out_degree": 19
     },
     {
       "path": "agent.health.assessor",
       "name": "assessor",
       "layer": "health",
       "file_path": "",
-      "in_degree": 4,
+      "in_degree": 5,
       "out_degree": 0
     },
     {
@@ -1816,7 +1928,7 @@
       "layer": "monitoring",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.monitoring.replay_storage",
@@ -1824,7 +1936,7 @@
       "layer": "monitoring",
       "file_path": "",
       "in_degree": 2,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.monitoring.loki",
@@ -1832,7 +1944,7 @@
       "layer": "monitoring",
       "file_path": "",
       "in_degree": 4,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.server_routes.observability",
@@ -1883,14 +1995,6 @@
       "out_degree": 0
     },
     {
-      "path": "agent.skills_mgmt.offline_evolver",
-      "name": "offline_evolver",
-      "layer": "skills_mgmt",
-      "file_path": "",
-      "in_degree": 1,
-      "out_degree": 0
-    },
-    {
       "path": "agent.server_routes.routes_system_prompt",
       "name": "routes_system_prompt",
       "layer": "server_routes",
@@ -1921,14 +2025,6 @@
       "file_path": "agent/server_routes/routes_knowledge.py",
       "in_degree": 0,
       "out_degree": 6
-    },
-    {
-      "path": "agent.tool_router_reranker",
-      "name": "tool_router_reranker",
-      "layer": "core",
-      "file_path": "",
-      "in_degree": 1,
-      "out_degree": 0
     },
     {
       "path": "agent.server_routes.routes_memory",
@@ -1968,7 +2064,7 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_health.py",
       "in_degree": 0,
-      "out_degree": 5
+      "out_degree": 6
     },
     {
       "path": "agent.health.health_score",
@@ -2104,7 +2200,31 @@
       "layer": "health",
       "file_path": "agent/health/dashboard.py",
       "in_degree": 0,
-      "out_degree": 1
+      "out_degree": 3
+    },
+    {
+      "path": "agent.health.probes",
+      "name": "probes",
+      "layer": "health",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 4
+    },
+    {
+      "path": "agent.health.storage",
+      "name": "storage",
+      "layer": "health",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.health.collector",
+      "name": "collector",
+      "layer": "health",
+      "file_path": "agent/health/collector.py",
+      "in_degree": 0,
+      "out_degree": 3
     },
     {
       "path": "agent.preflight.runner",
@@ -2203,6 +2323,22 @@
       "out_degree": 1
     },
     {
+      "path": "agent.skills_mgmt.lineage",
+      "name": "lineage",
+      "layer": "skills_mgmt",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.cognitive.failure_bucket",
+      "name": "failure_bucket",
+      "layer": "cognitive",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
+    },
+    {
       "path": "agent.cognitive.logging_integration",
       "name": "logging_integration",
       "layer": "cognitive",
@@ -2216,7 +2352,7 @@
       "layer": "cognitive",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.guardrails.output_schema",
@@ -2256,7 +2392,15 @@
       "layer": "monitoring",
       "file_path": "agent/monitoring/chaos_injector.py",
       "in_degree": 0,
-      "out_degree": 3
+      "out_degree": 4
+    },
+    {
+      "path": "agent.monitoring.tracing_sampling",
+      "name": "tracing_sampling",
+      "layer": "monitoring",
+      "file_path": "agent/monitoring/tracing_sampling.py",
+      "in_degree": 0,
+      "out_degree": 1
     },
     {
       "path": "agent.monitoring.tracing_config",
@@ -2280,7 +2424,7 @@
       "layer": "monitoring",
       "file_path": "agent/monitoring/optimized_metrics.py",
       "in_degree": 0,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.monitoring.alert_manager",
@@ -2312,7 +2456,7 @@
       "layer": "monitoring",
       "file_path": "agent/monitoring/observability_optimizations.py",
       "in_degree": 0,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.monitoring.resource_monitor",
@@ -2320,7 +2464,7 @@
       "layer": "monitoring",
       "file_path": "agent/monitoring/resource_monitor.py",
       "in_degree": 0,
-      "out_degree": 4
+      "out_degree": 5
     },
     {
       "path": "agent.monitoring.error_reporter",
@@ -2328,7 +2472,7 @@
       "layer": "monitoring",
       "file_path": "agent/monitoring/error_reporter.py",
       "in_degree": 1,
-      "out_degree": 3
+      "out_degree": 4
     },
     {
       "path": "agent.monitoring.config_observability",
@@ -2352,7 +2496,7 @@
       "layer": "monitoring",
       "file_path": "agent/monitoring/performance_optimization.py",
       "in_degree": 0,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.monitoring.tracing_cache",
@@ -2360,7 +2504,7 @@
       "layer": "monitoring",
       "file_path": "agent/monitoring/tracing_cache.py",
       "in_degree": 0,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.monitoring.utils",
@@ -2460,6 +2604,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.lazy_loader_async",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "core",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 357,
+      "source_file": "agent/lazy_loader_async.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.data_analytics",
       "target": "agent.monitoring.observability_config",
       "source_layer": "core",
@@ -2494,6 +2651,19 @@
       "line": 63,
       "source_file": "agent/weekly_report_generator.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tool_router_reranker",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "core",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 516,
+      "source_file": "agent/tool_router_reranker.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -2595,7 +2765,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 44,
+      "line": 46,
       "source_file": "agent/env_config_manager.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -2608,7 +2778,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 20,
+      "line": 21,
       "source_file": "agent/api_gateway.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -2621,7 +2791,20 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 21,
+      "line": 22,
+      "source_file": "agent/api_gateway.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.api_gateway",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "core",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 508,
       "source_file": "agent/api_gateway.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -2635,6 +2818,19 @@
       "target_layer": "tools",
       "import_type": "from_import",
       "line": 22,
+      "source_file": "agent/async_executor.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.async_executor",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "core",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 349,
       "source_file": "agent/async_executor.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -2785,6 +2981,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.ab_testing",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "core",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 1281,
+      "source_file": "agent/ab_testing.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.test_permission_system",
       "target": "agent.permission_system",
       "source_layer": "core",
@@ -2903,6 +3112,19 @@
     },
     {
       "source": "agent.feedback",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "core",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 1107,
+      "source_file": "agent/feedback.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.feedback",
       "target": "agent.cognitive.failure_analysis",
       "source_layer": "core",
       "target_layer": "cognitive",
@@ -2981,11 +3203,24 @@
     },
     {
       "source": "agent.state_manager",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "core",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 613,
+      "source_file": "agent/state_manager.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.state_manager",
       "target": "agent.skills_mgmt",
       "source_layer": "core",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 713,
+      "line": 733,
       "source_file": "agent/state_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -2998,7 +3233,7 @@
       "source_layer": "core",
       "target_layer": "workflow_learning",
       "import_type": "from_import",
-      "line": 721,
+      "line": 741,
       "source_file": "agent/state_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3115,7 +3350,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 19,
+      "line": 20,
       "source_file": "agent/multi_tenant.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3144,6 +3379,19 @@
       "line": 158,
       "source_file": "agent/tool_router_hybrid.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.safety_guard",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "core",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 210,
+      "source_file": "agent/safety_guard.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -3414,7 +3662,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 488,
+      "line": 495,
       "source_file": "agent/task_scheduler.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3669,6 +3917,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.auto_tuner",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "core",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 968,
+      "source_file": "agent/auto_tuner.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.v2_performance_patch",
       "target": "agent.logging_utils",
       "source_layer": "core",
@@ -3676,6 +3937,19 @@
       "import_type": "from_import",
       "line": 13,
       "source_file": "agent/v2_performance_patch.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.utils.index_manager",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "utils",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 279,
+      "source_file": "agent/utils/index_manager.py",
       "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
@@ -3765,7 +4039,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 39,
+      "line": 40,
       "source_file": "agent/knowledge/search.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3778,7 +4052,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 40,
+      "line": 41,
       "source_file": "agent/knowledge/search.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3791,7 +4065,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 41,
+      "line": 42,
       "source_file": "agent/knowledge/search.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3804,7 +4078,7 @@
       "source_layer": "knowledge",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 42,
+      "line": 43,
       "source_file": "agent/knowledge/search.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3825,13 +4099,39 @@
       "is_dynamic": false
     },
     {
-      "source": "agent.knowledge.links_index",
-      "target": "agent.knowledge.card",
+      "source": "agent.knowledge.distill_feedback",
+      "target": "agent.cognitive.prompt_optimizer",
+      "source_layer": "knowledge",
+      "target_layer": "cognitive",
+      "import_type": "from_import",
+      "line": 36,
+      "source_file": "agent/knowledge/distill_feedback.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.distill_feedback",
+      "target": "agent.feedback",
+      "source_layer": "knowledge",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 155,
+      "source_file": "agent/knowledge/distill_feedback.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.distill_feedback",
+      "target": "agent.knowledge.ingest",
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 103,
-      "source_file": "agent/knowledge/links_index.py",
+      "line": 174,
+      "source_file": "agent/knowledge/distill_feedback.py",
       "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
@@ -4163,12 +4463,25 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.knowledge.watcher",
+      "target": "agent.knowledge.ingest",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 21,
+      "source_file": "agent/knowledge/watcher.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.knowledge.__main__",
       "target": "agent.knowledge.card",
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 26,
+      "line": 27,
       "source_file": "agent/knowledge/__main__.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4181,7 +4494,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 32,
+      "line": 33,
       "source_file": "agent/knowledge/__main__.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4194,7 +4507,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 33,
+      "line": 34,
       "source_file": "agent/knowledge/__main__.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4207,7 +4520,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 34,
+      "line": 35,
       "source_file": "agent/knowledge/__main__.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4220,7 +4533,20 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 120,
+      "line": 124,
+      "source_file": "agent/knowledge/__main__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.__main__",
+      "target": "agent.knowledge.lint",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 129,
       "source_file": "agent/knowledge/__main__.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4233,7 +4559,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 163,
+      "line": 178,
       "source_file": "agent/knowledge/__main__.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4385,7 +4711,7 @@
     },
     {
       "source": "agent.knowledge.card",
-      "target": "agent.knowledge.links",
+      "target": "agent.knowledge.light_loader",
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
@@ -4398,7 +4724,7 @@
     },
     {
       "source": "agent.knowledge.card",
-      "target": "agent.knowledge.links_index",
+      "target": "agent.knowledge.links",
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
@@ -4411,7 +4737,7 @@
     },
     {
       "source": "agent.knowledge.card",
-      "target": "agent.knowledge.logbook",
+      "target": "agent.knowledge.links_index",
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
@@ -4424,11 +4750,24 @@
     },
     {
       "source": "agent.knowledge.card",
-      "target": "agent.knowledge.schema",
+      "target": "agent.knowledge.logbook",
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
       "line": 36,
+      "source_file": "agent/knowledge/card.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.card",
+      "target": "agent.knowledge.schema",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 37,
       "source_file": "agent/knowledge/card.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4441,7 +4780,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 23,
+      "line": 24,
       "source_file": "agent/knowledge/workflow.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4454,7 +4793,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 24,
+      "line": 25,
       "source_file": "agent/knowledge/workflow.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4467,7 +4806,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 29,
+      "line": 30,
       "source_file": "agent/knowledge/workflow.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4480,19 +4819,6 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 30,
-      "source_file": "agent/knowledge/workflow.py",
-      "is_cross_layer": false,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.knowledge.workflow",
-      "target": "agent.knowledge.links",
-      "source_layer": "knowledge",
-      "target_layer": "knowledge",
-      "import_type": "from_import",
       "line": 31,
       "source_file": "agent/knowledge/workflow.py",
       "is_cross_layer": false,
@@ -4502,7 +4828,7 @@
     },
     {
       "source": "agent.knowledge.workflow",
-      "target": "agent.knowledge.logbook",
+      "target": "agent.knowledge.lint",
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
@@ -4515,11 +4841,24 @@
     },
     {
       "source": "agent.knowledge.workflow",
-      "target": "agent.knowledge.schema",
+      "target": "agent.knowledge.logbook",
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
       "line": 33,
+      "source_file": "agent/knowledge/workflow.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.workflow",
+      "target": "agent.knowledge.schema",
+      "source_layer": "knowledge",
+      "target_layer": "knowledge",
+      "import_type": "from_import",
+      "line": 34,
       "source_file": "agent/knowledge/workflow.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4688,7 +5027,7 @@
       "source_layer": "subagent",
       "target_layer": "subagent",
       "import_type": "from_import",
-      "line": 18,
+      "line": 19,
       "source_file": "agent/subagent/lifecycle.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4701,7 +5040,7 @@
       "source_layer": "subagent",
       "target_layer": "subagent",
       "import_type": "dynamic",
-      "line": 180,
+      "line": 190,
       "source_file": "agent/subagent/lifecycle.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5138,6 +5477,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.log_system.optimized_storage",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "log_system",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 491,
+      "source_file": "agent/log_system/optimized_storage.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.log_system.safe_logger",
       "target": "agent.utils.sensitive_data_filter",
       "source_layer": "log_system",
@@ -5390,7 +5742,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1193,
+      "line": 1196,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5400,45 +5752,6 @@
     {
       "source": "agent.orchestrator.lifecycle_manager",
       "target": "agent.tools.core_tools",
-      "source_layer": "orchestrator",
-      "target_layer": "tools",
-      "import_type": "from_import",
-      "line": 989,
-      "source_file": "agent/orchestrator/lifecycle_manager.py",
-      "is_cross_layer": true,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.orchestrator.lifecycle_manager",
-      "target": "agent.tools.file_tools_reg",
-      "source_layer": "orchestrator",
-      "target_layer": "tools",
-      "import_type": "from_import",
-      "line": 990,
-      "source_file": "agent/orchestrator/lifecycle_manager.py",
-      "is_cross_layer": true,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.orchestrator.lifecycle_manager",
-      "target": "agent.tools.web_tools",
-      "source_layer": "orchestrator",
-      "target_layer": "tools",
-      "import_type": "from_import",
-      "line": 991,
-      "source_file": "agent/orchestrator/lifecycle_manager.py",
-      "is_cross_layer": true,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.orchestrator.lifecycle_manager",
-      "target": "agent.tools.ext_tools",
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
@@ -5451,7 +5764,7 @@
     },
     {
       "source": "agent.orchestrator.lifecycle_manager",
-      "target": "agent.tools.pdf_tools",
+      "target": "agent.tools.file_tools_reg",
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
@@ -5464,7 +5777,7 @@
     },
     {
       "source": "agent.orchestrator.lifecycle_manager",
-      "target": "agent.tools.software_tools",
+      "target": "agent.tools.web_tools",
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
@@ -5477,7 +5790,7 @@
     },
     {
       "source": "agent.orchestrator.lifecycle_manager",
-      "target": "agent.tools.system_tools",
+      "target": "agent.tools.ext_tools",
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
@@ -5490,7 +5803,7 @@
     },
     {
       "source": "agent.orchestrator.lifecycle_manager",
-      "target": "agent.tools.code_tools",
+      "target": "agent.tools.pdf_tools",
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
@@ -5503,11 +5816,50 @@
     },
     {
       "source": "agent.orchestrator.lifecycle_manager",
+      "target": "agent.tools.software_tools",
+      "source_layer": "orchestrator",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 997,
+      "source_file": "agent/orchestrator/lifecycle_manager.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.lifecycle_manager",
+      "target": "agent.tools.system_tools",
+      "source_layer": "orchestrator",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 998,
+      "source_file": "agent/orchestrator/lifecycle_manager.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.lifecycle_manager",
+      "target": "agent.tools.code_tools",
+      "source_layer": "orchestrator",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 999,
+      "source_file": "agent/orchestrator/lifecycle_manager.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.lifecycle_manager",
       "target": "agent.tools.core_tools",
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 1013,
+      "line": 1016,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5585,7 +5937,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 753,
+      "line": 756,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5598,7 +5950,7 @@
       "source_layer": "orchestrator",
       "target_layer": "extensions",
       "import_type": "from_import",
-      "line": 928,
+      "line": 931,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5611,7 +5963,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 929,
+      "line": 932,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5624,7 +5976,7 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 939,
+      "line": 942,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5637,7 +5989,7 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 954,
+      "line": 957,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5650,7 +6002,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 967,
+      "line": 970,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5663,7 +6015,7 @@
       "source_layer": "orchestrator",
       "target_layer": "extensions",
       "import_type": "from_import",
-      "line": 968,
+      "line": 971,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5676,7 +6028,7 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 973,
+      "line": 976,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5754,7 +6106,7 @@
       "source_layer": "orchestrator",
       "target_layer": "extensions",
       "import_type": "from_import",
-      "line": 934,
+      "line": 937,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5767,7 +6119,7 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 976,
+      "line": 979,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5780,7 +6132,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1110,
+      "line": 1113,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5793,7 +6145,7 @@
       "source_layer": "orchestrator",
       "target_layer": "web",
       "import_type": "from_import",
-      "line": 843,
+      "line": 846,
       "source_file": "agent/orchestrator/lifecycle_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5806,7 +6158,7 @@
       "source_layer": "orchestrator",
       "target_layer": "guardrails",
       "import_type": "from_import",
-      "line": 27,
+      "line": 28,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5819,7 +6171,7 @@
       "source_layer": "orchestrator",
       "target_layer": "guardrails",
       "import_type": "from_import",
-      "line": 28,
+      "line": 29,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5832,7 +6184,7 @@
       "source_layer": "orchestrator",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 29,
+      "line": 30,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5845,7 +6197,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 30,
+      "line": 31,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5858,7 +6210,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 31,
+      "line": 32,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5871,7 +6223,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 33,
+      "line": 34,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5884,7 +6236,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 36,
+      "line": 37,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5897,7 +6249,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 49,
+      "line": 50,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5910,7 +6262,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 54,
+      "line": 55,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5923,7 +6275,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 55,
+      "line": 56,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5936,7 +6288,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 2971,
+      "line": 3147,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5949,7 +6301,7 @@
       "source_layer": "orchestrator",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 84,
+      "line": 85,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5962,7 +6314,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 418,
+      "line": 424,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5975,7 +6327,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 458,
+      "line": 464,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5988,7 +6340,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 1058,
+      "line": 1064,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -6001,7 +6353,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1288,
+      "line": 1294,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6014,7 +6366,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1459,
+      "line": 1465,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6027,7 +6379,7 @@
       "source_layer": "orchestrator",
       "target_layer": "workflow_learning",
       "import_type": "from_import",
-      "line": 1465,
+      "line": 1471,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6040,7 +6392,33 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1619,
+      "line": 1625,
+      "source_file": "agent/orchestrator/orchestrator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.orchestrator",
+      "target": "agent.monitoring.prometheus",
+      "source_layer": "orchestrator",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 2585,
+      "source_file": "agent/orchestrator/orchestrator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.orchestrator",
+      "target": "agent.context.assembler",
+      "source_layer": "orchestrator",
+      "target_layer": "context",
+      "import_type": "from_import",
+      "line": 2616,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6053,7 +6431,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 2656,
+      "line": 2832,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6066,7 +6444,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 422,
+      "line": 428,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6079,7 +6457,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 654,
+      "line": 660,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -6092,7 +6470,7 @@
       "source_layer": "orchestrator",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 1761,
+      "line": 1767,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6105,9 +6483,22 @@
       "source_layer": "orchestrator",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 2234,
+      "line": 2247,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.orchestrator.orchestrator",
+      "target": "agent.skills_mgmt.loader",
+      "source_layer": "orchestrator",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 2558,
+      "source_file": "agent/orchestrator/orchestrator.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -6118,7 +6509,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 1296,
+      "line": 1302,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6131,7 +6522,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tool_schema_pruner",
       "import_type": "from_import",
-      "line": 2247,
+      "line": 2260,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6144,7 +6535,7 @@
       "source_layer": "orchestrator",
       "target_layer": "tool_fewshot_store",
       "import_type": "from_import",
-      "line": 2274,
+      "line": 2287,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6157,7 +6548,7 @@
       "source_layer": "orchestrator",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 2275,
+      "line": 2288,
       "source_file": "agent/orchestrator/orchestrator.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -6204,6 +6595,32 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.prompt_manager.version_control",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "prompt_manager",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 337,
+      "source_file": "agent/prompt_manager/version_control.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.prompt_manager.registry",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "prompt_manager",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 208,
+      "source_file": "agent/prompt_manager/registry.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.prompt_manager.observability",
       "target": "agent.monitoring.business_metrics",
       "source_layer": "prompt_manager",
@@ -6211,6 +6628,19 @@
       "import_type": "from_import",
       "line": 17,
       "source_file": "agent/prompt_manager/observability.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.prompt_manager.deployment",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "prompt_manager",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 463,
+      "source_file": "agent/prompt_manager/deployment.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -6238,6 +6668,19 @@
       "line": 378,
       "source_file": "agent/prompt_manager/deployment.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.prompt_manager.storage",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "prompt_manager",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 399,
+      "source_file": "agent/prompt_manager/storage.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -6795,6 +7238,19 @@
       "target_layer": "core",
       "import_type": "from_import",
       "line": 21,
+      "source_file": "agent/extensions/security_checker.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.extensions.security_checker",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "extensions",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 381,
       "source_file": "agent/extensions/security_checker.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -7392,7 +7848,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 635,
+      "line": 649,
       "source_file": "agent/skills_mgmt/enhancer.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -7405,8 +7861,34 @@
       "source_layer": "skills_mgmt",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 114,
+      "line": 130,
       "source_file": "agent/skills_mgmt/loader.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.offline_evolver",
+      "target": "agent.task_scheduler",
+      "source_layer": "skills_mgmt",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 1034,
+      "source_file": "agent/skills_mgmt/offline_evolver.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.offline_evolver",
+      "target": "agent.task_scheduler",
+      "source_layer": "skills_mgmt",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 1083,
+      "source_file": "agent/skills_mgmt/offline_evolver.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -7491,12 +7973,25 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.skills_mgmt.evaluator",
+      "target": "agent.feedback",
+      "source_layer": "skills_mgmt",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 638,
+      "source_file": "agent/skills_mgmt/evaluator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.skills_mgmt.service",
       "target": "agent.feedback",
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 281,
+      "line": 291,
       "source_file": "agent/skills_mgmt/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -7509,7 +8004,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 382,
+      "line": 523,
       "source_file": "agent/skills_mgmt/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8415,11 +8910,24 @@
     },
     {
       "source": "agent.server_routes.routes_logging",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "server_routes",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 78,
+      "source_file": "agent/server_routes/routes_logging.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_logging",
       "target": "agent.monitoring.replay_storage",
       "source_layer": "server_routes",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 255,
+      "line": 286,
       "source_file": "agent/server_routes/routes_logging.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8432,7 +8940,7 @@
       "source_layer": "server_routes",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 273,
+      "line": 304,
       "source_file": "agent/server_routes/routes_logging.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8445,7 +8953,7 @@
       "source_layer": "server_routes",
       "target_layer": "log_system",
       "import_type": "from_import",
-      "line": 316,
+      "line": 347,
       "source_file": "agent/server_routes/routes_logging.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8458,7 +8966,7 @@
       "source_layer": "server_routes",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 698,
+      "line": 729,
       "source_file": "agent/server_routes/routes_logging.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8471,7 +8979,7 @@
       "source_layer": "server_routes",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 771,
+      "line": 802,
       "source_file": "agent/server_routes/routes_logging.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8484,7 +8992,7 @@
       "source_layer": "server_routes",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 803,
+      "line": 834,
       "source_file": "agent/server_routes/routes_logging.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8497,7 +9005,7 @@
       "source_layer": "server_routes",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 1161,
+      "line": 1192,
       "source_file": "agent/server_routes/routes_logging.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8510,7 +9018,7 @@
       "source_layer": "server_routes",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 1193,
+      "line": 1224,
       "source_file": "agent/server_routes/routes_logging.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9169,11 +9677,24 @@
     },
     {
       "source": "agent.server_routes.routes_health",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "server_routes",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 33,
+      "source_file": "agent/server_routes/routes_health.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_health",
       "target": "agent.task_scheduler",
       "source_layer": "server_routes",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 395,
+      "line": 414,
       "source_file": "agent/server_routes/routes_health.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9186,7 +9707,7 @@
       "source_layer": "server_routes",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 413,
+      "line": 432,
       "source_file": "agent/server_routes/routes_health.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10109,8 +10630,125 @@
       "source_layer": "health",
       "target_layer": "health",
       "import_type": "from_import",
-      "line": 3,
+      "line": 6,
       "source_file": "agent/health/dashboard.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.health.dashboard",
+      "target": "agent.health.probes",
+      "source_layer": "health",
+      "target_layer": "health",
+      "import_type": "from_import",
+      "line": 7,
+      "source_file": "agent/health/dashboard.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.health.dashboard",
+      "target": "agent.health.storage",
+      "source_layer": "health",
+      "target_layer": "health",
+      "import_type": "from_import",
+      "line": 8,
+      "source_file": "agent/health/dashboard.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.health.probes",
+      "target": "agent.monitoring.metrics",
+      "source_layer": "health",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 116,
+      "source_file": "agent/health/probes.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.health.probes",
+      "target": "agent.monitoring.metrics",
+      "source_layer": "health",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 154,
+      "source_file": "agent/health/probes.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.health.probes",
+      "target": "agent.feedback",
+      "source_layer": "health",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 178,
+      "source_file": "agent/health/probes.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.health.probes",
+      "target": "agent.circuit_breaker",
+      "source_layer": "health",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 131,
+      "source_file": "agent/health/probes.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.health.collector",
+      "target": "agent.health.assessor",
+      "source_layer": "health",
+      "target_layer": "health",
+      "import_type": "from_import",
+      "line": 20,
+      "source_file": "agent/health/collector.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.health.collector",
+      "target": "agent.health.probes",
+      "source_layer": "health",
+      "target_layer": "health",
+      "import_type": "from_import",
+      "line": 21,
+      "source_file": "agent/health/collector.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.health.collector",
+      "target": "agent.health.storage",
+      "source_layer": "health",
+      "target_layer": "health",
+      "import_type": "from_import",
+      "line": 22,
+      "source_file": "agent/health/collector.py",
       "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
@@ -10325,6 +10963,84 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.cognitive.prompt_optimizer",
+      "target": "agent.skills_mgmt.evaluator",
+      "source_layer": "cognitive",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 41,
+      "source_file": "agent/cognitive/prompt_optimizer.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.cognitive.prompt_optimizer",
+      "target": "agent.skills_mgmt.lineage",
+      "source_layer": "cognitive",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 47,
+      "source_file": "agent/cognitive/prompt_optimizer.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.cognitive.prompt_optimizer",
+      "target": "agent.cognitive.failure_bucket",
+      "source_layer": "cognitive",
+      "target_layer": "cognitive",
+      "import_type": "from_import",
+      "line": 48,
+      "source_file": "agent/cognitive/prompt_optimizer.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.cognitive.prompt_optimizer",
+      "target": "agent.skills_mgmt.observability",
+      "source_layer": "cognitive",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 653,
+      "source_file": "agent/cognitive/prompt_optimizer.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.cognitive.prompt_optimizer",
+      "target": "agent.skills_mgmt.observability",
+      "source_layer": "cognitive",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 569,
+      "source_file": "agent/cognitive/prompt_optimizer.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.cognitive.prompt_optimizer",
+      "target": "agent.skills_mgmt.observability",
+      "source_layer": "cognitive",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 555,
+      "source_file": "agent/cognitive/prompt_optimizer.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.cognitive.logging_integration",
       "target": "agent.cognitive.failure_collector",
       "source_layer": "cognitive",
@@ -10351,6 +11067,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.cognitive.failure_analysis",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "cognitive",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 944,
+      "source_file": "agent/cognitive/failure_analysis.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.cognitive.failure_collector",
       "target": "agent.cognitive.failure_analysis",
       "source_layer": "cognitive",
@@ -10359,6 +11088,19 @@
       "line": 20,
       "source_file": "agent/cognitive/failure_collector.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.cognitive.failure_collector",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "cognitive",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 390,
+      "source_file": "agent/cognitive/failure_collector.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -10521,6 +11263,19 @@
     },
     {
       "source": "agent.monitoring.chaos_injector",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 689,
+      "source_file": "agent/monitoring/chaos_injector.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.chaos_injector",
       "target": "agent.monitoring.observability_config",
       "source_layer": "monitoring",
       "target_layer": "monitoring",
@@ -10528,6 +11283,19 @@
       "line": 132,
       "source_file": "agent/monitoring/chaos_injector.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.tracing_sampling",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 459,
+      "source_file": "agent/monitoring/tracing_sampling.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -10638,6 +11406,19 @@
     },
     {
       "source": "agent.monitoring.loki",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 322,
+      "source_file": "agent/monitoring/loki.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.loki",
       "target": "agent.monitoring.observability_config",
       "source_layer": "monitoring",
       "target_layer": "monitoring",
@@ -10658,6 +11439,19 @@
       "line": 19,
       "source_file": "agent/monitoring/optimized_metrics.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.optimized_metrics",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 494,
+      "source_file": "agent/monitoring/optimized_metrics.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -10741,6 +11535,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.monitoring.observability_optimizations",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 406,
+      "source_file": "agent/monitoring/observability_optimizations.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.monitoring.resource_monitor",
       "target": "agent.monitoring.tracing",
       "source_layer": "monitoring",
@@ -10760,6 +11567,19 @@
       "target_layer": "core",
       "import_type": "from_import",
       "line": 43,
+      "source_file": "agent/monitoring/resource_monitor.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.resource_monitor",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 887,
       "source_file": "agent/monitoring/resource_monitor.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10812,6 +11632,19 @@
       "target_layer": "core",
       "import_type": "from_import",
       "line": 37,
+      "source_file": "agent/monitoring/error_reporter.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.error_reporter",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 776,
       "source_file": "agent/monitoring/error_reporter.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10924,11 +11757,24 @@
     },
     {
       "source": "agent.monitoring.performance_optimization",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 815,
+      "source_file": "agent/monitoring/performance_optimization.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.performance_optimization",
       "target": "agent.monitoring.tracing",
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 832,
+      "line": 869,
       "source_file": "agent/monitoring/performance_optimization.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -10944,6 +11790,19 @@
       "line": 22,
       "source_file": "agent/monitoring/tracing_cache.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.tracing_cache",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 457,
+      "source_file": "agent/monitoring/tracing_cache.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -11001,6 +11860,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.monitoring.sensitive_data_filter",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 223,
+      "source_file": "agent/monitoring/sensitive_data_filter.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.monitoring.business_metrics",
       "target": "agent.monitoring.utils",
       "source_layer": "monitoring",
@@ -11035,6 +11907,19 @@
       "line": 37,
       "source_file": "agent/monitoring/observability_config.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.observability_config",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 1152,
+      "source_file": "agent/monitoring/observability_config.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -11164,6 +12049,19 @@
       "import_type": "from_import",
       "line": 517,
       "source_file": "agent/monitoring/decorators.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.replay_storage",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 729,
+      "source_file": "agent/monitoring/replay_storage.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -11357,7 +12255,7 @@
       "source_layer": "monitoring",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 879,
+      "line": 830,
       "source_file": "agent/monitoring/tracing.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -11370,7 +12268,7 @@
       "source_layer": "monitoring",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 832,
+      "line": 783,
       "source_file": "agent/monitoring/tracing.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -11383,7 +12281,7 @@
       "source_layer": "monitoring",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 840,
+      "line": 791,
       "source_file": "agent/monitoring/tracing.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -11443,6 +12341,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.lazy_loader",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "lazy_loader",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 508,
+      "source_file": "agent/lazy_loader/__init__.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.lazy_loader.observability",
       "target": "agent.monitoring.business_metrics",
       "source_layer": "lazy_loader",
@@ -11457,28 +12368,28 @@
     }
   ],
   "stats": {
-    "total_files": 375,
-    "total_nodes": 302,
-    "total_edges": 695,
-    "cross_layer_edges": 415,
+    "total_files": 387,
+    "total_nodes": 320,
+    "total_edges": 754,
+    "cross_layer_edges": 464,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
-      "core": 58,
+      "core": 61,
       "lazy_loader": 3,
-      "monitoring": 27,
-      "utils": 8,
+      "utils": 9,
+      "monitoring": 28,
       "orchestrator": 12,
       "tools": 19,
       "extensions": 15,
       "observability": 5,
-      "cognitive": 11,
-      "skills_mgmt": 10,
+      "cognitive": 13,
+      "skills_mgmt": 12,
       "workflow_learning": 4,
       "unknown": 1,
       "caching": 2,
       "workflow_engine": 3,
-      "knowledge": 22,
+      "knowledge": 25,
       "network": 3,
       "subagent": 5,
       "web": 5,
@@ -11488,21 +12399,22 @@
       "handoff": 1,
       "memory": 15,
       "guardrails": 4,
+      "context": 1,
       "tool_schema_pruner": 1,
       "tool_fewshot_store": 1,
       "audit": 3,
-      "prompt_manager": 3,
+      "prompt_manager": 5,
       "config": 1,
       "feedback_collector": 1,
       "model_router": 2,
       "server_routes": 27,
-      "health": 4,
+      "health": 7,
       "quality": 2,
       "preflight": 3,
       "human_in_the_loop": 1,
       "dao": 1,
       "task_planner": 4
     },
-    "build_duration_ms": 1508.8617159999985
+    "build_duration_ms": 909.7693209999989
   }
 }

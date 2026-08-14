@@ -23,19 +23,19 @@ on:
       - develop
       - 'release/**'
     paths:
-      - 'agent/monitoring/**'
-      - 'agent/observability/**'
-      - 'agent/health/**'
-      - 'agent/prometheus_exporter.py'
-      - 'agent/error_reporting_config.py'
+      # 【变易·2026-08-10】agent/** 全覆盖：原仅列 monitoring/observability/health/
+      # knowledge/log_system 子目录与 2 个根级文件，agent/utils、tools、memory、
+      # orchestrator、skills_mgmt、server_routes 等目录及 logging_utils.py 等根级
+      # 模块改动不触发全项目分片验证（safe_logger 缺 makedirs 同模式缺陷无法被
+      # 6-shard 捕获）。合并为 agent/** 消除该缺口。
+      # 历史：2026-08-08 P2-2 曾按文件扩充（tests/**、agent/knowledge/**）；
+      #       2026-08-10 曾补 agent/log_system/**（Shard 1 修复未触发 CI）。
+      # 2026-08-10 触发提交：前一 fix(ci) 提交被 [skip ci] HEAD 连带跳过未验证，
+      # 本提交无 skip 标记，用于验证 paths 修复后本 workflow 正常触发。
+      - 'agent/**'
       - 'monitoring/**'
       - 'lifetrace/**'
-      # 【变易】2026-08-08 P2-2: 与全项目 job(--root tests 扫描全部 tests/)对齐,
-      # 任何测试文件改动均触发 CI 验证(此前 tests/unit/*、tests/stress/* 改动
-      # 不触发, 导致 B1/C2/K1 修复无法独立验证, 需空提交或借触发路径 commit)。
-      # agent/knowledge/** 同步纳入(K1 lint 修复验证)。
       - 'tests/**'
-      - 'agent/knowledge/**'
       - 'tests/**/test_*tracing*.py'
       - 'tests/**/test_*lifetrace*.py'
       - 'tests/**/test_*metrics*.py'
@@ -59,6 +59,7 @@ on:
       # 【变易·P3-1】pyproject.toml 纳入触发：覆盖率 omit/source/阈值改动需能自动验证门禁。
       # 历史问题：f52c0e11 路径 A（omit 排除 tests/scripts）未触发本 workflow，门禁验证需手动 dispatch。
       - 'pyproject.toml'
+      - 'scripts/split_unit_tests.py'  # 分片脚本：直接决定 6-shard 测试分配，改动须触发全项目验证
       - 'scripts/verify_*.py'
       - 'scripts/observability_*.py'
       - 'scripts/impact_analysis.py'
@@ -931,6 +932,8 @@ jobs:
             --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
             --ignore=tests/performance/test_chromadb_v05_api_compat.py \
             --ignore=tests/performance/test_optimization_benchmark.py \
+            --ignore=tests/performance \
+            --ignore=tests/stress \
             --ignore=tests/e2e/test_online_chat.py \
             --ignore=tests/e2e/test_online_tool_call.py \
             --ignore=tests/integration/test_feedback_integration.py \
@@ -959,6 +962,8 @@ jobs:
             --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
             --ignore=tests/performance/test_chromadb_v05_api_compat.py \
             --ignore=tests/performance/test_optimization_benchmark.py \
+            --ignore=tests/performance \
+            --ignore=tests/stress \
             --ignore=tests/e2e/test_online_chat.py \
             --ignore=tests/e2e/test_online_tool_call.py \
             --ignore=tests/integration/test_feedback_integration.py \
