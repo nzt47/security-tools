@@ -333,9 +333,13 @@ class SkillReviewer:
         with traced_action("skill_review", skill_id=skill.id) as ctx:
             others = others or []
             findings: List[ReviewFinding] = []
+            logger.debug("[Reviewer] 开始审核 skill=%s others=%d",
+                         skill.id, len(others))
 
             # 1) 重复检测
             dup_score, dup_with = self.dup_detector.detect(skill, others)
+            logger.debug("[Reviewer] 重复检测 skill=%s dup_score=%.2f dup_with=%s",
+                         skill.id, dup_score, dup_with or "-")
             if dup_score >= self.thresholds.duplicate_max:
                 findings.append(ReviewFinding(
                     severity="error", category="duplicate",
@@ -354,6 +358,8 @@ class SkillReviewer:
             try:
                 sec_score, sec_findings = self.security_scanner.scan(skill)
                 findings.extend(sec_findings)
+                logger.debug("[Reviewer] 安全扫描 skill=%s sec_score=%.2f "
+                             "findings=%d", skill.id, sec_score, len(sec_findings))
             except SkillSecurityError as e:
                 # 严重安全问题直接返回 failed
                 ctx["blocked"] = True
@@ -381,6 +387,8 @@ class SkillReviewer:
             # 3) 质量评估
             qual_score, qual_findings = self.quality_assessor.assess(skill)
             findings.extend(qual_findings)
+            logger.debug("[Reviewer] 质量评估 skill=%s qual_score=%.2f "
+                         "findings=%d", skill.id, qual_score, len(qual_findings))
 
             # 4) 综合评分 (加权: 安全 50% + 质量 30% + 原创性 20%)
             originality = 100.0 - dup_score
@@ -394,6 +402,13 @@ class SkillReviewer:
                 or overall < self.thresholds.overall_min
             )
             status = ReviewStatus.FAILED if failed else ReviewStatus.PASSED
+            logger.info(
+                "[Reviewer] 审核决策 skill=%s status=%s overall=%.2f "
+                "dup=%.2f/%s sec=%.2f/%s qual=%.2f/%s",
+                skill.id, status.value, overall,
+                dup_score, self.thresholds.duplicate_max,
+                sec_score, self.thresholds.security_min,
+                qual_score, self.thresholds.quality_min)
 
             summary_parts = []
             if dup_score >= self.thresholds.duplicate_max:

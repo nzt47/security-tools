@@ -124,6 +124,37 @@ class TestPathBoundary:
         with pytest.raises(PathNotAllowedError):
             policy.validate_file_path(tmp_root / "agent" / "x.py")
 
+    def test_proposal_with_agent_file_rejected(self, policy):
+        # validate_proposal 级越界（merge 二次校验路径）：files 含 agent/ 核心文件
+        p = make_proposal(files=[EditFile("agent/system_tools.py", "old", "new")])
+        with pytest.raises(PathNotAllowedError):
+            policy.validate_proposal(p)
+
+    def test_proposal_mixed_files_partial_out_of_bounds_rejected(self, tmp_root):
+        # 多文件提案中单个文件越界 → 整体拒绝（不放过任何文件；
+        # 放宽文件数上限，确保命中路径校验而非文件数限制）
+        policy2 = EditPolicy(whitelist_dirs=["data/skills_repo"],
+                             project_root=tmp_root, max_files_per_round=2)
+        p = make_proposal(files=[
+            EditFile("data/skills_repo/my-skill/skill.md", "old", "new"),
+            EditFile("docs/zh/plan.md", "old", "new"),
+        ])
+        with pytest.raises(PathNotAllowedError):
+            policy2.validate_proposal(p)
+
+    def test_proposal_with_traversal_file_rejected(self, policy):
+        # validate_proposal 级路径穿越 → 拒绝
+        p = make_proposal(files=[EditFile(
+            "data/skills_repo/../../agent/system_tools.py", "old", "new")])
+        with pytest.raises(PathNotAllowedError):
+            policy.validate_proposal(p)
+
+    def test_proposal_with_case_variant_agent_rejected(self, policy):
+        # validate_proposal 级大小写变体（Windows resolve 归一化后命中禁区）
+        p = make_proposal(files=[EditFile("Agent/system_tools.py", "old", "new")])
+        with pytest.raises(PathNotAllowedError):
+            policy.validate_proposal(p)
+
 
 # ════════════════════════════════════════════════════════════
 #  验收 2：编辑类型白名单 / 禁导入依赖 / 内容黑名单

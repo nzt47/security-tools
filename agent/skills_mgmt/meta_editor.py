@@ -469,6 +469,8 @@ class MetaEditor:
         任一 critical 级问题 → 提案直接拒绝（status=rejected，不进入评估，验收 2）。
         """
         if proposal.status_enum != EditStatus.DRAFT:
+            logger.warning("[MetaEditor] 提案 %s 状态 %s 不允许进入审核（需 draft）",
+                           proposal.proposal_id, proposal.status)
             raise EditStatusTransitionError(
                 f"只有 draft 提案可进入审核流程（当前 {proposal.status}）")
         from .reviewer import SkillReviewer
@@ -537,6 +539,8 @@ class MetaEditor:
         scripts/main.py，真实 success/latency/输出，绝不伪造指标）。
         """
         if proposal.status_enum != EditStatus.DRAFT:
+            logger.warning("[MetaEditor] 提案 %s 状态 %s 不允许评估（需 draft）",
+                           proposal.proposal_id, proposal.status)
             raise EditStatusTransitionError(
                 f"只有 draft 提案可评估（当前 {proposal.status}）")
         candidate, new_params = self._build_candidate(proposal)
@@ -566,6 +570,8 @@ class MetaEditor:
     def submit_proposal(self, proposal: EditProposal) -> EditProposal:
         """评估通过 + 审核通过 → pending_review + 落谱系（不自动合并，验收 3）"""
         if proposal.status_enum != EditStatus.DRAFT:
+            logger.warning("[MetaEditor] 提案 %s 状态 %s 不允许提交（需 draft）",
+                           proposal.proposal_id, proposal.status)
             raise EditStatusTransitionError(
                 f"只有 draft 提案可提交（当前 {proposal.status}）")
         if not (proposal.review and self._review_passed(proposal.review)):
@@ -603,6 +609,8 @@ class MetaEditor:
                          actor: str = "user") -> EditProposal:
         """人工审批通过（pending_review → approved；仍不合并，需显式 merge）"""
         if proposal.status_enum != EditStatus.PENDING_REVIEW:
+            logger.warning("[MetaEditor] 提案 %s 状态 %s 不允许审批（需 pending_review）",
+                           proposal.proposal_id, proposal.status)
             raise EditStatusTransitionError(
                 f"只有 pending_review 提案可审批（当前 {proposal.status}）")
         proposal.approve()
@@ -617,6 +625,8 @@ class MetaEditor:
                         actor: str = "user") -> EditProposal:
         """人工拒绝（pending_review → rejected）"""
         if proposal.status_enum != EditStatus.PENDING_REVIEW:
+            logger.warning("[MetaEditor] 提案 %s 状态 %s 不允许人工拒绝（需 pending_review）",
+                           proposal.proposal_id, proposal.status)
             raise EditStatusTransitionError(
                 f"只有 pending_review 提案可人工拒绝（当前 {proposal.status}）")
         proposal.reject(reason)
@@ -638,6 +648,9 @@ class MetaEditor:
     def merge_proposal(self, proposal: EditProposal) -> EditProposal:
         """审批通过后应用补丁并 git 提交（验收 3：无审批无合并；验收 4：可回滚）"""
         if not proposal.is_mergeable:
+            logger.warning(
+                "[MetaEditor] 提案 %s 状态 %s 不可合并（仅 approved，无自动合并路径）",
+                proposal.proposal_id, proposal.status)
             raise EditStatusTransitionError(
                 f"仅审批通过（approved）的提案可合并（当前 {proposal.status}），"
                 "不存在自动合并路径")
@@ -681,9 +694,13 @@ class MetaEditor:
         再提交 rollback commit；提案状态 merged → archived。
         """
         if proposal.status_enum != EditStatus.MERGED:
+            logger.warning("[MetaEditor] 提案 %s 状态 %s 不允许回滚（需 merged）",
+                           proposal.proposal_id, proposal.status)
             raise EditStatusTransitionError(
                 f"只有 merged 提案可回滚（当前 {proposal.status}）")
         if not proposal.merge_commit_sha:
+            logger.error("[MetaEditor] 提案 %s 缺少 merge_commit_sha，无法回滚",
+                         proposal.proposal_id)
             raise MetaEditError("提案缺少 merge_commit_sha，无法从 git 回滚")
         git = self._git or self._default_git()
         rel_paths: List[str] = []
