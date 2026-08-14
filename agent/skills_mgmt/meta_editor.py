@@ -359,6 +359,7 @@ class MetaEditor:
         # 注意（守 project_memory 硬约束）：本方法不整体持锁——
         # 文件读取/生成器调用属 I/O 与外部回调，锁内仅保护内存轮次状态
         # （由 _round_allows / _spend_tokens / 末尾注册各自加锁）。
+        _t_start = time.perf_counter()
         if not self._round_allows(skill_id):
             return None
         logger.debug("[MetaEditor] 生成提案开始 skill=%s", skill_id)
@@ -367,6 +368,7 @@ class MetaEditor:
                         self.stall_rounds, skill_id)
             return None
 
+        _t_read0 = time.perf_counter()
         meta = self._read_meta(skill_id)
         if meta is None:
             logger.warning("[MetaEditor] 技能不存在，跳过 skill=%s", skill_id)
@@ -377,6 +379,8 @@ class MetaEditor:
             logger.warning("[MetaEditor] 技能文件读取失败 skill=%s path=%s",
                            skill_id, raw_path)
             return None
+        logger.debug("[MetaEditor] 技能文件读取完成 skill=%s duration_ms=%.2f",
+                     skill_id, (time.perf_counter() - _t_read0) * 1000)
 
         gen = self._proposal_generator or MetaEditGenerator(
             llm_client=self._llm_client, output_guard=self._output_guard)
@@ -436,10 +440,13 @@ class MetaEditor:
             parent_record_id=self._latest_record_id(skill_id),
         )
         # 政策校验（白名单/类型/范围/内容/文件数，越界直接抛）
+        _t_pol0 = time.perf_counter()
         self._policy.validate_proposal(proposal)
-        logger.debug("[MetaEditor] 政策校验通过 proposal=%s edit_type=%s files=%s",
+        logger.debug("[MetaEditor] 政策校验通过 proposal=%s edit_type=%s files=%s "
+                     "duration_ms=%.2f",
                      proposal.proposal_id, proposal.edit_type,
-                     [f.file_path for f in proposal.files])
+                     [f.file_path for f in proposal.files],
+                     (time.perf_counter() - _t_pol0) * 1000)
 
         tokens = self._estimate_tokens(proposal)
         logger.debug("[MetaEditor] token 估算 proposal=%s tokens=%d budget=%d",
@@ -453,9 +460,11 @@ class MetaEditor:
                     labels={"stage": "proposed", "skill_id": skill_id},
                     kind="counter")
         logger.info(
-            "[MetaEditor] 提案已生成 %s skill=%s edit_type=%s files=%s",
+            "[MetaEditor] 提案已生成 %s skill=%s edit_type=%s files=%s "
+            "duration_ms=%.2f",
             proposal.proposal_id, skill_id, proposal.edit_type,
-            [f.file_path for f in files])
+            [f.file_path for f in files],
+            (time.perf_counter() - _t_start) * 1000)
         return proposal
 
     # ──────────────────────────────────────────────
@@ -538,29 +547,45 @@ class MetaEditor:
         评估器默认 SkillExecutorEvaluator（executor 层 multiprocessing 沙盒执行
         scripts/main.py，真实 success/latency/输出，绝不伪造指标）。
         """
+        _t_start = time.perf_counter()
         if proposal.status_enum != EditStatus.DRAFT:
             logger.warning("[MetaEditor] 提案 %s 状态 %s 不允许评估（需 draft）",
                            proposal.proposal_id, proposal.status)
             raise EditStatusTransitionError(
                 f"只有 draft 提案可评估（当前 {proposal.status}）")
+        _t_build0 = time.perf_counter()
         candidate, new_params = self._build_candidate(proposal)
-        logger.debug("[MetaEditor] 评估候选构建完成 proposal=%s params=%s",
-                     proposal.proposal_id, new_params)
+        logger.debug("[MetaEditor] 评估候选构建完成 proposal=%s duration_ms=%.2f "
+                     "params=%s",
+                     proposal.proposal_id,
+                     (time.perf_counter() - _t_build0) * 1000, new_params)
         evaluator = self._evaluator or self._default_evaluator(candidate)
+        # 沙盒评估是链路第二大耗时源（第一大是 LLM 生成器），前后打点统计性能瓶颈
+        _t_eval0 = time.perf_counter()
         result = evaluator.evaluate(candidate, params=new_params)
+        logger.debug("[MetaEditor] 评估器返回 proposal=%s duration_ms=%.2f "
+                     "evaluator=%s",
+                     proposal.proposal_id,
+                     (time.perf_counter() - _t_eval0) * 1000,
+                     type(evaluator).__name__)
+        _t_ser0 = time.perf_counter()
         proposal.eval_result = self._serialize_eval(result)
+        logger.debug("[MetaEditor] 评估结果序列化 proposal=%s duration_ms=%.2f",
+                     proposal.proposal_id,
+                     (time.perf_counter() - _t_ser0) * 1000)
         proposal.cost_tokens += int(getattr(result, "cost_tokens", 0) or 0)
         emit_metric("yunshu_skill_meta_edit_total",
                     labels={"stage": "evaluated", "status": proposal.eval_result["status"]},
                     kind="counter")
         logger.info(
             "[MetaEditor] 提案 %s 评估完成 skill=%s status=%s score=%.4f "
-            "samples=%d cost=%d",
+            "samples=%d cost=%d duration_ms=%.2f",
             proposal.proposal_id, proposal.object_id,
             proposal.eval_result.get("status"),
             proposal.eval_result.get("score", 0.0),
             proposal.eval_result.get("sample_count", 0),
-            proposal.eval_result.get("cost_tokens", 0))
+            proposal.eval_result.get("cost_tokens", 0),
+            (time.perf_counter() - _t_start) * 1000)
         return proposal
 
     # ──────────────────────────────────────────────
