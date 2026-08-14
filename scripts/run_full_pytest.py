@@ -48,6 +48,11 @@ IGNORES = [
     "tests/unit/test_utils_index_manager.py",
 ]
 
+# 【K9 规避】离线模式环境变量：chromadb→pydantic_settings 导入、sentence_transformers→
+# huggingface 网络下载在无网环境会阻塞卡死。注入后改为快速失败/走本地缓存，
+# 配合 slow 模式（--runslow --timeout=300）+ 分块实现 K9 "离线变量 + 分块 + 高 timeout" 规避。
+K9_OFFLINE_ENV = {"HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"}
+
 # 【P1 A3】mode → pytest -m 过滤参数（None = 不过滤）
 MODE_MARKER = {"fast": "not slow", "slow": "slow", "all": None}
 # slow 模式附加 --runslow + 更长超时（300s）：激活 --runslow 门控用例并容忍
@@ -84,7 +89,9 @@ def run_chunk(files: list[str], idx: int, out: str, marker: str | None,
         cmd += ["-m", marker]
     cmd += (extra or [])
     with open(out, "w", encoding="utf-8") as f:
-        rc = subprocess.call(cmd, stdout=f, stderr=subprocess.STDOUT)
+        # 【K9 规避】合并离线 env（保留既有环境变量，仅新增/覆盖 K9 变量）
+        env = {**os.environ, **K9_OFFLINE_ENV}
+        rc = subprocess.call(cmd, stdout=f, stderr=subprocess.STDOUT, env=env)
     # rc=5 = "no tests ran"（分块后该 chunk 恰好无匹配用例），不视为失败
     if rc == 5:
         rc = 0

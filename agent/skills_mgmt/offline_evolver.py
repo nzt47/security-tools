@@ -93,7 +93,8 @@ class EvolutionResult:
     cost_tokens: int = 0                   # 本轮评估累计 token
     duration_ms: float = 0.0               # 本轮总耗时
     record_id: Optional[str] = None        # 本轮谱系记录 ID（committed/rejected/skipped）
-    decision: str = ""                     # committed / rejected / skipped
+    decision: str = ""                     # committed / rejected / skipped / pending_review
+    approval_record_id: Optional[str] = None  # 审批流记录 ID（pending_review 时）
     budget_breached: bool = False          # 是否触发预算熔断
 
 
@@ -352,7 +353,9 @@ class OfflineEvolver:
     def evolve_once(self, skill_id: str, *,
                     strategies: Optional[List[EvolutionStrategy]] = None,
                     evaluator: Optional[Any] = None,
-                    trigger: str = "manual") -> EvolutionResult:
+                    trigger: str = "manual",
+                    approval_flow: Optional[Any] = None,
+                    value_guard: Optional[Any] = None) -> EvolutionResult:
         """对单个技能执行一轮进化
 
         流程:
@@ -371,6 +374,10 @@ class OfflineEvolver:
             evaluator: 真实评估器（EVO-T2）。注入后基线/变异体均走真实评估，
                        不可用时跳过（绝不伪造指标）；不传则按配置自动构建。
             trigger: 触发来源（manual/scheduler/api），写入谱系
+            approval_flow: 审批流（EVO-T6 验收 8）。注入后 L1/L2 变更转为
+                           pending_review 不提交（返回 approval_record_id），
+                           L0 或未注入保持直连提交（守不易：既有路径不破坏）。
+            value_guard: 价值观红线（EVO-T6 验收 5）。命中红线 → rejected 不提交。
 
         Returns:
             EvolutionResult — 包含提升幅度、提交决策、谱系记录 ID、成本
@@ -748,6 +755,91 @@ class OfflineEvolver:
                         f"improvement={improvement:.4f}, "
                         f"parent={parent_record_id or '首代'}"),
                 }
+                # 护栏 1: 价值观红线（EVO-T6 验收 5）——命中 → rejected，不提交
+                if value_guard is not None:
+                    vg_content = (
+                        f"离线进化: strategy={best.strategy.value}, "
+                        f"improvement={improvement:.4f}, "
+                        f"parent={parent_record_id or '首代'}")
+                    vg_result = value_guard.check(vg_content)
+                    if vg_result.blocked:
+                        findings = vg_result.findings or []
+                        detail = findings[0].message if findings else "命中自定义红线"
+                        vg_reason = f"价值观红线拦截: {detail}"
+                        rejected_id = self._record_round(
+                            skill_id, decision="rejected",
+                            reason=vg_reason,
+                            parent_record_id=parent_record_id,
+                            trigger=trigger,
+                            eval_result=best.eval_result,
+                            cost=cost, params=dict(best.params),
+                            parent_version=parent_version)
+                        result.committed = False
+                        result.decision = "rejected"
+                        result.record_id = rejected_id
+                        result.error = vg_reason
+                        self._round_ctx = {}
+                        logger.warning(json.dumps({
+                            "module_name": "offline_evolver",
+                            "action": "evolve_once.value_guard_blocked",
+                            "skill_id": skill_id,
+                            "reason": vg_reason,
+                        }, ensure_ascii=False))
+                        return result
+
+                # 护栏 2: 审批流（EVO-T6 验收 8）——L1/L2 → pending_review 不提交
+                if approval_flow is not None:
+                    level = approval_flow.route_level("skill", "params_submit")
+                    if level in ("L1", "L2"):
+                        change_summary = (
+                            f"离线进化: strategy={best.strategy.value}, "
+                            f"improvement={improvement:.4f}, "
+                            f"parent={parent_record_id or '首代'}")
+
+                        def _approval_applier() -> bool:
+                            """审批 merge 时执行真实提交（bump_version 复用谱系钩子）"""
+                            self._round_ctx = {
+                                "parent_record_id": parent_record_id,
+                                "strategy": best.strategy.value,
+                                "trigger": trigger,
+                                "cost": cost,
+                                "params": dict(best.params),
+                                "change_summary": change_summary,
+                            }
+                            try:
+                                return self._commit(best) is not None
+                            finally:
+                                self._round_ctx = {}
+
+                        rec = approval_flow.submit(
+                            "skill", skill_id, action="params_submit",
+                            description=change_summary,
+                            payload=dict(best.params),
+                            eval_result=best.eval_result,
+                            trigger=trigger, applier=_approval_applier)
+                        pending_id = self._record_round(
+                            skill_id, decision="pending_review",
+                            reason=f"待审批（level={level}）",
+                            parent_record_id=parent_record_id,
+                            trigger=trigger,
+                            eval_result=best.eval_result,
+                            cost=cost, params=dict(best.params),
+                            parent_version=parent_version)
+                        result.committed = False
+                        result.decision = "pending_review"
+                        result.record_id = pending_id
+                        result.approval_record_id = rec.record_id
+                        self._round_ctx = {}
+                        logger.info(json.dumps({
+                            "module_name": "offline_evolver",
+                            "action": "evolve_once.pending_review",
+                            "skill_id": skill_id,
+                            "level": level,
+                            "approval_record_id": rec.record_id,
+                        }, ensure_ascii=False))
+                        return result
+
+                # 原直连提交路径（无守卫 / 审批 L0 自动放行）
                 committed = self._commit(best)
                 record_id = self._round_ctx.pop("record_id", "")
                 self._round_ctx = {}

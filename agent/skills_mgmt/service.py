@@ -72,6 +72,10 @@ class SkillsMgmtService:
         self.injector = ContextInjector(self.loader)
         self._mcp_adapter = None  # 延迟初始化 MCP 适配器
 
+        # EVO-T6 安全护栏组件（懒加载，测试可注入隔离实例）
+        self._approval = None  # ApprovalFlow 实例（None=未接入审批流）
+        self._auto_rollback = None  # AutoRollback 懒加载单例缓存
+
     @property
     def mcp_adapter(self):
         """延迟初始化 MCP 适配器 (首次访问时创建)"""
@@ -79,6 +83,69 @@ class SkillsMgmtService:
             from .mcp_adapter import McpSkillAdapter
             self._mcp_adapter = McpSkillAdapter(self)
         return self._mcp_adapter
+
+    # ─── EVO-T6 安全护栏网关（供 UI/CLI 消费）───
+
+    @property
+    def auto_rollback(self) -> "AutoRollback":
+        """自动回滚懒加载单例（默认 restorer=None=仅记录不实际恢复）"""
+        if self._auto_rollback is None:
+            from .rollback import AutoRollback
+            self._auto_rollback = AutoRollback(archive=self._lineage_archive)
+        return self._auto_rollback
+
+    def list_pending_approvals(self) -> List[Dict[str, Any]]:
+        """列出全部待审批记录（未接入审批流时返回空列表）"""
+        if self._approval is None:
+            return []
+        return [
+            {
+                "record_id": r.record_id,
+                "object_type": r.object_type,
+                "object_id": r.object_id,
+                "level": r.level,
+                "state": r.state,
+                "created_at": r.created_at,
+            }
+            for r in self._approval.list({"state": "pending_review"})
+        ]
+
+    def approve_change(self, record_id: str, actor: str = "reviewer",
+                       note: str = "") -> Dict[str, Any]:
+        """审批通过网关（透传 ApprovalFlow.approve）"""
+        if self._approval is None:
+            raise RuntimeError("审批流未接入（_approval 未注入），无法审批")
+        rec = self._approval.approve(record_id, actor=actor, note=note)
+        return {"record_id": rec.record_id, "state": rec.state,
+                "level": rec.level}
+
+    def reject_change(self, record_id: str, actor: str = "reviewer",
+                      reason: str = "") -> Dict[str, Any]:
+        """驳回网关（透传 ApprovalFlow.reject，reason 必填）"""
+        if self._approval is None:
+            raise RuntimeError("审批流未接入（_approval 未注入），无法驳回")
+        rec = self._approval.reject(record_id, actor=actor, reason=reason)
+        return {"record_id": rec.record_id, "state": rec.state,
+                "decision_reason": rec.decision_reason}
+
+    def get_evolution_audit(self, days: int = 7) -> Dict[str, Any]:
+        """进化审计视图网关（透传 dashboard.get_evolution_audit）"""
+        from agent.health.dashboard import get_evolution_audit as _audit
+        return _audit(days=days, archive=self._lineage_archive,
+                      approvals=self._approval)
+
+    def run_auto_rollback(self, object_id: str, version: str,
+                          metrics: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """执行自动回滚判定网关（无基线安全返回 triggered=False）"""
+        result = self.auto_rollback.check_and_rollback(
+            object_id, version, metrics)
+        return {
+            "triggered": result.triggered,
+            "reason": result.reason,
+            "suppressed": result.suppressed,
+            "halted": result.halted,
+            "details": result.details,
+        }
 
     # ─── 创建 ───
 
