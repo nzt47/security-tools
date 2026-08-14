@@ -743,8 +743,28 @@ class ReActLoop:
         reflect_task = task if isinstance(task, Task) else Task(
             id=f"react_fail_{diagnosis.attempt}", description=str(task)
         )
+        # 任务4 追踪：failure_reflect 调用前完整输入快照（诊断全字段 + 失败历史 + 项目上下文）
+        logger.info(
+            f"   [失败反思] >>> 调用 failure_reflect（输入）"
+            f" | task={str(reflect_task.description)[:80]}"
+            f" | error_type={diagnosis.error_type}"
+            f" | error_message={diagnosis.error_message}"
+            f" | tool_name={diagnosis.tool_name}"
+            f" | attempt={diagnosis.attempt}"
+            f" | history={json.dumps(diagnosis.history, ensure_ascii=False)}"
+            f" | repair_hints={diagnosis.repair_hints}"
+            f" | project_context={json.dumps(diagnosis.project_context, ensure_ascii=False)[:200]}"
+        )
         reflection = await self.reflector.failure_reflect(
             reflect_task, action_result, diagnosis, self._failure_reflection_count
+        )
+        # 任务4 追踪：failure_reflect 调用后完整输出快照（根因/置信度/修复建议/规避动作）
+        logger.info(
+            f"   [失败反思] <<< failure_reflect 返回（输出）"
+            f" | root_cause={getattr(reflection, 'root_cause', None)!r}"
+            f" | confidence={getattr(reflection, 'confidence', None)!r}"
+            f" | repair_actions={getattr(reflection, 'repair_actions', None)!r}"
+            f" | avoid={getattr(reflection, 'avoid', None)!r}"
         )
         # 防御：反思产物缺失 repair_actions 字段（如 stub/MagicMock）时跳过注入，不阻断循环
         if reflection is None or not isinstance(getattr(reflection, "repair_actions", None), list):

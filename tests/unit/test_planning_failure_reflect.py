@@ -242,8 +242,9 @@ async def test_failure_step_triggers_failure_reflect_and_inject():
         await loop.run("运行坏工具", context)
 
         assert reflector.failure_reflect_calls >= 1
-        # 修复建议注入 _hints（供下一轮 _think 消费）
-        assert "改用其他工具" in context.get("_hints", [])
+        # 修复建议注入 _hints（供下一轮 _think 消费）；
+        # 子串匹配（与模拟脚本同款修复，避免 repair_actions 字符串变化导致精确匹配误失败）
+        assert any("改用其他工具" in h for h in context.get("_hints", []))
         # 失败历史注入（带根因猜测）
         history = context.get("_failure_history", [])
         assert len(history) >= 1
