@@ -104,6 +104,8 @@ class SelfHealRecord:
     duration_ms: float
     message: str
     verified: bool = False
+    # 任务 7：危险操作防线双保险标记（命中权限黑名单时 True）
+    security_blocked: bool = False
 
 
 class SelfHealer:
@@ -182,6 +184,14 @@ class SelfHealer:
         self._last_context: Dict[str, Dict[str, Any]] = {}
         self._verify_state: Dict[str, Dict[str, Any]] = {}
 
+        # 验证失败连续计数（任务 7：连续失败达阈值 → 告警升级）
+        self._verify_failure_counts: Dict[str, int] = {}
+        self._verify_escalate_threshold = int(
+            self.config.get("verify_escalate_threshold", 2)
+        )
+        # 告警升级回调（alert_manager 注入，签名 (action, reason, context)）
+        self._on_heal_escalated: Optional[Callable] = None
+
         logger.info(log_dict({'module_name': 'self_healer', 'action': 'init', 'enabled': self._enabled, 'policies': list(self._policies.keys()), 'cache_whitelist': self._cache_whitelist}))
 
     def _init_policies(self):
@@ -235,6 +245,66 @@ class SelfHealer:
     def set_on_heal_verified(self, callback: Callable[[SelfHealRecord, bool], None]):
         """设置自愈验证回调"""
         self._on_heal_verified = callback
+
+    def set_on_heal_escalated(self, callback: Callable[[str, str, Dict[str, Any]], None]):
+        """设置验证连续失败升级回调（任务 7）
+
+        Args:
+            callback: 回调 (action, reason, context) -> None，
+                alert_manager 注入后触发告警升级 + 人工接管
+        """
+        self._on_heal_escalated = callback
+
+    def _check_security(self, action: str, context: Optional[Dict[str, Any]]) -> Optional[str]:
+        """危险操作防线双保险：自愈动作与 permission_system 黑名单交叉校验（任务 7）
+
+        仅对存在破坏面的动作（restart_service/clear_cache/clear_memory）校验：
+        将动作上下文中的命令/路径/模式拼接后与权限系统黑名单正则匹配。
+
+        Args:
+            action: 自愈动作名
+            context: 执行上下文
+
+        Returns:
+            命中黑名单返回原因（含"危险操作拦截"），未命中返回 None
+        """
+        if action not in ("restart_service", "clear_cache", "clear_memory"):
+            return None  # 非破坏性动作（gc_collect 等）无破坏面，不校验
+        ctx = context or {}
+        parts = []
+        for key in ("restart_command", "cache_paths", "cache_patterns"):
+            val = ctx.get(key)
+            if isinstance(val, str):
+                parts.append(val)
+            elif isinstance(val, (list, tuple)):
+                parts.extend(str(v) for v in val)
+        if not parts:
+            return None
+        blob = " ".join(parts)
+        try:
+            from agent.permission_system import PermissionSystem
+            patterns = list(PermissionSystem.BLACKLIST)
+        except Exception:
+            patterns = []
+        for pat in patterns:
+            try:
+                if pat.search(blob):
+                    return f"危险操作拦截: 命中权限系统黑名单规则 {pat.pattern}"
+            except Exception:
+                continue
+        return None
+
+    def _trigger_heal_escalated(self, action: str, reason: str) -> None:
+        """触发告警升级回调（回调异常隔离，不影响自愈流程）"""
+        if self._on_heal_escalated is None:
+            return
+        try:
+            self._on_heal_escalated(action, reason, {
+                "failure_count": self._verify_failure_counts.get(action, 0),
+                "threshold": self._verify_escalate_threshold,
+            })
+        except Exception as e:
+            logger.error(log_dict({'module_name': 'self_healer', 'action': 'heal_escalate_callback_error', 'heal_action': action, 'error': str(e)}))
 
     def _check_cooldown(self, action: str) -> bool:
         """检查是否在冷却时间内
@@ -315,6 +385,14 @@ class SelfHealer:
         policy = self._policies.get(action)
         if policy and not policy.enabled:
             return HealResult(action, HealStatus.SKIPPED, f"动作 {action} 已禁用", 0)
+
+        # 【任务 7】危险操作防线双保险：命中权限系统黑名单 → SKIPPED 并记录 security_blocked
+        security_reason = self._check_security(action, context)
+        if security_reason:
+            logger.warning(log_dict({'module_name': 'self_healer', 'action': 'heal_security_blocked', 'heal_action': action, 'reason': security_reason}))
+            result = HealResult(action, HealStatus.SKIPPED, security_reason, 0)
+            self._record_execution(action, result, context, security_blocked=True)
+            return result
 
         # 检查冷却时间
         if not self._check_cooldown(action):
@@ -855,16 +933,25 @@ class SelfHealer:
         self,
         action: str,
         result: HealResult,
-        context: Optional[Dict[str, Any]]
+        context: Optional[Dict[str, Any]],
+        security_blocked: bool = False
     ):
-        """记录自愈执行"""
+        """记录自愈执行
+
+        Args:
+            action: 动作名称
+            result: 执行结果
+            context: 执行上下文
+            security_blocked: 是否被危险操作防线拦截（任务 7）
+        """
         record = SelfHealRecord(
             alert_name=context.get("alert_name", "") if context else "",
             action=action,
             status=result.status,
             executed_at=time.time(),
             duration_ms=result.duration_ms,
-            message=result.message
+            message=result.message,
+            security_blocked=security_blocked,
         )
 
         with self._records_lock:
@@ -915,6 +1002,8 @@ class SelfHealer:
                 logger.info(log_dict({'module_name': 'self_healer', 'action': 'verify_health.read', 'heal_action': action, 'history_count': len(history), 'overall': health.overall, 'threshold': self._verify_score_threshold}))
                 if health.overall >= self._verify_score_threshold:
                     duration_ms = (time.time() - start_time) * 1000
+                    # 验证成功：清空连续失败计数（任务 7）
+                    self._verify_failure_counts.pop(action, None)
                     logger.info(log_dict({'module_name': 'self_healer', 'action': 'heal_verified', 'heal_action': action, 'health_score': health.overall, 'duration_ms': round(duration_ms, 1)}))
                     return True
                 last_reason = f"健康分 {health.overall:.2f} 低于验证阈值 {self._verify_score_threshold}"
@@ -926,6 +1015,14 @@ class SelfHealer:
                 time.sleep(5)
 
         logger.warning(log_dict({'module_name': 'self_healer', 'action': 'heal_verify_timeout', 'heal_action': action, 'timeout': timeout, 'reason': last_reason}))
+        # 【任务 7】验证失败连续计数：达阈值 → 告警升级（alert_manager 接管）
+        count = self._verify_failure_counts.get(action, 0) + 1
+        self._verify_failure_counts[action] = count
+        if count >= self._verify_escalate_threshold:
+            # 弹出计数防重复触发（升级后重新计数；成功验证时也会清空）
+            self._verify_failure_counts.pop(action, None)
+            logger.warning(log_dict({'module_name': 'self_healer', 'action': 'verify_heal.escalated', 'heal_action': action, 'failure_count': count, 'threshold': self._verify_escalate_threshold, 'reason': last_reason}))
+            self._trigger_heal_escalated(action, last_reason)
         return False
 
     def verify_action(self, action: str) -> Tuple[bool, str]:
@@ -1081,7 +1178,8 @@ class SelfHealer:
                 "executed_at": r.executed_at,
                 "duration_ms": r.duration_ms,
                 "message": r.message,
-                "verified": r.verified
+                "verified": r.verified,
+                "security_blocked": r.security_blocked
             }
             for r in records
         ]

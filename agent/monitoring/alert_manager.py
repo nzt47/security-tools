@@ -70,6 +70,11 @@ from agent.monitoring.self_healer import (
     execute_heal_action
 )
 
+from agent.human_in_the_loop.takeover_queue import (
+    TakeoverQueue,
+    TakeoverRecord,
+)
+
 
 class AlertManager:
     """告警系统管理器
@@ -96,6 +101,17 @@ class AlertManager:
 
         # 回调函数
         self._on_alert_callback: Optional[Callable] = None
+
+        # 人工接管队列（升级告警 → 人工处置状态机；默认 30 分钟超时二次通知）
+        try:
+            from agent.monitoring.observability_config import get_takeover_timeout
+            _takeover_timeout = get_takeover_timeout()
+        except Exception:
+            _takeover_timeout = 1800.0
+        self._takeover_queue = TakeoverQueue(
+            takeover_timeout=_takeover_timeout,
+            notifier=self._on_takeover_notify,
+        )
 
         # 加载配置
         self._load_config()
@@ -193,6 +209,8 @@ class AlertManager:
 
         # 设置自愈回调
         self._healer.set_on_heal_executed(self._on_heal_executed)
+        # 任务 7：自愈验证连续失败（verify_heal 失败 2 次）→ 告警升级
+        self._healer.set_on_heal_escalated(self._on_heal_escalated)
 
     def _register_rules(self):
         """注册告警规则"""
@@ -299,6 +317,223 @@ class AlertManager:
             "message": record.message
         }, ensure_ascii=False))
 
+    # ════════════════════════════════════════════════════════════════════
+    #  升级告警与人工接管（任务 7，补 M5）
+    # ════════════════════════════════════════════════════════════════════
+
+    def escalate(
+        self,
+        alert: Alert,
+        to_level: AlertSeverity = AlertSeverity.CRITICAL,
+        reason: str = "",
+        evidence: Optional[Dict[str, Any]] = None,
+    ) -> Optional[TakeoverRecord]:
+        """告警升级（P1→P0）：提升严重级别 + critical 通知 + 创建人工接管条目
+
+        【不易】人工接管不自动"批准"任何高危动作——仅记录、通知、等待处置；
+        高危动作的批准仍需 hitl 审批流单独处理。
+
+        Args:
+            alert: 告警实例（原地修改 severity 为 to_level）
+            to_level: 升级目标级别（默认 CRITICAL）
+            reason: 升级原因
+            evidence: 升级证据（如失败动作、连续失败次数、失败原因）
+
+        Returns:
+            新建的人工接管记录；级别相同（无需升级）返回 None
+        """
+        from_level = alert.severity
+
+        # ── 入口日志：升级流程起点（排查告警升级链路的关键锚点）──
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "alert_manager",
+            "action": "alert_escalate_start",
+            "duration_ms": 0,
+            "alert": alert.name,
+            "from_level": from_level.value,
+            "to_level": to_level.value,
+            "reason": reason,
+            "has_evidence": bool(evidence),
+        }, ensure_ascii=False))
+
+        if from_level == to_level:
+            logger.info(json.dumps({
+                "trace_id": get_trace_id(),
+                "module_name": "alert_manager",
+                "action": "alert_escalate_skipped",
+                "duration_ms": 0,
+                "alert": alert.name,
+                "from_level": from_level.value,
+                "reason": "级别已为目标级别，无需重复升级",
+            }, ensure_ascii=False))
+            return None
+
+        alert.severity = to_level
+
+        # 1. critical 升级通知（复用既有通知渠道）
+        notification = AlertNotification(
+            alert_name=alert.name,
+            state="escalated",
+            severity=to_level.value,
+            message=(
+                f"告警升级: {alert.name} 从 {from_level.value} 升级到 {to_level.value}"
+                + (f" — {reason}" if reason else "")
+            ),
+            value=alert.value,
+            threshold=alert.threshold,
+            labels=alert.labels,
+            annotations=alert.annotations,
+        )
+        try:
+            self._notifier.send_critical(notification)
+            logger.info(json.dumps({
+                "trace_id": get_trace_id(),
+                "module_name": "alert_manager",
+                "action": "alert_escalate_notified",
+                "duration_ms": 0,
+                "alert": alert.name,
+                "to_level": to_level.value,
+                "message": notification.message,
+            }, ensure_ascii=False))
+        except Exception as e:
+            logger.error("[AlertManager] 升级通知发送失败: %s", e)
+
+        # 2. 创建人工接管条目（入队 + 通知）
+        try:
+            takeover = self._takeover_queue.create_takeover(
+                alert,
+                reason or f"告警升级 {from_level.value} → {to_level.value}",
+                evidence,
+            )
+        except Exception as e:
+            # 接管入队失败：记录详细日志后 re-raise（调用方已有异常隔离）
+            logger.error(json.dumps({
+                "trace_id": get_trace_id(),
+                "module_name": "alert_manager",
+                "action": "alert_escalate_takeover_failed",
+                "duration_ms": 0,
+                "alert": alert.name,
+                "from_level": from_level.value,
+                "to_level": to_level.value,
+                "reason": reason,
+                "error": str(e),
+            }, ensure_ascii=False))
+            raise
+
+        # 3. 结构化日志（含 from/to level，验收标准 #4）
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "alert_manager",
+            "action": "alert_escalated",
+            "duration_ms": 0,
+            "alert": alert.name,
+            "from_level": from_level.value,
+            "to_level": to_level.value,
+            "reason": reason,
+            "takeover_id": takeover.takeover_id,
+        }, ensure_ascii=False))
+        return takeover
+
+    def record_deprecated(
+        self,
+        strategy_id: str,
+        stats: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """策略 deprecated 事件 → P2 通知（不升级，仅记录）
+
+        任务 6 接线点：策略尝试次数 ≥ 阈值且成功率低于红线时调用。
+
+        Args:
+            strategy_id: 被弃用的策略 ID
+            stats: 策略统计（attempt_count/success_rate 等）
+        """
+        notification = AlertNotification(
+            alert_name=f"strategy_deprecated:{strategy_id}",
+            state="acknowledged",
+            severity="info",
+            message=f"修复策略 {strategy_id} 已标记 deprecated（自动弃用）",
+            value=0,
+            threshold=0,
+            labels={"strategy_id": strategy_id},
+            annotations={"stats": str(stats or {})},
+        )
+        try:
+            self._notifier.send(notification)
+        except Exception as e:
+            logger.error("[AlertManager] deprecated 通知发送失败: %s", e)
+        logger.info(json.dumps({
+            "trace_id": get_trace_id(),
+            "module_name": "alert_manager",
+            "action": "strategy_deprecated",
+            "duration_ms": 0,
+            "strategy_id": strategy_id,
+            "stats": stats or {},
+        }, ensure_ascii=False))
+
+    def _on_heal_escalated(self, action: str, reason: str, context: Dict[str, Any]):
+        """自愈验证连续失败回调（任务 2 接线：verify_heal 失败 2 次 → 升级）"""
+        alert = Alert(
+            name=f"heal_verify_failed:{action}",
+            state=AlertState.FIRING,
+            severity=AlertSeverity.WARNING,
+            value=0.0,
+            threshold=0.0,
+            condition="verify_heal_failed_twice",
+            message=f"自愈动作 {action} 连续 2 次验证失败，需人工介入",
+            labels={"heal_action": action},
+            annotations={"context": str(context or {})},
+        )
+        self.escalate(
+            alert,
+            AlertSeverity.CRITICAL,
+            reason or f"自愈验证连续失败: {action}",
+            {"action": action, "context": context or {}, "failure_reason": reason},
+        )
+
+    def _on_takeover_notify(self, record: TakeoverRecord, event: str):
+        """人工接管通知回调（锁外触发：入队通知 / 超时二次通知）"""
+        try:
+            notification = AlertNotification(
+                alert_name=record.alert_name,
+                state="acknowledged" if event == "created" else "escalated",
+                severity="critical",
+                message=(
+                    f"人工接管{'已创建' if event == 'created' else '超时未处置'}: "
+                    f"{record.alert_name} — {record.reason}"
+                ),
+                value=0,
+                threshold=0,
+                labels={"takeover_id": record.takeover_id},
+                annotations={"reason": record.reason},
+            )
+            self._notifier.send_critical(notification)
+        except Exception as e:
+            logger.error("[AlertManager] 接管通知失败: %s", e)
+
+    def get_takeovers(
+        self,
+        status: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict]:
+        """查询人工接管条目（供运维与 web 界面）
+
+        Args:
+            status: 按状态过滤（open/assigned/resolved/timed_out）
+            limit: 返回条数上限
+
+        Returns:
+            接管记录列表
+        """
+        from agent.human_in_the_loop.takeover_queue import TakeoverStatus
+        filter_status = None
+        if status:
+            try:
+                filter_status = TakeoverStatus(status)
+            except ValueError:
+                filter_status = None
+        return self._takeover_queue.list_takeovers(filter_status, limit)
+
     def _send_alert_notification(self, alert: Alert):
         """发送告警通知"""
         try:
@@ -397,6 +632,11 @@ class AlertManager:
     def stop(self):
         """停止告警管理系统"""
         self._running = False
+
+        # 停止人工接管队列（daemon 清扫线程经 bound method 持引用，
+        # 若不停止将阻止实例 GC 回收，防 reset 后 weakref 仍存活）
+        if self._takeover_queue:
+            self._takeover_queue.stop()
 
         # 停止评估器
         if self._evaluator:
