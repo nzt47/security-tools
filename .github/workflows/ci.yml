@@ -775,6 +775,18 @@ jobs:
             -o "python_files=benchmark_*.py" \
             --timeout=300
 
+      - name: 运行单例时序断言（时序敏感单测独立串行）
+        # Why: test_singleton_performance.py 已从 unit-tests 分片移出
+        # （scripts/split_unit_tests.py EXCLUDED），微秒级断言在并行分片
+        # （-n 2）下受共享 runner 调度抢占误报（2026-08-14 CI 实测 3.12
+        # 平台 2605.90us）。本 job 独立串行执行，抗噪兜底双保险。
+        run: |
+          echo "=== 运行单例时序断言（min-of-3）==="
+          pytest tests/unit/test_singleton_performance.py \
+            -v \
+            -o addopts="" \
+            --timeout=120
+
       - name: 运行 L2 性能回归测试
         env:
           L2_SCHEME: sync-serial-path-cache

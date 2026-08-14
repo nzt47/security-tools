@@ -46,6 +46,12 @@ ROOT = Path(__file__).resolve().parent.parent
 # 详见 docs/troubleshooting/observability_ci_failure_report.md
 EXCLUDED = {
     "tests/unit/test_sandbox_multiprocess_boundary.py",
+    # 【变易·R6】时序敏感单测移出并行分片：test_singleton_performance.py 的
+    #   微秒级断言（min-of-3）对共享 runner 调度抢占敏感（2026-08-14 CI 实测
+    #   3.12 平台 2605.90us vs 正常 <100us 误报）。移入 performance-tests job
+    #   独立串行执行，与 ci.yml performance job 的补跑配置必须保持一致。
+    #   排除后该文件不再进入任何 unit shard，避免并行 -n 2 下计时干扰。
+    "tests/unit/test_singleton_performance.py",
 }
 # observability-ci 全项目模式专属排除（ci.yml 的 tests/unit 模式不触及）
 OBSERVABILITY_CI_ONLY = {
