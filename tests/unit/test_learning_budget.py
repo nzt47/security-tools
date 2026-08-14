@@ -173,3 +173,48 @@ def test_module_singleton_lazy_singleton():
     lb3 = get_learning_budget()
     assert lb3 is not lb1
     reset_learning_budget()
+
+
+def test_warn_only_daily_exhausted_no_trip():
+    """warn_only：日预算耗尽仅记录不熔断，正文照常执行，breaker 保持 CLOSED"""
+    lb = _make_budget(mode="warn_only", max_single=0, max_daily=100)
+    executed = []
+    with lb.with_budget("a", estimated_tokens=60):
+        executed.append(1)
+    with lb.with_budget("b", estimated_tokens=60):  # 120 > 100 日预算耗尽（warn_only 放行）
+        executed.append(2)
+    assert executed == [1, 2]
+    status = lb.get_status()
+    assert status["breaker"]["state"] == "closed"
+    assert status["tripped"] is False
+
+
+def test_single_action_limit_checked_before_daily():
+    """分支顺序：单次上限优先于日预算——同时超两者时 reason=single_action_limit 且不熔断"""
+    lb = _make_budget(mode="enforce", max_single=50, max_daily=60)
+    with pytest.raises(LearningBudgetExceeded) as ei:
+        with lb.with_budget("a", estimated_tokens=80):  # 80 > 50（单次）且 0+80 > 60（日预算）
+            raise AssertionError("不应进入正文")
+    assert ei.value.reason == "single_action_limit"
+    assert lb.get_status()["breaker"]["state"] == "closed"  # 分支1 拦截不触发熔断
+
+
+def test_trip_daily_error_isolated():
+    """_trip_daily 内部异常（熔断器挂掉）不影响主链路：仍正常抛预算异常且 reason 正确"""
+    lb = _make_budget(mode="enforce", max_single=1000, max_daily=100)
+
+    class _BrokenBreaker:
+        def allow_request(self):
+            return True  # 模拟 CLOSED 放行（不触发分支2），让流程走到分支3
+
+        def force_open(self):
+            raise RuntimeError("breaker down")
+
+        def record_failure(self):
+            raise RuntimeError("breaker down")
+
+    lb._breaker = _BrokenBreaker()  # 熔断器故障模拟
+    with pytest.raises(LearningBudgetExceeded) as ei:
+        with lb.with_budget("a", estimated_tokens=200):  # 200 < 1000 不触发分支1 → 分支3 日预算耗尽
+            raise AssertionError("不应进入正文")
+    assert ei.value.reason == "daily_exhausted"

@@ -5,6 +5,8 @@
 TASK-02 learning.eval.* 聚合、reset/disabled。
 """
 
+import time
+
 import pytest
 
 from agent.learning_metrics import LearningMetrics
@@ -208,3 +210,49 @@ def test_disabled_records_nothing():
     assert k["workflow_hit_rate"]["interactions"] == 0
     assert k["workflow_hit_rate"]["hits"] == 0
     assert k["token_reuse_rate"]["saved_tokens"] == 0
+
+
+def test_feedback_rating_window_current_vs_previous():
+    """验收：反馈均分按 days 窗口滑动——previous_avg 取自前窗、current_avg 取自当前窗"""
+    lm = LearningMetrics(enabled=True)
+    now = time.time()
+    # 前窗（8~14 天前，仍在 32 天保留窗口内）：4 分 ×5
+    for i in range(5):
+        lm.record_feedback(4, ts=now - (8 + i) * 86400)
+    # 当前窗（7 天内）：5 分 ×5
+    for i in range(5):
+        lm.record_feedback(5, ts=now - i * 86400)
+    t = lm.get_snapshot(days=7)["kpis"]["feedback_rating_trend"]
+    assert t["window_days"] == 7
+    assert t["count"] == 5          # 仅当前窗计数
+    assert t["current_avg"] == 5.0
+    assert t["previous_avg"] == 4.0
+
+
+def test_artifact_delta_all_types_recorded():
+    """验收：沉淀增量固定 6 类（skill/workflow/experience/knowledge_card/reflection/other）逐类计数"""
+    lm = LearningMetrics(enabled=True)
+    for t in ("skill", "workflow", "experience", "knowledge_card", "reflection"):
+        lm.record_artifact(t)
+    lm.record_artifact("unknown_type")  # 未知类型归入 other
+    d = lm.get_snapshot()["kpis"]["artifact_delta"]
+    assert d["skill"] == 1
+    assert d["workflow"] == 1
+    assert d["experience"] == 1
+    assert d["knowledge_card"] == 1
+    assert d["reflection"] == 1
+    assert d["other"] == 1
+    assert set(d.keys()) == {"skill", "workflow", "experience", "knowledge_card", "reflection", "other"}
+
+
+def test_workflow_hit_rate_denominator_is_interactions():
+    """口径：workflow 命中率分母是交互总数（record_interaction），而非 workflow 查询数"""
+    lm = LearningMetrics(enabled=True)
+    lm.record_interaction()
+    lm.record_interaction()
+    lm.record_workflow_match(hit=True, saved_tokens=100)  # 1 次查询 1 次命中
+    lm.record_workflow_match(hit=False)                   # 1 次查询 0 次命中
+    w = lm.get_snapshot()["kpis"]["workflow_hit_rate"]
+    assert w["interactions"] == 2
+    assert w["hits"] == 1
+    assert w["rate"] == pytest.approx(0.5)
