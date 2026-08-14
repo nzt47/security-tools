@@ -6,6 +6,46 @@
 
 ---
 
+## [CHG] - 2026-08-14: TASK-04 知识→技能沉淀管道（连接器 + 定时调度 + 发布强制审核链）✅
+
+**影响模块**: `agent/knowledge/skill_bridge.py`（新增）, `agent/knowledge/__main__.py`, `agent/skills_mgmt/precipitate.py`（新增）, `agent/skills_mgmt/review_gate.py`（新增）, `agent/skills_mgmt/service.py`, `agent/server_routes/routes_skills_mgmt.py`, `agent/skills_mgmt/memory_abstractor.py`, `config.yaml`, `scripts/deploy_task04.py`（新增）, `scripts/check_cli_parser.py`（新增）, `scripts/check_worktree_parser.py`（新增）, `.pre-commit-config.yaml`
+**关联文档**: `docs/zh/智能体学习机制重构计划/变更说明/TASK-04_变更说明.md`
+**测试文件**: `tests/unit/test_knowledge_skill_bridge.py`, `tests/unit/test_precipitate_scheduler.py`, `tests/unit/test_review_enforcement.py`, `tests/unit/test_skill_bridge.py`, `tests/unit/test_precipitate_integration.py`（24 用例）
+
+### Added — 连接器（Step 1）
+
+- **`knowledge/skill_bridge.py`**：`KnowledgeSkillBridge` 把可转换知识卡片（`status=current` 且 `metadata.distilled=True`）转为 Skill DRAFT——复用 `creator.AIAssistedGenerator`（LLM 不可用模板降级）+ `DuplicateDetector` 去重（Jaccard≥0.7 + 内容哈希）→ `_commit_new_skill` 落盘 → 写回 `converted_to_skill` 幂等标记 → KPI `record_artifact("skill")`
+- **CLI**：`python -m agent.knowledge convert-cards [--dry-run] [--wiki PATH] [--skills-store PATH]`（dry-run 只预览不落盘）
+
+### Added — 定时调度（Step 2）
+
+- **`skills_mgmt/precipitate.py`**：`PrecipitateScheduler` 接线 `memory_abstractor.abstract_new_skills`，复用 `task_scheduler.add_interval_task`（与 offline_evolver.schedule 同模式）。默认关闭（`learning.precipitate_enabled=false`）；开启后 `auto_register` 强制 False；质量门控通过的草稿仅写审计日志（`event=precipitate_draft`）+ KPI，**不落盘不注册**
+- **`memory_abstractor.py`**：补草稿流程排查日志（入口参数 / max_skills 截断跳过 cluster_id 列表 / 各数据源计数）
+
+### Added — 发布强制审核链（Step 3）
+
+- **`skills_mgmt/review_gate.py`**：`enforce_review`（无 PASSED ReviewResult 抛 `SkillReviewError`）+ `audit_exemption`（豁免发布审计日志）
+- **`service.publish()`**：终态/驳回态拒绝 → 强制审核 → 置 PUBLISHED；`enforce_before_publish` 默认 true，`false`/`force=True` 显式豁免必须写审计日志
+- **HTTP 路由**：`POST /api/skills-mgmt/<skill_id>/publish?force=&reason=`
+- **部署/防线脚本**：`deploy_task04.py`（一键应用/验证，四段校验）、`check_cli_parser.py`（AST 符号级 parser 注册一致性）、`check_worktree_parser.py` + `.git/hooks/post-checkout`（worktree 切换自动检测，WARN 不阻断）、`.pre-commit-config.yaml` 新增 `cli-parser-register-check`
+
+### Changed — 配置（config.yaml，含中文注释）
+
+- `learning.precipitate_enabled: false`（env `LEARNING_PRECIPITATE_ENABLED` 覆盖）
+- `learning.precipitate.interval_hours: 24` / `learning.precipitate.audit_file: ./data/precipitate_audit.jsonl`
+- `skills_mgmt.review.enforce_before_publish: true`（env `SKILLS_REVIEW_ENFORCE_PUBLISH` 覆盖）
+- `skills_mgmt.review.audit_file: ./data/skills_mgmt_review_audit.jsonl`
+
+### 验证结果
+
+- 新增 5 测试文件 24 用例全绿（含 mock 验证固化的 `test_skill_bridge` 3 用例 + 集成 `test_precipitate_integration` 2 用例）
+- **全量 `tests/unit`（seed=20260814）**：11381 passed / 296 skipped / 13 xfailed / 7 failed / 1 error（39:02）；7 failed 单独重跑 128 passed 全转绿，判定已知环境噪音（K13 ast/linecache 漂移、T-4 reload 顺序污染）；1 error 属并行会话 untracked 测试文件，与本任务零关联
+- `deploy_task04.py` 终验多次 ALL PASS（期间并行会话 10 次覆盖接线均已恢复，末次终验 4/4 全过）
+- `check_cli_parser.py`：正例 PASS / 冲突注入 FAIL（exit 1）精确拦截；post-checkout 真实 checkout 触发验证（冲突场景日志记录 `[WARN]+exit=1`）
+- `python -m agent.observability.arch_rules --check`：0 未豁免违规；pre-commit `cli-parser-register-check` Passed
+
+---
+
 ## [CHG] - 2026-08-13: 中危 12 处 + 低危 7 处并发风险收口（回调快照遍历 / 单例 DCL / 统计计数加锁 / 锁外 logger 与 I/O）+ 并发测试 ✅
 
 **影响模块**: `agent/monitoring/performance.py`, `business_metrics.py`, `alert_evaluator.py`, `alert_manager.py`, `chaos_injector.py`, `observability_optimizations.py`, `self_healer.py`, `loki.py`, `utils.py`, `agent/log_system/optimized_storage.py`, `safe_logger.py`, `storage.py`, `introspection.py`, `agent/logging_utils.py`, `agent/utils/decision_logger.py`, `index_manager.py`, `agent/server_routes/routes_logging.py`, `agent/llm_response_cache.py`
