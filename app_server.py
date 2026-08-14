@@ -4903,6 +4903,14 @@ if __name__ == "__main__":
             func=lambda: None,  # 占位，实际由 _heartbeat_func 处理
             interval_seconds=60,
         )
+        # TASK-05 学习类定时任务统一注册（feedback_agent 每日 / 周级进化 / 生命周期检查）
+        # 各任务按 config learning.*.enabled 独立开关（默认关闭，安全底线；调度触发默认 dry-run）
+        try:
+            from agent.skills_mgmt.learning_scheduler import register_learning_schedulers
+            learning_tasks = register_learning_schedulers()
+            print(f"✅ TASK-05 学习类定时任务注册: {learning_tasks}")
+        except Exception as e:
+            print(f"⚠️ TASK-05 学习类定时任务注册失败（不阻断主流程）: {e}")
         scheduler.start_daemon(check_interval=10)
         print("✅ 定时任务调度器已启动 (daemon)")
     except Exception as e:

@@ -77,6 +77,47 @@ learning:
     interval_hours: 24
     # 沉淀草稿审计日志（JSONL，质量门控通过的草稿逐条留痕）
     audit_file: ./data/precipitate_audit.jsonl
+  # TASK-05：反馈建议自动执行体调度开关（安全底线）
+  # true：注册每日反馈建议执行任务（默认 dry-run 只预演，正式写操作需
+  # dry_run=false；正式执行前 bump_version 打快照可回滚，动作写审计日志）
+  # 环境变量 LEARNING_FEEDBACK_AGENT_ENABLED 覆盖此值
+  feedback_agent:
+    enabled: true
+    # 反馈建议执行任务间隔（小时），默认 24（每日一次）
+    interval_hours: 24
+    # dry-run 默认 true（不可变约束：默认不产生任何写操作/状态变更）
+    dry_run: true
+    # 反馈动作审计日志（JSONL：skill_id/action/原因/结果/快照版本）
+    audit_file: ./data/feedback_agent_audit.jsonl
+  # TASK-05：offline_evolver 周期进化调度开关（安全底线）
+  # true：注册周级进化任务（每周一次，默认 dry-run 只预演候选；提交门槛
+  # 保持 improvement>=0.05，产 BatchEvolutionReport 审计 + 进化采纳率 KPI）
+  # 环境变量 LEARNING_EVOLVER_ENABLED 覆盖此值
+  evolver:
+    enabled: true
+    # 周期进化间隔（天），默认 7（每周一次）
+    interval_days: 7
+    # dry-run 默认 true（不可变约束：默认零提交/零 KPI/零审计）
+    dry_run: true
+    # 周期进化批次审计日志（JSONL：BatchEvolutionReport 摘要）
+    audit_file: ./data/evolution_schedule_audit.jsonl
+  # TASK-05：Skill 生命周期自动淘汰开关（安全底线）
+  # true：注册每日生命周期检查任务（零使用 N 天判定器：PUBLISHED 闲置超
+  # unused_days → DEPRECATED；DEPRECATED 闲置超 archive_days → ARCHIVED；
+  # 默认 dry-run 只报告不迁移，仅状态迁移不删文件）
+  # 环境变量 LEARNING_LIFECYCLE_ENABLED 覆盖此值
+  lifecycle:
+    enabled: true
+    # 生命周期检查任务间隔（小时），默认 24（每日一次）
+    interval_hours: 24
+    # PUBLISHED 闲置天数超阈值 → DEPRECATED（默认 90）
+    unused_days: 90
+    # DEPRECATED 闲置天数超阈值 → ARCHIVED（默认 180）
+    archive_days: 180
+    # dry-run 默认 true（不可变约束：默认不迁移/不写审计）
+    dry_run: true
+    # 生命周期迁移审计日志（JSONL：skill_id/from_status/to_status/闲置天数）
+    audit_file: ./data/skill_lifecycle_audit.jsonl
 tools:
   enabled: true
   timeout: 30
