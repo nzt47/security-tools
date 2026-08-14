@@ -59,6 +59,10 @@ def _wire_orch(**overrides):
         # _output_guard 是只读 property（懒加载 _guardrails_output_guard），直接设底层属性
         "_guardrails_output_guard": MagicMock(check=lambda x: OutputResult(filtered=x)),
         "_workflow_engine": MagicMock(try_match=lambda x: None),
+        # 【变易】遮蔽 workflow 学习层（_WFL_DEFAULTS.enabled=True 会真实创建
+        #   WorkflowLearningService，CI 冷缓存下 skills 索引懒构建 ~5s 污染 elapsed；
+        #   本测试只验证 wire 分支，该层与断言无关，disabled 跳过）
+        "_load_workflow_learning_layer_config": lambda: {"enabled": False, "min_score": 0.25},
         "_memory": MagicMock(),
         "_behavior": behavior,
         "_build_body_status": MagicMock(return_value="Body status"),

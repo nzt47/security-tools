@@ -8,6 +8,7 @@ iteration），add 的 df 读-改-写丢计数。修复后：WorkflowMatcher 公
 """
 
 import threading
+import time
 
 from agent.workflow_learning.matcher import WorkflowMatcher
 from agent.workflow_learning.models import LearnedWorkflow
@@ -65,7 +66,6 @@ class TestWorkflowMatcherConcurrency:
         matcher = WorkflowMatcher()
         for i in range(30):
             matcher.register(_make_wf(f"seed-{i}", f"seedkw{i}"))
-        stop = threading.Event()
         errors = []
 
         def writer(tid):
@@ -76,10 +76,15 @@ class TestWorkflowMatcherConcurrency:
                 errors.append(e)
 
         def reader(_):
+            # 有界循环 + 让步：4 reader 无限循环高频抢 RLock（锁内每次 dirty 触发
+            # _rebuild O(N)），会饿死 4 writer（CI 慢机 60s t.join 超时复现，本地
+            # 2.46s 通过——纯调度时序，非并发正确性缺陷）。有界 500 轮仍保留
+            # "读写并发不抛 RuntimeError"的验证语义，且 writer 必然能拿到锁。
             try:
-                while not stop.is_set():
+                for _ in range(500):
                     matcher.match("匹配任务 seedkw0 wkw1 2")
                     matcher.match("匹配任务 其他文本")
+                    time.sleep(0)  # 让出 GIL，给 writer 抢占锁的机会
             except Exception as e:  # pragma: no cover
                 errors.append(e)
 
@@ -89,7 +94,6 @@ class TestWorkflowMatcherConcurrency:
             t.start()
         for t in writers:
             t.join()
-        stop.set()
         for t in readers:
             t.join()
 
