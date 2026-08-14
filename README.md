@@ -495,6 +495,27 @@ python -m agent.knowledge audit --wiki knowledge/wiki --no-email --verbose
 
 ## 版本历史
 
+### TASK-04 知识→技能沉淀管道 (2026-08-14) ✅
+
+**状态**: 已提交 develop | **影响模块**: `agent/knowledge/skill_bridge.py`, `agent/skills_mgmt/precipitate.py`, `agent/skills_mgmt/review_gate.py`, `agent/skills_mgmt/service.py`, `config.yaml`
+
+知识卡片 → Skill DRAFT 沉淀管道（连接器 + 定时调度 + 发布强制审核链），完整条目见 [CHANGELOG.md](CHANGELOG.md)。
+
+#### 核心变更
+
+| 类别 | 内容 |
+|------|------|
+| 连接器 (Step 1) | `KnowledgeSkillBridge`：approved 卡片（`status=current` + `distilled=True`）→ Skill DRAFT；LLM 不可用模板降级、`DuplicateDetector` 去重（Jaccard≥0.7 + 内容哈希）、`converted_to_skill` 幂等标记、KPI；CLI `python -m agent.knowledge convert-cards [--dry-run]` |
+| 定时调度 (Step 2) | `PrecipitateScheduler` 接线 `memory_abstractor.abstract_new_skills`（复用 `task_scheduler.add_interval_task`）；默认关闭，开启后 `auto_register` 强制 False，质量门控草稿仅审计 + KPI，不落盘不注册 |
+| 发布强制审核链 (Step 3) | `review_gate.enforce_review`（无 PASSED 审核抛 `SkillReviewError`）+ 豁免审计；`service.publish()` 终态/驳回态拒绝 + 强制审核；HTTP `POST /api/skills-mgmt/<skill_id>/publish?force=&reason=` |
+| 防线脚本 | `deploy_task04.py` 一键终验（四段校验）、`check_cli_parser.py`（AST 符号级 parser 注册一致性）、`check_worktree_parser.py` + post-checkout 钩子、pre-commit `cli-parser-register-check` |
+
+#### 验证结果
+
+- **核心模块覆盖率**（`--cov` 实测）：`skill_bridge.py` **100%** / `precipitate.py` **99%** / `review_gate.py` **100%**（TOTAL 99%，远超历史 80%+ 惯例）
+- 新增 24 用例全绿；`tests/unit` 全量（seed=20260814）11381 passed（7 failed 单独重跑全绿，判定已知环境噪音）
+- `deploy_task04.py` 多次 ALL PASS；`python -m agent.observability.arch_rules --check` 0 未豁免违规
+
 ### v1.2.0 (2026-07-14) ✅ 已发布
 
 **Tag**: `v1.2.0` | **PR**: #9 (已合并) | **质量评级**: B+ | **状态**: 已发布 (origin + gitee)

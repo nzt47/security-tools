@@ -860,3 +860,40 @@ def test_import_from_dir_validate_failure(store, tmp_path):
     assert result.imported == 1 and result.failed == 1
     assert result.failures[0][0] == "bad.md"
     assert "卡片校验失败" in result.failures[0][1]
+
+
+# ---------- CSafeLoader 探针兼容（2026-08-14 回归） ----------
+
+
+def test_md_to_card_fallback_when_csafe_loader_fails(monkeypatch, store):
+    """coverage/探针下 CSafeLoader 误报异常 → 回退纯 Python SafeLoader 解析成功。
+
+    Why（2026-08-14 实测）: pytest --cov（coverage CTracer）下 libyaml C 扩展
+    解析合法 frontmatter 会抛 "could not determine a constructor for the tag None"；
+    且此时抛出的异常是 _yaml 内部固化的副本类（isinstance(exc, yaml.YAMLError)
+    == False），用 except yaml.YAMLError 匹配不到。修复后 C 扩展失败统一回退
+    SafeLoader，两者对同一 frontmatter 输出 dict 完全一致。
+    """
+    import yaml as _yaml
+
+    if getattr(_yaml, "CSafeLoader", None) is None:
+        pytest.skip("无 libyaml C 扩展，回退路径无需测试")
+    store.create(make_card("回退解析", content="正文"))
+    path = store._find_path("回退解析")
+    assert path is not None
+
+    class _BrokenCLoader(_yaml.CSafeLoader):
+        """模拟 coverage 下 C 加载器误报：实例化即抛非 YAMLError 异常。
+
+        Why 抛 RuntimeError 而非 YAMLError: 真实 cov 环境抛的是 _yaml 内部副本
+        异常类（不满足 isinstance yaml.YAMLError），必须用非 YAMLError 子类异常
+        才能固化"except yaml.YAMLError 捕获不到"这条回归路径。
+        """
+
+        def __init__(self, *a, **kw):
+            raise RuntimeError("simulated coverage break")
+
+    monkeypatch.setattr(_yaml, "CSafeLoader", _BrokenCLoader)
+    parsed = store._md_to_card(path)
+    assert parsed.slug == "回退解析"
+    assert parsed.content == "正文"
