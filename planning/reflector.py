@@ -207,6 +207,8 @@ class Reflector:
         self.reflection_history: List[Dict] = []
         self.learned_patterns: Dict[str, Any] = {}
         self.learned_lessons: Dict[str, Any] = {}
+        # 失败反思路径统计：LLM 路径 vs 规则兜底路径（混合异常场景下可观测触发比例）
+        self._failure_reflect_stats: Dict[str, int] = {"llm": 0, "fallback": 0}
         
         self.experiences: List[Experience] = []
         self.lessons_db: List[Lesson] = []
@@ -663,10 +665,13 @@ class Reflector:
             reflection = None
         if reflection is None:
             reflection = self._rule_based_failure_reflect(diagnosis)
+            self._failure_reflect_stats["fallback"] += 1
             logger.info(
                 f"[失败反思#{attempts}] 步骤1/3 规则兜底完成"
                 f" | 产出={'有效' if reflection else '无'}"
             )
+        else:
+            self._failure_reflect_stats["llm"] += 1
         if reflection is None:
             logger.info("[失败反思] 无兜底产出（repair_hints 为空），跳过反思注入")
             return None
@@ -694,10 +699,15 @@ class Reflector:
             f" | reflection_history={len(self.reflection_history)}"
         )
 
+        total = self._failure_reflect_stats["llm"] + self._failure_reflect_stats["fallback"]
+        llm_pct = 100.0 * self._failure_reflect_stats["llm"] / total if total else 0.0
         logger.info(
             f"[失败反思#{attempts}] 完成"
             f" | root_cause={diagnosis.root_cause}"
             f" | repair_actions={diagnosis.repair_actions}"
+            f" | 路径统计: llm={self._failure_reflect_stats['llm']}"
+            f" fallback={self._failure_reflect_stats['fallback']}"
+            f" (LLM占比 {llm_pct:.0f}%)"
         )
         return diagnosis
 
