@@ -58,6 +58,25 @@ learning:
   # 默认 false（观察）：execute_plan 收尾仅记录调用意图日志；true 才实际调 learn_from_experience 落盘
   # 环境变量 LEARNING_EXPERIENCE_PERSIST 覆盖此值
   experience_persist: false
+  # TASK-03：学习动作成本预算护栏（把 configs/models.yaml cost_limits 从"声明"变为"可执行"）
+  # mode=warn_only（默认，宽松）：超限仅记录 WARNING 不拦截，防止上线即改行为；
+  # mode=enforce：超过单次上限/日预算的学习动作被拒绝并告警（LearningBudgetExceeded）
+  # 优先级：环境变量 > config.yaml > models.yaml cost_limits > 硬编码默认值
+  budget:
+    mode: warn_only
+    max_single_action_tokens: 4000
+    max_daily_tokens: 1000000
+    recovery_seconds: 3600
+  # TASK-04：知识→技能沉淀管道调度开关（安全底线，默认关闭）
+  # 默认 false：不注册 memory_abstractor 定时沉淀任务；true 才注册（产物仅 DRAFT+审计+KPI，绝不自动注册）
+  # 环境变量 LEARNING_PRECIPITATE_ENABLED 覆盖此值
+  precipitate_enabled: false
+  # TASK-04：沉淀定时任务间隔（小时），默认 24（每日一次）
+  # 环境变量 LEARNING_PRECIPITATE_INTERVAL_HOURS 覆盖此值
+  precipitate:
+    interval_hours: 24
+    # 沉淀草稿审计日志（JSONL，质量门控通过的草稿逐条留痕）
+    audit_file: ./data/precipitate_audit.jsonl
 tools:
   enabled: true
   timeout: 30
@@ -502,6 +521,15 @@ skills_mgmt:
     quality_min: 50
     # 综合分下限：低于此值则拒绝
     overall_min: 60
+
+  # TASK-04：发布强制审核链（默认强制，安全底线）
+  # true（默认）：publish 前必须存在 PASSED 的 ReviewResult（三维评分达标），否则拒绝并提示先 review；
+  # false（显式豁免）：允许跳过，但必须写审计日志（audit_file）记录"豁免发布"。
+  # 环境变量 SKILLS_REVIEW_ENFORCE_PUBLISH 覆盖此值
+  review:
+    enforce_before_publish: true
+    # 豁免发布审计日志（JSONL，逐条留痕）
+    audit_file: ./data/skills_mgmt_review_audit.jsonl
 
   # 安装器配置
   installer:
