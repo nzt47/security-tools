@@ -739,7 +739,10 @@ class Reflector:
             f"[失败反思#{attempts}] 分支: LLM 返回 | response_len={len(str(response))}"
             f" | response={str(response)[:120]}"
         )
-        self._bill_llm(prompt, response)
+        # TD-4 记账（master 无 budget_manager 基础时跳过，不阻断反思）
+        bill = getattr(self, "_bill_llm", None)
+        if bill is not None:
+            bill(prompt, response)
         try:
             data = json.loads(response)
         except (json.JSONDecodeError, TypeError, ValueError):
