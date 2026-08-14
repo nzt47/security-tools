@@ -2,6 +2,7 @@
 
 import pytest
 import json
+import logging
 from unittest.mock import AsyncMock, MagicMock
 from planning.react import ReActLoop, ReActStep, ReActResult, ThoughtResult
 from planning.executor import ToolRegistry
@@ -671,3 +672,152 @@ class TestLoopTerminationCoreP1:
         assert result.used_planning is True
         assert "我遇到了一些问题: 工具调用失败" in result.response
         core.react_loop.run.assert_awaited_once()
+
+
+class TestSnapshotIntegration:
+    """任务5 步骤3：迭代头快照 + 反思超限还原重试（C1-C12 核心场景）
+
+    公共装置：registry 注册 bad_tool（恒失败）；mock LLM 序列可复现失败→还原→重试。
+    """
+
+    @staticmethod
+    def _loop(mock_llm, mock_reflector, tmp_path, **config):
+        registry = ToolRegistry()
+        registry.register("bad_tool", lambda: (_ for _ in ()).throw(Exception("boom")))
+        mock_planner = MagicMock()
+        mock_planner.tool_registry = registry
+        mock_planner.llm = mock_llm
+        return ReActLoop(mock_planner, mock_reflector, max_iterations=6,
+                         config={"reflection_retries": 1, "snapshot_root": str(tmp_path), **config})
+
+    @staticmethod
+    def _tool_call(reasoning):
+        return json.dumps({"reasoning": reasoning, "action_type": "tool_call",
+                           "action": {"tool": "bad_tool", "params": {}, "description": "调用bad_tool"}})
+
+    @staticmethod
+    def _reflection():
+        r = MagicMock()
+        r.repair_actions = ["换思路"]
+        return r
+
+    @pytest.mark.asyncio
+    async def test_restore_retry_once_success(self, tmp_path, caplog):
+        """C2/C11：反思超限 → 快照还原 → 重试一轮成功；steps 完整记录失败步骤"""
+        caplog.set_level(logging.INFO)
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            self._tool_call("试工具"),
+            self._tool_call("再试工具"),
+            json.dumps({"reasoning": "完成", "action_type": "finish",
+                        "result": "成功完成", "confidence": 0.9}),
+        ]
+        mock_reflector = MagicMock()
+        mock_reflector.failure_reflect = AsyncMock(return_value=self._reflection())
+
+        loop = self._loop(mock_llm, mock_reflector, tmp_path)
+        result = await loop.run("失败后还原重试", {"session_id": "sess_c2"})
+
+        assert result.success is True
+        assert result.iterations == 3                 # 2 失败 + 1 finish
+        assert len(result.steps) == 2                 # finish 不 append（既有行为），失败步骤完整
+        assert all(not s.success for s in result.steps)
+        assert "snapshot_restored" in caplog.text     # 验收7：还原日志含标记
+        assert mock_reflector.failure_reflect.await_count == 1  # 超限轮不再反思
+
+    @pytest.mark.asyncio
+    async def test_restore_only_once(self, tmp_path, caplog):
+        """C4：还原后重试仍失败 → 不再二次还原（_restore_attempted 拦截）"""
+        caplog.set_level(logging.INFO)
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            self._tool_call("第1次"),
+            self._tool_call("第2次"),     # 超限 → 还原 → continue
+            self._tool_call("第3次"),     # 重试仍失败，反思计数重置后第 1 次
+            self._tool_call("第4次"),     # 反思超限，但 _restore_attempted=True → 升级
+        ]
+        mock_reflector = MagicMock()
+        mock_reflector.failure_reflect = AsyncMock(return_value=self._reflection())
+
+        loop = self._loop(mock_llm, mock_reflector, tmp_path)
+        result = await loop.run("还原一次", {"session_id": "sess_c4"})
+
+        assert result.success is False
+        # 还原动作仅一次（日志含两条 snapshot_restored 标记：还原动作 + 主循环重试确认，
+        # 故统计"已回滚到最近快照"动作日志而非标记本身）
+        assert caplog.text.count("已回滚到最近快照") == 1
+
+    @pytest.mark.asyncio
+    async def test_snapshot_every_step_disabled(self, tmp_path):
+        """C7：snapshot_every_step=False → 零行为变化、不产生快照文件"""
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [json.dumps({"reasoning": "直接完成", "action_type": "finish",
+                                                 "result": "ok", "confidence": 0.9})]
+        mock_reflector = MagicMock()
+
+        loop = self._loop(mock_llm, mock_reflector, tmp_path, snapshot_every_step=False)
+        result = await loop.run("关闭快照", {"session_id": "sess_c7"})
+
+        assert result.success is True
+        assert not (tmp_path / "sess_c7").exists()      # 未创建快照目录
+
+    @pytest.mark.asyncio
+    async def test_restore_retry_disabled(self, tmp_path, caplog):
+        """C8：restore_retry=False → 反思超限直接升级，不还原"""
+        caplog.set_level(logging.INFO)
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            self._tool_call("第1次"),
+            self._tool_call("第2次"),     # 超限但 restore_retry=False → 升级，无 continue
+            json.dumps({"reasoning": "完成", "action_type": "finish",
+                        "result": "ok", "confidence": 0.9}),
+        ]
+        mock_reflector = MagicMock()
+        mock_reflector.failure_reflect = AsyncMock(return_value=self._reflection())
+
+        loop = self._loop(mock_llm, mock_reflector, tmp_path, restore_retry=False)
+        result = await loop.run("关闭还原", {"session_id": "sess_c8"})
+
+        assert result.success is True
+        assert "snapshot_restored" not in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_no_snapshot_available_falls_to_upgrade(self, tmp_path):
+        """C10：无可用快照（save 全失败）→ 超限走升级路径，不炸"""
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            self._tool_call("第1次"),
+            self._tool_call("第2次"),     # 超限 → restore_snapshot(None) → None → 升级
+            json.dumps({"reasoning": "完成", "action_type": "finish",
+                        "result": "ok", "confidence": 0.9}),
+        ]
+        mock_reflector = MagicMock()
+        mock_reflector.failure_reflect = AsyncMock(return_value=self._reflection())
+
+        blocker = tmp_path / "blocker"
+        blocker.write_text("x")           # 文件占用 snapshot_root → save 全失败
+        loop = self._loop(mock_llm, mock_reflector, tmp_path, snapshot_root=str(blocker))
+        result = await loop.run("无快照", {"session_id": "sess_c10"})
+
+        assert result.success is True      # 升级路径不阻断，后续 finish 成功
+
+    @pytest.mark.asyncio
+    async def test_snapshot_failure_not_blocking(self, tmp_path, caplog):
+        """C1：快照写入失败 → 主循环继续且仅告警一次（验收5）"""
+        caplog.set_level(logging.INFO)
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            self._tool_call("第1次"),
+            json.dumps({"reasoning": "完成", "action_type": "finish",
+                        "result": "ok", "confidence": 0.9}),
+        ]
+        mock_reflector = MagicMock()
+        mock_reflector.failure_reflect = AsyncMock(return_value=self._reflection())
+
+        blocker = tmp_path / "blocker"
+        blocker.write_text("x")
+        loop = self._loop(mock_llm, mock_reflector, tmp_path, snapshot_root=str(blocker))
+        result = await loop.run("快照失败", {"session_id": "sess_c1"})
+
+        assert result.success is True
+        assert caplog.text.count("快照保存失败") == 1   # 仅告警一次

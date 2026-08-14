@@ -7,6 +7,7 @@ import asyncio
 import inspect
 import json
 import logging
+from pathlib import Path
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
@@ -17,6 +18,7 @@ from .budget import BudgetManager, BudgetStatus, PlanBudget
 from .reflector import format_advice_section, classify_task, Lesson
 from .diagnostics import build_diagnosis
 from .loop_detector import LoopDetector
+from .context_snapshot import save_snapshot, restore_snapshot
 
 from agent.monitoring.tracing import get_trace_id
 
@@ -109,6 +111,14 @@ class ReActLoop:
             max_repeats=self.loop_max_repeats,
             window=self.loop_window,
         )
+        # 任务5 步骤3：轻量上下文快照接入配置——snapshot_every_step 默认开启可关、
+        # restore_retry 反思超限后还原重试一次；配置缺省保持旧行为（不易）
+        self.snapshot_every_step = bool(self.config.get("snapshot_every_step", True))
+        self.restore_retry = bool(self.config.get("restore_retry", True))
+        self._snapshot_root = Path(str(self.config.get("snapshot_root", "data/snapshots")))
+        self._restore_attempted = False      # 还原重试每任务仅一次（防还原-再失败死循环）
+        self._snapshot_warned = False        # 快照保存失败仅告警一次（验收5）
+        self._latest_snapshot_id: Optional[str] = None
         self._token_used = 0
         self._cost = 0.0
         # 阶段 3（D13）：统一预算管理器（嵌套 budget 段优先，兼容直连键
@@ -156,6 +166,10 @@ class ReActLoop:
         # 任务5：状态哈希循环检测每任务重置（防跨任务状态污染）；命中时记录解释性摘要
         self._loop_detector.reset()
         loop_summary: Optional[str] = None
+        # 任务5 步骤3：快照相关状态每任务重置（防跨任务串味）
+        self._restore_attempted = False
+        self._snapshot_warned = False
+        self._latest_snapshot_id = None
 
         logger.info("══════════════════════════════════════════════════════════════════")
         logger.info("🔄 [ReAct循环] =================================================")
@@ -199,6 +213,25 @@ class ReActLoop:
             logger.info(f"🔁 [迭代 {iteration + 1}/{self.max_iterations}] ────────────────")
             logger.info(f"🔁 [迭代 {iteration + 1}] 开始时间: {iter_start.strftime('%H:%M:%S.%f')[:-3]}")
             logger.info(f"🔁 [迭代 {iteration + 1}] 当前步骤数: {len(steps)}")
+
+            # 任务5 步骤3：迭代头保存上下文快照（旁路观测——每轮开始时的状态，
+            # 供反思超限后 restore_snapshot 还原重试；失败仅告警一次不阻断，验收5；
+            # snapshot_every_step=False 时零行为变化）
+            if self.snapshot_every_step:
+                sid = save_snapshot(
+                    session_id=str(context.get("session_id")) or f"react_{get_trace_id()}",
+                    step_index=iteration,
+                    task=task,
+                    context=context,
+                    steps=steps,
+                    token_used=self._token_used,
+                    snapshot_root=self._snapshot_root,
+                )
+                if sid:
+                    self._latest_snapshot_id = sid
+                elif not self._snapshot_warned:
+                    self._snapshot_warned = True
+                    logger.warning("   ⚠️ [context_snapshot] 快照保存失败（已忽略，不阻断主循环）")
 
             try:
                 logger.info("   ┌──────────────────────────────────────────────────────────┐")
@@ -331,7 +364,13 @@ class ReActLoop:
                     logger.info("   │ 🧠 步骤3: 失败反思阶段                                  │")
                     logger.info("   └──────────────────────────────────────────────────────────┘")
                     try:
-                        await self._failure_reflect(thought, action_result, task, context)
+                        # 任务5 步骤3：_failure_reflect 返回 "restored" → 快照还原成功。
+                        # 本轮失败步骤已在上文 steps.append 记录（不丢历史，C11），
+                        # continue 用还原后的 context 重试一轮（还原仅一次，
+                        # 受 _restore_attempted 约束，防死循环）
+                        if await self._failure_reflect(thought, action_result, task, context) == "restored":
+                            logger.info("   🔄 [snapshot_restored] 使用还原上下文重试一轮")
+                            continue
                     except Exception as e:
                         # 反思不阻断主循环：异常仅告警（守不易）
                         logger.error(
@@ -647,18 +686,41 @@ class ReActLoop:
             return []
 
     async def _failure_reflect(self, thought: ThoughtResult, action_result: ActionResult,
-                               task: str, context: Dict) -> None:
+                               task: str, context: Dict) -> Optional[str]:
         """任务4（D12）：失败反思——结构化诊断 → reflector.failure_reflect → 注入下一轮。
 
         反思轮数受 reflection_retries 上限约束（D6 收敛），超限终止反思并升级；
         反思不阻断主循环：LLM/教训沉淀异常均仅告警（守不易）。
+
+        任务5 步骤3 扩展返回值：
+        - "restored"：反思超限且快照还原成功（主循环收到后 continue 重试一轮）
+        - None：反思完成 / 走既有升级路径（不阻断）
         """
         if self._failure_reflection_count >= self.reflection_retries:
+            # 任务5 步骤3：反思超限 → 尝试从最近快照还原上下文重试一次（仅一次，
+            # 防"还原-再失败-再还原"死循环；restore_retry=False 或无快照时走升级路径）。
+            # 还原语义：回滚到最近一次迭代头的状态（steps 记录完整，见 run() 注释）。
+            if self.restore_retry and not self._restore_attempted:
+                self._restore_attempted = True
+                # 注意：restore 必须与 save 用同一 snapshot_root（save 在迭代头用
+                # self._snapshot_root 保存；缺省 SNAPSHOT_ROOT 会导致路径不一致找不到）
+                restored = restore_snapshot(self._latest_snapshot_id, snapshot_root=self._snapshot_root) \
+                    if self._latest_snapshot_id else None
+                if restored is not None:
+                    logger.info(
+                        f"   🔄 [snapshot_restored] 已回滚到最近快照，重试一次"
+                        f"（原因: 反思超限）"
+                    )
+                    context.clear()
+                    context.update(restored)            # 还原第 N 步开始时的状态
+                    self._failure_reflection_count = 0  # 重置计数，防重试轮立即超限
+                    return "restored"
+                logger.warning("   快照还原失败或不可用，继续走既有升级路径（降级/人工）")
             logger.warning(
                 f"   ⚠️ 失败反思轮数达上限({self.reflection_retries})，终止反思并升级"
                 f"（建议上层降级/人工兜底）"
             )
-            return
+            return None
         self._failure_reflection_count += 1
 
         tool_name = thought.action.tool_name if thought.action else None
