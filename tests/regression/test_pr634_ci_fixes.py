@@ -26,6 +26,7 @@
 from __future__ import annotations
 
 import ast
+import re
 import sys
 from pathlib import Path
 
@@ -188,6 +189,14 @@ class TestCoverageChain:
             "验证步骤缺 --entrypoint python，python -c 会被镜像 ENTRYPOINT(pytest) 追加为参数"
         # 该 docker run 之后不能再跟裸 python -c（会被 ENTRYPOINT 吞掉）
         assert "docker run --rm --entrypoint python" in text
+
+    def test_build_timeout_has_headroom(self):
+        """build-image job timeout 须 ≥30min（大镜像构建高负载实测 22min 被 20min 超时 cancel）"""
+        text = self.WORKFLOW.read_text(encoding="utf-8")
+        m = re.search(r"build-image:\s*\n(?:.*\n)*?.*timeout-minutes:\s*(\d+)", text)
+        assert m, "未找到 build-image job 的 timeout-minutes"
+        assert int(m.group(1)) >= 30, \
+            f"build-image timeout={m.group(1)}min 过紧，高负载下构建会被 cancel"
 
 
 # ═══════════════════════════════════════════════════════════════
