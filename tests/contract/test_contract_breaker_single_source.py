@@ -75,11 +75,30 @@ class TestBreakerSingleSourceContract:
 
     @pytest.mark.p0
     def test_status_queries_identical(self):
-        """两套查询接口输出一致（同源保证）"""
+        """两套查询接口输出一致（同源保证）
+
+        【修复·2026-08-14 CI Pact 契约测试失败】
+        两套查询均实时计算 time_since_last_state_change（now - last_state_change），
+        两次调用间存在 µs 级差异（2.5e-05 vs 1.5e-05），dict 全等断言必然失败。
+        契约不变量是「同源一致」（同一注册表、同一字段集合、非时序字段全等），
+        时序字段本就逐次不同，不属契约对比范围，比较前剔除。
+        """
         handler = ErrorHandler()
         register_circuit_breaker("contract_a")
         register_circuit_breaker("contract_b")
-        assert handler.get_circuit_breaker_status() == get_all_circuit_breaker_status()
+
+        status_a = handler.get_circuit_breaker_status()
+        status_b = get_all_circuit_breaker_status()
+
+        def _strip_timing(d: dict) -> dict:
+            return {
+                name: {k: v for k, v in st.items()
+                       if k != "time_since_last_state_change"}
+                for name, st in d.items()
+            }
+
+        assert set(status_a) == set(status_b)
+        assert _strip_timing(status_a) == _strip_timing(status_b)
 
     @pytest.mark.p0
     def test_recovery_uses_public_api_only(self):

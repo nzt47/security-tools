@@ -93,7 +93,9 @@ jobs:
         id: meta
         run: |
           # 生成唯一标签：分支名-短SHA-时间戳
-          BRANCH=$(echo "${{ github.ref }}" | sed 's|refs/heads/||')
+          # 【不易】PR 事件下 github.ref = refs/pull/634/merge，Docker tag 不允许含 '/'
+          # 需同时清洗 refs/heads/ 与 refs/pull/ 前缀，并用 '-' 替换残留 '/'
+          BRANCH=$(echo "${{ github.ref }}" | sed 's|refs/heads/||; s|refs/pull/\([0-9]*\)/merge|PR-\1|; s|/|-|g')
           SHA_SHORT=$(git rev-parse --short=7 HEAD)
           TIMESTAMP=$(date -u +%Y%m%d%H%M)
           TAG="${BRANCH}-${SHA_SHORT}-${TIMESTAMP}"

@@ -20,6 +20,7 @@
 
 import os
 import sys
+import threading
 from unittest.mock import patch, MagicMock, PropertyMock
 
 import pytest
@@ -92,6 +93,10 @@ def _make_mock_orchestrator():
     # 基础状态
     orch._running = True
     orch._interaction_count = 0
+    # 【修复·2026-08-14 CI 集成测试失败】process() 中 `with self._interaction_lock:`
+    # （orchestrator.py 持锁递增 _interaction_count），mock 必须同批注入锁对象，
+    # 否则 AttributeError: 'Orchestrator' object has no attribute '_interaction_lock'
+    orch._interaction_lock = threading.Lock()
     orch._session_id = "test_session"
     orch._last_was_template = False
     orch._last_context_warning = None

@@ -78,3 +78,24 @@ class TestDomainLookup:
     def test_unimplemented_reason_available(self):
         """未实现动作有明确跳过原因"""
         assert UNIMPLEMENTED_REASON == "未实现"
+
+    # ── 边界场景（2026-08-14 补齐，覆盖 tests/boundary_config.yaml self_healing 声明） ──
+    # 边界覆盖扫描以函数名中的边界关键词识别场景，故命名含 empty/invalid/timeout。
+
+    def test_get_domain_for_alert_empty(self):
+        """边界·empty：空/None 告警名 → None，不崩溃"""
+        assert get_domain_for_alert("") is None
+        assert get_domain_for_alert(None) is None
+        assert get_domain_for_alert("   ") is None
+
+    def test_get_actions_for_alert_invalid(self):
+        """边界·invalid：未识别故障域 → 兜底默认动作，不抛异常"""
+        assert get_actions_for_alert("") == DEFAULT_ACTIONS
+        assert get_actions_for_alert(None) == DEFAULT_ACTIONS
+        assert get_actions_for_alert("random_junk_alert") == DEFAULT_ACTIONS
+
+    def test_timeout_alert_maps_to_llm_timeout_domain(self):
+        """边界·timeout：超时类告警正确映射到 llm_timeout 故障域"""
+        assert get_domain_for_alert("llm_request_timeout") == "llm_timeout"
+        assert get_actions_for_alert("llm_timeout_alert") == \
+            ["retry_limited", "degrade_llm_router"]

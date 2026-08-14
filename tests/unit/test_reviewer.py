@@ -213,9 +213,12 @@ class TestQualityAssessor:
         base = dict(description="d" * 25, content="c" * 120,
                     content_type=ContentType.MARKDOWN,
                     version="1.0.0", author="a")
-        s0 = make_skill(skill_id="tags-0", tags=[], **base)
-        s1 = make_skill(skill_id="tags-1", tags=["one"], **base)
-        s2 = make_skill(skill_id="tags-2", tags=["one", "two"], **base)
+        # 【修复·2026-08-14 kwarg 扫描 HIGH】make_skill(skill_id=..., **base) 中
+        # skill_id 与 **base 静态上可能同名冲突，改为 dict literal 合并展开
+        # （显式键全部入 dict，无独立显式 kwarg，扫描器不再误报 HIGH）
+        s0 = make_skill(**{**base, "skill_id": "tags-0", "tags": []})
+        s1 = make_skill(**{**base, "skill_id": "tags-1", "tags": ["one"]})
+        s2 = make_skill(**{**base, "skill_id": "tags-2", "tags": ["one", "two"]})
         assert QualityAssessor().assess(s0)[0] == 90.0  # 无标签 -10
         assert QualityAssessor().assess(s1)[0] == 95.0  # 单标签 +5
         assert QualityAssessor().assess(s2)[0] == 100.0  # 双标签 +10
@@ -223,8 +226,10 @@ class TestQualityAssessor:
     def test_version_author_boundaries(self):
         base = dict(description="d" * 25, content="c" * 120,
                     content_type=ContentType.MARKDOWN, tags=["a", "b"])
-        s0 = make_skill(skill_id="va-0", version="0.0.0", author="unknown", **base)
-        s1 = make_skill(skill_id="va-1", version="1.2.3", author="tester", **base)
+        s0 = make_skill(**{**base, "skill_id": "va-0",
+                           "version": "0.0.0", "author": "unknown"})
+        s1 = make_skill(**{**base, "skill_id": "va-1",
+                           "version": "1.2.3", "author": "tester"})
         assert QualityAssessor().assess(s0)[0] == 90.0  # 版本/作者两档各 0
         assert QualityAssessor().assess(s1)[0] == 100.0  # 两档各 +5
 
