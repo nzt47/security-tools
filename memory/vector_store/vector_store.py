@@ -189,7 +189,14 @@ def _get_shared_encoder(model_name: str) -> Optional[Any]:
             encoder = SentenceTransformer(model_name)
             _shared_encoder_cache[model_name] = encoder
             return encoder
-        except Exception:
+        except Exception as e:
+            # 【变易】异常必须可见：此前 except Exception 静默吞掉加载异常，
+            # 容器内模型缓存完整但加载失败时无任何 traceback，CI 无法定位根因。
+            # 修复点 16：带异常详情+完整堆栈输出，供诊断（如 HF 离线模式路径
+            # 不匹配、模型文件损坏、torch/ST 版本不兼容等）。
+            logger.warning(
+                "编码器加载失败(model=%s): %r，降级 json 后端", model_name, e, exc_info=True
+            )
             return None
 
 

@@ -398,3 +398,31 @@ class TestPredownloadCachePathGuard:
             "SENTENCE_TRANSFORMERS_HOME 必须指向 hub_cache（cache_dir/hub）"
         assert 'hub_cache = cache_dir / "hub"' in text, "_set_cache_env 须定义 hub_cache = cache_dir / \"hub\""
 
+
+class TestEncoderLoadErrorVisible:
+    """_get_shared_encoder 加载异常必须可见（修复点 16）
+
+    此前 `except Exception: return None` 静默吞掉 SentenceTransformer(model_name)
+    的加载异常：L3 容器内模型缓存完整（_is_model_fully_cached=True）但编码器仍
+    降级 json（"expected sqlite_vec, got json"），日志无任何 traceback，无法定位
+    根因。修复：except 分支须输出异常详情 + exc_info=True 完整堆栈。
+    """
+
+    VSTORE = PROJECT_ROOT / "memory" / "vector_store" / "vector_store.py"
+
+    def test_except_logs_exception_details(self):
+        text = self.VSTORE.read_text(encoding="utf-8")
+        assert "logger.warning" in text, "except 分支必须输出 warning 日志"
+        assert "exc_info=True" in text, \
+            "except 分支必须带 exc_info=True（否则无完整堆栈，异常细节仍不可见）"
+        assert "编码器加载失败" in text, "日志须含可检索的失败标记"
+
+    def test_except_returns_none_after_logging(self):
+        """加日志不得破坏原降级语义：异常后仍返回 None（调用方降级 json）"""
+        text = self.VSTORE.read_text(encoding="utf-8")
+        start = text.index("except Exception as e:")
+        end = text.index("return None", start)
+        segment = text[start:end]
+        assert "logger.warning" in segment, "except 分支内必须先记录日志"
+
+
