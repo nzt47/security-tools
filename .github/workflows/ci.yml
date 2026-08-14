@@ -356,6 +356,19 @@ jobs:
             -v --tb=short -q --timeout=300
           echo "=== 新模块专项测试全部通过 ==="
 
+      - name: 符号链接逃逸回归（Linux CI 专属）
+        # 【不易】Windows 无管理员/开发者模式无法创建 symlink → 本地测试按设计 skip，
+        #   Linux runner 是白名单边界拦截"符号链接逃逸"的唯一环境验证点。
+        # Why 显式步骤而非仅依赖 Shard 6 分片: test_edit_policy.py 虽已落入 Shard 6，
+        #   但分片调度随测试数波动，显式步骤保证该回归在 CI 面板可检索、失败可归因。
+        # Why 只跑 -k symlink: 单个测试毫秒级，避免与分片整文件重复执行。
+        if: matrix.shard == '1'
+        run: |
+          echo "=== 符号链接逃逸回归（validate_proposal resolve 拦截）==="
+          python -m pytest tests/unit/test_edit_policy.py \
+            -k symlink -v --tb=short -q --timeout=300
+          echo "=== 符号链接逃逸回归通过 ==="
+
       - name: 运行安全回归测试（P0 防复发）
         if: matrix.shard == '1'
         run: |
