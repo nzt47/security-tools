@@ -339,6 +339,13 @@ class FeedbackManager:
             elif feedback_type == FeedbackType.LIKE.value:
                 self._process_positive_feedback(record)
 
+            # TASK-03: 学习度量——反馈均分趋势数据源（rating 已持久化；埋点异常不影响主链路）
+            try:
+                from agent.learning_metrics import get_learning_metrics
+                get_learning_metrics().record_feedback(record.rating)
+            except Exception:
+                pass
+
             duration_ms = (time.time() - start_time) * 1000
             logger.info(json.dumps({
                 "trace_id": trace_id,

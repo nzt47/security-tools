@@ -1964,6 +1964,8 @@ class Orchestrator:
                     duration_ms=elapsed_ms,
                     retrieval_method=result.retrieval_method,
                 )
+                # TASK-03: 语义层 miss 埋点（hit=False；埋点异常不影响主链路）
+                _emit_learning_metric("record_semantic_query", hit=False)
                 return None
 
             top1 = result.matches[0]
@@ -1981,6 +1983,8 @@ class Orchestrator:
                     score=top1.score,
                     retrieval_method=result.retrieval_method,
                 )
+                # TASK-03: 语义层 miss 埋点（hit=False；埋点异常不影响主链路）
+                _emit_learning_metric("record_semantic_query", hit=False)
                 return None
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.semantic.hit', 'trace_id_ctx': trace_id, 'message': '[语义层] 命中 top1=%s score=%.3f (%d 命中, %.2fms, method=%s, reranked=%s, fallback=%s)' % (top1.skill_id, top1.score, len(result.matches), elapsed_ms, result.retrieval_method, result.reranked, result.fallback_used)}))
             # 【不易】埋点后移（P0 修复）：仅在 instruction 加载成功且非空后才记录 semantic，
@@ -2006,6 +2010,8 @@ class Orchestrator:
                     score=top1.score,
                     skill_id=top1.skill_id,
                 )
+                # TASK-03: 语义层 miss 埋点（hit=False；埋点异常不影响主链路）
+                _emit_learning_metric("record_semantic_query", hit=False)
                 return None
 
             if not instruction.strip():
@@ -2020,6 +2026,8 @@ class Orchestrator:
                     score=top1.score,
                     skill_id=top1.skill_id,
                 )
+                # TASK-03: 语义层 miss 埋点（hit=False；埋点异常不影响主链路）
+                _emit_learning_metric("record_semantic_query", hit=False)
                 return None
 
             # 记录 trace span
@@ -2061,6 +2069,12 @@ class Orchestrator:
                 retrieval_method=result.retrieval_method,
                 reranked=result.reranked,
                 fallback_used=result.fallback_used,
+            )
+            # TASK-03: 语义层命中埋点（hit=True 计入 skill 命中率与 token 复用；
+            # 埋点异常不影响主链路）
+            _emit_learning_metric(
+                "record_semantic_query", hit=True,
+                saved_tokens=_get_learning_saved_estimate(),
             )
             # 【排查】打印 semantic 埋点触发时的 total 计数值 + instruction 加载状态
             # 验证两件事：(1) 分母同步——ratio 总和恒 = 1.0；(2) INV-2——instruction 已成功加载才埋点。
@@ -3228,6 +3242,14 @@ class Orchestrator:
                     'message': '[链路追踪] 护栏调用结束 | guard_trace=%s | duration_ms=%.1f | output_len=%d'
                                % (_gtrace, (time.time() - _gt0) * 1000, len(response)),
                 }))
+                # TASK-03: LLM token 消耗埋点（LLMMonitor.estimate_tokens 估算；
+                # 埋点异常不影响主链路）
+                try:
+                    from agent.monitoring.llm_monitor import LLMMonitor
+                    _est_tokens = LLMMonitor.estimate_tokens(response)
+                    _emit_learning_metric("record_llm_tokens", tokens=_est_tokens)
+                except Exception:
+                    pass
                 return response
             except LLMServiceError as e:
                 error_msg = str(e)
@@ -3384,6 +3406,8 @@ class Orchestrator:
             self._persist_reflection(entry, task, eval_result)
 
         logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.self_reflect.log', 'message': '反思完成 (#%d): %s...' % (self._interaction_count, reflection_text[:100])}))
+        # TASK-03: 反思产物沉淀埋点（reflection 类 artifact 增量；埋点异常不影响主链路）
+        _emit_learning_metric("record_artifact", "reflection")
         return entry
 
     def _run_rule_evaluation(self, task: str, response: str) -> Optional[Any]:
