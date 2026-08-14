@@ -140,6 +140,32 @@ class SkillsMgmtService:
                     results.append({"skill_id": s.id, "error": e.message})
         return results
 
+    # ─── 发布（TASK-04 Step 3 强制审核链）───
+
+    def publish(self, skill_id: str, *, force: bool = False,
+                actor: str = "manual", reason: str = "") -> Skill:
+        """发布技能：终态/驳回态拒绝 → 强制审核链 → 置 PUBLISHED
+
+        Step 3 发布强制审核链：enforce_before_publish 默认 true（无 PASSED
+        ReviewResult 禁止发布）；配置关闭或 force=True 显式豁免必须写审计日志
+        （event=review_waiver_publish）。
+        """
+        from .exceptions import SkillReviewError
+
+        skill = self._require(skill_id)
+        if skill.status in (SkillStatus.PUBLISHED, SkillStatus.ARCHIVED,
+                            SkillStatus.REJECTED):
+            raise SkillReviewError("当前状态不可发布")
+        from .review_gate import enforce_review
+        enforce_review(skill, force=force, actor=actor, reason=reason)
+        skill.status = SkillStatus.PUBLISHED
+        skill.touch()
+        self.store.upsert(skill)
+        emit_metric("yunshu_skill_publish_total")
+        logger.info("[Service] 技能已发布: %s (force=%s, actor=%s)",
+                    skill_id, force, actor)
+        return skill
+
     # ─── 搜索 ───
 
     def search(self, params: SkillSearchParams) -> SkillSearchResult:
