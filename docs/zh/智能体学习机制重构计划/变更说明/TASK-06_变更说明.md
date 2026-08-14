@@ -7,6 +7,7 @@
 | 涉及主文档 | `docs/zh/智能体学习机制重构计划/智能体学习机制理想设计.md`（§3.2 D9 替代方案；§4.4 断点 6） |
 | 关联任务书 | `docs/zh/智能体学习机制重构计划/TASK-06_新颖性感知学习管线.md` |
 | 实现日期 | 2026-08-14 |
+| 状态 | **已结案**（2026-08-14：专项复跑 30 passed 全绿 + 持久化路径实测生效） |
 
 ## 1. 背景
 
@@ -118,15 +119,16 @@
 | R3 | **学习钩子以回调旁路注入，不动 `collect()` diff 循环**：钩子在 changes 循环完成后、return 前触发；异常由 `_invoke_learning_hook` 兜底。验收"感知主链路在钩子全部异常时零影响"由 `test_learning_hook_memory_failure_isolated` / `test_change_detector_hook_exception_safe` 覆盖 | 任务书 §3 不变式（禁止修改 diff 逻辑）+ §4 Step 2 |
 | R4 | **行为漂移事件分级**：任务书分类规则"行为漂移→中"与 Step 2 分级路由（低→记忆、高→草稿）存在张力。裁决：`behavior_drift` 中置信（0.5）走"记忆记录"，调度器 `run()` 显式补一次 `_write_draft`（记录 + 草稿，验收条件原文"产 behavior_drift 事件（记录 + 草稿）"），仍仅 DRAFT 不注册技能 | 任务书 §4 Step 3 验收 + §2 目标 2 |
 | R5 | **记忆面写入策略**：低/中置信事件写 JSONL 事件记忆（`data/learning/novelty_memory/`，`event=novelty_event` 标签）而非 `MemoryManager.add_message`/`lifetrace`——后者属会话记忆/认知层，写入需走既有注入路径，风险高且无标签语义；JSONL 事件记忆轻量、可检索、可被后续对话引用（TASK-02 记忆回写能力对接面），且全部兜底不影响感知主链路 | 任务书 Step 2"带 event 标签"（二选一允许）+ 最小改动原则（不易） |
+| R6 | **结案验收修复 `capture_baseline` 真实聚合缺陷**：(1) 误用 `reading.name`（`SensorReading` 无此属性，正确为 `sensor_name`）→ 异常被兜底吞掉致 metrics 恒空 `{}`，持久化基线无可比数据；改为 `reading.sensor_name` 并补真实聚合测试（此前 13 用例全 mock 了 `capture_baseline`，漏覆盖）。(2) 键名前缀去重：`sensor_name` 本身已带 `behavior_` 前缀，原实现拼成 `behavior_behavior_*`；改为已含前缀则不再重复拼接。修复后实测基线含 46 条数值指标（如 `behavior_disk_total_read`），键名无重复前缀 | 结案专项实测（临时目录落盘验证）发现 + 补测回归固化 |
 
 ## 4. 测试
 
 | 文件 | 用例数 | 覆盖 |
 | --- | --- | --- |
 | `tests/unit/test_novelty_pipeline.py` | 16 | 4 类 diff 分类（类型/置信度/分级）；未知类型不学习；level 边界；change_log 容量滚动 + 旧格式兼容；钩子开关关零副作用 / 低置信写记忆 / 高置信草稿（仅 DRAFT）+ 审计；记忆写入抛错降级；ChangeDetector collect 出口钩子旁路 + 钩子异常兜底 |
-| `tests/unit/test_behavior_drift.py` | 13 | week_key（周一对齐）；漂移量化（无重叠 0 / 相对偏差 40→80=1.0、40→42=0.05）；超阈值产事件 / 低于阈值与缺基线不产；基线保存/列表/加载/保留期滚动清理；调度器默认关闭不注册 / 开启注册（interval 生效）/ 基线不足 skipped / 漂移超阈值产事件（记忆+草稿 DRAFT）/ 未超不产 |
+| `tests/unit/test_behavior_drift.py` | 14 | week_key（周一对齐）；漂移量化（无重叠 0 / 相对偏差 40→80=1.0、40→42=0.05）；超阈值产事件 / 低于阈值与缺基线不产；基线保存/列表/加载/保留期滚动清理；**capture_baseline 真实聚合 collect() 的 SensorReading**（回归：sensor_name 字段 + 空值跳过）；调度器默认关闭不注册 / 开启注册（interval 生效）/ 基线不足 skipped / 漂移超阈值产事件（记忆+草稿 DRAFT）/ 未超不产 |
 
-合计 29 用例（≥ 任务书 12 用例要求）。
+合计 30 用例（≥ 任务书 12 用例要求）。
 
 **回归结果（2026-08-14）**：
 - 新增 2 文件：`29 passed`（含修复 `behavior_sensor.py` 顶层缺 `import json` 的运行时缺陷——TASK-06 新增的 save/list/load 基线方法使用了 json 但未导入，导致 4 个用例失败，补导入后全绿）；
@@ -160,3 +162,12 @@
   2. `test_evolver_schedule::test_dry_run_uses_config_default_true`（`assert True is False`）——并行会话把 config.yaml `learning.evolver.enabled` 改为 `true`，该测试断言"总开关默认关闭"，环境噪音，非本任务。
   3. `test_tlm_memory_store::TestVectorWriteRetry::test_retry_succeeds_after_two_failures`（sleep call_count 6001 vs 2）——并行会话对 tlm_memory_store 重试机制的改动所致，非本任务。
 - **结论**：TASK-06 相关用例在合入后全绿；全量回归失败项均与 TASK-06 无关（工作区未合入 / 并行会话环境噪音）。
+
+### 结案专项验证（2026-08-14，合入主 develop `f67dd996` 后）
+
+- **专项复跑**：`pytest tests/unit/test_novelty_pipeline.py tests/unit/test_behavior_drift.py -p no:randomly` → **30 passed 全绿**（16 + 14，含 R6 新增真实聚合用例）；
+- **持久化路径实测**（临时目录落盘，不污染真实 `~/.Yunshu`）：
+  - `change_log.json` 默认路径 `~/.Yunshu/changes/change_log.json`：旧文件为顶层 **list 格式（160 条）**，`_load_persistent_log` 兼容加载 ✓；写 7 条 + `max_entries=5` → 滚动删除最旧 2 条，落盘 5 条 ✓；
+  - 行为基线默认路径 `~/.Yunshu/baselines/behavior_<周一日期>.json`：`save_baseline` 落盘 `behavior_2026-08-10.json`（周键=本周周一）✓；修复前 `capture_baseline` 因字段错误 metrics 恒空 `{}`，修复后实测 **46 条数值指标**（`behavior_disk_total_read` 等）✓；
+  - 真实 `~/.Yunshu/baselines/` 目录当前不存在 —— **符合预期**（默认 `sensor_learning.enabled: false` 观察模式，调度器不运行零副作用；开启后自动创建）；
+- **合入记录**：`0d82bf1d`（TASK-06 主体 14 文件）→ `12d66616`（§6 回归记录）→ `f67dd996`（agent/learning 包 `__init__.py`），本结案修复/文档更新提交后任务正式关闭。

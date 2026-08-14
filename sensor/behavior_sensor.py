@@ -1162,10 +1162,13 @@ class ActivityBehaviorSensor:
         metrics: Dict[str, float] = {}
         try:
             for reading in self.collect():
-                if not reading.name or reading.value is None:
+                if not reading.sensor_name or reading.value is None:
                     continue
                 try:
-                    metrics[f"behavior_{reading.name}"] = float(reading.value)
+                    # sensor_name 已带 behavior_ 前缀（6 维度采集命名），避免重复拼接
+                    name = reading.sensor_name
+                    key = name if name.startswith("behavior_") else f"behavior_{name}"
+                    metrics[key] = float(reading.value)
                 except (TypeError, ValueError):
                     continue
         except Exception as e:  # noqa: BLE001 采集异常兜底

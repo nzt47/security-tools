@@ -20,6 +20,7 @@ import pytest
 import agent.learning.behavior_drift as bd
 from sensor.behavior_sensor import ActivityBehaviorSensor
 from sensor.novelty import compute_drift_score, detect_behavior_drift, week_key
+from sensor.sensor_reading import SensorReading
 
 
 def _write_week_baseline(tmp_path, week: str, metrics: dict) -> None:
@@ -109,6 +110,25 @@ def test_baseline_save_and_list(tmp_path):
     assert data["metrics"]["behavior_mem_percent"] == 42.0
     entries = ActivityBehaviorSensor.list_baselines(str(tmp_path))
     assert [e["week"] for e in entries] == [res["week"]]
+
+
+def test_capture_baseline_aggregates_sensor_readings(monkeypatch):
+    """capture_baseline 真实聚合 collect() 的 SensorReading。
+
+    回归验证: TASK-06 实现曾误用 reading.name（SensorReading 无此属性），
+    异常被兜底吞掉导致 metrics 恒空；正确字段为 sensor_name。
+    """
+    sensor = ActivityBehaviorSensor()
+    readings = [
+        SensorReading("mem_percent", 42.5, "%", "内存占用"),
+        SensorReading("cpu_load", 0.8, "", "负载"),
+        SensorReading("nullable_metric", None, "", "无值应跳过"),
+    ]
+    monkeypatch.setattr(sensor, "collect", lambda: readings)
+    baseline = sensor.capture_baseline()
+    assert baseline["metrics"]["behavior_mem_percent"] == 42.5
+    assert baseline["metrics"]["behavior_cpu_load"] == 0.8
+    assert "behavior_nullable_metric" not in baseline["metrics"]
 
 
 def test_baseline_retention_prunes_old(tmp_path):
