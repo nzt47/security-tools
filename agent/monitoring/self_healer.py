@@ -21,18 +21,18 @@ import logging
 import time
 import subprocess
 import threading
+import traceback
 import os
+import socket
+import importlib
 import uuid
-from typing import Dict, List, Optional, Any, Callable
+from typing import Dict, List, Optional, Any, Callable, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
 
 # set_trace_id 用于后台线程 trace_id 传递（ContextVar 不自动继承到子线程）
 from agent.monitoring.tracing import get_trace_id, set_trace_id
 from agent.logging_utils import log_dict
-
-from agent.error_handler import get_error_handler
-_ERROR_HANDLER_AVAILABLE = True
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,30 @@ class SelfHealer:
             self._verify_timeout = 60
             self._thread_join_timeout = 5
 
-        logger.info(log_dict({'module_name': 'self_healer', 'action': 'init', 'enabled': self._enabled, 'policies': list(self._policies.keys())}))
+        # 危险动作保护（守安全红线）：
+        # - _cache_whitelist: 允许清理的缓存路径白名单，空列表 = 禁用通配清理
+        # - _allow_drop_caches: Linux /proc/sys/vm/drop_caches 写入默认禁用
+        heal_config = self.config.get("self_healing", {})
+        self._cache_whitelist = list(
+            heal_config.get("clear_cache", {}).get("cache_whitelist", [])
+        )
+        self._allow_drop_caches = bool(
+            heal_config.get("clear_memory", {}).get("allow_drop_caches", False)
+        )
+        # 验证阈值：真实健康分低于此值视为验证失败（默认 0.7）
+        self._verify_score_threshold = float(
+            self.config.get("verify_score_threshold", 0.7)
+        )
+        # 内存类动作验证阈值（默认 1MB）
+        self._verify_mem_delta_mb = float(
+            self.config.get("verify_mem_delta_mb", 1.0)
+        )
+
+        # 验证状态：execute_action 记录上下文与基线，verify_action 读取
+        self._last_context: Dict[str, Dict[str, Any]] = {}
+        self._verify_state: Dict[str, Dict[str, Any]] = {}
+
+        logger.info(log_dict({'module_name': 'self_healer', 'action': 'init', 'enabled': self._enabled, 'policies': list(self._policies.keys()), 'cache_whitelist': self._cache_whitelist}))
 
     def _init_policies(self):
         """初始化自愈策略"""
@@ -231,8 +254,10 @@ class SelfHealer:
                     if policy and elapsed < policy.cooldown:
                         # 修复：原 extra={} 中 "action" 键被同名参数 action 覆盖，
                         # 改用 json.dumps + heal_action 字段避免冲突
-                        logger.info(log_dict({'module_name': 'self_healer', 'action': 'cooldown_check', 'heal_action': action, 'elapsed_seconds': round(elapsed, 1), 'cooldown_seconds': policy.cooldown, 'blocked': True}))
+                        logger.info(log_dict({'module_name': 'self_healer', 'action': 'cooldown_check', 'heal_action': action, 'elapsed_seconds': round(elapsed, 1), 'cooldown_seconds': policy.cooldown, 'remaining_seconds': round(policy.cooldown - elapsed, 1), 'blocked': True}))
                         return False
+                    # 冷却已过：记录通过，便于确认未被冷却拦截
+                    logger.info(log_dict({'module_name': 'self_healer', 'action': 'cooldown_check', 'heal_action': action, 'elapsed_seconds': round(elapsed, 1), 'cooldown_seconds': policy.cooldown if policy else None, 'blocked': False}))
                     break
         return True
 
@@ -293,10 +318,14 @@ class SelfHealer:
 
         # 检查冷却时间
         if not self._check_cooldown(action):
+            policy = self._policies.get(action)
+            logger.warning(log_dict({'module_name': 'self_healer', 'action': 'heal_skipped', 'heal_action': action, 'reason': '动作在冷却时间内', 'cooldown_seconds': policy.cooldown if policy else None}))
             return HealResult(action, HealStatus.SKIPPED, "动作在冷却时间内", 0)
 
         # 检查频率限制
         if not self._check_rate_limit(action):
+            policy = self._policies.get(action)
+            logger.warning(log_dict({'module_name': 'self_healer', 'action': 'heal_skipped', 'heal_action': action, 'reason': '超过执行频率限制', 'max_per_hour': policy.max_per_hour if policy else None}))
             return HealResult(action, HealStatus.SKIPPED, "超过执行频率限制", 0)
 
         # 获取执行锁
@@ -311,9 +340,15 @@ class SelfHealer:
         try:
             logger.info(log_dict({'module_name': 'self_healer', 'action': 'heal_start', 'heal_action': action, 'context': context or {}}))
 
+            # 记录本次上下文与验证基线（verify_action 后续读取）
+            self._last_context[action] = context or {}
+            self._verify_state.setdefault(action, {})
+
             # 根据动作类型执行
             if action == "restart_service":
                 result = self._restart_service(context)
+            elif action == "restart_component":
+                result = self._restart_component(context)
             elif action == "clear_cache":
                 result = self._clear_cache(context)
             elif action == "recover_circuit_breaker":
@@ -323,7 +358,12 @@ class SelfHealer:
             elif action == "clear_memory":
                 result = self._clear_memory(context)
             else:
-                result = HealResult(action, HealStatus.FAILED, f"未知动作: {action}", 0)
+                # 未实现动作 → SKIPPED（原因明确），未知动作 → FAILED
+                from agent.self_healing.policy import get_action_status
+                if get_action_status(action) == "unimplemented":
+                    result = HealResult(action, HealStatus.SKIPPED, f"动作 {action} 未实现", 0)
+                else:
+                    result = HealResult(action, HealStatus.FAILED, f"未知动作: {action}", 0)
 
             duration_ms = (time.time() - start_time) * 1000
             result.duration_ms = duration_ms
@@ -360,51 +400,124 @@ class SelfHealer:
     def _restart_service(self, context: Optional[Dict[str, Any]]) -> HealResult:
         """重启服务
 
+        【不易】修复 D9：不再"假成功"——
+        - Windows 下未提供 restart_command 且无可用服务管理工具 → SKIPPED("未提供可执行的重启方式")
+        - 执行后必须经动作验证器确认（端口可连接），验证失败 → FAILED 并携带证据
+        - Linux 保持 systemctl/service 探测，但同样以验证结果为准
+
         Args:
-            context: 执行上下文
+            context: 执行上下文（service_name / restart_command / ports）
 
         Returns:
             执行结果
         """
         try:
-            # 检查是否有 systemctl 或服务管理脚本
-            service_name = context.get("service_name", "yunshu") if context else "yunshu"
+            ctx = context or {}
+            service_name = ctx.get("service_name", "yunshu")
+            restart_command = ctx.get("restart_command")
+            ports = ctx.get("ports", [])
 
-            # 尝试多种重启方式
-            if os.name == "nt":
-                # Windows 环境
-                cmd = ["powershell", "-Command", f"Restart-Service -Name '{service_name}' -Force"]
+            # 记录验证基线（verify_action 读取：端口列表）
+            self._verify_state["restart_service"] = {
+                "service_name": service_name,
+                "ports": list(ports),
+            }
+
+            executed = False
+            if restart_command:
+                # 显式重启命令（跨平台；字符串按 shell 执行，列表按 argv 执行）
+                try:
+                    logger.info(log_dict({'module_name': 'self_healer', 'action': 'restart_service.run_command', 'heal_action': 'restart_service', 'service_name': service_name, 'restart_command': restart_command if isinstance(restart_command, str) else list(restart_command), 'timeout_seconds': self._restart_timeout}))
+                    result = subprocess.run(
+                        restart_command,
+                        shell=isinstance(restart_command, str),
+                        capture_output=True,
+                        text=True,
+                        timeout=self._restart_timeout
+                    )
+                    if result.returncode == 0:
+                        executed = True
+                        logger.info(log_dict({'module_name': 'self_healer', 'action': 'restart_service.command_ok', 'heal_action': 'restart_service', 'service_name': service_name, 'returncode': result.returncode}))
+                    else:
+                        evidence = (result.stderr or result.stdout or "").strip()
+                        logger.warning(log_dict({'module_name': 'self_healer', 'action': 'restart_service.command_failed', 'heal_action': 'restart_service', 'service_name': service_name, 'returncode': result.returncode, 'evidence': evidence[:500]}))
+                        return HealResult(
+                            "restart_service",
+                            HealStatus.FAILED,
+                            f"重启命令执行失败，退出码 {result.returncode}: {evidence}",
+                            0
+                        )
+                except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+                    logger.warning(log_dict({'module_name': 'self_healer', 'action': 'restart_service.command_error', 'heal_action': 'restart_service', 'service_name': service_name, 'error': str(e)}))
+                    return HealResult(
+                        "restart_service",
+                        HealStatus.FAILED,
+                        f"重启命令执行异常: {e}",
+                        0
+                    )
+            elif os.name == "nt":
+                # Windows：无重启方式（此前直接 Restart-Service 'yunshu' 大概率无此服务）
+                logger.warning(log_dict({'module_name': 'self_healer', 'action': 'restart_service.no_command_windows', 'heal_action': 'restart_service', 'service_name': service_name, 'reason': '未提供 restart_command，Windows 下无可用服务管理工具'}))
+                return HealResult(
+                    "restart_service",
+                    HealStatus.SKIPPED,
+                    "未提供可执行的重启方式(restart_command)",
+                    0
+                )
             else:
-                # Linux 环境
-                for cmd_prefix in [
-                    ["systemctl", "restart"],
-                    ["service", "restart"],
-                    ["/etc/init.d/restart"]
-                ]:
-                    cmd = cmd_prefix + [service_name]
+                # Linux：探测 systemctl / service
+                for cmd_prefix in (["systemctl", "restart"], ["service", "restart"]):
                     try:
                         result = subprocess.run(
-                            cmd,
+                            cmd_prefix + [service_name],
                             capture_output=True,
                             text=True,
                             timeout=self._restart_timeout
                         )
                         if result.returncode == 0:
-                            return HealResult(
-                                "restart_service",
-                                HealStatus.SUCCESS,
-                                f"服务 {service_name} 重启成功",
-                                0
-                            )
-                    except (subprocess.TimeoutExpired, FileNotFoundError):
+                            executed = True
+                            logger.info(log_dict({'module_name': 'self_healer', 'action': 'restart_service.linux_ok', 'heal_action': 'restart_service', 'service_name': service_name, 'command': cmd_prefix}))
+                            break
+                        logger.info(log_dict({'module_name': 'self_healer', 'action': 'restart_service.linux_probe_failed', 'heal_action': 'restart_service', 'service_name': service_name, 'command': cmd_prefix, 'returncode': result.returncode}))
+                    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+                        logger.info(log_dict({'module_name': 'self_healer', 'action': 'restart_service.linux_probe_error', 'heal_action': 'restart_service', 'service_name': service_name, 'command': cmd_prefix, 'error': str(e)}))
                         continue
+                if not executed:
+                    logger.warning(log_dict({'module_name': 'self_healer', 'action': 'restart_service.no_tool_found', 'heal_action': 'restart_service', 'service_name': service_name, 'reason': '未找到可用的服务管理工具'}))
+                    return HealResult(
+                        "restart_service",
+                        HealStatus.SKIPPED,
+                        "未找到可用的服务管理工具",
+                        0
+                    )
 
-            # 如果没有找到服务管理工具，尝试直接重启进程
-            logger.warning(log_dict({'module_name': 'self_healer', 'action': 'restart_service_fallback', 'service_name': service_name}))
+            # 执行后必须验证（单次检查；长时间轮询由 verify_heal 承担）
+            verified, reason = self.verify_action("restart_service")
+            if verified:
+                logger.info(log_dict({'module_name': 'self_healer', 'action': 'restart_service.verified', 'heal_action': 'restart_service', 'service_name': service_name, 'reason': reason, 'verified': True}))
+                return HealResult(
+                    "restart_service",
+                    HealStatus.SUCCESS,
+                    f"服务 {service_name} 重启成功并验证通过",
+                    0,
+                    verified=True
+                )
+            logger.warning(log_dict({
+                'module_name': 'self_healer',
+                'action': 'restart_service.unverified',
+                'heal_action': 'restart_service',
+                'service_name': service_name,
+                'reason': reason,
+                'verified': False,
+                # 定位信息：失败验证器名 + 验证依据（端口/服务名）+ 当前调用栈摘要
+                'verifier': 'verify_action(restart_service) -> _verify_restart_service',
+                'verify_state': self._verify_state.get("restart_service"),
+                'call_stack': " <- ".join(f"{f.name}@{f.lineno}" for f in traceback.extract_stack(limit=6)[:-1]),
+            }))
             return HealResult(
                 "restart_service",
-                HealStatus.SUCCESS,
-                f"服务 {service_name} 重启指令已发送",
+                HealStatus.FAILED,
+                f"服务 {service_name} 重启后验证失败: {reason}",
                 0
             )
 
@@ -412,49 +525,126 @@ class SelfHealer:
             logger.error(log_dict({'module_name': 'self_healer', 'action': 'restart_service_failed', 'error': str(e)}))
             return HealResult("restart_service", HealStatus.FAILED, str(e), 0)
 
+    def _restart_component(self, context: Optional[Dict[str, Any]]) -> HealResult:
+        """进程内模块热重启（补全 D9 的 restart_component 动作）
+
+        context 需提供 target_module（模块名）；未提供 → SKIPPED。
+        使用 importlib.reload 实现进程内热重载，验证模块可重新导入。
+
+        Args:
+            context: 执行上下文（target_module）
+
+        Returns:
+            执行结果
+        """
+        ctx = context or {}
+        module_name = ctx.get("target_module")
+        if not module_name:
+            return HealResult(
+                "restart_component",
+                HealStatus.SKIPPED,
+                "未提供目标模块(target_module)",
+                0
+            )
+        try:
+            module = importlib.import_module(module_name)
+            importlib.reload(module)
+            # 验证基线：模块已可导入（verify_action 复查导入成功）
+            self._verify_state["restart_component"] = {"module_name": module_name}
+            return HealResult(
+                "restart_component",
+                HealStatus.SUCCESS,
+                f"组件 {module_name} 热重载完成",
+                0,
+                verified=True
+            )
+        except Exception as e:
+            logger.error(log_dict({'module_name': 'self_healer', 'action': 'restart_component_failed', 'target_module': module_name, 'error': str(e)}))
+            return HealResult("restart_component", HealStatus.FAILED, str(e), 0)
+
     def _clear_cache(self, context: Optional[Dict[str, Any]]) -> HealResult:
         """清理缓存
 
+        【不易】守安全红线（危险动作保护）——
+        - 路径必须在 _cache_whitelist 白名单内，越权路径 → SKIPPED("路径不在白名单")
+        - pattern 为 "*" → SKIPPED("禁止全量清理")
+        - 白名单为空 → SKIPPED（通配清理默认禁用，不清理 ~/.cache 等越权路径）
+
         Args:
-            context: 执行上下文
+            context: 执行上下文（cache_patterns / cache_paths）
 
         Returns:
             执行结果
         """
         try:
-            patterns = context.get("cache_patterns", ["*"]) if context else ["*"]
-            cleared_count = 0
+            ctx = context or {}
+            patterns = ctx.get("cache_patterns", [])
+            paths = ctx.get("cache_paths", [])
+            whitelist = self._cache_whitelist
 
+            if not whitelist:
+                logger.warning(log_dict({'module_name': 'self_healer', 'action': 'clear_cache.whitelist_empty', 'heal_action': 'clear_cache', 'patterns': patterns, 'paths': paths, 'reason': '白名单为空，通配清理默认禁用'}))
+                return HealResult(
+                    "clear_cache",
+                    HealStatus.SKIPPED,
+                    "缓存白名单为空，通配清理已禁用",
+                    0
+                )
+
+            # 禁止通配全清
+            if any(p == "*" for p in patterns):
+                logger.warning(log_dict({'module_name': 'self_healer', 'action': 'clear_cache.wildcard_rejected', 'heal_action': 'clear_cache', 'patterns': patterns, 'reason': "禁止全量清理(pattern='*')"}))
+                return HealResult(
+                    "clear_cache",
+                    HealStatus.SKIPPED,
+                    "禁止全量清理(pattern='*')",
+                    0
+                )
+
+            # 解析目标路径并校验必须在白名单内（防 ../ 逃逸）
+            targets = list(paths)
             for pattern in patterns:
-                # 尝试清理各种缓存
-                cache_paths = [
-                    os.path.join(os.path.expanduser("~"), ".cache", pattern),
-                    "/tmp/cache/" + pattern,
-                    "/var/cache/" + pattern
-                ]
+                for base in whitelist:
+                    targets.append(os.path.join(base, pattern))
+            for target in targets:
+                norm = os.path.abspath(os.path.expanduser(target))
+                if not self._in_cache_whitelist(target):
+                    logger.warning(log_dict({'module_name': 'self_healer', 'action': 'clear_cache.out_of_whitelist', 'heal_action': 'clear_cache', 'path': target, 'normalized_path': norm, 'whitelist': whitelist, 'reason': '路径不在白名单'}))
+                    return HealResult(
+                        "clear_cache",
+                        HealStatus.SKIPPED,
+                        f"路径 {target} 不在白名单",
+                        0
+                    )
+                logger.info(log_dict({'module_name': 'self_healer', 'action': 'clear_cache.whitelist_ok', 'heal_action': 'clear_cache', 'path': target, 'normalized_path': norm}))
 
-                for cache_path in cache_paths:
-                    if os.path.exists(cache_path):
-                        try:
-                            if os.path.isfile(cache_path):
-                                os.remove(cache_path)
-                                cleared_count += 1
-                            elif os.path.isdir(cache_path):
-                                import shutil
-                                shutil.rmtree(cache_path)
-                                cleared_count += 1
-                        except Exception as e:
-                            logger.warning(log_dict({'module_name': 'self_healer', 'action': 'clear_cache_item_failed', 'cache_path': cache_path, 'error': str(e)}))
+            # 记录清理前总大小（verify_action 验证缓存目录下降）
+            total_before = 0
+            for target in targets:
+                if os.path.exists(target):
+                    total_before += self._dir_size(target)
+            self._verify_state["clear_cache"] = {
+                "cache_dirs": list(targets),
+                "total_before_bytes": total_before,
+            }
+            logger.info(log_dict({'module_name': 'self_healer', 'action': 'clear_cache.start', 'heal_action': 'clear_cache', 'targets': targets, 'total_before_bytes': total_before}))
 
-            # 如果是内存缓存，尝试触发 GC
-            try:
-                import gc
-                before = len(gc.get_objects())
-                collected = gc.collect()
-                after = len(gc.get_objects())
-                logger.info(log_dict({'module_name': 'self_healer', 'action': 'gc_collect', 'collected': collected, 'before': before, 'after': after}))
-            except Exception:
-                pass
+            cleared_count = 0
+            for cache_path in targets:
+                if os.path.exists(cache_path):
+                    try:
+                        if os.path.isfile(cache_path):
+                            os.remove(cache_path)
+                            cleared_count += 1
+                        elif os.path.isdir(cache_path):
+                            import shutil
+                            shutil.rmtree(cache_path)
+                            cleared_count += 1
+                    except Exception as e:
+                        logger.warning(log_dict({'module_name': 'self_healer', 'action': 'clear_cache_item_failed', 'cache_path': cache_path, 'error': str(e)}))
+
+            total_after = sum(self._dir_size(d) for d in targets if os.path.exists(d))
+            logger.info(log_dict({'module_name': 'self_healer', 'action': 'clear_cache.complete', 'heal_action': 'clear_cache', 'cleared_count': cleared_count, 'total_before_bytes': total_before, 'total_after_bytes': total_after, 'freed_bytes': total_before - total_after}))
 
             return HealResult(
                 "clear_cache",
@@ -467,56 +657,88 @@ class SelfHealer:
             logger.error(log_dict({'module_name': 'self_healer', 'action': 'clear_cache_failed', 'error': str(e)}))
             return HealResult("clear_cache", HealStatus.FAILED, str(e), 0)
 
+    def _in_cache_whitelist(self, path: str) -> bool:
+        """校验路径是否落在缓存白名单内（规范化后判断，防 ../ 逃逸）"""
+        norm = os.path.abspath(os.path.expanduser(path))
+        for base in self._cache_whitelist:
+            base_norm = os.path.abspath(os.path.expanduser(base))
+            if norm == base_norm or norm.startswith(base_norm + os.sep):
+                return True
+        return False
+
+    def _dir_size(self, path: str) -> int:
+        """统计文件/目录总字节数"""
+        try:
+            if os.path.isfile(path):
+                return os.path.getsize(path)
+            total = 0
+            for root, _dirs, files in os.walk(path):
+                for f in files:
+                    try:
+                        total += os.path.getsize(os.path.join(root, f))
+                    except OSError:
+                        continue
+            return total
+        except OSError:
+            return 0
+
     def _recover_circuit_breaker(self, context: Optional[Dict[str, Any]]) -> HealResult:
         """恢复熔断器
 
+        【不易】修复 D11：禁止直改私有字段（._state =），一律走公开 API——
+        - 通过 agent.circuit_breaker.get_all_circuit_breaker_status() 定位 OPEN 熔断器
+        - 调用 get_circuit_breaker(name).force_close() 恢复
+        - 记录恢复前/后状态到日志与自愈记录
+
         Args:
-            context: 执行上下文
+            context: 执行上下文（circuit_breaker_name，默认 "*" 全量）
 
         Returns:
             执行结果
         """
         try:
-            if not _ERROR_HANDLER_AVAILABLE:
-                return HealResult(
-                    "recover_circuit_breaker",
-                    HealStatus.SKIPPED,
-                    "error_handler 模块不可用",
-                    0
-                )
+            from agent.circuit_breaker import (
+                get_all_circuit_breaker_status,
+                get_circuit_breaker,
+            )
 
-            handler = get_error_handler()
             cb_name = context.get("circuit_breaker_name", "*") if context else "*"
-
-            # 获取熔断器状态并尝试恢复
-            cb_status = handler.get_circuit_breaker_status()
+            cb_status = get_all_circuit_breaker_status()
+            logger.info(log_dict({'module_name': 'self_healer', 'action': 'recover_circuit_breaker.scan', 'heal_action': 'recover_circuit_breaker', 'target': cb_name, 'breaker_count': len(cb_status), 'status_snapshot': {k: v.get("state") for k, v in cb_status.items()}}))
 
             recovered = []
             for name, status in cb_status.items():
-                if cb_name == "*" or cb_name == name:
-                    if status["state"] == "open":
-                        # 尝试半开
-                        try:
-                            handler._circuit_breakers[name]._state = "half_open"
-                            recovered.append(name)
-                        except Exception:
-                            pass
+                if cb_name != "*" and cb_name != name:
+                    continue
+                if status.get("state") == "open":
+                    before_state = status.get("state")
+                    breaker = get_circuit_breaker(name)
+                    breaker.force_close()
+                    after_status = breaker.get_status()
+                    recovered.append(name)
+                    logger.info(log_dict({
+                        'module_name': 'self_healer', 'action': 'circuit_breaker_recovered',
+                        'breaker_name': name, 'before_state': before_state,
+                        'after_state': after_status.get("state"),
+                    }))
+                else:
+                    logger.info(log_dict({'module_name': 'self_healer', 'action': 'circuit_breaker_skip', 'breaker_name': name, 'state': status.get("state"), 'reason': '非 OPEN，无需恢复'}))
 
             if recovered:
-                logger.info(log_dict({'module_name': 'self_healer', 'action': 'circuit_breaker_half_open', 'recovered': recovered}))
                 return HealResult(
                     "recover_circuit_breaker",
                     HealStatus.SUCCESS,
-                    f"熔断器 {recovered} 已切换到半开状态",
-                    0
+                    f"熔断器 {recovered} 已通过公开 API 恢复为关闭状态",
+                    0,
+                    verified=True
                 )
-            else:
-                return HealResult(
-                    "recover_circuit_breaker",
-                    HealStatus.SKIPPED,
-                    "没有需要恢复的熔断器",
-                    0
-                )
+            logger.warning(log_dict({'module_name': 'self_healer', 'action': 'recover_circuit_breaker.no_open', 'heal_action': 'recover_circuit_breaker', 'target': cb_name, 'reason': '没有 OPEN 状态的熔断器需要恢复'}))
+            return HealResult(
+                "recover_circuit_breaker",
+                HealStatus.SKIPPED,
+                "没有需要恢复的熔断器",
+                0
+            )
 
         except Exception as e:
             logger.error(log_dict({'module_name': 'self_healer', 'action': 'recover_circuit_breaker_failed', 'error': str(e)}))
@@ -544,6 +766,12 @@ class SelfHealer:
 
             freed_count = before_count - after_count
             freed_mem = before_mem - after_mem
+
+            # 记录验证基线（verify_action 验证 RSS/对象数下降）
+            self._verify_state["gc_collect"] = {
+                "mem_mb_before": before_mem,
+                "objects_before": before_count,
+            }
 
             logger.info(log_dict({'module_name': 'self_healer', 'action': 'gc_collect_complete', 'collected': collected, 'freed_objects': freed_count, 'freed_memory_mb': round(freed_mem, 2)}))
 
@@ -577,21 +805,26 @@ class SelfHealer:
             # 尝试释放内存（仅 Linux）
             if os.name == "posix":
                 try:
-                    # 触发系统内存回收
                     subprocess.run(
                         ["sync"],
                         capture_output=True,
                         timeout=self._sync_timeout
                     )
-                    # 尝试写入 /proc/sys/vm/drop_caches（需要 root 权限）
-                    # 注意：这在容器环境中可能不安全
-                    with open("/proc/sys/vm/drop_caches", "w") as f:
-                        f.write("3")
+                    # /proc/sys/vm/drop_caches 写入默认禁用（配置 allow_drop_caches=True 才允许）
+                    # 【不易】守安全红线：容器/共享主机上清空页缓存可能影响其他进程
+                    if self._allow_drop_caches:
+                        with open("/proc/sys/vm/drop_caches", "w") as f:
+                            f.write("3")
                 except (PermissionError, FileNotFoundError, subprocess.TimeoutExpired):
                     pass
 
             after_mem = self._get_memory_usage()
             freed_mem = before_mem - after_mem
+
+            # 记录验证基线（verify_action 验证 RSS 下降）
+            self._verify_state["clear_memory"] = {
+                "mem_mb_before": before_mem,
+            }
 
             return HealResult(
                 "clear_memory",
@@ -642,6 +875,11 @@ class SelfHealer:
     def verify_heal(self, action: str, timeout: Optional[float] = None) -> bool:
         """验证自愈效果
 
+        【不易】修复 D7：不再依赖无参 assess()（返回默认满分 1.0），改为——
+        1. 动作专属验证器（verify_action）：进程/端口/缓存大小/熔断状态/内存
+        2. 真实健康分：agent.health.assessor 的最新评分（get_history(1)），
+           评分为 None（无数据禁假满分）或低于阈值（默认 0.7）视为验证失败
+
         Args:
             action: 执行的动作
             timeout: 验证超时时间（None 时从 Config 读取，支持热加载）
@@ -653,26 +891,161 @@ class SelfHealer:
         if timeout is None:
             timeout = self._verify_timeout
         start_time = time.time()
+        last_reason = "未知原因"
 
         while time.time() - start_time < timeout:
             try:
-                # 检查健康状态
+                # 1. 动作专属验证器（读 execute_action 记录的上下文与基线）
+                ok, reason = self.verify_action(action)
+                logger.info(log_dict({'module_name': 'self_healer', 'action': 'verify_action.result', 'heal_action': action, 'ok': ok, 'reason': reason, 'elapsed_ms': round((time.time() - start_time) * 1000, 1)}))
+                if not ok:
+                    last_reason = reason
+                    time.sleep(5)
+                    continue
+
+                # 2. 真实健康分（任务 1 产物；无参 assess 的假满分不可用）
                 from agent.health.assessor import health_assessor
-                health = health_assessor.assess()
-
-                if health.overall >= 0.7:
+                history = health_assessor.get_history(1)
+                if not history or history[0].overall is None:
+                    last_reason = "无真实健康评分数据(health_assessor.get_history 为空或评分为 None)"
+                    logger.warning(log_dict({'module_name': 'self_healer', 'action': 'verify_health.no_data', 'heal_action': action, 'history_count': len(history) if history else 0}))
+                    time.sleep(5)
+                    continue
+                health = history[0]
+                logger.info(log_dict({'module_name': 'self_healer', 'action': 'verify_health.read', 'heal_action': action, 'history_count': len(history), 'overall': health.overall, 'threshold': self._verify_score_threshold}))
+                if health.overall >= self._verify_score_threshold:
                     duration_ms = (time.time() - start_time) * 1000
-                    logger.info(log_dict({'module_name': 'self_healer', 'action': 'heal_verified', 'heal_action': action, 'health_score': health.overall}))
+                    logger.info(log_dict({'module_name': 'self_healer', 'action': 'heal_verified', 'heal_action': action, 'health_score': health.overall, 'duration_ms': round(duration_ms, 1)}))
                     return True
-
+                last_reason = f"健康分 {health.overall:.2f} 低于验证阈值 {self._verify_score_threshold}"
                 time.sleep(5)
 
             except Exception as e:
+                last_reason = str(e)
                 logger.warning(log_dict({'module_name': 'self_healer', 'action': 'verify_check_failed', 'heal_action': action, 'error': str(e)}))
                 time.sleep(5)
 
-        logger.warning(log_dict({'module_name': 'self_healer', 'action': 'heal_verify_timeout', 'heal_action': action, 'timeout': timeout}))
+        logger.warning(log_dict({'module_name': 'self_healer', 'action': 'heal_verify_timeout', 'heal_action': action, 'timeout': timeout, 'reason': last_reason}))
         return False
+
+    def verify_action(self, action: str) -> Tuple[bool, str]:
+        """动作专属验证器分发
+
+        【不易】按动作类型定义验证指标，杜绝"假成功"：
+        - restart_service：目标端口可连接（端口列表从 execute_action context 传入）
+        - restart_component：目标模块可重新导入
+        - clear_cache：缓存目录总大小下降
+        - recover_circuit_breaker：目标熔断器状态非 OPEN（读公开 get_status()）
+        - gc_collect / clear_memory：RSS 下降 > 阈值（默认 1MB）或对象数下降
+        - 其余动作无专属验证器 → 仅依赖健康分（返回 True，原因注明）
+
+        Args:
+            action: 动作名称
+
+        Returns:
+            (是否通过, 原因)
+        """
+        logger.info(log_dict({'module_name': 'self_healer', 'action': 'verify_action.dispatch', 'heal_action': action}))
+        if action == "restart_service":
+            return self._verify_restart_service()
+        if action == "restart_component":
+            return self._verify_restart_component()
+        if action == "clear_cache":
+            return self._verify_clear_cache()
+        if action == "recover_circuit_breaker":
+            return self._verify_circuit_breaker()
+        if action in ("gc_collect", "clear_memory"):
+            return self._verify_memory(action)
+        return (True, "该动作无专属验证器，仅依赖健康分")
+
+    def _verify_restart_service(self) -> Tuple[bool, str]:
+        """重启服务验证：端口可连接（首选）或 PID 变更"""
+        state = self._verify_state.get("restart_service", {})
+        ports = state.get("ports", [])
+        service_name = state.get("service_name", "yunshu")
+
+        if ports:
+            # per-port 探测结果：便于定位具体哪个端口未恢复
+            port_results = {p: self._check_port_open(p) for p in ports}
+            failed_ports = [p for p, ok in port_results.items() if not ok]
+            logger.info(log_dict({'module_name': 'self_healer', 'action': 'restart_service.verify_ports', 'heal_action': 'restart_service', 'service_name': service_name, 'ports': list(ports), 'port_results': port_results, 'failed_ports': failed_ports}))
+            if not failed_ports:
+                return (True, f"端口 {ports} 已恢复可连接")
+            return (False, f"端口 {failed_ports} 仍不可连接")
+        logger.warning(log_dict({'module_name': 'self_healer', 'action': 'restart_service.verify_no_basis', 'heal_action': 'restart_service', 'service_name': service_name, 'reason': '未提供验证依据(ports)，无法确认重启生效', 'verify_state': self._verify_state.get("restart_service")}))
+        return (False, f"服务 {service_name} 未提供验证依据(ports)，无法确认重启生效")
+
+    def _verify_restart_component(self) -> Tuple[bool, str]:
+        """组件热重启验证：目标模块可重新导入"""
+        state = self._verify_state.get("restart_component", {})
+        module_name = state.get("module_name")
+        if not module_name:
+            return (False, "未记录目标模块，无法验证")
+        try:
+            importlib.import_module(module_name)
+            return (True, f"模块 {module_name} 导入正常")
+        except Exception as e:
+            return (False, f"模块 {module_name} 导入失败: {e}")
+
+    def _verify_clear_cache(self) -> Tuple[bool, str]:
+        """缓存清理验证：目标目录总大小下降"""
+        state = self._verify_state.get("clear_cache", {})
+        cache_dirs = state.get("cache_dirs", [])
+        total_before = state.get("total_before_bytes", 0)
+        if not cache_dirs:
+            return (False, "未记录缓存目录，无法验证")
+        total_after = 0
+        for d in cache_dirs:
+            if os.path.exists(d):
+                total_after += self._dir_size(d)
+        freed = total_before - total_after
+        logger.info(log_dict({'module_name': 'self_healer', 'action': 'clear_cache.verify', 'heal_action': 'clear_cache', 'cache_dirs': list(cache_dirs), 'total_before_bytes': total_before, 'total_after_bytes': total_after, 'freed_bytes': freed}))
+        if total_after < total_before:
+            return (True, f"缓存大小下降 {freed} 字节")
+        return (False, f"缓存大小未下降(前 {total_before} 后 {total_after} 字节)")
+
+    def _verify_circuit_breaker(self) -> Tuple[bool, str]:
+        """熔断恢复验证：目标熔断器状态非 OPEN（读公开 get_status()）"""
+        from agent.circuit_breaker import get_circuit_breaker
+        ctx = self._last_context.get("recover_circuit_breaker", {})
+        cb_name = ctx.get("circuit_breaker_name", "*")
+        if cb_name == "*":
+            return (True, "全量恢复无单点验证目标，依赖健康分")
+        try:
+            status = get_circuit_breaker(cb_name).get_status()
+            state = status.get("state")
+            logger.info(log_dict({'module_name': 'self_healer', 'action': 'recover_circuit_breaker.verify', 'heal_action': 'recover_circuit_breaker', 'breaker_name': cb_name, 'state': state, 'open': state == "open"}))
+            if state != "open":
+                return (True, f"熔断器 {cb_name} 状态为 {state}，非 OPEN")
+            return (False, f"熔断器 {cb_name} 仍为 OPEN")
+        except Exception as e:
+            logger.warning(log_dict({'module_name': 'self_healer', 'action': 'recover_circuit_breaker.verify_error', 'heal_action': 'recover_circuit_breaker', 'breaker_name': cb_name, 'error': str(e)}))
+            return (False, f"熔断器 {cb_name} 状态读取失败: {e}")
+
+    def _verify_memory(self, action: str) -> Tuple[bool, str]:
+        """内存类动作验证：RSS 下降 > 阈值或对象数下降"""
+        state = self._verify_state.get(action, {})
+        mem_before = state.get("mem_mb_before")
+        if mem_before is None:
+            return (False, "未记录动作前内存基线，无法验证")
+        mem_now = self._get_memory_usage()
+        freed = mem_before - mem_now
+        if freed > self._verify_mem_delta_mb:
+            return (True, f"RSS 下降 {freed:.2f} MB(阈值 {self._verify_mem_delta_mb} MB)")
+        objects_before = state.get("objects_before")
+        if action == "gc_collect" and objects_before is not None:
+            objects_now = len(__import__("gc").get_objects())
+            if objects_now < objects_before:
+                return (True, f"对象数下降 {objects_before - objects_now}")
+        return (False, f"RSS 未明显下降(前 {mem_before:.2f} 后 {mem_now:.2f} MB)")
+
+    def _check_port_open(self, port: int, host: str = "127.0.0.1", timeout: float = 2.0) -> bool:
+        """检查目标端口是否可连接（进程重启/端口恢复的验证依据）"""
+        try:
+            with socket.create_connection((host, int(port)), timeout=timeout):
+                return True
+        except (OSError, ValueError):
+            return False
 
     def get_records(
         self,

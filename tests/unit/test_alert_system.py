@@ -34,6 +34,7 @@ from agent.monitoring.self_healer import (
     HealStatus,
     HealAction
 )
+from agent.monitoring.alert_manager import AlertManager
 
 
 class TestAlertEvaluator(unittest.TestCase):
@@ -188,7 +189,8 @@ class TestSelfHealer(unittest.TestCase):
                     "enabled": True,
                     "threshold": 1,
                     "cooldown": 5,
-                    "max_per_hour": 20
+                    "max_per_hour": 20,
+                    "cache_whitelist": ["/tmp/cache"]
                 }
             }
         }
@@ -307,6 +309,74 @@ class TestAlertIntegration(unittest.TestCase):
         # 验证
         alerts = evaluator.get_alerts()
         self.assertGreaterEqual(len(alerts), 0)
+
+
+class TestAlertManagerHealPolicy(unittest.TestCase):
+    """AlertManager._check_heal_action 读取恢复动作映射表（补 M4）"""
+
+    def setUp(self):
+        # 使用不存在的配置路径 → 默认空配置（避免读默认 alerts.yml）
+        self.manager = AlertManager(config_path="no_such_alerts_config_for_test.yml")
+
+    def tearDown(self):
+        self.manager.stop()
+
+    @staticmethod
+    def _make_alert(name):
+        return Alert(
+            name=name,
+            state=AlertState.FIRING,
+            severity=AlertSeverity.WARNING,
+            value=1.0,
+            threshold=0.5,
+            condition="x > 0.5",
+            message="m",
+        )
+
+    def test_default_actions_from_policy(self):
+        """无 heal_actions 的规则 → 默认动作读取 policy.restore_map（未实现 → SKIPPED）"""
+        self.manager._config["groups"] = [{
+            "name": "g",
+            "rules": [{
+                "alert": "llm_timeout_alert",
+                "labels": {"auto_heal": "true"},
+            }]
+        }]
+        executed = []
+        self.manager._healer.set_on_heal_executed(lambda rec: executed.append(rec))
+        self.manager._check_heal_action(self._make_alert("llm_timeout_alert"))
+        # 映射表动作：retry_limited / degrade_llm_router 均未实现 → SKIPPED
+        self.assertEqual(len(executed), 2)
+        self.assertTrue(all(r.status.value == "skipped" for r in executed))
+        self.assertTrue(all("未实现" in r.message for r in executed))
+
+    def test_explicit_heal_actions_override_policy(self):
+        """规则显式 heal_actions 优先于映射表"""
+        self.manager._config["groups"] = [{
+            "name": "g",
+            "rules": [{
+                "alert": "llm_timeout_alert",
+                "labels": {"auto_heal": "true"},
+                "heal_actions": ["gc_collect"],
+            }]
+        }]
+        executed = []
+        self.manager._healer.set_on_heal_executed(lambda rec: executed.append(rec))
+        self.manager._check_heal_action(self._make_alert("llm_timeout_alert"))
+        self.assertEqual(len(executed), 1)
+        self.assertEqual(executed[0].action, "gc_collect")
+        self.assertEqual(executed[0].status.value, "success")
+
+    def test_no_auto_heal_does_nothing(self):
+        """无 auto_heal 标签 → 不执行自愈"""
+        self.manager._config["groups"] = [{
+            "name": "g",
+            "rules": [{"alert": "llm_timeout_alert", "labels": {}}]
+        }]
+        executed = []
+        self.manager._healer.set_on_heal_executed(lambda rec: executed.append(rec))
+        self.manager._check_heal_action(self._make_alert("llm_timeout_alert"))
+        self.assertEqual(len(executed), 0)
 
 
 def run_tests():

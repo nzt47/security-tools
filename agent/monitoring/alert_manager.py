@@ -179,8 +179,9 @@ class AlertManager:
         # 注册告警规则
         self._register_rules()
 
-        # 设置评估器回调
-        self._evaluator.set_on_state_change(self._on_alert_state_change)
+        # 设置评估器回调（恢复层修复：注册 _on_evaluator_state_change 使
+        # FIRING → 通知 → _check_heal_action 自愈链路真正生效，而非空方法）
+        self._evaluator.set_on_state_change(self._on_evaluator_state_change)
 
         # 初始化通知器
         self._notifier = AlertNotifier(
@@ -343,14 +344,21 @@ class AlertManager:
             logger.error(f"[AlertManager] 发送恢复通知失败: {e}")
 
     def _check_heal_action(self, alert: Alert):
-        """检查是否需要执行自愈动作"""
+        """检查是否需要执行自愈动作
+
+        【不易】补 M4：默认动作从写死的 ["restart_service"] 改为读取
+        agent.self_healing.policy 的恢复动作映射表（按告警名识别故障域）。
+        规则显式配置了 heal_actions 时优先使用规则配置。
+        """
+        from agent.self_healing.policy import get_actions_for_alert
+
         # 从配置中查找告警对应的自愈动作
         groups = self._config.get("groups", [])
         for group in groups:
             for rule in group.get("rules", []):
                 if rule.get("alert") == alert.name:
                     if rule.get("labels", {}).get("auto_heal"):
-                        actions = rule.get("heal_actions", ["restart_service"])
+                        actions = rule.get("heal_actions") or get_actions_for_alert(alert.name)
                         for action in actions:
                             self._healer.execute_action(action, {"alert_name": alert.name})
 

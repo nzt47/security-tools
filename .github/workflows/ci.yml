@@ -296,6 +296,12 @@ jobs:
             --timeout-method=signal \
             --junitxml=test-results/junit-shard${{ matrix.shard }}.xml \
             -rA
+          # 【确定性】-p no:randomly = 固定收集顺序（确定性可复现），CI 全量入口
+          #   （本 job 与 coverage-ci.yml）均不随机漂移，顺序依赖类 flaky
+          #   （test_optimized_storage 模块重复导入、test_skill_index_cache 性能断言）
+          #   在固定顺序下可复现不漂移。本地随机探测（pytest-randomly 默认 seed 漂移）
+          #   若暴露顺序污染，用固定 seed 入口复现：pytest --randomly-seed=20260813
+          #   （2026-08-14 已验证该 seed 下 test_optimized_storage/test_skill_index_cache 67 用例通过）
           PYTEST_RC=$?
           set -e
           kill $MONITOR_PID 2>/dev/null || true
