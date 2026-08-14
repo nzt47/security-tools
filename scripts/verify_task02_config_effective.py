@@ -2,20 +2,27 @@
 
 运行: python scripts/verify_task02_config_effective.py
 
-覆盖场景：
+覆盖场景（开关组合矩阵全量）：
   A. config.yaml 真实读取（不注入、不 mock 配置层）：
      reflection_persist=true / critic_evaluation_enabled=true / experience_persist=false
-  B. 环境变量覆盖 > config.yaml（运维 hotfix 生效）
+  B. 环境变量覆盖 > config.yaml（两开关均被 env=false 覆盖）
   C. 环境变量清除后回落到 config.yaml 值
-  D. 非法环境变量值处理（观察打印，不强断言）
+  D. 非法环境变量值处理（reflection_persist / critic_evaluation_enabled 各一行）
   E. config.yaml 缺失 → 硬编码默认值兜底（两开关 false，接线 inert）
+  F. config.yaml 组合矩阵：orchestrator 两开关 2×2 全组合
+     (false,false)=全 inert / (false,true)=只评估不写 / (true,false)=只写不评 / (true,true)=全开
+  G. experience_persist 环境变量覆盖（config.yaml=false 基础上：true/1/false/非法值）
+  H. config.yaml 字符串值解析（运维误加引号："false"/"0" 必须判 False——bool("false")==True 陷阱）
+  I. 环境变量边界：空串回落 config / 大写 / 带空格 / yes / 单开关部分覆盖
 
 【不易】只读验证：不修改 config.yaml；环境变量在 finally 中恢复，不污染用户环境。
 """
 
 import logging
 import os
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -87,12 +94,138 @@ def scenario_c_env_restore():
 def scenario_d_invalid_env():
     """D. 非法环境变量值（观察处理方式：不在 true/1/yes 集合 → 视为 False）"""
     print("\n── 场景 D：非法环境变量值（'abc'）")
-    os.environ["LEARNING_REFLECTION_PERSIST"] = "abc"
+    for env_key, cfg_key, label in [
+        ("LEARNING_REFLECTION_PERSIST", "reflection_persist", "反思持久化"),
+        ("CRITIC_EVALUATION_ENABLED", "critic_evaluation_enabled", "规则评估"),
+    ]:
+        os.environ[env_key] = "abc"
+        cfg = Orchestrator._load_learning_config()
+        os.environ.pop(env_key, None)
+        print(f"    非法值 'abc' → {cfg_key}={cfg[cfg_key]}（{label}，按实现：不在 true/1/yes → False）")
+        assert cfg[cfg_key] is False, f"{label} 非法值应视为 False"
+    print("  [D] PASS: 两开关非法值均被安全处理（不抛异常），环境变量已恢复")
+
+
+def scenario_f_config_combo_matrix():
+    """F. config.yaml 组合矩阵：orchestrator 两开关 2×2 全组合（临时 yaml patch _SEM_CONFIG_PATH）
+
+    不依赖真实 config.yaml 当前值（它固定为 true/true），用临时 yaml 穷举四种组合，
+    覆盖"只评估不写"与"只写不评"两个现有脚本缺失的接线形态。
+    """
+    print("\n── 场景 F：config.yaml 组合矩阵（2×2 全组合，临时 yaml）")
+    combos = [
+        (False, False, "全 inert：不写不评（默认语义）"),
+        (False, True, "只评估不写：critic=true + reflection_persist=false"),
+        (True, False, "只写不评：reflection_persist=true + critic=false"),
+        (True, True, "全开：写 + 评"),
+    ]
+    tmpdir = tempfile.mkdtemp(prefix="task02_combo_")
+    try:
+        for rp, ce, desc in combos:
+            import yaml as _yaml
+            cfg_path = Path(tmpdir) / "config.yaml"
+            cfg_path.write_text(
+                _yaml.safe_dump({
+                    "learning": {"reflection_persist": rp},
+                    "features": {"critic_evaluation_enabled": ce},
+                }),
+                encoding="utf-8",
+            )
+            with patch.object(Orchestrator, "_SEM_CONFIG_PATH", cfg_path):
+                cfg = Orchestrator._load_learning_config()
+            assert cfg["reflection_persist"] is rp, f"{desc}: reflection_persist 期望 {rp} 实际 {cfg['reflection_persist']}"
+            assert cfg["critic_evaluation_enabled"] is ce, f"{desc}: critic 期望 {ce} 实际 {cfg['critic_evaluation_enabled']}"
+            print(f"    ({rp}, {ce}) → ({cfg['reflection_persist']}, {cfg['critic_evaluation_enabled']})  {desc}  [OK]")
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+    print("  [F] PASS: 2×2 全组合读取正确（含只评估不写 / 只写不评）")
+
+
+def scenario_g_experience_env_override():
+    """G. experience_persist 环境变量覆盖（config.yaml=false 基础上，planning 侧）"""
+    print("\n── 场景 G：experience_persist 环境变量覆盖（planning 侧）")
+    for val, expected, desc in [
+        ("true", True, "env=true → 开启落盘"),
+        ("1", True, "env=1 → 开启落盘"),
+        ("false", False, "env=false → 保持关闭"),
+        ("abc", False, "env=非法值 → 视为 False"),
+    ]:
+        os.environ["LEARNING_EXPERIENCE_PERSIST"] = val
+        got = PlanningCore._load_experience_persist_config()
+        os.environ.pop("LEARNING_EXPERIENCE_PERSIST", None)
+        assert got is expected, f"{desc}: 期望 {expected} 实际 {got}"
+        print(f"    env={val!r} → experience_persist={got}  {desc}  [OK]")
+    print("  [G] PASS: experience_persist 环境变量覆盖正确（true/1/false/非法值）")
+
+
+def scenario_h_config_string_values():
+    """H. config.yaml 字符串值解析（运维误加引号防御）
+
+    修复 bool('false')==True 陷阱：字符串 "false"/"0" 必须判 False，
+    否则关闭开关被误读为开启（违反"保留 config.yaml false 默认语义"不变式）。
+    """
+    print("\n── 场景 H：config.yaml 字符串值解析（误加引号防御）")
+    import yaml as _yaml
+    cases = [
+        ("false", (False, False), '"false" 字符串 → 保持 false（bool() 陷阱修复）'),
+        ("true", (True, True), '"true" 字符串 → 正确开启'),
+        ("0", (False, False), '"0" 字符串 → false'),
+        ("1", (True, True), '"1" 字符串 → true'),
+        (" yes ", (True, True), '" yes " 字符串（去空格）→ true'),
+    ]
+    tmpdir = tempfile.mkdtemp(prefix="task02_strval_")
+    try:
+        for val, expected, desc in cases:
+            cfg_path = Path(tmpdir) / "config.yaml"
+            cfg_path.write_text(_yaml.safe_dump({
+                "learning": {"reflection_persist": val},
+                "features": {"critic_evaluation_enabled": val},
+            }), encoding="utf-8")
+            with patch.object(Orchestrator, "_SEM_CONFIG_PATH", cfg_path):
+                cfg = Orchestrator._load_learning_config()
+            got = (cfg["reflection_persist"], cfg["critic_evaluation_enabled"])
+            assert got == expected, f"{desc}: 期望 {expected} 实际 {got}"
+            print(f"    {desc} → {got}  [OK]")
+        # planning 侧 config 路径硬编码不可 patch，直接断言两侧 helper 纯函数一致
+        for val, exp in [("false", False), ("0", False), ("true", True), ("1", True),
+                         (" yes ", True), (False, False), (True, True)]:
+            assert Orchestrator._parse_bool_flag(val) is exp, f"orchestrator 解析 {val!r}"
+            assert PlanningCore._parse_bool_flag(val) is exp, f"planning 解析 {val!r}"
+        print("    _parse_bool_flag 纯函数：orchestrator/planning 双侧一致  [OK]")
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+    print("  [H] PASS: 字符串值安全解析（bool('false') 陷阱已修复）")
+
+
+def scenario_i_env_edge_cases():
+    """I. 环境变量边界：空串回落 / 大小写 / 带空格 / yes / 单开关部分覆盖"""
+    print("\n── 场景 I：环境变量边界值")
+    # 空字符串 → 不覆盖，回落 config.yaml 的 true
+    os.environ["LEARNING_REFLECTION_PERSIST"] = ""
     cfg = Orchestrator._load_learning_config()
-    print(f"    非法值 'abc' → reflection_persist={cfg['reflection_persist']}"
-          "（按实现：不在 true/1/yes → False，运维需知）")
     os.environ.pop("LEARNING_REFLECTION_PERSIST", None)
-    print("  [D] PASS: 非法值被安全处理（不抛异常），恢复环境变量")
+    assert cfg["reflection_persist"] is True, "空串环境变量应回落 config 值（不覆盖）"
+    print(f"    env='' → 回落 config.yaml → reflection_persist={cfg['reflection_persist']}  [OK]")
+    # 大小写 / 空格 / yes 变体
+    for val, expected, desc in [
+        (" TRUE ", True, "大写+空格 → 归一化后判 true"),
+        ("YES", True, "yes 大写变体"),
+        ("False", False, "False 大写 → false"),
+    ]:
+        os.environ["LEARNING_REFLECTION_PERSIST"] = val
+        cfg = Orchestrator._load_learning_config()
+        os.environ.pop("LEARNING_REFLECTION_PERSIST", None)
+        assert cfg["reflection_persist"] is expected, f"{desc}: 期望 {expected} 实际 {cfg['reflection_persist']}"
+        print(f"    env={val!r} → reflection_persist={cfg['reflection_persist']}  {desc}  [OK]")
+    # 单开关部分覆盖：只设 critic env，reflection 回落 config
+    os.environ["CRITIC_EVALUATION_ENABLED"] = "false"
+    cfg = Orchestrator._load_learning_config()
+    os.environ.pop("CRITIC_EVALUATION_ENABLED", None)
+    assert cfg["critic_evaluation_enabled"] is False and cfg["reflection_persist"] is True, \
+        "部分覆盖：critic 被 env 覆盖，reflection 应回落 config"
+    print(f"    部分覆盖（只设 CRITIC_EVALUATION_ENABLED=false）→ "
+          f"critic={cfg['critic_evaluation_enabled']} reflection_persist={cfg['reflection_persist']}  [OK]")
+    print("  [I] PASS: 环境变量边界全覆盖（空串/大小写/空格/部分覆盖）")
 
 
 def scenario_e_config_missing_fallback():
@@ -118,6 +251,10 @@ def main():
         scenario_c_env_restore()
         scenario_d_invalid_env()
         scenario_e_config_missing_fallback()
+        scenario_f_config_combo_matrix()
+        scenario_g_experience_env_override()
+        scenario_h_config_string_values()
+        scenario_i_env_edge_cases()
     finally:
         _restore_env(snap)  # 【不易】恢复用户环境，绝不残留
 

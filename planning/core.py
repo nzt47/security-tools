@@ -428,6 +428,15 @@ class PlanningCore:
     # TASK-02：经验/教训落盘开关（观察模式）硬编码默认值
     _EXPERIENCE_PERSIST_DEFAULT = False
 
+    @staticmethod
+    def _parse_bool_flag(value) -> bool:
+        """yaml 开关值安全解析（TASK-02）— 布尔原样返回；字符串按 true/1/yes 判 True，
+        其余（含 "false"/"0"，运维误加引号场景）判 False。
+        【不易】保护 config.yaml false 默认语义：bool("false")==True 会把关闭开关误读为开启。"""
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in ("true", "1", "yes")
+
     @classmethod
     def _load_experience_persist_config(cls) -> bool:
         """读取学习经验落盘配置（TASK-02）— 优先级: 环境变量 > config.yaml > 硬编码默认值
@@ -448,7 +457,7 @@ class PlanningCore:
                     data = _yaml.safe_load(f) or {}
                 learning_cfg = data.get("learning", {}) or {}
                 if learning_cfg.get("experience_persist") is not None:
-                    enabled = bool(learning_cfg.get("experience_persist"))
+                    enabled = cls._parse_bool_flag(learning_cfg.get("experience_persist"))
         except Exception as e:
             logger.debug(f"[经验落盘] config.yaml 读取失败，降级到默认值: {e}")
 

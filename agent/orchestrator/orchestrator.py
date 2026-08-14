@@ -2226,6 +2226,15 @@ class Orchestrator:
         "critic_evaluation_enabled": False,
     }
 
+    @staticmethod
+    def _parse_bool_flag(value: Any) -> bool:
+        """yaml 开关值安全解析（TASK-02）— 布尔原样返回；字符串按 true/1/yes 判 True，
+        其余（含 "false"/"0"，运维误加引号场景）判 False。
+        【不易】保护 config.yaml false 默认语义：bool("false")==True 会把关闭开关误读为开启。"""
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in ("true", "1", "yes")
+
     @classmethod
     def _load_learning_config(cls) -> Dict[str, Any]:
         """读取学习机制接线配置（TASK-02）— 优先级: 环境变量 > config.yaml > 硬编码默认值
@@ -2252,9 +2261,9 @@ class Orchestrator:
                 learning_cfg = data.get("learning", {}) or {}
                 features_cfg = data.get("features", {}) or {}
                 if learning_cfg.get("reflection_persist") is not None:
-                    config["reflection_persist"] = bool(learning_cfg.get("reflection_persist"))
+                    config["reflection_persist"] = cls._parse_bool_flag(learning_cfg.get("reflection_persist"))
                 if features_cfg.get("critic_evaluation_enabled") is not None:
-                    config["critic_evaluation_enabled"] = bool(features_cfg.get("critic_evaluation_enabled"))
+                    config["critic_evaluation_enabled"] = cls._parse_bool_flag(features_cfg.get("critic_evaluation_enabled"))
         except Exception as e:
             logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.learning.config.fallback', 'message': '[学习接线] config.yaml 读取失败，降级到默认值: %s' % (e,)}))
 
