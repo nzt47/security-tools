@@ -54,8 +54,10 @@ from .observability import logger
 _SCHEMA_VERSION = 1
 
 # 对象类型（任务 4/5 将复用 prompt / knowledge_card / subagent_config / tool_code）
+# tool_doc: 任务 EVO-T5 工具文档进化（edit_policy.EditProposal.object_type 定义）
 # batch: 批量/调度进化汇总摘要（offline_evolver.evolve_batch 写入）
-OBJECT_TYPES = ("skill", "prompt", "knowledge_card", "subagent_config", "tool_code", "batch")
+OBJECT_TYPES = ("skill", "prompt", "knowledge_card", "subagent_config",
+                "tool_code", "tool_doc", "batch")
 
 # 批量进化汇总记录的固定虚拟 object_id（object_type="batch"）
 # Why: offline_evolver.evolve_batch/_write_batch_record 与测试均引用此常量；

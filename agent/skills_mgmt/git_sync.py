@@ -313,6 +313,24 @@ class GitSync:
                 ))
         return commits
 
+    def show(self, ref: str, file_path: str) -> str:
+        """读取历史版本文件内容（git show <ref>:<path>），供元智能体回滚使用
+
+        回滚语义（任务 EVO-T5）: 合并 commit 的父提交（ref=<merge_sha>^）内容即
+        提案编辑前的原始内容，恢复该内容即实现"从 git 回滚"。
+
+        Raises:
+            GitSyncError: 路径越界 / ref 或 path 不存在（git show 非零退出）
+        """
+        self._validate_path(file_path)
+        result = self._run_git("show", f"{ref}:{file_path}", check=False)
+        if result.returncode != 0:
+            raise GitSyncError(
+                f"git show 失败 (ref={ref}, path={file_path}): "
+                f"{(result.stderr or result.stdout).strip()}"
+            )
+        return result.stdout
+
     # ──────────────────────────────────────────────
     #  双向同步
     # ──────────────────────────────────────────────
