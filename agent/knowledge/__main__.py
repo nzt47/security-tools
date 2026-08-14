@@ -286,6 +286,31 @@ def cmd_card_from_note(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_convert_cards(args: argparse.Namespace) -> int:
+    """CLI convert-cards: 知识卡片 → Skill DRAFT（TASK-04 Step 1 连接器）。
+
+    --dry-run 只产出预览，不落盘不写幂等标记。
+    """
+    from agent.knowledge.skill_bridge import KnowledgeSkillBridge
+    from agent.skills_mgmt.store import SkillStore
+
+    card_store = CardStore(args.wiki)
+    skills_store = SkillStore(path=args.skills_store)
+    bridge = KnowledgeSkillBridge(card_store=card_store,
+                                  skills_store=skills_store)
+    results = bridge.convert_cards(dry_run=args.dry_run)
+    created = sum(1 for r in results
+                  if r.get("skill_id") and not r.get("skipped"))
+    mode = "dry-run 预览" if args.dry_run else "已落盘"
+    print(f"convert-cards {mode}: 产出 {created} 个 Skill 草稿")
+    for r in results:
+        if r.get("skill_id"):
+            print(f"  {r['slug']}: → {r['skill_id']}")
+        else:
+            print(f"  {r['slug']}: 跳过（{r['reason']}）")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m agent.knowledge",
@@ -396,6 +421,19 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
     p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
     p.set_defaults(func=cmd_card_from_note)
+
+    p = sub.add_parser(
+        "convert-cards",
+        help="知识卡片 → Skill DRAFT（TASK-04 连接器；--dry-run 只预览不落盘）",
+    )
+    p.add_argument("--wiki", default=_DEFAULT_WIKI)
+    p.add_argument("--skills-store", default="data/skills_mgmt.json",
+                   help="技能存储 JSON 路径")
+    p.add_argument("--dry-run", action="store_true",
+                   help="只产出预览，不落盘不写幂等标记")
+    p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
+    p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
+    p.set_defaults(func=cmd_convert_cards)
 
     return parser
 

@@ -670,6 +670,11 @@ def test_API热更_参数校验与生效():
         Orchestrator._clear_semantic_config_cache()
 
 
+# 【P1 A3】D 类环境性慢测试分流（2026-08-14 merge 覆盖恢复）：
+# 并行会话 merge PR #634 时以 master 版本覆盖本文件，丢失 6be16ecb 中的
+# 用例级 slow 标注。本用例 3 process + 1 热更线程 t.join()，负载下存在
+# _wait_for_tstate_lock 阻塞风险（Phase 3 第 6 卡点同型），恢复 slow 隔离。
+@pytest.mark.slow
 def test_并发热更_配置热更不影响正在处理的请求(orch, monkeypatch):
     """模拟并发请求下的配置热更场景
 
@@ -757,6 +762,11 @@ def test_并发热更_配置热更不影响正在处理的请求(orch, monkeypat
     Orchestrator._clear_semantic_config_cache()
 
 
+# 【P1 A3】D 类环境性慢测试分流（2026-08-14 merge 覆盖恢复）：
+# 第 6 卡点强杀源（10 线程 t.join() → _wait_for_tstate_lock，Phase 3 首跑
+# 61% 处被 pytest-timeout 强杀）。6be16ecb 标注被并行会话 merge 覆盖，
+# 必须恢复，否则 Phase 3 重跑会再次卡死。
+@pytest.mark.slow
 def test_高并发_频繁热更无线程竞争(orch, monkeypatch):
     """模拟线上高并发: 5 线程频繁热更 + 5 线程并发 process()
 

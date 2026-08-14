@@ -262,6 +262,26 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/skills-mgmt/<skill_id>/publish", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_publish(skill_id):
+        """发布技能（TASK-04 Step 3 强制审核链）
+
+        force=1 显式豁免强制审核（须写审计日志 review_waiver_publish）；
+        reason 为豁免原因（默认 http_waiver）。
+        """
+        try:
+            force = request.args.get("force", "0") in ("1", "true", "True")
+            reason = request.args.get("reason", "http_waiver")
+            skill = _svc().publish(skill_id, force=force,
+                                   actor="api", reason=reason)
+            return jsonify({"ok": True, "skill_id": skill.id,
+                            "status": skill.status.value})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 400
+
     @app.route("/api/skills-mgmt/review/thresholds", methods=["GET", "PUT"])
     @trace_route("SkillsMgmt")
     @require_token
