@@ -79,7 +79,7 @@ def cmd_pytest(targets: list) -> None:
     """在 LOCK_PROFILE=1 下运行指定 pytest 场景，采集真实锁热点"""
     log_path = _default_log()
     env = {**os.environ, "LOCK_PROFILE": "1", "LOCK_PROFILE_LOG": log_path}
-    argv = [sys.executable, "-m", "pytest", "-p", "no:randomly", "--no-header", *targets]
+    argv = [sys.executable, "-m", "pytest", "-p", "no:randomly", "-p", "agent.monitoring.lock_profiler", "--no-header", *targets]
     print(f"[pytest] 采集开始: {' '.join(argv)}")
     print(f"[pytest] 采样 log: {log_path}")
     rc = subprocess.call(argv, env=env)

@@ -1,0 +1,18 @@
+name: lock-discipline-scan
+
+on:
+  push:
+    branches: [develop, main, master]
+  pull_request:
+    branches: [develop, main, master]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 锁纪律静态扫描（HIGH 违规阻断 CI）
+        run: python scripts/lock_discipline_scan.py --strict

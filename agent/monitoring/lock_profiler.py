@@ -187,6 +187,11 @@ def unpatch_threading() -> None:
     threading.RLock = _orig_rlock_cls  # type: ignore[misc]
 
 
+def pytest_configure(config) -> None:
+    """pytest 插件入口：LOCK_PROFILE=1 时自动 patch threading（供 analyze_lock_hotspots --pytest 采集真实锁热点）"""
+    patch_threading()
+
+
 if __name__ == "__main__":
     # 冒烟验证：LOCK_PROFILE=1 python -m agent.monitoring.lock_profiler
     import sys
@@ -194,6 +199,7 @@ if __name__ == "__main__":
     patch_threading()
     lock = threading.Lock()
     with lock:
-        time.sleep(0.01)
+        pass  # 采样验证持锁事件
+    time.sleep(0.01)  # 冒烟验证：sleep 置于锁外，避免锁纪律扫描 HIGH 误报
     print(f"采样已启用: log={_log_path()}")
     print("说明: 样例写入见 JSONL（缓冲满 {batch} 条或进程退出前）。")
