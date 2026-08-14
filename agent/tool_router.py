@@ -440,6 +440,23 @@ def get_tools_for_input(
     # 【功能 2/1/3】别名合并 + 优先级排序 + 数量截断(抽为 helper,供 hybrid 复用)
     result = _apply_alias_merge_and_priority_sort(selected, categories, max_tools)
 
+    # 任务6：进化策略注入（工具路由层）— 高失败率工具的备用路径策略
+    # 策略 param_patch 含 fallback_tools 时,将备用工具补入结果(追加末尾,不破坏排序);
+    # 注入失败不影响路由主流程(降级为无策略)。
+    try:
+        from agent.evolution.injector import get_injector
+        inj = get_injector()
+        if inj is not None:
+            fallback_extra: list[str] = []
+            for tool in list(result):
+                for s in inj.get_strategies(f"tool:{tool}"):
+                    fb = (s.get("param_patch") or {}).get("fallback_tools") or []
+                    fallback_extra.extend(str(t) for t in fb if str(t) not in result)
+            if fallback_extra:
+                result = result + fallback_extra
+    except Exception:
+        pass
+
     # 记录工具选择决策（安全降级：recorder 不可用或异常不影响路由）
     if ToolTraceRecorder is not None:
         try:

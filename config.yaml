@@ -143,6 +143,17 @@ learning:
     # 事件记忆目录（JSONL：novelty_memory.jsonl，event=novelty_event 标签）
     # 环境变量 SENSOR_LEARNING_MEMORY_DIR 覆盖此值
     memory_dir: ./data/learning/novelty_memory
+  # 任务6：轻量自我进化机制（失败案例回流 + 修复策略库 + 参数联动）
+  # 裁剪替代 FATE：无任何训练/微调管线，纯提示词/策略级进化闭环
+  # 环境变量 EVOLUTION_ENABLED 覆盖此值
+  evolution:
+    enabled: true
+    # 可选 LLM 候选生成开关（默认开；无 LLM 环境自动降级为规则候选）
+    # 环境变量 EVOLUTION_LLM_GENERATE 覆盖此值
+    llm_generate: true
+    # 策略库/失败案例存储目录
+    # 环境变量 EVOLUTION_STORAGE_PATH 覆盖此值
+    storage_path: ./data/evolution
 tools:
   enabled: true
   timeout: 30
