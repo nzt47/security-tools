@@ -86,7 +86,9 @@
 
 ### 3.4 三处调度注册统一收口
 
-feedback 执行体 / evolver / lifecycle 全部经 `agent/task_scheduler.py` 的 `get_scheduler().add_interval_task()` 注册（与 TASK-04 precipitate 同一调度收口，**无双调度器**）；三个模块各自独立总开关（默认 false）+ dry_run（默认 true）+ 独立审计文件。
+feedback 执行体 / evolver / lifecycle 全部经 `agent/task_scheduler.py` 的 `get_scheduler().add_interval_task()` 注册（与 TASK-04 precipitate 同一调度收口，**无双调度器**）；三个模块各自独立总开关 + dry_run（默认 true）+ 独立审计文件。
+
+**统一注册入口（收口后的收口）**：新增 `agent/skills_mgmt/learning_scheduler.py`，提供 `register_learning_schedulers()` / `unregister_learning_schedulers()` 一次注册/注销三个任务，并挂载到 `app_server.py` 主服务启动处（try/except 包裹，失败不阻断主流程）。CLI 手动注册：`python -m agent.skills_mgmt.learning_scheduler [--start-daemon|--unregister]`。每个任务是否注册仍由各自 `learning.*.enabled` 开关独立决定（默认关闭 = 安全底线）。
 
 ### 3.5 配置（config.yaml，含注释）
 
@@ -128,15 +130,16 @@ feedback 执行体 / evolver / lifecycle 全部经 `agent/task_scheduler.py` 的
 | `tests/unit/test_feedback_agent.py` | 10 | dry-run 4 类建议零副作用；promote 过审发布+快照+审计；promote 未过审被拒；merge 重复技能；无相似 DEPRECATED；improve_params 优化+快照+审计；keep 跳过；单技能异常不阻断；调度默认关闭/开启注册 |
 | `tests/unit/test_skill_lifecycle.py` | 10 | 闲置天数判定（last_used/usage_zero 用 created_at/异常数据保守 None）；PUBLISHED→DEPRECATED；DEPRECATED→ARCHIVED；DEPRECATED→ARCHIVED 时序；近期使用不迁移；dry-run 零迁移零审计；容量超限建议 |
 | `tests/unit/test_evolver_schedule.py` | 7 | 调度默认关闭/开启注册/注销；dry-run 预演零提交零 KPI 零审计；正式运行 KPI 递增+审计落盘；evolve_batch 异常不崩溃；dry_run 默认 true |
+| `tests/unit/test_learning_scheduler.py` | 3 | 统一注册：全关 disabled / 全开注册到 task_scheduler / 注销移除全部任务 |
 
-合计 27 用例（≥ 任务书 15 用例要求）。
+合计 30 用例（≥ 任务书 15 用例要求）。
 
 **回归结果**：
-- 新增 3 文件：`27 passed`；
+- 新增 4 文件：`30 passed`；
 - 相关既有（precipitate/review_enforcement/feedback_skill_binding）：`35 passed` 无回归；
 - `pre_commit_ci_guard.py --static-only --strict`：FAIL=0，新增阻断 WARN=0（存量 47 条基线内豁免）；
 - `python -m agent.observability.arch_rules --check`：通过（0 未豁免违规，4 项既有豁免与本任务无关）；
-- 全量 `tests/unit -q -p no:randomly`（排除 4 个 D 类慢文件，见 §7）：**11424 passed / 164 skipped / 13 xfailed / 11 xpassed / 1 error（26:11）**；本任务 3 个测试文件 27 用例全量全绿；唯一 error 为既有 `test_planning_defect_d7.py`（`NameError: name 'pytest' is not defined`，既有 defect 看门狗文件缺陷，与本任务零关联）；rc=1 为 TRAE sandbox 拦截 teardown 写 `C:\nonexistent` 所致（项目记忆已知现象，判定以 `=+ \d+ passed` 汇总行为准）。
+- 全量 `tests/unit -q -p no:randomly`（排除 4 个 D 类慢文件，见 §7）：**11424 passed / 164 skipped / 13 xfailed / 11 xpassed / 1 error（26:11）**；本任务测试文件 27 用例全量全绿（learning_scheduler 3 用例随 TASK-05 收口回归 30 用例全绿）；唯一 error 为既有 `test_planning_defect_d7.py`（`NameError: name 'pytest' is not defined`，既有 defect 看门狗文件缺陷，与本任务零关联）；rc=1 为 TRAE sandbox 拦截 teardown 写 `C:\nonexistent` 所致（项目记忆已知现象，判定以 `=+ \d+ passed` 汇总行为准）。
 
 ## 6. 回滚方法
 
@@ -155,3 +158,46 @@ feedback 执行体 / evolver / lifecycle 全部经 `agent/task_scheduler.py` 的
 
 - **现象**：初版 feedback_agent 三个动作分支用 `bump.version` 取快照版本，但 `enhancer.VersionBump` 字段为 `new_version`，运行时抛 `'VersionBump' object has no attribute 'version'`，导致 deprecate/improve 动作落入 errors（5 用例失败）。
 - **修复**：全部改为 `bump.new_version`；同时修复 `_process_skill` 把反馈统计异常当 no_data 吞掉的隐性故障（R7）。修复后 27 用例全绿。
+
+## 8. 提交记录与 detached 悬空提交修复（2026-08-14）
+
+### 8.1 提交 commit `5721b304`（develop fast-forward）
+
+完整 commit message 备注：
+
+```
+feat(learning): TASK-05 完整交付 + 学习类定时任务统一注册激活
+
+- 三执行模块入库：feedback_agent（反馈建议自动执行，4 类动作走既有 API）、
+  evolution_scheduler（offline_evolver 周级调度包装，KPI+审计）、
+  lifecycle（零使用 N 天判定器：PUBLISHED 闲置>90d→DEPRECATED，
+  DEPRECATED 闲置>180d→ARCHIVED，绝不删文件）
+- learning_scheduler 统一注册入口：register/unregister_learning_schedulers
+  （CLI python -m agent.skills_mgmt.learning_scheduler [--start-daemon]）
+- app_server 主服务启动挂载统一注册（try/except 不阻断主流程）
+- config.yaml 启用三组调度：feedback_agent(24h)/evolver(7d)/lifecycle(24h)，
+  调度触发默认 dry-run（安全底线，正式写操作需显式 dry_run=false）
+- 演示脚本：demo_feedback_agent（正式执行+审计落盘）、
+  demo_evolution_scheduler（候选预演+周级注册演示）
+- 测试 4 文件 30 用例全绿（test_feedback_agent/test_evolver_schedule/
+  test_skill_lifecycle/test_learning_scheduler）
+```
+
+提交信息：13 文件 / 2847 行新增，10 个 pre-commit hooks 全 Passed，`git branch --contains` 确认在 develop 上（非悬空）。
+
+### 8.2 事故记录：63644492 detached 悬空提交
+
+- **现象**：上一轮"提交"在 `git worktree add --detach` 的隔离 worktree 中完成（commit `63644492`，仅含 feedback_agent.py + demo_feedback_agent.py），随后 `git worktree remove --force` 删除 worktree。之后 `git branch --contains 63644492` **无任何分支输出**——提交成为悬空提交（dangling），develop 仍停留在 `64d0fd2e`，feedback_agent.py 实际从未进入 develop。
+- **根因**：detached worktree 提交只把 commit 写入对象库，**不会移动任何分支指针**；worktree 删除后无分支引用该 commit，被 gc 回收前不可达。
+- **影响**：若未发现，TASK-05 核心模块在 develop 上缺失，依赖它的 learning_scheduler 等后续代码将 import 失败。
+
+### 8.3 修复与预防
+
+- **修复**：本次提交 `5721b304` 完整收录 13 文件（三执行模块 + learning_scheduler + 2 演示脚本 + 4 测试 + config + app_server + 变更说明），在 detached worktree 提交后立即 `git merge --ff-only 5721b304` 并入 develop（纯前进，等价 fast-forward），提交可达且内容完整（`git show --stat` 核对 13 文件/2847 行无并行会话混入）。
+- **预防（守【不易】）**：detached worktree 提交后**必须立即** `git branch --contains <commit>` 验证可达，并 `git merge --ff-only` 并入目标分支；提交完成前不得 `git worktree remove`。
+- **验收后置项**：旧悬空提交 `63644492` 内容已被 `5721b304` 以更全版本覆盖收录，可随 `git gc` 回收，无需人工处理。
+
+### 8.4 激活变更与文档基线
+
+- **config 三开关已从默认 false 激活为 true**：`learning.feedback_agent.enabled=true`（每日 24h）、`learning.evolver.enabled=true`（每周 7d）、`learning.lifecycle.enabled=true`（每日 24h）；§3.5 表格中的"默认 false"指**设计默认值**，当前运行态以上述激活值为准，调度触发仍默认 dry-run（安全底线）。
+- **lifecycle 状态迁移排查日志（2026-08-14 补充）**：`_process_skill` 关键迁移点新增 `logger.info`——判定入口（skill/status/idle_days/阈值）、无闲置依据保守跳过、dry_run 预演 deprecate/archive、正式迁移 deprecate/archive（含 from/to/idle/阈值、注明仅状态迁移不删文件）、容量超限建议；实际运行排障直接看控制台 `[Lifecycle]` 前缀日志即可定位。

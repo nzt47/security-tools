@@ -307,6 +307,10 @@ class LifecycleManager:
 
         # 容量超限 → 检索升级建议（只写报告，不自动改检索配置）
         if report["total_skills"] > threshold:
+            logger.info(
+                "[Lifecycle] 容量超限建议 skill_count=%s > 阈值 %s "
+                "（只报告，不自动变更检索配置）",
+                report["total_skills"], threshold)
             report["suggestions"].append({
                 "type": "retrieval_upgrade",
                 "skill_count": report["total_skills"],
@@ -325,15 +329,31 @@ class LifecycleManager:
         from .models import SkillStatus
         status = skill.status.value if hasattr(skill.status, "value") else skill.status
         idle = _idle_days(skill, now)
+        logger.info(
+            "[Lifecycle] 判定 skill=%s status=%s idle_days=%s dry_run=%s "
+            "(阈值: unused_days=%s archive_days=%s)",
+            skill.id, status, idle, dry_run, unused_days, archive_days)
+        if idle is None and status in (_STATUS_PUBLISHED, _STATUS_DEPRECATED):
+            logger.info(
+                "[Lifecycle] skill=%s 无闲置时间依据（usage>0 且缺 last_used_at），"
+                "保守不迁移", skill.id)
 
         if status == _STATUS_PUBLISHED:
             if idle is not None and idle > unused_days:
                 if dry_run:
+                    logger.info(
+                        "[Lifecycle] dry_run 预演 deprecate skill=%s idle_days=%s "
+                        "> 阈值 %s（仅报告不迁移，不删文件）",
+                        skill.id, idle, unused_days)
                     report["deprecated"].append({
                         "skill_id": skill.id, "from_status": status,
                         "to_status": _STATUS_DEPRECATED, "idle_days": idle,
                         "threshold": unused_days})
                     return
+                logger.info(
+                    "[Lifecycle] 正式迁移 deprecate skill=%s from=%s to=%s "
+                    "idle_days=%s 阈值=%s（仅状态迁移，不删文件，可人工改回）",
+                    skill.id, status, _STATUS_DEPRECATED, idle, unused_days)
                 skill.status = SkillStatus.DEPRECATED
                 svc.store.upsert(skill)
                 record = {
@@ -348,11 +368,19 @@ class LifecycleManager:
         if status == _STATUS_DEPRECATED:
             if idle is not None and idle > archive_days:
                 if dry_run:
+                    logger.info(
+                        "[Lifecycle] dry_run 预演 archive skill=%s idle_days=%s "
+                        "> 阈值 %s（仅报告不迁移，不删文件）",
+                        skill.id, idle, archive_days)
                     report["archived"].append({
                         "skill_id": skill.id, "from_status": status,
                         "to_status": _STATUS_ARCHIVED, "idle_days": idle,
                         "threshold": archive_days})
                     return
+                logger.info(
+                    "[Lifecycle] 正式迁移 archive skill=%s from=%s to=%s "
+                    "idle_days=%s 阈值=%s（仅状态迁移，不删文件，可人工改回）",
+                    skill.id, status, _STATUS_ARCHIVED, idle, archive_days)
                 skill.status = SkillStatus.ARCHIVED
                 svc.store.upsert(skill)
                 record = {
