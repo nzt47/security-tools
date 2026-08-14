@@ -766,6 +766,7 @@ def test_并发热更_配置热更不影响正在处理的请求(orch, monkeypat
     Orchestrator._clear_semantic_config_cache()
 
 
+@pytest.mark.slow
 def test_高并发_频繁热更无线程竞争(orch, monkeypatch):
     """模拟线上高并发: 5 线程频繁热更 + 5 线程并发 process()
 
