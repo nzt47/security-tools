@@ -434,9 +434,13 @@ class TestReActLoop:
         })
         
         mock_reflector = MagicMock()
-        
-        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=3)
-        
+
+        # 意图：验证"达到最大迭代次数 → 超时"。mock 每轮返回相同 response（状态恒定），
+        # 任务5 状态哈希会把它判为循环——用 loop_max_repeats 调大阈值隔离新检测，
+        # 保住"超时"路径的测试意图（与 test_run_budget_timeout 用 timeout_seconds 同理）
+        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=3,
+                               config={"loop_max_repeats": 99})
+
         result = await react_loop.run("复杂任务", {})
         
         assert result.success is False
@@ -454,7 +458,8 @@ class TestReActLoop:
         mock_planner = MagicMock()
         mock_planner.tool_registry = registry
         mock_planner.llm = AsyncMock()
-        # 每次思考返回同一工具调用 → 连续动作描述相同 → 第 6 步触发 _detect_loop
+        # 每次思考返回同一工具调用 → 连续动作描述相同 → 触发循环检测。
+        # 任务5 状态哈希接入后：同工具同参数指纹恒定，第 3 次重复即命中（旧 _detect_loop 需 6 步）
         mock_planner.llm.chat.return_value = json.dumps({
             "reasoning": "反复执行相同操作",
             "action_type": "tool_call",
@@ -469,8 +474,10 @@ class TestReActLoop:
         assert result.success is False
         assert result.error == "检测到执行循环"
         assert "超时" not in result.error
-        # 在循环检测点（6 步）终止，而非耗尽 max_iterations（8）
-        assert result.iterations == 6
+        # 状态哈希检测在第 3 次重复（第 3 步）终止，而非耗尽 max_iterations（8）
+        assert result.iterations == 3
+        # 任务5：解释性摘要写入 final_state
+        assert "loop_summary" in result.final_state
 
     @pytest.mark.asyncio
     async def test_run_iteration_error_distinct_error(self):
@@ -570,8 +577,9 @@ class TestReActLoop:
         assert result.success is False
         assert result.error == "检测到执行循环"
         assert "超时" not in result.error
-        # 在循环检测点（6 步）终止，而非耗尽 max_iterations（10）
-        assert result.iterations == 6
+        # 任务5 状态哈希接入后：A 在窗口内第 3 次出现（第 5 步）即命中
+        # （旧 _detect_loop 需 6 步周期检测）；不耗尽 max_iterations（10）
+        assert result.iterations == 5
 
     @pytest.mark.asyncio
     async def test_run_hints_capped(self):

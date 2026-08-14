@@ -16,6 +16,7 @@ from .models.react import ReActStep, ReActResult, ThoughtResult
 from .budget import BudgetManager, BudgetStatus, PlanBudget
 from .reflector import format_advice_section, classify_task, Lesson
 from .diagnostics import build_diagnosis
+from .loop_detector import LoopDetector
 
 from agent.monitoring.tracing import get_trace_id
 
@@ -100,6 +101,14 @@ class ReActLoop:
         # 任务4（D12/D6）：失败反思独立轮数上限（默认 2，防反思自身循环放大成本）
         self.reflection_retries = int(self.config.get("reflection_retries", 2))
         self._failure_reflection_count = 0
+        # 任务5（D6 另一半）：状态哈希循环检测——窗口内同一状态指纹达阈值即终止；
+        # 配置可调且必须被消费（防死配置，同 ROLLBACK_WINDOW_MIN 落地教训）
+        self.loop_max_repeats = int(self.config.get("loop_max_repeats", 3))
+        self.loop_window = int(self.config.get("loop_window", 8))
+        self._loop_detector = LoopDetector(
+            max_repeats=self.loop_max_repeats,
+            window=self.loop_window,
+        )
         self._token_used = 0
         self._cost = 0.0
         # 阶段 3（D13）：统一预算管理器（嵌套 budget 段优先，兼容直连键
@@ -144,6 +153,9 @@ class ReActLoop:
         termination_reason: str = "timeout"  # 默认：迭代耗尽（真超时）
         termination_iteration: int = self.max_iterations
         termination_exception: Optional[Exception] = None
+        # 任务5：状态哈希循环检测每任务重置（防跨任务状态污染）；命中时记录解释性摘要
+        self._loop_detector.reset()
+        loop_summary: Optional[str] = None
 
         logger.info("══════════════════════════════════════════════════════════════════")
         logger.info("🔄 [ReAct循环] =================================================")
@@ -341,6 +353,21 @@ class ReActLoop:
                     termination_iteration = iteration + 1
                     break
 
+                # 任务5（D6 另一半）：状态哈希循环检测——与 _detect_loop 并行增强，
+                # 捕获"状态实质重复但动作序列模式未达旧阈值"的循环（如参数级重复）。
+                # 命中不直接异常退出：记录终止原因，post-loop 统一按 loop_detected 语义返回。
+                loop_signal = self._loop_detector.check(
+                    self._loop_detector.state_hash(thought, context, iteration)
+                )
+                if loop_signal is not None:
+                    logger.warning("   ⚠️ ⚠️ ⚠️ [loop_terminated] 状态哈希循环检测触发！")
+                    logger.warning(f"      重复状态摘要: {loop_signal.summary}")
+                    logger.warning(f"      窗口内出现 {loop_signal.occurrences} 次（阈值 {self.loop_max_repeats}）")
+                    termination_reason = "loop_detected"
+                    termination_iteration = iteration + 1
+                    loop_summary = loop_signal.summary
+                    break
+
                 if action_result.success:
                     key = f"_last_result_{iteration}"
                     context[key] = action_result.output
@@ -375,10 +402,14 @@ class ReActLoop:
                 break
 
         duration = (datetime.now() - start_time).total_seconds() * 1000
+        # 任务5：状态哈希命中时把解释性摘要透出到 final_state（旧 _detect_loop 命中时无摘要）
+        final_state_extra: Optional[Dict[str, Any]] = None
         # P2 修复：按终止原因生成不同的错误语义（真超时/循环检测/迭代异常）
         if termination_reason == "loop_detected":
             result_text = "检测到反馈循环,已终止执行"
             error_text = "检测到执行循环"
+            if loop_summary:
+                final_state_extra = {"loop_summary": loop_summary}
         elif termination_reason == "iteration_error":
             result_text = "迭代过程中发生异常"
             error_text = (
@@ -401,6 +432,7 @@ class ReActLoop:
             iterations=termination_iteration,
             duration_ms=duration,
             error=error_text,
+            final_state_extra=final_state_extra,
         )
 
     async def _think(self, task: str, context: Dict, history: List[ReActStep]) -> ThoughtResult:
@@ -852,7 +884,8 @@ class ReActLoop:
         )
 
     def _result(self, *, success: bool, result: Any, steps: List[ReActStep],
-                iterations: int, duration_ms: float, error: Optional[str] = None) -> ReActResult:
+                iterations: int, duration_ms: float, error: Optional[str] = None,
+                final_state_extra: Optional[Dict[str, Any]] = None) -> ReActResult:
         """统一构造 ReActResult，透出 token/cost 预算可观测字段与 final_state 快照"""
         final_state: Dict[str, Any] = {}
         # 阶段 3（D13）：预算快照写入 final_state（可观测）；预算未启用时保持空 dict（向后兼容）
@@ -860,6 +893,9 @@ class ReActLoop:
             snap = self.budget_manager.snapshot()
             snap["status"] = self.budget_manager.check().value
             final_state["budget"] = snap
+        # 任务5：循环检测解释性摘要（可选透出，默认 None 零影响）
+        if final_state_extra:
+            final_state.update(final_state_extra)
         return ReActResult(
             success=success,
             result=result,
