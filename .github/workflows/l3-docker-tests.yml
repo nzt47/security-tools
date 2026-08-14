@@ -125,6 +125,23 @@ jobs:
         run: |
           echo "=== 验证镜像 ==="
           docker images | grep ${{ env.DOCKER_IMAGE_NAME }}
+          echo "=== 验证模型缓存可见性（修复点 14 回归守卫）==="
+          # [fix] 2026-08-14：VOLUME /app/.hf_cache 声明会让 docker run（无显式
+          # 卷挂载）时用匿名卷遮蔽镜像层中的预下载模型 → _is_model_fully_cached
+          # 返回 False → 在线加载失败 → 降级 json。此处直接验证层内模型可见。
+          docker run --rm --entrypoint bash ${{ env.DOCKER_IMAGE_NAME }}:latest -c "
+          ls -la /app/.hf_cache/hub/models-- 2>&1 | head -20
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from memory.vector_store.vector_store import _is_model_fully_cached
+          cache = os.environ.get('HF_HOME', '/app/.hf_cache')
+          hub = Path(cache) / 'hub'
+          print('HF_HOME=', cache, 'hub_exists=', hub.exists())
+          for name in ['paraphrase-multilingual-MiniLM-L12-v2', 'all-MiniLM-L6-v2', 'BAAI/bge-small-zh-v1.5']:
+              print(name, 'fully_cached=', _is_model_fully_cached(name))
+          PY
+          "
           echo "=== 验证关键模块可导入 ==="
           # [fix] 镜像 ENTRYPOINT 为 pytest，docker run IMAGE python -c "..." 会把
           # python -c 追加为 pytest 参数（file or directory not found: python, exit 4）

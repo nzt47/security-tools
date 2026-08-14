@@ -113,10 +113,13 @@ sys.exit(0 if len(cached) > 0 else 1) \
 
 # 测试结果卷
 VOLUME /app/test_results
-# HuggingFace 模型缓存卷（避免重复下载）
-VOLUME /app/.hf_cache
 # 数据卷（测试数据库）
 VOLUME /app/data/memory
+# 【不易】不再对 /app/.hf_cache 声明匿名卷（原 VOLUME 指令已删除）：
+# build 阶段 predownload_models.py 已把模型写入镜像层；docker run 无显式卷挂载时，
+# 匿名卷指令会遮蔽镜像层内容（或 save/load 复用后层内容不可见），
+# 导致容器内 _is_model_fully_cached 返回 False → 在线加载失败 → 降级 json 后端。
+# 模型缓存持久化由 docker-compose.linux-test.yml 显式命名卷（hf-cache）负责。
 
 # 默认运行所有 unit 测试
 # [修复] 移除 --timeout/--timeout-method，避免与 pytest.ini addopts 重复冲突

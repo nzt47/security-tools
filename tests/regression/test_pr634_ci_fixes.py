@@ -326,3 +326,54 @@ class TestDockerImageArtifactReuse:
         assert "build-push-action" not in sec, \
             "l3-tests 不得自行 rebuild（cache-from: type=gha 恢复时模型层缺失 → 降级 json）"
         assert "cache-from" not in sec, "l3-tests 段不应出现 cache-from（重建镜像特征）"
+
+
+# ═══════════════════════════════════════════════════════════════
+#  修复点 14：VOLUME /app/.hf_cache 遮蔽镜像层模型 + 预下载统计路径
+# ═══════════════════════════════════════════════════════════════
+
+class TestHfCacheVolumeGuard:
+    """Dockerfile 不得声明 VOLUME /app/.hf_cache（修复点 14）
+
+    build 阶段 predownload_models.py 将模型写入镜像层；若再声明 VOLUME，
+    docker run（无显式卷挂载）会以匿名卷遮蔽镜像层内容（docker save/load
+    复用后尤为明显）→ 容器内 _is_model_fully_cached 返回 False → 在线加载
+    失败 → 降级 json 后端（"expected sqlite_vec, got json"）。
+    """
+
+    DOCKERFILE = PROJECT_ROOT / "Dockerfile.linux-test"
+
+    def test_no_volume_declaration_for_hf_cache(self):
+        """不得存在 VOLUME /app/.hf_cache 声明"""
+        text = self.DOCKERFILE.read_text(encoding="utf-8")
+        assert "VOLUME /app/.hf_cache" not in text, \
+            "VOLUME /app/.hf_cache 会遮蔽镜像层预下载模型（docker run 匿名卷）→ 编码器降级 json"
+        assert "VOLUME /app/.hf_cache" not in text.replace(" ", ""), "带多余空格亦应拦截"
+
+    def test_hf_cache_env_points_to_app_dir(self):
+        """HF_HOME 等缓存 env 仍须指向 /app/.hf_cache（模型落镜像层）"""
+        text = self.DOCKERFILE.read_text(encoding="utf-8")
+        assert "ENV HF_HOME=/app/.hf_cache" in text
+        assert "ENV TRANSFORMERS_CACHE=/app/.hf_cache" in text
+        assert "ENV SENTENCE_TRANSFORMERS_HOME=/app/.hf_cache" in text
+
+
+class TestPredownloadCachePathGuard:
+    """predownload_models.py 缓存路径须含 hub/ 子目录（修复点 14）"""
+
+    SCRIPT = PROJECT_ROOT / "scripts" / "predownload_models.py"
+
+    def test_list_uses_hub_subdir(self):
+        """list_cached_models 必须走 {HF_HOME}/hub/models--（HF 实际缓存结构）"""
+        text = self.SCRIPT.read_text(encoding="utf-8")
+        assert "hub" in text, "缓存统计缺失 hub/ 子目录，已下载模型被误报为无模型"
+        # list_cached_models 内不能再用裸 models--（缺 hub）
+        assert "cache_dir / \"hub\" / \"models--\"" in text, \
+            "list_cached_models 须检查 {HF_HOME}/hub/models-- 目录"
+
+    def test_download_size_stat_uses_hub_subdir(self):
+        """_download_fn 的大小统计须含 hub/ 子目录（否则 build 日志 0.0MB 误导）"""
+        text = self.SCRIPT.read_text(encoding="utf-8")
+        assert "cache_dir / \"hub\" / \"models--\" / model_name" in text, \
+            "_download_fn 缓存大小统计缺 hub/ 子目录 → 日志 0.0MB 误导排查"
+
