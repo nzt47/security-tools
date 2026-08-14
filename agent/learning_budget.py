@@ -206,22 +206,43 @@ class LearningBudget:
         - 正文抛异常 → 释放已预留的日预算 token（防失败动作白占预算）。
         """
         estimated = max(0, int(estimated_tokens or 0))
+        logger.debug(
+            "[学习预算] 进入预算评估: action=%s estimated=%d mode=%s",
+            action_name, estimated, self.mode,
+        )
         reason = self._evaluate(action_name, estimated)
         reserved = 0 if reason is not None else estimated  # 仅放行时预留了日预算
         if reason is not None:
             reason_str, limit = reason
             self._log_exceeded(action_name, estimated, reason_str, limit)
             if self.mode == "enforce":
+                logger.warning(
+                    "[学习预算] 拦截学习动作（enforce）: action=%s reason=%s tokens=%d limit=%s",
+                    action_name, reason_str, estimated, limit,
+                )
                 raise LearningBudgetExceeded(
                     reason_str, action_name=action_name, tokens=estimated, limit=limit,
                 )
             # warn_only: 仅记录，照常执行
+            logger.warning(
+                "[学习预算] 超限但 warn_only 放行: action=%s reason=%s tokens=%d limit=%s",
+                action_name, reason_str, estimated, limit,
+            )
+        else:
+            logger.debug(
+                "[学习预算] 预算放行: action=%s estimated=%d（已预留日预算 %d）",
+                action_name, estimated, reserved,
+            )
         try:
             yield self
         except BaseException:
             # 正文异常不触发熔断（熔断仅由预算耗尽驱动）；释放预留防白占
             if reserved:
                 self._safe_release(reserved)
+                logger.info(
+                    "[学习预算] 正文异常释放预留日预算: action=%s reserved=%d（不触发熔断）",
+                    action_name, reserved,
+                )
             raise
 
     def spend(self, tokens: int) -> bool:
@@ -237,12 +258,17 @@ class LearningBudget:
         except Exception:
             pass
         if tokens <= 0:
+            logger.debug("[学习预算] spend 无消耗（tokens<=0），直接放行")
             return True
         if not self._bucket.try_acquire(tokens):
             self._trip_daily()
             logger.warning(
                 "[学习预算] 实际消耗 %d token 超出日预算，触发熔断（action=spend）", tokens)
             return False
+        logger.debug(
+            "[学习预算] 实际消耗已记账: tokens=%d 日预算剩余=%s",
+            tokens, self._bucket.to_dict().get("tokens"),
+        )
         return True
 
     def get_status(self) -> Dict[str, Any]:
@@ -285,21 +311,39 @@ class LearningBudget:
         """
         # 1) 单次动作 token 上限（0 表示不设限）
         if self.max_single_action_tokens > 0 and estimated > self.max_single_action_tokens:
+            logger.debug(
+                "[学习预算] 分支1 单次上限拦截: action=%s estimated=%d max_single=%d",
+                action_name, estimated, self.max_single_action_tokens,
+            )
             return ("single_action_limit", float(self.max_single_action_tokens))
         # 2) 熔断状态（OPEN → cooldown 到期自动 HALF_OPEN 放行探测）
         if not self._breaker.allow_request():
+            logger.debug(
+                "[学习预算] 分支2 熔断拦截: action=%s estimated=%d breaker=%s",
+                action_name, estimated, self._breaker.get_status(),
+            )
             return ("circuit_open", self.recovery_seconds)
         # 3) 日预算（令牌桶不足 → 耗尽，显式熔断）
         if not self._bucket.try_acquire(estimated):
+            logger.debug(
+                "[学习预算] 分支3 日预算耗尽: action=%s estimated=%d max_daily=%d bucket=%s",
+                action_name, estimated, self.max_daily_tokens, self._bucket.to_dict(),
+            )
             self._trip_daily()
             return ("daily_exhausted", float(self.max_daily_tokens))
         # 日预算充足：若为半开探测，标记成功 → 熔断器恢复 CLOSED
         self._safe_record_result(True)
+        logger.debug(
+            "[学习预算] 三分支全部通过: action=%s estimated=%d（半开探测成功将恢复 CLOSED）",
+            action_name, estimated,
+        )
         return None
 
     def _trip_daily(self) -> None:
         """日预算耗尽 → 熔断器 OPEN（仅 enforce 模式改变状态；warn_only 只观察）"""
         if self.mode != "enforce":
+            logger.debug(
+                "[学习预算] 日预算耗尽但 mode=warn_only，不触发熔断（仅观察）")
             return
         try:
             self._breaker.force_open()
@@ -308,6 +352,10 @@ class LearningBudget:
             pass
         with self._lock:
             self._tripped = True
+        logger.warning(
+            "[学习预算] 触发日预算熔断: force_open+record_failure（recovery_seconds=%s）",
+            self.recovery_seconds,
+        )
 
     def _safe_release(self, tokens: int) -> None:
         try:

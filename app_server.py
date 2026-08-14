@@ -131,6 +131,14 @@ try:
 except Exception as e:
     logger.warning(f"[启动] 健康看板注册失败: {e}")
 
+# 注册学习度量蓝图（TASK-03: /api/learning/metrics 只读 KPI 查询）
+try:
+    from agent.learning_metrics_api import learning_metrics_bp
+    app.register_blueprint(learning_metrics_bp)
+    logger.info("[启动] 学习度量 API 路由已注册 (/api/learning/metrics)")
+except Exception as e:
+    logger.warning(f"[启动] 学习度量注册失败: {e}")
+
 # ════════════════════════════════════════════════════════════
 # Prometheus 监控初始化
 # ════════════════════════════════════════════════════════════
