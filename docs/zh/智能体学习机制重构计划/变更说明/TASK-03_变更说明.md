@@ -78,6 +78,76 @@
 - Flask blueprint（参照 `agent/health/dashboard.py` 风格），路由 `GET /api/learning/metrics` 返回 `LearningMetrics.get_snapshot()` JSON（只读）；
 - 接入 `app_server.py` 既有 blueprints 注册处（最小改动）。
 
+#### 3.3.1 响应字段定义（7 项 KPI）
+
+顶层结构：`{generated_at, days, kpis, evaluation, trend_7d}`
+
+| 字段 | 类型 | 含义 |
+| --- | --- | --- |
+| `generated_at` | string(ISO) | 快照生成时间 |
+| `days` | int | 统计窗口天数（默认 7） |
+| `kpis` | object | 7 项 KPI（见下表） |
+| `evaluation` | object | TASK-02 `learning.eval.*` 聚合（total/passed/failed/failure_rate） |
+| `trend_7d` | array | 近 N 日逐日趋势 `{date, interactions, feedback_count, feedback_avg}`（无数据日期不输出） |
+
+`kpis` 7 项字段定义：
+
+| KPI | 字段 | 类型 | 说明 |
+| --- | --- | --- | --- |
+| 1 token 复用率 | `token_reuse_rate.saved_tokens` | int | 期间节省 token（workflow/skill 命中估算） |
+| | `token_reuse_rate.total_tokens` | int | 期间总 token（节省+实际消耗） |
+| | `token_reuse_rate.rate` | float(4dp) | saved / total；total=0 时为 0.0 |
+| 2 Skill 命中率 | `skill_hit_rate.queries` | int | 语义层查询次数 |
+| | `skill_hit_rate.hits` | int | 命中次数 |
+| | `skill_hit_rate.rate` | float(4dp) | hits / queries；queries=0 时为 0.0 |
+| 3 工作流命中率 | `workflow_hit_rate.interactions` | int | 交互总数（分母，含 workflow 未查询的交互） |
+| | `workflow_hit_rate.hits` | int | workflow 层命中次数 |
+| | `workflow_hit_rate.rate` | float(4dp) | hits / interactions；interactions=0 时为 0.0 |
+| 4 分类型失败率 | `failure_rate_by_task_type.{type}.total` | int | 该 task_type 任务总数 |
+| | `failure_rate_by_task_type.{type}.failed` | int | 失败数 |
+| | `failure_rate_by_task_type.{type}.rate` | float(4dp) | failed / total；total=0 时为 0.0 |
+| 5 反馈均分趋势 | `feedback_rating_trend.count` | int | 当前窗口内反馈条数 |
+| | `feedback_rating_trend.window_days` | int | 窗口天数 |
+| | `feedback_rating_trend.current_avg` | float(2dp) | 当前窗口均分；无反馈为 0.0 |
+| | `feedback_rating_trend.previous_avg` | float(2dp) | 前一窗口均分（环比基准）；无反馈为 0.0 |
+| | `feedback_rating_trend.by_day` | array | 逐日 `{date, interactions, feedback_count, feedback_avg}` |
+| 6 沉淀增量 | `artifact_delta.skill/workflow/experience/knowledge_card/reflection/other` | int | 固定 6 类产物新增计数（未知类型归入 other） |
+| 7 进化采纳率 | `evolution_adoption_rate.candidates` | int | 变异体候选数 |
+| | `evolution_adoption_rate.adopted` | int | 采纳数 |
+| | `evolution_adoption_rate.rate` | float(4dp) | adopted / candidates；candidates=0 时为 0.0 |
+
+#### 3.3.2 示例响应（50 次混合交互的真实聚合）
+
+```json
+{
+  "generated_at": "2026-08-14T15:01:12",
+  "days": 7,
+  "kpis": {
+    "token_reuse_rate": {"saved_tokens": 60000, "total_tokens": 120000, "rate": 0.5},
+    "skill_hit_rate": {"queries": 33, "hits": 13, "rate": 0.3939},
+    "workflow_hit_rate": {"interactions": 50, "hits": 17, "rate": 0.34},
+    "failure_rate_by_task_type": {
+      "qa": {"total": 50, "failed": 10, "rate": 0.2}
+    },
+    "feedback_rating_trend": {
+      "count": 20, "window_days": 7,
+      "current_avg": 4.5, "previous_avg": 0.0,
+      "by_day": [
+        {"date": "2026-08-14", "interactions": 50, "feedback_count": 20, "feedback_avg": 4.5}
+      ]
+    },
+    "artifact_delta": {"skill": 5, "workflow": 45, "experience": 0, "knowledge_card": 0, "reflection": 0, "other": 0},
+    "evolution_adoption_rate": {"candidates": 50, "adopted": 13, "rate": 0.26}
+  },
+  "evaluation": {"total": 0, "passed": 0, "failed": 0, "failure_rate": 0.0},
+  "trend_7d": [
+    {"date": "2026-08-14", "interactions": 50, "feedback_count": 20, "feedback_avg": 4.5}
+  ]
+}
+```
+
+> 示例说明：`scripts/demo_learning_metrics.py` 模拟 50 次混合交互（workflow 命中 17、语义层查询 33 命中 13、LLM 消耗 60k、qa 失败 10、反馈 20 条均分 4.5、沉淀 skill 5 / workflow 45、进化采纳 13）后，`/api/learning/metrics` 的真实返回即此结构。
+
 ### 3.4 新增 `agent/learning_budget.py`（成本预算护栏）
 
 - `LearningBudget`：读 `configs/models.yaml` 的 `cost_limits`（max_daily_tokens / max_per_request_tokens）+ config.yaml `learning.budget.*`；
