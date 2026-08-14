@@ -426,3 +426,33 @@ class TestEncoderLoadErrorVisible:
         assert "logger.warning" in segment, "except 分支内必须先记录日志"
 
 
+class TestStMockOnlyOnWindows:
+    """sentence_transformers mock 占位仅限 Windows（修复点 17）
+
+    根因（2026-08-15 L3 容器 8 ERROR）：test_vector_store_sqlite_vec.py 的
+    _enable_st_module_for_patch（autouse fixture）在 sys.modules 无真实 ST 模块时
+    置为 MagicMock——该防护仅对 Windows 0xC0000005（torch C 扩展崩溃）必需。
+    容器内（Linux，docker run 不继承 CI env → _HAS_ST=True 不 skip）同样触发
+    mock → VectorStore._get_shared_encoder 的 Mock 检测分支提前 return None →
+    mock_vector_store fixture 的 patch 无效 → 降级 json → "expected sqlite_vec,
+    got json"。修复：mock 条件必须限定 sys.platform.startswith('win')。
+    """
+
+    TESTFILE = PROJECT_ROOT / "tests" / "unit" / "test_vector_store_sqlite_vec.py"
+
+    def test_mock_gated_on_windows(self):
+        text = self.TESTFILE.read_text(encoding="utf-8")
+        seg_start = text.index("def _enable_st_module_for_patch")
+        seg_end = text.index("def _make_mock_encoder", seg_start) \
+            if "def _make_mock_encoder" in text[seg_start:] else len(text)
+        segment = text[seg_start:seg_end]
+        assert "sys.platform.startswith('win')" in segment, \
+            "mock 占位必须限定 Windows（0xC0000005 为 Windows 特有崩溃码），否则 Linux 容器集成测试降级 json"
+
+    def test_windows_crash_guard_retained(self):
+        """Windows 0xC0000005 防护不得被误删：Mock 占位赋值逻辑仍保留"""
+        text = self.TESTFILE.read_text(encoding="utf-8")
+        assert 'sys.modules["sentence_transformers"] = MagicMock()' in text, \
+            "Windows mock 占位赋值被误删（全量顺序 vector_store_sqlite_vec 12 失败回归风险）"
+
+

@@ -69,10 +69,17 @@ def _enable_st_module_for_patch():
     内部真实 import transformers → 加载 torch C 扩展 → Windows 0xC0000005
     崩溃（全量顺序 vector_store_sqlite_vec 12 失败根因）。真实模块可用时
     不干预；teardown 不恢复（清理职责归 conftest）。
+
+    【不易】仅 Windows 需要 mock 占位（0xC0000005 为 Windows 特有崩溃码）。
+    Linux 容器/CI 真实 import ST 安全（Dockerfile 验证阶段实测 import 仅 ~5s）。
+    若在 Linux 也 mock，VectorStore._get_shared_encoder 的 Mock 检测分支
+    （hasattr(_st_mod, "mock_calls")）会在集成测试构造时提前 return None，
+    mock_vector_store fixture 的 patch 无效 → 后端降级 json →
+    "expected sqlite_vec, got json"（2026-08-15 L3 容器 8 ERROR 根因）。
     """
     import sys as _sys
     _mod = _sys.modules.get("sentence_transformers")
-    _need_mock = _mod is None or hasattr(_mod, "mock_calls")
+    _need_mock = sys.platform.startswith('win') and (_mod is None or hasattr(_mod, "mock_calls"))
     if _need_mock:
         _sys.modules["sentence_transformers"] = MagicMock()
     yield
