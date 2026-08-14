@@ -19,6 +19,7 @@ import json
 import os
 from datetime import datetime
 from .sensor_reading import SensorReading, Severity, Category, normal, warning, critical
+from .novelty import trim_change_log, default_max_entries
 
 DEFAULT_LOG_DIR = os.path.expanduser("~/.Yunshu")
 
@@ -56,12 +57,27 @@ REGISTRY_HIVE_MAP = {
 class ChangeDetector:
     """变更检测传感器，负责监测身体变化并产生免疫记忆"""
 
-    def __init__(self):
+    def __init__(self, learning_hook=None, max_entries=None, persistent_log_dir=None):
+        """
+        变更检测传感器，负责监测身体变化并产生免疫记忆。
+
+        Args:
+            learning_hook: 学习钩子回调（接收 changes 列表；默认 None 不触发）。
+                TASK-06 旁路：仅在 collect() 出口触发，异常兜底，不影响感知主链路。
+            max_entries: change_log.json 容量上限（默认按配置 10000）。
+            persistent_log_dir: 持久化日志目录（测试隔离用；默认 ~/.Yunshu/changes）。
+        """
         self._category = Category.CHANGE
         self._baseline = None  # 基准快照
         self._last_check = None  # 上次检查结果
         self._change_log = []  # 变更日志（内存）
-        self._persistent_log_dir = os.path.join(DEFAULT_LOG_DIR, "changes")
+        self._learning_hook = learning_hook
+        self._max_entries = (max_entries if max_entries is not None
+                             else default_max_entries())
+        if persistent_log_dir is not None:
+            self._persistent_log_dir = persistent_log_dir
+        else:
+            self._persistent_log_dir = os.path.join(DEFAULT_LOG_DIR, "changes")
         self._persistent_log_path = os.path.join(self._persistent_log_dir, "change_log.json")
         self._load_persistent_log()
 
@@ -102,7 +118,22 @@ class ChangeDetector:
             ))
             self._change_log.append(change)
 
+        # TASK-06 学习钩子旁路（不改变 diff 逻辑；异常兜底，感知主链路零影响）
+        if changes and self._learning_hook is not None:
+            self._invoke_learning_hook(changes)
+
         return results
+
+    def set_learning_hook(self, hook):
+        """挂载/替换/解除学习钩子（TASK-06 旁路；None 解除）。"""
+        self._learning_hook = hook
+
+    def _invoke_learning_hook(self, changes):
+        """触发学习钩子（分类→分级沉淀）；任何异常仅日志，不影响采集主链路。"""
+        try:
+            self._learning_hook(changes)
+        except Exception as e:  # noqa: BLE001 钩子异常兜底
+            logging.warning(f"学习钩子触发失败（感知主链路不受影响）: {e}")
 
     def _capture_snapshot(self):
         """捕获当前时刻的完整快照"""
@@ -540,11 +571,18 @@ class ChangeDetector:
     # ═══════════════════════════════════════════════════════════
 
     def _load_persistent_log(self):
-        """从磁盘加载持久化变更日志"""
+        """从磁盘加载持久化变更日志（兼容旧格式；超上限按 max_entries 滚动）。"""
         try:
             if os.path.exists(self._persistent_log_path):
                 with open(self._persistent_log_path, "r", encoding="utf-8") as f:
-                    self._persistent_log = json.load(f)
+                    data = json.load(f)
+                if isinstance(data, list):
+                    self._persistent_log = trim_change_log(data, self._max_entries)
+                elif isinstance(data, dict) and isinstance(data.get("entries"), list):
+                    # 兼容 {"entries": [...]} 格式（新增 max_entries 后落盘格式）
+                    self._persistent_log = trim_change_log(data["entries"], self._max_entries)
+                else:
+                    self._persistent_log = []
                 logging.info(f"已加载 {len(self._persistent_log)} 条历史变更记录。")
             else:
                 self._persistent_log = []
@@ -553,12 +591,12 @@ class ChangeDetector:
             self._persistent_log = []
 
     def _save_to_persistent_log(self, change_entry):
-        """将变更记录保存到磁盘"""
+        """将变更记录保存到磁盘（容量控制: 超 max_entries 滚动删除最旧）"""
         try:
             os.makedirs(self._persistent_log_dir, exist_ok=True)
             self._persistent_log.append(change_entry)
-            if len(self._persistent_log) > 10000:
-                self._persistent_log = self._persistent_log[-10000:]
+            if len(self._persistent_log) > self._max_entries:
+                self._persistent_log = trim_change_log(self._persistent_log, self._max_entries)
             with open(self._persistent_log_path, "w", encoding="utf-8") as f:
                 json.dump(self._persistent_log, f, ensure_ascii=False, indent=2)
         except Exception as e:

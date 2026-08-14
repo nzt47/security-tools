@@ -254,6 +254,13 @@ class LifecycleManager:
         )
         logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._initialize_core_systems.bodysensor', 'message': '[ok] 身体（BodySensor）已激活'}))
 
+        # TASK-06 学习钩子旁路挂载（默认观察模式零副作用；挂载失败仅日志，不影响感知初始化）
+        try:
+            from agent.learning.novelty_hooks import wire_body_sensor
+            wire_body_sensor(self.body)
+        except Exception as e:  # noqa: BLE001 挂载失败不阻断
+            logger.warning("学习钩子挂载失败（感知不受影响）: %s", e)
+
         # ── 2. 我的思维：元认知层 ──
         cognitive_cfg = self._config.get("cognitive", {})
         prompt_config = PromptConfig(config_path=cognitive_cfg.get("config_path"))

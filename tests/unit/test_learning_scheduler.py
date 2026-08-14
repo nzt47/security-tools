@@ -1,12 +1,13 @@
-"""TASK-05 · 学习类定时任务统一注册测试
+"""TASK-05/06 · 学习类定时任务统一注册测试
 
 覆盖:
-    1. 三个任务全关（enabled=false）→ register 返回 3 个 disabled，不注册任务
-    2. 三个任务全开 → register 注册到 task_scheduler（反馈建议执行/周期进化/生命周期检查）
+    1. 任务全关（enabled=false）→ register 返回 4 个 disabled，不注册任务
+    2. 任务全开 → register 注册到 task_scheduler（反馈建议执行/周期进化/生命周期检查/行为漂移检测）
     3. unregister 按固定任务名全部注销
 
 守【不易】: 只测统一注册入口的收口行为；各模块内部调度语义由
-test_feedback_agent / test_evolver_schedule / test_skill_lifecycle 各自覆盖。
+test_feedback_agent / test_evolver_schedule / test_skill_lifecycle /
+test_behavior_drift 各自覆盖。
 """
 
 from __future__ import annotations
@@ -22,9 +23,18 @@ _MODULES = (
     "agent.skills_mgmt.feedback_agent",
     "agent.skills_mgmt.evolution_scheduler",
     "agent.skills_mgmt.lifecycle",
+    "agent.learning.behavior_drift",
 )
 
-TASK_NAMES = {"反馈建议执行", "周期进化", "生命周期检查"}
+# TASK-05 三任务 + TASK-06 behavior_drift（其开关是 _sensor_learning_enabled 函数）
+_ENABLED_ATTRS = {
+    "agent.skills_mgmt.feedback_agent": "_enabled",
+    "agent.skills_mgmt.evolution_scheduler": "_enabled",
+    "agent.skills_mgmt.lifecycle": "_enabled",
+    "agent.learning.behavior_drift": "_sensor_learning_enabled",
+}
+
+TASK_NAMES = {"反馈建议执行", "周期进化", "生命周期检查", "行为漂移检测"}
 
 
 @pytest.fixture(autouse=True)
@@ -40,23 +50,24 @@ def _scheduler_names() -> set:
 
 
 def _set_enabled(monkeypatch, value: bool) -> None:
-    for mod in _MODULES:
-        monkeypatch.setattr(f"{mod}._enabled", lambda: value)
+    for mod, attr in _ENABLED_ATTRS.items():
+        monkeypatch.setattr(f"{mod}.{attr}", lambda: value)
 
 
 def test_register_all_disabled(monkeypatch):
-    """全关：返回 3 个 disabled，task_scheduler 无任务名。"""
+    """全关：返回 4 个 disabled，task_scheduler 无任务名。"""
     _set_enabled(monkeypatch, False)
 
     results = register_learning_schedulers()
 
-    assert set(results) == {"feedback_agent", "evolution", "lifecycle"}
+    assert set(results) == {"feedback_agent", "evolution", "lifecycle",
+                            "behavior_drift"}
     assert all(r["status"] == "disabled" for r in results.values())
     assert not (TASK_NAMES & _scheduler_names())
 
 
 def test_register_all_enabled(monkeypatch):
-    """全开：3 个任务注册到 task_scheduler。"""
+    """全开：4 个任务注册到 task_scheduler。"""
     _set_enabled(monkeypatch, True)
 
     try:
@@ -69,12 +80,12 @@ def test_register_all_enabled(monkeypatch):
 
 
 def test_unregister_removes_all(monkeypatch):
-    """注册后注销：三个任务全部移除。"""
+    """注册后注销：四个任务全部移除。"""
     _set_enabled(monkeypatch, True)
     register_learning_schedulers()
     assert TASK_NAMES <= _scheduler_names()
 
     results = unregister_learning_schedulers()
 
-    assert all(results.values())  # 三个都注销成功
+    assert all(results.values())  # 四个都注销成功
     assert not (TASK_NAMES & _scheduler_names())
