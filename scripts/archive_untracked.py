@@ -69,6 +69,25 @@ def tracked_in_head(rel: str) -> bool:
     return bool(r.stdout.strip())
 
 
+def imported_by_tracked(rel: str) -> bool:
+    """untracked 的 .py 模块是否被已跟踪文件 import（git grep 只搜已跟踪文件）
+
+    【不易】归档后已跟踪生产代码不得 import 失败：
+    - 对 agent/**/*.py / scripts/**/*.py 等模块，若已跟踪文件含其模块路径引用，
+      则跳过归档（保护）。
+    - 例：agent/knowledge/skill_bridge.py 被 __main__.py + check_cli_parser.py 引用。
+    """
+    if not (rel.endswith(".py") and rel.startswith(("agent/", "scripts/"))):
+        return False
+    module_path = rel[:-3].replace("/", ".")          # agent.knowledge.skill_bridge
+    for needle in (module_path, rel[:-3].replace("/", "\\")):
+        r = subprocess.run(["git", "grep", "-l", needle], cwd=REPO,
+                           capture_output=True, text=True)
+        if r.stdout.strip():
+            return True
+    return False
+
+
 def classify(rel: str) -> tuple[str, str]:
     """返回 (分类, 备注)"""
     for keys, cat, note in RULES:
@@ -95,6 +114,14 @@ def main() -> int:
     if not untracked:
         print("[OK] 无 untracked 文件")
         return 0
+
+    # 【不易】保护：被已跟踪文件 import 的模块不归档（防生产代码 import 失败）
+    protected = [f for f in untracked if imported_by_tracked(f)]
+    if protected:
+        print("[PROTECT] 以下 untracked 模块被已跟踪文件引用，跳过归档：")
+        for f in protected:
+            print(f"     {f}")
+        untracked = [f for f in untracked if f not in protected]
 
     cats: dict[str, list[str]] = {}
     for rel in untracked:

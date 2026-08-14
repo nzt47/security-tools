@@ -261,7 +261,14 @@ def _get_method_source(method_name: str) -> str:
 
     Why: 23 条 AC 中 16 次获取源代码，每次 inspect.getsource 都重新解析
     文件。加 lru_cache 后同方法仅解析一次，省 15 次重复解析。
+
+    【不易】F1（K13）修复：长时进程中 linecache 行号切片可能漂移
+    （契约检查读到 _load_learning_config 源码而非 _should_reject），
+    每次调用先 checkcache() 使旧行缓存失效，保证读到最新磁盘源码。
     """
+    import linecache
+
+    linecache.checkcache()  # F1：使长时进程的旧行缓存失效
     return inspect.getsource(getattr(Orchestrator, method_name))
 
 

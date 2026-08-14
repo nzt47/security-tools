@@ -690,7 +690,8 @@ def test_create_optimized_storage(monkeypatch, tmp_path):
     monkeypatch.setattr("agent.log_system.storage.DEFAULT_DB_PATH", str(tmp_path / "d.db"))
     monkeypatch.setattr("agent.log_system.storage.DEFAULT_RAW_DIR", str(tmp_path / "raw"))
     inst = mod._create_optimized_storage(config={"x": 1})
-    assert isinstance(inst, OptimizedLogStorage)
+    # 【不易】F4 修复：用 mod. 引用类而非顶层 import（顶层旧引用在 reload 后失效）
+    assert isinstance(inst, mod.OptimizedLogStorage)
     inst.close()
 
 
@@ -706,7 +707,8 @@ def test_get_optimized_storage_singleton_path(monkeypatch, tmp_path):
         a = mod.get_optimized_storage()
         b = mod.get_optimized_storage()
         assert a is b
-        assert isinstance(a, OptimizedLogStorage)
+        # 【不易】F4 修复：用 mod. 引用类而非顶层 import（顶层旧引用在 reload 后失效）
+        assert isinstance(a, mod.OptimizedLogStorage)
         a.close()
     finally:
         reset_singleton("optimized_storage")
