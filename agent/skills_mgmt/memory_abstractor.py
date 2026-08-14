@@ -1245,6 +1245,9 @@ class MemorySkillAbstractor:
             "draft_steps": draft.get("steps", []),
             "draft_if_then_rules": draft.get("if_then_rules", []),
             "draft_anti_patterns": draft.get("anti_patterns", []),
+            # P0 #3 阶段 0 数据物化（2026-08-14）: 携带完整草稿内容，供
+            # precipitate._audit_draft 写入 draft_body，人工确认闭环可重建草稿。
+            "draft": draft,
         }
         logger.debug(
             "[MemAbstract]   草稿汇总: avg_signal=%.3f | "

@@ -218,7 +218,22 @@ class PrecipitateScheduler:
     # ─── 内部 ───
 
     def _audit_draft(self, result: Dict[str, Any]) -> None:
-        """质量门控通过的草稿 → JSONL 审计日志（草稿不落盘，审计留痕）。"""
+        """质量门控通过的草稿 → JSONL 审计日志（草稿不落盘，审计留痕）。
+
+        P0 #3 阶段 0 数据物化（2026-08-14）: 审计记录携带完整草稿内容
+        draft_body（memory_abstractor.result["draft"] 的 JSON 序列化），
+        供人工确认闭环（confirm_precipitate_draft）重建草稿；序列化失败
+        降级为 draft_content_preview 摘要（不阻断审计）。
+        """
+        draft = result.get("draft") or {}
+        try:
+            draft_body = json.dumps(draft, ensure_ascii=False)
+        except (TypeError, ValueError):
+            draft_body = json.dumps({
+                "name": result.get("draft_name"),
+                "description": result.get("draft_description"),
+                "content": result.get("draft_content_preview", ""),
+            }, ensure_ascii=False)
         rec = {
             "ts": datetime.now().isoformat(timespec="seconds"),
             "event": "precipitate_draft",
@@ -228,6 +243,7 @@ class PrecipitateScheduler:
             "cluster_size": result.get("cluster_size"),
             "success_rate": result.get("success_rate"),
             "registered": bool(result.get("registered")),
+            "draft_body": draft_body,
         }
         try:
             path = Path(self._audit_path or _audit_file())

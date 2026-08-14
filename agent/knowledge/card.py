@@ -23,6 +23,7 @@ import threading
 import time
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -757,6 +758,35 @@ class CardStore:
             return scan_light_cards(
                 self._wiki_root, type_dirs=_TYPE_DIRS, parallel=parallel,
             )
+
+    def list_since(self, since: Optional[datetime] = None) -> list[Card]:
+        """增量列举：仅返回文件 mtime >= since 的卡片（P0 #1 增量转换用）。
+
+        语义与 list() 一致（类型目录序 + slug 字典序、损坏卡跳过、与写锁互斥）；
+        since 为 None 时等价于 list()（保持向后兼容）。
+        Why: convert_cards 全量扫描成本随卡片总量增长，增量转换只需处理
+        上次游标之后新增/变更的卡片——mtime 是零成本增量判据（无需额外索引）。
+        """
+        if since is None:
+            return self.list()
+        ts = since.timestamp()
+        with self._rwlock.read():  # 与写锁互斥：全库列举不被多步写打断
+            cards: list[Card] = []
+            for t in _TYPE_DIRS:
+                d = self._wiki_root / t
+                if not d.exists():
+                    continue
+                for p in sorted(d.glob("*.md")):
+                    try:
+                        if p.stat().st_mtime < ts:
+                            continue
+                    except OSError:
+                        continue  # 文件瞬时不可读（删除/权限）→ 跳过该文件
+                    try:
+                        cards.append(self._md_to_card(p))
+                    except (ValueError, TypeError):
+                        continue  # 跳过损坏卡片，不阻断增量列举
+            return cards
 
     # ---------- 批量导入 ----------
 

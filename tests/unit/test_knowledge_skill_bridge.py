@@ -216,3 +216,35 @@ def test_cli_convert_cards_dry_run_exit_zero(tmp_path):
     assert "cli转换卡片" in proc.stdout  # CLI 按 slug 输出
     assert "产出 1" in proc.stdout
     assert SkillStore(str(skills_store)).count() == 0  # dry-run 不落盘
+
+
+# ─── P0 #1 增量转换 convert_cards(since=...)（2026-08-14）───
+
+
+def test_convert_cards_since_only_new(stores):
+    """convert_cards(since=...) 只处理 mtime >= since 的卡片（增量转换）。
+
+    Why（P0 #1）: 增量复用 CardStore.list_since 过滤；dry_run 无副作用，
+    断言结果只含新卡、旧卡不进入转换管线、技能库零落盘。
+    """
+    import os
+    from datetime import datetime, timedelta
+
+    card_store, skill_store = stores
+    card_store.create(make_card("旧增量卡", metadata={"distilled": True}))
+    card_store.create(make_card("新增量卡", metadata={"distilled": True}))
+
+    # 旧卡文件 mtime 拨回 2 小时前 → 早于 since，不得进入转换
+    old_path = card_store._find_path("旧增量卡")
+    assert old_path is not None
+    old_ts = (datetime.now() - timedelta(hours=2)).timestamp()
+    os.utime(old_path, (old_ts, old_ts))
+
+    since = datetime.now() - timedelta(minutes=1)
+    results = _bridge(card_store, skill_store).convert_cards(
+        dry_run=True, since=since,
+    )
+
+    assert [r["slug"] for r in results] == ["新增量卡"]
+    assert all(r["skipped"] is False for r in results)
+    assert skill_store.count() == 0  # dry_run 零落盘

@@ -897,3 +897,33 @@ def test_md_to_card_fallback_when_csafe_loader_fails(monkeypatch, store):
     parsed = store._md_to_card(path)
     assert parsed.slug == "回退解析"
     assert parsed.content == "正文"
+
+
+# ---------- P0 #1 增量列举 list_since（2026-08-14） ----------
+
+
+def test_list_since_returns_only_new_files(store):
+    """list_since 只返回 mtime >= since 的卡片；since=None 等价全量 list()。
+
+    Why（P0 #1 增量转换）: convert_cards 增量依赖 CardStore.list_since，
+    必须验证"按文件 mtime 过滤"语义——旧卡（mtime 早于 since）不出现，
+    新卡（mtime 晚于 since）出现；语义与 list() 一致（类型目录序 + 损坏卡跳过）。
+    """
+    import os
+    from datetime import datetime, timedelta
+
+    store.create(make_card("旧卡"))
+    store.create(make_card("新卡"))
+
+    # 把旧卡文件 mtime 拨回 2 小时前，使其早于 since
+    old_path = store._find_path("旧卡")
+    assert old_path is not None
+    old_ts = (datetime.now() - timedelta(hours=2)).timestamp()
+    os.utime(old_path, (old_ts, old_ts))
+
+    since = datetime.now() - timedelta(minutes=1)
+    assert [c.slug for c in store.list_since(since)] == ["新卡"]
+
+    # since=None → 等价全量 list()（向后兼容契约）
+    assert [c.slug for c in store.list_since(None)] == \
+        [c.slug for c in store.list()]

@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
@@ -183,11 +184,18 @@ class KnowledgeSkillBridge:
         logger.info("[SkillBridge] 转换成功 %s → skill=%s(DRAFT)", card.slug, committed.id)
         return committed.id
 
-    def convert_cards(self, *, dry_run: bool = False) -> List[Dict[str, Any]]:
-        """批量转换所有可转换卡片；dry_run=True 只产出预览，不落盘不写标记。"""
-        cards = [c for c in self._cards().list() if self.is_eligible(c)]
-        logger.info("[SkillBridge] convert-cards 开始: 可转换卡片=%d dry_run=%s",
-                    len(cards), dry_run)
+    def convert_cards(self, *, dry_run: bool = False,
+                      since: Optional[datetime] = None) -> List[Dict[str, Any]]:
+        """批量转换可转换卡片；dry_run=True 只产出预览，不落盘不写标记。
+
+        since 提供时仅处理文件 mtime >= since 的新增/变更卡片（P0 #1 增量转换，
+        复用 CardStore.list_since；判定/去重/幂等/KPI 语义与全量完全一致）。
+        """
+        cards = (self._cards().list_since(since) if since
+                 else self._cards().list())
+        cards = [c for c in cards if self.is_eligible(c)]
+        logger.info("[SkillBridge] convert-cards 开始: 可转换卡片=%d dry_run=%s since=%s",
+                    len(cards), dry_run, since or "-")
         results: List[Dict[str, Any]] = []
         for card in cards:
             self.card_to_skill_draft(card, dry_run=dry_run)
