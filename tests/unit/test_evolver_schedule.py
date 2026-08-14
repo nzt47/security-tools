@@ -203,8 +203,15 @@ def test_real_run_error_reports_no_crash(tmp_path):
     assert get_learning_metrics()._evolution_candidates == 0
 
 
-def test_dry_run_uses_config_default_true():
-    """_dry_run 未配置时默认 true（不可变约束）。"""
-    assert _enabled() is False  # 总开关默认关闭
-    from agent.skills_mgmt.evolution_scheduler import _dry_run
-    assert _dry_run() is True
+def test_dry_run_uses_config_default_true(monkeypatch):
+    """_dry_run 未配置时默认 true（不可变约束）。
+
+    【配置隔离】config.yaml 的 learning.evolver.enabled 可能被有意开启
+    （2026-08-12 验证后正式开启），且外部环境变量可能存在——本用例断言
+    "无任何配置来源时总开关默认关闭"的默认值语义，故 mock 掉两个来源。
+    """
+    monkeypatch.delenv("LEARNING_EVOLVER_ENABLED", raising=False)  # 隔离外部环境变量
+    import agent.skills_mgmt.evolution_scheduler as sched
+    monkeypatch.setattr(sched, "_config_yaml", lambda: {})  # 隔离 config.yaml 显式开启状态
+    assert sched._enabled() is False  # 无任何配置来源时总开关默认关闭
+    assert sched._dry_run() is True

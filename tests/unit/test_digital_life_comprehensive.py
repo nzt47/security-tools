@@ -277,8 +277,9 @@ class TestModuleImportStatusReport:
 class TestDigitalLifeInitializationComprehensive:
     """DigitalLife 初始化分支"""
 
+    @pytest.mark.slow
     def test_configure_v2_features_all_disabled(self):
-        """测试所有 V2 功能禁用"""
+        """测试所有 V2 功能禁用（实测 39.6s，D 类配置扫描——slow 分流）"""
         config = {
             'features': {
                 'v2_lifetrace': False,
