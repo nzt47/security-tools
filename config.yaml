@@ -151,6 +151,15 @@ tools:
   - calculator
   - file_read
   - code_execute
+# TASK-07：L1-L5 行为自主权分级（聚合视图 + 上下文注入，不改既有机制）
+# 分级表见 docs/zh/智能体学习机制重构计划/变更说明/TASK-07_变更说明.md §3；
+# 只映射/聚合 permission_system / circuit_breaker / graceful_degrade，不改变其判定语义
+# 优先级: 会话级 set_session_level > 环境变量 AUTONOMY_DEFAULT_LEVEL > 本配置 > 默认 L3
+autonomy:
+  default_level: L3
+  # 按等级覆盖策略（键为 L1-L5，值为 LevelPolicy 字段的 dict 子集）
+  # 例: per_level_policy: {L2: {confirmation_scope: all}}
+  per_level_policy: {}
 session:
   auto_save: true
   save_interval: 300
@@ -243,6 +252,16 @@ verification:
     confirmation_timeout: 300
     # 超时策略: reject, approve, degrade
     timeout_strategy: degrade
+  # TASK-07：输出验证门控（OutputGuard 之后追加，不替换）
+  # mode: rule_based（默认，零 Token）/ llm_based（接口预留，需配 critic_evaluation.llm_config）
+  # conservative_mode=true（默认）：只记录 metrics/审计，不拦截不重试，用户响应零影响
+  output_validator:
+    enabled: true
+    mode: rule_based
+    conservative_mode: true
+    max_output_length: 8000
+    enable_retry: true
+    max_retries: 1
 
 # ═══════════════════════════════════════════════════════════════
 #  日志配置 (Logging)

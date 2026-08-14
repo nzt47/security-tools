@@ -306,6 +306,23 @@ class Orchestrator:
             setattr(self, attr, OutputGuard())
         return getattr(self, attr)
 
+    @property
+    def _output_validator(self):
+        """输出验证门控（TASK-07）——懒加载；构建失败返回 None 主链路零影响"""
+        attr = '_guardrails_output_validator'
+        if hasattr(self, attr):
+            return getattr(self, attr)
+        try:
+            from agent.verification.output_validator import (
+                build_validator_from_config,
+            )
+            validator = build_validator_from_config()
+        except Exception as e:  # noqa: BLE001 门控构建失败绝不阻断主链路
+            logger.warning("[OutputValidator] 构建失败，门控降级跳过: %s", e)
+            validator = None
+        setattr(self, attr, validator)
+        return validator
+
     # ════════════════════════════════════════════════════════════════════
     #  核心闭环：感知 → 认知 → 行动 → 反思
     # ════════════════════════════════════════════════════════════════════
@@ -328,11 +345,14 @@ class Orchestrator:
         # 【审计改进】参数传递埋点：记录 chat 入口收到的显式会话上下文，
         # 与 process.session_ctx / user_context.source 串联，便于排查参数传递是否正确
         logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.chat.session_ctx', 'session_id': session_id or getattr(self, '_session_id', 'default'), 'session_mgr_present': session_mgr is not None, 'message': '[chat] 显式传参: session_id=%s, session_mgr=%s' % (session_id or '(未传，回退实例)', '已传入' if session_mgr is not None else '未传入(回退实例)')}))
-        result = self.process(
-            user_input,
-            session_id=session_id,
-            session_mgr=session_mgr,
-        )
+        _autonomy_level = resolve_autonomy_level(
+            session_id=session_id or getattr(self, "_session_id", None))
+        with AutonomyContext(_autonomy_level):
+            result = self.process(
+                user_input,
+                session_id=session_id,
+                session_mgr=session_mgr,
+            )
         if isinstance(result, dict):
             text = result.get("response", "")
             if not text:
@@ -1207,6 +1227,15 @@ class Orchestrator:
                 message='[Guard] 输出检查通过',
                 duration_ms=_dur_og,
             )
+
+        # ── 第五步半：输出验证门控（TASK-07，OutputGuard 之后追加）──
+        # 【不易】不替换 OutputGuard；保守模式下响应零变化（仅记录 metrics/审计）
+        _output_validator = self._output_validator
+        if _output_validator is not None:
+            _final_resp, _verdict = _output_validator.check_and_act(
+                response, task_type="text_response")
+            if _final_resp != response:
+                response = _final_resp
 
         # Trace: 记录 LLM 调用 Span
         if trace_id:
@@ -3561,6 +3590,22 @@ class Orchestrator:
     def request_permission(self, action: str, context: str = ""):
         """申请执行危险操作的权限"""
         return self._permission.check_action(action, context)
+
+    def check_action_with_autonomy(self, action: str, context: str = ""):
+        """TASK-07：自主权聚合视图（可查询）
+
+        【不易】内部仍调 _permission.check_action，既有判定语义零变化；
+        仅叠加 L1-L5 等级视图（越级/确认/审计要求）供日志与审计使用。
+        """
+        base_result = self._permission.check_action(action, context)
+        try:
+            from agent.autonomy import AutonomyPolicy
+            from agent.autonomy import get_autonomy_level
+
+            return AutonomyPolicy.aggregate(base_result, action, level=get_autonomy_level())
+        except Exception as e:  # noqa: BLE001 视图层异常不影响既有判定
+            logger.warning("[自主权] 聚合视图构建失败，仅返回既有判定: %s", e)
+            return base_result
 
     def abort_chat(self):
         """手动中止当前对话"""
