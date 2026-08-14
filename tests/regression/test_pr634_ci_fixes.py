@@ -426,6 +426,37 @@ class TestEncoderLoadErrorVisible:
         assert "logger.warning" in segment, "except 分支内必须先记录日志"
 
 
+class TestEncoderMockModuleGuardRetained:
+    """模块级 Mock 检测保留 + 类级 Mock 检测移除（修复点 18）
+
+    根因（2026-08-15 L3 容器 8 ERROR 终态）：_get_shared_encoder 的类级 Mock
+    检测 `hasattr(SentenceTransformer, "mock_calls")` 把测试合法用法
+    `patch('sentence_transformers.SentenceTransformer', return_value=mock_encoder)`
+    误判为污染——patch 后的类必为 MagicMock（有 mock_calls）→ 提前 return None
+    → mock_vector_store fixture 的 mock encoder 无效 → 后端降级 json。
+    修复：仅保留模块级检测（防 reranker 模块级 MagicMock 残留污染）；移除类级检测。
+    """
+
+    VSTORE = PROJECT_ROOT / "memory" / "vector_store" / "vector_store.py"
+
+    def test_module_level_mock_guard_retained(self):
+        """模块级检测（hasattr(_st_mod, "mock_calls")）必须保留，防 reranker 污染回归"""
+        text = self.VSTORE.read_text(encoding="utf-8")
+        assert 'if hasattr(_st_mod, "mock_calls"):' in text, \
+            "模块级 Mock 检测被误删（reranker 模块级 MagicMock 残留 → 坏编码器缓存风险）"
+
+    def test_class_level_mock_guard_removed(self):
+        """类级检测（hasattr(SentenceTransformer, "mock_calls")）必须移除
+
+        否则 patch('...SentenceTransformer', return_value=encoder) 被误判污染 →
+        return None → 集成测试降级 json → "expected sqlite_vec, got json"。
+        注：按可执行语句（带 if 前缀）匹配，注释中描述根因的字面量不拦截。
+        """
+        text = self.VSTORE.read_text(encoding="utf-8")
+        assert 'if hasattr(SentenceTransformer, "mock_calls"):' not in text, \
+            "类级 Mock 检测必须移除：误伤测试合法 patch（patch 后类必为 MagicMock）"
+
+
 class TestStMockOnlyOnWindows:
     """sentence_transformers mock 占位仅限 Windows（修复点 17）
 
