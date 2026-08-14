@@ -195,6 +195,39 @@ class TestFailureReflect:
             assert reflector.lessons_db[-1].id.startswith("lesson_fail_")
             assert reflector.lessons_db[-1].solution  # 带修复建议
 
+    @pytest.mark.asyncio
+    async def test_failure_reflect_stats_llm_fallback_accuracy(self):
+        """混合异常路径统计准确：LLM 正常/异常/非法 JSON/无 LLM 四路触发计数与原因细分"""
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            json.dumps({"root_cause": "根因A", "confidence": 0.8,
+                        "repair_actions": ["修复1"], "avoid": []}),
+            RuntimeError("llm down"),     # 异常 → exception 兜底
+            "not-json{{",                 # 非法 JSON → parse_failed 兜底
+        ]
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            reflector = Reflector(llm_service=mock_llm, persist_dir=tmp_dir)
+            task = Task(id="t1", description="运行坏工具")
+            result = ActionResult.failure_result("工具执行失败: 权限不足")
+            diag = build_diagnosis(result, attempts=1)
+
+            await reflector.failure_reflect(task, result, diag, attempts=1)  # LLM 正常
+            await reflector.failure_reflect(task, result, diag, attempts=2)  # 异常
+            await reflector.failure_reflect(task, result, diag, attempts=3)  # 非法 JSON
+            # 无 LLM 实例 → not_configured 兜底
+            reflector_no_llm = Reflector(persist_dir=tmp_dir)
+            await reflector_no_llm.failure_reflect(task, result, diag, attempts=4)
+
+            stats = reflector._failure_reflect_stats
+            assert stats["llm"] == 1, "仅首次成功走 LLM 路径"
+            assert stats["fallback"] == 2, "异常+解析失败各触发一次规则兜底"
+            assert stats["fallback_reasons"] == {
+                "not_configured": 0, "exception": 1, "parse_failed": 1,
+            }, "兜底原因细分准确"
+            no_llm_stats = reflector_no_llm._failure_reflect_stats
+            assert no_llm_stats["fallback"] == 1
+            assert no_llm_stats["fallback_reasons"]["not_configured"] == 1
+
 
 # ── ReActLoop 失败反思接线（D12 修复）────────────────────────────────────────
 

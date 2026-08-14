@@ -207,8 +207,13 @@ class Reflector:
         self.reflection_history: List[Dict] = []
         self.learned_patterns: Dict[str, Any] = {}
         self.learned_lessons: Dict[str, Any] = {}
-        # 失败反思路径统计：LLM 路径 vs 规则兜底路径（混合异常场景下可观测触发比例）
-        self._failure_reflect_stats: Dict[str, int] = {"llm": 0, "fallback": 0}
+        # 失败反思路径统计：LLM 路径 vs 规则兜底路径（混合异常场景下可观测触发比例），
+        # fallback_reasons 细分兜底触发原因（未配置/异常/解析失败）便于定位 LLM 链路故障
+        self._failure_reflect_stats: Dict[str, Any] = {
+            "llm": 0,
+            "fallback": 0,
+            "fallback_reasons": {"not_configured": 0, "exception": 0, "parse_failed": 0},
+        }
         
         self.experiences: List[Experience] = []
         self.lessons_db: List[Lesson] = []
@@ -658,6 +663,7 @@ class Reflector:
                 f" | 产出={'有效' if reflection else '无（转规则兜底）'}"
             )
         except Exception as e:
+            self._failure_reflect_stats["fallback_reasons"]["exception"] += 1
             logger.warning(
                 f"[失败反思#{attempts}] 步骤1/3 LLM 调用异常，切换规则兜底"
                 f" | 耗时={(time.monotonic() - _t0) * 1000:.0f}ms | error={e}"
@@ -701,6 +707,7 @@ class Reflector:
 
         total = self._failure_reflect_stats["llm"] + self._failure_reflect_stats["fallback"]
         llm_pct = 100.0 * self._failure_reflect_stats["llm"] / total if total else 0.0
+        reasons = self._failure_reflect_stats["fallback_reasons"]
         logger.info(
             f"[失败反思#{attempts}] 完成"
             f" | root_cause={diagnosis.root_cause}"
@@ -708,6 +715,9 @@ class Reflector:
             f" | 路径统计: llm={self._failure_reflect_stats['llm']}"
             f" fallback={self._failure_reflect_stats['fallback']}"
             f" (LLM占比 {llm_pct:.0f}%)"
+            f" | fallback原因: 未配置={reasons['not_configured']}"
+            f" 异常={reasons['exception']}"
+            f" 解析失败={reasons['parse_failed']}"
         )
         return diagnosis
 
@@ -718,6 +728,7 @@ class Reflector:
         LLM 未配置或输出非 JSON 时返回 None（交规则兜底），不抛异常。
         """
         if not self.llm:
+            self._failure_reflect_stats["fallback_reasons"]["not_configured"] += 1
             logger.info(f"[失败反思#{attempts}] 分支: LLM 未配置，直接走规则兜底")
             return None
         task_desc = getattr(task, "description", None) or str(task)
@@ -756,6 +767,7 @@ class Reflector:
         try:
             data = json.loads(response)
         except (json.JSONDecodeError, TypeError, ValueError):
+            self._failure_reflect_stats["fallback_reasons"]["parse_failed"] += 1
             logger.warning(
                 f"[失败反思#{attempts}] 分支: LLM 输出 JSON 解析失败，交规则兜底"
                 f" | response={str(response)[:200]}"
