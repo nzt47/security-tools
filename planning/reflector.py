@@ -692,7 +692,8 @@ class Reflector:
             self._failure_reflect_stats["fallback_reasons"]["exception"] += 1
             logger.warning(
                 f"[失败反思#{attempts}] 步骤1/3 LLM 调用异常，切换规则兜底"
-                f" | 耗时={(time.monotonic() - _t0) * 1000:.0f}ms | error={e}"
+                f" | 耗时={(time.monotonic() - _t0) * 1000:.0f}ms | error={e}",
+                exc_info=True,  # 记录完整堆栈，便于定位 LLM 链路故障
             )
             reflection = None
         if reflection is None:
@@ -793,7 +794,8 @@ class Reflector:
             self._failure_reflect_stats["fallback_reasons"]["parse_failed"] += 1
             logger.warning(
                 f"[失败反思#{attempts}] 分支: LLM 输出 JSON 解析失败，交规则兜底"
-                f" | response={str(response)[:200]}"
+                f" | response={str(response)[:200]}",
+                exc_info=True,  # 记录解析异常堆栈
             )
             return None
         return {
