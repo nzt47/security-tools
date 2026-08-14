@@ -25,6 +25,11 @@ from unittest.mock import MagicMock, patch, mock_open
 
 import pytest
 
+# 【P1 A3】D 类环境性慢测试分流：task_scheduler 周报链路（generate_weekly_report →
+# pydantic_settings/importlib 慢扫描）在分块进程中 >60s（2026-08-14 实测），
+# fast 模式默认排除、slow 模式单独跑。
+pytestmark = pytest.mark.slow
+
 from agent.task_scheduler import (
     TaskScheduler,
     get_scheduler,

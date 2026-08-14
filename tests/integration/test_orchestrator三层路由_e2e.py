@@ -675,6 +675,7 @@ def test_API热更_参数校验与生效():
         Orchestrator._clear_semantic_config_cache()
 
 
+@pytest.mark.slow
 def test_并发热更_配置热更不影响正在处理的请求(orch, monkeypatch):
     """模拟并发请求下的配置热更场景
 

@@ -2,6 +2,11 @@
 # pylint: disable=redefined-outer-name,missing-function-docstring
 
 import pytest
+
+# 【P1 A3】D 类环境性慢测试分流：generate_weekly_report → pydantic_settings/importlib
+# 慢扫描在分块进程中 >60s（2026-08-14 实测），fast 模式默认排除、slow 模式单独跑。
+pytestmark = pytest.mark.slow
+
 from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
 from agent.task_scheduler import (

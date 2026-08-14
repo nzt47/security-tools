@@ -5,11 +5,20 @@
 每块独立日志（pytest_chunks/chunk_i.log），规避单任务超时。
 
 用法：
-    python scripts/run_full_pytest.py [chunks] [workers]
+    python scripts/run_full_pytest.py [chunks] [workers] [mode]
     chunks  切分数（默认 4）
     workers 并行进程数（默认 4）
+    mode    fast | slow | all（默认 fast）
+            fast: 排除 @pytest.mark.slow（D 类环境性慢测试），分块稳定执行（推荐回归入口）
+            slow: 仅跑 @pytest.mark.slow（单块，容忍慢路径，作为 D 类监控）
+            all:  不过滤（与旧行为一致）
 
-退出码：任一 chunk 失败则返回 1，全部通过返回 0。
+【P1 A3】D 类 slow 分流背景（2026-08-14 实测）：
+- generate_weekly_report → pydantic_settings/importlib 慢扫描、task_scheduler 系列、e2e 热更
+  t.join() 在分块进程中 >60s，thread 超时无法中断 → 进程被 pytest-timeout 强制终止（rc=1 无汇总）。
+- fast 模式排除后 chunk 可稳定完成；slow 模式单独运行容忍慢路径。
+
+退出码：任一 chunk 失败则返回 1，全部通过返回 0（rc=5 no-tests-ran 视为通过）。
 """
 
 from __future__ import annotations
@@ -39,6 +48,12 @@ IGNORES = [
     "tests/unit/test_utils_index_manager.py",
 ]
 
+# 【P1 A3】mode → pytest -m 过滤参数（None = 不过滤）
+MODE_MARKER = {"fast": "not slow", "slow": "slow", "all": None}
+# slow 模式附加 --runslow + 更长超时（300s）：激活 --runslow 门控用例并容忍
+# D 类 os.stat/importlib 慢路径（实测 >60s，2026-08-14），超时标记但不过早强杀
+MODE_EXTRA = {"fast": [], "slow": ["--runslow", "--timeout=300"], "all": []}
+
 
 def collect() -> list[str]:
     """收集测试文件（与 pytest.ini 忽略规则对齐）"""
@@ -58,20 +73,33 @@ def collect() -> list[str]:
     return files
 
 
-def run_chunk(files: list[str], idx: int, out: str) -> tuple[int, int, str]:
+def run_chunk(files: list[str], idx: int, out: str, marker: str | None,
+              extra: list[str] | None = None) -> tuple[int, int, str]:
     """执行单块测试，输出到独立日志文件"""
     cmd = [
         sys.executable, "-m", "pytest", *files,
         "-q", "--no-header", "-p", "no:cacheprovider", "--tb=line",
     ]
+    if marker:
+        cmd += ["-m", marker]
+    cmd += (extra or [])
     with open(out, "w", encoding="utf-8") as f:
         rc = subprocess.call(cmd, stdout=f, stderr=subprocess.STDOUT)
+    # rc=5 = "no tests ran"（分块后该 chunk 恰好无匹配用例），不视为失败
+    if rc == 5:
+        rc = 0
     return idx, rc, out
 
 
 def main() -> int:
     chunks_n = int(sys.argv[1]) if len(sys.argv) > 1 else 4
     workers = int(sys.argv[2]) if len(sys.argv) > 2 else 4
+    mode = sys.argv[3] if len(sys.argv) > 3 else "fast"
+    if mode not in MODE_MARKER:
+        print(f"[run_full_pytest] 非法 mode={mode!r}，可选 fast/slow/all", file=sys.stderr)
+        return 1
+    marker = MODE_MARKER[mode]
+    extra = MODE_EXTRA[mode]
 
     # 【P0 T-11】回归前工作区检查（T-18 落地）：
     # 默认提示模式（并行会话常态脏工作区下仍可回归）；REGRESSION_REQUIRE_CLEAN=1
@@ -94,9 +122,15 @@ def main() -> int:
     if not files:
         print("未收集到任何测试文件", file=sys.stderr)
         return 1
-    print(f"共收集 {len(files)} 个测试文件，切分为 {chunks_n} 块，{workers} 个 worker")
-    chunks = [files[i::chunks_n] for i in range(chunks_n)]
-    chunks = [c for c in chunks if c]
+    print(f"共收集 {len(files)} 个测试文件（mode={mode}, marker={marker or '无'}）")
+    if mode == "slow":
+        # 【P1 A3】slow 模式单块直跑全部文件（-m slow 过滤），不分块（分布不均无意义）
+        chunks = [files]
+        print(f"slow 模式：仅跑 @pytest.mark.slow（单块）")
+    else:
+        chunks = [files[i::chunks_n] for i in range(chunks_n)]
+        chunks = [c for c in chunks if c]
+        print(f"切分为 {len(chunks)} 块，{workers} 个 worker")
 
     logdir = ROOT / "pytest_chunks"
     logdir.mkdir(exist_ok=True)
@@ -104,7 +138,7 @@ def main() -> int:
     results: list[tuple[int, int, str]] = []
     with ProcessPoolExecutor(max_workers=workers) as ex:
         futures = [
-            ex.submit(run_chunk, chunk, i, str(logdir / f"chunk_{i}.log"))
+            ex.submit(run_chunk, chunk, i, str(logdir / f"chunk_{i}.log"), marker, extra)
             for i, chunk in enumerate(chunks)
         ]
         for fu in futures:

@@ -8,6 +8,10 @@ import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
 
+# 【P1 A3】D 类环境性慢测试分流：generate_weekly_report → pydantic_settings/importlib
+# 慢扫描在分块进程中 >60s（2026-08-14 实测），fast 模式默认排除、slow 模式单独跑。
+pytestmark = pytest.mark.slow
+
 from agent.weekly_report_generator import (
     WeeklyReportGenerator,
     run_weekly_report,
