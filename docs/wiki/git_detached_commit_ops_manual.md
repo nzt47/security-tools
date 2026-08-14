@@ -111,3 +111,24 @@ git worktree remove C:/Temp/<wt> --force
 1. 提交并入**只用 `git merge --ff-only`**，禁止 `reset --hard` 改写历史；
 2. 确认目标分支未被并行会话推进，否则先 rebase 再并入；
 3. 悬空提交对象仍在（reflog/gc 保护期），**不要急于 gc**，先判断内容是否已被收录。
+
+---
+
+## 六、工程经验 CheckList（可复用，2026-08-15 补充）
+
+### 6.1 并行会话 git 协作（提交事故防复发）
+
+- [ ] 提交前 `git diff --cached --stat` 核对暂存集合，确认只含本任务文件
+- [ ] index 中存在并行会话 staged 文件 → 必须用 `git commit -- <paths>` 路径限定提交
+- [ ] 禁止无 pathspec 的普通 `git commit`（会带走 index 中全部 staged 内容）
+- [ ] 误带他人 staged 且未推送 → `git reset --soft HEAD~1` 拆分，再路径限定重提
+- [ ] 已推送 → 禁止改写历史，核验内容完整性后接受现状
+- [ ] 提交撞锁（index.lock）：先 `Get-Process git` 判定是否 stale；进程活跃 → 禁删锁，轮询等锁释放窗口（如 200×3s）
+- [ ] 配置类文件改动：detached worktree 隔离 + 提交前 `git show HEAD:<file>` hash 核验（防并行会话 revert）
+- [ ] 提交后 `git show --stat HEAD` 核对文件集合完整
+
+### 6.2 代码质量
+
+- [ ] 读取对象字段前核对真实字段名（SensorReading 正确字段是 `sensor_name`，无 `name`；字段可能自带前缀，拼接前需去重）
+- [ ] 新方法核心聚合逻辑勿被单测全 mock 替代（至少 1 个真实数据用例覆盖被测函数本体，防 R6 漏测重演）
+- [ ] 配置优先级统一：环境变量 > config.yaml > 硬编码默认值
