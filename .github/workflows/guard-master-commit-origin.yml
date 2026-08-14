@@ -13,10 +13,10 @@
 #           新增 COMMIT_ORIGIN_GUARD_MODE = enforce(或 dry-run 切回)
 name: master commit 来源守卫(verify_commit_origin)
 
-# 【变易·P2-4】concurrency: 同 ref 跨 workflow 连续触发取消旧 run 只留最新（高频 push 合并组，2026-08-11）。
+# 【变易·P2-4】concurrency: 同 workflow 同 ref 连续触发取消旧 run 只留最新（workflow 隔离组，2026-08-14）。
 # 2026-08-08 排队风暴治理延伸: 全项目 workflow 批量统一。
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 on:

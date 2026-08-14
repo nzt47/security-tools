@@ -1,0 +1,79 @@
+# 进化全量测试 CI/CD 流水线（EVO-T3）
+#
+# 触发时机:
+#   - 每日定时（UTC 04:00 = 北京时间 12:00）: 自动跑安全链路（--all，沙箱熔断验证）
+#   - 手动 dispatch: 可选 run_full_test 执行正式全量进化（写正式库，默认关闭）
+#
+# 门禁语义:
+#   - evolution-sandbox（安全链路）: 参数模板填充 + 沙箱全量进化 + 熔断断言，
+#     不写正式技能存储/谱系；失败即任务失败（CI 可收到告警）
+#   - evolution-full-test（显式触发）: --seed-real --confirm + --full-test，
+#     写 data/skills_mgmt.json 与正式谱系，仅 workflow_dispatch 且勾选时执行
+#
+# 【不易·安全底线】--seed-real 与 --full-test 均为敏感写操作，
+# 默认不随定时任务执行；run_full_test 输入默认 false。
+name: Evolution CI
+
+# 【变易·P2-4】concurrency: 同 workflow 同 ref 连续触发取消旧 run 只留最新（workflow 隔离组，2026-08-14）。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  schedule:
+    # 每天 UTC 04:00（北京时间 12:00）自动触发全量进化测试（安全链路）
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      run_full_test:
+        description: '是否执行正式全量进化（--seed-real --confirm + --full-test，写正式库）'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # Job 1: 一键部署预检（安全链路，定时 + 手动均执行）
+  # ──────────────────────────────────────────────────────────────
+  evolution-sandbox:
+    name: 参数填充 + 沙箱熔断验证
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: 构建进化 CLI 镜像
+        run: docker build -f deploy/evolution/Dockerfile -t yunshu-evolution:ci .
+
+      - name: 一键部署预检（--all，不写正式库）
+        run: |
+          docker run --rm \
+            -v "$PWD/data:/app/data" \
+            yunshu-evolution:ci --all --json
+
+  # ──────────────────────────────────────────────────────────────
+  # Job 2: 正式全量进化测试（仅手动 + 勾选 run_full_test 时执行）
+  # ──────────────────────────────────────────────────────────────
+  evolution-full-test:
+    name: 正式全量进化测试
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && inputs.run_full_test
+    needs: evolution-sandbox
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: 构建进化 CLI 镜像
+        run: docker build -f deploy/evolution/Dockerfile -t yunshu-evolution:ci .
+
+      - name: 初始化正式技能存储
+        run: |
+          docker run --rm \
+            -v "$PWD/data:/app/data" \
+            yunshu-evolution:ci --seed-real --confirm --json
+
+      - name: 正式全量进化测试
+        run: |
+          docker run --rm \
+            -v "$PWD/data:/app/data" \
+            yunshu-evolution:ci --full-test --json

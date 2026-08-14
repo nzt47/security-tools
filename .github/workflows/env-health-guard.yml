@@ -4,12 +4,12 @@
 #   即使 unit-tests 因 runner 回收等基础设施问题失败，本体检仍独立给出环境结论。
 name: 环境健康检查与工作区守卫
 
-# 【不易】对齐 ci.yml L6-10 并发治理（2026-08-11 排队治理升级）：同 ref 下全部高频
-#   push workflow 共享 group `ci-${{ github.ref }}`，连续 push 只保留最新一批
-#   （跨 workflow 取消）。若用独立 group，高频 push 时本 workflow 不会被同 ref 新
-#   push 取消，将累积排队浪费 runner 配额。
+# 【不易】对齐 ci.yml 并发治理（2026-08-14 workflow 隔离组）：同 workflow 同 ref
+#   连续 push 只保留最新一批（cancel-in-progress）。2026-08-14 修复: 原共享
+#   `ci-${{ github.ref }}` 组使同次 push 的 19 个高频 workflow 互相取消（ci.yml
+#   连续 8 次 cancelled），改为按 workflow 隔离，各 workflow 独立排队不再互杀。
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 on:
