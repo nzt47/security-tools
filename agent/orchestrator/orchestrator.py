@@ -59,6 +59,36 @@ from agent.tool_router_hybrid import hybrid_select_tools
 logger = logging.getLogger(__name__)
 
 
+# ── TASK-03 学习度量辅助（埋点异常绝不影响主链路） ──────────────
+_LEARNING_SAVED_EST: Optional[int] = None
+
+
+def _get_learning_saved_estimate() -> int:
+    """命中 workflow/skill 时估算被跳过的 LLM 调用 token（读 config.yaml llm.max_tokens）"""
+    global _LEARNING_SAVED_EST
+    if _LEARNING_SAVED_EST is None:
+        try:
+            from pathlib import Path
+            import yaml as _yaml
+            _cfg_path = Path(__file__).resolve().parent.parent.parent / "config.yaml"
+            with open(_cfg_path, "r", encoding="utf-8") as _f:
+                _data = _yaml.safe_load(_f) or {}
+            _LEARNING_SAVED_EST = int((_data.get("llm") or {}).get("max_tokens") or 2000)
+        except Exception:
+            _LEARNING_SAVED_EST = 2000
+    return _LEARNING_SAVED_EST
+
+
+def _emit_learning_metric(fn_name: str, *args, **kwargs) -> None:
+    """安全包装：学习度量单例异常/缺失时静默降级，主链路零影响"""
+    try:
+        from agent.learning_metrics import get_learning_metrics
+        _fn = getattr(get_learning_metrics(), fn_name, None)
+        if _fn is not None:
+            _fn(*args, **kwargs)
+    except Exception:
+        pass
+
 
 def _trace_id():
     """获取 trace_id，优先复用上下文，无则生成临时 ID（结构化日志用）"""
@@ -348,6 +378,9 @@ class Orchestrator:
         # 在 _interaction_count 初始化时同批创建（_interaction_lock）。
         with self._interaction_lock:
             self._interaction_count += 1
+
+        # TASK-03: 学习度量——交互总数（埋点异常不影响主链路）
+        _emit_learning_metric("record_interaction")
 
         # 会话 ID：kwargs 显式传参优先，回退实例全局 _session_id（并发安全）
         # 修复：重构时 _sid 定义行丢失，仅剩 8 处引用（get_dialog_state/_learn_workflow 等），
@@ -1583,6 +1616,8 @@ class Orchestrator:
                         elapsed_ms, float(cfg["min_score"])),
                     duration_ms=elapsed_ms,
                 )
+                # TASK-03: 学习度量——工作流未命中（埋点异常不影响主链路）
+                _emit_learning_metric("record_workflow_match", hit=False)
                 return None
 
             if not result.success:
@@ -1616,6 +1651,11 @@ class Orchestrator:
                 confidence=result.confidence,
                 steps_executed=result.steps_executed,
                 skipped_llm=result.skipped_llm,
+            )
+            # TASK-03: 学习度量——工作流命中 + 节省 token 估算（埋点异常不影响主链路）
+            _emit_learning_metric(
+                "record_workflow_match", hit=True,
+                saved_tokens=_get_learning_saved_estimate(),
             )
             return {
                 "output": str(result.output or ""),
@@ -1737,6 +1777,8 @@ class Orchestrator:
                 success=True,
             )
             wf = svc.learn_from_interaction(record)
+            # TASK-03: 学习度量——工作流沉淀（埋点异常不影响主链路）
+            _emit_learning_metric("record_artifact", "workflow")
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.learned',
                 'message': '[工作流] 自动学习成功: wf=%s 步骤=%d 触发词=%s' % (
                     wf.id, len(wf.steps), (wf.trigger_patterns or [])[:3])}))
