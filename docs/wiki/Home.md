@@ -74,6 +74,8 @@ agent 内部保持零安装依赖，外部项目通过 `pip install light-loader
 - 知识模块：[knowledge_optimization_phase2_wiki.md](knowledge_optimization_phase2_wiki.md)
 - 入链索引架构演进：[knowledge_optimization_phase2_evolution_wiki.md](knowledge_optimization_phase2_evolution_wiki.md)
 - 并发缺陷修复：[concurrency_fixes_wiki.md](concurrency_fixes_wiki.md)
+- Git Detached 提交悬空修复：[git_detached_commit_fix_wiki.md](git_detached_commit_fix_wiki.md)
+- Git Detached 提交操作手册：[git_detached_commit_ops_manual.md](git_detached_commit_ops_manual.md)
 - 死代码修复与边界测试：[deadcode_fix_and_boundary_tests_wiki.md](deadcode_fix_and_boundary_tests_wiki.md)
 - 单例管理：[singleton_manager_wiki.md](singleton_manager_wiki.md)
 - 限流器迁移：[rate_limiter_migration_wiki.md](rate_limiter_migration_wiki.md)
