@@ -464,6 +464,8 @@ class PlanningCore:
         env_val = os.environ.get("LEARNING_EXPERIENCE_PERSIST")
         if env_val is not None and env_val.strip():
             enabled = env_val.strip().lower() in ("true", "1", "yes")
+        # 【排查】解析后最终生效值（含环境变量来源，一条日志看清三层优先级结果）
+        logger.info(f"[经验落盘] 配置生效: experience_persist={enabled} (env=LEARNING_EXPERIENCE_PERSIST={env_val!r})")
         return enabled
 
     async def _record_experience(self, plan: Plan, *, success: bool) -> None:

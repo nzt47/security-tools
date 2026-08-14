@@ -2275,6 +2275,13 @@ class Orchestrator:
         if env_critic is not None and env_critic.strip():
             config["critic_evaluation_enabled"] = env_critic.strip().lower() in ("true", "1", "yes")
 
+        # 【排查】解析后最终生效值（含环境变量来源，一条日志看清三层优先级结果）
+        logger.info(log_dict({'module_name': 'orchestrator',
+                              'action': 'orchestrator.learning.config.loaded',
+                              'message': '[学习接线] 配置生效: reflection_persist=%s critic_evaluation_enabled=%s (env_reflect=%r env_critic=%r)' % (
+                                  config['reflection_persist'], config['critic_evaluation_enabled'],
+                                  env_reflect, env_critic)}))
+
         return config
 
     def _should_reject(

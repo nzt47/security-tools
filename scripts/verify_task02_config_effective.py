@@ -32,7 +32,9 @@ from agent.orchestrator.orchestrator import Orchestrator
 from planning.core import PlanningCore
 
 logging.basicConfig(
-    level=logging.ERROR,  # 收敛既有 INFO 噪音，仅输出本脚本 PASS/FAIL
+    # 默认收敛既有 INFO 噪音，仅输出本脚本 PASS/FAIL；
+    # 传 --verbose 时显示 orchestrator/planning 解析分支的真实 logger 打点（排查用）
+    level=logging.INFO if "--verbose" in sys.argv else logging.ERROR,
     format="%(levelname)s %(message)s",
 )
 
@@ -225,7 +227,46 @@ def scenario_i_env_edge_cases():
         "部分覆盖：critic 被 env 覆盖，reflection 应回落 config"
     print(f"    部分覆盖（只设 CRITIC_EVALUATION_ENABLED=false）→ "
           f"critic={cfg['critic_evaluation_enabled']} reflection_persist={cfg['reflection_persist']}  [OK]")
-    print("  [I] PASS: 环境变量边界全覆盖（空串/大小写/空格/部分覆盖）")
+    # 反向部分覆盖：只设 reflection env，critic 回落 config
+    os.environ["LEARNING_REFLECTION_PERSIST"] = "false"
+    cfg = Orchestrator._load_learning_config()
+    os.environ.pop("LEARNING_REFLECTION_PERSIST", None)
+    assert cfg["reflection_persist"] is False and cfg["critic_evaluation_enabled"] is True, \
+        "反向部分覆盖：reflection 被 env 覆盖，critic 应回落 config"
+    print(f"    反向部分覆盖（只设 LEARNING_REFLECTION_PERSIST=false）→ "
+          f"reflection_persist={cfg['reflection_persist']} critic={cfg['critic_evaluation_enabled']}  [OK]")
+    print("  [I] PASS: 环境变量边界全覆盖（空串/大小写/空格/双向部分覆盖）")
+
+
+def scenario_j_config_structure_edge():
+    """J. config.yaml 结构边界：段缺失 / 空文件 / 非法内容 / 数字值"""
+    print("\n── 场景 J：config.yaml 结构边界")
+    tmpdir = tempfile.mkdtemp(prefix="task02_struct_")
+    try:
+        cases = [
+            # (yaml 内容, 期望 (rp, ce), 描述)
+            ("learning:\n  reflection_persist: true\n", (True, False),
+             "仅 learning 段（features 缺失 → critic 保持默认 false）"),
+            ("features:\n  critic_evaluation_enabled: true\n", (False, True),
+             "仅 features 段（learning 缺失 → reflection 保持默认 false）"),
+            ("", (False, False),
+             "空文件 → 全默认（safe_load 返回 None → {}）"),
+            ("hello", (False, False),
+             "顶层非 dict（safe_load 返回 str → .get 抛错 → except 兜底默认，不崩链路）"),
+            ("learning:\n  reflection_persist: 1\nfeatures:\n  critic_evaluation_enabled: 0\n", (True, False),
+             "数字值：yaml 1（int）→ true，0（int）→ false（_parse_bool_flag 走字符串归一化）"),
+        ]
+        for content, expected, desc in cases:
+            cfg_path = Path(tmpdir) / "config.yaml"
+            cfg_path.write_text(content, encoding="utf-8")
+            with patch.object(Orchestrator, "_SEM_CONFIG_PATH", cfg_path):
+                cfg = Orchestrator._load_learning_config()
+            got = (cfg["reflection_persist"], cfg["critic_evaluation_enabled"])
+            assert got == expected, f"{desc}: 期望 {expected} 实际 {got}"
+            print(f"    {desc} → {got}  [OK]")
+    finally:
+        shutil.rmtree(tmpdir, ignore_errors=True)
+    print("  [J] PASS: 结构边界全覆盖（段缺失/空文件/非法内容/数字值）")
 
 
 def scenario_e_config_missing_fallback():
@@ -255,6 +296,7 @@ def main():
         scenario_g_experience_env_override()
         scenario_h_config_string_values()
         scenario_i_env_edge_cases()
+        scenario_j_config_structure_edge()
     finally:
         _restore_env(snap)  # 【不易】恢复用户环境，绝不残留
 
