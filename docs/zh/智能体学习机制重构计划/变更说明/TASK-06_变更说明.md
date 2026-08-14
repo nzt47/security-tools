@@ -7,7 +7,7 @@
 | 涉及主文档 | `docs/zh/智能体学习机制重构计划/智能体学习机制理想设计.md`（§3.2 D9 替代方案；§4.4 断点 6） |
 | 关联任务书 | `docs/zh/智能体学习机制重构计划/TASK-06_新颖性感知学习管线.md` |
 | 实现日期 | 2026-08-14 |
-| 状态 | **已结案**（2026-08-14：专项复跑 30 passed 全绿 + 持久化路径实测生效） |
+| 状态 | **已结案**（2026-08-14：专项复跑 30 passed 全绿 + 持久化路径实测生效；已转入正式采集 `enabled: true`） |
 
 ## 1. 背景
 
@@ -15,7 +15,7 @@
 
 审计发现 `sensor/change_detector.py`（`ChangeDetector`）已实现设备/磁盘/进程/服务/系统信息/注册表/环境的快照 diff（SHA-256 指纹比对）并持久化到 `~/.Yunshu/changes/change_log.json`，`sensor/behavior_sensor.py` 已建立 6 维度行为基线——但全部是"日志器"：diff 结果只转成 `SensorReading` 流向提示词注入，从不触发任何学习/记忆/沉淀流程。且行为基线不跨会话持久化，`change_log.json` 无容量上限与清理策略。
 
-本任务补齐感知侧学习闭环：NoveltyEvent 管道（diff → 分类 → 分级沉淀）、行为漂移跨会话检测、日志容量控制。全部默认**观察模式**（`sensor_learning.enabled: false`），开启后只产 DRAFT 草稿，绝不注册技能。
+本任务补齐感知侧学习闭环：NoveltyEvent 管道（diff → 分类 → 分级沉淀）、行为漂移跨会话检测、日志容量控制。默认**正式采集**（`sensor_learning.enabled: true`，2026-08-14 由观察模式转入，实测运行验证通过），无论开关状态只产 DRAFT 草稿，绝不注册技能。
 
 ## 2. 改动点
 
@@ -61,7 +61,7 @@
 ### 2.3 新增 `agent/learning/novelty_hooks.py`（Step 2 沉淀钩子）
 
 - **分级路由**（`handle_novelty_event`）：低/中置信（<0.7）→ 写记忆（`data/learning/novelty_memory/novelty_memory.jsonl`，JSONL，`event=novelty_event` 标签）；高置信（≥0.7）→ 审计（`data/learning/novelty_audit.jsonl`）+ 建议草稿（`data/learning/novelty_suggestions/novelty_suggestion_<type>_<ts>.json`，**`draft_status: "DRAFT"`**，供 TASK-04 审核链作为输入，绝不注册技能）；
-- `make_learning_hook()` 构造 ChangeDetector 出口钩子（默认观察模式：未开启 `sensor_learning.enabled` → 零副作用直接返回）；`wire_body_sensor()` 挂载到 BodySensor（旁路，失败仅日志）；
+- `make_learning_hook()` 构造 ChangeDetector 出口钩子（`sensor_learning.enabled=false` → 零副作用直接返回；当前默认 `true` 正式采集）；`wire_body_sensor()` 挂载到 BodySensor（旁路，失败仅日志）；
 - 全部动作独立 try/except 兜底，感知采集主路径零影响（记忆目录写入失败 → 仅 WARNING）；
 - 配置优先级：env > config.yaml > 硬编码默认值（`enabled` / `drift_threshold` / `baseline_retention_weeks` / `draft_dir` / `audit_file` / `memory_dir`）。
 
@@ -89,7 +89,7 @@
 
 | 方法 | 说明 |
 | --- | --- |
-| `schedule(*, interval_hours=168) -> Dict` | 默认关闭（`sensor_learning.enabled=false` → `status=disabled` 零副作用）；开启后 `task_scheduler.add_interval_task` 注册周级任务 |
+| `schedule(*, interval_hours=168) -> Dict` | `sensor_learning.enabled=false` → `status=disabled` 零副作用；开启（当前默认 `true`）后 `task_scheduler.add_interval_task` 注册周级任务 |
 | `unschedule() -> bool` | 按固定任务名 `行为漂移检测` 注销（可跨实例） |
 | `run() -> Dict` | 采集→保存当前周基线→对比最近两份→超阈值产 `behavior_drift`（记忆记录 + 建议草稿，仅 DRAFT）；基线不足两份 → `skipped`；低于阈值 → `no_drift` |
 
@@ -102,7 +102,7 @@
 
 | 配置键 | 环境变量 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `learning.sensor_learning.enabled` | `SENSOR_LEARNING_ENABLED` | `false` | 总开关（观察模式；开启后低置信→记忆、高置信→建议草稿，仅 DRAFT） |
+| `learning.sensor_learning.enabled` | `SENSOR_LEARNING_ENABLED` | `true`（2026-08-14 由观察模式转入正式采集） | 总开关（false 观察模式零副作用；true 分级沉淀：低置信→记忆、高置信→建议草稿，仅 DRAFT） |
 | `learning.sensor_learning.drift_threshold` | `SENSOR_LEARNING_DRIFT_THRESHOLD` | `0.3` | 行为漂移判定阈值（周级基线相对偏差均值） |
 | `learning.sensor_learning.baseline_retention_weeks` | `SENSOR_LEARNING_BASELINE_RETENTION_WEEKS` | `8` | 行为基线保留周数（滚动清理） |
 | `learning.sensor_learning.change_log_max_entries` | `SENSOR_LEARNING_CHANGE_LOG_MAX_ENTRIES` | `10000` | change_log.json 容量上限 |
@@ -142,7 +142,7 @@
 ## 5. 回滚方法
 
 1. **代码回滚**：删除 `sensor/novelty.py`、`agent/learning/novelty_hooks.py`、`agent/learning/behavior_drift.py`；`git checkout` 还原 `sensor/change_detector.py`、`sensor/behavior_sensor.py`、`sensor/body_sensor.py`、`agent/orchestrator/lifecycle_manager.py`、`agent/skills_mgmt/learning_scheduler.py`、`config.yaml`、`.env.example`；
-2. **运行时开关**：`learning.sensor_learning.enabled` 保持 `false`（默认关闭）即零学习副作用，钩子/漂移任务内部直接返回（观察模式）；
+2. **运行时开关**：`learning.sensor_learning.enabled` 置 `false`（观察模式）即零学习副作用，钩子/漂移任务内部直接返回；当前默认 `true`（正式采集，2026-08-14 转入）；
 3. **产物清理**：已产建议草稿（`data/learning/novelty_suggestions/`）为 DRAFT 文件可安全删除；事件记忆/审计 JSONL 可删可留；行为基线 `~/.Yunshu/baselines/behavior_*.json` 可删（下次开启自动重建）。
 
 ## 6. 工程约束落实
@@ -170,4 +170,8 @@
   - `change_log.json` 默认路径 `~/.Yunshu/changes/change_log.json`：旧文件为顶层 **list 格式（160 条）**，`_load_persistent_log` 兼容加载 ✓；写 7 条 + `max_entries=5` → 滚动删除最旧 2 条，落盘 5 条 ✓；
   - 行为基线默认路径 `~/.Yunshu/baselines/behavior_<周一日期>.json`：`save_baseline` 落盘 `behavior_2026-08-10.json`（周键=本周周一）✓；修复前 `capture_baseline` 因字段错误 metrics 恒空 `{}`，修复后实测 **46 条数值指标**（`behavior_disk_total_read` 等）✓；
   - 真实 `~/.Yunshu/baselines/` 目录当前不存在 —— **符合预期**（默认 `sensor_learning.enabled: false` 观察模式，调度器不运行零副作用；开启后自动创建）；
-- **合入记录**：`0d82bf1d`（TASK-06 主体 14 文件）→ `12d66616`（§6 回归记录）→ `f67dd996`（agent/learning 包 `__init__.py`），本结案修复/文档更新提交后任务正式关闭。
+- **正式采集转入（2026-08-14 晚）**：`sensor_learning.enabled` 置 `true` 并实测运行验证：
+  - 行为基线已持久化到真实 `~/.Yunshu/baselines/behavior_2026-08-10.json`（46 条数值指标）✓；
+  - 模拟 USB 设备接入 → `collect()` diff（`device_added`）→ 学习钩子 → 分类 `hardware_change`（0.85/high）→ 审计 + 建议草稿 `novelty_suggestion_hardware_change_*.json`（`draft_status: DRAFT`）✓；`process_change`（0.55/medium）→ 事件记忆 ✓；
+  - 分级路由与产物路径全部符合设计；并行会话（TASK-04 审核链对接）复用 TASK-06 管道产生的审计记录（设备 a/b 对，20:26-22:33，早于开启时间）验证了共享路径下的多写入者并发安全；
+- **合入记录**：`0d82bf1d`（TASK-06 主体 14 文件）→ `12d66616`（§6 回归记录）→ `f67dd996`（agent/learning 包 `__init__.py`）→ `28ad64a2`（R6 结案修复）→ 本提交（正式采集开关 + 文档同步），任务正式关闭。

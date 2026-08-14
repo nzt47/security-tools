@@ -118,13 +118,13 @@ learning:
     dry_run: true
     # 生命周期迁移审计日志（JSONL：skill_id/from_status/to_status/闲置天数）
     audit_file: ./data/skill_lifecycle_audit.jsonl
-  # TASK-06：感知侧新颖性学习管道开关（安全底线，观察模式，默认关闭）
-  # false（观察模式）：ChangeDetector/行为漂移全链路零学习副作用（仅既有日志）；
-  # true：低/中置信 NoveltyEvent → 记忆（novelty_memory.jsonl），高置信 → 审计 + 建议草稿
+  # TASK-06：感知侧新颖性学习管道开关（安全底线，默认开启——2026-08-14 由观察模式转入正式采集）
+  # true（正式采集）：低/中置信 NoveltyEvent → 记忆（novelty_memory.jsonl），高置信 → 审计 + 建议草稿
   # （novelty_suggestions/，仅 DRAFT，绝不注册技能——供 TASK-04 审核链消费）
+  # false（观察模式）：ChangeDetector/行为漂移全链路零学习副作用（仅既有日志）
   # 环境变量 SENSOR_LEARNING_ENABLED 覆盖此值
   sensor_learning:
-    enabled: false
+    enabled: true
     # 行为漂移判定阈值（周级基线相对偏差均值；默认 0.3）
     # 环境变量 SENSOR_LEARNING_DRIFT_THRESHOLD 覆盖此值
     drift_threshold: 0.3
