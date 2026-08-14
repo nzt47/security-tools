@@ -138,7 +138,14 @@ def main() -> int:
             failed = True
 
     # 6. venv 提示
-    venv_py = REPO_ROOT / "venv" / "Scripts" / "python.exe"
+    # 【变易】跨平台: POSIX venv 解释器为 venv/bin/python, Windows 为 venv/Scripts/python.exe
+    # Why: 仓库曾误提交 Windows venv（venv/Scripts/python.exe），Linux CI checkout 后
+    #   exists() 为 True 但执行报 Permission denied。venv 是本地开发概念，CI 无 venv。
+    venv_py = (
+        REPO_ROOT / "venv" / "bin" / "python"
+        if sys.platform != "win32"
+        else REPO_ROOT / "venv" / "Scripts" / "python.exe"
+    )
     print("\n== venv 检查 ==")
     if venv_py.exists():
         try:
@@ -160,10 +167,15 @@ def main() -> int:
                     print(f"  [FAIL] venv transformers import 失败: {r.stderr.strip()[:200]}")
                     failed = True
         except Exception as e:
-            print(f"  [FAIL] venv 检查异常: {e}")
-            failed = True
+            # Why CI 降级: 误提交的 Windows venv 二进制在 Linux 上执行 Permission denied,
+            #   CI checkout 无本地 venv 概念, 降级 WARN 不阻断（本地仍 FAIL 提示修复）。
+            if args.ci:
+                print(f"  [WARN(可选,venv)] venv 检查异常（CI 降级）: {e}")
+            else:
+                print(f"  [FAIL] venv 检查异常: {e}")
+                failed = True
     else:
-        print("  [info] 仓库无 venv/Scripts/python.exe（使用全局解释器）")
+        print(f"  [info] 仓库无 venv/{'bin/python' if sys.platform != 'win32' else 'Scripts/python.exe'}（使用全局解释器）")
 
     print(f"\n== 结果: {'HEALTHY' if not failed else 'FAILED'} ==")
     return 1 if failed else 0
