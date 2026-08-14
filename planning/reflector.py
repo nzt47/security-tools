@@ -7,6 +7,7 @@ import json
 import logging
 import os
 import inspect
+import time
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from dataclasses import dataclass, asdict
@@ -667,12 +668,31 @@ class Reflector:
             增强后的 FailureDiagnosis；反思无产出返回 None（不阻断主循环，守不易）。
         """
         try:
+            _t0 = time.monotonic()
+            logger.info(
+                f"[失败反思#{attempts}] 进入 failure_reflect"
+                f" | task={str(getattr(task, 'description', task))[:60]}"
+                f" | error_type={diagnosis.error_type}"
+                f" | error_message={diagnosis.error_message[:80]}"
+            )
             reflection = await self._run_failure_llm(task, result, diagnosis, attempts)
+            logger.info(
+                f"[失败反思#{attempts}] 步骤1/3 LLM 分析完成"
+                f" | 耗时={(time.monotonic() - _t0) * 1000:.0f}ms"
+                f" | 产出={'有效' if reflection else '无（转规则兜底）'}"
+            )
         except Exception as e:
-            logger.warning(f"失败反思 LLM 调用失败，走规则兜底: {e}")
+            logger.warning(
+                f"[失败反思#{attempts}] 步骤1/3 LLM 调用异常，切换规则兜底"
+                f" | 耗时={(time.monotonic() - _t0) * 1000:.0f}ms | error={e}"
+            )
             reflection = None
         if reflection is None:
             reflection = self._rule_based_failure_reflect(diagnosis)
+            logger.info(
+                f"[失败反思#{attempts}] 步骤1/3 规则兜底完成"
+                f" | 产出={'有效' if reflection else '无'}"
+            )
         if reflection is None:
             logger.info("[失败反思] 无兜底产出（repair_hints 为空），跳过反思注入")
             return None
@@ -682,18 +702,28 @@ class Reflector:
         diagnosis.confidence = float(reflection.get("confidence", 0.0))
         diagnosis.repair_actions = [str(a) for a in reflection.get("repair_actions", [])][:3]
         diagnosis.avoid = [str(a) for a in reflection.get("avoid", [])][:2]
+        logger.info(
+            f"[失败反思#{attempts}] 步骤2/3 诊断增强"
+            f" | confidence={diagnosis.confidence}"
+            f" | repair_actions={diagnosis.repair_actions}"
+            f" | avoid={diagnosis.avoid}"
+        )
 
         # 历史记录：reflection_history 增加 type="failure" 条目（携带诊断摘要）
         self._record_reflection("failure", getattr(task, "id", "?"), diagnosis.to_dict())
 
         # 失败经验沉淀：复用 learn_from_experience 失败分支（确保持久化）
         await self._persist_failure_lesson(task, result, diagnosis)
+        logger.info(
+            f"[失败反思#{attempts}] 步骤3/3 历史记录+lessons 沉淀完成"
+            f" | lessons_db={len(self.lessons_db)}"
+            f" | reflection_history={len(self.reflection_history)}"
+        )
 
         logger.info(
-            f"[失败反思] 完成 | attempt={attempts}"
+            f"[失败反思#{attempts}] 完成"
             f" | root_cause={diagnosis.root_cause}"
             f" | repair_actions={diagnosis.repair_actions}"
-            f" | avoid={diagnosis.avoid}"
         )
         return diagnosis
 
