@@ -238,6 +238,7 @@ class _StubFailureReflector(Reflector):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.failure_reflect_calls = 0
+        self.root_causes = []  # 记录每次收到的 root_cause（模拟 LLM 反思输出）
 
     async def failure_reflect(self, task, result, diagnosis, attempts):
         self.failure_reflect_calls += 1
@@ -245,6 +246,7 @@ class _StubFailureReflector(Reflector):
         diagnosis.confidence = 0.9
         diagnosis.repair_actions = ["改用其他工具"]
         diagnosis.avoid = ["继续调用 bad_tool"]
+        self.root_causes.append(diagnosis.root_cause)
         return diagnosis
 
 
@@ -313,6 +315,41 @@ async def test_failure_reflect_respects_retry_limit():
 
         # 两次失败，但反思轮数上限为 1
         assert reflector.failure_reflect_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_same_root_cause_reflection_limited_by_retries():
+    """反思收敛：LLM 连续输出相同 root_cause 时，反思次数仍受 reflection_retries 轮数兜底。
+
+    同根因去重未实现（见任务4 改造总结报告已知问题 #2），收敛由轮数上限保证——
+    即使每次失败反思都给出相同的 root_cause，failure_reflect 也恰好执行 reflection_retries 次，
+    第 N+1 次失败不再反思（超限后触发快照还原重试或升级路径，不阻断主循环）。
+    """
+    mock_llm = AsyncMock()
+    # 3 次调用工具（前 2 次触发反思，第 3 次失败时反思超限）+ finish 收尾
+    mock_llm.chat.side_effect = [
+        json.dumps({
+            "reasoning": f"第{i}次调用工具", "action_type": "tool_call",
+            "action": {"tool": "bad_tool", "params": {}, "description": f"调用 bad_tool（第{i}次）"},
+        })
+        for i in range(1, 4)
+    ] + [json.dumps({"reasoning": "完成", "action_type": "finish", "result": "放弃"})]
+    planner = type("P", (), {})()
+    planner.llm = mock_llm
+    planner.tool_registry = ToolRegistry()
+    planner.tool_registry.register("bad_tool", _bad_tool)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        reflector = _StubFailureReflector(persist_dir=tmp_dir)
+        loop = ReActLoop(planner, reflector, max_iterations=10,
+                         config={"reflection_retries": 2})
+        await loop.run("运行坏工具")
+
+        # 3 次失败但反思轮数上限为 2；相同 root_cause 不提前终止、不超限
+        assert reflector.failure_reflect_calls == 2
+        assert len(reflector.root_causes) == 2
+        # 每次反思输出相同的 root_cause（场景构造：连续 2 轮相同根因）
+        assert set(reflector.root_causes) == {"bad_tool 根因"}
 
 
 @pytest.mark.asyncio
