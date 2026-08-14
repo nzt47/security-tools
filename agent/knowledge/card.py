@@ -770,6 +770,10 @@ class CardStore:
         if since is None:
             return self.list()
         ts = since.timestamp()
+        # 数据流转调试（DEBUG 级，观察增量过滤明细；默认不输出）
+        matched = skipped_mtime = skipped_stat = skipped_corrupt = 0
+        logger.debug("[CardStore] list_since 开始: since=%s ts=%.3f wiki_root=%s",
+                     since.isoformat(timespec="seconds"), ts, self._wiki_root)
         with self._rwlock.read():  # 与写锁互斥：全库列举不被多步写打断
             cards: list[Card] = []
             for t in _TYPE_DIRS:
@@ -778,14 +782,31 @@ class CardStore:
                     continue
                 for p in sorted(d.glob("*.md")):
                     try:
-                        if p.stat().st_mtime < ts:
-                            continue
+                        st = p.stat()
                     except OSError:
+                        skipped_stat += 1
+                        logger.debug("[CardStore] list_since 跳过(stat失败): %s", p)
                         continue  # 文件瞬时不可读（删除/权限）→ 跳过该文件
+                    if st.st_mtime < ts:
+                        skipped_mtime += 1
+                        logger.debug("[CardStore] list_since 跳过(早于since): %s mtime=%.3f",
+                                     p, st.st_mtime)
+                        continue
                     try:
                         cards.append(self._md_to_card(p))
                     except (ValueError, TypeError):
+                        skipped_corrupt += 1
+                        logger.debug("[CardStore] list_since 跳过(损坏卡): %s", p)
                         continue  # 跳过损坏卡片，不阻断增量列举
+                    matched += 1
+                    logger.debug("[CardStore] list_since 命中: %s slug=%s mtime=%.3f",
+                                 p, p.stem, st.st_mtime)
+            logger.debug(
+                "[CardStore] list_since 完成: since=%s 命中=%d mtime跳过=%d "
+                "stat失败=%d 损坏跳过=%d",
+                since.isoformat(timespec="seconds"), matched,
+                skipped_mtime, skipped_stat, skipped_corrupt,
+            )
             return cards
 
     # ---------- 批量导入 ----------

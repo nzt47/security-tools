@@ -51,6 +51,27 @@ def _passed_draft(skill_id="draft-skill-1", **overrides):
     return base
 
 
+def _passed_draft_with_body(skill_id="draft-skill-1", **overrides):
+    """质量门控通过 + 完整 draft 物化（P0 #3 阶段 0，与 memory_abstractor 产出对齐）。"""
+    base = _passed_draft(skill_id=skill_id)
+    base["draft"] = {
+        "id": skill_id,
+        "name": "草稿技能",
+        "description": "描述",
+        "content": "核心正文内容",
+        "content_type": "skill",
+        "category": "custom",
+        "root_cause": "根因",
+        "triggers": ["触发A"],
+        "steps": ["步骤1"],
+        "if_then_rules": [],
+        "anti_patterns": [],
+        "default_params": {},
+    }
+    base.update(overrides)
+    return base
+
+
 def _cleanup_scheduler():
     """清理可能残留的沉淀任务（跨测试安全）。"""
     try:
@@ -156,3 +177,102 @@ def test_scheduled_run_abstractor_error_swallowed(tmp_path, monkeypatch):
                                      audit_path=str(tmp_path / "audit.jsonl"))
     scheduler._scheduled_run()  # 不抛异常
     assert not (tmp_path / "audit.jsonl").exists()
+
+
+# ─── P0 #3 阶段 0 · _audit_draft draft_body 物化（2026-08-14）───
+
+
+def test_audit_draft_writes_full_draft_body(tmp_path):
+    """完整 draft → draft_body 反序列化后与 draft 一致（人工确认闭环可重建草稿）。"""
+    result = _passed_draft_with_body(skill_id="draft-skill-1")
+
+    audit = tmp_path / "audit.jsonl"
+    PrecipitateScheduler(audit_path=str(audit))._audit_draft(result)
+
+    line = json.loads(audit.read_text(encoding="utf-8").splitlines()[0])
+    body = json.loads(line["draft_body"])
+    assert body["id"] == "draft-skill-1"
+    assert body["name"] == "草稿技能"
+    assert body["content"] == "核心正文内容"
+    assert body["root_cause"] == "根因"
+    assert body["triggers"] == ["触发A"]
+    # 记录字段完整
+    assert line["event"] == "precipitate_draft"
+    assert line["draft_skill_id"] == "draft-skill-1"
+    assert line["cluster_id"] == "cl-1"
+    assert line["cluster_size"] == 5
+    assert line["success_rate"] == 0.85
+    assert line["registered"] is False
+
+
+def test_audit_draft_fallback_when_serialization_fails(tmp_path, caplog):
+    """draft 含不可序列化对象 → 降级 preview 摘要，记录仍写入（不阻断审计）。
+
+    Why（覆盖率缺口 L239-247）: draft_body 序列化失败是防御性降级路径，
+    必须验证降级产物为 draft_content_preview 摘要而非抛异常。
+    """
+    import logging
+
+    caplog.set_level(logging.DEBUG, logger="agent.skills_mgmt.precipitate")
+    result = _passed_draft_with_body(
+        skill_id="unserializable",
+        draft_name="不可序列化技能",
+        draft_description="描述",
+        draft_content_preview="预览摘要",
+    )
+    # object() 无法 JSON 序列化 → json.dumps 抛 TypeError
+    result["draft"] = {"content": object(), "name": "不可序列化技能"}
+
+    audit = tmp_path / "audit.jsonl"
+    scheduler = PrecipitateScheduler(audit_path=str(audit))
+    scheduler._audit_draft(result)  # 不抛异常
+
+    lines = [json.loads(x) for x in
+             audit.read_text(encoding="utf-8").splitlines() if x.strip()]
+    assert len(lines) == 1
+    body = json.loads(lines[0]["draft_body"])
+    # 降级产物 = draft_name/draft_description/draft_content_preview 摘要
+    assert body["name"] == "不可序列化技能"
+    assert body["description"] == "描述"
+    assert body["content"] == "预览摘要"
+    # 数据流转调试日志可观测
+    assert "序列化失败" in caplog.text
+    assert "降级 preview" in caplog.text
+
+
+def test_audit_draft_without_draft_key(tmp_path):
+    """result 无 draft 键（存量调用方）→ draft_body="{}"，正常写入不降级。"""
+    audit = tmp_path / "audit.jsonl"
+    PrecipitateScheduler(audit_path=str(audit))._audit_draft(
+        _passed_draft(skill_id="legacy-no-draft"))
+
+    line = json.loads(audit.read_text(encoding="utf-8").splitlines()[0])
+    assert line["draft_skill_id"] == "legacy-no-draft"
+    assert line["draft_body"] == "{}"
+
+
+def test_audit_draft_write_failure_swallowed(tmp_path, caplog, monkeypatch):
+    """审计写 OSError → 不抛异常（调度稳定性），warning 留痕。"""
+    import builtins
+
+    def _boom(*a, **kw):
+        raise OSError("audit disk full")
+
+    monkeypatch.setattr(builtins, "open", _boom)
+    scheduler = PrecipitateScheduler(audit_path=str(tmp_path / "audit.jsonl"))
+    scheduler._audit_draft(_passed_draft_with_body())  # 不抛异常
+
+    assert "审计日志写入失败" in caplog.text
+
+
+def test_audit_draft_debug_logs_data_flow(tmp_path, caplog):
+    """DEBUG 级数据流转日志可观测：开始 → 序列化成功 → 审计写入成功。"""
+    import logging
+
+    caplog.set_level(logging.DEBUG, logger="agent.skills_mgmt.precipitate")
+    PrecipitateScheduler(audit_path=str(tmp_path / "audit.jsonl"))._audit_draft(
+        _passed_draft_with_body(skill_id="flow"))
+
+    assert "_audit_draft 开始" in caplog.text
+    assert "draft_body 序列化成功" in caplog.text
+    assert "审计写入成功" in caplog.text

@@ -226,9 +226,20 @@ class PrecipitateScheduler:
         降级为 draft_content_preview 摘要（不阻断审计）。
         """
         draft = result.get("draft") or {}
+        logger.debug("[Precipitate] _audit_draft 开始: draft_skill_id=%s draft_name=%s "
+                     "cluster_id=%s cluster_size=%s success_rate=%s",
+                     result.get("draft_skill_id"), result.get("draft_name"),
+                     result.get("cluster_id"), result.get("cluster_size"),
+                     result.get("success_rate"))
         try:
             draft_body = json.dumps(draft, ensure_ascii=False)
-        except (TypeError, ValueError):
+            logger.debug("[Precipitate] _audit_draft draft_body 序列化成功: "
+                         "draft_skill_id=%s body_len=%d",
+                         result.get("draft_skill_id"), len(draft_body))
+        except (TypeError, ValueError) as e:
+            # 降级为 preview 摘要（不阻断审计）；调试日志暴露降级原因与降级内容
+            logger.debug("[Precipitate] _audit_draft draft_body 序列化失败，降级 preview: "
+                         "draft_skill_id=%s 原因=%s", result.get("draft_skill_id"), e)
             draft_body = json.dumps({
                 "name": result.get("draft_name"),
                 "description": result.get("draft_description"),
@@ -250,6 +261,9 @@ class PrecipitateScheduler:
             path.parent.mkdir(parents=True, exist_ok=True)
             with open(path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            logger.debug("[Precipitate] _audit_draft 审计写入成功: path=%s "
+                         "draft_skill_id=%s rec_len=%d",
+                         path, result.get("draft_skill_id"), len(json.dumps(rec, ensure_ascii=False)))
         except OSError as e:
             logger.warning("[Precipitate] 审计日志写入失败: %s", e)
 
