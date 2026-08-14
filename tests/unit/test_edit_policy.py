@@ -7,9 +7,14 @@
        无自动合并路径（merged 唯一入口 = 显式 approve 后的 mark_merged）；
     7. 白名单不含进化策略文件本身（拒绝递归自修改）。
 """
+import os
+
 import pytest
 
 from agent.skills_mgmt.edit_policy import (
+    _BLOCKED_EXTENSIONS,
+    _FORBIDDEN_REL_DIRS,
+    _STRATEGY_FILES,
     EditContentBlockedError,
     EditPolicy,
     EditPolicyError,
@@ -154,6 +159,80 @@ class TestPathBoundary:
         p = make_proposal(files=[EditFile("Agent/system_tools.py", "old", "new")])
         with pytest.raises(PathNotAllowedError):
             policy.validate_proposal(p)
+
+
+# ════════════════════════════════════════════════════════════
+#  验收 1 补充：第二层防线全清单遍历（守不易：防名单新增成员漏测）
+# ════════════════════════════════════════════════════════════
+
+class TestDefenseLineCoverage:
+    """白名单边界拦截全清单守卫：名单每新增一个成员都必须有拦截验证"""
+
+    @pytest.mark.parametrize("core_dir", sorted(_FORBIDDEN_REL_DIRS))
+    def test_core_dir_path_rejected(self, core_dir, policy):
+        # 第一层：核心目录下路径直接拒绝（含未建的 agent/ 之外全部系统目录）
+        with pytest.raises(PathNotAllowedError):
+            policy.validate_file_path(f"{core_dir}/anything.py")
+
+    @pytest.mark.parametrize("core_dir", sorted(_FORBIDDEN_REL_DIRS))
+    def test_whitelist_under_core_dir_rejected_at_construct(self, core_dir, tmp_root):
+        # 第二层：白名单误配到核心目录内 → 构造即拒绝（即使只测过 agent/ 也全覆盖）
+        with pytest.raises(PathNotAllowedError):
+            EditPolicy(whitelist_dirs=[f"{core_dir}/sub"],
+                       project_root=tmp_root)
+
+    @pytest.mark.parametrize("strategy_file", sorted(_STRATEGY_FILES))
+    def test_every_strategy_file_detected_and_blocked(self, strategy_file, policy, tmp_root):
+        # 白名单内出现任意策略文件名 → 识别 + 拦截（防递归自修改）
+        assert policy.is_strategy_file(tmp_root / "data" / "skills_repo" / strategy_file)
+        with pytest.raises(PathNotAllowedError):
+            policy.validate_file_path(f"data/skills_repo/{strategy_file}")
+
+    @pytest.mark.parametrize("ext", sorted(_BLOCKED_EXTENSIONS))
+    def test_every_blocked_extension_rejected(self, ext, policy):
+        # 白名单内禁止扩展名全清单
+        with pytest.raises(PathNotAllowedError):
+            policy.validate_file_path(f"data/skills_repo/my-skill/evil{ext}")
+
+    def test_whitelist_subdir_named_like_core_not_blocked(self, policy):
+        # 防过度拦截：白名单内与核心目录同名的子目录应正常放行
+        # （resolve 后仍以"是否落在 project_root/<核心目录>"判定，不按名字误伤）
+        resolved = policy.validate_file_path(
+            "data/skills_repo/config/skill.md")
+        assert resolved.name == "skill.md"
+
+    def test_proposal_files_at_limit_allowed(self, tmp_root):
+        # 边界：文件数等于单轮上限 → 放行（仅 > max 拒绝）
+        policy2 = EditPolicy(whitelist_dirs=["data/skills_repo"],
+                             project_root=tmp_root, max_files_per_round=2)
+        p = make_proposal(files=[
+            EditFile("data/skills_repo/a/skill.md", "1", "2"),
+            EditFile("data/skills_repo/a/README.md", "1", "2"),
+        ])
+        policy2.validate_proposal(p)  # 不抛
+
+    def test_uppercase_blocked_extension_rejected(self, policy):
+        # 扩展名大小写归一（.lower()）：大写变体同样拦截
+        with pytest.raises(PathNotAllowedError):
+            policy.validate_file_path("data/skills_repo/my-skill/evil.PYC")
+
+    def test_empty_path_rejected(self, policy):
+        # 空路径 → resolve 到项目根 → 白名单外 → 拒绝
+        with pytest.raises(PathNotAllowedError):
+            policy.validate_file_path("")
+
+    def test_symlink_in_whitelist_to_core_blocked(self, policy, tmp_root):
+        # 白名单内符号链接指向核心目录 → resolve 解析到目标 → 逃逸被拦截
+        # Windows 无管理员/开发者模式时无法建链，跳过而非失败（环境限制）
+        (tmp_root / "data" / "skills_repo" / "my-skill").mkdir(parents=True)
+        target = tmp_root / "agent" / "core_secret.py"
+        link = tmp_root / "data" / "skills_repo" / "my-skill" / "link.py"
+        try:
+            os.symlink(target, link)
+        except (OSError, NotImplementedError, PermissionError):
+            pytest.skip("当前环境无创建符号链接权限")
+        with pytest.raises(PathNotAllowedError):
+            policy.validate_file_path(link)
 
 
 # ════════════════════════════════════════════════════════════
