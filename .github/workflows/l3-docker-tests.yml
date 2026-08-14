@@ -136,6 +136,24 @@ jobs:
           from agent.memory.long_term_memory import LongTermMemory; print('LongTermMemory: OK')
           "
 
+      - name: 导出镜像产物
+        run: |
+          echo "=== 导出镜像 ==="
+          # [fix] 2026-08-14：l3-tests 原自行 rebuild（cache-from: type=gha），
+          # 不同 runner 从 gha cache 恢复时模型预下载层可能缺失（blob not found），
+          # 容器内 SentenceTransformer 加载超时(30s) → 编码器 None → 降级 json 后端，
+          # 导致 "expected sqlite_vec, got json"（TestSqliteVecBackend 直接测底层全过）。
+          # 改为导出 build-image 已验证的镜像（含完整模型缓存），l3-tests 直接 load 复用。
+          docker save ${{ env.DOCKER_IMAGE_NAME }}:latest | gzip > docker-image.tar.gz
+          ls -lh docker-image.tar.gz
+
+      - name: 上传镜像产物
+        uses: actions/upload-artifact@v7
+        with:
+          name: docker-image
+          path: docker-image.tar.gz
+          retention-days: 7
+
       - name: 上传镜像构建日志
         if: always()
         uses: actions/upload-artifact@v7
@@ -164,17 +182,19 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v6
 
-      - name: 设置 Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 下载构建的镜像
-        uses: docker/build-push-action@v5
+      - name: 下载镜像产物
+        uses: actions/download-artifact@v8
         with:
-          context: .
-          file: ./Dockerfile.linux-test
-          tags: ${{ env.DOCKER_IMAGE_NAME }}:latest
-          load: true
-          cache-from: type=gha
+          name: docker-image
+          path: .
+
+      - name: 加载镜像
+        run: |
+          echo "=== 加载 build-image 导出镜像 ==="
+          # [fix] 2026-08-14：不再自行 rebuild（gha 构建缓存跨 runner 恢复时
+          # 模型层可能缺失 → 编码器超时降级 json）。直接 load build-image 已验证产物。
+          gunzip -c docker-image.tar.gz | docker load
+          docker images | grep ${{ env.DOCKER_IMAGE_NAME }}
 
       - name: 创建测试结果目录
         run: mkdir -p test-results coverage-report

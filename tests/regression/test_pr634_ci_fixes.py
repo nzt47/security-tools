@@ -23,6 +23,11 @@
   11. .dockerignore 误排除顶层业务包 memory/：L3 容器内报 ModuleNotFoundError
      (memory.storage / memory.vector_store)——memory 是业务代码包（非运行时数据
      目录），COPY . . 后 /app/memory 缺失；data 才是运行时数据目录（仍排除）
+  12. l3-tests 自行 rebuild 导致模型层缺失：build-image 与 l3-tests 是不同 runner，
+     各自从 gha cache（blob 可能损坏）恢复；测试 job 重建镜像时模型预下载层缺失
+     → 容器内 SentenceTransformer 编码器加载超时(30s) → 降级 json 后端 →
+     "expected sqlite_vec, got json"。修复：build-image 导出镜像产物(docker save
+     → artifact docker-image)，l3-tests 下载并 docker load 复用，不再自行 rebuild
 
 运行方式：
   python -m pytest tests/regression/test_pr634_ci_fixes.py -v
@@ -276,3 +281,36 @@ class TestDockerIgnoreGuard:
         init_text = (PROJECT_ROOT / "memory" / "__init__.py").read_text(encoding="utf-8")
         assert "from .storage import Storage" in init_text
         assert "from .vector_store import VectorStore" in init_text
+
+
+# ═══════════════════════════════════════════════════════════════
+#  修复点 12：l3-tests 复用 build-image 镜像产物
+# ═══════════════════════════════════════════════════════════════
+
+class TestDockerImageArtifactReuse:
+    """l3-tests 不得自行 rebuild，须 load build-image 导出产物（修复点 12）"""
+
+    WORKFLOW = PROJECT_ROOT / ".github" / "workflows" / "l3-docker-tests.yml"
+
+    def _slice(self, start_marker: str, end_marker: str) -> str:
+        text = self.WORKFLOW.read_text(encoding="utf-8")
+        start = text.index(start_marker)
+        end = text.index(end_marker, start)
+        return text[start:end]
+
+    def test_build_image_exports_artifact(self):
+        """build-image 须 docker save + 上传 docker-image artifact"""
+        sec = self._slice("build-image:", "l3-tests:")
+        assert "导出镜像产物" in sec, "build-image 缺少导出镜像步骤"
+        assert "docker save" in sec, "导出步骤须 docker save"
+        assert "gzip > docker-image.tar.gz" in sec
+        assert "name: docker-image" in sec, "缺少 docker-image artifact 上传"
+
+    def test_l3_tests_loads_artifact_not_rebuild(self):
+        """l3-tests 须下载并 load 镜像产物，不得自行 build-push（防 gha cache 模型层缺失）"""
+        sec = self._slice("l3-tests:", "coverage-analysis:")
+        assert "name: docker-image" in sec, "l3-tests 缺少下载镜像产物步骤"
+        assert "docker load" in sec, "l3-tests 缺少 docker load"
+        assert "build-push-action" not in sec, \
+            "l3-tests 不得自行 rebuild（cache-from: type=gha 恢复时模型层缺失 → 降级 json）"
+        assert "cache-from" not in sec, "l3-tests 段不应出现 cache-from（重建镜像特征）"
