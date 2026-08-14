@@ -76,6 +76,21 @@ repos:
           并自动打印完整调用堆栈（--traceback）到 stderr 供快速定位。
           静默模式（--pre-commit）不污染 hook 输出。
 
+      - id: cli-parser-register-check
+        name: CLI parser 注册一致性校验 (AST 符号级)
+        entry: python scripts/check_cli_parser.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+        description: >
+          用 AST 校验 CLI 入口 parser 注册一致性：sub.add_parser 子命令 ↔
+          set_defaults(func=cmd_xxx) ↔ 模块顶层函数定义 双向匹配
+          （2026-08-14 事故防线）。字符串级检查会命中 docstring 误 PASS，
+          实际注册缺失到运行时才暴露 invalid choice（convert-cards 被并行
+          会话冲掉即此型）。任一子命令无 func 注册或 func 未定义即阻断提交
+          （exit code 1）。
+
       - id: check-index-isolation
         name: 并行会话 index 隔离校验 (空 index / 运行时文件混入)
         entry: python scripts/dev/check_index_isolation.py
