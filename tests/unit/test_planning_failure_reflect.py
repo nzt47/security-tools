@@ -279,3 +279,36 @@ async def test_failure_reflect_respects_retry_limit():
 
         # 两次失败，但反思轮数上限为 1
         assert reflector.failure_reflect_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_second_round_prompt_contains_failure_history():
+    """验收6：第 2 轮失败 prompt 含前轮"尝试过什么/为何失败"摘要（强制换思路）"""
+    mock_llm = AsyncMock()
+    mock_llm.chat.side_effect = [
+        json.dumps({
+            "reasoning": "调用工具", "action_type": "tool_call",
+            "action": {"tool": "bad_tool", "params": {}, "description": ""},
+        }),
+        json.dumps({
+            "reasoning": "再试一次", "action_type": "tool_call",
+            "action": {"tool": "bad_tool", "params": {}, "description": ""},
+        }),
+        json.dumps({"reasoning": "完成", "action_type": "finish", "result": "成功"}),
+    ]
+    planner = type("P", (), {})()
+    planner.llm = mock_llm
+    planner.tool_registry = ToolRegistry()
+    planner.tool_registry.register("bad_tool", _bad_tool)
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        reflector = _StubFailureReflector(persist_dir=tmp_dir)
+        loop = ReActLoop(planner, reflector, max_iterations=10,
+                         config={"reflection_retries": 3})
+        await loop.run("运行坏工具")
+
+        # 第 2 次 LLM 调用为第 2 轮 _think：prompt 应含前轮失败摘要（第 1 次失败已注入）
+        prompt2 = mock_llm.chat.call_args_list[1][0][0][0]["content"]
+        assert "失败反思记录" in prompt2
+        assert "第1次失败" in prompt2
+        assert "bad_tool 根因" in prompt2
