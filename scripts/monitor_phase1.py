@@ -28,9 +28,12 @@ import sys
 import time
 from pathlib import Path
 
-# 兼容 "== 3662 passed, 39 skipped, 7 xfailed, 4 xpassed in 595.77s ==" 等 pytest 汇总格式
+# 兼容多种 pytest 汇总格式（2026-08-14 实测发现三类变体，原正则只匹配单等号围栏导致漏判）：
+#   "== 4454 passed, 29 skipped, 118 deselected in 618.57s (0:10:18) =="  双等号 + 时长后缀
+#   "= 3482 passed, 9 skipped, 4 xfailed in 527.80s (0:08:47) ="         单等号 + 时长后缀
+#   "== 3662 passed, 39 skipped, 7 xfailed, 4 xpassed in 595.77s =="     单等号经典格式
 SUMMARY_RE = re.compile(
-    r"=\s*(?P<passed>\d+) passed(?:, (?P<rest>[\d, \w]+?))?(?: in (?P<secs>[\d.]+)s)?\s*="
+    r"(?P<passed>\d+) passed(?:, (?P<rest>[^=]+?))?(?: in (?P<secs>[\d.]+)s)"
 )
 NO_TESTS_RE = re.compile(r"no tests ran")
 
@@ -66,7 +69,7 @@ def parse_summary(text: str) -> dict | None:
         s = line.strip()
         if NO_TESTS_RE.search(s):
             return {"passed": 0, "failed": 0, "error": 0, "secs": "", "line": s}
-        if "passed" in s and " in " in s:
+        if "passed" in s and " in " in s and "=" in s:
             m = SUMMARY_RE.search(s)
             if m:
                 rest = m.group("rest") or ""
