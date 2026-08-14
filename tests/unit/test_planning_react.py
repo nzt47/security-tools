@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, MagicMock
 from planning.react import ReActLoop, ReActStep, ReActResult, ThoughtResult
 from planning.executor import ToolRegistry
 from planning.models import Action, ActionType, ActionResult
+from planning.core import PlanningCore
 
 
 class TestReActStep:
@@ -620,3 +621,53 @@ class TestReActLoop:
 
         # 6 轮反思 × 5 条 = 30 条 → 截断后保留最近 20 条
         assert len(context["_hints"]) == 20
+
+
+class TestLoopTerminationCoreP1:
+    """任务5 P1：_plan_chat 识别"决策循环终止"并与普通失败区分（core.py）"""
+
+    @pytest.mark.asyncio
+    async def test_plan_chat_loop_termination_response(self, tmp_path):
+        """循环终止 → 响应含"决策循环"+摘要，且不重试（react_loop.run 仅调用 1 次）"""
+        core = PlanningCore(llm_service=AsyncMock(), config={"reflector": {"persist_dir": str(tmp_path)}})
+        react_result = ReActResult(
+            success=False,
+            result="检测到反馈循环,已终止执行",
+            error="检测到执行循环",
+            iterations=3,
+            total_duration_ms=100.0,
+            cost=0.0,
+            steps=[],
+            final_state={"loop_summary": "tool_a 重复出现 3 次 (window=8)"},
+        )
+        core.react_loop.run = AsyncMock(return_value=react_result)
+
+        result = await core.chat("帮我完成一个复杂任务", {})
+
+        assert result.used_planning is True
+        assert "决策循环" in result.response
+        assert "tool_a 重复出现 3 次" in result.response
+        core.react_loop.run.assert_awaited_once()  # 不重试
+        assert result.react_result is react_result
+
+    @pytest.mark.asyncio
+    async def test_plan_chat_ordinary_failure_keeps_original(self, tmp_path):
+        """普通失败（无 loop_summary）→ 保持原文案，不受 P1 影响"""
+        core = PlanningCore(llm_service=AsyncMock(), config={"reflector": {"persist_dir": str(tmp_path)}})
+        react_result = ReActResult(
+            success=False,
+            result="出错了",
+            error="工具调用失败",
+            iterations=2,
+            total_duration_ms=80.0,
+            cost=0.0,
+            steps=[],
+            final_state={},
+        )
+        core.react_loop.run = AsyncMock(return_value=react_result)
+
+        result = await core.chat("帮我完成一个复杂任务", {})
+
+        assert result.used_planning is True
+        assert "我遇到了一些问题: 工具调用失败" in result.response
+        core.react_loop.run.assert_awaited_once()

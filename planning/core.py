@@ -26,6 +26,10 @@ from .summary import build_react_summary, build_react_summary_markdown
 
 logger = logging.getLogger(__name__)
 
+# 任务5（D6 另一半）：循环终止的稳定标识——ReActLoop 命中状态哈希/_detect_loop 时的
+# error 文案。消除魔法字符串，供 _plan_chat 识别（P1）与测试断言复用。
+LOOP_TERMINATED_ERROR = "检测到执行循环"
+
 
 class PlanningError(Exception):
     """规划引擎异常"""
@@ -608,8 +612,20 @@ class PlanningCore:
                 logger.info("✅ 任务执行成功，生成响应...")
                 response = str(react_result.result)
             else:
-                logger.warning("⚠️ 任务执行遇到问题，生成错误响应...")
-                response = f"我遇到了一些问题: {react_result.error}"
+                # 任务5（D6 另一半）P1：识别"决策循环终止"并与普通失败区分——
+                # 不重试（状态未变，重试必再循环）；文案含"决策循环"+ 解释性摘要，
+                # 满足任务5 验收标准 1（原因含"决策循环"与摘要）。
+                loop_summary = (react_result.final_state or {}).get("loop_summary")
+                if loop_summary:
+                    logger.warning(f"⚠️ [loop_terminated] 决策循环终止 | 摘要: {loop_summary}")
+                    response = (
+                        f"检测到重复执行循环（决策循环），已安全终止。"
+                        f"摘要：{loop_summary}。\n"
+                        f"建议：简化任务描述、检查参数，或转人工处理"
+                    )
+                else:
+                    logger.warning("⚠️ 任务执行遇到问题，生成错误响应...")
+                    response = f"我遇到了一些问题: {react_result.error}"
 
             if react_result.iterations > 1:
                 response += f"\n\n(经过 {react_result.iterations} 步处理)"
