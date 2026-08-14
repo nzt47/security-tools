@@ -280,6 +280,30 @@ class CircuitBreaker:
                 self.last_failure_time = datetime.now()
                 logger.warning(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "circuit_breaker.reopened", "duration_ms": 0, "name": self.name, "state": "OPEN"}, ensure_ascii=False))
 
+    # ── 手动控制（新增接口，与 agent.circuit_breaker.CircuitBreaker 对齐）──
+    # [不易] 统一注册表（单一事实源）下，自愈恢复路径（self_healer）会通过
+    # get_circuit_breaker(name) 拿到本类实例并调用 force_*，故补齐同名公开 API。
+
+    def force_open(self) -> None:
+        """强制打开熔断器（手动降级场景）"""
+        with self._lock:
+            self.state = CircuitState.OPEN
+            self.last_failure_time = datetime.now()
+
+    def force_close(self) -> None:
+        """强制关闭熔断器（手动恢复场景）"""
+        with self._lock:
+            self.state = CircuitState.CLOSED
+            self.failure_count = 0
+            self.half_open_start = None
+
+    def force_half_open(self) -> None:
+        """强制转入半开状态（手动恢复试探场景）"""
+        with self._lock:
+            self.state = CircuitState.HALF_OPEN
+            self.half_open_start = datetime.now()
+            self.failure_count = 0
+
     def execute(self, func: Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> R:
         """执行函数，受断路器保护"""
         with self._lock:
@@ -416,7 +440,10 @@ class ErrorHandler:
                 用于打破 error_handler -> agent.monitoring.metrics 的硬依赖，便于测试注入 mock。
         """
         self._metrics: Dict[str, ErrorMetrics] = defaultdict(ErrorMetrics)
-        self._circuit_breakers: Dict[str, CircuitBreaker] = {}
+        # [D10] 熔断注册表统一（单一事实源）：与 agent.circuit_breaker 共享全局
+        # 注册表，两套查询结果一致；error_handler 仅保留兼容字段与委托方法。
+        from agent.circuit_breaker import get_breaker_registry
+        self._circuit_breakers: Dict[str, CircuitBreaker] = get_breaker_registry()
         self._lock = threading.RLock()
         self._metrics_collector_factory: Optional[Callable[[], Any]] = metrics_collector_factory
         logger.info(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "error.handler.initialized", "msg": "Error handler initialized"}, ensure_ascii=False))
@@ -442,13 +469,39 @@ class ErrorHandler:
         name: str,
         circuit_breaker: CircuitBreaker,
     ) -> None:
-        """注册熔断器"""
+        """注册熔断器（写入统一注册表，与 circuit_breaker 全局注册表同源）"""
         with self._lock:
             self._circuit_breakers[name] = circuit_breaker
 
     def get_circuit_breaker(self, name: str) -> Optional[CircuitBreaker]:
-        """获取熔断器"""
+        """获取熔断器（读统一注册表）"""
         return self._circuit_breakers.get(name)
+
+    def migrate_breakers(self) -> int:
+        """一次性迁移：把历史本地注册表中的 OPEN 熔断器并入统一注册表
+
+        [变易] 滚动升级/测试场景兜底：旧版本 ErrorHandler 实例若仍持有独立本地
+        注册表（非共享全局注册表），将其 OPEN 状态熔断器迁移进统一注册表，
+        避免生产状态丢失。返回迁移的熔断器数量。
+        """
+        from agent.circuit_breaker import get_breaker_registry
+        shared = get_breaker_registry()
+        with self._lock:
+            if self._circuit_breakers is shared:
+                return 0
+            migrated = 0
+            for name, cb in list(self._circuit_breakers.items()):
+                # [D10] 兼容两套 CircuitBreaker 的 OPEN 判定：统一注册表可能持有
+                # agent.circuit_breaker 或本模块任一类实例，前者用 state 属性、
+                # 后者同时有 state 与 is_open()。
+                state = getattr(cb, "state", None)
+                is_open = getattr(state, "value", state) == "open"
+                if not is_open and hasattr(cb, "is_open"):
+                    is_open = cb.is_open()
+                if is_open:
+                    shared[name] = cb
+                    migrated += 1
+            return migrated
 
     def record_error(
         self,
@@ -643,12 +696,9 @@ class ErrorHandler:
             }
 
     def get_circuit_breaker_status(self) -> Dict[str, Dict[str, Any]]:
-        """获取所有熔断器状态"""
-        with self._lock:
-            return {
-                name: cb.get_status()
-                for name, cb in self._circuit_breakers.items()
-            }
+        """获取所有熔断器状态（读统一注册表，与 get_all_circuit_breaker_status 一致）"""
+        from agent.circuit_breaker import get_all_circuit_breaker_status
+        return get_all_circuit_breaker_status()
 
 
 # 全局错误处理器实例
@@ -658,6 +708,14 @@ _global_error_handler = ErrorHandler()
 def get_error_handler() -> ErrorHandler:
     """获取全局错误处理器"""
     return _global_error_handler
+
+
+def migrate_breakers() -> int:
+    """一次性迁移全局错误处理器的 OPEN 熔断器进统一注册表（模块级便捷函数）
+
+    返回迁移的熔断器数量。
+    """
+    return get_error_handler().migrate_breakers()
 
 
 def with_retry(

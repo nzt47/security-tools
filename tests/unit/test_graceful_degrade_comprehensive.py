@@ -232,8 +232,13 @@ class TestWithDegrade:
             raise RuntimeError("schema still down")
 
         result = manager.with_degrade(DegradeModule.SCHEMA, func=still_failing)
-        # _get_module_default("schema") 返回预设的降级默认值
-        assert result == {"valid": False, "errors": ["degraded"], "warnings": []}
+        # _get_module_default("schema") 返回预设的降级默认值（诚实化后带 degraded 标记）
+        assert result == {
+            "valid": False,
+            "errors": ["degraded"],
+            "warnings": [],
+            "degraded": True,
+        }
 
     def test_fallback_failure_returns_default(self, manager):
         """fallback 也失败时应返回 default_fallbacks"""

@@ -436,6 +436,17 @@ class CircuitBreaker:
             self._set_state(CircuitState.CLOSED)
             self._stats.consecutive_failures = 0
 
+    def force_half_open(self) -> None:
+        """强制转入半开状态（手动恢复试探场景）
+
+        [不易] 与 force_open/force_close 一致：经锁保护走 _set_state 状态机，
+        禁止外部直改私有字段。半开探测计数同时清零，保证试探额度重置。
+        """
+        with self._lock:
+            self._set_state(CircuitState.HALF_OPEN)
+            self._stats.half_open_attempts = 0
+            self._stats.half_open_successes = 0
+
     # ── 状态视图 ──────────────────────────────────────────────
 
     def get_status(self) -> dict:
@@ -650,6 +661,31 @@ def get_all_circuit_breaker_status() -> dict:
             name: breaker.get_status()
             for name, breaker in _breakers.items()
         }
+
+
+def get_breaker_registry() -> dict:
+    """获取全局熔断器注册表（单一事实源）
+
+    [不易] error_handler 与 circuit_breaker 共享此注册表，保证两套查询
+    （get_circuit_breaker_status / get_all_circuit_breaker_status）结果一致。
+    仅供内部模块委托使用；外部调用方应使用 get_circuit_breaker() 等公开函数。
+    """
+    return _breakers
+
+
+def force_half_open(name: str) -> "CircuitBreaker":
+    """强制将命名熔断器转入半开状态（恢复路径公开 API，经锁保护）
+
+    [变易] 自愈/运维场景需要立即进行半开试探时调用；
+           不存在时自动创建默认配置实例。
+    """
+    with _breakers_lock:
+        breaker = _breakers.get(name)
+        if breaker is None:
+            breaker = CircuitBreaker(name=name)
+            _breakers[name] = breaker
+        breaker.force_half_open()
+        return breaker
 
 
 def reset_breakers() -> None:

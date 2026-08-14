@@ -71,27 +71,33 @@ class TestSchemaDegrade:
     @pytest.mark.unit
     @pytest.mark.p0
     def test_schema_validate_success(self):
-        """测试 Schema 校验成功"""
+        """测试 Schema 校验成功（注入验证器真实校验）"""
         degrade = GracefulDegrade()
+        degrade.set_schema_validator(lambda data: {"valid": True, "errors": [], "warnings": []})
         result = degrade.schema_validate_with_degrade({"key": "value"}, {})
         assert result["valid"] is True
+        assert result["degraded"] is False
 
     @pytest.mark.unit
     @pytest.mark.p0
     def test_schema_validate_degrade(self):
-        """测试 Schema 校验失败时的降级"""
+        """测试 Schema 校验失败时的诚实降级
+
+        [D8] 无注入验证器时不再伪造 valid=True，
+        返回 valid=False + degraded=True。
+        """
         degrade = GracefulDegrade(DegradeConfig(max_retries=1))
-        # 使用非字典数据触发校验失败
         result = degrade.schema_validate_with_degrade("not a dict", {})
-        assert result["valid"] is True
-        assert "degrade_level" in result
+        assert result["valid"] is False
+        assert result["degraded"] is True
 
     @pytest.mark.unit
     @pytest.mark.p0
     def test_schema_validate_with_degrade_function(self):
-        """测试便捷函数 schema_validate_with_degrade"""
+        """测试便捷函数 schema_validate_with_degrade（全局管理器无验证器 → 诚实降级）"""
         result = schema_validate_with_degrade({"key": "value"}, {})
-        assert result["valid"] is True
+        assert result["valid"] is False
+        assert result["degraded"] is True
 
 
 # ============================================================================

@@ -144,10 +144,11 @@ class CriticEvaluator:
                 "status": "skipped",
                 "reason": "Critic 服务不可用，已降级跳过评估"
             }))
+            # [D8] 降级诚实化：不伪造 80 分，overall_score=None + passed=False
             return EvaluationResult(
-                overall_score=80,
+                overall_score=None,
                 dimension_scores={},
-                passed=True,
+                passed=False,
                 feedback=["Critic 服务不可用，已跳过评估"],
                 retry_recommended=False,
                 explanation="Critic 服务不可用，已降级跳过评估"
@@ -170,9 +171,9 @@ class CriticEvaluator:
                 "reason": str(e)
             }))
             return EvaluationResult(
-                overall_score=80,
+                overall_score=None,
                 dimension_scores={},
-                passed=True,
+                passed=False,
                 feedback=["Critic 熔断器已打开，已降级跳过评估"],
                 retry_recommended=False,
                 explanation="Critic 熔断器已打开，已降级跳过评估"

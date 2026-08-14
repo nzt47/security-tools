@@ -269,6 +269,39 @@ class TestCritic:
         overall = evaluator._calculate_overall_score(scores)
         assert 70 <= overall <= 90
 
+    def test_evaluate_skips_when_degraded(self, monkeypatch):
+        """[D8] should_skip 命中时降级返回 overall_score=None + passed=False（不伪造 80 分）"""
+        from agent.graceful_degrade import GracefulDegrade, DegradeConfig, DegradeModule
+
+        evaluator = CriticEvaluator()
+        local_mgr = GracefulDegrade(DegradeConfig(max_retries=1))
+        # 打满 critic 错误率到 60%+，触发 should_skip
+        for _ in range(20):
+            local_mgr._record_module_result(DegradeModule.CRITIC, success=False)
+        assert local_mgr.should_skip(DegradeModule.CRITIC)
+        monkeypatch.setattr(evaluator, "_degrade_manager", local_mgr)
+
+        result = evaluator.evaluate(user_query="q", response="r", context={})
+        assert result.overall_score is None
+        assert result.passed is False
+        assert "Critic 服务不可用" in result.explanation
+
+    def test_evaluate_blocked_when_circuit_open(self, monkeypatch):
+        """[D8] 熔断器打开时降级返回 overall_score=None + passed=False（不伪造 80 分）"""
+        from agent.circuit_breaker import CircuitBreaker, CircuitState
+
+        evaluator = CriticEvaluator()
+        cb = CircuitBreaker(name="critic")
+        for _ in range(100):
+            cb.record_failure()
+        assert cb.state == CircuitState.OPEN
+        monkeypatch.setattr(evaluator, "_circuit_breaker", cb)
+
+        result = evaluator.evaluate(user_query="q", response="r", context={})
+        assert result.overall_score is None
+        assert result.passed is False
+        assert "熔断器已打开" in result.explanation
+
 
 class TestHITL:
     """人机协同模块测试"""
