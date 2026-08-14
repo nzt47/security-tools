@@ -119,7 +119,11 @@ class ChangeDetector:
             self._change_log.append(change)
 
         # TASK-06 学习钩子旁路（不改变 diff 逻辑；异常兜底，感知主链路零影响）
+        if changes:
+            logging.info(f"[NoveltyHooks] collect 出口检测到 {len(changes)} 条变更: "
+                         f"{[c.get('type') for c in changes]}")
         if changes and self._learning_hook is not None:
+            logging.info(f"[NoveltyHooks] 触发学习钩子（{len(changes)} 条变更）")
             self._invoke_learning_hook(changes)
 
         return results

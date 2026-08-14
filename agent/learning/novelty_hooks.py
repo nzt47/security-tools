@@ -258,7 +258,11 @@ def make_learning_hook(*, memory_dir: Optional[str] = None,
     def hook(changes: List[Dict[str, Any]]) -> None:
         if not _sensor_learning_enabled():
             return  # 观察模式: 零学习副作用（仅既有日志）
-        for event in classify_changes(changes):
+        events = classify_changes(changes)
+        for event in events:
+            # 监控：NoveltyEvent 生成与分类（类型/置信度/分级）
+            logger.info("[NoveltyHooks] NoveltyEvent 分类: %s confidence=%.2f level=%s",
+                        event.event_type, event.confidence, event.level)
             try:
                 handle_novelty_event(event, memory_dir=memory_dir,
                                      draft_dir=draft_dir, audit_path=audit_path)
