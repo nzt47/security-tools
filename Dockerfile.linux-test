@@ -77,9 +77,17 @@ ENV OMP_NUM_THREADS=4
 ENV MKL_NUM_THREADS=4
 
 # [HuggingFace 模型缓存] 持久化到卷，避免每次重新下载
+# 【不易】缓存根语义必须统一（2026-08-14 实证）：
+#   huggingface_hub.snapshot_download(cache_dir=X) 把 X 直接当作 hub 缓存根，
+#   模型落在 X/models--<org>--<name>/snapshots/...（X 下不再拼 hub/）。
+#   HF_HOME 则是 huggingface_hub 的默认缓存根，HF_HUB_CACHE = {HF_HOME}/hub。
+#   vector_store._is_model_fully_cached 检查 {HF_HOME}/hub/models--...。
+#   因此 TRANSFORMERS_CACHE / SENTENCE_TRANSFORMERS_HOME（作为显式 cache_dir
+#   传入）必须指向 {HF_HOME}/hub，否则模型落盘（{SENTENCE_TRANSFORMERS_HOME}/
+#   models--）与检查路径不一致 → 容器内误判无缓存 → 编码器在线加载失败 → 降级 json。
 ENV HF_HOME=/app/.hf_cache
-ENV TRANSFORMERS_CACHE=/app/.hf_cache
-ENV SENTENCE_TRANSFORMERS_HOME=/app/.hf_cache
+ENV TRANSFORMERS_CACHE=/app/.hf_cache/hub
+ENV SENTENCE_TRANSFORMERS_HOME=/app/.hf_cache/hub
 
 # [测试配置] 默认超时 120 秒（embedding 模型加载需要时间）
 ENV PYTEST_TIMEOUT=120

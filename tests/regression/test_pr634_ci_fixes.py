@@ -351,11 +351,18 @@ class TestHfCacheVolumeGuard:
         assert "VOLUME /app/.hf_cache" not in text.replace(" ", ""), "带多余空格亦应拦截"
 
     def test_hf_cache_env_points_to_app_dir(self):
-        """HF_HOME 等缓存 env 仍须指向 /app/.hf_cache（模型落镜像层）"""
+        """缓存根语义统一：HF_HOME=根，TRANSFORMERS/SENTENCE_TRANSFORMERS=根/hub
+
+        【不易】snapshot_download(cache_dir=X) 把 X 直接当 hub 根（模型落 X/models--，
+        不再拼 hub/）；_is_model_fully_cached 检查 {HF_HOME}/hub/models--。显式 cache_dir
+        必须指向 {HF_HOME}/hub，否则模型落盘与检查路径 miss → 误判无缓存 → 降级 json。
+        """
         text = self.DOCKERFILE.read_text(encoding="utf-8")
         assert "ENV HF_HOME=/app/.hf_cache" in text
-        assert "ENV TRANSFORMERS_CACHE=/app/.hf_cache" in text
-        assert "ENV SENTENCE_TRANSFORMERS_HOME=/app/.hf_cache" in text
+        assert "ENV TRANSFORMERS_CACHE=/app/.hf_cache/hub" in text, \
+            "TRANSFORMERS_CACHE 须指向 {HF_HOME}/hub（与 HF_HUB_CACHE 语义一致）"
+        assert "ENV SENTENCE_TRANSFORMERS_HOME=/app/.hf_cache/hub" in text, \
+            "SENTENCE_TRANSFORMERS_HOME 须指向 {HF_HOME}/hub（否则模型落盘 miss 检查路径）"
 
 
 class TestPredownloadCachePathGuard:
@@ -376,4 +383,18 @@ class TestPredownloadCachePathGuard:
         text = self.SCRIPT.read_text(encoding="utf-8")
         assert "cache_dir / \"hub\" / \"models--\" / model_name" in text, \
             "_download_fn 缓存大小统计缺 hub/ 子目录 → 日志 0.0MB 误导排查"
+
+    def test_set_cache_env_hub_aligned(self):
+        """_set_cache_env 的显式 cache_dir（TRANSFORMERS/SENTENCE_TRANSFORMERS）须指向 cache_dir/hub
+
+        【不易】snapshot_download(cache_dir=X) 直接以 X 为 hub 根；若脚本把这两个
+        env 设回 cache_dir（不带 hub/），会覆盖 Dockerfile 的正确值并再次把模型
+        落盘到与 _is_model_fully_cached 检查路径不一致的位置。
+        """
+        text = self.SCRIPT.read_text(encoding="utf-8")
+        assert 'os.environ["TRANSFORMERS_CACHE"] = str(hub_cache)' in text, \
+            "TRANSFORMERS_CACHE 必须指向 hub_cache（cache_dir/hub）"
+        assert 'os.environ["SENTENCE_TRANSFORMERS_HOME"] = str(hub_cache)' in text, \
+            "SENTENCE_TRANSFORMERS_HOME 必须指向 hub_cache（cache_dir/hub）"
+        assert 'hub_cache = cache_dir / "hub"' in text, "_set_cache_env 须定义 hub_cache = cache_dir / \"hub\""
 

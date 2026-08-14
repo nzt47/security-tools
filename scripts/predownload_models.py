@@ -59,15 +59,21 @@ def _set_cache_env(cache_dir: Path, timeout: int):
     """设置 HuggingFace 缓存目录和下载超时环境变量（外层一次性设置）
 
     【不易】4 个环境变量必须设置：HF_HOME/TRANSFORMERS_CACHE/SENTENCE_TRANSFORMERS_HOME/HF_HUB_DOWNLOAD_TIMEOUT
+    【不易】缓存根语义统一（2026-08-14 实证）：snapshot_download(cache_dir=X) 把 X
+    直接当作 hub 缓存根（模型落在 X/models--...，不再拼 hub/），而 HF_HUB_CACHE =
+    {HF_HOME}/hub。因此 TRANSFORMERS_CACHE / SENTENCE_TRANSFORMERS_HOME 必须指向
+    cache_dir/hub，与 vector_store._is_model_fully_cached 检查路径（{HF_HOME}/hub/
+    models--）一致；否则模型落盘位置与检查路径 miss → 运行时误判无缓存 → 降级 json。
     【简易】集中设置避免每个模型重复设置
 
     Args:
-        cache_dir: 缓存目录
+        cache_dir: 缓存目录（HF_HOME 根）
         timeout: 下载超时秒数（HF_HUB_DOWNLOAD_TIMEOUT 控制 HTTP 层超时）
     """
+    hub_cache = cache_dir / "hub"
     os.environ["HF_HOME"] = str(cache_dir)
-    os.environ["TRANSFORMERS_CACHE"] = str(cache_dir)
-    os.environ["SENTENCE_TRANSFORMERS_HOME"] = str(cache_dir)
+    os.environ["TRANSFORMERS_CACHE"] = str(hub_cache)
+    os.environ["SENTENCE_TRANSFORMERS_HOME"] = str(hub_cache)
     os.environ["HF_HUB_DOWNLOAD_TIMEOUT"] = str(timeout)
 
 
