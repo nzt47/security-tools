@@ -12,6 +12,7 @@ from datetime import datetime
 from dataclasses import dataclass, asdict
 
 from .models import Task, Plan, ActionResult
+from .diagnostics import FailureDiagnosis
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,29 @@ class Reflector:
     "efficiency": "执行效率评估",
     "lessons": ["经验教训"],
     "improvements": ["改进建议"]
+}}"""
+
+    FAILURE_REFLECTION_PROMPT = """作为云枢的反思引擎，分析这次行动失败的根本原因并给出修复建议。
+
+原始任务: {task_description}
+失败动作: {action}
+失败结果: {error}
+结构化诊断: {diagnosis}
+此前尝试过什么、为何未成功（修复历史）:
+{history}
+
+要求:
+1. 找出根本原因（root_cause），1-2 句话；
+2. 给出可执行的修复动作（repair_actions），最多 3 条，必须与失败原因直接相关；
+3. 明确要避免的无效动作（avoid），最多 2 条；
+4. 给出根因置信度（confidence），0-1。
+
+输出JSON格式:
+{{
+    "root_cause": "根本原因",
+    "confidence": 0.5,
+    "repair_actions": ["修复动作1", "修复动作2"],
+    "avoid": ["应避免的动作"]
 }}"""
 
     def __init__(self, llm_service=None, memory_manager=None, config: Dict = None, 
@@ -622,3 +646,154 @@ class Reflector:
                 for l in related_lessons[:3]
             ]
         }
+
+    async def failure_reflect(self, task, result: ActionResult, diagnosis: FailureDiagnosis,
+                              attempts: int) -> Optional[FailureDiagnosis]:
+        """失败反思（任务4 D12）：对行动失败做根因分析与修复建议。
+
+        - LLM 可用：调用 FAILURE_REFLECTION_PROMPT，解析 JSON 产出；
+        - LLM 不可用/抛异常：规则兜底（基于 diagnosis.repair_hints 表）；
+        - 反思产物增强 FailureDiagnosis 字段（root_cause/confidence/repair_actions/avoid）；
+        - 失败教训沉淀 lessons_db（复用 learn_from_experience 失败分支，确保持久化）；
+        - reflection_history 增加 type="failure" 条目。
+
+        Args:
+            task: Task 或带 description 的对象（失败任务）
+            result: ActionResult（失败结果）
+            diagnosis: FailureDiagnosis（build_diagnosis 产出）
+            attempts: 当前失败反思次数（1-based）
+
+        Returns:
+            增强后的 FailureDiagnosis；反思无产出返回 None（不阻断主循环，守不易）。
+        """
+        try:
+            reflection = await self._run_failure_llm(task, result, diagnosis, attempts)
+        except Exception as e:
+            logger.warning(f"失败反思 LLM 调用失败，走规则兜底: {e}")
+            reflection = None
+        if reflection is None:
+            reflection = self._rule_based_failure_reflect(diagnosis)
+        if reflection is None:
+            logger.info("[失败反思] 无兜底产出（repair_hints 为空），跳过反思注入")
+            return None
+
+        # 增强诊断字段
+        diagnosis.root_cause = reflection.get("root_cause")
+        diagnosis.confidence = float(reflection.get("confidence", 0.0))
+        diagnosis.repair_actions = [str(a) for a in reflection.get("repair_actions", [])][:3]
+        diagnosis.avoid = [str(a) for a in reflection.get("avoid", [])][:2]
+
+        # 历史记录：reflection_history 增加 type="failure" 条目（携带诊断摘要）
+        self._record_reflection("failure", getattr(task, "id", "?"), diagnosis.to_dict())
+
+        # 失败经验沉淀：复用 learn_from_experience 失败分支（确保持久化）
+        await self._persist_failure_lesson(task, result, diagnosis)
+
+        logger.info(
+            f"[失败反思] 完成 | attempt={attempts}"
+            f" | root_cause={diagnosis.root_cause}"
+            f" | repair_actions={diagnosis.repair_actions}"
+            f" | avoid={diagnosis.avoid}"
+        )
+        return diagnosis
+
+    async def _run_failure_llm(self, task, result, diagnosis: FailureDiagnosis,
+                               attempts: int) -> Optional[Dict[str, Any]]:
+        """失败反思 LLM 调用：组装 FAILURE_REFLECTION_PROMPT 并解析 JSON。
+
+        LLM 未配置或输出非 JSON 时返回 None（交规则兜底），不抛异常。
+        """
+        if not self.llm:
+            return None
+        task_desc = getattr(task, "description", None) or str(task)
+        history_lines = "\n".join(
+            f"- 第{h.get('attempt')}次: {h.get('action') or '?'} → "
+            f"{h.get('error') or '?'}（猜测根因: {h.get('guess') or '未知'}）"
+            for h in diagnosis.history
+        ) or "(无历史)"
+        diagnosis_json = json.dumps({
+            "error_type": diagnosis.error_type,
+            "tool_name": diagnosis.tool_name,
+            "repair_hints": diagnosis.repair_hints,
+        }, ensure_ascii=False)
+        prompt = self.FAILURE_REFLECTION_PROMPT.format(
+            task_description=task_desc[:200],
+            action=str(getattr(result, "observation", "") or getattr(result, "error", ""))[:200],
+            error=diagnosis.error_message,
+            diagnosis=diagnosis_json,
+            history=history_lines,
+        )
+        response = await self.llm.chat([{"role": "user", "content": prompt}])
+        self._bill_llm(prompt, response)
+        try:
+            data = json.loads(response)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            logger.warning("失败反思 LLM 输出 JSON 解析失败，交规则兜底")
+            return None
+        return {
+            "root_cause": str(data.get("root_cause", ""))[:200] or None,
+            "confidence": float(data.get("confidence", 0.0)),
+            "repair_actions": [str(a) for a in data.get("repair_actions", [])][:3],
+            "avoid": [str(a) for a in data.get("avoid", [])][:2],
+        }
+
+    def _rule_based_failure_reflect(self, diagnosis: FailureDiagnosis) -> Optional[Dict[str, Any]]:
+        """规则兜底：基于 repair_hints 表 + 历史重复检测生成根因与修复建议（零 LLM 依赖）。
+
+        历史中存在同 error_type 的反思记录时合并其建议（避免重复建议）。
+        """
+        hints = diagnosis.repair_hints
+        if not hints:
+            return None
+        root_cause = f"{diagnosis.error_type} 类型失败: {diagnosis.error_message[:80]}"
+        # 历史重复检测：合并此前同 error_type 的修复建议，保持建议多样性
+        merged = list(hints)
+        for entry in self.reflection_history:
+            if entry.get("type") != "failure":
+                continue
+            ref = entry.get("reflection") or {}
+            if ref.get("error_type") == diagnosis.error_type:
+                for a in ref.get("repair_actions") or []:
+                    if str(a) not in merged:
+                        merged.append(str(a))
+        return {
+            "root_cause": root_cause,
+            "confidence": 0.5,
+            "repair_actions": merged[:3],
+            "avoid": [],
+        }
+
+    async def _persist_failure_lesson(self, task, result: ActionResult,
+                                      diagnosis: FailureDiagnosis) -> None:
+        """失败反思结果沉淀 lessons_db。
+
+        复用 learn_from_experience 失败分支（确保持久化与 EVO-T4 通道转交）；
+        同任务基础 lesson 已存在（executor 失败归因已记录）时去重命中，则追加一条
+        带根因/修复建议的 lesson_fail_ 记录，确保"失败反思后 lessons_db 新增 lesson"。
+        任何异常仅告警，不阻断反思主流程。
+        """
+        task_desc = getattr(task, "description", None) or str(task)
+        task_type = self._classify_task(task_desc)
+        enhanced_error = (
+            f"{diagnosis.error_message}"
+            f" | 根因: {diagnosis.root_cause or '未知'}"
+            f" | 修复建议: {'; '.join(diagnosis.repair_actions) or '无'}"
+        )[:500]
+        try:
+            if self._has_lesson(task_type, task_desc):
+                lesson = Lesson(
+                    id=f"lesson_fail_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}",
+                    task_type=task_type,
+                    task_description=task_desc,
+                    failure_point=enhanced_error,
+                    solution="; ".join(diagnosis.repair_actions) or None,
+                    timestamp=datetime.now().isoformat(),
+                )
+                self.lessons_db.append(lesson)
+                self._trim_lessons()
+                self._save_to_persistence()
+                logger.warning(f"⚠️ 失败反思沉淀（基础教训已存在，追加根因版）: {lesson.id}")
+                return
+            await self.learn_from_experience(task_desc, ActionResult.failure_result(enhanced_error))
+        except Exception as e:
+            logger.warning(f"[失败反思] 教训沉淀失败（不阻断主流程）: {e}")

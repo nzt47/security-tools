@@ -151,6 +151,9 @@ async def test_tool_failure_lesson_hint():
             "action": {"tool": "bad_tool", "params": {}, "description": ""},
             "confidence": 0.8, "result": None, "next_hint": None,
         }),
+        # 任务4（D12）：失败反思 LLM 调用（工具失败后新增强制反思）
+        json.dumps({"root_cause": "bad_tool 抛异常", "confidence": 0.8,
+                    "repair_actions": ["改用其他工具"], "avoid": ["继续调用 bad_tool"]}),
         json.dumps({"reasoning": "完成", "action_type": "finish", "result": "成功完成"}),
     ]
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -170,8 +173,8 @@ async def test_tool_failure_lesson_hint():
         # next_hint 已写入 context（基于教训的下一步提示）
         assert context.get("_next_hint") is not None
         assert "bad_tool" in context["_next_hint"]
-        # 下轮思考提示词包含教训引导段
-        prompt2 = mock_llm.chat.call_args_list[1][0][0][0]["content"]
+        # 下轮思考提示词包含教训引导段（第 3 次 LLM 调用为第二轮 _think）
+        prompt2 = mock_llm.chat.call_args_list[2][0][0][0]["content"]
         assert "下一步提示（基于历史教训）" in prompt2
 
 
@@ -189,6 +192,9 @@ async def test_empty_lessons_silent_no_next_hint():
             "action": {"tool": "bad_tool", "params": {}, "description": ""},
             "confidence": 0.8, "result": None, "next_hint": None,
         }),
+        # 任务4（D12）：失败反思 LLM 调用（无修复建议，验证不注入）
+        json.dumps({"root_cause": "boom", "confidence": 0.5,
+                    "repair_actions": [], "avoid": []}),
         json.dumps({"reasoning": "完成", "action_type": "finish", "result": "成功完成"}),
     ]
     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -206,8 +212,8 @@ async def test_empty_lessons_silent_no_next_hint():
         assert result.used_planning is True
         # 空库静默：不写入 next_hint
         assert context.get("_next_hint") is None
-        # 下轮思考提示词不含教训引导段
-        prompt2 = mock_llm.chat.call_args_list[1][0][0][0]["content"]
+        # 下轮思考提示词不含教训引导段（第 3 次 LLM 调用为第二轮 _think）
+        prompt2 = mock_llm.chat.call_args_list[2][0][0][0]["content"]
         assert "下一步提示（基于历史教训）" not in prompt2
 
 

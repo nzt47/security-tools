@@ -15,6 +15,7 @@ from .models.action import Action, ActionType, ActionResult
 from .models.react import ReActStep, ReActResult, ThoughtResult
 from .budget import BudgetManager, BudgetStatus, PlanBudget
 from .reflector import format_advice_section, classify_task, Lesson
+from .diagnostics import build_diagnosis
 
 from agent.monitoring.tracing import get_trace_id
 
@@ -96,6 +97,9 @@ class ReActLoop:
         self.token_price = self.config.get("token_price_per_1k", 0.002)
         self.tool_timeout = self.config.get("tool_timeout_seconds")
         self.budget_ask_user = self.config.get("budget_ask_user", False)
+        # 任务4（D12/D6）：失败反思独立轮数上限（默认 2，防反思自身循环放大成本）
+        self.reflection_retries = int(self.config.get("reflection_retries", 2))
+        self._failure_reflection_count = 0
         self._token_used = 0
         self._cost = 0.0
         # 阶段 3（D13）：统一预算管理器（嵌套 budget 段优先，兼容直连键
@@ -308,6 +312,20 @@ class ReActLoop:
                             f"   ❌ 反思执行失败: {type(e).__name__}: {e}"
                             f" (trace_id={get_trace_id()})"
                         )
+                elif self.reflector and not action_result.success:
+                    # 任务4（D12）：行动失败进入专门失败反思分支——
+                    # 结构化诊断 → failure_reflect（根因/修复建议）→ 注入下一轮
+                    logger.info("   ┌──────────────────────────────────────────────────────────┐")
+                    logger.info("   │ 🧠 步骤3: 失败反思阶段                                  │")
+                    logger.info("   └──────────────────────────────────────────────────────────┘")
+                    try:
+                        await self._failure_reflect(thought, action_result, task, context)
+                    except Exception as e:
+                        # 反思不阻断主循环：异常仅告警（守不易）
+                        logger.error(
+                            f"   ❌ 失败反思执行失败: {type(e).__name__}: {e}"
+                            f" (trace_id={get_trace_id()})"
+                        )
                 else:
                     logger.info(f"   ⏭️ 跳过反思阶段 (reflector={self.reflector is not None}, success={action_result.success})")
 
@@ -409,6 +427,17 @@ class ReActLoop:
         # 阶段 4（D17）：工具失败后基于教训的下一步提示（_act 写入 context["_next_hint"]）
         if context and context.get("_next_hint"):
             prompt += f"\n\n【下一步提示（基于历史教训）】\n{context['_next_hint']}"
+
+        # 任务4（D12/D6）：注入"此前失败尝试 + 根因 + 修复建议"，强制换思路
+        # （第 2 轮起显式声明前 N 次尝试及失败原因，避免 LLM 重复同样错误）
+        if context and context.get("_failure_history"):
+            lines = []
+            for h in context["_failure_history"]:
+                lines.append(
+                    f"- 第{h.get('attempt')}次失败: {h.get('action') or '?'} → "
+                    f"{h.get('error') or '?'}（猜测根因: {h.get('guess') or '未知'}）"
+                )
+            prompt += "\n\n【失败反思记录（前 N 次尝试及失败原因，请换思路）】\n" + "\n".join(lines)
 
         # D17 修复：思考阶段复用 reflector 历史经验（get_advice_for_task），
         # 成功模式/常见陷阱嵌入提示词（format_advice_section 统一格式，注入段标注
@@ -584,6 +613,87 @@ class ReActLoop:
         except Exception as e:
             logger.warning(f"[教训引导] 教训查询失败（不阻断失败语义）: {e}")
             return []
+
+    async def _failure_reflect(self, thought: ThoughtResult, action_result: ActionResult,
+                               task: str, context: Dict) -> None:
+        """任务4（D12）：失败反思——结构化诊断 → reflector.failure_reflect → 注入下一轮。
+
+        反思轮数受 reflection_retries 上限约束（D6 收敛），超限终止反思并升级；
+        反思不阻断主循环：LLM/教训沉淀异常均仅告警（守不易）。
+        """
+        if self._failure_reflection_count >= self.reflection_retries:
+            logger.warning(
+                f"   ⚠️ 失败反思轮数达上限({self.reflection_retries})，终止反思并升级"
+                f"（建议上层降级/人工兜底）"
+            )
+            return
+        self._failure_reflection_count += 1
+
+        tool_name = thought.action.tool_name if thought.action else None
+        diagnosis = build_diagnosis(
+            action_result,
+            attempts=self._failure_reflection_count,
+            history=self._failure_history(context),
+            tool_name=tool_name,
+            project_context=self._project_context_summary(),
+        )
+        logger.info(
+            f"   [失败反思] 结构化诊断 | attempt={diagnosis.attempt}"
+            f" | error_type={diagnosis.error_type} | tool={tool_name or '(无)'}"
+            f" | repair_hints={diagnosis.repair_hints}"
+        )
+
+        if not self.reflector:
+            return
+        # D2 同款包装：ReAct 路径 task 为字符串 → 转 Task 对象
+        reflect_task = task if isinstance(task, Task) else Task(
+            id=f"react_fail_{diagnosis.attempt}", description=str(task)
+        )
+        reflection = await self.reflector.failure_reflect(
+            reflect_task, action_result, diagnosis, self._failure_reflection_count
+        )
+        # 防御：反思产物缺失 repair_actions 字段（如 stub/MagicMock）时跳过注入，不阻断循环
+        if reflection is None or not isinstance(getattr(reflection, "repair_actions", None), list):
+            logger.info("   [失败反思] 反思无有效产出，跳过注入（不阻断循环）")
+            return
+
+        # 修复建议注入（复用 _hints 机制，供下一轮 _think 消费；上限 20 条防膨胀）
+        if reflection.repair_actions:
+            hints = context.setdefault("_hints", [])
+            if isinstance(hints, list):
+                hints.extend(str(a) for a in reflection.repair_actions)
+                if len(hints) > 20:
+                    del hints[:-20]
+        # 失败历史记录（供第 N 轮"换思路"与 _think 注入；保留最近 3 轮）
+        history = context.setdefault("_failure_history", [])
+        if isinstance(history, list):
+            history.append({
+                "attempt": diagnosis.attempt,
+                "action": thought.action.description if thought.action else "",
+                "error_type": diagnosis.error_type,
+                "error": diagnosis.error_message[:100],
+                "guess": reflection.root_cause or "",
+            })
+            if len(history) > 3:
+                del history[:-3]
+        logger.info(
+            f"   [失败反思] 已完成 | attempt={diagnosis.attempt}"
+            f" | root_cause={reflection.root_cause}"
+            f" | repair_actions={reflection.repair_actions} | 已注入下一轮"
+        )
+
+    @staticmethod
+    def _failure_history(context: Dict) -> List[Dict]:
+        """读取 context 中的失败历史摘要（无则空列表）"""
+        return list(context.get("_failure_history") or [])
+
+    def _project_context_summary(self) -> Dict:
+        """项目上下文摘要：可用工具清单（裁剪至 token 预算），失败不影响诊断"""
+        try:
+            tools = self.planner.tool_registry.list_tools()
+            return {"available_tools": tools[:20]}
+        except Exception:
+            return {}
 
     def _format_history(self, history: List[ReActStep]) -> str:
         """格式化执行历史"""
