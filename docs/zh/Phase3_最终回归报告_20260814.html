@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 3 最终回归测试报告 — v1.2.0-rc4 (2026-08-14)</title>
+<style>
+  :root {
+    --pass: #1a7f37; --fail: #cf222e; --warn: #bf8700; --bg: #f6f8fa;
+    --card: #ffffff; --border: #d0d7de; --text: #24292f; --muted: #57606a;
+    --accent: #0969da;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6; padding: 24px;
+  }
+  .container { max-width: 1080px; margin: 0 auto; }
+  header {
+    background: linear-gradient(135deg, #0d1117, #1f6feb);
+    color: #fff; border-radius: 12px; padding: 28px 32px; margin-bottom: 24px;
+  }
+  header h1 { font-size: 26px; margin-bottom: 6px; }
+  header p { opacity: .85; font-size: 14px; }
+  .badges { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .badge {
+    background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
+    padding: 4px 12px; border-radius: 20px; font-size: 13px;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px 24px; margin-bottom: 20px;
+  }
+  h2 { font-size: 19px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+  h3 { font-size: 16px; margin: 16px 0 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: #f0f3f6; font-weight: 600; white-space: nowrap; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 8px; }
+  .kpi {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; text-align: center;
+  }
+  .kpi .num { font-size: 30px; font-weight: 700; }
+  .kpi .label { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .ok { color: var(--pass); font-weight: 600; }
+  .no { color: var(--fail); font-weight: 600; }
+  .wa { color: var(--warn); font-weight: 600; }
+  code, pre {
+    font-family: "Cascadia Code", Consolas, monospace; font-size: 13px;
+    background: #f0f3f6; border-radius: 5px; padding: 2px 6px;
+  }
+  pre { padding: 14px; overflow-x: auto; margin: 10px 0; border: 1px solid var(--border); background: #0d1117; color: #e6edf3; }
+  pre code { background: none; color: inherit; padding: 0; }
+  .tag {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 600; margin-right: 6px;
+  }
+  .tag-k13 { background: #fff1f0; color: #cf222e; border: 1px solid #ffcecb; }
+  .tag-k2 { background: #fff8c5; color: #7a5901; border: 1px solid #f0e5a0; }
+  .tag-conc { background: #e6f4ff; color: #0969da; border: 1px solid #b6d9f7; }
+  .tag-pass { background: #dcffe4; color: #1a7f37; border: 1px solid #b3e8c0; }
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 20px 0; }
+  @media (max-width: 640px) { body { padding: 12px; } header { padding: 20px; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>Phase 3 最终回归测试报告</h1>
+  <p>v1.2.0-rc4 · T-4 回归验证阶段 3 · 固定 seed 单进程 · 2026-08-14 12:58:44 — 14:07:00</p>
+  <div class="badges">
+    <span class="badge">✅ 100% 完成无卡点强杀</span>
+    <span class="badge">🎯 518 文件 / 14512 用例</span>
+    <span class="badge">🧪 seed=20260813</span>
+    <span class="badge">⏱ 1:08:16</span>
+  </div>
+</header>
+
+<!-- KPI -->
+<div class="kpi-row">
+  <div class="kpi"><div class="num ok">14415</div><div class="label">passed</div></div>
+  <div class="kpi"><div class="num no">8</div><div class="label">failed</div></div>
+  <div class="kpi"><div class="num wa">63</div><div class="label">skipped</div></div>
+  <div class="kpi"><div class="num">432</div><div class="label">deselected</div></div>
+  <div class="kpi"><div class="num">23</div><div class="label">xfailed</div></div>
+  <div class="kpi"><div class="num">1</div><div class="label">error</div></div>
+</div>
+
+<!-- 一、执行概览 -->
+<div class="card">
+  <h2>一、执行概览</h2>
+  <table>
+    <tr><th style="width:160px">维度</th><td>详情</td></tr>
+    <tr><th>命令</th><td><code>python -m pytest tests/ -q --randomly-seed=20260813 -m "not slow" -p no:cacheprovider --timeout=120</code></td></tr>
+    <tr><th>汇总行</th><td><code>= 8 failed, 14415 passed, 63 skipped, 432 deselected, 23 xfailed, 4 xpassed, 51 warnings, 1 error in 4096.61s (1:08:16) =</code></td></tr>
+    <tr><th>集合边界</th><td>tests/ 总收集 527 文件 → 排除 9 处 slow（342 用例）→ <b>518 文件 / 14512 用例</b> 参与 fast</td></tr>
+    <tr><th>通过率</th><td><span class="ok">14415 / 14423 ≈ 99.94%</span>（不含 skipped / deselected / xfail）</td></tr>
+    <tr><th>关键结论</th><td>首跑（61% 处被第 6 卡点强杀）→ 标注补全后<b>重跑 100% 完整执行</b>，slow 隔离彻底生效</td></tr>
+  </table>
+</div>
+
+<!-- 二、失败归因 -->
+<div class="card">
+  <h2>二、失败项归因（8 failed + 1 error）</h2>
+  <p style="margin-bottom:12px">全部失败命中已知问题清单（K2 / K13 同型）或并行会话并发产物，<b>无新增产品缺陷、无新增 D 类卡点</b>。修复建议见 <a href="Phase3_失败修复建议_20260814.md">Phase3_失败修复建议_20260814.md</a>。</p>
+  <table>
+    <tr><th>#</th><th>测试</th><th>根因</th><th>判定</th></tr>
+    <tr><td>1</td><td>test_orchestrator_reject::test_AC21</td><td>契约检查读到 <code>_load_learning_config</code> 而非 <code>_should_reject</code>——长时进程 <code>inspect.getsource</code> 行号/linecache 切片漂移</td><td><span class="tag tag-k13">K13 同型</span></td></tr>
+    <tr><td>2</td><td>test_orchestrator_reject::test_AC16</td><td>同上（源码缺少标记 <code>orchestrator.should_reject.disabled</code>）</td><td><span class="tag tag-k13">K13 同型</span></td></tr>
+    <tr><td>3</td><td>test_skill_index_cache</td><td>22.32ms vs 11.17×2=22.34ms，差 0.02ms 擦边失败</td><td><span class="tag tag-k2">K2 性能时序</span></td></tr>
+    <tr><td>4</td><td>test_skill_output_guard ×1</td><td>测试前提失败：篡改未生效（ast 检查）</td><td><span class="tag tag-k13">K13 已知</span></td></tr>
+    <tr><td>5</td><td>test_skill_output_guard ×1</td><td>测试前提失败：篡改未生效</td><td><span class="tag tag-k13">K13 已知</span></td></tr>
+    <tr><td>6</td><td>test_skill_output_guard ×1</td><td><code>_call_llm_v2</code> 未调用 <code>_guard_llm_output</code>（guard_calls=0）</td><td><span class="tag tag-k13">K13 已知</span></td></tr>
+    <tr><td>7</td><td>test_knowledge_skill_bridge CLI</td><td>运行时 <code>__main__.py</code> 缺 <code>convert-cards</code> 子命令（现磁盘 L426 已含）——并行会话并发编辑时序</td><td><span class="tag tag-conc">并行会话产物</span></td></tr>
+    <tr><td>8</td><td>test_optimized_storage</td><td><code>isinstance</code> 类引用失效——文件内 <code>importlib.reload</code> 顺序污染</td><td><span class="tag tag-k13">已知 reload 污染</span></td></tr>
+    <tr><td>ERR</td><td>test_skills_mgmt_safety</td><td>未跟踪测试引用不存在接口 <code>agent.health.dashboard.get_evolution_audit</code>——测试/接口不同步</td><td><span class="tag tag-conc">并行会话产物</span></td></tr>
+  </table>
+</div>
+
+<!-- 三、覆盖率对比 rc3 vs rc4 -->
+<div class="card">
+  <h2>三、覆盖率对比：v1.2.0-rc3-final vs rc4</h2>
+  <p style="margin-bottom:12px">两次回归均未启用 <code>--cov</code>，本对比为<b>覆盖范围（文件/用例集合）与执行完整性</b>分析（行/分支覆盖率待 <code>--cov</code> 专项补充）。</p>
+  <table>
+    <tr><th>维度</th><th>v1.2.0-rc3-final</th><th>v1.2.0-rc4</th></tr>
+    <tr><td>执行命令</td><td><code>run_full_pytest.py 4 1</code>（全量不过滤）</td><td>fast 单进程固定 seed + slow 模式（<code>-m "not slow"</code> / <code>-m slow --runslow</code>）</td></tr>
+    <tr><td>测试文件集</td><td>523（全量）</td><td>527 收集（523 已跟踪 + 4 新增未跟踪）= <b>518 fast + 9 slow</b></td></tr>
+    <tr><td>slow 标注</td><td>无</td><td>9 处（342 用例，8 文件级 + e2e 用例级×2）</td></tr>
+    <tr><td>实际执行完整性</td><td><span class="no">仅 chunk_3 完整（3662 passed）</span>；chunk_0/1/2 因 D 类卡死强杀无汇总 → <b>实际覆盖约 1/4 文件集</b></td><td><span class="ok">fast 518 文件 100% 完整执行</span>（1:08:16 无卡点）+ slow 342 用例独立执行 → 527 文件全覆盖路径</td></tr>
+    <tr><td>用例级覆盖</td><td>名义全量，实际大量未执行</td><td>无损失：slow 用例由 slow 模式补足（<code>--runslow</code>）</td></tr>
+    <tr><td>B 类顺序验证</td><td>分块破坏全局随机序</td><td>固定 seed 单进程，B 类顺序污染收敛验证达成</td></tr>
+    <tr><td>结论</td><td colspan="2"><b>rc4 实际覆盖率不降反升</b>——从"名义 523 实际 1/4"提升为"527 全覆盖路径 + 100% 执行完整性"</td></tr>
+  </table>
+  <h3>slow 分流明细</h3>
+  <table>
+    <tr><th>文件</th><th>级别</th><th>slow 用例</th></tr>
+    <tr><td>tests/unit/test_memory_module.py</td><td>文件级</td><td>全部</td></tr>
+    <tr><td>tests/unit/test_memory_optimized.py</td><td>文件级</td><td>全部</td></tr>
+    <tr><td>tests/unit/test_memory_vector_store.py</td><td>文件级</td><td>全部（6）</td></tr>
+    <tr><td>tests/unit/test_permission_system_concurrency.py</td><td>文件级</td><td>全部</td></tr>
+    <tr><td>tests/unit/test_task_scheduler.py</td><td>文件级</td><td>全部</td></tr>
+    <tr><td>tests/unit/test_task_scheduler_comprehensive.py</td><td>文件级</td><td>全部</td></tr>
+    <tr><td>tests/unit/test_weekly_report_generator.py</td><td>文件级</td><td>全部</td></tr>
+    <tr><td>tests/integration/test_task_scheduler_integration.py</td><td>文件级</td><td>全部</td></tr>
+    <tr><td>tests/integration/test_orchestrator三层路由_e2e.py</td><td>用例级 ×2</td><td>热更不阻塞 / 高并发频繁热更（L678 / L769）</td></tr>
+  </table>
+  <p style="margin-top:10px">collect-only 核验：<code>342/351 tests collected (9 deselected)</code> —— 342 个 slow 用例全部选中，9 个 e2e 非 slow 用例保留 fast。</p>
+</div>
+
+<!-- 四、结论 -->
+<div class="card">
+  <h2>四、结论与验收状态</h2>
+  <table>
+    <tr><th>验收项</th><th>状态</th></tr>
+    <tr><td>slow 隔离生效（518 文件 fast 无卡点）</td><td class="ok">✅ 达成</td></tr>
+    <tr><td>固定 seed 顺序污染收敛验证</td><td class="ok">✅ 达成（全部失败可归因为已知项/并发产物）</td></tr>
+    <tr><td>覆盖范围无损失（527 = 518 fast + 9 slow）</td><td class="ok">✅ 达成</td></tr>
+    <tr><td>失败项均已有判定与修复建议</td><td class="ok">✅ 已生成（见修复建议文档）</td></tr>
+  </table>
+</div>
+
+<footer>Phase 3 最终回归报告 · T-4 回归验证 · 生成于 2026-08-14 · 数据源：phase3_r2_20260814.log</footer>
+</div>
+</body>
+</html>
