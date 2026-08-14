@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -34,6 +35,12 @@ DEFAULT_INTERVAL_HOURS = 24
 DEFAULT_AUDIT_FILE = "data/precipitate_audit.jsonl"
 # 环境变量覆盖 config.yaml 的前缀
 _ENV_PREFIX = "LEARNING_PRECIPITATE"
+
+# 审计 JSONL 并发写锁（Why: Windows 上 append 模式由 CRT 模拟
+# 「lseek 到 EOF 再写」，多句柄并发写非原子，会相互覆盖截断导致
+# 多字节 UTF-8 字符损坏——2026-08-14 P0 #3 高并发压力测试发现；
+# 进程内锁串行化写后完整）
+_audit_write_lock = threading.Lock()
 
 
 def _precipitate_enabled() -> bool:
@@ -257,10 +264,11 @@ class PrecipitateScheduler:
             "draft_body": draft_body,
         }
         try:
-            path = Path(self._audit_path or _audit_file())
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with open(path, "a", encoding="utf-8") as f:
-                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            with _audit_write_lock:  # 串行化 append 写（Windows 非原子，见模块注释）
+                path = Path(self._audit_path or _audit_file())
+                path.parent.mkdir(parents=True, exist_ok=True)
+                with open(path, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(rec, ensure_ascii=False) + "\n")
             logger.debug("[Precipitate] _audit_draft 审计写入成功: path=%s "
                          "draft_skill_id=%s rec_len=%d",
                          path, result.get("draft_skill_id"), len(json.dumps(rec, ensure_ascii=False)))

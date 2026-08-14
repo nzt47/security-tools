@@ -276,3 +276,41 @@ def test_audit_draft_debug_logs_data_flow(tmp_path, caplog):
     assert "_audit_draft 开始" in caplog.text
     assert "draft_body 序列化成功" in caplog.text
     assert "审计写入成功" in caplog.text
+
+
+def test_audit_draft_concurrent_writes_no_corruption(tmp_path):
+    """多线程并发 _audit_draft 写同一审计文件不产生损坏/丢写。
+
+    Why（2026-08-14 P0 #3 高并发压力测试发现）: Windows 上 append 模式
+    由 CRT 模拟「lseek 到 EOF 再写」，多句柄并发写非原子，后写者覆盖
+    先写者导致多字节 UTF-8 字符截断损坏。修复 = 进程内 _audit_write_lock
+    串行化写；本用例固化：并发 N×M 条后行数守恒 + 每行可解析 + draft_body 无损。
+    """
+    import threading
+
+    scheduler = PrecipitateScheduler(audit_path=str(tmp_path / "audit.jsonl"))
+    n_threads, per_thread = 12, 40
+    total = n_threads * per_thread
+
+    def worker(tid):
+        for i in range(per_thread):
+            scheduler._audit_draft(_passed_draft_with_body(
+                skill_id=f"draft-{tid}-{i}"))
+
+    threads = [threading.Thread(target=worker, args=(t,))
+               for t in range(n_threads)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=60)
+        assert not t.is_alive(), "审计并发写线程未结束（疑似死锁）"
+
+    lines = (tmp_path / "audit.jsonl").read_text(encoding="utf-8").splitlines()
+    assert len(lines) == total, f"审计行数守恒: 期望 {total} 实得 {len(lines)}"
+    seen: set[str] = set()
+    for line in lines:
+        rec = json.loads(line)  # 每行必须是合法 JSON（无交错/截断）
+        body = json.loads(rec["draft_body"])
+        assert body["id"] not in seen
+        seen.add(body["id"])
+    assert len(seen) == total, f"草稿 ID 无重复/无丢失: {len(seen)}/{total}"
