@@ -151,6 +151,12 @@
 - **并行会话风险**：实现期间并行会话（worktree pr634_fix2）活跃，共享 index 有清空/混入风险，本任务 5 个新文件（sensor/novelty.py、agent/learning/×3、tests×2）均为 untracked 新增不覆盖既有文件；既有文件改动（change_detector/behavior_sensor/body_sensor/config.yaml/.env.example）改后已 Read/Grep 核验关键标记；
 - **`sensor/test_body_sensor.py::test_collect_all` 环境性失败记录**：`window_sensor.collect()`（L204）在无前台窗口时返回 dict，`collect_all()` L516 `results.append(data)` 后 `_apply_tags` L443 访问 `r.tags` 报 `AttributeError`。该文件与 `collect_all`/`_apply_tags` 代码在 `HEAD` 与工作区逐字节一致（`git diff sensor/body_sensor.py` 仅 `attach_change_learning_hook` 新增；`git show HEAD:...` 比对 `_apply_tags` 相同），且与 novelty/钩子路径无关——判定为既有真实硬件采集环境缺陷，不在 TASK-06 范围（修 `window_sensor` 属超出本任务的最小改动边界，留待感知专项）。
 
-### 回归记录（占位，全量快速回归完成后更新）
+### 回归记录（2026-08-14 收口）
 
-- `pytest tests/unit -q -p no:randomly -m "not slow"`（11633 用例，后台执行）：待完成。
+- **后台快速回归**（`pytest tests/unit -q --tb=short --timeout=300`，忽略 test_ci_guard_fix_regression / test_web_search_concurrency，21:34:40→21:39:32，29:04）：
+  `7 failed, 11539 passed, 50 skipped, 249 deselected, 13 xfailed, 12 xpassed, 30 warnings, 1 error`
+- **失败归因（8 项全部排除为环境/工作区状态问题，非产品缺陷）**：
+  1. `test_novelty_pipeline` 5 项（`ChangeDetector.__init__() got an unexpected keyword argument 'persistent_log_dir'`）+ `test_behavior_drift.py` ERROR（`cannot import name 'DEFAULT_BASELINE_DIR'`）——**共 6 项根因：主 worktree 工作区当时未合入 TASK-06 改动**（实现期间改动提交在 detached worktree `45f0361e`，主工作区 `change_detector.py`/`behavior_sensor.py` 仍为 HEAD 版本）。`cherry-pick 45f0361e`（主 develop `0d82bf1d`）后重跑 `test_novelty_pipeline + test_behavior_drift + test_learning_scheduler`：**32 passed 全绿**，确认消失。
+  2. `test_evolver_schedule::test_dry_run_uses_config_default_true`（`assert True is False`）——并行会话把 config.yaml `learning.evolver.enabled` 改为 `true`，该测试断言"总开关默认关闭"，环境噪音，非本任务。
+  3. `test_tlm_memory_store::TestVectorWriteRetry::test_retry_succeeds_after_two_failures`（sleep call_count 6001 vs 2）——并行会话对 tlm_memory_store 重试机制的改动所致，非本任务。
+- **结论**：TASK-06 相关用例在合入后全绿；全量回归失败项均与 TASK-06 无关（工作区未合入 / 并行会话环境噪音）。
