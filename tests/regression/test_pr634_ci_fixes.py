@@ -28,6 +28,10 @@
      → 容器内 SentenceTransformer 编码器加载超时(30s) → 降级 json 后端 →
      "expected sqlite_vec, got json"。修复：build-image 导出镜像产物(docker save
      → artifact docker-image)，l3-tests 下载并 docker load 复用，不再自行 rebuild
+  13. .dockerignore 误排除 scripts/：Dockerfile RUN python scripts/predownload_models.py
+     在容器内找不到文件（[Errno 2]）→ 模型从未预下载 → 运行时 SentenceTransformer
+     在线加载失败/超时 → 编码器 None → 降级 json（"expected sqlite_vec, got json"）。
+     修复：.dockerignore 移除 scripts 排除（predownload_models.py 随 COPY . . 入镜像）
 
 运行方式：
   python -m pytest tests/regression/test_pr634_ci_fixes.py -v
@@ -273,6 +277,14 @@ class TestDockerIgnoreGuard:
         """data 是运行时数据目录，必须保持排除（防镜像膨胀）"""
         excluded = self._exclude_lines()
         assert "data" in excluded, "data 运行时数据目录应保持排除"
+
+    def test_scripts_not_excluded(self):
+        """.dockerignore 不得排除 scripts/（Dockerfile 依赖 scripts/predownload_models.py）"""
+        excluded = self._exclude_lines()
+        assert "scripts" not in excluded, \
+            "scripts 被排除后容器内无 predownload_models.py，模型不预下载 → 编码器加载失败降级 json"
+        assert not any(p.startswith("scripts") for p in excluded), \
+            f"scripts 前缀排除规则误伤模型预下载脚本: {[p for p in excluded if p.startswith('scripts')]}"
 
     def test_storage_module_importable_in_repo(self):
         """memory.storage / memory.vector_store 源码须存在于仓库（防模块真缺失误判）"""
