@@ -15,6 +15,9 @@
      同剔除 time_since_last_state_change（CI Shard 4/6 失败）
   8. 缺 import pytest：test_planning_defect_d7.py 使用 @pytest.mark.xfail 但未导入
      pytest，导致 CI 分片收集 NameError（CI Shard 5/6 失败）
+  9. Docker 镜像验证步骤 ENTRYPOINT 覆盖：docker run IMAGE python -c 被镜像
+     ENTRYPOINT(pytest) 追加参数导致 "file or directory not found: python"（exit 4），
+     需 --entrypoint python 覆盖（CI L3 Docker 构建验证失败）
 
 运行方式：
   python -m pytest tests/regression/test_pr634_ci_fixes.py -v
@@ -177,6 +180,14 @@ class TestCoverageChain:
         # l3-tests 依赖 build-image（产物 coverage-report-* 由上游生成）
         assert "needs: build-image" in text, "l3-tests 未依赖 build-image"
         assert "coverage-report-${{ matrix.test-mode }}" in text
+
+    def test_entrypoint_overridden_in_verify_step(self):
+        """镜像验证步骤须 --entrypoint python 覆盖 ENTRYPOINT(pytest)"""
+        text = self.WORKFLOW.read_text(encoding="utf-8")
+        assert "--entrypoint python" in text, \
+            "验证步骤缺 --entrypoint python，python -c 会被镜像 ENTRYPOINT(pytest) 追加为参数"
+        # 该 docker run 之后不能再跟裸 python -c（会被 ENTRYPOINT 吞掉）
+        assert "docker run --rm --entrypoint python" in text
 
 
 # ═══════════════════════════════════════════════════════════════

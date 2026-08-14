@@ -123,7 +123,10 @@ jobs:
           echo "=== 验证镜像 ==="
           docker images | grep ${{ env.DOCKER_IMAGE_NAME }}
           echo "=== 验证关键模块可导入 ==="
-          docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:latest python -c "
+          # [fix] 镜像 ENTRYPOINT 为 pytest，docker run IMAGE python -c "..." 会把
+          # python -c 追加为 pytest 参数（file or directory not found: python, exit 4）
+          # 需 --entrypoint python 覆盖 ENTRYPOINT 后执行验证
+          docker run --rm --entrypoint python ${{ env.DOCKER_IMAGE_NAME }}:latest -c "
           import sqlite_vec; print(f'sqlite-vec: {sqlite_vec.__version__}')
           import torch; print(f'torch: {torch.__version__}')
           import sentence_transformers; print('sentence-transformers: OK')
