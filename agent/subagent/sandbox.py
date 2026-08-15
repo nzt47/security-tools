@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 import re
 import subprocess
+import sys
 import time
 import os
 from dataclasses import dataclass, field
@@ -269,6 +270,35 @@ class Sandbox:
 
     # ── 执行校验（任务 7：进程级执行隔离，无容器依赖） ──
 
+    def _log_intercept(self, stage: str, subject, reason: str, matched_pattern: Optional[str] = None):
+        """记录拦截日志（排查误拦截）：具体原因 + 匹配模式 + 调用栈
+
+        Args:
+            stage: 拦截阶段（如 cmd_permission / cmd_dangerous / network_write）
+            subject: 被拦截对象（命令字符串或 URL）
+            reason: 拦截原因（含匹配的具体规则）
+            matched_pattern: 命中的正则模式（危险命令/协议等）
+        """
+        try:
+            # 向上回溯调用栈（sys._getframe 逐帧上溯，跳过本 helper），取最近 2 个调用帧
+            frames: List[str] = []
+            f = sys._getframe(1).f_back
+            for _ in range(2):
+                if f is None:
+                    break
+                code = f.f_code
+                frames.append(
+                    f"{os.path.basename(code.co_filename)}:{f.f_lineno}({code.co_name})"
+                )
+                f = f.f_back
+            caller = " <- ".join(frames) or "unknown"
+        except Exception:
+            caller = "unknown"
+        logger.warning(
+            "[Sandbox] 拦截 stage=%s subject=%r reason=%s matched_pattern=%s caller=%s",
+            stage, subject, reason, matched_pattern, caller,
+        )
+
     @staticmethod
     def _dangerous_patterns() -> List[tuple]:
         """合并危险命令模式：permission_system 黑名单 + 本模块补充
@@ -304,16 +334,22 @@ class Sandbox:
         try:
             self.check_permission("execute")
         except PermissionDenied as e:
-            return CommandVerdict(False, f"未授权 execute 权限: {e}", "execute_permission")
+            verdict = CommandVerdict(False, f"未授权 execute 权限: {e}", "execute_permission")
+            self._log_intercept("cmd_permission", cmd, verdict.reason)
+            return verdict
 
         # 2. 空/非法命令
         if cmd is None or not isinstance(cmd, str) or not cmd.strip():
-            return CommandVerdict(False, "命令为空或类型非法", "empty_command")
+            verdict = CommandVerdict(False, "命令为空或类型非法", "empty_command")
+            self._log_intercept("cmd_empty", cmd, verdict.reason)
+            return verdict
 
         # 3. 危险模式匹配（权限系统黑名单 + 本模块补充）
         for pattern, desc in self._dangerous_patterns():
             if pattern.search(cmd):
-                return CommandVerdict(False, f"危险命令被拦截: {desc}", pattern.pattern)
+                verdict = CommandVerdict(False, f"危险命令被拦截: {desc}", pattern.pattern)
+                self._log_intercept("cmd_dangerous", cmd, verdict.reason, verdict.matched_pattern)
+                return verdict
 
         return CommandVerdict(True, "命令通过校验")
 
@@ -337,12 +373,18 @@ class Sandbox:
             parsed = urlparse(url)
             scheme = (parsed.scheme or "").lower()
             if scheme not in ("http", "https"):
-                return CommandVerdict(False, f"非 http(s) 协议被拦截: {scheme or '无协议'}", "scheme")
+                verdict = CommandVerdict(False, f"非 http(s) 协议被拦截: {scheme or '无协议'}", "scheme")
+                self._log_intercept("network_scheme", url, verdict.reason)
+                return verdict
             domain = (parsed.hostname or "").lower()
             if not domain:
-                return CommandVerdict(False, "URL 缺少主机名", "no_host")
+                verdict = CommandVerdict(False, "URL 缺少主机名", "no_host")
+                self._log_intercept("network_no_host", url, verdict.reason)
+                return verdict
         except Exception as e:
-            return CommandVerdict(False, f"URL 解析失败: {e}", "parse_error")
+            verdict = CommandVerdict(False, f"URL 解析失败: {e}", "parse_error")
+            self._log_intercept("network_parse_error", url, verdict.reason)
+            return verdict
 
         method_upper = (method or "").upper()
         # 写方法：默认拒绝，白名单域名放行
@@ -351,16 +393,20 @@ class Sandbox:
                 allowed_lower = allowed.lower()
                 if domain == allowed_lower or domain.endswith("." + allowed_lower):
                     return CommandVerdict(True, f"白名单域名 {allowed} 放行写操作")
-            return CommandVerdict(
+            verdict = CommandVerdict(
                 False,
                 f"外网写操作默认拒绝: {method_upper} {domain}（白名单: {self._allowed_network_domains or '无'}）",
                 "network_write",
             )
+            self._log_intercept("network_write", url, verdict.reason)
+            return verdict
 
         # 读方法放行
         if method_upper in ("GET", "HEAD"):
             return CommandVerdict(True, f"读操作放行: {method_upper} {domain}")
-        return CommandVerdict(False, f"不支持的 HTTP 方法: {method_upper}", "method")
+        verdict = CommandVerdict(False, f"不支持的 HTTP 方法: {method_upper}", "method")
+        self._log_intercept("network_method", url, verdict.reason)
+        return verdict
 
     def run_sandboxed(
         self,
@@ -442,6 +488,10 @@ class Sandbox:
                 proc.kill()
                 stdout, stderr = proc.communicate()
                 timed_out = True
+                logger.warning(
+                    "[Sandbox] run_sandboxed 超时 kill cmd=%r timeout_s=%.1f duration_ms=%.1f",
+                    cmd, limits.timeout_s, (time.time() - start_time) * 1000,
+                )
 
             duration_ms = (time.time() - start_time) * 1000
             return SandboxRunResult(
@@ -455,6 +505,10 @@ class Sandbox:
             )
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
+            logger.warning(
+                "[Sandbox] run_sandboxed 执行失败 cmd=%r error=%s duration_ms=%.1f",
+                cmd, e, duration_ms,
+            )
             return SandboxRunResult(
                 allowed=False,
                 reason=f"执行失败: {e}",

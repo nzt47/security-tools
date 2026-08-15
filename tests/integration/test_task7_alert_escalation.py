@@ -131,6 +131,79 @@ class TestEscalationChain:
         assert result is None
         assert am.get_takeovers() == []
 
+    def test_escalation_takeover_full_state_flow(self, alert_manager):
+        """模拟场景：告警升级 → 接管队列完整状态流转 open → assigned → resolved
+
+        升级创建的接管条目依次经过三个合法状态：
+        1. open：待接管（升级后立即）
+        2. assigned：指派处置人（owner 记录）
+        3. resolved：处置完成（resolution + resolved_at 记录）
+        每步用 get_takeovers(status=...) 过滤验证，且前一状态列表为空。
+        """
+        am = alert_manager
+        from agent.monitoring.alert_evaluator import Alert, AlertSeverity, AlertState
+        alert = Alert(
+            name="disk_full",
+            state=AlertState.FIRING,
+            severity=AlertSeverity.WARNING,
+            value=97,
+            threshold=90,
+            condition="disk>90",
+            message="磁盘使用率 97%，持续上升",
+        )
+        with patch.object(am._notifier, "send_critical"):
+            takeover = am.escalate(
+                alert, AlertSeverity.CRITICAL, reason="磁盘持续写满",
+                evidence={"mount": "/data"},
+            )
+        assert takeover is not None
+
+        # 状态 1：open（升级后立即待接管）
+        open_items = am.get_takeovers(status="open")
+        assert len(open_items) == 1
+        assert open_items[0]["takeover_id"] == takeover.takeover_id
+        assert open_items[0]["alert_name"] == "disk_full"
+        assert open_items[0]["status"] == "open"
+
+        # 状态 2：assigned（指派处置人，open 列表清空）
+        assert am._takeover_queue.assign(takeover.takeover_id, "ops-oncall") is True
+        assert am.get_takeovers(status="open") == []
+        assigned_items = am.get_takeovers(status="assigned")
+        assert len(assigned_items) == 1
+        assert assigned_items[0]["status"] == "assigned"
+        assert assigned_items[0]["owner"] == "ops-oncall"
+
+        # 状态 3：resolved（处置完成，assigned 列表清空）
+        assert am._takeover_queue.resolve(takeover.takeover_id, "已清理日志并扩容磁盘") is True
+        assert am.get_takeovers(status="assigned") == []
+        resolved_items = am.get_takeovers(status="resolved")
+        assert len(resolved_items) == 1
+        assert resolved_items[0]["status"] == "resolved"
+        assert resolved_items[0]["resolution"] == "已清理日志并扩容磁盘"
+        assert resolved_items[0]["resolved_at"] is not None
+
+    def test_loop_terminated_escalates_to_takeover(self, alert_manager, caplog):
+        """任务 5 接线：监控循环终止（loop_terminated）→ 告警升级 + 人工接管入队"""
+        am = alert_manager
+        with patch.object(am._notifier, "send_critical"):
+            with caplog.at_level(logging.INFO, logger="agent.monitoring.alert_manager"):
+                takeover = am.notify_loop_terminated(
+                    "evaluate_loop", reason="线程异常退出",
+                    context={"run_seconds": 3721},
+                )
+
+        # 升级：创建了 open 接管条目
+        assert takeover is not None
+        assert takeover.alert_name == "loop_terminated:evaluate_loop"
+        takeovers = am.get_takeovers(status="open")
+        assert len(takeovers) == 1
+        assert takeovers[0]["alert_name"] == "loop_terminated:evaluate_loop"
+
+        # 升级结构化日志含 from/to level（与验收 #4 同型断言）
+        assert '"action": "alert_escalated"' in caplog.text
+        assert '"from_level": "warning"' in caplog.text
+        assert '"to_level": "critical"' in caplog.text
+
 
 class TestSelfHealSecurityBlocked:
     """自愈动作与权限黑名单双保险（验收 #6）"""
