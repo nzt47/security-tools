@@ -7,12 +7,22 @@ TASK-02 learning.eval.* 聚合、reset/disabled。
 
 import time
 
+import os
+
 import pytest
 
 from agent.learning_metrics import LearningMetrics
 from agent.learning_metrics_api import learning_metrics_bp
 from flask import Flask
 from unittest.mock import patch
+
+# SKILLS_OFFLINE 模式下 conftest._skills_offline_mode 会把 get_metrics_collector
+# patch 为 _DummyCollector（no-op），依赖真实计数聚合的测试无法验证，需 skip
+# （与 test_monitoring_metrics.py 同模式）。
+_skip_if_skills_offline = pytest.mark.skipif(
+    os.environ.get("SKILLS_OFFLINE") == "1",
+    reason="SKILLS_OFFLINE 模式下 get_metrics_collector 被 conftest patch 为 _DummyCollector（no-op，无法验证真实计数）",
+)
 
 
 class _BoomCollector:
@@ -174,6 +184,7 @@ def test_metrics_api_500_when_snapshot_fails(monkeypatch):
     assert resp.get_json()["error"] == "learning_metrics_unavailable"
 
 
+@_skip_if_skills_offline
 def test_eval_stats_aggregates_task02_counters():
     """聚合 TASK-02 learning.eval.* 计数器（评估失败率数据源）"""
     from agent.monitoring.metrics import get_metrics_collector
