@@ -302,6 +302,30 @@ class TestCritic:
         assert result.passed is False
         assert "熔断器已打开" in result.explanation
 
+    def test_critic_exception_degrade_honest(self, monkeypatch):
+        """[D8] 评估内部异常走降级路径：overall_score=None + passed=False（不伪造 7 分/75 分兜底）
+
+        覆盖 evaluate 的 except 分支（_evaluate_with_rules 抛异常），
+        验证降级结果不被误判为通过、不产出伪造分数。
+        """
+        from agent.graceful_degrade import GracefulDegrade, DegradeConfig
+
+        evaluator = CriticEvaluator()
+        # 隔离全局降级管理器，避免前序用例污染 _module_states 触发 should_skip
+        local_mgr = GracefulDegrade(DegradeConfig(max_retries=1))
+        monkeypatch.setattr(evaluator, "_degrade_manager", local_mgr)
+
+        def _boom(*args, **kwargs):
+            raise RuntimeError("LLM 评估服务异常")
+
+        monkeypatch.setattr(evaluator, "_evaluate_with_rules", _boom)
+
+        result = evaluator.evaluate(user_query="q", response="r", context={})
+        assert result.overall_score is None
+        assert result.passed is False
+        assert result.retry_recommended is False
+        assert "Critic 服务不可用" in result.explanation
+
 
 class TestHITL:
     """人机协同模块测试"""
