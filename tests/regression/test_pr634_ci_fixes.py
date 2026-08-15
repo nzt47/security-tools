@@ -457,33 +457,45 @@ class TestEncoderMockModuleGuardRetained:
             "类级 Mock 检测必须移除：误伤测试合法 patch（patch 后类必为 MagicMock）"
 
 
-class TestStMockOnlyOnWindows:
-    """sentence_transformers mock 占位仅限 Windows（修复点 17）
+class TestStModulePlaceholder:
+    """sentence_transformers 占位模块方案（修复点 17+19）
 
-    根因（2026-08-15 L3 容器 8 ERROR）：test_vector_store_sqlite_vec.py 的
-    _enable_st_module_for_patch（autouse fixture）在 sys.modules 无真实 ST 模块时
-    置为 MagicMock——该防护仅对 Windows 0xC0000005（torch C 扩展崩溃）必需。
-    容器内（Linux，docker run 不继承 CI env → _HAS_ST=True 不 skip）同样触发
-    mock → VectorStore._get_shared_encoder 的 Mock 检测分支提前 return None →
-    mock_vector_store fixture 的 patch 无效 → 降级 json → "expected sqlite_vec,
-    got json"。修复：mock 条件必须限定 sys.platform.startswith('win')。
+    演进：
+    - 修复点 17：mock 占位从"全平台"改为"仅 Windows"（Linux mock 会误伤集成
+      测试——但那只是表象，真实根因是类级 Mock 检测，见修复点 18）。
+    - 修复点 18：移除 _get_shared_encoder 类级 Mock 检测后，集成测试真跑 →
+      patch resolve 触发真实 import torch → 容器内 Segmentation fault（exit 139）。
+    - 修复点 19（最终）：占位模块改用 types.ModuleType（无 mock_calls）替代
+      MagicMock() 模块——模块级 Mock 检测不拦截（不再误伤），patch resolve 命中
+      sys.modules 占位不真实 import torch（无崩溃），类级检测已移除 → mock encoder
+      生效。全平台统一（Windows 0xC0000005 与 Linux 容器 Segfault 同因）。teardown
+      pop 防占位残留（conftest #12b 只清理 mock_calls 模块，清理不了占位模块）。
     """
 
     TESTFILE = PROJECT_ROOT / "tests" / "unit" / "test_vector_store_sqlite_vec.py"
 
-    def test_mock_gated_on_windows(self):
+    def test_placeholder_is_types_module_not_magicmock(self):
+        """占位模块必须是 types.ModuleType（无 mock_calls），不能用 MagicMock() 模块"""
         text = self.TESTFILE.read_text(encoding="utf-8")
         seg_start = text.index("def _enable_st_module_for_patch")
         seg_end = text.index("def _make_mock_encoder", seg_start) \
             if "def _make_mock_encoder" in text[seg_start:] else len(text)
         segment = text[seg_start:seg_end]
-        assert "sys.platform.startswith('win')" in segment, \
-            "mock 占位必须限定 Windows（0xC0000005 为 Windows 特有崩溃码），否则 Linux 容器集成测试降级 json"
+        assert "types.ModuleType" in segment, \
+            "占位模块必须用 types.ModuleType（无 mock_calls），MagicMock 模块会被 _get_shared_encoder 模块级检测拦截 → 降级 json"
+        assert '_sys.modules["sentence_transformers"] = MagicMock()' not in segment, \
+            "不得再以 MagicMock() 作为模块占位（有 mock_calls → 模块级检测拦截 → mock encoder 无效）"
 
-    def test_windows_crash_guard_retained(self):
-        """Windows 0xC0000005 防护不得被误删：Mock 占位赋值逻辑仍保留"""
+    def test_placeholder_class_attr_retained(self):
+        """占位模块的 SentenceTransformer 属性仍为 MagicMock（patch resolve 不触发真实 import torch）"""
         text = self.TESTFILE.read_text(encoding="utf-8")
-        assert 'sys.modules["sentence_transformers"] = MagicMock()' in text, \
-            "Windows mock 占位赋值被误删（全量顺序 vector_store_sqlite_vec 12 失败回归风险）"
+        assert "_placeholder.SentenceTransformer = MagicMock()" in text, \
+            "占位模块须含 SentenceTransformer=MagicMock 属性（patch resolve 命中 sys.modules，防真实 import torch 崩溃）"
+
+    def test_placeholder_cleaned_in_teardown(self):
+        """teardown 必须 pop 占位模块（conftest #12b 只清理 mock_calls 模块，清理不了占位）"""
+        text = self.TESTFILE.read_text(encoding="utf-8")
+        assert '_sys.modules.pop("sentence_transformers", None)' in text, \
+            "teardown 必须 pop 占位模块，防残留污染后续测试"
 
 
