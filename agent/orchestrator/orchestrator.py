@@ -26,6 +26,7 @@ from typing import Optional, Dict, Any, Tuple
 # digital_life 符号延迟到文件末尾导入，避免与 digital_life.py:369 形成模块级循环导入
 # (orchestrator.py 顶层导入 → digital_life.py:369 → agent.orchestrator.Orchestrator → orchestrator.py 未完成)
 
+from agent.autonomy import AutonomyContext, resolve_autonomy_level
 from agent.guardrails.input_guard import InputGuard, GuardAction
 from agent.guardrails.output_guard import OutputGuard
 from agent.observability.subscriber import trace_store, TraceSpan
