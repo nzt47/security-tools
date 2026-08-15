@@ -40,11 +40,11 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import run_full_pytest as rfp  # noqa: E402
 
 BG_DIR = ROOT / "pytest_bg"
-SUMMARY_RE = re.compile(
-    r"^=+ (\d+) passed(?:, (\d+) failed)?(?:, (\d+) error)?"
-    r"(?:, (\d+) skipped)?(?:, (\d+) xfailed)?(?:, (\d+) xpassed)?"
-    r" in ([\d.]+)s =+$"
-)
+# 汇总行各字段顺序不固定（如 "6 failed, 2528 passed" 时 passed 不在行首），
+# 可能含 deselected/warnings 等额外字段，且 in Ns 后还带 (M:SS) 时长后缀
+# → 按"数字+字段名"对提取，顺序无关；in 后秒数带 s 单位，行尾不做严格锚定
+SUMMARY_LINE_RE = re.compile(r"^=+.*\b(\d+) passed\b.*\bin\s[\d.]+s\s")
+FIELD_RE = re.compile(r"(\d+)\s+(passed|failed|error|skipped|xfailed|xpassed|deselected|warnings)")
 
 
 def parse_summary(log_path: Path) -> dict:
@@ -53,19 +53,31 @@ def parse_summary(log_path: Path) -> dict:
         text = log_path.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return {"summary": None, "has_passed_line": False}
-    matches = [m for m in SUMMARY_RE.finditer(text) if "passed" in m.group(0)]
-    if not matches:
+    fields: dict[str, int] = {}
+    duration_s = 0.0
+    for line in text.splitlines():
+        line = line.strip()
+        if not SUMMARY_LINE_RE.match(line):
+            continue
+        pairs = FIELD_RE.findall(line)
+        if pairs:
+            fields = {name: int(n) for n, name in pairs}
+        m = re.search(r" in ([\d.]+)s", line)
+        if m:
+            duration_s = float(m.group(1))
+    if not fields or "passed" not in fields:
         return {"summary": None, "has_passed_line": False}
-    m = matches[-1]
     return {
         "summary": {
-            "passed": int(m.group(1) or 0),
-            "failed": int(m.group(2) or 0),
-            "error": int(m.group(3) or 0),
-            "skipped": int(m.group(4) or 0),
-            "xfailed": int(m.group(5) or 0),
-            "xpassed": int(m.group(6) or 0),
-            "duration_s": float(m.group(7) or 0.0),
+            "passed": fields.get("passed", 0),
+            "failed": fields.get("failed", 0),
+            "error": fields.get("error", 0),
+            "skipped": fields.get("skipped", 0),
+            "xfailed": fields.get("xfailed", 0),
+            "xpassed": fields.get("xpassed", 0),
+            "deselected": fields.get("deselected", 0),
+            "warnings": fields.get("warnings", 0),
+            "duration_s": duration_s,
         },
         "has_passed_line": True,
     }
