@@ -128,3 +128,56 @@ class TestAssessNoDataContract:
         score = self.assessor.assess({})
         assert score.overall is None
         assert "无数据" in score.issues
+
+
+class TestProbeStructuredLog:
+    """验收标准 7：探针结构化日志（module_name=health_probes 的完成/失败记录）"""
+
+    def test_probe_completed_log(self, caplog):
+        """可用探针 → probe.<layer>.completed 结构化日志"""
+        import json
+        import logging
+
+        from agent.health.probes import ProbeResult, _log_probe
+
+        with caplog.at_level(logging.INFO, logger="agent.health.probes"):
+            _log_probe(ProbeResult("l1_process", 0.9, "mem=50% cpu=10%"))
+        payload = json.loads(caplog.records[-1].message)
+        assert payload["module_name"] == "health_probes"
+        assert payload["action"] == "probe.l1_process.completed"
+        assert payload["score"] == 0.9
+        assert payload["available"] is True
+
+    def test_probe_failed_log(self, caplog):
+        """无数据探针 → probe.<layer>.failed 结构化日志（warning 级别）"""
+        import json
+        import logging
+
+        from agent.health.probes import ProbeResult, _log_probe
+
+        with caplog.at_level(logging.WARNING, logger="agent.health.probes"):
+            _log_probe(ProbeResult("l5_semantic", None, "近 7 天无用户反馈", available=False))
+        payload = json.loads(caplog.records[-1].message)
+        assert payload["module_name"] == "health_probes"
+        assert payload["action"] == "probe.l5_semantic.failed"
+        assert payload["score"] is None
+        assert payload["available"] is False
+
+    def test_run_all_probes_logs_each_layer(self, caplog):
+        """run_all_probes 为每层输出一条结构化日志"""
+        import json
+        import logging
+
+        from agent.health.probes import run_all_probes
+
+        with caplog.at_level(logging.INFO, logger="agent.health.probes"):
+            results = run_all_probes()
+        assert len(results) == 5
+        probe_logs = [
+            json.loads(r.message) for r in caplog.records
+            if r.name == "agent.health.probes" and r.message
+        ]
+        assert len(probe_logs) == 5
+        for rec in probe_logs:
+            assert rec["module_name"] == "health_probes"
+            assert rec["action"].startswith("probe.")

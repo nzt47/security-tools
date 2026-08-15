@@ -21,7 +21,6 @@ class TestDefectD13:
     """D13：ReAct 循环应执行 deadline / 预算约束"""
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="已知缺陷 D13：React 循环未强制超时预算（缺陷看门狗，修复后移除 xfail）", strict=False)
     async def test_react_loop_enforces_timeout_budget(self):
         async def slow_tool(**kwargs):
             # 模拟一次"超预算"的慢工具调用（0.5s 远超 0.05s 预算）

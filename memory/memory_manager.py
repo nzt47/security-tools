@@ -38,6 +38,12 @@ class AsyncCompressor:
         self._running = False
         self._task = None
         self._lock = threading.Lock()
+        # [2026-08-15 并发修复] 同步启动守卫：
+        # start_sync 从无事件循环的线程（waitress worker）调用时，原实现每次
+        # 都新建事件循环 + daemon 线程；12 并发请求共享会话时若压缩器未运行，
+        # 会重复创建 N 个永久存活线程（线程泄漏），且后台 _execute_compression
+        # 的 2 次 LLM 外呼与请求 LLM 并发争抢 DeepSeek 额度 → 请求 LLM 延迟放大。
+        self._started = False
 
     async def start(self):
         """启动后台压缩任务（异步版本）"""
@@ -51,19 +57,32 @@ class AsyncCompressor:
 
     def start_sync(self):
         """启动后台压缩任务（同步版本，保持向后兼容）"""
+        # [2026-08-15 并发修复] 同步置位启动守卫：_started 在锁内置位，
+        # 防止 waitress 多 worker 线程并发调用时重复创建事件循环线程。
+        with self._lock:
+            if self._running or self._started:
+                return
+            self._started = True
         try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(self.start())
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.create_task(self.start())
-            threading.Thread(target=loop.run_forever, daemon=True).start()
+            try:
+                loop = asyncio.get_running_loop()
+                loop.create_task(self.start())
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.create_task(self.start())
+                threading.Thread(target=loop.run_forever, daemon=True).start()
+        except Exception:
+            # 启动失败需允许重试（复位守卫）
+            with self._lock:
+                self._started = False
+            raise
 
     async def stop(self):
         """优雅停止后台压缩任务（异步版本）"""
         with self._lock:
             self._running = False
+            self._started = False
 
         if self._task:
             self._task.cancel()
@@ -82,6 +101,7 @@ class AsyncCompressor:
             self._task = None
         with self._lock:
             self._running = False
+            self._started = False
         logger.warning("后台压缩任务已停止")
 
     def request(self):
@@ -275,6 +295,14 @@ class MemoryManager:
         )
 
         self._need_compress = False
+
+        # [2026-08-15 并发修复] 摘要内存缓存：
+        # get_context / compress_rounds 原每次同步读 summary.txt +
+        # summary_version.txt（4 条文件 IO/次），12 并发请求共享同一会话时
+        # 每请求放大为多次文件 IO。现缓存最近读取结果，写入侧
+        # （save_summary / clear_summary）失效。单写者单读者，缓存赋值
+        # 原子，最坏情况读到一帧旧值（下一请求即刷新），不引入锁。
+        self._summary_cache: Optional[tuple] = None
         logger.info("MemoryManager 初始化完成")
 
     def _execute_compression(self) -> bool:
@@ -332,6 +360,9 @@ class MemoryManager:
             step_start = time.time()
             logger.warning("├─ [步骤5] 保存摘要 (版本 %d)", new_version)
             self._storage.save_summary(summary, new_version)
+            # [2026-08-15 并发修复] 写入后同步刷新摘要缓存，避免请求线程
+            # 读到一帧旧摘要（compress_rounds / get_context 使用）
+            self._summary_cache = (summary, new_version)
             step_elapsed = (time.time() - step_start) * 1000
             logger.warning("│   └─ ✓ 摘要保存成功, 耗时: %.2fms", step_elapsed)
 
@@ -350,6 +381,10 @@ class MemoryManager:
             logger.warning("│ ✓ 压缩完成！版本: %d | 消息数: %d | 总耗时: %.2fms", 
                        new_version, len(recent_messages), total_elapsed)
             logger.warning("└─────────────────────────────────────────────")
+            # [P0 修复] 压缩成功后清除需求标记。
+            # 原逻辑在 get_context 内清除：后台未运行时标记会被直接丢弃（压缩永不执行）；
+            # 现改由压缩执行处清除，失败则保留标记供后台下一轮重试。
+            self._need_compress = False
             return True
         except Exception as e:
             total_elapsed = (time.time() - total_start) * 1000
@@ -508,19 +543,19 @@ class MemoryManager:
         Returns:
             消息列表 [{"role": "...", "content": "..."}]，无内容时返回空列表
         """
-        # 如果有压缩需求且没有后台线程，同步执行
+        # [P0 修复] 压缩需求只通知后台压缩器，绝不在请求线程内同步执行 LLM 压缩。
+        # Why: 同步压缩含 2 次 LLM 外呼（compress + merge_summaries），会阻塞请求线程，
+        #      放大高并发串行（见 并发串行瓶颈排查技术备忘录_20260815.md）；
+        #      _need_compress 改为由后台 _execute_compression 成功后清除，避免压缩需求丢失。
         if self._need_compress:
             logger.warning("┌═══════════════════════════════════════════════")
-            logger.warning("│ 🔄 [同步压缩] 检测到压缩需求")
+            logger.warning("│ 🔄 [压缩需求] 已标记，交由后台压缩器处理（不阻塞请求线程）")
             logger.warning("│    └─ 后台线程状态: %s", "运行中 ✓" if self._async_compressor.is_running() else "未运行 ✗")
+            self._async_compressor.request()
             if not self._async_compressor.is_running():
-                logger.warning("│    └─ 执行同步压缩...")
-                self._execute_compression()
-            else:
-                logger.warning("│    └─ 等待后台处理")
-            # 后台线程已处理或本次同步处理完成，清除标记
-            self._need_compress = False
-            logger.warning("│ ✅ [同步压缩] 压缩需求标记已清除")
+                logger.warning("│    └─ 后台压缩器未运行，尝试启动（幂等）")
+                self._async_compressor.start_sync()
+            logger.warning("│    └─ 压缩完成标记由后台 _execute_compression 负责清除")
             logger.warning("└═══════════════════════════════════════════════")
 
         # [审计改进] 加载摘要和最近消息：
@@ -529,7 +564,8 @@ class MemoryManager:
         logger.info("┌═══════════════════════════════════════════════")
         logger.info("│ 🪟 [上下文来源] 内存滑动窗口大小: %d 条 (maxlen=%d)",
                     len(self._message_window), self._message_window.maxlen)
-        summary = self._storage.load_summary()
+        # [2026-08-15 并发修复] 摘要走内存缓存，不再每次同步读文件
+        summary = self._load_summary_cached()
         logger.info("│    └─ 摘要: %s", "已加载 ✓" if summary else "无摘要（首次对话）")
         recent = list(self._message_window)[-20:]
         if recent:
@@ -558,16 +594,27 @@ class MemoryManager:
 
         context.extend(recent)
 
-        # 如果仍然超限，丢弃最旧消息
+        # 如果仍然超限，丢弃最旧消息（单次 token 统计 + 单次裁剪）
+        # [2026-08-15 并发修复] 原 while 循环每轮重算全量 token（O(n²)）——
+        # 共享会话窗口（maxlen=200）在 12 并发下放大为 CPU 串行热点；
+        # 现改为先统计一次总量，逐条弹出时按"消息 token + 4 格式开销"精确扣减。
         has_summary = summary is not None
-        while len(context) > 1:
-            total = self._token_counter.count_messages(context)
-            if total <= token_limit:
-                break
-            # 丢弃最旧的非摘要消息
-            context.pop(1 if has_summary else 0)
+        total = self._token_counter.count_messages(context)
+        drop_idx = 1 if has_summary else 0
+        while len(context) > 1 and total > token_limit:
+            dropped = context.pop(drop_idx)
+            total -= self._token_counter.count(dropped.get("content", "")) + 4
 
         return context
+
+    def _load_summary_cached(self) -> tuple[str, int] | None:
+        """读取摘要（内存缓存优先，避免每个请求同步文件 IO）"""
+        if self._summary_cache is None:
+            try:
+                self._summary_cache = self._storage.load_summary()
+            except Exception:
+                self._summary_cache = None
+        return self._summary_cache
 
     def compress(self, old_messages: list[dict]) -> str:
         """压缩历史对话（同步接口）
@@ -592,7 +639,8 @@ class MemoryManager:
     def compress_rounds(self) -> int:
         """已压缩次数（从摘要版本号获取）"""
         try:
-            summary = self._storage.load_summary()
+            # [2026-08-15 并发修复] 走内存缓存，避免每次同步读文件
+            summary = self._load_summary_cached()
             return summary[1] if summary else 0
         except Exception:
             return 0
@@ -608,6 +656,8 @@ class MemoryManager:
     def clear_summary(self):
         """清空长期摘要，重置版本号"""
         self._storage.clear_summary()
+        # [2026-08-15 并发修复] 写入侧同步失效摘要缓存
+        self._summary_cache = None
         self._black_box.log("summary_cleared", {})
         logger.info("长期摘要已清空")
 

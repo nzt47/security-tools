@@ -72,6 +72,7 @@ class SessionManager:
         timezone: str | None = None,
         device_type: str | None = None,
         locale: str | None = None,
+        session_id: str | None = None,
     ) -> dict:
         """创建新会话
 
@@ -81,11 +82,19 @@ class SessionManager:
             timezone: 用户时区（如 "Asia/Shanghai"），用于调整说话风格与临场感
             device_type: 设备类型（如 "mobile"/"desktop"），来自 User-Agent 启发式
             locale: 语言环境（如 "zh-CN"），来自 Accept-Language
+            session_id: 【2026-08-15 并发修复】显式指定会话 ID（请求级会话隔离，
+                外部调用方可通过该参数传入自定义 ID）。默认 None 自动生成。
 
         Returns:
             会话信息字典（含 timezone/device_type/locale 元数据）
         """
-        session_id = self._generate_id()
+        # [2026-08-15 并发修复] 显式 ID 防路径穿越：会话目录会以该 ID 创建，
+        # 禁止 / \ .. : 等危险字符（自动生成的 ID 天然不含，仅影响显式传入）
+        if session_id is not None and any(
+            ch in session_id for ch in ("/", "\\", "..", ":")
+        ):
+            raise ValueError(f"非法会话 ID: {session_id!r}")
+        session_id = session_id or self._generate_id()
         # 注意：timezone 参数遮蔽了模块级 datetime.timezone，本地别名导入规避
         from datetime import timezone as _dt_timezone
         now = datetime.now(_dt_timezone.utc).isoformat()
