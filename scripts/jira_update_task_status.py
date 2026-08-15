@@ -53,6 +53,10 @@ comment = (
     "- 新增 scripts/verify_prometheus_checklist.py (C1-C5 一键验证)\n"
     "- 阶段5手册新增 §2.3 部署验证 Checklist\n"
     "- 指标命名规范修复配套收尾 (db70b097 同批)\n"
+    "本地验证结果 (2026-08-15):\n"
+    "- 全量单元测试 11749 passed / 2 failed (TestCallLLMV2 修复后 2 passed，commit 6964d441)\n"
+    "- 指标命名规范测试 45 passed，全库违规 0\n"
+    "- 验证脚本 C1 PASS（降级 YAML 校验），C2-C5 SKIP（本地无 Prometheus 实例）\n"
     "部署注意: C2-C6 需部署环境执行脚本完成实际采集验证。"
 )
 status_code, body = _req(
