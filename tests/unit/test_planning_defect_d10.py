@@ -14,7 +14,6 @@ from planning.executor import ToolRegistry
 class TestDefectD10:
     """D10：find_tool 不应过度匹配宽泛中文关键词"""
 
-    @pytest.mark.xfail(reason="已知缺陷 D10：工具匹配过宽导致中文误匹配（缺陷看门狗，修复后移除 xfail）", strict=False)
     def test_find_tool_no_over_broad_chinese_match(self):
         registry = ToolRegistry()
         registry.register("write_file", lambda filename, content: "ok")

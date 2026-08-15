@@ -241,10 +241,10 @@ class TestPytestImportGuard:
     D7_TEST = PROJECT_ROOT / "tests" / "unit" / "test_planning_defect_d7.py"
 
     def test_d7_file_imports_pytest(self):
-        """@pytest.mark.xfail 所在文件须 import pytest（否则分片收集 NameError）"""
+        """使用 pytest 特性的测试文件必须 import pytest（分片收集 NameError 防护）
+        （D7 缺陷已修复，看门狗 xfail 已转正；import pytest 仍保留为良好实践）"""
         text = self.D7_TEST.read_text(encoding="utf-8")
         assert "import pytest" in text, "使用 pytest 特性必须 import pytest"
-        assert "@pytest.mark.xfail" in text
 
 
 # ═══════════════════════════════════════════════════════════════
