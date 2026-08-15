@@ -1,6 +1,7 @@
-# Jira #TASK-1234 状态更新 - 一键执行脚本
+# Jira #TASK-1234 上传附件 + 状态更新 - 一键执行脚本
 # 用法: 双击运行 或 在 PowerShell 中执行 .\scripts\run_jira_task1234_update.ps1
 # 前提: 已设置环境变量 JIRA_BASE_URL / JIRA_EMAIL / JIRA_TOKEN，或首次运行时按提示输入
+# 可选: 设置 JIRA_ATTACH 指向要上传的审计 zip（默认指向 Temp 归档，不存在则跳过）
 
 $ErrorActionPreference = "Stop"
 
@@ -37,12 +38,23 @@ if (-not $env:JIRA_BASE_URL -or -not $env:JIRA_EMAIL -or -not $env:JIRA_TOKEN) {
     exit 1
 }
 
-# 2) 运行更新脚本
+# 2) 确认附件（可选）
+if (-not $env:JIRA_ATTACH) {
+    $defaultAttach = "C:\Windows\Temp\task8_close_audit_20260815.zip"
+    if (Test-Path $defaultAttach) {
+        $env:JIRA_ATTACH = $defaultAttach
+        Write-Host "[INFO] 使用默认审计附件: $env:JIRA_ATTACH" -ForegroundColor Cyan
+    } else {
+        Write-Host "[WARN] 未找到默认审计附件，将跳过上传（可设置 JIRA_ATTACH 指定路径）" -ForegroundColor Yellow
+    }
+}
+
+# 3) 运行更新脚本
 Write-Host "[INFO] 开始更新 #TASK-1234 ..." -ForegroundColor Cyan
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 python -B (Join-Path $scriptDir "jira_update_task_status.py")
 if ($LASTEXITCODE -ne 0) {
     Write-Host "[WARN] 脚本返回非零退出码，请检查上方输出" -ForegroundColor Yellow
 } else {
-    Write-Host "[OK] 执行完成。请到 Jira 确认 #TASK-1234 状态与备注。" -ForegroundColor Green
+    Write-Host "[OK] 执行完成。请到 Jira 确认 #TASK-1234 附件、状态与备注。" -ForegroundColor Green
 }

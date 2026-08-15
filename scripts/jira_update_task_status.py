@@ -1,24 +1,29 @@
-"""Jira 任务 #TASK-1234 关联提交并更新状态脚本（手动执行）。
+"""Jira 任务 #TASK-1234 关联提交、上传附件并更新状态脚本（手动执行）。
 
 用法:
     1. 设置环境变量（或脚本内替换为实际值）:
        $env:JIRA_BASE_URL="https://<your-instance>.atlassian.net"
        $env:JIRA_EMAIL="you@example.com"
        $env:JIRA_TOKEN="<your-api-token>"
+       $env:JIRA_ATTACH="C:\\Windows\\Temp\\task8_close_audit_20260815.zip"  # 可选
     2. python scripts/jira_update_task_status.py
 
 说明:
-    - 在 #TASK-1234 添加开发备注（引用 commit 661d3b74）
+    - 可选上传审计 zip 附件（JIRA_ATTACH 指向文件）
+    - 在 #TASK-1234 添加开发备注（引用 commit 661d3b74 + 本地验证结果）
     - 将任务状态更新为 "Done"（状态 id 因实例配置而异，失败时打印可用的 transitions）
 """
 import json
 import os
 import sys
 import urllib.request
+import uuid
+from pathlib import Path
 
 BASE = os.environ.get("JIRA_BASE_URL", "").rstrip("/")
 EMAIL = os.environ.get("JIRA_EMAIL", "")
 TOKEN = os.environ.get("JIRA_TOKEN", "")
+ATTACH = os.environ.get("JIRA_ATTACH", "")
 ISSUE = "TASK-1234"
 COMMIT = "661d3b74"
 NEW_STATUS = "Done"  # 若实例的过渡 id 不同，脚本会列出可选 transitions
@@ -36,9 +41,46 @@ headers = {
 }
 
 
-def _req(method, path, payload=None):
+def _req(method, path, payload=None, raw_headers=None):
     data = json.dumps(payload).encode() if payload is not None else None
-    req = urllib.request.Request(f"{BASE}{path}", data=data, headers=headers, method=method)
+    hdrs = dict(headers)
+    if raw_headers:
+        hdrs.update(raw_headers)
+    req = urllib.request.Request(f"{BASE}{path}", data=data, headers=hdrs, method=method)
+    try:
+        with urllib.request.urlopen(req) as resp:
+            return resp.status, resp.read().decode()
+    except urllib.error.HTTPError as e:
+        return e.code, e.read().decode()
+
+
+def _upload_attachment(path):
+    """以 multipart/form-data 上传附件（Jira 要求 X-Atlassian-Token: no-check）。"""
+    p = Path(path)
+    if not p.is_file():
+        print(f"附件不存在: {path}")
+        return None
+    boundary = f"----WebKitFormBoundary{uuid.uuid4().hex}"
+    data = bytearray()
+    def _part(name, value, is_file=False, filename=""):
+        data.extend(f"--{boundary}\r\n".encode())
+        if is_file:
+            data.extend(f'Content-Disposition: form-data; name="{name}"; filename="{filename}"\r\n'.encode())
+            data.extend(b"Content-Type: application/zip\r\n\r\n")
+            data.extend(value)
+        else:
+            data.extend(f'Content-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode())
+            data.extend(b"\r\n")
+    _part("file", p.read_bytes(), is_file=True, filename=p.name)
+    data.extend(f"--{boundary}--\r\n".encode())
+    hdrs = {
+        "Content-Type": f"multipart/form-data; boundary={boundary}",
+        "X-Atlassian-Token": "no-check",
+    }
+    req = urllib.request.Request(
+        f"{BASE}/rest/api/2/issue/{ISSUE}/attachments",
+        data=bytes(data), headers=hdrs, method="POST",
+    )
     try:
         with urllib.request.urlopen(req) as resp:
             return resp.status, resp.read().decode()
@@ -59,6 +101,15 @@ comment = (
     "- 验证脚本 C1 PASS（降级 YAML 校验），C2-C5 SKIP（本地无 Prometheus 实例）\n"
     "部署注意: C2-C6 需部署环境执行脚本完成实际采集验证。"
 )
+if ATTACH:
+    status_code, body = _upload_attachment(ATTACH)
+    if status_code is None:
+        print(f"附件上传跳过: {body or '文件不存在'}")
+    else:
+        print(f"上传附件 {Path(ATTACH).name}: HTTP {status_code}" + ("" if status_code == 200 else f"\n{body[:500]}"))
+else:
+    print("上传附件跳过: 未设置 JIRA_ATTACH")
+
 status_code, body = _req(
     "POST", f"/rest/api/2/issue/{ISSUE}/comment", {"body": comment}
 )
