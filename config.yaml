@@ -124,7 +124,7 @@ learning:
   # false（观察模式）：ChangeDetector/行为漂移全链路零学习副作用（仅既有日志）
   # 环境变量 SENSOR_LEARNING_ENABLED 覆盖此值
   sensor_learning:
-    enabled: true
+    enabled: false
     # 行为漂移判定阈值（周级基线相对偏差均值；默认 0.3）
     # 环境变量 SENSOR_LEARNING_DRIFT_THRESHOLD 覆盖此值
     drift_threshold: 0.3
