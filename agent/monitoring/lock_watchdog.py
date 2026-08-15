@@ -17,9 +17,9 @@
     LOCK_WATCHDOG_WAIT_MS   锁等待超时阈值，默认 5000
 
 【指标（注册进 BUSINESS_METRICS_DEFINITIONS）】
-    lock_hold_timeouts_total   counter   持锁超时次数（告警主指标）
-    lock_wait_timeouts_total   counter   锁等待超时次数
-    lock_hold_duration_ms      histogram 持锁时长分布
+    yunshu_lock_hold_timeouts_total   counter   持锁超时次数（告警主指标）
+    yunshu_lock_wait_timeouts_total   counter   锁等待超时次数
+    yunshu_lock_hold_duration_ms      histogram 持锁时长分布
 
 【告警规则文件】deploy/monitoring/prometheus/lock_watchdog_alerts.yml
 """
@@ -56,20 +56,20 @@ def _env_int(name: str, default: int) -> int:
 def _register_metrics() -> None:
     """指标注册（幂等）：watchdog 计数经 Prometheus /metrics 暴露，供告警规则消费"""
     defs = {
-        "lock_hold_timeouts_total": BusinessMetricDefinition(
-            name="lock_hold_timeouts_total",
+        "yunshu_lock_hold_timeouts_total": BusinessMetricDefinition(
+            name="yunshu_lock_hold_timeouts_total",
             description="持锁超时次数（持锁时长 > 阈值，锁纪律违规）",
             metric_type="counter", labels=["lock_name"], unit="次",
             category="concurrency", business_value="锁纪律违规运行时即暴露", aggregation="sum", retention_days=30,
         ),
-        "lock_wait_timeouts_total": BusinessMetricDefinition(
-            name="lock_wait_timeouts_total",
+        "yunshu_lock_wait_timeouts_total": BusinessMetricDefinition(
+            name="yunshu_lock_wait_timeouts_total",
             description="锁等待超时次数（潜在死锁/饥饿）",
             metric_type="counter", labels=["lock_name"], unit="次",
             category="concurrency", business_value="锁等待饿死检测", aggregation="sum", retention_days=30,
         ),
-        "lock_hold_duration_ms": BusinessMetricDefinition(
-            name="lock_hold_duration_ms",
+        "yunshu_lock_hold_duration_ms": BusinessMetricDefinition(
+            name="yunshu_lock_hold_duration_ms",
             description="持锁时长分布（毫秒）",
             metric_type="histogram", labels=["lock_name"], unit="毫秒",
             category="concurrency", business_value="锁竞争量化", aggregation="avg", retention_days=7,
@@ -117,8 +117,8 @@ class LockWatchdog:
         """当前计数快照（Prometheus 暴露 + 测试断言用）"""
         with self._lock:
             return {
-                "lock_hold_timeouts_total": dict(self._hold_timeouts),
-                "lock_wait_timeouts_total": dict(self._wait_timeouts),
+                "yunshu_lock_hold_timeouts_total": dict(self._hold_timeouts),
+                "yunshu_lock_wait_timeouts_total": dict(self._wait_timeouts),
             }
 
 

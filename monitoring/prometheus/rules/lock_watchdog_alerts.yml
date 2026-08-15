@@ -2,9 +2,9 @@
 #
 # 挂载位置: monitoring/prometheus/rules/lock_watchdog_alerts.yml
 # 指标来源 (agent/monitoring/lock_watchdog.py):
-#   - lock_hold_timeouts_total{lock_name}   (counter, 持锁超时次数)
-#   - lock_wait_timeouts_total{lock_name}   (counter, 锁等待超时次数)
-#   - lock_hold_duration_ms{lock_name}      (histogram, 持锁时长分布)
+#   - yunshu_lock_hold_timeouts_total{lock_name}   (counter, 持锁超时次数)
+#   - yunshu_lock_wait_timeouts_total{lock_name}   (counter, 锁等待超时次数)
+#   - yunshu_lock_hold_duration_ms{lock_name}      (histogram, 持锁时长分布)
 #
 # 设计语义（不易）:
 #   - 计数 > 0 即违规: 持锁超时/等待超时在正常路径应为 0（锁纪律护栏）
@@ -19,7 +19,7 @@ groups:
     rules:
       # 持锁超时 = 锁纪律违规（锁内出现 I/O/阻塞调用），critical 立即处理
       - alert: LockHoldTimeout
-        expr: increase(lock_hold_timeouts_total[10m]) > 0
+        expr: increase(yunshu_lock_hold_timeouts_total[10m]) > 0
         for: 5m
         labels:
           severity: critical
@@ -30,7 +30,7 @@ groups:
 
       # 锁等待超时 = 潜在死锁/饥饿，warning 关注
       - alert: LockWaitTimeout
-        expr: increase(lock_wait_timeouts_total[10m]) > 0
+        expr: increase(yunshu_lock_wait_timeouts_total[10m]) > 0
         for: 5m
         labels:
           severity: warning
