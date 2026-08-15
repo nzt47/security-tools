@@ -126,7 +126,7 @@ def scenario_1_empty_file():
     stop_server()
     
     # 创建空文件
-    open(MESSAGES_FILE, 'w').close()
+    open(MESSAGES_FILE, 'w', encoding="utf-8").close()
     log("已创建空文件")
     
     proc = start_server()

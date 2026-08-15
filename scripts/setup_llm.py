@@ -113,7 +113,7 @@ class LLMConfigManager:
         
         # 尝试从配置文件读取
         if self.config_file.exists():
-            with open(self.config_file, 'r') as f:
+            with open(self.config_file, 'r', encoding="utf-8") as f:
                 saved = json.load(f)
                 if provider in saved and saved[provider].get('api_key'):
                     print(f"\n✓ 检测到已保存的 {info['name']} API Key")
@@ -159,7 +159,7 @@ class LLMConfigManager:
             'configured_at': str(Path(__file__).parent / 'config.py')
         }
         
-        with open(self.config_file, 'w') as f:
+        with open(self.config_file, 'w', encoding="utf-8") as f:
             json.dump(config, f, indent=2)
         
         print(f"\n✓ 配置已保存到: {self.config_file}")
@@ -357,7 +357,7 @@ def main():
 def configure_from_file(self):
     """从配置文件加载"""
     if self.config_file.exists():
-        with open(self.config_file, 'r') as f:
+        with open(self.config_file, 'r', encoding="utf-8") as f:
             return json.load(f)
     return None
 
