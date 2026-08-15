@@ -179,19 +179,13 @@ def _get_shared_encoder(model_name: str) -> Optional[Any]:
             return _shared_encoder_cache[model_name]
         try:
             import sentence_transformers as _st_mod
-            # duck-typing 检测 MagicMock 模块：模块被整体 mock 时不应初始化编码器
-            # （防污染：test_reranker.py 等模块级 `sys.modules["sentence_transformers"]
-            # = MagicMock()` 会永久残留，VectorStore 从 Mock 模块取类可调用不抛异常，
-            # 会缓存坏编码器导致后续 add 全部失败）。
+            # duck-typing 检测 MagicMock：模块被 mock 时不应初始化编码器
             if hasattr(_st_mod, "mock_calls"):
                 return None
             from sentence_transformers import SentenceTransformer
-            # 注意：不再做类级 Mock 检测（hasattr(SentenceTransformer, "mock_calls")）。
-            # 【不易】模块级检测已覆盖 reranker 污染场景；类级检测会误伤测试合法用法
-            # `patch('sentence_transformers.SentenceTransformer', return_value=mock_encoder)`
-            # ——patch 后的类必为 MagicMock（有 mock_calls）→ 提前 return None →
-            # 后端降级 json → "expected sqlite_vec, got json"（2026-08-15 L3 8 ERROR
-            # 根因，容器内无 CI env → _HAS_ST=True 集成测试不 skip）。
+            # 类级 Mock 检测：模块真实但类被 patch 为 Mock 时同样不缓存
+            if hasattr(SentenceTransformer, "mock_calls"):
+                return None
             encoder = SentenceTransformer(model_name)
             _shared_encoder_cache[model_name] = encoder
             return encoder

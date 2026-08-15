@@ -66,33 +66,16 @@ def _enable_st_module_for_patch():
     Why: conftest reset_global_singletons #12b 会移除被 mock 污染的
     sentence_transformers 模块。若本文件不补回，patch('sentence_transformers.
     SentenceTransformer') 的 resolve_name 会真实 import sentence_transformers →
-    内部真实 import transformers → 加载 torch C 扩展 → 崩溃（Windows
-    0xC0000005；Linux 容器内 torch 2.12.0+cu130 无 GPU 环境实测 Segmentation
-    fault exit 139，2026-08-15 L3）。真实模块可用时不干预。
-
-    【不易】占位模块必须用 types.ModuleType（无 mock_calls 属性），**不能**用
-    MagicMock() 当模块：
-      - MagicMock 模块有 mock_calls → VectorStore._get_shared_encoder 的模块级
-        Mock 检测（hasattr(_st_mod, "mock_calls")）提前 return None → 集成测试
-        patch 的 mock encoder 无效 → 降级 json（L3 8 ERROR 根因）。
-      - types.ModuleType 占位：import 命中 sys.modules 不真实加载 torch；模块级
-        检测不拦截；其 SentenceTransformer 属性为 MagicMock（patch resolve 生效）；
-        类级检测已移除（修复点 18）→ SentenceTransformer(model) 返回 mock encoder。
-    占位无平台限制（Windows 防 0xC0000005 与 Linux 容器防 Segmentation fault
-    同因：patch resolve 触发真实 import torch）。teardown pop 防占位残留污染
-    后续测试（conftest #12b 只清理 mock_calls 模块，清理不了占位模块）。
+    内部真实 import transformers → 加载 torch C 扩展 → Windows 0xC0000005
+    崩溃（全量顺序 vector_store_sqlite_vec 12 失败根因）。真实模块可用时
+    不干预；teardown 不恢复（清理职责归 conftest）。
     """
     import sys as _sys
-    import types as _types
     _mod = _sys.modules.get("sentence_transformers")
     _need_mock = _mod is None or hasattr(_mod, "mock_calls")
     if _need_mock:
-        _placeholder = _types.ModuleType("sentence_transformers")
-        _placeholder.SentenceTransformer = MagicMock()
-        _sys.modules["sentence_transformers"] = _placeholder
+        _sys.modules["sentence_transformers"] = MagicMock()
     yield
-    if _need_mock:
-        _sys.modules.pop("sentence_transformers", None)
 
 
 # ════════════════════════════════════════════════════════════
