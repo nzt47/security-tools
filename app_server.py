@@ -844,8 +844,29 @@ def api_chat():
     if not user_input:
         return jsonify({"error": "消息不能为空"}), 400
 
-    # 获取会话 ID
-    session_id = request.args.get("session") or _get_current_session_id()
+    # 获取会话 ID（优先级：请求体 session_id > 查询参数 session > 全局默认）
+    # [2026-08-15 并发修复] 压测/外部调用方在 JSON body 传 session_id，
+    # 原实现只读 query 参数导致 12 并发请求全部收敛到同一默认会话
+    # （会话级串行根因之一，见 会话级上下文检查串行阻塞技术备忘录_20260815.md）。
+    # body 优先实现真正的请求级会话隔离；query 回退保持 Web 前端兼容。
+    body_session_id = (data or {}).get("session_id") or ""
+    session_id = body_session_id or request.args.get("session") or _get_current_session_id()
+    # [2026-08-15 并发修复] 显式会话不存在时自动创建：
+    # SessionManager.add_message 对不存在会话抛 SessionNotFoundError → 500，
+    # 外部调用方传入任意 session_id 时无法工作。自动创建即可实现真正会话隔离。
+    if body_session_id or request.args.get("session"):
+        try:
+            if not _session_mgr.get_session(session_id):
+                _session_mgr.create_session(
+                    session_id=session_id,
+                    title=f"会话 {session_id[:24]}",
+                )
+                logger.info("已自动创建会话: %s", session_id)
+        except ValueError as _e:
+            # 非法会话 ID（含路径穿越字符）回退默认会话
+            logger.warning("会话 ID 非法，回退默认会话: %s", _e)
+            session_id = _get_current_session_id()
+    logs.append(f"[SESSION] 会话 ID: {session_id}")
 
     # 安全检查（受技能开关控制）
     safety_start = time.time()

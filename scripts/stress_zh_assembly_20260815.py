@@ -18,6 +18,7 @@
 import argparse
 import concurrent.futures as cf
 import json
+import os
 import statistics
 import sys
 import time
@@ -27,6 +28,10 @@ from datetime import datetime
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# 客户端 HTTP 超时（秒）：可通过 --timeout 或环境变量 STRESS_HTTP_TIMEOUT 覆盖
+# 【变易】首次压测发现 120s 硬超时掩盖了真实成功率，调高至 180s 观察真实分布
+_HTTP_TIMEOUT = int(os.getenv("STRESS_HTTP_TIMEOUT", "180"))
 
 # 中文请求池：覆盖不同句式的真实中文输入
 ZH_QUESTIONS = [
@@ -54,7 +59,7 @@ def send_once(base: str, q: str, session: str) -> dict:
         method="POST")
     t0 = time.time()
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
+        with urllib.request.urlopen(req, timeout=_HTTP_TIMEOUT) as resp:
             raw = resp.read().decode("utf-8")
         elapsed = time.time() - t0
         data = json.loads(raw)
@@ -77,9 +82,35 @@ def send_once(base: str, q: str, session: str) -> dict:
                 "api_key_set": False, "provider": "", "model": ""}
 
 
-def count_log_lines(pattern: str) -> int:
+def resolve_log_path(explicit: str = "") -> Path:
+    """自动定位当前服务 stdout 日志路径（方案2）
+
+    优先级（【不易】确定性优先，逐级回退）:
+    1. --log 显式参数（最可靠，人工指定）
+    2. 环境变量 AGENT_SERVER_LOG（服务侧约定，如 `python app_server.py >> data/health/server.log 2>&1`）
+    3. data/health/ 下 mtime 最新的 server*.log（约定目录内兜底）
+    """
+    candidates = []
+    if explicit.strip():
+        candidates.append(("--log 参数", Path(explicit.strip())))
+    env_log = os.environ.get("AGENT_SERVER_LOG", "").strip()
+    if env_log:
+        candidates.append(("env AGENT_SERVER_LOG", Path(env_log)))
+    health_dir = REPO_ROOT / "data" / "health"
+    if health_dir.exists():
+        for f in sorted(health_dir.glob("server*.log"),
+                        key=lambda p: p.stat().st_mtime, reverse=True):
+            candidates.append((f"data/health/{f.name}", f))
+            break
+    for source, p in candidates:
+        if p.exists():
+            return p
+    return REPO_ROOT / "data" / "health" / "server_semantic_fix9.log"
+
+
+def count_log_lines(pattern: str, explicit_log: str = "") -> int:
     """统计服务日志中匹配 pattern 的行数（组装流程证据）"""
-    log_path = REPO_ROOT / "data" / "health" / "server_semantic_fix9.log"
+    log_path = resolve_log_path(explicit_log)
     if not log_path.exists():
         return -1
     cnt = 0
@@ -96,17 +127,26 @@ def main() -> int:
     ap.add_argument("--total", type=int, default=12)
     ap.add_argument("--base", default="http://127.0.0.1:5678")
     ap.add_argument("--report", type=str, default="")
+    ap.add_argument("--log", type=str, default="",
+                    help="服务 stdout 日志路径（默认自动定位: AGENT_SERVER_LOG 环境变量 > data/health 最新 server*.log）")
+    ap.add_argument("--timeout", type=int, default=0,
+                    help="客户端 HTTP 超时秒数（默认 180，或 STRESS_HTTP_TIMEOUT 环境变量）")
     args = ap.parse_args()
+
+    global _HTTP_TIMEOUT
+    if args.timeout > 0:
+        _HTTP_TIMEOUT = args.timeout
 
     assert args.total <= len(ZH_QUESTIONS), (
         f"total={args.total} 超过问题池大小 {len(ZH_QUESTIONS)}，请先扩充 ZH_QUESTIONS")
     print(f"[STRESS] 开始压测: concurrency={args.concurrency} total={args.total} "
-          f"base={args.base}")
+          f"base={args.base} http_timeout={_HTTP_TIMEOUT}s")
     print(f"[STRESS] 开始时间: {datetime.now().strftime('%H:%M:%S')}")
+    print(f"[STRESS] 日志定位: {resolve_log_path(args.log)}")
 
     # 压测前日志基线（组装流程触发证据）
-    asm_before = count_log_lines("组装完成")
-    llm_before = count_log_lines("layer=llm")
+    asm_before = count_log_lines("组装完成", args.log)
+    llm_before = count_log_lines("layer=llm", args.log)
 
     questions = ZH_QUESTIONS[: args.total]
     results = []
@@ -125,8 +165,8 @@ def main() -> int:
 
     t_total = time.time() - t_start
     # 压测后日志基线
-    asm_after = count_log_lines("组装完成")
-    llm_after = count_log_lines("layer=llm")
+    asm_after = count_log_lines("组装完成", args.log)
+    llm_after = count_log_lines("layer=llm", args.log)
 
     ok = [r for r in results if r["status"] == 200 and r["resp_len"] > 0]
     errs = [r for r in results if r["status"] != 200 or r["resp_len"] == 0]
