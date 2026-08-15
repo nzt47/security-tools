@@ -505,3 +505,89 @@ class TestIntegration:
         manager.save_state({"v": 2}, state_id="overwrite")
         result = manager.load_state("overwrite")
         assert result.state_data["v"] == 2
+
+
+# ── 15. 快照恢复边界（任务5 验收补充）───────────────────────────────
+
+
+class TestSnapshotRestoreEdgeCases:
+    """状态保存/恢复（快照 restore）边界情况：损坏文件/缺失/兜底/轮转"""
+
+    def test_load_corrupted_json_returns_failure(self, manager):
+        """快照文件损坏（非法 JSON）→ 恢复失败且 error_message 含 JSON 解析错误"""
+        target = manager._get_state_path("corrupt")
+        target.write_text("{not valid json", encoding="utf-8")
+        result = manager.load_state("corrupt")
+        assert result.success is False
+        assert "JSON" in result.error_message
+
+    def test_load_missing_named_state(self, manager):
+        """指定不存在的 state_id → 恢复失败且返回空状态"""
+        result = manager.load_state("ghost")
+        assert result.success is False
+        assert result.state_data == {}
+        assert "不存在" in result.error_message
+
+    def test_load_none_with_no_files_fails(self, manager):
+        """目录完全为空 → load_state(None) 返回失败（无任何快照可恢复）"""
+        result = manager.load_state()
+        assert result.success is False
+
+    def test_load_none_with_only_custom_states_picks_newest(self, manager):
+        """无默认文件但存在多个自定义快照 → load_state(None) 兜底取最新一份"""
+        manager.save_state({"v": 1}, state_id="old")
+        time.sleep(0.02)
+        manager.save_state({"v": 2}, state_id="new")
+        result = manager.load_state()
+        assert result.success is True
+        assert result.state_id == "new"
+
+    def test_datetime_and_path_roundtrip(self, manager):
+        """datetime/Path 字段经 _json_default 序列化后可从快照完整恢复"""
+        dt = datetime(2026, 8, 15, 12, 30, tzinfo=timezone.utc)
+        p = Path("data/x.json")
+        manager.save_state({"t": dt, "p": p}, state_id="typed")
+        result = manager.load_state("typed")
+        assert result.success is True
+        assert result.state_data["t"] == dt.isoformat()
+        assert result.state_data["p"] == str(p)  # Windows 下路径分隔符为反斜杠
+
+    def test_backup_rotation_keeps_max_backups(self, manager):
+        """备份超过 MAX_BACKUPS 后自动清理，仅保留最近 N 份"""
+        manager.MAX_BACKUPS = 3
+        for i in range(5):
+            (manager._state_dir / f"b{i}_backup.json").write_text("{}", encoding="utf-8")
+        manager._cleanup_backups()
+        backups = list(manager._state_dir.glob("*_backup.json"))
+        assert len(backups) <= 3
+
+    def test_default_save_creates_backup_of_previous(self, manager):
+        """默认保存（state_id=None）第二次时对上一份状态创建备份（死代码分支修复回归）
+
+        修复前：state_id 生成后 `if state_id is None` 永不成立 → 备份分支永不执行，
+        且 _create_backup 读取从不写入的默认文件。
+        修复后：is_default_save 在 ID 生成前记录原始意图，_create_backup 备份当前最新状态。
+        """
+        manager.save_state({"v": 1})  # 首次：无上一份状态 → 不产生备份
+        assert list(manager._state_dir.glob("*_backup.json")) == []
+        manager.save_state({"v": 2})  # 第二次：备份第一份状态
+        backups = list(manager._state_dir.glob("*_backup.json"))
+        assert len(backups) == 1
+        assert json.loads(backups[0].read_text(encoding="utf-8"))["v"] == 1
+
+    def test_find_latest_state_excludes_backups(self, manager):
+        """_find_latest_state 跳过 *_backup.json，返回最新非备份快照"""
+        (manager._state_dir / "agent_state_backup.json").write_text("{}", encoding="utf-8")
+        manager.save_state({"v": 1}, state_id="real_1")
+        latest = manager._find_latest_state()
+        assert latest is not None
+        assert "_backup" not in latest.name
+        assert latest.name == "real_1.json"
+
+    def test_load_restores_current_state_copy(self, manager):
+        """load 后 get_current_state 反映恢复内容，且返回副本（外部修改不污染内部）"""
+        manager.save_state({"k": "v"}, state_id="r")
+        manager.load_state("r")
+        assert manager.get_current_state().get("k") == "v"
+        manager.get_current_state()["k"] = "mutated"
+        assert manager._current_state["k"] == "v"

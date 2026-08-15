@@ -7,6 +7,7 @@
 """
 
 import pytest
+from types import SimpleNamespace
 
 from planning.loop_detector import LoopDetector, LoopSignal
 from planning.models.action import Action, ActionType
@@ -178,3 +179,108 @@ class TestLoopDetectorCheck:
         # 第 3 次 h_a（窗口内 A 达 3 次）→ 触发
         sig = d.check(h_a)
         assert sig is not None and sig.terminate is True and sig.occurrences == 3
+
+
+# ── 边界情况（极端参数/截断/鸭子类型）─────────────────────────────────────
+
+
+class TestLoopDetectorEdgeCases:
+    """任务5 验收补充：极端边界（window/截断/非标准输入/描述缓存回退）"""
+
+    def test_max_repeats_one_signals_immediately(self):
+        """max_repeats=1：首次出现即触发"""
+        d = LoopDetector(max_repeats=1)
+        h = d.state_hash(make_thought())
+        sig = d.check(h)
+        assert sig is not None and sig.terminate is True and sig.occurrences == 1
+
+    def test_window_smaller_than_max_repeats_never_signals(self):
+        """window < max_repeats：回溯窗口装不下足够样本 → 永不触发（锁定现状）"""
+        d = LoopDetector(max_repeats=2, window=1)
+        h = d.state_hash(make_thought())
+        for _ in range(5):
+            assert d.check(h) is None
+        # 窗口长度被限制为 window，历史不无界增长
+        assert len(d._history) == 1
+
+    def test_window_bounds_history_growth(self):
+        """连续不同状态：历史长度被封顶在 window，不随调用次数增长"""
+        d = LoopDetector(window=3)
+        for i in range(10):
+            d.check(d.state_hash(make_thought(params={"q": str(i)})))
+        assert len(d._history) == 3
+
+    def test_long_param_value_truncated_stable(self):
+        """超过 80 字符的参数值被截断：长值与 80 字符前缀指纹一致"""
+        d = LoopDetector()
+        h1 = d.state_hash(make_thought(params={"q": "x" * 100}))
+        h2 = d.state_hash(make_thought(params={"q": "x" * 80}))
+        assert h1 == h2
+
+    def test_params_beyond_16_keys_ignored(self):
+        """参数超过 16 个 key：排序后仅前 16 参与指纹（第 17 个 key 变化不敏感）"""
+        d = LoopDetector()
+        a = {f"k{i:02d}": i for i in range(17)}   # k00..k16，k16 被截断丢弃
+        b = {f"k{i:02d}": i for i in range(16)}   # k00..k15
+        b["z_last"] = 99                          # 排序后 z_last 在第 17 位被丢弃
+        assert d.state_hash(make_thought(params=a)) == d.state_hash(make_thought(params=b))
+
+    def test_context_beyond_8_keys_ignored(self):
+        """上下文超过 8 个非私有 key：排序后仅前 8 参与指纹"""
+        d = LoopDetector()
+        ctx_a = {f"c{i}": i for i in range(9)}   # c0..c8，c8 被截断丢弃
+        ctx_b = {f"c{i}": i for i in range(8)}   # c0..c7
+        ctx_b["zzz"] = 99                        # 排序后 zzz 在第 9 位被丢弃
+        assert d.state_hash(make_thought(), ctx_a) == d.state_hash(make_thought(), ctx_b)
+
+    def test_step_index_not_in_fingerprint(self):
+        """step_index 不参与指纹（同状态不同步号指纹一致）"""
+        d = LoopDetector()
+        t = make_thought()
+        assert d.state_hash(t, {"task": "t"}, 1) == d.state_hash(t, {"task": "t"}, 999)
+
+    def test_none_and_empty_context_equal(self):
+        """context=None 与 context={} 指纹一致"""
+        d = LoopDetector()
+        t = make_thought()
+        assert d.state_hash(t) == d.state_hash(t, {})
+
+    def test_non_string_action_type_coerced(self):
+        """非字符串 action_type（int）强制转 str：123 与 "123" 指纹一致（鸭子类型）"""
+        d = LoopDetector()
+        h1 = d.state_hash(SimpleNamespace(
+            action_type=123,
+            action=SimpleNamespace(tool_name="t", tool_params={"q": "x"})))
+        h2 = d.state_hash(SimpleNamespace(
+            action_type="123",
+            action=SimpleNamespace(tool_name="t", tool_params={"q": "x"})))
+        assert h1 == h2
+
+    def test_non_string_tool_name_ignored(self):
+        """非字符串 tool_name（int）视为空：不影响指纹（鸭子类型）"""
+        d = LoopDetector()
+        h1 = d.state_hash(SimpleNamespace(
+            action_type="tool_call",
+            action=SimpleNamespace(tool_name=456, tool_params={"q": "x"})))
+        h2 = d.state_hash(SimpleNamespace(
+            action_type="tool_call",
+            action=SimpleNamespace(tool_name="", tool_params={"q": "x"})))
+        assert h1 == h2
+
+    def test_none_param_value_hashable(self):
+        """参数值为 None 不崩溃且指纹稳定"""
+        d = LoopDetector()
+        h1 = d.state_hash(make_thought(params={"q": None}))
+        h2 = d.state_hash(make_thought(params={"q": None}))
+        assert h1 == h2
+
+    def test_summary_falls_back_to_hash_after_reset(self):
+        """reset 清空描述缓存后，summary 回退为哈希本身"""
+        d = LoopDetector(max_repeats=3)
+        h = d.state_hash(make_thought(params={"q": "a"}))  # 登记描述
+        d.reset()  # 清空描述缓存
+        assert d.check(h) is None
+        assert d.check(h) is None
+        sig = d.check(h)
+        assert sig.terminate is True
+        assert sig.summary == h  # 无描述可用 → 回退为哈希
