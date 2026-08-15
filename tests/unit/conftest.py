@@ -489,6 +489,8 @@ def _skills_offline_mode():
             class _DummyCollector:
                 def inc_counter(self, *a, **kw):
                     pass
+                def increment_counter(self, *a, **kw):
+                    pass
                 def observe_histogram(self, *a, **kw):
                     pass
                 def set_gauge(self, *a, **kw):
