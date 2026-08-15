@@ -10,7 +10,9 @@
 """
 import json
 import logging
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
@@ -591,3 +593,129 @@ class TestSnapshotRestoreEdgeCases:
         assert manager.get_current_state().get("k") == "v"
         manager.get_current_state()["k"] = "mutated"
         assert manager._current_state["k"] == "v"
+
+
+# ── 7. 并发写入与快照回滚原子性 ──────────────────────────────────
+
+
+class TestConcurrentSnapshotAtomicity:
+    """并发写入场景下快照保存/回滚（load）的原子性验证
+
+    设计依据（不易）：save_state/load_state/_create_backup/_cleanup_backups
+    全程持有 self._lock，同进程内并发访问被串行化。本组用例固化该保证：
+    1. 并发保存的快照文件各自完整、无跨线程串台；
+    2. 并发覆盖同一快照时，load 到的永远是某个完整版本（无半写/拼接）；
+    3. 并发默认保存触发的备份轮转仍保持数量上限且内容合法；
+    4. 并发 save + load(None) 兜底路径不抛异常、结果完整。
+
+    边界说明（简易）：当前实现为 open('w') 直接写目标文件（非 tmp+rename 原子写），
+    本组用例验证的是 API 层（锁内）原子性；跨进程直接读文件不在保证范围内。
+    """
+
+    N_THREADS = 8
+    PAYLOAD_SIZE = 5000
+
+    @staticmethod
+    def _run_concurrently(fn, n, barrier):
+        """n 个线程并发执行 fn(i)，fn 内部须先 barrier.wait() 对齐起跑"""
+        with ThreadPoolExecutor(max_workers=n) as ex:
+            futures = [ex.submit(fn, i) for i in range(n)]
+            for fut in futures:
+                fut.result()
+
+    def test_concurrent_distinct_saves_no_cross_writer(self, manager):
+        """8 线程并发保存不同快照 → 每个文件完整 JSON 且 owner 与文件名一一对应"""
+        n = self.N_THREADS
+        size = self.PAYLOAD_SIZE
+        barrier = threading.Barrier(n)
+
+        def do_save(i):
+            barrier.wait()
+            manager.save_state({"owner": f"t{i}", "blob": "x" * size}, state_id=f"c{i}")
+
+        self._run_concurrently(do_save, n, barrier)
+
+        for i in range(n):
+            sid = f"c{i}"
+            data = json.loads((manager._state_dir / f"{sid}.json").read_text(encoding="utf-8"))
+            assert data["owner"] == f"t{i}", f"快照 {sid} 混入他人数据（串台）"
+            assert len(data["blob"]) == size
+            assert data["_metadata"]["state_id"] == sid
+
+    def test_concurrent_overwrite_load_sees_complete_snapshot(self, manager):
+        """写线程交替覆盖同一快照 + 读线程并发 load → 读到的 owner 始终属于某个完整版本"""
+        n_writers = 2
+        n_readers = 2
+        barrier = threading.Barrier(n_writers + n_readers + 1)
+        stop = threading.Event()
+        loaded_owners = []
+
+        def writer(tag):
+            barrier.wait()
+            while not stop.is_set():
+                manager.save_state({"owner": tag, "blob": "y" * self.PAYLOAD_SIZE}, state_id="shared")
+
+        def reader():
+            barrier.wait()
+            while not stop.is_set():
+                r = manager.load_state("shared")
+                if r.success:
+                    loaded_owners.append(r.state_data["owner"])
+
+        with ThreadPoolExecutor(max_workers=n_writers + n_readers) as ex:
+            futures = [ex.submit(writer, f"t{i}") for i in range(n_writers)]
+            futures += [ex.submit(reader) for _ in range(n_readers)]
+            barrier.wait()  # 对齐起跑
+            time.sleep(0.5)
+            stop.set()
+            for fut in futures:
+                fut.result()
+
+        assert loaded_owners, "读线程应至少成功读回一次快照"
+        assert set(loaded_owners) <= {"t0", "t1"}, f"读到跨写入混搭内容: {set(loaded_owners)}"
+
+    def test_concurrent_default_saves_keep_backups_valid(self, manager):
+        """8 线程并发默认保存 → 备份文件全部合法且数量不超 MAX_BACKUPS"""
+        manager.MAX_BACKUPS = 3
+        n = self.N_THREADS
+        barrier = threading.Barrier(n)
+
+        def do_save(i):
+            barrier.wait()
+            manager.save_state({"v": i})
+
+        self._run_concurrently(do_save, n, barrier)
+
+        backups = list(manager._state_dir.glob("*_backup.json"))
+        assert len(backups) <= 3, f"备份数量超出上限: {len(backups)}"
+        for b in backups:
+            json.loads(b.read_text(encoding="utf-8"))  # 每个备份都是合法 JSON
+
+    def test_concurrent_save_load_none_no_exceptions(self, manager):
+        """写线程默认保存 + 读线程 load_state(None) 兜底 → 无异常、结果完整"""
+        stop = threading.Event()
+        loads = []
+
+        def do_save(i):
+            while not stop.is_set():
+                manager.save_state({"seq": i})
+
+        def do_load():
+            while not stop.is_set():
+                r = manager.load_state()
+                if r.success:
+                    loads.append(r)
+
+        with ThreadPoolExecutor(max_workers=4) as ex:
+            futures = [ex.submit(do_save, i) for i in range(2)]
+            futures += [ex.submit(do_load) for _ in range(2)]
+            time.sleep(0.5)
+            stop.set()
+            for fut in futures:
+                fut.result()
+
+        assert loads, "load_state(None) 应至少成功兜底一次"
+        for r in loads:
+            assert r.success
+            assert r.state_id  # 兜底返回的是最新快照 ID
+            assert "_metadata" in r.state_data
