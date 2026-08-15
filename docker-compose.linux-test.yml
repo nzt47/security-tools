@@ -37,8 +37,12 @@ services:
       - hf-cache:/app/.hf_cache
     environment:
       - HF_HOME=/app/.hf_cache
-      - TRANSFORMERS_CACHE=/app/.hf_cache
-      - SENTENCE_TRANSFORMERS_HOME=/app/.hf_cache
+      # 【不易】TRANSFORMERS_CACHE/SENTENCE_TRANSFORMERS_HOME 必须指向 {HF_HOME}/hub：
+      # vector_store._is_model_fully_cached 检查 {HF_HOME}/hub/models--...，predownload_models.py
+      # 下载也落盘到 hub/。若指向 {HF_HOME}（无 hub 后缀），编码器加载找不到缓存 →
+      # 在线请求 huggingface.co 失败 → 降级 json（L3 回退根因，2026-08-15 实证）。
+      - TRANSFORMERS_CACHE=/app/.hf_cache/hub
+      - SENTENCE_TRANSFORMERS_HOME=/app/.hf_cache/hub
     entrypoint: ["python"]
     command: |
       -c "
@@ -68,8 +72,12 @@ services:
       - ./data/memory:/app/data/memory:ro
     environment:
       - HF_HOME=/app/.hf_cache
-      - TRANSFORMERS_CACHE=/app/.hf_cache
-      - SENTENCE_TRANSFORMERS_HOME=/app/.hf_cache
+      # 【不易】TRANSFORMERS_CACHE/SENTENCE_TRANSFORMERS_HOME 必须指向 {HF_HOME}/hub：
+      # vector_store._is_model_fully_cached 检查 {HF_HOME}/hub/models--...，predownload_models.py
+      # 下载也落盘到 hub/。若指向 {HF_HOME}（无 hub 后缀），编码器加载找不到缓存 →
+      # 在线请求 huggingface.co 失败 → 降级 json（L3 回退根因，2026-08-15 实证）。
+      - TRANSFORMERS_CACHE=/app/.hf_cache/hub
+      - SENTENCE_TRANSFORMERS_HOME=/app/.hf_cache/hub
       - OMP_NUM_THREADS=4
       - MKL_NUM_THREADS=4
       - PYTEST_TIMEOUT=120
