@@ -9,6 +9,7 @@ agent/skills_mgmt/lineage.py 等已跟踪模块）导致挂载 conftest import �
 """
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -158,3 +159,68 @@ class TestPreflightEdgeCases:
         monkeypatch.setattr(mod.subprocess, "run", boom)
         rc = mod.main([])
         assert rc == 1
+
+
+class TestSimulatedCiFailure:
+    """端到端模拟 CI 流水线：context 漂移 → 构建中断 → 修复 → 放行"""
+
+    def _make_mini_repo(self, tmp_path: Path, with_lineage: bool) -> None:
+        """在 tmp_path 构造迷你 git 仓库（含构建文件；可选缺 lineage.py 模拟漂移）"""
+        # 构建链路文件（预检 build_files 校验需要）
+        (tmp_path / "Dockerfile.linux-test").write_text("", encoding="utf-8")
+        (tmp_path / "docker-compose.linux-test.yml").write_text("", encoding="utf-8")
+        scripts = tmp_path / "scripts"
+        scripts.mkdir()
+        (scripts / "predownload_models.py").write_text("", encoding="utf-8")
+        (scripts / "run_l3_regression_tests.ps1").write_text("", encoding="utf-8")
+        # 关键模块（conftest 引用链；with_lineage=False 即模拟 context 漂移）
+        skills = tmp_path / "agent" / "skills_mgmt"
+        skills.mkdir(parents=True)
+        for name in ("models.py", "meta_editor.py", "service.py"):
+            (skills / name).write_text("", encoding="utf-8")
+        if with_lineage:
+            (skills / "lineage.py").write_text("", encoding="utf-8")
+        vs = tmp_path / "memory" / "vector_store"
+        vs.mkdir(parents=True)
+        (vs / "vector_store.py").write_text("", encoding="utf-8")
+        (vs / "sqlite_vec_backend.py").write_text("", encoding="utf-8")
+        # 初始化 git 仓库并提交基线（保证 git_clean 校验通过）
+        env = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+               "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+        subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+        subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", "init"], cwd=tmp_path,
+                       env={**__import__("os").environ, **env}, check=True)
+
+    def test_context_drift_blocks_build_then_fix_releases(
+            self, tmp_path, monkeypatch):
+        """缺 lineage.py（镜像快照漂移）→ rc=1（构建中断）；补全提交 → rc=0（放行）"""
+        self._make_mini_repo(tmp_path, with_lineage=False)
+        monkeypatch.setenv("PREFLIGHT_ROOT", str(tmp_path))
+
+        drifted = _load_module()
+        assert drifted.main([]) == 1  # CI 应在此中断（fail fast）
+
+        # 修复：补齐缺失模块并提交
+        (tmp_path / "agent" / "skills_mgmt" / "lineage.py").write_text(
+            "", encoding="utf-8")
+        subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", "fix"], cwd=tmp_path,
+                       env={**__import__("os").environ,
+                            "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+                            "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"},
+                       check=True)
+
+        fixed = _load_module()
+        assert fixed.main([]) == 0  # 修复后放行
+
+    def test_ci_command_contract_exit_code(self, tmp_path, monkeypatch):
+        """CI 命令契约：--json 失败时退出码 1（workflow '|| exit 1' 依赖）"""
+        self._make_mini_repo(tmp_path, with_lineage=False)
+        monkeypatch.setenv("PREFLIGHT_ROOT", str(tmp_path))
+        proc = subprocess.run(
+            [sys.executable, str(PREFLIGHT_PATH), "--json"],
+            cwd=PROJECT_ROOT, capture_output=True, text=True)
+        assert proc.returncode == 1  # 漂移 → 非零退出，CI 中断
+        import json as _json
+        _json.loads(proc.stdout)  # stdout 必须仍是合法 JSON

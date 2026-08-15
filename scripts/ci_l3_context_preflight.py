@@ -27,11 +27,16 @@
 """
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# 【变易】PREFLIGHT_ROOT 环境变量可覆盖项目根（测试/沙箱注入点；默认取脚本所在仓库根）
+PROJECT_ROOT = Path(
+    os.environ.get("PREFLIGHT_ROOT")
+    or Path(__file__).resolve().parent.parent
+)
 
 # 【不易】conftest.py autouse fixture 实际 import 的模块（缺任一即全量 ERROR）
 CRITICAL_MODULES = [
