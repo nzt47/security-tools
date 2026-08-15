@@ -180,6 +180,50 @@ def main():
 
     # ────────────────────────────────────────────────────────────
     print("\n" + "=" * 72)
+    print("【阶段 1.5】工具调用失败 → 修复策略生成 → 下一次执行自动命中")
+    print("=" * 72)
+
+    # 案例 C：file_edit 调用失败（目标路径不存在）→ 生成 tool:file_edit 修复策略
+    print("\n  ▶ 调用 file_edit（目标路径不存在）...")
+    resp_c = {"ok": False, "tool": "file_edit",
+              "error": "目标文件/目录不存在: /tmp/evo_nonexistent.md"}
+    diag_c = {
+        "error_type": "file_not_found",
+        "error_message": resp_c.get("error", "file_edit 路径不存在"),
+        "failure_stage": "tool_call",
+        "guess_root_cause": "写入前未校验目标路径存在性",
+        "tool_name": "file_edit",
+    }
+    case_c = build_failure_case(
+        task_type="file_operation",
+        trace_id=f"trace-{int(time.time())}-c",
+        diagnosis=diag_c,
+        failure_type="file_not_found",
+        task_text="把结果写入 /tmp/evo_nonexistent.md",
+        task_succeeded=False,
+        attempts=2,
+    )
+    print(f"  案例C 四维评分: {case_c.scores}")
+    saved_c = inj.record_failure_case(
+        case_c,
+        repair_hints=["文件编辑失败：写入前先校验目标路径存在性，不存在则先创建目录"],
+        tool_name="file_edit",
+    )
+    check("案例C 生成 tool:file_edit 修复策略", len(saved_c) >= 1,
+          f"saved={[s.strategy_id for s in saved_c]}")
+    for s in saved_c:
+        print(f"    入库: {s.strategy_id} scope={s.scope} source={s.source}")
+
+    # 下一次 file_edit 执行：策略库应自动命中修复策略（验证"失败→修复→注入下一次"闭环）
+    repair_hits = inj.get_strategies("tool:file_edit")
+    check("下一次 file_edit 执行自动命中修复策略", len(repair_hits) >= 1,
+          f"hits={[h['strategy_id'] for h in repair_hits]}")
+    check("命中策略含路径校验修复提示",
+          any("路径" in h["prompt_patch"] for h in repair_hits),
+          str([h["prompt_patch"] for h in repair_hits]))
+
+    # ────────────────────────────────────────────────────────────
+    print("\n" + "=" * 72)
     print("【阶段 2】三处运行时注入验证（携带 [策略 #id] + 日志 strategy_id）")
     print("=" * 72)
 
@@ -231,6 +275,20 @@ def main():
     check("路由结果追加备用工具 web_scrape", "web_scrape" in tools,
           f"tools={tools}")
     check("路由结果含被路由选中的 web_search", "web_search" in tools)
+
+    # 2.4 trace_id 链路验证（TraceContext → 三处注入日志携带同一 trace_id）
+    print("\n  ▶ trace_id 链路验证（TraceContext → get_strategies 命中日志）")
+    from agent.monitoring.tracing import TraceContext, set_trace_id
+    set_trace_id("mock-trace-link-001")
+    with TraceContext("simulate", "evolution_link"):
+        tr.get_tools_for_input("帮我搜索最新新闻", max_tools=50)   # 路由注入
+        asyncio.run(loop._think("网络检索任务", {}, []))           # ReAct 注入
+        evaluator.evaluate(                                        # Critic 注入
+            user_query="请帮我写一段代码",
+            response="我无法完成这个请求，因为权限不足",
+            context={},
+        )
+    print("    注：上述 [进化] 日志应携带 trace_id=mock-trace-link-001（见上方 INFO 行）")
 
     # ────────────────────────────────────────────────────────────
     print("\n" + "=" * 72)

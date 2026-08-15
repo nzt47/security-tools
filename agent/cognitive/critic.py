@@ -195,11 +195,11 @@ class CriticEvaluator:
             from agent.evolution.injector import get_injector
             _inj = get_injector()
             if _inj is not None:
-                _strategies = _inj.get_strategies("critic")
+                _strategies = _inj.get_strategies("critic", trace_id=trace_id or "")
                 if _strategies:
                     logger.info(
-                        "[进化][Critic注入] scope=critic 命中策略 %d 条: strategy_ids=%s",
-                        len(_strategies),
+                        "[进化][Critic注入] trace_id=%s scope=critic 命中策略 %d 条: strategy_ids=%s",
+                        trace_id or "", len(_strategies),
                         [_s["strategy_id"] for _s in _strategies],
                     )
                     context = dict(context or {})

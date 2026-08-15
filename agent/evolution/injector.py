@@ -323,23 +323,34 @@ class StrategyInjector:
 
     # ── 注入（步骤3）────────────────────────────────────────────
 
-    def get_strategies(self, scope_key: str) -> List[Dict[str, Any]]:
+    def get_strategies(self, scope_key: str, *, trace_id: str = "") -> List[Dict[str, Any]]:
         """按范围查询可注入策略（scope 匹配 + active 过滤）。
 
         scope 匹配规则: 策略 scope == "global" 或 scope == scope_key。
         scope_key 形如 "tool:<工具名>" / "task_type:<类型>" / "critic"。
         命中即写 strategy_id 日志（【不易】注入可追溯）；
-        未命中也写原因日志（disabled/无匹配/非 active），方便排查命中逻辑。
+        未命中也写原因日志（disabled/空库/无匹配/非 active），方便排查命中逻辑。
+        trace_id 为可选链路追踪号（keyword-only，向后兼容），随日志打印，
+        便于跨 react/critic/tool_router 定位策略生效链路。
         """
         if not self._enabled:
-            logger.info("[进化][命中排查] scope_key=%s 未命中: 注入器未启用(disabled)",
-                        scope_key)
+            logger.info("[进化][命中排查] trace_id=%s scope_key=%s 未命中: 注入器未启用(disabled)",
+                        trace_id, scope_key)
+            return []
+        if not self._strategies:
+            logger.info("[进化][命中排查] trace_id=%s scope_key=%s 未命中: 策略库为空",
+                        trace_id, scope_key)
             return []
         hits: List[Dict[str, Any]] = []
         miss_reasons = {"inactive": 0, "scope_mismatch": 0}
         for s in self._strategies:
             if s.status != STATUS_ACTIVE:
                 miss_reasons["inactive"] += 1
+                logger.info(
+                    "[进化][命中排查] trace_id=%s %s 未命中: 原因=非active(%s), "
+                    "策略scope=%s, 命中目标=%s",
+                    trace_id, s.strategy_id, s.status, s.scope, scope_key,
+                )
                 continue
             if s.scope == "global" or s.scope == scope_key:
                 hits.append({
@@ -351,23 +362,28 @@ class StrategyInjector:
                 })
             else:
                 miss_reasons["scope_mismatch"] += 1
+                logger.info(
+                    "[进化][命中排查] trace_id=%s %s 未命中: 原因=scope不匹配, "
+                    "策略scope=%s, 命中目标=%s",
+                    trace_id, s.strategy_id, s.scope, scope_key,
+                )
         if hits:
             logger.info(
-                "[进化][命中排查] scope_key=%s 命中 %d 条: %s",
-                scope_key, len(hits),
+                "[进化][命中排查] trace_id=%s scope_key=%s 命中 %d 条: %s",
+                trace_id, scope_key, len(hits),
                 [{"id": h["strategy_id"], "scope": h["scope"], "source": h["source"]}
                  for h in hits],
             )
         else:
             logger.info(
-                "[进化][命中排查] scope_key=%s 未命中: 库内策略=%d, "
+                "[进化][命中排查] trace_id=%s scope_key=%s 未命中: 库内策略=%d, "
                 "scope不匹配=%d, 非active=%d",
-                scope_key, len(self._strategies),
+                trace_id, scope_key, len(self._strategies),
                 miss_reasons["scope_mismatch"], miss_reasons["inactive"],
             )
         for h in hits:
-            logger.info("[evolution] 策略命中注入: %s scope_key=%s",
-                        h["strategy_id"], scope_key)
+            logger.info("[evolution] 策略命中注入: trace_id=%s %s scope_key=%s",
+                        trace_id, h["strategy_id"], scope_key)
         return hits
 
     # ── 统计（步骤4）────────────────────────────────────────────

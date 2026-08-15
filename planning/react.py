@@ -565,11 +565,13 @@ class ReActLoop:
             if inj is not None:
                 # 与 reflector.get_advice_for_task 同键：classify_task 归一 task_type
                 task_type = classify_task(str(task))
-                strategies = inj.get_strategies(f"task_type:{task_type}")
+                trace_id = get_trace_id() or ""
+                strategies = inj.get_strategies(f"task_type:{task_type}",
+                                                trace_id=trace_id)
                 if strategies:
                     logger.info(
-                        "[进化][ReAct注入] task_type=%s 命中策略 %d 条: strategy_ids=%s",
-                        task_type, len(strategies),
+                        "[进化][ReAct注入] trace_id=%s task_type=%s 命中策略 %d 条: strategy_ids=%s",
+                        trace_id, task_type, len(strategies),
                         [s["strategy_id"] for s in strategies],
                     )
                     lines = [

@@ -85,7 +85,8 @@ async def test_react_think_injects_strategy_with_id(inj, caplog):
 
     assert f"[策略 #{sid}]" in captured["prompt"]
     assert "避免无限重试网络工具" in captured["prompt"]
-    assert f"策略命中注入: {sid}" in caplog.text
+    # 新日志格式携带 trace_id 与 scope_key：策略命中注入: trace_id= sid-xxx scope_key=task_type:general
+    assert f"策略命中注入: trace_id= {sid}" in caplog.text
 
 
 # ═══════════════════════════════════════════════════════════════

@@ -280,6 +280,35 @@ class TestSqliteBackend:
         assert "命中" in logs
         assert "scope不匹配" in logs
 
+    def test_miss_reason_per_strategy_detail(self, tmp_path, caplog):
+        """未命中逐条日志（INFO，trace_id 格式）：区分 scope不匹配 与 非active(deprecated)"""
+        db_dir = str(tmp_path / "evo_sqlite5")
+        inj = StrategyInjector(storage_path=db_dir, backend="sqlite")
+        # 策略1：web_search（后置 deprecated → 触发"非active"原因）
+        saved = inj.record_failure_case(
+            _case(task_type="web", tool_name="web_search"),
+            tool_name="web_search",
+        )
+        sid = saved[0].strategy_id
+        # 策略2：不同 tool 的 active 策略（查 web_search → 触发"scope不匹配"原因）
+        inj.record_failure_case(
+            _case(trace_id="tr-2", task_type="code_repair", tool_name="file_edit",
+                  repair_hints=["文件编辑失败：校验路径存在性后再写入"]),
+            tool_name="file_edit",
+        )
+        for _ in range(MIN_ATTEMPTS_TO_DEPRECATE):
+            inj.record_strategy_result(sid, success=False)
+        with caplog.at_level("INFO", logger="agent.evolution"):
+            inj.get_strategies("tool:web_search", trace_id="trace-abc")
+            inj.get_strategies("tool:other_tool", trace_id="trace-abc")
+        detail = [r.message for r in caplog.records
+                  if "未命中: 原因=" in r.message]
+        assert any("原因=非active(deprecated)" in m for m in detail)
+        assert any("原因=scope不匹配" in m for m in detail)
+        # trace_id 贯穿逐条日志（链路可追溯）
+        assert all("trace_id=trace-abc" in m for m in detail)
+        assert all("策略scope=" in m and "命中目标=" in m for m in detail)
+
     def test_json_default_unchanged(self, tmp_path):
         """默认 backend=json 行为不变（兼容旧数据）"""
         db_dir = str(tmp_path / "evo_json")
