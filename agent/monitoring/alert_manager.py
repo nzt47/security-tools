@@ -491,6 +491,43 @@ class AlertManager:
             {"action": action, "context": context or {}, "failure_reason": reason},
         )
 
+    def notify_loop_terminated(
+        self,
+        loop_name: str,
+        reason: str = "",
+        context: Optional[Dict[str, Any]] = None,
+    ) -> Optional[TakeoverRecord]:
+        """监控循环终止事件入口（任务 5 接线：loop_terminated → 升级）
+
+        监控循环（告警评估 / 自愈扫描等周期性保障）异常终止时由调用方触发：
+        周期性保障中断属高风险异常 → 告警升级（P1→P0）+ 人工接管入队。
+
+        Args:
+            loop_name: 终止的循环名（如 evaluate_loop / heal_sweep_loop）
+            reason: 终止原因
+            context: 上下文（循环运行时长、异常堆栈等）
+
+        Returns:
+            创建的人工接管记录；级别相同（无需升级）返回 None
+        """
+        alert = Alert(
+            name=f"loop_terminated:{loop_name}",
+            state=AlertState.FIRING,
+            severity=AlertSeverity.WARNING,
+            value=0.0,
+            threshold=0.0,
+            condition="loop_terminated",
+            message=f"监控循环 {loop_name} 异常终止: {reason or '未知原因'}，需人工介入",
+            labels={"loop_name": loop_name},
+            annotations={"context": str(context or {})},
+        )
+        return self.escalate(
+            alert,
+            AlertSeverity.CRITICAL,
+            reason or f"监控循环终止: {loop_name}",
+            {"loop_name": loop_name, "context": context or {}, "termination_reason": reason},
+        )
+
     def _on_takeover_notify(self, record: TakeoverRecord, event: str):
         """人工接管通知回调（锁外触发：入队通知 / 超时二次通知）"""
         try:
