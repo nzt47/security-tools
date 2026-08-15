@@ -29,6 +29,12 @@ import pytest
 
 from agent.weekly_report_generator import WeeklyReportGenerator, run_weekly_report
 
+# 本文件 generate/save 测试均触发 analytics 延迟加载链
+# （DataAnalytics → VectorStore → sentence_transformers/transformers 重量级 import，
+#  全量并行分块时曾致 chunk 超时强杀）。按结案建议走 slow 模式：
+# 默认 pytest 跳过，--runslow 时单独运行。
+pytestmark = pytest.mark.slow
+
 
 @pytest.fixture
 def report_generator(tmp_path):

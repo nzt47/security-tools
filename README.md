@@ -376,6 +376,17 @@ python -m pytest tests/unit/test_task_scheduler.py tests/unit/test_task_schedule
 - [Bug 修复总结：浏览器状态泄漏](docs/browser_state_leak_bugfix_summary.md)
 - HTML 报告: `htmlcov_final_80plus/index.html`
 
+### 测试质量文档（2026-08-15 归档）
+
+Windows 并行测试编码隔离专项结案，团队参考文档：
+
+- [测试结案报告_后台重跑_20260815.md](docs/zh/测试结案报告_后台重跑_20260815.md) — 全量后台重跑遗留项归因闭环 + 结案判定
+- [Windows并行测试编码隔离最佳实践_20260815.md](docs/zh/Windows并行测试编码隔离最佳实践_20260815.md) — GBK/UTF-8 错配根因链、三道防线（PYTHONIOENCODING / open 显式 encoding / 共享路径隔离）、第二轮全量扫描结论（含 subprocess 文本模式系统性模式）
+- [全量测试后台脚本运维手册_20260815.md](docs/zh/全量测试后台脚本运维手册_20260815.md) — run_full_pytest_bg.py 运维与 parse_summary 逻辑
+- [并行会话竞态代码覆盖排查清单_20260815.md](docs/zh/并行会话竞态代码覆盖排查清单_20260815.md) — 并行会话代码覆盖排查
+
+> **Windows 必读**：运行测试前设置 `$env:PYTHONIOENCODING="utf-8"`；模型加载类测试（transformers/句向量链）走 `--runslow`，避免全量并行超时。
+
 ## 运维工具
 
 ### P0 安全验证 Workflow 重建脚本
