@@ -174,3 +174,15 @@ print(f'覆盖率: {float(root.get(\"line-rate\"))*100:.1f}%')
 | 日期 | 变更 | 操作人 |
 |------|------|--------|
 | 2026-07-29 | 初始化看板模板；记录 v1.2.1 修复基线；登记 network_config mypy 技术债 | Yi-Jing Coding Agent |
+| 2026-08-15 | 追加 §九 仓库维护记录（git gc 优化 + TASK-06 清理数据） | Yi-Jing Coding Agent |
+
+---
+
+## 九、仓库维护记录
+
+> 记录仓库对象库优化与临时数据清理，追踪仓库健康度（与 CI 通过率看板互补）。
+
+| 日期 | 类型 | 数据 | 影响 | 备注 |
+|------|------|------|------|------|
+| 2026-08-15 | git gc 优化 | loose objects 3.09 MiB(673 个)→**0**；packs 3→2；size-pack 57.57→56.37 MiB | HEAD/worktree(9)/并行会话**零影响** | TASK-06 收尾；默认参数（2 周 prune + reflog 90 天保护），空闲窗口执行；详见 [Git_Archive_Cleanup_SOP.md §三-E](../Git_Archive_Cleanup_SOP.md) |
+| 2026-08-15 | 临时数据清理 | TASK-06 草稿 ×3 删除（ARCHIVED 状态，内容归档于验证报告）；临时分支/worktree 无 | 无 | 详见 [TASK-06_结案总结_20260815.md §十一](../zh/智能体学习机制重构计划/TASK-06_结案总结_20260815.md) |
