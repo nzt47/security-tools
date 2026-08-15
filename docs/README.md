@@ -90,6 +90,9 @@ docs/
 | [测试完成计划](test_reports/TEST_COMPLETION_PLAN.md) | 测试计划 |
 | [安全测试报告](test_reports/security_test_report.md) | 安全测试 |
 | [最终集成报告](test_reports/final_integration_report.md) | 集成测试 |
+| [全量测试后台脚本运维手册](zh/全量测试后台脚本运维手册_20260815.md) | run_full_pytest(_bg) 用法 + PYTHONIOENCODING 修复 + parse_summary 解析逻辑 |
+| [全量测试后台重跑结案报告](zh/测试结案报告_后台重跑_20260815.md) | 0xC0000005 崩溃缓解确认、emoji 日志与解析修复、分块汇总数据 |
+| [并行会话竞态排查清单](zh/并行会话竞态代码覆盖排查清单_20260815.md) | 并行会话覆盖代码的症状速查、诊断命令、恢复 SOP |
 
 ### 🔒 安全文档
 
