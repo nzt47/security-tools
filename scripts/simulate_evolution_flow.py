@@ -1,20 +1,26 @@
-"""任务6 进化流程模拟演示：失败案例回流 → 策略生成 → 三处注入 → auto_tuner 联动
+"""任务6 进化流程模拟演示：真实工具超时 → 失败案例回流 → 策略生成 → 三处注入 → auto_tuner 联动
 
 运行: python scripts/simulate_evolution_flow.py
 
 闭环演示:
-  1. 构造模拟失败案例（工具失败 + 权限误判）→ record_failure_case 生成策略入库
-  2. 三处注入验证（ReAct/Critic/tool_router）——断言 prompt/feedback/路由结果
-     携带 [策略 #id]，且注入节点日志打印 strategy_id
-  3. 策略统计与 deprecated 判定
-  4. auto_tuner 联动：高失败率工具 → 参数调整建议 → HITL 审批链
+  1. 构造真实工具超时场景（web_search 在线程池中挂起 > 超时阈值，
+     future.result(timeout) 抛出 TimeoutError 被捕获）→ 失败案例回流
+  2. 失败案例/策略持久化到 SQLite（backend="sqlite"，单文件 evolution.db）
+  3. 三处注入验证（ReAct/Critic/tool_router）——断言 prompt/feedback/路由结果
+     携带 [策略 #id]，且注入节点日志打印 strategy_id 与命中排查信息
+  4. 策略统计与 deprecated 判定
+  5. auto_tuner 联动：高失败率工具 → 参数调整建议 → HITL 审批链
+  6. reload 验证：从同一 .db 重新加载注入器，数据完整
 """
 
 import asyncio
 import logging
 import os
+import sqlite3
 import sys
 import tempfile
+import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeoutError
 
 # scripts/ 下运行时 sys.path[0]=scripts/，注入项目根
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -26,7 +32,7 @@ logging.basicConfig(
 )
 
 from agent.evolution.defect_case import build_failure_case
-from agent.evolution.injector import StrategyInjector
+from agent.evolution.injector import BACKEND_SQLITE, StrategyInjector
 from agent.evolution.selector import Strategy
 
 OK = 0
@@ -58,32 +64,64 @@ def seed_strategy(inj, *, prompt_patch, scope, param_patch=None, source="preset"
     return s.strategy_id
 
 
+def call_tool_with_timeout(tool_name: str, params: dict, timeout_s: float,
+                           hang_s: float):
+    """真实工具超时场景：在线程池中执行"挂起"的工具调用，超过 timeout_s 抛 TimeoutError。
+
+    与真实异步执行器（async_executor）同模式：future.result(timeout) 超时抛
+    concurrent.futures.TimeoutError，由调用方捕获 → 构造失败案例回流。
+    """
+    def _fake_tool(**kw):
+        time.sleep(hang_s)          # 模拟外部服务挂起
+        return {"ok": True, "result": kw}
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future = pool.submit(_fake_tool, **params)
+        try:
+            return future.result(timeout=timeout_s)
+        except FutureTimeoutError:
+            return {"ok": False, "tool": tool_name,
+                    "error": f"工具调用超时（>{timeout_s}s）", "hung": hang_s}
+
+
 def main():
     print("=" * 72)
-    print("【阶段 0】初始化隔离注入器（tmp 存储，不触碰真实 data/evolution）")
+    print("【阶段 0】初始化隔离注入器（SQLite 持久化，不触碰真实 data/evolution）")
     print("=" * 72)
     tmp = tempfile.mkdtemp(prefix="evo_sim_")
-    inj = StrategyInjector(storage_path=os.path.join(tmp, "evolution"))
+    db_dir = os.path.join(tmp, "evolution")
+    inj = StrategyInjector(storage_path=db_dir, backend=BACKEND_SQLITE)
     # 把模块级 get_injector 指向实例，让 react/critic/tool_router 内部导入拿到它
     import agent.evolution.injector as inj_mod
     inj_mod.get_injector = lambda required=False: inj
     print(f"  注入器存储: {inj.storage_path}")
+    print(f"  存储后端 : {inj.backend}（{inj._db_path}）")
 
     # ────────────────────────────────────────────────────────────
     print("\n" + "=" * 72)
-    print("【阶段 1】失败案例回流 → 候选生成 → 安全红线筛选 → 策略入库")
+    print("【阶段 1】真实工具超时场景 → 失败案例回流 → 策略生成")
     print("=" * 72)
 
-    # 案例 A：工具失败（web_search 超时，多次重试仍失败）
+    # 案例 A：web_search 真实超时（工具挂起 3s > 超时阈值 0.5s）
+    print("\n  ▶ 调用 web_search（挂起 3s，超时阈值 0.5s）...")
+    t0 = time.time()
+    resp_a = call_tool_with_timeout("web_search", {"q": "最新新闻"},
+                                    timeout_s=0.5, hang_s=3.0)
+    elapsed = round(time.time() - t0, 2)
+    print(f"    耗时 {elapsed}s, 结果: {resp_a}")
+    check("web_search 超时被捕获（ok=False）",
+          resp_a.get("ok") is False and "超时" in resp_a.get("error", ""),
+          str(resp_a))
     diag_a = {
         "error_type": "timeout",
-        "error_message": "web_search 请求超时，重试 3 次仍失败",
+        "error_message": resp_a.get("error", "web_search 请求超时"),
         "failure_stage": "tool_call",
-        "guess_root_cause": "外部服务响应慢",
+        "guess_root_cause": "外部服务响应慢（挂起 3s，阈值 0.5s）",
+        "tool_name": "web_search",
     }
     case_a = build_failure_case(
         task_type="network_search",
-        trace_id="trace-A",
+        trace_id=f"trace-{int(time.time())}-a",
         diagnosis=diag_a,
         failure_type="timeout",
         task_text="帮我搜索最新新闻",
@@ -262,13 +300,48 @@ def main():
 
     # ────────────────────────────────────────────────────────────
     print("\n" + "=" * 72)
+    print("【阶段 5】SQLite 持久化 reload 验证（模拟真实运行环境重启）")
+    print("=" * 72)
+
+    # 重新从同一 .db 加载注入器，验证策略/案例完整落库
+    reloaded = StrategyInjector(storage_path=db_dir, backend=BACKEND_SQLITE)
+    r_cases = reloaded.list_cases()
+    r_strategies = reloaded.list_strategies()
+    print(f"  reload 后: 案例 {len(r_cases)} 条, 策略 {len(r_strategies)} 条")
+    check("reload 案例数与入库一致", len(r_cases) >= 2,
+          f"cases={len(r_cases)}")
+    check("reload 策略数 ≥ 入库数（只追加）", len(r_strategies) >= len(inj.list_strategies()),
+          f"strategies={len(r_strategies)}")
+    check("reload 策略含 case-A 超时策略",
+          any("web_search" in s.scope for s in r_strategies),
+          str([s.scope for s in r_strategies]))
+    check("reload 策略含 deprecated 状态（原 fb_sid）",
+          any(s.status == "deprecated" for s in r_strategies),
+          str([(s.strategy_id, s.status) for s in r_strategies]))
+
+    # .db 落盘存在性 + 两表同库
+    db_exist = os.path.exists(reloaded._db_path)
+    check("evolution.db 落盘", db_exist, reloaded._db_path)
+    if db_exist:
+        conn = sqlite3.connect(reloaded._db_path)
+        try:
+            tables = [r[0] for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")]
+        finally:
+            conn.close()
+        print(f"    表: {tables}")
+        check("strategies/failure_cases 两表同库",
+              "strategies" in tables and "failure_cases" in tables, str(tables))
+
+    # ────────────────────────────────────────────────────────────
+    print("\n" + "=" * 72)
     print(f"结果: PASS {OK} / FAIL {FAIL}")
     print("=" * 72)
     if FAIL:
         print("存在失败断言，请检查上方 [FAIL] 行")
         sys.exit(1)
-    print("全部通过：失败案例回流 → 策略生成 → 三处注入（strategy_id 可追溯）"
-          "→ deprecated → auto_tuner 联动闭环验证成功")
+    print("全部通过：真实工具超时 → 失败案例回流 → 策略生成 → 三处注入"
+          "（strategy_id 可追溯）→ deprecated → auto_tuner 联动 → SQLite 持久化验证成功")
 
 
 if __name__ == "__main__":

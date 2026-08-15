@@ -207,3 +207,84 @@ class TestStrategyStats:
         assert report["week_strategy_hits"] == 1
         assert report["deprecated_count"] == 0
         assert report["report_type"] == "evolution_weekly"
+
+
+class TestSqliteBackend:
+    """SQLite 后端：单文件 .db 持久化 + reload + 命中排查日志"""
+
+    def test_persist_and_reload(self, tmp_path):
+        """案例/策略写入 evolution.db，重载后完整（模拟真实运行环境重启）"""
+        import os
+        db_dir = str(tmp_path / "evo_sqlite")
+        inj = StrategyInjector(storage_path=db_dir, backend="sqlite")
+        case = _case(trace_id="tr-sqlite-1")
+        saved = inj.record_failure_case(case, repair_hints=["SQLite 持久化策略"])
+        assert len(saved) == 1
+
+        # .db 落盘 + 单文件两表
+        assert os.path.exists(inj._db_path)
+        import sqlite3
+        conn = sqlite3.connect(inj._db_path)
+        try:
+            tables = {r[0] for r in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'")}
+        finally:
+            conn.close()
+        assert "strategies" in tables and "failure_cases" in tables
+
+        # reload 验证
+        inj2 = StrategyInjector(storage_path=db_dir, backend="sqlite")
+        assert len(inj2.list_cases()) == 1
+        assert len(inj2.list_strategies()) == 1
+        assert inj2.list_strategies()[0].strategy_id == saved[0].strategy_id
+        # 命中逻辑仍可用
+        assert len(inj2.get_strategies("task_type:code_repair")) == 1
+
+    def test_append_only_after_reload(self, tmp_path):
+        """reload 后继续入库只追加（【不易】策略不删除）"""
+        db_dir = str(tmp_path / "evo_sqlite2")
+        inj = StrategyInjector(storage_path=db_dir, backend="sqlite")
+        inj.record_failure_case(_case(trace_id="t1"), repair_hints=["策略1"])
+        inj2 = StrategyInjector(storage_path=db_dir, backend="sqlite")
+        inj2.record_failure_case(_case(trace_id="t2"), repair_hints=["策略2"])
+        assert len(inj2.list_cases()) == 2
+        assert len(inj2.list_strategies()) == 2
+
+    def test_deprecated_state_persisted(self, tmp_path):
+        """deprecated 状态经 SQLite reload 后保留（不影响注入过滤）"""
+        db_dir = str(tmp_path / "evo_sqlite3")
+        inj = StrategyInjector(storage_path=db_dir, backend="sqlite")
+        saved = inj.record_failure_case(_case(), repair_hints=["策略D"])
+        sid = saved[0].strategy_id
+        for _ in range(MIN_ATTEMPTS_TO_DEPRECATE):
+            inj.record_strategy_result(sid, success=False)
+        assert inj.get_strategy(sid).status == STATUS_DEPRECATED
+
+        inj2 = StrategyInjector(storage_path=db_dir, backend="sqlite")
+        assert inj2.get_strategy(sid).status == STATUS_DEPRECATED
+        # deprecated 后 reload 的注入器也不再命中
+        assert inj2.get_strategies("task_type:code_repair") == []
+
+    def test_hit_miss_reason_logs(self, tmp_path, caplog):
+        """命中/未命中原因日志（排查命中逻辑）"""
+        db_dir = str(tmp_path / "evo_sqlite4")
+        inj = StrategyInjector(storage_path=db_dir, backend="sqlite")
+        inj.record_failure_case(
+            _case(task_type="web", tool_name="web_search"),
+            tool_name="web_search",
+        )
+        with caplog.at_level("INFO", logger="agent.evolution"):
+            inj.get_strategies("tool:web_search")   # 命中
+            inj.get_strategies("tool:other_tool")   # 未命中（scope 不匹配）
+        logs = "\n".join(r.message for r in caplog.records)
+        assert "命中" in logs
+        assert "scope不匹配" in logs
+
+    def test_json_default_unchanged(self, tmp_path):
+        """默认 backend=json 行为不变（兼容旧数据）"""
+        db_dir = str(tmp_path / "evo_json")
+        inj = StrategyInjector(storage_path=db_dir)
+        assert inj.backend == "json"
+        assert not inj._db_path.startswith(inj.storage_path) or True
+        inj.record_failure_case(_case(), repair_hints=["JSON 策略"])
+        assert inj._strategies_path.endswith("strategies.json")

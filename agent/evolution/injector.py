@@ -7,6 +7,11 @@
   - get_strategy_stats(): auto_tuner 联动信号源
   - generate_weekly_report(): 周报（失败案例数/命中数/成功率/deprecated 数）
 
+存储后端（backend）:
+  - "json":   默认，JSON 文件（strategies.json / failure_cases.json，兼容旧数据）
+  - "sqlite": 单文件 evolution.db（strategies / failure_cases 两表，同一 .db），
+              模拟真实运行环境，事务性写入（与 auto_tuner 的 auto_tuning.db 同模式）
+
 安全（防策略库投毒）:
   - prompt_patch 长度上限 MAX_PROMPT_PATCH_LEN（超长丢弃）
   - 敏感词过滤（命中替换为占位符，防提示词注入）
@@ -19,6 +24,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sqlite3
 import threading
 import time
 from typing import Any, Dict, List, Optional
@@ -34,6 +40,14 @@ from .selector import (
 )
 
 logger = logging.getLogger("agent.evolution")
+
+# ═══════════════════════════════════════════════════════════════
+#  存储后端常量
+# ═══════════════════════════════════════════════════════════════
+
+BACKEND_JSON = "json"        # JSON 文件（默认，兼容旧数据）
+BACKEND_SQLITE = "sqlite"    # 单文件 evolution.db（模拟真实运行环境）
+_DB_FILENAME = "evolution.db"
 
 # ═══════════════════════════════════════════════════════════════
 #  安全常量（防投毒）
@@ -117,13 +131,16 @@ class StrategyInjector:
         storage_path: Optional[str] = None,
         *,
         llm_generate: Optional[bool] = None,
+        backend: str = BACKEND_JSON,
     ):
         config = get_evolution_config()
         self.storage_path = os.path.abspath(storage_path or config["storage_path"])
         self.llm_generate = llm_generate if llm_generate is not None else config["llm_generate"]
         self._enabled = config["enabled"]
+        self.backend = backend if backend in (BACKEND_JSON, BACKEND_SQLITE) else BACKEND_JSON
         self._strategies_path = os.path.join(self.storage_path, "strategies.json")
         self._cases_path = os.path.join(self.storage_path, "failure_cases.json")
+        self._db_path = os.path.join(self.storage_path, _DB_FILENAME)
         self._lock = threading.RLock()
         self._strategies: List[Strategy] = []
         self._cases: List[FailureCase] = []
@@ -137,8 +154,11 @@ class StrategyInjector:
             os.makedirs(self.storage_path, exist_ok=True)
         except OSError:
             pass
-        self._strategies = self._load_json_list(self._strategies_path, Strategy.from_dict)
-        self._cases = self._load_json_list(self._cases_path, FailureCase.from_dict)
+        if self.backend == BACKEND_SQLITE:
+            self._load_sqlite()
+        else:
+            self._strategies = self._load_json_list(self._strategies_path, Strategy.from_dict)
+            self._cases = self._load_json_list(self._cases_path, FailureCase.from_dict)
 
     def _load_json_list(self, path: str, ctor) -> list:
         if not os.path.exists(path):
@@ -152,6 +172,9 @@ class StrategyInjector:
 
     def _save(self) -> None:
         with self._lock:
+            if self.backend == BACKEND_SQLITE:
+                self._save_sqlite()
+                return
             os.makedirs(self.storage_path, exist_ok=True)
             with open(self._strategies_path, "w", encoding="utf-8") as f:
                 json.dump([s.to_dict() for s in self._strategies], f,
@@ -159,6 +182,80 @@ class StrategyInjector:
             with open(self._cases_path, "w", encoding="utf-8") as f:
                 json.dump([c.to_dict() for c in self._cases], f,
                           ensure_ascii=False, indent=2)
+
+    # ── SQLite 后端（单文件 evolution.db，与 auto_tuner 同模式）────
+
+    def _get_db_conn(self) -> sqlite3.Connection:
+        os.makedirs(self.storage_path, exist_ok=True)
+        conn = sqlite3.connect(self._db_path, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA busy_timeout=5000")
+        conn.execute("PRAGMA journal_mode=WAL")
+        return conn
+
+    def _init_db_schema(self, conn: sqlite3.Connection) -> None:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS strategies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                strategy_id TEXT NOT NULL UNIQUE,
+                data TEXT NOT NULL,
+                created_at REAL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS failure_cases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_id TEXT NOT NULL UNIQUE,
+                data TEXT NOT NULL,
+                created_at REAL
+            )
+        """)
+
+    def _load_sqlite(self) -> None:
+        """从 SQLite 加载策略与案例（表缺失/损坏 → 空列表）"""
+        if not os.path.exists(self._db_path):
+            return
+        try:
+            conn = self._get_db_conn()
+            try:
+                self._init_db_schema(conn)
+                rows = conn.execute("SELECT data FROM strategies ORDER BY id").fetchall()
+                self._strategies = [
+                    Strategy.from_dict(json.loads(r["data"]))
+                    for r in rows if isinstance(json.loads(r["data"]), dict)
+                ]
+                rows = conn.execute("SELECT data FROM failure_cases ORDER BY id").fetchall()
+                self._cases = [
+                    FailureCase.from_dict(json.loads(r["data"]))
+                    for r in rows if isinstance(json.loads(r["data"]), dict)
+                ]
+            finally:
+                conn.close()
+        except Exception as e:
+            logger.warning("[evolution] SQLite 加载失败，回退空列表: %s", e)
+            self._strategies = []
+            self._cases = []
+
+    def _save_sqlite(self) -> None:
+        """事务性写入 SQLite（strategies 与 failure_cases 在同一 .db）"""
+        conn = self._get_db_conn()
+        try:
+            self._init_db_schema(conn)
+            with conn:
+                conn.execute("DELETE FROM strategies")
+                conn.execute("DELETE FROM failure_cases")
+                for s in self._strategies:
+                    conn.execute(
+                        "INSERT INTO strategies (strategy_id, data, created_at) VALUES (?, ?, ?)",
+                        (s.strategy_id, json.dumps(s.to_dict(), ensure_ascii=False), s.created_at),
+                    )
+                for c in self._cases:
+                    conn.execute(
+                        "INSERT INTO failure_cases (case_id, data, created_at) VALUES (?, ?, ?)",
+                        (c.case_id, json.dumps(c.to_dict(), ensure_ascii=False), c.created_at),
+                    )
+        finally:
+            conn.close()
 
     # ── 安全（防投毒）────────────────────────────────────────────
 
@@ -231,13 +328,18 @@ class StrategyInjector:
 
         scope 匹配规则: 策略 scope == "global" 或 scope == scope_key。
         scope_key 形如 "tool:<工具名>" / "task_type:<类型>" / "critic"。
-        命中即写 strategy_id 日志（【不易】注入可追溯）。
+        命中即写 strategy_id 日志（【不易】注入可追溯）；
+        未命中也写原因日志（disabled/无匹配/非 active），方便排查命中逻辑。
         """
         if not self._enabled:
+            logger.info("[进化][命中排查] scope_key=%s 未命中: 注入器未启用(disabled)",
+                        scope_key)
             return []
         hits: List[Dict[str, Any]] = []
+        miss_reasons = {"inactive": 0, "scope_mismatch": 0}
         for s in self._strategies:
             if s.status != STATUS_ACTIVE:
+                miss_reasons["inactive"] += 1
                 continue
             if s.scope == "global" or s.scope == scope_key:
                 hits.append({
@@ -247,6 +349,22 @@ class StrategyInjector:
                     "scope": s.scope,
                     "source": s.source,
                 })
+            else:
+                miss_reasons["scope_mismatch"] += 1
+        if hits:
+            logger.info(
+                "[进化][命中排查] scope_key=%s 命中 %d 条: %s",
+                scope_key, len(hits),
+                [{"id": h["strategy_id"], "scope": h["scope"], "source": h["source"]}
+                 for h in hits],
+            )
+        else:
+            logger.info(
+                "[进化][命中排查] scope_key=%s 未命中: 库内策略=%d, "
+                "scope不匹配=%d, 非active=%d",
+                scope_key, len(self._strategies),
+                miss_reasons["scope_mismatch"], miss_reasons["inactive"],
+            )
         for h in hits:
             logger.info("[evolution] 策略命中注入: %s scope_key=%s",
                         h["strategy_id"], scope_key)
@@ -368,9 +486,11 @@ except ImportError:  # pragma: no cover
 
 def _create_injector(config: Optional[Dict[str, Any]] = None) -> StrategyInjector:
     storage = None
+    backend = BACKEND_JSON
     if isinstance(config, dict):
         storage = config.get("storage_path")
-    return StrategyInjector(storage_path=storage)
+        backend = config.get("backend", BACKEND_JSON)
+    return StrategyInjector(storage_path=storage, backend=backend)
 
 
 def get_injector(required: bool = False) -> Optional[StrategyInjector]:
@@ -394,5 +514,7 @@ __all__ = [
     "StrategyInjector",
     "get_injector",
     "get_evolution_config",
+    "BACKEND_JSON",
+    "BACKEND_SQLITE",
     "MAX_PROMPT_PATCH_LEN",
 ]
