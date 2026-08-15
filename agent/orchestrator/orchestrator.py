@@ -431,8 +431,19 @@ class Orchestrator:
             collector.increment_counter("count.digital_life.chat.total")
             collector.increment_counter("count.digital_life.interaction.total")
 
-        # 统一检查上下文使用率
-        self._last_context_warning = self._check_context_usage()
+        # 统一检查上下文使用率（低频节流）
+        # [2026-08-15 并发修复] 原实现每请求入口同步执行：
+        # get_context 全量组装 + token 全量统计（2 次）+ 多次 summary 文件读，
+        # 12 并发请求共享同一会话时被 GIL/文件 IO 放大为"假串行"（80-200s 阻塞，
+        # 见 docs/zh/智能体学习机制重构计划/会话级上下文检查串行阻塞技术备忘录_20260815.md）。
+        # 现按间隔节流（CONTEXT_USAGE_CHECK_INTERVAL 可配，默认 30s），
+        # 两次检查之间复用最近一次 _last_context_warning。
+        _ctx_check_interval = float(os.getenv("CONTEXT_USAGE_CHECK_INTERVAL", "30"))
+        _last_ctx_check = getattr(self, "_ctx_usage_last_check", None)
+        _now_mono = time.monotonic()
+        if _last_ctx_check is None or (_now_mono - _last_ctx_check) >= _ctx_check_interval:
+            self._ctx_usage_last_check = _now_mono
+            self._last_context_warning = self._check_context_usage()
         if self._last_context_warning and self._last_context_warning["level"] != "info":
             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.log', 'message': '[上下文] %s（%.1f%%）' % (self._last_context_warning['message'], self._last_context_warning['pct'])}))
 
