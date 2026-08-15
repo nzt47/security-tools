@@ -6,6 +6,34 @@
 
 ---
 
+## [CHG] - 2026-08-16: L3 镜像模型缓存修复 + context 一致性预检（CI fail fast）✅
+
+**影响模块**: `docker-compose.linux-test.yml`, `scripts/predownload_l3_hf_cache.ps1`（新增）, `scripts/ci_l3_context_preflight.py`（新增）, `.github/workflows/l3-docker-tests.yml`, `README.md`
+**关联提交**: `d01c1df4`（fix: HF 缓存路径 hub 后缀 + hf-mirror 预下载脚本）, `628616cb`（feat: context 预检脚本 + README 知识库 + 移除畸形文件）
+**关联文档**: `docs/ci_l3_context_sync_verify_20260816.md`（根因链 + 验证证据）
+
+### Fixed — L3 存储后端降级 json（根因修复）
+
+- **HF 缓存路径语义**：`predownload-models`/`test` 服务 `TRANSFORMERS_CACHE`/`SENTENCE_TRANSFORMERS_HOME` 指向 `/app/.hf_cache/hub`（此前无 `hub` 后缀），与 `vector_store._is_model_fully_cached` 检查路径及 `predownload_models.py` 落盘位置对齐 → 编码器加载失败 → 降级 json 的问题消除
+- **模型拉取**：容器内 `huggingface.co` 直连不通（实测 `Connection refused`），新增 `predownload_l3_hf_cache.ps1` 经 `HF_ENDPOINT=https://hf-mirror.com`（国内镜像可达）将 MiniLM-L12-v2 / bge-small-zh 拉取到 `hf-cache` 卷
+
+### Added — CI 预检（context 一致性，构建前 fail fast）
+
+- **`ci_l3_context_preflight.py`**：四项校验（构建文件存在 / conftest 引用链关键模块 / context 目录 git 清洁度 / 已跟踪文件磁盘覆盖度），支持 `--json` 输出
+- **`l3-docker-tests.yml`**：`build-image` job 检出后自动执行预检，失败即中断（防镜像缺模块导致 130 项测试全量 ERROR）
+
+### Changed — 文档
+
+- **README.md**：新增「L3 Docker 测试：模型缓存与 context 一致性」团队知识库章节（缓存路径语义 / context 漂移教训 / 预检接入 / hf-mirror 预下载）
+
+### 验证结果
+
+- 容器内判定链实测：`model_fully_cached` False→True、`st_ok` False→True、集成路径 `backend` json→**sqlite_vec**（dim=384）
+- L3 sqlite-vec 回归：**124 passed / 0 failed** / 6 skipped（`--runslow` 慢速用例）
+- 预检脚本本地复验：4 项校验全部通过（EXIT=0，文本 + JSON 双模式）
+
+---
+
 ## [CHG] - 2026-08-14: TASK-04 知识→技能沉淀管道（连接器 + 定时调度 + 发布强制审核链）✅
 
 **影响模块**: `agent/knowledge/skill_bridge.py`（新增）, `agent/knowledge/__main__.py`, `agent/skills_mgmt/precipitate.py`（新增）, `agent/skills_mgmt/review_gate.py`（新增）, `agent/skills_mgmt/service.py`, `agent/server_routes/routes_skills_mgmt.py`, `agent/skills_mgmt/memory_abstractor.py`, `config.yaml`, `scripts/deploy_task04.py`（新增）, `scripts/check_cli_parser.py`（新增）, `scripts/check_worktree_parser.py`（新增）, `.pre-commit-config.yaml`

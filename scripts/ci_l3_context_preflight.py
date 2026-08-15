@@ -109,14 +109,15 @@ def check_tracked_coverage() -> list[str]:
     return missing
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    """预检入口（argv 可注入，便于测试；None 时取 sys.argv[1:]）"""
     parser = argparse.ArgumentParser(
         description="L3 Docker build context 一致性预检（CI 构建前 fail fast）"
     )
     parser.add_argument("--json", action="store_true", help="JSON 输出（CI 友好）")
     parser.add_argument("--git-clean-only", action="store_true",
                         help="仅执行 git 一致性校验（跳过文件存在性）")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     checks = {
         "build_files": ("构建文件存在", check_build_files, not args.git_clean_only),
