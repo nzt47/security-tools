@@ -866,6 +866,11 @@ def api_chat():
             # 非法会话 ID（含路径穿越字符）回退默认会话
             logger.warning("会话 ID 非法，回退默认会话: %s", _e)
             session_id = _get_current_session_id()
+        except OSError as _e:
+            # [2026-08-15 边界修复] Windows 路径超长等 mkdir 抛 OSError → 500，
+            # 与非法 ID 同策略回退默认会话（不因外部参数崩掉请求）
+            logger.warning("会话 ID 创建失败（OSError），回退默认会话: %s", _e)
+            session_id = _get_current_session_id()
     logs.append(f"[SESSION] 会话 ID: {session_id}")
 
     # 安全检查（受技能开关控制）

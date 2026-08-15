@@ -122,3 +122,66 @@ class TestDialogStateConcurrency:
         finally:
             for i in range(self.N_THREADS):
                 _SESSION_STATES.pop(f"conc-sess-{i}", None)
+
+
+class TestDialogStateCapacityGuard:
+    """_SESSION_STATES 容量守卫（LRU 淘汰，防无界增长泄漏）"""
+
+    # 测试期间清空模块级全局，避免污染其他用例
+    @classmethod
+    def _cleanup(cls):
+        from agent.orchestrator.dialog_state import _SESSION_LAST_ACCESS
+        _SESSION_STATES.clear()
+        _SESSION_LAST_ACCESS.clear()
+
+    def test_lru_eviction_after_overflow(self, monkeypatch):
+        """超过容量上限后淘汰最久未访问的会话"""
+        import agent.orchestrator.dialog_state as dst_mod
+        self._cleanup()
+        try:
+            monkeypatch.setattr(dst_mod, "_MAX_SESSION_STATES", 3)
+            # 创建 5 个会话（0..4），每次访问刷新 last_access
+            for i in range(5):
+                get_dialog_state(f"cap-{i}")
+            assert len(_SESSION_STATES) == 3, (
+                f"超限后应收敛到上限 3，实际 {len(_SESSION_STATES)}"
+            )
+            # 最旧的 cap-0/cap-1 被淘汰；最新 cap-3/cap-4 保留
+            assert "cap-0" not in _SESSION_STATES
+            assert "cap-1" not in _SESSION_STATES
+            assert "cap-2" in _SESSION_STATES
+            assert "cap-4" in _SESSION_STATES
+        finally:
+            self._cleanup()
+
+    def test_accessed_session_survives_eviction(self, monkeypatch):
+        """最近访问的会话（LRU 命中）不被淘汰"""
+        import agent.orchestrator.dialog_state as dst_mod
+        self._cleanup()
+        try:
+            monkeypatch.setattr(dst_mod, "_MAX_SESSION_STATES", 3)
+            for i in range(4):
+                get_dialog_state(f"hot-{i}")
+            # 重新访问 hot-0 使其成为最近使用
+            get_dialog_state("hot-0")
+            get_dialog_state("hot-5")  # 新会话触发淘汰
+            assert len(_SESSION_STATES) == 3
+            # hot-0 刚被访问，应保留；最旧的 hot-1 被淘汰
+            assert "hot-0" in _SESSION_STATES
+            assert "hot-1" not in _SESSION_STATES
+        finally:
+            self._cleanup()
+
+    def test_below_limit_no_eviction(self, monkeypatch):
+        """容量未超限时不淘汰任何会话"""
+        import agent.orchestrator.dialog_state as dst_mod
+        self._cleanup()
+        try:
+            monkeypatch.setattr(dst_mod, "_MAX_SESSION_STATES", 5)
+            for i in range(3):
+                get_dialog_state(f"low-{i}")
+            assert len(_SESSION_STATES) == 3
+            for i in range(3):
+                assert f"low-{i}" in _SESSION_STATES
+        finally:
+            self._cleanup()

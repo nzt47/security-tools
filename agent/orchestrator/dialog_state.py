@@ -37,6 +37,7 @@ from __future__ import annotations
 import re
 import logging
 import threading
+import time
 from typing import Optional, List, Dict, Any
 
 logger = logging.getLogger(__name__)
@@ -352,9 +353,31 @@ class DialogState:
 # 【简易】纯内存，不持久化；会话结束由 GC 回收
 _SESSION_STATES: Dict[str, DialogState] = {}
 
+# [2026-08-15 边界修复] 容量上限：_SESSION_STATES 无界增长是真泄漏
+# （外部可无限造 session_id 令其惰性扩张，长期运行内存爬升不可回收）。
+# 超过上限后 LRU 淘汰最久未访问的会话；256 覆盖正常多会话场景，
+# 远低于进程内存风险线（每个 DialogState 仅数 KB 标量槽位）。
+_MAX_SESSION_STATES = 256
+
+# 最近访问时间戳（time.monotonic），供容量守卫 LRU 淘汰
+_SESSION_LAST_ACCESS: Dict[str, float] = {}
+
 # Why RLock：多路 HTTP 请求并发首轮访问各自 session，get_dialog_state 的
 # check-then-create 非原子（TOCTOU），不加锁会为同一 session 创建多个实例
 _SESSION_LOCK = threading.RLock()
+
+
+def _evict_if_overflow_locked() -> None:
+    """锁内 LRU 淘汰（调用方必须已持有 _SESSION_LOCK）"""
+    if len(_SESSION_STATES) <= _MAX_SESSION_STATES:
+        return
+    # 需淘汰数量 = 超出部分；按 last_access 升序取最旧的 N 个
+    evict_count = len(_SESSION_STATES) - _MAX_SESSION_STATES
+    oldest = sorted(_SESSION_LAST_ACCESS.items(), key=lambda kv: kv[1])[:evict_count]
+    for sid, _ts in oldest:
+        _SESSION_STATES.pop(sid, None)
+        _SESSION_LAST_ACCESS.pop(sid, None)
+    logger.warning("DST 会话状态超限，LRU 淘汰 %d 个会话", evict_count)
 
 
 def get_dialog_state(session_id: str = "default",
@@ -373,9 +396,12 @@ def get_dialog_state(session_id: str = "default",
         if state is None:
             state = DialogState(vector_adapter=vector_adapter)
             _SESSION_STATES[session_id] = state
+            # [2026-08-15 边界修复] 容量守卫：新建可能超限，LRU 淘汰
+            _evict_if_overflow_locked()
         elif vector_adapter is not None:
             # 幂等更新：语义层热后注入已初始化的适配器
             state.vector_adapter = vector_adapter
+        _SESSION_LAST_ACCESS[session_id] = time.monotonic()
         return state
 
 
