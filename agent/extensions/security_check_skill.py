@@ -175,7 +175,7 @@ def test_security_check_skill():
     with tempfile.TemporaryDirectory() as temp_dir:
         # 创建包含危险代码的文件
         dangerous_file = os.path.join(temp_dir, "dangerous.py")
-        with open(dangerous_file, "w") as f:
+        with open(dangerous_file, "w", encoding="utf-8") as f:
             f.write("""
 import subprocess
 subprocess.run("rm -rf /", shell=True)
@@ -197,7 +197,7 @@ subprocess.run("rm -rf /", shell=True)
     with tempfile.TemporaryDirectory() as temp_dir:
         # 创建安全的代码文件
         safe_file = os.path.join(temp_dir, "safe.py")
-        with open(safe_file, "w") as f:
+        with open(safe_file, "w", encoding="utf-8") as f:
             f.write("""
 def greet(name):
     return f"Hello, {name}!"

@@ -17,7 +17,7 @@ def init_workspace():
     # 创建 .gitkeep
     gitkeep = os.path.join(WORKSPACE_DIR, ".gitkeep")
     if not os.path.exists(gitkeep):
-        with open(gitkeep, "w") as f:
+        with open(gitkeep, "w", encoding="utf-8") as f:
             f.write("# 云枢受保护工作区\n")
     # 创建 readme
     readme = os.path.join(WORKSPACE_DIR, "README.txt")

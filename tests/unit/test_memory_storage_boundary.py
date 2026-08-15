@@ -263,7 +263,7 @@ class TestMemoryStorageBoundaryConditions:
         temp_storage.save_summary("test", 1)
         
         # 损坏版本文件
-        with open(temp_storage.version_file, "w") as f:
+        with open(temp_storage.version_file, "w", encoding="utf-8") as f:
             f.write("not_a_number")
         
         with pytest.raises((ValueError, StorageError)):
@@ -275,7 +275,7 @@ class TestMemoryStorageBoundaryConditions:
         temp_storage.save_message({"content": "valid"})
         
         # 追加损坏的JSON
-        with open(temp_storage.messages_file, "a") as f:
+        with open(temp_storage.messages_file, "a", encoding="utf-8") as f:
             f.write("{invalid json}\n")
         
         with pytest.raises((json.JSONDecodeError, StorageError)):

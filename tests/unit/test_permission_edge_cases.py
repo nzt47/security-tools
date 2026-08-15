@@ -229,7 +229,7 @@ class TestBackup:
             
             # 创建测试文件
             test_file = os.path.join(tmpdir, "test.txt")
-            with open(test_file, 'w') as f:
+            with open(test_file, 'w', encoding="utf-8") as f:
                 f.write("test content")
             
             # 备份文件
@@ -383,7 +383,7 @@ class TestBackupAndAlertDeep:
             
             # 创建测试文件
             test_file = os.path.join(tmpdir, "test.txt")
-            with open(test_file, 'w') as f:
+            with open(test_file, 'w', encoding="utf-8") as f:
                 f.write("test content")
             
             # 修改权限使备份失败（在Windows上模拟）

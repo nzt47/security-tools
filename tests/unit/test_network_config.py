@@ -537,7 +537,7 @@ class TestLLMConfigIntegration:
             'mcp': {'enabled': False, 'services': []},
             'change_log': []
         }
-        with open(self.config_path, 'w') as f:
+        with open(self.config_path, 'w', encoding="utf-8") as f:
             json.dump(complete_config, f)
 
         manager = NetworkConfigManager(
