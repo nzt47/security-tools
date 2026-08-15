@@ -133,6 +133,75 @@ def test_tool_router_appends_fallback_tools(inj, monkeypatch):
 
 
 # ═══════════════════════════════════════════════════════════════
+#  容错：trace_id 丢失/为空时，三处注入不抛异常、日志打印空值而非 None
+# ═══════════════════════════════════════════════════════════════
+
+def test_trace_id_empty_fallback_no_none_in_logs(inj, caplog):
+    """无 TraceContext / set_trace_id（get_trace_id() 返回 None）时：
+    1. 三处注入不抛异常且策略仍生效（容错 ≠ 吞功能）
+    2. 日志绝不打印 trace_id=None（or '' 兜底生效）
+    3. 命中日志 trace_id= 后为空值（注入链路仍可追溯）
+    """
+    import asyncio
+    import logging
+
+    from agent.cognitive.critic import CriticEvaluator
+    from agent.monitoring.tracing import set_trace_id
+    from agent import tool_router as tr
+    from planning.react import ReActLoop
+
+    set_trace_id(None)  # 确保初始状态干净（无任何 trace 上下文）
+
+    # global 策略：ReAct/Critic 命中；tool:web_search 策略：路由命中
+    gid = _seed_strategy(inj, prompt_patch="trace_id 为空不阻断注入",
+                         scope="global")
+    _seed_strategy(
+        inj,
+        prompt_patch="web_search 失败时改用备用路径",
+        scope="tool:web_search",
+        param_patch={"fallback_tools": ["web_scrape"]},
+    )
+
+    captured = {}
+
+    async def _chat(messages):
+        captured["prompt"] = messages[0]["content"]
+        return json.dumps({"reasoning": "ok", "action_type": "finish",
+                           "result": "完成"})
+
+    mock_llm = AsyncMock()
+    mock_llm.chat.side_effect = _chat
+    planner = type("P", (), {})()
+    planner.llm = mock_llm
+    planner.tool_registry = type("T", (), {"list_tools": lambda self: []})()
+    loop = ReActLoop(planner, reflector=None, max_iterations=3)
+
+    with caplog.at_level(logging.INFO):
+        # 1. tool_router 注入（无 trace_id 上下文）
+        tools = tr.get_tools_for_input("帮我搜索最新新闻", max_tools=50)
+        assert "web_scrape" in tools, "路由注入仍应生效"
+
+        # 2. ReAct 注入
+        asyncio.run(loop._think("网络检索任务", {}, []))
+        assert f"[策略 #{gid}]" in captured.get("prompt", ""), "ReAct 注入仍应生效"
+
+        # 3. Critic 注入
+        result = CriticEvaluator(threshold=70).evaluate(
+            user_query="请帮我写一段代码",
+            response="我无法完成这个请求，因为权限不足",
+            context={},
+        )
+        assert any(f"[策略 #{gid}]" in f for f in result.feedback), "Critic 注入仍应生效"
+
+    logs = "\n".join(r.message for r in caplog.records)
+    assert "trace_id=None" not in logs, "or '' 兜底失效：日志出现了 trace_id=None"
+    hit_lines = [r.message for r in caplog.records if "策略命中注入" in r.message]
+    assert len(hit_lines) >= 2, "命中日志应存在（注入链路可追溯）"
+    assert all("策略命中注入: trace_id= " in m for m in hit_lines), \
+        "命中日志 trace_id= 后应为空值（非 None）"
+
+
+# ═══════════════════════════════════════════════════════════════
 #  验收5：auto_tuner 参数联动 + HITL
 # ═══════════════════════════════════════════════════════════════
 

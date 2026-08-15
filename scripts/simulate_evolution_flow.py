@@ -14,6 +14,7 @@
 """
 
 import asyncio
+import hashlib
 import logging
 import os
 import sqlite3
@@ -50,9 +51,20 @@ def check(label: str, cond: bool, detail: str = ""):
 
 
 def seed_strategy(inj, *, prompt_patch, scope, param_patch=None, source="preset"):
-    """直接入库一条策略（模拟运营/LLM 预置，绕过筛选）"""
+    """直接入库一条策略（模拟运营/LLM 预置，绕过筛选）。
+
+    幂等：sid 由内容稳定派生（hashlib.md5），重复运行同库时命中已有策略
+    直接返回既有 sid，不重复入库（保持"只追加不删除"语义，防止演示污染真实库）。
+    """
+    sid = "sid-{}-{}".format(
+        scope.replace(":", "-"),
+        hashlib.md5(prompt_patch.encode("utf-8")).hexdigest()[:6],
+    )
+    existing = inj.get_strategy(sid)
+    if existing is not None:
+        return existing.strategy_id
     s = Strategy(
-        strategy_id=f"sid-{scope.replace(':','-')}-{abs(hash(prompt_patch)) % 10**5}",
+        strategy_id=sid,
         case_id="c-preset",
         prompt_patch=prompt_patch,
         param_patch=param_patch or {},
@@ -84,13 +96,21 @@ def call_tool_with_timeout(tool_name: str, params: dict, timeout_s: float,
                     "error": f"工具调用超时（>{timeout_s}s）", "hung": hang_s}
 
 
-def main():
+def main(storage: str = ""):
     print("=" * 72)
-    print("【阶段 0】初始化隔离注入器（SQLite 持久化，不触碰真实 data/evolution）")
-    print("=" * 72)
+    # auto_tuner 的 auto_tuning.db 走隔离临时目录（不混入策略库，闭环验证关注 evolution.db）
     tmp = tempfile.mkdtemp(prefix="evo_sim_")
-    db_dir = os.path.join(tmp, "evolution")
-    inj = StrategyInjector(storage_path=db_dir, backend=BACKEND_SQLITE)
+    if storage:
+        # 端到端写入目标库（真实库：--storage data/evolution）
+        db_dir = os.path.abspath(storage)
+        print(f"【阶段 0】端到端闭环（写入目标库 {db_dir}）")
+        print("=" * 72)
+        inj = StrategyInjector(storage_path=db_dir, backend=BACKEND_SQLITE)
+    else:
+        print("【阶段 0】初始化隔离注入器（SQLite 持久化，不触碰真实 data/evolution）")
+        print("=" * 72)
+        db_dir = os.path.join(tmp, "evolution")
+        inj = StrategyInjector(storage_path=db_dir, backend=BACKEND_SQLITE)
     # 把模块级 get_injector 指向实例，让 react/critic/tool_router 内部导入拿到它
     import agent.evolution.injector as inj_mod
     inj_mod.get_injector = lambda required=False: inj
@@ -135,8 +155,10 @@ def main():
         repair_hints=["网络工具超时：限制重试次数，失败后切换备用路径"],
         tool_name="web_search",
     )
-    check("案例A 生成 tool:web_search 策略入库", len(saved_a) >= 1,
-          f"saved={[s.strategy_id for s in saved_a]}")
+    check("案例A 生成 tool:web_search 策略入库",
+          len(saved_a) >= 1 or any("web_search" in s.scope
+                                  for s in inj.list_strategies()),
+          f"saved={[s.strategy_id for s in saved_a]}（重复运行同库时可为空）")
     for s in saved_a:
         print(f"    入库: {s.strategy_id} scope={s.scope} source={s.source}")
 
@@ -162,21 +184,32 @@ def main():
         case_b,
         repair_hints=["避免过度拒绝：权限不足时先尝试降级路径，而非直接拒绝"],
     )
-    check("案例B 生成 task_type:general 策略入库", len(saved_b) >= 1,
-          f"saved={[s.strategy_id for s in saved_b]}")
+    check("案例B 生成 task_type:general 策略入库",
+          len(saved_b) >= 1 or any(s.scope == "task_type:general"
+                                  for s in inj.list_strategies()),
+          f"saved={[s.strategy_id for s in saved_b]}（重复运行同库时可为空）")
 
     # 预置策略（模拟运营/LLM 落库）：critic 提示 + 工具备用路径
+    # 职责分离（保证重复运行同库仍可演示）：
+    #   fb_sid    —— 路由注入专用，保持 active，绝不参与 deprecated 演示
+    #   dep_sid   —— 阶段3 deprecated 判定演示专用（会按设计被标记 deprecated）
     critic_sid = seed_strategy(
         inj, prompt_patch="避免过度拒绝：区分真正的安全限制与可降级路径",
         scope="critic",
     )
     fb_sid = seed_strategy(
         inj,
-        prompt_patch="web_search 失败率高，改用备用路径",
+        prompt_patch="web_search 失败率高，优先启用备用检索路径",
         scope="tool:web_search",
         param_patch={"fallback_tools": ["web_scrape"]},
     )
-    print(f"\n  预置策略: critic_sid={critic_sid}, fallback_sid={fb_sid}")
+    dep_sid = seed_strategy(
+        inj,
+        prompt_patch="模拟高失败率专用策略（deprecated 判定演示，非路由依赖）",
+        scope="tool:web_search",
+    )
+    print(f"\n  预置策略: critic_sid={critic_sid}, fallback_sid={fb_sid}, "
+          f"dep_demo_sid={dep_sid}")
 
     # ────────────────────────────────────────────────────────────
     print("\n" + "=" * 72)
@@ -209,8 +242,10 @@ def main():
         repair_hints=["文件编辑失败：写入前先校验目标路径存在性，不存在则先创建目录"],
         tool_name="file_edit",
     )
-    check("案例C 生成 tool:file_edit 修复策略", len(saved_c) >= 1,
-          f"saved={[s.strategy_id for s in saved_c]}")
+    check("案例C 生成 tool:file_edit 修复策略",
+          len(saved_c) >= 1 or any("file_edit" in s.scope
+                                  for s in inj.list_strategies()),
+          f"saved={[s.strategy_id for s in saved_c]}（重复运行同库时可为空）")
     for s in saved_c:
         print(f"    入库: {s.strategy_id} scope={s.scope} source={s.source}")
 
@@ -247,7 +282,11 @@ def main():
     loop = ReActLoop(planner, reflector=None, max_iterations=3)
     asyncio.run(loop._think("网络检索任务", {}, []))
     prompt = captured.get("prompt", "")
-    react_hits = [s.strategy_id for s in saved_b if f"[策略 #{s.strategy_id}]" in prompt]
+    general_sids = [s.strategy_id for s in saved_b] or [
+        s.strategy_id for s in inj.list_strategies()
+        if s.scope == "task_type:general" and s.status == "active"
+    ]
+    react_hits = [sid for sid in general_sids if f"[策略 #{sid}]" in prompt]
     check("ReAct prompt 含 [策略 #id]", bool(react_hits),
           f"hits={react_hits} prompt片段={prompt[-220:]}")
     check("ReAct 注入段含【历史经验（策略库）】", "历史经验（策略库）" in prompt)
@@ -294,16 +333,24 @@ def main():
     print("\n" + "=" * 72)
     print("【阶段 3】策略统计与 deprecated 判定")
     print("=" * 72)
-    # 用 fallback 策略模拟高失败率：4 次失败（attempt=4 不 deprecated）→ 再 1 次（5 次 <30%）
-    for _ in range(4):
-        inj.record_strategy_result(fb_sid, success=False)
-    s4 = inj.get_strategy(fb_sid)
-    check("尝试 4 次（0 成功）未 deprecated", s4.status == "active",
-          f"status={s4.status} attempt={s4.attempt_count}")
-    inj.record_strategy_result(fb_sid, success=False)
-    s5 = inj.get_strategy(fb_sid)
-    check("尝试 5 次且成功率 0% → deprecated",
-          s5.status == "deprecated", f"status={s5.status}")
+    # 用 dep_sid 策略模拟高失败率：4 次失败（attempt=4 不 deprecated）→ 再 1 次（5 次 <30%）
+    # 重复运行同库时该专用策略可能已有历史失败（attempt>=5 已 deprecated），
+    # 此时直接核验既有 deprecated 状态即可，无需重放完整链路。
+    s4 = inj.get_strategy(dep_sid)
+    if s4.attempt_count == 0:
+        for _ in range(4):
+            inj.record_strategy_result(dep_sid, success=False)
+        s4 = inj.get_strategy(dep_sid)
+        check("尝试 4 次（0 成功）未 deprecated", s4.status == "active",
+              f"status={s4.status} attempt={s4.attempt_count}")
+        inj.record_strategy_result(dep_sid, success=False)
+        s5 = inj.get_strategy(dep_sid)
+        check("尝试 5 次且成功率 0% → deprecated",
+              s5.status == "deprecated", f"status={s5.status}")
+    else:
+        check("重复运行核验：历史尝试 >=5 且成功率 0% → deprecated",
+              s4.status == "deprecated" and s4.attempt_count >= 5,
+              f"status={s4.status} attempt={s4.attempt_count}")
 
     stats = inj.get_strategy_stats()
     print(f"  策略统计: total={stats['total']} active={stats['active']} "
@@ -316,8 +363,13 @@ def main():
     print("=" * 72)
     from agent.auto_tuner import AutoTuner
 
-    # 用案例A生成的 tool:web_search 策略模拟连续失败 3 次（rate=0.0, attempt>=3）
-    sim_sid = saved_a[0].strategy_id
+    # 用库中 tool:web_search 策略模拟连续失败 3 次（rate=0.0, attempt>=3）
+    sim_sids = [s.strategy_id for s in saved_a] or [
+        s.strategy_id for s in inj.list_strategies() if "web_search" in s.scope
+    ]
+    check("存在 web_search 策略用于失败率模拟", bool(sim_sids),
+          f"saved_a={[s.strategy_id for s in saved_a]}")
+    sim_sid = sim_sids[0]
     for _ in range(3):
         inj.record_strategy_result(sim_sid, success=False)
     stats2 = inj.get_strategy_stats()
@@ -410,4 +462,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+    parser = argparse.ArgumentParser(description="任务6 进化闭环模拟")
+    parser.add_argument("--storage", default="",
+                        help="目标策略库目录（默认隔离临时目录；传 data/evolution 写入真实库）")
+    args = parser.parse_args()
+    main(args.storage)
