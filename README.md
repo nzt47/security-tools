@@ -99,6 +99,46 @@ docker compose ps  # 容器应显示 Up (healthy)
 > 详细排查指南见 [Git Hook 与 BOM 排查避坑指南](docs/ci_guidelines/git_hook_bom_guide.md)，
 > 本次升级汇总见 [Git Hook 与 CI 升级总结](docs/ci_guidelines/git_hook_ci_upgrade_summary.md)。
 
+## L3 Docker 测试：模型缓存与 context 一致性（团队知识库）
+
+> 2026-08-16 实证收尾，完整根因链与验证见 [CI 修复验证报告](docs/ci_l3_context_sync_verify_20260816.md)。
+
+### 核心教训 1：HF 缓存路径语义（st_ok / model_fully_cached 判定链）
+
+`VectorStore` 后端选择链路：`model_fully_cached=True → encoder_ok=True → st_ok=True → sqlite_vec`；
+否则降级 `json`。判定函数 [`_is_model_fully_cached`](memory/vector_store/vector_store.py) 检查
+`{HF_HOME}/hub/models--<org>--<name>/snapshots/`，因此 **`TRANSFORMERS_CACHE` 与
+`SENTENCE_TRANSFORMERS_HOME` 必须指向 `{HF_HOME}/hub`**（而非 `{HF_HOME}`），否则模型落盘
+位置与检查路径 miss → 误判无缓存 → 在线加载失败 → 降级 json。已修复于
+[`docker-compose.linux-test.yml`](docker-compose.linux-test.yml)。
+
+### 核心教训 2：Docker context 与工作区代码漂移
+
+镜像 `COPY . .` 只打包**构建开始时**的 context；并行开发下新提交的已跟踪模块
+（如 `agent/skills_mgmt/lineage.py`）若未进 context，挂载的最新 `tests/conftest.py`
+import 即失败 → 全量测试 ERROR（2026-08-16 实测 130 项）。CI 全新 checkout 天然规避；
+本地复跑前先同步镜像，或接入预检脚本。
+
+### 预检脚本（CI 构建前 fail fast）
+
+[`scripts/ci_l3_context_preflight.py`](scripts/ci_l3_context_preflight.py) 在流水线
+`build-image` 前自动校验：构建文件存在性、conftest 引用链关键模块、context 目录 git
+清洁度、已跟踪文件磁盘覆盖度。接入方式（`l3-docker-tests.yml`）：
+
+```yaml
+- name: L3 context 一致性预检
+  run: python scripts/ci_l3_context_preflight.py --json
+```
+
+本地复跑 L3 前也可手动执行：`python scripts/ci_l3_context_preflight.py`。
+
+### 模型预下载（hf-mirror 镜像站）
+
+容器内 `huggingface.co` 直连不通（`Connection refused`），国内镜像站 `hf-mirror.com`
+可达。预下载脚本 [`scripts/predownload_l3_hf_cache.ps1`](scripts/predownload_l3_hf_cache.ps1)
+经 `HF_ENDPOINT=https://hf-mirror.com` 将 MiniLM / bge 模型拉取到 `hf-cache` 卷，
+复用镜像内 [`scripts/predownload_models.py`](scripts/predownload_models.py)。
+
 ## 行为模式
 
 | 模式 | 触发条件 | 表现 |
