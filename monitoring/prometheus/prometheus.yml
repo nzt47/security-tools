@@ -14,6 +14,7 @@ alerting:
 
 rule_files:
   - 'alert_rules.yml'
+  - 'rules/lock_watchdog_alerts.yml'
 
 scrape_configs:
   # 云枢 V2 应用指标
