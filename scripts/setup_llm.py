@@ -321,7 +321,7 @@ def main():
     # 检查是否已有配置
     if manager.config_file.exists():
         print("检测到已有配置:")
-        with open(manager.config_file, 'r') as f:
+        with open(manager.config_file, 'r', encoding="utf-8") as f:
             config = json.load(f)
             print(f"  提供商: {config.get('provider')}")
             print(f"  模型: {config.get('model')}")

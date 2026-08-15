@@ -66,7 +66,7 @@ class CostTracker:
         if not self._log_path.exists():
             return
         try:
-            with open(self._log_path, "r") as f:
+            with open(self._log_path, "r", encoding="utf-8") as f:
                 for line in f:
                     r = json.loads(line.strip())
                     day = r["timestamp"][:10]
