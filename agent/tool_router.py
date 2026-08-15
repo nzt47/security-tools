@@ -440,6 +440,35 @@ def get_tools_for_input(
     # 【功能 2/1/3】别名合并 + 优先级排序 + 数量截断(抽为 helper,供 hybrid 复用)
     result = _apply_alias_merge_and_priority_sort(selected, categories, max_tools)
 
+    # 任务6：进化策略注入（工具路由层）— 高失败率工具的备用路径策略
+    # 策略 param_patch 含 fallback_tools 时,将备用工具补入结果(追加末尾,不破坏排序);
+    # 注入失败不影响路由主流程(降级为无策略)。
+    try:
+        from agent.evolution.injector import get_injector
+        inj = get_injector()
+        if inj is not None:
+            try:
+                from agent.monitoring.tracing import get_trace_id
+                trace_id = get_trace_id() or ""
+            except Exception:
+                trace_id = ""
+            fallback_extra: list[str] = []
+            hit_ids: list[str] = []
+            for tool in list(result):
+                for s in inj.get_strategies(f"tool:{tool}", trace_id=trace_id):
+                    hit_ids.append(s["strategy_id"])
+                    fb = (s.get("param_patch") or {}).get("fallback_tools") or []
+                    fallback_extra.extend(str(t) for t in fb if str(t) not in result)
+            if hit_ids:
+                logger.info(
+                    "[进化][路由注入] trace_id=%s 命中策略 %d 条: strategy_ids=%s, 追加备用工具: %s",
+                    trace_id, len(hit_ids), hit_ids, fallback_extra,
+                )
+            if fallback_extra:
+                result = result + fallback_extra
+    except Exception:
+        pass
+
     # 记录工具选择决策（安全降级：recorder 不可用或异常不影响路由）
     if ToolTraceRecorder is not None:
         try:

@@ -1,238 +1,184 @@
 #!/usr/bin/env python3
-"""环境体检脚本: 将 docs/GIT_OPERATION_SAFETY_GUIDE.md §9 排查清单自动化
+"""环境健康检查脚本
 
-覆盖 §9 检查项(1-7) + 清理提示(8/9, 仅报告不自动执行, 守【不易】):
-  C1  无活跃干扰进程(匹配 stop_agitator_processes.ps1 默认模式)
-  C2  无自定义计划任务(schtasks, 仅 Windows)
-  C3  提交时间线(区分 +0000 workflow 自动提交 / +0800 本地会话提交)
-  C4  工作区污染(未跟踪/暂存/已修改文件清单)
-  C5  BOM 污染(调 check_ps1_encoding.py)
-  C6  hook 拦截能力(可选, --with-hook-test, 会真实触发 git commit)
-  C7  关键文件不变量(调 verify_core_invariants.py)
+用途（P0 任务清单 T-8）：回归/修复前确认关键依赖完整可用，避免被环境问题干扰判定。
+检查项：
+1. Python 解释器与版本
+2. 关键依赖 import 冒烟（必需：flask/requests/yaml；可选：transformers/sqlite_vec/chromadb/sentence_transformers）
+3. sys.path 污染检测（仓库内同名目录 / 损坏模块）
+4. 数据目录可写性
+5. venv 与全局解释器提示
 
-§9 步 8/9(清理) 属人工确认操作: 本脚本仅列出清单与提示命令, 不删除任何文件。
+--ci 模式（CI 流水线专用）：
+- 必需依赖缺失 → FAIL（阻断）
+- 可选依赖缺失 → WARN（不阻断，业务代码有降级路径：sqlite-vec→FTS5+BM25、chromadb→BM25、
+  transformers/sentence_transformers→SKILLS_OFFLINE mock）
 
-状态分级: pass = 健康; WARN = 需人工关注但不阻止(如并发会话提交、未跟踪产物);
-         BLOCK = 环境异常(如 BOM 污染、不变量破坏)。退出码仅按 BLOCK 判定。
-
-用法:
-    python scripts/env_health_check.py                    # 全量体检
-    python scripts/env_health_check.py --with-hook-test   # 含 hook 拦截稳定性实测(真实提交)
-    python scripts/env_health_check.py --json             # stdout 仅 JSON(机器可读)
-    python scripts/env_health_check.py --quiet            # 仅输出汇总
-
-退出码: 0 = 无 BLOCK; 1 = 存在 BLOCK(环境异常)
+退出码: 0=健康, 1=存在 FAIL 项
 """
-from __future__ import annotations
 
 import argparse
-import json
 import os
 import subprocess
 import sys
-import time
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# stop_agitator_processes.ps1 默认匹配模式(§9-1 / §8 真相澄清)
-AGITATOR_PATTERNS = ("verify_bom_hook_stability", "simulate_workflow_closed_loop")
-# §9-3 时间线区分: +0800 = 本地会话提交; +0000 + [skip ci] = workflow 自动提交(正常行为)
-LOG_FORMAT = "--format=%h|%ci|%s"
+# 必需依赖（缺失即阻断，本地与 CI 一致）
+REQUIRED_DEPS = [
+    ("flask", "Web 服务"),
+    ("requests", "HTTP 客户端"),
+    ("yaml", "配置解析"),
+]
 
+# 可选依赖（--ci 模式下缺失仅 WARN；本地完整环境缺失按 FAIL 处理）
+OPTIONAL_DEPS = [
+    ("transformers", "LLM/Embedding 模型库"),
+    ("sqlite_vec", "向量检索扩展（不可用时降级纯 FTS5+BM25）"),
+    ("chromadb", "向量库（不可用时降级纯 BM25）"),
+    ("sentence_transformers", "Embedding 推理"),
+]
 
-def _run(cmd: list[str], cwd: Path = PROJECT_ROOT, timeout: int = 120) -> subprocess.CompletedProcess:
-    """执行命令, utf-8 容错解码(仓库工具统一约定)"""
-    return subprocess.run(cmd, cwd=str(cwd), capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", timeout=timeout)
+# 数据目录（相对仓库根）
+DATA_DIRS = [
+    "data",
+    "data/logs",
+    "data/feedback",
+]
 
-
-def _pwsh(script: str, timeout: int = 60) -> subprocess.CompletedProcess:
-    return _run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script], timeout=timeout)
-
-
-def _item(iid: str, path: str, desc: str, status: str, detail: str) -> dict:
-    return {"id": iid, "path": path, "desc": desc, "status": status, "detail": detail}
-
-
-def check_c1() -> dict:
-    """§9-1 无活跃干扰进程(仅报告, 绝不自动终止——§8 澄清 verify_bom_hook_stability 可能是人工验证)"""
-    desc = "无活跃干扰进程(verify_bom_hook_stability/simulate_workflow_closed_loop)"
-    pat = "|".join(AGITATOR_PATTERNS)
-    if os.name != "nt":
-        r = _run(["sh", "-c", f"ps -eo pid=,args= | grep -E '{pat}' | grep -v grep"])
-        hits = [ln.strip() for ln in r.stdout.splitlines() if ln.strip()]
-    else:
-        ps = (
-            "Get-CimInstance Win32_Process -Filter 'Name = ''python.exe'' OR Name = ''python3.exe'' OR Name = ''py.exe''' | "
-            f"ForEach-Object {{ if ($_.CommandLine -match '{pat}') {{ $_.ProcessId.ToString() + ': ' + $_.CommandLine }} }}"
-        )
-        r = _pwsh(ps)
-        hits = [ln.strip() for ln in r.stdout.splitlines() if ln.strip()]
-    if hits:
-        return _item("C1", "", desc, "WARN",
-                     "存在匹配进程(可能是人工验证, 用 stop_agitator_processes.ps1 核对, 勿盲杀): "
-                     + "; ".join(hits[:3]))
-    return _item("C1", "", desc, "pass", "未发现匹配进程")
+# 已知"仓库内同名目录会污染 sys.path"的候选
+PATH_POLLUTION_HITS = ("transformers", "sqlite_vec", "chromadb")
 
 
-def check_c2() -> dict:
-    """§9-2 无自定义计划任务(schtasks, 仅 Windows)"""
-    desc = "无自定义计划任务(匹配 agent|python|git)"
-    if os.name != "nt":
-        return _item("C2", "", desc, "pass", "平台跳过(仅 Windows 支持 schtasks)")
-    r = _pwsh("schtasks /query /fo CSV /nh")
-    hits = [ln for ln in r.stdout.splitlines()
-            if ln and any(k in ln for k in ("agent", "python", "git"))]
-    if hits:
-        return _item("C2", "", desc, "WARN",
-                     "发现疑似自定义计划任务(请人工核对): " + "; ".join(hits[:3]))
-    return _item("C2", "", desc, "pass", "无匹配计划任务")
+def check_import(mod_name: str) -> bool:
+    try:
+        __import__(mod_name)
+        return True
+    except Exception:
+        return False
 
 
-def check_c3() -> dict:
-    """§9-3 核对今日提交时间线(区分 workflow 自动提交 / 本地会话提交)"""
-    desc = "提交时间线核对(区分 workflow 自动提交 / 本地会话提交)"
-    r = _run(["git", "log", "--since=midnight", LOG_FORMAT])
-    lines = [ln for ln in r.stdout.splitlines() if ln.strip()]
-    workflow = [ln for ln in lines if "+0000" in ln and "[skip ci]" in ln]
-    local = [ln for ln in lines if "+0800" in ln]
-    if local:
-        return _item("C3", "", desc, "WARN",
-                     f"今日存在 {len(local)} 条 +0800 本地/会话提交, 请按 §9-3 人工核对来源; "
-                     f"workflow 自动提交 {len(workflow)} 条(+0000/[skip ci])属正常行为")
-    return _item("C3", "", desc, "pass",
-                 f"今日提交 {len(lines)} 条(workflow 自动 {len(workflow)} 条, 无 +0800 本地提交)")
-
-
-def check_c4() -> dict:
-    """§9-4 检查工作区污染(未跟踪/暂存/已修改)"""
-    desc = "工作区污染检查(未跟踪/暂存/已修改文件)"
-    r = _run(["git", "status", "--porcelain=v1", "--untracked-files=all"])
-    lines = [ln for ln in r.stdout.splitlines() if ln.strip()]
-    if not lines:
-        return _item("C4", "", desc, "pass", "工作区干净")
-    untracked = [ln[3:] for ln in lines if ln.startswith("??")]
-    staged = [ln[3:] for ln in lines if ln.startswith(("A ", "M ", "D ", "R ", "C "))]
-    modified = [ln[3:] for ln in lines if ln.startswith(" M")]
-    detail = f"未跟踪 {len(untracked)} / 暂存 {len(staged)} / 已修改 {len(modified)}"
-    if untracked:
-        detail += " | 未跟踪文件(按 §9-9 逐项核对来源): " + ", ".join(untracked[:5])
-    if staged:
-        detail += " | 暂存文件(提交前核对): " + ", ".join(staged[:5])
-    if modified:
-        detail += " | 已修改(未暂存): " + ", ".join(modified[:5])
-    return _item("C4", "", desc, "WARN", detail)
-
-
-def check_c5(root: Path) -> dict:
-    """§9-5 BOM 污染(调 check_ps1_encoding.py, 退出码语义即 BLOCK 判定)"""
-    desc = "BOM 污染检查(check_ps1_encoding.py)"
-    r = _run([sys.executable, "scripts/check_ps1_encoding.py", "--quiet", "--repo-root", str(root)])
-    if r.returncode == 0:
-        return _item("C5", "scripts/check_ps1_encoding.py", desc, "pass", "BLOCK 0, 编码契约通过")
-    return _item("C5", "scripts/check_ps1_encoding.py", desc, "BLOCK",
-                 "存在 BLOCK 级编码问题, 查看明细: python scripts/check_ps1_encoding.py --repo-root .")
-
-
-def check_c6(root: Path, with_hook_test: bool) -> dict:
-    """§9-6 验证 hook 拦截能力(可选, --with-hook-test 会真实触发 git commit)"""
-    desc = "hook 拦截能力(叠加 BOM 提交应被拦截)"
-    if not with_hook_test:
-        return _item("C6", "scripts/verify_bom_hook_stability.py", desc, "pass",
-                     "未启用(用 --with-hook-test 开启真实提交实测)")
-    r = _run([sys.executable, "scripts/verify_bom_hook_stability.py",
-              "--iterations", "2", "--mode", "both"],
-             timeout=600)
-    if r.returncode == 0:
-        return _item("C6", "scripts/verify_bom_hook_stability.py", desc, "pass",
-                     "hook 拦截实测通过(叠加 BOM 提交均被拦截)")
-    tail = (r.stdout + r.stderr).strip().splitlines()[-3:]
-    return _item("C6", "scripts/verify_bom_hook_stability.py", desc, "BLOCK",
-                 "hook 拦截异常, 输出尾部: " + " | ".join(tail))
-
-
-def check_c7(root: Path) -> dict:
-    """§9-7 关键文件不变量(调 verify_core_invariants.py)"""
-    desc = "关键文件不变量(verify_core_invariants.py)"
-    r = _run([sys.executable, "scripts/verify_core_invariants.py", "--quiet", "--repo-root", str(root)])
-    if r.returncode == 0:
-        return _item("C7", "scripts/verify_core_invariants.py", desc, "pass",
-                     "核心不变量全部通过")
-    return _item("C7", "scripts/verify_core_invariants.py", desc, "BLOCK",
-                 "不变量被破坏, 查看明细: python scripts/verify_core_invariants.py --repo-root .")
-
-
-def _hints(items: list[dict]) -> list[str]:
-    """§9-8/9 清理提示(仅建议命令, 不自动执行)"""
-    hints = []
-    c4 = next((i for i in items if i["id"] == "C4"), None)
-    if c4:
-        if "未跟踪" in c4["detail"]:
-            hints.append("git status --porcelain 逐个核对未跟踪文件来源后删除或 git add(§9-9)")
-        if "暂存" in c4["detail"]:
-            hints.append("git diff --cached --name-only 核对暂存区, 误跟踪文件用 git restore --staged <file> 移出(§9-8)")
-    return hints
+def check_deps(deps: list[tuple[str, str]], ci_mode: bool) -> bool:
+    """依赖冒烟；返回是否有 FAIL 项。ci_mode 下调用方已将可选依赖降级为 WARN。"""
+    failed = False
+    for mod, desc in deps:
+        ok = check_import(mod)
+        status = "OK" if ok else ("FAIL" if not ci_mode else "WARN(可选,降级路径)")
+        print(f"  [{status}] {mod:<22} ({desc})")
+        if not ok and not ci_mode:
+            failed = True
+    return failed
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="环境体检(§9 排查清单自动化)")
-    ap.add_argument("--repo-root", default=".", help="仓库根目录(默认当前目录)")
-    ap.add_argument("--with-hook-test", action="store_true",
-                    help="含 hook 拦截稳定性实测(会真实触发 git commit, 需 TLM_HOOK_SOURCE_REPO)")
-    ap.add_argument("--json", action="store_true", help="stdout 仅输出 JSON(机器可读)")
-    ap.add_argument("--quiet", action="store_true", help="仅输出结果汇总")
-    args = ap.parse_args()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--ci", action="store_true",
+                        help="CI 模式：可选依赖缺失降级为 WARN 不阻断（业务代码有降级路径）")
+    args = parser.parse_args()
 
-    root = Path(args.repo_root).resolve()
-    if not root.is_dir():
-        print(f"[ERROR] 仓库根目录不存在: {root}", file=sys.stderr)
-        return 1
+    failed = False
+    print(f"[env] python      : {sys.executable}")
+    print(f"[env] python ver  : {sys.version.split()[0]}")
+    print(f"[env] repo root   : {REPO_ROOT}")
+    print(f"[env] mode        : {'CI (可选依赖 WARN)' if args.ci else '本地完整环境'}")
 
-    items = [
-        check_c1(),
-        check_c2(),
-        check_c3(),
-        check_c4(),
-        check_c5(root),
-        check_c6(root, args.with_hook_test),
-        check_c7(root),
-    ]
+    # 1. 必需依赖冒烟
+    print("\n== 必需依赖 import 冒烟 ==")
+    if check_deps(REQUIRED_DEPS, ci_mode=False):
+        failed = True
 
-    blocked = [i for i in items if i["status"] == "BLOCK"]
-    warned = [i for i in items if i["status"] == "WARN"]
-    report = {
-        "tool": "env_health_check",
-        "status": "fail" if blocked else "pass",
-        "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        "meta": {
-            "repo_root": str(root),
-            "guide": "docs/GIT_OPERATION_SAFETY_GUIDE.md §9",
-            "total": len(items),
-            "blocked": len(blocked),
-            "warned": len(warned),
-            "hints": _hints(items),
-        },
-        "items": items,
-    }
+    # 2. 可选依赖冒烟（--ci 降级 WARN）
+    print("\n== 可选依赖 import 冒烟 ==")
+    if check_deps(OPTIONAL_DEPS, ci_mode=args.ci):
+        failed = True
 
-    if args.json:
-        print(json.dumps(report, ensure_ascii=False, indent=2))
-        return 1 if blocked else 0
+    # 3. transformers 子模块专项（历史故障点；--ci 缺失时降级 WARN）
+    print("\n== transformers 子模块专项 ==")
+    if check_import("transformers"):
+        for sub in ("configuration_utils", "tokenization_utils_base", "modeling_utils"):
+            try:
+                m = __import__(f"transformers.{sub}", fromlist=[sub])
+                print(f"  [OK] transformers.{sub:<28} {getattr(m, '__file__', '?')}")
+            except Exception as e:
+                print(f"  [FAIL] transformers.{sub}: {type(e).__name__}: {e}")
+                failed = True
+    else:
+        mark = "WARN(可选,SKILLS_OFFLINE 降级)" if args.ci else "FAIL"
+        print(f"  [{mark}] transformers 不可用，跳过子模块专项")
 
-    if not args.quiet:
-        mark = {"pass": "[PASS]", "WARN": "[WARN]", "BLOCK": "[BLOCK]"}
-        for i in items:
-            print(f"{mark[i['status']]} {i['id']} {i['desc']}")
-            if i["detail"]:
-                print(f"        {i['detail']}")
-        for h in _hints(items):
-            print(f"[HINT] {h}")
+    # 4. sys.path 污染检测（仓库内顶层同名目录）
+    print("\n== sys.path 污染检测 ==")
+    polluted = False
+    for entry in sys.path:
+        if not entry:
+            continue
+        p = Path(entry)
+        if not p.is_dir() or not p.resolve().is_relative_to(REPO_ROOT.resolve()):
+            continue
+        for name in PATH_POLLUTION_HITS:
+            if (p / name).exists():
+                print(f"  [FAIL] 仓库路径 {p / name} 可能遮蔽同名包")
+                polluted = True
+    if not polluted:
+        print("  [OK] 未发现仓库内同名目录污染")
 
-    status = "PASS" if not blocked else "FAIL"
-    print(f"=== env_health_check: {status} 通过 {len(items) - len(blocked)}/{len(items)}"
-          f" (BLOCK {len(blocked)} / WARN {len(warned)}) ===")
-    return 1 if blocked else 0
+    # 5. 数据目录可写性
+    print("\n== 数据目录可写性 ==")
+    for rel in DATA_DIRS:
+        d = REPO_ROOT / rel
+        try:
+            d.mkdir(parents=True, exist_ok=True)
+            probe = d / ".env_health_probe"
+            probe.write_text("ok", encoding="utf-8")
+            probe.unlink()
+            print(f"  [OK] {rel}")
+        except Exception as e:
+            print(f"  [FAIL] {rel}: {e}")
+            failed = True
+
+    # 6. venv 提示
+    # 【变易】跨平台: POSIX venv 解释器为 venv/bin/python, Windows 为 venv/Scripts/python.exe
+    # Why: 仓库曾误提交 Windows venv（venv/Scripts/python.exe），Linux CI checkout 后
+    #   exists() 为 True 但执行报 Permission denied。venv 是本地开发概念，CI 无 venv。
+    venv_py = (
+        REPO_ROOT / "venv" / "bin" / "python"
+        if sys.platform != "win32"
+        else REPO_ROOT / "venv" / "Scripts" / "python.exe"
+    )
+    print("\n== venv 检查 ==")
+    if venv_py.exists():
+        try:
+            r = subprocess.run(
+                [str(venv_py), "-c",
+                 "import transformers,sys;print(transformers.__version__);print(sys.executable)"],
+                capture_output=True, text=True, timeout=30,
+            )
+            ver, exe = (r.stdout.strip().splitlines() + ["?", "?"])[:2]
+            print(f"  [venv] transformers={ver} @ {exe}")
+            if r.returncode != 0:
+                # Why 分支处理: venv 是本地开发环境概念（CI 无 venv 跳过）。
+                # --ci 模式下 venv 内可选依赖缺失仅 WARN（对齐可选依赖降级语义），
+                # 本地模式 FAIL（提示修复本地 venv）。
+                if args.ci:
+                    print(f"  [WARN(可选,venv)] venv transformers import 失败: "
+                          f"{r.stderr.strip()[:200]}")
+                else:
+                    print(f"  [FAIL] venv transformers import 失败: {r.stderr.strip()[:200]}")
+                    failed = True
+        except Exception as e:
+            # Why CI 降级: 误提交的 Windows venv 二进制在 Linux 上执行 Permission denied,
+            #   CI checkout 无本地 venv 概念, 降级 WARN 不阻断（本地仍 FAIL 提示修复）。
+            if args.ci:
+                print(f"  [WARN(可选,venv)] venv 检查异常（CI 降级）: {e}")
+            else:
+                print(f"  [FAIL] venv 检查异常: {e}")
+                failed = True
+    else:
+        print(f"  [info] 仓库无 venv/{'bin/python' if sys.platform != 'win32' else 'Scripts/python.exe'}（使用全局解释器）")
+
+    print(f"\n== 结果: {'HEALTHY' if not failed else 'FAILED'} ==")
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

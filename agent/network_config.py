@@ -23,6 +23,7 @@ import json
 import logging
 import uuid
 import datetime
+import threading
 from copy import deepcopy
 from pathlib import Path
 from typing import Dict, Any, Optional, List
@@ -220,6 +221,15 @@ class NetworkConfigManager:
         self._env_config = get_env_config_manager()  # .env 单一数据源
         self._cache = None
 
+        # Why RLock 保护 _cache（模块级单例被多路 HTTP 管理接口并发调用）：
+        # _load 的「缓存 miss → 读文件 → 写缓存」与 _save 的「替换缓存引用 +
+        # 写文件」交错会丢失更新（旧引用上的修改永不落盘）；并发 update 的
+        # 读-改-写互相覆盖；并发 add_llm_instance 的重复名称检查 TOCTOU。
+        # _save 的缓存更新与文件写入必须在同一锁内（文件/缓存一致性不变式）；
+        # 配置写为低频管理操作，本地磁盘 I/O 毫秒级，持锁写文件可接受
+        # （配置原子性 > 锁内 I/O 惯例）。网络/慢 I/O 不在锁内。
+        self._lock = threading.RLock()
+
     def _key_to_env_var(self, key: str) -> str:
         """将配置键名映射为环境变量名
 
@@ -263,27 +273,37 @@ class NetworkConfigManager:
         return key.upper()
 
     def _load(self) -> dict:
-        """加载网络配置（带缓存）"""
-        if self._cache is not None:
-            return self._cache
+        """加载网络配置（带缓存，双重检查锁：文件 I/O 在锁外）"""
+        with self._lock:  # 读缓存原子（与 _save 替换引用互斥）
+            if self._cache is not None:
+                return self._cache
 
+        # 缓存 miss：锁外读文件（I/O 不持锁，持锁纪律）
+        loaded = None
+        need_default = False
         try:
             if self._config_file.exists():
                 with open(self._config_file, 'r', encoding='utf-8') as f:
-                    self._cache = json.load(f)
+                    loaded = json.load(f)
                 logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._load.self', 'message': f'[网络配置] 已从文件加载: {self._config_file}'}))
             else:
-                self._cache = deepcopy(_DEFAULT_NETWORK_CONFIG)
-                self._save(self._cache)
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._load.self', 'message': f'[网络配置] 使用默认配置，已创建: {self._config_file}'}))
+                loaded = deepcopy(_DEFAULT_NETWORK_CONFIG)
+                need_default = True
         except (json.JSONDecodeError, OSError) as e:
             logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config._load.log', 'message': f'[网络配置] 加载失败，使用默认配置: {e}'}))
-            self._cache = deepcopy(_DEFAULT_NETWORK_CONFIG)
+            loaded = deepcopy(_DEFAULT_NETWORK_CONFIG)
 
-        # 确保配置结构完整
-        self._ensure_config_structure()
-
-        return self._cache
+        with self._lock:  # 双检：其它线程可能已完成加载，避免重复覆盖
+            if self._cache is not None:
+                return self._cache
+            self._cache = loaded
+            # 确保配置结构完整
+            self._ensure_config_structure()
+            if need_default:
+                # 首次运行创建默认配置文件（冷路径，锁内 I/O 可接受）
+                self._save(self._cache)
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._load.self', 'message': f'[网络配置] 使用默认配置，已创建: {self._config_file}'}))
+            return self._cache
 
     def _ensure_config_structure(self):
         """确保配置结构完整，添加缺失的配置项"""
@@ -365,10 +385,14 @@ class NetworkConfigManager:
             svc.pop('api_key', None)
             svc.pop('token', None)
         self._config_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(self._config_file, 'w', encoding='utf-8') as f:
-            json.dump(save_data, f, ensure_ascii=False, indent=2)
-        # 更新缓存为已保存的数据（与文件内容一致，不含 api_key）
-        self._cache = deepcopy(save_data)
+        # Why 缓存更新与文件写入必须在同一锁内：并发 _save 交错时若缓存先更新、
+        # 文件后写，最后写者不一致会导致「缓存新/文件旧」或反之（文件/缓存一致性
+        # 不变式）。配置写为低频管理操作，本地磁盘 I/O 毫秒级，持锁可接受。
+        with self._lock:
+            with open(self._config_file, 'w', encoding='utf-8') as f:
+                json.dump(save_data, f, ensure_ascii=False, indent=2)
+            # 更新缓存为已保存的数据（与文件内容一致，不含 api_key）
+            self._cache = deepcopy(save_data)
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config._save.self', 'message': f'[网络配置] 已保存到文件: {self._config_file}'}))
 
     def _save_secure(self, key: str, value: str):
@@ -410,17 +434,19 @@ class NetworkConfigManager:
             "section": section,
             "details": details or {},
         }
-        # 只保留最近 100 条日志
-        self._cache["change_log"].insert(0, log_entry)
-        if len(self._cache["change_log"]) > 100:
-            self._cache["change_log"] = self._cache["change_log"][:100]
+        # 只保留最近 100 条日志（读-改-写原子，防并发丢日志/超长）
+        with self._lock:
+            self._cache["change_log"].insert(0, log_entry)
+            if len(self._cache["change_log"]) > 100:
+                self._cache["change_log"] = self._cache["change_log"][:100]
 
     def get_all(self) -> dict:
         """获取完整配置（敏感信息脱敏）
 
         重要：返回深拷贝以避免污染 self._cache（与 get_raw_config 保持一致）。
         """
-        config = deepcopy(self._load())
+        with self._lock:  # deepcopy 与并发 update/_save 修改缓存互斥（防 RuntimeError）
+            config = deepcopy(self._load())
 
         # 【分层配置】加载敏感信息：环境变量(.env) > 加密存储 > 配置文件默认值
         config["llm"]["api_key"] = self._load_secure(
@@ -523,7 +549,8 @@ class NetworkConfigManager:
         _load() 返回的是缓存引用，若直接修改会使缓存残留解密后的 api_key，
         导致后续 _save() 把明文写入 JSON 文件。
         """
-        config = deepcopy(self._load())
+        with self._lock:  # deepcopy 与并发 update/_save 修改缓存互斥（防 RuntimeError）
+            config = deepcopy(self._load())
 
         # 【分层配置】加载敏感信息：环境变量(.env) > 加密存储 > 配置文件默认值
         config["llm"]["api_key"] = self._load_secure(
@@ -584,64 +611,69 @@ class NetworkConfigManager:
         Returns:
             更新后的完整配置
         """
-        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.log', 'message': '[网络配置] 开始更新配置...'}))
-        config = self._load()
+        # Why 整体持锁：配置读-改-写必须原子（并发 update 交错会互相覆盖丢失）。
+        # _save_secure 写 .env 与 _save 写文件为本地磁盘 I/O（毫秒级），配置写为
+        # 低频管理操作，配置原子性优先于锁内 I/O 惯例。RLock 重入 _load/_save/
+        # _add_change_log/get_all。
+        with self._lock:
+            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.log', 'message': '[网络配置] 开始更新配置...'}))
+            config = self._load()
 
-        # 处理 LLM API Key（敏感信息）
-        if 'llm' in updates:
-            api_key = updates["llm"].get('api_key')
-            if api_key and api_key != '***' and not api_key.startswith('***'):
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.llm', 'message': '[网络配置] 检测到新的 LLM API Key，准备加密保存...'}))
-                self._save_secure('llm_api_key', api_key)
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.llm', 'message': '[网络配置] LLM API Key 已加密保存'}))
-            elif api_key and api_key.startswith('***'):
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.llm', 'message': '[网络配置] LLM API Key 未变更（脱敏值），跳过更新'}))
+            # 处理 LLM API Key（敏感信息）
+            if 'llm' in updates:
+                api_key = updates["llm"].get('api_key')
+                if api_key and api_key != '***' and not api_key.startswith('***'):
+                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.llm', 'message': '[网络配置] 检测到新的 LLM API Key，准备加密保存...'}))
+                    self._save_secure('llm_api_key', api_key)
+                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.llm', 'message': '[网络配置] LLM API Key 已加密保存'}))
+                elif api_key and api_key.startswith('***'):
+                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.llm', 'message': '[网络配置] LLM API Key 未变更（脱敏值），跳过更新'}))
 
-        # 处理错误报告 Webhook URL（敏感信息）
-        if 'external_services' in updates:
-            if 'error_reporting' in updates["external_services"]:
-                webhook_url = updates["external_services"]["error_reporting"].get('webhook_url')
-                if webhook_url and webhook_url != '***' and not webhook_url.startswith('***'):
-                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.webhook', 'message': '[网络配置] 检测到新的 Webhook URL，准备加密保存...'}))
-                    self._save_secure('error_reporting_webhook', webhook_url)
-                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.webhook', 'message': '[网络配置] Webhook URL 已加密保存'}))
-                elif webhook_url and webhook_url.startswith('***'):
-                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.webhook', 'message': '[网络配置] Webhook URL 未变更（脱敏值），跳过更新'}))
+            # 处理错误报告 Webhook URL（敏感信息）
+            if 'external_services' in updates:
+                if 'error_reporting' in updates["external_services"]:
+                    webhook_url = updates["external_services"]["error_reporting"].get('webhook_url')
+                    if webhook_url and webhook_url != '***' and not webhook_url.startswith('***'):
+                        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.webhook', 'message': '[网络配置] 检测到新的 Webhook URL，准备加密保存...'}))
+                        self._save_secure('error_reporting_webhook', webhook_url)
+                        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.webhook', 'message': '[网络配置] Webhook URL 已加密保存'}))
+                    elif webhook_url and webhook_url.startswith('***'):
+                        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.webhook', 'message': '[网络配置] Webhook URL 未变更（脱敏值），跳过更新'}))
 
-        # 处理 LLM 实例
-        if 'llm_instances' in updates:
-            self._update_llm_instances(updates["llm_instances"])
+            # 处理 LLM 实例
+            if 'llm_instances' in updates:
+                self._update_llm_instances(updates["llm_instances"])
 
-        # 处理搜索实例
-        if 'search_instances' in updates:
-            self._update_search_instances(updates["search_instances"])
+            # 处理搜索实例
+            if 'search_instances' in updates:
+                self._update_search_instances(updates["search_instances"])
 
-        # 处理旧版 search_api_keys 字典（兼容性：加密保存各引擎 Key）
-        if 'search_api_keys' in updates and isinstance(updates["search_api_keys"], dict):
-            for engine_name, api_key in updates["search_api_keys"].items():
-                if api_key and api_key != '***' and not str(api_key).startswith('***'):
-                    secure_key = f'search_{engine_name}_key'
-                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.search', 'message': f'[网络配置] 检测到搜索引擎 {engine_name} 的 API Key，准备加密保存...'}))
-                    self._save_secure(secure_key, api_key)
-                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.search', 'message': f'[网络配置] 搜索引擎 {engine_name} API Key 已加密保存'}))
+            # 处理旧版 search_api_keys 字典（兼容性：加密保存各引擎 Key）
+            if 'search_api_keys' in updates and isinstance(updates["search_api_keys"], dict):
+                for engine_name, api_key in updates["search_api_keys"].items():
+                    if api_key and api_key != '***' and not str(api_key).startswith('***'):
+                        secure_key = f'search_{engine_name}_key'
+                        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.search', 'message': f'[网络配置] 检测到搜索引擎 {engine_name} 的 API Key，准备加密保存...'}))
+                        self._save_secure(secure_key, api_key)
+                        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.search', 'message': f'[网络配置] 搜索引擎 {engine_name} API Key 已加密保存'}))
 
-        # 处理 MCP 配置
-        if 'mcp' in updates:
-            self._update_mcp_config(updates["mcp"])
+            # 处理 MCP 配置
+            if 'mcp' in updates:
+                self._update_mcp_config(updates["mcp"])
 
-        # 递归合并配置
-        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.log', 'message': '[网络配置] 合并配置到当前配置...'}))
-        self._merge(config, updates)
+            # 递归合并配置
+            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.log', 'message': '[网络配置] 合并配置到当前配置...'}))
+            self._merge(config, updates)
 
-        # 保存到文件（_save 会同步更新缓存，剥离 api_key）
-        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.log', 'message': '[网络配置] 保存配置到文件: %s' % (self._config_file,)}))
-        self._save(config)
+            # 保存到文件（_save 会同步更新缓存，剥离 api_key）
+            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.log', 'message': '[网络配置] 保存配置到文件: %s' % (self._config_file,)}))
+            self._save(config)
 
-        # 记录变更日志
-        self._add_change_log('update', 'config', {'keys': list(updates.keys())})
+            # 记录变更日志
+            self._add_change_log('update', 'config', {'keys': list(updates.keys())})
 
-        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.log', 'message': '[网络配置] 配置已更新到文件'}))
-        return self.get_all()
+            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update.log', 'message': '[网络配置] 配置已更新到文件'}))
+            return self.get_all()
 
     def _update_llm_instances(self, instances: list):
         """更新 LLM 实例配置（upsert 语义）
@@ -928,93 +960,94 @@ class NetworkConfigManager:
         """
         if not search_engine:
             return
-        # get_raw_config() 返回深拷贝，不污染缓存；包含解密后的 api_key 供注册使用
-        config = self.get_raw_config()
-        instances = config.get('search_instances', [])
+        with self._lock:  # 读配置-注册-保存原子（防并发 apply 优先级/实例互相覆盖）
+            # get_raw_config() 返回深拷贝，不污染缓存；包含解密后的 api_key 供注册使用
+            config = self.get_raw_config()
+            instances = config.get('search_instances', [])
 
-        # 首次运行：将内置引擎填充为实例
-        if not instances:
-            instances = self._seed_builtin_search_instances(config)
-            config["search_instances"] = instances
+            # 首次运行：将内置引擎填充为实例
+            if not instances:
+                instances = self._seed_builtin_search_instances(config)
+                config["search_instances"] = instances
 
-        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_search_instances.log', 'message': '[网络配置] 开始注册 %d 个搜索实例...' % (len(instances),)}))
+            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_search_instances.log', 'message': '[网络配置] 开始注册 %d 个搜索实例...' % (len(instances),)}))
 
-        # 先清理之前已注册的引擎
-        for inst in instances:
-            inst_id = inst.get('id', '')
-            if inst_id in search_engine._engine_registry:
-                search_engine.remove_engine(inst_id)
-
-        # 重新注册
-        for inst in instances:
-            inst_id = inst.get('id', '')
-            if not inst_id:
-                continue  # 跳过没有 ID 的实例
-            if not inst.get('enabled', True):
-                continue
-            self._register_search_instance(inst, search_engine)
-
-        # 构建有效的实例 ID 集合
-        valid_ids = {inst["id"] for inst in instances if inst.get('id') and inst.get('enabled', True)}
-        valid_names = {inst["name"] for inst in instances if inst.get('name') and inst.get('enabled', True)}
-        valid_types = {inst["engine_type"] for inst in instances if inst.get('engine_type') and inst.get('enabled', True)}
-
-        # 清理并重建 engine_priority：移除过期条目，按当前实例更新
-        old_priority = config.get('search', {}).get('engine_priority', [])
-        new_priority = []
-        seen = set()
-        for entry in old_priority:
-            # 跳过已经在 new_priority 中的
-            if entry in seen:
-                continue
-            # 检查 entry 是否匹配某个实例
-            matched = False
+            # 先清理之前已注册的引擎
             for inst in instances:
                 inst_id = inst.get('id', '')
-                inst_name = inst.get('name', '')
-                inst_type = inst.get('engine_type', '')
-                if entry in (inst_id, inst_name, inst_type):
-                    # 用实例 ID 代替
-                    if inst_id and inst_id not in seen:
-                        new_priority.append(inst_id)
-                        seen.add(inst_id)
-                    matched = True
-                    break
-            if not matched and entry in valid_ids:
-                new_priority.append(entry)
-                seen.add(entry)
-            # 不匹配任何实例 → 过期条目，跳过
+                if inst_id in search_engine._engine_registry:
+                    search_engine.remove_engine(inst_id)
 
-        # 补充尚未在 priority 中的实例
-        for inst in instances:
-            inst_id = inst.get('id', '')
-            if inst_id and inst_id not in seen and inst.get('enabled', True):
-                new_priority.append(inst_id)
-                seen.add(inst_id)
+            # 重新注册
+            for inst in instances:
+                inst_id = inst.get('id', '')
+                if not inst_id:
+                    continue  # 跳过没有 ID 的实例
+                if not inst.get('enabled', True):
+                    continue
+                self._register_search_instance(inst, search_engine)
 
-        config.setdefault('search', {})["engine_priority"] = new_priority
+            # 构建有效的实例 ID 集合
+            valid_ids = {inst["id"] for inst in instances if inst.get('id') and inst.get('enabled', True)}
+            valid_names = {inst["name"] for inst in instances if inst.get('name') and inst.get('enabled', True)}
+            valid_types = {inst["engine_type"] for inst in instances if inst.get('engine_type') and inst.get('enabled', True)}
 
-        # 修复：验证 default_engine 有效性（指向不存在的实例时清空）
-        valid_ids_set = {inst["id"] for inst in instances if inst.get('id')}
-        current_default = config.get('search', {}).get('default_engine', '')
-        if current_default and current_default not in valid_ids_set:
-            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_search_instances.default', 'message': f'[网络配置] default_engine 指向不存在的实例 {current_default}，已清空'}))
-            config["search"]["default_engine"] = ''
+            # 清理并重建 engine_priority：移除过期条目，按当前实例更新
+            old_priority = config.get('search', {}).get('engine_priority', [])
+            new_priority = []
+            seen = set()
+            for entry in old_priority:
+                # 跳过已经在 new_priority 中的
+                if entry in seen:
+                    continue
+                # 检查 entry 是否匹配某个实例
+                matched = False
+                for inst in instances:
+                    inst_id = inst.get('id', '')
+                    inst_name = inst.get('name', '')
+                    inst_type = inst.get('engine_type', '')
+                    if entry in (inst_id, inst_name, inst_type):
+                        # 用实例 ID 代替
+                        if inst_id and inst_id not in seen:
+                            new_priority.append(inst_id)
+                            seen.add(inst_id)
+                        matched = True
+                        break
+                if not matched and entry in valid_ids:
+                    new_priority.append(entry)
+                    seen.add(entry)
+                # 不匹配任何实例 → 过期条目，跳过
 
-        # 保存配置：_save() 会自动剥离 search_instances 中的 api_key 并更新缓存
-        self._save(config)
+            # 补充尚未在 priority 中的实例
+            for inst in instances:
+                inst_id = inst.get('id', '')
+                if inst_id and inst_id not in seen and inst.get('enabled', True):
+                    new_priority.append(inst_id)
+                    seen.add(inst_id)
 
-        # 更新 SearchEngine 的优先级
-        search_engine.set_engine_priority(new_priority)
+            config.setdefault('search', {})["engine_priority"] = new_priority
 
-        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_search_instances.log', 'message': '[网络配置] 搜索实例注册完成，优先级: %s' % (new_priority,)}))
+            # 修复：验证 default_engine 有效性（指向不存在的实例时清空）
+            valid_ids_set = {inst["id"] for inst in instances if inst.get('id')}
+            current_default = config.get('search', {}).get('default_engine', '')
+            if current_default and current_default not in valid_ids_set:
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_search_instances.default', 'message': f'[网络配置] default_engine 指向不存在的实例 {current_default}，已清空'}))
+                config["search"]["default_engine"] = ''
 
-        # 同步到 web_search 工具的 engine 参数 enum
-        try:
-            from agent.tools import sync_web_search_engines
-            sync_web_search_engines([], search_engine=search_engine)
-        except ImportError:
-            pass  # 工具模块不可用时跳过
+            # 保存配置：_save() 会自动剥离 search_instances 中的 api_key 并更新缓存
+            self._save(config)
+
+            # 更新 SearchEngine 的优先级
+            search_engine.set_engine_priority(new_priority)
+
+            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.apply_search_instances.log', 'message': '[网络配置] 搜索实例注册完成，优先级: %s' % (new_priority,)}))
+
+            # 同步到 web_search 工具的 engine 参数 enum
+            try:
+                from agent.tools import sync_web_search_engines
+                sync_web_search_engines([], search_engine=search_engine)
+            except ImportError:
+                pass  # 工具模块不可用时跳过
 
     def _seed_builtin_search_instances(self, config: dict) -> list:
         """首次运行时，为内置搜索引擎创建搜索实例"""
@@ -1041,10 +1074,11 @@ class NetworkConfigManager:
         return instances
 
     def reset(self) -> dict:
-        """重置为默认配置"""
-        self._cache = deepcopy(_DEFAULT_NETWORK_CONFIG)
-        self._save(self._cache)
-        self._add_change_log('reset', 'all')
+        """重置为默认配置（RLock：重置-保存原子）"""
+        with self._lock:
+            self._cache = deepcopy(_DEFAULT_NETWORK_CONFIG)
+            self._save(self._cache)
+            self._add_change_log('reset', 'all')
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.reset.log', 'message': '[网络配置] 已重置为默认配置'}))
         return self.get_all()
 
@@ -1071,24 +1105,25 @@ class NetworkConfigManager:
         except json.JSONDecodeError as e:
             raise ValueError(f"配置格式错误: {e}")
 
-        config = self._load()
+        with self._lock:  # 覆盖/合并 + 保存原子（防并发 import 覆盖丢失）
+            config = self._load()
 
-        # 处理冲突
-        if conflict_strategy == 'overwrite':
-            # 完全覆盖
-            self._cache = imported
-            # 确保基本结构存在
-            self._ensure_config_structure()
-        elif conflict_strategy == 'skip':
-            # 跳过已存在的配置项
-            self._merge_skip_existing(config, imported)
-        elif conflict_strategy == 'merge':
-            # 合并配置
-            self._merge(config, imported)
+            # 处理冲突
+            if conflict_strategy == 'overwrite':
+                # 完全覆盖
+                self._cache = imported
+                # 确保基本结构存在
+                self._ensure_config_structure()
+            elif conflict_strategy == 'skip':
+                # 跳过已存在的配置项
+                self._merge_skip_existing(config, imported)
+            elif conflict_strategy == 'merge':
+                # 合并配置
+                self._merge(config, imported)
 
-        # 保存并记录日志
-        self._save(self._cache)
-        self._add_change_log('import', 'all', {'strategy': conflict_strategy})
+            # 保存并记录日志
+            self._save(self._cache)
+            self._add_change_log('import', 'all', {'strategy': conflict_strategy})
 
         return self.get_all()
 
@@ -1132,36 +1167,37 @@ class NetworkConfigManager:
         return result
 
     def add_llm_instance(self, instance: dict) -> dict:
-        """添加 LLM 实例"""
+        """添加 LLM 实例（RLock：名称检查-追加原子，防并发同名重复）"""
         import datetime
-        
+
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] 开始添加 LLM 实例: name={instance.get("name")}, provider={instance.get("provider")}'}))
-        
+
         new_instance = deepcopy(_DEFAULT_LLM_INSTANCE)
         new_instance.update(instance)
         new_instance["id"] = str(uuid.uuid4())
         new_instance["created_at"] = datetime.datetime.now().isoformat()
         new_instance["updated_at"] = new_instance["created_at"]
-        
+
         logger.debug(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] LLM 实例初始化完成: id={new_instance["id"]}, model={new_instance.get("model")}'}))
 
-        config = self._load()
-        
-        # 检查名称是否重复
-        if any(i["name"] == new_instance["name"] for i in config["llm_instances"]):
-            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] LLM 实例名称重复: {new_instance["name"]}'}))
-            raise ValueError(f"LLM 实例名称已存在: {new_instance['name']}")
+        with self._lock:  # 名称检查 + 追加 + 保存原子（防 TOCTOU 并发同名重复）
+            config = self._load()
 
-        # 加密保存 API Key
-        api_key = new_instance.get('api_key', '')
-        if api_key and api_key != '***' and not api_key.startswith('***'):
-            logger.debug(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] 加密保存 LLM 实例 API Key: id={new_instance["id"]}'}))
-            self._save_secure(f'llm_{new_instance["id"]}_api_key', api_key)
-            new_instance["api_key"] = api_key  # 保持原始值用于后续处理
+            # 检查名称是否重复
+            if any(i["name"] == new_instance["name"] for i in config["llm_instances"]):
+                logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] LLM 实例名称重复: {new_instance["name"]}'}))
+                raise ValueError(f"LLM 实例名称已存在: {new_instance['name']}")
 
-        config["llm_instances"].append(new_instance)
-        self._save(config)
-        self._add_change_log('add', 'llm_instance', {'id': new_instance["id"], 'name': new_instance["name"]})
+            # 加密保存 API Key
+            api_key = new_instance.get('api_key', '')
+            if api_key and api_key != '***' and not api_key.startswith('***'):
+                logger.debug(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] 加密保存 LLM 实例 API Key: id={new_instance["id"]}'}))
+                self._save_secure(f'llm_{new_instance["id"]}_api_key', api_key)
+                new_instance["api_key"] = api_key  # 保持原始值用于后续处理
+
+            config["llm_instances"].append(new_instance)
+            self._save(config)
+            self._add_change_log('add', 'llm_instance', {'id': new_instance["id"], 'name': new_instance["name"]})
 
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] 已成功添加 LLM 实例: id={new_instance["id"]}, name={new_instance["name"]}, provider={new_instance.get("provider")}'}))
         return self.get_llm_instance(new_instance["id"])
@@ -1175,38 +1211,39 @@ class NetworkConfigManager:
         import datetime
         
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] 开始更新 LLM 实例: instance_id={instance_id}, updates_keys={list(updates.keys())}'}))
-        
-        config = self._load()
-        instances = config.get('llm_instances', [])
-        
-        for instance in instances:
-            # 支持 UUID 和名称匹配
-            if (instance.get('id') == instance_id or instance.get('name') == instance_id):
-                actual_id = instance.get('id') or instance.get('name')
-                
-                # 检查名称是否与其他实例重复
-                if 'name' in updates:
-                    if any(i["name"] == updates["name"] and (i.get('id') or i.get('name')) != actual_id for i in instances):
-                        logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] LLM 实例名称重复: {updates["name"]}'}))
-                        raise ValueError(f"LLM 实例名称已存在: {updates['name']}")
 
-                # 处理 API Key 更新
-                api_key = updates.get('api_key', '')
-                if api_key and api_key != '***' and not api_key.startswith('***'):
-                    logger.debug(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] 更新 LLM 实例 API Key: instance_id={actual_id}'}))
-                    self._save_secure(f'llm_{actual_id}_api_key', api_key)
-                elif api_key and api_key.startswith('***'):
-                    updates.pop('api_key', None)  # 跳过脱敏值
+        with self._lock:  # 查找-改-存原子（名称重复检查 + 更新 + 保存）
+            config = self._load()
+            instances = config.get('llm_instances', [])
 
-                instance.update(updates)
-                instance["updated_at"] = datetime.datetime.now().isoformat()
-                
-                self._save(config)
-                self._add_change_log('update', 'llm_instance', {'id': actual_id, 'name': instance.get('name')})
-                
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] 已成功更新 LLM 实例: id={actual_id}, name={instance.get("name")}'}))
-                return self.get_llm_instance(actual_id)
-        
+            for instance in instances:
+                # 支持 UUID 和名称匹配
+                if (instance.get('id') == instance_id or instance.get('name') == instance_id):
+                    actual_id = instance.get('id') or instance.get('name')
+
+                    # 检查名称是否与其他实例重复
+                    if 'name' in updates:
+                        if any(i["name"] == updates["name"] and (i.get('id') or i.get('name')) != actual_id for i in instances):
+                            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] LLM 实例名称重复: {updates["name"]}'}))
+                            raise ValueError(f"LLM 实例名称已存在: {updates['name']}")
+
+                    # 处理 API Key 更新
+                    api_key = updates.get('api_key', '')
+                    if api_key and api_key != '***' and not api_key.startswith('***'):
+                        logger.debug(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] 更新 LLM 实例 API Key: instance_id={actual_id}'}))
+                        self._save_secure(f'llm_{actual_id}_api_key', api_key)
+                    elif api_key and api_key.startswith('***'):
+                        updates.pop('api_key', None)  # 跳过脱敏值
+
+                    instance.update(updates)
+                    instance["updated_at"] = datetime.datetime.now().isoformat()
+
+                    self._save(config)
+                    self._add_change_log('update', 'llm_instance', {'id': actual_id, 'name': instance.get('name')})
+
+                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] 已成功更新 LLM 实例: id={actual_id}, name={instance.get("name")}'}))
+                    return self.get_llm_instance(actual_id)
+
         logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.update_llm_instance.llm', 'message': f'[网络配置] 更新 LLM 实例失败，未找到实例: instance_id={instance_id}'}))
         return None
 
@@ -1217,37 +1254,38 @@ class NetworkConfigManager:
             instance_id: 实例 ID 或实例名称
         """
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.delete_llm_instance.llm', 'message': f'[网络配置] 开始删除 LLM 实例: instance_id={instance_id}'}))
-        
-        config = self._load()
-        instances = config.get('llm_instances', [])
-        
-        # 找到要删除的实例
-        instance_to_delete = None
-        for instance in instances:
-            if instance.get('id') == instance_id or instance.get('name') == instance_id:
-                instance_to_delete = instance
-                break
-        
-        if not instance_to_delete:
-            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.delete_llm_instance.llm', 'message': f'[网络配置] 删除 LLM 实例失败，未找到实例: instance_id={instance_id}'}))
-            return False
-        
-        actual_id = instance_to_delete.get('id') or instance_to_delete.get('name')
-        
-        # 删除实例
-        config["llm_instances"] = [i for i in instances if (i.get('id') or i.get('name')) != actual_id]
-        
-        # 删除对应的加密密钥
-        logger.debug(log_dict({'module_name': 'network_config', 'action': 'network_config.delete_llm_instance.llm', 'message': f'[网络配置] 删除 LLM 实例加密密钥: instance_id={actual_id}'}))
-        self._save_secure(f'llm_{actual_id}_api_key', '')
-        
-        # 如果删除的是默认实例，清空 default_llm_instance
-        if config.get('default_llm_instance') == actual_id:
-            config["default_llm_instance"] = ''
-        
-        self._save(config)
-        self._add_change_log('delete', 'llm_instance', {'id': actual_id})
-        
+
+        with self._lock:  # 查找-删除-保存原子（防并发重复删除/默认实例判断竞态）
+            config = self._load()
+            instances = config.get('llm_instances', [])
+
+            # 找到要删除的实例
+            instance_to_delete = None
+            for instance in instances:
+                if instance.get('id') == instance_id or instance.get('name') == instance_id:
+                    instance_to_delete = instance
+                    break
+
+            if not instance_to_delete:
+                logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.delete_llm_instance.llm', 'message': f'[网络配置] 删除 LLM 实例失败，未找到实例: instance_id={instance_id}'}))
+                return False
+
+            actual_id = instance_to_delete.get('id') or instance_to_delete.get('name')
+
+            # 删除实例
+            config["llm_instances"] = [i for i in instances if (i.get('id') or i.get('name')) != actual_id]
+
+            # 删除对应的加密密钥
+            logger.debug(log_dict({'module_name': 'network_config', 'action': 'network_config.delete_llm_instance.llm', 'message': f'[网络配置] 删除 LLM 实例加密密钥: instance_id={actual_id}'}))
+            self._save_secure(f'llm_{actual_id}_api_key', '')
+
+            # 如果删除的是默认实例，清空 default_llm_instance
+            if config.get('default_llm_instance') == actual_id:
+                config["default_llm_instance"] = ''
+
+            self._save(config)
+            self._add_change_log('delete', 'llm_instance', {'id': actual_id})
+
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.delete_llm_instance.llm', 'message': f'[网络配置] 已成功删除 LLM 实例: instance_id={actual_id}'}))
         return True
 
@@ -1258,34 +1296,35 @@ class NetworkConfigManager:
             instance_id: 实例 ID 或实例名称
         """
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.set_default_llm_instance.llm', 'message': f'[网络配置] 开始设置默认 LLM 实例: instance_id={instance_id}'}))
-        
-        config = self._load()
-        
-        # 检查实例是否存在（支持 UUID 和名称匹配）
-        instance_found = None
-        for instance in config.get('llm_instances', []):
-            if instance.get('id') == instance_id or instance.get('name') == instance_id:
-                instance_found = instance
-                break
-        
-        if not instance_found:
-            logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.set_default_llm_instance.llm', 'message': f'[网络配置] 设置默认 LLM 实例失败，实例不存在: instance_id={instance_id}'}))
-            return False
-        
-        # 获取实际的实例 ID（优先使用 UUID，如果没有则使用名称）
-        actual_id = instance_found.get('id') or instance_found.get('name')
-        logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.set_default_llm_instance.name', 'message': f'[网络配置] 找到实例: name={instance_found.get("name")}, actual_id={actual_id}'}))
-        
-        # 更新所有实例的 is_default 标记
-        for instance in config.get('llm_instances', []):
-            instance["is_default"] = ((instance.get('id') or instance.get('name')) == actual_id)
-        
-        # 更新默认实例 ID
-        config["default_llm_instance"] = actual_id
-        
-        self._save(config)
-        self._add_change_log('update', 'llm_instance', {'id': actual_id, 'action': 'set_default'})
-        
+
+        with self._lock:  # 查找-标记-保存原子（防并发设置时 is_default 标记交错）
+            config = self._load()
+
+            # 检查实例是否存在（支持 UUID 和名称匹配）
+            instance_found = None
+            for instance in config.get('llm_instances', []):
+                if instance.get('id') == instance_id or instance.get('name') == instance_id:
+                    instance_found = instance
+                    break
+
+            if not instance_found:
+                logger.warning(log_dict({'module_name': 'network_config', 'action': 'network_config.set_default_llm_instance.llm', 'message': f'[网络配置] 设置默认 LLM 实例失败，实例不存在: instance_id={instance_id}'}))
+                return False
+
+            # 获取实际的实例 ID（优先使用 UUID，如果没有则使用名称）
+            actual_id = instance_found.get('id') or instance_found.get('name')
+            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.set_default_llm_instance.name', 'message': f'[网络配置] 找到实例: name={instance_found.get("name")}, actual_id={actual_id}'}))
+
+            # 更新所有实例的 is_default 标记
+            for instance in config.get('llm_instances', []):
+                instance["is_default"] = ((instance.get('id') or instance.get('name')) == actual_id)
+
+            # 更新默认实例 ID
+            config["default_llm_instance"] = actual_id
+
+            self._save(config)
+            self._add_change_log('update', 'llm_instance', {'id': actual_id, 'action': 'set_default'})
+
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.set_default_llm_instance.llm', 'message': f'[网络配置] 已成功设置默认 LLM 实例: instance_id={actual_id}'}))
         return True
 
@@ -1304,74 +1343,78 @@ class NetworkConfigManager:
         return next((s for s in services if s["id"] == service_id), None)
 
     def add_mcp_service(self, service: dict) -> dict:
-        """添加 MCP 服务"""
+        """添加 MCP 服务（RLock：名称检查-追加原子，防 TOCTOU 并发同名重复）"""
         import datetime
-        
+
         new_service = deepcopy(_DEFAULT_MCP_SERVICE)
         new_service.update(service)
         new_service["id"] = str(uuid.uuid4())
         new_service["created_at"] = datetime.datetime.now().isoformat()
         new_service["updated_at"] = new_service["created_at"]
 
-        config = self._load()
-        
-        # 检查名称是否重复
-        if any(s["name"] == new_service["name"] for s in config["mcp"].get('services', [])):
-            raise ValueError(f"MCP 服务名称已存在: {new_service['name']}")
+        with self._lock:  # 名称检查 + 追加 + 保存原子
+            config = self._load()
 
-        config["mcp"]["services"].append(new_service)
-        self._save(config)
-        self._add_change_log('add', 'mcp_service', {'id': new_service["id"], 'name': new_service["name"]})
+            # 检查名称是否重复
+            if any(s["name"] == new_service["name"] for s in config["mcp"].get('services', [])):
+                raise ValueError(f"MCP 服务名称已存在: {new_service['name']}")
+
+            config["mcp"]["services"].append(new_service)
+            self._save(config)
+            self._add_change_log('add', 'mcp_service', {'id': new_service["id"], 'name': new_service["name"]})
 
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.add_mcp_service.mcp', 'message': f'[网络配置] 已添加 MCP 服务: {new_service["name"]}'}))
         return self.get_mcp_service(new_service["id"])
 
     def update_mcp_service(self, service_id: str, updates: dict) -> Optional[dict]:
-        """更新 MCP 服务"""
+        """更新 MCP 服务（RLock：查找-改-存原子）"""
         import datetime
-        
-        config = self._load()
-        services = config.get('mcp', {}).get('services', [])
-        
-        for service in services:
-            if service["id"] == service_id:
-                # 检查名称是否与其他服务重复
-                if 'name' in updates:
-                    if any(s["name"] == updates["name"] and s["id"] != service_id for s in services):
-                        raise ValueError(f"MCP 服务名称已存在: {updates['name']}")
 
-                service.update(updates)
-                service["updated_at"] = datetime.datetime.now().isoformat()
-                
-                self._save(config)
-                self._add_change_log('update', 'mcp_service', {'id': service_id, 'name': service.get('name')})
-                
-                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update_mcp_service.mcp', 'message': f'[网络配置] 已更新 MCP 服务: {service["name"]}'}))
-                return self.get_mcp_service(service_id)
-        
+        with self._lock:
+            config = self._load()
+            services = config.get('mcp', {}).get('services', [])
+
+            for service in services:
+                if service["id"] == service_id:
+                    # 检查名称是否与其他服务重复
+                    if 'name' in updates:
+                        if any(s["name"] == updates["name"] and s["id"] != service_id for s in services):
+                            raise ValueError(f"MCP 服务名称已存在: {updates['name']}")
+
+                    service.update(updates)
+                    service["updated_at"] = datetime.datetime.now().isoformat()
+
+                    self._save(config)
+                    self._add_change_log('update', 'mcp_service', {'id': service_id, 'name': service.get('name')})
+
+                    logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update_mcp_service.mcp', 'message': f'[网络配置] 已更新 MCP 服务: {service["name"]}'}))
+                    return self.get_mcp_service(service_id)
+
         return None
 
     def delete_mcp_service(self, service_id: str) -> bool:
-        """删除 MCP 服务"""
-        config = self._load()
-        services = config.get('mcp', {}).get('services', [])
-        
-        before_count = len(services)
-        config["mcp"]["services"] = [s for s in services if s["id"] != service_id]
-        
-        if len(config["mcp"]["services"]) < before_count:
-            self._save(config)
-            self._add_change_log('delete', 'mcp_service', {'id': service_id})
-            
-            logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.delete_mcp_service.mcp', 'message': f'[网络配置] 已删除 MCP 服务: {service_id}'}))
-            return True
-        
+        """删除 MCP 服务（RLock：删除-保存原子）"""
+        with self._lock:
+            config = self._load()
+            services = config.get('mcp', {}).get('services', [])
+
+            before_count = len(services)
+            config["mcp"]["services"] = [s for s in services if s["id"] != service_id]
+
+            if len(config["mcp"]["services"]) < before_count:
+                self._save(config)
+                self._add_change_log('delete', 'mcp_service', {'id': service_id})
+
+                logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.delete_mcp_service.mcp', 'message': f'[网络配置] 已删除 MCP 服务: {service_id}'}))
+                return True
+
         return False
 
     def get_change_log(self, limit: int = 20) -> List[dict]:
         """获取配置变更日志"""
-        config = self._load()
-        return config.get('change_log', [])[:limit]
+        with self._lock:  # 切片快照原子（与 _add_change_log 互斥）
+            config = self._load()
+            return config.get('change_log', [])[:limit]
 
     def apply_to_app(self, app_instance=None):
         """将网络配置应用到应用实例

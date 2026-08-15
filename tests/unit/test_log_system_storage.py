@@ -119,3 +119,37 @@ class TestLogStorageRaw(storage.__class__):
     def test_write_raw_file_created(self, storage):
         storage.write_raw("test_cat", {"key": "value"})
         assert True  # 不报错即可
+
+    def test_write_raw_concurrent_no_loss(self, storage):
+        """并发 write_raw 追加无丢失（JSONL 追加在独立 _append_lock 内保护）"""
+        import glob
+        import threading
+
+        n_threads = 8
+        per_thread = 25
+        barrier = threading.Barrier(n_threads)
+        errors = []
+
+        def _writer(tid):
+            try:
+                barrier.wait()
+                for i in range(per_thread):
+                    storage.write_raw("test_cat", {"tid": tid, "i": i})
+            except Exception as e:  # pragma: no cover
+                errors.append(e)
+
+        threads = [threading.Thread(target=_writer, args=(t,)) for t in range(n_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"并发 write_raw 出现异常: {errors}"
+        files = glob.glob(os.path.join(storage.raw_log_dir, "test_cat", "*", "test_cat.jsonl"))
+        assert files, "JSONL 文件应存在"
+        total_lines = 0
+        for f in files:
+            with open(f, encoding="utf-8") as fh:
+                total_lines += sum(1 for _ in fh)
+        assert total_lines == n_threads * per_thread, \
+            f"并发追加丢失行数: 期望 {n_threads * per_thread}，实际 {total_lines}"

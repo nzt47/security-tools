@@ -119,6 +119,42 @@ git worktree list               # 仅保留必要的 worktree
 git log --oneline -3            # 归档 commit 在历史中
 ```
 
+### E. 对象库优化（git gc 安全执行策略）
+
+> 依据：2026-08-15 TASK-06 收尾实战（并行会话活跃环境下执行成功，零影响）。
+
+1. **前置检查：并行会话空闲确认**（并行环境 gc 与并发写对象库冲突风险高）：
+
+   ```powershell
+   (Get-Process git -ErrorAction SilentlyContinue | Measure-Object).Count   # 期望 0
+   git worktree list                                                        # 确认 worktree 数
+   ```
+
+   有活跃 git 进程时**禁止 gc**，轮询等待空闲窗口：
+
+   ```powershell
+   for ($i=0; $i -lt 120; $i++) {
+     $n = (Get-Process git -ErrorAction SilentlyContinue | Measure-Object).Count
+     if ($n -eq 0) { Write-Output "GIT_IDLE"; git gc --quiet; break }
+     Start-Sleep -Seconds 15
+   }
+   ```
+
+2. **必须用默认参数 `git gc`**（不可 `--prune=now`）：
+
+   - 默认 prune 仅清理 **2 周前**不可达对象；reflog 可达对象（含并行会话未并入分支的提交）受 reflog 90 天保留期保护
+   - `--prune=now` 会立即清 reflog 可达对象，可能误伤并行会话中间产物
+
+3. **gc 后验证**（HEAD / worktree / 并行会话均不受影响）：
+
+   ```powershell
+   git count-objects -vH         # 对比 loose 对象数 / size-pack 优化
+   git log --oneline -1          # HEAD 未变
+   git worktree list             # worktree 数未变
+   ```
+
+4. **体积优化预期**：主要收益在 loose 对象清零（3.09 MiB→0 实测）与 pack 合并；size-pack 压缩有限（实测 57.57→56.37 MiB）。
+
 ## 四、安全检查清单（红线）
 
 | 红线 | 处理 |
@@ -128,6 +164,7 @@ git log --oneline -3            # 归档 commit 在历史中
 | 不触碰其他分支/远程 | 双远程（origin/gitee）不同步属团队策略，不擅自同步 |
 | 不做超出任务范围的变更 | 并行工作线的 M/?? 文件一律不动 |
 | worktree remove 不加 `-f` | 先排查 dirty 原因，确认无价值内容后再考虑强制 |
+| 并行会话活跃时禁 `git gc` | 必须等无活跃 git 进程的空闲窗口；默认参数执行，禁 `--prune=now`（防误伤 reflog 可达对象） |
 
 ## 五、常见问题
 

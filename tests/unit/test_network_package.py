@@ -285,7 +285,7 @@ class TestNetworkConfigManagerLoad:
         assert c1 is c2  # 同一对象引用（缓存）
 
     def test_load_invalid_json_falls_back_to_default(self, temp_config_file):
-        with open(temp_config_file, "w") as f:
+        with open(temp_config_file, "w", encoding="utf-8") as f:
             f.write("{invalid json")
 
         mgr = NetworkConfigManager(config_file=temp_config_file)

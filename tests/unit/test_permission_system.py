@@ -182,7 +182,7 @@ class TestPermissionBackupFile:
             ps = PermissionSystem(backup_dir=os.path.join(tmpdir, "backups"))
             
             test_file = os.path.join(tmpdir, "test.txt")
-            with open(test_file, 'w') as f:
+            with open(test_file, 'w', encoding="utf-8") as f:
                 f.write("test content")
             
             backup_path = ps.backup_file(test_file)

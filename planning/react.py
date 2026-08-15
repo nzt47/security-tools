@@ -4,8 +4,10 @@
 """
 
 import asyncio
+import inspect
 import json
 import logging
+from pathlib import Path
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
@@ -15,6 +17,8 @@ from .models.react import ReActStep, ReActResult, ThoughtResult
 from .budget import BudgetManager, BudgetStatus, PlanBudget
 from .reflector import format_advice_section, classify_task, Lesson
 from .diagnostics import build_diagnosis
+from .loop_detector import LoopDetector
+from .context_snapshot import save_snapshot, restore_snapshot
 
 from agent.monitoring.tracing import get_trace_id
 
@@ -99,6 +103,21 @@ class ReActLoop:
         # 任务4（D12/D6）：失败反思独立轮数上限（默认 2，防反思自身循环放大成本）
         self.reflection_retries = int(self.config.get("reflection_retries", 2))
         self._failure_reflection_count = 0
+        # 任务5（D6 另一半）：状态哈希循环检测——窗口内同一状态指纹达阈值即终止；
+        # 配置可调且必须被消费（防死配置，同 ROLLBACK_WINDOW_MIN 落地教训）
+        self.loop_max_repeats = int(self.config.get("loop_max_repeats", 3))
+        self.loop_window = int(self.config.get("loop_window", 8))
+        self._loop_detector = LoopDetector(
+            max_repeats=self.loop_max_repeats,
+            window=self.loop_window,
+        )
+        # 任务5 步骤3：轻量上下文快照接入配置——snapshot_every_step 默认开启可关、
+        # restore_retry 反思超限后还原重试一次；配置缺省保持旧行为（不易）
+        self.snapshot_every_step = bool(self.config.get("snapshot_every_step", True))
+        self.restore_retry = bool(self.config.get("restore_retry", True))
+        self._snapshot_root = Path(str(self.config.get("snapshot_root", "data/snapshots")))
+        # 快照运行态（还原尝试/告警标志/最近快照 id）全部为 run() 局部变量，
+        # 见 run() 开头注释——实例属性会被同一实例并发 run() 互相覆盖（碎片串话）
         self._token_used = 0
         self._cost = 0.0
         # 阶段 3（D13）：统一预算管理器（嵌套 budget 段优先，兼容直连键
@@ -108,6 +127,17 @@ class ReActLoop:
             PlanBudget.from_config(self.config),
             token_price_per_1k=self.config.get("token_price_per_1k", 0.002),
         )
+        # TD-4：探测 reflector.step_reflect 是否支持记账实例注入——
+        # 旧签名 stub/实现（无 budget_manager 参数）调用时不传参，保持向后兼容
+        self._reflect_supports_budget = False
+        if self.reflector is not None:
+            try:
+                self._reflect_supports_budget = (
+                    "budget_manager"
+                    in inspect.signature(self.reflector.step_reflect).parameters
+                )
+            except (TypeError, ValueError):
+                self._reflect_supports_budget = False
 
     async def run(self, task: str, context: Dict = None) -> ReActResult:
         """
@@ -132,6 +162,22 @@ class ReActLoop:
         termination_reason: str = "timeout"  # 默认：迭代耗尽（真超时）
         termination_iteration: int = self.max_iterations
         termination_exception: Optional[Exception] = None
+        # 任务5：状态哈希循环检测每任务重置（防跨任务状态污染）；命中时记录解释性摘要
+        self._loop_detector.reset()
+        loop_summary: Optional[str] = None
+        # 任务5 步骤3：快照状态全部用 run() 局部变量（【并发防御】若用 self._xxx 实例
+        # 属性，同一实例被并发调用 run() 时会互相覆盖 session_id/latest/restore 状态 →
+        # 快照写入对方目录（碎片串话）或还原错快照；局部变量按 run 隔离，天然无共享）。
+        restore_attempted = False
+        snapshot_warned = False
+        latest_snapshot_id: Optional[str] = None
+        # session_id 在循环外确定一次（【不易】快照治理按会话分组轮转）。
+        # 若放循环内每步重新生成（get_trace_id() 无上下文时返回 None → 每步新时间戳），
+        # 会导致每步一个新目录、快照碎片化、轮转失效（曾实证 100+ 个 react_* 目录）。
+        sess = context.get("session_id")
+        if not sess:
+            sess = f"react_{get_trace_id() or datetime.now().strftime('%Y%m%d%H%M%S%f')}"
+        snapshot_session_id = str(sess)
 
         logger.info("══════════════════════════════════════════════════════════════════")
         logger.info("🔄 [ReAct循环] =================================================")
@@ -175,6 +221,28 @@ class ReActLoop:
             logger.info(f"🔁 [迭代 {iteration + 1}/{self.max_iterations}] ────────────────")
             logger.info(f"🔁 [迭代 {iteration + 1}] 开始时间: {iter_start.strftime('%H:%M:%S.%f')[:-3]}")
             logger.info(f"🔁 [迭代 {iteration + 1}] 当前步骤数: {len(steps)}")
+
+            # 任务5 步骤3：迭代头保存上下文快照（旁路观测——每轮开始时的状态，
+            # 供反思超限后 restore_snapshot 还原重试；失败仅告警一次不阻断，验收5；
+            # snapshot_every_step=False 时零行为变化）
+            if self.snapshot_every_step:
+                # 兜底：context 无 session_id 时 str(None)="None" 为真值会吞掉 or 分支，
+                # 导致快照落入 "None/" 目录（实证 data/snapshots/None/）。session_id 已在
+                # run() 开头确定一次（snapshot_session_id 局部变量），循环内复用防碎片化。
+                sid = save_snapshot(
+                    session_id=snapshot_session_id,
+                    step_index=iteration,
+                    task=task,
+                    context=context,
+                    steps=steps,
+                    token_used=self._token_used,
+                    snapshot_root=self._snapshot_root,
+                )
+                if sid:
+                    latest_snapshot_id = sid
+                elif not snapshot_warned:
+                    snapshot_warned = True
+                    logger.warning("   ⚠️ [context_snapshot] 快照保存失败（已忽略，不阻断主循环）")
 
             try:
                 logger.info("   ┌──────────────────────────────────────────────────────────┐")
@@ -276,7 +344,11 @@ class ReActLoop:
                         reflect_task = task if isinstance(task, Task) else Task(
                             id=f"react_step_{iteration}", description=str(task)
                         )
-                        reflection = await self.reflector.step_reflect(reflect_task, action_result, context)
+                        if self._reflect_supports_budget:
+                            reflection = await self.reflector.step_reflect(reflect_task, action_result, context,
+                                                                           budget_manager=self.budget_manager)
+                        else:
+                            reflection = await self.reflector.step_reflect(reflect_task, action_result, context)
                         if reflection.adjustments:
                             logger.info(f"   💡 反思建议: {reflection.adjustments[:100]}{'...' if len(reflection.adjustments) > 100 else ''}")
                             # D12 修复：调整建议写入 context，供后续 _think 提示词消费（闭环）
@@ -303,7 +375,37 @@ class ReActLoop:
                     logger.info("   │ 🧠 步骤3: 失败反思阶段                                  │")
                     logger.info("   └──────────────────────────────────────────────────────────┘")
                     try:
-                        await self._failure_reflect(thought, action_result, task, context)
+                        # 任务5 步骤3：_failure_reflect 返回 "restore_eligible" → 反思超限，
+                        # 由 run() 局部作用域执行快照还原（【并发防御】还原状态 restore_attempted
+                        # 与最近快照 id 均为本 run 局部变量——若用实例属性会被同一实例并发
+                        # run() 互相覆盖，导致还原错快照或跳过还原）。还原仅一次：
+                        # restore_attempted 置位防"还原-再失败-再还原"死循环；本轮失败步骤
+                        # 已在上文 steps.append 记录（不丢历史，C11），continue 用还原后
+                        # 的 context 重试一轮。
+                        if await self._failure_reflect(thought, action_result, task, context) == "restore_eligible":
+                            restored = None
+                            if self.restore_retry and not restore_attempted and latest_snapshot_id:
+                                restore_attempted = True
+                                # 注意：restore 必须与 save 用同一 snapshot_root（save 在
+                                # 迭代头用 self._snapshot_root 保存；缺省 SNAPSHOT_ROOT 会
+                                # 导致路径不一致找不到）
+                                restored = restore_snapshot(
+                                    latest_snapshot_id, snapshot_root=self._snapshot_root)
+                            if restored is not None:
+                                logger.info(
+                                    f"   🔄 [snapshot_restored] 已回滚到最近快照，重试一次"
+                                    f"（原因: 反思超限）"
+                                )
+                                context.clear()
+                                context.update(restored)            # 还原第 N 步开始时的状态
+                                self._failure_reflection_count = 0  # 重置计数，防重试轮立即超限
+                                logger.info("   🔄 [snapshot_restored] 使用还原上下文重试一轮")
+                                continue
+                            logger.warning("   快照还原失败或不可用，继续走既有升级路径（降级/人工）")
+                        logger.warning(
+                            f"   ⚠️ 失败反思轮数达上限({self.reflection_retries})，终止反思并升级"
+                            f"（建议上层降级/人工兜底）"
+                        )
                     except Exception as e:
                         # 反思不阻断主循环：异常仅告警（守不易）
                         logger.error(
@@ -323,6 +425,21 @@ class ReActLoop:
                     # P2 修复：记录终止原因为循环检测（区别于"超时"）
                     termination_reason = "loop_detected"
                     termination_iteration = iteration + 1
+                    break
+
+                # 任务5（D6 另一半）：状态哈希循环检测——与 _detect_loop 并行增强，
+                # 捕获"状态实质重复但动作序列模式未达旧阈值"的循环（如参数级重复）。
+                # 命中不直接异常退出：记录终止原因，post-loop 统一按 loop_detected 语义返回。
+                loop_signal = self._loop_detector.check(
+                    self._loop_detector.state_hash(thought, context, iteration)
+                )
+                if loop_signal is not None:
+                    logger.warning("   ⚠️ ⚠️ ⚠️ [loop_terminated] 状态哈希循环检测触发！")
+                    logger.warning(f"      重复状态摘要: {loop_signal.summary}")
+                    logger.warning(f"      窗口内出现 {loop_signal.occurrences} 次（阈值 {self.loop_max_repeats}）")
+                    termination_reason = "loop_detected"
+                    termination_iteration = iteration + 1
+                    loop_summary = loop_signal.summary
                     break
 
                 if action_result.success:
@@ -359,10 +476,14 @@ class ReActLoop:
                 break
 
         duration = (datetime.now() - start_time).total_seconds() * 1000
+        # 任务5：状态哈希命中时把解释性摘要透出到 final_state（旧 _detect_loop 命中时无摘要）
+        final_state_extra: Optional[Dict[str, Any]] = None
         # P2 修复：按终止原因生成不同的错误语义（真超时/循环检测/迭代异常）
         if termination_reason == "loop_detected":
             result_text = "检测到反馈循环,已终止执行"
             error_text = "检测到执行循环"
+            if loop_summary:
+                final_state_extra = {"loop_summary": loop_summary}
         elif termination_reason == "iteration_error":
             result_text = "迭代过程中发生异常"
             error_text = (
@@ -385,6 +506,7 @@ class ReActLoop:
             iterations=termination_iteration,
             duration_ms=duration,
             error=error_text,
+            final_state_extra=final_state_extra,
         )
 
     async def _think(self, task: str, context: Dict, history: List[ReActStep]) -> ThoughtResult:
@@ -434,6 +556,31 @@ class ReActLoop:
                     prompt += "\n\n" + section
             except Exception as e:
                 logger.warning(f"[D17] 获取历史经验失败: {e}")
+
+        # 任务6：进化策略注入（按 task_type 查询，命中拼入"历史经验"段落，
+        # 注明 [策略 #id]；注入失败不影响思考主流程，降级为无策略）
+        try:
+            from agent.evolution.injector import get_injector
+            inj = get_injector()
+            if inj is not None:
+                # 与 reflector.get_advice_for_task 同键：classify_task 归一 task_type
+                task_type = classify_task(str(task))
+                trace_id = get_trace_id() or ""
+                strategies = inj.get_strategies(f"task_type:{task_type}",
+                                                trace_id=trace_id)
+                if strategies:
+                    logger.info(
+                        "[进化][ReAct注入] trace_id=%s task_type=%s 命中策略 %d 条: strategy_ids=%s",
+                        trace_id, task_type, len(strategies),
+                        [s["strategy_id"] for s in strategies],
+                    )
+                    lines = [
+                        f"- [策略 #{s['strategy_id']}] {s['prompt_patch']}"
+                        for s in strategies
+                    ]
+                    prompt += "\n\n【历史经验（策略库）】\n" + "\n".join(lines)
+        except Exception as e:
+            logger.warning(f"[进化] 策略注入失败: {e}")
 
         if self.planner.llm:
             try:
@@ -599,18 +746,22 @@ class ReActLoop:
             return []
 
     async def _failure_reflect(self, thought: ThoughtResult, action_result: ActionResult,
-                               task: str, context: Dict) -> None:
+                               task: str, context: Dict) -> Optional[str]:
         """任务4（D12）：失败反思——结构化诊断 → reflector.failure_reflect → 注入下一轮。
 
         反思轮数受 reflection_retries 上限约束（D6 收敛），超限终止反思并升级；
         反思不阻断主循环：LLM/教训沉淀异常均仅告警（守不易）。
+
+        任务5 步骤3 扩展返回值：
+        - "restore_eligible"：反思轮数超限，主循环收到后按 restore_retry/快照可用性
+          决定是否还原上下文重试（还原执行与"仅一次"标记在 run() 局部作用域，
+          避免实例属性被并发 run() 互相覆盖——见 run() 调用点注释）
+        - None：反思完成 / 走既有升级路径（不阻断）
         """
         if self._failure_reflection_count >= self.reflection_retries:
-            logger.warning(
-                f"   ⚠️ 失败反思轮数达上限({self.reflection_retries})，终止反思并升级"
-                f"（建议上层降级/人工兜底）"
-            )
-            return
+            # 任务5 步骤3：反思超限 → 通知主循环尝试还原（还原逻辑在 run() 局部
+            # 作用域，见 run() 调用点；restore_retry=False 或无快照时主循环走升级路径）
+            return "restore_eligible"
         self._failure_reflection_count += 1
 
         tool_name = thought.action.tool_name if thought.action else None
@@ -856,7 +1007,8 @@ class ReActLoop:
         )
 
     def _result(self, *, success: bool, result: Any, steps: List[ReActStep],
-                iterations: int, duration_ms: float, error: Optional[str] = None) -> ReActResult:
+                iterations: int, duration_ms: float, error: Optional[str] = None,
+                final_state_extra: Optional[Dict[str, Any]] = None) -> ReActResult:
         """统一构造 ReActResult，透出 token/cost 预算可观测字段与 final_state 快照"""
         final_state: Dict[str, Any] = {}
         # 阶段 3（D13）：预算快照写入 final_state（可观测）；预算未启用时保持空 dict（向后兼容）
@@ -864,6 +1016,9 @@ class ReActLoop:
             snap = self.budget_manager.snapshot()
             snap["status"] = self.budget_manager.check().value
             final_state["budget"] = snap
+        # 任务5：循环检测解释性摘要（可选透出，默认 None 零影响）
+        if final_state_extra:
+            final_state.update(final_state_extra)
         return ReActResult(
             success=success,
             result=result,

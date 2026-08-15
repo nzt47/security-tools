@@ -492,42 +492,88 @@ class TestExecuteAction:
 # ═══════════════════════════════════════════════════════════════
 
 class TestRestartService:
-    """_restart_service 测试"""
+    """_restart_service 测试（修复 D9：不再假成功）"""
 
-    def test_windows_fallback_success(self, healer):
-        """Windows 环境: 不执行 subprocess, 直接 fallback → SUCCESS"""
-        if os.name != "nt":
-            pytest.skip("Windows only")
-        result = healer._restart_service({"service_name": "test-svc"})
+    @patch("os.name", "nt")
+    def test_windows_no_restart_command_skipped(self, healer):
+        """Windows 且无 restart_command → SKIPPED（非 SUCCESS）"""
+        result = healer._restart_service({"service_name": "yunshu"})
+        assert result.status == HealStatus.SKIPPED
+        assert "重启方式" in result.message
+
+    @patch("os.name", "nt")
+    def test_windows_restart_command_failure(self, healer):
+        """Windows restart_command 退出码非 0 → FAILED 携带证据"""
+        mock_result = MagicMock(returncode=1, stderr="boom", stdout="")
+        with patch("subprocess.run", return_value=mock_result):
+            result = healer._restart_service({"restart_command": ["x.cmd"]})
+        assert result.status == HealStatus.FAILED
+        assert "boom" in result.message
+
+    @patch("os.name", "nt")
+    def test_windows_restart_command_unverified(self, healer):
+        """Windows restart_command 成功但端口未恢复 → FAILED（假成功修复）"""
+        mock_result = MagicMock(returncode=0, stderr="", stdout="")
+        with patch("subprocess.run", return_value=mock_result), \
+                patch("agent.monitoring.self_healer.SelfHealer._check_port_open", return_value=False):
+            result = healer._restart_service({"restart_command": ["x.cmd"], "ports": [8080]})
+        assert result.status == HealStatus.FAILED
+        assert "验证失败" in result.message
+
+    @patch("os.name", "nt")
+    def test_windows_restart_command_verified(self, healer):
+        """Windows restart_command 成功且端口恢复 → SUCCESS 且 verified=True"""
+        mock_result = MagicMock(returncode=0, stderr="", stdout="")
+        with patch("subprocess.run", return_value=mock_result), \
+                patch("agent.monitoring.self_healer.SelfHealer._check_port_open", return_value=True):
+            result = healer._restart_service({"restart_command": ["x.cmd"], "ports": [8080]})
         assert result.status == HealStatus.SUCCESS
-        assert "重启" in result.message
+        assert "验证通过" in result.message
+        assert result.verified is True
+
+    @patch("os.name", "nt")
+    def test_windows_restart_command_partial_ports_failed(self, healer):
+        """部分端口未恢复（8080 通 / 8081 不通）→ FAILED，message 精确定位 failed_ports"""
+        mock_result = MagicMock(returncode=0, stderr="", stdout="")
+        with patch("subprocess.run", return_value=mock_result), \
+                patch("agent.monitoring.self_healer.SelfHealer._check_port_open",
+                      side_effect=lambda p: p != 8081):
+            result = healer._restart_service({"restart_command": ["x.cmd"], "ports": [8080, 8081]})
+        assert result.status == HealStatus.FAILED
+        # 失败原因须精确到未恢复的端口（S2 场景：部分不可连）
+        assert "8081" in result.message
+        assert "验证失败" in result.message
+        assert result.verified is False
 
     @patch("os.name", "posix")
     @patch("subprocess.run")
-    def test_linux_systemctl_success(self, mock_run, healer):
-        """Linux: systemctl 重启成功"""
+    def test_linux_systemctl_verified(self, mock_run, healer):
+        """Linux: systemctl 重启成功 + 端口恢复 → SUCCESS"""
         mock_run.return_value = MagicMock(returncode=0)
-        result = healer._restart_service({"service_name": "nginx"})
+        with patch("agent.monitoring.self_healer.SelfHealer._check_port_open", return_value=True):
+            result = healer._restart_service({"service_name": "nginx", "ports": [80]})
         assert result.status == HealStatus.SUCCESS
 
     @patch("os.name", "posix")
     @patch("subprocess.run", side_effect=FileNotFoundError)
-    def test_linux_all_commands_fail_fallback(self, mock_run, healer):
-        """Linux: 所有命令都找不到 → fallback SUCCESS"""
+    def test_linux_all_commands_missing_skipped(self, mock_run, healer):
+        """Linux: 所有命令都找不到 → SKIPPED（未找到服务管理工具）"""
         result = healer._restart_service({"service_name": "nginx"})
-        assert result.status == HealStatus.SUCCESS
+        assert result.status == HealStatus.SKIPPED
+        assert "服务管理工具" in result.message
 
     @patch("os.name", "posix")
     @patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="x", timeout=1))
-    def test_linux_timeout_fallback(self, mock_run, healer):
-        """Linux: 命令超时 → fallback SUCCESS"""
+    def test_linux_timeout_skipped(self, mock_run, healer):
+        """Linux: 命令超时 → SKIPPED"""
         result = healer._restart_service({"service_name": "nginx"})
-        assert result.status == HealStatus.SUCCESS
+        assert result.status == HealStatus.SKIPPED
 
-    def test_context_none_default_service_name(self, healer):
-        """context=None → 默认 service_name='yunshu'"""
+    @patch("os.name", "nt")
+    def test_context_none_default_skipped(self, healer):
+        """context=None → SKIPPED（无重启方式，非假成功 SUCCESS）"""
         result = healer._restart_service(None)
-        assert result.status == HealStatus.SUCCESS
+        assert result.status == HealStatus.SKIPPED
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -535,18 +581,47 @@ class TestRestartService:
 # ═══════════════════════════════════════════════════════════════
 
 class TestClearCache:
-    """_clear_cache 测试"""
+    """_clear_cache 测试（守安全红线：白名单 + 禁通配）"""
+
+    @pytest.fixture(autouse=True)
+    def _setup_whitelist(self, healer):
+        """默认注入白名单（healer fixture 默认白名单为空）"""
+        healer._cache_whitelist = ["/tmp/cache"]
+
+    def test_wildcard_pattern_skipped(self, healer):
+        """pattern='*' → SKIPPED（禁止全量清理）"""
+        result = healer._clear_cache({"cache_patterns": ["*"]})
+        assert result.status == HealStatus.SKIPPED
+        assert "禁止全量" in result.message
+
+    def test_empty_whitelist_disables_clearing(self):
+        """白名单为空 → SKIPPED（通配清理默认禁用）"""
+        h = SelfHealer(config={})
+        result = h._clear_cache({"cache_patterns": ["tmp"]})
+        assert result.status == HealStatus.SKIPPED
+        assert "白名单为空" in result.message
+
+    def test_out_of_whitelist_path_skipped(self, healer):
+        """白名单外路径 → SKIPPED"""
+        result = healer._clear_cache({"cache_paths": ["/etc/passwd"]})
+        assert result.status == HealStatus.SKIPPED
+        assert "不在白名单" in result.message
+
+    def test_whitelist_config_loaded(self):
+        """白名单从配置加载"""
+        h = SelfHealer(config={"self_healing": {"clear_cache": {"cache_whitelist": ["/safe/cache"]}}})
+        assert h._cache_whitelist == ["/safe/cache"]
 
     @patch("os.path.exists", return_value=False)
     def test_no_cache_files_success(self, mock_exists, healer):
-        """无文件可清 → SUCCESS, cleared_count=0"""
-        result = healer._clear_cache({"cache_patterns": ["*"]})
+        """白名单内无文件可清 → SUCCESS, cleared_count=0"""
+        result = healer._clear_cache({"cache_patterns": ["sub"]})
         assert result.status == HealStatus.SUCCESS
         assert "0" in result.message
 
     @patch("os.path.exists", return_value=False)
     def test_context_none_default_patterns(self, mock_exists, healer):
-        """context=None → 默认 patterns=['*']"""
+        """context=None → 空 patterns → SUCCESS"""
         result = healer._clear_cache(None)
         assert result.status == HealStatus.SUCCESS
 
@@ -554,10 +629,10 @@ class TestClearCache:
     @patch("os.path.isdir", return_value=True)
     @patch("os.path.isfile", return_value=False)
     @patch("os.path.exists", return_value=True)
-    def test_clear_directory(
+    def test_clear_directory_in_whitelist(
         self, mock_exists, mock_isfile, mock_isdir, mock_rmtree, healer
     ):
-        """目录存在 → shutil.rmtree 调用"""
+        """白名单内目录存在 → shutil.rmtree 调用"""
         result = healer._clear_cache({"cache_patterns": ["test"]})
         assert result.status == HealStatus.SUCCESS
         assert mock_rmtree.called
@@ -566,10 +641,10 @@ class TestClearCache:
     @patch("os.path.isdir", return_value=False)
     @patch("os.path.isfile", return_value=True)
     @patch("os.path.exists", return_value=True)
-    def test_clear_file(
+    def test_clear_file_in_whitelist(
         self, mock_exists, mock_isfile, mock_isdir, mock_remove, healer
     ):
-        """文件存在 → os.remove 调用"""
+        """白名单内文件存在 → os.remove 调用"""
         result = healer._clear_cache({"cache_patterns": ["test"]})
         assert result.status == HealStatus.SUCCESS
         assert mock_remove.called
@@ -591,84 +666,213 @@ class TestClearCache:
 # ═══════════════════════════════════════════════════════════════
 
 class TestRecoverCircuitBreaker:
-    """_recover_circuit_breaker 测试"""
+    """_recover_circuit_breaker 测试（修复 D11：走公开 API，禁改私有字段）"""
 
-    @patch("agent.monitoring.self_healer._ERROR_HANDLER_AVAILABLE", False)
-    def test_error_handler_unavailable(self, healer):
-        """error_handler 不可用 → SKIPPED"""
-        result = healer._recover_circuit_breaker({})
-        assert result.status == HealStatus.SKIPPED
-        assert "不可用" in result.message
-
-    @patch("agent.monitoring.self_healer._ERROR_HANDLER_AVAILABLE", True)
-    @patch("agent.monitoring.self_healer.get_error_handler")
-    def test_no_open_breakers(self, mock_get_handler, healer):
+    @patch("agent.circuit_breaker.get_all_circuit_breaker_status", return_value={})
+    def test_no_open_breakers(self, mock_status, healer):
         """无 open 熔断器 → SKIPPED"""
-        mock_handler = MagicMock()
-        mock_handler.get_circuit_breaker_status.return_value = {
-            "cb1": {"state": "closed"},
-        }
-        mock_get_handler.return_value = mock_handler
         result = healer._recover_circuit_breaker({})
         assert result.status == HealStatus.SKIPPED
         assert "没有" in result.message
 
-    @patch("agent.monitoring.self_healer._ERROR_HANDLER_AVAILABLE", True)
-    @patch("agent.monitoring.self_healer.get_error_handler")
-    def test_recover_open_breaker(self, mock_get_handler, healer):
-        """有 open 熔断器 → SUCCESS"""
-        mock_handler = MagicMock()
-        mock_handler.get_circuit_breaker_status.return_value = {
+    @patch("agent.circuit_breaker.get_circuit_breaker")
+    @patch("agent.circuit_breaker.get_all_circuit_breaker_status")
+    def test_recover_open_breaker_public_api(self, mock_status, mock_get_cb, healer):
+        """有 open 熔断器 → 调用公开 API force_close 恢复，不直改私有字段"""
+        mock_status.return_value = {
             "cb1": {"state": "open"},
             "cb2": {"state": "closed"},
         }
-        mock_cb = MagicMock()
-        mock_handler._circuit_breakers = {"cb1": mock_cb}
-        mock_get_handler.return_value = mock_handler
+        mock_breaker = MagicMock()
+        mock_breaker.get_status.return_value = {"state": "closed"}
+        mock_get_cb.return_value = mock_breaker
 
         result = healer._recover_circuit_breaker({})
         assert result.status == HealStatus.SUCCESS
         assert "cb1" in result.message
-        assert mock_cb._state == "half_open"
+        assert "cb2" not in result.message
+        mock_get_cb.assert_called_once_with("cb1")
+        mock_breaker.force_close.assert_called_once()
+        # 走公开 API 恢复（force_close 调用本身即证明未直改 _state；生产代码禁改私有字段由 grep 校验）
 
-    @patch("agent.monitoring.self_healer._ERROR_HANDLER_AVAILABLE", True)
-    @patch("agent.monitoring.self_healer.get_error_handler")
-    def test_filter_by_name(self, mock_get_handler, healer):
+    @patch("agent.circuit_breaker.get_circuit_breaker")
+    @patch("agent.circuit_breaker.get_all_circuit_breaker_status")
+    def test_filter_by_name(self, mock_status, mock_get_cb, healer):
         """指定 cb_name 过滤"""
-        mock_handler = MagicMock()
-        mock_handler.get_circuit_breaker_status.return_value = {
+        mock_status.return_value = {
             "cb1": {"state": "open"},
             "cb2": {"state": "open"},
         }
-        mock_cb1 = MagicMock()
-        mock_cb2 = MagicMock()
-        mock_handler._circuit_breakers = {"cb1": mock_cb1, "cb2": mock_cb2}
-        mock_get_handler.return_value = mock_handler
+        mock_breaker = MagicMock()
+        mock_breaker.get_status.return_value = {"state": "closed"}
+        mock_get_cb.return_value = mock_breaker
 
         result = healer._recover_circuit_breaker({"circuit_breaker_name": "cb1"})
         assert result.status == HealStatus.SUCCESS
         assert "cb1" in result.message
         assert "cb2" not in result.message
+        mock_get_cb.assert_called_once_with("cb1")
 
-    @patch("agent.monitoring.self_healer._ERROR_HANDLER_AVAILABLE", True)
-    @patch("agent.monitoring.self_healer.get_error_handler")
-    def test_recover_exception_returns_failed(self, mock_get_handler, healer):
-        """get_circuit_breaker_status 抛异常 → FAILED"""
-        mock_handler = MagicMock()
-        mock_handler.get_circuit_breaker_status.side_effect = RuntimeError("db error")
-        mock_get_handler.return_value = mock_handler
+    @patch(
+        "agent.circuit_breaker.get_all_circuit_breaker_status",
+        side_effect=RuntimeError("db error"),
+    )
+    def test_recover_exception_returns_failed(self, mock_status, healer):
+        """get_all_circuit_breaker_status 抛异常 → FAILED"""
         result = healer._recover_circuit_breaker({})
         assert result.status == HealStatus.FAILED
 
-    @patch("agent.monitoring.self_healer._ERROR_HANDLER_AVAILABLE", True)
-    @patch("agent.monitoring.self_healer.get_error_handler")
-    def test_context_none_default_all(self, mock_get_handler, healer):
+    @patch("agent.circuit_breaker.get_all_circuit_breaker_status", return_value={})
+    def test_context_none_default_all(self, mock_status, healer):
         """context=None → cb_name='*'"""
-        mock_handler = MagicMock()
-        mock_handler.get_circuit_breaker_status.return_value = {}
-        mock_get_handler.return_value = mock_handler
         result = healer._recover_circuit_breaker(None)
         assert result.status == HealStatus.SKIPPED
+
+
+# ═══════════════════════════════════════════════════════════════
+# _restart_component
+# ═══════════════════════════════════════════════════════════════
+
+class TestRestartComponent:
+    """_restart_component 测试（补全 D9：进程内模块热重启）"""
+
+    def test_no_target_module_skipped(self, healer):
+        """未提供 target_module → SKIPPED"""
+        result = healer._restart_component({})
+        assert result.status == HealStatus.SKIPPED
+        assert "目标模块" in result.message
+
+    def test_reload_success(self, healer):
+        """模块热重载成功 → SUCCESS"""
+        with patch("agent.monitoring.self_healer.importlib") as mock_importlib:
+            mock_importlib.import_module.return_value = MagicMock()
+            result = healer._restart_component({"target_module": "agent.monitoring.self_healer"})
+        assert result.status == HealStatus.SUCCESS
+        assert mock_importlib.reload.called
+
+    def test_reload_failure_failed(self, healer):
+        """模块热重载失败 → FAILED"""
+        with patch("agent.monitoring.self_healer.importlib") as mock_importlib:
+            mock_importlib.import_module.return_value = MagicMock()
+            mock_importlib.reload.side_effect = ImportError("boom")
+            result = healer._restart_component({"target_module": "some.module"})
+        assert result.status == HealStatus.FAILED
+
+    def test_execute_action_dispatch(self, healer):
+        """execute_action 分发 restart_component"""
+        result = healer.execute_action("restart_component")
+        assert result.status == HealStatus.SKIPPED
+        assert "目标模块" in result.message
+
+
+# ═══════════════════════════════════════════════════════════════
+# 未实现动作 → SKIPPED
+# ═══════════════════════════════════════════════════════════════
+
+class TestUnimplementedActions:
+    """未实现动作返回 SKIPPED（原因明确）而非 FAILED"""
+
+    def test_policy_unimplemented_skipped(self, healer):
+        """restore_map 预留动作 → SKIPPED"""
+        for action in ("retry_limited", "degrade_llm_router", "rebuild_index", "terminate_loop"):
+            result = healer.execute_action(action)
+            assert result.status == HealStatus.SKIPPED, action
+            assert "未实现" in result.message
+
+    def test_heal_action_enum_unimplemented_skipped(self, healer):
+        """HealAction 枚举中未实现的动作 → SKIPPED（非 FAILED）"""
+        for action in ("scale_up", "scale_down", "restart_pod"):
+            result = healer.execute_action(action)
+            assert result.status == HealStatus.SKIPPED, action
+
+    def test_unknown_action_fails(self, healer):
+        """真正未知的动作 → FAILED"""
+        result = healer.execute_action("unknown_action")
+        assert result.status == HealStatus.FAILED
+        assert "未知" in result.message
+
+
+# ═══════════════════════════════════════════════════════════════
+# verify_action 分发
+# ═══════════════════════════════════════════════════════════════
+
+class TestVerifyAction:
+    """verify_action 动作专属验证器测试"""
+
+    def test_no_verifier_action_ok(self, healer):
+        """无专属验证器的动作 → (True, ...) 仅依赖健康分"""
+        ok, reason = healer.verify_action("scale_up")
+        assert ok is True
+        assert "无专属验证器" in reason
+
+    def test_restart_service_no_basis_fails(self, healer):
+        """restart_service 无验证依据 → False"""
+        ok, reason = healer.verify_action("restart_service")
+        assert ok is False
+        assert "验证依据" in reason
+
+    @patch("agent.monitoring.self_healer.SelfHealer._check_port_open", return_value=True)
+    def test_restart_service_port_open(self, mock_port, healer):
+        """restart_service 端口可连接 → True"""
+        healer._verify_state["restart_service"] = {"ports": [8080], "service_name": "x"}
+        ok, reason = healer.verify_action("restart_service")
+        assert ok is True
+        assert "端口" in reason
+
+    @patch("agent.monitoring.self_healer.SelfHealer._check_port_open", return_value=False)
+    def test_restart_service_port_closed(self, mock_port, healer):
+        """restart_service 端口不可连接 → False"""
+        healer._verify_state["restart_service"] = {"ports": [8080], "service_name": "x"}
+        ok, reason = healer.verify_action("restart_service")
+        assert ok is False
+        assert "不可连接" in reason
+
+    def test_clear_cache_no_baseline_fails(self, healer):
+        """clear_cache 未记录基线 → False"""
+        ok, reason = healer.verify_action("clear_cache")
+        assert ok is False
+
+    @patch("agent.monitoring.self_healer.SelfHealer._get_memory_usage", return_value=90.0)
+    def test_memory_freed_ok(self, mock_mem, healer):
+        """gc_collect 基线存在且 RSS 下降 > 阈值 → True"""
+        healer._verify_state["gc_collect"] = {"mem_mb_before": 100.0}
+        ok, reason = healer.verify_action("gc_collect")
+        assert ok is True
+        assert "RSS" in reason
+
+    @patch("agent.monitoring.self_healer.SelfHealer._get_memory_usage", return_value=120.0)
+    def test_memory_not_freed_fails(self, mock_mem, healer):
+        """gc_collect RSS 未下降 → False"""
+        healer._verify_state["gc_collect"] = {"mem_mb_before": 100.0}
+        ok, reason = healer.verify_action("gc_collect")
+        assert ok is False
+
+    def test_memory_no_baseline_fails(self, healer):
+        """clear_memory 未记录基线 → False"""
+        ok, reason = healer.verify_action("clear_memory")
+        assert ok is False
+
+    @patch("agent.circuit_breaker.get_circuit_breaker")
+    def test_circuit_breaker_verified(self, mock_get_cb, healer):
+        """recover_circuit_breaker 验证：目标非 OPEN → True"""
+        healer._last_context["recover_circuit_breaker"] = {"circuit_breaker_name": "cb1"}
+        mock_breaker = MagicMock()
+        mock_breaker.get_status.return_value = {"state": "closed"}
+        mock_get_cb.return_value = mock_breaker
+        ok, reason = healer.verify_action("recover_circuit_breaker")
+        assert ok is True
+        mock_breaker.get_status.assert_called_once()  # 读公开 get_status()
+
+    @patch("agent.circuit_breaker.get_circuit_breaker")
+    def test_circuit_breaker_still_open_fails(self, mock_get_cb, healer):
+        """recover_circuit_breaker 验证：目标仍 OPEN → False"""
+        healer._last_context["recover_circuit_breaker"] = {"circuit_breaker_name": "cb1"}
+        mock_breaker = MagicMock()
+        mock_breaker.get_status.return_value = {"state": "open"}
+        mock_get_cb.return_value = mock_breaker
+        ok, reason = healer.verify_action("recover_circuit_breaker")
+        assert ok is False
+        assert "OPEN" in reason
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -840,36 +1044,69 @@ class TestRecordAndQuery:
 # ═══════════════════════════════════════════════════════════════
 
 class TestVerifyHeal:
-    """verify_heal 测试"""
+    """verify_heal 测试（修复 D7：动作验证器 + 真实健康分）"""
+
+    @staticmethod
+    def _mock_health_module(overall=None, history=None):
+        """构造 mock 的 agent.health.assessor 模块"""
+        mock_module = MagicMock()
+        if history is not None:
+            mock_module.health_assessor.get_history.return_value = history
+        else:
+            mock_health = MagicMock()
+            mock_health.overall = overall
+            mock_module.health_assessor.get_history.return_value = [mock_health]
+        return mock_module
 
     @patch("time.sleep")
     def test_verify_success(self, mock_sleep, healer):
-        """health.overall >= 0.7 → True"""
-        mock_health = MagicMock()
-        mock_health.overall = 0.8
-        mock_module = MagicMock()
-        mock_module.health_assessor.assess.return_value = mock_health
-        with patch.dict(sys.modules, {"agent.health.assessor": mock_module}):
-            result = healer.verify_heal("gc_collect", timeout=1.0)
+        """动作验证通过 + 健康分 >= 0.7 → True"""
+        healer._verify_state["gc_collect"] = {"mem_mb_before": 100.0}
+        with patch("agent.monitoring.self_healer.SelfHealer._get_memory_usage", return_value=90.0), \
+                patch.dict(sys.modules, {"agent.health.assessor": self._mock_health_module(0.8)}):
+            result = healer.verify_heal("gc_collect", timeout=5.0)
         assert result is True
 
     @patch("time.sleep")
-    def test_verify_timeout_low_health(self, mock_sleep, healer):
-        """health.overall < 0.7 → 超时 False"""
-        mock_health = MagicMock()
-        mock_health.overall = 0.3
+    def test_verify_health_none_fails(self, mock_sleep, healer):
+        """健康分为 None（无数据禁假满分）→ False，日志含验证失败原因"""
+        healer._verify_state["gc_collect"] = {"mem_mb_before": 100.0}
+        with patch("agent.monitoring.self_healer.SelfHealer._get_memory_usage", return_value=90.0), \
+                patch.dict(sys.modules, {"agent.health.assessor": self._mock_health_module(None)}):
+            result = healer.verify_heal("gc_collect", timeout=0.1)
+        assert result is False
+
+    @patch("time.sleep")
+    def test_verify_low_health_timeout(self, mock_sleep, healer):
+        """健康分 < 0.7 → 超时 False"""
+        healer._verify_state["gc_collect"] = {"mem_mb_before": 100.0}
+        with patch("agent.monitoring.self_healer.SelfHealer._get_memory_usage", return_value=90.0), \
+                patch.dict(sys.modules, {"agent.health.assessor": self._mock_health_module(0.3)}):
+            result = healer.verify_heal("gc_collect", timeout=0.1)
+        assert result is False
+
+    @patch("time.sleep")
+    def test_verify_action_fails_returns_false(self, mock_sleep, healer):
+        """动作验证器失败（restart_service 无验证依据）→ False，即使健康分高"""
+        with patch.dict(sys.modules, {"agent.health.assessor": self._mock_health_module(0.9)}):
+            result = healer.verify_heal("restart_service", timeout=0.1)
+        assert result is False
+
+    @patch("time.sleep")
+    def test_verify_exception_returns_false(self, mock_sleep, healer):
+        """get_history 抛异常 → 超时 False"""
         mock_module = MagicMock()
-        mock_module.health_assessor.assess.return_value = mock_health
+        mock_module.health_assessor.get_history.side_effect = RuntimeError("fail")
         with patch.dict(sys.modules, {"agent.health.assessor": mock_module}):
             result = healer.verify_heal("gc_collect", timeout=0.1)
         assert result is False
 
     @patch("time.sleep")
-    def test_verify_exception_returns_false(self, mock_sleep, healer):
-        """assess 抛异常 → 超时 False"""
-        mock_module = MagicMock()
-        mock_module.health_assessor.assess.side_effect = RuntimeError("fail")
-        with patch.dict(sys.modules, {"agent.health.assessor": mock_module}):
+    def test_verify_empty_history_fails(self, mock_sleep, healer):
+        """get_history 为空（无真实评分）→ False"""
+        healer._verify_state["gc_collect"] = {"mem_mb_before": 100.0}
+        with patch("agent.monitoring.self_healer.SelfHealer._get_memory_usage", return_value=90.0), \
+                patch.dict(sys.modules, {"agent.health.assessor": self._mock_health_module(history=[])}):
             result = healer.verify_heal("gc_collect", timeout=0.1)
         assert result is False
 

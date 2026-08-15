@@ -180,7 +180,7 @@ class TestDiskIOChaos:
         logger.info(f"[DISK_CHAOS] 测试文件路径: {test_file}")
         
         logger.info("[DISK_CHAOS] 写入原始内容到测试文件")
-        with open(test_file, 'w') as f:
+        with open(test_file, 'w', encoding="utf-8") as f:
             f.write("original content")
         logger.info("[DISK_CHAOS] 原始内容写入完成")
         
@@ -251,7 +251,7 @@ class TestDiskIOChaos:
         def async_writer(file_path, content):
             logger.info(f"[DISK_CHAOS] 异步写入线程启动，文件: {file_path}")
             try:
-                with open(file_path, 'w') as f:
+                with open(file_path, 'w', encoding="utf-8") as f:
                     f.write(content)
                 results.append(True)
                 logger.info(f"[DISK_CHAOS] 异步写入成功: {file_path}")

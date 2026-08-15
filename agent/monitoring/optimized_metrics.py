@@ -231,7 +231,10 @@ class SampledMetricsCollector:
         self._sample_rate = max(0.0, min(1.0, sample_rate))
         self._counters = defaultdict(LockFreeCounter)
         self._histograms = {}
-    
+        # Why RLock：defaultdict 的 __getitem__ miss 创建条目（读-改-写非原子），
+        # _histograms 的 check-then-create 是 TOCTOU；get_stats 遍历与并发写会 RuntimeError
+        self._lock = threading.RLock()
+
     def should_sample(self, metric_name: str) -> bool:
         """判断是否采样"""
         if self._sample_rate >= 1.0:
@@ -247,30 +250,33 @@ class SampledMetricsCollector:
         return hash_val <= int(self._sample_rate * 0xFFFFFFFF)
     
     def increment_counter(self, name: str, value: int = 1):
-        """增加计数器"""
+        """增加计数器（锁内：defaultdict miss 创建与计数原子，防并发丢首次计数）"""
         if self.should_sample(name):
-            self._counters[name].increment(value)
-    
+            with self._lock:
+                self._counters[name].increment(value)
+
     def record_latency(self, name: str, duration_ms: float):
-        """记录延迟"""
+        """记录延迟（锁内：check-then-create 原子，防并发重复实例）"""
         if self.should_sample(name):
-            if name not in self._histograms:
-                self._histograms[name] = LockFreeHistogram()
-            self._histograms[name].record(int(duration_ms * 1000))
-    
+            with self._lock:
+                if name not in self._histograms:
+                    self._histograms[name] = LockFreeHistogram()
+                self._histograms[name].record(int(duration_ms * 1000))
+
     def get_stats(self) -> Dict[str, Any]:
-        """获取统计信息"""
+        """获取统计信息（锁内遍历快照，防并发写 RuntimeError）"""
         result = {
             'counters': {},
             'histograms': {}
         }
-        
-        for name, counter in self._counters.items():
-            result['counters'][name] = counter.get()
-        
-        for name, histogram in self._histograms.items():
-            result['histograms'][name] = histogram.get_stats()
-        
+
+        with self._lock:
+            for name, counter in self._counters.items():
+                result['counters'][name] = counter.get()
+
+            for name, histogram in self._histograms.items():
+                result['histograms'][name] = histogram.get_stats()
+
         return result
 
 
@@ -288,32 +294,36 @@ class BatchMetricsWriter:
         self._flush_trace_id = f"metrics-flush-{uuid.uuid4().hex[:16]}"
 
     def start(self):
-        """启动后台写入线程"""
-        if self._running:
-            return
-        
-        self._running = True
-        self._flush_thread = threading.Thread(
-            target=self._flush_loop,
-            daemon=True,
-            name="BatchMetricsWriter"
-        )
-        self._flush_thread.start()
-    
+        """启动后台写入线程（锁内检查-设置，防并发 start 双线程）"""
+        with self._lock:
+            if self._running:
+                return
+            self._running = True
+            self._flush_thread = threading.Thread(
+                target=self._flush_loop,
+                daemon=True,
+                name="BatchMetricsWriter"
+            )
+            self._flush_thread.start()
+
     def stop(self, timeout: float = 5.0):
         """停止写入器"""
-        self._running = False
-        if self._flush_thread:
-            self._flush_thread.join(timeout=timeout)
+        with self._lock:
+            self._running = False
+            thread = self._flush_thread
+        if thread:
+            thread.join(timeout=timeout)
         self._flush()
     
     def write(self, data: Dict):
         """写入指标数据"""
         with self._lock:
             self._buffer.append(data)
-            
-            if len(self._buffer) >= self._batch_size:
-                self._flush()
+            size = len(self._buffer)
+        # Why 锁外触发 flush：_flush 内部会再获取 self._lock（Lock 非 RLock），
+        # 锁内调用会重入死锁；锁外调用与 _flush_loop 并发取批也由 _flush 自身锁保证原子
+        if size >= self._batch_size:
+            self._flush()
     
     def _flush_loop(self):
         """后台刷新循环"""
@@ -354,14 +364,19 @@ class OptimizedMetricsCollector:
         self._sampling_enabled = sampling_enabled
         self._sampler = SampledMetricsCollector(sample_rate)
         self._thread_local = ThreadLocalMetrics
-        
+
         # 聚合计数器（用于非采样场景）
         self._global_counters = defaultdict(LockFreeCounter)
         self._global_histograms = {}
-        
+
         # 批量写入器
         self._batch_writer = None
-        
+
+        # Why RLock：HTTP 监控路由多线程并发 record/increment/get_stats/reset，
+        # _stats['x'] += 1 读-改-写非原子丢计数；_global_histograms 的
+        # check-then-create 是 TOCTOU；遍历与并发写会 RuntimeError。
+        self._lock = threading.RLock()
+
         # 统计信息
         self._stats = {
             'records_written': 0,
@@ -369,81 +384,95 @@ class OptimizedMetricsCollector:
             'sampled_records': 0,
             'direct_records': 0
         }
-    
+
     def init_batch_writer(self, write_func: Callable[[List[Dict]], None], batch_size: int = 100):
-        """初始化批量写入器"""
-        if self._batch_writer is None:
-            self._batch_writer = BatchMetricsWriter(write_func, batch_size)
-            self._batch_writer.start()
-    
+        """初始化批量写入器（锁内 check-then-create，防并发双 writer 双线程）"""
+        with self._lock:
+            if self._batch_writer is None:
+                self._batch_writer = BatchMetricsWriter(write_func, batch_size)
+                self._batch_writer.start()
+
     def record_latency(self, metric_name: str, duration: float):
         """记录延迟指标（秒）"""
         duration_ms = duration * 1000
-        
+
         if self._sampling_enabled:
             self._sampler.record_latency(metric_name, duration_ms)
-            self._stats['sampled_records'] += 1
+            with self._lock:
+                self._stats['sampled_records'] += 1
         else:
             # 使用线程本地存储
             self._thread_local.record_latency(metric_name, duration_ms)
-            
-            # 更新全局直方图（带锁）
-            if metric_name not in self._global_histograms:
-                self._global_histograms[metric_name] = LockFreeHistogram()
-            self._global_histograms[metric_name].record(int(duration_ms * 1000))
-            self._stats['direct_records'] += 1
-    
+
+            # 更新全局直方图（check-then-create 锁内原子，防并发重复实例）
+            with self._lock:
+                if metric_name not in self._global_histograms:
+                    self._global_histograms[metric_name] = LockFreeHistogram()
+                self._global_histograms[metric_name].record(int(duration_ms * 1000))
+                self._stats['direct_records'] += 1
+
     def increment_counter(self, counter_name: str, value: int = 1):
         """增加计数器"""
         if self._sampling_enabled:
             self._sampler.increment_counter(counter_name, value)
-            self._stats['sampled_records'] += value
+            with self._lock:
+                self._stats['sampled_records'] += value
         else:
-            self._global_counters[counter_name].increment(value)
-            self._stats['direct_records'] += value
-    
+            with self._lock:
+                self._global_counters[counter_name].increment(value)
+                self._stats['direct_records'] += value
+
     def get_stats(self, metric_name: str = None) -> Dict[str, Any]:
         """获取指标统计"""
         if self._sampling_enabled:
             return self._sampler.get_stats()
-        
+
         if metric_name:
-            histogram = self._global_histograms.get(metric_name)
+            with self._lock:
+                histogram = self._global_histograms.get(metric_name)
             if histogram:
                 return histogram.get_stats()
             return {}
-        
+
         result = {
             'counters': {},
             'histograms': {}
         }
-        
-        for name, counter in self._global_counters.items():
-            result['counters'][name] = counter.get()
-        
-        for name, histogram in self._global_histograms.items():
-            result['histograms'][name] = histogram.get_stats()
-        
+
+        # 锁内遍历快照（防并发写 RuntimeError）
+        with self._lock:
+            for name, counter in self._global_counters.items():
+                result['counters'][name] = counter.get()
+
+            for name, histogram in self._global_histograms.items():
+                result['histograms'][name] = histogram.get_stats()
+
         return result
-    
+
     def get_all_metrics(self) -> Dict[str, Any]:
-        """获取所有指标"""
+        """获取所有指标（锁内遍历快照）"""
         if self._sampling_enabled:
             sampler_stats = self._sampler.get_stats()
+            with self._lock:
+                sample_rate = self._sampler._sample_rate
             return {
                 'histograms': sampler_stats.get('histograms', {}),
                 'counters': sampler_stats.get('counters', {}),
                 'generated_at': time.time(),
-                'sampling_rate': self._sampler._sample_rate
+                'sampling_rate': sample_rate
             }
-        
-        return {
-            'histograms': {
+
+        with self._lock:
+            histograms = {
                 name: hist.get_stats() for name, hist in self._global_histograms.items()
-            },
-            'counters': {
+            }
+            counters = {
                 name: cnt.get() for name, cnt in self._global_counters.items()
-            },
+            }
+
+        return {
+            'histograms': histograms,
+            'counters': counters,
             'generated_at': time.time(),
             'sampling_rate': 1.0
         }
@@ -471,24 +500,29 @@ class OptimizedMetricsCollector:
         return '\n'.join(lines)
     
     def reset(self):
-        """重置所有指标"""
-        self._sampler = SampledMetricsCollector(self._sampler._sample_rate)
-        self._global_counters.clear()
-        self._global_histograms.clear()
-        self._stats = {
-            'records_written': 0,
-            'batches_flushed': 0,
-            'sampled_records': 0,
-            'direct_records': 0
-        }
-    
+        """重置所有指标（锁内整组重置，防并发读写半状态）"""
+        with self._lock:
+            self._sampler = SampledMetricsCollector(self._sampler._sample_rate)
+            self._global_counters.clear()
+            self._global_histograms.clear()
+            self._stats = {
+                'records_written': 0,
+                'batches_flushed': 0,
+                'sampled_records': 0,
+                'direct_records': 0
+            }
+
     def get_internal_stats(self) -> Dict[str, Any]:
-        """获取内部统计信息"""
-        return self._stats
+        """获取内部统计信息（锁内快照）"""
+        with self._lock:
+            return dict(self._stats)
 
 
 # 全局优化指标收集器实例
 _global_optimized_collector = None
+# Why Lock：fallback 分支（无 SingletonManager）的 check-then-create TOCTOU，
+# 并发首次获取会创建多个 collector 实例（最后者赢）
+_global_collector_lock = threading.Lock()
 
 try:
     from agent.utils.singleton_manager import (
@@ -520,11 +554,12 @@ def get_optimized_metrics_collector(sampling_enabled: bool = True,
             {"sampling_enabled": sampling_enabled, "sample_rate": sample_rate},
         )
     global _global_optimized_collector
-    if _global_optimized_collector is None:
-        _global_optimized_collector = _create_optimized_metrics_collector(
-            {"sampling_enabled": sampling_enabled, "sample_rate": sample_rate}
-        )
-    return _global_optimized_collector
+    with _global_collector_lock:  # 检查-创建-赋值原子（防并发重复实例）
+        if _global_optimized_collector is None:
+            _global_optimized_collector = _create_optimized_metrics_collector(
+                {"sampling_enabled": sampling_enabled, "sample_rate": sample_rate}
+            )
+        return _global_optimized_collector
 
 
 if _SINGLETON_AVAILABLE:

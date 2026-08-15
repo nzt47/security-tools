@@ -418,15 +418,37 @@ def _force_restore_golden_methods():
 
 
 def _force_reset_intent_rules():
-    """强制重置 IntentRouter._rules 为全新深拷贝默认规则。
+    """强制重置 IntentRouter._rules 为全新深拷贝默认规则，并恢复被 mock 泄漏的 classify/for_intent。
 
     Why deepcopy 而非 list()：list(_DEFAULT_RULES) 是浅拷贝，若前序测试
     修改了规则对象的 patterns（append 正则），浅拷贝仍携带污染；深拷贝
     保证每个测试拿到与源码完全一致的 8 条规则（意图全识别为 unknown 的根因）。
+
+    Why 同时恢复静态方法：子线程内 `with patch(...)` 的 start/stop 竞态会把
+    IntentRouter.classify 泄漏为 MagicMock（return_value=("unknown", ...)），
+    classify 恒返回 unknown（response_workflows 17 失败）；仅重置 _rules 无法恢复，
+    必须把类属性回写为模块加载时的真实函数。
     """
     try:
         from agent import response_workflows as _rw
         _rw.IntentRouter._rules = copy.deepcopy(_rw._DEFAULT_RULES)
+    except Exception:
+        pass
+    # 懒初始化 golden 静态方法引用（首次调用时快照，避免循环导入）
+    _f = _force_reset_intent_rules
+    if not hasattr(_f, "_golden_classify"):
+        try:
+            from agent.response_workflows import IntentRouter as _IR, ResponseTemplates as _RT
+            _f._golden_classify = _IR.classify
+            _f._golden_for_intent = _RT.for_intent
+        except Exception:
+            return
+    try:
+        from agent.response_workflows import IntentRouter as _IR, ResponseTemplates as _RT
+        if isinstance(getattr(_IR, "classify", None), Mock):
+            setattr(_IR, "classify", staticmethod(_f._golden_classify))
+        if isinstance(getattr(_RT, "for_intent", None), Mock):
+            setattr(_RT, "for_intent", staticmethod(_f._golden_for_intent))
     except Exception:
         pass
 
@@ -556,17 +578,18 @@ def reset_global_singletons():
     _root_logger = logging.getLogger()
     _saved_handlers = _root_logger.handlers[:]
     _saved_level = _root_logger.level
-    # 0.1 快照进程级 logging.disable 阈值：manager.disable 是进程级全局状态
-    #     （logging.disable() 落脚点），不在 handlers/level 内，上述快照覆盖不到；
-    #     若某测试调用 logging.disable 且未恢复（泄漏），同进程后续 caplog/
-    #     assertLogs 全部静默失效。故一并快照并在 yield 后恢复，形成最终兜底。
-    _saved_manager_disable = logging.root.manager.disable
     yield
     # 0. 恢复 root logger 状态
     _root_logger.handlers = _saved_handlers
     _root_logger.setLevel(_saved_level)
-    # 0.1 恢复进程级 disable 阈值
-    logging.root.manager.disable = _saved_manager_disable
+    # 0b. 重置 logging 进程级全局开关 Manager.disable（防泄漏兜底）
+    # Why: logging.disable(level) 设置 Manager.disable 后，任何 logger 的
+    # isEnabledFor 对低于该 level 的记录恒 False（进程级屏蔽，conftest 的
+    # 快照/恢复均不覆盖此属性）。若某测试因断言失败未恢复，后续所有依赖
+    # INFO 级日志 filter 链的测试静默失败（perf_monitor 7 失败根因：
+    # stress_test 的 logger.info() 静默丢弃记录 → 注入 filter 永不触发、
+    # errors=0 与断言矛盾）。此处强制复位 NOTSET，阻断同类泄漏。
+    logging.root.manager.disable = logging.NOTSET
     # 1. ErrorHandler: 清空错误计数与熔断器注册表
     try:
         from agent.error_handler import get_error_handler
@@ -686,6 +709,10 @@ def reset_global_singletons():
         _st_mod = _sys.modules.get("sentence_transformers")
         if _st_mod is not None and hasattr(_st_mod, "mock_calls"):
             _sys.modules.pop("sentence_transformers", None)
+        # 注意：不要清理被 mock 污染的 transformers。Why: 真实 import transformers
+        # 会加载 torch C 扩展 → Windows 0xC0000005 崩溃（reranker 测试模块级 mock
+        # 三件套正是防崩溃屏障）。transformers 的 MagicMock 残留阻止任何后续真实
+        # import（import 链返回 Mock，不加载 torch）→ 安全失败模式。
     except Exception:
         pass
     # 13. 强制恢复被 patch 泄漏的类静态方法（MessageHandler 5 个）

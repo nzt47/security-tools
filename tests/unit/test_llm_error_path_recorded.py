@@ -20,6 +20,7 @@
         Orchestrator 依赖链走到真实 process() except 分支，验证接线。
 """
 import pytest
+import threading
 from unittest.mock import MagicMock, patch
 
 from agent.monitoring.prometheus import (
@@ -59,6 +60,7 @@ def _make_test_orch(**overrides):
     defaults = {
         "_running": True,
         "_interaction_count": 1,
+        "_interaction_lock": threading.Lock(),
         "_last_context_warning": None,
         "_last_was_template": False,
         "_session_id": "test-td1",
@@ -224,4 +226,45 @@ class TestLlmErrorWiring:
         assert _intent_layer_counts["llm"] == 2
         assert _intent_layer_counts["llm_low_confidence_fallback"] == 1
         assert _intent_layer_counts["llm_error"] == 1
+        assert abs(_ratio_sum() - 1.0) < 1e-9
+
+
+# ════════════════════════════════════════════════════════════════════
+#  wiring 级：语义层异常 → semantic_failed 独立计层（TD-2 修复接线）
+# ════════════════════════════════════════════════════════════════════
+
+class TestSemanticFailedPath:
+    """TD-2 修复接线验证：_semantic_layer_match 异常 → semantic_failed 被真实记录
+
+    技术债计划：docs/tech_debt_fallback_metric_plan_20260801.md TD-2
+    修复位置：orchestrator.py 语义层 except 分支（_record_intent_layer("semantic_failed")）
+
+    设计说明（【不易】守 INV-1 不双计）：
+      - semantic 在命中路径记录；semantic_failed 只在异常路径记录，二者互斥
+      - semantic_failed 与 llm 埋点处于不同阶段（异常时直接降级返回，不再进入 LLM 埋点）
+    """
+
+    def test_semantic_exception_records_failed_layer(self):
+        """语义层异常 → semantic_failed=1 / semantic=0 / ratio 仍 = 1.0"""
+        reset_intent_layer_counts()
+        orch = Orchestrator.__new__(Orchestrator)
+        orch._load_semantic_layer_config = MagicMock(return_value={
+            "enabled": True, "min_score": 0.3, "top_k": 5,
+            "use_vector": True, "use_bm25": True, "use_reranker": True,
+            "fusion_mode": "rrf",
+        })
+        with patch("agent.state_manager.get_skills_mgmt_service",
+                   side_effect=RuntimeError("skills_mgmt loader crash")):
+            result = orch._semantic_layer_match("test input", trace_id="td2")
+
+        assert result is None, "语义层异常应降级返回 None"
+        assert _intent_layer_counts.get("semantic_failed") == 1
+        assert _intent_layer_counts.get("semantic") is None, "异常路径不记 semantic（互斥）"
+        assert abs(_ratio_sum() - 1.0) < 1e-9
+
+    def test_semantic_hit_not_records_failed(self):
+        """语义层命中 → 不记 semantic_failed（互斥不双计）"""
+        reset_intent_layer_counts()
+        record_intent_layer("semantic")
+        assert _intent_layer_counts.get("semantic_failed") is None
         assert abs(_ratio_sum() - 1.0) < 1e-9

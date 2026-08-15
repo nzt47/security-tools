@@ -183,7 +183,8 @@ class Reflector:
 }}"""
 
     def __init__(self, llm_service=None, memory_manager=None, config: Dict = None, 
-                 persist_dir: str = "./data/reflection", lesson_channel=None):
+                 persist_dir: str = "./data/reflection", lesson_channel=None,
+                 budget_manager=None):
         """
         初始化反思引擎
 
@@ -197,12 +198,16 @@ class Reflector:
                 进入评估验证 → 优化建议管道；None 时保持既有行为不变。
                 接口约定（duck-typing）: submit_lesson(lesson) -> Optional[str]
                 （同步或异步均可，本类自动适配）。
+            budget_manager: 预算管理器（TD-4：LLM 反思成本记账；None 时保持
+                无记账行为向后兼容。step_reflect/plan_reflect 调用方可显式传入
+                实例覆盖此默认值——ReAct 路径记 react 实例、计划路径记 executor 实例）
         """
         self.llm = llm_service
         self.memory = memory_manager
         self.config = config or {}
         self.persist_dir = persist_dir
         self.lesson_channel = lesson_channel
+        self.budget_manager = budget_manager
 
         self.reflection_history: List[Dict] = []
         self.learned_patterns: Dict[str, Any] = {}
@@ -231,11 +236,16 @@ class Reflector:
         self._ensure_persist_dir()
         self._load_from_persistence()
 
-    async def step_reflect(self, task: Task, result: ActionResult, context: Dict = None) -> ReflectionResult:
+    async def step_reflect(self, task: Task, result: ActionResult, context: Dict = None,
+                           budget_manager=None) -> ReflectionResult:
         """
         步骤级反思
 
         在每个子任务完成后调用
+
+        Args:
+            budget_manager: TD-4 可选记账实例（ReAct 路径传入 react 实例；
+                未传时回退 self.budget_manager）
         """
         context = context or {}
 
@@ -249,6 +259,8 @@ class Reflector:
         if self.llm:
             try:
                 response = await self.llm.chat([{"role": "user", "content": prompt}])
+                # TD-4：步骤反思 LLM 成本记账
+                self._bill_llm(prompt, response, budget_manager)
                 reflection = self._parse_step_reflection(response)
 
                 self._record_reflection("step", task.id, reflection)
@@ -265,11 +277,15 @@ class Reflector:
                 adjustments=["检查失败原因", "考虑重试"]
             )
 
-    async def plan_reflect(self, plan: Plan) -> Dict[str, Any]:
+    async def plan_reflect(self, plan: Plan, budget_manager=None) -> Dict[str, Any]:
         """
         计划级反思
 
         在整个计划完成后调用
+
+        Args:
+            budget_manager: TD-4 可选记账实例（计划路径传入 executor 实例；
+                未传时回退 self.budget_manager）
         """
         summary = self._generate_execution_summary(plan)
 
@@ -281,6 +297,8 @@ class Reflector:
         if self.llm:
             try:
                 response = await self.llm.chat([{"role": "user", "content": prompt}])
+                # TD-4：计划反思 LLM 成本记账
+                self._bill_llm(prompt, response, budget_manager)
                 reflection = json.loads(response)
 
                 self._record_reflection("plan", plan.id, reflection)
@@ -320,6 +338,14 @@ class Reflector:
             )
         except json.JSONDecodeError:
             return ReflectionResult(assessment=response[:100], confidence=0.5)
+
+    def _bill_llm(self, prompt: Any, response: Any, budget_manager=None) -> None:
+        """TD-4：LLM 反思成本记账（调用方显式实例 > 默认实例；均未注入则跳过）"""
+        bm = budget_manager or self.budget_manager
+        if bm is None:
+            return
+        bm.record_text(prompt)
+        bm.record_text(response)
 
     def _generate_execution_summary(self, plan: Plan) -> str:
         """生成执行摘要"""
@@ -666,7 +692,8 @@ class Reflector:
             self._failure_reflect_stats["fallback_reasons"]["exception"] += 1
             logger.warning(
                 f"[失败反思#{attempts}] 步骤1/3 LLM 调用异常，切换规则兜底"
-                f" | 耗时={(time.monotonic() - _t0) * 1000:.0f}ms | error={e}"
+                f" | 耗时={(time.monotonic() - _t0) * 1000:.0f}ms | error={e}",
+                exc_info=True,  # 记录完整堆栈，便于定位 LLM 链路故障
             )
             reflection = None
         if reflection is None:
@@ -760,17 +787,15 @@ class Reflector:
             f"[失败反思#{attempts}] 分支: LLM 返回 | response_len={len(str(response))}"
             f" | response={str(response)[:120]}"
         )
-        # TD-4 记账（master 无 budget_manager 基础时跳过，不阻断反思）
-        bill = getattr(self, "_bill_llm", None)
-        if bill is not None:
-            bill(prompt, response)
+        self._bill_llm(prompt, response)
         try:
             data = json.loads(response)
         except (json.JSONDecodeError, TypeError, ValueError):
             self._failure_reflect_stats["fallback_reasons"]["parse_failed"] += 1
             logger.warning(
                 f"[失败反思#{attempts}] 分支: LLM 输出 JSON 解析失败，交规则兜底"
-                f" | response={str(response)[:200]}"
+                f" | response={str(response)[:200]}",
+                exc_info=True,  # 记录解析异常堆栈
             )
             return None
         return {

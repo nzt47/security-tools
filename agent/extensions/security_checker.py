@@ -436,7 +436,7 @@ def dangerous_func():
     with tempfile.TemporaryDirectory() as temp_dir:
         # 创建包含危险代码的测试文件
         dangerous_file = os.path.join(temp_dir, "dangerous.py")
-        with open(dangerous_file, "w") as f:
+        with open(dangerous_file, "w", encoding="utf-8") as f:
             f.write("""
 import subprocess
 subprocess.run("rm -rf /", shell=True)
@@ -458,7 +458,7 @@ os.system("echo dangerous")
     print("\n3. 测试安全评估（安全技能）:")
     with tempfile.TemporaryDirectory() as temp_dir:
         safe_file = os.path.join(temp_dir, "safe.py")
-        with open(safe_file, "w") as f:
+        with open(safe_file, "w", encoding="utf-8") as f:
             f.write("""
 def greet(name):
     return f"Hello, {name}!"
@@ -487,7 +487,7 @@ def greet(name):
     print("\n5. 测试完整检查流程:")
     with tempfile.TemporaryDirectory() as temp_dir:
         safe_file = os.path.join(temp_dir, "safe.py")
-        with open(safe_file, "w") as f:
+        with open(safe_file, "w", encoding="utf-8") as f:
             f.write("def hello(): return 'hello'")
         
         skill_info = {

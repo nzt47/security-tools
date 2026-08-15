@@ -2,10 +2,13 @@
 
 import pytest
 import json
+import logging
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 from planning.react import ReActLoop, ReActStep, ReActResult, ThoughtResult
 from planning.executor import ToolRegistry
 from planning.models import Action, ActionType, ActionResult
+from planning.core import PlanningCore
 
 
 class TestReActStep:
@@ -434,9 +437,13 @@ class TestReActLoop:
         })
         
         mock_reflector = MagicMock()
-        
-        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=3)
-        
+
+        # 意图：验证"达到最大迭代次数 → 超时"。mock 每轮返回相同 response（状态恒定），
+        # 任务5 状态哈希会把它判为循环——用 loop_max_repeats 调大阈值隔离新检测，
+        # 保住"超时"路径的测试意图（与 test_run_budget_timeout 用 timeout_seconds 同理）
+        react_loop = ReActLoop(mock_planner, mock_reflector, max_iterations=3,
+                               config={"loop_max_repeats": 99})
+
         result = await react_loop.run("复杂任务", {})
         
         assert result.success is False
@@ -454,7 +461,8 @@ class TestReActLoop:
         mock_planner = MagicMock()
         mock_planner.tool_registry = registry
         mock_planner.llm = AsyncMock()
-        # 每次思考返回同一工具调用 → 连续动作描述相同 → 第 6 步触发 _detect_loop
+        # 每次思考返回同一工具调用 → 连续动作描述相同 → 触发循环检测。
+        # 任务5 状态哈希接入后：同工具同参数指纹恒定，第 3 次重复即命中（旧 _detect_loop 需 6 步）
         mock_planner.llm.chat.return_value = json.dumps({
             "reasoning": "反复执行相同操作",
             "action_type": "tool_call",
@@ -469,8 +477,10 @@ class TestReActLoop:
         assert result.success is False
         assert result.error == "检测到执行循环"
         assert "超时" not in result.error
-        # 在循环检测点（6 步）终止，而非耗尽 max_iterations（8）
-        assert result.iterations == 6
+        # 状态哈希检测在第 3 次重复（第 3 步）终止，而非耗尽 max_iterations（8）
+        assert result.iterations == 3
+        # 任务5：解释性摘要写入 final_state
+        assert "loop_summary" in result.final_state
 
     @pytest.mark.asyncio
     async def test_run_iteration_error_distinct_error(self):
@@ -570,8 +580,9 @@ class TestReActLoop:
         assert result.success is False
         assert result.error == "检测到执行循环"
         assert "超时" not in result.error
-        # 在循环检测点（6 步）终止，而非耗尽 max_iterations（10）
-        assert result.iterations == 6
+        # 任务5 状态哈希接入后：A 在窗口内第 3 次出现（第 5 步）即命中
+        # （旧 _detect_loop 需 6 步周期检测）；不耗尽 max_iterations（10）
+        assert result.iterations == 5
 
     @pytest.mark.asyncio
     async def test_run_hints_capped(self):
@@ -612,3 +623,292 @@ class TestReActLoop:
 
         # 6 轮反思 × 5 条 = 30 条 → 截断后保留最近 20 条
         assert len(context["_hints"]) == 20
+
+
+class TestLoopTerminationCoreP1:
+    """任务5 P1：_plan_chat 识别"决策循环终止"并与普通失败区分（core.py）"""
+
+    @pytest.mark.asyncio
+    async def test_plan_chat_loop_termination_response(self, tmp_path):
+        """循环终止 → 响应含"决策循环"+摘要，且不重试（react_loop.run 仅调用 1 次）"""
+        core = PlanningCore(llm_service=AsyncMock(), config={"reflector": {"persist_dir": str(tmp_path)}})
+        react_result = ReActResult(
+            success=False,
+            result="检测到反馈循环,已终止执行",
+            error="检测到执行循环",
+            iterations=3,
+            total_duration_ms=100.0,
+            cost=0.0,
+            steps=[],
+            final_state={"loop_summary": "tool_a 重复出现 3 次 (window=8)"},
+        )
+        core.react_loop.run = AsyncMock(return_value=react_result)
+
+        result = await core.chat("帮我完成一个复杂任务", {})
+
+        assert result.used_planning is True
+        assert "决策循环" in result.response
+        assert "tool_a 重复出现 3 次" in result.response
+        core.react_loop.run.assert_awaited_once()  # 不重试
+        assert result.react_result is react_result
+
+    @pytest.mark.asyncio
+    async def test_plan_chat_ordinary_failure_keeps_original(self, tmp_path):
+        """普通失败（无 loop_summary）→ 保持原文案，不受 P1 影响"""
+        core = PlanningCore(llm_service=AsyncMock(), config={"reflector": {"persist_dir": str(tmp_path)}})
+        react_result = ReActResult(
+            success=False,
+            result="出错了",
+            error="工具调用失败",
+            iterations=2,
+            total_duration_ms=80.0,
+            cost=0.0,
+            steps=[],
+            final_state={},
+        )
+        core.react_loop.run = AsyncMock(return_value=react_result)
+
+        result = await core.chat("帮我完成一个复杂任务", {})
+
+        assert result.used_planning is True
+        assert "我遇到了一些问题: 工具调用失败" in result.response
+        core.react_loop.run.assert_awaited_once()
+
+
+class TestSnapshotIntegration:
+    """任务5 步骤3：迭代头快照 + 反思超限还原重试（C1-C12 核心场景）
+
+    公共装置：registry 注册 bad_tool（恒失败）；mock LLM 序列可复现失败→还原→重试。
+    """
+
+    @staticmethod
+    def _loop(mock_llm, mock_reflector, tmp_path, **config):
+        registry = ToolRegistry()
+        registry.register("bad_tool", lambda: (_ for _ in ()).throw(Exception("boom")))
+        mock_planner = MagicMock()
+        mock_planner.tool_registry = registry
+        mock_planner.llm = mock_llm
+        return ReActLoop(mock_planner, mock_reflector, max_iterations=6,
+                         config={"reflection_retries": 1, "snapshot_root": str(tmp_path), **config})
+
+    @staticmethod
+    def _tool_call(reasoning):
+        return json.dumps({"reasoning": reasoning, "action_type": "tool_call",
+                           "action": {"tool": "bad_tool", "params": {}, "description": "调用bad_tool"}})
+
+    @staticmethod
+    def _reflection():
+        r = MagicMock()
+        r.repair_actions = ["换思路"]
+        return r
+
+    @pytest.mark.asyncio
+    async def test_restore_retry_once_success(self, tmp_path, caplog):
+        """C2/C11：反思超限 → 快照还原 → 重试一轮成功；steps 完整记录失败步骤"""
+        caplog.set_level(logging.INFO)
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            self._tool_call("试工具"),
+            self._tool_call("再试工具"),
+            json.dumps({"reasoning": "完成", "action_type": "finish",
+                        "result": "成功完成", "confidence": 0.9}),
+        ]
+        mock_reflector = MagicMock()
+        mock_reflector.failure_reflect = AsyncMock(return_value=self._reflection())
+
+        loop = self._loop(mock_llm, mock_reflector, tmp_path)
+        result = await loop.run("失败后还原重试", {"session_id": "sess_c2"})
+
+        assert result.success is True
+        assert result.iterations == 3                 # 2 失败 + 1 finish
+        assert len(result.steps) == 2                 # finish 不 append（既有行为），失败步骤完整
+        assert all(not s.success for s in result.steps)
+        assert "snapshot_restored" in caplog.text     # 验收7：还原日志含标记
+        assert mock_reflector.failure_reflect.await_count == 1  # 超限轮不再反思
+
+    @pytest.mark.asyncio
+    async def test_restore_only_once(self, tmp_path, caplog):
+        """C4：还原后重试仍失败 → 不再二次还原（_restore_attempted 拦截）"""
+        caplog.set_level(logging.INFO)
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            self._tool_call("第1次"),
+            self._tool_call("第2次"),     # 超限 → 还原 → continue
+            self._tool_call("第3次"),     # 重试仍失败，反思计数重置后第 1 次
+            self._tool_call("第4次"),     # 反思超限，但 _restore_attempted=True → 升级
+        ]
+        mock_reflector = MagicMock()
+        mock_reflector.failure_reflect = AsyncMock(return_value=self._reflection())
+
+        loop = self._loop(mock_llm, mock_reflector, tmp_path)
+        result = await loop.run("还原一次", {"session_id": "sess_c4"})
+
+        assert result.success is False
+        # 还原动作仅一次（日志含两条 snapshot_restored 标记：还原动作 + 主循环重试确认，
+        # 故统计"已回滚到最近快照"动作日志而非标记本身）
+        assert caplog.text.count("已回滚到最近快照") == 1
+
+    @pytest.mark.asyncio
+    async def test_snapshot_every_step_disabled(self, tmp_path):
+        """C7：snapshot_every_step=False → 零行为变化、不产生快照文件"""
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [json.dumps({"reasoning": "直接完成", "action_type": "finish",
+                                                 "result": "ok", "confidence": 0.9})]
+        mock_reflector = MagicMock()
+
+        loop = self._loop(mock_llm, mock_reflector, tmp_path, snapshot_every_step=False)
+        result = await loop.run("关闭快照", {"session_id": "sess_c7"})
+
+        assert result.success is True
+        assert not (tmp_path / "sess_c7").exists()      # 未创建快照目录
+
+    @pytest.mark.asyncio
+    async def test_restore_retry_disabled(self, tmp_path, caplog):
+        """C8：restore_retry=False → 反思超限直接升级，不还原"""
+        caplog.set_level(logging.INFO)
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            self._tool_call("第1次"),
+            self._tool_call("第2次"),     # 超限但 restore_retry=False → 升级，无 continue
+            json.dumps({"reasoning": "完成", "action_type": "finish",
+                        "result": "ok", "confidence": 0.9}),
+        ]
+        mock_reflector = MagicMock()
+        mock_reflector.failure_reflect = AsyncMock(return_value=self._reflection())
+
+        loop = self._loop(mock_llm, mock_reflector, tmp_path, restore_retry=False)
+        result = await loop.run("关闭还原", {"session_id": "sess_c8"})
+
+        assert result.success is True
+        assert "snapshot_restored" not in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_no_snapshot_available_falls_to_upgrade(self, tmp_path):
+        """C10：无可用快照（save 全失败）→ 超限走升级路径，不炸"""
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            self._tool_call("第1次"),
+            self._tool_call("第2次"),     # 超限 → restore_snapshot(None) → None → 升级
+            json.dumps({"reasoning": "完成", "action_type": "finish",
+                        "result": "ok", "confidence": 0.9}),
+        ]
+        mock_reflector = MagicMock()
+        mock_reflector.failure_reflect = AsyncMock(return_value=self._reflection())
+
+        blocker = tmp_path / "blocker"
+        blocker.write_text("x")           # 文件占用 snapshot_root → save 全失败
+        loop = self._loop(mock_llm, mock_reflector, tmp_path, snapshot_root=str(blocker))
+        result = await loop.run("无快照", {"session_id": "sess_c10"})
+
+        assert result.success is True      # 升级路径不阻断，后续 finish 成功
+
+    @pytest.mark.asyncio
+    async def test_snapshot_failure_not_blocking(self, tmp_path, caplog):
+        """C1：快照写入失败 → 主循环继续且仅告警一次（验收5）"""
+        caplog.set_level(logging.INFO)
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            self._tool_call("第1次"),
+            json.dumps({"reasoning": "完成", "action_type": "finish",
+                        "result": "ok", "confidence": 0.9}),
+        ]
+        mock_reflector = MagicMock()
+        mock_reflector.failure_reflect = AsyncMock(return_value=self._reflection())
+
+        blocker = tmp_path / "blocker"
+        blocker.write_text("x")
+        loop = self._loop(mock_llm, mock_reflector, tmp_path, snapshot_root=str(blocker))
+        result = await loop.run("快照失败", {"session_id": "sess_c1"})
+
+        assert result.success is True
+        assert caplog.text.count("快照保存失败") == 1   # 仅告警一次
+
+    @pytest.mark.asyncio
+    async def test_session_id_fallback_no_none_dir(self, tmp_path):
+        """C13：context 无 session_id → 快照不落入 None/ 目录（str(None) 真值 bug 回归）。
+
+        旧实现 `str(context.get("session_id")) or ...` 中 str(None)="None" 为真值，
+        or 兜底永不生效，真实运行快照会写入 data/snapshots/None/（曾实证）。
+        且 session_id 须在循环外确定一次：若每步重新生成（get_trace_id() 无上下文
+        时返回 None → 每步新时间戳），多步循环会产生多个 react_* 碎片目录、轮转失效。
+        """
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            self._tool_call("第1次"),
+            self._tool_call("第2次"),
+            json.dumps({"reasoning": "完成", "action_type": "finish",
+                        "result": "ok", "confidence": 0.9}),
+        ]
+        mock_reflector = MagicMock()
+
+        loop = self._loop(mock_llm, mock_reflector, tmp_path)
+        result = await loop.run("无会话ID", {})
+
+        assert result.success is True
+        assert not (tmp_path / "None").exists()          # 不落入 None/ 目录
+        dirs = [d for d in tmp_path.iterdir() if d.is_dir()]
+        assert dirs
+        assert all(d.name != "None" for d in dirs)
+        # 多步循环仅 1 个 react_* 目录（session 稳定 → 轮转/治理有效）
+        react_dirs = [d for d in dirs if d.name.startswith("react_")]
+        assert len(react_dirs) == 1
+        # 同目录内多份 step 快照（轮转语义生效的前提）
+        assert len(list(react_dirs[0].glob("step_*.json"))) == 3
+
+    @pytest.mark.asyncio
+    async def test_concurrent_runs_snapshot_session_isolated(self, tmp_path):
+        """C14：同一实例并发 run() → 快照按各自 session_id 分目录，不串话/无 None 碎片。
+
+        并发防御回归：快照运行态（session_id/最近快照/还原标记）若用实例属性，
+        同一实例并发 run() 会互相覆盖 → 快照写入对方目录（碎片串话）或还原错快照。
+        现为 run() 局部变量：两个并发 run 的快照必须严格落在各自 session 目录，
+        且快照内容互不含对方任务文本。
+        """
+        counts = {"A": 0, "B": 0}
+
+        async def chat_fn(messages):
+            # 按任务文本区分两个并发 run 的 LLM 响应序列（稳定隔离，不抢 side_effect）
+            content = messages[0]["content"]
+            if "并发任务A" in content:
+                counts["A"] += 1
+                if counts["A"] == 1:
+                    return json.dumps({"reasoning": "A步1", "action_type": "tool_call",
+                                       "action": {"tool": "noop", "params": {}, "description": "A第1步"}})
+                return json.dumps({"reasoning": "A完成", "action_type": "finish",
+                                   "result": "okA", "confidence": 0.9})
+            if "并发任务B" in content:
+                counts["B"] += 1
+                if counts["B"] == 1:
+                    return json.dumps({"reasoning": "B步1", "action_type": "tool_call",
+                                       "action": {"tool": "noop", "params": {}, "description": "B第1步"}})
+                return json.dumps({"reasoning": "B完成", "action_type": "finish",
+                                   "result": "okB", "confidence": 0.9})
+            return json.dumps({"reasoning": "未知", "action_type": "finish",
+                               "result": "?", "confidence": 0.9})
+
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = chat_fn
+        mock_reflector = MagicMock()
+        mock_reflector.failure_reflect = AsyncMock(return_value=self._reflection())
+
+        loop = self._loop(mock_llm, mock_reflector, tmp_path)
+        loop.planner.tool_registry.register("noop", lambda: "ok")
+
+        results = await asyncio.gather(
+            loop.run("并发任务A", {"session_id": "sess_A"}),
+            loop.run("并发任务B", {"session_id": "sess_B"}),
+        )
+
+        assert all(r.success for r in results)
+        # 两个 session 目录各自独立（不串话），均 2 次迭代 → 2 份快照
+        a_dir, b_dir = tmp_path / "sess_A", tmp_path / "sess_B"
+        assert a_dir.is_dir() and b_dir.is_dir()
+        assert len(list(a_dir.glob("step_*.json"))) == 2
+        assert len(list(b_dir.glob("step_*.json"))) == 2
+        # 无 None/ 碎片目录
+        assert not (tmp_path / "None").exists()
+        # 快照内容互不含对方任务文本（防 session 串话）
+        a_last = a_dir.joinpath("step_1.json").read_text(encoding="utf-8")
+        b_last = b_dir.joinpath("step_1.json").read_text(encoding="utf-8")
+        assert "并发任务A" in a_last and "并发任务B" not in a_last
+        assert "并发任务B" in b_last and "并发任务A" not in b_last

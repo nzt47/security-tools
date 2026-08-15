@@ -54,7 +54,8 @@ class TaskDecomposer:
 
 请直接输出JSON,不要有其他内容:"""
 
-    def __init__(self, llm_service=None, config: Dict = None, reflector=None):
+    def __init__(self, llm_service=None, config: Dict = None, reflector=None,
+                 budget_manager=None):
         """
         初始化分解器
 
@@ -63,11 +64,14 @@ class TaskDecomposer:
             config: 配置字典
             reflector: 反思引擎（阶段 4 / D17：分解前注入【历史经验】段；
                        None 时保持无经验场景行为不变）
+            budget_manager: 预算管理器（TD-4：LLM 分解/优化成本记账；
+                       None 时保持无记账行为，向后兼容）
         """
         self.llm = llm_service
         self.config = config or {}
         self.max_subtasks = self.config.get("max_subtasks", 20)
         self.reflector = reflector
+        self.budget_manager = budget_manager
 
     async def decompose(self, task_description: str, context: Dict[str, Any] = None) -> Plan:
         """
@@ -165,6 +169,9 @@ class TaskDecomposer:
 
         prompt = _build_prompt()
         response = await self.llm.chat([{"role": "user", "content": prompt}])
+        # TD-4：LLM 分解成本经 budget_manager 记账（与 executor/react 同口径，
+        # 字符/3 估算；重试路径 extract_json_with_retry 属公共函数不在此记账）
+        self._bill_llm(prompt, response)
 
         def _build_retry_prompt(errors: List[str]) -> str:
             return (
@@ -180,6 +187,13 @@ class TaskDecomposer:
         # 仍失败 → 回退规则分解（与阶段 1 行为一致）
         logger.warning(f"LLM 分解输出解析失败（{'；'.join(errors)}），回退规则分解")
         return self._rule_decompose(task)
+
+    def _bill_llm(self, prompt: Any, response: Any) -> None:
+        """TD-4：LLM 调用成本记账（budget_manager 未注入时静默跳过，向后兼容）"""
+        if self.budget_manager is None:
+            return
+        self.budget_manager.record_text(prompt)
+        self.budget_manager.record_text(response)
 
     def _rule_decompose(self, task: str) -> Dict[str, Any]:
         """基于规则的任务分解(降级方案)"""
@@ -298,6 +312,8 @@ class TaskDecomposer:
 """
         try:
             response = await self.llm.chat([{"role": "user", "content": prompt}])
+            # TD-4：refine 优化成本记账（与 decompose 同口径）
+            self._bill_llm(prompt, response)
             # 阶段 2：refine 输出解析复用 llm_json 公共函数（鲁棒性升级）
             data = extract_json(response) or {}
             adjustments = data.get("adjustments", [])

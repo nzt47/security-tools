@@ -1386,7 +1386,7 @@ class TestAlertsListEndpoint:
     def test_list_no_groups_key(self, client, alert_rules_file):
         """规则文件无 groups 键"""
         # 写入不含 groups 的 YAML
-        with open(alert_rules_file, "w") as f:
+        with open(alert_rules_file, "w", encoding="utf-8") as f:
             yaml.dump({"other": "data"}, f)
         routes_logging._ALERT_RULES_CACHE = None
 
@@ -1478,7 +1478,7 @@ class TestAlertsCreateEndpoint:
 
     def test_create_when_rules_missing_groups_key(self, client, alert_rules_file):
         """rules 字典无 groups 键时自动初始化"""
-        with open(alert_rules_file, "w") as f:
+        with open(alert_rules_file, "w", encoding="utf-8") as f:
             yaml.dump({"other_key": "value"}, f)
 
         resp = client.post("/api/observability/alerts",

@@ -7,6 +7,7 @@
     4. GuardResult 可序列化为 dict
 """
 import json
+import linecache
 import logging
 
 import pytest
@@ -688,6 +689,7 @@ def test_call_llm_v2_integrates_guard():
     import inspect
     import textwrap
     from agent.orchestrator.orchestrator import Orchestrator
+    linecache.checkcache()  # 【不易】F2（K13）修复：长时进程行缓存失效，防行号漂移
     src = inspect.getsource(Orchestrator._call_llm_v2)
     src = textwrap.dedent(src)  # 去除类方法缩进, 使 ast 可解析
     tree = ast.parse(src)
@@ -727,6 +729,7 @@ def test_integration_check_detects_commented_call():
     import textwrap
     from agent.orchestrator.orchestrator import Orchestrator
 
+    linecache.checkcache()  # 【不易】F2（K13）修复：长时进程行缓存失效，防行号漂移
     original_src = inspect.getsource(Orchestrator._call_llm_v2)
     original_src = textwrap.dedent(original_src)  # 去除类方法缩进
     # 模拟注释掉调用语句 (生产环境可能发生的误操作)
@@ -765,6 +768,7 @@ def test_call_llm_v2_integrates_guard_fails_when_call_commented(monkeypatch):
     from agent.orchestrator.orchestrator import Orchestrator
 
     # 获取原始源码并篡改: 注释掉 _guard_llm_output 调用语句
+    linecache.checkcache()  # 【不易】F2（K13）修复：长时进程行缓存失效，防行号漂移
     original_src = textwrap.dedent(inspect.getsource(Orchestrator._call_llm_v2))
     tampered_src = original_src.replace(
         "response = self._guard_llm_output(response, user_input, guard_trace=_gtrace)",

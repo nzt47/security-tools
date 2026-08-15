@@ -233,9 +233,10 @@ class MemorySkillAbstractor:
 
             logger.info(
                 "[MemAbstract] 开始抽象 | 输入记忆=%d 条 | "
+                "days=%d | max_skills=%d | auto_register=%s | "
                 "min_cluster=%d | min_success=%.2f",
-                len(memory_entries), self.min_cluster_size,
-                self.min_success_rate,
+                len(memory_entries), days, max_skills, auto_register,
+                self.min_cluster_size, self.min_success_rate,
             )
 
             if len(memory_entries) < self.min_cluster_size:
@@ -265,6 +266,13 @@ class MemorySkillAbstractor:
             results: List[Dict[str, Any]] = []
             for cluster in clusters:
                 if len(results) >= max_skills:
+                    skipped = clusters[len(results):]
+                    logger.info(
+                        "[MemAbstract] 已达 max_skills=%d 上限, 停止处理 | "
+                        "已处理=%d | 被跳过聚类=%d | 被跳过 cluster_id=%s",
+                        max_skills, len(results), len(skipped),
+                        [c.cluster_id for c in skipped],
+                    )
                     break
                 result = self._process_cluster(
                     cluster, auto_register=auto_register,
@@ -356,23 +364,33 @@ class MemorySkillAbstractor:
         失败降级: 任一数据源不可用不影响其他源
         """
         entries: List[MemoryEntry] = []
+        source_counts: Dict[str, int] = {}
         # 工作流记录
         try:
-            entries.extend(self._load_workflow_memories(days=days))
+            wf = self._load_workflow_memories(days=days)
+            source_counts["workflow"] = len(wf)
+            entries.extend(wf)
         except Exception as e:  # noqa: BLE001
             logger.warning("[MemAbstract] 加载 workflow 记忆失败: %s", e)
         # 反馈记录
         try:
-            entries.extend(self._load_feedback_memories(days=days))
+            fb = self._load_feedback_memories(days=days)
+            source_counts["feedback"] = len(fb)
+            entries.extend(fb)
         except Exception as e:  # noqa: BLE001
             logger.warning("[MemAbstract] 加载 feedback 记忆失败: %s", e)
         # 长期记忆
         try:
-            entries.extend(self._load_long_term_memories(days=days))
+            ltm = self._load_long_term_memories(days=days)
+            source_counts["long_term_memory"] = len(ltm)
+            entries.extend(ltm)
         except Exception as e:  # noqa: BLE001
             logger.warning("[MemAbstract] 加载 long_term_memory 失败: %s", e)
 
-        logger.info("[MemAbstract] 记忆加载完成 | 共 %d 条", len(entries))
+        logger.info(
+            "[MemAbstract] 记忆加载完成 | 共 %d 条 | 各源=%s",
+            len(entries), source_counts,
+        )
         return entries
 
     def _load_workflow_memories(self, *, days: int) -> List[MemoryEntry]:
@@ -1227,6 +1245,9 @@ class MemorySkillAbstractor:
             "draft_steps": draft.get("steps", []),
             "draft_if_then_rules": draft.get("if_then_rules", []),
             "draft_anti_patterns": draft.get("anti_patterns", []),
+            # P0 #3 阶段 0 数据物化（2026-08-14）: 携带完整草稿内容，供
+            # precipitate._audit_draft 写入 draft_body，人工确认闭环可重建草稿。
+            "draft": draft,
         }
         logger.debug(
             "[MemAbstract]   草稿汇总: avg_signal=%.3f | "

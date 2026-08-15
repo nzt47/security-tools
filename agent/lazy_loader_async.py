@@ -38,6 +38,7 @@ import json
 import uuid
 import time
 import asyncio
+import threading
 from typing import Callable, Any, Optional, Dict, List, Awaitable
 
 from agent.lazy_loader import (
@@ -352,6 +353,8 @@ class AsyncParallelPreloader(_BaseParallelPreloader):
 
 
 _global_async_loader: Optional[AsyncLazyModuleLoader] = None  # 保留作为 fallback
+# [2026-08-13 并发审计 #5] fallback 懒加载单例双检锁
+_async_loader_lock = threading.Lock()
 
 try:
     from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
@@ -374,7 +377,11 @@ def get_async_lazy_loader() -> AsyncLazyModuleLoader:
         return get_singleton("async_lazy_loader")
     global _global_async_loader
     if _global_async_loader is None:
-        _global_async_loader = _create_async_lazy_loader()
+        # [2026-08-13 并发审计 #5] fallback 路径双检锁：并发首次调用只创建一个
+        # loader（每个 loader 持有独立线程池，重复创建会泄漏线程池）
+        with _async_loader_lock:
+            if _global_async_loader is None:
+                _global_async_loader = _create_async_lazy_loader()
     return _global_async_loader
 
 

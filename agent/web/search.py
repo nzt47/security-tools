@@ -10,6 +10,7 @@ import json
 import uuid
 import time
 import logging
+import threading
 from typing import Optional, List, Dict, Any, Callable
 from urllib.parse import quote_plus
 from agent.logging_utils import log_dict
@@ -96,6 +97,14 @@ class SearchEngine:
         self._cache: Dict[str, dict] = {}
         self._cache_ttl = self._config.get("cache_ttl", 300)
 
+        # Why RLock 保护统计/缓存/引擎注册表（模块级单例被多路 HTTP 请求并发
+        # 调用）：_stats 的 += 为读-改-写序列（并发丢计数）；_set_cache 的整体
+        # 重建与并发写入相互覆盖（缓存丢失）；remove_engine 的 list.remove 与
+        # search 的引擎遍历并发抛 RuntimeError（list changed size during
+        # iteration）。search() 网络调用在锁外（持锁纪律：锁内严禁 I/O——网络
+        # 请求可能阻塞），仅内存快照/变更锁内。
+        self._lock = threading.RLock()
+
         logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': 'SearchEngine 已初始化 (默认引擎: %s, 优先级: %s)' % (self._default_engine, self._engine_priority)}))
 
     # ── 动态引擎注册系统 ────────────────────────────────────────────
@@ -111,30 +120,31 @@ class SearchEngine:
             needs_key: 是否需要 API Key
             description: 引擎描述
         """
-        self._engine_registry[name] = {
-            "name": name,
-            "label": label,
-            "description": description,
-            "needs_key": needs_key,
-            "handler": handler,
-        }
-        # 确保引擎在优先级列表中
-        if name not in self._engine_priority:
-            self._engine_priority.append(name)
-        # 确保引擎已启用
-        if name not in self._engine_enabled:
-            self._engine_enabled[name] = True
-        # 确保有统计条目
-        if name not in self._stats["engine_usage"]:
-            self._stats["engine_usage"][name] = 0
-        if name not in self._stats["engine_timing"]:
-            self._stats["engine_timing"][name] = {
-                "total": 0, "count": 0, "avg": 0,
-                "min": float('inf'), "max": 0,
+        with self._lock:  # 注册表/优先级/统计多步变更原子（与 search 遍历互斥）
+            self._engine_registry[name] = {
+                "name": name,
+                "label": label,
+                "description": description,
+                "needs_key": needs_key,
+                "handler": handler,
             }
-        # 确保有 API Key 条目（留空）
-        if name not in self._api_keys:
-            self._api_keys[name] = ""
+            # 确保引擎在优先级列表中
+            if name not in self._engine_priority:
+                self._engine_priority.append(name)
+            # 确保引擎已启用
+            if name not in self._engine_enabled:
+                self._engine_enabled[name] = True
+            # 确保有统计条目
+            if name not in self._stats["engine_usage"]:
+                self._stats["engine_usage"][name] = 0
+            if name not in self._stats["engine_timing"]:
+                self._stats["engine_timing"][name] = {
+                    "total": 0, "count": 0, "avg": 0,
+                    "min": float('inf'), "max": 0,
+                }
+            # 确保有 API Key 条目（留空）
+            if name not in self._api_keys:
+                self._api_keys[name] = ""
         logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎] 已注册: %s (%s), 需API Key: %s' % (name, label, needs_key)}))
 
     def remove_engine(self, name: str) -> bool:
@@ -146,42 +156,49 @@ class SearchEngine:
         Returns:
             bool: 是否成功移除
         """
-        if name not in self._engine_registry:
+        with self._lock:  # 注册表检查 + 删除原子（与 search 遍历互斥）
+            if name not in self._engine_registry:
+                removed = False
+            else:
+                del self._engine_registry[name]
+                if name in self._engine_priority:
+                    self._engine_priority.remove(name)
+                if name in self._engine_enabled:
+                    del self._engine_enabled[name]
+                if name in self._stats["engine_usage"]:
+                    del self._stats["engine_usage"][name]
+                if name in self._stats["engine_timing"]:
+                    del self._stats["engine_timing"][name]
+                self._api_keys.pop(name, None)
+
+                # 如果删除的是当前默认引擎，清空默认引擎
+                if self._default_engine == name:
+                    self._default_engine = self._config.get("default_engine", "")
+                removed = True
+        if not removed:
             logger.warning(log_dict({'module_name': 'search', 'action': 'remove_engine', 'msg': '[搜索引擎] 移除失败，引擎不存在: %s' % name}))
             return False
-        del self._engine_registry[name]
-        if name in self._engine_priority:
-            self._engine_priority.remove(name)
-        if name in self._engine_enabled:
-            del self._engine_enabled[name]
-        if name in self._stats["engine_usage"]:
-            del self._stats["engine_usage"][name]
-        if name in self._stats["engine_timing"]:
-            del self._stats["engine_timing"][name]
-        self._api_keys.pop(name, None)
-
-        # 如果删除的是当前默认引擎，清空默认引擎
-        if self._default_engine == name:
-            self._default_engine = self._config.get("default_engine", "")
-            logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎] 默认引擎已重置为: %s' % (self._default_engine or '(无)')}))
-
+        logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎] 默认引擎已重置为: %s' % (self._default_engine or '(无)')}))
         logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎] 已移除: %s' % name}))
         return True
 
     def set_default_engine(self, name: str):
         """设置默认搜索引擎"""
         if not name:
-            self._default_engine = self._config.get("default_engine", "")
+            with self._lock:
+                self._default_engine = self._config.get("default_engine", "")
             logger.info(log_dict({'module_name': 'search', 'action': 'set_default_engine', 'msg': '[搜索引擎] 默认引擎已重置为: %s' % (self._default_engine or '(无)')}))
             return
-        if name not in self._engine_registry:
-            raise ValueError(f"引擎 {name} 未注册")
-        self._default_engine = name
+        with self._lock:  # 注册表检查 + 赋值原子（与 remove_engine 互斥）
+            if name not in self._engine_registry:
+                raise ValueError(f"引擎 {name} 未注册")
+            self._default_engine = name
         logger.info(log_dict({'module_name': 'search', 'action': 'set_default_engine', 'msg': '[搜索引擎] 默认引擎已设为: %s' % self._default_engine}))
 
     def get_registered_engines(self) -> List[Dict[str, Any]]:
         """获取所有已注册的引擎信息"""
-        return [
+        with self._lock:  # 快照遍历原子（与 register/remove 互斥）
+            return [
             {
                 "name": name,
                 "label": info["label"],
@@ -197,14 +214,16 @@ class SearchEngine:
 
     def set_engine_priority(self, priority: List[str]):
         """设置搜索引擎优先级"""
-        self._engine_priority = priority
+        with self._lock:  # 整体替换引用原子（与 search 快照遍历互斥）
+            self._engine_priority = priority
         logger.info(log_dict({'module_name': 'search', 'action': 'set_engine_priority', 'msg': '[搜索引擎] 优先级已更新: %s' % priority}))
 
     def set_engine_enabled(self, engine: str, enabled: bool):
         """设置搜索引擎启用/禁用状态"""
-        if engine in self._engine_enabled:
-            self._engine_enabled[engine] = enabled
-            logger.info(log_dict({'module_name': 'search', 'action': 'set_engine_enabled', 'msg': '[搜索引擎] %s 已%s' % (engine, '启用' if enabled else '禁用')}))
+        with self._lock:
+            if engine in self._engine_enabled:
+                self._engine_enabled[engine] = enabled
+        logger.info(log_dict({'module_name': 'search', 'action': 'set_engine_enabled', 'msg': '[搜索引擎] %s 已%s' % (engine, '启用' if enabled else '禁用')}))
 
     def set_timeout(self, timeout: int):
         """设置搜索超时时间"""
@@ -238,8 +257,10 @@ class SearchEngine:
             logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎] 【搜索开始】用户指定引擎: %s, 查询: %s' % (engine, query[:50])}))
             logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '=' * 80}))
         else:
-            # 使用优先级列表中启用的引擎
-            engines_to_try = [e for e in self._engine_priority if self._engine_enabled.get(e, True)]
+            # 使用优先级列表中启用的引擎（锁内快照：与 remove_engine 的
+            # list.remove 并发遍历互斥，不抛 RuntimeError）
+            with self._lock:
+                engines_to_try = [e for e in self._engine_priority if self._engine_enabled.get(e, True)]
             logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '=' * 80}))
             logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎] 【搜索开始】自动选择引擎'}))
             logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎]   查询: %s' % query[:50]}))
@@ -301,18 +322,23 @@ class SearchEngine:
                         logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎]   结果数量: %d' % len(result.get('results', []))}))
                         logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎]   总耗时: %.2fs' % elapsed}))
 
-                    # 更新统计
-                    self._stats["searches"] += 1
-                    self._stats["total_results"] += len(result.get("results", []))
-                    self._stats["engine_usage"][current_engine] += 1
+                    # 更新统计（锁内：+= 读-改-写原子，防并发丢计数；写缓存与
+                    # 整体重建互斥）
+                    with self._lock:
+                        self._stats["searches"] += 1
+                        self._stats["total_results"] += len(result.get("results", []))
+                        self._stats["engine_usage"][current_engine] += 1
 
-                    # 更新耗时统计
-                    timing = self._stats["engine_timing"][current_engine]
-                    timing["total"] += elapsed
-                    timing["count"] += 1
-                    timing["avg"] = timing["total"] / timing["count"]
-                    timing["min"] = min(timing["min"], elapsed)
-                    timing["max"] = max(timing["max"], elapsed)
+                        # 更新耗时统计
+                        timing = self._stats["engine_timing"][current_engine]
+                        timing["total"] += elapsed
+                        timing["count"] += 1
+                        timing["avg"] = timing["total"] / timing["count"]
+                        timing["min"] = min(timing["min"], elapsed)
+                        timing["max"] = max(timing["max"], elapsed)
+
+                        # 写入缓存
+                        self._set_cache(cache_key, result)
 
                     # 输出耗时对比日志
                     logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎] 【耗时统计】引擎 %s 性能:' % current_engine.upper()}))
@@ -321,9 +347,6 @@ class SearchEngine:
                     logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎]   最小耗时: %.2fs' % timing['min']}))
                     logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎]   最大耗时: %.2fs' % timing['max']}))
                     logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎]   累计调用: %d 次' % timing['count']}))
-
-                    # 写入缓存
-                    self._set_cache(cache_key, result)
 
                     return result
 
@@ -389,16 +412,17 @@ class SearchEngine:
             "results": [],
         }
 
-        # 记录降级失败日志
-        self._stats["searches"] += 1
-        self._stats["fallback_count"] += 1
-        self._fallback_history.append({
-            "query": query,
-            "engines_tried": engines_to_try,
-            "fallback_history": fallback_history,
-            "timestamp": time.time(),
-            "elapsed": elapsed,
-        })
+        # 记录降级失败日志（统计锁内原子，防并发丢计数）
+        with self._lock:
+            self._stats["searches"] += 1
+            self._stats["fallback_count"] += 1
+            self._fallback_history.append({
+                "query": query,
+                "engines_tried": engines_to_try,
+                "fallback_history": fallback_history,
+                "timestamp": time.time(),
+                "elapsed": elapsed,
+            })
 
         logger.error(log_dict({'module_name': 'search', 'action': 'log', 'msg': '=' * 80}))
         logger.error(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎] 【全部失败】所有搜索引擎均失败！'}))
@@ -798,23 +822,26 @@ class SearchEngine:
 
     def _check_cache(self, key: str) -> Optional[dict]:
         """检查是否有有效的缓存"""
-        if key in self._cache:
-            entry = self._cache[key]
-            if time.time() - entry["time"] < self._cache_ttl:
-                self._stats["cached_hits"] += 1
-                return entry["data"]
+        with self._lock:  # 读缓存 + cached_hits += 1 原子（与 _set_cache 重建互斥）
+            if key in self._cache:
+                entry = self._cache[key]
+                if time.time() - entry["time"] < self._cache_ttl:
+                    self._stats["cached_hits"] += 1
+                    return entry["data"]
         return None
 
     def _set_cache(self, key: str, data: dict):
-        """设置缓存"""
-        self._cache[key] = {"time": time.time(), "data": data}
-        if len(self._cache) > 200:
-            now = time.time()
-            self._cache = {k: v for k, v in self._cache.items() if now - v["time"] < self._cache_ttl}
+        """设置缓存（RLock 重入，锁内/锁外调用均安全）"""
+        with self._lock:  # 写入 + 容量清理整体重建原子（防并发遍历 RuntimeError）
+            self._cache[key] = {"time": time.time(), "data": data}
+            if len(self._cache) > 200:
+                now = time.time()
+                self._cache = {k: v for k, v in self._cache.items() if now - v["time"] < self._cache_ttl}
 
     def clear_cache(self):
         """清空搜索缓存"""
-        self._cache.clear()
+        with self._lock:
+            self._cache.clear()
 
     # ── 工具 ──────────────────────────────────────────────────────
 
@@ -835,58 +862,62 @@ class SearchEngine:
 
     def get_available_engines(self) -> List[Dict[str, Any]]:
         """获取所有已注册引擎的可用状态列表（动态生成）"""
-        engines = []
-        for name, info in self._engine_registry.items():
-            if not info["needs_key"]:
-                # 无需 API Key 的引擎始终可用
-                configured = True
-            else:
-                configured = bool(self._api_keys.get(name, ""))
-            engines.append({
-                "name": name,
-                "label": info["label"],
-                "needs_key": info["needs_key"],
-                "configured": configured,
-                "enabled": self._engine_enabled.get(name, True),
-            })
-        return engines
+        with self._lock:  # 注册表遍历快照原子（与 register/remove 互斥）
+            engines = []
+            for name, info in self._engine_registry.items():
+                if not info["needs_key"]:
+                    # 无需 API Key 的引擎始终可用
+                    configured = True
+                else:
+                    configured = bool(self._api_keys.get(name, ""))
+                engines.append({
+                    "name": name,
+                    "label": info["label"],
+                    "needs_key": info["needs_key"],
+                    "configured": configured,
+                    "enabled": self._engine_enabled.get(name, True),
+                })
+            return engines
 
     def get_stats(self) -> dict:
         """获取搜索统计"""
-        return {
-            **self._stats,
-            "cache_size": len(self._cache),
-            "engine_priority": self._engine_priority,
-            "engine_enabled": self._engine_enabled,
-        }
+        with self._lock:  # 统计/缓存/列表快照原子（一致视图，防并发覆盖）
+            return {
+                **self._stats,
+                "cache_size": len(self._cache),
+                "engine_priority": self._engine_priority,
+                "engine_enabled": self._engine_enabled,
+            }
 
     def get_fallback_history(self, limit: int = 10) -> List[dict]:
         """获取最近的降级历史记录"""
-        return self._fallback_history[-limit:]
+        with self._lock:  # 切片快照原子（与失败路径 append 互斥）
+            return self._fallback_history[-limit:]
 
     def get_current_status(self) -> dict:
         """获取当前搜索引擎状态（用于前端显示，动态生成）"""
-        # 动态生成 api_keys_status
-        api_keys_status = {}
-        for name in self._engine_registry:
-            if self._engine_registry[name]["needs_key"]:
-                api_keys_status[name] = bool(self._api_keys.get(name, ""))
+        with self._lock:  # 注册表遍历 + 状态快照原子（与 register/remove/搜索互斥）
+            # 动态生成 api_keys_status
+            api_keys_status = {}
+            for name in self._engine_registry:
+                if self._engine_registry[name]["needs_key"]:
+                    api_keys_status[name] = bool(self._api_keys.get(name, ""))
 
-        return {
-            "default_engine": self._default_engine,
-            "engine_priority": self._engine_priority,
-            "engine_enabled": self._engine_enabled,
-            "api_keys_status": api_keys_status,
-            "timeout": self._timeout,
-            "stats": {
-                "total_searches": self._stats["searches"],
-                "fallback_count": self._stats["fallback_count"],
-                "engine_usage": self._stats["engine_usage"],
-                "engine_timing": self._stats["engine_timing"],
-                "cache_size": len(self._cache),
-            },
-            "recent_fallbacks": self.get_fallback_history(10),
-        }
+            return {
+                "default_engine": self._default_engine,
+                "engine_priority": self._engine_priority,
+                "engine_enabled": self._engine_enabled,
+                "api_keys_status": api_keys_status,
+                "timeout": self._timeout,
+                "stats": {
+                    "total_searches": self._stats["searches"],
+                    "fallback_count": self._stats["fallback_count"],
+                    "engine_usage": self._stats["engine_usage"],
+                    "engine_timing": self._stats["engine_timing"],
+                    "cache_size": len(self._cache),
+                },
+                "recent_fallbacks": self._fallback_history[-10:],
+            }
 
     def update_config(self, config: dict):
         """实时更新配置（无需重启）
@@ -895,12 +926,13 @@ class SearchEngine:
         """
         # 动态识别并更新 API Keys：遍历所有 *_api_key 结尾的配置键
         api_key_updated = []
-        for key, value in config.items():
-            if key.endswith("_api_key") and value:
-                engine_name = key.replace("_api_key", "")
-                if not key.startswith("_") and engine_name:
-                    self._api_keys[engine_name] = value
-                    api_key_updated.append(engine_name)
+        with self._lock:  # API Key 写入原子（与 _search_with_engine 读取互斥）
+            for key, value in config.items():
+                if key.endswith("_api_key") and value:
+                    engine_name = key.replace("_api_key", "")
+                    if not key.startswith("_") and engine_name:
+                        self._api_keys[engine_name] = value
+                        api_key_updated.append(engine_name)
 
         if api_key_updated:
             logger.info(log_dict({'module_name': 'search', 'action': 'update_config', 'msg': '[搜索引擎] API Keys 已更新: %s' % api_key_updated}))
@@ -913,6 +945,7 @@ class SearchEngine:
         if "timeout" in config:
             self.set_timeout(config["timeout"])
         if "default_engine" in config:
-            self._default_engine = config["default_engine"]
+            with self._lock:
+                self._default_engine = config["default_engine"]
 
         logger.info(log_dict({'module_name': 'search', 'action': 'log', 'msg': '[搜索引擎] 配置已实时更新'}))

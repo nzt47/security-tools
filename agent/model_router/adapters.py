@@ -10,6 +10,7 @@ import json
 import uuid
 import logging
 import time
+import threading
 from typing import Dict, Any, Optional, List
 from abc import ABC, abstractmethod
 from agent.logging_utils import log_dict
@@ -64,20 +65,24 @@ class OpenAIAdapter(ModelAdapter):
         self._api_key = api_key
         self._base_url = base_url
         self._client = None
+        # [2026-08-13 并发审计 #3] 懒加载双检锁：并发首次调用只创建一个 client
+        self._client_lock = threading.Lock()
     
     def _get_client(self):
         """获取客户端"""
         if self._client is None:
-            try:
-                from openai import OpenAI
-                kwargs = {}
-                if self._api_key:
-                    kwargs["api_key"] = self._api_key
-                if self._base_url:
-                    kwargs["base_url"] = self._base_url
-                self._client = OpenAI(**kwargs)
-            except ImportError:
-                logger.warning(log_dict({'module_name': 'adapters', 'action': 'openai', 'msg': 'openai 库未安装'}))
+            with self._client_lock:
+                if self._client is None:
+                    try:
+                        from openai import OpenAI
+                        kwargs = {}
+                        if self._api_key:
+                            kwargs["api_key"] = self._api_key
+                        if self._base_url:
+                            kwargs["base_url"] = self._base_url
+                        self._client = OpenAI(**kwargs)
+                    except ImportError:
+                        logger.warning(log_dict({'module_name': 'adapters', 'action': 'openai', 'msg': 'openai 库未安装'}))
         return self._client
     
     def get_provider_name(self) -> str:
@@ -168,18 +173,22 @@ class ClaudeAdapter(ModelAdapter):
         self._model_name = model_name
         self._api_key = api_key
         self._client = None
+        # [2026-08-13 并发审计 #3] 懒加载双检锁：并发首次调用只创建一个 client
+        self._client_lock = threading.Lock()
     
     def _get_client(self):
         """获取客户端"""
         if self._client is None:
-            try:
-                from anthropic import Anthropic
-                kwargs = {}
-                if self._api_key:
-                    kwargs["api_key"] = self._api_key
-                self._client = Anthropic(**kwargs)
-            except ImportError:
-                logger.warning(log_dict({'module_name': 'adapters', 'action': 'anthropic', 'msg': 'anthropic 库未安装'}))
+            with self._client_lock:
+                if self._client is None:
+                    try:
+                        from anthropic import Anthropic
+                        kwargs = {}
+                        if self._api_key:
+                            kwargs["api_key"] = self._api_key
+                        self._client = Anthropic(**kwargs)
+                    except ImportError:
+                        logger.warning(log_dict({'module_name': 'adapters', 'action': 'anthropic', 'msg': 'anthropic 库未安装'}))
         return self._client
     
     def get_provider_name(self) -> str:

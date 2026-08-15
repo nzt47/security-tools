@@ -15,6 +15,16 @@ planning:
   max_depth: 5
   timeout_seconds: 30
   enable_chain_of_thought: false
+  # TASK-01：规划引擎接入主链路（D7 接线灰度开关）
+  # 默认 false（灰度）；true 时复杂任务走 PlanningCore.chat()，异常自动回退 LLM
+  # 环境变量 PLANNING_WIRE_ENABLED 覆盖此值（优先级: 环境变量 > config.yaml > 硬编码默认值）
+  wire_enabled: false
+  # 触发规划的最低复杂度：TRIVIAL / SIMPLE / NORMAL / COMPLEX（复用 enhanced_planner 语义）
+  # 环境变量 PLANNING_WIRE_MIN_COMPLEXITY 覆盖此值
+  wire_min_complexity: COMPLEX
+  # 规划调用超时（秒），超时回退 LLM
+  # 环境变量 PLANNING_WIRE_TIMEOUT_SECONDS 覆盖此值
+  wire_timeout_seconds: 30
   # D9 规格：SQLite 持久化（默认 data/plans/plans.db；首次启动自动迁移旧 JSON 检查点）
   persist_dir: data/plans
   persist_db: data/plans/plans.db
@@ -40,6 +50,110 @@ learning:
   context_assembler:
     enabled: true
     token_budget: 3000
+  # TASK-02：反思产物写入检索面开关（观察模式）
+  # 默认 false（观察）：self_reflect 保持现状仅写内存/日志；true 时才额外写入向量检索面
+  # 环境变量 LEARNING_REFLECTION_PERSIST 覆盖此值
+  reflection_persist: true
+  # TASK-02：规划经验/教训落盘开关（观察模式）
+  # 默认 false（观察）：execute_plan 收尾仅记录调用意图日志；true 才实际调 learn_from_experience 落盘
+  # 环境变量 LEARNING_EXPERIENCE_PERSIST 覆盖此值
+  experience_persist: false
+  # TASK-03：学习动作成本预算护栏（把 configs/models.yaml cost_limits 从"声明"变为"可执行"）
+  # mode=warn_only（默认，宽松）：超限仅记录 WARNING 不拦截，防止上线即改行为；
+  # mode=enforce：超过单次上限/日预算的学习动作被拒绝并告警（LearningBudgetExceeded）
+  # 优先级：环境变量 > config.yaml > models.yaml cost_limits > 硬编码默认值
+  budget:
+    mode: warn_only
+    max_single_action_tokens: 4000
+    max_daily_tokens: 1000000
+    recovery_seconds: 3600
+  # TASK-04：知识→技能沉淀管道调度开关（安全底线，默认关闭）
+  # 默认 false：不注册 memory_abstractor 定时沉淀任务；true 才注册（产物仅 DRAFT+审计+KPI，绝不自动注册）
+  # 环境变量 LEARNING_PRECIPITATE_ENABLED 覆盖此值
+  precipitate_enabled: false
+  # TASK-04：沉淀定时任务间隔（小时），默认 24（每日一次）
+  # 环境变量 LEARNING_PRECIPITATE_INTERVAL_HOURS 覆盖此值
+  precipitate:
+    interval_hours: 24
+    # 沉淀草稿审计日志（JSONL，质量门控通过的草稿逐条留痕）
+    audit_file: ./data/precipitate_audit.jsonl
+  # TASK-05：反馈建议自动执行体调度开关（安全底线）
+  # true：注册每日反馈建议执行任务（默认 dry-run 只预演，正式写操作需
+  # dry_run=false；正式执行前 bump_version 打快照可回滚，动作写审计日志）
+  # 环境变量 LEARNING_FEEDBACK_AGENT_ENABLED 覆盖此值
+  feedback_agent:
+    enabled: true
+    # 反馈建议执行任务间隔（小时），默认 24（每日一次）
+    interval_hours: 24
+    # dry-run 默认 true（不可变约束：默认不产生任何写操作/状态变更）
+    dry_run: true
+    # 反馈动作审计日志（JSONL：skill_id/action/原因/结果/快照版本）
+    audit_file: ./data/feedback_agent_audit.jsonl
+  # TASK-05：offline_evolver 周期进化调度开关（安全底线）
+  # true：注册周级进化任务（每周一次，默认 dry-run 只预演候选；提交门槛
+  # 保持 improvement>=0.05，产 BatchEvolutionReport 审计 + 进化采纳率 KPI）
+  # 环境变量 LEARNING_EVOLVER_ENABLED 覆盖此值
+  evolver:
+    enabled: true
+    # 周期进化间隔（天），默认 7（每周一次）
+    interval_days: 7
+    # dry-run 默认 true（不可变约束：默认零提交/零 KPI/零审计）
+    dry_run: true
+    # 周期进化批次审计日志（JSONL：BatchEvolutionReport 摘要）
+    audit_file: ./data/evolution_schedule_audit.jsonl
+  # TASK-05：Skill 生命周期自动淘汰开关（安全底线）
+  # true：注册每日生命周期检查任务（零使用 N 天判定器：PUBLISHED 闲置超
+  # unused_days → DEPRECATED；DEPRECATED 闲置超 archive_days → ARCHIVED；
+  # 默认 dry-run 只报告不迁移，仅状态迁移不删文件）
+  # 环境变量 LEARNING_LIFECYCLE_ENABLED 覆盖此值
+  lifecycle:
+    enabled: true
+    # 生命周期检查任务间隔（小时），默认 24（每日一次）
+    interval_hours: 24
+    # PUBLISHED 闲置天数超阈值 → DEPRECATED（默认 90）
+    unused_days: 90
+    # DEPRECATED 闲置天数超阈值 → ARCHIVED（默认 180）
+    archive_days: 180
+    # dry-run 默认 true（不可变约束：默认不迁移/不写审计）
+    dry_run: true
+    # 生命周期迁移审计日志（JSONL：skill_id/from_status/to_status/闲置天数）
+    audit_file: ./data/skill_lifecycle_audit.jsonl
+  # TASK-06：感知侧新颖性学习管道开关（安全底线，默认开启——2026-08-14 由观察模式转入正式采集）
+  # true（正式采集）：低/中置信 NoveltyEvent → 记忆（novelty_memory.jsonl），高置信 → 审计 + 建议草稿
+  # （novelty_suggestions/，仅 DRAFT，绝不注册技能——供 TASK-04 审核链消费）
+  # false（观察模式）：ChangeDetector/行为漂移全链路零学习副作用（仅既有日志）
+  # 环境变量 SENSOR_LEARNING_ENABLED 覆盖此值
+  sensor_learning:
+    enabled: false
+    # 行为漂移判定阈值（周级基线相对偏差均值；默认 0.3）
+    # 环境变量 SENSOR_LEARNING_DRIFT_THRESHOLD 覆盖此值
+    drift_threshold: 0.3
+    # 行为基线保留周数（~/.Yunshu/baselines/behavior_<周一日期>.json 滚动清理；默认 8）
+    # 环境变量 SENSOR_LEARNING_BASELINE_RETENTION_WEEKS 覆盖此值
+    baseline_retention_weeks: 8
+    # change_log.json 容量上限（~/.Yunshu/changes/，超出滚动删除最旧；默认 10000）
+    # 环境变量 SENSOR_LEARNING_CHANGE_LOG_MAX_ENTRIES 覆盖此值
+    change_log_max_entries: 10000
+    # 建议草稿目录（高置信事件，仅 DRAFT，供 TASK-04 审核链消费）
+    # 环境变量 SENSOR_LEARNING_DRAFT_DIR 覆盖此值
+    draft_dir: ./data/learning/novelty_suggestions
+    # 学习审计日志（JSONL：事件分类/分级/落点）
+    # 环境变量 SENSOR_LEARNING_AUDIT_FILE 覆盖此值
+    audit_file: ./data/learning/novelty_audit.jsonl
+    # 事件记忆目录（JSONL：novelty_memory.jsonl，event=novelty_event 标签）
+    # 环境变量 SENSOR_LEARNING_MEMORY_DIR 覆盖此值
+    memory_dir: ./data/learning/novelty_memory
+  # 任务6：轻量自我进化机制（失败案例回流 + 修复策略库 + 参数联动）
+  # 裁剪替代 FATE：无任何训练/微调管线，纯提示词/策略级进化闭环
+  # 环境变量 EVOLUTION_ENABLED 覆盖此值
+  evolution:
+    enabled: true
+    # 可选 LLM 候选生成开关（默认开；无 LLM 环境自动降级为规则候选）
+    # 环境变量 EVOLUTION_LLM_GENERATE 覆盖此值
+    llm_generate: true
+    # 策略库/失败案例存储目录
+    # 环境变量 EVOLUTION_STORAGE_PATH 覆盖此值
+    storage_path: ./data/evolution
 tools:
   enabled: true
   timeout: 30
@@ -48,6 +162,15 @@ tools:
   - calculator
   - file_read
   - code_execute
+# TASK-07：L1-L5 行为自主权分级（聚合视图 + 上下文注入，不改既有机制）
+# 分级表见 docs/zh/智能体学习机制重构计划/变更说明/TASK-07_变更说明.md §3；
+# 只映射/聚合 permission_system / circuit_breaker / graceful_degrade，不改变其判定语义
+# 优先级: 会话级 set_session_level > 环境变量 AUTONOMY_DEFAULT_LEVEL > 本配置 > 默认 L3
+autonomy:
+  default_level: L3
+  # 按等级覆盖策略（键为 L1-L5，值为 LevelPolicy 字段的 dict 子集）
+  # 例: per_level_policy: {L2: {confirmation_scope: all}}
+  per_level_policy: {}
 session:
   auto_save: true
   save_interval: 300
@@ -62,7 +185,7 @@ features:
   # Schema 输出校验开关
   schema_validation_enabled: false
   # Critic 质量评审开关
-  critic_evaluation_enabled: false
+  critic_evaluation_enabled: true
   # 失败分析归档开关
   failure_analysis_enabled: false
 
@@ -140,6 +263,16 @@ verification:
     confirmation_timeout: 300
     # 超时策略: reject, approve, degrade
     timeout_strategy: degrade
+  # TASK-07：输出验证门控（OutputGuard 之后追加，不替换）
+  # mode: rule_based（默认，零 Token）/ llm_based（接口预留，需配 critic_evaluation.llm_config）
+  # conservative_mode=true（默认）：只记录 metrics/审计，不拦截不重试，用户响应零影响
+  output_validator:
+    enabled: true
+    mode: rule_based
+    conservative_mode: true
+    max_output_length: 8000
+    enable_retry: true
+    max_retries: 1
 
 # ═══════════════════════════════════════════════════════════════
 #  日志配置 (Logging)
@@ -484,6 +617,15 @@ skills_mgmt:
     quality_min: 50
     # 综合分下限：低于此值则拒绝
     overall_min: 60
+
+  # TASK-04：发布强制审核链（默认强制，安全底线）
+  # true（默认）：publish 前必须存在 PASSED 的 ReviewResult（三维评分达标），否则拒绝并提示先 review；
+  # false（显式豁免）：允许跳过，但必须写审计日志（audit_file）记录"豁免发布"。
+  # 环境变量 SKILLS_REVIEW_ENFORCE_PUBLISH 覆盖此值
+  review:
+    enforce_before_publish: true
+    # 豁免发布审计日志（JSONL，逐条留痕）
+    audit_file: ./data/skills_mgmt_review_audit.jsonl
 
   # 安装器配置
   installer:

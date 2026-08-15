@@ -23,6 +23,7 @@ import threading
 import time
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -155,7 +156,19 @@ def _md_to_card(path: Path, text: str) -> Card:
         # 优先 libyaml C 扩展（实测 ~7.6x 提速：1200 卡 718ms→94ms），
         # 无 C 扩展环境回退纯 Python SafeLoader（语义完全一致）。
         _loader = getattr(yaml, "CSafeLoader", None) or yaml.SafeLoader
-        data = yaml.load(m.group(1), Loader=_loader) or {}
+        try:
+            data = yaml.load(m.group(1), Loader=_loader) or {}
+        except Exception:
+            # 注意：不能只捕获 yaml.YAMLError——pytest --cov（coverage CTracer）下
+            # libyaml C 扩展抛出的异常是 _yaml 内部固化的副本类
+            # （isinstance(exc, yaml.YAMLError) == False，2026-08-14 实测），
+            # except yaml.YAMLError 匹配不到会直接冒泡使 get() 容错失效。
+            # 此外 C 扩展在探针场景下还会误报 "could not determine a constructor
+            # for the tag None"（get/list 静默返回 None）。统一回退纯 Python
+            # SafeLoader 重试一次，两者对同一 frontmatter 输出 dict 完全一致。
+            if _loader is yaml.SafeLoader:
+                raise
+            data = yaml.load(m.group(1), Loader=yaml.SafeLoader) or {}
     except yaml.YAMLError as exc:
         raise ValueError(f"frontmatter YAML 解析失败: {path}: {exc}") from exc
     data.pop("content", None)
@@ -745,6 +758,56 @@ class CardStore:
             return scan_light_cards(
                 self._wiki_root, type_dirs=_TYPE_DIRS, parallel=parallel,
             )
+
+    def list_since(self, since: Optional[datetime] = None) -> list[Card]:
+        """增量列举：仅返回文件 mtime >= since 的卡片（P0 #1 增量转换用）。
+
+        语义与 list() 一致（类型目录序 + slug 字典序、损坏卡跳过、与写锁互斥）；
+        since 为 None 时等价于 list()（保持向后兼容）。
+        Why: convert_cards 全量扫描成本随卡片总量增长，增量转换只需处理
+        上次游标之后新增/变更的卡片——mtime 是零成本增量判据（无需额外索引）。
+        """
+        if since is None:
+            return self.list()
+        ts = since.timestamp()
+        # 数据流转调试（DEBUG 级，观察增量过滤明细；默认不输出）
+        matched = skipped_mtime = skipped_stat = skipped_corrupt = 0
+        logger.debug("[CardStore] list_since 开始: since=%s ts=%.3f wiki_root=%s",
+                     since.isoformat(timespec="seconds"), ts, self._wiki_root)
+        with self._rwlock.read():  # 与写锁互斥：全库列举不被多步写打断
+            cards: list[Card] = []
+            for t in _TYPE_DIRS:
+                d = self._wiki_root / t
+                if not d.exists():
+                    continue
+                for p in sorted(d.glob("*.md")):
+                    try:
+                        st = p.stat()
+                    except OSError:
+                        skipped_stat += 1
+                        logger.debug("[CardStore] list_since 跳过(stat失败): %s", p)
+                        continue  # 文件瞬时不可读（删除/权限）→ 跳过该文件
+                    if st.st_mtime < ts:
+                        skipped_mtime += 1
+                        logger.debug("[CardStore] list_since 跳过(早于since): %s mtime=%.3f",
+                                     p, st.st_mtime)
+                        continue
+                    try:
+                        cards.append(self._md_to_card(p))
+                    except (ValueError, TypeError):
+                        skipped_corrupt += 1
+                        logger.debug("[CardStore] list_since 跳过(损坏卡): %s", p)
+                        continue  # 跳过损坏卡片，不阻断增量列举
+                    matched += 1
+                    logger.debug("[CardStore] list_since 命中: %s slug=%s mtime=%.3f",
+                                 p, p.stem, st.st_mtime)
+            logger.debug(
+                "[CardStore] list_since 完成: since=%s 命中=%d mtime跳过=%d "
+                "stat失败=%d 损坏跳过=%d",
+                since.isoformat(timespec="seconds"), matched,
+                skipped_mtime, skipped_stat, skipped_corrupt,
+            )
+            return cards
 
     # ---------- 批量导入 ----------
 

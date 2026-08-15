@@ -19,6 +19,7 @@ import time
 import json
 import uuid
 import logging
+import threading
 from datetime import datetime
 from flask import Blueprint, jsonify, request, render_template
 
@@ -41,13 +42,17 @@ log_system_bp = Blueprint('log_system', __name__, url_prefix='/logs')
 # 全局分析器与内省引擎实例
 _analyzer = LogAnalyzer()
 _introspection = None
+# [2026-08-13 并发审计 #5] 懒加载单例双检锁：并发首次调用只创建一个实例
+_introspection_lock = threading.Lock()
 
 
 def get_introspection():
     """获取内省引擎单例"""
     global _introspection
     if _introspection is None:
-        _introspection = IntrospectionEngine()
+        with _introspection_lock:
+            if _introspection is None:
+                _introspection = IntrospectionEngine()
     return _introspection
 
 

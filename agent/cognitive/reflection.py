@@ -17,6 +17,7 @@
 import logging
 import json
 import uuid
+import threading
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
@@ -62,6 +63,11 @@ class ReflectionEngine:
 
     def __init__(self):
         self._retry_counts: dict[str, int] = {}
+        # Why Lock 保护 _retry_counts：evaluate 的「读 current → 判断 → 写/删」
+        # 为读-改-写序列，并发对同 task_id 会读到同一旧值后相互覆盖（重试计数
+        # 丢失 → 永远达不到重试上限）。锁内仅内存 dict 读/写；配置读取
+        # _get_max_retries 与 logger 在锁外（持锁纪律：锁内严禁 I/O）。
+        self._lock = threading.Lock()
 
     def _get_max_retries(self) -> int:
         """从配置系统读取最大重试次数（委托到 observability_config，支持热加载）
@@ -142,23 +148,28 @@ class ReflectionEngine:
         # - 未通过评估（passed=False）
         # - 分数不低于 0.3（分数太低说明方向性错误，不重试）
         # - 未超过最大重试次数
-        current_retries = self._retry_counts.get(task_id, 0)
-        should_retry = (not passed
-                        and current_retries < self._get_max_retries()
-                        and score >= 0.3)
+        # 配置读取在锁外（配置系统可能有 I/O，持锁纪律）
+        max_retries = self._get_max_retries()
+        with self._lock:  # 「读 current → 判断 → 写/删」整体原子（防并发丢计数）
+            current_retries = self._retry_counts.get(task_id, 0)
+            should_retry = (not passed
+                            and current_retries < max_retries
+                            and score >= 0.3)
+
+            if should_retry:
+                self._retry_counts[task_id] = current_retries + 1
+            elif passed and task_id in self._retry_counts:
+                # 清理已完成的重试记录
+                del self._retry_counts[task_id]
 
         if should_retry:
-            self._retry_counts[task_id] = current_retries + 1
             logger.info("[Cognitive] 触发重试: task_id=%s, score=%.2f, retry=%d/%d",
-                        task_id, score, current_retries + 1, self._get_max_retries())
-        elif passed and task_id in self._retry_counts:
-            # 清理已完成的重试记录
-            del self._retry_counts[task_id]
+                        task_id, score, current_retries + 1, max_retries)
 
         logger.info("[Cognitive] Reflection: task_id=%s, score=%.2f, passed=%s, "
                     "retry=%s (%d/%d), issues=%d",
                     task_id, score, passed, should_retry,
-                    current_retries, self._get_max_retries(), len(issues))
+                    current_retries, max_retries, len(issues))
 
         return ReflectionResult(
             passed=passed,
@@ -178,7 +189,8 @@ class ReflectionEngine:
         Returns:
             当前重试次数（0 表示未触发过重试）
         """
-        return self._retry_counts.get(task_id, 0)
+        with self._lock:  # 与 evaluate 的写互斥（读一致性）
+            return self._retry_counts.get(task_id, 0)
 
     def reset_retry(self, task_id: str):
         """重置指定任务的重试计数
@@ -186,7 +198,8 @@ class ReflectionEngine:
         Args:
             task_id: 任务 ID
         """
-        self._retry_counts.pop(task_id, None)
+        with self._lock:  # 与 evaluate 的读-改-写互斥（无 KeyError 窗口）
+            self._retry_counts.pop(task_id, None)
 
 
 def _safe_call(func, *args, action="safe_call", **kwargs):

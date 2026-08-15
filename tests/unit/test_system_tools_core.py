@@ -418,9 +418,9 @@ class TestDirectoryOperations:
         with tempfile.TemporaryDirectory() as tmpdir:
             # 创建测试结构
             os.makedirs(os.path.join(tmpdir, "subdir"))
-            with open(os.path.join(tmpdir, "file1.txt"), "w") as f:
+            with open(os.path.join(tmpdir, "file1.txt"), "w", encoding="utf-8") as f:
                 f.write("content1")
-            with open(os.path.join(tmpdir, "subdir", "file2.txt"), "w") as f:
+            with open(os.path.join(tmpdir, "subdir", "file2.txt"), "w", encoding="utf-8") as f:
                 f.write("content2")
             yield tmpdir
 
@@ -837,7 +837,7 @@ class TestSystemToolsBasicFunctions:
         """测试目录列表功能"""
         with tempfile.TemporaryDirectory() as tmpdir:
             os.makedirs(os.path.join(tmpdir, "subdir"))
-            with open(os.path.join(tmpdir, "file.txt"), 'w') as f:
+            with open(os.path.join(tmpdir, "file.txt"), 'w', encoding="utf-8") as f:
                 f.write("test")
             
             result = list_directory(tmpdir)
@@ -865,7 +865,7 @@ class TestSystemToolsBasicFunctions:
     def test_search_files(self):
         """测试文件搜索功能"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with open(os.path.join(tmpdir, "test.txt"), 'w') as f:
+            with open(os.path.join(tmpdir, "test.txt"), 'w', encoding="utf-8") as f:
                 f.write("test")
             
             result = search_files("*.txt", tmpdir)
@@ -1094,9 +1094,9 @@ class TestListDirectory:
     def test_list_directory_hidden_files(self):
         """测试隐藏文件过滤"""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with open(os.path.join(temp_dir, ".hidden"), "w") as f:
+            with open(os.path.join(temp_dir, ".hidden"), "w", encoding="utf-8") as f:
                 f.write("hidden")
-            with open(os.path.join(temp_dir, "visible"), "w") as f:
+            with open(os.path.join(temp_dir, "visible"), "w", encoding="utf-8") as f:
                 f.write("visible")
             
             result_hidden = list_directory(temp_dir, show_hidden=True)
@@ -1111,7 +1111,7 @@ class TestListDirectory:
         """测试最大条目限制"""
         with tempfile.TemporaryDirectory() as temp_dir:
             for i in range(10):
-                with open(os.path.join(temp_dir, f"file{i}.txt"), "w") as f:
+                with open(os.path.join(temp_dir, f"file{i}.txt"), "w", encoding="utf-8") as f:
                     f.write(str(i))
             
             result = list_directory(temp_dir, max_items=5)
@@ -1192,9 +1192,9 @@ class TestSearchFiles:
     def test_search_files_pattern_match(self):
         """测试模式匹配"""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with open(os.path.join(temp_dir, "test.txt"), "w") as f:
+            with open(os.path.join(temp_dir, "test.txt"), "w", encoding="utf-8") as f:
                 f.write("content")
-            with open(os.path.join(temp_dir, "test.py"), "w") as f:
+            with open(os.path.join(temp_dir, "test.py"), "w", encoding="utf-8") as f:
                 f.write("code")
             
             result = search_files("*.txt", temp_dir)
@@ -1207,7 +1207,7 @@ class TestSearchFiles:
     def test_search_files_case_insensitive(self):
         """测试大小写不敏感匹配"""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with open(os.path.join(temp_dir, "Test.TXT"), "w") as f:
+            with open(os.path.join(temp_dir, "Test.TXT"), "w", encoding="utf-8") as f:
                 f.write("content")
             
             result = search_files("*.txt", temp_dir, ignore_case=True)
@@ -1240,7 +1240,7 @@ class TestWorkspaceFunctions:
         """测试路径是文件"""
         from agent.system_tools import WORKSPACE_DIR
         test_file = os.path.join(WORKSPACE_DIR, "test_file.txt")
-        with open(test_file, "w") as f:
+        with open(test_file, "w", encoding="utf-8") as f:
             f.write("test content")
         try:
             result = list_workspace("test_file.txt")
@@ -1289,7 +1289,7 @@ class TestWorkspaceFunctions:
         """测试删除文件"""
         from agent.system_tools import WORKSPACE_DIR
         test_file = os.path.join(WORKSPACE_DIR, "to_delete.txt")
-        with open(test_file, "w") as f:
+        with open(test_file, "w", encoding="utf-8") as f:
             f.write("content")
         
         result = delete_workspace("to_delete.txt")
@@ -1303,7 +1303,7 @@ class TestWorkspaceFunctions:
         from agent.system_tools import WORKSPACE_DIR
         test_dir = os.path.join(WORKSPACE_DIR, "to_delete_dir")
         os.makedirs(test_dir)
-        with open(os.path.join(test_dir, "file.txt"), "w") as f:
+        with open(os.path.join(test_dir, "file.txt"), "w", encoding="utf-8") as f:
             f.write("content")
         
         result = delete_workspace("to_delete_dir")
@@ -1438,7 +1438,7 @@ class TestSystemToolsFileOperations:
         """测试文件备份功能"""
         with tempfile.TemporaryDirectory() as tmpdir:
             file_path = os.path.join(tmpdir, "test.txt")
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write("original content")
             
             # 不支持 backup 参数，直接测试写入
@@ -1483,7 +1483,7 @@ class TestSystemToolsDirectoryOperations:
         with tempfile.TemporaryDirectory() as tmpdir:
             # 创建隐藏文件
             hidden_path = os.path.join(tmpdir, ".hidden")
-            with open(hidden_path, "w") as f:
+            with open(hidden_path, "w", encoding="utf-8") as f:
                 f.write("hidden content")
             
             # 默认不显示隐藏文件
@@ -1503,7 +1503,7 @@ class TestSystemToolsDirectoryOperations:
         with tempfile.TemporaryDirectory() as tmpdir:
             # 创建多个文件
             for i in range(10):
-                with open(os.path.join(tmpdir, f"file{i}.txt"), "w") as f:
+                with open(os.path.join(tmpdir, f"file{i}.txt"), "w", encoding="utf-8") as f:
                     f.write(f"content {i}")
             
             result = list_directory(tmpdir, max_items=5)
@@ -1518,11 +1518,16 @@ class TestSystemToolsDirectoryOperations:
             target_path = os.path.join(tmpdir, "target.txt")
             link_path = os.path.join(tmpdir, "link.txt")
             
-            with open(target_path, "w") as f:
+            with open(target_path, "w", encoding="utf-8") as f:
                 f.write("target content")
             
             if hasattr(os, "symlink"):
-                os.symlink(target_path, link_path)
+                try:
+                    os.symlink(target_path, link_path)
+                except (OSError, NotImplementedError):
+                    # 【不易】Windows 无符号链接权限（WinError 2/1314）/平台不支持
+                    # 时跳过而非崩溃（A-4 修复；FileNotFoundError 是 OSError 子类）
+                    pytest.skip("符号链接不可用（Windows 需管理员/开发者模式）")
                 
                 result = get_file_info(link_path)
                 assert result["ok"] is True
@@ -2230,7 +2235,7 @@ class TestWriteFileBoundaryCases:
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = os.path.join(temp_dir, "test.txt")
             # 创建一个现有文件
-            with open(temp_path, "w") as f:
+            with open(temp_path, "w", encoding="utf-8") as f:
                 f.write("original")
             
             with patch("shutil.copy2", side_effect=OSError("backup failed")):
@@ -2272,7 +2277,7 @@ class TestListDirectoryBoundaryCases:
         """测试获取文件信息失败"""
         with tempfile.TemporaryDirectory() as temp_dir:
             # 创建测试文件
-            with open(os.path.join(temp_dir, "test.txt"), "w") as f:
+            with open(os.path.join(temp_dir, "test.txt"), "w", encoding="utf-8") as f:
                 f.write("test")
             
             with patch("agent.tools.file_tools._get_single_file_info", side_effect=OSError("stat failed")):
@@ -2312,7 +2317,7 @@ class TestSearchFilesBoundaryCases:
         """测试大小写敏感匹配"""
         with tempfile.TemporaryDirectory() as temp_dir:
             # 创建测试文件
-            with open(os.path.join(temp_dir, "Test.txt"), "w") as f:
+            with open(os.path.join(temp_dir, "Test.txt"), "w", encoding="utf-8") as f:
                 f.write("test")
             
             result = search_files("*.txt", temp_dir, ignore_case=False)
@@ -2327,7 +2332,7 @@ class TestSearchFilesBoundaryCases:
         with tempfile.TemporaryDirectory() as temp_dir:
             # 创建多个测试文件
             for i in range(10):
-                with open(os.path.join(temp_dir, f"test{i}.txt"), "w") as f:
+                with open(os.path.join(temp_dir, f"test{i}.txt"), "w", encoding="utf-8") as f:
                     f.write(f"test{i}")
             
             result = search_files("*.txt", temp_dir, max_results=5)
@@ -2340,7 +2345,7 @@ class TestSearchFilesBoundaryCases:
     def test_search_files_stat_error(self):
         """测试 os.stat 失败"""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with open(os.path.join(temp_dir, "test.txt"), "w") as f:
+            with open(os.path.join(temp_dir, "test.txt"), "w", encoding="utf-8") as f:
                 f.write("test")
 
             # Why: os.path.exists/isdir 内部调用 os.stat，若 os.stat 总是抛 OSError，
@@ -2359,7 +2364,7 @@ class TestSearchFilesBoundaryCases:
     def test_search_files_permission_error(self):
         """测试权限错误（应继续搜索）"""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with open(os.path.join(temp_dir, "test.txt"), "w") as f:
+            with open(os.path.join(temp_dir, "test.txt"), "w", encoding="utf-8") as f:
                 f.write("test")
             
             with patch("os.walk", side_effect=PermissionError("permission denied")):
@@ -2378,7 +2383,7 @@ class TestGetSingleFileInfoBoundaryCases:
         with tempfile.TemporaryDirectory() as temp_dir:
             # 创建一个普通文件（不是链接）
             test_path = os.path.join(temp_dir, "test.txt")
-            with open(test_path, "w") as f:
+            with open(test_path, "w", encoding="utf-8") as f:
                 f.write("test")
             
             # 模拟 is_link=True 但实际不是链接
@@ -2545,7 +2550,7 @@ class TestSearchFilesBoundaryConditions:
         with tempfile.TemporaryDirectory() as temp_dir:
             # 创建多个测试文件
             for i in range(10):
-                with open(os.path.join(temp_dir, f"test{i}.txt"), "w") as f:
+                with open(os.path.join(temp_dir, f"test{i}.txt"), "w", encoding="utf-8") as f:
                     f.write(f"test{i}")
             
             with patch("os.walk") as mock_walk:
@@ -2567,7 +2572,7 @@ class TestSearchFilesBoundaryConditions:
     def test_search_files_os_error(self):
         """测试搜索时发生 OSError"""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with open(os.path.join(temp_dir, "test.txt"), "w") as f:
+            with open(os.path.join(temp_dir, "test.txt"), "w", encoding="utf-8") as f:
                 f.write("test")
             
             with patch("os.walk", side_effect=OSError("os error")):
@@ -2604,7 +2609,7 @@ class TestGetSingleFileInfoOSError:
         """测试 os.stat 失败时重新抛出异常"""
         with tempfile.TemporaryDirectory() as temp_dir:
             test_path = os.path.join(temp_dir, "test.txt")
-            with open(test_path, "w") as f:
+            with open(test_path, "w", encoding="utf-8") as f:
                 f.write("test")
             
             with patch("os.stat", side_effect=OSError("stat failed")):
@@ -2633,7 +2638,7 @@ class TestTaskSchedulerFunctions:
         """测试加载任务文件格式错误"""
         with tempfile.TemporaryDirectory() as temp_dir:
             tasks_file = os.path.join(temp_dir, "scheduled_tasks.json")
-            with open(tasks_file, "w") as f:
+            with open(tasks_file, "w", encoding="utf-8") as f:
                 f.write("invalid json")
             with patch("agent.tools.task_tools.SCHEDULED_TASKS_FILE", tasks_file):
                 result = _load_tasks()
@@ -2659,7 +2664,7 @@ class TestTaskSchedulerFunctions:
         """测试切换不存在的任务"""
         with tempfile.TemporaryDirectory() as temp_dir:
             tasks_file = os.path.join(temp_dir, "scheduled_tasks.json")
-            with open(tasks_file, "w") as f:
+            with open(tasks_file, "w", encoding="utf-8") as f:
                 f.write('{"tasks": []}')
             with patch("agent.tools.task_tools.SCHEDULED_TASKS_FILE", tasks_file):
                 result = toggle_scheduled_task("nonexistent", True)
@@ -2847,7 +2852,7 @@ class TestSearchFilesMaxWalk:
         with tempfile.TemporaryDirectory() as temp_dir:
             # 创建大量文件
             for i in range(100):
-                with open(os.path.join(temp_dir, f"file{i}.txt"), "w") as f:
+                with open(os.path.join(temp_dir, f"file{i}.txt"), "w", encoding="utf-8") as f:
                     f.write("test")
             
             # 使用 mock 模拟超过 max_walk 的情况
@@ -2878,7 +2883,7 @@ class TestGetSingleFileInfoLinkTarget:
         with tempfile.TemporaryDirectory() as temp_dir:
             # 创建目标文件
             target_file = os.path.join(temp_dir, "target.txt")
-            with open(target_file, "w") as f:
+            with open(target_file, "w", encoding="utf-8") as f:
                 f.write("target")
             
             # 模拟符号链接
@@ -3608,11 +3613,15 @@ class TestSystemToolsEdgeCases:
             target = os.path.join(tmpdir, "target.txt")
             link = os.path.join(tmpdir, "link.txt")
             
-            with open(target, "w") as f:
+            with open(target, "w", encoding="utf-8") as f:
                 f.write("content")
             
             if hasattr(os, "symlink"):
-                os.symlink(target, link)
+                try:
+                    os.symlink(target, link)
+                except (OSError, NotImplementedError):
+                    # 【不易】Windows 无符号链接权限时跳过而非崩溃（A-5 修复）
+                    pytest.skip("符号链接不可用（Windows 需管理员/开发者模式）")
                 result = get_file_info(link)
                 assert result["ok"] is True
             else:
@@ -4171,7 +4180,7 @@ class TestListDirectoryExtended:
         """测试对文件路径调用 list_directory（返回文件信息）"""
         with tempfile.TemporaryDirectory() as tmpdir:
             target = os.path.join(tmpdir, "file.txt")
-            with open(target, "w") as f:
+            with open(target, "w", encoding="utf-8") as f:
                 f.write("content")
             old_cwd = os.getcwd()
             try:
@@ -4195,9 +4204,9 @@ class TestListDirectoryExtended:
         """测试显示隐藏文件"""
         with tempfile.TemporaryDirectory() as tmpdir:
             # 创建普通文件和隐藏文件
-            with open(os.path.join(tmpdir, "visible.txt"), "w") as f:
+            with open(os.path.join(tmpdir, "visible.txt"), "w", encoding="utf-8") as f:
                 f.write("x")
-            with open(os.path.join(tmpdir, ".hidden"), "w") as f:
+            with open(os.path.join(tmpdir, ".hidden"), "w", encoding="utf-8") as f:
                 f.write("y")
             old_cwd = os.getcwd()
             try:
@@ -4221,7 +4230,7 @@ class TestListDirectoryExtended:
         """测试最大条目数限制"""
         with tempfile.TemporaryDirectory() as tmpdir:
             for i in range(20):
-                with open(os.path.join(tmpdir, f"file_{i}.txt"), "w") as f:
+                with open(os.path.join(tmpdir, f"file_{i}.txt"), "w", encoding="utf-8") as f:
                     f.write("x")
             old_cwd = os.getcwd()
             try:
@@ -4275,7 +4284,7 @@ class TestSearchFilesExtended:
         """测试基本文件搜索"""
         with tempfile.TemporaryDirectory() as tmpdir:
             for fname in ["a.py", "b.txt", "c.py", "d.md"]:
-                with open(os.path.join(tmpdir, fname), "w") as f:
+                with open(os.path.join(tmpdir, fname), "w", encoding="utf-8") as f:
                     f.write("x")
             result = search_files("*.py", root_path=tmpdir)
             assert result["ok"] is True
@@ -4301,7 +4310,7 @@ class TestSearchFilesExtended:
         """测试根路径不是目录（行 427-429）"""
         with tempfile.TemporaryDirectory() as tmpdir:
             target = os.path.join(tmpdir, "file.txt")
-            with open(target, "w") as f:
+            with open(target, "w", encoding="utf-8") as f:
                 f.write("x")
             result = search_files("*.py", root_path=target)
             assert result["ok"] is False
@@ -4312,7 +4321,7 @@ class TestSearchFilesExtended:
     def test_search_files_case_sensitive(self):
         """测试区分大小写 - 在 Windows 上不区分大小写"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with open(os.path.join(tmpdir, "TEST.py"), "w") as f:
+            with open(os.path.join(tmpdir, "TEST.py"), "w", encoding="utf-8") as f:
                 f.write("x")
             # 在 Windows 上文件系统本身不区分大小写，所以 case_sensitive 不会真正区分
             # 我们验证 search_files 可以正确调用
@@ -4917,7 +4926,7 @@ class TestFileInfoSingle:
         """测试普通文件信息"""
         with tempfile.TemporaryDirectory() as tmpdir:
             target = os.path.join(tmpdir, "test.txt")
-            with open(target, "w") as f:
+            with open(target, "w", encoding="utf-8") as f:
                 f.write("hello")
             info = _get_single_file_info(target)
             assert info["type"] == "file"
@@ -5280,7 +5289,7 @@ class TestSystemToolsWorkspaceComplete_system_tools_ultimate_coverage:
             with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tmpdir):
                 init_workspace()
                 test_file = os.path.join(tmpdir, "test.txt")
-                with open(test_file, "w") as f:
+                with open(test_file, "w", encoding="utf-8") as f:
                     f.write("hello")
                 result = list_workspace("test.txt")
                 assert result["type"] == "file"
@@ -5348,7 +5357,7 @@ class TestSystemToolsWorkspaceComplete_system_tools_ultimate_coverage:
             with patch('agent.tools.workspace_tools.WORKSPACE_DIR', tmpdir):
                 init_workspace()
                 test_file = os.path.join(tmpdir, "test.txt")
-                with open(test_file, "w") as f:
+                with open(test_file, "w", encoding="utf-8") as f:
                     f.write("content")
                 result = delete_workspace("test.txt")
                 assert result["ok"] is True
@@ -5484,9 +5493,9 @@ class TestSystemToolsListDirectoryComplete:
     def test_list_directory_normal(self):
         """测试正常列出"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with open(os.path.join(tmpdir, "a.txt"), "w") as f:
+            with open(os.path.join(tmpdir, "a.txt"), "w", encoding="utf-8") as f:
                 f.write("a")
-            with open(os.path.join(tmpdir, "b.txt"), "w") as f:
+            with open(os.path.join(tmpdir, "b.txt"), "w", encoding="utf-8") as f:
                 f.write("b")
             result = list_directory(tmpdir)
             assert result["ok"] is True

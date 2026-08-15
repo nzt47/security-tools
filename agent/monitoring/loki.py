@@ -10,6 +10,7 @@ import logging
 import os
 import time
 import uuid
+import threading
 from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
 
@@ -317,6 +318,8 @@ class LokiClient:
 
 # 全局单例
 _loki_client = None  # 保留作为 fallback
+# [2026-08-13 并发审计] fallback 单例双检锁：防并发首调创建多个实例
+_loki_client_lock = threading.Lock()
 
 try:
     from agent.utils.singleton_manager import register_singleton, get_singleton
@@ -338,7 +341,10 @@ def get_loki_client() -> LokiClient:
         return get_singleton("loki_client")
     global _loki_client
     if _loki_client is None:
-        _loki_client = _create_loki_client()
+        # [2026-08-13 并发审计] fallback 双检锁：防并发首调创建多个实例
+        with _loki_client_lock:
+            if _loki_client is None:
+                _loki_client = _create_loki_client()
     return _loki_client
 
 

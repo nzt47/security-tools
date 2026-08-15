@@ -214,12 +214,12 @@ class TestFileWatcher(unittest.TestCase):
 
         # 创建文件
         test_file = os.path.join(self.temp_dir, 'test.txt')
-        with open(test_file, 'w') as f:
+        with open(test_file, 'w', encoding="utf-8") as f:
             f.write('hello')
         time.sleep(0.5)
 
         # 修改文件
-        with open(test_file, 'a') as f:
+        with open(test_file, 'a', encoding="utf-8") as f:
             f.write(' world')
         time.sleep(0.5)
 

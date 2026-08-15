@@ -1,6 +1,6 @@
 {
-  "check_time": "2026-08-11T01:13:25.014704",
-  "results_dir": "C:\\Windows\\Temp\\pytest-of-AdminWT\\pytest-2888\\popen-gw4\\test_require_e2e_flag_parsing0",
+  "check_time": "2026-08-14T14:13:38.663342",
+  "results_dir": "C:\\Users\\Administrator\\agent\\.pytest_tmp\\pytest-of-AdminWT\\pytest-790\\test_require_e2e_flag_parsing0",
   "thresholds": {
     "min_unit_test_pass_rate": 95.0,
     "min_coverage": 60.0,

@@ -30,6 +30,11 @@ from agent.task_scheduler import (
     _trace_id,
 )
 
+# 【P1 A3】D 类环境性慢测试分流：test_generate_weekly_report_no_exception 触发
+# dotenv/pydantic_settings 环境扫描 >60s 被 Timeout 强杀（2026-08-14 实测），
+# fast 模式默认排除、slow 模式单独跑。
+pytestmark = pytest.mark.slow
+
 
 @pytest.fixture(scope="session", autouse=True)
 def _preload_sentence_transformers():

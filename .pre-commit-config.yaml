@@ -75,6 +75,38 @@ repos:
           以及 subprocess 退出码一致性。任一断言失败 exit 1 阻断提交，
           并自动打印完整调用堆栈（--traceback）到 stderr 供快速定位。
           静默模式（--pre-commit）不污染 hook 输出。
+
+      - id: cli-parser-register-check
+        name: CLI parser 注册一致性校验 (AST 符号级)
+        entry: python scripts/check_cli_parser.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+        description: >
+          用 AST 校验 CLI 入口 parser 注册一致性：sub.add_parser 子命令 ↔
+          set_defaults(func=cmd_xxx) ↔ 模块顶层函数定义 双向匹配
+          （2026-08-14 事故防线）。字符串级检查会命中 docstring 误 PASS，
+          实际注册缺失到运行时才暴露 invalid choice（convert-cards 被并行
+          会话冲掉即此型）。任一子命令无 func 注册或 func 未定义即阻断提交
+          （exit code 1）。
+
+      - id: check-index-isolation
+        name: 并行会话 index 隔离校验 (空 index / 运行时文件混入)
+        entry: python scripts/dev/check_index_isolation.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]
+        description: >
+          校验提交前 index 完整性（2026-08-14 并行会话混入事故防线）：
+          (1) 工作区有改动但 index 为空（并行会话清空共享 index）→ 阻断空提交；
+          (2) index 混入运行时/敏感文件（data/reflection、data/sandbox、
+          data/sessions、data/lifetrace、data/messages.jsonl、backup、.env 非 example）
+          → 阻断，疑似并行会话 git add . 混入；
+          (3) 检测到多 worktree（并行会话活跃）→ 打印警告并建议 detached worktree
+          隔离 index。逃生通道：SKIP=check-index-isolation（pre-commit 标准机制）。
+
       - id: ps-script-analyzer
         name: PowerShell 静态分析 (PSScriptAnalyzer)
         entry: pwsh -NoProfile -File scripts/dev/run_psscriptanalyzer.ps1
@@ -116,4 +148,3 @@ repos:
           与修复建议（检出/删除引用/补建文档）。存在失效链接时阻断提交，
           防止历史同类问题（2026-08-10 docs 失效链接）回归。
           详见 docs/wiki/docs_link_precheck_fix_wiki.md。
-

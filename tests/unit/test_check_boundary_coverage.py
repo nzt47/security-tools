@@ -405,9 +405,23 @@ class TestNewModuleDetector:
     """新增模块检测器测试"""
 
     def test_detect_returns_empty_when_not_git(self, tmp_path: Path):
-        """边界测试：非 git 仓库返回空集合"""
-        detector = NewModuleDetector(tmp_path)
-        result = detector.detect_new_modules()
+        """边界测试：非 git 仓库返回空集合
+
+        Why: 项目 conftest 将 tempfile.tempdir 重定向到项目内 .pytest_tmp
+        （git 工作树内），tmp_path 不满足"非 git 环境"前提——git diff 会
+        命中真实仓库并检出 HEAD~1 新增文件。此处临时恢复系统 TEMP，
+        构造真正脱离 git 工作树的目录后再检测。
+        """
+        import tempfile as _tf
+
+        _orig = _tf.tempdir
+        _tf.tempdir = None  # 强制回到系统默认临时目录（Windows TMP / Linux /tmp）
+        try:
+            with _tf.TemporaryDirectory(prefix="not_git_") as d:
+                detector = NewModuleDetector(Path(d))
+                result = detector.detect_new_modules()
+        finally:
+            _tf.tempdir = _orig
         assert result == set()
 
     def test_detect_handles_subprocess_error(self, tmp_path: Path):

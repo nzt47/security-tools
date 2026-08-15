@@ -690,7 +690,8 @@ def test_create_optimized_storage(monkeypatch, tmp_path):
     monkeypatch.setattr("agent.log_system.storage.DEFAULT_DB_PATH", str(tmp_path / "d.db"))
     monkeypatch.setattr("agent.log_system.storage.DEFAULT_RAW_DIR", str(tmp_path / "raw"))
     inst = mod._create_optimized_storage(config={"x": 1})
-    assert isinstance(inst, OptimizedLogStorage)
+    # 【不易】F4 修复：用 mod. 引用类而非顶层 import（顶层旧引用在 reload 后失效）
+    assert isinstance(inst, mod.OptimizedLogStorage)
     inst.close()
 
 
@@ -706,7 +707,8 @@ def test_get_optimized_storage_singleton_path(monkeypatch, tmp_path):
         a = mod.get_optimized_storage()
         b = mod.get_optimized_storage()
         assert a is b
-        assert isinstance(a, OptimizedLogStorage)
+        # 【不易】F4 修复：用 mod. 引用类而非顶层 import（顶层旧引用在 reload 后失效）
+        assert isinstance(a, mod.OptimizedLogStorage)
         a.close()
     finally:
         reset_singleton("optimized_storage")
@@ -722,8 +724,14 @@ def test_get_optimized_storage_fallback_path(monkeypatch):
     assert mod.get_optimized_storage() is fake  # 第二次命中缓存
 
 
+@pytest.mark.slow
 def test_module_import_fallback_without_singleton_manager(monkeypatch):
-    """模拟 singleton_manager 不可导入：模块应 fallback 到 _SINGLETON_AVAILABLE=False。"""
+    """模拟 singleton_manager 不可导入：模块应 fallback 到 _SINGLETON_AVAILABLE=False。
+
+    【P1 A3】D 类测试：importlib.reload(mod) 会使模块顶层 import 的旧类引用失效，
+    随机序下污染后续 isinstance 断言（定义序全绿），fast 模式默认排除、
+    slow 模式单独跑（2026-08-14 实测）。
+    """
     import importlib
     import sys
 

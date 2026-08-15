@@ -2,6 +2,11 @@
 # pylint: disable=redefined-outer-name,missing-function-docstring
 
 import pytest
+
+# 【P1 A3】D 类环境性慢测试分流：generate_weekly_report → pydantic_settings/importlib
+# 慢扫描在分块进程中 >60s（2026-08-14 实测），fast 模式默认排除、slow 模式单独跑。
+pytestmark = pytest.mark.slow
+
 from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
 from agent.task_scheduler import (
@@ -351,7 +356,7 @@ class TestScheduledTasks:
         with tempfile.TemporaryDirectory() as tmpdir:
             # 创建测试日志文件
             old_file = os.path.join(tmpdir, "blackbox_20240101.jsonl")
-            with open(old_file, "w") as f:
+            with open(old_file, "w", encoding="utf-8") as f:
                 f.write("test")
             
             # 修改文件时间为31天前
@@ -830,14 +835,14 @@ class TestPredefinedTasks:
 
             # 创建一个旧日志文件（40天前）
             old_file = os.path.join(log_dir, "blackbox_old.jsonl")
-            with open(old_file, "w") as f:
+            with open(old_file, "w", encoding="utf-8") as f:
                 f.write("{}")
             old_time = time.time() - (40 * 24 * 60 * 60)
             os.utime(old_file, (old_time, old_time))
 
             # 创建一个新日志文件（5天前），应该被保留
             new_file = os.path.join(log_dir, "blackbox_new.jsonl")
-            with open(new_file, "w") as f:
+            with open(new_file, "w", encoding="utf-8") as f:
                 f.write("{}")
             new_time = time.time() - (5 * 24 * 60 * 60)
             os.utime(new_file, (new_time, new_time))
@@ -1010,7 +1015,7 @@ class TestTaskScheduler_task_scheduler_comprehensive:
                 {"id": "2", "name": "task2", "command": "ping localhost", "interval_sec": 300, "enabled": False},
             ]
         }
-        with open(json_file, "w") as f:
+        with open(json_file, "w", encoding="utf-8") as f:
             json.dump(tasks_data, f)
         count = s.load_from_json(str(json_file))
         assert count == 1

@@ -191,6 +191,13 @@ modules:
       - extreme
     min_tests: 3
     description: 容灾恢复
+  self_healing:
+    required_scenes:
+      - empty        # 空告警名
+      - invalid      # 未知故障域
+      - timeout      # 超时告警识别
+    min_tests: 3
+    description: 自愈恢复动作映射
 
   # ── 数据与存储模块 ──
   memory:

@@ -79,7 +79,15 @@ class CrawlerController:
         self._default_delay = cfg.get("default_delay", 1.0)       # 同一域名请求间隔（秒）
         self._domain_delays: Dict[str, float] = {}                 # 域名自定义延迟
         self._last_request_time: Dict[str, float] = {}             # 域名最后请求时间
-        self._rate_lock = threading.Lock()
+
+        # Why RLock 保护全部共享状态（模块级单例被多路请求并发调用）：_stats 的
+        # += 为读-改-写序列（并发丢计数）；_ua_index/_proxy_index 轮换非原子；
+        # remove_proxy 的 list.remove 与 get_proxy 的索引并发抛 IndexError；
+        # _proxy_stats 遍历与 add/remove 并发抛 RuntimeError。wait_if_needed 的
+        # sleep 在锁外（持锁纪律：锁内严禁阻塞——否则并发请求被串行化秒级）；
+        # robots.txt 抓取等网络 I/O 同样锁外。report_result 递归调用 rotate_*，
+        # 故选 RLock。
+        self._lock = threading.RLock()
 
         # User-Agent
         self._ua_list = cfg.get("user_agents", DEFAULT_USER_AGENTS)
@@ -114,21 +122,29 @@ class CrawlerController:
     # ── 请求控制 ──────────────────────────────────────────────────
 
     def wait_if_needed(self, url: str):
-        """根据域名限速等待（阻塞当前线程）"""
-        domain = urlparse(url).netloc
-        delay = self._domain_delays.get(domain, self._default_delay)
-        if delay <= 0:
-            return
+        """根据域名限速等待（阻塞当前线程）
 
-        with self._rate_lock:
+        锁内仅预占下一次允许时刻（并发线程各自排队，互相错开 delay），实际
+        sleep 在锁外（持锁纪律：锁内严禁阻塞——否则所有并发请求被串行化秒级）。
+        """
+        domain = urlparse(url).netloc
+        with self._lock:  # 读延迟 + 预占下一次允许时刻原子
+            delay = self._domain_delays.get(domain, self._default_delay)
+            if delay <= 0:
+                return
+            now = time.time()
             last = self._last_request_time.get(domain, 0)
-            elapsed = time.time() - last
-            if elapsed < delay:
-                sleep_time = delay - elapsed
-                # 加入随机抖动 ±20%
-                sleep_time *= random.uniform(0.8, 1.2)
-                time.sleep(sleep_time)
-            self._last_request_time[domain] = time.time()
+            if last <= 0:
+                # 首次请求：不等待，仅记录基线（last=0 表示从未请求过）
+                self._last_request_time[domain] = now
+                return
+            # 预占下一次允许时刻：含 ±20% 随机抖动，等价于原「sleep 后记录时刻」；
+            # 并发线程各自排队，互相错开 delay
+            next_allowed = max(last, now) + delay * random.uniform(0.8, 1.2)
+            self._last_request_time[domain] = next_allowed
+            sleep_time = max(0.0, next_allowed - now)
+        if sleep_time > 0:
+            time.sleep(sleep_time)  # 锁外等待
 
     def acquire(self, url: str) -> dict:
         """获取请求配置（包含 UA 和代理），同时执行限速
@@ -142,7 +158,8 @@ class CrawlerController:
         proxy = self.get_proxy()
         proxies = {"http": proxy, "https": proxy} if proxy else None
 
-        self._stats["requests_made"] += 1
+        with self._lock:  # requests_made += 1 原子（读-改-写防并发丢计数）
+            self._stats["requests_made"] += 1
 
         return {
             "headers": headers,
@@ -152,36 +169,41 @@ class CrawlerController:
     def report_result(self, url: str, success: bool, status_code: int = 0, error: str = ""):
         """报告请求结果，用于调整策略"""
         domain = urlparse(url).netloc
+        rate_limited = False
+        delay_after = 0
+        with self._lock:  # 统计 += 与域延迟读-改-写原子（RLock 重入 rotate_*）
+            if not success:
+                self._stats["retries"] += 1
 
-        if not success:
-            self._stats["retries"] += 1
+                # 429 = 被限速，增大延迟
+                if status_code == 429:
+                    current = self._domain_delays.get(domain, self._default_delay)
+                    delay_after = min(current * 2, 60)
+                    self._domain_delays[domain] = delay_after
+                    rate_limited = True
 
-            # 429 = 被限速，增大延迟
-            if status_code == 429:
-                current = self._domain_delays.get(domain, self._default_delay)
-                self._domain_delays[domain] = min(current * 2, 60)
-                logger.warning("域名 %s 被限速(429)，延迟调整为 %.1fs", domain, self._domain_delays[domain])
+                # 403/503 = 可能被屏蔽，切换 UA 和代理
+                if status_code in (403, 503):
+                    self._stats["blocked_count"] += 1
+                    self._rotate_ua()
+                    self._rotate_proxy()
 
-            # 403/503 = 可能被屏蔽，切换 UA 和代理
-            if status_code in (403, 503):
-                self._stats["blocked_count"] += 1
-                self._rotate_ua()
-                self._rotate_proxy()
-
-            # 代理错误，标记并切换
-            if proxy := self._get_current_proxy():
-                if proxy not in self._proxy_stats:
-                    self._proxy_stats[proxy] = {"success": 0, "fail": 0, "last_used": 0}
-                if error and ("ConnectionError" in error or "Timeout" in error or "ProxyError" in error):
-                    self._proxy_stats[proxy]["fail"] += 1
-                    # 连续失败自动切换
-                    if self._proxy_stats[proxy]["fail"] >= 3:
-                        self._rotate_proxy()
-                else:
-                    self._proxy_stats[proxy]["success"] += 1
-                self._proxy_stats[proxy]["last_used"] = time.time()
-        else:
-            self._domain_delays[domain] = max(self._default_delay, self._domain_delays.get(domain, 0) * 0.9)
+                # 代理错误，标记并切换
+                if proxy := self._get_current_proxy():
+                    if proxy not in self._proxy_stats:
+                        self._proxy_stats[proxy] = {"success": 0, "fail": 0, "last_used": 0}
+                    if error and ("ConnectionError" in error or "Timeout" in error or "ProxyError" in error):
+                        self._proxy_stats[proxy]["fail"] += 1
+                        # 连续失败自动切换
+                        if self._proxy_stats[proxy]["fail"] >= 3:
+                            self._rotate_proxy()
+                    else:
+                        self._proxy_stats[proxy]["success"] += 1
+                    self._proxy_stats[proxy]["last_used"] = time.time()
+            else:
+                self._domain_delays[domain] = max(self._default_delay, self._domain_delays.get(domain, 0) * 0.9)
+        if rate_limited:
+            logger.warning("域名 %s 被限速(429)，延迟调整为 %.1fs", domain, delay_after)
 
     # ── User-Agent 管理 ─────────────────────────────────────────────
 
@@ -189,58 +211,68 @@ class CrawlerController:
         """获取当前 User-Agent"""
         if self._force_ua:
             return self._force_ua
-        return self._ua_list[self._ua_index % len(self._ua_list)]
+        with self._lock:  # 与 _rotate_ua/set_user_agents 互斥，防 IndexError
+            return self._ua_list[self._ua_index % len(self._ua_list)]
 
     def _rotate_ua(self):
         """轮换 User-Agent"""
-        self._ua_index = (self._ua_index + random.randint(1, 3)) % len(self._ua_list)
-        self._stats["ua_switches"] += 1
+        with self._lock:  # 读-改-写原子 + ua_switches 计数
+            self._ua_index = (self._ua_index + random.randint(1, 3)) % len(self._ua_list)
+            self._stats["ua_switches"] += 1
 
     def set_user_agents(self, ua_list: List[str]):
         """自定义 User-Agent 列表"""
         if ua_list:
-            self._ua_list = ua_list
-            self._ua_index = 0
+            with self._lock:
+                self._ua_list = ua_list
+                self._ua_index = 0
 
     def add_user_agent(self, ua: str):
         """添加 User-Agent"""
-        if ua not in self._ua_list:
-            self._ua_list.append(ua)
+        with self._lock:  # 检查-追加原子（防并发重复与索引漂移）
+            if ua not in self._ua_list:
+                self._ua_list.append(ua)
 
     # ── 代理管理 ──────────────────────────────────────────────────
 
     def get_proxy(self) -> Optional[str]:
         """获取当前代理"""
-        if not self._proxies:
-            return None
-        return self._proxies[self._proxy_index % len(self._proxies)]
+        with self._lock:  # 与 remove_proxy/set_proxies 互斥，防 IndexError
+            if not self._proxies:
+                return None
+            return self._proxies[self._proxy_index % len(self._proxies)]
 
     def _get_current_proxy(self) -> Optional[str]:
-        return self._proxies[self._proxy_index % len(self._proxies)] if self._proxies else None
+        with self._lock:
+            return self._proxies[self._proxy_index % len(self._proxies)] if self._proxies else None
 
     def _rotate_proxy(self):
         """轮换代理"""
-        if len(self._proxies) > 1:
-            self._proxy_index = (self._proxy_index + 1) % len(self._proxies)
-            self._stats["proxy_switches"] += 1
+        with self._lock:
+            if len(self._proxies) > 1:
+                self._proxy_index = (self._proxy_index + 1) % len(self._proxies)
+                self._stats["proxy_switches"] += 1
 
     def set_proxies(self, proxy_list: List[str]):
         """设置代理列表"""
-        self._proxies = proxy_list
-        self._proxy_index = 0
-        self._proxy_stats = {}
+        with self._lock:
+            self._proxies = proxy_list
+            self._proxy_index = 0
+            self._proxy_stats = {}
         logger.info("已加载 %d 个代理", len(proxy_list))
 
     def add_proxy(self, proxy: str):
         """添加单个代理"""
-        self._proxies.append(proxy)
-        self._proxy_stats[proxy] = {"success": 0, "fail": 0, "last_used": 0}
+        with self._lock:
+            self._proxies.append(proxy)
+            self._proxy_stats[proxy] = {"success": 0, "fail": 0, "last_used": 0}
 
     def remove_proxy(self, proxy: str):
         """移除代理"""
-        if proxy in self._proxies:
-            self._proxies.remove(proxy)
-            self._proxy_stats.pop(proxy, None)
+        with self._lock:  # 检查-移除原子（与 get_proxy 索引互斥）
+            if proxy in self._proxies:
+                self._proxies.remove(proxy)
+                self._proxy_stats.pop(proxy, None)
 
     def load_proxies_from_file(self, filepath: str) -> int:
         """从文件加载代理列表（每行一个）"""
@@ -316,7 +348,8 @@ class CrawlerController:
             from urllib.robotparser import RobotFileParser
             parsed = urlparse(url)
             base = f"{parsed.scheme}://{parsed.netloc}"
-            rp = self._robots_cache.get(base)
+            with self._lock:  # 读缓存原子（与写入互斥）
+                rp = self._robots_cache.get(base)
             if rp is None:
                 rp = RobotFileParser()
                 rp.set_url(f"{base}/robots.txt")
@@ -333,7 +366,10 @@ class CrawlerController:
                     rp.parse(content.splitlines())
                 except Exception:
                     return True  # 无法读取 robots.txt 时默认允许
-                self._robots_cache[base] = rp
+                # 网络抓取在锁外（持锁纪律），锁内仅写入缓存；并发 miss 时
+                # 重复抓取幂等可接受
+                with self._lock:
+                    self._robots_cache[base] = rp
             return rp.can_fetch(user_agent, url)
         except ImportError:
             return True
@@ -342,7 +378,8 @@ class CrawlerController:
 
     def set_domain_delay(self, domain: str, delay: float):
         """设置特定域名的请求延迟（秒）"""
-        self._domain_delays[domain] = max(0.1, delay)
+        with self._lock:
+            self._domain_delays[domain] = max(0.1, delay)
 
     def set_default_delay(self, delay: float):
         """设置默认请求延迟"""
@@ -356,21 +393,23 @@ class CrawlerController:
 
     def get_stats(self) -> dict:
         """获取爬虫控制统计"""
-        return {
-            **self._stats,
-            "active_proxies": len(self._proxies),
-            "user_agents_count": len(self._ua_list),
-            "domain_delays": dict(self._domain_delays),
-            "proxy_stats": self._proxy_stats,
-            "default_delay": self._default_delay,
-        }
+        with self._lock:  # 统计/代理/UA/延迟快照原子（与并发修改互斥）
+            return {
+                **self._stats,
+                "active_proxies": len(self._proxies),
+                "user_agents_count": len(self._ua_list),
+                "domain_delays": dict(self._domain_delays),
+                "proxy_stats": dict(self._proxy_stats),
+                "default_delay": self._default_delay,
+            }
 
     def reset(self):
         """重置所有控制状态"""
-        self._domain_delays.clear()
-        self._last_request_time.clear()
-        self._ua_index = 0
-        self._proxy_index = 0
-        self._proxy_stats = {}
-        self._robots_cache.clear()
-        self._stats = {k: 0 for k in self._stats}
+        with self._lock:
+            self._domain_delays.clear()
+            self._last_request_time.clear()
+            self._ua_index = 0
+            self._proxy_index = 0
+            self._proxy_stats = {}
+            self._robots_cache.clear()
+            self._stats = {k: 0 for k in self._stats}

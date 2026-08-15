@@ -1429,6 +1429,18 @@ def get_alert_timeout() -> int:
         return 30
 
 
+def get_takeover_timeout() -> float:
+    """读取人工接管超时（便捷函数，支持热加载）
+
+    Returns:
+        超时秒数，默认 1800（30 分钟）；OPEN 超时自动转 TIMED_OUT 并二次通知
+    """
+    try:
+        return float(get_observability_config().get("takeover.timeout_sec", default=1800.0))
+    except Exception:
+        return 1800.0
+
+
 # ── Prometheus 指标导出便捷函数 ──
 
 def get_prometheus_max_retries() -> int:

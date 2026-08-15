@@ -30,12 +30,16 @@ except ImportError:
     _HAS_SQLITE_VEC = False
 
 # sentence_transformers 可用性（CI Linux 下被 conftest patch 为 None）
+# 【不易】只做可用性检测，禁止真实 import：sentence_transformers 顶层会加载
+# torch/transformers 等重型依赖，pytest 全新子进程冷启动收集阶段真实 import
+# 会阻塞数分钟（2026-08-14 全量回归 chunk_1 收集卡死 >7min 即此点）。
+# find_spec 只查注册不触发加载，语义等价。
 _HAS_ST = False
 if not sys.platform.startswith('linux') or not os.environ.get('CI'):
     try:
-        import sentence_transformers  # noqa: F401
-        _HAS_ST = True
-    except ImportError:
+        import importlib.util as _ilu
+        _HAS_ST = _ilu.find_spec("sentence_transformers") is not None
+    except (ImportError, AttributeError, ValueError):
         _HAS_ST = False
 
 
@@ -53,6 +57,25 @@ def _enable_sqlite_vec_for_tests():
         return
     with patch.dict(sys.modules, {'sqlite_vec': _REAL_SQLITE_VEC}):
         yield
+
+
+@pytest.fixture(autouse=True)
+def _enable_st_module_for_patch():
+    """确保 sentence_transformers 模块可解析，避免 patch 触发真实 import。
+
+    Why: conftest reset_global_singletons #12b 会移除被 mock 污染的
+    sentence_transformers 模块。若本文件不补回，patch('sentence_transformers.
+    SentenceTransformer') 的 resolve_name 会真实 import sentence_transformers →
+    内部真实 import transformers → 加载 torch C 扩展 → Windows 0xC0000005
+    崩溃（全量顺序 vector_store_sqlite_vec 12 失败根因）。真实模块可用时
+    不干预；teardown 不恢复（清理职责归 conftest）。
+    """
+    import sys as _sys
+    _mod = _sys.modules.get("sentence_transformers")
+    _need_mock = _mod is None or hasattr(_mod, "mock_calls")
+    if _need_mock:
+        _sys.modules["sentence_transformers"] = MagicMock()
+    yield
 
 
 # ════════════════════════════════════════════════════════════

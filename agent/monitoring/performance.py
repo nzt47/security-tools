@@ -234,15 +234,19 @@ class RuntimeSampler:
 
     def add_alert_callback(self, callback: Callable[[Dict], None]):
         """添加告警回调函数"""
-        self._callbacks.append(callback)
+        # [2026-08-13 并发审计] 回调列表读写加锁：采样线程遍历与外部追加互斥
+        with self._lock:
+            self._callbacks.append(callback)
 
     def start(self):
         """启动采样"""
-        if self._sampling:
-            return
-        self._sampling = True
-        self._sampler_thread = threading.Thread(target=self._sample_loop, daemon=True)
-        self._sampler_thread.start()
+        # [2026-08-13 并发审计] 检查-置位原子化：防并发调用重复启动采样线程
+        with self._lock:
+            if self._sampling:
+                return
+            self._sampling = True
+            self._sampler_thread = threading.Thread(target=self._sample_loop, daemon=True)
+            self._sampler_thread.start()
         logger.info(json.dumps({
             "trace_id": get_trace_id(),
             "module_name": "performance",
@@ -271,7 +275,10 @@ class RuntimeSampler:
             sample = self._collect_sample()
             with self._lock:
                 self.samples.append(sample)
-            for callback in self._callbacks:
+                # [2026-08-13 并发审计] 回调列表锁内取快照，锁外遍历——
+                # 防遍历中其他线程 append 抛 RuntimeError
+                callbacks = list(self._callbacks)
+            for callback in callbacks:
                 try:
                     callback(sample)
                 except Exception as e:
@@ -361,10 +368,13 @@ class PerformanceAlertManager:
         self._last_alert_time: Dict[str, float] = {}
         self._alert_callbacks: List[Callable[[str, Dict], None]] = []
         self._sustained_counter: Dict[str, int] = {'cpu': 0, 'memory': 0}
+        # [2026-08-13 并发审计] 冷却时间戳/回调列表读写互斥锁
+        self._lock = threading.Lock()
 
     def add_alert_callback(self, callback: Callable[[str, Dict], None]):
         """添加告警回调函数"""
-        self._alert_callbacks.append(callback)
+        with self._lock:
+            self._alert_callbacks.append(callback)
 
     def check_alerts(self, sample: Dict, sampler: Optional[RuntimeSampler] = None) -> List[Dict]:
         """检查采样数据是否触发告警"""
@@ -388,7 +398,8 @@ class PerformanceAlertManager:
         if cpu_percent >= self.config.cpu_threshold:
             if self._is_in_cooldown('cpu', current_time):
                 return None
-            self._last_alert_time['cpu'] = current_time
+            with self._lock:
+                self._last_alert_time['cpu'] = current_time
             return {
                 'alert_type': 'cpu_high', 'level': self.config.cpu_alert_level,
                 'metric': 'cpu_percent', 'value': cpu_percent,
@@ -402,7 +413,8 @@ class PerformanceAlertManager:
         if memory_percent >= self.config.memory_threshold:
             if self._is_in_cooldown('memory', current_time):
                 return None
-            self._last_alert_time['memory'] = current_time
+            with self._lock:
+                self._last_alert_time['memory'] = current_time
             return {
                 'alert_type': 'memory_high', 'level': self.config.memory_alert_level,
                 'metric': 'memory_percent', 'value': memory_percent,
@@ -419,7 +431,8 @@ class PerformanceAlertManager:
         cpu_high_count = sum(1 for s in recent_samples if s.get('cpu_percent', 0) >= self.config.cpu_threshold)
         if cpu_high_count >= self.config.sustained_threshold_count:
             if not self._is_in_cooldown('cpu_sustained', current_time):
-                self._last_alert_time['cpu_sustained'] = current_time
+                with self._lock:
+                    self._last_alert_time['cpu_sustained'] = current_time
                 avg_cpu = sum(s.get('cpu_percent', 0) for s in recent_samples) / len(recent_samples)
                 alerts.append({
                     'alert_type': 'cpu_sustained_high', 'level': 'critical',
@@ -431,7 +444,8 @@ class PerformanceAlertManager:
         memory_high_count = sum(1 for s in recent_samples if s.get('memory_percent', 0) >= self.config.memory_threshold)
         if memory_high_count >= self.config.sustained_threshold_count:
             if not self._is_in_cooldown('memory_sustained', current_time):
-                self._last_alert_time['memory_sustained'] = current_time
+                with self._lock:
+                    self._last_alert_time['memory_sustained'] = current_time
                 avg_memory = sum(s.get('memory_percent', 0) for s in recent_samples) / len(recent_samples)
                 alerts.append({
                     'alert_type': 'memory_sustained_high', 'level': 'critical',
@@ -443,7 +457,9 @@ class PerformanceAlertManager:
         return alerts
 
     def _is_in_cooldown(self, alert_type: str, current_time: float) -> bool:
-        last_time = self._last_alert_time.get(alert_type, 0)
+        # [2026-08-13 并发审计] 冷却时间戳读加锁：防与并发写交错
+        with self._lock:
+            last_time = self._last_alert_time.get(alert_type, 0)
         return (current_time - last_time) < self.config.cooldown_seconds
 
     def _trigger_alert(self, alert: Dict):
@@ -472,7 +488,10 @@ class PerformanceAlertManager:
                 }, ensure_ascii=False))
         if self.config.enable_callback:
             alert_type = alert.get('alert_type', '')
-            for callback in self._alert_callbacks:
+            # [2026-08-13 并发审计] 回调列表锁内取快照，锁外遍历——防 RuntimeError
+            with self._lock:
+                callbacks = list(self._alert_callbacks)
+            for callback in callbacks:
                 try:
                     callback(alert_type, alert)
                 except Exception as e:

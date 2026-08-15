@@ -244,16 +244,21 @@ class ChaosInjector:
     def inject_memory_pressure(self, target_mb: int, duration_ms: Optional[int] = None):
         """
         注入内存压力故障
-        
+
+        [2026-08-13 并发审计] 锁内仅做配置更新与线程引用交换（内存操作）；
+        大内存分配（可达数百 MB）与旧线程 join 移出锁外执行，防止
+        长时间冻结所有持锁路径（如 trigger_if_active）。
+
         Args:
             target_mb: 目标内存占用(MB)
             duration_ms: 故障持续时间(毫秒)
         """
+        old_thread = None
         with self._lock:
-            # 停止之前的内存压力线程
+            # 停止之前的内存压力线程（仅交换引用，join 移出锁外）
             if self._memory_pressure_thread and self._memory_pressure_thread.is_alive():
                 self._memory_pressure_stop_event.set()
-                self._memory_pressure_thread.join(timeout=self._thread_join_timeout)
+                old_thread = self._memory_pressure_thread
             
             config = self._fault_configs[FaultType.MEMORY_PRESSURE]
             config.enabled = True
@@ -269,20 +274,13 @@ class ChaosInjector:
             self._memory_pressure_stop_event.clear()
             self._memory_hold_list = []
             
-            target_bytes = target_mb * 1024 * 1024
-            chunk_size = 50 * 1024 * 1024  # 每次分配50MB，更快达到目标
+            self._injection_records.append(FaultInjectionRecord(
+                fault_type=FaultType.MEMORY_PRESSURE,
+                config=config,
+                injected_at=datetime.now()
+            ))
             
-            while sum(len(chunk) for chunk in self._memory_hold_list) < target_bytes:
-                try:
-                    chunk = bytearray(chunk_size)
-                    self._memory_hold_list.append(chunk)
-                    current_mb = len(self._memory_hold_list) * 50
-                    logger.debug(log_dict({'module_name': 'chaos_injector', 'action': 'current_mb', 'msg': f'[Chaos] 内存压力: 已分配 {current_mb} MB'}))
-                except MemoryError:
-                    logger.warning(log_dict({'module_name': 'chaos_injector', 'action': 'log', 'msg': '[Chaos] 内存分配失败，已达到系统限制'}))
-                    break
-            
-            # 如果需要持续一段时间，启动维护线程
+            # 锁内创建维护线程对象（仅内存操作），锁外 start
             if duration_ms:
                 def memory_maintainer():
                     """内存维护线程，保持内存占用直到超时"""
@@ -299,15 +297,29 @@ class ChaosInjector:
                     logger.info(log_dict({'module_name': 'chaos_injector', 'action': 'log', 'msg': f'[Chaos] 内存压力线程已停止'}))
                 
                 self._memory_pressure_thread = threading.Thread(target=memory_maintainer, daemon=True)
-                self._memory_pressure_thread.start()
-            
-            self._injection_records.append(FaultInjectionRecord(
-                fault_type=FaultType.MEMORY_PRESSURE,
-                config=config,
-                injected_at=datetime.now()
-            ))
-            
-            logger.info(log_dict({'module_name': 'chaos_injector', 'action': 'target.target_mb', 'msg': f'[Chaos] 已注入内存压力故障: target={target_mb}MB, duration={duration_ms}ms'}))
+
+        # ── 锁外：等待旧线程退出 + 大内存分配 ──
+        if old_thread is not None:
+            old_thread.join(timeout=self._thread_join_timeout)
+        
+        target_bytes = target_mb * 1024 * 1024
+        chunk_size = 50 * 1024 * 1024  # 每次分配50MB，更快达到目标
+        
+        while sum(len(chunk) for chunk in self._memory_hold_list) < target_bytes:
+            try:
+                chunk = bytearray(chunk_size)
+                self._memory_hold_list.append(chunk)
+                current_mb = len(self._memory_hold_list) * 50
+                logger.debug(log_dict({'module_name': 'chaos_injector', 'action': 'current_mb', 'msg': f'[Chaos] 内存压力: 已分配 {current_mb} MB'}))
+            except MemoryError:
+                logger.warning(log_dict({'module_name': 'chaos_injector', 'action': 'log', 'msg': '[Chaos] 内存分配失败，已达到系统限制'}))
+                break
+        
+        # 如果需要持续一段时间，启动维护线程
+        if duration_ms:
+            self._memory_pressure_thread.start()
+        
+        logger.info(log_dict({'module_name': 'chaos_injector', 'action': 'target.target_mb', 'msg': f'[Chaos] 已注入内存压力故障: target={target_mb}MB, duration={duration_ms}ms'}))
     
     def inject_cpu_pressure(self, duration_ms: Optional[int] = None):
         """

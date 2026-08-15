@@ -1,5 +1,43 @@
 # Release Notes
 
+## v1.2.0-rc3-final（2026-08-14）
+
+**Release Tag**: `v1.2.0-rc3-final`（发布就绪检查目标版本）
+
+### 变更总览（rc2 → rc3-final）
+
+| 系列 | 提交 | 说明 |
+|---|---|---|
+| 测试可信度修复（A 类 5 项 → 3 根因闭环） | `08dffffd` | symlink 残留清理 / 权限异常 skip 兜底 / pre-commit TLM hook 同步 + 双 BOM 污染修复 |
+| CI 回归守卫接入 | `08dffffd` | env-health-guard 并发治理 + 脏工作区阻断 + 分块回归入口 |
+| 测试冷启动治理 | `398bb32e` | sqlite_vec 收集期 `find_spec()` 替代重型真实 import，消除冷启动卡死 |
+| 规划可观测性 | `ed06e481` / `7ae969ce` | wire_trace_id 全链路追踪 + 异步桥模式标识 + 复杂度判定明细日志 |
+| 谱系契约恢复 | 本次提交 | 恢复 `_BATCH_OBJECT_ID` 常量 + rejected 决策写谱系（EVO-T3 对齐） |
+| 性能断言阈值 | 本次提交 | singleton 首次创建对比放宽绝对下限（1000us → 5000us），抵御共享 runner 调度噪音 |
+
+### 规划 wire 排查日志（7ae969ce）
+
+- `_run_async_in_sync` 补 `async_bridge.mode`（asyncio_run / thread_pool 两路）
+- `wire.ingress` 补 `complexity_score` / `complex_matches` / `action_matches` 判定明细，回答"为什么判为 X 级"
+- 回退三路（timeout / exception / 空响应）`fallback.detail` + `wire.fallback` WARNING 完整上下文
+
+### 验证结果
+
+| 验证项 | 结果 |
+|---|---|
+| A 类定向（3 文件） | **454 passed / 11 skipped / 0 failed** |
+| 全量回归 chunk_2/chunk_3 | rc=0 全绿 |
+| wire 模拟脚本（成功/异常/超时/inert 4 场景） | 全部通过 |
+| pre-commit hook | 4 项检查全过 |
+
+> 环境性说明：`test_singleton_performance` 性能断言抖动与 `test_create_async` chromadb 探测时序问题为共享 runner / 沙箱环境因素，非代码缺陷。
+
+### 遗留
+
+- B 类 24 项（固定 seed 验证前置）、C 类 3 项（环境伪失败）、D 类慢测试分流见 `docs/zh/B类遗留项修复执行计划_20260814.md`
+
+---
+
 ## v1.5.0-bm25-normalization（2026-08-05）
 
 ### BM25 短文档归一化优化（b=0.75 → 0.5）

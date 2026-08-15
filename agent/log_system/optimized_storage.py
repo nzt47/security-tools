@@ -145,9 +145,12 @@ class BatchLogWriter:
             start = time.time()
             self._write_func(batch)
             duration_ms = (time.time() - start) * 1000
-            
-            self._stats['records_written'] += len(batch)
-            self._stats['batches_flushed'] += 1
+
+            # [2026-08-13 并发审计] _stats 回锁内自增：write() 内触发 flush
+            # 的生产者线程与后台 flush 线程并发执行，锁外自增会丢计数
+            with self._queue_lock:
+                self._stats['records_written'] += len(batch)
+                self._stats['batches_flushed'] += 1
             
             if duration_ms > 100:
                 logger.warning("[BatchLogWriter] 批量写入耗时较长: %.2fms, 记录数: %d", 
@@ -160,7 +163,9 @@ class BatchLogWriter:
     
     def get_stats(self) -> Dict[str, Any]:
         """获取统计信息"""
-        return dict(self._stats)
+        # [2026-08-13 并发审计] 锁内快照：防并发自增时 dict 拷贝竞态
+        with self._queue_lock:
+            return dict(self._stats)
 
 
 class ShardedLogStorage:
@@ -188,26 +193,41 @@ class ShardedLogStorage:
         shard_path = self._get_shard_path(timestamp)
         
         with self._cache_lock:
-            if shard_path not in self._shard_cache:
-                self._shard_cache[shard_path] = ShardWriter(shard_path)
+            writer = self._shard_cache.get(shard_path)
+        
+        if writer is None:
+            # [2026-08-13 并发审计] ShardWriter 构造含 os.makedirs（I/O），移出锁外；
+            # 锁内双检防并发重复创建
+            writer = ShardWriter(shard_path)
+            stale_writer = None
+            with self._cache_lock:
+                existing = self._shard_cache.get(shard_path)
+                if existing is not None:
+                    stale_writer = writer
+                    writer = existing
+                else:
+                    self._shard_cache[shard_path] = writer
             
-            # 清理过期的分片写入器
-            self._cleanup_stale_shards()
-            
-            return self._shard_cache[shard_path]
+            if stale_writer is not None:
+                stale_writer.close()  # 锁外 close 并发创建的重复实例
+        
+        self._cleanup_stale_shards()
+        return writer
     
     def _cleanup_stale_shards(self):
         """清理过期的分片写入器"""
         now = time.time()
         stale_threshold = now - self._shard_hours * 3600 * 2
         
-        to_remove = []
-        for path, writer in self._shard_cache.items():
-            if writer.last_access < stale_threshold:
-                to_remove.append(path)
+        with self._cache_lock:
+            to_remove = [
+                path for path, writer in self._shard_cache.items()
+                if writer.last_access < stale_threshold
+            ]
+            stale_writers = [self._shard_cache.pop(path) for path in to_remove]
         
-        for path in to_remove:
-            writer = self._shard_cache.pop(path)
+        # [2026-08-13 并发审计] writer.close()（I/O）移出锁外
+        for writer in stale_writers:
             writer.close()
     
     def write(self, record: dict):
@@ -219,9 +239,11 @@ class ShardedLogStorage:
     def close(self):
         """关闭所有分片写入器"""
         with self._cache_lock:
-            for writer in self._shard_cache.values():
-                writer.close()
+            writers = list(self._shard_cache.values())
             self._shard_cache.clear()
+        # [2026-08-13 并发审计] writer.close()（I/O）移出锁外
+        for writer in writers:
+            writer.close()
 
 
 class ShardWriter:
@@ -289,6 +311,11 @@ class OptimizedLogStorage:
         # SQLite 存储（结构化数据）
         self._local = threading.local()
         self._db_write_lock = threading.Lock()
+        # [2026-08-13 并发审计] _stats 独立锁：批量写入线程、原始日志
+        # 生产者、直接写入线程并发自增，无锁会丢计数
+        self._stats_lock = threading.Lock()
+        # [2026-08-13 并发审计] 初始化双检锁：防并发首调重复建表/启动双 flush 线程
+        self._init_lock = threading.Lock()
         self._initialized = False
         
         # 批量写入器
@@ -326,16 +353,19 @@ class OptimizedLogStorage:
     
     def initialize(self):
         """初始化数据库表结构"""
-        if self._initialized:
-            return
-        
-        from .storage import LogStorage
-        storage = LogStorage(self.db_path, self.raw_log_dir)
-        storage.initialize()
-        self._initialized = True
-        
-        # 启动批量写入器
-        self._batch_writer.start()
+        # [2026-08-13 并发审计] 双检锁整体持有（含建表与 batch_writer.start）：
+        # 防并发首调重复建表或启动两个后台 flush 线程（初始化属低频启动期操作）
+        with self._init_lock:
+            if self._initialized:
+                return
+            
+            from .storage import LogStorage
+            storage = LogStorage(self.db_path, self.raw_log_dir)
+            storage.initialize()
+            self._initialized = True
+            
+            # 启动批量写入器
+            self._batch_writer.start()
         
         logger.info(log_dict({'module_name': 'optimized_storage', 'action': 'log', 'msg': '[OptimizedLogStorage] 优化存储初始化完成'}))
     
@@ -365,11 +395,13 @@ class OptimizedLogStorage:
                     logger.error("[OptimizedLogStorage] 单条写入失败: %s", e)
             
             conn.commit()
-            self._stats['batch_writes'] += len(records)
+            with self._stats_lock:
+                self._stats['batch_writes'] += len(records)
         except Exception as e:
             conn.rollback()
             logger.error("[OptimizedLogStorage] 批量写入失败: %s", e)
-            self._stats['errors'] += 1
+            with self._stats_lock:
+                self._stats['errors'] += 1
         finally:
             cursor.close()
     
@@ -441,7 +473,8 @@ class OptimizedLogStorage:
         """优化的原始日志写入"""
         data['category'] = category
         self._shard_storage.write(data)
-        self._stats['raw_writes'] += 1
+        with self._stats_lock:
+            self._stats['raw_writes'] += 1
     
     def write_direct(self, table: str, columns: List[str], values: tuple):
         """直接写入（同步，用于重要数据）"""
@@ -454,20 +487,25 @@ class OptimizedLogStorage:
                 sql = f"INSERT INTO {table} ({','.join(columns)}) VALUES ({placeholders})"
                 cursor.execute(sql, values)
                 conn.commit()
-                self._stats['direct_writes'] += 1
+                with self._stats_lock:
+                    self._stats['direct_writes'] += 1
                 return True
             except Exception as e:
                 conn.rollback()
                 logger.error("[OptimizedLogStorage] 直接写入失败: %s", e)
-                self._stats['errors'] += 1
+                with self._stats_lock:
+                    self._stats['errors'] += 1
                 return False
             finally:
                 cursor.close()
     
     def get_stats(self) -> Dict[str, Any]:
         """获取统计信息"""
+        # [2026-08-13 并发审计] 锁内快照：防并发自增时 dict 拷贝竞态
+        with self._stats_lock:
+            storage_stats = dict(self._stats)
         return {
-            'storage': self._stats,
+            'storage': storage_stats,
             'batch_writer': self._batch_writer.get_stats()
         }
     
@@ -486,6 +524,8 @@ class OptimizedLogStorage:
 
 # 全局优化存储实例
 _global_optimized_storage = None  # 保留作为 fallback
+# [2026-08-13 并发审计] fallback 单例双检锁：防并发首调创建多个实例
+_global_optimized_storage_lock = threading.Lock()
 
 try:
     from agent.utils.singleton_manager import register_singleton, get_singleton
@@ -507,7 +547,10 @@ def get_optimized_storage() -> OptimizedLogStorage:
         return get_singleton("optimized_storage")
     global _global_optimized_storage
     if _global_optimized_storage is None:
-        _global_optimized_storage = _create_optimized_storage()
+        # [2026-08-13 并发审计] fallback 双检锁：防并发首调创建多个实例
+        with _global_optimized_storage_lock:
+            if _global_optimized_storage is None:
+                _global_optimized_storage = _create_optimized_storage()
     return _global_optimized_storage
 
 

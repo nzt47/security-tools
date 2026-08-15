@@ -59,21 +59,33 @@ def _set_cache_env(cache_dir: Path, timeout: int):
     """设置 HuggingFace 缓存目录和下载超时环境变量（外层一次性设置）
 
     【不易】4 个环境变量必须设置：HF_HOME/TRANSFORMERS_CACHE/SENTENCE_TRANSFORMERS_HOME/HF_HUB_DOWNLOAD_TIMEOUT
+    【不易】缓存根语义统一（2026-08-14 实证）：snapshot_download(cache_dir=X) 把 X
+    直接当作 hub 缓存根（模型落在 X/models--...，不再拼 hub/），而 HF_HUB_CACHE =
+    {HF_HOME}/hub。因此 TRANSFORMERS_CACHE / SENTENCE_TRANSFORMERS_HOME 必须指向
+    cache_dir/hub，与 vector_store._is_model_fully_cached 检查路径（{HF_HOME}/hub/
+    models--）一致；否则模型落盘位置与检查路径 miss → 运行时误判无缓存 → 降级 json。
     【简易】集中设置避免每个模型重复设置
 
     Args:
-        cache_dir: 缓存目录
+        cache_dir: 缓存目录（HF_HOME 根）
         timeout: 下载超时秒数（HF_HUB_DOWNLOAD_TIMEOUT 控制 HTTP 层超时）
     """
+    hub_cache = cache_dir / "hub"
     os.environ["HF_HOME"] = str(cache_dir)
-    os.environ["TRANSFORMERS_CACHE"] = str(cache_dir)
-    os.environ["SENTENCE_TRANSFORMERS_HOME"] = str(cache_dir)
+    os.environ["TRANSFORMERS_CACHE"] = str(hub_cache)
+    os.environ["SENTENCE_TRANSFORMERS_HOME"] = str(hub_cache)
     os.environ["HF_HUB_DOWNLOAD_TIMEOUT"] = str(timeout)
 
 
 def list_cached_models(cache_dir: Path):
-    """列出已缓存的模型"""
-    models_dir = cache_dir / "models--"
+    """列出已缓存的模型
+
+    【不易】HF 实际缓存结构为 {HF_HOME}/hub/models--<org>--<name>/（无 org 前缀
+    模型自动补全 sentence-transformers 组织），早期实现漏了 hub/ 子目录导致
+    已下载模型被误报为"缓存目录无模型"（build 日志误导排查）。此处统一走
+    hub/ 子目录统计，与 vector_store._is_model_fully_cached 检查路径一致。
+    """
+    models_dir = cache_dir / "hub" / "models--"
     if not models_dir.exists():
         print(f"  缓存目录无模型: {cache_dir}")
         return
@@ -86,7 +98,8 @@ def list_cached_models(cache_dir: Path):
 
     total_size = 0
     for model_dir in models:
-        # models--paraphrase-multilingual-MiniLM-L12-v2 → paraphrase-multilingual-MiniLM-L12-v2
+        # models--sentence-transformers--paraphrase-multilingual-MiniLM-L12-v2
+        # → sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
         model_name = model_dir.name.replace("models--", "").replace("--", "/")
         size = sum(f.stat().st_size for f in model_dir.rglob("*") if f.is_file())
         size_mb = size / (1024 * 1024)
@@ -156,14 +169,24 @@ def main():
         test_vec = model.encode(["test"])
         dim = len(test_vec[0])
 
-        # 缓存大小统计（保留原行为）
-        model_path = cache_dir / "models--" / model_name.replace("/", "--")
+        # 缓存大小统计（路径需含 hub/ 子目录；无 org 前缀模型 HF 自动存为
+        # models--sentence-transformers--<name>，两种形式都探测，与
+        # vector_store._is_model_fully_cached 检查逻辑一致）
+        candidates = [
+            cache_dir / "hub" / "models--" / model_name.replace("/", "--"),
+        ]
+        if "/" not in model_name:
+            candidates.append(
+                cache_dir / "hub" / "models--sentence-transformers--" / model_name
+            )
         size_mb = 0.0
-        if model_path.exists():
-            for f in model_path.rglob("*"):
-                if f.is_file():
-                    size_mb += f.stat().st_size
-            size_mb = size_mb / (1024 * 1024)
+        for model_path in candidates:
+            if model_path.exists():
+                for f in model_path.rglob("*"):
+                    if f.is_file():
+                        size_mb += f.stat().st_size
+                size_mb = size_mb / (1024 * 1024)
+                break
         print(f"dim={dim} {size_mb:.1f}MB", end=" ")
 
     # 调用容错工具批量下载（替代手写 for 循环 + try/except）

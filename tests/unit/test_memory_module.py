@@ -8,6 +8,11 @@ import tempfile
 from unittest.mock import patch
 from memory import VectorStore, MemoryItem, KnowledgeBase
 
+# 【P1 A3】D 类环境性慢测试分流：test_knowledge_base_initialization 触发
+# transformers import_utils 目录扫描 >60s 被 Timeout 强杀（2026-08-14 实测），
+# fast 模式默认排除、slow 模式单独跑。
+pytestmark = pytest.mark.slow
+
 
 @pytest.fixture(autouse=True)
 def _disable_sqlite_vec_for_legacy_tests():

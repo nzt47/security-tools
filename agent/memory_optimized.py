@@ -567,13 +567,17 @@ class LazyCollectionProxy:
         self._client = client
         self._collection_name = collection_name
         self._collection = None
+        # [2026-08-13 并发审计 #4] 懒加载双检锁：并发首次访问只创建一次集合
+        self._lock = threading.Lock()
     
     def _ensure_collection(self):
         """确保集合已加载"""
         if self._collection is None:
-            self._collection = self._client.get_or_create_collection(
-                self._collection_name
-            )
+            with self._lock:
+                if self._collection is None:
+                    self._collection = self._client.get_or_create_collection(
+                        self._collection_name
+                    )
         return self._collection
     
     def add(self, **kwargs):

@@ -14,16 +14,22 @@
 import os
 import re
 import time
+import json
 import locale
 import socket
 import logging
 import platform
 from collections import defaultdict
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 from .sensor_reading import SensorReading, Severity, Category, normal, warning, critical
+from .novelty import week_key
 
 _SYSTEM = platform.system()
 _SYS_ENC = locale.getpreferredencoding() or 'utf-8'
+
+# TASK-06：行为基线跨会话持久化目录（每周一份，保留 N=8 周滚动）
+DEFAULT_BASELINE_DIR = os.path.expanduser("~/.Yunshu/baselines")
 
 
 class ActivityBehaviorSensor:
@@ -43,9 +49,11 @@ class ActivityBehaviorSensor:
         "init_kwargs": {"top_n": 10},
     }
 
-    def __init__(self, top_n=10):
+    def __init__(self, top_n=10, baseline_dir=None):
         self._category = Category.ACTIVITY
         self._top_n = top_n
+        # TASK-06：行为基线目录（None → 默认 ~/.Yunshu/baselines）
+        self._baseline_dir = baseline_dir or DEFAULT_BASELINE_DIR
 
         # 磁盘 I/O 增量追踪
         self._prev_disk_io = {}
@@ -1136,3 +1144,105 @@ class ActivityBehaviorSensor:
         except Exception:
             pass
         return tasks[:100]
+
+    # ═══════════════════════════════════════════════════════════
+    #  TASK-06 行为基线持久化（跨会话；不改 6 维度采集逻辑）
+    #  路径/格式写死（供后续任务对接）:
+    #    ~/.Yunshu/baselines/behavior_<周一日期>.json
+    #    {"week": ..., "captured_at": ..., "metrics": {指标名: 数值}}
+    #  保留: baseline_retention_weeks 周滚动（默认 8）
+    # ═══════════════════════════════════════════════════════════
+
+    def capture_baseline(self) -> Dict[str, Any]:
+        """采集当前行为基线（汇总 collect() 输出中的数值指标，跨会话可比）。
+
+        不改 6 维度 _collect_* 采集逻辑；仅在其之上做数值聚合。
+        采集失败仅 WARNING，不阻断调度线程。
+        """
+        metrics: Dict[str, float] = {}
+        try:
+            for reading in self.collect():
+                if not reading.sensor_name or reading.value is None:
+                    continue
+                try:
+                    # sensor_name 已带 behavior_ 前缀（6 维度采集命名），避免重复拼接
+                    name = reading.sensor_name
+                    key = name if name.startswith("behavior_") else f"behavior_{name}"
+                    metrics[key] = float(reading.value)
+                except (TypeError, ValueError):
+                    continue
+        except Exception as e:  # noqa: BLE001 采集异常兜底
+            logging.warning(f"行为基线采集失败: {e}")
+        return {"captured_at": datetime.now(timezone.utc).isoformat(),
+                "metrics": metrics}
+
+    def save_baseline(self, baseline_dir: Optional[str] = None,
+                      retention_weeks: int = 8) -> Dict[str, Any]:
+        """保存当前周基线 + 超保留期滚动清理。
+
+        Returns:
+            {"saved": True, "week": <周键>, "path": <文件路径>}
+        """
+        base_dir = baseline_dir or self._baseline_dir
+        baseline = self.capture_baseline()
+        week = week_key()
+        os.makedirs(base_dir, exist_ok=True)
+        payload = {"week": week,
+                   "captured_at": baseline.get("captured_at"),
+                   "metrics": baseline.get("metrics") or {}}
+        path = os.path.join(base_dir, f"behavior_{week}.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+        self._prune_baselines(base_dir, retention_weeks)
+        return {"saved": True, "week": week, "path": path}
+
+    @classmethod
+    def list_baselines(cls, baseline_dir: Optional[str] = None) -> List[Dict[str, Any]]:
+        """列出全部周基线（按周键升序）；每项 {"week", "baseline"}。"""
+        base_dir = baseline_dir or DEFAULT_BASELINE_DIR
+        entries: List[Dict[str, Any]] = []
+        try:
+            if not os.path.isdir(base_dir):
+                return entries
+            for name in sorted(os.listdir(base_dir)):
+                if not (name.startswith("behavior_") and name.endswith(".json")):
+                    continue
+                week = name[len("behavior_"):-len(".json")]
+                baseline = cls.load_baseline(week, base_dir)
+                if baseline is not None:
+                    entries.append({"week": week, "baseline": baseline})
+        except Exception as e:  # noqa: BLE001
+            logging.warning(f"列出行为基线失败: {e}")
+        return entries
+
+    @classmethod
+    def load_baseline(cls, week: str,
+                      baseline_dir: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """加载指定周基线（不存在/损坏返回 None）。"""
+        base_dir = baseline_dir or DEFAULT_BASELINE_DIR
+        path = os.path.join(base_dir, f"behavior_{week}.json")
+        try:
+            if not os.path.exists(path):
+                return None
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:  # noqa: BLE001 损坏回退 None
+            return None
+
+    @classmethod
+    def _prune_baselines(cls, baseline_dir: Optional[str] = None,
+                         retention_weeks: int = 8) -> None:
+        """保留最近 retention_weeks 份基线，删除更旧（仅删 behavior_*.json）。"""
+        base_dir = baseline_dir or DEFAULT_BASELINE_DIR
+        try:
+            if not os.path.isdir(base_dir):
+                return
+            weeks = sorted(cls.list_baselines(base_dir), key=lambda e: e["week"])
+            if len(weeks) <= retention_weeks:
+                return
+            for entry in weeks[:-retention_weeks]:
+                old = os.path.join(base_dir, f"behavior_{entry['week']}.json")
+                if os.path.exists(old):
+                    os.remove(old)
+        except Exception as e:  # noqa: BLE001
+            logging.warning(f"滚动清理行为基线失败: {e}")

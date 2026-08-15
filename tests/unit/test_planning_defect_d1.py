@@ -39,14 +39,15 @@ class TestDefectD1:
         assert str(result.result) == "所有任务执行成功"
 
     @pytest.mark.asyncio
-    async def test_final_transition_goes_through_state_machine(self):
+    async def test_final_transition_goes_through_state_machine(self, tmp_path):
         """C1：最终状态转换应经状态机触发 (EXECUTING, COMPLETED) 钩子
 
         目标行为：计划执行完成后，core 步骤4 的最终状态判断应生效，
         通过 state_machine.transition 触发钩子并记录转换历史。
         当前：executor 直接改 state，步骤4 死代码，钩子永不触发。
         """
-        core = PlanningCore()
+        # P2：reflector 隔离于 tmp_path，不依赖宿主 data/reflection
+        core = PlanningCore(config={"reflector": {"persist_dir": str(tmp_path)}})
         core.tool_registry.register("echo", lambda: "ok")
 
         plan = Plan(original_task="状态机钩子测试", state=PlanState.READY)

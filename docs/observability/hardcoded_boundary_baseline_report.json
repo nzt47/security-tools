@@ -6,7 +6,7 @@
   "target": "agent/",
   "files_scanned": 375,
   "total_findings": 144,
-  "high_risk": 116,
+  "high_risk": 118,
   "medium_risk": 0,
   "low_risk": 28,
   "category_breakdown": {

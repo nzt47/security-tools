@@ -144,10 +144,11 @@ class CriticEvaluator:
                 "status": "skipped",
                 "reason": "Critic 服务不可用，已降级跳过评估"
             }))
+            # [D8] 降级诚实化：不伪造 80 分，overall_score=None + passed=False
             return EvaluationResult(
-                overall_score=80,
+                overall_score=None,
                 dimension_scores={},
-                passed=True,
+                passed=False,
                 feedback=["Critic 服务不可用，已跳过评估"],
                 retry_recommended=False,
                 explanation="Critic 服务不可用，已降级跳过评估"
@@ -170,9 +171,9 @@ class CriticEvaluator:
                 "reason": str(e)
             }))
             return EvaluationResult(
-                overall_score=80,
+                overall_score=None,
                 dimension_scores={},
-                passed=True,
+                passed=False,
                 feedback=["Critic 熔断器已打开，已降级跳过评估"],
                 retry_recommended=False,
                 explanation="Critic 熔断器已打开，已降级跳过评估"
@@ -186,7 +187,26 @@ class CriticEvaluator:
             "mode": self.mode.value,
             "threshold": self.threshold
         }))
-        
+
+        # 任务6：进化策略注入（接线点 2）——按 critic 作用域查询策略库，
+        # 命中则写入 context["_evolution_strategies"]，由规则/LLM 评估转成 feedback
+        # （注明 [策略 #id]）；注入失败不影响评估主流程，降级为无策略
+        try:
+            from agent.evolution.injector import get_injector
+            _inj = get_injector()
+            if _inj is not None:
+                _strategies = _inj.get_strategies("critic", trace_id=trace_id or "")
+                if _strategies:
+                    logger.info(
+                        "[进化][Critic注入] trace_id=%s scope=critic 命中策略 %d 条: strategy_ids=%s",
+                        trace_id or "", len(_strategies),
+                        [_s["strategy_id"] for _s in _strategies],
+                    )
+                    context = dict(context or {})
+                    context["_evolution_strategies"] = _strategies
+        except Exception:
+            pass
+
         try:
             # 根据模式执行评估
             if self.mode == CriticMode.RULE_BASED:
@@ -300,6 +320,11 @@ class CriticEvaluator:
         clarity_score, clarity_feedback = self._evaluate_clarity(response)
         scores[EvaluationDimension.CLARITY.value] = clarity_score
         feedback.extend(clarity_feedback)
+        
+        # 任务6：注入策略提示到反馈（如"避免过度拒绝"类策略，注明 [策略 #id]）
+        if context and context.get("_evolution_strategies"):
+            for _s in context["_evolution_strategies"]:
+                feedback.append(f"[策略 #{_s['strategy_id']}] {_s['prompt_patch']}")
         
         logger.debug(json.dumps({
             "trace_id": trace_id,

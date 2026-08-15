@@ -181,10 +181,21 @@ class HolographicAdapter(MemoryInterface):
 
         Why: 避免 sqlite-vec 运行时持续不可用时，每次操作都触发无意义的重试 + 兜底表写入。
         连续失败达 _vec_fail_threshold 次后，自动设 _vec_available=False。
+        [2026-08-13 并发审计 #1] _vec_fail_count/_vec_available 读-改-写非原子：
+        并发 save/search 失败与探活重置交错会丢计数、熔断判定不一致。加 _lock
+        保护（调用点须在锁外：search_vector/save 异常路径），锁内仅内存状态变更，
+        logger 移出锁外（遵守持锁纪律）。
         """
-        self._vec_fail_count += 1
-        if self._vec_fail_count >= self._vec_fail_threshold and self._vec_available:
-            self._vec_available = False
+        with self._lock:
+            self._vec_fail_count += 1
+            tripped = (
+                self._vec_fail_count >= self._vec_fail_threshold
+                and self._vec_available
+            )
+            if tripped:
+                self._vec_available = False
+
+        if tripped:
             logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.circuit_break', 'msg': f'[HolographicAdapter][vec] 熔断触发：连续失败 {self._vec_fail_count} 次 ≥ 阈值 {self._vec_fail_threshold}，自动降级 _vec_available=False'}))
             logger.info("[HolographicAdapter][vec] 熔断路径: 失败计数 %d → _vec_available=False", self._vec_fail_count)
 
@@ -193,8 +204,9 @@ class HolographicAdapter(MemoryInterface):
 
         探活成功后调用此方法重置失败计数和 _vec_available 标志。
         """
-        self._vec_fail_count = 0
-        self._vec_available = True
+        with self._lock:
+            self._vec_fail_count = 0
+            self._vec_available = True
         logger.info("[HolographicAdapter][vec] 熔断器重置: _vec_available=True, fail_count=0")
 
     # [TLM-L2] 向量表初始化 — sqlite-vec 不可用时降级，禁抛异常

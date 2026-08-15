@@ -54,11 +54,20 @@ from .observability import logger
 _SCHEMA_VERSION = 1
 
 # 对象类型（任务 4/5 将复用 prompt / knowledge_card / subagent_config / tool_code）
-OBJECT_TYPES = ("skill", "prompt", "knowledge_card", "subagent_config", "tool_code")
+# tool_doc: 任务 EVO-T5 工具文档进化（edit_policy.EditProposal.object_type 定义）
+# batch: 批量/调度进化汇总摘要（offline_evolver.evolve_batch 写入）
+OBJECT_TYPES = ("skill", "prompt", "knowledge_card", "subagent_config",
+                "tool_code", "tool_doc", "batch")
+
+# 批量进化汇总记录的固定虚拟 object_id（object_type="batch"）
+# Why: offline_evolver.evolve_batch/_write_batch_record 与测试均引用此常量；
+# 此前被意外删除导致 import 断裂（skills_mgmt 历史问题），此处恢复契约。
+_BATCH_OBJECT_ID = "batch-evolution"
 
 # 提交决策（任务 6 审批流/自动回滚的数据依据）
 # skipped：本次无建议产出（如无样本/未达阈值/变体生成失败），仅审计占位，不进入审批流
-DECISIONS = ("committed", "rejected", "skipped", "pending_review", "rolled_back")
+# batch_run：批量/调度运行摘要（不进入审批流，仅审计）
+DECISIONS = ("committed", "rejected", "skipped", "pending_review", "rolled_back", "batch_run")
 
 # 触发来源 / 执行者（trigger / actor 为自由字符串，未来任务可按需扩展）
 TRIGGERS = ("manual", "scheduler", "feedback", "api")
@@ -132,6 +141,7 @@ class EvolutionRecord:
     trigger: str = "manual"
     actor: str = "system"
     cost: Optional[Dict[str, Any]] = None
+    params: Optional[Dict[str, Any]] = None  # 变异参数快照（rejected/skipped 落库，供变异基座复用）
     created_at: str = ""
     record_id: str = ""
     schema_version: int = _SCHEMA_VERSION

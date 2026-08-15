@@ -19,10 +19,10 @@
 # =====================================================================
 name: L3 Docker Tests
 
-# 【变易·P2-4】concurrency: 同 ref 跨 workflow 连续触发取消旧 run 只留最新（高频 push 合并组，2026-08-11）。
+# 【变易·P2-4】concurrency: 同 workflow 同 ref 连续触发取消旧 run 只留最新（workflow 隔离组，2026-08-14）。
 # 2026-08-08 排队风暴治理延伸: 全项目 workflow 批量统一。
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 on:
@@ -79,7 +79,10 @@ jobs:
   build-image:
     name: 构建 Docker 镜像
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # [fix] 2026-08-14 实测：大镜像（~3.1GB）构建+导出+加载+cache 上传在高负载 runner
+    # 上耗时 22min+，20min 超时被 cancel（构建成功但 job 级 timeout 提前终止）。
+    # 调至 40min 留足余量（正常路径 ~17min）。
+    timeout-minutes: 40
     outputs:
       image-tag: ${{ steps.meta.outputs.tag }}
     steps:
@@ -93,7 +96,9 @@ jobs:
         id: meta
         run: |
           # 生成唯一标签：分支名-短SHA-时间戳
-          BRANCH=$(echo "${{ github.ref }}" | sed 's|refs/heads/||')
+          # 【不易】PR 事件下 github.ref = refs/pull/634/merge，Docker tag 不允许含 '/'
+          # 需同时清洗 refs/heads/ 与 refs/pull/ 前缀，并用 '-' 替换残留 '/'
+          BRANCH=$(echo "${{ github.ref }}" | sed 's|refs/heads/||; s|refs/pull/\([0-9]*\)/merge|PR-\1|; s|/|-|g')
           SHA_SHORT=$(git rev-parse --short=7 HEAD)
           TIMESTAMP=$(date -u +%Y%m%d%H%M)
           TAG="${BRANCH}-${SHA_SHORT}-${TIMESTAMP}"
@@ -120,13 +125,51 @@ jobs:
         run: |
           echo "=== 验证镜像 ==="
           docker images | grep ${{ env.DOCKER_IMAGE_NAME }}
+          echo "=== 验证模型缓存可见性（修复点 14 回归守卫）==="
+          # [fix] 2026-08-14：VOLUME /app/.hf_cache 声明会让 docker run（无显式
+          # 卷挂载）时用匿名卷遮蔽镜像层中的预下载模型 → _is_model_fully_cached
+          # 返回 False → 在线加载失败 → 降级 json。此处直接验证层内模型可见。
+          docker run --rm --entrypoint bash ${{ env.DOCKER_IMAGE_NAME }}:latest -c "
+          ls -la /app/.hf_cache/hub/models-- 2>&1 | head -20
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from memory.vector_store.vector_store import _is_model_fully_cached
+          cache = os.environ.get('HF_HOME', '/app/.hf_cache')
+          hub = Path(cache) / 'hub'
+          print('HF_HOME=', cache, 'hub_exists=', hub.exists())
+          for name in ['paraphrase-multilingual-MiniLM-L12-v2', 'all-MiniLM-L6-v2', 'BAAI/bge-small-zh-v1.5']:
+              print(name, 'fully_cached=', _is_model_fully_cached(name))
+          PY
+          "
           echo "=== 验证关键模块可导入 ==="
-          docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:latest python -c "
+          # [fix] 镜像 ENTRYPOINT 为 pytest，docker run IMAGE python -c "..." 会把
+          # python -c 追加为 pytest 参数（file or directory not found: python, exit 4）
+          # 需 --entrypoint python 覆盖 ENTRYPOINT 后执行验证
+          docker run --rm --entrypoint python ${{ env.DOCKER_IMAGE_NAME }}:latest -c "
           import sqlite_vec; print(f'sqlite-vec: {sqlite_vec.__version__}')
           import torch; print(f'torch: {torch.__version__}')
           import sentence_transformers; print('sentence-transformers: OK')
           from agent.memory.long_term_memory import LongTermMemory; print('LongTermMemory: OK')
           "
+
+      - name: 导出镜像产物
+        run: |
+          echo "=== 导出镜像 ==="
+          # [fix] 2026-08-14：l3-tests 原自行 rebuild（cache-from: type=gha），
+          # 不同 runner 从 gha cache 恢复时模型预下载层可能缺失（blob not found），
+          # 容器内 SentenceTransformer 加载超时(30s) → 编码器 None → 降级 json 后端，
+          # 导致 "expected sqlite_vec, got json"（TestSqliteVecBackend 直接测底层全过）。
+          # 改为导出 build-image 已验证的镜像（含完整模型缓存），l3-tests 直接 load 复用。
+          docker save ${{ env.DOCKER_IMAGE_NAME }}:latest | gzip > docker-image.tar.gz
+          ls -lh docker-image.tar.gz
+
+      - name: 上传镜像产物
+        uses: actions/upload-artifact@v7
+        with:
+          name: docker-image
+          path: docker-image.tar.gz
+          retention-days: 7
 
       - name: 上传镜像构建日志
         if: always()
@@ -156,17 +199,19 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v6
 
-      - name: 设置 Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: 下载构建的镜像
-        uses: docker/build-push-action@v5
+      - name: 下载镜像产物
+        uses: actions/download-artifact@v8
         with:
-          context: .
-          file: ./Dockerfile.linux-test
-          tags: ${{ env.DOCKER_IMAGE_NAME }}:latest
-          load: true
-          cache-from: type=gha
+          name: docker-image
+          path: .
+
+      - name: 加载镜像
+        run: |
+          echo "=== 加载 build-image 导出镜像 ==="
+          # [fix] 2026-08-14：不再自行 rebuild（gha 构建缓存跨 runner 恢复时
+          # 模型层可能缺失 → 编码器超时降级 json）。直接 load build-image 已验证产物。
+          gunzip -c docker-image.tar.gz | docker load
+          docker images | grep ${{ env.DOCKER_IMAGE_NAME }}
 
       - name: 创建测试结果目录
         run: mkdir -p test-results coverage-report

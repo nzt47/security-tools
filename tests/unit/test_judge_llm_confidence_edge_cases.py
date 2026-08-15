@@ -266,9 +266,11 @@ class TestIntentLayerCountsConcurrency:
         for t in threads:
             t.join()
 
-        # 验证总数（允许少量竞态丢失，但 ratio 总和仍 = 1.0）
+        # 验证总数（TD-3 加锁后应精确 = 1000，无竞态丢失）
+        assert _intent_layer_counts.get("semantic") == N_THREADS * N_PER_THREAD, \
+            "TD-3 加锁后并发计数应精确，实际 %d" % _intent_layer_counts.get("semantic", 0)
         total = sum(_intent_layer_counts.values())
-        # 关键不变量：ratio 总和恒 = 1.0（即使计数有竞态）
+        # 关键不变量：ratio 总和恒 = 1.0
         if total > 0:
             ratio_sum = sum(c / total for c in _intent_layer_counts.values())
             assert abs(ratio_sum - 1.0) < 1e-9, "ratio 总和 = %.10f，应 = 1.0" % ratio_sum

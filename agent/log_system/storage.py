@@ -59,6 +59,13 @@ class LogStorage:
         self.raw_log_dir = raw_log_dir or DEFAULT_RAW_DIR
         self._local = threading.local()
         self._write_lock = threading.Lock()
+        # [2026-08-13 并发审计] JSONL 追加独立锁：与 SQLite 写锁分离——
+        # Windows 上 open("a") 的 O_APPEND 是 seek+write 组合（非原子），
+        # 多线程并发追加会交错覆盖丢行，需独立锁保护单次写；慢磁盘只阻塞
+        # 原始日志追加方，不再拖住结构化日志（SQLite）写入路径
+        self._append_lock = threading.Lock()
+        # [2026-08-13 并发审计] 初始化双检锁：防并发首调重复建表
+        self._init_lock = threading.Lock()
         self._initialized = False
 
     # ── 数据库连接管理 ─────────────────────────────────────────
@@ -92,11 +99,13 @@ class LogStorage:
 
     def initialize(self):
         """初始化数据库表结构"""
-        if self._initialized:
-            return
+        # [2026-08-13 并发审计] 双检锁：防并发首调重复建表（CREATE TABLE IF NOT EXISTS 幂等但建表+置位需原子）
+        with self._init_lock:
+            if self._initialized:
+                return
 
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        os.makedirs(self.raw_log_dir, exist_ok=True)
+            os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+            os.makedirs(self.raw_log_dir, exist_ok=True)
 
         with self._cursor() as c:
             # 操作日志表
@@ -236,7 +245,9 @@ class LogStorage:
                 except Exception:
                     pass
 
-        self._initialized = True
+        # [2026-08-13 并发审计] 置位入锁：确保并发首调下只有完整建表者置位
+        with self._init_lock:
+            self._initialized = True
         logger.info("[LogSystem] 存储层初始化完成: db=%s, raw=%s", self.db_path, self.raw_log_dir)
 
     # ── 写入操作 ─────────────────────────────────────────────
@@ -305,7 +316,7 @@ class LogStorage:
         os.makedirs(log_dir, exist_ok=True)
         log_file = os.path.join(log_dir, f"{category}.jsonl")
         line = json.dumps(data, ensure_ascii=False)
-        with self._write_lock:
+        with self._append_lock:
             with open(log_file, 'a', encoding='utf-8') as f:
                 f.write(line + '\n')
 

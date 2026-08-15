@@ -13,6 +13,7 @@ import time
 import logging
 import uuid
 import re
+import threading
 from typing import List, Dict, Any, Optional, Tuple
 
 logger = logging.getLogger(__name__)
@@ -307,13 +308,11 @@ class SingletonMeta(type):
     """单例元类"""
 
     _instances: Dict[type, Any] = {}
-    _lock = None
+    # [2026-08-13 并发审计] 锁预建而非懒创建：原实现 `_lock = None` 后
+    # 在 __call__ 内无同步懒创建（check-then-act），并发首调可能创建多把锁
+    _lock = threading.Lock()
 
     def __call__(cls, *args, **kwargs):
-        if cls._lock is None:
-            import threading
-            cls._lock = threading.Lock()
-
         if cls not in cls._instances:
             with cls._lock:
                 if cls not in cls._instances:

@@ -6,6 +6,296 @@
 
 ---
 
+## [CHG] - 2026-08-14: TASK-04 知识→技能沉淀管道（连接器 + 定时调度 + 发布强制审核链）✅
+
+**影响模块**: `agent/knowledge/skill_bridge.py`（新增）, `agent/knowledge/__main__.py`, `agent/skills_mgmt/precipitate.py`（新增）, `agent/skills_mgmt/review_gate.py`（新增）, `agent/skills_mgmt/service.py`, `agent/server_routes/routes_skills_mgmt.py`, `agent/skills_mgmt/memory_abstractor.py`, `config.yaml`, `scripts/deploy_task04.py`（新增）, `scripts/check_cli_parser.py`（新增）, `scripts/check_worktree_parser.py`（新增）, `.pre-commit-config.yaml`
+**关联文档**: `docs/zh/智能体学习机制重构计划/变更说明/TASK-04_变更说明.md`
+**测试文件**: `tests/unit/test_knowledge_skill_bridge.py`, `tests/unit/test_precipitate_scheduler.py`, `tests/unit/test_review_enforcement.py`, `tests/unit/test_skill_bridge.py`, `tests/unit/test_precipitate_integration.py`（24 用例）
+
+### Added — 连接器（Step 1）
+
+- **`knowledge/skill_bridge.py`**：`KnowledgeSkillBridge` 把可转换知识卡片（`status=current` 且 `metadata.distilled=True`）转为 Skill DRAFT——复用 `creator.AIAssistedGenerator`（LLM 不可用模板降级）+ `DuplicateDetector` 去重（Jaccard≥0.7 + 内容哈希）→ `_commit_new_skill` 落盘 → 写回 `converted_to_skill` 幂等标记 → KPI `record_artifact("skill")`
+- **CLI**：`python -m agent.knowledge convert-cards [--dry-run] [--wiki PATH] [--skills-store PATH]`（dry-run 只预览不落盘）
+
+### Added — 定时调度（Step 2）
+
+- **`skills_mgmt/precipitate.py`**：`PrecipitateScheduler` 接线 `memory_abstractor.abstract_new_skills`，复用 `task_scheduler.add_interval_task`（与 offline_evolver.schedule 同模式）。默认关闭（`learning.precipitate_enabled=false`）；开启后 `auto_register` 强制 False；质量门控通过的草稿仅写审计日志（`event=precipitate_draft`）+ KPI，**不落盘不注册**
+- **`memory_abstractor.py`**：补草稿流程排查日志（入口参数 / max_skills 截断跳过 cluster_id 列表 / 各数据源计数）
+
+### Added — 发布强制审核链（Step 3）
+
+- **`skills_mgmt/review_gate.py`**：`enforce_review`（无 PASSED ReviewResult 抛 `SkillReviewError`）+ `audit_exemption`（豁免发布审计日志）
+- **`service.publish()`**：终态/驳回态拒绝 → 强制审核 → 置 PUBLISHED；`enforce_before_publish` 默认 true，`false`/`force=True` 显式豁免必须写审计日志
+- **HTTP 路由**：`POST /api/skills-mgmt/<skill_id>/publish?force=&reason=`
+- **部署/防线脚本**：`deploy_task04.py`（一键应用/验证，四段校验）、`check_cli_parser.py`（AST 符号级 parser 注册一致性）、`check_worktree_parser.py` + `.git/hooks/post-checkout`（worktree 切换自动检测，WARN 不阻断）、`.pre-commit-config.yaml` 新增 `cli-parser-register-check`
+
+### Changed — 配置（config.yaml，含中文注释）
+
+- `learning.precipitate_enabled: false`（env `LEARNING_PRECIPITATE_ENABLED` 覆盖）
+- `learning.precipitate.interval_hours: 24` / `learning.precipitate.audit_file: ./data/precipitate_audit.jsonl`
+- `skills_mgmt.review.enforce_before_publish: true`（env `SKILLS_REVIEW_ENFORCE_PUBLISH` 覆盖）
+- `skills_mgmt.review.audit_file: ./data/skills_mgmt_review_audit.jsonl`
+
+### 验证结果
+
+- 新增 5 测试文件 24 用例全绿（含 mock 验证固化的 `test_skill_bridge` 3 用例 + 集成 `test_precipitate_integration` 2 用例）
+- **全量 `tests/unit`（seed=20260814）**：11381 passed / 296 skipped / 13 xfailed / 7 failed / 1 error（39:02）；7 failed 单独重跑 128 passed 全转绿，判定已知环境噪音（K13 ast/linecache 漂移、T-4 reload 顺序污染）；1 error 属并行会话 untracked 测试文件，与本任务零关联
+- `deploy_task04.py` 终验多次 ALL PASS（期间并行会话 10 次覆盖接线均已恢复，末次终验 4/4 全过）
+- `check_cli_parser.py`：正例 PASS / 冲突注入 FAIL（exit 1）精确拦截；post-checkout 真实 checkout 触发验证（冲突场景日志记录 `[WARN]+exit=1`）
+- `python -m agent.observability.arch_rules --check`：0 未豁免违规；pre-commit `cli-parser-register-check` Passed
+
+---
+
+## [CHG] - 2026-08-13: 中危 12 处 + 低危 7 处并发风险收口（回调快照遍历 / 单例 DCL / 统计计数加锁 / 锁外 logger 与 I/O）+ 并发测试 ✅
+
+**影响模块**: `agent/monitoring/performance.py`, `business_metrics.py`, `alert_evaluator.py`, `alert_manager.py`, `chaos_injector.py`, `observability_optimizations.py`, `self_healer.py`, `loki.py`, `utils.py`, `agent/log_system/optimized_storage.py`, `safe_logger.py`, `storage.py`, `introspection.py`, `agent/logging_utils.py`, `agent/utils/decision_logger.py`, `index_manager.py`, `agent/server_routes/routes_logging.py`, `agent/llm_response_cache.py`
+**关联提交**: `ed53d567`（fix: 修复中危/低危并发风险（回调快照遍历/单例DCL/统计计数加锁/锁外logger与I/O））
+
+### 背景
+
+上轮扫描遗留的中危 12 处 + 低危 7 处全部收口。中危集中于共享容器遍历、统计计数自增、懒加载单例 fallback；低危集中于锁内 logger、锁内文件 I/O、共享可变引用。
+
+### Fixed — 中危（12 处）
+
+- **`performance.py`**：`RuntimeSampler` 回调列表无锁 append/遍历 → 回调 append 持锁、`_sample_loop` 锁内快照锁外遍历；`PerformanceAlertManager` 新增独立锁保护 `_last_alert_time`；`start` 检查-置位原子化
+- **`business_metrics.py`**：锁外遍历共享 defaultdict（并发增 key → RuntimeError）→ 无锁入口 `get_metric_by_name`/`export_prometheus` 持锁访问
+- **`alert_evaluator.py`**：`get_stats` 无锁快照 → 锁内快照 `dict(self._stats)`；单例 fallback 双检锁；`start` 原子化
+- **`optimized_storage.py`**：`_stats` 多线程无锁自增 → 独立 `_stats_lock`；`get_optimized_storage` 单例 DCL；`initialize` 双检
+- **8 处模块级单例 fallback DCL**（optimized_storage / safe_logger / alert_evaluator / alert_manager / loki / self_healer / index_manager / routes_logging）：统一"模块级锁 + 双检"，消除并发首调 TOCTOU（safe_logger 双实例曾泄漏 FileHandler 句柄）
+- **`routes_logging.py`**：`_ALERT_RULES_CACHE` 无锁加载/保存 → `_alert_rules_lock` + 临时文件 + `os.replace` 原子替换
+- **`chaos_injector.py`**：锁内大内存分配 + 线程 join → 锁外 join 与分配，锁内仅配置更新
+- **`observability_optimizations.py`**：批量处理器无锁启动（可双后台线程）+ 采样适配锁外读 → `_init_lock` 双检、`start` 原子化、elapsed 判断移入锁内
+- **各 `start/initialize` 6 处**（performance / alert_evaluator / alert_manager / observability / optimized_storage / storage）：check-then-act 改为锁内"检查-置位"
+
+### Fixed — 低危（7 处）
+
+- **`monitoring/utils.py`**：`SingletonMeta` 锁自身懒创建无同步 → 类属性预建锁
+- **`log_system/safe_logger.py` + `logging_utils.py`**：`record_iteration`/`check_state` 锁内 logger → 锁内收集告警信息、锁外记录
+- **`log_system/introspection.py`**：`_get_llm_service` 懒加载无锁 → 实例锁双检
+- **`monitoring/self_healer.py`**：自愈回调在 action 锁内 → 锁内构建 `SelfHealRecord`、锁外触发回调
+- **`utils/decision_logger.py`**：共享可变 `current_log` 无锁 → 独立 `_log_lock` 保护引用读写
+- **`log_system/optimized_storage.py`**：`ShardedLogStorage` 锁内 `os.makedirs`/`writer.close()` → 创建与关闭移出锁外，锁内双检防重复创建
+- **`llm_response_cache.py`**：`get`/`put`/`clear`/`end_save` 锁内 logger → 锁内仅状态变更、锁外统一记录
+
+### 验证结果
+
+- 低危修复回归 290/290 通过（llmcache / safe_logger / self_healer / introspection / optimized_storage / audit_safety / monitoring_utils / decision_logger / 全部并发测试）
+- 上轮中危回归 499/499 + 并发全量 180/180 保持全绿，无回退
+
+---
+
+## [CHG] - 2026-08-13: 批量修复低危并发风险（懒加载单例双检锁 + 遍历竞态 D/E）+ 并发测试 ✅
+
+**影响模块**: `agent/model_router/adapters.py`, `agent/memory_optimized.py`, `agent/utils/sensitive_data_filter.py`, `agent/api_gateway.py`, `agent/log_system/collectors.py`, `agent/log_system/dashboard.py`, `agent/monitoring/resource_monitor.py`, `agent/server_routes/tracing_middleware.py`, `agent/lazy_loader_async.py`
+**关联提交**: 本批次 commit（上轮扫描遗留 #3/#4/#5/#6/D/E 未修复项收口）
+
+### 背景
+
+上轮并发扫描遗留的低危风险：懒加载单例（client/collection）首调 TOCTOU、模块级单例并发首调创建多实例、锁外遍历被并发修改抛 RuntimeError。全部按"双检锁（DCL）+ 独立模块锁 + copy-on-write"模式收口。
+
+### Fixed — 并发竞态
+
+- **#3 `model_router/adapters.py`**：OpenAI/Claude `_get_client` 懒加载改双检锁——并发首次调用只创建一个 client
+- **#4 `memory_optimized.py`**：`LazyCollectionProxy._ensure_collection` 双检锁——并发首调只执行一次 `get_or_create_collection`
+- **#5 模块级懒加载单例 5 处**（collectors 5 个 getter / dashboard `get_introspection` / resource_monitor `_get_business_collector` / tracing_middleware `_get_tracer` / lazy_loader_async fallback）：统一"独立模块锁 + 双检"
+- **#6 `collectors.py` storage property 5 处**：双检锁，防并发首调重复构造
+- **D `api_gateway.py`**：新增端点注册/遍历互斥锁——`register_endpoint` 与 `generate_swagger_doc` 并发时 check-then-insert 原子化
+- **E `sensitive_data_filter.py`**：`add_pattern` 改 copy-on-write 整体替换（`dict(self._compiled_content)` → 赋值 → 整体回写）——遍历者持有的旧 dict 引用不可变，消除 `RuntimeError: dictionary changed size during iteration`
+
+### Added — 并发测试
+
+- 新增 `tests/unit/test_lazy_singleton_concurrency.py` 5 用例：并发首调只创建 1 个实例（`__new__` 计数断言）、并发 `_get_client`/`_ensure_collection` 工厂仅调用 1 次、并发 `filter` + `add_pattern` 无 RuntimeError 且新模式生效
+
+### 验证结果
+
+- 新并发测试 5/5 通过；全量相关回归 446/446 通过（api_gateway/sensitive/adapters/tracing 171、resource_monitor+import_smoke 117、server_routes 99、memory_optimized 32、log_system 22、adapters 5）
+
+---
+
+## [CHG] - 2026-08-13: SessionManager 锁内 I/O 修复（消息追加移出主锁 + 独立 append 锁）+ 高并发验证 ✅
+
+**影响模块**: `agent/session_manager.py`, `tests/unit/test_session_manager_concurrency.py`
+**关联提交**: `41edffdc`（fix(session_manager): 消息追加移出主锁并加独立 append 锁（并发审计 B））
+
+### 背景
+
+并发审计 B：`add_message` 在 `self._lock` 内执行消息文件追加 + index 全量读写——磁盘 I/O 全程持锁，慢磁盘会拖住所有会话操作与读路径。
+
+### Fixed — 并发竞态
+
+- `add_message`：消息文件追加移出主锁 `self._lock`——慢磁盘不再阻塞会话管理/读操作
+- **Windows 平台 O_APPEND 非原子性**：`open("a")` 在 Windows 上是 seek+write 组合（非原子），多线程并发追加会交错覆盖丢行（POSIX 原子追加、Windows 非原子）——故新增独立 `_append_lock` 保护"open→write→flush"单次写
+- `clear_messages`：清空消息文件纳入 `_append_lock`，防清空与并发追加交错产生残留行/丢消息
+- index 读-改-写保持主锁内：count 递增必须与写回原子（锁外写回会被并发旧值覆盖丢计数，一致性不变式；index 为小文件，锁内 I/O 时间短）
+
+### Added — 并发测试
+
+- 新增计时验证用例 `test_slow_append_does_not_block_reads`：模拟慢磁盘（`open("a")` 延迟 0.2s）时 `get_messages` 不被阻塞（<0.15s，旧实现约 0.2s），且慢 append 最终写入成功
+- 既有并发用例回归：并发不同会话无丢失；并发同会话 200 条消息无丢失 + message_count 精确 + 无重复（3 轮 × 3 用例全绿）
+
+### Perf — 锁开销与并发度
+
+- 消息追加临界区从"主锁 + 大文件 I/O"降为"独立锁 + 单次写"；慢磁盘只阻塞追加方，不阻塞会话管理/读
+
+### 验证结果
+
+- 新增 + 既有并发测试 3/3 通过（3 轮稳定）；既有回归 test_session_manager_comprehensive 60/60 通过
+
+### 副作用评估（已确认无严重副作用）
+
+- 单线程行为完全等价；并发追加行顺序不保证（O_APPEND 语义本就如此），消息内容完整无丢失
+- 已知权衡：`get_messages` 与追加并发时可能读到 flush 中半行——`json.JSONDecodeError` 已有容忍（跳过半行），窗口为单次写微秒级，可接受
+
+---
+
+## [CHG] - 2026-08-13: AlertNotifier 并发修复（sender.send 网络 I/O 移出锁外）+ 高并发验证 ✅
+
+**影响模块**: `agent/monitoring/alert_notifier.py`, `tests/unit/test_alert_notifier_concurrency.py`(新增), `tests/unit/test_session_manager_concurrency.py`(新增)
+**关联提交**: `84ced25d`（fix(monitoring/alert_notifier): sender.send 网络 I/O 移出锁外（并发审计 A/C））
+
+### 背景
+
+并发审计标记的 2 处持锁纪律违反（网络 I/O 在锁内）：
+- A：`send_notification` 锁内调用 `sender.send()`——外部通知渠道（HTTP/webhook/钉钉）阻塞会拖住所有告警线程
+- C：`send_critical` 锁内遍历 + 锁内 `sender.send()`（遍历本身有锁，真实问题同为锁内网络 I/O）
+
+### Fixed — 并发竞态
+
+- `send_notification`：锁内仅取 sender 快照（含通配符匹配），`sender.send()` 移出锁外；history 改为锁内批量追加 + 尾部截断（`extend` + `[-max_history:]`，与原逐条 `pop(0)` 语义等价）
+- `send_critical`：锁内取 critical 渠道快照、send 移出锁外（与 A 同模式）
+
+### Added — 并发测试
+
+- 新增 2 个并发测试文件、共 6 用例（Barrier 同步起跑放大竞争窗口）：
+  1. `test_alert_notifier_concurrency.py`(4)：并发 send 结果数/history/stats 精确（8 线程×10 无丢失）；并发 send_critical 结果数==critical 渠道数且各渠道调用次数精确；**慢渠道（0.2s）4 线程并行 ~0.2s 不串行**（计时验证 send 锁外：串行约 0.8s）；history 超过 max_history 精确截断
+  2. `test_session_manager_concurrency.py`(2)：并发 add_message 不同会话无丢失；同会话 message_count 精确 + 消息无重复
+
+### Perf — 锁开销与并发度
+
+- send 移出锁外后，慢通知渠道不再阻塞其他告警线程（计时验证：4×0.2s 从串行 0.8s 降为并行 ~0.2s）；锁内仅剩取快照与内存 history 追加
+
+### 验证结果
+
+- 新增并发测试 6/6 通过；既有回归 155/155 通过（alert_notifier_singleton + alert_notifier_integration + session_manager_comprehensive），无回归
+
+### 副作用评估（已确认无严重副作用）
+
+- 单线程行为完全等价；history 有界截断语义（max_history=100）保持不变——调试中确认截断逻辑正确生效，初始测试断言错误（误以为 history 无限增长），已修正为总量 < max_history 验证无丢失
+
+---
+
+## [CHG] - 2026-08-13: 熔断计数与采样率统计并发修复（并发审计遗留 #1/#2）+ 高并发验证 ✅
+
+**影响模块**: `agent/memory/adapters/holographic_adapter.py`, `agent/monitoring/performance_optimization.py`, `tests/unit/test_holographic_adapter_concurrency.py`(新增), `tests/unit/test_performance_optimization_concurrency.py`(新增)
+**关联提交**: `3b9c6999`（fix: 熔断计数与采样率统计加锁（并发丢计数修复 #1/#2））
+
+### 背景
+
+并发审计遗留的 2 处低危-中危竞态：均为「读-改-写非原子」丢计数，一处影响熔断判定正确性，一处影响自适应采样率统计口径。
+
+### Fixed — 并发竞态
+
+- `holographic_adapter`（#1 熔断计数）：`_record_vec_failure`/`_reset_vec_circuit` 内部加 `_lock` 保护 `_vec_fail_count`/`_vec_available`——并发 save/search 失败与探活重置交错会丢计数、熔断判定不一致（第 N 次触发时机漂移）。熔断触发标志锁内计算，logger 移出锁外（遵守持锁纪律）；调用点均在锁外（search_vector/save 异常路径），Lock 无死锁风险
+- `performance_optimization`（#2 采样率统计）：`AdaptiveSampler.should_sample` 的 `_sample_count`/`_request_count` 自增移入现有 `_lock`——原实现锁外自增丢计数（`_maybe_adjust` 中 `actual_ratio` 失真），且与 `_maybe_adjust` 锁内周期重置竞态（重置后自增丢失）
+
+### Added — 并发测试
+
+- 新增 2 个并发测试文件、共 7 用例（Barrier 同步起跑放大竞争窗口）：
+  1. `test_holographic_adapter_concurrency.py`(4)：并发失败计数精确（低于阈值不熔断）；恰好第 5 次熔断（不早不晚）；失败+探活重置交错状态不变量成立（_vec_available=True ⇒ 计数<阈值）；熔断→重置→重新计数
+  2. `test_performance_optimization_concurrency.py`(3)：全采样 ratio=1.0 双计数精确（16 线程×100）；零采样 ratio=0.0 sample 恒 0/request 精确；调整周期重置后并发累计计数互斥不丢失
+
+### Perf — 锁开销
+
+- 熔断计数与采样自增均为热路径上的纯内存整数操作，RLock/Lock 单次 acquire 约 0.22µs 可忽略；锁内无 I/O 无外部回调
+
+### 验证结果
+
+- 新增并发测试 7/7 通过；既有回归 108/108 通过（performance_optimization 集成 81 + lockfree 5 + tlm_memory_store 22），无回归
+
+### 副作用评估（已确认无严重副作用）
+
+- 单线程行为完全等价（签名/返回/异常不变）；熔断阈值语义（连续失败 ≥5 触发）与计数重置时机不变
+
+---
+
+## [CHG] - 2026-08-13: LockFreeRingBuffer 并发修复（多生产者/多消费者竞态）+ 高并发验证 ✅
+
+**影响模块**: `agent/monitoring/performance_optimization.py`, `tests/unit/test_lockfree_ring_buffer_concurrency.py`(新增)
+**关联提交**: `e5d193bf`（fix(monitoring/performance_optimization): LockFreeRingBuffer 加 RLock 修复多生产者/多消费者竞态）
+
+### 背景
+
+`LockFreeRingBuffer` 名义为「无锁」环形缓冲区，但「无锁」仅在单生产者+单消费者（SPSC）下成立。实际被 `BatchProcessor` 以**多生产者/多消费者**模式使用：多 HTTP 线程 `submit` 并发 `push`，`submit`（队列满触发）与后台 `_flush_loop` 并发 `drain`。违反 SPSC 假设后 `_head`/`_tail`/`_count` 读-改-写非原子 → **丢元素 / 丢计数**。该处为并发审计「第三轮 12 处余 1 处未点名」的定位对象。
+
+### Fixed — 并发竞态
+
+- `LockFreeRingBuffer` 全部读写方法加 `threading.RLock` 保护：`push`/`pop`/`drain`/`is_empty`/`is_full`/`size`
+- RLock 选型：`drain` 循环内调 `pop`（同锁重入），避免 Lock 自锁死锁
+- 锁内仅内存操作，无 I/O 无外部回调（遵守持锁纪律）；类名与 `__all__` 导出保持不变（接口兼容）
+
+### Added — 并发测试
+
+- 新增 `tests/unit/test_lockfree_ring_buffer_concurrency.py` 5 用例（Barrier 同步起跑放大竞争窗口）：
+  1. 并发 push 计数精确（16 线程 × 200：`_push_count/_count == 3200`，drain 无丢失无重复）
+  2. 多消费者并发 drain（8 消费者：2000 元素不重复不丢失）
+  3. 满容量并发 push（成功数 + overflow 数 == 总尝试数，成功 ≤ 容量）
+  4. 生产/消费混合并发（最终 `_pop_count == 1000`、`_count == 0` 一致性）
+  5. `BatchProcessor.submit` 并发（16 线程 × 100：所有成功提交均被消费）
+
+### Perf — 锁开销
+
+- push 为热路径，RLock 单次 acquire/release 约 0.22µs（纯内存），相对 `_process_func` 批量 I/O 可忽略
+
+### 验证结果
+
+- 新增并发测试 5/5 通过（2.04s）；既有集成回归 `tests/integration/test_performance_optimization_integration.py` **81/81 通过**，无回归
+
+### 副作用评估（已确认无严重副作用）
+
+- 单线程行为完全等价（签名/返回/异常不变）；容量语义与 overflow 计数行为不变
+
+---
+
+## [CHG] - 2026-08-13: 并发安全修复系列（三轮审计 + 10 模块锁化）✅
+
+**影响模块**: `agent/network_config.py`, `agent/monitoring/search.py`, `agent/orchestrator/dialog_state.py`, `agent/monitoring/optimized_metrics.py`, `agent/memory/router.py`, `agent/web/search.py`, `agent/web/crawler_control.py`, `agent/permission_system.py`, `agent/safety_guard.py`, `agent/health/assessor.py`（含 `tests/unit/test_*_concurrency.py` 新增 7 个并发测试文件）
+**关联提交**: `3a9e75cc`, `b381e81d`, `e388eaa0`, `1b6f6547`, `ee840417`, `05b34b6d`, `193ee359`, `1775d176`, `9fa5cf2c`, `0b9dffc3`
+**变更日志详情**: `docs/zh/进化机制重构计划/13_并发安全修复总结_20260813.md`(新增)
+
+### 背景
+
+模块级单例被多路 HTTP 路由/后台线程并发调用，CPython 读-改-写非原子，产生四类竞态：丢计数/丢更新（`+= 1` 字节码交错）、TOCTOU 重复实例（check-then-create）、遍历 RuntimeError（dict/list 并发增删）、并发注销 KeyError（if-in-del 非原子）。三轮审计递进：46 → 32 → 12 处自增点，高危 6 处全部修复，中危 4 处收尾。
+
+### Fixed — 并发竞态（按模块）
+
+- `network_config`：`_load` 双重检查锁（缓存双检 + 文件 I/O 出锁）；`_save` 文件写入与缓存更新同锁（一致性不变式）；`update`/`apply_search_instances` 整体持锁原子；LLM/MCP 六个 CRUD 锁内 TOCTOU；快照方法锁内深拷贝
+- `monitoring/search`：`_perform_check` 锁内取 check_id、网络 I/O 锁外、append 锁内；`start` TOCTOU 防双线程；快照方法锁内
+- `orchestrator/dialog_state`：模块级会话表 check-then-create 加锁；`update` 字段组 + turn_count 原子；`resolve` 锁内快照/锁外向量编码；`to_dict`/`reset` 锁内
+- `monitoring/optimized_metrics`：`_stats` 读-改-写原子；直方图 check-then-create 锁内；遍历锁内快照；`BatchMetricsWriter` start/stop TOCTOU 与 **write 锁内 flush 重入死锁修复**；fallback 单例加锁
+- `memory/router`：register/unregister/register_tier 锁内；`list_adapters`/`to_dict` 锁内遍历快照；`unregister` TOCTOU 防 KeyError；敏感过滤器延迟初始化双检
+- `web/search` / `web/crawler_control` / `permission_system` / `safety_guard` / `health/assessor`：RLock/Lock 保护统计、缓存、代理/UA/限速、计数器、回调列表与实例计数
+
+### Added — 并发测试
+
+- 新增 7 个并发测试文件、共 35 用例：`test_network_config_concurrency.py`(6)、`test_search_monitor_concurrency.py`(4)、`test_dialog_state_concurrency.py`(5)、`test_optimized_metrics_concurrency.py`(5)、`test_memory_router_concurrency.py`(4)、`test_web_search_concurrency.py`(5)、`test_crawler_control_concurrency.py`(5)
+- 验证方法：`threading.Barrier` 同步起跑放大竞争窗口；计数精确（turn_count/_stats/check_id 唯一）与不抛异常断言；`tempfile.mkdtemp` 自包含不污染仓库
+
+### Perf — 锁开销
+
+- 读路径加锁为纯内存 µs 级操作（RLock 单次 acquire/release 约 0.22µs，与 multi_tenant 修复同量级）；`monitoring/search` 网络 I/O 全部移出锁外，最长可达 timeout 秒级请求不阻塞计数/快照
+
+### 验证结果
+
+- 本系列模块既有回归 + 新增并发共 **268 项全绿**；全量分批扫描约 5400+ 项，失败项均验证与本次修复无关（ci_guard/few_shot/impact_analysis/sqlite_vec 降级/网络依赖超时/WMI 崩溃等环境性、既有问题）
+
+### 副作用评估（已确认无严重副作用）
+
+- 单线程行为完全等价（签名/返回/异常不变）
+- 已知权衡 1：`network_config._save` 文件写入持锁（低频本地磁盘 I/O，一致性不变式优先）
+- 已知权衡 2：`dialog_state.resolve` 向量编码锁外执行，编码期间并发 update 可能读到快照时点之前的半状态（会话内串行语义，可接受）
+
+---
+
 ## [CHG] - 2026-08-13: 多租户三管理器 RLock 原子化（并发锁修复）+ 锁开销基准 ✅
 
 **影响模块**: `agent/multi_tenant.py`, `tests/unit/test_multi_tenant_concurrency.py`(新增), `tests/test_multi_tenant.py`(单线程基线), `docs/zh/多租户并发锁修复_回归测试计划.md`(新增)

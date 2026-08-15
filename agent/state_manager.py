@@ -146,10 +146,14 @@ class StateManager:
         raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
     
     def _create_backup(self, state_id: str):
-        """创建状态备份"""
+        """创建状态备份：将当前最新一份状态备份为 <state_id>_backup.json
+
+        注：默认文件 agent_state.json 从不被 save_state 写入（save_state(None) 会生成独立 ID 文件），
+        故备份源取 _find_latest_state()（当前最新非备份状态）。
+        """
         try:
-            current_path = self._get_state_path()
-            if not current_path.exists():
+            current_path = self._find_latest_state()
+            if current_path is None:
                 return
             
             backup_name = f"{state_id}_backup{self.FILE_EXTENSION}"
@@ -208,6 +212,8 @@ class StateManager:
                 logger.debug(log_dict({'module_name': 'state_manager', 'action': 'state_id.state_id.len', 'msg': f'开始保存状态，state_id: {state_id}, 数据键数量: {len(state_data.keys())}'}))
                 
                 # 生成状态ID
+                # 备份判定须在 ID 生成之前捕获原始意图（state_id 为 None 即默认保存）
+                is_default_save = state_id is None
                 if state_id is None:
                     state_id = self._generate_state_id()
                     logger.debug(log_dict({'module_name': 'state_manager', 'action': 'state_id', 'msg': f'自动生成状态ID: {state_id}'}))
@@ -242,8 +248,8 @@ class StateManager:
                 file_path = self._get_state_path(state_id)
                 logger.debug(log_dict({'module_name': 'state_manager', 'action': 'file_path', 'msg': f'状态文件路径: {file_path}'}))
                 
-                # 创建备份（仅对默认状态文件）
-                if state_id is None:
+                # 创建备份（仅对默认保存：state_id 为 None 的自动快照）
+                if is_default_save:
                     logger.debug(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': '创建状态备份...'}))
                     self._create_backup(state_id)
                     logger.debug(log_dict({'module_name': 'state_manager', 'action': 'log', 'msg': '备份创建完成'}))

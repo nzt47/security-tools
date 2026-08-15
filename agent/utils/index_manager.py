@@ -274,6 +274,8 @@ class IndexManager:
 
 # 全局索引实例（保留作为 fallback）
 _global_index: Optional[IndexManager] = None
+# [2026-08-13 并发审计] fallback 单例双检锁：防并发首调创建多个实例
+_global_index_lock = threading.Lock()
 
 try:
     from agent.utils.singleton_manager import register_singleton, get_singleton, reset_singleton
@@ -296,7 +298,10 @@ def get_global_index() -> IndexManager:
         return get_singleton("global_index")
     global _global_index
     if _global_index is None:
-        _global_index = _create_global_index()
+        # [2026-08-13 并发审计] fallback 双检锁：防并发首调创建多个实例
+        with _global_index_lock:
+            if _global_index is None:
+                _global_index = _create_global_index()
     return _global_index
 
 

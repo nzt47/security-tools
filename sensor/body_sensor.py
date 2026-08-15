@@ -170,6 +170,17 @@ class BodySensor:
         self._change_detector_initialized = True
         elapsed = (time.time() - start_time) * 1000
         logger.info("[BodySensor] ChangeDetector 初始化完成，耗时: %.3fms", elapsed)
+
+    def attach_change_learning_hook(self, hook):
+        """TASK-06：旁路挂载 ChangeDetector 学习钩子（默认 None 不触发；失败仅日志）。"""
+        try:
+            self._ensure_change_detector()
+            if self.change_detector:
+                self.change_detector.set_learning_hook(hook)
+                return True
+        except Exception as e:  # noqa: BLE001 挂载失败不阻断感知初始化
+            logger.warning(f"[BodySensor] 挂载学习钩子失败: {e}")
+        return False
     
     def _ensure_event_monitor(self):
         """确保 EventMonitor 已初始化"""

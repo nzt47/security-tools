@@ -26,6 +26,10 @@ from .summary import build_react_summary, build_react_summary_markdown
 
 logger = logging.getLogger(__name__)
 
+# 任务5（D6 另一半）：循环终止的稳定标识——ReActLoop 命中状态哈希/_detect_loop 时的
+# error 文案。消除魔法字符串，供 _plan_chat 识别（P1）与测试断言复用。
+LOOP_TERMINATED_ERROR = "检测到执行循环"
+
 
 class PlanningError(Exception):
     """规划引擎异常"""
@@ -126,12 +130,18 @@ class PlanningCore:
         )
         # 阶段 3（D14）：注入重规划与失败归因依赖（decomposer 已就绪；reflector 待创建后补注）
         self.executor.decomposer = self.decomposer
+        # TD-4：分解器 LLM 成本记入 executor 实例（decompose 先于 execute_plan，
+        # budget.start() 不重置累计值，快照覆盖分解成本；None 兼容旧构造）
+        self.decomposer.budget_manager = self.executor.budget_manager
         logger.info(f"执行引擎初始化完成，最大重试次数: {self.executor.max_retries}")
 
         reflector_config = self.config.get("reflector", {})
         self.reflector = Reflector(llm_service, memory_manager, reflector_config)
         # 阶段 3（D14）：失败归因依赖补注（executor.reflector 在 reflector 创建后注入）
         self.executor.reflector = self.reflector
+        # TD-4：反思引擎默认记账实例挂 executor（step_reflect 走 ReAct 路径时
+        # 由 react.py 显式传 react 实例覆盖；plan_reflect 走计划路径显式传 executor 实例）
+        self.reflector.budget_manager = self.executor.budget_manager
         # 阶段 4（D16/D17）：指标注入 reflector（get_advice_for_task 内部埋点）；
         # 分解器经验注入补注（decomposer 先于 reflector 创建，创建后回填）
         self.reflector.metrics = self.planning_metrics
@@ -320,6 +330,8 @@ class PlanningCore:
                 self.executor._finalize_state(plan, PlanState.FAILED, reason="计划验证失败")
                 self._record_plan_result(plan, success=False,
                                          duration_ms=(datetime.now() - exec_start).total_seconds() * 1000)
+                # TASK-02：失败收尾沉淀教训（观察模式，默认不落盘）
+                await self._record_experience(plan, success=False)
                 return plan
 
             logger.info("📊 步骤1: 状态转换 -> EXECUTING")
@@ -338,7 +350,9 @@ class PlanningCore:
             if self.reflector:
                 try:
                     logger.info("🧠 步骤3: 执行计划反思...")
-                    reflection = await self.reflector.plan_reflect(plan)
+                    reflection = await self.reflector.plan_reflect(
+                        plan, budget_manager=self.executor.budget_manager
+                    )
                     logger.info("   ✅ 反思完成")
 
                     # 阶段 2（D4 反思闭环）：计划级调整激活 decomposer.refine()——
@@ -351,6 +365,16 @@ class PlanningCore:
                         self.save_plan_checkpoint(plan)
                 except Exception as e:
                     logger.warning(f"   ⚠️ 反思执行失败: {e}")
+
+                # TD-4 收口：plan_reflect/refine 在 executor finally 回填后记账，
+                # 此处统一刷新 plan.metadata 预算快照（保留超限 status），
+                # 使反射/优化成本进入 _record_plan_result 埋点（可观测性闭环）
+                if getattr(self.executor, "budget_manager", None) is not None:
+                    _prev = (plan.metadata or {}).get("budget") or {}
+                    _prev_status = _prev.get("status")
+                    plan.metadata["budget"] = self.executor.budget_manager.snapshot()
+                    if _prev_status:
+                        plan.metadata["budget"]["status"] = _prev_status
 
             logger.info("📋 步骤4: 校验最终状态（已由执行器经状态机完成收尾）...")
             # 最终状态已由 executor._finalize_state 经状态机完成 EXECUTING -> COMPLETED/FAILED。
@@ -373,6 +397,8 @@ class PlanningCore:
             # 阶段 4（D16）：计划路径收尾埋点（task_type 复用 reflector 分类）
             self._record_plan_result(plan, success=(plan.state == PlanState.COMPLETED),
                                      duration_ms=(datetime.now() - exec_start).total_seconds() * 1000)
+            # TASK-02：成功/失败收尾沉淀经验/教训（观察模式，默认不落盘）
+            await self._record_experience(plan, success=(plan.state == PlanState.COMPLETED))
 
             return plan
 
@@ -386,6 +412,8 @@ class PlanningCore:
             # 阶段 4（D16）：状态转换失败同样计入埋点（failed）
             self._record_plan_result(plan, success=False,
                                      duration_ms=(datetime.now() - exec_start).total_seconds() * 1000)
+            # TASK-02：失败收尾沉淀教训（观察模式，默认不落盘）
+            await self._record_experience(plan, success=False)
             logger.info("="*60)
             return plan
 
@@ -400,6 +428,75 @@ class PlanningCore:
             duration_ms=duration_ms,
             cost=float(budget.get("cost") or 0.0),
         )
+
+    # TASK-02：经验/教训落盘开关（观察模式）硬编码默认值
+    _EXPERIENCE_PERSIST_DEFAULT = False
+
+    @staticmethod
+    def _parse_bool_flag(value) -> bool:
+        """yaml 开关值安全解析（TASK-02）— 布尔原样返回；字符串按 true/1/yes 判 True，
+        其余（含 "false"/"0"，运维误加引号场景）判 False。
+        【不易】保护 config.yaml false 默认语义：bool("false")==True 会把关闭开关误读为开启。"""
+        if isinstance(value, bool):
+            return value
+        return str(value).strip().lower() in ("true", "1", "yes")
+
+    @classmethod
+    def _load_experience_persist_config(cls) -> bool:
+        """读取学习经验落盘配置（TASK-02）— 优先级: 环境变量 > config.yaml > 硬编码默认值
+
+        config.yaml 路径: learning.experience_persist
+        环境变量: LEARNING_EXPERIENCE_PERSIST
+
+        【不易】硬编码默认值作为最终兜底；默认 false（观察模式），
+               execute_plan 收尾仅记调用意图日志，不实际调 learn_from_experience 落盘。
+        """
+        enabled = cls._EXPERIENCE_PERSIST_DEFAULT
+        try:
+            from pathlib import Path
+            config_path = Path(__file__).resolve().parent.parent / "config.yaml"
+            if config_path.exists():
+                import yaml as _yaml
+                with open(config_path, "r", encoding="utf-8") as f:
+                    data = _yaml.safe_load(f) or {}
+                learning_cfg = data.get("learning", {}) or {}
+                if learning_cfg.get("experience_persist") is not None:
+                    enabled = cls._parse_bool_flag(learning_cfg.get("experience_persist"))
+        except Exception as e:
+            logger.debug(f"[经验落盘] config.yaml 读取失败，降级到默认值: {e}")
+
+        env_val = os.environ.get("LEARNING_EXPERIENCE_PERSIST")
+        if env_val is not None and env_val.strip():
+            enabled = env_val.strip().lower() in ("true", "1", "yes")
+        # 【排查】解析后最终生效值（含环境变量来源，一条日志看清三层优先级结果）
+        logger.info(f"[经验落盘] 配置生效: experience_persist={enabled} (env=LEARNING_EXPERIENCE_PERSIST={env_val!r})")
+        return enabled
+
+    async def _record_experience(self, plan: Plan, *, success: bool) -> None:
+        """TASK-02：execute_plan 收尾接线 learn_from_experience（观察模式）
+
+        learning.experience_persist=true 时在成功/失败收尾后调 reflector 沉淀经验/教训
+        至 data/reflection/{experiences,lessons}.json；false（默认）仅记录调用意图日志。
+        【不易】不改 reflector.learn_from_experience 签名与文件 schema；
+        【变易】learn 异常仅记 WARNING 降级，不中断主链路。
+        """
+        if not self.reflector:
+            logger.info(f"[经验落盘] reflector 未初始化，跳过（计划 {plan.id}, success={success}）")
+            return
+        if not self._load_experience_persist_config():
+            # 【排查】观察模式：明确记录开关状态（false 属预期行为，非故障）
+            logger.info(f"[经验落盘] 观察模式（experience_persist=false）：跳过 learn_from_experience（计划 {plan.id}, success={success}）")
+            return
+        try:
+            if success:
+                result = ActionResult.success_result(output=plan.result)
+            else:
+                result = ActionResult.failure_result(plan.error or "计划执行失败")
+            # 【排查】落盘入口：确认 learn 被触发（与 reflector 内部成功日志/下方 WARNING 配对定位）
+            logger.info(f"[经验落盘] 开始沉淀经验/教训（计划 {plan.id}, success={success}）")
+            await self.reflector.learn_from_experience(plan.original_task, result)
+        except Exception as e:
+            logger.warning(f"[经验落盘] learn_from_experience 调用失败，降级跳过: {e}")
 
     async def chat(self, message: str, context: Dict = None) -> ChatResult:
         """
@@ -515,8 +612,20 @@ class PlanningCore:
                 logger.info("✅ 任务执行成功，生成响应...")
                 response = str(react_result.result)
             else:
-                logger.warning("⚠️ 任务执行遇到问题，生成错误响应...")
-                response = f"我遇到了一些问题: {react_result.error}"
+                # 任务5（D6 另一半）P1：识别"决策循环终止"并与普通失败区分——
+                # 不重试（状态未变，重试必再循环）；文案含"决策循环"+ 解释性摘要，
+                # 满足任务5 验收标准 1（原因含"决策循环"与摘要）。
+                loop_summary = (react_result.final_state or {}).get("loop_summary")
+                if loop_summary:
+                    logger.warning(f"⚠️ [loop_terminated] 决策循环终止 | 摘要: {loop_summary}")
+                    response = (
+                        f"检测到重复执行循环（决策循环），已安全终止。"
+                        f"摘要：{loop_summary}。\n"
+                        f"建议：简化任务描述、检查参数，或转人工处理"
+                    )
+                else:
+                    logger.warning("⚠️ 任务执行遇到问题，生成错误响应...")
+                    response = f"我遇到了一些问题: {react_result.error}"
 
             if react_result.iterations > 1:
                 response += f"\n\n(经过 {react_result.iterations} 步处理)"

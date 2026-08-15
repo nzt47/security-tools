@@ -131,7 +131,10 @@ class TestSelectExamples:
         """根据 intent 检索出最匹配示例"""
         _write_examples(injector, "weather", [
             _example("ex_001", "用户问昨天天气", output="昨天晴转多云。"),
-            _example("ex_002", "用户问今天日期", output="今天是 7 月 13 日。"),
+            # 【Why】ex_002 原 intent "用户问今天日期" 与查询仅 2/6 bigram 重叠，
+            # TF-IDF 余弦 0.2243 < min_score=0.3 被"宁缺毋滥"过滤，导致 len(selected)==1
+            # 与断言 len==2 矛盾。改为 "用户问昨天日期"（4/6 重叠，score≈0.54）保留断言强度。
+            _example("ex_002", "用户问昨天日期", output="今天是 7 月 13 日。"),
             _example("ex_003", "解析PDF文件", output="已解析 3 页。"),
         ])
         selected = injector.select_examples("weather", "用户问昨天天气", top_k=2)

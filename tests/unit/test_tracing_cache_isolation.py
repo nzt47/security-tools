@@ -101,3 +101,29 @@ class TestTracingCacheIsolation:
 
         result = cache.get("expired_key")
         assert result is None
+
+
+class TestAsyncWriterFlushLoop:
+    """AsyncWriter 后台 flush 循环正确性测试
+
+    回归验证 tracing_cache.py `_flush_loop` 的 get-put-flush 路径：
+    修复前 L255 引用未定义变量 data，每次取到队列项都会抛 NameError 被
+    except 吞掉，导致队列项永久丢失（write_func 永不收到数据）。
+    """
+
+    def test_flush_loop_delivers_queued_item(self):
+        """队列中已有数据时，flush 循环应正常交给 write_func"""
+        from agent.monitoring.tracing_cache import AsyncWriter
+
+        received = []
+        writer = AsyncWriter(
+            write_func=lambda batch: received.extend(batch),
+            flush_interval=1000.0,  # 不触发间隔刷新分支，聚焦 get-put-flush 路径
+        )
+        writer._queue.put({"k": "v"})
+        writer.start()
+        time.sleep(0.8)  # 覆盖至少一轮循环（get 阻塞超时 0.5s）
+        writer.stop(timeout=1.0)
+        assert received == [{"k": "v"}], \
+            f"flush 循环应把队列项交给 write_func，实际收到 {received}"
+

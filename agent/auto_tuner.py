@@ -446,6 +446,299 @@ class AutoTuner:
             }))
             raise
 
+    def generate_strategy_linked_suggestion(self) -> Optional[TuningSuggestion]:
+        """任务6：进化策略统计 → 参数联动建议（走既有 HITL 审批流程）
+
+        信号源: agent.evolution.injector.get_strategy_stats()
+        规则（【简易】表格直译）:
+          工具尝试 ≥3 次且成功率 ≤0.5（失败率高）→ 建议 tool_max_concurrency 下调 2、
+          timeout_seconds 上调 10（均钳制在参数范围内）。
+        产出 status=pending 的 TuningSuggestion 入库，经 approve/apply HITL 生效；
+        injector 不可用或无高失败工具 → 返回 None（不影响主流程）。
+        """
+        self.initialize()
+        try:
+            from agent.evolution.injector import get_injector
+        except Exception:
+            return None
+        inj = get_injector()
+        if inj is None:
+            return None
+        stats = inj.get_strategy_stats()
+
+        by_tool = stats.get("by_tool", {}) or {}
+        high_fail_tools = [
+            tool for tool, e in by_tool.items()
+            if e.get("attempt", 0) >= 3 and e.get("rate", 0.0) <= 0.5
+        ]
+        if not high_fail_tools:
+            return None
+
+        cur = self._current_params
+        proposed: Dict[str, Any] = {}
+        expected_impact: Dict[str, float] = {}
+
+        new_conc = max(self._param_ranges["tool_max_concurrency"]["min"],
+                       int(cur.get("tool_max_concurrency", 5)) - 2)
+        if new_conc != int(cur.get("tool_max_concurrency", 5)):
+            proposed[TunableParam.TOOL_MAX_CONCURRENCY.value] = new_conc
+            expected_impact[TunableParam.TOOL_MAX_CONCURRENCY.value] = -2.0
+
+        new_timeout = min(self._param_ranges["timeout_seconds"]["max"],
+                          int(cur.get("timeout_seconds", 30)) + 10)
+        if new_timeout != int(cur.get("timeout_seconds", 30)):
+            proposed[TunableParam.TIMEOUT_SECONDS.value] = new_timeout
+            expected_impact[TunableParam.TIMEOUT_SECONDS.value] = 10.0
+
+        if not proposed:
+            return None
+
+        import uuid
+        suggestion_id = str(uuid.uuid4())[:8]
+        suggestion = TuningSuggestion(
+            suggestion_id=suggestion_id,
+            title=f"进化策略联动建议 - {datetime.now().strftime('%Y-%m-%d')}",
+            description="基于进化策略统计（工具失败率）的降载/超时调整建议",
+            objective="balanced",
+            current_params=dict(cur),
+            proposed_params=proposed,
+            expected_impact=expected_impact,
+            confidence=0.7,
+            status="pending",
+            metadata={"source": "evolution", "high_fail_tools": high_fail_tools},
+        )
+
+        try:
+            with self._write_lock, self._get_conn() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """INSERT INTO tuning_suggestions
+                       (suggestion_id, title, description, objective,
+                        current_params, proposed_params, expected_impact,
+                        confidence, status, created_at, metadata)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (suggestion.suggestion_id, suggestion.title,
+                     suggestion.description, suggestion.objective,
+                     json.dumps(suggestion.current_params, ensure_ascii=False),
+                     json.dumps(suggestion.proposed_params, ensure_ascii=False),
+                     json.dumps(suggestion.expected_impact, ensure_ascii=False),
+                     suggestion.confidence, suggestion.status,
+                     suggestion.created_at,
+                     json.dumps(suggestion.metadata, ensure_ascii=False))
+                )
+                conn.commit()
+
+            logger.info(json.dumps({
+                "trace_id": "",
+                "module_name": "auto_tuner",
+                "action": "generate_strategy_linked_suggestion",
+                "suggestion_id": suggestion_id,
+                "high_fail_tools": high_fail_tools,
+                "param_changes": len(proposed),
+                "level": "INFO"
+            }))
+            return suggestion
+        except Exception as e:
+            logger.error(json.dumps({
+                "trace_id": "",
+                "module_name": "auto_tuner",
+                "action": "generate_strategy_linked_suggestion",
+                "error": str(e),
+                "level": "ERROR"
+            }))
+            raise
+
+    def generate_strategy_weekly_report(self) -> Optional[TuningReport]:
+        """任务6：进化周报（复用 auto_tuner 报告机制）。
+
+        读取 injector.generate_weekly_report()（本周失败案例数/策略命中数/
+        成功率/deprecated 数），包装为 TuningReport 入库 tuning_reports 表。
+        """
+        self.initialize()
+        try:
+            from agent.evolution.injector import get_injector
+        except Exception:
+            return None
+        inj = get_injector()
+        if inj is None:
+            return None
+        strategy_report = inj.generate_weekly_report()
+
+        import uuid
+        report_id = str(uuid.uuid4())[:8]
+        report = TuningReport(
+            report_id=report_id,
+            period_start=time.time() - 7 * 86400,
+            period_end=time.time(),
+            objective="evolution",
+            summary=(
+                f"进化周报 - 失败案例 {strategy_report['week_failure_cases']} 例, "
+                f"策略命中 {strategy_report['week_strategy_hits']} 次, "
+                f"成功率 {strategy_report['strategy_success_rate']:.2%}"
+            ),
+            suggestions=[],
+            metrics_summary=strategy_report,
+        )
+
+        try:
+            with self._write_lock, self._get_conn() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """INSERT INTO tuning_reports
+                       (report_id, period_start, period_end, objective,
+                        summary, suggestions, metrics_summary, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (report.report_id, report.period_start, report.period_end,
+                     report.objective, report.summary, "[]",
+                     json.dumps(strategy_report, ensure_ascii=False),
+                     report.created_at)
+                )
+                conn.commit()
+            return report
+        except Exception as e:
+            logger.error(json.dumps({
+                "trace_id": "",
+                "module_name": "auto_tuner",
+                "action": "generate_strategy_weekly_report",
+                "error": str(e),
+                "level": "ERROR"
+            }))
+            raise
+
+    def generate_strategy_linked_suggestion(self) -> Optional[TuningSuggestion]:
+        """任务6：参数联动——读取进化策略统计（get_strategy_stats），
+        高失败率工具（尝试≥3 且成功率≤0.5）→ 生成参数调优建议，走既有 HITL 审批链
+        （approve → apply）；无高失败工具或注入器不可用返回 None。
+        """
+        self.initialize()
+        try:
+            from agent.evolution.injector import get_injector
+            inj = get_injector()
+            if inj is None:
+                return None
+            stats = inj.get_strategy_stats()
+        except Exception:
+            return None
+
+        high_fail_tools = [
+            tool for tool, e in (stats.get("by_tool") or {}).items()
+            if e.get("attempt", 0) >= 3 and e.get("rate", 1.0) <= 0.5
+        ]
+        if not high_fail_tools:
+            return None
+
+        tool = high_fail_tools[0]
+        tool_entry = (stats.get("by_tool") or {}).get(tool, {})
+        current = dict(self._current_params)
+        proposed = dict(current)
+        proposed["tool_max_concurrency"] = max(1, int(proposed.get("tool_max_concurrency", 10)) - 2)
+        proposed["timeout_seconds"] = min(120.0, float(proposed.get("timeout_seconds", 30.0)) + 10.0)
+
+        import uuid
+        suggestion_id = str(uuid.uuid4())[:8]
+        suggestion = TuningSuggestion(
+            suggestion_id=suggestion_id,
+            title=f"工具 {tool} 失败率过高，建议调整并发与超时",
+            description=(
+                f"进化策略统计显示工具 {tool} 失败率过高"
+                f"（尝试 {tool_entry.get('attempt', 0)} 次），"
+                f"建议下调 tool_max_concurrency 并放宽 timeout_seconds"
+            ),
+            objective="reliability",
+            current_params=current,
+            proposed_params=proposed,
+            expected_impact={"failure_rate": -0.1},
+            confidence=0.6,
+            status="pending",
+            metadata={"source": "evolution", "high_fail_tools": high_fail_tools},
+        )
+
+        try:
+            with self._write_lock, self._get_conn() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """INSERT INTO tuning_suggestions
+                       (suggestion_id, title, description, objective,
+                        current_params, proposed_params, expected_impact,
+                        confidence, status, created_at, metadata)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (suggestion.suggestion_id, suggestion.title,
+                     suggestion.description, suggestion.objective,
+                     json.dumps(suggestion.current_params, ensure_ascii=False),
+                     json.dumps(suggestion.proposed_params, ensure_ascii=False),
+                     json.dumps(suggestion.expected_impact, ensure_ascii=False),
+                     suggestion.confidence, suggestion.status,
+                     suggestion.created_at,
+                     json.dumps(suggestion.metadata, ensure_ascii=False))
+                )
+                conn.commit()
+            return suggestion
+        except Exception as e:
+            logger.error(json.dumps({
+                "trace_id": "",
+                "module_name": "auto_tuner",
+                "action": "generate_strategy_linked_suggestion",
+                "error": str(e),
+                "duration_ms": 0,
+                "level": "ERROR"
+            }))
+            return None
+
+    def generate_strategy_weekly_report(self) -> Optional[TuningReport]:
+        """任务6：进化周报——复用 auto_tuner 报告机制，
+        将注入器周报包装为 TuningReport 并入库 tuning_reports。
+        """
+        self.initialize()
+        try:
+            from agent.evolution.injector import get_injector
+            inj = get_injector()
+            if inj is None:
+                return None
+            weekly = inj.generate_weekly_report()
+        except Exception:
+            return None
+
+        period_end = time.time()
+        period_start = period_end - 7 * 86400
+        import uuid
+        report_id = str(uuid.uuid4())[:8]
+        report = TuningReport(
+            report_id=report_id,
+            period_start=period_start,
+            period_end=period_end,
+            objective="evolution",
+            summary="进化策略周报（失败案例回流 + 策略统计）",
+            suggestions=[],
+            metrics_summary=weekly,
+        )
+
+        try:
+            with self._write_lock, self._get_conn() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """INSERT INTO tuning_reports
+                       (report_id, period_start, period_end, objective,
+                        summary, suggestions, metrics_summary, created_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (report.report_id, report.period_start, report.period_end,
+                     report.objective, report.summary,
+                     json.dumps([], ensure_ascii=False),
+                     json.dumps(weekly, ensure_ascii=False),
+                     report.created_at)
+                )
+                conn.commit()
+            return report
+        except Exception as e:
+            logger.error(json.dumps({
+                "trace_id": "",
+                "module_name": "auto_tuner",
+                "action": "generate_strategy_weekly_report",
+                "error": str(e),
+                "duration_ms": 0,
+                "level": "ERROR"
+            }))
+            return None
+
     def _collect_metrics(self, days: int) -> Dict[str, List[float]]:
         since = time.time() - days * 86400
 

@@ -15,6 +15,7 @@ https://github.com/open-telemetry/semantic-conventions/blob/main/docs/http/http-
 
 import time
 import logging
+import threading
 from flask import request, g, has_request_context
 
 from agent.monitoring.tracing import (
@@ -71,14 +72,19 @@ logger = get_logger_with_context(__name__)
 
 # 缓存的 Tracer 实例
 _tracer = None
+# [2026-08-13 并发审计 #5] 懒加载单例双检锁：并发首次调用只初始化一次
+# （init_observability 为一次性全局初始化，持锁执行可接受）
+_tracer_lock = threading.Lock()
 
 def _get_tracer():
     """获取 Tracer 实例（延迟初始化）"""
     global _tracer
     if _tracer is None:
-        init_observability()
-        if is_opentelemetry_available():
-            _tracer = get_tracer("yunshu-flask")
+        with _tracer_lock:
+            if _tracer is None:
+                init_observability()
+                if is_opentelemetry_available():
+                    _tracer = get_tracer("yunshu-flask")
     return _tracer
 
 

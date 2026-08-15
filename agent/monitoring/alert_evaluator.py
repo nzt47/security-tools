@@ -361,11 +361,18 @@ class AlertEvaluator:
         Returns:
             当前触发的告警列表
         """
-        self._stats["total_evaluations"] += 1
-        firing_alerts = []
+        # [2026-08-13 并发审计] 锁内仅做状态机内存变更与统计计数；
+        # logger / 外部回调（状态变化、自愈）全部收集后移出锁外执行，
+        # 防止慢回调（网络通知、服务重启等）冻结整个评估器（含 add_rule/get_alerts）
+        state_change_events = []  # (alert, previous_state)
+        firing_logs = []          # 告警触发结构化日志数据
+        resolved_logs = []        # 告警恢复结构化日志数据
+        heal_actions = []         # (alert, action)
 
         with self._lock:
+            self._stats["total_evaluations"] += 1
             current_time = time.time()
+            firing_alerts = []
 
             for rule_name, rule in self._rules.items():
                 alert = self._alerts.get(rule_name)
@@ -395,7 +402,7 @@ class AlertEvaluator:
                             alert.fire_count += 1
                             self._stats["alerts_triggered"] += 1
                             # 结构化日志：告警触发（含指标值与阈值，便于排查误报）
-                            logger.warning(json.dumps({
+                            firing_logs.append({
                                 "trace_id": get_trace_id(),
                                 "module_name": "alert_evaluator",
                                 "action": "alert_firing",
@@ -404,7 +411,7 @@ class AlertEvaluator:
                                 "severity": alert.severity.value,
                                 "value": current_value,
                                 "threshold": rule.threshold
-                            }, ensure_ascii=False))
+                            })
 
                     elif alert.state == AlertState.FIRING:
                         # 更新值
@@ -422,51 +429,69 @@ class AlertEvaluator:
                         # 结构化日志：告警恢复（含持续时长 ms，便于统计告警 MTTR）
                         # 规范统一：使用 duration_ms（原 duration_seconds 已废弃，统一为毫秒）
                         resolved_duration_ms = int((alert.resolved_at - alert.started_at) * 1000) if alert.started_at else 0
-                        logger.info(json.dumps({
+                        resolved_logs.append({
                             "trace_id": get_trace_id(),
                             "module_name": "alert_evaluator",
                             "action": "alert_resolved",
                             "duration_ms": resolved_duration_ms,
                             "alert_name": rule_name,
                             "previous_state": previous_state.value
-                        }, ensure_ascii=False))
+                        })
 
-                # 触发状态变化回调
-                if previous_state != alert.state and self._on_alert_state_change:
-                    try:
-                        self._on_alert_state_change(alert, previous_state, alert.state)
-                    except Exception as e:
-                        logger.error(f"[Alert] 状态变化回调失败: {e}")
+                # 收集状态变化事件（锁外触发回调）
+                if previous_state != alert.state:
+                    state_change_events.append((alert, previous_state))
 
                 # 收集 firing 的告警
                 if alert.state == AlertState.FIRING:
                     firing_alerts.append(alert)
 
-                    # 执行自愈
+                    # 执行自愈（锁外执行，仅收集动作）
                     if rule.auto_heal and alert.fire_count >= rule.heal_threshold:
                         if self._on_heal_action:
                             for action in rule.heal_actions:
-                                try:
-                                    success = self._on_heal_action(alert, action)
-                                    if success:
-                                        self._stats["heal_actions_executed"] += 1
-                                except Exception as e:
-                                    logger.error(f"[Alert] 自愈动作 {action} 执行失败: {e}")
+                                heal_actions.append((alert, action))
+
+        # ── 锁外：结构化日志 ──
+        for log_data in firing_logs:
+            logger.warning(json.dumps(log_data, ensure_ascii=False))
+        for log_data in resolved_logs:
+            logger.info(json.dumps(log_data, ensure_ascii=False))
+
+        # ── 锁外：状态变化回调 ──
+        for alert, previous_state in state_change_events:
+            if self._on_alert_state_change:
+                try:
+                    self._on_alert_state_change(alert, previous_state, alert.state)
+                except Exception as e:
+                    logger.error(f"[Alert] 状态变化回调失败: {e}")
+
+        # ── 锁外：自愈动作 ──
+        for alert, action in heal_actions:
+            try:
+                success = self._on_heal_action(alert, action)
+                if success:
+                    with self._lock:
+                        self._stats["heal_actions_executed"] += 1
+            except Exception as e:
+                logger.error(f"[Alert] 自愈动作 {action} 执行失败: {e}")
 
         return firing_alerts
 
     def start(self):
         """启动告警评估"""
-        if self._running:
-            return
+        # [2026-08-13 并发审计] 检查-置位原子化：防并发调用重复启动评估线程
+        with self._lock:
+            if self._running:
+                return
 
-        self._running = True
-        self._evaluation_thread = threading.Thread(
-            target=self._evaluation_loop,
-            name="alert-evaluator",
-            daemon=True
-        )
-        self._evaluation_thread.start()
+            self._running = True
+            self._evaluation_thread = threading.Thread(
+                target=self._evaluation_loop,
+                name="alert-evaluator",
+                daemon=True
+            )
+            self._evaluation_thread.start()
         # 结构化日志：评估器启动
         logger.info(json.dumps({
             "trace_id": get_trace_id(),
@@ -532,7 +557,9 @@ class AlertEvaluator:
 
     def get_stats(self) -> Dict:
         """获取统计信息"""
-        return dict(self._stats)
+        # [2026-08-13 并发审计] 锁内快照：防并发 evaluate 写入时 dict 拷贝竞态
+        with self._lock:
+            return dict(self._stats)
 
     def get_firing_alerts(self) -> List[Dict]:
         """获取当前触发的告警"""
@@ -545,6 +572,8 @@ class AlertEvaluator:
 
 # 全局单例
 _alert_evaluator: Optional[AlertEvaluator] = None  # 保留作为 fallback
+# [2026-08-13 并发审计] fallback 单例双检锁：防并发首调创建多个实例
+_alert_evaluator_lock = threading.Lock()
 
 
 def _create_alert_evaluator(config=None):
@@ -576,7 +605,10 @@ def get_alert_evaluator() -> AlertEvaluator:
         return get_singleton("alert_evaluator")
     global _alert_evaluator
     if _alert_evaluator is None:
-        _alert_evaluator = _create_alert_evaluator()
+        # [2026-08-13 并发审计] fallback 双检锁：防并发首调创建多个实例
+        with _alert_evaluator_lock:
+            if _alert_evaluator is None:
+                _alert_evaluator = _create_alert_evaluator()
     return _alert_evaluator
 
 

@@ -13,6 +13,12 @@ providers:
     api_version: "2024-02-15-preview"
 
 # 成本控制
+# 【不易】本段仅回填 token 上限；mode 字段此处不读（见 agent/learning_budget.py _load_budget_config）。
+# 生产默认 warn_only（超限仅告警不拦截）由 config.yaml learning.budget.mode 控制。
+# 回归测试需要 enforce（实际拦截）时，用最高优先级环境变量，跑完即失效不留隐患：
+#   PowerShell:  $env:LEARNING_BUDGET_MODE="enforce"
+#   bash:        LEARNING_BUDGET_MODE=enforce pytest tests/unit/test_learning_budget.py -k enforce
+# 参考值（与单测一致）：max_single_action_tokens=500 / max_daily_tokens=100（LEARNING_BUDGET_MAX_SINGLE_ACTION_TOKENS / LEARNING_BUDGET_MAX_DAILY_TOKENS）
 cost_limits:
   max_daily_tokens: 1000000
   max_per_request_tokens: 4000

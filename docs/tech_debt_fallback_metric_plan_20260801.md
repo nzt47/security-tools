@@ -3,7 +3,7 @@
 > 日期：2026-08-01
 > 关联报告：docs/summary_orchestrator_refactor_logging_20260801.md（第三节「已识别但未修复的边界」）
 > 分支：`feat/intent-layer-metrics-fix`
-> 状态：TD-1 已实施（2026-08-02），TD-2/TD-3 待排期
+> 状态：TD-1/TD-2/TD-3 全部已实施（TD-1：2026-08-02，TD-2/TD-3：2026-08-13）；TD-4 待排期（2026-08-13 记录）
 
 ---
 
@@ -12,8 +12,9 @@
 | # | 边界 | 风险等级 | 代码位置 | 当前影响 | 修复优先级 |
 |---|---|---|---|---|---|
 | TD-1 | LLM 调用失败路径无独立埋点 | P2 | orchestrator.py:507,516-521 | ~~失败请求不可见，兜底率口径含混~~ **已修复（2026-08-02）** | 高（数据质量） |
-| TD-2 | 语义层顶层异常无独立埋点 | P2 | orchestrator.py:1121-1145 | 语义层故障请求完全不计入分母 | 中（需守 INV-2） |
-| TD-3 | `_intent_layer_counts` 无显式锁 | P3 | prometheus.py:732,754 | 高并发下理论竞态（GIL 守护下概率极低） | 低（防御性） |
+| TD-2 | 语义层顶层异常无独立埋点 | P2 | orchestrator.py:1121-1145 | ~~语义层故障请求完全不计入分母~~ **已修复（2026-08-13）** | 中（需守 INV-2） |
+| TD-3 | `_intent_layer_counts` 无显式锁 | P3 | prometheus.py:732,754 | ~~高并发下理论竞态（GIL 守护下概率极低）~~ **已修复（2026-08-13）** | 低（防御性） |
+| TD-4 | decomposer/reflector LLM 调用无 token 记账 | P1 | decomposer.py:167,300 / reflector.py:219,251 | LLM 分解/反思成本漏计，成本 KPI 系统性低估 | 中（灰度全量放量前） |
 
 **关键约束（【不易】）**：
 1. 任何修复**不得破坏** ratio 总和 = 1.0 分母同步不变量
@@ -152,6 +153,37 @@ def record_intent_layer(layer: str):
 - [ ] reset 与 record 并发无异常（现有用例保持通过）
 - [ ] ratio 总和仍 = 1.0
 - [ ] 持锁段仅内存操作（代码审查确认无 I/O）
+
+---
+
+## TD-4：decomposer/reflector LLM 调用无 token 记账 【已记录 2026-08-13，待排期】
+
+### 现状
+
+阶段 3（D13）token 计费仅覆盖两处：react.py:415-416（ReAct 思考）与 executor.py:969-970（`LLM_REASONING` 动作，2026-08-13 修复）。
+经 `grep record_text planning/` 核验，以下 LLM 调用点**仍无记账**：
+
+- [decomposer.py:167](file:///c:/Users/Administrator/agent/planning/decomposer.py#L167)、[decomposer.py:300](file:///c:/Users/Administrator/agent/planning/decomposer.py#L300)：LLM 分解 / 重规划 refine
+- [reflector.py:219](file:///c:/Users/Administrator/agent/planning/reflector.py#L219)、[reflector.py:251](file:///c:/Users/Administrator/agent/planning/reflector.py#L251)：经验反思生成
+
+### 影响分析
+
+1. LLM 分解/反思成本系统性漏计 → 成本 KPI 低估；验收报告 §三 P1「executor/decomposer 已记账」对 decomposer 表述不准确
+2. 与 executor/react 双路径口径不一致（TD-4 修复后需回归 D-5 双路径一致用例）
+
+### 修复方案
+
+与 executor 同口径：LLM 调用成功后 `budget_manager.record_text(prompt)` + `record_text(response)`（字符/3 估算 + 同一 `token_price_per_1k` 单价）。注意各组件 BudgetManager 实例归属需先梳理（decomposer/reflector 是否与 executor 共用同一实例，避免重复计费或漏计）。
+
+### 验收标准
+
+- [ ] 分解/反思路径成本计入 `plan.metadata["budget"]`，量级与预演吻合
+- [ ] 与 ReAct/executor 路径单价、估算方式一致（不双计）
+- [ ] 既有规划测试全绿（341）无回归
+
+### 排期建议
+
+灰度全量放量前实施（不阻塞当前阶段 5 灰度首发）；预估变更量 planning/decomposer.py +2 行、reflector.py +2 行 + 测试 1~2 用例。
 
 ---
 

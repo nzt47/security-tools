@@ -238,6 +238,8 @@ scripts/simulate_pr_merge_guard.py
 build/
 # 未跟踪文件备份快照（含浏览器令牌库/密码脚本等敏感数据，禁止提交；仅 backup/logs/ 日志可入库）
 backup/untracked_backup_*/
+# 归档脚本 backup/untracked_archive/<日期>/ 产物（可 --restore 还原，禁止入库防仓库膨胀）
+backup/untracked_archive/
 # 豁免：backup/logs/ 备份日志可入库（其余 logs/ 仍按上方规则忽略）
 !backup/logs/
 # 并行会话临时备份中的 release-merge 快照包（含浏览器登录凭据/VPN Tokens，禁止提交）
@@ -253,3 +255,11 @@ mixed_files_backup_*.patch
 .tmp-*.log
 # 本地 CI 模拟日志副本（security-tools/ 已忽略，此处兜底根目录/子目录的 ci_*.log）
 ci_*.log
+
+# === B3 计时日志 + 临时笔记 + 运行时谱系（2026-08-14 追加）===
+# B3 全量回归计时日志（每次运行生成，不入库）
+docs/zh/_b3_timing_*.log
+# 根目录临时 F1-F4 修复笔记（不入库）
+/_tmp_*.md
+# 进化谱系运行时数据（EVOLUTION_ARCHIVE_PATH 指向 agent/data/；根 data/ 同型运行时产物不入库）
+data/evolution_archive*.jsonl

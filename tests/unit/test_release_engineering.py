@@ -462,19 +462,19 @@ class TestReleaseChecklist:
         with tempfile.TemporaryDirectory() as tmpdir:
             # 创建一些基本文件
             os.makedirs(os.path.join(tmpdir, "tests", "unit"), exist_ok=True)
-            with open(os.path.join(tmpdir, "tests", "unit", "test_example.py"), "w") as f:
+            with open(os.path.join(tmpdir, "tests", "unit", "test_example.py"), "w", encoding="utf-8") as f:
                 f.write("# test file")
 
-            with open(os.path.join(tmpdir, "Dockerfile"), "w") as f:
+            with open(os.path.join(tmpdir, "Dockerfile"), "w", encoding="utf-8") as f:
                 f.write("FROM python:3.11")
 
-            with open(os.path.join(tmpdir, "pyproject.toml"), "w") as f:
+            with open(os.path.join(tmpdir, "pyproject.toml"), "w", encoding="utf-8") as f:
                 f.write('version = "1.0.0"')
 
-            with open(os.path.join(tmpdir, "CHANGELOG.md"), "w") as f:
+            with open(os.path.join(tmpdir, "CHANGELOG.md"), "w", encoding="utf-8") as f:
                 f.write("# CHANGELOG")
 
-            with open(os.path.join(tmpdir, ".gitignore"), "w") as f:
+            with open(os.path.join(tmpdir, ".gitignore"), "w", encoding="utf-8") as f:
                 f.write(".env")
 
             checklist = ReleaseChecklist(base_dir=tmpdir)

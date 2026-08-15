@@ -730,6 +730,8 @@ yunshu_intent_layer_ratio = _safe_gauge(
 # 【变易】模块级计数视图：维护各 layer 的相对计数，用于实时计算 ratio。
 # Counter 是单调递增的累计值，无法重置；ratio 通过本 dict 的相对值计算。
 _intent_layer_counts: dict = {}
+# TD-3: 读改写非原子（get + += 多步），加锁保证高并发下计数准确（锁内仅内存操作，无 I/O）
+_counts_lock = threading.Lock()
 
 
 def record_intent_layer(layer: str):
@@ -744,18 +746,21 @@ def record_intent_layer(layer: str):
             - "rule": 规则层(WorkflowEngine)命中
             - "template": 模板层(IntentRouter+ResponseTemplates)命中
             - "semantic": 语义层(SkillLoader RRF)命中
+            - "semantic_failed": 语义层异常降级（TD-2，与 semantic 互斥）
             - "llm": 大模型层处理
+            - "llm_error": LLM 调用失败（TD-1，llm 的失败子指标）
             - "reject": 未知意图拒识
     """
     yunshu_intent_layer_total.labels(layer=layer).inc()
     # 【变易】同步更新 ratio Gauge：维护各 layer 相对计数，实时计算占比。
     # ratio 总和始终 = 1.0（count/total 求和 = total/total），不超 100%。
     try:
-        _intent_layer_counts[layer] = _intent_layer_counts.get(layer, 0) + 1
-        total = sum(_intent_layer_counts.values())
-        if total > 0:
-            for _layer, _count in _intent_layer_counts.items():
-                yunshu_intent_layer_ratio.labels(layer=_layer).set(_count / total)
+        with _counts_lock:
+            _intent_layer_counts[layer] = _intent_layer_counts.get(layer, 0) + 1
+            total = sum(_intent_layer_counts.values())
+            if total > 0:
+                for _layer, _count in _intent_layer_counts.items():
+                    yunshu_intent_layer_ratio.labels(layer=_layer).set(_count / total)
     except Exception:
         pass  # ratio 计算失败不影响 Counter 主链路
 
@@ -766,7 +771,8 @@ def reset_intent_layer_counts():
     用于 mock 测试和诊断脚本隔离测试间状态。
     Counter 是 prometheus_client 进程级单调递增值，无法重置。
     """
-    _intent_layer_counts.clear()
+    with _counts_lock:
+        _intent_layer_counts.clear()
 
 
 # ============================================================================
