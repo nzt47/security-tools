@@ -32,6 +32,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 os.chdir(ROOT)
 
+# Windows GBK 代码页无法编码 emoji 等非 BMP 字符，logging.StreamHandler.emit 会抛
+# UnicodeEncodeError 并丢失日志行（chunk_0/2 实测：memory_manager 的 🔁、sqlite_vec_backend 的 ✅）。
+# 与项目其他 47 处脚本保持一致；pytest chunk 运行在 ProcessPoolExecutor 子进程，
+# spawn 继承本环境变量 → 子进程 stdio 使用 UTF-8，emoji 日志不再丢失。
+os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+
 # 与 pytest.ini addopts 的 --ignore 保持一致（保持 --continue-on-collection-errors 语义）
 IGNORES = [
     "tests/benchmark",
