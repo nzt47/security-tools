@@ -316,14 +316,14 @@ def main():
     print("=" * 72)
     from agent.auto_tuner import AutoTuner
 
-    # 用案例A生成的 tool:web_search 策略模拟高失败（rate=0.0, attempt>=3）
+    # 用案例A生成的 tool:web_search 策略模拟连续失败 3 次（rate=0.0, attempt>=3）
     sim_sid = saved_a[0].strategy_id
     for _ in range(3):
         inj.record_strategy_result(sim_sid, success=False)
     stats2 = inj.get_strategy_stats()
     ws = stats2["by_tool"].get("web_search", {})
     print(f"  web_search 策略统计: {ws}")
-    check("web_search 失败率数据可被统计读取",
+    check("web_search 连续失败 3 次后失败率数据可被统计读取",
           ws.get("attempt", 0) >= 3 and ws.get("rate", 1.0) <= 0.5, str(ws))
 
     tuner = AutoTuner(storage_path=os.path.join(tmp, "auto_tuning"))
@@ -337,9 +337,16 @@ def main():
         print(f"    proposed_params: {suggestion.proposed_params}")
         print(f"    metadata.source={suggestion.metadata.get('source')} "
               f"high_fail_tools={suggestion.metadata.get('high_fail_tools')}")
-        check("建议参数含 tool_max_concurrency 下调",
-              "tool_max_concurrency" in suggestion.proposed_params,
-              str(suggestion.proposed_params))
+        cur = suggestion.current_params or {}
+        prop = suggestion.proposed_params or {}
+        check("建议 tool_max_concurrency 较当前下调",
+              prop.get("tool_max_concurrency", 0)
+              < cur.get("tool_max_concurrency", 0),
+              f"cur={cur.get('tool_max_concurrency')} prop={prop.get('tool_max_concurrency')}")
+        check("建议 timeout_seconds 较当前上调",
+              prop.get("timeout_seconds", 0)
+              > cur.get("timeout_seconds", 0),
+              f"cur={cur.get('timeout_seconds')} prop={prop.get('timeout_seconds')}")
         check("建议 metadata.source == evolution",
               suggestion.metadata.get("source") == "evolution")
 
