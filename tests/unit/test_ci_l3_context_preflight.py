@@ -13,6 +13,33 @@ import sys
 from pathlib import Path
 
 PREFLIGHT_PATH = Path(__file__).resolve().parents[2] / "scripts" / "ci_l3_context_preflight.py"
+PROJECT_ROOT = PREFLIGHT_PATH.parent.parent
+
+
+class TestCiIntegration:
+    """CI 流水线接入守护 — 确保未来 CI 自动拦截 context 不一致"""
+
+    def test_l3_workflow_keeps_preflight_step(self):
+        """l3-docker-tests.yml 必须保留预检步骤（防 CI 拦截被误删）"""
+        workflow = PROJECT_ROOT / ".github" / "workflows" / "l3-docker-tests.yml"
+        assert workflow.exists(), "CI workflow 文件缺失"
+        content = workflow.read_text(encoding="utf-8")
+        assert "ci_l3_context_preflight.py" in content, "预检脚本未接入 CI"
+        assert "--json" in content, "预检应使用 --json 输出（CI 友好）"
+
+    def test_preflight_step_placed_before_build(self):
+        """预检步骤必须位于构建之前（fail fast 语义）"""
+        workflow = PROJECT_ROOT / ".github" / "workflows" / "l3-docker-tests.yml"
+        lines = workflow.read_text(encoding="utf-8").splitlines()
+        preflight_idx = next(
+            (i for i, l in enumerate(lines)
+             if "ci_l3_context_preflight.py" in l), -1)
+        build_idx = next(
+            (i for i, l in enumerate(lines)
+             if "build-push-action" in l or "docker compose build" in l), -1)
+        assert preflight_idx != -1, "未找到预检步骤"
+        assert build_idx != -1, "未找到构建步骤"
+        assert preflight_idx < build_idx, "预检必须在构建之前执行"
 
 
 def _load_module():
@@ -27,17 +54,18 @@ def _load_module():
 class TestPreflightChecks:
     """四项校验的判定逻辑"""
 
-    def test_clean_repo_all_checks_pass(self):
-        """真实仓库（agent/memory/scripts/tests 无修改）四项校验应全过"""
+    def test_required_files_present_in_repo(self):
+        """仓库内构建文件与关键模块应存在（纯文件存在性，不依赖 git 状态）"""
         mod = _load_module()
         assert mod.check_build_files() == []
         assert mod.check_critical_modules() == []
-        assert mod.check_git_clean() == []
-        assert mod.check_tracked_coverage() == []
 
-    def test_main_exit_zero_on_clean_tree(self):
-        """干净树 main() 应返回 0（CI 放行）"""
+    def test_main_exit_zero_on_clean_inputs(self, monkeypatch):
+        """四项校验均通过（模拟干净输入）→ main()=0（CI 放行）"""
         mod = _load_module()
+        for fn in ("check_build_files", "check_critical_modules",
+                   "check_git_clean", "check_tracked_coverage"):
+            monkeypatch.setattr(mod, fn, lambda: [])
         assert mod.main([]) == 0
 
     def test_missing_critical_module_detected(self, monkeypatch):
@@ -88,8 +116,45 @@ class TestPreflightJsonContract:
     def test_json_output_all_ok_on_clean(self, monkeypatch, capsys):
         """通过场景 --json 输出 4 项全 ok=true"""
         mod = _load_module()
+        for fn in ("check_build_files", "check_critical_modules",
+                   "check_git_clean", "check_tracked_coverage"):
+            monkeypatch.setattr(mod, fn, lambda: [])
         rc = mod.main(["--json"])
         out = capsys.readouterr().out
         data = json.loads(out)
         assert rc == 0
         assert all(v["ok"] for v in data.values())
+
+
+class TestPreflightEdgeCases:
+    """context 漂移边界场景（解析细节 / 模式分支 / 环境异常）"""
+
+    def test_git_clean_parses_untracked_as_clean(self, monkeypatch):
+        """git status 的 ??（未跟踪）不判脏；M/D/A 判脏（镜像快照一致性语义）"""
+        mod = _load_module()
+
+        class FakeProc:
+            returncode = 0
+            stdout = "?? agent/untracked.py\n M agent/modified.py\n?? memory/new.py"
+            stderr = ""
+
+        monkeypatch.setattr(mod.subprocess, "run", lambda *a, **k: FakeProc())
+        dirty = mod.check_git_clean()
+        assert dirty == [" M agent/modified.py"]
+
+    def test_git_clean_only_mode_skips_file_checks(self, monkeypatch):
+        """--git-clean-only 仅执行 git 一致性校验，跳过文件存在性"""
+        mod = _load_module()
+        monkeypatch.setattr(mod, "check_git_clean", lambda: [])
+        assert mod.main(["--git-clean-only"]) == 0
+
+    def test_subprocess_error_treated_as_failure(self, monkeypatch, capsys):
+        """git 不可用（RuntimeError）→ main()=1 且结果标记失败（不崩溃）"""
+        mod = _load_module()
+
+        def boom(*a, **k):
+            raise RuntimeError("git not available")
+
+        monkeypatch.setattr(mod.subprocess, "run", boom)
+        rc = mod.main([])
+        assert rc == 1
