@@ -20,6 +20,7 @@ import time
 import json
 import os
 import re as _re
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any, Tuple
 
@@ -51,6 +52,7 @@ from agent.orchestrator.routing_observability import (
 # tool_calling 和 tool_router 无循环依赖，直接模块级导入（替代原 5 处方法体内延迟导入）
 from agent.tool_calling import (
     ToolCallingService,
+    ToolCallError,
     _summarize_tool_result,
     _clean_for_json,
 )
@@ -58,6 +60,14 @@ from agent.tool_router import get_tools_for_input
 from agent.tool_router_hybrid import hybrid_select_tools
 
 logger = logging.getLogger(__name__)
+
+# LLM 外呼看门狗: 独立线程池 + 有界超时（防单请求卡死 waitress 线程池）。
+# Why: 压测发现 DeepSeek 服务端排队会让单个请求挂起数分钟，占满 waitress 线程。
+#      LLM_CALL_TIMEOUT 走 .env 可配，默认 60s；超时后请求线程立即降级返回，
+#      底层 LLM 线程随响应自然结束（不强制杀线程）。
+_LLM_CALL_POOL = ThreadPoolExecutor(
+    max_workers=16, thread_name_prefix="llm_call_watchdog")
+_LLM_CALL_TIMEOUT = int(os.getenv("LLM_CALL_TIMEOUT", "60"))
 
 
 # ── TASK-03 学习度量辅助（埋点异常绝不影响主链路） ──────────────
@@ -3135,6 +3145,17 @@ class Orchestrator:
                 "degraded", duration_ms=(time.time() - _t0) * 1000)
             return None
 
+    def _run_llm_bounded(self, fn, timeout: int = 0):
+        """在独立线程执行 LLM 外呼，总时长有界（防单请求卡死 waitress 线程池）
+
+        不易: LLM 外呼必须可超时——请求线程绝不无限等待；
+        变易: timeout 由调用方或 LLM_CALL_TIMEOUT(.env) 控制；
+        简易: 只做"提交→限时取结果"，不做线程强杀（让底层线程自然结束）。
+        """
+        _t = timeout or _LLM_CALL_TIMEOUT
+        _fut = _LLM_CALL_POOL.submit(fn)
+        return _fut.result(timeout=_t)
+
     def _call_llm_v2(self, user_input: str, body_status: str, *,
                      session_id: Optional[str] = None,
                      session_mgr=None) -> str:
@@ -3216,32 +3237,32 @@ class Orchestrator:
                             max_rounds=self._tool_calling_service._max_rounds,
                             tool_timeout=self._tool_calling_service._tool_timeout,
                         )
-                        _result = _tc_pro.chat_with_steps(
+                        _result = self._run_llm_bounded(lambda: _tc_pro.chat_with_steps(
                             messages=messages, system_prompt=system_prompt,
                             max_tokens=8192, temperature=0.3,
                             tools_whitelist=tools_whitelist,
                             on_step=lambda s: self._current_tool_steps.append(s),
-                        )
+                        ))
                         response = _result["text"]
                         self._last_tool_steps = _result.get("steps", [])
                         self._last_reasoning = _result.get("reasoning") or self._last_reasoning
                     else:
-                        _result = self._tool_calling_service.chat_with_steps(
+                        _result = self._run_llm_bounded(lambda: self._tool_calling_service.chat_with_steps(
                             messages=messages, system_prompt=system_prompt,
                             max_tokens=8192, temperature=0.3,
                             tools_whitelist=tools_whitelist,
                             on_step=lambda s: self._current_tool_steps.append(s),
-                        )
+                        ))
                         response = _result["text"]
                         self._last_tool_steps = _result.get("steps", [])
                         self._last_reasoning = _result.get("reasoning") or self._last_reasoning
                 else:
-                    response = self._llm.chat(
+                    response = self._run_llm_bounded(lambda: self._llm.chat(
                         messages=messages,
                         system_prompt=system_prompt,
                         max_tokens=8192,
                         temperature=0.3,
-                    )
+                    ))
                 if profile.response_prefix:
                     response = "%s\n%s" % (profile.response_prefix, response)
 
@@ -3281,7 +3302,13 @@ class Orchestrator:
                 except Exception:
                     pass
                 return response
-            except LLMServiceError as e:
+            except TimeoutError:
+                logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.timeout', 'message': 'LLM 调用超时(>%ds) 降级返回' % _LLM_CALL_TIMEOUT, 'timeout_seconds': _LLM_CALL_TIMEOUT}))
+                return (
+                    "（LLM 响应超时）\n\n"
+                    "我尝试调用 LLM 但超过了 %d 秒仍未得到响应，请稍后重试。" % _LLM_CALL_TIMEOUT
+                )
+            except (LLMServiceError, ToolCallError) as e:
                 error_msg = str(e)
                 logger.error(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.llm', 'message': 'LLM 调用失败: %s' % (error_msg,), 'error': str(error_msg)}))
                 return (

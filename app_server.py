@@ -4936,4 +4936,6 @@ if __name__ == "__main__":
     # 使用 Waitress 生产级 WSGI 服务器（替代 Flask 内置开发服务器）
     # 多线程 + 纯 Python，Windows 原生兼容
     from waitress import serve
-    serve(app, host="127.0.0.1", port=5678, threads=8)
+    # threads 8→16: 高并发压测发现 LLM 长耗时请求占满线程导致排队（Task queue 高发），
+    # 提升线程容量缓解排队；LLM 外呼另有 60s 看门狗兜底（orchestrator._run_llm_bounded）
+    serve(app, host="127.0.0.1", port=5678, threads=16)
