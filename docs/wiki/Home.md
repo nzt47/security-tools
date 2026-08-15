@@ -76,6 +76,7 @@ agent 内部保持零安装依赖，外部项目通过 `pip install light-loader
 - 并发缺陷修复：[concurrency_fixes_wiki.md](concurrency_fixes_wiki.md)
 - Git Detached 提交悬空修复：[git_detached_commit_fix_wiki.md](git_detached_commit_fix_wiki.md)
 - Git Detached 提交操作手册（含 §6 工程经验 CheckList）：[git_detached_commit_ops_manual.md](git_detached_commit_ops_manual.md)
+- Git Rebase 同步与残留目录清理复盘：[git_rebase_sync_cleanup_review_20260815.md](git_rebase_sync_cleanup_review_20260815.md)
 - TASK-06 全链路复盘（并行会话提交事故）：[../zh/智能体学习机制重构计划/TASK-06_全链路复盘_20260815.md](../zh/智能体学习机制重构计划/TASK-06_全链路复盘_20260815.md)
 - TASK-06 操作日志归档：[../zh/audit-evidence/TASK-06_操作日志归档_20260815.md](../zh/audit-evidence/TASK-06_操作日志归档_20260815.md) · [命令级凭证](../zh/audit-evidence/TASK-06_命令级操作凭证_20260815.md)
 - 死代码修复与边界测试：[deadcode_fix_and_boundary_tests_wiki.md](deadcode_fix_and_boundary_tests_wiki.md)
