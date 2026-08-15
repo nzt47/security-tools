@@ -5493,7 +5493,7 @@ class TestSystemToolsListDirectoryComplete:
     def test_list_directory_normal(self):
         """测试正常列出"""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with open(os.path.join(tmpdir, "a.txt"), "w") as f:
+            with open(os.path.join(tmpdir, "a.txt"), "w", encoding="utf-8") as f:
                 f.write("a")
             with open(os.path.join(tmpdir, "b.txt"), "w", encoding="utf-8") as f:
                 f.write("b")
