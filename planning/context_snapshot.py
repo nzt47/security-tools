@@ -12,6 +12,7 @@
 
 import json
 import logging
+import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -78,6 +79,7 @@ def save_snapshot(
         steps_summary=_summarize_steps(steps),
         token_used=token_used,
     )
+    _start = time.monotonic()
     try:
         payload = json.dumps(snap.to_dict(), ensure_ascii=False).encode("utf-8")
     except (TypeError, ValueError) as e:
@@ -97,7 +99,8 @@ def save_snapshot(
         return ""
 
     _rotate(session_id, snapshot_root, keep)
-    _log("saved", step_index=step_index, size_bytes=len(payload), degraded=snap.degraded)
+    _log("saved", step_index=step_index, size_bytes=len(payload), degraded=snap.degraded,
+         duration_ms=round((time.monotonic() - _start) * 1000, 2))
     return f"{session_id}/step_{step_index}"
 
 
@@ -111,6 +114,7 @@ def restore_snapshot(snapshot_id: str, snapshot_root: Path = SNAPSHOT_ROOT) -> O
         logger.warning(f"[context_snapshot] 非法 snapshot_id: {snapshot_id}")
         return None
     session_id, step_index = parsed
+    _start = time.monotonic()
     try:
         path = _snapshot_path(snapshot_root, session_id, step_index)
         if not path.exists():
@@ -118,10 +122,12 @@ def restore_snapshot(snapshot_id: str, snapshot_root: Path = SNAPSHOT_ROOT) -> O
             return None
         data = json.loads(path.read_text(encoding="utf-8"))
         snap = Snapshot.from_dict(data)
+        size_bytes = path.stat().st_size
     except (OSError, ValueError, KeyError, TypeError) as e:
         logger.warning(f"[context_snapshot] 还原失败（不阻断）: {type(e).__name__}: {e}")
         return None
-    _log("restored", step_index=snap.step_index, degraded=snap.degraded, mark=snap.mark)
+    _log("restored", step_index=snap.step_index, size_bytes=size_bytes, degraded=snap.degraded,
+         mark=snap.mark, duration_ms=round((time.monotonic() - _start) * 1000, 2))
     return snap.context
 
 
@@ -161,13 +167,15 @@ def purge_snapshots(session_id: str, keep: int = KEEP_N,
     excess = len(infos) - keep
     removed = 0
     if excess > 0:
+        _start = time.monotonic()
         for info in infos[:excess]:
             try:
                 Path(info["file_path"]).unlink(missing_ok=True)
                 removed += 1
             except OSError:
                 continue
-        _log("purged", removed=removed, session_id=session_id)
+        _log("purged", removed=removed, session_id=session_id,
+             duration_ms=round((time.monotonic() - _start) * 1000, 2))
     return removed
 
 

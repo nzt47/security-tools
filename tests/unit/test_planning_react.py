@@ -3,6 +3,7 @@
 import pytest
 import json
 import logging
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 from planning.react import ReActLoop, ReActStep, ReActResult, ThoughtResult
 from planning.executor import ToolRegistry
@@ -821,3 +822,93 @@ class TestSnapshotIntegration:
 
         assert result.success is True
         assert caplog.text.count("快照保存失败") == 1   # 仅告警一次
+
+    @pytest.mark.asyncio
+    async def test_session_id_fallback_no_none_dir(self, tmp_path):
+        """C13：context 无 session_id → 快照不落入 None/ 目录（str(None) 真值 bug 回归）。
+
+        旧实现 `str(context.get("session_id")) or ...` 中 str(None)="None" 为真值，
+        or 兜底永不生效，真实运行快照会写入 data/snapshots/None/（曾实证）。
+        且 session_id 须在循环外确定一次：若每步重新生成（get_trace_id() 无上下文
+        时返回 None → 每步新时间戳），多步循环会产生多个 react_* 碎片目录、轮转失效。
+        """
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = [
+            self._tool_call("第1次"),
+            self._tool_call("第2次"),
+            json.dumps({"reasoning": "完成", "action_type": "finish",
+                        "result": "ok", "confidence": 0.9}),
+        ]
+        mock_reflector = MagicMock()
+
+        loop = self._loop(mock_llm, mock_reflector, tmp_path)
+        result = await loop.run("无会话ID", {})
+
+        assert result.success is True
+        assert not (tmp_path / "None").exists()          # 不落入 None/ 目录
+        dirs = [d for d in tmp_path.iterdir() if d.is_dir()]
+        assert dirs
+        assert all(d.name != "None" for d in dirs)
+        # 多步循环仅 1 个 react_* 目录（session 稳定 → 轮转/治理有效）
+        react_dirs = [d for d in dirs if d.name.startswith("react_")]
+        assert len(react_dirs) == 1
+        # 同目录内多份 step 快照（轮转语义生效的前提）
+        assert len(list(react_dirs[0].glob("step_*.json"))) == 3
+
+    @pytest.mark.asyncio
+    async def test_concurrent_runs_snapshot_session_isolated(self, tmp_path):
+        """C14：同一实例并发 run() → 快照按各自 session_id 分目录，不串话/无 None 碎片。
+
+        并发防御回归：快照运行态（session_id/最近快照/还原标记）若用实例属性，
+        同一实例并发 run() 会互相覆盖 → 快照写入对方目录（碎片串话）或还原错快照。
+        现为 run() 局部变量：两个并发 run 的快照必须严格落在各自 session 目录，
+        且快照内容互不含对方任务文本。
+        """
+        counts = {"A": 0, "B": 0}
+
+        async def chat_fn(messages):
+            # 按任务文本区分两个并发 run 的 LLM 响应序列（稳定隔离，不抢 side_effect）
+            content = messages[0]["content"]
+            if "并发任务A" in content:
+                counts["A"] += 1
+                if counts["A"] == 1:
+                    return json.dumps({"reasoning": "A步1", "action_type": "tool_call",
+                                       "action": {"tool": "noop", "params": {}, "description": "A第1步"}})
+                return json.dumps({"reasoning": "A完成", "action_type": "finish",
+                                   "result": "okA", "confidence": 0.9})
+            if "并发任务B" in content:
+                counts["B"] += 1
+                if counts["B"] == 1:
+                    return json.dumps({"reasoning": "B步1", "action_type": "tool_call",
+                                       "action": {"tool": "noop", "params": {}, "description": "B第1步"}})
+                return json.dumps({"reasoning": "B完成", "action_type": "finish",
+                                   "result": "okB", "confidence": 0.9})
+            return json.dumps({"reasoning": "未知", "action_type": "finish",
+                               "result": "?", "confidence": 0.9})
+
+        mock_llm = AsyncMock()
+        mock_llm.chat.side_effect = chat_fn
+        mock_reflector = MagicMock()
+        mock_reflector.failure_reflect = AsyncMock(return_value=self._reflection())
+
+        loop = self._loop(mock_llm, mock_reflector, tmp_path)
+        loop.planner.tool_registry.register("noop", lambda: "ok")
+
+        results = await asyncio.gather(
+            loop.run("并发任务A", {"session_id": "sess_A"}),
+            loop.run("并发任务B", {"session_id": "sess_B"}),
+        )
+
+        assert all(r.success for r in results)
+        # 两个 session 目录各自独立（不串话），均 2 次迭代 → 2 份快照
+        a_dir, b_dir = tmp_path / "sess_A", tmp_path / "sess_B"
+        assert a_dir.is_dir() and b_dir.is_dir()
+        assert len(list(a_dir.glob("step_*.json"))) == 2
+        assert len(list(b_dir.glob("step_*.json"))) == 2
+        # 无 None/ 碎片目录
+        assert not (tmp_path / "None").exists()
+        # 快照内容互不含对方任务文本（防 session 串话）
+        a_last = a_dir.joinpath("step_1.json").read_text(encoding="utf-8")
+        b_last = b_dir.joinpath("step_1.json").read_text(encoding="utf-8")
+        assert "并发任务A" in a_last and "并发任务B" not in a_last
+        assert "并发任务B" in b_last and "并发任务A" not in b_last

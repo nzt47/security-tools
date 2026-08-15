@@ -10,6 +10,7 @@
 """
 
 import json
+import logging
 from datetime import datetime
 
 import pytest
@@ -210,3 +211,48 @@ class TestPurge:
         for i in range(2):
             save_snapshot("s1", i, "任务", _ctx(), [], 0, snapshot_root=tmp_path)
         assert purge_snapshots("s1", keep=5, snapshot_root=tmp_path) == 0
+
+
+class TestStructuredLog:
+    """任务步骤4：结构化日志含 module_name/action/step_index/size_bytes/duration_ms"""
+
+    @staticmethod
+    def _find_action(caplog, action: str) -> dict:
+        records = [json.loads(r.getMessage()) for r in caplog.records
+                   if '"action": "%s"' % action in r.getMessage()]
+        assert records, f"未找到 action={action} 的结构化日志"
+        return records[-1]
+
+    def test_saved_log_fields(self, tmp_path, caplog):
+        caplog.set_level(logging.INFO)
+        save_snapshot("s1", 0, "任务", _ctx(), [], 123, snapshot_root=tmp_path)
+        msg = self._find_action(caplog, "saved")
+        assert msg["module_name"] == "context_snapshot"
+        assert msg["action"] == "saved"
+        assert msg["step_index"] == 0
+        assert msg["size_bytes"] > 0
+        assert msg["duration_ms"] >= 0
+
+    def test_restored_log_fields(self, tmp_path, caplog):
+        caplog.set_level(logging.INFO)
+        sid = save_snapshot("s1", 0, "任务", _ctx(), [], 0, snapshot_root=tmp_path)
+        caplog.clear()
+        restore_snapshot(sid, snapshot_root=tmp_path)
+        msg = self._find_action(caplog, "restored")
+        assert msg["module_name"] == "context_snapshot"
+        assert msg["action"] == "restored"
+        assert msg["step_index"] == 0
+        assert msg["size_bytes"] > 0
+        assert msg["duration_ms"] >= 0
+
+    def test_purged_log_fields(self, tmp_path, caplog):
+        caplog.set_level(logging.INFO)
+        for i in range(6):
+            save_snapshot("s1", i, "任务", _ctx(), [], 0, snapshot_root=tmp_path)
+        caplog.clear()
+        purge_snapshots("s1", keep=3, snapshot_root=tmp_path)
+        msg = self._find_action(caplog, "purged")
+        assert msg["module_name"] == "context_snapshot"
+        assert msg["action"] == "purged"
+        assert msg["removed"] == 3
+        assert msg["duration_ms"] >= 0
