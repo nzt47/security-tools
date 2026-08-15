@@ -448,10 +448,17 @@ def get_tools_for_input(
         inj = get_injector()
         if inj is not None:
             fallback_extra: list[str] = []
+            hit_ids: list[str] = []
             for tool in list(result):
                 for s in inj.get_strategies(f"tool:{tool}"):
+                    hit_ids.append(s["strategy_id"])
                     fb = (s.get("param_patch") or {}).get("fallback_tools") or []
                     fallback_extra.extend(str(t) for t in fb if str(t) not in result)
+            if hit_ids:
+                logger.info(
+                    "[进化][路由注入] 命中策略 %d 条: strategy_ids=%s, 追加备用工具: %s",
+                    len(hit_ids), hit_ids, fallback_extra,
+                )
             if fallback_extra:
                 result = result + fallback_extra
     except Exception:

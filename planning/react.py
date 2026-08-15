@@ -564,10 +564,14 @@ class ReActLoop:
             inj = get_injector()
             if inj is not None:
                 # 与 reflector.get_advice_for_task 同键：classify_task 归一 task_type
-                strategies = inj.get_strategies(
-                    f"task_type:{classify_task(str(task))}"
-                )
+                task_type = classify_task(str(task))
+                strategies = inj.get_strategies(f"task_type:{task_type}")
                 if strategies:
+                    logger.info(
+                        "[进化][ReAct注入] task_type=%s 命中策略 %d 条: strategy_ids=%s",
+                        task_type, len(strategies),
+                        [s["strategy_id"] for s in strategies],
+                    )
                     lines = [
                         f"- [策略 #{s['strategy_id']}] {s['prompt_patch']}"
                         for s in strategies

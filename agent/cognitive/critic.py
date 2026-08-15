@@ -197,6 +197,11 @@ class CriticEvaluator:
             if _inj is not None:
                 _strategies = _inj.get_strategies("critic")
                 if _strategies:
+                    logger.info(
+                        "[进化][Critic注入] scope=critic 命中策略 %d 条: strategy_ids=%s",
+                        len(_strategies),
+                        [_s["strategy_id"] for _s in _strategies],
+                    )
                     context = dict(context or {})
                     context["_evolution_strategies"] = _strategies
         except Exception:
