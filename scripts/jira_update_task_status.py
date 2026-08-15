@@ -27,8 +27,9 @@ ATTACH = os.environ.get("JIRA_ATTACH", "")
 ISSUE = "TASK-1234"
 COMMIT = "661d3b74"
 NEW_STATUS = "Done"  # 若实例的过渡 id 不同，脚本会列出可选 transitions
+DRY_RUN = "--dry-run" in sys.argv
 
-if not (BASE and EMAIL and TOKEN):
+if not (BASE and EMAIL and TOKEN) and not DRY_RUN:
     sys.exit("请先设置 JIRA_BASE_URL / JIRA_EMAIL / JIRA_TOKEN 环境变量")
 
 import base64
@@ -101,6 +102,25 @@ comment = (
     "- 验证脚本 C1 PASS（降级 YAML 校验），C2-C5 SKIP（本地无 Prometheus 实例）\n"
     "部署注意: C2-C6 需部署环境执行脚本完成实际采集验证。"
 )
+if DRY_RUN:
+    # 演练模式：仅打印将执行的动作与预期结果，不发任何真实 API 请求（审计合规）
+    print("=" * 60)
+    print("DRY-RUN 演练（非真实执行，不含任何 API 调用）")
+    print("=" * 60)
+    print(f"[目标] {BASE or '<未配置>'}/browse/{ISSUE}")
+    print(f"[步骤1 上传附件] 文件: {ATTACH or '<未设置 JIRA_ATTACH>'}")
+    if ATTACH:
+        p = Path(ATTACH)
+        print(f"        校验: {'存在 ' + str(p.stat().st_size) + ' B' if p.is_file() else '缺失，将跳过'}")
+        print("        预期: POST /rest/api/2/issue/TASK-1234/attachments -> HTTP 200")
+    print("[步骤2 添加备注]")
+    print("        内容: 提交关联 661d3b74 + 本地验证结果 + 部署注意")
+    print("        预期: POST /rest/api/2/issue/TASK-1234/comment -> HTTP 201")
+    print(f"[步骤3 状态流转] 目标状态: {NEW_STATUS}")
+    print("        预期: GET /transitions -> 匹配 Done 后 POST -> HTTP 204")
+    print("检查点: 附件可见 / 备注可见 / 状态为 Done")
+    sys.exit(0)
+
 if ATTACH:
     status_code, body = _upload_attachment(ATTACH)
     if status_code is None:
