@@ -350,6 +350,10 @@ class MemoryManager:
             logger.warning("│ ✓ 压缩完成！版本: %d | 消息数: %d | 总耗时: %.2fms", 
                        new_version, len(recent_messages), total_elapsed)
             logger.warning("└─────────────────────────────────────────────")
+            # [P0 修复] 压缩成功后清除需求标记。
+            # 原逻辑在 get_context 内清除：后台未运行时标记会被直接丢弃（压缩永不执行）；
+            # 现改由压缩执行处清除，失败则保留标记供后台下一轮重试。
+            self._need_compress = False
             return True
         except Exception as e:
             total_elapsed = (time.time() - total_start) * 1000
@@ -508,19 +512,19 @@ class MemoryManager:
         Returns:
             消息列表 [{"role": "...", "content": "..."}]，无内容时返回空列表
         """
-        # 如果有压缩需求且没有后台线程，同步执行
+        # [P0 修复] 压缩需求只通知后台压缩器，绝不在请求线程内同步执行 LLM 压缩。
+        # Why: 同步压缩含 2 次 LLM 外呼（compress + merge_summaries），会阻塞请求线程，
+        #      放大高并发串行（见 并发串行瓶颈排查技术备忘录_20260815.md）；
+        #      _need_compress 改为由后台 _execute_compression 成功后清除，避免压缩需求丢失。
         if self._need_compress:
             logger.warning("┌═══════════════════════════════════════════════")
-            logger.warning("│ 🔄 [同步压缩] 检测到压缩需求")
+            logger.warning("│ 🔄 [压缩需求] 已标记，交由后台压缩器处理（不阻塞请求线程）")
             logger.warning("│    └─ 后台线程状态: %s", "运行中 ✓" if self._async_compressor.is_running() else "未运行 ✗")
+            self._async_compressor.request()
             if not self._async_compressor.is_running():
-                logger.warning("│    └─ 执行同步压缩...")
-                self._execute_compression()
-            else:
-                logger.warning("│    └─ 等待后台处理")
-            # 后台线程已处理或本次同步处理完成，清除标记
-            self._need_compress = False
-            logger.warning("│ ✅ [同步压缩] 压缩需求标记已清除")
+                logger.warning("│    └─ 后台压缩器未运行，尝试启动（幂等）")
+                self._async_compressor.start_sync()
+            logger.warning("│    └─ 压缩完成标记由后台 _execute_compression 负责清除")
             logger.warning("└═══════════════════════════════════════════════")
 
         # [审计改进] 加载摘要和最近消息：
