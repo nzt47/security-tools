@@ -200,6 +200,9 @@ body,
 }
 
 .wb-mosaic-body .mosaic-window-title {
+  /* 覆盖库 flex:1：不撑满 toolbar 自由空间，space-between 将标题贴左、控件贴右（与独立窗口顶栏观感一致） */
+  flex: 0 1 auto;
+  min-width: 0; /* 长标题仍可截断（配合库默认 ellipsis + nowrap） */
   font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
