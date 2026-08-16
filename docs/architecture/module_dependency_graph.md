@@ -70,6 +70,8 @@ flowchart LR
         agent_logging_utils["agent.logging_utils"]:::crosslayer
         agent_mcp_executor["agent.mcp_executor"]
         agent_memory_optimized["agent.memory_optimized"]
+        agent_modules_api["agent.modules_api"]
+        agent_modules_registry["agent.modules_registry"]
         agent_multi_tenant["agent.multi_tenant"]
         agent_network_config["agent.network_config"]:::crosslayer
         agent_p6_config_loader["agent.p6_config_loader"]
@@ -433,6 +435,11 @@ flowchart LR
     agent_p6_snapshot --> agent_logging_utils
     agent_p6_snapshot --> agent_behavior_controller
     agent_learning_metrics_api --> agent_learning_metrics
+    agent_modules_api --> agent_modules_registry
+    agent_modules_api --> agent_server_auth
+    agent_modules_api --> agent_rate_limiter
+    agent_modules_api -.-> agent_health_dashboard
+    agent_modules_api --> agent_system_tools
     agent_mcp_executor -.-> agent_utils_singleton_manager
     agent_mcp_executor --> agent_tool_router
     agent_mcp_executor --> agent_tool_router
@@ -1253,6 +1260,7 @@ flowchart LR
     agent_health_collector --> agent_health_assessor
     agent_health_collector --> agent_health_probes
     agent_health_collector --> agent_health_storage
+    agent_health_probes -.-> agent_monitoring_tracing
     agent_health_probes -.-> agent_monitoring_metrics
     agent_health_probes -.-> agent_monitoring_metrics
     agent_health_probes -.-> agent_feedback
@@ -1266,10 +1274,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 418
-- 模块节点数: 340
-- 依赖边数: 828
-- 跨层调用数: 515
+- 扫描文件数: 420
+- 模块节点数: 342
+- 依赖边数: 834
+- 跨层调用数: 517
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1587.10 ms
+- 构建耗时: 1272.42 ms
