@@ -67,6 +67,7 @@
 | 2026-08-11 | `b07399a` | 98.3% (1741/1772) | 0 | 31 | 139.99 | — | 0 | ↑ | Merge commit '2340eaa9' into temp-fix |
 | 2026-08-15 | `cac72f0` | 99.3% (1985/1998) | 0 | 13 | 163.56 | — | 0 | ↑ | Merge pull request #634 from nzt47/develop |
 | 2026-08-15 | `86adcfe` | 99.3% (1985/1998) | 0 | 13 | 159.96 | — | 0 | ↑ | chore(git): master .gitignore 同步 wait_checkout_master.ps1 与 quality_gate_r |
+| 2026-08-16 | `255ab9b` | 99.3% (1985/1998) | 0 | 13 | 157.78 | — | 0 | ↑ | style(workbench): 面板标题贴左，消除窄面板大片留白 |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
