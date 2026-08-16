@@ -503,6 +503,7 @@
 @media (max-width: 1100px) {
   .pl-body {
     flex-direction: column;
+    align-items: stretch; /* column 方向下子项撑满，避免因素区 shrink-to-fit 留白 */
   }
   .pl-preview {
     position: static;
