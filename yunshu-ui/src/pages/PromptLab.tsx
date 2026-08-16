@@ -21,7 +21,10 @@ import {
 import { usePromptLabStore } from '../stores/usePromptLabStore';
 import {
   CATEGORIES,
+  allFactors,
+  assembleSystemPrompt,
   buildPrompt,
+  estimateTokens,
   exportCsv,
   exportJson,
   factorsOfCategory,
@@ -29,9 +32,15 @@ import {
   radarData,
   requestLlmPreview,
   simulateOutput,
-  allFactors,
+  tokenReport,
 } from '../lib/promptFactors';
-import type { FactorCategory, FactorControl, FactorValue, PromptFactorDef } from '../lib/promptFactorTypes';
+import type {
+  FactorCategory,
+  FactorControl,
+  FactorValue,
+  PromptFactorDef,
+  SystemPart,
+} from '../lib/promptFactorTypes';
 import './PromptLab.css';
 
 type Filter = 'all' | FactorCategory;
@@ -195,6 +204,92 @@ function FactorCard({
   );
 }
 
+/** 系统提示词组件卡片：启停 + 文本编辑 + token 估算（内置不可删，自定义可删） */
+function SystemPartCard({
+  part,
+  onUpdate,
+  onRemove,
+}: {
+  part: SystemPart;
+  onUpdate: (id: string, patch: Partial<SystemPart>) => void;
+  onRemove?: (id: string) => void;
+}) {
+  return (
+    <div className="pl-factor-card pl-syspart">
+      <div className="pl-factor-head">
+        <span className="pl-factor-name">{part.label}</span>
+        <div className="flex items-center gap-2">
+          <span className="pl-token-chip" title="该组件估算 token 数">
+            ~{estimateTokens(part.text)} tok
+          </span>
+          <button
+            type="button"
+            className={`pl-toggle ${part.enabled ? 'on' : ''}`}
+            onClick={() => onUpdate(part.id, { enabled: !part.enabled })}
+            aria-pressed={part.enabled}
+          >
+            <span className="pl-toggle-dot" />
+            {part.enabled ? '注入' : '禁用'}
+          </button>
+          {!part.builtin && (
+            <button type="button" className="pl-icon-btn" onClick={() => onRemove?.(part.id)} title="删除此自定义组件">
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
+      </div>
+      <textarea
+        className={`pl-textarea pl-syspart-text ${part.enabled ? '' : 'disabled'}`}
+        rows={2}
+        value={part.text}
+        disabled={!part.enabled}
+        onChange={(e) => onUpdate(part.id, { text: e.target.value })}
+        spellCheck={false}
+      />
+    </div>
+  );
+}
+
+/** 添加自定义系统提示词组件的弹窗 */
+function AddSystemPartForm({ onClose }: { onClose: () => void }) {
+  const addSystemPart = usePromptLabStore((s) => s.addSystemPart);
+  const [label, setLabel] = useState('');
+  const [text, setText] = useState('');
+
+  const submit = () => {
+    if (!label.trim() || !text.trim()) return;
+    addSystemPart({
+      id: `sp-custom-${Date.now()}`,
+      label: label.trim(),
+      enabled: true,
+      text: text.trim(),
+    });
+    onClose();
+  };
+
+  return (
+    <div className="pl-modal-mask" onClick={onClose}>
+      <div className="pl-modal" onClick={(e) => e.stopPropagation()}>
+        <h3 className="pl-modal-title">添加系统提示词组件</h3>
+        <label className="pl-field">
+          <span>组件名称 *</span>
+          <input className="pl-text" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="例如：知识库检索规则" />
+        </label>
+        <label className="pl-field">
+          <span>组件文本 *（注入 system message 的一段）</span>
+          <textarea className="pl-textarea" value={text} onChange={(e) => setText(e.target.value)} rows={4} placeholder="输入要注入的内容…" />
+        </label>
+        <div className="pl-modal-actions">
+          <button type="button" className="pl-btn ghost" onClick={onClose}>取消</button>
+          <button type="button" className="pl-btn primary" onClick={submit} disabled={!label.trim() || !text.trim()}>
+            添加
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** 添加自定义因素的表单弹层 */
 function CustomFactorForm({ onClose }: { onClose: () => void }) {
   const addCustomFactor = usePromptLabStore((s) => s.addCustomFactor);
@@ -315,14 +410,19 @@ function CustomFactorForm({ onClose }: { onClose: () => void }) {
 export default function PromptLab() {
   const values = usePromptLabStore((s) => s.values);
   const customFactors = usePromptLabStore((s) => s.customFactors);
+  const systemParts = usePromptLabStore((s) => s.systemParts);
   const llm = usePromptLabStore((s) => s.llm);
   const setValue = usePromptLabStore((s) => s.setValue);
   const removeCustomFactor = usePromptLabStore((s) => s.removeCustomFactor);
+  const updateSystemPart = usePromptLabStore((s) => s.updateSystemPart);
+  const removeSystemPart = usePromptLabStore((s) => s.removeSystemPart);
+  const resetSystemParts = usePromptLabStore((s) => s.resetSystemParts);
   const resetValues = usePromptLabStore((s) => s.resetValues);
   const setLlm = usePromptLabStore((s) => s.setLlm);
 
   const [filter, setFilter] = useState<Filter>('all');
   const [showForm, setShowForm] = useState(false);
+  const [showPartForm, setShowPartForm] = useState(false);
   const [mode, setMode] = useState<PreviewMode>('sim');
   const [llmOutput, setLlmOutput] = useState<string | null>(null);
   const [llmError, setLlmError] = useState<string | null>(null);
@@ -333,6 +433,11 @@ export default function PromptLab() {
   const prompt = useMemo(() => buildPrompt(values), [values]);
   const sim = useMemo(() => simulateOutput(values), [values]);
   const radar = useMemo(() => radarData(values), [values]);
+  const token = useMemo(
+    () => tokenReport(systemParts, values, llm.contextWindow),
+    [systemParts, values, llm.contextWindow],
+  );
+  const systemPrompt = useMemo(() => assembleSystemPrompt(systemParts), [systemParts]);
 
   const shownCategories = useMemo(
     () => (filter === 'all' ? CATEGORIES : CATEGORIES.filter((c) => c.id === filter)),
@@ -350,6 +455,7 @@ export default function PromptLab() {
       endpoint: llm.endpoint.trim(),
       apiKey: llm.apiKey,
       model: llm.model,
+      systemPrompt,
       prompt,
       temperature: numOf(values, 'temperature'),
       topP: numOf(values, 'top_p'),
@@ -371,7 +477,8 @@ export default function PromptLab() {
 
   const exportWith = (kind: 'json' | 'csv') => {
     const tag = dateTag();
-    if (kind === 'json') download(`prompt-factors-${tag}.json`, exportJson(values, customFactors), 'application/json');
+    if (kind === 'json')
+      download(`prompt-factors-${tag}.json`, exportJson(values, customFactors, systemParts, llm.contextWindow), 'application/json');
     else download(`prompt-factors-${tag}.csv`, exportCsv(values, customFactors), 'text/csv;charset=utf-8');
   };
 
@@ -393,6 +500,10 @@ export default function PromptLab() {
           </div>
         </div>
         <div className="pl-topbar-actions">
+          <button type="button" className="pl-btn" onClick={() => setShowPartForm(true)} title="新增自定义系统提示词组件">
+            <Plus size={13} />
+            添加组件
+          </button>
           <button type="button" className="pl-btn" onClick={() => setShowForm(true)}>
             <Plus size={13} />
             添加因素
@@ -421,6 +532,33 @@ export default function PromptLab() {
       <div className="pl-body">
         {/* 左侧：因素模块 */}
         <main className="pl-factors">
+          {/* 系统提示词组件：注入每次 LLM 调用的 system message */}
+          <section className="pl-category">
+            <h2 className="pl-category-title" style={{ color: '#f472b6' }}>
+              <span className="pl-category-dot" style={{ background: '#f472b6' }} />
+              系统提示词组件
+              <span className="pl-category-count">{systemParts.length} 段 · 共 ~{token.systemTotal} tok</span>
+            </h2>
+            <p className="pl-category-desc">
+              每次真实 LLM 调用注入的 system message 由下列组件按顺序拼接，可逐段启停 / 编辑 / 新增，实时估算 token。
+            </p>
+            <div className="pl-card-grid">
+              {systemParts.map((p) => (
+                <SystemPartCard key={p.id} part={p} onUpdate={updateSystemPart} onRemove={removeSystemPart} />
+              ))}
+            </div>
+            <div className="pl-syspart-actions">
+              <button type="button" className="pl-btn" onClick={() => setShowPartForm(true)}>
+                <Plus size={13} />
+                添加组件
+              </button>
+              <button type="button" className="pl-btn" onClick={resetSystemParts} title="恢复默认 7 段组件">
+                <RotateCcw size={13} />
+                恢复默认组件
+              </button>
+            </div>
+          </section>
+
           {shownCategories.map((cat) => (
             <section key={cat.id} className="pl-category">
               <h2 className="pl-category-title" style={{ color: cat.color }}>
@@ -493,6 +631,11 @@ export default function PromptLab() {
           )}
 
           <div className="pl-preview-block">
+            <h3>系统提示词（注入）</h3>
+            <pre className="pl-sim-out">{systemPrompt}</pre>
+          </div>
+
+          <div className="pl-preview-block">
             <h3>生成的提示词</h3>
             <textarea className="pl-prompt-out" readOnly value={prompt} rows={9} spellCheck={false} />
           </div>
@@ -520,6 +663,52 @@ export default function PromptLab() {
             <RadarChart data={radar} />
           </div>
 
+          <div className="pl-preview-block">
+            <h3>Token 用量估算</h3>
+            <div className="pl-token-table">
+              {token.rows.map((r) => (
+                <div key={r.id} className={`pl-token-row ${r.enabled ? '' : 'off'}`}>
+                  <span>{r.label}</span>
+                  <span>{r.enabled ? `~${r.tokens} tok` : '—'}</span>
+                </div>
+              ))}
+              <div className="pl-token-row total">
+                <span>系统提示词合计</span>
+                <span>~{token.systemTotal} tok</span>
+              </div>
+              <div className="pl-token-row">
+                <span>生成的提示词</span>
+                <span>~{token.userTokens} tok</span>
+              </div>
+              <div className="pl-token-row total">
+                <span>总计</span>
+                <span>~{token.total} tok</span>
+              </div>
+            </div>
+            <div className="pl-token-bar">
+              <div
+                className="pl-token-bar-fill"
+                style={{ width: `${Math.max(2, token.usedPct)}%`, background: token.usedPct > 80 ? '#f87171' : '#22d3ee' }}
+              />
+            </div>
+            <div className="pl-token-meta">
+              <span>
+                占用上下文 {token.usedPct}% / 窗口 {token.windowSize.toLocaleString()}
+              </span>
+              <label className="pl-token-window-label">
+                窗口
+                <input
+                  type="number"
+                  className="pl-text pl-token-window"
+                  value={llm.contextWindow}
+                  min={1024}
+                  step={1024}
+                  onChange={(e) => setLlm({ contextWindow: Math.max(1024, Number(e.target.value) || 32768) })}
+                />
+              </label>
+            </div>
+          </div>
+
           <div className="pl-export">
             <h3>数据导出</h3>
             <p className="pl-export-hint">导出当前参数组合，便于提示词优化分析（JSON 可再导入，CSV 用于表格处理）。</p>
@@ -536,6 +725,7 @@ export default function PromptLab() {
       </div>
 
       {showForm && <CustomFactorForm onClose={() => setShowForm(false)} />}
+      {showPartForm && <AddSystemPartForm onClose={() => setShowPartForm(false)} />}
     </div>
   );
 }

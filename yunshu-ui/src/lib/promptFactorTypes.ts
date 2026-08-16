@@ -39,3 +39,19 @@ export interface PromptFactorDef {
   /** 是否为用户自定义因素 */
   custom?: boolean;
 }
+
+/**
+ * 系统提示词组件：注入每次 LLM 调用的 system message 的组成单元。
+ * 可精细控制：启用/禁用、文本编辑、token 估算。
+ */
+export interface SystemPart {
+  id: string;
+  /** 组件名称（如"角色定义"） */
+  label: string;
+  /** 是否注入本次调用 */
+  enabled: boolean;
+  /** 组件文本 */
+  text: string;
+  /** 内置组件（不可删除，仅可编辑/启停）；自定义组件可删除 */
+  builtin?: boolean;
+}
