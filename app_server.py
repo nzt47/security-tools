@@ -157,8 +157,23 @@ try:
         except Exception as _e:  # noqa: BLE001 - 采集失败降级为离线
             return None
 
+    def _provider_panorama():
+        """全景指标（CPU/内存/电池/sensor_on 等），补全拓扑节点指标 chip"""
+        try:
+            resp = api_panorama()
+            data = resp.get_json() or {}
+            out = {"sensor_on": data.get("sensor_on"), "sensor_total": data.get("sensor_total")}
+            for reading in data.get("health", []) or []:
+                name = reading.get("sensor_name")
+                if name and reading.get("value") is not None:
+                    out[name] = reading["value"]
+            return out
+        except Exception as _e:  # noqa: BLE001 - 采集失败降级为离线
+            return None
+
     register_status_provider("/api/sensors", _provider_sensors)
     register_status_provider("/api/status", _provider_status)
+    register_status_provider("/api/panorama", _provider_panorama)
     register_modules_api(app, api_token_provider=lambda: _API_TOKEN if _API_TOKEN_ENABLED else None)
     logger.info("[启动] 模块聚合 API 路由已注册 (/api/modules/*)")
 except Exception as e:
@@ -841,6 +856,29 @@ def api_mode():
         "enable_reflection": profile.enable_reflection,
         "reasons": _Yunshu._behavior._reasons,
         "thinking_mode": thinking.get("label", ""),
+    })
+
+
+@app.route("/api/planning/toggle", methods=["POST"])
+@require_token
+@log_request()
+def api_planning_toggle():
+    """切换规划引擎运行开关（热生效，不写 config.yaml）
+
+    对应 modules_registry.toggle_planning 动作（原标注"需新增接口"已落地）。
+    运行中直接翻转 _Yunshu._planning_enabled（Orchestrator 运行时读取），
+    持久化仍由 config.yaml planning.enabled 负责（重启后以配置为准）。
+    """
+    data = request.get_json() or {}
+    enabled = data.get("enabled")
+    current = bool(getattr(_Yunshu, "_planning_enabled", False))
+    if enabled is None:
+        enabled = not current
+    _Yunshu._planning_enabled = bool(enabled)
+    return jsonify({
+        "ok": True,
+        "planning_enabled": bool(enabled),
+        "note": "运行中已切换；持久化请修改 config.yaml planning.enabled（重启生效）",
     })
 
 

@@ -69,11 +69,11 @@ def main() -> int:
             print(f"  [OK] {url} -> {len(rules)} 条 rule ({','.join(all_methods)})")
     check("url_map 无真冲突(method 重叠)", dup == 0, f"(真冲突 {dup} 个)")
 
-    # 未映射动作（需新增接口）不应在 url_map 中
+    # toggle_planning 已落地（POST /api/planning/toggle），应已注册且唯一
     if "/api/planning/toggle" in rule_by_url:
-        check("toggle_planning 不应已注册", False, "需新增接口竟已存在")
+        check("toggle_planning 已注册(遗留落地)", len(rule_by_url["/api/planning/toggle"]) == 1)
     else:
-        check("toggle_planning 未注册(符合'需新增')", True)
+        check("toggle_planning 已注册(遗留落地)", False, "缺失 /api/planning/toggle 路由")
 
     # ── 2. topology / detail ──
     print("== 2. 三端点冒烟 ==")

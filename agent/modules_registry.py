@@ -106,9 +106,9 @@ ACTION_ROUTES: Dict[str, ActionRoute] = {
                                                                      "level": "level", "category": "category"}, "medium"),
     "start_search_perf": ActionRoute("POST", "/api/search-performance/start", {"interval_sec": "interval_sec"}, "low"),
     "stop_search_perf":  ActionRoute("POST", "/api/search-performance/stop",  {}, "low"),
-    # ── 需新增接口（当前无写接口，聚合层命中后返回 501）──
+    # ── 规划引擎运行开关（POST /api/planning/toggle，热生效）──
     "toggle_planning":   ActionRoute("POST", "/api/planning/toggle", {"enabled": "enabled"}, "medium",
-                                     "需新增接口：规划引擎灰度开关（现状仅 config.yaml 可配）"),
+                                     "运行中热切换 _planning_enabled；持久化需改 config.yaml planning.enabled"),
 }
 
 
