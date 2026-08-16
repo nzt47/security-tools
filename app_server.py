@@ -139,6 +139,31 @@ try:
 except Exception as e:
     logger.warning(f"[启动] 学习度量注册失败: {e}")
 
+# 注册模块聚合蓝图（S2: /api/modules/topology + <id>/detail + <id>/actions）
+# 说明: provider 用模块级 def 延迟解析 _Yunshu（_Yunshu 在文件后部初始化），
+#       注册动作本身不执行采集，运行时才调用，避免注册时序依赖。
+try:
+    from agent.modules_api import register_modules_api, register_status_provider
+
+    def _provider_sensors():
+        try:
+            return _Yunshu.body.get_sensor_info()
+        except Exception as _e:  # noqa: BLE001 - 采集失败降级为离线
+            return None
+
+    def _provider_status():
+        try:
+            return _Yunshu.get_status()
+        except Exception as _e:  # noqa: BLE001 - 采集失败降级为离线
+            return None
+
+    register_status_provider("/api/sensors", _provider_sensors)
+    register_status_provider("/api/status", _provider_status)
+    register_modules_api(app, api_token_provider=lambda: _API_TOKEN if _API_TOKEN_ENABLED else None)
+    logger.info("[启动] 模块聚合 API 路由已注册 (/api/modules/*)")
+except Exception as e:
+    logger.warning(f"[启动] 模块聚合 API 注册失败: {e}")
+
 # ════════════════════════════════════════════════════════════
 # Prometheus 监控初始化
 # ════════════════════════════════════════════════════════════
@@ -489,8 +514,16 @@ _window_sensor = None
 _window_sensor_consented = False  # 用户是否同意过
 
 def _init_window_sensor():
-    """根据配置初始化窗口传感器（需用户同意，默认禁用）"""
+    """根据配置初始化窗口传感器（需用户同意，默认禁用）
+
+    YUNSHU_DISABLE_WINDOW_SENSOR=1/true 时跳过导入（开发/沙箱环境屏蔽开关，
+    规避受限环境访问系统语音词库等路径的噪音；屏蔽后窗口监控功能不可用）。
+    """
     global _window_sensor
+    if os.environ.get("YUNSHU_DISABLE_WINDOW_SENSOR", "").strip().lower() in ("1", "true", "yes"):
+        _window_sensor = None
+        logger.info("窗口监控传感器已跳过（YUNSHU_DISABLE_WINDOW_SENSOR 屏蔽）")
+        return
     try:
         from sensor.window_sensor import WindowSensor
         ws = WindowSensor(
@@ -1857,7 +1890,7 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════
-#  分身管理 / 资产管理 / CLI / Computer Use 路由
+#  分身管理 / 资产管理路由
 # ════════════════════════════════════════════════════════════
 
 try:
@@ -1882,19 +1915,92 @@ try:
 except Exception as e:
     logger.error("加载资产管理路由失败: %s", e)
 
+# ════════════════════════════════════════════════════════════
+#  用户行为回放路由（/api/replay/*）
+#  Why 接线：前端 yunshu-ui replayRecorder.ts / sessionReplay.ts 上传录制数据，
+#  此前 app_server 仅有 /replay-viewer 页面、无 API，上传即 404。
+# ════════════════════════════════════════════════════════════
 try:
-    from agent.server_routes.routes_cli import register_routes as reg_cli
-    reg_cli(app, lambda: None)
-    logger.info("CLI 软件路由已注册 (/api/cli/*)")
+    from agent.server_routes.routes_replay import register_routes as reg_replay
+    reg_replay(app, lambda: None)
+    logger.info("用户行为回放路由已注册 (/api/replay/*)")
 except Exception as e:
-    logger.error("加载 CLI 路由失败: %s", e)
+    logger.error("加载回放路由失败: %s", e)
 
+# ════════════════════════════════════════════════════════════
+#  向量记忆路由（/api/vector/* + /api/knowledge/add）
+#  Why 接线：前端 static/js/sidebar/memory.js 调用 /api/vector/stats|add、
+#  /api/knowledge/add，此前未注册即 404；/api/vector/search 已在本文件注册，
+#  register_vector_routes 不含 search 以避免路由冲突。
+# ════════════════════════════════════════════════════════════
 try:
-    from agent.server_routes.routes_computer_use import register_routes as reg_computer_use
-    reg_computer_use(app, lambda: None)
-    logger.info("Computer Use 路由已注册 (/api/computer-use/*)")
+    from agent.server_routes.routes_memory import register_vector_routes as reg_vector
+    reg_vector(app, _Yunshu)
+    logger.info("向量记忆路由已注册 (/api/vector/*, /api/knowledge/add)")
 except Exception as e:
-    logger.error("加载 Computer Use 路由失败: %s", e)
+    logger.error("加载向量记忆路由失败: %s", e)
+
+# ════════════════════════════════════════════════════════════
+#  遗留重构接线 T2-T5（见 docs/zh/架构收口遗留重构任务清单_20260816.md）
+#  均为 state 未使用的独立路由模块，整体注册不会与既有路由冲突。
+# ════════════════════════════════════════════════════════════
+
+# T3：业务仪表盘（Prometheus 告警依赖 /api/business/prometheus）
+try:
+    from agent.server_routes.routes_business_dashboard import register_routes as reg_business
+    reg_business(app, lambda: None)
+    logger.info("业务仪表盘路由已注册 (/api/business/*)")
+except Exception as e:
+    logger.error("加载业务仪表盘路由失败: %s", e)
+
+# T2：用户反馈（后端 get_feedback_manager 已多模块使用，补 HTTP 暴露）
+try:
+    from agent.server_routes.routes_feedback import register_routes as reg_feedback
+    reg_feedback(app, lambda: None)
+    logger.info("反馈路由已注册 (/api/feedback/*)")
+except Exception as e:
+    logger.error("加载反馈路由失败: %s", e)
+
+# T4：健康评分（与 health_bp 的 /api/health/dashboard 等路径不冲突）
+try:
+    from agent.server_routes.routes_health import register_routes as reg_health
+    reg_health(app, lambda: None)
+    logger.info("健康评分路由已注册 (/api/health/score 等)")
+except Exception as e:
+    logger.error("加载健康评分路由失败: %s", e)
+
+# T5：监控仪表盘（质量/链路追踪，契约测试已定义）
+try:
+    from agent.server_routes.routes_dashboard import register_routes as reg_dashboard
+    reg_dashboard(app, lambda: None)
+    logger.info("监控仪表盘路由已注册 (/api/dashboard/*)")
+except Exception as e:
+    logger.error("加载监控仪表盘路由失败: %s", e)
+
+# T6：orchestrator 语义层配置热更（独立子函数，无需 state，仅用 Orchestrator 类）
+try:
+    from agent.server_routes.routes_config import register_semantic_config_routes as reg_sem_cfg
+    reg_sem_cfg(app)
+    logger.info("语义层配置热更路由已注册 (/api/orchestrator/semantic-config)")
+except Exception as e:
+    logger.error("加载语义层配置路由失败: %s", e)
+
+# T7：会话交接（独立子函数，需 session_mgr + Yunshu）
+try:
+    from agent.server_routes.routes_sessions import register_handoff_routes as reg_handoff
+    from types import SimpleNamespace as _SN
+    reg_handoff(app, _SN(session_mgr=_session_mgr, Yunshu=_Yunshu))
+    logger.info("会话交接路由已注册 (/api/handoff)")
+except Exception as e:
+    logger.error("加载会话交接路由失败: %s", e)
+
+# T8.1：多租户管理 API（TenantManager HTTP 化，管理端点 require_token）
+try:
+    from agent.server_routes.routes_tenants import register_routes as reg_tenants
+    reg_tenants(app, lambda: None)
+    logger.info("多租户管理路由已注册 (/api/open/tenants/*)")
+except Exception as e:
+    logger.error("加载多租户管理路由失败: %s", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -2956,6 +3062,36 @@ def api_config_logs():
         logs = _network_config_mgr.get_change_log(limit)
         return jsonify({"ok": True, "logs": logs})
     except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── 审计日志查询 API（只读，T8.4 第二批灰度开放；无 require_token） ──
+
+@app.route("/api/audit/logs", methods=["GET"])
+@log_request(show_response=False)
+def api_audit_logs():
+    """获取结构化审计日志（只读查询 Append-only 审计日志）
+
+    T8.4 数据隔离（修复跨租户泄露，见 T8 故障演练剧本 B.3）：
+    - 经网关认证：仅返回当前 Key 绑定租户的记录（写侧 tenant_id 字段精确过滤）；
+      未绑定租户的旧 Key 返回空集 + warning（隔离优先，宁可少看不可泄露）
+    - 内部直调（无网关标记，如管理通道）：保持全量（管理语义）
+    """
+    try:
+        from agent.audit.logger import audit_logger
+        trace_id = request.args.get("trace_id", "")
+        action = request.args.get("action", "")
+        limit = min(request.args.get("limit", 20, type=int), 200)
+
+        key_info = getattr(request, "_gateway_key_info", None) or {}
+        logs = audit_logger.query(trace_id=trace_id, action=action, limit=limit)
+        logs, warning = audit_logger.filter_by_key(logs, key_info or None)
+        payload = {"ok": True, "logs": logs, "count": len(logs)}
+        if warning:
+            payload["warning"] = warning
+        return jsonify(payload)
+    except Exception as e:
+        logger.error("审计日志查询失败: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
@@ -4834,6 +4970,106 @@ def api_test_division():
         # 这个异常会被日志装饰器捕获
         raise
 
+
+# ════════════════════════════════════════════════════════════════════════════
+# [workbench] 云枢工作台 SSE 流式接口示例
+# ----------------------------------------------------------------------------
+# 路径: POST /api/chat/stream
+# 事件契约（与前端 yunshu-ui/src/workbench/lib/sse.ts 保持一致）:
+#   data: {"type":"thinking","id":"intent","title":"...","detail":"...","status":"running"}
+#   data: {"type":"chunk","text":"...","seq":N}     # seq=分片序号，供前端乱序检测
+#   data: {"type":"done"}
+# 说明: 演示 SSE 协议本身（Content-Type / 事件节奏 / 客户端断开）。
+#       接入真实 LLM 时仅需把 _workbench_demo_stream 替换为真实生成器，
+#       事件结构保持不变（契约即【不易】约束）。
+# ════════════════════════════════════════════════════════════════════════════
+
+def _workbench_reply_blocks(question):
+    """构造一条演示用 Markdown 回复（含代码块），返回文本块列表"""
+    return [
+        "## 已收到你的问题\n\n> **" + question + "**\n",
+        "云枢工作台已通过真实 SSE 通道（POST /api/chat/stream）完成本次流式输出。以下为处理概览：\n",
+        "### 处理要点\n\n- 通道协议：`text/event-stream`\n- 事件契约：`thinking / chunk / done`（chunk 携带 `seq` 序号，供前端乱序检测）\n- 分片节奏：约 20ms/片\n",
+        "### 示例代码\n\n```typescript\n// 前端消费端（yunshu-ui/src/workbench/lib/sse.ts）\nconst res = await fetch('/api/chat/stream', {\n  method: 'POST',\n  body: JSON.stringify({ message: question }),\n});\nfor await (const evt of parseSSE(res.body)) { /* chunk → store → UI */ }\n```\n",
+        "接入真实 LLM 时，仅替换本接口的 `_workbench_demo_stream` 生成器，事件结构保持不变。\n",
+    ]
+
+
+def _workbench_demo_stream(question):
+    """演示级 SSE 生成器：thinking 事件 + 带序号的流式分片"""
+    def _sse(evt):
+        return "data: " + json.dumps(evt, ensure_ascii=False) + "\n\n"
+
+    yield _sse({"type": "thinking", "id": "intent", "title": "意图识别",
+                "detail": "解析输入：" + question[:40], "status": "running"})
+    time.sleep(0.35)
+    yield _sse({"type": "thinking", "id": "intent", "title": "意图识别", "status": "done"})
+
+    yield _sse({"type": "thinking", "id": "retrieve", "title": "知识检索",
+                "detail": "从知识库召回相关卡片并做 RRF 融合排序", "status": "running"})
+    time.sleep(0.4)
+    yield _sse({"type": "thinking", "id": "retrieve", "title": "知识检索", "status": "done"})
+
+    yield _sse({"type": "thinking", "id": "plan", "title": "规划分解",
+                "detail": "将任务拆分为原子步骤并分配工具", "status": "running"})
+    time.sleep(0.3)
+    yield _sse({"type": "thinking", "id": "plan", "title": "规划分解", "status": "done"})
+
+    yield _sse({"type": "thinking", "id": "tool", "title": "工具调用",
+                "detail": "执行示例代码生成工具", "status": "running"})
+    time.sleep(0.25)
+
+    seq = 0
+    for block in _workbench_reply_blocks(question):
+        # 每 4 字符一片，模拟网络分片到达节奏
+        for i in range(0, len(block), 4):
+            seq += 1
+            yield _sse({"type": "chunk", "text": block[i:i + 4], "seq": seq})
+            time.sleep(0.02)
+
+    yield _sse({"type": "thinking", "id": "tool", "title": "工具调用", "status": "done"})
+    yield _sse({"type": "done"})
+
+
+@app.route("/api/chat/stream", methods=["POST"])
+def api_chat_stream():
+    from flask import Response, stream_with_context
+
+    data = request.get_json(silent=True) or {}
+    question = (data.get("message") or data.get("question") or "").strip()
+    if not question:
+        return jsonify({"error": "消息不能为空"}), 400
+    logger.info("[workbench][SSE] 开始流式响应: %s", question[:60])
+
+    def gen():
+        try:
+            yield from _workbench_demo_stream(question)
+        except GeneratorExit:
+            # 客户端提前断开（前端点"停止生成"或关闭标签页）
+            logger.info("[workbench][SSE] 客户端断开，终止生成")
+        except Exception as _e:
+            logger.error("[workbench][SSE] 生成器异常: %s", _e)
+
+    resp = Response(stream_with_context(gen()), mimetype="text/event-stream")
+    # SSE 关键响应头；after_request 会再补 no-store，对 SSE 无碍
+    resp.headers["Cache-Control"] = "no-cache"
+    resp.headers["X-Accel-Buffering"] = "no"
+    return resp
+
+
+# ════════════════════════════════════════════════════════════
+#  API 网关适配层（/api/open/* + /api/docs）
+#  Why 置于文件末尾：_scan_internal_routes 在 register_gateway 时遍历
+#  app.url_map 生成全量 Swagger 文档——必须等全部 /api/* 路由（含 T2-T7
+#  接线与后续内联路由）注册完成后再挂载，否则新接口缺失于文档。
+#  适配层采用中间层模式：仅拦截 /api/open/* 前缀，内部 API 认证不变。
+# ════════════════════════════════════════════════════════════
+try:
+    from agent.api_gateway_flask import register_gateway as reg_gateway
+    reg_gateway(app)
+    logger.info("API 网关适配层已挂载 (/api/open/*, /api/docs)")
+except Exception as e:
+    logger.error("加载 API 网关适配层失败: %s", e)
 
 # 程序退出时停止窗口传感器
 import atexit
