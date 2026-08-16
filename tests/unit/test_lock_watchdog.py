@@ -30,13 +30,13 @@ class TestLockHoldTimeout:
     """模拟持锁超时 → 验证告警计数触发"""
 
     def test_hold_timeout_triggers_alert(self):
-        """持锁 50ms > 阈值 10ms → lock_hold_timeouts_total 计数 +1（核心用例）"""
+        """持锁 50ms > 阈值 10ms → yunshu_lock_hold_timeouts_total 计数 +1（核心用例）"""
         wd = LockWatchdog(hold_ms=10, wait_ms=0)
         lock = WatchedLock(name="test_hold_lock", watchdog=wd)
         with lock:
             time.sleep(0.05)  # 模拟持锁期间的阻塞行为
         metrics = wd.get_metrics()
-        assert metrics["lock_hold_timeouts_total"].get("test_hold_lock") == 1
+        assert metrics["yunshu_lock_hold_timeouts_total"].get("test_hold_lock") == 1
 
     def test_hold_timeout_records_lock_name(self):
         """不同锁名各自独立计数（labels=lock_name 的语义）"""
@@ -49,8 +49,8 @@ class TestLockHoldTimeout:
         with lock_b:
             time.sleep(0.001)
         metrics = wd.get_metrics()
-        assert metrics["lock_hold_timeouts_total"].get("lock_a") == 1
-        assert metrics["lock_hold_timeouts_total"].get("lock_b") is None
+        assert metrics["yunshu_lock_hold_timeouts_total"].get("lock_a") == 1
+        assert metrics["yunshu_lock_hold_timeouts_total"].get("lock_b") is None
 
     def test_normal_hold_no_false_positive(self):
         """正常持锁（< 阈值）→ 零告警（不误报）"""
@@ -59,7 +59,7 @@ class TestLockHoldTimeout:
         for _ in range(10):
             with lock:
                 time.sleep(0.001)
-        assert wd.get_metrics()["lock_hold_timeouts_total"] == {}
+        assert wd.get_metrics()["yunshu_lock_hold_timeouts_total"] == {}
 
 
 class TestLockWaitTimeout:
@@ -78,7 +78,7 @@ class TestLockWaitTimeout:
 
         holder.join()
         metrics = wd.get_metrics()
-        assert metrics["lock_wait_timeouts_total"].get("test_wait_lock") == 1
+        assert metrics["yunshu_lock_wait_timeouts_total"].get("test_wait_lock") == 1
 
 
 class TestPrometheusIntegration:
@@ -87,7 +87,7 @@ class TestPrometheusIntegration:
     def test_metrics_registered_in_definitions(self):
         """3 个指标已注册进 BUSINESS_METRICS_DEFINITIONS（/metrics 可暴露）"""
         LockWatchdog.get()  # 触发注册（幂等）
-        for name in ("lock_hold_timeouts_total", "lock_wait_timeouts_total", "lock_hold_duration_ms"):
+        for name in ("yunshu_lock_hold_timeouts_total", "yunshu_lock_wait_timeouts_total", "yunshu_lock_hold_duration_ms"):
             assert name in BUSINESS_METRICS_DEFINITIONS, f"指标 {name} 未注册"
             assert BUSINESS_METRICS_DEFINITIONS[name].metric_type in ("counter", "histogram")
 
@@ -104,9 +104,9 @@ class TestPrometheusIntegration:
         text = Path(ALERT_RULE_PATH).read_text(encoding="utf-8")
         # 两条告警规则与对应指标完整引用
         assert "LockHoldTimeout" in text
-        assert re.search(r"expr:\s*.*lock_hold_timeouts_total", text), "LockHoldTimeout 未引用 lock_hold_timeouts_total"
+        assert re.search(r"expr:\s*.*yunshu_lock_hold_timeouts_total", text), "LockHoldTimeout 未引用 yunshu_lock_hold_timeouts_total"
         assert "LockWaitTimeout" in text
-        assert re.search(r"expr:\s*.*lock_wait_timeouts_total", text), "LockWaitTimeout 未引用 lock_wait_timeouts_total"
+        assert re.search(r"expr:\s*.*yunshu_lock_wait_timeouts_total", text), "LockWaitTimeout 未引用 yunshu_lock_wait_timeouts_total"
 
     def test_alert_rule_severity_classification(self):
         """持锁超时=critical（锁纪律违规），等待超时=warning（潜在风险）"""

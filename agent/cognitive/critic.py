@@ -233,11 +233,13 @@ class CriticEvaluator:
                 "error": str(e),
                 "status": "degraded"
             }))
+            # [D8] 诚实化：降级不是成功——overall_score 置 None（消除 7 分 vs 100 分制混乱），
+            # passed 恒为 False，禁止 .get("passed", True) 默认值把降级误判为通过。
             return EvaluationResult(
-                overall_score=degrade_result.get("overall_score", 75),
+                overall_score=None,
                 dimension_scores={},
-                passed=degrade_result.get("passed", True),
-                feedback=degrade_result.get("feedback", ["Critic 评估失败，已降级"]),
+                passed=False,
+                feedback=[degrade_result.get("reason", "Critic 评估失败，已降级")],
                 retry_recommended=False,
                 explanation=degrade_result.get("reason", "Critic 评估失败，已降级")
             )

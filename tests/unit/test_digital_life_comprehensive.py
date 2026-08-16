@@ -1210,6 +1210,10 @@ class TestCallLLMV2:
         # MagicMock 对象而非字符串，需显式配置透传 response，模拟"护栏跳过校验"场景
         # （对应 _guard_llm_output 中 svc is None 的 return response 分支）
         digital_life._guard_llm_output.side_effect = lambda response, *a, **kw: response
+        # 【测试修复】_call_llm_v2 走 else 分支调用 self._run_llm_bounded(fn)；
+        # MagicMock 上未定义的方法会自动返回 MagicMock（导致 _re.search 收到非字符串），
+        # 这里同步执行 fn 让 response 拿到 chat 的真实字符串。
+        digital_life._run_llm_bounded = lambda fn, timeout=0: fn()
 
         result = DigitalLife._call_llm_v2(digital_life, "Hello", "Body status")
 
@@ -1233,6 +1237,8 @@ class TestCallLLMV2:
         digital_life._tool_calling_service = None
         # 【变易】同上：让 _guard_llm_output 透传 response，聚焦 persona 注入逻辑测试
         digital_life._guard_llm_output.side_effect = lambda response, *a, **kw: response
+        # 【测试修复】同上：_run_llm_bounded 同步执行，避免 MagicMock 返回非字符串
+        digital_life._run_llm_bounded = lambda fn, timeout=0: fn()
 
         result = DigitalLife._call_llm_v2(digital_life, "Hello", "Body status")
 

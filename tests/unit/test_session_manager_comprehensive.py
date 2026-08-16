@@ -467,3 +467,79 @@ class TestIntegration:
         sessions = mgr2.list_sessions()
         assert any(s["id"] == info["id"] for s in sessions)
         assert mgr2.get_message_count(info["id"]) == 1
+
+
+# ── 9. 显式会话 ID 边界（2026-08-15 边界修复）────────────────
+
+
+class TestCreateSessionBoundary:
+    """create_session(session_id=...) 显式 ID 的边界校验与幂等守卫"""
+
+    @pytest.mark.parametrize("bad_id", [
+        "../evil",      # 路径穿越
+        "a/b",          # 路径分隔符
+        "a\\b",         # Windows 分隔符
+        "a:b",          # 盘符冒号
+        "a*", "a?", "a<", "a>", "a|", 'a"', "a\x00",  # Windows 非法字符
+        "CON", "con", "NUL", "nul ", "COM1", "com1.", "LPT9",  # 保留设备名
+        "x" * 129,      # 超长 ID
+    ])
+    def test_reject_invalid_session_id(self, manager, bad_id):
+        """非法显式 ID 抛 ValueError，且不产生任何会话目录"""
+        with pytest.raises(ValueError):
+            manager.create_session(session_id=bad_id)
+        assert manager.get_session(bad_id) is None
+
+    def test_accept_valid_session_id(self, manager):
+        """合法显式 ID 正常创建并返回"""
+        info = manager.create_session(session_id="user-123_abc")
+        assert info["id"] == "user-123_abc"
+        assert manager.get_session("user-123_abc")["id"] == "user-123_abc"
+
+    def test_idempotent_create_same_id(self, manager):
+        """重复 ID 幂等：返回现有会话，不覆盖消息、不重复索引"""
+        first = manager.create_session(session_id="dup-id")
+        manager.add_message("dup-id", "user", "原始消息")
+        assert manager.get_message_count("dup-id") == 1
+
+        second = manager.create_session(session_id="dup-id", title="不同标题")
+        assert second["id"] == "dup-id"
+        # 幂等返回现有会话：标题不被覆盖
+        assert second["title"] == first["title"]
+        # 消息未被清空
+        assert manager.get_message_count("dup-id") == 1
+        # 索引无重复条目
+        sessions = manager.list_sessions(limit=100)
+        assert len([s for s in sessions if s["id"] == "dup-id"]) == 1
+
+    def test_idempotent_create_keeps_messages_file(self, manager, tmp_path):
+        """幂等守卫不清空 messages.jsonl（TOCTOU 防护目标）"""
+        manager.create_session(session_id="keep-msgs")
+        manager.add_message("keep-msgs", "user", "A")
+        msg_file = Path(tmp_path) / "sessions" / "keep-msgs" / "messages.jsonl"
+        before = msg_file.read_text(encoding="utf-8")
+
+        manager.create_session(session_id="keep-msgs")
+        after = msg_file.read_text(encoding="utf-8")
+        assert before == after
+
+    def test_concurrent_create_same_id_single_session(self, manager):
+        """并发同 ID 显式创建：仅产生一个会话（幂等守卫 + 锁）"""
+        barrier = threading.Barrier(8)
+        results = []
+
+        def create():
+            barrier.wait()
+            results.append(manager.create_session(session_id="conc-dup"))
+
+        threads = [threading.Thread(target=create) for _ in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        sessions = manager.list_sessions(limit=100)
+        matches = [s for s in sessions if s["id"] == "conc-dup"]
+        assert len(matches) == 1, f"并发同 ID 创建应仅 1 条索引，实际 {len(matches)}"
+        # 全部返回同一会话
+        assert len({r["id"] for r in results}) == 1

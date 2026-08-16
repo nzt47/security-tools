@@ -9,10 +9,39 @@ __pycache__
 .pytest_cache
 .mypy_cache
 *.egg-info
+# 测试代码不进镜像（docker-compose 运行时挂载 ./tests）
+tests
+# 运行时备份目录（最大可到 1GB+，不应进入构建上下文）
+backup
 data
 sandbox
 docs
 node_modules
+# 运行时产物/缓存/日志/报告目录（并行会话高频写入，均不进镜像 context）
+.backups
+backups
+.env.backups
+.file_backups
+.fix_backups
+tmp_backup_test
+cache
+logs
+ci_logs
+_ci_logs
+htmlcov
+htmlcov_planning
+coverage_report
+test_data
+test_dir
+test_prompts
+test_reports
+reports
+.benchmarks
+.p6_snapshots
+.import_linter_cache
+.pytest_tmp
+.edge_profile
+workspace
 *.db
 *.sqlite
 *.log

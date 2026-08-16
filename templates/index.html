@@ -525,6 +525,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/views.css') }}?v=20260617">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/modals.css') }}?v=20260617">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/panorama.css') }}?v=20260617">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/topology.css') }}?v=20260816">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}?v=20260617">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/permission-control.css') }}?v=20260617">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/sessions.css') }}?v=20260617">
@@ -560,6 +561,7 @@
         <div class="nav-divider"></div>
         <button class="nav-btn active" data-view="chat"><span class="nav-icon">💬</span><span class="nav-label">对话</span></button>
         <button class="nav-btn" data-view="panorama"><span class="nav-icon">🗺</span><span class="nav-label">全景</span></button>
+        <button class="nav-btn" data-view="topology"><span class="nav-icon">🕸</span><span class="nav-label">拓扑</span></button>
         <div class="nav-divider"></div>
         <div class="nav-section-label">管理</div>
         <!-- 历史会话已合并到对话视图的会话功能中 -->
@@ -978,6 +980,22 @@
       </div>
 
       <!-- 历史会话已合并到对话视图的会话功能中 -->
+
+      <!-- 拓扑视图（S3：六域模块拓扑 + 状态 + 干预） -->
+      <div id="view-topology" class="view">
+        <div style="display:flex;flex-direction:column;height:100%">
+          <div class="topo-metrics" id="topo-metrics"></div>
+          <div class="topo-layout">
+            <div class="topo-main" id="topo-tree"></div>
+            <div class="topo-side">
+              <div class="topo-detail-panel" id="topo-detail">
+                <h3>节点详情</h3>
+                <div class="topo-empty">← 点击左侧节点查看状态、指标与干预操作</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- 技能管理视图 -->
       <div id="view-skills" class="view">
@@ -3639,6 +3657,7 @@ document.getElementById('chat-input').addEventListener('input', function() {
 <script src="{{ url_for('static', filename='js/sidebar/sessions.js') }}?v=20260617"></script>
 <script src="{{ url_for('static', filename='js/network-config.js') }}?v=20260630b"></script>
 <script src="{{ url_for('static', filename='js/panorama.js') }}?v=20260617"></script>
+<script src="{{ url_for('static', filename='js/topology.js') }}?v=20260816"></script>
 <script>
 // ═══════════════════════════════════════════════
 // 对话风格配置
@@ -4312,6 +4331,7 @@ applyChatConfig();
 // 注册视图（此时所有外部 JS 已加载完毕）
 app.registerView('chat', { keepAlive: true });
 app.registerView('panorama', { keepAlive: true });
+app.registerView('topology', { load: loadTopologyView, keepAlive: true });
 app.registerView('skills', { load: loadSkills, keepAlive: true });
 app.registerView('tools', { load: loadTools, keepAlive: true });
 app.registerView('personality', { load: loadPersonality, keepAlive: true });

@@ -21,7 +21,6 @@ class TestDefectD17:
     """D17：思考阶段应复用历史经验"""
 
     @pytest.mark.asyncio
-    @pytest.mark.xfail(reason="已知缺陷 D17：思考提示词未嵌入历史经验（缺陷看门狗，修复后移除 xfail）", strict=False)
     async def test_thinking_prompt_embeds_historical_experience(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             reflector = Reflector(persist_dir=tmp_dir)

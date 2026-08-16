@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>云枢 · 六域模块拓扑（静态示意图）</title>
+<!-- 节点状态色标与指标徽标：独立 CSS 变量文件（static/css/topology.css，S3 拓扑视图复用） -->
+<link rel="stylesheet" href="../../static/css/topology.css">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-panel: #161b22;
+    --bg-node: #1c2330;
+    --border: #2a3343;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --accent: #4fd1c5;
+    /* 状态色旧别名 → 统一指向 topology.css 的 --status-* 单一来源 */
+    --green: var(--status-healthy);
+    --yellow: var(--status-warning);
+    --red: var(--status-fault);
+    --gray: var(--status-offline);
+    --blue: var(--status-disabled);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    padding: 20px; min-height: 100vh;
+  }
+  .page-title { display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px; }
+  .page-title h1 { font-size: 20px; color: #fff; letter-spacing: 1px; }
+  .page-title .tag { font-size: 12px; color: var(--accent); border: 1px solid var(--accent); border-radius: 4px; padding: 2px 8px; }
+
+  /* ── 全局指标条 ── */
+  .metric-bar {
+    display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; margin-bottom: 16px;
+  }
+  .metric-card {
+    background: var(--bg-panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .metric-card .label { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+  .metric-card .value { font-size: 18px; font-weight: 600; color: #fff; }
+  .metric-card .value small { font-size: 11px; color: var(--text-dim); font-weight: 400; }
+  .metric-card .value.ok { color: var(--green); }
+
+  /* ── 图例 ── */
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; font-size: 12px; color: var(--text-dim); }
+  .legend .item { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  /* ── 布局 ── */
+  .layout { display: flex; gap: 16px; align-items: flex-start; }
+  .topology { flex: 1 1 auto; min-width: 0; }
+  .detail-panel {
+    flex: 0 0 320px; background: var(--bg-panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; position: sticky; top: 20px;
+  }
+
+  /* ── 域分组 ── */
+  .domain {
+    background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px;
+    margin-bottom: 10px; overflow: hidden;
+  }
+  .domain-header {
+    display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+    cursor: pointer; user-select: none;
+  }
+  .domain-header:hover { background: #1a2130; }
+  .domain-header .arrow { color: var(--text-dim); transition: transform .2s; font-size: 10px; }
+  .domain.collapsed .domain-header .arrow { transform: rotate(-90deg); }
+  .domain-header .icon { font-size: 16px; }
+  .domain-header .name { font-size: 14px; font-weight: 600; color: #e6edf3; }
+  .domain-header .badge { font-size: 11px; color: var(--text-dim); }
+  .domain-header .status-summary { margin-left: auto; display: flex; gap: 6px; align-items: center; font-size: 11px; color: var(--text-dim); }
+  .domain-body { padding: 4px 10px 10px 34px; }
+
+  /* ── 节点卡片 ── */
+  .node {
+    display: flex; align-items: center; gap: 8px; padding: 7px 10px; margin-top: 4px;
+    background: var(--bg-node); border: 1px solid var(--border); border-radius: 7px;
+    cursor: pointer; transition: border-color .15s;
+  }
+  .node:hover { border-color: var(--accent); }
+  .node.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .node .dot { flex: 0 0 auto; }
+  .node .node-icon { flex: 0 0 auto; font-size: 14px; }
+  .node .node-name { font-size: 13px; color: #e6edf3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .node .node-desc { font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+
+  /* 指标徽标与节点状态色标已抽至 static/css/topology.css（独立 CSS 变量文件） */
+
+  /* ── 详情面板 ── */
+  .detail-panel h3 { font-size: 14px; color: #fff; margin-bottom: 10px; }
+  .detail-panel .empty { color: var(--text-dim); font-size: 12px; padding: 20px 0; text-align: center; }
+  .detail-row { display: flex; justify-content: space-between; font-size: 12px; padding: 5px 0; border-bottom: 1px dashed var(--border); }
+  .detail-row .k { color: var(--text-dim); }
+  .detail-row .v { color: #e6edf3; }
+  .detail-section { margin-top: 12px; }
+  .detail-section .title { font-size: 12px; color: var(--accent); margin-bottom: 6px; }
+  .action-btn {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
+    padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border);
+    background: #232c3c; color: var(--text); cursor: pointer; margin: 0 6px 6px 0;
+  }
+  .action-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.danger { border-color: rgba(248,81,73,.5); color: var(--red); }
+  .action-btn.danger:hover { background: rgba(248,81,73,.15); }
+  .note { font-size: 11px; color: var(--text-dim); margin-top: 8px; line-height: 1.6; }
+
+  @media (max-width: 900px) {
+    .metric-bar { grid-template-columns: repeat(3, 1fr); }
+    .layout { flex-direction: column; }
+    .detail-panel { flex: 1 1 auto; position: static; width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-title">
+  <h1>🛰 云枢 · 六域模块拓扑</h1>
+  <span class="tag">静态示意图 · 示例数据</span>
+</div>
+
+<!-- 全局指标条 -->
+<div class="metric-bar">
+  <div class="metric-card"><div class="label">整体健康分</div><div class="value ok">0.92</div></div>
+  <div class="metric-card"><div class="label">传感器在线</div><div class="value">18<small> / 22</small></div></div>
+  <div class="metric-card"><div class="label">CPU / 内存</div><div class="value">41%<small> / 63%</small></div></div>
+  <div class="metric-card"><div class="label">行为模式</div><div class="value">NORMAL</div></div>
+  <div class="metric-card"><div class="label">会话 / 交互</div><div class="value">3<small> 会话</small></div></div>
+  <div class="metric-card"><div class="label">定时任务运行中</div><div class="value">2<small> / 5</small></div></div>
+</div>
+
+<!-- 图例 -->
+<div class="legend">
+  <span class="item"><span class="dot s-healthy"></span>健康</span>
+  <span class="item"><span class="dot s-warning"></span>警告</span>
+  <span class="item"><span class="dot s-fault"></span>故障</span>
+  <span class="item"><span class="dot s-offline"></span>离线</span>
+  <span class="item"><span class="dot s-disabled"></span>未启用(配置关)</span>
+</div>
+
+<div class="layout">
+  <!-- 六域树状拓扑 -->
+  <div class="topology" id="topology"></div>
+
+  <!-- 节点详情面板 -->
+  <div class="detail-panel" id="detail">
+    <h3>节点详情</h3>
+    <div class="empty" id="detail-empty">← 点击左侧节点查看状态、指标与干预操作</div>
+    <div id="detail-content" style="display:none">
+      <div class="detail-row"><span class="k">模块 ID</span><span class="v" id="d-id"></span></div>
+      <div class="detail-row"><span class="k">所属域</span><span class="v" id="d-domain"></span></div>
+      <div class="detail-row"><span class="k">状态</span><span class="v" id="d-status"></span></div>
+      <div class="detail-row"><span class="k">代码路径</span><span class="v" id="d-path"></span></div>
+      <div class="detail-section">
+        <div class="title">关键指标</div>
+        <div id="d-metrics"></div>
+      </div>
+      <div class="detail-section">
+        <div class="title">干预操作</div>
+        <div id="d-actions"></div>
+      </div>
+      <div class="note" id="d-note"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════ 静态示例数据（对齐 agent/modules_registry.py 六域结构） ═══════
+// 状态值: healthy / warning / fault / offline / disabled
+const DOMAINS = [
+  { id: "perception", icon: "👁", name: "感知层", summary: "18/22 在线",
+    nodes: [
+      { id: "sensor.body", icon: "🔗", name: "感知聚合器 BodySensor", desc: "聚合全部传感器采集与回调", status: "healthy", metrics: [["18/22 在线", "good"]] },
+      { id: "sensor.registry", icon: "📋", name: "传感器注册表", desc: "自发现扫描接入新传感器", status: "healthy", metrics: [["22 已注册", "good"]] },
+      { id: "sensor.hw", icon: "🖥", name: "硬件传感器组", desc: "CPU/GPU/内存/电池/磁盘/网络", status: "healthy", metrics: [["CPU 41%", "good"], ["MEM 63%", "good"]] },
+      { id: "sensor.env", icon: "🌡", name: "环境与系统传感器组", desc: "环境/行为/系统状态/进程", status: "warning", metrics: [["电池 12%", "warn"]] },
+      { id: "sensor.file", icon: "👀", name: "文件与事件监控", desc: "文件变动/变更检测/事件监控", status: "disabled", metrics: [["观察模式", ""]] },
+      { id: "sensor.ext", icon: "📷", name: "扩展感知", desc: "OCR/语音/窗口活动", status: "offline", metrics: [["未启动", ""]] },
+      { id: "learning.novelty", icon: "🧬", name: "感知侧学习", desc: "新颖性检测与行为漂移基线", status: "disabled", metrics: [["enabled=false", ""]] },
+    ]},
+  { id: "cognitive", icon: "🧠", name: "认知层", summary: "2 节点异常",
+    nodes: [
+      { id: "planning.engine", icon: "🗺", name: "规划引擎", desc: "PlanningCore 任务规划主入口", status: "healthy", metrics: [["wire_enabled=false", ""]] },
+      { id: "cognitive.templates", icon: "📝", name: "提示词模板", desc: "系统提示词模板管理", status: "healthy", metrics: [["1 模板", "good"]] },
+      { id: "planning.decomposer", icon: "🧩", name: "任务分解/执行", desc: "复杂任务拆解与执行闭环", status: "warning", metrics: [["P99 1.2s", "warn"]] },
+      { id: "planning.persist", icon: "💿", name: "规划持久化", desc: "计划 SQLite 持久化", status: "healthy", metrics: [["128 条", "good"]] },
+    ]},
+  { id: "memory", icon: "💾", name: "记忆层", summary: "正常",
+    nodes: [
+      { id: "memory.manager", icon: "🗃", name: "记忆管理器", desc: "对话记忆/摘要/压缩", status: "healthy", metrics: [["1.2k 消息", "good"], ["摘要 v3", ""]] },
+      { id: "memory.context", icon: "🧵", name: "上下文组装器", desc: "三层记忆旁路注入(观察)", status: "healthy", metrics: [["3.0k tokens", ""]] },
+      { id: "knowledge.base", icon: "📚", name: "知识库", desc: "卡片/向量索引/语义搜索", status: "healthy", metrics: [["156 卡片", "good"]] },
+      { id: "lifetrace.tree", icon: "🌳", name: "生命周期轨迹", desc: "长期记忆树与检索", status: "offline", metrics: [["未启用", ""]] },
+    ]},
+  { id: "action", icon: "🤖", name: "行动层", summary: "1 节点故障",
+    nodes: [
+      { id: "action.digital_life", icon: "🫀", name: "主循环 DigitalLife", desc: "对话主循环与行动中枢", status: "healthy", metrics: [["3.2k 交互", "good"], ["NORMAL", ""]] },
+      { id: "action.permission", icon: "🛂", name: "权限系统", desc: "黑白名单/紧急控制", status: "healthy", metrics: [["0 拦截", "good"]] },
+      { id: "action.tools", icon: "🛠", name: "工具集", desc: "MCP 风格工具注册表", status: "healthy", metrics: [["42 工具", "good"], ["P99 380ms", "good"]] },
+      { id: "action.skills", icon: "🔧", name: "技能管理", desc: "技能加载/启停/参数", status: "healthy", metrics: [["7 技能", "good"]] },
+      { id: "action.extensions", icon: "🧩", name: "扩展系统", desc: "插件/市场/渠道", status: "warning", metrics: [["1 待更新", "warn"]] },
+      { id: "action.scheduler", icon: "⏰", name: "定时任务", desc: "任务调度与心跳", status: "healthy", metrics: [["2/5 运行", "good"]] },
+      { id: "action.process", icon: "⚙️", name: "进程管理", desc: "白名单进程启停", status: "fault", metrics: [["1 异常退出", "bad"]] },
+      { id: "action.llm", icon: "📡", name: "LLM 实例", desc: "多 LLM 实例管理", status: "healthy", metrics: [["2 实例", "good"], ["gpt-4", ""]] },
+      { id: "action.mcp", icon: "🔌", name: "MCP 服务", desc: "MCP 服务注册与启用", status: "offline", metrics: [["0 服务", ""]] },
+    ]},
+  { id: "service", icon: "🌐", name: "服务层", summary: "正常",
+    nodes: [
+      { id: "service.app", icon: "🖧", name: "Web 主服务", desc: "Flask 127.0.0.1:5678", status: "healthy", metrics: [["健康 0.92", "good"], ["299 路由", ""]] },
+      { id: "service.gateway", icon: "🚪", name: "API 网关", desc: "开放端点/限流/配额", status: "healthy", metrics: [["0 限流", "good"]] },
+      { id: "service.network", icon: "🌍", name: "网络配置", desc: "搜索/网络实例配置", status: "healthy", metrics: [["3 引擎", "good"]] },
+    ]},
+  { id: "ops", icon: "🛡", name: "运维层", summary: "正常",
+    nodes: [
+      { id: "ops.health", icon: "❤️", name: "健康系统", desc: "五层探针→评分→趋势", status: "healthy", metrics: [["0.92", "good"]] },
+      { id: "ops.logs", icon: "📊", name: "日志系统", desc: "采集/分析/内省/看板", status: "healthy", metrics: [["2.4k/24h", "good"]] },
+      { id: "ops.safety", icon: "⚠️", name: "安全守护", desc: "关键词检查/告警", status: "healthy", metrics: [["0 告警", "good"]] },
+      { id: "ops.personality", icon: "🎭", name: "人格配置", desc: "人格参数/档案", status: "healthy", metrics: [["温婉知性", ""]] },
+      { id: "ops.search_perf", icon: "📈", name: "搜索性能监控", desc: "搜索实例性能监控", status: "offline", metrics: [["未启动", ""]] },
+    ]},
+];
+
+// 干预动作（示例，对齐 ACTION_ROUTES）
+const ACTIONS = {
+  "toggle_tool":    { label: "切换工具", danger: "" },
+  "toggle_skill":   { label: "切换技能", danger: "" },
+  "toggle_extension":{ label: "切换扩展", danger: "" },
+  "toggle_scheduler":{ label: "启停任务", danger: "" },
+  "execute_scheduler":{ label: "立即执行", danger: "" },
+  "compress_memory":{ label: "压缩记忆", danger: "" },
+  "add_memory":     { label: "添加记忆", danger: "" },
+  "toggle_permission":{ label: "切换权限", danger: "" },
+  "update_network": { label: "更新配置", danger: "" },
+  "set_personality":{ label: "应用档案", danger: "" },
+  "start_process":  { label: "启动进程", danger: "" },
+  "stop_process":   { label: "停止进程", danger: "danger" },
+  "reconfigure_llm":{ label: "重配 LLM", danger: "danger" },
+  "emergency_stop": { label: "🚨 紧急停止", danger: "danger" },
+  "emergency_pause":{ label: "⏸ 暂停", danger: "danger" },
+  "block_network":  { label: "🔌 封锁网络", danger: "danger" },
+};
+const NODE_ACTIONS = {
+  "action.tools": ["toggle_tool"],
+  "action.skills": ["toggle_skill"],
+  "action.extensions": ["toggle_extension"],
+  "action.scheduler": ["toggle_scheduler", "execute_scheduler"],
+  "action.process": ["start_process", "stop_process"],
+  "action.llm": ["reconfigure_llm"],
+  "action.digital_life": ["emergency_pause", "emergency_stop", "block_network"],
+  "action.permission": ["toggle_permission"],
+  "memory.manager": ["compress_memory", "add_memory"],
+  "service.network": ["update_network"],
+  "ops.personality": ["set_personality"],
+  "cognitive.templates": [],
+  "planning.engine": [],
+};
+
+const STATUS_META = {
+  healthy:  { label: "健康", cls: "s-healthy" },
+  warning:  { label: "警告", cls: "s-warning" },
+  fault:    { label: "故障", cls: "s-fault" },
+  offline:  { label: "离线", cls: "s-offline" },
+  disabled: { label: "未启用", cls: "s-disabled" },
+};
+
+function renderTopology() {
+  const root = document.getElementById("topology");
+  DOMAINS.forEach((d, di) => {
+    const dom = document.createElement("div");
+    dom.className = "domain";
+    dom.id = "domain-" + d.id;
+    dom.innerHTML = `
+      <div class="domain-header">
+        <span class="arrow">▼</span>
+        <span class="icon">${d.icon}</span>
+        <span class="name">${d.name}</span>
+        <span class="badge">${d.summary}</span>
+        <span class="status-summary">
+          ${d.nodes.filter(n=>n.status==="fault").length ? `<span style="color:var(--red)">● ${d.nodes.filter(n=>n.status==="fault").length} 故障</span>` : ""}
+          ${d.nodes.filter(n=>n.status==="warning").length ? `<span style="color:var(--yellow)">● ${d.nodes.filter(n=>n.status==="warning").length} 警告</span>` : ""}
+        </span>
+      </div>
+      <div class="domain-body"></div>`;
+    const body = dom.querySelector(".domain-body");
+    d.nodes.forEach(n => {
+      const node = document.createElement("div");
+      node.className = "node";
+      node.dataset.id = n.id;
+      const st = STATUS_META[n.status];
+      node.innerHTML = `
+        <span class="dot ${st.cls}"></span>
+        <span class="node-icon">${n.icon}</span>
+        <span class="node-name">${n.name}</span>
+        <span class="node-desc">${n.desc}</span>
+        <span class="chips">${n.metrics.map(m => `<span class="chip ${m[1]}">${m[0]}</span>`).join("")}</span>`;
+      node.addEventListener("click", () => selectNode(n, d));
+      body.appendChild(node);
+    });
+    dom.querySelector(".domain-header").addEventListener("click", (e) => {
+      dom.classList.toggle("collapsed");
+    });
+    root.appendChild(dom);
+  });
+}
+
+let selected = null;
+function selectNode(node, domain) {
+  document.querySelectorAll(".node.selected").forEach(el => el.classList.remove("selected"));
+  document.querySelector(`.node[data-id="${node.id}"]`)?.classList.add("selected");
+  selected = node;
+
+  const st = STATUS_META[node.status];
+  document.getElementById("detail-empty").style.display = "none";
+  document.getElementById("detail-content").style.display = "block";
+  document.getElementById("d-id").textContent = node.id;
+  document.getElementById("d-domain").textContent = domain.name;
+  document.getElementById("d-status").innerHTML = `<span class="dot ${st.cls}" style="width:8px;height:8px"></span> ${st.label}`;
+  document.getElementById("d-path").textContent = node.id.split(".").join("/") + "/";
+  document.getElementById("d-metrics").innerHTML = node.metrics.length
+    ? node.metrics.map(m => `<div class="detail-row"><span class="k">指标</span><span class="v">${m[0]}</span></div>`).join("")
+    : `<div class="detail-row"><span class="k">无实时指标</span><span class="v">—</span></div>`;
+
+  const acts = NODE_ACTIONS[node.id] || [];
+  document.getElementById("d-actions").innerHTML = acts.length
+    ? acts.map(a => ACTIONS[a] ? `<button class="action-btn ${ACTIONS[a].danger}">${ACTIONS[a].label}</button>` : "").join("")
+    : `<span style="color:var(--text-dim);font-size:12px">该节点无可干预操作</span>`;
+
+  document.getElementById("d-note").textContent = node.desc + "（示例数据，干预按钮为布局演示，未接入后端）";
+}
+
+renderTopology();
+// 默认选中行动层主循环，便于查看高危按钮布局
+selectNode(DOMAINS[3].nodes[0], DOMAINS[3]);
+</script>
+</body>
+</html>

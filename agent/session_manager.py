@@ -14,6 +14,20 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 
+# [2026-08-15 边界修复] Windows 保留设备名（作为目录名会解析失败/行为异常）。
+# session_id 直接用于创建 data/sessions/{id}/ 目录，需拒绝这些名字。
+_WINDOWS_RESERVED_NAMES = {
+    "CON", "PRN", "AUX", "NUL",
+    *{f"COM{i}" for i in range(1, 10)},
+    *{f"LPT{i}" for i in range(1, 10)},
+}
+
+# [2026-08-15 边界修复] 显式会话 ID 长度上限：Windows 路径约 260 字符限制，
+# sessions 目录前缀本身占用空间，超长 ID 会令 mkdir 抛 OSError（500）。
+# 128 字符为保守上限，满足常见 UUID/时间戳 ID（<64 字符）。
+_MAX_SESSION_ID_LEN = 128
+
+
 class SessionNotFoundError(Exception):
     """会话不存在"""
     pass
@@ -72,6 +86,7 @@ class SessionManager:
         timezone: str | None = None,
         device_type: str | None = None,
         locale: str | None = None,
+        session_id: str | None = None,
     ) -> dict:
         """创建新会话
 
@@ -81,11 +96,27 @@ class SessionManager:
             timezone: 用户时区（如 "Asia/Shanghai"），用于调整说话风格与临场感
             device_type: 设备类型（如 "mobile"/"desktop"），来自 User-Agent 启发式
             locale: 语言环境（如 "zh-CN"），来自 Accept-Language
+            session_id: 【2026-08-15 并发修复】显式指定会话 ID（请求级会话隔离，
+                外部调用方可通过该参数传入自定义 ID）。默认 None 自动生成。
 
         Returns:
             会话信息字典（含 timezone/device_type/locale 元数据）
         """
-        session_id = self._generate_id()
+        # [2026-08-15 并发修复] 显式 ID 防路径穿越：会话目录会以该 ID 创建，
+        # 禁止 / \ .. : 等危险字符（自动生成的 ID 天然不含，仅影响显式传入）。
+        # [2026-08-15 边界修复] 补充 Windows 非法字符/保留名/超长校验
+        # （create_session 是唯一入口，校验集中在此保证全调用方一致）。
+        if session_id is not None:
+            if any(ch in session_id for ch in ("/", "\\", "..", ":")):
+                raise ValueError(f"非法会话 ID: {session_id!r}")
+            if any(ch in session_id for ch in ('*', '?', '<', '>', '|', '"', "\x00")):
+                raise ValueError(f"非法会话 ID: {session_id!r}")
+            # Windows 保留设备名（大小写不敏感，含前导/尾随空格与点变体）
+            if session_id.strip(" .").upper() in _WINDOWS_RESERVED_NAMES:
+                raise ValueError(f"非法会话 ID: {session_id!r}")
+            if len(session_id) > _MAX_SESSION_ID_LEN:
+                raise ValueError(f"会话 ID 超长({len(session_id)}>{_MAX_SESSION_ID_LEN}): {session_id!r}")
+        session_id = session_id or self._generate_id()
         # 注意：timezone 参数遮蔽了模块级 datetime.timezone，本地别名导入规避
         from datetime import timezone as _dt_timezone
         now = datetime.now(_dt_timezone.utc).isoformat()
@@ -102,17 +133,27 @@ class SessionManager:
         }
 
         session_dir = self._sessions_dir / session_id
-        session_dir.mkdir(parents=True, exist_ok=True)
 
-        meta = {**session_info}
-        (session_dir / "meta.json").write_text(
-            json.dumps(meta, ensure_ascii=False, indent=2),
-            encoding="utf-8"
-        )
-
-        (session_dir / "messages.jsonl").write_text("", encoding="utf-8")
-
+        # [2026-08-15 并发修复] 检查-创建-写索引全程持锁原子：
+        # 幂等守卫放锁外会被并发击穿（N 线程同时通过检查），导致索引重复条目 +
+        # write_text("") 覆盖清空已存在的 messages.jsonl（用户消息丢失）。
+        # 创建为低频操作，短暂持锁可接受；与 _append_lock（消息追加）互不阻塞。
         with self._lock:
+            # 二次检查：持锁后若已存在（并发同 ID 先到者已创建）→ 幂等返回
+            existing = self._get_session_locked(session_id)
+            if existing is not None:
+                return dict(existing)
+
+            session_dir.mkdir(parents=True, exist_ok=True)
+
+            meta = {**session_info}
+            (session_dir / "meta.json").write_text(
+                json.dumps(meta, ensure_ascii=False, indent=2),
+                encoding="utf-8"
+            )
+
+            (session_dir / "messages.jsonl").write_text("", encoding="utf-8")
+
             index = self._read_index()
             index.append(session_info)
             self._write_index(index)
@@ -121,14 +162,18 @@ class SessionManager:
         logger.info("会话已创建: %s — %s", session_id, title)
         return session_info
 
+    def _get_session_locked(self, session_id: str) -> dict | None:
+        """锁内索引查找（调用方必须已持有 self._lock）"""
+        sessions = self._read_index()
+        for s in sessions:
+            if s["id"] == session_id:
+                return dict(s)
+        return None
+
     def get_session(self, session_id: str) -> dict | None:
         """获取会话信息"""
         with self._lock:
-            sessions = self._read_index()
-            for s in sessions:
-                if s["id"] == session_id:
-                    return dict(s)
-        return None
+            return self._get_session_locked(session_id)
 
     def get_session_metadata(self, session_id: str) -> dict | None:
         """获取会话元数据（时区/设备/语言等），用于决定系统说话风格与临场感

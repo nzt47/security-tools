@@ -445,6 +445,9 @@ class LifecycleManager:
         self._last_tool_steps = []
         self._last_reasoning = None
         self._last_context_warning = None
+        # [2026-08-15 并发修复] 上下文使用率检查节流时间戳（process() 入口
+        # 按 CONTEXT_USAGE_CHECK_INTERVAL 间隔执行，避免每请求全量组装）
+        self._ctx_usage_last_check = None
         self._last_was_template = False
         self._started_at = None
 

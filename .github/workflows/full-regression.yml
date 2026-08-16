@@ -1,0 +1,145 @@
+# =============================================================================
+# 全量回归（含慢速测试）—— 补 ci.yml 的 slow 缺口 + rest 目录回归
+#
+# 背景（Why）:
+#   ci.yml 单元测试 job 使用 `-m "not slow and not skip_ci"`（6-shard），
+#   慢速测试（@pytest.mark.slow）在 push CI 中从不执行。本 workflow 在
+#   手动触发 / 每日定时时补齐：
+#     1) rest 目录回归：integration / boundary / contract / chaos / e2e
+#     2) 慢速测试全量：逐文件独立 job（matrix），一个卡死不拖垮其他
+#
+# 【不易】设计要点（防 D 类 t.join 卡死，2026-08-15 本地快速回归实测教训）:
+#   - slow 用例按文件拆分独立 job：pytest-timeout thread 模式无法中断
+#     t.join()/锁等待，整文件一个 job 卡死会拖垮整个矩阵
+#   - 每个 slow job 独立 timeout-minutes（45min）兜底
+#   - ubuntu-22.04：避开 ubuntu-latest 上 sentence_transformers / chromadb
+#     / sqlite-vec 的阻塞 join 问题（2026-08-03 教训）
+#   - SKILLS_OFFLINE=1：避免 transformers 递归文件系统扫描触发 300s 超时
+#   - -p no:randomly：固定收集顺序（确定性可复现，与 ci.yml 一致）
+#
+# 慢速用例筛选约定: pytest <file> -m "slow" --runslow
+#   - -m "slow": 仅收集该文件内 slow 标记用例（文件级 pytestmark 或用例级）
+#   - --runslow: 覆盖 conftest pytest_collection_modifyitems 的自动 skip
+#     （tests/conftest.py:82 对 slow 用例默认 skip，除非 --runslow）
+# =============================================================================
+
+name: 全量回归（含慢速测试）
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 每日 22:00 UTC（与 daily_regression.yml 错开高峰期）
+    - cron: '0 22 * * *'
+
+env:
+  # 【不易】CI 必须启用 SKILLS_OFFLINE（与 ci.yml 一致）: 避免
+  # sentence_transformers/transformers 导入时递归扫描文件系统触发
+  # pytest-timeout 超时; conftest 的 _skills_offline_mode fixture 会 patch
+  # 重量级模块为 None, 业务代码走 fallback 路径
+  SKILLS_OFFLINE: '1'
+
+jobs:
+  # ─── rest 目录快速回归（ci.yml 未覆盖的 integration/boundary 等）───
+  quick-rest:
+    name: 回归 ${{ matrix.area }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        area: [integration, boundary, contract, chaos, e2e]
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-mock pytest-timeout pytest-asyncio
+          pip install -e .
+
+      - name: 运行 ${{ matrix.area }} 回归
+        run: |
+          mkdir -p test-results
+          pytest tests/${{ matrix.area }} \
+            -m "not slow and not skip_ci" \
+            -p no:randomly \
+            --tb=short \
+            --timeout=60 \
+            --timeout-method=signal \
+            --junitxml=test-results/junit-${{ matrix.area }}.xml \
+            -rA
+
+      - name: 上传测试结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-${{ matrix.area }}
+          path: test-results/
+
+  # ─── 慢速测试全量（逐文件独立 job，防单点卡死拖垮矩阵）───
+  slow-full:
+    name: 慢速 ${{ matrix.file }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        file:
+          - tests/unit/test_permission_system_concurrency.py
+          - tests/unit/test_task_scheduler_comprehensive.py
+          - tests/unit/test_memory_module.py
+          - tests/unit/test_memory_optimized.py
+          - tests/unit/test_memory_vector_store.py
+          - tests/unit/test_task_scheduler.py
+          - tests/unit/test_weekly_report_generator.py
+          - tests/integration/test_task_scheduler_integration.py
+          - tests/unit/test_web_search_concurrency.py
+          # 文件级非 slow、用例级 slow（-m "slow" 自动只选 slow 用例）
+          - tests/unit/test_planning_stage5_e2e.py
+          - tests/unit/test_skill_index_cache.py
+          - tests/unit/test_optimized_storage.py
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-mock pytest-timeout pytest-asyncio
+          pip install -e .
+
+      - name: 运行慢速测试
+        run: |
+          mkdir -p test-results
+          # 文件名中的 / 替换为 _ 作为 artifact 名
+          SAFE_NAME=$(echo "${{ matrix.file }}" | tr '/' '_')
+          # --timeout=300: 慢速用例单测放宽超时（并发 join 类 40-50 线程）
+          pytest "${{ matrix.file }}" \
+            -m "slow" \
+            --runslow \
+            -p no:randomly \
+            --tb=short \
+            --timeout=300 \
+            --timeout-method=signal \
+            --junitxml=test-results/junit-${SAFE_NAME}.xml \
+            -rA
+
+      - name: 上传测试结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-slow-${SAFE_NAME}
+          path: test-results/

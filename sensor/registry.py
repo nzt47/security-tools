@@ -116,6 +116,12 @@ class SensorRegistry:
         extra = extra_kwargs or {}
         package_path = os.path.dirname(__file__)
 
+        # 开发/沙箱环境屏蔽开关：YUNSHU_DISABLE_WINDOW_SENSOR=1 时跳过
+        # window_sensor 模块的导入（其 win32gui 依赖链在受限环境会产生访问噪音，
+        # 且本开关与 app_server._init_window_sensor 的显式初始化开关互为双保险）
+        _skip_window_sensor = os.environ.get(
+            "YUNSHU_DISABLE_WINDOW_SENSOR", "").strip().lower() in ("1", "true", "yes")
+
         for fname in sorted(os.listdir(package_path)):
             if not fname.endswith(".py") or fname.startswith("_"):
                 continue
@@ -126,6 +132,11 @@ class SensorRegistry:
                             "body_sensor", "hardware_blueprint",
                             "change_detector", "file_watcher", "event_monitor",
                             "counter_reader"):
+                continue
+
+            # 屏蔽开关命中：跳过 window_sensor 自发现导入
+            if _skip_window_sensor and mod_name == "window_sensor":
+                logging.debug("window_sensor 已被 YUNSHU_DISABLE_WINDOW_SENSOR 屏蔽，跳过自发现")
                 continue
 
             full_mod_path = f"sensor.{mod_name}"

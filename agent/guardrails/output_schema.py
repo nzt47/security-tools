@@ -200,6 +200,10 @@ class OutputSchemaValidator:
         # 初始化容错组件
         self._circuit_breaker = get_circuit_breaker("schema_validation")
         self._degrade_manager = get_degrade_manager()
+        # [D8] 注入本地验证器：熔断/降级路径执行真实结构校验（validate 为纯本地
+        # 逻辑、无外部依赖，不会放大故障），合法 dict 放行、非法拒绝，
+        # 取代旧的"无条件 valid=True 假放行"。
+        self._degrade_manager.set_schema_validator(self.validate)
     
     def validate(self, output: Union[str, Dict[str, Any]]) -> bool:
         """验证输出是否符合 Schema

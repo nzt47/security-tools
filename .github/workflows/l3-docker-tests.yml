@@ -89,6 +89,14 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v6
 
+      # [预检] 2026-08-16：Docker context 与工作区代码漂移（缺 agent/skills_mgmt/lineage.py
+      # 等已跟踪模块）导致挂载 conftest import 失败 → 130 项测试全 ERROR。
+      # 在构建前 fail fast，见 docs/ci_l3_context_sync_verify_20260816.md。
+      - name: L3 context 一致性预检
+        run: |
+          echo "=== L3 context 一致性预检 ==="
+          python scripts/ci_l3_context_preflight.py --json || exit 1
+
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 

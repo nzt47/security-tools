@@ -14,7 +14,6 @@ from agent.task_planner.planner import TaskPlanner
 class TestDefectD8:
     """D8：task_planner 应收敛为 planning 统一入口的薄壳"""
 
-    @pytest.mark.xfail(reason="已知缺陷 D8：任务规划器未委托规划内核（缺陷看门狗，修复后移除 xfail）", strict=False)
     def test_task_planner_delegates_to_planning(self):
         # 目标行为：重复能力收口后，task_planner 的 plan 实现转发到 planning 模块
         assert TaskPlanner.plan.__module__.startswith("planning")
