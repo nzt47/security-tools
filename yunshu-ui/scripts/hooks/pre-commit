@@ -1,0 +1,26 @@
+#!/bin/sh
+# pre-commit hook —— 提交前检查 afterPack 剔除清单是否误删核心运行时文件
+# ---------------------------------------------------------------
+# 安装（任选其一）：
+#   方式 A（推荐，指向仓库内脚本，随仓库共享）：
+#     git config core.hooksPath scripts/hooks
+#   方式 B（复制到 .git 目录，仅本机生效）：
+#     cp scripts/hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+# 说明：仅当 scripts/afterPack.mjs 有变更时才触发检查；其余提交直接放行（零开销）。
+# 依赖：Node.js 可用（项目本身需要）。
+set -e
+
+# 仓库根目录（hook 所在位置的上级上级）
+ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+
+# 若本次提交不涉及 afterPack.mjs，直接放行（避免对无关提交产生噪音）
+if ! git diff --cached --name-only --diff-filter=ACM | grep -q 'scripts/afterPack.mjs'; then
+  exit 0
+fi
+
+echo "[pre-commit] 检测到 scripts/afterPack.mjs 变更，检查剔除清单安全性..."
+node "$ROOT_DIR/scripts/precommit-check.mjs" "$ROOT_DIR/scripts/afterPack.mjs" || {
+  echo "[pre-commit] 提交已阻止：请移除 DROP 中的核心保留文件后再提交。"
+  exit 1
+}
+exit 0

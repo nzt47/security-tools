@@ -22,3 +22,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# 构建产物（Vite / Electron / electron-builder）
+dist/
+dist-ssr/
+dist-electron/
+release/
+node_modules/
+
+# 本地配置与密钥（保留 .env.example 作为模板）
+.env
+.env.*
+!.env.example
+
+# 覆盖率 / 测试临时产物
+coverage/
+.nyc_output/
+.pytest_cache/
