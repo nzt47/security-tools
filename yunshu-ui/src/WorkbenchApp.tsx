@@ -13,7 +13,7 @@
  *   4. 本窗口从布局树摘除该面板；状态经 IPC 快照同步到新窗口
  *   5. 工具栏"独立窗口"按钮是同样逻辑的兜底入口（Web 下隐藏）
  */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Mosaic, MosaicWindow, ExpandButton, RemoveButton } from 'react-mosaic-component';
 import type { MosaicNode, MosaicPath } from 'react-mosaic-component';
 import { Cloud, FlaskConical, RotateCcw } from 'lucide-react';
@@ -70,7 +70,8 @@ export default function WorkbenchApp() {
   edgeRef.current = detachEdge;
 
   /** 将面板分离为独立系统窗口（Electron），成功后在主窗口布局中摘除该面板 */
-  const detachPanel = async (panelId: PanelId) => {
+  // useCallback 保持引用稳定（依赖仅 store 稳定函数），供边缘拖拽 effect 安全引用
+  const detachPanel = useCallback(async (panelId: PanelId) => {
     if (!isElectron()) return;
     const api = window.electronAPI!;
     const state = useLayoutStore.getState();
@@ -83,8 +84,10 @@ export default function WorkbenchApp() {
     // 摘除面板：单子上提 / tabs 折叠由 removePanelFromLayout 处理。
     // 以实际渲染的布局树为基准：layout 未自定义（null）时用 DEFAULT_LAYOUT 兜底，
     // 否则 setLayout(null) 不产生变化，面板不会被移除。
-    setLayout(removePanelFromLayout(useLayoutStore.getState().layout ?? DEFAULT_LAYOUT, panelId));
-  };
+    const next = removePanelFromLayout(useLayoutStore.getState().layout ?? DEFAULT_LAYOUT, panelId);
+    console.info(`[mosaic] 面板分离成功，从布局摘除：${panelId} → 新布局 ${JSON.stringify(next)}`);
+    setLayout(next);
+  }, [setLayout]);
 
   // ─── 边缘拖拽拦截：原生 dragover/drop 捕获阶段先于 react-dnd 执行 ───
   useEffect(() => {
@@ -105,6 +108,7 @@ export default function WorkbenchApp() {
       if (edgeRef.current && dragSourcePanelId) {
         e.preventDefault(); // 拦截默认 DOM 拖放 → 转入 IPC detach
         const panelId = dragSourcePanelId;
+        console.info(`[mosaic] 边缘停靠触发（${edgeRef.current}），面板 ${panelId} 转入独立窗口流程`);
         setDetachEdge(null);
         void detachPanel(panelId);
       }
@@ -124,7 +128,7 @@ export default function WorkbenchApp() {
       window.removeEventListener('drop', onDrop, true);
       window.removeEventListener('dragend', onDragEnd, true);
     };
-  }, []);
+  }, [detachPanel]);
 
   /** 渲染单个面板窗口：记录拖拽源 + 工具条（含"独立窗口"按钮） */
   const renderTile = (id: PanelId, path: MosaicPath) => (
@@ -139,9 +143,11 @@ export default function WorkbenchApp() {
       createNode={createNode}
       onDragStart={() => {
         dragSourcePanelId = id;
+        console.info(`[mosaic] 面板拖拽开始：${PANEL_TITLES[id]}（${id}）`);
       }}
       onDragEnd={() => {
         dragSourcePanelId = null;
+        console.info(`[mosaic] 面板拖拽结束：${id}`);
       }}
     >
       {renderPanel(id)}
@@ -190,7 +196,12 @@ export default function WorkbenchApp() {
         <Mosaic<PanelId>
           className="mosaic-custom"
           value={layout ?? DEFAULT_LAYOUT}
-          onChange={setLayout}
+          onChange={(next) => {
+            // 【Why】拖拽/拆分/关闭面板都会触发：记录布局树变化，配合 [mosaic] 其它日志
+            // 排查 removeChild 等面板生命周期告警（dev 下可 Console 过滤 [mosaic]）。
+            console.info(`[mosaic] 布局变更：${JSON.stringify(next)}`);
+            setLayout(next);
+          }}
           renderTile={renderTile}
           resize={{ minimumPaneSizePercentage: 12 }}
           zeroStateView={
