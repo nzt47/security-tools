@@ -3,6 +3,22 @@
 @tailwind utilities;
 
 :root {
+  /* ─── 浅色语义 Token（SaaS 极简 · 蓝主色）─── */
+  --background: 248 250 252;          /* slate-50   页面底色 */
+  --foreground: 15 23 42;             /* slate-900  主文本 */
+  --card: 255 255 255;                /* 卡片底色 */
+  --card-foreground: 15 23 42;        /* 卡片内文本 */
+  --primary: 37 99 235;               /* blue-600   主操作色 */
+  --primary-foreground: 255 255 255;  /* 主色上文本 */
+  --muted: 241 245 249;               /* slate-100  次级填充（hover / 次级容器） */
+  --muted-foreground: 100 116 139;    /* slate-500  次级文本 */
+  --danger: 220 38 38;                /* red-600    危险操作 */
+  --danger-foreground: 255 255 255;
+  --border: 226 232 240;              /* slate-200  统一描边 */
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05), 0 4px 12px rgb(15 23 42 / 0.08);
+  --shadow-card-hover: 0 2px 4px rgb(15 23 42 / 0.08), 0 12px 28px rgb(15 23 42 / 0.12);
+
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
   line-height: 1.5;
   font-weight: 400;
@@ -11,4 +27,28 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* 深色语义 Token：对齐既有工作台深空基底（html 加 .dark 类切换） */
+.dark {
+  --background: 4 6 13;               /* 深空底色 #04060d */
+  --foreground: 226 232 240;          /* slate-200 */
+  --card: 13 18 32;                   /* 卡片 #0d1220 */
+  --card-foreground: 226 232 240;
+  --primary: 96 165 250;              /* blue-400   深色下提亮，保证对比度 */
+  --primary-foreground: 4 6 13;
+  --muted: 15 23 42;                  /* slate-900 */
+  --muted-foreground: 100 116 139;    /* slate-500 */
+  --danger: 239 68 68;                /* red-500 */
+  --danger-foreground: 255 255 255;
+  --border: 30 41 59;                 /* slate-800 */
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 16px rgb(0 0 0 / 0.45);
+  --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.5), 0 16px 32px rgb(0 0 0 / 0.5);
+}
+
+/* 页面基础底色跟随 Token（工作台页面自带 .workbench-root 深色背景，不受影响） */
+body {
+  background-color: rgb(var(--background));
+  color: rgb(var(--foreground));
 }
