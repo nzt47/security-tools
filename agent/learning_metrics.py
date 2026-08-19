@@ -17,7 +17,10 @@ KPI 口径（详见 docs/zh/智能体学习机制重构计划/变更说明/TASK-
         get_snapshot() 提供只读聚合视图（/api/learning/metrics 消费）。
 """
 
+import atexit
 import logging
+import os
+import sqlite3
 import threading
 import time
 from collections import defaultdict
@@ -33,6 +36,27 @@ _RETENTION_DAYS = 32
 
 # 沉淀增量支持的产物类型（KPI schema 固定枚举，未列出的归入 other）
 _ARTIFACT_TYPES = ("skill", "workflow", "experience", "knowledge_card", "reflection")
+
+# ── SQLite 持久化（方案见 TASK-08 §8 口径披露；默认关闭，与纯内存行为一致）──
+_PERSIST_CREATE_SQL = (
+    "CREATE TABLE IF NOT EXISTS lm_daily_agg ("
+    " day TEXT NOT NULL, kind TEXT NOT NULL, key TEXT NOT NULL DEFAULT '',"
+    " val REAL NOT NULL DEFAULT 0, cnt INTEGER NOT NULL DEFAULT 0,"
+    " PRIMARY KEY (day, kind, key))"
+)
+_PERSIST_UPSERT_SQL = (
+    "INSERT INTO lm_daily_agg (day, kind, key, val, cnt) VALUES (?, ?, ?, ?, ?)"
+    " ON CONFLICT(day, kind, key) DO UPDATE SET"
+    " val = val + excluded.val, cnt = cnt + excluded.cnt"
+)
+
+
+def _day_ts_approx(day: str) -> float:
+    """把 'YYYY-MM-DD' 转为当日 12:00 时间戳（持久化回填 feedback 用，仅用于窗口判定）"""
+    try:
+        return datetime.strptime(day, "%Y-%m-%d").replace(hour=12).timestamp()
+    except Exception:
+        return time.time()
 
 
 def _safe_collector(fn_name: str, *args, **kwargs) -> None:
@@ -61,10 +85,17 @@ class LearningMetrics:
         lm = LearningMetrics(collector=DummyCollector())
     """
 
-    def __init__(self, collector: Any = None, enabled: bool = True):
+    def __init__(self, collector: Any = None, enabled: bool = True,
+                 persistence: Optional[dict] = None):
         self.enabled = bool(enabled)
         self._collector = collector  # 注入用；None 时经 _safe_collector 走全局
         self._lock = threading.RLock()
+
+        # ── SQLite 持久化（可选，默认关闭；I/O 全在锁外，失败自动降级）──
+        # 启用块须在内存字段初始化之后执行（_load_from_db 回填依赖这些字段）
+        self._persistence: Optional[dict] = None
+        self._pending: Dict[Tuple[str, str, str], List[float]] = {}  # (day,kind,key)->[val,cnt]
+        self._db_lock = threading.Lock()
 
         # ── token 复用率 ──
         self._tokens_saved = 0
@@ -88,6 +119,19 @@ class LearningMetrics:
         self._evolution_candidates = 0
         self._evolution_adopted = 0
 
+        # ── 持久化启用（字段就绪后建表 + 回填；失败自动降级为内存聚合）──
+        if persistence and persistence.get("enabled"):
+            try:
+                self._db_path = str(persistence.get("path") or "data/learning_metrics.db")
+                self._flush_batch = max(1, int(persistence.get("flush_batch_size", 200)))
+                self._retention_days = max(1, int(persistence.get("retention_days", 90)))
+                self._init_db()  # 建表 + 回填；失败抛给下方 except 降级
+                self._persistence = {"path": self._db_path}
+                atexit.register(self.flush)
+            except Exception as e:
+                logger.warning("[学习度量] 持久化初始化失败，降级为内存聚合: %s", e)
+                self._persistence = None
+
     # ════════════════════════════════════════════════════════════════
     #  埋点入口（全部内部兜底，异常不影响主链路）
     # ════════════════════════════════════════════════════════════════
@@ -102,7 +146,9 @@ class LearningMetrics:
                 self._total_interactions += 1
                 self._daily_stats[_day_iso(ts)]["interactions"] += 1
                 self._prune_daily_stats()
+                self._queue_event(_day_iso(ts), "interaction", "", 1, 1)
             self._collect("increment_counter", "learning.interactions.total")
+            self._maybe_flush()
         except Exception as e:  # 埋点失败隔离
             logger.debug("[学习度量] record_interaction 失败: %s", e)
 
@@ -118,10 +164,15 @@ class LearningMetrics:
                 self._workflow_queries += 1
                 if hit:
                     self._workflow_hits += 1
+                day = _day_iso(ts)
+                self._queue_event(day, "workflow_query", "", 1, 1)
+                if hit:
+                    self._queue_event(day, "workflow_hit", "", 1, 1)
             self._collect("increment_counter", "learning.workflow.queries")
             if hit:
                 self._collect("increment_counter", "learning.workflow.hits")
                 self.record_token_reuse(saved_tokens)
+            self._maybe_flush()
         except Exception as e:
             logger.debug("[学习度量] record_workflow_match 失败: %s", e)
 
@@ -135,10 +186,15 @@ class LearningMetrics:
                 self._semantic_queries += 1
                 if hit:
                     self._skill_hits += 1
+                day = _day_iso(time.time())
+                self._queue_event(day, "semantic_query", "", 1, 1)
+                if hit:
+                    self._queue_event(day, "semantic_hit", "", 1, 1)
             self._collect("increment_counter", "learning.semantic.queries")
             if hit:
                 self._collect("increment_counter", "learning.semantic.hits")
                 self.record_token_reuse(saved_tokens)
+            self._maybe_flush()
         except Exception as e:
             logger.debug("[学习度量] record_semantic_query 失败: %s", e)
 
@@ -150,8 +206,10 @@ class LearningMetrics:
             tokens = max(0, int(tokens))
             with self._lock:
                 self._tokens_total += tokens
+                self._queue_event(_day_iso(time.time()), "token_total", "", float(tokens), 1)
             self._collect("increment_counter", "learning.token.total", value=tokens)
             self._collect("record_latency", "learning.token.per_call", float(tokens))
+            self._maybe_flush()
         except Exception as e:
             logger.debug("[学习度量] record_llm_tokens 失败: %s", e)
 
@@ -164,7 +222,9 @@ class LearningMetrics:
             with self._lock:
                 self._tokens_saved += saved_tokens
                 self._tokens_total += saved_tokens  # 计入期间总 token（口径：节省+消耗）
+                self._queue_event(_day_iso(time.time()), "token_saved", "", float(saved_tokens), 1)
             self._collect("increment_counter", "learning.token.saved", value=saved_tokens)
+            self._maybe_flush()
         except Exception as e:
             logger.debug("[学习度量] record_token_reuse 失败: %s", e)
 
@@ -179,9 +239,14 @@ class LearningMetrics:
                 bucket["total"] += 1
                 if not success:
                     bucket["failed"] += 1
+                day = _day_iso(time.time())
+                self._queue_event(day, "task_total", key, 1, 1)
+                if not success:
+                    self._queue_event(day, "task_failed", key, 1, 1)
             self._collect("increment_counter", f"learning.task.{key}.total")
             if not success:
                 self._collect("increment_counter", f"learning.task.{key}.failed")
+            self._maybe_flush()
         except Exception as e:
             logger.debug("[学习度量] record_task_result 失败: %s", e)
 
@@ -197,8 +262,10 @@ class LearningMetrics:
                 self._daily_stats[_day_iso(ts)]["feedback_ratings"].append(rating)
                 self._prune_feedback()
                 self._prune_daily_stats()
+                self._queue_event(_day_iso(ts), "feedback", "", float(rating), 1)
             self._collect("increment_counter", "learning.feedback.total")
             self._collect("record_latency", "learning.feedback.rating", float(rating))
+            self._maybe_flush()
         except Exception as e:
             logger.debug("[学习度量] record_feedback 失败: %s", e)
 
@@ -210,7 +277,9 @@ class LearningMetrics:
             key = artifact_type if artifact_type in _ARTIFACT_TYPES else "other"
             with self._lock:
                 self._artifacts[key] += 1
+                self._queue_event(_day_iso(time.time()), "artifact", key, 1, 1)
             self._collect("increment_counter", f"learning.artifacts.{key}")
+            self._maybe_flush()
         except Exception as e:
             logger.debug("[学习度量] record_artifact 失败: %s", e)
 
@@ -223,9 +292,14 @@ class LearningMetrics:
                 self._evolution_candidates += 1
                 if adopted:
                     self._evolution_adopted += 1
+                day = _day_iso(time.time())
+                self._queue_event(day, "evolution_candidate", "", 1, 1)
+                if adopted:
+                    self._queue_event(day, "evolution_adopted", "", 1, 1)
             self._collect("increment_counter", "learning.evolution.candidates")
             if adopted:
                 self._collect("increment_counter", "learning.evolution.adopted")
+            self._maybe_flush()
         except Exception as e:
             logger.debug("[学习度量] record_evolution_candidate 失败: %s", e)
 
@@ -363,6 +437,137 @@ class LearningMetrics:
             self._artifacts.clear()
             self._evolution_candidates = 0
             self._evolution_adopted = 0
+            self._pending.clear()
+
+    # ════════════════════════════════════════════════════════════════
+    #  SQLite 持久化（可选，默认关闭；I/O 全在锁外）
+    # ════════════════════════════════════════════════════════════════
+
+    def _queue_event(self, day: str, kind: str, key: str,
+                     val: float, cnt: int) -> None:
+        """累积一条事件进 pending（须在持锁上下文调用；RLock 可重入）"""
+        if self._persistence is None:
+            return
+        try:
+            k = (day, kind, key)
+            e = self._pending.get(k)
+            if e is None:
+                self._pending[k] = [float(val), int(cnt)]
+            else:
+                e[0] += float(val)
+                e[1] += int(cnt)
+        except Exception as e:
+            logger.debug("[学习度量] 持久化队列累积失败: %s", e)
+
+    def _maybe_flush(self) -> None:
+        """达批量阈值时触发一次落库（锁外调用；I/O 不进锁）"""
+        if self._persistence is None:
+            return
+        try:
+            with self._lock:
+                size = len(self._pending)
+            if size >= self._flush_batch:
+                self.flush()
+        except Exception:
+            pass
+
+    def flush(self) -> None:
+        """把 pending 批量写入 SQLite（单事务）；失败自动降级为内存聚合
+
+        【不易】_db_lock 与 self._lock 分离，I/O 全在锁外；异常不抛给调用方
+        （埋点零影响）；降级后后续 flush 为 no-op，内存聚合不受影响。
+        """
+        if self._persistence is None:
+            return
+        with self._db_lock:
+            with self._lock:
+                if not self._pending:
+                    return
+                batch = self._pending
+                self._pending = {}
+            try:
+                conn = sqlite3.connect(self._db_path, timeout=5)
+                try:
+                    conn.execute("PRAGMA busy_timeout=5000")
+                    conn.execute(_PERSIST_CREATE_SQL)
+                    conn.execute("BEGIN")
+                    for (day, kind, key), (val, cnt) in batch.items():
+                        conn.execute(_PERSIST_UPSERT_SQL, (day, kind, key, val, cnt))
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+                    raise
+                finally:
+                    conn.close()
+            except Exception as e:
+                logger.warning("[学习度量] 持久化落库失败，降级为内存聚合: %s", e)
+                self._persistence = None
+
+    def _init_db(self) -> None:
+        """建表并回填近 retention_days 数据（构造时调用；失败由调用方降级）"""
+        parent = os.path.dirname(self._db_path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+        conn = sqlite3.connect(self._db_path, timeout=5)
+        try:
+            conn.execute("PRAGMA busy_timeout=5000")
+            conn.execute(_PERSIST_CREATE_SQL)
+            conn.commit()
+        finally:
+            conn.close()
+        self._load_from_db()
+
+    def _load_from_db(self) -> None:
+        """从每日聚合表回填内存状态（重启恢复；按 kind 还原，与 record_* 口径一致）"""
+        cutoff_day = _day_iso(time.time() - self._retention_days * 86400)
+        try:
+            conn = sqlite3.connect(self._db_path, timeout=5)
+            try:
+                conn.execute("PRAGMA busy_timeout=5000")
+                rows = conn.execute(
+                    "SELECT day, kind, key, val, cnt FROM lm_daily_agg WHERE day >= ?",
+                    (cutoff_day,)).fetchall()
+            finally:
+                conn.close()
+        except Exception as e:
+            logger.warning("[学习度量] 持久化回填失败，以内存聚合为准: %s", e)
+            return
+        with self._lock:
+            for day, kind, key, val, cnt in rows:
+                try:
+                    if kind == "interaction":
+                        self._total_interactions += cnt
+                        self._daily_stats[day]["interactions"] += cnt
+                    elif kind == "workflow_query":
+                        self._workflow_queries += cnt
+                    elif kind == "workflow_hit":
+                        self._workflow_hits += cnt
+                    elif kind == "semantic_query":
+                        self._semantic_queries += cnt
+                    elif kind == "semantic_hit":
+                        self._skill_hits += cnt
+                    elif kind == "token_total":
+                        self._tokens_total += int(val)
+                    elif kind == "token_saved":
+                        self._tokens_saved += int(val)
+                        self._tokens_total += int(val)  # 与 record_token_reuse 口径一致
+                    elif kind == "task_total":
+                        self._task_results[key]["total"] += cnt
+                    elif kind == "task_failed":
+                        self._task_results[key]["failed"] += cnt
+                    elif kind == "feedback":
+                        avg = val / cnt if cnt else 0.0
+                        day_ts = _day_ts_approx(day)
+                        self._feedback.extend([(day_ts, avg)] * cnt)
+                        self._daily_stats[day]["feedback_ratings"].extend([avg] * cnt)
+                    elif kind == "artifact":
+                        self._artifacts[key] += cnt
+                    elif kind == "evolution_candidate":
+                        self._evolution_candidates += cnt
+                    elif kind == "evolution_adopted":
+                        self._evolution_adopted += cnt
+                except Exception:
+                    continue
 
     # ════════════════════════════════════════════════════════════════
     #  内部工具
@@ -415,9 +620,44 @@ except ImportError:
     register_singleton = get_singleton = reset_singleton = None
 
 
+def _resolve_persistence_config(config: Optional[dict] = None) -> Optional[dict]:
+    """持久化配置解析：环境变量 > config dict（learning.metrics.persistence）> 默认关闭
+
+    【不易】默认关闭——未显式开启时行为与纯内存完全一致（TASK-03 不变式）。
+    """
+    def _env(k: str, default: Any = None) -> Any:
+        return os.environ.get(k, default)
+
+    def _cfg(keys: Tuple[str, ...], default: Any = None) -> Any:
+        node = config or {}
+        for key in keys:
+            if not isinstance(node, dict):
+                return default
+            node = node.get(key, {})
+        return node if node != {} else default
+
+    enabled = _env("LEARNING_METRICS_PERSIST_ENABLED", None)
+    if enabled is None:
+        enabled = _cfg(("learning", "metrics", "persistence", "enabled"), False)
+    if not enabled or str(enabled).strip().lower() in ("0", "false", "no", "off"):
+        return None
+    path = _env("LEARNING_METRICS_PERSIST_PATH", None) or _cfg(
+        ("learning", "metrics", "persistence", "path"), "data/learning_metrics.db")
+    batch = _env("LEARNING_METRICS_PERSIST_FLUSH_BATCH", None) or _cfg(
+        ("learning", "metrics", "persistence", "flush_batch_size"), 200)
+    retention = _env("LEARNING_METRICS_PERSIST_RETENTION_DAYS", None) or _cfg(
+        ("learning", "metrics", "persistence", "retention_days"), 90)
+    return {
+        "enabled": True,
+        "path": str(path),
+        "flush_batch_size": int(batch),
+        "retention_days": int(retention),
+    }
+
+
 def _create_learning_metrics(config: Optional[dict] = None) -> LearningMetrics:
     """LearningMetrics 工厂（供 SingletonManager 使用）"""
-    return LearningMetrics()
+    return LearningMetrics(persistence=_resolve_persistence_config(config))
 
 
 def get_learning_metrics() -> LearningMetrics:
