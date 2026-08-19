@@ -1313,6 +1313,299 @@ def api_auth_token_check():
     return jsonify({"enabled": _API_TOKEN_ENABLED, "valid": True})
 
 
+# ════════════════════════════════════════════════════════════
+#  管理后台用户认证（admin template 联调）
+#  契约与前端 mock（yunshu-ui/src/mocks/devMock.ts）完全一致：
+#    POST /api/auth/login → 成功 {code:200, data:{token, user}, message:'success'}
+#                           失败 {code:401/400, data:null, message}（HTTP 200 业务错误，前端弹 Toast）
+#    GET  /api/user/info  → 缺 Token：HTTP 200 + code:401（业务错误，前端停留当前页）
+#                           无效/过期 Token：HTTP 401（前端清 token 并跳转 /login）
+#  账号凭据：环境变量 YUNSHU_ADMIN_USERNAME / YUNSHU_ADMIN_PASSWORD（默认 admin / admin123，仅本地联调）
+#  用户令牌：Redis 存储（REDIS_URL，TTL 自动过期，后端重启不失效）；Redis 不可用降级内存（重启失效）
+# ════════════════════════════════════════════════════════════
+_ADMIN_USERNAME = os.environ.get("YUNSHU_ADMIN_USERNAME", "admin")
+_ADMIN_PASSWORD = os.environ.get("YUNSHU_ADMIN_PASSWORD", "admin123")
+if _ADMIN_PASSWORD == "admin123":
+    logger.warning("管理后台使用默认密码（admin123），仅限本地联调；生产请设置 YUNSHU_ADMIN_PASSWORD")
+
+# 用户登录令牌存储：Redis 优先（SET EX，TTL 自动清理），Redis 不可用降级内存（重启失效）
+_USER_TOKEN_TTL = int(os.environ.get("YUNSHU_USER_TOKEN_TTL", "86400"))  # 默认 24h
+_REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0")
+_TOKEN_KEY_PREFIX = "yunshu:user_token:"
+
+
+class _UserTokenStore:
+    """用户令牌存取：Redis（TTL 自动过期，后端重启不失效）优先；Redis 不可用降级内存"""
+
+    def __init__(self, ttl: int):
+        self._ttl = ttl
+        self._redis = None
+        self._memory: dict[str, dict] = {}
+        try:
+            import redis as _redis_mod
+            client = _redis_mod.Redis.from_url(_REDIS_URL, socket_connect_timeout=2, socket_timeout=2)
+            client.ping()
+            self._redis = client
+            logger.info("用户令牌存储：Redis（%s），TTL=%ss", _REDIS_URL, ttl)
+        except Exception as e:
+            logger.warning("Redis 不可用（%s），用户令牌降级为内存存储（后端重启后失效）：%s", _REDIS_URL, e)
+
+    def set_token(self, token: str, username: str) -> None:
+        if self._redis is not None:
+            try:
+                self._redis.set(f"{_TOKEN_KEY_PREFIX}{token}", username, ex=self._ttl)
+                return
+            except Exception as e:
+                logger.warning("Redis 写入失败，降级内存存储：%s", e)
+        self._memory[token] = {"username": username, "expire_at": time.time() + self._ttl}
+
+    def get_username(self, token: str) -> str | None:
+        if self._redis is not None:
+            try:
+                raw = self._redis.get(f"{_TOKEN_KEY_PREFIX}{token}")
+                return raw.decode("utf-8") if raw is not None else None
+            except Exception as e:
+                logger.warning("Redis 读取失败，降级内存存储：%s", e)
+        rec = self._memory.get(token)
+        if rec is None:
+            return None
+        if rec["expire_at"] < time.time():
+            self._memory.pop(token, None)  # 内存兜底过期清理
+            return None
+        return rec["username"]
+
+
+_user_token_store = _UserTokenStore(_USER_TOKEN_TTL)
+
+
+def _issue_user_token(username: str) -> str:
+    """签发用户登录令牌（Redis，TTL 自动过期）"""
+    token = secrets.token_hex(32)
+    _user_token_store.set_token(token, username)
+    return token
+
+
+def _resolve_user_token(auth_header: str):
+    """解析用户令牌。返回 (username, None) 或 (None, 'missing'|'invalid')"""
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return None, "missing"
+    token = auth_header[len("Bearer "):].strip()
+    username = _user_token_store.get_username(token)
+    if username is None:
+        return None, "invalid"
+    return username, None
+
+_ADMIN_AVATAR = (
+    "data:image/svg+xml;utf8,"
+    + _up.quote(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">'
+        '<rect width="64" height="64" rx="32" fill="#2563eb"/>'
+        '<text x="32" y="42" font-family="sans-serif" font-size="28" fill="#ffffff" text-anchor="middle">管</text>'
+        "</svg>"
+    )
+)
+_ADMIN_USER = {
+    "id": 1,
+    "username": _ADMIN_USERNAME,
+    "nickname": "管理员",
+    "avatar": _ADMIN_AVATAR,
+    "email": "admin@yunshu.local",
+    "role": "admin",
+    "permissions": ["dashboard:view", "workbench:use", "prompt-lab:use"],
+}
+
+
+@app.route("/api/auth/login", methods=["POST"])
+@log_request(show_body=False)  # 不记录请求体，避免密码落日志
+def api_auth_login():
+    """管理后台登录：校验账号密码，签发用户令牌"""
+    data = request.get_json(silent=True) or {}
+    username = str(data.get("username", "")).strip()
+    password = str(data.get("password", ""))
+    if not username or not password:
+        return jsonify({"code": 400, "data": None, "message": "用户名或密码不能为空"})
+    if not (
+        secrets.compare_digest(username, _ADMIN_USERNAME)
+        and secrets.compare_digest(password, _ADMIN_PASSWORD)
+    ):
+        return jsonify({"code": 401, "data": None, "message": "用户名或密码错误"})
+    return jsonify({
+        "code": 200,
+        "data": {"token": _issue_user_token(username), "user": _ADMIN_USER},
+        "message": "success",
+    })
+
+
+def _token_error_response():
+    """公共鉴权助手：未登录/令牌失效返回对应错误 jsonify，合法返回 None"""
+    username, err = _resolve_user_token(request.headers.get("Authorization", ""))
+    if err == "missing":
+        # 未携带 Token：业务错误（HTTP 200），前端弹 Toast 并停留当前页
+        return jsonify({"code": 401, "data": None, "message": "未登录或登录已过期"})
+    if err == "invalid":
+        # Token 无效/过期：HTTP 401，前端清除 Token 并跳转登录页
+        return jsonify({"code": 401, "data": None, "message": "Token 已失效，请重新登录"}), 401
+    return None
+
+
+@app.route("/api/user/info")
+@log_request(show_response=False)
+def api_user_info():
+    """获取当前用户信息（管理后台）"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    return jsonify({"code": 200, "data": _ADMIN_USER, "message": "success"})
+
+
+# ════════════════════════════════════════════════════════════
+#  用户管理（管理后台用户列表，结构对齐前端 UserListItem）
+#  数据：持久化到 data/manager_users.json（重启保留）；接口需登录
+# ════════════════════════════════════════════════════════════
+_MANAGER_USERS: list[dict] = []
+_MANAGER_USERS_FILE = os.path.join("data", "manager_users.json")
+
+
+def _seed_manager_users() -> list[dict]:
+    users: list[dict] = [
+        {
+            "id": 1,
+            "username": _ADMIN_USERNAME,
+            "email": "admin@yunshu.local",
+            "role": "admin",
+            "status": 1,
+            "createdAt": "2026-01-01 10:00:00",
+        }
+    ]
+    for uid in range(2, 27):
+        users.append({
+            "id": uid,
+            "username": f"user{uid:02d}",
+            "email": f"user{uid}@yunshu.local",
+            "role": "manager" if uid % 3 == 0 else "user",
+            "status": 0 if uid % 5 == 0 else 1,
+            "createdAt": f"2026-{(uid % 9) + 1:02d}-{(uid % 27) + 1:02d} 10:30:00",
+        })
+    return users
+
+
+def _load_manager_users() -> None:
+    global _MANAGER_USERS
+    try:
+        if os.path.exists(_MANAGER_USERS_FILE):
+            with open(_MANAGER_USERS_FILE, "r", encoding="utf-8") as f:
+                _MANAGER_USERS = json.load(f)
+            logger.info("用户列表已从文件加载：%s（%d 条）", _MANAGER_USERS_FILE, len(_MANAGER_USERS))
+            return
+    except Exception as e:
+        logger.warning("用户列表文件加载失败，使用种子数据：%s", e)
+    _MANAGER_USERS = _seed_manager_users()
+
+
+def _save_manager_users() -> None:
+    try:
+        os.makedirs(os.path.dirname(_MANAGER_USERS_FILE), exist_ok=True)
+        with open(_MANAGER_USERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(_MANAGER_USERS, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning("用户列表持久化失败：%s", e)
+
+
+_load_manager_users()
+
+
+@app.route("/api/user/list")
+@log_request(show_response=False)
+def api_user_list():
+    """用户列表（分页 + 关键字搜索）"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    page = max(1, request.args.get("page", default=1, type=int) or 1)
+    page_size = max(1, request.args.get("pageSize", default=10, type=int) or 10)
+    keyword = (request.args.get("keyword", "") or "").strip()
+    matched = [
+        u for u in _MANAGER_USERS
+        if not keyword or keyword in u["username"] or keyword in u["email"]
+    ]
+    total = len(matched)
+    start = (page - 1) * page_size
+    return jsonify({
+        "code": 200,
+        "data": {"list": matched[start:start + page_size], "total": total},
+        "message": "success",
+    })
+
+
+@app.route("/api/user/<int:user_id>", methods=["DELETE"])
+@log_request()
+def api_user_delete(user_id: int):
+    """删除用户（内置管理员不可删；不存在返回业务 404）"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    if user_id == _ADMIN_USER["id"]:
+        return jsonify({"code": 400, "data": None, "message": "内置管理员账号不可删除"})
+    for i, u in enumerate(_MANAGER_USERS):
+        if u["id"] == user_id:
+            _MANAGER_USERS.pop(i)
+            _save_manager_users()
+            return jsonify({"code": 200, "data": None, "message": "success"})
+    return jsonify({"code": 404, "data": None, "message": "用户不存在"})
+
+
+@app.route("/api/user", methods=["POST"])
+@log_request()
+def api_user_create():
+    """新增用户（管理后台）：用户名必填且唯一"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    data = request.get_json(silent=True) or {}
+    username = str(data.get("username", "")).strip()
+    if not username:
+        return jsonify({"code": 400, "data": None, "message": "用户名不能为空"})
+    if any(u["username"] == username for u in _MANAGER_USERS):
+        return jsonify({"code": 400, "data": None, "message": f"用户名 {username} 已存在"})
+    role = str(data.get("role", "user") or "user")
+    new_user = {
+        "id": max((u["id"] for u in _MANAGER_USERS), default=0) + 1,
+        "username": username,
+        "email": str(data.get("email", "") or "").strip(),
+        "role": role if role in ("admin", "manager", "user") else "user",
+        "status": 1 if data.get("status", 1) in (1, "1", True) else 0,
+        "createdAt": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    _MANAGER_USERS.append(new_user)
+    _save_manager_users()
+    return jsonify({"code": 200, "data": new_user, "message": "success"})
+
+
+@app.route("/api/user/<int:user_id>", methods=["PUT"])
+@log_request()
+def api_user_update(user_id: int):
+    """编辑用户（管理后台）：仅邮箱/角色/状态可改，用户名不可改"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    if user_id == _ADMIN_USER["id"]:
+        return jsonify({"code": 400, "data": None, "message": "内置管理员账号不可修改"})
+    data = request.get_json(silent=True) or {}
+    for u in _MANAGER_USERS:
+        if u["id"] == user_id:
+            if "email" in data:
+                u["email"] = str(data["email"] or "").strip()
+            if "role" in data:
+                role = str(data["role"] or "")
+                if role in ("admin", "manager", "user"):
+                    u["role"] = role
+            if "status" in data:
+                u["status"] = 1 if data["status"] in (1, "1", True) else 0
+            _save_manager_users()
+            return jsonify({"code": 200, "data": u, "message": "success"})
+    return jsonify({"code": 404, "data": None, "message": "用户不存在"})
+
+
 @app.route("/api/config", methods=["GET", "POST"])
 @require_token
 @log_request()

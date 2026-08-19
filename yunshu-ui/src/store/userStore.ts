@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { getUserInfo, type UserInfo } from '@/api/user'
 import { clearToken } from '@/utils/request'
+import { logger } from '@/utils/logger'
 
 /** 【Why】敏感字段黑名单：持久化时从 userInfo 中剔除，避免手机号等明文落盘 localStorage */
 const SENSITIVE_FIELDS: readonly string[] = ['phone']
@@ -32,9 +33,16 @@ export const useUserStore = create<UserState>()(
       setUserInfo: (userInfo) => set({ userInfo }),
       // 【Why】拉取当前用户信息并同步到 Store；错误向上抛出，让调用方（如 MainLayout）处理登出跳转
       fetchUserInfo: async () => {
-        const userInfo = await getUserInfo()
-        set({ userInfo })
-        return userInfo
+        logger.info('[userStore] fetchUserInfo 开始拉取用户信息')
+        try {
+          const userInfo = await getUserInfo()
+          set({ userInfo })
+          logger.info('[userStore] fetchUserInfo 成功', { id: userInfo.id, username: userInfo.username })
+          return userInfo
+        } catch (err) {
+          logger.error('[userStore] fetchUserInfo 失败', err)
+          throw err
+        }
       },
       // 【Why】axios 拦截器与路由守卫读取 localStorage 'token'，此处复用 request.ts 的 clearToken 一并清除，
       // 保证登出后凭证彻底失效（避免重复引用 token key，出现 TOKEN_KEY 未定义问题）

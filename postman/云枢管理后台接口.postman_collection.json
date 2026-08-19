@@ -1,0 +1,197 @@
+{
+  "info": {
+    "_postman_id": "yunshu-admin-api-20260818",
+    "name": "云枢管理后台接口",
+    "description": "云枢管理后台 API 接口测试集合\n\n前置条件：\n- 后端已启动：python app_server.py（监听 127.0.0.1:5678）\n- 账号：admin / admin123（可用 YUNSHU_ADMIN_PASSWORD 环境变量修改）\n- 令牌存储：Redis（REDIS_URL，TTL 86400s 自动过期）；Redis 不可用时降级内存\n\n使用方式：\n1. 导入集合\n2. 按顺序执行「用户认证 → 登录」，成功后自动把 token 写入集合变量\n3. 其余接口自动携带 Authorization: Bearer {{token}}\n\nbaseUrl 默认直连后端；若经 Vite 代理联调可改为 http://localhost:5173",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:5678", "type": "string" },
+    { "key": "username", "value": "admin", "type": "string" },
+    { "key": "password", "value": "admin123", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "userId", "value": "5", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "用户认证",
+      "item": [
+        {
+          "name": "登录",
+          "auth": { "type": "noauth" },
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "登录：校验账号密码并签发令牌（Redis 存储，TTL 86400s）。\n- 成功：code=200，data.token / data.user\n- 密码错误：HTTP 200 + code=401（业务错误）\n- 空参数：HTTP 200 + code=400"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('登录成功返回 token', function () {",
+                  "  const res = pm.response.json();",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "  pm.expect(res.code).to.eql(200);",
+                  "  pm.expect(res.data.token).to.be.a('string').and.not.empty;",
+                  "  pm.expect(res.data.user.role).to.eql('admin');",
+                  "});",
+                  "if (pm.response.code === 200 && pm.response.json().code === 200) {",
+                  "  pm.collectionVariables.set('token', pm.response.json().data.token);",
+                  "  console.log('token 已写入集合变量');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "获取用户信息",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/info",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "info"]
+            },
+            "description": "获取当前登录用户信息。\n- 有效 Token：code=200，data.user（含 role/permissions）\n- 无 Token：HTTP 200 + code=401（业务错误）\n- 无效 Token：HTTP 401（需重新登录）"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('获取用户信息成功', function () {",
+                  "  const res = pm.response.json();",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "  pm.expect(res.code).to.eql(200);",
+                  "  pm.expect(res.data.username).to.eql(pm.collectionVariables.get('username'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "用户管理",
+      "item": [
+        {
+          "name": "用户列表（分页 + 搜索）",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/list?page=1&pageSize=10&keyword=",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "list"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "10" },
+                { "key": "keyword", "value": "", "description": "可选：按用户名/邮箱模糊搜索，如 user02" }
+              ]
+            },
+            "description": "用户列表（分页 + 关键字搜索）。返回 data.list + data.total。\n修改 keyword 可测搜索：如 user02"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('用户列表分页成功', function () {",
+                  "  const res = pm.response.json();",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "  pm.expect(res.code).to.eql(200);",
+                  "  pm.expect(res.data.list.length).to.be.at.most(10);",
+                  "  pm.expect(res.data.total).to.be.at.least(res.data.list.length);",
+                  "});",
+                  "if (pm.response.json().data && pm.response.json().data.list.length > 0) {",
+                  "  pm.collectionVariables.set('userId', String(pm.response.json().data.list[pm.response.json().data.list.length - 1].id));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "删除用户",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "{{userId}}"]
+            },
+            "description": "删除指定用户（userId 默认取用户列表最后一条的 id）。\n- 成功：code=200（删除后列表 total 减 1）\n- 内置管理员(id=1)：HTTP 200 + code=400\n- 不存在：HTTP 200 + code=404"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('删除用户成功', function () {",
+                  "  const res = pm.response.json();",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "  pm.expect(res.code).to.eql(200);",
+                  "  pm.expect(res.message).to.eql('success');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "删除内置管理员（应失败 400）",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "1"]
+            },
+            "description": "负向用例：删除内置管理员应返回 HTTP 200 + code=400「内置管理员账号不可删除」"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('内置管理员不可删除', function () {",
+                  "  const res = pm.response.json();",
+                  "  pm.expect(pm.response.code).to.eql(200);",
+                  "  pm.expect(res.code).to.eql(400);",
+                  "  pm.expect(res.message).to.include('内置管理员');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

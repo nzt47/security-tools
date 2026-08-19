@@ -6,6 +6,7 @@
  */
 import type { Plugin } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { EXPORT_MOCK_USERS } from './exportMock'
 
 interface MockUser {
   id: number
@@ -28,7 +29,8 @@ const MOCK_AVATAR =
       '</svg>'
   )
 
-const MOCK_USER: MockUser = {
+/** 管理员账号（admin/123456）：角色 admin，可见全部菜单（含系统管理） */
+const MOCK_ADMIN: MockUser = {
   id: 1,
   username: 'admin',
   nickname: '本地管理员',
@@ -36,6 +38,23 @@ const MOCK_USER: MockUser = {
   avatar: MOCK_AVATAR,
   role: 'admin',
   permissions: ['dashboard:view', 'workbench:use', 'prompt-lab:use'],
+}
+
+/** 普通用户账号（user/123456）：角色 user，拥有 system:view（可见系统管理分组/系统日志），
+ *  无 system:user:view（用户列表对其隐藏），用于验证「部分菜单开放 + 403 跳转」 */
+const MOCK_USER: MockUser = {
+  id: 2,
+  username: 'user',
+  nickname: '普通用户',
+  email: 'user@yunshu.local',
+  avatar: MOCK_AVATAR,
+  role: 'user',
+  permissions: ['dashboard:view', 'workbench:use', 'system:view'],
+}
+
+/** 按用户名取 mock 用户（login 已校验账号，此处不会遇到未知用户名） */
+function getUserByUsername(username: string): MockUser {
+  return username === 'user' ? MOCK_USER : MOCK_ADMIN
 }
 
 /** 用户列表项（Mock 结构对齐前端 UserListItem） */
@@ -87,7 +106,7 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body))
 }
 
-export function mockApiPlugin(): Plugin {
+export function mockApiPlugin(options: { loginReturnUser: boolean }): Plugin {
   return {
     name: 'yunshu-mock-api',
     apply: 'serve', // 仅开发服务器生效
@@ -104,17 +123,25 @@ export function mockApiPlugin(): Plugin {
               return
             }
             setTimeout(() => {
-              // 模拟账号校验：admin/123456 成功（与真实后端测试账号一致），
-              // 其余返回业务错误，触发拦截器 Toast + 登录页页内错误提示
-              if (username !== 'admin' || password !== '123456') {
+              // 模拟账号校验：admin/123456 管理员、user/123456 普通用户，其余返回业务错误
+              // 触发拦截器 Toast + 登录页页内错误提示
+              const isAdmin = username === 'admin'
+              const isUser = username === 'user'
+              if ((!isAdmin && !isUser) || password !== '123456') {
                 sendJson(res, 200, { code: 400, data: null, message: '用户名或密码错误' })
                 return
               }
+              const mockUser = getUserByUsername(String(username))
+              console.log(`[mock] 登录成功：${mockUser.username}（role=${mockUser.role}）`)
               sendJson(res, 200, {
                 code: 200,
                 data: {
-                  token: `mock-token-${Date.now()}`,
-                  user: MOCK_USER,
+                  // 【Why】token 编码用户名，/user/info 据此还原账号角色，刷新页面后角色不漂移
+                  token: `mock-token-${mockUser.username}-${Date.now()}`,
+                  // 【Why】loginReturnUser 由 .env 的 VITE_MOCK_LOGIN_RETURN_USER 控制：
+                  // false 时不返回 user，让 MainLayout 走"登录后初始化"拉取路径（可验证骨架屏）；
+                  // true 时模拟真实后端登录直接携带用户信息，MainLayout 跳过拉取
+                  ...(options.loginReturnUser ? { user: mockUser } : {}),
                 },
                 message: 'success',
               })
@@ -137,8 +164,15 @@ export function mockApiPlugin(): Plugin {
             sendJson(res, 401, { code: 401, data: null, message: 'Token 已过期，请重新登录' })
             return
           }
+          // 从 token 还原登录账号（格式：mock-token-<username>-<timestamp>）；
+          // 旧格式 token 解析不到用户名 → 视为未登录，触发重新登录
+          const username = /^mock-token-(.+)-(\d+)$/.exec(token)?.[1]
+          if (!username) {
+            sendJson(res, 200, { code: 401, data: null, message: '未登录或登录已过期' })
+            return
+          }
           setTimeout(() => {
-            sendJson(res, 200, { code: 200, data: MOCK_USER, message: 'success' })
+            sendJson(res, 200, { code: 200, data: getUserByUsername(username), message: 'success' })
           }, MOCK_DELAY)
           return
         }
@@ -162,9 +196,67 @@ export function mockApiPlugin(): Plugin {
         // 删除用户：DELETE /api/user/:id
         const deleteMatch = /^\/api\/user\/(\d+)$/.exec(url)
         if (req.method === 'DELETE' && deleteMatch) {
+          const id = Number(deleteMatch[1])
+          const idx = MOCK_USERS.findIndex((u) => u.id === id)
+          if (idx === -1) {
+            setTimeout(() => sendJson(res, 200, { code: 404, data: null, message: '用户不存在' }), MOCK_DELAY)
+            return
+          }
+          MOCK_USERS.splice(idx, 1)
           setTimeout(() => {
             sendJson(res, 200, { code: 200, data: null, message: 'success' })
           }, MOCK_DELAY)
+          return
+        }
+
+        // 新增用户：POST /api/user（用户名必填且唯一）
+        if (req.method === 'POST' && url === '/api/user') {
+          readBody(req).then((body) => {
+            const username = String(body.username ?? '').trim()
+            if (!username) {
+              sendJson(res, 200, { code: 400, data: null, message: '用户名不能为空' })
+              return
+            }
+            if (MOCK_USERS.some((u) => u.username === username)) {
+              sendJson(res, 200, { code: 400, data: null, message: `用户名 ${username} 已存在` })
+              return
+            }
+            const role = String(body.role ?? 'user')
+            const newUser: MockListUser = {
+              id: Math.max(...MOCK_USERS.map((u) => u.id)) + 1,
+              username,
+              email: String(body.email ?? '').trim(),
+              role: ['admin', 'manager', 'user'].includes(role) ? role : 'user',
+              status: body.status === 0 || body.status === '0' ? 0 : 1,
+              createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+            }
+            MOCK_USERS.push(newUser)
+            setTimeout(() => {
+              sendJson(res, 200, { code: 200, data: newUser, message: 'success' })
+            }, MOCK_DELAY)
+          })
+          return
+        }
+
+        // 编辑用户：PUT /api/user/:id（邮箱/角色/状态可改，用户名不可改）
+        const putMatch = /^\/api\/user\/(\d+)$/.exec(url)
+        if (req.method === 'PUT' && putMatch) {
+          const id = Number(putMatch[1])
+          const target = MOCK_USERS.find((u) => u.id === id)
+          if (!target) {
+            setTimeout(() => sendJson(res, 200, { code: 404, data: null, message: '用户不存在' }), MOCK_DELAY)
+            return
+          }
+          readBody(req).then((body) => {
+            if ('email' in body) target.email = String(body.email ?? '').trim()
+            if ('role' in body && ['admin', 'manager', 'user'].includes(String(body.role))) {
+              target.role = String(body.role)
+            }
+            if ('status' in body) target.status = body.status === 0 || body.status === '0' ? 0 : 1
+            setTimeout(() => {
+              sendJson(res, 200, { code: 200, data: target, message: 'success' })
+            }, MOCK_DELAY)
+          })
           return
         }
 
@@ -174,7 +266,7 @@ export function mockApiPlugin(): Plugin {
   }
 }
 
-/** 组件演示专用 Mock：仅拦截 /api/demo/*，后端无此真实路由，dev 下始终启用（不随 VITE_MOCK_API 开关） */
+/** 组件演示专用 Mock：拦截 /api/demo/* 与 /api/export/users，后端无此真实路由，dev 下始终启用（不随 VITE_MOCK_API 开关） */
 export function mockDemoPlugin(): Plugin {
   return {
     name: 'yunshu-mock-demo',
@@ -205,6 +297,19 @@ export function mockDemoPlugin(): Plugin {
             }
             sendJson(res, 200, { code: 200, data: { valid: true }, message: 'success' })
           }, delay)
+          return
+        }
+
+        // 大数据量导出 Mock：GET /api/export/users（导出页在 VITE_EXPORT_LARGE_MOCK=true 时调用，
+        // 本地验证 5000 条分片导出的进度条与性能；放 demo 插件保证不受 VITE_MOCK_API 开关影响）
+        if (req.method === 'GET' && url === '/api/export/users') {
+          setTimeout(() => {
+            sendJson(res, 200, {
+              code: 200,
+              data: { list: EXPORT_MOCK_USERS, total: EXPORT_MOCK_USERS.length },
+              message: 'success',
+            })
+          }, MOCK_DELAY)
           return
         }
 

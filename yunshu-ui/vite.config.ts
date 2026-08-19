@@ -60,7 +60,7 @@ export default defineConfig(({ mode }) => {
       tsconfigPaths(),
       // 本地接口 Mock（mock 中间件先于 proxy 执行，命中 /auth/login、/user/info 时不再转发后端）
       // 登录/用户鉴权接口：VITE_MOCK_API=true 时启用（无后端兜底）；false 走真实后端
-      ...(env.VITE_MOCK_API === 'true' ? [mockApiPlugin()] : []),
+      ...(env.VITE_MOCK_API === 'true' ? [mockApiPlugin({ loginReturnUser: env.VITE_MOCK_LOGIN_RETURN_USER !== 'false' })] : []),
       // 组件演示接口（/api/demo/*）：后端无此路由，dev 下始终启用，便于验证网络异常场景
       mockDemoPlugin(),
       // Electron 壳仅在 ELECTRON=1 时启用，Web 构建/开发完全不受影响
