@@ -80,6 +80,58 @@ const MOCK_USERS: MockListUser[] = Array.from({ length: 26 }, (_, i) => {
   }
 })
 
+// ---------- 角色与权限（M2 RBAC mock，真实后端未实现前兜底） ----------
+
+/** 权限码列表（分组，与 routes.tsx 的 authority / userInfo.permissions 对齐） */
+const MOCK_PERMISSIONS: Array<{ code: string; label: string; group: string }> = [
+  { code: 'dashboard:view', label: '查看仪表盘', group: '仪表盘' },
+  { code: 'workbench:use', label: '使用工作台', group: '工作台' },
+  { code: 'prompt-lab:use', label: '使用提示词实验室', group: '组件' },
+  { code: 'system:view', label: '查看系统管理', group: '系统管理' },
+  { code: 'system:user:view', label: '查看用户列表', group: '系统管理' },
+  { code: 'system:user:edit', label: '编辑用户', group: '系统管理' },
+  { code: 'system:role:view', label: '查看角色列表', group: '系统管理' },
+  { code: 'system:role:edit', label: '编辑角色', group: '系统管理' },
+]
+
+/** 角色项（结构对齐前端 RoleItem） */
+interface MockRole {
+  id: number
+  name: string
+  label: string
+  description: string
+  permissions: string[]
+  createdAt: string
+}
+
+/** 内置角色：admin 全权限、manager 中权限、user 基础权限（可变，支持 CRUD） */
+let MOCK_ROLES: MockRole[] = [
+  {
+    id: 1,
+    name: 'admin',
+    label: '管理员',
+    description: '系统超级管理员，拥有全部权限',
+    permissions: MOCK_PERMISSIONS.map((p) => p.code),
+    createdAt: '2026-08-01 10:00:00',
+  },
+  {
+    id: 2,
+    name: 'manager',
+    label: '经理',
+    description: '可管理用户与角色',
+    permissions: ['dashboard:view', 'workbench:use', 'system:view', 'system:user:view', 'system:user:edit', 'system:role:view'],
+    createdAt: '2026-08-02 11:00:00',
+  },
+  {
+    id: 3,
+    name: 'user',
+    label: '普通用户',
+    description: '仅基础功能',
+    permissions: ['dashboard:view', 'workbench:use'],
+    createdAt: '2026-08-03 12:00:00',
+  },
+]
+
 /** 模拟网络延迟，让 Loading 状态可见 */
 const MOCK_DELAY = 500
 
@@ -256,6 +308,119 @@ export function mockApiPlugin(options: { loginReturnUser: boolean }): Plugin {
               sendJson(res, 200, { code: 200, data: target, message: 'success' })
             }, MOCK_DELAY)
           })
+          return
+        }
+
+        // 权限码列表：GET /api/permissions（分组，供角色权限分配界面）
+        if (req.method === 'GET' && url === '/api/permissions') {
+          setTimeout(() => {
+            sendJson(res, 200, { code: 200, data: MOCK_PERMISSIONS, message: 'success' })
+          }, MOCK_DELAY)
+          return
+        }
+
+        // 角色列表：GET /api/role/list?page=1&pageSize=10&keyword=xx
+        if (req.method === 'GET' && url.startsWith('/api/role/list')) {
+          const searchParams = new URL(url, 'http://localhost').searchParams
+          const page = Math.max(1, Number(searchParams.get('page') ?? 1))
+          const pageSize = Math.max(1, Number(searchParams.get('pageSize') ?? 10))
+          const keyword = (searchParams.get('keyword') ?? '').trim()
+          const matched = keyword
+            ? MOCK_ROLES.filter((r) => r.name.includes(keyword) || r.label.includes(keyword))
+            : MOCK_ROLES
+          const list = matched.slice((page - 1) * pageSize, page * pageSize)
+          setTimeout(() => {
+            sendJson(res, 200, { code: 200, data: { list, total: matched.length }, message: 'success' })
+          }, MOCK_DELAY)
+          return
+        }
+
+        // 新增角色：POST /api/role（name 唯一）
+        if (req.method === 'POST' && url === '/api/role') {
+          readBody(req).then((body) => {
+            const name = String(body.name ?? '').trim()
+            const label = String(body.label ?? '').trim()
+            if (!name || !label) {
+              sendJson(res, 200, { code: 400, data: null, message: '角色标识与显示名不能为空' })
+              return
+            }
+            if (MOCK_ROLES.some((r) => r.name === name)) {
+              sendJson(res, 200, { code: 400, data: null, message: `角色 ${name} 已存在` })
+              return
+            }
+            const newRole: MockRole = {
+              id: Math.max(...MOCK_ROLES.map((r) => r.id)) + 1,
+              name,
+              label,
+              description: String(body.description ?? '').trim(),
+              permissions: [],
+              createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+            }
+            MOCK_ROLES.push(newRole)
+            setTimeout(() => {
+              sendJson(res, 200, { code: 200, data: newRole, message: 'success' })
+            }, MOCK_DELAY)
+          })
+          return
+        }
+
+        // 分配角色权限：PUT /api/role/:id/permissions（全量覆盖，需先于「编辑角色」匹配）
+        const permAssignMatch = /^\/api\/role\/(\d+)\/permissions$/.exec(url)
+        if (req.method === 'PUT' && permAssignMatch) {
+          const id = Number(permAssignMatch[1])
+          const target = MOCK_ROLES.find((r) => r.id === id)
+          if (!target) {
+            setTimeout(() => sendJson(res, 200, { code: 404, data: null, message: '角色不存在' }), MOCK_DELAY)
+            return
+          }
+          readBody(req).then((body) => {
+            const permissions = Array.isArray(body.permissions)
+              ? (body.permissions as unknown[]).filter((p): p is string => typeof p === 'string')
+              : []
+            target.permissions = permissions
+            setTimeout(() => {
+              sendJson(res, 200, { code: 200, data: target, message: 'success' })
+            }, MOCK_DELAY)
+          })
+          return
+        }
+
+        // 编辑角色：PUT /api/role/:id（label/description 可改，name 不可改）
+        const rolePutMatch = /^\/api\/role\/(\d+)$/.exec(url)
+        if (req.method === 'PUT' && rolePutMatch) {
+          const id = Number(rolePutMatch[1])
+          const target = MOCK_ROLES.find((r) => r.id === id)
+          if (!target) {
+            setTimeout(() => sendJson(res, 200, { code: 404, data: null, message: '角色不存在' }), MOCK_DELAY)
+            return
+          }
+          readBody(req).then((body) => {
+            if ('label' in body) target.label = String(body.label ?? '').trim()
+            if ('description' in body) target.description = String(body.description ?? '').trim()
+            setTimeout(() => {
+              sendJson(res, 200, { code: 200, data: target, message: 'success' })
+            }, MOCK_DELAY)
+          })
+          return
+        }
+
+        // 删除角色：DELETE /api/role/:id（内置 admin 角色不可删除）
+        const roleDeleteMatch = /^\/api\/role\/(\d+)$/.exec(url)
+        if (req.method === 'DELETE' && roleDeleteMatch) {
+          const id = Number(roleDeleteMatch[1])
+          const idx = MOCK_ROLES.findIndex((r) => r.id === id)
+          if (idx === -1) {
+            setTimeout(() => sendJson(res, 200, { code: 404, data: null, message: '角色不存在' }), MOCK_DELAY)
+            return
+          }
+          if (id === 1) {
+            setTimeout(() => sendJson(res, 200, { code: 400, data: null, message: '内置管理员角色不可删除' }), MOCK_DELAY)
+            return
+          }
+          MOCK_ROLES.splice(idx, 1)
+          setTimeout(() => {
+            sendJson(res, 200, { code: 200, data: null, message: 'success' })
+          }, MOCK_DELAY)
           return
         }
 

@@ -13,10 +13,11 @@
  */
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { FileDown, LayoutDashboard, Palette, ScrollText, Settings, Users, Workflow } from 'lucide-react'
+import { FileDown, LayoutDashboard, Palette, ScrollText, Settings, ShieldCheck, Users, Workflow } from 'lucide-react'
 import Dashboard from '@/pages/Dashboard'
 import WorkbenchApp from '@/WorkbenchApp'
 import UserList from '@/pages/system/UserList'
+import RoleList from '@/pages/system/RoleList'
 import SystemLog from '@/pages/system/SystemLog'
 import DemoPage from '@/pages/Demo'
 import DataExport from '@/pages/Export'
@@ -80,6 +81,11 @@ export const appRoutes: AppRouteObject[] = [
         path: '/system/user',
         element: <UserList />,
         meta: { title: '用户列表', icon: Users, authority: 'system:user:view' },
+      },
+      {
+        path: '/system/role',
+        element: <RoleList />,
+        meta: { title: '角色权限', icon: ShieldCheck, authority: 'system:role:view' },
       },
       {
         path: '/system/log',
