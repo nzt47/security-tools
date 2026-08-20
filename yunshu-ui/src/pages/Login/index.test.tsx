@@ -8,7 +8,7 @@
  *   4. 空表单校验：未发请求，直接通过全局 Toast 提示
  * 说明：login 接口用 vi.mock 替换，不依赖 dev server 的 mock 中间件。
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { webcrypto } from 'node:crypto'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
