@@ -19,6 +19,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import { usePromptLabStore } from '../stores/usePromptLabStore';
+import { downloadFile } from '../utils/system';
 import {
   CATEGORIES,
   allFactors,
@@ -47,16 +48,6 @@ type Filter = 'all' | FactorCategory;
 type PreviewMode = 'sim' | 'llm';
 
 const dateTag = () => new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-
-/** 下载 Blob 文件 */
-function download(name: string, content: string, mime: string) {
-  const url = URL.createObjectURL(new Blob([content], { type: mime }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 /** 雷达图：SVG 五维多边形（不引入图表库） */
 function RadarChart({ data }: { data: { label: string; value: number }[] }) {
@@ -478,8 +469,8 @@ export default function PromptLab() {
   const exportWith = (kind: 'json' | 'csv') => {
     const tag = dateTag();
     if (kind === 'json')
-      download(`prompt-factors-${tag}.json`, exportJson(values, customFactors, systemParts, llm.contextWindow), 'application/json');
-    else download(`prompt-factors-${tag}.csv`, exportCsv(values, customFactors), 'text/csv;charset=utf-8');
+      downloadFile(`prompt-factors-${tag}.json`, exportJson(values, customFactors, systemParts, llm.contextWindow), 'application/json');
+    else downloadFile(`prompt-factors-${tag}.csv`, exportCsv(values, customFactors), 'text/csv;charset=utf-8');
   };
 
   return (
