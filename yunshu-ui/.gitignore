@@ -38,3 +38,6 @@ node_modules/
 coverage/
 .nyc_output/
 .pytest_cache/
+
+# Electron 下载缓存（electron-builder 字面 ${env.TEMP} 路径未展开时产生的缓存目录）
+${env.TEMP}/
