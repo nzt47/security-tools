@@ -8,7 +8,8 @@
  *   4. 空表单校验：未发请求，直接通过全局 Toast 提示
  * 说明：login 接口用 vi.mock 替换，不依赖 dev server 的 mock 中间件。
  */
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { webcrypto } from 'node:crypto'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { login } from '@/api/user'
@@ -67,6 +68,16 @@ beforeEach(() => {
   mockLogin.mockReset()
 })
 
+// 【Why】jsdom 的 window.crypto 无 subtle 且为访问器属性，defineProperty 强制替换为 Node Web Crypto，
+// 以便测试 AES-GCM 加密保存（登录页在函数内运行时读取全局 crypto，不影响模块加载）
+beforeAll(() => {
+  Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true, writable: true })
+})
+
+afterAll(() => {
+  vi.unstubAllGlobals()
+})
+
 afterEach(() => {
   vi.restoreAllMocks()
 })
@@ -116,5 +127,21 @@ describe('登录页', () => {
     await submitLogin('', '')
     expect(await screen.findByRole('alert')).toHaveTextContent('请输入用户名和密码')
     expect(mockLogin).not.toHaveBeenCalled()
+  })
+
+  it('记住密码：登录成功后密码以 AES-GCM 密文保存，不落明文', async () => {
+    mockLogin.mockResolvedValue({ token: MOCK_TOKEN, user: MOCK_USER })
+    renderLogin()
+
+    fireEvent.click(screen.getByLabelText('记住密码'))
+    await submitLogin('admin', '123456')
+
+    await screen.findByText('HOME_PAGE')
+    const stored = JSON.parse(localStorage.getItem('yunshu-remember-login') ?? '{}')
+    expect(stored.remember).toBe(true)
+    expect(stored.username).toBe('admin')
+    expect(stored.passwordCipher).toBeTruthy()
+    // 密文中不应出现明文密码
+    expect(JSON.stringify(stored)).not.toContain('123456')
   })
 })

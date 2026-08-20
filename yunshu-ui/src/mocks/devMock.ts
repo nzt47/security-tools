@@ -40,8 +40,7 @@ const MOCK_ADMIN: MockUser = {
   permissions: ['dashboard:view', 'workbench:use', 'prompt-lab:use'],
 }
 
-/** 普通用户账号（user/123456）：角色 user，拥有 system:view（可见系统管理分组/系统日志），
- *  无 system:user:view（用户列表对其隐藏），用于验证「部分菜单开放 + 403 跳转」 */
+/** 普通用户账号（user/123456）：角色 user，用于验证「菜单隐藏 + 403 跳转」 */
 const MOCK_USER: MockUser = {
   id: 2,
   username: 'user',
@@ -49,7 +48,7 @@ const MOCK_USER: MockUser = {
   email: 'user@yunshu.local',
   avatar: MOCK_AVATAR,
   role: 'user',
-  permissions: ['dashboard:view', 'workbench:use', 'system:view'],
+  permissions: ['dashboard:view', 'workbench:use'],
 }
 
 /** 按用户名取 mock 用户（login 已校验账号，此处不会遇到未知用户名） */

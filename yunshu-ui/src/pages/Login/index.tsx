@@ -2,8 +2,9 @@
  * LoginPage —— 登录页
  * 交互：调用 login 接口 → 成功写入 Token 并跳转；失败提示统一由全局 Toast 展示
  * （接口失败：axios 拦截器统一 toast；前端校验：页面直接调用 toast）
+ * 记住密码：密码经 Web Crypto AES-GCM 加密后落盘 localStorage，不存明文
  */
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { login } from '@/api/user'
 import { setToken as saveToken } from '@/utils/request'
@@ -12,30 +13,102 @@ import { toast } from '@/components/Toaster'
 
 /** 记住密码的 localStorage key */
 const REMEMBER_KEY = 'yunshu-remember-login'
+/** AES-GCM 密钥（raw 导出后存储，同源复用，保证旧密文可解密） */
+const REMEMBER_KEY_CRYPTO = 'yunshu-remember-key'
 
-/** 已保存的登录凭证 */
+/** localStorage 存储格式（密码为密文） */
+interface StoredCredentials {
+  remember: boolean
+  username: string
+  /** base64(iv + ciphertext)，未勾选记住时为空 */
+  passwordCipher: string
+}
+
+/** 加载结果（密码已解密为明文，仅用于回填表单） */
 interface RememberedCredentials {
   remember: boolean
   username: string
   password: string
 }
 
+// ---------- Web Crypto 工具（AES-GCM 加密密码，避免明文落盘 localStorage） ----------
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = ''
+  bytes.forEach((b) => {
+    bin += String.fromCharCode(b)
+  })
+  return btoa(bin)
+}
+
+function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return bytes
+}
+
+/** 获取或创建 AES-GCM 密钥：已有则导入，否则生成并持久化 */
+async function getCryptoKey(): Promise<CryptoKey> {
+  const raw = localStorage.getItem(REMEMBER_KEY_CRYPTO)
+  if (raw) {
+    return crypto.subtle.importKey('raw', base64ToBytes(raw), 'AES-GCM', false, ['encrypt', 'decrypt'])
+  }
+  // 【Why】extractable=true：密钥需导出 raw 持久化，供下次解密复用（仅本地存储，不外传）
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'])
+  const exported = new Uint8Array(await crypto.subtle.exportKey('raw', key))
+  localStorage.setItem(REMEMBER_KEY_CRYPTO, bytesToBase64(exported))
+  return key
+}
+
+/** 加密密码：随机 12 字节 IV + AES-GCM 密文，合并后 base64 */
+async function encryptPassword(key: CryptoKey, password: string): Promise<string> {
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(password))
+  const combined = new Uint8Array(iv.length + cipher.byteLength)
+  combined.set(iv, 0)
+  combined.set(new Uint8Array(cipher), iv.length)
+  return bytesToBase64(combined)
+}
+
+/** 解密密码：拆 IV 与密文后解密；密钥/数据不匹配时抛错 */
+async function decryptPassword(key: CryptoKey, payload: string): Promise<string> {
+  const combined = base64ToBytes(payload)
+  const iv = combined.slice(0, 12)
+  const cipher = combined.slice(12)
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, cipher)
+  return new TextDecoder().decode(plain)
+}
+
 /**
  * 读取已保存的登录凭证
- * 密码仅在勾选「记住密码」时回填；JSON 解析失败或缺失时返回空值
+ * 密码以密文存储，解密成功才回填；密钥丢失/数据损坏时仅回填用户名
  */
-function loadRememberedCredentials(): RememberedCredentials {
+async function loadRememberedCredentials(): Promise<RememberedCredentials> {
+  let remember = false
+  let username = ''
+  let passwordCipher = ''
   try {
     const raw = localStorage.getItem(REMEMBER_KEY)
-    if (!raw) return { remember: false, username: '', password: '' }
-    const data = JSON.parse(raw) as Partial<RememberedCredentials>
-    return {
-      remember: !!data.remember,
-      username: typeof data.username === 'string' ? data.username : '',
-      password: data.remember && typeof data.password === 'string' ? data.password : '',
+    if (raw) {
+      const data = JSON.parse(raw) as Partial<StoredCredentials>
+      remember = !!data.remember
+      username = typeof data.username === 'string' ? data.username : ''
+      passwordCipher = typeof data.passwordCipher === 'string' ? data.passwordCipher : ''
     }
   } catch {
-    return { remember: false, username: '', password: '' }
+    // 数据损坏：按未保存处理
+  }
+  if (!remember || !passwordCipher) {
+    return { remember, username, password: '' }
+  }
+  try {
+    const key = await getCryptoKey()
+    const password = await decryptPassword(key, passwordCipher)
+    return { remember, username, password }
+  } catch {
+    // 解密失败（密钥丢失/数据损坏）：仅回填用户名
+    return { remember, username, password: '' }
   }
 }
 
@@ -45,12 +118,24 @@ export default function LoginPage() {
   // 守卫重定向时携带的来源路径，登录后优先跳回
   const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname
 
-  // 【Why】初始值来自 localStorage（记住密码），useState 惰性初始化只执行一次
-  const [saved] = useState(loadRememberedCredentials)
-  const [username, setUsername] = useState(saved.username)
-  const [password, setPassword] = useState(saved.password)
-  const [remember, setRemember] = useState(saved.remember)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [remember, setRemember] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  // 【Why】记住密码回填改为异步：密码以密文存储，需 Web Crypto 解密后再回填
+  useEffect(() => {
+    let cancelled = false
+    loadRememberedCredentials().then((saved) => {
+      if (cancelled) return
+      setUsername(saved.username)
+      setPassword(saved.password)
+      setRemember(saved.remember)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -72,12 +157,19 @@ export default function LoginPage() {
       if (data.user) {
         useUserStore.getState().setUserInfo(data.user)
       }
-      // 记住密码：勾选时保存凭证（含密码）；未勾选时清除，避免残留
+      // 记住密码：勾选时 AES-GCM 加密保存密码；未勾选时清除，避免残留
       if (remember) {
-        localStorage.setItem(
-          REMEMBER_KEY,
-          JSON.stringify({ remember: true, username: name, password })
-        )
+        try {
+          const key = await getCryptoKey()
+          const passwordCipher = await encryptPassword(key, password)
+          localStorage.setItem(
+            REMEMBER_KEY,
+            JSON.stringify({ remember: true, username: name, passwordCipher })
+          )
+        } catch (err) {
+          // 【Why】加密不可用（非安全上下文等）：放弃保存，绝不将明文密码落盘
+          console.warn('[auth] 加密不可用，跳过记住密码保存', err)
+        }
       } else {
         localStorage.removeItem(REMEMBER_KEY)
       }
