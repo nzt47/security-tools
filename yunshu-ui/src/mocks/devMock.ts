@@ -101,6 +101,8 @@ interface MockRole {
   label: string
   description: string
   permissions: string[]
+  /** 数据范围：all 全部 / dept 本部门 / self 仅本人 */
+  dataScope: 'all' | 'dept' | 'self'
   createdAt: string
 }
 
@@ -112,6 +114,7 @@ let MOCK_ROLES: MockRole[] = [
     label: '管理员',
     description: '系统超级管理员，拥有全部权限',
     permissions: MOCK_PERMISSIONS.map((p) => p.code),
+    dataScope: 'all',
     createdAt: '2026-08-01 10:00:00',
   },
   {
@@ -120,6 +123,7 @@ let MOCK_ROLES: MockRole[] = [
     label: '经理',
     description: '可管理用户与角色',
     permissions: ['dashboard:view', 'workbench:use', 'system:view', 'system:user:view', 'system:user:edit', 'system:role:view'],
+    dataScope: 'dept',
     createdAt: '2026-08-02 11:00:00',
   },
   {
@@ -128,9 +132,44 @@ let MOCK_ROLES: MockRole[] = [
     label: '普通用户',
     description: '仅基础功能',
     permissions: ['dashboard:view', 'workbench:use'],
+    dataScope: 'self',
     createdAt: '2026-08-03 12:00:00',
   },
 ]
+
+// ---------- 菜单管理（M3 mock） ----------
+
+/** 菜单树（结构对齐前端 MenuItem） */
+let MOCK_MENUS: Array<{
+  id: number
+  parentId: number
+  title: string
+  path: string
+  icon: string
+  authority: string
+  order: number
+  hideInMenu: boolean
+}> = [
+  { id: 1, parentId: 0, title: '仪表盘', path: '/', icon: 'LayoutDashboard', authority: '', order: 1, hideInMenu: false },
+  { id: 2, parentId: 0, title: '工作台', path: '/workbench', icon: 'Workflow', authority: '', order: 2, hideInMenu: false },
+  { id: 3, parentId: 0, title: '系统管理', path: '/system', icon: 'Settings', authority: 'system:view', order: 10, hideInMenu: false },
+  { id: 4, parentId: 3, title: '用户列表', path: '/system/user', icon: 'Users', authority: 'system:user:view', order: 1, hideInMenu: false },
+  { id: 5, parentId: 3, title: '角色权限', path: '/system/role', icon: 'ShieldCheck', authority: 'system:role:view', order: 2, hideInMenu: false },
+]
+
+/** 组装菜单树（按 parentId，保持 order 升序） */
+function buildMenuTree(): Array<Record<string, unknown> & { children?: unknown[] }> {
+  const sorted = [...MOCK_MENUS].sort((a, b) => a.order - b.order)
+  const map = new Map<number, Record<string, unknown> & { children?: unknown[] }>()
+  sorted.forEach((m) => map.set(m.id, { ...m, children: [] }))
+  const roots: Array<Record<string, unknown> & { children?: unknown[] }> = []
+  map.forEach((node) => {
+    const parentId = node.parentId as number
+    if (parentId === 0 || !map.has(parentId)) roots.push(node)
+    else (map.get(parentId)!.children as unknown[]).push(node)
+  })
+  return roots
+}
 
 /** 模拟网络延迟，让 Loading 状态可见 */
 const MOCK_DELAY = 500
@@ -354,6 +393,7 @@ export function mockApiPlugin(options: { loginReturnUser: boolean }): Plugin {
               label,
               description: String(body.description ?? '').trim(),
               permissions: [],
+              dataScope: 'self',
               createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
             }
             MOCK_ROLES.push(newRole)
@@ -418,6 +458,111 @@ export function mockApiPlugin(options: { loginReturnUser: boolean }): Plugin {
             return
           }
           MOCK_ROLES.splice(idx, 1)
+          setTimeout(() => {
+            sendJson(res, 200, { code: 200, data: null, message: 'success' })
+          }, MOCK_DELAY)
+          return
+        }
+
+        // 配置角色数据范围：PUT /api/role/:id/data-scope（需先于「编辑角色」匹配）
+        const dataScopeMatch = /^\/api\/role\/(\d+)\/data-scope$/.exec(url)
+        if (req.method === 'PUT' && dataScopeMatch) {
+          const id = Number(dataScopeMatch[1])
+          const target = MOCK_ROLES.find((r) => r.id === id)
+          if (!target) {
+            setTimeout(() => sendJson(res, 200, { code: 404, data: null, message: '角色不存在' }), MOCK_DELAY)
+            return
+          }
+          readBody(req).then((body) => {
+            const scope = body.dataScope
+            if (scope !== 'all' && scope !== 'dept' && scope !== 'self') {
+              sendJson(res, 200, { code: 400, data: null, message: '数据范围不合法' })
+              return
+            }
+            target.dataScope = scope
+            setTimeout(() => {
+              sendJson(res, 200, { code: 200, data: target, message: 'success' })
+            }, MOCK_DELAY)
+          })
+          return
+        }
+
+        // 菜单树：GET /api/menu/tree
+        if (req.method === 'GET' && url === '/api/menu/tree') {
+          setTimeout(() => {
+            sendJson(res, 200, { code: 200, data: buildMenuTree(), message: 'success' })
+          }, MOCK_DELAY)
+          return
+        }
+
+        // 新增菜单：POST /api/menu（title/path 必填）
+        if (req.method === 'POST' && url === '/api/menu') {
+          readBody(req).then((body) => {
+            const title = String(body.title ?? '').trim()
+            const path = String(body.path ?? '').trim()
+            if (!title || !path) {
+              sendJson(res, 200, { code: 400, data: null, message: '菜单名与路径不能为空' })
+              return
+            }
+            const parentId = Number(body.parentId ?? 0)
+            if (parentId !== 0 && !MOCK_MENUS.some((m) => m.id === parentId)) {
+              sendJson(res, 200, { code: 400, data: null, message: '父菜单不存在' })
+              return
+            }
+            const newMenu = {
+              id: Math.max(...MOCK_MENUS.map((m) => m.id)) + 1,
+              parentId,
+              title,
+              path,
+              icon: String(body.icon ?? '').trim(),
+              authority: String(body.authority ?? '').trim(),
+              order: Number(body.order ?? 0) || 0,
+              hideInMenu: body.hideInMenu === true || body.hideInMenu === 'true',
+            }
+            MOCK_MENUS.push(newMenu)
+            setTimeout(() => {
+              sendJson(res, 200, { code: 200, data: newMenu, message: 'success' })
+            }, MOCK_DELAY)
+          })
+          return
+        }
+
+        // 编辑菜单：PUT /api/menu/:id
+        const menuPutMatch = /^\/api\/menu\/(\d+)$/.exec(url)
+        if (req.method === 'PUT' && menuPutMatch) {
+          const id = Number(menuPutMatch[1])
+          const target = MOCK_MENUS.find((m) => m.id === id)
+          if (!target) {
+            setTimeout(() => sendJson(res, 200, { code: 404, data: null, message: '菜单不存在' }), MOCK_DELAY)
+            return
+          }
+          readBody(req).then((body) => {
+            if ('title' in body) target.title = String(body.title ?? '').trim()
+            if ('path' in body) target.path = String(body.path ?? '').trim()
+            if ('icon' in body) target.icon = String(body.icon ?? '').trim()
+            if ('authority' in body) target.authority = String(body.authority ?? '').trim()
+            if ('order' in body) target.order = Number(body.order ?? 0) || 0
+            if ('hideInMenu' in body) target.hideInMenu = body.hideInMenu === true || body.hideInMenu === 'true'
+            setTimeout(() => {
+              sendJson(res, 200, { code: 200, data: target, message: 'success' })
+            }, MOCK_DELAY)
+          })
+          return
+        }
+
+        // 删除菜单：DELETE /api/menu/:id（存在子菜单时拒绝）
+        const menuDeleteMatch = /^\/api\/menu\/(\d+)$/.exec(url)
+        if (req.method === 'DELETE' && menuDeleteMatch) {
+          const id = Number(menuDeleteMatch[1])
+          if (!MOCK_MENUS.some((m) => m.id === id)) {
+            setTimeout(() => sendJson(res, 200, { code: 404, data: null, message: '菜单不存在' }), MOCK_DELAY)
+            return
+          }
+          if (MOCK_MENUS.some((m) => m.parentId === id)) {
+            setTimeout(() => sendJson(res, 200, { code: 400, data: null, message: '请先删除子菜单' }), MOCK_DELAY)
+            return
+          }
+          MOCK_MENUS = MOCK_MENUS.filter((m) => m.id !== id)
           setTimeout(() => {
             sendJson(res, 200, { code: 200, data: null, message: 'success' })
           }, MOCK_DELAY)

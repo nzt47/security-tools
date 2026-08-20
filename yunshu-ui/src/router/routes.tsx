@@ -13,11 +13,12 @@
  */
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { FileDown, LayoutDashboard, Palette, ScrollText, Settings, ShieldCheck, Users, Workflow } from 'lucide-react'
+import { FileDown, LayoutDashboard, ListTree, Palette, ScrollText, Settings, ShieldCheck, Users, Workflow } from 'lucide-react'
 import Dashboard from '@/pages/Dashboard'
 import WorkbenchApp from '@/WorkbenchApp'
 import UserList from '@/pages/system/UserList'
 import RoleList from '@/pages/system/RoleList'
+import MenuList from '@/pages/system/MenuList'
 import SystemLog from '@/pages/system/SystemLog'
 import DemoPage from '@/pages/Demo'
 import DataExport from '@/pages/Export'
@@ -86,6 +87,11 @@ export const appRoutes: AppRouteObject[] = [
         path: '/system/role',
         element: <RoleList />,
         meta: { title: '角色权限', icon: ShieldCheck, authority: 'system:role:view' },
+      },
+      {
+        path: '/system/menu',
+        element: <MenuList />,
+        meta: { title: '菜单管理', icon: ListTree, authority: 'system:role:view' },
       },
       {
         path: '/system/log',

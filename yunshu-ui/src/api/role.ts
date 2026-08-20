@@ -26,6 +26,8 @@ export interface RoleItem {
   description?: string
   /** 已分配权限码列表 */
   permissions: string[]
+  /** 数据范围（M3：all 全部 / dept 本部门 / self 仅本人），未配置时为 undefined */
+  dataScope?: 'all' | 'dept' | 'self'
   createdAt: string
 }
 

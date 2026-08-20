@@ -4,7 +4,7 @@
  * 数据源：@/api/role（request.ts 已解包，直接返回业务数据）
  */
 import { useCallback, useEffect, useState } from 'react'
-import { KeyRound, Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
+import { Database, KeyRound, Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
 import {
   assignRolePermissions,
   createRole,
@@ -13,10 +13,12 @@ import {
   updateRole,
   type RoleItem,
 } from '@/api/role'
+import { updateRoleDataScope, type DataScope } from '@/api/menu'
 import { toast } from '@/components/Toaster'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import RoleFormDialog from './RoleFormDialog'
 import PermissionAssignDialog from './PermissionAssignDialog'
+import DataScopeDialog from './DataScopeDialog'
 
 const PAGE_SIZE = 10
 
@@ -43,6 +45,11 @@ export default function RoleList() {
   const [assignOpen, setAssignOpen] = useState(false)
   const [assignRole, setAssignRole] = useState<RoleItem | null>(null)
   const [assigning, setAssigning] = useState(false)
+
+  // 数据范围弹窗（M3）
+  const [scopeOpen, setScopeOpen] = useState(false)
+  const [scopeRole, setScopeRole] = useState<RoleItem | null>(null)
+  const [scopeSaving, setScopeSaving] = useState(false)
 
   const totalPages = Math.max(1, Math.ceil(total / query.pageSize))
 
@@ -136,6 +143,22 @@ export default function RoleList() {
       // 失败提示已由 request.ts 统一处理，保留弹窗供重试
     } finally {
       setAssigning(false)
+    }
+  }
+
+  /** 数据范围提交（M3） */
+  const handleScopeSubmit = async (scope: DataScope) => {
+    if (!scopeRole) return
+    setScopeSaving(true)
+    try {
+      await updateRoleDataScope(scopeRole.id, scope)
+      toast.success('数据范围已更新')
+      setScopeOpen(false)
+      await fetchList()
+    } catch {
+      // 失败提示已由 request.ts 统一处理，保留弹窗供重试
+    } finally {
+      setScopeSaving(false)
     }
   }
 
@@ -248,6 +271,17 @@ export default function RoleList() {
                       </button>
                       <button
                         type="button"
+                        onClick={() => {
+                          setScopeRole(row)
+                          setScopeOpen(true)
+                        }}
+                        className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-sm font-medium text-cyan-600 transition hover:bg-cyan-50"
+                      >
+                        <Database className="h-3.5 w-3.5" />
+                        数据
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => setDeleteTarget(row)}
                         className="inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-sm font-medium text-red-600 transition hover:bg-red-50"
                       >
@@ -331,6 +365,15 @@ export default function RoleList() {
         saving={assigning}
         onSubmit={handleAssignSubmit}
         onCancel={() => setAssignOpen(false)}
+      />
+
+      {/* 数据范围弹窗（M3） */}
+      <DataScopeDialog
+        open={scopeOpen}
+        role={scopeRole}
+        saving={scopeSaving}
+        onSubmit={handleScopeSubmit}
+        onCancel={() => setScopeOpen(false)}
       />
     </div>
   )
