@@ -162,7 +162,7 @@ server {
 > **Electron 桌面版**：打包前命令行注入 `$env:VITE_API_BASE="http://127.0.0.1:5678"; npm run dist:electron`（file:// 无相对路径，必须绝对地址）。
 
 > **注意事项（M2~M5 联调，2026-08-20 更新）**：
-> - 已实现：`/api/audit/logs`（管理后台契约：分页 + 操作人/类型/关键字筛选）、`/api/notification/*`（列表/未读计数/单条已读/全部已读，持久化 `data/manager_audit.json` / `data/manager_notifications.json`）。
+> - 已实现：`/api/audit/logs`（管理后台契约：分页 + 操作人/类型/关键字筛选）、`/api/notification/*`（列表/未读计数/单条已读/全部已读，持久化 `data/manager_audit.json` / `data/manager_notifications.json`）。**鉴权**：均需登录后的用户 token（`Authorization: Bearer <token>`），未登录返回业务 401（HTTP 200 + `code:401`）；`/api/audit/logs` 同时保留 T8.4 开放 API 双轨（API Key 客户端走网关，见常见问题）。
 > - 未实现：`/api/role*`、`/api/menu*`。测试环境若需完整验证角色/菜单页面，二选一：
 >   1. 后端补齐上述接口（推荐，契约见 `yunshu-ui/src/api/role.ts`、`menu.ts`）；
 >   2. 或前端构建时设 `VITE_MOCK_API=true`（devMock 兜底，仅本地验证用）。
@@ -180,7 +180,8 @@ server {
 | 3 | 系统管理 → 用户列表 | 列表/分页/搜索可用 |
 | 4 | 系统管理 → 角色权限 | 角色列表 + 权限/数据范围弹窗（需接口支持） |
 | 5 | 系统管理 → 菜单管理 | 菜单树展示（需接口支持） |
-| 6 | 系统管理 → 操作审计 | 日志列表与筛选（需接口支持） |
+| 6 | 系统管理 → 操作审计 | 日志列表与筛选（需接口支持，管理后台契约已实现） |
+| 7 | 系统管理 → 消息中心 | 通知列表 + 未读计数 + 单条/全部已读（已实现，需登录 token） |
 
 ## 七、回滚
 
