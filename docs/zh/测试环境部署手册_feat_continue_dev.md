@@ -161,9 +161,11 @@ server {
 > **API 前缀契约（2026-08-20 已实测修复）**：`src/utils/request.ts` 中 `baseURL` 使用 `VITE_API_BASE || '/api'`（`||` 而非 `??`）——空字符串/未定义均回退 `/api`，确保请求形如 `/api/auth/login`（与 Nginx `location /api` 代理匹配）。若误配为绝对地址或空串语义错误，登录会 404/直连失败。
 > **Electron 桌面版**：打包前命令行注入 `$env:VITE_API_BASE="http://127.0.0.1:5678"; npm run dist:electron`（file:// 无相对路径，必须绝对地址）。
 
-> **注意事项（M2~M4 联调）**：真实后端当前未实现 `/api/role*`、`/api/menu*`、`/api/audit/logs` 分页参数。测试环境若需完整验证角色/菜单/审计页面，二选一：
-> 1. 后端补齐上述接口（推荐，契约见 `yunshu-ui/src/api/role.ts`、`menu.ts`、`audit.ts`）；
-> 2. 或前端构建时设 `VITE_MOCK_API=true`（devMock 兜底，仅本地验证用）。
+> **注意事项（M2~M5 联调，2026-08-20 更新）**：
+> - 已实现：`/api/audit/logs`（管理后台契约：分页 + 操作人/类型/关键字筛选）、`/api/notification/*`（列表/未读计数/单条已读/全部已读，持久化 `data/manager_audit.json` / `data/manager_notifications.json`）。
+> - 未实现：`/api/role*`、`/api/menu*`。测试环境若需完整验证角色/菜单页面，二选一：
+>   1. 后端补齐上述接口（推荐，契约见 `yunshu-ui/src/api/role.ts`、`menu.ts`）；
+>   2. 或前端构建时设 `VITE_MOCK_API=true`（devMock 兜底，仅本地验证用）。
 
 ## 六、启动与冒烟验证
 
@@ -195,7 +197,7 @@ cd yunshu-ui && npm ci && npm run build:flask   # 重新构建
 | 登录返回 500 | 后端未就绪/依赖 Redis 未启动；`/api/health` 确认后端存活 |
 | 页面 404 / 资源加载失败 | 确认 `base=/static/` 与产物复制位置正确 |
 | 登录仍返回 mock-token | 构建时 `VITE_MOCK_API` 仍为 true |
-| 角色/菜单/审计页报错 | 真实后端未实现对应接口，参考 5.4 注意事项 |
-| **操作审计页打开即跳 403 / 提示"登录已过期"** | 后端 `/api/audit/logs` 鉴权异常（2026-08-20 实测：有效 token 亦返回 401），前端 401 拦截器会清空会话并跳 403。需后端修复该接口鉴权（其余接口正常） |
-| **消息中心页空态无数据** | 后端未实现 `/api/notification/*`（404），属已知限制，联调前设 `VITE_MOCK_API=true` 走 devMock 兜底 |
+| 角色/菜单页报错 | 真实后端未实现对应接口，参考 5.4 注意事项 |
+| **操作审计页 401/403（已修复 2026-08-20）** | 此前 `/api/audit/logs` 被网关灰度接管（只认 API Key），现已双轨：管理后台用户 token 放行至原生路由（返回 `{code,data:{list,total}}`）；API Key 客户端仍走网关（T8.4 隔离契约不变）。若仍 401，确认前端请求带登录 token 且后端为最新代码 |
+| **消息中心空态（已实现 2026-08-20）** | `/api/notification/*` 后端已实现（种子 24 条 + 持久化）。若为空态，确认登录态有效（该接口需用户 token） |
 | 端口冲突 | 前端 5173（dev）/后端 5678，检查占用后调整 |

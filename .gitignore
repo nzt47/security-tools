@@ -85,8 +85,10 @@ agent/data/role_assignments.json
 agent/data/tenants.json
 agent/data/users.json
 agent/data/tool_router_test_report.json
-# 管理后台用户列表持久化（app_server.py 运行时生成，不入库）
+# 管理后台运行时持久化（app_server.py 生成，不入库）
 data/manager_users.json
+data/manager_audit.json
+data/manager_notifications.json
 data/failures/
 data/persona/distillation_history.json
 data/scheduled_tasks.json

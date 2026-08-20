@@ -1514,6 +1514,133 @@ def _save_manager_users() -> None:
 _load_manager_users()
 
 
+# ════════════════════════════════════════════════════════════
+#  管理后台操作审计（结构对齐前端 AuditLogItem，持久化 data/manager_audit.json）
+#  说明：管理后台展示「操作人/操作对象/结果/来源 IP」语义的操作审计，
+#  与系统内部 Append-only 审计（agent/audit/logger.py）相互独立；
+#  接口经用户 token 鉴权（_token_error_response），与用户管理一致。
+# ════════════════════════════════════════════════════════════
+_MANAGER_AUDIT: list[dict] = []
+_MANAGER_AUDIT_FILE = os.path.join("data", "manager_audit.json")
+
+_AUDIT_OPERATORS = ["admin", "manager", "user"]
+_AUDIT_ACTIONS = ["login", "create", "update", "delete", "export"]
+
+
+def _seed_manager_audit() -> list[dict]:
+    """生成 32 条管理后台审计记录：覆盖多操作人/类型/结果/分页边界"""
+    records = []
+    for i in range(32):
+        idx = 32 - i
+        action = _AUDIT_ACTIONS[i % len(_AUDIT_ACTIONS)]
+        verb = {
+            "delete": "删除", "create": "新增", "export": "导出",
+            "update": "更新", "login": "登录",
+        }[action]
+        records.append({
+            "id": idx,
+            "traceId": f"trace-{idx:04d}",
+            "operator": _AUDIT_OPERATORS[i % len(_AUDIT_OPERATORS)],
+            "action": action,
+            "target": action == "login" and "登录系统" or f"{verb}用户 user{(i % 20) + 1:02d}",
+            "result": "fail" if i % 7 == 0 else "success",
+            "ip": f"10.0.{i % 4}.{(i % 250) + 1}",
+            "detail": "权限不足或数据不存在" if i % 7 == 0 else "",
+            "createdAt": f"2026-08-{(i % 20) + 1:02d} {i % 24:02d}:{(i * 3) % 60:02d}:00",
+        })
+    return records
+
+
+def _load_manager_audit() -> None:
+    global _MANAGER_AUDIT
+    try:
+        if os.path.exists(_MANAGER_AUDIT_FILE):
+            with open(_MANAGER_AUDIT_FILE, "r", encoding="utf-8") as f:
+                _MANAGER_AUDIT = json.load(f)
+            logger.info("管理后台审计已加载：%s（%d 条）", _MANAGER_AUDIT_FILE, len(_MANAGER_AUDIT))
+            return
+    except Exception as e:
+        logger.warning("管理后台审计加载失败，使用种子数据：%s", e)
+    _MANAGER_AUDIT = _seed_manager_audit()
+
+
+def _save_manager_audit() -> None:
+    try:
+        os.makedirs(os.path.dirname(_MANAGER_AUDIT_FILE), exist_ok=True)
+        with open(_MANAGER_AUDIT_FILE, "w", encoding="utf-8") as f:
+            json.dump(_MANAGER_AUDIT, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning("管理后台审计持久化失败：%s", e)
+
+
+_load_manager_audit()
+
+
+# ════════════════════════════════════════════════════════════
+#  消息中心通知（结构对齐前端 NotificationItem，持久化 data/manager_notifications.json）
+#  接口经用户 token 鉴权，与用户管理一致。
+# ════════════════════════════════════════════════════════════
+_MANAGER_NOTIFICATIONS: list[dict] = []
+_MANAGER_NOTIFICATIONS_FILE = os.path.join("data", "manager_notifications.json")
+
+_NOTIFICATION_TITLES = {
+    "system": ["系统例行维护公告", "版本升级通知", "新功能上线说明"],
+    "audit": ["检测到异常登录行为", "高风险操作提醒", "审计日志导出完成"],
+    "approval": ["待审批：新用户开通申请", "待审批：角色权限变更", "待审批：数据导出申请"],
+    "alert": ["接口错误率超过阈值", "磁盘空间使用告警", "登录失败次数异常"],
+}
+_NOTIFICATION_TYPES = ["system", "audit", "approval", "alert"]
+
+
+def _seed_manager_notifications() -> list[dict]:
+    """生成 24 条通知：覆盖多类型/已读未读/分页边界"""
+    items = []
+    for i in range(24):
+        idx = 24 - i
+        ntype = _NOTIFICATION_TYPES[i % len(_NOTIFICATION_TYPES)]
+        title = _NOTIFICATION_TITLES[ntype][i % 3]
+        content = {
+            "system": f"【{idx}】系统将于维护窗口执行例行检查",
+            "audit": f"【{idx}】检测到来自 10.0.0.1 的非常规操作",
+            "approval": f"【{idx}】申请人：user{(i % 20) + 1:02d}，请及时处理",
+            "alert": f"【{idx}】累计触发 3 次阈值，请关注",
+        }[ntype]
+        items.append({
+            "id": idx,
+            "type": ntype,
+            "title": title,
+            "content": content,
+            "read": i % 3 != 0,
+            "createdAt": f"2026-08-{(i % 20) + 1:02d} {i % 24:02d}:{(i * 7) % 60:02d}:00",
+        })
+    return items
+
+
+def _load_manager_notifications() -> None:
+    global _MANAGER_NOTIFICATIONS
+    try:
+        if os.path.exists(_MANAGER_NOTIFICATIONS_FILE):
+            with open(_MANAGER_NOTIFICATIONS_FILE, "r", encoding="utf-8") as f:
+                _MANAGER_NOTIFICATIONS = json.load(f)
+            logger.info("消息中心通知已加载：%s（%d 条）", _MANAGER_NOTIFICATIONS_FILE, len(_MANAGER_NOTIFICATIONS))
+            return
+    except Exception as e:
+        logger.warning("消息中心通知加载失败，使用种子数据：%s", e)
+    _MANAGER_NOTIFICATIONS = _seed_manager_notifications()
+
+
+def _save_manager_notifications() -> None:
+    try:
+        os.makedirs(os.path.dirname(_MANAGER_NOTIFICATIONS_FILE), exist_ok=True)
+        with open(_MANAGER_NOTIFICATIONS_FILE, "w", encoding="utf-8") as f:
+            json.dump(_MANAGER_NOTIFICATIONS, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning("消息中心通知持久化失败：%s", e)
+
+
+_load_manager_notifications()
+
+
 @app.route("/api/user/list")
 @log_request(show_response=False)
 def api_user_list():
@@ -3396,18 +3523,45 @@ def api_config_logs():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-# ── 审计日志查询 API（只读，T8.4 第二批灰度开放；无 require_token） ──
+# ── 审计日志查询 API（只读，T8.4 灰度开放；双轨认证） ──
 
 @app.route("/api/audit/logs", methods=["GET"])
 @log_request(show_response=False)
 def api_audit_logs():
-    """获取结构化审计日志（只读查询 Append-only 审计日志）
+    """获取审计日志（双轨契约）
 
-    T8.4 数据隔离（修复跨租户泄露，见 T8 故障演练剧本 B.3）：
-    - 经网关认证：仅返回当前 Key 绑定租户的记录（写侧 tenant_id 字段精确过滤）；
-      未绑定租户的旧 Key 返回空集 + warning（隔离优先，宁可少看不可泄露）
-    - 内部直调（无网关标记，如管理通道）：保持全量（管理语义）
+    管理后台（用户 token，2026-08-20 修复）：
+      GET /api/audit/logs?page=&pageSize=&operator=&action=&keyword=
+      → {code:200, data:{list, total}, message}，list 元素对齐前端 AuditLogItem。
+    开放 API（网关 Key，T8.4 契约不变）：
+      → {ok, logs, count}，仅返回 Key 绑定租户记录（跨租户隔离）。
     """
+    # 管理后台会话：返回前端契约（审计页 /api/audit.ts 期望 {list, total}）
+    auth_header = request.headers.get("Authorization", "")
+    username, err = _resolve_user_token(auth_header)
+    if err is None and username:
+        auth_err = _token_error_response()
+        if auth_err is not None:
+            return auth_err
+        page = max(1, request.args.get("page", default=1, type=int) or 1)
+        page_size = max(1, request.args.get("pageSize", default=10, type=int) or 10)
+        operator = (request.args.get("operator", "") or "").strip()
+        action = (request.args.get("action", "") or "").strip()
+        keyword = (request.args.get("keyword", "") or "").strip()
+        matched = [
+            r for r in _MANAGER_AUDIT
+            if (not operator or operator in r["operator"])
+            and (not action or r["action"] == action)
+            and (not keyword or keyword in r["target"] or keyword in (r.get("detail") or ""))
+        ]
+        total = len(matched)
+        start = (page - 1) * page_size
+        return jsonify({
+            "code": 200,
+            "data": {"list": matched[start:start + page_size], "total": total},
+            "message": "success",
+        })
+    # 开放 API / 内部直调：保持原 Append-only 审计查询（T8.4 租户隔离不变）
     try:
         from agent.audit.logger import audit_logger
         trace_id = request.args.get("trace_id", "")
@@ -3424,6 +3578,77 @@ def api_audit_logs():
     except Exception as e:
         logger.error("审计日志查询失败: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── 消息中心通知 API（管理后台，用户 token 鉴权；前端契约见 api/notification.ts） ──
+
+@app.route("/api/notification/list", methods=["GET"])
+@log_request(show_response=False)
+def api_notification_list():
+    """通知列表（分页 + 类型/未读筛选）"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    page = max(1, request.args.get("page", default=1, type=int) or 1)
+    page_size = max(1, request.args.get("pageSize", default=10, type=int) or 10)
+    ntype = (request.args.get("type", "") or "").strip()
+    unread_only = (request.args.get("unreadOnly", "") or "").lower() == "true"
+    matched = [
+        n for n in _MANAGER_NOTIFICATIONS
+        if (not ntype or n["type"] == ntype)
+        and (not unread_only or not n["read"])
+    ]
+    total = len(matched)
+    start = (page - 1) * page_size
+    return jsonify({
+        "code": 200,
+        "data": {"list": matched[start:start + page_size], "total": total},
+        "message": "success",
+    })
+
+
+@app.route("/api/notification/unread-count", methods=["GET"])
+@log_request(show_response=False)
+def api_notification_unread_count():
+    """未读通知数量"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    unread = sum(1 for n in _MANAGER_NOTIFICATIONS if not n["read"])
+    return jsonify({"code": 200, "data": {"unread": unread}, "message": "success"})
+
+
+@app.route("/api/notification/<int:nid>/read", methods=["POST"])
+@log_request(show_response=False)
+def api_notification_read(nid: int):
+    """单条通知标记已读（不存在返回业务 404）"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    for n in _MANAGER_NOTIFICATIONS:
+        if n["id"] == nid:
+            if not n["read"]:
+                n["read"] = True
+                _save_manager_notifications()
+            return jsonify({"code": 200, "data": None, "message": "success"})
+    return jsonify({"code": 404, "data": None, "message": "通知不存在"})
+
+
+@app.route("/api/notification/read-all", methods=["POST"])
+@log_request(show_response=False)
+def api_notification_read_all():
+    """全部通知标记已读"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    changed = False
+    for n in _MANAGER_NOTIFICATIONS:
+        if not n["read"]:
+            n["read"] = True
+            changed = True
+    if changed:
+        _save_manager_notifications()
+    return jsonify({"code": 200, "data": None, "message": "success"})
 
 
 # ── 工具配置 API ──
