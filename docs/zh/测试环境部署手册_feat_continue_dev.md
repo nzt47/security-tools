@@ -91,7 +91,17 @@ npm run build:flask
 - `yunshu-ui/dist/index.html` → `templates/yunshu.html`
 - `yunshu-ui/dist/assets/*` → `static/assets/*`
 
-随后后端直接提供页面：访问 `http://<测试机>:5678/yunshu.html`。
+> **入口路由契约（重要）**：`app_server.py` 当前**未注册** `/yunshu.html` 路由（已实测 404）。两种处理方式任选其一：
+> 1. 在后端注册最小路由（推荐）：
+>    ```python
+>    @app.route("/yunshu.html")
+>    def yunshu_ui():
+>        from flask import render_template
+>        return render_template("yunshu.html")
+>    ```
+> 2. 或改走 5.3 方式 B（Nginx 独立部署），页面入口由 Nginx 提供。
+>
+> 静态资源已验证可访问：`http://<测试机>:5678/static/assets/<hash>.js`（Flask `/static/<path>` 路由已托管）。
 
 ### 5.3 方式 B：独立部署（前端静态服务 + API 反向代理）
 
@@ -145,8 +155,11 @@ server {
 | 变量 | 值 | 说明 |
 |---|---|---|
 | `VITE_MOCK_API` | `false` | 走真实后端（角色/菜单等未实现的接口会失败，见注意事项） |
-| `VITE_API_BASE` | 留空 | 留空走同域 `/api` 相对路径（需 Nginx/Flask 代理） |
+| `VITE_API_BASE` | 留空 | **Web 部署必须留空**：前端走同域 `/api` 相对路径（Nginx/Flask 代理）。已实测若写绝对地址（如 `http://127.0.0.1:5678`）浏览器直连后端会 CORS 失败并绕过代理 |
 | `VITE_LOG_LEVEL` | `info` | 日志级别 |
+
+> **API 前缀契约（2026-08-20 已实测修复）**：`src/utils/request.ts` 中 `baseURL` 使用 `VITE_API_BASE || '/api'`（`||` 而非 `??`）——空字符串/未定义均回退 `/api`，确保请求形如 `/api/auth/login`（与 Nginx `location /api` 代理匹配）。若误配为绝对地址或空串语义错误，登录会 404/直连失败。
+> **Electron 桌面版**：打包前命令行注入 `$env:VITE_API_BASE="http://127.0.0.1:5678"; npm run dist:electron`（file:// 无相对路径，必须绝对地址）。
 
 > **注意事项（M2~M4 联调）**：真实后端当前未实现 `/api/role*`、`/api/menu*`、`/api/audit/logs` 分页参数。测试环境若需完整验证角色/菜单/审计页面，二选一：
 > 1. 后端补齐上述接口（推荐，契约见 `yunshu-ui/src/api/role.ts`、`menu.ts`、`audit.ts`）；

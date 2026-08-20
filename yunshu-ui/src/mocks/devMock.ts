@@ -208,6 +208,39 @@ let MOCK_AUDIT_LOGS: MockAuditLog[] = Array.from({ length: 32 }, (_, i) => {
   }
 })
 
+/** Mock 通知项（结构对齐前端 NotificationItem） */
+interface MockNotification {
+  id: number
+  type: 'system' | 'audit' | 'approval' | 'alert'
+  title: string
+  content: string
+  read: boolean
+  createdAt: string
+}
+
+const NOTIFICATION_TITLES: Record<MockNotification['type'], string[]> = {
+  system: ['系统例行维护公告', '版本升级通知', '新功能上线说明'],
+  audit: ['检测到异常登录行为', '高风险操作提醒', '审计日志导出完成'],
+  approval: ['待审批：新用户开通申请', '待审批：角色权限变更', '待审批：数据导出申请'],
+  alert: ['接口错误率超过阈值', '磁盘空间使用告警', '登录失败次数异常'],
+}
+
+/** 生成 24 条 mock 通知：覆盖多类型/已读未读/分页边界 */
+let MOCK_NOTIFICATIONS: MockNotification[] = Array.from({ length: 24 }, (_, i) => {
+  const idx = 24 - i
+  const types: MockNotification['type'][] = ['system', 'audit', 'approval', 'alert']
+  const type = types[i % types.length]
+  const titles = NOTIFICATION_TITLES[type]
+  return {
+    id: idx,
+    type,
+    title: titles[i % titles.length],
+    content: `【${idx}】${type === 'system' ? '系统将于维护窗口执行例行检查' : type === 'audit' ? '检测到来自 10.0.0.1 的非常规操作' : type === 'approval' ? '申请人：user' + String((i % 20) + 1).padStart(2, '0') + '，请及时处理' : '累计触发 3 次阈值，请关注'}`,
+    read: i % 3 !== 0,
+    createdAt: `2026-08-${String((i % 20) + 1).padStart(2, '0')} ${String(i % 24).padStart(2, '0')}:${String((i * 7) % 60).padStart(2, '0')}:00`,
+  }
+})
+
 /** 模拟网络延迟，让 Loading 状态可见 */
 const MOCK_DELAY = 500
 
@@ -623,6 +656,61 @@ export function mockApiPlugin(options: { loginReturnUser: boolean }): Plugin {
           const list = matched.slice((page - 1) * pageSize, page * pageSize)
           setTimeout(() => {
             sendJson(res, 200, { code: 200, data: { list, total: matched.length }, message: 'success' })
+          }, MOCK_DELAY)
+          return
+        }
+
+        // 通知列表：GET /api/notification/list?page=&pageSize=&type=&unreadOnly=
+        if (req.method === 'GET' && url.startsWith('/api/notification/list')) {
+          const searchParams = new URL(url, 'http://localhost').searchParams
+          const page = Math.max(1, Number(searchParams.get('page') ?? 1))
+          const pageSize = Math.max(1, Number(searchParams.get('pageSize') ?? 10))
+          const type = searchParams.get('type') ?? ''
+          const unreadOnly = searchParams.get('unreadOnly') === 'true'
+          const matched = MOCK_NOTIFICATIONS.filter((n) => {
+            if (type && n.type !== type) return false
+            if (unreadOnly && n.read) return false
+            return true
+          })
+          const list = matched.slice((page - 1) * pageSize, page * pageSize)
+          setTimeout(() => {
+            sendJson(res, 200, { code: 200, data: { list, total: matched.length }, message: 'success' })
+          }, MOCK_DELAY)
+          return
+        }
+
+        // 未读计数：GET /api/notification/unread-count
+        if (req.method === 'GET' && url === '/api/notification/unread-count') {
+          const unread = MOCK_NOTIFICATIONS.filter((n) => !n.read).length
+          setTimeout(() => {
+            sendJson(res, 200, { code: 200, data: { unread }, message: 'success' })
+          }, MOCK_DELAY)
+          return
+        }
+
+        // 单条已读：POST /api/notification/:id/read
+        const notificationReadMatch = /^\/api\/notification\/(\d+)\/read$/.exec(url)
+        if (req.method === 'POST' && notificationReadMatch) {
+          const id = Number(notificationReadMatch[1])
+          const target = MOCK_NOTIFICATIONS.find((n) => n.id === id)
+          if (!target) {
+            setTimeout(() => sendJson(res, 200, { code: 404, data: null, message: '通知不存在' }), MOCK_DELAY)
+            return
+          }
+          target.read = true
+          setTimeout(() => {
+            sendJson(res, 200, { code: 200, data: null, message: 'success' })
+          }, MOCK_DELAY)
+          return
+        }
+
+        // 全部已读：POST /api/notification/read-all
+        if (req.method === 'POST' && url === '/api/notification/read-all') {
+          MOCK_NOTIFICATIONS.forEach((n) => {
+            n.read = true
+          })
+          setTimeout(() => {
+            sendJson(res, 200, { code: 200, data: null, message: 'success' })
           }, MOCK_DELAY)
           return
         }

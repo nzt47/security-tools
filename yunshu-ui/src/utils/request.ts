@@ -59,7 +59,10 @@ function logPerf(config: AxiosRequestConfig, status: number | string, costMs: nu
 
 /** 创建 Axios 实例 */
 const service = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE ?? '/api',
+  // 【Why】用 || 而非 ??：.env 中 VITE_API_BASE 留空时得到空字符串（非 nullish），
+  // ?? 不会回退导致 baseURL='' 拼出 /auth/login 缺 /api 前缀（Nginx 代理失效）。
+  // || 对 空串/undefined 都回退 /api；Electron 注入绝对地址时不受影响。
+  baseURL: import.meta.env.VITE_API_BASE || '/api',
   timeout: 15000,
 })
 
