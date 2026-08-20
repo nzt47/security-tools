@@ -92,6 +92,7 @@ const MOCK_PERMISSIONS: Array<{ code: string; label: string; group: string }> = 
   { code: 'system:user:edit', label: '编辑用户', group: '系统管理' },
   { code: 'system:role:view', label: '查看角色列表', group: '系统管理' },
   { code: 'system:role:edit', label: '编辑角色', group: '系统管理' },
+  { code: 'system:audit:view', label: '查看操作审计', group: '系统管理' },
 ]
 
 /** 角色项（结构对齐前端 RoleItem） */
@@ -170,6 +171,42 @@ function buildMenuTree(): Array<Record<string, unknown> & { children?: unknown[]
   })
   return roots
 }
+
+// ---------- 操作审计日志（M4 mock） ----------
+
+/** 审计日志项（结构对齐前端 AuditLogItem） */
+interface MockAuditLog {
+  id: number
+  traceId: string
+  operator: string
+  action: string
+  target: string
+  result: 'success' | 'fail'
+  ip: string
+  detail: string
+  createdAt: string
+}
+
+const AUDIT_OPERATORS = ['admin', 'manager', 'user']
+const AUDIT_ACTIONS = ['login', 'create', 'update', 'delete', 'export']
+
+/** 生成 32 条审计日志：覆盖多操作人/类型/结果/分页边界 */
+let MOCK_AUDIT_LOGS: MockAuditLog[] = Array.from({ length: 32 }, (_, i) => {
+  const idx = 32 - i
+  const action = AUDIT_ACTIONS[i % AUDIT_ACTIONS.length]
+  const verb = action === 'delete' ? '删除' : action === 'create' ? '新增' : action === 'export' ? '导出' : action === 'update' ? '更新' : '登录'
+  return {
+    id: idx,
+    traceId: `trace-${idx.toString().padStart(4, '0')}`,
+    operator: AUDIT_OPERATORS[i % AUDIT_OPERATORS.length],
+    action,
+    target: action === 'login' ? '登录系统' : `${verb}用户 user${String((i % 20) + 1).padStart(2, '0')}`,
+    result: i % 7 === 0 ? 'fail' : 'success',
+    ip: `10.0.${i % 4}.${(i % 250) + 1}`,
+    detail: i % 7 === 0 ? '权限不足或数据不存在' : '',
+    createdAt: `2026-08-${String((i % 20) + 1).padStart(2, '0')} ${String(i % 24).padStart(2, '0')}:${String((i * 3) % 60).padStart(2, '0')}:00`,
+  }
+})
 
 /** 模拟网络延迟，让 Loading 状态可见 */
 const MOCK_DELAY = 500
@@ -565,6 +602,27 @@ export function mockApiPlugin(options: { loginReturnUser: boolean }): Plugin {
           MOCK_MENUS = MOCK_MENUS.filter((m) => m.id !== id)
           setTimeout(() => {
             sendJson(res, 200, { code: 200, data: null, message: 'success' })
+          }, MOCK_DELAY)
+          return
+        }
+
+        // 审计日志：GET /api/audit/logs?page=&pageSize=&operator=&action=&keyword=
+        if (req.method === 'GET' && url.startsWith('/api/audit/logs')) {
+          const searchParams = new URL(url, 'http://localhost').searchParams
+          const page = Math.max(1, Number(searchParams.get('page') ?? 1))
+          const pageSize = Math.max(1, Number(searchParams.get('pageSize') ?? 10))
+          const operator = (searchParams.get('operator') ?? '').trim()
+          const action = searchParams.get('action') ?? ''
+          const keyword = (searchParams.get('keyword') ?? '').trim()
+          const matched = MOCK_AUDIT_LOGS.filter((log) => {
+            if (operator && !log.operator.includes(operator)) return false
+            if (action && log.action !== action) return false
+            if (keyword && !log.target.includes(keyword) && !log.detail.includes(keyword)) return false
+            return true
+          })
+          const list = matched.slice((page - 1) * pageSize, page * pageSize)
+          setTimeout(() => {
+            sendJson(res, 200, { code: 200, data: { list, total: matched.length }, message: 'success' })
           }, MOCK_DELAY)
           return
         }

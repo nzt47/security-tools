@@ -13,12 +13,13 @@
  */
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { FileDown, LayoutDashboard, ListTree, Palette, ScrollText, Settings, ShieldCheck, Users, Workflow } from 'lucide-react'
+import { FileDown, History, LayoutDashboard, ListTree, Palette, ScrollText, Settings, ShieldCheck, Users, Workflow } from 'lucide-react'
 import Dashboard from '@/pages/Dashboard'
 import WorkbenchApp from '@/WorkbenchApp'
 import UserList from '@/pages/system/UserList'
 import RoleList from '@/pages/system/RoleList'
 import MenuList from '@/pages/system/MenuList'
+import AuditList from '@/pages/system/AuditList'
 import SystemLog from '@/pages/system/SystemLog'
 import DemoPage from '@/pages/Demo'
 import DataExport from '@/pages/Export'
@@ -92,6 +93,11 @@ export const appRoutes: AppRouteObject[] = [
         path: '/system/menu',
         element: <MenuList />,
         meta: { title: '菜单管理', icon: ListTree, authority: 'system:role:view' },
+      },
+      {
+        path: '/system/audit',
+        element: <AuditList />,
+        meta: { title: '操作审计', icon: History, authority: 'system:audit:view' },
       },
       {
         path: '/system/log',
