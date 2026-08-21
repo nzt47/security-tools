@@ -28,7 +28,7 @@ import {
 import LoginLayout from '@/layouts/LoginLayout'
 import MainLayout from '@/layouts/MainLayout'
 import LoginPage from '@/pages/Login'
-import PromptLab from '@/pages/PromptLab'
+import PromptLab from '@/pages/prompt-lab'
 import Profile from '@/pages/Profile'
 import ForbiddenPage from '@/pages/error/ForbiddenPage'
 import { DetachedChatApp } from '@/DetachedChatApp'
@@ -56,7 +56,7 @@ function RequireAuth() {
 /**
  * 将配置树渲染为 React Router 的 Route 节点。
  * - 分组节点（无 element）默认渲染 <Outlet/>，支持任意层级嵌套
- * - 每个节点统一包一层 AuthRoute 做权限守卫（含分组，权限向下继承）
+ * - 每个节点统一包一层 AuthRoute 做访问守卫（后端菜单树驱动：路径未下发 → 403）
  */
 function renderRoutes(routes: AppRouteObject[]) {
   return routes.map((route) => {
@@ -65,7 +65,7 @@ function renderRoutes(routes: AppRouteObject[]) {
       <Route
         key={route.path ?? 'group'}
         path={route.path}
-        element={<AuthRoute authority={route.meta?.authority}>{element}</AuthRoute>}
+        element={<AuthRoute>{element}</AuthRoute>}
       >
         {route.children ? renderRoutes(route.children) : null}
       </Route>

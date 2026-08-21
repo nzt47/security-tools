@@ -27,6 +27,19 @@
 | `ConfirmDialog` | 通用确认弹窗（基于 ModalBase，`danger` 红色确认按钮 + loading 防重复提交） |
 | `Toaster` / `toast` | 全局提示（`toast.success/error/info`，axios 拦截器错误统一走此通道） |
 
+## 页面子组件（src/pages/prompt-lab/，提示词实验室拆分）
+
+| 组件 | 说明 |
+|---|---|
+| `RadarChart` | 五维效果评估雷达图（SVG 手绘，零图表库依赖） |
+| `FactorControl` | 因素控件（slider/select/text/toggle 四态） |
+| `FactorCard` | 因素卡片（名称 + 说明 + 控件 + 自定义删除） |
+| `SystemPartCard` | 系统提示词组件卡片（启停/编辑/token 估算） |
+| `AddSystemPartForm` | 添加系统提示词组件弹窗 |
+| `CustomFactorForm` | 添加自定义因素弹窗（按控件类型动态表单） |
+| `PreviewPanel` | 右侧实时预览面板（LLM 配置/提示词/模拟输出/雷达图/Token 估算/导出） |
+| `index.tsx` | 主页面编排（状态与布局，样式见 `src/pages/PromptLab.css`） |
+
 ## 使用约定
 
 - 颜色/间距/圆角/阴影一律语义 Token（`bg-card`、`text-foreground`、`border-border`、`rounded-md/lg`、`shadow-card`），禁止硬编码色值。
