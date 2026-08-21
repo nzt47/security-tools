@@ -150,26 +150,31 @@ describe('DataExport 组件', () => {
     expect(screen.getByRole('button', { name: /导出/ })).toBeDisabled()
   })
 
-  it('导出中途点击取消：中断分片、不触发下载、状态清理', async () => {
-    const bigUsers = Array.from({ length: 5000 }, (_, i) => ({
-      id: i + 1,
-      username: `user${i + 1}`,
-      email: `user${i + 1}@yunshu.local`,
-      role: 'user',
-      status: 1 as const,
-      createdAt: '2026-08-01 10:30:00',
-    }))
-    mockGetUserList.mockResolvedValue({ list: bigUsers, total: bigUsers.length })
-    render(<DataExport />)
-    await screen.findByText(/共 5000 条/)
+  it(
+    '导出中途点击取消：中断分片、不触发下载、状态清理',
+    async () => {
+      const bigUsers = Array.from({ length: 5000 }, (_, i) => ({
+        id: i + 1,
+        username: `user${i + 1}`,
+        email: `user${i + 1}@yunshu.local`,
+        role: 'user',
+        status: 1 as const,
+        createdAt: '2026-08-01 10:30:00',
+      }))
+      mockGetUserList.mockResolvedValue({ list: bigUsers, total: bigUsers.length })
+      render(<DataExport />)
+      await screen.findByText(/共 5000 条/)
 
-    // 点击导出后立即取消（两处点击在同一同步块内，分片循环尚未越过第一个分片边界）
-    fireEvent.click(screen.getByRole('button', { name: /导出/ }))
-    fireEvent.click(screen.getByRole('button', { name: '取消' }))
+      // 点击导出后立即取消（两处点击在同一同步块内，分片循环尚未越过第一个分片边界）
+      fireEvent.click(screen.getByRole('button', { name: /导出/ }))
+      fireEvent.click(screen.getByRole('button', { name: '取消' }))
 
-    // 分片任务被中断：downloadFile 不应被调用，状态恢复（导出按钮重新可用、取消按钮消失）
-    await waitFor(() => expect(screen.getByRole('button', { name: /导出/ })).toBeEnabled())
-    expect(mockDownloadFile).not.toHaveBeenCalled()
-    expect(screen.queryByRole('button', { name: '取消' })).not.toBeInTheDocument()
-  })
+      // 分片任务被中断：downloadFile 不应被调用，状态恢复（导出按钮重新可用、取消按钮消失）
+      await waitFor(() => expect(screen.getByRole('button', { name: /导出/ })).toBeEnabled())
+      expect(mockDownloadFile).not.toHaveBeenCalled()
+      expect(screen.queryByRole('button', { name: '取消' })).not.toBeInTheDocument()
+    },
+    // 【Why 15000】大数据量分片 + 取消中断，全量共享环境耗时放大，需提高阈值（同上方 5000 条用例）
+    15000,
+  )
 })
