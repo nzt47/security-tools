@@ -8,6 +8,7 @@ import { Outlet, useNavigate } from 'react-router-dom'
 import { Check, ChevronDown, FlaskConical, LogOut } from 'lucide-react'
 import { useUserStore } from '@/store/userStore'
 import { logger } from '@/utils/logger'
+import { safeGetLocalStorage } from '@/utils/storage'
 import { DASHBOARD_MOCK_ERROR_KEY } from '@/api/dashboard'
 import Sidebar from '@/components/Sidebar'
 import BreadCrumb from '@/components/BreadCrumb'
@@ -24,7 +25,9 @@ const DASHBOARD_MOCK_OPTIONS = [
  *  Dashboard 请求时读取并附加 mock_error 参数，由 devMock 拦截返回对应场景 */
 function MockScenarioMenu() {
   const [open, setOpen] = useState(false)
-  const current = localStorage.getItem(DASHBOARD_MOCK_ERROR_KEY) ?? ''
+  // 【SSR 兼容】渲染期读取 localStorage 经 safeGetLocalStorage（含 window 守卫）：
+  // SSR 服务端（Node）无 window/localStorage，守卫后回退默认值（未选中），避免崩溃与 hydration 不一致
+  const current = safeGetLocalStorage(DASHBOARD_MOCK_ERROR_KEY) ?? ''
 
   const handleSelect = (value: string) => {
     setOpen(false)

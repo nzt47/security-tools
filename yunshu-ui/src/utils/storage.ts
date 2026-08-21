@@ -86,5 +86,14 @@ export function has(key: string): boolean {
   return getRaw(key) !== null
 }
 
+/**
+ * SSR 安全读取：无 window（服务端渲染）时返回 null，避免直接访问 localStorage 抛 ReferenceError。
+ * 【Why】组件渲染期读取本地存储需此守卫（useEffect/事件回调天然客户端运行，无需守卫）。
+ * 注意：不处理「window 存在但 localStorage 访问异常（隐私模式等）」——该类场景请用 getRaw（自带 try/catch）。
+ */
+export function safeGetLocalStorage(key: string): string | null {
+  return typeof window !== 'undefined' ? localStorage.getItem(key) : null
+}
+
 /** 统一出口 */
-export const storage = { getRaw, setRaw, getJSON, setJSON, remove, has }
+export const storage = { getRaw, setRaw, getJSON, setJSON, remove, has, safeGetLocalStorage }
