@@ -3,7 +3,17 @@
  * 目的：预览语义 Token 在深浅双模式下的视觉效果；新组件接入前可先在此验证。
  */
 import { useState } from 'react'
-import { Button, Card, Input, ThemeToggle } from '@/components/ui'
+import {
+  Button,
+  Card,
+  Input,
+  ThemeToggle,
+  ModalBase,
+  Table,
+  Pagination,
+  Select,
+  FormField,
+} from '@/components/ui'
 import { validateEmail } from '@/api/demo'
 
 export default function DemoPage() {
@@ -13,6 +23,12 @@ export default function DemoPage() {
   const [email, setEmail] = useState('')
   const [emailError, setEmailError] = useState('')
   const [checkingEmail, setCheckingEmail] = useState(false)
+
+  // ── 新增组件演示状态 ──
+  const [modalOpen, setModalOpen] = useState(false)
+  const [page, setPage] = useState(1)
+  const [role, setRole] = useState('')
+  const [roleError, setRoleError] = useState('')
 
   /** 把异常映射为可读文案，便于测试网络异常场景 */
   function toErrorMessage(err: unknown): string {
@@ -125,6 +141,85 @@ export default function DemoPage() {
           </Button>
         </div>
       </Card>
+
+      {/* Select + FormField */}
+      <Card className="space-y-4 p-5">
+        <h2 className="text-sm font-medium text-muted-foreground">Select · FormField</h2>
+        <Select
+          label="角色"
+          options={[
+            { label: '管理员', value: 'admin' },
+            { label: '经理', value: 'manager' },
+            { label: '普通用户', value: 'user' },
+          ]}
+          value={role}
+          onChange={setRole}
+          error={roleError}
+        />
+        <FormField label="必填示例" required error="该项为必填">
+          <Input placeholder="FormField 包裹的输入框" />
+        </FormField>
+        <Button
+          size="sm"
+          variant="default"
+          onClick={() => setRoleError(role ? '' : '请选择角色')}
+        >
+          校验角色
+        </Button>
+      </Card>
+
+      {/* Table + Pagination */}
+      <Card className="p-5">
+        <h2 className="text-sm font-medium text-muted-foreground">Table · Pagination</h2>
+        <div className="mt-4">
+          <Table
+            columns={[
+              { key: 'id', header: 'ID', width: '80px' },
+              { key: 'name', header: '名称' },
+              { key: 'role', header: '角色', align: 'center' },
+            ]}
+            dataSource={[
+              { id: 1, name: '张三', role: 'admin' },
+              { id: 2, name: '李四', role: 'user' },
+              { id: 3, name: '王五', role: 'manager' },
+            ]}
+            rowKey={(r) => r.id}
+          />
+          <Pagination page={page} pageSize={3} total={23} onChange={setPage} />
+        </div>
+      </Card>
+
+      {/* ModalBase */}
+      <Card className="p-5">
+        <h2 className="text-sm font-medium text-muted-foreground">ModalBase</h2>
+        <p className="mt-2 text-sm text-foreground">
+          统一弹窗外壳：遮罩 / Esc / body 滚动锁定 / 标题 / footer 全部内置。
+        </p>
+        <div className="mt-4">
+          <Button variant="primary" onClick={() => setModalOpen(true)}>
+            打开弹窗
+          </Button>
+        </div>
+      </Card>
+
+      {/* 弹窗实例（ModalBase 演示） */}
+      <ModalBase
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="ModalBase 演示"
+        footer={
+          <>
+            <Button variant="default" onClick={() => setModalOpen(false)}>
+              取消
+            </Button>
+            <Button variant="primary" onClick={() => setModalOpen(false)}>
+              确认
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">遮罩 / Esc / 标题 / footer 均由 ModalBase 统一提供。</p>
+      </ModalBase>
     </div>
   )
 }
