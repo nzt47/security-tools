@@ -49,10 +49,17 @@ export function notify(message: string, level: 'error' | 'info' = 'error'): void
   }
 }
 
-/** 记录每个请求的起始时间（以 config 对象为 key，天然支持并发请求） */
+/**
+ * 记录每个请求的起始时间（以 config 对象为 key，天然支持并发请求）
+ * 生产构建 perfEnabled 为编译期常量 false（import.meta.env.PROD 静态替换），
+ * 计时与日志相关分支均被 esbuild 消除，生产环境零开销
+ */
 const timingMap = new WeakMap<AxiosRequestConfig, number>()
 
-/** 输出请求耗时日志 */
+/** 是否启用请求耗时观测（生产关闭） */
+const perfEnabled = !import.meta.env.PROD
+
+/** 输出请求耗时日志（仅开发/测试打印） */
 function logPerf(config: AxiosRequestConfig, status: number | string, costMs: number): void {
   const method = (config.method ?? 'GET').toUpperCase()
   console.info(`[perf] ${method} ${config.url ?? ''} ${status} ${costMs}ms`)
@@ -69,7 +76,10 @@ const service = axios.create({
 
 // ---------- 请求拦截：计时 + 注入 Token ----------
 service.interceptors.request.use((config) => {
-  timingMap.set(config, performance.now())
+  // 仅开发/测试记录耗时（perfEnabled 生产为编译期 false，此分支不打包）
+  if (perfEnabled) {
+    timingMap.set(config, performance.now())
+  }
 
   const token = getToken()
   if (token) {
@@ -81,8 +91,10 @@ service.interceptors.request.use((config) => {
 // ---------- 响应拦截：耗时日志 + 错误处理 + 数据解包 ----------
 service.interceptors.response.use(
   (response) => {
-    const cost = Math.round(performance.now() - (timingMap.get(response.config) ?? 0))
-    logPerf(response.config, response.status, cost)
+    if (perfEnabled) {
+      const cost = Math.round(performance.now() - (timingMap.get(response.config) ?? 0))
+      logPerf(response.config, response.status, cost)
+    }
 
     // AxiosResponse.data 为 any，此处断言以获得字段类型提示
     const res = response.data as ApiResponse
@@ -98,8 +110,10 @@ service.interceptors.response.use(
   },
   async (error) => {
     const status: number | undefined = error.response?.status
-    const cost = Math.round(performance.now() - (timingMap.get(error.config) ?? 0))
-    logPerf(error.config, status ?? 'ERR', cost)
+    if (perfEnabled) {
+      const cost = Math.round(performance.now() - (timingMap.get(error.config) ?? 0))
+      logPerf(error.config, status ?? 'ERR', cost)
+    }
 
     switch (status) {
       case 401: {
