@@ -64,6 +64,7 @@ except ImportError:
 
 # 安全守护 + 系统工具
 from agent.safety_guard import SafetyGuard, register_alert_callback
+from agent.permission_tool import PermissionManager
 from agent.task_scheduler import (
     get_scheduler,
     perform_heartbeat_check,
@@ -1411,27 +1412,45 @@ _ADMIN_USER = {
     "avatar": _ADMIN_AVATAR,
     "email": "admin@yunshu.local",
     "role": "admin",
-    "permissions": ["dashboard:view", "workbench:use", "prompt-lab:use"],
+    # role=admin 通配全部菜单；system:log:export 为操作级权限码（系统日志导出），显式声明便于审计/按钮级控制
+    "permissions": [
+        "dashboard:view", "workbench:use", "prompt-lab:use",
+        "system:log:export",
+    ],
 }
 
 
 @app.route("/api/auth/login", methods=["POST"])
 @log_request(show_body=False)  # 不记录请求体，避免密码落日志
 def api_auth_login():
-    """管理后台登录：校验账号密码，签发用户令牌"""
+    """管理后台登录：校验账号密码，签发用户令牌
+
+    账号注册表：
+      - admin  ：凭据来自环境变量 YUNSHU_ADMIN_USERNAME / YUNSHU_ADMIN_PASSWORD
+      - user   ：内置演示账号（密码与前端 devMock 一致），供权限差异联调/测试
+      - manager：内置演示账号（中间角色，介于 admin 与 user 之间）
+    """
     data = request.get_json(silent=True) or {}
     username = str(data.get("username", "")).strip()
     password = str(data.get("password", ""))
     if not username or not password:
         return jsonify({"code": 400, "data": None, "message": "用户名或密码不能为空"})
-    if not (
-        secrets.compare_digest(username, _ADMIN_USERNAME)
-        and secrets.compare_digest(password, _ADMIN_PASSWORD)
-    ):
+    if username == _ADMIN_USERNAME:
+        ok = secrets.compare_digest(password, _ADMIN_PASSWORD)
+        user = _ADMIN_USER
+    elif username == "user":
+        ok = secrets.compare_digest(password, _MOCK_USER_PASSWORD)
+        user = _MOCK_USER_ACCOUNT
+    elif username == "manager":
+        ok = secrets.compare_digest(password, _MOCK_MANAGER_PASSWORD)
+        user = _MOCK_MANAGER_ACCOUNT
+    else:
+        ok, user = False, None
+    if not ok:
         return jsonify({"code": 401, "data": None, "message": "用户名或密码错误"})
     return jsonify({
         "code": 200,
-        "data": {"token": _issue_user_token(username), "user": _ADMIN_USER},
+        "data": {"token": _issue_user_token(username), "user": user},
         "message": "success",
     })
 
@@ -1455,7 +1474,109 @@ def api_user_info():
     err = _token_error_response()
     if err is not None:
         return err
-    return jsonify({"code": 200, "data": _ADMIN_USER, "message": "success"})
+    username, _ = _resolve_user_token(request.headers.get("Authorization", ""))
+    user = _get_user_by_username(username) or _ADMIN_USER
+    return jsonify({"code": 200, "data": user, "message": "success"})
+
+
+# ════════════════════════════════════════════════════════════
+#  菜单下发（管理后台 /api/auth/menus）
+#  契约与前端 mock（yunshu-ui/src/mocks/devMock.ts）完全一致：
+#    GET /api/auth/menus → {code:200, data:[{path,title,icon,authority,children}], message:'success'}
+#  权限模型：admin 角色通配（全量下发）；其余角色按权限码命中过滤；
+#            子项全部被过滤的分组一并剔除（与前端 filterMenus 语义一致）
+# ════════════════════════════════════════════════════════════
+
+# 全量菜单目录（与前端路由配置 routes.tsx 的页面集合对齐，authority 为权限码）
+_MENU_CATALOG: list[dict] = [
+    {"path": "/", "title": "仪表盘", "icon": "dashboard"},
+    {"path": "/workbench", "title": "工作台", "icon": "workbench"},
+    {"path": "/demo", "title": "组件演示", "icon": "demo"},
+    {"path": "/export", "title": "数据导出", "icon": "export"},
+    {
+        "path": "/system",
+        "title": "系统管理",
+        "icon": "system",
+        "authority": "system:view",
+        "children": [
+            {"path": "/system/user", "title": "用户列表", "icon": "user", "authority": "system:user:view"},
+            {"path": "/system/role", "title": "角色权限", "icon": "role", "authority": "system:role:view"},
+            {"path": "/system/menu", "title": "菜单管理", "icon": "menu", "authority": "system:role:view"},
+            {"path": "/system/audit", "title": "操作审计", "icon": "audit", "authority": "system:audit:view"},
+            {"path": "/system/notification", "title": "消息中心", "icon": "notification", "authority": "system:notification:view"},
+            {"path": "/system/log", "title": "系统日志", "icon": "log", "authority": "system:view"},
+        ],
+    },
+]
+
+# 普通用户账号（演示/测试不同角色的菜单差异；登录凭据 user/123456 与前端 devMock 一致）
+_MOCK_USER_PASSWORD = "123456"
+_MOCK_USER_ACCOUNT: dict = {
+    "id": 2,
+    "username": "user",
+    "nickname": "普通用户",
+    "avatar": _ADMIN_AVATAR,
+    "email": "user@yunshu.local",
+    "role": "user",
+    # system:view → 可见系统管理分组与系统日志；system:notification:view → 消息中心；
+    # 无 system:user:view / system:role:view / system:audit:view，用户列表/角色权限/操作审计仍隐藏
+    "permissions": [
+        "dashboard:view", "workbench:use",
+        "system:view", "system:notification:view",
+    ],
+}
+
+# 运营管理员账号（演示/测试中间角色：拥有部分系统管理权限，介于 admin 全量与 user 基础之间）
+_MOCK_MANAGER_PASSWORD = "123456"
+_MOCK_MANAGER_ACCOUNT: dict = {
+    "id": 3,
+    "username": "manager",
+    "nickname": "运营管理员",
+    "avatar": _ADMIN_AVATAR,
+    "email": "manager@yunshu.local",
+    "role": "manager",
+    # system:view + system:role:view + system:audit:view + system:notification:view →
+    # 可见角色权限/菜单管理/操作审计/消息中心/系统日志；无 system:user:view，
+    # 仅用户列表对其隐藏
+    "permissions": [
+        "dashboard:view", "workbench:use",
+        "system:view", "system:role:view", "system:audit:view", "system:notification:view",
+    ],
+}
+
+
+def _get_user_by_username(username: str) -> dict | None:
+    """按用户名取用户记录（admin 取环境变量配置；user/manager 为内置演示账号，供权限差异验证）"""
+    if username == _ADMIN_USERNAME:
+        return _ADMIN_USER
+    if username == "user":
+        return _MOCK_USER_ACCOUNT
+    if username == "manager":
+        return _MOCK_MANAGER_ACCOUNT
+    return None
+
+
+# 权限服务：菜单目录 + 角色注册表 → PermissionManager（逻辑见 agent/permission_tool.py）
+_permission_manager = PermissionManager(
+    _MENU_CATALOG,
+    roles={
+        "admin": {"label": "管理员", "permissions": _ADMIN_USER["permissions"]},
+        "user": {"label": "普通用户", "permissions": _MOCK_USER_ACCOUNT["permissions"]},
+        "manager": {"label": "运营管理员", "permissions": _MOCK_MANAGER_ACCOUNT["permissions"]},
+    },
+)
+
+
+@app.route("/api/auth/menus")
+@log_request(show_response=False)
+def api_auth_menus():
+    """下发当前用户可见菜单树（按角色/权限码过滤）"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    username, _ = _resolve_user_token(request.headers.get("Authorization", ""))
+    user = _get_user_by_username(username) or _ADMIN_USER
+    return jsonify({"code": 200, "data": _permission_manager.filter_menus(user), "message": "success"})
 
 
 # ════════════════════════════════════════════════════════════
@@ -2434,6 +2555,14 @@ try:
     logger.info("监控仪表盘路由已注册 (/api/dashboard/*)")
 except Exception as e:
     logger.error("加载监控仪表盘路由失败: %s", e)
+
+# 运营统计仪表盘（前端 Dashboard 页面数据源 /api/dashboard/summary，当前为 Mock 数据）
+try:
+    from agent.server_routes.routes_dashboard_summary import register_routes as reg_summary
+    reg_summary(app, lambda: None)
+    logger.info("运营统计仪表盘路由已注册 (/api/dashboard/summary)")
+except Exception as e:
+    logger.error("加载运营统计仪表盘路由失败: %s", e)
 
 # T6：orchestrator 语义层配置热更（独立子函数，无需 state，仅用 Orchestrator 类）
 try:

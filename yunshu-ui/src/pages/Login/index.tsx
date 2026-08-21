@@ -154,8 +154,16 @@ export default function LoginPage() {
       // 【Why】守卫与 axios 拦截器读 localStorage 'token'，必须写入；store 同步全局状态
       saveToken(data.token)
       useUserStore.getState().setToken(data.token)
-      if (data.user) {
-        useUserStore.getState().setUserInfo(data.user)
+      // 【Why】强制刷新用户信息：登录响应未携带 user（VITE_MOCK_LOGIN_RETURN_USER=false 或真实后端）
+      // 或 zustand persist 恢复旧账号残留（如外部清理 localStorage 后切换账号）时，
+      // 重新拉取最新用户信息覆盖旧值，确保切换账号后角色/权限即时生效。
+      try {
+        const freshUser = data.user ?? (await useUserStore.getState().fetchUserInfo())
+        if (freshUser) {
+          useUserStore.getState().setUserInfo(freshUser)
+        }
+      } catch {
+        // 【Why】拉取失败不阻断登录：MainLayout 挂载时（init）会再次尝试拉取
       }
       // 记住密码：勾选时 AES-GCM 加密保存密码；未勾选时清除，避免残留
       if (remember) {

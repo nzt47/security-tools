@@ -1,28 +1,30 @@
 /**
- * BreadCrumb —— 面包屑
- * 依据当前路由路径，从路由配置（appRoutes）中匹配每一级 title 生成层级导航。
- * 不在菜单配置内的路径（如 /workbench）不渲染面包屑。
+ * BreadCrumb —— 面包屑（后端菜单树驱动）
+ * 依据当前路由路径，从 userStore.menus（后端下发）匹配每一级 title 生成层级导航。
+ * 不在菜单内的路径（如 /workbench 未下发时）不渲染面包屑。
  */
 import { useMemo } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { appRoutes, flattenRoutes } from '@/router/routes'
+import { useUserStore } from '@/store/userStore'
+import { flattenRoutes } from '@/router/routes'
+import { menuTreeToAppRoutes } from '@/router/menus'
 
 export default function BreadCrumb() {
   const { pathname } = useLocation()
+  const storeMenus = useUserStore((s) => s.menus)
 
-  const crumbs = useMemo(
-    () =>
-      flattenRoutes(appRoutes)
-        // 匹配当前路径的所有前缀路由（'/' 需单独处理，避免匹配到所有路径）
-        .filter(
-          (route) =>
-            pathname === route.path ||
-            (route.path !== '/' && pathname.startsWith(`${route.path}/`)),
-        )
-        // 路径短的在前 → 父级在前
-        .sort((a, b) => a.path.length - b.path.length),
-    [pathname],
-  )
+  const crumbs = useMemo(() => {
+    const menus = storeMenus ? menuTreeToAppRoutes(storeMenus) : []
+    return flattenRoutes(menus)
+      // 匹配当前路径的所有前缀路由（'/' 需单独处理，避免匹配到所有路径）
+      .filter(
+        (route) =>
+          pathname === route.path ||
+          (route.path !== '/' && pathname.startsWith(`${route.path}/`)),
+      )
+      // 路径短的在前 → 父级在前
+      .sort((a, b) => a.path.length - b.path.length)
+  }, [pathname, storeMenus])
 
   if (crumbs.length === 0) return null
 

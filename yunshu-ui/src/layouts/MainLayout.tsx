@@ -56,19 +56,24 @@ export default function MainLayout() {
     initStarted.current = true
 
     async function init() {
-      // 已存在用户信息（登录页 setUserInfo / 持久化恢复）则跳过拉取
-      if (useUserStore.getState().userInfo) {
-        logger.info('[MainLayout] 已存在 userInfo，跳过登录后初始化拉取')
+      // 已存在用户信息（登录页 setUserInfo / 持久化恢复）与菜单树则跳过拉取
+      if (useUserStore.getState().userInfo && useUserStore.getState().menus) {
+        logger.info('[MainLayout] 已存在 userInfo 与菜单，跳过登录后初始化拉取')
         return
       }
-      logger.info('[MainLayout] 未检测到 userInfo，开始拉取用户信息（骨架屏加载中）')
+      logger.info('[MainLayout] 未检测到 userInfo/菜单，开始拉取（骨架屏加载中）')
       setInitializing(true)
       try {
-        await useUserStore.getState().fetchUserInfo()
-        logger.info('[MainLayout] 用户信息拉取成功，退出骨架屏')
+        // 并行拉取缺失项：用户信息 + 后端菜单树（方案2：菜单由后端下发）
+        const state = useUserStore.getState()
+        const tasks: Promise<unknown>[] = []
+        if (!state.userInfo) tasks.push(state.fetchUserInfo())
+        if (!state.menus) tasks.push(state.fetchMenus())
+        await Promise.all(tasks)
+        logger.info('[MainLayout] 用户信息与菜单拉取成功，退出骨架屏')
       } catch (err) {
         // 拉取失败（典型 401）：会话失效，登出并回登录页
-        logger.warn('[MainLayout] 用户信息拉取失败，执行登出并跳转登录页', err)
+        logger.warn('[MainLayout] 初始化拉取失败，执行登出并跳转登录页', err)
         logout()
         navigate('/login', { replace: true })
       } finally {
