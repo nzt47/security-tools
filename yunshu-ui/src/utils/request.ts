@@ -148,4 +148,64 @@ export function request<T = unknown>(config: AxiosRequestConfig): Promise<T> {
   return service.request(config) as unknown as Promise<T>
 }
 
+/**
+ * 请求取消管理：创建 AbortController 供"切换/卸载时取消在途请求"使用。
+ * 用法：const { signal, cancel } = createRequestAbort();
+ *       request({ url, method: 'GET', signal });  页面卸载时 cancel()
+ * 配合 useTablePage 竞态防护（请求序号）使用时，二者可叠加（signal 取消为主动，序号丢弃为兜底）。
+ */
+export function createRequestAbort(): { signal: AbortSignal; cancel: () => void } {
+  const controller = new AbortController();
+  return {
+    signal: controller.signal,
+    cancel: () => controller.abort(),
+  };
+}
+
+export interface RetryOptions {
+  /** 重试次数（不含首次），默认 2 */
+  retries?: number;
+  /** 重试间隔（ms），默认 500 */
+  retryDelayMs?: number;
+}
+
+/** 等待重试间隔（内部辅助） */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+/**
+ * 带重试的请求（默认关闭）
+ * - 由 VITE_REQUEST_RETRY_ENABLED（'true'/'1'）控制启用，默认关闭 → 直接单次请求
+ * - 仅幂等请求（GET）生效；4xx 业务错误不重试（如 401 交拦截器登出，重试无意义）
+ * - 网络错误/超时/5xx 按 retries 次重试，间隔 retryDelayMs
+ */
+export async function requestWithRetry<T = unknown>(
+  config: AxiosRequestConfig,
+  options?: RetryOptions,
+): Promise<T> {
+  const retries = options?.retries ?? 2;
+  const retryDelayMs = options?.retryDelayMs ?? 500;
+  const enabled =
+    import.meta.env.VITE_REQUEST_RETRY_ENABLED === 'true' ||
+    import.meta.env.VITE_REQUEST_RETRY_ENABLED === '1';
+  if (!enabled || (config.method ?? 'GET').toUpperCase() !== 'GET') {
+    return request<T>(config);
+  }
+
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await request<T>(config);
+    } catch (err) {
+      lastErr = err;
+      // 4xx 业务错误不重试（错误提示已由拦截器统一处理）
+      const status = (err as { response?: { status?: number } } | null)?.response?.status;
+      if (status !== undefined && status >= 400 && status < 500) throw err;
+      if (attempt < retries) await sleep(retryDelayMs);
+    }
+  }
+  throw lastErr;
+}
+
 export default request
