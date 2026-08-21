@@ -9,6 +9,7 @@
  * 错误提示由 request.ts 拦截器统一处理，本 hook 仅结束 loading。
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { logger } from '@/utils/logger'
 
 export interface UseTablePageOptions<T, P> {
   /** 列表请求（须幂等；request.ts 已解包返回 { list, total }） */
@@ -62,14 +63,19 @@ export function useTablePage<T, P extends { page: number; pageSize: number }>({
 
   const fetchList = useCallback(async () => {
     const seq = ++seqRef.current
+    logger.info('[useTablePage] 拉取列表开始', query)
     setLoading(true)
     try {
       const res = await fetcherRef.current(query)
-      if (seq !== seqRef.current) return // 过期响应丢弃
+      if (seq !== seqRef.current) {
+        logger.warn('[useTablePage] 过期响应已丢弃', { seq, currentSeq: seqRef.current, query })
+        return
+      }
       setList(res.list)
       setTotal(res.total)
-    } catch {
-      // 错误提示已由 request.ts 拦截器统一处理
+      logger.info('[useTablePage] 列表拉取成功', { listSize: res.list.length, total: res.total, query })
+    } catch (err) {
+      logger.error('[useTablePage] 列表拉取失败', { query, error: err })
     } finally {
       if (seq === seqRef.current) setLoading(false)
     }
@@ -86,11 +92,13 @@ export function useTablePage<T, P extends { page: number; pageSize: number }>({
   }, deps)
 
   const handleSearch = useCallback((filters: Partial<P>) => {
+    logger.info('[useTablePage] 触发搜索，重置页码为 1', filters)
     setQuery((q) => ({ ...q, ...filters, page: 1 }))
   }, [])
 
   const handleReset = useCallback(
     (overrides?: Partial<P>) => {
+      logger.info('[useTablePage] 重置搜索条件', overrides ?? {})
       setQuery({ ...defaultQuery, ...overrides })
     },
     [defaultQuery],
@@ -98,10 +106,17 @@ export function useTablePage<T, P extends { page: number; pageSize: number }>({
 
   const goPage = useCallback(
     (target: number) => {
-      setQuery((q) => {
-        if (!Number.isInteger(target) || target < 1) return q
-        return { ...q, page: Math.min(target, totalPages) }
-      })
+      if (!Number.isInteger(target) || target < 1) {
+        logger.warn('[useTablePage] 跳转页码非法，保持当前页', { target })
+        return
+      }
+      const page = Math.min(target, totalPages)
+      if (page !== target) {
+        logger.info('[useTablePage] 跳转页码超出范围，钳制到末页', { target, page })
+      } else {
+        logger.info('[useTablePage] 跳转到指定页', { page })
+      }
+      setQuery((q) => ({ ...q, page }))
     },
     [totalPages],
   )

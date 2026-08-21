@@ -11,6 +11,7 @@ import { toast } from '@/components/Toaster'
 import ConfirmDialog from '@/components/ConfirmDialog'
 import { Button, Card, Input, PageContainer, Pagination, Table, type TableColumn } from '@/components/ui'
 import { useTablePage } from '@/hooks/useTablePage'
+import { logger } from '@/utils/logger'
 import UserFormDialog from './UserFormDialog'
 
 const PAGE_SIZE = 10
@@ -71,7 +72,7 @@ export default function UserList() {
   const [keywordInput, setKeywordInput] = useState('')
   const [pageInput, setPageInput] = useState('1')
 
-  const { query, setQuery, list, total, loading, totalPages, fetchList, handleSearch, handleReset, goPage } =
+  const { query, setQuery, list, total, loading, fetchList, handleSearch, handleReset, goPage } =
     useTablePage<UserListItem, UserQuery>({
       fetcher: getUserList,
       defaultQuery: { page: 1, pageSize: PAGE_SIZE, keyword: '' },
@@ -96,13 +97,18 @@ export default function UserList() {
     if (!deleteTarget) return
     setDeleting(true)
     try {
+      logger.info('[UserList] 执行删除用户', { id: deleteTarget.id, username: deleteTarget.username })
       await deleteUser(deleteTarget.id)
-      setQuery((q) => {
-        const nextPage = list.length === 1 && q.page > 1 ? q.page - 1 : q.page
-        return { ...q, page: nextPage }
+      const nextPage = list.length === 1 && query.page > 1 ? query.page - 1 : query.page
+      logger.info('[UserList] 删除用户成功', {
+        id: deleteTarget.id,
+        username: deleteTarget.username,
+        nextPage,
       })
+      setQuery((q) => ({ ...q, page: nextPage }))
       setDeleteTarget(null)
-    } catch {
+    } catch (err) {
+      logger.error('[UserList] 删除用户失败', { id: deleteTarget.id, username: deleteTarget.username, error: err })
       // 失败提示已由 request.ts 处理，保留弹窗供重试
     } finally {
       setDeleting(false)
@@ -119,14 +125,18 @@ export default function UserList() {
     setSaving(true)
     try {
       if (formUser) {
+        logger.info('[UserList] 编辑用户提交', { id: formUser.id, username: formUser.username, values })
         await updateUser(formUser.id, values)
       } else {
+        logger.info('[UserList] 新增用户提交', values)
         await createUser(values)
       }
+      logger.info('[UserList] 用户保存成功', formUser ? { id: formUser.id } : values)
       toast.success(formUser ? '用户已更新' : '用户已创建')
       setFormOpen(false)
       await fetchList()
-    } catch {
+    } catch (err) {
+      logger.error('[UserList] 用户保存失败', { ...(formUser ? { id: formUser.id } : {}), error: err })
       // 失败提示已由 request.ts 统一处理，保留弹窗供重试
     } finally {
       setSaving(false)

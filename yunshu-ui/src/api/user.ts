@@ -47,6 +47,29 @@ export function getUserInfo(): Promise<UserInfo> {
   })
 }
 
+/**
+ * 后端下发的菜单树节点
+ * - 菜单结构 / 可见性完全由后端按角色过滤后返回，前端只负责渲染与守卫
+ * - icon 为图标名称字符串，前端经 src/router/menus.ts 的 MENU_ICON_MAP 映射为 lucide 组件
+ */
+export interface MenuTreeNode {
+  path: string
+  title: string
+  /** 图标名称（如 'system' / 'user'），缺省不显示图标 */
+  icon?: string
+  /** 权限码（后端已按角色过滤，前端不再参与判定，仅作展示信息保留） */
+  authority?: string
+  children?: MenuTreeNode[]
+}
+
+/** 获取当前用户可见菜单树（按角色由后端过滤后返回） */
+export function getMenus(): Promise<MenuTreeNode[]> {
+  return request<MenuTreeNode[]>({
+    url: '/auth/menus',
+    method: 'GET',
+  })
+}
+
 /** 用户列表查询入参（分页 + 搜索） */
 export interface UserListParams {
   /** 当前页码，从 1 开始 */

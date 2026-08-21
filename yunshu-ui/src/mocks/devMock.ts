@@ -29,7 +29,7 @@ const MOCK_AVATAR =
       '</svg>'
   )
 
-/** 管理员账号（admin/123456）：角色 admin，可见全部菜单（含系统管理） */
+/** 管理员账号（admin/123456）：角色 admin，可见全部菜单（含系统管理）；system:log:export 为系统日志导出权限码 */
 const MOCK_ADMIN: MockUser = {
   id: 1,
   username: 'admin',
@@ -37,10 +37,11 @@ const MOCK_ADMIN: MockUser = {
   email: 'admin@yunshu.local',
   avatar: MOCK_AVATAR,
   role: 'admin',
-  permissions: ['dashboard:view', 'workbench:use', 'prompt-lab:use'],
+  permissions: ['dashboard:view', 'workbench:use', 'prompt-lab:use', 'system:log:export'],
 }
 
-/** 普通用户账号（user/123456）：角色 user，用于验证「菜单隐藏 + 403 跳转」 */
+/** 普通用户账号（user/123456）：角色 user，拥有 system:view（系统管理分组/系统日志）
+ *  与 system:notification:view（消息中心）；无 system:user:view 等（用户列表/角色权限等隐藏） */
 const MOCK_USER: MockUser = {
   id: 2,
   username: 'user',
@@ -48,12 +49,62 @@ const MOCK_USER: MockUser = {
   email: 'user@yunshu.local',
   avatar: MOCK_AVATAR,
   role: 'user',
-  permissions: ['dashboard:view', 'workbench:use'],
+  permissions: ['dashboard:view', 'workbench:use', 'system:view', 'system:notification:view'],
 }
 
 /** 按用户名取 mock 用户（login 已校验账号，此处不会遇到未知用户名） */
 function getUserByUsername(username: string): MockUser {
   return username === 'user' ? MOCK_USER : MOCK_ADMIN
+}
+
+// ---------- 菜单树（/api/auth/menus，模拟后端按角色过滤下发） ----------
+
+/** 后端下发的菜单树节点（模拟真实后端 /api/auth/menus 的返回结构） */
+interface MockMenuNode {
+  path: string
+  title: string
+  /** 图标名称，前端 MENU_ICON_MAP 映射为组件 */
+  icon?: string
+  /** 权限码：后端按角色过滤后下发，前端不再判定 */
+  authority?: string
+  children?: MockMenuNode[]
+}
+
+/** 全量菜单配置（模拟后端数据库中的菜单表，authority 与 MOCK_PERMISSIONS 权限码对齐） */
+const ALL_MENUS: MockMenuNode[] = [
+  { path: '/', title: '仪表盘', icon: 'dashboard' },
+  { path: '/workbench', title: '工作台', icon: 'workbench' },
+  { path: '/demo', title: '组件演示', icon: 'demo' },
+  { path: '/export', title: '数据导出', icon: 'export' },
+  {
+    path: '/system',
+    title: '系统管理',
+    icon: 'system',
+    authority: 'system:view',
+    children: [
+      { path: '/system/user', title: '用户列表', icon: 'user', authority: 'system:user:view' },
+      { path: '/system/role', title: '角色权限', icon: 'role', authority: 'system:role:view' },
+      { path: '/system/menu', title: '菜单管理', icon: 'menu', authority: 'system:role:view' },
+      { path: '/system/audit', title: '操作审计', icon: 'audit', authority: 'system:audit:view' },
+      { path: '/system/notification', title: '消息中心', icon: 'notification', authority: 'system:notification:view' },
+      { path: '/system/log', title: '系统日志', icon: 'log', authority: 'system:view' },
+    ],
+  },
+]
+
+/** 模拟后端按角色/权限过滤菜单树（admin 通配，其余角色按权限码命中；子项全隐藏的分组一并剔除） */
+function filterMenusForRole(
+  nodes: MockMenuNode[],
+  role: string | undefined,
+  permissions: string[] = [],
+): MockMenuNode[] {
+  return nodes
+    .filter((node) => !node.authority || role === 'admin' || permissions.includes(node.authority))
+    .map((node) => ({
+      ...node,
+      children: node.children ? filterMenusForRole(node.children, role, permissions) : undefined,
+    }))
+    .filter((node) => !node.children || node.children.length > 0)
 }
 
 /** 用户列表项（Mock 结构对齐前端 UserListItem） */
@@ -108,7 +159,7 @@ interface MockRole {
 }
 
 /** 内置角色：admin 全权限、manager 中权限、user 基础权限（可变，支持 CRUD） */
-let MOCK_ROLES: MockRole[] = [
+const MOCK_ROLES: MockRole[] = [
   {
     id: 1,
     name: 'admin',
@@ -191,7 +242,7 @@ const AUDIT_OPERATORS = ['admin', 'manager', 'user']
 const AUDIT_ACTIONS = ['login', 'create', 'update', 'delete', 'export']
 
 /** 生成 32 条审计日志：覆盖多操作人/类型/结果/分页边界 */
-let MOCK_AUDIT_LOGS: MockAuditLog[] = Array.from({ length: 32 }, (_, i) => {
+const MOCK_AUDIT_LOGS: MockAuditLog[] = Array.from({ length: 32 }, (_, i) => {
   const idx = 32 - i
   const action = AUDIT_ACTIONS[i % AUDIT_ACTIONS.length]
   const verb = action === 'delete' ? '删除' : action === 'create' ? '新增' : action === 'export' ? '导出' : action === 'update' ? '更新' : '登录'
@@ -226,7 +277,7 @@ const NOTIFICATION_TITLES: Record<MockNotification['type'], string[]> = {
 }
 
 /** 生成 24 条 mock 通知：覆盖多类型/已读未读/分页边界 */
-let MOCK_NOTIFICATIONS: MockNotification[] = Array.from({ length: 24 }, (_, i) => {
+const MOCK_NOTIFICATIONS: MockNotification[] = Array.from({ length: 24 }, (_, i) => {
   const idx = 24 - i
   const types: MockNotification['type'][] = ['system', 'audit', 'approval', 'alert']
   const type = types[i % types.length]
@@ -333,6 +384,34 @@ export function mockApiPlugin(options: { loginReturnUser: boolean }): Plugin {
           }
           setTimeout(() => {
             sendJson(res, 200, { code: 200, data: getUserByUsername(username), message: 'success' })
+          }, MOCK_DELAY)
+          return
+        }
+
+        // 菜单树：GET /api/auth/menus（按 token 还原账号角色后，过滤下发可见菜单）
+        if (req.method === 'GET' && url === '/api/auth/menus') {
+          const auth = req.headers.authorization
+          if (!auth || !auth.startsWith('Bearer ')) {
+            sendJson(res, 200, { code: 401, data: null, message: '未登录或登录已过期' })
+            return
+          }
+          const token = auth.slice('Bearer '.length).trim()
+          if (token.startsWith('expired-')) {
+            sendJson(res, 401, { code: 401, data: null, message: 'Token 已过期，请重新登录' })
+            return
+          }
+          const username = /^mock-token-(.+)-(\d+)$/.exec(token)?.[1]
+          if (!username) {
+            sendJson(res, 200, { code: 401, data: null, message: '未登录或登录已过期' })
+            return
+          }
+          const user = getUserByUsername(username)
+          setTimeout(() => {
+            sendJson(res, 200, {
+              code: 200,
+              data: filterMenusForRole(ALL_MENUS, user.role, user.permissions),
+              message: 'success',
+            })
           }, MOCK_DELAY)
           return
         }
