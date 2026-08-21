@@ -1,18 +1,19 @@
 <#
-# 同步 docs/wiki Markdown 到 GitHub Wiki
+# sync_docs_wiki.ps1 - Sync docs/wiki markdown files to GitHub Wiki
 # ------------------------------------------------------
-# 前置：远程仓库需已创建 Wiki（GitHub 上启用 Wiki 后，仓库 <owner>/<repo> 的
-#       Wiki 即为独立 git 仓库 <owner>/<repo>.wiki，默认分支 master）。
+# Prereq: GitHub repo must have Wiki enabled. The wiki is a separate
+#         git repo: <owner>/<repo>.wiki, default branch "master".
 #
-# 用法（Windows PowerShell）：
-#   ./scripts/sync_docs_wiki.ps1                          # 默认参数（clone 到 .wiki 并推送）
-#   ./scripts/sync_docs_wiki.ps1 -NoPush                  # 只提交不推送（先检查差异）
+# Usage (Windows PowerShell):
+#   ./scripts/sync_docs_wiki.ps1                         # clone to .wiki and push
+#   ./scripts/sync_docs_wiki.ps1 -NoPush                 # commit only, no push
 #   ./scripts/sync_docs_wiki.ps1 -RepoUrl "git@github.com:nzt47/security-tools.wiki.git"
 #
-# 说明：
-#   - GitHub Wiki 页面名 = 文件相对路径（去 .md 扩展名），如 system-log.openapi.md → 页面 "system-log.openapi"
-#   - 重复执行幂等：覆盖同名页面，新增/删除同步（删除需手动 git rm，见下方注释）
-#   - 推送到 master 分支（GitHub Wiki 固定分支名）
+# Notes:
+#   - GitHub wiki page name = relative file path without .md extension
+#   - Idempotent: overwrite same-name pages on each run
+#   - Removed pages are NOT deleted automatically (manual git rm, see end)
+#   - Pushes to "master" branch (fixed branch name for GitHub Wiki)
 #>
 param(
     [string]$SourceDir = "$PSScriptRoot\..\docs\wiki",
@@ -25,37 +26,37 @@ param(
 $ErrorActionPreference = "Stop"
 $SourceDir = (Resolve-Path $SourceDir).Path
 
-# 1) 确保 Wiki 仓库已克隆
+# 1) Ensure wiki repo is cloned
 if (-not (Test-Path "$WikiDir\.git")) {
-    Write-Host "[wiki] 克隆 Wiki 仓库: $RepoUrl"
+    Write-Host "[wiki] cloning wiki repo: $RepoUrl"
     git clone $RepoUrl $WikiDir
-    if ($LASTEXITCODE -ne 0) { throw "Wiki 仓库克隆失败（确认远程已启用 Wiki 且权限正确）" }
+    if ($LASTEXITCODE -ne 0) { throw "wiki clone failed (is Wiki enabled and credentials valid?)" }
 }
 
-# 2) 复制 docs/wiki 下所有 .md（保持相对路径 → Wiki 页面结构）
+# 2) Copy all .md from docs/wiki, keeping relative path as wiki page structure
 $copied = 0
 Get-ChildItem $SourceDir -Filter "*.md" -Recurse | ForEach-Object {
     $rel = $_.FullName.Substring($SourceDir.Length).TrimStart('\', '/')
     $dest = Join-Path $WikiDir $rel
     New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
     Copy-Item $_.FullName $dest -Force
-    Write-Host "[wiki] 同步: $rel"
+    Write-Host "[wiki] synced: $rel"
     $copied++
 }
-Write-Host "[wiki] 共复制 $copied 个 Markdown 文件"
+Write-Host "[wiki] copied $copied markdown file(s)"
 
-# 3) 提交并推送（GitHub Wiki 默认分支 master）
+# 3) Commit and push (GitHub Wiki default branch: master)
 git -C $WikiDir add -A
-if ($LASTEXITCODE -ne 0) { throw "git add 失败" }
-git -C $WikiDir commit -m "docs(wiki): 同步 docs/wiki 更新 $(Get-Date -Format 'yyyy-MM-dd HH:mm')" | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "git add failed" }
+git -C $WikiDir commit -m "docs(wiki): sync docs/wiki $(Get-Date -Format 'yyyy-MM-dd HH:mm')" | Out-Null
 
 if ($NoPush) {
-    Write-Host "[wiki] （-NoPush）已提交未推送，检查后执行: git -C $WikiDir push origin $Branch"
+    Write-Host "[wiki] (-NoPush) committed, not pushed. Run: git -C $WikiDir push origin $Branch"
 } else {
     git -C $WikiDir push origin $Branch
-    if ($LASTEXITCODE -ne 0) { throw "push 失败" }
-    Write-Host "[wiki] 已推送到 GitHub Wiki (master)"
+    if ($LASTEXITCODE -ne 0) { throw "push failed" }
+    Write-Host "[wiki] pushed to GitHub Wiki (master)"
 }
 
-# 注：删除已不再存在的页面，需手动执行（脚本不做破坏性删除）：
-#   git -C $WikiDir rm <页面文件名>.md && git -C $WikiDir commit -m "..." && git -C $WikiDir push origin master
+# To delete pages no longer present in docs/wiki (manual, non-destructive by design):
+#   git -C $WikiDir rm <page>.md ; git -C $WikiDir commit -m "remove page" ; git -C $WikiDir push origin master
