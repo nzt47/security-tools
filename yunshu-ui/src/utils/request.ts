@@ -9,6 +9,7 @@
  */
 import axios, { type AxiosRequestConfig } from 'axios'
 import { toast } from '@/components/Toaster'
+import { STORAGE_KEYS, storage } from '@/utils/storage'
 
 /** 后端统一返回结构 */
 export interface ApiResponse<T = unknown> {
@@ -17,18 +18,18 @@ export interface ApiResponse<T = unknown> {
   message: string
 }
 
-const TOKEN_KEY = 'token'
-
+// 【Why】token 读写统一走 storage 封装（getRaw/setRaw 原样字符串，保持既有契约键 'token' 不变）；
+// 守卫（AuthRoute / RequireAuth）与登录页直接读裸键，禁止改键名或引入 JSON 序列化。
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+  return storage.getRaw(STORAGE_KEYS.TOKEN)
 }
 
 export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token)
+  storage.setRaw(STORAGE_KEYS.TOKEN, token)
 }
 
 export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY)
+  storage.remove(STORAGE_KEYS.TOKEN)
 }
 
 /** 【Why】日志脱敏：token 仅显示头尾，避免完整令牌落入日志（与路由守卫日志口径一致） */
