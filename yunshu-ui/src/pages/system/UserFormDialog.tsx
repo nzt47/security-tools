@@ -1,11 +1,10 @@
 /**
- * UserFormDialog —— 新增/编辑用户弹窗（受控组件）
+ * UserFormDialog —— 新增/编辑用户弹窗（受控组件，基于 ModalBase）
  * user=null 表示新增（用户名可编辑）；user 非空表示编辑（用户名只读）。
  * 提交异步由父组件控制（saving 防重复提交），错误提示由 request.ts 拦截器统一处理。
  */
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { Loader2 } from 'lucide-react'
+import { Button, Input, ModalBase, Select } from '@/components/ui'
 import type { UserListItem } from '@/api/user'
 
 interface UserFormDialogProps {
@@ -20,10 +19,15 @@ interface UserFormDialogProps {
   onCancel: () => void
 }
 
-const ROLES: Array<{ value: 'admin' | 'manager' | 'user'; label: string }> = [
+const ROLES = [
   { value: 'admin', label: '管理员' },
   { value: 'manager', label: '经理' },
   { value: 'user', label: '普通用户' },
+]
+
+const STATUS_OPTIONS = [
+  { value: '1', label: '启用' },
+  { value: '0', label: '禁用' },
 ]
 
 export default function UserFormDialog({ open, user, saving, onSubmit, onCancel }: UserFormDialogProps) {
@@ -41,18 +45,6 @@ export default function UserFormDialog({ open, user, saving, onSubmit, onCancel 
     setStatus(user?.status === 0 ? 0 : 1)
   }, [open, user])
 
-  // Esc 关闭
-  useEffect(() => {
-    if (!open) return
-    const onKeydown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel()
-    }
-    window.addEventListener('keydown', onKeydown)
-    return () => window.removeEventListener('keydown', onKeydown)
-  }, [open, onCancel])
-
-  if (!open) return null
-
   const isEdit = user !== null
 
   const handleSubmit = () => {
@@ -60,113 +52,72 @@ export default function UserFormDialog({ open, user, saving, onSubmit, onCancel 
     onSubmit({ username: username.trim(), email: email.trim(), role, status })
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/50" onClick={onCancel} aria-hidden />
-      <div
-        className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
-        role="dialog"
-        aria-modal="true"
-        aria-label={isEdit ? '编辑用户' : '新增用户'}
+  return (
+    <ModalBase
+      open={open}
+      onClose={onCancel}
+      title={isEdit ? '编辑用户' : '新增用户'}
+      footer={
+        <>
+          <Button variant="default" onClick={onCancel} disabled={saving}>
+            取消
+          </Button>
+          <Button
+            variant="primary"
+            loading={saving}
+            disabled={!isEdit && !username.trim()}
+            onClick={handleSubmit}
+          >
+            {saving ? '保存中...' : '保存'}
+          </Button>
+        </>
+      }
+    >
+      <p className="mb-4 text-sm text-muted-foreground">
+        {isEdit ? '可修改邮箱、角色与状态；用户名不可修改。' : '创建新账号，用户名唯一。'}
+      </p>
+      <form
+        className="space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleSubmit()
+        }}
       >
-        <h3 className="text-base font-semibold text-slate-800">{isEdit ? '编辑用户' : '新增用户'}</h3>
-        <p className="mt-1 text-sm text-slate-500">
-          {isEdit ? '可修改邮箱、角色与状态；用户名不可修改。' : '创建新账号，用户名唯一。'}
-        </p>
-
-        <form
-          className="mt-5 space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault()
-            handleSubmit()
-          }}
-        >
-          <div>
-            <label htmlFor="uf-username" className="mb-1.5 block text-sm font-medium text-slate-600">
-              用户名
-            </label>
-            <input
-              id="uf-username"
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              disabled={isEdit}
-              placeholder="请输入用户名"
-              autoComplete="off"
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-blue-500 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="uf-email" className="mb-1.5 block text-sm font-medium text-slate-600">
-              邮箱
-            </label>
-            <input
-              id="uf-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="请输入邮箱"
-              autoComplete="off"
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-blue-500"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="uf-role" className="mb-1.5 block text-sm font-medium text-slate-600">
-                角色
-              </label>
-              <select
-                id="uf-role"
-                value={role}
-                onChange={(e) => setRole(e.target.value as 'admin' | 'manager' | 'user')}
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-blue-500"
-              >
-                {ROLES.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="uf-status" className="mb-1.5 block text-sm font-medium text-slate-600">
-                状态
-              </label>
-              <select
-                id="uf-status"
-                value={status}
-                onChange={(e) => setStatus(e.target.value === '0' ? 0 : 1)}
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-blue-500"
-              >
-                <option value={1}>启用</option>
-                <option value={0}>禁用</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={saving}
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              disabled={saving || (!isEdit && !username.trim())}
-              className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {saving ? '保存中...' : '保存'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>,
-    document.body,
+        <Input
+          label="用户名"
+          id="uf-username"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          disabled={isEdit}
+          placeholder="请输入用户名"
+          autoComplete="off"
+        />
+        <Input
+          label="邮箱"
+          id="uf-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="请输入邮箱"
+          autoComplete="off"
+        />
+        <div className="grid grid-cols-2 gap-4">
+          <Select
+            label="角色"
+            id="uf-role"
+            options={ROLES}
+            value={role}
+            onChange={(v) => setRole(v as 'admin' | 'manager' | 'user')}
+          />
+          <Select
+            label="状态"
+            id="uf-status"
+            options={STATUS_OPTIONS}
+            value={String(status)}
+            onChange={(v) => setStatus(v === '0' ? 0 : 1)}
+          />
+        </div>
+      </form>
+    </ModalBase>
   )
 }

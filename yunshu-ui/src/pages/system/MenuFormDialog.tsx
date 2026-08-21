@@ -1,11 +1,10 @@
 /**
- * MenuFormDialog —— 新增/编辑菜单弹窗（受控组件）
+ * MenuFormDialog —— 新增/编辑菜单弹窗（受控组件，基于 ModalBase）
  * menu=null 表示新增（可指定 parent 作为子菜单）；menu 非空表示编辑。
  * 提交异步由父组件控制（saving 防重复提交），错误提示由 request.ts 拦截器统一处理。
  */
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { Loader2 } from 'lucide-react'
+import { Button, Input, ModalBase } from '@/components/ui'
 import type { MenuItem } from '@/api/menu'
 
 interface MenuFormDialogProps {
@@ -57,18 +56,6 @@ export default function MenuFormDialog({
     setHideInMenu(menu?.hideInMenu ?? false)
   }, [open, menu])
 
-  // Esc 关闭
-  useEffect(() => {
-    if (!open) return
-    const onKeydown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel()
-    }
-    window.addEventListener('keydown', onKeydown)
-    return () => window.removeEventListener('keydown', onKeydown)
-  }, [open, onCancel])
-
-  if (!open) return null
-
   const handleSubmit = () => {
     if (!title.trim() || !path.trim()) return
     onSubmit({
@@ -83,132 +70,88 @@ export default function MenuFormDialog({
     })
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-900/50" onClick={onCancel} aria-hidden />
-      <div
-        className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl"
-        role="dialog"
-        aria-modal="true"
-        aria-label={menu ? '编辑菜单' : '新增菜单'}
+  return (
+    <ModalBase
+      open={open}
+      onClose={onCancel}
+      title={menu ? '编辑菜单' : '新增菜单'}
+      footer={
+        <>
+          <Button variant="default" onClick={onCancel} disabled={saving}>
+            取消
+          </Button>
+          <Button
+            variant="primary"
+            loading={saving}
+            disabled={!title.trim() || !path.trim()}
+            onClick={handleSubmit}
+          >
+            {saving ? '保存中...' : '保存'}
+          </Button>
+        </>
+      }
+    >
+      <p className="mb-4 text-sm text-muted-foreground">
+        {parentTitle ? `作为「${parentTitle}」的子菜单` : menu ? '修改菜单配置。' : '创建顶级菜单。'}
+      </p>
+      <form
+        className="space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleSubmit()
+        }}
       >
-        <h3 className="text-base font-semibold text-slate-800">{menu ? '编辑菜单' : '新增菜单'}</h3>
-        <p className="mt-1 text-sm text-slate-500">
-          {parentTitle ? `作为「${parentTitle}」的子菜单` : menu ? '修改菜单配置。' : '创建顶级菜单。'}
-        </p>
-
-        <form
-          className="mt-5 space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault()
-            handleSubmit()
-          }}
-        >
-          <div>
-            <label htmlFor="mf-title" className="mb-1.5 block text-sm font-medium text-slate-600">
-              菜单名
-            </label>
-            <input
-              id="mf-title"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="如 用户列表"
-              autoComplete="off"
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-blue-500"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="mf-path" className="mb-1.5 block text-sm font-medium text-slate-600">
-              路由路径
-            </label>
-            <input
-              id="mf-path"
-              type="text"
-              value={path}
-              onChange={(e) => setPath(e.target.value)}
-              placeholder="如 /system/user"
-              autoComplete="off"
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-blue-500"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="mf-icon" className="mb-1.5 block text-sm font-medium text-slate-600">
-                图标名
-              </label>
-              <input
-                id="mf-icon"
-                type="text"
-                value={icon}
-                onChange={(e) => setIcon(e.target.value)}
-                placeholder="如 Users（可选）"
-                autoComplete="off"
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label htmlFor="mf-order" className="mb-1.5 block text-sm font-medium text-slate-600">
-                排序
-              </label>
-              <input
-                id="mf-order"
-                type="number"
-                value={order}
-                onChange={(e) => setOrder(Number(e.target.value) || 0)}
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="mf-authority" className="mb-1.5 block text-sm font-medium text-slate-600">
-              权限码
-            </label>
-            <input
-              id="mf-authority"
-              type="text"
-              value={authority}
-              onChange={(e) => setAuthority(e.target.value)}
-              placeholder="如 system:user:view（可选）"
-              autoComplete="off"
-              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-blue-500"
-            />
-          </div>
-
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
-            <input
-              type="checkbox"
-              checked={hideInMenu}
-              onChange={(e) => setHideInMenu(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-            />
-            在菜单中隐藏
-          </label>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={saving}
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              取消
-            </button>
-            <button
-              type="submit"
-              disabled={saving || !title.trim() || !path.trim()}
-              className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {saving ? '保存中...' : '保存'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>,
-    document.body,
+        <Input
+          label="菜单名"
+          id="mf-title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="如 用户列表"
+          autoComplete="off"
+        />
+        <Input
+          label="路由路径"
+          id="mf-path"
+          value={path}
+          onChange={(e) => setPath(e.target.value)}
+          placeholder="如 /system/user"
+          autoComplete="off"
+        />
+        <div className="grid grid-cols-2 gap-4">
+          <Input
+            label="图标名"
+            id="mf-icon"
+            value={icon}
+            onChange={(e) => setIcon(e.target.value)}
+            placeholder="如 Users（可选）"
+            autoComplete="off"
+          />
+          <Input
+            label="排序"
+            id="mf-order"
+            type="number"
+            value={order}
+            onChange={(e) => setOrder(Number(e.target.value) || 0)}
+          />
+        </div>
+        <Input
+          label="权限码"
+          id="mf-authority"
+          value={authority}
+          onChange={(e) => setAuthority(e.target.value)}
+          placeholder="如 system:user:view（可选）"
+          autoComplete="off"
+        />
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
+          <input
+            type="checkbox"
+            checked={hideInMenu}
+            onChange={(e) => setHideInMenu(e.target.checked)}
+            className="h-4 w-4 rounded accent-primary"
+          />
+          在菜单中隐藏
+        </label>
+      </form>
+    </ModalBase>
   )
 }

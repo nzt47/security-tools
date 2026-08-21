@@ -2,9 +2,10 @@
  * NotificationCenter —— 系统管理 / 消息中心
  * 功能：通知列表（系统公告 / 审计提醒 / 审批任务 / 安全告警）+ 未读筛选 + 已读管理（单条/全部）+ 未读计数 + 分页
  * 数据源：@/api/notification（request.ts 已解包，直接返回业务数据）
+ * 结构：useTablePage（列表/筛选/分页）+ 页面内 unread 计数 + 自定义列表渲染
  */
-import { useCallback, useEffect, useState } from 'react'
-import { Bell, BellRing, CheckCheck, Loader2, Search } from 'lucide-react'
+import { useState } from 'react'
+import { Bell, BellRing, CheckCheck } from 'lucide-react'
 import {
   getNotifications,
   getUnreadCount,
@@ -13,10 +14,19 @@ import {
   type NotificationItem,
   type NotificationType,
 } from '@/api/notification'
+import { Button, Card, Empty, Loading, PageContainer, Pagination, Select } from '@/components/ui'
+import { useTablePage } from '@/hooks/useTablePage'
 
 const PAGE_SIZE = 10
 
-const TYPE_OPTIONS: Array<{ value: NotificationType | ''; label: string }> = [
+interface NotificationQuery {
+  page: number
+  pageSize: number
+  type: NotificationType | ''
+  unreadOnly: boolean
+}
+
+const TYPE_OPTIONS = [
   { value: '', label: '全部类型' },
   { value: 'system', label: '系统公告' },
   { value: 'audit', label: '审计提醒' },
@@ -31,71 +41,41 @@ const TYPE_LABEL: Record<NotificationType, string> = {
   alert: '安全告警',
 }
 
-/** 类型徽章样式（Tailwind 类，按类型区分色系） */
+/** 类型徽章样式（语义 Token：安全告警走 danger，系统公告走 primary，其余走 muted） */
 const TYPE_BADGE: Record<NotificationType, string> = {
-  system: 'bg-blue-50 text-blue-600',
-  audit: 'bg-purple-50 text-purple-600',
-  approval: 'bg-amber-50 text-amber-600',
-  alert: 'bg-red-50 text-red-600',
+  system: 'bg-primary/10 text-primary',
+  audit: 'bg-muted text-muted-foreground',
+  approval: 'bg-muted text-foreground',
+  alert: 'bg-danger/10 text-danger',
 }
 
 export default function NotificationCenter() {
-  // 查询参数 —— 列表唯一数据源
-  const [query, setQuery] = useState<{
-    page: number
-    pageSize: number
-    type: NotificationType | ''
-    unreadOnly: boolean
-  }>({ page: 1, pageSize: PAGE_SIZE, type: '', unreadOnly: false })
-
   const [typeInput, setTypeInput] = useState<NotificationType | ''>('')
   const [unreadOnlyInput, setUnreadOnlyInput] = useState(false)
-
-  const [list, setList] = useState<NotificationItem[]>([])
-  const [total, setTotal] = useState(0)
   const [unread, setUnread] = useState(0)
-  const [loading, setLoading] = useState(false)
 
-  const totalPages = Math.max(1, Math.ceil(total / query.pageSize))
-
-  /** 拉取列表与未读计数 */
-  const fetchList = useCallback(async () => {
-    setLoading(true)
-    try {
+  const { query, setQuery, setList, list, total, loading, handleSearch, handleReset } = useTablePage<
+    NotificationItem,
+    NotificationQuery
+  >({
+    // 【Why】列表与未读计数并行拉取；unread 为页面内状态，由 fetcher 闭包同步
+    fetcher: async (q) => {
       const [res, countRes] = await Promise.all([
         getNotifications({
-          page: query.page,
-          pageSize: query.pageSize,
-          type: query.type || undefined,
-          unreadOnly: query.unreadOnly || undefined,
+          page: q.page,
+          pageSize: q.pageSize,
+          type: q.type || undefined,
+          unreadOnly: q.unreadOnly || undefined,
         }),
         getUnreadCount(),
       ])
-      setList(res.list)
-      setTotal(res.total)
       setUnread(countRes.unread)
-    } catch {
-      // 错误提示已由 request.ts 统一处理，此处仅结束加载态
-    } finally {
-      setLoading(false)
-    }
-  }, [query])
+      return res
+    },
+    defaultQuery: { page: 1, pageSize: PAGE_SIZE, type: '', unreadOnly: false },
+  })
 
-  useEffect(() => {
-    void fetchList()
-  }, [fetchList])
-
-  const handleSearch = () => {
-    setQuery((q) => ({ ...q, page: 1, type: typeInput, unreadOnly: unreadOnlyInput }))
-  }
-
-  const handleReset = () => {
-    setTypeInput('')
-    setUnreadOnlyInput(false)
-    setQuery({ page: 1, pageSize: PAGE_SIZE, type: '', unreadOnly: false })
-  }
-
-  /** 单条标记已读：成功后本地刷新该条状态与未读数 */
+  /** 单条标记已读：成功后本地更新该条状态与未读数（无需重拉） */
   const handleMarkRead = async (item: NotificationItem) => {
     if (item.read) return
     try {
@@ -111,7 +91,6 @@ export default function NotificationCenter() {
   const handleMarkAllRead = async () => {
     try {
       await markAllNotificationsRead()
-      setList((rows) => rows.map((r) => ({ ...r, read: true })))
       setUnread(0)
     } catch {
       // 错误提示已由 request.ts 统一处理
@@ -119,31 +98,23 @@ export default function NotificationCenter() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-slate-800">消息中心</h1>
-        <button
-          type="button"
-          onClick={handleMarkAllRead}
-          disabled={unread === 0 || loading}
-          className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
+    <PageContainer
+      title="消息中心"
+      description="系统通知、审计提醒与安全告警"
+      actions={
+        <Button variant="default" onClick={() => void handleMarkAllRead()} disabled={unread === 0 || loading}>
           <CheckCheck className="h-4 w-4" />
           全部已读
-        </button>
-      </div>
-
+        </Button>
+      }
+    >
       {/* 顶部未读统计 */}
-      <div className="mb-4 flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-sm">
-        {unread > 0 ? (
-          <BellRing className="h-5 w-5 text-orange-500" />
-        ) : (
-          <Bell className="h-5 w-5 text-slate-400" />
-        )}
-        <p className="text-sm text-slate-600">
+      <div className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 shadow-card">
+        {unread > 0 ? <BellRing className="h-5 w-5 text-danger" /> : <Bell className="h-5 w-5 text-muted-foreground" />}
+        <p className="text-sm text-foreground">
           {unread > 0 ? (
             <>
-              您有 <span className="font-semibold text-orange-600">{unread}</span> 条未读通知
+              您有 <span className="font-semibold text-danger">{unread}</span> 条未读通知
             </>
           ) : (
             '没有未读通知'
@@ -152,59 +123,53 @@ export default function NotificationCenter() {
       </div>
 
       {/* 筛选区 */}
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <select
+      <div className="flex flex-wrap items-center gap-3">
+        <Select
+          options={TYPE_OPTIONS}
           value={typeInput}
-          onChange={(e) => setTypeInput(e.target.value as NotificationType | '')}
-          className="w-32 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-blue-500 focus:outline-none"
-        >
-          {TYPE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+          onChange={(v) => setTypeInput(v as NotificationType | '')}
+          className="w-32"
+        />
+        <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-foreground">
           <input
             type="checkbox"
             checked={unreadOnlyInput}
             onChange={(e) => setUnreadOnlyInput(e.target.checked)}
-            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            className="h-4 w-4 rounded accent-primary"
           />
           仅看未读
         </label>
-        <button
-          type="button"
-          onClick={handleSearch}
-          className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
+        <Button
+          variant="primary"
+          onClick={() => handleSearch({ type: typeInput, unreadOnly: unreadOnlyInput })}
         >
-          <Search className="h-4 w-4" />
           查询
-        </button>
-        <button
-          type="button"
-          onClick={handleReset}
-          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+        </Button>
+        <Button
+          variant="default"
+          onClick={() => {
+            setTypeInput('')
+            setUnreadOnlyInput(false)
+            handleReset()
+          }}
         >
           重置
-        </button>
+        </Button>
       </div>
 
       {/* 通知列表 */}
-      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <Card>
         {loading ? (
-          <div className="px-4 py-16 text-center">
-            <Loader2 className="mx-auto h-6 w-6 animate-spin text-blue-500" />
-          </div>
+          <Loading />
         ) : list.length === 0 ? (
-          <div className="px-4 py-16 text-center text-slate-400">暂无数据</div>
+          <Empty />
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-border">
             {list.map((item) => (
-              <li key={item.id} className="flex items-start gap-3 px-4 py-4 transition hover:bg-slate-50">
+              <li key={item.id} className="flex items-start gap-3 px-4 py-4 transition hover:bg-muted/30">
                 {/* 未读红点 */}
                 <span
-                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.read ? 'bg-transparent' : 'bg-red-500'}`}
+                  className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${item.read ? 'bg-transparent' : 'bg-danger'}`}
                   aria-label={item.read ? '已读' : '未读'}
                 />
                 <div className="min-w-0 flex-1">
@@ -212,53 +177,33 @@ export default function NotificationCenter() {
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${TYPE_BADGE[item.type]}`}>
                       {TYPE_LABEL[item.type] ?? item.type}
                     </span>
-                    <h3 className="text-sm font-medium text-slate-800">{item.title}</h3>
-                    <span className="ml-auto whitespace-nowrap text-xs text-slate-400">{item.createdAt}</span>
+                    <h3 className="text-sm font-medium text-foreground">{item.title}</h3>
+                    <span className="ml-auto whitespace-nowrap text-xs text-muted-foreground">{item.createdAt}</span>
                   </div>
-                  <p className="mt-1 text-sm text-slate-500">{item.content}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{item.content}</p>
                 </div>
                 {!item.read && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="default"
+                    size="sm"
                     onClick={() => void handleMarkRead(item)}
-                    className="shrink-0 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-500 transition hover:bg-slate-50"
                   >
                     标记已读
-                  </button>
+                  </Button>
                 )}
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </Card>
 
       {/* 分页 */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">
-          共 <span className="font-medium text-slate-700">{total}</span> 条
-        </p>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={query.page <= 1 || loading}
-            onClick={() => setQuery((q) => ({ ...q, page: q.page - 1 }))}
-            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            上一页
-          </button>
-          <span className="text-sm text-slate-600">
-            {query.page} / {totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={query.page >= totalPages || loading}
-            onClick={() => setQuery((q) => ({ ...q, page: q.page + 1 }))}
-            className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            下一页
-          </button>
-        </div>
-      </div>
-    </div>
+      <Pagination
+        page={query.page}
+        pageSize={query.pageSize}
+        total={total}
+        onChange={(p) => setQuery((q) => ({ ...q, page: p }))}
+      />
+    </PageContainer>
   )
 }
