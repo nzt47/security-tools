@@ -1328,8 +1328,16 @@ def api_auth_token_check():
 from agent.server_auth import load_admin_credentials
 
 _ADMIN_USERNAME, _ADMIN_PASSWORD = load_admin_credentials()
+# 启动环境与管理员凭证加载状态记录（排查用：确认生产/本地环境识别与密码来源）
+_APP_ENV = os.environ.get("YUNSHU_ENV", "development")
 if _ADMIN_PASSWORD == "admin123":
     logger.warning("管理后台使用默认密码（admin123），仅限本地联调；生产请设置 YUNSHU_ADMIN_PASSWORD")
+else:
+    logger.info(
+        "管理后台凭证加载成功：env=%s，username=%s，密码来自环境变量（非默认值）",
+        _APP_ENV,
+        _ADMIN_USERNAME,
+    )
 
 # 用户登录令牌存储：Redis 优先（SET EX，TTL 自动清理），Redis 不可用降级内存（重启失效）
 _USER_TOKEN_TTL = int(os.environ.get("YUNSHU_USER_TOKEN_TTL", "86400"))  # 默认 24h
