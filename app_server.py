@@ -1321,11 +1321,13 @@ def api_auth_token_check():
 #                           失败 {code:401/400, data:null, message}（HTTP 200 业务错误，前端弹 Toast）
 #    GET  /api/user/info  → 缺 Token：HTTP 200 + code:401（业务错误，前端停留当前页）
 #                           无效/过期 Token：HTTP 401（前端清 token 并跳转 /login）
-#  账号凭据：环境变量 YUNSHU_ADMIN_USERNAME / YUNSHU_ADMIN_PASSWORD（默认 admin / admin123，仅本地联调）
+#  账号凭据：环境变量 YUNSHU_ADMIN_USERNAME / YUNSHU_ADMIN_PASSWORD 注入；
+#  生产环境（YUNSHU_ENV=production）未设置密码时拒绝启动（防静默弱口令），本地联调默认 admin/admin123
 #  用户令牌：Redis 存储（REDIS_URL，TTL 自动过期，后端重启不失效）；Redis 不可用降级内存（重启失效）
 # ════════════════════════════════════════════════════════════
-_ADMIN_USERNAME = os.environ.get("YUNSHU_ADMIN_USERNAME", "admin")
-_ADMIN_PASSWORD = os.environ.get("YUNSHU_ADMIN_PASSWORD", "admin123")
+from agent.server_auth import load_admin_credentials
+
+_ADMIN_USERNAME, _ADMIN_PASSWORD = load_admin_credentials()
 if _ADMIN_PASSWORD == "admin123":
     logger.warning("管理后台使用默认密码（admin123），仅限本地联调；生产请设置 YUNSHU_ADMIN_PASSWORD")
 
