@@ -46,24 +46,40 @@ function parseEventBlock(block: string): StreamEvent | null {
  * 建立真实 SSE 流并逐事件产出。
  * - 由调用方传入 AbortSignal 以支持"停止生成"
  * - HTTP 非 2xx 或响应体缺失时抛出带状态码的错误
+ * - 可选 onError 回调：网络/HTTP 失败时触发（默认行为不变，调用方可不传）
+ *
+ * 三类终止语义（调用方判定）：
+ *   1. 正常结束：产出 type:'done' 事件（或流自然读完）——非错误
+ *   2. 主动停止：AbortError（isAbortError 判定）——非错误，保留已生成内容
+ *   3. 异常终止：HTTP 非 2xx / 解析失败 —— 抛出 Error，可经 onError 通知
  */
 export async function* createChatStream(
   question: string,
   signal?: AbortSignal,
+  options?: { onError?: (err: Error) => void },
 ): AsyncGenerator<StreamEvent> {
   const startedAt = performance.now();
   console.debug('[云枢·SSE] 请求发出:', { url: API_URL, ts: Date.now() });
 
-  const res = await fetch(API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: question }),
-    signal,
-  });
+  let res: Response;
+  try {
+    res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: question }),
+      signal,
+    });
+  } catch (err) {
+    const e = err instanceof Error ? err : new Error(String(err));
+    options?.onError?.(e);
+    throw e;
+  }
 
   if (!res.ok || !res.body) {
     const body = await res.text().catch(() => '');
-    throw new Error(`SSE 请求失败: HTTP ${res.status} ${body.slice(0, 200)}`);
+    const e = new Error(`SSE 请求失败: HTTP ${res.status} ${body.slice(0, 200)}`);
+    options?.onError?.(e);
+    throw e;
   }
   console.debug('[云枢·SSE] 连接建立:', { httpStatus: res.status, connectMs: Math.round(performance.now() - startedAt) });
 

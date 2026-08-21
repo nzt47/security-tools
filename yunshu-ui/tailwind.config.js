@@ -38,7 +38,12 @@ export default {
           DEFAULT: "rgb(var(--danger) / <alpha-value>)",       // 危险操作
           foreground: "rgb(var(--danger-foreground) / <alpha-value>)",
         },
+        success: {
+          DEFAULT: "rgb(var(--success) / <alpha-value>)",      // 成功提示
+          foreground: "rgb(var(--success-foreground) / <alpha-value>)",
+        },
         border: "rgb(var(--border) / <alpha-value>)",          // 统一描边
+        overlay: "rgb(var(--overlay) / <alpha-value>)",        // 弹窗遮罩（常用 /50）
       },
       // 统一圆角：控件 rounded-md（6px）/ 容器 rounded-lg（8px）
       borderRadius: {

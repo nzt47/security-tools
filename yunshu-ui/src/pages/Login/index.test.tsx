@@ -8,7 +8,7 @@
  *   4. 空表单校验：未发请求，直接通过全局 Toast 提示
  * 说明：login 接口用 vi.mock 替换，不依赖 dev server 的 mock 中间件。
  */
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { webcrypto } from 'node:crypto'
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -143,5 +143,29 @@ describe('登录页', () => {
     expect(stored.passwordCipher).toBeTruthy()
     // 密文中不应出现明文密码
     expect(JSON.stringify(stored)).not.toContain('123456')
+  })
+
+  it('未勾选记住密码：登录成功后不保存任何凭证', async () => {
+    mockLogin.mockResolvedValue({ token: MOCK_TOKEN, user: MOCK_USER })
+    renderLogin()
+
+    await submitLogin('admin', '123456')
+
+    await screen.findByText('HOME_PAGE')
+    expect(localStorage.getItem('yunshu-remember-login')).toBeNull()
+    expect(localStorage.getItem('yunshu-remember-key')).toBeNull()
+  })
+
+  it('记住密码：密钥丢失或密文损坏时仅回填用户名，不回填密码（容错降级）', async () => {
+    // 模拟历史保存的密文，但密文为非法 base64（等价于密钥丢失/数据损坏）
+    localStorage.setItem(
+      'yunshu-remember-login',
+      JSON.stringify({ remember: true, username: 'admin', passwordCipher: '!invalid-base64!' }),
+    )
+    renderLogin()
+
+    // 异步解密失败 → 仅回填用户名，密码保持为空
+    expect(await screen.findByDisplayValue('admin')).toBeInTheDocument()
+    expect(screen.getByLabelText('密码')).toHaveValue('')
   })
 })

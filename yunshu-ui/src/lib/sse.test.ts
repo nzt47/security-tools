@@ -71,3 +71,43 @@ describe('createChatStream 传输层日志（finally 修复）', () => {
     expect(finishLog?.[1]).toMatchObject({ bytesReceived: expect.any(Number), durationMs: expect.any(Number) });
   });
 });
+
+describe('createChatStream 错误语义（onError 回调）', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('HTTP 非 2xx：抛出带状态码错误并触发 onError', async () => {
+    const onError = vi.fn();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('oops', { status: 500 })));
+
+    const consume = async () => {
+      for await (const evt of createChatStream('错误场景', undefined, { onError })) void evt;
+    };
+    await expect(consume()).rejects.toThrow(/HTTP 500/);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0]).toMatchObject({ message: expect.stringContaining('HTTP 500') });
+  });
+
+  it('网络错误（fetch reject）：抛出原错误并触发 onError', async () => {
+    const onError = vi.fn();
+    const netErr = new TypeError('Failed to fetch');
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(netErr));
+
+    const consume = async () => {
+      for await (const evt of createChatStream('断网场景', undefined, { onError })) void evt;
+    };
+    await expect(consume()).rejects.toBe(netErr);
+    expect(onError).toHaveBeenCalledWith(netErr);
+  });
+
+  it('不传 onError 时行为不变（仍抛错，无回调）', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('oops', { status: 500 })));
+
+    const consume = async () => {
+      for await (const evt of createChatStream('无回调场景')) void evt;
+    };
+    await expect(consume()).rejects.toThrow(/HTTP 500/);
+  });
+});

@@ -9,6 +9,7 @@
  */
 import axios, { type AxiosRequestConfig } from 'axios'
 import { toast } from '@/components/Toaster'
+import { STORAGE_KEYS, storage } from '@/utils/storage'
 
 /** 后端统一返回结构 */
 export interface ApiResponse<T = unknown> {
@@ -17,18 +18,18 @@ export interface ApiResponse<T = unknown> {
   message: string
 }
 
-const TOKEN_KEY = 'token'
-
+// 【Why】token 读写统一走 storage 封装（getRaw/setRaw 原样字符串，保持既有契约键 'token' 不变）；
+// 守卫（AuthRoute / RequireAuth）与登录页直接读裸键，禁止改键名或引入 JSON 序列化。
 export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+  return storage.getRaw(STORAGE_KEYS.TOKEN)
 }
 
 export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token)
+  storage.setRaw(STORAGE_KEYS.TOKEN, token)
 }
 
 export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY)
+  storage.remove(STORAGE_KEYS.TOKEN)
 }
 
 /** 【Why】日志脱敏：token 仅显示头尾，避免完整令牌落入日志（与路由守卫日志口径一致） */
@@ -48,10 +49,17 @@ export function notify(message: string, level: 'error' | 'info' = 'error'): void
   }
 }
 
-/** 记录每个请求的起始时间（以 config 对象为 key，天然支持并发请求） */
+/**
+ * 记录每个请求的起始时间（以 config 对象为 key，天然支持并发请求）
+ * 生产构建 perfEnabled 为编译期常量 false（import.meta.env.PROD 静态替换），
+ * 计时与日志相关分支均被 esbuild 消除，生产环境零开销
+ */
 const timingMap = new WeakMap<AxiosRequestConfig, number>()
 
-/** 输出请求耗时日志 */
+/** 是否启用请求耗时观测（生产关闭） */
+const perfEnabled = !import.meta.env.PROD
+
+/** 输出请求耗时日志（仅开发/测试打印） */
 function logPerf(config: AxiosRequestConfig, status: number | string, costMs: number): void {
   const method = (config.method ?? 'GET').toUpperCase()
   console.info(`[perf] ${method} ${config.url ?? ''} ${status} ${costMs}ms`)
@@ -59,13 +67,19 @@ function logPerf(config: AxiosRequestConfig, status: number | string, costMs: nu
 
 /** 创建 Axios 实例 */
 const service = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE ?? '/api',
+  // 【Why】用 || 而非 ??：.env 中 VITE_API_BASE 留空时得到空字符串（非 nullish），
+  // ?? 不会回退导致 baseURL='' 拼出 /auth/login 缺 /api 前缀（Nginx 代理失效）。
+  // || 对 空串/undefined 都回退 /api；Electron 注入绝对地址时不受影响。
+  baseURL: import.meta.env.VITE_API_BASE || '/api',
   timeout: 15000,
 })
 
 // ---------- 请求拦截：计时 + 注入 Token ----------
 service.interceptors.request.use((config) => {
-  timingMap.set(config, performance.now())
+  // 仅开发/测试记录耗时（perfEnabled 生产为编译期 false，此分支不打包）
+  if (perfEnabled) {
+    timingMap.set(config, performance.now())
+  }
 
   const token = getToken()
   if (token) {
@@ -77,8 +91,10 @@ service.interceptors.request.use((config) => {
 // ---------- 响应拦截：耗时日志 + 错误处理 + 数据解包 ----------
 service.interceptors.response.use(
   (response) => {
-    const cost = Math.round(performance.now() - (timingMap.get(response.config) ?? 0))
-    logPerf(response.config, response.status, cost)
+    if (perfEnabled) {
+      const cost = Math.round(performance.now() - (timingMap.get(response.config) ?? 0))
+      logPerf(response.config, response.status, cost)
+    }
 
     // AxiosResponse.data 为 any，此处断言以获得字段类型提示
     const res = response.data as ApiResponse
@@ -94,8 +110,10 @@ service.interceptors.response.use(
   },
   async (error) => {
     const status: number | undefined = error.response?.status
-    const cost = Math.round(performance.now() - (timingMap.get(error.config) ?? 0))
-    logPerf(error.config, status ?? 'ERR', cost)
+    if (perfEnabled) {
+      const cost = Math.round(performance.now() - (timingMap.get(error.config) ?? 0))
+      logPerf(error.config, status ?? 'ERR', cost)
+    }
 
     switch (status) {
       case 401: {
@@ -142,6 +160,66 @@ export function request<T = unknown>(config: AxiosRequestConfig): Promise<T> {
   // axios 1.19 的 request<T, R> 返回条件类型 AxiosResponseResult（R 为泛型时无法化简为 T），
   // 拦截器已解包 response.data.data，此处直接断言返回类型
   return service.request(config) as unknown as Promise<T>
+}
+
+/**
+ * 请求取消管理：创建 AbortController 供"切换/卸载时取消在途请求"使用。
+ * 用法：const { signal, cancel } = createRequestAbort();
+ *       request({ url, method: 'GET', signal });  页面卸载时 cancel()
+ * 配合 useTablePage 竞态防护（请求序号）使用时，二者可叠加（signal 取消为主动，序号丢弃为兜底）。
+ */
+export function createRequestAbort(): { signal: AbortSignal; cancel: () => void } {
+  const controller = new AbortController();
+  return {
+    signal: controller.signal,
+    cancel: () => controller.abort(),
+  };
+}
+
+export interface RetryOptions {
+  /** 重试次数（不含首次），默认 2 */
+  retries?: number;
+  /** 重试间隔（ms），默认 500 */
+  retryDelayMs?: number;
+}
+
+/** 等待重试间隔（内部辅助） */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+/**
+ * 带重试的请求（默认关闭）
+ * - 由 VITE_REQUEST_RETRY_ENABLED（'true'/'1'）控制启用，默认关闭 → 直接单次请求
+ * - 仅幂等请求（GET）生效；4xx 业务错误不重试（如 401 交拦截器登出，重试无意义）
+ * - 网络错误/超时/5xx 按 retries 次重试，间隔 retryDelayMs
+ */
+export async function requestWithRetry<T = unknown>(
+  config: AxiosRequestConfig,
+  options?: RetryOptions,
+): Promise<T> {
+  const retries = options?.retries ?? 2;
+  const retryDelayMs = options?.retryDelayMs ?? 500;
+  const enabled =
+    import.meta.env.VITE_REQUEST_RETRY_ENABLED === 'true' ||
+    import.meta.env.VITE_REQUEST_RETRY_ENABLED === '1';
+  if (!enabled || (config.method ?? 'GET').toUpperCase() !== 'GET') {
+    return request<T>(config);
+  }
+
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      return await request<T>(config);
+    } catch (err) {
+      lastErr = err;
+      // 4xx 业务错误不重试（错误提示已由拦截器统一处理）
+      const status = (err as { response?: { status?: number } } | null)?.response?.status;
+      if (status !== undefined && status >= 400 && status < 500) throw err;
+      if (attempt < retries) await sleep(retryDelayMs);
+    }
+  }
+  throw lastErr;
 }
 
 export default request

@@ -1,14 +1,15 @@
 /**
- * Sidebar —— 侧边栏菜单（数据驱动）
- * 数据源：src/router/routes.tsx 的 appRoutes 配置树。
- * 渲染前按当前用户角色过滤：hideInMenu 剔除 + authority 权限校验 + 空分组剔除。
- * 递归渲染支持多级菜单；选中 / 悬停态使用 Tailwind。
+ * Sidebar —— 侧边栏菜单（后端菜单树驱动）
+ * 数据源：userStore.menus（后端 /api/auth/menus 按角色过滤下发）。
+ * 前端将后端节点（icon 字符串）转换为 AppRouteObject 后递归渲染；
+ * 菜单结构 / 可见性完全由后端控制，前端不再做权限过滤。
  */
 import { useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { Cloud } from 'lucide-react'
 import { useUserStore } from '@/store/userStore'
-import { appRoutes, filterMenus, type AppRouteObject } from '@/router/routes'
+import { menuTreeToAppRoutes } from '@/router/menus'
+import type { AppRouteObject } from '@/router/routes'
 
 /** 单个菜单节点：分组 → 渲染分组标题 + 递归子项；叶子 → 渲染 NavLink */
 function MenuNode({ route }: { route: AppRouteObject }) {
@@ -53,21 +54,19 @@ function MenuNode({ route }: { route: AppRouteObject }) {
 }
 
 export default function Sidebar() {
-  const userInfo = useUserStore((s) => s.userInfo)
-  const role = userInfo?.role
-  const permissions = userInfo?.permissions
+  const role = useUserStore((s) => s.userInfo?.role)
+  const storeMenus = useUserStore((s) => s.menus)
 
-  // 角色/权限变化时重新过滤菜单（如切换账号后即时刷新可见项）
-  const menus = useMemo(() => {
-    console.log('========== [权限·Sidebar] 菜单过滤开始 ==========')
-    console.log('[权限·Sidebar] 当前用户 role =', role ?? '（空）', '，permissions =', permissions ?? [])
-    const result = filterMenus(appRoutes, role, permissions ?? [])
-    console.log(
-      '[权限·Sidebar] 过滤后菜单 =',
-      result.map((r) => r.meta?.title ?? r.path ?? '无名'),
-    )
-    return result
-  }, [role, permissions])
+  // 后端菜单树 → 前端可渲染菜单（icon 字符串映射为 lucide 组件）
+  const menus = useMemo(() => menuTreeToAppRoutes(storeMenus ?? []), [storeMenus])
+
+  // 调试日志：后端下发菜单即为最终菜单（前端不再过滤，便于排查与旧逻辑对比）
+  console.log(
+    '[权限·Sidebar] 当前用户 role =',
+    role ?? '（空）',
+    '，后端下发菜单 =',
+    menus.map((r) => r.meta?.title ?? r.path ?? '无名'),
+  )
 
   return (
     <aside className="flex w-56 shrink-0 flex-col border-r border-slate-200 bg-white">

@@ -49,7 +49,4 @@ function initNav() {
     }, 200);
   });
 }
-
-function refreshAll() {
-  app.emit('refresh');
-}
+// refreshAll 由 sidebar/sidebar.js 统一提供（本文件 L30 调用全局定义，避免重复声明）

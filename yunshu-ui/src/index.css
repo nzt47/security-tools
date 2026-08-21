@@ -14,7 +14,10 @@
   --muted-foreground: 100 116 139;    /* slate-500  次级文本 */
   --danger: 220 38 38;                /* red-600    危险操作 */
   --danger-foreground: 255 255 255;
+  --success: 22 163 74;               /* green-600  成功提示 */
+  --success-foreground: 255 255 255;
   --border: 226 232 240;              /* slate-200  统一描边 */
+  --overlay: 15 23 42;                /* slate-900  弹窗遮罩（叠 /50 透明度使用） */
 
   --shadow-card: 0 1px 2px rgb(15 23 42 / 0.05), 0 4px 12px rgb(15 23 42 / 0.08);
   --shadow-card-hover: 0 2px 4px rgb(15 23 42 / 0.08), 0 12px 28px rgb(15 23 42 / 0.12);
@@ -41,7 +44,10 @@
   --muted-foreground: 100 116 139;    /* slate-500 */
   --danger: 239 68 68;                /* red-500 */
   --danger-foreground: 255 255 255;
+  --success: 74 222 128;              /* green-400  深色下提亮 */
+  --success-foreground: 4 6 13;
   --border: 30 41 59;                 /* slate-800 */
+  --overlay: 0 0 0;                   /* 纯黑遮罩 */
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 16px rgb(0 0 0 / 0.45);
   --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.5), 0 16px 32px rgb(0 0 0 / 0.5);

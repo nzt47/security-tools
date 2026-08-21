@@ -64,6 +64,7 @@ except ImportError:
 
 # 安全守护 + 系统工具
 from agent.safety_guard import SafetyGuard, register_alert_callback
+from agent.permission_tool import PermissionManager
 from agent.task_scheduler import (
     get_scheduler,
     perform_heartbeat_check,
@@ -1320,13 +1321,23 @@ def api_auth_token_check():
 #                           失败 {code:401/400, data:null, message}（HTTP 200 业务错误，前端弹 Toast）
 #    GET  /api/user/info  → 缺 Token：HTTP 200 + code:401（业务错误，前端停留当前页）
 #                           无效/过期 Token：HTTP 401（前端清 token 并跳转 /login）
-#  账号凭据：环境变量 YUNSHU_ADMIN_USERNAME / YUNSHU_ADMIN_PASSWORD（默认 admin / admin123，仅本地联调）
+#  账号凭据：环境变量 YUNSHU_ADMIN_USERNAME / YUNSHU_ADMIN_PASSWORD 注入；
+#  生产环境（YUNSHU_ENV=production）未设置密码时拒绝启动（防静默弱口令），本地联调默认 admin/admin123
 #  用户令牌：Redis 存储（REDIS_URL，TTL 自动过期，后端重启不失效）；Redis 不可用降级内存（重启失效）
 # ════════════════════════════════════════════════════════════
-_ADMIN_USERNAME = os.environ.get("YUNSHU_ADMIN_USERNAME", "admin")
-_ADMIN_PASSWORD = os.environ.get("YUNSHU_ADMIN_PASSWORD", "admin123")
+from agent.server_auth import load_admin_credentials
+
+_ADMIN_USERNAME, _ADMIN_PASSWORD = load_admin_credentials()
+# 启动环境与管理员凭证加载状态记录（排查用：确认生产/本地环境识别与密码来源）
+_APP_ENV = os.environ.get("YUNSHU_ENV", "development")
 if _ADMIN_PASSWORD == "admin123":
     logger.warning("管理后台使用默认密码（admin123），仅限本地联调；生产请设置 YUNSHU_ADMIN_PASSWORD")
+else:
+    logger.info(
+        "管理后台凭证加载成功：env=%s，username=%s，密码来自环境变量（非默认值）",
+        _APP_ENV,
+        _ADMIN_USERNAME,
+    )
 
 # 用户登录令牌存储：Redis 优先（SET EX，TTL 自动清理），Redis 不可用降级内存（重启失效）
 _USER_TOKEN_TTL = int(os.environ.get("YUNSHU_USER_TOKEN_TTL", "86400"))  # 默认 24h
@@ -1411,27 +1422,45 @@ _ADMIN_USER = {
     "avatar": _ADMIN_AVATAR,
     "email": "admin@yunshu.local",
     "role": "admin",
-    "permissions": ["dashboard:view", "workbench:use", "prompt-lab:use"],
+    # role=admin 通配全部菜单；system:log:export 为操作级权限码（系统日志导出），显式声明便于审计/按钮级控制
+    "permissions": [
+        "dashboard:view", "workbench:use", "prompt-lab:use",
+        "system:log:export",
+    ],
 }
 
 
 @app.route("/api/auth/login", methods=["POST"])
 @log_request(show_body=False)  # 不记录请求体，避免密码落日志
 def api_auth_login():
-    """管理后台登录：校验账号密码，签发用户令牌"""
+    """管理后台登录：校验账号密码，签发用户令牌
+
+    账号注册表：
+      - admin  ：凭据来自环境变量 YUNSHU_ADMIN_USERNAME / YUNSHU_ADMIN_PASSWORD
+      - user   ：内置演示账号（密码与前端 devMock 一致），供权限差异联调/测试
+      - manager：内置演示账号（中间角色，介于 admin 与 user 之间）
+    """
     data = request.get_json(silent=True) or {}
     username = str(data.get("username", "")).strip()
     password = str(data.get("password", ""))
     if not username or not password:
         return jsonify({"code": 400, "data": None, "message": "用户名或密码不能为空"})
-    if not (
-        secrets.compare_digest(username, _ADMIN_USERNAME)
-        and secrets.compare_digest(password, _ADMIN_PASSWORD)
-    ):
+    if username == _ADMIN_USERNAME:
+        ok = secrets.compare_digest(password, _ADMIN_PASSWORD)
+        user = _ADMIN_USER
+    elif username == "user":
+        ok = secrets.compare_digest(password, _MOCK_USER_PASSWORD)
+        user = _MOCK_USER_ACCOUNT
+    elif username == "manager":
+        ok = secrets.compare_digest(password, _MOCK_MANAGER_PASSWORD)
+        user = _MOCK_MANAGER_ACCOUNT
+    else:
+        ok, user = False, None
+    if not ok:
         return jsonify({"code": 401, "data": None, "message": "用户名或密码错误"})
     return jsonify({
         "code": 200,
-        "data": {"token": _issue_user_token(username), "user": _ADMIN_USER},
+        "data": {"token": _issue_user_token(username), "user": user},
         "message": "success",
     })
 
@@ -1455,7 +1484,109 @@ def api_user_info():
     err = _token_error_response()
     if err is not None:
         return err
-    return jsonify({"code": 200, "data": _ADMIN_USER, "message": "success"})
+    username, _ = _resolve_user_token(request.headers.get("Authorization", ""))
+    user = _get_user_by_username(username) or _ADMIN_USER
+    return jsonify({"code": 200, "data": user, "message": "success"})
+
+
+# ════════════════════════════════════════════════════════════
+#  菜单下发（管理后台 /api/auth/menus）
+#  契约与前端 mock（yunshu-ui/src/mocks/devMock.ts）完全一致：
+#    GET /api/auth/menus → {code:200, data:[{path,title,icon,authority,children}], message:'success'}
+#  权限模型：admin 角色通配（全量下发）；其余角色按权限码命中过滤；
+#            子项全部被过滤的分组一并剔除（与前端 filterMenus 语义一致）
+# ════════════════════════════════════════════════════════════
+
+# 全量菜单目录（与前端路由配置 routes.tsx 的页面集合对齐，authority 为权限码）
+_MENU_CATALOG: list[dict] = [
+    {"path": "/", "title": "仪表盘", "icon": "dashboard"},
+    {"path": "/workbench", "title": "工作台", "icon": "workbench"},
+    {"path": "/demo", "title": "组件演示", "icon": "demo"},
+    {"path": "/export", "title": "数据导出", "icon": "export"},
+    {
+        "path": "/system",
+        "title": "系统管理",
+        "icon": "system",
+        "authority": "system:view",
+        "children": [
+            {"path": "/system/user", "title": "用户列表", "icon": "user", "authority": "system:user:view"},
+            {"path": "/system/role", "title": "角色权限", "icon": "role", "authority": "system:role:view"},
+            {"path": "/system/menu", "title": "菜单管理", "icon": "menu", "authority": "system:role:view"},
+            {"path": "/system/audit", "title": "操作审计", "icon": "audit", "authority": "system:audit:view"},
+            {"path": "/system/notification", "title": "消息中心", "icon": "notification", "authority": "system:notification:view"},
+            {"path": "/system/log", "title": "系统日志", "icon": "log", "authority": "system:view"},
+        ],
+    },
+]
+
+# 普通用户账号（演示/测试不同角色的菜单差异；登录凭据 user/123456 与前端 devMock 一致）
+_MOCK_USER_PASSWORD = "123456"
+_MOCK_USER_ACCOUNT: dict = {
+    "id": 2,
+    "username": "user",
+    "nickname": "普通用户",
+    "avatar": _ADMIN_AVATAR,
+    "email": "user@yunshu.local",
+    "role": "user",
+    # system:view → 可见系统管理分组与系统日志；system:notification:view → 消息中心；
+    # 无 system:user:view / system:role:view / system:audit:view，用户列表/角色权限/操作审计仍隐藏
+    "permissions": [
+        "dashboard:view", "workbench:use",
+        "system:view", "system:notification:view",
+    ],
+}
+
+# 运营管理员账号（演示/测试中间角色：拥有部分系统管理权限，介于 admin 全量与 user 基础之间）
+_MOCK_MANAGER_PASSWORD = "123456"
+_MOCK_MANAGER_ACCOUNT: dict = {
+    "id": 3,
+    "username": "manager",
+    "nickname": "运营管理员",
+    "avatar": _ADMIN_AVATAR,
+    "email": "manager@yunshu.local",
+    "role": "manager",
+    # system:view + system:role:view + system:audit:view + system:notification:view →
+    # 可见角色权限/菜单管理/操作审计/消息中心/系统日志；无 system:user:view，
+    # 仅用户列表对其隐藏
+    "permissions": [
+        "dashboard:view", "workbench:use",
+        "system:view", "system:role:view", "system:audit:view", "system:notification:view",
+    ],
+}
+
+
+def _get_user_by_username(username: str) -> dict | None:
+    """按用户名取用户记录（admin 取环境变量配置；user/manager 为内置演示账号，供权限差异验证）"""
+    if username == _ADMIN_USERNAME:
+        return _ADMIN_USER
+    if username == "user":
+        return _MOCK_USER_ACCOUNT
+    if username == "manager":
+        return _MOCK_MANAGER_ACCOUNT
+    return None
+
+
+# 权限服务：菜单目录 + 角色注册表 → PermissionManager（逻辑见 agent/permission_tool.py）
+_permission_manager = PermissionManager(
+    _MENU_CATALOG,
+    roles={
+        "admin": {"label": "管理员", "permissions": _ADMIN_USER["permissions"]},
+        "user": {"label": "普通用户", "permissions": _MOCK_USER_ACCOUNT["permissions"]},
+        "manager": {"label": "运营管理员", "permissions": _MOCK_MANAGER_ACCOUNT["permissions"]},
+    },
+)
+
+
+@app.route("/api/auth/menus")
+@log_request(show_response=False)
+def api_auth_menus():
+    """下发当前用户可见菜单树（按角色/权限码过滤）"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    username, _ = _resolve_user_token(request.headers.get("Authorization", ""))
+    user = _get_user_by_username(username) or _ADMIN_USER
+    return jsonify({"code": 200, "data": _permission_manager.filter_menus(user), "message": "success"})
 
 
 # ════════════════════════════════════════════════════════════
@@ -1512,6 +1643,133 @@ def _save_manager_users() -> None:
 
 
 _load_manager_users()
+
+
+# ════════════════════════════════════════════════════════════
+#  管理后台操作审计（结构对齐前端 AuditLogItem，持久化 data/manager_audit.json）
+#  说明：管理后台展示「操作人/操作对象/结果/来源 IP」语义的操作审计，
+#  与系统内部 Append-only 审计（agent/audit/logger.py）相互独立；
+#  接口经用户 token 鉴权（_token_error_response），与用户管理一致。
+# ════════════════════════════════════════════════════════════
+_MANAGER_AUDIT: list[dict] = []
+_MANAGER_AUDIT_FILE = os.path.join("data", "manager_audit.json")
+
+_AUDIT_OPERATORS = ["admin", "manager", "user"]
+_AUDIT_ACTIONS = ["login", "create", "update", "delete", "export"]
+
+
+def _seed_manager_audit() -> list[dict]:
+    """生成 32 条管理后台审计记录：覆盖多操作人/类型/结果/分页边界"""
+    records = []
+    for i in range(32):
+        idx = 32 - i
+        action = _AUDIT_ACTIONS[i % len(_AUDIT_ACTIONS)]
+        verb = {
+            "delete": "删除", "create": "新增", "export": "导出",
+            "update": "更新", "login": "登录",
+        }[action]
+        records.append({
+            "id": idx,
+            "traceId": f"trace-{idx:04d}",
+            "operator": _AUDIT_OPERATORS[i % len(_AUDIT_OPERATORS)],
+            "action": action,
+            "target": action == "login" and "登录系统" or f"{verb}用户 user{(i % 20) + 1:02d}",
+            "result": "fail" if i % 7 == 0 else "success",
+            "ip": f"10.0.{i % 4}.{(i % 250) + 1}",
+            "detail": "权限不足或数据不存在" if i % 7 == 0 else "",
+            "createdAt": f"2026-08-{(i % 20) + 1:02d} {i % 24:02d}:{(i * 3) % 60:02d}:00",
+        })
+    return records
+
+
+def _load_manager_audit() -> None:
+    global _MANAGER_AUDIT
+    try:
+        if os.path.exists(_MANAGER_AUDIT_FILE):
+            with open(_MANAGER_AUDIT_FILE, "r", encoding="utf-8") as f:
+                _MANAGER_AUDIT = json.load(f)
+            logger.info("管理后台审计已加载：%s（%d 条）", _MANAGER_AUDIT_FILE, len(_MANAGER_AUDIT))
+            return
+    except Exception as e:
+        logger.warning("管理后台审计加载失败，使用种子数据：%s", e)
+    _MANAGER_AUDIT = _seed_manager_audit()
+
+
+def _save_manager_audit() -> None:
+    try:
+        os.makedirs(os.path.dirname(_MANAGER_AUDIT_FILE), exist_ok=True)
+        with open(_MANAGER_AUDIT_FILE, "w", encoding="utf-8") as f:
+            json.dump(_MANAGER_AUDIT, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning("管理后台审计持久化失败：%s", e)
+
+
+_load_manager_audit()
+
+
+# ════════════════════════════════════════════════════════════
+#  消息中心通知（结构对齐前端 NotificationItem，持久化 data/manager_notifications.json）
+#  接口经用户 token 鉴权，与用户管理一致。
+# ════════════════════════════════════════════════════════════
+_MANAGER_NOTIFICATIONS: list[dict] = []
+_MANAGER_NOTIFICATIONS_FILE = os.path.join("data", "manager_notifications.json")
+
+_NOTIFICATION_TITLES = {
+    "system": ["系统例行维护公告", "版本升级通知", "新功能上线说明"],
+    "audit": ["检测到异常登录行为", "高风险操作提醒", "审计日志导出完成"],
+    "approval": ["待审批：新用户开通申请", "待审批：角色权限变更", "待审批：数据导出申请"],
+    "alert": ["接口错误率超过阈值", "磁盘空间使用告警", "登录失败次数异常"],
+}
+_NOTIFICATION_TYPES = ["system", "audit", "approval", "alert"]
+
+
+def _seed_manager_notifications() -> list[dict]:
+    """生成 24 条通知：覆盖多类型/已读未读/分页边界"""
+    items = []
+    for i in range(24):
+        idx = 24 - i
+        ntype = _NOTIFICATION_TYPES[i % len(_NOTIFICATION_TYPES)]
+        title = _NOTIFICATION_TITLES[ntype][i % 3]
+        content = {
+            "system": f"【{idx}】系统将于维护窗口执行例行检查",
+            "audit": f"【{idx}】检测到来自 10.0.0.1 的非常规操作",
+            "approval": f"【{idx}】申请人：user{(i % 20) + 1:02d}，请及时处理",
+            "alert": f"【{idx}】累计触发 3 次阈值，请关注",
+        }[ntype]
+        items.append({
+            "id": idx,
+            "type": ntype,
+            "title": title,
+            "content": content,
+            "read": i % 3 != 0,
+            "createdAt": f"2026-08-{(i % 20) + 1:02d} {i % 24:02d}:{(i * 7) % 60:02d}:00",
+        })
+    return items
+
+
+def _load_manager_notifications() -> None:
+    global _MANAGER_NOTIFICATIONS
+    try:
+        if os.path.exists(_MANAGER_NOTIFICATIONS_FILE):
+            with open(_MANAGER_NOTIFICATIONS_FILE, "r", encoding="utf-8") as f:
+                _MANAGER_NOTIFICATIONS = json.load(f)
+            logger.info("消息中心通知已加载：%s（%d 条）", _MANAGER_NOTIFICATIONS_FILE, len(_MANAGER_NOTIFICATIONS))
+            return
+    except Exception as e:
+        logger.warning("消息中心通知加载失败，使用种子数据：%s", e)
+    _MANAGER_NOTIFICATIONS = _seed_manager_notifications()
+
+
+def _save_manager_notifications() -> None:
+    try:
+        os.makedirs(os.path.dirname(_MANAGER_NOTIFICATIONS_FILE), exist_ok=True)
+        with open(_MANAGER_NOTIFICATIONS_FILE, "w", encoding="utf-8") as f:
+            json.dump(_MANAGER_NOTIFICATIONS, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.warning("消息中心通知持久化失败：%s", e)
+
+
+_load_manager_notifications()
 
 
 @app.route("/api/user/list")
@@ -2307,6 +2565,14 @@ try:
     logger.info("监控仪表盘路由已注册 (/api/dashboard/*)")
 except Exception as e:
     logger.error("加载监控仪表盘路由失败: %s", e)
+
+# 运营统计仪表盘（前端 Dashboard 页面数据源 /api/dashboard/summary，当前为 Mock 数据）
+try:
+    from agent.server_routes.routes_dashboard_summary import register_routes as reg_summary
+    reg_summary(app, lambda: None)
+    logger.info("运营统计仪表盘路由已注册 (/api/dashboard/summary)")
+except Exception as e:
+    logger.error("加载运营统计仪表盘路由失败: %s", e)
 
 # T6：orchestrator 语义层配置热更（独立子函数，无需 state，仅用 Orchestrator 类）
 try:
@@ -3396,18 +3662,45 @@ def api_config_logs():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
-# ── 审计日志查询 API（只读，T8.4 第二批灰度开放；无 require_token） ──
+# ── 审计日志查询 API（只读，T8.4 灰度开放；双轨认证） ──
 
 @app.route("/api/audit/logs", methods=["GET"])
 @log_request(show_response=False)
 def api_audit_logs():
-    """获取结构化审计日志（只读查询 Append-only 审计日志）
+    """获取审计日志（双轨契约）
 
-    T8.4 数据隔离（修复跨租户泄露，见 T8 故障演练剧本 B.3）：
-    - 经网关认证：仅返回当前 Key 绑定租户的记录（写侧 tenant_id 字段精确过滤）；
-      未绑定租户的旧 Key 返回空集 + warning（隔离优先，宁可少看不可泄露）
-    - 内部直调（无网关标记，如管理通道）：保持全量（管理语义）
+    管理后台（用户 token，2026-08-20 修复）：
+      GET /api/audit/logs?page=&pageSize=&operator=&action=&keyword=
+      → {code:200, data:{list, total}, message}，list 元素对齐前端 AuditLogItem。
+    开放 API（网关 Key，T8.4 契约不变）：
+      → {ok, logs, count}，仅返回 Key 绑定租户记录（跨租户隔离）。
     """
+    # 管理后台会话：返回前端契约（审计页 /api/audit.ts 期望 {list, total}）
+    auth_header = request.headers.get("Authorization", "")
+    username, err = _resolve_user_token(auth_header)
+    if err is None and username:
+        auth_err = _token_error_response()
+        if auth_err is not None:
+            return auth_err
+        page = max(1, request.args.get("page", default=1, type=int) or 1)
+        page_size = max(1, request.args.get("pageSize", default=10, type=int) or 10)
+        operator = (request.args.get("operator", "") or "").strip()
+        action = (request.args.get("action", "") or "").strip()
+        keyword = (request.args.get("keyword", "") or "").strip()
+        matched = [
+            r for r in _MANAGER_AUDIT
+            if (not operator or operator in r["operator"])
+            and (not action or r["action"] == action)
+            and (not keyword or keyword in r["target"] or keyword in (r.get("detail") or ""))
+        ]
+        total = len(matched)
+        start = (page - 1) * page_size
+        return jsonify({
+            "code": 200,
+            "data": {"list": matched[start:start + page_size], "total": total},
+            "message": "success",
+        })
+    # 开放 API / 内部直调：保持原 Append-only 审计查询（T8.4 租户隔离不变）
     try:
         from agent.audit.logger import audit_logger
         trace_id = request.args.get("trace_id", "")
@@ -3424,6 +3717,77 @@ def api_audit_logs():
     except Exception as e:
         logger.error("审计日志查询失败: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ── 消息中心通知 API（管理后台，用户 token 鉴权；前端契约见 api/notification.ts） ──
+
+@app.route("/api/notification/list", methods=["GET"])
+@log_request(show_response=False)
+def api_notification_list():
+    """通知列表（分页 + 类型/未读筛选）"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    page = max(1, request.args.get("page", default=1, type=int) or 1)
+    page_size = max(1, request.args.get("pageSize", default=10, type=int) or 10)
+    ntype = (request.args.get("type", "") or "").strip()
+    unread_only = (request.args.get("unreadOnly", "") or "").lower() == "true"
+    matched = [
+        n for n in _MANAGER_NOTIFICATIONS
+        if (not ntype or n["type"] == ntype)
+        and (not unread_only or not n["read"])
+    ]
+    total = len(matched)
+    start = (page - 1) * page_size
+    return jsonify({
+        "code": 200,
+        "data": {"list": matched[start:start + page_size], "total": total},
+        "message": "success",
+    })
+
+
+@app.route("/api/notification/unread-count", methods=["GET"])
+@log_request(show_response=False)
+def api_notification_unread_count():
+    """未读通知数量"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    unread = sum(1 for n in _MANAGER_NOTIFICATIONS if not n["read"])
+    return jsonify({"code": 200, "data": {"unread": unread}, "message": "success"})
+
+
+@app.route("/api/notification/<int:nid>/read", methods=["POST"])
+@log_request(show_response=False)
+def api_notification_read(nid: int):
+    """单条通知标记已读（不存在返回业务 404）"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    for n in _MANAGER_NOTIFICATIONS:
+        if n["id"] == nid:
+            if not n["read"]:
+                n["read"] = True
+                _save_manager_notifications()
+            return jsonify({"code": 200, "data": None, "message": "success"})
+    return jsonify({"code": 404, "data": None, "message": "通知不存在"})
+
+
+@app.route("/api/notification/read-all", methods=["POST"])
+@log_request(show_response=False)
+def api_notification_read_all():
+    """全部通知标记已读"""
+    err = _token_error_response()
+    if err is not None:
+        return err
+    changed = False
+    for n in _MANAGER_NOTIFICATIONS:
+        if not n["read"]:
+            n["read"] = True
+            changed = True
+    if changed:
+        _save_manager_notifications()
+    return jsonify({"code": 200, "data": None, "message": "success"})
 
 
 # ── 工具配置 API ──

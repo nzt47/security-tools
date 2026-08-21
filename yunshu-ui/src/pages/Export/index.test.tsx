@@ -116,31 +116,36 @@ describe('DataExport 组件', () => {
     expect(parsed[0].username).toBe('admin')
   })
 
-  it('大数据量（5000 条）分片导出：CSV 带 BOM 前缀且行数完整', async () => {
-    const bigUsers = Array.from({ length: 5000 }, (_, i) => ({
-      id: i + 1,
-      username: `user${i + 1}`,
-      email: `user${i + 1}@yunshu.local`,
-      role: 'user',
-      status: 1 as const,
-      createdAt: '2026-08-01 10:30:00',
-    }))
-    mockGetUserList.mockResolvedValue({ list: bigUsers, total: bigUsers.length })
-    render(<DataExport />)
-    await screen.findByText(/共 5000 条/)
+  it(
+    '大数据量（5000 条）分片导出：CSV 带 BOM 前缀且行数完整',
+    { timeout: 20000 },
+    async () => {
+      const bigUsers = Array.from({ length: 5000 }, (_, i) => ({
+        id: i + 1,
+        username: `user${i + 1}`,
+        email: `user${i + 1}@yunshu.local`,
+        role: 'user',
+        status: 1 as const,
+        createdAt: '2026-08-01 10:30:00',
+      }))
+      mockGetUserList.mockResolvedValue({ list: bigUsers, total: bigUsers.length })
+      render(<DataExport />)
+      await screen.findByText(/共 5000 条/)
 
-    fireEvent.click(screen.getByRole('button', { name: /导出/ }))
-    // 分片异步执行：等 downloadFile 最终被调用（内部经过 3 个 2000 条分片）
-    await waitFor(() => expect(mockDownloadFile).toHaveBeenCalledTimes(1))
+      fireEvent.click(screen.getByRole('button', { name: /导出/ }))
+      // 分片异步执行：等 downloadFile 最终被调用（内部经过 3 个 2000 条分片）
+      await waitFor(() => expect(mockDownloadFile).toHaveBeenCalledTimes(1))
 
-    const [name, content, mime] = mockDownloadFile.mock.calls[0]
-    expect(name).toMatch(/\.csv$/)
-    expect(mime).toBe('text/csv;charset=utf-8')
-    // CSV 内容最前是 BOM，随后表头；行数 = 5000 数据行 + 1 表头行
-    const csv = (content as string[]).join('')
-    expect(csv).toMatch(/^\ufeffID,用户名,邮箱,角色,状态,创建时间/)
-    expect(csv.split('\n')).toHaveLength(5001)
-  })
+      const [name, content, mime] = mockDownloadFile.mock.calls[0]
+      expect(name).toMatch(/\.csv$/)
+      expect(mime).toBe('text/csv;charset=utf-8')
+      // CSV 内容最前是 BOM，随后表头；行数 = 5000 数据行 + 1 表头行
+      const csv = (content as string[]).join('')
+      expect(csv).toMatch(/^\ufeffID,用户名,邮箱,角色,状态,创建时间/)
+      expect(csv.split('\n')).toHaveLength(5001)
+    },
+    // 【Why 20000】5000 行 × 3 分片 + yieldToMain 实际耗时约 3s，全量共享环境会放大超过默认 5000ms 阈值
+  )
 
   it('数据拉取失败：展示错误信息，导出按钮禁用', async () => {
     mockGetUserList.mockRejectedValue(new Error('网络异常'))
@@ -150,26 +155,33 @@ describe('DataExport 组件', () => {
     expect(screen.getByRole('button', { name: /导出/ })).toBeDisabled()
   })
 
-  it('导出中途点击取消：中断分片、不触发下载、状态清理', async () => {
-    const bigUsers = Array.from({ length: 5000 }, (_, i) => ({
-      id: i + 1,
-      username: `user${i + 1}`,
-      email: `user${i + 1}@yunshu.local`,
-      role: 'user',
-      status: 1 as const,
-      createdAt: '2026-08-01 10:30:00',
-    }))
-    mockGetUserList.mockResolvedValue({ list: bigUsers, total: bigUsers.length })
-    render(<DataExport />)
-    await screen.findByText(/共 5000 条/)
+  it(
+    '导出中途点击取消：中断分片、不触发下载、状态清理',
+    { timeout: 20000 },
+    async () => {
+      const bigUsers = Array.from({ length: 5000 }, (_, i) => ({
+        id: i + 1,
+        username: `user${i + 1}`,
+        email: `user${i + 1}@yunshu.local`,
+        role: 'user',
+        status: 1 as const,
+        createdAt: '2026-08-01 10:30:00',
+      }))
+      mockGetUserList.mockResolvedValue({ list: bigUsers, total: bigUsers.length })
+      render(<DataExport />)
+      await screen.findByText(/共 5000 条/)
 
-    // 点击导出后立即取消（两处点击在同一同步块内，分片循环尚未越过第一个分片边界）
-    fireEvent.click(screen.getByRole('button', { name: /导出/ }))
-    fireEvent.click(screen.getByRole('button', { name: '取消' }))
+      // 点击导出后，等「取消」按钮出现（exporting=true，确认 handleExport 已开始挂起），再点击取消，
+      // 避免与 handleExport 开头 `cancelRef.current = false` 的同步段产生时序竞态
+      fireEvent.click(screen.getByRole('button', { name: /导出/ }))
+      const cancelBtn = await screen.findByRole('button', { name: '取消' })
+      fireEvent.click(cancelBtn)
 
-    // 分片任务被中断：downloadFile 不应被调用，状态恢复（导出按钮重新可用、取消按钮消失）
-    await waitFor(() => expect(screen.getByRole('button', { name: /导出/ })).toBeEnabled())
-    expect(mockDownloadFile).not.toHaveBeenCalled()
-    expect(screen.queryByRole('button', { name: '取消' })).not.toBeInTheDocument()
-  })
+      // 分片任务被中断：downloadFile 不应被调用，状态恢复（导出按钮重新可用、取消按钮消失）
+      await waitFor(() => expect(screen.getByRole('button', { name: /导出/ })).toBeEnabled())
+      expect(mockDownloadFile).not.toHaveBeenCalled()
+      expect(screen.queryByRole('button', { name: '取消' })).not.toBeInTheDocument()
+    },
+    // 【Why 20000】大数据量分片 + 取消中断，全量共享环境耗时放大，需提高阈值（同上方 5000 条用例）
+  )
 })

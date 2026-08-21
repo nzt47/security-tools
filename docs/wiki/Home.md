@@ -2,6 +2,13 @@
 
 > 项目 Wiki 导航 + 轻量检测视图插件（light_loader）安装与版本兼容性说明。
 
+## 〇、导航
+
+| 页面 | 说明 |
+|---|---|
+| [版本发布记录](云枢版本发布记录.md) | 云枢各版本发布信息、体积数据、保留文件清单 |
+| [Release 流程知识库](release_workflow_wiki.md) | Release 发布流程导航入口 |
+
 ## 一、light_loader 独立包安装说明
 
 审计五类检测（孤儿/断链/index 漂移/过期/未裁决矛盾）只需每张卡六个字段
@@ -71,6 +78,8 @@ agent 内部保持零安装依赖，外部项目通过 `pip install light-loader
 
 ## 三、Wiki 文档导航
 
+- **T8 多租户收益量化看板**（端点增长 / 限流对比 / 测试曲线 / RBAC 矩阵）：[t8_multitenant_metrics_chart.html](t8_multitenant_metrics_chart.html)
+- **T8 多租户运维部署手册**：[../zh/云枢T8多租户运维部署手册_20260816.md](../zh/云枢T8多租户运维部署手册_20260816.md)
 - 知识模块：[knowledge_optimization_phase2_wiki.md](knowledge_optimization_phase2_wiki.md)
 - 入链索引架构演进：[knowledge_optimization_phase2_evolution_wiki.md](knowledge_optimization_phase2_evolution_wiki.md)
 - 并发缺陷修复：[concurrency_fixes_wiki.md](concurrency_fixes_wiki.md)

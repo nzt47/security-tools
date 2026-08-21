@@ -4,8 +4,6 @@
  * - <Toaster /> 在入口 main.tsx 挂载一次，全局唯一
  * - 模块级单例：非 React 模块（如 request.ts 拦截器）也可直接调用 toast
  */
-// 同文件同时导出组件与 toast 工具对象：react-refresh 仅对组件热更新，此告警不适用
-/* eslint-disable react-refresh/only-export-components */
 import { useEffect, useState } from 'react'
 import './toast.css'
 
@@ -49,30 +47,32 @@ export const toast = {
   info: (message: string) => push('info', message),
 }
 
-const TYPE_STYLE: Record<ToastType, { box: string; color: string }> = {
-  success: { box: 'border-green-300 bg-green-50 text-green-800', color: '#16a34a' },
-  error: { box: 'border-red-300 bg-red-50 text-red-800', color: '#dc2626' },
-  info: { box: 'border-blue-300 bg-blue-50 text-blue-800', color: '#2563eb' },
+/** 三态样式：一律语义 Token（success/danger/primary），禁止硬编码色值 */
+const TYPE_STYLE: Record<ToastType, { box: string; iconClass: string }> = {
+  success: { box: 'border-success/30 bg-success/10', iconClass: 'text-success' },
+  error: { box: 'border-danger/30 bg-danger/10', iconClass: 'text-danger' },
+  info: { box: 'border-primary/30 bg-primary/10', iconClass: 'text-primary' },
 }
 
 function ToastIcon({ type }: { type: ToastType }) {
-  const color = TYPE_STYLE[type].color
+  const { iconClass } = TYPE_STYLE[type]
+  const common = `h-4 w-4 ${iconClass}`
   if (type === 'success') {
     return (
-      <svg viewBox="0 0 20 20" fill="none" stroke={color} strokeWidth="2" className="h-4 w-4">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className={common}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l3 3 7-7" />
       </svg>
     )
   }
   if (type === 'error') {
     return (
-      <svg viewBox="0 0 20 20" fill="none" stroke={color} strokeWidth="2" className="h-4 w-4">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className={common}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l8 8M14 6l-8 8" />
       </svg>
     )
   }
   return (
-    <svg viewBox="0 0 20 20" fill="none" stroke={color} strokeWidth="2" className="h-4 w-4">
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" className={common}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M10 9v5M10 6v.01" />
     </svg>
   )

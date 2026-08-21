@@ -51,3 +51,21 @@
 - 禁止引入重型 UI 库（Ant Design、Element Plus 等）。
 - 禁止新增全局 CSS 类直接控制颜色（布局/动画类除外，如既有 `glass-panel`）。
 - 样式需求未被 Token 覆盖时，先扩展 Token 层，禁止绕过 Token 直接写死样式。
+
+## 7. 封装边界与反模式（T6 补充）
+
+**抽象触发条件（量化）**：
+- 同类 UI 结构 / hook / 工具函数在代码中出现 **≥ 2 次** 时，必须抽象（组件进 `components/`、hook 进 `hooks/`、通用工具进 `utils/`）。
+- 组件 **Props > 6 个** 时优先拆分（子组件 / 对象分组 / context），避免 props 爆炸。
+
+**反模式清单（禁止）**：
+- 万能组件：一个组件试图满足所有场景（通过布尔 props 堆砌分支）→ 拆为单一职责组件。
+- props 爆炸：传参超过 6 个且互相耦合 → 用对象分组或子组件收敛。
+- 为复用而抽象：仅一处使用就抽组件/hook（违背"≥ 2 次"标准）。
+- 接口频繁变更：组件/hook 公开 API 冻结后不轻易改签名；变更走新增参数（向后兼容）并同步更新索引文档。
+- 抽象泄漏：组件内部依赖调用方特定 DOM 结构 / 样式细节。
+
+**工具归属判定**：
+- `src/utils/` = 通用工具（storage/async/format/clipboard/request/logger/system）。
+- `src/lib/` = 领域/跨层模块（cn/mosaic/sse/promptFactors）。
+- 新增工具先登记对应目录 `README.md` 索引。

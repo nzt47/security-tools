@@ -17,6 +17,27 @@ _API_TOKEN = os.environ.get("FLASK_API_TOKEN", "")
 _API_TOKEN_ENABLED = bool(_API_TOKEN)
 
 
+# ── 管理后台账号凭据（M1 安全加固） ──
+def load_admin_credentials() -> tuple[str, str]:
+    """加载管理后台账号凭据。
+
+    优先级：环境变量注入 > 生产强制（拒绝默认）> 本地联调默认值。
+    【Why】消除硬编码默认密码 admin123 的安全风险：生产环境（YUNSHU_ENV=production）
+    未显式设置 YUNSHU_ADMIN_PASSWORD 时拒绝启动，避免静默弱口令；
+    本地联调保留默认值兜底，行为不变（仅 warning 提示）。
+    """
+    username = os.environ.get("YUNSHU_ADMIN_USERNAME", "admin")
+    password = os.environ.get("YUNSHU_ADMIN_PASSWORD")
+    if password:
+        return username, password
+    env = os.environ.get("YUNSHU_ENV", "development")
+    if env == "production":
+        raise RuntimeError(
+            "生产环境必须设置 YUNSHU_ADMIN_PASSWORD 环境变量；拒绝使用默认密码启动"
+        )
+    return username, "admin123"
+
+
 def require_token(f):
     """需要 API 令牌认证的装饰器"""
     @functools.wraps(f)

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { getUserInfo, type UserInfo } from '@/api/user'
+import { getMenus, getUserInfo, type MenuTreeNode, type UserInfo } from '@/api/user'
 import { clearToken } from '@/utils/request'
 import { logger } from '@/utils/logger'
 
@@ -13,12 +13,16 @@ interface UserState {
   token: string | null
   /** 当前登录用户信息，null 表示未加载或未登录 */
   userInfo: UserInfo | null
+  /** 当前用户可见菜单树（后端下发，null 表示未加载）；登录后由 MainLayout 拉取 */
+  menus: MenuTreeNode[] | null
   /** 设置登录令牌（同时应配合设置 userInfo） */
   setToken: (token: string) => void
   /** 设置用户信息 */
   setUserInfo: (userInfo: UserInfo) => void
   /** 拉取当前用户信息并写入 Store；失败时抛出异常，由调用方决定跳转策略 */
   fetchUserInfo: () => Promise<UserInfo>
+  /** 拉取当前用户可见菜单树并写入 Store；失败时抛出异常，由调用方决定跳转策略 */
+  fetchMenus: () => Promise<MenuTreeNode[]>
   /** 退出登录：清空 Store 状态，并清除 localStorage 中的凭证 */
   logout: () => void
 }
@@ -28,6 +32,7 @@ export const useUserStore = create<UserState>()(
     (set) => ({
       token: null,
       userInfo: null,
+      menus: null,
       // 【Why】setToken 只负责 token；userInfo 用 setUserInfo 独立设置，避免耦合
       setToken: (token) => set({ token }),
       setUserInfo: (userInfo) => set({ userInfo }),
@@ -44,11 +49,17 @@ export const useUserStore = create<UserState>()(
           throw err
         }
       },
+      // 【Why】菜单树不持久化（partialize 未包含），刷新后重新拉取，保证菜单始终为后端最新下发
+      fetchMenus: async () => {
+        const menus = await getMenus()
+        set({ menus })
+        return menus
+      },
       // 【Why】axios 拦截器与路由守卫读取 localStorage 'token'，此处复用 request.ts 的 clearToken 一并清除，
       // 保证登出后凭证彻底失效（避免重复引用 token key，出现 TOKEN_KEY 未定义问题）
       logout: () => {
         clearToken()
-        set({ token: null, userInfo: null })
+        set({ token: null, userInfo: null, menus: null })
       },
     }),
     {
