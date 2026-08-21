@@ -5,11 +5,79 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { Check, ChevronDown, FlaskConical, LogOut } from 'lucide-react'
 import { useUserStore } from '@/store/userStore'
 import { logger } from '@/utils/logger'
+import { DASHBOARD_MOCK_ERROR_KEY } from '@/api/dashboard'
 import Sidebar from '@/components/Sidebar'
 import BreadCrumb from '@/components/BreadCrumb'
+
+/** Dashboard 接口错误模拟场景选项（值对应 devMock 的 mock_error 参数） */
+const DASHBOARD_MOCK_OPTIONS = [
+  { value: '', label: '正常数据', desc: '真实后端返回' },
+  { value: 'business', label: '业务错误(500)', desc: '拦截器 Toast + 空态' },
+  { value: 'empty', label: '空数据', desc: 'data 为 null' },
+  { value: 'invalid', label: '畸形数据', desc: '字段缺失 / 类型错误' },
+]
+
+/** 仅 dev：Dashboard 接口错误模拟场景下拉。写入 localStorage 后刷新页面，
+ *  Dashboard 请求时读取并附加 mock_error 参数，由 devMock 拦截返回对应场景 */
+function MockScenarioMenu() {
+  const [open, setOpen] = useState(false)
+  const current = localStorage.getItem(DASHBOARD_MOCK_ERROR_KEY) ?? ''
+
+  const handleSelect = (value: string) => {
+    setOpen(false)
+    if (value) localStorage.setItem(DASHBOARD_MOCK_ERROR_KEY, value)
+    else localStorage.removeItem(DASHBOARD_MOCK_ERROR_KEY)
+    // devMock 按请求参数拦截，刷新让 Dashboard 重新发起请求
+    window.location.reload()
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        title="切换 Dashboard 接口错误模拟场景（仅开发环境）"
+        className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${
+          current
+            ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100'
+            : 'border-slate-200 text-slate-600 hover:bg-slate-100'
+        }`}
+      >
+        <FlaskConical size={14} />
+        接口场景
+        <ChevronDown size={12} />
+      </button>
+
+      {open && (
+        <>
+          {/* 点击外部关闭 */}
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full z-20 mt-1 w-60 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+            {DASHBOARD_MOCK_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => handleSelect(opt.value)}
+                className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${
+                  current === opt.value ? 'text-amber-600' : 'text-slate-700'
+                }`}
+              >
+                <span className="flex flex-col">
+                  <span>{opt.label}</span>
+                  <span className="text-xs text-slate-400">{opt.desc}</span>
+                </span>
+                {current === opt.value && <Check size={14} />}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 /** 全屏骨架屏：模拟 Sidebar + Header + 内容区骨架，加载用户信息期间展示，防止页面闪烁 */
 function FullScreenSkeleton() {
@@ -109,6 +177,8 @@ export default function MainLayout() {
 
           {/* 用户信息：头像 + 姓名（从 Store 读取） */}
           <div className="flex items-center gap-3">
+            {/* 仅 dev：接口错误模拟场景下拉（生产构建不含此代码） */}
+            {import.meta.env.DEV && <MockScenarioMenu />}
             <div className="flex items-center gap-2">
               {userInfo?.avatar ? (
                 <img

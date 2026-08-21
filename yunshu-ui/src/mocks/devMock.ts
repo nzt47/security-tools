@@ -800,6 +800,25 @@ export function mockApiPlugin(options: { loginReturnUser: boolean }): Plugin {
   }
 }
 
+/** Dashboard 正常返回（与真实后端 /api/dashboard/summary 结构一致，供未知 mock_error 场景回退） */
+const MOCK_DASHBOARD_SUMMARY = {
+  stats: { totalUsers: 12480, totalOrders: 3926, conversionRate: 3.42, activeUsers: 8153 },
+  trend: [
+    { day: '08-15', visits: 1860 },
+    { day: '08-16', visits: 2130 },
+    { day: '08-17', visits: 1980 },
+    { day: '08-18', visits: 2650 },
+    { day: '08-19', visits: 2420 },
+    { day: '08-20', visits: 2890 },
+    { day: '08-21', visits: 3120 },
+  ],
+  roles: [
+    { name: '普通用户', value: 10640 },
+    { name: '编辑', value: 1560 },
+    { name: '管理员', value: 280 },
+  ],
+}
+
 /** 组件演示专用 Mock：拦截 /api/demo/* 与 /api/export/users，后端无此真实路由，dev 下始终启用（不随 VITE_MOCK_API 开关） */
 export function mockDemoPlugin(): Plugin {
   return {
@@ -808,6 +827,44 @@ export function mockDemoPlugin(): Plugin {
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = req.url ?? ''
+
+        // Dashboard 运营统计异常场景模拟：GET /api/dashboard/summary?mock_error=xxx
+        // 仅带 mock_error 参数时拦截（正常请求放行到真实后端，不影响真实联调）：
+        //   business → code 500 业务错误（测 request.ts 拦截器 toast + 组件空态）
+        //   empty    → code 200 + data null（测组件对空数据的防御）
+        //   invalid  → code 200 + 结构畸形数据（测 api/dashboard 数据校验 warn 日志）
+        if (req.method === 'GET' && url.startsWith('/api/dashboard/summary')) {
+          const searchParams = new URL(url, 'http://localhost').searchParams
+          const scenario = searchParams.get('mock_error') ?? ''
+          if (scenario) {
+            setTimeout(() => {
+              switch (scenario) {
+                case 'business':
+                  sendJson(res, 200, { code: 500, data: null, message: '服务器内部错误，请稍后重试' })
+                  break
+                case 'empty':
+                  sendJson(res, 200, { code: 200, data: null, message: 'success' })
+                  break
+                case 'invalid':
+                  // 畸形数据：stats.totalUsers 为字符串、trend 缺 visits、roles 为空
+                  sendJson(res, 200, {
+                    code: 200,
+                    data: {
+                      stats: { totalUsers: '不是数字', totalOrders: 3926, conversionRate: 3.42, activeUsers: 8153 },
+                      trend: [{ day: '08-15' }, { day: '08-16', visits: 9999 }],
+                      roles: [],
+                    },
+                    message: 'success',
+                  })
+                  break
+                default:
+                  // 未知场景回退正常数据
+                  sendJson(res, 200, { code: 200, data: MOCK_DASHBOARD_SUMMARY, message: 'success' })
+              }
+            }, MOCK_DELAY)
+            return
+          }
+        }
 
         // 邮箱校验模拟接口（Demo 页失焦校验用，便于测试网络异常场景）
         // - 不含 @        → 业务错误（HTTP 200 + code 400，拦截器 toast + 页内提示）

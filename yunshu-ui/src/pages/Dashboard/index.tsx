@@ -5,7 +5,7 @@
  *   - 顶部 4 张统计卡片（总用户 / 总订单 / 转化率 / 活跃用户）
  *   - 折线图：近 7 天访问趋势
  *   - 饼图：用户角色分布
- * 数据源：组件内 Mock 数据（后续接入后端时替换为 API 调用）
+ * 数据源：后端 GET /api/dashboard/summary（src/api/dashboard.ts）
  * 样式：与 Mosaic Admin 一致 —— 白色卡片 + 细边框 + 轻阴影 + 圆角
  */
 import {
@@ -22,84 +22,23 @@ import {
   YAxis,
 } from 'recharts'
 import { useEffect, useRef, useState } from 'react'
-import { Activity, Percent, ShoppingCart, Users, type LucideIcon } from 'lucide-react'
-
-/* ---------------------------------- Mock 数据 ---------------------------------- */
-
-/** 近 7 天访问趋势（单位：次） */
-const visitTrend = [
-  { day: '08-12', visits: 1860 },
-  { day: '08-13', visits: 2130 },
-  { day: '08-14', visits: 1980 },
-  { day: '08-15', visits: 2650 },
-  { day: '08-16', visits: 2420 },
-  { day: '08-17', visits: 2890 },
-  { day: '08-18', visits: 3120 },
-]
-
-/** 用户角色分布（单位：人） */
-const roleDistribution = [
-  { name: '普通用户', value: 10640 },
-  { name: '编辑', value: 1560 },
-  { name: '管理员', value: 280 },
-]
+import { Activity, Loader2, Percent, ShoppingCart, Users, type LucideIcon } from 'lucide-react'
+import { getDashboardSummary, DASHBOARD_MOCK_ERROR_KEY, type DashboardSummaryData } from '@/api/dashboard'
+import { logger } from '@/utils/logger'
 
 /** 饼图色板（与模板 slate/indigo 色系保持一致） */
 const PIE_COLORS = ['#6366f1', '#38bdf8', '#94a3b8']
 
-/** 统计卡片配置 */
+/** 统计卡片展示配置（value 由接口数据格式化后填充） */
 interface StatCardConfig {
   title: string
   value: string
-  /** 环比变化文案（正负号与百分比） */
-  delta: string
-  /** 环比是否向好（决定 delta 的绿/红配色） */
-  positive: boolean
   icon: LucideIcon
   /** 图标容器背景色 */
   iconBg: string
   /** 图标颜色 */
   iconColor: string
 }
-
-const statCards: StatCardConfig[] = [
-  {
-    title: '总用户数',
-    value: '12,480',
-    delta: '+12.5%',
-    positive: true,
-    icon: Users,
-    iconBg: 'bg-indigo-50',
-    iconColor: 'text-indigo-600',
-  },
-  {
-    title: '总订单数',
-    value: '3,926',
-    delta: '+8.2%',
-    positive: true,
-    icon: ShoppingCart,
-    iconBg: 'bg-sky-50',
-    iconColor: 'text-sky-600',
-  },
-  {
-    title: '转化率',
-    value: '3.42%',
-    delta: '-0.3%',
-    positive: false,
-    icon: Percent,
-    iconBg: 'bg-amber-50',
-    iconColor: 'text-amber-600',
-  },
-  {
-    title: '活跃用户',
-    value: '8,153',
-    delta: '+5.7%',
-    positive: true,
-    icon: Activity,
-    iconBg: 'bg-emerald-50',
-    iconColor: 'text-emerald-600',
-  },
-]
 
 /* ---------------------------------- 子组件 ---------------------------------- */
 
@@ -112,14 +51,6 @@ function StatCard({ config }: { config: StatCardConfig }) {
         <div>
           <p className="text-sm text-slate-500">{config.title}</p>
           <p className="mt-2 text-3xl font-bold tracking-tight text-slate-800">{config.value}</p>
-          <p
-            className={`mt-2 text-xs font-medium ${
-              config.positive ? 'text-emerald-600' : 'text-rose-500'
-            }`}
-          >
-            {config.delta}
-            <span className="ml-1 font-normal text-slate-400">较上周期</span>
-          </p>
         </div>
         <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg ${config.iconBg}`}>
           <Icon className={`h-5 w-5 ${config.iconColor}`} />
@@ -204,6 +135,83 @@ function ChartContainer({ label, children }: { label: string; children: React.Re
 /* ---------------------------------- 页面 ---------------------------------- */
 
 export default function Dashboard() {
+  const [data, setData] = useState<DashboardSummaryData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // 挂载时拉取运营统计总览；组件卸载后不再写入状态（防内存泄漏告警）
+  useEffect(() => {
+    let cancelled = false
+    // 仅 dev：读取 Header「接口场景」下拉写入的模拟开关，附加 mock_error 参数供 devMock 拦截
+    const mockError = import.meta.env.DEV ? (localStorage.getItem(DASHBOARD_MOCK_ERROR_KEY) ?? undefined) : undefined
+    logger.info('[Dashboard] 开始加载仪表盘数据', mockError ? { mockError } : {})
+    getDashboardSummary(mockError ? { mockError } : {})
+      .then((res) => {
+        if (cancelled) return
+        setData(res)
+        logger.info('[Dashboard] 仪表盘数据加载完成', { trendDays: res.trend.length, rolesCount: res.roles.length })
+      })
+      .catch(() => {
+        // 错误提示已由 request.ts 统一处理（toast + reject），此处记录日志便于定位
+        logger.warn('[Dashboard] 仪表盘数据加载失败（详见上方 [dashboard] 请求错误日志）')
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // 加载中：居中 spinner
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+      </div>
+    )
+  }
+
+  // 加载失败（request.ts 已 toast 提示）
+  if (!data) {
+    return (
+      <div className="flex h-64 items-center justify-center text-sm text-slate-400">
+        数据加载失败，请稍后重试
+      </div>
+    )
+  }
+
+  // 统计卡片：数值来自接口（千分位 / 百分比格式化）
+  const statCards: StatCardConfig[] = [
+    {
+      title: '总用户数',
+      value: data.stats.totalUsers.toLocaleString(),
+      icon: Users,
+      iconBg: 'bg-indigo-50',
+      iconColor: 'text-indigo-600',
+    },
+    {
+      title: '总订单数',
+      value: data.stats.totalOrders.toLocaleString(),
+      icon: ShoppingCart,
+      iconBg: 'bg-sky-50',
+      iconColor: 'text-sky-600',
+    },
+    {
+      title: '转化率',
+      value: `${data.stats.conversionRate}%`,
+      icon: Percent,
+      iconBg: 'bg-amber-50',
+      iconColor: 'text-amber-600',
+    },
+    {
+      title: '活跃用户',
+      value: data.stats.activeUsers.toLocaleString(),
+      icon: Activity,
+      iconBg: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
+    },
+  ]
+
   return (
     <div className="space-y-4">
       {/* 统计卡片：1 列 → 2 列 → 4 列（小屏自动堆叠） */}
@@ -219,7 +227,7 @@ export default function Dashboard() {
           <ChartCard title="访问趋势" subtitle="近 7 天访问量（次）">
             <ChartContainer label="访问趋势折线图">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={visitTrend} margin={{ top: 8, right: 16, bottom: 0, left: -16 }}>
+                <LineChart data={data.trend} margin={{ top: 8, right: 16, bottom: 0, left: -16 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                   <XAxis dataKey="day" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 12, fill: '#64748b' }} axisLine={false} tickLine={false} />
@@ -243,7 +251,7 @@ export default function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={roleDistribution}
+                  data={data.roles}
                   dataKey="value"
                   nameKey="name"
                   cx="50%"
@@ -252,8 +260,8 @@ export default function Dashboard() {
                   outerRadius={80}
                   paddingAngle={3}
                 >
-                  {roleDistribution.map((entry) => (
-                    <Cell key={entry.name} fill={PIE_COLORS[roleDistribution.indexOf(entry) % PIE_COLORS.length]} />
+                  {data.roles.map((entry) => (
+                    <Cell key={entry.name} fill={PIE_COLORS[data.roles.indexOf(entry) % PIE_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip contentStyle={tooltipStyle} formatter={(value) => [`${value} 人`]} />
