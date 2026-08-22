@@ -7,12 +7,15 @@
       "type": "validator",
       "expression": "isinstance(result, (int, float)) and result == 15"
     },
-    "created_at": "2026-08-12T00:00:00",
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "n": 5
       },
-      "note": "校验 sum(1..5)==15"
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "校验 sum(1..5)==15",
+      "input_hash": "a65c2cebc373ef58"
     }
   },
   {
@@ -23,12 +26,15 @@
       "type": "validator",
       "expression": "isinstance(result, bool) and result is True"
     },
-    "created_at": "2026-08-12T00:00:00",
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "text": "level"
       },
-      "note": "校验回文判定"
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "校验回文判定",
+      "input_hash": "5d4ea6b3f0404e6b"
     }
   },
   {
@@ -39,12 +45,15 @@
       "type": "validator",
       "expression": "isinstance(result, (int, float)) and result == 55"
     },
-    "created_at": "2026-08-12T00:00:00",
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "n": 10
       },
-      "note": "校验斐波那契第 10 项==55"
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "校验斐波那契第 10 项==55",
+      "input_hash": "34f8be14768a2c94"
     }
   },
   {
@@ -55,7 +64,7 @@
       "type": "validator",
       "expression": "isinstance(result, int) and result == 3"
     },
-    "created_at": "2026-08-12T00:00:00",
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "items": [
@@ -67,7 +76,10 @@
           3
         ]
       },
-      "note": "校验去重后个数==3"
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "校验去重后个数==3",
+      "input_hash": "3d8a9d117945b090"
     }
   },
   {
@@ -78,12 +90,159 @@
       "type": "validator",
       "expression": "isinstance(result, str) and result == 'HELLO'"
     },
-    "created_at": "2026-08-12T00:00:00",
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "text": "hello"
       },
-      "note": "校验大写转换"
+      "difficulty": "TRIVIAL",
+      "source": "manual",
+      "note": "校验大写转换",
+      "input_hash": "e0d5391ffb80415e"
+    }
+  },
+  {
+    "id": "code-006",
+    "category": "code",
+    "task": "实现一个函数：反转输入字符串",
+    "expected_output": {
+      "type": "validator",
+      "expression": "isinstance(result, str) and result == 'cba'"
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "text": "abc"
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "校验字符串反转",
+      "input_hash": "332108c3b0e3f02c"
+    }
+  },
+  {
+    "id": "code-007",
+    "category": "code",
+    "task": "实现一个函数：返回输入列表的元素之和",
+    "expected_output": {
+      "type": "validator",
+      "expression": "isinstance(result, (int, float)) and result == 10"
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "items": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "校验列表求和==10",
+      "input_hash": "6cd3bf020cd1bd96"
+    }
+  },
+  {
+    "id": "code-008",
+    "category": "code",
+    "task": "实现一个函数：判断输入整数是否为质数",
+    "expected_output": {
+      "type": "validator",
+      "expression": "isinstance(result, bool) and result is True"
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "n": 17
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "校验质数判定",
+      "input_hash": "bb44c29e797780de"
+    }
+  },
+  {
+    "id": "code-009",
+    "category": "code",
+    "task": "实现一个函数：计算两个整数的最大公约数",
+    "expected_output": {
+      "type": "validator",
+      "expression": "isinstance(result, (int, float)) and result == 6"
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "a": 12,
+        "b": 18
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "校验 gcd(12,18)==6",
+      "input_hash": "83728f9a5720602f"
+    }
+  },
+  {
+    "id": "code-010",
+    "category": "code",
+    "task": "实现一个函数：返回输入字符串的长度",
+    "expected_output": {
+      "type": "validator",
+      "expression": "isinstance(result, int) and result == 5"
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "text": "hello"
+      },
+      "difficulty": "TRIVIAL",
+      "source": "manual",
+      "note": "校验字符串长度==5",
+      "input_hash": "e42e5cdfa7716cb3"
+    }
+  },
+  {
+    "id": "code-011",
+    "category": "code",
+    "task": "实现一个函数：合并两个字典并返回合并结果",
+    "expected_output": {
+      "type": "validator",
+      "expression": "isinstance(result, dict) and result.get('b') == 2"
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "a": {
+          "x": 1
+        },
+        "b": {
+          "y": 2
+        }
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "校验字典合并",
+      "input_hash": "a19ab33bf72ef89e"
+    }
+  },
+  {
+    "id": "code-012",
+    "category": "code",
+    "task": "实现一个函数：计算 2 的 n 次方",
+    "expected_output": {
+      "type": "validator",
+      "expression": "isinstance(result, (int, float)) and result == 1024"
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "n": 10
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "校验 2^10==1024",
+      "input_hash": "8957d5d2172f7767"
     }
   }
 ]

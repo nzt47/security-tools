@@ -185,6 +185,23 @@ def _env_schedule_enabled() -> bool:
         "1", "true", "yes", "on")
 
 
+def _env_regression_gate_mode() -> str:
+    """评估集回归门禁模式（EVOLUTION_REGRESSION_GATE，默认 warn_only）
+
+    off:        完全不调用回归门禁（零开销）
+    warn_only:  门禁运行但只读告警（FAIL/NO_SAMPLES 仅日志，不拦截提交）
+    enforce:    门禁拦截（FAIL/NO_SAMPLES/budget_exceeded → 记录谱系 rejected 并跳过提交）
+
+    Why 默认 warn_only: 守"上线即改行为"风险——正式拦截需显式配置开启。
+    """
+    return os.getenv("EVOLUTION_REGRESSION_GATE", "warn_only").strip().lower()
+
+
+def _env_regression_set_version() -> str:
+    """回归门禁默认样本集版本（EVAL_REGRESSION_DEFAULT_SET，默认 v1）"""
+    return os.getenv("EVAL_REGRESSION_DEFAULT_SET", "v1").strip() or "v1"
+
+
 def _env_cron_expr(default: str) -> str:
     return os.getenv("EVOLUTION_CRON_EXPR", default).strip()
 
@@ -304,7 +321,8 @@ class OfflineEvolver:
                  archive: Optional[EvolutionArchive] = None,
                  parent_selector: Optional[ParentSelector] = None,
                  evaluator_factory: Optional[Callable[[Skill], Any]] = None,
-                 max_tokens_per_round: Optional[int] = None):
+                 max_tokens_per_round: Optional[int] = None,
+                 regression_gate: Optional[Any] = None):
         """
         Args:
             store: 技能存储
@@ -319,6 +337,9 @@ class OfflineEvolver:
             evaluator_factory: 评估器工厂 callable(skill)->evaluator；None 时按
                 EVOLUTION_DEFAULT_EVALUATOR 自动构建（real=任务 2 真实评估器）
             max_tokens_per_round: 每轮 token 预算（None=读 .env）
+            regression_gate: 评估集回归门禁（任务1）。None=按配置惰性构建
+                （EVOLUTION_REGRESSION_GATE 控制 off/warn_only/enforce，默认 warn_only）；
+                注入实例（RegressionGate/桩）时绕过配置惰性构建，直接复用。
         """
         self._store = store
         self._enhancer = enhancer
@@ -331,6 +352,7 @@ class OfflineEvolver:
         self._parent_selector = parent_selector or ParentSelector(
             self._archive, rng=self._rng)
         self._evaluator_factory = evaluator_factory
+        self._regression_gate = regression_gate  # 任务1 回归门禁（None=按配置惰性构建）
         self._max_tokens_per_round = (
             max_tokens_per_round if max_tokens_per_round is not None
             else _env_max_tokens_per_round())
@@ -839,6 +861,44 @@ class OfflineEvolver:
                         }, ensure_ascii=False))
                         return result
 
+                # 护栏 3: 评估集回归门禁（任务1）——默认 warn_only 只读告警，enforce 拦截
+                # 【语义】进化候选需通过门禁方可提交：FAIL/NO_SAMPLES/budget_exceeded 时，
+                # warn_only → 只读告警继续提交（守"上线即改行为"风险）；
+                # enforce → 记录谱系 decision=rejected 并跳过提交。
+                reg_result = self._check_regression_gate(
+                    skill, best, evaluator, trigger)
+                if reg_result is not None and reg_result.status != "PASS":
+                    reg_mode = _env_regression_gate_mode()
+                    reg_reason = (
+                        f"评估集回归未通过: status={reg_result.status} "
+                        f"score={reg_result.score:.4f} "
+                        f"baseline={reg_result.baseline_score} "
+                        f"delta={reg_result.delta_vs_baseline} "
+                        f"set={reg_result.sampleset_version} "
+                        f"mode={reg_mode}")
+                    if reg_mode == "enforce":
+                        rejected_id = self._record_round(
+                            skill_id, decision="rejected",
+                            reason=reg_reason,
+                            parent_record_id=parent_record_id,
+                            trigger=trigger,
+                            eval_result=reg_result.eval_result or best.eval_result,
+                            cost=cost, params=dict(best.params),
+                            parent_version=parent_version)
+                        result.committed = False
+                        result.decision = "rejected"
+                        result.record_id = rejected_id
+                        result.error = reg_reason
+                        self._round_ctx = {}
+                        logger.warning(json.dumps({
+                            "module_name": "offline_evolver",
+                            "action": "evolve_once.regression_gate_rejected",
+                            "skill_id": skill_id,
+                            "reason": reg_reason,
+                        }, ensure_ascii=False))
+                        return result
+                    # warn_only: 只读告警，继续提交（decision 仍为 committed）
+
                 # 原直连提交路径（无守卫 / 审批 L0 自动放行）
                 committed = self._commit(best)
                 record_id = self._round_ctx.pop("record_id", "")
@@ -1262,6 +1322,93 @@ class OfflineEvolver:
         except Exception as e:  # noqa: BLE001
             logger.warning(
                 "[OfflineEvolver] 默认真实评估器构建失败，回退启发式: %s", e)
+            return None
+
+    # ════════════════════════════════════════════════════════════
+    #  任务1：评估集回归门禁钩子（提交判定处）
+    # ════════════════════════════════════════════════════════════
+
+    def _check_regression_gate(self, skill: Skill, variant: Variant,
+                               evaluator: Optional[Any],
+                               trigger: str) -> Optional[Any]:
+        """提交判定处的评估集回归门禁钩子（任务1）
+
+        模式（EVOLUTION_REGRESSION_GATE，默认 warn_only）:
+            off:        不调用门禁（返回 None，零开销）
+            warn_only:  门禁运行但只读告警——FAIL/NO_SAMPLES/budget_exceeded
+                        仅日志告警，不拦截提交（守"上线即改行为"风险）
+            enforce:    门禁拦截——非 PASS 时由调用方记录谱系 rejected 并跳过提交
+
+        返回:
+            RegressionResult（门禁可用时）或 None（off / 构建失败 / 无评估器不可判定）
+
+        【不易】门禁异常绝不阻断提交：任何异常 → 返回 None 并告警（提交优先）。
+        """
+        mode = _env_regression_gate_mode()
+        if mode == "off":
+            return None
+        # 门禁需要真实评估能力：无评估器（启发式占位路径）→ 无法判定，跳过（不伪造）
+        if evaluator is None:
+            logger.info(
+                "[OfflineEvolver] 回归门禁跳过 skill=%s: 无真实评估器（启发式路径，不伪造指标）",
+                skill.id)
+            return None
+        try:
+            gate = self._resolve_regression_gate()
+            if gate is None:
+                return None
+            version = _env_regression_set_version()
+            # warn_only + 无基线 → 跳过评估（零行为变化：无基线无从比较，不额外消耗）
+            # 基线由显式门禁 CLI 或 enforce 模式建立。
+            if mode == "warn_only" and not gate.has_baseline(skill.id, version):
+                logger.info(
+                    "[OfflineEvolver] 回归门禁 warn_only 无基线，跳过评估 skill=%s "
+                    "set=%s（基线由 CLI/enforce 建立后生效）", skill.id, version)
+                return None
+            # 首次（enforce）：以当前技能（params=None）建立基线，再评估变异体。
+            # Why 顺序: 基线须代表"进化前标准"，不能用变异体分数当基线（防坏候选抬高基线）。
+            if not gate.has_baseline(skill.id, version):
+                logger.info(
+                    "[OfflineEvolver] 回归门禁首次建立基线 skill=%s set=%s "
+                    "（以当前技能评估为准）", skill.id, version)
+                gate.evaluate(skill, params=None, sampleset_version=version,
+                              evaluator=evaluator, record_baseline=True)
+            result = gate.evaluate(
+                skill, params=variant.params,
+                sampleset_version=version,
+                evaluator=evaluator)
+            if result.status != "PASS":
+                logger.warning(
+                    "[OfflineEvolver] 回归门禁 mode=%s skill=%s status=%s "
+                    "score=%.4f baseline=%s delta=%s set=%s （%s）",
+                    mode, skill.id, result.status, result.score,
+                    result.baseline_score, result.delta_vs_baseline,
+                    result.sampleset_version,
+                    "只读告警不拦截" if mode == "warn_only" else "将拦截提交")
+            else:
+                logger.info(
+                    "[OfflineEvolver] 回归门禁 PASS skill=%s score=%.4f "
+                    "baseline=%s delta=%s set=%s",
+                    skill.id, result.score, result.baseline_score,
+                    result.delta_vs_baseline, result.sampleset_version)
+            return result
+        except Exception as e:  # noqa: BLE001 门禁异常绝不阻断提交
+            logger.warning(
+                "[OfflineEvolver] 回归门禁调用异常（不阻断提交）skill=%s: %s",
+                skill.id, e)
+            return None
+
+    def _resolve_regression_gate(self) -> Optional[Any]:
+        """解析回归门禁：显式注入 > 惰性构建（异常 → None 并告警）"""
+        if self._regression_gate is not None:
+            return self._regression_gate
+        try:
+            from .eval_regression import RegressionGate
+            self._regression_gate = RegressionGate()
+            return self._regression_gate
+        except Exception as e:  # noqa: BLE001 门禁不可用 → 跳过（不阻断进化）
+            logger.warning(
+                "[OfflineEvolver] 回归门禁构建失败（跳过，不阻断进化）: %s", e)
             return None
 
     def _select_parent(self, skill_id: str) -> Optional[EvolutionRecord]:

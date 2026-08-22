@@ -1,0 +1,148 @@
+[
+  {
+    "id": "tool-001",
+    "category": "tool",
+    "task": "使用计算器工具计算 123 乘以 456 的结果",
+    "expected_output": {
+      "type": "json",
+      "key": "result",
+      "value": 56088
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "expression": "123 * 456"
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "工具类样本：计算器",
+      "input_hash": "4c65778c5ac6eb50"
+    }
+  },
+  {
+    "id": "tool-002",
+    "category": "tool",
+    "task": "使用时间工具获取当前 Unix 时间戳（秒级整数）",
+    "expected_output": {
+      "type": "validator",
+      "expression": "isinstance(result, (int, float)) and result > 1700000000"
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "kind": "unix_ts"
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "工具类样本：时间工具",
+      "input_hash": "49123147b970d06d"
+    }
+  },
+  {
+    "id": "tool-003",
+    "category": "tool",
+    "task": "使用搜索工具查询「云枢 Digital Life」官网",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "云枢"
+      ]
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "query": "云枢 Digital Life 官网"
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "工具类样本：搜索工具",
+      "input_hash": "acac188b503ca451"
+    }
+  },
+  {
+    "id": "tool-004",
+    "category": "tool",
+    "task": "使用文件工具列出指定目录下的文件名称",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "文件"
+      ]
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "dir": "/tmp",
+        "action": "list"
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "工具类样本：文件工具",
+      "input_hash": "b25d20c8b79e456d"
+    }
+  },
+  {
+    "id": "tool-005",
+    "category": "tool",
+    "task": "使用天气工具查询上海今日天气",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "上海"
+      ]
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "city": "上海"
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "工具类样本：天气工具",
+      "input_hash": "60d169139bcc360f"
+    }
+  },
+  {
+    "id": "tool-006",
+    "category": "tool",
+    "task": "使用代码执行工具运行 print(1+1) 并返回输出",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "2"
+      ]
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "code": "print(1+1)"
+      },
+      "difficulty": "TRIVIAL",
+      "source": "manual",
+      "note": "工具类样本：代码执行",
+      "input_hash": "565da75c57024e9e"
+    }
+  },
+  {
+    "id": "tool-007",
+    "category": "tool",
+    "task": "使用翻译工具将「你好」翻译为英文",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "hello"
+      ]
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "text": "你好",
+        "target": "en"
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "工具类样本：翻译工具",
+      "input_hash": "79d4f29d17835ba0"
+    }
+  }
+]

@@ -56,6 +56,28 @@ def enforce_review(skill, *, force: bool = False, actor: str = "reviewer",
         audit_exemption(skill.id, actor=actor,
                         reason=reason or "explicit_waiver")
 
+    # 任务1：发布前置回归门禁查询（只读，不拦截）
+    # 【接线】TASK-04 发布审核链前置回归门禁查询：仅读取基线状态并记录日志，
+    # 不评估、不写盘、不阻断发布（零行为变化；无基线/查询失败静默跳过）。
+    regression_note = _query_regression_note(skill.id)
+    if regression_note:
+        logger.info("[ReviewGate] 回归门禁查询 skill=%s: %s", skill.id, regression_note)
+
+
+def _query_regression_note(skill_id: str) -> str:
+    """只读查询技能回归基线状态（任务1 接线）；无数据/异常返回空串"""
+    try:
+        from .eval_regression import query_regression_status
+        status = query_regression_status(skill_id)
+        if status is None:
+            return ""
+        return (f"样本集 {status.get('sampleset_version')} "
+                f"基线分={status.get('baseline_score')} "
+                f"(samples={status.get('sample_count')})")
+    except Exception as e:  # noqa: BLE001 只读查询失败不阻断发布
+        logger.debug("[ReviewGate] 回归门禁查询失败 skill=%s: %s", skill_id, e)
+        return ""
+
 
 def audit_exemption(skill_id: str, *, actor: str, reason: str) -> None:
     """豁免发布审计日志（JSONL 追加；写盘失败仅告警，不阻断发布）。"""
