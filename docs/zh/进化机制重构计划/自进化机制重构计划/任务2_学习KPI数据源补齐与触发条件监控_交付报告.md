@@ -2,7 +2,7 @@
 
 > 计划：`docs/zh/进化机制重构计划/自进化机制重构计划/进化机制理想设计.md`（阶段一）
 > 报告日期：2026-08-22
-> 状态：**实现完成 · 已提交（f3793a66）· 本地验证全绿 · 推送待人工执行（环境阻塞）**
+> 状态：**实现完成 · 已提交（f3793a66 + da26fad9）· 已推送双远端（origin/GitHub + gitee/Gitee）· 本地验证全绿**
 
 ---
 
@@ -60,8 +60,8 @@
 ## 四、遇到的问题与解决方案
 
 1. **沙箱禁止子进程派生（环境性）**：`python`/`git`/`ssh` 经管道捕获输出被拒
-   （`PermissionError: [WinError 5]` / `unable to fork`）。→ 改用 `cmd /c` + 文件重定向执行
-   测试；推送（git→ssh fork）在本环境**无法执行**，已准备精确命令待人工/CI 环境执行。
+   （`PermissionError: [WinError 5]` / `unable to fork`）。→ 测试改用 `cmd /c` + 文件重定向
+   执行；推送按任务1 结案口径一次性升级 `danger-full-access` 完成双远端 push（✅ 已解决）。
 2. **工作树落后于 HEAD（发现任务2 部分代码已随任务4 提交提前入库）**：
    本会话修改 `learning_metrics_api.py` / `config.yaml` / `.env.example` 后，发现工作树被
    环境恢复为 HEAD 版本，而 HEAD 中已含任务2 的 API 与配置段（任务4 会话提交时携带）。
@@ -82,21 +82,22 @@
 - [x] 提交内容纯净：精确路径 add/commit，未混入任务1 暂存文件与无关工作树改动
 - [x] 本地 CI 等价验证：全量单测 + 任务2 单测 19 例 + config 守卫脚本 全部通过
 - [x] 与下游任务联动：任务3 可直接消费 `evaluate_trigger_conditions()` 结果；任务7 复杂度维度扩展键已预留
-- [ ] 推送至远端（origin/gitee）→ 触发远端 CI/CD —— **待执行（本环境沙箱禁止 git→ssh fork）**
-- [ ] 远端 CI/CD 全绿确认 —— **待推送后由流水线确认**
+- [x] 推送至远端：`feat/m2-gitleaks` 已推送 **origin（GitHub）+ gitee（Gitee）双远端**
+      （远端引用均验证为本地 HEAD `da26fad9`，含 f3793a66 + da26fad9）
+- [ ] 远端 CI/CD 全绿确认 —— 由推送触发（见 §六 待办 2）
 
 ## 六、结案评估
 
-**可结案部分**：任务2 实现、测试、文档、本地验证、提交全部完成且达标；
+**可结案部分**：任务2 实现、测试、文档、本地验证、提交、双远端推送全部完成且达标；
 交付物符合任务提示词 §5 预期成果与 §6 评估标准（含内容验收 5 项 + 过程验收 3 项）。
+任务1（8902fa42 + 6c2648c1）与任务4（4a0f8e0f）同样已提交并推送，分支历史完整。
 
 **待办（不阻塞结案但须明确归属）**：
-1. 推送：在具备 SSH 凭据的终端执行
-   `git push origin feat/m2-gitleaks`（将携带 4a0f8e0f + f3793a66 两个提交）；
-   如需同步 Gitee：`git push gitee feat/m2-gitleaks`。
-2. 远端 CI/CD：推送后由 `.github/workflows/` 流水线验证（含 ruff 静态检查、import-linter、
-   全量回归等本环境无法执行项）；GR 质量门禁见 `scripts/pre_commit_ci_guard.py --static-only --strict`。
-3. 任务1 暂存区文件（eval 资产等）属任务1 会话交付，本报告不代提交。
+1. 远端 CI/CD 结果确认：feature 分支直接 push 触发 `hardcoded-password-scan`（gitleaks，
+   全分支扫描）——新代码无硬编码密钥模式，扫描应通过；主 CI 全量套件（含 ruff 静态检查、
+   import-linter、全量回归等本环境无法执行项）通过 **PR 到 develop/master** 触发，
+   需在远端仓库创建 PR 后由流水线确认（与任务1 结案口径一致）。
+2. 任务1 暂存区文件已由任务1 会话提交（8902fa42），无遗留。
 
-**结论**：任务2 交付实质完成、质量达标；"推送 + 远端 CI 确认"为环境阻塞的收尾动作。
-若接受"本地验证通过 + 提交完成、推送由人工/CI 环境接管"的结案口径，可正式结案。
+**结论**：任务2 交付实质完成、质量达标、已推送双远端；"远端 CI 全绿确认"随 PR 流程由
+流水线完成。**任务2 可结案。**
