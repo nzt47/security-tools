@@ -1,4 +1,4 @@
-"""学习动作成本预算护栏 — TASK-03
+"""学习动作成本预算护栏 — TASK-03 / 任务5（enforce 灰度 + 作用范围限定）
 
 把 configs/models.yaml 的 cost_limits 从"纯声明"变为"可执行"：
 
@@ -11,7 +11,17 @@
     * warn_only（默认）：超限仅 WARNING 记录，不拦截——防止上线即改行为；
     * enforce：超限 raise LearningBudgetExceeded（调用方可捕获后降级/跳过）。
 
+作用范围（scope，任务5 灰度前置，代码审计可证）:
+    - 本护栏**只被学习动作调用**（进化评估/沉淀/反思/Judge 通道等，见 LEARNING_ACTION_SCOPE
+      白名单与 MAIN_CHAIN_EXCLUDED 排除清单），enforce 模式因此**天然不触碰主链路**：
+      主链路（orchestrator / 对话 / 工具调用 / 工作流）零 import、零调用本模块
+      （grep 审计：`with_budget|get_learning_budget` 全部命中学习侧文件）。
+    - config.yaml `learning.budget.scope` 显式声明（默认 learning_actions），
+      仅作审计可读的声明字段，不改变 enforce 拦截语义（拦截只发生在显式调用
+      with_budget 的学习动作上）。
+
 【不易】不修改 rate_limiter / circuit_breaker 任何语义，仅按现有 API 组装；
+        不拦截任何未显式经过 with_budget 的调用（主链路零影响由"零调用方"保证）；
         配置优先级：环境变量 > config.yaml learning.budget > models.yaml cost_limits > 硬编码默认值。
 【变易】bucket/breaker 可注入（默认走全局熔断器注册表），便于测试隔离与扩展。
 【简易】with_budget(action, estimated_tokens) 上下文管理器即全部对外契约。
@@ -38,6 +48,29 @@ _DEFAULT_MAX_DAILY_TOKENS = 1_000_000
 _DEFAULT_RECOVERY_SECONDS = 3600
 
 _VALID_MODES = ("warn_only", "enforce")
+
+# ── 任务5：作用范围声明（enforce 灰度前置；代码审计可证的"学习动作边界"）──
+# LEARNING_ACTION_SCOPE：本护栏服务的"学习动作"白名单（action_name 约定）
+LEARNING_ACTION_SCOPE = (
+    "offline_evolve",      # 离线进化评估（offline_evolver）
+    "feedback_agent",      # 反馈建议执行体
+    "lifecycle_migrate",   # 技能生命周期迁移
+    "precipitate",         # 经验沉淀
+    "reflection",          # 反思评估
+    "judge_channel",       # 任务5：LLM-as-Judge dry-run 通道
+)
+# MAIN_CHAIN_EXCLUDED：主链路排除清单（enforce 明确不作用的对象）
+# 主链路（对话/工具/工作流/路由等）零调用本模块，此处声明仅作审计可读依据；
+# 新增主链路消费方属违规（pre-commit 静态扫描可据此断言零调用）。
+MAIN_CHAIN_EXCLUDED = (
+    "orchestrator",      # 对话编排主流程
+    "tool_calling",      # 工具调用执行
+    "workflow_engine",   # 工作流引擎
+    "model_router",      # 模型路由
+    "server_routes",     # API 服务层
+    "feedback",          # 用户反馈信号采集（非学习动作）
+)
+_DEFAULT_SCOPE = "learning_actions"
 
 
 class LearningBudgetExceeded(Exception):
@@ -77,6 +110,7 @@ def _load_budget_config() -> Dict[str, Any]:
     """
     cfg: Dict[str, Any] = {
         "mode": _DEFAULT_MODE,
+        "scope": _DEFAULT_SCOPE,
         "max_single_action_tokens": _DEFAULT_MAX_SINGLE_ACTION_TOKENS,
         "max_daily_tokens": _DEFAULT_MAX_DAILY_TOKENS,
         "recovery_seconds": _DEFAULT_RECOVERY_SECONDS,
@@ -105,7 +139,7 @@ def _load_budget_config() -> Dict[str, Any]:
             with open(cpath, "r", encoding="utf-8") as f:
                 data = _yaml.safe_load(f) or {}
             budget_cfg = (data.get("learning") or {}).get("budget") or {}
-            for key in ("mode", "max_single_action_tokens", "max_daily_tokens", "recovery_seconds"):
+            for key in ("mode", "scope", "max_single_action_tokens", "max_daily_tokens", "recovery_seconds"):
                 if key in budget_cfg and budget_cfg[key] is not None:
                     cfg[key] = budget_cfg[key]
     except Exception as e:
@@ -114,6 +148,7 @@ def _load_budget_config() -> Dict[str, Any]:
     # 3) 环境变量（最高优先级）
     env_map = {
         "mode": os.environ.get("LEARNING_BUDGET_MODE"),
+        "scope": os.environ.get("LEARNING_BUDGET_SCOPE"),
         "max_single_action_tokens": os.environ.get("LEARNING_BUDGET_MAX_SINGLE_ACTION_TOKENS"),
         "max_daily_tokens": os.environ.get("LEARNING_BUDGET_MAX_DAILY_TOKENS"),
         "recovery_seconds": os.environ.get("LEARNING_BUDGET_RECOVERY_SECONDS"),
@@ -122,10 +157,11 @@ def _load_budget_config() -> Dict[str, Any]:
         if raw is None or not str(raw).strip():
             continue
         try:
-            cfg[key] = str(raw).strip().lower() if key == "mode" else float(str(raw).strip())
+            cfg[key] = str(raw).strip().lower() if key in ("mode", "scope") else float(str(raw).strip())
         except (ValueError, TypeError):
             logger.warning("[学习预算] 环境变量 %s 非法值已忽略: %s",
                            {"mode": "LEARNING_BUDGET_MODE",
+                            "scope": "LEARNING_BUDGET_SCOPE",
                             "max_single_action_tokens": "LEARNING_BUDGET_MAX_SINGLE_ACTION_TOKENS",
                             "max_daily_tokens": "LEARNING_BUDGET_MAX_DAILY_TOKENS",
                             "recovery_seconds": "LEARNING_BUDGET_RECOVERY_SECONDS"}[key], raw)
@@ -155,6 +191,7 @@ class LearningBudget:
         cfg = dict(config or {})
         for key, default in (
             ("mode", _DEFAULT_MODE),
+            ("scope", _DEFAULT_SCOPE),
             ("max_single_action_tokens", _DEFAULT_MAX_SINGLE_ACTION_TOKENS),
             ("max_daily_tokens", _DEFAULT_MAX_DAILY_TOKENS),
             ("recovery_seconds", _DEFAULT_RECOVERY_SECONDS),
@@ -164,6 +201,8 @@ class LearningBudget:
         self.mode = str(cfg["mode"]).strip().lower()
         if self.mode not in _VALID_MODES:
             self.mode = _DEFAULT_MODE
+        # 任务5：作用范围声明字段（仅审计可读；拦截语义不变——只拦截显式 with_budget 调用）
+        self.scope = str(cfg.get("scope") or _DEFAULT_SCOPE).strip().lower() or _DEFAULT_SCOPE
         self.max_single_action_tokens = max(0, int(cfg["max_single_action_tokens"]))
         self.max_daily_tokens = max(1, int(cfg["max_daily_tokens"]))
         self.recovery_seconds = max(0.0, float(cfg["recovery_seconds"]))
@@ -276,6 +315,7 @@ class LearningBudget:
         with self._lock:
             return {
                 "mode": self.mode,
+                "scope": self.scope,
                 "max_single_action_tokens": self.max_single_action_tokens,
                 "max_daily_tokens": self.max_daily_tokens,
                 "recovery_seconds": self.recovery_seconds,
@@ -412,4 +452,6 @@ __all__ = [
     "LearningBudgetExceeded",
     "get_learning_budget",
     "reset_learning_budget",
+    "LEARNING_ACTION_SCOPE",
+    "MAIN_CHAIN_EXCLUDED",
 ]

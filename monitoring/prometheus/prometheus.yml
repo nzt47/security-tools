@@ -16,6 +16,7 @@ rule_files:
   - 'alert_rules.yml'
   - 'rules/lock_watchdog_alerts.yml'
   - 'rules/learning_trigger_alerts.yml'
+  - 'rules/learning_judge_alerts.yml'
 
 scrape_configs:
   # 云枢 V2 应用指标

@@ -19,6 +19,21 @@ KPI 口径（详见 docs/zh/智能体学习机制重构计划/变更说明/TASK-
 - KPI#7 最小候选基数：learning.metrics.min_candidates（默认 5），
   get_snapshot() 的 evolution_adoption_rate 增 insufficient_data / min_candidates 扩展字段。
 
+任务7 新增（纯增量，向后兼容；复杂度判定源统一后 judged_complexity 随路由元数据进入聚合）：
+- record_task_result 的 judged_complexity 扩展键升级为 task_type × complexity 双维度：
+  get_snapshot() 增 failure_rate_by_task_type_complexity（嵌套 task_type → complexity →
+  {total, failed, rate}），get_weekly_kpis() 周行同口径；不改变 task_type 既有聚合。
+- 单维度复杂度桶（_complexity_results / complexity_failure_rate，任务2 预留）保留，
+  与双维度桶并列（课程难度自适应策略读双维度口径，见 agent/learning/curriculum.py）。
+
+任务5 新增（纯增量，双假设判别的数据源；**绝不触碰 KPI#7 既有口径**）：
+- record_judge_result 记录 Judge dry-run 通道逐候选结果（rule_verdict / judge_verdict /
+  disagreement / judge_status / tokens_used），独立于 KPI#7（不写 _evolution_candidates/
+  _evolution_adopted，零干预采纳决策）；
+- get_snapshot() 增 judge_dryrun 扩展节（judge_disagreement_rate / judge_implied_adoption_rate
+  等，见任务5 判别报告口径）；get_weekly_kpis() 每行增 judge 扩展节（周级判别数据源）；
+- get_judge_dryrun_stats()：判别报告专用只读聚合（样本量/分歧率/两通道采纳率/token 成本）。
+
 【不易】埋点为纯增量可观测层：不改变任何业务行为；所有 record_* 内部 try/except，
         埋点异常绝不影响主链路（验收：埋点全部挂掉时主链路零影响）。
 【变易】collector 可注入（默认系统全局 MetricsCollector），便于测试隔离与扩展；
@@ -199,6 +214,10 @@ class LearningMetrics:
         # ── 复杂度维度失败率（任务2 扩展，KPI#4 复杂度维度预留；不影响 task_type 口径）──
         self._complexity_results: Dict[str, Dict[str, int]] = defaultdict(
             lambda: {"total": 0, "failed": 0})
+        # ── task_type × complexity 双维度失败率（任务7 扩展，KPI#4 双维度口径；
+        #    键 (task_type, complexity)；课程难度自适应策略消费，见 curriculum.py）──
+        self._task_cx_results: Dict[Tuple[str, str], Dict[str, int]] = defaultdict(
+            lambda: {"total": 0, "failed": 0})
         # ── 日粒度事件镜像（任务2：周级滚动统计/触发判定的数据源）──
         # (day, kind, key) -> [val, cnt]；与 SQLite lm_daily_agg 同形同源；
         # 持久化开启时二者同步写，默认关闭时内存镜像独立工作（周级统计不依赖持久化）
@@ -212,6 +231,15 @@ class LearningMetrics:
         # ── 进化采纳率 ──
         self._evolution_candidates = 0
         self._evolution_adopted = 0
+        # ── 任务5：Judge dry-run 双通道判别（独立于 KPI#7，零干预采纳决策）──
+        # 与日粒度事件镜像 _daily_events 同源同形；周级/快照聚合据此计算
+        self._judge_candidates = 0          # 进入 dry-run 通道的候选数
+        self._judge_judged = 0              # Judge 通道产出有效判定的候选数
+        self._judge_rule_adopted = 0        # 其中规则通道判 accept 数
+        self._judge_implied_adopted = 0     # 其中 Judge 判 accept 数（若按 Judge 判定会采纳数）
+        self._judge_disagreements = 0       # 两通道分歧数
+        self._judge_budget_blocked = 0      # 预算熔断跳过数
+        self._judge_tokens_used = 0         # 预估 token 消耗（字符/4 启发式）
 
         # ── 持久化启用（字段就绪后建表 + 回填；失败自动降级为内存聚合）──
         if persistence and persistence.get("enabled"):
@@ -352,6 +380,10 @@ class LearningMetrics:
             ts = ts if ts is not None else time.time()
             day = _day_iso(ts)
             cx_key = str(judged_complexity).strip().upper() if judged_complexity else ""
+            # 任务7：MODERATE 为 enhanced_planner 兼容别名，统一归一到 canonical NORMAL
+            # （与 complexity_classifier.normalize_level 口径一致）
+            if cx_key == "MODERATE":
+                cx_key = "NORMAL"
             with self._lock:
                 bucket = self._task_results[key]
                 bucket["total"] += 1
@@ -363,6 +395,17 @@ class LearningMetrics:
                     cx["total"] += 1
                     if not success:
                         cx["failed"] += 1
+                # 任务7 扩展：task_type × complexity 双维度桶（KPI#4 双维度口径；
+                # 键序 (task_type, complexity)；事件 key 用 '::' 拼接，周级聚合拆回）
+                if cx_key:
+                    cxk = (key, cx_key)
+                    cx_bucket = self._task_cx_results[cxk]
+                    cx_bucket["total"] += 1
+                    if not success:
+                        cx_bucket["failed"] += 1
+                    self._queue_event(day, "task_cx_total", f"{key}::{cx_key}", 1, 1)
+                    if not success:
+                        self._queue_event(day, "task_cx_failed", f"{key}::{cx_key}", 1, 1)
                 self._queue_event(day, "task_total", key, 1, 1)
                 if not success:
                     self._queue_event(day, "task_failed", key, 1, 1)
@@ -434,6 +477,74 @@ class LearningMetrics:
         except Exception as e:
             logger.debug("[学习度量] record_evolution_candidate 失败: %s", e)
 
+    def record_judge_result(self,
+                            rule_verdict: Optional[str] = None,
+                            judge_verdict: Optional[str] = None,
+                            disagreement: bool = False,
+                            judge_status: str = "judged",
+                            tokens_used: int = 0,
+                            ts: Optional[float] = None) -> None:
+        """任务5：Judge dry-run 通道逐候选记录（双假设判别数据源，零干预）
+
+        语义（与 KPI#7 严格分离）:
+            - 本方法**不写** _evolution_candidates/_evolution_adopted，不触发任何
+              record_evolution_candidate 等价调用 → Judge 通道判定不影响采纳决策；
+            - 只有 judge_status="judged"（Judge 通道产出有效判定）的候选计入
+              分歧率/采纳率分子分母；skipped/budget_blocked/no_llm_client 等
+              只计 candidates 与对应状态计数，绝不伪造判定；
+            - tokens_used 为预估消耗（字符/4 启发式，与学习预算记账同口径），
+              仅 >0 时计入 judge_tokens（token 成本核算数据源）。
+
+        Args:
+            rule_verdict: 规则通道判定（"accept"/"reject"，候选无记录时可为 None）
+            judge_verdict: Judge 通道判定（"accept"/"reject"；未判定时为 None）
+            disagreement: 两通道是否分歧（仅 judged 候选参与）
+            judge_status: judged / skipped / budget_blocked / budget_not_enforce /
+                          no_llm_client
+            tokens_used: 本次预估 token 消耗
+            ts: 时间戳（测试注入用）
+        """
+        if not self.enabled:
+            return
+        try:
+            ts = ts if ts is not None else time.time()
+            day = _day_iso(ts)
+            judged = judge_status == "judged"
+            rule_acc = bool(judged and rule_verdict == "accept")
+            judge_acc = bool(judged and judge_verdict == "accept")
+            with self._lock:
+                self._judge_candidates += 1
+                self._queue_event(day, "judge_candidate", "", 1, 1)
+                if judged:
+                    self._judge_judged += 1
+                    self._queue_event(day, "judge_judged", "", 1, 1)
+                    if rule_acc:
+                        self._judge_rule_adopted += 1
+                        self._queue_event(day, "judge_rule_adopt", "", 1, 1)
+                    if judge_acc:
+                        self._judge_implied_adopted += 1
+                        self._queue_event(day, "judge_implied_adopt", "", 1, 1)
+                    if disagreement:
+                        self._judge_disagreements += 1
+                        self._queue_event(day, "judge_disagreement", "", 1, 1)
+                elif judge_status == "budget_blocked":
+                    self._judge_budget_blocked += 1
+                    self._queue_event(day, "judge_budget_blocked", "", 1, 1)
+                tokens = max(0, int(tokens_used or 0))
+                if tokens > 0:
+                    self._judge_tokens_used += tokens
+                    self._queue_event(day, "judge_tokens", "", float(tokens), 1)
+            self._collect("increment_counter", "learning.judge.candidates")
+            if judged:
+                self._collect("increment_counter", "learning.judge.judged")
+            if disagreement:
+                self._collect("increment_counter", "learning.judge.disagreements")
+            if judge_acc:
+                self._collect("increment_counter", "learning.judge.implied_adopted")
+            self._maybe_flush()
+        except Exception as e:
+            logger.debug("[学习度量] record_judge_result 失败: %s", e)
+
     # ════════════════════════════════════════════════════════════════
     #  只读聚合视图
     # ════════════════════════════════════════════════════════════════
@@ -454,6 +565,10 @@ class LearningMetrics:
             tokens_saved = self._tokens_saved
             tokens_total = self._tokens_total
             task_results = {k: dict(v) for k, v in self._task_results.items()}
+            # 任务7：task_type × complexity 双维度快照（键 (task_type, complexity) → 桶）
+            task_cx_results = {
+                (k[0], k[1]): dict(v) for k, v in self._task_cx_results.items()
+            }
             feedback = list(self._feedback)
             artifacts = dict(self._artifacts)
             evolution_candidates = self._evolution_candidates
@@ -483,6 +598,11 @@ class LearningMetrics:
                 "feedback_avg": _avg(ratings) if ratings else None,
             })
 
+        # 任务7：task_type × complexity 双维度（task_type → complexity → 桶）
+        _cx_by_task: Dict[str, Dict[str, Dict[str, Any]]] = {}
+        for (t, c), b in task_cx_results.items():
+            _cx_by_task.setdefault(t, {})[c] = b
+
         return {
             "generated_at": datetime.fromtimestamp(now).isoformat(timespec="seconds"),
             "days": days,
@@ -510,6 +630,20 @@ class LearningMetrics:
                     }
                     for t, b in sorted(task_results.items())
                 },
+                # 任务7：KPI#4 task_type × complexity 双维度（课程难度自适应数据源；
+                # 向后兼容：不改变 failure_rate_by_task_type 既有结构）
+                "failure_rate_by_task_type_complexity": {
+                    t: {
+                        c: {
+                            "total": b["total"],
+                            "failed": b["failed"],
+                            "rate": round(b["failed"] / b["total"], 4)
+                            if b["total"] else 0.0,
+                        }
+                        for c, b in sorted(_cx_by_task.get(t, {}).items())
+                    }
+                    for t in sorted(_cx_by_task)
+                },
                 "feedback_rating_trend": {
                     "count": len(window_fb),
                     "window_days": days,
@@ -532,8 +666,59 @@ class LearningMetrics:
                 },
             },
             "evaluation": self._get_eval_stats(),
+            "judge_dryrun": self._get_judge_dryrun_snapshot(),
             "trend_7d": trend,
         }
+
+    def _get_judge_dryrun_snapshot(self) -> Dict[str, Any]:
+        """任务5：Judge dry-run 双通道判别只读聚合（快照扩展节 + 判别报告数据源）
+
+        口径（任务5 判别规则预设，写入判别报告 §3）:
+            - 有效判定数（judged）= 两通道均产出判定的候选（Judge 通道
+              judged 状态）；skipped/budget_blocked 只计 candidates 与状态计数；
+            - judge_disagreement_rate = 分歧数 / judged；
+            - rule_adoption_rate = 规则通道判 accept / judged；
+            - judge_implied_adoption_rate = Judge 判 accept / judged
+              （若按 Judge 判定会采纳的比例）；
+            - adoption_rate_delta_pp = (implied - rule) × 100；
+            - insufficient_data = judged < min_candidates（判别结论不成立）。
+        """
+        with self._lock:
+            cands = self._judge_candidates
+            judged = self._judge_judged
+            rule_adopted = self._judge_rule_adopted
+            implied = self._judge_implied_adopted
+            disagreements = self._judge_disagreements
+            blocked = self._judge_budget_blocked
+            tokens = self._judge_tokens_used
+
+        def _rate(n: int, d: int) -> Optional[float]:
+            return round(n / d, 4) if d else None
+
+        rule_rate = _rate(rule_adopted, judged)
+        implied_rate = _rate(implied, judged)
+        delta_pp = None
+        if judged and rule_rate is not None and implied_rate is not None:
+            delta_pp = round((implied_rate - rule_rate) * 100.0, 2)
+        return {
+            "candidates": cands,
+            "judged": judged,
+            "rule_adopted": rule_adopted,
+            "implied_adopted": implied,
+            "disagreements": disagreements,
+            "budget_blocked": blocked,
+            "tokens_used": tokens,
+            "judge_disagreement_rate": _rate(disagreements, judged),
+            "rule_adoption_rate": rule_rate,
+            "judge_implied_adoption_rate": implied_rate,
+            "adoption_rate_delta_pp": delta_pp,
+            "insufficient_data": judged < self._min_candidates,
+            "min_candidates": self._min_candidates,
+        }
+
+    def get_judge_dryrun_stats(self) -> Dict[str, Any]:
+        """任务5：判别报告专用只读聚合（别名，含生成时间；/api/learning/metrics 消费）"""
+        return self._get_judge_dryrun_snapshot()
 
     def to_dict(self) -> Dict[str, Any]:
         """别名：get_snapshot()"""
@@ -579,9 +764,16 @@ class LearningMetrics:
                 "tokens_total": 0.0, "tokens_saved": 0.0,
                 "task_total": defaultdict(int), "task_failed": defaultdict(int),
                 "cx_total": defaultdict(int), "cx_failed": defaultdict(int),
+                # 任务7：task_type × complexity 双维度（事件 key 'task_type::complexity'）
+                "cx_task_total": defaultdict(int), "cx_task_failed": defaultdict(int),
                 "feedback_count": 0, "feedback_sum": 0.0,
                 "artifact_count": 0,
                 "evolution_candidates": 0, "evolution_adopted": 0,
+                # 任务5：Judge dry-run（周级判别数据源；独立于 evolution 口径）
+                "judge_candidates": 0, "judge_judged": 0,
+                "judge_rule_adopt": 0, "judge_implied_adopt": 0,
+                "judge_disagreements": 0, "judge_budget_blocked": 0,
+                "judge_tokens": 0.0,
             })
             if kind == "interaction":
                 b["interactions"] += cnt
@@ -605,6 +797,10 @@ class LearningMetrics:
                 b["cx_total"][key] += cnt
             elif kind == "task_complexity_failed":
                 b["cx_failed"][key] += cnt
+            elif kind == "task_cx_total":
+                b["cx_task_total"][key] += cnt
+            elif kind == "task_cx_failed":
+                b["cx_task_failed"][key] += cnt
             elif kind == "feedback":
                 b["feedback_count"] += cnt
                 b["feedback_sum"] += float(val)
@@ -614,6 +810,20 @@ class LearningMetrics:
                 b["evolution_candidates"] += cnt
             elif kind == "evolution_adopted":
                 b["evolution_adopted"] += cnt
+            elif kind == "judge_candidate":
+                b["judge_candidates"] += cnt
+            elif kind == "judge_judged":
+                b["judge_judged"] += cnt
+            elif kind == "judge_rule_adopt":
+                b["judge_rule_adopt"] += cnt
+            elif kind == "judge_implied_adopt":
+                b["judge_implied_adopt"] += cnt
+            elif kind == "judge_disagreement":
+                b["judge_disagreements"] += cnt
+            elif kind == "judge_budget_blocked":
+                b["judge_budget_blocked"] += cnt
+            elif kind == "judge_tokens":
+                b["judge_tokens"] += float(val)
 
         def _rate(num: int, den: int) -> float:
             return round(num / den, 4) if den else 0.0
@@ -639,8 +849,31 @@ class LearningMetrics:
                     "rate": _rate(b["cx_failed"][c], b["cx_total"][c])}
                 for c in sorted(set(b["cx_total"]) | set(b["cx_failed"]))
             }
+            # 任务7：task_type × complexity 双维度（周级口径与快照一致；
+            # 事件 key 'task_type::complexity' 拆回嵌套结构）
+            cx_task_rows: Dict[str, Dict[str, Any]] = {}
+            for _k in sorted(set(b["cx_task_total"]) | set(b["cx_task_failed"])):
+                _t, _sep, _c = _k.partition("::")
+                if not _sep or not _c:
+                    continue
+                cx_task_rows.setdefault(_t, {})[_c] = {
+                    "total": b["cx_task_total"][_k],
+                    "failed": b["cx_task_failed"][_k],
+                    "rate": _rate(b["cx_task_failed"][_k], b["cx_task_total"][_k]),
+                }
             cands = b["evolution_candidates"]
             adopted = b["evolution_adopted"]
+            # 任务5：Judge dry-run 周级判别节（口径与快照 _get_judge_dryrun_snapshot 一致）
+            j_judged = b["judge_judged"]
+            j_rule = b["judge_rule_adopt"]
+            j_implied = b["judge_implied_adopt"]
+            j_dis = b["judge_disagreements"]
+            j_rate = _rate(j_dis, j_judged)
+            j_rule_rate = _rate(j_rule, j_judged)
+            j_implied_rate = _rate(j_implied, j_judged)
+            j_delta = None
+            if j_judged and j_rule_rate is not None and j_implied_rate is not None:
+                j_delta = round((j_implied_rate - j_rule_rate) * 100.0, 2)
             rows.append({
                 "week": wk,
                 "start": start_iso,
@@ -663,6 +896,7 @@ class LearningMetrics:
                 },
                 "failure_rate_by_task_type": task_rows,
                 "complexity_failure_rate": cx_rows,
+                "failure_rate_by_task_type_complexity": cx_task_rows,
                 "feedback": {
                     "count": b["feedback_count"],
                     "avg": round(b["feedback_sum"] / b["feedback_count"], 2)
@@ -674,6 +908,20 @@ class LearningMetrics:
                     "adopted": adopted,
                     "rate": _rate(adopted, cands),
                     "insufficient_data": cands < min_candidates,
+                },
+                "judge": {
+                    "candidates": b["judge_candidates"],
+                    "judged": j_judged,
+                    "rule_adopted": j_rule,
+                    "implied_adopted": j_implied,
+                    "disagreements": j_dis,
+                    "budget_blocked": b["judge_budget_blocked"],
+                    "tokens_used": int(b["judge_tokens"]),
+                    "judge_disagreement_rate": j_rate,
+                    "rule_adoption_rate": j_rule_rate,
+                    "judge_implied_adoption_rate": j_implied_rate,
+                    "adoption_rate_delta_pp": j_delta,
+                    "insufficient_data": j_judged < min_candidates,
                 },
             })
         return rows
@@ -986,12 +1234,20 @@ class LearningMetrics:
             self._workflow_hits = 0
             self._task_results.clear()
             self._complexity_results.clear()
+            self._task_cx_results.clear()
             self._daily_events.clear()
             self._feedback.clear()
             self._daily_stats.clear()
             self._artifacts.clear()
             self._evolution_candidates = 0
             self._evolution_adopted = 0
+            self._judge_candidates = 0
+            self._judge_judged = 0
+            self._judge_rule_adopted = 0
+            self._judge_implied_adopted = 0
+            self._judge_disagreements = 0
+            self._judge_budget_blocked = 0
+            self._judge_tokens_used = 0
             self._pending.clear()
 
     # ════════════════════════════════════════════════════════════════
@@ -1128,6 +1384,14 @@ class LearningMetrics:
                         self._complexity_results[key]["total"] += cnt
                     elif kind == "task_complexity_failed":
                         self._complexity_results[key]["failed"] += cnt
+                    elif kind == "task_cx_total":
+                        _t, _sep, _c = key.partition("::")
+                        if _sep and _c:
+                            self._task_cx_results[(_t, _c)]["total"] += cnt
+                    elif kind == "task_cx_failed":
+                        _t, _sep, _c = key.partition("::")
+                        if _sep and _c:
+                            self._task_cx_results[(_t, _c)]["failed"] += cnt
                     elif kind == "feedback":
                         avg = val / cnt if cnt else 0.0
                         day_ts = _day_ts_approx(day)

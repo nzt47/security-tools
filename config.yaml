@@ -58,15 +58,44 @@ learning:
   # 默认 false（观察）：execute_plan 收尾仅记录调用意图日志；true 才实际调 learn_from_experience 落盘
   # 环境变量 LEARNING_EXPERIENCE_PERSIST 覆盖此值
   experience_persist: false
-  # TASK-03：学习动作成本预算护栏（把 configs/models.yaml cost_limits 从"声明"变为"可执行"）
-  # mode=warn_only（默认，宽松）：超限仅记录 WARNING 不拦截，防止上线即改行为；
-  # mode=enforce：超过单次上限/日预算的学习动作被拒绝并告警（LearningBudgetExceeded）
+  # TASK-03/任务5：学习动作成本预算护栏（把 configs/models.yaml cost_limits 从"声明"变为"可执行"）
+  # mode=enforce（任务5 灰度提升，原 warn_only 观察期结束）：超过单次上限/日预算的学习
+  #   动作被拒绝并告警（LearningBudgetExceeded），作为任务5 Judge 通道（LLM 型评估）
+  #   存在的必要条件（报告 TASK-08 §3.3 否决条件：warn_only 不强制时一律不引入 LLM 型评估角色）
+  # scope=learning_actions（作用范围声明，审计可读）：本护栏只被学习动作调用
+  #   （LEARNING_ACTION_SCOPE 白名单），enforce 天然不触碰主链路——主链路零 import 零调用
+  #   （grep 审计 with_budget|get_learning_budget 全部命中学习侧文件）；MAIN_CHAIN_EXCLUDED
+  #   排除清单声明于 agent/learning_budget.py，新增主链路消费方属违规
   # 优先级：环境变量 > config.yaml > models.yaml cost_limits > 硬编码默认值
   budget:
-    mode: warn_only
+    mode: enforce
+    scope: learning_actions
     max_single_action_tokens: 4000
     max_daily_tokens: 1000000
     recovery_seconds: 3600
+  # 任务5：LLM-as-Judge 双假设验证 · Judge dry-run 通道（agent/learning/judge_channel.py）
+  # 同候选集双通道评估（规则通道 vs LLM Judge），只写 metrics/审计，零干预任何提交/采纳决策；
+  # 所有 LLM 调用经 learning.budget 记账（enforce 熔断保护，超限跳过不伪造指标）。
+  # 开关优先级：环境变量 LEARNING_JUDGE_* > config.yaml learning.judge > 硬编码默认值
+  # 【不变式】enabled 默认 false（默认零 LLM 调用）；dry_run 默认 true；干预模式属远期决策
+  #           （报告 §3.3 流程 + 判别结论"支持引入"后才进入评估），本任务绝不启用。
+  judge:
+    enabled: false
+    dry_run: true
+    audit_file: ./data/learning/judge_audit.jsonl
+    # 判别规则预设（写入任务5判别报告 §3）：
+    #   分歧率 < 阈值 → 假设 B（候选质量差）→ 不引入 Judge，转向改进候选生成；
+    #   分歧率 ≥ 阈值 且 按 Judge 判定的采纳率 - 规则通道采纳率 ≥ +10pp → 假设 A（评估不精细）
+    #     → 支持引入，按报告 §3.3 dry-run 2 周流程评估启用；其余 → 不启用（证据不足，继续采集）
+    disagreement_threshold: 0.10
+    min_adoption_delta_pp: 10.0
+    # 最小判别基数：双通道判定样本 < 该值时判别结论标记 insufficient_data（不进入判别）
+    min_candidates: 5
+    # 采集周期（周）：2 周（或候选数 ≥ min_candidates，取先到者）
+    collection_weeks: 2
+    # 单候选 LLM 预估 token 上限（计入 learning.budget 单次上限内）
+    max_estimated_tokens_per_candidate: 2000
+
   # TASK-04：知识→技能沉淀管道调度开关（安全底线，默认关闭）
   # 默认 false：不注册 memory_abstractor 定时沉淀任务；true 才注册（产物仅 DRAFT+审计+KPI，绝不自动注册）
   # 环境变量 LEARNING_PRECIPITATE_ENABLED 覆盖此值
@@ -182,6 +211,52 @@ learning:
     # 策略库/失败案例存储目录
     # 环境变量 EVOLUTION_STORAGE_PATH 覆盖此值
     storage_path: ./data/evolution
+  # 任务6：沙箱回放与评估隔离加固（重构计划阶段三）
+  # 评估回放隔离层：不可信轨迹/候选产物在全新解释器进程执行（受限 builtins +
+  # 危险模块惰性代理 + 环境白名单 + 超时强杀 + 输出/并发上限），fail-closed。
+  # 安全底线：默认关闭（false）；显式开启仅限任务1 评估集回归与任务3 observe 态
+  # 回放用途；回放样本走 black_box 脱敏管道，明文不出隔离环境。
+  # 环境变量 EVAL_REPLAY_* 覆盖对应值；优先级: 环境变量 > config.yaml > 硬编码
+  replay:
+    # 总开关（默认 false，安全底线）
+    # 环境变量 EVAL_REPLAY_ENABLED 覆盖此值
+    enabled: false
+    # 后端（process | docker；docker 为可选容器化后端，需 docker + 镜像）
+    # 环境变量 EVAL_REPLAY_BACKEND 覆盖此值
+    backend: process
+    # 进程后端执行器（spawn | subprocess；spawn 不可用时回放显式失败，
+    # 不会静默降级为同进程执行；受限环境可用 subprocess 文件交换执行器）
+    # 环境变量 EVAL_REPLAY_RUNNER 覆盖此值
+    runner: spawn
+    # 单样本墙钟超时（秒），超时强杀
+    # 环境变量 EVAL_REPLAY_TIMEOUT_S 覆盖此值
+    timeout_s: 30
+    # stdout/stderr 捕获上限（字节，防内存炸弹）
+    # 环境变量 EVAL_REPLAY_MAX_OUTPUT_BYTES / EVAL_REPLAY_MAX_STDERR_BYTES 覆盖
+    max_output_bytes: 1048576
+    max_stderr_bytes: 262144
+    # 并发 worker 上限（默认 1 串行，防并发放大/fork 炸弹）
+    # 环境变量 EVAL_REPLAY_MAX_CONCURRENT 覆盖此值
+    max_concurrent: 1
+    # 单 job 样本数上限
+    # 环境变量 EVAL_REPLAY_MAX_SAMPLES 覆盖此值
+    max_samples: 200
+    # scratch 根目录（默认 <系统临时>/yunshu_replay；与生产零共享写路径）
+    # 环境变量 EVAL_REPLAY_WORK_DIR 覆盖此值
+    work_dir: ""
+    # 回放素材只读目录（默认 data/evals；仅作只读素材，绝不写入）
+    # 环境变量 EVAL_REPLAY_MATERIAL_DIR 覆盖此值
+    material_dir: ./data/evals
+    # 回放审计日志（JSONL：replay_id/samples/candidate_id/verdict/duration/
+    # resource_usage/evidence(截断)/rollback_command）
+    # 环境变量 EVAL_REPLAY_AUDIT_FILE 覆盖此值
+    audit_file: ./data/learning/replay_audit.jsonl
+    # docker 后端镜像（仅 EVAL_REPLAY_BACKEND=docker 时使用）
+    # 环境变量 EVAL_REPLAY_DOCKER_IMAGE 覆盖此值
+    docker_image: python:3.12-slim
+    # POSIX 内存上限（MB；0=不设；Windows 无 resource 时仅记录不强制）
+    # 环境变量 EVAL_REPLAY_MAX_RSS_MB 覆盖此值
+    max_rss_mb: 0
   # 任务4：元规则版本化与护栏可执行化（重构计划阶段二，护栏 G1）
   # 只读默认：本段只登记/快照/门控/查询进化参数，不改变任何读取语义；
   # 变更必须走审批链（approval.py），无审批零生效；非法值回退默认
@@ -232,6 +307,33 @@ learning:
       window_weeks: 4
       # 沙箱回放覆盖率阈值（< 该值触发 TC-4）；回放统计未接入时 TC-4 为 unknown
       replay_coverage_threshold: 0.5
+  # 任务7：复杂度判定源统一（agent/task_planner/complexity_classifier.py）
+  # wire 启发式（默认，生产现状逐字节等价）/ enhanced_planner 分级（灰度对比候选）
+  # 选型依据：任务7_复杂度判定源对比报告.md（抽样集一致率）；默认 wire 零行为变化
+  # 环境变量 COMPLEXITY_SOURCE 覆盖此值
+  complexity:
+    source: wire
+  # 任务7：课程难度自适应策略（agent/learning/curriculum.py）——默认关闭（观察模式）
+  # 默认 false：enabled=false 时策略零建议零审计，路由行为与现状完全一致；
+  # 启用决策需基于任务7 对比报告 + 任务2 KPI 监控数据，属后续人工决策
+  # 环境变量：LEARNING_CURRICULUM_ENABLED / _MODE / _SUCCESS_BASELINE /
+  #           _LOW_FAILURE_THRESHOLD / _MIN_SAMPLES / _MAX_STEP / _WINDOW_WEEKS / _AUDIT_FILE
+  curriculum:
+    enabled: false
+    # 模式：observe（只读建议+审计，默认）/ active（建议生效+审计）
+    mode: observe
+    # 高复杂度档（NORMAL/COMPLEX）成功率基线：≥ 该值才允许提升路由概率（默认 0.70）
+    success_baseline_threshold: 0.7
+    # 低复杂度档（TRIVIAL/SIMPLE）失败率门槛：> 该值封锁高复杂度档提升（默认 0.30）
+    low_complexity_failure_threshold: 0.3
+    # 单档最小样本量（不足标记 insufficient_data，不输出建议）
+    min_samples: 5
+    # 单档路由概率建议步长上限
+    max_step: 0.1
+    # 统计窗口周数（读 get_weekly_kpis 最近 N 周）
+    window_weeks: 4
+    # 调整审计日志（JSONL：decision=preview/apply）
+    audit_file: ./data/learning/curriculum_audit.jsonl
 tools:
   enabled: true
   timeout: 30
