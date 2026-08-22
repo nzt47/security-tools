@@ -1,0 +1,14 @@
+[
+  {
+    "sample_id": "pii-001",
+    "task": "用户手机号 13812345678 反馈：API Key=sk-test-abcdef1234567890 配置失败，请排查",
+    "category": "chat",
+    "metadata": {"user_contact": "13812345678", "source": "feedback"}
+  },
+  {
+    "sample_id": "pii-002",
+    "task": "邮箱 user@example.com 登录异常，password=SuperSecret1 需重置",
+    "category": "search",
+    "metadata": {"email": "user@example.com"}
+  }
+]
