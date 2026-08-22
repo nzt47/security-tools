@@ -435,6 +435,7 @@ def test_api_legacy_metrics_endpoint_unchanged():
             "token_reuse_rate", "skill_hit_rate", "workflow_hit_rate",
             "failure_rate_by_task_type", "feedback_rating_trend",
             "artifact_delta", "evolution_adoption_rate",
+            "failure_rate_by_task_type_complexity",
         }
         ev = k["evolution_adoption_rate"]
         assert ev["candidates"] == 40

@@ -88,12 +88,13 @@ def test_50_mixed_interactions_snapshot_self_consistent():
     assert ev["candidates"] == 50
     assert ev["adopted"] == 13
     assert ev["rate"] == pytest.approx(0.26)
-    # 近 7 日趋势与 7 项 KPI 键集合完整
+    # 近 7 日趋势与 7 项 KPI 键集合完整（任务7 增 task_type×complexity 双维度键）
     assert snap["trend_7d"], "trend_7d 非空"
     assert set(k.keys()) == {
         "token_reuse_rate", "skill_hit_rate", "workflow_hit_rate",
         "failure_rate_by_task_type", "feedback_rating_trend",
         "artifact_delta", "evolution_adoption_rate",
+        "failure_rate_by_task_type_complexity",
     }
 
 
@@ -168,6 +169,7 @@ def test_metrics_api_returns_200_with_7_kpis():
             "token_reuse_rate", "skill_hit_rate", "workflow_hit_rate",
             "failure_rate_by_task_type", "feedback_rating_trend",
             "artifact_delta", "evolution_adoption_rate",
+            "failure_rate_by_task_type_complexity",
         }
 
 

@@ -58,6 +58,11 @@ from agent.tool_calling import (
 )
 from agent.tool_router import get_tools_for_input
 from agent.tool_router_hybrid import hybrid_select_tools
+# 任务7: 复杂度判定源统一——wire 层经统一接口委托（默认 wire 启发式，零行为变化）
+from agent.task_planner.complexity_classifier import (
+    COMPLEXITY_LEVELS,
+    WireHeuristicClassifier,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -224,62 +229,49 @@ def _judge_llm_confidence(response: Optional[str]) -> Tuple[str, str]:
 
 
 # ════════════════════════════════════════════════════════════════════
-#  TASK-01：规划接线（wire）复杂度分级 — 轻量关键词+动作词加权
-#  【不易】评分逻辑复用 PlanningCore._needs_planning() 现成公式
-#          （complex_count + 0.5×action_count），分级语义对齐 enhanced_planner
-#          （TRIVIAL/SIMPLE/NORMAL/MODERATE/COMPLEX）；
-#          wire_enabled=false（默认）时本分级不参与任何决策（接线分支整体 inert）。
-#  【变易】后续可替换为 model_router.analyze_complexity / enhanced_planner 分级。
+#  TASK-01 / 任务7：wire 复杂度判定 — 统一判定源（ComplexityClassifier）
+#  【任务7 复杂度判定源统一】wire 层不再自行实现分级逻辑：评分公式/关键词/阈值
+#          已迁至 agent/task_planner/complexity_classifier.py（WireHeuristicClassifier，
+#          与既有启发式逐字节等价），本处仅保留薄委托（单一入口，代码审计可证）；
+#          判定源可按 COMPLEXITY_SOURCE 切换 enhanced_planner 分级（灰度对比，
+#          默认 wire；对比报告见 任务7_复杂度判定源对比报告.md）。
+#  【不易】wire_enabled=false（默认）时本分级不参与任何决策（接线分支整体 inert）；
+#          委托实现任何异常均吞掉回退 TRIVIAL，主链路零影响。
 # ════════════════════════════════════════════════════════════════════
-_WIRE_COMPLEXITY_LEVELS: Dict[str, int] = {
-    "TRIVIAL": 0,
-    "SIMPLE": 1,
-    "NORMAL": 2,
-    "MODERATE": 2,  # enhanced_planner 用 MODERATE，兼容别名
-    "COMPLEX": 3,
-}
-_WIRE_COMPLEX_KEYWORDS: Tuple[str, ...] = (
-    "架构", "系统", "平台", "重构", "迁移", "分布式",
-    "设计一个", "帮我构建", "多步骤", "第一步", "第二步", "完整方案",
-)
-_WIRE_ACTION_KEYWORDS: Tuple[str, ...] = ("检查", "分析", "创建", "生成", "整理", "监控")
+# 兼容别名（既有引用方继续可用；真实取值以统一模块为准）
+_WIRE_COMPLEXITY_LEVELS = COMPLEXITY_LEVELS
+_WIRE_COMPLEX_KEYWORDS = WireHeuristicClassifier.COMPLEX_KEYWORDS
+_WIRE_ACTION_KEYWORDS = WireHeuristicClassifier.ACTION_KEYWORDS
 
 
 def _wire_complexity_detail(message: str) -> Tuple[float, list, list]:
-    """复杂度判定明细（TASK-01 wire 排查用）：返回 (score, complex_matches, action_matches)
+    """复杂度判定明细（TASK-01 wire 排查用）— 委托统一判定源
 
-    【简易】与 _judge_wire_complexity 同源公式（complex_count + 0.5×action_count），
-           仅附加命中关键词明细，供入口日志定位"为什么判为 X 级"；不改判定语义
+    返回 (score, complex_matches, action_matches)，供入口日志定位"为什么判为 X 级"；
+    不改判定语义（wire 实现：complex_count + 0.5×action_count）
     """
-    complex_matches = [k for k in _WIRE_COMPLEX_KEYWORDS if k in message]
-    action_matches = [k for k in _WIRE_ACTION_KEYWORDS if k in message]
-    score = len(complex_matches) + len(action_matches) * 0.5
-    return score, complex_matches, action_matches
+    from agent.task_planner.complexity_classifier import get_complexity_classifier
+    return get_complexity_classifier().detail(message)
 
 
 def _judge_wire_complexity(message: str) -> str:
-    """任务复杂度分级（TASK-01 wire 接线用）
+    """任务复杂度分级（TASK-01 wire 接线用）— 委托统一判定源（任务7 单一入口）
 
-    【简易】分数 = 复杂指示词数 + 0.5×动作词数（与 PlanningCore._needs_planning 同源）；
-    分级：≥1.5 → COMPLEX / ≥1.0 → NORMAL / ≥0.5 → SIMPLE / 其余 TRIVIAL
+    默认实现 wire 启发式：分数 = 复杂指示词数 + 0.5×动作词数（与
+    PlanningCore._needs_planning 同源）；≥1.5 → COMPLEX / ≥1.0 → NORMAL /
+    ≥0.5 → SIMPLE / 其余 TRIVIAL；行为与任务7 之前逐字节等价
     """
-    score, _complex_matches, _action_matches = _wire_complexity_detail(message)
-    if score >= 1.5:
-        return "COMPLEX"
-    if score >= 1.0:
-        return "NORMAL"
-    if score >= 0.5:
-        return "SIMPLE"
-    return "TRIVIAL"
+    from agent.task_planner.complexity_classifier import get_complexity_classifier
+    return get_complexity_classifier().classify(message)
 
 
 def _wire_complexity_meets(message: str, min_complexity: str) -> bool:
-    """任务复杂度 ≥ wire_min_complexity 判定
+    """任务复杂度 ≥ wire_min_complexity 判定 — 委托统一判定源
 
     【不易】未知级别按最高 COMPLEX（3）保守处理：配置非法时收严而非放行，守主链路稳定
     """
-    min_level = _WIRE_COMPLEXITY_LEVELS.get(str(min_complexity).upper(), 3)
-    return _WIRE_COMPLEXITY_LEVELS.get(_judge_wire_complexity(message), 0) >= min_level
+    from agent.task_planner.complexity_classifier import get_complexity_classifier
+    return get_complexity_classifier().meets(message, min_complexity)
 
 
 class Orchestrator:
@@ -1391,6 +1383,8 @@ class Orchestrator:
                 'output_guard_modified': bool(output_result.modified),
                 'redacted_fields': list(output_result.redacted_fields)
                 if output_result.modified else [],
+                # 任务7: judged_complexity 写入路由元数据（wire 开启时；关闭时为 None）
+                'judged_complexity': _wire_judged,
             },
         )
 
@@ -1408,6 +1402,10 @@ class Orchestrator:
             _resp.setdefault("metadata", {})["routed_by"] = "planning"
             if getattr(_wire_plan_result, "plan_summary", None) is not None:
                 _resp["metadata"]["plan_summary"] = _wire_plan_result.plan_summary
+        # 任务7: judged_complexity 写入路由元数据（任务1 评估集难度字段与之一致；
+        # 供下游复杂度维度消费；wire_enabled=false 时为 None 零影响）
+        if _wire_cfg["enabled"]:
+            _resp.setdefault("metadata", {})["judged_complexity"] = _wire_judged
         # 任务2: KPI#4——主链路成功收尾（wire 规划成功 → task_type=planning，否则 llm；
         # judged_complexity 扩展键为任务7 复杂度维度预留；埋点异常零影响）
         _emit_learning_metric(
