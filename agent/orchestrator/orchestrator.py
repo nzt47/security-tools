@@ -467,6 +467,10 @@ class Orchestrator:
                                 message='[输入护栏] 输入被拦截')
             if trace_id:
                 trace_store.end_trace(trace_id, guard_result.reason, status="blocked")
+            # 任务2: KPI#4 数据源——输入护栏拦截计为 input_guard 类型失败
+            # （task_type 独立分类，不并入 llm/workflow 执行类；埋点异常零影响）
+            _emit_learning_metric("record_task_result", task_type="input_guard",
+                                  success=False)
             return ResponseBuilder.guard_blocked(
                 guard_result.reason, guard_result.matched_pattern
             ).to_dict()
@@ -509,6 +513,9 @@ class Orchestrator:
             if trace_id:
                 trace_store.end_trace(trace_id, workflow_result.output)
             _record_intent_layer("rule")
+            # 任务2: KPI#4——规则层(WorkflowEngine)命中（task_type=workflow，成功）
+            _emit_learning_metric("record_task_result", task_type="workflow",
+                                  success=True)
             return ResponseBuilder.workflow_result(
                 output=workflow_result.output,
                 intent=workflow_result.intent,
@@ -577,6 +584,9 @@ class Orchestrator:
                                 basis_extra={'reason': (reject_reason or "")[:200]})
             if trace_id:
                 trace_store.end_trace(trace_id, response)
+            # 任务2: KPI#4——行为/人格拒绝（task_type=behavior_reject，任务未执行完成）
+            _emit_learning_metric("record_task_result", task_type="behavior_reject",
+                                  success=False)
             return ResponseBuilder.rejection(
                 reject_reason, self._current_mode.value
             ).to_dict()
@@ -729,6 +739,9 @@ class Orchestrator:
                         ))
                         trace_store.end_trace(trace_id, response)
                     _record_intent_layer("template")
+                    # 任务2: KPI#4——模板层命中（task_type=template，成功）
+                    _emit_learning_metric("record_task_result", task_type="template",
+                                          success=True)
                     return ResponseBuilder.success(response).to_dict()
                 # 【排查】模板层查表未命中原因（DEBUG 记录 intent 查表结果与下沉方向，
                 # 便于排查"为何没走模板层"——是意图未知，还是模板库无对应意图）
@@ -795,6 +808,9 @@ class Orchestrator:
             if trace_id:
                 trace_store.end_trace(trace_id, output_text)
             _record_intent_layer("workflow_learning")
+            # 任务2: KPI#4——工作流学习层命中（task_type=workflow_learning，成功）
+            _emit_learning_metric("record_task_result", task_type="workflow_learning",
+                                  success=True)
             return ResponseBuilder.success(
                 output_text, msg="handled_by_workflow_learning"
             ).to_dict()
@@ -842,6 +858,9 @@ class Orchestrator:
             self._last_was_template = False
             if trace_id:
                 trace_store.end_trace(trace_id, output_text)
+            # 任务2: KPI#4——语义层命中（task_type=semantic，成功）
+            _emit_learning_metric("record_task_result", task_type="semantic",
+                                  success=True)
             return ResponseBuilder.success(
                 output_text, msg="handled_by_semantic_layer"
             ).to_dict()
@@ -928,6 +947,10 @@ class Orchestrator:
             _reject_msg = _REJECT_MSG  # 模块级常量，供测试 import 消除同源复制
             if trace_id:
                 trace_store.end_trace(trace_id, _reject_msg, status="rejected")
+            # 任务2: KPI#4——未知意图软拒识（系统正常兜底响应，task_type=reject 独立分类，
+            # 计成功避免污染执行类失败率；高 reject 占比在周级统计中单独可见）
+            _emit_learning_metric("record_task_result", task_type="reject",
+                                  success=True)
             return ResponseBuilder.success(_reject_msg).to_dict()
 
         # ── 第三步三半：规划引擎接线（TASK-01 D7 接线，LLM 调用前）──
@@ -1064,6 +1087,10 @@ class Orchestrator:
                             logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.error_reported', 'trace_id_ctx': trace_id, 'message': '[OK] 错误已自动上报'}))
                         except Exception as report_error:
                             logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.error_report_failed', 'trace_id_ctx': trace_id, 'error': str(report_error), 'message': '错误上报失败'}))
+                # 任务2: KPI#4——LLM 调用失败（task_type=llm，失败；wire 已产出复杂度
+                # 时携带 judged_complexity 扩展键，为任务7 复杂度维度预留）
+                _emit_learning_metric("record_task_result", task_type="llm",
+                                      success=False, judged_complexity=_wire_judged)
                 return ResponseBuilder.error(
                     "抱歉，处理您的请求时遇到了问题：%s" % e
                 ).to_dict()
@@ -1142,6 +1169,9 @@ class Orchestrator:
             self._memory.score_and_save_message("assistant", _fallback_msg)
             if trace_id:
                 trace_store.end_trace(trace_id, _fallback_msg, status="low_confidence_fallback")
+            # 任务2: KPI#4——LLM 低置信度降级（响应质量不达标，计失败）
+            _emit_learning_metric("record_task_result", task_type="llm",
+                                  success=False, judged_complexity=_wire_judged)
             return ResponseBuilder.success(_fallback_msg).to_dict()
 
         # ── 第四步半：规划引擎策略增强（D7 接入，LLM 之上的策略层）──
@@ -1378,6 +1408,14 @@ class Orchestrator:
             _resp.setdefault("metadata", {})["routed_by"] = "planning"
             if getattr(_wire_plan_result, "plan_summary", None) is not None:
                 _resp["metadata"]["plan_summary"] = _wire_plan_result.plan_summary
+        # 任务2: KPI#4——主链路成功收尾（wire 规划成功 → task_type=planning，否则 llm；
+        # judged_complexity 扩展键为任务7 复杂度维度预留；埋点异常零影响）
+        _emit_learning_metric(
+            "record_task_result",
+            task_type="planning" if _wire_planning_used else "llm",
+            success=True,
+            judged_complexity=_wire_judged,
+        )
         return _resp
 
     # (以下废弃方法已在 P12 统一链路中删除:
@@ -2936,6 +2974,16 @@ class Orchestrator:
                         response = "已获取到以下信息：\n" + "\n".join(f"  - {s}" for s in _fb_summaries)
                     else:
                         response = "（已处理完毕）"
+
+                # 任务2: LLM token 计量——标准路径旁路（与 _call_llm_v2 同款；
+                # LLMMonitor.estimate_tokens 估算，不改变 LLMMonitor 本身；
+                # 埋点异常不影响主链路）
+                try:
+                    from agent.monitoring.llm_monitor import LLMMonitor
+                    _est_tokens = LLMMonitor.estimate_tokens(response)
+                    _emit_learning_metric("record_llm_tokens", tokens=_est_tokens)
+                except Exception:
+                    pass
 
                 return response
             except Exception as _e:

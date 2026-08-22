@@ -343,6 +343,8 @@ class FeedbackManager:
             try:
                 from agent.learning_metrics import get_learning_metrics
                 get_learning_metrics().record_feedback(record.rating)
+                # 任务2: KPI#4 数据源——feedback 成功路径（task_type=feedback）
+                get_learning_metrics().record_task_result("feedback", success=True)
             except Exception:
                 pass
 
@@ -362,6 +364,12 @@ class FeedbackManager:
 
             return record
         except Exception as e:
+            # 任务2: KPI#4 数据源——feedback 失败路径（task_type=feedback；埋点异常零影响）
+            try:
+                from agent.learning_metrics import get_learning_metrics
+                get_learning_metrics().record_task_result("feedback", success=False)
+            except Exception:
+                pass
             logger.error(json.dumps({
                 "trace_id": trace_id,
                 "module_name": "feedback",

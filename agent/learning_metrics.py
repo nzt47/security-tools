@@ -1,13 +1,23 @@
-"""学习有效性度量体系 — 7 项学习 KPI 聚合（TASK-03）
+"""学习有效性度量体系 — 7 项学习 KPI 聚合（TASK-03 / 任务2 数据源补齐与触发监控）
 
 KPI 口径（详见 docs/zh/智能体学习机制重构计划/变更说明/TASK-03_变更说明.md）：
 1. token 复用率       = 命中 workflow/skill 节省 token / 期间总 token（节省 + 实际消耗）
 2. Skill 命中率        = skill 命中次数 / 语义层查询次数
 3. 工作流命中率         = workflow 命中次数 / 交互总数
-4. 分类型失败率         = 按 task_type 统计失败占比
+4. 分类型失败率         = 按 task_type 统计失败占比（任务2：接 orchestrator/feedback 生产调用方；
+                         judged_complexity 为任务7 复杂度维度预留的扩展键）
 5. 反馈均分趋势         = 近 7 日滑动窗口 feedback.rating 均值（含逐日趋势）
 6. 沉淀增量             = 新增 Skill/工作流/经验/知识卡片/反思 数量
-7. 进化采纳率           = 采纳变异体数 / 候选变异体数（TASK-05 接入后产生）
+7. 进化采纳率           = 采纳变异体数 / 候选变异体数（任务2：定义最小候选基数口径——
+                         周候选数 < N（默认 5）时该周标记 insufficient_data，不参与"连续 4 周"统计）
+
+任务2 新增（纯增量，不改既有聚合口径与 get_snapshot() 既有字段）：
+- record_task_result 增 judged_complexity 扩展键（复杂度维度失败率，任务7 预留）；
+- 日粒度事件镜像 _daily_events：周级滚动统计（get_weekly_kpis）与触发条件判定
+  （evaluate_trigger_conditions，报告 TASK-08 §3.3/§5.2 五条触发条件逐条可计算）的数据源，
+  与 SQLite 持久化（lm_daily_agg）同源同形；持久化默认关闭时内存镜像仍工作；
+- KPI#7 最小候选基数：learning.metrics.min_candidates（默认 5），
+  get_snapshot() 的 evolution_adoption_rate 增 insufficient_data / min_candidates 扩展字段。
 
 【不易】埋点为纯增量可观测层：不改变任何业务行为；所有 record_* 内部 try/except，
         埋点异常绝不影响主链路（验收：埋点全部挂掉时主链路零影响）。
@@ -24,7 +34,7 @@ import sqlite3
 import threading
 import time
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 from agent.monitoring.metrics import get_metrics_collector
@@ -34,8 +44,34 @@ logger = logging.getLogger(__name__)
 # 反馈/每日统计内存保留窗口（天）——超出窗口的旧数据被裁剪，防内存无界增长
 _RETENTION_DAYS = 32
 
+# 周级滚动统计内存保留窗口（天）——覆盖"连续 4 周"判定（28 天）+ 环比余量 + 灰度观察期
+_WEEKLY_RETENTION_DAYS = 182
+
+# ── 任务2：KPI#7 最小候选基数与触发条件判定参数（报告 §3.3/§5.2 阈值）──
+# 优先级：环境变量 LEARNING_METRICS_MIN_CANDIDATES > config.yaml learning.metrics.min_candidates
+#          > 此处硬编码默认值（项目既有三层优先级约定）
+_DEFAULT_MIN_CANDIDATES = 5        # 周候选数低于该值时该周采纳率标记 insufficient_data
+_TRIGGER_WINDOW_WEEKS = 4          # "连续 4 周"判定窗口（含当前进行周）
+_TRIGGER_EVOLUTION_RATE = 0.05     # KPI#7 采纳率 <5%（引入 LLM-as-Judge / L3 前置）
+_TRIGGER_WORKFLOW_RATE = 0.10      # KPI#3 工作流命中率 <10%（Solver 路径增强）
+_TRIGGER_FAILURE_RATE = 0.30       # KPI#4 分类型失败率 >30%（课程难度自适应）
+_TRIGGER_REPLAY_COVERAGE = 0.50    # 沙箱回放覆盖率 <50%（启用沙箱回放）
+_TRIGGER_ARTIFACT_STAGNATION = 0   # KPI#6 沉淀增量停滞 = 周沉淀数 == 0
+
 # 沉淀增量支持的产物类型（KPI schema 固定枚举，未列出的归入 other）
 _ARTIFACT_TYPES = ("skill", "workflow", "experience", "knowledge_card", "reflection")
+
+# 触发条件 ID 与能力映射（报告 §5.2 远期能力触发条件表；顺序即报告顺序）
+_TRIGGER_CONDITIONS = (
+    ("judge_intro", "引入 LLM-as-Judge（评估角色化）"),
+    ("solver_enhancement", "Solver 路径增强"),
+    ("course_adaptation", "启用课程难度自适应"),
+    ("sandbox_replay", "启用沙箱回放"),
+    ("l3_research", "启动元规则级递归自进化（L3 研究）"),
+)
+
+# config.yaml 惰性读取缓存（任务2：无显式 config 时按"环境变量 > config.yaml > 默认值"解析）
+_CONFIG_YAML_CACHE: Optional[dict] = None
 
 # ── SQLite 持久化（方案见 TASK-08 §8 口径披露；默认关闭，与纯内存行为一致）──
 _PERSIST_CREATE_SQL = (
@@ -74,6 +110,44 @@ def _day_iso(ts: float) -> str:
     return datetime.fromtimestamp(ts).strftime("%Y-%m-%d")
 
 
+def _iso_week_key(day: str) -> Optional[Tuple[str, str, str]]:
+    """'YYYY-MM-DD' → ('YYYY-Www', 周一起始日, 周日结束日)；非法日期返回 None"""
+    try:
+        d = datetime.strptime(day, "%Y-%m-%d").date()
+        iso = d.isocalendar()
+        wk = "%04d-W%02d" % (iso[0], iso[1])
+        start = date.fromisocalendar(iso[0], iso[1], 1)
+        end = start + timedelta(days=6)
+        return wk, start.isoformat(), end.isoformat()
+    except Exception:
+        return None
+
+
+def _load_config_yaml_once() -> Optional[dict]:
+    """读取仓库根 config.yaml（带缓存；任何失败返回 None，零影响）
+
+    任务2 目的：LearningMetrics 单例经 get_singleton 创建时无调用方显式传 config，
+    为让 config.yaml 的 learning.metrics.* 配置段生效，工厂在此按
+    "环境变量 > config.yaml > 硬编码默认值" 解析（与 orchestrator._get_learning_saved_estimate
+    同款"延迟读文件 + 缓存"模式；文件读取失败不影响主链路）。
+    """
+    global _CONFIG_YAML_CACHE
+    if _CONFIG_YAML_CACHE is not None:
+        return _CONFIG_YAML_CACHE or None
+    try:
+        from pathlib import Path
+        import yaml as _yaml
+        _path = Path(__file__).resolve().parent.parent / "config.yaml"
+        if _path.exists():
+            _cfg = _yaml.safe_load(_path.read_text(encoding="utf-8")) or {}
+            _CONFIG_YAML_CACHE = _cfg
+            return _cfg
+    except Exception:
+        pass
+    _CONFIG_YAML_CACHE = {}
+    return None
+
+
 class LearningMetrics:
     """学习 KPI 聚合单例
 
@@ -86,9 +160,22 @@ class LearningMetrics:
     """
 
     def __init__(self, collector: Any = None, enabled: bool = True,
-                 persistence: Optional[dict] = None):
+                 persistence: Optional[dict] = None,
+                 min_candidates: Optional[int] = None,
+                 trigger_window_weeks: Optional[int] = None,
+                 replay_coverage_threshold: Optional[float] = None):
         self.enabled = bool(enabled)
         self._collector = collector  # 注入用；None 时经 _safe_collector 走全局
+        # KPI#7 最小候选基数（周候选数 < 该值时该周采纳率标记 insufficient_data）
+        self._min_candidates = max(1, int(min_candidates if min_candidates is not None
+                                          else _DEFAULT_MIN_CANDIDATES))
+        # 触发条件判定默认参数（config.yaml learning.metrics.trigger_monitoring）
+        self._trigger_window_weeks = max(
+            1, int(trigger_window_weeks if trigger_window_weeks is not None
+                   else _TRIGGER_WINDOW_WEEKS))
+        self._replay_coverage_threshold = float(
+            replay_coverage_threshold if replay_coverage_threshold is not None
+            else _TRIGGER_REPLAY_COVERAGE)
         self._lock = threading.RLock()
 
         # ── SQLite 持久化（可选，默认关闭；I/O 全在锁外，失败自动降级）──
@@ -109,6 +196,13 @@ class LearningMetrics:
         # ── 分类型失败率 ──
         self._task_results: Dict[str, Dict[str, int]] = defaultdict(
             lambda: {"total": 0, "failed": 0})
+        # ── 复杂度维度失败率（任务2 扩展，KPI#4 复杂度维度预留；不影响 task_type 口径）──
+        self._complexity_results: Dict[str, Dict[str, int]] = defaultdict(
+            lambda: {"total": 0, "failed": 0})
+        # ── 日粒度事件镜像（任务2：周级滚动统计/触发判定的数据源）──
+        # (day, kind, key) -> [val, cnt]；与 SQLite lm_daily_agg 同形同源；
+        # 持久化开启时二者同步写，默认关闭时内存镜像独立工作（周级统计不依赖持久化）
+        self._daily_events: Dict[Tuple[str, str, str], List[float]] = {}
         # ── 反馈均分趋势（含逐日桶，供 7 日趋势）──
         self._feedback: List[Tuple[float, int]] = []          # [(ts, rating)]
         self._daily_stats: Dict[str, Dict[str, Any]] = defaultdict(
@@ -171,78 +265,111 @@ class LearningMetrics:
             self._collect("increment_counter", "learning.workflow.queries")
             if hit:
                 self._collect("increment_counter", "learning.workflow.hits")
-                self.record_token_reuse(saved_tokens)
+                self.record_token_reuse(saved_tokens, ts=ts)
             self._maybe_flush()
         except Exception as e:
             logger.debug("[学习度量] record_workflow_match 失败: %s", e)
 
     def record_semantic_query(self, hit: bool,
-                              saved_tokens: int = 0) -> None:
+                              saved_tokens: int = 0,
+                              ts: Optional[float] = None) -> None:
         """语义层查询结果（skill 命中率；命中时计入 token 复用）"""
         if not self.enabled:
             return
         try:
+            ts = ts if ts is not None else time.time()
             with self._lock:
                 self._semantic_queries += 1
                 if hit:
                     self._skill_hits += 1
-                day = _day_iso(time.time())
+                day = _day_iso(ts)
                 self._queue_event(day, "semantic_query", "", 1, 1)
                 if hit:
                     self._queue_event(day, "semantic_hit", "", 1, 1)
             self._collect("increment_counter", "learning.semantic.queries")
             if hit:
                 self._collect("increment_counter", "learning.semantic.hits")
-                self.record_token_reuse(saved_tokens)
+                self.record_token_reuse(saved_tokens, ts=ts)
             self._maybe_flush()
         except Exception as e:
             logger.debug("[学习度量] record_semantic_query 失败: %s", e)
 
-    def record_llm_tokens(self, tokens: int) -> None:
+    def record_llm_tokens(self, tokens: int, ts: Optional[float] = None) -> None:
         """LLM 调用实际消耗 token（token 复用率分母）"""
         if not self.enabled or tokens is None:
             return
         try:
             tokens = max(0, int(tokens))
+            ts = ts if ts is not None else time.time()
             with self._lock:
                 self._tokens_total += tokens
-                self._queue_event(_day_iso(time.time()), "token_total", "", float(tokens), 1)
+                self._queue_event(_day_iso(ts), "token_total", "", float(tokens), 1)
             self._collect("increment_counter", "learning.token.total", value=tokens)
             self._collect("record_latency", "learning.token.per_call", float(tokens))
             self._maybe_flush()
         except Exception as e:
             logger.debug("[学习度量] record_llm_tokens 失败: %s", e)
 
-    def record_token_reuse(self, saved_tokens: int) -> None:
-        """workflow/skill 命中短路节省的 token（复用率分子）"""
+    def record_token_reuse(self, saved_tokens: int,
+                           ts: Optional[float] = None) -> None:
+        """workflow/skill 命中短路节省的 token（复用率分子）
+
+        Args:
+            saved_tokens: 节省 token 数
+            ts: 时间戳（任务2 起支持注入：record_workflow_match/record_semantic_query
+                透传调用方 ts，保证日/周粒度归因正确；生产调用仍为当前时间）
+        """
         if not self.enabled or saved_tokens is None:
             return
         try:
             saved_tokens = max(0, int(saved_tokens))
+            ts = ts if ts is not None else time.time()
             with self._lock:
                 self._tokens_saved += saved_tokens
                 self._tokens_total += saved_tokens  # 计入期间总 token（口径：节省+消耗）
-                self._queue_event(_day_iso(time.time()), "token_saved", "", float(saved_tokens), 1)
+                self._queue_event(_day_iso(ts), "token_saved", "", float(saved_tokens), 1)
             self._collect("increment_counter", "learning.token.saved", value=saved_tokens)
             self._maybe_flush()
         except Exception as e:
             logger.debug("[学习度量] record_token_reuse 失败: %s", e)
 
-    def record_task_result(self, task_type: str, success: bool) -> None:
-        """一次任务执行结果（按 task_type 分类型失败率）"""
+    def record_task_result(self, task_type: str, success: bool,
+                           judged_complexity: Optional[str] = None,
+                           ts: Optional[float] = None) -> None:
+        """一次任务执行结果（按 task_type 分类型失败率；任务2 接 orchestrator/feedback）
+
+        Args:
+            task_type: 任务类型（取自路由/任务元数据；None/空归 "unknown"）
+            success: 是否成功
+            judged_complexity: 复杂度扩展键（TRIVIAL/SIMPLE/NORMAL/COMPLEX，任务7 复杂度
+                维度预留；为 None 时零影响，不改变 task_type 既有聚合口径）
+            ts: 时间戳（测试注入用）
+        """
         if not self.enabled:
             return
         try:
             key = task_type or "unknown"
+            ts = ts if ts is not None else time.time()
+            day = _day_iso(ts)
+            cx_key = str(judged_complexity).strip().upper() if judged_complexity else ""
             with self._lock:
                 bucket = self._task_results[key]
                 bucket["total"] += 1
                 if not success:
                     bucket["failed"] += 1
-                day = _day_iso(time.time())
+                # 任务2 扩展：复杂度维度（独立桶，不并入 task_type 聚合）
+                if cx_key:
+                    cx = self._complexity_results[cx_key]
+                    cx["total"] += 1
+                    if not success:
+                        cx["failed"] += 1
                 self._queue_event(day, "task_total", key, 1, 1)
                 if not success:
                     self._queue_event(day, "task_failed", key, 1, 1)
+                if cx_key:
+                    self._queue_event(day, "task_complexity_total", cx_key, 1, 1)
+                    if not success:
+                        self._queue_event(day, "task_complexity_failed", cx_key, 1, 1)
             self._collect("increment_counter", f"learning.task.{key}.total")
             if not success:
                 self._collect("increment_counter", f"learning.task.{key}.failed")
@@ -269,30 +396,34 @@ class LearningMetrics:
         except Exception as e:
             logger.debug("[学习度量] record_feedback 失败: %s", e)
 
-    def record_artifact(self, artifact_type: str) -> None:
+    def record_artifact(self, artifact_type: str,
+                        ts: Optional[float] = None) -> None:
         """沉淀增量：新增 Skill/工作流/经验/知识卡片/反思 产物"""
         if not self.enabled:
             return
         try:
             key = artifact_type if artifact_type in _ARTIFACT_TYPES else "other"
+            ts = ts if ts is not None else time.time()
             with self._lock:
                 self._artifacts[key] += 1
-                self._queue_event(_day_iso(time.time()), "artifact", key, 1, 1)
+                self._queue_event(_day_iso(ts), "artifact", key, 1, 1)
             self._collect("increment_counter", f"learning.artifacts.{key}")
             self._maybe_flush()
         except Exception as e:
             logger.debug("[学习度量] record_artifact 失败: %s", e)
 
-    def record_evolution_candidate(self, adopted: bool) -> None:
+    def record_evolution_candidate(self, adopted: bool,
+                                   ts: Optional[float] = None) -> None:
         """进化采纳率：一次变异体候选决策（TASK-05 offline_evolver 接入后产生）"""
         if not self.enabled:
             return
         try:
+            ts = ts if ts is not None else time.time()
             with self._lock:
                 self._evolution_candidates += 1
                 if adopted:
                     self._evolution_adopted += 1
-                day = _day_iso(time.time())
+                day = _day_iso(ts)
                 self._queue_event(day, "evolution_candidate", "", 1, 1)
                 if adopted:
                     self._queue_event(day, "evolution_adopted", "", 1, 1)
@@ -394,6 +525,10 @@ class LearningMetrics:
                     "adopted": evolution_adopted,
                     "rate": round(evolution_adopted / evolution_candidates, 4)
                     if evolution_candidates else 0.0,
+                    # 任务2 扩展字段（向后兼容；周级 insufficient_data 语义见
+                    # get_weekly_kpis / evaluate_trigger_conditions）
+                    "insufficient_data": evolution_candidates < self._min_candidates,
+                    "min_candidates": self._min_candidates,
                 },
             },
             "evaluation": self._get_eval_stats(),
@@ -403,6 +538,424 @@ class LearningMetrics:
     def to_dict(self) -> Dict[str, Any]:
         """别名：get_snapshot()"""
         return self.get_snapshot()
+
+    # ════════════════════════════════════════════════════════════════
+    #  任务2：周级滚动统计 + 触发条件判定（报告 §3.3/§5.2 五条触发条件）
+    # ════════════════════════════════════════════════════════════════
+
+    def get_weekly_kpis(self, weeks: int = 8,
+                        min_candidates: Optional[int] = None) -> List[Dict[str, Any]]:
+        """周级滚动 KPI（触发监控查询层数据源）
+
+        - 以 ISO 周（周一起始）为桶，从日粒度事件镜像 _daily_events 聚合；
+        - 覆盖 7 项 KPI 的周值 + KPI#7 候选基数标记（insufficient_data）；
+        - 口径与 get_snapshot() 一致：token 复用率 total = 消耗 + 节省；
+          workflow 命中率分母 = 交互总数；周内无数据周不输出（返回行 < weeks 时
+          表明系统运行时长不足，触发判定按 available 周处理）；
+        - 纯只读（仅裁剪过期的内存镜像，无任何写操作）。
+
+        Args:
+            weeks: 返回最近 weeks 个有数据周（升序，最旧在前）
+            min_candidates: 覆盖 KPI#7 最小候选基数（默认实例配置/5）
+        """
+        weeks = max(1, int(weeks))
+        min_candidates = max(1, int(min_candidates if min_candidates is not None
+                                    else self._min_candidates))
+        with self._lock:
+            events = {k: list(v) for k, v in self._daily_events.items()}
+            self._prune_daily_events()
+
+        # ── 按 ISO 周分桶 ──
+        buckets: Dict[str, Dict[str, Any]] = {}
+        for (day, kind, key), (val, cnt) in events.items():
+            wk_info = _iso_week_key(day)
+            if wk_info is None:
+                continue
+            wk, _start, _end = wk_info
+            b = buckets.setdefault(wk, {
+                "interactions": 0,
+                "workflow_queries": 0, "workflow_hits": 0,
+                "semantic_queries": 0, "semantic_hits": 0,
+                "tokens_total": 0.0, "tokens_saved": 0.0,
+                "task_total": defaultdict(int), "task_failed": defaultdict(int),
+                "cx_total": defaultdict(int), "cx_failed": defaultdict(int),
+                "feedback_count": 0, "feedback_sum": 0.0,
+                "artifact_count": 0,
+                "evolution_candidates": 0, "evolution_adopted": 0,
+            })
+            if kind == "interaction":
+                b["interactions"] += cnt
+            elif kind == "workflow_query":
+                b["workflow_queries"] += cnt
+            elif kind == "workflow_hit":
+                b["workflow_hits"] += cnt
+            elif kind == "semantic_query":
+                b["semantic_queries"] += cnt
+            elif kind == "semantic_hit":
+                b["semantic_hits"] += cnt
+            elif kind == "token_total":
+                b["tokens_total"] += float(val)
+            elif kind == "token_saved":
+                b["tokens_saved"] += float(val)
+            elif kind == "task_total":
+                b["task_total"][key] += cnt
+            elif kind == "task_failed":
+                b["task_failed"][key] += cnt
+            elif kind == "task_complexity_total":
+                b["cx_total"][key] += cnt
+            elif kind == "task_complexity_failed":
+                b["cx_failed"][key] += cnt
+            elif kind == "feedback":
+                b["feedback_count"] += cnt
+                b["feedback_sum"] += float(val)
+            elif kind == "artifact":
+                b["artifact_count"] += cnt
+            elif kind == "evolution_candidate":
+                b["evolution_candidates"] += cnt
+            elif kind == "evolution_adopted":
+                b["evolution_adopted"] += cnt
+
+        def _rate(num: int, den: int) -> float:
+            return round(num / den, 4) if den else 0.0
+
+        rows: List[Dict[str, Any]] = []
+        for wk in sorted(buckets.keys())[-weeks:]:
+            b = buckets[wk]
+            # ISO 周标签 'YYYY-Www' → 周一起始/周日结束（_iso_week_key 只接受日期串）
+            try:
+                _start_d = date.fromisocalendar(int(wk[:4]), int(wk[6:8]), 1)
+                start_iso = _start_d.isoformat()
+                end_iso = (_start_d + timedelta(days=6)).isoformat()
+            except Exception:
+                start_iso = end_iso = ""
+            t_total = int(b["tokens_total"]) + int(b["tokens_saved"])  # 口径与快照一致
+            task_rows = {
+                t: {"total": b["task_total"][t], "failed": b["task_failed"][t],
+                    "rate": _rate(b["task_failed"][t], b["task_total"][t])}
+                for t in sorted(set(b["task_total"]) | set(b["task_failed"]))
+            }
+            cx_rows = {
+                c: {"total": b["cx_total"][c], "failed": b["cx_failed"][c],
+                    "rate": _rate(b["cx_failed"][c], b["cx_total"][c])}
+                for c in sorted(set(b["cx_total"]) | set(b["cx_failed"]))
+            }
+            cands = b["evolution_candidates"]
+            adopted = b["evolution_adopted"]
+            rows.append({
+                "week": wk,
+                "start": start_iso,
+                "end": end_iso,
+                "interactions": b["interactions"],
+                "token_reuse_rate": {
+                    "saved": int(b["tokens_saved"]),
+                    "total": t_total,
+                    "rate": _rate(int(b["tokens_saved"]), t_total),
+                },
+                "skill_hit_rate": {
+                    "queries": b["semantic_queries"],
+                    "hits": b["semantic_hits"],
+                    "rate": _rate(b["semantic_hits"], b["semantic_queries"]),
+                },
+                "workflow_hit_rate": {
+                    "interactions": b["interactions"],
+                    "hits": b["workflow_hits"],
+                    "rate": _rate(b["workflow_hits"], b["interactions"]),
+                },
+                "failure_rate_by_task_type": task_rows,
+                "complexity_failure_rate": cx_rows,
+                "feedback": {
+                    "count": b["feedback_count"],
+                    "avg": round(b["feedback_sum"] / b["feedback_count"], 2)
+                    if b["feedback_count"] else None,
+                },
+                "artifact_delta": {"count": b["artifact_count"]},
+                "evolution": {
+                    "candidates": cands,
+                    "adopted": adopted,
+                    "rate": _rate(adopted, cands),
+                    "insufficient_data": cands < min_candidates,
+                },
+            })
+        return rows
+
+    def evaluate_trigger_conditions(
+        self,
+        weeks: Optional[int] = None,
+        min_candidates: Optional[int] = None,
+        replay_coverage: Optional[float] = None,
+        audit_ok: Optional[bool] = None,
+        g1_g5_ready: Optional[bool] = None,
+        decision_approval: Optional[bool] = None,
+    ) -> Dict[str, Any]:
+        """报告 §3.3/§5.2 五条触发条件逐条计算（任务2 触发监控查询层）
+
+        判定窗口 = 最近 N 个有数据 ISO 周（含当前进行周；N 默认 4）。
+        "连续 N 周" = 窗口内每一周均满足条件且数据可度量；任一周数据缺失
+        （无交互/无任务/无候选等）→ 该条件标记 insufficient_data（不进入
+        "连续 4 周"统计，也绝不判命中）。环比（KPI#1/KPI#5）取最新周 vs 前一周，
+        前一周缺失 → 无法计算 → insufficient_data。
+
+        五条触发条件（口径详见《任务2_触发条件计算说明.md》）：
+        TC-1 judge_intro         KPI#7 连续 4 周 <5% 且 KPI#1 环比无提升
+        TC-2 solver_enhancement  KPI#3 工作流命中率连续 4 周 <10%
+        TC-3 course_adaptation   KPI#4（task_type）任一分类型失败率连续 4 周 >30%
+                                 且 KPI#5 均分环比下降
+        TC-4 sandbox_replay      沙箱回放覆盖率 <50% 且 KPI#6 沉淀增量连续 4 周停滞
+        TC-5 l3_research         TC-1/TC-3/TC-4 全触发 + 审计 3 个月 100% + 零事故
+                                 + G1-G5 就绪 + 决策层批准（后三项为外部输入，
+                                 未提供 → unknown）
+
+        Args:
+            weeks: 判定窗口周数（默认 4）
+            min_candidates: KPI#7 候选基数门槛（默认实例配置/5）
+            replay_coverage: 沙箱回放覆盖率 [0,1]（回放统计未接入时为 None → TC-4 unknown）
+            audit_ok: 审计通过率连续 3 个月 100%（外部输入，None → unknown）
+            g1_g5_ready: G1-G5 全部实现（外部输入，None → unknown）
+            decision_approval: 决策层书面批准（外部输入，None → unknown）
+
+        Returns:
+            {"generated_at", "window_weeks", "min_candidates", "weekly",
+             "conditions": {id: {...}}}
+        """
+        weeks = max(1, int(weeks if weeks is not None else self._trigger_window_weeks))
+        replay_threshold = self._replay_coverage_threshold
+        min_candidates = max(1, int(min_candidates if min_candidates is not None
+                                    else self._min_candidates))
+        # 多取一周供环比（KPI#1/KPI#5 需最新周 vs 前一周）
+        weekly = self.get_weekly_kpis(weeks=weeks + 1, min_candidates=min_candidates)
+        latest = weekly[-1] if weekly else None
+        prev = weekly[-2] if len(weekly) >= 2 else None
+
+        def _wk_evol(wk: Dict[str, Any]) -> Tuple[int, int, float]:
+            """周行 → (candidates, adopted, raw_rate)；无数据周返回 (0, 0, 0.0)"""
+            ev = wk["evolution"]
+            cands, adopted = ev["candidates"], ev["adopted"]
+            return cands, adopted, (adopted / cands if cands else 0.0)
+
+        def _wk_workflow(wk: Dict[str, Any]) -> Tuple[int, int, float]:
+            w = wk["workflow_hit_rate"]
+            return w["interactions"], w["hits"], (
+                w["hits"] / w["interactions"] if w["interactions"] else 0.0)
+
+        def _wk_task_over30(wk: Dict[str, Any]) -> Tuple[bool, dict]:
+            """任一分类型失败率 >30%？返回 (命中, 明细)；无任务数据返回 (False, {})。
+            阈值比较用原始 failed/total（周行 rate 为四舍五入展示值，不参与判定）。"""
+            rates = wk["failure_rate_by_task_type"]
+            detail = {}
+            hit = False
+            for t, d in rates.items():
+                if d["total"] > 0:
+                    raw_rate = d["failed"] / d["total"]
+                    detail[t] = {"total": d["total"], "failed": d["failed"],
+                                 "rate": d["rate"]}
+                    if raw_rate > _TRIGGER_FAILURE_RATE:
+                        hit = True
+            return hit, detail
+
+        def _streak(pred) -> Tuple[Optional[bool], str]:
+            """窗口内每周 pred(week) 判定；返回 (是否满足, 状态)。
+            数据缺失周 → pred 抛 KeyError 或显式返回 None → 视为不可度量。"""
+            if latest is None or len(weekly) < weeks:
+                return None, "insufficient_data"  # 系统运行不足一个窗口
+            ok = True
+            for wk in weekly[-weeks:]:
+                try:
+                    r = pred(wk)
+                except Exception:
+                    r = None
+                if r is None:
+                    return None, "insufficient_data"
+                if not r:
+                    ok = False
+            return ok, ("hit" if ok else "not_hit")
+
+        conditions: Dict[str, Dict[str, Any]] = {}
+
+        # ── TC-1 引入 LLM-as-Judge：KPI#7 连续 4 周 <5% 且 KPI#1 环比无提升 ──
+        def _judge_evol_ok(wk: Dict[str, Any]) -> Optional[bool]:
+            cands, adopted, rate = _wk_evol(wk)
+            if cands < min_candidates:
+                return None  # 候选基数不足 → 该周不可度量
+            return rate < _TRIGGER_EVOLUTION_RATE
+
+        def _judge_kpi1(wk: Dict[str, Any]) -> Optional[bool]:
+            """KPI#1 环比无提升：最新周复用率 <= 前一周复用率（双方均需有 token 数据）"""
+            if latest is None or prev is None:
+                return None
+            cur = latest["token_reuse_rate"]
+            p = prev["token_reuse_rate"]
+            if cur["total"] <= 0 or p["total"] <= 0:
+                return None  # 任一周无 token 消耗 → 环比不可度量
+            return cur["rate"] <= p["rate"]
+
+        ev_streak, ev_status = _streak(_judge_evol_ok)
+        kpi1 = _judge_kpi1(latest) if latest else None
+        hit_tc1 = bool(ev_streak and kpi1)
+        if ev_status == "insufficient_data" or kpi1 is None:
+            status_tc1 = "insufficient_data"
+        elif hit_tc1:
+            status_tc1 = "hit"
+        else:
+            status_tc1 = "not_hit"
+        conditions["judge_intro"] = {
+            "id": "judge_intro",
+            "capability": "引入 LLM-as-Judge（评估角色化）",
+            "source": "报告 §3.3/§5.2",
+            "hit": hit_tc1,
+            "status": status_tc1,
+            "detail": {
+                "evolution_rate_threshold": _TRIGGER_EVOLUTION_RATE,
+                "min_candidates": min_candidates,
+                "window_weeks": weeks,
+                "latest_evolution": (dict(latest["evolution"]) if latest else None),
+                "kpi1_wow_no_improvement": kpi1,
+                "token_reuse_latest": (latest["token_reuse_rate"]["rate"] if latest else None),
+                "token_reuse_prev": (prev["token_reuse_rate"]["rate"] if prev else None),
+            },
+        }
+
+        # ── TC-2 Solver 路径增强：KPI#3 工作流命中率连续 4 周 <10% ──
+        def _solver_ok(wk: Dict[str, Any]) -> Optional[bool]:
+            interactions, hits, rate = _wk_workflow(wk)
+            if interactions <= 0:
+                return None  # 无交互周无法度量命中率
+            return rate < _TRIGGER_WORKFLOW_RATE
+
+        solver_streak, solver_status = _streak(_solver_ok)
+        conditions["solver_enhancement"] = {
+            "id": "solver_enhancement",
+            "capability": "Solver 路径增强",
+            "source": "报告 §3.3",
+            "hit": bool(solver_streak),
+            "status": solver_status,
+            "detail": {
+                "workflow_rate_threshold": _TRIGGER_WORKFLOW_RATE,
+                "window_weeks": weeks,
+                "latest_workflow_hit_rate": (
+                    dict(latest["workflow_hit_rate"]) if latest else None),
+            },
+        }
+
+        # ── TC-3 课程难度自适应：KPI#4 任一分类型失败率连续 4 周 >30%
+        #       且 KPI#5 均分环比下降 ──
+        def _course_fail_ok(wk: Dict[str, Any]) -> Optional[bool]:
+            hit, _detail = _wk_task_over30(wk)
+            if not wk["failure_rate_by_task_type"]:
+                return None  # 无任务数据周无法度量失败率
+            return hit
+
+        course_streak, course_status = _streak(_course_fail_ok)
+        fb_drop = None
+        if latest is not None and prev is not None:
+            cur_avg = latest["feedback"]["avg"]
+            p_avg = prev["feedback"]["avg"]
+            if cur_avg is not None and p_avg is not None:
+                fb_drop = cur_avg < p_avg
+        hit_tc3 = bool(course_streak and fb_drop)
+        if course_status == "insufficient_data" or fb_drop is None:
+            status_tc3 = "insufficient_data"
+        elif hit_tc3:
+            status_tc3 = "hit"
+        else:
+            status_tc3 = "not_hit"
+        conditions["course_adaptation"] = {
+            "id": "course_adaptation",
+            "capability": "启用课程难度自适应",
+            "source": "报告 §3.3/§5.2",
+            "hit": hit_tc3,
+            "status": status_tc3,
+            "detail": {
+                "failure_rate_threshold": _TRIGGER_FAILURE_RATE,
+                "window_weeks": weeks,
+                "latest_task_types": (dict(latest["failure_rate_by_task_type"])
+                                      if latest else {}),
+                "feedback_avg_declined": fb_drop,
+                "feedback_latest_avg": (latest["feedback"]["avg"] if latest else None),
+                "feedback_prev_avg": (prev["feedback"]["avg"] if prev else None),
+            },
+        }
+
+        # ── TC-4 沙箱回放：覆盖率 <50% 且 KPI#6 沉淀增量连续 4 周停滞 ──
+        def _artifact_ok(wk: Dict[str, Any]) -> Optional[bool]:
+            return wk["artifact_delta"]["count"] <= _TRIGGER_ARTIFACT_STAGNATION
+
+        art_streak, art_status = _streak(_artifact_ok)
+        if replay_coverage is None:
+            tc4_status = "unknown"
+            tc4_hit = False
+        elif art_status == "insufficient_data":
+            tc4_status = "insufficient_data"
+            tc4_hit = False
+        else:
+            tc4_hit = bool(art_streak and replay_coverage < replay_threshold)
+            tc4_status = "hit" if tc4_hit else "not_hit"
+        conditions["sandbox_replay"] = {
+            "id": "sandbox_replay",
+            "capability": "启用沙箱回放",
+            "source": "报告 §5.2",
+            "hit": tc4_hit,
+            "status": tc4_status,
+            "detail": {
+                "replay_coverage": replay_coverage,
+                "replay_coverage_threshold": replay_threshold,
+                "artifact_stagnation_threshold": _TRIGGER_ARTIFACT_STAGNATION,
+                "window_weeks": weeks,
+                "latest_artifact_count": (latest["artifact_delta"]["count"]
+                                          if latest else None),
+            },
+        }
+
+        # ── TC-5 L3 研究：TC-1/TC-3/TC-4 全触发 + 外部前置 ──
+        core_hit = (conditions["judge_intro"]["hit"]
+                    and conditions["course_adaptation"]["hit"]
+                    and conditions["sandbox_replay"]["hit"])
+        core_statuses = [conditions["judge_intro"]["status"],
+                         conditions["course_adaptation"]["status"],
+                         conditions["sandbox_replay"]["status"]]
+        externals = {"audit_ok": audit_ok, "g1_g5_ready": g1_g5_ready,
+                     "decision_approval": decision_approval}
+        unknown_ext = any(v is None for v in externals.values())
+        if not core_hit:
+            tc5_status = "not_hit" if "unknown" not in core_statuses else "unknown"
+        elif unknown_ext:
+            tc5_status = "unknown"
+        elif all(externals.values()):
+            tc5_status = "hit"
+        else:
+            tc5_status = "not_hit"
+        conditions["l3_research"] = {
+            "id": "l3_research",
+            "capability": "启动元规则级递归自进化（L3 研究）",
+            "source": "报告 §5.2",
+            "hit": tc5_status == "hit",
+            "status": tc5_status,
+            "detail": {
+                "core_conditions": {cid: conditions[cid]["status"]
+                                    for cid in ("judge_intro", "course_adaptation",
+                                                "sandbox_replay")},
+                "externals": {k: (v if v is not None else "unknown")
+                              for k, v in externals.items()},
+            },
+        }
+
+        result = {
+            "generated_at": datetime.now().isoformat(timespec="seconds"),
+            "window_weeks": weeks,
+            "min_candidates": min_candidates,
+            "weekly": weekly,
+            "conditions": conditions,
+        }
+        # 查询层 → Prometheus gauge（告警引用其结果）；失败静默（零影响）
+        self._sync_trigger_gauges(result)
+        return result
+
+    def _sync_trigger_gauges(self, result: Dict[str, Any]) -> None:
+        """把触发条件结果同步到 Prometheus gauge（异常静默，绝不影响查询层）"""
+        try:
+            from agent.monitoring.learning_trigger_metrics import sync_trigger_gauges
+            sync_trigger_gauges(result)
+        except Exception:
+            logger.debug("[学习度量] 触发条件 gauge 同步失败（静默）")
 
     def _get_eval_stats(self) -> Dict[str, int]:
         """聚合 TASK-02 已埋的 learning.eval.* 计数器（评估失败率数据源）"""
@@ -432,6 +985,8 @@ class LearningMetrics:
             self._workflow_queries = 0
             self._workflow_hits = 0
             self._task_results.clear()
+            self._complexity_results.clear()
+            self._daily_events.clear()
             self._feedback.clear()
             self._daily_stats.clear()
             self._artifacts.clear()
@@ -445,7 +1000,21 @@ class LearningMetrics:
 
     def _queue_event(self, day: str, kind: str, key: str,
                      val: float, cnt: int) -> None:
-        """累积一条事件进 pending（须在持锁上下文调用；RLock 可重入）"""
+        """累积一条事件（须在持锁上下文调用；RLock 可重入）
+
+        任务2：恒写入日粒度内存镜像 _daily_events（周级滚动统计/触发判定的数据源，
+        与持久化开关无关）；持久化开启时同步进 _pending（落库侧通道）。
+        """
+        try:
+            k = (day, kind, key)
+            e = self._daily_events.get(k)
+            if e is None:
+                self._daily_events[k] = [float(val), int(cnt)]
+            else:
+                e[0] += float(val)
+                e[1] += int(cnt)
+        except Exception as e:
+            logger.debug("[学习度量] 日粒度事件累积失败: %s", e)
         if self._persistence is None:
             return
         try:
@@ -555,6 +1124,10 @@ class LearningMetrics:
                         self._task_results[key]["total"] += cnt
                     elif kind == "task_failed":
                         self._task_results[key]["failed"] += cnt
+                    elif kind == "task_complexity_total":
+                        self._complexity_results[key]["total"] += cnt
+                    elif kind == "task_complexity_failed":
+                        self._complexity_results[key]["failed"] += cnt
                     elif kind == "feedback":
                         avg = val / cnt if cnt else 0.0
                         day_ts = _day_ts_approx(day)
@@ -568,6 +1141,19 @@ class LearningMetrics:
                         self._evolution_adopted += cnt
                 except Exception:
                     continue
+            # 任务2：回填日粒度事件镜像（与持久化同源同形；周级滚动统计跨重启恢复）
+            for day, kind, key, val, cnt in rows:
+                try:
+                    k = (day, kind, key)
+                    e = self._daily_events.get(k)
+                    if e is None:
+                        self._daily_events[k] = [float(val), int(cnt)]
+                    else:
+                        e[0] += float(val)
+                        e[1] += int(cnt)
+                except Exception:
+                    continue
+            self._prune_daily_events()
 
     # ════════════════════════════════════════════════════════════════
     #  内部工具
@@ -585,6 +1171,13 @@ class LearningMetrics:
         else:
             _safe_collector(fn_name, *args, **kwargs)
 
+    def _prune_daily_events(self) -> None:
+        """裁剪超出周级统计保留窗口的日粒度事件（必须持有锁）"""
+        cutoff = _day_iso(time.time() - _WEEKLY_RETENTION_DAYS * 86400)
+        self._daily_events = {
+            k: v for k, v in self._daily_events.items() if k[0] >= cutoff
+        }
+
     def _prune_feedback(self) -> None:
         """裁剪超出保留窗口的反馈记录（必须持有锁）"""
         cutoff = time.time() - _RETENTION_DAYS * 86400
@@ -594,11 +1187,18 @@ class LearningMetrics:
             self._feedback = self._feedback[-100000:]
 
     def _prune_daily_stats(self) -> None:
-        """裁剪超出保留窗口的每日统计桶（必须持有锁）"""
+        """裁剪超出保留窗口的每日统计桶（必须持有锁）
+
+        【任务2 修复】原实现对裁剪结果直接赋值普通 dict，破坏 __init__ 建立的
+        defaultdict 自动补键契约——第二个新日期起 record_interaction/record_feedback
+        访问缺失键抛 KeyError（被外层 except 静默吞掉），日粒度数据静默丢失。
+        现重建为 defaultdict（同工厂），自动补键契约保持，既有 KPI 聚合口径不变。
+        """
         cutoff = _day_iso(time.time() - _RETENTION_DAYS * 86400)
-        self._daily_stats = {
-            k: v for k, v in self._daily_stats.items() if k >= cutoff
-        }
+        self._daily_stats = defaultdict(
+            lambda: {"interactions": 0, "feedback_ratings": []},
+            {k: v for k, v in self._daily_stats.items() if k >= cutoff},
+        )
 
 
 # ════════════════════════════════════════════════════════════════
@@ -621,10 +1221,15 @@ except ImportError:
 
 
 def _resolve_persistence_config(config: Optional[dict] = None) -> Optional[dict]:
-    """持久化配置解析：环境变量 > config dict（learning.metrics.persistence）> 默认关闭
+    """持久化配置解析：环境变量 > config dict > config.yaml > 默认关闭
 
     【不易】默认关闭——未显式开启时行为与纯内存完全一致（TASK-03 不变式）。
+    任务2：config 为 None 时回退读取仓库根 config.yaml 的 learning.metrics.persistence
+    （工厂经 get_singleton 创建时无调用方显式传 config，需在此落配置段）。
     """
+    if config is None:
+        config = _load_config_yaml_once() or {}
+
     def _env(k: str, default: Any = None) -> Any:
         return os.environ.get(k, default)
 
@@ -655,9 +1260,69 @@ def _resolve_persistence_config(config: Optional[dict] = None) -> Optional[dict]
     }
 
 
+def _resolve_metrics_config(config: Optional[dict] = None) -> Dict[str, Any]:
+    """任务2 触发监控参数解析：环境变量 > config（learning.metrics.*）> 默认值"""
+    if config is None:
+        config = _load_config_yaml_once() or {}
+
+    def _env(k: str, default: Any = None) -> Any:
+        return os.environ.get(k, default)
+
+    def _cfg(keys: Tuple[str, ...], default: Any = None) -> Any:
+        node = config or {}
+        for key in keys:
+            if not isinstance(node, dict):
+                return default
+            node = node.get(key, {})
+        return node if node != {} else default
+
+    min_candidates = _env("LEARNING_METRICS_MIN_CANDIDATES", None)
+    if min_candidates is None:
+        min_candidates = _cfg(
+            ("learning", "metrics", "min_candidates"), _DEFAULT_MIN_CANDIDATES)
+    try:
+        min_candidates = max(1, int(min_candidates))
+    except (TypeError, ValueError):
+        min_candidates = _DEFAULT_MIN_CANDIDATES
+
+    window_weeks = _env("LEARNING_METRICS_TRIGGER_WINDOW_WEEKS", None)
+    if window_weeks is None:
+        window_weeks = _cfg(
+            ("learning", "metrics", "trigger_monitoring", "window_weeks"),
+            _TRIGGER_WINDOW_WEEKS)
+    try:
+        window_weeks = max(1, int(window_weeks))
+    except (TypeError, ValueError):
+        window_weeks = _TRIGGER_WINDOW_WEEKS
+
+    replay_threshold = _env("LEARNING_METRICS_REPLAY_COVERAGE_THRESHOLD", None)
+    if replay_threshold is None:
+        replay_threshold = _cfg(
+            ("learning", "metrics", "trigger_monitoring",
+             "replay_coverage_threshold"), _TRIGGER_REPLAY_COVERAGE)
+    try:
+        replay_threshold = float(replay_threshold)
+    except (TypeError, ValueError):
+        replay_threshold = _TRIGGER_REPLAY_COVERAGE
+
+    return {
+        "min_candidates": min_candidates,
+        "trigger_window_weeks": window_weeks,
+        "replay_coverage_threshold": replay_threshold,
+    }
+
+
 def _create_learning_metrics(config: Optional[dict] = None) -> LearningMetrics:
     """LearningMetrics 工厂（供 SingletonManager 使用）"""
-    return LearningMetrics(persistence=_resolve_persistence_config(config))
+    mcfg = _resolve_metrics_config(config)
+    return LearningMetrics(
+        persistence=_resolve_persistence_config(config),
+        min_candidates=mcfg.get("min_candidates", _DEFAULT_MIN_CANDIDATES),
+        trigger_window_weeks=mcfg.get(
+            "trigger_window_weeks", _TRIGGER_WINDOW_WEEKS),
+        replay_coverage_threshold=mcfg.get(
+            "replay_coverage_threshold", _TRIGGER_REPLAY_COVERAGE),
+    )
 
 
 def get_learning_metrics() -> LearningMetrics:
