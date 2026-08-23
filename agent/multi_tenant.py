@@ -80,7 +80,15 @@ class RoleAssignment:
 class TenantManager:
     """租户管理器"""
     
-    def __init__(self):
+    def __init__(self, data_dir: Optional[str] = None):
+        """租户管理器。
+
+        data_dir 可注入（测试隔离用）：默认 None 使用模块默认数据目录
+        （agent/data/）；传值时读写均落到该目录，不触碰真实数据。
+        """
+        self._data_dir = (
+            Path(data_dir) if data_dir else Path(__file__).parent / "data"
+        )
         self._tenants: Dict[str, Tenant] = {}
         self._users: Dict[str, User] = {}
         self._role_assignments: Dict[str, List[RoleAssignment]] = {}
