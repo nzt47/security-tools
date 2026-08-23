@@ -264,6 +264,54 @@ def bench_persist(cache: SkillIndexCache) -> dict:
     return res
 
 
+def bench_realtime(cache: SkillIndexCache, repo: Path, count: int,
+                   samples: int = 10, debounce: float = 0.02) -> dict:
+    """L4 实时可见性延迟：外部修改 → 事件失效 → get_all_metadata 不再返回旧值
+
+    对比 L3（无 watcher）：TTL 窗口内 get_all_metadata 持续返回旧值（延迟≈窗口）。
+    L4（有 watcher）：事件驱动失效后旧值立即不可见（延迟≈事件传播+drain）。
+    """
+    from agent.skills_mgmt.index_cache_watcher import SkillIndexCacheWatcher
+    watcher = SkillIndexCacheWatcher(cache, str(repo), debounce=debounce)
+    if not watcher.start():
+        print("[realtime] watchdog 不可用，跳过（降级为校验路径）")
+        return {"available": False}
+    try:
+        lat = []
+        # 选 100~149 段：避开 incremental(0~9)/invalidate(0~19)/delete(995~999)
+        # 修改前这些技能仍在缓存中（TTL 窗口内未被触碰），事件失效后旧值才真正"消失"
+        ids = [f"bench_skill_{i:04d}"
+               for i in range(100, min(count, 100 + 50))]
+        for i in range(samples):
+            sid = ids[i % len(ids)]
+            new_name = f"rt-changed-{i}"
+            _write_skill(repo, sid, 20000 + i)  # 外部直接改文件
+            t0 = time.perf_counter()
+            while True:
+                index = cache.get_all_metadata()
+                if sid not in index or index[sid].get("name") == new_name:
+                    break  # 旧值已不可见（事件失效）或已回源新值
+                if (time.perf_counter() - t0) > 3.0:
+                    break
+                time.sleep(0.001)
+            lat.append((time.perf_counter() - t0) * 1000)
+        lat.sort()
+        res = {
+            "available": True,
+            "samples": samples,
+            "min_ms": lat[0],
+            "avg_ms": sum(lat) / len(lat),
+            "p99_ms": _p99(lat),
+            "drain_count": watcher.drain_count(),
+        }
+        print(f"[realtime] samples={samples} min={_fmt(res['min_ms'])} "
+              f"avg={_fmt(res['avg_ms'])} p99={_fmt(res['p99_ms'])} "
+              f"drain={res['drain_count']}")
+        return res
+    finally:
+        watcher.stop()
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="技能索引缓存极限压测")
     ap.add_argument("--count", type=int, default=1000, help="技能文件数（默认 1000）")
@@ -277,6 +325,10 @@ def main() -> int:
                     help="结果落盘 JSON 路径（可选）")
     ap.add_argument("--ttl", type=float, default=0.0,
                     help="L3 TTL 校验窗口（秒；>0 时窗口内跳过全量校验，默认 0=关闭）")
+    ap.add_argument("--watch", action="store_true",
+                    help="L4 事件驱动：启用 watcher 测实时可见性延迟（外部修改→旧值不可见）")
+    ap.add_argument("--watch-samples", type=int, default=10,
+                    help="L4 实时性采样次数（默认 10）")
     ap.add_argument("--skip-slow", action="store_true",
                     help="跳过增量校验/并发等耗时场景")
     args = ap.parse_args()
@@ -317,6 +369,12 @@ def main() -> int:
 
         results["scenarios"]["invalidate"] = bench_invalidate(cache)
         results["scenarios"]["persist"] = bench_persist(cache)
+
+        # L4 实时可见性（--watch）：外部修改 → 事件失效 → 旧值不可见延迟
+        if args.watch:
+            results["scenarios"]["realtime"] = bench_realtime(
+                cache, repo, args.count, args.watch_samples,
+            )
 
         # 缓存收益主指标：冷启动全量解析 vs 热启动增量校验（均 O(n)，差异=解析 vs stat+hash）
         cold_ms = results["scenarios"]["cold_start"]["ms"]

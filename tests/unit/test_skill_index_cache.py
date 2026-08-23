@@ -24,6 +24,10 @@ import pytest
 
 from agent.skills_mgmt.file_store import SkillFileStore
 from agent.skills_mgmt.index_cache import SkillIndexCache
+from agent.skills_mgmt.index_cache_watcher import (
+    SkillIndexCacheWatcher,
+    _SkillEventProcessor,
+)
 from agent.skills_mgmt.loader import SkillLoader
 
 
@@ -552,3 +556,91 @@ class TestTTLValidationL3:
         _write_skill(repo, "alpha", "alpha-v3")
         index = cache.get_all_metadata()
         assert index["alpha"]["name"] == "alpha-v2"
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  L4 事件驱动：背压合并（高并发）+ 真实 observer 实时失效
+# ═══════════════════════════════════════════════════════════════════
+
+class TestWatcherBackpressureL4:
+    def test_event_processor_backpressure_high_concurrency(self, tmp_path):
+        """高并发事件注入 → pending 去重有界 + 合并失效（背压处理机制）
+
+        验证关键不变量：
+        1. 800 事件（8 线程 × 100，20 技能）→ pending 集合有界（≤ 技能数）
+        2. 合并后 invalidate 调用次数 ≤ 技能数（同一技能多事件只失效一次）
+        3. 最终一致性：全部事件处理后缓存仍正确（失效→回源幂等）
+        """
+        repo = tmp_path / "repo"
+        for i in range(20):
+            _write_skill(repo, f"skill-{i}", f"skill-{i}")
+        fs = SkillFileStore(repo_path=str(repo))
+        cache = SkillIndexCache(fs)
+        cache.get_all_metadata()
+
+        calls = {"n": 0}
+        orig = cache.invalidate
+
+        def counting(sid):
+            calls["n"] += 1
+            orig(sid)
+
+        proc = _SkillEventProcessor(counting, str(repo), debounce=0.01)
+        proc.start()
+        try:
+            def flood(offset):
+                for n in range(100):
+                    proc.submit(f"skill-{(offset + n) % 20}")
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+                list(ex.map(flood, range(8)))
+
+            # 背压：pending 去重集合有界（≤ 技能数，事件风暴不 OOM）
+            assert proc.pending <= 20
+        finally:
+            proc.stop()  # stop 内收尾 drain，清空剩余事件
+
+        # 合并：800 事件 → 每技能最多失效一次（≤ 20）
+        assert calls["n"] <= 20
+        assert proc.pending == 0  # 全部消费
+        # 最终一致性：缓存仍能回源到正确值
+        for i in range(20):
+            assert cache.get_metadata(f"skill-{i}")["name"] == f"skill-{i}"
+
+    def test_watcher_real_observer_invalidates_realtime(self, tmp_path):
+        """真实 watchdog observer：TTL 窗口内外部修改 → 事件实时失效
+
+        L4 相比 L3 的核心改进：TTL 窗口内 get_all_metadata 不再返回旧值
+        （事件失效移除该技能），且 get_metadata 立即回源新值。
+
+        注意：仓库必须含 ≥2 技能——若失效后 _cache 为空，get_all_metadata
+        会走"空缓存全量重建"兜底回源（行为仍实时，但测不出"旧值被移除"）。
+        """
+        repo = tmp_path / "repo"
+        _write_skill(repo, "alpha", "alpha")
+        _write_skill(repo, "beta", "beta")  # 保持 _cache 非空（见 docstring）
+        fs = SkillFileStore(repo_path=str(repo))
+        cache = SkillIndexCache(fs, validate_interval=60.0)  # 大 TTL 窗口
+        cache.get_all_metadata()
+
+        watcher = SkillIndexCacheWatcher(cache, str(repo), debounce=0.02)
+        if not watcher.start():
+            pytest.skip("watchdog 不可用，跳过真实 observer 测试")
+        try:
+            _write_skill(repo, "alpha", "alpha-v2")  # 外部修改（TTL 窗口内）
+
+            # 事件 → 失效：get_all_metadata 不再返回旧值（alpha 被移除）
+            deadline = time.time() + 3.0
+            seen_invalid = False
+            while time.time() < deadline:
+                if "alpha" not in cache.get_all_metadata():
+                    seen_invalid = True
+                    break
+                time.sleep(0.05)
+            assert seen_invalid, "L4 事件失效未生效（TTL 窗口内旧值仍在返回）"
+            assert watcher.drain_count() >= 1  # 事件已被背压处理器消费
+
+            # 回源：get_metadata 立即拿到新值（最终一致）
+            assert cache.get_metadata("alpha")["name"] == "alpha-v2"
+        finally:
+            watcher.stop()
