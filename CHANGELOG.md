@@ -6,6 +6,24 @@
 
 ---
 
+## [CHG] - 2026-08-23: 事故复盘知识库归档（模板 + pytest/BOM 案例）✅
+
+**影响模块**: `docs/wiki/`（4 文件新增）, `docs/README.md`（+索引入口）, `docs/zh/事故复盘知识库归档交付报告_20260823.md`（新增）
+**关联提交**: `fdca4f7d`（docs(ci): 事故复盘知识库索引归档，5 文件 / +464 行）→ `origin/develop`（`b4aa9c7a..fdca4f7d`）已同步
+
+### Done — 事故复盘知识库归档
+
+- **文档模板**：`docs/wiki/incident_report_template.md`（通用八节复盘模板，占位符即填即用，含真实案例参考）
+- **案例归档**：`ci_pytest_plugins_incident_report.md`（pytest.ini 全局配置 + --strict-config 插件契约）、`precommit_hook_bom_incident_report_v2.md`（编码契约：PS 恰 1 BOM / hook 无 BOM）
+- **索引**：`docs/wiki/README.md`（知识库索引）+ `docs/README.md` 开发指南分类入口
+- **CI 验证**：fdca4f7d 触发 14 workflow，文档相关 7 success（文档预检/tlm-hook-failsafe/工具检索/扩展健康检查全绿）
+
+### Remaining — 遗留（见报告 §五）
+
+Deploy Yunshu CI 失败（deploy.yml 缺 pytest-timeout，并行会话 `10228c06` 已推送修复）、4 个 concurrency 取消 run、gitee 远端未同步（不影响文档交付）
+
+---
+
 ## [CHG] - 2026-08-16: 项目交付收尾结案 ✅
 
 **影响模块**: git（develop d57310d1 + 本条目）, `docs/zh/项目交付收尾报告_20260816.md`（新增）, `.gitignore`（+防误提交规则）
