@@ -333,6 +333,7 @@ class CardStore:
         为空则从正文解析（与 update 语义对齐，保证入链索引完整登记）。
         """
         with self._rwlock.write():  # 写串行化：写卡 + index + log 三步原子可见
+            _t_start = time.perf_counter()  # 全方法计时（含校验/写盘/索引/缓存同步）
             self._check_slug(card.slug)
             self._validate(card)
             logger.debug(
@@ -360,10 +361,17 @@ class CardStore:
             update_index_delta(card.slug, card, self._index_path)
             append_log("create", card.slug, f"type={card.type}", log_path=self._log_path)
             self._sync_links_index_add(card)  # 入链索引同步（P0-2）
+            _t_sync = time.perf_counter()  # 缓存同步埋点：指纹 stat + 增量同步
             self._sync_list_cache(
                 added=card,
                 added_fp=self._fp_entry(card.type, card.slug, path),
             )  # 内存缓存增量同步：写后查询不再全量重载
+            logger.info(
+                "创建卡片[缓存同步]: slug=%s 指纹stat+增量同步=%.3fms 全方法=%.3fms",
+                card.slug,
+                (time.perf_counter() - _t_sync) * 1000,
+                (time.perf_counter() - _t_start) * 1000,
+            )
             logger.debug(
                 "create[入链登记]: slug=%s 每个引用目标逐项登记 add=True index=%s",
                 card.slug, self._links_index_path,
@@ -402,6 +410,7 @@ class CardStore:
         若 type 变更，文件迁移到新类型目录（旧文件删除）。
         """
         with self._rwlock.write():  # 写串行化：迁移 + 写卡 + index + log 原子可见
+            _t_start = time.perf_counter()  # 全方法计时（含校验/迁移/索引/缓存同步）
             self._check_slug(card.slug)
             self._validate(card)
             old_path = self._find_path(card.slug)
@@ -438,12 +447,19 @@ class CardStore:
             update_index_delta(card.slug, card, self._index_path)
             append_log("update", card.slug, f"type={card.type}", log_path=self._log_path)
             self._sync_links_index_add(card)  # 入链索引同步：登记新引用（P0-2）
+            _t_sync = time.perf_counter()  # 缓存同步埋点：指纹 stat + 增量同步
             self._sync_list_cache(
                 added=card,
                 removed=card.slug,
                 added_fp=self._fp_entry(card.type, card.slug, new_path),
                 removed_fp=old_fp,
             )  # 内存缓存增量同步：写后查询不再全量重载
+            logger.info(
+                "更新卡片[缓存同步]: slug=%s 指纹stat+增量同步=%.3fms 全方法=%.3fms",
+                card.slug,
+                (time.perf_counter() - _t_sync) * 1000,
+                (time.perf_counter() - _t_start) * 1000,
+            )
             return card
 
     def delete(self, slug: str) -> bool:
@@ -628,8 +644,14 @@ class CardStore:
         文件缺失返回 None（调用方忽略；指纹不一致时下次命中会全量比较
         发现 → 自动重载，安全回退）。
         """
+        _t0 = time.perf_counter()
         try:
-            return (type_dir, f"{slug}.md", path.stat().st_mtime_ns)
+            entry = (type_dir, f"{slug}.md", path.stat().st_mtime_ns)
+            logger.debug(
+                "_fp_entry: stat %s/%s.md 耗时=%.3fms",
+                type_dir, slug, (time.perf_counter() - _t0) * 1000,
+            )
+            return entry
         except OSError:
             return None
 
@@ -661,6 +683,8 @@ class CardStore:
         """
         if self._list_cache is None:
             return
+        _t0 = time.perf_counter()
+        _t1 = time.perf_counter()  # 缓存同步计时起点
         if removed is not None:
             self._list_cache = [
                 c for c in self._list_cache if c.slug != removed
@@ -674,6 +698,8 @@ class CardStore:
             self._list_cache.sort(
                 key=lambda c: (_TYPE_DIRS.index(c.type), c.slug)
             )
+        _t_cache_ms = (time.perf_counter() - _t1) * 1000
+        _t2 = time.perf_counter()  # 指纹同步计时起点
         if added_fp is not None or removed_fp is not None:
             fp = set(self._list_fingerprint or ())
             if removed_fp is not None:
@@ -681,6 +707,13 @@ class CardStore:
             if added_fp is not None:
                 fp.add(added_fp)
             self._list_fingerprint = tuple(sorted(fp))
+        _t_fp_ms = (time.perf_counter() - _t2) * 1000
+        logger.debug(
+            "_sync_list_cache: 缓存同步=%.3fms 指纹更新=%.3fms 合计=%.3fms "
+            "(added=%r removed=%r)",
+            _t_cache_ms, _t_fp_ms, (time.perf_counter() - _t0) * 1000,
+            added.slug if added else None, removed,
+        )
 
     def list(
         self,
