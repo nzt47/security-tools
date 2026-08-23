@@ -95,7 +95,7 @@ class TenantManager:
     
     def _load_data(self):
         """加载数据"""
-        data_dir = Path(__file__).parent / "data"
+        data_dir = self._data_dir
         data_dir.mkdir(parents=True, exist_ok=True)
         
         files = {
@@ -124,7 +124,7 @@ class TenantManager:
     
     def _save_data(self):
         """保存数据"""
-        data_dir = Path(__file__).parent / "data"
+        data_dir = self._data_dir
         
         with open(data_dir / "tenants.json", 'w', encoding='utf-8') as f:
             json.dump([vars(t) for t in self._tenants.values()], f, ensure_ascii=False, indent=2)
