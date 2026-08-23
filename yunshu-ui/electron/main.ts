@@ -106,7 +106,7 @@ function loadRenderer(win: BrowserWindow, hashRoute?: string) {
 }
 
 function createMainWindow() {
-  console.log(`[main] 创建主窗口 (1440x900, title=云枢 · 工作台)`);
+  log('info', 'window-created', { width: 1440, height: 900, title: '云枢 · 工作台' });
   const win = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -165,7 +165,7 @@ function registerIpcHandlers() {
     if (!panelId || !route) {
       throw new Error(`非法的 detach 请求: ${JSON.stringify(req)}`);
     }
-    console.log(`[main] 分离面板 → 新窗口: ${panelId} @ ${route}`);
+    log('info', 'panel-detached', { panelId, route });
     return createDetachedWindow({ panelId, title: req.title || panelId, route });
   });
 

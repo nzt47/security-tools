@@ -24,7 +24,9 @@
     ],
     "asar": true,
     "compression": "maximum",
+    "beforePack": "scripts/beforePack.mjs",
     "afterPack": "scripts/afterPack.mjs",
+    "electronDist": "node_modules/electron/dist",
     "electronLanguages": [
       "zh-CN",
       "en-US"
