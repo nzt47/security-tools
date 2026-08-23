@@ -1686,5 +1686,66 @@ def main(argv: Optional[List[str]] = None) -> int:
         return _emit({"error": f"回放失败: {e}"}, _EXIT_JOB_ERROR)
 
 
+# ════════════════════════════════════════════════════════════
+#  沙箱回放覆盖率（TC-4 触发条件输入 · 任务6 遗留项接线）
+# ════════════════════════════════════════════════════════════
+
+
+def compute_replay_coverage(
+    audit_file: Optional[Path] = None,
+    manifest_path: Optional[Path] = None,
+) -> Optional[float]:
+    """计算"沙箱回放覆盖率"（报告 §5.2 TC-4 触发条件输入）。
+
+    口径：审计中出现过的**评估集样本**（sample_id ∈ manifest 登记样本）去重数
+          / manifest 当前版本登记样本总数。
+    审计文件不存在/为空、manifest 缺失或解析失败 → 返回 None
+    （TC-4 保持 unknown，绝不伪造指标——沿用评估体系不变式）。
+
+    用途：`/api/learning/metrics/trigger` 与运维脚本自动注入 replay_coverage，
+    消除"回放统计未接入 KPI"断点（任务6 遗留项）；阈值判定在查询层
+    `LearningMetrics.evaluate_trigger_conditions(replay_coverage=...)`。
+    """
+    from pathlib import Path as _Path
+
+    audit = _Path(audit_file) if audit_file is not None else _audit_file()
+    manifest = _Path(manifest_path) if manifest_path is not None else (
+        _Path(__file__).resolve().parent.parent.parent
+        / "data" / "evals" / "manifest.json")
+    if not audit.exists() or not manifest.exists():
+        return None
+    try:
+        with open(manifest, "r", encoding="utf-8") as f:
+            mdata = json.load(f)
+        current = (mdata or {}).get("current")
+        cats = (((mdata or {}).get("versions") or {}).get(current) or {}).get(
+            "categories") or {}
+        registered = set()
+        for ids in cats.values():
+            for sid in (ids or []):
+                registered.add(str(sid))
+        if not registered:
+            return None
+        replayed = set()
+        with open(audit, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                for s in (entry.get("samples") or []):
+                    sid = s.get("sample_id")
+                    if sid is not None and str(sid) in registered:
+                        replayed.add(str(sid))
+        if not replayed:
+            return 0.0
+        return round(len(replayed) / len(registered), 4)
+    except (OSError, ValueError, TypeError):
+        return None
+
+
 if __name__ == "__main__":
     raise SystemExit(main())

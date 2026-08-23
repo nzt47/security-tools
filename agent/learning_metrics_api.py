@@ -108,6 +108,8 @@ def learning_metrics_trigger_view():
     audit_ok = _bool_arg("audit_ok", None)
     g1_g5_ready = _bool_arg("g1_g5_ready", None)
     decision_approval = _bool_arg("decision_approval", None)
+    if replay_coverage is None:
+        replay_coverage = _auto_replay_coverage()
     return _safe_jsonify(lambda: get_learning_metrics_trigger(
         weeks=weeks,
         replay_coverage=replay_coverage,
@@ -115,6 +117,20 @@ def learning_metrics_trigger_view():
         g1_g5_ready=g1_g5_ready,
         decision_approval=decision_approval,
     ))
+
+
+def _auto_replay_coverage() -> Optional[float]:
+    """未显式传 replay_coverage 时，从回放审计自动计算（任务6 遗留项接线）。
+
+    审计缺失/无 manifest → None → TC-4 sandbox_replay 保持 unknown（绝不伪造）；
+    任何异常静默回退 None，不影响只读端点契约。
+    """
+    try:
+        from agent.learning.replay import compute_replay_coverage
+        return compute_replay_coverage()
+    except Exception as exc:  # noqa: BLE001 自动注入失败 → 显式 None，不掩盖
+        logger.debug("[学习度量API] replay_coverage 自动计算失败（回退 None）: %s", exc)
+        return None
 
 
 @learning_metrics_bp.route('/api/learning/guards', methods=['GET'])

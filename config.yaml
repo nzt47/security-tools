@@ -284,10 +284,11 @@ learning:
     # 环境变量 LEARNING_METRICS_MIN_CANDIDATES 覆盖此值
     min_candidates: 5
     # 知识检索（agent/knowledge/search.py）KPI#1 语义查询观察埋点：
-    # 默认 false（观察模式关）——知识卡片检索与 orchestrator 语义层技能匹配是不同通道，
-    # 开启后每次 search 计入 record_semantic_query（saved_tokens=0，不改 token 复用率口径）
+    # 默认 true（观察埋点开启，2026-08-23 复查接线）——知识卡片检索与 orchestrator
+    # 语义层技能匹配是不同通道，开启后每次 search 计入 record_semantic_query
+    # （saved_tokens=0，纯计数零成本，不改 token 复用率口径，异常静默零阻塞）
     # 环境变量 LEARNING_METRICS_OBSERVE_KNOWLEDGE_SEARCH 覆盖此值
-    observe_knowledge_search: false
+    observe_knowledge_search: true
     # SQLite 持久化（TASK-03 设计，默认关闭；灰度开启后跨重启累积"连续 4 周"统计）
     # enabled: false（默认）行为与纯内存完全一致；true 时启用落库，I/O 不进锁、
     # DB 失败自动降级为内存聚合（沿用 3f37612d 设计）
@@ -309,10 +310,32 @@ learning:
       replay_coverage_threshold: 0.5
   # 任务7：复杂度判定源统一（agent/task_planner/complexity_classifier.py）
   # wire 启发式（默认，生产现状逐字节等价）/ enhanced_planner 分级（灰度对比候选）
-  # 选型依据：任务7_复杂度判定源对比报告.md（抽样集一致率）；默认 wire 零行为变化
+  # / wire_v2（增强特征判定，复查补充——默认零行为变化，灰度 A/B 候选）
+  # 选型依据：任务7_复杂度判定源对比报告.md（抽样集一致率 29.5%，两源对人工
+  # 标注符合率均低 20%/32%，判定质量提升见 data/complexity_labeled.jsonl 标注资产）
   # 环境变量 COMPLEXITY_SOURCE 覆盖此值
   complexity:
     source: wire
+    # wire_v2 判定参数（WireV2Classifier，环境变量 COMPLEXITY_V2_* 覆盖；
+    # 非法值回退默认；仅 source=wire_v2 时生效）
+    v2:
+      # 复杂指示词命中权重（单次命中累计）
+      complex_keyword_weight: 1.0
+      # 动作词命中权重
+      action_keyword_weight: 0.5
+      # 文本长度（字符）超过该值附加长文本权重分
+      length_threshold: 60
+      length_weight: 0.5
+      # 数字/金额/百分比/日期实体每命中附加权重
+      numeric_entity_weight: 0.25
+      # 步骤连接词（首先/然后/最后/分别…）每命中附加权重
+      step_word_weight: 0.5
+      # 量词（多个/所有/全部…）每命中附加权重
+      quantifier_weight: 0.5
+      # 分级阈值（与 wire 同构：≥complex 分档 / ≥normal 分档 / ≥simple 分档）
+      complex_threshold: 2.0
+      normal_threshold: 1.5
+      simple_threshold: 0.5
   # 任务7：课程难度自适应策略（agent/learning/curriculum.py）——默认关闭（观察模式）
   # 默认 false：enabled=false 时策略零建议零审计，路由行为与现状完全一致；
   # 启用决策需基于任务7 对比报告 + 任务2 KPI 监控数据，属后续人工决策

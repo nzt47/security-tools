@@ -29,8 +29,11 @@
       DEBUG 日志），绝不影响主链路。
 
 开关/参数（优先级: 环境变量 > config.yaml > 硬编码默认值）:
-    COMPLEXITY_SOURCE                   判定实现（wire | enhanced_planner，默认 wire）
-    config.yaml: learning.complexity.source
+    COMPLEXITY_SOURCE                   判定实现（wire | wire_v2 | enhanced_planner，
+                                        默认 wire；wire_v2 为复查补充的增强特征
+                                        灰度候选，默认零行为变化）
+    COMPLEXITY_V2_* / config.yaml:
+        learning.complexity.v2.*        wire_v2 权重与阈值（仅 source=wire_v2 生效）
 
 课程阶梯（F4 降级）语义:
     TRIVIAL(0) < SIMPLE(1) < NORMAL(2) < COMPLEX(3)；MODERATE 为 NORMAL 的兼容别名
@@ -39,6 +42,7 @@
 
 import logging
 import os
+import re
 import threading
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -135,6 +139,118 @@ class WireHeuristicClassifier:
 
 
 # ════════════════════════════════════════════════════════════
+#  实现一·增强：wire_v2 启发式（复查补充；默认不启用，灰度 A/B 候选）
+# ════════════════════════════════════════════════════════════
+
+_WIRE_V2_COMPLEX_KEYWORDS: Tuple[str, ...] = _WIRE_COMPLEX_KEYWORDS + (
+    "对比", "方案", "集成", "部署", "优化", "排查", "评估", "规划",
+    "跨", "并行", "异步", "缓存", "数据库", "接口", "安全",
+    "数据", "流程", "脚本", "自动化", "性能", "兼容",
+)
+_WIRE_V2_ACTION_KEYWORDS: Tuple[str, ...] = _WIRE_ACTION_KEYWORDS + (
+    "实现", "设计", "开发", "修复", "测试", "配置", "编写",
+)
+_WIRE_V2_STEP_WORDS: Tuple[str, ...] = (
+    "首先", "然后", "接着", "最后", "分别", "逐个", "同时", "依次",
+    "第一步", "第二步", "第三步", "分步",
+)
+_WIRE_V2_QUANTIFIERS: Tuple[str, ...] = (
+    "多个", "所有", "全部", "每份", "多份", "各类", "各种", "每项", "每个",
+)
+_NUMERIC_ENTITY_RE = re.compile(r"\d+(?:[.,]\d+)?\s*(?:%|万|亿|元|条|个|次|份|人|天|小时)?")
+
+
+def _v2_cfg(key: str, default: float) -> float:
+    """wire_v2 参数读取：环境变量 COMPLEXITY_V2_<KEY 大写> > config.yaml
+    learning.complexity.v2.<key> > 默认；非法值回退默认。"""
+    env = os.environ.get("COMPLEXITY_V2_" + key.upper())
+    if env is not None and str(env).strip():
+        try:
+            return float(env.strip())
+        except (TypeError, ValueError):
+            logger.warning("[ComplexityClassifier] COMPLEXITY_V2_%s 非法值 %r，回退默认 %s",
+                           key.upper(), env, default)
+    try:
+        cfg = _load_config_yaml()
+        val = (((cfg or {}).get("learning") or {}).get("complexity") or {}
+               .get("v2") or {}).get(key)
+        if val is not None:
+            return float(val)
+    except (TypeError, ValueError):
+        pass
+    return default
+
+
+class WireV2Classifier:
+    """wire_v2 增强特征复杂度分级（复查补充；任务7 判定质量提升的灰度候选）
+
+    背景：任务7 对比报告显示 wire 与 enhanced_planner 一致率仅 29.50%、对人工
+    标注符合率均低（20%/32%），判定质量是课程阶梯的数据瓶颈。wire_v2 在
+    wire 启发式（复杂指示词 + 动作词）基础上补充五类低风险特征：
+        1. 扩充复杂/动作关键词表（覆盖更多任务域表达）；
+        2. 文本长度（长指令倾向多步骤，超阈值加分）；
+        3. 数字/金额/百分比/日期实体（数据类任务复杂度信号）；
+        4. 步骤连接词（"首先/然后/最后/分别…" = 显式多步骤）；
+        5. 量词（"多个/所有/各类…" = 批量/全域处理）。
+
+    【不易】默认 source=wire 时本实现不参与任何判定（零行为变化）；仅
+    COMPLEXITY_SOURCE=wire_v2（env 或 config.yaml learning.complexity.source）
+    灰度切换。全部权重/阈值可配置（COMPLEXITY_V2_* / config v2 段），
+    非法值回退默认；分级公式/阈值与 wire 不同（特征更多，默认阈值更高），
+    切换前后行为差异由灰度 A/B（scripts/complexity_v2_compare.py）度量。
+    """
+
+    name = "wire_v2"
+
+    COMPLEX_KEYWORDS = _WIRE_V2_COMPLEX_KEYWORDS
+    ACTION_KEYWORDS = _WIRE_V2_ACTION_KEYWORDS
+    STEP_WORDS = _WIRE_V2_STEP_WORDS
+    QUANTIFIERS = _WIRE_V2_QUANTIFIERS
+
+    def __init__(self) -> None:
+        self._complex_w = _v2_cfg("complex_keyword_weight", 1.0)
+        self._action_w = _v2_cfg("action_keyword_weight", 0.5)
+        self._length_threshold = _v2_cfg("length_threshold", 60.0)
+        self._length_w = _v2_cfg("length_weight", 0.5)
+        self._numeric_w = _v2_cfg("numeric_entity_weight", 0.25)
+        self._step_w = _v2_cfg("step_word_weight", 0.5)
+        self._quant_w = _v2_cfg("quantifier_weight", 0.5)
+        self._complex_th = _v2_cfg("complex_threshold", 2.0)
+        self._normal_th = _v2_cfg("normal_threshold", 1.5)
+        self._simple_th = _v2_cfg("simple_threshold", 0.5)
+
+    def detail(self, message: str) -> Tuple[float, List[str], List[str]]:
+        """判定明细：返回 (score, complex_matches, action_matches)，兼容 wire 形态"""
+        text = str(message)
+        complex_matches = [k for k in self.COMPLEX_KEYWORDS if k in text]
+        action_matches = [k for k in self.ACTION_KEYWORDS if k in text]
+        step_matches = [k for k in self.STEP_WORDS if k in text]
+        quant_matches = [k for k in self.QUANTIFIERS if k in text]
+        score = (len(complex_matches) * self._complex_w
+                 + len(action_matches) * self._action_w)
+        if len(text) > self._length_threshold:
+            score += self._length_w
+        score += min(len(_NUMERIC_ENTITY_RE.findall(text)), 3) * self._numeric_w
+        score += min(len(step_matches), 3) * self._step_w
+        score += min(len(quant_matches), 3) * self._quant_w
+        return score, complex_matches, action_matches
+
+    def classify(self, message: str) -> str:
+        score, _complex, _action = self.detail(message)
+        if score >= self._complex_th:
+            return "COMPLEX"
+        if score >= self._normal_th:
+            return "NORMAL"
+        if score >= self._simple_th:
+            return "SIMPLE"
+        return "TRIVIAL"
+
+    def meets(self, message: str, min_complexity: str) -> bool:
+        min_level = COMPLEXITY_LEVELS.get(str(min_complexity).strip().upper(), 3)
+        return COMPLEXITY_LEVELS.get(self.classify(message), 0) >= min_level
+
+
+# ════════════════════════════════════════════════════════════
 #  实现二：enhanced_planner 分级（适配封装，不改造内部实现）
 # ════════════════════════════════════════════════════════════
 
@@ -194,6 +310,7 @@ class EnhancedPlannerClassifier:
 
 _IMPLEMENTATIONS: Dict[str, Any] = {
     SOURCE_WIRE: WireHeuristicClassifier,
+    "wire_v2": WireV2Classifier,
     SOURCE_ENHANCED_PLANNER: EnhancedPlannerClassifier,
 }
 
@@ -301,6 +418,7 @@ __all__ = [
     "SOURCE_ENHANCED_PLANNER",
     "normalize_level",
     "WireHeuristicClassifier",
+    "WireV2Classifier",
     "EnhancedPlannerClassifier",
     "ComplexityClassifier",
     "build_classifier",
