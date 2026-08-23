@@ -328,3 +328,106 @@ class TestMatchLatencyAcceptance:
             f"第二次 match 延迟未降低 50%: first={t_first:.2f}ms "
             f"second={t_second:.2f}ms"
         )
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  L1 并行校验：结果正确性 + 同对象契约（不破坏 loader id() 绑定）
+# ═══════════════════════════════════════════════════════════════════
+
+class TestParallelValidateL1:
+    def test_validate_all_parallel_correctness(self, tmp_path):
+        """50 技能热缓存后：改 3 + 删 2 → get_all_metadata 正确反映（L1 并行）"""
+        repo = tmp_path / "repo"
+        for i in range(50):
+            _write_skill(repo, f"skill-{i}", f"skill-{i}")
+
+        fs = SkillFileStore(repo_path=str(repo))
+        cache = SkillIndexCache(fs)
+        cache.get_all_metadata()  # 冷 → 热（懒加载）
+
+        # 修改 3 个（mtime 变化）+ 删除 2 个
+        _write_skill(repo, "skill-1", "skill-1-updated")
+        _write_skill(repo, "skill-2", "skill-2-updated")
+        _write_skill(repo, "skill-3", "skill-3-updated")
+        shutil.rmtree(repo / "skill-48")
+        shutil.rmtree(repo / "skill-49")
+
+        index = cache.get_all_metadata()  # L1 并行校验
+        assert index["skill-1"]["name"] == "skill-1-updated"
+        assert index["skill-2"]["name"] == "skill-2-updated"
+        assert index["skill-3"]["name"] == "skill-3-updated"
+        assert "skill-48" not in index
+        assert "skill-49" not in index
+        assert len(index) == 48
+
+    def test_validate_all_no_change_returns_same_object(self, tmp_path):
+        """未变化时 get_all_metadata 仍返回同一 dict 对象（L1 并行不破坏 id() 契约）"""
+        repo = tmp_path / "repo"
+        for i in range(20):
+            _write_skill(repo, f"skill-{i}", f"skill-{i}")
+
+        fs = SkillFileStore(repo_path=str(repo))
+        cache = SkillIndexCache(fs)
+        first = cache.get_all_metadata()
+        second = cache.get_all_metadata()  # L1 并行校验，无变化
+        assert second is first
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  L2 size 前置比较：失效信号 + 持久化字段 + 旧缓存兼容
+# ═══════════════════════════════════════════════════════════════════
+
+class TestSizeInvalidationL2:
+    def test_cache_invalidate_on_size_change(self, tmp_path):
+        """内容变化（size 变）且 mtime 被恢复 → size 前置比较触发失效回源"""
+        repo = tmp_path / "repo"
+        _write_skill(repo, "alpha", "alpha")
+
+        fs = SkillFileStore(repo_path=str(repo))
+        cache = SkillIndexCache(fs)
+        cache.get_all_metadata()
+        assert cache.get_metadata("alpha")["name"] == "alpha"
+
+        md_path = repo / "alpha" / "skill.md"
+        orig_mtime = md_path.stat().st_mtime
+        _write_skill(repo, "alpha", "alpha-with-a-much-longer-name-v2")  # 内容+size 变化
+        os.utime(md_path, (orig_mtime, orig_mtime))  # mtime 恢复原值
+        assert md_path.stat().st_mtime == orig_mtime
+
+        meta = cache.get_metadata("alpha")
+        assert meta["name"] == "alpha-with-a-much-longer-name-v2"  # size 前置失效回源
+
+
+class TestSizeFieldPersistence:
+    def test_cache_size_field_persisted(self, tmp_path):
+        """persist 后每个缓存条目含 mtime + size + hash（L2 字段完整）"""
+        repo = tmp_path / "repo"
+        _write_skill(repo, "alpha", "alpha")
+
+        fs = SkillFileStore(repo_path=str(repo))
+        cache = SkillIndexCache(fs)
+        cache.rebuild()
+        cache_file = repo / ".index" / "cache.json"
+        raw = json.loads(cache_file.read_text(encoding="utf-8"))
+        for info in raw["meta"].values():
+            assert "mtime" in info and "size" in info and "hash" in info
+
+    def test_legacy_cache_without_size_still_loads(self, tmp_path):
+        """旧缓存缺 size 字段（cache_version=1.0）→ 可正常加载，size 比较跳过"""
+        repo = tmp_path / "repo"
+        _write_skill(repo, "alpha", "alpha")
+
+        fs = SkillFileStore(repo_path=str(repo))
+        cache = SkillIndexCache(fs)
+        cache.rebuild()
+        cache_file = repo / ".index" / "cache.json"
+        raw = json.loads(cache_file.read_text(encoding="utf-8"))
+        for info in raw["meta"].values():
+            info.pop("size", None)  # 模拟旧缓存
+        cache_file.write_text(json.dumps(raw), encoding="utf-8")
+
+        fs2 = SkillFileStore(repo_path=str(repo))
+        cache2 = SkillIndexCache(fs2)
+        cache2.load_on_startup()
+        assert cache2.get_metadata("alpha")["name"] == "alpha"  # size 缺失 → 跳过比较
+        assert set(cache2.get_all_metadata()) == {"alpha"}
