@@ -19,9 +19,10 @@ import numpy as np
 
 # 【不易】dialog_state 仅依赖标准库，用 importlib 直接加载模块文件，
 #         绕过 agent.orchestrator.__init__ 的循环导入（lifecycle_manager↔digital_life）
-_spec = importlib.util.spec_from_file_location(
+# 常量路径加载模块, 路径不可被外部控制
+_spec = importlib.util.spec_from_file_location(  # noqa: dynamic-load
     "dialog_state", "agent/orchestrator/dialog_state.py")
-_mod = importlib.util.module_from_spec(_spec)
+_mod = importlib.util.module_from_spec(_spec)  # noqa: dynamic-load  (同 spec, 常量路径)
 _spec.loader.exec_module(_mod)
 DialogState = _mod.DialogState
 get_dialog_state = _mod.get_dialog_state

@@ -29,8 +29,9 @@ ARCHIVED_TOOL_ROUTER = os.path.join(
 def load_tool_router_tester():
     """从归档位置加载 ToolRouterTester。"""
     import importlib.util
-    spec = importlib.util.spec_from_file_location("tool_router_tester", ARCHIVED_TOOL_ROUTER)
-    module = importlib.util.module_from_spec(spec)
+    # 常量路径加载归档测试类, 路径不可被外部控制
+    spec = importlib.util.spec_from_file_location("tool_router_tester", ARCHIVED_TOOL_ROUTER)  # noqa: dynamic-load
+    module = importlib.util.module_from_spec(spec)  # noqa: dynamic-load  (同 spec, 常量路径)
     spec.loader.exec_module(module)
     return module.ToolRouterTester
 

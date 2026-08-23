@@ -82,6 +82,8 @@ EXCLUDE_DIRS = {
     "build", "dist", ".tox", ".eggs",
     "site-packages",
     "archive",  # 归档代码 (scripts/archive 等) 不参与生产, 不应阻断安全门禁
+    "backup",  # 备份目录 (含 .tmp-script-fix 临时副本) 非生产代码, 不应阻断安全门禁
+    "security-tools",  # 本地副本目录 (.gitignore 已忽略), 非仓库生产代码
 }
 
 
@@ -198,6 +200,16 @@ class DynamicLoadVisitor(ast.NodeVisitor):
             snippet = lines[node.lineno - 1].strip() if 0 < node.lineno <= len(lines) else ""
         except Exception:
             snippet = ""
+
+        # 显式豁免: 调用块内注释 # noqa: dynamic-load 表示开发者已确认该加载安全
+        # 【不易】门禁默认语义不变 (HIGH 阻断), 豁免需代码注释背书, 审计可追踪
+        # 适用场景: 常量路径加载 (归档测试类/模块常量), 参数不可被外部控制
+        # 注意: 用 end_lineno 覆盖多行调用 (如 spec_from_file_location(\n path))
+        start_line = node.lineno - 1
+        end_line = min(getattr(node, "end_lineno", node.lineno) or node.lineno, len(lines))
+        for i in range(start_line, end_line):
+            if "noqa: dynamic-load" in lines[i]:
+                return
 
         in_test = is_test_file(self.filepath)
 
