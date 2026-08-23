@@ -267,9 +267,10 @@ skills_mgmt:
     results.append(run_tamper_scenario(
         "场景4", "路径遍历攻击（_CONFIG_YAML_PATH 指向恶意文件）",
         _tamper_path_traversal,
-        expected_bm25=999.0,  # 路径被改后，会读取恶意文件的值
-        # 注意：这不是降级场景，而是路径被篡改后读取了恶意配置
-        # 这说明 _CONFIG_YAML_PATH 不应接受外部输入（安全建议）
+        # 修复: 恶意文件 bm25=999.0 超界, 被范围校验拒绝 → 降级到硬编码默认值
+        # （原行为: 直接读取恶意文件值 999.0, 属安全漏洞; 现已被 (0,1] 校验拦截）
+        expected_bm25=0.2,
+        expect_failure_increment=True,
     ))
 
     # ──────────────────────────────────────────────
@@ -289,9 +290,10 @@ skills_mgmt:
     # 场景6: YAML bomb（超大嵌套结构）
     # ──────────────────────────────────────────────
     def _tamper_yaml_bomb(path):
-        # YAML bomb: 指数级展开的别名
-        # yaml.safe_load 有递归深度限制，会抛异常（被 try/except 捕获）
-        bomb = "a: &a [" + ", ".join(["*a"] * 10) + "]"
+        # YAML bomb: 1000 层深度嵌套序列, 触发 RecursionError（PyYAML 解析递归深度限制）
+        # 实测: 自引用别名(&a [*a])/指数别名(2^n 展开)均不抛异常,
+        #       深度嵌套 [][][]... 必然触发 RecursionError → 走 except 降级
+        bomb = "[" * 1000 + "]" * 1000
         _write_file(path, bomb)
 
     results.append(run_tamper_scenario(
@@ -330,9 +332,9 @@ skills_mgmt:
         print()
         print("【结论】所有篡改场景验证通过:")
         print("  PASS 非法 YAML 语法 → 降级到硬编码, READ_FAILURES 递增")
-        print("  PASS 非法权重值（负数）→ 不崩溃（归一化处理）")
+        print("  PASS 非法权重值（负数）→ 范围校验拒绝, 降级 + READ_FAILURES 递增")
         print("  PASS 非法权重值（字符串）→ 降级到硬编码, READ_FAILURES 递增")
-        print("  PASS 路径遍历攻击 → 读取恶意文件（安全建议：_CONFIG_YAML_PATH 不接受外部输入）")
+        print("  PASS 路径遍历攻击 → 超界权重被拦截, 降级到硬编码（防恶意配置注入）")
         print("  PASS 文件删除 → 降级到硬编码, INVALIDATIONS 递增")
         print("  PASS YAML bomb → 降级到硬编码, READ_FAILURES 递增")
         print()

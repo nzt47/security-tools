@@ -135,25 +135,22 @@ def _check_config_tamper() -> VerifyResult:
     try:
         result = subprocess.run(
             [sys.executable, str(script)],
-            capture_output=True, text=True, timeout=60, env=env,
+            capture_output=True, encoding="utf-8", errors="replace",
+            timeout=60, env=env,
             cwd=str(Path(__file__).resolve().parent.parent),
         )
     except subprocess.TimeoutExpired:
         return ("FAIL", "verify_config_tamper.py 执行超时（60s）")
 
-    # 解析通过率（最后一行 "通过: X/6"）
-    output = result.stdout
-    pass_line = [l for l in output.splitlines() if "通过:" in l]
-    if pass_line:
-        try:
-            ratio_str = pass_line[-1].split("通过:")[1].strip()
-            passed, total = ratio_str.split("/")
-            passed, total = int(passed), int(total)
-            if passed == total:
-                return ("PASS", f"篡改降级验证: {passed}/{total} 全部通过")
-            return ("FAIL", f"篡改降级验证: {passed}/{total} 部分失败")
-        except (ValueError, IndexError):
-            pass
+    # 解析通过率（正则匹配 "通过: X/Y", 避免误匹配"…验证通过:"等含子串的行）
+    import re
+    output = result.stdout or ""
+    m = re.search(r"通过:\s*(\d+)/(\d+)", output)
+    if m:
+        passed, total = int(m.group(1)), int(m.group(2))
+        if passed == total:
+            return ("PASS", f"篡改降级验证: {passed}/{total} 全部通过")
+        return ("FAIL", f"篡改降级验证: {passed}/{total} 部分失败")
 
     return ("FAIL", f"verify_config_tamper.py 输出无法解析, exit={result.returncode}")
 

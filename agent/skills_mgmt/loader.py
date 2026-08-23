@@ -1144,7 +1144,15 @@ class SkillLoader:
                 if key in fusion_weights:
                     val = fusion_weights[key]
                     if val is not None:
-                        weights[key] = float(val)
+                        fval = float(val)
+                        # 【变易】业务校验：融合权重必须落在 (0, 1] 合法区间。
+                        # 负数/超界权重视为篡改（如负数注入、bm25=999），
+                        # 抛异常走 except 统一降级路径并递增 READ_FAILURES 告警。
+                        if not (0.0 < fval <= 1.0):
+                            raise ValueError(
+                                f"融合权重 {key}={fval} 超出合法区间 (0, 1]"
+                            )
+                        weights[key] = fval
         except Exception as e:
             cls._CONFIG_READ_FAILURES += 1
             logger.warning(json.dumps({

@@ -1,0 +1,107 @@
+# ════════════════════════════════════════════════════════════
+# 云枢配置缓存 Prometheus 告警规则
+# ════════════════════════════════════════════════════════════
+# 配套: scripts/config_metrics_exporter.py（指标源）
+#        scripts/simulate_cache_anomaly.py（异常波动模拟, alertname 与本文件一一对应）
+#
+# 部署:
+#   1. 复制本文件到 Prometheus 规则目录
+#      cp scripts/prometheus_alerts.yml /etc/prometheus/
+#   2. 在 prometheus.yml 引用:
+#      rule_files:
+#        - 'prometheus_alerts.yml'
+#   3. 校验规则: promtool check rules /etc/prometheus/prometheus_alerts.yml
+#   4. 热加载:  curl -X POST http://localhost:9090/-/reload
+#
+# 指标名与 exporter 定义一致（守不易: 不引入未实现指标）:
+#   yunshu_config_cache_hit_ratio            (Gauge)
+#   yunshu_config_cache_invalidations_total  (Counter)
+#   yunshu_config_read_failures_total        (Counter)
+#
+# 【不易】阈值与 simulate_cache_anomaly.py 的告警阈值保持一致
+# ════════════════════════════════════════════════════════════
+groups:
+  - name: yunshu-config-cache
+    rules:
+      # ────────────────────────────────────────────────
+      # 命中率突降: 2 分钟内跌幅 > 30%
+      # 对应模拟: ConfigCacheHitRatioDrop
+      # ────────────────────────────────────────────────
+      - alert: ConfigCacheHitRatioDrop
+        expr: delta(yunshu_config_cache_hit_ratio[2m]) < -0.3
+        for: 1m
+        labels:
+          severity: warning
+          service: yunshu-app
+        annotations:
+          summary: config.yaml 缓存命中率突降
+          description: >
+            缓存命中率 2 分钟跌幅 {{ $value | humanizePercentage }}，
+            可能因 config.yaml 被频繁修改、失效激增或读取异常导致。
+            建议检查: config.yaml mtime 变更频率、agent.skills_mgmt.loader 日志。
+
+      # ────────────────────────────────────────────────
+      # 命中率过低: 持续低于 50%
+      # 对应模拟: ConfigCacheHitRatioLow
+      # ────────────────────────────────────────────────
+      - alert: ConfigCacheHitRatioLow
+        expr: yunshu_config_cache_hit_ratio < 0.5
+        for: 2m
+        labels:
+          severity: warning
+          service: yunshu-app
+        annotations:
+          summary: config.yaml 缓存命中率过低
+          description: >
+            缓存命中率 {{ $value | humanizePercentage }} 已持续低于 50%，
+            大部分请求都在重建缓存，性能可能劣化。
+
+      # ────────────────────────────────────────────────
+      # 失效激增: 5 分钟内失效次数 > 5
+      # 对应模拟: ConfigCacheInvalidationSpike
+      # ────────────────────────────────────────────────
+      - alert: ConfigCacheInvalidationSpike
+        expr: increase(yunshu_config_cache_invalidations_total[5m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+          service: yunshu-app
+        annotations:
+          summary: config.yaml 缓存失效激增
+          description: >
+            5 分钟内缓存失效 {{ $value | humanize }} 次，超过阈值 5。
+            可能原因: config.yaml 被外部进程频繁写入、
+            mtime 抖动、或部署工具反复覆盖配置文件。
+
+      # ────────────────────────────────────────────────
+      # 读取失败: 5 分钟内出现任何读取/解析失败
+      # 对应模拟: ConfigCacheReadFailures
+      # ────────────────────────────────────────────────
+      - alert: ConfigCacheReadFailures
+        expr: increase(yunshu_config_read_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          service: yunshu-app
+        annotations:
+          summary: config.yaml 读取失败
+          description: >
+            5 分钟内 config.yaml 读取/解析失败 {{ $value | humanize }} 次。
+            系统已降级到硬编码默认值（守不易: 降级链路不中断），
+            但需立即排查: 配置文件语法、磁盘 IO、或恶意篡改。
+            loader 日志含 action=_parse_config_yaml_weights.failed 记录。
+
+      # ────────────────────────────────────────────────
+      # 缓存完全失效（可选）: 命中率为 0
+      # ────────────────────────────────────────────────
+      - alert: ConfigCacheHitRatioZero
+        expr: yunshu_config_cache_hit_ratio == 0 and on() (sum(yunshu_config_cache_hits_total) - sum(yunshu_config_cache_misses_total)) > 0
+        for: 5m
+        labels:
+          severity: critical
+          service: yunshu-app
+        annotations:
+          summary: config.yaml 缓存完全失效
+          description: >
+            命中率为 0 且存在缓存操作，缓存机制可能已彻底失效，
+            检查 loader.py 缓存路径与 _CONFIG_YAML_PATH 配置。

@@ -24,10 +24,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -105,9 +107,13 @@ def _collect_snapshot() -> Dict[str, float]:
     }
 
 
-def _detect_anomaly(curr: Dict, prev: Dict, phase: str) -> List[str]:
-    """检测当前采样点的异常, 返回告警列表"""
-    alerts = []
+def _detect_anomaly(curr: Dict, prev: Dict, phase: str) -> List[Tuple[str, str]]:
+    """检测当前采样点的异常, 返回 [(alertname, 描述), ...]
+
+    alertname 与 prometheus_alerts.yml 规则中的 alert 名一一对应,
+    保证模拟告警可被真实 Prometheus 规则验证。
+    """
+    alerts: List[Tuple[str, str]] = []
 
     # 窗口命中率（本周期 delta）
     curr_window_hits = curr["hits"] - prev["hits"]
@@ -116,39 +122,42 @@ def _detect_anomaly(curr: Dict, prev: Dict, phase: str) -> List[str]:
     curr_window_ratio = (curr_window_hits / curr_window_total
                          if curr_window_total > 0 else 1.0)
 
-    prev_window_hits = prev["hits"] - 0  # 首周期无前值, 用累积值近似
     if prev.get("window_ratio") is not None:
         prev_window_ratio = prev["window_ratio"]
     else:
         prev_window_ratio = curr_window_ratio  # 首周期不触发突降告警
 
-    # 1. 命中率突降
+    # 1. 命中率突降（对应规则 ConfigCacheHitRatioDrop）
     if prev_window_ratio > 0 and curr_window_ratio < prev_window_ratio:
         drop = prev_window_ratio - curr_window_ratio
         if drop > ALERT_RATIO_DROP_THRESHOLD:
-            alerts.append(
+            alerts.append((
+                "ConfigCacheHitRatioDrop",
                 f"命中率突降: {prev_window_ratio:.1%} → {curr_window_ratio:.1%} "
-                f"(跌幅 {drop:.1%} > 阈值 {ALERT_RATIO_DROP_THRESHOLD:.0%})"
-            )
+                f"(跌幅 {drop:.1%} > 阈值 {ALERT_RATIO_DROP_THRESHOLD:.0%})",
+            ))
 
-    # 2. 窗口命中率过低
+    # 2. 窗口命中率过低（对应规则 ConfigCacheHitRatioLow）
     if curr_window_ratio < ALERT_LOW_RATIO_THRESHOLD:
-        alerts.append(
-            f"窗口命中率过低: {curr_window_ratio:.1%} < 阈值 {ALERT_LOW_RATIO_THRESHOLD:.0%}"
-        )
+        alerts.append((
+            "ConfigCacheHitRatioLow",
+            f"窗口命中率过低: {curr_window_ratio:.1%} < 阈值 {ALERT_LOW_RATIO_THRESHOLD:.0%}",
+        ))
 
-    # 3. 失效激增
+    # 3. 失效激增（对应规则 ConfigCacheInvalidationSpike）
     inv_delta = curr["invalidations"] - prev["invalidations"]
     if inv_delta > ALERT_INVALIDATION_SPIKE:
-        alerts.append(
-            f"缓存失效激增: +{inv_delta} > 阈值 {ALERT_INVALIDATION_SPIKE}"
-        )
+        alerts.append((
+            "ConfigCacheInvalidationSpike",
+            f"缓存失效激增: +{inv_delta} > 阈值 {ALERT_INVALIDATION_SPIKE}",
+        ))
 
-    # 4. 读取失败
+    # 4. 读取失败（对应规则 ConfigCacheReadFailures）
     if curr["read_failures"] > 0:
-        alerts.append(
-            f"config.yaml 读取失败: {curr['read_failures']} 次"
-        )
+        alerts.append((
+            "ConfigCacheReadFailures",
+            f"config.yaml 读取失败: {curr['read_failures']} 次",
+        ))
 
     # 记录窗口命中率供下一周期用
     curr["window_ratio"] = curr_window_ratio
@@ -156,21 +165,59 @@ def _detect_anomaly(curr: Dict, prev: Dict, phase: str) -> List[str]:
     return alerts
 
 
-def _emit_alert(sample_idx: int, phase: str, alerts: List[str],
-                snapshot: Dict) -> None:
-    """发射告警日志（WARNING 级别 JSON, 供 Prometheus 告警规则采集）"""
-    for alert in alerts:
-        record = {
-            "module_name": "simulate_cache_anomaly",
-            "action": "cache_anomaly.alert",
-            "level": "WARNING",
-            "sample_idx": sample_idx,
+def _emit_alert(sample_idx: int, phase: str,
+                alerts: List[Tuple[str, str]], snapshot: Dict) -> None:
+    """发射告警日志（Alertmanager webhook 标准 JSON 结构, WARNING 级别）
+
+    结构与 Prometheus Alertmanager webhook 通知一致:
+        {receiver, status, alerts[{status, labels, annotations, startsAt,
+                                   endsAt, generatorURL, fingerprint}],
+         groupLabels, commonLabels, commonAnnotations, externalURL}
+
+    该结构可直接 POST 到 Alertmanager 或与 prometheus_alerts.yml 规则对接。
+    """
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    common_labels = {
+        "severity": "warning",
+        "service": "yunshu-app",
+        "env": "test",
+    }
+
+    alert_items = []
+    for alertname, desc in alerts:
+        labels = {
+            "alertname": alertname,
+            **common_labels,
             "phase": phase,
-            "alert": alert,
-            "snapshot": snapshot,
-            "ts": time.time(),
+            "sample_idx": str(sample_idx),
         }
-        logger.warning(json.dumps(record, ensure_ascii=False))
+        alert_items.append({
+            "status": "firing",
+            "labels": labels,
+            "annotations": {
+                "summary": f"[{phase}] {alertname}",
+                "description": desc,
+                "snapshot": json.dumps(snapshot, ensure_ascii=False),
+            },
+            "startsAt": now,
+            "endsAt": "0001-01-01T00:00:00Z",
+            "generatorURL": "",
+            # 稳定指纹: alertname + sample_idx 决定, 便于 Alertmanager 去重
+            "fingerprint": hashlib.md5(
+                f"{alertname}:{sample_idx}".encode()
+            ).hexdigest()[:16],
+        })
+
+    payload = {
+        "receiver": "webhook",
+        "status": "firing",
+        "alerts": alert_items,
+        "groupLabels": {"alertname": alert_items[0]["labels"]["alertname"]},
+        "commonLabels": common_labels,
+        "commonAnnotations": {},
+        "externalURL": "",
+    }
+    logger.warning(json.dumps(payload, ensure_ascii=False))
 
 
 def run_simulation(duration: int, interval: float, fast: bool) -> Dict:
