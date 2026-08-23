@@ -13,9 +13,10 @@
  */
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { Bell, FileDown, History, LayoutDashboard, ListTree, Palette, ScrollText, Settings, ShieldCheck, Users, Workflow } from 'lucide-react'
+import { Bell, BookOpen, FileDown, History, LayoutDashboard, ListTree, Palette, ScrollText, Settings, ShieldCheck, Users, Workflow } from 'lucide-react'
 import Dashboard from '@/pages/Dashboard'
 import WorkbenchApp from '@/WorkbenchApp'
+import Knowledge from '@/pages/Knowledge'
 import UserList from '@/pages/system/UserList'
 import RoleList from '@/pages/system/RoleList'
 import MenuList from '@/pages/system/MenuList'
@@ -75,6 +76,11 @@ export const appRoutes: AppRouteObject[] = [
     path: '/export',
     element: <DataExport />,
     meta: { title: '数据导出', icon: FileDown },
+  },
+  {
+    path: '/knowledge',
+    element: <Knowledge />,
+    meta: { title: '知识库', icon: BookOpen },
   },
   {
     path: '/system',

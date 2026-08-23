@@ -1,6 +1,6 @@
 # 云枢 · 权限与系统日志导出接口（OpenAPI 文档）
 
-> 来源：[system-log.openapi.yaml](./system-log.openapi.yaml)（OpenAPI 3.0.3）
+> 来源：[system-log.openapi.yaml](../api/system-log.openapi.yaml)（OpenAPI 3.0.3）
 > 用途：粘贴至项目 Wiki / 供前端后端对齐接口契约
 
 ## 鉴权与响应约定

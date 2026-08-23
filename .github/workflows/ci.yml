@@ -212,6 +212,12 @@ jobs:
           echo "=== .dockerignore ==="
           cat .dockerignore
 
+      # 【门禁】.dockerignore ↔ Dockerfile COPY 一致性（2026-08-23 ChromaDB 事故预防）：
+      # Buildkit 报 "/tests/unit: not found" 的根因是 .dockerignore 排除 tests 但
+      # Dockerfile 仍 COPY tests/unit/。此门禁在 build 前拦截同类配置矛盾。
+      - name: .dockerignore↔Dockerfile 一致性门禁
+        run: python scripts/dev/check_dockerignore_dockerfile_consistency.py
+
       - name: 构建预检镜像
         run: docker build -t yunshu-preflight .
 
