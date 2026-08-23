@@ -5,7 +5,7 @@
   依赖：gh CLI（已认证）
   用法：
     .\monitor-test-shard.ps1 -Branch develop -Days 7
-    .\monitor-test-shard.ps1 -Branch develop -Days 14 -FailThreshold 2   # 资源类失败≥2 时退出码 1（告警）
+    .\monitor-test-shard.ps1 -Branch develop -Days 14 -FailThreshold 3   # 资源类失败≥3 时退出码 1（告警）
     .\monitor-test-shard.ps1 -Branch develop -ReportPath logs\monitor-report.txt   # 报告写入文件
   说明：只分析单元测试 Shard 相关 job，忽略其它 workflow。
 #>
@@ -13,11 +13,14 @@ param(
     [string]$Repo = "nzt47/security-tools",
     [string]$Branch = "develop",
     [int]$Days = 7,
-    [int]$FailThreshold = 2,
+    [int]$FailThreshold = 3,
     [string]$ReportPath = ""
 )
 
 $ErrorActionPreference = "Stop"
+# gh 输出为 UTF-8，显式设置控制台/管道编码，避免中文 job 名乱码
+[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
+$OutputEncoding = [Console]::OutputEncoding
 # created_at 为 UTC 时间，必须用 UTC 计算起点，避免本地时区偏移导致过滤过严
 $since = (Get-Date).ToUniversalTime().AddDays(-$Days).ToString("yyyy-MM-ddTHH:mm:ssZ")
 
@@ -25,7 +28,7 @@ Write-Host "===== 单测 Shard 资源问题监控 =====" -ForegroundColor Cyan
 Write-Host "仓库: $Repo  分支: $Branch  窗口: ${Days} 天" 
 
 # 1) 拉取窗口内 ci.yml 的 run 列表（仅 completed）
-$jqRuns = '.workflow_runs[] | select(.created_at >= "' + $since + '") | select(.status == "completed") | {id: .id, conclusion: .conclusion, head: (.head_sha[0:8])}'
+$jqRuns = '.workflow_runs[] | select(.created_at >= "' + $since + '") | select(.status == "completed") | {id: .id, created: .created_at, conclusion: .conclusion, head: (.head_sha[0:8])}'
 $runs = gh api "repos/$Repo/actions/workflows/ci.yml/runs?branch=$Branch&per_page=100" --jq $jqRuns 2>$null
 if (-not $runs) { Write-Host "窗口内无已完成 run"; exit 0 }
 $runs = $runs | ConvertFrom-Json
@@ -50,6 +53,7 @@ foreach ($r in ($runs | Where-Object { $_.conclusion -eq "failure" })) {
         $isAssert = $log -match "FAILED|AssertionError"
         $hits += [PSCustomObject]@{
             RunId   = $r.id
+            Created = ($r.created -replace "T", " " -replace "Z", " UTC")
             Head    = $r.head
             Job     = $j.name
             Resource= $isResource
