@@ -13,6 +13,7 @@
 
 【不易】SkillFileStore 接口不变；索引失效必须回源；仅缓存 front matter（不缓存 body）
 """
+import concurrent.futures
 import json
 import os
 import shutil
@@ -431,3 +432,123 @@ class TestSizeFieldPersistence:
         cache2.load_on_startup()
         assert cache2.get_metadata("alpha")["name"] == "alpha"  # size 缺失 → 跳过比较
         assert set(cache2.get_all_metadata()) == {"alpha"}
+
+
+# ═══════════════════════════════════════════════════════════════════
+#  L3 TTL 校验窗口：窗口内跳过校验 + 过期后回源 + 并发准确性
+# ═══════════════════════════════════════════════════════════════════
+
+class TestTTLValidationL3:
+    def test_ttl_skips_validation_within_window(self, tmp_path):
+        """TTL 窗口内外部直接修改不可见（跳过校验）；file_store 写操作仍即时失效"""
+        repo = tmp_path / "repo"
+        _write_skill(repo, "alpha", "alpha")
+
+        fs = SkillFileStore(repo_path=str(repo))
+        cache = SkillIndexCache(fs, validate_interval=10.0)
+        cache.get_all_metadata()  # 首次触发校验，_last_validate_ts 置为 now
+
+        _write_skill(repo, "alpha", "alpha-external")  # 外部直接改文件
+        index = cache.get_all_metadata()  # TTL 窗口内 → 跳过校验
+        assert index["alpha"]["name"] == "alpha"  # 外部修改不可见（TTL 设计行为）
+
+        # 【不易】file_store 写操作经 invalidate 仍即时失效（TTL 不遮蔽）
+        fs.update_meta("alpha", {"name": "alpha-via-fs"})
+        assert cache.get_metadata("alpha")["name"] == "alpha-via-fs"
+
+    def test_ttl_after_expiry_revalidates(self, tmp_path):
+        """窗口过期后 get_all_metadata 重新校验，外部修改可见（过期准确性）"""
+        repo = tmp_path / "repo"
+        _write_skill(repo, "alpha", "alpha")
+
+        fs = SkillFileStore(repo_path=str(repo))
+        cache = SkillIndexCache(fs, validate_interval=10.0)
+        cache.get_all_metadata()  # 触发首次校验
+
+        _write_skill(repo, "alpha", "alpha-external")
+        # 模拟时间流逝：把校验基线拨回窗口之前（11 秒前）
+        cache._last_validate_ts = time.time() - 11.0
+        index = cache.get_all_metadata()  # 已过期 → 重新校验
+        assert index["alpha"]["name"] == "alpha-external"
+
+    def test_ttl_concurrent_within_window_validates_once(self, tmp_path, monkeypatch):
+        """8 线程并发调用（TTL 窗口内）→ _validate_all 零次调用，均返回同一对象
+
+        验证 TTL 快路径的并发准确性：窗口内所有调用命中快路径（纯内存判断），
+        不重复触发全量校验；返回值同对象（不破坏 loader id() 契约）。
+        """
+        repo = tmp_path / "repo"
+        for i in range(20):
+            _write_skill(repo, f"skill-{i}", f"skill-{i}")
+
+        fs = SkillFileStore(repo_path=str(repo))
+        cache = SkillIndexCache(fs, validate_interval=10.0)
+        cache.get_all_metadata()  # 首次校验，基线 = now
+
+        calls = {"n": 0}
+        real = SkillIndexCache._validate_all
+
+        def counting(self):
+            calls["n"] += 1
+            return real(self)
+
+        monkeypatch.setattr(SkillIndexCache, "_validate_all", counting)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+            results = list(ex.map(lambda _: cache.get_all_metadata(), range(8)))
+
+        assert calls["n"] == 0  # TTL 窗口内全部命中快路径，零全量校验
+        assert all(r is results[0] for r in results)  # 同一 dict 对象
+
+    def test_ttl_disabled_by_default(self, tmp_path):
+        """默认 validate_interval=0 → 每次 get_all_metadata 都校验（向后兼容）"""
+        repo = tmp_path / "repo"
+        _write_skill(repo, "alpha", "alpha")
+
+        fs = SkillFileStore(repo_path=str(repo))
+        cache = SkillIndexCache(fs)  # 默认关闭 TTL
+        cache.get_all_metadata()
+
+        _write_skill(repo, "alpha", "alpha-external")
+        index = cache.get_all_metadata()  # 无 TTL → 立即校验
+        assert index["alpha"]["name"] == "alpha-external"
+
+    def test_ttl_baseline_refresh_after_expiry_with_frequent_changes(self, tmp_path):
+        """极端场景：窗口内频繁修改 → 过期后一次校验吸收全部累积修改 → 基线刷新
+
+        覆盖基线刷新逻辑的关键不变量：
+        1. 窗口内多次修改（多技能 × 多轮）全部走快路径，缓存保持旧值
+        2. 过期后第一次 get_all_metadata 执行一次校验，吸收全部累积修改
+        3. 校验后 _last_validate_ts 刷新为 now（新窗口基线）
+        4. 新窗口内再修改 → 再次不可见（新基线生效）
+        """
+        repo = tmp_path / "repo"
+        _write_skill(repo, "alpha", "alpha")
+        _write_skill(repo, "beta", "beta")
+
+        fs = SkillFileStore(repo_path=str(repo))
+        cache = SkillIndexCache(fs, validate_interval=10.0)
+        cache.get_all_metadata()  # 首次校验，基线 = now
+
+        # ① 窗口内频繁修改：3 轮 × 2 技能，全部不可见
+        for v in range(3):
+            _write_skill(repo, "alpha", f"alpha-v{v}")
+            _write_skill(repo, "beta", f"beta-v{v}")
+            index = cache.get_all_metadata()  # TTL 快路径，零校验
+            assert index["alpha"]["name"] == "alpha"  # 窗口内始终旧值
+            assert index["beta"]["name"] == "beta"
+        assert cache._last_validate_ts > 0  # 基线仍为首次校验时刻
+
+        # ② 模拟过期：把校验基线拨回窗口之前（11 秒前）
+        cache._last_validate_ts = time.time() - 11.0
+        index = cache.get_all_metadata()  # 过期 → 一次校验吸收全部累积修改
+        assert index["alpha"]["name"] == "alpha-v2"
+        assert index["beta"]["name"] == "beta-v2"
+
+        # ③ 基线刷新：校验后 _last_validate_ts 更新为 now
+        assert cache._last_validate_ts <= time.time()
+        assert cache._last_validate_ts > time.time() - 1.0
+
+        # ④ 新窗口内修改：再次不可见（新基线生效）
+        _write_skill(repo, "alpha", "alpha-v3")
+        index = cache.get_all_metadata()
+        assert index["alpha"]["name"] == "alpha-v2"

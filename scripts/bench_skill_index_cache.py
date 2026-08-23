@@ -97,19 +97,30 @@ def bench_cold_start(repo: Path) -> dict:
     return {"skills": len(index), "ms": ms}
 
 
-def bench_hot_start(repo: Path) -> dict:
-    """模拟重启：load_on_startup 读缓存 + 增量校验命中（不重解析）"""
+def bench_hot_start(repo: Path, validate_interval: float = 0.0) -> dict:
+    """模拟重启：load_on_startup 读缓存 + 增量校验
+
+    - validate_interval=0（默认）：仅首次 get_all_metadata（全量校验）
+    - validate_interval>0（L3 TTL）：额外测窗口内第二次调用（TTL 快路径，零校验）
+    """
     fs = SkillFileStore(repo_path=str(repo))
-    cache = SkillIndexCache(fs)
+    cache = SkillIndexCache(fs, validate_interval=validate_interval)
     t0 = time.perf_counter()
     cache.load_on_startup()
     t_load = (time.perf_counter() - t0) * 1000
     t0 = time.perf_counter()
-    index = cache.get_all_metadata()
-    t_validate = (time.perf_counter() - t0) * 1000
-    print(f"[hot_start] load_ms={_fmt(t_load)} validate_ms={_fmt(t_validate)} "
-          f"skills={len(index)}")
-    return {"load_ms": t_load, "validate_ms": t_validate, "skills": len(index)}
+    index = cache.get_all_metadata()  # 首次（TTL 基线未建立 → 必校验一次）
+    t_first = (time.perf_counter() - t0) * 1000
+    res = {"load_ms": t_load, "validate_first_ms": t_first, "skills": len(index)}
+    msg = f"[hot_start] load_ms={_fmt(t_load)} validate_first_ms={_fmt(t_first)}"
+    if validate_interval > 0:
+        t0 = time.perf_counter()
+        cache.get_all_metadata()  # TTL 窗口内 → 快路径（零校验）
+        res["ttl_hit_ms"] = (time.perf_counter() - t0) * 1000
+        msg += f" ttl_hit_ms={_fmt(res['ttl_hit_ms'])}"
+    msg += f" skills={len(index)}"
+    print(msg)
+    return res
 
 
 def bench_hit(cache: SkillIndexCache, repo: Path, count: int,
@@ -264,6 +275,8 @@ def main() -> int:
     ap.add_argument("--threads", type=int, default=8, help="并发场景线程数")
     ap.add_argument("--output", type=str, default=None,
                     help="结果落盘 JSON 路径（可选）")
+    ap.add_argument("--ttl", type=float, default=0.0,
+                    help="L3 TTL 校验窗口（秒；>0 时窗口内跳过全量校验，默认 0=关闭）")
     ap.add_argument("--skip-slow", action="store_true",
                     help="跳过增量校验/并发等耗时场景")
     args = ap.parse_args()
@@ -279,18 +292,18 @@ def main() -> int:
         cleanup = lambda: shutil.rmtree(repo, ignore_errors=True)
 
     try:
-        results = {"count": args.count, "scenarios": {}}
+        results = {"count": args.count, "ttl": args.ttl, "scenarios": {}}
         generate_dataset(repo, args.count, args.seed)
 
         # 冷启动：首次全量解析（懒加载触发点）
         results["scenarios"]["cold_start"] = bench_cold_start(repo)
 
-        # 热启动：模拟重启
-        results["scenarios"]["hot_start"] = bench_hot_start(repo)
+        # 热启动：模拟重启（--ttl>0 时额外测窗口内快路径）
+        results["scenarios"]["hot_start"] = bench_hot_start(repo, args.ttl)
 
         # 命中：复用最新缓存实例做单技能命中
         fs = SkillFileStore(repo_path=str(repo))
-        cache = SkillIndexCache(fs)
+        cache = SkillIndexCache(fs, validate_interval=args.ttl)
         cache.get_all_metadata()
         results["scenarios"]["hit"] = bench_hit(cache, repo, args.count)
 
@@ -307,11 +320,11 @@ def main() -> int:
 
         # 缓存收益主指标：冷启动全量解析 vs 热启动增量校验（均 O(n)，差异=解析 vs stat+hash）
         cold_ms = results["scenarios"]["cold_start"]["ms"]
-        hot_ms = results["scenarios"]["hot_start"]["validate_ms"]
+        hot_ms = results["scenarios"]["hot_start"]["validate_first_ms"]
         results["cache_speedup_pct"] = (
             round((1 - hot_ms / cold_ms) * 100, 2) if cold_ms > 0 else 0.0
         )
-        print(f"[summary] cold={_fmt(cold_ms)}ms hot_validate={_fmt(hot_ms)}ms "
+        print(f"[summary] cold={_fmt(cold_ms)}ms hot_validate_first={_fmt(hot_ms)}ms "
               f"speedup={results['cache_speedup_pct']:.1f}%")
 
         print("\n===== SUMMARY =====")

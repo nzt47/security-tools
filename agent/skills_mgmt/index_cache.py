@@ -64,13 +64,27 @@ class SkillIndexCache:
 
     CACHE_VERSION = _CACHE_VERSION
 
-    def __init__(self, file_store: SkillFileStore):
+    def __init__(self, file_store: SkillFileStore,
+                 validate_interval: float = 0.0):
+        """构造技能索引缓存
+
+        Args:
+            file_store: 承载技能仓库的文件存储实例（挂载后写操作自动失效）
+            validate_interval: L3 TTL 校验窗口（秒；0=关闭，默认关闭向后兼容）。
+                窗口内 get_all_metadata 跳过全量校验直接返回缓存；
+                file_store 写操作经 invalidate 仍保证单技能即时失效，
+                代价是"外部直接修改文件"在窗口内不可见（可见延迟 = 窗口）。
+        """
         self.fs = file_store
         self._cache: Dict[str, Dict[str, Any]] = {}
-        # skill_id -> {mtime, hash}：mtime/hash 任一变化即视为缓存失效
+        # skill_id -> {mtime, size, hash}：任一变化即视为缓存失效
         self._cache_meta: Dict[str, Dict[str, Any]] = {}
         self._lock = threading.RLock()
         self._cache_path = Path(file_store.repo_path) / _INDEX_DIR / _CACHE_FILE
+        # [变易] L3 TTL 校验窗口：0=关闭；>0 时窗口内跳过全量校验（见 get_all_metadata）
+        self._validate_interval = float(validate_interval)
+        # 上次全量校验/重建时间戳（0.0=从未，首次访问必校验一次）
+        self._last_validate_ts = 0.0
         # [变易] 挂载到 file_store — 写入/删除操作后同步失效（SkillFileStore 接口不变）
         # SkillFileStore.__init__ 已预置 self._index_cache = None，直接赋值即可
         self.fs._index_cache = self
@@ -177,21 +191,28 @@ class SkillIndexCache:
 
         - refresh=True：强制全量重建（与 load_metadata_index(refresh=True) 语义一致）
         - 缓存为空：全量重建（首次访问，懒加载触发点）
-        - 其余：增量校验（L1 并行 stat+size+hash，仅重解析变化的文件）
+        - 其余：L3 TTL 窗口内直接返回缓存；窗口外走 L1 并行增量校验
 
         返回值始终是同一 dict 对象（未变化时），保证 loader 的
         倒排索引 id() 绑定有效（守 loader._get_inverted_index 契约）。
 
-        【不易】失效判定规则与单技能路径 _entry_valid 完全一致（可回源）
-        【变易】L1 并行校验在锁外执行（段1 快照 → 段2 并行 I/O → 段3 合并），
-               锁内仅内存操作（守持锁不 I/O）
+        【不易】失效判定规则与单技能路径 _entry_valid 完全一致（可回源）；
+               file_store 写操作经 invalidate 仍保证单技能即时失效（TTL 不遮蔽）
+        【变易】L3 TTL 快路径为纯内存判断（持锁不 I/O）；窗口外恢复 L1 并行校验
         """
         if refresh or not self._cache:
             with self._lock:
-                self._rebuild_locked()
+                self._rebuild_locked()  # 内部更新 _last_validate_ts
             changed = True
         else:
+            # L3 TTL 快路径：窗口内跳过全量校验（纯内存，持锁不 I/O）
+            with self._lock:
+                if (self._validate_interval > 0 and
+                        (time.time() - self._last_validate_ts) < self._validate_interval):
+                    return self._cache
             changed = self._validate_all()
+            with self._lock:
+                self._last_validate_ts = time.time()
         if changed:
             self.persist()
         return self._cache
@@ -386,6 +407,7 @@ class SkillIndexCache:
         """全量重建（调用方需持锁）：扫描仓库，解析全部 skill.md
 
         【简易】先清空再经 _parse_and_store 逐技能填充（与增量校验共用解析逻辑）
+        【变易】重建后刷新 L3 TTL 基线（全量重建无需再校验）
         """
         self._cache = {}
         self._cache_meta = {}
@@ -400,6 +422,8 @@ class SkillIndexCache:
             if not md_path.exists():
                 continue
             self._parse_and_store(entry.name, md_path)
+        # L3: 全量重建视为"最新校验时刻"，窗口从此刻起算
+        self._last_validate_ts = time.time()
 
     def _validate_all(self) -> bool:
         """增量校验（L1 并行化，锁外执行）：返回是否有变化
