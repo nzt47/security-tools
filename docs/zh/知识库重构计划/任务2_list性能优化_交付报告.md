@@ -87,7 +87,7 @@
 | # | 问题 | 根因 | 处置 | 状态 |
 |---|---|---|---|---|
 | 4 | `TenantManager(data_dir=...)` 报 `unexpected keyword argument` | T8 RBAC 权限矩阵测试（`tests/unit/test_rbac_permissions_matrix.py`）期望 data_dir 注入做测试数据隔离，实现未跟上 | `TenantManager.__init__(data_dir=None)` 支持注入，`_load_data`/`_save_data` 统一走 `self._data_dir`（默认 None → 原 agent/data/ 路径，向后兼容） | ✅ 已修复（提交 `16680256`，测试 30/30 通过） |
-| 5 | Deploy Yunshu 单测步骤报 `unrecognized arguments: --timeout=60` | deploy.yml 测试环境缺 pytest-timeout（pytest.ini addopts 引用） | deploy.yml 依赖清单已含 pytest-timeout（并行会话后续补齐） | ✅ 已解决（观察确认最新 run） |
+| 5 | Deploy Yunshu 单测步骤报 `unrecognized arguments: --timeout=60`；随后镜像构建报 `No module named pybind11` | ① deploy.yml 测试环境缺 pytest-timeout（并行会话补齐）；② t8-gateway Dockerfile `--no-build-isolation` 模式未显式装 build 依赖 | ① deploy.yml 依赖已含 pytest-timeout；② Dockerfile 补装 `pybind11 setuptools wheel`（提交 `db8413be`） | ✅ 已修复（构建验证待并行推送稳定后由 CI 最终确认） |
 | 6 | develop 上 test.yml 被持续取消（concurrency） | 多会话高频推送同一分支，GitHub concurrency 组取消旧 run | 属并行协作常态；本交付的 knowledge-tasks 检查 ✅ success、本地 104/104 全绿 | ⏸ 观察项（非缺陷） |
 
 ## 6. 结案
