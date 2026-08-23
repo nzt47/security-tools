@@ -1,13 +1,15 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "created_at": "2026-07-13",
-  "description": "技能检索黄金测试集 — 用于评估 SkillLoader.match 的召回质量。expected_skill_ids 填写人类语义判断的'应命中'技能（理想值），评估脚本对比实际召回结果计算 Precision@K/Recall@K/MRR。当前 TF-IDF 对 description 为空的技能（self_reflection、memory_summary）召回能力为 0，这是基线评估要暴露的核心问题，为升级向量检索提供数据依据。",
+  "description": "技能检索黄金测试集 — 用于评估 SkillLoader.match 的召回质量。expected_skill_ids 填写人类语义判断的'应命中'技能（理想值），评估脚本对比实际召回结果计算 Precision@K/Recall@K/MRR。当前 TF-IDF 对 description 为空的技能（self_reflection、memory_summary）召回能力为 0，这是基线评估要暴露的核心问题，为升级向量检索提供数据依据。 2026-08-24 扩展：case_046~065 追加 20 个难样本（discrimination 4 / multi_skill 4 / negative 5 / hard 7），用于验证 reranker 区分度与拒绝能力。",
   "notes": "构建基线：基于 data/skills_repo/ 实际技能定义（SkillFileStore 从 skill.md front matter 读取，非 data/skills.json）。8 个技能：self_reflection、memory_summary（description 空）、emotion_expression、proactive_suggestion、context_aware、safety_guard、voice_interaction、scripted-selftest（description 丰富）。所有 8 个技能当前 enabled=true，包括 voice_interaction（与早期文档假设不同，以 skill.md front matter 为准）。",
   "test_cases": [
     {
       "case_id": "case_001",
       "query": "self_reflection",
-      "expected_skill_ids": ["self_reflection"],
+      "expected_skill_ids": [
+        "self_reflection"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "self_reflection",
@@ -16,7 +18,9 @@
     {
       "case_id": "case_002",
       "query": "请帮我反思刚才的回答",
-      "expected_skill_ids": ["self_reflection"],
+      "expected_skill_ids": [
+        "self_reflection"
+      ],
       "expected_top_k": 1,
       "difficulty": "hard",
       "category": "self_reflection",
@@ -25,7 +29,9 @@
     {
       "case_id": "case_003",
       "query": "帮我复查刚才的回答有没有逻辑漏洞",
-      "expected_skill_ids": ["self_reflection"],
+      "expected_skill_ids": [
+        "self_reflection"
+      ],
       "expected_top_k": 1,
       "difficulty": "hard",
       "category": "self_reflection",
@@ -34,7 +40,9 @@
     {
       "case_id": "case_004",
       "query": "self_reflection 技能",
-      "expected_skill_ids": ["self_reflection"],
+      "expected_skill_ids": [
+        "self_reflection"
+      ],
       "expected_top_k": 1,
       "difficulty": "medium",
       "category": "self_reflection",
@@ -43,7 +51,9 @@
     {
       "case_id": "case_005",
       "query": "memory_summary",
-      "expected_skill_ids": ["memory_summary"],
+      "expected_skill_ids": [
+        "memory_summary"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "memory_summary",
@@ -52,7 +62,9 @@
     {
       "case_id": "case_006",
       "query": "请总结一下之前的对话历史",
-      "expected_skill_ids": ["memory_summary"],
+      "expected_skill_ids": [
+        "memory_summary"
+      ],
       "expected_top_k": 1,
       "difficulty": "hard",
       "category": "memory_summary",
@@ -61,7 +73,9 @@
     {
       "case_id": "case_007",
       "query": "帮我梳理历史记忆并压缩",
-      "expected_skill_ids": ["memory_summary"],
+      "expected_skill_ids": [
+        "memory_summary"
+      ],
       "expected_top_k": 1,
       "difficulty": "hard",
       "category": "memory_summary",
@@ -70,7 +84,9 @@
     {
       "case_id": "case_008",
       "query": "memory_summary 技能",
-      "expected_skill_ids": ["memory_summary"],
+      "expected_skill_ids": [
+        "memory_summary"
+      ],
       "expected_top_k": 1,
       "difficulty": "medium",
       "category": "memory_summary",
@@ -79,7 +95,9 @@
     {
       "case_id": "case_009",
       "query": "情感",
-      "expected_skill_ids": ["emotion_expression"],
+      "expected_skill_ids": [
+        "emotion_expression"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "emotion",
@@ -88,7 +106,9 @@
     {
       "case_id": "case_010",
       "query": "我想让你说话带点感情色彩",
-      "expected_skill_ids": ["emotion_expression"],
+      "expected_skill_ids": [
+        "emotion_expression"
+      ],
       "expected_top_k": 1,
       "difficulty": "medium",
       "category": "emotion",
@@ -97,7 +117,9 @@
     {
       "case_id": "case_011",
       "query": "让回答更有感情",
-      "expected_skill_ids": ["emotion_expression"],
+      "expected_skill_ids": [
+        "emotion_expression"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "emotion",
@@ -106,7 +128,9 @@
     {
       "case_id": "case_012",
       "query": "请调整回应语气加点感情",
-      "expected_skill_ids": ["emotion_expression"],
+      "expected_skill_ids": [
+        "emotion_expression"
+      ],
       "expected_top_k": 1,
       "difficulty": "hard",
       "category": "emotion",
@@ -115,7 +139,9 @@
     {
       "case_id": "case_013",
       "query": "建议",
-      "expected_skill_ids": ["proactive_suggestion"],
+      "expected_skill_ids": [
+        "proactive_suggestion"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "suggestion",
@@ -124,7 +150,9 @@
     {
       "case_id": "case_014",
       "query": "你能主动给我点建议吗",
-      "expected_skill_ids": ["proactive_suggestion"],
+      "expected_skill_ids": [
+        "proactive_suggestion"
+      ],
       "expected_top_k": 1,
       "difficulty": "medium",
       "category": "suggestion",
@@ -133,7 +161,9 @@
     {
       "case_id": "case_015",
       "query": "请主动提建议",
-      "expected_skill_ids": ["proactive_suggestion"],
+      "expected_skill_ids": [
+        "proactive_suggestion"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "suggestion",
@@ -142,7 +172,9 @@
     {
       "case_id": "case_016",
       "query": "主动识别我的潜在需求",
-      "expected_skill_ids": ["proactive_suggestion"],
+      "expected_skill_ids": [
+        "proactive_suggestion"
+      ],
       "expected_top_k": 1,
       "difficulty": "medium",
       "category": "suggestion",
@@ -151,7 +183,9 @@
     {
       "case_id": "case_017",
       "query": "上下文",
-      "expected_skill_ids": ["context_aware"],
+      "expected_skill_ids": [
+        "context_aware"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "context",
@@ -160,7 +194,9 @@
     {
       "case_id": "case_018",
       "query": "刚才说的上下文你记住了吗，根据之前的话题调整一下",
-      "expected_skill_ids": ["context_aware"],
+      "expected_skill_ids": [
+        "context_aware"
+      ],
       "expected_top_k": 1,
       "difficulty": "medium",
       "category": "context",
@@ -169,7 +205,9 @@
     {
       "case_id": "case_019",
       "query": "检测话题切换",
-      "expected_skill_ids": ["context_aware"],
+      "expected_skill_ids": [
+        "context_aware"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "context",
@@ -178,7 +216,9 @@
     {
       "case_id": "case_020",
       "query": "根据之前的话题调整策略",
-      "expected_skill_ids": ["context_aware"],
+      "expected_skill_ids": [
+        "context_aware"
+      ],
       "expected_top_k": 1,
       "difficulty": "medium",
       "category": "context",
@@ -187,7 +227,9 @@
     {
       "case_id": "case_021",
       "query": "安全",
-      "expected_skill_ids": ["safety_guard"],
+      "expected_skill_ids": [
+        "safety_guard"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "safety",
@@ -196,7 +238,9 @@
     {
       "case_id": "case_022",
       "query": "这个操作安全吗，帮我过滤一下危险内容",
-      "expected_skill_ids": ["safety_guard"],
+      "expected_skill_ids": [
+        "safety_guard"
+      ],
       "expected_top_k": 1,
       "difficulty": "medium",
       "category": "safety",
@@ -205,7 +249,9 @@
     {
       "case_id": "case_023",
       "query": "帮我拦截危险操作",
-      "expected_skill_ids": ["safety_guard"],
+      "expected_skill_ids": [
+        "safety_guard"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "safety",
@@ -214,7 +260,9 @@
     {
       "case_id": "case_024",
       "query": "检测敏感信息泄露",
-      "expected_skill_ids": ["safety_guard"],
+      "expected_skill_ids": [
+        "safety_guard"
+      ],
       "expected_top_k": 1,
       "difficulty": "medium",
       "category": "safety",
@@ -223,7 +271,9 @@
     {
       "case_id": "case_025",
       "query": "语音",
-      "expected_skill_ids": ["voice_interaction"],
+      "expected_skill_ids": [
+        "voice_interaction"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "voice",
@@ -232,7 +282,9 @@
     {
       "case_id": "case_026",
       "query": "我想用语音跟你说话",
-      "expected_skill_ids": ["voice_interaction"],
+      "expected_skill_ids": [
+        "voice_interaction"
+      ],
       "expected_top_k": 1,
       "difficulty": "medium",
       "category": "voice",
@@ -241,7 +293,9 @@
     {
       "case_id": "case_027",
       "query": "请识别语音指令",
-      "expected_skill_ids": ["voice_interaction"],
+      "expected_skill_ids": [
+        "voice_interaction"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "voice",
@@ -250,7 +304,9 @@
     {
       "case_id": "case_028",
       "query": "请进行 TTS 合成",
-      "expected_skill_ids": ["voice_interaction"],
+      "expected_skill_ids": [
+        "voice_interaction"
+      ],
       "expected_top_k": 1,
       "difficulty": "medium",
       "category": "voice",
@@ -259,7 +315,9 @@
     {
       "case_id": "case_029",
       "query": "脚本示例",
-      "expected_skill_ids": ["scripted-selftest"],
+      "expected_skill_ids": [
+        "scripted-selftest"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "scripted",
@@ -268,7 +326,9 @@
     {
       "case_id": "case_030",
       "query": "调用带脚本的技能示例",
-      "expected_skill_ids": ["scripted-selftest"],
+      "expected_skill_ids": [
+        "scripted-selftest"
+      ],
       "expected_top_k": 1,
       "difficulty": "medium",
       "category": "scripted",
@@ -277,7 +337,9 @@
     {
       "case_id": "case_031",
       "query": "三层架构示例",
-      "expected_skill_ids": ["scripted-selftest"],
+      "expected_skill_ids": [
+        "scripted-selftest"
+      ],
       "expected_top_k": 1,
       "difficulty": "easy",
       "category": "scripted",
@@ -286,7 +348,9 @@
     {
       "case_id": "case_032",
       "query": "请运行带脚本的技能",
-      "expected_skill_ids": ["scripted-selftest"],
+      "expected_skill_ids": [
+        "scripted-selftest"
+      ],
       "expected_top_k": 1,
       "difficulty": "medium",
       "category": "scripted",
@@ -295,7 +359,10 @@
     {
       "case_id": "case_033",
       "query": "上下文感知与安全守护",
-      "expected_skill_ids": ["context_aware", "safety_guard"],
+      "expected_skill_ids": [
+        "context_aware",
+        "safety_guard"
+      ],
       "expected_top_k": 2,
       "difficulty": "hard",
       "category": "multi_skill",
@@ -304,7 +371,10 @@
     {
       "case_id": "case_034",
       "query": "情感表达与主动建议",
-      "expected_skill_ids": ["emotion_expression", "proactive_suggestion"],
+      "expected_skill_ids": [
+        "emotion_expression",
+        "proactive_suggestion"
+      ],
       "expected_top_k": 2,
       "difficulty": "hard",
       "category": "multi_skill",
@@ -313,7 +383,10 @@
     {
       "case_id": "case_035",
       "query": "请识别语音指令并保障安全",
-      "expected_skill_ids": ["voice_interaction", "safety_guard"],
+      "expected_skill_ids": [
+        "voice_interaction",
+        "safety_guard"
+      ],
       "expected_top_k": 2,
       "difficulty": "hard",
       "category": "multi_skill",
@@ -322,7 +395,10 @@
     {
       "case_id": "case_036",
       "query": "请运行三层架构示例并保障安全",
-      "expected_skill_ids": ["scripted-selftest", "safety_guard"],
+      "expected_skill_ids": [
+        "scripted-selftest",
+        "safety_guard"
+      ],
       "expected_top_k": 2,
       "difficulty": "hard",
       "category": "multi_skill",
@@ -331,7 +407,10 @@
     {
       "case_id": "case_037",
       "query": "请检测话题切换并主动提建议",
-      "expected_skill_ids": ["context_aware", "proactive_suggestion"],
+      "expected_skill_ids": [
+        "context_aware",
+        "proactive_suggestion"
+      ],
       "expected_top_k": 2,
       "difficulty": "hard",
       "category": "multi_skill",
@@ -385,7 +464,9 @@
     {
       "case_id": "case_043",
       "query": "请帮我反思",
-      "expected_skill_ids": ["self_reflection"],
+      "expected_skill_ids": [
+        "self_reflection"
+      ],
       "expected_top_k": 1,
       "difficulty": "hard",
       "category": "discrimination",
@@ -394,7 +475,9 @@
     {
       "case_id": "case_044",
       "query": "请总结一下之前的记忆",
-      "expected_skill_ids": ["memory_summary"],
+      "expected_skill_ids": [
+        "memory_summary"
+      ],
       "expected_top_k": 1,
       "difficulty": "hard",
       "category": "discrimination",
@@ -403,11 +486,227 @@
     {
       "case_id": "case_045",
       "query": "刚才回答有没有问题，请帮我检查",
-      "expected_skill_ids": ["self_reflection"],
+      "expected_skill_ids": [
+        "self_reflection"
+      ],
       "expected_top_k": 1,
       "difficulty": "hard",
       "category": "discrimination",
       "notes": "语义近似区分用例：'检查'+'回答'+'问题' 语义指向 self_reflection，但 description 空、'检查'不在 meta_text。实际召回 context_aware（'回答'/'问题'误命中）"
+    },
+    {
+      "case_id": "case_046",
+      "query": "帮我回顾一下我之前的推理过程有没有错",
+      "expected_skill_ids": [
+        "self_reflection"
+      ],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "discrimination",
+      "notes": "语义近义：'回顾推理过程' 指向 self_reflection（reflection），与 memory_summary（'回顾记忆'）易混淆"
+    },
+    {
+      "case_id": "case_047",
+      "query": "把咱们之前的对话重点归纳成一段话",
+      "expected_skill_ids": [
+        "memory_summary"
+      ],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "discrimination",
+      "notes": "语义近义：'归纳对话' 指向 memory_summary（总结），与 self_reflection（'归纳'易误配）需区分"
+    },
+    {
+      "case_id": "case_048",
+      "query": "帮我看看我最近的想法是不是有偏见",
+      "expected_skill_ids": [
+        "self_reflection"
+      ],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "discrimination",
+      "notes": "语义近义：'想法有偏见' 指向 self_reflection（自省），safety_guard 的'过滤危险内容'是干扰项"
+    },
+    {
+      "case_id": "case_049",
+      "query": "总结一下这次对话里我提到的关键诉求",
+      "expected_skill_ids": [
+        "memory_summary"
+      ],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "discrimination",
+      "notes": "语义近义：'总结诉求' 指向 memory_summary，proactive_suggestion 的'识别潜在需求'是强干扰项"
+    },
+    {
+      "case_id": "case_050",
+      "query": "请帮我反思刚才的回答，并且主动给我一些改进建议",
+      "expected_skill_ids": [
+        "self_reflection",
+        "proactive_suggestion"
+      ],
+      "expected_top_k": 2,
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "notes": "组合：反思 + 主动建议"
+    },
+    {
+      "case_id": "case_051",
+      "query": "用有感情的语气说话，同时确保内容安全",
+      "expected_skill_ids": [
+        "emotion_expression",
+        "safety_guard"
+      ],
+      "expected_top_k": 2,
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "notes": "组合：情感表达 + 安全守护"
+    },
+    {
+      "case_id": "case_052",
+      "query": "请总结之前的对话，然后用语音读出来",
+      "expected_skill_ids": [
+        "memory_summary",
+        "voice_interaction"
+      ],
+      "expected_top_k": 2,
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "notes": "组合：记忆总结 + 语音交互"
+    },
+    {
+      "case_id": "case_053",
+      "query": "检测上下文话题变化，并主动建议下一步行动",
+      "expected_skill_ids": [
+        "context_aware",
+        "proactive_suggestion"
+      ],
+      "expected_top_k": 2,
+      "difficulty": "hard",
+      "category": "multi_skill",
+      "notes": "组合：上下文感知 + 主动建议"
+    },
+    {
+      "case_id": "case_054",
+      "query": "帮我算一下 2 的 10 次方是多少",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "tricky",
+      "category": "negative",
+      "notes": "负样本：数学计算，无对应技能"
+    },
+    {
+      "case_id": "case_055",
+      "query": "今天股市行情怎么样",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "tricky",
+      "category": "negative",
+      "notes": "负样本：金融资讯，无对应技能"
+    },
+    {
+      "case_id": "case_056",
+      "query": "帮我写一首关于秋天的诗",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "tricky",
+      "category": "negative",
+      "notes": "负样本：创作请求，无对应技能"
+    },
+    {
+      "case_id": "case_057",
+      "query": "推荐一部好看的科幻电影",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "tricky",
+      "category": "negative",
+      "notes": "负样本：娱乐推荐，无对应技能"
+    },
+    {
+      "case_id": "case_058",
+      "query": "这个 Python 报错怎么解决",
+      "expected_skill_ids": [],
+      "expected_top_k": 0,
+      "difficulty": "tricky",
+      "category": "negative",
+      "notes": "负样本：编程问答，scripted-selftest（'脚本'）为干扰项需拒绝"
+    },
+    {
+      "case_id": "case_059",
+      "query": "我回答得不够好，请你重新审视一遍",
+      "expected_skill_ids": [
+        "self_reflection"
+      ],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "self_reflection",
+      "notes": "语义变体：'重新审视回答' 指向 self_reflection"
+    },
+    {
+      "case_id": "case_060",
+      "query": "之前的聊天内容帮我提炼一下重点",
+      "expected_skill_ids": [
+        "memory_summary"
+      ],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "memory_summary",
+      "notes": "语义变体：'提炼聊天重点' 指向 memory_summary"
+    },
+    {
+      "case_id": "case_061",
+      "query": "你用词太生硬了，稍微热情一点",
+      "expected_skill_ids": [
+        "emotion_expression"
+      ],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "emotion",
+      "notes": "语义变体：'热情一点' 指向 emotion_expression"
+    },
+    {
+      "case_id": "case_062",
+      "query": "我还没想好下一步做什么，你能给点思路吗",
+      "expected_skill_ids": [
+        "proactive_suggestion"
+      ],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "suggestion",
+      "notes": "语义变体：'给点思路' 指向 proactive_suggestion"
+    },
+    {
+      "case_id": "case_063",
+      "query": "别忘了我之前提到过的偏好设置",
+      "expected_skill_ids": [
+        "context_aware"
+      ],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "context",
+      "notes": "语义变体：'记住偏好' 指向 context_aware"
+    },
+    {
+      "case_id": "case_064",
+      "query": "帮我把这段话里的敏感信息找出来",
+      "expected_skill_ids": [
+        "safety_guard"
+      ],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "safety",
+      "notes": "语义变体：'敏感信息检测' 指向 safety_guard"
+    },
+    {
+      "case_id": "case_065",
+      "query": "你能朗读这段文字给我听吗",
+      "expected_skill_ids": [
+        "voice_interaction"
+      ],
+      "expected_top_k": 1,
+      "difficulty": "hard",
+      "category": "voice",
+      "notes": "语义变体：'朗读' 指向 voice_interaction"
     }
   ]
 }
