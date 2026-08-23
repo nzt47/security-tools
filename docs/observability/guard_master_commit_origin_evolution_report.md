@@ -17,12 +17,12 @@
 | 阶段 | 模式 | 行为 | 状态 |
 |------|------|------|------|
 | 1 | dry-run | 仅 `::warning::` 告警, exit 0 | ✅ 已完成(08-05 11:40 前 ~ 13:11) |
-| 2 | enforce | 检测到问题 exit 1, 阻断 master push | ✅ **当前生效**(08-05 13:11:09Z 切换) |
+| 2 | enforce | 检测到问题 exit 1, 阻断 master push | ⚠️ 曾生效(08-05 13:11 切换) → **08-06 误伤回退 dry-run**(见里程碑 8/9) |
 | 3 | 分支保护 | guard 勾选为 required status check | ⏳ 观察 1-2 周后可选 |
 
 ---
 
-## 二、演进时间线(7 个里程碑)
+## 二、演进时间线(9 个里程碑)
 
 | # | 里程碑 | 时间 (UTC) | PR | Commit | 内容 |
 |---|--------|-----------|----|--------|------|
@@ -33,6 +33,8 @@
 | 5 | P0 修复 ORIGIN-04 降级 | 08-05 12:55 | #247 | `9f57d52b` | workflow 显式注入 `GITHUB_TOKEN` + urllib 异常兜底(ssl.SSLError/TimeoutError/通用 Exception); run 31007480305 验证 `PRs=#247 \| method=gh API REST` |
 | 6 | 通知联动补齐 | 08-05 13:03 | #249 | `d52dd1e3` | guard workflow 加入 ci-failure-notify 白名单 → 失败联动 GitHub Issue + 邮件 |
 | 7 | **enforce 切换** | 08-05 13:11 | #252 | `5c084be2` | 创建 Variable `COMMIT_ORIGIN_GUARD_MODE=enforce`; 首次运行 run 31009087519: `mode=enforce, overall_status=pass, blocked=0`; squash merge commit `d52dd1e3` 正确关联 PR #249; 监控报告 + 演进记录归档 |
+| 8 | **enforce 误伤人工 push** | 08-06 05:01 | — | `d55abd03` | 人工身份 commit(无关联 PR)直接 push master → ORIGIN-04 BLOCK → workflow failure → CI 失败通知噪音(邮件/钉钉); **不会回滚已推送 commit**(push 后事后校验) |
+| 9 | **回退 dry-run** | 08-06 | — | — | `gh variable set COMMIT_ORIGIN_GUARD_MODE -b dry-run`; 恢复告警不阻断; 修复指南归档 `docs/troubleshooting/commit_origin_guard_fix_guide_20260806.md` |
 
 ---
 
@@ -122,7 +124,11 @@ guard workflow (enforce) exit 1 → job 失败
 
 ## 七、后续观察项(非阻塞)
 
-- [ ] 观察 1-2 周, 确认 enforce 模式无误报/漏报
+- [ ] **enforce 重新评估**(08-06 误伤回退后): 人工身份直推 master 需规范化——
+  - 方案 A: 人工 push 前先 `gh pr create`(附关联 PR)再走 PR 合入
+  - 方案 B: enforce 前把人工常用身份加入 ORIGIN-04 豁免白名单(需评估风险)
+  - 方案 C: 维持 dry-run + 手动巡检 `::warning::` 告警
+- [ ] 观察 1-2 周 dry-run 告警频率, 确认误伤根因(人工直推 vs 脚本伪装)后再决定是否重开 enforce
 - [ ] 配置 `SLACK_WEBHOOK_URL`(用户已记录, 待提供 webhook 后配置并本地真实发送验证)
 - [ ] 配置 `DINGTALK_WEBHOOK`(可选)
 - [ ] 阶段 3(可选): 开启 master 分支保护, 勾选 guard + ci.yml 为 required status check
@@ -147,6 +153,10 @@ guard workflow (enforce) exit 1 → job 失败
 
 ## 九、结论
 
-✅ **master commit 来源守卫已完整落地并切换至 enforce 模式**:6 个 PR 全部合并,enforce 首次运行(run 31009087519)验证通过,合法 commit(含 squash merge)正常放行,非法 commit 将 exit 1 阻断并联动 GitHub Issue + 邮件通知。所有 guard 相关临时分支已清理,master 无遗留未合并项。
+✅ **master commit 来源守卫已完成完整演进(引入 → dry-run 验证 → enforce 切换 → 误伤回退)**:
+- 08-05: 6 个 PR 全部合并,enforce 首次运行(run 31009087519)验证通过,合法 commit(含 squash merge)正常放行
+- 08-06: enforce 误伤人工身份直推 commit(`d55abd03`, ORIGIN-04 BLOCK)→ 按预案回退 dry-run(告警不阻断),修复指南归档
+- 当前状态: **dry-run 观察期**,GitHub Issue + 邮件通知链路正常,Slack 待配置 webhook
+- 回退机制验证有效(「不锁死 master push」的【不易】设计经受住了真实误伤场景)
 
 *本报告由 master commit 来源守卫演进任务生成,数据来源为各里程碑 run 日志与已归档报告。*
