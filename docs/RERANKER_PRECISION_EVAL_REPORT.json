@@ -1,13 +1,13 @@
 {
   "summary": {
-    "baseline_precision_at_3": 0.4222,
-    "experiment_precision_at_3": 0.4444,
-    "precision_delta": 0.0222,
-    "precision_relative_lift_pct": 5.26,
+    "baseline_precision_at_3": 0.4564,
+    "experiment_precision_at_3": 0.4564,
+    "precision_delta": 0.0,
+    "precision_relative_lift_pct": 0.0,
     "acceptance_threshold_pct": 20.0,
     "acceptance_passed": false,
-    "baseline_elapsed_s": 0.13,
-    "experiment_elapsed_s": 8.83
+    "baseline_elapsed_s": 0.14,
+    "experiment_elapsed_s": 0.93
   },
   "config": {
     "model": "C:/Users/Administrator/.cache/huggingface/hub/models--BAAI--bge-reranker-base",
@@ -15,30 +15,30 @@
     "use_onnx_actual": true,
     "onnx_variant": "model_quantized.onnx",
     "rerank_timeout": 3.0,
-    "min_score": 0.001,
+    "min_score": 0.0001,
     "top_k": 3
   },
   "baseline": {
-    "precision": 0.4222,
-    "recall": 1.0,
-    "mrr": 0.9778,
-    "total_cases": 45,
+    "precision": 0.4564,
+    "recall": 0.9308,
+    "mrr": 0.9308,
+    "total_cases": 65,
     "by_difficulty": {
       "easy": {
         "precision": 0.3333,
         "count": 14
       },
       "hard": {
-        "precision": 0.4615,
-        "count": 13
+        "precision": 0.3809,
+        "count": 28
       },
       "medium": {
         "precision": 0.3333,
         "count": 13
       },
       "tricky": {
-        "precision": 0.8,
-        "count": 5
+        "precision": 1.0,
+        "count": 10
       }
     },
     "cases": [
@@ -65,9 +65,7 @@
           "self_reflection"
         ],
         "actual": [
-          "self_reflection",
-          "scripted-selftest",
-          "context_aware"
+          "self_reflection"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -82,9 +80,7 @@
           "self_reflection"
         ],
         "actual": [
-          "self_reflection",
-          "proactive_suggestion",
-          "context_aware"
+          "self_reflection"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -132,7 +128,7 @@
         ],
         "actual": [
           "memory_summary",
-          "context_aware",
+          "emotion_expression",
           "proactive_suggestion"
         ],
         "precision": 0.3333,
@@ -149,7 +145,6 @@
         ],
         "actual": [
           "memory_summary",
-          "self_reflection",
           "context_aware"
         ],
         "precision": 0.3333,
@@ -182,9 +177,7 @@
           "emotion_expression"
         ],
         "actual": [
-          "emotion_expression",
-          "context_aware",
-          "safety_guard"
+          "emotion_expression"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -199,9 +192,7 @@
           "emotion_expression"
         ],
         "actual": [
-          "emotion_expression",
-          "self_reflection",
-          "scripted-selftest"
+          "emotion_expression"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -217,8 +208,7 @@
         ],
         "actual": [
           "emotion_expression",
-          "self_reflection",
-          "proactive_suggestion"
+          "self_reflection"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -233,13 +223,13 @@
           "emotion_expression"
         ],
         "actual": [
-          "emotion_expression",
           "context_aware",
-          "voice_interaction"
+          "emotion_expression",
+          "safety_guard"
         ],
         "precision": 0.3333,
         "recall": 1.0,
-        "mrr": 1.0,
+        "mrr": 0.5,
         "reranked": false
       },
       {
@@ -265,9 +255,7 @@
           "proactive_suggestion"
         ],
         "actual": [
-          "proactive_suggestion",
-          "self_reflection",
-          "context_aware"
+          "proactive_suggestion"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -282,9 +270,7 @@
           "proactive_suggestion"
         ],
         "actual": [
-          "proactive_suggestion",
-          "context_aware",
-          "emotion_expression"
+          "proactive_suggestion"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -300,8 +286,8 @@
         ],
         "actual": [
           "proactive_suggestion",
-          "self_reflection",
-          "safety_guard"
+          "safety_guard",
+          "voice_interaction"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -317,8 +303,7 @@
         ],
         "actual": [
           "context_aware",
-          "proactive_suggestion",
-          "voice_interaction"
+          "proactive_suggestion"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -334,8 +319,8 @@
         ],
         "actual": [
           "context_aware",
-          "proactive_suggestion",
-          "memory_summary"
+          "memory_summary",
+          "proactive_suggestion"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -351,8 +336,7 @@
         ],
         "actual": [
           "context_aware",
-          "safety_guard",
-          "self_reflection"
+          "safety_guard"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -368,8 +352,7 @@
         ],
         "actual": [
           "context_aware",
-          "memory_summary",
-          "scripted-selftest"
+          "memory_summary"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -400,8 +383,8 @@
         ],
         "actual": [
           "safety_guard",
-          "self_reflection",
-          "voice_interaction"
+          "voice_interaction",
+          "memory_summary"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -417,7 +400,6 @@
         ],
         "actual": [
           "safety_guard",
-          "self_reflection",
           "voice_interaction"
         ],
         "precision": 0.3333,
@@ -433,9 +415,7 @@
           "safety_guard"
         ],
         "actual": [
-          "safety_guard",
-          "context_aware",
-          "emotion_expression"
+          "safety_guard"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -465,9 +445,7 @@
           "voice_interaction"
         ],
         "actual": [
-          "voice_interaction",
-          "proactive_suggestion",
-          "self_reflection"
+          "voice_interaction"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -499,9 +477,7 @@
           "voice_interaction"
         ],
         "actual": [
-          "voice_interaction",
-          "safety_guard",
-          "self_reflection"
+          "voice_interaction"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -532,7 +508,7 @@
         ],
         "actual": [
           "scripted-selftest",
-          "context_aware",
+          "safety_guard",
           "self_reflection"
         ],
         "precision": 0.3333,
@@ -548,8 +524,7 @@
           "scripted-selftest"
         ],
         "actual": [
-          "scripted-selftest",
-          "memory_summary"
+          "scripted-selftest"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -582,8 +557,8 @@
           "safety_guard"
         ],
         "actual": [
-          "safety_guard",
           "context_aware",
+          "safety_guard",
           "proactive_suggestion"
         ],
         "precision": 0.6667,
@@ -601,8 +576,7 @@
         ],
         "actual": [
           "emotion_expression",
-          "proactive_suggestion",
-          "context_aware"
+          "proactive_suggestion"
         ],
         "precision": 0.6667,
         "recall": 1.0,
@@ -620,7 +594,7 @@
         "actual": [
           "voice_interaction",
           "safety_guard",
-          "self_reflection"
+          "proactive_suggestion"
         ],
         "precision": 0.6667,
         "recall": 1.0,
@@ -637,8 +611,7 @@
         ],
         "actual": [
           "scripted-selftest",
-          "safety_guard",
-          "memory_summary"
+          "safety_guard"
         ],
         "precision": 0.6667,
         "recall": 1.0,
@@ -712,12 +685,10 @@
         "query": "帮我订一张机票",
         "difficulty": "tricky",
         "expected": [],
-        "actual": [
-          "self_reflection"
-        ],
-        "precision": 0.0,
+        "actual": [],
+        "precision": 1.0,
         "recall": 1.0,
-        "mrr": 0.0,
+        "mrr": 1.0,
         "reranked": false
       },
       {
@@ -744,8 +715,7 @@
         ],
         "actual": [
           "memory_summary",
-          "context_aware",
-          "proactive_suggestion"
+          "context_aware"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -760,9 +730,299 @@
           "self_reflection"
         ],
         "actual": [
+          "self_reflection"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_046",
+        "query": "帮我回顾一下我之前的推理过程有没有错",
+        "difficulty": "hard",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
           "self_reflection",
+          "memory_summary"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_047",
+        "query": "把咱们之前的对话重点归纳成一段话",
+        "difficulty": "hard",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_048",
+        "query": "帮我看看我最近的想法是不是有偏见",
+        "difficulty": "hard",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "proactive_suggestion"
+        ],
+        "precision": 0.0,
+        "recall": 0.0,
+        "mrr": 0.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_049",
+        "query": "总结一下这次对话里我提到的关键诉求",
+        "difficulty": "hard",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_050",
+        "query": "请帮我反思刚才的回答，并且主动给我一些改进建议",
+        "difficulty": "hard",
+        "expected": [
+          "self_reflection",
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "self_reflection",
+          "proactive_suggestion"
+        ],
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_051",
+        "query": "用有感情的语气说话，同时确保内容安全",
+        "difficulty": "hard",
+        "expected": [
+          "emotion_expression",
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "memory_summary"
+        ],
+        "precision": 0.3333,
+        "recall": 0.5,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_052",
+        "query": "请总结之前的对话，然后用语音读出来",
+        "difficulty": "hard",
+        "expected": [
+          "memory_summary",
+          "voice_interaction"
+        ],
+        "actual": [
+          "memory_summary",
+          "voice_interaction",
+          "emotion_expression"
+        ],
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_053",
+        "query": "检测上下文话题变化，并主动建议下一步行动",
+        "difficulty": "hard",
+        "expected": [
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual": [
           "proactive_suggestion",
+          "context_aware",
+          "safety_guard"
+        ],
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_054",
+        "query": "帮我算一下 2 的 10 次方是多少",
+        "difficulty": "tricky",
+        "expected": [],
+        "actual": [],
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_055",
+        "query": "今天股市行情怎么样",
+        "difficulty": "tricky",
+        "expected": [],
+        "actual": [],
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_056",
+        "query": "帮我写一首关于秋天的诗",
+        "difficulty": "tricky",
+        "expected": [],
+        "actual": [],
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_057",
+        "query": "推荐一部好看的科幻电影",
+        "difficulty": "tricky",
+        "expected": [],
+        "actual": [],
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_058",
+        "query": "这个 Python 报错怎么解决",
+        "difficulty": "tricky",
+        "expected": [],
+        "actual": [],
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_059",
+        "query": "我回答得不够好，请你重新审视一遍",
+        "difficulty": "hard",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_060",
+        "query": "之前的聊天内容帮我提炼一下重点",
+        "difficulty": "hard",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "safety_guard"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_061",
+        "query": "你用词太生硬了，稍微热情一点",
+        "difficulty": "hard",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [],
+        "precision": 0.0,
+        "recall": 0.0,
+        "mrr": 0.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_062",
+        "query": "我还没想好下一步做什么，你能给点思路吗",
+        "difficulty": "hard",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [],
+        "precision": 0.0,
+        "recall": 0.0,
+        "mrr": 0.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_063",
+        "query": "别忘了我之前提到过的偏好设置",
+        "difficulty": "hard",
+        "expected": [
           "context_aware"
+        ],
+        "actual": [
+          "memory_summary"
+        ],
+        "precision": 0.0,
+        "recall": 0.0,
+        "mrr": 0.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_064",
+        "query": "帮我把这段话里的敏感信息找出来",
+        "difficulty": "hard",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_065",
+        "query": "你能朗读这段文字给我听吗",
+        "difficulty": "hard",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -772,18 +1032,18 @@
     ]
   },
   "experiment": {
-    "precision": 0.4444,
-    "recall": 1.0,
-    "mrr": 0.9889,
-    "total_cases": 45,
+    "precision": 0.4564,
+    "recall": 0.9308,
+    "mrr": 0.9308,
+    "total_cases": 65,
     "by_difficulty": {
       "easy": {
         "precision": 0.3333,
         "count": 14
       },
       "hard": {
-        "precision": 0.4615,
-        "count": 13
+        "precision": 0.3809,
+        "count": 28
       },
       "medium": {
         "precision": 0.3333,
@@ -791,7 +1051,7 @@
       },
       "tricky": {
         "precision": 1.0,
-        "count": 5
+        "count": 10
       }
     },
     "cases": [
@@ -818,9 +1078,7 @@
           "self_reflection"
         ],
         "actual": [
-          "self_reflection",
-          "proactive_suggestion",
-          "emotion_expression"
+          "self_reflection"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -835,9 +1093,7 @@
           "self_reflection"
         ],
         "actual": [
-          "self_reflection",
-          "context_aware",
-          "safety_guard"
+          "self_reflection"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -853,8 +1109,8 @@
         ],
         "actual": [
           "self_reflection",
-          "memory_summary",
-          "scripted-selftest"
+          "scripted-selftest",
+          "memory_summary"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -885,7 +1141,7 @@
         ],
         "actual": [
           "memory_summary",
-          "context_aware",
+          "emotion_expression",
           "proactive_suggestion"
         ],
         "precision": 0.3333,
@@ -918,8 +1174,8 @@
         ],
         "actual": [
           "memory_summary",
-          "self_reflection",
-          "scripted-selftest"
+          "scripted-selftest",
+          "self_reflection"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -934,9 +1190,7 @@
           "emotion_expression"
         ],
         "actual": [
-          "emotion_expression",
-          "context_aware",
-          "safety_guard"
+          "emotion_expression"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -951,9 +1205,7 @@
           "emotion_expression"
         ],
         "actual": [
-          "emotion_expression",
-          "proactive_suggestion",
-          "self_reflection"
+          "emotion_expression"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -969,7 +1221,6 @@
         ],
         "actual": [
           "emotion_expression",
-          "proactive_suggestion",
           "self_reflection"
         ],
         "precision": 0.3333,
@@ -985,13 +1236,13 @@
           "emotion_expression"
         ],
         "actual": [
-          "emotion_expression",
           "context_aware",
+          "emotion_expression",
           "safety_guard"
         ],
         "precision": 0.3333,
         "recall": 1.0,
-        "mrr": 1.0,
+        "mrr": 0.5,
         "reranked": true
       },
       {
@@ -1017,9 +1268,7 @@
           "proactive_suggestion"
         ],
         "actual": [
-          "proactive_suggestion",
-          "emotion_expression",
-          "self_reflection"
+          "proactive_suggestion"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1034,8 +1283,7 @@
           "proactive_suggestion"
         ],
         "actual": [
-          "proactive_suggestion",
-          "emotion_expression"
+          "proactive_suggestion"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1068,8 +1316,7 @@
         ],
         "actual": [
           "context_aware",
-          "proactive_suggestion",
-          "voice_interaction"
+          "proactive_suggestion"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1085,8 +1332,8 @@
         ],
         "actual": [
           "context_aware",
-          "proactive_suggestion",
-          "memory_summary"
+          "memory_summary",
+          "proactive_suggestion"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1102,7 +1349,6 @@
         ],
         "actual": [
           "context_aware",
-          "proactive_suggestion",
           "safety_guard"
         ],
         "precision": 0.3333,
@@ -1118,13 +1364,12 @@
           "context_aware"
         ],
         "actual": [
-          "proactive_suggestion",
           "context_aware",
-          "safety_guard"
+          "memory_summary"
         ],
         "precision": 0.3333,
         "recall": 1.0,
-        "mrr": 0.5,
+        "mrr": 1.0,
         "reranked": true
       },
       {
@@ -1151,7 +1396,8 @@
         ],
         "actual": [
           "safety_guard",
-          "proactive_suggestion"
+          "voice_interaction",
+          "memory_summary"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1167,8 +1413,7 @@
         ],
         "actual": [
           "safety_guard",
-          "voice_interaction",
-          "scripted-selftest"
+          "voice_interaction"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1183,8 +1428,7 @@
           "safety_guard"
         ],
         "actual": [
-          "safety_guard",
-          "context_aware"
+          "safety_guard"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1214,9 +1458,7 @@
           "voice_interaction"
         ],
         "actual": [
-          "voice_interaction",
-          "emotion_expression",
-          "proactive_suggestion"
+          "voice_interaction"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1232,7 +1474,8 @@
         ],
         "actual": [
           "voice_interaction",
-          "proactive_suggestion"
+          "proactive_suggestion",
+          "self_reflection"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1247,9 +1490,7 @@
           "voice_interaction"
         ],
         "actual": [
-          "voice_interaction",
-          "safety_guard",
-          "scripted-selftest"
+          "voice_interaction"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1280,8 +1521,8 @@
         ],
         "actual": [
           "scripted-selftest",
-          "memory_summary",
-          "safety_guard"
+          "safety_guard",
+          "self_reflection"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1296,8 +1537,7 @@
           "scripted-selftest"
         ],
         "actual": [
-          "scripted-selftest",
-          "memory_summary"
+          "scripted-selftest"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1313,8 +1553,8 @@
         ],
         "actual": [
           "scripted-selftest",
-          "memory_summary",
-          "safety_guard"
+          "self_reflection",
+          "memory_summary"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1330,8 +1570,8 @@
           "safety_guard"
         ],
         "actual": [
-          "safety_guard",
           "context_aware",
+          "safety_guard",
           "proactive_suggestion"
         ],
         "precision": 0.6667,
@@ -1348,9 +1588,8 @@
           "proactive_suggestion"
         ],
         "actual": [
-          "proactive_suggestion",
           "emotion_expression",
-          "voice_interaction"
+          "proactive_suggestion"
         ],
         "precision": 0.6667,
         "recall": 1.0,
@@ -1366,8 +1605,8 @@
           "safety_guard"
         ],
         "actual": [
-          "safety_guard",
           "voice_interaction",
+          "safety_guard",
           "proactive_suggestion"
         ],
         "precision": 0.6667,
@@ -1385,8 +1624,7 @@
         ],
         "actual": [
           "scripted-selftest",
-          "safety_guard",
-          "voice_interaction"
+          "safety_guard"
         ],
         "precision": 0.6667,
         "recall": 1.0,
@@ -1490,8 +1728,7 @@
         ],
         "actual": [
           "memory_summary",
-          "context_aware",
-          "self_reflection"
+          "context_aware"
         ],
         "precision": 0.3333,
         "recall": 1.0,
@@ -1506,8 +1743,299 @@
           "self_reflection"
         ],
         "actual": [
+          "self_reflection"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": true
+      },
+      {
+        "case_id": "case_046",
+        "query": "帮我回顾一下我之前的推理过程有没有错",
+        "difficulty": "hard",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection",
+          "memory_summary"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": true
+      },
+      {
+        "case_id": "case_047",
+        "query": "把咱们之前的对话重点归纳成一段话",
+        "difficulty": "hard",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": true
+      },
+      {
+        "case_id": "case_048",
+        "query": "帮我看看我最近的想法是不是有偏见",
+        "difficulty": "hard",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "proactive_suggestion"
+        ],
+        "precision": 0.0,
+        "recall": 0.0,
+        "mrr": 0.0,
+        "reranked": true
+      },
+      {
+        "case_id": "case_049",
+        "query": "总结一下这次对话里我提到的关键诉求",
+        "difficulty": "hard",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "emotion_expression",
+          "proactive_suggestion"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": true
+      },
+      {
+        "case_id": "case_050",
+        "query": "请帮我反思刚才的回答，并且主动给我一些改进建议",
+        "difficulty": "hard",
+        "expected": [
           "self_reflection",
           "proactive_suggestion"
+        ],
+        "actual": [
+          "self_reflection",
+          "proactive_suggestion"
+        ],
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": true
+      },
+      {
+        "case_id": "case_051",
+        "query": "用有感情的语气说话，同时确保内容安全",
+        "difficulty": "hard",
+        "expected": [
+          "emotion_expression",
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard",
+          "memory_summary"
+        ],
+        "precision": 0.3333,
+        "recall": 0.5,
+        "mrr": 1.0,
+        "reranked": true
+      },
+      {
+        "case_id": "case_052",
+        "query": "请总结之前的对话，然后用语音读出来",
+        "difficulty": "hard",
+        "expected": [
+          "memory_summary",
+          "voice_interaction"
+        ],
+        "actual": [
+          "memory_summary",
+          "voice_interaction",
+          "emotion_expression"
+        ],
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": true
+      },
+      {
+        "case_id": "case_053",
+        "query": "检测上下文话题变化，并主动建议下一步行动",
+        "difficulty": "hard",
+        "expected": [
+          "context_aware",
+          "proactive_suggestion"
+        ],
+        "actual": [
+          "proactive_suggestion",
+          "context_aware",
+          "safety_guard"
+        ],
+        "precision": 0.6667,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": true
+      },
+      {
+        "case_id": "case_054",
+        "query": "帮我算一下 2 的 10 次方是多少",
+        "difficulty": "tricky",
+        "expected": [],
+        "actual": [],
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_055",
+        "query": "今天股市行情怎么样",
+        "difficulty": "tricky",
+        "expected": [],
+        "actual": [],
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_056",
+        "query": "帮我写一首关于秋天的诗",
+        "difficulty": "tricky",
+        "expected": [],
+        "actual": [],
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_057",
+        "query": "推荐一部好看的科幻电影",
+        "difficulty": "tricky",
+        "expected": [],
+        "actual": [],
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_058",
+        "query": "这个 Python 报错怎么解决",
+        "difficulty": "tricky",
+        "expected": [],
+        "actual": [],
+        "precision": 1.0,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_059",
+        "query": "我回答得不够好，请你重新审视一遍",
+        "difficulty": "hard",
+        "expected": [
+          "self_reflection"
+        ],
+        "actual": [
+          "self_reflection"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": true
+      },
+      {
+        "case_id": "case_060",
+        "query": "之前的聊天内容帮我提炼一下重点",
+        "difficulty": "hard",
+        "expected": [
+          "memory_summary"
+        ],
+        "actual": [
+          "memory_summary",
+          "safety_guard"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": true
+      },
+      {
+        "case_id": "case_061",
+        "query": "你用词太生硬了，稍微热情一点",
+        "difficulty": "hard",
+        "expected": [
+          "emotion_expression"
+        ],
+        "actual": [],
+        "precision": 0.0,
+        "recall": 0.0,
+        "mrr": 0.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_062",
+        "query": "我还没想好下一步做什么，你能给点思路吗",
+        "difficulty": "hard",
+        "expected": [
+          "proactive_suggestion"
+        ],
+        "actual": [],
+        "precision": 0.0,
+        "recall": 0.0,
+        "mrr": 0.0,
+        "reranked": false
+      },
+      {
+        "case_id": "case_063",
+        "query": "别忘了我之前提到过的偏好设置",
+        "difficulty": "hard",
+        "expected": [
+          "context_aware"
+        ],
+        "actual": [
+          "memory_summary"
+        ],
+        "precision": 0.0,
+        "recall": 0.0,
+        "mrr": 0.0,
+        "reranked": true
+      },
+      {
+        "case_id": "case_064",
+        "query": "帮我把这段话里的敏感信息找出来",
+        "difficulty": "hard",
+        "expected": [
+          "safety_guard"
+        ],
+        "actual": [
+          "safety_guard"
+        ],
+        "precision": 0.3333,
+        "recall": 1.0,
+        "mrr": 1.0,
+        "reranked": true
+      },
+      {
+        "case_id": "case_065",
+        "query": "你能朗读这段文字给我听吗",
+        "difficulty": "hard",
+        "expected": [
+          "voice_interaction"
+        ],
+        "actual": [
+          "voice_interaction"
         ],
         "precision": 0.3333,
         "recall": 1.0,
