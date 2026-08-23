@@ -350,7 +350,7 @@ class TestFailClosed:
 #  6. 脱敏：明文样本不出隔离环境
 # ════════════════════════════════════════════════════════════
 
-PII_RAW = ["13812345678", "sk-test-abcdef1234567890",
+PII_RAW = ["13812345678", "api-key-test-abcdef1234567890",
            "user@example.com", "SuperSecret1"]
 
 
@@ -358,7 +358,7 @@ class TestDesensitization:
     def test_sanitize_text_redacts_pii(self):
         """各类敏感值在上下文形式下被脱敏（与 samples_pii.json 同源口径）"""
         cases = [
-            "API Key=sk-test-abcdef1234567890 配置失败",
+            "API Key=api-key-test-abcdef1234567890 配置失败",
             "password=SuperSecret1 需重置",
             "邮箱 user@example.com 登录异常",
             "手机号 13812345678 反馈",
@@ -371,7 +371,7 @@ class TestDesensitization:
     def test_worker_receives_sanitized_only(self, tmp_path):
         """回显候选：worker 收到的参数已脱敏（明文不出隔离环境）"""
         eng = _engine(tmp_path)
-        raw = ("手机号 13812345678，API Key=sk-test-abcdef1234567890，"
+        raw = ("手机号 13812345678，API Key=api-key-test-abcdef1234567890，"
                "邮箱 user@example.com，password=SuperSecret1")
         echo = ("import sys, json\np = json.loads(sys.stdin.read())\n"
                 "print(json.dumps(p, ensure_ascii=False))")
@@ -387,7 +387,7 @@ class TestDesensitization:
     def test_params_json_never_contains_plaintext(self, tmp_path):
         """审计/报告内容不含明文；工作目录无明文残留"""
         eng = _engine(tmp_path)
-        raw = "密钥 sk-test-abcdef1234567890 与手机 13812345678"
+        raw = "密钥 api-key-test-abcdef1234567890 与手机 13812345678"
         rep = _run(eng, [rp.ReplaySample(sample_id="pii-2", task=raw)],
                    _read("benign_echo.py"), candidate_id="benign@pii2")
         blob = json.dumps(rep.to_dict(), ensure_ascii=False)
