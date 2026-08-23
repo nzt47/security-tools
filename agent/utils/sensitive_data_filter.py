@@ -228,6 +228,11 @@ class SensitiveDataFilter(logging.Filter):
             "level": SensitiveLevel.HIGH,
             "description": "香港手机号",
         },
+        "phone_landline": {
+            "pattern": r'(?<!\d)0\d{2,3}-?\d{7,8}(?!\d)',
+            "level": SensitiveLevel.HIGH,
+            "description": "中国大陆固定电话",
+        },
         "email": {
             "pattern": r'\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b',
             "level": SensitiveLevel.LOW,

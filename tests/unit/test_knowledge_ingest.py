@@ -465,3 +465,44 @@ def test_main_cli_no_args_errors(tmp_path, monkeypatch):
     monkeypatch.setattr("sys.argv", ["agent.knowledge.ingest"])
     with pytest.raises(SystemExit):
         main()
+
+
+# ════════════════════════════════════════════════════════════
+#  写盘稳定探测（created 竞态加固）
+# ════════════════════════════════════════════════════════════
+
+def test_wait_file_stable_stable_file(tmp_path, kb):
+    """已写完的文件立即判定稳定。"""
+    watcher = KnowledgeWatcher(str(kb))
+    f = kb / "inbox" / "stable.md"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text("content", encoding="utf-8")
+    assert watcher._wait_file_stable(str(f), interval=0.05) is True
+
+
+def test_wait_file_stable_missing_file(tmp_path, kb):
+    """缺失文件立即返回 False（不等待超时）。"""
+    watcher = KnowledgeWatcher(str(kb))
+    missing = kb / "inbox" / "nope.md"
+    assert watcher._wait_file_stable(str(missing), interval=0.05) is False
+
+
+def test_wait_file_stable_growing_file(tmp_path, kb):
+    """写入中的文件：大小变化期间不判定稳定，稳定后返回 True。"""
+    watcher = KnowledgeWatcher(str(kb))
+    f = kb / "inbox" / "growing.md"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text("a", encoding="utf-8")
+
+    import threading
+
+    def _grow():
+        time.sleep(0.2)
+        f.write_text("a" * 1024, encoding="utf-8")
+
+    t = threading.Thread(target=_grow)
+    t.start()
+    # 探测期间文件仍在增长 → 应在第二次增长后判定稳定
+    assert watcher._wait_file_stable(str(f), interval=0.1, timeout=5.0) is True
+    t.join()
+

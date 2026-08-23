@@ -584,6 +584,9 @@ class KnowledgeWatcher:
 
         文件已在层内 → 走登记分支（补 meta + log），幂等安全。
         忽略：meta.json/临时/隐藏文件。
+        created 事件在文件打开时即触发，文件可能仍在写入——先做
+        写盘稳定探测（大小连续一致），超时不阻断（ingest 的 hash
+        校验兜底，绝不落不完整内容）。
         """
         if not path or not os.path.isfile(path):
             return None
@@ -593,11 +596,35 @@ class KnowledgeWatcher:
         layer = self._layer_of(path)
         if layer is None:
             return None
+        self._wait_file_stable(path)
         result = ingest_file(path, dest_layer=layer, source_type=None,
                              knowledge_root=str(self.root))
         if self.on_ingest and callable(self.on_ingest):
             self.on_ingest(result)
         return result
+
+    def _wait_file_stable(self, path: str, interval: float = 0.3,
+                          samples: int = 2, timeout: float = 5.0) -> bool:
+        """等待文件写入稳定：连续 samples 次采样文件大小一致视为稳定。
+
+        返回 False（超时/文件消失）不阻断入库——由 ingest_file 的
+        sha256 复制后校验兜底，保证层内绝不出现半截内容。
+        """
+        try:
+            sizes: list[int] = []
+            deadline = time.time() + timeout
+            while time.time() < deadline:
+                try:
+                    sizes.append(os.path.getsize(path))
+                except OSError:
+                    return False
+                if len(sizes) >= samples and len(set(sizes[-samples:])) == 1:
+                    return True
+                time.sleep(interval)
+        except Exception:
+            pass
+        return False
+
 
     def _layer_of(self, path: str) -> Optional[str]:
         p = Path(path)
