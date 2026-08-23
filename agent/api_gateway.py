@@ -62,9 +62,10 @@ class ApiKeyManager:
         except Exception as e:
             logger.warning(f"保存 API Keys 失败: {e}")
     
-    def create_key(self, user_id: str, description: str = "", 
-                  scopes: List[str] = None) -> Dict:
-        """创建 API Key"""
+    def create_key(self, user_id: str, description: str = "",
+                  scopes: List[str] = None, tenant_id: str = "",
+                  role: str = "", compat_until: str = "") -> Dict:
+        """创建 API Key（T8.2 起支持可选 RBAC 绑定：tenant_id/role/compat_until）"""
         import secrets
         api_key = secrets.token_hex(32)
         key_info = {
@@ -72,6 +73,9 @@ class ApiKeyManager:
             "user_id": user_id,
             "description": description,
             "scopes": scopes or ["read", "write"],
+            "tenant_id": tenant_id,
+            "role": role,
+            "compat_until": compat_until,
             "created_at": datetime.now().isoformat(),
             "last_used_at": "",
             "enabled": True,
@@ -361,13 +365,32 @@ class ApiGateway:
         return None
     
     def check_scopes(self, key_info: Dict, required_scopes: List[str]) -> bool:
-        """检查权限范围"""
+        """检查权限范围（T8.2 RBAC：租户 Key 走角色权限表，旧 Key 走自带 scopes）"""
         if not required_scopes:
             return True
-        
-        key_scopes = key_info.get("scopes", [])
+
+        tenant_id = key_info.get("tenant_id", "")
+        if not tenant_id:
+            # 旧 Key：无租户绑定 → 自带 scopes 白名单（不触达 tenant_manager）
+            key_scopes = key_info.get("scopes", [])
+            return all(scope in key_scopes for scope in required_scopes)
+
+        # 租户 Key：scope → PermissionType 映射，逐项走角色权限表
+        from agent.multi_tenant import tenant_manager, PermissionType
+        scope_perm = {
+            "read": PermissionType.READ,
+            "write": PermissionType.WRITE,
+            "delete": PermissionType.DELETE,
+            "manage": PermissionType.MANAGE,
+            "admin": PermissionType.ADMIN,
+        }
         for scope in required_scopes:
-            if scope not in key_scopes:
+            perm = scope_perm.get(scope)
+            if perm is None:
+                return False  # 未知 scope → 拒绝
+            if not tenant_manager.has_permission(
+                key_info.get("user_id", ""), tenant_id, perm
+            ):
                 return False
         return True
     
@@ -402,7 +425,20 @@ class ApiGateway:
                 
                 user_id = key_info["user_id"]
                 log_entry["user_id"] = user_id
-                
+
+                # T8.2 兼容期：旧 Key 在 compat_until 之后过期，拒绝访问
+                compat_until = key_info.get("compat_until", "")
+                if compat_until:
+                    try:
+                        expired_at = datetime.fromisoformat(compat_until)
+                        if datetime.now() > expired_at:
+                            log_entry["status_code"] = 403
+                            log_entry["error"] = "兼容期已过"
+                            self._access_logger.log_access(log_entry)
+                            return {"error": "兼容期已过", "status_code": 403}
+                    except ValueError:
+                        pass  # 非法格式视为无兼容期限制（宽松兼容）
+
                 if not self.check_scopes(key_info, endpoint["scopes"]):
                     log_entry["status_code"] = 403
                     log_entry["error"] = "Forbidden"

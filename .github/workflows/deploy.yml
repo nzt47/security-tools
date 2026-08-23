@@ -24,7 +24,10 @@ jobs:
           python-version: '3.12'
 
       - name: 安装测试最小依赖
-        run: pip install flask requests pytest
+        # pytest-timeout: pytest.ini addopts 含 --timeout=60 / --timeout-method=thread
+        # pytest-asyncio: pytest.ini 含 asyncio_mode = auto，--strict-config 下缺失会报 Unknown config option
+        # （2026-08-15 故障复盘案例：缺依赖导致 pytest 启动即失败）
+        run: pip install flask requests pytest pytest-timeout pytest-asyncio
 
       - name: 路由挂载自检
         run: python scripts/check_mounted_routes.py
