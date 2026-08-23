@@ -166,9 +166,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           # watchdog + psutil + pyyaml: 见 skills-consistency job 说明
-          # pytest + pytest-timeout: 本 job 末尾"单元测试"步骤需要
-          #   (pytest.ini 要求 --timeout=60, 缺 pytest-timeout 会报 unrecognized arguments)
-          pip install watchdog psutil pyyaml pytest pytest-timeout
+          # pytest + pytest-timeout + pytest-asyncio: 本 job 末尾"单元测试"步骤需要
+          #   (pytest.ini 要求 --timeout=60 与 asyncio_mode=auto,
+          #    缺 pytest-timeout 报 unrecognized arguments,
+          #    缺 pytest-asyncio 报 Unknown config option: asyncio_mode)
+          pip install watchdog psutil pyyaml pytest pytest-timeout pytest-asyncio
 
       - name: 一致性验证
         run: |
