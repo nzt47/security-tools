@@ -6,6 +6,23 @@
 
 ---
 
+## [CHG] - 2026-08-16: 项目交付收尾结案 ✅
+
+**影响模块**: git（develop d57310d1 + 本条目）, `docs/zh/项目交付收尾报告_20260816.md`（新增）, `.gitignore`（+防误提交规则）
+
+### Done — 交付收尾
+
+- **提交推送**：`feat(t8): 开放API+告警闭环+部署运维工具链交付收尾`（93 文件 / +10127 行）→ `origin/develop`（`02e7a06c..d57310d1`）已同步
+- **CI 验证**：本地模拟 `run_ci_test_local.ps1 -Quick` → 路由挂载 5/5 + 单测 14/14 PASS；远端 CI 已由 push 触发，结果待 GitHub 面板确认
+- **报告**：`项目交付收尾报告_20260816.md`（进度/成果/问题与方案/遗留 8 项/CI 状态）
+- **防误提交**：.gitignore 追加 venv/.devtools/.wiki/backup/data 产物/patch 等忽略规则
+
+### Remaining — 遗留（需环境/人工，见报告 §五）
+
+GitHub Secrets 7 项配置、真实 SMTP 发信、Docker 完整构建、真实 app_server 联调、真实 SSH 认证联调、真机彩色验证、gitee 远端同步（7 项，不影响本地交付，列入上线前检查单）
+
+---
+
 ## [CHG] - 2026-08-16: L3 镜像模型缓存修复 + context 一致性预检（CI fail fast）✅
 
 **影响模块**: `docker-compose.linux-test.yml`, `scripts/predownload_l3_hf_cache.ps1`（新增）, `scripts/ci_l3_context_preflight.py`（新增）, `.github/workflows/l3-docker-tests.yml`, `README.md`

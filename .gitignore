@@ -274,3 +274,23 @@ scripts/dev/wait_checkout_master.ps1
 
 # CI 生成的 quality gate 报告（2026-08-15 重新追加，勿提交：每次 CI 运行自动生成，非源码）
 quality_gate_report.json
+
+# === 交付收尾防误提交（2026-08-16 追加）===
+# 本地虚拟环境（无点前缀版，防 git add . 误提交）
+venv/
+# 本地工具/工作区元数据（非源码）
+.devtools/
+.wiki/
+yunshu-app-test/
+# 运行时备份/快照/健康数据（不入库）
+backup/data_*/
+backup/fix_encoding_closure_*/
+data/approval_records.jsonl
+data/health/
+data/knowledge/reports/
+data/learning/
+data/reflection/
+data/snapshots/
+# 敏感/临时补丁与备份（不入库）
+*.patch
+*.bak_*
