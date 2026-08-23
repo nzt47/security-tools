@@ -85,18 +85,32 @@ class TestWireV2Config:
 
 
 class TestSourceSwitching:
-    def test_default_source_is_wire(self, monkeypatch):
-        # 默认（无 env/config 覆盖）→ wire 实现，与既有启发式逐字节等价
+    def test_default_source_from_config_is_wire_v2(self, monkeypatch):
+        # 2026-08-23 选型结论：config.yaml learning.complexity.source=wire_v2
+        # （200 条标注集符合率 62.5% vs wire 55.0%）；env 未覆盖时解析为 wire_v2
         monkeypatch.delenv("COMPLEXITY_SOURCE", raising=False)
         reset_complexity_classifier()
         try:
             c = get_complexity_classifier()
-            assert c.source == "wire"
-            # 与 WireHeuristicClassifier 行为一致
-            wire = WireHeuristicClassifier()
+            assert c.source == "wire_v2"
+            # 与 WireV2Classifier 行为一致
+            v2 = WireV2Classifier()
             for msg in ("今天天气怎么样", "帮我设计一个系统架构方案",
                         "分析并对比三个方案的性能", "你好"):
-                assert c.classify(msg) == wire.classify(msg)
+                assert c.classify(msg) == v2.classify(msg)
+        finally:
+            reset_complexity_classifier()
+
+    def test_env_wire_overrides_config(self, monkeypatch):
+        # 环境变量 COMPLEXITY_SOURCE=wire → 回退原默认（一键回退路径）
+        monkeypatch.setenv("COMPLEXITY_SOURCE", "wire")
+        reset_complexity_classifier()
+        try:
+            c = get_complexity_classifier()
+            assert c.source == "wire"
+            wire = WireHeuristicClassifier()
+            assert c.classify("帮我设计一个系统架构方案") == wire.classify(
+                "帮我设计一个系统架构方案")
         finally:
             reset_complexity_classifier()
 

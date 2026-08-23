@@ -40,9 +40,10 @@ def _load_samples() -> List[Dict[str, Any]]:
     return [s for s in samples if str(s.get("message", "")).strip()]
 
 
-def _load_labeled() -> Dict[str, str]:
-    """已人工标注样本 {id: expected_level}"""
-    out: Dict[str, str] = {}
+def _load_labeled() -> Dict[str, tuple]:
+    """已人工标注样本 {id: (expected_level, message)}——直接从标注资产读取，
+    不依赖抽样集索引（兼容 eval_set 补充样本）。"""
+    out: Dict[str, tuple] = {}
     if not LABELED.exists():
         return out
     for line in LABELED.read_text(encoding="utf-8").splitlines():
@@ -54,7 +55,8 @@ def _load_labeled() -> Dict[str, str]:
         except json.JSONDecodeError:
             continue
         if rec.get("label_status") == "labeled" and rec.get("expected_level"):
-            out[str(rec["id"])] = str(rec["expected_level"])
+            out[str(rec["id"])] = (str(rec["expected_level"]),
+                                   str(rec.get("message", "")))
     return out
 
 
@@ -106,20 +108,19 @@ def _consistency(impl_a: Any, impl_b: Any, samples: List[Dict[str, Any]]) -> Dic
     }
 
 
-def _accuracy(impl: Any, labeled: Dict[str, str], samples: List[Dict[str, Any]]) -> Dict[str, Any]:
-    by_id = {str(s.get("id")): s for s in samples}
+def _accuracy(impl: Any, labeled: Dict[str, tuple]) -> Dict[str, Any]:
     correct = 0
     total = 0
     confusion: Dict[str, Dict[str, int]] = {}
-    for sid, truth in labeled.items():
-        sample = by_id.get(sid)
-        if sample is None:
+    for sid, (truth, message) in labeled.items():
+        if not message:
             continue
-        pred = impl.classify(str(sample.get("message", "")))
+        pred = impl.classify(message)
         total += 1
         if pred == truth:
             correct += 1
-        confusion.setdefault(truth, {})[pred] = confusion[truth].get(pred, 0) + 1
+        cell = confusion.setdefault(truth, {})
+        cell[pred] = cell.get(pred, 0) + 1
     return {
         "correct": correct, "total": total,
         "accuracy": round(correct / total, 4) if total else None,
@@ -158,9 +159,8 @@ def main() -> int:
     if args.labeled:
         labeled = _load_labeled()
         if not labeled:
-            print("警告：无已标注样本（先人工填写 data/complexity_labeled.jsonl "
-                  "的 expected_level 并置 label_status=labeled）")
-        report["accuracy"] = {name: _accuracy(impl, labeled, samples)
+            print("警告：无已标注样本（先运行 scripts/apply_complexity_labels.py）")
+        report["accuracy"] = {name: _accuracy(impl, labeled)
                               for name, impl in impls.items()}
 
     print(json.dumps(report, ensure_ascii=False, indent=2))

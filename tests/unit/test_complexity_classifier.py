@@ -139,10 +139,10 @@ def test_wire_meets_semantics():
 def test_unified_classifier_facade():
     """ComplexityClassifier 统一入口：classify/detail/meets 三能力齐备"""
     c = get_complexity_classifier()
-    assert c.source == "wire"  # 默认 wire（生产现状等价）
+    assert c.source == "wire_v2"  # 2026-08-23 选型：config 默认 wire_v2（200 条标注符合率 62.5% vs wire 55.0%）
     assert c.classify("帮我设计一个分布式系统架构") == "COMPLEX"
     score, cx, ac = c.detail("帮我设计一个分布式系统架构")
-    assert score > 0 and cx and not ac
+    assert score > 0 and cx  # v2 下"设计"为动作词，ac 可为非空（增强特征语义）
     assert c.meets("帮我设计一个分布式系统架构", "COMPLEX") is True
 
 
@@ -160,14 +160,17 @@ def test_orchestrator_delegates_to_unified_entry():
 
 
 def test_source_resolution_env_and_default(monkeypatch):
-    """判定源解析：环境变量 > config.yaml > 默认 wire；非法值回退 wire"""
+    """判定源解析：环境变量 > config.yaml > 硬编码默认；非法值回退默认（wire_v2）"""
     monkeypatch.delenv("COMPLEXITY_SOURCE", raising=False)
-    assert resolve_source() == "wire"
+    assert resolve_source() == "wire_v2"  # config 默认（2026-08-23 选型）
     monkeypatch.setenv("COMPLEXITY_SOURCE", "enhanced_planner")
     assert resolve_source() == "enhanced_planner"
     monkeypatch.setenv("COMPLEXITY_SOURCE", "bogus")
     c = build_classifier(resolve_source())
-    assert c.source == "wire"  # 非法 → 回退默认
+    assert c.source == "wire"  # 非法值 → 回退硬编码默认（wire，facade 兜底）
+    # 回退候选：显式 wire 仍可用（env 覆盖，一键回退路径）
+    monkeypatch.setenv("COMPLEXITY_SOURCE", "wire")
+    assert resolve_source() == "wire"
 
 
 # ════════════════════════════════════════════════════════════
