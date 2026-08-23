@@ -1,0 +1,21 @@
+# 模式 B 覆盖：本地 SMTP 捕获服务器联调（无需真实 SMTP，发信在容器内落盘宿主机）
+# 用法（deploy/ci-runner 下）：
+#   1) 终端 1：python scripts/dev/smtp_capture_server.py --port 2525 --out captured.eml
+#   2) 终端 2：docker compose -f docker-compose.yml -f docker-compose.local.yml up
+# 容器内通过 host.docker.internal 访问宿主机 2525（Linux 需 --add-host，已配置）
+name: yunshu-ci-runner
+
+services:
+  runner:
+    environment:
+      # 覆盖 compose 基座：指向宿主机捕获服务器（SMTP_SSL=0 走 STARTTLS/明文端口）
+      SMTP_HOST: host.docker.internal
+      SMTP_PORT: "2525"
+      SMTP_SSL: "0"
+      # 捕获服务器无需认证（留空跳过 login）
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      SMTP_TO: "ops@example.com"
+    # Windows/macOS Docker Desktop 自带 host.docker.internal；Linux 需显式映射宿主机网关
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

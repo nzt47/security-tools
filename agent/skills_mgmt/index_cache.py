@@ -193,10 +193,27 @@ class SkillIndexCache:
 
         【不易】仅内存状态变更，无 I/O、无外部回调（守持锁不 I/O 约束）
         【变易】由 SkillFileStore 写入/删除操作后调用（挂载时）
+        【简易】锁内仅收集状态字段，日志 I/O 全部在锁外输出（日志不持锁）
         """
+        t0 = time.time()
+        tid = _trace_id()
         with self._lock:
+            # 锁内仅内存状态变更 + 收集诊断字段（守持锁不 I/O）
+            had_cache_entry = (
+                skill_id in self._cache or skill_id in self._cache_meta
+            )
             self._cache.pop(skill_id, None)
             self._cache_meta.pop(skill_id, None)
+            cache_size_after = len(self._cache)
+        elapsed = (time.time() - t0) * 1000
+        logger.info(json.dumps({
+            "trace_id": tid, "module_name": "index_cache",
+            "action": "invalidate.ok",
+            "skill_id": skill_id,
+            "had_cache_entry": had_cache_entry,
+            "cache_size_after": cache_size_after,
+            "duration_ms": round(elapsed, 3),
+        }, ensure_ascii=False))
 
     def rebuild(self) -> None:
         """全量重建缓存（扫描仓库 + 解析全部 front matter）并持久化"""
@@ -218,7 +235,10 @@ class SkillIndexCache:
         【防御】写失败不影响内存缓存（降级为运行时解析，不影响功能）
         【防御】只持久化 front matter 白名单字段，剔除运行时注入字段
                （_dir / skill_id / scripts 等，防止调用方污染进入磁盘缓存）
+        【简易】锁内仅构建 payload 快照，文件 I/O 全部在锁外执行（日志不持锁）
         """
+        t0 = time.time()
+        tid = _trace_id()
         payload = None
         with self._lock:
             payload = {
@@ -229,6 +249,7 @@ class SkillIndexCache:
                 },
                 "meta": dict(self._cache_meta),
             }
+            skill_count = len(self._cache)
         try:
             self._cache_path.parent.mkdir(parents=True, exist_ok=True)
             tmp_path = self._cache_path.with_suffix(".json.tmp")
@@ -236,10 +257,22 @@ class SkillIndexCache:
                 json.dumps(payload, ensure_ascii=False), encoding="utf-8",
             )
             tmp_path.replace(self._cache_path)
+            elapsed = (time.time() - t0) * 1000
+            logger.info(json.dumps({
+                "trace_id": tid, "module_name": "index_cache",
+                "action": "persist.ok",
+                "duration_ms": round(elapsed, 2),
+                "skill_count": skill_count,
+                "cache_file_size": self._cache_path.stat().st_size,
+                "cache_path": str(self._cache_path),
+            }, ensure_ascii=False))
         except Exception as e:  # noqa: BLE001  持久化失败不影响内存缓存
+            elapsed = (time.time() - t0) * 1000
             logger.warning(json.dumps({
-                "module_name": "index_cache",
+                "trace_id": tid, "module_name": "index_cache",
                 "action": "persist.failed",
+                "duration_ms": round(elapsed, 2),
+                "skill_count": skill_count,
                 "cache_path": str(self._cache_path),
                 "error": str(e)[:200],
                 "fallback": "runtime_parsing",

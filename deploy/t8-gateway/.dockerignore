@@ -1,0 +1,25 @@
+# 构建上下文瘦身（防 venv/.git/data 等大目录进入 docker build 上下文）
+.venv/
+venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+.env
+.env.example
+data/
+logs/
+backups/
+*.db
+*.sqlite3
+docs/
+tests/
+_*edge_profile*/
+node_modules/
+dist/
+build/
+*.log
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage

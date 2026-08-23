@@ -1,0 +1,33 @@
+services:
+  yunshu-t8-gateway:
+    build:
+      context: ../..
+      dockerfile: deploy/t8-gateway/Dockerfile
+    container_name: yunshu-t8-gateway
+    image: yunshu-t8-gateway:latest
+    ports:
+      - "${YUNSHU_PORT:-5678}:5678"
+    env_file:
+      # 单一数据源：LLM_*/SMTP_*/AUDIT_ALERT_THRESHOLD 等注入环境变量（与本地 .env 约定一致）
+      - ../../.env
+    environment:
+      # 1 = 启动前执行租户初始化（幂等）；0 = 仅启动
+      - INIT_TENANT=${INIT_TENANT:-0}
+    volumes:
+      # 数据持久化：租户/Key/审计日志（data/audit/audit_*.jsonl）
+      - yunshu_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request;urllib.request.urlopen('http://127.0.0.1:5678/api/open/echo',timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 90s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+
+volumes:
+  yunshu_data:

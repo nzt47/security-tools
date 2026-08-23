@@ -1,0 +1,77 @@
+name: Deploy Yunshu
+
+# CI/CD：测试 → 构建镜像（Dockerfile 打包依赖）→ 推送 GHCR → 可选 SSH 部署
+# 触发：push master/develop + 手动
+# 关联：docs/zh/部署操作手册_20260816.md（构建步骤与验证命令）
+
+on:
+  push:
+    branches: [master, develop]
+  workflow_dispatch:
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}/yunshu:latest
+
+jobs:
+  # Job 1：自动化测试（A/B 检查单用例 + 路由挂载自检）
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安装测试最小依赖
+        run: pip install flask requests pytest
+
+      - name: 路由挂载自检
+        run: python scripts/check_mounted_routes.py
+
+      - name: 审计告警 + 开放接口鉴权单测
+        run: python -m pytest tests/unit/test_audit_alert_analyze.py tests/unit/test_open_api_endpoints.py -q
+
+  # Job 2：构建镜像（Dockerfile 已打包依赖：CPU torch + pip install -e .）
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 构建镜像（deploy/t8-gateway/Dockerfile，含 .dockerignore 瘦身）
+        run: docker build -f deploy/t8-gateway/Dockerfile -t $IMAGE .
+
+      - name: 推送镜像
+        run: docker push $IMAGE
+
+  # Job 3：部署（仅 master + 手动；需配置 DEPLOY_* Secrets）
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: SSH 拉取并启动
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd ${{ vars.DEPLOY_PATH || '/opt/yunshu' }}
+            docker compose pull
+            docker compose up -d
+            docker compose ps

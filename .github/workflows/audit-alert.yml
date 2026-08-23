@@ -1,0 +1,59 @@
+name: Audit Log Alert
+
+# 每日审计日志分析 + 租户异常占比告警 + 告警链路自检
+# cron 为 UTC；当前 02:30 UTC = 北京 10:30，错开 gateway-health 的 02:00；可按需调整
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  # Job 1：生产审计数据分析 + 超阈值邮件告警（需 Secrets SMTP_*）
+  audit-alert:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # SMTP 与阈值经 GitHub Secrets 注入环境变量（脚本从环境变量读取，
+      # 与本地 .env 单一数据源约定一致）
+      - name: 注入 SMTP / 阈值配置（Secrets）
+        run: |
+          echo "SMTP_HOST=${{ secrets.SMTP_HOST }}" >> $GITHUB_ENV
+          echo "SMTP_PORT=${{ secrets.SMTP_PORT }}" >> $GITHUB_ENV
+          echo "SMTP_USER=${{ secrets.SMTP_USER }}" >> $GITHUB_ENV
+          echo "SMTP_PASS=${{ secrets.SMTP_PASS }}" >> $GITHUB_ENV
+          echo "SMTP_TO=${{ secrets.SMTP_TO }}" >> $GITHUB_ENV
+          echo "SMTP_SSL=${{ secrets.SMTP_SSL }}" >> $GITHUB_ENV
+          echo "AUDIT_ALERT_THRESHOLD=${{ secrets.AUDIT_ALERT_THRESHOLD }}" >> $GITHUB_ENV
+
+      - name: 运行审计日志分析 + 异常告警
+        run: |
+          # 仅标准库依赖（sqlite3/smtplib），无需 pip install
+          if [ -d data/audit ] && ls data/audit/audit_*.jsonl >/dev/null 2>&1; then
+            python scripts/analyze_audit_logs.py
+          else
+            echo "data/audit 无审计数据（生产 data 需挂载到 runner 或经 artifact 提供，告警自动跳过）"
+          fi
+
+  # Job 2：告警链路每日自检（构造 >5% 数据集 → mock 邮件 → 5 项断言）
+  # 目的：任何告警逻辑回归（阈值解析/明细组装/邮件发送）都会被 CI 拦截
+  audit-alert-selfcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 运行告警流程自检（test_audit_alert_flow.py）
+        run: python -X utf8 scripts/test_audit_alert_flow.py
+

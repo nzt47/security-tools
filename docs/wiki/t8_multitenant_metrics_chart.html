@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>云枢 T8 多租户开放 API 收益量化看板</title>
+<style>
+  :root {
+    --bg: #0f1420; --card: #1a2130; --line: #2a3550;
+    --text: #e6ebf5; --sub: #8b97b0; --accent: #4d9fff;
+    --green: #35c48d; --amber: #f5a623; --red: #ef5b6e; --purple: #9b7bff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    padding: 24px 16px 48px;
+  }
+  header { max-width: 1080px; margin: 0 auto 20px; }
+  h1 { font-size: 24px; letter-spacing: .5px; }
+  .sub { color: var(--sub); font-size: 13px; margin-top: 6px; }
+  .grid {
+    max-width: 1080px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; padding: 16px 16px 8px;
+  }
+  .card h3 { font-size: 15px; margin-bottom: 4px; }
+  .card .desc { color: var(--sub); font-size: 12px; margin-bottom: 10px; }
+  canvas { width: 100%; display: block; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; padding: 6px 2px 10px; font-size: 12px; color: var(--sub); }
+  .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; }
+  .lg-green::before { background: var(--green); } .lg-accent::before { background: var(--accent); }
+  .lg-amber::before { background: var(--amber); } .lg-red::before { background: var(--red); }
+  .lg-purple::before { background: var(--purple); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  th { color: var(--sub); font-weight: 500; font-size: 12px; }
+  .num { color: var(--accent); font-weight: 600; }
+  .badge { display:inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11px; }
+  .b-green { background: rgba(53,196,141,.15); color: var(--green); }
+  .b-amber { background: rgba(245,166,35,.15); color: var(--amber); }
+  footer { max-width: 1080px; margin: 22px auto 0; color: var(--sub); font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>云枢 T8 多租户开放 API — 收益量化看板</h1>
+  <div class="sub">数据口径：2026-08-16 实测 · 网关受管端点（不含适配层自带 /api/open/keys、/api/open/stats、/api/docs）· 测试用例为 T8 新增累计</div>
+</header>
+
+<div class="grid">
+  <!-- 图表1：端点增长趋势 -->
+  <div class="card">
+    <h3>网关受管端点增长趋势</h3>
+    <div class="desc">T8.0 基线（echo 探活）→ T8.1 租户管理 +10 → T8.4 两批灰度开放 +8</div>
+    <canvas id="cEndpoints" height="170"></canvas>
+    <div class="legend">
+      <span class="lg-accent">受管端点</span>
+      <span class="lg-green">租户管理（T8.1）</span>
+      <span class="lg-amber">内部开放（T8.4）</span>
+    </div>
+  </div>
+
+  <!-- 图表2：限流与配额能力对比 -->
+  <div class="card">
+    <h3>限流层级 &amp; 配额维度升级</h3>
+    <div class="desc">限流 4 级 → 5 级（新增租户隔离桶）；配额 用户级 → 用户+租户双级</div>
+    <canvas id="cLevels" height="170"></canvas>
+    <div class="legend">
+      <span class="lg-green">升级前</span>
+      <span class="lg-accent">升级后</span>
+    </div>
+  </div>
+
+  <!-- 图表3：测试用例累计增长 -->
+  <div class="card">
+    <h3>T8 新增测试用例累计</h3>
+    <div class="desc">T8.1 26 → T8.2 46 → T8.3 57 → T8.4 73 · 相关回归 64 passed / 0 failed</div>
+    <canvas id="cTests" height="170"></canvas>
+  </div>
+
+  <!-- 图表4：RBAC 权限矩阵 -->
+  <div class="card">
+    <h3>认证模型升级：单 Token → RBAC 矩阵</h3>
+    <div class="desc">4 角色 × 5 权限（支持租户链继承）；旧 Key 90 天兼容期双轨迁移</div>
+    <table>
+      <tr><th>角色</th><th>read</th><th>write</th><th>delete</th><th>manage</th><th>admin</th></tr>
+      <tr><td>owner</td><td><span class="badge b-green">●</span></td><td><span class="badge b-green">●</span></td><td><span class="badge b-green">●</span></td><td><span class="badge b-green">●</span></td><td><span class="badge b-green">●</span></td></tr>
+      <tr><td>admin</td><td><span class="badge b-green">●</span></td><td><span class="badge b-green">●</span></td><td><span class="badge b-green">●</span></td><td><span class="badge b-green">●</span></td><td><span class="badge b-amber">○</span></td></tr>
+      <tr><td>member</td><td><span class="badge b-green">●</span></td><td><span class="badge b-green">●</span></td><td><span class="badge b-amber">○</span></td><td><span class="badge b-amber">○</span></td><td><span class="badge b-amber">○</span></td></tr>
+      <tr><td>viewer</td><td><span class="badge b-green">●</span></td><td><span class="badge b-amber">○</span></td><td><span class="badge b-amber">○</span></td><td><span class="badge b-amber">○</span></td><td><span class="badge b-amber">○</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="grid" style="margin-top:16px">
+  <div class="card" style="grid-column: 1 / -1;">
+    <h3>收益量化汇总（对照 CHANGELOG [SUM] 章节）</h3>
+    <table>
+      <tr><th>维度</th><th>T8 前</th><th>T8 后</th><th>变化</th></tr>
+      <tr><td>网关受管端点</td><td>1（echo）</td><td class="num">19</td><td><span class="badge b-green">+18</span>（租户管理 10 + 内部开放 8）</td></tr>
+      <tr><td>内部路由入文档</td><td>—</td><td class="num">292</td><td>全量 Swagger 覆盖</td></tr>
+      <tr><td>限流层级</td><td>4 级</td><td class="num">5 级</td><td>+租户维度独立令牌桶（100/10s 可配）</td></tr>
+      <tr><td>配额维度</td><td>用户级</td><td class="num">双级</td><td>用户 + 租户（key 前缀隔离，加锁原子）</td></tr>
+      <tr><td>认证模型</td><td>静态 Token</td><td class="num">RBAC</td><td>4 角色 × 5 权限，租户链继承，旧 Key 90 天兼容</td></tr>
+      <tr><td>新增测试用例</td><td>—</td><td class="num">73</td><td>T8.1 26 / T8.2 20 / T8.3 11 / T8.4 16</td></tr>
+      <tr><td>回归结果</td><td>—</td><td class="num">64 passed</td><td>0 failed（网关/租户相关套件）</td></tr>
+      <tr><td>数据治理</td><td>314 假租户</td><td class="num">2</td><td>测试单例污染清理，测试零写盘生产数据</td></tr>
+      <tr><td>开放策略</td><td>—</td><td class="num">8 只读端点</td><td>两批灰度；写操作保持 FLASK_API_TOKEN 双轨</td></tr>
+    </table>
+  </div>
+</div>
+
+<footer>云枢 · 生成于 2026-08-16 · 数据来源：CHANGELOG [SUM] 章节 + 运行时实测（app_server 5678）</footer>
+
+<script>
+// ── 极简 Canvas 渲染器（无外部依赖，离线可用） ──
+const COLORS = { accent:"#4d9fff", green:"#35c48d", amber:"#f5a623", red:"#ef5b6e", purple:"#9b7bff" };
+
+function drawBars(canvasId, labels, series, opts) {
+  const c = document.getElementById(canvasId);
+  const dpr = window.devicePixelRatio || 1;
+  const W = c.width, H = c.height;
+  const ctx = c.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const padL = 34, padR = 10, padT = 14, padB = 26;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const maxV = Math.max(...series.map(s => Math.max(...s.values))) * 1.15;
+  const n = labels.length;
+  const groupW = iw / n, barW = Math.min(30, groupW * 0.22);
+
+  ctx.clearRect(0,0,W,H);
+  // 网格
+  ctx.strokeStyle = "rgba(42,53,80,.6)"; ctx.fillStyle = "#8b97b0"; ctx.font = "10px sans-serif";
+  ctx.textAlign = "right";
+  for (let g = 0; g <= 4; g++) {
+    const y = padT + ih - (ih * g / 4);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y); ctx.stroke();
+    ctx.fillText(Math.round(maxV * g / 4), padL - 6, y + 3);
+  }
+  // 系列
+  series.forEach((s, si) => {
+    s.values.forEach((v, i) => {
+      const x = padL + groupW * i + groupW / 2 - (barW * series.length) / 2 + barW * si;
+      const bh = (v / maxV) * ih;
+      const y = padT + ih - bh;
+      ctx.fillStyle = COLORS[s.color] || s.color;
+      ctx.fillRect(x, y, barW - 2, bh);
+      ctx.fillStyle = "#e6ebf5"; ctx.textAlign = "center"; ctx.font = "bold 10px sans-serif";
+      ctx.fillText(v, x + (barW - 2) / 2, y - 4);
+    });
+  });
+  // X 轴标签
+  ctx.fillStyle = "#8b97b0"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+  labels.forEach((lb, i) => ctx.fillText(lb, padL + groupW * i + groupW / 2, H - 8));
+}
+
+drawBars("cEndpoints",
+  ["基线", "T8.1\n租户管理", "T8.4\n批次1", "T8.4\n批次2"],
+  [
+    { color: "accent", values: [1, 11, 15, 19] },
+    { color: "green",  values: [0, 10, 10, 10] },
+    { color: "amber",  values: [0, 0, 4, 8] },
+  ]
+);
+
+drawBars("cLevels",
+  ["限流层级", "配额维度"],
+  [
+    { color: "green",  values: [4, 1] },
+    { color: "accent", values: [5, 2] },
+  ]
+);
+
+drawBars("cTests",
+  ["T8.1", "T8.2", "T8.3", "T8.4"],
+  [{ color: "accent", values: [26, 46, 57, 73] }]
+);
+</script>
+</body>
+</html>

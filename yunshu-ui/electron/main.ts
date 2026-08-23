@@ -10,7 +10,9 @@
  * 安全基线：任何新建窗口都走同一份安全 webPreferences。
  */
 import { app, BrowserWindow, ipcMain, type WebContents } from 'electron';
+import { appendFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { registerDevReloadShortcut } from './devShortcut';
 import { IPC } from '../src/electron/ipc';
 import type {
   DetachPanelRequest,
@@ -40,6 +42,36 @@ const detachedWindows = new Map<number, DetachablePanelId>();
 /** 分离瞬间的状态快照：webContents.id → snapshot（新窗口启动时一次性拉取，补偿广播时序） */
 const pendingInitialState = new Map<number, StateSyncPayload>();
 
+/** 日志目录（app ready 后初始化）；为空表示文件不可用，降级为仅控制台输出 */
+let logDir = '';
+
+/** 初始化日志目录：%APPDATA%\云枢\logs（与 userData 同根，生命周期随应用数据目录） */
+function initLogDir() {
+  try {
+    logDir = path.join(app.getPath('userData'), 'logs');
+    mkdirSync(logDir, { recursive: true });
+  } catch {
+    logDir = ''; // 目录创建失败不阻塞主流程
+  }
+}
+
+/**
+ * 统一结构化日志：stdout 单行 JSON + 落盘 %APPDATA%\云枢\logs\app-yyyy-MM-dd.log（按天轮转）
+ * 格式固定为：{ts, level, module, event, ...自定义字段}，所有主进程日志必须走此函数。
+ */
+function log(level: 'info' | 'error', event: string, fields: Record<string, unknown> = {}) {
+  const line = JSON.stringify({ ts: new Date().toISOString(), level, module: 'main', event, ...fields });
+  console.log(line);
+  if (logDir) {
+    try {
+      const day = new Date().toISOString().slice(0, 10);
+      appendFileSync(path.join(logDir, `app-${day}.log`), `${line}\n`, 'utf8');
+    } catch {
+      // 写文件失败不影响主流程（磁盘满/权限变更等）
+    }
+  }
+}
+
 /** 统一安全窗口配置（【不易】约束：所有窗口必须一致） */
 function secureWebPreferences(): Electron.WebPreferences {
   return {
@@ -52,17 +84,29 @@ function secureWebPreferences(): Electron.WebPreferences {
 
 /** 加载前端：dev 走 Vite dev server（HMR），prod 走打包产物 */
 function loadRenderer(win: BrowserWindow, hashRoute?: string) {
-  const devUrl = process.env['ELECTRON_RENDERER_URL'];
+  // vite-plugin-electron 1.x 注入 VITE_DEV_SERVER_URL（0.x 为 ELECTRON_RENDERER_URL，兜底兼容）
+  const devUrl = process.env['VITE_DEV_SERVER_URL'] ?? process.env['ELECTRON_RENDERER_URL'];
   if (devUrl) {
-    void win.loadURL(hashRoute ? `${devUrl}#${hashRoute}` : devUrl);
+    const target = hashRoute ? `${devUrl}#${hashRoute}` : devUrl;
+    log('info', 'renderer-loading', { mode: 'dev', url: target });
+    void win.loadURL(target);
   } else {
-    void win.loadFile(path.join(__dirname, '../dist/index.html'), {
-      hash: hashRoute,
-    });
+    const filePath = path.join(__dirname, '../dist/index.html');
+    log('info', 'renderer-loading', { mode: 'prod', url: `file://${filePath}${hashRoute ? `#${hashRoute}` : ''}` });
+    void win.loadFile(filePath, { hash: hashRoute });
   }
+
+  // 加载结果打点：失败时输出错误码/描述（定位白屏、路径错误），成功时输出最终 URL
+  win.webContents.on('did-fail-load', (_e, code, description, url) => {
+    log('error', 'renderer-load-failed', { code, description, url });
+  });
+  win.webContents.on('did-finish-load', () => {
+    log('info', 'renderer-loaded', { url: win.webContents.getURL() });
+  });
 }
 
 function createMainWindow() {
+  console.log(`[main] 创建主窗口 (1440x900, title=云枢 · 工作台)`);
   const win = new BrowserWindow({
     width: 1440,
     height: 900,
@@ -73,6 +117,7 @@ function createMainWindow() {
     webPreferences: secureWebPreferences(),
   });
   loadRenderer(win);
+  registerDevReloadShortcut(win); // 所有主窗口（含 macOS activate 重建）统一注册
   return win;
 }
 
@@ -155,6 +200,7 @@ app.on('window-all-closed', () => {
 });
 
 app.whenReady().then(() => {
+  initLogDir();
   registerIpcHandlers();
   createMainWindow();
 

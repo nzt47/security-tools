@@ -1,0 +1,73 @@
+# 模拟 CI Runner「audit-alert」作业的本地执行环境
+# 目的：云端 GitHub Actions runner 无法访问本地 data/audit，此 compose 在本地
+#       用容器复现 Job1 的完整行为 —— 挂载本地审计数据 + 注入 SMTP Secrets + 运行分析告警。
+#
+# 用法（在 deploy/ci-runner 目录下执行）：
+#   docker compose up                      # 模式 A：真实 SMTP（读 .env 的 SMTP_*）
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up   # 模式 B：本地捕获服务器
+#   ./run_e2e.ps1                          # 一键端到端：捕获服务器 + 告警测试（见下）
+#
+# 说明：
+#   - data/audit 只读挂载，等价 CI 中 runner 拿到生产数据快照
+#   - scripts/.env 只读挂载，Secrets 注入方式与 workflow `$GITHUB_ENV` 一致（环境变量）
+#   - 脚本纯标准库（sqlite3/smtplib），镜像无需 pip install
+#   - smtp-capture / e2e-test：端到端告警链路验证（scripts 挂载，无需构建镜像）
+name: yunshu-ci-runner
+
+services:
+  # 对应 CI Job「audit-alert」：生产数据分析 + 超阈值邮件告警
+  runner:
+    image: python:3.12-slim
+    working_dir: /workspace
+    volumes:
+      # 本地审计数据 → 容器内 CI 可见目录（等价 runner 挂载生产 data）
+      - ../../data/audit:/workspace/data/audit:ro
+      # 脚本只读挂载（CI 中来自 checkout）
+      - ../../scripts:/workspace/scripts:ro
+      # .env 只读挂载；environment 显式引用与 GitHub Secrets 同键的变量（见下）
+      - ../../.env:/workspace/.env:ro
+    env_file:
+      # 与 workflow `$GITHUB_ENV` 注入等价：把 .env 的键注入环境变量
+      - ../../.env
+    environment:
+      # 显式声明与 GitHub Secrets 对应的键（值为空时回退 .env / 默认）
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_TO: ${SMTP_TO:-}
+      SMTP_SSL: ${SMTP_SSL:-1}
+      AUDIT_ALERT_THRESHOLD: ${AUDIT_ALERT_THRESHOLD:-5}
+    # 与 CI Job1 完全一致的分析+告警命令（数据目录即挂载点）
+    command: python -X utf8 scripts/analyze_audit_logs.py
+
+  # SMTP 捕获服务器（端到端联调用）：接收告警邮件并落盘到宿主机 ./captured
+  smtp-capture:
+    image: python:3.12-slim
+    working_dir: /workspace
+    volumes:
+      - ../../scripts:/workspace/scripts:ro
+      - ./captured:/captured
+    command: python -X utf8 scripts/dev/smtp_capture_server.py --host 0.0.0.0 --port 2525 --out /captured/captured.eml --log /captured/server.log
+    ports:
+      - "2525:2525"
+    healthcheck:
+      # 用 socket 探测端口（镜像无 curl/wget）；探测连接会触发空会话，服务器正常容忍
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 2525), 1).close()"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
+      start_period: 2s
+
+  # 端到端告警测试（compose 自动等 smtp-capture healthy 后执行）
+  # 等价 run_e2e.ps1 的核心：构造 >5% 数据集 → 真实 SMTP 发送 → 校验 /captured/*.eml
+  e2e-test:
+    image: python:3.12-slim
+    working_dir: /workspace
+    volumes:
+      - ../../scripts:/workspace/scripts:ro
+      - ./captured:/captured
+    depends_on:
+      smtp-capture:
+        condition: service_healthy
+    command: python -X utf8 scripts/test_smtp_alarm_e2e.py --external-host smtp-capture --port 2525 --external-out /captured/captured.eml

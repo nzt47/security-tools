@@ -1,0 +1,26 @@
+name: Gateway Health Check
+
+# 每日定时验证 API 网关的限流与配额功能（单元级，无需运行服务）
+# cron 为 UTC 时间；当前每天 02:00 UTC（北京时间 10:00），可按需调整
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  gateway-health-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 安装最小依赖
+        run: pip install flask requests
+
+      - name: 运行网关限流/配额验证（单元级）
+        run: python scripts/gateway_health_check.py --unit-only
