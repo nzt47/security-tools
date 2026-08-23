@@ -5,6 +5,13 @@
 **关联提交**: `298add72`（sigmoid 修复 + reranked 契约修复）
 **关联脚本**: `scripts/compare_reranker_discrimination.py`（区分度对比）
 
+> **状态更新 (2026-08-24)**: 本文档大部分步骤已被后续工作完成，汇总如下：
+> - ✅ Step 1 模型下载: `download_bge_reranker_base_modelscope.py` / `download_bge_reranker_v2_m3_modelscope.py` 已存在
+> - ✅ Step 2 ONNX 转换: `convert_bge_to_onnx.py` 已存在
+> - ✅ Step 3 加载适配: `reranker.py` 默认模型已切换为 `BAAI/bge-reranker-v2-m3`（`_DEFAULT_MODEL`），模型选型表已更新
+> - ✅ Step 4 区分度对比: `RERANKER_DISCRIMINATION_COMPARE_REPORT.json`（stddev 提升 121%, precision 提升 9.09%）+ `RERANKER_PRECISION_EVAL_REPORT.json`（Precision@3 5.26%，未达 20% 验收线但区分度已解决）
+> - 遗留: Precision@3 相对提升 5.26% < 20% 验收阈值（黄金集仅 8 技能候选池小，提升空间受限）；后续如需进一步提升可扩大黄金集或引入 v2-m3 ONNX 量化验证延迟
+
 ---
 
 ## 模型选型权衡
