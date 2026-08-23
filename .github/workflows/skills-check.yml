@@ -176,9 +176,15 @@ jobs:
           python scripts/verify_migrated_skills.py
 
       - name: 动态加载风险扫描 (JSON 报告)
+        # [变易] HIGH 风险不阻断本 job: 本 job 职责是"扫描 + 上传报告"供人工排查,
+        # HIGH 阻断职责专属 dynamic-load-gate (push master 时门禁).
+        # 否则发现 HIGH 时报告永远不会生成/上传, 失去排查依据.
+        continue-on-error: true
         run: python scripts/detect_dynamic_loads.py --json > dynamic_loads_report.json
 
       - name: 上传扫描报告
+        # [不易] 报告必须总是上传: 无论扫描是否发现 HIGH, 都保留证据供人工审查.
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: dynamic-load-scan-${{ github.run_id }}

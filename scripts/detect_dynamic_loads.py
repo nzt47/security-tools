@@ -127,6 +127,10 @@ class DynamicLoadVisitor(ast.NodeVisitor):
         self.findings: List[DynamicLoadFinding] = []
         # 跟踪 import 别名: import importlib.util as iu → iu.spec_from_file_location
         self._import_aliases: dict[str, str] = {}
+        # [变易] 已判定"受控 spec 加载"的文件 (相对路径): 该文件中 module_from_spec
+        # 接收的 spec 必然来自受控的 spec_from_file_location (无独立路径参数可验证),
+        # 跟随降级, 避免成对出现时 module_from_spec 单独残留 HIGH 误报.
+        self._controlled_files: set[str] = set()
 
     def visit_Import(self, node: ast.Import):
         """记录 import 别名, 如 import importlib.util as iu"""
@@ -168,10 +172,54 @@ class DynamicLoadVisitor(ast.NodeVisitor):
         # 检查是否匹配动态加载模式 (匹配末尾函数名)
         for pattern, risk in DYNAMIC_LOAD_PATTERNS.items():
             if resolved.endswith(pattern) or call_name == pattern:
+                # [变易] 受控降级: 动态加载的目标是仓库内已有文件 (如加载
+                # agent/orchestrator/dialog_state.py 绕过循环导入), 路径为代码
+                # 常量, 参数不可被外部控制 → HIGH 降为 MEDIUM, 避免误报阻断
+                # daily 全量扫描. 判定为受控后, 该文件后续的 module_from_spec
+                # (接收上述 spec 对象, 无独立路径参数) 跟随降级.
+                if risk == "HIGH" and self._is_controlled_spec_load(node, pattern):
+                    self._controlled_files.add(self._rel_path())
+                    risk = "MEDIUM"
+                elif pattern == "module_from_spec" and self._rel_path() in self._controlled_files:
+                    risk = "MEDIUM"
                 self._add_finding(node, pattern, risk, resolved)
                 break
 
         self.generic_visit(node)
+
+    def _rel_path(self) -> str:
+        """返回当前扫描文件的仓库相对路径 (用于受控文件集合匹配)"""
+        try:
+            return str(self.filepath.relative_to(self.root))
+        except ValueError:
+            return str(self.filepath)
+
+    def _is_controlled_spec_load(self, node: ast.Call, pattern: str) -> bool:
+        """判断动态加载的目标是否指向仓库内已有文件 (受控加载)
+
+        [不易] 仅放宽"路径为代码常量且指向仓库内已存在文件"的场景:
+          - 位置参数第 2 个 (args[1]) 或关键字 location/pathname 为加载路径
+          - 路径为字符串常量 (非外部输入), 且相对仓库根解析后是真实文件
+          - 绝对路径/非常量路径 (可能被外部控制) 一律不降级, 保持 HIGH
+        """
+        path_arg = None
+        if pattern == "spec_from_file_location":
+            path_arg = node.args[1] if len(node.args) >= 2 else None
+            if path_arg is None:
+                for kw in node.keywords:
+                    if kw.arg == "location":
+                        path_arg = kw.value
+                        break
+        elif pattern == "load_source":
+            # imp.load_source(name, pathname, ...): 第 2 个位置参数为路径
+            path_arg = node.args[1] if len(node.args) >= 2 else None
+
+        if not isinstance(path_arg, ast.Constant) or not isinstance(path_arg.value, str):
+            return False  # 路径非常量 (可能被外部控制), 保持 HIGH
+        p = Path(path_arg.value)
+        if p.is_absolute():
+            return False
+        return (self.root / p).resolve().is_file()
 
     def _extract_call_name(self, node: ast.expr) -> str:
         """从 Call.func 提取调用名 (支持 Attribute 和 Name)"""
