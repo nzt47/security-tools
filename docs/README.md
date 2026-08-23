@@ -72,6 +72,16 @@ docs/
 | [错误处理示例](error-handler-examples.md) | 错误处理代码示例 |
 | [工具系统修复计划](tool-system-repair-plan.md) | 工具系统维护 |
 
+#### 📋 事故复盘知识库索引（2026-08-03）
+
+CI 事故复盘案例与可复用文档模板，集中归档于 [事故复盘知识库索引](wiki/README.md)。
+
+| 文档 | 描述 |
+|------|------|
+| [事故复盘文档模板](wiki/incident_report_template.md) | 通用复盘 Markdown 模板，占位符即填即用 |
+| [CI pytest 插件缺失事故复盘](wiki/ci_pytest_plugins_incident_report.md) | pytest.ini 全局配置 + 插件缺失导致 workflow 失败的根因与修复 |
+| [Pre-commit Hook BOM 叠加事故复盘](wiki/precommit_hook_bom_incident_report_v2.md) | PS 脚本叠加 UTF-8 BOM 导致解析失败的复盘与编码契约 |
+
 ### 📊 运维文档
 
 | 文档 | 描述 |
