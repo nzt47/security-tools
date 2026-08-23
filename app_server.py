@@ -1520,7 +1520,8 @@ _MENU_CATALOG: list[dict] = [
 ]
 
 # 普通用户账号（演示/测试不同角色的菜单差异；登录凭据 user/123456 与前端 devMock 一致）
-_MOCK_USER_PASSWORD = "123456"
+# gitleaks:allow —— 演示/测试 mock 凭据，非生产密钥（生产强制注入见 M1 密码保护）
+_MOCK_USER_PASSWORD = "123456"  # gitleaks:allow
 _MOCK_USER_ACCOUNT: dict = {
     "id": 2,
     "username": "user",
@@ -1537,7 +1538,8 @@ _MOCK_USER_ACCOUNT: dict = {
 }
 
 # 运营管理员账号（演示/测试中间角色：拥有部分系统管理权限，介于 admin 全量与 user 基础之间）
-_MOCK_MANAGER_PASSWORD = "123456"
+# gitleaks:allow —— 演示/测试 mock 凭据，非生产密钥（生产强制注入见 M1 密码保护）
+_MOCK_MANAGER_PASSWORD = "123456"  # gitleaks:allow
 _MOCK_MANAGER_ACCOUNT: dict = {
     "id": 3,
     "username": "manager",
