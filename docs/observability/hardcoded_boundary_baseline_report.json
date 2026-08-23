@@ -1,18 +1,18 @@
 {
-  "trace_id": "ed3cdbd7c1ff4535",
+  "trace_id": "d4d88e9b510c4289",
   "module_name": "hardcoded_boundary_scanner",
   "action": "scan.complete",
-  "duration_ms": 1511.18,
+  "duration_ms": 2104.57,
   "target": "agent/",
-  "files_scanned": 375,
-  "total_findings": 144,
-  "high_risk": 118,
+  "files_scanned": 426,
+  "total_findings": 161,
+  "high_risk": 129,
   "medium_risk": 0,
-  "low_risk": 28,
+  "low_risk": 32,
   "category_breakdown": {
-    "retry": 18,
-    "timeout": 88,
-    "capacity": 38
+    "retry": 19,
+    "timeout": 103,
+    "capacity": 39
   },
   "configured_modules": [
     "caching/multi_level_cache.py",
@@ -33,6 +33,30 @@
   ],
   "details": [
     {
+      "file": "api_gateway_cli.py",
+      "line": 87,
+      "col": 15,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 10.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "requests.get(timeout=10.0)",
+      "configured": false
+    },
+    {
+      "file": "api_gateway_cli.py",
+      "line": 102,
+      "col": 15,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 10.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "requests.get(timeout=10.0)",
+      "configured": false
+    },
+    {
       "file": "async_executor.py",
       "line": 38,
       "col": 4,
@@ -45,20 +69,8 @@
       "configured": false
     },
     {
-      "file": "async_executor.py",
-      "line": 349,
-      "col": 0,
-      "category": "capacity",
-      "name": "max_workers",
-      "value": 3.0,
-      "risk": "high",
-      "context": "default_arg",
-      "pattern": "def get_async_executor(..., max_workers=3.0, ...)",
-      "configured": false
-    },
-    {
       "file": "disaster_recovery.py",
-      "line": 967,
+      "line": 984,
       "col": 12,
       "category": "timeout",
       "name": "timeout",
@@ -70,7 +82,7 @@
     },
     {
       "file": "disaster_recovery.py",
-      "line": 1113,
+      "line": 1130,
       "col": 12,
       "category": "timeout",
       "name": "timeout",
@@ -82,7 +94,7 @@
     },
     {
       "file": "env_config_manager.py",
-      "line": 363,
+      "line": 509,
       "col": 25,
       "category": "timeout",
       "name": "timeout",
@@ -130,7 +142,7 @@
     },
     {
       "file": "graceful_degrade.py",
-      "line": 745,
+      "line": 974,
       "col": 0,
       "category": "retry",
       "name": "max_retries",
@@ -142,7 +154,7 @@
     },
     {
       "file": "lazy_loader_async.py",
-      "line": 70,
+      "line": 71,
       "col": 4,
       "category": "capacity",
       "name": "max_workers",
@@ -154,7 +166,7 @@
     },
     {
       "file": "lazy_loader_async.py",
-      "line": 321,
+      "line": 322,
       "col": 4,
       "category": "capacity",
       "name": "max_workers",
@@ -165,8 +177,44 @@
       "configured": false
     },
     {
+      "file": "learning_metrics.py",
+      "line": 1314,
+      "col": 23,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 5.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "sqlite3.connect(timeout=5.0)",
+      "configured": false
+    },
+    {
+      "file": "learning_metrics.py",
+      "line": 1336,
+      "col": 15,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 5.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "sqlite3.connect(timeout=5.0)",
+      "configured": false
+    },
+    {
+      "file": "learning_metrics.py",
+      "line": 1349,
+      "col": 19,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 5.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "sqlite3.connect(timeout=5.0)",
+      "configured": false
+    },
+    {
       "file": "llm_monitor.py",
-      "line": 18,
+      "line": 28,
       "col": 0,
       "category": "capacity",
       "name": "MAX_RECORDS",
@@ -190,7 +238,7 @@
     },
     {
       "file": "logging_utils.py",
-      "line": 1120,
+      "line": 1171,
       "col": 0,
       "category": "timeout",
       "name": "timeout",
@@ -202,7 +250,7 @@
     },
     {
       "file": "logging_utils.py",
-      "line": 1179,
+      "line": 1230,
       "col": 0,
       "category": "timeout",
       "name": "timeout",
@@ -214,7 +262,7 @@
     },
     {
       "file": "mcp_executor.py",
-      "line": 171,
+      "line": 181,
       "col": 4,
       "category": "timeout",
       "name": "timeout",
@@ -226,7 +274,7 @@
     },
     {
       "file": "memory_optimized.py",
-      "line": 145,
+      "line": 177,
       "col": 4,
       "category": "capacity",
       "name": "max_size",
@@ -238,7 +286,7 @@
     },
     {
       "file": "rate_limiter.py",
-      "line": 272,
+      "line": 295,
       "col": 20,
       "category": "timeout",
       "name": "timeout",
@@ -262,7 +310,7 @@
     },
     {
       "file": "state_manager.py",
-      "line": 596,
+      "line": 602,
       "col": 12,
       "category": "timeout",
       "name": "timeout",
@@ -358,7 +406,7 @@
     },
     {
       "file": "task_scheduler.py",
-      "line": 40,
+      "line": 50,
       "col": 0,
       "category": "capacity",
       "name": "DEFAULT_CHECK_INTERVAL",
@@ -370,7 +418,7 @@
     },
     {
       "file": "task_scheduler.py",
-      "line": 41,
+      "line": 51,
       "col": 0,
       "category": "timeout",
       "name": "COMMAND_TIMEOUT",
@@ -382,7 +430,7 @@
     },
     {
       "file": "task_scheduler.py",
-      "line": 42,
+      "line": 52,
       "col": 0,
       "category": "capacity",
       "name": "MAX_HISTORY_LINES",
@@ -394,7 +442,7 @@
     },
     {
       "file": "task_scheduler.py",
-      "line": 43,
+      "line": 53,
       "col": 0,
       "category": "capacity",
       "name": "HEARTBEAT_INTERVAL",
@@ -406,7 +454,7 @@
     },
     {
       "file": "task_scheduler.py",
-      "line": 44,
+      "line": 54,
       "col": 0,
       "category": "capacity",
       "name": "MAX_HEARTBEAT_HISTORY",
@@ -430,7 +478,7 @@
     },
     {
       "file": "tool_router_hybrid.py",
-      "line": 553,
+      "line": 579,
       "col": 20,
       "category": "timeout",
       "name": "timeout",
@@ -442,7 +490,7 @@
     },
     {
       "file": "tool_router_hybrid.py",
-      "line": 750,
+      "line": 776,
       "col": 20,
       "category": "timeout",
       "name": "timeout",
@@ -454,7 +502,7 @@
     },
     {
       "file": "tool_router_hybrid.py",
-      "line": 753,
+      "line": 779,
       "col": 20,
       "category": "timeout",
       "name": "timeout",
@@ -574,7 +622,7 @@
     },
     {
       "file": "cognitive/reflection.py",
-      "line": 47,
+      "line": 48,
       "col": 4,
       "category": "retry",
       "name": "retry_count",
@@ -586,7 +634,7 @@
     },
     {
       "file": "cognitive/reflection.py",
-      "line": 61,
+      "line": 62,
       "col": 4,
       "category": "retry",
       "name": "MAX_RETRIES",
@@ -813,6 +861,18 @@
       "configured": false
     },
     {
+      "file": "human_in_the_loop/takeover_queue.py",
+      "line": 285,
+      "col": 12,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 2.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "thread.join(timeout=2.0)",
+      "configured": false
+    },
+    {
       "file": "knowledge/audit_job.py",
       "line": 157,
       "col": 13,
@@ -873,8 +933,68 @@
       "configured": false
     },
     {
+      "file": "learning/replay.py",
+      "line": 955,
+      "col": 12,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 2.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "process.join(timeout=2.0)",
+      "configured": false
+    },
+    {
+      "file": "learning/replay.py",
+      "line": 958,
+      "col": 16,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 1.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "process.join(timeout=1.0)",
+      "configured": false
+    },
+    {
+      "file": "learning/replay.py",
+      "line": 965,
+      "col": 19,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 2.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "result_queue.get(timeout=2.0)",
+      "configured": false
+    },
+    {
+      "file": "learning/replay.py",
+      "line": 1010,
+      "col": 20,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 5.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "proc.wait(timeout=5.0)",
+      "configured": false
+    },
+    {
+      "file": "learning/replay.py",
+      "line": 1134,
+      "col": 20,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 10.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "subprocess.Popen(['docker', 'rm', '-f', name], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).wait(timeout=10.0)",
+      "configured": false
+    },
+    {
       "file": "log_system/introspection.py",
-      "line": 487,
+      "line": 491,
       "col": 4,
       "category": "timeout",
       "name": "timeout",
@@ -910,7 +1030,7 @@
     },
     {
       "file": "log_system/optimized_storage.py",
-      "line": 295,
+      "line": 322,
       "col": 29,
       "category": "capacity",
       "name": "batch_size",
@@ -922,7 +1042,7 @@
     },
     {
       "file": "log_system/safe_logger.py",
-      "line": 337,
+      "line": 403,
       "col": 0,
       "category": "timeout",
       "name": "timeout",
@@ -934,7 +1054,7 @@
     },
     {
       "file": "log_system/safe_logger.py",
-      "line": 397,
+      "line": 463,
       "col": 0,
       "category": "timeout",
       "name": "timeout",
@@ -994,7 +1114,7 @@
     },
     {
       "file": "monitoring/alert_evaluator.py",
-      "line": 473,
+      "line": 508,
       "col": 12,
       "category": "timeout",
       "name": "timeout",
@@ -1006,7 +1126,7 @@
     },
     {
       "file": "monitoring/chaos_injector.py",
-      "line": 430,
+      "line": 442,
       "col": 4,
       "category": "capacity",
       "name": "pool_size",
@@ -1018,7 +1138,7 @@
     },
     {
       "file": "monitoring/chaos_injector.py",
-      "line": 612,
+      "line": 624,
       "col": 4,
       "category": "timeout",
       "name": "timeout",
@@ -1089,8 +1209,32 @@
       "configured": false
     },
     {
+      "file": "monitoring/lock_profiler.py",
+      "line": 117,
+      "col": 4,
+      "category": "timeout",
+      "name": "timeout",
+      "value": -1.0,
+      "risk": "low",
+      "context": "default_arg",
+      "pattern": "def acquire(..., timeout=-1.0, ...)",
+      "configured": false
+    },
+    {
+      "file": "monitoring/lock_watchdog.py",
+      "line": 133,
+      "col": 4,
+      "category": "timeout",
+      "name": "timeout",
+      "value": -1.0,
+      "risk": "low",
+      "context": "default_arg",
+      "pattern": "def acquire(..., timeout=-1.0, ...)",
+      "configured": false
+    },
+    {
       "file": "monitoring/observability_optimizations.py",
-      "line": 131,
+      "line": 133,
       "col": 4,
       "category": "capacity",
       "name": "batch_size",
@@ -1102,7 +1246,7 @@
     },
     {
       "file": "monitoring/observability_optimizations.py",
-      "line": 159,
+      "line": 164,
       "col": 4,
       "category": "timeout",
       "name": "timeout",
@@ -1114,7 +1258,7 @@
     },
     {
       "file": "monitoring/observability_optimizations.py",
-      "line": 196,
+      "line": 201,
       "col": 27,
       "category": "timeout",
       "name": "timeout",
@@ -1126,7 +1270,7 @@
     },
     {
       "file": "monitoring/observability_optimizations.py",
-      "line": 249,
+      "line": 254,
       "col": 4,
       "category": "capacity",
       "name": "max_size",
@@ -1138,7 +1282,7 @@
     },
     {
       "file": "monitoring/observability_optimizations.py",
-      "line": 345,
+      "line": 350,
       "col": 22,
       "category": "capacity",
       "name": "max_size",
@@ -1150,8 +1294,8 @@
     },
     {
       "file": "monitoring/observability_optimizations.py",
-      "line": 354,
-      "col": 36,
+      "line": 364,
+      "col": 44,
       "category": "capacity",
       "name": "batch_size",
       "value": 200.0,
@@ -1162,7 +1306,7 @@
     },
     {
       "file": "monitoring/optimized_metrics.py",
-      "line": 263,
+      "line": 286,
       "col": 4,
       "category": "capacity",
       "name": "batch_size",
@@ -1174,7 +1318,7 @@
     },
     {
       "file": "monitoring/optimized_metrics.py",
-      "line": 286,
+      "line": 309,
       "col": 4,
       "category": "timeout",
       "name": "timeout",
@@ -1186,7 +1330,7 @@
     },
     {
       "file": "monitoring/optimized_metrics.py",
-      "line": 356,
+      "line": 388,
       "col": 4,
       "category": "capacity",
       "name": "batch_size",
@@ -1198,7 +1342,7 @@
     },
     {
       "file": "monitoring/performance.py",
-      "line": 248,
+      "line": 262,
       "col": 12,
       "category": "timeout",
       "name": "timeout",
@@ -1210,7 +1354,7 @@
     },
     {
       "file": "monitoring/performance.py",
-      "line": 598,
+      "line": 658,
       "col": 4,
       "category": "capacity",
       "name": "max_size",
@@ -1234,7 +1378,7 @@
     },
     {
       "file": "monitoring/performance_optimization.py",
-      "line": 368,
+      "line": 384,
       "col": 4,
       "category": "timeout",
       "name": "timeout",
@@ -1258,7 +1402,7 @@
     },
     {
       "file": "monitoring/search.py",
-      "line": 188,
+      "line": 208,
       "col": 19,
       "category": "timeout",
       "name": "timeout",
@@ -1266,6 +1410,18 @@
       "risk": "low",
       "context": "call_arg",
       "pattern": "self._stop_event.wait(timeout=60.0)",
+      "configured": true
+    },
+    {
+      "file": "monitoring/self_healer.py",
+      "line": 1139,
+      "col": 4,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 2.0,
+      "risk": "low",
+      "context": "default_arg",
+      "pattern": "def _check_port_open(..., timeout=2.0, ...)",
       "configured": true
     },
     {
@@ -1331,7 +1487,7 @@
     {
       "file": "monitoring/tracing_cache.py",
       "line": 254,
-      "col": 20,
+      "col": 27,
       "category": "timeout",
       "name": "timeout",
       "value": 0.5,
@@ -1342,7 +1498,7 @@
     },
     {
       "file": "observability/tool_trace.py",
-      "line": 204,
+      "line": 210,
       "col": 16,
       "category": "timeout",
       "name": "timeout",
@@ -1354,7 +1510,7 @@
     },
     {
       "file": "observability/tool_trace.py",
-      "line": 721,
+      "line": 745,
       "col": 4,
       "category": "timeout",
       "name": "timeout",
@@ -1366,7 +1522,7 @@
     },
     {
       "file": "observability/tool_trace.py",
-      "line": 752,
+      "line": 782,
       "col": 4,
       "category": "timeout",
       "name": "timeout",
@@ -1378,7 +1534,7 @@
     },
     {
       "file": "observability/tool_trace.py",
-      "line": 769,
+      "line": 799,
       "col": 12,
       "category": "timeout",
       "name": "timeout",
@@ -1386,6 +1542,54 @@
       "risk": "high",
       "context": "call_arg",
       "pattern": "self._queue.put(timeout=1.0)",
+      "configured": false
+    },
+    {
+      "file": "orchestrator/orchestrator.py",
+      "line": 73,
+      "col": 17,
+      "category": "capacity",
+      "name": "max_workers",
+      "value": 16.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "ThreadPoolExecutor(max_workers=16.0)",
+      "configured": false
+    },
+    {
+      "file": "orchestrator/orchestrator.py",
+      "line": 144,
+      "col": 9,
+      "category": "capacity",
+      "name": "max_workers",
+      "value": 1.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "concurrent.futures.ThreadPoolExecutor(max_workers=1.0)",
+      "configured": false
+    },
+    {
+      "file": "orchestrator/orchestrator.py",
+      "line": 3205,
+      "col": 4,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 0.0,
+      "risk": "low",
+      "context": "default_arg",
+      "pattern": "def _run_llm_bounded(..., timeout=0.0, ...)",
+      "configured": false
+    },
+    {
+      "file": "preflight/runner.py",
+      "line": 200,
+      "col": 14,
+      "category": "timeout",
+      "name": "timeout",
+      "value": 30.0,
+      "risk": "high",
+      "context": "call_arg",
+      "pattern": "subprocess.TimeoutExpired(timeout=30.0)",
       "configured": false
     },
     {
@@ -1641,6 +1845,18 @@
       "configured": false
     },
     {
+      "file": "verification/output_validator.py",
+      "line": 108,
+      "col": 4,
+      "category": "retry",
+      "name": "max_retries",
+      "value": 1.0,
+      "risk": "high",
+      "context": "default_arg",
+      "pattern": "def __init__(*, max_retries=1.0)",
+      "configured": false
+    },
+    {
       "file": "web/browser_agent.py",
       "line": 59,
       "col": 36,
@@ -1678,7 +1894,7 @@
     },
     {
       "file": "web/crawler_control.py",
-      "line": 272,
+      "line": 304,
       "col": 16,
       "category": "timeout",
       "name": "timeout",
@@ -1738,7 +1954,7 @@
     },
     {
       "file": "memory/adapters/holographic_adapter.py",
-      "line": 795,
+      "line": 807,
       "col": 4,
       "category": "retry",
       "name": "max_retries",
@@ -1746,18 +1962,6 @@
       "risk": "high",
       "context": "default_arg",
       "pattern": "def _retry_vec_write(..., max_retries=3.0, ...)",
-      "configured": false
-    },
-    {
-      "file": "preflight/runner.py",
-      "line": 200,
-      "col": 14,
-      "category": "timeout",
-      "name": "timeout",
-      "value": 30.0,
-      "risk": "high",
-      "context": "call_arg",
-      "pattern": "subprocess.TimeoutExpired(timeout=30.0)",
       "configured": false
     }
   ]

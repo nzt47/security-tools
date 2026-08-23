@@ -1,0 +1,1043 @@
+{
+  "generated_at": "2026-08-22T20:35:43",
+  "sample_composition": {
+    "eval": 50,
+    "curated": 150,
+    "total": 200
+  },
+  "consistency_rate": 0.295,
+  "agree_count": 59,
+  "wire_distribution": {
+    "TRIVIAL": 103,
+    "NORMAL": 38,
+    "SIMPLE": 25,
+    "COMPLEX": 34
+  },
+  "enhanced_distribution": {
+    "TRIVIAL": 16,
+    "SIMPLE": 97,
+    "NORMAL": 27,
+    "COMPLEX": 60
+  },
+  "cross_table": {
+    "TRIVIAL": {
+      "TRIVIAL": 16,
+      "SIMPLE": 74,
+      "NORMAL": 13,
+      "COMPLEX": 0
+    },
+    "SIMPLE": {
+      "TRIVIAL": 0,
+      "SIMPLE": 15,
+      "NORMAL": 10,
+      "COMPLEX": 0
+    },
+    "NORMAL": {
+      "TRIVIAL": 0,
+      "SIMPLE": 0,
+      "NORMAL": 3,
+      "COMPLEX": 35
+    },
+    "COMPLEX": {
+      "TRIVIAL": 0,
+      "SIMPLE": 8,
+      "NORMAL": 1,
+      "COMPLEX": 25
+    }
+  },
+  "reference_agreement": {
+    "n": 50,
+    "wire": 0.2,
+    "enhanced": 0.32
+  },
+  "divergent_count": 141,
+  "divergent_samples": [
+    {
+      "id": "chat-002",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "SIMPLE",
+      "message": "用户情绪低落时，请给出共情式回应"
+    },
+    {
+      "id": "chat-004",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "NORMAL",
+      "message": "用户说：帮我规划明天的日程，我上午开会下午写报告"
+    },
+    {
+      "id": "chat-005",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "TRIVIAL",
+      "message": "用户表达感谢，请给出礼貌简洁的回应"
+    },
+    {
+      "id": "chat-006",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "SIMPLE",
+      "message": "用户说：我刚刚丢了工作，很沮丧，请给出安慰与鼓励"
+    },
+    {
+      "id": "chat-008",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "TRIVIAL",
+      "message": "用户说：给我讲一个短笑话"
+    },
+    {
+      "id": "chat-010",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "NORMAL",
+      "message": "用户说：我想学编程，该从哪里开始？请给出学习路径"
+    },
+    {
+      "id": "chat-012",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "SIMPLE",
+      "message": "用户说：帮我写一封请假的邮件"
+    },
+    {
+      "id": "code-001",
+      "wire": "TRIVIAL",
+      "enhanced": "NORMAL",
+      "reference": "SIMPLE",
+      "message": "实现一个函数：输入整数 n，返回 1..n 的和"
+    },
+    {
+      "id": "code-002",
+      "wire": "TRIVIAL",
+      "enhanced": "NORMAL",
+      "reference": "SIMPLE",
+      "message": "实现一个函数：判断字符串是否为回文"
+    },
+    {
+      "id": "code-003",
+      "wire": "TRIVIAL",
+      "enhanced": "NORMAL",
+      "reference": "NORMAL",
+      "message": "实现一个函数：计算斐波那契数列第 n 项（n=10 → 55）"
+    },
+    {
+      "id": "code-004",
+      "wire": "TRIVIAL",
+      "enhanced": "NORMAL",
+      "reference": "SIMPLE",
+      "message": "实现一个函数：返回输入列表去重后的元素个数"
+    },
+    {
+      "id": "code-005",
+      "wire": "TRIVIAL",
+      "enhanced": "NORMAL",
+      "reference": "TRIVIAL",
+      "message": "实现一个函数：将输入字符串转为大写"
+    },
+    {
+      "id": "code-006",
+      "wire": "TRIVIAL",
+      "enhanced": "NORMAL",
+      "reference": "SIMPLE",
+      "message": "实现一个函数：反转输入字符串"
+    },
+    {
+      "id": "code-007",
+      "wire": "TRIVIAL",
+      "enhanced": "NORMAL",
+      "reference": "SIMPLE",
+      "message": "实现一个函数：返回输入列表的元素之和"
+    },
+    {
+      "id": "code-008",
+      "wire": "TRIVIAL",
+      "enhanced": "NORMAL",
+      "reference": "NORMAL",
+      "message": "实现一个函数：判断输入整数是否为质数"
+    },
+    {
+      "id": "code-009",
+      "wire": "TRIVIAL",
+      "enhanced": "NORMAL",
+      "reference": "NORMAL",
+      "message": "实现一个函数：计算两个整数的最大公约数"
+    },
+    {
+      "id": "code-010",
+      "wire": "TRIVIAL",
+      "enhanced": "NORMAL",
+      "reference": "TRIVIAL",
+      "message": "实现一个函数：返回输入字符串的长度"
+    },
+    {
+      "id": "code-011",
+      "wire": "TRIVIAL",
+      "enhanced": "NORMAL",
+      "reference": "NORMAL",
+      "message": "实现一个函数：合并两个字典并返回合并结果"
+    },
+    {
+      "id": "code-012",
+      "wire": "TRIVIAL",
+      "enhanced": "NORMAL",
+      "reference": "SIMPLE",
+      "message": "实现一个函数：计算 2 的 n 次方"
+    },
+    {
+      "id": "planning-001",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "NORMAL",
+      "message": "规划一次 3 天的杭州旅行，输出行程安排"
+    },
+    {
+      "id": "planning-002",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "NORMAL",
+      "message": "将「上线新功能」拆解为可执行的子任务清单"
+    },
+    {
+      "id": "planning-003",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "SIMPLE",
+      "message": "制定每日晨间例行计划（30 分钟内完成）"
+    },
+    {
+      "id": "planning-004",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "COMPLEX",
+      "message": "为「三个月学会 Python」制定分阶段学习计划"
+    },
+    {
+      "id": "planning-005",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "NORMAL",
+      "message": "规划一次产品发布会的执行清单"
+    },
+    {
+      "id": "planning-006",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "SIMPLE",
+      "message": "制定周末大扫除任务的优先级排序"
+    },
+    {
+      "id": "planning-007",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "COMPLEX",
+      "message": "为「减重 5 公斤」制定一个月的可执行计划"
+    },
+    {
+      "id": "search-007",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "NORMAL",
+      "message": "搜索一篇关于「多智能体系统」的技术文章"
+    },
+    {
+      "id": "search-008",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "SIMPLE",
+      "message": "查询最近一次系统备份的时间"
+    },
+    {
+      "id": "search-009",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "NORMAL",
+      "message": "检索「AES-256-GCM」的加密原理说明"
+    },
+    {
+      "id": "search-011",
+      "wire": "TRIVIAL",
+      "enhanced": "NORMAL",
+      "reference": "NORMAL",
+      "message": "搜索「预算熔断」机制的设计文档"
+    },
+    {
+      "id": "tool-001",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "SIMPLE",
+      "message": "使用计算器工具计算 123 乘以 456 的结果"
+    },
+    {
+      "id": "tool-002",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "NORMAL",
+      "message": "使用时间工具获取当前 Unix 时间戳（秒级整数）"
+    },
+    {
+      "id": "tool-004",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "SIMPLE",
+      "message": "使用文件工具列出指定目录下的文件名称"
+    },
+    {
+      "id": "tool-006",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "TRIVIAL",
+      "message": "使用代码执行工具运行 print(1+1) 并返回输出"
+    },
+    {
+      "id": "tool-007",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "NORMAL",
+      "message": "使用翻译工具将「你好」翻译为英文"
+    },
+    {
+      "id": "curated-001",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "今天天气怎么样"
+    },
+    {
+      "id": "curated-002",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "现在几点了"
+    },
+    {
+      "id": "curated-003",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我查一下明天的航班信息"
+    },
+    {
+      "id": "curated-004",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "什么是深度学习"
+    },
+    {
+      "id": "curated-005",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "量子计算的基本原理是什么"
+    },
+    {
+      "id": "curated-006",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "上海到北京的高铁需要多久"
+    },
+    {
+      "id": "curated-007",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我翻译这句话成英文"
+    },
+    {
+      "id": "curated-008",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "3 的 5 次方等于多少"
+    },
+    {
+      "id": "curated-009",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "Python 里怎么定义一个函数"
+    },
+    {
+      "id": "curated-010",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "今天有什么新闻"
+    },
+    {
+      "id": "curated-011",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我查一下这家公司的地址"
+    },
+    {
+      "id": "curated-012",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "什么是云计算"
+    },
+    {
+      "id": "curated-013",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "推荐几本关于历史的书"
+    },
+    {
+      "id": "curated-014",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "这部电影的评分是多少"
+    },
+    {
+      "id": "curated-015",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我设置一个 30 分钟的提醒"
+    },
+    {
+      "id": "curated-016",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "明天会下雨吗"
+    },
+    {
+      "id": "curated-017",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "什么是区块链"
+    },
+    {
+      "id": "curated-018",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "这道菜怎么做"
+    },
+    {
+      "id": "curated-019",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我算一下房贷利率"
+    },
+    {
+      "id": "curated-020",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "有没有推荐的运动方式"
+    },
+    {
+      "id": "curated-021",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我查一下词汇的意思"
+    },
+    {
+      "id": "curated-022",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "这个链接能打开吗"
+    },
+    {
+      "id": "curated-023",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "给我讲讲三国演义的故事"
+    },
+    {
+      "id": "curated-024",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "为什么天是蓝色的"
+    },
+    {
+      "id": "curated-025",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我看一下我的日程安排"
+    },
+    {
+      "id": "curated-027",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我查一下附近的餐厅"
+    },
+    {
+      "id": "curated-028",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "这首诗的作者是谁"
+    },
+    {
+      "id": "curated-029",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "怎么申请护照"
+    },
+    {
+      "id": "curated-030",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "股票代码是多少"
+    },
+    {
+      "id": "curated-031",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我写一句生日祝福语"
+    },
+    {
+      "id": "curated-032",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我写一封请假邮件"
+    },
+    {
+      "id": "curated-034",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我写一个简单的爬虫脚本"
+    },
+    {
+      "id": "curated-035",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我写一段自我介绍"
+    },
+    {
+      "id": "curated-036",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我起草一份会议纪要"
+    },
+    {
+      "id": "curated-037",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我写一个函数计算斐波那契数列"
+    },
+    {
+      "id": "curated-038",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我写一封感谢信"
+    },
+    {
+      "id": "curated-040",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我写一篇 500 字的产品介绍"
+    },
+    {
+      "id": "curated-045",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我汇总一下这些数据"
+    },
+    {
+      "id": "curated-051",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我翻译这份文档的第一段"
+    },
+    {
+      "id": "curated-053",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我查一下我的快递到哪了"
+    },
+    {
+      "id": "curated-054",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我写一个批量重命名脚本"
+    },
+    {
+      "id": "curated-057",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我写一首藏头诗"
+    },
+    {
+      "id": "curated-058",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我记录一下今天的花费"
+    },
+    {
+      "id": "curated-059",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我查一下明天的限行尾号"
+    },
+    {
+      "id": "curated-061",
+      "wire": "SIMPLE",
+      "enhanced": "NORMAL",
+      "reference": "",
+      "message": "分析一下这份销售数据"
+    },
+    {
+      "id": "curated-062",
+      "wire": "SIMPLE",
+      "enhanced": "NORMAL",
+      "reference": "",
+      "message": "分析一下这个项目的可行性"
+    },
+    {
+      "id": "curated-063",
+      "wire": "SIMPLE",
+      "enhanced": "NORMAL",
+      "reference": "",
+      "message": "分析一下这段日志里的报错原因"
+    },
+    {
+      "id": "curated-064",
+      "wire": "SIMPLE",
+      "enhanced": "NORMAL",
+      "reference": "",
+      "message": "分析一下竞争对手的产品"
+    },
+    {
+      "id": "curated-065",
+      "wire": "SIMPLE",
+      "enhanced": "NORMAL",
+      "reference": "",
+      "message": "分析一下这个数据集的分布"
+    },
+    {
+      "id": "curated-066",
+      "wire": "SIMPLE",
+      "enhanced": "NORMAL",
+      "reference": "",
+      "message": "帮我分析一下用户流失的原因"
+    },
+    {
+      "id": "curated-067",
+      "wire": "SIMPLE",
+      "enhanced": "NORMAL",
+      "reference": "",
+      "message": "分析一下这段代码的性能瓶颈"
+    },
+    {
+      "id": "curated-068",
+      "wire": "SIMPLE",
+      "enhanced": "NORMAL",
+      "reference": "",
+      "message": "帮我分析一下市场趋势"
+    },
+    {
+      "id": "curated-069",
+      "wire": "SIMPLE",
+      "enhanced": "NORMAL",
+      "reference": "",
+      "message": "分析一下这个方案的优缺点"
+    },
+    {
+      "id": "curated-070",
+      "wire": "SIMPLE",
+      "enhanced": "NORMAL",
+      "reference": "",
+      "message": "帮我分析一下这封邮件的语气"
+    },
+    {
+      "id": "curated-071",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我设计一个产品原型"
+    },
+    {
+      "id": "curated-072",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我设计一个用户调研问卷"
+    },
+    {
+      "id": "curated-073",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我设计一个数据可视化方案"
+    },
+    {
+      "id": "curated-074",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我设计一个自动化测试用例集"
+    },
+    {
+      "id": "curated-075",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我设计一个培训课程大纲"
+    },
+    {
+      "id": "curated-076",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我设计一个推荐算法"
+    },
+    {
+      "id": "curated-077",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我设计一个 API 接口文档"
+    },
+    {
+      "id": "curated-078",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我设计一个数据库表结构"
+    },
+    {
+      "id": "curated-079",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我设计一个报表模板"
+    },
+    {
+      "id": "curated-080",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我设计一个营销活动方案"
+    },
+    {
+      "id": "curated-085",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我设计一个消息队列方案"
+    },
+    {
+      "id": "curated-086",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我设计一个数据中台"
+    },
+    {
+      "id": "curated-091",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "重构这个模块的代码结构"
+    },
+    {
+      "id": "curated-093",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我把项目迁移到新的框架"
+    },
+    {
+      "id": "curated-094",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我把数据库迁移到 PostgreSQL"
+    },
+    {
+      "id": "curated-095",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我把这个服务迁移到 Kubernetes"
+    },
+    {
+      "id": "curated-097",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我把旧接口迁移到新网关"
+    },
+    {
+      "id": "curated-098",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "重构这段遗留代码"
+    },
+    {
+      "id": "curated-099",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我把配置文件迁移到新的格式"
+    },
+    {
+      "id": "curated-100",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "重构这个测试套件"
+    },
+    {
+      "id": "curated-101",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我制定一个完整的项目上线方案"
+    },
+    {
+      "id": "curated-102",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我制定一个完整的营销推广方案"
+    },
+    {
+      "id": "curated-103",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我制定一个完整的灾备方案"
+    },
+    {
+      "id": "curated-104",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我制定一个完整的安全审计方案"
+    },
+    {
+      "id": "curated-105",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我制定一个完整的测试计划"
+    },
+    {
+      "id": "curated-106",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我制定一个完整的发布流程"
+    },
+    {
+      "id": "curated-107",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我制定一个完整的性能优化方案"
+    },
+    {
+      "id": "curated-108",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我制定一个完整的数据治理方案"
+    },
+    {
+      "id": "curated-109",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我制定一个完整的团队建设方案"
+    },
+    {
+      "id": "curated-110",
+      "wire": "TRIVIAL",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我制定一个完整的客户成功方案"
+    },
+    {
+      "id": "curated-111",
+      "wire": "COMPLEX",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我规划一个三年的职业发展路径，第一步先确定目标，第二步再拆解能力项"
+    },
+    {
+      "id": "curated-112",
+      "wire": "COMPLEX",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我规划一次产品发布会，第一步确定场地，第二步邀请嘉宾，第三步彩排流程"
+    },
+    {
+      "id": "curated-113",
+      "wire": "COMPLEX",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我规划一个家庭装修项目，第一步量房，第二步出方案，第三步施工"
+    },
+    {
+      "id": "curated-114",
+      "wire": "COMPLEX",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我规划一个内容运营计划，第一步定选题，第二步排期，第三步复盘"
+    },
+    {
+      "id": "curated-115",
+      "wire": "COMPLEX",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我规划一个开源项目，第一步定方向，第二步建社区，第三步迭代发布"
+    },
+    {
+      "id": "curated-116",
+      "wire": "COMPLEX",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我规划一次公司年会，第一步定预算，第二步选场地，第三步定节目"
+    },
+    {
+      "id": "curated-117",
+      "wire": "COMPLEX",
+      "enhanced": "NORMAL",
+      "reference": "",
+      "message": "帮我规划一个网站改版，第一步梳理页面，第二步设计原型，第三步开发上线"
+    },
+    {
+      "id": "curated-118",
+      "wire": "COMPLEX",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我规划一个学习计划，第一步摸底，第二步定目标，第三步排课表"
+    },
+    {
+      "id": "curated-119",
+      "wire": "COMPLEX",
+      "enhanced": "SIMPLE",
+      "reference": "",
+      "message": "帮我规划一个产品冷启动方案，第一步圈定种子用户，第二步做内容，第三步裂变"
+    },
+    {
+      "id": "curated-121",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我搭建一个完整的电商平台"
+    },
+    {
+      "id": "curated-123",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我搭建一个完整的日志系统"
+    },
+    {
+      "id": "curated-124",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我搭建一个完整的客服系统"
+    },
+    {
+      "id": "curated-125",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我搭建一个完整的风控系统"
+    },
+    {
+      "id": "curated-126",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我搭建一个完整的消息系统"
+    },
+    {
+      "id": "curated-127",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我搭建一个完整的文件存储系统"
+    },
+    {
+      "id": "curated-128",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我搭建一个完整的搜索系统"
+    },
+    {
+      "id": "curated-129",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我搭建一个完整的支付系统"
+    },
+    {
+      "id": "curated-130",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我搭建一个完整的用户系统"
+    },
+    {
+      "id": "curated-134",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我做一个分布式事务方案"
+    },
+    {
+      "id": "curated-135",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我做一个分布式锁"
+    },
+    {
+      "id": "curated-137",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我做一个分布式配置中心"
+    },
+    {
+      "id": "curated-140",
+      "wire": "NORMAL",
+      "enhanced": "COMPLEX",
+      "reference": "",
+      "message": "帮我做一个分布式搜索引擎"
+    }
+  ]
+}

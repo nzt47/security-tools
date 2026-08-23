@@ -1,0 +1,626 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [
+    {
+      "title": "触发条件计算说明",
+      "type": "link",
+      "url": "docs/zh/进化机制重构计划/自进化机制重构计划/任务2_触发条件计算说明.md"
+    }
+  ],
+  "liveNow": false,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "title": "学习触发条件（报告 TASK-08 §3.3/§5.2 · 五条触发条件）",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "TC-1 引入 LLM-as-Judge：KPI#7 连续 4 周 <5% 且 KPI#1 环比无提升。状态 hit=命中 / not_hit=未命中 / insufficient_data=数据不足 / unknown=外部输入缺失。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "未命中"
+                },
+                "1": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "命中"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "expr": "yunshu_learning_trigger_condition{condition=\"judge_intro\", status=\"hit\"}",
+          "legendFormat": "TC-1 Judge 引入",
+          "refId": "A"
+        }
+      ],
+      "title": "TC-1 引入 LLM-as-Judge",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "TC-2 Solver 路径增强：KPI#3 工作流命中率连续 4 周 <10%。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "未命中"
+                },
+                "1": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "命中"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "expr": "yunshu_learning_trigger_condition{condition=\"solver_enhancement\", status=\"hit\"}",
+          "legendFormat": "TC-2 Solver 增强",
+          "refId": "A"
+        }
+      ],
+      "title": "TC-2 Solver 路径增强",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "TC-3 启用课程难度自适应：KPI#4 分类型失败率（task_type）连续 4 周 >30% 且 KPI#5 均分环比下降。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "未命中"
+                },
+                "1": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "命中"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "expr": "yunshu_learning_trigger_condition{condition=\"course_adaptation\", status=\"hit\"}",
+          "legendFormat": "TC-3 课程难度自适应",
+          "refId": "A"
+        }
+      ],
+      "title": "TC-3 课程难度自适应",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "TC-4 启用沙箱回放：回放覆盖率 <50% 且 KPI#6 沉淀增量连续 4 周停滞。回放统计未接入时状态为 unknown（不触发）。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "未命中"
+                },
+                "1": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "命中"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "expr": "yunshu_learning_trigger_condition{condition=\"sandbox_replay\", status=\"hit\"}",
+          "legendFormat": "TC-4 沙箱回放",
+          "refId": "A"
+        }
+      ],
+      "title": "TC-4 沙箱回放",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "TC-5 启动元规则级递归自进化（L3 研究）：TC-1/TC-3/TC-4 全触发 + 审计通过率连续 3 个月 100% + 零安全事故 + G1-G5 全部实现 + 决策层书面批准（外部输入缺失 → unknown）。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "0": {
+                  "color": "green",
+                  "index": 1,
+                  "text": "未命中"
+                },
+                "1": {
+                  "color": "red",
+                  "index": 0,
+                  "text": "命中"
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 6
+      },
+      "id": 5,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "expr": "yunshu_learning_trigger_condition{condition=\"l3_research\", status=\"hit\"}",
+          "legendFormat": "TC-5 L3 研究",
+          "refId": "A"
+        }
+      ],
+      "title": "TC-5 L3 研究（远期红线）",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "数据可用性看护：存在 insufficient_data 状态的触发条件数量 > 0 表示埋点数据源缺失（record_task_result 无调用方 / KPI#7 候选计数未产生 / 持久化未启用等），需优先排查。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 6
+      },
+      "id": 6,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "expr": "count(yunshu_learning_trigger_condition{status=\"insufficient_data\"} == 1)",
+          "legendFormat": "不可度量条件数",
+          "refId": "A"
+        }
+      ],
+      "title": "数据可用性看护（insufficient_data 计数）",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "五条触发条件 × 四种状态矩阵（hit/not_hit/insufficient_data/unknown），value=1 表示该组合成立。",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "color-background"
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "condition"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "auto"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "id": 7,
+      "options": {
+        "footer": {
+          "countRows": false,
+          "enablePagination": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "hit"
+          }
+        ]
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "expr": "yunshu_learning_trigger_condition",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "{{condition}}/{{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "触发条件状态矩阵",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 101,
+      "title": "说明",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "id": 8,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "## 学习触发条件面板（任务2）\n\n- 数据源：`yunshu_learning_trigger_condition` gauge（agent/monitoring/learning_trigger_metrics.py），由查询层 `LearningMetrics.evaluate_trigger_conditions()` 计算并刷新（/api/learning/metrics/trigger 触发或运维脚本周期调用）。\n- 口径：连续 4 周判定窗口 = 最近 4 个有数据 ISO 周（含当前进行周）；任一周不可度量（候选基数不足 / 无交互 / 无任务数据）→ insufficient_data，绝不判命中。\n- 阈值：KPI#7 <5%（候选基数 ≥ min_candidates，默认 5）、KPI#3 <10%、KPI#4 >30%、回放覆盖率 <50%、KPI#6 停滞=0（config.yaml learning.metrics.trigger_monitoring）。\n- API：GET /api/learning/metrics/weekly（周级 7 项 KPI 序列）；GET /api/learning/metrics/trigger?replay_coverage=0.4&audit_ok=1（触发条件明细）。\n- 文档：docs/zh/进化机制重构计划/自进化机制重构计划/任务2_触发条件计算说明.md",
+        "mode": "markdown"
+      },
+      "pluginVersion": "10.0.0",
+      "title": "口径说明",
+      "type": "text"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "tags": [
+    "learning",
+    "trigger",
+    "task2"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "学习触发条件（任务2）",
+  "uid": "yunshu-learning-triggers",
+  "version": 1,
+  "weekStart": ""
+}

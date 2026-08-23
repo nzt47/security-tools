@@ -9,8 +9,8 @@ __pycache__
 .pytest_cache
 .mypy_cache
 *.egg-info
-# 测试代码不进镜像（docker-compose 运行时挂载 ./tests）
-tests
+# 预检镜像需 COPY tests/（pytest 用例），仅排除大体积运行时产物 tests/unit/temp
+tests/unit/temp
 # 运行时备份目录（最大可到 1GB+，不应进入构建上下文）
 backup
 data

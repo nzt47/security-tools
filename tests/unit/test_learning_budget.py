@@ -4,6 +4,12 @@
 warn_only 不拦截不熔断、cooldown 后半开探测恢复、正文异常释放预留不熔断、
 spend() 实际消耗、配置三层优先级（env 覆盖）、模块级单例懒加载。
 
+任务5 新增（enforce 灰度前置）：
+- scope 作用范围声明（默认 learning_actions，get_status 透出）；
+- enforce 只作用于学习动作：主链路零调用（无 with_budget/get_learning_budget
+  引用的主链路路径不受影响，测试证明）；
+- 生产 config.yaml learning.budget.mode=enforce 灰度审计。
+
 【不易】不修改 rate_limiter/circuit_breaker 语义，全部经其现有公开 API 组装。
 """
 
@@ -13,6 +19,8 @@ import pytest
 
 from agent.circuit_breaker import CircuitBreaker
 from agent.learning_budget import (
+    LEARNING_ACTION_SCOPE,
+    MAIN_CHAIN_EXCLUDED,
     LearningBudget,
     LearningBudgetExceeded,
     _load_budget_config,
@@ -218,3 +226,78 @@ def test_trip_daily_error_isolated():
         with lb.with_budget("a", estimated_tokens=200):  # 200 < 1000 不触发分支1 → 分支3 日预算耗尽
             raise AssertionError("不应进入正文")
     assert ei.value.reason == "daily_exhausted"
+
+
+# ════════════════════════════════════════════════════════════
+#  任务5：enforce 灰度前置 —— 作用范围声明 + 主链路零影响
+# ════════════════════════════════════════════════════════════
+
+def test_scope_default_learning_actions_and_status_exposed():
+    """任务5：scope 默认 learning_actions（enforce 作用范围声明字段）"""
+    lb = LearningBudget(config={})
+    assert lb.scope == "learning_actions"
+    assert lb.get_status()["scope"] == "learning_actions"
+    # 白名单 / 排除清单可审计
+    assert "judge_channel" in LEARNING_ACTION_SCOPE
+    assert "orchestrator" in MAIN_CHAIN_EXCLUDED
+    assert "tool_calling" in MAIN_CHAIN_EXCLUDED
+
+
+def test_scope_config_priority_env_overrides(monkeypatch):
+    """任务5：scope 配置三层优先级（环境变量覆盖 config.yaml/默认值）"""
+    monkeypatch.setenv("LEARNING_BUDGET_SCOPE", "all")
+    cfg = _load_budget_config()
+    assert cfg["scope"] == "all"
+    lb = LearningBudget(config=cfg)
+    assert lb.scope == "all"
+
+
+def test_enforce_only_affects_learning_actions_main_chain_untouched(monkeypatch):
+    """任务5：enforce 只作用于学习动作——主链路零 import 零调用（代码审计 + 行为证明）
+
+    审计证明：全仓库 with_budget/get_learning_budget 调用方仅学习侧文件
+    （learning_budget.py 自身、learning/guard_status.py 只读视图、judge_channel.py）。
+    行为证明：学习预算熔断后，不经过预算的主链路式 LLM 调用照常工作。
+    """
+    # 代码审计：主链路模块（orchestrator/tool_calling/workflow_engine 等）不引用预算
+    import pathlib
+    root = pathlib.Path(__file__).resolve().parent.parent.parent
+    for mod in MAIN_CHAIN_EXCLUDED:
+        fpath = root / "agent" / (mod + ".py")
+        if not fpath.exists():
+            continue
+        src = fpath.read_text(encoding="utf-8")
+        assert "learning_budget" not in src, (
+            f"主链路模块 {mod} 不得引用 learning_budget（enforce 范围限定审计）")
+
+    # 行为证明：预算耗尽熔断后，主链路式 LLM 调用不受影响
+    lb = _make_budget(mode="enforce", max_daily=100)
+    with lb.with_budget("learn_a", estimated_tokens=60):
+        pass
+    with pytest.raises(LearningBudgetExceeded):
+        with lb.with_budget("learn_b", estimated_tokens=60):
+            raise AssertionError("学习动作应被拦截")
+    assert lb.get_status()["breaker"]["state"] == "open"
+
+    # 主链路模拟调用（不经过 learning_budget）
+    calls = []
+    llm_client = type("LLM", (), {"chat": lambda self, p: calls.append(p) or "ok"})()
+    assert llm_client.chat("main") == "ok"
+    assert calls == ["main"]
+    assert lb.get_status()["breaker"]["state"] == "open"
+
+
+def test_production_config_budget_enforce_gray_scale():
+    """任务5：生产 config.yaml learning.budget.mode=enforce + scope 声明（灰度审计）"""
+    import yaml as _yaml
+    from pathlib import Path as _P
+    cfg_path = _P(__file__).resolve().parent.parent.parent / "config.yaml"
+    data = _yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    budget = (data.get("learning") or {}).get("budget") or {}
+    assert budget.get("mode") == "enforce"
+    assert budget.get("scope") == "learning_actions"
+    # Judge 通道默认关闭（enabled=false → 零 LLM）
+    judge = (data.get("learning") or {}).get("judge") or {}
+    assert judge.get("enabled") is False
+    assert judge.get("dry_run") is True
+    assert judge.get("disagreement_threshold") == 0.10

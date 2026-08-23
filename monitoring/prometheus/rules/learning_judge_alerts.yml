@@ -1,0 +1,91 @@
+# Prometheus Alert Rules — LLM-as-Judge 双假设判别（任务5 · 重构计划阶段三）
+#
+# 挂载位置: monitoring/prometheus/rules/learning_judge_alerts.yml
+# 指标来源 (agent/monitoring/learning_judge_metrics.py):
+#   - yunshu_learning_judge_dryrun{metric}                 (gauge, 判别统计快照)
+#   - yunshu_learning_judge_discrimination{conclusion, recommendation} (gauge, 1=当前结论/建议)
+#
+# 设计语义（不易）:
+#   - Judge 通道恒为 dry-run（零干预）：本文件任何告警都不触发"干预模式"；
+#     evaluate_introduce 只是"按报告 §3.3 流程评估启用"的远期决策信号，
+#     实际启用须决策层书面批准（远期里程碑门），绝不自动启用。
+#   - 判别结论（hypothesis_a_eval_insufficient / hypothesis_b_candidate_quality /
+#     insufficient_data / inconclusive）与 recommendation（not_introduce /
+#     evaluate_introduce）由查询层（judge_channel.discriminate）计算完成，
+#     本文件只引用其结果（守"无主观判断型门槛"过程验收项）。
+#   - 预算保护看护：budget_blocked > 0 或 budget mode 非 enforce 时 Judge LLM 调用
+#     被否决（报告 §3.3 否决条件），属运维信号。
+#
+# 验证命令:
+#   promtool check rules monitoring/prometheus/rules/learning_judge_alerts.yml
+
+groups:
+  - name: learning_judge_alerts
+    interval: 30s
+    rules:
+      # JD-1 判别结论：支持引入 LLM-as-Judge（假设 A 证据成立）——远期决策信号
+      - alert: LearningJudgeEvaluateIntroduce
+        expr: yunshu_learning_judge_discrimination{recommendation="evaluate_introduce"} == 1
+        for: 0m
+        labels:
+          severity: info
+          category: learning
+          trigger_condition: judge_intro
+          capability: LLM-as-Judge
+        annotations:
+          summary: "双假设判别结论：支持引入 LLM-as-Judge（假设 A：评估不精细）"
+          description: "分歧率 ≥ 阈值且按 Judge 判定的采纳率 - 规则通道采纳率 ≥ +10pp。按报告 §3.3 流程 dry-run 2 周评估启用；任何干预模式属远期里程碑门（决策层书面批准），本告警不改变任何决策。"
+          runbook_url: "docs/zh/进化机制重构计划/自进化机制重构计划/任务5_LLM-as-Judge双假设判别报告.md"
+
+      # JD-2 判别结论：假设 B（候选质量差）——不引入 Judge，改进候选生成
+      - alert: LearningJudgeHypothesisB
+        expr: yunshu_learning_judge_discrimination{conclusion="hypothesis_b_candidate_quality"} == 1
+        for: 0m
+        labels:
+          severity: info
+          category: learning
+          trigger_condition: judge_intro
+          capability: 候选生成改进
+        annotations:
+          summary: "双假设判别结论：低采纳率归因假设 B（候选质量差）"
+          description: "分歧率 < 阈值：规则评估与 LLM Judge 高度一致，评估正确拒绝 → 不引入 Judge，转向改进候选生成（变异/生成环节）。"
+          runbook_url: "docs/zh/进化机制重构计划/自进化机制重构计划/任务5_LLM-as-Judge双假设判别报告.md"
+
+      # JD-3 判别数据不足：2 周采集窗口未达到最小判别基数
+      - alert: LearningJudgeInsufficientData
+        expr: yunshu_learning_judge_discrimination{conclusion="insufficient_data"} == 1
+        for: 0m
+        labels:
+          severity: warning
+          category: learning
+          trigger_condition: judge_intro
+        annotations:
+          summary: "Judge 判别数据不足（有效判定样本 < min_candidates）"
+          description: "双通道有效判定样本未达最小判别基数（默认 5），判别结论不成立。请检查任务3 observe 态候选积累与 LEARNING_JUDGE_ENABLED 开关（默认 false）。"
+          runbook_url: "docs/zh/进化机制重构计划/自进化机制重构计划/任务5_LLM-as-Judge双假设判别报告.md#置信度限制"
+
+      # JD-4 预算熔断保护：Judge 通道 LLM 调用被预算拦截（成本看护）
+      - alert: LearningJudgeBudgetBlocked
+        expr: yunshu_learning_judge_dryrun{metric="budget_blocked"} > 0
+        for: 0m
+        labels:
+          severity: warning
+          category: learning
+          capability: 预算熔断
+        annotations:
+          summary: "Judge 通道 LLM 调用被学习预算熔断拦截"
+          description: "learning.budget（enforce）拦截了 Judge 通道 LLM 调用（单次上限/日预算耗尽）。通道已按不变式跳过候选且不伪造判定；请检查预算配置或候选规模。"
+          runbook_url: "docs/zh/进化机制重构计划/自进化机制重构计划/任务5_LLM-as-Judge双假设验证_变更说明.md"
+
+      # JD-5 预算否决条件：budget.mode 非 enforce 时 LLM 型评估角色一律不引入（报告 §3.3）
+      - alert: LearningJudgeBudgetNotEnforce
+        expr: yunshu_learning_judge_dryrun{metric="budget_blocked"} == -1
+        for: 0m
+        labels:
+          severity: critical
+          category: learning
+          capability: 预算护栏
+        annotations:
+          summary: "预算非 enforce 状态下 Judge 通道不应运行（否决条件命中）"
+          description: "learning.budget.mode != enforce（warn_only 不强制）时，任何 LLM 型评估角色一律不引入（报告 §3.3 否决条件）。请检查 config.yaml learning.budget.mode（任务5 已灰度提升为 enforce）与 LEARNING_BUDGET_MODE 环境变量。"
+          runbook_url: "docs/zh/进化机制重构计划/自进化机制重构计划/任务5_LLM-as-Judge双假设验证_变更说明.md"

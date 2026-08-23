@@ -1,0 +1,106 @@
+# Prometheus Alert Rules — 学习触发条件（任务2 · 重构计划阶段一）
+#
+# 挂载位置: monitoring/prometheus/rules/learning_trigger_alerts.yml
+# 指标来源 (agent/monitoring/learning_trigger_metrics.py):
+#   - yunshu_learning_trigger_condition{condition, status}  (gauge, 1=命中)
+#
+# 设计语义（不易）:
+#   - "连续 4 周"判定由查询层（LearningMetrics.evaluate_trigger_conditions，报告
+#     TASK-08 §3.3/§5.2 五条触发条件）计算完成，本文件只引用其结果（守"无主观判断型
+#     门槛"过程验收项）；查询层每次计算（/api/learning/metrics/trigger 触发或运维脚本）
+#     刷新 gauge，Prometheus 抓取周期内保持上次值。
+#   - 条件状态: hit / not_hit / insufficient_data / unknown。
+#     insufficient_data = 窗口内存在不可度量周（候选基数不足/无交互/无任务数据等），
+#     绝不判命中；unknown = 外部输入缺失（如沙箱回放统计未接入 → TC-4 无法度量）。
+#   - 阈值来源: config.yaml learning.metrics.trigger_monitoring（默认窗口 4 周、
+#     KPI#7 <5%、KPI#3 <10%、KPI#4 >30%、回放覆盖率 <50%、KPI#6 停滞=0）。
+#
+# 验证命令:
+#   promtool check rules monitoring/prometheus/rules/learning_trigger_alerts.yml
+
+groups:
+  - name: learning_trigger_alerts
+    interval: 30s
+    rules:
+      # TC-1 引入 LLM-as-Judge：KPI#7 连续 4 周 <5% 且 KPI#1 环比无提升
+      - alert: LearningTriggerJudgeIntro
+        expr: yunshu_learning_trigger_condition{condition="judge_intro", status="hit"} == 1
+        for: 0m
+        labels:
+          severity: info
+          category: learning
+          trigger_condition: judge_intro
+          capability: LLM-as-Judge
+        annotations:
+          summary: "触发条件命中：引入 LLM-as-Judge（评估角色化）"
+          description: "KPI#7 进化采纳率连续 4 周 <5% 且 KPI#1 token 复用率环比无提升（候选基数 ≥ min_candidates）。提示现有规则评估无法区分候选质量，可按报告 §3.3 引入方式评估（先 dry-run 记录 2 周，受 learning.budget 熔断保护）。"
+          runbook_url: "docs/zh/进化机制重构计划/自进化机制重构计划/任务2_触发条件计算说明.md#TC-1"
+
+      # TC-2 Solver 路径增强：KPI#3 工作流命中率连续 4 周 <10%
+      - alert: LearningTriggerSolverEnhancement
+        expr: yunshu_learning_trigger_condition{condition="solver_enhancement", status="hit"} == 1
+        for: 0m
+        labels:
+          severity: warning
+          category: learning
+          trigger_condition: solver_enhancement
+          capability: Solver路径增强
+        annotations:
+          summary: "触发条件命中：Solver 路径增强"
+          description: "KPI#3 工作流命中率连续 4 周 <10%，提示 Solver 复用不足。按报告 §3.3：检查 workflow_learning 拦截层与 Skill 质量，而非增加角色。"
+          runbook_url: "docs/zh/进化机制重构计划/自进化机制重构计划/任务2_触发条件计算说明.md#TC-2"
+
+      # TC-3 启用课程难度自适应：KPI#4 分类型失败率连续 4 周 >30% 且 KPI#5 均分下降
+      - alert: LearningTriggerCourseAdaptation
+        expr: yunshu_learning_trigger_condition{condition="course_adaptation", status="hit"} == 1
+        for: 0m
+        labels:
+          severity: warning
+          category: learning
+          trigger_condition: course_adaptation
+          capability: 课程难度自适应
+        annotations:
+          summary: "触发条件命中：启用课程难度自适应"
+          description: "KPI#4 分类型失败率（task_type）连续 4 周 >30% 且 KPI#5 反馈均分环比下降。按报告 §4.1 按复杂度阶梯调整路由/上下文，先观察 2 周。"
+          runbook_url: "docs/zh/进化机制重构计划/自进化机制重构计划/任务2_触发条件计算说明.md#TC-3"
+
+      # TC-4 启用沙箱回放：回放覆盖率 <50% 且 KPI#6 沉淀增量连续 4 周停滞
+      - alert: LearningTriggerSandboxReplay
+        expr: yunshu_learning_trigger_condition{condition="sandbox_replay", status="hit"} == 1
+        for: 0m
+        labels:
+          severity: warning
+          category: learning
+          trigger_condition: sandbox_replay
+          capability: 沙箱回放
+        annotations:
+          summary: "触发条件命中：启用沙箱回放"
+          description: "沙箱回放覆盖率 <50% 且 KPI#6 沉淀增量连续 4 周停滞。回放统计由外部输入（replay_coverage）提供，未接入时本条件为 unknown 不触发。"
+          runbook_url: "docs/zh/进化机制重构计划/自进化机制重构计划/任务2_触发条件计算说明.md#TC-4"
+
+      # TC-5 启动元规则级递归自进化（L3 研究）：TC-1/TC-3/TC-4 全触发 + 外部前置
+      - alert: LearningTriggerL3Research
+        expr: yunshu_learning_trigger_condition{condition="l3_research", status="hit"} == 1
+        for: 0m
+        labels:
+          severity: critical
+          category: learning
+          trigger_condition: l3_research
+          capability: 元规则级递归自进化
+        annotations:
+          summary: "触发条件命中：启动元规则级递归自进化（L3 研究）"
+          description: "TC-1/TC-3/TC-4 全部触发 + 审计通过率连续 3 个月 100% + 零安全事故 + G1-G5 全部实现 + 决策层书面批准。L3 为远期研究红线，任何实现须走任务4 元规则版本化 + 审批链。"
+          runbook_url: "docs/zh/进化机制重构计划/自进化机制重构计划/任务2_触发条件计算说明.md#TC-5"
+
+      # 数据可用性看护：触发条件长期不可度量（insufficient_data / unknown）本身是运维信号
+      - alert: LearningTriggerDataInsufficient
+        expr: count(yunshu_learning_trigger_condition{status="insufficient_data"} == 1) > 0
+        for: 0m
+        labels:
+          severity: warning
+          category: learning
+          trigger_condition: data_availability
+        annotations:
+          summary: "触发条件存在不可度量项（数据缺失）"
+          description: "存在 insufficient_data 状态的触发条件（窗口内候选基数不足 / 无交互 / 无任务数据等）。请检查埋点数据源：record_task_result 调用方、KPI#7 候选计数（evolution_scheduler 非 dry-run）、持久化启用状态。"
+          runbook_url: "docs/zh/进化机制重构计划/自进化机制重构计划/任务2_触发条件计算说明.md#数据可用性"

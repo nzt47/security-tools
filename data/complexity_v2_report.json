@@ -1,0 +1,84 @@
+{
+  "samples_total": 150,
+  "distribution": {
+    "wire": {
+      "TRIVIAL": 55,
+      "SIMPLE": 25,
+      "NORMAL": 36,
+      "COMPLEX": 34
+    },
+    "wire_v2": {
+      "TRIVIAL": 41,
+      "SIMPLE": 46,
+      "NORMAL": 15,
+      "COMPLEX": 48
+    }
+  },
+  "consistency": {
+    "wire_vs_wire_v2": {
+      "agree": 101,
+      "total": 150,
+      "consistency_rate": 0.6733,
+      "conflicts": {
+        "NORMAL->SIMPLE": 15,
+        "NORMAL->COMPLEX": 13,
+        "TRIVIAL->SIMPLE": 11,
+        "SIMPLE->NORMAL": 5,
+        "TRIVIAL->COMPLEX": 3,
+        "COMPLEX->NORMAL": 2
+      },
+      "examples": [
+        {
+          "message": "3 的 5 次方等于多少",
+          "a": "TRIVIAL",
+          "b": "SIMPLE"
+        },
+        {
+          "message": "帮我写一个简单的爬虫脚本",
+          "a": "TRIVIAL",
+          "b": "SIMPLE"
+        },
+        {
+          "message": "帮我汇总一下这些数据",
+          "a": "TRIVIAL",
+          "b": "SIMPLE"
+        },
+        {
+          "message": "帮我生成一份数据统计表",
+          "a": "SIMPLE",
+          "b": "NORMAL"
+        },
+        {
+          "message": "帮我写一个批量重命名脚本",
+          "a": "TRIVIAL",
+          "b": "SIMPLE"
+        },
+        {
+          "message": "分析一下这份销售数据",
+          "a": "SIMPLE",
+          "b": "NORMAL"
+        },
+        {
+          "message": "分析一下这个数据集的分布",
+          "a": "SIMPLE",
+          "b": "NORMAL"
+        },
+        {
+          "message": "分析一下这段代码的性能瓶颈",
+          "a": "SIMPLE",
+          "b": "NORMAL"
+        },
+        {
+          "message": "分析一下这个方案的优缺点",
+          "a": "SIMPLE",
+          "b": "NORMAL"
+        },
+        {
+          "message": "帮我设计一个数据可视化方案",
+          "a": "NORMAL",
+          "b": "COMPLEX"
+        }
+      ]
+    }
+  }
+}

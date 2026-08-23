@@ -1,0 +1,126 @@
+[
+  {
+    "id": "planning-001",
+    "category": "planning",
+    "task": "规划一次 3 天的杭州旅行，输出行程安排",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "goal": "杭州 3 天旅行"
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "规划类样本：旅行规划",
+      "input_hash": "9d78e132d394f8d2"
+    }
+  },
+  {
+    "id": "planning-002",
+    "category": "planning",
+    "task": "将「上线新功能」拆解为可执行的子任务清单",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "步骤"
+      ]
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "goal": "上线新功能"
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "规划类样本：任务拆解",
+      "input_hash": "508b2ee89e013f7d"
+    }
+  },
+  {
+    "id": "planning-003",
+    "category": "planning",
+    "task": "制定每日晨间例行计划（30 分钟内完成）",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "goal": "晨间例行计划",
+        "duration_min": 30
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "规划类样本：例行计划",
+      "input_hash": "a6b53250fa91ad20"
+    }
+  },
+  {
+    "id": "planning-004",
+    "category": "planning",
+    "task": "为「三个月学会 Python」制定分阶段学习计划",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "阶段"
+      ]
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "goal": "三个月学会 Python"
+      },
+      "difficulty": "COMPLEX",
+      "source": "manual",
+      "note": "规划类样本：分阶段学习",
+      "input_hash": "9619744e0bf76813"
+    }
+  },
+  {
+    "id": "planning-005",
+    "category": "planning",
+    "task": "规划一次产品发布会的执行清单",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "goal": "产品发布会"
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "规划类样本：活动规划",
+      "input_hash": "4982e156eacde8cb"
+    }
+  },
+  {
+    "id": "planning-006",
+    "category": "planning",
+    "task": "制定周末大扫除任务的优先级排序",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "goal": "周末大扫除"
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "规划类样本：优先级排序",
+      "input_hash": "0e125492d4074794"
+    }
+  },
+  {
+    "id": "planning-007",
+    "category": "planning",
+    "task": "为「减重 5 公斤」制定一个月的可执行计划",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "goal": "减重 5 公斤",
+        "period": "1 个月"
+      },
+      "difficulty": "COMPLEX",
+      "source": "manual",
+      "note": "规划类样本：目标计划",
+      "input_hash": "e0fb0caa9c31412d"
+    }
+  }
+]

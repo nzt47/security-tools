@@ -9,12 +9,15 @@
         "云枢"
       ]
     },
-    "created_at": "2026-08-12T00:00:00",
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "query": "云枢 Digital Life 定义"
       },
-      "note": "搜索类样本：校验输出包含关键词"
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "搜索类样本：校验输出包含关键词",
+      "input_hash": "a110b2b4c3c0fa42"
     }
   },
   {
@@ -27,12 +30,15 @@
         "上海"
       ]
     },
-    "created_at": "2026-08-12T00:00:00",
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "query": "上海今天天气 气温"
       },
-      "note": "开放结果类样本：仅校验主题相关性"
+      "difficulty": "TRIVIAL",
+      "source": "manual",
+      "note": "开放结果类样本：仅校验主题相关性",
+      "input_hash": "330a10459fe377ad"
     }
   },
   {
@@ -44,13 +50,16 @@
       "key": "found",
       "value": true
     },
-    "created_at": "2026-08-12T00:00:00",
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "query": "Python 3.12 latest version",
         "require_json": true
       },
-      "note": "结构化输出样本：校验 result.found == true"
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "结构化输出样本：校验 result.found == true",
+      "input_hash": "40006dee9ad25652"
     }
   },
   {
@@ -63,12 +72,15 @@
         "不易"
       ]
     },
-    "created_at": "2026-08-12T00:00:00",
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "query": "三义原则 不易 不变"
       },
-      "note": "知识检索类样本"
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "知识检索类样本",
+      "input_hash": "a1646ae79be115f0"
     }
   },
   {
@@ -81,13 +93,164 @@
         "主题"
       ]
     },
-    "created_at": "2026-08-12T00:00:00",
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "query": "记忆 主题 列表",
         "source": "local_memory"
       },
-      "note": "本地检索类样本"
+      "difficulty": "TRIVIAL",
+      "source": "manual",
+      "note": "本地检索类样本",
+      "input_hash": "83c8369eae598819"
+    }
+  },
+  {
+    "id": "search-006",
+    "category": "search",
+    "task": "查询「云枢」支持的技能数量",
+    "expected_output": {
+      "type": "json",
+      "key": "found",
+      "value": true
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "query": "云枢 技能 数量",
+        "require_json": true
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "结构化检索样本",
+      "input_hash": "642edb8c1545ed28"
+    }
+  },
+  {
+    "id": "search-007",
+    "category": "search",
+    "task": "搜索一篇关于「多智能体系统」的技术文章",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "智能体"
+      ]
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "query": "多智能体系统 技术文章"
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "主题检索样本",
+      "input_hash": "cc0dbbc5043c1ffc"
+    }
+  },
+  {
+    "id": "search-008",
+    "category": "search",
+    "task": "查询最近一次系统备份的时间",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "备份"
+      ]
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "query": "系统备份 时间"
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "运维检索样本",
+      "input_hash": "0012bb6ec401da4d"
+    }
+  },
+  {
+    "id": "search-009",
+    "category": "search",
+    "task": "检索「AES-256-GCM」的加密原理说明",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "AES"
+      ]
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "query": "AES-256-GCM 加密原理"
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "技术检索样本",
+      "input_hash": "1c74acee140f0777"
+    }
+  },
+  {
+    "id": "search-010",
+    "category": "search",
+    "task": "查询用户收藏夹中的第一个链接标题",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "收藏"
+      ]
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "query": "收藏夹 链接",
+        "source": "local_memory"
+      },
+      "difficulty": "TRIVIAL",
+      "source": "manual",
+      "note": "本地检索样本",
+      "input_hash": "4cd4b939c6b85b55"
+    }
+  },
+  {
+    "id": "search-011",
+    "category": "search",
+    "task": "搜索「预算熔断」机制的设计文档",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "预算"
+      ]
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "query": "预算熔断 设计文档"
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "内部知识检索样本",
+      "input_hash": "10139e01dc94d9e6"
+    }
+  },
+  {
+    "id": "search-012",
+    "category": "search",
+    "task": "查询「云枢」的版本发布记录",
+    "expected_output": {
+      "type": "contains",
+      "values": [
+        "版本"
+      ]
+    },
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "query": "云枢 版本发布记录"
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "发布记录检索样本",
+      "input_hash": "b23ff51f5dac5ff1"
     }
   }
 ]

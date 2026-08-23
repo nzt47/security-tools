@@ -33,10 +33,14 @@ AUDIT_LOG = REPO_ROOT / "data" / "health" / "guard_llm_api_key.log"
 # 放宽到「sk- 开头且长度 >= 20」以兼容其他厂商；黑名单兜底已知占位符
 KEY_RE = re.compile(r"^sk-[\w-]{18,}$")
 PLACEHOLDER = {
-    "sk-test-1234567890abcdef",          # 并行会话测试 key
-    "sk-test", "sk-secret", "sk-test-key",
-    "sk-1234567890abcdef", "sk-real-key-123",
-    "sk-real-key-original", "sk-instance-key-12345",
+    "sk-test-1234567890abcdef",  # gitleaks:allow 并行会话测试 key（非真实 key，Gitleaks 误报豁免）
+    "sk-test",  # gitleaks:allow 占位符
+    "sk-secret",  # gitleaks:allow 占位符
+    "sk-test-key",  # gitleaks:allow 占位符
+    "sk-1234567890abcdef",  # gitleaks:allow 占位符
+    "sk-real-key-123",  # gitleaks:allow 占位符
+    "sk-real-key-original",  # gitleaks:allow 占位符
+    "sk-instance-key-12345",  # gitleaks:allow 占位符
 }
 MIN_LEN = 20
 

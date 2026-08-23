@@ -10,7 +10,8 @@ import type { LoginParams, UserInfo } from '@/api/user'
 import { clearToken, setToken } from '@/utils/request'
 
 export default function Profile() {
-  const [form, setForm] = useState<LoginParams>({ username: 'admin', password: '123456' })
+  // 演示页表单不预填默认密码（避免硬编码测试凭证；由用户手动输入）
+  const [form, setForm] = useState<LoginParams>({ username: '', password: '' })
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
   const [loading, setLoading] = useState(false)
 

@@ -58,15 +58,44 @@ learning:
   # 默认 false（观察）：execute_plan 收尾仅记录调用意图日志；true 才实际调 learn_from_experience 落盘
   # 环境变量 LEARNING_EXPERIENCE_PERSIST 覆盖此值
   experience_persist: false
-  # TASK-03：学习动作成本预算护栏（把 configs/models.yaml cost_limits 从"声明"变为"可执行"）
-  # mode=warn_only（默认，宽松）：超限仅记录 WARNING 不拦截，防止上线即改行为；
-  # mode=enforce：超过单次上限/日预算的学习动作被拒绝并告警（LearningBudgetExceeded）
+  # TASK-03/任务5：学习动作成本预算护栏（把 configs/models.yaml cost_limits 从"声明"变为"可执行"）
+  # mode=enforce（任务5 灰度提升，原 warn_only 观察期结束）：超过单次上限/日预算的学习
+  #   动作被拒绝并告警（LearningBudgetExceeded），作为任务5 Judge 通道（LLM 型评估）
+  #   存在的必要条件（报告 TASK-08 §3.3 否决条件：warn_only 不强制时一律不引入 LLM 型评估角色）
+  # scope=learning_actions（作用范围声明，审计可读）：本护栏只被学习动作调用
+  #   （LEARNING_ACTION_SCOPE 白名单），enforce 天然不触碰主链路——主链路零 import 零调用
+  #   （grep 审计 with_budget|get_learning_budget 全部命中学习侧文件）；MAIN_CHAIN_EXCLUDED
+  #   排除清单声明于 agent/learning_budget.py，新增主链路消费方属违规
   # 优先级：环境变量 > config.yaml > models.yaml cost_limits > 硬编码默认值
   budget:
-    mode: warn_only
+    mode: enforce
+    scope: learning_actions
     max_single_action_tokens: 4000
     max_daily_tokens: 1000000
     recovery_seconds: 3600
+  # 任务5：LLM-as-Judge 双假设验证 · Judge dry-run 通道（agent/learning/judge_channel.py）
+  # 同候选集双通道评估（规则通道 vs LLM Judge），只写 metrics/审计，零干预任何提交/采纳决策；
+  # 所有 LLM 调用经 learning.budget 记账（enforce 熔断保护，超限跳过不伪造指标）。
+  # 开关优先级：环境变量 LEARNING_JUDGE_* > config.yaml learning.judge > 硬编码默认值
+  # 【不变式】enabled 默认 false（默认零 LLM 调用）；dry_run 默认 true；干预模式属远期决策
+  #           （报告 §3.3 流程 + 判别结论"支持引入"后才进入评估），本任务绝不启用。
+  judge:
+    enabled: false
+    dry_run: true
+    audit_file: ./data/learning/judge_audit.jsonl
+    # 判别规则预设（写入任务5判别报告 §3）：
+    #   分歧率 < 阈值 → 假设 B（候选质量差）→ 不引入 Judge，转向改进候选生成；
+    #   分歧率 ≥ 阈值 且 按 Judge 判定的采纳率 - 规则通道采纳率 ≥ +10pp → 假设 A（评估不精细）
+    #     → 支持引入，按报告 §3.3 dry-run 2 周流程评估启用；其余 → 不启用（证据不足，继续采集）
+    disagreement_threshold: 0.10
+    min_adoption_delta_pp: 10.0
+    # 最小判别基数：双通道判定样本 < 该值时判别结论标记 insufficient_data（不进入判别）
+    min_candidates: 5
+    # 采集周期（周）：2 周（或候选数 ≥ min_candidates，取先到者）
+    collection_weeks: 2
+    # 单候选 LLM 预估 token 上限（计入 learning.budget 单次上限内）
+    max_estimated_tokens_per_candidate: 2000
+
   # TASK-04：知识→技能沉淀管道调度开关（安全底线，默认关闭）
   # 默认 false：不注册 memory_abstractor 定时沉淀任务；true 才注册（产物仅 DRAFT+审计+KPI，绝不自动注册）
   # 环境变量 LEARNING_PRECIPITATE_ENABLED 覆盖此值
@@ -118,6 +147,34 @@ learning:
     dry_run: true
     # 生命周期迁移审计日志（JSONL：skill_id/from_status/to_status/闲置天数）
     audit_file: ./data/skill_lifecycle_audit.jsonl
+  # 任务3：L2 自进化闭环受控放行（四态放行框架）
+  # 三类进化动作（feedback/evolution/lifecycle）统一放行状态机：
+  #   dry_run（默认，零副作用）/ observe（真实评估+预演，零提交，写谱系 preview）/
+  #   confirm（产物进审批队列，人工批准后提交，提交前回归门禁）/
+  #   rollout（按 rollout_ratio 比例命中；KPI 连续恶化自动回退 + 告警）
+  # 总开关 LEARNING_ROLLOUT_MASTER_ENABLED（默认 false）：false 时全部强制 dry_run。
+  # 环境变量覆盖：LEARNING_ROLLOUT_<ACTION>_MODE / _ROLLOUT_RATIO /
+  #   _KPI_ROLLBACK_WINDOW_WEEKS（ACTION=FEEDBACK|EVOLUTION|LIFECYCLE）
+  rollout:
+    master_enabled: false
+    # 回归门禁模式（任务1 接线）：enforce=FAIL/NO_SAMPLES 拦截提交（默认）/
+    # warn_only=只读告警不拦截 / off=零调用
+    # 环境变量 LEARNING_ROLLOUT_REGRESSION_GATE 覆盖此值
+    regression_gate: enforce
+    # 放行审计日志（JSONL：action/mode/candidate_id/decision/版本号/回归结果/KPI 快照/回滚命令）
+    audit_file: ./data/learning/rollout_audit.jsonl
+    feedback:
+      mode: dry_run
+      rollout_ratio: 0.1
+      kpi_rollback_window_weeks: 2
+    evolution:
+      mode: dry_run
+      rollout_ratio: 0.1
+      kpi_rollback_window_weeks: 2
+    lifecycle:
+      mode: dry_run
+      rollout_ratio: 0.1
+      kpi_rollback_window_weeks: 2
   # TASK-06：感知侧新颖性学习管道开关（安全底线，默认开启——2026-08-14 由观察模式转入正式采集）
   # true（正式采集）：低/中置信 NoveltyEvent → 记忆（novelty_memory.jsonl），高置信 → 审计 + 建议草稿
   # （novelty_suggestions/，仅 DRAFT，绝不注册技能——供 TASK-04 审核链消费）
@@ -154,6 +211,155 @@ learning:
     # 策略库/失败案例存储目录
     # 环境变量 EVOLUTION_STORAGE_PATH 覆盖此值
     storage_path: ./data/evolution
+  # 任务6：沙箱回放与评估隔离加固（重构计划阶段三）
+  # 评估回放隔离层：不可信轨迹/候选产物在全新解释器进程执行（受限 builtins +
+  # 危险模块惰性代理 + 环境白名单 + 超时强杀 + 输出/并发上限），fail-closed。
+  # 安全底线：默认关闭（false）；显式开启仅限任务1 评估集回归与任务3 observe 态
+  # 回放用途；回放样本走 black_box 脱敏管道，明文不出隔离环境。
+  # 环境变量 EVAL_REPLAY_* 覆盖对应值；优先级: 环境变量 > config.yaml > 硬编码
+  replay:
+    # 总开关（默认 false，安全底线）
+    # 环境变量 EVAL_REPLAY_ENABLED 覆盖此值
+    enabled: false
+    # 后端（process | docker；docker 为可选容器化后端，需 docker + 镜像）
+    # 环境变量 EVAL_REPLAY_BACKEND 覆盖此值
+    backend: process
+    # 进程后端执行器（spawn | subprocess；spawn 不可用时回放显式失败，
+    # 不会静默降级为同进程执行；受限环境可用 subprocess 文件交换执行器）
+    # 环境变量 EVAL_REPLAY_RUNNER 覆盖此值
+    runner: spawn
+    # 单样本墙钟超时（秒），超时强杀
+    # 环境变量 EVAL_REPLAY_TIMEOUT_S 覆盖此值
+    timeout_s: 30
+    # stdout/stderr 捕获上限（字节，防内存炸弹）
+    # 环境变量 EVAL_REPLAY_MAX_OUTPUT_BYTES / EVAL_REPLAY_MAX_STDERR_BYTES 覆盖
+    max_output_bytes: 1048576
+    max_stderr_bytes: 262144
+    # 并发 worker 上限（默认 1 串行，防并发放大/fork 炸弹）
+    # 环境变量 EVAL_REPLAY_MAX_CONCURRENT 覆盖此值
+    max_concurrent: 1
+    # 单 job 样本数上限
+    # 环境变量 EVAL_REPLAY_MAX_SAMPLES 覆盖此值
+    max_samples: 200
+    # scratch 根目录（默认 <系统临时>/yunshu_replay；与生产零共享写路径）
+    # 环境变量 EVAL_REPLAY_WORK_DIR 覆盖此值
+    work_dir: ""
+    # 回放素材只读目录（默认 data/evals；仅作只读素材，绝不写入）
+    # 环境变量 EVAL_REPLAY_MATERIAL_DIR 覆盖此值
+    material_dir: ./data/evals
+    # 回放审计日志（JSONL：replay_id/samples/candidate_id/verdict/duration/
+    # resource_usage/evidence(截断)/rollback_command）
+    # 环境变量 EVAL_REPLAY_AUDIT_FILE 覆盖此值
+    audit_file: ./data/learning/replay_audit.jsonl
+    # docker 后端镜像（仅 EVAL_REPLAY_BACKEND=docker 时使用）
+    # 环境变量 EVAL_REPLAY_DOCKER_IMAGE 覆盖此值
+    docker_image: python:3.12-slim
+    # POSIX 内存上限（MB；0=不设；Windows 无 resource 时仅记录不强制）
+    # 环境变量 EVAL_REPLAY_MAX_RSS_MB 覆盖此值
+    max_rss_mb: 0
+  # 任务4：元规则版本化与护栏可执行化（重构计划阶段二，护栏 G1）
+  # 只读默认：本段只登记/快照/门控/查询进化参数，不改变任何读取语义；
+  # 变更必须走审批链（approval.py），无审批零生效；非法值回退默认
+  # 环境变量 META_POLICY_ENABLED / META_POLICY_STORE_DIR /
+  #           META_POLICY_APPROVAL_LEVEL / META_POLICY_AUDIT_FILE /
+  #           META_POLICY_MIGRATE_DRY_RUN_ONLY 覆盖
+  meta_policy:
+    # 元规则存储/变更总开关（false 时变更操作全部拒绝，只读可用）
+    enabled: true
+    # 存储根目录（schema.json/current.json/versions/audit.jsonl）
+    store_dir: ./data/learning/meta_policy
+    # 变更审批级别（L0/L1/L2；默认 L1=人工批准后系统自动生效）
+    approval_level: L1
+    # migrate 只做 dry-run（安全底线：默认不迁移任何参数）
+    migrate_dry_run_only: true
+  # 任务4：护栏状态服务（G1-G5 聚合，只读端点 /api/learning/guards）
+  # 环境变量 GUARD_STATUS_ENABLED 覆盖此值
+  guard_status:
+    enabled: true
+  # 任务2：学习 KPI 数据源补齐与触发条件监控（重构计划阶段一）
+  # 依赖主线 TASK-03 learning_metrics.py；配置优先级：环境变量 > 本配置 > 硬编码默认值
+  metrics:
+    # KPI#7 进化采纳率最小候选基数：周候选数 < 该值时该周采纳率标记 insufficient_data，
+    # 不参与"连续 4 周"统计（报告 §5.2 触发条件）；默认 5
+    # 环境变量 LEARNING_METRICS_MIN_CANDIDATES 覆盖此值
+    min_candidates: 5
+    # 知识检索（agent/knowledge/search.py）KPI#1 语义查询观察埋点：
+    # 默认 true（观察埋点开启，2026-08-23 复查接线）——知识卡片检索与 orchestrator
+    # 语义层技能匹配是不同通道，开启后每次 search 计入 record_semantic_query
+    # （saved_tokens=0，纯计数零成本，不改 token 复用率口径，异常静默零阻塞）
+    # 环境变量 LEARNING_METRICS_OBSERVE_KNOWLEDGE_SEARCH 覆盖此值
+    observe_knowledge_search: true
+    # SQLite 持久化（TASK-03 设计，2026-08-23 复查按启用路线图 S1 启用；
+    # true 时启用落库：I/O 不进锁、DB 失败自动降级为内存聚合（沿用 3f37612d 设计）、
+    # 跨重启累积"连续 4 周"统计；回滚：LEARNING_METRICS_PERSIST_ENABLED=false 即时关闭）
+    # 环境变量 LEARNING_METRICS_PERSIST_ENABLED / _PATH / _FLUSH_BATCH / _RETENTION_DAYS 覆盖
+    persistence:
+      enabled: true
+      # 持久化 DB 路径（相对仓库根）
+      path: ./data/learning_metrics.db
+      # 达该事件行数阈值自动批量落库（单事务）
+      flush_batch_size: 200
+      # 回填保留天数（跨重启恢复窗口）
+      retention_days: 90
+    # 触发条件监控判定参数（报告 TASK-08 §3.3/§5.2 五条触发条件；窗口/阈值见
+    # docs/zh/进化机制重构计划/自进化机制重构计划/任务2_触发条件计算说明.md）
+    trigger_monitoring:
+      # "连续 N 周"判定窗口（含当前进行周）；默认 4
+      window_weeks: 4
+      # 沙箱回放覆盖率阈值（< 该值触发 TC-4）；回放统计未接入时 TC-4 为 unknown
+      replay_coverage_threshold: 0.5
+  # 任务7：复杂度判定源统一（agent/task_planner/complexity_classifier.py）
+  # source=wire_v2（2026-08-23 选型结论：200 条人工标注集符合率 62.5% vs wire 55.0%，
+  # 显著修正 SIMPLE→TRIVIAL 与 COMPLEX→NORMAL 系统性误判；wire_enabled=false 时
+  # 切换仅影响复杂度元数据/KPI#4 维度，不改变任何路由决策）
+  # 候选：wire（原默认，可回退）/ enhanced_planner（灰度对比候选）
+  # 回退：COMPLEXITY_SOURCE=wire 环境变量一键回退（优先级高于 config）
+  # 依据：data/complexity_labeled.jsonl（200 条标注）+ complexity_v2_compare.py --labeled
+  #       + 《复杂度判定源选型决策.md》
+  # 环境变量 COMPLEXITY_SOURCE 覆盖此值
+  complexity:
+    source: wire_v2
+    # wire_v2 判定参数（WireV2Classifier，环境变量 COMPLEXITY_V2_* 覆盖；
+    # 非法值回退默认；仅 source=wire_v2 时生效）
+    v2:
+      # 复杂指示词命中权重（单次命中累计）
+      complex_keyword_weight: 1.0
+      # 动作词命中权重
+      action_keyword_weight: 0.5
+      # 文本长度（字符）超过该值附加长文本权重分
+      length_threshold: 60
+      length_weight: 0.5
+      # 数字/金额/百分比/日期实体每命中附加权重
+      numeric_entity_weight: 0.25
+      # 步骤连接词（首先/然后/最后/分别…）每命中附加权重
+      step_word_weight: 0.5
+      # 量词（多个/所有/全部…）每命中附加权重
+      quantifier_weight: 0.5
+      # 分级阈值（与 wire 同构：≥complex 分档 / ≥normal 分档 / ≥simple 分档）
+      complex_threshold: 2.0
+      normal_threshold: 1.5
+      simple_threshold: 0.5
+  # 任务7：课程难度自适应策略（agent/learning/curriculum.py）——默认关闭（观察模式）
+  # 默认 false：enabled=false 时策略零建议零审计，路由行为与现状完全一致；
+  # 启用决策需基于任务7 对比报告 + 任务2 KPI 监控数据，属后续人工决策
+  # 环境变量：LEARNING_CURRICULUM_ENABLED / _MODE / _SUCCESS_BASELINE /
+  #           _LOW_FAILURE_THRESHOLD / _MIN_SAMPLES / _MAX_STEP / _WINDOW_WEEKS / _AUDIT_FILE
+  curriculum:
+    enabled: false
+    # 模式：observe（只读建议+审计，默认）/ active（建议生效+审计）
+    mode: observe
+    # 高复杂度档（NORMAL/COMPLEX）成功率基线：≥ 该值才允许提升路由概率（默认 0.70）
+    success_baseline_threshold: 0.7
+    # 低复杂度档（TRIVIAL/SIMPLE）失败率门槛：> 该值封锁高复杂度档提升（默认 0.30）
+    low_complexity_failure_threshold: 0.3
+    # 单档最小样本量（不足标记 insufficient_data，不输出建议）
+    min_samples: 5
+    # 单档路由概率建议步长上限
+    max_step: 0.1
+    # 统计窗口周数（读 get_weekly_kpis 最近 N 周）
+    window_weeks: 4
+    # 调整审计日志（JSONL：decision=preview/apply）
+    audit_file: ./data/learning/curriculum_audit.jsonl
 tools:
   enabled: true
   timeout: 30
@@ -626,6 +832,40 @@ skills_mgmt:
     enforce_before_publish: true
     # 豁免发布审计日志（JSONL，逐条留痕）
     audit_file: ./data/skills_mgmt_review_audit.jsonl
+
+  # 任务1：技能评估集工程化与回归门禁（自进化机制重构计划 · 阶段一）
+  # 评估集 = data/evals/（一等资产：schema 校验 + manifest 版本登记 + 回归门禁）
+  # 环境变量 EVAL_* 覆盖对应值；优先级: 环境变量 > config.yaml > 硬编码默认值
+  eval_samples:
+    # 评估集根目录（与 EVAL_SAMPLES_DIR 一致）
+    dir: ./data/evals
+    # 扩充管道开关（安全底线，默认 false：零副作用；开启后只产 _pending/ DRAFT，
+    # 审核通过才入正式类别）环境变量 EVAL_SAMPLE_INGEST_ENABLED 覆盖此值
+    ingest_enabled: false
+    # DRAFT 草稿目录（审核通过前绝不入评估集）
+    # 环境变量 EVAL_SAMPLE_PENDING_DIR 覆盖此值
+    pending_dir: ./data/evals/_pending
+    # 样本集版本登记（版本 → 类别 → 样本 id 清单；校验脚本强制一致性）
+    # 环境变量 EVAL_SAMPLESET_MANIFEST 覆盖此值
+    manifest_file: ./data/evals/manifest.json
+    # 回归基线存储（skill_id → 版本 → 基线分；门禁运行时生成）
+    # 环境变量 EVAL_REGRESSION_BASELINE_FILE 覆盖此值
+    baselines_file: ./data/evals/baselines.json
+    # 回归门禁默认样本集版本
+    # 环境变量 EVAL_REGRESSION_DEFAULT_SET 覆盖此值
+    default_sampleset: v1
+    # 回归退化阈值（delta < -0.05 → FAIL，可配置）
+    # 环境变量 EVAL_REGRESSION_DEGRADE_THRESHOLD 覆盖此值
+    degrade_threshold: 0.05
+    # 门禁单次评估 token 预算（TokenBudget 熔断）
+    # 环境变量 EVAL_REGRESSION_BUDGET_TOKENS 覆盖此值
+    budget_tokens: 100000
+  # 进化提交回归门禁模式（off / warn_only / enforce）
+  # off:       完全不调用门禁（零开销）
+  # warn_only: 门禁运行但只读告警（FAIL/NO_SAMPLES 仅日志，不拦截提交）
+  # enforce:   门禁拦截（FAIL/NO_SAMPLES/budget_exceeded → 谱系 rejected 并跳过提交）
+  # 默认 warn_only（守"上线即改行为"风险）；环境变量 EVOLUTION_REGRESSION_GATE 覆盖此值
+  evolution_regression_gate: warn_only
 
   # 安装器配置
   installer:

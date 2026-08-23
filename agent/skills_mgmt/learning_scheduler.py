@@ -12,21 +12,34 @@
     （app_server __main__ 挂载 / CLI python -m agent.skills_mgmt.learning_scheduler），
     避免分散注册（任务书"三处定时调度注册（统一收口）"）。
 
+    TASK-03（任务3 受控放行）追加：三类进化动作（feedback/evolution/lifecycle）
+    的调度出口统一包装进 agent.learning.rollout_controller 四态放行框架
+    （dry_run/observe/confirm/rollout）。默认总开关关闭 → 全部强制 dry_run，
+    与既有行为完全一致；仅当显式开启放行模式时才叠加观察/审批/比例命中控制。
+
 【不易】约束:
     - 不改各模块内部逻辑，只统一调用各自 schedule()/unschedule()
     - 每个任务是否注册由各自配置开关决定；注册失败不阻断主流程
     - 不启动 daemon（由主进程 start_daemon；CLI --start-daemon 可选）
     - 调度触发均默认 dry-run / 观察模式（feedback/evolver/lifecycle/sensor_learning
       各自配置），正式写操作需显式开启（安全底线）
+    - 放行包装失败（import/配置异常）回退原 func，零行为变化
 """
 
 from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List
 
 logger = logging.getLogger(__name__)
+
+# 三类进化动作 → 调度任务名映射（放行框架只覆盖这三类；behavior_drift 为感知侧，不属进化动作）
+_ROLLOUT_TASKS: Dict[str, str] = {
+    "反馈建议执行": "feedback",
+    "周期进化": "evolution",
+    "生命周期检查": "lifecycle",
+}
 
 
 def register_learning_schedulers() -> Dict[str, Any]:
@@ -42,12 +55,70 @@ def register_learning_schedulers() -> Dict[str, Any]:
     from agent.skills_mgmt.lifecycle import LifecycleManager
     from agent.learning.behavior_drift import BehaviorDriftScheduler
 
-    return {
+    results = {
         "feedback_agent": FeedbackAgent().schedule(),
         "evolution": EvolutionScheduler().schedule(),
         "lifecycle": LifecycleManager().schedule(),
         "behavior_drift": BehaviorDriftScheduler().schedule(),
     }
+    # 任务3：调度出口接线——三类进化动作的已注册任务 func 包装进放行控制器
+    _wire_rollout_controller()
+    return results
+
+
+def _wire_rollout_controller() -> None:
+    """把三类进化动作的已注册调度任务 func 替换为放行控制器包装。
+
+    默认（总开关关闭 → 全部 dry_run）下包装器以 dry_run=True 调用执行体，
+    与既有"模块自身 dry_run=true"行为一致（零行为变化）；仅当显式开启
+    observe/confirm/rollout 模式时才叠加放行控制。包装失败回退原 func。
+    """
+    try:
+        from agent.task_scheduler import get_scheduler
+        from agent.learning.rollout_controller import RolloutController, _executor_runners
+    except Exception as e:  # noqa: BLE001 放行框架不可用 → 保持原调度行为
+        logger.warning("[LearningScheduler] 放行框架接线失败（保持原调度行为）: %s", e)
+        return
+    try:
+        sched = get_scheduler()
+    except Exception as e:  # noqa: BLE001
+        logger.error("[LearningScheduler] 调度器不可用: %s", e)
+        return
+    controller = RolloutController()
+    by_name: Dict[str, Any] = {}
+    for task in sched.tasks:
+        if task.get("name") in _ROLLOUT_TASKS:
+            by_name[task["name"]] = task
+    for task_name, action in _ROLLOUT_TASKS.items():
+        task = by_name.get(task_name)
+        if task is None or "func" not in task:
+            continue
+        try:
+            runners = _executor_runners(action)
+        except Exception as e:  # noqa: BLE001 单个动作 runner 构建失败不阻断
+            logger.warning("[LearningScheduler] 动作 %s runner 构建失败: %s",
+                           action, e)
+            continue
+        task["func"] = _make_rollout_wrapper(
+            controller, action, runners["dry_runner"], runners["run_real"])
+        logger.info("[LearningScheduler] 调度出口已接入放行框架 action=%s "
+                    "（默认 dry_run，零行为变化）", action)
+
+
+def _make_rollout_wrapper(controller: Any, action: str,
+                          dry_runner: Callable[[], Any],
+                          run_real: Callable[[], Any]) -> Callable[[], None]:
+    """构造放行包装器：调度触发 → controller.run_scheduled（按模式分派）。"""
+
+    def wrapper() -> None:
+        try:
+            controller.run_scheduled(action, dry_runner=dry_runner,
+                                     run_real=run_real)
+        except Exception as e:  # noqa: BLE001 调度线程稳定性：异常不抛出
+            logger.error("[LearningScheduler] 放行调度执行失败 action=%s: %s",
+                         action, e)
+
+    return wrapper
 
 
 def unregister_learning_schedulers() -> Dict[str, bool]:
@@ -113,4 +184,5 @@ if __name__ == "__main__":
 
 __all__: List[str] = [
     "register_learning_schedulers", "unregister_learning_schedulers",
+    "_wire_rollout_controller", "_make_rollout_wrapper", "_ROLLOUT_TASKS",
 ]

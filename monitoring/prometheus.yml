@@ -5,6 +5,8 @@ global:
 rule_files:
   - "alerts.yml"
   - "prometheus/rules/lock_watchdog_alerts.yml"
+  - "prometheus/rules/learning_trigger_alerts.yml"
+  - "prometheus/rules/learning_judge_alerts.yml"
 
 scrape_configs:
   - job_name: 'yunshu'

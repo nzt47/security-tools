@@ -64,6 +64,67 @@ _ENV_HIDE_SENSITIVE = "KNOWLEDGE_SENSITIVE_HIDE_SNIPPET"
 _ENV_TIMING_SAMPLE_RATE = "KNOWLEDGE_TIMING_SAMPLE_RATE"
 _DEFAULT_TIMING_SAMPLE_RATE = 0.1  # 耗时日志默认采样率：每 10 次 search 输出 1 条（生产降噪）
 
+# ── 任务2：知识检索 KPI 观察埋点（record_semantic_query 观察模式）──
+# 默认关闭：避免知识卡片检索（与 orchestrator 语义层技能匹配不同通道）污染 KPI#2
+# Skill 命中率分母；显式开启（LEARNING_METRICS_OBSERVE_KNOWLEDGE_SEARCH=true，配置
+# 见 config.yaml learning.metrics.observe_knowledge_search）后，每次 search 结果
+# 作为一次语义层查询计入（saved_tokens=0，不改变 token 复用率口径）。
+_ENV_OBSERVE_KNOWLEDGE_SEARCH = "LEARNING_METRICS_OBSERVE_KNOWLEDGE_SEARCH"
+_OBSERVE_KNOWLEDGE_SEARCH: Optional[bool] = None
+_CONFIG_OBSERVE_CACHE: Optional[bool] = None
+
+
+def _config_observe_knowledge_search() -> bool:
+    """config.yaml learning.metrics.observe_knowledge_search（进程内缓存）"""
+    global _CONFIG_OBSERVE_CACHE
+    if _CONFIG_OBSERVE_CACHE is None:
+        value = False
+        try:
+            from pathlib import Path
+            import yaml as _yaml
+            _path = Path(__file__).resolve().parent.parent.parent / "config.yaml"
+            if _path.exists():
+                raw = _yaml.safe_load(_path.read_text(encoding="utf-8")) or {}
+                value = bool(((raw.get("learning") or {}).get("metrics") or {})
+                             .get("observe_knowledge_search", False))
+        except Exception:  # noqa: BLE001 配置读取失败回退默认（观察埋点绝不阻塞检索）
+            value = False
+        _CONFIG_OBSERVE_CACHE = value
+    return _CONFIG_OBSERVE_CACHE
+
+
+def _observe_knowledge_search_enabled() -> bool:
+    """观察埋点开关（优先级: 环境变量 > config.yaml learning.metrics.
+    observe_knowledge_search > 默认 false；进程内缓存避免反复读）"""
+    global _OBSERVE_KNOWLEDGE_SEARCH
+    if _OBSERVE_KNOWLEDGE_SEARCH is None:
+        raw = os.environ.get(_ENV_OBSERVE_KNOWLEDGE_SEARCH)
+        if raw is not None and str(raw).strip():
+            v = str(raw).strip().lower()
+            if v in ("1", "true", "yes", "on"):
+                _OBSERVE_KNOWLEDGE_SEARCH = True
+            elif v in ("0", "false", "no", "off"):
+                _OBSERVE_KNOWLEDGE_SEARCH = False
+            else:
+                # 环境变量显式但值非法 → 回退 config（守"非法值回退默认"约定）
+                logger.warning("[knowledge] %s 非法值 %r，回退 config 默认",
+                               _ENV_OBSERVE_KNOWLEDGE_SEARCH, raw)
+                _OBSERVE_KNOWLEDGE_SEARCH = _config_observe_knowledge_search()
+        else:
+            _OBSERVE_KNOWLEDGE_SEARCH = _config_observe_knowledge_search()
+    return _OBSERVE_KNOWLEDGE_SEARCH
+
+
+def _emit_knowledge_semantic_metric(hit: bool) -> None:
+    """观察模式 KPI 埋点（KPI#1 语义查询路径；异常静默，绝不阻塞检索主链路）"""
+    if not _observe_knowledge_search_enabled():
+        return
+    try:
+        from agent.learning_metrics import get_learning_metrics
+        get_learning_metrics().record_semantic_query(hit=hit, saved_tokens=0)
+    except Exception:
+        pass
+
 
 def _env_float(name: str, default: float) -> float:
     """读取环境变量 float，非法值回退默认（守【简易】）。"""
@@ -715,6 +776,9 @@ class KnowledgeSearch:
             query, top_k, len(bm25_results), len(vector_results),
             len(link_slugs), len(fused), len(hits), _trace, _total_ms,
         )
+        # 任务2: KPI#1 语义查询路径——知识检索命中处观察埋点（saved_tokens=0，
+        # 不改变 token 复用率口径；开关默认关，异常静默）
+        _emit_knowledge_semantic_metric(hit=bool(hits))
         return hits[:top_k]
 
     async def search_async(self, query: str, top_k: int = 5) -> list[KnowledgeHit]:

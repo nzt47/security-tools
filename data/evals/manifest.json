@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "current": "v1",
+  "versions": {
+    "v1": {
+      "description": "v1 初始人工审核评估集（search/code/chat/tool/planning 五类，50 条）",
+      "created_at": "2026-08-22T00:00:00",
+      "reviewed_by": "manual",
+      "categories": {
+        "search": [
+          "search-001",
+          "search-002",
+          "search-003",
+          "search-004",
+          "search-005",
+          "search-006",
+          "search-007",
+          "search-008",
+          "search-009",
+          "search-010",
+          "search-011",
+          "search-012"
+        ],
+        "code": [
+          "code-001",
+          "code-002",
+          "code-003",
+          "code-004",
+          "code-005",
+          "code-006",
+          "code-007",
+          "code-008",
+          "code-009",
+          "code-010",
+          "code-011",
+          "code-012"
+        ],
+        "chat": [
+          "chat-001",
+          "chat-002",
+          "chat-003",
+          "chat-004",
+          "chat-005",
+          "chat-006",
+          "chat-007",
+          "chat-008",
+          "chat-009",
+          "chat-010",
+          "chat-011",
+          "chat-012"
+        ],
+        "tool": [
+          "tool-001",
+          "tool-002",
+          "tool-003",
+          "tool-004",
+          "tool-005",
+          "tool-006",
+          "tool-007"
+        ],
+        "planning": [
+          "planning-001",
+          "planning-002",
+          "planning-003",
+          "planning-004",
+          "planning-005",
+          "planning-006",
+          "planning-007"
+        ]
+      }
+    }
+  }
+}

@@ -3,60 +3,192 @@
     "id": "chat-001",
     "category": "chat",
     "task": "用户说：你好，请问你能做什么？请给出友好简洁的自我介绍",
-    "created_at": "2026-08-12T00:00:00",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "user_message": "你好，请问你能做什么？"
       },
-      "note": "开放域对话样本：走自一致性评分"
+      "difficulty": "TRIVIAL",
+      "source": "manual",
+      "note": "开放域对话样本：走自一致性评分",
+      "input_hash": "788449f0fbe10bfa"
     }
   },
   {
     "id": "chat-002",
     "category": "chat",
     "task": "用户情绪低落时，请给出共情式回应",
-    "created_at": "2026-08-12T00:00:00",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "user_message": "我今天心情很不好，工作又出错了"
       },
-      "note": "开放域对话样本：走自一致性+反馈信号"
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "开放域对话样本：走自一致性+反馈信号",
+      "input_hash": "81b340db6564c918"
     }
   },
   {
     "id": "chat-003",
     "category": "chat",
     "task": "用户问：今天适合出门吗？请基于天气给出建议",
-    "created_at": "2026-08-12T00:00:00",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "user_message": "今天适合出门吗？"
       },
-      "note": "开放域建议类样本"
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "开放域建议类样本",
+      "input_hash": "7405c15d8da001bc"
     }
   },
   {
     "id": "chat-004",
     "category": "chat",
     "task": "用户说：帮我规划明天的日程，我上午开会下午写报告",
-    "created_at": "2026-08-12T00:00:00",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "user_message": "帮我规划明天的日程，我上午开会下午写报告"
       },
-      "note": "开放域任务规划类样本"
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "开放域任务规划类样本",
+      "input_hash": "960624c6b606014a"
     }
   },
   {
     "id": "chat-005",
     "category": "chat",
     "task": "用户表达感谢，请给出礼貌简洁的回应",
-    "created_at": "2026-08-12T00:00:00",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
     "metadata": {
       "input": {
         "user_message": "太感谢你了！"
       },
-      "note": "开放域礼貌回应样本"
+      "difficulty": "TRIVIAL",
+      "source": "manual",
+      "note": "开放域礼貌回应样本",
+      "input_hash": "c29ce69521eec5cc"
+    }
+  },
+  {
+    "id": "chat-006",
+    "category": "chat",
+    "task": "用户说：我刚刚丢了工作，很沮丧，请给出安慰与鼓励",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "user_message": "我刚刚丢了工作，很沮丧"
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "开放域共情样本",
+      "input_hash": "c30d4bff92fb77ed"
+    }
+  },
+  {
+    "id": "chat-007",
+    "category": "chat",
+    "task": "用户问：如何提高学习效率？请给出 3 条具体建议",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "user_message": "如何提高学习效率？"
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "开放域建议样本",
+      "input_hash": "0453bd887ef05c87"
+    }
+  },
+  {
+    "id": "chat-008",
+    "category": "chat",
+    "task": "用户说：给我讲一个短笑话",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "user_message": "给我讲一个短笑话"
+      },
+      "difficulty": "TRIVIAL",
+      "source": "manual",
+      "note": "开放域幽默样本",
+      "input_hash": "fa6ec79f0cdb9ad3"
+    }
+  },
+  {
+    "id": "chat-009",
+    "category": "chat",
+    "task": "用户问：Python 和 JavaScript 有什么区别？请简明解释",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "user_message": "Python 和 JavaScript 有什么区别？"
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "开放域知识解释样本",
+      "input_hash": "2e8cd577942f6055"
+    }
+  },
+  {
+    "id": "chat-010",
+    "category": "chat",
+    "task": "用户说：我想学编程，该从哪里开始？请给出学习路径",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "user_message": "我想学编程，该从哪里开始？"
+      },
+      "difficulty": "NORMAL",
+      "source": "manual",
+      "note": "开放域指引样本",
+      "input_hash": "028f3213464f6bdb"
+    }
+  },
+  {
+    "id": "chat-011",
+    "category": "chat",
+    "task": "用户问：今天天气晴朗，适合跑步吗？请给建议",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "user_message": "今天天气晴朗，适合跑步吗？"
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "开放域健康建议样本",
+      "input_hash": "4c63a37a6c2f5ac0"
+    }
+  },
+  {
+    "id": "chat-012",
+    "category": "chat",
+    "task": "用户说：帮我写一封请假的邮件",
+    "expected_output": null,
+    "created_at": "2026-08-22T00:00:00",
+    "metadata": {
+      "input": {
+        "user_message": "帮我写一封请假的邮件"
+      },
+      "difficulty": "SIMPLE",
+      "source": "manual",
+      "note": "开放域写作样本",
+      "input_hash": "a0072935f91f56a9"
     }
   }
 ]
