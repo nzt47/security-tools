@@ -283,7 +283,7 @@ venv/
 .wiki/
 yunshu-app-test/
 # 运行时备份/快照/健康数据（不入库）
-backup/data_*/
+backup/data_*
 backup/fix_encoding_closure_*/
 data/approval_records.jsonl
 data/health/
