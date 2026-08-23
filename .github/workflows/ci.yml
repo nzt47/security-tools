@@ -197,6 +197,21 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v6
 
+      # 【诊断】排查构建上下文缺失 tests/ 的根因（Buildkit 报 /tests/unit: not found）：
+      # 打印 workspace / tests 目录内容与 .dockerignore，确认 checkout 与上下文状态
+      - name: 诊断构建上下文（tests 目录）
+        run: |
+          echo "=== workspace 根目录 ==="
+          ls -la .
+          echo "=== tests/ 目录 ==="
+          ls -la tests/ 2>&1 || echo "!! tests/ 目录不存在"
+          echo "=== tests/unit 目录（前 20 项）==="
+          ls -la tests/unit/ 2>&1 | head -20 || echo "!! tests/unit 目录不存在"
+          echo "=== git 跟踪状态 ==="
+          git ls-tree HEAD --name-only tests/ 2>&1 | head -5
+          echo "=== .dockerignore ==="
+          cat .dockerignore
+
       - name: 构建预检镜像
         run: docker build -t yunshu-preflight .
 
