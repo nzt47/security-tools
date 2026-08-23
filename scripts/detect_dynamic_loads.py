@@ -21,13 +21,25 @@
     本脚本只读不写, 不修改任何源代码。
 """
 from __future__ import annotations
+import os
 import sys
 import ast
 import json
+import logging
 import argparse
 from pathlib import Path
 from dataclasses import dataclass, field, asdict
 from typing import List, Set, Optional
+
+# [变易] 诊断日志: 输出到 stderr, 保证 --json 模式 stdout 纯净 (报告即 stdout).
+# 级别由环境变量 DETECT_LOG_LEVEL 控制 (DEBUG 时输出受控降级判定全过程):
+#   DETECT_LOG_LEVEL=DEBUG python scripts/detect_dynamic_loads.py --json
+_logger = logging.getLogger("detect_dynamic_loads")
+_console = logging.StreamHandler(sys.stderr)
+_console.setFormatter(logging.Formatter("[detect] %(levelname)s %(message)s"))
+_logger.addHandler(_console)
+_logger.setLevel(os.environ.get("DETECT_LOG_LEVEL", "INFO").upper()
+                 if os.environ.get("DETECT_LOG_LEVEL") else logging.INFO)
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -172,6 +184,8 @@ class DynamicLoadVisitor(ast.NodeVisitor):
         # 检查是否匹配动态加载模式 (匹配末尾函数名)
         for pattern, risk in DYNAMIC_LOAD_PATTERNS.items():
             if resolved.endswith(pattern) or call_name == pattern:
+                _logger.debug("%s:%d matched pattern=%s risk=%s",
+                              self._rel_path(), node.lineno, pattern, risk)
                 # [变易] 受控降级: 动态加载的目标是仓库内已有文件 (如加载
                 # agent/orchestrator/dialog_state.py 绕过循环导入), 路径为代码
                 # 常量, 参数不可被外部控制 → HIGH 降为 MEDIUM, 避免误报阻断
@@ -179,8 +193,12 @@ class DynamicLoadVisitor(ast.NodeVisitor):
                 # (接收上述 spec 对象, 无独立路径参数) 跟随降级.
                 if risk == "HIGH" and self._is_controlled_spec_load(node, pattern):
                     self._controlled_files.add(self._rel_path())
+                    _logger.info("degrade HIGH->MEDIUM %s:%d (%s: repo-internal const path)",
+                                 self._rel_path(), node.lineno, pattern)
                     risk = "MEDIUM"
                 elif pattern == "module_from_spec" and self._rel_path() in self._controlled_files:
+                    _logger.info("degrade HIGH->MEDIUM %s:%d (module_from_spec follows controlled spec)",
+                                 self._rel_path(), node.lineno)
                     risk = "MEDIUM"
                 self._add_finding(node, pattern, risk, resolved)
                 break
@@ -215,11 +233,25 @@ class DynamicLoadVisitor(ast.NodeVisitor):
             path_arg = node.args[1] if len(node.args) >= 2 else None
 
         if not isinstance(path_arg, ast.Constant) or not isinstance(path_arg.value, str):
-            return False  # 路径非常量 (可能被外部控制), 保持 HIGH
+            # 路径非常量 (变量/表达式, 可能被外部控制) 保持 HIGH
+            _logger.debug("controlled-check %s:%d keep HIGH (path arg not const literal: %s)",
+                          self._rel_path(), node.lineno,
+                          type(path_arg).__name__ if path_arg is not None else "missing")
+            return False
         p = Path(path_arg.value)
         if p.is_absolute():
+            _logger.debug("controlled-check %s:%d keep HIGH (absolute path: %s)",
+                          self._rel_path(), node.lineno, path_arg.value)
             return False
-        return (self.root / p).resolve().is_file()
+        # [不易] 仓库内路径判定基于 ROOT (仓库根) 而非 self.root (扫描根):
+        # 加载路径按仓库相对路径书写 (如 "agent/orchestrator/dialog_state.py"),
+        # --root 指向子目录扫描时 (如 --root scripts), 用 self.root 解析会
+        # 错误地得到不存在的路径 → 误判未受控 → 误报 HIGH.
+        target = (ROOT / p).resolve()
+        exists = target.is_file()
+        _logger.debug("controlled-check %s:%d path=%r exists=%s",
+                      self._rel_path(), node.lineno, path_arg.value, exists)
+        return exists
 
     def _extract_call_name(self, node: ast.expr) -> str:
         """从 Call.func 提取调用名 (支持 Attribute 和 Name)"""
@@ -278,9 +310,12 @@ def scan_file(filepath: Path, root: Path) -> List[DynamicLoadFinding]:
         with open(filepath, encoding="utf-8") as f:
             source = f.read()
         tree = ast.parse(source, filename=str(filepath))
-    except SyntaxError:
+    except SyntaxError as e:
+        _logger.debug("skip %s (syntax error: %s)", filepath, e)
         return []
-    except Exception:
+    except Exception as e:
+        _logger.warning("skip %s (unexpected parse failure: %s: %s)",
+                        filepath, type(e).__name__, e)
         return []
 
     visitor = DynamicLoadVisitor(filepath, root)
@@ -348,9 +383,17 @@ def main() -> int:
     args = parser.parse_args()
 
     root = Path(args.root).resolve()
+    _logger.info("scan start root=%s json=%s", root, args.json)
     report = scan_directory(root)
 
     if args.json:
+        # [变易] Windows 本地 stdout 默认 locale 编码 (GBK/cp936), ensure_ascii=False
+        # 的中文 JSON 会报 UnicodeEncodeError 或写出空文件. 显式切 utf-8 保证
+        # --json 报告可被任意平台解析. CI (Linux, UTF-8) 不受影响.
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass  # stdout 被替换/重定向 (如 pytest capsys) 时不支持 reconfigure
         data = {
             "root": report.root,
             "scanned_files": report.scanned_files,
@@ -365,6 +408,9 @@ def main() -> int:
         print_report(report)
 
     # 退出码: 有 HIGH 风险返回 1
+    _logger.info("scan done files=%d findings=%d high=%d -> exit=%d",
+                 report.scanned_files, len(report.findings),
+                 len(report.high_risk), 1 if report.high_risk else 0)
     return 1 if report.high_risk else 0
 
 
