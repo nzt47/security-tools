@@ -44,6 +44,20 @@ from agent.utils.periodic_sampler import PeriodicSampler
 
 logger = logging.getLogger(__name__)
 
+# ─────────────────────────────────────────────────────────────
+#  模块级 BM25 索引缓存（避免 KnowledgeSearch 每次实例化全量重建）
+#  Why: 构造高频场景（每个请求 new searcher）下，_build_index 遍历全库
+#  卡片做 BM25 tokenize + 链接解析（O(N·词)），实测为构造耗时主项。
+#  缓存键 = wiki_root 绝对路径 + CardStore 文件指纹（文件名+mtime_ns 快照，
+#  与 CardStore.list(use_cache=True) 失效语义一致：文件增删改自动失效）。
+#  【不易】检索期 _cards 只读（仅构造期写入），缓存共享安全；
+#          fingerprint 变化才重建，快照式语义与现状一致。
+#  【变易】内存上限由知识库规模决定（每实例约 KB 级索引），
+#          10 万卡量级仍可接受；超大规模可评估 LRU。
+# ─────────────────────────────────────────────────────────────
+_INDEX_CACHE_LOCK = threading.Lock()
+_INDEX_CACHE: dict[tuple, tuple] = {}  # (wiki_root, fingerprint) -> (bm25, cards, link_cache)
+
 # ════════════════════════════════════════════════════════════
 #  默认配置（KNOWLEDGE_* 环境变量体系，与项目 SKILL_RERANKER_* 对齐）
 # ════════════════════════════════════════════════════════════
@@ -446,7 +460,35 @@ class KnowledgeSearch:
         文件 I/O，实测占总耗时 99%+）：构造期一次性预计算为内存 slug（LinkCache），
         热路径 _link_recall 纯内存查缓存，零文件 I/O、零读锁等待。快照式语义
         （与 _cards/_bm25 同待遇）：构造后写入的卡不入缓存，重建 searcher 即刷新。
+
+        【变易】模块级索引缓存：wiki_root + 指纹命中时复用 (bm25, cards, link_cache)，
+        跳过全库 tokenize（高频构造场景构造耗时 O(N·词) → O(1) 命中）。
+        指纹含 mtime_ns，文件增删改自动失效重建，语义与 CardStore.list(use_cache=True) 一致。
         """
+        # 缓存键：wiki_root 绝对路径 + CardStore 文件指纹
+        wiki_root = str(getattr(self._card_store, "_wiki_root", ""))
+        fingerprint = None
+        fingerprint_fn = getattr(self._card_store, "_fingerprint", None)
+        if fingerprint_fn is not None:
+            try:
+                fingerprint = fingerprint_fn()
+            except Exception as exc:  # noqa: BLE001  指纹失败降级为不缓存
+                logger.warning("KnowledgeSearch: 指纹获取失败，本次跳过索引缓存: %s", exc)
+                fingerprint = None
+
+        cache_key = (wiki_root, fingerprint)
+        if fingerprint is not None:
+            with _INDEX_CACHE_LOCK:
+                cached = _INDEX_CACHE.get(cache_key)
+            if cached is not None:
+                self._bm25, self._cards, self._link_cache = cached
+                logger.info(
+                    "KnowledgeSearch: 索引缓存命中 卡片数=%d bm25_size=%d 链接缓存卡数=%d",
+                    len(self._cards), self._bm25.size, self._link_cache.size,
+                )
+                return
+
+        # 缓存未命中（或指纹不可用）：全量重建
         cards = self._card_store.list()
         for card in cards:
             self._cards[card.slug] = card
@@ -456,6 +498,11 @@ class KnowledgeSearch:
             "KnowledgeSearch: 索引构建完成 卡片数=%d bm25_size=%d 链接缓存卡数=%d",
             len(self._cards), self._bm25.size, self._link_cache.size,
         )
+
+        # 写入缓存（仅指纹可用时；失败不阻塞检索）
+        if fingerprint is not None:
+            with _INDEX_CACHE_LOCK:
+                _INDEX_CACHE[cache_key] = (self._bm25, self._cards, self._link_cache)
 
     # ---------- 内部：三路召回 ----------
 

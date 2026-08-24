@@ -289,6 +289,7 @@ class LongTermMemory:
         Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
 
         conn = sqlite3.connect(self.db_path)
+        conn.execute("PRAGMA busy_timeout=5000")  # [方案A] 构造期建表同样兜底写锁竞争
         conn.execute(f"""
             CREATE TABLE IF NOT EXISTS {self._TABLE_NAME} (
                 key TEXT PRIMARY KEY,
@@ -364,6 +365,7 @@ class LongTermMemory:
         import sqlite_vec
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA busy_timeout=5000")  # [方案A] 构造期建表同样兜底写锁竞争
         conn.enable_load_extension(True)
         conn.load_extension(sqlite_vec.loadable_path())
         return conn
@@ -627,16 +629,19 @@ class LongTermMemory:
                         (key,)
                     ).fetchone()
 
-                if not row:
-                    return None
+                    if not row:
+                        return None
 
-                # 更新访问统计
-                now = time.time()
-                conn.execute(
-                    f"UPDATE {self._TABLE_NAME} SET last_accessed = ?, access_count = access_count + 1 WHERE key = ?",
-                    (now, key)
-                )
-                conn.commit()
+                    # 更新访问统计（[2026-08-24 方案A] 移进连接块内：
+                    # 旧代码在 with 退出（连接已关闭）后仍操作 conn，抛
+                    # ProgrammingError 被 except 吞掉，统计从未生效且每次
+                    # get 都走错误日志路径）
+                    now = time.time()
+                    conn.execute(
+                        f"UPDATE {self._TABLE_NAME} SET last_accessed = ?, access_count = access_count + 1 WHERE key = ?",
+                        (now, key)
+                    )
+                    conn.commit()
 
                 row = dict(row)
                 # [TLM-L3] embedding 列为 TEXT(JSON) 或 NULL，复用 from_dict 的解析逻辑保持一致
