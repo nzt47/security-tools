@@ -1918,30 +1918,27 @@ class SkillLoader:
             top = fused[:top_k]
 
         # 【变易】阈值过滤语义：reranker 主动过滤后为空，说明无高置信度匹配
-        # 不应触发 TF-IDF fallback（会引入新误召回），而是返回空 MatchResult
+        # 【不易修复】min_score 误过滤回归（2026-08-24）：
+        # 扩展黄金集实测 min_score 阈值可能把 positive case 全部过滤为空，
+        # 导致 Precision@3 -3.4%。修复：rerank 过滤为空但 RRF 候选非空时，
+        # 回退返回 RRF 原序 top_k（不返回空），避免误拒绝合理匹配。
         # 仅在 use_reranker=True 时启用此语义；RRF 召回本身为空时仍 return None 触发 fallback
         if not top:
             if use_reranker and fused:
-                # reranker 阈值过滤导致空结果，返回空 MatchResult（不 fallback）
+                # reranker 阈值过滤导致空结果 → 回退 RRF 原序（保底，不误拒 positive）
                 logger.info(json.dumps({
                     "trace_id": tid,
                     "module_name": "loader",
-                    "action": "rrf.rerank.filtered_empty",
+                    "action": "rrf.rerank.filtered_empty_fallback_rrf",
                     "intent": intent[:100],
                     "fused_count": len(fused),
                     "reason": "all_candidates_below_threshold",
+                    "fallback": "rrf_original_order",
                 }, ensure_ascii=False))
-                elapsed = (time.time() - t0) * 1000
-                return MatchResult(
-                    matches=[],
-                    total_scanned=len(index),
-                    elapsed_ms=elapsed,
-                    estimated_total_tokens=0,
-                    retrieval_method="rrf_rerank",
-                    fallback_used=False,
-                )
-            # RRF 召回本身为空，触发外层 fallback
-            return None
+                top = fused[:top_k]
+            else:
+                # RRF 召回本身为空，触发外层 fallback
+                return None
 
         elapsed = (time.time() - t0) * 1000
         total_tokens = sum(m.estimated_tokens for m in top)

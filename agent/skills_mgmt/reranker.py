@@ -131,7 +131,12 @@ class SkillReranker:
     # 默认配置（可通过环境变量覆盖）
     _DEFAULT_MODEL = "BAAI/bge-reranker-v2-m3"
     _DEFAULT_TIMEOUT = 30
-    _DEFAULT_MIN_SCORE = 0.001
+    # 【不易修复】min_score 误过滤回归（2026-08-24）：
+    # 扩展黄金集（65 case）实测 0.001 误过滤 7 个 positive case（Precision@3 -3.4%），
+    # 0.0001 恢复（+0.0%）。Cross-Encoder sigmoid 后分数普遍偏低，
+    # 0.001 阈值会把合理匹配（如 bge-reranker-base ONNX 的 0.0003~0.0009）误拒。
+    # 下调至 0.0001 仍保留"过滤极低概率匹配"语义，同时避免误伤。
+    _DEFAULT_MIN_SCORE = 0.0001
     _DEFAULT_USE_ONNX = True
     _DEFAULT_ONNX_VARIANT = "model_quantized.onnx"
     # 【变易】单次 rerank predict 超时阈值（秒）—— 与 _timeout（子进程超时）区分
