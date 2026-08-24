@@ -5,3 +5,49 @@
 # 这是 Windows 开发者编辑 .sh 文件时的常见陷阱。
 # 强制 .sh 文件在 git 仓库中以 LF 存储,CI/Linux checkout 后直接可用。
 *.sh text eol=lf
+
+# ==========================================
+# 1. 换行符处理（核心配置）
+# ==========================================
+# 文本文件在提交时自动转换为 LF（Linux/Mac风格），检出时保持原样
+* text=auto eol=lf
+
+# 明确指定某些文件为文本文件，强制使用 LF
+*.sh text eol=lf
+*.bash text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.xml text eol=lf
+
+# 明确指定某些文件为二进制文件，防止 Git 尝试转换或显示差异
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary
+
+# ==========================================
+# 2. 解决合并冲突时的策略
+# ==========================================
+# 对于某些生成文件或配置，合并冲突时直接采用当前分支的版本
+# 避免每次合并都产生无意义的冲突
+# package-lock.json merge=ours
+# yarn.lock merge=ours
+
+# ==========================================
+# 3. 隐藏不必要的差异
+# ==========================================
+# 让 Git 在显示 diff 时忽略某些文件的变更（例如自动生成的文件）
+# dist/* linguist-generated=true
+# *.min.js linguist-generated=true
