@@ -19,6 +19,11 @@ from agent.memory.long_term_memory import LongTermMemory
 
 logger = logging.getLogger(__name__)
 
+# [2026-08-24 方案A] 审查扫描上限：list_recent 无分页参数，传大 limit
+# 近似全量扫描（防漏检）。Why: reviewer 不再裸连 db_path（绕过锁 + 私
+# 有成员耦合），统一走 LongTermMemory 公开 API，由锁与 busy_timeout 兜底并发。
+_SCAN_LIMIT = 10000
+
 
 @dataclass
 class ReviewResult:
@@ -166,25 +171,22 @@ class MemoryReviewer:
         }
 
     async def _find_stale_entries(self, trace_id: str) -> list[str]:
-        """查找陈旧记忆"""
+        """查找陈旧记忆（经 LongTermMemory 公开 API 全量扫描，不裸连 db）
+
+        [2026-08-24 方案A] 原实现 sqlite3.connect(self._ltm.db_path) 绕过
+        LongTermMemory 内部锁 + 访问私有成员 _TABLE_NAME；改为 list_recent
+        走公开 API，语义等价（last_accessed < threshold AND importance < 4）。
+        """
         stale_keys = []
 
         try:
-            # 读取所有条目（分批处理以避免内存问题）
             threshold = time.time() - self._stale_threshold
+            entries = self._ltm.list_recent(limit=_SCAN_LIMIT)
 
-            import sqlite3
-            conn = sqlite3.connect(self._ltm.db_path)
-            conn.row_factory = sqlite3.Row
-
-            rows = conn.execute(
-                f"SELECT key FROM {self._ltm._TABLE_NAME} "
-                f"WHERE last_accessed < ? AND importance < 4",
-                (threshold,)
-            ).fetchall()
-
-            stale_keys = [row["key"] for row in rows]
-            conn.close()
+            stale_keys = [
+                entry.key for entry in entries
+                if entry.last_accessed < threshold and entry.importance < 4
+            ]
 
             if stale_keys:
                 logger.debug("[%s] [MemoryReviewer] 发现 %d 条陈旧记忆", trace_id, len(stale_keys))
@@ -195,33 +197,29 @@ class MemoryReviewer:
         return stale_keys
 
     async def _find_duplicate_entries(self, trace_id: str) -> list[str]:
-        """查找重复记忆（简化版：基于内容哈希）"""
+        """查找重复记忆（经公开 API 全量扫描，基于内容哈希）
+
+        [2026-08-24 方案A] 同 _find_stale_entries：弃裸连，走 list_recent。
+        语义等价：对 content 取 md5，同哈希后续条目标记重复（保留首条）。
+        """
         duplicate_keys = []
         seen_hashes: dict[bytes, list[str]] = {}
 
         try:
-            import sqlite3
             import hashlib
 
-            conn = sqlite3.connect(self._ltm.db_path)
-            conn.row_factory = sqlite3.Row
+            entries = self._ltm.list_recent(limit=_SCAN_LIMIT)
 
-            rows = conn.execute(
-                f"SELECT key, content FROM {self._ltm._TABLE_NAME}"
-            ).fetchall()
-
-            for row in rows:
-                content_hash = hashlib.md5(str(row["content"]).encode()).digest()
+            for entry in entries:
+                content_hash = hashlib.md5(str(entry.content).encode()).digest()
 
                 if content_hash in seen_hashes:
                     # 保留第一条，其他标记为重复
-                    duplicate_keys.append(row["key"])
+                    duplicate_keys.append(entry.key)
                     logger.debug("[%s] [MemoryReviewer] 重复: %s <-> %s",
-                               trace_id, seen_hashes[content_hash][0], row["key"])
+                               trace_id, seen_hashes[content_hash][0], entry.key)
                 else:
-                    seen_hashes[content_hash] = [row["key"]]
-
-            conn.close()
+                    seen_hashes[content_hash] = [entry.key]
 
             if duplicate_keys:
                 logger.debug("[%s] [MemoryReviewer] 发现 %d 条重复记忆", trace_id, len(duplicate_keys))

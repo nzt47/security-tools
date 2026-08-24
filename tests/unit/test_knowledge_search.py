@@ -755,3 +755,33 @@ class TestBM25IndexConcurrency:
 
         assert not errors
         assert idx.size == 50 + n_writers * 100  # 读写混合下计数仍精确
+
+
+class TestBM25IndexCache:
+    """模块级 BM25 索引缓存行为验证（2026-08-24 新增）。
+
+    - 命中：同 wiki_root + 指纹两次构造 → 第二次复用索引（构造日志含"缓存命中"）
+    - 失效：新增卡片（mtime 变化）→ 指纹变化 → 重建索引（新卡可检索）
+    """
+
+    def test_cache_hit_on_second_construction(self, store, caplog):
+        """同指纹二次构造命中缓存，新卡仍可见（快照语义不跨实例）"""
+        store.create(_card("驾驭工程", content="通过设计人机协作边界实现双链管理"))
+        KnowledgeSearch(store, min_score=0.3)  # 首次构建，写入缓存
+        with caplog.at_level(logging.INFO, logger="agent.knowledge.search"):
+            searcher2 = KnowledgeSearch(store, min_score=0.3)  # 命中缓存
+        assert any("索引缓存命中" in r.message for r in caplog.records)
+        assert searcher2._bm25.size >= 1
+
+    def test_cache_invalidates_on_new_card(self, store, caplog):
+        """新增卡片 → 指纹变化 → 重建（新卡可检索，旧缓存失效）"""
+        store.create(_card("驾驭工程", content="通过设计人机协作边界实现双链管理"))
+        KnowledgeSearch(store, min_score=0.3)  # 首次构建
+        # 新增卡片（mtime 变化 → 指纹变化）
+        store.create(_card("提示词工程", content="结构化提示词模板"))
+        with caplog.at_level(logging.INFO, logger="agent.knowledge.search"):
+            searcher = KnowledgeSearch(store, min_score=0.3)
+        # 不应命中缓存（指纹已变）
+        assert not any("索引缓存命中" in r.message for r in caplog.records)
+        hits = searcher.search("提示词")
+        assert any(h.slug == "提示词工程" for h in hits)
