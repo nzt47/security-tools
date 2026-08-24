@@ -507,3 +507,40 @@ class TestEmbeddingBlobFormat:
         # 两种格式都能被搜索到
         keys = [r.metadata["key"] for r in results]
         assert "blob_key" in keys
+
+
+# ═══════════════════════════════════════════════════════════════
+# [方案A] get() 访问统计回归测试
+# ═══════════════════════════════════════════════════════════════
+
+class TestGetAccessTracking:
+    """[2026-08-24 方案A] get() 访问统计回归测试
+
+    修复前：UPDATE 语句在 `with self._get_conn() as conn:` 退出（连接已
+    关闭）后执行，每次抛 ProgrammingError 被 except 吞掉，access_count
+    恒为 0、last_accessed 永不刷新，且每次 get 都走错误日志路径。
+    """
+
+    @pytest.mark.asyncio
+    async def test_access_count_increments_on_get(self, ltm_instance):
+        """连续 get 应使 access_count 递增（修复前恒 0）"""
+        await ltm_instance.save("k1", "content", importance=3)
+        e1 = await ltm_instance.get("k1")
+        assert e1.access_count == 1, "首次 get 后 access_count 应为 1"
+        e2 = await ltm_instance.get("k1")
+        assert e2.access_count == 2, "二次 get 后 access_count 应为 2"
+
+    @pytest.mark.asyncio
+    async def test_last_accessed_refreshed_on_get(self, ltm_instance):
+        """get 应刷新 last_accessed（修复前永不更新）"""
+        import time as _time
+        await ltm_instance.save("k1", "content", importance=3)
+        first = await ltm_instance.get("k1")
+        _time.sleep(0.01)
+        second = await ltm_instance.get("k1")
+        assert second.last_accessed > first.last_accessed, "get 应刷新 last_accessed"
+
+    @pytest.mark.asyncio
+    async def test_get_missing_key_no_error(self, ltm_instance):
+        """get 不存在的 key 返回 None 且不产生访问统计副作用"""
+        assert await ltm_instance.get("no_such_key") is None
