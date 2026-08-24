@@ -88,6 +88,12 @@ regexes = [
     # 注意: 正则末尾不得有字面空格（Match 文本无尾随空格，会导致匹配失败）
     '''\{code\}''' ,
     '''REPLACE_WITH_SMTP_AUTH_CODE''',
+    # v2.0.2: guard_llm_api_key.py 的 PLACEHOLDER 测试占位符豁免（CHG-2026-xxxx）
+    # 命中样例: "sk-test-1234567890abcdef"（行 36）/ "sk-instance-key-12345"（行 40）
+    # 该集合是 LLM key 校验脚本的占位符黑名单（非真实密钥），sk- 后 ≥20 字符满足
+    # openai-api-key 规则。锚定匹配仅放行占位符本身，不宽放真实 sk-proj- 密钥。
+    '''^sk-(test|secret|real|instance)[-A-Za-z0-9_]*$''',
+    '''^sk-1234567890abcdef$''',
 ]
 
 # ── 规则 1: 硬编码密码赋值 ──────────────────────────────────────
