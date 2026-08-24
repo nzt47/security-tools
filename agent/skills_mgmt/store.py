@@ -37,13 +37,16 @@ class SkillStore:
     # ──────────────────────────────────────────
 
     def _load(self) -> Dict[str, dict]:
-        """加载全部技能 (带缓存)"""
+        """加载全部技能 (带缓存) — 只读内存，落盘由调用方统一处理
+
+        【不易】持锁操作严禁包含 I/O：本方法锁内仅读文件/内存，不落盘。
+        文件不存在时返回空缓存（懒初始化），由写操作首次触发 _persist 建文件。
+        """
         with self._lock:
             if self._cache is not None:
                 return self._cache
             if not self._path.exists():
                 self._cache = {}
-                self._persist()
                 logger.info("[SkillStore] 初始化存储: %s", self._path)
                 return self._cache
             try:
@@ -60,22 +63,26 @@ class SkillStore:
                 except OSError:
                     pass
                 self._cache = {}
-                self._persist()
             return self._cache
 
     def _persist(self) -> None:
-        """原子写入 (临时文件 + os.replace)
+        """原子写入 (临时文件 + os.replace) — 锁外调用
 
+        【不易】持锁操作严禁包含 I/O：本方法内部仅短暂加锁做内存快照
+        （O(N) 浅拷贝，N 为技能数），真正的文件 I/O 全部在锁外执行。
         Windows 注意: os.replace 在目标/源文件被短暂锁定（Defender 实时扫描、
         其他句柄）时偶发 WinError 5 拒绝访问。tmp 与目标同目录时尤其容易
         撞上扫描窗口 → 重试等待，最终仍失败再抛出。
         """
+        # 锁内浅拷贝快照，防止并发写读到半状态；I/O 在锁外
+        with self._lock:
+            snapshot = dict(self._cache or {})
         self._path.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(
             mode="w", encoding="utf-8", delete=False,
             dir=str(self._path.parent), suffix=".tmp",
         ) as tmp:
-            json.dump(self._cache or {}, tmp, ensure_ascii=False, indent=2)
+            json.dump(snapshot, tmp, ensure_ascii=False, indent=2)
             tmp_path = tmp.name
         for attempt in range(3):
             try:
@@ -105,29 +112,33 @@ class SkillStore:
         return Skill.from_storage_dict(data[skill_id])
 
     def upsert(self, skill: Skill) -> None:
-        """新增或更新 (按 id)"""
+        """新增或更新 (按 id) — 锁内改内存，锁外落盘
+
+        【不易】持锁操作严禁包含 I/O：锁内仅变更 _cache，_persist 在锁外。
+        """
         with self._lock:
             data = self._load()
             data[skill.id] = skill.to_storage_dict()
-            self._persist()
+        self._persist()
 
     def remove(self, skill_id: str) -> bool:
+        """删除技能 — 锁内改内存，锁外落盘"""
         with self._lock:
             data = self._load()
             if skill_id not in data:
                 return False
             del data[skill_id]
-            self._persist()
-            return True
+        self._persist()
+        return True
 
     def count(self) -> int:
         return len(self._load())
 
     def clear(self) -> None:
-        """清空存储 (谨慎使用)"""
+        """清空存储 (谨慎使用) — 锁内改内存，锁外落盘"""
         with self._lock:
             self._cache = {}
-            self._persist()
+        self._persist()
 
     # ──────────────────────────────────────────
     # 合并 (Jaccard≥0.7 触发)
@@ -245,43 +256,47 @@ class SkillStore:
                 actual_dst.metrics = merged_metrics
                 merged_fields.append("metrics")
 
-            # 6) 落地
+            # 6) 落地（内存，锁内）
             actual_dst.touch()
             data[actual_dst_id] = actual_dst.to_storage_dict()
             del data[actual_src_id]
             self._cache = data
-            self._persist()
+            # 锁内不落盘 —— I/O 在 with 块外统一执行
 
-            # 7) 同步 legacy skills.json
-            try:
-                self.sync_to_legacy_skills_json()
-            except Exception as e:
-                logger.warning("[SkillStore] 合并后同步 legacy 失败: %s", e)
+        # ── 锁外 I/O 阶段 ──
+        # 6b) 落盘（先持久化合并结果，崩溃后不丢失）
+        self._persist()
 
-            logger.info(
-                "[SkillStore] 已合并技能: src=%s → dst=%s, fields=%s",
-                actual_src_id, actual_dst_id, merged_fields,
+        # 7) 同步 legacy skills.json（锁外，原在锁内）
+        try:
+            self.sync_to_legacy_skills_json()
+        except Exception as e:
+            logger.warning("[SkillStore] 合并后同步 legacy 失败: %s", e)
+
+        logger.info(
+            "[SkillStore] 已合并技能: src=%s → dst=%s, fields=%s",
+            actual_src_id, actual_dst_id, merged_fields,
+        )
+
+        # 8) 改绑 feedback（锁外，原在锁内）
+        feedback_rebound_count = 0
+        if feedback_manager is not None:
+            feedback_rebound_count = self._rebind_feedback(
+                feedback_manager,
+                src_skill_id=actual_src_id,
+                dst_skill_id=actual_dst_id,
             )
 
-            # 8) 改绑 feedback（如果提供了 feedback_manager）
-            feedback_rebound_count = 0
-            if feedback_manager is not None:
-                feedback_rebound_count = self._rebind_feedback(
-                    feedback_manager,
-                    src_skill_id=actual_src_id,
-                    dst_skill_id=actual_dst_id,
-                )
-
-            return {
-                "merged_id": actual_dst_id,
-                "removed_id": actual_src_id,
-                "merged_fields": merged_fields,
-                "version_added": (
-                    version_added.version if version_added else None
-                ),
-                "feedback_rebound_count": feedback_rebound_count,
-                "dependency_merge": dep_merge_info,
-            }
+        return {
+            "merged_id": actual_dst_id,
+            "removed_id": actual_src_id,
+            "merged_fields": merged_fields,
+            "version_added": (
+                version_added.version if version_added else None
+            ),
+            "feedback_rebound_count": feedback_rebound_count,
+            "dependency_merge": dep_merge_info,
+        }
 
     def _resolve_merge_direction(self, src_skill: Skill,
                                  dst_skill: Skill,
