@@ -194,26 +194,29 @@ class RateLimiter:
         *,
         endpoint: Optional[str] = None,
         user_id: Optional[str] = None,
+        tenant_id: Optional[str] = None,
     ) -> bool:
         """检查是否允许调用
 
-        新 API: check(endpoint="api/chat", user_id="user1")
+        新 API: check(endpoint="api/chat", user_id="user1", tenant_id="org_x")
         旧 API: check("tool_name")
 
-        多级限流：全局 → 接口 → 用户 → 并发，失败时回退已消费的令牌。
+        多级限流：全局 → 接口 → 用户 → 租户 → 并发，失败时回退已消费的令牌。
+        tenant_id 为空时不走租户桶（未绑定租户的旧 Key 不受租户隔离影响）。
         """
         # 旧 API 兼容：传了 tool_name 且未传 endpoint/user_id
         if tool_name is not None and endpoint is None and user_id is None:
             return self._check_old(tool_name)
 
-        return self._check_multi_level(endpoint, user_id)
+        return self._check_multi_level(endpoint, user_id, tenant_id)
 
     def _check_multi_level(
         self,
         endpoint: Optional[str] = None,
         user_id: Optional[str] = None,
+        tenant_id: Optional[str] = None,
     ) -> bool:
-        """多级限流检查（全局→接口→用户→并发）"""
+        """多级限流检查（全局→接口→用户→租户→并发）"""
         # 1. 全局限流
         if not self._global_bucket.try_acquire():
             self._safe_metric("global")
@@ -246,9 +249,27 @@ class RateLimiter:
                 return False
             acquired_levels.append(("user", user_id))
 
-        # 4. 并发限制
+        # 4. 租户限流（独立于用户限流，仅绑定租户的 Key 生效）
+        if tenant_id is not None:
+            tenant_bucket = self._get_tenant_bucket(tenant_id)
+            if not tenant_bucket.try_acquire():
+                # 回退已获取的令牌（全局/接口/用户）
+                for key in reversed(acquired_levels):
+                    if key == "global":
+                        self._global_bucket.release()
+                    else:
+                        bucket_type, ident = key
+                        if bucket_type == "endpoint":
+                            self._get_endpoint_bucket(ident).release()
+                        elif bucket_type == "user":
+                            self._get_user_bucket(ident).release()
+                self._safe_metric("tenant")
+                return False
+            acquired_levels.append(("tenant", tenant_id))
+
+        # 5. 并发限制
         if not self._acquire_concurrent():
-            # 回退令牌
+            # 回退令牌（含租户桶）
             for key in reversed(acquired_levels):
                 if key == "global":
                     self._global_bucket.release()
@@ -256,8 +277,10 @@ class RateLimiter:
                     bucket_type, ident = key
                     if bucket_type == "endpoint":
                         self._get_endpoint_bucket(ident).release()
-                    else:
+                    elif bucket_type == "user":
                         self._get_user_bucket(ident).release()
+                    else:
+                        self._get_tenant_bucket(ident).release()
             self._safe_metric("concurrent")
             return False
 
@@ -390,6 +413,18 @@ class RateLimiter:
                     cap, rate = 10.0, 1.0
                 self._buckets[user_key] = TokenBucket(capacity=cap, refill_rate=rate)
             return self._buckets[user_key]
+
+    def _get_tenant_bucket(self, tenant_id: str) -> TokenBucket:
+        """获取租户令牌桶（使用 "tenant" 规则的参数，按租户隔离）"""
+        tenant_key = f"tenant/{tenant_id}"
+        with self._lock:
+            if tenant_key not in self._buckets:
+                if "tenant" in self._rules:
+                    cap, rate = self._rules["tenant"]
+                else:
+                    cap, rate = 10.0, 1.0
+                self._buckets[tenant_key] = TokenBucket(capacity=cap, refill_rate=rate)
+            return self._buckets[tenant_key]
 
     def wait_time(
         self,

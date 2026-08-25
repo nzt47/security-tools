@@ -310,6 +310,44 @@ class QuotaManager:
                 "period": quota["period"],
             }
 
+    # ── 租户配额（T8.3，key 前缀 tenant:，与用户配额隔离） ─────────────
+
+    def set_tenant_quota(self, tenant_id: str, quota_type: str, limit: int, period: str = "day"):
+        """设置租户配额"""
+        key = f"tenant:{tenant_id}:{quota_type}"
+        with self._lock:
+            self._quotas[key] = {
+                "tenant_id": tenant_id,
+                "quota_type": quota_type,
+                "limit": limit,
+                "period": period,
+                "used": 0,
+                "last_reset": datetime.now().isoformat(),
+            }
+
+    def check_tenant_quota(self, tenant_id: str, quota_type: str, amount: int = 1) -> bool:
+        """检查租户配额（未设置默认放行）"""
+        key = f"tenant:{tenant_id}:{quota_type}"
+        with self._lock:
+            quota = self._quotas.get(key)
+            if not quota:
+                return True
+            self._reset_if_needed(quota)
+            return quota["used"] + amount <= quota["limit"]
+
+    def consume_tenant_quota(self, tenant_id: str, quota_type: str, amount: int = 1) -> bool:
+        """消耗租户配额（加锁保证读-改-写原子，防并发超额放行）"""
+        key = f"tenant:{tenant_id}:{quota_type}"
+        with self._lock:
+            quota = self._quotas.get(key)
+            if not quota:
+                return True
+            self._reset_if_needed(quota)
+            if quota["used"] + amount <= quota["limit"]:
+                quota["used"] += amount
+                return True
+            return False
+
 
 class ApiGateway:
     """API 网关"""
@@ -425,6 +463,7 @@ class ApiGateway:
                 
                 user_id = key_info["user_id"]
                 log_entry["user_id"] = user_id
+                tenant_id = key_info.get("tenant_id", "") or None
 
                 # T8.2 兼容期：旧 Key 在 compat_until 之后过期，拒绝访问
                 compat_until = key_info.get("compat_until", "")
@@ -447,8 +486,9 @@ class ApiGateway:
             else:
                 user_id = "anonymous"
                 log_entry["user_id"] = user_id
+                tenant_id = None
             
-            if not self._rate_limiter.check(endpoint=path, user_id=user_id):
+            if not self._rate_limiter.check(endpoint=path, user_id=user_id, tenant_id=tenant_id):
                 log_entry["status_code"] = 429
                 log_entry["error"] = "Rate limit exceeded"
                 self._access_logger.log_access(log_entry)
@@ -459,6 +499,12 @@ class ApiGateway:
                 log_entry["error"] = "Quota exceeded"
                 self._access_logger.log_access(log_entry)
                 return {"error": "Quota exceeded", "status_code": 429}
+
+            if tenant_id and not self._quota_manager.check_tenant_quota(tenant_id, "api_calls"):
+                log_entry["status_code"] = 429
+                log_entry["error"] = "Tenant quota exceeded"
+                self._access_logger.log_access(log_entry)
+                return {"error": "Tenant quota exceeded", "status_code": 429}
             
             for middleware in self._middleware:
                 middleware(request)
@@ -467,6 +513,9 @@ class ApiGateway:
             result = handler(request)
             
             self._quota_manager.consume_quota(user_id, "api_calls")
+
+            if tenant_id:
+                self._quota_manager.consume_tenant_quota(tenant_id, "api_calls")
             
             if endpoint["auth_required"]:
                 self._api_key_manager.increment_usage(key_info["key"])
