@@ -204,6 +204,15 @@ class TenantManager:
     def get_tenant(self, tenant_id: str) -> Optional[Tenant]:
         """获取租户"""
         return self._tenants.get(tenant_id)  # 单键读原子（GIL）
+
+    def list_tenants(self, tenant_type: TenantType = None) -> List[Tenant]:
+        """列出全部租户（可选类型过滤）"""
+        with self._lock:
+            # 锁内快照：与 delete_tenant 的 del 互斥（避免迭代中结构变更）
+            return [
+                t for t in self._tenants.values()
+                if not tenant_type or t.type == tenant_type
+            ]
     
     def assign_role(self, user_id: str, tenant_id: str, role: RoleType):
         """分配角色"""

@@ -24,8 +24,13 @@ class AuditLogger:
         self._current_file = self._log_dir / f"audit_{datetime.now().strftime('%Y%m%d')}.jsonl"
 
     def log(self, action: str, input_data: str = "", output_data: str = "",
-            status: str = "success", metadata: dict = None):
-        """记录一条审计日志"""
+            status: str = "success", metadata: dict = None, tenant_id: str = ""):
+        """记录一条审计日志
+
+        tenant_id 为空时自动从请求上下文推断（网关注入 request._gateway_key_info）。
+        """
+        if not tenant_id:
+            tenant_id = self._infer_tenant_from_request()
         record = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "trace_id": get_trace_id() or "",
@@ -34,11 +39,39 @@ class AuditLogger:
             "output_hash": self._hash(output_data) if output_data else "",
             "stack_depth": len(traceback.extract_stack()),
             "status": status,
+            "tenant_id": tenant_id,
             "metadata": metadata or {},
         }
         with open(self._current_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
         logger.debug(f"[Audit] {action}: status={status}")
+
+    @staticmethod
+    def _infer_tenant_from_request() -> str:
+        """从请求上下文推断租户（无上下文/异常时降级为空）"""
+        try:
+            from flask import request
+            info = getattr(request, "_gateway_key_info", None)
+            if info:
+                return info.get("tenant_id", "")
+        except Exception:
+            pass
+        return ""
+
+    @staticmethod
+    def filter_by_key(records: list, key_info: dict):
+        """按 key 租户信息过滤审计记录（跨租户隔离）
+
+        - key_info 为 None：内部通道直调，返回全量
+        - key_info.tenant_id 为空：未绑定租户 → 空集 + 警告
+        - key_info.tenant_id 非空：仅返回该租户记录
+        """
+        if key_info is None:
+            return records, None
+        tenant_id = key_info.get("tenant_id", "")
+        if not tenant_id:
+            return [], "未绑定租户：审计记录不可见（跨租户隔离）"
+        return [r for r in records if r.get("tenant_id") == tenant_id], None
 
     def _hash(self, data: str) -> str:
         return hashlib.sha256(data.encode()).hexdigest()[:16]

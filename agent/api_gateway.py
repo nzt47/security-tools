@@ -464,6 +464,11 @@ class ApiGateway:
                 user_id = key_info["user_id"]
                 log_entry["user_id"] = user_id
                 tenant_id = key_info.get("tenant_id", "") or None
+                # T8.4：注入请求上下文，供审计/视图读取租户信息（跨租户隔离入口）
+                request._gateway_key_info = {
+                    "tenant_id": tenant_id or "",
+                    "user_id": user_id,
+                }
 
                 # T8.2 兼容期：旧 Key 在 compat_until 之后过期，拒绝访问
                 compat_until = key_info.get("compat_until", "")

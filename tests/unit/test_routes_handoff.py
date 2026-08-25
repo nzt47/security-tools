@@ -11,7 +11,7 @@ from unittest import mock
 import pytest
 from flask import Flask
 
-from agent.server_routes.routes_sessions import register_handoff_routes
+from agent.server_routes.routes_sessions import register_routes
 
 
 @pytest.fixture
@@ -21,11 +21,12 @@ def client():
     state = SimpleNamespace(
         session_mgr=mock.MagicMock(),
         Yunshu=mock.MagicMock(_llm=mock.MagicMock()),
+        chat_history=[],
     )
     with mock.patch("agent.server_routes.routes_sessions.require_token", lambda f: f), \
          mock.patch("agent.server_routes.routes_sessions.log_request", lambda **kw: lambda f: f), \
          mock.patch("agent.server_routes.routes_sessions.trace_route", lambda *a, **kw: lambda f: f):
-        register_handoff_routes(app, state)
+        register_routes(app, state)
     return app.test_client()
 
 
