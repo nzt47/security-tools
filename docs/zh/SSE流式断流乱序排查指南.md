@@ -22,7 +22,7 @@
               useEffect(() => subscribeStreamLog(...))   ← 断流/乱序检测 + 打印全在此处
 ```
 
-后端：[app_server.py `POST /api/chat/stream`](c:\Users\Administrator\agent\app_server.py)，`text/event-stream`，事件 `thinking / chunk / done`，chunk 带自增 `seq`。
+后端：[app_server.py `POST /api/chat/stream`](../../app_server.py)，`text/event-stream`，事件 `thinking / chunk / done`，chunk 带自增 `seq`。
 
 ## 2. 日志体系
 
@@ -138,14 +138,14 @@ trace.lastChunkTs = 0; // 防止跨会话首个 chunk 用上次的时间戳误�
 
 - **现象**：Web mock 双标签页联调中，点击一次"独立窗口"按钮打开 2 个相同 `#/detached/chat` 标签页。
 - **根因**：`DetachButton` 内部先调用 `api.detachPanel`（开窗第 1 次），随后调用 `onDetached(panelId)`，而上层 `WorkbenchApp.detachPanel` 又执行一次 `api.detachPanel`（开窗第 2 次）→ IPC 双重调用。
-- **修复**：`DetachButton` 不再内部调用 IPC，仅回调 `onDetached`，由上层统一执行 IPC 建窗 + 布局摘除（[DetachButton.tsx](c:\Users\Administrator\agent\yunshu-ui\src\components\workbench\DetachButton.tsx)）。
+- **修复**：`DetachButton` 不再内部调用 IPC，仅回调 `onDetached`，由上层统一执行 IPC 建窗 + 布局摘除（[DetachButton.tsx](../../yunshu-ui/src/components/workbench/DetachButton.tsx)）。
 - **回归**：修复后单次点击恰好打开 1 个标签页 ✅
 
 ### 9.2 layout=null 时摘除失效：面板不移除
 
 - **现象**：未自定义布局（store 中 `layout` 为 null，渲染走 `DEFAULT_LAYOUT` 兜底）时 detach 后对话面板仍保留在主窗口。
 - **根因**：`detachPanel` 用 `getState().layout`（可能为 null）调 `removePanelFromLayout`，null 输入直接返回 null → `setLayout(null)` 无变化。
-- **修复**：以实际渲染的布局树为基准 `removePanelFromLayout(layout ?? DEFAULT_LAYOUT, panelId)`（[WorkbenchApp.tsx](c:\Users\Administrator\agent\yunshu-ui\src\WorkbenchApp.tsx#L80-L83)）。
+- **修复**：以实际渲染的布局树为基准 `removePanelFromLayout(layout ?? DEFAULT_LAYOUT, panelId)`（[WorkbenchApp.tsx](../../yunshu-ui/src/WorkbenchApp.tsx#L80-L83)）。
 - **对照实验**：布局自定义后 detach 成功，主窗口仅剩 nav|think 并持久化 ✅
 
 ### 9.3 安装版 preload 崩溃：`electronAPI` 未注入（重要）

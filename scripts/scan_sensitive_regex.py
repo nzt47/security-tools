@@ -70,7 +70,12 @@ def scan_file(filepath: Path) -> List[Tuple[int, str, str]]:
 
     for lineno, line in enumerate(content.splitlines(), 1):
         # 规则1: 贪婪 \S+ 匹配敏感值
-        if RULE_GREEDY_REGEX.search(line) and "\\S+" in line:
+        # 豁免：re.compile(...) 正则定义行（脱敏/检测模式本身），非真实敏感数据
+        if (
+            RULE_GREEDY_REGEX.search(line)
+            and "\\S+" in line
+            and "re.compile(" not in line
+        ):
             risks.append((lineno, "GREEDY_REGEX", line.strip()))
 
         # 规则2: split('=') 用于脱敏

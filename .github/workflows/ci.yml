@@ -159,7 +159,7 @@ jobs:
       - name: 运行依赖安全检查
         run: |
           echo "=== 检查依赖安全 ==="
-          safety check --json --output test_reports/safety_report.json || true
+          safety check --save-json test_reports/safety_report.json || true
 
       - name: 敏感数据正则静态扫描
         # [CI 日志增强] 多通道输出 (与 skills-check.yml / p0-security.yml 保持一致):

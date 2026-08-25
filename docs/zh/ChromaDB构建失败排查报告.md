@@ -46,11 +46,11 @@ ERROR: failed to build: ... "/tests/unit": not found
 tests          ← 根因！git 版本 .dockerignore 排除了 tests
 ```
 
-**根因**：仓库根 `.dockerignore`（git 版本）第 13 行 `tests` 将整个 `tests/` 目录排除在 Docker 构建上下文之外，而 [Dockerfile](file:///c:/Users/Administrator/agent/Dockerfile#L22-L23) 的 `COPY tests/conftest.py`、`COPY tests/unit/` 依赖该目录——**配置自相矛盾**，导致构建上下文无 tests，COPY 源缺失。
+**根因**：仓库根 `.dockerignore`（git 版本）第 13 行 `tests` 将整个 `tests/` 目录排除在 Docker 构建上下文之外，而 [Dockerfile](../../Dockerfile#L22-L23) 的 `COPY tests/conftest.py`、`COPY tests/unit/` 依赖该目录——**配置自相矛盾**，导致构建上下文无 tests，COPY 源缺失。
 
 ## 4. 修复
 
-[.dockerignore](file:///c:/Users/Administrator/agent/.dockerignore#L12-L13)：
+[.dockerignore](../../.dockerignore#L12-L13)：
 
 ```
 # 修改前

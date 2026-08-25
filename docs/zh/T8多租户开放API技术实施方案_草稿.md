@@ -1,6 +1,6 @@
 # T8：多租户开放 API 技术实施方案（草稿 · 待确认）
 
-> 状态：**草稿**，供评审确认。落地条件：出现真实的多租户/对外开放需求。本方案基于现状能力（ApiGateway 的 Key/Scope/限流/配额 + [multi_tenant.py](file:///c:/Users/Administrator/agent/agent/multi_tenant.py) 现成 TenantManager）分阶段演进，可随时中止。
+> 状态：**草稿**，供评审确认。落地条件：出现真实的多租户/对外开放需求。本方案基于现状能力（ApiGateway 的 Key/Scope/限流/配额 + [multi_tenant.py](../../agent/multi_tenant.py) 现成 TenantManager）分阶段演进，可随时中止。
 
 ## 一、现状盘点（已有基础）
 
@@ -9,7 +9,7 @@
 | API Key 认证 | ApiKeyManager：64 位 Key、user_id、enable/disable、scope | Key 未绑定租户/角色 |
 | 限流 | RateLimiter 多级令牌桶（全局→接口→用户→并发） | 无租户级聚合限额 |
 | 配额 | QuotaManager（user_id/类型/周期） | 未接入租户 |
-| 租户模型 | [TenantManager](file:///c:/Users/Administrator/agent/agent/multi_tenant.py#L80)：Tenant/User/RoleAssignment/PermissionType，RLock 线程安全 | **未接入 HTTP/网关** |
+| 租户模型 | [TenantManager](../../agent/multi_tenant.py#L80)：Tenant/User/RoleAssignment/PermissionType，RLock 线程安全 | **未接入 HTTP/网关** |
 | 文档 | /api/docs 全量 292 路径 | 无开放/内部标记 |
 | 内部认证 | FLASK_API_TOKEN（单一共享） | 与开放 API 双轨并存 |
 

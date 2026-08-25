@@ -21,7 +21,7 @@ Gitleaks 扫描（全分支）持续失败，当前命中 4 处（均为**既有
 
 ### 2.1 `app_server.py` 管理员密码默认值（核心治理项）
 
-**现状**（[app_server.py:1327-1330](file:///c:/Users/Administrator/agent/app_server.py#L1327-L1330)）：
+**现状**（[app_server.py:1327-1330](../../app_server.py#L1327-L1330)）：
 
 ```python
 _ADMIN_USERNAME = os.environ.get("YUNSHU_ADMIN_USERNAME", "admin")
@@ -67,7 +67,7 @@ _ADMIN_PASSWORD = _load_admin_password()
 
 ### 2.2 `guard_llm_api_key.py` 占位符黑名单（误报处理）
 
-**现状**（[guard_llm_api_key.py:36](file:///c:/Users/Administrator/agent/scripts/guard_llm_api_key.py#L35-L40)）：`PLACEHOLDER` 集合中的 `sk-test-1234567890abcdef` 等用于识别**假 key**，Gitleaks 按 `sk-` 前缀误判为 OpenAI key。
+**现状**（[guard_llm_api_key.py:36](../../scripts/guard_llm_api_key.py#L35-L40)）：`PLACEHOLDER` 集合中的 `sk-test-1234567890abcdef` 等用于识别**假 key**，Gitleaks 按 `sk-` 前缀误判为 OpenAI key。
 
 **方案**（二选一，推荐 A）：
 
@@ -84,7 +84,7 @@ _ADMIN_PASSWORD = _load_admin_password()
 
 ### 2.3 `Profile.tsx` 演示表单默认值（演示数据处理）
 
-**现状**（[Profile.tsx:13](file:///c:/Users/Administrator/agent/yunshu-ui/src/pages/Profile.tsx#L13)）：`useState<LoginParams>({ username: 'admin', password: '123456' })`——组件演示页的预填表单（mock 凭证）。
+**现状**（[Profile.tsx:13](../../yunshu-ui/src/pages/Profile.tsx#L13)）：`useState<LoginParams>({ username: 'admin', password: '123456' })`——组件演示页的预填表单（mock 凭证）。
 
 **方案**：改为空值占位（演示页不预填密码），消除硬编码字符串：
 

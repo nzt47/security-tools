@@ -28,7 +28,7 @@
 
 **【现象】** 4 类拦截日志只输出部分，且 `caller=unknown`——调用栈信息完全丢失。
 
-**【根因】** [sandbox.py](file:///c:/Users/Administrator/agent/agent/subagent/sandbox.py) 的 import 列表中**没有 `import traceback`**，`_log_intercept` 内调用 `traceback.extract_stack` 抛 `NameError`，被 helper 内的 `try/except` 兜底吞掉 → 每次拦截都走 `caller = "unknown"` 分支。排查时 monkey-patch `traceback.extract_stack` 无效也印证了模块作用域根本不存在 `traceback` 名字。
+**【根因】** [sandbox.py](../../agent/subagent/sandbox.py) 的 import 列表中**没有 `import traceback`**，`_log_intercept` 内调用 `traceback.extract_stack` 抛 `NameError`，被 helper 内的 `try/except` 兜底吞掉 → 每次拦截都走 `caller = "unknown"` 分支。排查时 monkey-patch `traceback.extract_stack` 无效也印证了模块作用域根本不存在 `traceback` 名字。
 
 **【修复】** 弃用 `traceback.extract_stack`，改用 `sys._getframe` 从当前帧逐帧上溯（新增 `import sys` 一行）：从 `_getframe(1).f_back` 起跳过 helper 自身帧，取最近 2 个调用帧，输出 `文件:行号(函数)` 链。顺带修正了原 `extract_stack(limit=3)[:-1]` 会把 helper 自身帧算入调用链的缺陷。
 

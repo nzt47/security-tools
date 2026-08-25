@@ -141,6 +141,10 @@ jobs:
     name: 变更清单报告
     runs-on: ubuntu-latest
     needs: kwarg-high-risk-scan
+    permissions:
+      # 评论变更清单报告到 PR 需要写评论权限
+      pull-requests: write
+      contents: read
     if: github.event_name == 'pull_request'
     steps:
       - name: 检出代码

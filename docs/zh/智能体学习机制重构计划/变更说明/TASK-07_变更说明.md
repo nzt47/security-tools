@@ -21,7 +21,7 @@
 | 约束 | 落实情况 |
 | --- | --- |
 | 禁止修改 `permission_system.py` / `circuit_breaker.py` / `graceful_degrade.py` 判定逻辑与接口 | ✅ 零改动；L1-L5 仅做映射与视图 |
-| 禁止修改 orchestrator 既有 OutputGuard（PII 遮盖）行为 | ✅ 新门控在 [orchestrator.py](file:///c:/Users/Administrator/agent/agent/orchestrator/orchestrator.py) OutputGuard 之后追加，不替换 |
+| 禁止修改 orchestrator 既有 OutputGuard（PII 遮盖）行为 | ✅ 新门控在 [orchestrator.py](../../../../agent/orchestrator/orchestrator.py) OutputGuard 之后追加，不替换 |
 | 保留 `verification.conservative_mode: true` 语义（默认只记录不拦截） | ✅ `output_validator.conservative_mode` 默认 true，兜底读 `verification.conservative_mode` |
 | 保留 `config.yaml` 现有 `verification.*` 配置结构 | ✅ 仅新增 `verification.output_validator.*` 新段 |
 | LLM-as-Judge 只做接口预留 + 规则降级，默认路径零额外 LLM 调用 | ✅ `mode=rule_based` 默认；`llm_based` 未配置时静默降级规则层 |
@@ -77,7 +77,7 @@
 
 ### 4.3 orchestrator 接入（Step 2 运行时）
 
-[orchestrator.py](file:///c:/Users/Administrator/agent/agent/orchestrator/orchestrator.py) 三处最小改动：
+[orchestrator.py](../../../../agent/orchestrator/orchestrator.py) 三处最小改动：
 
 1. `chat()`：进入前 `resolve_autonomy_level(session_id)` → `with AutonomyContext(level)` 包裹 `process()`（会话级自主权上下文注入）；
 2. `process()` 第五步半：OutputGuard 之后追加 `_output_validator.check_and_act(response, task_type="text_response")`（懒加载属性 `_output_validator`，构建失败返回 None 主链路零影响；保守模式下响应零变化）；

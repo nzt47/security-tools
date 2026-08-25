@@ -7,16 +7,16 @@
 
 | 组件 | LLM 调用点 | 记账现状 | 实例归属 | 成本流向 |
 |---|---|---|---|---|
-| ReActLoop | [react.py L415-416](file:///c:/Users/Administrator/agent/planning/react.py#L409-L421) | ✅ 已记账 | 自建独立实例（L103） | `react_result.cost` → `record_plan_result`（core.py L535） |
-| PlanExecutor | [executor.py L969-970](file:///c:/Users/Administrator/agent/planning/executor.py#L959-L977) | ✅ 已记账（本轮修复） | 自建独立实例（L170） | `plan.metadata["budget"]` → `_record_plan_result`（core.py L401） |
-| TaskDecomposer | [decomposer.py L167](file:///c:/Users/Administrator/agent/planning/decomposer.py#L166-L182)/L176（JSON 重试）/L300（refine） | ❌ 漏记 | **无** | — |
-| Reflector | [reflector.py L218](file:///c:/Users/Administrator/agent/planning/reflector.py#L216-L233)/L250（plan_reflect） | ❌ 漏记 | **无** | — |
+| ReActLoop | [react.py L415-416](../../../planning/react.py#L409-L421) | ✅ 已记账 | 自建独立实例（L103） | `react_result.cost` → `record_plan_result`（core.py L535） |
+| PlanExecutor | [executor.py L969-970](../../../planning/executor.py#L959-L977) | ✅ 已记账（本轮修复） | 自建独立实例（L170） | `plan.metadata["budget"]` → `_record_plan_result`（core.py L401） |
+| TaskDecomposer | [decomposer.py L167](../../../planning/decomposer.py#L166-L182)/L176（JSON 重试）/L300（refine） | ❌ 漏记 | **无** | — |
+| Reflector | [reflector.py L218](../../../planning/reflector.py#L216-L233)/L250（plan_reflect） | ❌ 漏记 | **无** | — |
 
 **结论 1**：decomposer/reflector 构造签名（`llm_service, config, reflector` / `llm_service, memory_manager, config`）均无 budget_manager 参数，core.py 创建时（L108/L132）也未注入——漏记根因。
 
 ## 二、关键时序事实（决定归属方案）
 
-1. **`budget.start()` 不重置 `_tokens/_cost`**（[budget.py L95](file:///c:/Users/Administrator/agent/planning/budget.py#L95) 仅重置 `_start` 时间戳）→ 实例上 `record_text` 在 start() 之前调用**同样累计**，最终 snapshot 包含 ✅
+1. **`budget.start()` 不重置 `_tokens/_cost`**（[budget.py L95](../../../planning/budget.py#L95) 仅重置 `_start` 时间戳）→ 实例上 `record_text` 在 start() 之前调用**同样累计**，最终 snapshot 包含 ✅
 2. **decompose 先于 execute_plan**（core.py L235 decompose → L245 附近 execute_plan）→ 若注入 executor 实例，decompose 成本自然进入该实例累计 ✅
 3. **plan_reflect 在 executor finally 回填之后**（execute_plan 结束回填快照 executor.py L513 → 返回 core.py L341 plan_reflect → L374 `_record_plan_result`）→ **若 reflector 记入 executor 实例，成本不会进入已回填的 `plan.metadata["budget"]`**，`_record_plan_result` 读不到 ⚠
 

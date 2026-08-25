@@ -41,12 +41,12 @@
 
 | 角色 | 代码位置 | 职责 |
 |---|---|---|
-| 主进程 | [electron/main.ts](c:\Users\Administrator\agent\yunshu-ui\electron\main.ts) | 窗口管理、IPC 监听、状态总线、安全校验 |
-| 预加载 | [electron/preload.ts](c:\Users\Administrator\agent\yunshu-ui\electron\preload.ts) | contextBridge 暴露白名单 API，隔离 Node |
-| 主渲染窗口 | [src/WorkbenchApp.tsx](c:\Users\Administrator\agent\yunshu-ui\src\WorkbenchApp.tsx) | Mosaic 布局、拖拽拦截、detach 发起、状态广播 |
-| 独立子窗口 | [src/DetachedChatApp.tsx](c:\Users\Administrator\agent\yunshu-ui\src\DetachedChatApp.tsx) | 渲染单面板、冷启动拉快照、持续同步 |
-| 同步适配器 | [src/electron/sync.ts](c:\Users\Administrator\agent\yunshu-ui\src\electron\sync.ts) | 节流广播 + 防回环合并（主/子窗口共用） |
-| IPC 契约 | [src/electron/ipc.ts](c:\Users\Administrator\agent\yunshu-ui\src\electron\ipc.ts) | 通道常量 + 载荷类型（三方共享，纯 TS 无依赖） |
+| 主进程 | [electron/main.ts](../../yunshu-ui/electron/main.ts) | 窗口管理、IPC 监听、状态总线、安全校验 |
+| 预加载 | [electron/preload.ts](../../yunshu-ui/electron/preload.ts) | contextBridge 暴露白名单 API，隔离 Node |
+| 主渲染窗口 | [src/WorkbenchApp.tsx](../../yunshu-ui/src/WorkbenchApp.tsx) | Mosaic 布局、拖拽拦截、detach 发起、状态广播 |
+| 独立子窗口 | [src/DetachedChatApp.tsx](../../yunshu-ui/src/DetachedChatApp.tsx) | 渲染单面板、冷启动拉快照、持续同步 |
+| 同步适配器 | [src/electron/sync.ts](../../yunshu-ui/src/electron/sync.ts) | 节流广播 + 防回环合并（主/子窗口共用） |
+| IPC 契约 | [src/electron/ipc.ts](../../yunshu-ui/src/electron/ipc.ts) | 通道常量 + 载荷类型（三方共享，纯 TS 无依赖） |
 
 ---
 
@@ -175,15 +175,15 @@ interface StateSyncPayload {
 
 | 项 | 说明 |
 |---|---|
-| 面板 ID | `code`（加入 [mosaic.ts](c:\Users\Administrator\agent\yunshu-ui\src\lib\mosaic.ts#L12-L27) 的 `PANEL` 常量与 `PANEL_TITLES`，成为持久化锚点） |
-| 组件 | [CodeEditorPanel.tsx](c:\Users\Administrator\agent\yunshu-ui\src\components\workbench\panels\CodeEditorPanel.tsx)：textarea 编辑 + highlight.js 实时高亮预览（400ms 防抖） |
+| 面板 ID | `code`（加入 [mosaic.ts](../../yunshu-ui/src/lib/mosaic.ts#L12-L27) 的 `PANEL` 常量与 `PANEL_TITLES`，成为持久化锚点） |
+| 组件 | [CodeEditorPanel.tsx](../../yunshu-ui/src/components/workbench/panels/CodeEditorPanel.tsx)：textarea 编辑 + highlight.js 实时高亮预览（400ms 防抖） |
 | 语言支持 | TypeScript / JavaScript / Python / JSON / Bash / 纯文本（`highlight.js/lib/common` 子集，未引全量语言包） |
 | 状态持久化 | `localStorage['yunshu:editor:code:v1']`（存 `{lang, content}`，损坏数据回退默认示例） |
-| 默认布局 | `nav | chat | (think / code)`，右侧上下分栏 55/45（见 [mosaic.ts](file:///c:/Users/Administrator/agent/yunshu-ui/src/lib/mosaic.ts#L29-L51)） |
-| 主窗口渲染 | [WorkbenchApp.tsx](c:\Users\Administrator\agent\yunshu-ui\src\WorkbenchApp.tsx) `renderPanel` 增加 `PANEL.CODE` 分支 |
-| 独立窗口渲染 | [DetachedChatApp.tsx](c:\Users\Administrator\agent\yunshu-ui\src\DetachedChatApp.tsx) `PANEL_LABEL` + `renderDetachedPanel` 增加 `code` 分支（顶栏标题"云枢 · 代码编辑器"） |
-| detach 白名单 | [electron/main.ts](c:\Users\Administrator\agent\yunshu-ui\electron\main.ts) 主进程校验、[ipc.ts](c:\Users\Administrator\agent\yunshu-ui\src\electron\ipc.ts) `DETACHABLE_PANELS`、[main.tsx](c:\Users\Administrator\agent\yunshu-ui\src\main.tsx) hash 路由白名单三处同步加入 `code` |
-| 样式 | [workbench.css](c:\Users\Administrator\agent\yunshu-ui\src\styles\workbench.css) 新增 `.wb-editor-*`（深色等宽 + 半透明预览区，与玻璃拟态主题一致） |
+| 默认布局 | `nav | chat | (think / code)`，右侧上下分栏 55/45（见 [mosaic.ts](../../yunshu-ui/src/lib/mosaic.ts#L29-L51)） |
+| 主窗口渲染 | [WorkbenchApp.tsx](../../yunshu-ui/src/WorkbenchApp.tsx) `renderPanel` 增加 `PANEL.CODE` 分支 |
+| 独立窗口渲染 | [DetachedChatApp.tsx](../../yunshu-ui/src/DetachedChatApp.tsx) `PANEL_LABEL` + `renderDetachedPanel` 增加 `code` 分支（顶栏标题"云枢 · 代码编辑器"） |
+| detach 白名单 | [electron/main.ts](../../yunshu-ui/electron/main.ts) 主进程校验、[ipc.ts](../../yunshu-ui/src/electron/ipc.ts) `DETACHABLE_PANELS`、[main.tsx](../../yunshu-ui/src/main.tsx) hash 路由白名单三处同步加入 `code` |
+| 样式 | [workbench.css](../../yunshu-ui/src/styles/workbench.css) 新增 `.wb-editor-*`（深色等宽 + 半透明预览区，与玻璃拟态主题一致） |
 
 #### 布局变更说明
 

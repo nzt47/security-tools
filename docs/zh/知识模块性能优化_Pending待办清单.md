@@ -32,7 +32,7 @@
 3. `python -B scripts/create_jira_tasks.py` —— 实际创建（**幂等**：summary 匹配到已存在任务自动跳过，可重复运行）
 4. 核对输出 `[created] KN-101 → <Jira key>` 逐条
 
-**失败排查**：[docs/troubleshooting/jira_task_creation_diagnosis_20260808.md](file:///c:/Users/Administrator/agent/docs/troubleshooting/jira_task_creation_diagnosis_20260808.md)（已实测 fail-fast 正确拦截：缺凭据 exit 1、无半创建；含 8 种潜在失败模式表）。
+**失败排查**：[docs/troubleshooting/jira_task_creation_diagnosis_20260808.md](../troubleshooting/jira_task_creation_diagnosis_20260808.md)（已实测 fail-fast 正确拦截：缺凭据 exit 1、无半创建；含 8 种潜在失败模式表）。
 
 ## 2. Confluence 文档推送
 
