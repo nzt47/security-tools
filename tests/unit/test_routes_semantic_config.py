@@ -1,26 +1,34 @@
-"""routes_config.register_semantic_config_routes 单元测试
+"""routes_config.register_routes 语义层配置路由单元测试
 
 覆盖 GET/POST /api/orchestrator/semantic-config：
 - GET：返回合并配置 + API override
 - POST：类型/范围校验（400）、成功热更（200）
 所有外部副作用（Orchestrator 类成员/SQLite 持久化）均 mock，不触达真实状态。
 """
+from types import SimpleNamespace
 from unittest import mock
 
 import pytest
 from flask import Flask
 
-from agent.server_routes.routes_config import register_semantic_config_routes
+from agent.server_routes.routes_config import register_routes
 
 
 @pytest.fixture
 def client():
     app = Flask(__name__)
     app.config["TESTING"] = True
+    state = SimpleNamespace(
+        Yunshu=mock.MagicMock(),
+        session_mgr=mock.MagicMock(),
+        network_config_mgr=mock.MagicMock(),
+        search_engine=mock.MagicMock(),
+        chat_history=[],
+    )
     with mock.patch("agent.server_routes.routes_config.require_token", lambda f: f), \
          mock.patch("agent.server_routes.routes_config.log_request", lambda **kw: lambda f: f), \
          mock.patch("agent.server_routes.routes_config.trace_route", lambda *a, **kw: lambda f: f):
-        register_semantic_config_routes(app)
+        register_routes(app, state)
     return app.test_client()
 
 

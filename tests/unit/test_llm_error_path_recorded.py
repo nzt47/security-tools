@@ -41,12 +41,15 @@ def _reset_counts():
 
 @pytest.fixture(autouse=True)
 def _disable_wf_learn():
-    """隔离 workflow 学习开关：被测目标是 llm_error 埋点，不依赖 config.yaml
+    """隔离工作流学习/拦截层：被测目标是 llm_error 埋点，不依赖 config.yaml
 
     CI 上 xdist 并发读取 config.yaml 偶发 yaml 解析挂起/超时（pre-existing
-    flaky），测试不关心该路径，直接禁用避免顺序相关失败。
+    flaky），两个读取点（_wf_learn_enabled / _load_workflow_learning_layer_config）
+    一并禁用，避免顺序相关失败。
     """
-    with patch.object(Orchestrator, "_wf_learn_enabled", return_value=False):
+    with patch.object(Orchestrator, "_wf_learn_enabled", return_value=False), \
+         patch.object(Orchestrator, "_load_workflow_learning_layer_config",
+                      return_value={"enabled": False, "min_score": 0.0}):
         yield
 
 
