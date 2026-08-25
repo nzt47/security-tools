@@ -40,11 +40,13 @@ class TestLockHoldTimeout:
 
     def test_hold_timeout_records_lock_name(self):
         """不同锁名各自独立计数（labels=lock_name 的语义）"""
-        wd = LockWatchdog(hold_ms=10, wait_ms=0)
+        # hold_ms=50：lock_a 持锁 100ms（2×阈值）触发；lock_b 持锁 1ms（1/50 阈值）
+        # 大裕度避免 windows 高负载下 sleep(0.001) 调度延迟 > 阈值导致误报（2026-08-25 test.yml 3.10-windows flaky）
+        wd = LockWatchdog(hold_ms=50, wait_ms=0)
         lock_a = WatchedLock(name="lock_a", watchdog=wd)
         lock_b = WatchedLock(name="lock_b", watchdog=wd)
         with lock_a:
-            time.sleep(0.05)
+            time.sleep(0.1)
         # lock_b 正常持锁，不触发
         with lock_b:
             time.sleep(0.001)
