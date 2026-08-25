@@ -104,7 +104,7 @@ PR #795（fix(ci): 修复 docs 失效链接误判第一批）合并后，云枢�
 | 子项 | 根因 | 修复方案 | 提交 |
 |------|------|----------|------|
 | 3.10-windows 单元测试 | `test_lock_watchdog.py::test_hold_timeout_records_lock_name` lock_b 持锁 1ms、阈值 10ms，windows 高负载下 1ms sleep 调度延迟 >10ms 误报 | 阈值拉大至 50ms（lock_a 100ms=2×阈值触发；lock_b 1ms=1/50 阈值） | `d6c49a17` |
-| 3.12-windows 集成测试 | `SkillStore.sync_to_legacy_skills_json` 对共享文件 skills.json 的"读-改-写"无互斥，并发创建（不同技能 ID 独立锁）并发写同一文件 → windows `PermissionError(13)`（且存在丢失更新竞态） | 新增模块级 `_LEGACY_SYNC_LOCK` 互斥锁串行化读-改-写（不影响技能 ID 业务锁；锁内仅毫秒级文件操作） | 本批 |
+| 3.12-windows 集成测试 | `SkillStore.sync_to_legacy_skills_json` 对共享文件 skills.json 的"读-改-写"无互斥，并发创建（不同技能 ID 独立锁）并发写同一文件 → windows `PermissionError(13)`（且存在丢失更新竞态） | 新增模块级 `_LEGACY_SYNC_LOCK` 互斥锁串行化读-改-写（不影响技能 ID 业务锁；锁内仅毫秒级文件操作） | `62d64858` |
 
 ---
 
@@ -135,9 +135,13 @@ PR #795（fix(ci): 修复 docs 失效链接误判第一批）合并后，云枢�
 
 ## 七、最终状态确认
 
-- 推送：develop 已同步 origin + gitee（含全部 6 个修复提交：b2abd209 / a2d70333 / c1decc5e / a861f8ac / d6c49a17 / 本批）。
-- 主 CI：ci.yml 30/30 全绿（run 32886244816）。
-- 旧矩阵：test.yml 集成测试 3.12-windows 修复后复跑待确认 → 见下方补记。
+- 推送：develop 已同步 origin + gitee（HEAD = 62d64858，含全部 6 个修复提交：b2abd209 / a2d70333 / c1decc5e / a861f8ac / d6c49a17 / 62d64858）。
+- 主 CI（ci.yml）：62d64858 触发 run `32890524431` **30/30 job 全绿**（含覆盖率检查）。
+- 旧矩阵（test.yml）：run `32890524454` **19/19 job 全绿**（含此前失败的 3.10-windows 单测与 3.12-windows 集成测试，
+  两处修复均已实证生效）；3.12 两个单测 job 两次被**基础设施取消**（runner 竞争激烈——run 排队 46 分钟、
+  job 运行 31 分钟后被取消，日志无任何测试失败标记，无新 push 干扰），与代码无关，未再重跑。
+
+**结论**：25 项 pre-existing CI 失败 + test.yml 两处平台 flaky 全部修复；主 CI 全绿，交付完成 ✅。
 
 ## 附：相关文件
 
