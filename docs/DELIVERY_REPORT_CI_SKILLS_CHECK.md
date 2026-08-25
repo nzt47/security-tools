@@ -46,6 +46,7 @@ Skills Check workflow 的「定期全量扫描」job 持续失败（原始问题
 | 7 | Gitleaks 持续失败（master 连续 3 天） | `guard_llm_api_key.py` 测试占位符命中 `openai-api-key` 规则 | allowlist 锚定豁免（#797） | ✅ 已修已验证 |
 | 8 | 文档链接预检失败 | 云枢文档 `紧急停止` 失效链接指向不存在目标 | 删除失效链接（#798） | ✅ 已修已验证 |
 | 9 | release-docs artifact 名含 `/`（低概率） | workflow_dispatch + 含 `/` 分支名 | SAFE 名称预处理（#808） | ✅ 已修 |
+| 10 | ChromaDB 预检（容器化）构建失败 | .dockerignore 排除 `tests` ↔ Dockerfile `COPY tests/` 冲突（fdae1740 仅加诊断未修复） | .dockerignore 白名单放行预检所需 4 文件 + E2E junitxml 输出（#816） | ✅ 已合并已验证 |
 
 ## 4. 验证证据
 
@@ -60,7 +61,7 @@ Skills Check workflow 的「定期全量扫描」job 持续失败（原始问题
 
 1. ~~**【关键】3 个 PR 未合并**~~ → ✅ 已解决：#797 / #798 / #786 已全部合并到 master（`b5249996` / `81434a5b` / `a5596142`），master nightly 复验 success
 2. **【进行中】release-docs.yml artifact 名**：修复 PR #808 已提（SAFE 预处理），待合并
-3. **【不属于本工作线】仓库其他 CI 预存失败**：ChromaDB 容器化预检、代码质量检查、全项目测试覆盖率分片等在 master 上已存在失败，与本工作线无关，需另行跟进
+3. **【已解决】ChromaDB 预检（容器化）**：PR #816 已合并（.dockerignore 白名单 + E2E 空目录告警），unit-tests 矩阵恢复真实运行（15/18 绿；3 个 Shard 2 为预存单测失败 `TestRemoveOldWorkflow.test_remove_actual_calls_git_rm`，非本 PR 引入，由并行会话 CI pre-existing 修复线处理）
 
 ## 6. 结案结论（更新）
 
