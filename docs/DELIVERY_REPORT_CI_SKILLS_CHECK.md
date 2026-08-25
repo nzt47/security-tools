@@ -65,8 +65,8 @@ Skills Check workflow 的「定期全量扫描」job 持续失败（原始问题
 ## 6. 结案结论（更新）
 
 - ✅ 核心工作线**已结案**：#786 / #797 / #798 已合并，master 上 workflow_dispatch 复验 success，报告稳定上传
+- ✅ ChromaDB 预检修复（#816）已合并，unit-tests 矩阵恢复真实运行（遗留 3 个 Shard 2 预存单测失败由并行会话处理）
 - ⏳ release-docs 修复 PR #808 待合并（低优先级）
-- ⏳ 仓库其他预存 CI 失败（ChromaDB 等）非本工作线范围，另行立项
 
 ## 7. 变更文件总览
 
