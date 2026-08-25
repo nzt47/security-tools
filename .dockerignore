@@ -9,8 +9,17 @@ __pycache__
 .pytest_cache
 .mypy_cache
 *.egg-info
-# 测试代码不进镜像（docker-compose 运行时挂载 ./tests）
-tests
+# 测试代码不进镜像构建上下文，仅放行 chromadb 预检镜像（Dockerfile）所需文件。
+# 【不易】Dockerfile COPY tests/conftest.py + COPY tests/unit/ 是预检镜像契约，
+#   整体排除 tests 会导致构建失败（2026-08-25 修复，此前 ci(chromadb) 仅加诊断未修复）。
+# 【变易】白名单式放行：tests/* 排除全部子项，再逐个 ! 恢复预检所需 4 个文件
+#   （conftest 链 + 2 个预检测试），其余测试代码仍不进上下文（保持镜像轻量设计）。
+tests/*
+!tests/conftest.py
+!tests/unit
+!tests/unit/conftest.py
+!tests/unit/test_memory_optimized_import.py
+!tests/unit/test_preflight_runner.py
 # 运行时备份目录（最大可到 1GB+，不应进入构建上下文）
 backup
 data

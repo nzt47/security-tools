@@ -1026,10 +1026,15 @@ jobs:
       - name: 离线 E2E 测试
         run: |
           echo "=== 运行离线 E2E 测试 ==="
+          # 【变易】输出 junitxml 到 test-results/：与 unit-tests job 模式一致，
+          #   否则下方「上传测试结果」(path: test-results/) 无文件可传 → 空目录
+          #   warning（2026-08-25 消除 "No files were found" 非阻断告警）。
+          mkdir -p test-results
           python -m pytest \
             tests/e2e/test_offline_basic.py \
             tests/e2e/test_offline_workflow.py \
-            -v --tb=short -q --timeout=300
+            -v --tb=short -q --timeout=300 \
+            --junitxml=test-results/junit-e2e-offline.xml
           echo "=== 离线 E2E 测试全部通过 ==="
 
       - name: 在线 E2E 测试（仅 master 分支推送）
