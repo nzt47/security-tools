@@ -1,9 +1,17 @@
 # CI pre-existing 失败项修复计划（第二轮：25 项遗留失败）
 
-> **文档版本**：v1.0 | **更新日期**：2026-08-25
+> **文档版本**：v2.0（已完成） | **更新日期**：2026-08-25
 > **背景**：PR #795（fix(ci): 修复 docs 失效链接误判第一批，含 Fix 1+2）CI 共 99 checks：
 > 61 通过 / 13 跳过 / **25 失败**。25 项全部为 pre-existing（与上一 run 失败集一致），非 PR #795 diff 引入。
 > 本计划针对这 25 项按优先级排序给出修复方案。
+>
+> **✅ 修复完成（2026-08-25）**：25 项失败全部转绿，最终验证 run `32868259253`
+> （develop @ a861f8ac）29 个 job 全部 success（含覆盖率检查、全部 18 个单测 shard、
+> 代码质量、文档链接、安全扫描、集成/E2E/性能）。修复提交：
+> - `b2abd209`：docs 绝对路径链接批量转相对 + bandit 配置 + safety `--save-json` + 变更清单权限
+> - `a2d70333`：`TenantManager.list_tenants` / `AuditLogger.log(tenant_id)` / gateway 租户上下文注入 / handoff 测试导入修复
+> - `c1decc5e`：health_probes JSON 容忍 + llm_error 隔离 config 第一读取点
+> - `a861f8ac`：shard3 collection error（semantic-config 测试改用 register_routes）+ shard6 config 第二读取点 + docs 链接大小写（Yunshu-ui→yunshu-ui）
 
 ---
 
