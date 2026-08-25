@@ -45,28 +45,28 @@ Skills Check workflow 的「定期全量扫描」job 持续失败（原始问题
 | 6 | Windows JSON 输出空文件 | locale 编码（GBK）下 `ensure_ascii=False` 崩溃 | `sys.stdout.reconfigure(utf-8)` | ✅ |
 | 7 | Gitleaks 持续失败（master 连续 3 天） | `guard_llm_api_key.py` 测试占位符命中 `openai-api-key` 规则 | allowlist 锚定豁免（#797） | ✅ 已修已验证 |
 | 8 | 文档链接预检失败 | 云枢文档 `[紧急停止](红/二次确认)` 指向不存在目标 | 删除失效链接（#798） | ✅ 已修已验证 |
-| 9 | release-docs artifact 名含 `/`（低概率） | workflow_dispatch + 含 `/` 分支名 | 方案已生成（未提 PR） | ⚠️ 待办 |
+| 9 | release-docs artifact 名含 `/`（低概率） | workflow_dispatch + 含 `/` 分支名 | SAFE 名称预处理（#808） | ✅ 已修 |
 
 ## 4. 验证证据
 
-- **真实 CI**：run [32652513646](https://github.com/nzt47/security-tools/actions/runs/32652513646) → **success**（4 job 全绿：定期全量扫描 25s / 一致性 13s / Skills Gate 34s）
-- **Artifact**：`dynamic-load-scan-32652513646`（4,087 B）已上传，报告 `scanned=1710 high=4 med=97 low=20`，HIGH 仅剩归档加载（保守保留）
+- **分支验证**：run [32652513646](https://github.com/nzt47/security-tools/actions/runs/32652513646) → **success**（4 job 全绿：定期全量扫描 25s / 一致性 13s / Skills Gate 34s）
+- **Artifact（分支）**：`dynamic-load-scan-32652513646`（4,087 B），报告 `scanned=1710 high=4 med=97 low=20`，HIGH 仅剩归档加载（保守保留）
 - **修复生效**：`dst_scenario_demo` HIGH→MEDIUM 降级在真实 CI 生效
 - **PR #797**：Gitleaks check pass（allowlist 生效）
 - **PR #798**：文档链接预检 pass（失效链接清除）
+- **✅ master 验证（合并后）**：run [32811008902](https://github.com/nzt47/security-tools/actions/runs/32811008902) → **success**（master 上 workflow_dispatch：定期全量扫描 / 一致性 / Skills Gate 全绿，artifact `dynamic-load-scan-32811008902` 4,087 B 已上传）——**修复在 master 上复验通过**
 
-## 5. 遗留问题
+## 5. 遗留问题（更新）
 
-1. **【关键】3 个 PR 未合并**（#786 / #797 / #798）：代码已推送、CI 已验证，但 master 未包含任何修复。分支保护未启用 required checks，无阻塞，可直接合并。
-2. **【低优先级】release-docs.yml artifact 名**：方案已生成（`docs/RELEASE_DOCS_ARTIFACT_NAME_FIX_PLAN.md`），未提 PR。
-3. **【不属于本工作线】仓库其他 CI 预存失败**：ChromaDB 容器化预检、代码质量检查、全项目测试覆盖率分片等在 master 上已存在失败，与本工作线无关，需另行跟进。
+1. ~~**【关键】3 个 PR 未合并**~~ → ✅ 已解决：#797 / #798 / #786 已全部合并到 master（`b5249996` / `81434a5b` / `a5596142`），master nightly 复验 success
+2. **【进行中】release-docs.yml artifact 名**：修复 PR #808 已提（SAFE 预处理），待合并
+3. **【不属于本工作线】仓库其他 CI 预存失败**：ChromaDB 容器化预检、代码质量检查、全项目测试覆盖率分片等在 master 上已存在失败，与本工作线无关，需另行跟进
 
-## 6. 结案建议
+## 6. 结案结论（更新）
 
-- 合并顺序：#797 + #798（或直接 #786，其已包含全部所需修复）→ #786
-- 合并后触发 master workflow_dispatch 复核 nightly 稳定性（预计与 run 32652513646 同结果）
-- release-docs 修复作为独立后续 PR
-- 结案标准：三个 PR 合并 + master nightly 验证通过
+- ✅ 核心工作线**已结案**：#786 / #797 / #798 已合并，master 上 workflow_dispatch 复验 success，报告稳定上传
+- ⏳ release-docs 修复 PR #808 待合并（低优先级）
+- ⏳ 仓库其他预存 CI 失败（ChromaDB 等）非本工作线范围，另行立项
 
 ## 7. 变更文件总览
 
