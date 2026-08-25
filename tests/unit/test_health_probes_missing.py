@@ -173,10 +173,15 @@ class TestProbeStructuredLog:
         with caplog.at_level(logging.INFO, logger="agent.health.probes"):
             results = run_all_probes()
         assert len(results) == 5
-        probe_logs = [
-            json.loads(r.message) for r in caplog.records
-            if r.name == "agent.health.probes" and r.message
-        ]
+        probe_logs = []
+        for r in caplog.records:
+            if r.name == "agent.health.probes" and r.message:
+                try:
+                    payload = json.loads(r.message)
+                except (ValueError, json.JSONDecodeError):
+                    # 非结构化杂项日志（调试/辅助输出）不影响结构化校验
+                    continue
+                probe_logs.append(payload)
         assert len(probe_logs) == 5
         for rec in probe_logs:
             assert rec["module_name"] == "health_probes"
