@@ -23,6 +23,13 @@ from .observability import logger
 # 默认存储位置 — 与项目其他 data 文件对齐
 _DEFAULT_STORE_PATH = Path(__file__).parent.parent.parent / "data" / "skills_mgmt.json"
 
+# legacy skills.json 为所有技能实例共享的单一文件，读-改-写必须互斥，
+# 否则并发创建（不同技能 ID 独立锁）会并发写同一文件：
+#   - windows 上 open("w") 撞已打开句柄 → PermissionError(13)
+#   - 读旧快照并发追加 → 丢失更新
+# 2026-08-25 test.yml 3.12-windows 集成测试 test_concurrent_operations_safe 暴露。
+_LEGACY_SYNC_LOCK = threading.Lock()
+
 
 class SkillStore:
     """技能持久化存储 (线程安全)"""
@@ -561,41 +568,42 @@ class SkillStore:
         此方法确保新系统的技能在旧 UI 也能看到。
         Returns: 同步的技能数量
         """
-        try:
-            legacy_path = self._path.parent / "skills.json"
-            with open(legacy_path, "r", encoding="utf-8") as f:
-                legacy = json.load(f)
-            if not isinstance(legacy, dict):
-                legacy = {"skills": []}
-            legacy.setdefault("skills", [])
-            existing_ids = {s.get("id") for s in legacy["skills"]}
+        with _LEGACY_SYNC_LOCK:
+            try:
+                legacy_path = self._path.parent / "skills.json"
+                with open(legacy_path, "r", encoding="utf-8") as f:
+                    legacy = json.load(f)
+                if not isinstance(legacy, dict):
+                    legacy = {"skills": []}
+                legacy.setdefault("skills", [])
+                existing_ids = {s.get("id") for s in legacy["skills"]}
 
-            count = 0
-            for skill_dict in self._load().values():
-                if skill_dict.get("id") in existing_ids:
-                    continue
-                # 仅同步启用且非草稿的技能，避免污染旧 UI
-                if (skill_dict.get("enabled", True)
-                        and skill_dict.get("status", SkillStatus.DRAFT.value)
-                        in (SkillStatus.APPROVED.value,
-                            SkillStatus.PUBLISHED.value,
-                            SkillStatus.DRAFT.value)):
-                    legacy["skills"].append({
-                        "id": skill_dict["id"],
-                        "name": skill_dict.get("name", skill_dict["id"]),
-                        "enabled": True,
-                        "description": skill_dict.get("description", ""),
-                        "params": skill_dict.get("default_params", {}),
-                    })
-                    count += 1
-            if count > 0:
-                with open(legacy_path, "w", encoding="utf-8") as f:
-                    json.dump(legacy, f, ensure_ascii=False, indent=2)
-                logger.info("[SkillStore] 同步 %d 个技能到 legacy skills.json", count)
-            return count
-        except Exception as e:  # noqa: BLE001  向后兼容同步失败不阻塞主流程
-            logger.warning("[SkillStore] 同步 legacy 失败: %s", e)
-            return 0
+                count = 0
+                for skill_dict in self._load().values():
+                    if skill_dict.get("id") in existing_ids:
+                        continue
+                    # 仅同步启用且非草稿的技能，避免污染旧 UI
+                    if (skill_dict.get("enabled", True)
+                            and skill_dict.get("status", SkillStatus.DRAFT.value)
+                            in (SkillStatus.APPROVED.value,
+                                SkillStatus.PUBLISHED.value,
+                                SkillStatus.DRAFT.value)):
+                        legacy["skills"].append({
+                            "id": skill_dict["id"],
+                            "name": skill_dict.get("name", skill_dict["id"]),
+                            "enabled": True,
+                            "description": skill_dict.get("description", ""),
+                            "params": skill_dict.get("default_params", {}),
+                        })
+                        count += 1
+                if count > 0:
+                    with open(legacy_path, "w", encoding="utf-8") as f:
+                        json.dump(legacy, f, ensure_ascii=False, indent=2)
+                    logger.info("[SkillStore] 同步 %d 个技能到 legacy skills.json", count)
+                return count
+            except Exception as e:  # noqa: BLE001  向后兼容同步失败不阻塞主流程
+                logger.warning("[SkillStore] 同步 legacy 失败: %s", e)
+                return 0
 
     def health(self) -> Dict[str, Any]:
         """健康检查 (供 /api/skills-mgmt/health 调用)"""
