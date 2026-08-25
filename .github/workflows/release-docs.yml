@@ -63,7 +63,21 @@ jobs:
     name: 构建 API 文档
     needs: readiness-check
     runs-on: ubuntu-latest
+    outputs:
+      artifact_name: ${{ steps.artifact_name.outputs.name }}   # 供 deploy-pages 下载同名 artifact
     steps:
+      - name: 准备安全的 artifact 名称
+        id: artifact_name
+        # 【变易】github.ref_name 在 workflow_dispatch 下为分支名（可能含 '/'），
+        # 含 '/' 的 artifact 名非法（InvalidArtifactName，NTFS 兼容限制）。
+        # 统一将 '/' 替换为 '-'，输出到 GITHUB_OUTPUT 供上传/下载步骤复用。
+        # release/tag 触发（ref_name 为 tag 名）无 '/'，SAFE 与原始值一致，行为不变。
+        run: |
+          RAW="${{ github.ref_name }}"
+          SAFE="${RAW//\//-}"
+          echo "name=api-docs-${SAFE}" >> "$GITHUB_OUTPUT"
+          echo "已计算 artifact 名称: api-docs-${SAFE} (原始 ref_name: ${RAW})"
+
       - name: 检出代码
         uses: actions/checkout@v6
 
@@ -135,7 +149,7 @@ jobs:
         # Why: 方便下载查看，也供 deploy-pages job 使用
         uses: actions/upload-artifact@v7
         with:
-          name: api-docs-${{ github.ref_name }}
+          name: ${{ steps.artifact_name.outputs.name }}
           path: docs_build/
           retention-days: 30
 
@@ -156,7 +170,7 @@ jobs:
       - name: 下载文档 artifact
         uses: actions/download-artifact@v8
         with:
-          name: api-docs-${{ github.ref_name }}
+          name: ${{ needs.build-docs.outputs.artifact_name }}
           path: docs_site/
 
       - name: 配置 GitHub Pages
