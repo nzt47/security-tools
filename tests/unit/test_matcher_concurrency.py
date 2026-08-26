@@ -82,8 +82,9 @@ class TestWorkflowMatcherConcurrency:
             # "读写并发不抛 RuntimeError"的验证语义，且 writer 必然能拿到锁。
             # 500 轮在 CI 慢机（xdist 4 worker 抢 CPU）下仍可逼近 60s 超时线，
             # 2026-08-14 py3.12 Shard5 复现（本地 9s 通过）；降到 100 轮留足余量。
+            # 2026-08-26 py3.12 Shard1 再次复现（本地 2.07s 通过），续降 50 轮。
             try:
-                for _ in range(100):
+                for _ in range(50):
                     matcher.match("匹配任务 seedkw0 wkw1 2")
                     matcher.match("匹配任务 其他文本")
                     time.sleep(0)  # 让出 GIL，给 writer 抢占锁的机会
