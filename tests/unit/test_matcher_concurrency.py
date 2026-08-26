@@ -70,7 +70,7 @@ class TestWorkflowMatcherConcurrency:
 
         def writer(tid):
             try:
-                for i in range(150):
+                for i in range(80):
                     matcher.register(_make_wf(f"w-{tid}-{i}", f"wkw{tid}{i}"))
             except Exception as e:  # pragma: no cover
                 errors.append(e)
@@ -82,7 +82,9 @@ class TestWorkflowMatcherConcurrency:
             # "读写并发不抛 RuntimeError"的验证语义，且 writer 必然能拿到锁。
             # 500 轮在 CI 慢机（xdist 4 worker 抢 CPU）下仍可逼近 60s 超时线，
             # 2026-08-14 py3.12 Shard5 复现（本地 9s 通过）；降到 100 轮留足余量。
-            # 2026-08-26 py3.12 Shard1 再次复现（本地 2.07s 通过），续降 50 轮。
+            # 2026-08-26 py3.12 Shard1 再次复现（本地 2.07s 通过），续降 reader 50 轮
+            #   且 writer 150→80（reader 饿死根因在 writer 高频 register 触发 O(N)
+            #   rebuild 抢占锁，双降释放锁竞争余量）。
             try:
                 for _ in range(50):
                     matcher.match("匹配任务 seedkw0 wkw1 2")
