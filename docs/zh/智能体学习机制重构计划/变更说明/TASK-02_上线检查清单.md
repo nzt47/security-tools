@@ -73,11 +73,24 @@
 ```bash
 # 单次对话完整接线链路
 grep -E "learning_gate|eval.start|self_reflect.eval|persist.start|persist'|persist.fallback" <日志> | tail -20
-
-# 指标确认（Prometheus）
-#   learning.eval.total / learning.eval.passed / learning.eval.failed
-#   learning.eval.score 直方图
 ```
+
+### 2.5 Prometheus 查询（验证指标趋势）
+
+> 指标经 `monitor_task02_observation.py --prometheus` 暴露或由应用 /metrics 端点采集。
+> 指标名点转下划线：`learning.eval.total` → `learning_eval_total`，带 `service` 标签。
+
+| 目的 | PromQL |
+|------|--------|
+| 三开关当前状态（gauge 1=on） | `learning_config_reflection_persist` / `learning_config_critic_evaluation_enabled` / `learning_config_experience_persist` |
+| 观察窗口评估计数递增（是否有对话触发评估） | `increase(learning_eval_total[5m])` |
+| 评估通过数递增 | `increase(learning_eval_passed[5m])` |
+| 评估失败数递增（>0 即异常） | `increase(learning_eval_failed[5m])` |
+| 规则通过率（保守模式有效性） | `sum(learning_eval_passed) / clamp_min(sum(learning_eval_total), 1)` |
+| score 分布（P95 质量水位） | `learning_eval_score{quantile="0.95"}` |
+| score 均值 | `learning_eval_score_sum / clamp_min(learning_eval_score_count, 1)` |
+| 趋势停滞告警（10 分钟无评估 → 接线可能中断） | `increase(learning_eval_total[10m]) == 0` |
+| 开关异常回退告警（experience 不应为 1） | `learning_config_experience_persist == 1` |
 
 ---
 
