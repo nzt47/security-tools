@@ -71,6 +71,7 @@
 | 2026-08-26 | `64ded0f` | 98.8% (1938/1962) | 0 | 24 | 164.29 | — | 0 | ↑ | Merge pull request #832 from nzt47/fix/health-probes-json-tolerance |
 | 2026-08-26 | `d304ce5` | 98.8% (1938/1962) | 0 | 24 | 169.03 | — | 0 | ↑ | Merge pull request #836 from nzt47/docs/delivery-closeout-report |
 | 2026-08-26 | `938f376` | 98.3% (2050/2085) | 0 | 35 | 107.25 | — | 0 | ↑ | feat(permission): RBAC+ABAC 三层权限架构升级(PermissionGateway/JSON日� |
+| 2026-08-26 | `8b0d06a` | 98.3% (2050/2085) | 0 | 35 | 135.95 | — | 0 | ↑ | fix(docs): 交付报告策略配置链接修正为上级相对路径(../data/) |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
