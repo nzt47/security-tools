@@ -1,7 +1,7 @@
 # 交付收尾报告：权限系统 RBAC/ABAC 三层架构升级（2026-08-26）
 
 > 交付范围：PermissionGateway 三层权限架构（RBAC + ABAC + 正则黑名单）· JSON trace 日志 · 端到端集成测试
-> 关联文档：[三层权限架构说明](permission_arch.md) · [策略配置](permission_policies.json)
+> 关联文档：[三层权限架构说明](permission_arch.md) · [策略配置](../data/permission_policies.json)
 > 上一份交付：[项目交付收尾报告](DELIVERY_CLOSEOUT_REPORT_20260826.md)
 
 ## 1. 交付范围与目标
