@@ -19,6 +19,8 @@ on:
       - 'agent/orchestrator/orchestrator.py'
       - 'planning/core.py'
       - 'scripts/verify_task02_config_effective.py'
+      - 'scripts/verify_task02_checklist.py'
+      - 'scripts/monitor_task02_observation.py'
       - '.github/workflows/task02-learning-config-guard.yml'
   push:
     branches: [main, master, develop]
@@ -27,6 +29,8 @@ on:
       - 'agent/orchestrator/orchestrator.py'
       - 'planning/core.py'
       - 'scripts/verify_task02_config_effective.py'
+      - 'scripts/verify_task02_checklist.py'
+      - 'scripts/monitor_task02_observation.py'
       - '.github/workflows/task02-learning-config-guard.yml'
   workflow_dispatch:
 
