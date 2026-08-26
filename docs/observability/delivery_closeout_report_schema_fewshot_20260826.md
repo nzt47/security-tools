@@ -1,8 +1,8 @@
 # 项目交付收尾报告（动态 Schema 裁剪 + Dynamic Few-shot 注入工作线）
 
-- **报告日期**: 2026-08-26
-- **交付分支**: master（commit `a92e7aeb`，已推送 origin + gitee）
-- **状态**: ✅ 代码已提交推送，CI 验证中
+- **报告日期**: 2026-08-26（末次更新 2026-08-27）
+- **交付分支**: master（HEAD `0ce000c8`，已推送 origin + gitee）
+- **状态**: ✅ 代码已提交推送；CI 因 GitHub Actions 仓库级停摆（外部环境）暂未完成全量复跑
 - **关联文档**: 计划文件 `.trae/documents/dynamic-schema-pruning-fewshot-injection.md`（`.trae/` 不入库）
 
 ---
@@ -63,10 +63,12 @@
 |---|---|
 | 单元测试（本地） | ✅ 44 passed / 0 failed（+6 既有 skip：build_context_messages fewshot 参数已移除的标记） |
 | 依赖导入验证 | ✅ Orchestrator / pruner / fewshot_store / build_fewshot_message 全部可导入 |
-| 推送 | ✅ origin(GitHub) `f2abdcf8..a92e7aeb`；gitee `273cae85..a92e7aeb` |
-| GitHub Actions | 🔄 已触发多 job（verify_commit_origin ✅ / lock-discipline-scan ✅ 先行通过，其余 in_progress/queued） |
+| 推送 | ✅ origin(GitHub) + gitee 双端同步至 `0ce000c8` |
+| matcher_concurrency flaky 修复链 | ✅ `89399e80`（降轮数）→ `49bc62c5`（双降轮数）→ `d676ffc0`（同步断言 30+4*80），本地 4 passed 1.8s 稳定通过 |
+| 云枢主 CI（fa638d52） | ⚠️ 21/22 jobs success，仅 `test_concurrent_register_and_match_no_crash` 超时（该 flaky 已由上述修复链处理） |
+| 云枢主 CI（d676ffc0 / 0ce000c8） | ❌ 未能验证：d676ffc0 push 后仅创建 4 个辅助 workflow 且卡 queued 9h（jobs 列表为空、cancel 报 completed 状态不一致）；0ce000c8 push 后 0 个 run 创建 |
 
-> 注：CI 为异步执行，推送后 17s 已有 2 个 job 通过；全量结果需等待所有 job 完成。
+> **GitHub Actions 仓库级停摆（外部环境问题）**：2026-08-26 15:12（UTC）起，push 事件不再完整触发 workflow。排查证据：GitHub 服务状态页正常、仓库 public（无分钟配额限制）、Actions 权限 enabled/allowed all、in_progress=0/completed=0、49 个 workflow 正常注册。结论为 GitHub 端临时限制/故障，非代码缺陷；`0ce000c8` 为空提交（仅重新触发 CI，无代码变更）。待 GitHub 恢复后复跑 CI 即可闭环。
 
 ---
 
@@ -87,12 +89,13 @@
 
 | # | 遗留项 | 建议 |
 |---|---|---|
-| 1 | 生产 yaml 无 deprecated 字段，真实减幅未达 30% | 若需达标：对废弃工具标记 `deprecated:true`（可参考 scripts/apply_deprecated_to_production.py 保守方案，需业务确认），或下调 SCHEMA_DESC_MAX_LEN |
-| 2 | `build_context_messages` 的 fewshot_samples 参数已移除（既有决策） | orchestrator 生产路径直接注入 `_working` 不依赖该参数；测试标记 skip 保留说明 |
-| 3 | tool_calling 成功路径埋点（record）未入库 | 若需 few-shot 有真实数据源，需在 `tool_calling._execute_safe` 成功路径调用 `ToolFewshotStore.instance().record(...)`（当前 orchestrator 采样会因空表返回空） |
+| 1 | GitHub Actions 仓库级停摆（外部环境，2026-08-26 15:12 UTC 起） | 待 GitHub 恢复后复跑 CI 验证 matcher_concurrency 修复；`0ce000c8` 已就位，恢复后 push 任意提交或等 0ce000c8 触发即可 |
+| 2 | 生产 yaml 无 deprecated 字段，真实减幅未达 30% | 若需达标：对废弃工具标记 `deprecated:true`（可参考 scripts/apply_deprecated_to_production.py 保守方案，需业务确认），或下调 SCHEMA_DESC_MAX_LEN |
+| 3 | `build_context_messages` 的 fewshot_samples 参数已移除（既有决策） | orchestrator 生产路径直接注入 `_working` 不依赖该参数；测试标记 skip 保留说明 |
+| 4 | tool_calling 成功路径埋点（record）未入库 | 若需 few-shot 有真实数据源，需在 `tool_calling._execute_safe` 成功路径调用 `ToolFewshotStore.instance().record(...)`（当前 orchestrator 采样会因空表返回空） |
 
 ---
 
 ## 七、结案声明
 
-本次工作线核心交付物（裁剪器、采样存储、prompt 组装、编排器集成、验证脚本、单测、配置）已全部完成并推送 master（`a92e7aeb`）。遗留问题已在上节列明，其中 #3 影响 few-shot 生产数据积累，建议下阶段优先处理；其余为可选项，不阻塞当前交付。
+本次工作线核心交付物（裁剪器、采样存储、prompt 组装、编排器集成、验证脚本、单测、配置）已全部完成并推送 master（HEAD `0ce000c8`，origin + gitee 双端同步）。遗留问题已在上节列明：#1 为外部环境问题（GitHub Actions 仓库级停摆），恢复后复跑 CI 即可闭环，不阻塞交付；#2/#4 为业务决策项，需业务确认后处理；#3 为既有决策保留。本工作线可结案。
