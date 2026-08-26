@@ -270,3 +270,32 @@ scripts/dev/wait_checkout_master.ps1
 
 # CI 生成的 quality gate 报告（2026-08-15 重新追加，勿提交：每次 CI 运行自动生成，非源码）
 quality_gate_report.json
+
+# === 环境清理补全（2026-08-26）===
+# 虚拟环境（此前仅忽略 .venv/，补 venv/）
+venv/
+# 运行时数据（健康/knowledge/mock/reflection/snapshots/learning/审批/manager 状态）
+data/health/
+data/knowledge/
+data/mock/
+data/reflection/
+data/snapshots/
+data/learning/
+data/approval_records.jsonl
+data/manager_notifications.json
+data/manager_users.json
+# agent 运行时备份
+agent/data/*.bak_*
+# 备份快照（全量 zip 与修复收尾目录）
+backup/data_20260816_full_backup.zip
+backup/fix_encoding_closure_20260815/
+# 临时补丁（权限/特性切换）
+docs/releases/permission_update.patch
+permission-feature-20260821.patch
+# 前端构建产物与生产环境配置（含敏感值，禁止提交）
+yunshu-ui/.env.production
+yunshu-ui/dist-electron/
+yunshu-ui/release/
+# 本地工具/文档目录
+.devtools/
+.wiki/
