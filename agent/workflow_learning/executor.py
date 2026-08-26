@@ -28,8 +28,17 @@ from .models import (
     WorkflowStep,
     WorkflowExecutionResult,
 )
-from .exceptions import WorkflowExecutionError, ErrorCode
+from .exceptions import (
+    WorkflowExecutionError,
+    WorkflowSchemaError,
+    ErrorCode,
+)
 from .observability import logger, emit_metric, track_event, traced_action
+from .blackboard import SharedBlackboard
+from .mode_classifier import (
+    classify_workflow_mode, count_branches, AGENT_BRANCH_THRESHOLD,
+)
+from .agent_executor import AgentExecutor, AgentRunner
 from .repository import WorkflowRepository
 from .matcher import WorkflowMatcher
 
@@ -38,31 +47,64 @@ from .matcher import WorkflowMatcher
 ToolExecutor = Callable[[str, Dict[str, Any]], Any]
 
 
-def _resolve_template(value: Any, ctx: Dict[str, Any]) -> Any:
-    """递归解析参数模板中的引用"""
+def _resolve_template(value: Any, ctx: Dict[str, Any],
+                      blackboard: Optional[SharedBlackboard] = None) -> Any:
+    """递归解析参数模板中的引用
+
+    blackboard 非 None 时支持 $bb.<step_id>.<key> 从黑板读 (类型化路径);
+    $step.X.output / $prev_output / $input / $param.x 仍从 ctx 读 (兼容层)。
+    """
     if isinstance(value, str):
-        return _resolve_string(value, ctx)
+        return _resolve_string(value, ctx, blackboard)
     if isinstance(value, dict):
-        return {k: _resolve_template(v, ctx) for k, v in value.items()}
+        return {k: _resolve_template(v, ctx, blackboard)
+                for k, v in value.items()}
     if isinstance(value, list):
-        return [_resolve_template(v, ctx) for v in value]
+        return [_resolve_template(v, ctx, blackboard) for v in value]
     return value
 
 
-_REF_RE = re.compile(r"\$\{([^}]+)\}|\$([a-z_][a-z0-9_.]*)")
+_REF_RE = re.compile(r"\$\{([^}]+)\}|\$([a-zA-Z_][a-zA-Z0-9_.]*)")
+# 整串单个引用 — 用于 _resolve_string 判断是否保留原值类型 (dict/number 等)
+_FULL_REF_RE = re.compile(r"^\$\{([^}]+)\}$|^\$([a-zA-Z_][a-zA-Z0-9_.]*)$")
 
 
-def _resolve_string(s: str, ctx: Dict[str, Any]) -> Any:
-    """解析字符串中的 $xxx / ${xxx} 引用"""
+def _resolve_string(s: str, ctx: Dict[str, Any],
+                    blackboard: Optional[SharedBlackboard] = None) -> Any:
+    """解析字符串中的 $xxx / ${xxx} 引用
+
+    整串为单个引用时返回原值 (保留 dict/number 类型, 黑板类型化传递基础);
+    否则做字符串替换 (嵌入引用 str 化, 兼容既有行为)。
+    """
+    full = _FULL_REF_RE.match(s)
+    if full:
+        key = full.group(1) or full.group(2)
+        v = _lookup(key, ctx, blackboard)
+        # 整串引用: 返回原值 (含 None) — 缺失=明确 None, 非字符串残留
+        # 区别于嵌入引用 (下方 _replace) 缺失时保留原 token
+        return v
+
     def _replace(m: re.Match) -> str:
         key = m.group(1) or m.group(2)
-        v = _lookup(key, ctx)
+        v = _lookup(key, ctx, blackboard)
         return str(v) if v is not None else m.group(0)
     return _REF_RE.sub(_replace, s)
 
 
-def _lookup(key: str, ctx: Dict[str, Any]) -> Any:
-    """从上下文查找引用值"""
+def _lookup(key: str, ctx: Dict[str, Any],
+            blackboard: Optional[SharedBlackboard] = None) -> Any:
+    """从上下文/黑板查找引用值
+
+    黑板引用: bb.<step_id>.<key>  (类型化路径, 从 SharedBlackboard 读)
+    兼容引用: input / prev_output / step.<n>.output / param.<k>  (从 ctx 读)
+    """
+    # [TLM-L1] 黑板引用 — 类型化数据传递
+    if blackboard is not None and key.startswith("bb."):
+        parts = key.split(".", 2)
+        if len(parts) == 3:
+            return blackboard.read(parts[1], parts[2])
+        return None
+    # 兼容层: ctx 字典查找
     parts = key.split(".")
     cur: Any = ctx
     for p in parts:
@@ -135,16 +177,24 @@ class WorkflowExecutor:
 
     def __init__(self, repo: WorkflowRepository, matcher: WorkflowMatcher,
                  *, min_score: float = 0.3,
-                 tool_executor: Optional[ToolExecutor] = None):
+                 tool_executor: Optional[ToolExecutor] = None,
+                 agent_executor: Optional[AgentExecutor] = None):
         self._repo = repo
         self._matcher = matcher
         self.min_score = min_score
         self._tool_executor = tool_executor
+        # [TLM-L1] Agent 执行器 — classify_workflow_mode 返回 "agent" 时启用
+        # None 时降级走 DAG (带 warning), 不中断主流程 (【不易】边界显性化)
+        self._agent_executor = agent_executor
         self._exec_locks: Dict[str, threading.Lock] = {}
         self._locks_guard = threading.Lock()
 
     def set_tool_executor(self, executor: ToolExecutor) -> None:
         self._tool_executor = executor
+
+    def set_agent_executor(self, executor: AgentExecutor) -> None:
+        """后置注入 Agent 执行器 (与 set_tool_executor 同构)"""
+        self._agent_executor = executor
 
     # ─── 主入口: 尝试本地工作流 ───
 
@@ -184,18 +234,72 @@ class WorkflowExecutor:
             ctx["matched"] = True
             ctx["workflow_id"] = wf.id
             ctx["score"] = score
-            return self._execute_workflow(wf, task_text, params or {}, score)
+
+            # [TLM-L1] 模式分类 — 分支数 > 3 转 Agent, 否则走 DAG (含条件节点)
+            # 判断依据: docs/workflow_dag_vs_agent.md §2 判定规则
+            mode = classify_workflow_mode(wf.steps)
+            ctx["mode"] = mode
+            if mode == "agent":
+                ctx["agent_mode"] = self._agent_executor is not None
+                if self._agent_executor is None:
+                    ctx["agent_degraded"] = True
+            return self._dispatch_by_mode(wf, task_text, params or {}, score, t0)
 
     # ─── 直接执行指定工作流 ───
 
     def execute_by_id(self, wf_id: str, task_text: str, *,
                       params: Optional[Dict[str, Any]] = None) -> WorkflowExecutionResult:
-        """按 ID 直接执行工作流 (用于人工触发)"""
+        """按 ID 直接执行工作流 (用于人工触发)
+
+        Note: 同样走模式分类 — 4 分支工作流人工触发也应走 Agent 模式,
+              与 try_execute 保持一致, 避免触发方式不同导致行为分叉。
+        """
         wf = self._repo.get(wf_id)
         if not wf:
             from .exceptions import WorkflowNotFoundError
             raise WorkflowNotFoundError(wf_id)
-        return self._execute_workflow(wf, task_text, params or {}, similarity=1.0)
+        t0 = time.time()
+        return self._dispatch_by_mode(wf, task_text, params or {}, 1.0, t0)
+
+    # ─── 模式分发 (try_execute / execute_by_id 共用) ───
+
+    def _dispatch_by_mode(self, wf: LearnedWorkflow, task_text: str,
+                          params: Dict[str, Any], similarity: float,
+                          t0: float) -> WorkflowExecutionResult:
+        """根据模式分类分发执行
+
+        - agent + 已配置 AgentExecutor → 转 AgentExecutor (不持 workflow 锁)
+        - agent + 未配置 → 降级走 DAG (warning, 不中断)
+        - dag / dag_conditional → 走 _execute_workflow (DAG 串行 + 条件节点)
+
+        Agent 模式不持 workflow 级锁: LLM 调用耗时长, 持锁会阻塞同 workflow
+        的其他执行请求; DAG 模式仍持 _exec_locks (内存操作快, 防连点必要)。
+        """
+        mode = classify_workflow_mode(wf.steps)
+        n_branches = count_branches(wf.steps)
+        n_steps = len(wf.steps)
+        # [TLM-L1] 模式分发日志 — 锁外打印 (本方法不持锁), 排查分支判断
+        # 区分 Agent vs DAG: 分支数 > 3 → Agent, 否则 DAG (含条件节点)
+        logger.info("[Executor] 模式分发 wf=%s mode=%s branches=%d/%d steps=%d",
+                    wf.id, mode, n_branches, AGENT_BRANCH_THRESHOLD, n_steps)
+        if mode == "agent":
+            if self._agent_executor is not None:
+                logger.info("[Executor] %s → AgentExecutor "
+                            "(分支数 %d > %d 阈值, 不持 workflow 锁, LLM 耗时长)",
+                            wf.id, n_branches, AGENT_BRANCH_THRESHOLD)
+                agent_result = self._agent_executor.execute(wf, task_text, params)
+                agent_result.similarity = similarity
+                agent_result.execution_time_ms = round(
+                    (time.time() - t0) * 1000, 2)
+                return agent_result
+            logger.warning("[Executor] %s 模式=agent 但未配置 AgentExecutor, "
+                           "降级走 DAG (分支数 %d > %d, 建议注入 AgentRunner)",
+                           wf.id, n_branches, AGENT_BRANCH_THRESHOLD)
+        else:
+            logger.info("[Executor] %s → DAG 执行 "
+                        "(mode=%s, 分支数 %d ≤ %d, 持 _exec_locks 防连点)",
+                        wf.id, mode, n_branches, AGENT_BRANCH_THRESHOLD)
+        return self._execute_workflow(wf, task_text, params, similarity)
 
     # ─── 内部 ───
 
@@ -205,12 +309,20 @@ class WorkflowExecutor:
         t0 = time.time()
         lock = self._get_lock(wf.id)
         with lock:
+            # [TLM-L1] DAG 模式入口日志 — 锁内, 与既有 step 日志同惯例 (轻量 I/O)
+            # 确认进入 DAG 路径 (mode=dag 或 dag_conditional 或 agent 降级)
+            logger.info("[Executor] DAG 执行开始 wf=%s mode=%s steps=%d branches=%d",
+                        wf.id, classify_workflow_mode(wf.steps),
+                        len(wf.steps), count_branches(wf.steps))
             ctx: Dict[str, Any] = {
                 "input": task_text,
                 "param": params,
                 "step": {},  # step_id → {output: ...}
                 "prev_output": "",
             }
+            # [TLM-L1] 共享黑板 — 类型化数据传递层, 与 ctx 并存 (兼容层)
+            # 黑板纯内存操作, 满足 "持锁操作严禁 I/O" 硬约束
+            blackboard = SharedBlackboard()
             steps_executed = 0
             try:
                 if not self._tool_executor:
@@ -224,11 +336,14 @@ class WorkflowExecutor:
                     if step.condition and not _eval_condition(step.condition, ctx):
                         logger.info("[Executor] 步骤 %s 条件不满足，跳过",
                                     step.step_id)
+                        # [TLM-L1] 黑板记录跳过, 供后续步骤决策
+                        blackboard.record_failure(
+                            step.step_id, "condition_not_met")
                         continue
 
-                    # 解析参数
+                    # 解析参数 (传 blackboard 启用 $bb.<step>.<key> 类型化引用)
                     resolved_params = _resolve_template(
-                        step.params_template, ctx)
+                        step.params_template, ctx, blackboard)
 
                     # 执行
                     step_t0 = time.time()
@@ -236,9 +351,15 @@ class WorkflowExecutor:
                     step_elapsed = (time.time() - step_t0) * 1000
                     steps_executed += 1
 
-                    # 更新上下文
+                    # 更新上下文 (兼容层: 保留原 ctx 供 $step.X.output 模板解析)
                     ctx["step"][step.step_id] = {"output": output}
                     ctx["prev_output"] = output
+
+                    # [TLM-L1] 黑板写入 — 带 output_schema 校验 (None 则不校验)
+                    # schema 失败抛 WorkflowSchemaError, 由下方 except 捕获
+                    out_key = step.output_key or "output"
+                    blackboard.write(
+                        step.step_id, out_key, output, step.output_schema)
 
                     logger.info("[Executor] %s.%s → %s (%.2fms)",
                                 wf.id, step.step_id,
@@ -252,10 +373,19 @@ class WorkflowExecutor:
                 success = False
                 final_output = None
                 error = e.message
+                blackboard.record_failure("workflow", "execution_error", e.message)
+            except WorkflowSchemaError as e:  # [TLM-L1] 黑板 schema 校验失败
+                success = False
+                final_output = None
+                error = e.message
+                blackboard.record_failure(
+                    e.details.get("step_id", "unknown"),
+                    "schema_error", e.message)
             except Exception as e:  # noqa: BLE001  工具执行异常
                 success = False
                 final_output = None
                 error = f"步骤执行异常: {e}"
+                blackboard.record_failure("workflow", "unexpected_error", str(e))
 
             # 更新工作流统计
             wf.record_execution(success)
@@ -296,7 +426,33 @@ class WorkflowExecutor:
             logger.info("[Executor] 工作流 %s 执行 %s (%d 步, %.2fms, 跳过LLM=%s)",
                         wf.id, "成功" if success else "失败",
                         steps_executed, elapsed, result.skipped_llm)
-            return result
+            # [TLM-L1] 黑板快照 (纯内存深拷贝, 锁内安全)
+            bb_snapshot = blackboard.snapshot()
+
+        # [TLM-L1] 黑板快照写入可观测层 — 锁外执行, 遵守 "持锁操作严禁 I/O" 硬约束
+        # track_event 内部含 logger I/O, 不得在 _exec_locks 锁内调用
+        try:
+            track_event("wf_blackboard_snapshot", {
+                "workflow_id": wf.id,
+                "success": result.success,
+                "steps_executed": result.steps_executed,
+                "failures": len(bb_snapshot.get("failures", [])),
+                "warnings": len(bb_snapshot.get("warnings", [])),
+                "snapshot": bb_snapshot,
+            })
+        except Exception:  # noqa: BLE001  trace 失败不影响主流程
+            logger.debug("[Executor] 黑板快照 trace 失败, 已忽略", exc_info=True)
+
+        # [TLM-L1] 黑板操作审计打印 — 锁外, 排查步骤间数据传递问题
+        # operations 在锁内收集(纯内存), 此处锁外批量打印(I/O), 合规
+        for op in bb_snapshot.get("operations", []):
+            extra = " ".join(
+                f"{k}={v}" for k, v in op.items()
+                if k not in ("op", "step", "ts")
+            )
+            logger.info("[Blackboard] %s step=%s %s",
+                        op.get("op"), op.get("step"), extra)
+        return result
 
     def _get_lock(self, wf_id: str) -> threading.Lock:
         with self._locks_guard:

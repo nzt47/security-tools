@@ -14,6 +14,7 @@ class ErrorCode:
     GENERATE_FAILED = "WF_GENERATE_FAILED"
     EXECUTE_FAILED = "WF_EXECUTE_FAILED"
     NO_MATCH = "WF_NO_MATCH"
+    SCHEMA_ERROR = "WF_SCHEMA_ERROR"
 
 
 class WorkflowLearningError(Exception):
@@ -51,3 +52,24 @@ class WorkflowNotFoundError(WorkflowLearningError):
 
 class WorkflowExecutionError(WorkflowLearningError):
     code = ErrorCode.EXECUTE_FAILED
+
+
+class WorkflowSchemaError(WorkflowLearningError):
+    """黑板写入 schema 校验失败
+
+    由 SharedBlackboard.write 在校验失败时抛出,
+    executor 边界捕获 (转 result.success=False + 黑板 record_failure)。
+    """
+
+    def __init__(self, step_id: str, key: str, reason: str,
+                 *, details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            f"黑板写入 schema 校验失败: step={step_id} key={key} ({reason})",
+            code=ErrorCode.SCHEMA_ERROR,
+            details={
+                "step_id": step_id,
+                "key": key,
+                "reason": reason,
+                **(details or {}),
+            },
+        )

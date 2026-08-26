@@ -29,6 +29,8 @@ class WorkflowStep(BaseModel):
         description="参数模板 (支持 $input / $prev_output / $step.<n>.output / $param.<key>)"
     )
     output_key: str = Field("", description="本步输出在上下文中的键名")
+    output_schema: Optional[Dict[str, Any]] = Field(
+        None, description="黑板写入时的 json-schema 子集校验 (None 不校验)")
     condition: Optional[str] = Field(
         None, description="执行条件 (简化 JS 表达式，如 '$prev_output.includes(\"yes\")')"
     )

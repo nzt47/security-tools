@@ -6,6 +6,8 @@
     3. repository: 本地工作流仓库 (data/learned_workflows.json)
     4. matcher: TF-IDF + 余弦相似度匹配新任务到已有工作流
     5. executor: 优先执行本地工作流，避免冗余 LLM 调用
+    6. blackboard: 步骤间类型化数据传递 (SharedBlackboard)
+    7. mode_classifier: DAG vs Agent 模式分类 (docs/workflow_dag_vs_agent.md)
 
 设计原则:
     - 本地优先: 新任务到达时先查本地仓库；命中且置信度高时跳过 LLM
@@ -20,10 +22,19 @@ from .models import (
     LearningRecord,
     WorkflowExecutionResult,
 )
+from .blackboard import SharedBlackboard
+from .mode_classifier import (
+    classify_workflow_mode,
+    count_branches,
+    AGENT_BRANCH_THRESHOLD,
+    AGENT_STEP_THRESHOLD,
+)
+from .agent_executor import AgentExecutor, AgentRunner
 from .exceptions import (
     WorkflowLearningError,
     WorkflowNotFoundError,
     WorkflowExecutionError,
+    WorkflowSchemaError,
     ErrorCode,
 )
 
@@ -33,10 +44,18 @@ __all__ = [
     "WorkflowStep",
     "LearningRecord",
     "WorkflowExecutionResult",
+    "SharedBlackboard",
+    "classify_workflow_mode",
+    "count_branches",
+    "AGENT_BRANCH_THRESHOLD",
+    "AGENT_STEP_THRESHOLD",
+    "AgentExecutor",
+    "AgentRunner",
     "WorkflowLearningError",
     "WorkflowNotFoundError",
     "WorkflowExecutionError",
+    "WorkflowSchemaError",
     "ErrorCode",
 ]
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
