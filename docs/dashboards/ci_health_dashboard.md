@@ -70,6 +70,7 @@
 | 2026-08-16 | `255ab9b` | 99.3% (1985/1998) | 0 | 13 | 157.78 | — | 0 | ↑ | style(workbench): 面板标题贴左，消除窄面板大片留白 |
 | 2026-08-26 | `64ded0f` | 98.8% (1938/1962) | 0 | 24 | 164.29 | — | 0 | ↑ | Merge pull request #832 from nzt47/fix/health-probes-json-tolerance |
 | 2026-08-26 | `d304ce5` | 98.8% (1938/1962) | 0 | 24 | 169.03 | — | 0 | ↑ | Merge pull request #836 from nzt47/docs/delivery-closeout-report |
+| 2026-08-26 | `938f376` | 98.3% (2050/2085) | 0 | 35 | 107.25 | — | 0 | ↑ | feat(permission): RBAC+ABAC 三层权限架构升级(PermissionGateway/JSON日� |
 | YYYY-MM-DD | `<sha7>` | — | — | — | — | — | — | — | 模板占位行，请替换 |
 
 ---
