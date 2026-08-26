@@ -82,7 +82,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           for i in 1 2 3; do
-            pip install pytest pytest-timeout sqlite-vec -q && break
+            pip install pytest pytest-timeout pytest-asyncio sqlite-vec -q && break
             echo "⚠️ 依赖安装失败，尝试 $i/3，5 秒后重试..."
             sleep 5
           done
