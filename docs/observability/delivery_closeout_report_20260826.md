@@ -3,7 +3,7 @@
 - **报告日期**: 2026-08-26
 - **交付分支**: master（本工作线提交已合入）+ develop（Skills Check 工作线）
 - **状态**: ✅ 结案（master CI 29/29 全绿）
-- **关联交付**: [BOM 污染防复发技术复盘报告](ci_bom_guard_retrospective_20260805.md) / [Skills Check 修复交付报告](../planning/ci_pre_existing_fix_delivery_report_20260825.md)
+- **关联交付**: [BOM 污染防复发技术复盘报告](ci_bom_guard_retrospective_20260805.md) / [Skills Check 修复交付报告](../DELIVERY_REPORT_CI_SKILLS_CHECK.md)
 
 ---
 
