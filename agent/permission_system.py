@@ -8,16 +8,46 @@
 - 设置操作黑名单
 - 操作前备份重要文件
 - 危险关键词检测（整合自 SafetyGuard）
+
+═══════════════════════════════════════════════════════════
+ 三层权限架构（RBAC + ABAC + 正则黑名单）
+═══════════════════════════════════════════════════════════
+调用链: PermissionGateway.check(tool_name, params, context)
+        ↓
+        [层1] RBAC  角色拦截 ——  Role 是否允许调用此工具
+        ↓ (通过)
+        [层2] ABAC  属性校验 ——  时间窗口 / 会话来源 / IP 段
+        ↓ (通过)
+        [层3] 正则黑名单兜底 ——  PermissionSystem.check_action
+        ↓
+        PermissionResult
+
+不变量:
+- PermissionSystem (含正则规则集) 作为最后兜底,不可弱化
+- PermissionResult 数据结构保持兼容
+- 策略文件加载失败 → 降级到"仅正则黑名单"模式 (self._degraded=True)
+- RBAC/ABAC 拒绝统一返回 reason="权限不足",不向 LLM 暴露具体规则
+
+日志格式:
+- 所有 trace 日志输出为单行 JSON,可直接接入 ELK/Splunk
+- 一次 check 调用共享同一 trace_id,贯穿入口/各层/出口
+- 字段: ts / trace_id / event / tool / role / source / ip / allowed / reason / layer / duration_ms
+═══════════════════════════════════════════════════════════
 """
 
 import re
+import json
+import time
+import uuid
 import logging
 import shutil
 import threading
+import ipaddress
+from enum import Enum
 from pathlib import Path
 from datetime import datetime, timezone
 from dataclasses import dataclass, field
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -390,3 +420,551 @@ class PermissionSystem:
                 },
                 "permission_checks": len(self._permission_log),
             }
+
+
+# ════════════════════════════════════════════════════════════
+#  三层权限架构扩展：RBAC + ABAC + 正则黑名单
+# ════════════════════════════════════════════════════════════
+# 设计原则:
+#   - 不修改上方 PermissionSystem 类(纯扩展,不重写)
+#   - PermissionGateway 组合 PermissionSystem 作为兜底层
+#   - 策略文件加载失败时降级为"仅正则黑名单"模式
+#   - RBAC/ABAC 拒绝统一返回 reason="权限不足",不向 LLM 暴露具体规则
+#   - 所有 trace 日志输出为单行 JSON,可直接接入 ELK/Splunk
+# ════════════════════════════════════════════════════════════
+
+
+class Role(Enum):
+    """用户角色枚举(RBAC)"""
+    ADMIN = "admin"
+    DEVELOPER = "developer"
+    GUEST = "guest"
+
+
+@dataclass
+class Permission:
+    """单个工具的权限规则描述(供策略层使用)"""
+    tool_name: str
+    allowed: bool = True
+    requires_confirmation: bool = False
+    description: str = ""
+
+
+@dataclass
+class ABACContext:
+    """ABAC 属性上下文
+
+    属性聚合:
+    - role:           用户角色(同时供 RBAC 使用,避免双传)
+    - session_source: 会话来源,枚举值 cli | web | api | scheduled
+    - time_window:    会话允许时间窗口,None 表示不限制
+    - ip:             客户端 IP 字符串,None 表示未提供
+    """
+    role: Role = Role.GUEST
+    session_source: str = "cli"
+    time_window: Optional[Tuple[str, str]] = None
+    ip: Optional[str] = None
+
+
+@dataclass
+class _ABACRule:
+    """ABAC 规则内部表示
+
+    deny_if 支持以下条件(各自独立判定,任一命中即拒绝):
+    - time_outside:      [start, end]  当前时间不在 [start, end] 内则拒绝
+    - session_source_in: [src, ...]    当前会话来源命中列表则拒绝
+    - ip_not_in_cidr:    [cidr, ...]   当前 IP 不在任一 CIDR 内则拒绝
+    """
+    name: str
+    tool: str
+    deny_if: Dict[str, Any]
+    description: str = ""
+
+
+class PermissionGateway:
+    """三层权限网关
+
+    调用顺序:
+        check(tool_name, params, context)
+          → [层1] RBAC:  角色是否允许调用此工具
+          → [层2] ABAC:  属性上下文校验(时间/来源/IP)
+          → [层3] 正则:  沿用 PermissionSystem.check_action 兜底
+
+    降级模式:
+        策略文件加载失败 → 跳过 RBAC/ABAC,仅走正则黑名单
+        (self._degraded=True)
+
+    日志格式:
+        所有 trace 日志输出为单行 JSON,字段:
+        ts / trace_id / event / tool / role / source / ip /
+        allowed / reason / layer / duration_ms / rule_name / params
+
+    不变量:
+        - PermissionSystem 作为最后兜底,正则规则不可弱化
+        - RBAC/ABAC 拒绝统一返回 reason="权限不足"
+        - PermissionResult 数据结构保持兼容
+    """
+
+    DEFAULT_POLICY_PATH = "data/permission_policies.json"
+
+    def __init__(
+        self,
+        policy_path: Optional[str] = None,
+        permission_system: Optional[PermissionSystem] = None,
+    ):
+        self._ps = permission_system or PermissionSystem()
+        self._policies: Dict[str, Dict[str, set]] = {}
+        self._abac_rules: List[_ABACRule] = []
+        self._default_role: Role = Role.GUEST
+        self._degraded: bool = False
+
+        path = policy_path or self.DEFAULT_POLICY_PATH
+        if not self._load_policies(path):
+            self._degraded = True
+            self._log_json(
+                "degraded_mode", {"path": path},
+                level=logging.WARNING,
+            )
+
+    # ── 策略加载 ──────────────────────────────────────────────
+
+    def _load_policies(self, path: str) -> bool:
+        """加载 RBAC 角色策略 + ABAC 规则
+
+        Returns:
+            True 加载成功; False 加载失败(触发降级)
+        """
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as e:
+            self._log_json(
+                "policy_load_failed",
+                {"path": path, "error": str(e)},
+                level=logging.WARNING,
+            )
+            return False
+
+        for role_name, role_cfg in data.get("roles", {}).items():
+            try:
+                role = Role(role_name.lower())
+            except ValueError:
+                self._log_json(
+                    "unknown_role_skipped",
+                    {"role_name": role_name},
+                    level=logging.WARNING,
+                )
+                continue
+            self._policies[role.value] = {
+                "allowed_tools": set(role_cfg.get("allowed_tools", [])),
+                "denied_tools": set(role_cfg.get("denied_tools", [])),
+            }
+
+        default_role_name = str(data.get("default_role", "guest")).lower()
+        try:
+            self._default_role = Role(default_role_name)
+        except ValueError:
+            self._default_role = Role.GUEST
+
+        for rule in data.get("abac_rules", []):
+            self._abac_rules.append(
+                _ABACRule(
+                    name=rule.get("name", ""),
+                    tool=rule.get("tool", ""),
+                    deny_if=rule.get("deny_if", {}),
+                    description=rule.get("description", ""),
+                )
+            )
+
+        self._log_json(
+            "policy_loaded",
+            {
+                "path": path,
+                "roles": len(self._policies),
+                "abac_rules": len(self._abac_rules),
+                "default_role": self._default_role.value,
+            },
+        )
+        return True
+
+    # ── 主入口 ───────────────────────────────────────────────
+
+    def check(
+        self,
+        tool_name: str,
+        params: Optional[dict] = None,
+        context: Optional[ABACContext] = None,
+    ) -> PermissionResult:
+        """三层检查入口
+
+        Args:
+            tool_name: 工具名(如 shell_execute)
+            params:    工具参数字典
+            context:   ABAC 属性上下文,缺省用默认 GUEST
+
+        Returns:
+            PermissionResult: 三层叠加后的最终结果
+
+        Trace 日志:
+            一次 check 调用共享同一 trace_id,贯穿入口/各层/出口。
+            所有日志为单行 JSON,grep `[trace=<id>]` 或在 ELK 中
+            按 trace_id 字段过滤即可拿到完整决策链。
+        """
+        trace_id = uuid.uuid4().hex[:12]
+        start_ts = time.perf_counter()
+
+        params = params or {}
+        if context is None:
+            context = ABACContext()
+
+        # 入参快照(params 值截断 50 字符避免日志爆炸)
+        params_snapshot = self._snapshot_params(params)
+
+        self._log_json(
+            "check_entry",
+            {
+                "trace_id": trace_id,
+                "tool": tool_name,
+                "role": context.role.value,
+                "source": context.session_source,
+                "ip": context.ip,
+                "degraded": self._degraded,
+                "params": params_snapshot,
+            },
+        )
+
+        # 降级模式: 跳过 RBAC/ABAC,仅走正则兜底
+        if self._degraded:
+            self._log_json(
+                "degraded_skip_rbac_abac",
+                {"trace_id": trace_id},
+            )
+            result = self._regex_fallback(tool_name, params, trace_id)
+            self._log_decision(
+                trace_id, start_ts, "REGEX_DEGRADED", tool_name, result
+            )
+            return result
+
+        # [层1] RBAC 角色拦截
+        rbac = self._check_rbac(tool_name, context.role, trace_id)
+        if rbac is not None:
+            self._log_json(
+                "rbac_block",
+                {
+                    "trace_id": trace_id,
+                    "tool": tool_name,
+                    "role": context.role.value,
+                    "allowed": rbac.allowed,
+                    "reason": rbac.reason,
+                },
+            )
+            self._log_decision(
+                trace_id, start_ts, "RBAC", tool_name, rbac
+            )
+            return rbac
+        self._log_json(
+            "rbac_pass",
+            {
+                "trace_id": trace_id,
+                "tool": tool_name,
+                "role": context.role.value,
+            },
+            level=logging.DEBUG,
+        )
+
+        # [层2] ABAC 属性校验
+        abac = self._check_abac(tool_name, context, trace_id)
+        if abac is not None:
+            self._log_json(
+                "abac_block",
+                {
+                    "trace_id": trace_id,
+                    "tool": tool_name,
+                    "role": context.role.value,
+                    "source": context.session_source,
+                    "ip": context.ip,
+                    "allowed": abac.allowed,
+                    "reason": abac.reason,
+                },
+            )
+            self._log_decision(
+                trace_id, start_ts, "ABAC", tool_name, abac
+            )
+            return abac
+        self._log_json(
+            "abac_pass",
+            {
+                "trace_id": trace_id,
+                "tool": tool_name,
+                "role": context.role.value,
+            },
+            level=logging.DEBUG,
+        )
+
+        # [层3] 正则黑名单兜底
+        self._log_json(
+            "regex_entry",
+            {"trace_id": trace_id, "tool": tool_name},
+            level=logging.DEBUG,
+        )
+        result = self._regex_fallback(tool_name, params, trace_id)
+        self._log_decision(
+            trace_id, start_ts, "REGEX", tool_name, result
+        )
+        return result
+
+    # ── 层1: RBAC ────────────────────────────────────────────
+
+    def _check_rbac(
+        self, tool_name: str, role: Role, trace_id: str = ""
+    ) -> Optional[PermissionResult]:
+        """RBAC 角色拦截
+
+        Returns:
+            None 表示通过; PermissionResult 表示已决策
+        """
+        policy = self._policies.get(role.value)
+        if policy is None:
+            self._log_json(
+                "rbac_no_policy",
+                {"trace_id": trace_id, "role": role.value},
+                level=logging.DEBUG,
+            )
+            return PermissionResult(allowed=False, reason="权限不足")
+
+        denied = policy["denied_tools"]
+        if "*" in denied or tool_name in denied:
+            self._log_json(
+                "rbac_hit_denied",
+                {
+                    "trace_id": trace_id,
+                    "role": role.value,
+                    "tool": tool_name,
+                },
+                level=logging.DEBUG,
+            )
+            return PermissionResult(allowed=False, reason="权限不足")
+
+        allowed = policy["allowed_tools"]
+        if "*" not in allowed and tool_name not in allowed:
+            self._log_json(
+                "rbac_not_in_allowed",
+                {
+                    "trace_id": trace_id,
+                    "role": role.value,
+                    "tool": tool_name,
+                    "allowed_tools": sorted(allowed),
+                },
+                level=logging.DEBUG,
+            )
+            return PermissionResult(allowed=False, reason="权限不足")
+
+        return None
+
+    # ── 层2: ABAC ────────────────────────────────────────────
+
+    def _check_abac(
+        self, tool_name: str, context: ABACContext, trace_id: str = ""
+    ) -> Optional[PermissionResult]:
+        """ABAC 属性校验
+
+        遍历所有规则,任一 deny_if 条件命中则拒绝。
+        规则 tool 字段支持 "*" 通配(对所有工具生效)。
+        """
+        for rule in self._abac_rules:
+            if rule.tool != tool_name and rule.tool != "*":
+                continue
+
+            deny_if = rule.deny_if
+
+            # time_outside: 时间窗口外拒绝
+            if "time_outside" in deny_if:
+                window = deny_if["time_outside"]
+                in_window = self._time_in_window(window[0], window[1])
+                if not in_window:
+                    self._log_json(
+                        "abac_hit_time_outside",
+                        {
+                            "trace_id": trace_id,
+                            "rule_name": rule.name,
+                            "tool": tool_name,
+                            "window": [window[0], window[1]],
+                        },
+                        level=logging.DEBUG,
+                    )
+                    return PermissionResult(allowed=False, reason="权限不足")
+
+            # session_source_in: 来源命中拒绝
+            if "session_source_in" in deny_if:
+                if context.session_source in deny_if["session_source_in"]:
+                    self._log_json(
+                        "abac_hit_session_source",
+                        {
+                            "trace_id": trace_id,
+                            "rule_name": rule.name,
+                            "tool": tool_name,
+                            "source": context.session_source,
+                        },
+                        level=logging.DEBUG,
+                    )
+                    return PermissionResult(allowed=False, reason="权限不足")
+
+            # ip_not_in_cidr: IP 不在白名单段拒绝
+            if "ip_not_in_cidr" in deny_if:
+                if not self._ip_in_any_cidr(
+                    context.ip, deny_if["ip_not_in_cidr"]
+                ):
+                    self._log_json(
+                        "abac_hit_ip_not_in_cidr",
+                        {
+                            "trace_id": trace_id,
+                            "rule_name": rule.name,
+                            "tool": tool_name,
+                            "ip": context.ip,
+                            "cidrs": deny_if["ip_not_in_cidr"],
+                        },
+                        level=logging.DEBUG,
+                    )
+                    return PermissionResult(allowed=False, reason="权限不足")
+
+        return None
+
+    # ── 层3: 正则兜底 ────────────────────────────────────────
+
+    def _regex_fallback(
+        self, tool_name: str, params: dict, trace_id: str = ""
+    ) -> PermissionResult:
+        """正则黑名单兜底
+
+        将 tool_name + params 拼成 action 字符串,
+        走 PermissionSystem.check_action 原有四步检查。
+        保留原有 reason(危险操作需给操作者明确警示)。
+        """
+        action = self._compose_action(tool_name, params)
+        result = self._ps.check_action(action)
+        self._log_json(
+            "regex_result",
+            {
+                "trace_id": trace_id,
+                "action": action[:80],
+                "tool": tool_name,
+                "allowed": result.allowed,
+                "requires_confirmation": result.requires_confirmation,
+                "reason": result.reason,
+            },
+            level=logging.DEBUG,
+        )
+        return result
+
+    @staticmethod
+    def _compose_action(tool_name: str, params: dict) -> str:
+        """将 tool_name 与参数值拼接为 action 字符串
+
+        仅取参数 value(忽略 key)以匹配正则模式。
+        """
+        parts = [tool_name]
+        for v in params.values():
+            parts.append(str(v))
+        return " ".join(parts)
+
+    # ── 辅助 ────────────────────────────────────────────────
+
+    @staticmethod
+    def _time_in_window(start: str, end: str) -> bool:
+        """当前本地时间是否在 [start, end] 窗口内(含端点)
+
+        时间格式: HH:MM (字符串字典序与时间序一致)
+        """
+        now = datetime.now().strftime("%H:%M")
+        return start <= now <= end
+
+    @staticmethod
+    def _ip_in_any_cidr(ip: Optional[str], cidr_list: List[str]) -> bool:
+        """IP 是否落在任一 CIDR 段内"""
+        if ip is None:
+            return False
+        try:
+            addr = ipaddress.ip_address(ip)
+        except ValueError:
+            return False
+        for cidr in cidr_list:
+            try:
+                if addr in ipaddress.ip_network(cidr, strict=False):
+                    return True
+            except ValueError:
+                continue
+        return False
+
+    # ── JSON 日志 ────────────────────────────────────────────
+
+    @staticmethod
+    def _snapshot_params(params: dict) -> dict:
+        """参数快照(值截断 50 字符,避免日志爆炸)"""
+        snap = {}
+        for k, v in params.items():
+            s = str(v)
+            if len(s) > 50:
+                s = s[:50] + "...(truncated)"
+            snap[k] = s
+        return snap
+
+    @staticmethod
+    def _log_json(
+        event: str,
+        fields: dict,
+        level: int = logging.INFO,
+    ):
+        """输出单行 JSON 日志(ELK/Splunk 友好)
+
+        统一字段:
+        - ts:        ISO 时间戳
+        - event:     事件类型
+        - module:    模块名(固定 "permission_gateway")
+
+        调用方传入的 fields 会合并进去(如 trace_id/tool/role 等)。
+        """
+        record = {
+            "ts": datetime.now().isoformat(),
+            "module": "permission_gateway",
+            "event": event,
+        }
+        record.update(fields)
+        logger.log(level, json.dumps(record, ensure_ascii=False))
+
+    def _log_decision(
+        self,
+        trace_id: str,
+        start_ts: float,
+        layer: str,
+        tool_name: str,
+        result: PermissionResult,
+    ):
+        """出口决策汇总日志(每次 check 必发一条,便于审计)"""
+        duration_ms = (time.perf_counter() - start_ts) * 1000
+        self._log_json(
+            "decision",
+            {
+                "trace_id": trace_id,
+                "layer": layer,
+                "tool": tool_name,
+                "allowed": result.allowed,
+                "requires_confirmation": result.requires_confirmation,
+                "reason": result.reason,
+                "duration_ms": round(duration_ms, 3),
+            },
+        )
+
+    # ── 暴露给外部的查询接口 ─────────────────────────────────
+
+    @property
+    def is_degraded(self) -> bool:
+        """是否处于降级模式(仅正则黑名单)"""
+        return self._degraded
+
+    @property
+    def default_role(self) -> Role:
+        return self._default_role
+
+    def get_permission_system(self) -> PermissionSystem:
+        """暴露底层 PermissionSystem(供备份/日志查询复用)"""
+        return self._ps

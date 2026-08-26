@@ -129,8 +129,8 @@ data/skill_vectors/
 # 运行时日志/状态产物（不入库）
 data/blackbox/
 data/heartbeat_history.json
-data/permission_policies.json
 data/skills_mgmt.json
+# 注意: data/permission_policies.json 是 RBAC/ABAC 静态配置(与 dangerous_commands.json 同性质),已入库跟踪,勿加回忽略
 # Embedding 子进程探测缓存(机器特定,不入库)
 data/.embedding_probe
 # 技能索引缓存（预解析 front matter，启动时生成，机器/时间特定，不入库）

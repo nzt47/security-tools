@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "description": "RBAC 角色策略 + ABAC 属性规则。角色先做工具级拦截,ABAC 再做属性级校验,最后由 permission_system.py 的正则黑名单兜底。",
+  "default_role": "guest",
+
+  "roles": {
+    "admin": {
+      "description": "管理员,全部工具可用(ABAC 约束危险操作)",
+      "allowed_tools": ["*"],
+      "denied_tools": []
+    },
+    "developer": {
+      "description": "开发者,可用文件/搜索/代码执行/Shell,禁用系统级破坏工具",
+      "allowed_tools": [
+        "web_search",
+        "file_read",
+        "file_write",
+        "shell_execute",
+        "code_runner",
+        "browser_navigate"
+      ],
+      "denied_tools": [
+        "system_format",
+        "system_shutdown"
+      ]
+    },
+    "guest": {
+      "description": "访客,仅查询类工具",
+      "allowed_tools": [
+        "web_search",
+        "file_read"
+      ],
+      "denied_tools": []
+    }
+  },
+
+  "abac_rules": [
+    {
+      "name": "off-hours-shell-restriction",
+      "tool": "shell_execute",
+      "description": "工作时间窗口外禁止执行 Shell",
+      "deny_if": {
+        "time_outside": ["09:00", "18:00"]
+      }
+    },
+    {
+      "name": "scheduled-no-write",
+      "tool": "file_write",
+      "description": "定时任务来源禁止写文件",
+      "deny_if": {
+        "session_source_in": ["scheduled"]
+      }
+    },
+    {
+      "name": "internal-only-format",
+      "tool": "system_format",
+      "description": "格式化仅允许内网 IP 段(含 ADMIN)",
+      "deny_if": {
+        "ip_not_in_cidr": ["10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"]
+      }
+    },
+    {
+      "name": "admin-shutdown-internal-only",
+      "tool": "system_shutdown",
+      "description": "ADMIN 关机操作仅允许内网 IP 段(ABAC 约束 ADMIN)",
+      "deny_if": {
+        "ip_not_in_cidr": ["10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"]
+      }
+    }
+  ]
+}
