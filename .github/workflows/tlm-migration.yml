@@ -1,0 +1,146 @@
+# TLM 数据迁移 CI 工作流
+#
+# 目的：验证 TLM 迁移脚本（migrate_to_tlm.py）的正确性，防止 schema/流程回归。
+#
+# 触发条件：
+# 1. 修改迁移脚本、mock 构造脚本或迁移测试时触发（paths 过滤）
+# 2. 修改 HolographicAdapter 时触发（schema 契约变更）
+# 3. 每周一 06:00 定时触发（定期巡检）
+# 4. PR 到 main/develop 时触发
+# 5. 手动触发（workflow_dispatch）
+#
+# 防护层级：
+# - 集成测试：11 个用例（1000 条迁移/断点续传/向量重生成/回滚/dry-run/吞吐量）
+# - 失败告警：钉钉 webhook 自动通知
+#
+# CI 健壮性设计（对齐 p0-security.yml 约定）：
+# - 固定 runner 版本 ubuntu-22.04，避免 ubuntu-latest 容量波动
+# - 所有 Job 加 timeout-minutes，防止挂起
+# - 依赖安装步骤内置 3 次重试，应对 PyPI 网络瞬时问题
+# - 测试用 --no-encoder（伪 embedding），无需下载 bge 模型，避免网络依赖
+
+name: TLM 迁移验证
+
+# 【变易·P2-4】concurrency: 同 workflow 同 ref 连续触发取消旧 run 只留最新（workflow 隔离组）。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'scripts/migrate_to_tlm.py'
+      - 'scripts/seed_mock_source.py'
+      - 'tests/integration/test_tlm_migration.py'
+      - 'agent/memory/adapters/holographic_adapter.py'
+      - '.github/workflows/tlm-migration.yml'
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+    paths:
+      - 'scripts/migrate_to_tlm.py'
+      - 'scripts/seed_mock_source.py'
+      - 'tests/integration/test_tlm_migration.py'
+      - 'agent/memory/adapters/holographic_adapter.py'
+      - '.github/workflows/tlm-migration.yml'
+  schedule:
+    - cron: '0 6 * * 1'  # 每周一 06:00 定时巡检
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: '触发原因（可选）'
+        required: false
+        default: 'manual'
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  # ============================================================================
+  # Job 1: 迁移集成测试 — 11 个用例
+  # ============================================================================
+  tlm-migration-tests:
+    name: TLM 迁移集成测试
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 安装依赖（带重试）
+        run: |
+          python -m pip install --upgrade pip
+          for i in 1 2 3; do
+            pip install pytest pytest-timeout sqlite-vec -q && break
+            echo "⚠️ 依赖安装失败，尝试 $i/3，5 秒后重试..."
+            sleep 5
+          done
+          pip install -e . || echo "pip install -e . 失败，尝试继续"
+
+      - name: 运行 TLM 迁移集成测试
+        run: |
+          echo "=== 运行 TLM 迁移集成测试 ==="
+          mkdir -p test_reports
+          python -m pytest \
+            tests/integration/test_tlm_migration.py \
+            -v \
+            --tb=short \
+            --junitxml=test_reports/tlm-migration-junit.xml \
+            --timeout=300
+
+      - name: 上传测试结果
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: tlm-migration-test-results
+          path: test_reports/
+          retention-days: 30
+
+  # ============================================================================
+  # Job 2: 失败告警 — 钉钉通知（对齐 ci-failure-notify.yml 模式）
+  # ============================================================================
+  tlm-migration-notify:
+    name: TLM 迁移失败告警
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [tlm-migration-tests]
+    if: failure()
+    env:
+      DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 发送钉钉通知
+        if: ${{ env.DINGTALK_WEBHOOK != '' }}
+        run: |
+          python -m pip install requests -q || true
+          python scripts/observability_dingtalk_notify.py \
+            --webhook "${{ secrets.DINGTALK_WEBHOOK }}" \
+            --status failure \
+            --workflow "TLM 迁移验证" \
+            --branch "${{ github.ref_name }}" \
+            --commit "${{ github.sha }}" \
+            --actor "${{ github.actor }}" \
+            --message "TLM 迁移集成测试失败！运行详情: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env:
+          DINGTALK_WEBHOOK: ${{ secrets.DINGTALK_WEBHOOK }}
+        continue-on-error: true
+
+      - name: 告警说明（无 webhook 时）
+        if: ${{ env.DINGTALK_WEBHOOK == '' }}
+        run: |
+          echo "✓ TLM 迁移测试失败，但未配置 DINGTALK_WEBHOOK secret"
+          echo "  邮件通知仍由 GitHub 默认机制发送给 commit 作者"
+          echo "  配置钉钉 webhook: 仓库 Settings → Secrets → 添加 DINGTALK_WEBHOOK"
