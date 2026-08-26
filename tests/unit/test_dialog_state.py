@@ -270,6 +270,92 @@ class TestVectorConfidence:
         assert result is not None  # 无法校验，回退纯正则
 
 
+class TestVectorConfidenceBoundary:
+    """跨话题省略句误判边界测试 — 验证 0.5 阈值的鲁棒性
+
+    真实数据参照（scripts/dst_scenario_demo.py, BGE-m3）:
+      同话题 min=0.7176 / 跨话题 max=0.4574，最优阈值区间 (0.4574, 0.7176)
+    边界策略:
+      - 跨话题 sim≈0.48（真实跨话题 0.40~0.46 的上沿）→ 必须拒绝
+      - 同话题 sim≈0.52（阈值上沿，仍低于真实同话题下界 0.72）→ 必须接受
+      - sim == 阈值 0.50 → 严格小于判定，必须拒绝
+    """
+
+    def setup_method(self):
+        pass  # 阈值经 monkeypatch 在用例内固定，防环境污染
+
+    @staticmethod
+    def _unit_vec(cos_theta: float):
+        """构造与 (1,0) 点积 = cos_theta 的单位向量（模拟指定相似度）"""
+        return np.array([cos_theta, np.sqrt(max(0.0, 1.0 - cos_theta ** 2))])
+
+    def test_cross_topic_sim_048_below_threshold_rejected(self, monkeypatch):
+        """跨话题 sim=0.48（真实跨话题上沿）< 0.5 → 拒绝补全返回 None"""
+        monkeypatch.setenv("DST_VECTOR_MIN_SIM", "0.5")  # 固定阈值，防环境污染
+        adapter = _MockVectorAdapter({
+            "关于 PDF 呢": self._unit_vec(1.0),      # augmented
+            "帮我转换PDF": self._unit_vec(0.48),     # last_user_input（模拟跨话题）
+        })
+        dst = DialogState(vector_adapter=adapter)
+        dst.update(keywords=["PDF"], user_input="帮我转换PDF")
+        assert dst.resolve("那个呢") is None
+
+    def test_same_topic_sim_052_above_threshold_accepted(self, monkeypatch):
+        """同话题 sim=0.52 > 0.5 → 接受补全返回 augmented"""
+        monkeypatch.setenv("DST_VECTOR_MIN_SIM", "0.5")
+        adapter = _MockVectorAdapter({
+            "关于 PDF 呢": self._unit_vec(1.0),
+            "帮我转换PDF": self._unit_vec(0.52),
+        })
+        dst = DialogState(vector_adapter=adapter)
+        dst.update(keywords=["PDF"], user_input="帮我转换PDF")
+        result = dst.resolve("那个呢")
+        assert result is not None
+        assert "PDF" in result
+
+    def test_threshold_strict_less_than_semantics(self, monkeypatch):
+        """严格小于判定：sim=0.4999（略低于阈值）拒绝，sim=0.5001（略高于）接受"""
+        monkeypatch.setenv("DST_VECTOR_MIN_SIM", "0.5")
+        # 略低于阈值 → 拒绝
+        adapter_below = _MockVectorAdapter({
+            "关于 PDF 呢": self._unit_vec(1.0),
+            "帮我转换PDF": self._unit_vec(0.4999),
+        })
+        dst_below = DialogState(vector_adapter=adapter_below)
+        dst_below.update(keywords=["PDF"], user_input="帮我转换PDF")
+        assert dst_below.resolve("那个呢") is None
+        # 略高于阈值 → 接受
+        adapter_above = _MockVectorAdapter({
+            "关于 PDF 呢": self._unit_vec(1.0),
+            "帮我转换PDF": self._unit_vec(0.5001),
+        })
+        dst_above = DialogState(vector_adapter=adapter_above)
+        dst_above.update(keywords=["PDF"], user_input="帮我转换PDF")
+        result = dst_above.resolve("那个呢")
+        assert result is not None
+        assert "PDF" in result
+
+    def test_cross_topic_demonstration_case(self, monkeypatch):
+        """跨话题示范：天气 vs PDF 两话题互不误放行（双向）"""
+        monkeypatch.setenv("DST_VECTOR_MIN_SIM", "0.5")
+        # 方向1：last=PDF，augmented=天气 → 拒绝
+        adapter1 = _MockVectorAdapter({
+            "关于 天气 呢": self._unit_vec(1.0),
+            "帮我转换PDF": self._unit_vec(0.44),   # 真实跨话题均值附近
+        })
+        dst1 = DialogState(vector_adapter=adapter1)
+        dst1.update(keywords=["天气"], user_input="帮我转换PDF")
+        assert dst1.resolve("那个呢") is None
+        # 方向2：last=天气，augmented=PDF → 拒绝
+        adapter2 = _MockVectorAdapter({
+            "关于 PDF 呢": self._unit_vec(1.0),
+            "今天天气怎么样": self._unit_vec(0.44),
+        })
+        dst2 = DialogState(vector_adapter=adapter2)
+        dst2.update(keywords=["PDF"], user_input="今天天气怎么样")
+        assert dst2.resolve("那个呢") is None
+
+
 class TestIsFollowUpDelegation:
     """is_follow_up 委托 DST 检测省略句（接口契约修复验证）"""
 

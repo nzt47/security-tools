@@ -607,7 +607,9 @@ class Orchestrator:
             _sim_msg = ('%.4f' % _sim) if isinstance(_sim, float) else 'N/A'
             if _augmented:
                 # 【不易】意图路由前详细日志：记录 DST 补全前后输入 + 向量相似度
-                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.dst', 'trace_id_ctx': trace_id,
+                # trace_id 用真实链路 ID（勿用 trace_id_ctx：log_dict 会注入随机值，
+                # 导致日志分析系统无法按 trace_id 关联请求）
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.dst', 'trace_id': trace_id,
                     'message': '[DST] 省略句补全: "%s" → "%s" (sim=%s, turn=%d)' % (user_input, _augmented, _sim_msg, _dst.turn_count),
                     'original_input': user_input,
                     'augmented_input': _augmented,
@@ -617,7 +619,7 @@ class Orchestrator:
                 routing_input = _augmented
             elif _is_ellipsis:
                 # 省略句但被门控拒绝/无上下文 — 记录便于排查为何未补全
-                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.dst', 'trace_id_ctx': trace_id,
+                logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.dst', 'trace_id': trace_id,
                     'message': '[DST] 省略句未补全: "%s" (sim=%s, turn=%d, 用原始输入路由)' % (user_input, _sim_msg, _dst.turn_count),
                     'original_input': user_input,
                     'augmented_input': None,
@@ -627,7 +629,7 @@ class Orchestrator:
             # 状态回写（intent/skill/keywords/user_input）统一由 _update_dst_after_route
             # 在路由后处理，此处不再直接写 last_keywords（消除笨拙直写）
         except Exception as _dst_e:
-            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.dst.error', 'message': '[DST] 补全失败，用原始输入: %s' % (_dst_e,)}))
+            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.process.dst.error', 'trace_id': trace_id, 'message': '[DST] 补全失败，用原始输入: %s' % (_dst_e,)}))
 
         # ── 第三步：意图路由 + 模板匹配（零 LLM 消耗）──
         # D7 前置：planning_mode（显式 planning_mode=True 或自动复杂任务判定）时，
