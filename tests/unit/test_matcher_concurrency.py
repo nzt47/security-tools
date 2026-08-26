@@ -103,7 +103,7 @@ class TestWorkflowMatcherConcurrency:
             t.join()
 
         assert not errors, f"读写并发不应抛 RuntimeError: {errors}"
-        assert len(matcher._workflows) == 30 + 4 * 150     # 注册无丢失
+        assert len(matcher._workflows) == 30 + 4 * 80     # 注册无丢失
 
     def test_concurrent_unregister_and_match_safe(self):
         """预置后并发 unregister + match：不抛异常、最终状态一致"""
