@@ -38,6 +38,7 @@
 | 降级模式 | 策略缺失 → `is_degraded=True`，跳过 RBAC/ABAC，正则黑名单仍拦 `rm -rf /` |
 | 统一拒绝原因 | RBAC/ABAC 拦截一律 `reason="权限不足"`，不泄露角色/工具/规则/时间窗口 |
 | JSON 日志 | 所有行可 `json.loads` 解析，trace_id 贯穿，params 超长截断 |
+| CI/CD | push 触发全量 workflow，云枢系统测试流程 conclusion=**success**（含单元测试 6 分片 × 3 Python 版本、E2E、集成、代码质量、文档链接预检） |
 
 ## 4. 遇到的问题与解决方案
 
@@ -48,6 +49,8 @@
 | `test_params_snapshot_truncated` 断言失败 | 截断后 = 50 字符 + `...(truncated)` 标记，总长 61 | 断言改为校验截断标记存在 + 长度 < 70 |
 | ADMIN 执行 `rm -rf /` 预期正则拦截但被 ABAC 拦 | 测试运行时间为凌晨，命中 `off-hours` 时间窗口规则 | 测试中 mock `_time_in_window=True`，聚焦验证"正则兜底"语义本身 |
 | `data/permission_policies.json` 被 .gitignore 忽略 | 旧版本时期归类为"运行时产物"（当时纯正则无需该文件） | 从 .gitignore 移除该行 + 注释说明，配置入库（对齐 dangerous_commands.json） |
+| 交付报告链接失效致 CI 文档链接预检失败 | 报告内 `[策略配置](permission_policies.json)` 相对路径错误（应指向 `../data/`） | 修正为上级相对路径，本地 `precheck_docs.ps1` 验证 0 失效后重新推送 |
+| CI 报"scripts 覆盖率缺口 1.0pp"注解 | `test_scripts_coverage_gate.py::test_custom_warn_gap_zero` 故意构造 49% 覆盖率触发 `::error::` 输出，被 GitHub 识别为 error 注解（pre-existing 测试输出噪音，非真实门禁失败） | 确认所有 job success、run conclusion=success，判定非交付引入，记录为遗留问题 |
 
 ## 5. 最终状态确认
 
@@ -64,6 +67,7 @@
 | PermissionGateway 与 `hitl.py` 集成（requires_confirmation=True 时接 HITLManager） | 后续迭代 | 架构文档 §9.4 已给集成路径，本次未接线（不影响交付） |
 | 策略文件热加载（运行时改配置免重启） | 后续迭代 | 当前实例化时加载一次，热加载需加 watcher |
 | 权限决策指标（按 layer/role/tool 聚合的 Kibana 看板） | 后续迭代 | JSON 日志字段已齐（event/layer/role/tool），看板待建 |
+| CI "scripts 覆盖率缺口" 注解 | pre-existing（测试输出噪音） | `test_scripts_coverage_gate.py` 故意触发 `::error::` 输出，非真实门禁失败；不阻塞 CI，无需处理 |
 | 并行会话分支（docs/delivery-closeout-report 等） | 并行会话 | 由并行会话自行合并，不影响 master 交付 |
 
 **结论：权限系统 RBAC/ABAC 三层架构升级范围内所有任务已完成并通过验证（139/139 PASS），无阻塞性遗留问题。** 遗留项均为后续增强方向，不构成交付缺陷。
