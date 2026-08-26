@@ -9,12 +9,54 @@
 分离自 orchestrator.py _call_llm / _call_llm_v2 的 Prompt 构建部分。
 不影响 _build_tool_status_text() 等混入方法（仍在 Orchestrator 上）。
 """
+import json
 import logging
 from datetime import datetime
 
 from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
+
+# Few-shot 每工具渲染上限(防御性;实际采样上限由 ToolFewshotStore.FEWSHOT_PER_TOOL 控制)
+_FEWSHOT_RENDER_PER_TOOL = 2
+
+
+def build_fewshot_message(fewshot_samples: dict) -> dict | None:
+    """把采样的 few-shot 样本组装为 system 消息(注入 messages 动态区,user_input 之前)。
+
+    Args:
+        fewshot_samples: {tool_name: [{input, output}, ...]},来自 ToolFewshotStore.sample_for_tools
+
+    Returns:
+        {"role": "system", "content": ...};无样本或异常 → None(调用方跳过注入)
+    """
+    if not fewshot_samples or not isinstance(fewshot_samples, dict):
+        return None
+    try:
+        examples = []
+        for tool_name, samples in fewshot_samples.items():
+            for s in (samples or [])[:_FEWSHOT_RENDER_PER_TOOL]:
+                if not isinstance(s, dict):
+                    continue
+                in_data = s.get("input", {}) if isinstance(s.get("input"), dict) else {}
+                examples.append({
+                    "tool": tool_name,
+                    "input": in_data,
+                    "output": s.get("output", {}),
+                    "extracted_params": list(in_data.keys()),
+                    "missing_params": [],
+                })
+        if not examples:
+            return None
+        content = (
+            "以下是当前可用工具过往成功调用的脱敏示例,仅供参数提取参考,"
+            "不要直接复用其中的具体值:\n"
+            + json.dumps({"examples": examples}, ensure_ascii=False, indent=2)
+        )
+        return {"role": "system", "content": content}
+    except Exception as e:
+        logger.warning("[PromptBuilder] build_fewshot_message 降级返回 None: %s", e)
+        return None
 
 
 class PromptBuilder:
