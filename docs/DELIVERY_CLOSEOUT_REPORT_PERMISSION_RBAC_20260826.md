@@ -49,7 +49,7 @@
 | `test_params_snapshot_truncated` 断言失败 | 截断后 = 50 字符 + `...(truncated)` 标记，总长 61 | 断言改为校验截断标记存在 + 长度 < 70 |
 | ADMIN 执行 `rm -rf /` 预期正则拦截但被 ABAC 拦 | 测试运行时间为凌晨，命中 `off-hours` 时间窗口规则 | 测试中 mock `_time_in_window=True`，聚焦验证"正则兜底"语义本身 |
 | `data/permission_policies.json` 被 .gitignore 忽略 | 旧版本时期归类为"运行时产物"（当时纯正则无需该文件） | 从 .gitignore 移除该行 + 注释说明，配置入库（对齐 dangerous_commands.json） |
-| 交付报告链接失效致 CI 文档链接预检失败 | 报告内 `[策略配置](permission_policies.json)` 相对路径错误（应指向 `../data/`） | 修正为上级相对路径，本地 `precheck_docs.ps1` 验证 0 失效后重新推送 |
+| 交付报告链接失效致 CI 文档链接预检失败 | 报告内 `~~策略配置~~ ⚠ (待确认)` 相对路径错误（应指向 `../data/`） | 修正为上级相对路径，本地 `precheck_docs.ps1` 验证 0 失效后重新推送 |
 | CI 报"scripts 覆盖率缺口 1.0pp"注解 | `test_scripts_coverage_gate.py::test_custom_warn_gap_zero` 故意构造 49% 覆盖率触发 `::error::` 输出，被 GitHub 识别为 error 注解（pre-existing 测试输出噪音，非真实门禁失败） | 确认所有 job success、run conclusion=success，判定非交付引入，记录为遗留问题 |
 
 ## 5. 最终状态确认

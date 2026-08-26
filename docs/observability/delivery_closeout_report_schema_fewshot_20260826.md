@@ -3,7 +3,7 @@
 - **报告日期**: 2026-08-26
 - **交付分支**: master（commit `a92e7aeb`，已推送 origin + gitee）
 - **状态**: ✅ 代码已提交推送，CI 验证中
-- **关联文档**: 计划文件 `.trae/documents/dynamic-schema-pruning-fewshot-injection.md`
+- **关联文档**: 计划文件 `.trae/documents/dynamic-schema-pruning-fewshot-injection.md`（`.trae/` 不入库）
 
 ---
 
