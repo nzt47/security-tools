@@ -70,7 +70,7 @@
 | 分支 | 提交 | 状态 |
 |------|------|------|
 | develop（origin 已同步） | 172fcc64 / 3f34d923 / aeb3776c / 490c6491 / 8ba79ff3 / cebc2c41 | ✅ 已推送 origin/develop |
-| docs/delivery-closeout-report | 8c1bef0c / 8c2d7b72 | 本地，未推送（master 由 PR 流程） |
+| docs/delivery-closeout-report | 8c1bef0c / 8c2d7b72 / 4a7e5240 / 1d67429f | ✅ 已推送 origin（master 由 PR 流程） |
 
 ## 六、遗留事项（非代码缺陷）
 
@@ -81,7 +81,7 @@
 | 3 | TASK-03：消费 learning.eval.* 度量有效性（通过率/score 阈值） | 后续任务 | TASK-03 启动 |
 | 4 | TASK-04：反思 schema 去重（input_hash）+ 容量管理 + 回灌决策 | 后续任务 | TASK-04 启动 |
 | 5 | 已知限制（变更说明 §3.1）：created_at 覆盖语义 / score=0.0 歧义 / env 非法值静默关闭 | 消费方注意 | TASK-03/04 消费时 |
-| 6 | docs/delivery-closeout-report 分支 2 提交未入 master | 收尾负责人 | PR 流程 |
+| 6 | ~~docs/delivery-closeout-report 分支提交未入 master~~（已推送 origin，2026-08-26） | 收尾负责人 | PR 流程 |
 
 ## 七、结论
 
