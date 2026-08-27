@@ -881,6 +881,17 @@ class TestCallLlmOpenai:
 class TestCallLlmAnthropic:
     """_call_llm_anthropic 测试"""
 
+    @pytest.fixture(autouse=True)
+    def disable_cache_control(self, monkeypatch):
+        """禁用 cache_control 标记,保持 system 为字符串形式。
+
+        Why: 本类测试断言 call_kwargs["system"] 为字符串(验证 system 内容传递),
+             cache_control 默认开启时 system 会转为 list[dict] 形式破坏断言。
+             通过环境变量关闭,保留旧测试意图;cache_control 结构由注入逻辑
+             (LLM_CACHE_CONTROL_ENABLED 默认 true)另行验证。
+        """
+        monkeypatch.setenv("LLM_CACHE_CONTROL_ENABLED", "false")
+
     def test_basic_call(self, service, mock_tools):
         text_block = SimpleNamespace(type="text", text="hi")
         resp = SimpleNamespace(content=[text_block])
