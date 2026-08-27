@@ -101,7 +101,7 @@ promtool check rules deploy/monitoring/prometheus/alert_rules.yml
 | 全量测试回归 | ✅ | 本地 237 passed，0 failed |
 | 远程 CI（核心工作流） | ✅ | 核心不变量/环境健康/CI 失败通知 success（2026-06-26 复核） |
 | 远程 CI（lock-discipline-scan） | ✅ 已修复 | commit 65e8778a（write→set），推送后 CI 已重新触发 |
-| stakeholders 最终验收 | ⏳ | 请用户与相关方核实交付物符合预期 |
+| stakeholders 最终验收 | ✅ | 2026-06-26 审核通过，正式结案 |
 
 ---
 
