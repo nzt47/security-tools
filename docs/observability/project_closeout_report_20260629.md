@@ -1,9 +1,9 @@
 # 云枢（Yunshu）可观测性体系交付——完整结案报告
 
 - **报告日期**：2026-06-29
-- **交付分支**：master（origin/gitee 双远程同步 @ `a71ed383`）
+- **交付分支**：master（origin/gitee 双远程同步 @ `74da9cbe`）
 - **交付状态**：✅ **正式结案**
-- **Stakeholders**：已审核通过（提交 `739df32c` 记录在案）
+- **Stakeholders**：已审核通过（提交 `739df32c` 记录在案；验收确认单 `final_delivery_acceptance_checklist.md` 已签署）
 
 ---
 
@@ -141,9 +141,9 @@ GitHub Actions run [33087349647](https://github.com/nzt47/security-tools/actions
 
 | 项目 | 状态 |
 |------|------|
-| master | ✅ origin + gitee 双远程同步 `a71ed383`（0 ahead/0 behind） |
+| master | ✅ origin + gitee 双远程同步 `74da9cbe`（0 ahead/0 behind） |
 | CI workflow | 44 个配置齐全 |
-| 工作区 | 干净 |
+| 工作区 | 干净（tool_generator 改动为并行会话处理，与本交付无关） |
 
 **phase2-visibility-convergence 分支处置**（经确认，不推送分支）：
 
@@ -181,13 +181,14 @@ GitHub Actions run [33087349647](https://github.com/nzt47/security-tools/actions
 
 ## 九、结案声明
 
-本次可观测性体系交付已全部完成：
+本次可观测性体系交付已全部完成，并已通过最终验收：
 
-1. ✅ **代码**：所有修改已提交至 master 并推送双远程同步
-2. ✅ **CI/CD**：observability-ci 全绿，质量门禁达标
-3. ✅ **报告**：交付总结报告 + 本结案报告完整归档
-4. ✅ **Stakeholders**：已审核通过（记录在案）
-5. ✅ **分支处置**：phase2 分支实质内容并入 master，原分支打归档 tag 保留历史
+1. ✅ **代码**：所有修改已提交至 master 并推送双远程同步（`74da9cbe`）
+2. ✅ **CI/CD**：observability-ci 全绿，质量门禁达标（73.06% ≥ 60%）
+3. ✅ **验收确认**：`final_delivery_acceptance_checklist.md` 已签署（A 测试/B 源码/C 语音监控/D CI 门禁四类验收全部通过）
+4. ✅ **报告**：交付总结报告 + 本结案报告 + 验收确认单完整归档
+5. ✅ **Stakeholders**：已审核通过（记录在案）
+6. ✅ **分支处置**：phase2 分支实质内容并入 master，原分支打归档 tag 保留历史
 
 **本项目正式结案。**
 
