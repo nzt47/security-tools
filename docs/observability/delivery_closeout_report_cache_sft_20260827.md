@@ -59,21 +59,28 @@
 
 | 项 | 状态 |
 |---|---|
-| 本地相关测试（test_core/test_audit/test_health/test_hitl） | ✅ 32 passed / 0 failed |
+| 本地相关测试（test_core/test_audit/test_health/test_hitl + test_tool_calling_comprehensive） | ✅ 148 passed / 0 failed |
 | 新脚本冒烟（seed + export + cache_control demo） | ✅ 全部运行成功 |
 | 诊断检查（GetDiagnostics） | ✅ 无错误 |
-| 提交 | ✅ `9bcd59d7`（master） |
-| 推送 origin（github.com:nzt47/security-tools） | ✅ `ce7fabcc..9bcd59d7` |
-| 推送 gitee（gitee.com:nzt47/security-tools） | ✅ `ce7fabcc..9bcd59d7` |
-| 远端 CI（ci.yml 等 47 个 workflow 配置） | 🔄 推送已触发：master push 触发 code-quality / security-scan / unit-tests（3 py × 6 shard）/ integration / e2e / coverage，结果以 GitHub Actions 为准 |
+| 提交 | ✅ `9bcd59d7`（功能）+ `92b478ce`（测试兼容）+ `8363f083`（双端同步 merge） |
+| 推送 origin（github.com:nzt47/security-tools） | ✅ `ce7fabcc..8363f083` |
+| 推送 gitee（gitee.com:nzt47/security-tools） | ✅ 同步至 `8363f083` |
+| 远端 CI（ci.yml run 33040090007） | ✅ 29/30 job 通过 |
 
-> 注：git 历史显示 2026-08-27 前后 GitHub Actions 存在外部环境停摆记录（workflow queued 9h+），若 CI run 排队异常属外部因素，重跑即可。
+**CI 失败处置记录**（run 33040090007）：
+
+| 失败项 | 根因 | 处置 |
+|---|---|---|
+| 3.10/Shard 6 + 3.11/Shard 6（初轮） | `TestCallLlmAnthropic` 断言 `system` 为字符串，cache_control 默认开启后为 `list[dict]` —— **本任务引入** | 修复：`TestCallLlmAnthropic` 加 autouse fixture 禁用 cache_control（提交 `92b478ce`），修复后全部通过 |
+| 3.12/Shard 6（复跑仍现） | `test_shared_blackboard.TestPerformance::test_write_perf_under_0_1ms` 写延迟 0.30ms > 0.1ms 阈值 —— **pre-existing**（上一工作线 82a967f3 的 CI run 32991146358 同 job 已失败），本地 3 个性能测试全部通过 | 记录为遗留问题（见第五节），非本任务引入，不擅自修改 SharedBlackboard 测试阈值 |
+
+> 注：git 历史显示 2026-08-26~27 期间 GitHub Actions 存在外部环境停摆记录（workflow queued 9h+），CI run 排队/慢机属外部因素。
 
 ---
 
 ## 五、遗留问题（非阻塞）
 
-1. **远端 CI 结果待确认**：推送已触发，但 GitHub Actions 结果需在 Actions 页面人工确认（历史存在外部 runner 排队/停摆，非代码问题）。**不阻塞交付**（本地验证通过 + mock 端到端冒烟通过）。
+1. **`test_shared_blackboard::test_write_perf_under_0_1ms` 在 Python 3.12 / Shard 6 上失败（pre-existing）**：写延迟 0.30ms > 0.1ms 阈值，仅 3.12 平台复现；上一工作线（82a967f3）CI 同 job 已失败，本地 3 个性能测试全部通过。**非本任务引入**，不阻塞交付。建议后续单独处理：放宽阈值至 0.5ms（仍守护数量级性能退化）或将该测试移出并行分片（参照仓库"CI 慢机超时缓解"既有先例）。
 2. **SFT 数据集规模**：当前 mock/生产数据量小（14 样本），每周生成的 Top 20 工具各 ≥500 条目标需随生产 tool_trace 积累自然达成，脚本已支持 `--max-per-tool` 配置。
 3. **Context Cache 命中率 ≥60% 监控**：`cache_control.hit` 日志已埋点，命中率聚合看板/告警需接入现有 SLO 监控体系（`config.py` 的 `context_cache_hit_rate: 0.60` 阈值已存在），本次不额外新增监控模块（守简易）。
 
