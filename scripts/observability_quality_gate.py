@@ -83,6 +83,27 @@ class QualityGateChecker:
                         reports[str(rel_path)] = data
                     except Exception as e:
                         print(f"⚠️  无法解析报告 {file_path}: {e}")
+                elif file == 'coverage.xml':
+                    # 收集全项目覆盖率 coverage.xml（coverage-combine job 产物）
+                    # 统一转为 {"totals": {"percent_covered": line_rate*100}} 供 check_coverage 消费。
+                    # 修复（2026-08-27）：此前只收集 .json，coverage.xml 被跳过，
+                    # 导致 check_coverage 误读 boundary_coverage_report.json。
+                    file_path = Path(root) / file
+                    try:
+                        import xml.etree.ElementTree as ET
+                        tree = ET.parse(file_path)
+                        line_rate = float(
+                            tree.getroot().attrib.get("line-rate", "0")
+                        )
+                        data = {
+                            "totals": {
+                                "percent_covered": round(line_rate * 100, 2),
+                            }
+                        }
+                        rel_path = file_path.relative_to(self.results_dir)
+                        reports[str(rel_path)] = data
+                    except Exception as e:
+                        print(f"⚠️  无法解析 coverage.xml {file_path}: {e}")
 
         self.results["collected_reports"] = {
             "total_reports": len(reports),
@@ -153,11 +174,17 @@ class QualityGateChecker:
         check_name = "test_coverage"
 
         # 查找覆盖率报告
+        # 修复（2026-08-27）：排除 boundary_coverage_report.json（边界测试覆盖率，
+        # 不是全项目测试覆盖率），并优先使用 coverage.xml（coverage-combine 合并的全项目数据）。
         coverage_data = None
         for path, data in reports.items():
-            if "coverage" in path.lower():
+            low = path.lower()
+            if "boundary" in low:
+                continue  # 边界覆盖率报告，跳过
+            if "coverage" in low:
                 coverage_data = data
-                break
+                if low.endswith("coverage.xml"):
+                    break  # 全项目覆盖率优先，立即采用
 
         if not coverage_data:
             self._record_check(check_name, "skipped",
