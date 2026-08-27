@@ -5,6 +5,7 @@
 """
 
 import json
+import os
 import uuid
 import logging
 import re
@@ -641,11 +642,83 @@ class ToolCallingService:
             "temperature": temperature,
         }
         if merged_system:
-            kwargs["system"] = merged_system
+            # [TLM-L1] Provider 缓存 - Anthropic prompt caching
+            # Why: 把 system 转为带 cache_control 的 list[dict],固定区末尾标记 ephemeral,
+            #      缓存命中可降低 ~90% 输入成本。条件分支:环境变量可关闭(向后兼容旧测试)。
+            #      本层为纯转发层,只标记缓存不组装消息顺序。
+            cache_enabled = os.environ.get("LLM_CACHE_CONTROL_ENABLED", "true").lower() == "true"
+            _sys_len = len(merged_system or "")
+            if cache_enabled:
+                try:
+                    kwargs["system"] = [{
+                        "type": "text",
+                        "text": merged_system,
+                        "cache_control": {"type": "ephemeral"},
+                    }]
+                    # [CacheControl] 注入成功埋点(每次调用记录,debug 避免噪音)
+                    logger.debug(log_dict({
+                        'module_name': 'tool_calling',
+                        'action': '_call_llm_anthropic.cache_control.injected',
+                        'msg': '[CacheControl] injected ephemeral at fixed-region end '
+                               '(system_len=%d, mark=list[dict])' % _sys_len,
+                        'system_len': _sys_len,
+                        'cache_control_type': 'ephemeral',
+                        'system_form': 'list_dict',
+                    }))
+                except Exception as _inj_e:
+                    # 兜底降级:provider SDK 不支持 cache_control 字段时静默降级为字符串
+                    kwargs["system"] = merged_system
+                    logger.warning(log_dict({
+                        'module_name': 'tool_calling',
+                        'action': '_call_llm_anthropic.cache_control.fallback',
+                        'msg': '[CacheControl] inject failed, fallback to string: %s' % (_inj_e,),
+                        'system_len': _sys_len,
+                        'system_form': 'string',
+                        'error': str(_inj_e),
+                    }))
+            else:
+                kwargs["system"] = merged_system  # 向后兼容(旧测试断言字符串)
+                logger.debug(log_dict({
+                    'module_name': 'tool_calling',
+                    'action': '_call_llm_anthropic.cache_control.disabled',
+                    'msg': '[CacheControl] disabled by env (LLM_CACHE_CONTROL_ENABLED=false)',
+                    'system_len': _sys_len,
+                    'system_form': 'string',
+                }))
         if anthropic_tools:
             kwargs["tools"] = anthropic_tools
 
         response = client.messages.create(**kwargs)
+
+        # [TLM-L1] Provider 缓存埋点 - 提取 usage 记录命中指标
+        # Why: response.usage.cache_read_input_tokens 表示命中数,cache_creation_input_tokens
+        #      表示创建数。失败兜底不阻塞主路径(纯转发层职责)。
+        try:
+            usage = getattr(response, "usage", None)
+            if usage:
+                cache_read = getattr(usage, "cache_read_input_tokens", 0) or 0
+                cache_creation = getattr(usage, "cache_creation_input_tokens", 0) or 0
+                input_tokens = getattr(usage, "input_tokens", 0) or 0
+                output_tokens = getattr(usage, "output_tokens", 0) or 0
+                if cache_read or cache_creation or input_tokens:
+                    # [CacheControl] 命中回写埋点(每次调用记录实际命中值)
+                    logger.debug(log_dict({
+                        'module_name': 'tool_calling',
+                        'action': '_call_llm_anthropic.cache_control.hit',
+                        'msg': '[CacheControl] usage: cache_read=%d cache_creation=%d '
+                               'input=%d output=%d' % (
+                                   cache_read, cache_creation, input_tokens, output_tokens),
+                        'cache_read_tokens': cache_read,
+                        'cache_creation_tokens': cache_creation,
+                        'input_tokens': input_tokens,
+                        'output_tokens': output_tokens,
+                    }))
+        except Exception as _usage_e:
+            logger.debug(log_dict({
+                'module_name': 'tool_calling',
+                'action': '_call_llm_anthropic.cache_control.usage_failed',
+                'msg': '[CacheControl] usage 提取降级忽略: %s' % (_usage_e,),
+            }))
 
         # 4. 转换响应回统一格式
         return self._anthropic_to_openai(response)
@@ -914,3 +987,12 @@ def _summarize_tool_result(tool_name: str, result) -> str:
     if result.get("result"):
         return str(result["result"])[:60]
     return f"执行成功"
+
+
+def summarize_tool_result(tool_name: str, result) -> str:
+    """公共入口:生成工具执行结果摘要(供 scripts/ 等外部模块 import)
+
+    Why: _summarize_tool_result 为内部实现,scripts/export_sft_dataset.py
+         需构造 SFT 五元组的 assistant_response,通过公共入口保持向后兼容。
+    """
+    return _summarize_tool_result(tool_name, result)

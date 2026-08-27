@@ -1,0 +1,4 @@
+# Mock SFT 数据生成物(可运行 scripts/seed_mock_sft_data.py --clean 重建)
+# 数据库与导出 JSONL/报告均为运行时产物,不入库跟踪
+*
+!.gitignore
