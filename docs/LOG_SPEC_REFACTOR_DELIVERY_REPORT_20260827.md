@@ -69,16 +69,21 @@
 ## 六、CI 验证与问题处理
 
 - **推送后 CI 全量触发**（30 check runs / 27 jobs），SonarQube 扫描通过。
-- **3 个单元测试 job 失败归因**：
-  1. `test_error_handler_comprehensive.py`（3.11 Shard3 + 3.12 Shard3，同 2 用例）：由 48c515cc（6-26 独立任务 error_handler 修复）引入——修复将 YunshuError 重试改为 `e.retryable` 决定，与 comprehensive 测试既有行为契约（"YunshuError 子类即使 retryable=False 也被重试"）冲突，该测试文件未随修复同步。已 `66f66e7c` 回滚代码（保留对比报告文档），本地验证 94 passed 恢复。
-  2. `test_shared_blackboard.py::test_write_perf_under_0_1ms`（3.12 Shard6）：性能阈值 0.234ms>0.1ms，环境负载型 flaky，与本次改动无关，单独 rerun 后通过。
+- **失败归因（3 项）**：
+  1. `test_error_handler_comprehensive.py`（3.11 Shard3 + 3.12 Shard3，同 2 用例）：由 48c515cc（6-26 独立任务 error_handler 修复）引入——修复将 YunshuError 重试改为 `e.retryable` 决定，与 comprehensive 测试既有行为契约（"YunshuError 子类即使 retryable=False 也被重试"）冲突，该测试文件未随修复同步。已 `66f66e7c` 回滚代码（保留对比报告文档），本地验证 94 passed 恢复，CI 复跑通过。✅ 已解决
+  2. `test_shared_blackboard.py::test_write_perf_under_0_1ms`（3.12 Shard6）：CI runner 上 write 平均 0.23-0.30ms 稳定超 0.1ms 阈值，本地通过（远低于阈值）→ 环境负载型。**pre-existing**：改动前 master（60e7d0ce，run 33041773538）同一 job 同测试同值失败（0.2992ms），与本次改动无关。↩ 遗留
+  3. observability 质量门禁 `test_coverage`（覆盖率 21.90% < 60%）：**pre-existing**——改动前 60e7d0ce 的 observability run（33041773570）同样 failure，master 最近 7 次 observability run 连续 failure（门禁阈值与实际覆盖率长期不匹配）。↩ 遗留
+
+- **本次改动相关验证结论**：ci.yml 中单元测试（除 3.12 Shard6 pre-existing）、集成测试、E2E、代码质量、安全扫描、文档链接预检等全部通过。
 
 ## 七、遗留问题与结论
 
 | 遗留项 | 状态 |
 |--------|------|
 | 1. error_handler YunshuError 重试逻辑修复 | **挂起**：修复方案与 test_error_handler_comprehensive 契约冲突（test_error_handler.py 已按新行为同步，comprehensive 未同步）。对比报告 `docs/ERROR_HANDLER_FIX_COMPARISON_REPORT_20260626.md` 已归档；代码已回滚保持 master 绿。需统一两套测试契约后另行交付 |
-| 2. 仓库其他模块（auto_tuner/ab_testing/critic 等）仍为旧式 json.dumps 日志 | 不在本次范围，按需后续跟进 |
-| 3. tool_generator.py L244 `"自定义工具已注册: {name}"` 非 f-string（既有 bug，非本次引入） | 记录待修，不阻塞结案 |
+| 2. shared_blackboard 性能测试（3.12 Shard6） | **pre-existing**：0.1ms 阈值在 CI runner 高负载下稳定超阈值（~0.3ms），本地通过。改动前 60e7d0ce 同值失败。建议后续放宽 CI 阈值或标记环境豁免 |
+| 3. observability 质量门禁覆盖率阈值 | **pre-existing**：门禁 `--min-coverage 60` vs 实际全项目覆盖率 ~22%，master 连续 7 次失败。建议后续校准阈值或补覆盖率后启用 |
+| 4. 仓库其他模块（auto_tuner/ab_testing/critic 等）仍为旧式 json.dumps 日志 | 不在本次范围，按需后续跟进 |
+| 5. tool_generator.py L244 `"自定义工具已注册: {name}"` 非 f-string（既有 bug，非本次引入） | 记录待修，不阻塞结案 |
 
-**结论**：本次日志规范整改目标全部达成；CI 问题已归因并回滚处理，双远程已推送，正式结案 ✅
+**结论**：本次日志规范整改目标全部达成；CI 中本次改动引入的失败（error_handler）已修复，其余 2 项为改动前既有 pre-existing 问题（附证据）；双远程已推送一致，正式结案 ✅
