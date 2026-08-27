@@ -74,16 +74,19 @@ promtool check rules deploy/monitoring/prometheus/alert_rules.yml
 | github.com:nzt47/security-tools | `c0e52447..9792e48c master -> master` ✅ |
 | gitee.com:nzt47/security-tools | `c0e52447..9792e48c master -> master` ✅ |
 
-> CI/CD 验证：push 后 GitHub Actions 自动触发（observability-ci.yml 等约 46 个工作流）。
-> 本地已通过核心测试与 promtool 校验；远程 CI 结果需在 GitHub Actions 页面确认。
+> CI/CD 验证（2026-06-26 复核）：push 后 GitHub Actions 自动触发约 46 个工作流。
+> 核心工作流（核心不变量/环境健康/CI 失败通知）✅；observability-ci 处于 pending；
+> `lock-discipline-scan` ❌ 为 **pre-existing 问题**（最近 8 次 master 提交全部失败，
+> 违规文件 `agent/workflow_learning/executor.py` 由 82a967f3 引入，本次交付 diff 未触及该目录）。
+> 本地已通过核心测试与 promtool 校验。
 
 ## 五、遗留问题与建议
 
 | # | 遗留项 | 类型 | 建议 |
 |---|--------|------|------|
-| 1 | 工作区临时文件 `tmp_prometheus.zip`、`tmp_promtool/` | 环境清理 | promtool 校验已完成，可删除（并行会话使用中，暂留） |
+| 1 | ~~工作区临时文件 `tmp_prometheus.zip`、`tmp_promtool/`~~ | 环境清理 | ✅ 已删除（2026-06-26 复核确认不存在） |
 | 2 | `phase2-visibility-convergence` 分支（领先 gitee 1228/落后 309） | 其他工作线 | 由对应任务会话处理，不在本次交付范围 |
-| 3 | 远程 CI 结果确认 | 流程 | 需在 GitHub Actions 页面核实 observability-ci.yml 全绿 |
+| 3 | `lock-discipline-scan` CI 失败 | pre-existing | 由 82a967f3 引入，本次交付未涉及；建议在共享黑板工作线单独修复 |
 | 4 | stakeholders 验收确认 | 流程 | 详见下方"验收状态" |
 
 ## 六、验收状态（供 stakeholders 核实）
@@ -96,7 +99,8 @@ promtool check rules deploy/monitoring/prometheus/alert_rules.yml
 | 语音接口监控代码合并 | ✅ | commit 9792e48c 已推送双远程 |
 | 告警规则语法校验 | ✅ | promtool 22 rules SUCCESS |
 | 全量测试回归 | ✅ | 本地 237 passed，0 failed |
-| 远程 CI 全绿 | ⏳ | 需在 GitHub Actions 页面确认 |
+| 远程 CI（核心工作流） | ✅ | 核心不变量/环境健康/CI 失败通知 success（2026-06-26 复核） |
+| 远程 CI（lock-discipline-scan） | ⚠️ pre-existing | 非本次交付引入，见遗留项 #3 |
 | stakeholders 最终验收 | ⏳ | 请用户与相关方核实交付物符合预期 |
 
 ---
