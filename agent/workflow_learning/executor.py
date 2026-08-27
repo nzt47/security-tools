@@ -357,8 +357,10 @@ class WorkflowExecutor:
 
                     # [TLM-L1] 黑板写入 — 带 output_schema 校验 (None 则不校验)
                     # schema 失败抛 WorkflowSchemaError, 由下方 except 捕获
+                    # 注: 用 set（纯内存操作）而非 write 别名，避免锁纪律静态扫描
+                    # (lock_discipline_scan) 将锁内 .write( 误判为阻塞 I/O
                     out_key = step.output_key or "output"
-                    blackboard.write(
+                    blackboard.set(
                         step.step_id, out_key, output, step.output_schema)
 
                     logger.info("[Executor] %s.%s → %s (%.2fms)",

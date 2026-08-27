@@ -248,11 +248,11 @@ class TestOperationsAudit:
     """黑板操作审计 — 每次 write/read/record_failure 追加内存记录"""
 
     def test_write_records_operation(self):
-        """write 应记录 op, 含 schema 标志"""
+        """set 应记录 op, 含 schema 标志（write 为兼容别名）"""
         bb = SharedBlackboard()
         bb.write("A", "k", 1)
         bb.write("A", "k", 2, schema={"type": "integer"})
-        writes = [o for o in bb.snapshot()["operations"] if o["op"] == "write"]
+        writes = [o for o in bb.snapshot()["operations"] if o["op"] == "set"]
         assert len(writes) == 2
         assert writes[0]["step"] == "A"
         assert writes[0]["key"] == "k"
