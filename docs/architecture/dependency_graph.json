@@ -1,5 +1,5 @@
 {
-  "trace_id": "cb451135ce774147",
+  "trace_id": "a15a5aef22f04191",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -3378,7 +3378,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 704,
+      "line": 700,
       "source_file": "agent/error_handler.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3417,7 +3417,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 757,
+      "line": 753,
       "source_file": "agent/error_handler.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3430,7 +3430,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 820,
+      "line": 816,
       "source_file": "agent/error_handler.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3443,7 +3443,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 852,
+      "line": 848,
       "source_file": "agent/error_handler.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3456,7 +3456,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 882,
+      "line": 878,
       "source_file": "agent/error_handler.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -13797,6 +13797,6 @@
       "quality": 2,
       "prompt_manager": 5
     },
-    "build_duration_ms": 974.8915069999953
+    "build_duration_ms": 1675.247771000002
   }
 }
