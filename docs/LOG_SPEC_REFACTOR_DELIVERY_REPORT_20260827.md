@@ -84,6 +84,6 @@
 | 2. shared_blackboard 性能测试（3.12 Shard6） | **pre-existing**：0.1ms 阈值在 CI runner 高负载下稳定超阈值（~0.3ms），本地通过。改动前 60e7d0ce 同值失败。建议后续放宽 CI 阈值或标记环境豁免 |
 | 3. observability 质量门禁覆盖率阈值 | **pre-existing**：门禁 `--min-coverage 60` vs 实际全项目覆盖率 ~22%，master 连续 7 次失败。建议后续校准阈值或补覆盖率后启用 |
 | 4. 仓库其他模块（auto_tuner/ab_testing/critic 等）仍为旧式 json.dumps 日志 | 不在本次范围，按需后续跟进 |
-| 5. tool_generator.py L244 `"自定义工具已注册: {name}"` 非 f-string（既有 bug，非本次引入） | 记录待修，不阻塞结案 |
+| 5. tool_generator.py 生成模板 f-string 误解析 | **已修复**（`712fc240`）：`generate_persistent` 模板中 logger 行 dict 花括号未转义，Python 3.12 下触发 `ValueError: Invalid format specifier`（此前无测试覆盖未暴露）。已转义 `{{...}}` + 补 `log_dict` import + 新增 2 项回归测试（28 passed） |
 
 **结论**：本次日志规范整改目标全部达成；CI 中本次改动引入的失败（error_handler）已修复，其余 2 项为改动前既有 pre-existing 问题（附证据）；双远程已推送一致，正式结案 ✅
