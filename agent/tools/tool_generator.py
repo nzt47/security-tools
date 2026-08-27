@@ -224,6 +224,7 @@ class ToolGenEngine:
             module_code = f'''"""自动生成的工具: {name}"""
 import logging
 from agent import tools as _tools
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -241,7 +242,7 @@ def register_all(dl=None):
         source="generated",
         source_id="custom_{name}",
     )
-    logger.info(log_dict({'module_name': 'tool_generator', 'action': 'adapter', 'msg': "自定义工具已注册: {name}"}))
+    logger.info(log_dict({{'module_name': 'tool_generator', 'action': 'adapter', 'msg': "自定义工具已注册: {name}"}}))
 '''
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(module_code)

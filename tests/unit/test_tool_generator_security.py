@@ -190,6 +190,44 @@ def parse_json(**kw):
         ok = ToolGenEngine().generate_simple("nope", "无函数", "x = 42")
         assert not ok
 
-    def test_syntax_error_still_rejected(self):
-        ok = ToolGenEngine().generate_simple("bad", "语法错误", "def broken(:")
-        assert not ok
+
+class TestGeneratePersistent:
+    """generate_persistent 持久化：生成模块内容回归（f-string 模板正确性）"""
+
+    def test_generated_module_logger_line_rendered(self, tmp_path, monkeypatch):
+        """生成文件 logger 行：dict 花括号正确、{name} 已插值、log_dict 已导入、代码可编译"""
+        import agent.tools.tool_generator as tg
+
+        monkeypatch.setattr(tg, "_CUSTOM_TOOLS_DIR", str(tmp_path))
+        engine = ToolGenEngine()
+        monkeypatch.setattr(engine, "generate_simple", lambda *a, **k: True)
+
+        ok = engine.generate_persistent(
+            "my_tool", "描述", "def my_tool(): return 1", category="custom"
+        )
+        assert ok
+
+        gen_path = tmp_path / "custom" / "my_tool.py"
+        assert gen_path.exists()
+        gen = gen_path.read_text(encoding="utf-8")
+
+        # 1) 模板 dict 花括号正确转义（f-string 误解析 ValueError 的回归防线）
+        assert "log_dict({'module_name': 'tool_generator', 'action': 'adapter', 'msg': " in gen
+        # 2) {name} 占位符已插值为实际工具名，无残留
+        assert "自定义工具已注册: my_tool" in gen
+        assert "{name}" not in gen
+        # 3) log_dict 已导入，生成模块自洽
+        assert "from agent.logging_utils import log_dict" in gen
+        # 4) 生成代码可编译
+        compile(gen, "<generated>", "exec")
+
+    def test_generate_simple_failure_returns_false(self, tmp_path, monkeypatch):
+        """generate_simple 失败时不写文件并返回 False"""
+        import agent.tools.tool_generator as tg
+
+        monkeypatch.setattr(tg, "_CUSTOM_TOOLS_DIR", str(tmp_path))
+        engine = ToolGenEngine()
+        monkeypatch.setattr(engine, "generate_simple", lambda *a, **k: False)
+
+        assert not engine.generate_persistent("bad", "d", "def bad(): pass")
+        assert not (tmp_path / "custom" / "bad.py").exists()
