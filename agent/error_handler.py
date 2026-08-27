@@ -618,14 +618,10 @@ class ErrorHandler:
                 # 判断是否应该重试
                 should_retry = False
                 
-                # 1. YunshuError 的可重试性由其 retryable 属性决定，不被 retryable_exceptions 覆盖
-                #    （与 async_with_retry 保持一致，修复 YunshuError(retryable=False) 仍被重试的缺陷）
-                if isinstance(e, YunshuError):
-                    should_retry = e.retryable
-                    if should_retry:
-                        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "yunshuerror.retryable", "msg": f"[execute_with_retry] YunshuError 可重试: retryable={e.retryable}"}, ensure_ascii=False))
-                    else:
-                        logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "yunshuerror.not_retryable", "msg": f"[execute_with_retry] YunshuError 不可重试: retryable={e.retryable}"}, ensure_ascii=False))
+                # 1. 首先检查是否是 YunshuError 并且是可重试的
+                if isinstance(e, YunshuError) and e.retryable:
+                    should_retry = True
+                    logger.debug(json.dumps({"trace_id": _trace_id(), "module_name": "error_handler", "action": "yunshuerror.retryable", "msg": f"[execute_with_retry] YunshuError 可重试: retryable={e.retryable}"}, ensure_ascii=False))
                 # 2. 然后检查是否是自定义可重试异常
                 elif retryable and any(issubclass(e.__class__, cls) for cls in retryable):
                     should_retry = True
