@@ -1,5 +1,5 @@
 {
-  "trace_id": "c3c1a03bc2794262",
+  "trace_id": "cb451135ce774147",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -15,7 +15,7 @@
       "name": "logging_utils",
       "layer": "core",
       "file_path": "",
-      "in_degree": 73,
+      "in_degree": 84,
       "out_degree": 2
     },
     {
@@ -616,7 +616,7 @@
       "layer": "cognitive",
       "file_path": "",
       "in_degree": 3,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.skills_mgmt",
@@ -1776,7 +1776,7 @@
       "layer": "cognitive",
       "file_path": "agent/cognitive/prompt_optimizer.py",
       "in_degree": 1,
-      "out_degree": 6
+      "out_degree": 7
     },
     {
       "path": "agent.skills_mgmt.evaluator",
@@ -1896,7 +1896,7 @@
       "layer": "tools",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 1
+      "out_degree": 2
     },
     {
       "path": "agent.tools.mcp_connector",
@@ -1976,7 +1976,7 @@
       "layer": "skills_mgmt",
       "file_path": "agent/skills_mgmt/lifecycle.py",
       "in_degree": 2,
-      "out_degree": 3
+      "out_degree": 4
     },
     {
       "path": "agent.skills_mgmt.feedback_agent",
@@ -2016,7 +2016,15 @@
       "layer": "skills_mgmt",
       "file_path": "agent/skills_mgmt/precipitate.py",
       "in_degree": 0,
-      "out_degree": 4
+      "out_degree": 5
+    },
+    {
+      "path": "agent.skills_mgmt.meta_editor",
+      "name": "meta_editor",
+      "layer": "skills_mgmt",
+      "file_path": "agent/skills_mgmt/meta_editor.py",
+      "in_degree": 0,
+      "out_degree": 1
     },
     {
       "path": "agent.task_planner.enhanced_dag",
@@ -2336,7 +2344,7 @@
       "layer": "knowledge",
       "file_path": "",
       "in_degree": 9,
-      "out_degree": 7
+      "out_degree": 8
     },
     {
       "path": "agent.knowledge.index",
@@ -2400,7 +2408,7 @@
       "layer": "knowledge",
       "file_path": "agent/knowledge/workflow.py",
       "in_degree": 1,
-      "out_degree": 7
+      "out_degree": 8
     },
     {
       "path": "agent.knowledge.discuss",
@@ -2416,7 +2424,7 @@
       "layer": "knowledge",
       "file_path": "",
       "in_degree": 2,
-      "out_degree": 6
+      "out_degree": 7
     },
     {
       "path": "agent.knowledge.ingest",
@@ -2472,7 +2480,7 @@
       "layer": "knowledge",
       "file_path": "agent/knowledge/tools.py",
       "in_degree": 0,
-      "out_degree": 7
+      "out_degree": 8
     },
     {
       "path": "agent.knowledge.observability",
@@ -2512,7 +2520,7 @@
       "layer": "config",
       "file_path": "agent/config/etcd_config_client.py",
       "in_degree": 0,
-      "out_degree": 6
+      "out_degree": 7
     },
     {
       "path": "agent.model_router.observability",
@@ -3370,7 +3378,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 700,
+      "line": 704,
       "source_file": "agent/error_handler.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3409,7 +3417,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 753,
+      "line": 757,
       "source_file": "agent/error_handler.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3422,7 +3430,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 816,
+      "line": 820,
       "source_file": "agent/error_handler.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3435,7 +3443,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 848,
+      "line": 852,
       "source_file": "agent/error_handler.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3448,7 +3456,7 @@
       "source_layer": "core",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 878,
+      "line": 882,
       "source_file": "agent/error_handler.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8349,7 +8357,7 @@
       "source_layer": "memory",
       "target_layer": "memory",
       "import_type": "from_import",
-      "line": 1230,
+      "line": 1224,
       "source_file": "agent/memory/adapters/holographic_adapter.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -8475,11 +8483,24 @@
     },
     {
       "source": "agent.cognitive.failure_analysis",
+      "target": "agent.logging_utils",
+      "source_layer": "cognitive",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 23,
+      "source_file": "agent/cognitive/failure_analysis.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.cognitive.failure_analysis",
       "target": "agent.utils.singleton_manager",
       "source_layer": "cognitive",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 944,
+      "line": 940,
       "source_file": "agent/cognitive/failure_analysis.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8540,11 +8561,11 @@
     },
     {
       "source": "agent.cognitive.prompt_optimizer",
-      "target": "agent.skills_mgmt.observability",
+      "target": "agent.logging_utils",
       "source_layer": "cognitive",
-      "target_layer": "skills_mgmt",
+      "target_layer": "core",
       "import_type": "from_import",
-      "line": 653,
+      "line": 49,
       "source_file": "agent/cognitive/prompt_optimizer.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8557,7 +8578,7 @@
       "source_layer": "cognitive",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 569,
+      "line": 644,
       "source_file": "agent/cognitive/prompt_optimizer.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8570,7 +8591,20 @@
       "source_layer": "cognitive",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 555,
+      "line": 563,
+      "source_file": "agent/cognitive/prompt_optimizer.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.cognitive.prompt_optimizer",
+      "target": "agent.skills_mgmt.observability",
+      "source_layer": "cognitive",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 550,
       "source_file": "agent/cognitive/prompt_optimizer.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9093,6 +9127,19 @@
       "line": 13,
       "source_file": "agent/tools/tool_generator.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.tools.tool_generator",
+      "target": "agent.logging_utils",
+      "source_layer": "tools",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 14,
+      "source_file": "agent/tools/tool_generator.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -9645,11 +9692,24 @@
     },
     {
       "source": "agent.skills_mgmt.lifecycle",
+      "target": "agent.logging_utils",
+      "source_layer": "skills_mgmt",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 37,
+      "source_file": "agent/skills_mgmt/lifecycle.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.lifecycle",
       "target": "agent.skills_mgmt.service",
       "source_layer": "skills_mgmt",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 260,
+      "line": 258,
       "source_file": "agent/skills_mgmt/lifecycle.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9662,7 +9722,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 428,
+      "line": 403,
       "source_file": "agent/skills_mgmt/lifecycle.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9675,7 +9735,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 450,
+      "line": 424,
       "source_file": "agent/skills_mgmt/lifecycle.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9957,11 +10017,24 @@
     },
     {
       "source": "agent.skills_mgmt.precipitate",
+      "target": "agent.logging_utils",
+      "source_layer": "skills_mgmt",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 30,
+      "source_file": "agent/skills_mgmt/precipitate.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.precipitate",
       "target": "agent.learning_metrics",
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 274,
+      "line": 263,
       "source_file": "agent/skills_mgmt/precipitate.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -9974,7 +10047,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 124,
+      "line": 126,
       "source_file": "agent/skills_mgmt/precipitate.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -9987,7 +10060,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 159,
+      "line": 158,
       "source_file": "agent/skills_mgmt/precipitate.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10000,7 +10073,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 183,
+      "line": 181,
       "source_file": "agent/skills_mgmt/precipitate.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10028,6 +10101,19 @@
       "import_type": "from_import",
       "line": 638,
       "source_file": "agent/skills_mgmt/evaluator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.meta_editor",
+      "target": "agent.logging_utils",
+      "source_layer": "skills_mgmt",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 54,
+      "source_file": "agent/skills_mgmt/meta_editor.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -11854,6 +11940,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.knowledge.workflow",
+      "target": "agent.logging_utils",
+      "source_layer": "knowledge",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 35,
+      "source_file": "agent/knowledge/workflow.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.knowledge.ingest",
       "target": "agent.utils.sensitive_data_filter",
       "source_layer": "knowledge",
@@ -12140,6 +12239,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.knowledge.card",
+      "target": "agent.logging_utils",
+      "source_layer": "knowledge",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 39,
+      "source_file": "agent/knowledge/card.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.knowledge.link_cache",
       "target": "agent.knowledge.links",
       "source_layer": "knowledge",
@@ -12245,11 +12357,11 @@
     },
     {
       "source": "agent.knowledge.tools",
-      "target": "agent.tools",
+      "target": "agent.logging_utils",
       "source_layer": "knowledge",
-      "target_layer": "tools",
+      "target_layer": "core",
       "import_type": "from_import",
-      "line": 302,
+      "line": 27,
       "source_file": "agent/knowledge/tools.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -12262,7 +12374,20 @@
       "source_layer": "knowledge",
       "target_layer": "tools",
       "import_type": "from_import",
-      "line": 316,
+      "line": 292,
+      "source_file": "agent/knowledge/tools.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.knowledge.tools",
+      "target": "agent.tools",
+      "source_layer": "knowledge",
+      "target_layer": "tools",
+      "import_type": "from_import",
+      "line": 306,
       "source_file": "agent/knowledge/tools.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -12275,7 +12400,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 211,
+      "line": 202,
       "source_file": "agent/knowledge/tools.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -12288,7 +12413,7 @@
       "source_layer": "knowledge",
       "target_layer": "knowledge",
       "import_type": "from_import",
-      "line": 212,
+      "line": 203,
       "source_file": "agent/knowledge/tools.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -12504,6 +12629,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.knowledge.distill",
+      "target": "agent.logging_utils",
+      "source_layer": "knowledge",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 34,
+      "source_file": "agent/knowledge/distill.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.knowledge.lint",
       "target": "agent.knowledge.index",
       "source_layer": "knowledge",
@@ -12531,11 +12669,11 @@
     },
     {
       "source": "agent.config.etcd_config_client",
-      "target": "agent.orchestrator.orchestrator",
+      "target": "agent.logging_utils",
       "source_layer": "config",
-      "target_layer": "orchestrator",
+      "target_layer": "core",
       "import_type": "from_import",
-      "line": 165,
+      "line": 33,
       "source_file": "agent/config/etcd_config_client.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -12548,7 +12686,20 @@
       "source_layer": "config",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 196,
+      "line": 167,
+      "source_file": "agent/config/etcd_config_client.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.config.etcd_config_client",
+      "target": "agent.orchestrator.orchestrator",
+      "source_layer": "config",
+      "target_layer": "orchestrator",
+      "import_type": "from_import",
+      "line": 197,
       "source_file": "agent/config/etcd_config_client.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -12561,7 +12712,7 @@
       "source_layer": "config",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 70,
+      "line": 72,
       "source_file": "agent/config/etcd_config_client.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -12574,7 +12725,7 @@
       "source_layer": "config",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 86,
+      "line": 88,
       "source_file": "agent/config/etcd_config_client.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -12587,7 +12738,7 @@
       "source_layer": "config",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 359,
+      "line": 357,
       "source_file": "agent/config/etcd_config_client.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -12600,7 +12751,7 @@
       "source_layer": "config",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 403,
+      "line": 401,
       "source_file": "agent/config/etcd_config_client.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -13598,9 +13749,9 @@
   ],
   "stats": {
     "total_files": 425,
-    "total_nodes": 342,
-    "total_edges": 835,
-    "cross_layer_edges": 518,
+    "total_nodes": 343,
+    "total_edges": 846,
+    "cross_layer_edges": 529,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -13617,7 +13768,7 @@
       "unknown": 1,
       "lazy_loader": 3,
       "cognitive": 13,
-      "skills_mgmt": 19,
+      "skills_mgmt": 20,
       "workflow_learning": 4,
       "audit": 3,
       "guardrails": 4,
@@ -13646,6 +13797,6 @@
       "quality": 2,
       "prompt_manager": 5
     },
-    "build_duration_ms": 1661.318749000003
+    "build_duration_ms": 974.8915069999953
   }
 }

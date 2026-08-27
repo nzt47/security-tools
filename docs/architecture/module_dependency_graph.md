@@ -351,6 +351,7 @@ flowchart LR
         agent_skills_mgmt_lineage["agent.skills_mgmt.lineage"]:::crosslayer
         agent_skills_mgmt_loader["agent.skills_mgmt.loader"]:::crosslayer
         agent_skills_mgmt_memory_abstractor["agent.skills_mgmt.memory_abstractor"]:::crosslayer
+        agent_skills_mgmt_meta_editor["agent.skills_mgmt.meta_editor"]
         agent_skills_mgmt_models["agent.skills_mgmt.models"]:::crosslayer
         agent_skills_mgmt_observability["agent.skills_mgmt.observability"]:::crosslayer
         agent_skills_mgmt_offline_evolver["agent.skills_mgmt.offline_evolver"]:::crosslayer
@@ -869,11 +870,13 @@ flowchart LR
     agent_cognitive_failure_collector -.-> agent_utils_singleton_manager
     agent_cognitive_observability -.-> agent_monitoring_business_metrics
     agent_cognitive_logging_integration --> agent_cognitive_failure_collector
+    agent_cognitive_failure_analysis -.-> agent_logging_utils
     agent_cognitive_failure_analysis -.-> agent_utils_singleton_manager
     agent_cognitive_reflection -.-> agent_monitoring_observability_config
     agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_evaluator
     agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_lineage
     agent_cognitive_prompt_optimizer --> agent_cognitive_failure_bucket
+    agent_cognitive_prompt_optimizer -.-> agent_logging_utils
     agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_observability
     agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_observability
     agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_observability
@@ -917,6 +920,7 @@ flowchart LR
     agent_tools_ext_tools -.-> agent_extensions_market
     agent_tools_ext_tools --> agent_tools_tool_generator
     agent_tools_tool_generator --> agent
+    agent_tools_tool_generator -.-> agent_logging_utils
     agent_tools_discovery_service -.-> agent_extensions_base
     agent_tools_discovery_service --> agent_tools_mcp_connector
     agent_tools_discovery_service -.-> agent_extensions_market
@@ -959,6 +963,7 @@ flowchart LR
     agent_skills_mgmt_service -.-> agent_feedback
     agent_skills_mgmt_creator -.-> agent_error_handler
     agent_skills_mgmt_creator -.-> agent_extensions_market
+    agent_skills_mgmt_lifecycle -.-> agent_logging_utils
     agent_skills_mgmt_lifecycle --> agent_skills_mgmt_service
     agent_skills_mgmt_lifecycle -.-> agent_task_scheduler
     agent_skills_mgmt_lifecycle -.-> agent_task_scheduler
@@ -983,12 +988,14 @@ flowchart LR
     agent_skills_mgmt_evolution_scheduler -.-> agent_task_scheduler
     agent_skills_mgmt_offline_evolver -.-> agent_task_scheduler
     agent_skills_mgmt_offline_evolver -.-> agent_task_scheduler
+    agent_skills_mgmt_precipitate -.-> agent_logging_utils
     agent_skills_mgmt_precipitate -.-> agent_learning_metrics
     agent_skills_mgmt_precipitate --> agent_skills_mgmt_memory_abstractor
     agent_skills_mgmt_precipitate -.-> agent_task_scheduler
     agent_skills_mgmt_precipitate -.-> agent_task_scheduler
     agent_skills_mgmt_loader -.-> agent_monitoring_prometheus
     agent_skills_mgmt_evaluator -.-> agent_feedback
+    agent_skills_mgmt_meta_editor -.-> agent_logging_utils
     agent_task_planner_enhanced_dag --> agent_task_planner_dag
     agent_task_planner_observability -.-> agent_monitoring_business_metrics
     agent_task_planner_enhanced_planner --> agent_task_planner_enhanced_dag
@@ -1129,6 +1136,7 @@ flowchart LR
     agent_knowledge_workflow --> agent_knowledge_lint
     agent_knowledge_workflow --> agent_knowledge_logbook
     agent_knowledge_workflow --> agent_knowledge_schema
+    agent_knowledge_workflow -.-> agent_logging_utils
     agent_knowledge_ingest -.-> agent_utils_sensitive_data_filter
     agent_knowledge_ingest -.-> agent_monitoring_observability_config
     agent_knowledge_search --> agent_knowledge_card
@@ -1151,6 +1159,7 @@ flowchart LR
     agent_knowledge_card --> agent_knowledge_links_index
     agent_knowledge_card --> agent_knowledge_logbook
     agent_knowledge_card --> agent_knowledge_schema
+    agent_knowledge_card -.-> agent_logging_utils
     agent_knowledge_link_cache --> agent_knowledge_links
     agent_knowledge_link_cache --> agent_knowledge_schema
     agent_knowledge_audit_job --> agent_knowledge_lint
@@ -1159,6 +1168,7 @@ flowchart LR
     agent_knowledge_tools --> agent_knowledge_card
     agent_knowledge_tools --> agent_knowledge_observability
     agent_knowledge_tools --> agent_knowledge_workflow
+    agent_knowledge_tools -.-> agent_logging_utils
     agent_knowledge_tools -.-> agent_tools
     agent_knowledge_tools -.-> agent_tools
     agent_knowledge_tools --> agent_knowledge_card
@@ -1179,8 +1189,10 @@ flowchart LR
     agent_knowledge_distill --> agent_knowledge_observability
     agent_knowledge_distill --> agent_knowledge_prompts
     agent_knowledge_distill --> agent_knowledge_schema
+    agent_knowledge_distill -.-> agent_logging_utils
     agent_knowledge_lint --> agent_knowledge_index
     agent_knowledge_lint --> agent_knowledge_links
+    agent_config_etcd_config_client -.-> agent_logging_utils
     agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
     agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
     agent_config_etcd_config_client -.-> agent_monitoring_metrics
@@ -1272,9 +1284,9 @@ flowchart LR
 
 ## 统计信息
 - 扫描文件数: 425
-- 模块节点数: 342
-- 依赖边数: 835
-- 跨层调用数: 518
+- 模块节点数: 343
+- 依赖边数: 846
+- 跨层调用数: 529
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1661.32 ms
+- 构建耗时: 974.89 ms
