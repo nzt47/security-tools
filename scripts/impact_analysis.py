@@ -565,7 +565,10 @@ class ImpactAnalyzer:
 
     def _collect_test_files(self, tests_root: Path) -> List[Path]:
         """收集所有测试文件"""
-        if not tests_root.exists():
+        # 修复：tests_root 是文件而非目录时 rglob 行为平台相关
+        # （POSIX 抛 NotADirectoryError / Windows 返回空迭代器）。
+        # 增加 is_dir() 防护，统一返回空列表，避免中断调用方。
+        if not tests_root.exists() or not tests_root.is_dir():
             return []
         return list(tests_root.rglob("test_*.py"))
 
@@ -622,9 +625,20 @@ class ImpactAnalyzer:
                 (short_name_lower and short_name_lower in fname_lower)
                 or (layer_lower and layer_lower in fname_lower)
             ):
-                rel = str(
-                    test_file.relative_to(self.repo_root)
-                ).replace("\\", "/")
+                # 修复：repo_root 外路径 relative_to 抛 ValueError 时跳过
+                # all_tests 可能包含外部传入的绝对路径文件（如 CI 收集的临时文件），
+                # 其不在 repo_root 下，relative_to 抛 ValueError 会中断整个匹配。
+                # 此处捕获 ValueError 跳过该文件并记录结构化日志，不影响其余匹配。
+                try:
+                    rel = str(
+                        test_file.relative_to(self.repo_root)
+                    ).replace("\\", "/")
+                except ValueError:
+                    self._log_action(
+                        "find_tests.skip_outside_repo",
+                        f"跳过 repo_root 外测试文件: {test_file}",
+                    )
+                    continue
                 if rel not in seen:
                     seen.add(rel)
                     matched.append(rel)

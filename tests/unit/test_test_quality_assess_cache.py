@@ -1085,3 +1085,66 @@ class TestGenerateReportMissingAndEmptyTestsP1:
         )
         assert exception_dim["score"] == 0.0
         assert exception_dim["level"] == QualityLevel.POOR
+
+
+# ═══════════════════════════════════════════════════════════════
+#  11. P1 补充：_determine_level 阈值边界（文档序号 18/19）
+# ═══════════════════════════════════════════════════════════════
+
+class TestDetermineLevelBoundaryP1:
+    """_determine_level 覆盖率阈值边界的 P1 级边界条件覆盖
+
+    覆盖缺口（来自 test_coverage_gap_analysis.md 2.3 节 P1 序号 18/19）：
+    - 覆盖率 75.0 → GOOD（阈值下边界）
+    - 覆盖率 60.0 → NEEDS_IMPROVEMENT（阈值下边界）
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_determine_level_boundary_75_good(self, tmp_path):
+        """P1-18: 覆盖率 75.0 时 level 应为 GOOD（阈值下边界）
+
+        场景：_determine_level 判定逻辑：
+        - score >= 90 → EXCELLENT
+        - score >= 75 → GOOD
+        - score >= 60 → NEEDS_IMPROVEMENT
+        - 否则 → POOR
+
+        预期：
+        - 75.0 恰好命中 GOOD 分支（>= 75 含等号）
+        - 74.9 应落入 NEEDS_IMPROVEMENT（验证边界精确性）
+        """
+        assessor = TestQualityAssessor()
+
+        # 75.0 恰好等于 GOOD 阈值下边界，应返回 GOOD
+        assert assessor._determine_level(75.0) == QualityLevel.GOOD, (
+            f"75.0 应命中 GOOD（>=75 含等号），"
+            f"实际 {assessor._determine_level(75.0)}"
+        )
+        # 74.9 低于 GOOD 阈值，应落入 NEEDS_IMPROVEMENT
+        assert assessor._determine_level(74.9) == QualityLevel.NEEDS_IMPROVEMENT, (
+            f"74.9 应落入 NEEDS_IMPROVEMENT（低于 GOOD 阈值），"
+            f"实际 {assessor._determine_level(74.9)}"
+        )
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_determine_level_boundary_60_needs_improvement(self, tmp_path):
+        """P1-19: 覆盖率 60.0 时 level 应为 NEEDS_IMPROVEMENT（阈值下边界）
+
+        预期：
+        - 60.0 恰好命中 NEEDS_IMPROVEMENT 分支（>= 60 含等号）
+        - 59.9 应落入 POOR（验证边界精确性）
+        """
+        assessor = TestQualityAssessor()
+
+        # 60.0 恰好等于 NEEDS_IMPROVEMENT 阈值下边界
+        assert assessor._determine_level(60.0) == QualityLevel.NEEDS_IMPROVEMENT, (
+            f"60.0 应命中 NEEDS_IMPROVEMENT（>=60 含等号），"
+            f"实际 {assessor._determine_level(60.0)}"
+        )
+        # 59.9 低于 NEEDS_IMPROVEMENT 阈值，应落入 POOR
+        assert assessor._determine_level(59.9) == QualityLevel.POOR, (
+            f"59.9 应落入 POOR（低于 NEEDS_IMPROVEMENT 阈值），"
+            f"实际 {assessor._determine_level(59.9)}"
+        )

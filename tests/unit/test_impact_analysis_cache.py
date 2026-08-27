@@ -1600,3 +1600,297 @@ class TestRelateTestsPreCollectedConsistencyP1:
         )
         assert len(result_with_precollected) == 1
         assert "test_orchestrator.py" in result_with_precollected[0]
+
+
+# ═══════════════════════════════════════════════════════════════
+#  12. P1 补充：文档遗漏项（序号 22-27）
+# ═══════════════════════════════════════════════════════════════
+
+class TestFindTestsForModuleRelativeToValueErrorP1:
+    """all_tests 含 repo_root 外路径的 P1 级边界条件覆盖
+
+    覆盖缺口（来自 test_coverage_gap_analysis.md 3.3 节 P1 序号 22）：
+    - all_tests 包含不在 repo_root 下的绝对路径，relative_to 抛 ValueError
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_find_tests_for_module_relative_to_value_error(
+        self, tmp_path, tmp_path_factory
+    ):
+        """P1-22: all_tests 含 repo_root 外绝对路径时跳过并正常匹配（修复后）
+
+        场景：all_tests 中有一个测试文件位于 repo_root 之外（独立临时目录），
+        修复前 relative_to(repo_root) 抛 ValueError 中断整个匹配；
+        修复后捕获 ValueError 跳过该文件并记录结构化日志。
+
+        预期（修复后）：
+        - 不抛异常
+        - repo_root 外的文件被跳过
+        - repo_root 内的匹配文件正常返回
+        """
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        # repo_root 内的匹配文件
+        inside_file = tests_dir / "test_target.py"
+        inside_file.write_text("", encoding="utf-8")
+
+        # repo_root 之外的独立目录（不在 tmp_path 下，pytest 自动清理）
+        outside_dir = tmp_path_factory.mktemp("outside_repo")
+        outside_file = outside_dir / "test_target.py"
+        outside_file.write_text("", encoding="utf-8")
+
+        # all_tests 同时含 repo_root 内外的同名匹配文件
+        all_tests = [inside_file, outside_file]
+        # module_path="agent.target.x" → short_name="x"、layer="target"
+        # layer="target" 匹配 "test_target"（stem 含 target）
+        result = analyzer._find_tests_for_module("agent.target.x", all_tests)
+
+        # 修复后：外部文件被跳过，只返回 repo_root 内匹配
+        assert len(result) == 1, (
+            f"修复后 repo_root 外文件应被跳过，只匹配 1 个内部文件，"
+            f"实际 {len(result)}: {result}"
+        )
+        assert "tests/test_target.py" in result[0]
+
+
+class TestCollectTestFilesTestsRootIsFileP1:
+    """tests_root 是文件而非目录的 P1 级边界条件覆盖
+
+    覆盖缺口（来自 test_coverage_gap_analysis.md 3.3 节 P1 序号 23）：
+    - tests_root.exists() 为 True 但 rglob 在文件上行为平台相关
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_collect_test_files_tests_root_is_file(self, tmp_path):
+        """P1-23: tests_root 是文件时 _collect_test_files 返回空列表（修复后）
+
+        场景：tmp_path/tests 是一个文件（非目录），
+        tests_root.exists() 返回 True，但 rglob 在文件上行为平台相关：
+        - POSIX 上抛 NotADirectoryError
+        - Windows 上返回空迭代器
+
+        修复后：增加 is_dir() 防护，统一返回空列表，不抛异常。
+
+        预期：
+        - 返回空列表 []（确定行为，不依赖平台）
+        """
+        tests_file = tmp_path / "tests"
+        tests_file.write_text("I am a file, not a directory\n", encoding="utf-8")
+
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        # tests_root.exists() 为 True（文件也存在）
+        assert tests_file.exists()
+        # 修复后：is_dir() 防护统一返回空列表，不抛异常
+        result = analyzer._collect_test_files(tests_file)
+        assert result == [], (
+            f"tests_root 是文件时修复后应返回空列表，"
+            f"实际 {result}"
+        )
+
+
+class TestFindTestsForModuleDotDotP1:
+    """module_path 为 '..' 的 P1 级边界条件覆盖
+
+    覆盖缺口（来自 test_coverage_gap_analysis.md 3.3 节 P1 序号 24）：
+    - module_path='..' 时 parts=['','']，short_name 与 layer 均为空字符串
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_find_tests_for_module_module_path_with_dotdot(self, tmp_path):
+        """P1-24: module_path='..' 时空字符串关键词被防护跳过，返回空列表
+
+        场景：module_path = ".."
+        - normalized_path = ".."（无分隔符需替换）
+        - parts = ['', '']，len(parts)=2（不触发 <2 提前返回）
+        - short_name = ''，layer = ''
+        - 空字符串防护（修复后）：short_name_lower/layer_lower 均为空，
+          两个关键词都被跳过，不匹配任何文件
+
+        预期：
+        - 返回 []（不匹配所有文件）
+        - 验证空字符串防护生效
+        """
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        (tests_dir / "test_orchestrator.py").write_text("", encoding="utf-8")
+
+        all_tests = list(tests_dir.rglob("test_*.py"))
+        # module_path='..' → parts=['','']，两个关键词均为空，不匹配任何文件
+        result = analyzer._find_tests_for_module("..", all_tests)
+
+        assert result == [], (
+            f"module_path='..' 时 short_name/layer 均为空字符串，"
+            f"空字符串防护应跳过关键词，返回 []，"
+            f"实际 {result}。若匹配所有文件说明防护失效"
+        )
+
+
+class TestRelateTestsOverwritesExistingP1:
+    """_relate_tests 覆盖预设 related_tests 的 P1 级边界条件覆盖
+
+    覆盖缺口（来自 test_coverage_gap_analysis.md 3.3 节 P1 序号 25）：
+    - ImpactedModule 预设 related_tests 后 _relate_tests 是否覆盖
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_relate_tests_overwrites_existing_related_tests(self, tmp_path):
+        """P1-25: _relate_tests 应将 related_tests 覆盖为新匹配值
+
+        场景：ImpactedModule 构造时预设 related_tests=['tests/test_old.py']，
+        _relate_tests 应重新匹配并覆盖为新值。
+
+        预期：
+        - related_tests 被覆盖为新匹配的测试文件
+        - 旧值 test_old_stale.py 不再存在
+        """
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        (tests_dir / "test_orchestrator.py").write_text("", encoding="utf-8")
+
+        # 预设 related_tests 旧值
+        impacted = [
+            ImpactedModule(
+                module_path="agent.orchestrator.core",
+                impact_type="upstream",
+                impact_chain="agent.orchestrator.core → agent.changed",
+                risk_level="low",
+                related_tests=["tests/test_old_stale.py"],
+            )
+        ]
+
+        result = analyzer._relate_tests(impacted)
+
+        # 返回同一列表对象，related_tests 被覆盖为新值
+        assert result is impacted
+        assert len(impacted[0].related_tests) == 1, (
+            f"related_tests 应被覆盖为 1 个新匹配值，"
+            f"实际 {impacted[0].related_tests}"
+        )
+        assert "test_orchestrator.py" in impacted[0].related_tests[0], (
+            f"related_tests 应包含 test_orchestrator.py，"
+            f"实际 {impacted[0].related_tests}"
+        )
+        # 旧预设值被覆盖替换
+        assert all(
+            "test_old_stale.py" not in t for t in impacted[0].related_tests
+        ), f"旧值 test_old_stale.py 应被覆盖，实际 {impacted[0].related_tests}"
+
+
+class TestAnalyzeEmptyModulePathP1:
+    """analyze() 中 ChangedFile.module_path 为空的 P1 级边界条件覆盖
+
+    覆盖缺口（来自 test_coverage_gap_analysis.md 3.3 节 P1 序号 26）：
+    - ChangedFile.module_path 为空字符串时的 analyze() 行为
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_analyze_changed_file_empty_module_path(self, tmp_path):
+        """P1-26: module_path 为空字符串时 analyze() 不抛异常
+
+        场景：ChangedFile(module_path="")，analyze() 步骤 6 中
+        _find_tests_for_module("", all_tests)：
+        - "".split(".") → ['']，len(parts) < 2 → 返回 []
+
+        预期：
+        - 不抛异常
+        - report.changed_files 包含该变更文件
+        - recommended_tests 为空（空 module_path 匹配不到测试）
+        """
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        (repo / "agent").mkdir()
+        (repo / "agent" / "__init__.py").write_text("", encoding="utf-8")
+        (repo / "tests").mkdir()
+        (repo / "tests" / "test_x.py").write_text("", encoding="utf-8")
+
+        # module_path 为空字符串的变更文件
+        changed_files = [ChangedFile(path="", status="M", module_path="")]
+
+        analyzer = ImpactAnalyzer(
+            repo_root=str(repo),
+            root_dir="agent",
+            tests_dir="tests",
+        )
+
+        with patch.object(
+            analyzer, "_get_changed_files", return_value=changed_files
+        ), patch.object(
+            analyzer, "_find_impacted_modules", return_value=[]
+        ), patch(
+            "scripts.impact_analysis.DependencyGraphBuilder"
+        ) as mock_builder_cls:
+            mock_builder = MagicMock()
+            mock_builder.edges = []
+            mock_builder.nodes = {}
+            mock_builder_cls.return_value = mock_builder
+
+            # 空 module_path 不应抛异常
+            report = analyzer.analyze()
+
+        # 变更文件被记录
+        assert len(report.changed_files) == 1
+        # 空 module_path 匹配不到任何测试
+        assert report.recommended_tests == [], (
+            f"空 module_path 应匹配不到测试，recommended_tests 应为空，"
+            f"实际 {report.recommended_tests}"
+        )
+
+
+class TestFindTestsAllTestsContainsNonPyP1:
+    """all_tests 含非 .py 文件的 P1 级边界条件覆盖
+
+    覆盖缺口（来自 test_coverage_gap_analysis.md 3.3 节 P1 序号 27）：
+    - all_tests 包含 .md 等非 .py 文件时的 stem 处理
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p1
+    def test_find_tests_for_module_all_tests_contains_non_py(self, tmp_path):
+        """P1-27: all_tests 含 .md 文件时 .py 匹配正常、.md 不误匹配
+
+        场景：all_tests = [test_helper.py, notes.md]，
+        module_path = "agent.tools.helper"：
+        - short_name="helper"、"helper" in "test_helper" → 匹配 test_helper.py
+        - layer="tools"，"tools"/"helper" 均不在 "notes" 中 → 不匹配 notes.md
+
+        预期：
+        - 只匹配 test_helper.py（len == 1）
+        - notes.md 不被误匹配（关键词不匹配时）
+        """
+        analyzer = ImpactAnalyzer(repo_root=str(tmp_path))
+        tests_dir = tmp_path / "tests"
+        tests_dir.mkdir()
+        (tests_dir / "test_helper.py").write_text("", encoding="utf-8")
+        (tests_dir / "notes.md").write_text("# notes\n", encoding="utf-8")
+
+        # 构造含非 .py 文件的 all_tests
+        all_tests = list(tests_dir.iterdir())
+        assert any(p.suffix == ".md" for p in all_tests), (
+            "前置条件：all_tests 应包含 .md 文件"
+        )
+
+        result = analyzer._find_tests_for_module(
+            "agent.tools.helper", all_tests
+        )
+
+        # .py 文件正常匹配，.md 不被误匹配
+        assert len(result) == 1, (
+            f"all_tests 含 .md 时不应影响 .py 匹配，"
+            f"应只匹配 1 个文件，实际 {len(result)}: {result}"
+        )
+        assert "test_helper.py" in result[0]
+
+        # 记录当前行为：若关键词匹配 .md 的 stem，也会被收集（不区分扩展名）
+        md_result = analyzer._find_tests_for_module("agent.notes.x", all_tests)
+        assert "notes.md" in md_result[0], (
+            f"当前实现不区分扩展名，stem 匹配的 .md 也会被收集，"
+            f"实际 {md_result}"
+        )
