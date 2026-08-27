@@ -31,6 +31,7 @@ from agent.knowledge.logbook import append_log
 from agent.knowledge.observability import emit_structured_log
 from agent.knowledge.prompts import DISTILL_SYSTEM_PROMPT, DISTILL_USER_TEMPLATE
 from agent.knowledge.schema import Card, slugify, validate_card
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -297,8 +298,7 @@ def distill(source_path: str | Path, llm=None, knowledge_root: str | None = None
 
     existing = _find_by_source_hash(processed_dir, source_hash)
     if existing is not None:
-        logger.info("[distill] 幂等命中 source_hash=%s 返回既有笔记 slug=%s",
-                    source_hash[:12], existing.slug)
+        logger.info(log_dict({'module_name': 'distill', 'action': 'distill', 'msg': "[distill] 幂等命中 source_hash=%s 返回既有笔记 slug=%s" % (source_hash[:12], existing.slug)}))
         return existing
 
     title = str(meta.get("title") or Path(source.name).stem)
@@ -306,7 +306,7 @@ def distill(source_path: str | Path, llm=None, knowledge_root: str | None = None
 
     # 敏感素材：跳过提炼（不调用 LLM），只落登记笔记
     if meta.get("sensitive"):
-        logger.warning("[distill] 敏感素材跳过提炼: %s", source.name)
+        logger.warning(log_dict({'module_name': 'distill', 'action': 'distill.degrade', 'msg': "[distill] 敏感素材跳过提炼: %s" % source.name}))
         note = _skeleton_note(title, source_hash, source_rel, "sensitive")
         _write_note(processed_dir, note)
         append_log("distill", note.slug, "distilled=false reason=sensitive",
@@ -315,7 +315,7 @@ def distill(source_path: str | Path, llm=None, knowledge_root: str | None = None
 
     # 离线 / 无 API Key → 骨架降级
     if llm is None:
-        logger.warning("[distill] LLM 不可用（llm=None），产出骨架笔记: %s", source.name)
+        logger.warning(log_dict({'module_name': 'distill', 'action': 'distill.failed', 'msg': "[distill] LLM 不可用（llm=None），产出骨架笔记: %s" % source.name}))
         note = _skeleton_note(title, source_hash, source_rel, "offline")
         _write_note(processed_dir, note)
         append_log("distill", note.slug, "distilled=false reason=offline",
@@ -330,13 +330,12 @@ def distill(source_path: str | Path, llm=None, knowledge_root: str | None = None
             [{"role": "user", "content": user_prompt}],
             system_prompt=DISTILL_SYSTEM_PROMPT,
         )
-        logger.info("[distill] LLM 调用成功 source=%s", source.name)
+        logger.info(log_dict({'module_name': 'distill', 'action': 'distill.success', 'msg': "[distill] LLM 调用成功 source=%s" % source.name}))
         emit_structured_log("distill.llm_ok", duration_ms=(time.perf_counter() - _t_llm) * 1000,
                             source=source.name, model=getattr(llm, "model", ""))
         data = _parse_llm_json(raw)
         note = _note_from_llm(data, source, source_hash, source_rel, title, llm)
-        logger.info("[distill] 提炼成功 slug=%s model=%s confidence=%s",
-                    note.slug, note.llm_model, note.confidence)
+        logger.info(log_dict({'module_name': 'distill', 'action': 'distill.success', 'msg': "[distill] 提炼成功 slug=%s model=%s confidence=%s" % (note.slug, note.llm_model, note.confidence)}))
     except Exception as exc:
         # 降级铁律：LLM 超时/异常/JSON 解析失败均不抛异常 → 骨架笔记
         reason = "json_error" if isinstance(exc, (ValueError, json.JSONDecodeError)) else "error"
@@ -365,12 +364,12 @@ def _set_status(slug: str, status: str, knowledge_root: str | None) -> bool:
     try:
         note = _read_note(path)
     except (ValueError, TypeError) as exc:
-        logger.warning("[distill] 读取笔记失败，拒绝状态变更 slug=%s: %s", slug, exc)
+        logger.warning(log_dict({'module_name': 'distill', 'action': 'distill.failed', 'msg': "[distill] 读取笔记失败，拒绝状态变更 slug=%s: %s" % (slug, exc)}))
         return False
     note.status = status
     _atomic_write(path, _note_to_md(note))
     append_log(status, note.slug, "", log_path=str(root / "log.md"))
-    logger.info("[distill] 笔记状态变更 slug=%s → %s", note.slug, status)
+    logger.info(log_dict({'module_name': 'distill', 'action': 'distill', 'msg': "[distill] 笔记状态变更 slug=%s → %s" % (note.slug, status)}))
     return True
 
 
@@ -464,45 +463,38 @@ def promote_to_card(
     root = get_knowledge_root(knowledge_root)
     path = root / PROCESSED_DIR / f"{slug}.md"
     _t0 = time.perf_counter()
-    logger.info("[promote] 产卡请求 slug=%s card_type=%s 笔记路径=%s 存在=%s",
-                slug, card_type, path, path.is_file())
+    logger.info(log_dict({'module_name': 'distill', 'action': 'promote', 'msg': "[promote] 产卡请求 slug=%s card_type=%s 笔记路径=%s 存在=%s" % (slug, card_type, path, path.is_file())}))
     if not path.is_file():
-        logger.warning("[promote] 笔记不存在，终止产卡 slug=%s", slug)
+        logger.warning(log_dict({'module_name': 'distill', 'action': 'promote', 'msg': "[promote] 笔记不存在，终止产卡 slug=%s" % slug}))
         raise FileNotFoundError(f"笔记不存在: {slug}（processed/ 下未找到）")
     try:
         note = _read_note(path)
-        logger.info("[promote] 笔记读取成功 slug=%s title=%s distilled=%s status=%s reason=%s",
-                    note.slug, note.title, note.distilled, note.status,
-                    note.reason or "none")
+        logger.info(log_dict({'module_name': 'distill', 'action': 'promote.success', 'msg': "[promote] 笔记读取成功 slug=%s title=%s distilled=%s status=%s reason=%s" % (note.slug, note.title, note.distilled, note.status,
+                    note.reason or "none")}))
     except (ValueError, TypeError) as exc:
-        logger.error("[promote] 笔记 frontmatter 解析失败 slug=%s: %s", slug, exc)
+        logger.error(log_dict({'module_name': 'distill', 'action': 'promote.failed', 'msg': "[promote] 笔记 frontmatter 解析失败 slug=%s: %s" % (slug, exc)}))
         raise ValueError(f"笔记读取失败: {slug}: {exc}") from exc
     if note.status != STATUS_APPROVED:
-        logger.warning("[promote] 笔记未确认，拒绝产卡 slug=%s status=%s（要求 approved）",
-                       note.slug, note.status)
+        logger.warning(log_dict({'module_name': 'distill', 'action': 'promote.failed', 'msg': "[promote] 笔记未确认，拒绝产卡 slug=%s status=%s（要求 approved）" % (note.slug, note.status)}))
         raise ValueError(f"笔记未确认: {slug}（status={note.status}，请先 approve_note）")
     if not note.distilled:
-        logger.warning("[promote] 骨架笔记，拒绝产卡 slug=%s reason=%s",
-                       note.slug, note.reason or "unknown")
+        logger.warning(log_dict({'module_name': 'distill', 'action': 'promote.failed', 'msg': "[promote] 骨架笔记，拒绝产卡 slug=%s reason=%s" % (note.slug, note.reason or "unknown")}))
         raise ValueError(f"笔记为降级骨架（reason={note.reason or 'unknown'}），无法产卡")
     card = card_from_note(note, card_type=card_type)
     if card.slug != slugify(card.title):
         # 笔记 slug 被消歧过（同标题不同素材，文件名带 -N 后缀）：
         # 置显式 slug 豁免（validate_card 契约），保持卡片区分性，
         # 避免与已有卡片 slug 冲突。
-        logger.info("[promote] slug 消歧检测: card.slug=%s != slugify(title)=%s，置 explicit_slug 豁免",
-                    card.slug, slugify(card.title))
+        logger.info(log_dict({'module_name': 'distill', 'action': 'promote', 'msg': "[promote] slug 消歧检测: card.slug=%s != slugify(title)=%s，置 explicit_slug 豁免" % (card.slug, slugify(card.title))}))
         card.explicit_slug = True
     errors = validate_card(asdict(card))
     if errors:
-        logger.warning("[promote] 卡片校验失败 slug=%s 违规项=%s", card.slug, errors)
+        logger.warning(log_dict({'module_name': 'distill', 'action': 'promote.failed', 'msg': "[promote] 卡片校验失败 slug=%s 违规项=%s" % (card.slug, errors)}))
         raise ValueError("产卡校验失败: " + "; ".join(errors))
-    logger.info("[promote] 卡片校验通过 slug=%s type=%s insight=%r links=%s",
-                card.slug, card.type, card.insight, card.links)
+    logger.info(log_dict({'module_name': 'distill', 'action': 'promote.success', 'msg': "[promote] 卡片校验通过 slug=%s type=%s insight=%r links=%s" % (card.slug, card.type, card.insight, card.links)}))
     store = CardStore(wiki_root if wiki_root is not None else root / "wiki")
     store.create(card)
-    logger.info("[promote] 产卡成功 slug=%s type=%s ← note=%s 状态=draft（待人工转 current）",
-                card.slug, card.type, note.slug)
+    logger.info(log_dict({'module_name': 'distill', 'action': 'promote.success', 'msg': "[promote] 产卡成功 slug=%s type=%s ← note=%s 状态=draft（待人工转 current）" % (card.slug, card.type, note.slug)}))
     emit_structured_log("promote.card_ok", duration_ms=(time.perf_counter() - _t0) * 1000,
                         slug=card.slug, type=card.type, source=f"note:{note.slug}")
     return card

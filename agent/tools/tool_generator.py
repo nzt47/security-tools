@@ -11,6 +11,7 @@ import os
 from typing import Any
 
 from agent import tools as _tools
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ def _validate_tool_code_safety(code: str) -> tuple[bool, str]:
         SyntaxError: 代码语法错误
     """
     code_preview = code[:80].replace("\n", "\\n")
-    logger.debug("[ToolGen] AST 校验开始: %d 字符, 预览=%r", len(code), code_preview)
+    logger.debug(log_dict({'module_name': 'tool_generator', 'action': 'toolgen', 'msg': "[ToolGen] AST 校验开始: %d 字符, 预览=%r" % (len(code), code_preview)}))
 
     tree = ast.parse(code)
 
@@ -53,10 +54,10 @@ def _validate_tool_code_safety(code: str) -> tuple[bool, str]:
         if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant):
             continue  # 文档字符串
         reason = f"不允许的顶层语句: {type(node).__name__}（仅允许函数/类定义、导入、赋值）"
-        logger.warning("[ToolGen] AST 校验拒绝: %s, 语句行=%d, 预览=%r", reason, getattr(node, 'lineno', -1), code_preview)
+        logger.warning(log_dict({'module_name': 'tool_generator', 'action': 'toolgen.failed', 'msg': "[ToolGen] AST 校验拒绝: %s, 语句行=%d, 预览=%r" % (reason, getattr(node, 'lineno', -1), code_preview)}))
         return False, reason
 
-    logger.debug("[ToolGen] AST 校验通过: %d 个顶层语句", len(tree.body))
+    logger.debug(log_dict({'module_name': 'tool_generator', 'action': 'toolgen.success', 'msg': "[ToolGen] AST 校验通过: %d 个顶层语句" % len(tree.body)}))
     return True, ""
 
 
@@ -85,7 +86,7 @@ def _exec_with_timeout(code: str, timeout_sec: float = _TOOL_CODE_TIMEOUT_SEC) -
         (True, "") 验证通过； (False, error_msg) 验证失败或超时
     """
     code_preview = code[:80].replace("\n", "\\n")
-    logger.debug("[ToolGen] 子进程校验启动: timeout=%.1fs, %d 字符, 预览=%r", timeout_sec, len(code), code_preview)
+    logger.debug(log_dict({'module_name': 'tool_generator', 'action': 'toolgen', 'msg': "[ToolGen] 子进程校验启动: timeout=%.1fs, %d 字符, 预览=%r" % (timeout_sec, len(code), code_preview)}))
 
     ctx = multiprocessing.get_context("spawn")
     result_queue = ctx.Queue()
@@ -95,11 +96,11 @@ def _exec_with_timeout(code: str, timeout_sec: float = _TOOL_CODE_TIMEOUT_SEC) -
         daemon=True,
     )
     process.start()
-    logger.debug("[ToolGen] 子进程已启动: PID=%s", process.pid)
+    logger.debug(log_dict({'module_name': 'tool_generator', 'action': 'toolgen', 'msg': "[ToolGen] 子进程已启动: PID=%s" % process.pid}))
     process.join(timeout=timeout_sec)
 
     if process.is_alive():
-        logger.warning("[ToolGen] 子进程超时: PID=%s, timeout=%.1fs, 预览=%r", process.pid, timeout_sec, code_preview)
+        logger.warning(log_dict({'module_name': 'tool_generator', 'action': 'toolgen', 'msg': "[ToolGen] 子进程超时: PID=%s, timeout=%.1fs, 预览=%r" % (process.pid, timeout_sec, code_preview)}))
         process.terminate()
         process.join(timeout=2)
         if process.is_alive():
@@ -110,12 +111,12 @@ def _exec_with_timeout(code: str, timeout_sec: float = _TOOL_CODE_TIMEOUT_SEC) -
         return False, f"代码执行超时（{timeout_sec}秒）——可能包含无限循环或阻塞操作"
 
     if process.exitcode is not None and process.exitcode < 0:
-        logger.warning("[ToolGen] 子进程被信号终止: PID=%s, exitcode=%s, 预览=%r", process.pid, process.exitcode, code_preview)
+        logger.warning(log_dict({'module_name': 'tool_generator', 'action': 'toolgen', 'msg': "[ToolGen] 子进程被信号终止: PID=%s, exitcode=%s, 预览=%r" % (process.pid, process.exitcode, code_preview)}))
 
     try:
         result = result_queue.get(timeout=1)
     except Exception:
-        logger.warning("[ToolGen] 子进程未返回结果: PID=%s, exitcode=%s", process.pid, process.exitcode)
+        logger.warning(log_dict({'module_name': 'tool_generator', 'action': 'toolgen', 'msg': "[ToolGen] 子进程未返回结果: PID=%s, exitcode=%s" % (process.pid, process.exitcode)}))
         result_queue.close()
         result_queue.join_thread()
         return False, "子进程异常终止，未返回结果"
@@ -125,10 +126,10 @@ def _exec_with_timeout(code: str, timeout_sec: float = _TOOL_CODE_TIMEOUT_SEC) -
 
     if not result.get("ok"):
         error = result.get("error", "未知错误")
-        logger.warning("[ToolGen] 子进程执行失败: PID=%s, error=%s, 预览=%r", process.pid, error, code_preview)
+        logger.warning(log_dict({'module_name': 'tool_generator', 'action': 'toolgen.failed', 'msg': "[ToolGen] 子进程执行失败: PID=%s, error=%s, 预览=%r" % (process.pid, error, code_preview)}))
         return False, error
 
-    logger.debug("[ToolGen] 子进程校验通过: PID=%s", process.pid)
+    logger.debug(log_dict({'module_name': 'tool_generator', 'action': 'toolgen.success', 'msg': "[ToolGen] 子进程校验通过: PID=%s" % process.pid}))
     return True, ""
 
 
@@ -152,13 +153,13 @@ class ToolGenEngine:
             # 第一层：AST 静态校验——拒绝顶层 while/for/if/裸表达式等危险语句
             safe, reason = _validate_tool_code_safety(code)
             if not safe:
-                logger.error(f"工具代码安全校验失败: {reason}")
+                logger.error(log_dict({'module_name': 'tool_generator', 'action': 'adapter.failed', 'msg': f"工具代码安全校验失败: {reason}"}))
                 return False
 
             # 第二层：子进程超时动态校验——防止 AST 遗漏的阻塞型赋值/import
             ok, error = _exec_with_timeout(code)
             if not ok:
-                logger.error(f"工具代码执行验证失败: {error}")
+                logger.error(log_dict({'module_name': 'tool_generator', 'action': 'adapter.failed', 'msg': f"工具代码执行验证失败: {error}"}))
                 return False
 
             # 验证通过，主进程 exec 获取函数对象（函数无法跨进程序列化）
@@ -175,7 +176,7 @@ class ToolGenEngine:
                         handler = v
                         break
             if not handler or not callable(handler):
-                logger.error(f"生成的代码中未找到可调用函数: {name}")
+                logger.error(log_dict({'module_name': 'tool_generator', 'action': 'adapter', 'msg': f"生成的代码中未找到可调用函数: {name}"}))
                 return False
 
             _tools.register_dynamic(
@@ -183,13 +184,13 @@ class ToolGenEngine:
                 schema=schema or {"type": "object", "properties": {}},
                 source="generated",
             )
-            logger.info(f"内联工具已注册: {name}")
+            logger.info(log_dict({'module_name': 'tool_generator', 'action': 'adapter', 'msg': f"内联工具已注册: {name}"}))
             return True
         except SyntaxError as e:
-            logger.error(f"生成工具语法错误: {e}")
+            logger.error(log_dict({'module_name': 'tool_generator', 'action': 'adapter.failed', 'msg': f"生成工具语法错误: {e}"}))
             return False
         except Exception as e:
-            logger.error(f"生成工具注册失败: {e}")
+            logger.error(log_dict({'module_name': 'tool_generator', 'action': 'adapter.failed', 'msg': f"生成工具注册失败: {e}"}))
             return False
 
     def generate_persistent(self, name: str, description: str,
@@ -240,14 +241,14 @@ def register_all(dl=None):
         source="generated",
         source_id="custom_{name}",
     )
-    logger.info("自定义工具已注册: {name}")
+    logger.info(log_dict({'module_name': 'tool_generator', 'action': 'adapter', 'msg': "自定义工具已注册: {name}"}))
 '''
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(module_code)
-            logger.info(f"自定义工具已持久化: {file_path}")
+            logger.info(log_dict({'module_name': 'tool_generator', 'action': 'adapter', 'msg': f"自定义工具已持久化: {file_path}"}))
             return True
         except Exception as e:
-            logger.error(f"持久化工具失败: {e}")
+            logger.error(log_dict({'module_name': 'tool_generator', 'action': 'adapter.failed', 'msg': f"持久化工具失败: {e}"}))
             return False
 
     @staticmethod

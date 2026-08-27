@@ -30,6 +30,8 @@ import threading
 import time
 from typing import Optional, Dict, Any
 
+from agent.logging_utils import log_dict
+
 logger = logging.getLogger(__name__)
 
 # etcd3 延迟导入（仅在使用时加载，避免未安装时模块导入失败）
@@ -116,13 +118,13 @@ def _get_etcd_client():
         host = os.environ.get("ETCD_HOST", "localhost")
         port = int(os.environ.get("ETCD_PORT", "2379"))
         _etcd_client = etcd3.client(host=host, port=port)
-        logger.info("[etcd] 连接成功: %s:%d", host, port)
+        logger.info(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd.success', 'msg': "[etcd] 连接成功: %s:%d" % (host, port)}))
         return _etcd_client
     except ImportError:
-        logger.warning("[etcd] etcd3 未安装，请执行: pip install etcd3")
+        logger.warning(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd', 'msg': "[etcd] etcd3 未安装，请执行: pip install etcd3"}))
         return None
     except Exception as e:
-        logger.error("[etcd] 连接失败: %s", e)
+        logger.error(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd.failed', 'msg': "[etcd] 连接失败: %s" % e}))
         return None
 
 
@@ -146,10 +148,10 @@ def load_config_from_etcd() -> Optional[Dict[str, Any]]:
                 pass
 
         if overrides:
-            logger.info("[etcd] 加载配置: keys=%s", list(overrides.keys()))
+            logger.info(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd', 'msg': "[etcd] 加载配置: keys=%s" % list(overrides.keys())}))
         return overrides if overrides else None
     except Exception as e:
-        logger.error("[etcd] 加载配置失败: %s", e)
+        logger.error(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd.failed', 'msg': "[etcd] 加载配置失败: %s" % e}))
         return None
 
 
@@ -179,8 +181,7 @@ def apply_etcd_config_to_orchestrator() -> bool:
     _elapsed_ms = (time.perf_counter() - _t0) * 1000
     _record_metric(_METRIC_PREHEAT_LATENCY, _elapsed_ms, is_counter=False)
     _record_metric(_METRIC_PUSH_TOTAL, len(overrides))  # 预热=N 次推送
-    logger.info("[etcd] 配置已应用到 Orchestrator (预热): keys=%s latency=%.2fms",
-                list(overrides.keys()), _elapsed_ms)
+    logger.info(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd', 'msg': "[etcd] 配置已应用到 Orchestrator (预热): keys=%s latency=%.2fms" % (list(overrides.keys()), _elapsed_ms)}))
     return True
 
 
@@ -206,12 +207,12 @@ async def _watch_callback_async(event):
             if Orchestrator._SEM_API_OVERRIDE is None:
                 Orchestrator._SEM_API_OVERRIDE = {}
             Orchestrator._SEM_API_OVERRIDE[key] = value
-            logger.info("[etcd] 配置变更: %s=%s", key, value)
+            logger.info(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd', 'msg': "[etcd] 配置变更: %s=%s" % (key, value)}))
         else:
             # 键被删除 → 移除覆盖
             if Orchestrator._SEM_API_OVERRIDE and key in Orchestrator._SEM_API_OVERRIDE:
                 del Orchestrator._SEM_API_OVERRIDE[key]
-                logger.info("[etcd] 配置删除: %s", key)
+                logger.info(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd', 'msg': "[etcd] 配置删除: %s" % key}))
 
         # 清除缓存（轻量操作，同步即可）
         Orchestrator._clear_semantic_config_cache()
@@ -223,7 +224,7 @@ async def _watch_callback_async(event):
     except Exception as e:
         # 推送失败指标（不抛异常，避免 watch 任务退出）
         _record_metric(_METRIC_PUSH_FAILURE)
-        logger.error("[etcd] watch 异步回调处理失败: %s", e)
+        logger.error(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd.failed', 'msg': "[etcd] watch 异步回调处理失败: %s" % e}))
 
 
 async def _watch_loop_async():
@@ -240,7 +241,7 @@ async def _watch_loop_async():
     retry_policy = _get_retry_policy()
     attempt = 0
 
-    logger.info("[etcd] 异步 watch 已启动: prefix=%s", ETCD_CONFIG_PREFIX)
+    logger.info(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd', 'msg': "[etcd] 异步 watch 已启动: prefix=%s" % ETCD_CONFIG_PREFIX}))
 
     while not _watch_stop.is_set():
         try:
@@ -268,14 +269,11 @@ async def _watch_loop_async():
             if retry_policy.should_retry(e, attempt):
                 delay = retry_policy.calculate_delay(attempt)
                 _record_metric(_METRIC_RECONNECT_TOTAL)  # 重连计数
-                logger.warning(
-                    "[etcd] watch 断连，%d 秒后重试 (attempt=%d): %s",
-                    round(delay, 2), attempt, e
-                )
+                logger.warning(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd', 'msg': "[etcd] watch 断连，%d 秒后重试 (attempt=%d): %s" % (round(delay, 2), attempt, e)}))
                 await asyncio.sleep(delay)
             else:
                 _record_metric(_METRIC_RETRY_EXHAUSTED)  # 重试耗尽
-                logger.error("[etcd] watch 重试耗尽 (%d 次)，停止监听: %s", attempt, e)
+                logger.error(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd', 'msg': "[etcd] watch 重试耗尽 (%d 次)，停止监听: %s" % (attempt, e)}))
                 break  # 重试耗尽，退出循环
 
 
@@ -305,7 +303,7 @@ def start_etcd_watch() -> None:
         try:
             _watch_loop.run_until_complete(_watch_task)
         except Exception as e:
-            logger.error("[etcd] 事件循环异常: %s", e)
+            logger.error(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd.failed', 'msg': "[etcd] 事件循环异常: %s" % e}))
         finally:
             _watch_loop.close()
 
@@ -333,7 +331,7 @@ def stop_etcd_watch() -> None:
 
     _watch_loop = None
     _watch_task = None
-    logger.info("[etcd] 异步 watch 已停止")
+    logger.info(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd', 'msg': "[etcd] 异步 watch 已停止"}))
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -392,21 +390,21 @@ def init_etcd_config_integration() -> None:
     """
     import os
     if os.environ.get("ETCD_ENABLED", "false").lower() not in ("true", "1", "yes"):
-        logger.info("[etcd] 未启用 (设置 ETCD_ENABLED=true 以启用)")
+        logger.info(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd', 'msg': "[etcd] 未启用 (设置 ETCD_ENABLED=true 以启用)"}))
         return
 
-    logger.info("[etcd] 初始化配置中心集成...")
+    logger.info(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd', 'msg': "[etcd] 初始化配置中心集成..."}))
 
     # 1. 启动时加载配置（预热内存缓存，避免首请求 cold read）
     if apply_etcd_config_to_orchestrator():
         try:
             from agent.orchestrator.orchestrator import Orchestrator
             cache_size = len(Orchestrator._SEM_API_OVERRIDE or {})
-            logger.info("[etcd] 启动配置加载成功 (预热缓存: %d 个键)", cache_size)
+            logger.info(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd.success', 'msg': "[etcd] 启动配置加载成功 (预热缓存: %d 个键)" % cache_size}))
         except Exception:
-            logger.info("[etcd] 启动配置加载成功")
+            logger.info(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd.success', 'msg': "[etcd] 启动配置加载成功"}))
     else:
-        logger.info("[etcd] 无配置或加载失败，使用现有配置")
+        logger.info(log_dict({'module_name': 'etcd_config_client', 'action': 'etcd.failed', 'msg': "[etcd] 无配置或加载失败，使用现有配置"}))
 
     # 2. 启动 watch 监听变更（持续推送）
     start_etcd_watch()

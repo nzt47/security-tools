@@ -46,6 +46,7 @@ from agent.skills_mgmt.evaluator import (
 )
 from agent.skills_mgmt.lineage import EvolutionRecord, get_default_archive
 from agent.cognitive.failure_bucket import create_failure_store
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -321,25 +322,19 @@ class PromptOptimizer:
             verdict = "proposed"
         else:
             verdict = "no_improvement"
-        logger.info(
-            "[PromptOpt] 对比评估 prompt_id=%s category=%s "
-            "orig_score=%s orig_status=%s cand_score=%s cand_status=%s "
-            "improvement=%s threshold=%.4f verdict=%s",
-            prompt_id, category,
+        logger.info(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt', 'msg': "[PromptOpt] 对比评估 prompt_id=%s category=%s ""orig_score=%s orig_status=%s cand_score=%s cand_status=%s ""improvement=%s threshold=%.4f verdict=%s" % (prompt_id, category,
             f"{orig.score:.4f}", orig.status,
             f"{cand.score:.4f}", cand.status,
             f"{improvement:.4f}" if improvement is not None else "N/A",
-            self.improvement_threshold, verdict)
+            self.improvement_threshold, verdict)}))
         proposal = self._build_proposal(
             prompt_id, original_prompt, candidate_prompt, orig, cand,
             category=category, source=source, reason=reason,
             comparison=COMPARISON_PAIRED,
             cost_tokens=orig.cost_tokens + cand.cost_tokens,
             duration_ms=(time.time() - t0) * 1000)
-        logger.info("[PromptOpt] 对比判定结果 prompt_id=%s category=%s "
-                    "status=%s original=%s suggested=%s",
-                    prompt_id, category, proposal.status,
-                    proposal.original_score, proposal.suggested_score)
+        logger.info(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt', 'msg': "[PromptOpt] 对比判定结果 prompt_id=%s category=%s ""status=%s original=%s suggested=%s" % (prompt_id, category, proposal.status,
+                    proposal.original_score, proposal.suggested_score)}))
         return proposal
 
     # ─── 优化（变体生成 + 择优）───
@@ -414,7 +409,7 @@ class PromptOptimizer:
         try:
             variants = self._variant_generator(prompt, n) or []
         except Exception as e:  # noqa: BLE001 变体生成失败 → 不产出伪建议
-            logger.warning("[PromptOpt] 变体生成异常: %s", e)
+            logger.warning(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt.failed', 'msg': "[PromptOpt] 变体生成异常: %s" % e}))
             return []
         cleaned: List[str] = []
         for v in variants:
@@ -533,7 +528,7 @@ class PromptOptimizer:
         try:
             return self._archive.append(record)
         except Exception as e:  # noqa: BLE001 谱系不可用不阻断优化流程
-            logger.warning("[PromptOpt] 谱系写入失败（不阻断）: %s", e)
+            logger.warning(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt.failed', 'msg': "[PromptOpt] 谱系写入失败（不阻断）: %s" % e}))
             return ""
 
     def _record_failure_bucket(self, proposal: PromptOptimizationProposal) -> None:
@@ -556,10 +551,9 @@ class PromptOptimizer:
                 emit_metric("yunshu_prompt_optimization_failed_prompt_total",
                             labels={"prompt_id": pid, "outcome": proposal.status,
                                     "success": "true"})
-                logger.info("[PromptOpt] 失败桶触发 prompt_id=%s outcome=%s 连续失败=%d",
-                            pid, proposal.status, count)
+                logger.info(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt.failed', 'msg': "[PromptOpt] 失败桶触发 prompt_id=%s outcome=%s 连续失败=%d" % (pid, proposal.status, count)}))
             except Exception:  # noqa: BLE001 埋点失败不影响主流程
-                logger.debug("[PromptOpt] 失败桶埋点失败", exc_info=True)
+                logger.debug(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt.failed', 'msg': "[PromptOpt] 失败桶埋点失败"}), exc_info=True)
             finally:
                 self._failure_store.pop(pid)  # 上报即移除，防桶膨胀
 
@@ -574,14 +568,11 @@ class PromptOptimizer:
                 emit_metric("yunshu_prompt_optimization_improvement",
                             value=proposal.improvement, kind="histogram",
                             labels={"source": proposal.source, "success": "true"})
-            logger.info(
-                "[PromptOpt] event proposal=%s status=%s source=%s object=%s "
-                "orig_score=%s cand_score=%s improvement=%s",
-                proposal.proposal_id, proposal.status, proposal.source,
+            logger.info(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt', 'msg': "[PromptOpt] event proposal=%s status=%s source=%s object=%s ""orig_score=%s cand_score=%s improvement=%s" % (proposal.proposal_id, proposal.status, proposal.source,
                 proposal.object_id, proposal.original_score,
-                proposal.suggested_score, proposal.improvement)
+                proposal.suggested_score, proposal.improvement)}))
         except Exception:  # noqa: BLE001 埋点失败不影响主流程
-            logger.debug("[PromptOpt] 度量埋点失败", exc_info=True)
+            logger.debug(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt.failed', 'msg': "[PromptOpt] 度量埋点失败"}), exc_info=True)
 
     # ─── 内部：小工具 ───
 
@@ -658,7 +649,7 @@ def report_adoption(proposal_id: str, *, score_delta: Optional[float] = None) ->
                         value=float(score_delta), kind="histogram",
                         labels={"success": "true"})
     except Exception:  # noqa: BLE001 埋点失败不影响主流程
-        logger.debug("[PromptOpt] 采纳埋点失败", exc_info=True)
+        logger.debug(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt.failed', 'msg': "[PromptOpt] 采纳埋点失败"}), exc_info=True)
 
 
 # ════════════════════════════════════════════════════════════
@@ -701,32 +692,27 @@ class LessonEvalChannel:
         """
         task_type = getattr(lesson, "task_type", "")
         if not task_type:
-            logger.debug("[PromptOpt] Lesson 不可验证：无 task_type lesson=%s",
-                         getattr(lesson, "id", ""))
+            logger.debug(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt', 'msg': "[PromptOpt] Lesson 不可验证：无 task_type lesson=%s" % (getattr(lesson, "id", ""))}))
             return False
         if task_type not in self.verifiable_task_types:
-            logger.debug("[PromptOpt] Lesson 不可验证：task_type=%s 不在可验证集合 %s",
-                         task_type, sorted(self.verifiable_task_types))
+            logger.debug(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt', 'msg': "[PromptOpt] Lesson 不可验证：task_type=%s 不在可验证集合 %s" % (task_type, sorted(self.verifiable_task_types))}))
             return False
         if not (bool(getattr(lesson, "solution", None))
                 or bool(getattr(lesson, "failure_point", None))):
-            logger.debug("[PromptOpt] Lesson 不可验证：无解决方案且无失败点 "
-                         "task_type=%s lesson=%s", task_type,
-                         getattr(lesson, "id", ""))
+            logger.debug(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt.failed', 'msg': "[PromptOpt] Lesson 不可验证：无解决方案且无失败点 ""task_type=%s lesson=%s" % (task_type,
+                         getattr(lesson, "id", ""))}))
             return False
         return True
 
     def submit_lesson(self, lesson: Any) -> Optional[str]:
         """转交评估验证；返回 proposal_id（仅 status=proposed），否则 None"""
         if self._optimizer is None:
-            logger.debug("[PromptOpt] Lesson 未转交：无评估器 lesson=%s",
-                         getattr(lesson, "id", ""))
+            logger.debug(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt', 'msg': "[PromptOpt] Lesson 未转交：无评估器 lesson=%s" % (getattr(lesson, "id", ""))}))
             return None
         if not self.is_verifiable(lesson):
             return None
         prompt = self._lesson_to_prompt(lesson)
-        logger.debug("[PromptOpt] Lesson 转交评估验证 lesson=%s category=%s 候选提示词=%s…",
-                     getattr(lesson, "id", ""), self.category, prompt[:40].replace("\n", " "))
+        logger.debug(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt', 'msg': "[PromptOpt] Lesson 转交评估验证 lesson=%s category=%s 候选提示词=%s…" % (getattr(lesson, "id", ""), self.category, prompt[:40].replace("\n", " "))}))
         proposal = self._optimizer.validate(
             prompt,
             category=self.category,
@@ -734,11 +720,9 @@ class LessonEvalChannel:
             source=SOURCE_REFLECTOR,
             reason=f"反思 Lesson({lesson.id}) 失败点: {getattr(lesson, 'failure_point', '')}")
         if proposal.status == STATUS_PROPOSED:
-            logger.info("[PromptOpt] Lesson 验证通过 → 建议已产出 lesson=%s proposal=%s",
-                        lesson.id, proposal.proposal_id)
+            logger.info(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt.success', 'msg': "[PromptOpt] Lesson 验证通过 → 建议已产出 lesson=%s proposal=%s" % (lesson.id, proposal.proposal_id)}))
             return proposal.proposal_id
-        logger.info("[PromptOpt] Lesson 验证未通过（%s）lesson=%s",
-                    proposal.status, lesson.id)
+        logger.info(log_dict({'module_name': 'prompt_optimizer', 'action': 'promptopt.success', 'msg': "[PromptOpt] Lesson 验证未通过（%s）lesson=%s" % (proposal.status, lesson.id)}))
         return None
 
     @staticmethod

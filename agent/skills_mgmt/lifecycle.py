@@ -34,6 +34,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from agent.logging_utils import log_dict
+
 logger = logging.getLogger(__name__)
 
 TASK_NAME = "生命周期检查"
@@ -75,7 +77,7 @@ def _enabled() -> bool:
             if val is not None:
                 return str(val).strip().lower() in ("true", "1", "yes")
     except Exception as e:  # noqa: BLE001 配置解析失败回退默认
-        logger.debug("[Lifecycle] config.yaml 读取失败: %s", e)
+        logger.debug(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] config.yaml 读取失败: %s" % e}))
     return False
 
 
@@ -86,8 +88,7 @@ def _interval_hours() -> int:
         try:
             return max(1, int(env.strip()))
         except ValueError:
-            logger.warning("[Lifecycle] 非法 interval_hours=%r，使用默认 %d",
-                           env, DEFAULT_INTERVAL_HOURS)
+            logger.warning(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] 非法 interval_hours=%r，使用默认 %d" % (env, DEFAULT_INTERVAL_HOURS)}))
     try:
         cfg = _config_yaml()
         if cfg is not None:
@@ -99,7 +100,7 @@ def _interval_hours() -> int:
                 except (TypeError, ValueError):
                     pass
     except Exception as e:  # noqa: BLE001
-        logger.debug("[Lifecycle] config.yaml 读取失败: %s", e)
+        logger.debug(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] config.yaml 读取失败: %s" % e}))
     return DEFAULT_INTERVAL_HOURS
 
 
@@ -110,8 +111,7 @@ def _unused_days() -> int:
         try:
             return max(0, int(env.strip()))
         except ValueError:
-            logger.warning("[Lifecycle] 非法 unused_days=%r，使用默认 %d",
-                           env, DEFAULT_UNUSED_DAYS)
+            logger.warning(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] 非法 unused_days=%r，使用默认 %d" % (env, DEFAULT_UNUSED_DAYS)}))
     try:
         cfg = _config_yaml()
         if cfg is not None:
@@ -123,7 +123,7 @@ def _unused_days() -> int:
                 except (TypeError, ValueError):
                     pass
     except Exception as e:  # noqa: BLE001
-        logger.debug("[Lifecycle] config.yaml 读取失败: %s", e)
+        logger.debug(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] config.yaml 读取失败: %s" % e}))
     return DEFAULT_UNUSED_DAYS
 
 
@@ -134,8 +134,7 @@ def _archive_days() -> int:
         try:
             return max(0, int(env.strip()))
         except ValueError:
-            logger.warning("[Lifecycle] 非法 archive_days=%r，使用默认 %d",
-                           env, DEFAULT_ARCHIVE_DAYS)
+            logger.warning(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] 非法 archive_days=%r，使用默认 %d" % (env, DEFAULT_ARCHIVE_DAYS)}))
     try:
         cfg = _config_yaml()
         if cfg is not None:
@@ -147,7 +146,7 @@ def _archive_days() -> int:
                 except (TypeError, ValueError):
                     pass
     except Exception as e:  # noqa: BLE001
-        logger.debug("[Lifecycle] config.yaml 读取失败: %s", e)
+        logger.debug(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] config.yaml 读取失败: %s" % e}))
     return DEFAULT_ARCHIVE_DAYS
 
 
@@ -158,8 +157,7 @@ def _upgrade_threshold() -> int:
         try:
             return max(1, int(env.strip()))
         except ValueError:
-            logger.warning("[Lifecycle] 非法 upgrade_threshold=%r，使用默认 %d",
-                           env, DEFAULT_UPGRADE_THRESHOLD)
+            logger.warning(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] 非法 upgrade_threshold=%r，使用默认 %d" % (env, DEFAULT_UPGRADE_THRESHOLD)}))
     try:
         cfg = _config_yaml()
         if cfg is not None:
@@ -174,7 +172,7 @@ def _upgrade_threshold() -> int:
                 except (TypeError, ValueError):
                     pass
     except Exception as e:  # noqa: BLE001
-        logger.debug("[Lifecycle] config.yaml 读取失败: %s", e)
+        logger.debug(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] config.yaml 读取失败: %s" % e}))
     return DEFAULT_UPGRADE_THRESHOLD
 
 
@@ -191,7 +189,7 @@ def _dry_run() -> bool:
             if val is not None:
                 return str(val).strip().lower() in ("true", "1", "yes")
     except Exception as e:  # noqa: BLE001
-        logger.debug("[Lifecycle] config.yaml 读取失败: %s", e)
+        logger.debug(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] config.yaml 读取失败: %s" % e}))
     return DEFAULT_DRY_RUN
 
 
@@ -208,7 +206,7 @@ def _audit_file() -> str:
             if val:
                 return str(val)
     except Exception as e:  # noqa: BLE001
-        logger.debug("[Lifecycle] config.yaml 读取失败: %s", e)
+        logger.debug(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] config.yaml 读取失败: %s" % e}))
     return DEFAULT_AUDIT_FILE
 
 
@@ -288,7 +286,7 @@ class LifecycleManager:
         try:
             skills = svc.store.list_all()
         except Exception as e:  # noqa: BLE001
-            logger.error("[Lifecycle] 读取技能库失败: %s", e)
+            logger.error(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] 读取技能库失败: %s" % e}))
             report["errors"].append({"skill_id": "*", "error": str(e)})
             report["finished_at"] = datetime.now().isoformat(timespec="seconds")
             return report
@@ -301,16 +299,13 @@ class LifecycleManager:
                                     archive_days=archive, dry_run=dry_run,
                                     report=report)
             except Exception as e:  # noqa: BLE001
-                logger.error("[Lifecycle] 技能 %s 判定失败: %s", skill.id, e)
+                logger.error(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] 技能 %s 判定失败: %s" % (skill.id, e)}))
                 report["errors"].append(
                     {"skill_id": skill.id, "error": str(e)})
 
         # 容量超限 → 检索升级建议（只写报告，不自动改检索配置）
         if report["total_skills"] > threshold:
-            logger.info(
-                "[Lifecycle] 容量超限建议 skill_count=%s > 阈值 %s "
-                "（只报告，不自动变更检索配置）",
-                report["total_skills"], threshold)
+            logger.info(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] 容量超限建议 skill_count=%s > 阈值 %s ""（只报告，不自动变更检索配置）" % (report["total_skills"], threshold)}))
             report["suggestions"].append({
                 "type": "retrieval_upgrade",
                 "skill_count": report["total_skills"],
@@ -329,31 +324,20 @@ class LifecycleManager:
         from .models import SkillStatus
         status = skill.status.value if hasattr(skill.status, "value") else skill.status
         idle = _idle_days(skill, now)
-        logger.info(
-            "[Lifecycle] 判定 skill=%s status=%s idle_days=%s dry_run=%s "
-            "(阈值: unused_days=%s archive_days=%s)",
-            skill.id, status, idle, dry_run, unused_days, archive_days)
+        logger.info(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] 判定 skill=%s status=%s idle_days=%s dry_run=%s ""(阈值: unused_days=%s archive_days=%s)" % (skill.id, status, idle, dry_run, unused_days, archive_days)}))
         if idle is None and status in (_STATUS_PUBLISHED, _STATUS_DEPRECATED):
-            logger.info(
-                "[Lifecycle] skill=%s 无闲置时间依据（usage>0 且缺 last_used_at），"
-                "保守不迁移", skill.id)
+            logger.info(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] skill=%s 无闲置时间依据（usage>0 且缺 last_used_at），""保守不迁移" % skill.id}))
 
         if status == _STATUS_PUBLISHED:
             if idle is not None and idle > unused_days:
                 if dry_run:
-                    logger.info(
-                        "[Lifecycle] dry_run 预演 deprecate skill=%s idle_days=%s "
-                        "> 阈值 %s（仅报告不迁移，不删文件）",
-                        skill.id, idle, unused_days)
+                    logger.info(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] dry_run 预演 deprecate skill=%s idle_days=%s ""> 阈值 %s（仅报告不迁移，不删文件）" % (skill.id, idle, unused_days)}))
                     report["deprecated"].append({
                         "skill_id": skill.id, "from_status": status,
                         "to_status": _STATUS_DEPRECATED, "idle_days": idle,
                         "threshold": unused_days})
                     return
-                logger.info(
-                    "[Lifecycle] 正式迁移 deprecate skill=%s from=%s to=%s "
-                    "idle_days=%s 阈值=%s（仅状态迁移，不删文件，可人工改回）",
-                    skill.id, status, _STATUS_DEPRECATED, idle, unused_days)
+                logger.info(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] 正式迁移 deprecate skill=%s from=%s to=%s ""idle_days=%s 阈值=%s（仅状态迁移，不删文件，可人工改回）" % (skill.id, status, _STATUS_DEPRECATED, idle, unused_days)}))
                 skill.status = SkillStatus.DEPRECATED
                 svc.store.upsert(skill)
                 record = {
@@ -368,19 +352,13 @@ class LifecycleManager:
         if status == _STATUS_DEPRECATED:
             if idle is not None and idle > archive_days:
                 if dry_run:
-                    logger.info(
-                        "[Lifecycle] dry_run 预演 archive skill=%s idle_days=%s "
-                        "> 阈值 %s（仅报告不迁移，不删文件）",
-                        skill.id, idle, archive_days)
+                    logger.info(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] dry_run 预演 archive skill=%s idle_days=%s ""> 阈值 %s（仅报告不迁移，不删文件）" % (skill.id, idle, archive_days)}))
                     report["archived"].append({
                         "skill_id": skill.id, "from_status": status,
                         "to_status": _STATUS_ARCHIVED, "idle_days": idle,
                         "threshold": archive_days})
                     return
-                logger.info(
-                    "[Lifecycle] 正式迁移 archive skill=%s from=%s to=%s "
-                    "idle_days=%s 阈值=%s（仅状态迁移，不删文件，可人工改回）",
-                    skill.id, status, _STATUS_ARCHIVED, idle, archive_days)
+                logger.info(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] 正式迁移 archive skill=%s from=%s to=%s ""idle_days=%s 阈值=%s（仅状态迁移，不删文件，可人工改回）" % (skill.id, status, _STATUS_ARCHIVED, idle, archive_days)}))
                 skill.status = SkillStatus.ARCHIVED
                 svc.store.upsert(skill)
                 record = {
@@ -406,7 +384,7 @@ class LifecycleManager:
             with open(path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
         except OSError as e:
-            logger.warning("[Lifecycle] 审计日志写入失败: %s", e)
+            logger.warning(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] 审计日志写入失败: %s" % e}))
 
     # ─── 调度注册（与 TASK-04 同一 task_scheduler 收口） ───
 
@@ -414,10 +392,7 @@ class LifecycleManager:
         """注册每日生命周期检查任务（默认关闭，安全底线）。"""
         hours = interval_hours if interval_hours is not None else _interval_hours()
         if not _enabled():
-            logger.warning(
-                "[Lifecycle] 调度默认关闭（安全底线）；"
-                "开启: config learning.lifecycle.enabled=true / "
-                ".env LEARNING_LIFECYCLE_ENABLED=true")
+            logger.warning(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] 调度默认关闭（安全底线）；""开启: config learning.lifecycle.enabled=true / "".env LEARNING_LIFECYCLE_ENABLED=true"}))
             return {
                 "status": "disabled",
                 "interval_hours": hours,
@@ -428,14 +403,13 @@ class LifecycleManager:
             from agent.task_scheduler import get_scheduler
             sched = get_scheduler()
         except Exception as e:  # noqa: BLE001 调度器不可用
-            logger.error("[Lifecycle] 调度器不可用: %s", e)
+            logger.error(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] 调度器不可用: %s" % e}))
             return {"status": "error", "error": str(e)}
         sched.add_interval_task(
             TASK_NAME, func=self._scheduled_run, interval_seconds=hours * 3600)
         self._scheduled_task_id = (
             sched.tasks[-1]["task_id"] if sched.tasks else TASK_NAME)
-        logger.info("[Lifecycle] 生命周期检查任务已注册 interval_hours=%d "
-                    "dry_run=%s", hours, _dry_run())
+        logger.info(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] 生命周期检查任务已注册 interval_hours=%d ""dry_run=%s" % (hours, _dry_run())}))
         return {
             "status": "scheduled",
             "task_id": self._scheduled_task_id,
@@ -450,7 +424,7 @@ class LifecycleManager:
             from agent.task_scheduler import get_scheduler
             sched = get_scheduler()
         except Exception as e:  # noqa: BLE001
-            logger.error("[Lifecycle] 调度注销失败: %s", e)
+            logger.error(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] 调度注销失败: %s" % e}))
             return False
         for task in sched.tasks:
             if task.get("name") == TASK_NAME:
@@ -461,11 +435,11 @@ class LifecycleManager:
 
     def _scheduled_run(self) -> None:
         """调度触发入口：跑一轮生命周期检查；异常不抛出（调度线程稳定性）。"""
-        logger.info("[Lifecycle] scheduled_run.start dry_run=%s", _dry_run())
+        logger.info(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle', 'msg': "[Lifecycle] scheduled_run.start dry_run=%s" % _dry_run()}))
         try:
             self.run_lifecycle_check(dry_run=_dry_run())
         except Exception as e:  # noqa: BLE001
-            logger.error("[Lifecycle] scheduled_run 失败: %s", e)
+            logger.error(log_dict({'module_name': 'lifecycle', 'action': 'lifecycle.failed', 'msg': "[Lifecycle] scheduled_run 失败: %s" % e}))
 
 
 __all__: List[str] = [

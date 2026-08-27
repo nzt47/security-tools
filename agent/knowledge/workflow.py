@@ -32,6 +32,7 @@ from agent.knowledge.ingest import get_knowledge_root, ingest_file
 from agent.knowledge.lint import lint_all, score_breakdown
 from agent.knowledge.logbook import append_log
 from agent.knowledge.schema import Card, slugify, validate_card
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -62,12 +63,10 @@ class WorkflowRunner:
                                  source_type=source_type,
                                  knowledge_root=str(self.root))
         except Exception as exc:
-            logger.error("[workflow] Step1 收集失败 src=%s layer=%s: %s",
-                         src_path, dest_layer, exc, exc_info=True)
+            logger.error(log_dict({'module_name': 'workflow', 'action': 'workflow.failed', 'msg': "[workflow] Step1 收集失败 src=%s layer=%s: %s" % (src_path, dest_layer, exc)}), exc_info=True)
             raise
-        logger.info("[workflow] Step1 收集成功 slug=%s layer=%s 敏感=%s 耗时=%.1fms",
-                    result.slug, result.layer, result.sensitive,
-                    (time.perf_counter() - _t0) * 1000)
+        logger.info(log_dict({'module_name': 'workflow', 'action': 'workflow.success', 'msg': "[workflow] Step1 收集成功 slug=%s layer=%s 敏感=%s 耗时=%.1fms" % (result.slug, result.layer, result.sensitive,
+                    (time.perf_counter() - _t0) * 1000)}))
         return result.slug
 
     # ── Step2: 提炼 ────────────────────────────────────────────
@@ -78,13 +77,10 @@ class WorkflowRunner:
         try:
             note = distill(src_path, llm=self.llm, knowledge_root=str(self.root))
         except Exception as exc:
-            logger.error("[workflow] Step2 提炼失败 src=%s: %s", src_path, exc,
-                         exc_info=True)
+            logger.error(log_dict({'module_name': 'workflow', 'action': 'workflow.failed', 'msg': "[workflow] Step2 提炼失败 src=%s: %s" % (src_path, exc)}), exc_info=True)
             raise
-        logger.info("[workflow] Step2 提炼完成 source=%s slug=%s distilled=%s "
-                    "reason=%s 耗时=%.1fms",
-                    src_path, note.slug, note.distilled,
-                    note.reason or "none", (time.perf_counter() - _t0) * 1000)
+        logger.info(log_dict({'module_name': 'workflow', 'action': 'workflow.success', 'msg': "[workflow] Step2 提炼完成 source=%s slug=%s distilled=%s ""reason=%s 耗时=%.1fms" % (src_path, note.slug, note.distilled,
+                    note.reason or "none", (time.perf_counter() - _t0) * 1000)}))
         return note
 
     # ── Step3: 深度讨论 ────────────────────────────────────────
@@ -96,11 +92,9 @@ class WorkflowRunner:
             path = discuss(note_slug, question, llm=self.llm,
                            knowledge_root=str(self.root))
         except FileNotFoundError as exc:
-            logger.error("[workflow] Step3 讨论失败（笔记不存在）note_slug=%s: %s",
-                         note_slug, exc)
+            logger.error(log_dict({'module_name': 'workflow', 'action': 'workflow.failed', 'msg': "[workflow] Step3 讨论失败（笔记不存在）note_slug=%s: %s" % (note_slug, exc)}))
             raise
-        logger.info("[workflow] Step3 讨论完成 note_slug=%s → %s 耗时=%.1fms",
-                    note_slug, path, (time.perf_counter() - _t0) * 1000)
+        logger.info(log_dict({'module_name': 'workflow', 'action': 'workflow.success', 'msg': "[workflow] Step3 讨论完成 note_slug=%s → %s 耗时=%.1fms" % (note_slug, path, (time.perf_counter() - _t0) * 1000)}))
         return path
 
     # ── Step4: 产卡 ────────────────────────────────────────────
@@ -116,11 +110,9 @@ class WorkflowRunner:
                                    knowledge_root=str(self.root),
                                    wiki_root=str(self.root / "wiki"))
         except (ValueError, CardConflictError) as exc:
-            logger.warning("[workflow] Step4 产卡被拒 note_slug=%s card_type=%s: %s",
-                           note_slug, card_type, exc)
+            logger.warning(log_dict({'module_name': 'workflow', 'action': 'workflow', 'msg': "[workflow] Step4 产卡被拒 note_slug=%s card_type=%s: %s" % (note_slug, card_type, exc)}))
             raise
-        logger.info("[workflow] Step4 产卡成功 slug=%s（状态 draft，待人工转 current）"
-                    "耗时=%.1fms", card.slug, (time.perf_counter() - _t0) * 1000)
+        logger.info(log_dict({'module_name': 'workflow', 'action': 'workflow.success', 'msg': "[workflow] Step4 产卡成功 slug=%s（状态 draft，待人工转 current）""耗时=%.1fms" % (card.slug, (time.perf_counter() - _t0) * 1000)}))
         return card.slug
 
     def card_from_discussion(self, discussion_path: str | Path,
@@ -136,10 +128,9 @@ class WorkflowRunner:
         返回卡片 slug。
         """
         path = Path(discussion_path)
-        logger.info("[workflow] 讨论产卡请求 discussion=%s card_type=%s",
-                    path.name, card_type)
+        logger.info(log_dict({'module_name': 'workflow', 'action': 'workflow', 'msg': "[workflow] 讨论产卡请求 discussion=%s card_type=%s" % (path.name, card_type)}))
         if not path.is_file():
-            logger.warning("[workflow] 讨论记录不存在，终止产卡: %s", path)
+            logger.warning(log_dict({'module_name': 'workflow', 'action': 'workflow', 'msg': "[workflow] 讨论记录不存在，终止产卡: %s" % path}))
             raise FileNotFoundError(f"讨论记录不存在: {discussion_path}")
         disc = load_discussion(path)
 
@@ -168,23 +159,19 @@ class WorkflowRunner:
         )
         if card.slug != slugify(card.title):
             # 讨论主题标题被消歧（同题不同来源）：置显式 slug 豁免
-            logger.info("[workflow] 讨论产卡 slug 消歧: %s → explicit_slug 豁免",
-                        card.slug)
+            logger.info(log_dict({'module_name': 'workflow', 'action': 'workflow', 'msg': "[workflow] 讨论产卡 slug 消歧: %s → explicit_slug 豁免" % card.slug}))
             card.explicit_slug = True
         errors = validate_card(asdict(card))
         if errors:
-            logger.warning("[workflow] 讨论产卡校验失败 slug=%s 违规=%s",
-                           card.slug, errors)
+            logger.warning(log_dict({'module_name': 'workflow', 'action': 'workflow.failed', 'msg': "[workflow] 讨论产卡校验失败 slug=%s 违规=%s" % (card.slug, errors)}))
             raise ValueError("讨论产卡校验失败: " + "; ".join(errors))
-        logger.info("[workflow] 讨论产卡校验通过 slug=%s insight=%r scope=%r links=%s conflicts=%s",
-                    card.slug, card.insight, card.scope, card.links, conflicts)
+        logger.info(log_dict({'module_name': 'workflow', 'action': 'workflow.success', 'msg': "[workflow] 讨论产卡校验通过 slug=%s insight=%r scope=%r links=%s conflicts=%s" % (card.slug, card.insight, card.scope, card.links, conflicts)}))
         store = CardStore(self.root / "wiki")
         store.create(card)
         append_log("card_from_discussion", card.slug,
                    f"source={path.name}",
                    log_path=str(self.root / "log.md"))
-        logger.info("[workflow] 讨论产卡成功 slug=%s ← discussion=%s（draft，待人工转 current）",
-                    card.slug, path.name)
+        logger.info(log_dict({'module_name': 'workflow', 'action': 'workflow.success', 'msg': "[workflow] 讨论产卡成功 slug=%s ← discussion=%s（draft，待人工转 current）" % (card.slug, path.name)}))
         return card.slug
 
     # ── Step5: 审计 ────────────────────────────────────────────
@@ -197,10 +184,7 @@ class WorkflowRunner:
         """
         _t0 = time.perf_counter()
         store = CardStore(self.root / "wiki")
-        logger.info(
-            "[workflow] Step5 审计启动 wiki=%s index=%s 卡片=%d",
-            self.root / "wiki", self.root / "index.md", len(store.list()),
-        )
+        logger.info(log_dict({'module_name': 'workflow', 'action': 'workflow', 'msg': "[workflow] Step5 审计启动 wiki=%s index=%s 卡片=%d" % (self.root / "wiki", self.root / "index.md", len(store.list()))}))
 
         # ── 步骤1 检测：lint_all 五类检测（孤儿/断链/index漂移/过期/矛盾）──
         _t_detect = time.perf_counter()
@@ -214,21 +198,12 @@ class WorkflowRunner:
         t_score = (time.perf_counter() - _t_score) * 1000
 
         # 检测明细逐项列出（便于运行时排查五类问题）
-        logger.info(
-            "[workflow] Step5 检测明细 孤儿=%s 断链=%s index漂移=%s 过期=%s "
-            "未裁决矛盾=%s 耗时=%.2fms",
-            hr.orphans, hr.broken_links, hr.index_drift,
-            hr.stale_cards, hr.unresolved_conflicts, t_detect,
-        )
+        logger.info(log_dict({'module_name': 'workflow', 'action': 'workflow', 'msg': "[workflow] Step5 检测明细 孤儿=%s 断链=%s index漂移=%s 过期=%s ""未裁决矛盾=%s 耗时=%.2fms" % (hr.orphans, hr.broken_links, hr.index_drift,
+            hr.stale_cards, hr.unresolved_conflicts, t_detect)}))
         # 健康分推导（与 score_breakdown 同源 _PENALTIES：2/2/2/3/5 分，各类封顶）
-        logger.info(
-            "[workflow] Step5 健康分计算完成 base=100 扣分合计=%.1f 明细=%s（"
-            "孤儿=%d×2(封顶20) 断链=%d×2(封顶20) index漂移=%d×2(封顶10) "
-            "过期=%d×3(封顶20) 矛盾=%d×5(封顶30)）耗时=%.2fms",
-            deducted, breakdown or "无扣分",
+        logger.info(log_dict({'module_name': 'workflow', 'action': 'workflow.success', 'msg': "[workflow] Step5 健康分计算完成 base=100 扣分合计=%.1f 明细=%s（""孤儿=%d×2(封顶20) 断链=%d×2(封顶20) index漂移=%d×2(封顶10) ""过期=%d×3(封顶20) 矛盾=%d×5(封顶30)）耗时=%.2fms" % (deducted, breakdown or "无扣分",
             len(hr.orphans), len(hr.broken_links), len(hr.index_drift),
-            len(hr.stale_cards), len(hr.unresolved_conflicts), t_score,
-        )
+            len(hr.stale_cards), len(hr.unresolved_conflicts), t_score)}))
 
         # ── 步骤3 报告：组装审计结果 dict ──
         _t_report = time.perf_counter()
@@ -249,19 +224,12 @@ class WorkflowRunner:
         t_report = (time.perf_counter() - _t_report) * 1000
         t_total = (time.perf_counter() - _t0) * 1000
 
-        logger.info(
-            "[workflow] Step5 审计完成 卡片=%s 健康分=%s 孤儿=%s 断链=%s index漂移=%s "
-            "过期=%s 未裁决矛盾=%s ok=%s 总耗时=%.1fms",
-            report["total_cards"], report["health_score"],
+        logger.info(log_dict({'module_name': 'workflow', 'action': 'workflow.success', 'msg': "[workflow] Step5 审计完成 卡片=%s 健康分=%s 孤儿=%s 断链=%s index漂移=%s ""过期=%s 未裁决矛盾=%s ok=%s 总耗时=%.1fms" % (report["total_cards"], report["health_score"],
             len(report["orphans"]), len(report["broken_links"]),
             len(report["index_drift"]), len(report["stale_cards"]),
-            len(report["unresolved_conflicts"]), report["ok"], t_total,
-        )
+            len(report["unresolved_conflicts"]), report["ok"], t_total)}))
         # 三阶段耗时汇总（检测/计算/报告），便于性能分析
-        logger.info(
-            "[workflow] Step5 耗时明细 检测=%.2fms 计算=%.2fms 报告=%.2fms 总=%.1fms",
-            t_detect, t_score, t_report, t_total,
-        )
+        logger.info(log_dict({'module_name': 'workflow', 'action': 'workflow', 'msg': "[workflow] Step5 耗时明细 检测=%.2fms 计算=%.2fms 报告=%.2fms 总=%.1fms" % (t_detect, t_score, t_report, t_total)}))
         return report
 
 

@@ -27,6 +27,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from agent.logging_utils import log_dict
+
 logger = logging.getLogger(__name__)
 
 TASK_NAME = "技能沉淀"
@@ -48,7 +50,7 @@ def _precipitate_enabled() -> bool:
             if val is not None:
                 return str(val).strip().lower() in ("true", "1", "yes")
     except Exception as e:  # noqa: BLE001 配置解析失败回退默认
-        logger.debug("[Precipitate] config.yaml 读取失败: %s", e)
+        logger.debug(log_dict({'module_name': 'precipitate', 'action': 'precipitate.failed', 'msg': "[Precipitate] config.yaml 读取失败: %s" % e}))
     return False
 
 
@@ -59,7 +61,7 @@ def _precipitate_interval_hours() -> int:
         try:
             return max(1, int(env.strip()))
         except ValueError:
-            logger.warning("[Precipitate] 非法 interval_hours=%r，使用默认 24", env)
+            logger.warning(log_dict({'module_name': 'precipitate', 'action': 'precipitate', 'msg': "[Precipitate] 非法 interval_hours=%r，使用默认 24" % env}))
     try:
         cfg = _config_yaml()
         if cfg is not None:
@@ -71,7 +73,7 @@ def _precipitate_interval_hours() -> int:
                 except (TypeError, ValueError):
                     pass
     except Exception as e:  # noqa: BLE001
-        logger.debug("[Precipitate] config.yaml 读取失败: %s", e)
+        logger.debug(log_dict({'module_name': 'precipitate', 'action': 'precipitate.failed', 'msg': "[Precipitate] config.yaml 读取失败: %s" % e}))
     return DEFAULT_INTERVAL_HOURS
 
 
@@ -88,7 +90,7 @@ def _audit_file() -> str:
             if val:
                 return str(val)
     except Exception as e:  # noqa: BLE001
-        logger.debug("[Precipitate] config.yaml 读取失败: %s", e)
+        logger.debug(log_dict({'module_name': 'precipitate', 'action': 'precipitate.failed', 'msg': "[Precipitate] config.yaml 读取失败: %s" % e}))
     return DEFAULT_AUDIT_FILE
 
 
@@ -135,8 +137,7 @@ class PrecipitateScheduler:
         auto_register 无论传入什么都被强制为 False（【不易】不变式）。
         """
         if auto_register:
-            logger.warning(
-                "[Precipitate] auto_register=True 被拒绝，强制回退 False（不变式：不擅自注册）")
+            logger.warning(log_dict({'module_name': 'precipitate', 'action': 'precipitate.failed', 'msg': "[Precipitate] auto_register=True 被拒绝，强制回退 False（不变式：不擅自注册）"}))
             auto_register = False
         self._interval_hours = (
             interval_hours if interval_hours is not None
@@ -145,9 +146,7 @@ class PrecipitateScheduler:
         self._max_skills = max_skills
 
         if not _precipitate_enabled():
-            logger.warning(
-                "[Precipitate] 沉淀调度默认关闭（安全底线）；"
-                "开启: config learning.precipitate_enabled=true / .env LEARNING_PRECIPITATE_ENABLED=true")
+            logger.warning(log_dict({'module_name': 'precipitate', 'action': 'precipitate', 'msg': "[Precipitate] 沉淀调度默认关闭（安全底线）；""开启: config learning.precipitate_enabled=true / .env LEARNING_PRECIPITATE_ENABLED=true"}))
             return {
                 "status": "disabled",
                 "interval_hours": self._interval_hours,
@@ -159,7 +158,7 @@ class PrecipitateScheduler:
             from agent.task_scheduler import get_scheduler
             sched = get_scheduler()
         except Exception as e:  # noqa: BLE001 调度器不可用
-            logger.error("[Precipitate] 调度器不可用: %s", e)
+            logger.error(log_dict({'module_name': 'precipitate', 'action': 'precipitate.failed', 'msg': "[Precipitate] 调度器不可用: %s" % e}))
             return {"status": "error", "error": str(e)}
 
         sched.add_interval_task(
@@ -167,8 +166,7 @@ class PrecipitateScheduler:
             interval_seconds=self._interval_hours * 3600)
         self._scheduled_task_id = (
             sched.tasks[-1]["task_id"] if sched.tasks else "precipitate")
-        logger.info("[Precipitate] 定时沉淀已注册 interval_hours=%d task_id=%s",
-                    self._interval_hours, self._scheduled_task_id)
+        logger.info(log_dict({'module_name': 'precipitate', 'action': 'precipitate', 'msg': "[Precipitate] 定时沉淀已注册 interval_hours=%d task_id=%s" % (self._interval_hours, self._scheduled_task_id)}))
         return {
             "status": "scheduled",
             "task_id": self._scheduled_task_id,
@@ -183,7 +181,7 @@ class PrecipitateScheduler:
             from agent.task_scheduler import get_scheduler
             sched = get_scheduler()
         except Exception as e:  # noqa: BLE001
-            logger.error("[Precipitate] 调度注销失败: %s", e)
+            logger.error(log_dict({'module_name': 'precipitate', 'action': 'precipitate.failed', 'msg': "[Precipitate] 调度注销失败: %s" % e}))
             return False
         for task in sched.tasks:
             if task.get("name") == TASK_NAME:
@@ -196,14 +194,13 @@ class PrecipitateScheduler:
 
     def _scheduled_run(self) -> None:
         """调度触发入口：跑一轮抽象；异常不抛出（调度线程稳定性）。"""
-        logger.info("[Precipitate] scheduled_run.start interval_hours=%d",
-                    self._interval_hours)
+        logger.info(log_dict({'module_name': 'precipitate', 'action': 'precipitate', 'msg': "[Precipitate] scheduled_run.start interval_hours=%d" % self._interval_hours}))
         try:
             results = self._get_abstractor().abstract_new_skills(
                 days=self._days, max_skills=self._max_skills,
                 auto_register=False)
         except Exception as e:  # noqa: BLE001 抽象失败不阻断调度线程
-            logger.error("[Precipitate] scheduled_run 失败: %s", e)
+            logger.error(log_dict({'module_name': 'precipitate', 'action': 'precipitate.failed', 'msg': "[Precipitate] scheduled_run 失败: %s" % e}))
             return
         passed = 0
         for r in results:
@@ -212,8 +209,7 @@ class PrecipitateScheduler:
             passed += 1
             self._audit_draft(r)
             _kpi_record("skill")
-        logger.info("[Precipitate] scheduled_run 完成 草稿=%d 质量门控通过=%d",
-                    len(results), passed)
+        logger.info(log_dict({'module_name': 'precipitate', 'action': 'precipitate.success', 'msg': "[Precipitate] scheduled_run 完成 草稿=%d 质量门控通过=%d" % (len(results), passed)}))
 
     # ─── 内部 ───
 
@@ -226,20 +222,15 @@ class PrecipitateScheduler:
         降级为 draft_content_preview 摘要（不阻断审计）。
         """
         draft = result.get("draft") or {}
-        logger.debug("[Precipitate] _audit_draft 开始: draft_skill_id=%s draft_name=%s "
-                     "cluster_id=%s cluster_size=%s success_rate=%s",
-                     result.get("draft_skill_id"), result.get("draft_name"),
+        logger.debug(log_dict({'module_name': 'precipitate', 'action': 'precipitate', 'msg': "[Precipitate] _audit_draft 开始: draft_skill_id=%s draft_name=%s ""cluster_id=%s cluster_size=%s success_rate=%s" % (result.get("draft_skill_id"), result.get("draft_name"),
                      result.get("cluster_id"), result.get("cluster_size"),
-                     result.get("success_rate"))
+                     result.get("success_rate"))}))
         try:
             draft_body = json.dumps(draft, ensure_ascii=False)
-            logger.debug("[Precipitate] _audit_draft draft_body 序列化成功: "
-                         "draft_skill_id=%s body_len=%d",
-                         result.get("draft_skill_id"), len(draft_body))
+            logger.debug(log_dict({'module_name': 'precipitate', 'action': 'precipitate.success', 'msg': "[Precipitate] _audit_draft draft_body 序列化成功: ""draft_skill_id=%s body_len=%d" % (result.get("draft_skill_id"), len(draft_body))}))
         except (TypeError, ValueError) as e:
             # 降级为 preview 摘要（不阻断审计）；调试日志暴露降级原因与降级内容
-            logger.debug("[Precipitate] _audit_draft draft_body 序列化失败，降级 preview: "
-                         "draft_skill_id=%s 原因=%s", result.get("draft_skill_id"), e)
+            logger.debug(log_dict({'module_name': 'precipitate', 'action': 'precipitate.failed', 'msg': "[Precipitate] _audit_draft draft_body 序列化失败，降级 preview: ""draft_skill_id=%s 原因=%s" % (result.get("draft_skill_id"), e)}))
             draft_body = json.dumps({
                 "name": result.get("draft_name"),
                 "description": result.get("draft_description"),
@@ -261,11 +252,9 @@ class PrecipitateScheduler:
             path.parent.mkdir(parents=True, exist_ok=True)
             with open(path, "a", encoding="utf-8") as f:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-            logger.debug("[Precipitate] _audit_draft 审计写入成功: path=%s "
-                         "draft_skill_id=%s rec_len=%d",
-                         path, result.get("draft_skill_id"), len(json.dumps(rec, ensure_ascii=False)))
+            logger.debug(log_dict({'module_name': 'precipitate', 'action': 'precipitate.success', 'msg': "[Precipitate] _audit_draft 审计写入成功: path=%s ""draft_skill_id=%s rec_len=%d" % (path, result.get("draft_skill_id"), len(json.dumps(rec, ensure_ascii=False)))}))
         except OSError as e:
-            logger.warning("[Precipitate] 审计日志写入失败: %s", e)
+            logger.warning(log_dict({'module_name': 'precipitate', 'action': 'precipitate.failed', 'msg': "[Precipitate] 审计日志写入失败: %s" % e}))
 
 
 def _kpi_record(artifact_type: str) -> None:
@@ -274,7 +263,7 @@ def _kpi_record(artifact_type: str) -> None:
         from agent.learning_metrics import get_learning_metrics
         get_learning_metrics().record_artifact(artifact_type)
     except Exception as e:  # noqa: BLE001
-        logger.debug("[Precipitate] KPI record_artifact 失败: %s", e)
+        logger.debug(log_dict({'module_name': 'precipitate', 'action': 'precipitate.failed', 'msg': "[Precipitate] KPI record_artifact 失败: %s" % e}))
 
 
 # 供上层（service 网关 / 测试）引用的只读常量

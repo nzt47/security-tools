@@ -20,6 +20,8 @@ from enum import Enum
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, List
 
+from agent.logging_utils import log_dict
+
 logger = logging.getLogger(__name__)
 
 
@@ -202,7 +204,7 @@ class FailureAnalyzer:
             ],
         }
         
-        logger.info(f"[FailureAnalysis] 初始化失败分析器，存储路径: {self.storage_path}")
+        logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis.failed', 'msg': f"[FailureAnalysis] 初始化失败分析器，存储路径: {self.storage_path}"}))
     
     def _get_conn(self) -> sqlite3.Connection:
         """获取数据库连接"""
@@ -265,14 +267,13 @@ class FailureAnalyzer:
             conn.commit()
         
         self._initialized = True
-        logger.info("[FailureAnalysis] 数据库初始化完成")
+        logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis.success', 'msg': "[FailureAnalysis] 数据库初始化完成"}))
     
     def classify_failure(self, message: str) -> FailureType:
         """根据错误消息分类失败类型"""
         import re
         
-        logger.info(json.dumps({
-            "trace_id": "",
+        logger.info(log_dict({
             "module_name": "failure_analysis",
             "action": "classify_failure",
             "message": message[:100] if len(message) > 100 else message,
@@ -284,12 +285,12 @@ class FailureAnalyzer:
             for pattern in patterns:
                 match = re.search(pattern, message, re.IGNORECASE)
                 if match:
-                    logger.info(f"[FailureAnalysis] 🔍 检测到失败类型 [{failure_type.value}]")
-                    logger.info(f"[FailureAnalysis]   匹配模式: {pattern}")
-                    logger.info(f"[FailureAnalysis]   匹配内容: {match.group() if match else ''}")
+                    logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis.failed', 'msg': f"[FailureAnalysis] 🔍 检测到失败类型 [{failure_type.value}]"}))
+                    logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis', 'msg': f"[FailureAnalysis]   匹配模式: {pattern}"}))
+                    logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis', 'msg': f"[FailureAnalysis]   匹配内容: {match.group() if match else ''}"}))
                     return failure_type
         
-        logger.warning(f"[FailureAnalysis] ⚠️ 未识别的失败类型，消息: {message[:100]}")
+        logger.warning(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis.failed', 'msg': f"[FailureAnalysis] ⚠️ 未识别的失败类型，消息: {message[:100]}"}))
         return FailureType.UNKNOWN
     
     def generate_fix_suggestion(self, failure_type: FailureType) -> str:
@@ -303,13 +304,13 @@ class FailureAnalyzer:
         """记录失败案例"""
         self.initialize()
         
-        logger.info(f"[FailureAnalysis] 📝 开始记录失败案例")
-        logger.info(f"[FailureAnalysis]   trace_id: {record.trace_id}")
-        logger.info(f"[FailureAnalysis]   failure_type: {record.failure_type.value}")
-        logger.info(f"[FailureAnalysis]   severity: {record.severity.value}")
-        logger.info(f"[FailureAnalysis]   source: {record.source}")
-        logger.info(f"[FailureAnalysis]   message: {record.message[:100]}...")
-        logger.info(f"[FailureAnalysis]   evidence_count: {len(record.evidence)}")
+        logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis.failed', 'msg': f"[FailureAnalysis] 📝 开始记录失败案例"}))
+        logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis', 'msg': f"[FailureAnalysis]   trace_id: {record.trace_id}"}))
+        logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis', 'msg': f"[FailureAnalysis]   failure_type: {record.failure_type.value}"}))
+        logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis', 'msg': f"[FailureAnalysis]   severity: {record.severity.value}"}))
+        logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis', 'msg': f"[FailureAnalysis]   source: {record.source}"}))
+        logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis', 'msg': f"[FailureAnalysis]   message: {record.message[:100]}..."}))
+        logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis', 'msg': f"[FailureAnalysis]   evidence_count: {len(record.evidence)}"}))
         
         context_json = json.dumps(record.context, ensure_ascii=False)
         evidence_json = json.dumps(record.evidence, ensure_ascii=False)
@@ -329,13 +330,13 @@ class FailureAnalyzer:
                 )
                 conn.commit()
             
-            logger.info(f"[FailureAnalysis] ✅ 失败案例写入数据库成功")
+            logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis.failed', 'msg': f"[FailureAnalysis] ✅ 失败案例写入数据库成功"}))
             
             # 更新失败模式统计
             self._update_pattern_statistics(record.failure_type, record.source)
             
             # 输出结构化日志
-            logger.info(json.dumps({
+            logger.info(log_dict({
                 "trace_id": record.trace_id,
                 "module_name": "failure_analysis",
                 "action": "record_failure",
@@ -345,12 +346,12 @@ class FailureAnalyzer:
                 "level": "INFO"
             }))
             
-            logger.info(f"[FailureAnalysis] ✅ 记录失败案例完成: {record.failure_type.value}, trace_id={record.trace_id}")
+            logger.info(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis.failed', 'msg': f"[FailureAnalysis] ✅ 记录失败案例完成: {record.failure_type.value}, trace_id={record.trace_id}"}))
             
         except Exception as e:
-            logger.error(f"[FailureAnalysis] ❌ 记录失败案例失败: {str(e)}")
-            logger.error(f"[FailureAnalysis]   trace_id: {record.trace_id}")
-            logger.error(f"[FailureAnalysis]   failure_type: {record.failure_type.value}")
+            logger.error(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis.failed', 'msg': f"[FailureAnalysis] ❌ 记录失败案例失败: {str(e)}"}))
+            logger.error(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis', 'msg': f"[FailureAnalysis]   trace_id: {record.trace_id}"}))
+            logger.error(log_dict({'module_name': 'failure_analysis', 'action': 'failureanalysis', 'msg': f"[FailureAnalysis]   failure_type: {record.failure_type.value}"}))
             raise
     
     def _update_pattern_statistics(self, failure_type: FailureType, source: str):
@@ -588,8 +589,7 @@ class FailureAnalyzer:
                 high_freq.append(p)
 
         duration_ms = (time.time() - start_time) * 1000
-        logger.info(json.dumps({
-            "trace_id": "",
+        logger.info(log_dict({
             "module_name": "failure_analysis",
             "action": "get_high_frequency_failures",
             "threshold": threshold,
@@ -713,8 +713,7 @@ class FailureAnalyzer:
         }
 
         duration_ms = (time.time() - start_time) * 1000
-        logger.info(json.dumps({
-            "trace_id": "",
+        logger.info(log_dict({
             "module_name": "failure_analysis",
             "action": "generate_auto_fix_suggestion",
             "failure_type": failure_type.value,
@@ -817,8 +816,7 @@ class FailureAnalyzer:
         }
 
         duration_ms = (time.time() - start_time) * 1000
-        logger.info(json.dumps({
-            "trace_id": "",
+        logger.info(log_dict({
             "module_name": "failure_analysis",
             "action": "track_fix_effectiveness",
             "failure_type": failure_type.value,
@@ -856,8 +854,7 @@ class FailureAnalyzer:
                 suggestion['pattern_id'] = pattern.get('pattern_id', '')
                 suggestions.append(suggestion)
             except Exception as e:
-                logger.warning(json.dumps({
-                    "trace_id": "",
+                logger.warning(log_dict({
                     "module_name": "failure_analysis",
                     "action": "batch_generate_fix_suggestions",
                     "warning": f"生成建议失败: {e}",
@@ -869,8 +866,7 @@ class FailureAnalyzer:
         suggestions.sort(key=lambda x: x.get('frequency', 0), reverse=True)
 
         duration_ms = (time.time() - start_time) * 1000
-        logger.info(json.dumps({
-            "trace_id": "",
+        logger.info(log_dict({
             "module_name": "failure_analysis",
             "action": "batch_generate_fix_suggestions",
             "threshold": threshold,
@@ -916,7 +912,7 @@ class FailureAnalyzer:
                 conn.commit()
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
+            logger.info(log_dict({
                 "trace_id": trace_id,
                 "module_name": "failure_analysis",
                 "action": "mark_fix_applied",
@@ -926,7 +922,7 @@ class FailureAnalyzer:
             }))
             return True
         except Exception as e:
-            logger.error(json.dumps({
+            logger.error(log_dict({
                 "trace_id": trace_id,
                 "module_name": "failure_analysis",
                 "action": "mark_fix_applied",

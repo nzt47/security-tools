@@ -228,7 +228,7 @@ class PrometheusMetricsExporter:
                 category=yunshu_error.category.value
             ).inc()
         except Exception as e:
-            logger.error("[ERROR] Failed to record error: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to record error: %s" % e}))
 
     def _update_circuit_breaker_metrics(self):
         """更新熔断器指标"""
@@ -240,7 +240,7 @@ class PrometheusMetricsExporter:
                 state_value = {"closed": 0, "open": 1, "half_open": 2}.get(status["state"], 0)
                 self.circuit_breaker_state.labels(name=name).set(state_value)
         except Exception as e:
-            logger.error("[ERROR] Failed to update circuit breaker metrics: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to update circuit breaker metrics: %s" % e}))
 
     def record_module_load(self, module_name: str, duration_ms: float, success: bool):
         """记录模块加载时间"""
@@ -251,7 +251,7 @@ class PrometheusMetricsExporter:
                 module=module_name, status="success" if success else "failure"
             ).inc()
         except Exception as e:
-            logger.error("[ERROR] Failed to record module load: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to record module load: %s" % e}))
             self._safe_record_error(e, {"module_name": module_name})
 
     def set_module_enabled(self, module_name: str, enabled: bool):
@@ -259,7 +259,7 @@ class PrometheusMetricsExporter:
         try:
             self.v2_module_enabled.labels(module=module_name).set(1 if enabled else 0)
         except Exception as e:
-            logger.error("[ERROR] Failed to set module enabled: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to set module enabled: %s" % e}))
             self._safe_record_error(e, {"module_name": module_name})
 
     def record_interaction(self, duration_ms: float):
@@ -269,7 +269,7 @@ class PrometheusMetricsExporter:
             self.interaction_total.inc()
             self.interaction_duration.observe(duration_sec)
         except Exception as e:
-            logger.error("[ERROR] Failed to record interaction: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to record interaction: %s" % e}))
             self._safe_record_error(e)
 
     def record_conversation(self, status: str):
@@ -282,7 +282,7 @@ class PrometheusMetricsExporter:
         try:
             self.conversation_total.labels(status=status).inc()
         except Exception as e:
-            logger.error("[ERROR] Failed to record conversation: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to record conversation: %s" % e}))
             self._safe_record_error(e, {"conversation_status": status})
 
     def set_active_connections(self, count: int):
@@ -294,7 +294,7 @@ class PrometheusMetricsExporter:
         try:
             self.active_connections.set(count)
         except Exception as e:
-            logger.error("[ERROR] Failed to set active connections: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to set active connections: %s" % e}))
             self._safe_record_error(e)
 
     def set_memory_count(self, count: int):
@@ -302,7 +302,7 @@ class PrometheusMetricsExporter:
         try:
             self.memory_count.set(count)
         except Exception as e:
-            logger.error("[ERROR] Failed to set memory count: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to set memory count: %s" % e}))
             self._safe_record_error(e)
 
     def record_alert(self, level: str):
@@ -310,7 +310,7 @@ class PrometheusMetricsExporter:
         try:
             self.alert_total.labels(level=level).inc()
         except Exception as e:
-            logger.error("[ERROR] Failed to record alert: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to record alert: %s" % e}))
             self._safe_record_error(e, {"alert_level": level})
 
     # === CI/CD 指标记录方法 ===
@@ -319,7 +319,7 @@ class PrometheusMetricsExporter:
         try:
             self.ci_pipeline_duration.set(duration_seconds)
         except Exception as e:
-            logger.error("[ERROR] Failed to set CI pipeline duration: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to set CI pipeline duration: %s" % e}))
             self._safe_record_error(e)
 
     def set_ci_test_coverage(self, coverage_percent: float):
@@ -327,7 +327,7 @@ class PrometheusMetricsExporter:
         try:
             self.ci_test_coverage.set(coverage_percent)
         except Exception as e:
-            logger.error("[ERROR] Failed to set CI test coverage: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to set CI test coverage: %s" % e}))
             self._safe_record_error(e)
 
     def record_ci_test_failure(self):
@@ -335,7 +335,7 @@ class PrometheusMetricsExporter:
         try:
             self.ci_test_failures.inc()
         except Exception as e:
-            logger.error("[ERROR] Failed to record CI test failure: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to record CI test failure: %s" % e}))
             self._safe_record_error(e)
 
     def record_ci_build_failure(self):
@@ -343,7 +343,7 @@ class PrometheusMetricsExporter:
         try:
             self.ci_build_failures.inc()
         except Exception as e:
-            logger.error("[ERROR] Failed to record CI build failure: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to record CI build failure: %s" % e}))
             self._safe_record_error(e)
 
     def record_ci_pipeline_run(self, stage: str):
@@ -351,7 +351,7 @@ class PrometheusMetricsExporter:
         try:
             self.ci_pipeline_runs.labels(stage=stage).inc()
         except Exception as e:
-            logger.error("[ERROR] Failed to record CI pipeline run: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to record CI pipeline run: %s" % e}))
             self._safe_record_error(e)
 
     # === 部署与回滚指标记录方法 ===
@@ -360,7 +360,7 @@ class PrometheusMetricsExporter:
         try:
             self.deployment_status.labels(environment=environment).set(status)
         except Exception as e:
-            logger.error("[ERROR] Failed to set deployment status: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to set deployment status: %s" % e}))
             self._safe_record_error(e)
 
     def set_deployment_duration(self, environment: str, duration_seconds: float):
@@ -368,7 +368,7 @@ class PrometheusMetricsExporter:
         try:
             self.deployment_duration.labels(environment=environment).set(duration_seconds)
         except Exception as e:
-            logger.error("[ERROR] Failed to set deployment duration: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to set deployment duration: %s" % e}))
             self._safe_record_error(e)
 
     def record_deployment_failure(self):
@@ -376,7 +376,7 @@ class PrometheusMetricsExporter:
         try:
             self.deployment_failures.inc()
         except Exception as e:
-            logger.error("[ERROR] Failed to record deployment failure: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to record deployment failure: %s" % e}))
             self._safe_record_error(e)
 
     def record_deployment(self, status: str):
@@ -384,7 +384,7 @@ class PrometheusMetricsExporter:
         try:
             self.deployment_total.labels(status=status).inc()
         except Exception as e:
-            logger.error("[ERROR] Failed to record deployment: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to record deployment: %s" % e}))
             self._safe_record_error(e)
 
     def record_rollback(self):
@@ -392,7 +392,7 @@ class PrometheusMetricsExporter:
         try:
             self.rollback_total.inc()
         except Exception as e:
-            logger.error("[ERROR] Failed to record rollback: %s", e)
+            logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to record rollback: %s" % e}))
             self._safe_record_error(e)
 
     def start(self):
@@ -404,10 +404,10 @@ class PrometheusMetricsExporter:
         def _start_server():
             try:
                 start_http_server(self.port)
-                logger.info("[OK] Prometheus exporter started on port %d", self.port)
-                logger.info("[INFO] Metrics available at http://localhost:%d/metrics", self.port)
+                logger.info(log_dict({'module_name': 'prometheus', 'action': 'ok', 'msg': "[OK] Prometheus exporter started on port %d" % self.port}))
+                logger.info(log_dict({'module_name': 'prometheus', 'action': 'info', 'msg': "[INFO] Metrics available at http://localhost:%d/metrics" % self.port}))
             except Exception as e:
-                logger.error("[ERROR] Failed to start Prometheus exporter: %s", e)
+                logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to start Prometheus exporter: %s" % e}))
                 self._safe_record_error(e, {"operation": "start_http_server"})
                 raise
 
@@ -423,7 +423,7 @@ class PrometheusMetricsExporter:
                     retryable_exceptions=(OSError,)
                 )
             except Exception as e:
-                logger.error("[ERROR] Failed to start server after retries: %s", e)
+                logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to start server after retries: %s" % e}))
                 self._safe_record_error(e, {"operation": "start_server_with_retry"})
                 raise
         else:
@@ -498,7 +498,7 @@ def create_exporter_from_digital_life(dl, port: int = 8000) -> PrometheusMetrics
         if memory_stats.get("available"):
             exporter.set_memory_count(memory_stats.get("total_memories", 0))
     except Exception as e:
-        logger.error("[ERROR] Failed to initialize exporter from DigitalLife: %s", e)
+        logger.error(log_dict({'module_name': 'prometheus', 'action': 'error', 'msg': "[ERROR] Failed to initialize exporter from DigitalLife: %s" % e}))
         if _ERROR_HANDLER_AVAILABLE:
             exporter._safe_record_error(e, {"operation": "create_exporter_from_digital_life"})
     return exporter
@@ -525,7 +525,7 @@ class RetryablePrometheusOperation:
             self.exporter.execute_with_error_handling(
                 lambda: (
                     operation_func(*args, **kwargs),
-                    logger.info("[OK] %s completed", operation_name)
+                    logger.info(log_dict({'module_name': 'prometheus', 'action': 'ok', 'msg': "[OK] %s completed" % operation_name}))
                 )[0],
                 retry_policy=RetryPolicy(
                     max_retries=self.max_retries, initial_delay=self.initial_delay, backoff_factor=2.0

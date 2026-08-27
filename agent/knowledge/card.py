@@ -36,6 +36,7 @@ from agent.knowledge.links import ARCHIVES_PREFIX, parse_links, rewrite_link_tar
 from agent.knowledge.links_index import read_links_index, update_links_delta
 from agent.knowledge.logbook import append_log
 from agent.knowledge.schema import Card, validate_card
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -287,7 +288,7 @@ class CardStore:
             try:
                 return list(read_links_index(path).get(slug, []))
             except (ValueError, OSError) as exc:
-                logger.warning("入链索引解析失败，回退全库扫描: %s (%s)", path, exc)
+                logger.warning(log_dict({'module_name': 'card', 'action': 'adapter.failed', 'msg': "入链索引解析失败，回退全库扫描: %s (%s)" % (path, exc)}))
         return [
             card.slug for card in self.list()
             if card.slug != slug and slug in card.links
@@ -304,10 +305,7 @@ class CardStore:
                 if not link.startswith(ARCHIVES_PREFIX):
                     update_links_delta(link, card.slug, self._links_index_path, add=True)
         except (ValueError, OSError) as exc:
-            logger.warning(
-                "入链索引登记失败（已降级，卡片操作继续）: %s (%s)",
-                self._links_index_path, exc,
-            )
+            logger.warning(log_dict({'module_name': 'card', 'action': 'adapter.failed', 'msg': "入链索引登记失败（已降级，卡片操作继续）: %s (%s)" % (self._links_index_path, exc)}))
 
     def _sync_links_index_remove(self, slug: str, links: list[str]) -> None:
         """delete 后：移除被删卡片 links 产生的引用关系（入链已校验为空）。
@@ -319,10 +317,7 @@ class CardStore:
                 if not link.startswith(ARCHIVES_PREFIX):
                     update_links_delta(link, slug, self._links_index_path, add=False)
         except (ValueError, OSError) as exc:
-            logger.warning(
-                "入链索引移除失败（已降级，卡片操作继续）: %s (%s)",
-                self._links_index_path, exc,
-            )
+            logger.warning(log_dict({'module_name': 'card', 'action': 'adapter.failed', 'msg': "入链索引移除失败（已降级，卡片操作继续）: %s (%s)" % (self._links_index_path, exc)}))
 
     # ---------- CRUD ----------
 
@@ -335,27 +330,18 @@ class CardStore:
         with self._rwlock.write():  # 写串行化：写卡 + index + log 三步原子可见
             self._check_slug(card.slug)
             self._validate(card)
-            logger.debug(
-                "create: slug=%s type=%s 校验通过 显式links=%s",
-                card.slug, card.type, card.links,
-            )
+            logger.debug(log_dict({'module_name': 'card', 'action': 'adapter.success', 'msg': "create: slug=%s type=%s 校验通过 显式links=%s" % (card.slug, card.type, card.links)}))
             if self._exists(card.slug):  # 写锁内重入读（同线程放行）；仅文件存在性，免 YAML 解析
-                logger.warning("创建冲突: slug=%s 已存在，拒绝覆盖（CardConflictError）", card.slug)
+                logger.warning(log_dict({'module_name': 'card', 'action': 'adapter.failed', 'msg': "创建冲突: slug=%s 已存在，拒绝覆盖（CardConflictError）" % card.slug}))
                 raise CardConflictError(f"卡片已存在: {card.slug}")
             path = self._wiki_root / card.type / f"{card.slug}.md"
             # 入链追踪：正文双链为链接事实源（显式传入优先，为空则从正文解析）
             links_source = "显式传入" if card.links else "正文双链解析"
             if not card.links:
                 card.links = parse_links(card.content)
-            logger.debug(
-                "create[链接解析]: slug=%s 来源=%s 解析前links=%s 解析后links=%s",
-                card.slug, links_source, [], card.links,
-            )
-            logger.info(
-                "创建卡片[入链追踪]: slug=%s type=%s links来源=%s links=%s 正文长度=%d 双链解析=%s",
-                card.slug, card.type, links_source, card.links,
-                len(card.content), parse_links(card.content),
-            )
+            logger.debug(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "create[链接解析]: slug=%s 来源=%s 解析前links=%s 解析后links=%s" % (card.slug, links_source, [], card.links)}))
+            logger.info(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "创建卡片[入链追踪]: slug=%s type=%s links来源=%s links=%s 正文长度=%d 双链解析=%s" % (card.slug, card.type, links_source, card.links,
+                len(card.content), parse_links(card.content))}))
             self._write_card(path, card)
             update_index_delta(card.slug, card, self._index_path)
             append_log("create", card.slug, f"type={card.type}", log_path=self._log_path)
@@ -364,17 +350,11 @@ class CardStore:
                 added=card,
                 added_fp=self._fp_entry(card.type, card.slug, path),
             )  # 内存缓存增量同步：写后查询不再全量重载
-            logger.debug(
-                "create[入链登记]: slug=%s 每个引用目标逐项登记 add=True index=%s",
-                card.slug, self._links_index_path,
-            )
-            logger.info(
-                "创建卡片[入链追踪]: slug=%s 入链索引登记完成 引用目标=%s index=%s",
-                card.slug,
+            logger.debug(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "create[入链登记]: slug=%s 每个引用目标逐项登记 add=True index=%s" % (card.slug, self._links_index_path)}))
+            logger.info(log_dict({'module_name': 'card', 'action': 'adapter.success', 'msg': "创建卡片[入链追踪]: slug=%s 入链索引登记完成 引用目标=%s index=%s" % (card.slug,
                 [l for l in card.links if not l.startswith(ARCHIVES_PREFIX)],
-                self._links_index_path,
-            )
-            logger.info("创建卡片: slug=%s type=%s path=%s", card.slug, card.type, path)
+                self._links_index_path)}))
+            logger.info(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "创建卡片: slug=%s type=%s path=%s" % (card.slug, card.type, path)}))
             return card
 
     def get(self, slug: str) -> Optional[Card]:
@@ -390,9 +370,7 @@ class CardStore:
             try:
                 return self._md_to_card(path)
             except (ValueError, TypeError):
-                logger.debug(
-                    "get: slug=%r 卡片文件解析失败视为不存在 path=%s", slug, path,
-                )
+                logger.debug(log_dict({'module_name': 'card', 'action': 'adapter.failed', 'msg': "get: slug=%r 卡片文件解析失败视为不存在 path=%s" % (slug, path)}))
                 return None
 
     def update(self, card: Card) -> Card:
@@ -418,19 +396,13 @@ class CardStore:
                     if not link.startswith(ARCHIVES_PREFIX):
                         update_links_delta(link, card.slug, self._links_index_path, add=False)
             except (ValueError, OSError) as exc:
-                logger.warning(
-                    "入链索引移除旧引用失败（已降级，卡片操作继续）: %s (%s)",
-                    self._links_index_path, exc,
-                )
+                logger.warning(log_dict({'module_name': 'card', 'action': 'adapter.failed', 'msg': "入链索引移除旧引用失败（已降级，卡片操作继续）: %s (%s)" % (self._links_index_path, exc)}))
             card.links = parse_links(card.content)
-            logger.info(
-                "更新卡片: slug=%s 正文双链同步 links=%s 耗时=%.2fms",
-                card.slug, card.links, (time.perf_counter() - _t0) * 1000,
-            )
+            logger.info(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "更新卡片: slug=%s 正文双链同步 links=%s 耗时=%.2fms" % (card.slug, card.links, (time.perf_counter() - _t0) * 1000)}))
             new_path = self._wiki_root / card.type / f"{card.slug}.md"
             old_fp = self._fp_entry(old_path.parent.name, card.slug, old_path)  # unlink 前记录旧指纹
             if old_path != new_path:
-                logger.info("更新卡片: slug=%s type 变更迁移文件 %s → %s", card.slug, old_path, new_path)
+                logger.info(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "更新卡片: slug=%s type 变更迁移文件 %s → %s" % (card.slug, old_path, new_path)}))
                 self._write_card(new_path, card)
                 old_path.unlink()
             else:
@@ -452,52 +424,32 @@ class CardStore:
             self._check_slug(slug)
             # 入链检查：优先索引查表，缺失/失败回退全库扫描
             incoming = self._incoming_sources(slug)
-            logger.info(
-                "删除卡片[入链追踪]: slug=%s 入链检查 引用方=%s index=%s",
-                slug, incoming, self._links_index_path,
-            )
+            logger.info(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "删除卡片[入链追踪]: slug=%s 入链检查 引用方=%s index=%s" % (slug, incoming, self._links_index_path)}))
             if incoming:  # 写锁内重入读（list）
-                logger.warning(
-                    "删除被拒[入链追踪]: slug=%s 存在入链 引用方=%s（引用方需先解除引用）",
-                    slug, incoming,
-                )
+                logger.warning(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "删除被拒[入链追踪]: slug=%s 存在入链 引用方=%s（引用方需先解除引用）" % (slug, incoming)}))
                 return False
             path = self._find_path(slug)
             if path is None:
-                logger.warning("删除未命中: slug=%s 不存在", slug)
+                logger.warning(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "删除未命中: slug=%s 不存在" % slug}))
                 return False
             # 入链索引同步：读被删卡 links（损坏卡容错为空，仍可删除）
             try:
                 old_links = self._md_to_card(path).links
             except (ValueError, TypeError):
-                logger.debug(
-                    "delete: slug=%s 卡片解析失败 links 容错为空 path=%s", slug, path,
-                )
+                logger.debug(log_dict({'module_name': 'card', 'action': 'adapter.failed', 'msg': "delete: slug=%s 卡片解析失败 links 容错为空 path=%s" % (slug, path)}))
                 old_links = []
-            logger.debug(
-                "delete: slug=%s 读被删卡成功 path=%s links=%s",
-                slug, path, old_links,
-            )
-            logger.info(
-                "删除卡片[入链追踪]: slug=%s 入链检查通过(无引用方) path=%s 被删卡links=%s",
-                slug, path, old_links,
-            )
+            logger.debug(log_dict({'module_name': 'card', 'action': 'adapter.success', 'msg': "delete: slug=%s 读被删卡成功 path=%s links=%s" % (slug, path, old_links)}))
+            logger.info(log_dict({'module_name': 'card', 'action': 'adapter.success', 'msg': "删除卡片[入链追踪]: slug=%s 入链检查通过(无引用方) path=%s 被删卡links=%s" % (slug, path, old_links)}))
             del_fp = self._fp_entry(path.parent.name, slug, path)  # unlink 前记录指纹
             path.unlink()
             update_index_delta(slug, None, self._index_path)
             append_log("delete", slug, "", log_path=self._log_path)
             self._sync_links_index_remove(slug, old_links)  # 入链索引同步（P0-2）
-            logger.debug(
-                "delete[入链移除]: slug=%s 每个引用目标逐项移除 add=False index=%s",
-                slug, self._links_index_path,
-            )
-            logger.info(
-                "删除卡片[入链追踪]: slug=%s 入链索引移除完成 引用目标=%s index=%s",
-                slug,
+            logger.debug(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "delete[入链移除]: slug=%s 每个引用目标逐项移除 add=False index=%s" % (slug, self._links_index_path)}))
+            logger.info(log_dict({'module_name': 'card', 'action': 'adapter.success', 'msg': "删除卡片[入链追踪]: slug=%s 入链索引移除完成 引用目标=%s index=%s" % (slug,
                 [l for l in old_links if not l.startswith(ARCHIVES_PREFIX)],
-                self._links_index_path,
-            )
-            logger.info("删除卡片: slug=%s path=%s", slug, path)
+                self._links_index_path)}))
+            logger.info(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "删除卡片: slug=%s path=%s" % (slug, path)}))
             self._sync_list_cache(
                 removed=slug, removed_fp=del_fp,
             )  # 内存缓存增量同步：写后查询不再全量重载
@@ -521,7 +473,7 @@ class CardStore:
                 try:
                     incoming = read_links_index(self._links_index_path)
                 except (ValueError, OSError) as exc:
-                    logger.warning("入链索引解析失败，回退全库扫描: %s (%s)", self._links_index_path, exc)
+                    logger.warning(log_dict({'module_name': 'card', 'action': 'adapter.failed', 'msg': "入链索引解析失败，回退全库扫描: %s (%s)" % (self._links_index_path, exc)}))
             if incoming is None:
                 incoming = {}
                 for card in self.list():
@@ -534,14 +486,12 @@ class CardStore:
                 self._check_slug(slug)
                 refs = [r for r in incoming.get(slug, []) if r not in pending]
                 if refs:
-                    logger.warning(
-                        "批量删除被拒: slug=%s 存在外部入链=%s", slug, refs,
-                    )
+                    logger.warning(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "批量删除被拒: slug=%s 存在外部入链=%s" % (slug, refs)}))
                     result[slug] = False
                     continue
                 path = self._find_path(slug)
                 if path is None:
-                    logger.warning("批量删除未命中: slug=%s 不存在", slug)
+                    logger.warning(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "批量删除未命中: slug=%s 不存在" % slug}))
                     result[slug] = False
                     continue
                 try:
@@ -552,7 +502,7 @@ class CardStore:
                 update_index_delta(slug, None, self._index_path)
                 append_log("delete", slug, "batch", log_path=self._log_path)
                 self._sync_links_index_remove(slug, old_links)  # 入链索引同步（P0-2）
-                logger.info("批量删除卡片: slug=%s path=%s", slug, path)
+                logger.info(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "批量删除卡片: slug=%s path=%s" % (slug, path)}))
                 result[slug] = True
             # 批量删除后一次性失效缓存：逐张增量同步为 O(K·N)，批量场景失效更优
             if any(result.values()):
@@ -712,10 +662,7 @@ class CardStore:
                         if (status is None or c.status == status)
                         and (type is None or c.type == type)
                     ]
-                    logger.info(
-                        "list: 缓存命中(use_cache) 指纹未变 返回卡片=%d（过滤 status=%s type=%s）",
-                        len(cards), status, type,
-                    )
+                    logger.info(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "list: 缓存命中(use_cache) 指纹未变 返回卡片=%d（过滤 status=%s type=%s）" % (len(cards), status, type)}))
                     return cards
             else:
                 # 缓存未加载（首次调用 或 批量写后失效）：跳过指纹扫描直接重载，
@@ -772,8 +719,7 @@ class CardStore:
         ts = since.timestamp()
         # 数据流转调试（DEBUG 级，观察增量过滤明细；默认不输出）
         matched = skipped_mtime = skipped_stat = skipped_corrupt = 0
-        logger.debug("[CardStore] list_since 开始: since=%s ts=%.3f wiki_root=%s",
-                     since.isoformat(timespec="seconds"), ts, self._wiki_root)
+        logger.debug(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "[CardStore] list_since 开始: since=%s ts=%.3f wiki_root=%s" % (since.isoformat(timespec="seconds"), ts, self._wiki_root)}))
         with self._rwlock.read():  # 与写锁互斥：全库列举不被多步写打断
             cards: list[Card] = []
             for t in _TYPE_DIRS:
@@ -785,28 +731,22 @@ class CardStore:
                         st = p.stat()
                     except OSError:
                         skipped_stat += 1
-                        logger.debug("[CardStore] list_since 跳过(stat失败): %s", p)
+                        logger.debug(log_dict({'module_name': 'card', 'action': 'adapter.failed', 'msg': "[CardStore] list_since 跳过(stat失败): %s" % p}))
                         continue  # 文件瞬时不可读（删除/权限）→ 跳过该文件
                     if st.st_mtime < ts:
                         skipped_mtime += 1
-                        logger.debug("[CardStore] list_since 跳过(早于since): %s mtime=%.3f",
-                                     p, st.st_mtime)
+                        logger.debug(log_dict({'module_name': 'card', 'action': 'adapter.degrade', 'msg': "[CardStore] list_since 跳过(早于since): %s mtime=%.3f" % (p, st.st_mtime)}))
                         continue
                     try:
                         cards.append(self._md_to_card(p))
                     except (ValueError, TypeError):
                         skipped_corrupt += 1
-                        logger.debug("[CardStore] list_since 跳过(损坏卡): %s", p)
+                        logger.debug(log_dict({'module_name': 'card', 'action': 'adapter.degrade', 'msg': "[CardStore] list_since 跳过(损坏卡): %s" % p}))
                         continue  # 跳过损坏卡片，不阻断增量列举
                     matched += 1
-                    logger.debug("[CardStore] list_since 命中: %s slug=%s mtime=%.3f",
-                                 p, p.stem, st.st_mtime)
-            logger.debug(
-                "[CardStore] list_since 完成: since=%s 命中=%d mtime跳过=%d "
-                "stat失败=%d 损坏跳过=%d",
-                since.isoformat(timespec="seconds"), matched,
-                skipped_mtime, skipped_stat, skipped_corrupt,
-            )
+                    logger.debug(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "[CardStore] list_since 命中: %s slug=%s mtime=%.3f" % (p, p.stem, st.st_mtime)}))
+            logger.debug(log_dict({'module_name': 'card', 'action': 'adapter.failed', 'msg': "[CardStore] list_since 完成: since=%s 命中=%d mtime跳过=%d ""stat失败=%d 损坏跳过=%d" % (since.isoformat(timespec="seconds"), matched,
+                skipped_mtime, skipped_stat, skipped_corrupt)}))
             return cards
 
     # ---------- 批量导入 ----------
@@ -831,7 +771,7 @@ class CardStore:
                 if self._exists(card.slug):  # 判重仅需存在性（免 YAML 解析，P1-3）
                     if not force:
                         result.skipped += 1
-                        logger.info("批量导入跳过: %s（同 slug 已存在，force=False）", p.name)
+                        logger.info(log_dict({'module_name': 'card', 'action': 'adapter.degrade', 'msg': "批量导入跳过: %s（同 slug 已存在，force=False）" % p.name}))
                         continue
                     self.update(card)
                     result.imported += 1
@@ -841,14 +781,11 @@ class CardStore:
             except (ValueError, TypeError, CardConflictError) as exc:
                 result.failed += 1
                 result.failures.append((p.name, str(exc)))
-                logger.warning("批量导入失败: %s: %s", p.name, exc)
+                logger.warning(log_dict({'module_name': 'card', 'action': 'adapter.failed', 'msg': "批量导入失败: %s: %s" % (p.name, exc)}))
         if result.imported:
             self._invalidate_list_cache()  # 批量导入后一次性失效缓存（避免逐张 O(K·N) 同步）
-        logger.info(
-            "批量导入完成: 导入=%d 跳过=%d 失败=%d 耗时=%.2fms",
-            result.imported, result.skipped, result.failed,
-            (time.perf_counter() - _t0) * 1000,
-        )
+        logger.info(log_dict({'module_name': 'card', 'action': 'adapter.failed', 'msg': "批量导入完成: 导入=%d 跳过=%d 失败=%d 耗时=%.2fms" % (result.imported, result.skipped, result.failed,
+            (time.perf_counter() - _t0) * 1000)}))
         return result
 
     def export_dir(
@@ -869,7 +806,7 @@ class CardStore:
         for card in self.list(status=status, type=type):
             self._atomic_write(dst / f"{card.slug}.md", _card_to_md(card))
             n += 1
-        logger.info("导出卡片: %d 张 → %s", n, dst)
+        logger.info(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "导出卡片: %d 张 → %s" % (n, dst)}))
         return n
 
     # ---------- 生命周期状态机 ----------
@@ -895,12 +832,12 @@ class CardStore:
         try:
             target = CardStatus(to_status)
         except ValueError:
-            logger.warning("迁移被拒: slug=%s 非法目标状态 to_status=%r", slug, to_status)
+            logger.warning(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "迁移被拒: slug=%s 非法目标状态 to_status=%r" % (slug, to_status)}))
             raise InvalidTransitionError(f"非法目标状态: {to_status!r}") from None
         try:
             current = CardStatus(card.status)
         except ValueError:
-            logger.warning("迁移被拒: slug=%s 卡片当前状态非法 status=%r", slug, card.status)
+            logger.warning(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "迁移被拒: slug=%s 卡片当前状态非法 status=%r" % (slug, card.status)}))
             raise InvalidTransitionError(
                 f"卡片当前状态非法: {card.status!r}"
             ) from None
@@ -909,7 +846,7 @@ class CardStore:
             reason = validate_transition(current, target) or (
                 f"非法迁移: {current.value} → {target.value}"
             )
-            logger.warning("迁移被拒: slug=%s %s", slug, reason)
+            logger.warning(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "迁移被拒: slug=%s %s" % (slug, reason)}))
             raise InvalidTransitionError(reason)
 
         if target is CardStatus.ARCHIVE:
@@ -921,11 +858,8 @@ class CardStore:
             "transition", slug, f"{current.value} → {target.value}",
             log_path=self._log_path,
         )
-        logger.info(
-            "状态迁移: slug=%s %s → %s（文件路径不变）耗时=%.2fms",
-            slug, current.value, target.value,
-            (time.perf_counter() - _t0) * 1000,
-        )
+        logger.info(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "状态迁移: slug=%s %s → %s（文件路径不变）耗时=%.2fms" % (slug, current.value, target.value,
+            (time.perf_counter() - _t0) * 1000)}))
         return card
 
     def _archive(self, card: Card, path: Path) -> Card:
@@ -937,12 +871,9 @@ class CardStore:
         archive_path = self._archives_dir / f"{card.slug}.md"
         self._write_card(archive_path, card)
         path.unlink()
-        logger.info("归档卡片: slug=%s %s → archive，移入 %s", card.slug, old_status, archive_path)
+        logger.info(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "归档卡片: slug=%s %s → archive，移入 %s" % (card.slug, old_status, archive_path)}))
         rewritten = self._rewrite_incoming_links(card.slug, card.title)
-        logger.info(
-            "归档重链: slug=%s 共改写 %d 张引用卡 耗时=%.2fms",
-            card.slug, rewritten, (time.perf_counter() - _t0) * 1000,
-        )
+        logger.info(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "归档重链: slug=%s 共改写 %d 张引用卡 耗时=%.2fms" % (card.slug, rewritten, (time.perf_counter() - _t0) * 1000)}))
         update_index_delta(card.slug, None, self._index_path)
         append_log(
             "transition", card.slug, f"{old_status} → archive",
@@ -962,7 +893,7 @@ class CardStore:
         for card in self.list():
             if card.slug == slug or slug not in card.links:
                 continue
-            logger.info("归档重链: 引用卡 slug=%s 改写 links=%s", card.slug, card.links)
+            logger.info(log_dict({'module_name': 'card', 'action': 'adapter', 'msg': "归档重链: 引用卡 slug=%s 改写 links=%s" % (card.slug, card.links)}))
             card.links = [
                 new_target if link == slug else link for link in card.links
             ]

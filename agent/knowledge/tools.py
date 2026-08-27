@@ -24,6 +24,7 @@ from pathlib import Path
 from agent.knowledge.card import CardConflictError
 from agent.knowledge.observability import emit_structured_log, knowledge_trace
 from agent.knowledge.workflow import WorkflowRunner
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +36,8 @@ def _get_runner() -> WorkflowRunner:
     global _runner
     if _runner is None:
         _runner = WorkflowRunner(llm=None)
-        logger.info("[tools] 初始化 WorkflowRunner root=%s（KNOWLEDGE_ROOT=%s）",
-                    _runner.root,
-                    os.environ.get("KNOWLEDGE_ROOT") or "(未设置，走仓库默认)")
+        logger.info(log_dict({'module_name': 'tools', 'action': 'tools', 'msg': "[tools] 初始化 WorkflowRunner root=%s（KNOWLEDGE_ROOT=%s）" % (_runner.root,
+                    os.environ.get("KNOWLEDGE_ROOT") or "(未设置，走仓库默认)")}))
     return _runner
 
 
@@ -71,27 +71,24 @@ def kb_capture(**kw) -> dict:
     try:
         if file_path:
             src = Path(file_path)
-            logger.info("[kb_capture] 请求: file_path=%s source_type=%s",
-                        file_path, source_type)
+            logger.info(log_dict({'module_name': 'tools', 'action': 'kb_capture', 'msg': "[kb_capture] 请求: file_path=%s source_type=%s" % (file_path, source_type)}))
             if not src.is_file():
-                logger.warning("[kb_capture] 文件不存在: %s", file_path)
+                logger.warning(log_dict({'module_name': 'tools', 'action': 'kb_capture', 'msg': "[kb_capture] 文件不存在: %s" % file_path}))
                 return {"ok": False, "error": f"文件不存在: {file_path}"}
         elif text:
             fd, tmp = tempfile.mkstemp(suffix=".md", prefix="kb_capture_")
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 f.write(text)
             src = Path(tmp)
-            logger.info("[kb_capture] 请求: text 写入临时文件 %s（%d 字符）",
-                        tmp, len(text))
+            logger.info(log_dict({'module_name': 'tools', 'action': 'kb_capture', 'msg': "[kb_capture] 请求: text 写入临时文件 %s（%d 字符）" % (tmp, len(text))}))
         else:
-            logger.warning("[kb_capture] 参数缺失: text 与 file_path 均为空")
+            logger.warning(log_dict({'module_name': 'tools', 'action': 'kb_capture', 'msg': "[kb_capture] 参数缺失: text 与 file_path 均为空"}))
             return {"ok": False, "error": "须提供 text 或 file_path 之一"}
         slug = runner.run_ingest(src, dest_layer="inbox", source_type=source_type)
-        logger.info("[kb_capture] 入库成功 slug=%s → inbox/%s.md（敏感由 ingest 自动标记）",
-                    slug, slug)
+        logger.info(log_dict({'module_name': 'tools', 'action': 'kb_capture.success', 'msg': "[kb_capture] 入库成功 slug=%s → inbox/%s.md（敏感由 ingest 自动标记）" % (slug, slug)}))
         return {"ok": True, "slug": slug, "hint": "已入库 inbox，可继续 kb_distill"}
     except Exception as exc:
-        logger.error("[kb_capture] 入库失败: %s", exc, exc_info=True)
+        logger.error(log_dict({'module_name': 'tools', 'action': 'kb_capture.failed', 'msg': "[kb_capture] 入库失败: %s" % exc}), exc_info=True)
         return {"ok": False, "error": str(exc)}
     finally:
         if tmp is not None:
@@ -107,11 +104,10 @@ def kb_distill(**kw) -> dict:
     runner = _get_runner()
     _t0 = time.perf_counter()
     try:
-        logger.info("[kb_distill] 提炼请求 source=%s", source_path)
+        logger.info(log_dict({'module_name': 'tools', 'action': 'kb_distill', 'msg': "[kb_distill] 提炼请求 source=%s" % source_path}))
         note = runner.run_distill(source_path)
-        logger.info("[kb_distill] 提炼完成 slug=%s distilled=%s model=%s reason=%s",
-                    note.slug, note.distilled, note.llm_model or "none",
-                    note.reason or "none")
+        logger.info(log_dict({'module_name': 'tools', 'action': 'kb_distill.success', 'msg': "[kb_distill] 提炼完成 slug=%s distilled=%s model=%s reason=%s" % (note.slug, note.distilled, note.llm_model or "none",
+                    note.reason or "none")}))
         emit_structured_log("kb_distill.done", duration_ms=(time.perf_counter() - _t0) * 1000,
                             slug=note.slug, distilled=note.distilled,
                             model=note.llm_model or "none", reason=note.reason or "none")
@@ -138,10 +134,9 @@ def kb_discuss(**kw) -> dict:
         return {"ok": False, "error": "须提供 note_slug"}
     runner = _get_runner()
     try:
-        logger.info("[kb_discuss] 讨论请求 note_slug=%s question=%r",
-                    note_slug, question)
+        logger.info(log_dict({'module_name': 'tools', 'action': 'kb_discuss', 'msg': "[kb_discuss] 讨论请求 note_slug=%s question=%r" % (note_slug, question)}))
         path = runner.run_discuss(note_slug, question)
-        logger.info("[kb_discuss] 讨论完成 note_slug=%s → %s", note_slug, path)
+        logger.info(log_dict({'module_name': 'tools', 'action': 'kb_discuss.success', 'msg': "[kb_discuss] 讨论完成 note_slug=%s → %s" % (note_slug, path)}))
         return {"ok": True, "discussion_path": path,
                 "hint": "讨论记录已生成，可 kb_card（discussion_path）产卡"}
     except FileNotFoundError as exc:
@@ -162,19 +157,16 @@ def kb_card(**kw) -> dict:
     try:
         if discussion_path:
             mode = "discussion"
-            logger.info("[kb_card] 产卡请求 mode=discussion path=%s card_type=%s",
-                        discussion_path, card_type)
+            logger.info(log_dict({'module_name': 'tools', 'action': 'kb_card', 'msg': "[kb_card] 产卡请求 mode=discussion path=%s card_type=%s" % (discussion_path, card_type)}))
             slug = runner.card_from_discussion(discussion_path, card_type)
         elif note_slug:
             mode = "note"
-            logger.info("[kb_card] 产卡请求 mode=note note_slug=%s card_type=%s",
-                        note_slug, card_type)
+            logger.info(log_dict({'module_name': 'tools', 'action': 'kb_card', 'msg': "[kb_card] 产卡请求 mode=note note_slug=%s card_type=%s" % (note_slug, card_type)}))
             slug = runner.run_card(note_slug, card_type)
         else:
-            logger.warning("[kb_card] 参数缺失: note_slug 与 discussion_path 均为空")
+            logger.warning(log_dict({'module_name': 'tools', 'action': 'kb_card', 'msg': "[kb_card] 参数缺失: note_slug 与 discussion_path 均为空"}))
             return {"ok": False, "error": "须提供 note_slug 或 discussion_path 之一"}
-        logger.info("[kb_card] 产卡成功 slug=%s（draft，待人工确认）",
-                    slug)
+        logger.info(log_dict({'module_name': 'tools', 'action': 'kb_card.success', 'msg': "[kb_card] 产卡成功 slug=%s（draft，待人工确认）" % slug}))
         emit_structured_log("kb_card.ok", duration_ms=(time.perf_counter() - _t0) * 1000,
                             slug=slug, mode=mode)
         return {"ok": True, "slug": slug, "status": "draft",
@@ -191,12 +183,11 @@ def kb_lint(**kw) -> dict:
     """健康巡检（Step5）：断链 + 孤儿检测，返回健康报告。"""
     try:
         report = _get_runner().run_audit()
-        logger.info("[kb_lint] 审计完成 卡片=%s 断链=%s 孤儿=%s ok=%s",
-                    report["total_cards"], len(report["broken_links"]),
-                    report["orphans"], report["ok"])
+        logger.info(log_dict({'module_name': 'tools', 'action': 'kb_lint.success', 'msg': "[kb_lint] 审计完成 卡片=%s 断链=%s 孤儿=%s ok=%s" % (report["total_cards"], len(report["broken_links"]),
+                    report["orphans"], report["ok"])}))
         return {"ok": True, "report": report}
     except Exception as exc:
-        logger.error("[kb_lint] 审计失败: %s", exc, exc_info=True)
+        logger.error(log_dict({'module_name': 'tools', 'action': 'kb_lint.failed', 'msg': "[kb_lint] 审计失败: %s" % exc}), exc_info=True)
         return {"ok": False, "error": str(exc)}
 
 
@@ -213,10 +204,9 @@ def kb_search(**kw) -> dict:
 
         runner = _get_runner()
         searcher = KnowledgeSearch(CardStore(runner.root / "wiki"))
-        logger.info("[kb_search] 检索请求 query=%r top_k=%s", query, top_k)
+        logger.info(log_dict({'module_name': 'tools', 'action': 'kb_search', 'msg': "[kb_search] 检索请求 query=%r top_k=%s" % (query, top_k)}))
         hits = searcher.search(query, top_k=top_k)
-        logger.info("[kb_search] 检索完成 命中=%d → %s",
-                    len(hits), [h.slug for h in hits])
+        logger.info(log_dict({'module_name': 'tools', 'action': 'kb_search.success', 'msg': "[kb_search] 检索完成 命中=%d → %s" % (len(hits), [h.slug for h in hits])}))
         return {
             "ok": True,
             "hits": [
@@ -227,7 +217,7 @@ def kb_search(**kw) -> dict:
             ],
         }
     except Exception as exc:
-        logger.error("[kb_search] 检索失败: %s", exc)
+        logger.error(log_dict({'module_name': 'tools', 'action': 'kb_search.failed', 'msg': "[kb_search] 检索失败: %s" % exc}))
         return {"ok": False, "error": str(exc)}
 
 
@@ -306,8 +296,8 @@ def register_knowledge_tools(clear_first: bool = True) -> int:
             unregister(name)
     for name, description, schema in _TOOL_DEFS:
         register(name, description, schema=schema, handler=_KB_HANDLERS[name])
-    logger.info("[tools] 知识工具注册完成 %d 个: %s", len(_TOOL_DEFS),
-                ", ".join(n for n, _, _ in _TOOL_DEFS))
+    logger.info(log_dict({'module_name': 'tools', 'action': 'tools.success', 'msg': "[tools] 知识工具注册完成 %d 个: %s" % (len(_TOOL_DEFS),
+                ", ".join(n for n, _, _ in _TOOL_DEFS))}))
     return len(_TOOL_DEFS)
 
 

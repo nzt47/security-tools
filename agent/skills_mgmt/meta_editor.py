@@ -51,6 +51,7 @@ from .edit_policy import (
     EditStatusTransitionError,
 )
 from .observability import logger, emit_metric, traced_action
+from agent.logging_utils import log_dict
 
 __all__ = ["MetaEditor", "MetaEditGenerator", "MetaEditError"]
 
@@ -145,8 +146,7 @@ class MetaEditGenerator:
                  current_meta: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
         """生成一个编辑提案；无 LLM → None（不伪造）"""
         if self._llm is None:
-            logger.info("[MetaEditor] 无 LLM 客户端，跳过提案生成（诚实降级） skill=%s",
-                        skill_id)
+            logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter.degrade', 'msg': "[MetaEditor] 无 LLM 客户端，跳过提案生成（诚实降级） skill=%s" % skill_id}))
             return None
         prompt = self._template.format(
             skill_id=skill_id,
@@ -159,8 +159,7 @@ class MetaEditGenerator:
         try:
             text = self._llm.chat(prompt)
         except Exception as e:  # noqa: BLE001 LLM 不可用 → 不产提案
-            logger.warning("[MetaEditor] LLM 调用失败，跳过提案生成 skill=%s: %s",
-                           skill_id, e)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] LLM 调用失败，跳过提案生成 skill=%s: %s" % (skill_id, e)}))
             return None
         text = (text or "").strip()
         if not text:
@@ -170,18 +169,15 @@ class MetaEditGenerator:
             guard = self._guard.validate_llm_output(
                 text, loaded_skills=[], intent="meta_edit")
             if guard.severity == "critical":
-                logger.warning(
-                    "[MetaEditor] 生成内容命中输出护栏 critical，丢弃提案 skill=%s: %s",
-                    skill_id, [f.message for f in guard.findings])
+                logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 生成内容命中输出护栏 critical，丢弃提案 skill=%s: %s" % (skill_id, [f.message for f in guard.findings])}))
                 return None
         try:
             data = json.loads(text)
         except (json.JSONDecodeError, ValueError) as e:
-            logger.warning("[MetaEditor] 生成内容非合法 JSON，丢弃提案 skill=%s: %s",
-                           skill_id, e)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 生成内容非合法 JSON，丢弃提案 skill=%s: %s" % (skill_id, e)}))
             return None
         if not isinstance(data, dict) or not data.get("files"):
-            logger.warning("[MetaEditor] 生成内容缺少 files，丢弃提案 skill=%s", skill_id)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 生成内容缺少 files，丢弃提案 skill=%s" % skill_id}))
             return None
         return {
             "edit_type": str(data.get("edit_type", EditType.CONTENT.value)),
@@ -303,8 +299,7 @@ class MetaEditor:
             recs = [r for r in self._archive.list_by_object(skill_id)
                     if r.get_score() is not None]
         except Exception as e:  # noqa: BLE001 谱系不可用不阻断
-            logger.warning("[MetaEditor] 谱系读取失败（按未暂停处理） %s: %s",
-                           skill_id, e)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 谱系读取失败（按未暂停处理） %s: %s" % (skill_id, e)}))
             return 0
         if not recs:
             return 0
@@ -324,12 +319,10 @@ class MetaEditor:
         """单轮护栏：技能数上限 + 技能去重（验收 5）"""
         with self._lock:
             if skill_id in self._round_edited:
-                logger.info("[MetaEditor] 该技能本轮已编辑过，跳过 skill=%s", skill_id)
+                logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter.degrade', 'msg': "[MetaEditor] 该技能本轮已编辑过，跳过 skill=%s" % skill_id}))
                 return False
             if len(self._round_edited) >= self.max_skills_per_round:
-                logger.info(
-                    "[MetaEditor] 单轮编辑技能数达上限 %d，停止产生新提案",
-                    self.max_skills_per_round)
+                logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 单轮编辑技能数达上限 %d，停止产生新提案" % self.max_skills_per_round}))
                 return False
             return True
 
@@ -339,9 +332,7 @@ class MetaEditor:
             return True
         with self._lock:
             if self._round_tokens + tokens > self.max_tokens_per_round:
-                logger.info(
-                    "[MetaEditor] 单轮 token 预算熔断 used=%d+%d > budget=%d",
-                    self._round_tokens, tokens, self.max_tokens_per_round)
+                logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter.degrade', 'msg': "[MetaEditor] 单轮 token 预算熔断 used=%d+%d > budget=%d" % (self._round_tokens, tokens, self.max_tokens_per_round)}))
                 return False
             self._round_tokens += tokens
             return True
@@ -362,30 +353,26 @@ class MetaEditor:
         _t_start = time.perf_counter()
         if not self._round_allows(skill_id):
             return None
-        logger.debug("[MetaEditor] 生成提案开始 skill=%s", skill_id)
+        logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 生成提案开始 skill=%s" % skill_id}))
         if self.is_stalled(skill_id):
-            logger.info("[MetaEditor] 技能连续 %d 轮无提升，暂停进化 skill=%s",
-                        self.stall_rounds, skill_id)
+            logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter.degrade', 'msg': "[MetaEditor] 技能连续 %d 轮无提升，暂停进化 skill=%s" % (self.stall_rounds, skill_id)}))
             return None
 
         _t_read0 = time.perf_counter()
         meta = self._read_meta(skill_id)
         if meta is None:
-            logger.warning("[MetaEditor] 技能不存在，跳过 skill=%s", skill_id)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.degrade', 'msg': "[MetaEditor] 技能不存在，跳过 skill=%s" % skill_id}))
             return None
         raw_path = self._primary_file_path(skill_id)
         raw_content = self._read_file_raw(raw_path)
         if raw_content is None:
-            logger.warning("[MetaEditor] 技能文件读取失败 skill=%s path=%s",
-                           skill_id, raw_path)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 技能文件读取失败 skill=%s path=%s" % (skill_id, raw_path)}))
             return None
-        logger.debug("[MetaEditor] 技能文件读取完成 skill=%s duration_ms=%.2f",
-                     skill_id, (time.perf_counter() - _t_read0) * 1000)
+        logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter.success', 'msg': "[MetaEditor] 技能文件读取完成 skill=%s duration_ms=%.2f" % (skill_id, (time.perf_counter() - _t_read0) * 1000)}))
 
         gen = self._proposal_generator or MetaEditGenerator(
             llm_client=self._llm_client, output_guard=self._output_guard)
-        logger.debug("[MetaEditor] 调用生成器 skill=%s generator=%s",
-                     skill_id, type(gen).__name__)
+        logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 调用生成器 skill=%s generator=%s" % (skill_id, type(gen).__name__)}))
         # 生成器（LLM）是进化链路最大耗时源，前后打点统计性能瓶颈
         _t_gen0 = time.perf_counter()
         result = gen.generate(
@@ -396,15 +383,11 @@ class MetaEditor:
             current_meta=meta,
         )
         _t_gen1 = time.perf_counter()
-        logger.debug(
-            "[MetaEditor] 生成器返回 skill=%s duration_ms=%.2f result=%s "
-            "generator=%s",
-            skill_id, (_t_gen1 - _t_gen0) * 1000,
+        logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 生成器返回 skill=%s duration_ms=%.2f result=%s ""generator=%s" % (skill_id, (_t_gen1 - _t_gen0) * 1000,
             "proposal" if result is not None else "None",
-            type(gen).__name__)
+            type(gen).__name__)}))
         if result is None:
-            logger.warning("[MetaEditor] 生成器未产出提案 skill=%s"
-                           "（无 LLM / 输出护栏 / 非法输出）", skill_id)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 生成器未产出提案 skill=%s""（无 LLM / 输出护栏 / 非法输出）" % skill_id}))
             return None
 
         files: List[EditFile] = []
@@ -416,9 +399,7 @@ class MetaEditor:
             old_content = self._read_file_raw(file_path)
             if old_content is None:
                 # 新文件不允许：白名单内文件必须已存在（防元智能体凭空造文件）
-                logger.warning(
-                    "[MetaEditor] 编辑目标不存在，丢弃提案 skill=%s path=%s",
-                    skill_id, file_path)
+                logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 编辑目标不存在，丢弃提案 skill=%s path=%s" % (skill_id, file_path)}))
                 return None
             files.append(EditFile(
                 file_path=file_path,
@@ -442,15 +423,12 @@ class MetaEditor:
         # 政策校验（白名单/类型/范围/内容/文件数，越界直接抛）
         _t_pol0 = time.perf_counter()
         self._policy.validate_proposal(proposal)
-        logger.debug("[MetaEditor] 政策校验通过 proposal=%s edit_type=%s files=%s "
-                     "duration_ms=%.2f",
-                     proposal.proposal_id, proposal.edit_type,
+        logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter.success', 'msg': "[MetaEditor] 政策校验通过 proposal=%s edit_type=%s files=%s ""duration_ms=%.2f" % (proposal.proposal_id, proposal.edit_type,
                      [f.file_path for f in proposal.files],
-                     (time.perf_counter() - _t_pol0) * 1000)
+                     (time.perf_counter() - _t_pol0) * 1000)}))
 
         tokens = self._estimate_tokens(proposal)
-        logger.debug("[MetaEditor] token 估算 proposal=%s tokens=%d budget=%d",
-                     proposal.proposal_id, tokens, self.max_tokens_per_round)
+        logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] token 估算 proposal=%s tokens=%d budget=%d" % (proposal.proposal_id, tokens, self.max_tokens_per_round)}))
         if not self._spend_tokens(tokens):
             return None
         proposal.cost_tokens = tokens
@@ -459,12 +437,9 @@ class MetaEditor:
         emit_metric("yunshu_skill_meta_edit_total",
                     labels={"stage": "proposed", "skill_id": skill_id},
                     kind="counter")
-        logger.info(
-            "[MetaEditor] 提案已生成 %s skill=%s edit_type=%s files=%s "
-            "duration_ms=%.2f",
-            proposal.proposal_id, skill_id, proposal.edit_type,
+        logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 提案已生成 %s skill=%s edit_type=%s files=%s ""duration_ms=%.2f" % (proposal.proposal_id, skill_id, proposal.edit_type,
             [f.file_path for f in files],
-            (time.perf_counter() - _t_start) * 1000)
+            (time.perf_counter() - _t_start) * 1000)}))
         return proposal
 
     # ──────────────────────────────────────────────
@@ -478,8 +453,7 @@ class MetaEditor:
         任一 critical 级问题 → 提案直接拒绝（status=rejected，不进入评估，验收 2）。
         """
         if proposal.status_enum != EditStatus.DRAFT:
-            logger.warning("[MetaEditor] 提案 %s 状态 %s 不允许进入审核（需 draft）",
-                           proposal.proposal_id, proposal.status)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 提案 %s 状态 %s 不允许进入审核（需 draft）" % (proposal.proposal_id, proposal.status)}))
             raise EditStatusTransitionError(
                 f"只有 draft 提案可进入审核流程（当前 {proposal.status}）")
         from .reviewer import SkillReviewer
@@ -489,20 +463,14 @@ class MetaEditor:
             meta=self._read_meta(proposal.object_id) or {},
             content="\n\n".join(f.new_content for f in proposal.files),
         )
-        logger.debug(
-            "[MetaEditor] 进入三重审核 proposal=%s reviewer=%s files=%d "
-            "content_bytes=%d",
-            proposal.proposal_id, type(reviewer).__name__,
-            len(proposal.files), len(subject.content))
+        logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 进入三重审核 proposal=%s reviewer=%s files=%d ""content_bytes=%d" % (proposal.proposal_id, type(reviewer).__name__,
+            len(proposal.files), len(subject.content))}))
         result = reviewer.review(subject, others=others or [])
         proposal.review = self._serialize_review(result)
         # findings 明细逐条记录（severity/code/message），定位具体问题
         for _f in proposal.review["findings"]:
-            logger.debug(
-                "[MetaEditor] review finding severity=%s code=%s location=%s "
-                "message=%s",
-                _f.get("severity"), _f.get("code"), _f.get("location"),
-                _f.get("message"))
+            logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] review finding severity=%s code=%s location=%s ""message=%s" % (_f.get("severity"), _f.get("code"), _f.get("location"),
+                _f.get("message"))}))
 
         status = str(getattr(getattr(result, "status", None), "value", ""))
         critical = any(
@@ -521,20 +489,16 @@ class MetaEditor:
             for _f in proposal.review["findings"]:
                 _s = _f.get("severity") or "unknown"
                 _sev[_s] = _sev.get(_s, 0) + 1
-            logger.info("[MetaEditor] 提案 %s 被审核拒绝：%s severities=%s score=%.2f",
-                        proposal.proposal_id, reason, _sev,
-                        proposal.review.get("score", 0.0))
+            logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 提案 %s 被审核拒绝：%s severities=%s score=%.2f" % (proposal.proposal_id, reason, _sev,
+                        proposal.review.get("score", 0.0))}))
         else:
             emit_metric("yunshu_skill_meta_edit_total",
                         labels={"stage": "review_passed"}, kind="counter")
-            logger.info(
-                "[MetaEditor] 提案 %s 审核通过 status=passed score=%.2f "
-                "findings=%d dup=%.2f sec=%.2f quality=%.2f",
-                proposal.proposal_id, proposal.review.get("score", 0.0),
+            logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter.success', 'msg': "[MetaEditor] 提案 %s 审核通过 status=passed score=%.2f ""findings=%d dup=%.2f sec=%.2f quality=%.2f" % (proposal.proposal_id, proposal.review.get("score", 0.0),
                 len(proposal.review["findings"]),
                 proposal.review.get("duplicate_score", 0.0),
                 proposal.review.get("security_score", 0.0),
-                proposal.review.get("quality_score", 0.0))
+                proposal.review.get("quality_score", 0.0))}))
         return proposal
 
     # ──────────────────────────────────────────────
@@ -549,43 +513,34 @@ class MetaEditor:
         """
         _t_start = time.perf_counter()
         if proposal.status_enum != EditStatus.DRAFT:
-            logger.warning("[MetaEditor] 提案 %s 状态 %s 不允许评估（需 draft）",
-                           proposal.proposal_id, proposal.status)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 提案 %s 状态 %s 不允许评估（需 draft）" % (proposal.proposal_id, proposal.status)}))
             raise EditStatusTransitionError(
                 f"只有 draft 提案可评估（当前 {proposal.status}）")
         _t_build0 = time.perf_counter()
         candidate, new_params = self._build_candidate(proposal)
-        logger.debug("[MetaEditor] 评估候选构建完成 proposal=%s duration_ms=%.2f "
-                     "params=%s",
-                     proposal.proposal_id,
-                     (time.perf_counter() - _t_build0) * 1000, new_params)
+        logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter.success', 'msg': "[MetaEditor] 评估候选构建完成 proposal=%s duration_ms=%.2f ""params=%s" % (proposal.proposal_id,
+                     (time.perf_counter() - _t_build0) * 1000, new_params)}))
         evaluator = self._evaluator or self._default_evaluator(candidate)
         # 沙盒评估是链路第二大耗时源（第一大是 LLM 生成器），前后打点统计性能瓶颈
         _t_eval0 = time.perf_counter()
         result = evaluator.evaluate(candidate, params=new_params)
-        logger.debug("[MetaEditor] 评估器返回 proposal=%s duration_ms=%.2f "
-                     "evaluator=%s",
-                     proposal.proposal_id,
+        logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 评估器返回 proposal=%s duration_ms=%.2f ""evaluator=%s" % (proposal.proposal_id,
                      (time.perf_counter() - _t_eval0) * 1000,
-                     type(evaluator).__name__)
+                     type(evaluator).__name__)}))
         _t_ser0 = time.perf_counter()
         proposal.eval_result = self._serialize_eval(result)
-        logger.debug("[MetaEditor] 评估结果序列化 proposal=%s duration_ms=%.2f",
-                     proposal.proposal_id,
-                     (time.perf_counter() - _t_ser0) * 1000)
+        logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 评估结果序列化 proposal=%s duration_ms=%.2f" % (proposal.proposal_id,
+                     (time.perf_counter() - _t_ser0) * 1000)}))
         proposal.cost_tokens += int(getattr(result, "cost_tokens", 0) or 0)
         emit_metric("yunshu_skill_meta_edit_total",
                     labels={"stage": "evaluated", "status": proposal.eval_result["status"]},
                     kind="counter")
-        logger.info(
-            "[MetaEditor] 提案 %s 评估完成 skill=%s status=%s score=%.4f "
-            "samples=%d cost=%d duration_ms=%.2f",
-            proposal.proposal_id, proposal.object_id,
+        logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter.success', 'msg': "[MetaEditor] 提案 %s 评估完成 skill=%s status=%s score=%.4f ""samples=%d cost=%d duration_ms=%.2f" % (proposal.proposal_id, proposal.object_id,
             proposal.eval_result.get("status"),
             proposal.eval_result.get("score", 0.0),
             proposal.eval_result.get("sample_count", 0),
             proposal.eval_result.get("cost_tokens", 0),
-            (time.perf_counter() - _t_start) * 1000)
+            (time.perf_counter() - _t_start) * 1000)}))
         return proposal
 
     # ──────────────────────────────────────────────
@@ -595,24 +550,19 @@ class MetaEditor:
     def submit_proposal(self, proposal: EditProposal) -> EditProposal:
         """评估通过 + 审核通过 → pending_review + 落谱系（不自动合并，验收 3）"""
         if proposal.status_enum != EditStatus.DRAFT:
-            logger.warning("[MetaEditor] 提案 %s 状态 %s 不允许提交（需 draft）",
-                           proposal.proposal_id, proposal.status)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 提案 %s 状态 %s 不允许提交（需 draft）" % (proposal.proposal_id, proposal.status)}))
             raise EditStatusTransitionError(
                 f"只有 draft 提案可提交（当前 {proposal.status}）")
         if not (proposal.review and self._review_passed(proposal.review)):
-            logger.warning("[MetaEditor] 提案 %s 未过审核，禁止提交 review=%s",
-                           proposal.proposal_id, proposal.review)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 提案 %s 未过审核，禁止提交 review=%s" % (proposal.proposal_id, proposal.review)}))
             raise EditPolicyError("提案未通过 Reviewer 三重审核，禁止提交")
         if not proposal.eval_result:
-            logger.warning("[MetaEditor] 提案 %s 未评估，禁止提交",
-                           proposal.proposal_id)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 提案 %s 未评估，禁止提交" % proposal.proposal_id}))
             raise EditPolicyError("提案未评估，禁止提交")
         if float(proposal.eval_result.get("score", 0.0)) < self.eval_min_score:
-            logger.warning(
-                "[MetaEditor] 提案 %s 评估得分 %.4f 低于阈值 %.4f，禁止提交",
-                proposal.proposal_id,
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 提案 %s 评估得分 %.4f 低于阈值 %.4f，禁止提交" % (proposal.proposal_id,
                 float(proposal.eval_result.get("score", 0.0)),
-                self.eval_min_score)
+                self.eval_min_score)}))
             raise EditPolicyError(
                 f"提案评估得分 {proposal.eval_result.get('score')} "
                 f"低于阈值 {self.eval_min_score}，禁止提交")
@@ -622,8 +572,7 @@ class MetaEditor:
             eval_result=proposal.eval_result)
         emit_metric("yunshu_skill_meta_edit_total",
                     labels={"stage": "pending_review"}, kind="counter")
-        logger.info("[MetaEditor] 提案 %s 已提交待审批 lineage=%s",
-                    proposal.proposal_id, proposal.lineage_record_id)
+        logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter.success', 'msg': "[MetaEditor] 提案 %s 已提交待审批 lineage=%s" % (proposal.proposal_id, proposal.lineage_record_id)}))
         return proposal
 
     # ──────────────────────────────────────────────
@@ -634,24 +583,21 @@ class MetaEditor:
                          actor: str = "user") -> EditProposal:
         """人工审批通过（pending_review → approved；仍不合并，需显式 merge）"""
         if proposal.status_enum != EditStatus.PENDING_REVIEW:
-            logger.warning("[MetaEditor] 提案 %s 状态 %s 不允许审批（需 pending_review）",
-                           proposal.proposal_id, proposal.status)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 提案 %s 状态 %s 不允许审批（需 pending_review）" % (proposal.proposal_id, proposal.status)}))
             raise EditStatusTransitionError(
                 f"只有 pending_review 提案可审批（当前 {proposal.status}）")
         proposal.approve()
         proposal.decision_reason = f"人工审批通过 (actor={actor})"
         emit_metric("yunshu_skill_meta_edit_total",
                     labels={"stage": "approved", "actor": actor}, kind="counter")
-        logger.info("[MetaEditor] 提案 %s 人工审批通过 actor=%s",
-                    proposal.proposal_id, actor)
+        logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter.success', 'msg': "[MetaEditor] 提案 %s 人工审批通过 actor=%s" % (proposal.proposal_id, actor)}))
         return proposal
 
     def reject_proposal(self, proposal: EditProposal, reason: str = "",
                         actor: str = "user") -> EditProposal:
         """人工拒绝（pending_review → rejected）"""
         if proposal.status_enum != EditStatus.PENDING_REVIEW:
-            logger.warning("[MetaEditor] 提案 %s 状态 %s 不允许人工拒绝（需 pending_review）",
-                           proposal.proposal_id, proposal.status)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 提案 %s 状态 %s 不允许人工拒绝（需 pending_review）" % (proposal.proposal_id, proposal.status)}))
             raise EditStatusTransitionError(
                 f"只有 pending_review 提案可人工拒绝（当前 {proposal.status}）")
         proposal.reject(reason)
@@ -662,8 +608,7 @@ class MetaEditor:
         emit_metric("yunshu_skill_meta_edit_total",
                     labels={"stage": "human_rejected", "actor": actor},
                     kind="counter")
-        logger.info("[MetaEditor] 提案 %s 人工拒绝 actor=%s reason=%s",
-                    proposal.proposal_id, actor, reason)
+        logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 提案 %s 人工拒绝 actor=%s reason=%s" % (proposal.proposal_id, actor, reason)}))
         return proposal
 
     # ──────────────────────────────────────────────
@@ -673,16 +618,13 @@ class MetaEditor:
     def merge_proposal(self, proposal: EditProposal) -> EditProposal:
         """审批通过后应用补丁并 git 提交（验收 3：无审批无合并；验收 4：可回滚）"""
         if not proposal.is_mergeable:
-            logger.warning(
-                "[MetaEditor] 提案 %s 状态 %s 不可合并（仅 approved，无自动合并路径）",
-                proposal.proposal_id, proposal.status)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 提案 %s 状态 %s 不可合并（仅 approved，无自动合并路径）" % (proposal.proposal_id, proposal.status)}))
             raise EditStatusTransitionError(
                 f"仅审批通过（approved）的提案可合并（当前 {proposal.status}），"
                 "不存在自动合并路径")
         # 合并前二次校验（守不易：越界/内容黑名单在写盘前再次拦截）
-        logger.debug("[MetaEditor] 开始合并 proposal=%s files=%s",
-                     proposal.proposal_id,
-                     [f.file_path for f in proposal.files])
+        logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 开始合并 proposal=%s files=%s" % (proposal.proposal_id,
+                     [f.file_path for f in proposal.files])}))
         self._policy.validate_proposal(proposal)
 
         git = self._git or self._default_git()
@@ -698,7 +640,7 @@ class MetaEditor:
             sha = git.log(limit=1)[0].sha
         except Exception as e:  # noqa: BLE001 提交后取 SHA 失败不致命，回滚需人工定位
             sha = ""
-            logger.error("[MetaEditor] 提交后获取 SHA 失败 %s: %s", proposal.proposal_id, e)
+            logger.error(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 提交后获取 SHA 失败 %s: %s" % (proposal.proposal_id, e)}))
 
         proposal.merge_commit_sha = sha
         proposal.mark_merged()  # approved → merged
@@ -708,8 +650,7 @@ class MetaEditor:
             parent_record_id=proposal.lineage_record_id)
         emit_metric("yunshu_skill_meta_edit_total",
                     labels={"stage": "merged"}, kind="counter")
-        logger.info("[MetaEditor] 提案 %s 已合并 sha=%s files=%s",
-                    proposal.proposal_id, sha, rel_paths)
+        logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter.success', 'msg': "[MetaEditor] 提案 %s 已合并 sha=%s files=%s" % (proposal.proposal_id, sha, rel_paths)}))
         return proposal
 
     def rollback(self, proposal: EditProposal) -> EditProposal:
@@ -719,13 +660,11 @@ class MetaEditor:
         再提交 rollback commit；提案状态 merged → archived。
         """
         if proposal.status_enum != EditStatus.MERGED:
-            logger.warning("[MetaEditor] 提案 %s 状态 %s 不允许回滚（需 merged）",
-                           proposal.proposal_id, proposal.status)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 提案 %s 状态 %s 不允许回滚（需 merged）" % (proposal.proposal_id, proposal.status)}))
             raise EditStatusTransitionError(
                 f"只有 merged 提案可回滚（当前 {proposal.status}）")
         if not proposal.merge_commit_sha:
-            logger.error("[MetaEditor] 提案 %s 缺少 merge_commit_sha，无法回滚",
-                         proposal.proposal_id)
+            logger.error(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 提案 %s 缺少 merge_commit_sha，无法回滚" % proposal.proposal_id}))
             raise MetaEditError("提案缺少 merge_commit_sha，无法从 git 回滚")
         git = self._git or self._default_git()
         rel_paths: List[str] = []
@@ -735,8 +674,7 @@ class MetaEditor:
             resolved = self._policy.validate_file_path(f.file_path)
             resolved.write_text(parent_content, encoding="utf-8")
             rel_paths.append(rel)
-            logger.debug("[MetaEditor] 从父提交恢复 path=%s ref=%s^ bytes=%d",
-                         rel, proposal.merge_commit_sha, len(parent_content))
+            logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter', 'msg': "[MetaEditor] 从父提交恢复 path=%s ref=%s^ bytes=%d" % (rel, proposal.merge_commit_sha, len(parent_content))}))
         git.add(rel_paths)
         git.commit(f"rollback {proposal.proposal_id}")
         self._append_lineage(
@@ -746,8 +684,7 @@ class MetaEditor:
         proposal.archive()  # merged → archived
         emit_metric("yunshu_skill_meta_edit_total",
                     labels={"stage": "rolled_back"}, kind="counter")
-        logger.info("[MetaEditor] 提案 %s 已回滚 files=%s",
-                    proposal.proposal_id, rel_paths)
+        logger.info(log_dict({'module_name': 'meta_editor', 'action': 'adapter.success', 'msg': "[MetaEditor] 提案 %s 已回滚 files=%s" % (proposal.proposal_id, rel_paths)}))
         return proposal
 
     # ──────────────────────────────────────────────
@@ -784,7 +721,7 @@ class MetaEditor:
             meta, _body, _scripts, _temps = self._file_store_ref.read(skill_id)
             return meta or {}
         except Exception as e:  # noqa: BLE001 技能不存在/损坏 → None
-            logger.debug("[MetaEditor] 读取技能失败 skill=%s: %s", skill_id, e)
+            logger.debug(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 读取技能失败 skill=%s: %s" % (skill_id, e)}))
             return None
 
     def _primary_file_path(self, skill_id: str) -> str:
@@ -801,12 +738,12 @@ class MetaEditor:
         try:
             resolved = self._policy.validate_file_path(file_path)
         except Exception as e:  # noqa: BLE001 越界/禁止 → None
-            logger.warning("[MetaEditor] 读取被拦截 path=%s: %s", file_path, e)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 读取被拦截 path=%s: %s" % (file_path, e)}))
             return None
         try:
             return resolved.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as e:
-            logger.warning("[MetaEditor] 文件读取失败 path=%s: %s", file_path, e)
+            logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 文件读取失败 path=%s: %s" % (file_path, e)}))
             return None
 
     def _lineage_summary(self, skill_id: str) -> str:
@@ -867,9 +804,7 @@ class MetaEditor:
                         if isinstance(new_meta.get("default_params"), dict):
                             new_params = dict(new_meta["default_params"])
                     except Exception as e:  # noqa: BLE001 解析失败保持原参数
-                        logger.warning(
-                            "[MetaEditor] 编辑后 front matter 解析失败，沿用原参数 %s: %s",
-                            proposal.proposal_id, e)
+                        logger.warning(log_dict({'module_name': 'meta_editor', 'action': 'adapter.failed', 'msg': "[MetaEditor] 编辑后 front matter 解析失败，沿用原参数 %s: %s" % (proposal.proposal_id, e)}))
         candidate = types.SimpleNamespace(
             id=proposal.object_id,
             tags=list(meta.get("tags") or []),

@@ -85,10 +85,10 @@ def _check_sqlite_vec_available() -> bool:
     try:
         import sqlite_vec  # noqa: F401
         _SQLITE_VEC_AVAILABLE = True
-        logger.info("[LongTermMemory] sqlite-vec 可用，semantic 搜索将使用 KNN 加速")
+        logger.info(log_dict({'module_name': 'long_term_memory', 'action': 'adapter', 'msg': "[LongTermMemory] sqlite-vec 可用，semantic 搜索将使用 KNN 加速"}))
     except ImportError:
         _SQLITE_VEC_AVAILABLE = False
-        logger.info("[LongTermMemory] sqlite-vec 不可用，semantic 搜索使用纯 Python 余弦相似度")
+        logger.info(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] sqlite-vec 不可用，semantic 搜索使用纯 Python 余弦相似度"}))
     return _SQLITE_VEC_AVAILABLE
 
 
@@ -113,7 +113,7 @@ def _blob_to_embedding(blob: Any) -> Optional[list[float]]:
         # [防御] 长度上限检查（防止超大 BLOB 导致 MemoryError，sentence-transformers 最大 768 维）
         max_floats = 10000
         if len(blob) // _FLOAT_SIZE > max_floats:
-            logger.warning("[LongTermMemory] embedding BLOB 异常大 (>%d floats)，返回 None", max_floats)
+            logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] embedding BLOB 异常大 (>%d floats)，返回 None" % max_floats}))
             return None
         # 尝试 struct 解包（新 BLOB 格式）
         try:
@@ -121,7 +121,7 @@ def _blob_to_embedding(blob: Any) -> Optional[list[float]]:
             result = list(struct.unpack(f'{count}f', bytes(blob)))
             # [防御] 过滤 NaN/Inf（数据损坏时 struct.unpack 可能返回非有限值，会污染余弦相似度计算）
             if any(not math.isfinite(x) for x in result):
-                logger.warning("[LongTermMemory] embedding BLOB 包含 NaN/Inf，返回 None")
+                logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'adapter', 'msg': "[LongTermMemory] embedding BLOB 包含 NaN/Inf，返回 None"}))
                 return None
             return result
         except (struct.error, ValueError):
@@ -130,7 +130,7 @@ def _blob_to_embedding(blob: Any) -> Optional[list[float]]:
                 parsed = json.loads(blob)
                 return parsed if isinstance(parsed, list) else None
             except (json.JSONDecodeError, UnicodeDecodeError):
-                logger.warning("[LongTermMemory] embedding BLOB 反序列化失败，返回 None")
+                logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] embedding BLOB 反序列化失败，返回 None"}))
                 return None
     if isinstance(blob, str):
         # 旧 JSON TEXT 格式（向后兼容）
@@ -267,7 +267,7 @@ class LongTermMemory:
         if self._use_vec_knn:
             self._init_vec_table()
 
-        logger.info("[LongTermMemory] 初始化完成: db=%s, vec_knn=%s", db_path, self._use_vec_knn)
+        logger.info(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.success', 'msg': "[LongTermMemory] 初始化完成: db=%s, vec_knn=%s" % (db_path, self._use_vec_knn)}))
 
     # ── 能力声明 ──
 
@@ -310,7 +310,7 @@ class LongTermMemory:
         columns = [col[1] for col in conn.execute(f"PRAGMA table_info({self._TABLE_NAME})").fetchall()]
         if "embedding" not in columns:
             conn.execute(f"ALTER TABLE {self._TABLE_NAME} ADD COLUMN embedding BLOB DEFAULT NULL")
-            logger.info("[LongTermMemory] 迁移: 已添加 embedding 列")
+            logger.info(log_dict({'module_name': 'long_term_memory', 'action': 'adapter', 'msg': "[LongTermMemory] 迁移: 已添加 embedding 列"}))
         conn.execute(f"""
             CREATE INDEX IF NOT EXISTS idx_ltm_importance
             ON {self._TABLE_NAME}(importance DESC)
@@ -350,7 +350,7 @@ class LongTermMemory:
         ):
             if _col not in profile_columns:
                 conn.execute(_ddl.format(t=self._USER_PROFILE_TABLE))
-                logger.info("[LongTermMemory] 迁移: 已为 user_profile 表添加 %s 列", _col)
+                logger.info(log_dict({'module_name': 'long_term_memory', 'action': 'adapter', 'msg': "[LongTermMemory] 迁移: 已为 user_profile 表添加 %s 列" % _col}))
         conn.execute(f"""
             CREATE INDEX IF NOT EXISTS idx_user_profile_updated_at
             ON {self._USER_PROFILE_TABLE}(updated_at)
@@ -416,7 +416,7 @@ class LongTermMemory:
                     if detected_dim is None:
                         # [P4 修复] 数据库为空：跳过 vec0 表创建，由 save 延迟创建
                         # 避免默认创建 384 维表后，用户 save 768 维数据导致维度不匹配
-                        logger.info("[LongTermMemory] [P4] 数据库为空，vec0 表延迟到首次 save 时创建")
+                        logger.info(log_dict({'module_name': 'long_term_memory', 'action': 'adapter', 'msg': "[LongTermMemory] [P4] 数据库为空，vec0 表延迟到首次 save 时创建"}))
                         return
                     # 有数据：用检测到的维度创建
                     dim = detected_dim
@@ -425,14 +425,10 @@ class LongTermMemory:
                             embedding float[{dim}]
                         )
                     """)
-                    logger.info("[LongTermMemory] [P4] vec0 表已创建（维度=%d）", dim)
+                    logger.info(log_dict({'module_name': 'long_term_memory', 'action': 'adapter', 'msg': "[LongTermMemory] [P4] vec0 表已创建（维度=%d）" % dim}))
                 elif detected_dim is not None and vec_dim != detected_dim:
                     # vec0 表存在但维度不匹配：降级纯 Python（运行时不做破坏性操作）
-                    logger.warning(
-                        "[LongTermMemory] [P4] vec0 表维度（%d）与数据维度（%d）不匹配，"
-                        "降级为纯 Python。请运行迁移脚本 tlm_migrate_entrypoint.sh 修复",
-                        vec_dim, detected_dim
-                    )
+                    logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.degrade', 'msg': "[LongTermMemory] [P4] vec0 表维度（%d）与数据维度（%d）不匹配，""降级为纯 Python。请运行迁移脚本 tlm_migrate_entrypoint.sh 修复" % (vec_dim, detected_dim)}))
                     self._use_vec_knn = False
                     return
                 # else: vec0 表存在且维度匹配（或无数据可检测），继续迁移
@@ -460,11 +456,11 @@ class LongTermMemory:
                         skipped += 1
                 conn.commit()
                 if migrated > 0:
-                    logger.info("[LongTermMemory] [P4] 迁移 %d 条 embedding 到 vec0 表", migrated)
+                    logger.info(log_dict({'module_name': 'long_term_memory', 'action': 'adapter', 'msg': "[LongTermMemory] [P4] 迁移 %d 条 embedding 到 vec0 表" % migrated}))
                 if skipped > 0:
-                    logger.warning("[LongTermMemory] [P4] %d 条 embedding 解析失败，已跳过", skipped)
+                    logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] [P4] %d 条 embedding 解析失败，已跳过" % skipped}))
         except Exception as e:
-            logger.warning("[LongTermMemory] [P4] vec0 表初始化失败，降级为纯 Python: %s", e)
+            logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] [P4] vec0 表初始化失败，降级为纯 Python: %s" % e}))
             self._use_vec_knn = False
 
     def _get_conn(self) -> Any:
@@ -482,7 +478,7 @@ class LongTermMemory:
                 conn.enable_load_extension(True)
                 conn.load_extension(sqlite_vec.loadable_path())
             except Exception as e:
-                logger.warning("[LongTermMemory] [P4] 连接加载 sqlite-vec 失败: %s", e)
+                logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] [P4] 连接加载 sqlite-vec 失败: %s" % e}))
         return conn
 
     # ── 核心操作 ──
@@ -562,17 +558,13 @@ class LongTermMemory:
                                             embedding float[{dim}]
                                         )
                                     """)
-                                    logger.info("[LongTermMemory] [P4] vec0 表延迟创建（维度=%d）", dim)
+                                    logger.info(log_dict({'module_name': 'long_term_memory', 'action': 'adapter', 'msg': "[LongTermMemory] [P4] vec0 表延迟创建（维度=%d）" % dim}))
                                     vec_dim = dim
 
                                 # [P4 修复] 维度匹配检查，不匹配则降级（避免每次 save 都失败）
                                 current_dim = len(embedding) if embedding else 0
                                 if current_dim != vec_dim:
-                                    logger.warning(
-                                        "[LongTermMemory] [P4] embedding 维度（%d）与 vec0 表维度（%d）不匹配，"
-                                        "降级为纯 Python。请运行迁移脚本 tlm_migrate_entrypoint.sh 修复",
-                                        current_dim, vec_dim
-                                    )
+                                    logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.degrade', 'msg': "[LongTermMemory] [P4] embedding 维度（%d）与 vec0 表维度（%d）不匹配，""降级为纯 Python。请运行迁移脚本 tlm_migrate_entrypoint.sh 修复" % (current_dim, vec_dim)}))
                                     self._use_vec_knn = False
                                 else:
                                     conn.execute(
@@ -585,14 +577,14 @@ class LongTermMemory:
                                     if self._auto_commit:
                                         conn.commit()
                             except Exception as vec_err:
-                                logger.warning("[LongTermMemory] [P4] vec0 双写失败（不影响主表）: %s", vec_err)
+                                logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] [P4] vec0 双写失败（不影响主表）: %s" % vec_err}))
                                 # [P4 修复] 维度不匹配时降级（避免后续每次 save 都失败）
                                 err_msg = str(vec_err).lower()
                                 if "mismatch" in err_msg or "dimension" in err_msg:
-                                    logger.warning("[LongTermMemory] [P4] 检测到维度不匹配，降级为纯 Python")
+                                    logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.degrade', 'msg': "[LongTermMemory] [P4] 检测到维度不匹配，降级为纯 Python"}))
                                     self._use_vec_knn = False
 
-                logger.debug("[LongTermMemory] 保存成功: key=%s, importance=%d, sensitive=%s", key, importance, sensitive)
+                logger.debug(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.success', 'msg': "[LongTermMemory] 保存成功: key=%s, importance=%d, sensitive=%s" % (key, importance, sensitive)}))
                 
                 # ── 业务指标埋点：记忆存储 ──
                 if _BUSINESS_METRICS_AVAILABLE:
@@ -604,7 +596,7 @@ class LongTermMemory:
                 return True
 
             except Exception as e:
-                logger.error("[LongTermMemory] 保存失败: key=%s, error=%s", key, e)
+                logger.error(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] 保存失败: key=%s, error=%s" % (key, e)}))
                 return False
 
     async def get(self, key: str) -> Optional[LongTermMemoryEntry]:
@@ -668,7 +660,7 @@ class LongTermMemory:
                 return entry
 
             except Exception as e:
-                logger.error("[LongTermMemory] 获取失败: key=%s, error=%s", key, e)
+                logger.error(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] 获取失败: key=%s, error=%s" % (key, e)}))
                 return None
 
     async def search(
@@ -698,7 +690,7 @@ class LongTermMemory:
 
         # semantic/hybrid 需要 query_embedding，无则降级为 keyword
         if mode in ("semantic", "hybrid") and query_embedding is None:
-            logger.debug("[LongTermMemory] mode=%s 但无 query_embedding，降级为 keyword", mode)
+            logger.debug(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.degrade', 'msg': "[LongTermMemory] mode=%s 但无 query_embedding，降级为 keyword" % mode}))
             mode = "keyword"
 
         with self._lock:
@@ -740,7 +732,7 @@ class LongTermMemory:
                 return results
 
             except Exception as e:
-                logger.error("[LongTermMemory] 搜索失败: query=%s, mode=%s, error=%s", query, mode, e)
+                logger.error(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] 搜索失败: query=%s, mode=%s, error=%s" % (query, mode, e)}))
                 if _BUSINESS_METRICS_AVAILABLE:
                     record_memory_search(
                         memory_type="long_term",
@@ -791,7 +783,7 @@ class LongTermMemory:
                     conn, query_embedding, top_k, min_importance, include_sensitive
                 )
             except Exception as e:
-                logger.warning("[LongTermMemory] [P4] vec0 KNN 失败，降级为纯 Python: %s", e)
+                logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] [P4] vec0 KNN 失败，降级为纯 Python: %s" % e}))
                 # 降级到纯 Python 路径
 
         # [P4] 路径2: 纯 Python 余弦相似度（降级方案）
@@ -954,7 +946,7 @@ class LongTermMemory:
                         if row:
                             # 高重要性或敏感信息需要验证
                             if row["importance"] >= 5 or row["sensitive"]:
-                                logger.warning("[LongTermMemory] 删除被拒绝: key=%s 需要审查", key)
+                                logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] 删除被拒绝: key=%s 需要审查" % key}))
                                 return False
 
                     # [P4] 删除主表前先获取 rowid（用于同步删除 vec0 表）
@@ -975,15 +967,15 @@ class LongTermMemory:
                                 f"DELETE FROM {self._VEC_TABLE_NAME} WHERE rowid = ?", (rowid,)
                             )
                         except Exception as vec_err:
-                            logger.warning("[LongTermMemory] [P4] vec0 删除失败（不影响主表）: %s", vec_err)
+                            logger.warning(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] [P4] vec0 删除失败（不影响主表）: %s" % vec_err}))
 
                     conn.commit()
 
-                logger.info("[LongTermMemory] 删除成功: key=%s, force=%s", key, force)
+                logger.info(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.success', 'msg': "[LongTermMemory] 删除成功: key=%s, force=%s" % (key, force)}))
                 return True
 
             except Exception as e:
-                logger.error("[LongTermMemory] 删除失败: key=%s, error=%s", key, e)
+                logger.error(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] 删除失败: key=%s, error=%s" % (key, e)}))
                 return False
 
     async def verify(self, key: str) -> bool:
@@ -1008,7 +1000,7 @@ class LongTermMemory:
                     conn.commit()
                 return True
             except Exception as e:
-                logger.error("[LongTermMemory] 审查标记失败: key=%s, error=%s", key, e)
+                logger.error(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] 审查标记失败: key=%s, error=%s" % (key, e)}))
                 return False
 
     # ── 用户档案卡 ──
@@ -1106,10 +1098,10 @@ class LongTermMemory:
                         )
                     conn.commit()
 
-                logger.debug("[LongTermMemory] 用户档案保存成功: user_id=%s", user_id)
+                logger.debug(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.success', 'msg': "[LongTermMemory] 用户档案保存成功: user_id=%s" % user_id}))
                 return True
             except Exception as e:
-                logger.error("[LongTermMemory] 用户档案保存失败: user_id=%s, error=%s", user_id, e)
+                logger.error(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] 用户档案保存失败: user_id=%s, error=%s" % (user_id, e)}))
                 return False
 
     async def get_profile(self, user_id: str) -> Optional[dict[str, Any]]:
@@ -1150,7 +1142,7 @@ class LongTermMemory:
                 }
                 return profile
             except Exception as e:
-                logger.error("[LongTermMemory] 用户档案获取失败: user_id=%s, error=%s", user_id, e)
+                logger.error(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] 用户档案获取失败: user_id=%s, error=%s" % (user_id, e)}))
                 return None
 
     @staticmethod
@@ -1182,7 +1174,7 @@ class LongTermMemory:
                     """, (limit,)).fetchall()
                 return [dict(row) for row in rows]
             except Exception as e:
-                logger.error("[LongTermMemory] 列出用户档案失败: %s", e)
+                logger.error(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] 列出用户档案失败: %s" % e}))
                 return []
 
     # ── 统计与审查 ──
@@ -1198,7 +1190,7 @@ class LongTermMemory:
                     high_importance = conn.execute(f"SELECT COUNT(*) as c FROM {self._TABLE_NAME} WHERE importance >= 4").fetchone()["c"]
                     embedding_count = conn.execute(f"SELECT COUNT(*) as c FROM {self._TABLE_NAME} WHERE embedding IS NOT NULL").fetchone()["c"]
             except Exception as e:
-                logger.error("[LongTermMemory] 统计失败: %s", e)
+                logger.error(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] 统计失败: %s" % e}))
                 return {}
 
         return {
@@ -1243,7 +1235,7 @@ class LongTermMemory:
 
                 return [LongTermMemoryEntry.from_dict(dict(row)) for row in rows]
             except Exception as e:
-                logger.error("[LongTermMemory] 列出最近记忆失败: %s", e)
+                logger.error(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] 列出最近记忆失败: %s" % e}))
                 return []
 
     def list_unverified(self, limit: int = 50) -> list[LongTermMemoryEntry]:
@@ -1260,7 +1252,7 @@ class LongTermMemory:
 
                 return [LongTermMemoryEntry.from_dict(dict(row)) for row in rows]
             except Exception as e:
-                logger.error("[LongTermMemory] 列出未审查失败: %s", e)
+                logger.error(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] 列出未审查失败: %s" % e}))
                 return []
 
     def list_sensitive(self, limit: int = 50) -> list[LongTermMemoryEntry]:
@@ -1277,5 +1269,5 @@ class LongTermMemory:
 
                 return [LongTermMemoryEntry.from_dict(dict(row)) for row in rows]
             except Exception as e:
-                logger.error("[LongTermMemory] 列出敏感记忆失败: %s", e)
+                logger.error(log_dict({'module_name': 'long_term_memory', 'action': 'adapter.failed', 'msg': "[LongTermMemory] 列出敏感记忆失败: %s" % e}))
                 return []

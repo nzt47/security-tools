@@ -114,7 +114,7 @@ class HolographicAdapter(MemoryInterface):
         self._init_vec_table()            # [TLM-L2] 向量表初始化（失败降级，不抛异常）
         self._migrate_schema_if_needed()  # [TLM] Schema 迁移（幂等）
 
-        logger.info("[HolographicAdapter] 初始化完成: db=%s, vec_available=%s", db_path, self._vec_available)
+        logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter', 'msg': "[HolographicAdapter] 初始化完成: db=%s, vec_available=%s" % (db_path, self._vec_available)}))
 
     # ── 能力声明 ──
 
@@ -147,7 +147,7 @@ class HolographicAdapter(MemoryInterface):
                 self._conn_local.vec_loaded = True
             except Exception as e:
                 # 加载失败不阻断，调用方 try-except 兜底降级
-                logger.debug("[HolographicAdapter][conn] sqlite-vec 扩展按需加载失败: %s", e)
+                logger.debug(log_dict({'module_name': 'holographic_adapter', 'action': 'conn.failed', 'msg': "[HolographicAdapter][conn] sqlite-vec 扩展按需加载失败: %s" % e}))
         return conn
 
     def _init_db(self):
@@ -197,7 +197,7 @@ class HolographicAdapter(MemoryInterface):
 
         if tripped:
             logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.circuit_break', 'msg': f'[HolographicAdapter][vec] 熔断触发：连续失败 {self._vec_fail_count} 次 ≥ 阈值 {self._vec_fail_threshold}，自动降级 _vec_available=False'}))
-            logger.info("[HolographicAdapter][vec] 熔断路径: 失败计数 %d → _vec_available=False", self._vec_fail_count)
+            logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.failed', 'msg': "[HolographicAdapter][vec] 熔断路径: 失败计数 %d → _vec_available=False" % self._vec_fail_count}))
 
     def _reset_vec_circuit(self):
         """重置熔断器，恢复向量层可用状态（供后台探活调用）
@@ -207,7 +207,7 @@ class HolographicAdapter(MemoryInterface):
         with self._lock:
             self._vec_fail_count = 0
             self._vec_available = True
-        logger.info("[HolographicAdapter][vec] 熔断器重置: _vec_available=True, fail_count=0")
+        logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.degrade', 'msg': "[HolographicAdapter][vec] 熔断器重置: _vec_available=True, fail_count=0"}))
 
     # [TLM-L2] 向量表初始化 — sqlite-vec 不可用时降级，禁抛异常
     def _init_vec_table(self):
@@ -223,7 +223,7 @@ class HolographicAdapter(MemoryInterface):
             import sqlite_vec  # noqa: F401  延迟导入，可选依赖
         except ImportError:
             logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.import_failed', 'msg': '[HolographicAdapter] sqlite-vec 未安装，降级为纯 FTS5 + BM25'}))
-            logger.info("[HolographicAdapter][vec] 降级路径: sqlite_vec 模块不可导入 → _vec_available=False")
+            logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.degrade', 'msg': "[HolographicAdapter][vec] 降级路径: sqlite_vec 模块不可导入 → _vec_available=False"}))
             return
 
         try:
@@ -236,22 +236,22 @@ class HolographicAdapter(MemoryInterface):
                     sqlite_vec.load(conn)
                     loaded = True
                     self._conn_local.vec_loaded = True  # 标记当前线程连接已加载扩展
-                    logger.info("[HolographicAdapter][vec] sqlite_vec.load(conn) 加载成功（Python 适配器路径）")
+                    logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.success', 'msg': "[HolographicAdapter][vec] sqlite_vec.load(conn) 加载成功（Python 适配器路径）"}))
                 except Exception as e_py:
-                    logger.info("[HolographicAdapter][vec] Python 适配器加载失败: %s → 尝试原生 load_extension", e_py)
+                    logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.failed', 'msg': "[HolographicAdapter][vec] Python 适配器加载失败: %s → 尝试原生 load_extension" % e_py}))
                 # Fallback 原生扩展加载（按文件名加载）
                 if not loaded:
                     try:
                         conn.enable_load_extension(True)
                         conn.load_extension('sqlite_vec')
                         loaded = True
-                        logger.info("[HolographicAdapter][vec] load_extension('sqlite_vec') 加载成功（原生路径）")
+                        logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.success', 'msg': "[HolographicAdapter][vec] load_extension('sqlite_vec') 加载成功（原生路径）"}))
                     except Exception as e_native:
-                        logger.info("[HolographicAdapter][vec] 原生 load_extension 失败: %s", e_native)
+                        logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.failed', 'msg': "[HolographicAdapter][vec] 原生 load_extension 失败: %s" % e_native}))
 
                 if not loaded:
                     logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.load_failed', 'msg': '[HolographicAdapter] sqlite-vec 扩展加载全部失败，降级为纯 FTS5 + BM25'}))
-                    logger.info("[HolographicAdapter][vec] 降级路径: 两种加载方式均失败 → _vec_available=False")
+                    logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.failed', 'msg': "[HolographicAdapter][vec] 降级路径: 两种加载方式均失败 → _vec_available=False"}))
                     return
 
                 conn.execute(
@@ -260,12 +260,12 @@ class HolographicAdapter(MemoryInterface):
                 )
                 conn.commit()
             self._vec_available = True
-            logger.info("[HolographicAdapter][vec] 向量表就绪: table=%s, dim=%d → _vec_available=True", self._VEC_TABLE, self._VEC_DIM)
+            logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec', 'msg': "[HolographicAdapter][vec] 向量表就绪: table=%s, dim=%d → _vec_available=True" % (self._VEC_TABLE, self._VEC_DIM)}))
         except Exception as e:
             # 兜底：任何意外异常都降级，绝不抛出（守不易约束）
             self._vec_available = False
             logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.init_failed', 'msg': f'[HolographicAdapter] memories_vec 初始化失败，降级运行: {e}'}))
-            logger.info("[HolographicAdapter][vec] 降级路径: 初始化异常 %s → _vec_available=False", e)
+            logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.failed', 'msg': "[HolographicAdapter][vec] 降级路径: 初始化异常 %s → _vec_available=False" % e}))
 
     # [TLM] Schema 迁移 — 幂等，可安全重复调用
     def _migrate_schema_if_needed(self):
@@ -294,7 +294,7 @@ class HolographicAdapter(MemoryInterface):
                 for col, decl in required_columns.items():
                     if col not in existing_cols:
                         conn.execute(f"ALTER TABLE {self._CONTENT_TABLE} ADD COLUMN {col} {decl}")
-                        logger.info("[HolographicAdapter][migrate] 新增字段: %s %s", col, decl)
+                        logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'migrate', 'msg': "[HolographicAdapter][migrate] 新增字段: %s %s" % (col, decl)}))
                         added.append(col)
                 # 兜底表（向量写入失败补偿）
                 conn.execute(
@@ -325,12 +325,12 @@ class HolographicAdapter(MemoryInterface):
                     "saved_at REAL NOT NULL)"
                 )
                 conn.commit()
-                logger.info("[HolographicAdapter][migrate] 迁移完成: 新增字段=%s, 兜底表=%s 已就绪",
-                            added if added else "无", self._VEC_FAILED_TABLE)
+                logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'migrate.success', 'msg': "[HolographicAdapter][migrate] 迁移完成: 新增字段=%s, 兜底表=%s 已就绪" % (
+                            added if added else "无", self._VEC_FAILED_TABLE)}))
         except Exception as e:
             # schema 迁移失败不阻断启动（守不易：旧 schema 仍可用，仅缺少新字段）
             logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'migrate.failed', 'msg': f'[HolographicAdapter] Schema 迁移失败（继续以旧 schema 运行）: {e}'}))
-            logger.info("[HolographicAdapter][migrate] 迁移失败但继续运行: %s", e)
+            logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'migrate.failed', 'msg': "[HolographicAdapter][migrate] 迁移失败但继续运行: %s" % e}))
 
     # ── MemoryInterface 实现 ──
 
@@ -376,11 +376,11 @@ class HolographicAdapter(MemoryInterface):
                 if self._cache:
                     self._cache.clear()
 
-                logger.debug("[HolographicAdapter] 保存成功: key=%s", key)
+                logger.debug(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.success', 'msg': "[HolographicAdapter] 保存成功: key=%s" % key}))
                 ok = True
 
             except Exception as e:
-                logger.error("[HolographicAdapter] 保存失败: key=%s, error=%s", key, e)
+                logger.error(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] 保存失败: key=%s, error=%s" % (key, e)}))
                 ok = False
 
         # [TLM-L3] 锁外通知 syncer（守 project_memory：持锁禁外部回调）
@@ -389,7 +389,7 @@ class HolographicAdapter(MemoryInterface):
             try:
                 self._syncer.notify_change(key, "upsert")
             except Exception as e_sync:
-                logger.warning("[HolographicAdapter] syncer.notify_change 失败（忽略）: %s", e_sync)
+                logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] syncer.notify_change 失败（忽略）: %s" % e_sync}))
         return ok
 
     # [TLM-L2] 带向量的保存 — 主表+FTS 同事务，向量层异步写入
@@ -413,13 +413,13 @@ class HolographicAdapter(MemoryInterface):
             return False
 
         if not self._vec_available:
-            logger.info("[HolographicAdapter][vec] save_with_embedding: 向量层不可用，跳过向量写入 key=%s", key)
+            logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.failed', 'msg': "[HolographicAdapter][vec] save_with_embedding: 向量层不可用，跳过向量写入 key=%s" % key}))
             return True
 
         # embedding 缺失：尝试回调生成
         if embedding is None:
             if self._embedding_func is None:
-                logger.info("[HolographicAdapter][vec] embedding 缺失且无回调，跳过向量写入 key=%s", key)
+                logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.degrade', 'msg': "[HolographicAdapter][vec] embedding 缺失且无回调，跳过向量写入 key=%s" % key}))
                 return True
             # 异步生成 embedding 后写入（不阻塞主流程）
             t = threading.Thread(
@@ -432,8 +432,8 @@ class HolographicAdapter(MemoryInterface):
 
         # 维度校验
         if len(embedding) != self._VEC_DIM:
-            logger.warning("[HolographicAdapter][vec] 维度不匹配: 期望 %d, 实际 %d, 跳过向量写入 key=%s",
-                           self._VEC_DIM, len(embedding), key)
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.dim_mismatch', 'msg': "[HolographicAdapter][vec] 维度不匹配: 期望 %d, 实际 %d, 跳过向量写入 key=%s" % (
+                           self._VEC_DIM, len(embedding), key)}))
             return True
 
         # 异步写入向量层（重试 + 兜底）
@@ -453,12 +453,12 @@ class HolographicAdapter(MemoryInterface):
     ) -> list[MemoryResult]:
         """向量 KNN 检索（sqlite-vec 不可用时返回空列表）"""
         if not self._vec_available:
-            logger.info("[HolographicAdapter][vec] search_vector: 向量层不可用，返回空列表")
+            logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.failed', 'msg': "[HolographicAdapter][vec] search_vector: 向量层不可用，返回空列表"}))
             return []
 
         if len(query_embedding) != self._VEC_DIM:
-            logger.warning("[HolographicAdapter][vec] 查询维度不匹配: 期望 %d, 实际 %d",
-                           self._VEC_DIM, len(query_embedding))
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.dim_mismatch', 'msg': "[HolographicAdapter][vec] 查询维度不匹配: 期望 %d, 实际 %d" % (
+                           self._VEC_DIM, len(query_embedding))}))
             return []
 
         try:
@@ -507,13 +507,13 @@ class HolographicAdapter(MemoryInterface):
                     source="holographic_vec",
                     metadata={"key": key, "distance": distance, **meta},
                 ))
-            logger.info("[HolographicAdapter][vec] search_vector 命中 %d 条 (top_k=%d)", len(results), top_k)
+            logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.search_hit', 'msg': "[HolographicAdapter][vec] search_vector 命中 %d 条 (top_k=%d)" % (len(results), top_k)}))
             self._record_access_for_results(results)  # [TLM-L2] 命中即更新 access_count
             return results
         except Exception as e:
             self._record_vec_failure()  # [TLM-L2] 熔断计数
             logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'search_vector.failed', 'msg': f'[HolographicAdapter] 向量检索失败: {e}'}))
-            logger.info("[HolographicAdapter][vec] search_vector 异常 %s → 返回空列表（fail_count=%d）", e, self._vec_fail_count)
+            logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.failed', 'msg': "[HolographicAdapter][vec] search_vector 异常 %s → 返回空列表（fail_count=%d）" % (e, self._vec_fail_count)}))
             return []
 
     async def search(
@@ -602,7 +602,7 @@ class HolographicAdapter(MemoryInterface):
                     self._cache.set(cache_key, results)
 
             except Exception as e:
-                logger.error("[HolographicAdapter] 搜索失败: query=%s, error=%s", query, e)
+                logger.error(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] 搜索失败: query=%s, error=%s" % (query, e)}))
                 return []
 
         # [TLM-L2] 命中计数移到锁外（record_access 复用 _lock，锁内调用会死锁）
@@ -627,7 +627,7 @@ class HolographicAdapter(MemoryInterface):
             """, (pattern, pattern, top_k)).fetchall()
             return rows
         except Exception as e:
-            logger.warning("[HolographicAdapter] LIKE 降级搜索失败: %s", e)
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] LIKE 降级搜索失败: %s" % e}))
             return []
 
     async def get_profile(self, user_id: str) -> dict:
@@ -681,7 +681,7 @@ class HolographicAdapter(MemoryInterface):
                 return profile
 
             except Exception as e:
-                logger.error("[HolographicAdapter] 获取画像失败: user_id=%s, error=%s", user_id, e)
+                logger.error(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] 获取画像失败: user_id=%s, error=%s" % (user_id, e)}))
                 return {}
 
     async def update_graph(
@@ -711,7 +711,7 @@ class HolographicAdapter(MemoryInterface):
             )
             return success
         except Exception as e:
-            logger.error("[HolographicAdapter] 更新图谱失败: %s", e)
+            logger.error(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] 更新图谱失败: %s" % e}))
             return False
 
     # ── 辅助方法 ──
@@ -726,7 +726,7 @@ class HolographicAdapter(MemoryInterface):
                     ).fetchone()["c"]
                     db_size = Path(self.db_path).stat().st_size if Path(self.db_path).exists() else 0
             except Exception as e:
-                logger.warning("[HolographicAdapter] 统计失败: %s", e)
+                logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] 统计失败: %s" % e}))
                 count = -1
                 db_size = 0
 
@@ -763,7 +763,7 @@ class HolographicAdapter(MemoryInterface):
                     self._cache.clear()
                 ok = True
             except Exception as e:
-                logger.error("[HolographicAdapter] 删除失败: key=%s, error=%s", key, e)
+                logger.error(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] 删除失败: key=%s, error=%s" % (key, e)}))
                 ok = False
 
         # [TLM-L3] 锁外通知 syncer 删除事件
@@ -771,7 +771,7 @@ class HolographicAdapter(MemoryInterface):
             try:
                 self._syncer.notify_change(key, "delete")
             except Exception as e_sync:
-                logger.warning("[HolographicAdapter] syncer.notify_change(delete) 失败（忽略）: %s", e_sync)
+                logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] syncer.notify_change(delete) 失败（忽略）: %s" % e_sync}))
         return ok
 
     async def clear(self) -> bool:
@@ -786,7 +786,7 @@ class HolographicAdapter(MemoryInterface):
                         try:
                             conn.execute(f"DELETE FROM {self._VEC_TABLE}")
                         except Exception as e_vec:
-                            logger.warning("[HolographicAdapter] 清空向量表失败（忽略）: %s", e_vec)
+                            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] 清空向量表失败（忽略）: %s" % e_vec}))
                     # 清理兜底表
                     try:
                         conn.execute(f"DELETE FROM {self._VEC_FAILED_TABLE}")
@@ -799,7 +799,7 @@ class HolographicAdapter(MemoryInterface):
                 logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'log', 'msg': '[HolographicAdapter] 已清空所有记忆'}))
                 return True
             except Exception as e:
-                logger.error("[HolographicAdapter] 清空失败: %s", e)
+                logger.error(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] 清空失败: %s" % e}))
                 return False
 
     # ── [TLM-L2] 向量层写入辅助方法 ──
@@ -820,20 +820,20 @@ class HolographicAdapter(MemoryInterface):
         for attempt in range(max_retries):
             try:
                 self._write_vec_row(key, embedding)
-                logger.info("[HolographicAdapter][vec] 向量写入成功 key=%s (attempt=%d)", key, attempt + 1)
+                logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.success', 'msg': "[HolographicAdapter][vec] 向量写入成功 key=%s (attempt=%d)" % (key, attempt + 1)}))
                 return
             except Exception as e:
                 last_error = e
-                logger.warning("[HolographicAdapter][vec] 向量写入失败 key=%s attempt=%d/%d error=%s",
-                               key, attempt + 1, max_retries, e)
+                logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.write_failed', 'msg': "[HolographicAdapter][vec] 向量写入失败 key=%s attempt=%d/%d error=%s" % (
+                               key, attempt + 1, max_retries, e)}))
                 if attempt < max_retries - 1:
                     delay = policy.calculate_delay(attempt)
-                    logger.info("[HolographicAdapter][vec] 重试等待 %.2fs (attempt=%d)", delay, attempt + 1)
+                    logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec', 'msg': "[HolographicAdapter][vec] 重试等待 %.2fs (attempt=%d)" % (delay, attempt + 1)}))
                     import time as _time
                     _time.sleep(delay)
 
         # 重试耗尽，写兜底表
-        logger.error("[HolographicAdapter][vec] 向量写入重试耗尽 key=%s → 写兜底表 %s", key, self._VEC_FAILED_TABLE)
+        logger.error(log_dict({'module_name': 'holographic_adapter', 'action': 'vec', 'msg': "[HolographicAdapter][vec] 向量写入重试耗尽 key=%s → 写兜底表 %s" % (key, self._VEC_FAILED_TABLE)}))
         self._write_vec_failed(key, embedding, str(last_error))
         self._record_vec_failure()  # [TLM-L2] 熔断计数
 
@@ -865,22 +865,22 @@ class HolographicAdapter(MemoryInterface):
                     )
                     conn.commit()
         except Exception as e:
-            logger.error("[HolographicAdapter][vec] 兜底表写入失败 key=%s error=%s", key, e)
+            logger.error(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.failed', 'msg': "[HolographicAdapter][vec] 兜底表写入失败 key=%s error=%s" % (key, e)}))
 
     def _async_embed_and_write(self, key: str, data: Any):
         """通过 _embedding_func 回调生成 embedding 后写入向量层"""
         try:
             embedding = self._embedding_func(data)
             if embedding is None:
-                logger.info("[HolographicAdapter][vec] embedding 回调返回 None，跳过 key=%s", key)
+                logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.degrade', 'msg': "[HolographicAdapter][vec] embedding 回调返回 None，跳过 key=%s" % key}))
                 return
             if len(embedding) != self._VEC_DIM:
-                logger.warning("[HolographicAdapter][vec] 回调 embedding 维度不匹配: 期望 %d, 实际 %d",
-                               self._VEC_DIM, len(embedding))
+                logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.dim_mismatch', 'msg': "[HolographicAdapter][vec] 回调 embedding 维度不匹配: 期望 %d, 实际 %d" % (
+                               self._VEC_DIM, len(embedding))}))
                 return
             self._retry_vec_write(key, embedding)
         except Exception as e:
-            logger.error("[HolographicAdapter][vec] embedding 回调异常 key=%s error=%s", key, e)
+            logger.error(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.failed', 'msg': "[HolographicAdapter][vec] embedding 回调异常 key=%s error=%s" % (key, e)}))
 
     def replay_vec_failed(self, max_items: int = 100) -> int:
         """重放兜底表中的失败向量写入（后台补偿）
@@ -889,7 +889,7 @@ class HolographicAdapter(MemoryInterface):
             成功重放的条数
         """
         if not self._vec_available:
-            logger.info("[HolographicAdapter][vec] replay_vec_failed: 向量层不可用，跳过")
+            logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.failed', 'msg': "[HolographicAdapter][vec] replay_vec_failed: 向量层不可用，跳过"}))
             return 0
 
         try:
@@ -899,7 +899,7 @@ class HolographicAdapter(MemoryInterface):
                     (max_items,),
                 ).fetchall()
         except Exception as e:
-            logger.error("[HolographicAdapter][vec] 读取兜底表失败: %s", e)
+            logger.error(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.failed', 'msg': "[HolographicAdapter][vec] 读取兜底表失败: %s" % e}))
             return 0
 
         replayed = 0
@@ -914,11 +914,11 @@ class HolographicAdapter(MemoryInterface):
                     conn.execute(f"DELETE FROM {self._VEC_FAILED_TABLE} WHERE key = ?", (key,))
                     conn.commit()
                 replayed += 1
-                logger.info("[HolographicAdapter][vec] 兜底表重放成功 key=%s", key)
+                logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.success', 'msg': "[HolographicAdapter][vec] 兜底表重放成功 key=%s" % key}))
             except Exception as e:
-                logger.warning("[HolographicAdapter][vec] 兜底表重放失败 key=%s error=%s", key, e)
+                logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'vec.failed', 'msg': "[HolographicAdapter][vec] 兜底表重放失败 key=%s error=%s" % (key, e)}))
 
-        logger.info("[HolographicAdapter][vec] replay_vec_failed 完成: 重放 %d 条", replayed)
+        logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'vec', 'msg': "[HolographicAdapter][vec] replay_vec_failed 完成: 重放 %d 条" % replayed}))
         return replayed
 
     # ── [TLM-L3] Markdown 双向同步支持方法 ──
@@ -926,7 +926,7 @@ class HolographicAdapter(MemoryInterface):
     def set_syncer(self, syncer):
         """注入 MarkdownSyncer（启用双向同步）。传 None 关闭。"""
         self._syncer = syncer
-        logger.info("[HolographicAdapter] syncer 已%s", "注入" if syncer is not None else "移除")
+        logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter', 'msg': "[HolographicAdapter] syncer 已%s" % ("注入" if syncer is not None else "移除")}))
 
     def set_scorer(self, scorer):
         """[TLM-L2] 注入 HotnessScorer（启用命中计数）。传 None 关闭。
@@ -935,7 +935,7 @@ class HolographicAdapter(MemoryInterface):
              通过依赖注入避免循环依赖（HotnessScorer 持有 adapter，adapter 反向持有 scorer）。
         """
         self._scorer = scorer
-        logger.info("[HolographicAdapter] scorer 已%s", "注入" if scorer is not None else "移除")
+        logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter', 'msg': "[HolographicAdapter] scorer 已%s" % ("注入" if scorer is not None else "移除")}))
 
     def enable_markdown_sync(
         self,
@@ -985,12 +985,11 @@ class HolographicAdapter(MemoryInterface):
             # 启动失败由 watcher 内部兜底，不抛异常（守不易：不阻塞主进程）
             watcher.start()
 
-        logger.info(
-            "[HolographicAdapter] Markdown 双向同步已启用 output_dir=%s "
-            "watcher=%s debounce=%ss batch=%s dedup=%sms",
+        logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'sync.enabled', 'msg': "[HolographicAdapter] Markdown 双向同步已启用 output_dir=%s "
+            "watcher=%s debounce=%ss batch=%s dedup=%sms" % (
             output_dir, "on" if (watcher and watcher._started) else "off",
             debounce_seconds, batch_threshold, dedup_ms,
-        )
+        )}))
         return syncer, watcher
 
     def disable_markdown_sync(self, watcher=None):
@@ -999,14 +998,14 @@ class HolographicAdapter(MemoryInterface):
             try:
                 watcher.stop()
             except Exception as e:
-                logger.warning("[HolographicAdapter] 停止 watcher 异常: %s", e)
+                logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] 停止 watcher 异常: %s" % e}))
         if self._syncer is not None:
             try:
                 self._syncer.close()
             except Exception as e:
-                logger.warning("[HolographicAdapter] 关闭 syncer 异常: %s", e)
+                logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] 关闭 syncer 异常: %s" % e}))
         self.set_syncer(None)
-        logger.info("[HolographicAdapter] Markdown 双向同步已关闭")
+        logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.success', 'msg': "[HolographicAdapter] Markdown 双向同步已关闭"}))
 
     def get_raw_memory(self, key: str) -> Optional[dict]:
         """读取单条记忆原始字段（供 FileWatcher 反向同步计算 db_hash）
@@ -1047,7 +1046,7 @@ class HolographicAdapter(MemoryInterface):
                 "hotness": row.get("hotness") or 0.0,
             }
         except Exception as e:
-            logger.warning("[HolographicAdapter] get_raw_memory 失败 key=%s: %s", key, e)
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] get_raw_memory 失败 key=%s: %s" % (key, e)}))
             return None
 
     def get_raw_memories(self, keys: list) -> list[dict]:
@@ -1086,7 +1085,7 @@ class HolographicAdapter(MemoryInterface):
                 })
             return result
         except Exception as e:
-            logger.warning("[HolographicAdapter] get_raw_memories 失败: %s", e)
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] get_raw_memories 失败: %s" % e}))
             return []
 
     def get_raw_memories_all(self) -> list[dict]:
@@ -1121,7 +1120,7 @@ class HolographicAdapter(MemoryInterface):
                 })
             return result
         except Exception as e:
-            logger.warning("[HolographicAdapter] get_raw_memories_all 失败: %s", e)
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] get_raw_memories_all 失败: %s" % e}))
             return []
 
     # ── [TLM-L2] 检索命中计数（事务性更新 access_count + last_accessed）──
@@ -1163,10 +1162,9 @@ class HolographicAdapter(MemoryInterface):
                     )
                     conn.commit()
         except Exception as e:
-            logger.warning(
-                "[HolographicAdapter] _record_access_for_results 更新失败 keys=%s: %s",
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'access.update_failed', 'msg': "[HolographicAdapter] _record_access_for_results 更新失败 keys=%s: %s" % (
                 keys, e,
-            )
+            )}))
             return
         # 锁外通知 scorer 更新内存热度缓存（守 project_memory：持锁禁外部回调）
         if self._scorer is not None:
@@ -1174,9 +1172,7 @@ class HolographicAdapter(MemoryInterface):
                 for k in keys:
                     self._scorer.record_access(k, now)
             except Exception as e:
-                logger.debug(
-                    "[HolographicAdapter] scorer.record_access 失败（忽略）: %s", e
-                )
+                logger.debug(log_dict({'module_name': 'holographic_adapter', 'action': 'scorer.record_failed', 'msg': "[HolographicAdapter] scorer.record_access 失败（忽略）: %s" % e}))
 
     def record_sync_conflict(
         self,
@@ -1205,11 +1201,10 @@ class HolographicAdapter(MemoryInterface):
                     ).fetchone()
                     if existing is not None:
                         existing_id = existing["id"] if isinstance(existing, dict) else existing[0]
-                        logger.debug(
-                            "[HolographicAdapter] 冲突已存在未解决记录，跳过重复 "
-                            "id=%s sqlite_id=%s db_hash=%s file_hash=%s",
+                        logger.debug(log_dict({'module_name': 'holographic_adapter', 'action': 'conflict.skip_duplicate', 'msg': "[HolographicAdapter] 冲突已存在未解决记录，跳过重复 "
+                            "id=%s sqlite_id=%s db_hash=%s file_hash=%s" % (
                             existing_id, sqlite_id, db_hash, file_hash,
-                        )
+                        )}))
                         return existing_id
                     cur = conn.execute(
                         "INSERT INTO sync_conflicts "
@@ -1220,24 +1215,22 @@ class HolographicAdapter(MemoryInterface):
                     conn.commit()
                     conflict_id = cur.lastrowid or 0
             # 锁外记日志（守 project_memory：持锁禁 I/O，日志记录移出临界区）
-            logger.info(
-                "[HolographicAdapter] 冲突已记录 id=%s sqlite_id=%s "
-                "db_hash=%s file_hash=%s resolution=%s detected_at=%.3f",
+            logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'conflict.recorded', 'msg': "[HolographicAdapter] 冲突已记录 id=%s sqlite_id=%s "
+                "db_hash=%s file_hash=%s resolution=%s detected_at=%.3f" % (
                 conflict_id, sqlite_id, db_hash, file_hash, resolution, now,
-            )
+            )}))
             # [TLM-L2] 冲突计数器埋点（埋点失败不影响冲突记录返回值）
             try:
                 from agent.memory.observability import track_tlm_sync_conflict
                 track_tlm_sync_conflict(resolution)
             except Exception as e_metric:
-                logger.debug("[HolographicAdapter] sync_conflict 埋点失败（忽略）: %s", e_metric)
+                logger.debug(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] sync_conflict 埋点失败（忽略）: %s" % e_metric}))
             return conflict_id
         except Exception as e:
-            logger.error(
-                "[HolographicAdapter] record_sync_conflict 失败 sqlite_id=%s "
-                "db_hash=%s file_hash=%s error=%s",
+            logger.error(log_dict({'module_name': 'holographic_adapter', 'action': 'conflict.record_failed', 'msg': "[HolographicAdapter] record_sync_conflict 失败 sqlite_id=%s "
+                "db_hash=%s file_hash=%s error=%s" % (
                 sqlite_id, db_hash, file_hash, e,
-            )
+            )}))
             return 0
 
     def list_sync_conflicts(self, unresolved_only: bool = True) -> list[dict]:
@@ -1254,22 +1247,20 @@ class HolographicAdapter(MemoryInterface):
                         "SELECT * FROM sync_conflicts ORDER BY detected_at DESC"
                     ).fetchall()
             result = [dict(r) for r in rows]
-            logger.info(
-                "[HolographicAdapter] 查询冲突记录 unresolved_only=%s 返回 %d 条",
+            logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'conflict.query', 'msg': "[HolographicAdapter] 查询冲突记录 unresolved_only=%s 返回 %d 条" % (
                 unresolved_only, len(result),
-            )
+            )}))
             if result:
                 # 抽样详情便于排查（最多 3 条，避免日志爆炸）
                 for c in result[:3]:
-                    logger.debug(
-                        "[HolographicAdapter] 冲突详情 id=%s sqlite_id=%s "
-                        "db=%s file=%s resolved=%s resolution=%s",
+                    logger.debug(log_dict({'module_name': 'holographic_adapter', 'action': 'conflict.detail', 'msg': "[HolographicAdapter] 冲突详情 id=%s sqlite_id=%s "
+                        "db=%s file=%s resolved=%s resolution=%s" % (
                         c.get("id"), c.get("sqlite_id"), c.get("db_hash"),
                         c.get("file_hash"), c.get("resolved_at"), c.get("resolution"),
-                    )
+                    )}))
             return result
         except Exception as e:
-            logger.warning("[HolographicAdapter] list_sync_conflicts 失败: %s", e)
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] list_sync_conflicts 失败: %s" % e}))
             return []
 
     def resolve_sync_conflict(self, conflict_id: int, resolution: str):
@@ -1283,15 +1274,13 @@ class HolographicAdapter(MemoryInterface):
                         (now, resolution, conflict_id),
                     )
                     conn.commit()
-            logger.info(
-                "[HolographicAdapter] 冲突已标记解决 id=%s resolution=%s resolved_at=%.3f",
+            logger.info(log_dict({'module_name': 'holographic_adapter', 'action': 'conflict.resolved', 'msg': "[HolographicAdapter] 冲突已标记解决 id=%s resolution=%s resolved_at=%.3f" % (
                 conflict_id, resolution, now,
-            )
+            )}))
         except Exception as e:
-            logger.warning(
-                "[HolographicAdapter] resolve_sync_conflict 失败 id=%s error=%s",
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'conflict.resolve_failed', 'msg': "[HolographicAdapter] resolve_sync_conflict 失败 id=%s error=%s" % (
                 conflict_id, e,
-            )
+            )}))
 
     # ── 【方案二】pending 崩溃恢复表接口 ──
 
@@ -1312,9 +1301,7 @@ class HolographicAdapter(MemoryInterface):
                 )
                 conn.commit()
         except Exception as e:
-            logger.warning(
-                "[HolographicAdapter] save_pending_recovery 失败 key=%s: %s", key, e
-            )
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'recovery.save_failed', 'msg': "[HolographicAdapter] save_pending_recovery 失败 key=%s: %s" % (key, e)}))
 
     def load_pending_recovery(self) -> list[dict]:
         """读取 pending_recovery 表所有记录（syncer 启动时调用）"""
@@ -1325,7 +1312,7 @@ class HolographicAdapter(MemoryInterface):
                 ).fetchall()
             return [{"key": row["key"], "op": row["op"]} for row in rows]
         except Exception as e:
-            logger.warning("[HolographicAdapter] load_pending_recovery 失败: %s", e)
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] load_pending_recovery 失败: %s" % e}))
             return []
 
     def clear_pending_recovery(self, keys: Optional[list] = None) -> None:
@@ -1346,5 +1333,5 @@ class HolographicAdapter(MemoryInterface):
                     conn.execute("DELETE FROM pending_recovery")
                 conn.commit()
         except Exception as e:
-            logger.warning("[HolographicAdapter] clear_pending_recovery 失败: %s", e)
+            logger.warning(log_dict({'module_name': 'holographic_adapter', 'action': 'adapter.failed', 'msg': "[HolographicAdapter] clear_pending_recovery 失败: %s" % e}))
 
