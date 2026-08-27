@@ -139,14 +139,14 @@ promtool check rules alert_rules.yml            => SUCCESS: 22 rules found
 
 ---
 
-## 六、遗留问题与后续建议
+## 六、遗留问题处理与后续建议
 
-| # | 遗留项 | 类型 | 建议 |
-|---|--------|------|------|
-| 1 | `phase2-visibility-convergence` 分支（领先 1228/落后 309） | 其他工作线 | 由对应任务会话处理，不在本次交付范围 |
-| 2 | coverage 分片 runner 队列偶发排队（observability-ci 约 15-25min） | 基础设施 | 如常发生可评估 GitHub 付费 runner 或减少并行触发 |
-| 3 | 告警阈值分阶段收敛（阶段 1→2→3） | 演进计划 | 按 config.yaml visibility_thresholds 分阶段推进（结构化日志 50%、trace 50%、test 55% 等） |
-| 4 | 全项目覆盖率 73.06% 已达阈值 | 持续监控 | 后续 commit 需保持 ≥60% 门禁，防止回归 |
+| # | 遗留项 | 状态 | 处理结果 / 建议 |
+|---|--------|------|----------------|
+| 1 | `phase2-visibility-convergence` 分支 | ✅ **已归档** | 打归档 tag `archive/phase2-visibility-convergence-20260628` 并推送双远程；源码修复已合入 master（@trace_route 6/6，trace_coverage 92.0% 达标），剩余 4 个独有提交均为 docs/测试记录，分支保留供并行会话使用 |
+| 2 | coverage 分片 runner 队列偶发排队 | ✅ **已确认** | observability-ci.yml 已有 `concurrency`（group=workflow-ref, cancel-in-progress=true，同 ref 连续触发取消旧 run），已是最佳实践，无需代码改动 |
+| 3 | 告警阈值分阶段收敛（阶段 1→2→3） | ⏳ 演进计划 | 按 config.yaml visibility_thresholds 分阶段推进（结构化日志 50%、trace 50%、test 55% 等） |
+| 4 | 全项目覆盖率 73.06% 已达阈值 | ⏳ 持续监控 | 后续 commit 需保持 ≥60% 门禁，防止回归 |
 
 ---
 
