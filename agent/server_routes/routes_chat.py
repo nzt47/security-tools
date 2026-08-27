@@ -9,6 +9,7 @@ from flask import request, jsonify
 from agent.server_auth import require_token, log_request
 from agent.server_routes.tracing_decorator import trace_route
 from agent.logging_utils import log_dict
+from agent.monitoring.tracing import get_trace_id
 # 业务埋点（TE-001）：trackEvent 失败不影响主流程
 try:
     from agent.server_routes.observability import trackEvent
@@ -119,12 +120,21 @@ if PROMETHEUS_AVAILABLE:
             'Total number of LLM calls',
             ['provider', 'model', 'status']
         )
+        # entry_assigned 监控（阶段二）：语音接口异常发生在参数解析前的计数
+        # 命名遵循 yunshu_<模块>_<动作> 规范；phase=pre_parse 表示参数解析前异常
+        VOICE_ENTRY_UNASSIGNED = _Counter(
+            'yunshu_voice_entry_unassigned_total',
+            'Total voice_listen requests where entry_assigned=false (exception before param parse)',
+            ['phase']
+        )
     except Exception:
         SECURITY_BLOCKS = None
         LLM_CALLS = None
+        VOICE_ENTRY_UNASSIGNED = None
 else:
     SECURITY_BLOCKS = None
     LLM_CALLS = None
+    VOICE_ENTRY_UNASSIGNED = None
 
 
 def register_routes(app, state):
@@ -149,9 +159,26 @@ def register_routes(app, state):
     @require_token
     @log_request()
     def api_voice_listen():
+        # ── 链路追踪：预初始化基准变量（防 NameError：request.get_json 可能抛出 BadRequest） ──
+        # entry_assigned 语义：参数解析成功后才置 True，用于区分「解析前异常」与「解析后异常」
+        _vl_start = time.time()
+        _tid_entry = get_trace_id() or "no-trace"
+        _entry_assigned = False
         try:
             data = request.get_json() or {}
             duration = min(data.get("duration", 5), 30)
+            _entry_assigned = True
+
+            # ── 链路追踪：entry 阶段日志（含具体参数值 + 基准 trace_id） ──
+            _tid_entry = get_trace_id() or _tid_entry
+            logger.info(log_dict({
+                'module_name': 'routes_chat',
+                'action': 'voice_listen.entry',
+                'phase': 'entry',
+                'trace_id': _tid_entry,
+                'params': {'duration': duration, 'raw_duration': data.get('duration', 5)},
+                'duration_ms': 0,
+            }))
 
             if not hasattr(Yunshu, '_voice_manager') or Yunshu._voice_manager is None:
                 return jsonify({"ok": False, "error": "语音管理器未初始化"}), 500
@@ -184,7 +211,27 @@ def register_routes(app, state):
                 })
                 return jsonify({"ok": False, "error": result.error}), 400
         except Exception as e:
-            logger.error(log_dict({'module_name': 'routes_chat', 'action': 'log', 'msg': f'[VOICE] 语音识别异常: {e}'}))
+            # ── 链路追踪：异常日志（安全引用基准变量 + 时序标记 entry_assigned） ──
+            # 若异常发生在参数解析前（request.get_json 抛 BadRequest），_entry_assigned 保持 False
+            _tid_err = get_trace_id() or "no-trace"
+            logger.error(log_dict({
+                'module_name': 'routes_chat',
+                'action': 'voice_listen.error',
+                'phase': 'exception',
+                'trace_id': _tid_err,
+                'trace_id_entry': _tid_entry,
+                'trace_id_changed': _tid_err != _tid_entry,
+                'entry_assigned': _entry_assigned,
+                'error': str(e),
+                'duration_ms': round((time.time() - _vl_start) * 1000, 2),
+            }))
+            # 埋点（阶段二）：参数解析前异常计数，供 Prometheus 告警
+            # 单次 inc() 无 I/O，耗时 <1ms，不影响主流程；指标缺失时静默降级
+            try:
+                if not _entry_assigned and PROMETHEUS_AVAILABLE and VOICE_ENTRY_UNASSIGNED:
+                    VOICE_ENTRY_UNASSIGNED.labels(phase='pre_parse').inc()
+            except Exception:
+                pass  # 埋点失败不影响主流程
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/voice/status")

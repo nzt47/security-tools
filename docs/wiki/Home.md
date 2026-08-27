@@ -86,6 +86,9 @@ agent 内部保持零安装依赖，外部项目通过 `pip install light-loader
 - Release 流程：[release_workflow_wiki.md](release_workflow_wiki.md)
 - 工作区维护规范：[workspace_maintenance_wiki.md](workspace_maintenance_wiki.md)
 - 仓库状态快照：[REPOSITORY_SNAPSHOT_REPORT.md](REPOSITORY_SNAPSHOT_REPORT.md)
+- 可见性改造总结报告（D2/D3/D5 指标改造全过程与修复记录）：[../observability/visibility_improvement_summary.md](../observability/visibility_improvement_summary.md)
+- entry_assigned 异常时序监控方案：[../observability/entry_assigned_monitoring_plan.md](../observability/entry_assigned_monitoring_plan.md)
+- 告警阈值生产基线校准建议：[../observability/alert_threshold_calibration_plan.md](../observability/alert_threshold_calibration_plan.md)
 - BM25 相关：[BM25_OPTIMIZATION_WIKI.md](BM25_OPTIMIZATION_WIKI.md) ·
   [BM25_TECHNICAL_RETROSPECTIVE.md](BM25_TECHNICAL_RETROSPECTIVE.md) ·
   [BM25_RELEASE_LOG.md](BM25_RELEASE_LOG.md)

@@ -78,6 +78,8 @@ docs/
 |------|------|
 | [可观测性操作手册](OBSERVABILITY_OPERATION_MANUAL.md) | 监控与追踪指南 |
 | [可见性改造总结报告](observability/visibility_improvement_summary.md) | D2/D3/D5 指标改造全过程与修复记录 |
+| [entry_assigned 异常时序监控方案](observability/entry_assigned_monitoring_plan.md) | 语音接口异常时序监控与告警（四阶段已落地） |
+| [告警阈值生产基线校准建议](observability/alert_threshold_calibration_plan.md) | VoiceEntryUnassignedHigh 阈值校准（观察/校准/收敛三阶段） |
 | [追踪部署指南](tracing_deployment.md) | 分布式追踪部署 |
 | [生产环境追踪配置](tracing_production_config.md) | 生产环境配置 |
 | [业务指标定义](business_metrics_definition.md) | 业务指标详解 |

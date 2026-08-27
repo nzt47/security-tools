@@ -140,6 +140,133 @@ groups:
           description: "四层可见性阈值违规项总数超过 3（当前 {{ $value }}），应作为 PR 合并门槛阻断。"
           runbook_url: "https://wiki.internal/yunshu/runbooks/threshold-violations-increased"
 
+      # 11. 语音接口参数解析前异常（entry_assigned 监控，阶段三，2026-06-26 追加）
+      # 依赖指标: routes_chat.py 暴露的 yunshu_voice_entry_unassigned_total（phase=pre_parse）
+      # 语义: 10 分钟内参数解析前异常（request.get_json 抛 BadRequest 等）> 3 次则告警
+      # for 10m: 依据 alert_threshold_calibration_plan.md 建议（原 2m 过短，防瞬时抖动误报）
+      - alert: VoiceEntryUnassignedHigh
+        expr: increase(yunshu_voice_entry_unassigned_total[10m]) > 3
+        for: 10m
+        labels:
+          severity: warning
+          category: observability
+          layer: runtime
+        annotations:
+          summary: "语音接口异常发生在参数解析前"
+          description: "10 分钟内 entry_assigned=false 次数超过 3 次，可能为 BadRequest 或客户端协议异常"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/voice-entry-unassigned-high"
+
+      # 12. 熔断器打开（P1 补覆盖，2026-06-26 追加）
+      # 依赖指标: business_metrics.py 暴露的 yunshu_circuit_breaker_state（gauge, labels=[breaker_name,state], value=1 表示该状态）
+      # 语义: 任一熔断器 state=open 且 value==1 持续 2 分钟即告警（服务已降级/故障隔离）
+      - alert: CircuitBreakerOpen
+        expr: yunshu_circuit_breaker_state{state="open"} == 1
+        for: 2m
+        labels:
+          severity: critical
+          category: stability
+          layer: runtime
+        annotations:
+          summary: "熔断器已打开（{{ $labels.breaker_name }}）"
+          description: "熔断器 {{ $labels.breaker_name }} 处于 open 状态持续 2 分钟，下游服务故障隔离中，可能影响整体可用性。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/circuit-breaker-open"
+
+      # 13. HTTP 5xx 错误率过高（P1 补覆盖，2026-06-26 追加）
+      # 依赖指标: prometheus_flask_exporter 暴露的 yunshu_http_request_total（counter, labels=[method,status,endpoint]）
+      # 语义: 5 分钟窗口内 5xx 请求占比 > 5% 即告警；clamp_min 防除零（分母为 0 时结果=0 不误报）
+      - alert: Http5xxRateHigh
+        expr: |
+          sum(rate(yunshu_http_request_total{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(yunshu_http_request_total[5m])), 0.0001) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          category: stability
+          layer: runtime
+        annotations:
+          summary: "HTTP 5xx 错误率过高"
+          description: "5 分钟窗口内 5xx 请求占比超过 5%（当前 {{ $value | humanizePercentage }}），需排查服务端异常或依赖故障。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/http-5xx-rate-high"
+
+      # 14. 限流触发突增（P2 补覆盖，2026-06-26 追加）
+      # 依赖指标: business_metrics.py 暴露的 yunshu_rate_limit_trigger_total（counter, labels=[level,endpoint,user_id,reason]）
+      # 语义: 10 分钟内限流触发次数 > 50 即告警（疑似异常流量/攻击/配置过紧）
+      - alert: RateLimitTriggerHigh
+        expr: increase(yunshu_rate_limit_trigger_total[10m]) > 50
+        for: 5m
+        labels:
+          severity: warning
+          category: stability
+          layer: runtime
+        annotations:
+          summary: "限流触发次数突增"
+          description: "10 分钟内限流触发超过 50 次（当前 {{ $value }}），疑似异常流量、攻击或限流配置过紧。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/rate-limit-trigger-high"
+
+      # 15. 安全拦截突增（P2 补覆盖，2026-06-26 追加）
+      # 依赖指标: routes_chat.py 暴露的 yunshu_security_blocks_total（counter, labels=[rule,level,category]）
+      # 语义: 10 分钟内安全拦截 > 10 次即告警（疑似注入/危险命令攻击，或规则误伤）
+      - alert: SecurityBlockHigh
+        expr: increase(yunshu_security_blocks_total[10m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          category: security
+          layer: runtime
+        annotations:
+          summary: "安全拦截次数突增"
+          description: "10 分钟内安全拦截超过 10 次（当前 {{ $value }}），疑似注入/危险命令攻击或规则误伤。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/security-block-high"
+
+      # 16. LLM 调用失败率过高（P2 补覆盖，2026-06-26 追加）
+      # 依赖指标: prometheus_monitor.py 暴露的 yunshu_llm_calls_total（counter, labels=[provider,model,status], status=success/error）
+      # 语义: 5 分钟窗口内 LLM 调用 error 占比 > 20% 即告警；clamp_min 防除零
+      - alert: LlmCallFailureHigh
+        expr: |
+          sum(rate(yunshu_llm_calls_total{status="error"}[5m]))
+          /
+          clamp_min(sum(rate(yunshu_llm_calls_total[5m])), 0.0001) > 0.2
+        for: 5m
+        labels:
+          severity: warning
+          category: stability
+          layer: runtime
+        annotations:
+          summary: "LLM 调用失败率过高"
+          description: "5 分钟窗口内 LLM 调用失败率超过 20%（当前 {{ $value | humanizePercentage }}），需排查模型服务或配置。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/llm-call-failure-high"
+
+      # 17. 任务完成率过低（P2 补覆盖，2026-06-26 追加）
+      # 依赖指标: business_metrics.py 暴露的 yunshu_task_completion_rate（gauge, labels=[task_type,complexity], unit=%）
+      # 语义: 任务完成率 < 80% 即告警
+      - alert: TaskCompletionLow
+        expr: yunshu_task_completion_rate < 80
+        for: 10m
+        labels:
+          severity: warning
+          category: task
+          layer: runtime
+        annotations:
+          summary: "任务完成率过低（{{ $labels.task_type }}）"
+          description: "任务类型 {{ $labels.task_type }} 完成率低于 80%（当前 {{ $value }}%），需排查任务执行失败原因。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/task-completion-low"
+
+      # 18. 记忆搜索命中率过低（P2 补覆盖，2026-06-26 追加）
+      # 依赖指标: business_metrics.py 暴露的 yunshu_memory_search_hit_rate（gauge, labels=[memory_type,search_method], unit=%）
+      # 语义: 记忆搜索命中率 < 50% 即告警
+      - alert: MemoryHitRateLow
+        expr: yunshu_memory_search_hit_rate < 50
+        for: 10m
+        labels:
+          severity: warning
+          category: knowledge
+          layer: runtime
+        annotations:
+          summary: "记忆搜索命中率过低"
+          description: "记忆搜索命中率低于 50%（当前 {{ $value }}%），需优化记忆检索策略。"
+          runbook_url: "https://wiki.internal/yunshu/runbooks/memory-hit-rate-low"
+
   # ═══════════════════════════════════════════════════════════════════════
   # LinkCache 监控（知识检索任务4 性能优化护栏，2026-08-07 追加）
   # 来源: deploy/monitoring/alerts_link_cache.yml（单事实源，ExporterDown
