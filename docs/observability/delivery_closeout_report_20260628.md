@@ -86,7 +86,7 @@ promtool check rules deploy/monitoring/prometheus/alert_rules.yml
 |---|--------|------|------|
 | 1 | ~~工作区临时文件 `tmp_prometheus.zip`、`tmp_promtool/`~~ | 环境清理 | ✅ 已删除（2026-06-26 复核确认不存在） |
 | 2 | `phase2-visibility-convergence` 分支（领先 gitee 1228/落后 309） | 其他工作线 | 由对应任务会话处理，不在本次交付范围 |
-| 3 | `lock-discipline-scan` CI 失败 | pre-existing | 由 82a967f3 引入，本次交付未涉及；建议在共享黑板工作线单独修复 |
+| 3 | `lock-discipline-scan` CI 失败 | ✅ 已修复 | commit `65e8778a`：`SharedBlackboard.write → set`（保留兼容别名），锁内改用 `set` 消除静态误报；本地扫描 0 命中 + 58 测试通过，已推送双远程 |
 | 4 | stakeholders 验收确认 | 流程 | 详见下方"验收状态" |
 
 ## 六、验收状态（供 stakeholders 核实）
@@ -100,7 +100,7 @@ promtool check rules deploy/monitoring/prometheus/alert_rules.yml
 | 告警规则语法校验 | ✅ | promtool 22 rules SUCCESS |
 | 全量测试回归 | ✅ | 本地 237 passed，0 failed |
 | 远程 CI（核心工作流） | ✅ | 核心不变量/环境健康/CI 失败通知 success（2026-06-26 复核） |
-| 远程 CI（lock-discipline-scan） | ⚠️ pre-existing | 非本次交付引入，见遗留项 #3 |
+| 远程 CI（lock-discipline-scan） | ✅ 已修复 | commit 65e8778a（write→set），推送后 CI 已重新触发 |
 | stakeholders 最终验收 | ⏳ | 请用户与相关方核实交付物符合预期 |
 
 ---
