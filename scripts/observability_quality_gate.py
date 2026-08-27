@@ -175,16 +175,21 @@ class QualityGateChecker:
 
         # 查找覆盖率报告
         # 修复（2026-08-27）：排除 boundary_coverage_report.json（边界测试覆盖率，
-        # 不是全项目测试覆盖率），并优先使用 coverage.xml（coverage-combine 合并的全项目数据）。
+        # 不是全项目测试覆盖率）；优先使用 full-coverage-report/coverage.xml
+        # （coverage-combine 合并的全项目数据）。observability-unit-test 的
+        # coverage.xml 仅统计可观测性子模块（值偏低），不作为全项目覆盖率。
         coverage_data = None
         for path, data in reports.items():
             low = path.lower()
             if "boundary" in low:
                 continue  # 边界覆盖率报告，跳过
-            if "coverage" in low:
-                coverage_data = data
-                if low.endswith("coverage.xml"):
-                    break  # 全项目覆盖率优先，立即采用
+            if "coverage" not in low:
+                continue
+            if coverage_data is None:
+                coverage_data = data  # 兜底：首个非 boundary coverage 报告
+            if "full-coverage" in low:
+                coverage_data = data  # full-coverage-report 为全项目覆盖率，优先采用
+                break
 
         if not coverage_data:
             self._record_check(check_name, "skipped",
