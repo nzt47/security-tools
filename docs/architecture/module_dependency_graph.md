@@ -716,6 +716,7 @@ flowchart LR
     agent_server_routes_routes_chat -.-> agent_server_auth
     agent_server_routes_routes_chat --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_chat -.-> agent_logging_utils
+    agent_server_routes_routes_chat -.-> agent_monitoring_tracing
     agent_server_routes_routes_chat --> agent_server_routes_observability
     agent_server_routes_routes_chat -.-> agent_system_tools
     agent_server_routes_routes_chat --> agent_server_routes_routes_sessions
@@ -1285,8 +1286,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 425
 - 模块节点数: 343
-- 依赖边数: 846
-- 跨层调用数: 529
+- 依赖边数: 847
+- 跨层调用数: 530
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1675.25 ms
+- 构建耗时: 1024.57 ms
