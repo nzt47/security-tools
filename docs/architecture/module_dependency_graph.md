@@ -100,9 +100,11 @@ flowchart LR
         agent_test_permission_system["agent.test_permission_system"]
         agent_text_tools["agent.text_tools"]:::crosslayer
         agent_tool_calling["agent.tool_calling"]:::crosslayer
+        agent_tool_fewshot_store["agent.tool_fewshot_store"]:::crosslayer
         agent_tool_router["agent.tool_router"]:::crosslayer
         agent_tool_router_hybrid["agent.tool_router_hybrid"]:::crosslayer
         agent_tool_router_reranker["agent.tool_router_reranker"]:::crosslayer
+        agent_tool_schema_pruner["agent.tool_schema_pruner"]:::crosslayer
         agent_v2_performance_patch["agent.v2_performance_patch"]
         agent_weekly_report_generator["agent.weekly_report_generator"]
     end
@@ -370,12 +372,6 @@ flowchart LR
         agent_task_planner_enhanced_planner["agent.task_planner.enhanced_planner"]
         agent_task_planner_observability["agent.task_planner.observability"]
     end
-    subgraph tool_fewshot_store [tool_fewshot_store]
-        agent_tool_fewshot_store["agent.tool_fewshot_store"]:::crosslayer
-    end
-    subgraph tool_schema_pruner [tool_schema_pruner]
-        agent_tool_schema_pruner["agent.tool_schema_pruner"]:::crosslayer
-    end
     subgraph tools [tools]
         agent_tools["agent.tools"]:::crosslayer
         agent_tools_browser_tools["agent.tools.browser_tools"]:::crosslayer
@@ -507,6 +503,7 @@ flowchart LR
     agent_compression_tools --> agent_logging_utils
     agent_compression_tools --> agent_system_tools
     agent_compression_tools --> agent_system_tools
+    agent_tool_fewshot_store -.-> agent_utils_sensitive_data_filter
     agent_scheduling --> agent_logging_utils
     agent_scheduling -.-> agent_utils_singleton_manager
     agent_tool_router -.-> agent_observability_tool_trace
@@ -1274,10 +1271,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 420
+- 扫描文件数: 425
 - 模块节点数: 342
-- 依赖边数: 834
-- 跨层调用数: 517
+- 依赖边数: 835
+- 跨层调用数: 518
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1615.74 ms
+- 构建耗时: 1661.32 ms

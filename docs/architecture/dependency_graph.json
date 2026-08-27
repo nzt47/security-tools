@@ -1,5 +1,5 @@
 {
-  "trace_id": "5d0af94fef4b40d6",
+  "trace_id": "c3c1a03bc2794262",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -465,6 +465,22 @@
       "file_path": "agent/compression_tools.py",
       "in_degree": 1,
       "out_degree": 3
+    },
+    {
+      "path": "agent.tool_fewshot_store",
+      "name": "tool_fewshot_store",
+      "layer": "core",
+      "file_path": "agent/tool_fewshot_store.py",
+      "in_degree": 1,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.utils.sensitive_data_filter",
+      "name": "sensitive_data_filter",
+      "layer": "utils",
+      "file_path": "",
+      "in_degree": 6,
+      "out_degree": 1
     },
     {
       "path": "agent.scheduling",
@@ -1021,15 +1037,7 @@
     {
       "path": "agent.tool_schema_pruner",
       "name": "tool_schema_pruner",
-      "layer": "tool_schema_pruner",
-      "file_path": "",
-      "in_degree": 1,
-      "out_degree": 0
-    },
-    {
-      "path": "agent.tool_fewshot_store",
-      "name": "tool_fewshot_store",
-      "layer": "tool_fewshot_store",
+      "layer": "core",
       "file_path": "",
       "in_degree": 1,
       "out_degree": 0
@@ -1681,14 +1689,6 @@
       "file_path": "agent/memory/hotness_scorer.py",
       "in_degree": 0,
       "out_degree": 2
-    },
-    {
-      "path": "agent.utils.sensitive_data_filter",
-      "name": "sensitive_data_filter",
-      "layer": "utils",
-      "file_path": "",
-      "in_degree": 5,
-      "out_degree": 1
     },
     {
       "path": "agent.memory.file_watcher",
@@ -3716,6 +3716,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.tool_fewshot_store",
+      "target": "agent.utils.sensitive_data_filter",
+      "source_layer": "core",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 120,
+      "source_file": "agent/tool_fewshot_store.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.scheduling",
       "target": "agent.logging_utils",
       "source_layer": "core",
@@ -3786,7 +3799,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 14,
+      "line": 15,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3799,7 +3812,7 @@
       "source_layer": "core",
       "target_layer": "unknown",
       "import_type": "from_import",
-      "line": 85,
+      "line": 86,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3812,7 +3825,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 19,
+      "line": 20,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3825,7 +3838,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 25,
+      "line": 26,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3838,7 +3851,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 161,
+      "line": 162,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -3851,7 +3864,7 @@
       "source_layer": "core",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 739,
+      "line": 812,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -3864,7 +3877,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 747,
+      "line": 820,
       "source_file": "agent/tool_calling.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -4904,7 +4917,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 15,
+      "line": 16,
       "source_file": "agent/orchestrator/prompt_builder.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4917,7 +4930,7 @@
       "source_layer": "orchestrator",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 142,
+      "line": 184,
       "source_file": "agent/orchestrator/prompt_builder.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5383,7 +5396,7 @@
       "source": "agent.orchestrator.orchestrator",
       "target": "agent.tool_schema_pruner",
       "source_layer": "orchestrator",
-      "target_layer": "tool_schema_pruner",
+      "target_layer": "core",
       "import_type": "from_import",
       "line": 2753,
       "source_file": "agent/orchestrator/orchestrator.py",
@@ -5396,7 +5409,7 @@
       "source": "agent.orchestrator.orchestrator",
       "target": "agent.tool_fewshot_store",
       "source_layer": "orchestrator",
-      "target_layer": "tool_fewshot_store",
+      "target_layer": "core",
       "import_type": "from_import",
       "line": 2780,
       "source_file": "agent/orchestrator/orchestrator.py",
@@ -13584,14 +13597,14 @@
     }
   ],
   "stats": {
-    "total_files": 420,
+    "total_files": 425,
     "total_nodes": 342,
-    "total_edges": 834,
-    "cross_layer_edges": 517,
+    "total_edges": 835,
+    "cross_layer_edges": 518,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
-      "core": 67,
+      "core": 69,
       "health": 7,
       "utils": 9,
       "monitoring": 29,
@@ -13613,8 +13626,6 @@
       "preflight": 3,
       "verification": 1,
       "context": 1,
-      "tool_schema_pruner": 1,
-      "tool_fewshot_store": 1,
       "subagent": 5,
       "learning": 2,
       "memory": 15,
@@ -13635,6 +13646,6 @@
       "quality": 2,
       "prompt_manager": 5
     },
-    "build_duration_ms": 1615.7427400000017
+    "build_duration_ms": 1661.318749000003
   }
 }
