@@ -53,6 +53,8 @@ on:
       - 'scripts/rollback-protection.ps1'
       - 'scripts/test-rollback-params.ps1'
       - 'scripts/simulate-ci-rollback-test.ps1'
+      # 扫描器自身改动 push 后也要验证（防误报规则回归逃逸）
+      - 'scripts/detect_dynamic_loads.py'
       # yml 自身修改 push 后也要触发 (避免漏跑新规则)
       - '.github/workflows/skills-check.yml'
   schedule:
