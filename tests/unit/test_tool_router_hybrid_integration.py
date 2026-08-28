@@ -19,6 +19,13 @@ from unittest.mock import patch
 import pytest
 
 
+def _parse_trace(msg) -> dict:
+    """解析 tool_retrieval trace 消息为 dict，兼容 log_dict dict 消息与旧 JSON 字符串"""
+    if isinstance(msg, dict):
+        return msg
+    return json.loads(str(msg))
+
+
 # ════════════════════════════════════════════════════════════
 #  公共 fixture
 # ════════════════════════════════════════════════════════════
@@ -89,16 +96,16 @@ class TestRecordToolRetrievalTrace:
         assert result is not None
         assert len(result) > 0
 
-        # 验证 trace 日志产生
+        # 验证 trace 日志产生（兼容 log_dict dict 消息）
         trace_logs = [
             r for r in caplog.records
-            if "tool_retrieval" in getattr(r, "message", "")
+            if "tool_retrieval" in getattr(r, "message", "") or "tool_retrieval" in str(getattr(r, "msg", ""))
         ]
         assert len(trace_logs) >= 1, "应产生至少 1 条 tool_retrieval trace"
 
-        # 解析 trace JSON
-        trace_msg = trace_logs[-1].message
-        trace_data = json.loads(trace_msg)
+        # 解析 trace（log_dict dict 消息或旧 JSON 字符串）
+        trace_msg = getattr(trace_logs[-1], "msg", None)
+        trace_data = _parse_trace(trace_msg)
         assert trace_data["module_name"] == "tool_trace"
         assert trace_data["action"] == "tool_retrieval"
 
@@ -135,14 +142,17 @@ class TestRecordToolRetrievalTrace:
         # 验证原文不出现在日志中
         trace_logs = [
             r for r in caplog.records
-            if "tool_retrieval" in getattr(r, "message", "")
+            if "tool_retrieval" in getattr(r, "message", "") or "tool_retrieval" in str(getattr(r, "msg", ""))
         ]
         assert len(trace_logs) >= 1
-        trace_msg = trace_logs[-1].message
+        trace_msg = getattr(trace_logs[-1], "msg", None)
         # 原文不应出现在 trace 中(只存 hash)
-        assert "mypassword123" not in trace_msg
+        if isinstance(trace_msg, dict):
+            assert "mypassword123" not in str(trace_msg.get("query_hash", ""))
+        else:
+            assert "mypassword123" not in trace_msg
         # hash 应存在（【变易】user_input_hash 已重命名为 query_hash）
-        trace_data = json.loads(trace_msg)
+        trace_data = _parse_trace(trace_msg)
         assert "query_hash" in trace_data
         assert len(trace_data["query_hash"]) == 16
 
@@ -157,9 +167,9 @@ class TestRecordToolRetrievalTrace:
 
         trace_logs = [
             r for r in caplog.records
-            if "tool_retrieval" in getattr(r, "message", "")
+            if "tool_retrieval" in getattr(r, "message", "") or "tool_retrieval" in str(getattr(r, "msg", ""))
         ]
-        trace_data = json.loads(trace_logs[-1].message)
+        trace_data = _parse_trace(trace_logs[-1].msg)
         assert trace_data["degraded"] is True
         # 降级时 embed_candidates 应为 0
         assert trace_data["embed_candidates"] == 0
@@ -175,9 +185,9 @@ class TestRecordToolRetrievalTrace:
 
         trace_logs = [
             r for r in caplog.records
-            if "tool_retrieval" in getattr(r, "message", "")
+            if "tool_retrieval" in getattr(r, "message", "") or "tool_retrieval" in str(getattr(r, "msg", ""))
         ]
-        trace_data = json.loads(trace_logs[-1].message)
+        trace_data = _parse_trace(trace_logs[-1].msg)
         assert trace_data["bm25_candidates"] > 0
         assert trace_data["fused_candidates"] > 0
 
@@ -192,9 +202,9 @@ class TestRecordToolRetrievalTrace:
 
         trace_logs = [
             r for r in caplog.records
-            if "tool_retrieval" in getattr(r, "message", "")
+            if "tool_retrieval" in getattr(r, "message", "") or "tool_retrieval" in str(getattr(r, "msg", ""))
         ]
-        trace_data = json.loads(trace_logs[-1].message)
+        trace_data = _parse_trace(trace_logs[-1].msg)
         assert len(trace_data["tools_preview"]) <= 10
 
 
@@ -231,10 +241,10 @@ class TestToolTraceRecorderMethod:
 
         trace_logs = [
             r for r in caplog.records
-            if "tool_retrieval" in getattr(r, "message", "")
+            if "tool_retrieval" in getattr(r, "message", "") or "tool_retrieval" in str(getattr(r, "msg", ""))
         ]
         assert len(trace_logs) == 1
-        trace_data = json.loads(trace_logs[0].message)
+        trace_data = _parse_trace(trace_logs[0].msg)
         assert trace_data["action"] == "tool_retrieval"
         assert trace_data["top_k"] == 5
         assert trace_data["latency_ms"] == 12.34

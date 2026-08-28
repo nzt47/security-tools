@@ -6,9 +6,18 @@
 - 部分不可用 → 归一化后 overall 与手算一致（±1e-9）
 - assess() 显式 None/空 dict → overall=None（历史无参调用仍返回默认 1.0）
 """
+import json
+
 import pytest
 
 from agent.health.assessor import DEFAULT_WEIGHTS, HealthAssessor
+
+
+def _parse_payload(msg) -> dict:
+    """解析日志 payload，兼容 log_dict dict 消息与旧 JSON 字符串"""
+    if isinstance(msg, dict):
+        return msg
+    return json.loads(str(msg))
 
 
 def _probe(score=None, available=True, detail="test"):
@@ -142,7 +151,7 @@ class TestProbeStructuredLog:
 
         with caplog.at_level(logging.INFO, logger="agent.health.probes"):
             _log_probe(ProbeResult("l1_process", 0.9, "mem=50% cpu=10%"))
-        payload = json.loads(caplog.records[-1].message)
+        payload = _parse_payload(caplog.records[-1].msg)
         assert payload["module_name"] == "health_probes"
         assert payload["action"] == "probe.l1_process.completed"
         assert payload["score"] == 0.9
@@ -157,7 +166,7 @@ class TestProbeStructuredLog:
 
         with caplog.at_level(logging.WARNING, logger="agent.health.probes"):
             _log_probe(ProbeResult("l5_semantic", None, "近 7 天无用户反馈", available=False))
-        payload = json.loads(caplog.records[-1].message)
+        payload = _parse_payload(caplog.records[-1].msg)
         assert payload["module_name"] == "health_probes"
         assert payload["action"] == "probe.l5_semantic.failed"
         assert payload["score"] is None
@@ -177,7 +186,7 @@ class TestProbeStructuredLog:
         for r in caplog.records:
             if r.name == "agent.health.probes" and r.message:
                 try:
-                    payload = json.loads(r.message)
+                    payload = _parse_payload(r.msg)
                 except (ValueError, json.JSONDecodeError):
                     # 非结构化杂项日志（调试/辅助输出）不影响结构化校验
                     continue

@@ -23,7 +23,7 @@ import os
 from dataclasses import dataclass
 from typing import Optional
 
-from agent.monitoring.tracing import get_trace_id
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -223,16 +223,15 @@ def _log_probe(result: ProbeResult) -> None:
     """记录单层探针结构化日志（验收标准：module_name=health_probes）
 
     available=True → info(probe.<layer>.completed)；available=False →
-    warning(probe.<layer>.failed)。JSON 结构化输出供日志聚合消费。
+    warning(probe.<layer>.failed)。log_dict 结构化输出供日志聚合消费。
     """
-    payload = json.dumps({
-        "trace_id": get_trace_id(),
+    payload = log_dict({
         "module_name": "health_probes",
         "action": f"probe.{result.layer}.{'completed' if result.available else 'failed'}",
         "available": result.available,
         "score": result.score,
         "detail": result.detail,
-    }, ensure_ascii=False)
+    })
     if result.available:
         logger.info(payload)
     else:
