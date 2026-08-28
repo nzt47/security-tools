@@ -1405,7 +1405,7 @@ flowchart LR
     agent_health_collector --> agent_health_assessor
     agent_health_collector --> agent_health_probes
     agent_health_collector --> agent_health_storage
-    agent_health_probes -.-> agent_monitoring_tracing
+    agent_health_probes -.-> agent_logging_utils
     agent_health_probes -.-> agent_monitoring_metrics
     agent_health_probes -.-> agent_monitoring_metrics
     agent_health_probes -.-> agent_feedback
@@ -1426,4 +1426,4 @@ flowchart LR
 - 跨层调用数: 630
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1331.71 ms
+- 构建耗时: 1758.62 ms

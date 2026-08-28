@@ -1,5 +1,5 @@
 {
-  "trace_id": "b776ef01ddad47e2",
+  "trace_id": "cdc02202a37c4af3",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -15,7 +15,7 @@
       "name": "logging_utils",
       "layer": "core",
       "file_path": "",
-      "in_degree": 196,
+      "in_degree": 197,
       "out_degree": 0
     },
     {
@@ -279,7 +279,7 @@
       "name": "tracing",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 40,
+      "in_degree": 39,
       "out_degree": 4
     },
     {
@@ -15333,9 +15333,9 @@
     },
     {
       "source": "agent.health.probes",
-      "target": "agent.monitoring.tracing",
+      "target": "agent.logging_utils",
       "source_layer": "health",
-      "target_layer": "monitoring",
+      "target_layer": "core",
       "import_type": "from_import",
       "line": 26,
       "source_file": "agent/health/probes.py",
@@ -15473,6 +15473,6 @@
       "quality": 2,
       "prompt_manager": 5
     },
-    "build_duration_ms": 1331.7131000000018
+    "build_duration_ms": 1758.621826999999
   }
 }
