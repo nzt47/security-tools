@@ -167,12 +167,25 @@ class TestSearchMode:
 class TestListRecent:
     @pytest.mark.asyncio
     async def test_list_recent_basic(self, ltm_instance):
-        await ltm_instance.save("k1", "v1")
-        await ltm_instance.save("k2", "v2")
+        # 【不易】save() 内部用 time.time() 记 created_at；两连写可能落在同一微秒，
+        # created_at 相同 → ORDER BY created_at DESC 稳定排序按 rowid 返回插入序
+        # （k1 在前），快机器（CI Linux）上必挂。显式 mock 递增时间戳保证确定性。
+        from unittest import mock
+
+        _clock = [1000.0]
+
+        def _fake_time():
+            _clock[0] += 1.0
+            return _clock[0]
+
+        with mock.patch("agent.memory.long_term_memory.time.time", side_effect=_fake_time):
+            await ltm_instance.save("k1", "v1")
+            await ltm_instance.save("k2", "v2")
         entries = ltm_instance.list_recent(limit=10)
         assert len(entries) == 2
         # 最新的在前（created_at DESC）
         assert entries[0].key == "k2"
+        assert entries[1].key == "k1"
 
     @pytest.mark.asyncio
     async def test_list_recent_limit(self, ltm_instance):
