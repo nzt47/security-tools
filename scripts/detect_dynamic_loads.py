@@ -143,6 +143,22 @@ class DynamicLoadVisitor(ast.NodeVisitor):
         # 接收的 spec 必然来自受控的 spec_from_file_location (无独立路径参数可验证),
         # 跟随降级, 避免成对出现时 module_from_spec 单独残留 HIGH 误报.
         self._controlled_files: set[str] = set()
+        # [变易] 模块级常量赋值表 (name → 值 AST): 供 _eval_const_path 解析名称引用,
+        # 如 ARCHIVED_TOOL_ROUTER = os.path.join(...) 后
+        # spec_from_file_location(name, ARCHIVED_TOOL_ROUTER) 的路径参数是变量名.
+        self._module_consts: dict[str, ast.AST] = {}
+        # [变易] 常量解析递归栈 (防止 A = B; B = A 循环引用死循环)
+        self._eval_stack: set[str] = set()
+
+    def _collect_module_consts(self, tree: ast.Module):
+        """预扫描模块级常量赋值 (仅顶层 Assign/AnnAssign, 忽略函数/类体内赋值)"""
+        for stmt in tree.body:
+            if isinstance(stmt, ast.Assign):
+                if len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
+                    self._module_consts[stmt.targets[0].id] = stmt.value
+            elif isinstance(stmt, ast.AnnAssign):
+                if isinstance(stmt.target, ast.Name) and stmt.value is not None:
+                    self._module_consts[stmt.target.id] = stmt.value
 
     def visit_Import(self, node: ast.Import):
         """记录 import 别名, 如 import importlib.util as iu"""
@@ -232,6 +248,20 @@ class DynamicLoadVisitor(ast.NodeVisitor):
             # imp.load_source(name, pathname, ...): 第 2 个位置参数为路径
             path_arg = node.args[1] if len(node.args) >= 2 else None
 
+        # [变易] 支持 os.path.join 常量拼接路径: 如 cicd_pipeline/stress_test_pipeline
+        # 用 os.path.join(dirname(__file__), "docs", "archive", ...) 拼接仓库内
+        # 归档文件的绝对路径。这类路径完全由仓库内常量构成（无外部输入），
+        # 与字面量路径同属受控加载，应降级为 MEDIUM 避免误报阻断。
+        # [变易] 记录路径是否由常量表达式求值而来: 这类路径 (如
+        # os.path.join(dirname(__file__), "docs", ...)) 求值后是绝对路径,
+        # 但完全由仓库内常量构成, 指向仓库内文件时仍属受控加载.
+        is_resolved_const = False
+        if path_arg is not None and not isinstance(path_arg, ast.Constant):
+            resolved_const = self._eval_const_path(path_arg)
+            if resolved_const is not None:
+                path_arg = ast.Constant(value=resolved_const)
+                is_resolved_const = True
+
         if not isinstance(path_arg, ast.Constant) or not isinstance(path_arg.value, str):
             # 路径非常量 (变量/表达式, 可能被外部控制) 保持 HIGH
             _logger.debug("controlled-check %s:%d keep HIGH (path arg not const literal: %s)",
@@ -240,6 +270,13 @@ class DynamicLoadVisitor(ast.NodeVisitor):
             return False
         p = Path(path_arg.value)
         if p.is_absolute():
+            if is_resolved_const:
+                # 常量表达式求值得到的绝对路径: 仅当指向仓库根内已存在文件时受控
+                target = p.resolve()
+                if target.is_file() and target.is_relative_to(ROOT.resolve()):
+                    _logger.debug("controlled-check %s:%d const-eval absolute path inside repo: %s",
+                                  self._rel_path(), node.lineno, path_arg.value)
+                    return True
             _logger.debug("controlled-check %s:%d keep HIGH (absolute path: %s)",
                           self._rel_path(), node.lineno, path_arg.value)
             return False
@@ -252,6 +289,65 @@ class DynamicLoadVisitor(ast.NodeVisitor):
         _logger.debug("controlled-check %s:%d path=%r exists=%s",
                       self._rel_path(), node.lineno, path_arg.value, exists)
         return exists
+
+    def _eval_const_path(self, node: ast.AST) -> str | None:
+        """尝试对纯常量表达式求值为路径字符串（仅支持 os.path.join + 字面量拼接）。
+
+        支持:
+          - os.path.join(const, const, ...) / pathlib Path 拼接的常量参数
+          - 常量二元运算 (字符串 + 字符串)
+        不支持的（含变量/函数调用/外部输入）返回 None，保持原 HIGH 判定。
+        """
+        import os as _os
+        # os.path.join(...) 调用
+        if isinstance(node, ast.Call):
+            func = node.func
+            func_name = None
+            if isinstance(func, ast.Name):
+                func_name = func.id
+            elif isinstance(func, ast.Attribute) and func.attr in ("join", "dirname", "abspath"):
+                func_name = func.attr
+            if func_name in ("join",):
+                parts = []
+                for arg in node.args:
+                    v = self._eval_const_path(arg)
+                    if v is None:
+                        return None
+                    parts.append(v)
+                if not parts:
+                    return None
+                # 首个元素若是绝对路径或盘符则结果绝对；否则相对
+                return _os.path.join(*parts)
+            if func_name == "abspath":
+                if len(node.args) == 1:
+                    v = self._eval_const_path(node.args[0])
+                    return _os.path.abspath(v) if v is not None else None
+            if func_name == "dirname":
+                if len(node.args) == 1:
+                    v = self._eval_const_path(node.args[0])
+                    return _os.path.dirname(v) if v is not None else None
+            return None
+        # 常量
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value
+        # 名称引用: __file__ 或模块级常量 (如 ARCHIVED_TOOL_ROUTER = os.path.join(...))
+        if isinstance(node, ast.Name):
+            if node.id == "__file__":
+                return str(self.filepath.resolve())
+            if node.id in self._module_consts and node.id not in self._eval_stack:
+                self._eval_stack.add(node.id)
+                try:
+                    return self._eval_const_path(self._module_consts[node.id])
+                finally:
+                    self._eval_stack.discard(node.id)
+            return None
+        # 二元拼接
+        if isinstance(node, ast.BinOp) and isinstance(node.op, (ast.Add,)):
+            left = self._eval_const_path(node.left)
+            right = self._eval_const_path(node.right)
+            if left is not None and right is not None:
+                return left + right
+        return None
 
     def _extract_call_name(self, node: ast.expr) -> str:
         """从 Call.func 提取调用名 (支持 Attribute 和 Name)"""
@@ -319,6 +415,7 @@ def scan_file(filepath: Path, root: Path) -> List[DynamicLoadFinding]:
         return []
 
     visitor = DynamicLoadVisitor(filepath, root)
+    visitor._collect_module_consts(tree)
     visitor.visit(tree)
     return visitor.findings
 
