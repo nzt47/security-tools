@@ -43,7 +43,7 @@ jobs:
       - name: 设置 Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: 检查脚本存在(跨分支/仓库安全)
         id: precheck

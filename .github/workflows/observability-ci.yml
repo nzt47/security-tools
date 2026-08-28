@@ -118,7 +118,7 @@ on:
         type: boolean
 
 env:
-  PYTHON_VERSION: '3.11'
+  PYTHON_VERSION: '3.12'
   OBSERVABILITY_TEST_PATHS: >-
     tests/unit/test_monitoring_tracing.py
     tests/unit/test_prometheus_exporter.py
@@ -375,7 +375,7 @@ jobs:
           # 全项目覆盖率由 coverage-combine job 检查。
           coverage report --fail-under=0 --include="*/monitoring/*,*/observability/*,*/prometheus_exporter*"
 
-      # ── 优化脚本单元测试（仅 Python 3.11 matrix 运行，避免重复）──
+      # ── 优化脚本单元测试（仅 Python 3.12 matrix 运行，避免重复）──
       # 验证 visibility_report.py / test_quality_assess.py / impact_analysis.py
       # 三个脚本的缓存优化逻辑，覆盖缓存命中/未命中、边界条件、异常处理、并发安全
       #
@@ -428,7 +428,7 @@ jobs:
       # 验证：移除后 test_quality_assess.py 仍显示 51% 覆盖率，所有 scripts 文件正常纳入报告
       # ========================================
       - name: 运行优化脚本单元测试
-        if: matrix.python-version == '3.11'
+        if: matrix.python-version == '3.12'
         run: |
           echo "=== 运行优化脚本单元测试（缓存优化逻辑验证）==="
           python -m pytest \

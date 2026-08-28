@@ -53,7 +53,7 @@ jobs:
       - name: 设置 Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: 安装依赖
         # 【变易】CI 环境默认无 pyyaml, 需安装以加载 commit_origin_whitelist.yaml

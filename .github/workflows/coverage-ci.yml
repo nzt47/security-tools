@@ -10,7 +10,7 @@ on:
       python_versions:
         description: 'Python 版本（空格分隔）'
         required: false
-        default: '3.11 3.12'
+        default: '3.12'
         type: string
 
 # 并发控制：同一 workflow 只跑最新一次，避免与 ci.yml 的 unit-tests 矩阵抢占 runner
