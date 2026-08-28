@@ -30,6 +30,7 @@ import argparse
 import platform
 from datetime import datetime
 from typing import Dict, List, Any, Optional
+from dataclasses import dataclass
 
 try:
     import psutil
@@ -128,7 +129,7 @@ class CheckResult:
 class HealthChecker:
     """健康检查器"""
 
-    def __init__(self, base_url: str = "http://localhost:8000"):
+    def __init__(self, base_url: str = "http://localhost:5678"):
         self.base_url = base_url
         self.results: List[CheckResult] = []
 
@@ -558,7 +559,7 @@ class HealthChecker:
 
 def main():
     parser = argparse.ArgumentParser(description="云枢系统健康度检查")
-    parser.add_argument("--url", default="http://localhost:8000", help="服务基础URL")
+    parser.add_argument("--url", default="http://localhost:5678", help="服务基础URL")
     parser.add_argument("--json", action="store_true", help="输出JSON格式")
     parser.add_argument("--quiet", action="store_true", help="静默模式，仅返回退出码")
     parser.add_argument("--detail", action="store_true", help="显示详细信息")

@@ -187,9 +187,10 @@ class AlertManager:
     def _init_components(self):
         """初始化组件"""
         # 初始化评估器
+        # pending_duration=15s：健康度等关键告警在条件持续 15 秒后即触发，避免响应过慢
         self._evaluator = AlertEvaluator(
             evaluation_interval=30.0,
-            pending_duration=60.0
+            pending_duration=15.0
         )
 
         # 注册告警规则
@@ -237,16 +238,20 @@ class AlertManager:
                     logger.error(f"[AlertManager] 注册规则失败: {e}")
 
     def _parse_threshold(self, expr: str) -> Optional[float]:
-        """从表达式解析阈值"""
+        """从表达式解析阈值
+
+        支持比较符与数字之间带空格（如 "> 0.05"、"< 30"），
+        并优先匹配双字符比较符（>= / <= / == / !=），避免误匹配单字符。
+        """
         import re
-        # 匹配 > < >= <= == != 数字
+        # 匹配 >= <= == != > < 数字（\s* 允许比较符与数字间有空格）
         patterns = [
-            r'>([\d.]+)',
-            r'<([\d.]+)',
-            r'>=([\d.]+)',
-            r'<=([\d.]+)',
-            r'==([\d.]+)',
-            r'!=([\d.]+)'
+            r'>=\s*([\d.]+)',
+            r'<=\s*([\d.]+)',
+            r'==\s*([\d.]+)',
+            r'!=\s*([\d.]+)',
+            r'>\s*([\d.]+)',
+            r'<\s*([\d.]+)'
         ]
         for pattern in patterns:
             match = re.search(pattern, expr)
@@ -256,17 +261,19 @@ class AlertManager:
 
     def _parse_comparison(self, expr: str) -> str:
         """从表达式解析比较方式"""
-        if '>=' in expr:
+        import re
+        # 双字符比较符优先匹配
+        if re.search(r'>=\s*[\d.]+', expr):
             return "gte"
-        elif '<=' in expr:
+        elif re.search(r'<=\s*[\d.]+', expr):
             return "lte"
-        elif '==' in expr:
+        elif re.search(r'==\s*[\d.]+', expr):
             return "eq"
-        elif '!=' in expr:
+        elif re.search(r'!=\s*[\d.]+', expr):
             return "ne"
-        elif '>' in expr:
+        elif re.search(r'>\s*[\d.]+', expr):
             return "gt"
-        elif '<' in expr:
+        elif re.search(r'<\s*[\d.]+', expr):
             return "lt"
         return "gt"
 

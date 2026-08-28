@@ -296,6 +296,38 @@ class AlertEvaluator:
         Returns:
             指标值，如果不存在返回 None
         """
+        # 健康度指标：直接从健康度计算器读取最新报告
+        if metric_name.startswith("health.") or metric_name.startswith("yunshu:health"):
+            try:
+                # 优先使用与 /api/health/score 相同的单例，保证告警评估与数据注入读取同一实例
+                try:
+                    from agent.utils.singleton_manager import get_singleton
+                    calculator = get_singleton("health_calculator")
+                except Exception:
+                    from agent.health.health_score import get_health_calculator
+                    calculator = get_health_calculator()
+                if calculator is None:
+                    from agent.health.health_score import get_health_calculator
+                    calculator = get_health_calculator()
+                history = calculator.get_history(n=1)
+                if not history:
+                    return None
+                latest = history[-1]
+                dim_key = metric_name.replace("health.", "").replace("yunshu:health:", "")
+                if dim_key in ("overall_score", "score"):
+                    return float(latest.overall_score)
+                dims = latest.dimensions or {}
+                if dim_key in dims:
+                    return float(dims[dim_key].score)
+                # 维度内具体指标（如 health.error_rate → stability.error_rate）
+                for dim in dims.values():
+                    if dim_key in (dim.indicators or {}):
+                        return float(dim.indicators[dim_key])
+                return None
+            except Exception as e:
+                logger.error(f"[Alert] 获取健康度指标失败: {e}")
+                return None
+
         if not self._metrics_collector:
             return None
 
@@ -336,19 +368,28 @@ class AlertEvaluator:
         Returns:
             当前指标值，不满足条件返回 None
         """
-        # 从表达式中提取指标名称（简化版）
-        metric_name = rule.expr.split("(")[1].split("[")[0].replace("yunshu_", "").replace("_", ".")
+        # 从表达式中提取指标标识符
+        # 支持格式：yunshu_http_xxx / health.overall_score / yunshu:health:overall_score / health.stability 等
+        import re
+        match = re.search(r'([a-zA-Z_:][a-zA-Z0-9_:.]*)', rule.expr)
+        metric_name = match.group(1) if match else rule.expr.strip()
+
+        # 归一化：yunshu:health:overall_score → health.overall_score
+        normalized = metric_name.replace(":", ".")
+        if normalized.startswith("yunshu."):
+            normalized = normalized[len("yunshu."):]
 
         # 映射指标名称
         metric_mappings = {
-            "health.score": "latency.digital_life.health",
+            "health.score": "health.overall_score",
+            "health.overall_score": "health.overall_score",
             "error.total": "count.errors.total",
             "interaction.total": "count.interactions.total",
             "interaction.duration": "latency.digital_life.chat",
             "memory.count": "memory.count",
         }
 
-        mapped_name = metric_mappings.get(metric_name, f"latency.digital_life.{metric_name}")
+        mapped_name = metric_mappings.get(normalized, normalized)
         value = self._get_metric_value(mapped_name)
 
         if value is not None and self._evaluate_condition(rule, value):

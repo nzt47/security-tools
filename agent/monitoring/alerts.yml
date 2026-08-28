@@ -1,0 +1,118 @@
+# 云枢应用内健康度告警规则
+#
+# 由应用内 AlertManager（agent/monitoring/alert_manager.py）加载评估，
+# 数据源为健康度计算器（agent/health/health_score.py）的最新报告。
+#
+# 指标命名规范（AlertEvaluator 支持）：
+#   health.overall_score  → 综合健康度得分（0-100）
+#   health.stability      → 稳定性维度得分
+#   health.performance    → 性能维度得分
+#   health.quality        → 质量维度得分
+#   health.efficiency     → 效率维度得分
+#   health.availability   → 可用性维度得分
+#   health.security       → 安全性维度得分
+
+groups:
+  - name: yunshu_health_overall
+    interval: 30s
+    rules:
+      - alert: YunshuHealthScoreCritical
+        expr: health.overall_score < 30
+        for: 0s
+        labels:
+          severity: critical
+          category: health
+          dimension: overall
+        annotations:
+          summary: "系统健康度严重异常"
+          description: "综合健康度得分 {{ $value }}，低于严重阈值 30，需要立即处理"
+          runbook_url: "docs/ops_quick_manual.md#健康度告警"
+          impact: "系统多项指标异常，服务质量严重下降"
+          action: "查看健康度仪表盘，定位异常维度并处理"
+
+      - alert: YunshuHealthScoreWarning
+        expr: health.overall_score < 50
+        for: 0s
+        labels:
+          severity: warning
+          category: health
+          dimension: overall
+        annotations:
+          summary: "系统健康度警告"
+          description: "综合健康度得分 {{ $value }}，低于警告阈值 50，需要关注"
+          runbook_url: "docs/ops_quick_manual.md#健康度告警"
+          impact: "系统部分指标异常"
+          action: "查看健康度仪表盘，确认异常维度"
+
+  - name: yunshu_health_dimensions
+    interval: 30s
+    rules:
+      - alert: YunshuStabilityDegraded
+        expr: health.stability < 70
+        for: 0s
+        labels:
+          severity: warning
+          category: health
+          dimension: stability
+        annotations:
+          summary: "稳定性维度降级"
+          description: "稳定性得分 {{ $value }}，低于阈值 70，可能存在错误率升高或崩溃"
+          runbook_url: "docs/ops_quick_manual.md#稳定性"
+          impact: "系统稳定性下降，用户体验受损"
+          action: "排查错误日志，检查崩溃原因"
+
+      - alert: YunshuPerformanceDegraded
+        expr: health.performance < 70
+        for: 0s
+        labels:
+          severity: warning
+          category: health
+          dimension: performance
+        annotations:
+          summary: "性能维度降级"
+          description: "性能得分 {{ $value }}，低于阈值 70，可能存在延迟升高或资源占用过高"
+          runbook_url: "docs/ops_quick_manual.md#性能"
+          impact: "响应变慢，吞吐下降"
+          action: "检查延迟指标和资源占用"
+
+      - alert: YunshuQualityDegraded
+        expr: health.quality < 70
+        for: 0s
+        labels:
+          severity: warning
+          category: health
+          dimension: quality
+        annotations:
+          summary: "质量维度降级"
+          description: "质量得分 {{ $value }}，低于阈值 70，Schema 校验通过率或任务完成率下降"
+          runbook_url: "docs/ops_quick_manual.md#质量"
+          impact: "输出质量下降，任务失败率升高"
+          action: "检查 Schema 校验和任务执行情况"
+
+      - alert: YunshuAvailabilityDegraded
+        expr: health.availability < 70
+        for: 0s
+        labels:
+          severity: warning
+          category: health
+          dimension: availability
+        annotations:
+          summary: "可用性维度降级"
+          description: "可用性得分 {{ $value }}，低于阈值 70，服务可用性或依赖健康度下降"
+          runbook_url: "docs/ops_quick_manual.md#可用性"
+          impact: "服务中断或降级"
+          action: "检查服务状态和依赖健康度"
+
+      - alert: YunshuSecurityDegraded
+        expr: health.security < 70
+        for: 0s
+        labels:
+          severity: warning
+          category: health
+          dimension: security
+        annotations:
+          summary: "安全维度降级"
+          description: "安全得分 {{ $value }}，低于阈值 70，可能存在安全告警或异常访问"
+          runbook_url: "docs/ops_quick_manual.md#安全"
+          impact: "存在安全风险"
+          action: "立即排查安全告警，加强访问控制"

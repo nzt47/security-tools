@@ -26,6 +26,83 @@ def _trace_id():
     return uuid.uuid4().hex[:16]
 
 
+# ═══════════════════════════════════════════════════════════════
+#  Prometheus 健康度指标（供 /metrics 暴露，Grafana 采集）
+# ═══════════════════════════════════════════════════════════════
+
+try:
+    from prometheus_client import Gauge as PromGauge, REGISTRY as PROM_REGISTRY
+    _PROMETHEUS_AVAILABLE = True
+except ImportError:
+    _PROMETHEUS_AVAILABLE = False
+    PromGauge = None
+    PROM_REGISTRY = None
+
+_HEALTH_GAUGES = {}
+
+
+def _get_health_gauge(name: str, desc: str) -> object:
+    """获取或创建健康度 Gauge 指标（线程安全）"""
+    global _HEALTH_GAUGES
+    if not _PROMETHEUS_AVAILABLE:
+        return None
+    if name not in _HEALTH_GAUGES:
+        try:
+            _HEALTH_GAUGES[name] = PromGauge(name, desc)
+        except Exception:
+            # 指标可能已被其他模块注册，尝试从注册表获取
+            try:
+                from prometheus_client import Gauge
+                _HEALTH_GAUGES[name] = Gauge(name, desc)
+            except Exception:
+                return None
+    return _HEALTH_GAUGES[name]
+
+
+def _update_health_metrics(report) -> None:
+    """将健康度报告写入 Prometheus Gauge，供外部监控采集"""
+    if not _PROMETHEUS_AVAILABLE:
+        return
+    try:
+        gauge = _get_health_gauge("yunshu_health_score", "云枢综合健康度得分 (0-100)")
+        if gauge is not None:
+            gauge.set(report.overall_score)
+
+        dims = report.dimensions or {}
+        for dim_name, dim_score in dims.items():
+            g = _get_health_gauge(f"yunshu_health_dimension_{dim_name}", f"云枢{dim_name}维度健康度得分")
+            if g is not None:
+                g.set(dim_score.score)
+    except Exception as e:
+        logger.error(f"[Health] 更新 Prometheus 指标失败: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════
+#  应用内告警管理器（加载健康度告警规则）
+# ═══════════════════════════════════════════════════════════════
+
+_ALERT_MANAGER_STARTED = False
+
+
+def _init_alert_manager() -> None:
+    """启动应用内告警管理器并注册健康度告警规则（幂等）"""
+    global _ALERT_MANAGER_STARTED
+    if _ALERT_MANAGER_STARTED:
+        return
+    _ALERT_MANAGER_STARTED = True
+    try:
+        from agent.monitoring.alert_manager import start_alert_manager
+        import os
+        config_path = os.path.join(
+            os.path.dirname(__file__), "..", "monitoring", "alerts.yml"
+        )
+        manager = start_alert_manager(config_path=os.path.normpath(config_path))
+        rules_count = len(manager._evaluator._rules) if manager._evaluator else 0
+        logger.info(f"[Health] 应用内告警管理器已启动，健康度规则数: {rules_count}")
+    except Exception as e:
+        logger.error(f"[Health] 启动应用内告警管理器失败: {e}")
+
+
 # 全局健康度计算器实例
 _health_calculator = None  # 保留作为 fallback
 
@@ -60,6 +137,9 @@ if _SINGLETON_AVAILABLE:
 def register_routes(app, state):
     """注册健康度相关路由"""
 
+    # 启动应用内告警管理器（加载健康度告警规则，幂等）
+    _init_alert_manager()
+
     # ═══════════════════════════════════════════════════════════════
     #  健康度评分
     # ═══════════════════════════════════════════════════════════════
@@ -76,6 +156,9 @@ def register_routes(app, state):
             # 计算健康度
             calculator = get_calculator()
             report = calculator.calculate(metrics)
+
+            # 更新 Prometheus 指标
+            _update_health_metrics(report)
             
             return jsonify(report.to_dict())
         except Exception as e:
@@ -97,6 +180,9 @@ def register_routes(app, state):
             
             calculator = get_calculator()
             report = calculator.calculate(metrics)
+
+            # 更新 Prometheus 指标
+            _update_health_metrics(report)
             
             return jsonify({
                 "ok": True,
@@ -217,6 +303,39 @@ def register_routes(app, state):
         except Exception as e:
             logger.error(f"[HealthScore] 获取摘要失败: {e}", exc_info=True)
             return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/health/alerts")
+    @trace_route("HealthScore")
+    @log_request(show_response=False)
+    def api_health_alerts():
+        """获取健康度告警状态（应用内 AlertManager 实时状态）"""
+        try:
+            from agent.monitoring.alert_manager import get_alert_manager
+            manager = get_alert_manager()
+            alerts = manager.get_alerts() if manager else []
+            stats = manager.get_stats() if manager else {}
+
+            # 仅返回健康度相关告警
+            health_alerts = [
+                a for a in alerts
+                if a.get("name", "").startswith("YunshuHealth")
+                or a.get("name", "").startswith("YunshuStability")
+                or a.get("name", "").startswith("YunshuPerformance")
+                or a.get("name", "").startswith("YunshuQuality")
+                or a.get("name", "").startswith("YunshuAvailability")
+                or a.get("name", "").startswith("YunshuSecurity")
+            ]
+
+            return jsonify({
+                "ok": True,
+                "alerts": health_alerts,
+                "firing": [a for a in health_alerts if a.get("state") == "firing"],
+                "pending": [a for a in health_alerts if a.get("state") == "pending"],
+                "stats": stats,
+            })
+        except Exception as e:
+            logger.error(f"[HealthScore] 获取告警状态失败: {e}", exc_info=True)
+            return jsonify({"ok": False, "error": str(e)}), 500
 
     # ═══════════════════════════════════════════════════════════════
     #  快速健康检查
