@@ -46,7 +46,7 @@ on:
   workflow_dispatch:
 
 env:
-  PYTHON_VERSION: '3.10'
+  PYTHON_VERSION: '3.12'
   # 集成验证临时库（--keep-db 保留，供 inspect 复核与 artifact 排查）
   PLANNING_CI_DB: data/planning/ci_verify.db
 

@@ -19,7 +19,7 @@ on:
   workflow_dispatch:  # 支持手动触发（调试用）
 
 env:
-  PYTHON_VERSION: '3.10'
+  PYTHON_VERSION: '3.12'
   PACKAGE_NAME: 'l2-p99-monitor'
 
 permissions:
@@ -43,7 +43,7 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v6
 
-      - name: 设置 Python 3.10
+      - name: 设置 Python 3.12
         uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}

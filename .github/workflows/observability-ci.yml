@@ -314,8 +314,10 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # pyproject.toml 要求 requires-python = ">=3.10,<3.13"，matrix 覆盖 3.10-3.12 全部支持版本
-        python-version: ['3.10', '3.11', '3.12']
+        # 【校准 2026-08-28】pyproject 依赖（numpy>=2.0/scipy>=1.13）在 3.10 上
+        # 解析到 numpy 2.4.6/scipy 1.17.1（均要求 >=3.11）→ 3.10 安装失败，
+        # matrix 移除 3.10，保留 3.11-3.12 全部支持版本
+        python-version: ['3.11', '3.12']
     steps:
       - name: 检出代码
         uses: actions/checkout@v6

@@ -40,7 +40,7 @@ ValueError）· `scan_light_cards(root, *, type_dirs, parallel)`（全量扫描�
 
 | 依赖项 | 最低版本 | 说明 |
 |---|---|---|
-| Python | 3.10 | `pyproject.toml` `requires-python = ">=3.10"` |
+| Python | 3.11 | `pyproject.toml` `requires-python = ">=3.11,<3.13"`（2026-08-28 校准：numpy 2.4/scipy 1.17 已要求 >=3.11） |
 | PyYAML | 6.0 | 唯一运行时依赖（frontmatter 解析） |
 | libyaml（C 扩展） | 可选 | 有则 `CSafeLoader` 加速（约 7.6x）；缺失自动回退纯 Python `SafeLoader`，功能等价 |
 

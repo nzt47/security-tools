@@ -14,13 +14,14 @@ authors = [
 maintainers = [
   { name = "Yunshu Team", email = "team@Yunshu.ai" }
 ]
-requires-python = ">=3.10,<3.13"
+# 【校准 2026-08-28】依赖 numpy>=2.0/scipy>=1.13 在 3.10 上解析到 numpy 2.4.6/scipy 1.17.1
+# （均要求 >=3.11，无 3.10 wheel）→ 3.10 无法安装。声明与依赖实际兼容性对齐，下限升至 3.11。
+requires-python = ">=3.11,<3.13"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Developers",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
@@ -129,7 +130,7 @@ include_trailing_comma = true
 multi_line_output = 3
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.12"
 ignore_missing_imports = true
 show_error_codes = true
 strict = false

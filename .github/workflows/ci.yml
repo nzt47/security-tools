@@ -28,7 +28,7 @@ on:
     - cron: '0 2 * * *'  # 每天凌晨2点运行完整测试
 
 env:
-  PYTHON_VERSION: '3.10'
+  PYTHON_VERSION: '3.12'
   NODE_VERSION: '18'
   COVERAGE_THRESHOLD: 40
 
@@ -250,7 +250,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.11', '3.12']
         shard: ['1', '2', '3', '4', '5', '6']
     steps:
       - name: 检出代码
@@ -453,7 +453,8 @@ jobs:
   # ============================================================================
   # light_loader 环境兼容性自动校验（每次提交自动运行）
   # ============================================================================
-  # Why 将 docs/wiki/Home.md 的版本兼容矩阵固化为 CI 门禁：当前环境 Python>=3.10、
+  # Why 将 docs/wiki/Home.md 的版本兼容矩阵固化为 CI 门禁：当前环境 Python>=3.11（2026-08-28
+  #   校准：numpy>=2.0/scipy>=1.13 已要求 >=3.11，3.10 不再支持）、
   #   PyYAML>=6.0 为必需项；libyaml C 扩展为可选项（缺失仅提示，自动回退）。
   #   退出码 0=兼容；1=必需项缺失（job 失败）。--json 输出供日志解析。
   light-loader-compat-check:
@@ -655,11 +656,13 @@ jobs:
           # Why token: 用默认 GITHUB_TOKEN，触发 push 不会递归触发 CI（GitHub 设计）
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 下载测试结果 artifacts (py3.10)
+      - name: 下载测试结果 artifacts (py3.11)
         # 【变易】单元测试已拆分为 6 个 shard，下载全部 shard 的 junit 后合并
+        # 【校准 2026-08-28】矩阵移除 3.10（numpy 2.4/scipy 1.17 已要求 >=3.11），
+        #   取第一个支持版本 3.11 的 artifact 作为看板数据源
         uses: actions/download-artifact@v8
         with:
-          pattern: test-results-unit-py3.10-*
+          pattern: test-results-unit-py3.11-*
           # Why path: test-results + merge-multiple: 还原 ci.yml 上传时的原始目录结构
           #   上传时 path: test-results/，下载到 test-results/ 后脚本可按默认路径读取
           path: test-results
