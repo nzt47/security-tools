@@ -229,7 +229,7 @@ flowchart LR
     subgraph monitoring [monitoring]
         agent_monitoring["agent.monitoring"]:::crosslayer
         agent_monitoring_alert_evaluator["agent.monitoring.alert_evaluator"]
-        agent_monitoring_alert_manager["agent.monitoring.alert_manager"]
+        agent_monitoring_alert_manager["agent.monitoring.alert_manager"]:::crosslayer
         agent_monitoring_alert_notifier["agent.monitoring.alert_notifier"]
         agent_monitoring_business_metrics["agent.monitoring.business_metrics"]:::crosslayer
         agent_monitoring_chaos_injector["agent.monitoring.chaos_injector"]
@@ -705,6 +705,8 @@ flowchart LR
     agent_server_routes_routes_health -.-> agent_health_health_score
     agent_server_routes_routes_health -.-> agent_logging_utils
     agent_server_routes_routes_health -.-> agent_utils_singleton_manager
+    agent_server_routes_routes_health -.-> agent_monitoring_alert_manager
+    agent_server_routes_routes_health -.-> agent_monitoring_alert_manager
     agent_server_routes_routes_health -.-> agent_task_scheduler
     agent_server_routes_routes_health -.-> agent_prometheus_exporter
     agent_server_routes_routes_memory -.-> agent_server_auth
@@ -1017,6 +1019,9 @@ flowchart LR
     agent_monitoring_alert_evaluator --> agent_monitoring_tracing
     agent_monitoring_alert_evaluator --> agent_monitoring_metrics
     agent_monitoring_alert_evaluator -.-> agent_utils_singleton_manager
+    agent_monitoring_alert_evaluator -.-> agent_utils_singleton_manager
+    agent_monitoring_alert_evaluator -.-> agent_health_health_score
+    agent_monitoring_alert_evaluator -.-> agent_health_health_score
     agent_monitoring_tracing -.-> agent_observability_subscriber
     agent_monitoring_tracing -.-> agent_observability_subscriber
     agent_monitoring_tracing -.-> agent_utils_singleton_manager
@@ -1286,8 +1291,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 425
 - 模块节点数: 343
-- 依赖边数: 847
-- 跨层调用数: 530
+- 依赖边数: 852
+- 跨层调用数: 535
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1024.57 ms
+- 构建耗时: 1660.65 ms

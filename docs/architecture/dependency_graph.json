@@ -1,5 +1,5 @@
 {
-  "trace_id": "5d7badafee904e4f",
+  "trace_id": "c8c51a0c2c4c48bf",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -103,7 +103,7 @@
       "name": "singleton_manager",
       "layer": "utils",
       "file_path": "",
-      "in_degree": 52,
+      "in_degree": 53,
       "out_degree": 0
     },
     {
@@ -1360,15 +1360,23 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_health.py",
       "in_degree": 0,
-      "out_degree": 6
+      "out_degree": 8
     },
     {
       "path": "agent.health.health_score",
       "name": "health_score",
       "layer": "health",
       "file_path": "",
-      "in_degree": 1,
+      "in_degree": 3,
       "out_degree": 1
+    },
+    {
+      "path": "agent.monitoring.alert_manager",
+      "name": "alert_manager",
+      "layer": "monitoring",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 9
     },
     {
       "path": "agent.server_routes.routes_memory",
@@ -2136,7 +2144,7 @@
       "layer": "monitoring",
       "file_path": "agent/monitoring/alert_evaluator.py",
       "in_degree": 1,
-      "out_degree": 3
+      "out_degree": 6
     },
     {
       "path": "agent.monitoring.error_reporter",
@@ -2249,14 +2257,6 @@
       "file_path": "",
       "in_degree": 2,
       "out_degree": 0
-    },
-    {
-      "path": "agent.monitoring.alert_manager",
-      "name": "alert_manager",
-      "layer": "monitoring",
-      "file_path": "agent/monitoring/alert_manager.py",
-      "in_degree": 0,
-      "out_degree": 9
     },
     {
       "path": "agent.human_in_the_loop.takeover_queue",
@@ -6329,7 +6329,33 @@
       "source_layer": "server_routes",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 33,
+      "line": 110,
+      "source_file": "agent/server_routes/routes_health.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_health",
+      "target": "agent.monitoring.alert_manager",
+      "source_layer": "server_routes",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 94,
+      "source_file": "agent/server_routes/routes_health.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_health",
+      "target": "agent.monitoring.alert_manager",
+      "source_layer": "server_routes",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 313,
       "source_file": "agent/server_routes/routes_health.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6342,7 +6368,7 @@
       "source_layer": "server_routes",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 414,
+      "line": 533,
       "source_file": "agent/server_routes/routes_health.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6355,7 +6381,7 @@
       "source_layer": "server_routes",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 432,
+      "line": 551,
       "source_file": "agent/server_routes/routes_health.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10393,6 +10419,45 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.monitoring.alert_evaluator",
+      "target": "agent.utils.singleton_manager",
+      "source_layer": "monitoring",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 304,
+      "source_file": "agent/monitoring/alert_evaluator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.alert_evaluator",
+      "target": "agent.health.health_score",
+      "source_layer": "monitoring",
+      "target_layer": "health",
+      "import_type": "from_import",
+      "line": 310,
+      "source_file": "agent/monitoring/alert_evaluator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.alert_evaluator",
+      "target": "agent.health.health_score",
+      "source_layer": "monitoring",
+      "target_layer": "health",
+      "import_type": "from_import",
+      "line": 307,
+      "source_file": "agent/monitoring/alert_evaluator.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.monitoring.tracing",
       "target": "agent.observability.subscriber",
       "source_layer": "monitoring",
@@ -11399,7 +11464,7 @@
       "source_layer": "monitoring",
       "target_layer": "human_in_the_loop",
       "import_type": "from_import",
-      "line": 565,
+      "line": 572,
       "source_file": "agent/monitoring/alert_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -11412,7 +11477,7 @@
       "source_layer": "monitoring",
       "target_layer": "self_healing",
       "import_type": "from_import",
-      "line": 625,
+      "line": 632,
       "source_file": "agent/monitoring/alert_manager.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -13763,8 +13828,8 @@
   "stats": {
     "total_files": 425,
     "total_nodes": 343,
-    "total_edges": 847,
-    "cross_layer_edges": 530,
+    "total_edges": 852,
+    "cross_layer_edges": 535,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -13810,6 +13875,6 @@
       "quality": 2,
       "prompt_manager": 5
     },
-    "build_duration_ms": 1024.5688859999973
+    "build_duration_ms": 1660.646278999991
   }
 }
