@@ -11,6 +11,7 @@
 - #4  verify_heal 连续 2 次失败触发 alert_escalated 且日志含 from/to level
 - #6  自愈动作命中黑名单时返回 SKIPPED 且记录 security_blocked
 """
+import json
 import logging
 import sys
 from unittest.mock import MagicMock, patch
@@ -19,6 +20,25 @@ import pytest
 
 from agent.monitoring.alert_manager import AlertManager
 from agent.monitoring.self_healer import HealStatus, SelfHealer
+
+
+def _record_payload(record):
+    """提取日志记录的结构化 payload（兼容两种格式）。
+
+    log_dict 迁移后 record.msg 为 dict；旧式 json.dumps 则是 JSON 字符串。
+    统一返回 dict，解析失败返回 None（非结构化日志忽略）。
+    """
+    msg = getattr(record, "msg", None)
+    if isinstance(msg, dict):
+        return msg
+    try:
+        return json.loads(record.getMessage())
+    except (TypeError, ValueError):
+        return None
+
+
+def _payloads(caplog):
+    return [p for p in (_record_payload(r) for r in caplog.records) if p]
 
 
 @pytest.fixture
@@ -49,9 +69,11 @@ class TestEscalationChain:
         assert ok2 is False
 
         # 升级结构化日志：action + from/to level（验收 #4）
-        assert '"action": "alert_escalated"' in caplog.text
-        assert '"from_level": "warning"' in caplog.text
-        assert '"to_level": "critical"' in caplog.text
+        # 【变易】log_dict 迁移后消息为 dict，断言结构化字段而非 JSON 文本
+        payloads = _payloads(caplog)
+        assert any(p.get("action") == "alert_escalated" for p in payloads)
+        assert any(p.get("from_level") == "warning" for p in payloads)
+        assert any(p.get("to_level") == "critical" for p in payloads)
 
         # 升级通知已发出（critical 渠道）
         assert m_send_critical.called
@@ -81,7 +103,8 @@ class TestEscalationChain:
                 ok = healer.verify_heal("clear_cache", timeout=0)
 
         assert ok is False
-        assert '"action": "alert_escalated"' not in caplog.text
+        payloads = _payloads(caplog)
+        assert not any(p.get("action") == "alert_escalated" for p in payloads)
         assert am.get_takeovers() == []
 
     def test_verify_success_resets_failure_counter(self, alert_manager):
@@ -200,9 +223,10 @@ class TestEscalationChain:
         assert takeovers[0]["alert_name"] == "loop_terminated:evaluate_loop"
 
         # 升级结构化日志含 from/to level（与验收 #4 同型断言）
-        assert '"action": "alert_escalated"' in caplog.text
-        assert '"from_level": "warning"' in caplog.text
-        assert '"to_level": "critical"' in caplog.text
+        payloads = _payloads(caplog)
+        assert any(p.get("action") == "alert_escalated" for p in payloads)
+        assert any(p.get("from_level") == "warning" for p in payloads)
+        assert any(p.get("to_level") == "critical" for p in payloads)
 
 
 class TestSelfHealSecurityBlocked:
