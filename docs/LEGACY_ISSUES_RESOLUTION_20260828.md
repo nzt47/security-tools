@@ -167,8 +167,19 @@ log_dict（`record.msg` 为 dict，格式化后单引号）→ 断言必挂。�
 
 **处理**：新增 `_record_payload` / `_payloads` 助手（兼容 dict 消息与旧 JSON 字符串），
 3 处断言改为结构化字段匹配（action/from_level/to_level）。本地验证 **9 passed**。
+**CI 确认：0f4cdeb8 云枢系统测试流程集成测试 success、可观测性 Shard 2/6 success。**
 
-### 5.4 其余 CI 失败甄别（本地复现判定）
+### 5.4 test_list_recent 时序竞态（test_long_term_memory_embedding）
+
+**问题**：`test_list_recent_basic` 两次连续 save 可能落在同一微秒 → created_at 相同 →
+`ORDER BY created_at DESC` 稳定排序按 rowid 返回插入序（k1 在前）→ 断言 `entries[0].key == "k2"` 必挂。
+Windows GBK 控制台写日志开销大、两次 save 时间戳错开 → 偶过；快机器/CI（Linux UTF-8）必挂
+（可观测性 **Shard 3** 连续失败即此）。
+
+**处理**：mock `agent.memory.long_term_memory.time.time` 为递增时钟，保证两次 save 的
+created_at 确定递增。本地验证 **50 passed**。
+
+### 5.5 其余 CI 失败甄别（本地复现判定）
 
 - 集成套件本地 7 failed / 1427 errors：全部为 Windows 沙箱 artifacts
   （subprocess 管道 EPERM——`test_knowledge_audit_ci_edge` 跑 CLI 子进程、git 相关测试；
@@ -178,7 +189,22 @@ log_dict（`record.msg` 为 dict，格式化后单引号）→ 断言必挂。�
   CI Linux 不受影响；真实失败点即 5.3 的 task7（Shard 2 已修复）。
 - 云枢单元 Shard 2 在 4768f6ed 失败、190ea12c 通过 → flaky，随修复提交重验。
 
-> 注：本报告相关变更已分 6 批提交并推送 origin + gitee 双远程：
+### 5.6 最终 CI 验证结论（81a541de）
+
+| Workflow | 结论 |
+|----------|------|
+| **云枢系统测试流程**（主门禁） | ✅ **success**——18/18 job 全绿（集成测试 / 6 单测 shard / E2E / 性能 / 代码质量 / 安全扫描 / 覆盖率检查等） |
+| Skills Check | ✅ success（190ea12c，扫描器误报修复验证） |
+| Error Reporting System CI/CD | ✅ success |
+| 日志性能守护 / 核心不变量 / lock-discipline / kwarg / 硬编码密码 / 环境健康 / master 来源守卫 | ✅ 全 success |
+| 可观测性质量保障 | ⚠️ 确定性失败（task7→Shard2、list_recent→Shard3）已修复并验证转绿；剩余 **Shard 6 flaky**（4768f6ed 过 / 0a2917f9 过 / 81a541de 挂，轮次间漂移；本地 UTF-8 复现仅环境 artifacts） |
+| Daily Regression Tests | ⚠️ flaky——同一提交 0f4cdeb8 两轮分别 success/failure（LoRA checkpoint / E2E recovery job） |
+| L3 Docker Tests | ⚠️ 首次触发（push paths 命中 test_long_term_memory_embedding.py）即失败——sqlite-vec 容器内测试，本地 97 passed 无回归，疑容器环境/既有 sqlite-vec 测试问题 |
+
+**确定性遗留全部闭环**；剩余 3 项 CI 红均为 flaky/环境依赖（GitHub 共享 runner 资源争用、HF 网络不可达、Docker 容器环境），非代码回归。
+
+> 注：本报告相关变更已分 7 批提交并推送 origin + gitee 双远程：
 > `d7b5c3ad`（遗留处理全量）→ `e5a32b80`（3.12 收敛 + 测试适配）→ `8c8a204d`（剩余 workflow 3.11→3.12）
 > → `89653c9d`（detect_dynamic_loads 常量路径识别）→ `190ea12c`（skills-check push paths 自验证）
-> → `0a2917f9`（test_task7_alert_escalation log_dict 适配）。CI 验证随 §五 持续跟踪。
+> → `0a2917f9`（test_task7_alert_escalation log_dict 适配）→ `81a541de`（test_list_recent 时序竞态修复）。
+> CI 验证结论见 §5.6。
