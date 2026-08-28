@@ -11,6 +11,9 @@ services:
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml
       # [CHG-2026-0729] 挂载 rules 目录，使 reranker-alerts.yml 等子目录规则生效
       - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      # [2026-08-28] 健康度评估体系规则（记录规则 + 告警规则）
+      - ./monitoring/health_recording_rules.yml:/etc/prometheus/health_recording_rules.yml:ro
+      - ./monitoring/health_alerts.yml:/etc/prometheus/health_alerts.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'

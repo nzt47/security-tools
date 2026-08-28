@@ -5,6 +5,9 @@ global:
 rule_files:
   - "alerts.yml"
   - "prometheus/rules/lock_watchdog_alerts.yml"
+  # 健康度评估体系规则（记录规则 + 告警规则）
+  - "health_recording_rules.yml"
+  - "health_alerts.yml"
 
 scrape_configs:
   - job_name: 'yunshu'
