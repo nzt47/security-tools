@@ -60,6 +60,7 @@ import time
 import traceback
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
+from agent.logging_utils import log_dict
 
 # 延迟导入：避免 import 时拉起 sentence-transformers
 # 仅在 _load_model() 中实际导入
@@ -219,11 +220,7 @@ class SkillReranker:
         if self._use_onnx_env:
             if self._load_onnx():
                 return True
-            logger.info(json.dumps({
-                "module_name": "reranker",
-                "action": "onnx.fallback_to_pytorch",
-                "reason": "onnx_load_failed_or_unavailable",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'reranker', 'action': 'onnx.fallback_to_pytorch', 'reason': 'onnx_load_failed_or_unavailable'}))
             # [Observability] ONNX 降级到 PyTorch（降级率监控数据源）
             emit_metric("yunshu_reranker_fallback_total",
                         value=1, kind="counter",
@@ -267,15 +264,7 @@ class SkillReranker:
                     value=round(size_gb, 2), kind="gauge",
                     labels={"model": self._model_name})
         if size_gb > 1.0:
-            logger.warning(json.dumps({
-                "module_name": "reranker",
-                "action": "model.size_warning",
-                "model": self._model_name,
-                "size_gb": round(size_gb, 2),
-                "threshold_gb": 1.0,
-                "suggestion": "consider BAAI/bge-reranker-base (~1.1GB) or "
-                               "jina-reranker-v2 (~280MB) for faster CPU inference",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'reranker', 'action': 'model.size_warning', 'model': self._model_name, 'size_gb': round(size_gb, 2), 'threshold_gb': 1.0, 'suggestion': 'consider BAAI/bge-reranker-base (~1.1GB) or jina-reranker-v2 (~280MB) for faster CPU inference'}))
 
     def _load_onnx(self) -> bool:
         """加载 ONNX 推理后端
@@ -294,12 +283,7 @@ class SkillReranker:
 
             # 模型路径需为本地目录（ONNX 文件在 <model_dir>/onnx/<variant>）
             if not os.path.isdir(self._model_name):
-                logger.warning(json.dumps({
-                    "module_name": "reranker",
-                    "action": "onnx.skip",
-                    "reason": "model_path_not_local_dir",
-                    "model": self._model_name,
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'reranker', 'action': 'onnx.skip', 'reason': 'model_path_not_local_dir', 'model': self._model_name}))
                 # [Observability] ONNX 跳过（配置错误，P2 告警数据源）
                 emit_metric("yunshu_reranker_load_total",
                             value=1, kind="counter",
@@ -309,12 +293,7 @@ class SkillReranker:
 
             onnx_path = os.path.join(self._model_name, "onnx", self._onnx_variant)
             if not os.path.exists(onnx_path):
-                logger.warning(json.dumps({
-                    "module_name": "reranker",
-                    "action": "onnx.skip",
-                    "reason": "onnx_file_not_found",
-                    "expected_path": onnx_path,
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'reranker', 'action': 'onnx.skip', 'reason': 'onnx_file_not_found', 'expected_path': onnx_path}))
                 # [Observability] ONNX 文件缺失（配置错误，P2 告警数据源）
                 emit_metric("yunshu_reranker_load_total",
                             value=1, kind="counter",
@@ -335,14 +314,7 @@ class SkillReranker:
             self._use_onnx = True
             elapsed = time.time() - t0
 
-            logger.info(json.dumps({
-                "module_name": "reranker",
-                "action": "onnx.loaded",
-                "model": self._model_name,
-                "onnx_file": self._onnx_variant,
-                "inputs": self._onnx_input_names,
-                "load_time_s": round(elapsed, 2),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'reranker', 'action': 'onnx.loaded', 'model': self._model_name, 'onnx_file': self._onnx_variant, 'inputs': self._onnx_input_names, 'load_time_s': round(elapsed, 2)}))
             # [Observability] Prometheus 指标：ONNX 加载成功（counter + gauge 加载耗时）
             emit_metric("yunshu_reranker_load_total",
                         value=1, kind="counter",
@@ -353,12 +325,7 @@ class SkillReranker:
             return True
 
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "module_name": "reranker",
-                "action": "onnx.load_failed",
-                "model": self._model_name,
-                "error": str(e)[:300],
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'reranker', 'action': 'onnx.load_failed', 'model': self._model_name, 'error': str(e)[:300]}))
             # [Observability] Prometheus 指标：ONNX 加载失败（P0 告警数据源）
             emit_metric("yunshu_reranker_load_total",
                         value=1, kind="counter",
@@ -385,23 +352,14 @@ class SkillReranker:
             # trust_remote_code=True：jina-reranker-v2 等含自定义代码仓库必需
             # bge-reranker-v2-m3 等标准模型对此参数无副作用，安全兼容
             self._model = CrossEncoder(self._model_name, trust_remote_code=True)
-            logger.info(json.dumps({
-                "module_name": "reranker",
-                "action": "pytorch.loaded",
-                "model": self._model_name,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'reranker', 'action': 'pytorch.loaded', 'model': self._model_name}))
             # [Observability] PyTorch 后端加载成功
             emit_metric("yunshu_reranker_load_total",
                         value=1, kind="counter",
                         labels={"backend": "pytorch", "status": "success"})
             return True
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "module_name": "reranker",
-                "action": "pytorch.load_failed",
-                "model": self._model_name,
-                "error": str(e)[:300],
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'reranker', 'action': 'pytorch.load_failed', 'model': self._model_name, 'error': str(e)[:300]}))
             # [Observability] PyTorch 加载失败（P0 双后端全挂告警数据源）
             emit_metric("yunshu_reranker_load_total",
                         value=1, kind="counter",
@@ -447,12 +405,7 @@ class SkillReranker:
         """
         t0 = time.time()
         old_variant = self._onnx_variant_loaded
-        logger.info(json.dumps({
-            "module_name": "reranker",
-            "action": "hot_reload.detected",
-            "old_variant": old_variant,
-            "new_variant": new_variant,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'reranker', 'action': 'hot_reload.detected', 'old_variant': old_variant, 'new_variant': new_variant}))
 
         try:
             new_session, new_tokenizer, new_inputs = self._try_load_onnx_variant(
@@ -474,15 +427,7 @@ class SkillReranker:
                 "hot_reload.failed_rollback" if is_config_error
                 else "hot_reload.exception_rollback"
             )
-            logger.warning(json.dumps({
-                "module_name": "reranker",
-                "action": action,
-                "target_variant": new_variant,
-                "kept_variant": old_variant,
-                "load_error": (self._last_load_error or "")[:300],
-                "traceback": tb_str[:2000],  # 异常堆栈追踪（验收清单 3.2/3.3 校验字段）
-                "status": status,
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'reranker', 'action': action, 'target_variant': new_variant, 'kept_variant': old_variant, 'load_error': (self._last_load_error or '')[:300], 'traceback': tb_str[:2000], 'status': status}))
             emit_metric("yunshu_reranker_hot_reload_total",
                         value=1, kind="counter",
                         labels={"status": status})
@@ -499,13 +444,7 @@ class SkillReranker:
             self._use_onnx = True
 
         elapsed = time.time() - t0
-        logger.info(json.dumps({
-            "module_name": "reranker",
-            "action": "hot_reload.success",
-            "old_variant": old_variant,
-            "new_variant": new_variant,
-            "reload_time_s": round(elapsed, 2),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'reranker', 'action': 'hot_reload.success', 'old_variant': old_variant, 'new_variant': new_variant, 'reload_time_s': round(elapsed, 2)}))
         emit_metric("yunshu_reranker_hot_reload_total",
                     value=1, kind="counter",
                     labels={"status": "success"})
@@ -623,26 +562,14 @@ class SkillReranker:
 
         # 环境变量开关
         if not self._is_enabled():
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "reranker",
-                "action": "rerank.disabled",
-                "reason": "SKILL_RERANKER_ENABLED=false",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'reranker', 'action': 'rerank.disabled', 'reason': 'SKILL_RERANKER_ENABLED=false'}))
             return candidates[:top_k]
 
         # 模型加载
         if not self._load_model():
             # 降级：返回原始排序的 top-k
             elapsed = (time.time() - t0) * 1000
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "reranker",
-                "action": "rerank.fallback",
-                "reason": "model_unavailable",
-                "candidate_count": len(candidates),
-                "duration_ms": round(elapsed, 2),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'reranker', 'action': 'rerank.fallback', 'reason': 'model_unavailable', 'candidate_count': len(candidates)}))
             # [Observability] rerank 降级（P1 降级率告警数据源）
             emit_metric("yunshu_reranker_fallback_total",
                         value=1, kind="counter",
@@ -666,13 +593,7 @@ class SkillReranker:
         except Exception as e:  # noqa: BLE001
             # 降级：预测失败返回原始排序
             elapsed = (time.time() - t0) * 1000
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "reranker",
-                "action": "rerank.predict_failed",
-                "error": str(e)[:300],
-                "duration_ms": round(elapsed, 2),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'reranker', 'action': 'rerank.predict_failed', 'error': str(e)[:300]}))
             return candidates[:top_k]
 
         # 【不易修复】Cross-Encoder 输出 raw logits（典型范围 -10~+10），
@@ -735,21 +656,7 @@ class SkillReranker:
             score_stddev = float(math.sqrt(score_var))
         else:
             score_min = score_max = score_mean = score_stddev = 0.0
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "reranker",
-            "action": "rerank.completed",
-            "query": query[:100],
-            "candidate_count": len(candidates),
-            "result_count": len(result),
-            "top_score": float(result[0][2]) if result else 0.0,
-            # 【变易】sigmoid 分数范围（验证 [0,1] + 区分度诊断）
-            "score_min": round(score_min, 6),
-            "score_max": round(score_max, 6),
-            "score_mean": round(score_mean, 6),
-            "score_stddev": round(score_stddev, 6),
-            "duration_ms": round(elapsed, 2),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'reranker', 'action': 'rerank.completed', 'query': query[:100], 'candidate_count': len(candidates), 'result_count': len(result), 'top_score': float(result[0][2]) if result else 0.0, 'score_min': round(score_min, 6), 'score_max': round(score_max, 6), 'score_mean': round(score_mean, 6), 'score_stddev': round(score_stddev, 6)}))
         # [Observability] rerank 成功（P99 延迟直方图 + 成功计数）
         backend = "onnx" if self._use_onnx else "pytorch"
         emit_metric("yunshu_rerank_duration_ms",
@@ -838,15 +745,7 @@ class SkillReranker:
         except FuturesTimeout:
             # 超时：记录日志 + emit_metric 后 re-raise，让 rerank 降级返回原序
             backend = "onnx" if self._use_onnx else "pytorch"
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "reranker",
-                "action": "predict.timeout",
-                "timeout_s": self._rerank_timeout,
-                "pair_count": len(pairs),
-                "backend": backend,
-                "reason": "predict exceeded rerank_timeout, degrading to original order",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'reranker', 'action': 'predict.timeout', 'timeout_s': self._rerank_timeout, 'pair_count': len(pairs), 'backend': backend, 'reason': 'predict exceeded rerank_timeout, degrading to original order'}))
             emit_metric("yunshu_reranker_timeout_total",
                         value=1, kind="counter",
                         labels={"backend": backend})
@@ -937,12 +836,7 @@ class SkillReranker:
             return [float(s) for s in scores]
 
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "reranker",
-                "action": "onnx.predict_failed",
-                "error": str(e)[:300],
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'reranker', 'action': 'onnx.predict_failed', 'error': str(e)[:300]}))
             # [Observability] ONNX 推理失败（P1 推理失败率告警数据源）
             emit_metric("yunshu_reranker_predict_failed_total",
                         value=1, kind="counter",

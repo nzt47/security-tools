@@ -10,6 +10,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 from collections import defaultdict, Counter
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -77,27 +78,13 @@ class DataAnalytics:
 
         # 边界显性化：校验 days 参数，防止 OverflowError
         if not isinstance(days, int) or days < 0:
-            logger.error(json.dumps({
-                "trace_id": _trace_id(),
-                "module_name": "data_analytics",
-                "action": "analyze_event_trends.invalid_days",
-                "duration_ms": 0,
-                "days": days,
-                "reason": "days must be non-negative int",
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'data_analytics', 'action': 'analyze_event_trends.invalid_days', 'days': days, 'reason': 'days must be non-negative int'}))
             raise ValueError(
                 f"days 必须为非负整数，得到: {days!r}"
             )
         max_days = _get_max_analyze_days()
         if days > max_days:
-            logger.error(json.dumps({
-                "trace_id": _trace_id(),
-                "module_name": "data_analytics",
-                "action": "analyze_event_trends.days_overflow",
-                "duration_ms": 0,
-                "days": days,
-                "max_allowed": max_days,
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'data_analytics', 'action': 'analyze_event_trends.days_overflow', 'days': days, 'max_allowed': max_days}))
             raise ValueError(
                 f"days 超过上限 {max_days}，得到: {days}"
             )
@@ -332,10 +319,5 @@ def _safe_call(func, *args, action="safe_call", **kwargs):
     try:
         return func(*args, **kwargs)
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": _trace_id(),
-            "module_name": "data_analytics",
-            "action": action + ".failed",
-            "error": f"{type(e).__name__}: {e}",
-        }, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'data_analytics', 'action': action + '.failed', 'error': f'{type(e).__name__}: {e}'}))
         raise

@@ -231,8 +231,12 @@ class TestNormalLoadFullChain:
                       if "rerank.completed" in str(c)]
         assert len(info_calls) == 1
         log_msg = info_calls[0][0][0]
-        # 【变易】sigmoid 后 top_score = round(_sigmoid(0.95), 4) = 0.7211
-        assert str(_exp_sigmoid(0.95)) in log_msg  # top_score（sigmoid 后）
+        # 【变易】sigmoid 后 top_score ≈ _sigmoid(0.95) = 0.7211
+        # 兼容 log_dict dict 消息（值为 float）与旧 JSON 字符串（值为字符串）
+        if isinstance(log_msg, dict):
+            assert log_msg["top_score"] == pytest.approx(_exp_sigmoid(0.95), abs=1e-4)
+        else:
+            assert str(_exp_sigmoid(0.95)) in log_msg  # top_score（sigmoid 后）
 
 
 # ════════════════════════════════════════════════════════════

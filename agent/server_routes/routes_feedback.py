@@ -16,6 +16,7 @@ import json
 from .tracing_decorator import trace_route
 import logging
 from flask import request, jsonify
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -91,15 +92,7 @@ def register_routes(app, state):
                 context=context
             )
 
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "routes_feedback",
-                "action": "submit_feedback",
-                "feedback_id": record.feedback_id,
-                "feedback_type": feedback_type,
-                "duration_ms": 0,
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'routes_feedback', 'action': 'submit_feedback', 'feedback_id': record.feedback_id, 'feedback_type': feedback_type, 'level': 'INFO'}))
 
             return jsonify({
                 "success": True,
@@ -108,14 +101,7 @@ def register_routes(app, state):
             }), 200
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "routes_feedback",
-                "action": "submit_feedback",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'submit_feedback', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
                 "error": str(e),
@@ -167,14 +153,7 @@ def register_routes(app, state):
             }), 200
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "routes_feedback",
-                "action": "list_feedback",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'list_feedback', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
                 "error": str(e),
@@ -202,14 +181,7 @@ def register_routes(app, state):
             }), 200
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "routes_feedback",
-                "action": "get_feedback",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'get_feedback', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
                 "error": str(e),
@@ -251,14 +223,7 @@ def register_routes(app, state):
                 "code": "NOT_FOUND"
             }), 404
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "routes_feedback",
-                "action": "resolve_feedback",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'resolve_feedback', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
                 "error": str(e),
@@ -286,14 +251,7 @@ def register_routes(app, state):
             }), 200
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "routes_feedback",
-                "action": "feedback_summary",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'feedback_summary', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
                 "error": str(e),
@@ -334,14 +292,7 @@ def register_routes(app, state):
             }), 200
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "routes_feedback",
-                "action": "list_quality_cases",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'list_quality_cases', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
                 "error": str(e),
@@ -370,25 +321,11 @@ def register_routes(app, state):
             }), 200
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "routes_feedback",
-                "action": "feedback_report",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'routes_feedback', 'action': 'feedback_report', 'error': str(e), 'level': 'ERROR'}))
             return jsonify({
                 "success": False,
                 "error": str(e),
                 "code": "INTERNAL_ERROR"
             }), 500
 
-    logger.info(json.dumps({
-        "trace_id": "",
-        "module_name": "routes_feedback",
-        "action": "register_routes",
-        "message": "用户反馈路由注册完成",
-        "duration_ms": 0,
-        "level": "INFO"
-    }))
+    logger.info(log_dict({'module_name': 'routes_feedback', 'action': 'register_routes', 'message': '用户反馈路由注册完成', 'level': 'INFO'}))

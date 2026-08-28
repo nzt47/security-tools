@@ -21,6 +21,7 @@ from agent.cognitive.failure_analysis import (
     FailureAnalyzer, FailureRecord, FailureType, FailureSeverity,
     get_failure_analyzer
 )
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -96,14 +97,7 @@ class FailureCollector:
         self._register_default_rules()
         
         self._initialized = True
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "failure_collector",
-            "action": "initialize",
-            "rule_count": len(self._alert_rules),
-            "duration_ms": 0,
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'failure_collector', 'action': 'initialize', 'rule_count': len(self._alert_rules), 'level': 'INFO'}))
         logger.info("[FailureCollector] 失败案例收集器初始化完成")
     
     def _register_default_handlers(self):
@@ -308,18 +302,7 @@ class FailureCollector:
         # 同时记录到日志
         self._handle_log_alert(alert)
         
-        logger.warning(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "failure_collector",
-            "action": "alert_triggered",
-            "rule_id": rule.rule_id,
-            "failure_type": failure_type.value,
-            "severity": severity.value,
-            "count": count,
-            "alert_id": alert.alert_id,
-            "duration_ms": 0,
-            "level": "WARNING"
-        }))
+        logger.warning(log_dict({'module_name': 'failure_collector', 'action': 'alert_triggered', 'rule_id': rule.rule_id, 'failure_type': failure_type.value, 'severity': severity.value, 'count': count, 'alert_id': alert.alert_id, 'level': 'WARNING'}))
     
     def _handle_console_alert(self, alert: AlertEvent):
         """控制台告警处理器"""

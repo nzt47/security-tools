@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, List, Tuple
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -143,14 +144,7 @@ class AutoTuner:
         self._current_params = self._get_default_params()
         self._param_ranges = self._get_param_ranges()
 
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "auto_tuner",
-            "action": "init",
-            "storage_path": self.storage_path,
-            "duration_ms": 0,
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'auto_tuner', 'action': 'init', 'storage_path': self.storage_path, 'level': 'INFO'}))
 
     def _get_default_params(self) -> Dict[str, Any]:
         return {
@@ -259,13 +253,7 @@ class AutoTuner:
         self._initialized = True
         self._load_current_params()
 
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "auto_tuner",
-            "action": "initialize",
-            "duration_ms": 0,
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'auto_tuner', 'action': 'initialize', 'level': 'INFO'}))
 
     def _load_current_params(self):
         try:
@@ -278,23 +266,9 @@ class AutoTuner:
                 row = cursor.fetchone()
                 if row:
                     self._current_params = json.loads(row['params'])
-                    logger.info(json.dumps({
-                        "trace_id": "",
-                        "module_name": "auto_tuner",
-                        "action": "_load_current_params",
-                        "params_count": len(self._current_params),
-                        "duration_ms": 0,
-                        "level": "INFO"
-                    }))
+                    logger.info(log_dict({'module_name': 'auto_tuner', 'action': '_load_current_params', 'params_count': len(self._current_params), 'level': 'INFO'}))
         except Exception as e:
-            logger.warning(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "_load_current_params",
-                "warning": f"加载参数失败，使用默认值: {e}",
-                "duration_ms": 0,
-                "level": "WARNING"
-            }))
+            logger.warning(log_dict({'module_name': 'auto_tuner', 'action': '_load_current_params', 'warning': f'加载参数失败，使用默认值: {e}', 'level': 'WARNING'}))
 
     def get_current_params(self) -> Dict[str, Any]:
         self.initialize()
@@ -337,25 +311,10 @@ class AutoTuner:
                 conn.commit()
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "record_metric",
-                "metric_name": metric_name,
-                "value": value,
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'auto_tuner', 'action': 'record_metric', 'metric_name': metric_name, 'value': value, 'level': 'INFO'}))
             return True
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "record_metric",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'auto_tuner', 'action': 'record_metric', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def generate_suggestion(self, objective: str = "balanced",
@@ -366,14 +325,7 @@ class AutoTuner:
 
         metrics = self._collect_metrics(days)
         if not metrics or len(metrics.get('quality_score', [])) < 10:
-            logger.warning(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "generate_suggestion",
-                "warning": "样本不足，无法生成可靠建议",
-                "duration_ms": 0,
-                "level": "WARNING"
-            }))
+            logger.warning(log_dict({'module_name': 'auto_tuner', 'action': 'generate_suggestion', 'warning': '样本不足，无法生成可靠建议', 'level': 'WARNING'}))
             return None
 
         proposed_params, expected_impact, confidence = self._analyze_and_propose(
@@ -422,28 +374,11 @@ class AutoTuner:
                 conn.commit()
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "generate_suggestion",
-                "suggestion_id": suggestion_id,
-                "objective": objective,
-                "confidence": confidence,
-                "param_changes": len(proposed_params),
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'auto_tuner', 'action': 'generate_suggestion', 'suggestion_id': suggestion_id, 'objective': objective, 'confidence': confidence, 'param_changes': len(proposed_params), 'level': 'INFO'}))
 
             return suggestion
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "generate_suggestion",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'auto_tuner', 'action': 'generate_suggestion', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def generate_strategy_linked_suggestion(self) -> Optional[TuningSuggestion]:
@@ -528,24 +463,10 @@ class AutoTuner:
                 )
                 conn.commit()
 
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "generate_strategy_linked_suggestion",
-                "suggestion_id": suggestion_id,
-                "high_fail_tools": high_fail_tools,
-                "param_changes": len(proposed),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'auto_tuner', 'action': 'generate_strategy_linked_suggestion', 'suggestion_id': suggestion_id, 'high_fail_tools': high_fail_tools, 'param_changes': len(proposed), 'level': 'INFO'}))
             return suggestion
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "generate_strategy_linked_suggestion",
-                "error": str(e),
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'auto_tuner', 'action': 'generate_strategy_linked_suggestion', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def generate_strategy_weekly_report(self) -> Optional[TuningReport]:
@@ -596,13 +517,7 @@ class AutoTuner:
                 conn.commit()
             return report
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "generate_strategy_weekly_report",
-                "error": str(e),
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'auto_tuner', 'action': 'generate_strategy_weekly_report', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def generate_strategy_linked_suggestion(self) -> Optional[TuningSuggestion]:
@@ -674,14 +589,7 @@ class AutoTuner:
                 conn.commit()
             return suggestion
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "generate_strategy_linked_suggestion",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'auto_tuner', 'action': 'generate_strategy_linked_suggestion', 'error': str(e), 'level': 'ERROR'}))
             return None
 
     def generate_strategy_weekly_report(self) -> Optional[TuningReport]:
@@ -729,14 +637,7 @@ class AutoTuner:
                 conn.commit()
             return report
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "generate_strategy_weekly_report",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'auto_tuner', 'action': 'generate_strategy_weekly_report', 'error': str(e), 'level': 'ERROR'}))
             return None
 
     def _collect_metrics(self, days: int) -> Dict[str, List[float]]:
@@ -992,25 +893,10 @@ class AutoTuner:
                 conn.commit()
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "approve_suggestion",
-                "suggestion_id": suggestion_id,
-                "reviewer": reviewer,
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'auto_tuner', 'action': 'approve_suggestion', 'suggestion_id': suggestion_id, 'reviewer': reviewer, 'level': 'INFO'}))
             return True
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "approve_suggestion",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'auto_tuner', 'action': 'approve_suggestion', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def reject_suggestion(self, suggestion_id: str, reviewer: str = "",
@@ -1039,26 +925,10 @@ class AutoTuner:
                 conn.commit()
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "reject_suggestion",
-                "suggestion_id": suggestion_id,
-                "reviewer": reviewer,
-                "reason": reason,
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'auto_tuner', 'action': 'reject_suggestion', 'suggestion_id': suggestion_id, 'reviewer': reviewer, 'reason': reason, 'level': 'INFO'}))
             return True
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "reject_suggestion",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'auto_tuner', 'action': 'reject_suggestion', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def apply_suggestion(self, suggestion_id: str) -> Dict[str, Any]:
@@ -1100,16 +970,7 @@ class AutoTuner:
             )
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "apply_suggestion",
-                "suggestion_id": suggestion_id,
-                "snapshot_id": snapshot_id,
-                "param_changes": len(suggestion.proposed_params),
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'auto_tuner', 'action': 'apply_suggestion', 'suggestion_id': suggestion_id, 'snapshot_id': snapshot_id, 'param_changes': len(suggestion.proposed_params), 'level': 'INFO'}))
 
             return {
                 "old_params": old_params,
@@ -1118,14 +979,7 @@ class AutoTuner:
                 "changes": suggestion.proposed_params
             }
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "apply_suggestion",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'auto_tuner', 'action': 'apply_suggestion', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def _create_snapshot(self, snapshot_id: str, params: Dict[str, Any],
@@ -1170,14 +1024,7 @@ class AutoTuner:
         self._current_params = json.loads(row['params'])
 
         duration_ms = (time.time() - start_time) * 1000
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "auto_tuner",
-            "action": "rollback_to_snapshot",
-            "snapshot_id": snapshot_id,
-            "duration_ms": round(duration_ms, 2),
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'auto_tuner', 'action': 'rollback_to_snapshot', 'snapshot_id': snapshot_id, 'level': 'INFO'}))
 
         return True
 
@@ -1232,26 +1079,11 @@ class AutoTuner:
                 conn.commit()
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "generate_weekly_report",
-                "report_id": report_id,
-                "suggestion_count": len(suggestions),
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'auto_tuner', 'action': 'generate_weekly_report', 'report_id': report_id, 'suggestion_count': len(suggestions), 'level': 'INFO'}))
 
             return report
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "auto_tuner",
-                "action": "generate_weekly_report",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'auto_tuner', 'action': 'generate_weekly_report', 'error': str(e), 'level': 'ERROR'}))
             raise
 
 

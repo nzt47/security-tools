@@ -32,6 +32,7 @@ import threading
 import requests
 
 from agent.monitoring.tracing import get_trace_id
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -239,27 +240,13 @@ class EmailSender(NotificationSender):
                 server.sendmail(self.from_addr, self.recipients, msg.as_string())
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "alert_notifier",
-                "action": "email_sent",
-                "duration_ms": duration_ms,
-                "alert_name": notification.alert_name,
-                "recipients": len(self.recipients)
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'alert_notifier', 'action': 'email_sent', 'alert_name': notification.alert_name, 'recipients': len(self.recipients)}))
             self._record_metric(True, duration_ms)
             return NotificationResult(True, "email", "发送成功", duration_ms=duration_ms)
 
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "alert_notifier",
-                "action": "email_failed",
-                "duration_ms": duration_ms,
-                "alert_name": notification.alert_name,
-                "error": str(e)
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'alert_notifier', 'action': 'email_failed', 'alert_name': notification.alert_name, 'error': str(e)}))
             self._record_metric(False, duration_ms)
             return NotificationResult(False, "email", str(e), error=str(e), duration_ms=duration_ms)
 
@@ -363,13 +350,7 @@ class DingTalkSender(NotificationSender):
             result = response.json()
             if result.get("errcode") == 0:
                 duration_ms = (time.time() - start_time) * 1000
-                logger.info(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "alert_notifier",
-                    "action": "dingtalk_sent",
-                    "duration_ms": duration_ms,
-                    "alert_name": notification.alert_name
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'alert_notifier', 'action': 'dingtalk_sent', 'alert_name': notification.alert_name}))
                 self._record_metric(True, duration_ms)
                 return NotificationResult(True, "dingtalk", "发送成功", duration_ms=duration_ms)
             else:
@@ -377,14 +358,7 @@ class DingTalkSender(NotificationSender):
 
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "alert_notifier",
-                "action": "dingtalk_failed",
-                "duration_ms": duration_ms,
-                "alert_name": notification.alert_name,
-                "error": str(e)
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'alert_notifier', 'action': 'dingtalk_failed', 'alert_name': notification.alert_name, 'error': str(e)}))
             self._record_metric(False, duration_ms)
             return NotificationResult(False, "dingtalk", str(e), error=str(e), duration_ms=duration_ms)
 
@@ -444,14 +418,7 @@ class WebhookSender(NotificationSender):
                 response.raise_for_status()
 
                 duration_ms = (time.time() - start_time) * 1000
-                logger.info(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "alert_notifier",
-                    "action": "webhook_sent",
-                    "duration_ms": duration_ms,
-                    "alert_name": notification.alert_name,
-                    "attempt": attempt + 1
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'alert_notifier', 'action': 'webhook_sent', 'alert_name': notification.alert_name, 'attempt': attempt + 1}))
                 self._record_metric(True, duration_ms)
                 return NotificationResult(
                     True, "webhook", "发送成功",
@@ -461,16 +428,7 @@ class WebhookSender(NotificationSender):
 
             except Exception as e:
                 last_error = e
-                logger.warning(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "alert_notifier",
-                    "action": "webhook_retry",
-                    "duration_ms": 0,
-                    "alert_name": notification.alert_name,
-                    "attempt": attempt + 1,
-                    "max_attempts": max_attempts,
-                    "error": str(e)
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'alert_notifier', 'action': 'webhook_retry', 'alert_name': notification.alert_name, 'attempt': attempt + 1, 'max_attempts': max_attempts, 'error': str(e)}))
 
                 # 指数退避等待
                 if attempt < max_attempts - 1:
@@ -480,15 +438,7 @@ class WebhookSender(NotificationSender):
                     time.sleep(delay)
 
         duration_ms = (time.time() - start_time) * 1000
-        logger.error(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_notifier",
-            "action": "webhook_failed",
-            "duration_ms": duration_ms,
-            "alert_name": notification.alert_name,
-            "attempts": max_attempts,
-            "error": str(last_error)
-        }, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'alert_notifier', 'action': 'webhook_failed', 'alert_name': notification.alert_name, 'attempts': max_attempts, 'error': str(last_error)}))
         self._record_metric(False, duration_ms)
         return NotificationResult(
             False, "webhook", str(last_error),
@@ -517,13 +467,7 @@ class AlertNotifier:
         # 初始化发送器
         self._init_senders()
 
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_notifier",
-            "action": "init",
-            "duration_ms": 0,
-            "channels": list(self._senders.keys())
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'alert_notifier', 'action': 'init', 'channels': list(self._senders.keys())}))
 
     def _init_senders(self):
         """初始化通知发送器"""

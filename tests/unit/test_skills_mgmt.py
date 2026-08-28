@@ -705,13 +705,19 @@ class TestContextInjectorInstruction:
 
         assert result["truncated"] is True
 
-        # 在 WARNING 日志中找包含 dropped_sections 的 JSON 记录
+        # 在 WARNING 日志中找包含 dropped_sections 的记录（兼容 log_dict dict 消息）
         found = False
         for record in caplog.records:
-            msg = record.getMessage()
-            if "dropped_sections" not in msg or "inject_instruction.truncated" not in msg:
-                continue
-            payload = json.loads(msg)
+            msg = record.msg
+            if isinstance(msg, dict):
+                if msg.get("action") != "inject_instruction.truncated":
+                    continue
+                payload = msg
+            else:
+                text = record.getMessage()
+                if "dropped_sections" not in text or "inject_instruction.truncated" not in text:
+                    continue
+                payload = json.loads(text)
             assert payload["truncated"] is True
             assert len(payload["dropped_sections"]) > 0, "dropped_sections 应非空"
             assert len(payload["kept_sections"]) > 0, "kept_sections 应非空"

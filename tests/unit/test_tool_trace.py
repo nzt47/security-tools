@@ -565,11 +565,14 @@ class TestIntegration:
         ToolTraceRecorder._instance = recorder
         with caplog.at_level(logging.INFO, logger="agent.observability.tool_trace"):
             tool_router.get_tools_for_input("搜索文件", None)
-        # 解析日志 JSON,查找 tool_selection
+        # 解析日志（兼容 log_dict dict 消息与旧 JSON 字符串）,查找 tool_selection
         log_data = None
         for r in caplog.records:
             try:
-                data = json.loads(r.message)
+                if isinstance(r.msg, dict):
+                    data = r.msg
+                else:
+                    data = json.loads(r.msg)
                 if data.get("action") == "tool_selection":
                     log_data = data
                     break
@@ -655,7 +658,10 @@ class TestUtility:
         log_data = None
         for r in caplog.records:
             try:
-                data = json.loads(r.message)
+                if isinstance(r.msg, dict):
+                    data = r.msg
+                else:
+                    data = json.loads(r.msg)
                 if data.get("action") == "tool_selection":
                     log_data = data
                     break

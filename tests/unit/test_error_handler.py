@@ -3784,9 +3784,9 @@ class TestWithRetryDecoratorBranches:
     def test_with_retry_non_retryable_error(self):
         """测试 with_retry 对不可重试错误不重试
 
-        注意：默认 ``retryable_exceptions=(RecoverableError, YunshuError)``，
-        因此 ``YunshuError(retryable=False)`` 仍会匹配 ``elif retryable and ...``
-        分支被重试。要测试"不可重试"路径，必须显式排除 YunshuError。
+        统一契约：``YunshuError`` 的可重试性由其 ``retryable`` 属性决定，
+        ``YunshuError(retryable=False)`` 不会被默认 ``retryable_exceptions``
+        覆盖而重试（与 async_with_retry 一致）。
         """
         call_count = [0]
 

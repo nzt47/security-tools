@@ -44,6 +44,7 @@ from .observability import logger, emit_metric, traced_action
 from .parent_selection import ParentSelectionStrategy, ParentSelector
 from .store import SkillStore
 from .exceptions import SkillNotFoundError
+from agent.logging_utils import log_dict
 
 
 # ════════════════════════════════════════════════════════════
@@ -385,19 +386,7 @@ class OfflineEvolver:
         t_total = time.time()
         with traced_action("evolve_once", skill_id=skill_id):
             # 步骤0: 入口快照（排查：本轮入参/预算/阈值/选择策略）
-            logger.info(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "evolve_once.start",
-                "skill_id": skill_id,
-                "trigger": trigger,
-                "strategies": [s.value for s in strategies]
-                if strategies else "default",
-                "min_usage": self.min_usage,
-                "target_success_rate": self.target_success_rate,
-                "improvement_threshold": self.improvement_threshold,
-                "max_tokens_per_round": self._max_tokens_per_round,
-                "parent_strategy": self._parent_selector.strategy.value,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.start', 'skill_id': skill_id, 'trigger': trigger, 'strategies': [s.value for s in strategies] if strategies else 'default', 'min_usage': self.min_usage, 'target_success_rate': self.target_success_rate, 'improvement_threshold': self.improvement_threshold, 'max_tokens_per_round': self._max_tokens_per_round, 'parent_strategy': self._parent_selector.strategy.value}))
             # 步骤1: 加载技能
             t0 = time.time()
             try:
@@ -407,12 +396,7 @@ class OfflineEvolver:
             if skill is None:
                 # Why 兼容两种缺失语义: SkillStore.get 对不存在技能返回 None，
                 # 部分调用方抛 SkillNotFoundError；统一按"技能不存在"跳过并写谱系。
-                logger.warning(json.dumps({
-                    "module_name": "offline_evolver",
-                    "action": "evolve_once.skill_not_found",
-                    "skill_id": skill_id,
-                    "duration_ms": round((time.time() - t0) * 1000, 2),
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.skill_not_found', 'skill_id': skill_id}))
                 self._record_round(
                     skill_id, decision="skipped",
                     reason=f"技能不存在: {skill_id}", trigger=trigger)
@@ -424,14 +408,7 @@ class OfflineEvolver:
 
             # 步骤2: 候选资格校验
             if not self._is_candidate(skill):
-                logger.info(json.dumps({
-                    "module_name": "offline_evolver",
-                    "action": "evolve_once.not_candidate",
-                    "skill_id": skill_id,
-                    "usage_count": skill.metrics.usage_count,
-                    "success_rate": round(skill.metrics.success_rate, 4),
-                    "load_ms": round((time.time() - t0) * 1000, 2),
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.not_candidate', 'skill_id': skill_id, 'usage_count': skill.metrics.usage_count, 'success_rate': round(skill.metrics.success_rate, 4), 'load_ms': round((time.time() - t0) * 1000, 2)}))
                 self._record_round(
                     skill_id, decision="skipped",
                     reason=f"不满足候选条件 (usage={skill.metrics.usage_count}, "
@@ -456,25 +433,10 @@ class OfflineEvolver:
                 if parent is not None and parent.params is not None
                 else dict(skill.default_params))
             if parent is not None:
-                logger.info(json.dumps({
-                    "module_name": "offline_evolver",
-                    "action": "evolve_once.parent_selected",
-                    "skill_id": skill_id,
-                    "parent_record_id": parent_record_id,
-                    "parent_version": parent_version,
-                    "parent_score": parent.get_score(),
-                    "strategy": self._parent_selector.strategy.value,
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.parent_selected', 'skill_id': skill_id, 'parent_record_id': parent_record_id, 'parent_version': parent_version, 'parent_score': parent.get_score(), 'strategy': self._parent_selector.strategy.value}))
             else:
                 # 首代：谱系无可用父代 → 退化直接变异（base=当前默认参数）
-                logger.info(json.dumps({
-                    "module_name": "offline_evolver",
-                    "action": "evolve_once.no_parent",
-                    "skill_id": skill_id,
-                    "reason": "谱系中无可用父代（首代或历史已归档）",
-                    "base_params": base_params,
-                    "parent_strategy": self._parent_selector.strategy.value,
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.no_parent', 'skill_id': skill_id, 'reason': '谱系中无可用父代（首代或历史已归档）', 'base_params': base_params, 'parent_strategy': self._parent_selector.strategy.value}))
 
             # 步骤4: 基线评估（真实评估器默认路径）
             t_eval_base = time.time()
@@ -489,12 +451,7 @@ class OfflineEvolver:
                 try:
                     base_eval = evaluator.evaluate(skill)
                 except Exception as e:  # noqa: BLE001 评估器异常 → 回退
-                    logger.warning(json.dumps({
-                        "module_name": "offline_evolver",
-                        "action": "evolve_once.baseline_real_eval.error",
-                        "skill_id": skill_id,
-                        "error": str(e),
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.baseline_real_eval.error', 'skill_id': skill_id, 'error': str(e)}))
                     base_eval = None
                 if base_eval is not None:
                     round_tokens += base_eval.cost_tokens or 0
@@ -535,41 +492,14 @@ class OfflineEvolver:
                                   "duration_ms": round(
                                       (time.time() - t_eval_base) * 1000, 2)},
                             params=base_params, parent_version=parent_version)
-                        logger.warning(json.dumps({
-                            "module_name": "offline_evolver",
-                            "action": "evolve_once.baseline_real_eval.unavailable",
-                            "skill_id": skill_id,
-                            "status": base_eval.status,
-                            "fallback": "heuristic",
-                        }, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.baseline_real_eval.unavailable', 'skill_id': skill_id, 'status': base_eval.status, 'fallback': 'heuristic'}))
                     else:
                         old_score = base_eval.score
                         eval_mode = "real"
-                        logger.info(json.dumps({
-                            "module_name": "offline_evolver",
-                            "action": "evolve_once.baseline_real_eval",
-                            "skill_id": skill_id,
-                            "eval_mode": "real",
-                            "old_score": round(old_score, 4),
-                            "old_version": old_version,
-                            "status": base_eval.status,
-                            "samples": base_eval.sample_count,
-                            "used_tokens": base_eval.cost_tokens,
-                            "baseline_eval_ms": round(
-                                (time.time() - t_eval_base) * 1000, 2),
-                        }, ensure_ascii=False))
+                        logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.baseline_real_eval', 'skill_id': skill_id, 'eval_mode': 'real', 'old_score': round(old_score, 4), 'old_version': old_version, 'status': base_eval.status, 'samples': base_eval.sample_count, 'used_tokens': base_eval.cost_tokens, 'baseline_eval_ms': round((time.time() - t_eval_base) * 1000, 2)}))
             if eval_mode in ("heuristic", "heuristic_fallback"):
                 old_score = self._evaluate_skill(skill)
-                logger.info(json.dumps({
-                    "module_name": "offline_evolver",
-                    "action": "evolve_once.baseline",
-                    "skill_id": skill_id,
-                    "eval_mode": eval_mode,
-                    "old_score": old_score,
-                    "old_version": old_version,
-                    "baseline_eval_ms": round(
-                        (time.time() - t_eval_base) * 1000, 2),
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.baseline', 'skill_id': skill_id, 'eval_mode': eval_mode, 'old_score': old_score, 'old_version': old_version, 'baseline_eval_ms': round((time.time() - t_eval_base) * 1000, 2)}))
 
             # 步骤5: 生成变异体（基于父代参数）
             t_mutate = time.time()
@@ -578,12 +508,7 @@ class OfflineEvolver:
                 base_params=base_params, parent_version=parent_version)
             mutate_ms = (time.time() - t_mutate) * 1000
             if not variants:
-                logger.warning(json.dumps({
-                    "module_name": "offline_evolver",
-                    "action": "evolve_once.no_variants",
-                    "skill_id": skill_id,
-                    "mutate_ms": round(mutate_ms, 2),
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.no_variants', 'skill_id': skill_id, 'mutate_ms': round(mutate_ms, 2)}))
                 self._record_round(
                     skill_id, decision="skipped",
                     reason="未生成任何变异体",
@@ -607,14 +532,7 @@ class OfflineEvolver:
                     if (self._max_tokens_per_round > 0
                             and round_tokens >= self._max_tokens_per_round):
                         budget_breached = True
-                        logger.warning(json.dumps({
-                            "module_name": "offline_evolver",
-                            "action": "evolve_once.budget_break",
-                            "skill_id": skill_id,
-                            "used_tokens": round_tokens,
-                            "budget": self._max_tokens_per_round,
-                            "remaining_variants": len(variants) - variants.index(v),
-                        }, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.budget_break', 'skill_id': skill_id, 'used_tokens': round_tokens, 'budget': self._max_tokens_per_round, 'remaining_variants': len(variants) - variants.index(v)}))
                         break
                     ev = evaluator.evaluate(skill, params=v.params)
                     round_tokens += ev.cost_tokens or 0
@@ -629,13 +547,7 @@ class OfflineEvolver:
                             # 显式注入 → 绝不伪造分数：该变异体不参与比较
                             v.score = None
                             v.eval_result = ev.to_eval_result_dict()
-                            logger.warning(json.dumps({
-                                "module_name": "offline_evolver",
-                                "action": "evolve_once.variant_real_eval.unavailable",
-                                "skill_id": skill_id,
-                                "strategy": v.strategy.value,
-                                "status": ev.status,
-                            }, ensure_ascii=False))
+                            logger.warning(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.variant_real_eval.unavailable', 'skill_id': skill_id, 'strategy': v.strategy.value, 'status': ev.status}))
                         continue
                     v.score = ev.score
                     v.objectives = {
@@ -644,71 +556,25 @@ class OfflineEvolver:
                         "satisfaction": ev.satisfaction,
                     }
                     v.eval_result = ev.to_eval_result_dict()
-                    logger.info(json.dumps({
-                        "module_name": "offline_evolver",
-                        "action": "evolve_once.variant_real_eval",
-                        "skill_id": skill_id,
-                        "eval_mode": "real",
-                        "strategy": v.strategy.value,
-                        "score": round(ev.score, 4),
-                        "samples": ev.sample_count,
-                        "used_tokens": ev.cost_tokens,
-                    }, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.variant_real_eval', 'skill_id': skill_id, 'eval_mode': 'real', 'strategy': v.strategy.value, 'score': round(ev.score, 4), 'samples': ev.sample_count, 'used_tokens': ev.cost_tokens}))
             else:
                 for v in variants:
                     v.score = self._evaluate(v)
                     v.objectives = self._compute_objectives(v)
             eval_ms = (time.time() - t_eval) * 1000
             # 成本核算：本轮累计 token / 预算使用率（熔断边界可观测）
-            logger.info(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "evolve_once.cost_summary",
-                "skill_id": skill_id,
-                "round_tokens": round_tokens,
-                "budget": self._max_tokens_per_round,
-                "budget_usage_ratio": (
-                    round(round_tokens / self._max_tokens_per_round, 4)
-                    if self._max_tokens_per_round > 0 else None),
-                "budget_breached": budget_breached,
-                "phase_ms": {
-                    "pre_mutate": round((t_mutate - t_eval_base) * 1000, 2),
-                    "mutate": round(mutate_ms, 2),
-                    "eval": round(eval_ms, 2),
-                },
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.cost_summary', 'skill_id': skill_id, 'round_tokens': round_tokens, 'budget': self._max_tokens_per_round, 'budget_usage_ratio': round(round_tokens / self._max_tokens_per_round, 4) if self._max_tokens_per_round > 0 else None, 'budget_breached': budget_breached, 'phase_ms': {'pre_mutate': round((t_mutate - t_eval_base) * 1000, 2), 'mutate': round(mutate_ms, 2), 'eval': round(eval_ms, 2)}}))
 
             # 步骤7: 帕累托筛选 (性能热点)
             pareto = self._pareto_filter(variants)
             best = self._pick_best(pareto.front)
 
-            logger.info(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "evolve_once.pareto_done",
-                "skill_id": skill_id,
-                "variants_count": len(variants),
-                "pareto_front_size": len(pareto.front),
-                "dominated_count": pareto.dominated_count,
-                "mutate_ms": round(mutate_ms, 2),
-                "eval_ms": round(eval_ms, 2),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.pareto_done', 'skill_id': skill_id, 'variants_count': len(variants), 'pareto_front_size': len(pareto.front), 'dominated_count': pareto.dominated_count, 'mutate_ms': round(mutate_ms, 2), 'eval_ms': round(eval_ms, 2)}))
 
             if best is None or best.score is None:
                 # 熔断 / 无有效变异体通过评估 → 本轮以 skipped 结束
                 # （预算熔断时: budget_breached=true, round_tokens=熔断前累计）
-                logger.info(json.dumps({
-                    "module_name": "offline_evolver",
-                    "action": "evolve_once.skipped",
-                    "skill_id": skill_id,
-                    "decision": "skipped",
-                    "reason": "无有效变异体通过评估",
-                    "variants_count": len(variants),
-                    "round_tokens": round_tokens,
-                    "budget": self._max_tokens_per_round,
-                    "budget_breached": budget_breached,
-                    "parent_record_id": parent_record_id,
-                    "trigger": trigger,
-                    "total_ms": round((time.time() - t_total) * 1000, 2),
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.skipped', 'skill_id': skill_id, 'decision': 'skipped', 'reason': '无有效变异体通过评估', 'variants_count': len(variants), 'round_tokens': round_tokens, 'budget': self._max_tokens_per_round, 'budget_breached': budget_breached, 'parent_record_id': parent_record_id, 'trigger': trigger, 'total_ms': round((time.time() - t_total) * 1000, 2)}))
                 self._record_round(
                     skill_id, decision="skipped",
                     reason="无有效变异体通过评估",
@@ -779,12 +645,7 @@ class OfflineEvolver:
                         result.record_id = rejected_id
                         result.error = vg_reason
                         self._round_ctx = {}
-                        logger.warning(json.dumps({
-                            "module_name": "offline_evolver",
-                            "action": "evolve_once.value_guard_blocked",
-                            "skill_id": skill_id,
-                            "reason": vg_reason,
-                        }, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.value_guard_blocked', 'skill_id': skill_id, 'reason': vg_reason}))
                         return result
 
                 # 护栏 2: 审批流（EVO-T6 验收 8）——L1/L2 → pending_review 不提交
@@ -830,13 +691,7 @@ class OfflineEvolver:
                         result.record_id = pending_id
                         result.approval_record_id = rec.record_id
                         self._round_ctx = {}
-                        logger.info(json.dumps({
-                            "module_name": "offline_evolver",
-                            "action": "evolve_once.pending_review",
-                            "skill_id": skill_id,
-                            "level": level,
-                            "approval_record_id": rec.record_id,
-                        }, ensure_ascii=False))
+                        logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.pending_review', 'skill_id': skill_id, 'level': level, 'approval_record_id': rec.record_id}))
                         return result
 
                 # 原直连提交路径（无守卫 / 审批 L0 自动放行）
@@ -851,18 +706,7 @@ class OfflineEvolver:
                     emit_metric("yunshu_skill_evolution_committed_total",
                                 value=1, kind="counter",
                                 labels={"skill_id": skill_id})
-                    logger.info(json.dumps({
-                        "module_name": "offline_evolver",
-                        "action": "evolve_once.commit",
-                        "skill_id": skill_id,
-                        "old_version": old_version,
-                        "new_version": committed.new_version,
-                        "best_score": round(best.score, 4),
-                        "improvement": round(improvement, 4),
-                        "parent_record_id": parent_record_id,
-                        "trigger": trigger,
-                        "strategy": best.strategy.value,
-                    }, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.commit', 'skill_id': skill_id, 'old_version': old_version, 'new_version': committed.new_version, 'best_score': round(best.score, 4), 'improvement': round(improvement, 4), 'parent_record_id': parent_record_id, 'trigger': trigger, 'strategy': best.strategy.value}))
                 else:
                     # 版本升级异常 → 记录 skipped（谱系不变量：不静默丢失）
                     skipped_id = self._record_round(
@@ -874,11 +718,7 @@ class OfflineEvolver:
                     result.decision = "skipped"
                     result.record_id = skipped_id
                     result.error = "提交失败（版本升级异常）"
-                    logger.error(json.dumps({
-                        "module_name": "offline_evolver",
-                        "action": "evolve_once.commit.failed_recorded",
-                        "skill_id": skill_id,
-                    }, ensure_ascii=False))
+                    logger.error(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.commit.failed_recorded', 'skill_id': skill_id}))
             else:
                 result.committed = False
                 result.decision = "rejected"
@@ -892,41 +732,12 @@ class OfflineEvolver:
                     cost=cost, params=dict(best.params),
                     parent_version=parent_version)
                 result.record_id = rejected_id
-                logger.info(json.dumps({
-                    "module_name": "offline_evolver",
-                    "action": "evolve_once.skip_commit",
-                    "skill_id": skill_id,
-                    "improvement": round(improvement, 4),
-                    "threshold": self.improvement_threshold,
-                    "best_score": best.score,
-                    "old_score": old_score,
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.skip_commit', 'skill_id': skill_id, 'improvement': round(improvement, 4), 'threshold': self.improvement_threshold, 'best_score': best.score, 'old_score': old_score}))
             commit_ms = (time.time() - t_commit) * 1000
 
             # 汇总日志 + 性能埋点
             total_ms = round((time.time() - t_total) * 1000, 2)
-            logger.info(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "evolve_once.done",
-                "skill_id": skill_id,
-                "strategy": best.strategy.value,
-                "old_score": round(old_score, 4),
-                "best_score": round(best.score, 4),
-                "variants_count": len(variants),
-                "improvement": round(improvement, 4),
-                "committed": result.committed,
-                "decision": result.decision,
-                "record_id": result.record_id,
-                "parent_record_id": parent_record_id,
-                "cost_tokens": round_tokens,
-                "budget_breached": budget_breached,
-                "total_ms": total_ms,
-                "breakdown_ms": {
-                    "mutate": round(mutate_ms, 2),
-                    "eval": round(eval_ms, 2),
-                    "commit": round(commit_ms, 2),
-                },
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_once.done', 'skill_id': skill_id, 'strategy': best.strategy.value, 'old_score': round(old_score, 4), 'best_score': round(best.score, 4), 'variants_count': len(variants), 'improvement': round(improvement, 4), 'committed': result.committed, 'decision': result.decision, 'record_id': result.record_id, 'parent_record_id': parent_record_id, 'cost_tokens': round_tokens, 'budget_breached': budget_breached, 'total_ms': total_ms, 'breakdown_ms': {'mutate': round(mutate_ms, 2), 'eval': round(eval_ms, 2), 'commit': round(commit_ms, 2)}}))
 
             emit_metric("yunshu_skill_evolution_total",
                         value=1, kind="counter",
@@ -970,14 +781,7 @@ class OfflineEvolver:
             self._apply_dynamic_budget(len(candidates))
 
             for round_idx in range(max_rounds):
-                logger.info(json.dumps({
-                    "module_name": "offline_evolver",
-                    "action": "evolve_batch.round",
-                    "round": round_idx + 1,
-                    "total": max_rounds,
-                    "candidates": len(candidates),
-                    "trigger": trigger,
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_batch.round', 'round': round_idx + 1, 'total': max_rounds, 'candidates': len(candidates), 'trigger': trigger}))
 
                 for skill_id in candidates:
                     result = self.evolve_once(
@@ -1008,19 +812,7 @@ class OfflineEvolver:
 
             self._write_batch_record(report, trigger)
 
-            logger.info(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "evolve_batch.done",
-                "trigger": trigger,
-                "total_skills": report.total_skills,
-                "evolved": report.evolved_count,
-                "skipped": report.skipped_count,
-                "failed": report.failed_count,
-                "cost_tokens": report.cost_tokens,
-                "total_duration_ms": report.total_duration_ms,
-                "budget_usage_ratio": report.budget_usage_ratio,
-                "budget_breached": report.budget_breached,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'evolve_batch.done', 'trigger': trigger, 'total_skills': report.total_skills, 'evolved': report.evolved_count, 'skipped': report.skipped_count, 'failed': report.failed_count, 'cost_tokens': report.cost_tokens, 'total_duration_ms': report.total_duration_ms, 'budget_usage_ratio': report.budget_usage_ratio, 'budget_breached': report.budget_breached}))
 
             emit_metric("yunshu_skill_evolution_batch_total",
                         value=1, kind="counter",
@@ -1059,16 +851,7 @@ class OfflineEvolver:
         floor = _env_budget_min()
         budget = max(floor, n_skills * per_skill)
         if budget != self._max_tokens_per_round:
-            logger.info(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "dynamic_budget.applied",
-                "skills": n_skills,
-                "per_skill_budget": per_skill,
-                "budget_min": floor,
-                "old_budget": self._max_tokens_per_round,
-                "new_budget": budget,
-                "margin_multiplier": round(budget / (n_skills * 600), 2),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'dynamic_budget.applied', 'skills': n_skills, 'per_skill_budget': per_skill, 'budget_min': floor, 'old_budget': self._max_tokens_per_round, 'new_budget': budget, 'margin_multiplier': round(budget / (n_skills * 600), 2)}))
             self._max_tokens_per_round = budget
 
     def schedule(self, cron_expr: str = "0 2 * * *",
@@ -1093,23 +876,14 @@ class OfflineEvolver:
         expr = _env_cron_expr(cron_expr)
         parsed = _parse_cron(expr)
         if parsed is None:
-            logger.error(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "schedule.invalid_cron",
-                "cron_expr": expr,
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'offline_evolver', 'action': 'schedule.invalid_cron', 'cron_expr': expr}))
             return {"status": "error", "cron": expr,
                     "error": f"非法 cron 表达式: {expr}",
                     "next_run": None}
 
         if not _env_schedule_enabled():
             next_run = _next_cron_run(expr)
-            logger.warning(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "schedule.disabled",
-                "cron_expr": expr,
-                "note": "EVOLUTION_SCHEDULE_ENABLED 未开启，调度默认关闭（安全底线）",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'offline_evolver', 'action': 'schedule.disabled', 'cron_expr': expr, 'note': 'EVOLUTION_SCHEDULE_ENABLED 未开启，调度默认关闭（安全底线）'}))
             return {
                 "status": "disabled",
                 "cron": expr,
@@ -1126,11 +900,7 @@ class OfflineEvolver:
             from agent.task_scheduler import get_scheduler
             sched = get_scheduler()
         except Exception as e:  # noqa: BLE001 调度器不可用
-            logger.error(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "schedule.scheduler_unavailable",
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'offline_evolver', 'action': 'schedule.scheduler_unavailable', 'error': str(e)}))
             return {"status": "error", "cron": expr,
                     "error": f"调度器不可用: {e}", "next_run": None}
 
@@ -1147,13 +917,7 @@ class OfflineEvolver:
             sched.tasks[-1]["task_id"] if sched.tasks else "skill-evolution")
         next_run = _next_cron_run(expr)
 
-        logger.info(json.dumps({
-            "module_name": "offline_evolver",
-            "action": "schedule.registered",
-            "cron_expr": expr,
-            "task_id": self._scheduled_task_id,
-            "next_run": next_run.isoformat() if next_run else None,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'schedule.registered', 'cron_expr': expr, 'task_id': self._scheduled_task_id, 'next_run': next_run.isoformat() if next_run else None}))
         return {
             "status": "scheduled",
             "cron": expr,
@@ -1190,10 +954,7 @@ class OfflineEvolver:
 
     def _scheduled_run(self) -> None:
         """调度触发入口：包裹 evolve_batch，异常不抛出（调度线程稳定性）"""
-        logger.info(json.dumps({
-            "module_name": "offline_evolver",
-            "action": "scheduled_run.start",
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'scheduled_run.start'}))
         try:
             report = self.evolve_batch(
                 self._scheduled_skill_ids,
@@ -1201,19 +962,9 @@ class OfflineEvolver:
                 trigger="scheduler")
             emit_metric("yunshu_skill_evolution_scheduled_run_total",
                         value=1, kind="counter", labels={"status": "ok"})
-            logger.info(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "scheduled_run.done",
-                "evolved": report.evolved_count,
-                "skipped": report.skipped_count,
-                "cost_tokens": report.cost_tokens,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'scheduled_run.done', 'evolved': report.evolved_count, 'skipped': report.skipped_count, 'cost_tokens': report.cost_tokens}))
         except Exception as e:  # noqa: BLE001 调度运行异常必须吞掉（守不易）
-            logger.error(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "scheduled_run.failed",
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'offline_evolver', 'action': 'scheduled_run.failed', 'error': str(e)}))
             emit_metric("yunshu_skill_evolution_scheduled_run_total",
                         value=1, kind="counter", labels={"status": "error"})
 
@@ -1298,14 +1049,7 @@ class OfflineEvolver:
                 rec.params = params
             self._archive.append(rec)
             rctx["record_id"] = rec.record_id
-            logger.info(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "lineage.commit_recorded",
-                "skill_id": ctx.get("skill_id"),
-                "record_id": rec.record_id,
-                "parent_record_id": rec.parent_record_id,
-                "new_version": rec.new_version,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'lineage.commit_recorded', 'skill_id': ctx.get('skill_id'), 'record_id': rec.record_id, 'parent_record_id': rec.parent_record_id, 'new_version': rec.new_version}))
         except Exception as e:  # noqa: BLE001 谱系失败不阻断提交（守不易）
             logger.error(
                 "[OfflineEvolver] 谱系提交记录写入失败（不阻断提交）: %s", e)
@@ -1404,12 +1148,7 @@ class OfflineEvolver:
         """从技能库中选择需要进化的候选技能"""
         all_skills = self._store.list_all()
         candidates = [s for s in all_skills if self._is_candidate(s)]
-        logger.info(json.dumps({
-            "module_name": "offline_evolver",
-            "action": "select_candidates",
-            "total": len(all_skills),
-            "candidates": len(candidates),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'select_candidates', 'total': len(all_skills), 'candidates': len(candidates)}))
         return candidates
 
     def _sample_strategies(self) -> List[EvolutionStrategy]:
@@ -1439,13 +1178,7 @@ class OfflineEvolver:
                 new_params = self._apply_strategy(skill, strategy, base)
                 strat_ms = (time.time() - t_strat) * 1000
                 if new_params is None:
-                    logger.debug(json.dumps({
-                        "module_name": "offline_evolver",
-                        "action": "mutate.no_params",
-                        "skill_id": skill.id,
-                        "strategy": strategy.value,
-                        "strat_ms": round(strat_ms, 2),
-                    }, ensure_ascii=False))
+                    logger.debug(log_dict({'module_name': 'offline_evolver', 'action': 'mutate.no_params', 'skill_id': skill.id, 'strategy': strategy.value, 'strat_ms': round(strat_ms, 2)}))
                     continue
                 variants.append(Variant(
                     skill_id=skill.id,
@@ -1456,23 +1189,9 @@ class OfflineEvolver:
                 ))
                 strategy_counts[strategy.value] = strategy_counts.get(strategy.value, 0) + 1
             except Exception as e:
-                logger.warning(json.dumps({
-                    "module_name": "offline_evolver",
-                    "action": "mutate.skip",
-                    "skill_id": skill.id,
-                    "strategy": strategy.value,
-                    "error": str(e),
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'offline_evolver', 'action': 'mutate.skip', 'skill_id': skill.id, 'strategy': strategy.value, 'error': str(e)}))
 
-        logger.info(json.dumps({
-            "module_name": "offline_evolver",
-            "action": "mutate.done",
-            "skill_id": skill.id,
-            "base_params_count": len(base),
-            "strategies_requested": len(strategies),
-            "variants_generated": len(variants),
-            "strategy_counts": strategy_counts,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'mutate.done', 'skill_id': skill.id, 'base_params_count': len(base), 'strategies_requested': len(strategies), 'variants_generated': len(variants), 'strategy_counts': strategy_counts}))
 
         return variants
 
@@ -1696,19 +1415,7 @@ class OfflineEvolver:
         elapsed_ms = (time.time() - t_start) * 1000
         non_dominated_ratio = len(front) / n if n > 0 else 0.0
 
-        logger.info(json.dumps({
-            "module_name": "offline_evolver",
-            "action": "pareto_filter.detail",
-            "variants_count": n,
-            "domination_checks": domination_checks,
-            "early_exit_count": early_exit_count,
-            "theoretical_max_checks": n * (n - 1),
-            "front_size": len(front),
-            "dominated_count": dominated_count,
-            "non_dominated_ratio": round(non_dominated_ratio, 4),
-            "elapsed_ms": round(elapsed_ms, 2),
-            "avg_check_us": round(elapsed_ms * 1000 / domination_checks, 2) if domination_checks > 0 else 0,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'pareto_filter.detail', 'variants_count': n, 'domination_checks': domination_checks, 'early_exit_count': early_exit_count, 'theoretical_max_checks': n * (n - 1), 'front_size': len(front), 'dominated_count': dominated_count, 'non_dominated_ratio': round(non_dominated_ratio, 4), 'elapsed_ms': round(elapsed_ms, 2), 'avg_check_us': round(elapsed_ms * 1000 / domination_checks, 2) if domination_checks > 0 else 0}))
 
         emit_metric("yunshu_skill_pareto_filter_latency_ms",
                     value=elapsed_ms, kind="histogram")
@@ -1759,21 +1466,8 @@ class OfflineEvolver:
                           f"improvement={variant.score}",
                 eval_result=variant.eval_result,
             )
-            logger.info(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "commit.ok",
-                "skill_id": variant.skill_id,
-                "strategy": variant.strategy.value,
-                "old_version": variant.parent_version,
-                "new_version": bump.new_version,
-                "score": variant.score,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'offline_evolver', 'action': 'commit.ok', 'skill_id': variant.skill_id, 'strategy': variant.strategy.value, 'old_version': variant.parent_version, 'new_version': bump.new_version, 'score': variant.score}))
             return bump
         except Exception as e:
-            logger.error(json.dumps({
-                "module_name": "offline_evolver",
-                "action": "commit.failed",
-                "skill_id": variant.skill_id,
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'offline_evolver', 'action': 'commit.failed', 'skill_id': variant.skill_id, 'error': str(e)}))
             return None

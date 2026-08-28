@@ -209,7 +209,7 @@ def _trace_id():
 class NetworkConfigManager:
     """网络配置管理器"""
 
-    def __init__(self, config_file: str = None):
+    def __init__(self, config_file: Optional[str] = None):
         """
         Args:
             config_file: 配置文件路径
@@ -219,7 +219,7 @@ class NetworkConfigManager:
         """
         self._config_file = Path(config_file) if config_file else _NETWORK_CONFIG_FILE
         self._env_config = get_env_config_manager()  # .env 单一数据源
-        self._cache = None
+        self._cache: Optional[Dict[str, Any]] = None
 
         # Why RLock 保护 _cache（模块级单例被多路 HTTP 管理接口并发调用）：
         # _load 的「缓存 miss → 读文件 → 写缓存」与 _save 的「替换缓存引用 +
@@ -279,7 +279,7 @@ class NetworkConfigManager:
                 return self._cache
 
         # 缓存 miss：锁外读文件（I/O 不持锁，持锁纪律）
-        loaded = None
+        loaded: Dict[str, Any] = {}
         need_default = False
         try:
             if self._config_file.exists():
@@ -408,7 +408,7 @@ class NetworkConfigManager:
         except Exception as e:
             logger.error(log_dict({'module_name': 'network_config', 'action': 'network_config._save_secure.key', 'message': f'[网络配置] 写入 .env 失败 {env_var}: {e}'}))
 
-    def _load_secure(self, key: str, default: str = None, env_var: str = None) -> str:
+    def _load_secure(self, key: str, default: Optional[str] = None, env_var: Optional[str] = None) -> str:
         """从环境变量加载敏感配置（.env 文件单一数据源）
 
         【纯 .env 架构】所有敏感配置统一从环境变量读取。
@@ -424,7 +424,7 @@ class NetworkConfigManager:
         value = os.getenv(env_var, "")
         return value if value else (default or "")
 
-    def _add_change_log(self, action: str, section: str, details: dict = None):
+    def _add_change_log(self, action: str, section: str, details: Optional[dict] = None):
         """添加配置变更日志"""
         import datetime
         log_entry = {
@@ -436,9 +436,12 @@ class NetworkConfigManager:
         }
         # 只保留最近 100 条日志（读-改-写原子，防并发丢日志/超长）
         with self._lock:
-            self._cache["change_log"].insert(0, log_entry)
-            if len(self._cache["change_log"]) > 100:
-                self._cache["change_log"] = self._cache["change_log"][:100]
+            cache = self._cache
+            if cache is None:
+                return
+            cache["change_log"].insert(0, log_entry)
+            if len(cache["change_log"]) > 100:
+                cache["change_log"] = cache["change_log"][:100]
 
     def get_all(self) -> dict:
         """获取完整配置（敏感信息脱敏）
@@ -809,7 +812,7 @@ class NetworkConfigManager:
         Returns:
             项的 id（新增返回生成的 id，更新返回原 id，无操作返回 None）
         """
-        item_id = item.get('id')
+        item_id: Optional[str] = item.get('id')
 
         if not item_id:
             item["id"] = str(uuid.uuid4())
@@ -823,7 +826,7 @@ class NetworkConfigManager:
 
             collection.append(item)
             self._add_change_log('add', section, {'id': item["id"], 'name': item.get('name')})
-            return item["id"]
+            return str(item["id"])
         else:
             existing = next((i for i in collection if i.get("id") == item_id), None)
             if existing:
@@ -914,6 +917,7 @@ class NetworkConfigManager:
         enabled = instance.get('enabled', True)
 
         from functools import partial
+        handler: Any
         if engine_type == 'custom':
             handler = partial(search_engine._search_custom, instance)
         else:
@@ -1081,7 +1085,6 @@ class NetworkConfigManager:
             self._add_change_log('reset', 'all')
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.reset.log', 'message': '[网络配置] 已重置为默认配置'}))
         return self.get_all()
-
     def export_config(self) -> str:
         """导出配置为 JSON 字符串（脱敏）"""
         config = self.get_all()
@@ -1122,7 +1125,10 @@ class NetworkConfigManager:
                 self._merge(config, imported)
 
             # 保存并记录日志
-            self._save(self._cache)
+            if self._cache is not None:
+                self._save(self._cache)
+            else:
+                self._save(config)
             self._add_change_log('import', 'all', {'strategy': conflict_strategy})
 
         return self.get_all()
@@ -1151,7 +1157,7 @@ class NetworkConfigManager:
         """获取所有 LLM 实例（脱敏）"""
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.get_llm_instances.llm', 'message': f'[网络配置] 获取所有 LLM 实例'}))
         config = self.get_all()
-        instances = config.get('llm_instances', [])
+        instances: List[dict] = config.get('llm_instances', [])
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.get_llm_instances.len', 'message': f'[网络配置] 获取到 {len(instances)} 个 LLM 实例'}))
         return instances
 
@@ -1172,7 +1178,7 @@ class NetworkConfigManager:
 
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] 开始添加 LLM 实例: name={instance.get("name")}, provider={instance.get("provider")}'}))
 
-        new_instance = deepcopy(_DEFAULT_LLM_INSTANCE)
+        new_instance: Dict[str, Any] = deepcopy(_DEFAULT_LLM_INSTANCE)
         new_instance.update(instance)
         new_instance["id"] = str(uuid.uuid4())
         new_instance["created_at"] = datetime.datetime.now().isoformat()
@@ -1200,7 +1206,10 @@ class NetworkConfigManager:
             self._add_change_log('add', 'llm_instance', {'id': new_instance["id"], 'name': new_instance["name"]})
 
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.add_llm_instance.llm', 'message': f'[网络配置] 已成功添加 LLM 实例: id={new_instance["id"]}, name={new_instance["name"]}, provider={new_instance.get("provider")}'}))
-        return self.get_llm_instance(new_instance["id"])
+        result = self.get_llm_instance(new_instance["id"])
+        if result is None:
+            raise RuntimeError(f"LLM 实例添加后未找到: {new_instance['id']}")
+        return result
 
     def update_llm_instance(self, instance_id: str, updates: dict) -> Optional[dict]:
         """更新 LLM 实例
@@ -1335,7 +1344,8 @@ class NetworkConfigManager:
     def get_mcp_services(self) -> List[dict]:
         """获取所有 MCP 服务"""
         config = self.get_all()
-        return config.get('mcp', {}).get('services', [])
+        services: List[dict] = config.get('mcp', {}).get('services', [])
+        return services
 
     def get_mcp_service(self, service_id: str) -> Optional[dict]:
         """获取单个 MCP 服务"""
@@ -1346,7 +1356,7 @@ class NetworkConfigManager:
         """添加 MCP 服务（RLock：名称检查-追加原子，防 TOCTOU 并发同名重复）"""
         import datetime
 
-        new_service = deepcopy(_DEFAULT_MCP_SERVICE)
+        new_service: Dict[str, Any] = deepcopy(_DEFAULT_MCP_SERVICE)
         new_service.update(service)
         new_service["id"] = str(uuid.uuid4())
         new_service["created_at"] = datetime.datetime.now().isoformat()
@@ -1364,7 +1374,10 @@ class NetworkConfigManager:
             self._add_change_log('add', 'mcp_service', {'id': new_service["id"], 'name': new_service["name"]})
 
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.add_mcp_service.mcp', 'message': f'[网络配置] 已添加 MCP 服务: {new_service["name"]}'}))
-        return self.get_mcp_service(new_service["id"])
+        result = self.get_mcp_service(new_service["id"])
+        if result is None:
+            raise RuntimeError(f"MCP 服务添加后未找到: {new_service['id']}")
+        return result
 
     def update_mcp_service(self, service_id: str, updates: dict) -> Optional[dict]:
         """更新 MCP 服务（RLock：查找-改-存原子）"""
@@ -1414,7 +1427,8 @@ class NetworkConfigManager:
         """获取配置变更日志"""
         with self._lock:  # 切片快照原子（与 _add_change_log 互斥）
             config = self._load()
-            return config.get('change_log', [])[:limit]
+            change_log: List[dict] = config.get('change_log', [])
+            return change_log[:limit]
 
     def apply_to_app(self, app_instance=None):
         """将网络配置应用到应用实例
@@ -1557,7 +1571,7 @@ class NetworkConfigManager:
         logger.info(log_dict({'module_name': 'network_config', 'action': 'network_config.update_search_config.log', 'message': '[网络配置] 更新搜索引擎配置: %s' % (search_updates,)}))
         
         # 构建更新字典
-        updates = {}
+        updates: Dict[str, Any] = {}
         
         # 处理搜索基础配置
         if 'default_engine' in search_updates:

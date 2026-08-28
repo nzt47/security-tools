@@ -34,6 +34,7 @@ from typing import Any, Dict, Optional
 
 from .file_store import _META_FIELDS, SkillFileStore, SkillMDParser
 from .observability import logger
+from agent.logging_utils import log_dict
 
 # ════════════════════════════════════════════════════════════
 #  常量
@@ -87,34 +88,18 @@ class SkillIndexCache:
         try:
             data = self._read_cache_file()
         except Exception as e:  # noqa: BLE001  缓存损坏 → 降级重建
-            logger.warning(json.dumps({
-                "trace_id": tid, "module_name": "index_cache",
-                "action": "load_on_startup.cache_corrupt",
-                "error": str(e)[:200],
-                "fallback": "rebuild_from_source",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'index_cache', 'action': 'load_on_startup.cache_corrupt', 'error': str(e)[:200], 'fallback': 'rebuild_from_source'}))
             self.rebuild()
             return
 
         if data is None:
             # 缓存文件缺失（首次运行/首次部署）→ 懒加载，首个访问触发解析
-            logger.info(json.dumps({
-                "trace_id": tid, "module_name": "index_cache",
-                "action": "load_on_startup.cache_missing",
-                "cache_path": str(self._cache_path),
-                "fallback": "lazy_build_on_first_access",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'index_cache', 'action': 'load_on_startup.cache_missing', 'cache_path': str(self._cache_path), 'fallback': 'lazy_build_on_first_access'}))
             return
 
         if data.get("cache_version") != self.CACHE_VERSION:
             # 版本不匹配 → 全量重建
-            logger.info(json.dumps({
-                "trace_id": tid, "module_name": "index_cache",
-                "action": "load_on_startup.version_mismatch",
-                "cached_version": data.get("cache_version"),
-                "expected_version": self.CACHE_VERSION,
-                "fallback": "rebuild_from_source",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'index_cache', 'action': 'load_on_startup.version_mismatch', 'cached_version': data.get('cache_version'), 'expected_version': self.CACHE_VERSION, 'fallback': 'rebuild_from_source'}))
             self.rebuild()
             return
 
@@ -122,11 +107,7 @@ class SkillIndexCache:
         meta_info = data.get("meta", {})
         if not isinstance(skills, dict) or not isinstance(meta_info, dict):
             # 结构非法 → 全量重建
-            logger.warning(json.dumps({
-                "trace_id": tid, "module_name": "index_cache",
-                "action": "load_on_startup.invalid_structure",
-                "fallback": "rebuild_from_source",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'index_cache', 'action': 'load_on_startup.invalid_structure', 'fallback': 'rebuild_from_source'}))
             self.rebuild()
             return
 
@@ -143,13 +124,7 @@ class SkillIndexCache:
             }
 
         elapsed = (time.time() - t0) * 1000
-        logger.info(json.dumps({
-            "trace_id": tid, "module_name": "index_cache",
-            "action": "load_on_startup.ok",
-            "duration_ms": round(elapsed, 2),
-            "skill_count": len(self._cache),
-            "cache_version": self.CACHE_VERSION,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'index_cache', 'action': 'load_on_startup.ok', 'skill_count': len(self._cache), 'cache_version': self.CACHE_VERSION}))
 
     def get_metadata(self, skill_id: str) -> Optional[Dict[str, Any]]:
         """获取技能元数据（命中缓存则返回，否则回源）
@@ -205,12 +180,7 @@ class SkillIndexCache:
         with self._lock:
             self._rebuild_locked()
         self.persist()
-        logger.info(json.dumps({
-            "trace_id": tid, "module_name": "index_cache",
-            "action": "rebuild.ok",
-            "duration_ms": round((time.time() - t0) * 1000, 2),
-            "skill_count": len(self._cache),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'index_cache', 'action': 'rebuild.ok', 'skill_count': len(self._cache)}))
 
     def persist(self) -> None:
         """持久化到磁盘（原子写入：临时文件 + replace）
@@ -237,13 +207,7 @@ class SkillIndexCache:
             )
             tmp_path.replace(self._cache_path)
         except Exception as e:  # noqa: BLE001  持久化失败不影响内存缓存
-            logger.warning(json.dumps({
-                "module_name": "index_cache",
-                "action": "persist.failed",
-                "cache_path": str(self._cache_path),
-                "error": str(e)[:200],
-                "fallback": "runtime_parsing",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'index_cache', 'action': 'persist.failed', 'cache_path': str(self._cache_path), 'error': str(e)[:200], 'fallback': 'runtime_parsing'}))
 
     # ──────────────────────────────────────────────
     #  内部：校验 / 解析 / 重建
@@ -299,22 +263,12 @@ class SkillIndexCache:
         try:
             content = md_path.read_text(encoding="utf-8")
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "module_name": "index_cache",
-                "action": "parse.read_failed",
-                "skill_id": skill_id,
-                "error": str(e)[:200],
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'index_cache', 'action': 'parse.read_failed', 'skill_id': skill_id, 'error': str(e)[:200]}))
             return None
         try:
             meta, _body = SkillMDParser.parse(content)
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "module_name": "index_cache",
-                "action": "parse.skipped",
-                "skill_id": skill_id,
-                "error": str(e)[:200],
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'index_cache', 'action': 'parse.skipped', 'skill_id': skill_id, 'error': str(e)[:200]}))
             return None
         if not meta.get("id"):
             meta["id"] = skill_id

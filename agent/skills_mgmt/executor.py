@@ -48,6 +48,7 @@ from .exceptions import (
     SkillNotFoundError,
     ErrorCode,
 )
+from agent.logging_utils import log_dict
 
 
 def _trace_id() -> str:
@@ -195,16 +196,7 @@ class SkillExecutor:
         # 预加载 output_schema(用于后置验证门控)
         output_schema = self._load_output_schema(skill_id)
 
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "executor",
-            "action": "execute.start",
-            "skill_id": skill_id,
-            "script_name": script_name,
-            "timeout": use_timeout,
-            "params_keys": list(params.keys()),
-            "has_output_schema": bool(output_schema),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'executor', 'action': 'execute.start', 'skill_id': skill_id, 'script_name': script_name, 'timeout': use_timeout, 'params_keys': list(params.keys()), 'has_output_schema': bool(output_schema)}))
 
         try:
             proc = subprocess.run(
@@ -243,20 +235,7 @@ class SkillExecutor:
                     success = False
 
             # 记录执行结果
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "executor",
-                "action": "execute.end",
-                "duration_ms": round(elapsed, 2),
-                "skill_id": skill_id,
-                "script_name": script_name,
-                "exit_code": proc.returncode,
-                "success": success,
-                "stdout_chars": len(stdout),
-                "stderr_chars": len(stderr),
-                "validation_status": validation_status,
-                "validation_errors_count": len(validation_errors),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'executor', 'action': 'execute.end', 'skill_id': skill_id, 'script_name': script_name, 'exit_code': proc.returncode, 'success': success, 'stdout_chars': len(stdout), 'stderr_chars': len(stderr), 'validation_status': validation_status, 'validation_errors_count': len(validation_errors)}))
 
             emit_metric("yunshu_skill_exec_latency_ms",
                         value=elapsed, kind="histogram",
@@ -298,15 +277,7 @@ class SkillExecutor:
 
         except subprocess.TimeoutExpired as e:
             elapsed = (time.time() - t0) * 1000
-            logger.error(json.dumps({
-                "trace_id": tid,
-                "module_name": "executor",
-                "action": "execute.timeout",
-                "duration_ms": round(elapsed, 2),
-                "skill_id": skill_id,
-                "script_name": script_name,
-                "timeout": use_timeout,
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'executor', 'action': 'execute.timeout', 'skill_id': skill_id, 'script_name': script_name, 'timeout': use_timeout}))
             emit_metric("yunshu_skill_exec_total",
                         value=1, kind="counter",
                         labels={"skill_id": skill_id,
@@ -327,15 +298,7 @@ class SkillExecutor:
             elapsed = (time.time() - t0) * 1000
             if isinstance(e, SkillExecutionError):
                 raise
-            logger.error(json.dumps({
-                "trace_id": tid,
-                "module_name": "executor",
-                "action": "execute.error",
-                "duration_ms": round(elapsed, 2),
-                "skill_id": skill_id,
-                "script_name": script_name,
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'executor', 'action': 'execute.error', 'skill_id': skill_id, 'script_name': script_name, 'error': str(e)}))
             raise SkillExecutionError(
                 f"脚本执行失败: {e}",
                 code=ErrorCode.SCRIPT_EXEC_FAILED,

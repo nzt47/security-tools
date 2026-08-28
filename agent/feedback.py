@@ -21,6 +21,7 @@ from datetime import datetime
 from enum import Enum
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, List
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -140,14 +141,7 @@ class FeedbackManager:
         self._write_lock = threading.Lock()
         self._initialized = False
 
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "feedback",
-            "action": "init",
-            "storage_path": self.storage_path,
-            "duration_ms": 0,
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'feedback', 'action': 'init', 'storage_path': self.storage_path, 'level': 'INFO'}))
 
     def _get_conn(self) -> sqlite3.Connection:
         if not hasattr(self._local, 'conn') or self._local.conn is None:
@@ -229,13 +223,7 @@ class FeedbackManager:
             conn.commit()
 
         self._initialized = True
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "feedback",
-            "action": "initialize",
-            "duration_ms": 0,
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'feedback', 'action': 'initialize', 'level': 'INFO'}))
 
     @staticmethod
     def _migrate_add_columns(cursor, table: str, columns: List[str]) -> None:
@@ -347,29 +335,11 @@ class FeedbackManager:
                 pass
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "feedback",
-                "action": "submit_feedback",
-                "feedback_id": feedback_id,
-                "feedback_type": feedback_type,
-                "category": category,
-                "skill_id": skill_id,
-                "workflow_id": workflow_id,
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'feedback', 'action': 'submit_feedback', 'feedback_id': feedback_id, 'feedback_type': feedback_type, 'category': category, 'skill_id': skill_id, 'workflow_id': workflow_id, 'level': 'INFO'}))
 
             return record
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "feedback",
-                "action": "submit_feedback",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'feedback', 'action': 'submit_feedback', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def _process_negative_feedback(self, record: FeedbackRecord):
@@ -420,27 +390,10 @@ class FeedbackManager:
 
             self._update_analysis(record.feedback_id, analysis_result)
 
-            logger.info(json.dumps({
-                "trace_id": record.trace_id,
-                "module_name": "feedback",
-                "action": "_process_negative_feedback",
-                "feedback_id": record.feedback_id,
-                "failure_type": failure_type.value,
-                "skill_id": record.skill_id,
-                "duration_ms": 0,
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'feedback', 'action': '_process_negative_feedback', 'feedback_id': record.feedback_id, 'failure_type': failure_type.value, 'skill_id': record.skill_id, 'level': 'INFO'}))
 
         except Exception as e:
-            logger.warning(json.dumps({
-                "trace_id": record.trace_id,
-                "module_name": "feedback",
-                "action": "_process_negative_feedback",
-                "warning": f"处理负面反馈失败: {e}",
-                "feedback_id": record.feedback_id,
-                "duration_ms": 0,
-                "level": "WARNING"
-            }))
+            logger.warning(log_dict({'module_name': 'feedback', 'action': '_process_negative_feedback', 'warning': f'处理负面反馈失败: {e}', 'feedback_id': record.feedback_id, 'level': 'WARNING'}))
 
     def _process_positive_feedback(self, record: FeedbackRecord):
         """处理正面反馈：存入优质案例知识库"""
@@ -482,26 +435,10 @@ class FeedbackManager:
 
             self._update_analysis(record.feedback_id, analysis_result)
 
-            logger.info(json.dumps({
-                "trace_id": record.trace_id,
-                "module_name": "feedback",
-                "action": "_process_positive_feedback",
-                "feedback_id": record.feedback_id,
-                "case_id": case_id,
-                "duration_ms": 0,
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'feedback', 'action': '_process_positive_feedback', 'feedback_id': record.feedback_id, 'case_id': case_id, 'level': 'INFO'}))
 
         except Exception as e:
-            logger.warning(json.dumps({
-                "trace_id": record.trace_id,
-                "module_name": "feedback",
-                "action": "_process_positive_feedback",
-                "warning": f"处理正面反馈失败: {e}",
-                "feedback_id": record.feedback_id,
-                "duration_ms": 0,
-                "level": "WARNING"
-            }))
+            logger.warning(log_dict({'module_name': 'feedback', 'action': '_process_positive_feedback', 'warning': f'处理正面反馈失败: {e}', 'feedback_id': record.feedback_id, 'level': 'WARNING'}))
 
     def _save_quality_case(self, case: QualityCase):
         """保存优质案例"""
@@ -741,16 +678,7 @@ class FeedbackManager:
             action = "keep"
 
         duration_ms = (time.time() - start_time) * 1000
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "feedback",
-            "action": "get_skill_feedback_summary",
-            "skill_id": skill_id,
-            "total": total,
-            "satisfaction_rate": round(satisfaction, 2),
-            "duration_ms": round(duration_ms, 2),
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'feedback', 'action': 'get_skill_feedback_summary', 'skill_id': skill_id, 'total': total, 'satisfaction_rate': round(satisfaction, 2), 'level': 'INFO'}))
 
         return {
             "skill_id": skill_id,
@@ -831,16 +759,7 @@ class FeedbackManager:
         }
 
         duration_ms = (time.time() - start_time) * 1000
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "feedback",
-            "action": "get_feedback_summary",
-            "days": days,
-            "total": total,
-            "satisfaction_rate": round(satisfaction_rate, 2),
-            "duration_ms": round(duration_ms, 2),
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'feedback', 'action': 'get_feedback_summary', 'days': days, 'total': total, 'satisfaction_rate': round(satisfaction_rate, 2), 'level': 'INFO'}))
 
         return result
 
@@ -915,25 +834,10 @@ class FeedbackManager:
                 conn.commit()
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
-                "trace_id": feedback.trace_id,
-                "module_name": "feedback",
-                "action": "resolve_feedback",
-                "feedback_id": feedback_id,
-                "resolver": resolver,
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'feedback', 'action': 'resolve_feedback', 'feedback_id': feedback_id, 'resolver': resolver, 'level': 'INFO'}))
             return True
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "feedback",
-                "action": "resolve_feedback",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'feedback', 'action': 'resolve_feedback', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def generate_feedback_report(self, days: int = 7) -> Dict[str, Any]:
@@ -969,15 +873,7 @@ class FeedbackManager:
         }
 
         duration_ms = (time.time() - start_time) * 1000
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "feedback",
-            "action": "generate_feedback_report",
-            "days": days,
-            "suggestion_count": len(suggestions),
-            "duration_ms": round(duration_ms, 2),
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'feedback', 'action': 'generate_feedback_report', 'days': days, 'suggestion_count': len(suggestions), 'level': 'INFO'}))
 
         return report
 

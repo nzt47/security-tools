@@ -7,6 +7,7 @@ import uuid
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -209,10 +210,5 @@ def _safe_call(func, *args, action="safe_call", **kwargs):
     try:
         return func(*args, **kwargs)
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": _trace_id(),
-            "module_name": "base",
-            "action": action + ".failed",
-            "error": f"{type(e).__name__}: {e}",
-        }, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'base', 'action': action + '.failed', 'error': f'{type(e).__name__}: {e}'}))
         raise

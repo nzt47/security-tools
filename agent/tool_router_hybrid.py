@@ -38,6 +38,7 @@ import logging
 import subprocess
 import threading
 from typing import Optional
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -544,11 +545,7 @@ class EmbeddingIndex:
                 cwd=self._project_root,
             )
         except (OSError, ValueError) as e:
-            logger.warning(json.dumps({
-                "module_name": "tool_router_hybrid",
-                "action": "embedding.worker.popen_failed",
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.popen_failed', 'error': str(e)}))
             self._init_failed = True
             return False
 
@@ -558,22 +555,13 @@ class EmbeddingIndex:
             try:
                 line = _readline_with_timeout(self._proc.stdout, _WORKER_READY_TIMEOUT)
             except OSError as e:
-                logger.warning(json.dumps({
-                    "module_name": "tool_router_hybrid",
-                    "action": "embedding.worker.stdout_read_failed",
-                    "error": str(e),
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.stdout_read_failed', 'error': str(e)}))
                 self._init_failed = True
                 return False
 
             if line is _READLINE_TIMED_OUT:
                 # worker 未在超时时间内输出 ready 信号:kill 并降级为纯 BM25
-                logger.warning(json.dumps({
-                    "module_name": "tool_router_hybrid",
-                    "action": "embedding.worker.ready_timeout",
-                    "timeout_sec": _WORKER_READY_TIMEOUT,
-                    "model": self._model_name,
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.ready_timeout', 'timeout_sec': _WORKER_READY_TIMEOUT, 'model': self._model_name}))
                 self._proc.kill()
                 try:
                     self._proc.wait(timeout=3)
@@ -591,13 +579,7 @@ class EmbeddingIndex:
                     stderr_msg = self._proc.stderr.read()[:500] if self._proc.stderr else ""
                 except Exception:
                     pass
-                logger.warning(json.dumps({
-                    "module_name": "tool_router_hybrid",
-                    "action": "embedding.worker.crash",
-                    "returncode": rc,
-                    "diagnosis": diag,
-                    "stderr_preview": stderr_msg,
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.crash', 'returncode': rc, 'diagnosis': diag, 'stderr_preview': stderr_msg}))
                 self._init_failed = True
                 return False
 
@@ -606,11 +588,7 @@ class EmbeddingIndex:
             except json.JSONDecodeError:
                 json_errors += 1
                 if json_errors >= 3:
-                    logger.warning(json.dumps({
-                        "module_name": "tool_router_hybrid",
-                        "action": "embedding.worker.invalid_json",
-                        "consecutive_errors": json_errors,
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.invalid_json', 'consecutive_errors': json_errors}))
                     self._init_failed = True
                     return False
                 continue
@@ -619,31 +597,17 @@ class EmbeddingIndex:
             if msg_type == "ready":
                 self._load_time_sec = msg.get("load_time_sec")
                 self._load_source = msg.get("load_source")
-                logger.info(json.dumps({
-                    "module_name": "tool_router_hybrid",
-                    "action": "embedding.worker.ready",
-                    "model": self._model_name,
-                    "load_time_sec": self._load_time_sec,
-                    "load_source": self._load_source,
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.ready', 'model': self._model_name, 'load_time_sec': self._load_time_sec, 'load_source': self._load_source}))
                 # 编码 pending 文档
                 if self._pending:
                     self._encode_pending_locked()
                 return True
             elif msg_type == "init_failed":
-                logger.warning(json.dumps({
-                    "module_name": "tool_router_hybrid",
-                    "action": "embedding.worker.init_failed",
-                    "error": msg.get("error", "unknown"),
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.init_failed', 'error': msg.get('error', 'unknown')}))
                 self._init_failed = True
                 return False
             else:
-                logger.warning(json.dumps({
-                    "module_name": "tool_router_hybrid",
-                    "action": "embedding.worker.unknown_message",
-                    "msg_type": msg_type,
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.worker.unknown_message', 'msg_type': msg_type}))
                 self._init_failed = True
                 return False
 
@@ -654,12 +618,7 @@ class EmbeddingIndex:
         if self._proc.poll() is not None:
             rc = self._proc.poll()
             diag = _diagnose_crash(rc)
-            logger.warning(json.dumps({
-                "module_name": "tool_router_hybrid",
-                "action": "embedding.encode.proc_dead",
-                "returncode": rc,
-                "diagnosis": diag,
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.encode.proc_dead', 'returncode': rc, 'diagnosis': diag}))
             self._init_failed = True
             return None
 
@@ -670,55 +629,32 @@ class EmbeddingIndex:
         except (BrokenPipeError, OSError) as e:
             rc = self._proc.poll()
             diag = _diagnose_crash(rc)
-            logger.warning(json.dumps({
-                "module_name": "tool_router_hybrid",
-                "action": "embedding.encode.write_failed",
-                "error": str(e),
-                "returncode": rc,
-                "diagnosis": diag,
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.encode.write_failed', 'error': str(e), 'returncode': rc, 'diagnosis': diag}))
             self._init_failed = True
             return None
 
         try:
             line = self._proc.stdout.readline()
         except OSError as e:
-            logger.warning(json.dumps({
-                "module_name": "tool_router_hybrid",
-                "action": "embedding.encode.read_failed",
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.encode.read_failed', 'error': str(e)}))
             self._init_failed = True
             return None
 
         if not line:
             rc = self._proc.poll()
             diag = _diagnose_crash(rc)
-            logger.warning(json.dumps({
-                "module_name": "tool_router_hybrid",
-                "action": "embedding.encode.eof",
-                "returncode": rc,
-                "diagnosis": diag,
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.encode.eof', 'returncode': rc, 'diagnosis': diag}))
             self._init_failed = True
             return None
 
         try:
             msg = json.loads(line)
         except json.JSONDecodeError:
-            logger.warning(json.dumps({
-                "module_name": "tool_router_hybrid",
-                "action": "embedding.encode.invalid_json",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.encode.invalid_json'}))
             return None
 
         if msg.get("type") != "embeddings":
-            logger.warning(json.dumps({
-                "module_name": "tool_router_hybrid",
-                "action": "embedding.encode.unexpected_msg",
-                "msg_type": msg.get("type"),
-                "error": msg.get("error", ""),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.encode.unexpected_msg', 'msg_type': msg.get('type'), 'error': msg.get('error', '')}))
             return None
 
         # 优先解析二进制序列化(base64+numpy),fallback 到 JSON 列表
@@ -742,11 +678,7 @@ class EmbeddingIndex:
         contents = [c for _, c in self._pending]
         vectors = self._encode_via_worker(contents)
         if vectors is None or len(vectors) == 0:
-            logger.warning(json.dumps({
-                "module_name": "tool_router_hybrid",
-                "action": "embedding.encode_pending.failed",
-                "n_pending": len(self._pending),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.encode_pending.failed', 'n_pending': len(self._pending)}))
             return
         new_embeddings = np.array(vectors, dtype=np.float32)
         if self._embeddings is None:
@@ -755,13 +687,7 @@ class EmbeddingIndex:
         else:
             self._embeddings = np.vstack([self._embeddings, new_embeddings])
             self._doc_ids.extend(d for d, _ in self._pending)
-        logger.info(json.dumps({
-            "module_name": "tool_router_hybrid",
-            "action": "embedding.encode_pending.complete",
-            "n_pending": len(self._pending),
-            "total_docs": len(self._doc_ids),
-            "shape": list(new_embeddings.shape),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.encode_pending.complete', 'n_pending': len(self._pending), 'total_docs': len(self._doc_ids), 'shape': list(new_embeddings.shape)}))
         self._pending.clear()
 
     def _cleanup_proc(self) -> None:
@@ -778,11 +704,7 @@ class EmbeddingIndex:
                     self._proc.kill()
                     self._proc.wait(timeout=3)
         except Exception as e:
-            logger.warning(json.dumps({
-                "module_name": "tool_router_hybrid",
-                "action": "embedding.cleanup.error",
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.cleanup.error', 'error': str(e)}))
         finally:
             self._proc = None
 
@@ -807,34 +729,14 @@ class EmbeddingIndex:
                 self._query_cache[query] = query_emb
                 self._cache_hits += 1
                 t_encode_ms = (time.perf_counter() - t_encode_start) * 1000
-                logger.debug(json.dumps({
-                    "module_name": "tool_router_hybrid",
-                    "action": "embedding.cache.hit",
-                    "query_preview": query[:60],
-                    "query_len": len(query),
-                    "encode_ms": round(t_encode_ms, 4),
-                    "cache_size": len(self._query_cache),
-                    "cumulative_hits": self._cache_hits,
-                    "cumulative_misses": self._cache_misses,
-                }, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.cache.hit', 'query_preview': query[:60], 'query_len': len(query), 'encode_ms': round(t_encode_ms, 4), 'cache_size': len(self._query_cache), 'cumulative_hits': self._cache_hits, 'cumulative_misses': self._cache_misses}))
             else:
                 self._cache_misses += 1
-                logger.debug(json.dumps({
-                    "module_name": "tool_router_hybrid",
-                    "action": "embedding.cache.miss",
-                    "query_preview": query[:60],
-                    "query_len": len(query),
-                    "cache_size_before": len(self._query_cache),
-                }, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.cache.miss', 'query_preview': query[:60], 'query_len': len(query), 'cache_size_before': len(self._query_cache)}))
                 query_vectors = self._encode_via_worker([query])
                 t_encode_ms = (time.perf_counter() - t_encode_start) * 1000
                 if query_vectors is None or len(query_vectors) == 0:
-                    logger.warning(json.dumps({
-                        "module_name": "tool_router_hybrid",
-                        "action": "embedding.search.encode_failed",
-                        "encode_ms": round(t_encode_ms, 2),
-                        "query_len": len(query),
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.search.encode_failed', 'encode_ms': round(t_encode_ms, 2), 'query_len': len(query)}))
                     return []
                 query_emb = np.array(query_vectors[0], dtype=np.float32)
                 self._query_cache[query] = query_emb
@@ -842,22 +744,8 @@ class EmbeddingIndex:
                 if len(self._query_cache) > self._query_cache_size:
                     evicted_key = next(iter(self._query_cache))
                     self._query_cache.pop(evicted_key)
-                    logger.debug(json.dumps({
-                        "module_name": "tool_router_hybrid",
-                        "action": "embedding.cache.evict",
-                        "evicted_preview": evicted_key[:60],
-                        "cache_size": len(self._query_cache),
-                        "cache_capacity": self._query_cache_size,
-                    }, ensure_ascii=False))
-                logger.debug(json.dumps({
-                    "module_name": "tool_router_hybrid",
-                    "action": "embedding.cache.miss_complete",
-                    "query_preview": query[:60],
-                    "encode_ms": round(t_encode_ms, 2),
-                    "cache_size_after": len(self._query_cache),
-                    "cumulative_hits": self._cache_hits,
-                    "cumulative_misses": self._cache_misses,
-                }, ensure_ascii=False))
+                    logger.debug(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.cache.evict', 'evicted_preview': evicted_key[:60], 'cache_size': len(self._query_cache), 'cache_capacity': self._query_cache_size}))
+                logger.debug(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.cache.miss_complete', 'query_preview': query[:60], 'encode_ms': round(t_encode_ms, 2), 'cache_size_after': len(self._query_cache), 'cumulative_hits': self._cache_hits, 'cumulative_misses': self._cache_misses}))
 
             try:
                 t_cosine_start = time.perf_counter()
@@ -873,29 +761,10 @@ class EmbeddingIndex:
                 t_cosine_ms = (time.perf_counter() - t_cosine_start) * 1000
                 total_cached = self._cache_hits + self._cache_misses
                 hit_rate = self._cache_hits / max(total_cached, 1)
-                logger.info(json.dumps({
-                    "module_name": "tool_router_hybrid",
-                    "action": "embedding.search.complete",
-                    "encode_ms": round(t_encode_ms, 2),
-                    "cosine_ms": round(t_cosine_ms, 2),
-                    "total_ms": round(t_encode_ms + t_cosine_ms, 2),
-                    "n_docs": len(self._doc_ids),
-                    "top_k": top_k,
-                    "returned": len(results),
-                    "top1_score": round(results[0][1], 4) if results else 0.0,
-                    "cache_hit": cache_hit,
-                    "cache_hit_rate": round(hit_rate, 4),
-                    "cache_size": len(self._query_cache),
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.search.complete', 'encode_ms': round(t_encode_ms, 2), 'cosine_ms': round(t_cosine_ms, 2), 'total_ms': round(t_encode_ms + t_cosine_ms, 2), 'n_docs': len(self._doc_ids), 'top_k': top_k, 'returned': len(results), 'top1_score': round(results[0][1], 4) if results else 0.0, 'cache_hit': cache_hit, 'cache_hit_rate': round(hit_rate, 4), 'cache_size': len(self._query_cache)}))
                 return results
             except Exception as e:
-                logger.warning(json.dumps({
-                    "module_name": "tool_router_hybrid",
-                    "action": "embedding.search.failed",
-                    "error": f"{type(e).__name__}: {e}",
-                    "encode_ms": round(t_encode_ms, 2),
-                    "query_len": len(query),
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.search.failed', 'error': f'{type(e).__name__}: {e}', 'encode_ms': round(t_encode_ms, 2), 'query_len': len(query)}))
                 return []
 
     def clear(self) -> None:
@@ -928,36 +797,16 @@ class EmbeddingIndex:
         """预热:启动子进程 + 编码 pending 文档"""
         t0 = time.perf_counter()
         pending_count = len(self._pending)
-        logger.info(json.dumps({
-            "module_name": "tool_router_hybrid",
-            "action": "embedding.preheat.start",
-            "pending_docs": pending_count,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.preheat.start', 'pending_docs': pending_count}))
         try:
             ok = self._ensure_worker()
             elapsed_ms = (time.perf_counter() - t0) * 1000
             if ok:
-                logger.info(json.dumps({
-                    "module_name": "tool_router_hybrid",
-                    "action": "embedding.preheat.success",
-                    "elapsed_ms": round(elapsed_ms, 2),
-                    "pending_docs": pending_count,
-                    "encoded_docs": len(self._doc_ids),
-                    "load_time_sec": self._load_time_sec,
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.preheat.success', 'elapsed_ms': round(elapsed_ms, 2), 'pending_docs': pending_count, 'encoded_docs': len(self._doc_ids), 'load_time_sec': self._load_time_sec}))
             else:
-                logger.warning(json.dumps({
-                    "module_name": "tool_router_hybrid",
-                    "action": "embedding.preheat.failed",
-                    "elapsed_ms": round(elapsed_ms, 2),
-                    "init_failed": self._init_failed,
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.preheat.failed', 'elapsed_ms': round(elapsed_ms, 2), 'init_failed': self._init_failed}))
         except Exception as e:
-            logger.warning(json.dumps({
-                "module_name": "tool_router_hybrid",
-                "action": "embedding.preheat.error",
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'tool_router_hybrid', 'action': 'embedding.preheat.error', 'error': str(e)}))
 
 
 # ════════════════════════════════════════════════════════════

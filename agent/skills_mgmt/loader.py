@@ -35,6 +35,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from .file_store import SkillFileStore
 from .observability import logger, emit_metric, traced_action
 from .exceptions import SkillNotFoundError, SkillMgmtError
+from agent.logging_utils import log_dict
 
 
 def _trace_id() -> str:
@@ -310,13 +311,7 @@ class SkillLoader:
 
         self._inverted_index = inverted
         self._inverted_index_meta_id = id(index)
-        logger.info(json.dumps({
-            "trace_id": _trace_id(),
-            "module_name": "loader",
-            "action": "inverted_index.built",
-            "skill_count": len(index),
-            "token_count": len(inverted),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'loader', 'action': 'inverted_index.built', 'skill_count': len(index), 'token_count': len(inverted)}))
         return inverted
 
     def _tfidf_scan(self, index: Dict[str, Dict[str, Any]],
@@ -366,14 +361,7 @@ class SkillLoader:
                     reverse=True,
                 )[:candidate_limit]
                 candidate_ids = set(sorted_ids)
-                logger.info(json.dumps({
-                    "trace_id": _trace_id(),
-                    "module_name": "loader",
-                    "action": "tfidf_scan.candidate_limit_applied",
-                    "total_candidates": len(candidate_hits),
-                    "limit": candidate_limit,
-                    "truncated": len(candidate_hits) - candidate_limit,
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'loader', 'action': 'tfidf_scan.candidate_limit_applied', 'total_candidates': len(candidate_hits), 'limit': candidate_limit, 'truncated': len(candidate_hits) - candidate_limit}))
             else:
                 candidate_ids = set(candidate_hits.keys())
 
@@ -510,13 +498,7 @@ class SkillLoader:
                 return rrf_result
             # RRF 融合失败（向量路不可用或两路均空），降级 TF-IDF 单路
             fallback_used = True
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "match.rrf_fallback_to_tfidf",
-                "intent": intent[:100],
-                "fallback": "tfidf",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'loader', 'action': 'match.rrf_fallback_to_tfidf', 'intent': intent[:100], 'fallback': 'tfidf'}))
 
         if use_vector and fusion_mode not in ("rrf", "rrf_rerank"):
             # 尝试向量检索，失败则降级 TF-IDF
@@ -532,20 +514,7 @@ class SkillLoader:
                 elapsed = (time.time() - t0) * 1000
                 total_tokens = sum(m.estimated_tokens for m in vector_results.matches)
 
-                logger.info(json.dumps({
-                    "trace_id": tid,
-                    "module_name": "loader",
-                    "action": "match.layer1.vector.ok",
-                    "duration_ms": round(elapsed, 2),
-                    "layer": 1,
-                    "intent": intent[:100],
-                    "total_scanned": vector_results.total_scanned,
-                    "match_count": len(vector_results.matches),
-                    "estimated_tokens": total_tokens,
-                    "retrieval_method": "vector",
-                    "fallback_used": False,
-                    "retrieved_chunks_count": len(vector_results.matches),
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'loader', 'action': 'match.layer1.vector.ok', 'layer': 1, 'intent': intent[:100], 'total_scanned': vector_results.total_scanned, 'match_count': len(vector_results.matches), 'estimated_tokens': total_tokens, 'retrieval_method': 'vector', 'fallback_used': False, 'retrieved_chunks_count': len(vector_results.matches)}))
 
                 emit_metric("yunshu_skill_match_latency_ms",
                             value=elapsed, kind="histogram",
@@ -563,26 +532,12 @@ class SkillLoader:
                 return vector_results
             # 向量检索失败，降级 TF-IDF
             fallback_used = True
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "match.vector_fallback_to_tfidf",
-                "intent": intent[:100],
-                "fallback": "tfidf",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'loader', 'action': 'match.vector_fallback_to_tfidf', 'intent': intent[:100], 'fallback': 'tfidf'}))
 
         # 【变易】use_bm25 已在 RRF 分支实现（自动升 rrf），此处不再警告
         # use_reranker 未生效场景：需 use_vector=True 才能精排，请求未满足时记录 warning
         if use_reranker and not use_vector:
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "match.reranker_not_applied",
-                "intent": intent[:100],
-                "use_reranker": use_reranker,
-                "reason": "reranker requires use_vector=True",
-                "fallback": "tfidf",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'loader', 'action': 'match.reranker_not_applied', 'intent': intent[:100], 'use_reranker': use_reranker, 'reason': 'reranker requires use_vector=True', 'fallback': 'tfidf'}))
             fallback_used = True
 
         # 加载元数据索引（第一层，只读 front matter）
@@ -606,21 +561,7 @@ class SkillLoader:
         elapsed = (time.time() - t0) * 1000
         total_tokens = sum(m.estimated_tokens for m in top)
 
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "loader",
-            "action": "match.layer1.ok",
-            "duration_ms": round(elapsed, 2),
-            "layer": 1,
-            "intent": intent[:100],
-            "total_scanned": len(index),
-            "match_count": len(top),
-            "estimated_tokens": total_tokens,
-            "retrieval_method": "tfidf",
-            "fallback_used": fallback_used,
-            # [变易] 可观测性：仅记录召回数，完整 chunks 通过 span 持久化
-            "retrieved_chunks_count": len(top),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'loader', 'action': 'match.layer1.ok', 'layer': 1, 'intent': intent[:100], 'total_scanned': len(index), 'match_count': len(top), 'estimated_tokens': total_tokens, 'retrieval_method': 'tfidf', 'fallback_used': fallback_used, 'retrieved_chunks_count': len(top)}))
 
         emit_metric("yunshu_skill_match_latency_ms",
                     value=elapsed, kind="histogram",
@@ -680,24 +621,12 @@ class SkillLoader:
                     self.fs.register_write_hook(
                         lambda sid, action: adapter.upsert(sid)
                     )
-                    logger.info(json.dumps({
-                        "module_name": "loader",
-                        "action": "vector_adapter_hook_registered",
-                        "hook": "upsert",
-                    }, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'loader', 'action': 'vector_adapter_hook_registered', 'hook': 'upsert'}))
                 except Exception as hook_e:  # noqa: BLE001
                     # 钩子注册失败不影响向量检索主流程，仅丧失增量同步能力
-                    logger.warning(json.dumps({
-                        "module_name": "loader",
-                        "action": "vector_adapter_hook_register_failed",
-                        "error": str(hook_e)[:200],
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'loader', 'action': 'vector_adapter_hook_register_failed', 'error': str(hook_e)[:200]}))
             except Exception as e:  # noqa: BLE001
-                logger.warning(json.dumps({
-                    "module_name": "loader",
-                    "action": "vector_adapter_init_failed",
-                    "error": str(e),
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'loader', 'action': 'vector_adapter_init_failed', 'error': str(e)}))
                 self._vector_adapter = None
         return self._vector_adapter
 
@@ -717,22 +646,10 @@ class SkillLoader:
         """
         adapter = self._get_vector_adapter()
         if adapter is None:
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "vector.adapter_unavailable",
-                "intent": intent[:100],
-                "reason": "_get_vector_adapter returned None",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'loader', 'action': 'vector.adapter_unavailable', 'intent': intent[:100], 'reason': '_get_vector_adapter returned None'}))
             return None
 
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "loader",
-            "action": "vector.adapter_ready",
-            "intent": intent[:100],
-            "adapter_type": type(adapter).__name__,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'loader', 'action': 'vector.adapter_ready', 'intent': intent[:100], 'adapter_type': type(adapter).__name__}))
 
         # 【不易】BM25 fallback 模式不是真正的向量语义检索
         # 在 SKILLS_OFFLINE=1 的 CI 环境中，sentence_transformers/chromadb 被禁用，
@@ -741,12 +658,7 @@ class SkillLoader:
         # （保持 fallback_used=True 的语义正确性，测试 test_match_fallback_flag_when_vector_requested 守卫此契约）
         if getattr(adapter, '_st_backend', None) is None and \
            getattr(adapter, '_native_chroma', None) is None:
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "vector.skipped_bm25_fallback",
-                "reason": "BM25 fallback is not real vector search",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'loader', 'action': 'vector.skipped_bm25_fallback', 'reason': 'BM25 fallback is not real vector search'}))
             return None
 
         try:
@@ -754,24 +666,10 @@ class SkillLoader:
                 intent, top_k=top_k, enabled_only=enabled_only,
             )
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "vector_search.exception",
-                "intent": intent[:100],
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'loader', 'action': 'vector_search.exception', 'intent': intent[:100], 'error': str(e)}))
             return None
 
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "loader",
-            "action": "vector_search.results",
-            "intent": intent[:100],
-            "result_count": len(results),
-            "top1_skill_id": results[0]["skill_id"] if results else None,
-            "top1_score": round(results[0]["score"], 4) if results else None,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'loader', 'action': 'vector_search.results', 'intent': intent[:100], 'result_count': len(results), 'top1_skill_id': results[0]['skill_id'] if results else None, 'top1_score': round(results[0]['score'], 4) if results else None}))
 
         if not results:
             return None
@@ -803,26 +701,11 @@ class SkillLoader:
             ))
 
         if not matches:
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "vector_search.all_filtered_by_min_score",
-                "min_score": min_score,
-                "raw_result_count": len(results),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'loader', 'action': 'vector_search.all_filtered_by_min_score', 'min_score': min_score, 'raw_result_count': len(results)}))
             return None
 
         total_tokens = sum(m.estimated_tokens for m in matches)
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "loader",
-            "action": "vector_match.done",
-            "intent": intent[:100],
-            "matches_count": len(matches),
-            "top1_skill_id": matches[0].skill_id if matches else None,
-            "top1_score": round(matches[0].score, 4) if matches else None,
-            "retrieval_method": "vector",
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'loader', 'action': 'vector_match.done', 'intent': intent[:100], 'matches_count': len(matches), 'top1_skill_id': matches[0].skill_id if matches else None, 'top1_score': round(matches[0].score, 4) if matches else None, 'retrieval_method': 'vector'}))
         return MatchResult(
             matches=matches,
             total_scanned=len(index),
@@ -857,18 +740,9 @@ class SkillLoader:
                     skills_for_index.append(meta_with_id)
                 searcher.build_index(skills_for_index)
                 self._bm25_searcher_instance = searcher
-                logger.info(json.dumps({
-                    "module_name": "loader",
-                    "action": "bm25_searcher.init",
-                    "indexed_count": len(index),
-                    "available": searcher.is_available(),
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'loader', 'action': 'bm25_searcher.init', 'indexed_count': len(index), 'available': searcher.is_available()}))
             except Exception as e:  # noqa: BLE001
-                logger.warning(json.dumps({
-                    "module_name": "loader",
-                    "action": "bm25_searcher_init_failed",
-                    "error": str(e)[:200],
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'loader', 'action': 'bm25_searcher_init_failed', 'error': str(e)[:200]}))
                 self._bm25_searcher_instance = None
         return self._bm25_searcher_instance
 
@@ -888,24 +762,13 @@ class SkillLoader:
         """
         searcher = self._get_bm25_searcher()
         if searcher is None or not searcher.is_available():
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "bm25.adapter_unavailable",
-                "intent": intent[:100],
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'loader', 'action': 'bm25.adapter_unavailable', 'intent': intent[:100]}))
             return []
 
         try:
             results = searcher.search(intent, top_k=top_k)
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "bm25_search.exception",
-                "intent": intent[:100],
-                "error": str(e)[:200],
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'loader', 'action': 'bm25_search.exception', 'intent': intent[:100], 'error': str(e)[:200]}))
             return []
 
         if not results:
@@ -934,15 +797,7 @@ class SkillLoader:
                 isolation_strategy=meta.get("isolation_strategy", "separate_turn"),
             ))
 
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "loader",
-            "action": "bm25_match.done",
-            "intent": intent[:100],
-            "matches_count": len(matches),
-            "top1_skill_id": matches[0].skill_id if matches else None,
-            "top1_score": round(matches[0].score, 4) if matches else None,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'loader', 'action': 'bm25_match.done', 'intent': intent[:100], 'matches_count': len(matches), 'top1_skill_id': matches[0].skill_id if matches else None, 'top1_score': round(matches[0].score, 4) if matches else None}))
         return matches
 
     # ──────────────────────────────────────────────
@@ -995,13 +850,7 @@ class SkillLoader:
 
         # 【可观测性】_rrf_fuse 入口日志：记录两路候选数与 k 值
         # 排查排序异常时, 配合 _try_rrf_match 的 rrf.paths_before_fuse 日志定位输入
-        logger.debug(json.dumps({
-            "module_name": "loader",
-            "action": "_rrf_fuse.input",
-            "tfidf_count": len(tfidf_matches),
-            "vector_count": len(vector_matches),
-            "k": k,
-        }, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'loader', 'action': '_rrf_fuse.input', 'tfidf_count': len(tfidf_matches), 'vector_count': len(vector_matches), 'k': k}))
 
         # TF-IDF 路贡献
         # 【变易】记录原始分数 tfidf_score，供融合后负样本质量门禁使用
@@ -1050,13 +899,7 @@ class SkillLoader:
             for sid, info in fused.items()
             if info["tfidf_rank"] is not None and info["vector_rank"] is not None
         ]
-        logger.debug(json.dumps({
-            "module_name": "loader",
-            "action": "_rrf_fuse.both_paths_contrib",
-            "both_paths_count": len(both_paths_docs),
-            "both_paths_docs_top5": both_paths_docs[:5],
-            "max_possible": round(2.0 / (k + 1), 6),
-        }, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'loader', 'action': '_rrf_fuse.both_paths_contrib', 'both_paths_count': len(both_paths_docs), 'both_paths_docs_top5': both_paths_docs[:5], 'max_possible': round(2.0 / (k + 1), 6)}))
 
         # 构造融合后的 SkillMatch（保留首个出现的 SkillMatch 元数据字段）
         # RRF 分数归一化到 [0, 1]：最大可能分数 = 2/(k+1)（两路均为 rank 1）
@@ -1147,12 +990,7 @@ class SkillLoader:
                         weights[key] = float(val)
         except Exception as e:
             cls._CONFIG_READ_FAILURES += 1
-            logger.warning(json.dumps({
-                "module_name": "loader",
-                "action": "_parse_config_yaml_weights.failed",
-                "error": str(e)[:200],
-                "fallback": "empty dict (降级到硬编码默认值)",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'loader', 'action': '_parse_config_yaml_weights.failed', 'error': str(e)[:200], 'fallback': 'empty dict (降级到硬编码默认值)'}))
         return weights
 
     @classmethod
@@ -1179,11 +1017,7 @@ class SkillLoader:
         if not config_path.exists():
             if cls._CONFIG_YAML_CACHE is not None:
                 cls._CONFIG_CACHE_INVALIDATIONS += 1
-                logger.debug(json.dumps({
-                    "module_name": "loader",
-                    "action": "_load_weights_from_config_yaml_cached.file_deleted",
-                    "fallback": "empty dict",
-                }, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'loader', 'action': '_load_weights_from_config_yaml_cached.file_deleted', 'fallback': 'empty dict'}))
             cls._CONFIG_YAML_CACHE = None
             return {}
 
@@ -1240,14 +1074,7 @@ class SkillLoader:
             try:
                 weights[key] = float(raw)
             except (ValueError, TypeError):
-                logger.warning(json.dumps({
-                    "module_name": "loader",
-                    "action": "_load_weights_from_env_cached.invalid",
-                    "env_name": env_name,
-                    "raw_value": raw[:50],
-                    "fallback": "skip (降级到下层)",
-                    "reason": "non-float value",
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'loader', 'action': '_load_weights_from_env_cached.invalid', 'env_name': env_name, 'raw_value': raw[:50], 'fallback': 'skip (降级到下层)', 'reason': 'non-float value'}))
 
         cls._ENV_CACHE = weights
         return dict(weights)
@@ -1355,14 +1182,7 @@ class SkillLoader:
             }
             for name, matches, weight in active_paths
         ]
-        logger.debug(json.dumps({
-            "module_name": "loader",
-            "action": "_rrf_fuse_weighted.input",
-            "active_paths": active_paths_info,
-            "total_weight": round(total_weight, 4),
-            "skipped_paths_count": len(paths) - len(active_paths),
-            "k": k,
-        }, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'loader', 'action': '_rrf_fuse_weighted.input', 'active_paths': active_paths_info, 'total_weight': round(total_weight, 4), 'skipped_paths_count': len(paths) - len(active_paths), 'k': k}))
 
         # skill_id -> {融合信息}
         fused: Dict[str, Dict[str, Any]] = {}
@@ -1396,14 +1216,7 @@ class SkillLoader:
             for sid, info in fused.items()
             if len(info["ranks"]) >= 2
         ]
-        logger.debug(json.dumps({
-            "module_name": "loader",
-            "action": "_rrf_fuse_weighted.multi_path_contrib",
-            "multi_path_count": len(multi_path_docs),
-            "multi_path_docs_top5": multi_path_docs[:5],
-            "max_possible": round(1.0 / (k + 1), 6),
-            "note": "max_possible=1.0/(k+1) is the upper bound (doc ranked #1 in all active paths)",
-        }, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'loader', 'action': '_rrf_fuse_weighted.multi_path_contrib', 'multi_path_count': len(multi_path_docs), 'multi_path_docs_top5': multi_path_docs[:5], 'max_possible': round(1.0 / (k + 1), 6), 'note': 'max_possible=1.0/(k+1) is the upper bound (doc ranked #1 in all active paths)'}))
 
         # 归一化到 [0, 1]：最大可能分数 = Σ w_i_normalized / (k+1) = 1.0/(k+1)
         # 【不易修复】上界应是"所有 active 路归一化权重之和 / (k+1)"（某文档在所有路都 rank=1），
@@ -1523,13 +1336,7 @@ class SkillLoader:
             tfidf_matches.sort(key=lambda m: m.score, reverse=True)
             tfidf_matches = tfidf_matches[:candidate_k]
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "rrf.tfidf_path.exception",
-                "intent": intent[:100],
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'loader', 'action': 'rrf.tfidf_path.exception', 'intent': intent[:100], 'error': str(e)}))
             tfidf_matches = []
 
         # ── 向量路 ──
@@ -1545,13 +1352,7 @@ class SkillLoader:
         if adapter is not None and \
            getattr(adapter, '_st_backend', None) is None and \
            getattr(adapter, '_native_chroma', None) is None:
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "rrf.vector.skipped_bm25_fallback",
-                "intent": intent[:100],
-                "reason": "BM25 fallback is not real vector search",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.vector.skipped_bm25_fallback', 'intent': intent[:100], 'reason': 'BM25 fallback is not real vector search'}))
             adapter = None
         if adapter is not None:
             try:
@@ -1580,33 +1381,16 @@ class SkillLoader:
                         isolation_strategy=meta.get("isolation_strategy", "separate_turn"),
                     ))
             except Exception as e:  # noqa: BLE001
-                logger.warning(json.dumps({
-                    "trace_id": tid,
-                    "module_name": "loader",
-                    "action": "rrf.vector_path.exception",
-                    "intent": intent[:100],
-                    "error": str(e),
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'loader', 'action': 'rrf.vector_path.exception', 'intent': intent[:100], 'error': str(e)}))
                 vector_matches = []
         else:
             # 向量适配器不可用
             if not use_bm25:
                 # 无 BM25 兜底，RRF 无意义，返回 None 触发外层降级（守【不易】旧版语义）
-                logger.warning(json.dumps({
-                    "trace_id": tid,
-                    "module_name": "loader",
-                    "action": "rrf.vector_adapter_unavailable",
-                    "intent": intent[:100],
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'loader', 'action': 'rrf.vector_adapter_unavailable', 'intent': intent[:100]}))
                 return None
             # 【变易】有 BM25 兜底：向量路置空，继续走 tfidf+bm25 两路加权融合
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "rrf.vector_unavailable_bm25_fallback",
-                "intent": intent[:100],
-                "fallback": "tfidf+bm25",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'loader', 'action': 'rrf.vector_unavailable_bm25_fallback', 'intent': intent[:100], 'fallback': 'tfidf+bm25'}))
 
         # ── BM25 路（use_bm25=True 时启用）──
         # 【变易】BM25 擅长精确字面匹配，补充向量对专有名词/确定性锚点的召回不足
@@ -1621,13 +1405,7 @@ class SkillLoader:
                     tid=tid,
                 )
             except Exception as e:  # noqa: BLE001
-                logger.warning(json.dumps({
-                    "trace_id": tid,
-                    "module_name": "loader",
-                    "action": "rrf.bm25_path.exception",
-                    "intent": intent[:100],
-                    "error": str(e)[:200],
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'loader', 'action': 'rrf.bm25_path.exception', 'intent': intent[:100], 'error': str(e)[:200]}))
                 bm25_matches = []
 
         # 三路均空，无法融合 → 返回 None 触发外层 TF-IDF 兜底
@@ -1653,15 +1431,7 @@ class SkillLoader:
         if not tfidf_matches and vector_matches and not bm25_matches:
             vec_top1_score = vector_matches[0].score
             if vec_top1_score < SINGLE_PATH_MIN_TOP1:
-                logger.info(json.dumps({
-                    "trace_id": tid,
-                    "module_name": "loader",
-                    "action": "rrf.single_path_low_score_rejected",
-                    "intent": intent[:100],
-                    "vector_top1_score": round(vec_top1_score, 4),
-                    "threshold": SINGLE_PATH_MIN_TOP1,
-                    "reason": "tfidf empty + vector top1 below single-path threshold",
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.single_path_low_score_rejected', 'intent': intent[:100], 'vector_top1_score': round(vec_top1_score, 4), 'threshold': SINGLE_PATH_MIN_TOP1, 'reason': 'tfidf empty + vector top1 below single-path threshold'}))
                 return None
 
         # ── RRF 融合 ──
@@ -1688,24 +1458,7 @@ class SkillLoader:
             and vector_top1_id is not None
             and tfidf_top1_id != vector_top1_id
         )
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "loader",
-            "action": "rrf.paths_before_fuse",
-            "intent": intent[:100],
-            "tfidf_top1": tfidf_top1_id,
-            "vector_top1": vector_top1_id,
-            "bm25_top1": bm25_top1_id,
-            "top1_conflict": conflict,
-            "tfidf_top3": tfidf_top3,
-            "vector_top3": vector_top3,
-            "bm25_top3": bm25_top3,
-            "tfidf_candidate_count": len(tfidf_matches),
-            "vector_candidate_count": len(vector_matches),
-            "bm25_candidate_count": len(bm25_matches),
-            "use_bm25": use_bm25,
-            "rrf_k": self._RRF_K,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.paths_before_fuse', 'intent': intent[:100], 'tfidf_top1': tfidf_top1_id, 'vector_top1': vector_top1_id, 'bm25_top1': bm25_top1_id, 'top1_conflict': conflict, 'tfidf_top3': tfidf_top3, 'vector_top3': vector_top3, 'bm25_top3': bm25_top3, 'tfidf_candidate_count': len(tfidf_matches), 'vector_candidate_count': len(vector_matches), 'bm25_candidate_count': len(bm25_matches), 'use_bm25': use_bm25, 'rrf_k': self._RRF_K}))
 
         # 【不易】use_bm25=False 时走 _rrf_fuse 双路无权重（行为与旧版完全一致）
         # 【变易】use_bm25=True 时走 _rrf_fuse_weighted 加权多路
@@ -1743,16 +1496,7 @@ class SkillLoader:
                 "rrf_normalized": bd.get("rrf_normalized"),
                 "both_paths": tfidf_rank is not None and vector_rank is not None,
             })
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "loader",
-            "action": "rrf.fused_detail",
-            "intent": intent[:100],
-            "fused_count": len(fused),
-            "top5_detail": fused_detail,
-            "use_bm25": use_bm25,
-            "note": "both_paths=true 表示 tfidf+vector 两路都命中（RRF 分数累加，排名更靠前）",
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.fused_detail', 'intent': intent[:100], 'fused_count': len(fused), 'top5_detail': fused_detail, 'use_bm25': use_bm25, 'note': 'both_paths=true 表示 tfidf+vector 两路都命中（RRF 分数累加，排名更靠前）'}))
 
         # 融合后不再二次过滤 min_score：各路已应用阈值，避免归一化分数压缩导致阈值失效
 
@@ -1777,37 +1521,12 @@ class SkillLoader:
             ]
             max_raw_score = max(raw_scores) if raw_scores else 0.0
             # 记录详细日志：原始分数 + 归一化分数，便于验证负样本过滤逻辑
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "loader",
-                "action": "rrf.quality_gate.check",
-                "intent": intent[:100],
-                "top1_skill_id": top1.skill_id,
-                "top1_rrf_normalized": bd.get("rrf_normalized"),
-                "raw_scores": {
-                    k: v for k, v in bd.items()
-                    if k.endswith("_score") and k != "rrf_score" and v is not None
-                },
-                "max_raw_score": round(max_raw_score, 6),
-                "threshold": self._RRF_QUALITY_MIN,
-                "use_bm25": use_bm25,
-                "decision": "reject" if max_raw_score < self._RRF_QUALITY_MIN else "pass",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.check', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'top1_rrf_normalized': bd.get('rrf_normalized'), 'raw_scores': {k: v for k, v in bd.items() if k.endswith('_score') and k != 'rrf_score' and (v is not None)}, 'max_raw_score': round(max_raw_score, 6), 'threshold': self._RRF_QUALITY_MIN, 'use_bm25': use_bm25, 'decision': 'reject' if max_raw_score < self._RRF_QUALITY_MIN else 'pass'}))
             if max_raw_score < self._RRF_QUALITY_MIN:
                 # 【变易】返回空 MatchResult（retrieval_method="rrf"），不触发 TF-IDF fallback
                 # 原因：负样本 query 在 TF-IDF 路本身就是低分召回，fallback 会引入新误召回
                 elapsed = (time.time() - t0) * 1000
-                logger.warning(json.dumps({
-                    "trace_id": tid,
-                    "module_name": "loader",
-                    "action": "rrf.quality_gate.rejected",
-                    "intent": intent[:100],
-                    "top1_skill_id": top1.skill_id,
-                    "max_raw_score": round(max_raw_score, 6),
-                    "threshold": self._RRF_QUALITY_MIN,
-                    "fused_count": len(fused),
-                    "reason": "all_paths_low_raw_score_negative_sample",
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.rejected', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'max_raw_score': round(max_raw_score, 6), 'threshold': self._RRF_QUALITY_MIN, 'fused_count': len(fused), 'reason': 'all_paths_low_raw_score_negative_sample'}))
                 emit_metric("yunshu_skill_rrf_quality_gate_rejected",
                             value=1, kind="counter",
                             labels={"layer": "1", "method": "rrf"})
@@ -1888,24 +1607,11 @@ class SkillLoader:
                         isolation_strategy=orig_match.isolation_strategy,
                     ))
                 retrieval_method = "rrf_rerank"
-                logger.info(json.dumps({
-                    "trace_id": tid,
-                    "module_name": "loader",
-                    "action": "rrf.rerank.applied",
-                    "intent": intent[:100],
-                    "pool_size": len(rerank_pool),
-                    "final_count": len(top),
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.rerank.applied', 'intent': intent[:100], 'pool_size': len(rerank_pool), 'final_count': len(top)}))
             else:
                 # reranker 不可用，降级用 RRF 顺序
                 top = fused[:top_k]
-                logger.info(json.dumps({
-                    "trace_id": tid,
-                    "module_name": "loader",
-                    "action": "rrf.rerank.skipped",
-                    "intent": intent[:100],
-                    "reason": "reranker_unavailable",
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.rerank.skipped', 'intent': intent[:100], 'reason': 'reranker_unavailable'}))
         else:
             top = fused[:top_k]
 
@@ -1915,14 +1621,7 @@ class SkillLoader:
         if not top:
             if use_reranker and fused:
                 # reranker 阈值过滤导致空结果，返回空 MatchResult（不 fallback）
-                logger.info(json.dumps({
-                    "trace_id": tid,
-                    "module_name": "loader",
-                    "action": "rrf.rerank.filtered_empty",
-                    "intent": intent[:100],
-                    "fused_count": len(fused),
-                    "reason": "all_candidates_below_threshold",
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.rerank.filtered_empty', 'intent': intent[:100], 'fused_count': len(fused), 'reason': 'all_candidates_below_threshold'}))
                 elapsed = (time.time() - t0) * 1000
                 return MatchResult(
                     matches=[],
@@ -1938,31 +1637,7 @@ class SkillLoader:
         elapsed = (time.time() - t0) * 1000
         total_tokens = sum(m.estimated_tokens for m in top)
 
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "loader",
-            "action": "match.layer1.rrf.ok",
-            "duration_ms": round(elapsed, 2),
-            "layer": 1,
-            "intent": intent[:100],
-            "total_scanned": len(index),
-            "tfidf_candidates": len(tfidf_matches),
-            "vector_candidates": len(vector_matches),
-            "bm25_candidates": len(bm25_matches),
-            "fused_count": len(fused),
-            "match_count": len(top),
-            "estimated_tokens": total_tokens,
-            "retrieval_method": retrieval_method,
-            "fallback_used": False,
-            "retrieved_chunks_count": len(top),
-            "rrf_k": self._RRF_K,
-            "use_reranker": use_reranker,
-            "use_bm25": use_bm25,
-            "final_top_skill_ids": [
-                {"rank": i + 1, "skill_id": m.skill_id, "score": round(m.score, 4)}
-                for i, m in enumerate(top)
-            ],
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'loader', 'action': 'match.layer1.rrf.ok', 'layer': 1, 'intent': intent[:100], 'total_scanned': len(index), 'tfidf_candidates': len(tfidf_matches), 'vector_candidates': len(vector_matches), 'bm25_candidates': len(bm25_matches), 'fused_count': len(fused), 'match_count': len(top), 'estimated_tokens': total_tokens, 'retrieval_method': retrieval_method, 'fallback_used': False, 'retrieved_chunks_count': len(top), 'rrf_k': self._RRF_K, 'use_reranker': use_reranker, 'use_bm25': use_bm25, 'final_top_skill_ids': [{'rank': i + 1, 'skill_id': m.skill_id, 'score': round(m.score, 4)} for i, m in enumerate(top)]}))
 
         emit_metric("yunshu_skill_match_latency_ms",
                     value=elapsed, kind="histogram",
@@ -2009,20 +1684,9 @@ class SkillLoader:
                 # 【简易】不传 model_name，让 SkillReranker 从 .env 读取所有配置
                 # 避免配置重复（loader.py 和 reranker.py 各读一遍容易不一致）
                 self._reranker_instance = SkillReranker()
-                logger.info(json.dumps({
-                    "module_name": "loader",
-                    "action": "reranker.init",
-                    "model": self._reranker_instance._model_name,
-                    "use_onnx": self._reranker_instance._use_onnx_env,
-                    "onnx_variant": self._reranker_instance._onnx_variant,
-                    "min_score": self._reranker_instance._min_score,
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'loader', 'action': 'reranker.init', 'model': self._reranker_instance._model_name, 'use_onnx': self._reranker_instance._use_onnx_env, 'onnx_variant': self._reranker_instance._onnx_variant, 'min_score': self._reranker_instance._min_score}))
             except Exception as e:  # noqa: BLE001
-                logger.warning(json.dumps({
-                    "module_name": "loader",
-                    "action": "reranker_init_failed",
-                    "error": str(e)[:300],
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'loader', 'action': 'reranker_init_failed', 'error': str(e)[:300]}))
                 self._reranker_instance = None
         return self._reranker_instance
 
@@ -2058,16 +1722,7 @@ class SkillLoader:
         est_tokens = estimate_tokens(body)
 
         elapsed = (time.time() - t0) * 1000
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "loader",
-            "action": "load_instruction.layer2.ok",
-            "duration_ms": round(elapsed, 2),
-            "layer": 2,
-            "skill_id": skill_id,
-            "instruction_chars": len(body),
-            "estimated_tokens": est_tokens,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'loader', 'action': 'load_instruction.layer2.ok', 'layer': 2, 'skill_id': skill_id, 'instruction_chars': len(body), 'estimated_tokens': est_tokens}))
 
         emit_metric("yunshu_skill_instruction_tokens",
                     value=est_tokens, kind="histogram",
@@ -2104,25 +1759,10 @@ class SkillLoader:
                     "size_bytes": path.stat().st_size,
                 })
             except Exception as e:
-                logger.warning(json.dumps({
-                    "trace_id": tid,
-                    "module_name": "loader",
-                    "action": "list_scripts.skip",
-                    "skill_id": skill_id,
-                    "script": name,
-                    "error": str(e),
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'loader', 'action': 'list_scripts.skip', 'skill_id': skill_id, 'script': name, 'error': str(e)}))
 
         elapsed = (time.time() - t0) * 1000
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "loader",
-            "action": "list_scripts.layer3.ok",
-            "duration_ms": round(elapsed, 2),
-            "layer": 3,
-            "skill_id": skill_id,
-            "script_count": len(result),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'loader', 'action': 'list_scripts.layer3.ok', 'layer': 3, 'skill_id': skill_id, 'script_count': len(result)}))
 
         return result
 

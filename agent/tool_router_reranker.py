@@ -33,6 +33,7 @@ import sys
 import threading
 from pathlib import Path
 from typing import Any, Optional
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger("agent.tool_router_reranker")
 
@@ -61,13 +62,7 @@ def _env_float(name: str, default: float) -> float:
     try:
         return float(raw)
     except (TypeError, ValueError):
-        logger.warning(json.dumps({
-            "module_name": "tool_router_reranker",
-            "action": "env_parse_failed",
-            "env_name": name,
-            "raw_value": raw,
-            "fallback": default,
-        }, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'env_parse_failed', 'env_name': name, 'raw_value': raw, 'fallback': default}))
         return default
 
 
@@ -256,11 +251,7 @@ class ToolReranker:
                 ready_line = self._proc.stdout.readline()
                 if not ready_line:
                     err = self._proc.stderr.read() if self._proc.stderr else ""
-                    logger.warning(json.dumps({
-                        "module_name": "tool_router_reranker",
-                        "action": "worker.startup.no_output",
-                        "error": err[:300],
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'worker.startup.no_output', 'error': err[:300]}))
                     self._init_failed = True
                     self._cleanup_proc()
                     return False
@@ -269,41 +260,20 @@ class ToolReranker:
                 if msg.get("type") == "ready":
                     self._load_time_sec = msg.get("load_time_sec", 0)
                     self._load_source = msg.get("load_source", "?")
-                    logger.info(json.dumps({
-                        "module_name": "tool_router_reranker",
-                        "action": "worker.ready",
-                        "model": self.model_name,
-                        "load_time_sec": self._load_time_sec,
-                        "load_source": self._load_source,
-                        "startup_total_sec": round(time.time() - t0, 2),
-                    }, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'tool_router_reranker', 'action': 'worker.ready', 'model': self.model_name, 'load_time_sec': self._load_time_sec, 'load_source': self._load_source, 'startup_total_sec': round(time.time() - t0, 2)}))
                     return True
                 elif msg.get("type") == "init_failed":
-                    logger.warning(json.dumps({
-                        "module_name": "tool_router_reranker",
-                        "action": "worker.init_failed",
-                        "model": self.model_name,
-                        "error": msg.get("error", "")[:300],
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'worker.init_failed', 'model': self.model_name, 'error': msg.get('error', '')[:300]}))
                     self._init_failed = True
                     self._cleanup_proc()
                     return False
                 else:
-                    logger.warning(json.dumps({
-                        "module_name": "tool_router_reranker",
-                        "action": "worker.unknown_message",
-                        "message": str(msg)[:300],
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'worker.unknown_message', 'message': str(msg)[:300]}))
                     self._init_failed = True
                     self._cleanup_proc()
                     return False
             except Exception as e:  # noqa: BLE001
-                logger.warning(json.dumps({
-                    "module_name": "tool_router_reranker",
-                    "action": "worker.startup.exception",
-                    "model": self.model_name,
-                    "error": str(e)[:300],
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'worker.startup.exception', 'model': self.model_name, 'error': str(e)[:300]}))
                 self._init_failed = True
                 self._cleanup_proc()
                 return False
@@ -348,11 +318,7 @@ class ToolReranker:
                 resp_line = self._proc.stdout.readline()
                 if not resp_line:
                     # 子进程已退出
-                    logger.warning(json.dumps({
-                        "module_name": "tool_router_reranker",
-                        "action": "predict.no_response",
-                        "reason": "subprocess_exited",
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'predict.no_response', 'reason': 'subprocess_exited'}))
                     self._init_failed = True
                     self._cleanup_proc()
                     return None
@@ -360,25 +326,13 @@ class ToolReranker:
                 if resp.get("type") == "scores":
                     return resp.get("scores", [])
                 elif resp.get("type") == "error":
-                    logger.warning(json.dumps({
-                        "module_name": "tool_router_reranker",
-                        "action": "predict.worker_error",
-                        "error": resp.get("error", "")[:300],
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'predict.worker_error', 'error': resp.get('error', '')[:300]}))
                     return None
                 else:
-                    logger.warning(json.dumps({
-                        "module_name": "tool_router_reranker",
-                        "action": "predict.unknown_response",
-                        "message": str(resp)[:300],
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'predict.unknown_response', 'message': str(resp)[:300]}))
                     return None
             except Exception as e:  # noqa: BLE001
-                logger.warning(json.dumps({
-                    "module_name": "tool_router_reranker",
-                    "action": "predict.exception",
-                    "error": str(e)[:300],
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'predict.exception', 'error': str(e)[:300]}))
                 self._init_failed = True
                 self._cleanup_proc()
                 return None
@@ -430,12 +384,7 @@ class ToolReranker:
         # 启动子进程(如果尚未启动)
         if not self._ensure_worker():
             # 子进程不可用,降级返回原顺序(rerank_score=0.0)
-            logger.info(json.dumps({
-                "module_name": "tool_router_reranker",
-                "action": "rerank.skipped",
-                "reason": "worker_unavailable",
-                "candidate_count": len(pool),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'tool_router_reranker', 'action': 'rerank.skipped', 'reason': 'worker_unavailable', 'candidate_count': len(pool)}))
             return [(t, h, 0.0) for t, h in pool[:top_k]]
 
         # 调用子进程打分
@@ -446,12 +395,7 @@ class ToolReranker:
 
         if scores is None or len(scores) != len(pool):
             # 预测失败,降级返回原顺序
-            logger.warning(json.dumps({
-                "module_name": "tool_router_reranker",
-                "action": "rerank.predict_failed",
-                "candidate_count": len(pool),
-                "scores_returned": len(scores) if scores else 0,
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'tool_router_reranker', 'action': 'rerank.predict_failed', 'candidate_count': len(pool), 'scores_returned': len(scores) if scores else 0}))
             return [(t, h, 0.0) for t, h in pool[:top_k]]
 
         # 按 rerank_score 降序排序
@@ -470,18 +414,7 @@ class ToolReranker:
             if len(result) >= top_k:
                 break
 
-        logger.info(json.dumps({
-            "module_name": "tool_router_reranker",
-            "action": "rerank.ok",
-            "query": query[:50],
-            "candidate_count": len(pool),
-            "filtered_count": filtered_count,
-            "remaining_count": len(result),
-            "min_score_threshold": self.rerank_min_score,
-            "duration_ms": round(elapsed_ms, 2),
-            "top1_tool": result[0][0] if result else None,
-            "top1_rerank_score": round(result[0][2], 4) if result else None,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'tool_router_reranker', 'action': 'rerank.ok', 'query': query[:50], 'candidate_count': len(pool), 'filtered_count': filtered_count, 'remaining_count': len(result), 'min_score_threshold': self.rerank_min_score, 'top1_tool': result[0][0] if result else None, 'top1_rerank_score': round(result[0][2], 4) if result else None}))
 
         return result
 

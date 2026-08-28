@@ -16,6 +16,7 @@ from .storage import (
     PromptStorage, PromptRecord, VersionRecord, PromptType,
     get_prompt_storage
 )
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -58,15 +59,7 @@ class VersionManager:
         
         self.storage.save_version(record)
         
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "prompt_manager",
-            "action": "create_version",
-            "prompt_id": prompt_id,
-            "version": new_version,
-            "duration_ms": 0,
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'prompt_manager', 'action': 'create_version', 'prompt_id': prompt_id, 'version': new_version, 'level': 'INFO'}))
         
         return record
     
@@ -130,15 +123,7 @@ class VersionManager:
                 author="system"
             )
             
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "prompt_manager",
-                "action": "rollback",
-                "prompt_id": prompt_id,
-                "target_version": version_number,
-                "duration_ms": 0,
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'prompt_manager', 'action': 'rollback', 'prompt_id': prompt_id, 'target_version': version_number, 'level': 'INFO'}))
             
             return True
         

@@ -39,6 +39,13 @@ from agent.monitoring.tracing import (
 OPENTELEMETRY_AVAILABLE = is_opentelemetry_available()
 
 
+def _parse_payload(arg) -> dict:
+    """解析日志 payload，兼容 log_dict dict 消息与旧 JSON 字符串"""
+    if isinstance(arg, dict):
+        return arg
+    return json.loads(str(arg))
+
+
 def _fake_import_failing(blocked_names):
     """构造 __import__ 包装器：仅对指定包名抛 ImportError，其余走真实导入"""
     real_import = builtins.__import__
@@ -63,7 +70,7 @@ class TestRecordSpanAttributes:
             record_span_attributes(retrieved_chunks=3, eval_score=0.85)
             # 验证调用了 logger.info 且 payload 包含当前 trace_id
             mock_logger.info.assert_called_once()
-            payload = json.loads(mock_logger.info.call_args[0][0])
+            payload = _parse_payload(mock_logger.info.call_args[0][0])
             assert payload["trace_id"] == "test-trace-123"
             assert payload["action"] == "span_attributes"
             assert payload["attributes"] == {"retrieved_chunks": 3, "eval_score": 0.85}
@@ -72,7 +79,7 @@ class TestRecordSpanAttributes:
         """显式传 trace_id/span_id 时优先使用"""
         with patch("agent.monitoring.tracing.logger") as mock_logger:
             record_span_attributes(trace_id="ext-1", span_id="sp-1", key="v")
-            payload = json.loads(mock_logger.info.call_args[0][0])
+            payload = _parse_payload(mock_logger.info.call_args[0][0])
             assert payload["trace_id"] == "ext-1"
             assert payload["span_id"] == "sp-1"
 
@@ -107,7 +114,7 @@ class TestSafeCall:
                 _safe_call(boom, action="test_boom")
             # 记录结构化错误日志
             mock_logger.error.assert_called_once()
-            payload = json.loads(mock_logger.error.call_args[0][0])
+            payload = _parse_payload(mock_logger.error.call_args[0][0])
             assert payload["action"] == "test_boom.failed"
             assert "ValueError" in payload["error"]
 
@@ -116,7 +123,7 @@ class TestSafeCall:
         with patch("agent.monitoring.tracing.logger") as mock_logger:
             with pytest.raises(Exception):
                 _safe_call(lambda: 1 / 0)
-            payload = json.loads(mock_logger.error.call_args[0][0])
+            payload = _parse_payload(mock_logger.error.call_args[0][0])
             assert payload["action"] == "safe_call.failed"
 
 

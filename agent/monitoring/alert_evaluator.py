@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from collections import defaultdict
 import json
+from agent.logging_utils import log_dict
 
 # 结构化日志必需：get_trace_id() 提供当前请求/任务上下文追踪 ID
 # set_trace_id() 用于跨线程传递 trace_id（ContextVar 不自动继承到子线程）
@@ -167,15 +168,7 @@ class AlertEvaluator:
         self._evaluator_trace_id = f"alert-eval-{uuid.uuid4().hex[:16]}"
 
         # 结构化日志：init 节点（含配置参数，便于排查评估间隔与 pending 时长）
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_evaluator",
-            "action": "init",
-            "duration_ms": 0,
-            "evaluation_interval": evaluation_interval,
-            "pending_duration": pending_duration,
-            "evaluator_trace_id": self._evaluator_trace_id
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'alert_evaluator', 'action': 'init', 'evaluation_interval': evaluation_interval, 'pending_duration': pending_duration, 'evaluator_trace_id': self._evaluator_trace_id}))
 
     def set_on_state_change(self, callback: Callable[[Alert, AlertState, AlertState], None]):
         """设置告警状态变化回调"""
@@ -211,14 +204,7 @@ class AlertEvaluator:
                     annotations=rule.annotations
                 )
         # 结构化日志：规则新增（记录规则名与级别，便于审计规则变更）
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_evaluator",
-            "action": "add_rule",
-            "duration_ms": 0,
-            "rule_name": rule.name,
-            "severity": rule.severity
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'alert_evaluator', 'action': 'add_rule', 'rule_name': rule.name, 'severity': rule.severity}))
 
     def remove_rule(self, rule_name: str):
         """移除告警规则"""
@@ -229,13 +215,7 @@ class AlertEvaluator:
                 if rule_name in self._alerts:
                     del self._alerts[rule_name]
         # 结构化日志：规则移除（记录规则名，便于审计规则变更）
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_evaluator",
-            "action": "remove_rule",
-            "duration_ms": 0,
-            "rule_name": rule_name
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'alert_evaluator', 'action': 'remove_rule', 'rule_name': rule_name}))
 
     def _parse_duration(self, duration_str: str) -> float:
         """解析 duration 字符串为秒数
@@ -349,14 +329,7 @@ class AlertEvaluator:
                 return float(histograms[metric_name].get("count", 0))
         except Exception as e:
             # 结构化日志：指标查询失败（含错误信息，便于排查指标源故障）
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "alert_evaluator",
-                "action": "get_metric_value",
-                "duration_ms": 0,
-                "metric_name": metric_name,
-                "error": str(e)
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'alert_evaluator', 'action': 'get_metric_value', 'metric_name': metric_name, 'error': str(e)}))
         return None
 
     def _evaluate_rule(self, rule: AlertRule) -> Optional[float]:
@@ -534,13 +507,7 @@ class AlertEvaluator:
             )
             self._evaluation_thread.start()
         # 结构化日志：评估器启动
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_evaluator",
-            "action": "start",
-            "duration_ms": 0,
-            "evaluation_interval": self.evaluation_interval
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'alert_evaluator', 'action': 'start', 'evaluation_interval': self.evaluation_interval}))
 
     def stop(self):
         """停止告警评估"""
@@ -548,15 +515,7 @@ class AlertEvaluator:
         if self._evaluation_thread:
             self._evaluation_thread.join(timeout=5)
         # 结构化日志：评估器停止
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_evaluator",
-            "action": "stop",
-            "duration_ms": 0,
-            "total_evaluations": self._stats["total_evaluations"],
-            "alerts_triggered": self._stats["alerts_triggered"],
-            "alerts_resolved": self._stats["alerts_resolved"]
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'alert_evaluator', 'action': 'stop', 'total_evaluations': self._stats['total_evaluations'], 'alerts_triggered': self._stats['alerts_triggered'], 'alerts_resolved': self._stats['alerts_resolved']}))
 
     def _evaluation_loop(self):
         """评估循环（后台线程入口）
@@ -572,13 +531,7 @@ class AlertEvaluator:
                 self.evaluate()
             except Exception as e:
                 # 结构化日志：评估循环异常（含错误信息，便于排查评估故障）
-                logger.error(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "alert_evaluator",
-                    "action": "evaluation_error",
-                    "duration_ms": 0,
-                    "error": str(e)
-                }, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'alert_evaluator', 'action': 'evaluation_error', 'error': str(e)}))
             time.sleep(self.evaluation_interval)
 
     def get_alerts(self, state: Optional[AlertState] = None) -> List[Dict]:

@@ -21,6 +21,7 @@ from typing import Dict, List, Optional, Any, Callable
 from dataclasses import dataclass
 
 from agent.monitoring.tracing import get_trace_id
+from agent.logging_utils import log_dict
 
 try:
     import yaml
@@ -120,14 +121,7 @@ class AlertManager:
         self._init_components()
 
         # 结构化日志（使用 json.dumps 输出，trace_id 通过 get_trace_id 获取）
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_manager",
-            "action": "init",
-            "duration_ms": 0,
-            "config_path": config_path,
-            "rules_count": len(self._config.get("groups", []))
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'alert_manager', 'action': 'init', 'config_path': config_path, 'rules_count': len(self._config.get('groups', []))}))
 
     def _load_config(self):
         """加载告警配置"""
@@ -140,14 +134,7 @@ class AlertManager:
 
         if not os.path.exists(self.config_path):
             # 结构化日志：边界显性化 - 文件不存在时记录明确错误码 file_not_found
-            logger.warning(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "alert_manager",
-                "action": "config_load_failed",
-                "duration_ms": 0,
-                "config_path": self.config_path,
-                "error": "file_not_found"
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'alert_manager', 'action': 'config_load_failed', 'config_path': self.config_path, 'error': 'file_not_found'}))
             # 使用默认配置
             self._config = self._get_default_config()
             return
@@ -157,14 +144,7 @@ class AlertManager:
                 self._config = yaml.safe_load(f) or {}
 
             # 结构化日志：配置加载成功
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "alert_manager",
-                "action": "config_loaded",
-                "duration_ms": 0,
-                "config_path": self.config_path,
-                "groups_count": len(self._config.get("groups", []))
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'alert_manager', 'action': 'config_loaded', 'config_path': self.config_path, 'groups_count': len(self._config.get('groups', []))}))
         except Exception as e:
             logger.error(f"[AlertManager] 配置加载失败: {e}")
             self._config = self._get_default_config()
@@ -314,15 +294,7 @@ class AlertManager:
     def _on_heal_executed(self, record):
         """自愈执行完成回调"""
         # 结构化日志：自愈动作执行完成（修复原代码 action 键重复问题）
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_manager",
-            "action": "heal_executed",
-            "duration_ms": 0,
-            "heal_action": record.action,
-            "status": record.status.value,
-            "message": record.message
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'alert_manager', 'action': 'heal_executed', 'heal_action': record.action, 'status': record.status.value, 'message': record.message}))
 
     # ════════════════════════════════════════════════════════════════════
     #  升级告警与人工接管（任务 7，补 M5）
@@ -352,28 +324,10 @@ class AlertManager:
         from_level = alert.severity
 
         # ── 入口日志：升级流程起点（排查告警升级链路的关键锚点）──
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_manager",
-            "action": "alert_escalate_start",
-            "duration_ms": 0,
-            "alert": alert.name,
-            "from_level": from_level.value,
-            "to_level": to_level.value,
-            "reason": reason,
-            "has_evidence": bool(evidence),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'alert_manager', 'action': 'alert_escalate_start', 'alert': alert.name, 'from_level': from_level.value, 'to_level': to_level.value, 'reason': reason, 'has_evidence': bool(evidence)}))
 
         if from_level == to_level:
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "alert_manager",
-                "action": "alert_escalate_skipped",
-                "duration_ms": 0,
-                "alert": alert.name,
-                "from_level": from_level.value,
-                "reason": "级别已为目标级别，无需重复升级",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'alert_manager', 'action': 'alert_escalate_skipped', 'alert': alert.name, 'from_level': from_level.value, 'reason': '级别已为目标级别，无需重复升级'}))
             return None
 
         alert.severity = to_level
@@ -394,15 +348,7 @@ class AlertManager:
         )
         try:
             self._notifier.send_critical(notification)
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "alert_manager",
-                "action": "alert_escalate_notified",
-                "duration_ms": 0,
-                "alert": alert.name,
-                "to_level": to_level.value,
-                "message": notification.message,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'alert_manager', 'action': 'alert_escalate_notified', 'alert': alert.name, 'to_level': to_level.value, 'message': notification.message}))
         except Exception as e:
             logger.error("[AlertManager] 升级通知发送失败: %s", e)
 
@@ -415,31 +361,11 @@ class AlertManager:
             )
         except Exception as e:
             # 接管入队失败：记录详细日志后 re-raise（调用方已有异常隔离）
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "alert_manager",
-                "action": "alert_escalate_takeover_failed",
-                "duration_ms": 0,
-                "alert": alert.name,
-                "from_level": from_level.value,
-                "to_level": to_level.value,
-                "reason": reason,
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'alert_manager', 'action': 'alert_escalate_takeover_failed', 'alert': alert.name, 'from_level': from_level.value, 'to_level': to_level.value, 'reason': reason, 'error': str(e)}))
             raise
 
         # 3. 结构化日志（含 from/to level，验收标准 #4）
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_manager",
-            "action": "alert_escalated",
-            "duration_ms": 0,
-            "alert": alert.name,
-            "from_level": from_level.value,
-            "to_level": to_level.value,
-            "reason": reason,
-            "takeover_id": takeover.takeover_id,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'alert_manager', 'action': 'alert_escalated', 'alert': alert.name, 'from_level': from_level.value, 'to_level': to_level.value, 'reason': reason, 'takeover_id': takeover.takeover_id}))
         return takeover
 
     def record_deprecated(
@@ -469,14 +395,7 @@ class AlertManager:
             self._notifier.send(notification)
         except Exception as e:
             logger.error("[AlertManager] deprecated 通知发送失败: %s", e)
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_manager",
-            "action": "strategy_deprecated",
-            "duration_ms": 0,
-            "strategy_id": strategy_id,
-            "stats": stats or {},
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'alert_manager', 'action': 'strategy_deprecated', 'strategy_id': strategy_id, 'stats': stats or {}}))
 
     def _on_heal_escalated(self, action: str, reason: str, context: Dict[str, Any]):
         """自愈验证连续失败回调（任务 2 接线：verify_heal 失败 2 次 → 升级）"""
@@ -666,12 +585,7 @@ class AlertManager:
             self._healer.start()
 
         # 结构化日志：告警管理系统启动完成
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_manager",
-            "action": "start",
-            "duration_ms": 0
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'alert_manager', 'action': 'start'}))
 
     def stop(self):
         """停止告警管理系统"""
@@ -691,12 +605,7 @@ class AlertManager:
             self._healer.stop()
 
         # 结构化日志：告警管理系统停止完成
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "alert_manager",
-            "action": "stop",
-            "duration_ms": 0
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'alert_manager', 'action': 'stop'}))
 
     def get_alerts(
         self,

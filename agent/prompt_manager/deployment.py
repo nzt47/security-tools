@@ -17,6 +17,7 @@ import threading
 from typing import Optional, Dict, Any, List, Callable
 from dataclasses import dataclass, field
 from enum import Enum
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -100,14 +101,7 @@ class VersionDeploymentManager:
             checker: 健康检查函数，返回 (is_healthy, error_message)
         """
         self._health_checkers[prompt_id] = checker
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "deployment_manager",
-            "action": "register_health_checker",
-            "prompt_id": prompt_id,
-            "duration_ms": 0,
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'deployment_manager', 'action': 'register_health_checker', 'prompt_id': prompt_id, 'level': 'INFO'}))
     
     def start_deployment(self, config: DeploymentConfig,
                         deploy_callback: Callable[[str, str], bool]) -> DeploymentRecord:
@@ -146,17 +140,7 @@ class VersionDeploymentManager:
             daemon=True
         ).start()
         
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "deployment_manager",
-            "action": "start_deployment",
-            "deployment_id": deployment_id,
-            "prompt_id": config.prompt_id,
-            "target_version": config.target_version,
-            "canary": config.canary_enabled,
-            "duration_ms": 0,
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'deployment_manager', 'action': 'start_deployment', 'deployment_id': deployment_id, 'prompt_id': config.prompt_id, 'target_version': config.target_version, 'canary': config.canary_enabled, 'level': 'INFO'}))
         
         return record
     
@@ -197,16 +181,7 @@ class VersionDeploymentManager:
             record.status = DeploymentStatus.SUCCESS
             record.completed_at = time.time()
             
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "deployment_manager",
-                "action": "deployment_success",
-                "deployment_id": record.deployment_id,
-                "prompt_id": record.prompt_id,
-                "version": record.target_version,
-                "duration_ms": int((record.completed_at - record.started_at) * 1000),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'deployment_manager', 'action': 'deployment_success', 'deployment_id': record.deployment_id, 'prompt_id': record.prompt_id, 'version': record.target_version, 'level': 'INFO'}))
             
         except Exception as e:
             logger.error(f"部署异常: {e}")
@@ -311,17 +286,7 @@ class VersionDeploymentManager:
         record.rollback_trigger = trigger
         record.rollback_reason = reason
         
-        logger.warning(json.dumps({
-            "trace_id": "",
-            "module_name": "deployment_manager",
-            "action": "trigger_rollback",
-            "deployment_id": record.deployment_id,
-            "prompt_id": record.prompt_id,
-            "trigger": trigger.value,
-            "reason": reason,
-            "duration_ms": 0,
-            "level": "WARNING"
-        }))
+        logger.warning(log_dict({'module_name': 'deployment_manager', 'action': 'trigger_rollback', 'deployment_id': record.deployment_id, 'prompt_id': record.prompt_id, 'trigger': trigger.value, 'reason': reason, 'level': 'WARNING'}))
         
         # 执行回滚
         try:
@@ -329,17 +294,7 @@ class VersionDeploymentManager:
             record.status = DeploymentStatus.ROLLED_BACK
             record.completed_at = time.time()
             
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "deployment_manager",
-                "action": "rollback_complete",
-                "deployment_id": record.deployment_id,
-                "prompt_id": record.prompt_id,
-                "rollback_to": record.previous_version,
-                "trigger": trigger.value,
-                "duration_ms": int((record.completed_at - record.started_at) * 1000),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'deployment_manager', 'action': 'rollback_complete', 'deployment_id': record.deployment_id, 'prompt_id': record.prompt_id, 'rollback_to': record.previous_version, 'trigger': trigger.value, 'level': 'INFO'}))
         except Exception as e:
             logger.error(f"回滚失败: {e}")
             record.status = DeploymentStatus.FAILED
@@ -361,16 +316,7 @@ class VersionDeploymentManager:
         record.completed_at = time.time()
         record.details["failure_reason"] = reason
         
-        logger.error(json.dumps({
-            "trace_id": "",
-            "module_name": "deployment_manager",
-            "action": "deployment_failed",
-            "deployment_id": record.deployment_id,
-            "prompt_id": record.prompt_id,
-            "reason": reason,
-            "duration_ms": int((record.completed_at - record.started_at) * 1000),
-            "level": "ERROR"
-        }))
+        logger.error(log_dict({'module_name': 'deployment_manager', 'action': 'deployment_failed', 'deployment_id': record.deployment_id, 'prompt_id': record.prompt_id, 'reason': reason, 'level': 'ERROR'}))
     
     def _get_current_version(self, prompt_id: str) -> Optional[str]:
         """获取当前版本"""

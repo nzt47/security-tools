@@ -18,6 +18,7 @@ import threading
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional
+from agent.logging_utils import log_dict
 
 # 结构化日志必需：get_trace_id() 提供上下文追踪 ID
 # set_trace_id() 用于跨线程传递 trace_id（ContextVar 不自动继承到子线程）
@@ -95,21 +96,9 @@ class SearchPerformanceMonitor(StopMixin):
                     data = json.load(f)
                     self._performance_history = data.get('history', [])
                     self._check_count = data.get('check_count', 0)
-                    logger.info(json.dumps({
-                        "trace_id": get_trace_id(),
-                        "module_name": "search_monitor",
-                        "action": "load_history",
-                        "duration_ms": 0,
-                        "history_count": len(self._performance_history),
-                    }, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'search_monitor', 'action': 'load_history', 'history_count': len(self._performance_history)}))
         except Exception as e:
-            logger.warning(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "search_monitor",
-                "action": "load_history_error",
-                "duration_ms": 0,
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'search_monitor', 'action': 'load_history_error', 'error': str(e)}))
 
     def _save_performance_data(self):
         """保存性能历史数据"""
@@ -125,25 +114,13 @@ class SearchPerformanceMonitor(StopMixin):
             with open(PERFORMANCE_DATA_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "search_monitor",
-                "action": "save_history_error",
-                "duration_ms": 0,
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'search_monitor', 'action': 'save_history_error', 'error': str(e)}))
 
     def set_interval(self, interval_sec: int):
         """设置检测间隔"""
         with self._lock:
             self._interval = interval_sec
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "search_monitor",
-            "action": "set_interval",
-            "duration_ms": 0,
-            "interval_sec": interval_sec,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'search_monitor', 'action': 'set_interval', 'interval_sec': interval_sec}))
 
     def start(self):
         """启动性能监控"""
@@ -151,25 +128,14 @@ class SearchPerformanceMonitor(StopMixin):
         # 不加锁会启动两个监控线程
         with self._lock:
             if self._running:
-                logger.warning(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "search_monitor",
-                    "action": "start_duplicate",
-                    "duration_ms": 0,
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'search_monitor', 'action': 'start_duplicate'}))
                 return
             self._stop_event.clear()  # [TLM-AUDIT-002] 重置停止信号（支持重启）
             self._running = True
             self._thread = threading.Thread(target=self._monitor_loop, daemon=True)
             self._thread.start()
             self.register_thread(self._thread)  # [TLM-AUDIT-002] 注册到 StopMixin
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "search_monitor",
-            "action": "start",
-            "duration_ms": 0,
-            "interval_sec": self._interval,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'search_monitor', 'action': 'start', 'interval_sec': self._interval}))
 
     def stop(self):
         """停止性能监控"""
@@ -177,12 +143,7 @@ class SearchPerformanceMonitor(StopMixin):
         # 用 super() 显式调用父类方法，避免递归
         self._running = False
         super().stop(timeout=self._thread_join_timeout)
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "search_monitor",
-            "action": "stop",
-            "duration_ms": 0,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'search_monitor', 'action': 'stop'}))
 
     def _monitor_loop(self):
         """监控循环"""
@@ -197,13 +158,7 @@ class SearchPerformanceMonitor(StopMixin):
                 if self._stop_event.wait(timeout=self._interval):
                     break
             except Exception as e:
-                logger.error(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "search_monitor",
-                    "action": "monitor_loop_error",
-                    "duration_ms": 0,
-                    "error": str(e),
-                }, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'search_monitor', 'action': 'monitor_loop_error', 'error': str(e)}))
                 # 异常后等待 60 秒，可被 stop_event 唤醒
                 if self._stop_event.wait(timeout=60):
                     break
@@ -221,13 +176,7 @@ class SearchPerformanceMonitor(StopMixin):
             timestamp = self._last_check_time.isoformat()
 
         # 合并原分隔线日志为单条结构化日志（跳过纯分隔线 logger.info("=" * 80)）
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "search_monitor",
-            "action": "check_start",
-            "duration_ms": 0,
-            "check_id": check_id,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'search_monitor', 'action': 'check_start', 'check_id': check_id}))
 
         check_result = {
             'check_id': check_id,
@@ -242,28 +191,12 @@ class SearchPerformanceMonitor(StopMixin):
             try:
                 r = requests.post(f"{self.base_url}/api/apply-network-config", timeout=self._config_apply_timeout)
                 if r.json().get('ok'):
-                    logger.info(json.dumps({
-                        "trace_id": get_trace_id(),
-                        "module_name": "search_monitor",
-                        "action": "config_applied",
-                        "duration_ms": 0,
-                    }, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'search_monitor', 'action': 'config_applied'}))
                 else:
-                    logger.warning(json.dumps({
-                        "trace_id": get_trace_id(),
-                        "module_name": "search_monitor",
-                        "action": "config_apply_failed",
-                        "duration_ms": 0,
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'search_monitor', 'action': 'config_apply_failed'}))
                     check_result['errors'].append("配置应用失败")
             except Exception as e:
-                logger.warning(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "search_monitor",
-                    "action": "config_apply_error",
-                    "duration_ms": 0,
-                    "error": str(e),
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'search_monitor', 'action': 'config_apply_error', 'error': str(e)}))
                 check_result['errors'].append(f"配置应用异常: {e}")
 
             # 2. 测试 Tavily 搜索
@@ -278,14 +211,7 @@ class SearchPerformanceMonitor(StopMixin):
                 result = r.json()
 
                 if result.get('ok') and result.get('results'):
-                    logger.info(json.dumps({
-                        "trace_id": get_trace_id(),
-                        "module_name": "search_monitor",
-                        "action": "tavily_search_success",
-                        "duration_ms": round(elapsed * 1000, 2),
-                        "elapsed_sec": round(elapsed, 2),
-                        "results_count": len(result.get('results', [])),
-                    }, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'search_monitor', 'action': 'tavily_search_success', 'elapsed_sec': round(elapsed, 2), 'results_count': len(result.get('results', []))}))
                     check_result['engines']['tavily'] = {
                         'status': 'success', 'elapsed': elapsed,
                         'api_elapsed': result.get('elapsed', 0),
@@ -293,25 +219,13 @@ class SearchPerformanceMonitor(StopMixin):
                     }
                 else:
                     error = result.get('error', '未知错误')
-                    logger.warning(json.dumps({
-                        "trace_id": get_trace_id(),
-                        "module_name": "search_monitor",
-                        "action": "tavily_search_failed",
-                        "duration_ms": round(elapsed * 1000, 2),
-                        "error": str(error),
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'search_monitor', 'action': 'tavily_search_failed', 'error': str(error)}))
                     check_result['engines']['tavily'] = {
                         'status': 'failed', 'elapsed': elapsed, 'error': error,
                     }
                     check_result['errors'].append(f"Tavily 搜索失败: {error}")
             except Exception as e:
-                logger.error(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "search_monitor",
-                    "action": "tavily_search_error",
-                    "duration_ms": 0,
-                    "error": str(e),
-                }, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'search_monitor', 'action': 'tavily_search_error', 'error': str(e)}))
                 check_result['engines']['tavily'] = {'status': 'error', 'error': str(e)}
                 check_result['errors'].append(f"Tavily 搜索异常: {e}")
 
@@ -324,27 +238,11 @@ class SearchPerformanceMonitor(StopMixin):
 
                 for engine, timing_data in timing.items():
                     if timing_data.get('count', 0) > 0:
-                        logger.info(json.dumps({
-                            "trace_id": get_trace_id(),
-                            "module_name": "search_monitor",
-                            "action": "engine_stats",
-                            "duration_ms": 0,
-                            "engine": engine.upper(),
-                            "avg_sec": timing_data.get('avg', 0),
-                            "min_sec": timing_data.get('min', 0),
-                            "max_sec": timing_data.get('max', 0),
-                            "count": timing_data.get('count', 0),
-                        }, ensure_ascii=False))
+                        logger.info(log_dict({'module_name': 'search_monitor', 'action': 'engine_stats', 'engine': engine.upper(), 'avg_sec': timing_data.get('avg', 0), 'min_sec': timing_data.get('min', 0), 'max_sec': timing_data.get('max', 0), 'count': timing_data.get('count', 0)}))
 
                 check_result['engine_stats'] = stats
             except Exception as e:
-                logger.warning(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "search_monitor",
-                    "action": "get_status_error",
-                    "duration_ms": 0,
-                    "error": str(e),
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'search_monitor', 'action': 'get_status_error', 'error': str(e)}))
                 check_result['errors'].append(f"获取状态失败: {e}")
 
             # 4. 判断整体状态
@@ -359,25 +257,10 @@ class SearchPerformanceMonitor(StopMixin):
             self._save_performance_data()
 
             # 合并原分隔线日志为单条结构化日志（跳过纯分隔线 logger.info("=" * 80)）
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "search_monitor",
-                "action": "check_complete",
-                "duration_ms": 0,
-                "check_id": check_id,
-                "status": check_result['status'],
-                "errors_count": len(check_result['errors']),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'search_monitor', 'action': 'check_complete', 'check_id': check_id, 'status': check_result['status'], 'errors_count': len(check_result['errors'])}))
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "search_monitor",
-                "action": "check_error",
-                "duration_ms": 0,
-                "check_id": check_id,
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'search_monitor', 'action': 'check_error', 'check_id': check_id, 'error': str(e)}))
             check_result['status'] = 'error'
             check_result['errors'].append(f"检测异常: {e}")
             with self._lock:

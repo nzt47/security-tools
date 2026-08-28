@@ -8,6 +8,7 @@ import logging
 import json
 import uuid
 from typing import Dict, Optional, List
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -112,12 +113,7 @@ class MessageHandler:
                 if dst.is_ellipsis_query(text):
                     return True
             except Exception as e:  # noqa: BLE001
-                logger.debug(json.dumps({
-                    "trace_id": _trace_id(),
-                    "module_name": "message_handler",
-                    "action": "is_follow_up.dst.error",
-                    "error": f"{type(e).__name__}: {e}",
-                }, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'message_handler', 'action': 'is_follow_up.dst.error', 'error': f'{type(e).__name__}: {e}'}))
 
         # 2. 正则追问模式兜底（"为什么"/"详细"/"继续"等）
         if any(p.match(text) for p in FOLLOW_UP_PATTERNS):
@@ -152,10 +148,5 @@ def _safe_call(func, *args, action="safe_call", **kwargs):
     try:
         return func(*args, **kwargs)
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": _trace_id(),
-            "module_name": "message_handler",
-            "action": action + ".failed",
-            "error": f"{type(e).__name__}: {e}",
-        }, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'message_handler', 'action': action + '.failed', 'error': f'{type(e).__name__}: {e}'}))
         raise

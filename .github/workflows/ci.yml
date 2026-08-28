@@ -77,12 +77,11 @@ jobs:
           #   (v1.2.1-fix-secure-manager-return)，该模块已清零历史类型债，可阻塞。
           mypy agent/env_config_manager.py --warn-no-return --warn-return-any --ignore-missing-imports --follow-imports=silent
 
-          echo "=== network_config.py 类型检查（非阻塞，待清理历史债后转阻塞）==="
-          # TODO(tech-debt): network_config.py 当前有 29 个历史类型错误
-          #   (隐式 Optional / None 不可索引 / Returning Any)，
-          #   非 return 缺失类问题。修复后去掉 || true 转为阻塞。
-          #   详见 docs/dashboards/ci_health_dashboard.md 跟踪项。
-          mypy agent/network_config.py --warn-no-return --warn-return-any --ignore-missing-imports --follow-imports=silent || true
+          echo "=== network_config.py 类型检查（阻塞）==="
+          # 2026-08-28: 29 个历史类型错误已全部清零（隐式 Optional / None 不可索引 /
+          #   Returning Any / var-annotated 等），由非阻塞 || true 转为阻塞。
+          #   跟踪项 docs/dashboards/ci_health_dashboard.md §四 同步更新为 ✅ 阻塞。
+          mypy agent/network_config.py --warn-no-return --warn-return-any --ignore-missing-imports --follow-imports=silent
 
       - name: 运行代码风格检查
         run: |

@@ -30,6 +30,7 @@ import logging
 import threading
 from contextlib import contextmanager
 from typing import Optional, Dict, Any, List
+from agent.logging_utils import log_dict
 
 # Prometheus 指标暴露（可选依赖）
 try:
@@ -224,24 +225,11 @@ def log_summary() -> None:
     """输出性能汇总报告（结构化日志）"""
     stats = get_stats()
     if not stats:
-        logger.info(json.dumps({
-            "trace_id": "", "module_name": "perf_monitor",
-            "action": "summary.empty", "msg": "无性能统计数据"
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'perf_monitor', 'action': 'summary.empty', 'msg': '无性能统计数据'}))
         return
 
     for key, s in stats.items():
-        logger.info(json.dumps({
-            "trace_id": "", "module_name": "perf_monitor",
-            "action": f"summary.{key}",
-            "duration_ms": round(s["avg_new_us"] / 1000, 6),
-            "count": s["count"],
-            "avg_old_us": s["avg_old_us"],
-            "avg_new_us": s["avg_new_us"],
-            "total_saved_us": s["total_saved_us"],
-            "speedup": s["speedup"],
-            "improvement_pct": s["improvement_pct"],
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'perf_monitor', 'action': f'summary.{key}', 'count': s['count'], 'avg_old_us': s['avg_old_us'], 'avg_new_us': s['avg_new_us'], 'total_saved_us': s['total_saved_us'], 'speedup': s['speedup'], 'improvement_pct': s['improvement_pct']}))
 
 
 def run_comparison(payloads: Optional[List[Dict[str, Any]]] = None,
@@ -336,17 +324,7 @@ def run_comparison(payloads: Optional[List[Dict[str, Any]]] = None,
         results.append(scenario)
 
         # 输出对比日志
-        logger.info(json.dumps({
-            "trace_id": "", "module_name": "perf_monitor",
-            "action": f"comparison.{name}",
-            "duration_ms": round(new_per_call / 1000, 6),
-            "old_per_call_us": round(old_per_call, 3),
-            "new_per_call_us": round(new_per_call, 3),
-            "saved_per_call_us": round(old_per_call - new_per_call, 3),
-            "speedup": round(speedup, 3),
-            "improvement_pct": round(improvement, 2),
-            "iterations": iterations,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'perf_monitor', 'action': f'comparison.{name}', 'old_per_call_us': round(old_per_call, 3), 'new_per_call_us': round(new_per_call, 3), 'saved_per_call_us': round(old_per_call - new_per_call, 3), 'speedup': round(speedup, 3), 'improvement_pct': round(improvement, 2), 'iterations': iterations}))
 
     # 汇总
     total_saved = sum(s["saved_per_call_us"] * s["iterations"] for s in results) / 1000
@@ -357,15 +335,7 @@ def run_comparison(payloads: Optional[List[Dict[str, Any]]] = None,
         "avg_speedup": round(sum(s["speedup"] for s in results) / len(results), 3),
     }
 
-    logger.info(json.dumps({
-        "trace_id": "", "module_name": "perf_monitor",
-        "action": "comparison.summary",
-        "duration_ms": 0,
-        "scenarios": summary["scenarios"],
-        "total_iterations": summary["total_iterations"],
-        "total_saved_ms": summary["total_saved_ms"],
-        "avg_speedup": summary["avg_speedup"],
-    }, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'perf_monitor', 'action': 'comparison.summary', 'scenarios': summary['scenarios'], 'total_iterations': summary['total_iterations'], 'total_saved_ms': summary['total_saved_ms'], 'avg_speedup': summary['avg_speedup']}))
 
     return {"scenarios": results, "summary": summary}
 
@@ -543,16 +513,7 @@ def stress_test(
             ops = current_count - last_count[0]
             if elapsed > 0:
                 rate = ops / elapsed
-                logger.info(json.dumps({
-                    "trace_id": "", "module_name": "perf_monitor",
-                    "action": "stress_test.progress",
-                    "duration_ms": 0,
-                    "mode": "new" if use_log_dict else "old",
-                    "threads": num_threads,
-                    "current_ops": current_count,
-                    "rate_ops_per_sec": round(rate, 1),
-                    "elapsed_seconds": round(now - test_start[0], 2),
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'perf_monitor', 'action': 'stress_test.progress', 'mode': 'new' if use_log_dict else 'old', 'threads': num_threads, 'current_ops': current_count, 'rate_ops_per_sec': round(rate, 1), 'elapsed_seconds': round(now - test_start[0], 2)}))
             last_report[0] = now
             last_count[0] = current_count
 
@@ -641,20 +602,7 @@ def stress_test(
     }
 
     # 输出最终报告
-    logger.info(json.dumps({
-        "trace_id": "", "module_name": "perf_monitor",
-        "action": "stress_test.completed",
-        "duration_ms": round(actual_duration * 1000, 3),
-        "mode": result["mode"],
-        "throughput_ops_per_sec": result["throughput_ops_per_sec"],
-        "total_ops": total_ops,
-        "latency_avg_us": result["latency_us"]["avg"],
-        "latency_p50_us": result["latency_us"]["p50"],
-        "latency_p99_us": result["latency_us"]["p99"],
-        "memory_growth_bytes": result["memory_growth_bytes"],
-        "errors": total_errors,
-        "error_rate": result["error_rate"],
-    }, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'perf_monitor', 'action': 'stress_test.completed', 'mode': result['mode'], 'throughput_ops_per_sec': result['throughput_ops_per_sec'], 'total_ops': total_ops, 'latency_avg_us': result['latency_us']['avg'], 'latency_p50_us': result['latency_us']['p50'], 'latency_p99_us': result['latency_us']['p99'], 'memory_growth_bytes': result['memory_growth_bytes'], 'errors': total_errors, 'error_rate': result['error_rate']}))
 
     return result
 
@@ -698,13 +646,7 @@ def run_stress_comparison(
     # 重置性能统计
     reset_stats()
 
-    logger.info(json.dumps({
-        "trace_id": "", "module_name": "perf_monitor",
-        "action": "stress_comparison.start",
-        "duration_ms": 0,
-        "num_threads": num_threads,
-        "duration_seconds_per_mode": duration_seconds,
-    }, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'perf_monitor', 'action': 'stress_comparison.start', 'num_threads': num_threads, 'duration_seconds_per_mode': duration_seconds}))
 
     # 运行新模式测试
     new_result = stress_test(
@@ -747,18 +689,7 @@ def run_stress_comparison(
         "memory_growth_diff_bytes": memory_diff,
     }
 
-    logger.info(json.dumps({
-        "trace_id": "", "module_name": "perf_monitor",
-        "action": "stress_comparison.completed",
-        "duration_ms": 0,
-        "throughput_speedup": comparison["throughput_speedup"],
-        "throughput_improvement_pct": comparison["throughput_improvement_pct"],
-        "latency_p50_reduction_pct": comparison["latency_p50_reduction_pct"],
-        "latency_p99_reduction_pct": comparison["latency_p99_reduction_pct"],
-        "memory_growth_diff_bytes": memory_diff,
-        "new_mode_tps": new_tps,
-        "old_mode_tps": old_tps,
-    }, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'perf_monitor', 'action': 'stress_comparison.completed', 'throughput_speedup': comparison['throughput_speedup'], 'throughput_improvement_pct': comparison['throughput_improvement_pct'], 'latency_p50_reduction_pct': comparison['latency_p50_reduction_pct'], 'latency_p99_reduction_pct': comparison['latency_p99_reduction_pct'], 'memory_growth_diff_bytes': memory_diff, 'new_mode_tps': new_tps, 'old_mode_tps': old_tps}))
 
     return {
         "new_mode": new_result,
@@ -960,11 +891,7 @@ def start_metrics_server(port: int = 8001, addr: str = '0.0.0.0') -> bool:
         #       - targets: ['localhost:8001']
     """
     if not _PROMETHEUS_AVAILABLE:
-        logger.warning(json.dumps({
-            "trace_id": "", "module_name": "perf_monitor",
-            "action": "metrics_server.unavailable",
-            "msg": "prometheus_client 未安装，无法启动 metrics server"
-        }, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'perf_monitor', 'action': 'metrics_server.unavailable', 'msg': 'prometheus_client 未安装，无法启动 metrics server'}))
         return False
 
     # 确保指标已初始化
@@ -972,24 +899,10 @@ def start_metrics_server(port: int = 8001, addr: str = '0.0.0.0') -> bool:
 
     try:
         _start_http_server(port, addr=addr)
-        logger.info(json.dumps({
-            "trace_id": "", "module_name": "perf_monitor",
-            "action": "metrics_server.started",
-            "duration_ms": 0,
-            "port": port,
-            "addr": addr,
-            "metrics_path": "/metrics",
-            "exposed_metrics": LogDictPerfMetrics.get_metric_names(),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'perf_monitor', 'action': 'metrics_server.started', 'port': port, 'addr': addr, 'metrics_path': '/metrics', 'exposed_metrics': LogDictPerfMetrics.get_metric_names()}))
         return True
     except OSError as e:
-        logger.error(json.dumps({
-            "trace_id": "", "module_name": "perf_monitor",
-            "action": "metrics_server.start_failed",
-            "duration_ms": 0,
-            "msg": f"端口 {port} 启动失败: {e}",
-            "error_type": type(e).__name__,
-        }, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'perf_monitor', 'action': 'metrics_server.start_failed', 'msg': f'端口 {port} 启动失败: {e}', 'error_type': type(e).__name__}))
         return False
 
 
@@ -1001,32 +914,18 @@ def enable_prometheus() -> None:
     """
     global _PROMETHEUS_ENABLED
     if not _PROMETHEUS_AVAILABLE:
-        logger.warning(json.dumps({
-            "trace_id": "", "module_name": "perf_monitor",
-            "action": "prometheus.enable_failed",
-            "msg": "prometheus_client 未安装"
-        }, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'perf_monitor', 'action': 'prometheus.enable_failed', 'msg': 'prometheus_client 未安装'}))
         return
     _PROMETHEUS_ENABLED = True
     LogDictPerfMetrics._ensure_initialized()
-    logger.info(json.dumps({
-        "trace_id": "", "module_name": "perf_monitor",
-        "action": "prometheus.enabled",
-        "duration_ms": 0,
-        "msg": "Prometheus 指标暴露已启用"
-    }, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'perf_monitor', 'action': 'prometheus.enabled', 'msg': 'Prometheus 指标暴露已启用'}))
 
 
 def disable_prometheus() -> None:
     """运行时禁用 Prometheus 指标暴露"""
     global _PROMETHEUS_ENABLED
     _PROMETHEUS_ENABLED = False
-    logger.info(json.dumps({
-        "trace_id": "", "module_name": "perf_monitor",
-        "action": "prometheus.disabled",
-        "duration_ms": 0,
-        "msg": "Prometheus 指标暴露已禁用"
-    }, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'perf_monitor', 'action': 'prometheus.disabled', 'msg': 'Prometheus 指标暴露已禁用'}))
 
 
 __all__ = [

@@ -36,6 +36,7 @@ import queue as queue_module
 from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, List, Optional
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger("agent.observability.tool_trace")
 
@@ -438,14 +439,7 @@ class ToolTraceRecorder:
             categories: 匹配的工具类别集合
             tools: 选中的工具列表
         """
-        logger.info(json.dumps({
-            "module_name": "tool_trace",
-            "action": "tool_selection",
-            "user_input_hash": self.hash_content(user_input),
-            "categories": sorted(list(categories)),
-            "tools_count": len(tools),
-            "tools_preview": tools[:10],
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_selection', 'user_input_hash': self.hash_content(user_input), 'categories': sorted(list(categories)), 'tools_count': len(tools), 'tools_preview': tools[:10]}))
 
     def record_tool_retrieval(
         self,
@@ -476,19 +470,7 @@ class ToolTraceRecorder:
             degraded: 是否降级到纯 BM25
             tools_preview: 选中工具预览(前 10 个)
         """
-        logger.info(json.dumps({
-            "module_name": "tool_trace",
-            "action": "tool_retrieval",
-            "user_input_hash": self.hash_content(query),
-            "top_k": top_k,
-            "latency_ms": round(latency_ms, 2),
-            "bm25_candidates": int(bm25_candidates),
-            "embed_candidates": int(embed_candidates),
-            "fused_candidates": int(fused_candidates),
-            "alpha": alpha,
-            "degraded": bool(degraded),
-            "tools_preview": list(tools_preview),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_retrieval', 'user_input_hash': self.hash_content(query), 'top_k': top_k, 'latency_ms': round(latency_ms, 2), 'bm25_candidates': int(bm25_candidates), 'embed_candidates': int(embed_candidates), 'fused_candidates': int(fused_candidates), 'alpha': alpha, 'degraded': bool(degraded), 'tools_preview': list(tools_preview)}))
 
     def record_circuit_event(
         self,
@@ -513,15 +495,7 @@ class ToolTraceRecorder:
         """
         # 兼容 CircuitScope 枚举与裸字符串(简易: 不强制导入 CircuitScope)
         scope_value = scope.value if hasattr(scope, "value") else str(scope)
-        logger.info(json.dumps({
-            "module_name": "tool_trace",
-            "action": "circuit_event",
-            "scope": scope_value,
-            "session_id_hash": self.hash_content(session_id),
-            "user_id_hash": self.hash_content(user_id),
-            "tool_name": tool_name,
-            "blocked": bool(blocked),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'circuit_event', 'scope': scope_value, 'session_id_hash': self.hash_content(session_id), 'user_id_hash': self.hash_content(user_id), 'tool_name': tool_name, 'blocked': bool(blocked)}))
 
     def record_tool_retrieval(
         self,
@@ -540,19 +514,7 @@ class ToolTraceRecorder:
         Why: 检索决策是轻量事件,沿用 record_tool_selection/record_circuit_event 风格,
              SQLite 只持久化 ToolTraceRecord(执行 trace)。
         """
-        logger.info(json.dumps({
-            "module_name": "tool_trace",
-            "action": "tool_retrieval",
-            "query_hash": self.hash_content(query),
-            "top_k": top_k,
-            "latency_ms": round(latency_ms, 2),
-            "bm25_candidates": bm25_candidates,
-            "embed_candidates": embed_candidates,
-            "fused_candidates": fused_candidates,
-            "alpha": alpha,
-            "degraded": degraded,
-            "tools_preview": tools_preview[:10],
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'tool_trace', 'action': 'tool_retrieval', 'query_hash': self.hash_content(query), 'top_k': top_k, 'latency_ms': round(latency_ms, 2), 'bm25_candidates': bm25_candidates, 'embed_candidates': embed_candidates, 'fused_candidates': fused_candidates, 'alpha': alpha, 'degraded': degraded, 'tools_preview': tools_preview[:10]}))
 
     # ── 脱敏与危险检测 ────────────────────────────────────────
 

@@ -23,6 +23,7 @@ from datetime import datetime
 from enum import Enum
 from dataclasses import dataclass, field, asdict
 from typing import Optional, Dict, Any, List, Tuple
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -163,14 +164,7 @@ class ABTestManager:
         self._write_lock = threading.Lock()
         self._initialized = False
 
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "ab_testing",
-            "action": "init",
-            "storage_path": self.storage_path,
-            "duration_ms": 0,
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'ab_testing', 'action': 'init', 'storage_path': self.storage_path, 'level': 'INFO'}))
 
     def _get_conn(self) -> sqlite3.Connection:
         if not hasattr(self._local, 'conn') or self._local.conn is None:
@@ -259,13 +253,7 @@ class ABTestManager:
             conn.commit()
 
         self._initialized = True
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "ab_testing",
-            "action": "initialize",
-            "duration_ms": 0,
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'ab_testing', 'action': 'initialize', 'level': 'INFO'}))
 
     def create_experiment(
         self,
@@ -344,29 +332,11 @@ class ABTestManager:
                 )
                 conn.commit()
 
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "ab_testing",
-                "action": "create_experiment",
-                "experiment_id": experiment_id,
-                "name": name,
-                "variant_count": len(variants),
-                "layer": layer,
-                "traffic_ratio": traffic_ratio,
-                "duration_ms": 0,
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'ab_testing', 'action': 'create_experiment', 'experiment_id': experiment_id, 'name': name, 'variant_count': len(variants), 'layer': layer, 'traffic_ratio': traffic_ratio, 'level': 'INFO'}))
 
             return exp
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "ab_testing",
-                "action": "create_experiment",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'ab_testing', 'action': 'create_experiment', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def start_experiment(self, experiment_id: str) -> bool:
@@ -391,24 +361,10 @@ class ABTestManager:
                 conn.commit()
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "ab_testing",
-                "action": "start_experiment",
-                "experiment_id": experiment_id,
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'ab_testing', 'action': 'start_experiment', 'experiment_id': experiment_id, 'level': 'INFO'}))
             return True
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "ab_testing",
-                "action": "start_experiment",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'ab_testing', 'action': 'start_experiment', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def pause_experiment(self, experiment_id: str) -> bool:
@@ -432,24 +388,10 @@ class ABTestManager:
                 conn.commit()
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "ab_testing",
-                "action": "pause_experiment",
-                "experiment_id": experiment_id,
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'ab_testing', 'action': 'pause_experiment', 'experiment_id': experiment_id, 'level': 'INFO'}))
             return True
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "ab_testing",
-                "action": "pause_experiment",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'ab_testing', 'action': 'pause_experiment', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def terminate_experiment(self, experiment_id: str, reason: str = "") -> bool:
@@ -474,25 +416,10 @@ class ABTestManager:
                 conn.commit()
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "ab_testing",
-                "action": "terminate_experiment",
-                "experiment_id": experiment_id,
-                "reason": reason,
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'ab_testing', 'action': 'terminate_experiment', 'experiment_id': experiment_id, 'reason': reason, 'level': 'INFO'}))
             return True
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": "",
-                "module_name": "ab_testing",
-                "action": "terminate_experiment",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'ab_testing', 'action': 'terminate_experiment', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def get_experiment(self, experiment_id: str) -> Optional[ExperimentRecord]:
@@ -605,28 +532,11 @@ class ABTestManager:
             raise ValueError(f"实验不存在: {experiment_id}")
 
         if exp.status != ExperimentStatus.RUNNING:
-            logger.warning(json.dumps({
-                "trace_id": "",
-                "module_name": "ab_testing",
-                "action": "assign_variant",
-                "experiment_id": experiment_id,
-                "warning": "实验未运行，不进行分流",
-                "duration_ms": 0,
-                "level": "WARNING"
-            }))
+            logger.warning(log_dict({'module_name': 'ab_testing', 'action': 'assign_variant', 'experiment_id': experiment_id, 'warning': '实验未运行，不进行分流', 'level': 'WARNING'}))
             return None
 
         if user_id in exp.blacklist:
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "ab_testing",
-                "action": "assign_variant",
-                "experiment_id": experiment_id,
-                "user_id": user_id,
-                "reason": "user_in_blacklist",
-                "duration_ms": 0,
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'ab_testing', 'action': 'assign_variant', 'experiment_id': experiment_id, 'user_id': user_id, 'reason': 'user_in_blacklist', 'level': 'INFO'}))
             return None
 
         with self._get_conn() as conn:
@@ -644,16 +554,7 @@ class ABTestManager:
                     return v
 
         if not self._check_traffic_eligibility(exp, user_id):
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "ab_testing",
-                "action": "assign_variant",
-                "experiment_id": experiment_id,
-                "user_id": user_id,
-                "reason": "not_in_traffic_sample",
-                "duration_ms": 0,
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'ab_testing', 'action': 'assign_variant', 'experiment_id': experiment_id, 'user_id': user_id, 'reason': 'not_in_traffic_sample', 'level': 'INFO'}))
             return None
 
         if user_id in exp.whitelist:
@@ -673,27 +574,10 @@ class ABTestManager:
                     )
                     conn.commit()
             except Exception as e:
-                logger.warning(json.dumps({
-                    "trace_id": "",
-                    "module_name": "ab_testing",
-                    "action": "assign_variant",
-                    "warning": f"保存分配记录失败: {e}",
-                    "duration_ms": 0,
-                    "level": "WARNING"
-                }))
+                logger.warning(log_dict({'module_name': 'ab_testing', 'action': 'assign_variant', 'warning': f'保存分配记录失败: {e}', 'level': 'WARNING'}))
 
         duration_ms = (time.time() - start_time) * 1000
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "ab_testing",
-            "action": "assign_variant",
-            "experiment_id": experiment_id,
-            "user_id": user_id,
-            "variant_id": variant.variant_id if variant else None,
-            "variant_name": variant.name if variant else None,
-            "duration_ms": round(duration_ms, 2),
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'ab_testing', 'action': 'assign_variant', 'experiment_id': experiment_id, 'user_id': user_id, 'variant_id': variant.variant_id if variant else None, 'variant_name': variant.name if variant else None, 'level': 'INFO'}))
 
         return variant
 
@@ -749,27 +633,10 @@ class ABTestManager:
                 conn.commit()
 
             duration_ms = (time.time() - start_time) * 1000
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "ab_testing",
-                "action": "record_metric",
-                "experiment_id": experiment_id,
-                "variant_id": variant_id,
-                "metric_type": metric_type,
-                "value": value,
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO"
-            }))
+            logger.info(log_dict({'module_name': 'ab_testing', 'action': 'record_metric', 'experiment_id': experiment_id, 'variant_id': variant_id, 'metric_type': metric_type, 'value': value, 'level': 'INFO'}))
             return True
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "ab_testing",
-                "action": "record_metric",
-                "error": str(e),
-                "duration_ms": 0,
-                "level": "ERROR"
-            }))
+            logger.error(log_dict({'module_name': 'ab_testing', 'action': 'record_metric', 'error': str(e), 'level': 'ERROR'}))
             raise
 
     def analyze_results(self, experiment_id: str) -> ExperimentResult:
@@ -849,17 +716,7 @@ class ABTestManager:
                 result.p_value = best_p_value
 
         duration_ms = (time.time() - start_time) * 1000
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "ab_testing",
-            "action": "analyze_results",
-            "experiment_id": experiment_id,
-            "sample_size": result.sample_size,
-            "is_significant": result.is_significant,
-            "winner": result.winner,
-            "duration_ms": round(duration_ms, 2),
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'ab_testing', 'action': 'analyze_results', 'experiment_id': experiment_id, 'sample_size': result.sample_size, 'is_significant': result.is_significant, 'winner': result.winner, 'level': 'INFO'}))
 
         return result
 
@@ -1036,16 +893,7 @@ class ABTestManager:
         if exp.started_at and exp.max_duration_hours > 0:
             elapsed_hours = (time.time() - exp.started_at) / 3600
             if elapsed_hours >= exp.max_duration_hours:
-                logger.warning(json.dumps({
-                    "trace_id": "",
-                    "module_name": "ab_testing",
-                    "action": "check_auto_stop",
-                    "experiment_id": experiment_id,
-                    "reason": "max_duration_exceeded",
-                    "elapsed_hours": round(elapsed_hours, 2),
-                    "max_duration_hours": exp.max_duration_hours,
-                    "level": "WARNING"
-                }))
+                logger.warning(log_dict({'module_name': 'ab_testing', 'action': 'check_auto_stop', 'experiment_id': experiment_id, 'reason': 'max_duration_exceeded', 'elapsed_hours': round(elapsed_hours, 2), 'max_duration_hours': exp.max_duration_hours, 'level': 'WARNING'}))
                 self.terminate_experiment(experiment_id, reason="max_duration_exceeded")
                 return True
 
@@ -1077,19 +925,7 @@ class ABTestManager:
             if control_mean > 0:
                 degradation_ratio = (control_mean - variant_mean) / control_mean
                 if degradation_ratio > exp.auto_stop_threshold:
-                    logger.warning(json.dumps({
-                        "trace_id": "",
-                        "module_name": "ab_testing",
-                        "action": "check_auto_stop",
-                        "experiment_id": experiment_id,
-                        "variant_id": variant.variant_id,
-                        "reason": "metric_degradation",
-                        "control_mean": control_mean,
-                        "variant_mean": variant_mean,
-                        "degradation_ratio": round(degradation_ratio, 4),
-                        "threshold": exp.auto_stop_threshold,
-                        "level": "WARNING"
-                    }))
+                    logger.warning(log_dict({'module_name': 'ab_testing', 'action': 'check_auto_stop', 'experiment_id': experiment_id, 'variant_id': variant.variant_id, 'reason': 'metric_degradation', 'control_mean': control_mean, 'variant_mean': variant_mean, 'degradation_ratio': round(degradation_ratio, 4), 'threshold': exp.auto_stop_threshold, 'level': 'WARNING'}))
                     self.terminate_experiment(experiment_id, reason="metric_degradation")
                     return True
 
@@ -1234,17 +1070,7 @@ class ABTestManager:
 
         conclusion["generated_at"] = datetime.fromtimestamp(time.time()).isoformat()
 
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "ab_testing",
-            "action": "generate_conclusion",
-            "experiment_id": experiment_id,
-            "is_significant": result.is_significant,
-            "winner": result.winner,
-            "sample_size": result.sample_size,
-            "duration_ms": 0,
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'ab_testing', 'action': 'generate_conclusion', 'experiment_id': experiment_id, 'is_significant': result.is_significant, 'winner': result.winner, 'sample_size': result.sample_size, 'level': 'INFO'}))
 
         return conclusion
 

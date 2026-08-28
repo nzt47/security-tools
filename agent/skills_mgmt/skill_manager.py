@@ -42,6 +42,7 @@ from .exceptions import (
     ErrorCode,
 )
 from .observability import logger, traced_action, emit_metric
+from agent.logging_utils import log_dict
 
 # 默认技能仓库路径
 _DEFAULT_REPO_PATH = Path(__file__).parent.parent.parent / "data" / "skills_repo"
@@ -92,12 +93,7 @@ class SkillManager:
         self.loader = SkillLoader(self.file_store)
         self.executor = SkillExecutor(self.file_store)
         self.injector = ContextInjector(self.loader)
-        logger.info(json.dumps({
-            "trace_id": uuid.uuid4().hex[:16],
-            "module_name": "skill_manager",
-            "action": "init",
-            "repo_path": str(self.repo_path),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'skill_manager', 'action': 'init', 'repo_path': str(self.repo_path)}))
 
     # ═══════════════════════════════════════════════════════
     #  安装 / 卸载
@@ -184,14 +180,7 @@ class SkillManager:
 
         elapsed = (time.time() - t0) * 1000
         _track_event("yunshu_skill_install", {"skill_id": skill_id, "from": "dir"})
-        logger.info(json.dumps({
-            "trace_id": uuid.uuid4().hex[:16],
-            "module_name": "skill_manager",
-            "action": "install_from_dir",
-            "skill_id": skill_id,
-            "duration_ms": round(elapsed, 2),
-            "scripts": len(scripts),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'skill_manager', 'action': 'install_from_dir', 'skill_id': skill_id, 'scripts': len(scripts)}))
         return skill_id
 
     def install_from_zip(self, zip_path: str) -> str:
@@ -309,14 +298,7 @@ class SkillManager:
 
         elapsed = (time.time() - t0) * 1000
         _track_event("yunshu_skill_install", {"skill_id": skill_id, "from": "zip"})
-        logger.info(json.dumps({
-            "trace_id": uuid.uuid4().hex[:16],
-            "module_name": "skill_manager",
-            "action": "install_from_zip",
-            "skill_id": skill_id,
-            "duration_ms": round(elapsed, 2),
-            "scripts": len(scripts),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'skill_manager', 'action': 'install_from_zip', 'skill_id': skill_id, 'scripts': len(scripts)}))
         return skill_id
 
     def uninstall(self, skill_id: str) -> bool:
@@ -338,13 +320,7 @@ class SkillManager:
                 raise SkillNotFoundError(skill_id)
             _track_event("yunshu_skill_uninstall", {"skill_id": skill_id})
             elapsed = (time.time() - t0) * 1000
-            logger.info(json.dumps({
-                "trace_id": uuid.uuid4().hex[:16],
-                "module_name": "skill_manager",
-                "action": "uninstall",
-                "skill_id": skill_id,
-                "duration_ms": round(elapsed, 2),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'skill_manager', 'action': 'uninstall', 'skill_id': skill_id}))
             return True
 
     # ═══════════════════════════════════════════════════════
@@ -601,12 +577,5 @@ class SkillManager:
 
         elapsed = (time.time() - t0) * 1000
         _track_event("yunshu_skill_export", {"skill_id": skill_id})
-        logger.info(json.dumps({
-            "trace_id": uuid.uuid4().hex[:16],
-            "module_name": "skill_manager",
-            "action": "export_to_zip",
-            "skill_id": skill_id,
-            "zip_path": str(zip_path),
-            "duration_ms": round(elapsed, 2),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'skill_manager', 'action': 'export_to_zip', 'skill_id': skill_id, 'zip_path': str(zip_path)}))
         return str(zip_path)

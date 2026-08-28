@@ -44,6 +44,7 @@ from .executor import ExecutionResult
 from .file_store import SkillFileStore
 from .observability import logger, emit_metric
 from .exceptions import SkillNotFoundError
+from agent.logging_utils import log_dict
 # [不易] Skill 仅作类型注解 (本文件无 isinstance/Skill() 构造调用),
 # 配合 from __future__ import annotations 可延迟求值.
 # 移到 TYPE_CHECKING 下, 避免拉入 .models→pydantic 重依赖链,
@@ -80,25 +81,14 @@ def _split_sections(instruction: str, *, trace_id: str = "") -> List[str]:
     """
     if not instruction or not instruction.strip():
         if trace_id:
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "context_injector",
-                "action": "split_sections.empty",
-                "section_count": 0,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'context_injector', 'action': 'split_sections.empty', 'section_count': 0}))
         return []
 
     matches = list(_SECTION_HEADER_RE.finditer(instruction))
     if not matches:
         # 无章节标记：整段保留，由调用方按预算决定是否保留
         if trace_id:
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "context_injector",
-                "action": "split_sections.no_markdown",
-                "section_count": 1,
-                "reason": "no H2/H3 headers, treat as single section",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'context_injector', 'action': 'split_sections.no_markdown', 'section_count': 1, 'reason': 'no H2/H3 headers, treat as single section'}))
         return [instruction]
 
     sections: List[str] = []
@@ -116,13 +106,7 @@ def _split_sections(instruction: str, *, trace_id: str = "") -> List[str]:
             sections.append(section)
 
     if trace_id:
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "context_injector",
-            "action": "split_sections.ok",
-            "section_count": len(sections),
-            "section_titles": [_section_title(s) for s in sections],
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'context_injector', 'action': 'split_sections.ok', 'section_count': len(sections), 'section_titles': [_section_title(s) for s in sections]}))
     return sections
 
 
@@ -135,38 +119,18 @@ def _section_title(section: str) -> str:
 def _classify_section(section: str, idx: int) -> int:
     """章节优先级：0=必保留(首章节+步骤)，1=次保留(示例/注意)，2=可裁剪(参考)"""
     if idx == 0:
-        logger.info(json.dumps({
-            "module_name": "context_injector",
-            "action": "classify_section",
-            "index": idx, "title": _section_title(section),
-            "priority": 0, "reason": "first section always must_keep",
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'context_injector', 'action': 'classify_section', 'index': idx, 'title': _section_title(section), 'priority': 0, 'reason': 'first section always must_keep'}))
         return 0
     title_line = section.split('\n', 1)[0]
     for kw in _MUST_KEEP_KEYWORDS:
         if kw in title_line:
-            logger.info(json.dumps({
-                "module_name": "context_injector",
-                "action": "classify_section",
-                "index": idx, "title": _section_title(section),
-                "priority": 0, "reason": f"matched must_keep keyword: {kw}",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'context_injector', 'action': 'classify_section', 'index': idx, 'title': _section_title(section), 'priority': 0, 'reason': f'matched must_keep keyword: {kw}'}))
             return 0
     for kw in _SECONDARY_KEYWORDS:
         if kw in title_line:
-            logger.info(json.dumps({
-                "module_name": "context_injector",
-                "action": "classify_section",
-                "index": idx, "title": _section_title(section),
-                "priority": 1, "reason": f"matched secondary keyword: {kw}",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'context_injector', 'action': 'classify_section', 'index': idx, 'title': _section_title(section), 'priority': 1, 'reason': f'matched secondary keyword: {kw}'}))
             return 1
-    logger.info(json.dumps({
-        "module_name": "context_injector",
-        "action": "classify_section",
-        "index": idx, "title": _section_title(section),
-        "priority": 2, "reason": "no keyword matched, droppable reference",
-    }, ensure_ascii=False))
+    logger.info(log_dict({'module_name': 'context_injector', 'action': 'classify_section', 'index': idx, 'title': _section_title(section), 'priority': 2, 'reason': 'no keyword matched, droppable reference'}))
     return 2
 
 
@@ -204,17 +168,7 @@ def _greedy_select_until_budget(sections: List[str], budget: int,
     dropped = sections[cutoff:]
 
     if trace_id:
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "context_injector",
-            "action": "select_sections.greedy",
-            "strategy": "greedy_sequential",
-            "budget": budget,
-            "used": used,
-            "kept_count": len(kept),
-            "dropped_count": len(dropped),
-            "section_stats": section_stats,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'context_injector', 'action': 'select_sections.greedy', 'strategy': 'greedy_sequential', 'budget': budget, 'used': used, 'kept_count': len(kept), 'dropped_count': len(dropped), 'section_stats': section_stats}))
     return kept, dropped, used
 
 
@@ -226,12 +180,7 @@ def _select_sections_by_budget(sections: List[str], budget: int,
     """
     if not sections:
         if trace_id:
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "context_injector",
-                "action": "select_sections.empty",
-                "reason": "no sections to select",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'context_injector', 'action': 'select_sections.empty', 'reason': 'no sections to select'}))
         return [], [], 0
 
     full_text = "\n\n".join(sections)
@@ -244,15 +193,7 @@ def _select_sections_by_budget(sections: List[str], budget: int,
             "decision": "kept", "reason": "under budget, all kept",
         } for i, s in enumerate(sections)]
         if trace_id:
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "context_injector",
-                "action": "select_sections.all_kept",
-                "budget": budget,
-                "full_tokens": full_tokens,
-                "section_count": len(sections),
-                "section_stats": section_stats,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'context_injector', 'action': 'select_sections.all_kept', 'budget': budget, 'full_tokens': full_tokens, 'section_count': len(sections), 'section_stats': section_stats}))
         return list(sections), [], full_tokens
 
     # 按优先级分组（保留原索引）
@@ -261,26 +202,11 @@ def _select_sections_by_budget(sections: List[str], budget: int,
     must_keep_tokens = estimate_tokens("\n\n".join(s for _, s in must_keep)) if must_keep else 0
 
     if trace_id:
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "context_injector",
-            "action": "select_sections.classify",
-            "budget": budget,
-            "full_tokens": full_tokens,
-            "must_keep_tokens": must_keep_tokens,
-            "must_keep_count": len(must_keep),
-            "strategy": "greedy_sequential" if must_keep_tokens > budget else "priority_fill",
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'context_injector', 'action': 'select_sections.classify', 'budget': budget, 'full_tokens': full_tokens, 'must_keep_tokens': must_keep_tokens, 'must_keep_count': len(must_keep), 'strategy': 'greedy_sequential' if must_keep_tokens > budget else 'priority_fill'}))
 
     # 必保留仍超预算：按原顺序逐步加载直到预算耗尽
     if must_keep_tokens > budget:
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "context_injector",
-            "action": "select_sections.fallback_to_greedy",
-            "reason": f"must_keep_tokens({must_keep_tokens}) > budget({budget})",
-            "implication": "放弃优先级保留，改用顺序贪心，单章节仍不截断",
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'context_injector', 'action': 'select_sections.fallback_to_greedy', 'reason': f'must_keep_tokens({must_keep_tokens}) > budget({budget})', 'implication': '放弃优先级保留，改用顺序贪心，单章节仍不截断'}))
         return _greedy_select_until_budget(sections, budget, trace_id=trace_id)
 
     # 必保留可放下，依次尝试次保留、可裁剪
@@ -302,14 +228,7 @@ def _select_sections_by_budget(sections: List[str], budget: int,
                 continue
             sec_tokens = estimate_tokens(s)
             if used + sec_tokens > budget:
-                logger.info(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "context_injector",
-                    "action": "select_sections.drop_one",
-                    "index": i, "title": _section_title(s),
-                    "tokens": sec_tokens, "priority": p,
-                    "reason": f"used({used})+sec({sec_tokens})>budget({budget})",
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'context_injector', 'action': 'select_sections.drop_one', 'index': i, 'title': _section_title(s), 'tokens': sec_tokens, 'priority': p, 'reason': f'used({used})+sec({sec_tokens})>budget({budget})'}))
                 section_stats.append({
                     "index": i, "title": _section_title(s),
                     "tokens": sec_tokens, "priority": p,
@@ -318,14 +237,7 @@ def _select_sections_by_budget(sections: List[str], budget: int,
                 continue
             selected_indices.add(i)
             used += sec_tokens
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "context_injector",
-                "action": "select_sections.keep_one",
-                "index": i, "title": _section_title(s),
-                "tokens": sec_tokens, "priority": p,
-                "reason": f"fits remaining budget, used={used}/{budget}",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'context_injector', 'action': 'select_sections.keep_one', 'index': i, 'title': _section_title(s), 'tokens': sec_tokens, 'priority': p, 'reason': f'fits remaining budget, used={used}/{budget}'}))
             section_stats.append({
                 "index": i, "title": _section_title(s),
                 "tokens": sec_tokens, "priority": p,
@@ -336,17 +248,7 @@ def _select_sections_by_budget(sections: List[str], budget: int,
     dropped = [sections[i] for i in range(len(sections)) if i not in selected_indices]
 
     if trace_id:
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "context_injector",
-            "action": "select_sections.priority_fill",
-            "strategy": "priority_fill",
-            "budget": budget,
-            "used": used,
-            "kept_count": len(kept),
-            "dropped_count": len(dropped),
-            "section_stats": section_stats,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'context_injector', 'action': 'select_sections.priority_fill', 'strategy': 'priority_fill', 'budget': budget, 'used': used, 'kept_count': len(kept), 'dropped_count': len(dropped), 'section_stats': section_stats}))
     return kept, dropped, used
 
 
@@ -409,14 +311,7 @@ class ContextInjector:
         for m in matches:
             if total_tokens + m.estimated_tokens > self.meta_budget:
                 # 超预算，停止注入
-                logger.warning(json.dumps({
-                    "trace_id": tid,
-                    "module_name": "context_injector",
-                    "action": "inject_metadata.budget_exceeded",
-                    "skill_id": m.skill_id,
-                    "budget": self.meta_budget,
-                    "used": total_tokens,
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'context_injector', 'action': 'inject_metadata.budget_exceeded', 'skill_id': m.skill_id, 'budget': self.meta_budget, 'used': total_tokens}))
                 break
 
             lines.append(f"### {m.name} (`{m.skill_id}`)")
@@ -441,19 +336,7 @@ class ContextInjector:
 
         elapsed = (time.time() - t0) * 1000
 
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "context_injector",
-            "action": "inject_metadata.layer1.ok",
-            "duration_ms": round(elapsed, 2),
-            "layer": 1,
-            "injected_count": len(injected),
-            "estimated_tokens": total_tokens,
-            "budget": self.meta_budget,
-            "boundary_tokens": boundary_info["tokens"],
-            "loaded_count": len(boundary_info["loaded"]),
-            "unloaded_count": len(boundary_info["unloaded"]),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'context_injector', 'action': 'inject_metadata.layer1.ok', 'layer': 1, 'injected_count': len(injected), 'estimated_tokens': total_tokens, 'budget': self.meta_budget, 'boundary_tokens': boundary_info['tokens'], 'loaded_count': len(boundary_info['loaded']), 'unloaded_count': len(boundary_info['unloaded'])}))
 
         emit_metric("yunshu_skill_inject_tokens",
                     value=total_tokens, kind="histogram",
@@ -491,12 +374,7 @@ class ContextInjector:
             all_meta = self.loader.list_all_metadata(enabled_only=True)
         except Exception as e:
             if trace_id:
-                logger.warning(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "context_injector",
-                    "action": "boundary_decl.load_all_failed",
-                    "error": str(e),
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'context_injector', 'action': 'boundary_decl.load_all_failed', 'error': str(e)}))
             return empty
 
         all_ids = {m.get("skill_id", "") for m in all_meta if m.get("skill_id")}
@@ -528,14 +406,7 @@ class ContextInjector:
         tokens = estimate_tokens(text)
 
         if trace_id:
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "context_injector",
-                "action": "boundary_decl.built",
-                "loaded_count": len(loaded),
-                "unloaded_count": len(unloaded),
-                "estimated_tokens": tokens,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'context_injector', 'action': 'boundary_decl.built', 'loaded_count': len(loaded), 'unloaded_count': len(unloaded), 'estimated_tokens': tokens}))
 
         return {
             "text": text,
@@ -578,13 +449,7 @@ class ContextInjector:
         tokens = estimate_tokens(text)
 
         if trace_id:
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "context_injector",
-                "action": "sensitive_decl.built",
-                "sensitive_count": len(skills),
-                "estimated_tokens": tokens,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'context_injector', 'action': 'sensitive_decl.built', 'sensitive_count': len(skills), 'estimated_tokens': tokens}))
 
         return {"text": text, "tokens": tokens, "skills": skills}
 
@@ -609,13 +474,7 @@ class ContextInjector:
         if not instruction or not instruction.strip():
             prompt = f"## 技能使用说明：{skill_id}\n\n（使用说明为空）"
             elapsed = (time.time() - t0) * 1000
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "context_injector",
-                "action": "inject_instruction.layer2.empty",
-                "duration_ms": round(elapsed, 2),
-                "skill_id": skill_id,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'context_injector', 'action': 'inject_instruction.layer2.empty', 'skill_id': skill_id}))
             return {
                 "prompt": prompt,
                 "skill_id": skill_id,
@@ -637,17 +496,7 @@ class ContextInjector:
                 if kept_sections else _TRUNCATION_HINT.lstrip()
             )
             est_tokens = estimate_tokens(instruction_text)
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "context_injector",
-                "action": "inject_instruction.truncated",
-                "skill_id": skill_id,
-                "budget": self.instr_budget,
-                "original_tokens": instr_data["estimated_tokens"],
-                "truncated": True,
-                "dropped_sections": [_section_title(s) for s in dropped_sections],
-                "kept_sections": [_section_title(s) for s in kept_sections],
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'context_injector', 'action': 'inject_instruction.truncated', 'skill_id': skill_id, 'budget': self.instr_budget, 'original_tokens': instr_data['estimated_tokens'], 'truncated': True, 'dropped_sections': [_section_title(s) for s in dropped_sections], 'kept_sections': [_section_title(s) for s in kept_sections]}))
         else:
             truncated = False
             instruction_text = instruction
@@ -656,16 +505,7 @@ class ContextInjector:
         prompt = f"## 技能使用说明：{skill_id}\n\n{instruction_text}"
         elapsed = (time.time() - t0) * 1000
 
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "context_injector",
-            "action": "inject_instruction.layer2.ok",
-            "duration_ms": round(elapsed, 2),
-            "layer": 2,
-            "skill_id": skill_id,
-            "estimated_tokens": est_tokens,
-            "truncated": truncated,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'context_injector', 'action': 'inject_instruction.layer2.ok', 'layer': 2, 'skill_id': skill_id, 'estimated_tokens': est_tokens, 'truncated': truncated}))
 
         emit_metric("yunshu_skill_inject_tokens",
                     value=est_tokens, kind="histogram",
@@ -713,14 +553,7 @@ class ContextInjector:
                 if raw in self._VALID_ISOLATION_STRATEGIES:
                     strategy = raw
                 else:
-                    logger.warning(json.dumps({
-                        "trace_id": tid,
-                        "module_name": "context_injector",
-                        "action": "inject_sensitive_skill.invalid_strategy",
-                        "skill_id": skill_id,
-                        "raw_strategy": raw,
-                        "fallback": "separate_turn",
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'context_injector', 'action': 'inject_sensitive_skill.invalid_strategy', 'skill_id': skill_id, 'raw_strategy': raw, 'fallback': 'separate_turn'}))
                 break
 
         # 2. 加载使用说明（隔离窗口内注入，不进主上下文）
@@ -748,19 +581,7 @@ class ContextInjector:
         )
 
         elapsed = (time.time() - t0) * 1000
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "context_injector",
-            "action": "inject_sensitive_skill.ok",
-            "duration_ms": round(elapsed, 2),
-            "layer": "sensitive",
-            "skill_id": skill_id,
-            "isolation_strategy": strategy,
-            "summary_only": summary_only,
-            "clear_after_turn": clear_after_turn,
-            "session_key": session_key,
-            "estimated_tokens": est_tokens,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'context_injector', 'action': 'inject_sensitive_skill.ok', 'layer': 'sensitive', 'skill_id': skill_id, 'isolation_strategy': strategy, 'summary_only': summary_only, 'clear_after_turn': clear_after_turn, 'session_key': session_key, 'estimated_tokens': est_tokens}))
 
         emit_metric("yunshu_skill_sensitive_inject_tokens",
                     value=est_tokens, kind="histogram",
@@ -844,17 +665,7 @@ class ContextInjector:
                 f"执行结果未注入上下文，原因：{critical_msgs}"
             )
             elapsed = (time.time() - t0) * 1000
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "context_injector",
-                "action": "inject_result.guard_blocked",
-                "duration_ms": round(elapsed, 2),
-                "layer": 3,
-                "skill_id": result.skill_id,
-                "script_name": result.script_name,
-                "guard_severity": guard_severity,
-                "findings": [f.to_dict() for f in guard_result.findings],
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'context_injector', 'action': 'inject_result.guard_blocked', 'layer': 3, 'skill_id': result.skill_id, 'script_name': result.script_name, 'guard_severity': guard_severity, 'findings': [f.to_dict() for f in guard_result.findings]}))
             emit_metric("yunshu_skill_output_guard_total",
                         value=1, kind="counter",
                         labels={"skill_id": result.skill_id,
@@ -882,13 +693,7 @@ class ContextInjector:
 
         # warn: 仅记日志, 正常注入
         if guard_severity == "warn":
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "context_injector",
-                "action": "inject_result.guard_warn",
-                "skill_id": result.skill_id,
-                "findings": [f.to_dict() for f in guard_result.findings],
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'context_injector', 'action': 'inject_result.guard_warn', 'skill_id': result.skill_id, 'findings': [f.to_dict() for f in guard_result.findings]}))
 
         emit_metric("yunshu_skill_output_guard_total",
                     value=1, kind="counter",
@@ -916,19 +721,7 @@ class ContextInjector:
 
         elapsed = (time.time() - t0) * 1000
 
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "context_injector",
-            "action": "inject_result.layer3.ok",
-            "duration_ms": round(elapsed, 2),
-            "layer": 3,
-            "skill_id": result.skill_id,
-            "script_name": result.script_name,
-            "estimated_tokens": est_tokens,
-            "truncated": truncated,
-            "success": result.success,
-            "request_feedback": request_feedback,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'context_injector', 'action': 'inject_result.layer3.ok', 'layer': 3, 'skill_id': result.skill_id, 'script_name': result.script_name, 'estimated_tokens': est_tokens, 'truncated': truncated, 'success': result.success, 'request_feedback': request_feedback}))
 
         emit_metric("yunshu_skill_inject_tokens",
                     value=est_tokens, kind="histogram",
@@ -988,16 +781,7 @@ class ContextInjector:
         tid = _trace_id()
 
         # 关键分支日志：入参与预算
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "context_injector",
-            "action": "build_context.start",
-            "intent": intent[:100],
-            "max_tokens": max_tokens,
-            "top_k": top_k,
-            "auto_load_instruction": auto_load_instruction,
-            "skill_id": skill_id,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'context_injector', 'action': 'build_context.start', 'intent': intent[:100], 'max_tokens': max_tokens, 'top_k': top_k, 'auto_load_instruction': auto_load_instruction, 'skill_id': skill_id}))
 
         prompts = []
         total_tokens = 0
@@ -1040,20 +824,7 @@ class ContextInjector:
                 "boundary_declaration", boundary_declaration)
 
             # 关键分支日志：Layer 1 完成，透传 boundary_declaration
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "context_injector",
-                "action": "build_context.layer1_done",
-                "match_count": len(normal_matches),
-                "sensitive_match_count": len(sensitive_matches),
-                "layer1_tokens": meta_ctx["estimated_tokens"],
-                "boundary_passthrough": {
-                    "text_len": len(boundary_declaration.get("text", "")),
-                    "tokens": boundary_declaration.get("tokens", 0),
-                    "loaded": boundary_declaration.get("loaded", []),
-                    "unloaded": boundary_declaration.get("unloaded", []),
-                },
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'context_injector', 'action': 'build_context.layer1_done', 'match_count': len(normal_matches), 'sensitive_match_count': len(sensitive_matches), 'layer1_tokens': meta_ctx['estimated_tokens'], 'boundary_passthrough': {'text_len': len(boundary_declaration.get('text', '')), 'tokens': boundary_declaration.get('tokens', 0), 'loaded': boundary_declaration.get('loaded', []), 'unloaded': boundary_declaration.get('unloaded', [])}}))
 
             # 第二层：按需加载使用说明（普通技能走原注入流程）
             # [不易] 敏感技能使用说明走隔离注入（sensitive_contexts），不进入主 prompt
@@ -1065,34 +836,11 @@ class ContextInjector:
                         total_tokens += instr_ctx["estimated_tokens"]
                         has_instruction = True
                         # 关键分支日志：Layer 2 instruction 加载成功
-                        logger.info(json.dumps({
-                            "trace_id": tid,
-                            "module_name": "context_injector",
-                            "action": "build_context.layer2_done",
-                            "skill_id": target_id,
-                            "instruction_tokens": instr_ctx["estimated_tokens"],
-                            "cumulative_tokens": total_tokens,
-                            "budget": max_tokens,
-                            "remaining_budget": max_tokens - total_tokens,
-                        }, ensure_ascii=False))
+                        logger.info(log_dict({'module_name': 'context_injector', 'action': 'build_context.layer2_done', 'skill_id': target_id, 'instruction_tokens': instr_ctx['estimated_tokens'], 'cumulative_tokens': total_tokens, 'budget': max_tokens, 'remaining_budget': max_tokens - total_tokens}))
                     else:
-                        logger.warning(json.dumps({
-                            "trace_id": tid,
-                            "module_name": "context_injector",
-                            "action": "build_context.skip_instruction",
-                            "reason": "budget_exceeded",
-                            "used": total_tokens,
-                            "needed": instr_ctx["estimated_tokens"],
-                            "budget": max_tokens,
-                        }, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'context_injector', 'action': 'build_context.skip_instruction', 'reason': 'budget_exceeded', 'used': total_tokens, 'needed': instr_ctx['estimated_tokens'], 'budget': max_tokens}))
                 except SkillNotFoundError as e:
-                    logger.warning(json.dumps({
-                        "trace_id": tid,
-                        "module_name": "context_injector",
-                        "action": "build_context.instruction_not_found",
-                        "skill_id": target_id,
-                        "error": str(e),
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'context_injector', 'action': 'build_context.instruction_not_found', 'skill_id': target_id, 'error': str(e)}))
 
             # Layer 2.5: Dynamic Few-shot（可选，替代 SFT 微调）
             # 在 Layer 2 使用说明注入后按需注入最匹配的成功案例；
@@ -1108,37 +856,12 @@ class ContextInjector:
                         prompts.append(fewshot_ctx["prompt"])
                         total_tokens += fewshot_ctx["estimated_tokens"]
                         fewshot_injected = True
-                        logger.info(json.dumps({
-                            "trace_id": tid,
-                            "module_name": "context_injector",
-                            "action": "build_context.layer2_5_done",
-                            "skill_id": target_id,
-                            "fewshot_tokens": fewshot_ctx["estimated_tokens"],
-                            "fewshot_examples": len(fewshot_ctx["examples"]),
-                            "cumulative_tokens": total_tokens,
-                            "budget": max_tokens,
-                            "remaining_budget": max_tokens - total_tokens,
-                        }, ensure_ascii=False))
+                        logger.info(log_dict({'module_name': 'context_injector', 'action': 'build_context.layer2_5_done', 'skill_id': target_id, 'fewshot_tokens': fewshot_ctx['estimated_tokens'], 'fewshot_examples': len(fewshot_ctx['examples']), 'cumulative_tokens': total_tokens, 'budget': max_tokens, 'remaining_budget': max_tokens - total_tokens}))
                 except Exception as e:  # noqa: BLE001 注入失败不影响主流程
-                    logger.warning(json.dumps({
-                        "trace_id": tid,
-                        "module_name": "context_injector",
-                        "action": "build_context.fewshot_failed",
-                        "skill_id": target_id,
-                        "error": str(e),
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'context_injector', 'action': 'build_context.fewshot_failed', 'skill_id': target_id, 'error': str(e)}))
         else:
             # 关键分支日志：无匹配技能，boundary_declaration 保持空结构
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "context_injector",
-                "action": "build_context.no_match",
-                "intent": intent[:100],
-                "top_k": top_k,
-                "sensitive_match_count": len(sensitive_matches),
-                "boundary_state": "empty_default",
-                "reason": "no_match_skipped_inject_metadata",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'context_injector', 'action': 'build_context.no_match', 'intent': intent[:100], 'top_k': top_k, 'sensitive_match_count': len(sensitive_matches), 'boundary_state': 'empty_default', 'reason': 'no_match_skipped_inject_metadata'}))
 
         # [不易] 敏感技能隔离注入与 normal_matches 解耦：
         #       纯敏感场景（无普通技能匹配）同样产出隔离窗口；
@@ -1147,40 +870,15 @@ class ContextInjector:
             try:
                 sens_ctx = self.inject_sensitive_skill(target_id)
                 sensitive_contexts.append(sens_ctx)
-                logger.info(json.dumps({
-                    "trace_id": tid,
-                    "module_name": "context_injector",
-                    "action": "build_context.sensitive_isolated",
-                    "skill_id": target_id,
-                    "isolation_strategy": sens_ctx["isolation_strategy"],
-                    "isolated_tokens": sens_ctx["estimated_tokens"],
-                    "session_key": sens_ctx["isolation"].get("session_key"),
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'context_injector', 'action': 'build_context.sensitive_isolated', 'skill_id': target_id, 'isolation_strategy': sens_ctx['isolation_strategy'], 'isolated_tokens': sens_ctx['estimated_tokens'], 'session_key': sens_ctx['isolation'].get('session_key')}))
             except SkillNotFoundError as e:
-                logger.warning(json.dumps({
-                    "trace_id": tid,
-                    "module_name": "context_injector",
-                    "action": "build_context.sensitive_skill_not_found",
-                    "skill_id": target_id,
-                    "error": str(e),
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'context_injector', 'action': 'build_context.sensitive_skill_not_found', 'skill_id': target_id, 'error': str(e)}))
 
         # 敏感技能仅声明存在（防认知污染：主上下文不含其内容）
         if sensitive_declaration["text"]:
             prompts.append(sensitive_declaration["text"])
             total_tokens += sensitive_declaration["tokens"]
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "context_injector",
-                "action": "build_context.sensitive_declared",
-                "sensitive_count": len(sensitive_matches),
-                "declaration_tokens": sensitive_declaration["tokens"],
-                "strategy_map": [
-                    {"skill_id": s["skill_id"],
-                     "isolation_strategy": s["isolation_strategy"]}
-                    for s in sensitive_declaration["skills"]
-                ],
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'context_injector', 'action': 'build_context.sensitive_declared', 'sensitive_count': len(sensitive_matches), 'declaration_tokens': sensitive_declaration['tokens'], 'strategy_map': [{'skill_id': s['skill_id'], 'isolation_strategy': s['isolation_strategy']} for s in sensitive_declaration['skills']]}))
 
         elapsed = (time.time() - t0) * 1000
         full_prompt = "\n\n".join(prompts)
@@ -1193,26 +891,7 @@ class ContextInjector:
             match_result, "retrieved_chunks_truncated", False
         )
 
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "context_injector",
-            "action": "build_context.ok",
-            "duration_ms": round(elapsed, 2),
-            "intent": intent[:100],
-            "total_tokens": total_tokens,
-            "budget": max_tokens,
-            "match_count": len(match_result.matches),
-            "sensitive_match_count": len(sensitive_matches),
-            "sensitive_context_count": len(sensitive_contexts),
-            "has_instruction": len(prompts) > 1,
-            "boundary_tokens": boundary_declaration.get("tokens", 0),
-            "loaded_count": len(boundary_declaration.get("loaded", [])),
-            "unloaded_count": len(boundary_declaration.get("unloaded", [])),
-            # [变易] 可观测性：retrieved_chunks 汇总（截断由 observability 层兜底）
-            "retrieved_chunks": retrieved_chunks,
-            "retrieved_chunks_count": len(retrieved_chunks),
-            "retrieved_chunks_truncated": retrieved_chunks_truncated,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'context_injector', 'action': 'build_context.ok', 'intent': intent[:100], 'total_tokens': total_tokens, 'budget': max_tokens, 'match_count': len(match_result.matches), 'sensitive_match_count': len(sensitive_matches), 'sensitive_context_count': len(sensitive_contexts), 'has_instruction': len(prompts) > 1, 'boundary_tokens': boundary_declaration.get('tokens', 0), 'loaded_count': len(boundary_declaration.get('loaded', [])), 'unloaded_count': len(boundary_declaration.get('unloaded', [])), 'retrieved_chunks': retrieved_chunks, 'retrieved_chunks_count': len(retrieved_chunks), 'retrieved_chunks_truncated': retrieved_chunks_truncated}))
 
         # [变易] 持久化到 trace span（失败不影响主流程）
         try:

@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List
 
 from .storage import PromptStorage, PromptRecord, PromptType, get_prompt_storage
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -59,15 +60,7 @@ class PromptRegistry:
         
         self.storage.save_prompt(record)
         
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "prompt_manager",
-            "action": "register_prompt",
-            "prompt_id": prompt_id,
-            "prompt_type": prompt_type.value,
-            "duration_ms": 0,
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'prompt_manager', 'action': 'register_prompt', 'prompt_id': prompt_id, 'prompt_type': prompt_type.value, 'level': 'INFO'}))
         
         return record
     
@@ -96,14 +89,7 @@ class PromptRegistry:
         prompt.updated_at = _now()
         self.storage.save_prompt(prompt)
         
-        logger.info(json.dumps({
-            "trace_id": "",
-            "module_name": "prompt_manager",
-            "action": "update_prompt",
-            "prompt_id": prompt_id,
-            "duration_ms": 0,
-            "level": "INFO"
-        }))
+        logger.info(log_dict({'module_name': 'prompt_manager', 'action': 'update_prompt', 'prompt_id': prompt_id, 'level': 'INFO'}))
         
         return prompt
     

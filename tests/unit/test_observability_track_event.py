@@ -33,6 +33,14 @@ from contextlib import contextmanager
 import pytest
 
 
+def _parse_log_msg(record) -> dict:
+    """解析日志消息为 dict，兼容 log_dict 后的 dict 消息与旧 JSON 字符串"""
+    msg = record.msg
+    if isinstance(msg, dict):
+        return msg
+    return json.loads(str(msg))
+
+
 # ============================================================================
 # 测试目标：模板生成的 observability.py（以 orchestrator 为代表）
 # ============================================================================
@@ -69,7 +77,7 @@ class TestTrackEventBasic:
                       if "track." in r.getMessage()]
         assert len(track_logs) >= 1
 
-        log_data = json.loads(track_logs[-1].getMessage())
+        log_data = _parse_log_msg(track_logs[-1])
         # 验证硬约束必填字段
         assert "trace_id" in log_data, "缺少 trace_id 字段"
         assert log_data["module_name"] == "orchestrator"
@@ -94,7 +102,7 @@ class TestTrackEventBasic:
             msg = r.getMessage()
             if "track." in msg and "trace_id" in msg:
                 try:
-                    data = json.loads(msg)
+                    data = _parse_log_msg(r)
                     if "trace_id" in data:
                         trace_ids.append(data["trace_id"])
                 except json.JSONDecodeError:
@@ -136,7 +144,7 @@ class TestTrackEventPayload:
 
         track_logs = [r for r in caplog.records if "track.event_simple" in r.getMessage()]
         assert len(track_logs) >= 1
-        log_data = json.loads(track_logs[-1].getMessage())
+        log_data = _parse_log_msg(track_logs[-1])
         assert log_data["user_id"] == "u123"
         assert log_data["action_type"] == "click"
 
@@ -153,7 +161,7 @@ class TestTrackEventPayload:
 
         track_logs = [r for r in caplog.records if "track.event_nested" in r.getMessage()]
         assert len(track_logs) >= 1
-        log_data = json.loads(track_logs[-1].getMessage())
+        log_data = _parse_log_msg(track_logs[-1])
         assert log_data["metadata"]["version"] == "1.0"
         assert log_data["metrics"]["latency_ms"] == 42.5
         assert log_data["nested_list"][1]["id"] == 2
@@ -167,7 +175,7 @@ class TestTrackEventPayload:
 
         track_logs = [r for r in caplog.records if "track.event_special" in r.getMessage()]
         assert len(track_logs) >= 1
-        log_data = json.loads(track_logs[-1].getMessage())
+        log_data = _parse_log_msg(track_logs[-1])
         assert log_data["chinese"] == "你好世界"
         assert log_data["emoji"] == "🚀"
 
@@ -181,7 +189,7 @@ class TestTrackEventPayload:
 
         track_logs = [r for r in caplog.records if "track.event_override" in r.getMessage()]
         assert len(track_logs) >= 1
-        log_data = json.loads(track_logs[-1].getMessage())
+        log_data = _parse_log_msg(track_logs[-1])
         # 保留字段不被覆盖
         assert log_data["trace_id"] != "fake_id"
         assert log_data["module_name"] == "orchestrator"
@@ -260,7 +268,12 @@ class TestTrackEventErrorIsolation:
         # 应记录 trackEvent.failed 错误日志
         error_logs = [r for r in caplog.records if "trackEvent.failed" in r.getMessage()]
         assert len(error_logs) >= 1
-        error_data = json.loads(error_logs[-1].getMessage())
+        # 兼容 log_dict 后的 dict 消息（record.msg 为 dict）与旧 JSON 字符串
+        last_msg = error_logs[-1].msg
+        if isinstance(last_msg, dict):
+            error_data = last_msg
+        else:
+            error_data = json.loads(last_msg)
         assert "RuntimeError" in error_data["error"]
         assert error_data["event_name"] == "event_with_log_error"
 
@@ -322,7 +335,7 @@ class TestEmitStructuredLog:
         with caplog.at_level(logging.INFO, logger="agent.orchestrator"):
             obs_orch._emit_structured_log("test_action", duration_ms=42.5)
 
-        log_data = json.loads(caplog.records[-1].getMessage())
+        log_data = _parse_log_msg(caplog.records[-1])
         assert "trace_id" in log_data
         assert log_data["module_name"] == "orchestrator"
         assert log_data["action"] == "test_action"
@@ -335,7 +348,7 @@ class TestEmitStructuredLog:
         with caplog.at_level(logging.INFO, logger="agent.orchestrator"):
             obs_orch._emit_structured_log("test_action", trace_id=custom_tid)
 
-        log_data = json.loads(caplog.records[-1].getMessage())
+        log_data = _parse_log_msg(caplog.records[-1])
         assert log_data["trace_id"] == custom_tid
 
     @pytest.mark.unit
@@ -344,7 +357,7 @@ class TestEmitStructuredLog:
         with caplog.at_level(logging.INFO, logger="agent.orchestrator"):
             obs_orch._emit_structured_log("test_action", trace_id=None)
 
-        log_data = json.loads(caplog.records[-1].getMessage())
+        log_data = _parse_log_msg(caplog.records[-1])
         assert log_data["trace_id"]  # 非空
         assert len(log_data["trace_id"]) > 0
 
@@ -354,7 +367,7 @@ class TestEmitStructuredLog:
         with caplog.at_level(logging.INFO, logger="agent.orchestrator"):
             obs_orch._emit_structured_log("test_action", duration_ms=42.56789)
 
-        log_data = json.loads(caplog.records[-1].getMessage())
+        log_data = _parse_log_msg(caplog.records[-1])
         assert log_data["duration_ms"] == 42.57
 
     @pytest.mark.unit
@@ -365,7 +378,7 @@ class TestEmitStructuredLog:
             obs_orch._emit_structured_log("warn_action", level="warning")
             obs_orch._emit_structured_log("error_action", level="error")
 
-        actions = [json.loads(r.getMessage())["action"]
+        actions = [_parse_log_msg(r)["action"]
                    for r in caplog.records if "{" in r.getMessage()]
         assert "debug_action" in actions
         assert "warn_action" in actions
@@ -378,7 +391,7 @@ class TestEmitStructuredLog:
             obs_orch._emit_structured_log("test_action",
                                           user_id="u123", skill_id="pdf-extractor")
 
-        log_data = json.loads(caplog.records[-1].getMessage())
+        log_data = _parse_log_msg(caplog.records[-1])
         assert log_data["user_id"] == "u123"
         assert log_data["skill_id"] == "pdf-extractor"
 
@@ -389,7 +402,7 @@ class TestEmitStructuredLog:
             obs_orch._emit_structured_log("test_action", data={"nested": [1, 2, 3]})
 
         # 不应抛 JSONDecodeError
-        parsed = json.loads(caplog.records[-1].getMessage())
+        parsed = _parse_log_msg(caplog.records[-1])
         assert isinstance(parsed, dict)
 
 
@@ -409,7 +422,7 @@ class TestSkillsMgmtTrackEvent:
 
         track_logs = [r for r in caplog.records if "track_event" in r.getMessage()]
         assert len(track_logs) >= 1
-        log_data = json.loads(track_logs[-1].getMessage())
+        log_data = _parse_log_msg(track_logs[-1])
         assert log_data["module_name"] == "skills_mgmt"
         assert log_data["action"] == "track_event"
         assert log_data["event_name"] == "skill_create"
@@ -424,7 +437,7 @@ class TestSkillsMgmtTrackEvent:
 
         track_logs = [r for r in caplog.records if "track_event" in r.getMessage()]
         assert len(track_logs) >= 1
-        log_data = json.loads(track_logs[-1].getMessage())
+        log_data = _parse_log_msg(track_logs[-1])
         assert log_data["payload"] == {}
 
     @pytest.mark.unit
@@ -560,7 +573,7 @@ class TestTracedAction:
         actions = []
         for r in caplog.records:
             try:
-                data = json.loads(r.getMessage())
+                data = _parse_log_msg(r)
                 actions.append(data.get("action", ""))
             except json.JSONDecodeError:
                 pass
@@ -578,7 +591,7 @@ class TestTracedAction:
         end_logs = [r for r in caplog.records
                     if "test_action.end" in r.getMessage()]
         assert len(end_logs) >= 1
-        log_data = json.loads(end_logs[-1].getMessage())
+        log_data = _parse_log_msg(end_logs[-1])
         assert log_data["status"] == "ok"
 
     @pytest.mark.unit
@@ -589,7 +602,7 @@ class TestTracedAction:
                 time.sleep(0.01)  # 10ms
 
         end_logs = [r for r in caplog.records if "test_action.end" in r.getMessage()]
-        log_data = json.loads(end_logs[-1].getMessage())
+        log_data = _parse_log_msg(end_logs[-1])
         assert log_data["duration_ms"] > 0
 
     @pytest.mark.unit
@@ -603,7 +616,7 @@ class TestTracedAction:
         error_logs = [r for r in caplog.records
                       if "failing_action.error" in r.getMessage()]
         assert len(error_logs) >= 1
-        log_data = json.loads(error_logs[-1].getMessage())
+        log_data = _parse_log_msg(error_logs[-1])
         assert log_data["status"] == "error"
         assert "test error" in log_data["error"]
         assert log_data["error_type"] == "ValueError"
@@ -624,7 +637,7 @@ class TestTracedAction:
             with obs_skills.traced_action("test_action", trace_id=custom_tid):
                 pass
 
-        all_logs = [json.loads(r.getMessage())
+        all_logs = [_parse_log_msg(r)
                     for r in caplog.records
                     if "test_action" in r.getMessage() and "{" in r.getMessage()]
         for log_data in all_logs:
@@ -640,7 +653,7 @@ class TestTracedAction:
         start_logs = [r for r in caplog.records
                       if "test_action.start" in r.getMessage()]
         assert len(start_logs) >= 1
-        log_data = json.loads(start_logs[-1].getMessage())
+        log_data = _parse_log_msg(start_logs[-1])
         assert log_data["skill_id"] == "foo"
         assert log_data["user"] == "bar"
 
@@ -682,7 +695,7 @@ class TestMultiModuleConsistency:
                       if "track.consistency_test" in r.getMessage()]
         assert len(track_logs) >= 1, f"{module_name} 未输出 track 日志"
 
-        log_data = json.loads(track_logs[-1].getMessage())
+        log_data = _parse_log_msg(track_logs[-1])
         assert log_data["module_name"] == module_name
         assert "trace_id" in log_data
         assert "duration_ms" in log_data

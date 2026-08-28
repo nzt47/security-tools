@@ -99,10 +99,13 @@
 | 项目 | 当前状态 | 目标状态 | 阻塞原因 | 跟踪 Issue | 计划转阻塞日期 |
 |------|----------|----------|----------|------------|----------------|
 | `env_config_manager.py` mypy 严格检查 | ✅ 阻塞 | 阻塞 | — | — | 已达成 (2026-07-29) |
-| `network_config.py` mypy 严格检查 | ⚠️ 非阻塞 (`\|\| true`) | 阻塞 | 29 个历史类型错误（隐式 Optional / None 不可索引 / Returning Any） | 待创建 | 待债务清理 |
+| `network_config.py` mypy 严格检查 | ✅ 阻塞 | 阻塞 | — | — | 已达成 (2026-08-28)：29 个历史类型错误清零，ci.yml 由 `\|\| true` 转阻塞 |
 | `_mock_env_config_in_ci` fixture 复用 | ✅ 已提取至 conftest.py | — | — | — | 已完成 (2026-07-29) |
 
-### network_config.py 29 个类型错误分类（待修复清单）
+### network_config.py 类型错误清理记录（2026-08-28 已清零）
+
+> 原 29 个历史类型错误（下表）已全部修复，`mypy agent/network_config.py --warn-no-return --warn-return-any --ignore-missing-imports --follow-imports=silent` 返回 Success，
+> ci.yml 该模块检查已由非阻塞 `|| true` 转为阻塞。下表留档供回归参考。
 
 | 错误类型 | 错误码 | 数量 | 修复难度 | 备注 |
 |----------|--------|------|----------|------|

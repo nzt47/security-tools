@@ -32,6 +32,7 @@ import os
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger("agent.skills_mgmt.negative_intent_detector")
 
@@ -51,13 +52,7 @@ def _env_float(name: str, default: float) -> float:
     try:
         return float(raw)
     except (TypeError, ValueError):
-        logger.warning(json.dumps({
-            "module_name": "negative_intent_detector",
-            "action": "env_parse_failed",
-            "env_name": name,
-            "raw_value": raw,
-            "fallback": default,
-        }, ensure_ascii=False))
+        logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'env_parse_failed', 'env_name': name, 'raw_value': raw, 'fallback': default}))
         return default
 
 
@@ -142,11 +137,7 @@ class NegativeIntentDetector:
             try:
                 # 1. 读取 JSON
                 if not self._prototypes_path.exists():
-                    logger.warning(json.dumps({
-                        "module_name": "negative_intent_detector",
-                        "action": "prototypes.not_found",
-                        "path": str(self._prototypes_path),
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'prototypes.not_found', 'path': str(self._prototypes_path)}))
                     self._loaded = True
                     return False
 
@@ -155,11 +146,7 @@ class NegativeIntentDetector:
 
                 categories_data = data.get("categories", [])
                 if not categories_data:
-                    logger.warning(json.dumps({
-                        "module_name": "negative_intent_detector",
-                        "action": "prototypes.empty",
-                        "path": str(self._prototypes_path),
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'prototypes.empty', 'path': str(self._prototypes_path)}))
                     self._loaded = True
                     return False
 
@@ -188,11 +175,7 @@ class NegativeIntentDetector:
 
                     if not sample_vecs:
                         # 该类所有样本编码失败，跳过
-                        logger.warning(json.dumps({
-                            "module_name": "negative_intent_detector",
-                            "action": "category.encode_all_failed",
-                            "category": cat_name,
-                        }, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'category.encode_all_failed', 'category': cat_name}))
                         # 回滚已添加的类别
                         self._categories.pop()
                         self._raw_samples.pop(cat_name)
@@ -206,33 +189,20 @@ class NegativeIntentDetector:
                     proto_vectors.append(mean_vec)
 
                 if not proto_vectors:
-                    logger.warning(json.dumps({
-                        "module_name": "negative_intent_detector",
-                        "action": "prototypes.no_valid_vectors",
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'prototypes.no_valid_vectors'}))
                     self._loaded = True
                     return False
 
                 # 3. 堆叠为矩阵 (K, dim)
                 self._proto_matrix = np.stack(proto_vectors, axis=0)
 
-                logger.info(json.dumps({
-                    "module_name": "negative_intent_detector",
-                    "action": "prototypes.loaded",
-                    "category_count": len(self._categories),
-                    "matrix_shape": list(self._proto_matrix.shape),
-                    "threshold": self._threshold,
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'negative_intent_detector', 'action': 'prototypes.loaded', 'category_count': len(self._categories), 'matrix_shape': list(self._proto_matrix.shape), 'threshold': self._threshold}))
 
                 self._loaded = True
                 return True
 
             except Exception as e:  # noqa: BLE001
-                logger.warning(json.dumps({
-                    "module_name": "negative_intent_detector",
-                    "action": "prototypes.load_failed",
-                    "error": str(e)[:300],
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'prototypes.load_failed', 'error': str(e)[:300]}))
                 self._loaded = True
                 return False
 
@@ -299,26 +269,12 @@ class NegativeIntentDetector:
                 return None
 
             elapsed = (time.time() - t0) * 1000
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "negative_intent_detector",
-                "action": "detect.rejected",
-                "intent": query[:100],
-                "category": matched_category,
-                "similarity": round(max_sim, 4),
-                "threshold": self._threshold,
-                "duration_ms": round(elapsed, 2),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'negative_intent_detector', 'action': 'detect.rejected', 'intent': query[:100], 'category': matched_category, 'similarity': round(max_sim, 4), 'threshold': self._threshold}))
 
             return (matched_category, max_sim, "negative_intent")
 
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "negative_intent_detector",
-                "action": "detect.exception",
-                "error": str(e)[:300],
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'negative_intent_detector', 'action': 'detect.exception', 'error': str(e)[:300]}))
             return None
 
     def health(self) -> Dict[str, Any]:

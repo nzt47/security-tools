@@ -632,10 +632,21 @@ class TestLinkCachePerfRegression:
         links_ms: list[float] = []
         class _TimingHandler(logging.Handler):
             def emit(self, record):
-                msg = record.getMessage()
-                if '"action": "search_stage_timing"' not in msg:
-                    return
-                links_ms.append(json.loads(msg)["ms"]["link"])
+                # 兼容两种日志格式：旧 json.dumps 字符串 / 新 log_dict dict
+                # （log_dict 后 record.msg 为 dict 对象；旧格式为 JSON 字符串）
+                msg = record.msg
+                if isinstance(msg, dict):
+                    if msg.get("action") != "search_stage_timing":
+                        return
+                    data = msg
+                else:
+                    try:
+                        data = json.loads(str(msg))
+                    except (ValueError, TypeError):
+                        return
+                    if data.get("action") != "search_stage_timing":
+                        return
+                links_ms.append(data["ms"]["link"])
         handler = _TimingHandler(level=logging.INFO)
         sl = logging.getLogger("agent.knowledge.search")
         sl.setLevel(logging.INFO)

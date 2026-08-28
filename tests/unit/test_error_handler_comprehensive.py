@@ -600,11 +600,11 @@ class TestErrorHandler:
         # TypeError 不在 retryable_exceptions 中，立即抛出
         assert attempts[0] == 1
 
-    def test_execute_with_retry_yunshu_error_always_retried(self):
-        """YunshuError 子类即使 retryable=False 也会被默认 retryable 元组匹配而重试
+    def test_execute_with_retry_yunshu_error_not_retried_when_not_retryable(self):
+        """YunshuError 的可重试性由其 retryable 属性决定，不被默认 retryable 元组覆盖
 
-        这是实现的既有行为：默认 retryable=(RecoverableError, YunshuError)，
-        所有 YunshuError 子类都会匹配第二条 elif 分支而被重试。
+        统一契约：与 async_with_retry 一致——YunshuError(retryable=False) 不重试，
+        立即抛出；只有 retryable=True 才进入重试循环。
         """
         handler = ErrorHandler()
         attempts = [0]
@@ -612,6 +612,23 @@ class TestErrorHandler:
         def fail():
             attempts[0] += 1
             raise DataInvalidError("bad data")  # retryable=False
+
+        with pytest.raises(YunshuError):
+            handler.execute_with_retry(
+                fail,
+                retry_policy=RetryPolicy(max_retries=3, initial_delay=0.001, jitter_factor=0),
+            )
+        # retryable=False -> 不重试，仅 1 次尝试
+        assert attempts[0] == 1
+
+    def test_execute_with_retry_yunshu_error_retried_when_retryable(self):
+        """YunshuError(retryable=True) 会进入重试循环（由 retryable 属性决定）"""
+        handler = ErrorHandler()
+        attempts = [0]
+
+        def fail():
+            attempts[0] += 1
+            raise RecoverableError("recoverable")  # retryable=True
 
         with pytest.raises(YunshuError):
             handler.execute_with_retry(
@@ -766,17 +783,17 @@ class TestIntegration:
         assert result == "recovered"
         assert cb.success_count == 1
 
-    def test_security_error_is_retried_as_yunshu_error(self):
-        """SecurityError 是 YunshuError 子类，默认会被重试（既有行为）
+    def test_security_error_is_retried_when_retryable(self):
+        """SecurityError 是 YunshuError 子类，retryable=True 时默认被重试
 
-        若需阻止重试，需显式设置 retryable_exceptions 不包含 YunshuError。
+        统一契约：YunshuError 可重试性由 retryable 属性决定。
         """
         handler = ErrorHandler()
         attempts = [0]
 
         def fail():
             attempts[0] += 1
-            raise SecurityError("attack detected")
+            raise SecurityError("attack detected", retryable=True)
 
         with pytest.raises(YunshuError):
             handler.execute_with_retry(
@@ -785,6 +802,23 @@ class TestIntegration:
             )
         # max_retries=3 -> 4 次尝试
         assert attempts[0] == 4
+
+    def test_security_error_not_retried_when_not_retryable(self):
+        """SecurityError 默认 retryable=False，不重试（不再被默认 retryable 元组覆盖）"""
+        handler = ErrorHandler()
+        attempts = [0]
+
+        def fail():
+            attempts[0] += 1
+            raise SecurityError("attack detected")  # retryable=False
+
+        with pytest.raises(YunshuError):
+            handler.execute_with_retry(
+                fail,
+                retry_policy=RetryPolicy(max_retries=3, initial_delay=0.001, jitter_factor=0),
+            )
+        # retryable=False -> 不重试，仅 1 次尝试
+        assert attempts[0] == 1
 
     def test_security_error_not_retried_with_explicit_exceptions(self):
         """显式 retryable_exceptions 排除 YunshuError 时，SecurityError 不重试"""

@@ -36,6 +36,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from .file_store import SkillFileStore
 from .observability import emit_metric
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger("agent.skills_mgmt.vector_adapter")
 
@@ -257,24 +258,14 @@ class SkillVectorAdapter:
 
             # device="cpu" 避免 CUDA 依赖；normalize_embeddings=True 让相似度=点积
             model = SentenceTransformer(self.model_name, device="cpu")
-            logger.info(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "sentence_transformers.init.ok",
-                "model": self.model_name,
-                "dim": model.get_sentence_embedding_dimension(),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'sentence_transformers.init.ok', 'model': self.model_name, 'dim': model.get_sentence_embedding_dimension()}))
             # 返回 4 元组：(model, doc_ids, doc_vectors, doc_metas)
             # doc_ids: List[str] - 技能 ID 顺序
             # doc_vectors: np.ndarray (N, dim) - 归一化后的文档向量
             # doc_metas: List[Dict] - 技能元数据
             return (model, [], [], [])
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "sentence_transformers.init.failed",
-                "model": self.model_name,
-                "error": str(e)[:300],
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'sentence_transformers.init.failed', 'model': self.model_name, 'error': str(e)[:300]}))
             return None
 
     def _try_init_native_chroma(self) -> Optional[Any]:
@@ -305,19 +296,10 @@ class SkillVectorAdapter:
                 name=self.collection_name,
                 metadata={"description": "Skill retrieval index"},
             )
-            logger.info(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "native_chroma.init.ok",
-                "persist_path": persist_path,
-                "collection": self.collection_name,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'native_chroma.init.ok', 'persist_path': persist_path, 'collection': self.collection_name}))
             return (client, collection)
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "native_chroma.init.failed",
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'native_chroma.init.failed', 'error': str(e)}))
             return None
 
     def ensure_indexed(self, *, force: bool = False) -> int:
@@ -333,11 +315,7 @@ class SkillVectorAdapter:
         """
         vs = self._ensure_vector_store()
         if vs is None:
-            logger.info(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "ensure_indexed.skipped_no_backend",
-                "reason": "vector_store unavailable",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'ensure_indexed.skipped_no_backend', 'reason': 'vector_store unavailable'}))
             return 0
 
         with self._lock:
@@ -351,30 +329,14 @@ class SkillVectorAdapter:
                         expected_dim = model.get_sentence_embedding_dimension()
                         actual_dim = int(doc_vectors.shape[1])
                         if actual_dim != expected_dim:
-                            logger.warning(json.dumps({
-                                "module_name": "vector_adapter",
-                                "action": "dimension_mismatch_rebuild",
-                                "expected": expected_dim,
-                                "actual": actual_dim,
-                                "model": self.model_name,
-                            }, ensure_ascii=False))
+                            logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'dimension_mismatch_rebuild', 'expected': expected_dim, 'actual': actual_dim, 'model': self.model_name}))
                             self._st_backend = (model, [], [], [])
                             self._indexed_skill_ids.clear()
                             self._index_built = False
                         else:
-                            logger.info(json.dumps({
-                                "module_name": "vector_adapter",
-                                "action": "ensure_indexed.dim_check_ok",
-                                "expected": expected_dim,
-                                "actual": actual_dim,
-                                "doc_count": len(doc_ids),
-                            }, ensure_ascii=False))
+                            logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'ensure_indexed.dim_check_ok', 'expected': expected_dim, 'actual': actual_dim, 'doc_count': len(doc_ids)}))
                     except Exception as e:  # noqa: BLE001
-                        logger.warning(json.dumps({
-                            "module_name": "vector_adapter",
-                            "action": "dimension_check_failed",
-                            "error": str(e)[:200],
-                        }, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'dimension_check_failed', 'error': str(e)[:200]}))
 
             index = self.fs.load_metadata_index()
             current_ids = set(index.keys())
@@ -387,20 +349,10 @@ class SkillVectorAdapter:
             new_ids = current_ids - self._indexed_skill_ids
             if not new_ids and self._index_built:
                 # 无新增，跳过
-                logger.info(json.dumps({
-                    "module_name": "vector_adapter",
-                    "action": "ensure_indexed.no_new_skills",
-                    "indexed_count": len(self._indexed_skill_ids),
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'ensure_indexed.no_new_skills', 'indexed_count': len(self._indexed_skill_ids)}))
                 return len(self._indexed_skill_ids)
 
-            logger.info(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "ensure_indexed.building",
-                "new_skill_count": len(new_ids),
-                "already_indexed": len(self._indexed_skill_ids),
-                "total_in_repo": len(current_ids),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'ensure_indexed.building', 'new_skill_count': len(new_ids), 'already_indexed': len(self._indexed_skill_ids), 'total_in_repo': len(current_ids)}))
 
             # 批量构建向量文本并添加
             items_to_add = []
@@ -447,11 +399,7 @@ class SkillVectorAdapter:
                         # 更新 backend 元组
                         self._st_backend = (model, doc_ids, doc_vectors, doc_metas)
                     except Exception as e:  # noqa: BLE001
-                        logger.warning(json.dumps({
-                            "module_name": "vector_adapter",
-                            "action": "sentence_transformers.add.failed",
-                            "error": str(e),
-                        }, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'sentence_transformers.add.failed', 'error': str(e)}))
                 elif self._native_chroma is not None:
                     # chromadb 原生模式：用 collection.add()
                     try:
@@ -464,11 +412,7 @@ class SkillVectorAdapter:
                         for skill_id in new_ids:
                             self._indexed_skill_ids.add(skill_id)
                     except Exception as e:  # noqa: BLE001
-                        logger.warning(json.dumps({
-                            "module_name": "vector_adapter",
-                            "action": "native_chroma.add.failed",
-                            "error": str(e),
-                        }, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'native_chroma.add.failed', 'error': str(e)}))
                 else:
                     # VectorStore 模式（fallback）
                     try:
@@ -481,15 +425,7 @@ class SkillVectorAdapter:
             self._index_built = True
             count = len(self._indexed_skill_ids)
 
-            logger.info(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "ensure_indexed.done",
-                "newly_indexed": len(new_ids),
-                "total_indexed": count,
-                "backend": "st_backend" if self._st_backend is not None
-                           else ("native_chroma" if self._native_chroma is not None
-                                 else "vector_store"),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'ensure_indexed.done', 'newly_indexed': len(new_ids), 'total_indexed': count, 'backend': 'st_backend' if self._st_backend is not None else 'native_chroma' if self._native_chroma is not None else 'vector_store'}))
 
             emit_metric(
                 "yunshu_skill_vector_index_count",
@@ -523,21 +459,10 @@ class SkillVectorAdapter:
         """
         vs = self._ensure_vector_store()
         if vs is None:
-            logger.info(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "upsert.skipped_no_backend",
-                "skill_id": skill_id,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'upsert.skipped_no_backend', 'skill_id': skill_id}))
             return False
 
-        logger.info(json.dumps({
-            "module_name": "vector_adapter",
-            "action": "upsert.start",
-            "skill_id": skill_id,
-            "backend": "st_backend" if self._st_backend is not None
-                       else ("native_chroma" if self._native_chroma is not None
-                             else "vector_store"),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'upsert.start', 'skill_id': skill_id, 'backend': 'st_backend' if self._st_backend is not None else 'native_chroma' if self._native_chroma is not None else 'vector_store'}))
 
         # 刷新 meta 索引，确保读到最新 skill.md（钩子由 file_store 锁外触发，
         # 此刻 skill.md 已落盘，load_metadata_index(refresh=True) 可读到最新内容）
@@ -545,11 +470,7 @@ class SkillVectorAdapter:
         if skill_id not in index:
             # skill 已被删除 → 清理索引中的残留向量
             self._remove_skill_vector(skill_id)
-            logger.info(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "upsert.skill_deleted_cleaned",
-                "skill_id": skill_id,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'upsert.skill_deleted_cleaned', 'skill_id': skill_id}))
             return False
 
         # 先删除旧向量（若存在），再让 ensure_indexed 增量添加新向量
@@ -557,12 +478,7 @@ class SkillVectorAdapter:
         self.ensure_indexed()
 
         updated = skill_id in self._indexed_skill_ids
-        logger.info(json.dumps({
-            "module_name": "vector_adapter",
-            "action": "upsert." + ("ok" if updated else "failed"),
-            "skill_id": skill_id,
-            "indexed_count": len(self._indexed_skill_ids),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'upsert.' + ('ok' if updated else 'failed'), 'skill_id': skill_id, 'indexed_count': len(self._indexed_skill_ids)}))
         return updated
 
     def _remove_skill_vector(self, skill_id: str) -> None:
@@ -592,37 +508,18 @@ class SkillVectorAdapter:
                             # 最后一个：清空为 0 行数组，保留列数
                             doc_vectors = np.empty((0, doc_vectors.shape[1]))
                         self._st_backend = (model, doc_ids, doc_vectors, doc_metas)
-                        logger.info(json.dumps({
-                            "module_name": "vector_adapter",
-                            "action": "remove_skill.st_backend.ok",
-                            "skill_id": skill_id,
-                            "remaining_docs": len(doc_ids),
-                        }, ensure_ascii=False))
+                        logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'remove_skill.st_backend.ok', 'skill_id': skill_id, 'remaining_docs': len(doc_ids)}))
                     except Exception as e:  # noqa: BLE001
-                        logger.warning(json.dumps({
-                            "module_name": "vector_adapter",
-                            "action": "remove_skill.st_backend.failed",
-                            "skill_id": skill_id,
-                            "error": str(e)[:200],
-                        }, ensure_ascii=False))
+                        logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'remove_skill.st_backend.failed', 'skill_id': skill_id, 'error': str(e)[:200]}))
 
             # _native_chroma 模式：collection.delete
             if self._native_chroma is not None:
                 try:
                     _, collection = self._native_chroma
                     collection.delete(ids=[f"skill_{skill_id}"])
-                    logger.info(json.dumps({
-                        "module_name": "vector_adapter",
-                        "action": "remove_skill.native_chroma.ok",
-                        "skill_id": skill_id,
-                    }, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'remove_skill.native_chroma.ok', 'skill_id': skill_id}))
                 except Exception as e:  # noqa: BLE001
-                    logger.warning(json.dumps({
-                        "module_name": "vector_adapter",
-                        "action": "remove_skill.native_chroma.failed",
-                        "skill_id": skill_id,
-                        "error": str(e)[:200],
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'remove_skill.native_chroma.failed', 'skill_id': skill_id, 'error': str(e)[:200]}))
 
             # 从已索引集合移除（让 ensure_indexed 重新添加）
             self._indexed_skill_ids.discard(skill_id)
@@ -707,11 +604,7 @@ class SkillVectorAdapter:
 
                 return vec
             except Exception as e:  # noqa: BLE001
-                logger.warning(json.dumps({
-                    "module_name": "vector_adapter",
-                    "action": "encode_query.failed",
-                    "error": str(e)[:300],
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'encode_query.failed', 'error': str(e)[:300]}))
                 return None
 
     def _invalidate_query_cache(self) -> None:
@@ -724,11 +617,7 @@ class SkillVectorAdapter:
             self._query_cache_misses = 0
             self._thundering_herd_avoided = 0
         if evicted > 0:
-            logger.info(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "query_cache.invalidated",
-                "evicted": evicted,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'query_cache.invalidated', 'evicted': evicted}))
 
     def get_query_cache_stats(self) -> Dict[str, Any]:
         """获取 query embedding 缓存统计（可观测性）"""
@@ -804,21 +693,12 @@ class SkillVectorAdapter:
         # - 仅针对 BM25 fallback 模式的字面匹配缺陷做兜底
         # - 启发式规则保守：只过滤明确无语义的查询
         if self._is_negative_query(query):
-            logger.info(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "search.negative_query_filtered",
-                "query": query[:50],
-                "reason": "matched negative heuristic pattern",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'search.negative_query_filtered', 'query': query[:50], 'reason': 'matched negative heuristic pattern'}))
             return []
 
         # 延迟构建索引
         if not self._index_built:
-            logger.info(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "search.lazy_build_index",
-                "query": query[:50],
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'search.lazy_build_index', 'query': query[:50]}))
             self.ensure_indexed()
 
         vs = self._vector_store
@@ -826,17 +706,7 @@ class SkillVectorAdapter:
             logger.warning("VectorStore unavailable, returning empty results")
             return []
 
-        logger.info(json.dumps({
-            "module_name": "vector_adapter",
-            "action": "search.start",
-            "query": query[:50],
-            "top_k": top_k,
-            "enabled_only": enabled_only,
-            "min_score": min_score,
-            "backend": "st_backend" if self._st_backend is not None
-                       else ("native_chroma" if self._native_chroma is not None
-                             else "vector_store"),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'search.start', 'query': query[:50], 'top_k': top_k, 'enabled_only': enabled_only, 'min_score': min_score, 'backend': 'st_backend' if self._st_backend is not None else 'native_chroma' if self._native_chroma is not None else 'vector_store'}))
 
         # [变易] 2s 超时降级 — 模型 encode/向量计算卡住时返回空列表，
         # 触发外层 SkillLoader 降级 TF-IDF（守任务防御性要求）
@@ -871,33 +741,13 @@ class SkillVectorAdapter:
                 )
                 results = future.result(timeout=self._SEARCH_TIMEOUT_SECONDS)
                 elapsed_ms = (_time.time() - t0) * 1000
-                logger.info(json.dumps({
-                    "module_name": "vector_adapter",
-                    "action": "search.done",
-                    "query": query[:50],
-                    "result_count": len(results),
-                    "elapsed_ms": round(elapsed_ms, 2),
-                    "top1_skill_id": results[0]["skill_id"] if results else None,
-                    "top1_score": round(results[0]["score"], 4) if results else None,
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'search.done', 'query': query[:50], 'result_count': len(results), 'elapsed_ms': round(elapsed_ms, 2), 'top1_skill_id': results[0]['skill_id'] if results else None, 'top1_score': round(results[0]['score'], 4) if results else None}))
                 return results
         except FutureTimeout:
-            logger.warning(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "search.timeout_fallback",
-                "query": query[:50],
-                "timeout_seconds": self._SEARCH_TIMEOUT_SECONDS,
-                "fallback": "empty_list",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'search.timeout_fallback', 'query': query[:50], 'timeout_seconds': self._SEARCH_TIMEOUT_SECONDS, 'fallback': 'empty_list'}))
             return []
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "search.exception_fallback",
-                "query": query[:50],
-                "error": str(e)[:200],
-                "fallback": "empty_list",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'search.exception_fallback', 'query': query[:50], 'error': str(e)[:200], 'fallback': 'empty_list'}))
             return []
 
     def _search_impl(
@@ -925,13 +775,7 @@ class SkillVectorAdapter:
             backend_chosen = "native_chroma"
         else:
             backend_chosen = "vector_store"
-        logger.info(json.dumps({
-            "module_name": "vector_adapter",
-            "action": "search_impl.dispatch",
-            "query": query[:50],
-            "backend": backend_chosen,
-            "indexed_count": len(self._indexed_skill_ids),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'search_impl.dispatch', 'query': query[:50], 'backend': backend_chosen, 'indexed_count': len(self._indexed_skill_ids)}))
 
         # ── BGE-m3 sentence-transformers 模式：自管理向量库 ──
         if self._st_backend is not None:
@@ -1027,22 +871,9 @@ class SkillVectorAdapter:
 
             # 相似度计算结果日志（排查"为什么 top1 不是期望 skill"的关键）
             top1_idx = int(top_idx[0]) if len(top_idx) > 0 else -1
-            logger.info(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "st_backend.sims_computed",
-                "query": query[:50],
-                "doc_count": len(doc_ids),
-                "q_vec_dim": int(q_vec.shape[0]),
-                "top1_skill_id": doc_ids[top1_idx] if top1_idx >= 0 else None,
-                "top1_similarity": round(float(sims[top1_idx]), 4) if top1_idx >= 0 else None,
-                "candidates": n_candidates,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'vector_adapter', 'action': 'st_backend.sims_computed', 'query': query[:50], 'doc_count': len(doc_ids), 'q_vec_dim': int(q_vec.shape[0]), 'top1_skill_id': doc_ids[top1_idx] if top1_idx >= 0 else None, 'top1_similarity': round(float(sims[top1_idx]), 4) if top1_idx >= 0 else None, 'candidates': n_candidates}))
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "sentence_transformers.query.failed",
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'sentence_transformers.query.failed', 'error': str(e)}))
             return []
 
         results: List[Dict[str, Any]] = []
@@ -1104,11 +935,7 @@ class SkillVectorAdapter:
                 include=["metadatas", "distances"],
             )
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "module_name": "vector_adapter",
-                "action": "native_chroma.query.failed",
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'vector_adapter', 'action': 'native_chroma.query.failed', 'error': str(e)}))
             return []
 
         if not qr["ids"] or not qr["ids"][0]:

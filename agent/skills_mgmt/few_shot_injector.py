@@ -30,6 +30,7 @@ from typing import Any, Dict, List
 
 from .loader import estimate_tokens, _tokenize
 from .observability import logger, emit_metric
+from agent.logging_utils import log_dict
 
 
 # ════════════════════════════════════════════════════════════
@@ -173,12 +174,7 @@ class FewShotInjector:
         try:
             lines = path.read_text(encoding="utf-8").splitlines()
         except (OSError, UnicodeDecodeError) as e:
-            logger.warning(json.dumps({
-                "module_name": "few_shot_injector",
-                "action": "load_examples.read_failed",
-                "skill_id": skill_id,
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'few_shot_injector', 'action': 'load_examples.read_failed', 'skill_id': skill_id, 'error': str(e)}))
             return []
         for line_no, line in enumerate(lines, start=1):
             line = line.strip()
@@ -187,23 +183,11 @@ class FewShotInjector:
             try:
                 data = json.loads(line)
             except json.JSONDecodeError:
-                logger.warning(json.dumps({
-                    "module_name": "few_shot_injector",
-                    "action": "load_examples.bad_line",
-                    "skill_id": skill_id,
-                    "line_no": line_no,
-                    "reason": "invalid_json",
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'few_shot_injector', 'action': 'load_examples.bad_line', 'skill_id': skill_id, 'line_no': line_no, 'reason': 'invalid_json'}))
                 continue
             example = FewShotExample.from_dict(data)
             if example is None:
-                logger.warning(json.dumps({
-                    "module_name": "few_shot_injector",
-                    "action": "load_examples.bad_line",
-                    "skill_id": skill_id,
-                    "line_no": line_no,
-                    "reason": "missing_required_field",
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'few_shot_injector', 'action': 'load_examples.bad_line', 'skill_id': skill_id, 'line_no': line_no, 'reason': 'missing_required_field'}))
                 continue
             examples.append(example)
         return examples
@@ -230,49 +214,17 @@ class FewShotInjector:
         tid = uuid.uuid4().hex[:16]
 
         all_examples = self.load_examples(skill_id)
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "few_shot_injector",
-            "action": "select_examples.start",
-            "skill_id": skill_id,
-            "intent": intent[:100],
-            "top_k": top_k,
-            "min_rating": min_rating,
-            "min_score": min_score,
-            "loaded_count": len(all_examples),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'few_shot_injector', 'action': 'select_examples.start', 'skill_id': skill_id, 'intent': intent[:100], 'top_k': top_k, 'min_rating': min_rating, 'min_score': min_score, 'loaded_count': len(all_examples)}))
 
         examples = [ex for ex in all_examples if ex.rating >= min_rating]
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "few_shot_injector",
-            "action": "select_examples.rating_filter",
-            "skill_id": skill_id,
-            "after_rating_filter": len(examples),
-            "dropped_low_rating": len(all_examples) - len(examples),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'few_shot_injector', 'action': 'select_examples.rating_filter', 'skill_id': skill_id, 'after_rating_filter': len(examples), 'dropped_low_rating': len(all_examples) - len(examples)}))
         if not examples:
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "few_shot_injector",
-                "action": "select_examples.done",
-                "skill_id": skill_id,
-                "reason": "no_qualified_examples",
-                "selected": [],
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'few_shot_injector', 'action': 'select_examples.done', 'skill_id': skill_id, 'reason': 'no_qualified_examples', 'selected': []}))
             return []
 
         query_tokens = _tokenize(intent)
         if not query_tokens:
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "few_shot_injector",
-                "action": "select_examples.done",
-                "skill_id": skill_id,
-                "reason": "empty_query_tokens",
-                "intent": intent[:100],
-                "selected": [],
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'few_shot_injector', 'action': 'select_examples.done', 'skill_id': skill_id, 'reason': 'empty_query_tokens', 'intent': intent[:100], 'selected': []}))
             return []
 
         docs_tokens = [_tokenize(ex.intent) for ex in examples]
@@ -282,36 +234,13 @@ class FewShotInjector:
         for ex, doc_tokens in zip(examples, docs_tokens):
             score = _cosine_tfidf(query_tokens, doc_tokens, idf)
             passed = score >= min_score
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "few_shot_injector",
-                "action": "select_examples.score",
-                "skill_id": skill_id,
-                "example_id": ex.example_id,
-                "example_intent": ex.intent[:100],
-                "query_tokens": query_tokens,
-                "doc_tokens": doc_tokens,
-                "score": round(score, 4),
-                "min_score": min_score,
-                "passed": passed,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'few_shot_injector', 'action': 'select_examples.score', 'skill_id': skill_id, 'example_id': ex.example_id, 'example_intent': ex.intent[:100], 'query_tokens': query_tokens, 'doc_tokens': doc_tokens, 'score': round(score, 4), 'min_score': min_score, 'passed': passed}))
             if passed:
                 scored.append((score, ex))
 
         scored.sort(key=lambda item: item[0], reverse=True)
         selected = [ex for _, ex in scored[:top_k]]
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "few_shot_injector",
-            "action": "select_examples.done",
-            "skill_id": skill_id,
-            "intent": intent[:100],
-            "candidate_count": len(scored),
-            "selected": [ex.example_id for ex in selected],
-            "selected_count": len(selected),
-            "top_score": round(scored[0][0], 4) if scored else None,
-            "reason": "ok" if selected else "no_score_above_min_score",
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'few_shot_injector', 'action': 'select_examples.done', 'skill_id': skill_id, 'intent': intent[:100], 'candidate_count': len(scored), 'selected': [ex.example_id for ex in selected], 'selected_count': len(selected), 'top_score': round(scored[0][0], 4) if scored else None, 'reason': 'ok' if selected else 'no_score_above_min_score'}))
         return selected
 
     # ──────────────────────────────────────────────
@@ -342,37 +271,17 @@ class FewShotInjector:
         try:
             examples = self.load_examples(skill_id)
         except Exception as e:  # noqa: BLE001 注入失败不影响主流程
-            logger.warning(json.dumps({
-                "trace_id": tid,
-                "module_name": "few_shot_injector",
-                "action": "inject.skipped",
-                "skill_id": skill_id,
-                "reason": "load_failed",
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'few_shot_injector', 'action': 'inject.skipped', 'skill_id': skill_id, 'reason': 'load_failed', 'error': str(e)}))
             return empty
 
         # 数据量不足：示例数 < 3 时不注入（宁缺毋滥）
         if len(examples) < 3:
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "few_shot_injector",
-                "action": "inject.skipped",
-                "skill_id": skill_id,
-                "reason": "insufficient_examples",
-                "example_count": len(examples),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'few_shot_injector', 'action': 'inject.skipped', 'skill_id': skill_id, 'reason': 'insufficient_examples', 'example_count': len(examples)}))
             return empty
 
         selected = self.select_examples(skill_id, intent)
         if not selected:
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "few_shot_injector",
-                "action": "inject.skipped",
-                "skill_id": skill_id,
-                "reason": "no_high_confidence_match",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'few_shot_injector', 'action': 'inject.skipped', 'skill_id': skill_id, 'reason': 'no_high_confidence_match'}))
             return empty
 
         # token 预算内贪心选取（单示例不截断）
@@ -399,32 +308,14 @@ class FewShotInjector:
             included.append(ex)
 
         if not included:
-            logger.info(json.dumps({
-                "trace_id": tid,
-                "module_name": "few_shot_injector",
-                "action": "inject.skipped",
-                "skill_id": skill_id,
-                "reason": "budget_too_small",
-                "max_tokens": max_tokens,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'few_shot_injector', 'action': 'inject.skipped', 'skill_id': skill_id, 'reason': 'budget_too_small', 'max_tokens': max_tokens}))
             return empty
 
         prompt = "\n".join(lines)
         est_tokens = estimate_tokens(prompt)
 
         elapsed = (time.time() - t0) * 1000
-        logger.info(json.dumps({
-            "trace_id": tid,
-            "module_name": "few_shot_injector",
-            "action": "inject.ok",
-            "duration_ms": round(elapsed, 2),
-            "layer": "2.5",
-            "skill_id": skill_id,
-            "intent": intent[:100],
-            "injected_count": len(included),
-            "estimated_tokens": est_tokens,
-            "budget": max_tokens,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'few_shot_injector', 'action': 'inject.ok', 'layer': '2.5', 'skill_id': skill_id, 'intent': intent[:100], 'injected_count': len(included), 'estimated_tokens': est_tokens, 'budget': max_tokens}))
 
         emit_metric("yunshu_skill_fewshot_inject_tokens",
                     value=est_tokens, kind="histogram",
@@ -455,13 +346,7 @@ class FewShotInjector:
         seen_pairs = {(ex.intent, ex.input) for ex in existing}
         if example.example_id in seen_ids or \
                 (example.intent, example.input) in seen_pairs:
-            logger.info(json.dumps({
-                "module_name": "few_shot_injector",
-                "action": "add_example.duplicated",
-                "skill_id": skill_id,
-                "example_id": example.example_id,
-                "reason": "duplicate_example",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'few_shot_injector', 'action': 'add_example.duplicated', 'skill_id': skill_id, 'example_id': example.example_id, 'reason': 'duplicate_example'}))
             return False
 
         path = self._path_for(skill_id)
@@ -469,11 +354,5 @@ class FewShotInjector:
         with path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(example.to_dict(), ensure_ascii=False) + "\n")
 
-        logger.info(json.dumps({
-            "module_name": "few_shot_injector",
-            "action": "add_example.ok",
-            "skill_id": skill_id,
-            "example_id": example.example_id,
-            "rating": example.rating,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'few_shot_injector', 'action': 'add_example.ok', 'skill_id': skill_id, 'example_id': example.example_id, 'rating': example.rating}))
         return True

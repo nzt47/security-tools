@@ -41,6 +41,7 @@ from agent.knowledge.card import Card, CardStore
 from agent.knowledge.link_cache import LinkCache
 from agent.knowledge.schema import Card as _SchemaCard  # noqa: F401  (类型别名，防误用)
 from agent.utils.periodic_sampler import PeriodicSampler
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -579,20 +580,7 @@ class KnowledgeSearch:
         candidate_k = max(top_k * _DEFAULT_CANDIDATE_MULT, 10)
         _trace = uuid.uuid4().hex[:16]
         _t0 = time.perf_counter()
-        logger.info(json.dumps({
-            "trace_id": _trace,
-            "module_name": "knowledge_search",
-            "action": "search_start",
-            "query": query,
-            "top_k": top_k,
-            "candidate_k": candidate_k,
-            "cards": len(self._cards),
-            "min_score": self._min_score,
-            "rerank_min_score": self._rerank_min_score,
-            "rrf_k": self._rrf_k,
-            "vector_store": self._vector_store is not None,
-            "reranker": self._reranker is not None,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'knowledge_search', 'action': 'search_start', 'query': query, 'top_k': top_k, 'candidate_k': candidate_k, 'cards': len(self._cards), 'min_score': self._min_score, 'rerank_min_score': self._rerank_min_score, 'rrf_k': self._rrf_k, 'vector_store': self._vector_store is not None, 'reranker': self._reranker is not None}))
 
         # ── 三路召回（分段计时，定位性能瓶颈）──
         _t_stage = time.perf_counter()
@@ -656,24 +644,7 @@ class KnowledgeSearch:
         for path_name, path_list in zip(("bm25", "vector", "link"), ranked_lists):
             for rank, slug in enumerate(path_list, start=1):
                 path_ranks.setdefault(slug, {})[path_name] = rank
-        logger.info(json.dumps({
-            "trace_id": _trace,
-            "module_name": "knowledge_search",
-            "action": "rrf_fuse",
-            "n_active": n_active,
-            "max_possible": round(max_possible, 6),
-            "detail": [
-                {
-                    "slug": slug,
-                    "bm25_rank": path_ranks.get(slug, {}).get("bm25"),
-                    "vector_rank": path_ranks.get(slug, {}).get("vector"),
-                    "link_rank": path_ranks.get(slug, {}).get("link"),
-                    "raw": round(raw, 6),
-                    "norm": round(fused_norm[slug], 4),
-                }
-                for slug, raw in fused.items()
-            ],
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'knowledge_search', 'action': 'rrf_fuse', 'n_active': n_active, 'max_possible': round(max_possible, 6), 'detail': [{'slug': slug, 'bm25_rank': path_ranks.get(slug, {}).get('bm25'), 'vector_rank': path_ranks.get(slug, {}).get('vector'), 'link_rank': path_ranks.get(slug, {}).get('link'), 'raw': round(raw, 6), 'norm': round(fused_norm[slug], 4)} for slug, raw in fused.items()]}))
         t_rrf = (time.perf_counter() - _t_stage) * 1000  # rrf_fuse + 归一化 + 误召回保护
 
         # ── 重排（可选，失败降级原序）──
@@ -694,21 +665,7 @@ class KnowledgeSearch:
         # 耗时日志采样（生产降噪，PeriodicSampler 线程安全）：rate=1.0 全量；
         # 0<rate<1 按周期确定性抽样（如 0.1 → 每 10 次 1 条）。
         if self._timing_sampler.should_sample():
-            logger.info(json.dumps({
-                "trace_id": _trace,
-                "module_name": "knowledge_search",
-                "action": "search_stage_timing",
-                "query": query,
-                "ms": {
-                    "bm25": round(t_bm25, 2),
-                    "vector": round(t_vector, 2),
-                    "link": round(t_link, 2),
-                    "rrf": round(t_rrf, 2),
-                    "rerank": round(t_rerank, 2),
-                    "assemble": round(t_hits, 2),
-                    "total": round(_total_ms, 2),
-                },
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'knowledge_search', 'action': 'search_stage_timing', 'query': query, 'ms': {'bm25': round(t_bm25, 2), 'vector': round(t_vector, 2), 'link': round(t_link, 2), 'rrf': round(t_rrf, 2), 'rerank': round(t_rerank, 2), 'assemble': round(t_hits, 2), 'total': round(_total_ms, 2)}}))
         logger.info(
             "知识检索: query=%r top_k=%d bm25=%d vector=%d links=%d fused=%d hits=%d "
             "trace=%s 耗时=%.2fms",

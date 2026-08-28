@@ -35,6 +35,7 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from agent.monitoring.tracing import get_trace_id
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -581,14 +582,7 @@ class ObservabilityConfig:
         # 启动时自动验证并修复所有配置项
         self._validate_and_repair_all()
 
-        logger.info(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "observability_config",
-            "action": "init",
-            "duration_ms": 0,
-            "config_items": len(self._rules),
-            "config": self._safe_log_config(),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'observability_config', 'action': 'init', 'config_items': len(self._rules), 'config': self._safe_log_config()}))
 
     # ── 公开 API ──
 
@@ -650,16 +644,7 @@ class ObservabilityConfig:
             if rule and written != value:
                 # 写入异常，回滚
                 self._raw_set(key, old_value)
-                logger.warning(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "observability_config",
-                    "action": "set_rollback",
-                    "duration_ms": int((time.time() - start) * 1000),
-                    "key": key,
-                    "attempted_value": value,
-                    "written_value": written,
-                    "error": "写入值与预期不一致，已回滚",
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'observability_config', 'action': 'set_rollback', 'key': key, 'attempted_value': value, 'written_value': written, 'error': '写入值与预期不一致，已回滚'}))
                 return False
 
             # 5. 记录变更日志
@@ -685,15 +670,7 @@ class ObservabilityConfig:
             except Exception as e:
                 logger.debug(f"配置变更可观测性通知失败（非致命）: {e}")
 
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "observability_config",
-                "action": "set",
-                "duration_ms": int((time.time() - start) * 1000),
-                "key": key,
-                "old_value": old_value,
-                "new_value": value,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'observability_config', 'action': 'set', 'key': key, 'old_value': old_value, 'new_value': value}))
             return True
 
     def get_all(self) -> Dict[str, Any]:
@@ -731,35 +708,14 @@ class ObservabilityConfig:
                     if new_config:
                         self.reload_from_dict(new_config)
                 except Exception as e:
-                    logger.error(json.dumps({
-                        "trace_id": get_trace_id(),
-                        "module_name": "observability_config",
-                        "action": "watch_config_file_failed",
-                        "duration_ms": 0,
-                        "path": path,
-                        "error": str(e),
-                        "stack_trace": traceback.format_exc(),
-                    }, ensure_ascii=False))
+                    logger.error(log_dict({'module_name': 'observability_config', 'action': 'watch_config_file_failed', 'path': path, 'error': str(e), 'stack_trace': traceback.format_exc()}))
 
             reloader.watch_config(config_path, _on_change)
             reloader.start()
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "observability_config",
-                "action": "watch_config_file",
-                "duration_ms": 0,
-                "path": config_path,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'observability_config', 'action': 'watch_config_file', 'path': config_path}))
             return True
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "observability_config",
-                "action": "watch_config_file_register_failed",
-                "duration_ms": 0,
-                "path": config_path,
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'observability_config', 'action': 'watch_config_file_register_failed', 'path': config_path, 'error': str(e)}))
             return False
 
     def reload_from_dict(self, new_config: Dict[str, Any]) -> bool:
@@ -788,27 +744,14 @@ class ObservabilityConfig:
                 repaired = self._repair_all(merged)
                 if repaired != len(failed_keys):
                     # 仍有无法修复的项，回滚
-                    logger.warning(json.dumps({
-                        "trace_id": get_trace_id(),
-                        "module_name": "observability_config",
-                        "action": "reload_rollback",
-                        "duration_ms": int((time.time() - start) * 1000),
-                        "failed_keys": failed_keys,
-                        "error": "配置重载验证失败，已回滚",
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'observability_config', 'action': 'reload_rollback', 'failed_keys': failed_keys, 'error': '配置重载验证失败，已回滚'}))
                     self._config = old_config
                     return False
 
             # 提交新配置
             self._config = merged
 
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "observability_config",
-                "action": "reload_from_dict",
-                "duration_ms": int((time.time() - start) * 1000),
-                "repaired_keys": failed_keys,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'observability_config', 'action': 'reload_from_dict', 'repaired_keys': failed_keys}))
             return True
 
     def get_change_log(self, limit: int = 50) -> List[Dict[str, Any]]:
@@ -885,13 +828,7 @@ class ObservabilityConfig:
         """启动时验证并修复所有配置项"""
         repaired = self._repair_all(self._config)
         if repaired > 0:
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "observability_config",
-                "action": "startup_repair",
-                "duration_ms": 0,
-                "repaired_count": repaired,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'observability_config', 'action': 'startup_repair', 'repaired_count': repaired}))
 
     @staticmethod
     def _get_from_tree(tree: Dict[str, Any], path: str) -> Any:
@@ -920,15 +857,7 @@ class ObservabilityConfig:
                 try:
                     callback(key, value)
                 except Exception as e:
-                    logger.warning(json.dumps({
-                        "trace_id": get_trace_id(),
-                        "module_name": "observability_config",
-                        "action": "callback_failed",
-                        "duration_ms": 0,
-                        "key": key,
-                        "pattern": pattern,
-                        "error": str(e),
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'observability_config', 'action': 'callback_failed', 'key': key, 'pattern': pattern, 'error': str(e)}))
 
     @staticmethod
     def _load_config_file(path: str) -> Optional[Dict[str, Any]]:
@@ -948,14 +877,7 @@ class ObservabilityConfig:
             # 默认尝试 JSON
             return json.loads(content)
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "observability_config",
-                "action": "load_config_file_failed",
-                "duration_ms": 0,
-                "path": path,
-                "error": str(e),
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'observability_config', 'action': 'load_config_file_failed', 'path': path, 'error': str(e)}))
             return None
 
     def _safe_log_config(self) -> Dict[str, Any]:

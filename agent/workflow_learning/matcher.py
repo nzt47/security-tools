@@ -19,6 +19,7 @@ from typing import Dict, List, Set, Tuple
 
 from .models import LearnedWorkflow
 from .observability import logger, emit_metric, traced_action
+from agent.logging_utils import log_dict
 
 
 def _trace_id():
@@ -216,10 +217,5 @@ def _safe_call(func, *args, action="safe_call", **kwargs):
     try:
         return func(*args, **kwargs)
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": _trace_id(),
-            "module_name": "matcher",
-            "action": action + ".failed",
-            "error": f"{type(e).__name__}: {e}",
-        }, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'matcher', 'action': action + '.failed', 'error': f'{type(e).__name__}: {e}'}))
         raise

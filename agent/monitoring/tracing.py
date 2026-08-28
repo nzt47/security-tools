@@ -15,6 +15,7 @@ import json
 import time
 from typing import Any, Optional
 from contextvars import ContextVar, Token
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -174,28 +175,13 @@ class TraceContext:
             current_tid = _current_trace_id.get()
             if self._token is not None and current_tid != self.trace_id:
                 # 并发冲突检测：with 块内 trace_id 被外部修改（线程池复用/协程污染等）
-                logger.warning(json.dumps({
-                    "trace_id": self.trace_id,
-                    "module_name": "tracing",
-                    "action": "trace_context.conflict_detected",
-                    "duration_ms": duration_ms,
-                    "message": "退出上下文时 trace_id 已被外部修改，存在并发污染风险",
-                    "expected": self.trace_id,
-                    "actual": current_tid,
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'tracing', 'action': 'trace_context.conflict_detected', 'message': '退出上下文时 trace_id 已被外部修改，存在并发污染风险', 'expected': self.trace_id, 'actual': current_tid}))
             if self._token is not None:
                 _current_trace_id.reset(self._token)
             if self._span_token is not None:
                 _current_span_id.reset(self._span_token)
         except Exception as exc:  # noqa: BLE001  防御降级：__exit__ 绝不抛异常
-            logger.warning(json.dumps({
-                "trace_id": self.trace_id,
-                "module_name": "tracing",
-                "action": "trace_context.restore_fallback",
-                "duration_ms": duration_ms,
-                "error": f"{type(exc).__name__}: {exc}",
-                "message": "Token reset 失败（可能跨 context），降级为手动恢复",
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'tracing', 'action': 'trace_context.restore_fallback', 'error': f'{type(exc).__name__}: {exc}', 'message': 'Token reset 失败（可能跨 context），降级为手动恢复'}))
             try:
                 _current_trace_id.set(self._old_trace_id)
                 _current_span_id.set(self._old_span_id)
@@ -512,12 +498,7 @@ def _safe_call(func, *args, action="safe_call", **kwargs):
     try:
         return func(*args, **kwargs)
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": get_trace_id(),
-            "module_name": "tracing",
-            "action": action + ".failed",
-            "error": f"{type(e).__name__}: {e}",
-        }, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'tracing', 'action': action + '.failed', 'error': f'{type(e).__name__}: {e}'}))
         raise
 
 

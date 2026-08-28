@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from agent.monitoring.tracing import get_trace_id
 from agent.circuit_breaker import get_circuit_breaker, CircuitBreakerError
 from agent.graceful_degrade import get_degrade_manager, DegradeModule
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -228,59 +229,28 @@ class OutputSchemaValidator:
             missing_fields = [f for f in required_fields if f not in output_dict]
             
             if missing_fields:
-                logger.error(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "output_schema",
-                    "action": "validate",
-                    "duration_ms": 0,
-                    "error": f"缺少必需字段: {missing_fields}"
-                }))
+                logger.error(log_dict({'module_name': 'output_schema', 'action': 'validate', 'error': f'缺少必需字段: {missing_fields}'}))
                 return False
             
             # 验证 output_type
             output_type = output_dict.get("output_type")
             valid_types = [t.value for t in OutputType]
             if output_type not in valid_types:
-                logger.error(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "output_schema",
-                    "action": "validate",
-                    "duration_ms": 0,
-                    "error": f"无效的 output_type: {output_type}, 有效值: {valid_types}"
-                }))
+                logger.error(log_dict({'module_name': 'output_schema', 'action': 'validate', 'error': f'无效的 output_type: {output_type}, 有效值: {valid_types}'}))
                 return False
             
             # 根据类型验证特定字段
             if not self._validate_by_type(output_type, output_dict):
                 return False
             
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "output_schema",
-                "action": "validate",
-                "duration_ms": 0,
-                "result": "success",
-                "output_type": output_type
-            }))
+            logger.info(log_dict({'module_name': 'output_schema', 'action': 'validate', 'result': 'success', 'output_type': output_type}))
             return True
             
         except json.JSONDecodeError as e:
-            logger.error(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "output_schema",
-                "action": "validate",
-                "duration_ms": 0,
-                "error": f"JSON 解析失败: {str(e)}"
-            }))
+            logger.error(log_dict({'module_name': 'output_schema', 'action': 'validate', 'error': f'JSON 解析失败: {str(e)}'}))
             return False
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "output_schema",
-                "action": "validate",
-                "duration_ms": 0,
-                "error": f"验证失败: {str(e)}"
-            }))
+            logger.error(log_dict({'module_name': 'output_schema', 'action': 'validate', 'error': f'验证失败: {str(e)}'}))
             return False
     
     def _validate_by_type(self, output_type: str, output_dict: Dict[str, Any]) -> bool:
@@ -289,104 +259,50 @@ class OutputSchemaValidator:
         
         if output_type == OutputType.TEXT_RESPONSE.value:
             if "content" not in output_dict:
-                logger.error(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "output_schema",
-                    "action": "_validate_by_type",
-                    "duration_ms": 0,
-                    "error": "text_response 缺少 content 字段"
-                }))
+                logger.error(log_dict({'module_name': 'output_schema', 'action': '_validate_by_type', 'error': 'text_response 缺少 content 字段'}))
                 return False
             return True
         
         elif output_type == OutputType.TOOL_CALL.value:
             if "tool_calls" not in output_dict:
-                logger.error(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "output_schema",
-                    "action": "_validate_by_type",
-                    "duration_ms": 0,
-                    "error": "tool_call 缺少 tool_calls 字段"
-                }))
+                logger.error(log_dict({'module_name': 'output_schema', 'action': '_validate_by_type', 'error': 'tool_call 缺少 tool_calls 字段'}))
                 return False
             
             tool_calls = output_dict["tool_calls"]
             if not isinstance(tool_calls, list) or len(tool_calls) == 0:
-                logger.error(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "output_schema",
-                    "action": "_validate_by_type",
-                    "duration_ms": 0,
-                    "error": "tool_calls 必须是非空列表"
-                }))
+                logger.error(log_dict({'module_name': 'output_schema', 'action': '_validate_by_type', 'error': 'tool_calls 必须是非空列表'}))
                 return False
             
             for i, tc in enumerate(tool_calls):
                 if "tool_name" not in tc or "tool_params" not in tc:
-                    logger.error(json.dumps({
-                        "trace_id": trace_id,
-                        "module_name": "output_schema",
-                        "action": "_validate_by_type",
-                        "duration_ms": 0,
-                        "error": f"tool_call[{i}] 缺少 tool_name 或 tool_params"
-                    }))
+                    logger.error(log_dict({'module_name': 'output_schema', 'action': '_validate_by_type', 'error': f'tool_call[{i}] 缺少 tool_name 或 tool_params'}))
                     return False
             return True
         
         elif output_type == OutputType.ERROR_MESSAGE.value:
             if "error" not in output_dict:
-                logger.error(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "output_schema",
-                    "action": "_validate_by_type",
-                    "duration_ms": 0,
-                    "error": "error_message 缺少 error 字段"
-                }))
+                logger.error(log_dict({'module_name': 'output_schema', 'action': '_validate_by_type', 'error': 'error_message 缺少 error 字段'}))
                 return False
             
             error = output_dict["error"]
             if "error_code" not in error or "message" not in error:
-                logger.error(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "output_schema",
-                    "action": "_validate_by_type",
-                    "duration_ms": 0,
-                    "error": "error 字段缺少 error_code 或 message"
-                }))
+                logger.error(log_dict({'module_name': 'output_schema', 'action': '_validate_by_type', 'error': 'error 字段缺少 error_code 或 message'}))
                 return False
             return True
         
         elif output_type == OutputType.SUMMARY_REPORT.value:
             if "title" not in output_dict or "sections" not in output_dict:
-                logger.error(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "output_schema",
-                    "action": "_validate_by_type",
-                    "duration_ms": 0,
-                    "error": "summary_report 缺少 title 或 sections 字段"
-                }))
+                logger.error(log_dict({'module_name': 'output_schema', 'action': '_validate_by_type', 'error': 'summary_report 缺少 title 或 sections 字段'}))
                 return False
             
             sections = output_dict["sections"]
             if not isinstance(sections, list) or len(sections) == 0:
-                logger.error(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "output_schema",
-                    "action": "_validate_by_type",
-                    "duration_ms": 0,
-                    "error": "sections 必须是非空列表"
-                }))
+                logger.error(log_dict({'module_name': 'output_schema', 'action': '_validate_by_type', 'error': 'sections 必须是非空列表'}))
                 return False
             
             for i, section in enumerate(sections):
                 if "title" not in section or "content" not in section:
-                    logger.error(json.dumps({
-                        "trace_id": trace_id,
-                        "module_name": "output_schema",
-                        "action": "_validate_by_type",
-                        "duration_ms": 0,
-                        "error": f"section[{i}] 缺少 title 或 content"
-                    }))
+                    logger.error(log_dict({'module_name': 'output_schema', 'action': '_validate_by_type', 'error': f'section[{i}] 缺少 title 或 content'}))
                     return False
             return True
         
@@ -410,14 +326,7 @@ class OutputSchemaValidator:
         # 检查熔断器状态
         try:
             if not self._circuit_breaker.allow_request():
-                logger.warning(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "output_schema",
-                    "action": "parse_and_validate",
-                    "duration_ms": 0,
-                    "status": "blocked",
-                    "reason": "Schema 校验熔断器已打开"
-                }))
+                logger.warning(log_dict({'module_name': 'output_schema', 'action': 'parse_and_validate', 'status': 'blocked', 'reason': 'Schema 校验熔断器已打开'}))
                 
                 # 熔断器打开时使用降级机制
                 degrade_result = self._degrade_manager.schema_validate_with_degrade(
@@ -438,13 +347,7 @@ class OutputSchemaValidator:
                     )
                 )
         except CircuitBreakerError as e:
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "output_schema",
-                "action": "parse_and_validate",
-                "duration_ms": 0,
-                "error": str(e)
-            }))
+            logger.warning(log_dict({'module_name': 'output_schema', 'action': 'parse_and_validate', 'error': str(e)}))
         
         # 使用优雅降级进行 Schema 校验
         def validate_func():
@@ -505,13 +408,7 @@ class OutputSchemaValidator:
                 output_dict = json.loads(output)
             except (json.JSONDecodeError, ValueError) as e:
                 # validate 通过但 JSON 解析失败,返回错误消息而非崩溃
-                logger.warning(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "output_schema",
-                    "action": "parse_and_validate",
-                    "duration_ms": (time.time() - start_time) * 1000,
-                    "error": f"JSON 解析失败: {e}"
-                }))
+                logger.warning(log_dict({'module_name': 'output_schema', 'action': 'parse_and_validate', 'error': f'JSON 解析失败: {e}'}))
                 return ErrorMessage(
                     error=ErrorDetail(
                         error_code="SCHEMA_PARSE_ERROR",
@@ -577,14 +474,7 @@ class OutputSchemaValidator:
                 )
             )
         
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "output_schema",
-            "action": "parse_and_validate",
-            "duration_ms": round(duration_ms, 2),
-            "result": "success",
-            "output_type": output_type
-        }))
+        logger.info(log_dict({'module_name': 'output_schema', 'action': 'parse_and_validate', 'result': 'success', 'output_type': output_type}))
         
         return result
 

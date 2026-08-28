@@ -204,13 +204,19 @@ def test_invalid_variant_uses_failed_rollback_action():
         r._maybe_hot_reload()
 
     rollback_logs = [
-        _json.loads(m) for m in captured
-        if "hot_reload.failed_rollback" in m or "hot_reload.exception_rollback" in m
+        m for m in captured
+        if (isinstance(m, dict) and ("hot_reload.failed_rollback" in str(m.get("action", ""))
+                                     or "hot_reload.exception_rollback" in str(m.get("action", ""))))
+        or (isinstance(m, str) and ("hot_reload.failed_rollback" in m or "hot_reload.exception_rollback" in m))
     ]
     assert len(rollback_logs) == 1
-    assert rollback_logs[0]["action"] == "hot_reload.failed_rollback"
-    assert rollback_logs[0]["status"] == "failed"
-    assert "traceback" in rollback_logs[0]
+    if isinstance(rollback_logs[0], dict):
+        payload = rollback_logs[0]
+    else:
+        payload = _json.loads(rollback_logs[0])
+    assert payload["action"] == "hot_reload.failed_rollback"
+    assert payload["status"] == "failed"
+    assert "traceback" in payload
 
 
 def test_unexpected_exception_uses_exception_rollback_action():
@@ -236,13 +242,19 @@ def test_unexpected_exception_uses_exception_rollback_action():
         r._maybe_hot_reload()
 
     rollback_logs = [
-        _json.loads(m) for m in captured
-        if "hot_reload.failed_rollback" in m or "hot_reload.exception_rollback" in m
+        m for m in captured
+        if (isinstance(m, dict) and ("hot_reload.failed_rollback" in str(m.get("action", ""))
+                                     or "hot_reload.exception_rollback" in str(m.get("action", ""))))
+        or (isinstance(m, str) and ("hot_reload.failed_rollback" in m or "hot_reload.exception_rollback" in m))
     ]
     assert len(rollback_logs) == 1
-    assert rollback_logs[0]["action"] == "hot_reload.exception_rollback"
-    assert rollback_logs[0]["status"] == "exception"
-    assert "traceback" in rollback_logs[0]
+    if isinstance(rollback_logs[0], dict):
+        payload = rollback_logs[0]
+    else:
+        payload = _json.loads(rollback_logs[0])
+    assert payload["action"] == "hot_reload.exception_rollback"
+    assert payload["status"] == "exception"
+    assert "traceback" in payload
 
 
 # ════════════════════════════════════════════════════════════

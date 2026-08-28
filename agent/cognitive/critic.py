@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from agent.monitoring.tracing import get_trace_id
 from agent.circuit_breaker import get_circuit_breaker, CircuitBreakerError
 from agent.graceful_degrade import get_degrade_manager, DegradeModule
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -136,14 +137,7 @@ class CriticEvaluator:
         
         # 检查是否应该跳过 Critic 评估（降级）
         if self._degrade_manager.should_skip(DegradeModule.CRITIC):
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "critic",
-                "action": "evaluate",
-                "duration_ms": 0,
-                "status": "skipped",
-                "reason": "Critic 服务不可用，已降级跳过评估"
-            }))
+            logger.warning(log_dict({'module_name': 'critic', 'action': 'evaluate', 'status': 'skipped', 'reason': 'Critic 服务不可用，已降级跳过评估'}))
             # [D8] 降级诚实化：不伪造 80 分，overall_score=None + passed=False
             return EvaluationResult(
                 overall_score=None,
@@ -162,14 +156,7 @@ class CriticEvaluator:
                     message="Critic 熔断器已打开，请求被拒绝"
                 )
         except CircuitBreakerError as e:
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "critic",
-                "action": "evaluate",
-                "duration_ms": 0,
-                "status": "blocked",
-                "reason": str(e)
-            }))
+            logger.warning(log_dict({'module_name': 'critic', 'action': 'evaluate', 'status': 'blocked', 'reason': str(e)}))
             return EvaluationResult(
                 overall_score=None,
                 dimension_scores={},
@@ -179,14 +166,7 @@ class CriticEvaluator:
                 explanation="Critic 熔断器已打开，已降级跳过评估"
             )
         
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "critic",
-            "action": "evaluate",
-            "duration_ms": 0,
-            "mode": self.mode.value,
-            "threshold": self.threshold
-        }))
+        logger.info(log_dict({'module_name': 'critic', 'action': 'evaluate', 'mode': self.mode.value, 'threshold': self.threshold}))
 
         # 任务6：进化策略注入（接线点 2）——按 critic 作用域查询策略库，
         # 命中则写入 context["_evolution_strategies"]，由规则/LLM 评估转成 feedback
@@ -225,14 +205,7 @@ class CriticEvaluator:
             degrade_result = self._degrade_manager.critic_evaluate_with_degrade(
                 user_query, response, context
             )
-            logger.error(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "critic",
-                "action": "evaluate",
-                "duration_ms": (time.time() - start_time) * 1000,
-                "error": str(e),
-                "status": "degraded"
-            }))
+            logger.error(log_dict({'module_name': 'critic', 'action': 'evaluate', 'error': str(e), 'status': 'degraded'}))
             # [D8] 诚实化：降级不是成功——overall_score 置 None（消除 7 分 vs 100 分制混乱），
             # passed 恒为 False，禁止 .get("passed", True) 默认值把降级误判为通过。
             return EvaluationResult(
@@ -254,29 +227,11 @@ class CriticEvaluator:
         duration_ms = (time.time() - start_time) * 1000
         
         # 记录评估日志
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "critic",
-            "action": "evaluate",
-            "duration_ms": round(duration_ms, 2),
-            "overall_score": overall_score,
-            "passed": passed,
-            "retry_recommended": retry_recommended,
-            "dimension_scores": dimension_scores
-        }))
+        logger.info(log_dict({'module_name': 'critic', 'action': 'evaluate', 'overall_score': overall_score, 'passed': passed, 'retry_recommended': retry_recommended, 'dimension_scores': dimension_scores}))
         
         # 如果未通过，记录警告日志
         if not passed:
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "critic",
-                "action": "evaluate",
-                "duration_ms": round(duration_ms, 2),
-                "warning": "评估未通过，触发重试或降级",
-                "overall_score": overall_score,
-                "threshold": self.threshold,
-                "feedback": feedback
-            }))
+            logger.warning(log_dict({'module_name': 'critic', 'action': 'evaluate', 'warning': '评估未通过，触发重试或降级', 'overall_score': overall_score, 'threshold': self.threshold, 'feedback': feedback}))
         
         return EvaluationResult(
             overall_score=overall_score,
@@ -328,13 +283,7 @@ class CriticEvaluator:
             for _s in context["_evolution_strategies"]:
                 feedback.append(f"[策略 #{_s['strategy_id']}] {_s['prompt_patch']}")
         
-        logger.debug(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "critic",
-            "action": "_evaluate_with_rules",
-            "scores": scores,
-            "feedback": feedback
-        }))
+        logger.debug(log_dict({'module_name': 'critic', 'action': '_evaluate_with_rules', 'scores': scores, 'feedback': feedback}))
         
         return scores, feedback
     
@@ -562,12 +511,7 @@ class CriticEvaluator:
         """
         trace_id = get_trace_id()
         
-        logger.warning(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "critic",
-            "action": "_evaluate_with_llm",
-            "warning": "LLM 评估模式尚未完全实现，使用规则引擎替代"
-        }))
+        logger.warning(log_dict({'module_name': 'critic', 'action': '_evaluate_with_llm', 'warning': 'LLM 评估模式尚未完全实现，使用规则引擎替代'}))
         
         # 回退到规则引擎
         return self._evaluate_with_rules(user_query, response, context)

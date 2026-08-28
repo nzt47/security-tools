@@ -36,7 +36,7 @@ def _cleanup_singletons():
 
 
 class _Capture:
-    """临时替换 _logger.info 捕获审计日志 JSON 消息"""
+    """临时替换 _logger.info 捕获审计日志消息（log_dict dict 或旧 JSON 字符串）"""
 
     def __init__(self, audit_logger):
         self._audit_logger = audit_logger
@@ -50,6 +50,13 @@ class _Capture:
     def __exit__(self, *exc):
         self._audit_logger._logger.info = self._orig
         return False
+
+
+def _parse_payload(record) -> dict:
+    """解析审计日志消息为 dict，兼容 log_dict dict 消息与旧 JSON 字符串"""
+    if isinstance(record, dict):
+        return record
+    return json.loads(str(record))
 
 
 class TestLoggingUtilsSingleton:
@@ -131,7 +138,7 @@ class TestModuleNameField:
         audit = lu.get_audit_logger()
         with _Capture(audit) as cap:
             audit.log_config_access("api_key")
-        payload = json.loads(cap.records[0])
+        payload = _parse_payload(cap.records[0])
         assert payload["module_name"] == "logging_utils"
         assert payload["action"].startswith("logging_utils.")
 
@@ -139,7 +146,7 @@ class TestModuleNameField:
         audit = sl.get_audit_logger()
         with _Capture(audit) as cap:
             audit.log_config_access("api_key")
-        payload = json.loads(cap.records[0])
+        payload = _parse_payload(cap.records[0])
         assert payload["module_name"] == "safe_logger"
         assert payload["action"] == "config_access.user.user"
 
@@ -149,10 +156,11 @@ class TestModuleNameField:
             lu.get_audit_logger().log_config_access("k")
         with _Capture(sl.get_audit_logger()) as cap_sl:
             sl.get_audit_logger().log_config_access("k")
-        payload_lu = json.loads(cap_lu.records[0])
-        payload_sl = json.loads(cap_sl.records[0])
+        payload_lu = _parse_payload(cap_lu.records[0])
+        payload_sl = _parse_payload(cap_sl.records[0])
         assert payload_lu != payload_sl
-        assert "msg" in payload_sl
+        # log_dict 统一将 msg 规范化为 message（原 safe_logger 用 msg / logging_utils 用 message）
+        assert "message" in payload_sl
         assert "message" in payload_lu
 
 

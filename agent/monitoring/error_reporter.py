@@ -30,6 +30,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum
+from agent.logging_utils import log_dict
 
 # 结构化日志必需：get_trace_id() 提供上下文追踪 ID
 # set_trace_id() 用于跨线程传递 trace_id（ContextVar 不自动继承到子线程）
@@ -184,14 +185,7 @@ class WebhookReporter(BaseReporter):
         
         with urllib.request.urlopen(req, timeout=timeout) as response:
             if 200 <= response.status < 300:
-                logger.info(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "error_reporter",
-                    "action": "webhook_report_success",
-                    "duration_ms": 0,
-                    "url": url,
-                    "status_code": response.status
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'error_reporter', 'action': 'webhook_report_success', 'url': url, 'status_code': response.status}))
                 return True
             else:
                 raise TemporaryNetworkError(f"Webhook returned {response.status}")
@@ -202,12 +196,7 @@ class WebhookReporter(BaseReporter):
             return False
         
         if not self.url:
-            logger.warning(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "error_reporter",
-                "action": "webhook_not_configured",
-                "duration_ms": 0
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'error_reporter', 'action': 'webhook_not_configured'}))
             return False
         
         import urllib.request
@@ -222,14 +211,7 @@ class WebhookReporter(BaseReporter):
         try:
             return self._send_webhook_with_retry(report, self.url, headers, self.timeout)
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "error_reporter",
-                "action": "webhook_report_error",
-                "duration_ms": 0,
-                "error": str(e),
-                "url": self.url
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'error_reporter', 'action': 'webhook_report_error', 'error': str(e), 'url': self.url}))
             return False
 
 
@@ -249,12 +231,7 @@ class SlackReporter(BaseReporter):
             return False
         
         if not self.webhook_url:
-            logger.warning(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "error_reporter",
-                "action": "slack_not_configured",
-                "duration_ms": 0
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'error_reporter', 'action': 'slack_not_configured'}))
             return False
         
         colors = {
@@ -307,25 +284,11 @@ class SlackReporter(BaseReporter):
             )
             
             with urllib.request.urlopen(req, timeout=5) as response:
-                logger.info(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "error_reporter",
-                    "action": "slack_report_success",
-                    "duration_ms": 0,
-                    "channel": self.channel,
-                    "status_code": response.status
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'error_reporter', 'action': 'slack_report_success', 'channel': self.channel, 'status_code': response.status}))
                 return 200 <= response.status < 300
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "error_reporter",
-                "action": "slack_report_error",
-                "duration_ms": 0,
-                "error": str(e),
-                "channel": self.channel
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'error_reporter', 'action': 'slack_report_error', 'error': str(e), 'channel': self.channel}))
             return False
 
 
@@ -348,12 +311,7 @@ class EmailReporter(BaseReporter):
             return False
         
         if not self.to_addrs:
-            logger.warning(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "error_reporter",
-                "action": "email_not_configured",
-                "duration_ms": 0
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'error_reporter', 'action': 'email_not_configured'}))
             return False
         
         msg = MIMEMultipart('alternative')
@@ -417,24 +375,11 @@ Traceback:
                     server.login(self.smtp_user, self.smtp_password)
                 server.send_message(msg)
             
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "error_reporter",
-                "action": "email_report_success",
-                "duration_ms": 0,
-                "recipients": self.to_addrs
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'error_reporter', 'action': 'email_report_success', 'recipients': self.to_addrs}))
             return True
 
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "error_reporter",
-                "action": "email_report_error",
-                "duration_ms": 0,
-                "error": str(e),
-                "recipients": self.to_addrs
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'error_reporter', 'action': 'email_report_error', 'error': str(e), 'recipients': self.to_addrs}))
             return False
 
 
@@ -474,14 +419,7 @@ class FileReporter(BaseReporter):
             return True
             
         except Exception as e:
-            logger.error(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "error_reporter",
-                "action": "file_write_error",
-                "duration_ms": 0,
-                "error": str(e),
-                "file_path": str(self.file_path)
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'error_reporter', 'action': 'file_write_error', 'error': str(e), 'file_path': str(self.file_path)}))
             return False
     
     def _rotate_log(self):
@@ -605,21 +543,9 @@ class ErrorReporter:
             self.reporters.append(FileReporter(file_config))
         
         if self.reporters:
-            logger.info(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "error_reporter",
-                "action": "init",
-                "duration_ms": 0,
-                "reporters_count": len(self.reporters),
-                "reporter_types": [type(r).__name__ for r in self.reporters]
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'error_reporter', 'action': 'init', 'reporters_count': len(self.reporters), 'reporter_types': [type(r).__name__ for r in self.reporters]}))
         else:
-            logger.warning(json.dumps({
-                "trace_id": get_trace_id(),
-                "module_name": "error_reporter",
-                "action": "no_reporters",
-                "duration_ms": 0
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'error_reporter', 'action': 'no_reporters'}))
     
     def report_error(
         self,
@@ -671,13 +597,7 @@ class ErrorReporter:
                 self._report_queue.put_nowait(report)
                 self._ensure_worker_started()
             except queue.Full:
-                logger.warning(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "error_reporter",
-                    "action": "queue_full",
-                    "duration_ms": 0,
-                    "queue_maxsize": self._report_queue.maxsize
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'error_reporter', 'action': 'queue_full', 'queue_maxsize': self._report_queue.maxsize}))
             return True
         else:
             # 同步上报
@@ -713,14 +633,7 @@ class ErrorReporter:
                 if reporter.send(report):
                     success = True
             except Exception as e:
-                logger.error(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "error_reporter",
-                    "action": "reporter_failed",
-                    "duration_ms": 0,
-                    "error": str(e),
-                    "reporter_type": type(reporter).__name__
-                }, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'error_reporter', 'action': 'reporter_failed', 'error': str(e), 'reporter_type': type(reporter).__name__}))
         return success
     
     def _ensure_worker_started(self):
@@ -744,13 +657,7 @@ class ErrorReporter:
                 continue
             except Exception as e:
                 # 后台线程：trace_id 已在入口 set，此处 get_trace_id() 返回模块专属 ID
-                logger.error(json.dumps({
-                    "trace_id": get_trace_id(),
-                    "module_name": "error_reporter",
-                    "action": "async_worker_error",
-                    "duration_ms": 0,
-                    "error": str(e)
-                }, ensure_ascii=False))
+                logger.error(log_dict({'module_name': 'error_reporter', 'action': 'async_worker_error', 'error': str(e)}))
     
     def stop(self):
         """停止异步工作线程"""

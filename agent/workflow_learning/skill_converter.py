@@ -29,6 +29,7 @@ from typing import Any, Dict, List, Optional
 
 from .models import LearnedWorkflow, WorkflowStatus
 from .observability import logger, emit_metric, track_event, traced_action
+from agent.logging_utils import log_dict
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -106,15 +107,7 @@ class WorkflowToSkillConverter:
             if wf.converted_to_skill_id and not force:
                 existing = self._svc.get(wf.converted_to_skill_id)
                 if existing:
-                    logger.info(json.dumps({
-                        "trace_id": "",
-                        "module_name": "skill_converter",
-                        "action": "convert.idempotent",
-                        "workflow_id": wf_id,
-                        "skill_id": wf.converted_to_skill_id,
-                        "duration_ms": 0,
-                        "level": "INFO",
-                    }, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'skill_converter', 'action': 'convert.idempotent', 'workflow_id': wf_id, 'skill_id': wf.converted_to_skill_id, 'level': 'INFO'}))
                     return {
                         "workflow_id": wf_id,
                         "skill_id": wf.converted_to_skill_id,
@@ -147,15 +140,7 @@ class WorkflowToSkillConverter:
             self._repo.upsert(wf)
 
             duration_ms = (time.time() - t0) * 1000
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "skill_converter",
-                "action": "convert.ok",
-                "workflow_id": wf_id,
-                "skill_id": skill.id,
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'skill_converter', 'action': 'convert.ok', 'workflow_id': wf_id, 'skill_id': skill.id, 'level': 'INFO'}))
             emit_metric("yunshu_workflow_convert_total",
                         labels={"success": "true"}, kind="counter")
             track_event("workflow_converted_to_skill", {
@@ -380,15 +365,7 @@ class WorkflowToSkillConverter:
                 ) from e
 
             duration_ms = (time.time() - t0) * 1000
-            logger.info(json.dumps({
-                "trace_id": "",
-                "module_name": "skill_converter",
-                "action": "convert_external.ok",
-                "skill_id": skill.id,
-                "source_format": source_format,
-                "duration_ms": round(duration_ms, 2),
-                "level": "INFO",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'skill_converter', 'action': 'convert_external.ok', 'skill_id': skill.id, 'source_format': source_format, 'level': 'INFO'}))
             emit_metric("yunshu_external_skill_convert_total",
                         labels={"source_format": source_format},
                         kind="counter")

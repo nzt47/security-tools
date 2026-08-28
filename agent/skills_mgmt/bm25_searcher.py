@@ -32,6 +32,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
 
 from .observability import emit_metric
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger("agent.skills_mgmt.bm25_searcher")
 
@@ -42,11 +43,7 @@ try:
 except ImportError:  # noqa: BLE001
     BM25Okapi = None  # type: ignore[assignment,misc]
     _RANK_BM25_AVAILABLE = False
-    logger.warning(json.dumps({
-        "module_name": "bm25_searcher",
-        "action": "rank_bm25.unavailable",
-        "reason": "rank_bm25 not installed; BM25 path disabled (fallback to tfidf+vector)",
-    }, ensure_ascii=False))
+    logger.warning(log_dict({'module_name': 'bm25_searcher', 'action': 'rank_bm25.unavailable', 'reason': 'rank_bm25 not installed; BM25 path disabled (fallback to tfidf+vector)'}))
 
 
 # ════════════════════════════════════════════════════════════
@@ -173,11 +170,7 @@ class BM25SkillSearcher:
         """
         # rank_bm25 未安装 → 不构建，保持 is_available=False
         if not _RANK_BM25_AVAILABLE:
-            logger.info(json.dumps({
-                "module_name": "bm25_searcher",
-                "action": "build_index.skipped",
-                "reason": "rank_bm25 not installed",
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'bm25_searcher', 'action': 'build_index.skipped', 'reason': 'rank_bm25 not installed'}))
             return
 
         # 重置状态（支持重建）
@@ -211,13 +204,7 @@ class BM25SkillSearcher:
             # 跳过空文档（避免 BM25Okapi 对空文档报错或产生 NaN）
             if not tokens:
                 _skipped_empty += 1
-                logger.debug(json.dumps({
-                    "module_name": "bm25_searcher",
-                    "action": "build_index.skip_empty_doc",
-                    "skill_id": skill_id,
-                    "doc_length": len(doc_text),
-                    "reason": "tokenization yielded empty tokens",
-                }, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'bm25_searcher', 'action': 'build_index.skip_empty_doc', 'skill_id': skill_id, 'doc_length': len(doc_text), 'reason': 'tokenization yielded empty tokens'}))
                 continue
 
             self._skill_ids.append(skill_id)
@@ -227,26 +214,12 @@ class BM25SkillSearcher:
             # 【可观测性】每个 skill 的分词详情（DEBUG 级别，避免 INFO 噪音）
             # 排查 BM25 召回异常时, 可确认 doc_text 与 tokens 是否符合预期
             # 例：专有名词 "k8s" 应被分词为 ["k8s"] 而非 ["k", "8", "s"]
-            logger.debug(json.dumps({
-                "module_name": "bm25_searcher",
-                "action": "build_index.tokenize",
-                "skill_id": skill_id,
-                "doc_length": len(doc_text),
-                "tokens_count": len(tokens),
-                "tokens_preview": tokens[:10],  # 前 10 个 token 避免日志过长
-            }, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'bm25_searcher', 'action': 'build_index.tokenize', 'skill_id': skill_id, 'doc_length': len(doc_text), 'tokens_count': len(tokens), 'tokens_preview': tokens[:10]}))
 
         _tokenize_elapsed = (time.time() - _tokenize_t0) * 1000
 
         if not self._skill_ids:
-            logger.info(json.dumps({
-                "module_name": "bm25_searcher",
-                "action": "build_index.empty",
-                "reason": "no valid skills with non-empty docs",
-                "input_count": len(skills),
-                "skipped_empty": _skipped_empty,
-                "tokenize_elapsed_ms": round(_tokenize_elapsed, 2),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'bm25_searcher', 'action': 'build_index.empty', 'reason': 'no valid skills with non-empty docs', 'input_count': len(skills), 'skipped_empty': _skipped_empty, 'tokenize_elapsed_ms': round(_tokenize_elapsed, 2)}))
             return
 
         # 【可观测性】BM25Okapi 构建阶段计时（排查 native 调用耗时）
@@ -256,13 +229,7 @@ class BM25SkillSearcher:
         except Exception as e:  # noqa: BLE001
             # 构建失败 → 标记不可用，不抛异常（守防御性要求）
             _build_elapsed = (time.time() - _build_t0) * 1000
-            logger.warning(json.dumps({
-                "module_name": "bm25_searcher",
-                "action": "build_index.failed",
-                "error": str(e)[:200],
-                "doc_count": len(self._skill_ids),
-                "build_elapsed_ms": round(_build_elapsed, 2),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'bm25_searcher', 'action': 'build_index.failed', 'error': str(e)[:200], 'doc_count': len(self._skill_ids), 'build_elapsed_ms': round(_build_elapsed, 2)}))
             self._bm25 = None
             self._skill_ids = []
             self._tokenized_docs = []
@@ -275,17 +242,7 @@ class BM25SkillSearcher:
             round(sum(len(t) for t in self._tokenized_docs) / len(self._tokenized_docs), 2)
             if self._tokenized_docs else 0
         )
-        logger.info(json.dumps({
-            "module_name": "bm25_searcher",
-            "action": "build_index.ok",
-            "indexed_count": len(self._skill_ids),
-            "input_count": len(skills),
-            "skipped_empty": _skipped_empty,
-            "tokenize_elapsed_ms": round(_tokenize_elapsed, 2),
-            "build_elapsed_ms": round(_build_elapsed, 2),
-            "avg_doc_tokens": avg_doc_tokens,
-            "total_tokens": sum(len(t) for t in self._tokenized_docs),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'bm25_searcher', 'action': 'build_index.ok', 'indexed_count': len(self._skill_ids), 'input_count': len(skills), 'skipped_empty': _skipped_empty, 'tokenize_elapsed_ms': round(_tokenize_elapsed, 2), 'build_elapsed_ms': round(_build_elapsed, 2), 'avg_doc_tokens': avg_doc_tokens, 'total_tokens': sum((len(t) for t in self._tokenized_docs))}))
         emit_metric("yunshu_skill_bm25_index_count",
                     value=len(self._skill_ids), kind="gauge",
                     labels={"layer": "1", "method": "bm25"})
@@ -315,12 +272,7 @@ class BM25SkillSearcher:
         try:
             scores = self._bm25.get_scores(query_tokens)  # type: ignore[union-attr]
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "module_name": "bm25_searcher",
-                "action": "search.get_scores.failed",
-                "query": query[:100],
-                "error": str(e)[:200],
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'bm25_searcher', 'action': 'search.get_scores.failed', 'query': query[:100], 'error': str(e)[:200]}))
             return []
 
         # 按分数降序排序，过滤零分（无任何词项命中的文档）

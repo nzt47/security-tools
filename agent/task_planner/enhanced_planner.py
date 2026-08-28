@@ -22,6 +22,7 @@ from agent.task_planner.enhanced_dag import (
     EnhancedTaskNode,
     PlanStatus,
 )
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
 
@@ -213,16 +214,7 @@ class EnhancedTaskPlanner:
         trace_id = f"plan_{uuid.uuid4().hex[:12]}"
 
         # 结构化日志 - 计划创建开始
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "task_planner",
-            "action": "plan_create_start",
-            "goal_preview": goal[:100],
-            "goal_length": len(goal),
-            "has_task_definitions": task_definitions is not None,
-            "duration_ms": 0,
-            "timestamp": start_time,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'task_planner', 'action': 'plan_create_start', 'goal_preview': goal[:100], 'goal_length': len(goal), 'has_task_definitions': task_definitions is not None, 'timestamp': start_time}))
 
         # 创建 DAG
         dag = EnhancedDAG()
@@ -233,30 +225,13 @@ class EnhancedTaskPlanner:
         complexity = self._evaluate_complexity(goal)
 
         # 结构化日志 - 复杂度评估结果
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "task_planner",
-            "action": "complexity_evaluation",
-            "goal_preview": goal[:50],
-            "complexity": complexity.value,
-            "requires_confirmation": complexity.value >= self._require_confirmation_threshold.value,
-            "duration_ms": round((time.time() - start_time) * 1000, 2),
-            "timestamp": time.time(),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'task_planner', 'action': 'complexity_evaluation', 'goal_preview': goal[:50], 'complexity': complexity.value, 'requires_confirmation': complexity.value >= self._require_confirmation_threshold.value, 'timestamp': time.time()}))
 
         # 如果没有提供任务定义，自动生成
         if not task_definitions:
             decompose_start = time.time()
             task_definitions = self._decompose_goal(goal, complexity)
-            logger.info(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "task_planner",
-                "action": "goal_decomposition",
-                "complexity": complexity.value,
-                "task_count": len(task_definitions),
-                "duration_ms": round((time.time() - decompose_start) * 1000, 2),
-                "timestamp": time.time(),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'task_planner', 'action': 'goal_decomposition', 'complexity': complexity.value, 'task_count': len(task_definitions), 'timestamp': time.time()}))
 
         # 添加任务节点
         add_start = time.time()
@@ -271,28 +246,13 @@ class EnhancedTaskPlanner:
             )
             dag.add_task(node)
 
-        logger.debug(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "task_planner",
-            "action": "tasks_added",
-            "task_count": len(task_definitions),
-            "duration_ms": round((time.time() - add_start) * 1000, 2),
-            "timestamp": time.time(),
-        }, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'task_planner', 'action': 'tasks_added', 'task_count': len(task_definitions), 'timestamp': time.time()}))
 
         # 检测循环依赖
         cycle_start = time.time()
         cycles = dag.detect_cycles()
         if cycles:
-            logger.error(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "task_planner",
-                "action": "cycle_detected",
-                "cycle_count": len(cycles),
-                "cycles": cycles,
-                "duration_ms": round((time.time() - cycle_start) * 1000, 2),
-                "timestamp": time.time(),
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'task_planner', 'action': 'cycle_detected', 'cycle_count': len(cycles), 'cycles': cycles, 'timestamp': time.time()}))
             raise ValueError(f"计划存在循环依赖: {cycles}")
 
         # 复杂度警告
@@ -305,19 +265,7 @@ class EnhancedTaskPlanner:
         total_duration_ms = (time.time() - start_time) * 1000
 
         # 结构化日志 - 计划创建完成
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "task_planner",
-            "action": "plan_create_complete",
-            "complexity": complexity.value,
-            "task_count": len(task_definitions),
-            "requires_confirmation": complexity.value >= self._require_confirmation_threshold.value,
-            "warnings_count": len(warnings),
-            "warnings": warnings,
-            "status": "draft",
-            "duration_ms": round(total_duration_ms, 2),
-            "timestamp": time.time(),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'task_planner', 'action': 'plan_create_complete', 'complexity': complexity.value, 'task_count': len(task_definitions), 'requires_confirmation': complexity.value >= self._require_confirmation_threshold.value, 'warnings_count': len(warnings), 'warnings': warnings, 'status': 'draft', 'timestamp': time.time()}))
 
         # 保存计划
         self._plans[trace_id] = dag
@@ -457,28 +405,11 @@ class EnhancedTaskPlanner:
         trace_id = f"confirm_{uuid.uuid4().hex[:12]}"
 
         # 结构化日志 - 确认开始
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "task_planner",
-            "action": "plan_confirm_start",
-            "plan_id": plan_id,
-            "confirmed_by": confirmed_by,
-            "has_task_level_confirmations": task_confirmations is not None,
-            "duration_ms": 0,
-            "timestamp": start_time,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'task_planner', 'action': 'plan_confirm_start', 'plan_id': plan_id, 'confirmed_by': confirmed_by, 'has_task_level_confirmations': task_confirmations is not None, 'timestamp': start_time}))
 
         plan = self._plans.get(plan_id)
         if not plan:
-            logger.error(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "task_planner",
-                "action": "plan_confirm_error",
-                "plan_id": plan_id,
-                "error": "plan_not_found",
-                "duration_ms": round((time.time() - start_time) * 1000, 2),
-                "timestamp": time.time(),
-            }, ensure_ascii=False))
+            logger.error(log_dict({'module_name': 'task_planner', 'action': 'plan_confirm_error', 'plan_id': plan_id, 'error': 'plan_not_found', 'timestamp': time.time()}))
             return ConfirmationResult(
                 plan_id=plan_id,
                 confirmed=False,
@@ -486,31 +417,12 @@ class EnhancedTaskPlanner:
             )
 
         # 检查计划状态
-        logger.debug(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "task_planner",
-            "action": "plan_status_check",
-            "plan_id": plan_id,
-            "current_status": plan.status.value,
-            "total_tasks": len(plan._nodes),
-            "unconfirmed_tasks": len(plan.get_unconfirmed_tasks()),
-            "duration_ms": round((time.time() - start_time) * 1000, 2),
-            "timestamp": time.time(),
-        }, ensure_ascii=False))
+        logger.debug(log_dict({'module_name': 'task_planner', 'action': 'plan_status_check', 'plan_id': plan_id, 'current_status': plan.status.value, 'total_tasks': len(plan._nodes), 'unconfirmed_tasks': len(plan.get_unconfirmed_tasks()), 'timestamp': time.time()}))
 
         # 检查计划是否过期
         age_seconds = time.time() - plan._created_at
         if age_seconds > self._max_plan_age:
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "task_planner",
-                "action": "plan_expired",
-                "plan_id": plan_id,
-                "age_seconds": round(age_seconds, 2),
-                "max_age_seconds": self._max_plan_age,
-                "duration_ms": round((time.time() - start_time) * 1000, 2),
-                "timestamp": time.time(),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'task_planner', 'action': 'plan_expired', 'plan_id': plan_id, 'age_seconds': round(age_seconds, 2), 'max_age_seconds': self._max_plan_age, 'timestamp': time.time()}))
             return ConfirmationResult(
                 plan_id=plan_id,
                 confirmed=False,
@@ -534,17 +446,7 @@ class EnhancedTaskPlanner:
                 confirmed_tasks.append(task_id)
                 auto_confirmed += 1
 
-                logger.debug(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "task_planner",
-                    "action": "task_auto_confirmed",
-                    "plan_id": plan_id,
-                    "task_id": task_id,
-                    "task_description": node.description[:50],
-                    "confirmed_by": "system",
-                    "duration_ms": round((time.time() - start_time) * 1000, 2),
-                    "timestamp": time.time(),
-                }, ensure_ascii=False))
+                logger.debug(log_dict({'module_name': 'task_planner', 'action': 'task_auto_confirmed', 'plan_id': plan_id, 'task_id': task_id, 'task_description': node.description[:50], 'confirmed_by': 'system', 'timestamp': time.time()}))
 
             elif task_confirmations and task_id in task_confirmations:
                 # 任务级别确认
@@ -553,31 +455,11 @@ class EnhancedTaskPlanner:
                     confirmed_tasks.append(task_id)
                     user_confirmed += 1
 
-                    logger.info(json.dumps({
-                        "trace_id": trace_id,
-                        "module_name": "task_planner",
-                        "action": "task_confirmed",
-                        "plan_id": plan_id,
-                        "task_id": task_id,
-                        "task_description": node.description[:50],
-                        "confirmed_by": confirmed_by,
-                        "duration_ms": round((time.time() - start_time) * 1000, 2),
-                        "timestamp": time.time(),
-                    }, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'task_planner', 'action': 'task_confirmed', 'plan_id': plan_id, 'task_id': task_id, 'task_description': node.description[:50], 'confirmed_by': confirmed_by, 'timestamp': time.time()}))
                 else:
                     rejected_tasks.append(task_id)
 
-                    logger.info(json.dumps({
-                        "trace_id": trace_id,
-                        "module_name": "task_planner",
-                        "action": "task_rejected",
-                        "plan_id": plan_id,
-                        "task_id": task_id,
-                        "task_description": node.description[:50],
-                        "rejected_by": confirmed_by,
-                        "duration_ms": round((time.time() - start_time) * 1000, 2),
-                        "timestamp": time.time(),
-                    }, ensure_ascii=False))
+                    logger.info(log_dict({'module_name': 'task_planner', 'action': 'task_rejected', 'plan_id': plan_id, 'task_id': task_id, 'task_description': node.description[:50], 'rejected_by': confirmed_by, 'timestamp': time.time()}))
 
             elif node.status != "confirmed":
                 # 整体确认
@@ -585,17 +467,7 @@ class EnhancedTaskPlanner:
                 confirmed_tasks.append(task_id)
                 user_confirmed += 1
 
-                logger.info(json.dumps({
-                    "trace_id": trace_id,
-                    "module_name": "task_planner",
-                    "action": "task_bulk_confirmed",
-                    "plan_id": plan_id,
-                    "task_id": task_id,
-                    "task_description": node.description[:50],
-                    "confirmed_by": confirmed_by,
-                    "duration_ms": round((time.time() - start_time) * 1000, 2),
-                    "timestamp": time.time(),
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'task_planner', 'action': 'task_bulk_confirmed', 'plan_id': plan_id, 'task_id': task_id, 'task_description': node.description[:50], 'confirmed_by': confirmed_by, 'timestamp': time.time()}))
 
         # 更新计划状态
         final_status = "partial" if plan.has_unconfirmed() else "full"
@@ -608,22 +480,7 @@ class EnhancedTaskPlanner:
         total_duration_ms = (time.time() - start_time) * 1000
 
         # 结构化日志 - 确认完成
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "task_planner",
-            "action": "plan_confirm_complete",
-            "plan_id": plan_id,
-            "confirmed_by": confirmed_by,
-            "confirmation_status": final_status,
-            "total_tasks": len(plan._nodes),
-            "confirmed_count": len(confirmed_tasks),
-            "rejected_count": len(rejected_tasks),
-            "auto_confirmed": auto_confirmed,
-            "user_confirmed": user_confirmed,
-            "unconfirmed_count": len(plan.get_unconfirmed_tasks()),
-            "duration_ms": round(total_duration_ms, 2),
-            "timestamp": time.time(),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'task_planner', 'action': 'plan_confirm_complete', 'plan_id': plan_id, 'confirmed_by': confirmed_by, 'confirmation_status': final_status, 'total_tasks': len(plan._nodes), 'confirmed_count': len(confirmed_tasks), 'rejected_count': len(rejected_tasks), 'auto_confirmed': auto_confirmed, 'user_confirmed': user_confirmed, 'unconfirmed_count': len(plan.get_unconfirmed_tasks()), 'timestamp': time.time()}))
 
         result = ConfirmationResult(
             plan_id=plan_id,
@@ -695,43 +552,18 @@ class EnhancedTaskPlanner:
         trace_id = f"rollback_{uuid.uuid4().hex[:12]}"
 
         # 结构化日志 - 回退计划创建开始
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "task_planner",
-            "action": "rollback_plan_start",
-            "original_plan_id": failed_plan.plan_id,
-            "original_plan_status": failed_plan.status.value,
-            "duration_ms": 0,
-            "timestamp": start_time,
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'task_planner', 'action': 'rollback_plan_start', 'original_plan_id': failed_plan.plan_id, 'original_plan_status': failed_plan.status.value, 'timestamp': start_time}))
 
         # 找到失败的任务
         failed_tasks = [n for n in failed_plan._nodes.values() if n.status == "failed"]
 
         if not failed_tasks:
-            logger.warning(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "task_planner",
-                "action": "rollback_plan_no_failed",
-                "original_plan_id": failed_plan.plan_id,
-                "warning": "no_failed_tasks_found",
-                "duration_ms": round((time.time() - start_time) * 1000, 2),
-                "timestamp": time.time(),
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'task_planner', 'action': 'rollback_plan_no_failed', 'original_plan_id': failed_plan.plan_id, 'warning': 'no_failed_tasks_found', 'timestamp': time.time()}))
             return None
 
         # 记录失败任务详情
         failed_task_ids = [t.id for t in failed_tasks]
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "task_planner",
-            "action": "rollback_failed_tasks_identified",
-            "original_plan_id": failed_plan.plan_id,
-            "failed_task_count": len(failed_tasks),
-            "failed_task_ids": failed_task_ids,
-            "duration_ms": round((time.time() - start_time) * 1000, 2),
-            "timestamp": time.time(),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'task_planner', 'action': 'rollback_failed_tasks_identified', 'original_plan_id': failed_plan.plan_id, 'failed_task_count': len(failed_tasks), 'failed_task_ids': failed_task_ids, 'timestamp': time.time()}))
 
         # 创建回退计划
         rollback_plan = EnhancedDAG()
@@ -757,16 +589,7 @@ class EnhancedTaskPlanner:
 
         rollback_path = list(set(rollback_path))  # 去重
 
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "task_planner",
-            "action": "rollback_path_calculated",
-            "original_plan_id": failed_plan.plan_id,
-            "rollback_task_count": len(rollback_path),
-            "rollback_tasks": rollback_path,
-            "duration_ms": round((time.time() - start_time) * 1000, 2),
-            "timestamp": time.time(),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'task_planner', 'action': 'rollback_path_calculated', 'original_plan_id': failed_plan.plan_id, 'rollback_task_count': len(rollback_path), 'rollback_tasks': rollback_path, 'timestamp': time.time()}))
 
         # 添加回退任务
         rollback_added = 0
@@ -786,32 +609,12 @@ class EnhancedTaskPlanner:
             rollback_plan.add_task(rollback_task)
             rollback_added += 1
 
-            logger.debug(json.dumps({
-                "trace_id": trace_id,
-                "module_name": "task_planner",
-                "action": "rollback_task_added",
-                "rollback_plan_id": trace_id,
-                "original_task_id": task_id,
-                "original_description": original_task.description,
-                "rollback_task_id": f"rollback_{i}",
-                "duration_ms": round((time.time() - start_time) * 1000, 2),
-                "timestamp": time.time(),
-            }, ensure_ascii=False))
+            logger.debug(log_dict({'module_name': 'task_planner', 'action': 'rollback_task_added', 'rollback_plan_id': trace_id, 'original_task_id': task_id, 'original_description': original_task.description, 'rollback_task_id': f'rollback_{i}', 'timestamp': time.time()}))
 
         total_duration_ms = (time.time() - start_time) * 1000
 
         # 结构化日志 - 回退计划创建完成
-        logger.info(json.dumps({
-            "trace_id": trace_id,
-            "module_name": "task_planner",
-            "action": "rollback_plan_complete",
-            "original_plan_id": failed_plan.plan_id,
-            "rollback_plan_id": trace_id,
-            "rollback_task_count": rollback_added,
-            "requires_confirmation": True,
-            "duration_ms": round(total_duration_ms, 2),
-            "timestamp": time.time(),
-        }, ensure_ascii=False))
+        logger.info(log_dict({'module_name': 'task_planner', 'action': 'rollback_plan_complete', 'original_plan_id': failed_plan.plan_id, 'rollback_plan_id': trace_id, 'rollback_task_count': rollback_added, 'requires_confirmation': True, 'timestamp': time.time()}))
 
         # 保存回退计划
         self._plans[trace_id] = rollback_plan

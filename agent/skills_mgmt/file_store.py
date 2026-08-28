@@ -58,6 +58,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import yaml
 
 from .observability import logger, emit_metric, traced_action
+from agent.logging_utils import log_dict
 
 # ════════════════════════════════════════════════════════════
 #  常量
@@ -350,13 +351,7 @@ class SkillFileStore:
             try:
                 hook(skill_id, action)
             except Exception as e:  # noqa: BLE001
-                logger.warning(json.dumps({
-                    "module_name": "file_store",
-                    "action": "write_hook.failed",
-                    "skill_id": skill_id,
-                    "hook_action": action,
-                    "error": str(e)[:200],
-                }, ensure_ascii=False))
+                logger.warning(log_dict({'module_name': 'file_store', 'action': 'write_hook.failed', 'skill_id': skill_id, 'hook_action': action, 'error': str(e)[:200]}))
 
     # ──────────────────────────────────────────────
     #  仓库管理
@@ -414,24 +409,13 @@ class SkillFileStore:
         if self._index_cache is not None:
             index = self._index_cache.get_all_metadata(refresh=refresh)
             elapsed = (time.time() - t0) * 1000
-            logger.info(json.dumps({
-                "trace_id": tid, "module_name": "file_store",
-                "action": "load_metadata_index.cache",
-                "duration_ms": round(elapsed, 2),
-                "skill_count": len(index),
-                "cache_type": type(self._index_cache).__name__,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'file_store', 'action': 'load_metadata_index.cache', 'skill_count': len(index), 'cache_type': type(self._index_cache).__name__}))
             return index
 
         with self._lock:
             if self._meta_index is not None and not refresh:
                 elapsed = (time.time() - t0) * 1000
-                logger.info(json.dumps({
-                    "trace_id": tid, "module_name": "file_store",
-                    "action": "load_metadata_index.cached",
-                    "duration_ms": round(elapsed, 2),
-                    "skill_count": len(self._meta_index),
-                }, ensure_ascii=False))
+                logger.info(log_dict({'module_name': 'file_store', 'action': 'load_metadata_index.cached', 'skill_count': len(self._meta_index)}))
                 return self._meta_index
 
             index: Dict[str, Dict[str, Any]] = {}
@@ -450,21 +434,11 @@ class SkillFileStore:
                     index[meta["id"]] = meta
                 except Exception as e:
                     # 边界显性化：单个技能解析失败不影响整体索引
-                    logger.warning(json.dumps({
-                        "trace_id": tid, "module_name": "file_store",
-                        "action": "load_metadata_index.skip",
-                        "skill_dir": entry.name,
-                        "error": str(e),
-                    }, ensure_ascii=False))
+                    logger.warning(log_dict({'module_name': 'file_store', 'action': 'load_metadata_index.skip', 'skill_dir': entry.name, 'error': str(e)}))
 
             self._meta_index = index
             elapsed = (time.time() - t0) * 1000
-            logger.info(json.dumps({
-                "trace_id": tid, "module_name": "file_store",
-                "action": "load_metadata_index.ok",
-                "duration_ms": round(elapsed, 2),
-                "skill_count": len(index),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'file_store', 'action': 'load_metadata_index.ok', 'skill_count': len(index)}))
             emit_metric("yunshu_skill_metadata_index_count",
                         value=len(index), kind="gauge",
                         labels={"success": "true"})
@@ -489,12 +463,7 @@ class SkillFileStore:
         try:
             cache.invalidate(skill_id)
         except Exception as e:  # noqa: BLE001
-            logger.warning(json.dumps({
-                "module_name": "file_store",
-                "action": "index_cache.invalidate.failed",
-                "skill_id": skill_id,
-                "error": str(e)[:200],
-            }, ensure_ascii=False))
+            logger.warning(log_dict({'module_name': 'file_store', 'action': 'index_cache.invalidate.failed', 'skill_id': skill_id, 'error': str(e)[:200]}))
 
     # ──────────────────────────────────────────────
     #  第二层：使用说明（skill.md body）
@@ -519,13 +488,7 @@ class SkillFileStore:
             content = md_path.read_text(encoding="utf-8")
             _meta, body = SkillMDParser.parse(content)
             elapsed = (time.time() - t0) * 1000
-            logger.info(json.dumps({
-                "trace_id": tid, "module_name": "file_store",
-                "action": "load_instruction.ok",
-                "duration_ms": round(elapsed, 2),
-                "skill_id": skill_id,
-                "body_chars": len(body),
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'file_store', 'action': 'load_instruction.ok', 'skill_id': skill_id, 'body_chars': len(body)}))
             return body
         except (SkillNotFoundError,):
             raise
@@ -656,14 +619,7 @@ class SkillFileStore:
             self._meta_index = None  # 失效缓存
 
             elapsed = (time.time() - t0) * 1000
-            logger.info(json.dumps({
-                "trace_id": tid, "module_name": "file_store",
-                "action": "create.ok",
-                "duration_ms": round(elapsed, 2),
-                "skill_id": skill_id,
-                "scripts": list(scripts.keys()) if scripts else [],
-                "temp_files": list(temp_files.keys()) if temp_files else [],
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'file_store', 'action': 'create.ok', 'skill_id': skill_id, 'scripts': list(scripts.keys()) if scripts else [], 'temp_files': list(temp_files.keys()) if temp_files else []}))
             created_skill_dir = skill_dir
 
         # [变易] 锁外触发写入钩子 — 守 project_memory 硬约束（锁内禁外部回调）
@@ -746,12 +702,7 @@ class SkillFileStore:
             shutil.rmtree(skill_dir)
             self._meta_index = None
             elapsed = (time.time() - t0) * 1000
-            logger.info(json.dumps({
-                "trace_id": tid, "module_name": "file_store",
-                "action": "delete.ok",
-                "duration_ms": round(elapsed, 2),
-                "skill_id": skill_id,
-            }, ensure_ascii=False))
+            logger.info(log_dict({'module_name': 'file_store', 'action': 'delete.ok', 'skill_id': skill_id}))
 
         # [变易] 锁外触发写入钩子 — 守 project_memory 硬约束（锁内禁外部回调）
         # 让向量索引订阅者感知删除事件并清理对应向量

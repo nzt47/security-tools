@@ -10,6 +10,7 @@ import time
 import uuid
 import logging
 from typing import Any, Dict, Optional
+from agent.logging_utils import log_dict
 
 logger = logging.getLogger("agent.web")
 
@@ -62,10 +63,4 @@ def trackEvent(event_name: str, payload: Optional[Dict[str, Any]] = None) -> Non
         if _METRICS_AVAILABLE:
             _metrics.record_interaction(event_name, "web", True, (time.time() - t0) * 1000)
     except Exception as e:
-        logger.error(json.dumps({
-            "trace_id": tid,
-            "module_name": "web",
-            "action": "trackEvent.failed",
-            "error": f"{type(e).__name__}: {e}",
-            "event_name": event_name,
-        }, ensure_ascii=False))
+        logger.error(log_dict({'module_name': 'web', 'action': 'trackEvent.failed', 'error': f'{type(e).__name__}: {e}', 'event_name': event_name}))
