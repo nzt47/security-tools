@@ -1,5 +1,5 @@
 {
-  "trace_id": "2ff8a740e160451d",
+  "trace_id": "0347b0dacf874779",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -2930,7 +2930,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 34,
+      "line": 35,
       "source_file": "agent/p6_snapshot.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -2943,7 +2943,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 869,
+      "line": 875,
       "source_file": "agent/p6_snapshot.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5179,7 +5179,7 @@
       "source_layer": "p6",
       "target_layer": "p6",
       "import_type": "from_import",
-      "line": 33,
+      "line": 34,
       "source_file": "agent/p6/snapshot.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5192,7 +5192,7 @@
       "source_layer": "p6",
       "target_layer": "p6",
       "import_type": "from_import",
-      "line": 34,
+      "line": 35,
       "source_file": "agent/p6/snapshot.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5205,7 +5205,7 @@
       "source_layer": "p6",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 35,
+      "line": 36,
       "source_file": "agent/p6/snapshot.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -5218,7 +5218,7 @@
       "source_layer": "p6",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 737,
+      "line": 740,
       "source_file": "agent/p6/snapshot.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -15507,6 +15507,6 @@
       "quality": 2,
       "prompt_manager": 5
     },
-    "build_duration_ms": 1932.7488149999965
+    "build_duration_ms": 1947.684962999972
   }
 }
