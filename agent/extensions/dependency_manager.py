@@ -11,16 +11,52 @@ import json
 import logging
 import subprocess
 import sys
-import pkg_resources
 from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
 from datetime import datetime
 from dataclasses import dataclass, field
 
+# 【变易·2026-08-29】pkg_resources 自 setuptools>=81 起被移除：GitHub runner 镜像
+# 升级 setuptools 后 `import pkg_resources` 抛 ModuleNotFoundError → CI 失败
+# （可观测性 S6 连续 4 轮）。改用标准库 importlib.metadata（Python 3.8+），
+# 老环境（pkg_resources 仍可用）fallback 保持兼容。
+try:
+    from importlib import metadata as _importlib_metadata
+except ImportError:  # pragma: no cover
+    _importlib_metadata = None
+
 from agent.monitoring.tracing import get_trace_id
 from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
+
+
+def _iter_installed():
+    """迭代已安装发行版，产出 (name, version, location, requires)。
+
+    优先 importlib.metadata.distributions()（标准库，setuptools>=81 兼容）；
+    失败时 fallback pkg_resources.working_set（旧 setuptools）；两者都不可用
+    则静默产出空序列（调用方已有 try/except 容错）。
+    """
+    if _importlib_metadata is not None:
+        try:
+            for dist in _importlib_metadata.distributions():
+                name = dist.metadata.get("Name") or ""
+                location = ""
+                try:
+                    location = str(dist.locate_file("").parent)
+                except Exception:
+                    pass
+                yield name, dist.version, location, dist.requires or []
+            return
+        except Exception:
+            pass
+    try:  # pragma: no cover - 老 setuptools fallback
+        import pkg_resources
+        for pkg in pkg_resources.working_set:
+            yield pkg.project_name, pkg.version, pkg.location, [str(r) for r in pkg.requires()]
+    except Exception:
+        return
 
 
 @dataclass
@@ -52,8 +88,8 @@ class DependencyManager:
     def _load_installed_deps(self):
         """加载已安装的依赖"""
         try:
-            for pkg in pkg_resources.working_set:
-                self._installed_deps[pkg.project_name.lower()] = pkg.version
+            for name, version, _loc, _reqs in _iter_installed():
+                self._installed_deps[name.lower()] = version
         except Exception as e:
             logger.warning(log_dict({'module_name': 'dependency_manager', 'action': 'log', 'msg': f'加载已安装依赖失败: {e}'}))
 
@@ -275,12 +311,12 @@ class DependencyManager:
         """获取所有已安装包"""
         packages = []
         try:
-            for pkg in pkg_resources.working_set:
+            for name, version, location, requires in _iter_installed():
                 packages.append({
-                    'name': pkg.project_name,
-                    'version': pkg.version,
-                    'location': pkg.location,
-                    'requires': [str(r) for r in pkg.requires()],
+                    'name': name,
+                    'version': version,
+                    'location': location,
+                    'requires': requires,
                 })
         except Exception as e:
             logger.warning(log_dict({'module_name': 'dependency_manager', 'action': 'log', 'msg': f'获取已安装包失败: {e}'}))
