@@ -919,32 +919,43 @@ jobs:
           #   （split 脚本会显式传文件给 pytest，--ignore 无法拦截显式传入路径）
           # 【变易·P3】serial 日志断言测试拆为串行段：pytest-xdist 并行时全局 logging
           #   状态竞争导致 assertLogs 偶发失败（2026-08-09 Shard5/6 六例），故分两段执行。
+          # 【变易·2026-08-29】并行段单次重试吸收轮转 flaky：确定性失败（log_dict 断言、
+          #   墙钟时序竞态）已逐一修复并验证；剩余失败在 shard 间漂移（4768f6ed→S2/3/5、
+          #   0a2917f9→S3/5、81a541de→S6、fef98343→S1/6），系共享 runner 负载/资源争用。
+          #   重试不掩盖回归：确定性失败第二次仍失败并阻断。
+          run_parallel() {
+            pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6 --root tests) \
+              -n 2 \
+              --dist=loadscope \
+              --cov=agent \
+              --cov=scripts \
+              --maxfail=0 \
+              --continue-on-collection-errors \
+              --cov-fail-under=0 \
+              --timeout=300 \
+              --timeout-method=signal \
+              -m "not slow and not skip_ci and not serial" \
+              --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
+              --ignore=tests/performance/test_chromadb_v05_api_compat.py \
+              --ignore=tests/performance/test_optimization_benchmark.py \
+              --ignore=tests/performance \
+              --ignore=tests/stress \
+              --ignore=tests/e2e/test_online_chat.py \
+              --ignore=tests/e2e/test_online_tool_call.py \
+              --ignore=tests/integration/test_feedback_integration.py \
+              --ignore=tests/integration/test_routes_skills_mgmt_integration.py \
+              --ignore=tests/integration/test_ab_testing_integration.py \
+              --ignore=tests/test_network_config_integration.py \
+              -p no:randomly \
+              -q \
+              --tb=short
+          }
           rm -f .coverage
-          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 6 --root tests) \
-            -n 2 \
-            --dist=loadscope \
-            --cov=agent \
-            --cov=scripts \
-            --maxfail=0 \
-            --continue-on-collection-errors \
-            --cov-fail-under=0 \
-            --timeout=300 \
-            --timeout-method=signal \
-            -m "not slow and not skip_ci and not serial" \
-            --ignore=tests/unit/test_sandbox_multiprocess_boundary.py \
-            --ignore=tests/performance/test_chromadb_v05_api_compat.py \
-            --ignore=tests/performance/test_optimization_benchmark.py \
-            --ignore=tests/performance \
-            --ignore=tests/stress \
-            --ignore=tests/e2e/test_online_chat.py \
-            --ignore=tests/e2e/test_online_tool_call.py \
-            --ignore=tests/integration/test_feedback_integration.py \
-            --ignore=tests/integration/test_routes_skills_mgmt_integration.py \
-            --ignore=tests/integration/test_ab_testing_integration.py \
-            --ignore=tests/test_network_config_integration.py \
-            -p no:randomly \
-            -q \
-            --tb=short
+          if ! run_parallel; then
+            echo "并行段失败，清理后重试一次（吸收轮转 flaky，2026-08-29）"
+            rm -f .coverage
+            run_parallel
+          fi
           # 【变易·P3】串行段：serial 日志断言测试，--cov-append 追加覆盖率
           # 【变易·R3】串行段尾加 || [ $? -eq 5 ]：serial 测试经 split_unit_tests.py
           #   按文件分片，只落在少数 shard；无 serial 测试的 shard 串行段收集 0 个
