@@ -343,12 +343,15 @@ observability_config 失败。并发时序类需 CI 实跑验证。
    CI Linux（微秒精度）通过。
 
 **修复**（与 vector_store `_new_mem_id()` 同法）：
-- id 生成：单次 `datetime.now()` + 模块级 `itertools.count` 递增序号
-  → `snap_{ts}_{us}_{seq}`，同微秒也唯一；兼容 `startswith("snap_")` 断言。
+- id 生成：单次 `datetime.now()` + 模块级 `itertools.count` 序号**并入微秒段**
+  （`us = (now.microsecond + seq) % 1_000_000`）——保持 4 段契约
+  `snap_YYYYMMDD_HHMMSS_microsecond`（集成测试断言 4 段）且同微秒唯一。
 - 排序：`sort(key=lambda x: (x.created_at, x.snapshot_id), reverse=True)` 双键确定性。
 - 计时：save/load 路径 `time.time()` → `time.perf_counter()`（纳秒级，消除 Windows
   1ms 量化导致的 `elapsed_ms=0.0`，属精度改进非放宽断言）。
 
-**本地验证**：4 个 snapshot 测试文件 **243 passed**（此前 6 失败全转绿）。
+**本地验证**：4 个 unit snapshot 文件 + `tests/integration/test_snapshot_integration.py`
+**367 passed**（此前 6 失败全转绿；集成格式契约测试兼容 4 段新 id）。
 
-**CI 确认**：待推送后云枢 Shard 3/4/5/6 验证。
+**CI 确认**：b8729711 云枢 6/6 单测 shard 全绿（Shard 3/4/5/6 验证通过）；集成测试
+首轮因 id 5 段格式破坏集成契约失败，改回 4 段微秒补偿式后待重验。

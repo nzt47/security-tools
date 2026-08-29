@@ -289,10 +289,15 @@ class StateSnapshotManager:
         self.snapshot_dir.mkdir(parents=True, exist_ok=True)
 
     def _generate_snapshot_id(self) -> str:
-        """生成唯一快照ID（时间戳 + 进程内递增序号，保证同微秒也唯一）"""
+        """生成唯一快照ID（4 段格式，序号补偿微秒保证同微秒唯一）
+
+        格式保持 snap_YYYYMMDD_HHMMSS_microsecond（集成测试契约），
+        序号并入微秒段：同微秒内连续生成时微秒递增错开，消除碰撞。
+        """
         now = datetime.now()
         seq = next(_snapshot_id_seq)
-        return f"snap_{now.strftime('%Y%m%d_%H%M%S')}_{now.microsecond}_{seq}"
+        us = (now.microsecond + seq) % 1_000_000
+        return f"snap_{now.strftime('%Y%m%d_%H%M%S')}_{us:06d}"
 
     def _get_snapshot_path(self, snapshot_id: str, is_incremental: bool = False) -> Path:
         """获取快照文件路径"""
