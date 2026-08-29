@@ -25,6 +25,7 @@ import hashlib
 import gzip
 import json
 import uuid
+import itertools
 import logging
 from datetime import datetime
 from dataclasses import dataclass, field
@@ -34,6 +35,12 @@ from collections import defaultdict
 from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
+
+# 进程内快照 id 递增序号：与时间戳组合保证唯一。
+# 原实现两次调用 datetime.now() 拼 id，同一微秒内两次 save 生成相同 id →
+# 快照文件被覆盖、增量链断裂、list/排序断言失败（墙钟时序竞态，与 vector_store
+# mem_id 同源）。序号后缀消除同微秒碰撞。
+_snapshot_id_seq = itertools.count(1)
 
 
 @dataclass
@@ -282,11 +289,10 @@ class StateSnapshotManager:
         self.snapshot_dir.mkdir(parents=True, exist_ok=True)
 
     def _generate_snapshot_id(self) -> str:
-        """生成唯一快照ID"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        # 添加微秒确保唯一性
-        microsecond = datetime.now().microsecond
-        return f"snap_{timestamp}_{microsecond}"
+        """生成唯一快照ID（时间戳 + 进程内递增序号，保证同微秒也唯一）"""
+        now = datetime.now()
+        seq = next(_snapshot_id_seq)
+        return f"snap_{now.strftime('%Y%m%d_%H%M%S')}_{now.microsecond}_{seq}"
 
     def _get_snapshot_path(self, snapshot_id: str, is_incremental: bool = False) -> Path:
         """获取快照文件路径"""
@@ -452,7 +458,7 @@ class StateSnapshotManager:
             保存结果对象
         """
         trace_id = str(uuid.uuid4())[:8]
-        start_time = time.time()
+        start_time = time.perf_counter()
         logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.save.start', 'force': force, 'incremental': incremental, 'target_class': digital_life.__class__.__name__}))
 
         # 检查频率限制
@@ -532,7 +538,7 @@ class StateSnapshotManager:
             logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.cleanup.start'}))
             self._cleanup_old_snapshots()
 
-            elapsed = (time.time() - start_time) * 1000
+            elapsed = (time.perf_counter() - start_time) * 1000
             logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.save.done'}))
 
             self.current_snapshot = snapshot
@@ -554,7 +560,7 @@ class StateSnapshotManager:
         except Exception as e:
             import traceback
             logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.save.exception', 'error': str(e), 'exception_type': type(e).__name__, 'traceback': traceback.format_exc()}))
-            elapsed = (time.time() - start_time) * 1000
+            elapsed = (time.perf_counter() - start_time) * 1000
             return SnapshotResult(
                 success=False,
                 elapsed_ms=elapsed,
@@ -605,9 +611,9 @@ class StateSnapshotManager:
                 logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'module.body_sensor.serialized', 'data_size': len(state_data)}))
 
             # 记录性能数据
-            module_serialize_start = time.time()
+            module_serialize_start = time.perf_counter()
             # 实际序列化已在上面完成
-            module_serialize_elapsed = (time.time() - module_serialize_start) * 1000
+            module_serialize_elapsed = (time.perf_counter() - module_serialize_start) * 1000
             self.performance_monitor.record_module_serialize("body_sensor", module_serialize_elapsed, len(state_data))
 
         # BehaviorController
@@ -1018,7 +1024,7 @@ class StateSnapshotManager:
             恢复的 DigitalLife 实例
         """
         trace_id = str(uuid.uuid4())[:8]
-        start_time = time.time()
+        start_time = time.perf_counter()
         logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.start'}))
 
         # 1. 定位快照
@@ -1049,7 +1055,7 @@ class StateSnapshotManager:
             logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.no_class_provided'}))
             # Phase 1/2 兼容模式：只返回快照数据
             self.current_snapshot = snapshot
-            elapsed = (time.time() - start_time) * 1000
+            elapsed = (time.perf_counter() - start_time) * 1000
             logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.done', 'restored_instance': False}))
             return snapshot
 
@@ -1091,7 +1097,7 @@ class StateSnapshotManager:
         # 更新模块校验和缓存
         self._update_module_checksums(snapshot)
 
-        elapsed = (time.time() - start_time) * 1000
+        elapsed = (time.perf_counter() - start_time) * 1000
         logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.load.done'}))
 
         # 记录性能数据
@@ -1141,8 +1147,9 @@ class StateSnapshotManager:
         except Exception as e:
             logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'snapshot.list.failed', 'error': str(e)}))
 
-        # 按创建时间倒序排列
-        snapshots.sort(key=lambda x: x.created_at, reverse=True)
+        # 按创建时间倒序排列（次键 snapshot_id 倒序：同微秒 ctime 时保证确定性，
+        # 否则 iterdir 顺序不定 → latest 选择漂移，损坏快照测试/排序断言偶失败）
+        snapshots.sort(key=lambda x: (x.created_at, x.snapshot_id), reverse=True)
         return snapshots
 
     def cleanup_snapshots(self, keep_count: int = 5) -> int:

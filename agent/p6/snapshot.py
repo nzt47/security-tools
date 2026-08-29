@@ -24,6 +24,7 @@ import json
 import pickle
 import hashlib
 import gzip
+import itertools
 import logging
 from datetime import datetime
 from dataclasses import dataclass, field
@@ -35,6 +36,9 @@ from agent.p6.frequency import SnapshotFrequencyController
 from agent.logging_utils import log_dict
 
 logger = logging.getLogger(__name__)
+
+# 进程内快照 id 递增序号（与 agent/p6_snapshot.py 同法修复同微秒碰撞）
+_snapshot_id_seq = itertools.count(1)
 
 
 @dataclass
@@ -138,11 +142,10 @@ class StateSnapshotManager:
         self.snapshot_dir.mkdir(parents=True, exist_ok=True)
         
     def _generate_snapshot_id(self) -> str:
-        """生成唯一快照ID"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        # 添加微秒确保唯一性
-        microsecond = datetime.now().microsecond
-        return f"snap_{timestamp}_{microsecond}"
+        """生成唯一快照ID（时间戳 + 进程内递增序号，保证同微秒也唯一）"""
+        now = datetime.now()
+        seq = next(_snapshot_id_seq)
+        return f"snap_{now.strftime('%Y%m%d_%H%M%S')}_{now.microsecond}_{seq}"
         
     def _get_snapshot_path(self, snapshot_id: str, is_incremental: bool = False) -> Path:
         """获取快照文件路径"""
@@ -308,7 +311,7 @@ class StateSnapshotManager:
         Returns:
             保存结果对象
         """
-        start_time = time.time()
+        start_time = time.perf_counter()
         logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': '[P6] ═══════════════════════════════════════════════════════'}))
         logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': '[P6] 快照保存流程开始'}))
         logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ├─ 参数: force={force}, incremental={incremental}'}))
@@ -399,7 +402,7 @@ class StateSnapshotManager:
             logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': '[P6] ├─ 检查是否需要清理旧快照...'}))
             self._cleanup_old_snapshots()
             
-            elapsed = (time.time() - start_time) * 1000
+            elapsed = (time.perf_counter() - start_time) * 1000
             logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ├─ 快照保存总计耗时: {elapsed:.2f}ms'}))
             
             self.current_snapshot = snapshot
@@ -427,7 +430,7 @@ class StateSnapshotManager:
             import traceback
             logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] 异常堆栈:\n{traceback.format_exc()}'}))
             logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ═══════════════════════════════════════════════════════'}))
-            elapsed = (time.time() - start_time) * 1000
+            elapsed = (time.perf_counter() - start_time) * 1000
             return SnapshotResult(
                 success=False,
                 elapsed_ms=elapsed,
@@ -477,9 +480,9 @@ class StateSnapshotManager:
                 logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ├─ BodySensor 序列化完成，大小: {len(state_data)} bytes'}))
             
             # 记录性能数据
-            module_serialize_start = time.time()
+            module_serialize_start = time.perf_counter()
             # 实际序列化已在上面完成
-            module_serialize_elapsed = (time.time() - module_serialize_start) * 1000
+            module_serialize_elapsed = (time.perf_counter() - module_serialize_start) * 1000
             self.performance_monitor.record_module_serialize("body_sensor", module_serialize_elapsed, len(state_data))
             
         # BehaviorController
@@ -893,7 +896,7 @@ class StateSnapshotManager:
         Returns:
             恢复的 DigitalLife 实例
         """
-        start_time = time.time()
+        start_time = time.perf_counter()
         logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': '[P6] ═══════════════════════════════════════════════════════'}))
         logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': '[P6] 快照加载流程开始（Phase 3 完整版）'}))
         
@@ -934,7 +937,7 @@ class StateSnapshotManager:
             logger.warning(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': '[P6] │   └─ 警告: 未提供 DigitalLife 类，仅返回快照数据'}))
             # Phase 1/2 兼容模式：只返回快照数据
             self.current_snapshot = snapshot
-            elapsed = (time.time() - start_time) * 1000
+            elapsed = (time.perf_counter() - start_time) * 1000
             logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ├─ 快照加载总计耗时: {elapsed:.2f}ms'}))
             logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ═══════════════════════════════════════════════════════'}))
             logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] 快照加载成功（仅数据，未恢复实例）！'}))
@@ -981,7 +984,7 @@ class StateSnapshotManager:
         # 更新模块校验和缓存
         self._update_module_checksums(snapshot)
         
-        elapsed = (time.time() - start_time) * 1000
+        elapsed = (time.perf_counter() - start_time) * 1000
         logger.info(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] ├─ 快照加载总计耗时: {elapsed:.2f}ms'}))
         
         # 记录性能数据
@@ -1032,8 +1035,8 @@ class StateSnapshotManager:
         except Exception as e:
             logger.error(log_dict({'module_name': 'p6_snapshot', 'action': 'log', 'msg': f'[P6] 列出快照失败: {e}'}))
             
-        # 按创建时间倒序排列
-        snapshots.sort(key=lambda x: x.created_at, reverse=True)
+        # 按创建时间倒序排列（次键 snapshot_id 倒序：同微秒 ctime 时保证确定性）
+        snapshots.sort(key=lambda x: (x.created_at, x.snapshot_id), reverse=True)
         return snapshots
         
     def cleanup_snapshots(self, keep_count: int = 5) -> int:

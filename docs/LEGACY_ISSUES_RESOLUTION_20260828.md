@@ -325,3 +325,30 @@ observability_config 失败。并发时序类需 CI 实跑验证。
 经 81a541de / cae76723 / 85486cfe 多次全绿验证，剩余 CI 红仅剩可观测性 Shard 6
 历史 flaky（本地 UTF-8 复现确认仅环境 artifacts）与 Daily Regression（已由 §6.1
 补齐缺失模块根治）。
+
+### 6.7 快照同微秒 id 碰撞竞态（本地定位 + 已修复，CI Shard 3/4/5/6 候选）
+
+本地 `-k "snapshot"` 甄别 6 个失败中，4 个为**真代码竞态**（非环境 artifact）：
+
+1. **`_generate_snapshot_id()` 同微秒碰撞**（`agent/p6_snapshot.py` 与 `agent/p6/snapshot.py`
+   两处实现相同）：两次调用 `datetime.now()` 拼 `snap_{ts}_{us}`，同微秒内两次 save
+   生成相同 id → 增量快照文件覆盖、链断裂（`test_incremental_snapshot_chain` 增量
+   计数 1 而非 ≥3）、id 断言失败（`test_incremental_snapshot_with_data_changes`）。
+2. **`list_snapshots` 单键排序**：按 `created_at`（文件 ctime）倒序，同微秒 ctime 时
+   iterdir 顺序不定 → latest 选择漂移（`test_load_corrupted_full_snapshot_latest_
+   returns_none` 加载到正常快照而非损坏快照）、排序断言偶失败
+   （`test_p6_snapshot_advanced` snap_test_2 顺序）。
+3. 另 2 个失败（`test_performance_monitor` / `test_save_success` 的 `elapsed_ms > 0`）
+   为 Windows `time.time()` ~1ms 精度 artifact——save <1ms 时 `elapsed_ms=0.0`，
+   CI Linux（微秒精度）通过。
+
+**修复**（与 vector_store `_new_mem_id()` 同法）：
+- id 生成：单次 `datetime.now()` + 模块级 `itertools.count` 递增序号
+  → `snap_{ts}_{us}_{seq}`，同微秒也唯一；兼容 `startswith("snap_")` 断言。
+- 排序：`sort(key=lambda x: (x.created_at, x.snapshot_id), reverse=True)` 双键确定性。
+- 计时：save/load 路径 `time.time()` → `time.perf_counter()`（纳秒级，消除 Windows
+  1ms 量化导致的 `elapsed_ms=0.0`，属精度改进非放宽断言）。
+
+**本地验证**：4 个 snapshot 测试文件 **243 passed**（此前 6 失败全转绿）。
+
+**CI 确认**：待推送后云枢 Shard 3/4/5/6 验证。
