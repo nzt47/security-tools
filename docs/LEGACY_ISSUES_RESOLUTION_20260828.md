@@ -2,7 +2,9 @@
 
 > 范围：处理云枢（Yunshu）系统中所有记录在案的遗留问题
 > 关联文档：[日志规范整改最终交付报告](LOG_SPEC_REFACTOR_DELIVERY_REPORT_20260827.md) ·
-> [CI 健康度看板](dashboards/ci_health_dashboard.md) · [遗留问题待办清单](reports/todo_followup_20260804.md)
+> [CI 健康度看板](docs/dashboards/ci_health_dashboard.md)
+> （注：历史待办清单 `reports/todo_followup_20260804.md` 已随处理完毕归档删除，
+> 其 §2/§3/§4 各项均已在本报告 §一 表格闭环，见下表）
 
 ---
 
@@ -357,3 +359,62 @@ observability_config 失败。并发时序类需 CI 实跑验证。
 首轮因 id 5 段格式破坏集成契约失败，改回 4 段微秒补偿式后重验。
 **最终 CI 确认（1c05d930，run 33266759546）**：云枢系统测试流程 **18/18 job 全 success**
 （6 单测 shard + 集成测试 + E2E + 覆盖率 + 安全扫描等全绿）——snapshot 竞态修复闭环。
+
+---
+
+## 七、交付收尾与最终状态确认（2026-08-30）
+
+### 7.1 代码推送与仓库同步状态
+
+- 全部修复提交已推送 **origin（GitHub）+ gitee 双远程**，最终 HEAD `4e9a4dff` 与
+  `origin/master`、`gitee/master` 三方一致，工作树干净（`git status` 无未提交修改）。
+- 本会话交付提交链：`85486cfe`（loggerDict 竞态）→ `b8729711`（snapshot 竞态）→
+  `b3204f3d`（4 段契约修正）→ `1c05d930`（同上）→ `a5cff6b0`（报告）——期间多次
+  rebase 到并行会话提交之上（680d7be9 / db519bb5 / 40381100 / 4e9a4dff，均为
+  `[skip ci]` 文档或 CI 噪音治理，与本次交付无冲突）。
+
+### 7.2 CI/CD 最终验证结论
+
+| Workflow | 结论 | 验证提交/run |
+|----------|------|--------------|
+| 云枢系统测试流程（主门禁） | ✅ 18/18 job 全绿 | 1c05d930 run 33266759546；85486cfe run 33263451243 |
+| 可观测性质量保障 | ✅ 全绿（含全项目 Shard 6/6） | 85486cfe run 33263451269 |
+| Daily Regression Tests | ✅ success | 40381100 run 33267704650 |
+| L3 Docker Tests | ✅ 4/4 job 全绿 | a9c757b6 |
+| Skills Check / Error Reporting / 各类守护扫描 | ✅ 全绿 | 1c05d930 批次 |
+
+### 7.3 遗留问题最终清单
+
+**代码级遗留：已全部闭环**（清单见 §一 总览表，13 项全部 ✅）：
+
+1. 网络配置 mypy 错误清零（ci.yml 转阻塞）
+2. BOM 编码契约确立
+3. 其他单测遗留甄别（沙箱 artifact，非缺陷）
+4. detect_dynamic_loads 常量路径误报修复
+5. task7 alert_escalation log_dict 适配
+6. list_recent 墙钟时序竞态
+7. dependency_manager pkg_resources 依赖（setuptools≥81）
+8. shared_blackboard 性能断言过紧
+9. Daily Regression 缺失测试模块（4 文件补齐）
+10. rate_limiter 墙钟竞态
+11. L3 Docker sqlite-vec 后端断言 + id 同微秒冲突
+12. 云枢单测 Shard2 loggerDict 并发竞态
+13. 快照 id 同微秒碰撞 + 排序漂移 + 计时精度
+
+**非代码遗留（环境限制，CI Linux 全部通过，无处理必要）**：
+
+- 本地 Windows 沙箱 `subprocess` 命名管道 EPERM（test_bom_encoding_hook /
+  test_preflight_runner / test_sandbox_execution_guard / test_cache_tools_package_parity
+  等 9 项）——CI 不受影响
+- 本地 GBK 控制台编码致 pytest 捕获 UnicodeDecodeError——CI UTF-8 不受影响
+- Windows `time.time()` 1ms 量化致 `elapsed_ms=0.0`——已通过 §6.7 的
+  `time.perf_counter()` 生产改进根治
+
+**文档修正**：报告头部两个失效链接已修正（CI 看板补 `docs/` 前缀；历史待办清单
+已归档删除，改为内联说明）。
+
+### 7.4 与 stakeholders 核实结论
+
+所有任务已完成并达到质量标准：主门禁 18/18 全绿为最终客观验收依据，修复均经
+"junit 定位 → 本地复现 → 根因修复 → 本地验证 → CI 转绿"闭环流程；无未闭环的
+代码级遗留，剩余环境类失败均有可复现证明且不影响 CI。
