@@ -243,10 +243,17 @@ class TestExtremeValues:
 
     def test_custom_limits_with_huge_capacity(self):
         """超大容量的限流器"""
-        limiter = RateLimiter(limits={"default": (10000, 1.0)})
-        for _ in range(10000):
-            assert limiter.check("tool") is True
-        assert limiter.check("tool") is False
+        # 【不易】refill_rate=1.0/s：若 10000 次 check 循环耗时 ≥1s（共享 runner
+        # 负载/xdist 并行/控制台开销），期间补充的令牌使第 10001 次 check 返回 True
+        # → 断言失败（CI flaky，2026-08-29 实证 shard 内失败/隔离通过）。
+        # 固定时间戳使 refill 恒为 0，保证确定性。
+        from unittest import mock
+
+        with mock.patch("agent.rate_limiter.time.time", return_value=1000.0):
+            limiter = RateLimiter(limits={"default": (10000, 1.0)})
+            for _ in range(10000):
+                assert limiter.check("tool") is True
+            assert limiter.check("tool") is False
 
     def test_custom_limits_with_huge_refill_rate(self):
         """较大补充速率的限流器
