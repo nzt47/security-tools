@@ -416,6 +416,7 @@ flowchart LR
         agent["agent"]
     end
     subgraph utils [utils]
+        agent_utils["agent.utils"]:::crosslayer
         agent_utils_compatibility["agent.utils.compatibility"]:::crosslayer
         agent_utils_index_manager["agent.utils.index_manager"]
         agent_utils_observability["agent.utils.observability"]
@@ -579,6 +580,8 @@ flowchart LR
     agent_auto_tuner -.-> agent_evolution_injector
     agent_auto_tuner -.-> agent_evolution_injector
     agent_auto_tuner -.-> agent_evolution_injector
+    agent_logging_utils -.-> agent_utils_singleton_manager
+    agent_logging_utils -.-> agent_utils
     agent_api_gateway --> agent_rate_limiter
     agent_api_gateway -.-> agent_monitoring_tracing
     agent_api_gateway -.-> agent_utils_singleton_manager
@@ -914,17 +917,6 @@ flowchart LR
     agent_memory_reviewer --> agent_memory_long_term_memory
     agent_memory_markdown_syncer -.-> agent_logging_utils
     agent_memory_base -.-> agent_logging_utils
-    agent_memory_adapters --> agent_memory_adapters_holographic_adapter
-    agent_memory_adapters --> agent_memory_adapters_mem0_adapter
-    agent_memory_adapters_mem0_adapter --> agent_memory_base
-    agent_memory_adapters_mem0_adapter -.-> agent_logging_utils
-    agent_memory_adapters_holographic_adapter --> agent_memory_base
-    agent_memory_adapters_holographic_adapter -.-> agent_logging_utils
-    agent_memory_adapters_holographic_adapter -.-> agent_error_handler
-    agent_memory_adapters_holographic_adapter --> agent_memory_markdown_syncer
-    agent_memory_adapters_holographic_adapter --> agent_memory_file_watcher
-    agent_memory_adapters_holographic_adapter -.-> agent_caching_multi_level_cache
-    agent_memory_adapters_holographic_adapter --> agent_memory_observability
     agent_cognitive --> agent_cognitive_loop
     agent_cognitive --> agent_cognitive_reflection
     agent_cognitive --> agent_cognitive_knowledge
@@ -1412,6 +1404,17 @@ flowchart LR
     agent_health_probes -.-> agent_circuit_breaker
     agent_health_health_score -.-> agent_logging_utils
     agent_health_health_score -.-> agent_utils_singleton_manager
+    agent_memory_adapters --> agent_memory_adapters_holographic_adapter
+    agent_memory_adapters --> agent_memory_adapters_mem0_adapter
+    agent_memory_adapters_mem0_adapter --> agent_memory_base
+    agent_memory_adapters_mem0_adapter -.-> agent_logging_utils
+    agent_memory_adapters_holographic_adapter --> agent_memory_base
+    agent_memory_adapters_holographic_adapter -.-> agent_logging_utils
+    agent_memory_adapters_holographic_adapter -.-> agent_error_handler
+    agent_memory_adapters_holographic_adapter --> agent_memory_markdown_syncer
+    agent_memory_adapters_holographic_adapter --> agent_memory_file_watcher
+    agent_memory_adapters_holographic_adapter -.-> agent_caching_multi_level_cache
+    agent_memory_adapters_holographic_adapter --> agent_memory_observability
 ```
 
 ## 图例说明
@@ -1421,9 +1424,9 @@ flowchart LR
 
 ## 统计信息
 - 扫描文件数: 425
-- 模块节点数: 364
-- 依赖边数: 962
-- 跨层调用数: 630
+- 模块节点数: 365
+- 依赖边数: 964
+- 跨层调用数: 632
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1758.62 ms
+- 构建耗时: 2044.70 ms
