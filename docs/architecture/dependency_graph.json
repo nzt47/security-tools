@@ -1,5 +1,5 @@
 {
-  "trace_id": "64917b3e39a84596",
+  "trace_id": "2ff8a740e160451d",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -12147,7 +12147,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 176,
+      "line": 136,
       "source_file": "agent/monitoring/config_observability.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -12160,7 +12160,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 208,
+      "line": 142,
       "source_file": "agent/monitoring/config_observability.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -15507,6 +15507,6 @@
       "quality": 2,
       "prompt_manager": 5
     },
-    "build_duration_ms": 2044.7043609999937
+    "build_duration_ms": 1932.7488149999965
   }
 }
