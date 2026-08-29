@@ -96,21 +96,29 @@ jobs:
             const commit = '${{ steps.prep.outputs.commit }}';
             const actor = '${{ steps.prep.outputs.actor }}';
 
-            // 检查是否已有相同 Issue 开启（避免重复）
+            // 检查是否已有相同 Workflow 的开启 Issue（避免每次失败 commit 都新建）
+            // 【根因修复 CHG-2026-0830】原去重键为 (workflow + commit)：同一 workflow
+            // 持续失败时每个 commit 都新建 Issue，2026-07~08 已堆积 173 个 CI 失败 Issue。
+            // 改为「每 workflow 一个 open Issue」：已存在则追加评论记录本次失败，不新建；
+            // 修复后请关闭该 Issue，下次同 workflow 失败才会再建。
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open',
               labels: 'ci-failure',
-              per_page: 10
+              per_page: 20
             });
 
-            const existingIssue = issues.data.find(i =>
-              i.title.includes(workflowName) && i.title.includes(commit.substring(0, 7))
-            );
+            const existingIssue = issues.data.find(i => i.title.includes(workflowName));
 
             if (existingIssue) {
-              console.log(`已存在相同 Issue #${existingIssue.number}，跳过创建`);
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body: `再次失败（commit ${commit.substring(0, 7)}，@${actor}）: ${runUrl}`
+              });
+              console.log(`已存在相同 Workflow Issue #${existingIssue.number}，追加评论并跳过创建`);
               return;
             }
 

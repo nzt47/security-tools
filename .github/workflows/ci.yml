@@ -896,6 +896,32 @@ jobs:
           RATIO=$(python -c "print(f'{$P99/$THRESHOLD:.2f}')")
           TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
 
+          # 【根因修复 CHG-2026-0830】状态型去重：已存在 open 的 P99 告警 Issue 时仅追加评论，
+          # 不新建 Issue。原逻辑每次 CI 运行 P99 超阈值(1ms) 都新建，2026-07~08 已堆积 690 个
+          # 告警 Issue（687 open）。P99 恢复正常后关闭既有 Issue，下次告警才会再建。
+          EXISTING=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --label "performance" \
+            --limit 20 --json number,title \
+            --jq '.[] | select(.title | startswith("🚨 L2 P99 告警")) | .number' 2>/dev/null | head -1)
+
+          if [ -n "$EXISTING" ]; then
+            echo "已存在 open P99 告警 Issue #${EXISTING}，跳过新建，仅追加本次告警评论"
+            gh issue comment "$EXISTING" --repo "$GITHUB_REPOSITORY" --body "## 持续告警更新
+
+            | 项 | 值 |
+            |----|-----|
+            | 告警时间 | ${TIMESTAMP} |
+            | 场景 | C - 高并发同步串行 |
+            | P99 | ${P99}ms |
+            | 阈值 | ${THRESHOLD}ms |
+            | 超阈值倍数 | ${RATIO}x |
+            | CI 运行 | ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID} |
+
+            > 本次 CI 运行再次触发 P99 告警，仅追加评论不新建 Issue。P99 恢复后请关闭本 Issue。" \
+              || echo "评论追加失败（忽略，不阻断）"
+            exit 0
+          fi
+
+          echo "无 open P99 告警 Issue，新建告警 Issue"
           gh issue create \
             --title "🚨 L2 P99 告警 - P99=${P99}ms 超阈值 ${THRESHOLD}ms" \
             --body "## P99 告警详情
