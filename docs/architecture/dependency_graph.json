@@ -1,5 +1,5 @@
 {
-  "trace_id": "0347b0dacf874779",
+  "trace_id": "b15f9bf7423a4d9f",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -2943,7 +2943,7 @@
       "source_layer": "core",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 875,
+      "line": 880,
       "source_file": "agent/p6_snapshot.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -5218,7 +5218,7 @@
       "source_layer": "p6",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 740,
+      "line": 741,
       "source_file": "agent/p6/snapshot.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -15507,6 +15507,6 @@
       "quality": 2,
       "prompt_manager": 5
     },
-    "build_duration_ms": 1947.684962999972
+    "build_duration_ms": 1717.2730839999986
   }
 }
