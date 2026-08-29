@@ -286,3 +286,36 @@ SqliteVecBackend UNIQUE 主键冲突 → 第二条丢失（count=1）。
 > → `0a2917f9`（test_task7 log_dict 适配）→ `81a541de`（list_recent 时序竞态修复）
 > → `fef98343`（rate_limiter 墙钟竞态修复）→ `b67afbb0`（LoRA checkpoint 缺失测试套件补齐）
 > → `11a5c020`（可观测性并行段单次重试）。CI 验证结论见 §5.6 / §六。
+
+### 6.5 云枢单测 Shard2 轮转 flaky 根因（junit 定位 + 已修复）
+
+**定位方式**：用户浏览器下载 `test-results-unit-py3.12-shard2`（run 33250347304），
+junit 精确定位两个连锁 error：
+
+1. `TestObservabilityConfigGetSet::test_set_valid_value` — **teardown 抛
+   `RuntimeError: dictionary changed size during iteration`**
+2. `test_set_invalid_value_repairs` — setup 连锁 `previous item was not torn down properly`
+
+**根因链**（Shard2 在本会话 4 轮中 3 轮失败、1 轮通过的解释——纯线程时序）：
+
+- `ObservabilityConfig.set()` → `config_observability.on_config_changed()` 每次变更都启动
+  **不 join 的 daemon 线程**（`config-change-loki` / `config-change-alert`），线程存活可跨测试边界。
+- 线程执行体内 `from agent.monitoring.loki import LokiClient` /
+  `from agent.monitoring.alert_notifier import send_alert_notification` 是 **lazy import**，
+  首次导入时模块级 `logging.getLogger(__name__)` 向 `logging.Manager.loggerDict` **插入新 logger**。
+- pytest 的 LogCapture（`_pytest/logging.py` `_CatchLoggingHandler.__enter__`）在每个测试
+  setup 迭代 `loggerDict.values()`；慢 runner 上 daemon 线程恰在 pytest 迭代窗口内导入 →
+  **dict 迭代中尺寸变化 → RuntimeError**，被 pytest 归因到上一测试的 teardown。
+- 并发窗口概率性出现 → 轮转 flaky；测试自身与 xdist 无直接关系（`-n 2 --dist=loadscope`
+  只是放大线程存活窗口）。
+
+**修复**（`agent/monitoring/config_observability.py`）：新增 `_ensure_async_imports()`，
+在**主线程启动线程前**同步预导入并缓存 `LokiClient` / `send_alert_notification` 引用；
+`_push_to_loki` / `_trigger_alert` 改用缓存引用，**线程执行体零 import**——loggerDict
+插入副作用全部移到主线程 set() 调用点（pytest 不在该阶段迭代 loggerDict）。
+
+**本地验证**：`TestObservabilityConfigGetSet` 350 次同进程重复全通过；Shard2 全量
+（76 文件 / 1999 passed）本地仅沙箱 artifact 失败（subprocess 管道 EPERM），无
+observability_config 失败。并发时序类需 CI 实跑验证。
+
+### 6.6 云枢 Shard2 修复后 CI 验证

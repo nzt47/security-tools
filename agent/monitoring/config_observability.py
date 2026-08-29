@@ -118,6 +118,33 @@ def _check_high_risk(key: str, new_value: Any) -> Optional[Dict[str, Any]]:
 # 核心入口：配置变更通知
 # ============================================================================
 
+# 【线程安全】daemon 线程内首次 import（模块级 logging.getLogger() 会向
+# logging.Manager.loggerDict 插入新 logger）与 pytest 的 LogCapture 迭代
+# loggerDict（_pytest/logging.py __enter__）并发时，会触发偶发的
+# RuntimeError: dictionary changed size during iteration（归因到上一测试的
+# teardown）。因此依赖模块必须在主线程启动线程前预导入并缓存引用，
+# 线程执行体不再执行任何 import。
+_loki_client_cls = None
+_send_alert_notification = None
+
+
+def _ensure_async_imports() -> None:
+    """同步预导入异步线程依赖（必须由主线程调用，禁止在线程内首次导入）。"""
+    global _loki_client_cls, _send_alert_notification
+    if _loki_client_cls is None:
+        try:
+            from agent.monitoring.loki import LokiClient
+            _loki_client_cls = LokiClient
+        except Exception as e:
+            logger.debug(f"预导入 LokiClient 失败（非致命）: {e}")
+    if _send_alert_notification is None:
+        try:
+            from agent.monitoring.alert_notifier import send_alert_notification
+            _send_alert_notification = send_alert_notification
+        except Exception as e:
+            logger.debug(f"预导入 send_alert_notification 失败（非致命）: {e}")
+
+
 def on_config_changed(change_record: Dict[str, Any]) -> None:
     """配置变更通知入口（由 ObservabilityConfig.set() 调用）
 
@@ -129,6 +156,10 @@ def on_config_changed(change_record: Dict[str, Any]) -> None:
     Args:
         change_record: 变更记录 {timestamp, key, old_value, new_value, duration_ms}
     """
+    # 0. 主线程预导入线程依赖（见模块注释：避免线程内 import 与 pytest
+    #    loggerDict 迭代竞态）
+    _ensure_async_imports()
+
     # 1. Prometheus 指标更新（同步，极快）
     try:
         _init_metrics()
@@ -173,8 +204,11 @@ def _push_to_loki(change_record: Dict[str, Any]) -> None:
     失败时降级到本地日志（LokiClient 内部已处理降级逻辑）
     """
     try:
-        from agent.monitoring.loki import LokiClient
-        client = LokiClient()
+        if _loki_client_cls is None:
+            _ensure_async_imports()
+        if _loki_client_cls is None:
+            return
+        client = _loki_client_cls()
 
         message = json.dumps({
             "config_path": change_record["key"],
@@ -205,10 +239,12 @@ def _trigger_alert(change_record: Dict[str, Any], high_risk: Dict[str, Any]) -> 
     通过 alert_notifier.send_alert_notification() 发送告警到配置的通知渠道。
     """
     try:
-        from agent.monitoring.alert_notifier import send_alert_notification
-
+        if _send_alert_notification is None:
+            _ensure_async_imports()
+        if _send_alert_notification is None:
+            return
         direction_text = "超过上限" if high_risk["direction"] == "exceeds_max" else "低于下限"
-        send_alert_notification(
+        _send_alert_notification(
             alert_name=f"HighRiskConfigChange:{high_risk['key']}",
             state="firing",
             severity="warning",
