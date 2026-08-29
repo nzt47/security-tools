@@ -319,3 +319,9 @@ junit 精确定位两个连锁 error：
 observability_config 失败。并发时序类需 CI 实跑验证。
 
 ### 6.6 云枢 Shard2 修复后 CI 验证
+
+**CI 确认（85486cfe，run 33263451243）**：云枢系统测试流程 **18/18 job 全 success**——
+含此前连续失败的 **单元测试 Shard 2**（6/6 shard 全绿）。至此云枢主门禁在本会话内
+经 81a541de / cae76723 / 85486cfe 多次全绿验证，剩余 CI 红仅剩可观测性 Shard 6
+历史 flaky（本地 UTF-8 复现确认仅环境 artifacts）与 Daily Regression（已由 §6.1
+补齐缺失模块根治）。
