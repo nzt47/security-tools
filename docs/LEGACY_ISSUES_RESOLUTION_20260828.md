@@ -233,11 +233,30 @@ shard 间漂移（4768f6ed→S2/3/5、0a2917f9→S3/5、81a541de→S6、fef98343
 runner 负载型 flaky。`observability-ci.yml` full-project-tests 并行段加**单次重试**
 （bash 包装 `run_parallel`，失败清理 .coverage 后重试；确定性失败第二次仍失败阻断，不掩盖回归）。
 
-### 6.3 L3 Docker Tests（需外部环境排查）
+### 6.3 L3 Docker Tests（junit 定位 + 已修复）
 
-首次触发（push paths 命中 test_long_term_memory_embedding.py）即失败于 sqlite-vec 容器内
-测试。本环境无 Docker、无 CI 日志权限、本地无 sqlite-vec，无法复现/定位；同批 3 文件本地
-97 passed 证明非本次代码回归。**需有 CI 日志或 Docker 环境者排查** sqlite-vec 容器内失败。
+首次触发（81a541de）即失败。用户提供 `test-results-sqlite-vec/junit.xml` 后定位：
+`errors=8 failures=1`，全部同源——`test_vector_store_sqlite_vec.py` 的
+`assert vs._backend == "sqlite_vec"` 实际得到 `json`。
+
+**根因 1（测试防污染冲突）**：测试用 `patch('sentence_transformers.SentenceTransformer')`
+构造 VectorStore，但 `vector_store._get_shared_encoder` 的防污染检测（检测到类被 patch 成
+Mock → 返回 None）使 `_init_sqlite_vec` 拿不到 encoder → 降级 json。
+**修复**：测试改 patch `memory.vector_store.vector_store._get_shared_encoder` 直接返回
+mock encoder（绕过防污染检测，保持 mock 意图）。
+> 注：这些测试此前从未真正运行（本地 `_HAS_SQLITE_VEC=False` skip、CI Linux
+> `_HAS_ST=False` skip；仅 L3 容器无 CI 环境变量时 `_HAS_ST=True` 才运行）。
+
+**根因 2（记忆 id 同微秒冲突）**：修复根因 1 后本地暴露 `test_add_and_count` 失败——
+`VectorStore.add` 的 id 为 `mem_{微秒时间戳}`，同微秒连续 add 生成相同 id →
+SqliteVecBackend UNIQUE 主键冲突 → 第二条丢失（count=1）。
+**修复**：`memory/vector_store/vector_store.py` 新增 `_item_id_seq` 递增序号，
+`_new_mem_id()` 生成 `mem_{时间戳}_{序号}` 全局唯一（单 add / batch add 三处替换）。
+
+本地验证：`tests/unit/test_vector_store_sqlite_vec.py` **27 passed**（本地首次完整跑通）。
+
+**CI 确认（a9c757b6）**：L3 Docker Tests **4/4 job 全 success**（构建镜像 / sqlite-vec
+回归测试 / 覆盖率分析 / 总结通知）——首次转绿。
 
 ### 6.4 可观测性 Shard6 稳定失败根因（junit 定位 + 已修复）
 
