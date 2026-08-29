@@ -948,8 +948,10 @@ jobs:
               --ignore=tests/test_network_config_integration.py \
               -p no:randomly \
               -q \
-              --tb=short
+              --tb=short \
+              --junitxml=test-results/junit.xml
           }
+          mkdir -p test-results
           rm -f .coverage
           if ! run_parallel; then
             echo "并行段失败，清理后重试一次（吸收轮转 flaky，2026-08-29）"
@@ -986,7 +988,17 @@ jobs:
             -p no:randomly \
             -q \
             --tb=short \
+            --junitxml=test-results/junit-serial.xml \
             || [ $? -eq 5 ]
+
+      - name: 上传测试结果（junit，失败也可诊断）
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: full-project-tests-results-shard${{ matrix.shard }}
+          path: test-results/
+          retention-days: 7
+          if-no-files-found: warn
 
       # 【变易·R2】coverage 数据保护 step（独立于测试 run 块）：
       #   pytest 失败（exit 1）时 run 块 set -e 会提前中止，若 mv 留在 run 块内
