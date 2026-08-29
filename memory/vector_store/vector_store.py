@@ -21,6 +21,7 @@ import json
 import re
 import heapq
 import asyncio
+import itertools
 import subprocess
 import threading
 import logging
@@ -30,6 +31,17 @@ from datetime import datetime
 from collections import OrderedDict, defaultdict
 
 logger = logging.getLogger(__name__)
+
+# 【变易·2026-08-29】记忆项 id 生成: 微秒时间戳在高速连续写入时可能重复
+# （同一微秒内两次 add → SqliteVecBackend UNIQUE 主键冲突 → 第二条丢失，L3
+# 容器 sqlite-vec 集成测试实证 test_add_and_count count=1）。进程内递增序号
+# 保证 id 全局唯一（同微秒 + 序号组合）。
+_item_id_seq = itertools.count()
+
+
+def _new_mem_id() -> str:
+    """生成唯一记忆项 id（时间戳 + 进程内递增序号）"""
+    return f"mem_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}_{next(_item_id_seq)}"
 
 # BM25 参数（环境变量可配置，启动时一次性读取）
 # Why: b=0.75 默认值对短文档虚高（短/长得分比 1.67x），降至 0.5 缓解（1.40x）；
@@ -657,7 +669,7 @@ class VectorStore:
         Returns:
             记忆项ID
         """
-        item_id = f"mem_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+        item_id = _new_mem_id()
         metadata = metadata or {}
         metadata["created_at"] = datetime.now().isoformat()
 
@@ -721,7 +733,7 @@ class VectorStore:
                 content = item_data.get("content", "")
                 metadata = item_data.get("metadata", {})
                 metadata["created_at"] = now_iso
-                item_id = f"mem_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}_{i}"
+                item_id = f"{_new_mem_id()}_{i}"
                 backend_items.append({
                     "id": item_id,
                     "content": content,
@@ -748,7 +760,7 @@ class VectorStore:
             metadata = item_data.get("metadata", {})
             metadata["created_at"] = datetime.now().isoformat()
 
-            item_id = f"mem_{datetime.now().strftime('%Y%m%d_%H%M%S_%f')}"
+            item_id = _new_mem_id()
             item = MemoryItem(
                 id=item_id,
                 content=content,

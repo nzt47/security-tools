@@ -338,7 +338,13 @@ class TestVectorStoreBackendImmutable:
         """测试 sqlite-vec 可用时 _backend == 'sqlite_vec'"""
         from memory.vector_store.vector_store import VectorStore
         mock_encoder = _make_mock_encoder(dim=4)
-        with patch('sentence_transformers.SentenceTransformer', return_value=mock_encoder):
+        # 【变易·2026-08-29】patch 目标改为 _get_shared_encoder 而非
+        # sentence_transformers.SentenceTransformer：后者被 patch 成 Mock 后，
+        # vector_store._get_shared_encoder 的防污染检测（hasattr(SentenceTransformer,
+        # "mock_calls") → 返回 None）会使 _init_sqlite_vec 拿不到 encoder → 降级 json
+        # （L3 Docker 容器首次真正运行即失败：本地 sqlite-vec 缺失 skip、CI Linux
+        # _HAS_ST=False skip，仅容器环境无 CI 变量时运行）。
+        with patch('memory.vector_store.vector_store._get_shared_encoder', return_value=mock_encoder):
             vs = VectorStore(
                 collection_name="test_immutable",
                 persist_dir=str(tmp_path),
@@ -355,7 +361,13 @@ class TestVectorStoreBackendImmutable:
         """测试 _use_chroma 运行期不可赋值（property 只读，AttributeError）"""
         from memory.vector_store.vector_store import VectorStore
         mock_encoder = _make_mock_encoder(dim=4)
-        with patch('sentence_transformers.SentenceTransformer', return_value=mock_encoder):
+        # 【变易·2026-08-29】patch 目标改为 _get_shared_encoder 而非
+        # sentence_transformers.SentenceTransformer：后者被 patch 成 Mock 后，
+        # vector_store._get_shared_encoder 的防污染检测（hasattr(SentenceTransformer,
+        # "mock_calls") → 返回 None）会使 _init_sqlite_vec 拿不到 encoder → 降级 json
+        # （L3 Docker 容器首次真正运行即失败：本地 sqlite-vec 缺失 skip、CI Linux
+        # _HAS_ST=False skip，仅容器环境无 CI 变量时运行）。
+        with patch('memory.vector_store.vector_store._get_shared_encoder', return_value=mock_encoder):
             vs = VectorStore(
                 collection_name="test_immutable2",
                 persist_dir=str(tmp_path),
@@ -373,7 +385,13 @@ class TestVectorStoreBackendImmutable:
         """测试 add 失败不修改 _backend（运行期不可变）"""
         from memory.vector_store.vector_store import VectorStore
         mock_encoder = _make_mock_encoder(dim=4)
-        with patch('sentence_transformers.SentenceTransformer', return_value=mock_encoder):
+        # 【变易·2026-08-29】patch 目标改为 _get_shared_encoder 而非
+        # sentence_transformers.SentenceTransformer：后者被 patch 成 Mock 后，
+        # vector_store._get_shared_encoder 的防污染检测（hasattr(SentenceTransformer,
+        # "mock_calls") → 返回 None）会使 _init_sqlite_vec 拿不到 encoder → 降级 json
+        # （L3 Docker 容器首次真正运行即失败：本地 sqlite-vec 缺失 skip、CI Linux
+        # _HAS_ST=False skip，仅容器环境无 CI 变量时运行）。
+        with patch('memory.vector_store.vector_store._get_shared_encoder', return_value=mock_encoder):
             vs = VectorStore(
                 collection_name="test_immutable3",
                 persist_dir=str(tmp_path),
@@ -410,7 +428,13 @@ class TestVectorStoreSqliteVecIntegration:
         mock_encoder = _make_mock_encoder(dim=4)
 
         # patch SentenceTransformer 构造函数，返回 mock_encoder
-        with patch('sentence_transformers.SentenceTransformer', return_value=mock_encoder):
+        # 【变易·2026-08-29】patch 目标改为 _get_shared_encoder 而非
+        # sentence_transformers.SentenceTransformer：后者被 patch 成 Mock 后，
+        # vector_store._get_shared_encoder 的防污染检测（hasattr(SentenceTransformer,
+        # "mock_calls") → 返回 None）会使 _init_sqlite_vec 拿不到 encoder → 降级 json
+        # （L3 Docker 容器首次真正运行即失败：本地 sqlite-vec 缺失 skip、CI Linux
+        # _HAS_ST=False skip，仅容器环境无 CI 变量时运行）。
+        with patch('memory.vector_store.vector_store._get_shared_encoder', return_value=mock_encoder):
             vs = VectorStore(
                 collection_name="test_integration",
                 persist_dir=str(tmp_path),
@@ -545,7 +569,13 @@ class TestVectorStoreSqliteVecIntegration:
 
         mock_encoder = _make_mock_encoder(dim=4)
 
-        with patch('sentence_transformers.SentenceTransformer', return_value=mock_encoder):
+        # 【变易·2026-08-29】patch 目标改为 _get_shared_encoder 而非
+        # sentence_transformers.SentenceTransformer：后者被 patch 成 Mock 后，
+        # vector_store._get_shared_encoder 的防污染检测（hasattr(SentenceTransformer,
+        # "mock_calls") → 返回 None）会使 _init_sqlite_vec 拿不到 encoder → 降级 json
+        # （L3 Docker 容器首次真正运行即失败：本地 sqlite-vec 缺失 skip、CI Linux
+        # _HAS_ST=False skip，仅容器环境无 CI 变量时运行）。
+        with patch('memory.vector_store.vector_store._get_shared_encoder', return_value=mock_encoder):
             vs1 = VectorStore(
                 collection_name="test_persist",
                 persist_dir=str(tmp_path),
@@ -554,7 +584,13 @@ class TestVectorStoreSqliteVecIntegration:
             vs1.add("persistent content")
 
         # 新实例
-        with patch('sentence_transformers.SentenceTransformer', return_value=mock_encoder):
+        # 【变易·2026-08-29】patch 目标改为 _get_shared_encoder 而非
+        # sentence_transformers.SentenceTransformer：后者被 patch 成 Mock 后，
+        # vector_store._get_shared_encoder 的防污染检测（hasattr(SentenceTransformer,
+        # "mock_calls") → 返回 None）会使 _init_sqlite_vec 拿不到 encoder → 降级 json
+        # （L3 Docker 容器首次真正运行即失败：本地 sqlite-vec 缺失 skip、CI Linux
+        # _HAS_ST=False skip，仅容器环境无 CI 变量时运行）。
+        with patch('memory.vector_store.vector_store._get_shared_encoder', return_value=mock_encoder):
             vs2 = VectorStore(
                 collection_name="test_persist",
                 persist_dir=str(tmp_path),
