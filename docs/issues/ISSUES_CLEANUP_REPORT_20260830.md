@@ -205,7 +205,7 @@ commit `95eba3b8` 触发的 ci.yml run（33285774807）实测：
 | 引用项 | 状态 | 动作 |
 |---|---|---|
 | `scripts/backup_reflection.py`（手册前置） | ❌ 缺失（task.cmd 引用但文件不存在，备份任务实际是坏的） | ✅ 补建：快照+keep 轮转+结构化 JSON 日志，`--source/--backup-root/--keep` 契约与历史日志一致；3 个单测通过 |
-| `monitoring/prometheus/rules/planning_alerts.yml`（手册 §3.3） | ❌ 缺失（内容仅文档化于 08-13 大盘配置文档） | ✅ 补建：6 条告警（CostZero/CostSpike/DurationHigh/FailureRateHigh/LLMErrorRateHigh/TrafficDrop） |
+| `monitoring/prometheus/rules/planning_alerts.yml`（手册 §3.3） | ❌ 缺失（内容仅文档化于 08-13 大盘配置文档） | ✅ 补建（**修正为 2 条引用真实指标的告警**，4 条成本/耗时/失败率告警因指标未注册挂起，见 §21） |
 | 其余 11 项（verify_prometheus_checklist.py / prometheus.yml×2 / lock_watchdog_alerts.yml / config.yaml / grafana 看板模板） | ✅ 在位 | 无需动作 |
 
 **结论**：#680 的代码/脚本/手册/基线备份前置现已全部就绪，唯一阻塞仍是生产权限 + 变更审批。
@@ -288,6 +288,17 @@ commit `95eba3b8` 触发的 ci.yml run（33285774807）实测：
 ## 20. 结案声明
 
 至此，GitHub Issues 全量清理（869 个 open）、根因修复、建议落实、保留 Issue 处置与生产就绪补全均已完成。剩余 2 个 issue 仅为外部环境前置（生产权限 / 部署环境），无代码或流程遗留问题。任务结案。
+
+## 21. 交付后复核发现的修正（promtool 权威校验暴露）
+
+| 发现 | 修正 |
+|---|---|
+| `prom/prometheus` 镜像 ENTRYPOINT 遮蔽 promtool（`docker run ... promtool` 报 unexpected） | CI 步骤改 `--entrypoint promtool` |
+| 08-13 文档化 planning 告警的 4 条规则引用**未注册且非法（含 "."）**的指标（`planning.cost_total` 等），promtool check 报 parse error | planning_alerts.yml 落地为 2 条引用真实注册指标（`yunshu_intent_layer_total{layer=...}`）的告警；4 条挂起待指标注册（`business_metrics.py` 另立小任务，与 08-13 文档 §五.3 自述一致） |
+| lock_watchdog_alerts.yml | ✅ promtool check 通过（2 rules found）；test rules 4 场景待下一 run 复核 |
+
+**最终结论（复核后）**：主 CI 全绿（15.4min）；observability-ci promtool 步骤修正后重新验证中；open issues 2 个（#680/#681，外部前置）。遗留项仅：规划成本/耗时/失败率 4 条告警的指标注册（另立小任务），不阻塞交付。
+
 
 
 

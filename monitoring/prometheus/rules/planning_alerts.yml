@@ -2,8 +2,15 @@
 #
 # 挂载位置: monitoring/prometheus/rules/planning_alerts.yml
 # 来源: docs/zh/规划模块重构计划/阶段5_灰度上线监控大盘配置_20260813.md §四
-#        （该规则集此前仅文档化、文件未落地，2026-08-30 按文档补建）
-# 关联手册: docs/zh/规划模块重构计划/阶段5_灰度发布部署与监控挂载手册_20260814.md §3.3
+#
+# 【2026-08-30 修正】原文档化规则含 6 条告警，其中 4 条引用未注册指标：
+#   planning.cost_total / planning.duration_ms / planning.plans.failed|total
+#   —— PromQL 指标名不允许含 "."，且这些指标从未注册为 Prometheus 指标
+#   （08-13 文档 §五.3 已自述"另立小任务"）。promtool check 实测报
+#   "parse error: unexpected character: '.'"。因此本文件落地为
+#   **引用真实已注册指标（agent/monitoring/prometheus.py 的
+#   yunshu_intent_layer_total）的 2 条告警**；4 条成本/耗时/失败率告警
+#   待指标注册后按文档补回（见清理报告 §21）。
 #
 # 验证命令:
 #   promtool check rules monitoring/prometheus/rules/planning_alerts.yml
@@ -12,45 +19,24 @@ groups:
   - name: planning_alerts
     interval: 30s
     rules:
-      # 记账/成本异常
-      - alert: PlanningCostZero
-        expr: planning.cost_total == 0 and on() (sum(rate(yunshu_intent_layer_total{layer="planning"}[10m])) > 0.1)
-        for: 30m
-        labels: {severity: warning, category: planning, layer: billing}
-        annotations:
-          summary: "规划流量存在但成本恒 0（记账链路失效）"
-          description: "部署版本可能未含 87856021，或 execute_plan finally 快照回填未触发。"
-      - alert: PlanningCostSpike
-        expr: increase(planning.cost_total[5m]) > 0.1
-        for: 10m
-        labels: {severity: warning, category: planning, layer: billing}
-        annotations:
-          summary: "规划成本 5 分钟增量超过 $0.1"
-          description: "成本突刺：检查 LLM 调用是否异常放大（死循环式消耗），必要时按手册 §3.4 回滚。"
-      - alert: PlanningDurationHigh
-        expr: quantile(0.99, planning.duration_ms) > 30000
-        for: 15m
-        labels: {severity: warning, category: planning, layer: latency}
-        annotations:
-          summary: "规划 P99 耗时超过 timeout_seconds（30s）"
-          description: "逃生通道兜底但用户体验受损；检查规划引擎性能。"
-      # 错误率
-      - alert: PlanningFailureRateHigh
-        expr: planning.plans.failed / planning.plans.total > 0.1
-        for: 10m
-        labels: {severity: warning, category: planning, layer: execution}
-        annotations:
-          summary: "规划执行失败率超过 10%"
+      # 错误率（引用已注册指标 yunshu_intent_layer_total，orchestrator 埋点 layer=llm/llm_error）
       - alert: PlanningLLMErrorRateHigh
         expr: sum(rate(yunshu_intent_layer_total{layer="llm_error"}[10m])) / sum(rate(yunshu_intent_layer_total{layer="llm"}[10m])) > 0.05
         for: 15m
         labels: {severity: warning, category: planning, layer: llm}
         annotations:
           summary: "LLM 错误率超过 5%（回退护栏）"
-      # 流量异常
+      # 流量异常（引用已注册指标，orchestrator 埋点 layer=planning）
       - alert: PlanningTrafficDrop
         expr: sum(rate(yunshu_intent_layer_total{layer="planning"}[10m])) < 0.1
         for: 30m
         labels: {severity: warning, category: planning, layer: traffic}
         annotations:
           summary: "规划引擎流量消失（回滚动作异常）"
+
+  # 【挂起，待指标注册】以下 4 条按 08-13 文档定义，待 cost/duration/失败计数
+  # 注册为合法 Prometheus 指标（business_metrics.py 另立小任务）后补回：
+  #   - PlanningCostZero:    planning.cost_total == 0 and on() (sum(rate(yunshu_intent_layer_total{layer="planning"}[10m])) > 0.1)  for 30m
+  #   - PlanningCostSpike:   increase(planning.cost_total[5m]) > 0.1  for 10m
+  #   - PlanningDurationHigh: quantile(0.99, planning.duration_ms) > 30000  for 15m
+  #   - PlanningFailureRateHigh: planning.plans.failed / planning.plans.total > 0.1  for 10m
