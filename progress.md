@@ -81,3 +81,10 @@
   - 单测：`pluginDiscovery.test.ts` 11 项 + `PluginPanel.test.tsx` 扩展（刷新成功/失败/加载态 + 动态装载成功/失败）；后端 `test_plugin_schema.py` +3 项（client_slot 契约 + demo 声明）
 - 验证：tsc ✅；vitest 26 文件 / 363 用例 ✅；npm run build ✅（dist/plugins 复制正确）；后端插件相关 pytest 30 项 ✅；`app_server` 冒烟：`/api/plugins` 9 插件（demo 含 client_slot/schema/submit_url）、`/api/demo/probe`、`/api/demo/config`、带 token `POST /api/plugins/reload` 200
 - 提交：本提交（代码 + 结案报告 + 进度归档），已推送 origin（GitHub）+ gitee
+
+## 2026-08-31: 阶段 4 交付收尾（CI 全绿 + stakeholders 确认结案，四阶段收官）
+- 推送核查：`6011900a`（T4.2 代码）+ 本归档提交已推送 origin（GitHub）+ gitee 双远端
+- CI/CD：`6011900a` 触发的 **13/13 个 workflow 全部 success**——yunshu-ui 前端测试（lint+typecheck / vitest 363+覆盖率 / build / 总结 4 job 全绿）、云枢系统测试流程（后端全量 pytest）、master commit 来源守卫、硬编码密码扫描、lock-discipline-scan、核心不变量监控、环境健康检查与工作区守卫、部署文档到 GitHub Pages、关键字参数冲突扫描 (Docker)、kwarg 扫描→SonarQube、日志性能守护、Error Reporting System CI/CD、可观测性质量保障（17 job）
+- 结案报告更新：`docs/DELIVERY_CLOSEOUT_REPORT_PHASE4_20260831.md` 补充 §6 任务验收核对、§7 CI/CD 验证、§8 遗留问题（401 鉴权约束 / demo 插件保留 / lint 存量 warnings / static 构建产物部署流程）、§9 验收记录（stakeholders 确认）
+- 遗留问题：均非阻塞（环境鉴权约束、演示插件保留、存量技术债、部署流程产物），无需本次修复
+- 结论：阶段 1–4 四阶段插件化改造路线全部交付收官

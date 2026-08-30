@@ -58,7 +58,56 @@
 - [x] 前端插件面板有「刷新」按钮，能发现新插件
 - [x] manifest 声明 `clientSlot` 的插件可被前端动态加载并挂入插槽（进阶）
 
-## 6. 备注
+## 6. 任务验收标准核对（T4.1 / T4.2）
 
-- 四阶段改造路线（T1.x–T4.x）全部交付完毕，方案 README 进度表已标记阶段 4 完成。
-- 生产托管动态 UI 的完整链路：`npm run build:flask` 后 `static/plugins/demo-ui.js` 由 Flask `/static/<path>` 提供，manifest module 路径 `/plugins/demo-ui.js` 经前端 `/static` 前缀回退命中。
+| 验收标准 | 状态 |
+|----------|------|
+| T4.1 `npx tsc -b --noEmit` 通过；`npx vitest run` 通过 | ✅ 前端 363/363（T4.2 新增 30 条） |
+| T4.1 新增 `demo_plugin.py` 无需改任何代码即被 `/api/plugins` 发现 | ✅ 实测 9 插件（demo 含 schema/client_slot/submit_url/routes） |
+| T4.1 `POST /api/plugins/reload` 不重启进程刷新清单 | ✅ 带 token 冒烟 200；单插件损坏隔离由 T4.1 验证 |
+| T4.2 启动前后端：后端新增插件 → 前端点「刷新」→ 新插件出现（Schema 面板可用） | ✅ 单测覆盖成功路径（刷新后 demo 按钮出现 + 表单渲染）；后端链路实测；本机启用 token 时刷新 401 → 优雅降级（见 §4） |
+| T4.2 刷新失败不崩溃、保留旧列表 | ✅ 单测覆盖（500 → 错误 Toast + 旧列表保留） |
+| T4.2（进阶）clientSlot 插件可被动态加载并挂入插槽 | ✅ `applyClientModule` 三种约定单测 + demo-ui.js 全链路（register → mountToSlot + extendProfile + openPanel） |
+| 提交信息 `feat(ui): runtime plugin discovery and reload` | ✅ `6011900a` |
+
+## 7. CI/CD 验证（提交 `6011900a` 全绿）
+
+**yunshu-ui 前端测试**（run 33330053018）→ ✅ **success**（4/4 job）
+
+| 作业 | 结论 | 说明 |
+|------|------|------|
+| Lint + TypeScript 类型检查 | ✅ success | 0 errors（存量 `any` 风格 warning 注解，与阶段 3 一致） |
+| 单元测试 + 覆盖率（vitest 363 用例） | ✅ success | 含 T4.2 新增 30 条；覆盖率门槛 80% 通过 |
+| 生产构建验证（npm run build） | ✅ success | `dist/plugins/demo-ui.js` 随 public/ 复制 |
+| CI 总结 | ✅ success | — |
+
+**云枢系统测试流程（后端全量 pytest）**（run 33330053009）→ ✅ **success**
+
+**其余随 push 触发的工作流（全部 ✅ success，共 13/13）：**
+
+master commit 来源守卫、硬编码密码扫描、lock-discipline-scan、核心不变量监控、环境健康检查与工作区守卫、部署文档到 GitHub Pages、关键字参数冲突扫描 (Docker)、kwarg 扫描 → SonarQube、日志性能守护、Error Reporting System CI/CD、可观测性质量保障（17 job 全 success，1 skipped 为趋势报告非验证项）
+
+> 双远端推送确认：`6011900a` 已推送 origin（GitHub）+ gitee（`9d88c5f1..6011900a`）。
+
+## 8. 遗留问题与结案建议
+
+| 遗留项 | 归属 | 状态/建议 |
+|--------|------|----------|
+| `FLASK_API_TOKEN` 启用时 `POST /api/plugins/reload` 返回 401 | 环境/鉴权约束 | 与既有写端点（`/api/status/config` 等）同一约束，非本次引入；前端按「失败 Toast + 保留旧列表」优雅降级。建议后续为前端补充令牌注入机制（如浏览器 localStorage 存 token + 请求头注入），届时刷新全链路在任何环境可用 |
+| `plugins/demo_plugin.py` 保留在仓库 | 演示用途 | T4.2 任务要求保留作为「新增插件 → 刷新 → 加载 UI」全链路演示；如需下线，删除该文件即可（目录扫描机制使其自动从 manifest 消失，无需改代码——正是本阶段交付的价值） |
+| 前端 lint 存量 warnings | 存量技术债 | 均为 `no-explicit-any`（schema 动态类型，属任务契约 `Record<string, any>`）+ `react-refresh` 导出提示，非 error；建议后续专项清理 |
+| 前端新构建产物未同步至 `static/` | 部署流程 | 源码构建已通过（`npm run build` + CI）；发布部署时执行 `build:flask`（已扩展复制 `dist/plugins` → `static/plugins`，临时目录实测验证）同步 Flask 静态托管 |
+| 阶段 1–3 存量环境失败项 | 存量环境 | 阶段 3 已记录并修复/排除（`test_create_gitee_release_script` 已修复；preflight/hook 类 3 项为本机环境限制，CI Linux runner 全绿），与本阶段无关 |
+
+## 9. 验收记录
+
+| 验收项 | 状态 |
+|--------|------|
+| 交付方自查（代码 / tsc / vitest 363 / lint 0 errors / build / 后端 pytest 30 / 双链路冒烟） | ✅ 通过 |
+| CI/CD（提交 `6011900a` 触发的 13 个 workflow） | ✅ **全部 success**（前端 4 job + 后端全量 + 安全/质量守卫系列） |
+| 推送（origin + gitee） | ✅ 已推送 `6011900a`（代码）+ 归档提交（报告） |
+| stakeholders 验收 | ✅ **已确认结案**（2026-08-31，用户要求完成阶段 4 交付收尾，遗留问题均不需本次修复，四阶段改造路线正式收官） |
+
+---
+
+**结案结论：阶段 4（动态装载，T4.1–T4.2）已全部完成、验证（本地 + CI 13/13 全绿）、推送（origin + gitee 双远端，代码 `6011900a` + 归档）、报告归档，并经 stakeholders 确认结案（2026-08-31）。遗留项均为环境/部署/技术债类非阻塞事项，无阻塞性遗留。阶段 1–4 四阶段改造路线全部交付收官。**
