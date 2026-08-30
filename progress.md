@@ -35,3 +35,22 @@
 - `app_server.py` 装配器改造：顶部导入 + blueprint 注册循环 + `/api/plugins` 端点（只加不改，+16 行）
 - 验证：`import app_server` 无循环导入；启动服务冒烟 `/api/plugins`、`/api/example/plugin-probe`、`/api/health` 全部通过；路由集合 175→176 仅新增 `/api/plugins`；pytest app/API 子集 87 项全部通过
 - 提交：`205a478d`（代码）+ `e5231633`（方案文档归档），已推送 origin/master
+
+## 2026-08-30: 插件化 T1.2–T1.9 完成（8 个域插件拆分）
+- 拆分 8 个域插件：chat（含 sessions/history/voice/news）、memory、status、skills、admin、safety、mcp_scheduler、system_tools
+- 提交：`af157655`（chat+admin）、`092e1d68`（skills）、`2b9cc881`（mcp/scheduler）、`2c3562f5`（system_tools）、`3fc9c7f2`（memory）、`02db10b1`（status）、`7dd427db`（safety）
+- 每域迁移后跑回归 + 冒烟；路由路径与迁移前完全一致（blueprint 不设 url_prefix）
+
+## 2026-08-30: 插件化 T1.10 完成（装配器收尾 + 全量回归，阶段 1 结案）
+- 删除临时插件 `plugins/example.py`；清理 `app_server.py` 迁移残留注释（208,505 B → 59,080 B，-71.7%，≤60KB 达标）
+- 修复脚本直跑下插件延迟导入重复执行 `app_server` 的问题（`__main__` 注册 `sys.modules["app_server"]`），插件端点 500 → 200
+- 路由集合对比 PASS（迁移前 175 = 迁移后 app_server 13 + plugins 163，仅新增 `/api/plugins`）
+- `/api/plugins` manifest 8 插件完整；E2E 冒烟 8 端点全部 200
+- 全量 pytest（PYTHONIOENCODING=utf-8 + seed 20260813）：15083 passed / 14 failed（7 基线 + 7 环境/顺序）/ 0 errors
+- 前端：vitest 258 用例通过；tsc/build 修复前为既有破损（见下）
+- 提交：`3cfb4fe4`，已推送 origin/master
+
+## 2026-08-30: 排除项修复（前端构建 + 测试顺序污染）
+- 前端：`main.tsx` 回退 legacy 入口（App.tsx），删除孤儿破损源码（WorkbenchApp、observability/*、utils/sentry、replayRecorder），`requestInterceptor` 移除失效动态 import；tsc / vitest 258 / npm run build 全绿
+- 后端：`agent/prompt_manager/storage.py` 版本历史查询补 `rowid DESC` tiebreaker（修复 created_at 并列导致的顺序 flaky，实测 3/6→0/6、200 次循环 0 坏序）；`test_performance_alert_manager_singleton` autouse fixture 增加 alert_manager 重置（消除顺序污染）
+- 提交：`97c8e50f`，已推送 origin + gitee

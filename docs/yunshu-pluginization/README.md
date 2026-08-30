@@ -148,7 +148,10 @@ UI 由 Schema 自动渲染，**无需手写页面**。
 | 任务 | 状态 | 完成日期 | 提交 |
 |------|------|----------|------|
 | T1.1 插件注册表 + 装配器骨架 | ✅ 完成 | 2026-08-30 | `205a478d`（代码）+ `e5231633`（文档归档） |
-| T1.2–T1.10 域拆分任务 | ⏳ 待执行 | — | — |
+| T1.2–T1.9 域拆分（8 插件） | ✅ 完成 | 2026-08-30 | `af157655`（chat+admin）、`092e1d68`（skills）、`2b9cc881`（mcp/scheduler）、`2c3562f5`（system_tools）、`3fc9c7f2`（memory）、`02db10b1`（status）、`7dd427db`（safety） |
+| T1.10 装配器收尾 + 全量回归 | ✅ 完成 | 2026-08-30 | `3cfb4fe4` |
+| 排除项修复（前端构建 / 测试顺序污染） | ✅ 完成 | 2026-08-30 | `97c8e50f` |
 | 阶段 2–4 | ⏳ 待执行 | — | — |
 
-> 详细交付说明见 `docs/DELIVERY_CLOSEOUT_REPORT_20260830.md`。
+> 阶段 1 已全部完成并推送（origin + gitee 同步至 `97c8e50f`）。
+> 详细交付说明见 `docs/DELIVERY_CLOSEOUT_REPORT_PHASE1_20260830.md`（T1.1 单独记录见 `docs/DELIVERY_CLOSEOUT_REPORT_20260830.md`）。
