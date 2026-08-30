@@ -44,7 +44,7 @@
 | `npm run lint` | ✅ 通过（0 errors / 104 warnings，均为存量 + `any` 类型风格，无新增 error） |
 | `npm run build`（生产构建） | ✅ 通过（5.92s，仅 chunk 体积提示，非错误） |
 | 后端 pytest（阶段 3 相关） | ✅ `test_plugin_schema.py` + `test_plugin_submit_url.py` + `test_api_planning.py` 27 项通过 |
-| 后端 pytest 全量 | ✅ **1874 passed / 28 skipped / 6 xfailed**；唯一失败 `test_create_gitee_release_script.py` 经 stash 验证为**存量环境问题**（Windows pwsh 子进程 stdout=None），与本阶段改动无关 |
+| 后端 pytest 全量（本机） | ✅ 阶段 3 相关 27 项全过；全量 15000+ 用例中仅 3 项存量环境失败（真实 CLI / git hook 类，clean 树复现，见 §6）；CI 后端全量流程（`云枢系统测试流程`）✅ success |
 | `/api/plugins` 冒烟 | ✅ 8 插件完整；status/safety/skills 含 schema；status 含 `submit_url="/api/status/config"` |
 | status 闭环实测 | ✅ GET（refresh=5, tone=0.01）→ POST `{refresh_interval:7, personality_tone:0.66}` → GET（7, 0.66）→ 还原（5, 0.01） |
 | dev 冒烟 | ✅ vite dev 启动、`/api/plugins` 与 `/api/status/config` 代理可达、PluginPanel.tsx 模块转换 200 |
@@ -76,8 +76,8 @@
   | 生产构建验证（npm run build） | ✅ success | — |
   | CI 总结 | ✅ success | — |
 
-  其余随 push 触发的工作流：环境健康检查与工作区守卫、核心不变量监控、master commit 来源守卫、lock-discipline-scan、硬编码密码扫描、kwarg 扫描→SonarQube → 全部 ✅ success；云枢系统测试流程（后端全量 pytest）、日志性能守护、可观测性质量保障、关键字参数冲突扫描 (Docker)、Error Reporting System CI/CD 为后端类流程，状态以 GitHub Actions 页面为准（不涉及本次前端交付的验证基线）
-- **回归**：前端四项（lint / tsc / vitest 344 / build）全部通过；后端 1874 用例通过（1 项存量环境失败见 §6）
+  其余随 push 触发的工作流：环境健康检查与工作区守卫、核心不变量监控、master commit 来源守卫、lock-discipline-scan、硬编码密码扫描、kwarg 扫描→SonarQube、云枢系统测试流程（后端全量 pytest）、日志性能守护、可观测性质量保障、关键字参数冲突扫描 (Docker)、Error Reporting System CI/CD、CI 失败通知 → **全部 12 个 workflow 均 ✅ success**（`c19dbcfa` SHA 全绿）
+- **回归**：前端四项（lint / tsc / vitest 344 / build）全部通过；后端 15000+ 用例通过，3 项存量环境失败见 §6（与本阶段无关）
 - **安全**：无新增敏感文件入库；`.env` 保持 ignore；`data/status_config.json` 为默认运行态基线（与既有 `data/personality.json` 跟踪惯例一致），不含敏感信息
 
 ### 阶段 3 完成标准核对（任务 T3.3 验收标准）
@@ -87,14 +87,15 @@
 | `npx tsc -b --noEmit` 通过；`npx vitest run` 通过（含 PluginPanel 测试） | ✅ 344/344 |
 | 启动后端 + `npm run dev`：插件中心列出全部 8 个插件，含 schema 的插件渲染出表单 | ✅ 实测 8 插件；status/safety/skills 渲染表单 |
 | status 插件闭环验证成功（改参 → 提交 → 生效） | ✅ GET→POST→GET 实测生效并还原 |
-| `python -m pytest tests/ -x -q`（或相关子集）通过（submit_url 改动无回归） | ✅ 全量 1874 passed（1 项存量环境失败与本次无关） |
+| `python -m pytest tests/ -x -q`（或相关子集）通过（submit_url 改动无回归） | ✅ 阶段 3 相关子集 27 项通过；全量仅 3 项存量环境失败（clean 树复现，与本次无关）；CI 后端全量 success |
 | 提交信息 `feat(ui): plugin center with schema-driven config forms` | ✅ `c19dbcfa` |
 
 ## 6. 遗留问题与结案建议
 
 | 遗留项 | 归属 | 状态/建议 |
 |--------|------|----------|
-| `tests/unit/test_create_gitee_release_script.py` 失败 | 存量环境 | Windows pwsh 子进程 `stdout=None`（`capture_output` 异常），clean 树同样失败（stash 验证）；与阶段 3 无关，建议在 Linux CI / 修复 pwsh 捕获环境后复核 |
+| ~~`tests/unit/test_create_gitee_release_script.py` 失败~~ | 存量环境 | ✅ **已修复**（`a121767b`）：根因为中文 Windows 下 Python 以 locale 默认 GBK 解码 pwsh 的 UTF-8 输出 → 读取线程抛 `UnicodeDecodeError` → `stdout=None`。修复：`subprocess.run` 显式 `encoding="utf-8", errors="replace"`（两处），2/2 用例通过；CI（Linux）本就 skipif 跳过，不受影响 |
+| 3 项后端存量环境失败（`test_preflight_runner` ×2 + `test_precommit_hook_blocking` ×1） | 存量环境 | 真实 CLI / git hook 类用例：`agent.preflight` 全量预检依赖本机 ChromaDB 可用性、`git commit` 阻断用例依赖仓库安装 pre-commit hook —— 本机两者均不满足，**clean 树同样失败（stash 验证）**，与阶段 3 无关；CI（Linux runner）对应流程全部 success，建议后续在完整环境/CI 上复核 |
 | 前端 lint 存量 warnings（104 条） | 存量技术债 | 均为 `no-explicit-any`（SchemaRenderer/PluginPanel 按 schema 动态类型，属协议内约定）+ `react-refresh` 导出提示，非 error；建议后续专项清理 |
 | 前端新构建产物未同步至 `static/` | 部署流程 | 源码构建已通过（`npm run build`）；发布部署时执行 `build:flask` 同步 Flask 静态托管 |
 | 阶段 4（动态装载，可选） | 后续阶段 | `docs/yunshu-pluginization/PLAN-4-dynamic-loading.md` 已就绪，按需启动（T4.1/T4.2） |
