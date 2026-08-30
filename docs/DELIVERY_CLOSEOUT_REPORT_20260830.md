@@ -34,7 +34,7 @@
 | 既有路由冒烟 | `GET /api/health` 200，传感器读数数组，结构不变 ✅ |
 | 路由集合回归 | `@app.route` 175 → 176，唯一新增 `/api/plugins`；`git diff` 证实无既有路由/函数被修改 ✅ |
 | pytest 子集 | app/API 相关子集 **87/87 通过**（test_routes_health + test_health_supplement + test_api_planning）✅ |
-| CI/CD | push 触发 GitHub Actions（11 个工作流），见 §5 观察结论 ⏳ |
+| CI/CD | push 触发 GitHub Actions **11 个工作流全部 success（0 失败）** ✅ |
 
 ## 4. 遇到的问题与解决方案
 
@@ -51,20 +51,26 @@
 - **代码**：全部提交已推送 `origin/master`（GitHub），工作区干净（无未提交修改）
   - `205a478d` feat(plugins): add plugin registry and /api/plugins endpoint（4 files, +78）
   - `e5231633` docs(pluginization): 归档插件化方案与任务提示词（24 files, +1849）
-- **CI/CD**：push 触发 11 个工作流（主测试流程/核心不变量/安全扫描/Pages 部署等），观察结论见下
+- **CI/CD**：push 触发 **11 个工作流全部 success（0 失败）**，主测试流程 21 个作业全绿（详见 §5 CI/CD 观察结论）
 - **回归**：路由集合、`/api/health` 行为、87 项 app/API 测试均通过
 - **安全**：无新增敏感文件入库（`.env` 等保持 ignore）
 
 ### CI/CD 观察结论
 
+> 推送 commit `e5231633` 触发 GitHub Actions **11 个工作流，全部 success（0 失败）**，主测试流程 21 个作业全绿。
+
 | 检查项 | 状态 |
 |--------|------|
-| push 触发 CI（commit `e5231633`） | ⏳ 运行中（11 个工作流 queued/in_progress） |
-| 主测试流程（云枢系统测试流程） | ⏳ 运行中 |
-| 安全/守卫类工作流 | ⏳ 运行中 |
-| 预存定时 CI（Web 模块测试 07:43 failure） | ⚠️ 与本次 push 无关 |
+| 云枢系统测试流程（单测 6 分片 / 集成 4 分片 / E2E / 性能 / 质量 / 安全 / 覆盖率 / 看板 / 总结，21 作业） | ✅ success |
+| 核心不变量监控 / master commit 来源守卫 | ✅ success |
+| 安全类：硬编码密码扫描 / lock-discipline-scan / 关键字参数冲突扫描 (Docker) / kwarg→SonarQube | ✅ success |
+| 环境健康检查与工作区守卫 | ✅ success |
+| 日志性能守护（双重序列化 / 依赖注入单测 / 日志压测 / 质量门禁） | ✅ success |
+| Error Reporting System CI/CD（Lint&Type / 熔断检查 / 集成 / Reranker / 压测 / Docker） | ✅ success |
+| 部署文档到 GitHub Pages | ✅ success |
+| 预存定时 CI（Web 模块测试 07:43 failure） | ⚠️ 与本次 push 无关（早于推送触发），属仓库既有噪音 |
 
-> 注：CI 最终结果以 GitHub Actions 页面为准；若出现失败，按本仓库惯例对照 `failures_baseline.txt` 判定是否预存失败后处理。
+> 说明：CI 中的 Slack 通知未配置（botToken/webhookUrl 缺失）与 Node.js 20 弃用提示均为非失败告警；Error Reporting 作业内的 ruff 告警全部位于未触碰文件（`agent/ab_testing.py` 等）的预存问题。
 
 ## 6. 遗留问题与结案建议
 
@@ -76,7 +82,7 @@
 | 预存 CI 失败噪音（定时 Web 模块测试） | 仓库既有 | 可观测性工作线已跟踪，不阻塞 |
 | gitee 镜像同步 | 仓库同步 | 如需双远端同步，可另行推送 gitee（本交付以 origin/GitHub + GitHub Actions 为准） |
 
-**结论：本会话交付范围内（T1.1）所有任务已完成并通过本地验证，无阻塞性遗留问题。** 待 CI 全部通过后即可进入下一任务 T1.2。
+**结论：本会话交付范围内（T1.1）所有任务已完成并通过本地验证 + GitHub Actions CI 全绿（11 工作流 / 0 失败），无阻塞性遗留问题。** 可进入下一任务 T1.2。
 
 ## 7. 验收记录
 
