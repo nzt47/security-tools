@@ -604,15 +604,20 @@ jobs:
         # 【Issue #681】规则文件权威校验固化进 CI：check 语法/结构，test 验证
         # 触发/不触发语义（lock_watchdog_alerts_test.yml 4 场景）。
         # 挂载监控规则目录（挂载式，与工程约定一致），复用本 job 已拉取的镜像。
+        # 【修复】prom/prometheus 镜像 ENTRYPOINT 为 prometheus 主程序，直接
+        #   `docker run ... promtool` 会被当成参数报 "unexpected promtool"，
+        #   必须用 --entrypoint promtool 覆盖入口后跟子命令。
         run: |
           RULES_DIR="${{ github.workspace }}/monitoring/prometheus/rules"
           echo "=== promtool check rules ==="
-          docker run --rm -v "$RULES_DIR:/rules:ro" \
-            prom/prometheus:latest promtool check rules \
+          docker run --rm --entrypoint promtool \
+            -v "$RULES_DIR:/rules:ro" \
+            prom/prometheus:latest check rules \
               /rules/lock_watchdog_alerts.yml /rules/planning_alerts.yml
           echo "=== promtool test rules (lock_watchdog) ==="
-          docker run --rm -v "$RULES_DIR:/rules:ro" \
-            prom/prometheus:latest promtool test rules /rules/lock_watchdog_alerts_test.yml
+          docker run --rm --entrypoint promtool \
+            -v "$RULES_DIR:/rules:ro" \
+            prom/prometheus:latest test rules /rules/lock_watchdog_alerts_test.yml
           echo "✅ 告警规则 promtool 校验通过"
 
       - name: 启动应用服务（后台）
