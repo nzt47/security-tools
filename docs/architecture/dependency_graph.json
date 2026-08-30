@@ -1,5 +1,5 @@
 {
-  "trace_id": "b15f9bf7423a4d9f",
+  "trace_id": "4430cd5db78044cd",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -11250,7 +11250,7 @@
       "source_layer": "log_system",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 531,
+      "line": 569,
       "source_file": "agent/log_system/optimized_storage.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -15507,6 +15507,6 @@
       "quality": 2,
       "prompt_manager": 5
     },
-    "build_duration_ms": 1717.2730839999986
+    "build_duration_ms": 1919.8186299999948
   }
 }
