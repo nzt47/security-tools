@@ -1,5 +1,5 @@
 {
-  "trace_id": "4430cd5db78044cd",
+  "trace_id": "4b705d0e6d104e95",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -15046,7 +15046,7 @@
       "source_layer": "prompt_manager",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 400,
+      "line": 404,
       "source_file": "agent/prompt_manager/storage.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -15507,6 +15507,6 @@
       "quality": 2,
       "prompt_manager": 5
     },
-    "build_duration_ms": 1919.8186299999948
+    "build_duration_ms": 2001.0309470000038
   }
 }
