@@ -745,8 +745,20 @@ jobs:
   # 集成测试
   # ============================================================================
   integration-tests:
-    name: 集成测试
+    name: 集成测试 (Shard ${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
+    # 【B3 提速 Issue #679】integration 段 19min 为全量测试最大块（全量实测
+    # 56.6min 未达 <30min 目标）。按文件行数贪心均衡拆分为 4 shard
+    # （scripts/split_unit_tests.py --root tests/integration），各 shard 独立
+    # runner 并行，集成段预计 19min → ~6min（成为临界路径的一部分）。
+    # 【不易】各 shard 文件集不相交、互不共享 runner，无跨文件并发状态冲突，
+    # 行为与原先串行 `pytest tests/integration/` 等价（仅分文件分批执行）。
+    # 【变易】--shards 4 与 scripts/split_unit_tests.py 的 --shards 保持一致，
+    # 若调整分片数需同步修改两处。
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ['1', '2', '3', '4']
     steps:
       - name: 检出代码
         uses: actions/checkout@v6
@@ -763,23 +775,22 @@ jobs:
           pip install pytest pytest-cov pytest-mock pytest-asyncio pytest-timeout
           pip install -e .
 
-      - name: 运行集成测试
+      - name: 运行集成测试（Shard ${{ matrix.shard }}/4）
         run: |
-          echo "=== 运行集成测试 ==="
-          pytest tests/integration/ \
+          mkdir -p test-results
+          echo "=== 运行集成测试（Shard ${{ matrix.shard }}/4）==="
+          pytest $(python scripts/split_unit_tests.py --shard ${{ matrix.shard }} --shards 4 --root tests/integration) \
             -v \
             --tb=short \
-            --cov=agent \
-            --cov-report=xml \
-            --cov-fail-under=0 \
             -m "not slow and not e2e and not requires_llm and not skip_ci" \
-            --timeout=300
+            --timeout=300 \
+            --junitxml=test-results/junit-integration-shard${{ matrix.shard }}.xml
 
       - name: 上传测试结果
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: test-results-integration
+          name: test-results-integration-shard${{ matrix.shard }}
           path: test-results/
 
   # ============================================================================
@@ -871,13 +882,16 @@ jobs:
         # Why: 自动检查场景 C P99 是否超阈值，超阈值时打印告警 + 发送 Slack 通知
         # 容错：监控失败不影响 CI 结果，退出码写入 GITHUB_OUTPUT 供后续 step 使用
         # 退出码：0=正常，1=告警，2=解析失败
+        # 【根因修复 CHG-2026-0830】阈值 1ms 对 CI runner 过紧（平均 19.7 告警/天，
+        # 两个月堆积 690 个告警 Issue）。放宽至 5ms 且支持仓库变量 P99_THRESHOLD_MS 覆盖。
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          P99_THRESHOLD_MS: ${{ vars.P99_THRESHOLD_MS || '5' }}
         run: |
           set +e
           python scripts/monitor_l2_p99.py \
             --input test_reports/bench_ci.log \
-            --threshold 1 \
+            --threshold "$P99_THRESHOLD_MS" \
             --alert-log test_reports/p99_alerts.jsonl
           echo "exit_code=$?" >> $GITHUB_OUTPUT
           exit 0
@@ -895,6 +909,14 @@ jobs:
           THRESHOLD=$(echo "$ALERT_DATA" | python -c "import json,sys; d=json.load(sys.stdin); print(f'{d[\"threshold\"]:.0f}')")
           RATIO=$(python -c "print(f'{$P99/$THRESHOLD:.2f}')")
           TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M UTC')
+
+          # 【渠道分级 CHG-2026-0830】轻微超阈值（<2x，瞬时波动）只打日志，不建 Issue；
+          # GitHub Issue 仅保留给显著/持续超阈值（>=2x）场景，与告警日志/钉钉渠道分级。
+          SEVERE=$(python -c "print(1 if float('$RATIO') >= 2.0 else 0)")
+          if [ "$SEVERE" = "0" ]; then
+            echo "P99=${P99}ms 超阈值 ${RATIO}x（<2x 轻微波动），不建 Issue（渠道分级：瞬时波动仅日志记录）"
+            exit 0
+          fi
 
           # 【根因修复 CHG-2026-0830】状态型去重：已存在 open 的 P99 告警 Issue 时仅追加评论，
           # 不新建 Issue。原逻辑每次 CI 运行 P99 超阈值(1ms) 都新建，2026-07~08 已堆积 690 个

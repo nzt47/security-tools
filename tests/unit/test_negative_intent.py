@@ -22,6 +22,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import zlib
 from pathlib import Path
 from typing import List, Tuple
 from unittest.mock import patch, MagicMock
@@ -99,6 +100,18 @@ def _load_prototype_samples() -> List[Tuple[str, str]]:
 #  Mock 向量编码辅助
 # ════════════════════════════════════════════════════════════
 
+def _stable_seed(text: str) -> int:
+    """跨进程稳定的内容种子（修复 flaky: issue #232 / case_031）
+
+    不能用内置 hash()：str 的 hash 带每进程随机盐（PYTHONHASHSEED），
+    同一 query 在不同 pytest 进程得到不同向量，mock 声称的"确定性向量"
+    实际跨进程不确定 —— 这是 case_031 间歇性误伤的根因：query 与某类别
+    的 16-bit 种子碰撞时向量完全相同，余弦相似度 = 1.0 ≥ 阈值 0.75。
+    zlib.crc32 无盐、跨进程稳定，返回 32 位种子，碰撞概率 ~10/2^32 ≈ 0。
+    """
+    return zlib.crc32(text.encode("utf-8"))
+
+
 def _make_mock_vector_adapter():
     """构造 mock SkillVectorAdapter
 
@@ -116,7 +129,7 @@ def _make_mock_vector_adapter():
         if not query:
             return None
         # 简单策略：query 的字符 hash → 1024 维向量
-        h = hash(query) & 0xFFFF
+        h = _stable_seed(query)
         rng = np.random.RandomState(h)
         vec = rng.randn(1024).astype(np.float32)
         norm = np.linalg.norm(vec)
@@ -148,7 +161,7 @@ def _make_clustered_mock_vector_adapter():
                   "cooking", "sports", "medical", "daily", "greeting"]
     centers = {}
     for i, cat in enumerate(categories):
-        rng = np.random.RandomState(hash(cat) & 0xFFFF)
+        rng = np.random.RandomState(_stable_seed(cat))
         center = rng.randn(1024).astype(np.float32)
         center = center / np.linalg.norm(center)
         centers[cat] = center
@@ -179,7 +192,7 @@ def _make_clustered_mock_vector_adapter():
         if query in query_to_cat:
             cat = query_to_cat[query]
             center = centers[cat]
-            rng = np.random.RandomState(hash(query) & 0xFFFF)
+            rng = np.random.RandomState(_stable_seed(query))
             # 极小扰动：0.01 系数，1024维模长 ≈ 0.32，远小于 center 模长 1
             noise = rng.randn(1024).astype(np.float32) * 0.01
             vec = center + noise
@@ -189,13 +202,13 @@ def _make_clustered_mock_vector_adapter():
             cat = neg_query_to_cat[query]
             if cat in centers:
                 center = centers[cat]
-                rng = np.random.RandomState(hash(query) & 0xFFFF)
+                rng = np.random.RandomState(_stable_seed(query))
                 # 小扰动：0.02 系数，相似度 ≈ 1/1.0002 ≈ 0.98
                 noise = rng.randn(1024).astype(np.float32) * 0.02
                 vec = center + noise
                 return vec / np.linalg.norm(vec)
         # 正样本或其他 query：返回随机噪声（与所有中心都远，相似度 < 0.3）
-        rng = np.random.RandomState(hash(query) & 0xFFFF)
+        rng = np.random.RandomState(_stable_seed(query))
         vec = rng.randn(1024).astype(np.float32)
         return vec / np.linalg.norm(vec)
 

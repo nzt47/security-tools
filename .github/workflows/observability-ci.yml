@@ -1678,10 +1678,13 @@ jobs:
   visibility-trend-mock-test:
     name: 可见性趋势报告 Mock 测试
     runs-on: ubuntu-latest
-    continue-on-error: true
+    # 【Issue #6 收尾 CHG-2026-0830】移除 continue-on-error：历史失败（07-01 exit 3）
+    # 根因为旧版 curl 未编码 URL（07-08 963d6cc7 已改 --data-urlencode 修复），mock 侧
+    # 除零 500 缺陷与 9 个回归测试已落地（scripts/mock_prometheus_server.py +
+    # tests/unit/test_mock_prometheus_server.py，本地按 workflow 现行命令验证
+    # status=success/169 点/周报月报全绿）。Mock 测试恢复为阻断 check。
     # push/PR 时运行（验证代码变更不破坏趋势报告逻辑）
     # workflow_dispatch 时通过 mock_test_enable 开关控制
-    # continue-on-error: Mock 测试失败不阻断合并（存量问题，非本 PR 引入）
     if: >
       github.event_name == 'push' ||
       github.event_name == 'pull_request' ||

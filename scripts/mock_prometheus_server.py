@@ -276,6 +276,11 @@ class MockPrometheusHandler(BaseHTTPRequestHandler):
             unit = step_match.group(2)
             unit_map = {"s": 1, "m": 60, "h": 3600, "d": 86400}
             step_seconds = num * unit_map[unit]
+            # 【Issue #6 防护】零/负步长（如 "0h"）会导致点数计算除零，
+            # 抛未捕获异常 → 500 非 JSON 响应（CI 断言解析失败）。回退默认 1h，
+            # 保证 query_range 对任意合法请求始终返回 Prometheus 风格 JSON。
+            if step_seconds <= 0:
+                step_seconds = 3600
         else:
             step_seconds = 3600  # 默认 1 小时
 
@@ -302,7 +307,24 @@ class MockPrometheusHandler(BaseHTTPRequestHandler):
             })
             return
 
-        response = _build_matrix_response(metric_name, start_ts, end_ts, step_seconds)
+        try:
+            response = _build_matrix_response(metric_name, start_ts, end_ts, step_seconds)
+        except Exception as e:  # 兜底：内部异常返回 JSON 错误而非非 JSON 500
+            logger.error(json.dumps({
+                "trace_id": trace_id,
+                "module_name": "mock_prometheus",
+                "action": "query_range.internal_error",
+                "duration_ms": round((time.time() - t0) * 1000, 2),
+                "query": query,
+                "metric_name": metric_name,
+                "error": f"{type(e).__name__}: {e}",
+            }, ensure_ascii=False))
+            self._respond_json(400, {
+                "status": "error",
+                "errorType": "internal",
+                "error": f"mock internal error: {type(e).__name__}: {e}",
+            })
+            return
         self._respond_json(200, response)
 
     def _handle_query(self, params: Dict[str, List[str]]) -> None:

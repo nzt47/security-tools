@@ -13,8 +13,12 @@
 运行:
     pytest tests/unit/test_scan_sensitive_data.py -v
 """
+import subprocess
 import sys
 from pathlib import Path
+
+import pytest
+from unittest import mock
 
 # 将 scripts/ 加入 import 路径
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -182,7 +186,6 @@ class TestRealFileRegression:
         # 真实文件路径（相对项目根）
         f = PROJECT_ROOT / 'scripts' / 'verify_monitoring_setup.ps1'
         if not f.exists():
-            import pytest
             pytest.skip('verify_monitoring_setup.ps1 不存在')
         findings = ssd.scan_file(f)
         password_findings = [fd for fd in findings if fd[1] == 'PASSWORD']
@@ -190,3 +193,81 @@ class TestRealFileRegression:
             f'verify_monitoring_setup.ps1 不应有 PASSWORD 误报，'
             f'实际发现: {password_findings}'
         )
+
+
+# ─── Issue #78 回归守卫：gitignore 文件不进入扫描（tracked_set 过滤）────────────
+
+class TestGitignoreFilteredFromScan:
+    """Issue #78 回归：gitignored 本地敏感文件不得被 main() 扫描报告
+
+    背景：.secure_config.json / .env.local 等本地敏感文件已被 .gitignore 忽略
+    且未跟踪（git ls-files 不含它们），但全量扫描与 pre-commit 参数分支曾把
+    它们纳入扫描，产生噪音告警阻断提交。commit f8aeb209 在 main() 入口用
+    ``git ls-files`` 得到的 tracked_set 统一过滤（参数分支同样兜底过滤），
+    本测试守卫该过滤不被回归，同时验证不会因此漏检已跟踪的敏感文件。
+    """
+
+    def _run_main(self, tmp_path, monkeypatch, tracked, argv=None):
+        """在临时目录执行 main()：mock git ls-files 调用，返回固定 tracked 集合
+
+        【沙箱兼容】main() 内部 ``subprocess.run(capture_output=True)`` 调 git
+        需要创建管道，在受限沙箱中会被拒绝（WinError 5），故 mock 掉
+        subprocess.run，纯逻辑验证 tracked_set 过滤行为本身。
+        """
+        monkeypatch.chdir(tmp_path)
+
+        def fake_run(*args, **kwargs):
+            return subprocess.CompletedProcess(
+                args[0], 0,
+                stdout='\0'.join(tracked) + ('\0' if tracked else ''),
+            )
+
+        with mock.patch('subprocess.run', side_effect=fake_run), \
+                mock.patch('sys.argv', ['scan_sensitive_data.py'] + (argv or [])), \
+                mock.patch.object(ssd, 'scan_file', wraps=ssd.scan_file) as spy:
+            with pytest.raises(SystemExit) as exc_info:
+                ssd.main()
+        return exc_info.value.code, spy
+
+    def test_全量扫描跳过gitignored敏感文件(self, tmp_path, monkeypatch, capsys):
+        # 磁盘上真实存在 gitignored 敏感文件（含真实形状的敏感内容）
+        (tmp_path / '.secure_config.json').write_text(
+            '{"llm_api_key": "sk-RealSensitiveKey1234567890ABCDEFGH", '
+            '"db_password": "supersecret_db_pw_123"}', encoding='utf-8')
+        (tmp_path / '.env.local').write_text(
+            'PASSWORD="local_secret_abc123"', encoding='utf-8')
+        # 仅 README.md 被跟踪
+        (tmp_path / 'README.md').write_text('# demo', encoding='utf-8')
+
+        code, spy = self._run_main(tmp_path, monkeypatch, tracked=['README.md'])
+        assert code == 0
+        # scan_file 只被调用于 tracked 文件，gitignored 文件从未被扫描
+        scanned = [call.args[0].name for call in spy.call_args_list]
+        assert scanned == ['README.md'], f'不应扫描 gitignored 文件，实际: {scanned}'
+        assert '.secure_config.json' not in capsys.readouterr().err
+
+    def test_参数分支丢弃gitignored文件(self, tmp_path, monkeypatch):
+        # 显式把 gitignored 敏感文件作为参数传入，仍应被 tracked_set 过滤丢弃
+        (tmp_path / '.secure_config.json').write_text(
+            '{"search_tavily_key": "sk-RealSensitiveKey1234567890ABCDEFGH"}',
+            encoding='utf-8')
+        (tmp_path / 'README.md').write_text('# demo', encoding='utf-8')
+
+        code, spy = self._run_main(tmp_path, monkeypatch,
+                                   tracked=['README.md'],
+                                   argv=['.secure_config.json'])
+        assert code == 0
+        scanned = [call.args[0].name for call in spy.call_args_list]
+        assert '.secure_config.json' not in scanned
+
+    def test_已跟踪敏感文件仍被检测不漏检(self, tmp_path, monkeypatch):
+        # 已跟踪文件（在 tracked_set 中）即使命中 SENSITIVE_FILES 也必须被扫描
+        (tmp_path / '.env.production').write_text(
+            'password = "real_hardcoded_secret_99"', encoding='utf-8')
+
+        code, spy = self._run_main(tmp_path, monkeypatch,
+                                   tracked=['.env.production'],
+                                   argv=['.env.production'])
+        assert code == 1  # 检测到敏感信息，阻断提交
+        scanned = [call.args[0].name for call in spy.call_args_list]
+        assert scanned == ['.env.production']

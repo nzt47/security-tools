@@ -89,15 +89,15 @@ P99 告警阈值仅为 **1ms**，CI runner 环境下 P99 极易波动超过该�
 
 | # | 标题 | 创建 | 标签 | 结论 / 建议动作 |
 |---|---|---|---|---|
-| 6 | bug(observability): 可见性趋势报告 Mock 测试 query_range 验证失败 (exit code 3) | 07-01 | `bug` | **待处理**：PR #5 暴露的预存在问题，observability-ci.yml `visibility-trend-mock-test` job 退出码 3，Mock 服务启动但 query_range 验证失败。建议复现（workflow_dispatch 手动触发 mock_test_enable=true）后修复或确认当前是否仍失败。 |
-| 78 | [security] .secure_config.json 本地敏感文件安全管理改进 + scan 脚本 gitignore 误报修复 | 08-01 | — | **待处理（安全，建议优先）**：`scripts/scan_sensitive_data.py` 全量扫描未跳过 gitignore 文件，对 `.secure_config.json` 产生噪音告警。建议①扫描跳过 gitignore 文件；②收紧本地文件权限（文件已确认未进 git 历史）。 |
+| 6 | bug(observability): 可见性趋势报告 Mock 测试 query_range 验证失败 (exit code 3) | 07-01 | `bug` | **已修复（第二轮，见 §8）**：根因为历史 workflow curl 未编码 URL（07-08 已修）；mock 侧 step=0h 除零 500 缺陷修复 + 9 回归测试；job 转阻断。 |
+| 78 | [security] .secure_config.json 本地敏感文件安全管理改进 + scan 脚本 gitignore 误报修复 | 08-01 | — | **已解决（验证日期见下）**：①扫描误报已由 `f8aeb209`（2026-08-11）在 `scripts/scan_sensitive_data.py` main() 入口按 `git ls-files` tracked_set 统一过滤修复（参数分支同样兜底，`.secure_config.json` 已确认 gitignore/未跟踪）；②文件权限 0o600 建议已文档化于 `docs/security/DEPLOYMENT_CHECKLIST.md` §4.1 与 `docs/security/TROUBLESHOOTING.md` §3.2；回归测试补充于 `tests/unit/test_scan_sensitive_data.py::TestGitignoreFilteredFromScan`。 |
 | 169 | Develop CI 稳定性监控报告 (1/3) | 08-04 | `ci-stability-monitor, auto-generated` | **归档**：自动生成的阶段性快照报告，内容为 commit c63caba 的 CI 状态快照（稳定）。无后续行动项，可关闭归档。 |
-| 232 | flaky: test_positive_not_matched[case_031] 间歇性失败（PR #227 发现） | 08-05 | `bug` | **待处理**：`tests/unit/test_negative_intent.py::TestPositiveSamplesNotMatched::test_positive_not_matched[case_031]` 间歇性失败，同一 commit 下 ci.yml 3 个 Python 版本全过、observability-ci Shard 1 偶发失败。建议按 issue 内复现步骤定位分片时序/环境依赖后修复或加稳定标记。 |
+| 232 | flaky: test_positive_not_matched[case_031] 间歇性失败（PR #227 发现） | 08-05 | `bug` | **已修复（第二轮，见 §8）**：根因=mock 向量种子用 Python `hash()`（每进程随机盐）跨进程不确定，case_031 与类别中心 16-bit 种子碰撞致误伤；改 `zlib.crc32` 确定性种子，3 种 PYTHONHASHSEED 下 56 passed。 |
 | 528 | Develop CI 稳定性监控 - 最终报告 (3/3) | 08-08 | `ci-stability-monitor, auto-generated` | **归档**：监控已结束的最终报告（commit 232eba4 有 1 个失败：hardcoded-password-scan）。无后续行动项，可关闭归档。 |
-| 678 | [B1] 锁优化：optimized_storage.py:363 缩短持锁临界区 | 08-14 | `performance, next-iteration` | **待排期**：锁竞争热点（累计 29.82ms），验收为持锁累计降 ≥50%。属 next-iteration 规划项，随迭代排期执行。 |
-| 679 | [B3] 测试套件提速：全量 <30min（integration 段分块） | 08-14 | `performance, next-iteration` | **待排期**：全量 56.6min → <30min 目标，integration 段分块/并行。属 next-iteration 规划项。 |
-| 680 | [C1] 灰度发布部署执行（放量/演练/监控） | 08-14 | `enhancement, next-iteration` | **待排期（需生产权限）**：systemd 灰度放量 + 回滚演练 + 7 天监控，前置为生产环境权限与变更审批。 |
-| 681 | [C2] 锁看门狗生产接入（挂载规则+告警验证） | 08-14 | `alert, next-iteration` | **待排期（需部署环境）**：Prometheus 挂载 lock_watchdog_alerts.yml + 告警触发验证，代码/测试/规则已就绪。 |
+| 678 | [B1] 锁优化：optimized_storage.py:363 缩短持锁临界区 | 08-14 | `performance, next-iteration` | **已优化（第二轮，见 §8）**：`_init_lock` 持锁建表 I/O 移出临界区（在途标志+条件变量），持锁 226.82→19.53ms（-91.4%），55+82+53 测试通过。 |
+| 679 | [B3] 测试套件提速：全量 <30min（integration 段分块） | 08-14 | `performance, next-iteration` | **已实现待 CI 验证（第二轮，见 §8）**：integration 段 4-shard 矩阵（行数加权均衡），集成段预计 19min→~6min；`<30min` 达标需 CI 实跑确认。 |
+| 680 | [C1] 灰度发布部署执行（放量/演练/监控） | 08-14 | `enhancement, next-iteration` | **待生产执行（第二轮核查，见 §8）**：手册/清单/邮件模板/PLANNING_ENABLED 开关均就绪；需生产环境权限+变更审批，本环境无法执行。 |
+| 681 | [C2] 锁看门狗生产接入（挂载规则+告警验证） | 08-14 | `alert, next-iteration` | **本地完成待部署（第二轮，见 §8）**：单测 8/8 + 规则结构校验 + 指标核对通过；promtool check/热加载/触发验证需部署环境（手册含挂载步骤）。 |
 
 ### 5.2 已 closed（3 个，核对无误）
 
@@ -125,3 +125,57 @@ P99 告警阈值仅为 **1ms**，CI runner 环境下 P99 极易波动超过该�
 | `.github/workflows/ci.yml` | P99 告警 Issue 状态型去重（+21 行） |
 | `.github/workflows/ci-failure-notify.yml` | CI 失败 Issue 每 workflow 去重 + 评论追加 |
 | `docs/issues/ISSUES_CLEANUP_REPORT_20260830.md` | 本报告 |
+
+---
+
+# 第二轮：9 个保留 Issue 处置 + 报告建议落实（2026-08-30）
+
+> 依据第一轮报告 §5/§6，对 9 个保留 open issue 逐一处置，并落实全部 4 条后续建议。
+> 提交：`4e9a4dff`（第一轮）→ 本批改动（见 §8）。
+
+## 8. 处置结果总览
+
+| # | Issue | 处置 | 状态 |
+|---|---|---|---|
+| 6 | bug(observability): 可见性趋势报告 Mock 测试失败 | 根因=历史 workflow curl 未编码（07-08 已修）；mock 侧 step=0h 除零 500 缺陷修复 + 9 个回归测试；该 job 移除 continue-on-error 转阻断 | ✅ 已修复 |
+| 78 | [security] secure_config 扫描 gitignore 误报 | 确认已于 `f8aeb209`（08-11）修复；补 3 个回归测试（tracked_set 过滤三场景）；权限建议已在既有文档 | ✅ 已解决 |
+| 169 | Develop CI 稳定性监控报告 (1/3) | 归档关闭（附评论说明） | ✅ 已关闭 |
+| 232 | flaky: test_positive_not_matched[case_031] | 根因=mock 向量用 Python `hash()`（每进程随机盐）跨进程不确定 → 改 `zlib.crc32` 确定性种子；3 种 PYTHONHASHSEED 下 56 passed | ✅ 已修复 |
+| 528 | Develop CI 稳定性监控 - 最终报告 (3/3) | 归档关闭（附评论说明） | ✅ 已关闭 |
+| 678 | [B1] 锁优化 optimized_storage.py:363 | `_init_lock` 持锁建表 I/O 移出临界区（在途标志+条件变量）；持锁 226.82→19.53ms（-91.4%，单次 11-19ms→µs 级），55+82+53 测试通过 | ✅ 已优化 |
+| 679 | [B3] 测试套件提速 <30min | integration 段 4-shard 矩阵（split_unit_tests.py 支持 `--root tests/integration`，行数加权均衡 7284-7632 行/片）；集成段预计 19min→~6min（临界路径），全量达标需 CI 实跑确认 | 🟡 已实现待 CI 验证 |
+| 680 | [C1] 灰度发布部署执行 | 就绪性核查：手册×3/操作清单/邮件模板/PLANNING_ENABLED 开关（lifecycle_manager.py）均在位；**需生产权限+变更审批**，本环境无法执行 | ⏸ 待生产执行 |
+| 681 | [C2] 锁看门狗生产接入 | 本地侧完成：单测 8/8、规则结构校验（2 条 PromQL/severity 合规）、指标名与 lock_watchdog.py 源码逐一核对；promtool check + 热加载 + 触发验证需部署环境（手册已含挂载步骤） | 🟡 本地完成待部署 |
+
+## 9. 报告建议落实对照（§6 → 实际改动）
+
+| §6 建议 | 落实 |
+|---|---|
+| 1. P99 阈值校准 | ✅ `ci.yml`：`--threshold 1` → `${{ vars.P99_THRESHOLD_MS \|\| '5' }}`（5ms，仓库变量可覆盖） |
+| 2. 告警生命周期自动化 | ✅ `ci-failure-notify.yml` 新增 `recover-close` job：watchlist workflow 在 master 恢复（success）时自动关闭其 open 的 `ci-failure` Issue 并附恢复评论 |
+| 3. 告警渠道分级 | ✅ P99 创建/评论 Issue 增加门控：`RATIO < 2`（轻微超阈值）仅日志不建 Issue；GitHub Issue 只留给 ≥2x 显著超阈值（配合阈值 5ms，噪音预计降 >90%） |
+| 4. 报告类 Issue 归档 | ✅ #169/#528 已归档关闭 |
+
+## 10. 涉及文件（第二轮）
+
+| 文件 | 变更 |
+|---|---|
+| `.github/workflows/ci.yml` | P99 阈值 1→5ms（vars 可覆盖）+ RATIO≥2 门控 |
+| `.github/workflows/ci-failure-notify.yml` | 新增 `recover-close` job（恢复自动关闭） |
+| `.github/workflows/observability-ci.yml` | `visibility-trend-mock-test` 移除 continue-on-error（#6 转阻断） |
+| `.github/workflows/ci.yml` | integration-tests 改 4-shard 矩阵（#679） |
+| `scripts/split_unit_tests.py` | 支持 `--root tests/integration`（递归收集 + 行数加权） |
+| `scripts/mock_prometheus_server.py` | step≤0 回退默认 + 内部异常转 Prometheus 风格 JSON（#6） |
+| `tests/unit/test_mock_prometheus_server.py` | 新增 9 个回归用例（#6） |
+| `tests/unit/test_scan_sensitive_data.py` | 新增 3 个 gitignore 过滤回归用例（#78） |
+| `tests/unit/test_negative_intent.py` | mock 向量种子 hash()→crc32（#232） |
+| `agent/log_system/optimized_storage.py` | initialize() 建表 I/O 移出锁（#678） |
+| `docs/issues/ISSUES_CLEANUP_REPORT_20260830.md` | 本报告（第二轮追加） |
+
+## 11. 遗留事项（需人工/部署环境）
+
+1. **#680（C1 灰度发布）**：生产权限 + 变更审批后按 `docs/zh/规划模块重构计划/阶段5_灰度发布部署与监控挂载手册_20260814.md` 执行放量/演练/监控。
+2. **#681（C2 锁看门狗接入）**：部署环境执行 `promtool check rules` + 规则热加载 + 告警触发验证（手册含挂载步骤）；本环境 Docker 引擎不可用未跑 promtool。
+3. **#679（B3 提速）**：4-shard 分片已实现，`<30min` 达标需 CI 实跑确认；若仍有差距可进一步 -n 2 并行。
+4. **可选优化（另开单）**：storage.py `_init_lock` 内 `os.makedirs`（#678 报告建议）；`_db_write_lock` 内首次建连 I/O。
+

@@ -233,3 +233,48 @@ jobs:
           echo "✓ Docker 扫描已从失败恢复,但未配置 DINGTALK_WEBHOOK secret"
           echo "  邮件通知仍由 GitHub 默认机制发送给 commit 作者"
           echo "  配置钉钉 webhook: 仓库 Settings → Secrets → 添加 DINGTALK_WEBHOOK"
+
+  # ── 失败恢复自动关闭 Issue（生命周期闭环） ──
+  # 【根因修复 CHG-2026-0830】create 侧已改为「每 workflow 一个 open Issue」，
+  # 本 job 补齐关闭侧：watchlist 中某 workflow 恢复（success）时，自动关闭其
+  # 对应 open 的 ci-failure Issue 并附恢复说明，避免 Issue 只开不关再次堆积。
+  recover-close:
+    name: 失败恢复自动关闭 Issue
+    if: ${{ github.event.workflow_run != null && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'master' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: 关闭已恢复 workflow 的 CI 失败 Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const workflowName = context.payload.workflow_run.name;
+            const runId = context.payload.workflow_run.id;
+            const runUrl = context.payload.workflow_run.html_url;
+            // 查找该 workflow 对应的 open ci-failure Issue
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'ci-failure',
+              per_page: 20
+            });
+            const existingIssue = issues.data.find(i => i.title.includes(workflowName));
+            if (!existingIssue) {
+              console.log(`无 open 的「${workflowName}」CI 失败 Issue，无需关闭`);
+              return;
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: existingIssue.number,
+              body: `✅ **CI 已恢复**：workflow「${workflowName}」最近一次运行 success（[run ${runId}](${runUrl})），自动关闭本 Issue。`
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: existingIssue.number,
+              state: 'closed'
+            });
+            console.log(`已自动关闭 Issue #${existingIssue.number}`);
+

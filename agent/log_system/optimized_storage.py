@@ -314,9 +314,14 @@ class OptimizedLogStorage:
         # [2026-08-13 并发审计] _stats 独立锁：批量写入线程、原始日志
         # 生产者、直接写入线程并发自增，无锁会丢计数
         self._stats_lock = threading.Lock()
-        # [2026-08-13 并发审计] 初始化双检锁：防并发首调重复建表/启动双 flush 线程
+        # [2026-08-13 并发审计→#678 锁优化] 初始化双检锁：防并发首调重复
+        # 建表/启动双 flush 线程；条件变量用于把建表 I/O 移出锁外后在途等待
         self._init_lock = threading.Lock()
+        self._init_cond = threading.Condition(self._init_lock)
         self._initialized = False
+        # [#678 锁优化] 建表在途标志：锁内置位，保证同一时刻至多一个线程
+        # 执行建表 I/O（防并发重复建表），其余并发首调线程等待其完成
+        self._initializing = False
         
         # 批量写入器
         self._batch_writer = BatchLogWriter(
@@ -353,20 +358,53 @@ class OptimizedLogStorage:
     
     def initialize(self):
         """初始化数据库表结构"""
-        # [2026-08-13 并发审计] 双检锁整体持有（含建表与 batch_writer.start）：
-        # 防并发首调重复建表或启动两个后台 flush 线程（初始化属低频启动期操作）
-        with self._init_lock:
-            if self._initialized:
-                return
-            
+        # [2026-08-13 并发审计→#678 锁优化] 双检锁语义保留，但建表 I/O 移出
+        # _init_lock 临界区：锁内仅做内存状态变更（_initializing/_initialized
+        # 置位、启动 flush 线程），避免持锁做磁盘 I/O（storage.initialize() 的
+        # 建表/建索引/WAL 设置，采样单次持锁最长 ~21ms）阻塞其他等待线程。
+        #
+        # 并发正确性论证（保持 2026-08-13 审计约束，并发正确性优先）：
+        #   1) 防并发重复建表：_initializing 在途标志在锁内置位，其余并发首调
+        #      线程见 _initializing=True 后经条件变量等待（wait 释放锁，不阻塞
+        #      建表线程），至多一个线程执行建表 I/O；
+        #   2) _initialized 标志在锁内置位，且与 _batch_writer.start() 位于同一
+        #      临界区，并先于 _initializing 复位与 notify_all：保证后台 flush
+        #      线程恰好启动一次，且等待者被唤醒后必然看到 _initialized=True
+        #      （不会重复建表）；
+        #   3) 建表失败：复位 _initializing 并通知等待者，异常向上抛，
+        #      _initialized 保持 False，后续调用（含等待者）会重试——与旧行为
+        #      一致。
+        if self._initialized:
+            return
+
+        while True:
+            with self._init_lock:
+                if self._initialized:
+                    return
+                if self._initializing:
+                    # 另一线程正在建表：等待其完成（条件变量 wait 释放锁）
+                    self._init_cond.wait()
+                    continue
+                self._initializing = True
+                break
+
+        try:
             from .storage import LogStorage
             storage = LogStorage(self.db_path, self.raw_log_dir)
-            storage.initialize()
+            storage.initialize()  # 建表/建索引/目录创建 I/O —— 锁外执行
+        except Exception:
+            with self._init_lock:
+                self._initializing = False
+                self._init_cond.notify_all()
+            raise
+
+        with self._init_lock:
             self._initialized = True
-            
-            # 启动批量写入器
+            # 启动批量写入器（锁内，保证恰好一次）
             self._batch_writer.start()
-        
+            self._initializing = False
+            self._init_cond.notify_all()
+
         logger.info(log_dict({'module_name': 'optimized_storage', 'action': 'log', 'msg': '[OptimizedLogStorage] 优化存储初始化完成'}))
     
     def _bulk_write_to_db(self, records: List[dict]):

@@ -105,9 +105,12 @@ def collect_test_files(root: Path, test_root: str = "tests/unit") -> list[str]:
     target_dir = root / test_root
     # 【不易】排除集合：全项目模式合并 OBSERVABILITY_CI_ONLY
     excluded = set(EXCLUDED)
-    if test_root == "tests":
-        excluded |= OBSERVABILITY_CI_ONLY
-        # 全项目模式：递归扫描所有子目录
+    if test_root in ("tests", "tests/integration"):
+        # 【变易·B3 2026-08-30】integration 根目录同样递归收集：与 ci.yml
+        # 集成测试分片（Issue #679）配套，支持子目录 test 文件且行为与
+        # `pytest tests/integration/` 的递归收集一致。
+        if test_root == "tests":
+            excluded |= OBSERVABILITY_CI_ONLY
         files = sorted(p for p in target_dir.rglob("test_*.py"))
     else:
         # 默认模式：仅 tests/unit/test_*.py（非递归，与 ci.yml 一致）
@@ -162,13 +165,15 @@ def main() -> int:
         parser.error(f"--shard 必须在 [1, {args.shards}] 内，当前 {args.shard}")
 
     # 【简易】白名单校验，避免误传任意路径
-    if args.root not in ("tests/unit", "tests"):
-        parser.error(f"--root 仅支持 tests/unit 或 tests，当前 {args.root}")
+    if args.root not in ("tests/unit", "tests", "tests/integration"):
+        parser.error(f"--root 仅支持 tests/unit、tests 或 tests/integration，当前 {args.root}")
 
     files = collect_test_files(ROOT, args.root)
     # 贪心均衡: 按测试数降序, 每次放入当前测试总数最少的 shard
     # （重文件优先分配，避免大文件扎堆导致单 shard 运行时间过长）
-    counts = {f: count_tests(ROOT, f, use_lines=(args.root == "tests")) for f in files}
+    # 【变易·B3】tests/integration 与全项目模式一致按行数加权：
+    # 大 integration 文件（90KB+）测试数少但耗时长，纯测试数贪心会扎堆失衡。
+    counts = {f: count_tests(ROOT, f, use_lines=(args.root in ("tests", "tests/integration"))) for f in files}
     buckets: list[list[str]] = [[] for _ in range(args.shards)]
     totals = [0] * args.shards
     for f in sorted(files, key=lambda x: -counts[x]):
