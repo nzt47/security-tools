@@ -34,6 +34,9 @@ tests:
               lock_name: test_lock
               severity: critical
               category: concurrency
+            exp_annotations:
+              summary: "持锁超时（锁纪律违规）"
+              description: "检测到持锁时长超过 LOCK_WATCHDOG_HOLD_MS 阈值的锁 test_lock。持锁期间疑似执行了 I/O/阻塞操作，需按持锁纪律修复。"
 
   # ── LockHoldTimeout：计数恒 0 不触发 ──
   - name: LockHoldTimeout_no_fire
@@ -60,6 +63,9 @@ tests:
               lock_name: test_lock
               severity: warning
               category: concurrency
+            exp_annotations:
+              summary: "锁等待超时（潜在死锁/饥饿）"
+              description: "锁 test_lock 的等待时长超过 LOCK_WATCHDOG_WAIT_MS 阈值，存在死锁或线程饥饿风险，请检查锁获取顺序与持有时间。"
 
   # ── LockWaitTimeout：计数恒 0 不触发 ──
   - name: LockWaitTimeout_no_fire
