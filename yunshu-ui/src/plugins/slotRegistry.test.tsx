@@ -8,7 +8,7 @@
  * 说明：注册表为模块级单例，测试间通过 loadProfile({}) 重置 profile，
  * 并使用互不相同的插槽 id，避免条目互相污染。
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import {
   registerSlot,
@@ -140,6 +140,21 @@ describe('SlotHost 渲染', () => {
     expect(getSlotEntries('host-hidden').map((e) => e.id)).toEqual(['show']);
   });
 
+  it('SlotHost 通过 props 透传状态/回调到挂载组件（T2.2 新增能力）', () => {
+    const SpyEntry = ({ label = 'none', onClick }: { label?: string; onClick?: () => void }) => (
+      <button type="button" onClick={onClick}>
+        {label}
+      </button>
+    );
+    const onClick = vi.fn();
+    mountToSlot('props-slot', { id: 'spy', component: SpyEntry });
+    render(<SlotHost slotId="props-slot" props={{ label: 'hello', onClick }} />);
+    const btn = screen.getByText('hello');
+    expect(btn).toBeTruthy();
+    btn.click();
+    expect(onClick).toHaveBeenCalledTimes(1);
+  });
+
   it('空插槽渲染空容器', () => {
     const { container } = render(<SlotHost slotId="empty-slot" />);
     const host = container.querySelector('[data-slot="empty-slot"]');
@@ -162,9 +177,11 @@ describe('SlotProvider 注入', () => {
     expect(screen.getByTestId('child')).toBeTruthy();
     const p = getProfile();
     expect(Object.keys(p)).toEqual(['topbar', 'sidebar', 'main', 'panels']);
-    expect(p.topbar).toEqual([]);
-    expect(p.sidebar).toEqual([]);
-    expect(p.main).toEqual([]);
+    // T2.2：profile.json 填充真实外壳条目
+    expect(p.topbar).toEqual([{ id: 'status', order: 10 }]);
+    expect(p.sidebar?.map((s) => s.id)).toEqual(['skill', 'knowledge', 'mascot', 'sessions']);
+    expect(p.sidebar?.map((s) => s.order)).toEqual([5, 6, 10, 20]);
+    expect(p.main).toEqual([{ id: 'chat', order: 10 }]);
     expect(p.panels).toEqual([]);
     // 与 profile.json 内容一致
     expect(p).toEqual(defaultProfile.slots);

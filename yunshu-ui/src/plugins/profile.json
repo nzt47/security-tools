@@ -1,8 +1,13 @@
 {
   "slots": {
-    "topbar": [],
-    "sidebar": [],
-    "main": [],
+    "topbar": [{ "id": "status", "order": 10 }],
+    "sidebar": [
+      { "id": "skill", "order": 5 },
+      { "id": "knowledge", "order": 6 },
+      { "id": "mascot", "order": 10 },
+      { "id": "sessions", "order": 20 }
+    ],
+    "main": [{ "id": "chat", "order": 10 }],
     "panels": []
   }
 }

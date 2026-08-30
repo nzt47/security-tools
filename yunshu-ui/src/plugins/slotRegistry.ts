@@ -17,8 +17,8 @@ import React from 'react';
 export interface SlotEntry {
   /** 组件唯一 id，如 'mascot' */
   id: string;
-  /** 要渲染的组件 */
-  component: React.ComponentType;
+  /** 要渲染的组件（可接收 SlotHost 透传的 props，见 SlotHostProps.props） */
+  component: React.ComponentType<any>;
   /** 排序，小在前，默认 100 */
   order?: number;
   /** profile 可置为 true 隐藏 */

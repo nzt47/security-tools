@@ -14,15 +14,20 @@ export interface SlotHostProps {
   slotId: string;
   /** 外层容器 className */
   className?: string;
+  /**
+   * 透传给插槽内每个挂载组件的 props（任务 T2.2）。
+   * App 把状态/回调经此下发：如 props={{ status: systemStatus }}。
+   */
+  props?: Record<string, unknown>;
 }
 
-export function SlotHost({ slotId, className }: SlotHostProps) {
+export function SlotHost({ slotId, className, props }: SlotHostProps) {
   const entries = getSlotEntries(slotId);
   return (
     <div className={className} data-slot={slotId}>
       {entries.map((e) => {
         const C = e.component;
-        return <C key={e.id} />;
+        return <C key={e.id} {...props} />;
       })}
     </div>
   );
