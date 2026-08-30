@@ -2,7 +2,7 @@
 
 > 交付范围：云枢（Yunshu）前端插槽化阶段 2 全部任务 **T2.1–T2.4**
 > 关联文档：[插件化方案总览](yunshu-pluginization/README.md) · [PLAN-2 前端插槽化](yunshu-pluginization/PLAN-2-frontend-slots.md) · [界面组装配置说明](../yunshu-ui/src/plugins/PROFILE.md)
-> 交付基准：`master` 同步至 `25d51cc2`（origin/GitHub + gitee 双远端）
+> 交付基准：代码交付 `25d51cc2`，本报告归档 `1e3cf8bc`（origin/GitHub + gitee 双远端同步）
 
 ## 1. 交付范围与目标
 
@@ -65,7 +65,7 @@
 
 ## 5. 最终状态确认
 
-- **代码**：`master` 已推送 **origin/master（GitHub）+ gitee** 双远端，同步至 `25d51cc2`；工作区干净（`git status` 无未提交修改）
+- **代码**：`master` 已推送 **origin/master（GitHub）+ gitee** 双远端：代码交付 `25d51cc2` + 归档提交 `1e3cf8bc`；工作区干净（`git status` 无未提交修改）
 - **CI/CD**：本次推送（`30210bc1..25d51cc2`）触发 GitHub Actions，已通过 GitHub API 确认：
 
   **yunshu-ui 前端测试**（run `33323498811`，直接验证本次交付）→ ✅ **success**
@@ -107,9 +107,9 @@
 |--------|------|
 | 交付方自查（代码 / tsc / vitest / lint / build / 回退与变体专项） | ✅ 通过 |
 | 排除项记录（原因与证据，非静默跳过） | ✅ 已记录（§4 环境限制） |
-| 推送（origin + gitee） | ✅ 已推送 `25d51cc2` |
+| 推送（origin + gitee） | ✅ 已推送 `25d51cc2`（代码）+ `1e3cf8bc`（归档） |
 | stakeholders 验收 | ⏳ 待用户最终确认（本报告 §5/§6 供复核） |
 
 ---
 
-**结案结论：阶段 2（前端插槽化 T2.1–T2.4）已全部完成、验证、推送（origin + gitee 同步至 `25d51cc2`）、报告归档。遗留项均为部署流程或后续阶段事项，无阻塞性遗留。经 stakeholders 最终确认后正式结案，可进入阶段 3（Schema 自解释 UI）。**
+**结案结论：阶段 2（前端插槽化 T2.1–T2.4）已全部完成、验证、推送（origin + gitee 双远端，代码 `25d51cc2` + 归档 `1e3cf8bc`）、报告归档。遗留项均为部署流程或后续阶段事项，无阻塞性遗留。经 stakeholders 最终确认后正式结案，可进入阶段 3（Schema 自解释 UI）。**
