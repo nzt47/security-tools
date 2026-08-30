@@ -36,9 +36,11 @@ Write-Output "NEW=$new"
 
 
 def _run_pwsh(script: str) -> subprocess.CompletedProcess:
+    # pwsh 7 默认以 UTF-8 输出；显式指定编码，避免中文 Windows 下按 GBK 解码
+    # （locale 默认 cp936）抛 UnicodeDecodeError 导致 stdout=None（2026-08-31 实测修复）
     return subprocess.run(
         ["pwsh", "-NoProfile", "-Command", script],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
     )
 
 
@@ -58,7 +60,7 @@ def test_script_loads_and_blocks_on_missing_token():
     assert SCRIPT.exists(), f"脚本缺失: {SCRIPT}"
     r = subprocess.run(
         ["pwsh", "-NoProfile", "-File", str(SCRIPT)],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     assert r.returncode == 1
     assert "GITEE_TOKEN" in r.stdout, f"应提示 GITEE_TOKEN 未设置, 实际输出: {r.stdout[-200:]}"
