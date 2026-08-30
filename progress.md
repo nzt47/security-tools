@@ -62,3 +62,10 @@
 - T2.4 `67a6e417`：profile 配置驱动完善——profile.json 为唯一组装配置（order/hidden）；`import.meta.glob ?raw` 惰性加载，文件缺失/损坏静默回退代码内 `DEFAULT_PROFILE`；新增 `reloadProfile(variant)` 运行时切换（含 `profile.alt.json` 验证变体）；`PROFILE.md` 界面组装文档
 - 验证：tsc ✅；vitest 22 文件 / 292 用例 ✅（含 13 条回退与变体单测）；npm run lint 0 errors ✅；npm run build ✅；删除全部 profile 文件后 tsc+build 仍通过（回退实测）
 - 提交：`25d51cc2`（进度/README 归档），已推送 origin（GitHub）+ gitee 至 `25d51cc2`
+
+## 2026-08-31: 阶段 3 Schema 驱动自解释 UI 完成（T3.1–T3.3，结案）
+- T3.1 `6c6269cb`：后端 Schema 协议落地——`Plugin.schema` 校验（`register_plugin` 非法抛 ValueError）+ status/safety/skills 声明 schema + manifest 输出 schema 字段；`tests/test_plugin_schema.py` 12 项
+- T3.2 `9a64f0da`：前端通用 SchemaRenderer + 7 类字段控件（Select/Input/Textarea/Number/Switch/Tags/ObjectGroup）+ 未知降级 JsonFallbackField + 嵌套折叠；`SchemaRenderer.test.tsx` 23 + `fields.test.tsx` 18 项
+- T3.3 `c19dbcfa`：插件中心——`Plugin.submit_url` 协议（写入 manifest）+ status 声明 `/api/status/config` 统一端点（字段分流真实子系统 + `StatusConfigManager` 持久化）；前端 `PluginPanel.tsx` 挂入 panels 插槽（列表 + SchemaRenderer + 值预填 + 提交 Toast + 空 schema/无端点降级）；`PluginPanel.test.tsx` 11 项 + `test_plugin_submit_url.py` 6 项
+- 验证：tsc ✅；vitest 25 文件 / 344 用例 ✅（阶段 3 新增 52 条）；lint 0 errors ✅；build ✅；后端全量 pytest 1874 passed（唯一失败 `test_create_gitee_release_script.py` 为存量环境问题，stash 验证与阶段 3 无关）；status 闭环实测（改参 → 提交 → 生效 → 还原）✅
+- 提交：`c19dbcfa`（代码）+ 结案报告归档，已推送 origin（GitHub）+ gitee

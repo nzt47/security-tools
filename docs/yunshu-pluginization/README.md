@@ -155,8 +155,13 @@ UI 由 Schema 自动渲染，**无需手写页面**。
 | T2.2 App 外壳插槽化（topbar / sidebar / main） | ✅ 完成 | 2026-08-30 | `e7836ced` |
 | T2.3 面板插槽化 + PanelSwitcher | ✅ 完成 | 2026-08-30 | `9ece9965` |
 | T2.4 profile 驱动组装 + 回退默认值 | ✅ 完成 | 2026-08-30 | `67a6e417` |
-| 阶段 3–4 | ⏳ 待执行 | — | — |
+| T3.1 后端插件 Schema 协议 + manifest 扩展 | ✅ 完成 | 2026-08-31 | `6c6269cb` |
+| T3.2 前端通用 SchemaRenderer + 单测 | ✅ 完成 | 2026-08-31 | `9a64f0da` |
+| T3.3 插件面板接入 `/api/plugins` + 演示验证 | ✅ 完成 | 2026-08-31 | `c19dbcfa` |
+| 阶段 4（动态装载，可选） | ⏳ 待执行 | — | — |
 
-> 阶段 1、阶段 2 已全部完成（阶段 2 收尾提交 `67a6e417`）。
+> 阶段 1、2、3 已全部完成（阶段 3 收尾提交 `c19dbcfa`）。
 > 阶段 1 详细交付说明见 `docs/DELIVERY_CLOSEOUT_REPORT_PHASE1_20260830.md`（T1.1 单独记录见 `docs/DELIVERY_CLOSEOUT_REPORT_20260830.md`）。
-> 阶段 2 界面组装配置说明见 `yunshu-ui/src/plugins/PROFILE.md`。
+> 阶段 2 交付说明见 `docs/DELIVERY_CLOSEOUT_REPORT_PHASE2_20260830.md`。
+> 阶段 3 交付说明见 `docs/DELIVERY_CLOSEOUT_REPORT_PHASE3_20260831.md`。
+> 阶段 2/3 界面组装配置说明见 `yunshu-ui/src/plugins/PROFILE.md`。
