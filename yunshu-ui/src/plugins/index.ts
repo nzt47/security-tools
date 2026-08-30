@@ -1,10 +1,11 @@
 /**
- * 插槽体系核心汇总导出（任务 T2.1 / T2.2 / T2.3）
+ * 插槽体系核心汇总导出（任务 T2.1 / T2.2 / T2.3 / T2.4）
  *
  * 用法：
  *   import { SlotProvider, SlotHost, mountToSlot } from '@/plugins';
  *   import { SLOT_IDS, mountAppSlots } from '@/plugins/slots';
  *   import { mountPanels } from '@/plugins/panels';
+ *   import { reloadProfile } from '@/plugins';   // 运行时切换 profile 变体
  */
 export {
   registerSlot,
@@ -14,13 +15,19 @@ export {
   getAllSlotEntries,
   getManifestEntries,
   loadProfile,
+  loadProfileFromRaw,
+  reloadProfile,
+  normalizeProfile,
   getProfile,
+  DEFAULT_PROFILE,
 } from './slotRegistry';
-export type { SlotEntry, SlotProfile } from './slotRegistry';
+export type { SlotEntry, SlotProfile, SlotProfileItem } from './slotRegistry';
 export { SlotHost } from './SlotHost';
 export type { SlotHostProps } from './SlotHost';
 export { SlotProvider } from './SlotProvider';
-export { default as defaultProfile } from './profile.json';
+// T2.4：defaultProfile 指向代码内 DEFAULT_PROFILE（不再静态依赖 profile.json——
+// 文件缺失/损坏时不影响构建与启动，由 reloadProfile 回退兜底）
+export { DEFAULT_PROFILE as defaultProfile } from './slotRegistry';
 export { SLOT_IDS, mountAppSlots } from './slots';
 export type { SlotId } from './slots';
 export {
