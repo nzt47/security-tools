@@ -24,10 +24,27 @@ from agent.utils.singleton_manager import get_singleton, is_initialized
 
 @pytest.fixture(autouse=True)
 def _cleanup_singleton():
-    """每个用例前后重置单例，保证测试隔离"""
+    """每个用例前后重置单例，保证测试隔离
+
+    2026-08-30 修复：同时重置 alert_manager —— 前序测试（如 mcp_executor /
+    digital_life 初始化链）可能已初始化 "alert_manager" 单例，
+    test_singleton_name_distinct_from_alert_manager 的
+    `assert not is_initialized("alert_manager")` 会因顺序污染误失败。
+    """
     module.reset_performance_alert_manager()
+    _reset_alert_manager()
     yield
     module.reset_performance_alert_manager()
+    _reset_alert_manager()
+
+
+def _reset_alert_manager():
+    """重置 alert_manager 单例（幂等；缺失模块时不阻断）。"""
+    try:
+        from agent.monitoring import alert_manager as _am
+        _am.reset_alert_manager()
+    except Exception:
+        pass
 
 
 class TestPerformanceAlertManagerSingleton:

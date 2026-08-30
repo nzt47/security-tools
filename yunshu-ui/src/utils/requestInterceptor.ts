@@ -249,11 +249,9 @@ function installFetchPatch(): void {
         traceId = parseTraceId(response.headers);
         if (traceId) {
           lastTraceId = traceId;
-          // 同步 trace_id 到 Sentry（动态 import，避免硬依赖，失败不影响业务）
-          // 状态同步机制：确保 Sentry 事件与后端 OpenTelemetry 链路关联
-          import('@/utils/sentry')
-            .then(({ setTraceId }) => setTraceId(traceId))
-            .catch(() => { /* ignore */ });
+          // 同步 trace_id 到 Sentry 已移除（2026-08-30 构建修复）：
+          // @sentry/react 依赖与 utils/sentry 模块属未合入的 observability
+          // 功能，动态 import 会造成 tsc TS2307；链路关联随该功能一并移除。
         }
       } catch {
         // ignore
@@ -421,10 +419,8 @@ function installXhrPatch(): void {
           }
           if (traceId) {
             lastTraceId = traceId;
-            // 同步 trace_id 到 Sentry（动态 import，避免硬依赖，失败不影响业务）
-            import('@/utils/sentry')
-              .then(({ setTraceId }) => setTraceId(traceId))
-              .catch(() => { /* ignore */ });
+            // 同步 trace_id 到 Sentry 已移除（2026-08-30 构建修复），
+            // 同 fetch 分支说明；链路关联随未合入的 observability 功能移除。
           }
         }
       } catch (headerErr) {

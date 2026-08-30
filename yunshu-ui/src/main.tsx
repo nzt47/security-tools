@@ -1,50 +1,26 @@
-import { StrictMode, useEffect, useState } from 'react'
+import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import WorkbenchApp from './WorkbenchApp'
-import { DetachedChatApp } from './DetachedChatApp'
+import App from './App'
 import PromptLab from './pages/PromptLab'
-import { startCrossWindowSync } from './electron/sync'
-import { installMockElectron } from './electron/mockElectron'
 import './index.css'
 
-// Web 联调模式：VITE_MOCK_ELECTRON=1 时注入 mock Electron API（双标签页模拟多窗口）
-if (import.meta.env.VITE_MOCK_ELECTRON === '1') {
-  installMockElectron()
-}
-
 /**
- * 入口：hash 路由分发 + 跨窗口状态同步
- * ------------------------------------------------
- *  - #/detached/<panelId>  → 独立窗口视图（Electron 面板分离后加载）
- *  - 其它                → 主工作台
- * 每个渲染进程（主窗口 / 独立窗口）启动时调用 startCrossWindowSync()，
- * 经主进程事件总线同步 messages/thinking（Web 环境自动降级为空操作）。
+ * 入口（2026-08-30 构建修复）：
+ * - 默认渲染 legacy 主界面（App.tsx，与 static/ 现有构建产物一致）。
+ * - `#/prompt-lab` → 提示词影响因素实验室（独立页面，bb2e9915 引入）。
+ * - 注：workbench/Electron 版入口（WorkbenchApp / DetachedChatApp /
+ *   electron/* / lib/mosaic 等）来自未合入 master 的分支（4034e804），
+ *   其源码在 master 缺失导致 2026-08-16 起构建失败；本修复回退到 legacy
+ *   入口并移除相应孤儿源码，workbench 功能保留在 feature 分支。
  */
 function Root() {
-  const [hash, setHash] = useState(window.location.hash)
+  const hash = window.location.hash
 
-  useEffect(() => {
-    const onChange = () => setHash(window.location.hash)
-    window.addEventListener('hashchange', onChange)
-    return () => window.removeEventListener('hashchange', onChange)
-  }, [])
-
-  // 跨窗口状态同步（全进程级，仅一次）
-  useEffect(() => startCrossWindowSync(), [])
-
-  // 提示词影响因素实验室：独立路由页面（不进 Mosaic 布局）
   if (hash.startsWith('#/prompt-lab')) {
-    return <PromptLab />;
+    return <PromptLab />
   }
 
-  if (hash.startsWith('#/detached/')) {
-    const panelId = hash.slice('#/detached/'.length)
-    // 白名单校验：仅允许已知面板，非法值回退主工作台
-    if (panelId === 'chat' || panelId === 'think' || panelId === 'nav' || panelId === 'code') {
-      return <DetachedChatApp panelId={panelId} />
-    }
-  }
-  return <WorkbenchApp />
+  return <App />
 }
 
 createRoot(document.getElementById('root')!).render(

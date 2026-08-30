@@ -326,7 +326,11 @@ class PromptStorage:
         with self._get_conn() as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT * FROM versions WHERE prompt_id = ? ORDER BY created_at DESC",
+                # 【修复 2026-08-30】created_at 为 time.time()，连续两次创建可能取到
+                # 相同浮点值；无 tiebreaker 时 ORDER BY created_at DESC 并列，
+                # SQLite 按插入序返回导致版本历史顺序不确定（test_version_history flaky）。
+                # 追加 rowid DESC 使并列时后插入（更新版本）在前，顺序确定。
+                "SELECT * FROM versions WHERE prompt_id = ? ORDER BY created_at DESC, rowid DESC",
                 (prompt_id,)
             )
             
