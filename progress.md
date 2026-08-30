@@ -28,3 +28,10 @@
   6. **条件注册改为始终注册** — 4 个 v2 工具始终注册，运行时提示不可用
   7. **修复 ext_list 数据源同步** — 统一通过 ExtensionManager 为唯一数据源
 - 测试：283/283 通过
+
+## 2026-08-30: 插件化 T1.1 完成（插件注册表 + 装配器骨架）
+- 新建 `plugins/plugin_api.py`：Plugin 协议层（name/version/description/schema/blueprint/routes + 幂等注册表 + manifest）
+- 新建 `plugins/example.py` 临时示例插件（`/api/example/plugin-probe`，验证机制用，T1.10 删除）
+- `app_server.py` 装配器改造：顶部导入 + blueprint 注册循环 + `/api/plugins` 端点（只加不改，+16 行）
+- 验证：`import app_server` 无循环导入；启动服务冒烟 `/api/plugins`、`/api/example/plugin-probe`、`/api/health` 全部通过；路由集合 175→176 仅新增 `/api/plugins`；pytest app/API 子集 87 项全部通过
+- 提交：`205a478d`（代码）+ `e5231633`（方案文档归档），已推送 origin/master
