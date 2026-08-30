@@ -135,11 +135,14 @@
     slotRegistry.ts      → registerSlot / mountToSlot / SlotHost / profile
     profile.json         → { slots: { sidebar: [...], main: [...] } }
     SchemaRenderer.tsx   → 根据 JSON Schema 自动渲染表单/面板
+    pluginDiscovery.ts   → fetchPlugins / reloadPlugins / 动态装载 clientSlot 模块
+    public/plugins/*.js  → 插件客户端模块（register(registry) 约定，动态 import 装载）
   App.tsx                → 瘦身为「SlotHost 集合 + 少量全局状态」
 ```
 
-新增功能（阶段 4 后）= 后端放一个 `plugins/xxx.py`（声明 Schema）+ 前端可选注册插槽组件，
-UI 由 Schema 自动渲染，**无需手写页面**。
+新增功能（阶段 4 后）= 后端放一个 `plugins/xxx.py`（声明 Schema，可选 `client_slot`）
++ 前端可选放一个 `public/plugins/xxx-ui.js`（`register` 约定），点「刷新」即发现、
+点「加载 UI」即挂入插槽，UI 由 Schema 自动渲染，**无需手写页面、无需发版**。
 
 ---
 
@@ -158,10 +161,12 @@ UI 由 Schema 自动渲染，**无需手写页面**。
 | T3.1 后端插件 Schema 协议 + manifest 扩展 | ✅ 完成 | 2026-08-31 | `6c6269cb` |
 | T3.2 前端通用 SchemaRenderer + 单测 | ✅ 完成 | 2026-08-31 | `9a64f0da` |
 | T3.3 插件面板接入 `/api/plugins` + 演示验证 | ✅ 完成 | 2026-08-31 | `c19dbcfa` |
-| 阶段 4（动态装载，可选） | ⏳ 待执行 | — | — |
+| T4.1 后端目录扫描 + reload 端点 | ✅ 完成 | 2026-08-31 | `5e980b4f` |
+| T4.2 前端运行时发现 + 刷新（+ 动态装载进阶） | ✅ 完成 | 2026-08-31 | 本提交 |
 
-> 阶段 1、2、3 已全部完成（阶段 3 收尾提交 `c19dbcfa`）。
+> 阶段 1、2、3、4 已全部完成（四阶段改造路线全部交付）。
 > 阶段 1 详细交付说明见 `docs/DELIVERY_CLOSEOUT_REPORT_PHASE1_20260830.md`（T1.1 单独记录见 `docs/DELIVERY_CLOSEOUT_REPORT_20260830.md`）。
 > 阶段 2 交付说明见 `docs/DELIVERY_CLOSEOUT_REPORT_PHASE2_20260830.md`。
 > 阶段 3 交付说明见 `docs/DELIVERY_CLOSEOUT_REPORT_PHASE3_20260831.md`。
+> 阶段 4 交付说明见 `docs/DELIVERY_CLOSEOUT_REPORT_PHASE4_20260831.md`。
 > 阶段 2/3 界面组装配置说明见 `yunshu-ui/src/plugins/PROFILE.md`。

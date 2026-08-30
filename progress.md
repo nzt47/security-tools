@@ -69,3 +69,15 @@
 - T3.3 `c19dbcfa`：插件中心——`Plugin.submit_url` 协议（写入 manifest）+ status 声明 `/api/status/config` 统一端点（字段分流真实子系统 + `StatusConfigManager` 持久化）；前端 `PluginPanel.tsx` 挂入 panels 插槽（列表 + SchemaRenderer + 值预填 + 提交 Toast + 空 schema/无端点降级）；`PluginPanel.test.tsx` 11 项 + `test_plugin_submit_url.py` 6 项
 - 验证：tsc ✅；vitest 25 文件 / 344 用例 ✅（阶段 3 新增 52 条）；lint 0 errors ✅；build ✅；后端全量 pytest 1874 passed（唯一失败 `test_create_gitee_release_script.py` 为存量环境问题，stash 验证与阶段 3 无关）；status 闭环实测（改参 → 提交 → 生效 → 还原）✅
 - 提交：`c19dbcfa`（代码）+ 结案报告归档，已推送 origin（GitHub）+ gitee
+
+## 2026-08-31: 阶段 4 动态装载完成（T4.1–T4.2，四阶段全部交付）
+- T4.1 `5e980b4f`：后端 `plugins/loader.py` 目录扫描自动加载（`pkgutil` 扫描、单插件失败隔离、原子重建注册表）+ `POST /api/plugins/reload`（`require_token`，失败保留旧注册表）；启动装配改 `loader.load_all()`
+- T4.2 本提交：前端运行时发现 + 动态装载——
+  - `plugins/plugin_api.py` 新增 `Plugin.client_slot` 可选字段（manifest 输出 `client_slot`）
+  - `plugins/demo_plugin.py` 演示插件：schema + `submit_url=/api/demo/config`（GET/POST 闭环）+ `client_slot={slotId:"panels", module:"/plugins/demo-ui.js"}` + `/api/demo/probe`
+  - `yunshu-ui/src/plugins/pluginDiscovery.ts`：`PluginInfo` 契约（camelCase）+ `fetchPlugins`（GET + 归一化：submit_url/client_slot → submitUrl/clientSlot，空 schema → null）+ `reloadPlugins`（POST 后重新拉取）+ `loadClientUi`（动态 import → `register(registry)` / 默认导出组件挂入插槽）+ `SlotRegistryFacade` + 生产 `/static` 前缀回退
+  - `slotRegistry.ts` 新增 `extendProfile`（运行时追加 profile 条目）；`PluginPanel.tsx` 顶部「刷新」按钮（成功更新列表 + Toast / 失败保留旧列表 + Toast / 加载态禁用）+ clientSlot 插件「加载 UI」按钮
+  - `public/plugins/demo-ui.js` 原生 ES 模块（`register(registry)` → mountToSlot + extendProfile + openPanel）；`build:flask` 追加复制 `dist/plugins` → `static/plugins`
+  - 单测：`pluginDiscovery.test.ts` 11 项 + `PluginPanel.test.tsx` 扩展（刷新成功/失败/加载态 + 动态装载成功/失败）；后端 `test_plugin_schema.py` +3 项（client_slot 契约 + demo 声明）
+- 验证：tsc ✅；vitest 26 文件 / 363 用例 ✅；npm run build ✅（dist/plugins 复制正确）；后端插件相关 pytest 30 项 ✅；`app_server` 冒烟：`/api/plugins` 9 插件（demo 含 client_slot/schema/submit_url）、`/api/demo/probe`、`/api/demo/config`、带 token `POST /api/plugins/reload` 200
+- 提交：本提交（代码 + 结案报告 + 进度归档），已推送 origin（GitHub）+ gitee

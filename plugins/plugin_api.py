@@ -13,6 +13,7 @@ class Plugin:
     blueprint: Optional[Blueprint] = None
     routes: List[str] = field(default_factory=list)
     submit_url: str = ""  # 配置提交端点（T3.3）：空串表示「暂不支持在线修改」
+    client_slot: Optional[Dict[str, str]] = None  # 前端动态装载（T4.2）：{slotId, module}
 
 _REGISTRY: List[Plugin] = []
 
@@ -50,6 +51,7 @@ def manifest() -> Dict[str, Any]:
                 "description": p.description,
                 "schema": p.schema or {},  # 统一约定：无 schema 输出为空 dict
                 "submit_url": p.submit_url,  # 配置提交端点（T3.3）；空串 = 不支持在线修改
+                "client_slot": p.client_slot,  # 前端动态装载（T4.2）；None = 无客户端模块
                 "routes": sorted(p.routes),
             }
             for p in _REGISTRY

@@ -101,6 +101,39 @@ def test_manifest_output_has_schema_contract():
 
 
 # ════════════════════════════════════════════════════════════════
+#  client_slot 协议（T4.2：前端动态装载声明）
+# ════════════════════════════════════════════════════════════════
+
+def test_plugin_client_slot_defaults_none():
+    p = register_plugin(Plugin(name="plain", version="1.0.0"))
+    assert p.client_slot is None
+
+
+def test_manifest_outputs_client_slot():
+    register_plugin(Plugin(name="plain", version="1.0.0"))
+    register_plugin(Plugin(
+        name="dynamic",
+        version="1.0.0",
+        client_slot={"slotId": "panels", "module": "/plugins/demo-ui.js"},
+    ))
+    entries = {p["name"]: p for p in manifest()["plugins"]}
+    assert entries["plain"]["client_slot"] is None
+    assert entries["dynamic"]["client_slot"] == {
+        "slotId": "panels",
+        "module": "/plugins/demo-ui.js",
+    }
+
+
+def test_demo_plugin_declares_client_slot():
+    """真实 demo 插件声明 client_slot（T4.2 全链路演示的 manifest 半边）。"""
+    import plugins.demo_plugin  # noqa: F401  （模块级 PLUGIN 即注册对象）
+    p = plugins.demo_plugin.PLUGIN
+    assert p.name == "demo"
+    assert p.client_slot == {"slotId": "panels", "module": "/plugins/demo-ui.js"}
+    assert p.submit_url == "/api/demo/config"
+
+
+# ════════════════════════════════════════════════════════════════
 #  真实插件样例（T3.1 验收：status/safety/skills 含合法 schema）
 # ════════════════════════════════════════════════════════════════
 

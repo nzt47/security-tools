@@ -132,6 +132,19 @@ export function getSlotEntries(slotId: string): SlotEntry[] {
 }
 
 /**
+ * 运行时向当前 profile 追加一条插槽配置（T4.2 动态装载）。
+ * 用于「动态挂入的组件」在 profile 清单型消费方（如 PanelSwitcher 的
+ * getManifestEntries 白名单）中可见；同 id 已存在时幂等跳过。
+ * 注意：reloadProfile() 会整体替换 profile，动态追加的条目会随 reload 消失
+ * （组件仍留在注册表，需重新追加/挂载）。
+ */
+export function extendProfile(slotId: string, item: SlotProfileItem): void {
+  const cfg = profile[slotId] ?? [];
+  if (cfg.some((c) => c.id === item.id)) return;
+  profile = { ...profile, [slotId]: [...cfg, item] };
+}
+
+/**
  * 读取插槽内「profile 清单」条目（面板切换器专用，任务 T2.3）：
  * - 应用 profile 的 order/hidden，不过滤 hidden（切换器需要渲染每个按钮，
  *   hidden 仅决定「默认关闭」）；
