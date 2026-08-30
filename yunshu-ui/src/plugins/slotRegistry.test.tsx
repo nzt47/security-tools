@@ -193,10 +193,12 @@ describe('SlotProvider 注入', () => {
     expect(p.sidebar?.map((s) => s.order)).toEqual([5, 10, 20]);
     expect(p.main).toEqual([{ id: 'chat', order: 10 }]);
     // T2.3：panels 插槽填充三面板（初始 hidden:true → 默认关闭，按钮仍显示）
+    // T3.3：追加 plugin-center（插件中心）面板条目
     expect(p.panels).toEqual([
       { id: 'skills', order: 10, hidden: true },
       { id: 'knowledge', order: 20, hidden: true },
       { id: 'devconsole', order: 30, hidden: true },
+      { id: 'plugin-center', order: 40, hidden: true },
     ]);
   });
 });

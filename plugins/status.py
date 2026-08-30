@@ -208,6 +208,90 @@ _personality_mgr = PersonalityManager()
 
 
 # ════════════════════════════════════════════════════════════
+#  Status 域统一配置（T3.3：schema 驱动的 /api/status/config）
+# ════════════════════════════════════════════════════════════
+
+# 数据文件位于仓库根 data/ 目录（与 personality.json 同目录）
+_STATUS_CONFIG_FILE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    'data', 'status_config.json',
+)
+
+# 与 status 插件 schema 的 sensor_categories 枚举对齐（_get_sensor_categories 五大分类）
+_SENSOR_CATEGORIES = ["硬件感知", "网络感知", "进程与行为", "文件感知", "系统与环境"]
+
+
+class StatusConfigManager:
+    """status 插件 schema 中「无真实子系统承接」字段的持久化。
+
+    - refresh_interval / sensor_categories 属于前端展示/采样意图，无既有配置端点，
+      统一落到 data/status_config.json（GET 可读回、POST 可写，闭环自解释）；
+    - planning_enabled / personality_* 由真实子系统承接（见 /api/status/config 视图），
+      不在此持久化。
+    """
+
+    def __init__(self, path: str | None = None):
+        self._path = path or _STATUS_CONFIG_FILE
+        self._cache = None
+
+    def _default(self) -> dict:
+        return {
+            "refresh_interval": 5,
+            "sensor_categories": list(_SENSOR_CATEGORIES),
+        }
+
+    def _load(self) -> dict:
+        if self._cache is not None:
+            return self._cache
+        try:
+            with open(self._path, 'r', encoding='utf-8') as f:
+                self._cache = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            self._cache = self._default()
+        return self._cache
+
+    def _save(self, data: dict):
+        self._cache = data
+        os.makedirs(os.path.dirname(self._path), exist_ok=True)
+        with open(self._path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+
+    def get(self) -> dict:
+        data = self._load()
+        cats = data.get("sensor_categories")
+        if not isinstance(cats, list):
+            cats = self._default()["sensor_categories"]
+        return {
+            "refresh_interval": int(data.get("refresh_interval", 5)),
+            "sensor_categories": [str(c) for c in cats],
+        }
+
+    def update(self, data: dict) -> dict:
+        cur = self._load()
+        changed = []
+        if "refresh_interval" in data:
+            try:
+                v = int(data["refresh_interval"])
+            except (TypeError, ValueError):
+                return {"ok": False, "error": "refresh_interval 必须是整数"}
+            v = max(1, min(3600, v))
+            cur["refresh_interval"] = v
+            changed.append("refresh_interval")
+        if "sensor_categories" in data:
+            cats = data["sensor_categories"]
+            if not isinstance(cats, list) or not all(isinstance(c, str) for c in cats):
+                return {"ok": False, "error": "sensor_categories 必须是字符串数组"}
+            cur["sensor_categories"] = cats
+            changed.append("sensor_categories")
+        if changed:
+            self._save(cur)
+        return {"ok": True, "changed": changed}
+
+
+_status_config = StatusConfigManager()
+
+
+# ════════════════════════════════════════════════════════════
 #  健康检查 / 传感器 / 系统状态 / 模式 / 规划开关 / 认知状态
 # ════════════════════════════════════════════════════════════
 
@@ -587,6 +671,79 @@ def api_personality_reset():
 
 
 # ════════════════════════════════════════════════════════════
+#  Status 域统一配置（T3.3：/api/status/config，schema 驱动提交）
+# ════════════════════════════════════════════════════════════
+
+@bp.route("/api/status/config", methods=["GET"])
+@_log_request(show_response=False)
+def api_status_config_get():
+    """读取 status 插件 schema 全部字段的当前生效值（供 SchemaRenderer 预填）。"""
+    from app_server import _Yunshu
+    persisted = _status_config.get()
+    personality = _personality_mgr.get()
+    return jsonify({
+        "refresh_interval": persisted["refresh_interval"],
+        "sensor_categories": persisted["sensor_categories"],
+        "planning_enabled": bool(getattr(_Yunshu, "_planning_enabled", False)),
+        "personality_profile": personality["current_profile"],
+        "personality_tone": float(personality["custom_params"].get("tone", 0.6)),
+    })
+
+
+@bp.route("/api/status/config", methods=["POST"])
+@_require_token
+@_log_request()
+def api_status_config_post():
+    """应用 status 插件 schema 提交的配置。
+
+    字段分流：planning_enabled → 运行时规划引擎开关（同 /api/planning/toggle）；
+    personality_profile / personality_tone → 人格管理器（同 /api/personality/*）；
+    refresh_interval / sensor_categories → StatusConfigManager 持久化。
+    """
+    from app_server import _Yunshu
+    data = request.get_json() or {}
+    if not isinstance(data, dict):
+        return jsonify({"ok": False, "error": "请求体必须是 JSON 对象"}), 400
+
+    result = {"ok": True, "applied": {}, "persisted": {}}
+
+    if "planning_enabled" in data:
+        _Yunshu._planning_enabled = bool(data["planning_enabled"])
+        result["applied"]["planning_enabled"] = bool(data["planning_enabled"])
+
+    if "personality_profile" in data:
+        r = _personality_mgr.apply_profile(str(data["personality_profile"]))
+        if not r.get("ok"):
+            return jsonify({"ok": False, "error": r.get("error", "未知人格方案")}), 400
+        result["applied"]["personality_profile"] = str(data["personality_profile"])
+
+    if "personality_tone" in data:
+        try:
+            tone = float(data["personality_tone"])
+        except (TypeError, ValueError):
+            return jsonify({"ok": False, "error": "personality_tone 必须是数字"}), 400
+        tone = max(0.0, min(1.0, tone))
+        r = _personality_mgr.update_params({"tone": tone})
+        if not r.get("ok"):
+            return jsonify(r), 400
+        result["applied"]["personality_tone"] = tone
+
+    persisted_data = {
+        k: data[k] for k in ("refresh_interval", "sensor_categories") if k in data
+    }
+    if persisted_data:
+        r = _status_config.update(persisted_data)
+        if not r.get("ok"):
+            return jsonify(r), 400
+        result["persisted"].update({k: data[k] for k in persisted_data})
+
+    if not result["applied"] and not result["persisted"]:
+        return jsonify({"ok": False, "error": "没有可应用的配置字段"}), 400
+
+    return jsonify(result)
+
+
+# ════════════════════════════════════════════════════════════
 #  心跳接口
 # ════════════════════════════════════════════════════════════
 
@@ -695,6 +852,7 @@ PLUGIN = register_plugin(Plugin(
         "required": ["refresh_interval", "planning_enabled"],
     },
     blueprint=bp,
+    submit_url="/api/status/config",  # T3.3：schema 驱动提交端点（GET 读当前值 / POST 应用）
     routes=[
         "/api/health",
         "/api/sensors",
@@ -710,5 +868,6 @@ PLUGIN = register_plugin(Plugin(
         "/api/personality/params",
         "/api/personality/profile",
         "/api/personality/reset",
+        "/api/status/config",
     ],
 ))

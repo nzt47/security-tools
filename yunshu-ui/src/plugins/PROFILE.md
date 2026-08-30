@@ -37,7 +37,8 @@ profile 文件外层是 `slots` 容器，每个插槽一个数组：
     "panels": [
       { "id": "skills", "order": 10, "hidden": true },
       { "id": "knowledge", "order": 20, "hidden": true },
-      { "id": "devconsole", "order": 30, "hidden": true }
+      { "id": "devconsole", "order": 30, "hidden": true },
+      { "id": "plugin-center", "order": 40, "hidden": true }
     ]
   }
 }
@@ -86,6 +87,7 @@ profile 文件外层是 `slots` 容器，每个插槽一个数组：
 | `skills` | SkillManagement | 10 | true | 技能管理 & 工作流学习 |
 | `knowledge` | Knowledge | 20 | true | 知识库 |
 | `devconsole` | ObservabilityDevtools | 30 | true | DevConsole（自定位浮层，portal 到 body） |
+| `plugin-center` | PluginPanel | 40 | true | 插件中心（T3.3：schema 驱动配置表单，`/api/plugins` 清单） |
 
 > `panels` 数组即「面板切换器按钮清单」：**从数组移除某条目 → 切换器不再显示该按钮**；
 > `hidden: true` → 初始关闭（按钮仍在，点击打开）。

@@ -12,6 +12,7 @@ class Plugin:
     schema: Dict[str, Any] = field(default_factory=dict)
     blueprint: Optional[Blueprint] = None
     routes: List[str] = field(default_factory=list)
+    submit_url: str = ""  # 配置提交端点（T3.3）：空串表示「暂不支持在线修改」
 
 _REGISTRY: List[Plugin] = []
 
@@ -48,6 +49,7 @@ def manifest() -> Dict[str, Any]:
                 "version": p.version,
                 "description": p.description,
                 "schema": p.schema or {},  # 统一约定：无 schema 输出为空 dict
+                "submit_url": p.submit_url,  # 配置提交端点（T3.3）；空串 = 不支持在线修改
                 "routes": sorted(p.routes),
             }
             for p in _REGISTRY

@@ -19,6 +19,7 @@ import React from 'react';
 import SkillManagement from '../components/SkillsMgmt/SkillManagement';
 import Knowledge from '../pages/Knowledge';
 import ObservabilityDevtools from '../components/ObservabilityDevtools';
+import PluginPanel from './PluginPanel';
 import { mountToSlot } from './slotRegistry';
 import { SLOT_IDS } from './slots';
 import { usePanelsStore } from './panelsStore';
@@ -30,6 +31,7 @@ export const PANEL_IDS = {
   skills: 'skills',
   knowledge: 'knowledge',
   devconsole: 'devconsole',
+  pluginCenter: 'plugin-center',
 } as const;
 
 /**
@@ -80,6 +82,13 @@ const KnowledgePanel: React.FC = () => (
 // DevConsole：自定位浮层（FAB + 可展开面板，portal 到 body），无需 PanelFrame
 const DevConsolePanel: React.FC = () => <ObservabilityDevtools />;
 
+// 插件中心（T3.3）：schema 驱动配置表单（SchemaRenderer），使用标准 PanelFrame 框架
+const PluginCenterPanel: React.FC = () => (
+  <PanelFrame id={PANEL_IDS.pluginCenter} title="插件中心" icon="🧩">
+    <PluginPanel />
+  </PanelFrame>
+);
+
 /**
  * 挂载面板系统（幂等；App.tsx 模块顶层调用一次，渲染前执行，HMR 重载安全）：
  * - PanelSwitcher → sidebar 插槽（原技能管理/知识库按钮位置）；
@@ -107,5 +116,12 @@ export function mountPanels(): void {
     icon: '🐛',
     component: DevConsolePanel,
     order: 30,
+  });
+  mountToSlot(SLOT_IDS.panels, {
+    id: PANEL_IDS.pluginCenter,
+    title: '插件中心',
+    icon: '🧩',
+    component: PluginCenterPanel,
+    order: 40,
   });
 }
