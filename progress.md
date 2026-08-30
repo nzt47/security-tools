@@ -54,3 +54,11 @@
 - 前端：`main.tsx` 回退 legacy 入口（App.tsx），删除孤儿破损源码（WorkbenchApp、observability/*、utils/sentry、replayRecorder），`requestInterceptor` 移除失效动态 import；tsc / vitest 258 / npm run build 全绿
 - 后端：`agent/prompt_manager/storage.py` 版本历史查询补 `rowid DESC` tiebreaker（修复 created_at 并列导致的顺序 flaky，实测 3/6→0/6、200 次循环 0 坏序）；`test_performance_alert_manager_singleton` autouse fixture 增加 alert_manager 重置（消除顺序污染）
 - 提交：`97c8e50f`，已推送 origin + gitee
+
+## 2026-08-30: 阶段 2 前端插槽化完成（T2.1–T2.4，结案）
+- T2.1 `643699e5`：slotRegistry 核心（registerSlot / mountToSlot / getSlotEntries / loadProfile + 单测）
+- T2.2 `e7836ced`：App.tsx 外壳插槽化（topbar / sidebar / main，行为不变）
+- T2.3 `9ece9965`：SkillManagement / Knowledge / DevConsole 面板插槽化 + PanelSwitcher 统一驱动（zustand panelsStore）
+- T2.4 `67a6e417`：profile 配置驱动完善——profile.json 为唯一组装配置（order/hidden）；`import.meta.glob ?raw` 惰性加载，文件缺失/损坏静默回退代码内 `DEFAULT_PROFILE`；新增 `reloadProfile(variant)` 运行时切换（含 `profile.alt.json` 验证变体）；`PROFILE.md` 界面组装文档
+- 验证：tsc ✅；vitest 22 文件 / 292 用例 ✅（含 13 条回退与变体单测）；npm run lint 0 errors ✅；npm run build ✅；删除全部 profile 文件后 tsc+build 仍通过（回退实测）
+- 提交：`25d51cc2`（进度/README 归档），已推送 origin（GitHub）+ gitee 至 `25d51cc2`
