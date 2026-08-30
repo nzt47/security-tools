@@ -2,12 +2,15 @@
   "slots": {
     "topbar": [{ "id": "status", "order": 10 }],
     "sidebar": [
-      { "id": "skill", "order": 5 },
-      { "id": "knowledge", "order": 6 },
+      { "id": "panels", "order": 5 },
       { "id": "mascot", "order": 10 },
       { "id": "sessions", "order": 20 }
     ],
     "main": [{ "id": "chat", "order": 10 }],
-    "panels": []
+    "panels": [
+      { "id": "skills", "order": 10, "hidden": true },
+      { "id": "knowledge", "order": 20, "hidden": true },
+      { "id": "devconsole", "order": 30, "hidden": true }
+    ]
   }
 }

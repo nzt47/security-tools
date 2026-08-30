@@ -15,6 +15,8 @@ import {
   mountToSlot,
   unmountFromSlot,
   getSlotEntries,
+  getAllSlotEntries,
+  getManifestEntries,
   loadProfile,
   getProfile,
 } from './slotRegistry';
@@ -179,11 +181,72 @@ describe('SlotProvider 注入', () => {
     expect(Object.keys(p)).toEqual(['topbar', 'sidebar', 'main', 'panels']);
     // T2.2：profile.json 填充真实外壳条目
     expect(p.topbar).toEqual([{ id: 'status', order: 10 }]);
-    expect(p.sidebar?.map((s) => s.id)).toEqual(['skill', 'knowledge', 'mascot', 'sessions']);
-    expect(p.sidebar?.map((s) => s.order)).toEqual([5, 6, 10, 20]);
+    // T2.3：侧栏面板入口合并为 PanelSwitcher（id 'panels'），原 skill/knowledge 按钮移除
+    expect(p.sidebar?.map((s) => s.id)).toEqual(['panels', 'mascot', 'sessions']);
+    expect(p.sidebar?.map((s) => s.order)).toEqual([5, 10, 20]);
     expect(p.main).toEqual([{ id: 'chat', order: 10 }]);
-    expect(p.panels).toEqual([]);
+    // T2.3：panels 插槽填充三面板（初始 hidden:true → 默认关闭，按钮仍显示）
+    expect(p.panels).toEqual([
+      { id: 'skills', order: 10, hidden: true },
+      { id: 'knowledge', order: 20, hidden: true },
+      { id: 'devconsole', order: 30, hidden: true },
+    ]);
     // 与 profile.json 内容一致
     expect(p).toEqual(defaultProfile.slots);
+  });
+});
+
+describe('getAllSlotEntries / getManifestEntries（T2.3 面板切换器数据源）', () => {
+  beforeEach(() => {
+    loadProfile({});
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('getAllSlotEntries 应用 profile 的 order/hidden 但不过滤 hidden，并透传 title/icon', () => {
+    mountToSlot('panel-all', {
+      id: 'a',
+      component: () => <div>a</div>,
+      order: 5,
+      title: 'A 面板',
+      icon: '⚙',
+    });
+    mountToSlot('panel-all', { id: 'b', component: () => <div>b</div>, order: 10 });
+    loadProfile({ 'panel-all': [{ id: 'b', order: 1, hidden: true }] });
+    const entries = getAllSlotEntries('panel-all');
+    expect(entries.map((e) => e.id)).toEqual(['b', 'a']);
+    expect(entries.find((e) => e.id === 'a')?.hidden).toBe(false);
+    expect(entries.find((e) => e.id === 'a')?.title).toBe('A 面板');
+    expect(entries.find((e) => e.id === 'a')?.icon).toBe('⚙');
+    expect(entries.find((e) => e.id === 'b')?.hidden).toBe(true);
+    // 同一 profile 下 getSlotEntries 仍过滤 hidden
+    expect(getSlotEntries('panel-all').map((e) => e.id)).toEqual(['a']);
+  });
+
+  it('getManifestEntries 仅返回 profile 数组声明的条目（未声明的挂载条目不返回）', () => {
+    mountToSlot('panel-manifest', { id: 'x', component: () => <div>x</div>, order: 5 });
+    mountToSlot('panel-manifest', { id: 'y', component: () => <div>y</div>, order: 10 });
+    mountToSlot('panel-manifest', { id: 'z', component: () => <div>z</div>, order: 3 });
+    loadProfile({
+      'panel-manifest': [
+        { id: 'y', order: 1, hidden: true },
+        { id: 'x', order: 2 },
+      ],
+    });
+    const entries = getManifestEntries('panel-manifest');
+    expect(entries.map((e) => e.id)).toEqual(['y', 'x']);
+    expect(entries.find((e) => e.id === 'y')?.hidden).toBe(true);
+    expect(entries.find((e) => e.id === 'x')?.hidden).toBe(false);
+  });
+
+  it('getManifestEntries 无 profile 配置时回退全部已挂载条目（组件默认 order/hidden）', () => {
+    mountToSlot('panel-fallback', { id: 'm', component: () => <div>m</div>, order: 7 });
+    loadProfile({});
+    const entries = getManifestEntries('panel-fallback');
+    expect(entries.map((e) => e.id)).toEqual(['m']);
+    expect(entries[0].order).toBe(7);
+    expect(entries[0].hidden).toBe(false);
   });
 });

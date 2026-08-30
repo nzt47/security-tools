@@ -1,15 +1,17 @@
 /**
- * App 外壳插槽挂载组件（任务 T2.2）
+ * App 外壳插槽挂载组件（任务 T2.2，T2.3 更新）
  *
  * 每个导出组件对应 App 外壳的一个区块，经 SlotHost 的 props 透传接收
  * App 的状态与回调（聊天/会话状态保留在 App，见 PLAN-2 §4「改造策略」）。
  *
  * 约束【不易】：JSX 结构与改造前 App.tsx 逐字一致，视觉与交互行为不变。
  * - topbar  → StatusEntry    系统状态指示
- * - sidebar → SkillBtnEntry / KnowledgeBtnEntry（面板入口，T2.3 迁往 panels 插槽）
  * - sidebar → MascotEntry    Mascot + 情绪文案
  * - sidebar → SessionsEntry  会话列表（当前侧栏内联版）
  * - main    → ChatEntry      聊天窗口（含输入框，streaming 时追加 typing 占位）
+ *
+ * 注：原 SkillBtnEntry / KnowledgeBtnEntry（面板入口按钮）已在 T2.3 迁往
+ * panels 插槽体系，由 PanelSwitcher（plugins/panels.tsx 挂载）统一驱动。
  */
 import React from 'react';
 import { StatusIndicator } from '../components/Status';
@@ -25,86 +27,6 @@ export interface StatusEntryProps {
 
 export const StatusEntry: React.FC<StatusEntryProps> = ({ status = 'offline' }) => (
   <StatusIndicator status={status as any} size="small" />
-);
-
-// ─── sidebar：技能管理入口（T2.3 迁往 panels 插槽） ───
-export interface SkillBtnEntryProps {
-  onOpenSkillMgmt?: () => void;
-}
-
-export const SkillBtnEntry: React.FC<SkillBtnEntryProps> = ({ onOpenSkillMgmt }) => (
-  <div style={{ padding: '8px 12px' }}>
-    <button
-      onClick={onOpenSkillMgmt}
-      style={{
-        width: '100%',
-        background: 'var(--bg-hover, #232730)',
-        border: '1px solid var(--border-subtle, #2a2e38)',
-        color: 'var(--text-primary, #e8eaed)',
-        padding: '8px 12px',
-        borderRadius: 6,
-        cursor: 'pointer',
-        fontSize: 13,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        transition: 'all 0.15s',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'var(--accent-primary, #4a9eff)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'var(--border-subtle, #2a2e38)';
-      }}
-      type="button"
-      title="打开技能管理与工作流学习面板"
-    >
-      <span>⚙</span> 技能管理
-    </button>
-  </div>
-);
-
-// ─── sidebar：知识库入口（T2.3 迁往 panels 插槽） ───
-export interface KnowledgeBtnEntryProps {
-  knowledgeOpen?: boolean;
-  onToggleKnowledge?: () => void;
-}
-
-export const KnowledgeBtnEntry: React.FC<KnowledgeBtnEntryProps> = ({
-  knowledgeOpen = false,
-  onToggleKnowledge,
-}) => (
-  <div style={{ padding: '8px 12px' }}>
-    <button
-      onClick={onToggleKnowledge}
-      style={{
-        width: '100%',
-        background: knowledgeOpen ? 'var(--accent-primary, #2d6cdf)' : 'var(--bg-hover, #232730)',
-        border: '1px solid var(--border-subtle, #2a2e38)',
-        color: knowledgeOpen ? '#fff' : 'var(--text-primary, #e8eaed)',
-        padding: '8px 12px',
-        borderRadius: 6,
-        cursor: 'pointer',
-        fontSize: 13,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        transition: 'all 0.15s',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'var(--accent-primary, #4a9eff)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'var(--border-subtle, #2a2e38)';
-      }}
-      type="button"
-      title="打开知识库（卡片/检索/健康巡检）"
-    >
-      <span>📚</span> 知识库
-    </button>
-  </div>
 );
 
 // ─── sidebar：Mascot + 情绪文案（mood 由聊天流驱动，回调链路经 props 保持） ───

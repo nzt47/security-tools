@@ -23,6 +23,10 @@ export interface SlotEntry {
   order?: number;
   /** profile 可置为 true 隐藏 */
   hidden?: boolean;
+  /** 面板标题（面板切换器用；非面板插槽可省略） */
+  title?: string;
+  /** 面板图标（lucide 图标名或任意文本/emoji，可选） */
+  icon?: string;
 }
 
 /** 插槽配置：slotId -> 该插槽内各组件条目的配置（不含 component） */
@@ -50,12 +54,11 @@ export function unmountFromSlot(slotId: string, id: string): void {
 }
 
 /**
- * 读取插槽内按序排列的组件条目：
- * - 应用 profile 的 order/hidden，profile 缺失的字段回退组件自身默认值；
- * - 过滤 hidden 条目（条目本身仍保留在注册表，保持「可配置」）；
- * - 按 order 升序排序。
+ * 读取插槽内全部条目（应用 profile 的 order/hidden，**不过滤** hidden；按 order 升序）。
+ * 供需要「看到隐藏条目」的消费方使用（如面板切换器要渲染隐藏面板的开关按钮，
+ * 并用 hidden 决定初始开关状态）。
  */
-export function getSlotEntries(slotId: string): SlotEntry[] {
+export function getAllSlotEntries(slotId: string): SlotEntry[] {
   const entries = [...(slots.get(slotId)?.values() ?? [])];
   const cfg = profile[slotId] ?? [];
   return entries
@@ -67,8 +70,33 @@ export function getSlotEntries(slotId: string): SlotEntry[] {
         hidden: c?.hidden ?? e.hidden ?? false,
       };
     })
-    .filter((e) => !e.hidden)
     .sort((a, b) => (a.order ?? 100) - (b.order ?? 100));
+}
+
+/**
+ * 读取插槽内按序排列的组件条目：
+ * - 应用 profile 的 order/hidden，profile 缺失的字段回退组件自身默认值；
+ * - 过滤 hidden 条目（条目本身仍保留在注册表，保持「可配置」）；
+ * - 按 order 升序排序。
+ */
+export function getSlotEntries(slotId: string): SlotEntry[] {
+  return getAllSlotEntries(slotId).filter((e) => !e.hidden);
+}
+
+/**
+ * 读取插槽内「profile 清单」条目（面板切换器专用，任务 T2.3）：
+ * - 应用 profile 的 order/hidden，不过滤 hidden（切换器需要渲染每个按钮，
+ *   hidden 仅决定「默认关闭」）；
+ * - 仅返回 profile 数组中声明的条目 —— 从 profile.json 移除某面板条目，
+ *   切换器就不再显示该按钮（验收项「修改 profile.json 隐藏某面板」）；
+ * - profile 未配置该插槽时回退全部已挂载条目（无 profile 默认挂载）。
+ */
+export function getManifestEntries(slotId: string): SlotEntry[] {
+  const all = getAllSlotEntries(slotId);
+  const cfg = profile[slotId];
+  if (!cfg) return all;
+  const ids = new Set(cfg.map((c) => c.id));
+  return all.filter((e) => ids.has(e.id));
 }
 
 /** 加载 profile（整体替换当前配置） */

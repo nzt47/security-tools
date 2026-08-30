@@ -1,0 +1,152 @@
+/**
+ * 面板切换器 / 面板浮层样式（任务 T2.3）
+ *
+ * - .panel-switcher：侧边栏内的开关按钮组（替换原 T2.2 两个硬编码按钮，样式对齐）；
+ * - .panel-host：浮层宿主（fixed 全屏、不拦截事件）；
+ * - .panel-overlay：内容面板浮层框架（标题栏 + 关闭 + 内容区）。
+ */
+
+/* ─── 面板切换器（侧边栏按钮组） ─── */
+.panel-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.panel-switcher-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.panel-switcher-btn {
+  width: 100%;
+  background: var(--bg-hover, #232730);
+  border: 1px solid var(--border-subtle, #2a2e38);
+  color: var(--text-primary, #e8eaed);
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.15s;
+}
+
+.panel-switcher-btn:hover {
+  border-color: var(--accent-primary, #4a9eff);
+}
+
+.panel-switcher-btn.active {
+  background: var(--accent-primary, #2d6cdf);
+  border-color: var(--accent-primary, #2d6cdf);
+  color: #fff;
+}
+
+.panel-switcher-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.panel-switcher-label {
+  line-height: 1;
+}
+
+/* ─── 面板宿主（浮层容器） ─── */
+.panel-host {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* ─── 内容面板浮层框架 ─── */
+.panel-overlay {
+  position: fixed;
+  inset: 24px;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elevated, #1a1d24);
+  border: 1px solid var(--border-subtle, #2a2e38);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  pointer-events: auto;
+  transform: var(--panel-cascade, none);
+  animation: panel-slide-up 0.25s ease;
+}
+
+/* 多面板同时打开时轻微级联，避免完全重叠（验收项「多开」可见）；
+   级联位移通过 CSS 变量注入，动画结束帧与之对齐，避免收尾跳动 */
+.panel-host .panel-overlay:nth-child(2) {
+  --panel-cascade: translate(12px, 12px);
+}
+
+.panel-host .panel-overlay:nth-child(3) {
+  --panel-cascade: translate(24px, 24px);
+}
+
+.panel-overlay-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 10px 16px;
+  background: var(--bg-secondary, #14171c);
+  border-bottom: 1px solid var(--border-subtle, #2a2e38);
+}
+
+.panel-overlay-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #e8eaed);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.panel-overlay-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.panel-overlay-close {
+  background: transparent;
+  border: 1px solid var(--border-subtle, #2a2e38);
+  color: var(--text-secondary, #8b92a0);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.panel-overlay-close:hover {
+  background: var(--bg-hover, #232730);
+  color: var(--text-primary, #e8eaed);
+}
+
+.panel-overlay-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+@keyframes panel-slide-up {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: var(--panel-cascade, translateY(0));
+    opacity: 1;
+  }
+}
