@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """检查 modules_registry.ACTION_ROUTES 中 24 个动作映射 URL 在路由层的重复定义
 
-扫描 app_server.py 与 agent/server_routes/*.py 中的 @<bp>.route("url")
+扫描 app_server.py、agent/server_routes/*.py 与 plugins/*.py 中的 @<bp>.route("url")
 注册次数，输出重复定义清单（Flask 中同 URL 重复注册会覆盖或被 endpoint 冲突拦截）。
 
 用法: python scripts/check_modules_routes_dup.py
@@ -15,7 +15,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from agent.modules_registry import ACTION_ROUTES  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-ROUTE_FILES = [ROOT / "app_server.py", *sorted((ROOT / "agent" / "server_routes").glob("*.py"))]
+ROUTE_FILES = [
+    ROOT / "app_server.py",
+    *sorted((ROOT / "agent" / "server_routes").glob("*.py")),
+    *sorted((ROOT / "plugins").glob("*.py")),  # 插件化（T1.x）：域路由迁入 plugins/*.py
+]
 
 # 匹配 @xxx.route("/path"[, methods=...]) 注册行
 ROUTE_RE = re.compile(r'@(?:\w+\.)?route\(\s*(["\'])(.+?)\1', re.MULTILINE)

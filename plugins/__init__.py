@@ -9,5 +9,6 @@ from . import system_tools
 from . import skills
 from . import mcp_scheduler
 from . import chat
+from . import status
 
-__all__ = ["memory", "admin", "system_tools", "skills", "mcp_scheduler", "chat"]
+__all__ = ["memory", "admin", "system_tools", "skills", "mcp_scheduler", "chat", "status"]
