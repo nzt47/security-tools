@@ -28,9 +28,8 @@ import urllib.parse as _up
 import json as _js
 import requests as _http  # 注意：Flask 的 request 对象会覆盖 requests 模块，用 _http 别名
 
-# 插件机制（T1.1）：协议层 + 示例插件（注册表见 plugins/plugin_api.py）
+# 插件机制（T1.1–T1.10）：协议层 + 装配器（注册表见 plugins/plugin_api.py）
 from plugins.plugin_api import get_plugins, manifest as plugin_manifest
-from plugins import example  # noqa: F401
 
 # 修复 Windows 控制台编码，避免中文日志乱码
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
@@ -576,10 +575,6 @@ register_alert_callback(_on_safety_alert)
 _workspace_path = init_workspace()
 logger.info(f"受保护工作区: {_workspace_path}")
 
-# ── 人格配置管理器（已迁移至 plugins/status.py，任务 T1.4；仅该域使用）──
-
-# ── 工具状态持久化（已迁移至 plugins/skills.py，任务 T1.5；仅本域使用）──
-
 # ── 技能配置管理器 ──
 _SKILLS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'skills.json')
 
@@ -676,11 +671,6 @@ def _get_token_counter():
         from memory.token_counter import TokenCounter
         _token_counter_imported = TokenCounter()
     return _token_counter_imported
-
-
-# ════════════════════════════════════════════════════════════
-#  全景 API / 人格配置 API（已迁移至 plugins/status.py，任务 T1.4）
-# ════════════════════════════════════════════════════════════
 
 
 # ════════════════════════════════════════════════════════════
@@ -868,11 +858,6 @@ except Exception as e:
     logger.error("加载多租户管理路由失败: %s", e)
 
 
-# ════════════════════════════════════════════════════════════
-#  技能配置 API（已迁移至 plugins/skills.py，任务 T1.5）
-# ════════════════════════════════════════════════════════════
-
-
 # ── 网络配置管理器 ──
 from agent.network_config import NetworkConfigManager
 
@@ -897,27 +882,6 @@ from agent.extensions.market import ExtensionMarket
 
 _extension_mgr = ExtensionManager(network_config_mgr=_network_config_mgr)
 _extension_market = ExtensionMarket()
-
-
-# ════════════════════════════════════════════════════════════
-#  扩展系统 API（已迁移至 plugins/skills.py，任务 T1.5）
-# ════════════════════════════════════════════════════════════
-
-
-# ── 工具配置 API（已迁移至 plugins/skills.py，任务 T1.5）──
-
-
-# ── 隐私信息 / 窗口采集同意（已迁移至 plugins/safety.py，任务 T1.7）──
-
-
-# ════════════════════════════════════════════════════════════
-#  心跳接口（已迁移至 plugins/status.py，任务 T1.4）
-# ════════════════════════════════════════════════════════════
-
-
-# ════════════════════════════════════════════════════════════
-#  安全守护接口（已迁移至 plugins/safety.py，任务 T1.7）
-# ════════════════════════════════════════════════════════════
 
 
 # ════════════════════════════════════════════════════════════
@@ -1273,6 +1237,13 @@ def _cleanup_window_sensor():
         _window_sensor.stop()
 
 if __name__ == "__main__":
+    # 脚本直跑（python app_server.py）时本模块名为 __main__；插件视图函数内的
+    # 延迟导入 `from app_server import _Yunshu`（PLAN-1 §4）会把 app_server.py
+    # 重新导入一份，导致模块级代码重跑（Prometheus Counter 重复注册 → ValueError）。
+    # 把 __main__ 注册为 app_server，使延迟导入解析到运行中的本模块（须在 serve 前）。
+    import sys as _sys
+    _sys.modules.setdefault("app_server", _sys.modules["__main__"])
+
     # 记录沙盒功能状态
     sandbox_enabled = os.getenv("YUNSHU_FEATURE_SANDBOX", "false").lower() == "true"
     sandbox_status = "已启用" if sandbox_enabled else "已关闭"

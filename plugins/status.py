@@ -8,7 +8,7 @@
 - 模块顶层只 import 标准库 / flask / plugin_api；绝不顶层 import app_server（循环导入红线）。
 - app_server 的模块级全局（_Yunshu、_session_mgr、_cfg 等）在视图函数内延迟 import。
 - require_token / log_request 是装饰器，需在模块级应用；而本模块在 app_server 导入中途
-  被加载（plugins/__init__ ← app_server「from plugins import example」），模块级
+  被加载（plugins/__init__ ← app_server「from plugins import ...」），模块级
   from app_server import ... 会触发循环导入失败。因此此处提供行为等价的本地实现
   _require_token / _log_request（_require_token 在调用时延迟读取 app_server 的令牌
   配置，运行时 app_server 已完全加载，无循环问题）。
