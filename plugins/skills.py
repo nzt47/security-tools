@@ -647,6 +647,30 @@ PLUGIN = register_plugin(Plugin(
     name="skills",
     version="1.0.0",
     description="技能、扩展与工具管理",
+    schema={
+        "type": "object",
+        "title": "技能与工具管理",
+        "description": "技能/工具启用状态与路由关键词（与 /api/skills、/api/tools/* 对齐）",
+        "properties": {
+            "skill_ids": {
+                "type": "array",
+                "title": "启用的技能 ID",
+                "items": {"type": "string"},
+            },
+            "tool_states": {
+                "type": "object",
+                "title": "工具启用状态",
+                "description": "工具名 → 是否启用（持久化于 data/tools_config.json）",
+                "additionalProperties": {"type": "boolean"},
+            },
+            "routing_keywords": {
+                "type": "array",
+                "title": "工具路由关键词",
+                "description": "工具分类路由关键词（/api/tools/keywords）",
+                "items": {"type": "string"},
+            },
+        },
+    },
     blueprint=bp,
     routes=[
         "/api/skills",

@@ -380,6 +380,51 @@ PLUGIN = register_plugin(Plugin(
     name="safety",
     version="1.0.0",
     description="安全、权限与隐私",
+    schema={
+        "type": "object",
+        "title": "安全、权限与隐私",
+        "description": "危险关键词、权限开关与窗口监控同意（与 /api/safety/*、/api/permission/* 对齐）",
+        "properties": {
+            "keywords": {
+                "type": "array",
+                "title": "危险关键词",
+                "description": "安全审查使用的关键词/正则模式列表（/api/safety/keywords）",
+                "items": {"type": "string"},
+            },
+            "alert_level": {
+                "type": "string",
+                "title": "默认告警级别",
+                "enum": ["info", "warning", "critical"],
+                "default": "warning",
+            },
+            "window_monitor": {
+                "type": "boolean",
+                "title": "窗口监控",
+                "description": "窗口活动采集（需用户同意，对应 /api/window/consent）",
+                "default": False,
+            },
+            "sensor": {
+                "type": "boolean",
+                "title": "传感器采集",
+                "default": True,
+            },
+            "network_access": {
+                "type": "boolean",
+                "title": "网络访问",
+                "default": True,
+            },
+            "file_write": {
+                "type": "boolean",
+                "title": "文件写入",
+                "default": True,
+            },
+            "dangerous_ops": {
+                "type": "boolean",
+                "title": "危险操作授权",
+                "default": False,
+            },
+        },
+    },
     blueprint=bp,
     routes=[
         "/api/privacy/info",
