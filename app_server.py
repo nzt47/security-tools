@@ -118,11 +118,23 @@ try:
 except Exception as e:
     logger.warning(f"[启动] 学习度量注册失败: {e}")
 
-# 注册全部插件 blueprint（插件化机制 T1.1：装配器骨架）
-for _p in get_plugins():
-    if _p.blueprint is not None:
-        app.register_blueprint(_p.blueprint)
-logger.info(f"[启动] 插件蓝图注册完成（共 {len(get_plugins())} 个插件）")
+# 注册全部插件 blueprint（插件化机制 T1.1 装配器 + T4.1 目录扫描动态装载）
+# plugins/__init__.py 显式清单 = 「内置插件」；loader.load_all() 补扫目录中
+# 显式清单之外的插件（新插件丢进 plugins/ 即生效，无需改任何代码）。
+try:
+    from plugins import loader
+    _loader_new = loader.load_all()  # 单插件损坏只记日志，不阻断启动
+    _loader_registered = loader.register_blueprints(app)
+    logger.info(
+        f"[启动] 插件装配完成：目录扫描新发现 {_loader_new} 个插件，"
+        f"蓝图注册 {_loader_registered} 个（共 {len(get_plugins())} 个插件）"
+    )
+except Exception as _e:
+    # 装配器自身异常时回退显式清单路径，保证内置插件不丢
+    logger.warning(f"[启动] 插件动态装配失败（回退显式清单路径）: {_e}")
+    for _p in get_plugins():
+        if _p.blueprint is not None:
+            app.register_blueprint(_p.blueprint)
 
 # 注册模块聚合蓝图（S2: /api/modules/topology + <id>/detail + <id>/actions）
 # 说明: provider 用模块级 def 延迟解析 _Yunshu（_Yunshu 在文件后部初始化），
@@ -649,6 +661,25 @@ _skills_mgr = SkillsManager()
 def api_plugins():
     """插件元信息 manifest（插件化机制 T1.1）"""
     return jsonify(plugin_manifest())
+
+
+@app.route("/api/plugins/reload", methods=["POST"])
+@require_token
+def api_plugins_reload():
+    """刷新插件清单（动态装载 T4.1）：扫描 plugins/ 目录重建注册表，无需重启进程。
+
+    - 成功：返回最新 manifest（新插件丢进 plugins/ 无需改任何代码即可被发现）；
+    - 失败：保留旧注册表（先构建临时注册表，成功才替换），返回 500 + 错误摘要；
+    - 说明：Flask 已注册 blueprint 不可注销/不可在首个请求后追加，路由在启动时
+      统一挂载——新增/删除插件的路由生效/失效需重启进程（manifest 即时刷新）。
+    """
+    from plugins import loader
+    try:
+        new_manifest = loader.refresh_manifest()
+        return jsonify({"ok": True, **new_manifest})
+    except Exception as exc:
+        logger.error(f"[plugins] 刷新插件清单失败（旧注册表已保留）: {exc}")
+        return jsonify({"ok": False, "error": f"刷新插件清单失败（旧注册表已保留）: {exc}"}), 500
 
 
 # [security] DeepSeek API key 改为从环境变量读取，避免硬编码泄露
