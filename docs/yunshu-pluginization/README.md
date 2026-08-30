@@ -151,7 +151,12 @@ UI 由 Schema 自动渲染，**无需手写页面**。
 | T1.2–T1.9 域拆分（8 插件） | ✅ 完成 | 2026-08-30 | `af157655`（chat+admin）、`092e1d68`（skills）、`2b9cc881`（mcp/scheduler）、`2c3562f5`（system_tools）、`3fc9c7f2`（memory）、`02db10b1`（status）、`7dd427db`（safety） |
 | T1.10 装配器收尾 + 全量回归 | ✅ 完成 | 2026-08-30 | `3cfb4fe4` |
 | 排除项修复（前端构建 / 测试顺序污染） | ✅ 完成 | 2026-08-30 | `97c8e50f` |
-| 阶段 2–4 | ⏳ 待执行 | — | — |
+| T2.1 slotRegistry 核心 + profile 加载 | ✅ 完成 | 2026-08-30 | `643699e5` |
+| T2.2 App 外壳插槽化（topbar / sidebar / main） | ✅ 完成 | 2026-08-30 | `e7836ced` |
+| T2.3 面板插槽化 + PanelSwitcher | ✅ 完成 | 2026-08-30 | `9ece9965` |
+| T2.4 profile 驱动组装 + 回退默认值 | ✅ 完成 | 2026-08-30 | `67a6e417` |
+| 阶段 3–4 | ⏳ 待执行 | — | — |
 
-> 阶段 1 已全部完成并推送（origin + gitee 同步至 `97c8e50f`）。
-> 详细交付说明见 `docs/DELIVERY_CLOSEOUT_REPORT_PHASE1_20260830.md`（T1.1 单独记录见 `docs/DELIVERY_CLOSEOUT_REPORT_20260830.md`）。
+> 阶段 1、阶段 2 已全部完成（阶段 2 收尾提交 `67a6e417`）。
+> 阶段 1 详细交付说明见 `docs/DELIVERY_CLOSEOUT_REPORT_PHASE1_20260830.md`（T1.1 单独记录见 `docs/DELIVERY_CLOSEOUT_REPORT_20260830.md`）。
+> 阶段 2 界面组装配置说明见 `yunshu-ui/src/plugins/PROFILE.md`。
