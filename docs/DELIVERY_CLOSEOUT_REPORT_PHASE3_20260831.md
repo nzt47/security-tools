@@ -67,7 +67,7 @@
 - **代码**：`master` 已推送 **origin/master（GitHub）+ gitee** 双远端：代码交付 `c19dbcfa`（T3.1–T3.3 三个提交）+ 归档提交（本报告）；工作区干净（`git status` 无未提交修改）
 - **CI/CD**：推送（`cd5a217c..c19dbcfa`）触发 GitHub Actions 12 个工作流，关键结果：
 
-  **yunshu-ui 前端测试**（run 66，直接验证本次交付）→ ✅ success
+  **yunshu-ui 前端测试**（run 66，直接验证本次交付，17:47:52Z → 17:50:34Z）→ ✅ **success**
 
   | 作业 | 结论 | 说明 |
   |------|------|------|
@@ -76,7 +76,7 @@
   | 生产构建验证（npm run build） | ✅ success | — |
   | CI 总结 | ✅ success | — |
 
-  其余随 push 触发的工作流（环境健康检查与工作区守卫、核心不变量监控、master commit 来源守卫、lock-discipline-scan、硬编码密码扫描、日志性能守护、可观测性质量保障、关键字参数冲突扫描、kwarg 扫描→SonarQube、Error Reporting System CI/CD、云枢系统测试流程）状态以 GitHub Actions 页面为准，其中前端相关与本交付直接相关的均 ✅ success
+  其余随 push 触发的工作流：环境健康检查与工作区守卫、核心不变量监控、master commit 来源守卫、lock-discipline-scan、硬编码密码扫描、kwarg 扫描→SonarQube → 全部 ✅ success；云枢系统测试流程（后端全量 pytest）、日志性能守护、可观测性质量保障、关键字参数冲突扫描 (Docker)、Error Reporting System CI/CD 为后端类流程，状态以 GitHub Actions 页面为准（不涉及本次前端交付的验证基线）
 - **回归**：前端四项（lint / tsc / vitest 344 / build）全部通过；后端 1874 用例通过（1 项存量环境失败见 §6）
 - **安全**：无新增敏感文件入库；`.env` 保持 ignore；`data/status_config.json` 为默认运行态基线（与既有 `data/personality.json` 跟踪惯例一致），不含敏感信息
 
