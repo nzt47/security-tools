@@ -1,0 +1,56 @@
+# Prometheus Alert Rules — 规划引擎（阶段5 C1 灰度）
+#
+# 挂载位置: monitoring/prometheus/rules/planning_alerts.yml
+# 来源: docs/zh/规划模块重构计划/阶段5_灰度上线监控大盘配置_20260813.md §四
+#        （该规则集此前仅文档化、文件未落地，2026-08-30 按文档补建）
+# 关联手册: docs/zh/规划模块重构计划/阶段5_灰度发布部署与监控挂载手册_20260814.md §3.3
+#
+# 验证命令:
+#   promtool check rules monitoring/prometheus/rules/planning_alerts.yml
+
+groups:
+  - name: planning_alerts
+    interval: 30s
+    rules:
+      # 记账/成本异常
+      - alert: PlanningCostZero
+        expr: planning.cost_total == 0 and on() (sum(rate(yunshu_intent_layer_total{layer="planning"}[10m])) > 0.1)
+        for: 30m
+        labels: {severity: warning, category: planning, layer: billing}
+        annotations:
+          summary: "规划流量存在但成本恒 0（记账链路失效）"
+          description: "部署版本可能未含 87856021，或 execute_plan finally 快照回填未触发。"
+      - alert: PlanningCostSpike
+        expr: increase(planning.cost_total[5m]) > 0.1
+        for: 10m
+        labels: {severity: warning, category: planning, layer: billing}
+        annotations:
+          summary: "规划成本 5 分钟增量超过 $0.1"
+          description: "成本突刺：检查 LLM 调用是否异常放大（死循环式消耗），必要时按手册 §3.4 回滚。"
+      - alert: PlanningDurationHigh
+        expr: quantile(0.99, planning.duration_ms) > 30000
+        for: 15m
+        labels: {severity: warning, category: planning, layer: latency}
+        annotations:
+          summary: "规划 P99 耗时超过 timeout_seconds（30s）"
+          description: "逃生通道兜底但用户体验受损；检查规划引擎性能。"
+      # 错误率
+      - alert: PlanningFailureRateHigh
+        expr: planning.plans.failed / planning.plans.total > 0.1
+        for: 10m
+        labels: {severity: warning, category: planning, layer: execution}
+        annotations:
+          summary: "规划执行失败率超过 10%"
+      - alert: PlanningLLMErrorRateHigh
+        expr: sum(rate(yunshu_intent_layer_total{layer="llm_error"}[10m])) / sum(rate(yunshu_intent_layer_total{layer="llm"}[10m])) > 0.05
+        for: 15m
+        labels: {severity: warning, category: planning, layer: llm}
+        annotations:
+          summary: "LLM 错误率超过 5%（回退护栏）"
+      # 流量异常
+      - alert: PlanningTrafficDrop
+        expr: sum(rate(yunshu_intent_layer_total{layer="planning"}[10m])) < 0.1
+        for: 30m
+        labels: {severity: warning, category: planning, layer: traffic}
+        annotations:
+          summary: "规划引擎流量消失（回滚动作异常）"

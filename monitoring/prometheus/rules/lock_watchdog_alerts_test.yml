@@ -1,0 +1,68 @@
+# promtool test rules 单元测试 — lock_watchdog_alerts
+#
+# 运行: promtool test rules monitoring/prometheus/rules/lock_watchdog_alerts_test.yml
+# 覆盖：LockHoldTimeout / LockWaitTimeout 的触发（increase>0 + for:5m）与不触发场景。
+# 语义说明（与真实 Prometheus 一致）：
+#   - 输入序列 values 按 interval=5m 从 t=0 起逐点采样（eval_time=30m → 7 个点）；
+#   - 计数在 [15m,25m] 窗口内 0→1 → increase>0 → t=25m 进入 pending；
+#   - for: 5m → t=30m 满足连续 5m → 转为 firing。
+#
+# 2026-08-30 新增（Issue #681 本地验证加固；CI 由 promtool 校验步骤执行）。
+
+rule_files:
+  - lock_watchdog_alerts.yml
+
+evaluation_interval: 5m
+
+tests:
+  # ── LockHoldTimeout：计数 0→1 触发（critical） ──
+  - name: LockHoldTimeout_fires
+    interval: 5m
+    input_series:
+      - series: 'yunshu_lock_hold_timeouts_total{lock_name="test_lock"}'
+        values: '0 0 0 0 0 1 1'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: LockHoldTimeout
+        exp_alerts:
+          - exp_labels:
+              lock_name: test_lock
+              severity: critical
+              category: concurrency
+
+  # ── LockHoldTimeout：计数恒 0 不触发 ──
+  - name: LockHoldTimeout_no_fire
+    interval: 5m
+    input_series:
+      - series: 'yunshu_lock_hold_timeouts_total{lock_name="test_lock"}'
+        values: '0 0 0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: LockHoldTimeout
+        exp_alerts: []
+
+  # ── LockWaitTimeout：计数 0→1 触发（warning） ──
+  - name: LockWaitTimeout_fires
+    interval: 5m
+    input_series:
+      - series: 'yunshu_lock_wait_timeouts_total{lock_name="test_lock"}'
+        values: '0 0 0 0 0 1 1'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: LockWaitTimeout
+        exp_alerts:
+          - exp_labels:
+              lock_name: test_lock
+              severity: warning
+              category: concurrency
+
+  # ── LockWaitTimeout：计数恒 0 不触发 ──
+  - name: LockWaitTimeout_no_fire
+    interval: 5m
+    input_series:
+      - series: 'yunshu_lock_wait_timeouts_total{lock_name="test_lock"}'
+        values: '0 0 0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: LockWaitTimeout
+        exp_alerts: []

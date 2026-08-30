@@ -2,7 +2,7 @@
 
 > 范围：处理云枢（Yunshu）系统中所有记录在案的遗留问题
 > 关联文档：[日志规范整改最终交付报告](LOG_SPEC_REFACTOR_DELIVERY_REPORT_20260827.md) ·
-> [CI 健康度看板](docs/dashboards/ci_health_dashboard.md)
+> [CI 健康度看板](dashboards/ci_health_dashboard.md)
 > （注：历史待办清单 `reports/todo_followup_20260804.md` 已随处理完毕归档删除，
 > 其 §2/§3/§4 各项均已在本报告 §一 表格闭环，见下表）
 

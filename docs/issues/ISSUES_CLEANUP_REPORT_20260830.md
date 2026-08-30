@@ -143,7 +143,7 @@ P99 告警阈值仅为 **1ms**，CI runner 环境下 P99 极易波动超过该�
 | 232 | flaky: test_positive_not_matched[case_031] | 根因=mock 向量用 Python `hash()`（每进程随机盐）跨进程不确定 → 改 `zlib.crc32` 确定性种子；3 种 PYTHONHASHSEED 下 56 passed | ✅ 已修复 |
 | 528 | Develop CI 稳定性监控 - 最终报告 (3/3) | 归档关闭（附评论说明） | ✅ 已关闭 |
 | 678 | [B1] 锁优化 optimized_storage.py:363 | `_init_lock` 持锁建表 I/O 移出临界区（在途标志+条件变量）；持锁 226.82→19.53ms（-91.4%，单次 11-19ms→µs 级），55+82+53 测试通过 | ✅ 已优化 |
-| 679 | [B3] 测试套件提速 <30min | integration 段 4-shard 矩阵（split_unit_tests.py 支持 `--root tests/integration`，行数加权均衡 7284-7632 行/片）；集成段预计 19min→~6min（临界路径），全量达标需 CI 实跑确认 | 🟡 已实现待 CI 验证 |
+| 679 | [B3] 测试套件提速 <30min | integration 段 4-shard 矩阵（split_unit_tests.py 支持 `--root tests/integration`，行数加权均衡 7284-7632 行/片）；集成段 19min→~4min，**全量 ci.yml 管道实测 13.6min（<30min 达标）**（见 §12） | ✅ 已达标（CI 实测） |
 | 680 | [C1] 灰度发布部署执行 | 就绪性核查：手册×3/操作清单/邮件模板/PLANNING_ENABLED 开关（lifecycle_manager.py）均在位；**需生产权限+变更审批**，本环境无法执行 | ⏸ 待生产执行 |
 | 681 | [C2] 锁看门狗生产接入 | 本地侧完成：单测 8/8、规则结构校验（2 条 PromQL/severity 合规）、指标名与 lock_watchdog.py 源码逐一核对；promtool check + 热加载 + 触发验证需部署环境（手册已含挂载步骤） | 🟡 本地完成待部署 |
 
@@ -178,4 +178,62 @@ P99 告警阈值仅为 **1ms**，CI runner 环境下 P99 极易波动超过该�
 2. **#681（C2 锁看门狗接入）**：部署环境执行 `promtool check rules` + 规则热加载 + 告警触发验证（手册含挂载步骤）；本环境 Docker 引擎不可用未跑 promtool。
 3. **#679（B3 提速）**：4-shard 分片已实现，`<30min` 达标需 CI 实跑确认；若仍有差距可进一步 -n 2 并行。
 4. **可选优化（另开单）**：storage.py `_init_lock` 内 `os.makedirs`（#678 报告建议）；`_db_write_lock` 内首次建连 I/O。
+
+---
+
+# 第三轮：剩余 3 个 Issue 推进（2026-08-30）
+
+## 12. #679 提速目标经 CI 实跑确认达标 ✅
+
+commit `95eba3b8` 触发的 ci.yml run（33285774807）实测：
+
+| 段 | 基线 | 实测（本 run） |
+|---|---|---|
+| 集成测试（原串行 19min） | 19min | **4 分片并行各 3m13s~3m59s**，全部 success |
+| 单元测试 | 6 shard 并行 | 6 分片全部 success（各 4~7min） |
+| **全量 ci.yml 管道（started→completed）** | 56.6min | **≈ 13.6 分钟**（01:29:16 → 01:42:55） |
+
+**结论：`<30min` 目标达成（13.6min）**。run 结论 failure 的唯一根因是既有坏链
+`docs/LEGACY_ISSUES_RESOLUTION_20260828.md` → `docs/dashboards/ci_health_dashboard.md`
+（路径前缀重复，08-28 遗留），已在第三轮修复（`dashboards/...` 相对引用），下一 run 应全绿。
+代码质量检查 job 的失败步骤同为该链接预检（非代码问题）。
+
+## 13. #680 生产就绪补齐（预检审计 + 补建 2 个缺口文件）
+
+对阶段5 手册引用清单做全量预检审计，发现并补齐：
+
+| 引用项 | 状态 | 动作 |
+|---|---|---|
+| `scripts/backup_reflection.py`（手册前置） | ❌ 缺失（task.cmd 引用但文件不存在，备份任务实际是坏的） | ✅ 补建：快照+keep 轮转+结构化 JSON 日志，`--source/--backup-root/--keep` 契约与历史日志一致；3 个单测通过 |
+| `monitoring/prometheus/rules/planning_alerts.yml`（手册 §3.3） | ❌ 缺失（内容仅文档化于 08-13 大盘配置文档） | ✅ 补建：6 条告警（CostZero/CostSpike/DurationHigh/FailureRateHigh/LLMErrorRateHigh/TrafficDrop） |
+| 其余 11 项（verify_prometheus_checklist.py / prometheus.yml×2 / lock_watchdog_alerts.yml / config.yaml / grafana 看板模板） | ✅ 在位 | 无需动作 |
+
+**结论**：#680 的代码/脚本/手册/基线备份前置现已全部就绪，唯一阻塞仍是生产权限 + 变更审批。
+
+## 14. #681 规则校验固化进 CI + promtool 规则单测
+
+- 新增 `monitoring/prometheus/rules/lock_watchdog_alerts_test.yml`：promtool `test rules` 格式，
+  4 场景（LockHoldTimeout / LockWaitTimeout 各自触发 + 不触发），验证 `increase>0 + for:5m` 语义；
+- `observability-ci.yml`「可观测性端到端验证」job 新增 **promtool 校验步骤**（check rules 校验
+  lock_watchdog + planning 两组规则，test rules 跑上述单测）——权威校验在 GitHub 基础设施
+  持续执行，不再依赖本地 promtool（本环境网络下载停滞 + Docker 引擎不可用）；
+- 本地侧维持：test_lock_watchdog.py 8/8 + 规则结构校验 + 指标名与源码核对（第二轮）。
+
+## 15. 涉及文件（第三轮）
+
+| 文件 | 变更 |
+|---|---|
+| `docs/LEGACY_ISSUES_RESOLUTION_20260828.md` | 修复既有坏链（docs/ 前缀重复）→ 解除 CI 失败根因 |
+| `scripts/backup_reflection.py` | 新增（#680 前置：reflection 基线备份 + 轮转） |
+| `tests/unit/test_backup_reflection.py` | 新增 3 用例 |
+| `monitoring/prometheus/rules/planning_alerts.yml` | 新增（#680：规划 6 条告警，按 08-13 文档补建） |
+| `monitoring/prometheus/rules/lock_watchdog_alerts_test.yml` | 新增（#681：promtool test rules 4 场景） |
+| `.github/workflows/observability-ci.yml` | 新增 promtool check/test rules 步骤（#681 持续校验） |
+| `docs/issues/ISSUES_CLEANUP_REPORT_20260830.md` | 本报告（第三轮追加） |
+
+## 16. 最终遗留（仅需外部前置）
+
+1. **#680**：生产权限 + 变更审批 → 按手册执行（基线备份脚本已就绪）。
+2. **#681**：部署环境执行手册 §二 C2-C6（promtool check 现由 CI 持续覆盖；热加载/采集/触发链路需真实 Prometheus 实例）。
+
 

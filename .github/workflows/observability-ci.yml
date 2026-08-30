@@ -600,6 +600,21 @@ jobs:
           fi
           echo "✅ 已加载 $RULES_COUNT 条告警规则"
 
+      - name: promtool 校验告警规则（check + test rules）
+        # 【Issue #681】规则文件权威校验固化进 CI：check 语法/结构，test 验证
+        # 触发/不触发语义（lock_watchdog_alerts_test.yml 4 场景）。
+        # 挂载监控规则目录（挂载式，与工程约定一致），复用本 job 已拉取的镜像。
+        run: |
+          RULES_DIR="${{ github.workspace }}/monitoring/prometheus/rules"
+          echo "=== promtool check rules ==="
+          docker run --rm -v "$RULES_DIR:/rules:ro" \
+            prom/prometheus:latest promtool check rules \
+              /rules/lock_watchdog_alerts.yml /rules/planning_alerts.yml
+          echo "=== promtool test rules (lock_watchdog) ==="
+          docker run --rm -v "$RULES_DIR:/rules:ro" \
+            prom/prometheus:latest promtool test rules /rules/lock_watchdog_alerts_test.yml
+          echo "✅ 告警规则 promtool 校验通过"
+
       - name: 启动应用服务（后台）
         run: |
           echo "=== 启动应用服务 ==="
