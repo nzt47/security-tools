@@ -28,6 +28,10 @@ import urllib.parse as _up
 import json as _js
 import requests as _http  # 注意：Flask 的 request 对象会覆盖 requests 模块，用 _http 别名
 
+# 插件机制（T1.1）：协议层 + 示例插件（注册表见 plugins/plugin_api.py）
+from plugins.plugin_api import get_plugins, manifest as plugin_manifest
+from plugins import example  # noqa: F401
+
 # 修复 Windows 控制台编码，避免中文日志乱码
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     try:
@@ -138,6 +142,12 @@ try:
     logger.info("[启动] 学习度量 API 路由已注册 (/api/learning/metrics)")
 except Exception as e:
     logger.warning(f"[启动] 学习度量注册失败: {e}")
+
+# 注册全部插件 blueprint（插件化机制 T1.1：装配器骨架）
+for _p in get_plugins():
+    if _p.blueprint is not None:
+        app.register_blueprint(_p.blueprint)
+logger.info(f"[启动] 插件蓝图注册完成（共 {len(get_plugins())} 个插件）")
 
 # 注册模块聚合蓝图（S2: /api/modules/topology + <id>/detail + <id>/actions）
 # 说明: provider 用模块级 def 延迟解析 _Yunshu（_Yunshu 在文件后部初始化），
@@ -827,6 +837,12 @@ def api_voice_status():
 def api_health():
     readings = _Yunshu.body.collect_quick()
     return jsonify([r.to_dict() for r in readings])
+
+
+@app.route("/api/plugins", methods=["GET"])
+def api_plugins():
+    """插件元信息 manifest（插件化机制 T1.1）"""
+    return jsonify(plugin_manifest())
 
 
 @app.route("/api/sensors")
