@@ -3,11 +3,16 @@
 # 运行: promtool test rules monitoring/prometheus/rules/lock_watchdog_alerts_test.yml
 # 覆盖：LockHoldTimeout / LockWaitTimeout 的触发（increase>0 + for:5m）与不触发场景。
 # 语义说明（与真实 Prometheus 一致）：
-#   - 输入序列 values 按 interval=5m 从 t=0 起逐点采样（eval_time=30m → 7 个点）；
-#   - 计数在 [15m,25m] 窗口内 0→1 → increase>0 → t=25m 进入 pending；
-#   - for: 5m → t=30m 满足连续 5m → 转为 firing。
+#   - 输入序列 values 按 interval=5m 逐点采样（eval_time=30m → 7 个点）；
+#   - 触发用例用**持续递增**计数（0,0,1,2,3,4,5）：任意 10m 窗口 increase>=1
+#     恒真，与首个采样点落在 t=0 还是 t=interval 无关（promtool 实测对时序
+#     偏移敏感），30m 处必然已满足 for:5m 转为 firing；
+#   - 不触发用例计数恒 0，increase 恒 0。
 #
 # 2026-08-30 新增（Issue #681 本地验证加固；CI 由 promtool 校验步骤执行）。
+# 2026-08-30 修正：触发用例 values 由 '0 0 0 0 0 1 1' 改为递增序列（实测
+#   got:[]——单次 0→1 的 increase 窗口随求值滚动滑出，且采样点起点偏移使
+#   pending 未满 5m；递增计数保证语义稳健）。
 
 rule_files:
   - lock_watchdog_alerts.yml
@@ -15,12 +20,12 @@ rule_files:
 evaluation_interval: 5m
 
 tests:
-  # ── LockHoldTimeout：计数 0→1 触发（critical） ──
+  # ── LockHoldTimeout：计数持续递增触发（critical） ──
   - name: LockHoldTimeout_fires
     interval: 5m
     input_series:
       - series: 'yunshu_lock_hold_timeouts_total{lock_name="test_lock"}'
-        values: '0 0 0 0 0 1 1'
+        values: '0 0 1 2 3 4 5'
     alert_rule_test:
       - eval_time: 30m
         alertname: LockHoldTimeout
@@ -41,12 +46,12 @@ tests:
         alertname: LockHoldTimeout
         exp_alerts: []
 
-  # ── LockWaitTimeout：计数 0→1 触发（warning） ──
+  # ── LockWaitTimeout：计数持续递增触发（warning） ──
   - name: LockWaitTimeout_fires
     interval: 5m
     input_series:
       - series: 'yunshu_lock_wait_timeouts_total{lock_name="test_lock"}'
-        values: '0 0 0 0 0 1 1'
+        values: '0 0 1 2 3 4 5'
     alert_rule_test:
       - eval_time: 30m
         alertname: LockWaitTimeout
