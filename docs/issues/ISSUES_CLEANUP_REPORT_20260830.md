@@ -295,9 +295,13 @@ commit `95eba3b8` 触发的 ci.yml run（33285774807）实测：
 |---|---|
 | `prom/prometheus` 镜像 ENTRYPOINT 遮蔽 promtool（`docker run ... promtool` 报 unexpected） | CI 步骤改 `--entrypoint promtool` |
 | 08-13 文档化 planning 告警的 4 条规则引用**未注册且非法（含 "."）**的指标（`planning.cost_total` 等），promtool check 报 parse error | planning_alerts.yml 落地为 2 条引用真实注册指标（`yunshu_intent_layer_total{layer=...}`）的告警；4 条挂起待指标注册（`business_metrics.py` 另立小任务，与 08-13 文档 §五.3 自述一致） |
-| lock_watchdog_alerts.yml | ✅ promtool check 通过（2 rules found）；test rules 4 场景待下一 run 复核 |
+| promtool test rules 触发用例 `got:[]`（单次 0→1 的 increase 窗口随求值滚动滑出 + 采样起点偏移） | 触发用例改持续递增计数（0,0,1,2,3,4,5），时序偏移稳健 |
+| promtool test rules 触发用例 annotations 比对失败（exp 缺规则自带 summary/description） | 补 exp_annotations（含 $labels.lock_name 替换值） |
 
-**最终结论（复核后）**：主 CI 全绿（15.4min）；observability-ci promtool 步骤修正后重新验证中；open issues 2 个（#680/#681，外部前置）。遗留项仅：规划成本/耗时/失败率 4 条告警的指标注册（另立小任务），不阻塞交付。
+**最终验证（ef6b8755）**：
+- 主 CI（ci.yml run 33295906419）：**success**（全量 15.4min，集成 4 分片 + 单元 6 分片全绿）；
+- observability-ci（run 33295906438）：**success**——promtool check（lock_watchdog 2 rules + planning 2 rules）+ test rules（4 场景）全部通过，E2E 全步骤绿；
+- open issues：**2 个**（#680/#681，外部前置）。遗留仅：规划成本/耗时/失败率 4 条告警的指标注册（另立小任务），不阻塞交付。
 
 
 
