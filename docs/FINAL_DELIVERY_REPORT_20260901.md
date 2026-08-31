@@ -66,7 +66,13 @@
 
 **端到端冒烟**：`/api/plugins`（9 插件 manifest）、`/api/plugins/reload`（401/200）、schema 提交闭环（demo/status）、`/chat` SPA 渲染 + 资源加载——全部 200。
 
-**CI/CD**：推送后 GitHub Actions 全量工作流验证（见 §7）。
+**CI/CD**：推送后 GitHub Actions **13/13 工作流全绿**（master @ `8175c437`）：
+- 关键门禁：**云枢系统测试流程（后端全量 pytest，Linux）✅**、**yunshu-ui 前端测试 ✅**、
+  核心不变量监控 ✅、master commit 来源守卫 ✅、lock-discipline-scan ✅、
+  硬编码密码扫描 ✅、kwarg 扫描 → SonarQube ✅、Error Reporting System CI/CD ✅、
+  日志性能守护 ✅、可观测性质量保障 ✅（首轮 1 项边缘性能断言 54-57ms vs 50ms 阈值，
+  属记载过的 CI 墙钟波动类；重跑后通过）、其余守卫类 ✅。
+- 双远端同步：origin（GitHub）+ gitee 均推送至 `8175c437`。
 
 ## 6. 遗留问题状态（全部已处理）
 
@@ -99,7 +105,7 @@
 - [ ] 前端 lint / tsc / vitest / build 全绿
 - [ ] `/chat` SPA 可达，插件中心 + Schema 面板闭环可用
 - [ ] 全部遗留问题已处理，无阻塞项
-- [ ] 代码已推送远端（origin + gitee）且 CI 验证通过
+- [ ] 代码已推送远端（origin + gitee）且 CI 验证通过（13/13 全绿 @ `8175c437`）
 - [ ] 工作树干净，文档齐全
 
 **stakeholders 确认后本项目正式结案。**
