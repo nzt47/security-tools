@@ -84,6 +84,7 @@
 | static/ 构建产物同步 + yunshu.html 路由 | ✅ build:flask + /chat 渲染 SPA |
 | 前端 lint 存量 warnings | ✅ 100 → 0 |
 | 契约 JSON 时间戳污染 | ✅ 测试产物，已还原 |
+| Evolution CI 定时任务每日失败 | ✅ 根因 `deploy/evolution` 从未合入 master（工作流早于功能落地）；加存在性守卫，缺失时跳过并告警（手动触发验证通过） |
 
 **无阻塞性遗留。** 已知环境限制（沙箱 git 拉起、ChromaDB 可用性等）已在各结案报告记录排除项，CI（Linux）通过，非代码缺陷。
 
