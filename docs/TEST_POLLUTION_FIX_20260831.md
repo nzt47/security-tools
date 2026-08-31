@@ -62,20 +62,43 @@
 - **验证**（3 文件批量，修复前 1 failed + 1 error → 修复后 120 passed / 10 xfailed）：
   根因确认 pytest capture 以 UTF-8 读回 GBK 回放文件，调用级 `PYTHONUTF8=1` 根治。
 
-### P2：多种子回归验证（待填结果）
+### P1 追加：顺序依赖子项修复（规范种子复验暴露）
+
+- **`plugins/loader.py`** `load_all()` 开头调用 `importlib.invalidate_caches()`：
+  包目录 FileFinder 在首次 import 时缓存目录列表，新写入 .py 后 `import_module`
+  命中陈旧 importer → ModuleNotFoundError 被静默吞掉 → manifest 缺新插件
+  （`test_refresh_manifest_discovers_new_plugin` 隔离 14/20 flaky 根因，修复后 0/20）。
+- **`tests/unit/test_state_manager_comprehensive.py`**：并发原子性测试固定
+  `time.sleep(0.5)` 改为自适应轮询等待（10s 超时），消除高压/慢机下的时序假失败。
+
+### P2：多种子回归验证
 
 - 协议：固定 seed `--randomly-seed=20260813` 全量回归 + 抽样 seed 1/2/3 +
   `-p no:randomly` 对照基线（`failures_baseline.txt`，2026-08-13 共 78 行）。
 - 判定：固定 seed 下 0 failed / 0 errors（除基线与环境限制项）即收敛。
+- 已执行：两个全量种子（993162150 / 20260813）+ 隔离 20 次循环验证，见 §4。
 
-## 4. 验证结果（待填）
+## 4. 验证结果
 
 | 运行 | 结果 |
 |---|---|
-| 钉种子 993162150（修复前，排除环境限制） | 4765 passed / 1 failed（test_plugin_loader） |
-| 钉种子 993162150（修复后） | （待填） |
-| 规范 seed 20260813（修复后） | （待填） |
-| 抽样 seed ×2（修复后） | （待填） |
+| 原始全量（随机序，无修复） | **4486 passed / 22072 errors**（teardown 级联双报） |
+| 钉种子 993162150 + P0/P1（排除环境限制，`-x` 停在首败） | 10771 passed / 1 failed+1 error（级联消失，首败点推进 2.3 倍） |
+| 规范 seed 20260813 + P0/P1 | 15124 passed / 3 failed（loader + state_manager + precommit 环境限制） |
+| **规范 seed 20260813 + 全部修复（最终）** | **15126 passed / 1 failed**（仅 precommit hook 环境限制，CI 通过） |
+
+### 剩余失败归因
+
+| 测试 | 归属 | 说明 |
+|---|---|---|
+| `test_precommit_hook_blocking.py` | 环境限制 | 依赖仓库安装 pre-commit hook；本机 BOM 检查会阻断真实 commit；CI（Linux）通过 |
+
+### 额外实证（顺序依赖子项）
+
+- `test_refresh_manifest_discovers_new_plugin`：修复前**隔离下 14/20 flaky**（根因：包目录
+  FileFinder 缓存陈旧 → `importlib.invalidate_caches()` 修复后 **0/20**）。
+- `test_concurrent_overwrite_load_sees_complete_snapshot`：固定 `sleep(0.5)` 在高压下
+  读线程未完成首次读回 → 自适应轮询等待修复。
 
 ## 5. 环境限制排除清单（与结案报告一致，非代码缺陷）
 
