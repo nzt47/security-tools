@@ -11,6 +11,8 @@
 
 const API_BASE = ''; // 同域，dev 模式下 vite proxy /api → 127.0.0.1:5678
 
+import { authHeader } from './apiToken';
+
 // ═══════════════════════════════════════════════════════════════
 //  错误类（边界显性化）
 // ═══════════════════════════════════════════════════════════════
@@ -42,6 +44,8 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
   const { method = 'GET', body, signal } = opts;
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['Content-Type'] = 'application/json';
+  // 遗留修复：FLASK_API_TOKEN 启用时受保护端点需要 Bearer 令牌（见 lib/apiToken.ts）
+  Object.assign(headers, authHeader());
 
   let res: Response;
   try {

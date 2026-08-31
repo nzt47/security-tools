@@ -27,6 +27,7 @@ import { ApiError, request } from '../lib/apiClient';
 import { useChatStore } from '../store/useChatStore';
 import { SchemaRenderer } from './schema/SchemaRenderer';
 import { fetchPlugins, loadClientUi, PluginInfo, reloadPlugins } from './pluginDiscovery';
+import { ApiTokenField } from './ApiTokenField';
 
 /**
  * 提交端点兜底映射（插件未声明 submit_url 时按插件名兜底）。
@@ -183,7 +184,14 @@ export function PluginPanel() {
         touchedRef.current = new Set();
       }
     } catch (e) {
-      addToast('error', `刷新插件清单失败：${e instanceof Error ? e.message : String(e)}`);
+      // 遗留修复：401 时提示令牌（FLASK_API_TOKEN 启用场景），指引用户填入令牌后重试
+      const is401 = e instanceof ApiError && e.status === 401;
+      addToast(
+        'error',
+        is401
+          ? '刷新插件清单失败（401 未授权）：请在「API 令牌」中填入 FLASK_API_TOKEN 后重试'
+          : `刷新插件清单失败：${e instanceof Error ? e.message : String(e)}`,
+      );
     } finally {
       setRefreshing(false);
     }
@@ -273,6 +281,9 @@ export function PluginPanel() {
           >
             {refreshing ? '刷新中…' : '刷新'}
           </button>
+        </div>
+        <div className="mb-2">
+          <ApiTokenField />
         </div>
         {plugins.length === 0 && (
           <p className="text-xs text-[var(--text-muted)]">（暂无插件）</p>
