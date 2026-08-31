@@ -88,13 +88,17 @@
 | 规范 seed 20260813 + P0/P1 | 15124 passed / 3 failed（loader + state_manager + precommit 环境限制） |
 | **规范 seed 20260813 + 全部修复（最终）** | **15126 passed / 1 failed**（仅 precommit hook 环境限制，CI 通过） |
 | seed=1（2026-08-31 遗留收尾） | **15126 passed / 1 failed**：`test_categories_valid` 顺序依赖（lock_watchdog 导入注册 concurrency 分类，测试白名单漏列）→ **已修复**（补 'concurrency'） |
-| seed=2 / seed=3 | （执行中/待执行） |
+| **seed=2 / seed=3（2026-08-31 遗留收尾）** | **15127 passed / 0 failed / 0 errors**（两个种子全绿，顺序无关性确认） |
 
 ### 剩余失败归因
 
 | 测试 | 归属 | 说明 |
 |---|---|---|
 | `test_precommit_hook_blocking.py` | **已修复（2026-08-31）** | 根因是本机 gitignored 文件 `scripts/dev/wait_checkout_master.ps1` 叠加 6 个 BOM（EF BB BF ×3），hook 编码检查据此阻断**所有**提交（含健康基线提交）。用仓库自带 `check_ps1_encoding.py --fix` 修复后 **5/5 通过**；CI（Linux）本就不受影响。不再属环境限制。 |
+
+**多 seed 收敛结论（2026-08-31）**：seed=1/2/3 三个随机种子全量回归
+（seed=1 暴露 1 个测试白名单遗漏并修复后），seed=2/3 **0 failed / 0 errors**——
+顺序/规模依赖污染已按 pytest.ini 记载的 T-4 协议判定收敛。
 
 ### 额外实证（顺序依赖子项）
 
