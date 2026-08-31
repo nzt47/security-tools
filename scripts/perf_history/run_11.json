@@ -15,5 +15,9 @@
     "max": 24.813,
     "count": 5000
   },
-  "updated_at": "2026-08-31T07:57:49"
+  "test_params": {
+    "n": 5000,
+    "concurrency": 10
+  },
+  "timestamp": "2026-08-31T07:57:49"
 }
