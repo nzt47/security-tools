@@ -666,7 +666,12 @@ class TestConcurrentSnapshotAtomicity:
             futures = [ex.submit(writer, f"t{i}") for i in range(n_writers)]
             futures += [ex.submit(reader) for _ in range(n_readers)]
             barrier.wait()  # 对齐起跑
-            time.sleep(0.5)
+            # 【2026-08-31 污染治理 P1】固定 sleep(0.5) 在高压/慢机下读线程可能
+            # 尚未成功读回一次快照（全量长跑 79% 处实测 AssertionError 根因）。
+            # 改为自适应等待：轮询直到至少一次成功读回或超时（保留原子性断言）。
+            deadline = time.monotonic() + 10.0
+            while not loaded_owners and time.monotonic() < deadline:
+                time.sleep(0.02)
             stop.set()
             for fut in futures:
                 fut.result()

@@ -82,6 +82,15 @@ def load_all(*, reload_existing: bool = False) -> int:
     Returns:
         本调用成功加载的模块数。单插件失败仅记日志，不阻断其余模块。
     """
+    # 【2026-08-31 污染治理 P1】动态发现前必须失效导入缓存。
+    # Why: 包目录的 FileFinder 在首次 import 时缓存目录列表（_fill_cache），
+    #      随后写入新 .py 文件后，import_module 仍命中 sys.path_importer_cache
+    #      中的陈旧 importer → ModuleNotFoundError（被 except 捕获后静默跳过，
+    #      表现为 manifest 缺失新插件）。实证：test_refresh_manifest_discovers_
+    #      new_plugin 隔离下 14/20 flaky（2026-08-31）。
+    #      invalidate_caches() 清空 sys.path_importer_cache 与各 importer 缓存，
+    #      扫描与导入均重新发现磁盘现状。开销可忽略（目录级清空）。
+    importlib.invalidate_caches()
     loaded = 0
     for name in _candidate_modules():
         full = _full_name(name)

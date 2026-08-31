@@ -19,14 +19,18 @@
 
 ## 2. 根因机制（按影响力排序）
 
-1. **线程持有型单例泄漏**：`async_executor` / `resource_monitor` / `self_healer` /
+1. **pytest capture 解码错误（首要根因，2026-08-31 实证）**：中文 Windows 默认 GBK
+   代码页下，测试向 stdout/stderr 写入 GBK 字节；pytest 的 capture 在 teardown 用
+   `_pytest/capture.py snap() → tmpfile.read()` 以 **UTF-8** 读回回放文件 →
+   `UnicodeDecodeError`（`0xc0/0xcd` = GBK 首字节）→ teardown ERROR + 双报。
+   实测触发：`test_extensions.py::test_search_all`（HTTP 404 日志含中文）。
+   **修复**：解释器级 `PYTHONUTF8=1`（调用时设置才生效，conftest 内 setdefault 无效）。
+2. **线程持有型单例泄漏**：`async_executor` / `resource_monitor` / `self_healer` /
    `task_scheduler` / `lazy_loader` / `async_lazy_loader` 注册于 SingletonManager，
    部分带 cleanup 钩子、部分没有；测试初始化后未清理 → ThreadPoolExecutor 非
    daemon 线程累积 → 长跑资源耗竭 → 后续测试 setup 级联失败。
-2. **`--timeout=60 --timeout-method=thread`**：thread 方式超时杀测试但**线程不回收**，
+3. **`--timeout=60 --timeout-method=thread`**：thread 方式超时杀测试但**线程不回收**，
    放大泄漏；模型加载/重 IO 测试在资源竞争下偶超 60s 被误杀。
-3. **中文 Windows GBK 编码**：子进程 stdio 未统一 UTF-8 → subprocess 输出捕获
-   UnicodeDecodeError（conftest 顶部注释记载方案但从未落地）。
 4. **已有隔离缺口**：`reset_global_singletons` 覆盖 15 类模块级状态，但未覆盖
    SingletonManager 注册的线程持有型单例。
 
@@ -44,14 +48,19 @@
   - 原则：**不**用 `reset_all_singletons()`（其余单例无钩子，直接删实例不释放
     资源且会让 session 级 fixture 旧引用失效），沿用「定向重置」策略。
 
-### P1：环境变量固化 + timeout 治理
+### P1：环境变量固化 + timeout 治理 + capture 解码修复
 
-- **`tests/conftest.py` 顶部**（setdefault，不覆盖用户配置）：
-  - `PYTHONUTF8=1` / `PYTHONIOENCODING=utf-8`：子进程 stdio 统一 UTF-8；
+- **`tests/conftest.py` 顶部**（setdefault，不覆盖用户配置，供子进程继承）：
+  - `PYTHONUTF8=1` / `PYTHONIOENCODING=utf-8`；
   - `OMP_NUM_THREADS=4` / `MKL_NUM_THREADS=4`：限制 torch/numpy 线程，规避
     Windows C 扩展线程竞争 0xC0000005（与 README Docker 配置一致）。
 - **`pytest.ini`**：`--timeout=60` → `--timeout=120`（减少 thread 方式误杀与泄漏放大；
-  极慢测试应显式 `@pytest.mark.timeout(N)`）。
+  极慢测试应显式 `@pytest.mark.timeout(N)`）；固定 seed 协议区补充 Windows
+  `PYTHONUTF8=1` 调用要求说明。
+- **`scripts/run_full_pytest.py`**：补 `PYTHONUTF8=1`（原本只有 PYTHONIOENCODING），
+  全量入口子进程进入解释器 UTF-8 模式（`run_full_pytest_bg.py` 复用同一逻辑）。
+- **验证**（3 文件批量，修复前 1 failed + 1 error → 修复后 120 passed / 10 xfailed）：
+  根因确认 pytest capture 以 UTF-8 读回 GBK 回放文件，调用级 `PYTHONUTF8=1` 根治。
 
 ### P2：多种子回归验证（待填结果）
 
