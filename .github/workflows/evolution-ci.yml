@@ -43,10 +43,26 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      # 【2026-09-01 交付收尾】存在性守卫：deploy/evolution/ 在 master 历史中从未
+      # 存在（进化 CLI 部署产物未合入，工作流早于功能落地）。缺失时跳过构建并输出
+      # 明确告警，避免每日定时任务以晦涩的 Docker "no such file" 失败刷屏；
+      # 功能部署产物合入后守卫自动放行（不静默跳过——告警即记录）。
+      - name: 检查进化部署文件存在性
+        id: check-evolution-deploy
+        run: |
+          if [ -f deploy/evolution/Dockerfile ]; then
+            echo "evolution_deploy_present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "evolution_deploy_present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::deploy/evolution/Dockerfile 不存在（进化 CLI 部署产物未合入 master），跳过构建"
+          fi
+
       - name: 构建进化 CLI 镜像
+        if: steps.check-evolution-deploy.outputs.evolution_deploy_present == 'true'
         run: docker build -f deploy/evolution/Dockerfile -t yunshu-evolution:ci .
 
       - name: 一键部署预检（--all，不写正式库）
+        if: steps.check-evolution-deploy.outputs.evolution_deploy_present == 'true'
         run: |
           docker run --rm \
             -v "$PWD/data:/app/data" \
@@ -63,16 +79,29 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: 检查进化部署文件存在性
+        id: check-evolution-deploy
+        run: |
+          if [ -f deploy/evolution/Dockerfile ]; then
+            echo "evolution_deploy_present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "evolution_deploy_present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::deploy/evolution/Dockerfile 不存在（进化 CLI 部署产物未合入 master），跳过构建"
+          fi
+
       - name: 构建进化 CLI 镜像
+        if: steps.check-evolution-deploy.outputs.evolution_deploy_present == 'true'
         run: docker build -f deploy/evolution/Dockerfile -t yunshu-evolution:ci .
 
       - name: 初始化正式技能存储
+        if: steps.check-evolution-deploy.outputs.evolution_deploy_present == 'true'
         run: |
           docker run --rm \
             -v "$PWD/data:/app/data" \
             yunshu-evolution:ci --seed-real --confirm --json
 
       - name: 正式全量进化测试
+        if: steps.check-evolution-deploy.outputs.evolution_deploy_present == 'true'
         run: |
           docker run --rm \
             -v "$PWD/data:/app/data" \
