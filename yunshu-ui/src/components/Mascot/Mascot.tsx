@@ -220,8 +220,8 @@ const Mascot: React.FC<MascotProps> = ({
     };
   }, [tracking, damping, debug]);
 
-  // 情绪变化
-  const changeMood = useCallback((newMood: MascotMood) => {
+  // 情绪变化（预留：供后续交互触发情绪切换，暂未接线）
+  const _changeMood = useCallback((newMood: MascotMood) => {
     setMood(newMood);
     onMoodChange?.(newMood);
   }, [onMoodChange]);

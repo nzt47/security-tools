@@ -243,7 +243,6 @@ describe('React.memo 浅比较', () => {
     };
     const { rerender, getByText } = renderNode(<SkillNode data={data} />);
     expect(getByText('Memo')).toBeTruthy();
-    const originalNode = getByText('Memo');
     // 用同一引用重渲染
     rerender(
       <ReactFlowProvider>

@@ -34,30 +34,32 @@ import { ApiTokenField } from './ApiTokenField';
  * 约束：仅收录「POST 提交体为扁平配置对象且端点契约一致」的真实端点；
  * 不确定的端点一律不收录（按风险项：submit_url 留空并提示，不硬凑）。
  */
+// eslint-disable-next-line react-refresh/only-export-components -- 插件注册表模块刻意混合导出组件与常量/函数
 export const SUBMIT_URL_FALLBACK: Record<string, string> = {
   memory: '/api/context/config',
   admin: '/api/config',
 };
 
 /** 解析插件提交端点：声明优先，其次前端映射表，最后空串（不支持在线修改） */
+// eslint-disable-next-line react-refresh/only-export-components -- 插件注册表模块刻意混合导出组件与常量/函数
 export function resolveSubmitUrl(plugin: PluginInfo): string {
   if (plugin.submitUrl && plugin.submitUrl.trim()) return plugin.submitUrl;
   return SUBMIT_URL_FALLBACK[plugin.name] ?? '';
 }
 
 /** 是否含可配置 schema（顶层 object + 至少一个属性） */
-function hasConfigSchema(schema: Record<string, any> | null): boolean {
+function hasConfigSchema(schema: Record<string, unknown> | null): boolean {
   return !!schema && typeof schema === 'object' && schema.type === 'object' && !!schema.properties;
 }
 
 /** 从后端当前值里挑选 schema 已声明字段（防止多余字段污染表单值） */
 function pickSchemaFields(
-  schema: Record<string, any> | null,
-  current: Record<string, any>,
-): Record<string, any> {
+  schema: Record<string, unknown> | null,
+  current: Record<string, unknown>,
+): Record<string, unknown> {
   if (!schema || typeof schema !== 'object' || !schema.properties) return {};
-  const picked: Record<string, any> = {};
-  for (const key of Object.keys(schema.properties)) {
+  const picked: Record<string, unknown> = {};
+  for (const key of Object.keys(schema.properties as Record<string, unknown>)) {
     if (Object.prototype.hasOwnProperty.call(current, key)) picked[key] = current[key];
   }
   return picked;
@@ -69,7 +71,7 @@ export function PluginPanel() {
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-  const [values, setValues] = useState<Record<string, any>>({});
+  const [values, setValues] = useState<Record<string, unknown>>({});
   const [loadingValues, setLoadingValues] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [loadingUi, setLoadingUi] = useState<string | null>(null);
@@ -101,7 +103,7 @@ export function PluginPanel() {
     if (!url) return;
     const ac = new AbortController();
     setLoadingValues(true);
-    request<Record<string, any>>(url, { signal: ac.signal })
+    request<Record<string, unknown>>(url, { signal: ac.signal })
       .then((current) => {
         if (selectedRef.current !== plugin.name) return; // 已切换插件，丢弃过期响应
         if (current && typeof current === 'object' && !Array.isArray(current)) {
@@ -137,7 +139,7 @@ export function PluginPanel() {
   );
 
   /** SchemaRenderer 值变化：记录被修改的字段，供预填合并保护 */
-  const handleValueChange = useCallback((next: Record<string, any>) => {
+  const handleValueChange = useCallback((next: Record<string, unknown>) => {
     setValues((prev) => {
       const touched = new Set(touchedRef.current);
       for (const [key, v] of Object.entries(next)) {
@@ -217,7 +219,7 @@ export function PluginPanel() {
   const submitUrl = selectedPlugin ? resolveSubmitUrl(selectedPlugin) : '';
 
   const handleSubmit = useCallback(
-    async (formValues: Record<string, any>) => {
+    async (formValues: Record<string, unknown>) => {
       if (!selectedPlugin || !submitUrl) return;
       setSubmitting(true);
       try {

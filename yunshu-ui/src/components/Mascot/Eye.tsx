@@ -23,7 +23,6 @@ export interface EyeProps {
 const Eye: React.FC<EyeProps> = ({
   size = 'medium',
   mood = 'normal',
-  lookAt = { x: 0, y: 0 },
   blinking = false,
   tracking = false,
   className = '',
@@ -76,7 +75,6 @@ const Eye: React.FC<EyeProps> = ({
   // 应用注视偏移
   useEffect(() => {
     if (pupilRef.current) {
-      const maxOffset = 3;
       pupilRef.current.style.transform = `translate(calc(-50% + ${currentLook.x}px), calc(-50% + ${currentLook.y}px))`;
     }
   }, [currentLook]);

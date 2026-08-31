@@ -24,7 +24,29 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': 'warn',
+      // 【2026-08-31 存量 lint 清理】`_` 前缀 = 有意命名但未使用的参数/变量
+      // （桩实现、占位回调、catch 参数等惯用法），显式豁免避免逐行 disable。
+      '@typescript-eslint/no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          ignoreRestSiblings: true,
+        },
+      ],
+    },
+  },
+  {
+    // 【2026-08-31 存量 lint 清理】测试代码允许 any：断言/夹具/模拟中松类型是
+    // 测试惯用法，逐行治理收益低、噪声高；源码（src/** 非测试）仍严格。
+    files: [
+      '**/*.test.{ts,tsx}',
+      '**/__tests__/**/*.{ts,tsx}',
+      '**/*.test-d.{ts,tsx}',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 )

@@ -118,7 +118,7 @@ interface StateInspectorState {
 }
 
 export const useStateInspectorStore = create<StateInspectorState>(
-  (set, get) => ({
+  (set) => ({
     snapshots: new Map(),
     timeline: [],
 

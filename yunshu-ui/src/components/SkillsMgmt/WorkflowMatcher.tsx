@@ -56,7 +56,7 @@ const WorkflowMatcher: React.FC<WorkflowMatcherProps> = ({ onClose }) => {
         task_text: taskText,
         skipped: res.skipped,
       });
-    } catch (e) {
+    } catch (_e) {
       // 错误已在 store 中处理
     }
   };

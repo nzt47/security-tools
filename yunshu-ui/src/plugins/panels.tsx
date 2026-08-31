@@ -94,6 +94,7 @@ const PluginCenterPanel: React.FC = () => (
  * - PanelSwitcher → sidebar 插槽（原技能管理/知识库按钮位置）；
  * - 三个面板 → panels 插槽。
  */
+// eslint-disable-next-line react-refresh/only-export-components -- 插件注册表模块刻意混合导出组件与常量/函数
 export function mountPanels(): void {
   mountToSlot(SLOT_IDS.sidebar, { id: 'panels', component: PanelSwitcher, order: 5 });
   mountToSlot(SLOT_IDS.panels, {

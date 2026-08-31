@@ -22,12 +22,16 @@ import { JsonFallbackField } from './fields/JsonFallbackField';
 
 export interface SchemaRendererProps {
   /** JSON Schema 子集 */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSON Schema 动态值无静态类型
   schema: Record<string, any>;
   /** 当前值（受控） */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSON Schema 动态值无静态类型
   value: Record<string, any>;
   /** 值变化回调 */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSON Schema 动态值无静态类型
   onChange: (next: Record<string, any>) => void;
   /** 可选：提交回调（渲染「提交」按钮；提交时校验并提示） */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSON Schema 动态值无静态类型
   onSubmit?: (values: Record<string, any>) => void;
 }
 
@@ -64,6 +68,7 @@ function cloneDefault(d: unknown): unknown {
  * 用 schema.default 填充缺失字段（渲染层；不原地修改输入 value）。
  * 嵌套 object 递归填充；null/缺失的对象字段先补空对象再递归。
  */
+// eslint-disable-next-line react-refresh/only-export-components -- 插件注册表模块刻意混合导出组件与常量/函数
 export function fillDefaults(
   schema: SchemaField | undefined,
   value: Record<string, unknown> | null | undefined,
@@ -91,6 +96,7 @@ export function fillDefaults(
 }
 
 /** 顶层 schema 是否可结构化为对象表单（type object 或未声明 + 有 properties） */
+// eslint-disable-next-line react-refresh/only-export-components -- 插件注册表模块刻意混合导出组件与常量/函数
 export function isObjectSchema(
   schema: unknown,
 ): schema is SchemaField & { properties: Record<string, SchemaField> } {
@@ -101,6 +107,7 @@ export function isObjectSchema(
 }
 
 /** 提交层校验：required 缺失 + 数值 min/max（递归嵌套 object） */
+// eslint-disable-next-line react-refresh/only-export-components -- 插件注册表模块刻意混合导出组件与常量/函数
 export function validateSchema(
   schema: SchemaField,
   value: Record<string, unknown>,
@@ -271,7 +278,7 @@ export function SchemaRenderer({ schema, value, onChange, onSubmit }: SchemaRend
         </p>
         <JsonFallbackField
           value={value}
-          onChange={(next) => onChange((next ?? {}) as Record<string, any>)}
+          onChange={(next) => onChange((next ?? {}) as Record<string, unknown>)}
           label={title}
           description={description}
         />
@@ -286,7 +293,7 @@ export function SchemaRenderer({ schema, value, onChange, onSubmit }: SchemaRend
       return;
     }
     setSubmitError(null);
-    onSubmit?.(effective as Record<string, any>);
+    onSubmit?.(effective);
   };
 
   return (

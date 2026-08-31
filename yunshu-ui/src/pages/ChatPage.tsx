@@ -31,7 +31,6 @@ const ChatPage: React.FC = () => {
     addMessage,
     inputValue,
     setInputValue,
-    mood,
     setMood,
     sessions,
     setSessions,

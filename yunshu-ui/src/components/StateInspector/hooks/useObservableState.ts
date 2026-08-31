@@ -26,7 +26,7 @@ import type {
 export function useObservableState<T>(
   key: string,
   initialValue: T,
-  options: UseObservableStateOptions<T> = {}
+  options: UseObservableStateOptions = {}
 ): [T, ObservableSetter<T>] {
   const [value, setValue] = useState<T>(initialValue);
 

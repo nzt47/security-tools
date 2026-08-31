@@ -35,6 +35,7 @@ export interface PluginInfo {
   name: string;
   version: string;
   description: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- JSON Schema 动态值无静态类型
   schema: Record<string, any> | null;
   routes: string[];
   submitUrl?: string;
@@ -56,16 +57,22 @@ export function dynamicEntryId(info: PluginInfo): string {
 /** 把单个 manifest 条目归一化为 PluginInfo；非法条目返回 null（跳过） */
 export function normalizePlugin(raw: unknown): PluginInfo | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const r = raw as Record<string, any>;
+  const r = raw as Record<string, unknown>;
   if (typeof r.name !== 'string' || r.name.length === 0) return null;
 
   const schema =
-    r.schema && typeof r.schema === 'object' && Object.keys(r.schema).length > 0 ? r.schema : null;
-  const submitUrl = r.submit_url ?? r.submitUrl ?? '';
+    r.schema && typeof r.schema === 'object' && Object.keys(r.schema).length > 0
+      ? (r.schema as Record<string, unknown>)
+      : null;
+  const submitUrlRaw = r.submit_url ?? r.submitUrl ?? '';
+  const submitUrl = typeof submitUrlRaw === 'string' ? submitUrlRaw : '';
   const cs = r.client_slot ?? r.clientSlot ?? null;
   const clientSlot =
-    cs && typeof cs === 'object' && typeof cs.slotId === 'string' && typeof cs.module === 'string'
-      ? { slotId: cs.slotId, module: cs.module }
+    cs &&
+    typeof cs === 'object' &&
+    typeof (cs as { slotId?: unknown }).slotId === 'string' &&
+    typeof (cs as { module?: unknown }).module === 'string'
+      ? { slotId: (cs as { slotId: string }).slotId, module: (cs as { module: string }).module }
       : null;
 
   return {
@@ -74,7 +81,7 @@ export function normalizePlugin(raw: unknown): PluginInfo | null {
     description: typeof r.description === 'string' ? r.description : '',
     schema,
     routes: Array.isArray(r.routes) ? r.routes.filter((x) => typeof x === 'string') : [],
-    submitUrl: typeof submitUrl === 'string' ? submitUrl : '',
+    submitUrl,
     clientSlot,
   };
 }

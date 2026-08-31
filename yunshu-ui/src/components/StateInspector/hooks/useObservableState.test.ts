@@ -66,7 +66,7 @@ describe('useObservableState', () => {
   });
 
   it('options 透传（source / traceId / expiresAt）', () => {
-    const { result } = renderHook(() =>
+    renderHook(() =>
       useObservableState('k1', 'init', {
         source: 'localStorage',
         traceId: 'trace-1',

@@ -20,7 +20,7 @@ const SkillDetail: React.FC = () => {
     loadingVersions,
     submitting,
     detailError,
-    selectSkill,
+    selectSkill: _selectSkill,
     loadVersions,
     toggleSkill,
     deleteSkill,
@@ -52,6 +52,7 @@ const SkillDetail: React.FC = () => {
       setShowEdit(false);
       setOptimizeResult(null);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅依赖 id，刻意省略 loadVersions/selectedSkill 避免对象引用变化导致重复加载
   }, [selectedSkill?.id]);  // 仅依赖 id，避免对象引用变化导致重复加载
 
   // ─── 空状态 ───
@@ -88,7 +89,7 @@ const SkillDetail: React.FC = () => {
     try {
       await toggleSkill(sk.id, !sk.enabled);
       trackEvent('skill_toggle', { skill_id: sk.id, enabled: !sk.enabled });
-    } catch (e) {
+    } catch (_e) {
       // 错误已在 store 中处理
     }
   };
@@ -98,7 +99,7 @@ const SkillDetail: React.FC = () => {
     try {
       await deleteSkill(sk.id);
       trackEvent('skill_delete', { skill_id: sk.id });
-    } catch (e) {
+    } catch (_e) {
       // 错误已在 store 中处理
     }
   };
@@ -107,7 +108,7 @@ const SkillDetail: React.FC = () => {
     try {
       await reviewSkill(sk.id);
       trackEvent('skill_review', { skill_id: sk.id });
-    } catch (e) {
+    } catch (_e) {
       // 错误已在 store 中处理
     }
   };
@@ -122,7 +123,7 @@ const SkillDetail: React.FC = () => {
       });
       trackEvent('skill_update', { skill_id: sk.id });
       setShowEdit(false);
-    } catch (e) {
+    } catch (_e) {
       // 错误已在 store 中处理
     }
   };
@@ -132,7 +133,7 @@ const SkillDetail: React.FC = () => {
       await bumpVersion(sk.id, bumpKind, bumpChangelog || undefined);
       trackEvent('skill_bump_version', { skill_id: sk.id, kind: bumpKind });
       setBumpChangelog('');
-    } catch (e) {
+    } catch (_e) {
       // 错误已在 store 中处理
     }
   };
@@ -142,7 +143,7 @@ const SkillDetail: React.FC = () => {
     try {
       await rollbackVersion(sk.id, target);
       trackEvent('skill_rollback', { skill_id: sk.id, target });
-    } catch (e) {
+    } catch (_e) {
       // 错误已在 store 中处理
     }
   };
@@ -152,7 +153,7 @@ const SkillDetail: React.FC = () => {
       const suggestions = await optimizeSkill(sk.id);
       setOptimizeResult(suggestions);
       trackEvent('skill_optimize', { skill_id: sk.id });
-    } catch (e) {
+    } catch (_e) {
       // 错误已在 store 中处理
     }
   };

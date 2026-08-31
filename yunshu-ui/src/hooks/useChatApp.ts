@@ -9,8 +9,9 @@
  * hook 提供给 App），插槽组件通过 SlotHost props 消费 —— 不做 store 迁移。
  */
 import { useState, useEffect, useRef } from 'react';
-import type { Message } from '../components/Chat';
+import type { Message, ToolStep } from '../components/Chat';
 import type { ToastData } from '../components/Status';
+import type { Session } from '../store/useChatStore';
 import { useChatStream } from './useChatStream';
 import { trackEvent, TrackEventName } from '../config/observability';
 
@@ -21,7 +22,7 @@ export function useChatApp() {
   const [inputValue, setInputValue] = useState('');
   const [mood, setMood] = useState<'idle' | 'thinking' | 'happy' | 'excited'>('idle');
   const [toasts, setToasts] = useState<ToastData[]>([]);
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionId, setSessionId] = useState<string>('');
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [systemStatus, setSystemStatus] = useState<string>('offline');
@@ -60,6 +61,7 @@ export function useChatApp() {
       addToast('error', state.error);
       setMood('idle');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 刻意只监听 streaming 翻转：避免 state.text 等每次变化都触发该完成回调
   }, [state.streaming]);
 
   // ─── 会话切换 → 加载消息 ───
@@ -109,13 +111,13 @@ export function useChatApp() {
         return;
       }
       const data = await res.json();
-      const msgs: Message[] = (data || []).map((msg: any, i: number) => ({
+      const msgs: Message[] = (data || []).map((msg: Record<string, unknown>, i: number) => ({
         id: `msg-${i}-${msg.timestamp || Date.now()}`,
         type: msg.role === 'user' ? 'user' : 'assistant',
-        content: msg.content || '',
-        timestamp: new Date(msg.timestamp),
-        reasoning: msg.role === 'assistant' ? (msg.reasoning || undefined) : undefined,
-        toolSteps: msg.role === 'assistant' ? (msg.tool_steps || undefined) : undefined,
+        content: (msg.content as string) || '',
+        timestamp: new Date(msg.timestamp as string),
+        reasoning: msg.role === 'assistant' ? (msg.reasoning as string) || undefined : undefined,
+        toolSteps: msg.role === 'assistant' ? (msg.tool_steps as ToolStep[]) || undefined : undefined,
       }));
       setMessages(msgs);
       trackEvent(TrackEventName.DASHBOARD_LOAD, {
@@ -134,7 +136,7 @@ export function useChatApp() {
       if (res.ok) {
         setSystemStatus('online');
         // 再获取一次状态信息
-        fetch(`${API_BASE}/api/status`).then(r => r.json()).then(d => {
+        fetch(`${API_BASE}/api/status`).then(r => r.json()).then(_d => {
           // 可以扩展更多状态
         }).catch(() => {});
       }
@@ -173,7 +175,7 @@ export function useChatApp() {
       reset();
       addToast('success', '已创建新会话');
       loadSessions(newId);
-    } catch (e) {
+    } catch (_e) {
       addToast('error', '创建会话失败');
     }
   };
@@ -189,7 +191,7 @@ export function useChatApp() {
       localStorage.setItem('yunshu_session_id', sid);
       setSessionId(sid);
       reset();
-    } catch (e) {
+    } catch (_e) {
       addToast('error', '切换会话失败');
     }
   };

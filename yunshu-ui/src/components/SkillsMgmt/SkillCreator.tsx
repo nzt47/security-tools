@@ -94,7 +94,7 @@ const SkillCreator: React.FC<SkillCreatorProps> = ({ onClose, onCreated }) => {
         trackEvent('skill_install', { skill_id: skill.id, source: installSource });
         onCreated(skill);
       }
-    } catch (e) {
+    } catch (_e) {
       // 错误已在 store 中处理
     }
   };

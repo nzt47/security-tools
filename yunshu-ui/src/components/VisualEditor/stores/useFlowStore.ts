@@ -42,7 +42,6 @@ function logPerf(op: string, before: PerfCtx, durationMs: number, extra?: Record
     undo: undoStack.length,
     redo: redoStack.length,
   };
-  // eslint-disable-next-line no-console
   console.debug(
     `[VE:store] op=${op} ` +
       `before{nodes=${before.nodes},edges=${before.edges},undo=${before.undo},redo=${before.redo}} ` +
@@ -101,7 +100,6 @@ function pushUndo(state: FlowState) {
   if (undoStack.length > MAX_HISTORY) undoStack.shift();
   redoStack.length = 0;
   if (VE_DEBUG) {
-    // eslint-disable-next-line no-console
     console.debug(
       `[VE:store] pushUndo stack++ undo=${undoStack.length}/${MAX_HISTORY} redo=0 ` +
         `snapshot{nodes=${state.nodes.length},edges=${state.edges.length}}`,

@@ -69,7 +69,6 @@ const DevConsole: React.FC<DevConsoleProps> = ({
   const perfCount = useDevConsoleStore((s) => s.perfRecords.length);
   const paused = useDevConsoleStore((s) => s.paused);
   const togglePause = useDevConsoleStore((s) => s.togglePause);
-  const clearAll = useDevConsoleStore((s) => s.clearAll);
 
   // ─── 拖动逻辑 ───
   const handleFabMouseDown = useCallback(

@@ -29,7 +29,6 @@ function heapMB(): number {
 function measureHeap(label: string): number {
   gcIfAvailable();
   const mb = heapMB();
-  // eslint-disable-next-line no-console
   console.log(`[mem500] ${label}: ${mb} MB`);
   return mb;
 }

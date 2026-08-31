@@ -113,12 +113,13 @@ export function useChatStream(baseUrl = ''): UseChatStreamReturn {
           error: null,
           thinkingLabel: data.thinking_mode?.label || '',
         });
-      } catch (err: any) {
-        if (err.name !== 'AbortError') {
+      } catch (err) {
+        const error = err as { name?: string; message?: string };
+        if (error.name !== 'AbortError') {
           setState(prev => ({
             ...prev,
             streaming: false,
-            error: err.message || '请求失败',
+            error: error.message || '请求失败',
           }));
         }
       }

@@ -37,7 +37,6 @@ const SkillManagement: React.FC<{ onClose?: () => void }> = () => {
     workflows,
     skillsHealth,
     workflowHealth,
-    selectedSkill,
     loadingList,
     loadAllSkills,
     loadWorkflows,

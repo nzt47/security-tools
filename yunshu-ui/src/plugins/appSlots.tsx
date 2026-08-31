@@ -14,7 +14,7 @@
  * panels 插槽体系，由 PanelSwitcher（plugins/panels.tsx 挂载）统一驱动。
  */
 import React from 'react';
-import { StatusIndicator } from '../components/Status';
+import { StatusIndicator, type StatusType } from '../components/Status';
 import { Mascot } from '../components/Mascot';
 import { ChatWindow } from '../components/Chat';
 import type { Message } from '../components/Chat';
@@ -26,7 +26,7 @@ export interface StatusEntryProps {
 }
 
 export const StatusEntry: React.FC<StatusEntryProps> = ({ status = 'offline' }) => (
-  <StatusIndicator status={status as any} size="small" />
+  <StatusIndicator status={status as StatusType} size="small" />
 );
 
 // ─── sidebar：Mascot + 情绪文案（mood 由聊天流驱动，回调链路经 props 保持） ───

@@ -12,7 +12,6 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useDevConsoleStore } from '@/components/DevConsole/store';
 import { useStateInspectorStore } from './store';
 import { copyText, formatTime, formatDuration } from '@/components/DevConsole/shared';
 import { trackEvent, TrackEventName } from '@/config/observability';

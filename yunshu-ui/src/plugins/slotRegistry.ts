@@ -23,6 +23,7 @@ export interface SlotEntry {
   /** 组件唯一 id，如 'mascot' */
   id: string;
   /** 要渲染的组件（可接收 SlotHost 透传的 props，见 SlotHostProps.props） */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- 插槽可挂载任意 props 形状的组件，动态插槽无法静态约束
   component: React.ComponentType<any>;
   /** 排序，小在前，默认 100 */
   order?: number;

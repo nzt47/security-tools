@@ -45,7 +45,7 @@ const SkillReviewer: React.FC<SkillReviewerProps> = ({ onClose, onDone }) => {
       trackEvent('skill_batch_review', { reviewed });
       alert(`已审核 ${reviewed} 个技能`);
       onDone();
-    } catch (e) {
+    } catch (_e) {
       // 错误已在 store 中处理
     }
   };

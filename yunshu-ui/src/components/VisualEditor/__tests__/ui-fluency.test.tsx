@@ -211,7 +211,7 @@ describe('500 节点 UI 交互流畅度', () => {
   it('连续 50 次 updateNodeData — 测平均耗时与最大耗时', () => {
     const nodes = make500Nodes();
     injectNodes(nodes, []);
-    const { NodesProbe, nodesRenderTracker } = makeProbeComponents();
+    const { NodesProbe } = makeProbeComponents();
     render(<NodesProbe />);
 
     const { updateNodeData } = getStore();

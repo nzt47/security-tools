@@ -307,6 +307,7 @@ const TestApp: React.FC = () => {
   useEffect(() => {
     return () => {
       if (testIntervalRef.current) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- 卸载清理只需读取 ref 当前值，刻意不依赖
         clearInterval(testIntervalRef.current);
       }
     };

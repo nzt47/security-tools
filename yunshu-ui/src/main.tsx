@@ -13,6 +13,7 @@ import './index.css'
  *   其源码在 master 缺失导致 2026-08-16 起构建失败；本修复回退到 legacy
  *   入口并移除相应孤儿源码，workbench 功能保留在 feature 分支。
  */
+// eslint-disable-next-line react-refresh/only-export-components -- 入口文件刻意内联根组件且无导出，Fast Refresh 无需生效
 function Root() {
   const hash = window.location.hash
 

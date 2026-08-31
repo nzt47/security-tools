@@ -12,7 +12,7 @@ export type {
 } from '@/components/DevConsole/types';
 
 /** useObservableState Hook 配置项 */
-export interface UseObservableStateOptions<T> {
+export interface UseObservableStateOptions {
   /** 过期时间戳（毫秒），0 表示不过期。对齐文章"staleTime 倒计时"要求 */
   expiresAt?: number;
   /** 重试次数，对齐文章"重试次数可见"要求 */

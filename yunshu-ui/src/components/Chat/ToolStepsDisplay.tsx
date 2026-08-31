@@ -4,7 +4,7 @@ import './ToolStepsDisplay.css';
 export interface ToolStep {
   type: 'tool_call' | 'tool_result' | 'text' | 'error';
   tool?: string;
-  args?: Record<string, any>;
+  args?: Record<string, unknown>;
   status?: string;
   summary?: string;
   content?: string;
