@@ -26,6 +26,18 @@ from datetime import datetime
 from typing import Dict, Any, List, Optional
 import logging
 
+# ── 测试环境变量固化（P1 污染治理，2026-08-31）──
+# 说明：此处仅 setdefault（不覆盖用户显式配置），供测试内 spawn 的子进程继承。
+# - PYTHONUTF8=1 / PYTHONIOENCODING=utf-8：子进程 stdio 统一 UTF-8，规避中文
+#   Windows GBK 下 subprocess 输出捕获的 UnicodeDecodeError（conftest 顶部注释
+#   记载的方案在此正式落地；当前进程 stdout 保持不动，避免与 pytest capture 冲突）。
+# - OMP_NUM_THREADS / MKL_NUM_THREADS：限制 torch/numpy 线程数，规避 Windows
+#   上 C 扩展线程竞争导致的 0xC0000005 崩溃（与 README「Docker 部署」记载一致）。
+os.environ.setdefault("PYTHONUTF8", "1")
+os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+os.environ.setdefault("OMP_NUM_THREADS", "4")
+os.environ.setdefault("MKL_NUM_THREADS", "4")
+
 # 项目根目录
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
@@ -726,6 +738,39 @@ def reset_global_singletons():
     # 15. 强制重置 task_scheduler 单例（Mock 泄漏时置 None 重建）
     # Why: patch("agent.task_scheduler._scheduler") 泄漏 → get_scheduler() 返回 Mock。
     _force_reset_scheduler_singleton()
+    # 16. SingletonManager 定向重置「带 cleanup 钩子的线程持有型单例」
+    # Why（污染治理 P0，2026-08-31）：async_executor / resource_monitor /
+    #     self_healer / task_scheduler 注册时带 cleanup_fn（关闭线程池/释放资源）。
+    #     前序测试若初始化过这些单例且未清理，其线程池非 daemon 线程不退出 →
+    #     长跑累积资源耗竭 → 后续测试 setup 级联失败（全量 22072 errors 放大器）。
+    #     这里仅在「已初始化」时定向 reset，cleanup 钩子负责真正释放资源。
+    #     为什么不是 reset_all_singletons()：其余单例无 cleanup 钩子，直接删除
+    #     实例不会释放其内部资源（见第 17 项 lazy_loader），且会让 session 级
+    #     fixture 持有的旧引用失效——沿用「定向重置」策略，不动无钩子单例。
+    try:
+        from agent.utils.singleton_manager import is_initialized as _sm_is_initialized
+        from agent.utils.singleton_manager import reset_singleton as _sm_reset_singleton
+        for _sn in ("async_executor", "resource_monitor", "self_healer", "task_scheduler"):
+            try:
+                if _sm_is_initialized(_sn):
+                    _sm_reset_singleton(_sn)
+            except Exception:
+                pass
+        for _sn, _mod_path, _getter in (
+            ("lazy_loader", "agent.lazy_loader", "get_lazy_loader"),
+            ("async_lazy_loader", "agent.lazy_loader_async", "get_async_lazy_loader"),
+        ):
+            try:
+                if not _sm_is_initialized(_sn):
+                    continue
+                _inst = getattr(__import__(_mod_path, fromlist=[_getter]), _getter)()
+                if _inst is not None and hasattr(_inst, "shutdown"):
+                    _inst.shutdown()
+                _sm_reset_singleton(_sn)
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 # ============================================================================
 # 测试断言辅助函数

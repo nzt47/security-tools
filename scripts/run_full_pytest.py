@@ -37,6 +37,11 @@ os.chdir(ROOT)
 # 与项目其他 47 处脚本保持一致；pytest chunk 运行在 ProcessPoolExecutor 子进程，
 # spawn 继承本环境变量 → 子进程 stdio 使用 UTF-8，emoji 日志不再丢失。
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+# 【2026-08-31 污染治理 P1】PYTHONUTF8=1：解释器级 UTF-8 模式。修复 pytest capture
+# 读取回放 tmpfile 时把 GBK 字节当 UTF-8 解码的 UnicodeDecodeError（test_extensions /
+# test_routes_config 批量下 1 failed + 1 error 根因，调用时设置才生效——conftest 内
+# setdefault 对当前进程无效）。子进程 spawn 继承后 pytest 自身也在 UTF-8 模式运行。
+os.environ.setdefault("PYTHONUTF8", "1")
 
 # 与 pytest.ini addopts 的 --ignore 保持一致（保持 --continue-on-collection-errors 语义）
 IGNORES = [
@@ -96,6 +101,7 @@ def run_chunk(files: list[str], idx: int, out: str, marker: str | None,
     cmd += (extra or [])
     with open(out, "w", encoding="utf-8") as f:
         # 【K9 规避】合并离线 env（保留既有环境变量，仅新增/覆盖 K9 变量）
+        # 【P1】PYTHONUTF8 已在脚本顶部 setdefault，随 os.environ 一并继承
         env = {**os.environ, **K9_OFFLINE_ENV}
         rc = subprocess.call(cmd, stdout=f, stderr=subprocess.STDOUT, env=env)
     # rc=5 = "no tests ran"（分块后该 chunk 恰好无匹配用例），不视为失败
