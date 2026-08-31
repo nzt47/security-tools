@@ -1127,8 +1127,15 @@ def index():
 
 @app.route("/chat")
 def chat_page():
-    from flask import redirect
-    return redirect("/static/chat")
+    """云枢 React SPA 入口（build:flask 同步自 yunshu-ui/dist → templates/yunshu.html）。
+
+    修复 2026-08-31：原实现 redirect("/static/chat") 指向不存在的路径（404 死链），
+    React SPA（templates/yunshu.html，引用 /static/assets/*）无任何路由可达。
+    现改为直接渲染 SPA 入口；前端以 base=/static/ 构建，资源经 /static/<path> 路由服务。
+    """
+    from flask import Response
+    response = render_template("yunshu.html")
+    return Response(response, mimetype='text/html; charset=utf-8')
 
 @app.route("/legacy")
 def legacy_ui():
