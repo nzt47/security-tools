@@ -123,9 +123,14 @@ class TestMetricDefinitions:
             assert defn.metric_type in valid_types
 
     def test_categories_valid(self):
+        # 【2026-08-31 修复】valid_categories 补 'concurrency'：agent/monitoring/
+        # lock_watchdog.py 注册 3 个 category="concurrency" 指标（锁纪律/锁竞争），
+        # 属合法分类；测试原先漏列，仅在 lock_watchdog 被前序测试导入（触发
+        # _register_metrics）时才暴露（隔离跑通过、全量随机序偶发失败）。
         valid_categories = {
             "interaction", "task", "knowledge", "extension",
             "model_router", "stability", "business", "skill_quality",
+            "concurrency",
         }
         for defn in BUSINESS_METRICS_DEFINITIONS.values():
             assert defn.category in valid_categories
