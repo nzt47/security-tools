@@ -7,7 +7,7 @@
  *   /prompt-lab      → 提示词影响因素实验室（公开）
  *   /login           → 管理后台登录页（LoginLayout 空白布局）
  *   / (受保护)        → RequireAuth → MainLayout → 配置驱动路由（appRoutes：
- *                       /dashboard 仪表盘、/demo、/export、/knowledge、/system/*）
+ *                       /dashboard 仪表盘、/demo、/export、/system/*；知识库见工作台）
  *   /profile         → 登录流程测试页（保留原行为）
  *   /403             → 无权限页（AuthRoute 重定向进入）
  *   /detached/:panelId → Electron 独立窗口渲染进程（白名单校验）

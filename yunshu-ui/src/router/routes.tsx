@@ -6,6 +6,9 @@
  *   - meta：驱动 Sidebar 菜单（title / icon / hideInMenu）与 BreadCrumb（title）
  *   - meta.authority：驱动权限控制（AuthRoute 守卫 + 菜单过滤），权限码如 'system:view'
  *
+ * 注：知识库（完整版）已迁入统一工作台记忆管理/知识库（/workbench → memory/knowledge），
+ * 不再占用独立路由 /knowledge（移除后旧路径经兜底重定向回工作台，不再出现 403/白屏）。
+ *
  * 约定：
  *   - 路径统一小写英文，如 /system/user
  *   - 无 children 的节点为叶子页；有 children 的节点为分组（默认渲染 <Outlet/>）
@@ -13,9 +16,8 @@
  */
 import type { ReactNode } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { Bell, BookOpen, FileDown, History, LayoutDashboard, ListTree, Palette, ScrollText, Settings, ShieldCheck, Users } from 'lucide-react'
+import { Bell, FileDown, History, LayoutDashboard, ListTree, Palette, ScrollText, Settings, ShieldCheck, Users } from 'lucide-react'
 import Dashboard from '@/pages/Dashboard'
-import Knowledge from '@/pages/Knowledge'
 import UserList from '@/pages/system/UserList'
 import RoleList from '@/pages/system/RoleList'
 import MenuList from '@/pages/system/MenuList'
@@ -70,11 +72,6 @@ export const appRoutes: AppRouteObject[] = [
     path: '/export',
     element: <DataExport />,
     meta: { title: '数据导出', icon: FileDown },
-  },
-  {
-    path: '/knowledge',
-    element: <Knowledge />,
-    meta: { title: '知识库', icon: BookOpen },
   },
   {
     path: '/system',

@@ -36,7 +36,6 @@ profile 文件外层是 `slots` 容器，每个插槽一个数组：
     "main":   [{ "id": "chat", "order": 10 }],
     "panels": [
       { "id": "skills", "order": 10, "hidden": true },
-      { "id": "knowledge", "order": 20, "hidden": true },
       { "id": "devconsole", "order": 30, "hidden": true },
       { "id": "plugin-center", "order": 40, "hidden": true }
     ]
@@ -70,7 +69,7 @@ profile 文件外层是 `slots` 容器，每个插槽一个数组：
 
 | 条目 id | 组件 | 默认 order | 说明 |
 |---|---|---|---|
-| `panels` | PanelSwitcher | 5 | 面板切换器（技能管理/知识库/DevConsole 开关按钮 + 浮层） |
+| `panels` | PanelSwitcher | 5 | 面板切换器（技能管理/DevConsole 等开关按钮 + 浮层） |
 | `mascot` | Mascot + 情绪文案 | 10 | 云枢 Mascot，情绪由聊天流驱动 |
 | `sessions` | 会话列表 | 20 | 会话列表（新建/切换会话，`SlotHost` 经 props 下发） |
 
@@ -85,12 +84,14 @@ profile 文件外层是 `slots` 容器，每个插槽一个数组：
 | 条目 id | 组件 | 默认 order | 默认 hidden | 说明 |
 |---|---|---|---|---|
 | `skills` | SkillManagement | 10 | true | 技能管理 & 工作流学习 |
-| `knowledge` | Knowledge | 20 | true | 知识库 |
 | `devconsole` | ObservabilityDevtools | 30 | true | DevConsole（自定位浮层，portal 到 body） |
 | `plugin-center` | PluginPanel | 40 | true | 插件中心（T3.3：schema 驱动配置表单，`/api/plugins` 清单） |
 
 > `panels` 数组即「面板切换器按钮清单」：**从数组移除某条目 → 切换器不再显示该按钮**；
 > `hidden: true` → 初始关闭（按钮仍在，点击打开）。
+>
+> 注：知识库面板已随知识库完整版迁入统一工作台
+> （记忆管理 → 知识库系统，`pages/hub/memory/knowledge.tsx`），不再挂载为面板。
 
 ---
 

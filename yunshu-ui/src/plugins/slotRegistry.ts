@@ -62,7 +62,6 @@ export const DEFAULT_PROFILE: SlotProfile = {
   main: [{ id: 'chat', order: 10 }],
   panels: [
     { id: 'skills', order: 10, hidden: true },
-    { id: 'knowledge', order: 20, hidden: true },
     { id: 'devconsole', order: 30, hidden: true },
     { id: 'plugin-center', order: 40, hidden: true },
   ],

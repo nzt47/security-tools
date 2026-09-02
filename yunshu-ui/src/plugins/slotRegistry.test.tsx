@@ -192,11 +192,11 @@ describe('SlotProvider 注入', () => {
     expect(p.sidebar?.map((s) => s.id)).toEqual(['panels', 'mascot', 'sessions']);
     expect(p.sidebar?.map((s) => s.order)).toEqual([5, 10, 20]);
     expect(p.main).toEqual([{ id: 'chat', order: 10 }]);
-    // T2.3：panels 插槽填充三面板（初始 hidden:true → 默认关闭，按钮仍显示）
+    // T2.3：panels 插槽填充面板（初始 hidden:true → 默认关闭，按钮仍显示）
     // T3.3：追加 plugin-center（插件中心）面板条目
+    //（knowledge 面板已随知识库迁入工作台 memory/knowledge 移除）
     expect(p.panels).toEqual([
       { id: 'skills', order: 10, hidden: true },
-      { id: 'knowledge', order: 20, hidden: true },
       { id: 'devconsole', order: 30, hidden: true },
       { id: 'plugin-center', order: 40, hidden: true },
     ]);
@@ -357,10 +357,10 @@ describe('T2.4 profile 回退与变体', () => {
     // sidebar 顺序交换：mascot 置顶、panels 沉底
     expect(getProfile().sidebar?.map((s) => s.id)).toEqual(['mascot', 'sessions', 'panels']);
     expect(getProfile().sidebar?.map((s) => s.order)).toEqual([5, 10, 20]);
-    // panels：skills 默认打开（hidden:false）、knowledge 隐藏、devconsole 不在清单
+    // panels：skills 默认打开（hidden:false）、devconsole 不在清单
+    // （knowledge 面板已随知识库迁入工作台移除）
     expect(getProfile().panels).toEqual([
       { id: 'skills', order: 10, hidden: false },
-      { id: 'knowledge', order: 20, hidden: true },
     ]);
     // 切回默认 profile 恢复
     expect(await reloadProfile()).toBe(true);

@@ -8,8 +8,7 @@
     ],
     "main": [{ "id": "chat", "order": 10 }],
     "panels": [
-      { "id": "skills", "order": 10, "hidden": false },
-      { "id": "knowledge", "order": 20, "hidden": true }
+      { "id": "skills", "order": 10, "hidden": false }
     ]
   }
 }

@@ -1,22 +1,24 @@
 /**
- * 知识库前端测试（任务6）
+ * 知识库系统（工作台 · 记忆管理/知识库）前端测试（P1-1 迁移版）
  *
  * 验证范围：
- *  - 列表渲染与筛选
  *  - 状态角标四色（StatusBadge）
- *  - 详情抽屉（含入链/出链）
- *  - 搜索交互（融合检索命中展示）
+ *  - 详情抽屉（含入链/出链，CardDetail）
+ *  - 列表渲染与筛选、空态
+ *  - 行点击详情抽屉、详情竞态守卫
+ *  - 融合检索交互（命中展示与来源标记）
  *  - 删除 409 入链保护提示
+ *  - 新建卡片表单提交后关闭并刷新
  *
- * 策略：mock ../api/knowledge 模块，避免真实 HTTP。
+ * 策略：mock api/knowledge 模块，避免真实 HTTP。
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import type { Card, CardDetail, HealthReport, KnowledgeHit } from '../api/knowledge-types';
-import { ApiError } from '../lib/apiClient';
-import StatusBadge from '../components/Knowledge/StatusBadge';
-import CardDetailView from '../components/Knowledge/CardDetail';
-import Knowledge from '../pages/Knowledge';
+import type { Card, CardDetail, HealthReport, KnowledgeHit } from '../../../api/knowledge-types';
+import { ApiError } from '../../../lib/apiClient';
+import StatusBadge from '../../../components/Knowledge/StatusBadge';
+import CardDetailView from '../../../components/Knowledge/CardDetail';
+import MemoryKnowledge from './knowledge';
 
 // ── mock API 模块 ──────────────────────────────────────────────
 const apiMock = vi.hoisted(() => ({
@@ -27,9 +29,10 @@ const apiMock = vi.hoisted(() => ({
   deleteCard: vi.fn(),
   searchKnowledge: vi.fn(),
   getLint: vi.fn(),
+  getGraph: vi.fn(),
 }));
 
-vi.mock('../api/knowledge', () => apiMock);
+vi.mock('../../../api/knowledge', () => apiMock);
 
 const BASE_CARD: Card = {
   title: '测试概念卡',
@@ -95,9 +98,7 @@ describe('StatusBadge', () => {
 
 describe('CardDetail 抽屉', () => {
   it('展示 frontmatter 字段、正文、入链与出链', () => {
-    render(
-      <CardDetailView card={BASE_DETAIL} onClose={() => {}} onOpenLink={() => {}} />,
-    );
+    render(<CardDetailView card={BASE_DETAIL} onClose={() => {}} onOpenLink={() => {}} />);
     expect(screen.getByText('测试概念卡')).toBeTruthy();
     expect(screen.getByText(/一句话洞见/)).toBeTruthy();
     expect(screen.getByText(/slug: test-concept/)).toBeTruthy();
@@ -122,22 +123,24 @@ describe('CardDetail 抽屉', () => {
   });
 });
 
-describe('Knowledge 页面', () => {
+describe('工作台知识库页（MemoryKnowledge）', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     apiMock.listCards.mockResolvedValue({ ok: true, cards: [BASE_CARD], count: 1 });
     apiMock.getLint.mockResolvedValue({ ok: true, report: BASE_REPORT });
+    apiMock.getGraph.mockResolvedValue({ ok: true, nodes: [], edges: [] });
     apiMock.getCard.mockResolvedValue({ ok: true, card: BASE_DETAIL });
   });
 
-  it('初始化加载卡片列表与健康报告', async () => {
-    render(<Knowledge />);
+  it('初始化加载卡片列表与健康报告，统计行展示健康分', async () => {
+    render(<MemoryKnowledge />);
     await waitFor(() => {
       expect(screen.getByText('测试概念卡')).toBeTruthy();
     });
     expect(apiMock.listCards).toHaveBeenCalled();
     expect(apiMock.getLint).toHaveBeenCalled();
-    // 健康分渲染
+    expect(apiMock.getGraph).toHaveBeenCalled();
+    // 健康分渲染在统计行
     await waitFor(() => {
       expect(screen.getByText('92.5')).toBeTruthy();
     });
@@ -145,15 +148,15 @@ describe('Knowledge 页面', () => {
 
   it('知识库为空时不自动创建数据（空白状态）', async () => {
     apiMock.listCards.mockResolvedValue({ ok: true, cards: [], count: 0 });
-    render(<Knowledge />);
+    render(<MemoryKnowledge />);
     await waitFor(() => {
       expect(screen.getByText(/暂无卡片/)).toBeTruthy();
     });
     expect(apiMock.createCard).not.toHaveBeenCalled();
   });
 
-  it('点击卡片打开详情抽屉', async () => {
-    render(<Knowledge />);
+  it('点击卡片行打开详情抽屉', async () => {
+    render(<MemoryKnowledge />);
     await waitFor(() => {
       expect(screen.getByText('测试概念卡')).toBeTruthy();
     });
@@ -174,7 +177,7 @@ describe('Knowledge 页面', () => {
     const secondCard: Card = { ...BASE_CARD, slug: 'second', title: '第二张卡' };
     apiMock.listCards.mockResolvedValue({ ok: true, cards: [BASE_CARD, secondCard], count: 2 });
 
-    render(<Knowledge />);
+    render(<MemoryKnowledge />);
     await waitFor(() => {
       expect(screen.getByText('测试概念卡')).toBeTruthy();
     });
@@ -195,7 +198,7 @@ describe('Knowledge 页面', () => {
     expect(screen.getByText('入链 (0)')).toBeTruthy();
   });
 
-  it('搜索交互：输入问题并检索，展示命中结果与来源标记', async () => {
+  it('融合检索 tab：输入问题并检索，展示命中结果与来源标记', async () => {
     const hits: KnowledgeHit[] = [
       {
         slug: 'test-concept',
@@ -209,7 +212,8 @@ describe('Knowledge 页面', () => {
       },
     ];
     apiMock.searchKnowledge.mockResolvedValue({ ok: true, hits, result: '' });
-    render(<Knowledge />);
+    render(<MemoryKnowledge />);
+    fireEvent.click(screen.getByText('融合检索'));
     const input = screen.getByPlaceholderText('输入问题，检索知识库（RRF 融合）');
     fireEvent.change(input, { target: { value: '什么是双链' } });
     fireEvent.click(screen.getByText('检索'));
@@ -218,7 +222,7 @@ describe('Knowledge 页面', () => {
       expect(screen.getByText('[来源: test-concept|current]')).toBeTruthy();
     });
     expect(apiMock.searchKnowledge).toHaveBeenCalledWith('什么是双链', 5);
-    // 状态角标在命中项中可见（列表区也有角标，故用 getAll）
+    // 状态角标在命中项中可见（统计行也有角标样式不同，用 getAll）
     expect(screen.getAllByText('有效').length).toBeGreaterThan(0);
   });
 
@@ -229,7 +233,7 @@ describe('Knowledge 页面', () => {
     apiMock.deleteCard.mockRejectedValue(err);
     const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
     const confirmSpy = vi.spyOn(window, 'confirm').mockImplementation(() => true);
-    render(<Knowledge />);
+    render(<MemoryKnowledge />);
     await waitFor(() => {
       expect(screen.getByText('测试概念卡')).toBeTruthy();
     });
@@ -244,15 +248,15 @@ describe('Knowledge 页面', () => {
     alertSpy.mockRestore();
   });
 
-  it('新建卡片表单提交后刷新列表', async () => {
+  it('新建卡片表单提交后关闭弹层并刷新列表', async () => {
     apiMock.createCard.mockResolvedValue({ ok: true, card: BASE_CARD });
-    render(<Knowledge />);
+    render(<MemoryKnowledge />);
     await waitFor(() => {
       expect(screen.getByText('测试概念卡')).toBeTruthy();
     });
-    fireEvent.click(screen.getByText('✚ 新建卡片'));
+    fireEvent.click(screen.getByRole('button', { name: /新建卡片/ }));
     await waitFor(() => {
-      expect(screen.getByText('新建卡片')).toBeTruthy();
+      expect(screen.getByPlaceholderText('唯一标识（创建后不可修改）')).toBeTruthy();
     });
     fireEvent.change(screen.getByPlaceholderText('卡片标题（slug 默认由此生成）'), {
       target: { value: '新卡标题' },
@@ -267,6 +271,12 @@ describe('Knowledge 页面', () => {
     await waitFor(() => {
       expect(apiMock.createCard).toHaveBeenCalled();
     });
+    // 成功后弹层关闭（表单输入框消失）
+    await waitFor(() => {
+      expect(screen.queryByPlaceholderText('唯一标识（创建后不可修改）')).toBeNull();
+    });
+    // 刷新列表（创建后重新拉取 + 健康巡检）
     expect(apiMock.listCards).toHaveBeenCalled();
+    expect(apiMock.getLint).toHaveBeenCalled();
   });
 });
