@@ -1,7 +1,7 @@
 # 项目交付收尾报告 · 阶段 2 前端插槽化（2026-08-30）
 
 > 交付范围：云枢（Yunshu）前端插槽化阶段 2 全部任务 **T2.1–T2.4**
-> 关联文档：[插件化方案总览](yunshu-pluginization/README.md) · [PLAN-2 前端插槽化](yunshu-pluginization/PLAN-2-frontend-slots.md) · [界面组装配置说明](../yunshu-ui/src/plugins/PROFILE.md)
+> 关联文档：[插件化方案总览](yunshu-pluginization/README.md) · [PLAN-2 前端插槽化](yunshu-pluginization/PLAN-2-frontend-slots.md)
 > 交付基准：代码交付 `25d51cc2`，本报告归档 `1e3cf8bc`（origin/GitHub + gitee 双远端同步）
 
 ## 1. 交付范围与目标

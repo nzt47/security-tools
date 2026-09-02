@@ -1,7 +1,7 @@
 # 项目交付收尾报告 · 阶段 3 Schema 驱动自解释 UI（2026-08-31）
 
 > 交付范围：云枢（Yunshu）插件化阶段 3 全部任务 **T3.1–T3.3**
-> 关联文档：[插件化方案总览](yunshu-pluginization/README.md) · [PLAN-3 Schema 自解释 UI](yunshu-pluginization/PLAN-3-schema-ui.md) · [界面组装配置说明](../yunshu-ui/src/plugins/PROFILE.md)
+> 关联文档：[插件化方案总览](yunshu-pluginization/README.md) · [PLAN-3 Schema 自解释 UI](yunshu-pluginization/PLAN-3-schema-ui.md)
 > 交付基准：代码交付 `c19dbcfa`（T3.1–T3.3）；报告与进度归档提交见提交记录（origin/GitHub + gitee 双远端同步）
 
 ## 1. 交付范围与目标
