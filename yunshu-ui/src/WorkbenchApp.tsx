@@ -18,7 +18,7 @@
  * 跨窗口会话一致：挂载 startCrossWindowSync，独立窗口（分离/重开）与主工作台
  * 共享 messages/thinking（真实 Electron 或 VITE_MOCK_ELECTRON 双标签联调生效）。
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Mosaic, MosaicWindow, ExpandButton, RemoveButton } from 'react-mosaic-component';
 import type { MosaicNode, MosaicPath } from 'react-mosaic-component';
 import { Cloud, FlaskConical, RotateCcw } from 'lucide-react';
@@ -34,6 +34,12 @@ import { findNavItem } from './workbench/hubNav';
 import Toaster from './components/Toaster';
 import { renderPanel } from './components/workbench/panels/renderPanel';
 import { startCrossWindowSync } from './electron/sync';
+
+// 可观测性浮层（DevConsole 网络/错误/性能 + StateInspector 状态/时间线）：
+// 仅开发环境渲染——DEV=false 时不触发 lazy import，产物独立 chunk 不下载，
+// 符合"可观测性生产零成本"约束；组件与 store 内部另有 isObservabilityEnabled
+// 二次 gate 兜底（install() 空操作、DevConsole 返回 null）。
+const ObservabilityDevtools = lazy(() => import('./components/ObservabilityDevtools'));
 
 /** 当前激活导航项标签（顶栏显示当前位置） */
 function ActiveNavLabel() {
@@ -166,6 +172,12 @@ export default function WorkbenchApp() {
       {/* 全局 Toast 容器：系统管理（admin/*，复用 pages/system）等 Hub 页面操作
           失败/成功提示在此可见（缺陷 ①）；单例幂等，可多处挂载 */}
       <Toaster />
+      {/* 可观测性浮层（仅 dev；lazy 独立 chunk，生产不下载） */}
+      {import.meta.env.DEV && (
+        <Suspense fallback={null}>
+          <ObservabilityDevtools />
+        </Suspense>
+      )}
       {/* 顶栏 */}
       <header className="wb-topbar">
         <div className="flex items-center gap-2.5">
