@@ -6,7 +6,7 @@
  * 2. 展示登录状态（已登录 / 未登录）
  * 3. 监听 token：变为空（登出 / 会话失效）时自动跳转登录页
  *
- * 说明：本项目 router/index.tsx 已有全局登录守卫 RequireAuth，
+ * 说明：旧 router/index.tsx 的全局登录守卫 RequireAuth 已随管理后台外壳摘除；
  * 组件内监听跳转适用于局部页面（如独立窗口 / 弹出面板）。
  */
 import { useEffect } from 'react'

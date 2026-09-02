@@ -1,38 +1,24 @@
 /**
- * 路由配置中心 —— 菜单 / 面包屑 / 权限控制的单一数据源
+ * 路由/权限工具 —— 类型定义与纯函数（无任何页面组件）
  * ------------------------------------------------------
- * 每个节点承载三份职责：
- *   - path / element：交给 React Router 渲染
- *   - meta：驱动 Sidebar 菜单（title / icon / hideInMenu）与 BreadCrumb（title）
- *   - meta.authority：驱动权限控制（AuthRoute 守卫 + 菜单过滤），权限码如 'system:view'
+ * 历史：本文件原为「管理后台第二套外壳」的路由配置中心（appRoutes：
+ * /dashboard /demo /export /system/*，驱动 MainLayout/Sidebar/BreadCrumb/AuthRoute）。
+ * 该外壳已整体摘除（见 src/router/index.tsx 顶部说明），其页面组件收敛到统一工作台
+ * hubNav「admin」分组（workbench/hubNav.tsx，lazy 挂载）。
  *
- * 注：知识库（完整版）已迁入统一工作台记忆管理/知识库（/workbench → memory/knowledge），
- * 不再占用独立路由 /knowledge（移除后旧路径经兜底重定向回工作台，不再出现 403/白屏）。
- *
- * 约定：
- *   - 路径统一小写英文，如 /system/user
- *   - 无 children 的节点为叶子页；有 children 的节点为分组（默认渲染 <Outlet/>）
- *   - 不出现在菜单的路由（详情页等）置 hideInMenu: true
+ * 现保留纯工具部分供权限判定复用：
+ *   - RouteMeta / AppRouteObject / FlattenedRoute：通用路由/菜单节点类型
+ *   - flattenRoutes：嵌套树拍平
+ *   - hasAuthority / filterMenus：权限码集合模型（admin 通配 / permissions 命中），
+ *     与后端 PermissionManager.has_permission 语义一致；按钮级场景直接用
+ *     src/hooks/usePermission.ts（内联同款判定，避免循环依赖）。
  */
 import type { ReactNode } from 'react'
-import type { LucideIcon } from 'lucide-react'
-import { Bell, FileDown, History, LayoutDashboard, ListTree, Palette, ScrollText, Settings, ShieldCheck, Users } from 'lucide-react'
-import Dashboard from '@/pages/Dashboard'
-import UserList from '@/pages/system/UserList'
-import RoleList from '@/pages/system/RoleList'
-import MenuList from '@/pages/system/MenuList'
-import AuditList from '@/pages/system/AuditList'
-import NotificationCenter from '@/pages/system/NotificationCenter'
-import SystemLog from '@/pages/system/SystemLog'
-import DemoPage from '@/pages/Demo'
-import DataExport from '@/pages/Export'
 
 /** 路由元信息（驱动菜单、面包屑、权限控制） */
 export interface RouteMeta {
   /** 菜单名 / 面包屑文案 */
   title: string
-  /** 菜单图标（lucide 图标组件），缺省不显示图标 */
-  icon?: LucideIcon
   /** 权限码（如 'system:view'）：需命中 userInfo.permissions（admin 角色通配）；缺省表示登录用户均可见 */
   authority?: string
   /** 是否在侧边栏菜单隐藏（如详情页），默认 false */
@@ -50,66 +36,6 @@ export interface AppRouteObject {
   /** 子路由 */
   children?: AppRouteObject[]
 }
-
-/**
- * 应用路由配置（侧边栏菜单的单一数据源）
- * 权限模型：authority 为权限码，admin 角色通配；其余角色需命中 userInfo.permissions。
- * - 仪表盘/工作台/组件演示/数据导出：登录用户可见
- * - 系统管理：需 system:view（用户列表需 system:user:view，仅 admin 可见）
- */
-export const appRoutes: AppRouteObject[] = [
-  {
-    path: '/dashboard',
-    element: <Dashboard />,
-    meta: { title: '仪表盘', icon: LayoutDashboard },
-  },
-  {
-    path: '/demo',
-    element: <DemoPage />,
-    meta: { title: '组件演示', icon: Palette },
-  },
-  {
-    path: '/export',
-    element: <DataExport />,
-    meta: { title: '数据导出', icon: FileDown },
-  },
-  {
-    path: '/system',
-    meta: { title: '系统管理', icon: Settings, authority: 'system:view' },
-    children: [
-      {
-        path: '/system/user',
-        element: <UserList />,
-        meta: { title: '用户列表', icon: Users, authority: 'system:user:view' },
-      },
-      {
-        path: '/system/role',
-        element: <RoleList />,
-        meta: { title: '角色权限', icon: ShieldCheck, authority: 'system:role:view' },
-      },
-      {
-        path: '/system/menu',
-        element: <MenuList />,
-        meta: { title: '菜单管理', icon: ListTree, authority: 'system:role:view' },
-      },
-      {
-        path: '/system/audit',
-        element: <AuditList />,
-        meta: { title: '操作审计', icon: History, authority: 'system:audit:view' },
-      },
-      {
-        path: '/system/notification',
-        element: <NotificationCenter />,
-        meta: { title: '消息中心', icon: Bell, authority: 'system:notification:view' },
-      },
-      {
-        path: '/system/log',
-        element: <SystemLog />,
-        meta: { title: '系统日志', icon: ScrollText, authority: 'system:view' },
-      },
-    ],
-  },
-]
 
 /** 拍平后的路由条目（用于面包屑路径匹配等场景） */
 export interface FlattenedRoute {

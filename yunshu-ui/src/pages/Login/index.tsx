@@ -163,7 +163,8 @@ export default function LoginPage() {
           useUserStore.getState().setUserInfo(freshUser)
         }
       } catch {
-        // 【Why】拉取失败不阻断登录：MainLayout 挂载时（init）会再次尝试拉取
+        // 【Why】拉取失败不阻断登录：userInfo 缺失时仍可进入工作台，
+        // 管理接口按 localStorage token 鉴权，会话失效由 401 拦截器兜底
       }
       // 记住密码：勾选时 AES-GCM 加密保存密码；未勾选时清除，避免残留
       if (remember) {
@@ -181,7 +182,7 @@ export default function LoginPage() {
       } else {
         localStorage.removeItem(REMEMBER_KEY)
       }
-      // 有来源路径跳回来源，否则直达仪表盘（/ 即路由表仪表盘，避免写死 /dashboard 触发兜底重定向）
+      // 有来源路径跳回来源，否则回 '/'（路由表 '/' 重定向 → /workbench 统一工作台）
       console.info(`[auth] 登录成功，已写入 token，跳转 → ${from ?? '/'}`)
       navigate(from ?? '/', { replace: true })
     } catch (err) {

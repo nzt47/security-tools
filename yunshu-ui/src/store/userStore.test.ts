@@ -36,7 +36,7 @@ describe('模拟登录', () => {
     expect(useUserStore.getState().token).toBe('test-token-123')
     expect(useUserStore.getState().userInfo?.nickname).toBe('爱丽丝')
 
-    // request.ts 凭证（axios 拦截器 / RequireAuth 守卫读取的来源）
+    // request.ts 凭证（axios 拦截器 / AdminGuard 读取的来源）
     expect(getToken()).toBe('test-token-123')
 
     // persist 持久化（刷新页面后可恢复）

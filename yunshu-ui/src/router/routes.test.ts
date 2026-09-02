@@ -5,9 +5,12 @@
  *   - hasAuthority：权限码集合模型（公开 / admin 通配 / permissions 命中）
  *   - filterMenus：菜单树过滤（hideInMenu 剔除 / 权限剔除 / 空分组剔除）
  * 角色场景：admin（通配）与 user（按 permissions 集合判定）
+ *
+ * 注：原「真实路由配置（appRoutes）」用例随第二套管理后台外壳（appRoutes 配置树）
+ * 一并移除——页面组件已收敛到统一工作台 hubNav「admin」分组，见 src/router/index.tsx。
  */
 import { describe, expect, it, vi } from 'vitest'
-import { appRoutes, filterMenus, hasAuthority, type AppRouteObject } from './routes'
+import { filterMenus, hasAuthority, type AppRouteObject } from './routes'
 
 /** 过滤期间 filterMenus 内部会打调试日志，测试中静默，保持输出干净 */
 vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -75,34 +78,5 @@ describe('filterMenus 菜单过滤（自定义路由树）', () => {
   it('admin 通配：除 hideInMenu 外全部保留', () => {
     const result = filterMenus(tree, 'admin', [])
     expect(titles(result)).toEqual(['首页', '机密页', '分组', '子项A', '子项B'])
-  })
-})
-
-describe('filterMenus 真实路由配置（appRoutes）', () => {
-  it('user 仅含 system:view：系统管理分组保留，仅系统日志子项可见', () => {
-    const result = filterMenus(appRoutes, 'user', ['dashboard:view', 'workbench:use', 'system:view'])
-    const titlesArr = titles(result)
-    expect(titlesArr).toContain('系统管理')
-    expect(titlesArr).toContain('系统日志')
-    // 权限不足的子菜单对 user 隐藏
-    expect(titlesArr).not.toContain('用户列表')
-    expect(titlesArr).not.toContain('角色权限')
-    expect(titlesArr).not.toContain('操作审计')
-    expect(titlesArr).not.toContain('消息中心')
-  })
-
-  it('admin 通配：系统管理全部子菜单可见', () => {
-    const result = filterMenus(appRoutes, 'admin', [])
-    const titlesArr = titles(result)
-    expect(titlesArr).toContain('系统管理')
-    expect(titlesArr).toContain('用户列表')
-    expect(titlesArr).toContain('系统日志')
-  })
-
-  it('user 无任何权限码：系统管理分组整体隐藏', () => {
-    const result = filterMenus(appRoutes, 'user', [])
-    const titlesArr = titles(result)
-    expect(titlesArr).not.toContain('系统管理')
-    expect(titlesArr).not.toContain('系统日志')
   })
 })

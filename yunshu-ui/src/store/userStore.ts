@@ -13,7 +13,7 @@ interface UserState {
   token: string | null
   /** 当前登录用户信息，null 表示未加载或未登录 */
   userInfo: UserInfo | null
-  /** 当前用户可见菜单树（后端下发，null 表示未加载）；登录后由 MainLayout 拉取 */
+  /** 当前用户可见菜单树（后端下发，null 表示未加载）；由 fetchMenus 拉取。管理后台外壳摘除后暂无 UI 消费方，保留供后端菜单驱动场景复用 */
   menus: MenuTreeNode[] | null
   /** 设置登录令牌（同时应配合设置 userInfo） */
   setToken: (token: string) => void
@@ -36,7 +36,7 @@ export const useUserStore = create<UserState>()(
       // 【Why】setToken 只负责 token；userInfo 用 setUserInfo 独立设置，避免耦合
       setToken: (token) => set({ token }),
       setUserInfo: (userInfo) => set({ userInfo }),
-      // 【Why】拉取当前用户信息并同步到 Store；错误向上抛出，让调用方（如 MainLayout）处理登出跳转
+      // 【Why】拉取当前用户信息并同步到 Store；错误向上抛出，由调用方（登录页 / 401 拦截器）决定后续处理
       fetchUserInfo: async () => {
         logger.info('[userStore] fetchUserInfo 开始拉取用户信息')
         try {

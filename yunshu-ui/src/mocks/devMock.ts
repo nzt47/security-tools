@@ -350,8 +350,8 @@ export function mockApiPlugin(options: { loginReturnUser: boolean }): Plugin {
                   // 【Why】token 编码用户名，/user/info 据此还原账号角色，刷新页面后角色不漂移
                   token: `mock-token-${mockUser.username}-${Date.now()}`,
                   // 【Why】loginReturnUser 由 .env 的 VITE_MOCK_LOGIN_RETURN_USER 控制：
-                  // false 时不返回 user，让 MainLayout 走"登录后初始化"拉取路径（可验证骨架屏）；
-                  // true 时模拟真实后端登录直接携带用户信息，MainLayout 跳过拉取
+                  // false 时不返回 user，触发登录后的主动拉取（fetchUserInfo）补全用户信息；
+                  // true 时模拟真实后端登录直接携带用户信息，跳过拉取
                   ...(options.loginReturnUser ? { user: mockUser } : {}),
                 },
                 message: 'success',

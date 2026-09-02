@@ -24,7 +24,7 @@ export interface UserInfo {
   email?: string
   /** 手机号（敏感字段：持久化时会被剔除，见 src/store/userStore.ts 的 partialize） */
   phone?: string
-  /** 角色标识（如 'admin'），用于路由级权限控制（菜单过滤 + AuthRoute） */
+  /** 角色标识（如 'admin'），用于权限判定（admin 通配，见 hooks/usePermission.ts） */
   role?: string
   /** 权限标识列表（如 'dashboard:view'），空数组表示无特殊权限 */
   permissions?: string[]
@@ -49,8 +49,9 @@ export function getUserInfo(): Promise<UserInfo> {
 
 /**
  * 后端下发的菜单树节点
- * - 菜单结构 / 可见性完全由后端按角色过滤后返回，前端只负责渲染与守卫
- * - icon 为图标名称字符串，前端经 src/router/menus.ts 的 MENU_ICON_MAP 映射为 lucide 组件
+ * - 菜单结构 / 可见性完全由后端按角色过滤后返回
+ * - icon 为图标名称字符串；第二套管理后台外壳（含 MENU_ICON_MAP 映射）已摘除，
+ *   该字段保留以兼容后端数据结构，后续如需菜单驱动可自行映射为 lucide 组件
  */
 export interface MenuTreeNode {
   path: string

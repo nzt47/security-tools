@@ -3,7 +3,8 @@
  * ------------------------------------------------
  * 功能：拉取数据集 → 表格预览 → 选择格式（CSV / JSON）→ 下载导出文件
  * 合规（Electron 迁移审查标准）：
- *   - 路由：挂在 HashRouter（src/router/routes.tsx 配置树，随 MainLayout 受保护）
+ *   - 挂载：工作台「系统管理 → 数据导出」（pages/hub/admin/export.tsx 包装，
+ *     hubNav admin 分组 lazy 挂载；原管理后台路由 /export 已随第二套外壳摘除）
  *   - 下载：统一走 src/utils/system.ts 的 downloadFile（迁移时只需替换该函数）
  *   - 接口：经 src/utils/request.ts，baseURL 读取 VITE_API_BASE，无硬编码地址
  * 日志：数据拉取与文件下载前后均打印 [export] / [download] 埋点，便于排查。

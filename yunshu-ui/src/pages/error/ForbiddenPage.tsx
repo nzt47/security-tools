@@ -1,6 +1,7 @@
 /**
  * ForbiddenPage —— 403 无权限页面
- * 路由守卫（AuthRoute）检测到当前用户无权访问时重定向到此页。
+ * 原由管理后台 AuthRoute 守卫重定向进入；该外壳已摘除后保留为独立路由
+ * （#/403 手输可访问），链接返回统一工作台。
  */
 import { Link } from 'react-router-dom'
 
