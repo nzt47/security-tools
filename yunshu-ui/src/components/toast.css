@@ -1,0 +1,27 @@
+/* Toast 淡入淡出动画（时长与 Toaster.tsx 的 DURATION=3000 保持同步） */
+.toast {
+  animation:
+    toast-in 0.3s ease-out,
+    toast-out 0.3s ease-in 2.7s forwards;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+}

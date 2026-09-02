@@ -1,31 +1,24 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App'
-import PromptLab from './pages/PromptLab'
+import AppRouter from './router'
 import './index.css'
 
 /**
- * 入口（2026-08-30 构建修复）：
- * - 默认渲染 legacy 主界面（App.tsx，与 static/ 现有构建产物一致）。
- * - `#/prompt-lab` → 提示词影响因素实验室（独立页面，bb2e9915 引入）。
- * - 注：workbench/Electron 版入口（WorkbenchApp / DetachedChatApp /
- *   electron/* / lib/mosaic 等）来自未合入 master 的分支（4034e804），
- *   其源码在 master 缺失导致 2026-08-16 起构建失败；本修复回退到 legacy
- *   入口并移除相应孤儿源码，workbench 功能保留在 feature 分支。
+ * 入口（2026-09-01 统一路由合并）：
+ * 单一 HashRouter（AppRouter）管理全部前端入口，不再手工分发 hash：
+ * - `/`            → legacy 聊天主界面（App.tsx，插件插槽驱动）
+ * - `/workbench`   → 云枢 Mosaic 工作台（多面板拖拽/拆分）
+ * - `/prompt-lab`  → 提示词影响因素实验室
+ * - `/login`       → 管理后台登录页
+ * - `/dashboard`   → 管理后台仪表盘（登录守卫 + 权限）
+ * - `/system/*`    → 管理后台系统管理（用户/角色/菜单/审计/消息/日志）
+ * - `/detached/:panelId` → Electron 独立窗口视图
+ *
+ * 守卫策略：管理后台区域 RequireAuth（无 token 跳 /login）；
+ * legacy / workbench / prompt-lab 为公开页面，无需登录。
  */
-// eslint-disable-next-line react-refresh/only-export-components -- 入口文件刻意内联根组件且无导出，Fast Refresh 无需生效
-function Root() {
-  const hash = window.location.hash
-
-  if (hash.startsWith('#/prompt-lab')) {
-    return <PromptLab />
-  }
-
-  return <App />
-}
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Root />
+    <AppRouter />
   </StrictMode>,
 )

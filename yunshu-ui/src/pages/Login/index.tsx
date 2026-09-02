@@ -1,0 +1,255 @@
+/**
+ * LoginPage —— 登录页
+ * 交互：调用 login 接口 → 成功写入 Token 并跳转；失败提示统一由全局 Toast 展示
+ * （接口失败：axios 拦截器统一 toast；前端校验：页面直接调用 toast）
+ * 记住密码：密码经 Web Crypto AES-GCM 加密后落盘 localStorage，不存明文
+ */
+import { useEffect, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { login } from '@/api/user'
+import { setToken as saveToken } from '@/utils/request'
+import { useUserStore } from '@/store/userStore'
+import { toast } from '@/components/Toaster'
+
+/** 记住密码的 localStorage key */
+const REMEMBER_KEY = 'yunshu-remember-login'
+/** AES-GCM 密钥（raw 导出后存储，同源复用，保证旧密文可解密） */
+const REMEMBER_KEY_CRYPTO = 'yunshu-remember-key'
+
+/** localStorage 存储格式（密码为密文） */
+interface StoredCredentials {
+  remember: boolean
+  username: string
+  /** base64(iv + ciphertext)，未勾选记住时为空 */
+  passwordCipher: string
+}
+
+/** 加载结果（密码已解密为明文，仅用于回填表单） */
+interface RememberedCredentials {
+  remember: boolean
+  username: string
+  password: string
+}
+
+// ---------- Web Crypto 工具（AES-GCM 加密密码，避免明文落盘 localStorage） ----------
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let bin = ''
+  bytes.forEach((b) => {
+    bin += String.fromCharCode(b)
+  })
+  return btoa(bin)
+}
+
+function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64)
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return bytes
+}
+
+/** 获取或创建 AES-GCM 密钥：已有则导入，否则生成并持久化 */
+async function getCryptoKey(): Promise<CryptoKey> {
+  const raw = localStorage.getItem(REMEMBER_KEY_CRYPTO)
+  if (raw) {
+    return crypto.subtle.importKey('raw', base64ToBytes(raw), 'AES-GCM', false, ['encrypt', 'decrypt'])
+  }
+  // 【Why】extractable=true：密钥需导出 raw 持久化，供下次解密复用（仅本地存储，不外传）
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'])
+  const exported = new Uint8Array(await crypto.subtle.exportKey('raw', key))
+  localStorage.setItem(REMEMBER_KEY_CRYPTO, bytesToBase64(exported))
+  return key
+}
+
+/** 加密密码：随机 12 字节 IV + AES-GCM 密文，合并后 base64 */
+async function encryptPassword(key: CryptoKey, password: string): Promise<string> {
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(password))
+  const combined = new Uint8Array(iv.length + cipher.byteLength)
+  combined.set(iv, 0)
+  combined.set(new Uint8Array(cipher), iv.length)
+  return bytesToBase64(combined)
+}
+
+/** 解密密码：拆 IV 与密文后解密；密钥/数据不匹配时抛错 */
+async function decryptPassword(key: CryptoKey, payload: string): Promise<string> {
+  const combined = base64ToBytes(payload)
+  const iv = combined.slice(0, 12)
+  const cipher = combined.slice(12)
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, cipher)
+  return new TextDecoder().decode(plain)
+}
+
+/**
+ * 读取已保存的登录凭证
+ * 密码以密文存储，解密成功才回填；密钥丢失/数据损坏时仅回填用户名
+ */
+async function loadRememberedCredentials(): Promise<RememberedCredentials> {
+  let remember = false
+  let username = ''
+  let passwordCipher = ''
+  try {
+    const raw = localStorage.getItem(REMEMBER_KEY)
+    if (raw) {
+      const data = JSON.parse(raw) as Partial<StoredCredentials>
+      remember = !!data.remember
+      username = typeof data.username === 'string' ? data.username : ''
+      passwordCipher = typeof data.passwordCipher === 'string' ? data.passwordCipher : ''
+    }
+  } catch {
+    // 数据损坏：按未保存处理
+  }
+  if (!remember || !passwordCipher) {
+    return { remember, username, password: '' }
+  }
+  try {
+    const key = await getCryptoKey()
+    const password = await decryptPassword(key, passwordCipher)
+    return { remember, username, password }
+  } catch {
+    // 解密失败（密钥丢失/数据损坏）：仅回填用户名
+    return { remember, username, password: '' }
+  }
+}
+
+export default function LoginPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  // 守卫重定向时携带的来源路径，登录后优先跳回
+  const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname
+
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [remember, setRemember] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  // 【Why】记住密码回填改为异步：密码以密文存储，需 Web Crypto 解密后再回填
+  useEffect(() => {
+    let cancelled = false
+    loadRememberedCredentials().then((saved) => {
+      if (cancelled) return
+      setUsername(saved.username)
+      setPassword(saved.password)
+      setRemember(saved.remember)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (loading) return
+
+    const name = username.trim()
+    if (!name || !password) {
+      // 前端校验不发请求，拦截器不参与，此处直接走全局 Toast
+      toast.error('请输入用户名和密码')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const data = await login({ username: name, password })
+      // 【Why】守卫与 axios 拦截器读 localStorage 'token'，必须写入；store 同步全局状态
+      saveToken(data.token)
+      useUserStore.getState().setToken(data.token)
+      // 【Why】强制刷新用户信息：登录响应未携带 user（VITE_MOCK_LOGIN_RETURN_USER=false 或真实后端）
+      // 或 zustand persist 恢复旧账号残留（如外部清理 localStorage 后切换账号）时，
+      // 重新拉取最新用户信息覆盖旧值，确保切换账号后角色/权限即时生效。
+      try {
+        const freshUser = data.user ?? (await useUserStore.getState().fetchUserInfo())
+        if (freshUser) {
+          useUserStore.getState().setUserInfo(freshUser)
+        }
+      } catch {
+        // 【Why】拉取失败不阻断登录：MainLayout 挂载时（init）会再次尝试拉取
+      }
+      // 记住密码：勾选时 AES-GCM 加密保存密码；未勾选时清除，避免残留
+      if (remember) {
+        try {
+          const key = await getCryptoKey()
+          const passwordCipher = await encryptPassword(key, password)
+          localStorage.setItem(
+            REMEMBER_KEY,
+            JSON.stringify({ remember: true, username: name, passwordCipher })
+          )
+        } catch (err) {
+          // 【Why】加密不可用（非安全上下文等）：放弃保存，绝不将明文密码落盘
+          console.warn('[auth] 加密不可用，跳过记住密码保存', err)
+        }
+      } else {
+        localStorage.removeItem(REMEMBER_KEY)
+      }
+      // 有来源路径跳回来源，否则直达仪表盘（/ 即路由表仪表盘，避免写死 /dashboard 触发兜底重定向）
+      console.info(`[auth] 登录成功，已写入 token，跳转 → ${from ?? '/'}`)
+      navigate(from ?? '/', { replace: true })
+    } catch (err) {
+      // 【Why】接口失败的错误提示已由全局 axios 拦截器统一 toast（业务/HTTP 错误均覆盖），
+      // 页面不再重复展示，保持全站提示风格一致（单一来源，避免双弹）
+      console.error(`[auth] 登录失败：${err instanceof Error ? err.message : String(err)}`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+      <h1 className="text-2xl font-bold text-slate-800">云枢</h1>
+      <p className="mb-6 mt-1 text-sm text-slate-400">欢迎回来，请登录你的账号</p>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label htmlFor="username" className="mb-1.5 block text-sm font-medium text-slate-600">
+            用户名
+          </label>
+          <input
+            id="username"
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="请输入用户名"
+            autoComplete="username"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          />
+        </div>
+
+        <div>
+          <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-600">
+            密码
+          </label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="请输入密码"
+            autoComplete="current-password"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+          />
+        </div>
+
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          记住密码
+        </label>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {loading && (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          )}
+          {loading ? '登录中...' : '登录'}
+        </button>
+      </form>
+    </div>
+  )
+}
