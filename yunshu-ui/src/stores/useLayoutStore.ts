@@ -35,6 +35,8 @@ interface LayoutStore {
   thinking: ThinkingEvent[];
   streaming: boolean;
   activeStreamId: string | null;
+  /** 历史问话跳转定位：需要滚动/高亮的消息 ID（由 ChatPanel 消费并在动画后清空） */
+  highlightMsgId: string | null;
 
   setLayout: (next: MosaicNode<PanelId> | null) => void;
   resetLayout: () => void;
@@ -42,7 +44,9 @@ interface LayoutStore {
   stopStreaming: () => void;
   clearConversation: () => void;
   /** 从后端会话加载历史消息（messages 为空时使用，刷新后恢复对话） */
-  loadSessionHistory: (sessionId: string) => Promise<void>;
+  loadSessionHistory: (sessionId: string, opts?: { force?: boolean }) => Promise<void>;
+  /** 请求滚动定位到某条消息（由 ChatPanel 渲染层消费，动画结束后自动置空） */
+  setHighlightMsg: (id: string | null) => void;
 }
 
 // 仅暴露给 persist 的字段（layout 之外的动态数据不做本地持久化）
@@ -88,6 +92,7 @@ export const useLayoutStore = create<LayoutStore>()(
       thinking: [],
       streaming: false,
       activeStreamId: null,
+      highlightMsgId: null,
 
       setLayout: (next) => set({ layout: next }),
 
@@ -210,17 +215,22 @@ export const useLayoutStore = create<LayoutStore>()(
 
       clearConversation: () => {
         abortController?.abort();
-        set({ messages: [], thinking: [], streaming: false, activeStreamId: null });
+        set({ messages: [], thinking: [], streaming: false, activeStreamId: null, highlightMsgId: null });
       },
 
-      loadSessionHistory: async (sessionId) => {
-        // 仅当当前无消息时加载，避免覆盖进行中的对话
-        if (!sessionId || get().messages.length > 0) return;
+      loadSessionHistory: async (sessionId, opts) => {
+        // 仅当当前无消息时加载，避免覆盖进行中的对话；force=true 时无视该保护
+        // （历史问话删除后需强制同步被删条目的会话视图）
+        if (!sessionId) return;
+        if (get().messages.length > 0 && !opts?.force) return;
         try {
           const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/messages`);
           if (!res.ok) return;
           const hist = (await res.json()) as { role?: string; content?: string; timestamp?: string }[];
-          if (!Array.isArray(hist) || hist.length === 0) return;
+          if (!Array.isArray(hist) || hist.length === 0) {
+            if (opts?.force) set({ messages: [] });
+            return;
+          }
           const loaded: ChatMessage[] = hist
             .filter((m) => m.content)
             .map((m, i) => ({
@@ -235,6 +245,8 @@ export const useLayoutStore = create<LayoutStore>()(
           // 历史加载失败静默（不影响新对话）
         }
       },
+
+      setHighlightMsg: (id) => set({ highlightMsgId: id }),
     }),
     {
       name: LAYOUT_STORAGE_KEY,

@@ -1,5 +1,8 @@
 /**
  * 单条消息：Framer Motion 入场动画 + 流式光标
+ *
+ * data-mid：以消息 ID 作为 DOM 定位锚点，供"历史问话跳转定位"精确滚动/高亮
+ * （配合 ChatPanel 的 highlightMsgId 消费逻辑与 useLayoutStore.setHighlightMsg）。
  */
 import { motion } from 'framer-motion';
 import type { ChatMessage } from '../../../stores/useLayoutStore';
@@ -8,16 +11,24 @@ import { Markdown } from './Markdown';
 const formatTime = (ts: number) =>
   new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 
-export function MessageItem({ message }: { message: ChatMessage }) {
+export function MessageItem({
+  message,
+  highlighted = false,
+}: {
+  message: ChatMessage;
+  /** 历史问话跳转目标：短暂高亮气泡 */
+  highlighted?: boolean;
+}) {
   const isUser = message.role === 'user';
   const streaming = message.status === 'streaming';
 
   return (
     <motion.div
+      data-mid={message.id}
       initial={{ opacity: 0, y: 12, filter: 'blur(2px)' }}
       animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-      className={`wb-msg flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}
+      className={`wb-msg flex gap-3 ${isUser ? 'flex-row-reverse' : ''} ${highlighted ? 'wb-msg-flash' : ''}`}
     >
       {/* 头像 */}
       <div

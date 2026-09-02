@@ -1,7 +1,8 @@
 /**
  * 全局 Toast（Tailwind 样式，淡入淡出）
  * - 用法：toast.success('保存成功') / toast.error('出错了') / toast.info('提示')
- * - <Toaster /> 在入口 main.tsx 挂载一次，全局唯一
+ * - <Toaster /> 挂载点（缺陷 ① 修复后）：WorkbenchApp（工作台根，覆盖 admin/* 等
+ *   Hub 页面）与 LoginLayout（登录页）；单例幂等，可多处挂载不会重复弹窗
  * - 模块级单例：非 React 模块（如 request.ts 拦截器）也可直接调用 toast
  */
 import { useEffect, useState } from 'react'

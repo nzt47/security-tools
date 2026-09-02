@@ -1,6 +1,10 @@
 /**
  * 记忆管理 —— 手动记忆 / 自动记忆 / 向量搜索
  * 数据源：/api/memory/overview、/api/memory/manual、/api/vector/search
+ *
+ * 参数化（缺陷 ②）：同一组件被工作台 memory/manual 与 memory/auto 两个导航项复用，
+ * 由导航 key 推导的 mode 决定页面初始模式（manual=手动录入卡片 / auto=自动沉淀说明），
+ * 点击不同菜单不再渲染成相同内容（配合 ContentPanel 的 key 重挂载）。
  */
 import { useEffect, useState } from 'react'
 import { Brain, Search, Trash2, Plus } from 'lucide-react'
@@ -21,7 +25,13 @@ interface SearchResult {
   [k: string]: unknown
 }
 
-export default function MemoryPage() {
+interface MemoryPageProps {
+  /** 初始模式（默认 manual）；由工作台导航 key 推导：memory/manual → manual、memory/auto → auto */
+  mode?: 'manual' | 'auto'
+}
+
+export default function MemoryPage({ mode = 'manual' }: MemoryPageProps) {
+  const isAuto = mode === 'auto'
   const [overview, setOverview] = useState<MemoryOverview | null>(null)
   const [manualText, setManualText] = useState('')
   const [saving, setSaving] = useState(false)
@@ -68,7 +78,10 @@ export default function MemoryPage() {
 
   return (
     <div className="p-6">
-      <PageHeader title="记忆管理" description="手动记忆 / 自动记忆 / 知识检索" />
+      <PageHeader
+        title={isAuto ? '自动记忆' : '记忆管理'}
+        description={isAuto ? '系统在对话过程中自动沉淀的记忆 / 知识检索' : '手动记忆 / 自动记忆 / 知识检索'}
+      />
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       {msg && <div className="mb-4 rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-sm text-cyan-400">{msg}</div>}
 
@@ -81,22 +94,41 @@ export default function MemoryPage() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card title="手动记忆">
-          <textarea
-            value={manualText}
-            onChange={(e) => setManualText(e.target.value)}
-            rows={5}
-            placeholder="输入要记住的内容…"
-            className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-cyan-600"
-          />
-          <button
-            onClick={saveManual}
-            disabled={saving || !manualText.trim()}
-            className="mt-3 flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500 disabled:opacity-40"
-          >
-            <Plus size={14} /> {saving ? '保存中…' : '保存记忆'}
-          </button>
-        </Card>
+        {isAuto ? (
+          <Card title="自动记忆">
+            <div className="space-y-3 text-sm">
+              <p className="leading-6 text-slate-400">
+                自动记忆由系统在对话过程中自动沉淀，无需手动录入：
+                关键信息 → 窗口事件 → 摘要 → 向量化入库，供后续知识检索复用。
+                当前共沉淀{' '}
+                <span className="font-mono text-cyan-300">{overview?.window_events ?? '-'}</span>{' '}
+                条窗口事件、
+                <span className="font-mono text-cyan-300">{overview?.vector_docs ?? '-'}</span>{' '}
+                条向量文档。
+              </p>
+              <div className="rounded-lg border border-cyan-900/50 bg-cyan-950/20 px-4 py-3 text-xs leading-6 text-cyan-200/80">
+                提示：如需手动录入关键信息，请在左侧导航切换至「手动记忆」（memory/manual）。
+              </div>
+            </div>
+          </Card>
+        ) : (
+          <Card title="手动记忆">
+            <textarea
+              value={manualText}
+              onChange={(e) => setManualText(e.target.value)}
+              rows={5}
+              placeholder="输入要记住的内容…"
+              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-200 placeholder-slate-600 outline-none focus:border-cyan-600"
+            />
+            <button
+              onClick={saveManual}
+              disabled={saving || !manualText.trim()}
+              className="mt-3 flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-500 disabled:opacity-40"
+            >
+              <Plus size={14} /> {saving ? '保存中…' : '保存记忆'}
+            </button>
+          </Card>
+        )}
 
         <Card title="知识检索">
           <div className="flex gap-2">

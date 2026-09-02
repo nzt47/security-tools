@@ -4,17 +4,19 @@
  * 由 Electron 主进程为"面板分离"创建的新 BrowserWindow 加载本视图，
  * 只渲染被分离的单个面板，冷启动资源最小化（配合 Vite 代码分割）。
  *
+ * 面板渲染与主工作台统一（缺陷 ③）：CHAT→ContentPanel / NAV→NavPanel /
+ * THINK→ThinkingPanel / CODE→CodeEditorPanel，统一走 renderPanel 单一映射，
+ * 独立窗口不再渲染与主工作台不一致的 ChatPanel / SidebarPanel 占位。
+ *
  * 数据一致性：
  *  - 启动时经 IPC 拉取分离瞬间的状态快照（getInitialState）
- *  - 之后由 startCrossWindowSync 持续双向同步（主进程事件总线）
+ *  - 之后由 startCrossWindowSync 持续双向同步（主进程事件总线，mock 下为
+ *    BroadcastChannel 跨标签页总线），与主工作台会话（messages/thinking）一致
  * Web 环境直接访问本路由时（#/detached/chat），无 IPC 可用，自动降级为空状态。
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
-import { ChatPanel } from './components/workbench/panels/ChatPanel';
-import { ThinkingPanel } from './components/workbench/panels/ThinkingPanel';
-import { SidebarPanel } from './components/workbench/panels/SidebarPanel';
-import { CodeEditorPanel } from './components/workbench/panels/CodeEditorPanel';
+import { renderPanel } from './components/workbench/panels/renderPanel';
 import { useLayoutStore } from './stores/useLayoutStore';
 import type { ChatMessage, ThinkingEvent } from './stores/useLayoutStore';
 import { PANEL } from './lib/mosaic';
@@ -30,28 +32,13 @@ const PANEL_LABEL: Record<PanelId, string> = {
   [PANEL.CODE]: '代码编辑器',
 };
 
-function renderDetachedPanel(panelId: PanelId) {
-  switch (panelId) {
-    case PANEL.THINK:
-      return <ThinkingPanel />;
-    case PANEL.NAV:
-      return <SidebarPanel />;
-    case PANEL.CODE:
-      return <CodeEditorPanel />;
-    case PANEL.CHAT:
-    default:
-      return <ChatPanel />;
-  }
-}
-
 export function DetachedChatApp({ panelId }: { panelId: PanelId }) {
-  const synced = useRef(false);
-
-  // 启动跨窗口同步 + 拉取分离瞬间快照（仅首次）
+  // 启动跨窗口同步 + 拉取分离瞬间快照。
+  // 【Why】不设"仅首次"标志：StrictMode（dev）会先跑 effect→cleanup→再跑 effect，
+  // 若用 ref 跳过第二次，cleanup 后同步不会重建，导致窗口间失去实时一致；
+  // 直接每次返回 cleanup，重跑时先清理再重建。getInitialState 为取后即清（幂等），
+  // 二次调用返回 null，快照恰好应用一次。
   useEffect(() => {
-    if (synced.current) return;
-    synced.current = true;
-
     const cleanup = startCrossWindowSync();
     if (isElectron()) {
       window.electronAPI!
@@ -97,8 +84,8 @@ export function DetachedChatApp({ panelId }: { panelId: PanelId }) {
         )}
       </header>
 
-      {/* 被分离的面板内容 */}
-      <div className="wb-detached-body">{renderDetachedPanel(panelId)}</div>
+      {/* 被分离的面板内容（与主工作台同一渲染映射） */}
+      <div className="wb-detached-body">{renderPanel(panelId)}</div>
     </div>
   );
 }

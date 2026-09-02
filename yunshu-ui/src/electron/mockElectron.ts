@@ -1,7 +1,8 @@
 /**
  * Web 模式下的 Electron API Mock —— 本地联调"独立窗口同步"逻辑
  * ------------------------------------------------
- * 用法：构建/启动时设置 VITE_MOCK_ELECTRON=1，main.tsx 自动注入。
+ * 用法（缺陷 ③ 已接线）：开发环境设置 VITE_MOCK_ELECTRON=1 启动 dev server，
+ * main.tsx 自动注入本模块（import.meta.env.DEV && VITE_MOCK_ELECTRON==='1'）。
  * 机制：用 BroadcastChannel 模拟主进程事件总线（同 origin 多标签页互通），
  *       用 localStorage 暂存"分离瞬间快照"（新标签页加载完成后拉取）。
  *

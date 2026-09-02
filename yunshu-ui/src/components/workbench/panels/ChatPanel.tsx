@@ -19,19 +19,38 @@ const SUGGESTIONS = [
   '云枢的监控体系如何运作？',
 ];
 
+/** 历史问话跳转高亮持续时间（ms），到时由本组件清空 store 的 highlightMsgId */
+const HIGHLIGHT_CLEAR_MS = 2000;
+
 export function ChatPanel() {
   const messages = useLayoutStore((s) => s.messages);
   const streaming = useLayoutStore((s) => s.streaming);
+  const highlightMsgId = useLayoutStore((s) => s.highlightMsgId);
   const sendMessage = useLayoutStore((s) => s.sendMessage);
   const stopStreaming = useLayoutStore((s) => s.stopStreaming);
 
   const [input, setInput] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // 最后一条消息内容：内容增长时触底滚动（独立变量便于依赖数组静态检查）
+  const lastMsgContent = messages[messages.length - 1]?.content;
 
   // 流式内容增长 / 新消息 → 平滑滚动到底部
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages, messages[messages.length - 1]?.content]);
+  }, [messages, lastMsgContent]);
+
+  // 历史问话跳转定位：滚动到目标消息（data-mid 锚点）并触发 wb-msg-flash 高亮，
+  // 动画结束后清空 store 标记，避免下一次挂载重复闪烁。
+  useEffect(() => {
+    if (!highlightMsgId) return;
+    const node = scrollRef.current?.querySelector<HTMLElement>(`[data-mid="${highlightMsgId}"]`);
+    node?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const t = setTimeout(() => {
+      useLayoutStore.getState().setHighlightMsg(null);
+    }, HIGHLIGHT_CLEAR_MS);
+    return () => clearTimeout(t);
+  }, [highlightMsgId]);
 
   // ─── 流式过程日志（排查断流 / 乱序 / 丢包） ───
   // 订阅 store 的流式事件，集中打印：分片序号、长度、累计、间隔、汇总统计。
@@ -109,7 +128,7 @@ export function ChatPanel() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* 消息区 */}
-      <div className="wb-chat-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} className="wb-chat-scroll min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
@@ -140,7 +159,7 @@ export function ChatPanel() {
           <div className="mx-auto flex max-w-3xl flex-col gap-5">
             <AnimatePresence initial={false}>
               {messages.map((m) => (
-                <MessageItem key={m.id} message={m} />
+                <MessageItem key={m.id} message={m} highlighted={m.id === highlightMsgId} />
               ))}
             </AnimatePresence>
             <div ref={bottomRef} />

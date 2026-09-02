@@ -19,7 +19,7 @@ export interface ApiResponse<T = unknown> {
 }
 
 // 【Why】token 读写统一走 storage 封装（getRaw/setRaw 原样字符串，保持既有契约键 'token' 不变）；
-// 守卫（AuthRoute / RequireAuth）与登录页直接读裸键，禁止改键名或引入 JSON 序列化。
+// 登录页 / axios 拦截器 / AdminGuard 直接读裸键，禁止改键名或引入 JSON 序列化。
 export function getToken(): string | null {
   return storage.getRaw(STORAGE_KEYS.TOKEN)
 }

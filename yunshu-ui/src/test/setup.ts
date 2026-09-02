@@ -28,3 +28,25 @@ if (typeof globalThis.window !== 'undefined') {
     // window 属性不可配置时忽略（globalThis 已兜底）
   }
 }
+
+// jsdom 无 ResizeObserver（Dashboard/图表容器依赖它）；Node 22 全局探测会与
+// jsdom 的 window 作用域不一致，单文件内 vi.stubGlobal 在全量并发时偶发丢失，
+// 因此在 setup 层统一打桩（同时覆盖 globalThis 与 window），保证全量运行稳定。
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  Object.defineProperty(globalThis, 'ResizeObserver', {
+    value: ResizeObserverStub,
+    configurable: true,
+    writable: true,
+  });
+}
+if (typeof globalThis.window !== 'undefined' && typeof window.ResizeObserver === 'undefined') {
+  Object.defineProperty(window, 'ResizeObserver', {
+    value: ResizeObserverStub,
+    configurable: true,
+  });
+}

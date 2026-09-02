@@ -12,6 +12,11 @@
  *   3. 主进程创建独立 BrowserWindow 加载 #/detached/<panelId>
  *   4. 本窗口从布局树摘除该面板；状态经 IPC 快照同步到新窗口
  *   5. 工具栏"独立窗口"按钮是同样逻辑的兜底入口（Web 下隐藏）
+ *
+ * 提示通道（缺陷 ①）：本组件挂载全局 <Toaster/>，系统管理（admin/*，复用
+ * pages/system 页面）等 Hub 页面操作的 toast 提示在工作台内可见。
+ * 跨窗口会话一致：挂载 startCrossWindowSync，独立窗口（分离/重开）与主工作台
+ * 共享 messages/thinking（真实 Electron 或 VITE_MOCK_ELECTRON 双标签联调生效）。
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Mosaic, MosaicWindow, ExpandButton, RemoveButton } from 'react-mosaic-component';
@@ -19,7 +24,6 @@ import type { MosaicNode, MosaicPath } from 'react-mosaic-component';
 import { Cloud, FlaskConical, RotateCcw } from 'lucide-react';
 import {
   DEFAULT_LAYOUT,
-  PANEL,
   PANEL_TITLES,
   removePanelFromLayout,
 } from './lib/mosaic';
@@ -27,10 +31,9 @@ import type { PanelId } from './lib/mosaic';
 import { useLayoutStore } from './stores/useLayoutStore';
 import { useWorkbenchNav } from './workbench/navStore';
 import { findNavItem } from './workbench/hubNav';
-import { ThinkingPanel } from './components/workbench/panels/ThinkingPanel';
-import { CodeEditorPanel } from './components/workbench/panels/CodeEditorPanel';
-import { NavPanel } from './components/workbench/panels/NavPanel';
-import { ContentPanel } from './components/workbench/panels/ContentPanel';
+import Toaster from './components/Toaster';
+import { renderPanel } from './components/workbench/panels/renderPanel';
+import { startCrossWindowSync } from './electron/sync';
 
 /** 当前激活导航项标签（顶栏显示当前位置） */
 function ActiveNavLabel() {
@@ -53,20 +56,6 @@ const createNode = (viewId: PanelId): MosaicNode<PanelId> => ({
   children: [viewId, viewId],
   splitPercentages: [50, 50],
 });
-
-function renderPanel(id: PanelId) {
-  switch (id) {
-    case PANEL.NAV:
-      return <NavPanel />;
-    case PANEL.THINK:
-      return <ThinkingPanel />;
-    case PANEL.CODE:
-      return <CodeEditorPanel />;
-    case PANEL.CHAT:
-    default:
-      return <ContentPanel />;
-  }
-}
 
 export default function WorkbenchApp() {
   const layout = useLayoutStore((s) => s.layout);
@@ -139,6 +128,15 @@ export default function WorkbenchApp() {
     };
   }, [detachPanel]);
 
+  // ─── 跨窗口状态同步：主工作台也是同步端点 ───
+  // 独立窗口（分离出的 BrowserWindow / mock 双标签页）与主工作台实时共享
+  // messages/thinking，保证 #/detached/chat 等视图"与主工作台会话一致"。
+  // 非 Electron 环境（含未注入 mock）内部为空操作；直接返回 cleanup，StrictMode
+  // 下 effect 重跑会先清理再重建订阅，不会留下失效的同步。
+  useEffect(() => {
+    return startCrossWindowSync();
+  }, []);
+
   /** 渲染单个面板窗口：记录拖拽源 + 工具条（含"独立窗口"按钮） */
   const renderTile = (id: PanelId, path: MosaicPath) => (
     <MosaicWindow<PanelId>
@@ -165,6 +163,9 @@ export default function WorkbenchApp() {
 
   return (
     <div className="workbench-root">
+      {/* 全局 Toast 容器：系统管理（admin/*，复用 pages/system）等 Hub 页面操作
+          失败/成功提示在此可见（缺陷 ①）；单例幂等，可多处挂载 */}
+      <Toaster />
       {/* 顶栏 */}
       <header className="wb-topbar">
         <div className="flex items-center gap-2.5">

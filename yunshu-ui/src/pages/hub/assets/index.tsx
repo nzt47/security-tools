@@ -2,6 +2,10 @@
  * 资产管理 —— 8 类资产集中管理与备份
  * 数据源：/api/assets/overview、/api/assets/<category>、/api/assets/backup、/api/assets/backup/list
  * 类别：memory/prompts/tools/skills/habits/inspires/hobbies/interactions
+ *
+ * 参数化（缺陷 ②）：同一组件被工作台 assets 组 8 个导航项复用，
+ * 由导航 key（assets/<category>）推导的 initialCategory 决定初始分类，
+ * 点击不同菜单即可渲染对应分类内容（配合 ContentPanel 的 key 重挂载）。
  */
 import { useEffect, useState } from 'react'
 import { Database, Archive, Plus, Trash2 } from 'lucide-react'
@@ -35,9 +39,14 @@ interface BackupItem {
   [k: string]: unknown
 }
 
-export default function AssetsPage() {
+interface AssetsPageProps {
+  /** 初始分类（默认 memory）；由工作台导航 key 推导（assets/<category>），配合重挂载切换视图 */
+  initialCategory?: string
+}
+
+export default function AssetsPage({ initialCategory = 'memory' }: AssetsPageProps) {
   const [overview, setOverview] = useState<Record<string, number>>({})
-  const [active, setActive] = useState('memory')
+  const [active, setActive] = useState(initialCategory)
   const [items, setItems] = useState<AssetItem[]>([])
   const [backups, setBackups] = useState<BackupItem[]>([])
   const [loading, setLoading] = useState(true)
