@@ -299,3 +299,14 @@ yunshu-ui/release/
 # 本地工具/文档目录
 .devtools/
 .wiki/
+
+# === 前端构建产物与恢复副本（2026-09-01 基线固化）===
+# static/assets/ 为 npm run build:flask 从 yunshu-ui/dist 复制的 Vite 哈希构建产物
+# （历史误跟踪的旧产物已 git rm --cached；部署/开发时执行 build:flask 重新生成）
+static/assets/
+# 前端恢复副本（restored-frontend/ 为本地备份参考，不入库）
+restored-frontend/
+# 任务计划运行时备份（TaskScheduler 生成的 data/*.json.bak_<时间戳>，不入库）
+data/*.bak_*
+# 本地一键启动脚本（含机器绝对路径 C:\Users\Administrator\agent，不入库）
+/start_yunshu.bat
