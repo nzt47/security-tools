@@ -14,7 +14,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, AreaChart, Area,
 } from 'recharts'
-import { Activity, AlertTriangle, RefreshCw, Server } from 'lucide-react'
+import { RefreshCw, Server } from 'lucide-react'
 import { Card, Badge, PageHeader, hubGet, Loading, ErrorBox } from '../components/ui'
 
 interface ProbePoint {
@@ -51,7 +51,6 @@ function timeLabel(ts: string) {
 export default function PanoramaHealth() {
   const [points, setPoints] = useState<ProbePoint[]>([])
   const [alerts, setAlerts] = useState<AlertItem[]>([])
-  const [metrics, setMetrics] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -69,10 +68,9 @@ export default function PanoramaHealth() {
         return groups.flatMap((g) => g.alerts ?? [])
       }),
       hubGet('/api/diagnostics/metrics').catch(() => null),
-    ]).then(([p, a, m]) => {
+    ]).then(([p, a]) => {
       if (p.status === 'fulfilled') setPoints(p.value ?? [])
       if (a.status === 'fulfilled') setAlerts(a.value ?? [])
-      if (m.status === 'fulfilled') setMetrics(m.value as Record<string, unknown> | null)
       setLoading(false)
     }).catch((e) => { setError(String(e)); setLoading(false) })
   }

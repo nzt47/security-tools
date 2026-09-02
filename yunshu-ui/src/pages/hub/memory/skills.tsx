@@ -3,8 +3,8 @@
  * 数据源：/api/skills、/api/skills/toggle、/api/skills/params
  */
 import { useEffect, useState } from 'react'
-import { Hammer, Power } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, unwrap , pickList } from '../components/ui'
+import { Power } from 'lucide-react'
+import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost , pickList } from '../components/ui'
 
 interface Skill {
   id: string

@@ -3,8 +3,8 @@
  * 数据源：/api/panorama、/api/sensors、/api/health
  */
 import { useEffect, useState } from 'react'
-import { Activity, Cpu, MemoryStick, Battery, HardDrive, RefreshCw } from 'lucide-react'
-import {  Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader, hubGet, unwrap , pickList, pickObj } from '../components/ui'
+import { Activity, Cpu, MemoryStick, Battery, RefreshCw } from 'lucide-react'
+import {  Card, StatCard, DataTable, Loading, ErrorBox, Badge, PageHeader, hubGet , pickList, pickObj } from '../components/ui'
 
 interface SensorReading {
   sensor_name: string

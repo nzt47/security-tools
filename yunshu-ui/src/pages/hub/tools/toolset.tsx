@@ -3,8 +3,8 @@
  * 数据源：/api/tools/config、/api/tools/toggle、/api/tools/categories
  */
 import { useEffect, useState } from 'react'
-import { Boxes, Power } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, unwrap , pickList } from '../components/ui'
+import { Power } from 'lucide-react'
+import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost , pickList } from '../components/ui'
 
 interface ToolItem {
   name: string

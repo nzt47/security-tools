@@ -4,7 +4,7 @@
  * - rehype-highlight：代码块语法高亮（highlight.js）
  * - 自定义 pre      ：代码块外层加"语言标签 + 复制"工具条
  */
-import { Children, isValidElement, useState, type ReactElement, type ReactNode } from 'react';
+import { Children, isValidElement, useState, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';

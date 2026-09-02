@@ -5,7 +5,7 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import { Send, Loader2 } from 'lucide-react'
-import { hubGet, hubPost, unwrap } from '../components/ui'
+import { hubGet, hubPost } from '../components/ui'
 
 interface ChatMsg {
   id: string

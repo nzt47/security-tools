@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['dist'] },
+  { ignores: ['dist', 'coverage'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
@@ -19,10 +19,10 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
+      // 【2026-09-02】桶/工具文件普遍"同文件导出组件 + 函数/常量"（如 ui.tsx 导出
+      // Card 组件与 hubGet、Toaster 导出 toast API 与组件）——Fast Refresh 对这类
+      // 文件降级为整页刷新，收益低、警告噪音高，规则关闭（allowConstantExport 亦不足）。
+      'react-refresh/only-export-components': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       // 【2026-08-31 存量 lint 清理】`_` 前缀 = 有意命名但未使用的参数/变量
       // （桩实现、占位回调、catch 参数等惯用法），显式豁免避免逐行 disable。

@@ -154,6 +154,7 @@ export function initSentry(): boolean {
   }
 
   try {
+    /* eslint-disable @typescript-eslint/no-explicit-any -- Sentry v7 集成 API 类型不完善 */
     const integrations: any[] = [
       // 自动捕获 React 组件渲染错误
       (Sentry as any).reactRouterV6BrowserTracingIntegration?.() ??

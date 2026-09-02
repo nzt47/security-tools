@@ -56,7 +56,7 @@ export default function RoleList() {
   const [keywordInput, setKeywordInput] = useState('')
   const [pageInput, setPageInput] = useState('1')
 
-  const { query, setQuery, list, total, loading, totalPages, fetchList, handleSearch, handleReset, goPage } =
+  const { query, setQuery, list, total, loading, fetchList, handleSearch, handleReset, goPage } =
     useTablePage<RoleItem, RoleQuery>({
       fetcher: getRoleList,
       defaultQuery: { page: 1, pageSize: PAGE_SIZE, keyword: '' },

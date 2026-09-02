@@ -30,7 +30,7 @@ function logJson(action: string, payload: Record<string, unknown>, durationMs: n
     duration_ms: durationMs,
     ...payload,
   }
-  // eslint-disable-next-line no-console
+   
   console.log(JSON.stringify(entry))
 }
 

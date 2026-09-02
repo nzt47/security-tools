@@ -107,7 +107,7 @@ function logJson(
     duration_ms: start != null ? Date.now() - start : 0,
     ...payload,
   }
-  // eslint-disable-next-line no-console
+   
   console[level](JSON.stringify(entry))
 }
 

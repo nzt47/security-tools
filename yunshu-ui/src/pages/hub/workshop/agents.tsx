@@ -3,8 +3,8 @@
  * 数据源：/api/subagent/list、/api/subagent/create、/api/subagent/<name>/destroy
  */
 import { useEffect, useState } from 'react'
-import { Users, Plus, Trash2, Rocket } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, unwrap , pickList } from '../components/ui'
+import { Plus, Trash2, Rocket } from 'lucide-react'
+import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost , pickList } from '../components/ui'
 
 interface Subagent {
   name: string

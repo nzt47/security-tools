@@ -10,8 +10,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { getUserList } from '@/api/user'
-import { downloadFile } from '@/utils/system'
+
+
 import DataExport, { buildCsv, csvCell } from './index'
 
 // ---- mock 数据：26 条用户（结构对齐 devMock.ts 的 MockListUser） ----

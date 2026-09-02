@@ -8,8 +8,8 @@
  * 点击不同菜单即可渲染对应分类内容（配合 ContentPanel 的 key 重挂载）。
  */
 import { useEffect, useState } from 'react'
-import { Database, Archive, Plus, Trash2 } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, unwrap , pickList, pickObj } from '../components/ui'
+import { Archive, Plus, Trash2 } from 'lucide-react'
+import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost , pickList, pickObj } from '../components/ui'
 
 const CATEGORIES = [
   { key: 'memory', label: '记忆数据', icon: '🧠' },
@@ -80,6 +80,7 @@ export default function AssetsPage({ initialCategory = 'memory' }: AssetsPagePro
     loadOverview()
     loadList(active)
     loadBackups()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 初载一次；tab 切换由 switchCat 刷新
   }, [])
 
   const switchCat = (cat: string) => {

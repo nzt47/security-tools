@@ -4,7 +4,7 @@
  */
 import { useState } from 'react'
 import { Monitor, Navigation } from 'lucide-react'
-import { Card, ErrorBox, PageHeader, hubPost } from '../components/ui'
+import { Card, PageHeader, hubPost } from '../components/ui'
 
 export default function ToolsComputerUse() {
   const [url, setUrl] = useState('')

@@ -7,7 +7,7 @@
  * 点击不同菜单不再渲染成相同内容（配合 ContentPanel 的 key 重挂载）。
  */
 import { useEffect, useState } from 'react'
-import { Brain, Search, Trash2, Plus } from 'lucide-react'
+import { Brain, Search, Plus } from 'lucide-react'
 import { Card, StatCard, Loading, ErrorBox, PageHeader, hubGet, hubPost, pickList, pickObj } from '../components/ui'
 
 interface MemoryOverview {

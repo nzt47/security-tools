@@ -319,3 +319,6 @@ data/visual_workflows.json
 knowledge/index.md
 knowledge/log.md
 knowledge/index_links.md
+
+# vitest 覆盖率报告（生成物，不入库）
+yunshu-ui/coverage/

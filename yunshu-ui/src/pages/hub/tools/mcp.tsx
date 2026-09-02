@@ -3,8 +3,8 @@
  * 数据源：/api/mcp/services、/api/mcp/enable
  */
 import { useEffect, useState } from 'react'
-import { Plug, Plus, Trash2, Power } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, unwrap , pickList } from '../components/ui'
+import { Plus, Trash2, Power } from 'lucide-react'
+import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost , pickList } from '../components/ui'
 
 interface McpService {
   service_id: string

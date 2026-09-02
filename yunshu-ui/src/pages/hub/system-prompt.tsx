@@ -4,8 +4,8 @@
  * 功能：各提示词节启停（toggle）/ 可编辑内容 / token 统计
  */
 import { useEffect, useState } from 'react'
-import { Save, RotateCcw, FileText, Power } from 'lucide-react'
-import { Card, Badge, PageHeader, hubGet, hubPost, Loading, ErrorBox } from './components/ui'
+import { Save, RotateCcw, Power } from 'lucide-react'
+import { Card, PageHeader, hubGet, hubPost, Loading, ErrorBox } from './components/ui'
 
 interface PromptSection {
   key: string

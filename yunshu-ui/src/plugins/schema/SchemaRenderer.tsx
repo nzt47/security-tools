@@ -68,7 +68,6 @@ function cloneDefault(d: unknown): unknown {
  * 用 schema.default 填充缺失字段（渲染层；不原地修改输入 value）。
  * 嵌套 object 递归填充；null/缺失的对象字段先补空对象再递归。
  */
-// eslint-disable-next-line react-refresh/only-export-components -- 插件注册表模块刻意混合导出组件与常量/函数
 export function fillDefaults(
   schema: SchemaField | undefined,
   value: Record<string, unknown> | null | undefined,
@@ -96,7 +95,6 @@ export function fillDefaults(
 }
 
 /** 顶层 schema 是否可结构化为对象表单（type object 或未声明 + 有 properties） */
-// eslint-disable-next-line react-refresh/only-export-components -- 插件注册表模块刻意混合导出组件与常量/函数
 export function isObjectSchema(
   schema: unknown,
 ): schema is SchemaField & { properties: Record<string, SchemaField> } {
@@ -107,7 +105,6 @@ export function isObjectSchema(
 }
 
 /** 提交层校验：required 缺失 + 数值 min/max（递归嵌套 object） */
-// eslint-disable-next-line react-refresh/only-export-components -- 插件注册表模块刻意混合导出组件与常量/函数
 export function validateSchema(
   schema: SchemaField,
   value: Record<string, unknown>,

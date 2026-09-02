@@ -3,7 +3,7 @@
  * 数据源：/api/observability/logs（可带 level / limit / query 过滤）
  */
 import { useEffect, useState } from 'react'
-import { FileText, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { Card, Loading, ErrorBox, PageHeader, hubGet, unwrap } from '../components/ui'
 
 interface LogEntry {
@@ -53,9 +53,9 @@ export default function PanoramaLogs() {
 
   useEffect(() => {
     load()
-    // 日志页自动刷新（每 10s），保持监控实时性
     const timer = setInterval(load, 10000)
     return () => clearInterval(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load 每次渲染重建；初载 + 10s 轮询语义固定
   }, [])
 
   return (

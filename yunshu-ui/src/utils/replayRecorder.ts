@@ -24,7 +24,7 @@
  */
 
 import { record } from 'rrweb';
-import type { recordOptions, eventWithTime } from 'rrweb/typings/types';
+import type { eventWithTime } from 'rrweb/typings/types';
 
 // ─── 业务错误码（边界显性化） ────────────────────────────────────────────
 

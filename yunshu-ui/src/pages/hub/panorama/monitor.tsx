@@ -25,7 +25,7 @@ interface HealthItem {
 export default function PanoramaMonitor() {
   const [modules, setModules] = useState<ModuleNode[]>([])
   const [health, setHealth] = useState<HealthItem[]>([])
-  const [status, setStatus] = useState<Record<string, unknown> | null>(null)
+  const [, setStatus] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -38,10 +38,13 @@ export default function PanoramaMonitor() {
       // 将 dimensions 对象转为评分数组，issues 并入（作为异常项）
       hubGet('/api/health/dashboard').then((r) => {
         const d = pickObj<{ dimensions?: Record<string, number>; issues?: HealthItem[]; overall_health?: number }>(r) ?? {}
-        const dims = Object.entries(d.dimensions ?? {}).map(([k, v]) => ({
-          sensor_name: k, description: k.replace(/_/g, ' '), score: Number(v) ?? 0,
-          severity: (Number(v) ?? 0) < 0.8 ? 'warning' : 'normal',
-        }))
+        const dims = Object.entries(d.dimensions ?? {}).map(([k, v]) => {
+          const num = Number(v) || 0 // NaN → 0（不能写 ??，左侧恒为 number）
+          return {
+            sensor_name: k, description: k.replace(/_/g, ' '), score: num,
+            severity: num < 0.8 ? 'warning' : 'normal',
+          }
+        })
         return [...dims, ...(Array.isArray(d.issues) ? d.issues : [])]
       }),
       hubGet('/api/status').catch(() => null),

@@ -6,7 +6,7 @@
  *       显示状态/类型/路径/危险等级，支持按状态筛选与刷新。
  */
 import { useEffect, useMemo, useState } from 'react'
-import { Boxes, RefreshCw, Search } from 'lucide-react'
+import { RefreshCw, Search } from 'lucide-react'
 import { Card, Badge, PageHeader, hubGet, Loading, ErrorBox, pickObj } from './components/ui'
 
 interface ModuleNode {
