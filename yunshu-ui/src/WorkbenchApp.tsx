@@ -21,7 +21,7 @@
 import { useCallback, useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Mosaic, MosaicWindow, ExpandButton, RemoveButton } from 'react-mosaic-component';
 import type { MosaicNode, MosaicPath } from 'react-mosaic-component';
-import { Cloud, FlaskConical, RotateCcw } from 'lucide-react';
+import { Cloud, RotateCcw } from 'lucide-react';
 import {
   DEFAULT_LAYOUT,
   PANEL_TITLES,
@@ -199,15 +199,6 @@ export default function WorkbenchApp() {
           <span className="hidden font-mono text-[11px] text-slate-500 sm:inline">
             {isElectron() ? '拖拽面板到窗口边缘可分离为独立窗口' : '拖拽面板边框拆分 · 布局自动保存'}
           </span>
-          <button
-            type="button"
-            className="wb-reset-btn"
-            onClick={() => useWorkbenchNav.getState().setActiveKey('prompt-lab')}
-            title="提示词影响因素管理面板（工作台内打开）"
-          >
-            <FlaskConical size={13} />
-            提示词实验室
-          </button>
           <button type="button" className="wb-reset-btn" onClick={resetLayout} title="恢复默认布局">
             <RotateCcw size={13} />
             重置布局
