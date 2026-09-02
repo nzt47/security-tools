@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "check": "tsc -b --noEmit",
-    "smoke:kb": "node ../scripts/dev/kb_workbench_smoke.mjs"
+    "smoke:kb": "node ../scripts/dev/kb_workbench_smoke.mjs",
+    "smoke:wb": "node ../scripts/dev/workbench_acceptance_smoke.mjs",
+    "smoke:route": "node ../scripts/dev/route_unify_smoke.mjs --url http://127.0.0.1:5678/chat#/workbench"
   },
   "dependencies": {
     "@sentry/react": "^7.120.4",
