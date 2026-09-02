@@ -46,5 +46,38 @@
     "updated_at": "2026-06-28T17:51:24.944256+00:00",
     "message_count": 0,
     "mode": "normal"
+  },
+  {
+    "id": "sess_20260902_210601_c31ff5ae",
+    "title": "新会话",
+    "created_at": "2026-09-02T13:06:01.635506+00:00",
+    "updated_at": "2026-09-02T13:06:01.635506+00:00",
+    "message_count": 0,
+    "mode": "normal",
+    "timezone": null,
+    "device_type": null,
+    "locale": null
+  },
+  {
+    "id": "sess_20260902_212452_1586267e",
+    "title": "新会话",
+    "created_at": "2026-09-02T13:24:52.421725+00:00",
+    "updated_at": "2026-09-02T13:24:52.421725+00:00",
+    "message_count": 0,
+    "mode": "normal",
+    "timezone": null,
+    "device_type": null,
+    "locale": null
+  },
+  {
+    "id": "sess_20260902_214035_f5bc3f77",
+    "title": "新会话",
+    "created_at": "2026-09-02T13:40:35.403907+00:00",
+    "updated_at": "2026-09-02T13:40:35.403907+00:00",
+    "message_count": 0,
+    "mode": "normal",
+    "timezone": null,
+    "device_type": null,
+    "locale": null
   }
 ]

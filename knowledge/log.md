@@ -4,6 +4,9 @@
 > 格式：`## [YYYY-MM-DD] <action> | <slug> | <detail>`
 
 <!-- 新记录追加到此行下方（顶部） -->
+## [2026-09-02] delete | smoke-alpha
+## [2026-09-02] update | smoke-alpha | type=concepts
+## [2026-09-02] create | smoke-alpha | type=concepts
 ## [2026-08-15] transition | git-维护复盘-task06-gc优化 | draft → current
 ## [2026-08-15] create | git-维护复盘-task06-gc优化 | type=insights
 ## [2026-08-15] transition | task-06-新颖性感知学习管线验证结论 | draft → current

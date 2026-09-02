@@ -310,3 +310,12 @@ restored-frontend/
 data/*.bak_*
 # 本地一键启动脚本（含机器绝对路径 C:\Users\Administrator\agent，不入库）
 /start_yunshu.bat
+
+# === 运行时数据（2026-09-02 复核后移出版本控制；磁盘文件保留）===
+# 会话/消息/可视化工作流草稿/知识库运行记录——均为运行期生成，提交会持续 dirty
+data/sessions/
+data/messages.jsonl
+data/visual_workflows.json
+knowledge/index.md
+knowledge/log.md
+knowledge/index_links.md
