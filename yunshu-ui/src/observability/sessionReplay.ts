@@ -12,7 +12,7 @@
  * - Optimistic Rollback：上传失败批次写入 localStorage 'yunshu_replay_failed_uploads'（最多 10 条）供下次重试
  * - 防抖节流：60s 定时 flush + 缓冲满 500 触发 flush；isFlushing 标志防止并发
  */
-import pako from 'pako'
+import { gzip as pakoGzip } from 'pako'
 
 // ════════════════════════════════════════════════════════════════
 //  常量与配置
@@ -198,7 +198,7 @@ function compressEvents(events: BufferedEvent[]): string {
   const json = JSON.stringify(events)
   const bytes = new TextEncoder().encode(json)
   // pako.gzip 返回 Uint8Array
-  const compressed = pako.gzip(bytes) as Uint8Array
+  const compressed = pakoGzip(bytes) as Uint8Array
   return uint8ToBase64(compressed)
 }
 

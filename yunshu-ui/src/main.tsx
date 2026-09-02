@@ -2,6 +2,13 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import AppRouter from './router'
 import './index.css'
+import { initObservability } from './observability'
+
+// ─── 可观测性初始化（Sentry/GlitchTip 错误上报 + rrweb 行为回放）───
+// 失败安全：DSN（VITE_SENTRY_DSN）未配置时 initSentry 返回 false 自动禁用，
+// 任何初始化异常均被吞掉不阻塞渲染；配置 DSN 后下次构建即自动生效。
+// 必须在 createRoot 之前调用，确保 React ErrorBoundary 可捕获根组件错误。
+initObservability();
 
 /**
  * 入口（统一路由收敛：摘除第二套管理后台外壳后）：

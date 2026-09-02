@@ -36,9 +36,9 @@ import { renderPanel } from './components/workbench/panels/renderPanel';
 import { startCrossWindowSync } from './electron/sync';
 
 // 可观测性浮层（DevConsole 网络/错误/性能 + StateInspector 状态/时间线）：
-// 仅开发环境渲染——DEV=false 时不触发 lazy import，产物独立 chunk 不下载，
-// 符合"可观测性生产零成本"约束；组件与 store 内部另有 isObservabilityEnabled
-// 二次 gate 兜底（install() 空操作、DevConsole 返回 null）。
+// lazy 独立 chunk；组件与 store 内部 isObservabilityEnabled 统一 gate——
+// 启用状态由构建期 VITE_OBSERVABILITY_ENABLED 决定（dev 默认开；生产
+// 显式设 true 才开，缺省关闭时 DevConsole 返回 null、install() 为空操作）。
 const ObservabilityDevtools = lazy(() => import('./components/ObservabilityDevtools'));
 
 /** 当前激活导航项标签（顶栏显示当前位置） */
@@ -172,12 +172,13 @@ export default function WorkbenchApp() {
       {/* 全局 Toast 容器：系统管理（admin/*，复用 pages/system）等 Hub 页面操作
           失败/成功提示在此可见（缺陷 ①）；单例幂等，可多处挂载 */}
       <Toaster />
-      {/* 可观测性浮层（仅 dev；lazy 独立 chunk，生产不下载） */}
-      {import.meta.env.DEV && (
-        <Suspense fallback={null}>
-          <ObservabilityDevtools />
-        </Suspense>
-      )}
+      {/* 可观测性浮层（DevConsole + StateInspector）：lazy 独立 chunk；
+          是否显示由 VITE_OBSERVABILITY_ENABLED 构建期 gate 控制——
+          dev 默认启用；生产构建设 VITE_OBSERVABILITY_ENABLED=true 亦启用，
+          缺省时组件内 isObservabilityEnabled() 返回 false → 不渲染、install 空操作 */}
+      <Suspense fallback={null}>
+        <ObservabilityDevtools />
+      </Suspense>
       {/* 顶栏 */}
       <header className="wb-topbar">
         <div className="flex items-center gap-2.5">
