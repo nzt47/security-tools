@@ -10,8 +10,9 @@ import type { LucideIcon } from 'lucide-react'
 import {
   MessageSquare, LayoutDashboard, Brain, Wrench, RefreshCw, Globe, Factory, Database,
   Activity, FileText, Server, BookOpen, Search, Boxes, Terminal, Plug, Monitor,
-  HeartPulse, CalendarClock, Users, Copy, Hammer, Archive, FolderHeart, Lightbulb, Palette,
+  HeartPulse, CalendarClock, Users, Copy, Hammer, FolderHeart, Lightbulb, Palette,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Smile, Radio, Puzzle,
+  Workflow, FileDown,
 } from 'lucide-react'
 
 // ═══ Code Splitting：按导航项懒加载（Vite 自动分包）═══
@@ -26,6 +27,7 @@ const PanoramaLogs = lazy(() => import('@/pages/hub/panorama/logs'))
 const MemoryPage = lazy(() => import('@/pages/hub/memory'))
 const MemorySkills = lazy(() => import('@/pages/hub/memory/skills'))
 const MemoryWorkflow = lazy(() => import('@/pages/hub/memory/workflow'))
+const MemoryWorkflowVisual = lazy(() => import('@/pages/hub/memory/workflow-visual'))
 const MemoryKnowledge = lazy(() => import('@/pages/hub/memory/knowledge'))
 const MemorySearch = lazy(() => import('@/pages/hub/memory/search'))
 const ToolsToolset = lazy(() => import('@/pages/hub/tools/toolset'))
@@ -45,6 +47,8 @@ const HubAdminMenus = lazy(() => import('@/pages/hub/admin/index').then((m) => (
 const HubAdminAudit = lazy(() => import('@/pages/hub/admin/index').then((m) => ({ default: m.HubAdminAudit })))
 const HubAdminNotifications = lazy(() => import('@/pages/hub/admin/index').then((m) => ({ default: m.HubAdminNotifications })))
 const HubAdminLogs = lazy(() => import('@/pages/hub/admin/index').then((m) => ({ default: m.HubAdminLogs })))
+// 数据导出：复用管理后台 Export 页（原 /export 路由已随第二套外壳摘除，收敛到系统管理栏目）
+const HubAdminExport = lazy(() => import('@/pages/hub/admin/export'))
 const PromptLab = lazy(() => import('@/pages/prompt-lab'))
 const PersonalityPage = lazy(() => import('@/pages/hub/personality'))
 const SystemPromptPage = lazy(() => import('@/pages/hub/system-prompt'))
@@ -84,6 +88,7 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'memory/auto', label: '自动记忆', icon: RefreshCw, component: MemoryPage },
       { key: 'memory/skills', label: '技能库管理', icon: Hammer, component: MemorySkills },
       { key: 'memory/workflow', label: '工作流管理', icon: Boxes, component: MemoryWorkflow },
+      { key: 'memory/workflow-visual', label: '可视化编辑', icon: Workflow, component: MemoryWorkflowVisual },
       { key: 'memory/knowledge', label: '知识库系统', icon: BookOpen, component: MemoryKnowledge },
       { key: 'memory/search', label: '搜索', icon: Search, component: MemorySearch },
     ],
@@ -144,6 +149,7 @@ export const HUB_NAV: HubNavItem[] = [
     key: 'admin', label: '系统管理', icon: Settings,
     children: [
       { key: 'admin/dashboard', label: '仪表盘', icon: LayoutDashboard, component: HubAdminDashboard },
+      { key: 'admin/export', label: '数据导出', icon: FileDown, component: HubAdminExport },
       { key: 'admin/users', label: '用户列表', icon: Users, component: HubAdminUsers },
       { key: 'admin/roles', label: '角色权限', icon: Shield, component: HubAdminRoles },
       { key: 'admin/menus', label: '菜单管理', icon: ListTree, component: HubAdminMenus },
@@ -153,6 +159,30 @@ export const HUB_NAV: HubNavItem[] = [
     ],
   },
 ]
+
+/**
+ * 复用组件参数：多个导航项映射到同一页面组件时（assets 8 项共用 AssetsPage、
+ * memory/manual | memory/auto 共用 MemoryPage），由导航 key 推导"初始分类/模式"，
+ * 配合 ContentPanel 的 key={activeKey} 重挂载实现"点不同菜单渲染对应内容"（缺陷 ②）。
+ * 单一来源：key 即参数语义，无需在导航配置里重复声明。
+ */
+export interface HubPanelParams {
+  /** assets/<category>：资产页初始分类（与资产类别 key 一致：memory/prompts/tools/…） */
+  initialCategory?: string
+  /** memory/manual | memory/auto：记忆页初始模式 */
+  mode?: 'manual' | 'auto'
+}
+
+/** 由导航 key 推导复用页面的初始参数；其余导航项无需参数（返回空对象，组件自带默认视图） */
+export function derivePanelParams(activeKey: string): HubPanelParams {
+  if (activeKey.startsWith('assets/')) {
+    return { initialCategory: activeKey.slice('assets/'.length) }
+  }
+  if (activeKey === 'memory/manual' || activeKey === 'memory/auto') {
+    return { mode: activeKey.slice('memory/'.length) as 'manual' | 'auto' }
+  }
+  return {}
+}
 
 /** 展平导航树（含分组路径，用于默认选中） */
 export function flattenNav(items: HubNavItem[] = HUB_NAV): HubNavItem[] {

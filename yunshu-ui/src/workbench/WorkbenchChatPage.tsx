@@ -6,12 +6,16 @@
  * - 支持停止生成（AbortController 中断 SSE）
  * - 消息/思考状态由 useLayoutStore 统一管理（与右侧思考面板共享）
  * - 会话持久化：挂载时加载当前会话历史（刷新不丢对话），支持切换历史会话
+ * - 历史问话：头部按钮展开右侧滑出面板（HistoryDrawer）——
+ *   搜索/复制/删除/点击跳转定位，数据范围为当前选中的会话
  */
 import { useEffect, useState } from 'react'
+import { AnimatePresence } from 'framer-motion'
 import { ChatPanel } from '../components/workbench/panels/ChatPanel'
 import { ContextManagerBar } from '../components/workbench/panels/ContextManagerBar'
+import { HistoryDrawer } from '../components/workbench/panels/HistoryDrawer'
 import { useLayoutStore } from '../stores/useLayoutStore'
-import { RotateCcw, MessageSquare } from 'lucide-react'
+import { History, RotateCcw, MessageSquare } from 'lucide-react'
 
 interface SessionMeta {
   id: string
@@ -24,6 +28,7 @@ export default function WorkbenchChatPage() {
   const messageCount = useLayoutStore((s) => s.messages.length)
   const [sessions, setSessions] = useState<SessionMeta[]>([])
   const [sessionId, setSessionId] = useState('')
+  const [historyOpen, setHistoryOpen] = useState(false)
 
   // 挂载：加载会话列表 + 当前会话历史
   useEffect(() => {
@@ -42,17 +47,18 @@ export default function WorkbenchChatPage() {
     return () => { cancelled = true }
   }, [loadSessionHistory])
 
-  // 切换会话：清空当前 + 加载目标会话
+  // 切换会话：清空当前 + 加载目标会话（历史面板若开着一并关闭）
   const switchSession = (id: string) => {
     if (!id || id === sessionId) return
     setSessionId(id)
+    setHistoryOpen(false)
     clearConversation()
     void loadSessionHistory(id)
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      {/* 页头：会话切换 + 流式对话 + 清空 */}
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+      {/* 页头：会话切换 + 流式对话 + 历史问话 + 清空 */}
       <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-slate-900/40 px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <MessageSquare size={13} className="shrink-0 text-cyan-400" />
@@ -71,16 +77,28 @@ export default function WorkbenchChatPage() {
             SSE 流式
           </span>
         </div>
-        {messageCount > 0 && (
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
-            onClick={clearConversation}
-            className="flex shrink-0 items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+            onClick={() => setHistoryOpen(true)}
+            title="打开历史问话面板（当前会话）"
+            aria-expanded={historyOpen}
+            className="flex items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 transition-colors hover:border-cyan-600/60 hover:bg-slate-800 hover:text-cyan-300"
           >
-            <RotateCcw size={11} />
-            清空对话
+            <History size={11} />
+            历史问话
           </button>
-        )}
+          {messageCount > 0 && (
+            <button
+              type="button"
+              onClick={clearConversation}
+              className="flex shrink-0 items-center gap-1.5 rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+            >
+              <RotateCcw size={11} />
+              清空对话
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 流式聊天主体 */}
@@ -90,6 +108,16 @@ export default function WorkbenchChatPage() {
 
       {/* 上下文管理器（从 legacy 对话移植） */}
       <ContextManagerBar />
+
+      {/* 历史问话侧滑面板 */}
+      <AnimatePresence>
+        {historyOpen && (
+          <HistoryDrawer
+            sessionId={sessionId}
+            onClose={() => setHistoryOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

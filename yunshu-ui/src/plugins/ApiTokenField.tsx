@@ -45,7 +45,7 @@ export function ApiTokenField() {
       <button
         type="button"
         data-testid="api-token-toggle"
-        className="flex w-full items-center justify-between rounded-md border border-[var(--border-subtle)] px-2 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)]"
+        className="flex w-full items-center justify-between rounded-md border border-slate-700 bg-slate-900/40 px-2 py-1.5 text-xs text-slate-400 transition-colors hover:bg-slate-800"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
       >
@@ -54,21 +54,21 @@ export function ApiTokenField() {
       </button>
 
       {open && (
-        <div className="mt-1.5 rounded-md border border-[var(--border-subtle)] p-2" data-testid="api-token-body">
+        <div className="mt-1.5 rounded-md border border-slate-700 bg-slate-950/60 p-2" data-testid="api-token-body">
           <input
             type="password"
             data-testid="api-token-input"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder="输入 FLASK_API_TOKEN"
-            className="w-full rounded-md border border-[var(--border-subtle)] bg-[var(--bg-input, transparent)] px-2 py-1 text-xs text-[var(--text-primary)] outline-none focus:border-[var(--accent-primary)]"
+            className="w-full rounded-md border border-slate-700 bg-slate-950/60 px-2 py-1 text-xs text-slate-200 placeholder:text-slate-600 outline-none focus:border-cyan-500"
           />
           <div className="mt-1.5 flex items-center gap-2">
             <button
               type="button"
               data-testid="api-token-save"
               onClick={handleSave}
-              className="rounded-md bg-[var(--accent-primary)] px-2 py-1 text-xs text-white transition-opacity hover:opacity-90"
+              className="rounded-md bg-cyan-600 px-2 py-1 text-xs text-white transition-opacity hover:bg-cyan-500"
             >
               {saved ? '已保存 ✓' : '保存'}
             </button>
@@ -77,12 +77,12 @@ export function ApiTokenField() {
               data-testid="api-token-clear"
               onClick={handleClear}
               disabled={!getApiToken()}
-              className="rounded-md border border-[var(--border-subtle)] px-2 py-1 text-xs text-[var(--text-secondary)] transition-colors hover:bg-[var(--bg-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-md border border-slate-700 px-2 py-1 text-xs text-slate-400 transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
               清除
             </button>
           </div>
-          <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--text-muted)]">
+          <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
             启用 FLASK_API_TOKEN 时，刷新插件清单 / 提交配置需携带令牌；令牌仅保存在本机浏览器。
           </p>
         </div>

@@ -334,3 +334,168 @@ textarea.ve-field-input {
 .react-flow__attribution {
   display: none;
 }
+
+/* ════════════════════════════════════════════════════════════
+ * 深色主题（工作台集成宿主 .ve-dark）
+ * 适配云枢工作台 slate 系深色背景；SkillManagement 等亮色场景
+ * 不受影响（选择器全部以 .ve-dark 为祖先约束）。
+ * ════════════════════════════════════════════════════════════ */
+.ve-dark .ve-root {
+  background: #0b1220;
+  min-height: 0;
+}
+
+.ve-dark .ve-toolbar {
+  background: #0f172a;
+  border-bottom-color: #1e293b;
+}
+
+.ve-dark .ve-toolbar-divider {
+  background: #334155;
+}
+
+.ve-dark .ve-canvas-loading {
+  color: #64748b;
+}
+
+/* 组件面板 */
+.ve-dark .ve-palette {
+  background: #0f172a;
+  border-right-color: #1e293b;
+}
+
+.ve-dark .ve-palette-header {
+  color: #e2e8f0;
+  border-bottom-color: #1e293b;
+}
+
+.ve-dark .ve-palette-group-title {
+  color: #64748b;
+}
+
+.ve-dark .ve-palette-item {
+  color: #cbd5e1;
+}
+
+.ve-dark .ve-palette-item:hover {
+  background: #1e293b;
+}
+
+/* 节点卡片 */
+.ve-dark .ve-node {
+  background: #0f172a;
+  border-color: #334155;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
+}
+
+.ve-dark .ve-node-selected {
+  border-color: #22d3ee;
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.22);
+}
+
+.ve-dark .ve-node-header {
+  color: #f1f5f9;
+  border-bottom-color: #1e293b;
+}
+
+.ve-dark .ve-node-meta {
+  color: #94a3b8;
+}
+
+/* 属性面板 */
+.ve-dark .ve-properties {
+  background: #0f172a;
+  border-left-color: #1e293b;
+}
+
+.ve-dark .ve-properties-header {
+  color: #e2e8f0;
+  border-bottom-color: #1e293b;
+}
+
+.ve-dark .ve-properties-empty .ve-properties-placeholder {
+  color: #64748b;
+}
+
+.ve-dark .ve-field-label {
+  color: #94a3b8;
+}
+
+.ve-dark .ve-field-input {
+  background: #0b1220;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+.ve-dark .ve-field-input:focus {
+  border-color: #22d3ee;
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.18);
+}
+
+.ve-dark .ve-properties-actions {
+  border-top-color: #1e293b;
+}
+
+/* 按钮 */
+.ve-dark .ve-btn {
+  background: #0f172a;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+.ve-dark .ve-btn:hover:not(:disabled) {
+  background: #1e293b;
+  border-color: #475569;
+}
+
+.ve-dark .ve-btn:disabled {
+  opacity: 0.45;
+}
+
+.ve-dark .ve-btn-primary {
+  background: #0891b2;
+  border-color: #0891b2;
+  color: #fff;
+}
+
+.ve-dark .ve-btn-primary:hover:not(:disabled) {
+  background: #06b6d4;
+}
+
+.ve-dark .ve-btn-danger {
+  color: #f87171;
+  border-color: #7f1d1d;
+}
+
+.ve-dark .ve-btn-danger:hover:not(:disabled) {
+  background: rgba(127, 29, 29, 0.25);
+  border-color: #dc2626;
+}
+
+.ve-dark .ve-btn-secondary {
+  color: #94a3b8;
+}
+
+/* YAML 预览（原本即深色，微调分隔线） */
+.ve-dark .ve-yaml-preview {
+  border-top-color: #1e293b;
+}
+
+/* ReactFlow 内建控件深色化 */
+.ve-dark .react-flow__controls button {
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
+  fill: #cbd5e1;
+}
+
+.ve-dark .react-flow__controls button:hover {
+  background: #1e293b;
+}
+
+.ve-dark .react-flow__minimap {
+  background: #0f172a;
+}
+
+.ve-dark .react-flow__minimap-mask {
+  fill: rgba(2, 6, 23, 0.55);
+}

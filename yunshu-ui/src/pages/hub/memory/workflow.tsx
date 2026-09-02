@@ -1,10 +1,12 @@
 /**
  * 工作流管理 —— 学习到的工作流列表与启停
  * 数据源：/api/workflow-learning/workflows
+ * 入口：右上角「打开可视化编辑器」跳转到记忆管理 → 可视化编辑
  */
 import { useEffect, useState } from 'react'
-import { Boxes, Play } from 'lucide-react'
-import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, unwrap , pickList } from '../components/ui'
+import { Play, Workflow as WorkflowIcon } from 'lucide-react'
+import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
+import { useWorkbenchNav } from '../../../workbench/navStore'
 
 interface Workflow {
   id: string
@@ -45,9 +47,25 @@ export default function MemoryWorkflow() {
     } catch (e) { setExecMsg(`执行失败：${e instanceof Error ? e.message : e}`) }
   }
 
+  const openVisualEditor = () => {
+    useWorkbenchNav.getState().setActiveKey('memory/workflow-visual')
+  }
+
   return (
     <div className="p-6">
-      <PageHeader title="工作流管理" description="从历史交互中学习的工作流" />
+      <PageHeader
+        title="工作流管理"
+        description="从历史交互中学习的工作流"
+        actions={
+          <button
+            onClick={openVisualEditor}
+            className="flex items-center gap-1.5 rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-500"
+            title="进入拖拽式可视化编排（保存到 /api/visual-workflows）"
+          >
+            <WorkflowIcon size={13} /> 打开可视化编辑器
+          </button>
+        }
+      />
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       {execMsg && <div className="mb-4 rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-sm text-cyan-400">{execMsg}</div>}
       {loading ? <Loading /> : (

@@ -77,6 +77,9 @@ interface FlowState {
   regenerateYaml: () => void;
   clearCanvas: () => void;
 
+  /** 从持久化草稿整图加载（重置选中态与撤销/重做历史） */
+  loadGraph: (nodes: Node<FlowNodeData>[], edges: Edge[]) => void;
+
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
@@ -249,6 +252,20 @@ export const useFlowStore = create<FlowState>((set, get) => ({
       logPerf('clearCanvas', before, t1 - t0);
       return { nodes: [], edges: [], selectedNodeId: null, yamlPreview: '', dirty: false };
     }),
+
+  // 整图替换（保存后加载 / 新建恢复）：不可跨图撤销，故同时清空历史栈
+  loadGraph: (nodes, edges) => {
+    const t0 = now();
+    const before = perfCtx(get());
+    undoStack.length = 0;
+    redoStack.length = 0;
+    set({ nodes, edges, selectedNodeId: null, dirty: false });
+    get().regenerateYaml();
+    const t1 = now();
+    logPerf('loadGraph', before, t1 - t0, {
+      loaded: { nodes: nodes.length, edges: edges.length },
+    });
+  },
 
   undo: () => {
     if (undoStack.length === 0) return;

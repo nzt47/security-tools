@@ -762,6 +762,20 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════
+#  可视化编辑器工作流草稿路由（/api/visual-workflows/*）
+#  工作台"可视化编辑"页保存/加载手工编排的 workflow 图；
+#  与 workflow-learning 的学习工作流存储完全隔离（不触碰 matcher/executor）。
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_visual_workflows import register_routes as reg_visual_workflows
+    reg_visual_workflows(app, lambda: None)
+    logger.info("可视化工作流草稿路由已注册 (/api/visual-workflows/*)")
+except Exception as e:
+    logger.error("加载可视化工作流路由失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
 #  运行时诊断路由（可观测性 E2E 测试所需的 7 个诊断端点）
 #  包含：/api/diagnostics/health、/api/diagnostics/trace、
 #        /api/diagnostics/trace/inject、/api/diagnostics/metrics、
