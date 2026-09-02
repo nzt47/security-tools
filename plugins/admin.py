@@ -785,20 +785,50 @@ def api_audit_logs():
     - 经网关认证：仅返回当前 Key 绑定租户的记录（写侧 tenant_id 字段精确过滤）；
       未绑定租户的旧 Key 返回空集 + warning（隔离优先，宁可少看不可泄露）
     - 内部直调（无网关标记，如管理通道）：保持全量（管理语义）
+
+    2026-09-01：修复 filter_by_key 不存在导致的 500（该方法已从 AuditLogger 移除，
+    数据隔离改为对记录 metadata.tenant_id 的本地过滤）；同时兼容管理后台前端
+    （yunshu-ui/src/api/audit.ts）的 {code, data:{list,total}} 分页契约。
     """
     try:
         from agent.audit.logger import audit_logger
         trace_id = request.args.get("trace_id", "")
         action = request.args.get("action", "")
-        limit = min(request.args.get("limit", 20, type=int), 200)
+        page = max(int(request.args.get("page", 1)), 1)
+        page_size = min(max(int(request.args.get("pageSize", 10)), 1), 200)
+        keyword = request.args.get("keyword", "").strip().lower()
+        # 兼容旧调用方：limit 参数存在时视作单页大小（非管理后台前端）
+        if "limit" in request.args:
+            page_size = min(max(int(request.args.get("limit", 20)), 1), 200)
 
+        logs = audit_logger.query(trace_id=trace_id, action=action, limit=page * page_size)
+
+        # T8.4 数据隔离：经网关认证时按租户过滤（metadata.tenant_id 精确匹配）
         key_info = getattr(request, "_gateway_key_info", None) or {}
-        logs = audit_logger.query(trace_id=trace_id, action=action, limit=limit)
-        logs, warning = audit_logger.filter_by_key(logs, key_info or None)
-        payload = {"ok": True, "logs": logs, "count": len(logs)}
+        tenant_id = (key_info or {}).get("tenant_id") if key_info else None
+        warning = None
+        if key_info and not tenant_id:
+            logs = []
+            warning = "当前 Key 未绑定租户，按数据隔离策略返回空集"
+        elif key_info and tenant_id:
+            logs = [r for r in logs if r.get("metadata", {}).get("tenant_id") == tenant_id]
+
+        if keyword:
+            logs = [r for r in logs if keyword in str(r.get("action", "")).lower()
+                    or keyword in str(r.get("trace_id", "")).lower()]
+
+        total = len(logs)
+        page_logs = logs[(page - 1) * page_size: page * page_size]
+        payload = {"ok": True, "logs": page_logs, "count": len(page_logs)}
         if warning:
             payload["warning"] = warning
-        return jsonify(payload)
+        # 管理后台前端契约：返回 code/data 结构（list/total 分页）
+        return jsonify({
+            "code": 200,
+            "data": {"list": page_logs, "total": total},
+            "message": "success",
+            **payload,
+        })
     except Exception as e:
         logger.error("审计日志查询失败: %s", e)
         return jsonify({"ok": False, "error": str(e)}), 500

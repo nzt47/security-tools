@@ -11,6 +11,7 @@
 import datetime
 import functools
 import json
+import os
 import time
 
 from flask import Blueprint, request, jsonify
@@ -617,50 +618,208 @@ def api_history_delete(index):
 #       事件结构保持不变（契约即【不易】约束）。
 # ════════════════════════════════════════════════════════════════════════════
 
-def _workbench_reply_blocks(question):
-    """构造一条演示用 Markdown 回复（含代码块），返回文本块列表"""
-    return [
-        "## 已收到你的问题\n\n> **" + question + "**\n",
-        "云枢工作台已通过真实 SSE 通道（POST /api/chat/stream）完成本次流式输出。以下为处理概览：\n",
-        "### 处理要点\n\n- 通道协议：`text/event-stream`\n- 事件契约：`thinking / chunk / done`（chunk 携带 `seq` 序号，供前端乱序检测）\n- 分片节奏：约 20ms/片\n",
-        "### 示例代码\n\n```typescript\n// 前端消费端（yunshu-ui/src/workbench/lib/sse.ts）\nconst res = await fetch('/api/chat/stream', {\n  method: 'POST',\n  body: JSON.stringify({ message: question }),\n});\nfor await (const evt of parseSSE(res.body)) { /* chunk → store → UI */ }\n```\n",
-        "接入真实 LLM 时，仅替换本接口的 `_workbench_demo_stream` 生成器，事件结构保持不变。\n",
-    ]
+def _workbench_real_stream(question, session_id=""):
+    """真实 LLM 流式 SSE 生成器：thinking 事件 + 真实模型 chunk + done
 
+    事件契约（与前端 yunshu-ui/src/lib/sse.ts 保持一致）：
+      data: {"type":"thinking","id":"...","title":"...","detail":"...","status":"running"}
+      data: {"type":"chunk","text":"...","seq":N}
+      data: {"type":"done"}
+    配置来源：.env（LLM_PROVIDER / LLM_API_KEY / LLM_MODEL / LLM_BASE_URL）。
+    """
+    import logging
+    logger = logging.getLogger("plugins.chat.stream")
 
-def _workbench_demo_stream(question):
-    """演示级 SSE 生成器：thinking 事件 + 带序号的流式分片"""
     def _sse(evt):
         return "data: " + json.dumps(evt, ensure_ascii=False) + "\n\n"
 
+    # ── 从配置构建 LLMService ──
+    provider = os.environ.get("LLM_PROVIDER", "deepseek").strip().lower()
+    api_key = os.environ.get("LLM_API_KEY", "") or os.environ.get("DEEPSEEK_API_KEY", "")
+    model = os.environ.get("LLM_MODEL", "deepseek-v4-flash")
+    base_url = os.environ.get("LLM_BASE_URL", "") or os.environ.get("DEEPSEEK_BASE_URL", "")
+
+    from memory.llm_service import LLMService
+
+    # ── 构造消息历史（若提供会话 ID，附带最近对话） ──
+    messages = [{"role": "user", "content": question}]
+    if session_id:
+        try:
+            from app_server import _session_mgr
+            hist = _session_mgr.get_messages(session_id)
+            if hist:
+                recent = hist[-8:]  # 最近 8 条做上下文
+                messages = [{"role": m.get("role", "user"), "content": m.get("content", "")}
+                            for m in recent if m.get("content")]
+                messages.append({"role": "user", "content": question})
+        except Exception as _e:
+            logger.debug("[workbench][SSE] 会话历史加载失败（忽略）: %s", _e)
+
+    llm = LLMService(
+        provider=provider, api_key=api_key, model=model,
+        timeout=60, base_url=base_url,
+    )
+
+    # ── 前置 thinking 事件（推理链路：意图 → 检索 → 规划 → 工具 → 生成） ──
+    # 让右侧"思考过程"面板完整呈现智能体的推理与工具调用链路；
+    # 各阶段为轻量拟态（真实 LLM 调用前的结构化展示），生成阶段为真实流式。
     yield _sse({"type": "thinking", "id": "intent", "title": "意图识别",
                 "detail": "解析输入：" + question[:40], "status": "running"})
-    time.sleep(0.35)
     yield _sse({"type": "thinking", "id": "intent", "title": "意图识别", "status": "done"})
 
     yield _sse({"type": "thinking", "id": "retrieve", "title": "知识检索",
-                "detail": "从知识库召回相关卡片并做 RRF 融合排序", "status": "running"})
-    time.sleep(0.4)
+                "detail": "从知识库/记忆召回相关上下文", "status": "running"})
     yield _sse({"type": "thinking", "id": "retrieve", "title": "知识检索", "status": "done"})
 
     yield _sse({"type": "thinking", "id": "plan", "title": "规划分解",
-                "detail": "将任务拆分为原子步骤并分配工具", "status": "running"})
-    time.sleep(0.3)
+                "detail": "拆解任务并确定回答策略", "status": "running"})
     yield _sse({"type": "thinking", "id": "plan", "title": "规划分解", "status": "done"})
 
     yield _sse({"type": "thinking", "id": "tool", "title": "工具调用",
-                "detail": "执行示例代码生成工具", "status": "running"})
-    time.sleep(0.25)
-
-    seq = 0
-    for block in _workbench_reply_blocks(question):
-        # 每 4 字符一片，模拟网络分片到达节奏
-        for i in range(0, len(block), 4):
-            seq += 1
-            yield _sse({"type": "chunk", "text": block[i:i + 4], "seq": seq})
-            time.sleep(0.02)
-
+                "detail": "按需执行工具（本对话未触发外部工具）", "status": "running"})
     yield _sse({"type": "thinking", "id": "tool", "title": "工具调用", "status": "done"})
+
+    # ── 真实流式生成（key 无效/缺失时自动降级为演示流） ──
+    seq = 0
+    emitted = False
+
+    # 校验 key 是否可用（sk-test / sk-old / 空 → 判定为测试/无效 key）
+    def _key_usable(k):
+        if not k:
+            return False
+        if len(k) < 15:
+            return False
+        if k.startswith(("sk-test", "sk-old", "test", "sk-invalid")):
+            return False
+        return True
+
+    if not _key_usable(api_key):
+        logger.warning("[workbench][SSE] LLM_API_KEY 为测试/无效 key（%s...），降级为演示流", api_key[:8] if api_key else "空")
+        yield _sse({"type": "thinking", "id": "degrade", "title": "演示模式",
+                    "detail": "未配置有效 LLM_API_KEY，当前为演示输出。在 .env 配置真实 key 后自动切换真实 LLM。",
+                    "status": "running"})
+        # 演示回复块
+        blocks = [
+            "## 已收到你的问题\n\n> **" + question + "**\n",
+            "当前运行在**演示模式**（.env 未配置有效 `LLM_API_KEY`）。\n",
+            "### 接入真实 LLM\n\n在 `.env` 中设置：\n",
+            "```bash\nLLM_PROVIDER=deepseek\nLLM_API_KEY=sk-你的真实key\nLLM_MODEL=deepseek-chat\nLLM_BASE_URL=https://api.deepseek.com/v1\n```\n",
+            "重启服务后，本接口将自动切换为真实模型流式输出（事件结构不变）。\n",
+        ]
+        for block in blocks:
+            for i in range(0, len(block), 8):
+                seq += 1
+                yield _sse({"type": "chunk", "text": block[i:i + 8], "seq": seq})
+        yield _sse({"type": "thinking", "id": "degrade", "title": "演示模式", "status": "done"})
+        yield _sse({"type": "done"})
+        return
+
+    # ── 真实流式生成 + 工具执行循环（Agent Loop） ──
+    # 循环：模型请求工具 → 后端执行 → 结果回传 → 模型继续，直到模型不再请求工具。
+    # 上限 4 轮工具循环（防死循环）；工具定义从 agent.tools 注册表生成。
+    yield _sse({"type": "thinking", "id": "generate", "title": "生成回复",
+                "detail": "模型流式输出中…", "status": "running"})
+
+    SYSTEM_PROMPT = "你是云枢（Yunshu），一个拥有完整感知-认知-行动闭环的数字生命体。请以简洁、自然的语言回答用户。需要时可以使用提供的工具获取实时信息或执行操作。"
+    tool_defs = None
+    try:
+        from agent.tools import get_tool_defs
+        tool_defs = get_tool_defs()  # OpenAI 格式工具定义（全量注册表）
+    except Exception as _e:
+        logger.debug("[workbench][SSE] 工具定义加载失败（无工具可用）: %s", _e)
+
+    loop_messages = list(messages)
+    max_tool_rounds = 4
+    emitted = False
+    seq = 0
+
+    try:
+        for round_idx in range(max_tool_rounds + 1):
+            # 本轮收集到的工具调用（name, args_json, reasoning_content）
+            collected_tools = []
+
+            def _on_tool_call(tool_name, args_json, reasoning_content=""):
+                logger.info("[workbench][SSE] 模型工具调用: %s %s", tool_name, args_json[:120])
+                collected_tools.append((tool_name, args_json, reasoning_content))
+
+            # 流式请求 LLM（首轮带工具定义，后续轮次携带已回传的工具结果）
+            for text_piece in llm.chat_stream(
+                messages=loop_messages,
+                system_prompt=SYSTEM_PROMPT,
+                max_tokens=2048,
+                temperature=0.7,
+                on_tool_call=_on_tool_call,
+                tools=tool_defs if round_idx == 0 else None,
+            ):
+                if not text_piece:
+                    continue
+                seq += 1
+                emitted = True
+                yield _sse({"type": "chunk", "text": text_piece, "seq": seq})
+
+            # 无工具调用 → 生成完成，退出循环
+            if not collected_tools:
+                break
+
+            # ── 执行工具并回传结果 ──
+            from agent.tools import call as _tool_call
+            for tname, targs_json, reasoning in collected_tools:
+                seq += 1
+                emitted = True
+                yield _sse({"type": "thinking", "id": f"tool-real-{tname}", "title": f"工具调用：{tname}",
+                            "detail": f"参数: {targs_json[:120]}", "status": "running"})
+                # 解析参数并执行
+                tool_result = ""
+                try:
+                    import json as _json
+                    targs = _json.loads(targs_json) if targs_json else {}
+                    if not isinstance(targs, dict):
+                        targs = {"args": targs}
+                    tool_result = _tool_call(tname, **targs)
+                    # 统一序列化结果（dict → json 字符串）
+                    if isinstance(tool_result, (dict, list)):
+                        tool_result = _json.dumps(tool_result, ensure_ascii=False, default=str)
+                    else:
+                        tool_result = str(tool_result)
+                except Exception as _te:
+                    logger.error("[workbench][SSE] 工具执行失败 %s: %s", tname, _te)
+                    tool_result = f"工具执行失败: {_te}"
+                # 回传结果给模型（assistant 消息含 tool_calls + reasoning_content
+                # [DeepSeek thinking 模式要求]；tool 消息含执行结果）
+                assistant_msg = {
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [{
+                        "id": f"call_{tname}",
+                        "type": "function",
+                        "function": {"name": tname, "arguments": targs_json},
+                    }],
+                }
+                if reasoning:
+                    assistant_msg["reasoning_content"] = reasoning
+                loop_messages.append(assistant_msg)
+                loop_messages.append({
+                    "role": "tool",
+                    "tool_call_id": f"call_{tname}",
+                    "content": tool_result[:4000],
+                })
+                # 展示工具完成状态（含结果摘要）
+                yield _sse({"type": "thinking", "id": f"tool-real-{tname}", "title": f"工具调用：{tname}",
+                            "detail": f"结果: {tool_result[:100]}", "status": "done"})
+    except Exception as _e:
+        logger.error("[workbench][SSE] LLM 流式生成异常: %s", _e)
+        err_text = f"\n\n> ⚠️ LLM 调用失败：{_e}\n> 请检查 .env 中 LLM_API_KEY / LLM_MODEL 配置。"
+        seq += 1
+        emitted = True
+        yield _sse({"type": "chunk", "text": err_text, "seq": seq})
+
+    yield _sse({"type": "thinking", "id": "generate", "title": "生成回复", "status": "done"})
+
+    if not emitted:
+        # 空输出兜底（如模型返回空）
+        seq += 1
+        yield _sse({"type": "chunk", "text": "（模型未返回内容）", "seq": seq})
+
     yield _sse({"type": "done"})
 
 
@@ -672,13 +831,14 @@ def api_chat_stream():
 
     data = request.get_json(silent=True) or {}
     question = (data.get("message") or data.get("question") or "").strip()
+    session_id = data.get("session_id", "") or data.get("sessionId", "") or ""
     if not question:
         return jsonify({"error": "消息不能为空"}), 400
     logger.info("[workbench][SSE] 开始流式响应: %s", question[:60])
 
     def gen():
         try:
-            yield from _workbench_demo_stream(question)
+            yield from _workbench_real_stream(question, session_id)
         except GeneratorExit:
             # 客户端提前断开（前端点"停止生成"或关闭标签页）
             logger.info("[workbench][SSE] 客户端断开，终止生成")

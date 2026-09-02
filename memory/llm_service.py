@@ -32,11 +32,13 @@ class LLMService:
                  model: str = "gpt-4", timeout: int = 30, base_url: str = "",
                  max_retries: int = DEFAULT_MAX_RETRIES, retry_delay: float = DEFAULT_RETRY_DELAY):
         self._validate_api_key(api_key)
-        self.provider = provider
+        # 规范化 provider 大小写（如 .env 中的 'DeepSeek' → 'deepseek'），
+        # 兼容 OPENAI_COMPAT 映射表的大小写敏感匹配。
+        self.provider = (provider or "").strip().lower() or "openai"
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
-        self._base_url = base_url or self.OPENAI_COMPAT.get(provider, "")
+        self._base_url = (base_url or self.OPENAI_COMPAT.get(self.provider, "")).rstrip("/")
         self._client = None
         self.max_retries = max_retries
         self.retry_delay = retry_delay
@@ -258,6 +260,95 @@ class LLMService:
             logger.error("│   最后错误: %s", e)
             logger.error("└─────────────────────────────────────────────")
             raise LLMServiceError(f"对话生成失败（已重试 {self.max_retries} 次）: {e}") from e
+
+    def chat_stream(self, messages: list[dict], system_prompt: str = "",
+                    max_tokens: int = 1024, temperature: float = 0.7,
+                    on_tool_call=None, tools: list | None = None):
+        """流式对话生成（生成器，逐 chunk 产出文本增量）
+
+        用于 SSE 流式输出场景：前端逐块渲染。
+        支持 OpenAI 兼容（含 DeepSeek）与 Anthropic。
+
+        Args:
+            messages: 对话历史，格式 [{"role": "user"/"assistant", "content": "..."}]
+            system_prompt: 系统提示词（可选）
+            max_tokens: 最大生成 Token 数
+            temperature: 生成温度
+            on_tool_call: 可选回调 fn(tool_name, args_json, reasoning_content)——流式检测到模型
+                工具调用时触发（OpenAI 兼容流式 tool_calls 增量聚合；reasoning_content
+                为 DeepSeek thinking 模式推理内容，回传消息时需附带）。
+            tools: 可选 OpenAI 格式工具定义列表（[{type:function,function:{...}}]），
+                传入后模型可请求工具调用。
+
+        Yields:
+            str: 每次产出的文本增量（可为空串）
+        """
+        if not messages:
+            return
+        client = self._get_client()
+
+        if self._is_openai_compat():
+            full_messages = []
+            if system_prompt:
+                full_messages.append({"role": "system", "content": system_prompt})
+            full_messages.extend(messages)
+            logger.info("├─ [Stream] Provider: %s | Model: %s | tools=%s",
+                        self.provider, self.model, bool(tools))
+            create_kwargs = dict(
+                model=self.model,
+                messages=full_messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                stream=True,
+            )
+            if tools:
+                create_kwargs["tools"] = tools
+            stream = client.chat.completions.create(**create_kwargs)
+            # 工具调用增量聚合：流式 tool_calls 按 index 分片，需跨 chunk 拼接
+            tool_accum: dict[int, dict] = {}
+            # DeepSeek thinking 模式：reasoning_content 需在回传消息时附上
+            reasoning_parts: list[str] = []
+            for chunk in stream:
+                if not chunk.choices:
+                    continue
+                delta = chunk.choices[0].delta
+                # 提取工具调用增量（函数名 + 参数 JSON 分片）
+                if delta and delta.tool_calls and on_tool_call is not None:
+                    for tc in delta.tool_calls:
+                        idx = tc.index
+                        acc = tool_accum.setdefault(idx, {"name": "", "args": ""})
+                        if tc.function:
+                            if tc.function.name:
+                                acc["name"] += tc.function.name
+                            if tc.function.arguments:
+                                acc["args"] += tc.function.arguments
+                if delta and delta.content:
+                    yield delta.content
+                # 收集 reasoning_content（DeepSeek 推理，回传时需带上）
+                rc = getattr(delta, "reasoning_content", None)
+                if rc:
+                    reasoning_parts.append(rc)
+            # 流结束后上报已聚合的工具调用（只上报完整有名字的）
+            if on_tool_call is not None:
+                for idx in sorted(tool_accum):
+                    acc = tool_accum[idx]
+                    if acc["name"]:
+                        on_tool_call(acc["name"], acc["args"], "".join(reasoning_parts))
+
+        elif self.provider == "anthropic":
+            kwargs = {}
+            if system_prompt:
+                kwargs["system"] = system_prompt
+            logger.info("├─ [Stream] Provider: %s | Model: %s", self.provider, self.model)
+            with client.messages.stream(
+                model=self.model,
+                messages=messages,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                **kwargs,
+            ) as stream:
+                for text in stream.text_stream:
+                    yield text
 
     def count_tokens(self, text: str) -> int:
         """使用 tiktoken 估算文本 Token 数（不依赖 LLM API）"""

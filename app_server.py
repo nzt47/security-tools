@@ -307,7 +307,11 @@ def log_request(show_body=True, show_response=True):
     Args:
         show_body: 是否显示请求体
         show_response: 是否显示响应内容（大型响应可设为False）
+    
+    环境变量 LOG_REQUEST_PRINT=0 时降级为静默（仅 logger.debug 记录），
+    用于生产环境控制台降噪；默认开启打印（向后兼容）。
     """
+    _print_enabled = os.environ.get("LOG_REQUEST_PRINT", "1").strip().lower() not in ("0", "false", "no")
     def decorator(f):
         @functools.wraps(f)
         def decorated(*args, **kwargs):
@@ -369,14 +373,17 @@ def log_request(show_body=True, show_response=True):
                 raise
             
             finally:
-                # 打印成功日志到控制台
-                if success:
+                # 打印成功日志到控制台（受 LOG_REQUEST_PRINT 控制，默认开启）
+                if success and _print_enabled:
                     print("\n" + "="*60)
                     print(f"📡 API 请求日志 [{endpoint}]")
                     print("-"*60)
                     for log in logs:
                         print(log)
                     print("="*60 + "\n")
+                # 降级模式：保留 DEBUG 级结构化记录（不刷屏但可查）
+                if _print_enabled is False:
+                    logger.debug("[api] %s %s %s", request.method, request.path, logs[-1] if logs else "")
             
             return response
         return decorated
@@ -814,17 +821,12 @@ except Exception as e:
     logger.error("加载回放路由失败: %s", e)
 
 # ════════════════════════════════════════════════════════════
-#  向量记忆路由（/api/vector/* + /api/knowledge/add）
-#  Why 接线：前端 static/js/sidebar/memory.js 调用 /api/vector/stats|add、
-#  /api/knowledge/add，此前未注册即 404；/api/vector/search 已迁移至
-#  plugins/memory.py（任务 T1.3），register_vector_routes 不含 search 以避免路由冲突。
+#  向量记忆路由
+#  /api/vector/search 由 plugins/memory.py 提供（任务 T1.3）。
+#  legacy 端点 /api/vector/stats|add、/api/knowledge/add 原由
+#  routes_memory.register_vector_routes 提供，该模块已随重构移除
+#  （旧版 templates/index.html 已归档，不再调用），此处不再接线。
 # ════════════════════════════════════════════════════════════
-try:
-    from agent.server_routes.routes_memory import register_vector_routes as reg_vector
-    reg_vector(app, _Yunshu)
-    logger.info("向量记忆路由已注册 (/api/vector/*, /api/knowledge/add)")
-except Exception as e:
-    logger.error("加载向量记忆路由失败: %s", e)
 
 # ════════════════════════════════════════════════════════════
 #  遗留重构接线 T2-T5（见 docs/zh/架构收口遗留重构任务清单_20260816.md）
@@ -863,30 +865,14 @@ try:
 except Exception as e:
     logger.error("加载监控仪表盘路由失败: %s", e)
 
-# T6：orchestrator 语义层配置热更（独立子函数，无需 state，仅用 Orchestrator 类）
-try:
-    from agent.server_routes.routes_config import register_semantic_config_routes as reg_sem_cfg
-    reg_sem_cfg(app)
-    logger.info("语义层配置热更路由已注册 (/api/orchestrator/semantic-config)")
-except Exception as e:
-    logger.error("加载语义层配置路由失败: %s", e)
+# T6：orchestrator 语义层配置热更（原 routes_config.register_semantic_config_routes
+# 已随重构移除，路由由 agent/api_gateway.py 与 orchestrator 提供，此处不再接线）
 
-# T7：会话交接（独立子函数，需 session_mgr + Yunshu）
-try:
-    from agent.server_routes.routes_sessions import register_handoff_routes as reg_handoff
-    from types import SimpleNamespace as _SN
-    reg_handoff(app, _SN(session_mgr=_session_mgr, Yunshu=_Yunshu))
-    logger.info("会话交接路由已注册 (/api/handoff)")
-except Exception as e:
-    logger.error("加载会话交接路由失败: %s", e)
+# T7：会话交接（原 routes_sessions.register_handoff_routes 已移除，
+# 会话 API 由 plugins/chat.py 提供，此处不再接线）
 
-# T8.1：多租户管理 API（TenantManager HTTP 化，管理端点 require_token）
-try:
-    from agent.server_routes.routes_tenants import register_routes as reg_tenants
-    reg_tenants(app, lambda: None)
-    logger.info("多租户管理路由已注册 (/api/open/tenants/*)")
-except Exception as e:
-    logger.error("加载多租户管理路由失败: %s", e)
+# T8.1：多租户管理 API（原 routes_tenants 已移除，多租户由 agent/multi_tenant.py
+# 提供，管理端点走 plugins/admin.py，此处不再接线）
 
 
 # ── 网络配置管理器 ──
@@ -1257,13 +1243,17 @@ def api_test_division():
 #  app.url_map 生成全量 Swagger 文档——必须等全部 /api/* 路由（含 T2-T7
 #  接线与后续内联路由）注册完成后再挂载，否则新接口缺失于文档。
 #  适配层采用中间层模式：仅拦截 /api/open/* 前缀，内部 API 认证不变。
+#  注：agent/api_gateway_flask.py 为可选组件（当前未提供，缺失时跳过不阻断），
+#      /api/open/* 与 /api/docs 由恢复该模块后自动生效。
 # ════════════════════════════════════════════════════════════
 try:
     from agent.api_gateway_flask import register_gateway as reg_gateway
     reg_gateway(app)
     logger.info("API 网关适配层已挂载 (/api/open/*, /api/docs)")
+except ImportError:
+    logger.debug("API 网关适配层未安装（agent/api_gateway_flask.py 缺失，跳过）")
 except Exception as e:
-    logger.error("加载 API 网关适配层失败: %s", e)
+    logger.warning("加载 API 网关适配层失败: %s", e)
 
 # 程序退出时停止窗口传感器
 import atexit
