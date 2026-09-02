@@ -1,5 +1,5 @@
 {
-  "trace_id": "4b705d0e6d104e95",
+  "trace_id": "043bbac90451480e",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -63,7 +63,7 @@
       "name": "server_auth",
       "layer": "core",
       "file_path": "",
-      "in_degree": 22,
+      "in_degree": 23,
       "out_degree": 0
     },
     {
@@ -1295,7 +1295,7 @@
       "name": "tracing_decorator",
       "layer": "server_routes",
       "file_path": "",
-      "in_degree": 20,
+      "in_degree": 21,
       "out_degree": 2
     },
     {
@@ -1617,6 +1617,14 @@
       "file_path": "agent/server_routes/routes_panorama.py",
       "in_degree": 0,
       "out_degree": 3
+    },
+    {
+      "path": "agent.server_routes.routes_visual_workflows",
+      "name": "routes_visual_workflows",
+      "layer": "server_routes",
+      "file_path": "agent/server_routes/routes_visual_workflows.py",
+      "in_degree": 0,
+      "out_degree": 2
     },
     {
       "path": "agent.server_routes.routes_replay",
@@ -8457,6 +8465,32 @@
       "import_type": "from_import",
       "line": 6,
       "source_file": "agent/server_routes/routes_panorama.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_visual_workflows",
+      "target": "agent.server_auth",
+      "source_layer": "server_routes",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 33,
+      "source_file": "agent/server_routes/routes_visual_workflows.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_visual_workflows",
+      "target": "agent.server_routes.tracing_decorator",
+      "source_layer": "server_routes",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 34,
+      "source_file": "agent/server_routes/routes_visual_workflows.py",
       "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
@@ -15458,10 +15492,10 @@
     }
   ],
   "stats": {
-    "total_files": 425,
-    "total_nodes": 365,
-    "total_edges": 964,
-    "cross_layer_edges": 632,
+    "total_files": 426,
+    "total_nodes": 366,
+    "total_edges": 966,
+    "cross_layer_edges": 633,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -15491,7 +15525,7 @@
       "learning": 2,
       "memory": 15,
       "workflow_engine": 5,
-      "server_routes": 27,
+      "server_routes": 28,
       "knowledge": 26,
       "log_system": 10,
       "handoff": 1,
@@ -15507,6 +15541,6 @@
       "quality": 2,
       "prompt_manager": 5
     },
-    "build_duration_ms": 2001.0309470000038
+    "build_duration_ms": 1993.9093459999954
   }
 }
