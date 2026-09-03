@@ -408,7 +408,7 @@ export default function SkillDigestManager() {
       )}
       {feedOpen && <FeedModal onClose={() => setFeedOpen(false)} />}
       {cmdTarget && (
-        <CommandModal item={cmdTarget} onClose={() => setCmdTarget(null)} />
+        <CommandModal item={cmdTarget} onClose={() => setCmdTarget(null)} onDone={() => void load()} />
       )}
 
       {/* 发布审计（人工复核/强制发布记录）可视化 */}
@@ -1276,23 +1276,32 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
 
 // ── 全部动态（聚合时间线：digest 事件 + 人工复核审计）───────────────────
 function FeedModal({ onClose }: { onClose: () => void }) {
-  const [items, setItems] = useState<{ kind?: string; ts?: string; skill_id?: string; tag?: string; detail?: string }[]>([])
+  type FeedItem = { kind?: string; ts?: string; skill_id?: string; tag?: string; detail?: string }
+  const PAGE = 60
+  const [items, setItems] = useState<FeedItem[]>([])
   const [busy, setBusy] = useState(true)
+  const [hasMore, setHasMore] = useState(false)
   const [err, setErr] = useState('')
-  const load = useCallback(async () => {
+  const baseRef = useRef<FeedItem[]>([])
+  const load = useCallback(async (offset: number, append: boolean) => {
     setErr('')
+    if (!append) setBusy(true)
     try {
-      const r = await hubGet<{ records?: { kind?: string; ts?: string; skill_id?: string; tag?: string; detail?: string }[] }>('/api/skills-mgmt/digest/feed?limit=150')
-      setItems(Array.isArray(r.records) ? r.records : [])
+      const r = await hubGet<{ records?: FeedItem[] }>(`/api/skills-mgmt/digest/feed?limit=${PAGE}&offset=${offset}`)
+      const recs = Array.isArray(r.records) ? r.records : []
+      const next = append ? [...baseRef.current, ...recs] : recs
+      baseRef.current = next
+      setItems(next)
+      setHasMore(recs.length === PAGE)
     } catch (e) { setErr(`动态加载失败：${e instanceof Error ? e.message : String(e)}`) }
     finally { setBusy(false) }
   }, [])
-  useEffect(() => { void load() }, [load])
+  useEffect(() => { void load(0, false) }, [load])
   return (
     <ModalShell title="全部动态（digest 评估 + 人工复核/发布审计）" onClose={onClose}>
       <div className="mb-2 flex items-center gap-2">
-        <span className="text-[11px] text-slate-500">最近 {items.length} 条（时间倒序）</span>
-        <button type="button" className={BTN} onClick={() => void load()}>
+        <span className="text-[11px] text-slate-500">已加载 {items.length} 条（时间倒序，分页加载）</span>
+        <button type="button" className={BTN} onClick={() => void load(0, false)}>
           <RefreshCw size={11} /> 刷新
         </button>
       </div>
@@ -1314,7 +1323,12 @@ function FeedModal({ onClose }: { onClose: () => void }) {
           ))}
         </ul>
       )}
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        {hasMore && (
+          <button type="button" className={BTN} onClick={() => void load(baseRef.current.length, true)} disabled={busy}>
+            {busy ? <Loader2 size={11} className="animate-spin" /> : <ChevronDown size={11} />} 加载更多
+          </button>
+        )}
         <button type="button" className={BTN} onClick={onClose}>关闭</button>
       </div>
     </ModalShell>
@@ -1322,7 +1336,7 @@ function FeedModal({ onClose }: { onClose: () => void }) {
 }
 
 // ── 斜杠命令（Slash 解析器入口：info/versions/execute/params）─────────────
-function CommandModal({ item, onClose }: { item: SkillItem; onClose: () => void }) {
+function CommandModal({ item, onClose, onDone }: { item: SkillItem; onClose: () => void; onDone?: () => void }) {
   const [cmd, setCmd] = useState('info')
   const [scriptName, setScriptName] = useState('main.py')
   const [paramsText, setParamsText] = useState('')
@@ -1336,9 +1350,14 @@ function CommandModal({ item, onClose }: { item: SkillItem; onClose: () => void 
       body.script_name = scriptName || 'main.py'
       try { body.params = paramsText.trim() ? JSON.parse(paramsText) : {} } catch { setErr('params 需为合法 JSON'); setBusy(false); return }
     }
+    if (cmd === 'params') {
+      try { body.params = paramsText.trim() ? JSON.parse(paramsText) : {} } catch { setErr('patch 需为合法 JSON'); setBusy(false); return }
+    }
     try {
       const r = await hubPost<{ ok?: boolean; error?: string }>(`/api/skills-mgmt/skill/${item.id}`, body)
       setOut(JSON.stringify(r, null, 2).slice(0, 3000))
+      // 成功执行/打补丁后刷新父级行数据（启用状态、描述等可能已变化）
+      if (r && r.ok !== false) onDone?.()
     } catch (e) { setErr(e instanceof Error ? e.message : String(e)) }
     finally { setBusy(false) }
   }

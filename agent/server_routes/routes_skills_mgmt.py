@@ -335,11 +335,26 @@ def register_routes(app, state):
     @require_token
     @log_request(show_response=False)
     def api_skills_mgmt_digest_feed():
-        """“全部动态”聚合流：digest 事件 + 人工复核审计（时间倒序）"""
+        """“全部动态”聚合流：digest 事件 + 人工复核审计（时间倒序，支持分页）"""
         try:
             limit = max(1, min(request.args.get("limit", 100, type=int), 300))
-            records = _svc().digest_feed(limit=limit)
-            return jsonify({"ok": True, "records": records, "total": len(records)})
+            offset = max(0, request.args.get("offset", 0, type=int))
+            records = _svc().digest_feed(limit=limit, offset=offset)
+            return jsonify({"ok": True, "records": records,
+                            "total": len(records),
+                            "offset": offset, "limit": limit})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/slash-commands", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_slash_commands():
+        """斜杠命令注册表：已发布+启用技能 → 会话可输入 /skill:<id> 提示"""
+        try:
+            result = _svc().slash_commands()
+            return jsonify({"ok": True, **result})
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 

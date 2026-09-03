@@ -573,3 +573,80 @@ class TestAutoDigestHooks:
         got = svc.get("legacy-skill")
         assert got.review is not None and got.review.auto_assessed is True
         assert got.status == "draft", "批量补评不改技能状态"
+
+
+# ═══════════════════════════════════════════════════════════════
+#  全部动态聚合流分页 + 斜杠命令注册表（本轮新增契约）
+# ═══════════════════════════════════════════════════════════════
+
+class TestDigestFeedPagination:
+    """digest_feed(limit, offset)：digest 事件 + 审计记录合并、时间倒序、分页切片。"""
+
+    def test_merge_sort_desc_and_slice(self, svc):
+        events = [
+            {"ts": "2026-01-01T10:00:00", "kind": "auto", "skill_id": "a",
+             "verdict": "ok", "summary": "e1"},
+            {"ts": "2026-01-01T09:00:00", "kind": "auto", "skill_id": "b",
+             "verdict": "block", "summary": "e2"},
+            {"ts": "2026-01-01T08:00:00", "kind": "auto", "skill_id": "c",
+             "verdict": "ok", "summary": "e3"},
+        ]
+        audit = [
+            {"ts": "2026-01-01T09:30:00", "kind": "review", "skill_id": "a",
+             "actor": "admin", "reason": "人工放行", "verdict": ""},
+            {"ts": "2026-01-01T07:00:00", "kind": "review", "skill_id": "d",
+             "actor": "admin", "reason": "复核通过", "verdict": ""},
+        ]
+        svc.digest_events = lambda limit=50: events[-limit:][::-1]  # type: ignore[assignment]
+        svc.audit_log = lambda limit=100, skill_id="", offset=0, since="": audit  # type: ignore[assignment]
+
+        page1 = svc.digest_feed(limit=3, offset=0)
+        assert [r["ts"] for r in page1] == [
+            "2026-01-01T10:00:00", "2026-01-01T09:30:00", "2026-01-01T09:00:00"]
+        assert page1[1]["kind"] == "audit"
+        assert page1[0]["kind"] == "digest"
+
+        page2 = svc.digest_feed(limit=3, offset=3)
+        assert [r["ts"] for r in page2] == [
+            "2026-01-01T08:00:00", "2026-01-01T07:00:00"]
+        # 两页无重叠（分页切片正确）
+        all_ts = [r["ts"] for r in page1 + page2]
+        assert len(all_ts) == len(set(all_ts))
+
+    def test_feed_empty(self, svc):
+        svc.digest_events = lambda limit=50: []  # type: ignore[assignment]
+        svc.audit_log = lambda limit=100, skill_id="", offset=0, since="": []  # type: ignore[assignment]
+        assert svc.digest_feed(limit=10, offset=0) == []
+
+
+class TestSlashCommands:
+    """slash_commands()：仅登记「已发布/已批准 + 启用」的技能为 /skill:<id>。"""
+
+    def _pub(self, svc, sid, **kw):
+        from agent.skills_mgmt.models import Skill as SK
+        data = dict(id=sid, name=sid, description="说明-" + sid,
+                    content="# " + sid, content_type="markdown",
+                    category="custom", tags=[], author="tester",
+                    enabled=True, status=SkillStatus.PUBLISHED)
+        data.update(kw)
+        return svc.store.upsert(SK.from_storage_dict(data))
+
+    def test_only_published_enabled_registered(self, svc):
+        self._pub(svc, "ok-skill")
+        self._pub(svc, "off-skill", enabled=False)
+        self._pub(svc, "draft-skill", status=SkillStatus.DRAFT)
+        result = svc.slash_commands()
+        tokens = [c["token"] for c in result["commands"]]
+        assert result["total"] == 1
+        assert tokens == ["/skill:ok-skill"]
+        cmd = result["commands"][0]
+        assert cmd["id"] == "ok-skill"
+        assert cmd["name"] == "ok-skill"
+        assert "说明" in cmd["description"]
+
+    def test_sorted_by_token(self, svc):
+        self._pub(svc, "beta")
+        self._pub(svc, "alpha")
+        result = svc.slash_commands()
+        tokens = [c["token"] for c in result["commands"]]
+        assert tokens == sorted(tokens) == ["/skill:alpha", "/skill:beta"]

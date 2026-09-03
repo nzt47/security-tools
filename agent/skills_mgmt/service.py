@@ -496,10 +496,12 @@ class SkillsMgmtService:
                 })
         return records[-max(1, limit):][::-1]
 
-    def digest_feed(self, limit: int = 100) -> List[Dict[str, Any]]:
-        """“全部动态”聚合流：digest 事件 + 人工复核审计，按时间倒序。"""
-        events = self.digest_events(limit=max(1, limit))
-        audit = self.audit_log(limit=max(1, limit))
+    def digest_feed(self, limit: int = 100,
+                    offset: int = 0) -> List[Dict[str, Any]]:
+        """“全部动态”聚合流：digest 事件 + 人工复核审计，按时间倒序 + 分页。"""
+        need = max(1, limit) + max(0, offset)
+        events = self.digest_events(limit=need)
+        audit = self.audit_log(limit=need)
         feed: List[Dict[str, Any]] = []
         for e in events:
             feed.append({"kind": "digest", "ts": e.get("ts", ""),
@@ -512,7 +514,24 @@ class SkillsMgmtService:
                          "tag": "强制发布",
                          "detail": f"复核人 {a.get('actor', '')}：{a.get('reason', '')}"})
         feed.sort(key=lambda r: str(r.get("ts", "")), reverse=True)
-        return feed[:max(1, limit)]
+        return feed[offset: offset + max(1, limit)]
+
+    def slash_commands(self) -> Dict[str, Any]:
+        """斜杠命令注册表：把“已发布且启用”的技能注册为会话 `/skill:<id>` 命令。"""
+        commands = []
+        for s in self.store.list_all():
+            status = getattr(s.status, "value", s.status)
+            if not s.enabled or status not in ("published", "approved"):
+                continue
+            commands.append({
+                "token": f"/skill:{s.id}",
+                "id": s.id,
+                "name": s.name or s.id,
+                "description": (s.description or "")[:120],
+                "kind": "skill",
+            })
+        commands.sort(key=lambda c: c["token"])
+        return {"total": len(commands), "commands": commands}
 
     def undo_merge(self, merge_id: str) -> Dict[str, Any]:
         """按 merge_id 撤销「安全合并」：恢复被删除技能 + 恢复保留方快照。"""

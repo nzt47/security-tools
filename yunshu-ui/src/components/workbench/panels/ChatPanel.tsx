@@ -30,6 +30,37 @@ export function ChatPanel() {
   const stopStreaming = useLayoutStore((s) => s.stopStreaming);
 
   const [input, setInput] = useState('');
+  // 斜杠命令注册表（已发布技能 → /skill:<id>，输入 / 时提示）
+  interface SlashCmd { token?: string; id?: string; name?: string; description?: string }
+  const [cmds, setCmds] = useState<SlashCmd[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/skills-mgmt/slash-commands')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled && d?.commands) setCmds(d.commands); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
+  const slashPart = input.startsWith('/') ? input.slice(1).trim().toLowerCase() : '';
+  const slashHits = slashPart
+    ? cmds.filter((k) =>
+        (k.token ?? '').slice(1).toLowerCase().startsWith(slashPart)
+        || (k.id ?? '').toLowerCase().startsWith(slashPart)
+        || String(k.name ?? '').toLowerCase().includes(slashPart)).slice(0, 8)
+    : [];
+
+  const expandSlash = (raw: string): string => {
+    const m = raw.trim().match(/^(\/skill:[a-z0-9_-]+)(?:\s+([\s\S]*))?$/i);
+    if (m) {
+      const cmd = cmds.find((k) => (k.token ?? '').toLowerCase() === m[1].toLowerCase());
+      if (cmd) {
+        const task = (m[2] ?? '').trim();
+        return `请调用已注册技能「${cmd.name ?? cmd.id}」（${cmd.id}）。${task ? `任务：${task}` : '请按该技能用途处理。'}`;
+      }
+    }
+    return raw.trim();
+  };
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   // 最后一条消息内容：内容增长时触底滚动（独立变量便于依赖数组静态检查）
@@ -121,7 +152,7 @@ export function ChatPanel() {
 
   const handleSend = () => {
     if (!input.trim() || streaming) return;
-    sendMessage(input);
+    sendMessage(expandSlash(input));
     setInput('');
   };
 
@@ -183,6 +214,23 @@ export function ChatPanel() {
               <Square size={11} fill="currentColor" />
               停止生成
             </button>
+          </div>
+        )}
+        {slashHits.length > 0 && (
+          <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/95 p-1 shadow-xl">
+            <div className="px-2 pb-1 pt-0.5 text-[9px] uppercase tracking-wider text-slate-500">已注册技能斜杠（回车将展开为调用指令）</div>
+            {slashHits.map((c) => (
+              <button
+                key={c.token}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); setInput(`${c.token} `); }}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-cyan-500/10"
+              >
+                <span className="shrink-0 font-mono text-[11px] text-cyan-300">{c.token}</span>
+                <span className="min-w-0 flex-1 truncate text-[11px] text-slate-200">{c.name}</span>
+                <span className="min-w-0 flex-1 truncate text-[10px] text-slate-500">{c.description}</span>
+              </button>
+            ))}
           </div>
         )}
         <MessageInput
