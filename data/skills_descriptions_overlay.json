@@ -1,0 +1,14 @@
+{
+  "self_reflection": {
+    "description": "自省反思：复盘自身行为与决策，沉淀经验与改进方向"
+  },
+  "email-helper": {
+    "description": "邮件处理助手：起草、整理与管理邮件（处理收件与回复）"
+  },
+  "memory_summary": {
+    "description": "记忆摘要：压缩与归纳对话历史与长期记忆，控制上下文占用"
+  },
+  "scripted-selftest": {
+    "description": "三层架构示例技能：演示 skill.md 元数据 + 脚本执行 + 参数注入契约"
+  }
+}
