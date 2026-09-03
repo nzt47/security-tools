@@ -279,15 +279,24 @@ class SkillsMgmtService:
     # ─── 自动分类（新技能自动归类/建类；同处注册表与运行时共用）───
 
     def _auto_classify(self, skill_id: str) -> str:
-        """新技能进入后自动归类（创建/安装/更新钩子调用；失败不阻断主流程）。"""
+        """新技能进入后自动归类（创建/安装/更新钩子调用；失败不阻断主流程）。
+
+        若同一 id 也存在于运行时生态（rt:），自动把分类镜像过去保持两侧一致。
+        """
         try:
             skill = self._require(skill_id)
-            return self._class_registry.resolve(
+            cls = self._class_registry.resolve(
                 f"asset:{skill_id}",
                 name=skill.name or skill_id,
                 description=skill.description or "",
                 content=skill.content or "",
                 tags=list(skill.tags or []))
+            try:
+                self._class_registry.mirror(f"asset:{skill_id}",
+                                            f"rt:{skill_id}")
+            except Exception:  # noqa: BLE001 镜像失败不影响资产侧
+                pass
+            return cls
         except Exception as e:  # noqa: BLE001 分类是附加能力
             logger.debug("[Service] 自动分类失败 skill=%s: %s", skill_id, e)
             return "未分类"
@@ -333,6 +342,11 @@ class SkillsMgmtService:
             raise SkillMgmtError(
                 f"未知分类: {target}（可用: {sorted(known)[:12]}…）")
         self._class_registry.assign(f"asset:{skill_id}", target)
+        try:  # 同名运行时技能自动跟随（人工移动过的运行时项不动）
+            self._class_registry.mirror(f"asset:{skill_id}",
+                                        f"rt:{skill_id}")
+        except Exception:  # noqa: BLE001
+            pass
         logger.info("[Service] 技能 %s 人工移动至分类 %s", skill_id, target)
         return {"ok": True, "skill_id": skill_id, "class_name": target}
 

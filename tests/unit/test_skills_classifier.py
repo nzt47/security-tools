@@ -145,6 +145,24 @@ class TestRegistry:
         assert v["count"] == 1 and v["auto"] is False
         assert out["total"] == 2
 
+    def test_mirror_asset_to_runtime_when_not_manual(self, reg):
+        reg.resolve("asset:x", name="语音助手", description="语音交互", content="")
+        reg.resolve("rt:x", name="邮件工具", description="处理邮件", content="")
+        assert reg.assignment("rt:x") == "邮件与通讯"
+        assert reg.mirror("asset:x", "rt:x") is True
+        assert reg.assignment("rt:x") == "语音与多媒体"  # 资产侧胜出（自动跟随）
+
+    def test_mirror_keeps_runtime_manual(self, reg):
+        reg.resolve("asset:x", name="语音助手", description="语音交互", content="")
+        reg.assign("rt:x", "翻译与写作")  # 人工钉住运行时
+        assert reg.mirror("asset:x", "rt:x") is False
+        assert reg.assignment("rt:x") == "翻译与写作"
+
+    def test_auto_class_names_reports_created(self, reg):
+        reg.resolve("asset:z", name="冥想引导器", description="专注放松", content="")
+        assert "冥想引导器" in reg.auto_class_names()
+        assert "语音与多媒体" not in reg.auto_class_names()  # 种子类不算自动建类
+
 
 # ═══════════════════════════════════════════════════════════════
 #  服务集成（创建/安装自动归类 + 路由契约方法）

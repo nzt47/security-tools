@@ -271,6 +271,32 @@ class SkillClassRegistry:
             self._save(st)
         return cls_name
 
+    def mirror(self, src_key: str, dst_key: str) -> bool:
+        """把 src 的分类同步到同技能的另一生态 key（asset↔rt 同名技能）。
+
+        规则：dst 不存在或 dst 是人工移动过（manual）→ 不动；
+        否则 dst 自动归类跟随 src（同一技能两侧保持一致）。
+        """
+        if not src_key or not dst_key or src_key == dst_key:
+            return False
+        with _REG_LOCK:
+            st = self._load()
+            assignments = st.setdefault("assignments", {})
+            if src_key not in assignments or dst_key not in assignments:
+                return False
+            if dst_key in set(st.get("manual", [])):
+                return False
+            if assignments[src_key] == assignments[dst_key]:
+                return False
+            assignments[dst_key] = assignments[src_key]
+            self._save(st)
+            return True
+
+    def auto_class_names(self) -> set:
+        """当前已自动建类的类名集合（供 UI 打「自动建类」徽标）。"""
+        with _REG_LOCK:
+            return set(self._load().get("auto_classes", {}).keys())
+
     def resolve(self, key: str, *, name: str = "", description: str = "",
                 content: str = "", tags: Optional[list] = None) -> str:
         """取技能分类；未记录则自动判定并落盘。

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { hubGet, hubPost } from '../../hub/components/ui'
 import GenerateRequirementModal from './generate-requirement-modal'
+import ClassIcon from './class-icon'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = `${BTN} border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10`
@@ -282,7 +283,7 @@ export default function SkillDigestManager() {
       }
     }
     return (
-      <tr key={it.id} className={`border-b border-slate-800/60 transition-colors hover:bg-slate-900/40 ${open ? 'bg-slate-900/60' : ''}`}>
+      <tr key={it.id} id={`skill-row-${it.id}`} className={`border-b border-slate-800/60 transition-colors hover:bg-slate-900/40 ${open ? 'bg-slate-900/60' : ''}`}>
         <td className="px-2 py-2">
           <button type="button" onClick={() => toggleRow(it.id)} className="text-slate-500 hover:text-slate-300" title={open ? '收起报告' : '展开评审-消化报告'}>
             {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
@@ -380,7 +381,7 @@ export default function SkillDigestManager() {
           <td colSpan={6} className="px-1.5 py-1">
             <button type="button" onClick={() => toggleCls(name)} className="flex w-full items-center gap-2 rounded px-1.5 py-1 text-left hover:bg-slate-800/60" title={isOpen ? '折叠该类' : '展开该类'}>
               {isOpen ? <ChevronDown size={13} className="shrink-0 text-slate-400" /> : <ChevronRight size={13} className="shrink-0 text-slate-400" />}
-              <Folder size={13} className="shrink-0 text-cyan-400" />
+              <ClassIcon name={name} size={13} className="shrink-0 text-cyan-400" />
               <span className="text-[11px] font-medium text-slate-100">{name}</span>
               <span className="rounded-full bg-slate-800 px-1.5 text-[10px] text-slate-400">{members.length}</span>
               {g?.auto && chip('自动建类', 'bg-violet-500/10 text-violet-300 border-violet-800/60')}
@@ -393,6 +394,28 @@ export default function SkillDigestManager() {
     for (const g of classView) pushGroup(g.name, items.filter((it) => idCls.get(it.id) === g.name))
     pushGroup('未分类', items.filter((it) => !idCls.has(it.id)))
     return out
+  }
+
+  /** 动态行 → 定位资产库技能：展开该行报告并滚动到可视区（折叠模式下先展开所属类） */
+  const handlePickSkill = (skillId: string) => {
+    const it = items.find((x) => x.id === skillId)
+    if (!it) {
+      setMsg(`技能「${skillId}」不在资产库（可能仅为运行时技能或已删除）。`)
+      return
+    }
+    setExpanded((p) => ({ ...p, [skillId]: true }))
+    if (grouped) {
+      for (const g of classView ?? []) {
+        if ((g.skills ?? []).some((s) => s?.id === skillId)) {
+          setCollapsedCls((p) => ({ ...p, [g.name]: false }))
+          break
+        }
+      }
+    }
+    setMsg(`已定位技能「${it.name || skillId}」，下方报告已展开。`)
+    window.setTimeout(() => {
+      document.getElementById(`skill-row-${skillId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 80)
   }
 
   return (
@@ -517,7 +540,7 @@ export default function SkillDigestManager() {
       {curateOpen && (
         <CurateModal onClose={() => setCurateOpen(false)} onDone={() => { setCurateOpen(false); void load() }} />
       )}
-      {feedOpen && <FeedModal onClose={() => setFeedOpen(false)} />}
+      {feedOpen && <FeedModal onClose={() => setFeedOpen(false)} onPick={handlePickSkill} />}
       {cmdTarget && (
         <CommandModal item={cmdTarget} onClose={() => setCmdTarget(null)} onDone={() => void load()} />
       )}
@@ -1386,7 +1409,7 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
 }
 
 // ── 全部动态（聚合时间线：digest 事件 + 人工复核审计）───────────────────
-function FeedModal({ onClose }: { onClose: () => void }) {
+function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId: string) => void }) {
   type FeedItem = { kind?: string; ts?: string; skill_id?: string; tag?: string; detail?: string }
   const PAGE = 60
   const [items, setItems] = useState<FeedItem[]>([])
@@ -1446,7 +1469,16 @@ function FeedModal({ onClose }: { onClose: () => void }) {
           {items.map((r, i) => (
             <li key={`${r.ts}-${i}`} className="flex items-start gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
               {chip(r.kind === 'audit' ? '审计' : '评估', r.kind === 'audit' ? 'bg-amber-500/10 text-amber-400 border-amber-800/60' : 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
-              <span className="shrink-0 text-slate-300">{r.skill_id ?? '-'}</span>
+              {onPick && r.skill_id ? (
+                <button type="button"
+                  onClick={() => onPick(r.skill_id ?? '')}
+                  className="shrink-0 rounded border border-slate-700 px-1.5 py-0.5 font-mono text-[10px] text-cyan-300 transition-colors hover:border-cyan-600 hover:bg-cyan-500/10"
+                  title="在下方资产表中定位该技能（存在则展开报告并滚动定位）">
+                  {r.skill_id}
+                </button>
+              ) : (
+                <span className="shrink-0 text-slate-300">{r.skill_id ?? '-'}</span>
+              )}
               {r.tag && <span className={r.tag === 'block' ? 'text-red-400' : r.tag === '强制发布' ? 'text-amber-300' : 'text-emerald-400'}>{r.tag}</span>}
               <span className="min-w-0 flex-1 text-slate-500">{r.detail}</span>
               <span className="shrink-0 font-mono text-[9px] text-slate-600">{r.ts ?? ''}</span>

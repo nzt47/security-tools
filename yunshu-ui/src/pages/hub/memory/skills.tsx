@@ -6,10 +6,11 @@
  * 确定性、本地执行的「工作流技能」不在此列（见技能中心 → 工作流技能 Tab）。
  */
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, Folder, Layers, Power } from 'lucide-react'
+import { ChevronDown, ChevronRight, Layers, Power } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
 import { getApiToken } from '../../../lib/apiToken'
 import ApiTokenPrompt from './api-token-prompt'
+import ClassIcon from './class-icon'
 
 interface Skill {
   id: string
@@ -19,6 +20,8 @@ interface Skill {
   params?: Record<string, unknown>
   /** 自动分类（/api/skills 由分类引擎实时给出：种子类/自动新建类/未分类） */
   class_name?: string
+  /** 该分类是否为「自动新建类」（名称不在种子表，由新技能触发创建） */
+  class_auto?: boolean
 }
 
 /** 运行时写接口（启停/补说明）需要 FLASK_API_TOKEN：401 → 显示令牌引导框 */
@@ -110,9 +113,12 @@ export function MemorySkillsTable() {
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="font-medium text-slate-200">{r.name}</span>
         {r.class_name && (
-          <span className="inline-flex items-center gap-0.5 rounded-full border border-cyan-800/50 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] text-cyan-300" title="自动分类（新技能自动归类/新建类）">
-            <Folder size={8} /> {r.class_name}
+          <span className="inline-flex items-center gap-0.5 rounded-full border border-cyan-800/50 bg-cyan-500/10 px-1.5 py-0.5 text-[9px] text-cyan-300" title={r.class_auto ? '自动新建类（该技能出现时自动创建）' : '自动分类（新技能自动归类/新建类）'}>
+            <ClassIcon name={r.class_name} size={8} /> {r.class_name}
           </span>
+        )}
+        {r.class_auto && (
+          <span className="inline-flex items-center gap-0.5 rounded-full border border-violet-800/60 bg-violet-500/10 px-1.5 py-0.5 text-[9px] text-violet-300">自动建类</span>
         )}
       </div>
       {r.description && <div className="text-xs text-slate-500">{r.description}</div>}
@@ -189,7 +195,7 @@ export function MemorySkillsTable() {
                   className="flex w-full items-center gap-2 border-b border-slate-800/70 bg-slate-900/60 px-3 py-2 text-left hover:bg-slate-900"
                   title={open ? '折叠该类' : '展开该类'}>
                   {open ? <ChevronDown size={13} className="shrink-0 text-slate-400" /> : <ChevronRight size={13} className="shrink-0 text-slate-400" />}
-                  <Folder size={13} className="shrink-0 text-cyan-400" />
+                  <ClassIcon name={g.name} size={13} className="shrink-0 text-cyan-400" />
                   <span className="text-xs font-medium text-slate-100">{g.name}</span>
                   <span className="rounded-full bg-slate-800 px-1.5 text-[10px] text-slate-400">{g.list.length}</span>
                   <span className="ml-auto hidden text-[10px] text-slate-600 sm:inline">同类折叠 · 新技能自动归类</span>

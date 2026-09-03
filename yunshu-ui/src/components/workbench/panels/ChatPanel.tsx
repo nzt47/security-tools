@@ -65,6 +65,33 @@ export function ChatPanel() {
     }
     return raw.trim();
   };
+
+  // ── 斜杠下拉键盘导航（↑↓ 移动高亮 · Enter 选中并发送展开指令 · Tab 仅插入）──
+  const [hi, setHi] = useState(0);
+  const hiSafe = Math.min(hi, Math.max(0, slashHits.length - 1));
+  useEffect(() => { setHi(0); }, [slashPart]);
+  const pickSlash = (c: SlashCmd, send: boolean) => {
+    const token = c.token ?? '';
+    setInput(`${token} `);
+    setHi(0);
+    if (send) {
+      sendMessage(expandSlash(`${token} `));
+      setInput('');
+    }
+  };
+  const onSlashKey = (e: React.KeyboardEvent) => {
+    if (slashHits.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHi((h) => Math.min(h + 1, slashHits.length - 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHi((h) => Math.max(h - 1, 0));
+    } else if (e.key === 'Tab' || e.key === 'Enter') {
+      e.preventDefault(); // 阻止默认发送/失焦：下拉打开时由这里接管
+      pickSlash(slashHits[hiSafe], e.key === 'Enter');
+    }
+  };
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   // 最后一条消息内容：内容增长时触底滚动（独立变量便于依赖数组静态检查）
@@ -203,7 +230,7 @@ export function ChatPanel() {
       </div>
 
       {/* 输入区 */}
-      <div className="wb-input-pad border-t border-slate-800/60 px-4 py-3">
+      <div className="wb-input-pad border-t border-slate-800/60 px-4 py-3" onKeyDownCapture={onSlashKey}>
         {streaming && (
           <div className="mb-2 flex items-center justify-between">
             <span className="flex items-center gap-2 text-xs text-cyan-400/80">
@@ -222,13 +249,17 @@ export function ChatPanel() {
         )}
         {slashHits.length > 0 && (
           <div className="mb-2 rounded-lg border border-slate-800 bg-slate-900/95 p-1 shadow-xl">
-            <div className="px-2 pb-1 pt-0.5 text-[9px] uppercase tracking-wider text-slate-500">已注册技能斜杠（回车将展开为调用指令）</div>
-            {slashHits.map((c) => (
+            <div className="flex items-center justify-between px-2 pb-1 pt-0.5">
+              <span className="text-[9px] uppercase tracking-wider text-slate-500">已注册技能斜杠（↑↓ 选择 · Enter 选中即发送 · Tab 仅插入）</span>
+              {slashHits.length > 1 && <span className="font-mono text-[9px] text-cyan-400/70">{hiSafe + 1}/{slashHits.length}</span>}
+            </div>
+            {slashHits.map((c, idx) => (
               <button
                 key={c.token}
                 type="button"
-                onMouseDown={(e) => { e.preventDefault(); setInput(`${c.token} `); }}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-cyan-500/10"
+                onMouseDown={(e) => { e.preventDefault(); pickSlash(c, false); }}
+                onMouseEnter={() => setHi(idx)}
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-cyan-500/10 ${idx === hiSafe ? 'bg-cyan-500/15 ring-1 ring-cyan-600/50' : ''}`}
               >
                 <span className="shrink-0 font-mono text-[11px] text-cyan-300">{c.token}</span>
                 <span className="shrink-0 rounded border border-cyan-800/50 bg-cyan-500/10 px-1 text-[9px] font-medium text-cyan-300" title={`类型 ${c.content_type ?? ''}`}>{typeLabel(c)}</span>

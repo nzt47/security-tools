@@ -210,6 +210,7 @@ def api_skills_get():
     try:
         from agent.skills_mgmt.categorizer import SkillClassRegistry, UNCLASSIFIED
         reg = SkillClassRegistry()
+        auto_names = reg.auto_class_names()
         for s in installed:
             try:
                 s["class_name"] = reg.resolve(
@@ -218,8 +219,10 @@ def api_skills_get():
                     description=s.get("description", ""),
                     content=s.get("content", "") or s.get("script", ""),
                     tags=s.get("tags"))
+                s["class_auto"] = s.get("class_name") in auto_names
             except Exception:  # noqa: BLE001 单条失败不影响列表
                 s["class_name"] = UNCLASSIFIED
+                s["class_auto"] = False
         for s in available:
             try:
                 s["class_name"] = reg.resolve(
@@ -228,8 +231,10 @@ def api_skills_get():
                     description=s.get("description", ""),
                     content=s.get("content", ""),
                     tags=s.get("tags"))
+                s["class_auto"] = s.get("class_name") in auto_names
             except Exception:  # noqa: BLE001
                 s["class_name"] = UNCLASSIFIED
+                s["class_auto"] = False
     except Exception:  # noqa: BLE001 分类不可用时列表照常返回
         pass
 
