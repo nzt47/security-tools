@@ -328,6 +328,25 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/skills-mgmt/digest/stream", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_digest_stream():
+        """digest 事件实时推送（长轮询）：返回 ts > since 的新增事件，超时返回空。
+
+        Query: since (ISO ts), timeout_sec（默认 20，封顶 25）
+        前端循环请求即得到“服务端推送”体验（替代定时轮询）。
+        """
+        try:
+            since = request.args.get("since", "", type=str).strip()
+            timeout_sec = max(1, min(request.args.get("timeout_sec", 20, type=int), 25))
+            records = _svc().digest_events_since(since=since,
+                                                 timeout_ms=timeout_sec * 1000)
+            return jsonify({"ok": True, "records": records, "total": len(records)})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/skills-mgmt/<skill_id>/publish", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token

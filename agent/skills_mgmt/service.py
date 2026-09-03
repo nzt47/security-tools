@@ -363,6 +363,52 @@ class SkillsMgmtService:
             logger.warning("[Service] 读取 digest 事件失败: %s", e)
             return []
 
+    def digest_events_since(self, since: str = "",
+                            timeout_ms: int = 20000) -> List[Dict[str, Any]]:
+        """实时推送源（长轮询）：返回 ts > since 的新增事件（时间序）。
+
+        请求方循环调用即可获得“服务端推送”体验；超时无新事件返回空列表。
+        """
+        try:
+            import os as _os
+            import json as _json
+            import time as _time
+            events_file = _os.path.join(
+                _os.path.dirname(_os.path.dirname(_os.path.dirname(
+                    _os.path.abspath(__file__)))),
+                "data", "skills_digest_events.jsonl")
+            deadline = _time.time() + max(1000, min(int(timeout_ms), 25000)) / 1000.0
+            while _time.time() < deadline:
+                recs: List[Dict[str, Any]] = []
+                if _os.path.exists(events_file):
+                    with open(events_file, "r", encoding="utf-8", errors="ignore") as f:
+                        for line in f:
+                            line = line.strip()
+                            if not line:
+                                continue
+                            try:
+                                rec = _json.loads(line)
+                            except Exception:
+                                continue
+                            if not isinstance(rec, dict):
+                                continue
+                            if since and str(rec.get("ts", "")) <= since:
+                                continue
+                            recs.append({
+                                "ts": rec.get("ts", ""),
+                                "kind": rec.get("kind", ""),
+                                "skill_id": rec.get("skill_id", ""),
+                                "verdict": rec.get("verdict", ""),
+                                "summary": rec.get("summary", ""),
+                            })
+                if recs:
+                    return recs  # 时间序（文件顺序）
+                _time.sleep(1)
+            return []
+        except Exception as e:  # noqa: BLE001
+            logger.warning("[Service] 事件长轮询失败: %s", e)
+            return []
+
     # ─── 脚本文件全维度审查并入 digest（第三层 scripts/*.py）───
 
     def _merge_script_review(self, skill: Skill,
