@@ -31,7 +31,11 @@ export function ChatPanel() {
 
   const [input, setInput] = useState('');
   // 斜杠命令注册表（已发布技能 → /skill:<id>，输入 / 时提示）
-  interface SlashCmd { token?: string; id?: string; name?: string; description?: string }
+  interface SlashCmd { token?: string; id?: string; name?: string; description?: string; content_type?: string; category?: string; version?: string }
+  const typeLabel = (c: SlashCmd): string => {
+    const ct = String(c.content_type ?? '').toUpperCase();
+    return ct.slice(0, 6) || 'SKILL';
+  };
   const [cmds, setCmds] = useState<SlashCmd[]>([]);
   useEffect(() => {
     let cancelled = false;
@@ -227,8 +231,11 @@ export function ChatPanel() {
                 className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-cyan-500/10"
               >
                 <span className="shrink-0 font-mono text-[11px] text-cyan-300">{c.token}</span>
+                <span className="shrink-0 rounded border border-cyan-800/50 bg-cyan-500/10 px-1 text-[9px] font-medium text-cyan-300" title={`类型 ${c.content_type ?? ''}`}>{typeLabel(c)}</span>
                 <span className="min-w-0 flex-1 truncate text-[11px] text-slate-200">{c.name}</span>
-                <span className="min-w-0 flex-1 truncate text-[10px] text-slate-500">{c.description}</span>
+                <span className="shrink-0 text-[9px] text-slate-600">{c.version ? `v${c.version}` : ''}</span>
+                <span className="shrink-0 text-[9px] text-slate-600">{c.category ? `[${c.category}]` : ''}</span>
+                <span className="hidden max-w-40 min-w-0 truncate text-[10px] text-slate-500 sm:inline">{c.description}</span>
               </button>
             ))}
           </div>

@@ -251,15 +251,17 @@ class TestSelectiveDimensionsAndExternalPrecheck:
 
 class TestAuditLogRead:
     def test_read_audit_log_latest_first(self, tmp_path, monkeypatch):
+        from datetime import date as _date
         from agent.skills_mgmt import review_gate as rg
+        day = _date.today().isoformat()  # 当日记录才不会被按日归档移走
         p = tmp_path / "audit.jsonl"
         p.write_text(
-            "{\"ts\":\"2026-09-03T10:00:00\",\"event\":\"review_waiver_publish\","
+            f"{{\"ts\":\"{day}T10:00:00\",\"event\":\"review_waiver_publish\","
             "\"skill_id\":\"a\",\"actor\":\"x\",\"reason\":\"r1\"}\n"
-            "{\"ts\":\"2026-09-03T10:01:00\",\"event\":\"review_waiver_publish\","
+            f"{{\"ts\":\"{day}T10:01:00\",\"event\":\"review_waiver_publish\","
             "\"skill_id\":\"b\",\"actor\":\"y\",\"reason\":\"r2\"}\n"
             "not-json\n"
-            "{\"ts\":\"2026-09-03T10:02:00\",\"event\":\"review_waiver_publish\","
+            f"{{\"ts\":\"{day}T10:02:00\",\"event\":\"review_waiver_publish\","
             "\"skill_id\":\"c\",\"actor\":\"z\",\"reason\":\"r3\"}\n",
             encoding="utf-8",
         )
@@ -391,18 +393,20 @@ class TestDigestKnobsAndScriptScan:
         assert a2.blocked is False
 
     def test_audit_pagination_and_since(self, tmp_path, monkeypatch):
+        from datetime import date as _date
         from agent.skills_mgmt import review_gate as rg
+        day = _date.today().isoformat()  # 当日 ts，避免被按日归档移走
         p = tmp_path / "audit.jsonl"
         lines = []
         for i in range(5):
-            lines.append('{"ts":"2026-09-03T10:0%d:00","skill_id":"s%d","actor":"a","reason":"r%d"}\n' % (i, i, i))
+            lines.append('{"ts":"%sT10:0%d:00","skill_id":"s%d","actor":"a","reason":"r%d"}\n' % (day, i, i, i))
         p.write_text("".join(lines), encoding="utf-8")
         monkeypatch.setattr(rg, "_audit_file", lambda: str(p))
         # 第 2 页（offset=2, limit=2）
         page = rg.read_audit_log(limit=2, offset=2)
         assert [r["skill_id"] for r in page] == ["s2", "s1"]
         # since 过滤（>= 10:03）
-        recent = rg.read_audit_log(limit=10, since="2026-09-03T10:03:00")
+        recent = rg.read_audit_log(limit=10, since=f"{day}T10:03:00")
         assert [r["skill_id"] for r in recent] == ["s4", "s3"]
 
 
@@ -412,11 +416,13 @@ class TestDigestKnobsAndScriptScan:
 
 class TestDailyArchiveAndCurate:
     def test_archive_daily_moves_old_lines(self, tmp_path):
+        from datetime import date as _date
         from agent.skills_mgmt.log_archiver import archive_daily_file
+        today = _date.today().isoformat()
         p = tmp_path / "skills_digest_events.jsonl"
         old1 = '{"ts":"2026-08-31T10:00:00","skill_id":"a","kind":"auto","verdict":"ok"}\n'
         old2 = '{"ts":"2026-09-01T10:00:00","skill_id":"b","kind":"auto","verdict":"ok"}\n'
-        new1 = '{"ts":"2026-09-03T10:00:00","skill_id":"c","kind":"auto","verdict":"ok"}\n'
+        new1 = '{"ts":"%sT10:00:00","skill_id":"c","kind":"auto","verdict":"ok"}\n' % today
         p.write_text(old1 + old2 + new1, encoding="utf-8")
         out = archive_daily_file(p)
         assert out["archived"] == 2
@@ -618,6 +624,35 @@ class TestDigestFeedPagination:
         svc.audit_log = lambda limit=100, skill_id="", offset=0, since="": []  # type: ignore[assignment]
         assert svc.digest_feed(limit=10, offset=0) == []
 
+    def test_feed_filter_by_skill_id(self, svc):
+        events = [
+            {"ts": "2026-01-01T10:00:00", "kind": "auto", "skill_id": "alpha-1",
+             "verdict": "ok", "summary": "e1"},
+            {"ts": "2026-01-01T09:00:00", "kind": "auto", "skill_id": "beta-2",
+             "verdict": "block", "summary": "e2"},
+            {"ts": "2026-01-01T08:00:00", "kind": "auto", "skill_id": "alpha-3",
+             "verdict": "ok", "summary": "e3"},
+        ]
+        audit = [
+            {"ts": "2026-01-01T09:30:00", "kind": "review", "skill_id": "beta-2",
+             "actor": "admin", "reason": "放行", "verdict": ""},
+        ]
+        svc.digest_events = lambda limit=50: events[-limit:][::-1]  # type: ignore[assignment]
+        svc.audit_log = lambda limit=100, skill_id="", offset=0, since="": audit  # type: ignore[assignment]
+
+        only = svc.digest_feed(limit=50, offset=0, skill_id="alpha")
+        # 时间倒序：alpha-1(10:00) 新于 alpha-3(08:00)
+        assert [r["skill_id"] for r in only] == ["alpha-1", "alpha-3"]
+        assert all("alpha" in r["skill_id"] for r in only)
+
+        exact = svc.digest_feed(limit=50, offset=0, skill_id="beta-2")
+        # 包含匹配：beta-2 的 digest 事件 + 审计都命中，倒序
+        assert [r["skill_id"] for r in exact] == ["beta-2", "beta-2"]
+        assert exact[0]["kind"] == "audit"
+
+        none = svc.digest_feed(limit=50, offset=0, skill_id="gamma")
+        assert none == []
+
 
 class TestSlashCommands:
     """slash_commands()：仅登记「已发布/已批准 + 启用」的技能为 /skill:<id>。"""
@@ -643,6 +678,15 @@ class TestSlashCommands:
         assert cmd["id"] == "ok-skill"
         assert cmd["name"] == "ok-skill"
         assert "说明" in cmd["description"]
+
+    def test_command_meta_badges(self, svc):
+        self._pub(svc, "meta-skill", content_type="python", version="2.1.0")
+        cmd = svc.slash_commands()["commands"][0]
+        # 徽标字段：类型/类别/版本（供会话 / 下拉展示）
+        assert cmd["content_type"] == "python"
+        assert cmd["version"] == "2.1.0"
+        assert cmd["category"] == "custom"
+        assert cmd["kind"] == "skill"
 
     def test_sorted_by_token(self, svc):
         self._pub(svc, "beta")

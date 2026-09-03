@@ -496,9 +496,12 @@ class SkillsMgmtService:
                 })
         return records[-max(1, limit):][::-1]
 
-    def digest_feed(self, limit: int = 100,
-                    offset: int = 0) -> List[Dict[str, Any]]:
-        """“全部动态”聚合流：digest 事件 + 人工复核审计，按时间倒序 + 分页。"""
+    def digest_feed(self, limit: int = 100, offset: int = 0,
+                    skill_id: str = "") -> List[Dict[str, Any]]:
+        """“全部动态”聚合流：digest 事件 + 人工复核审计，按时间倒序 + 分页。
+
+        skill_id 非空时仅保留该技能（精确 id 或包含匹配）相关记录。
+        """
         need = max(1, limit) + max(0, offset)
         events = self.digest_events(limit=need)
         audit = self.audit_log(limit=need)
@@ -513,6 +516,9 @@ class SkillsMgmtService:
                          "skill_id": a.get("skill_id", ""),
                          "tag": "强制发布",
                          "detail": f"复核人 {a.get('actor', '')}：{a.get('reason', '')}"})
+        if skill_id:
+            q = str(skill_id).strip().lower()
+            feed = [r for r in feed if q in str(r.get("skill_id", "")).lower()]
         feed.sort(key=lambda r: str(r.get("ts", "")), reverse=True)
         return feed[offset: offset + max(1, limit)]
 
@@ -529,6 +535,9 @@ class SkillsMgmtService:
                 "name": s.name or s.id,
                 "description": (s.description or "")[:120],
                 "kind": "skill",
+                "content_type": getattr(s.content_type, "value", s.content_type),
+                "category": getattr(s.category, "value", s.category),
+                "version": s.version or "",
             })
         commands.sort(key=lambda c: c["token"])
         return {"total": len(commands), "commands": commands}

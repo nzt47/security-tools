@@ -335,14 +335,17 @@ def register_routes(app, state):
     @require_token
     @log_request(show_response=False)
     def api_skills_mgmt_digest_feed():
-        """“全部动态”聚合流：digest 事件 + 人工复核审计（时间倒序，支持分页）"""
+        """“全部动态”聚合流：digest 事件 + 人工复核审计（时间倒序，支持分页与按技能过滤）"""
         try:
             limit = max(1, min(request.args.get("limit", 100, type=int), 300))
             offset = max(0, request.args.get("offset", 0, type=int))
-            records = _svc().digest_feed(limit=limit, offset=offset)
+            skill_id = request.args.get("skill_id", "").strip()
+            records = _svc().digest_feed(limit=limit, offset=offset,
+                                         skill_id=skill_id)
             return jsonify({"ok": True, "records": records,
                             "total": len(records),
-                            "offset": offset, "limit": limit})
+                            "offset": offset, "limit": limit,
+                            "skill_id": skill_id})
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 

@@ -322,3 +322,11 @@ knowledge/index_links.md
 
 # vitest 覆盖率报告（生成物，不入库）
 yunshu-ui/coverage/
+
+# === 评审-消化运行时日志（2026-09-04 追加；与 evolution_archive 同型，进程/测试运行期生成）===
+# digest 事件流水（当日）+ 按日归档（skills_digest_events-YYYYMMDD.jsonl）
+data/skills_digest_events*.jsonl
+# 人工复核/强制发布审计流水
+data/skills_mgmt_review_audit.jsonl
+# 「安全合并」备份（merge-safe 撤销依据，运行时追加）
+data/skill_merge_backups.jsonl

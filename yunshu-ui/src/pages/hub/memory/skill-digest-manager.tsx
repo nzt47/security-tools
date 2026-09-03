@@ -12,7 +12,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  ListTree, ChevronDown, ChevronRight, Download, FileInput, Lightbulb, Loader2, PackagePlus, Plus,
+  ListTree, ChevronDown, ChevronRight, Download, FileInput, Filter, Lightbulb, Loader2, PackagePlus, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
 import { hubGet, hubPost } from '../../hub/components/ui'
@@ -1282,12 +1282,15 @@ function FeedModal({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(true)
   const [hasMore, setHasMore] = useState(false)
   const [err, setErr] = useState('')
+  const [filterId, setFilterId] = useState('')   // 已生效的技能过滤（含匹配）
+  const [draft, setDraft] = useState('')
   const baseRef = useRef<FeedItem[]>([])
   const load = useCallback(async (offset: number, append: boolean) => {
     setErr('')
     if (!append) setBusy(true)
     try {
-      const r = await hubGet<{ records?: FeedItem[] }>(`/api/skills-mgmt/digest/feed?limit=${PAGE}&offset=${offset}`)
+      const q = filterId.trim() ? `&skill_id=${encodeURIComponent(filterId.trim())}` : ''
+      const r = await hubGet<{ records?: FeedItem[] }>(`/api/skills-mgmt/digest/feed?limit=${PAGE}&offset=${offset}${q}`)
       const recs = Array.isArray(r.records) ? r.records : []
       const next = append ? [...baseRef.current, ...recs] : recs
       baseRef.current = next
@@ -1295,16 +1298,33 @@ function FeedModal({ onClose }: { onClose: () => void }) {
       setHasMore(recs.length === PAGE)
     } catch (e) { setErr(`动态加载失败：${e instanceof Error ? e.message : String(e)}`) }
     finally { setBusy(false) }
-  }, [])
+  }, [filterId])
   useEffect(() => { void load(0, false) }, [load])
+  const applyFilter = () => setFilterId(draft.trim())
   return (
     <ModalShell title="全部动态（digest 评估 + 人工复核/发布审计）" onClose={onClose}>
-      <div className="mb-2 flex items-center gap-2">
+      <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-[11px] text-slate-500">已加载 {items.length} 条（时间倒序，分页加载）</span>
+        <input
+          className={`${INPUT} !mb-0 w-44`}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') applyFilter() }}
+          placeholder="按技能 id 过滤（含匹配）"
+        />
+        <button type="button" className={BTN} onClick={applyFilter} title="按技能 id 过滤动态">
+          <Filter size={11} /> 过滤
+        </button>
+        {filterId && (
+          <button type="button" className={BTN} onClick={() => { setDraft(''); setFilterId('') }} title="清除过滤">
+            <X size={11} /> 清除
+          </button>
+        )}
         <button type="button" className={BTN} onClick={() => void load(0, false)}>
           <RefreshCw size={11} /> 刷新
         </button>
       </div>
+      {filterId && <p className="mb-1 text-[10px] text-cyan-400/80">当前过滤：skill_id 含 “{filterId}”</p>}
       {err && <p className="mb-2 text-[11px] text-red-400">{err}</p>}
       {busy ? (
         <div className="flex items-center gap-2 py-4 text-[11px] text-slate-500"><Loader2 size={12} className="animate-spin" /> 加载中…</div>
