@@ -31,6 +31,8 @@ export default function WorkbenchChatPage() {
   const [sessionId, setSessionId] = useState('')
   const [historyOpen, setHistoryOpen] = useState(false)
   const [skillGenOpen, setSkillGenOpen] = useState(false)
+  const [genIntent, setGenIntent] = useState<string>('')
+  const [ctx, setCtx] = useState<{ x: number; y: number; text: string } | null>(null)
 
   // 快捷入口预填：最近一条用户消息作为“对话要求”
   const lastUserMsg = useLayoutStore((s) => {
@@ -67,8 +69,35 @@ export default function WorkbenchChatPage() {
     void loadSessionHistory(id)
   }
 
+  // 右键选中文本 → 「生成技能要求」
+  const openFromSelection = () => {
+    if (!ctx) return
+    setGenIntent(ctx.text.slice(0, 2000))
+    setCtx(null)
+    setSkillGenOpen(true)
+  }
+  useEffect(() => {
+    if (!ctx) return
+    const close = () => setCtx(null)
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setCtx(null) }
+    window.addEventListener('mousedown', close)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('mousedown', close)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [ctx])
+
   return (
-    <div className="relative flex h-full min-h-0 flex-col overflow-hidden">
+    <div
+      className="relative flex h-full min-h-0 flex-col overflow-hidden"
+      onContextMenu={(e) => {
+        const sel = window.getSelection()?.toString().trim()
+        if (sel) { e.preventDefault(); setCtx({ x: e.clientX, y: e.clientY, text: sel }) }
+      }}
+    >
       {/* 页头：会话切换 + 流式对话 + 历史问话 + 清空 */}
       <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-slate-900/40 px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
@@ -91,7 +120,7 @@ export default function WorkbenchChatPage() {
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
-            onClick={() => setSkillGenOpen(true)}
+            onClick={() => { setGenIntent(''); setSkillGenOpen(true) }}
             title="把对话中出现的可用能力要求直接生成技能草稿（自动评审-消化；预填最近一条用户消息）"
             className="flex items-center gap-1.5 rounded-md border border-cyan-700/60 px-2.5 py-1 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10"
           >
@@ -139,12 +168,30 @@ export default function WorkbenchChatPage() {
         )}
       </AnimatePresence>
 
+      {/* 右键菜单：选中文本 → 生成技能要求 */}
+      {ctx && (
+        <div
+          className="fixed z-[80] w-56 rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-2xl"
+          style={{ left: Math.min(ctx.x, window.innerWidth - 232), top: Math.min(ctx.y, window.innerHeight - 96) }}
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          <div className="px-2 py-1 text-[10px] text-slate-500">对话内容 → 技能要求（选中 {ctx.text.length} 字）</div>
+          <button
+            type="button"
+            onClick={openFromSelection}
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] text-cyan-300 hover:bg-cyan-500/10"
+          >
+            <Lightbulb size={12} /> 生成技能（自动评审-消化）
+          </button>
+        </div>
+      )}
+
       {/* 从对话要求生成技能（自动评审-消化） */}
       {skillGenOpen && (
         <GenerateRequirementModal
-          initialIntent={lastUserMsg}
-          onClose={() => setSkillGenOpen(false)}
-          onDone={() => setSkillGenOpen(false)}
+          initialIntent={genIntent || lastUserMsg}
+          onClose={() => { setSkillGenOpen(false); setGenIntent('') }}
+          onDone={() => { setSkillGenOpen(false); setGenIntent('') }}
         />
       )}
     </div>

@@ -65,12 +65,16 @@ export default function SkillDigestManager() {
   const [genOpen, setGenOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [publishTarget, setPublishTarget] = useState<SkillItem | null>(null)
+  const [adviceTarget, setAdviceTarget] = useState<SkillItem | null>(null)
   interface DigestEv { ts?: string; kind?: string; skill_id?: string; verdict?: string; summary?: string }
   const [events, setEvents] = useState<DigestEv[]>([])
   const loadEvents = useCallback(async () => {
     try {
       const r = await hubGet<{ records?: DigestEv[] }>('/api/skills-mgmt/digest/events?limit=10')
-      setEvents(Array.isArray(r.records) ? r.records : [])
+      const recs = Array.isArray(r.records) ? r.records : []
+      setEvents(recs)
+      const mx = recs.reduce<string>((a, e) => (e.ts && e.ts > a ? e.ts : a), '')
+      if (mx) sinceRef.current = mx
     } catch { /* 事件源不可用时不打扰 */ }
   }, [])
   useEffect(() => { void loadEvents() }, [loadEvents])
@@ -81,12 +85,42 @@ export default function SkillDigestManager() {
   })
   const lastSeenRef = useRef(lastSeen)
   useEffect(() => { lastSeenRef.current = lastSeen }, [lastSeen])
+  const sinceRef = useRef('')
   const unread = events.filter((e) => e.ts && (!lastSeen || e.ts > lastSeen)).length
 
+  // 实时推送：digest/stream 长轮询（服务端 hold 至多 20s，有新事件立即返回）
   useEffect(() => {
-    const t = setInterval(() => void loadEvents(), 15000)
-    return () => clearInterval(t)
-  }, [loadEvents])
+    let alive = true
+    const poll = async () => {
+      let delay = 3000
+      try {
+        const q = sinceRef.current ? `?since=${encodeURIComponent(sinceRef.current)}&timeout_sec=20` : ''
+        const ctrl = new AbortController()
+        const tmr = setTimeout(() => ctrl.abort(), 30000)
+        const res = await fetch(`/api/skills-mgmt/digest/stream${q}`, { signal: ctrl.signal })
+        clearTimeout(tmr)
+        if (res.ok) {
+          const d = (await res.json()) as { records?: DigestEv[] }
+          const recs = Array.isArray(d.records) ? d.records : []
+          if (recs.length > 0) {
+            setEvents((prev) => {
+              const seen = new Set(prev.map((x) => `${x.ts ?? ''}|${x.skill_id ?? ''}`))
+              const add = recs.filter((x) => !seen.has(`${x.ts ?? ''}|${x.skill_id ?? ''}`))
+              return [...prev, ...add].slice(-40)
+            })
+            sinceRef.current = recs[recs.length - 1].ts ?? sinceRef.current
+            delay = 400
+          } else {
+            delay = 300 // 超时空返回 → 立即续连
+          }
+        } else {
+          throw new Error(`HTTP ${res.status}`)
+        }
+      } catch { delay = 3000 } finally { if (alive) setTimeout(() => void poll(), delay) }
+    }
+    void poll()
+    return () => { alive = false }
+  }, [])
 
   useEffect(() => {
     try {
@@ -291,6 +325,9 @@ export default function SkillDigestManager() {
                         <button type="button" className={BTN_EM} onClick={() => void digestOne(it.id)} disabled={busy !== ''} title="执行完整评审-消化（三审+扩展评估）">
                           <Zap size={11} /> 评审-消化
                         </button>
+                        <button type="button" className={BTN} onClick={() => setAdviceTarget(it)} disabled={busy !== ''} title="学习/迭代建议：参数优化 + 评审改进意见">
+                          <Lightbulb size={11} /> 建议
+                        </button>
                         <button type="button" className={BTN_EM} onClick={() => setPublishTarget(it)} disabled={busy !== ''} title="发布前人工复核（通过/强制并写审计）">
                           <Rocket size={11} /> 发布
                         </button>
@@ -326,6 +363,9 @@ export default function SkillDigestManager() {
           onClose={() => setPublishTarget(null)}
           onConfirm={(reason) => confirmPublish(publishTarget, reason)}
         />
+      )}
+      {adviceTarget && (
+        <AdviceModal item={adviceTarget} onClose={() => setAdviceTarget(null)} />
       )}
       {genOpen && (
         <GenerateRequirementModal onClose={() => setGenOpen(false)} onDone={() => { setGenOpen(false); void load(); void loadEvents() }} />
@@ -726,6 +766,62 @@ function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
         <button type="button" className={BTN_EM} onClick={() => void submit()} disabled={busy || !source.trim()}>
           {busy ? <Loader2 size={12} className="animate-spin" /> : <PackagePlus size={12} />} 安装并评估
         </button>
+      </div>
+    </ModalShell>
+  )
+}
+
+// ── 学习/迭代建议弹窗（参数优化 + 评审改进意见）────────────────────────
+function AdviceModal({ item, onClose }: { item: SkillItem; onClose: () => void }) {
+  const [sug, setSug] = useState<string[]>([])
+  const [busy, setBusy] = useState(true)
+  const [err, setErr] = useState('')
+  useEffect(() => {
+    let cancelled = false
+    hubPost<{ suggestions?: string[] }>(`/api/skills-mgmt/${item.id}/optimize`).then((r) => {
+      if (cancelled) return
+      setSug(Array.isArray(r?.suggestions) ? r.suggestions : [])
+    }).catch((e) => { if (!cancelled) setErr(e instanceof Error ? e.message : String(e)) })
+      .finally(() => { if (!cancelled) setBusy(false) })
+    return () => { cancelled = true }
+  }, [item.id])
+  const rv = item.review
+  const digestAdvice: string[] = []
+  if (rv) {
+    if (rv.digest_verdict === 'block') digestAdvice.push('评审存在阻断项：先处理 critical/error 发现并重新「评审-消化」后再发布。')
+    else if (rv.status === 'passed') digestAdvice.push('评审通过：可「发布」使其进入运行时注入生效。')
+    else digestAdvice.push('尚未通过正式评审：先「评审-消化」，达标后发布（未通过也可人工复核强制发布并留审计）。')
+    if (rv.summary) digestAdvice.push(`评审摘要：${rv.summary}`)
+    const warns = (rv.findings ?? []).filter((f) => f.severity === 'warn' || f.severity === 'info').slice(0, 4)
+    if (warns.length) digestAdvice.push(`改进建议：${warns.map((f) => f.message).join('；')}`)
+  } else digestAdvice.push('尚无评审记录：先「评审-消化」获取权限/合规/兼容性结论。')
+  return (
+    <ModalShell title={`学习/迭代建议 · ${item.name || item.id}`} onClose={onClose}>
+      <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-slate-500">评审-消化建议</div>
+      <ul className="mb-3 space-y-1">
+        {digestAdvice.map((t, i) => (
+          <li key={i} className="flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-300">
+            <Lightbulb size={11} className="mt-0.5 shrink-0 text-cyan-400" /> {t}
+          </li>
+        ))}
+      </ul>
+      <div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">参数优化建议（基于使用指标）</div>
+      {err && <p className="text-[11px] text-red-400">{err}</p>}
+      {busy ? (
+        <div className="flex items-center gap-2 py-2 text-[11px] text-slate-500">
+          <Loader2 size={12} className="animate-spin" /> 分析中…
+        </div>
+      ) : sug.length === 0 ? (
+        <p className="py-2 text-[11px] text-slate-500">暂无参数优化建议（需积累足够执行记录后自动给出）。</p>
+      ) : (
+        <ul className="space-y-1">
+          {sug.map((t, i) => (
+            <li key={i} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1 text-[11px] text-slate-300">{t}</li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-3 flex justify-end">
+        <button type="button" className={BTN} onClick={onClose}>关闭</button>
       </div>
     </ModalShell>
   )

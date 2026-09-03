@@ -51,10 +51,24 @@ export function MemorySkillsTable() {
             data={skills}
             keyField="id"
             columns={[
-              { key: 'name', title: '技能', render: (r) => (
-                <div>
+              { key: 'name', title: '技能 / 触发方式', render: (r) => (
+                <div className="max-w-[26rem]">
                   <div className="font-medium text-slate-200">{r.name}</div>
                   {r.description && <div className="text-xs text-slate-500">{r.description}</div>}
+                  {/* 触发方式：运行时按意图语义匹配命中后注入上下文 */}
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                    <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] ${r.enabled ? 'border-emerald-800/70 bg-emerald-500/10 text-emerald-400' : 'border-slate-700 bg-slate-500/10 text-slate-400'}`}>
+                      {r.enabled ? '注入候选中' : '停用·不触发'}
+                    </span>
+                    <span className="inline-flex items-center rounded-full border border-cyan-800/60 bg-cyan-500/10 px-1.5 py-0.5 text-[10px] text-cyan-300" title="运行时用 名称/描述/标签/内容 与用户意图做相似度匹配，命中即注入元数据→按需加载指令/少样本">
+                      触发=语义匹配(名称/描述/标签/内容)
+                    </span>
+                    {r.params && typeof r.params === 'object' && Object.keys(r.params).length > 0 && (
+                      <span className="inline-flex items-center rounded-full border border-indigo-800/60 bg-indigo-500/10 px-1.5 py-0.5 font-mono text-[10px] text-indigo-300" title="该技能带可配置参数（脚本/扩展技能），命中后按参数执行">
+                        {Object.keys(r.params).length} 参数
+                      </span>
+                    )}
+                  </div>
                 </div>
               ) },
               { key: 'enabled', title: '状态', render: (r) => (
