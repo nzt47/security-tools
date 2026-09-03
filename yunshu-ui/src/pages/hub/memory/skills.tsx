@@ -1,6 +1,9 @@
 /**
- * 技能库管理 —— 技能启停 / 参数配置
+ * LLM 技能库 —— 技能启停 / 参数配置（提示/行为/扩展类技能，由 LLM 执行）
  * 数据源：/api/skills、/api/skills/toggle、/api/skills/params
+ *
+ * 说明：本页面向「LLM 技能」（注入每次 LLM 调用的提示/行为/扩展技能）。
+ * 确定性、本地执行的「工作流技能」不在此列（见技能中心 → 工作流技能 Tab）。
  */
 import { useEffect, useState } from 'react'
 import { Power } from 'lucide-react'
@@ -14,7 +17,8 @@ interface Skill {
   params?: Record<string, unknown>
 }
 
-export default function MemorySkills() {
+/** 列表体（技能中心「LLM 技能」Tab 复用；页面/中心各自提供外壳） */
+export function MemorySkillsTable() {
   const [skills, setSkills] = useState<Skill[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -39,8 +43,7 @@ export default function MemorySkills() {
   }
 
   return (
-    <div className="p-6">
-      <PageHeader title="技能库管理" description="技能的启用、停用与参数配置" />
+    <div>
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       {loading ? <Loading /> : (
         <Card>
@@ -74,6 +77,15 @@ export default function MemorySkills() {
           />
         </Card>
       )}
+    </div>
+  )
+}
+
+export default function MemorySkills() {
+  return (
+    <div className="p-6">
+      <PageHeader title="LLM 技能库" description="提示/行为/扩展类技能（由 LLM 执行）的启用、停用与参数配置" />
+      <MemorySkillsTable />
     </div>
   )
 }

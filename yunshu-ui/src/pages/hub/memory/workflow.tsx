@@ -1,12 +1,14 @@
 /**
- * 工作流管理 —— 学习到的工作流列表与启停
+ * 工作流技能管理 —— 学习到的工作流列表与启停（本地确定性执行）
  * 数据源：/api/workflow-learning/workflows
- * 入口：右上角「打开可视化编辑器」跳转到记忆管理 → 可视化编辑
+ *
+ * 说明：工作流技能 = 从历史交互学习/可视化编排的确定性工具步骤；
+ * 命中后本地直接执行（skipped_llm），不消耗 LLM。与「LLM 技能」分开管理，
+ * 见技能中心（LLM 技能 / 工作流技能 / 可视化编辑三个 Tab）。
  */
 import { useEffect, useState } from 'react'
-import { Play, Workflow as WorkflowIcon } from 'lucide-react'
+import { Play } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
-import { useWorkbenchNav } from '../../../workbench/navStore'
 
 interface Workflow {
   id: string
@@ -17,7 +19,8 @@ interface Workflow {
   [k: string]: unknown
 }
 
-export default function MemoryWorkflow() {
+/** 列表体（技能中心「工作流技能」Tab 复用；页面/中心各自提供外壳） */
+export function MemoryWorkflowTable() {
   const [items, setItems] = useState<Workflow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -47,25 +50,8 @@ export default function MemoryWorkflow() {
     } catch (e) { setExecMsg(`执行失败：${e instanceof Error ? e.message : e}`) }
   }
 
-  const openVisualEditor = () => {
-    useWorkbenchNav.getState().setActiveKey('memory/workflow-visual')
-  }
-
   return (
-    <div className="p-6">
-      <PageHeader
-        title="工作流管理"
-        description="从历史交互中学习的工作流"
-        actions={
-          <button
-            onClick={openVisualEditor}
-            className="flex items-center gap-1.5 rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-cyan-500"
-            title="进入拖拽式可视化编排（保存到 /api/visual-workflows）"
-          >
-            <WorkflowIcon size={13} /> 打开可视化编辑器
-          </button>
-        }
-      />
+    <div>
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       {execMsg && <div className="mb-4 rounded-lg border border-slate-800 bg-slate-900 px-4 py-2 text-sm text-cyan-400">{execMsg}</div>}
       {loading ? <Loading /> : (
@@ -94,6 +80,15 @@ export default function MemoryWorkflow() {
           />
         </Card>
       )}
+    </div>
+  )
+}
+
+export default function MemoryWorkflow() {
+  return (
+    <div className="p-6">
+      <PageHeader title="工作流技能" description="从历史交互中学习、本地确定性执行的工作流" />
+      <MemoryWorkflowTable />
     </div>
   )
 }

@@ -12,7 +12,7 @@ import {
   Activity, FileText, Server, BookOpen, Search, Boxes, Terminal, Plug, Monitor,
   HeartPulse, CalendarClock, Users, Copy, Hammer, FolderHeart, Lightbulb, Palette,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Smile, Puzzle,
-  Workflow, FileDown,
+  FileDown,
 } from 'lucide-react'
 
 // ═══ Code Splitting：按导航项懒加载（Vite 自动分包）═══
@@ -25,9 +25,7 @@ const PanoramaSensors = lazy(() => import('@/pages/hub/panorama/sensors'))
 const PanoramaMonitor = lazy(() => import('@/pages/hub/panorama/monitor'))
 const PanoramaLogs = lazy(() => import('@/pages/hub/panorama/logs'))
 const MemoryPage = lazy(() => import('@/pages/hub/memory'))
-const MemorySkills = lazy(() => import('@/pages/hub/memory/skills'))
-const MemoryWorkflow = lazy(() => import('@/pages/hub/memory/workflow'))
-const MemoryWorkflowVisual = lazy(() => import('@/pages/hub/memory/workflow-visual'))
+const SkillCenter = lazy(() => import('@/pages/hub/memory/skill-center'))
 const MemoryKnowledge = lazy(() => import('@/pages/hub/memory/knowledge'))
 const MemorySearch = lazy(() => import('@/pages/hub/memory/search'))
 const ToolsToolset = lazy(() => import('@/pages/hub/tools/toolset'))
@@ -84,9 +82,9 @@ export const HUB_NAV: HubNavItem[] = [
     children: [
       { key: 'memory/manual', label: '手动记忆', icon: Brain, component: MemoryPage },
       { key: 'memory/auto', label: '自动记忆', icon: RefreshCw, component: MemoryPage },
-      { key: 'memory/skills', label: '技能库管理', icon: Hammer, component: MemorySkills },
-      { key: 'memory/workflow', label: '工作流管理', icon: Boxes, component: MemoryWorkflow },
-      { key: 'memory/workflow-visual', label: '可视化编辑', icon: Workflow, component: MemoryWorkflowVisual },
+      // 技能中心：LLM 技能（模型执行）与工作流技能（本地执行）分 Tab 管理，
+      // 收拢原 技能库管理/工作流管理/可视化编辑 三个入口。
+      { key: 'memory/skills-center', label: '技能中心', icon: Hammer, component: SkillCenter },
       { key: 'memory/knowledge', label: '知识库系统', icon: BookOpen, component: MemoryKnowledge },
       { key: 'memory/search', label: '搜索', icon: Search, component: MemorySearch },
     ],
