@@ -8,7 +8,7 @@
  * 数据与状态全部由 useIdentityPrompt（identityPrompt.ts）管理，本组件仅渲染。
  * 卡片样式沿用实验室 .pl- 风格。
  */
-import { Loader2, RefreshCw, RotateCcw, Save, Power, TriangleAlert } from 'lucide-react'
+import { Loader2, RefreshCw, RotateCcw, Save, TriangleAlert, Zap } from 'lucide-react'
 import type { IdentityRow, IdentitySummary, UseIdentityPromptResult } from './identityPrompt'
 
 export interface IdentityPromptPanelProps {
@@ -16,12 +16,15 @@ export interface IdentityPromptPanelProps {
   summary: IdentitySummary | null
   loading: boolean
   saving: boolean
+  applying: boolean
   dirty: boolean
   error: string
   msg: string
   onToggle: (key: string) => void
   onEditContent: (key: string, content: string) => void
   onSave: () => void
+  /** 保存并写入运行时模板（data/system_prompt.txt），立即对后续 LLM 调用生效 */
+  onApply: () => void
   onReset: () => void
   onReload: () => void
 }
@@ -33,20 +36,23 @@ export function toIdentityPromptPanelProps(r: UseIdentityPromptResult): Identity
     summary: r.summary,
     loading: r.loading,
     saving: r.saving,
+    applying: r.applying,
     dirty: r.dirty,
     error: r.error,
     msg: r.msg,
     onToggle: r.onToggle,
     onEditContent: r.onEditContent,
     onSave: r.onSave,
+    onApply: r.onApply,
     onReset: r.onReset,
     onReload: r.onReload,
   }
 }
 
 export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
-  const { rows, summary, loading, saving, dirty, error, msg, onToggle, onEditContent, onSave, onReset, onReload } = props
+  const { rows, summary, loading, saving, applying, dirty, error, msg, onToggle, onEditContent, onSave, onApply, onReset, onReload } = props
   const enabledCount = rows.filter((r) => r.enabled).length
+  const busy = loading || saving || applying
 
   return (
     <section className="pl-category pl-identity">
@@ -58,8 +64,9 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
         </span>
       </h2>
       <p className="pl-category-desc">
-        原工作台「人格与提示词 → 身份提示词」并入。逐节启停 / 编辑后保存即更新线上 system message，
-        预览与「请求真实输出」使用后端模板引擎按当前配置生成的注入内容。
+        原工作台「人格与提示词 → 身份提示词」并入。段序 = 注入顺序 = DeepSeek 前缀缓存命中顺序
+        （稳定节前置、易变节后置）。<b>保存</b> 仅写配置库；<b>应用</b> 再按 registry 顺序组装并写入
+        运行时 <code>data/system_prompt.txt</code>，后续每次 LLM 调用立即生效。
       </p>
 
       {!loading && summary && (
@@ -80,14 +87,24 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
       )}
 
       <div className="pl-id-toolbar">
-        <button type="button" className="pl-btn" onClick={onReload} title="从后端重新载入身份提示词配置">
+        <button type="button" className="pl-btn" onClick={onReload} disabled={busy} title="从后端重新载入身份提示词配置">
           <RefreshCw size={12} /> 刷新
         </button>
-        <button type="button" className="pl-btn" onClick={onReset} title="恢复默认身份提示词配置">
+        <button type="button" className="pl-btn" onClick={onReset} disabled={busy} title="恢复默认身份提示词配置">
           <RotateCcw size={12} /> 恢复默认
         </button>
-        <button type="button" className="pl-btn primary" onClick={onSave} disabled={saving || loading} title="保存启停与自定义内容到线上配置">
+        <button type="button" className="pl-btn" onClick={onSave} disabled={busy} title="仅写入配置库（system_prompt_config.json），不更新运行时模板">
           <Save size={12} /> {saving ? '保存中…' : '保存配置'}
+        </button>
+        <button
+          type="button"
+          className="pl-btn apply"
+          onClick={onApply}
+          disabled={busy}
+          title="保存并按 registry 顺序组装模板，写入运行时 data/system_prompt.txt，后续 LLM 调用立即生效"
+        >
+          {applying ? <Loader2 size={12} className="spin" /> : <Zap size={12} />}
+          {applying ? '应用中…' : '应用到运行时'}
         </button>
         {dirty && <span className="pl-id-dirty">● 有未保存修改</span>}
       </div>
@@ -168,10 +185,10 @@ export default function IdentityPromptPanel(props: IdentityPromptPanelProps) {
         </div>
       )}
       <div className="pl-syspart-actions">
-        <button type="button" className="pl-btn" onClick={onSave} disabled={saving || loading}>
-          <Power size={12} /> 保存配置
-        </button>
-        <span className="pl-id-hint">保存仅写入配置；模板由后端按 registry 顺序组装（tools/记忆等运行时槽位保留占位符）。</span>
+        <span className="pl-id-hint">
+          改动后需「保存配置」；要让线上真正生效请点「应用到运行时」（后端按 registry 顺序组装并写入
+          data/system_prompt.txt）。注入模板段序 = DeepSeek 前缀缓存命中顺序（稳定前置/易变后置）。
+        </span>
       </div>
     </section>
   )

@@ -168,12 +168,15 @@ export interface UseIdentityPromptResult {
   templateLoading: boolean
   loading: boolean
   saving: boolean
+  applying: boolean
   dirty: boolean
   error: string
   msg: string
   onToggle: (key: string) => void
   onEditContent: (key: string, content: string) => void
   onSave: () => void
+  /** 保存 + 用后端模板引擎组装并写入运行时 data/system_prompt.txt（立即对后续 LLM 调用生效） */
+  onApply: () => void
   onReset: () => void
   onReload: () => void
 }
@@ -187,6 +190,7 @@ export function useIdentityPrompt(): UseIdentityPromptResult {
   const [templateLoading, setTemplateLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [applying, setApplying] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [error, setError] = useState('')
   const [msg, setMsg] = useState('')
@@ -301,6 +305,40 @@ export function useIdentityPrompt(): UseIdentityPromptResult {
     }
   }, [reload])
 
+  /**
+   * 应用：保存当前配置 → 后端按 registry 顺序组装模板 → 写入运行时
+   * data/system_prompt.txt（_sync_to_template_file），即时对后续 LLM 调用生效。
+   * 返回的模板文本直接作为预览注入文本，免去二次 preview 请求。
+   */
+  const onApply = useCallback(async () => {
+    if (applying) return
+    setApplying(true)
+    setMsg('')
+    try {
+      const r = await hubPost<{ template?: string; template_length?: number; synced?: boolean }>(
+        '/api/system-prompt/config/apply',
+        { config: { sections: sectionsRef.current } },
+      )
+      if (timerRef.current) clearTimeout(timerRef.current)
+      const text = String(r?.template ?? '')
+      if (mountedRef.current) {
+        if (text) setTemplate(text)
+        setDirty(false)
+        setMsg(
+          `已应用：模板(${r?.template_length ?? text.length} 字符)已写入运行时 data/system_prompt.txt` +
+            (r?.synced === false ? '（文件写入未成功，请检查 data 目录权限）' : '，后续 LLM 调用立即生效'),
+        )
+      }
+      await reload()
+    } catch (e) {
+      if (mountedRef.current) {
+        setMsg(`应用失败：${e instanceof Error ? e.message : String(e)}（确认后端已启动）`)
+      }
+    } finally {
+      if (mountedRef.current) setApplying(false)
+    }
+  }, [applying, reload])
+
   return {
     rows: buildRows(sections, registry, stats),
     rawSections: sections,
@@ -309,12 +347,14 @@ export function useIdentityPrompt(): UseIdentityPromptResult {
     templateLoading,
     loading,
     saving,
+    applying,
     dirty,
     error,
     msg,
     onToggle,
     onEditContent,
     onSave,
+    onApply,
     onReset,
     onReload: () => void reload(),
   }

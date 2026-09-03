@@ -81,6 +81,15 @@
   background: rgba(34, 211, 238, 0.14);
   color: #a5f3fc;
 }
+.pl-btn.apply {
+  border-color: rgba(52, 211, 153, 0.5);
+  background: rgba(52, 211, 153, 0.12);
+  color: #6ee7b7;
+}
+.pl-btn.apply:hover {
+  border-color: rgba(52, 211, 153, 0.85);
+  background: rgba(52, 211, 153, 0.2);
+}
 .pl-btn.ghost {
   background: transparent;
 }
