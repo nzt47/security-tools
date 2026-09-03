@@ -304,9 +304,11 @@ def register_routes(app, state):
     @require_token
     @log_request()
     def api_skills_mgmt_redraft(skill_id: str):
-        """生成「再定义」草稿（确定性）：按内容重写中文说明/展示名，供确认后应用"""
+        """生成「再定义」草稿（LLM 可选，失败回退确定性）：中文说明/展示名，供确认后应用"""
         try:
-            result = _svc().suggest_redraft(skill_id)
+            data = request.get_json() or {}
+            use_llm = bool(data.get("llm", False))
+            result = _svc().suggest_redraft(skill_id, use_llm=use_llm)
             return jsonify({"ok": True, **result})
         except SkillMgmtError as e:
             return _err(e)

@@ -460,6 +460,21 @@ class TestDailyArchiveAndCurate:
         svc.curate_skills(dry_run=False, auto_clean=True)
         assert svc.get("old-nodesc").description != ""
 
+    def test_redraft_rules_and_llm_fallback(self, svc):
+        svc.create_manual({
+            "id": "redraft-me", "name": "redraft-me", "description": "",
+            "content": "# 再定义\n这是正文首行，可作中文说明来源。\n",
+            "content_type": "markdown", "category": "custom",
+            "tags": ["rd"], "author": "tester",
+        })
+        r = svc.suggest_redraft("redraft-me", use_llm=False)
+        assert r["source"] == "rules"
+        assert r["proposed"]["description"]
+        # LLM 不可用（测试环境）→ 自动回退规则草稿且不抛错
+        r2 = svc.suggest_redraft("redraft-me", use_llm=True)
+        assert r2["proposed"]["description"]
+        assert r2["proposed"]["description"] == r["proposed"]["description"]
+
 
 # ═══════════════════════════════════════════════════════════════
 #  自动执行：create/install/update 钩子 + digest_all 批量

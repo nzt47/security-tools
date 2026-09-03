@@ -556,10 +556,12 @@ class SkillsMgmtService:
                 "issues": len(plan), "plan": plan[:200],
                 "applied_count": len(applied), "applied": applied[:200]}
 
-    def suggest_redraft(self, skill_id: str) -> Dict[str, Any]:
-        """“再定义”草稿（确定性）：依据内容重写中文说明/展示名建议。
+    def suggest_redraft(self, skill_id: str,
+                        use_llm: bool = False) -> Dict[str, Any]:
+        """“再定义”草稿：LLM（可选）或确定性规则起草中文说明/展示名。
 
         草稿需人工确认后应用（应用即 update + 重新评审-消化）。
+        use_llm=True 时尝试 LLM 起草，失败/不可用自动回退确定性草稿。
         """
         skill = self._require(skill_id)
         name = skill.name or skill.id
@@ -575,16 +577,48 @@ class SkillsMgmtService:
         if not draft_desc:
             draft_desc = f"（自动再定义说明）{name}：基于内容重写的技能，请人工修订。"
         draft_desc = draft_desc[:160]
-        # 展示名建议：若名称/描述均非中文，给一个中文包装（不改 id）
         has_cjk = any("\u4e00" <= ch <= "\u9fff" for ch in f"{name} {desc}")
         draft_name = name
         if not has_cjk:
             draft_name = f"{name}（{name}）" if len(name) > 16 else f"{name}（自动整理）"
+        source = "rules"
+
+        if use_llm:
+            try:
+                from agent.state_manager import get_llm_client
+                llm = get_llm_client()
+                if llm is not None:
+                    prompt = (
+                        "你是技能资产整理器。请依据技能内容把其整理为云枢中文技能说明，"
+                        "只返回 JSON：{\"name\":\"中文展示名\",\"description\":\"中文说明(≤160字,含用途与触发时机)\"}\n"
+                        f"当前 name={name}\ndescription={desc[:200]}\ncontent前600字:\n{(skill.content or '')[:600]}"
+                    )
+                    method = next((m for m in ("chat", "invoke", "complete", "generate")
+                                  if hasattr(llm, m)), None)
+                    if method:
+                        resp = getattr(llm, method)(prompt)
+                        import re as _re
+                        m = _re.search(r"\{.*\}", str(resp), _re.S)
+                        if m:
+                            import json as _json
+                            parsed = _json.loads(m.group(0))
+                            nd = str(parsed.get("description", "") or "").strip()[:160]
+                            nn = str(parsed.get("name", "") or "").strip()[:60]
+                            if nd:
+                                draft_desc = nd
+                                source = "llm"
+                            if nn and nn.lower() != name.lower():
+                                draft_name = nn
+            except Exception as e:  # noqa: BLE001 LLM 不可用/失败 → 规则草稿
+                logger.info("[Service] redraft LLM 失败，回退规则草稿 skill=%s: %s",
+                            skill_id, e)
+
         return {
             "skill_id": skill_id,
+            "source": source,
             "current": {"name": name, "description": desc},
             "proposed": {"name": draft_name, "description": draft_desc},
-            "note": "确定性草稿；确认后应用会写回并自动重新评审-消化。",
+            "note": "草稿需确认后应用：写回并自动重新评审-消化。",
         }
 
     # ─── 脚本文件全维度审查并入 digest（第三层 scripts/*.py）───
