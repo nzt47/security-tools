@@ -12,7 +12,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  ChevronDown, ChevronRight, Download, FileInput, Lightbulb, Loader2, PackagePlus, Plus,
+  ListTree, ChevronDown, ChevronRight, Download, FileInput, Lightbulb, Loader2, PackagePlus, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
 import { hubGet, hubPost } from '../../hub/components/ui'
@@ -66,6 +66,7 @@ export default function SkillDigestManager() {
   const [importOpen, setImportOpen] = useState(false)
   const [publishTarget, setPublishTarget] = useState<SkillItem | null>(null)
   const [adviceTarget, setAdviceTarget] = useState<SkillItem | null>(null)
+  const [curateOpen, setCurateOpen] = useState(false)
   interface DigestEv { ts?: string; kind?: string; skill_id?: string; verdict?: string; summary?: string }
   const [events, setEvents] = useState<DigestEv[]>([])
   const loadEvents = useCallback(async () => {
@@ -249,6 +250,9 @@ export default function SkillDigestManager() {
           <button type="button" className={BTN} onClick={() => void batchReview()} disabled={busy !== ''}>
             批量审核
           </button>
+          <button type="button" className={BTN} onClick={() => setCurateOpen(true)} disabled={busy !== ''} title="对存量老技能一键体检：补齐中文说明/归档停用零使用/给出合并与拆分建议（可自动整理）">
+            <ListTree size={12} /> 整理老技能
+          </button>
           <button type="button" className={BTN} onClick={() => void load()} disabled={busy !== ''}>
             <RefreshCw size={12} /> 刷新
           </button>
@@ -299,7 +303,9 @@ export default function SkillDigestManager() {
                         {it.enabled && (it.status === 'published' || it.status === 'approved')
                           ? chip('触发·注入生效', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')
                           : chip(it.enabled ? '已启用·待发布不触发' : '停用·不触发', 'bg-slate-500/10 text-slate-400 border-slate-700')}
-                        {chip(`语义匹配·${it.content_type ?? 'markdown'}`, 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
+                        {chip(['python', 'javascript', 'shell', 'js'].includes(String(it.content_type ?? '').toLowerCase())
+                          ? '脚本型·命中后执行脚本'
+                          : `指令型·命中后注入提示`, 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
                         {it.is_sensitive && chip('敏感·隔离注入', 'bg-amber-500/10 text-amber-400 border-amber-800/60')}
                         {(it.tags ?? []).slice(0, 3).map((t) => chip(`#${t}`, 'bg-indigo-500/10 text-indigo-300 border-indigo-800/50'))}
                       </div>
@@ -372,6 +378,9 @@ export default function SkillDigestManager() {
       )}
       {importOpen && (
         <ImportModal onClose={() => setImportOpen(false)} onDone={() => { setImportOpen(false); void load(); void loadEvents() }} />
+      )}
+      {curateOpen && (
+        <CurateModal onClose={() => setCurateOpen(false)} onDone={() => { setCurateOpen(false); void load() }} />
       )}
 
       {/* 发布审计（人工复核/强制发布记录）可视化 */}
@@ -771,11 +780,84 @@ function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
   )
 }
 
-// ── 学习/迭代建议弹窗（参数优化 + 评审改进意见）────────────────────────
+// ── 老技能整理（体检计划 + 安全自动执行）──────────────────────────────
+function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [res, setRes] = useState<{
+    issues?: number; plan?: { id: string; name?: string; issues?: string[] }[]
+    applied_count?: number; applied?: { id?: string; action?: string; detail?: string }[]
+  } | null>(null)
+  const [busy, setBusy] = useState('')
+  const [runMsg, setRunMsg] = useState('')
+
+  const plan = async () => {
+    setBusy('1'); setRunMsg('')
+    try { setRes(await hubPost('/api/skills-mgmt/digest/curate?dry_run=1')) }
+    catch (e) { setRunMsg(`体检失败：${e instanceof Error ? e.message : String(e)}`) }
+    finally { setBusy('') }
+  }
+  const apply = async () => {
+    setBusy('2'); setRunMsg('')
+    try {
+      const r = await hubPost<{ applied_count?: number; applied?: { id?: string; action?: string }[] }>('/api/skills-mgmt/digest/curate?dry_run=0&auto_clean=1')
+      setRes(r)
+      setRunMsg(`已自动整理 ${r?.applied_count ?? 0} 项：${(r?.applied ?? []).map((a) => `${a.id ?? ''}·${a.action ?? ''}`).join('；') || '无'}。合并/拆分需人工决策，见体检计划。`)
+      onDone()
+    } catch (e) { setRunMsg(`执行失败：${e instanceof Error ? e.message : String(e)}`) }
+    finally { setBusy('') }
+  }
+
+  useEffect(() => { void plan() }, [])
+
+  return (
+    <ModalShell title="老技能整理（体检 / 自动整理）" onClose={onClose}>
+      <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
+        对存量技能自动体检：<strong>缺中文说明</strong>（从内容自动补全）、<strong>停用且零使用</strong>（可归档）、
+        <strong>内容重复</strong>（建议合并）、<strong>内容过大</strong>（建议拆分）。安全动作可一键执行，合并/拆分保留建议由你决策。
+      </p>
+      {busy === '1' && <div className="flex items-center gap-2 py-2 text-[11px] text-slate-500"><Loader2 size={12} className="animate-spin" /> 体检中…</div>}
+      {res && (
+        <>
+          <div className="mb-2 text-[11px] text-slate-400">
+            共发现 <span className="font-semibold text-amber-300">{res.issues ?? 0}</span> 项问题
+            {res.applied_count != null && res.applied_count > 0 && <span> · 本次已自动处理 {res.applied_count} 项</span>}
+          </div>
+          {((res.plan ?? []).length === 0) ? (
+            <p className="py-3 text-[11px] text-emerald-400">体检通过：未发现需要整理的技能。</p>
+          ) : (
+            <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">
+              {(res.plan ?? []).slice(0, 14).map((p) => (
+                <li key={p.id} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
+                  <div className="font-medium text-slate-200">{p.name ?? p.id}</div>
+                  <ul className="mt-0.5 space-y-0.5 text-[10px] text-slate-400">
+                    {(p.issues ?? []).map((t, i) => <li key={i}>· {t}</li>)}
+                  </ul>
+                </li>
+              ))}
+              {(res.plan?.length ?? 0) > 14 && <li className="text-[10px] text-slate-500">…其余 {((res.plan?.length ?? 0) - 14)} 项略</li>}
+            </ul>
+          )}
+        </>
+      )}
+      {runMsg && <p className="mt-2 rounded-md border border-cyan-900/60 bg-cyan-950/30 px-2 py-1 text-[11px] text-cyan-300">{runMsg}</p>}
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <button type="button" className={BTN} onClick={onClose}>关闭</button>
+        <button type="button" className={BTN} onClick={() => void plan()} disabled={busy !== ''} title="重新体检">
+          <RefreshCw size={11} /> 重新体检
+        </button>
+        <button type="button" className={BTN_EM} onClick={() => void apply()} disabled={busy !== ''} title="执行安全自动整理：补全中文说明 + 归档停用零使用技能">
+          {busy === '2' ? <Loader2 size={11} className="animate-spin" /> : <ListTree size={11} />} 执行自动整理
+        </button>
+      </div>
+    </ModalShell>
+  )
+}
+
+// ── 学习/迭代建议弹窗（参数优化 + 评审改进意见 + 自动修复建议）────────────────────────
 function AdviceModal({ item, onClose }: { item: SkillItem; onClose: () => void }) {
   const [sug, setSug] = useState<string[]>([])
   const [busy, setBusy] = useState(true)
   const [err, setErr] = useState('')
+  const [fixList, setFixList] = useState<{ code?: string; severity?: string; finding?: string; fix?: string }[]>([])
   useEffect(() => {
     let cancelled = false
     hubPost<{ suggestions?: string[] }>(`/api/skills-mgmt/${item.id}/optimize`).then((r) => {
@@ -783,6 +865,9 @@ function AdviceModal({ item, onClose }: { item: SkillItem; onClose: () => void }
       setSug(Array.isArray(r?.suggestions) ? r.suggestions : [])
     }).catch((e) => { if (!cancelled) setErr(e instanceof Error ? e.message : String(e)) })
       .finally(() => { if (!cancelled) setBusy(false) })
+    hubPost<{ fixes?: { code?: string; severity?: string; finding?: string; fix?: string }[] }>(
+      `/api/skills-mgmt/${item.id}/suggest-fix`,
+    ).then((r) => { if (!cancelled) setFixList(Array.isArray(r?.fixes) ? r.fixes : []) }).catch(() => {})
     return () => { cancelled = true }
   }, [item.id])
   const rv = item.review
@@ -819,6 +904,22 @@ function AdviceModal({ item, onClose }: { item: SkillItem; onClose: () => void }
             <li key={i} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1 text-[11px] text-slate-300">{t}</li>
           ))}
         </ul>
+      )}
+      {fixList.length > 0 && (
+        <>
+          <div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">自动修复建议（评审 → 对策）</div>
+          <ul className="mb-3 space-y-1">
+            {fixList.map((f, i) => (
+              <li key={i} className="rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1 text-[11px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-[10px] text-amber-300">{f.code ?? ''}</span>
+                  {f.severity && chip(f.severity, 'bg-red-500/10 text-red-400 border-red-800/60')}
+                </div>
+                <div className="mt-0.5 text-slate-300">{f.fix ?? ''}</div>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
       <div className="mt-3 flex justify-end">
         <button type="button" className={BTN} onClick={onClose}>关闭</button>
@@ -898,4 +999,5 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </label>
   )
 }
+
 
