@@ -15,7 +15,8 @@ import { ChatPanel } from '../components/workbench/panels/ChatPanel'
 import { ContextManagerBar } from '../components/workbench/panels/ContextManagerBar'
 import { HistoryDrawer } from '../components/workbench/panels/HistoryDrawer'
 import { useLayoutStore } from '../stores/useLayoutStore'
-import { History, RotateCcw, MessageSquare } from 'lucide-react'
+import { History, RotateCcw, MessageSquare, Lightbulb } from 'lucide-react'
+import GenerateRequirementModal from '@/pages/hub/memory/generate-requirement-modal'
 
 interface SessionMeta {
   id: string
@@ -29,6 +30,16 @@ export default function WorkbenchChatPage() {
   const [sessions, setSessions] = useState<SessionMeta[]>([])
   const [sessionId, setSessionId] = useState('')
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [skillGenOpen, setSkillGenOpen] = useState(false)
+
+  // 快捷入口预填：最近一条用户消息作为“对话要求”
+  const lastUserMsg = useLayoutStore((s) => {
+    const msgs = (s.messages ?? []) as { role?: string; content?: string }[]
+    for (let i = msgs.length - 1; i >= 0; i -= 1) {
+      if (msgs[i]?.role === 'user') return msgs[i]?.content ?? ''
+    }
+    return ''
+  })
 
   // 挂载：加载会话列表 + 当前会话历史
   useEffect(() => {
@@ -80,6 +91,15 @@ export default function WorkbenchChatPage() {
         <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
+            onClick={() => setSkillGenOpen(true)}
+            title="把对话中出现的可用能力要求直接生成技能草稿（自动评审-消化；预填最近一条用户消息）"
+            className="flex items-center gap-1.5 rounded-md border border-cyan-700/60 px-2.5 py-1 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10"
+          >
+            <Lightbulb size={11} />
+            技能要求
+          </button>
+          <button
+            type="button"
             onClick={() => setHistoryOpen(true)}
             title="打开历史问话面板（当前会话）"
             aria-expanded={historyOpen}
@@ -118,6 +138,15 @@ export default function WorkbenchChatPage() {
           />
         )}
       </AnimatePresence>
+
+      {/* 从对话要求生成技能（自动评审-消化） */}
+      {skillGenOpen && (
+        <GenerateRequirementModal
+          initialIntent={lastUserMsg}
+          onClose={() => setSkillGenOpen(false)}
+          onDone={() => setSkillGenOpen(false)}
+        />
+      )}
     </div>
   )
 }

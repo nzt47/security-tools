@@ -16,6 +16,7 @@ import {
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
 import { hubGet, hubPost } from '../../hub/components/ui'
+import GenerateRequirementModal from './generate-requirement-modal'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = `${BTN} border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10`
@@ -73,6 +74,62 @@ export default function SkillDigestManager() {
     } catch { /* 事件源不可用时不打扰 */ }
   }, [])
   useEffect(() => { void loadEvents() }, [loadEvents])
+
+  // ── 消化动态：未读角标 + 轮询 + 原生通知 ──
+  const [lastSeen, setLastSeen] = useState<string>(() => {
+    try { return localStorage.getItem('yunshu:digest:last-seen') ?? '' } catch { return '' }
+  })
+  const lastSeenRef = useRef(lastSeen)
+  useEffect(() => { lastSeenRef.current = lastSeen }, [lastSeen])
+  const unread = events.filter((e) => e.ts && (!lastSeen || e.ts > lastSeen)).length
+
+  useEffect(() => {
+    const t = setInterval(() => void loadEvents(), 15000)
+    return () => clearInterval(t)
+  }, [loadEvents])
+
+  useEffect(() => {
+    try {
+      if (typeof Notification === 'undefined') return
+      const unseen = events.filter((e) => e.ts && e.ts > lastSeenRef.current)
+      if (unseen.length === 0) return
+      const target = unseen[unseen.length - 1]
+      if (Notification.permission === 'granted') {
+        new Notification('云枢 · 技能评审-消化', {
+          body: `${target.skill_id ?? ''}：${target.verdict === 'block' ? '存在阻断项，需人工复核' : target.verdict === 'ok' ? '评估通过' : '评估完成'}${target.summary ? ` · ${target.summary.slice(0, 60)}` : ''}`,
+        })
+      }
+    } catch { /* 无通知能力/被拒时静默 */ }
+  }, [events])
+
+  const markEventsSeen = () => {
+    const mx = events.reduce<string>((a, e) => (e.ts && e.ts > a ? e.ts : a), '')
+    setLastSeen(mx)
+    try { localStorage.setItem('yunshu:digest:last-seen', mx) } catch { /* ignore */ }
+  }
+
+  /** 导出总览 CSV：审计（人工复核）+ 消化动态（评估事件）合并 */
+  const exportOverview = async () => {
+    try {
+      const [a, e] = await Promise.all([
+        hubGet<{ records?: { ts?: string; event?: string; skill_id?: string; actor?: string; reason?: string }[] }>('/api/skills-mgmt/review/audit?limit=500'),
+        hubGet<{ records?: DigestEv[] }>('/api/skills-mgmt/digest/events?limit=200'),
+      ])
+      const esc = (s?: string) => `"${String(s ?? '').replace(/"/g, '""')}"`
+      const rows: string[] = []
+      rows.push(['type', 'ts', 'skill_id', 'actor/verdict', 'detail'].join(','))
+      for (const r of a.records ?? []) rows.push(['audit', r.ts, r.skill_id, r.actor, r.reason].map(esc).join(','))
+      for (const r of e.records ?? []) rows.push(['digest', r.ts, r.skill_id, r.verdict, r.summary].map(esc).join(','))
+      const blob = new Blob([`\uFEFF${rows.join('\n')}`], { type: 'text/csv;charset=utf-8' })
+      const el = document.createElement('a')
+      el.href = URL.createObjectURL(blob)
+      el.download = `skills-digest-overview-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`
+      el.click()
+      URL.revokeObjectURL(el.href)
+    } catch (err) {
+      setMsg(`导出总览失败：${err instanceof Error ? err.message : String(err)}`)
+    }
+  }
 
   const load = useCallback(async () => {
     setError('')
@@ -271,7 +328,7 @@ export default function SkillDigestManager() {
         />
       )}
       {genOpen && (
-        <GenerateModal onClose={() => setGenOpen(false)} onDone={() => { setGenOpen(false); void load(); void loadEvents() }} />
+        <GenerateRequirementModal onClose={() => setGenOpen(false)} onDone={() => { setGenOpen(false); void load(); void loadEvents() }} />
       )}
       {importOpen && (
         <ImportModal onClose={() => setImportOpen(false)} onDone={() => { setImportOpen(false); void load(); void loadEvents() }} />
@@ -280,28 +337,48 @@ export default function SkillDigestManager() {
       {/* 发布审计（人工复核/强制发布记录）可视化 */}
       <AuditPanel />
 
-      {/* digest 结果动态（轻量推送源） */}
-      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/30 px-3 py-2">
-        <Zap size={12} className="text-cyan-400" />
-        <span className="text-xs font-medium text-slate-200">消化动态</span>
-        <span className="rounded-full bg-slate-800 px-1.5 text-[10px] text-slate-400">{events.length}</span>
-        <button type="button" className={BTN} onClick={() => void loadEvents()} title="刷新 digest 事件">
-          <RefreshCw size={11} /> 刷新
-        </button>
-        <span className="text-[10px] text-slate-600">自动评估 / 评审-消化结果推送（进行新评估或发布后自动更新）</span>
+      {/* digest 结果动态（轻量推送源：轮询 + 未读角标 + 原生通知） */}
+      <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/30">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+          <Zap size={12} className="text-cyan-400" />
+          <span className="text-xs font-medium text-slate-200">消化动态</span>
+          <span className="rounded-full bg-slate-800 px-1.5 text-[10px] text-slate-400">{events.length}</span>
+          {unread > 0 && (
+            <span className="rounded-full bg-red-500/20 px-1.5 text-[10px] font-semibold text-red-300" title={`${unread} 条未读（在技能中心内每 15s 轮询；授权后新结果会发系统通知）`}>
+              {unread} 新
+            </span>
+          )}
+          <span className="text-[10px] text-slate-600">评估结果推送 · 未读角标与浏览器通知（需授权）</span>
+          <div className="ml-auto flex flex-wrap items-center gap-1.5">
+            {unread > 0 && (
+              <button type="button" className={BTN} onClick={markEventsSeen} title="把当前全部事件标记为已读">
+                全部已读
+              </button>
+            )}
+            <button type="button" className={BTN} onClick={() => void exportOverview()} title="导出审计(人工复核)+消化动态 合并 CSV">
+              <Download size={11} /> 导出总览(审计+动态)
+            </button>
+            <button type="button" className={BTN} onClick={() => void loadEvents()} title="刷新 digest 事件">
+              <RefreshCw size={11} /> 刷新
+            </button>
+          </div>
+        </div>
         {events.length > 0 && (
-          <span className="flex w-full flex-wrap items-center gap-1.5">
-            {events.map((e, i) => (
-              <span key={i} className="inline-flex items-center gap-1 rounded border border-slate-800 bg-slate-950/60 px-1.5 py-0.5 text-[10px] text-slate-400">
-                <span className="font-mono text-[9px] text-slate-600">{e.kind ?? ''}</span>
-                <span className="text-cyan-300">{e.skill_id ?? ''}</span>
-                <span className={e.verdict === 'block' ? 'text-red-400' : 'text-emerald-400'}>
-                  {e.verdict === 'block' ? '阻断' : e.verdict === 'ok' ? '通过' : e.verdict ?? ''}
-                </span>
-                {e.summary && <span className="max-w-[26rem] truncate text-slate-500">{e.summary}</span>}
-              </span>
-            ))}
-          </span>
+          <div className="border-t border-slate-800 px-3 pb-2 pt-2">
+            <div className="flex flex-col gap-1">
+              {events.slice(0, 8).map((e, i) => (
+                <div key={`${e.ts}-${i}`} className="flex flex-wrap items-center gap-1.5 rounded border border-slate-800 bg-slate-950/60 px-2 py-1 text-[10px] text-slate-400">
+                  <span className="font-mono text-[9px] text-slate-600">{e.kind ?? ''}</span>
+                  <span className="text-cyan-300">{e.skill_id ?? ''}</span>
+                  <span className={e.verdict === 'block' ? 'text-red-400' : 'text-emerald-400'}>
+                    {e.verdict === 'block' ? '阻断' : e.verdict === 'ok' ? '通过' : e.verdict ?? ''}
+                  </span>
+                  <span className="max-w-[28rem] truncate text-slate-500">{e.summary}</span>
+                  <span className="ml-auto font-mono text-[9px] text-slate-600">{e.ts ?? ''}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -649,60 +726,6 @@ function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
         <button type="button" className={BTN_EM} onClick={() => void submit()} disabled={busy || !source.trim()}>
           {busy ? <Loader2 size={12} className="animate-spin" /> : <PackagePlus size={12} />} 安装并评估
         </button>
-      </div>
-    </ModalShell>
-  )
-}
-
-// ── 从对话要求生成技能 ─────────────────────────────────────────────
-function GenerateModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
-  const [name, setName] = useState('')
-  const [intent, setIntent] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [err, setErr] = useState('')
-  const [okMsg, setOkMsg] = useState('')
-  const submit = async () => {
-    if (!intent.trim()) return
-    setBusy(true); setErr('')
-    try {
-      const r = await hubPost<{ skill?: SkillItem }>('/api/skills-mgmt/create/ai', {
-        name: name.trim() || `auto-req-${Date.now() % 1000000}`,
-        intent: intent.trim(),
-        tags: ['auto', 'requirement'],
-        category: 'custom',
-      })
-      const s = r?.skill
-      setOkMsg(s ? `已生成并自动评审-消化：「${s.name}」（${s.id}）——可展开查看报告，通过后发布即成为自身能力。` : '已生成（未返回详情）')
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
-    } finally { setBusy(false) }
-  }
-  return (
-    <ModalShell title="从对话要求生成技能（自动评审-消化）" onClose={onClose}>
-      <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
-        对话提示词里出现的“能力要求/新的处理规则”可直接写成技能草稿：粘贴要求→生成（AI 生成失败自动回退模板）→
-        自动进入权限/合规/兼容性评审；有审核兜底，不满意可编辑或删除。
-      </p>
-      <Field label="技能名称（可选）">
-        <input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} placeholder="留空自动命名" />
-      </Field>
-      <Field label="对话中的要求 / 能力描述 *">
-        <textarea className={`${INPUT} font-mono`} rows={5} value={intent} onChange={(e) => setIntent(e.target.value)}
-          placeholder="例如：当用户提到『查天气』时先调用 weather_api，超时 5s 内重试一次并返回结构化结果" />
-      </Field>
-      {err && <p className="mt-1 text-[11px] text-red-400">{err}</p>}
-      {okMsg && <p className="mt-1 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1.5 text-[11px] text-emerald-300">{okMsg}</p>}
-      <div className="mt-3 flex flex-wrap justify-end gap-2">
-        {okMsg ? (
-          <button type="button" className={BTN_EM} onClick={onDone}><ShieldCheck size={12} /> 完成</button>
-        ) : (
-          <>
-            <button type="button" className={BTN} onClick={onClose}>取消</button>
-            <button type="button" className={BTN_EM} onClick={() => void submit()} disabled={busy || !intent.trim()}>
-              {busy ? <Loader2 size={12} className="animate-spin" /> : <Lightbulb size={12} />} 生成并评审
-            </button>
-          </>
-        )}
       </div>
     </ModalShell>
   )
