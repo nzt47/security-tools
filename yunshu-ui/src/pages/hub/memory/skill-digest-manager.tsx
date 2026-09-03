@@ -60,6 +60,7 @@ export default function SkillDigestManager() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [createOpen, setCreateOpen] = useState(false)
   const [installOpen, setInstallOpen] = useState(false)
+  const [publishTarget, setPublishTarget] = useState<SkillItem | null>(null)
 
   const load = useCallback(async () => {
     setError('')
@@ -90,7 +91,15 @@ export default function SkillDigestManager() {
   const digestOne = (id: string) => act('评审-消化', () => hubPost(`/api/skills-mgmt/digest/${id}`))
   const runAll = () => act('全量自动评审-消化', () => hubPost('/api/skills-mgmt/digest/run-all'))
   const batchReview = () => act('批量审核', () => hubPost('/api/skills-mgmt/review/batch'))
-  const publish = (id: string) => act('发布', () => hubPost(`/api/skills-mgmt/${id}/publish`))
+  /** 发布（先经「人工复核」弹窗确认；未通过评审时须填原因强制发布并写入审计） */
+  const confirmPublish = (it: SkillItem, reason?: string) => {
+    setPublishTarget(null)
+    const needsReason = it.review?.status !== 'passed' || it.review?.digest_verdict === 'block'
+    void act('发布', () =>
+      needsReason
+        ? hubPost(`/api/skills-mgmt/${it.id}/publish?force=1&reason=${encodeURIComponent(reason || 'manual_review_passed')}`)
+        : hubPost(`/api/skills-mgmt/${it.id}/publish`))
+  }
   const toggle = (it: SkillItem) => act('启停', () => hubPost(`/api/skills-mgmt/${it.id}/toggle`, { enabled: !it.enabled }))
   const remove = async (it: SkillItem) => {
     if (!window.confirm(`确定从资产库删除技能「${it.name || it.id}」？`)) return
@@ -198,7 +207,7 @@ export default function SkillDigestManager() {
                         <button type="button" className={BTN_EM} onClick={() => void digestOne(it.id)} disabled={busy !== ''} title="执行完整评审-消化（三审+扩展评估）">
                           <Zap size={11} /> 评审-消化
                         </button>
-                        <button type="button" className={BTN_EM} onClick={() => publish(it.id)} disabled={busy !== ''} title="发布（需评审 PASSED）">
+                        <button type="button" className={BTN_EM} onClick={() => setPublishTarget(it)} disabled={busy !== ''} title="发布前人工复核（通过/强制并写审计）">
                           <Rocket size={11} /> 发布
                         </button>
                         <button type="button" className={BTN} onClick={() => toggle(it)} disabled={busy !== ''}>
@@ -227,7 +236,88 @@ export default function SkillDigestManager() {
       {installOpen && (
         <InstallModal onClose={() => setInstallOpen(false)} onDone={() => { setInstallOpen(false); void load() }} />
       )}
+      {publishTarget && (
+        <PublishModal
+          item={publishTarget}
+          onClose={() => setPublishTarget(null)}
+          onConfirm={(reason) => confirmPublish(publishTarget, reason)}
+        />
+      )}
     </div>
+  )
+}
+
+// ── 发布前人工复核弹窗 ────────────────────────────────────────────
+function PublishModal({ item, onClose, onConfirm }: {
+  item: SkillItem; onClose: () => void; onConfirm: (reason?: string) => void
+}) {
+  const rv = item.review
+  const needsReason = rv?.status !== 'passed' || rv?.digest_verdict === 'block'
+  const findings = rv?.findings ?? []
+  const blockers = findings.filter((f) => f.severity === 'critical' || f.severity === 'error')
+  const [reason, setReason] = useState('')
+
+  return (
+    <ModalShell title={`发布前人工复核 · ${item.name || item.id}`} onClose={onClose}>
+      <p className="mb-2 text-[11px] leading-relaxed text-slate-400">
+        发布后技能将进入运行时能力集。请人工复核下方评审-消化结论：系统评估为启发式护栏，
+        最终发布决定由复核人做出。
+      </p>
+      <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+        {statusChip(item.status ?? '-')}
+        {rv?.digest_verdict === 'block'
+          ? chip('存在阻断项', 'bg-red-500/15 text-red-400 border-red-800')
+          : rv?.status === 'passed'
+            ? chip('评审通过', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')
+            : chip('未通过正式评审', 'bg-amber-500/15 text-amber-400 border-amber-800')}
+        <span className="font-mono text-slate-500">
+          安全 {Math.round(rv?.security_score ?? 0)} · 质量 {Math.round(rv?.quality_score ?? 0)} ·
+          兼容 {Math.round(rv?.compatibility_score ?? 0)} · 重复 {Math.round(rv?.duplicate_score ?? 0)}
+        </span>
+      </div>
+      {needsReason && (
+        <div className="mb-2 rounded-md border border-amber-800/70 bg-amber-950/30 px-2.5 py-2 text-[11px] text-amber-300">
+          该技能尚未通过正式评审（或无 PASSED 审核记录）。如仍要发布，属于<strong>人工强制发布</strong>，
+          必须填写复核说明（将写入审计 data/skills_mgmt_review_audit.jsonl）。
+        </div>
+      )}
+      {blockers.length > 0 && (
+        <div className="mb-2 rounded-md border border-red-900/70 bg-red-950/30 px-2.5 py-2">
+          <div className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-red-400">
+            阻断项（{blockers.length}）——发布前必须人工裁定
+          </div>
+          <ul className="max-h-28 space-y-0.5 overflow-y-auto">
+            {blockers.map((f, i) => (
+              <li key={i} className="flex items-start gap-1.5 text-[11px] text-red-300/90">
+                <span className="shrink-0 font-mono text-[10px] text-red-500">{f.code}</span>
+                <span>{f.message}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {needsReason && (
+        <Field label="复核说明 *（人工强制发布时必填）">
+          <textarea className={INPUT} rows={3} value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="例如：已人工审查代码，阻断项为误报 / 使用场景受控……" />
+        </Field>
+      )}
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <button type="button" className={BTN} onClick={onClose}>取消（不发布）</button>
+        {!needsReason ? (
+          <button type="button" className={BTN_EM} onClick={() => onConfirm()}>
+            <Rocket size={12} /> 确认发布
+          </button>
+        ) : (
+          <button type="button" className={BTN_EM} onClick={() => onConfirm(reason.trim())}
+            disabled={reason.trim().length < 4}
+            title="强制发布需 ≥4 字复核说明（写入审计）">
+            <Rocket size={12} /> 强制发布（人工复核通过，写审计）
+          </button>
+        )}
+      </div>
+    </ModalShell>
   )
 }
 
