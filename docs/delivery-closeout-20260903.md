@@ -50,7 +50,7 @@
 
 ## 六、遗留事项（不影响交付，需外部资源或后续决策）
 
-1. **Sentry 上报未激活**：需真实 DSN（自建 GlitchTip：起 Docker → `docker compose -f deploy/glitchtip/docker-compose.yml up -d` → 建 Project 取 DSN → 填 `yunshu-ui/.env` 的 `VITE_SENTRY_DSN` → 重新 build）。代码已接线，DSN 就绪即生效。
+1. ~~Sentry 上报未激活~~ **已激活（2026-09-03）**：GlitchTip 生产栈（`deploy/glitchtip` docker compose）运行于 :8001；超管 + 组织 yunshu + 项目 yunshu-web + ProjectKey 已建；**ProjectKey 改为 32 位 hex**（Sentry SDK DSN 解析器不接受 UUID 连字符 key——"Invalid Sentry Dsn"根因）；DSN 已填本地 `yunshu-ui/.env` 与 `.env.production`（不入库），sampleRate=1；页面错误经 `/api/1/envelope/` 上报实测入库（Issue/Event 2→4）。复验工具：`node scripts/dev/sentry_e2e_trigger.mjs`。
 2. **后端全量 pytest 建议在 CI 分片执行**：本机两次分别于 35%/77% 被进程终止（资源限制，非业务失败）；`test_preflight_runner` 3 个失败为已知 Windows 环境问题（proc.stdout None）。
 3. **CI 时点失败历史**：48156cf9 触发的 lint/build/后端 runs 失败已由后续提交修复（最新 master 推送无失败），GitHub Actions 历史页保留记录。
 
