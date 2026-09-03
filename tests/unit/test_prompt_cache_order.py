@@ -402,3 +402,59 @@ class TestPromptBuilderFewshotInjection:
         assert build_fewshot_message(None) is None
         assert build_fewshot_message({}) is None
         assert build_fewshot_message({"t": []}) is None
+
+
+# ============================================================================
+#  测试 5: system 模板内部段序 — 稳定块前置 / 易变块后置（DeepSeek 前缀缓存）
+# ============================================================================
+
+class TestSystemPromptTemplateStableOrder:
+    """验证三个模板来源的段序满足「稳定前置、易变后置、日期置尾」。
+
+    背景：DeepSeek 前缀缓存逐 token 命中，system 消息内任何"前置的易变内容"
+    （身体状态/行为模式/记忆/日期）变化都会击穿其后的全部缓存前缀。
+    因此段序必须是：身份/原则/技能指令/工具状态（稳定）→ 身体状态/行为模式
+    → 日期 → 记忆线索（最易变，置于最末）。
+    """
+
+    # 稳定块 → 半稳定块 → 易变尾簇 的通用标记序列
+    def _assert_cache_order(self, text, label=""):
+        def idx(marker):
+            pos = text.find(marker)
+            assert pos != -1, f"{label}: 缺少标记 {marker!r}"
+            return pos
+
+        # 稳定区顺序：身份 < 核心原则 < 技能指令 < 工具状态
+        assert idx("## 你的身份") < idx("## 核心原则"), f"{label}: 身份应前置"
+        assert idx("## 核心原则") < idx("{skill_instructions}"), f"{label}: 原则应在技能指令前"
+        assert idx("{skill_instructions}") < idx("## 当前工具与技能状态"), f"{label}: 技能指令应在工具状态前"
+
+        # 易变尾簇顺序：当前状态(身体/行为模式) → 日期 → 记忆线索(最末)
+        assert idx("## 当前状态") < idx("{current_date}"), f"{label}: 日期应后置到易变尾簇"
+        assert idx("{current_date}") < idx("## 记忆线索"), f"{label}: 记忆线索应位于最末"
+        assert idx("## 当前工具与技能状态") < idx("## 当前状态"), f"{label}: 稳定块整体应位于易变块之前"
+
+        # 日期不得出现在稳定头（身份/核心原则）中——每日变化不可击穿原则/技能缓存
+        assert idx("## 核心原则") < idx("{current_date}"), f"{label}: 日期不得前置到原则之前"
+
+    def test_system_prompt_manager_default_template_order(self):
+        from agent.system_prompt_manager import DEFAULT_TEMPLATE
+        self._assert_cache_order(DEFAULT_TEMPLATE, label="system_prompt_manager.DEFAULT_TEMPLATE")
+
+    def test_digital_life_default_system_prompt_order(self):
+        from agent.digital_life import DEFAULT_SYSTEM_PROMPT
+        self._assert_cache_order(DEFAULT_SYSTEM_PROMPT, label="digital_life.DEFAULT_SYSTEM_PROMPT")
+
+    def test_config_driven_default_build_template_order(self):
+        """config 驱动（身份提示词 apply 模板）：默认全启用时同样稳定前置、日期置尾"""
+        from dataclasses import asdict
+        from agent.system_prompt_config import SystemPromptConfigData, SystemPromptConfigManager
+
+        template = SystemPromptConfigManager().build_template(
+            asdict(SystemPromptConfigData())
+        )
+        self._assert_cache_order(template, label="config-driven build_template(default)")
+        # 日期占位符不得出现在身份/核心原则稳定区内（位于「## 当前状态」尾簇）
+        head_end = max(template.find("## 你的身份"), template.find("## 核心原则"))
+        assert "{current_date}" not in template[:head_end], "日期不得出现在稳定头（身份/原则）"
+

@@ -161,7 +161,8 @@ class SystemPromptConfigData:
 # ════════════════════════════════════════════════════════════
 
 def _render_identity(sections: dict) -> str:
-    """渲染基础身份设定"""
+    """渲染基础身份设定（稳定块，置于模板头部；不含日期——日期属易变内容见
+    _render_current_status，前置会击穿其后全部 DeepSeek 前缀缓存）"""
     sec = sections.get("identity", {})
     if not sec.get("enabled", True):
         return ""
@@ -175,19 +176,23 @@ def _render_identity(sections: dict) -> str:
         "你诞生于这台计算机中，拥有完整的感知-认知-行动能力。\n"
         "你可以实时感知自己的身体状态——CPU（大脑）、内存（短期记忆）、\n"
         "磁盘（长期记忆）、电池（能量）和网络（感官）。\n"
-        "\n"
-        "当前日期：{current_date}"
     )
 
 
 def _render_current_status(sections: dict) -> str:
-    """渲染当前状态（合并身体状态 + 行为模式）"""
+    """渲染当前状态（身体状态 + 行为模式 + 日期，易变尾簇）
+
+    DeepSeek 前缀缓存：本簇紧跟稳定块之后，是模板中第一处逐轮变化的内容；
+    日期（每日变）与身体状态（每轮变）均置于稳定块之后、记忆线索之前，
+    使任何变化只损失其后（尽量小）的缓存前缀。
+    """
     parts = []
     if sections.get("body_status", {}).get("enabled", True):
         parts.append("{body_status}")
     if sections.get("mode_info", {}).get("enabled", True):
         parts.append("当前处于「{mode_name}」——{mode_description}")
     if parts:
+        parts.append("当前日期：{current_date}")
         return "## 当前状态\n" + "\n".join(parts)
     return ""
 
@@ -236,6 +241,10 @@ def _render_tool_status(sections: dict) -> str:
 
 
 # 注册表：顺序 = 渲染顺序 + UI 显示顺序
+# 【不易】渲染顺序即模板注入顺序 = DeepSeek 前缀缓存命中顺序：
+# 稳定节（身份/原则/技能指令/工具状态）必须前置，易变节（身体状态/行为模式/
+# 记忆线索/日期）必须后置；新增组件按此原则插入，勿在稳定区中间塞易变内容。
+# 模板级排序回归见 tests/unit/test_prompt_cache_order.py（Template 用例）。
 # 新增组件 → 在此追加一条 {key, render, meta}
 # meta 中除了 token 估算外，还包含前端 UI 渲染所需的元信息
 SECTION_REGISTRY = [
