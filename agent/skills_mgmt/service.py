@@ -334,10 +334,12 @@ class SkillsMgmtService:
         try:
             import os as _os
             import json as _json
+            from .log_archiver import archive_daily_file
             events_file = _os.path.join(
                 _os.path.dirname(_os.path.dirname(_os.path.dirname(
                     _os.path.abspath(__file__)))),
                 "data", "skills_digest_events.jsonl")
+            archive_daily_file(events_file)  # 按日归档（进程内每日一次）
             if not _os.path.exists(events_file):
                 return []
             records = []
@@ -373,10 +375,12 @@ class SkillsMgmtService:
             import os as _os
             import json as _json
             import time as _time
+            from .log_archiver import archive_daily_file
             events_file = _os.path.join(
                 _os.path.dirname(_os.path.dirname(_os.path.dirname(
                     _os.path.abspath(__file__)))),
                 "data", "skills_digest_events.jsonl")
+            archive_daily_file(events_file)  # 按日归档（进程内每日一次）
             deadline = _time.time() + max(1000, min(int(timeout_ms), 25000)) / 1000.0
             while _time.time() < deadline:
                 recs: List[Dict[str, Any]] = []
@@ -408,6 +412,144 @@ class SkillsMgmtService:
         except Exception as e:  # noqa: BLE001
             logger.warning("[Service] 事件长轮询失败: %s", e)
             return []
+
+    # ─── 自动修复建议（评审发现 → 对策 / AI patch 入口）───
+
+    def suggest_fixes(self, skill_id: str) -> Dict[str, Any]:
+        """把 skill 最新评审的阻断/警告发现映射为“修复建议”。
+
+        规则映射（确定性）：可据此人工修改，或接 LLM 自动改写 content。
+        Returns: {skill_id, fixes: [{code, severity, finding, fix}]}
+        """
+        skill = self._require(skill_id)
+        fixes: List[Dict[str, Any]] = []
+        seen: set = set()
+        map_codes = {
+            "SEC_CMD_INJECTION": "移除/替换危险 shell 命令（rm -rf / fork bomb 等），改白名单+参数化执行",
+            "SEC_EVAL": "避免 eval/exec：改为显式分支或 ast.literal_eval 解析受控输入",
+            "SEC_OS_SYSTEM": "用 subprocess 列表传参（勿 shell=True），并对命令做白名单",
+            "SEC_POPEN": "改用 subprocess.run(cmd, shell=False, capture_output=True)",
+            "SEC_XSS_INNERHTML": "禁止直接 innerHTML 赋值，改用 textContent 或转义",
+            "SEC_XSS_DOC_WRITE": "移除 document.write，改用 DOM 构建/框架转义",
+            "SEC_SQL_CONCAT": "SQL 一律参数化（? 占位 + 绑定参数），禁止字符串拼接",
+            "SEC_HARDCODED_SECRET": "密钥移出代码：引用环境变量或统一密钥服务，禁止硬编码",
+            "SEC_DANGEROUS_IMPORT": "移除 pickle/marshal 反序列化，改用 JSON 等安全格式",
+            "SEC_NETWORK_BACKDOOR": "禁止监听 0.0.0.0 的服务端代码；确认网络用途",
+            "SEC_PATH_TRAVERSAL": "路径先 resolve 并校验在允许目录内，禁止 ../ 拼接",
+            "SEC_SSL_UNVERIFIED": "开启证书校验（移除 verify=False）；内网确需时限定主机",
+            "SEC_ENV_EXFIL": "勿把环境变量/密钥随请求外发；需要时仅发送最小化脱敏字段",
+            "SEC_OBFUSCATED": "改写为可读明文代码（去掉 base64/hex 拼接动态执行）",
+            "SEC_DANGEROUS_DEP": "移除/替换危险依赖（keylogger/backdoor/reverse_shell 类）",
+            "DATA_PII": "示例/内容中的手机号、身份证、邮箱改为脱敏占位（如 138****8000）",
+            "DATA_SECRET_IN_PARAMS": "default_params 不存真实密钥：改引用环境/密钥服务",
+            "DATA_COLLECT_SENSITIVE": "标记 is_sensitive=true 启用隔离注入，并补齐数据用途说明",
+            "RSC_LOOP_NO_EXIT": "while True 增加退出条件/上限或改用有界循环",
+            "RSC_SUBPROCESS_NO_TIMEOUT": "子进程调用增加 timeout 与错误处理",
+            "RSC_NET_NO_TIMEOUT": "网络请求增加 timeout（如 timeout=10）",
+            "QUAL_SHORT_DESC": "补充 ≥20 字中文说明：用途、何时触发、输入输出",
+            "QUAL_THIN_CONTENT": "补充示例与边界说明，避免内容过短",
+        }
+        review = skill.review
+        if review:
+            for f in review.findings:
+                code = str(f.code or "")
+                if code in seen or code not in map_codes:
+                    continue
+                seen.add(code)
+                fixes.append({
+                    "code": code,
+                    "severity": f.severity,
+                    "finding": f.message,
+                    "fix": map_codes[code],
+                })
+        return {"skill_id": skill_id, "fixes": fixes,
+                "count": len(fixes),
+                "note": "规则化对策；可对 content 手动应用后重新「评审-消化」"}
+
+    # ─── 老技能整理（整理/补齐描述/清理/合并/拆分建议）───
+
+    def curate_skills(self, dry_run: bool = True,
+                      auto_clean: bool = False) -> Dict[str, Any]:
+        """对存量技能一键体检：产出整理计划（可安全自动执行部分）。
+
+        自动安全动作（auto_clean=True 时执行，dry_run=False 语义）：
+            - 空中文说明 → 从内容/名称生成占位说明并写回
+            - 长期停用且零使用（>30 天未更新）→ 标记 ARCHIVED（归档不删除）
+        计划项（需人工/仍建议人工）：
+            - 内容重复 → 建议合并（列出对方 id）
+            - 内容超大且多 H2 主题 → 建议拆分
+            - 名称/描述为非中文 → 建议补中文说明
+        Returns: {total, plan: [...], applied: [...]}
+        """
+        from datetime import datetime as _dt  # noqa: F401 兼容旧调用
+        applied: List[Dict[str, Any]] = []
+        plan: List[Dict[str, Any]] = []
+        all_skills = self.store.list_all()
+        has_cjk = lambda s: any("\u4e00" <= ch <= "\u9fff" for ch in (s or ""))
+
+        # 内容重复对（轻量：hash 相同 或 jaccard 高分，只记录不自动合并）
+        dup_pairs: List[tuple] = []
+        try:
+            dup_pairs = self.reviewer.find_duplicates(all_skills, min_jaccard=0.75)
+        except Exception:
+            dup_pairs = []
+
+        for s in all_skills:
+            name = s.name or s.id
+            issues: List[str] = []
+            if not (s.description or "").strip():
+                issues.append("缺少中文说明")
+            elif not has_cjk(s.description):
+                issues.append("说明非中文（建议补中文释义）")
+            if not has_cjk(name) and not (s.description or "").strip():
+                issues.append("名称与说明均非中文（建议中文命名/说明）")
+            if s.content and len(s.content) > 12000:
+                heads = len([l for l in s.content.splitlines()
+                             if l.strip().startswith("## ") or l.strip().startswith("# ")])
+                if heads >= 3:
+                    issues.append(f"内容偏大且含 {heads} 个 H2/H1 主题，建议按主题拆分")
+            if not s.enabled and (s.metrics.usage_count or 0) == 0:
+                issues.append("长期停用且零使用（建议归档清理）")
+            for d in dup_pairs:
+                if d.get("skill_a") == s.id:
+                    issues.append(f"与「{d.get('name_b', d.get('skill_b'))}」内容重复({d.get('jaccard')})，建议合并")
+                elif d.get("skill_b") == s.id:
+                    issues.append(f"与「{d.get('name_a', d.get('skill_a'))}」内容重复({d.get('jaccard')})，建议合并")
+
+            if not issues:
+                continue
+            entry = {"id": s.id, "name": name, "status": getattr(s.status, "value", s.status),
+                     "issues": issues}
+            plan.append(entry)
+
+            # 自动安全动作
+            if auto_clean:
+                did = False
+                if not (s.description or "").strip():
+                    desc = (s.content or "").strip().splitlines()
+                    first = next((l.strip() for l in desc if l.strip() and not l.startswith(("#", "-", "```"))), "")
+                    fallback = f"自动补全说明：{name}（{s.content_type.value if hasattr(s.content_type, 'value') else s.content_type}）"
+                    new_desc = (first or fallback)[:120]
+                    try:
+                        self.update(s.id, {"description": new_desc})
+                        applied.append({"id": s.id, "action": "补全中文说明", "detail": new_desc})
+                        did = True
+                    except Exception:
+                        pass
+                if (not s.enabled and (s.metrics.usage_count or 0) == 0
+                        and not did):
+                    try:
+                        s.status = SkillStatus.ARCHIVED
+                        s.touch()
+                        self.store.upsert(s)
+                        applied.append({"id": s.id, "action": "归档（停用+零使用）"})
+                    except Exception:
+                        pass
+
+        return {"total": len(all_skills), "dry_run": dry_run,
+                "auto_clean": auto_clean,
+                "issues": len(plan), "plan": plan[:200],
+                "applied_count": len(applied), "applied": applied[:200]}
 
     # ─── 脚本文件全维度审查并入 digest（第三层 scripts/*.py）───
 

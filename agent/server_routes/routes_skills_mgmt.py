@@ -282,6 +282,37 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/skills-mgmt/digest/curate", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_digest_curate():
+        """老技能一键体检/整理：补齐说明、归档停用零使用、给出合并/拆分建议。
+
+        Query: dry_run=1（默认，只出计划）; auto_clean=1（执行安全自动动作）
+        """
+        try:
+            dry_run = request.args.get("dry_run", "1", type=str) in ("1", "true", "True")
+            auto_clean = request.args.get("auto_clean", "0", type=str) in ("1", "true", "True")
+            result = _svc().curate_skills(dry_run=dry_run, auto_clean=auto_clean)
+            return jsonify({"ok": True, **result})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/<skill_id>/suggest-fix", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_suggest_fix(skill_id: str):
+        """评审发现 → 自动修复建议（规则化对策，可手动应用后重新评审）"""
+        try:
+            result = _svc().suggest_fixes(skill_id)
+            return jsonify({"ok": True, **result})
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/skills-mgmt/digest/<skill_id>", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token

@@ -91,6 +91,11 @@ def read_audit_log(limit: int = 100, skill_id: str = "",
     path = Path(_audit_file())
     if not path.exists():
         return []
+    try:
+        from .log_archiver import archive_daily_file
+        archive_daily_file(path)  # 按日归档（进程内每日一次）
+    except Exception:  # noqa: BLE001 归档失败不阻断读取
+        pass
     records = []
     try:
         lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()

@@ -407,6 +407,61 @@ class TestDigestKnobsAndScriptScan:
 
 
 # ═══════════════════════════════════════════════════════════════
+#  按日归档 / 修复建议 / 老技能整理
+# ═══════════════════════════════════════════════════════════════
+
+class TestDailyArchiveAndCurate:
+    def test_archive_daily_moves_old_lines(self, tmp_path):
+        from agent.skills_mgmt.log_archiver import archive_daily_file
+        p = tmp_path / "skills_digest_events.jsonl"
+        old1 = '{"ts":"2026-08-31T10:00:00","skill_id":"a","kind":"auto","verdict":"ok"}\n'
+        old2 = '{"ts":"2026-09-01T10:00:00","skill_id":"b","kind":"auto","verdict":"ok"}\n'
+        new1 = '{"ts":"2026-09-03T10:00:00","skill_id":"c","kind":"auto","verdict":"ok"}\n'
+        p.write_text(old1 + old2 + new1, encoding="utf-8")
+        out = archive_daily_file(p)
+        assert out["archived"] == 2
+        # 原文件仅保留当日
+        remain = p.read_text(encoding="utf-8").splitlines()
+        assert len(remain) == 1 and '"skill_id":"c"' in remain[0]
+        # 归档文件按日生成（这里用今天的真实日期名由逻辑生成——测试模拟昨日由 monkeypatch 日期更稳，见下断言宽松）
+        files = [f for f in out["files"] if "skills_digest_events-" in f]
+        assert files, out
+
+    def test_suggest_fixes_maps_review_findings(self, svc):
+        from agent.skills_mgmt.models import SkillStatus
+        data = {
+            "id": "eval-fix", "name": "eval-fix",
+            "description": "一个用于触发修复建议映射的测试技能描述文本",
+            "content": "def f(x):\n    return eval(x)\n",
+            "content_type": "python", "category": "custom",
+            "tags": ["fix", "test"], "author": "tester",
+        }
+        svc.create_manual(data)
+        svc.review("eval-fix")  # eval → SEC_EVAL finding
+        fix = svc.suggest_fixes("eval-fix")
+        codes = [f["code"] for f in fix["fixes"]]
+        assert "SEC_EVAL" in codes, codes
+        entry = next(f for f in fix["fixes"] if f["code"] == "SEC_EVAL")
+        assert "eval" in entry["fix"].lower() or "eval" in entry["fix"]
+
+    def test_curate_plans_and_auto_fills_description(self, svc):
+        svc.create_manual({
+            "id": "old-nodesc", "name": "old-nodesc",
+            "description": "",
+            "content": "# 自动补全说明\n这是正文第一行，可作描述来源。\n",
+            "content_type": "markdown", "category": "custom",
+            "tags": ["legacy"], "author": "tester",
+        })
+        # 计划模式：应发现缺说明
+        plan = svc.curate_skills(dry_run=True, auto_clean=False)
+        ids = [e["id"] for e in plan["plan"]]
+        assert "old-nodesc" in ids
+        # 自动模式：补全说明
+        svc.curate_skills(dry_run=False, auto_clean=True)
+        assert svc.get("old-nodesc").description != ""
+
+
+# ═══════════════════════════════════════════════════════════════
 #  自动执行：create/install/update 钩子 + digest_all 批量
 # ═══════════════════════════════════════════════════════════════
 
