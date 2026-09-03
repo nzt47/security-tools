@@ -28,11 +28,83 @@
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from .models import Skill, ReviewFinding, ContentType
+
+# ═══════════════════════════════════════════════════════════════
+#  可配置开关（env SKILLS_DIGEST_<KEY> > config.yaml skills_mgmt.digest.<key>）
+# ═══════════════════════════════════════════════════════════════
+
+_DIGEST_ENABLED_KEYS = {
+    "code_review_enabled": True,        # code_review 接入
+    "external_precheck_enabled": True,  # 外来安装安全预检并入
+    "script_precheck_enabled": True,    # 脚本文件(code_review+预检)并入
+    "block_on_high_risk_external": True,  # 外来高风险→error(阻断)；False→warn
+    "block_on_high_risk_script": True,    # 脚本高风险→error(阻断)；False→warn
+}
+_DIGEST_INT_KEYS = {
+    "max_code_findings": 60,     # 单技能 code_review/脚本扫描发现上限
+    "max_script_files": 20,      # 扫描脚本文件数上限
+}
+
+
+def _config_yaml() -> Optional[dict]:
+    try:
+        import yaml as _yaml
+        path = os.path.join(os.path.dirname(os.path.dirname(
+            os.path.dirname(os.path.abspath(__file__)))), "config.yaml")
+        if not os.path.exists(path):
+            return None
+        with open(path, "r", encoding="utf-8") as f:
+            return _yaml.safe_load(f) or {}
+    except Exception:
+        return None
+
+
+def digest_flag(key: str, default: bool) -> bool:
+    """布尔开关：SKILLS_DIGEST_<KEY> > config.yaml skills_mgmt.digest.<key> > default"""
+    if key not in _DIGEST_ENABLED_KEYS:
+        return default
+    env = os.environ.get("SKILLS_DIGEST_" + key.upper())
+    if env is not None and env.strip():
+        return env.strip().lower() in ("1", "true", "yes", "on")
+    try:
+        cfg = _config_yaml()
+        if cfg is not None:
+            val = ((cfg.get("skills_mgmt", {}) or {}).get("digest", {}) or {}).get(key)
+            if val is not None:
+                return str(val).strip().lower() in ("true", "1", "yes", "on")
+    except Exception:
+        pass
+    return default
+
+
+def digest_int(key: str, default: int) -> int:
+    """整数开关：SKILLS_DIGEST_<KEY> > config.yaml skills_mgmt.digest.<key> > default"""
+    if key not in _DIGEST_INT_KEYS:
+        return default
+    env = os.environ.get("SKILLS_DIGEST_" + key.upper())
+    if env is not None and env.strip():
+        try:
+            return max(1, int(env.strip()))
+        except ValueError:
+            pass
+    try:
+        cfg = _config_yaml()
+        if cfg is not None:
+            val = ((cfg.get("skills_mgmt", {}) or {}).get("digest", {}) or {}).get(key)
+            if val is not None:
+                try:
+                    return max(1, int(val))
+                except (TypeError, ValueError):
+                    pass
+    except Exception:
+        pass
+    return default
 
 # ═══════════════════════════════════════════════════════════════
 #  工具
@@ -196,7 +268,10 @@ def _assess_code_review(skill: Skill) -> List[ReviewFinding]:
     code_review.code_review(diff=<content>) 支持纯文本审查（无文件系统依赖）；
     输出为咨询性发现（category="code"，安全维度 warn、其余 info），
     与 reviewer 的正则安全扫描互补（后者负责关键阻断）。
+    可用 SKILLS_DIGEST_CODE_REVIEW_ENABLED / config.yaml skills_mgmt.digest 关闭。
     """
+    if not digest_flag("code_review_enabled", True):
+        return []
     if skill.content_type not in _CODE_TYPES or not (skill.content or "").strip():
         return []
     try:
@@ -204,6 +279,7 @@ def _assess_code_review(skill: Skill) -> List[ReviewFinding]:
         result = code_review(diff=skill.content, dimensions=_code_review_dimensions(skill))
     except Exception:
         return []
+    cap = digest_int("max_code_findings", _DIGEST_INT_KEYS["max_code_findings"])
     findings: List[ReviewFinding] = []
     for dim in (result or {}).get("dimensions", []) or []:
         dimension = str(dim.get("dimension", ""))
@@ -211,6 +287,8 @@ def _assess_code_review(skill: Skill) -> List[ReviewFinding]:
             continue
         severity = "warn" if dimension == "安全" else "info"
         for f in dim.get("findings", []) or []:
+            if len(findings) >= cap:
+                return findings
             desc = str(f.get("description", "") or "").strip()
             if not desc:
                 continue
@@ -246,10 +324,15 @@ def _assess_external_precheck(skill: Skill) -> List[ReviewFinding]:
     复核）、中风险→warn、低风险→info；代码内容走 scan_code_for_threats，
     描述另做权限/数据合规关键词预检。
     """
+    if not digest_flag("external_precheck_enabled", True):
+        return []
     if not _is_external(skill):
         return []
     findings: List[ReviewFinding] = []
-    sev_map = {"高风险": "error", "中风险": "warn", "低风险": "info"}
+    block_high = digest_flag("block_on_high_risk_external",
+                             _DIGEST_ENABLED_KEYS["block_on_high_risk_external"])
+    sev_map = {"高风险": "error" if block_high else "warn",
+               "中风险": "warn", "低风险": "info"}
     try:
         from agent.extensions.security_checker import SkillSecurityChecker
         checker = SkillSecurityChecker()

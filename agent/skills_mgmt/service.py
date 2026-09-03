@@ -24,6 +24,7 @@ from .models import (
     SkillStatus,
     ReviewResult,
     ReviewStatus,
+    ReviewFinding,
     SkillVersion,
 )
 from .exceptions import (
@@ -197,6 +198,7 @@ class SkillsMgmtService:
             skill = self._require(skill_id)
             others = [s for s in self.store.list_all() if s.id != skill_id]
             result = self.reviewer.review(skill, others=others)
+            self._merge_script_review(skill, result)  # 脚本文件全维度审查并入
             self.store.upsert(skill)  # 持久化审核结果
             return result
 
@@ -243,6 +245,7 @@ class SkillsMgmtService:
                          if not digest.blocked
                          else "自动评审-消化：扩展评估存在阻断项(权限/合规/兼容性)，待人工复核"),
             )
+            self._merge_script_review(skill, skill.review)  # 脚本文件审查并入
             skill.touch()
             self.store.upsert(skill)
             return skill.review
@@ -280,14 +283,117 @@ class SkillsMgmtService:
                     blocked += 1
         return {"total": total, "assessed": assessed, "blocked": blocked}
 
-    def audit_log(self, limit: int = 100) -> List[Dict[str, Any]]:
-        """读取人工复核/强制发布审计记录（供技能中心可视化）"""
+    def audit_log(self, limit: int = 100, skill_id: str = "") -> List[Dict[str, Any]]:
+        """读取人工复核/强制发布审计记录（供技能中心可视化；可按技能筛选）"""
         try:
             from .review_gate import read_audit_log
-            return read_audit_log(limit=limit)
+            return read_audit_log(limit=limit, skill_id=skill_id)
         except Exception as e:  # noqa: BLE001
             logger.warning("[Service] 读取审计日志失败: %s", e)
             return []
+
+    # ─── 脚本文件全维度审查并入 digest（第三层 scripts/*.py）───
+
+    def _merge_script_review(self, skill: Skill,
+                             result: ReviewResult) -> None:
+        """把技能脚本文件（repo/<skill_id>/scripts/*.py）的 code_review 全维度
+        与安装级威胁扫描并入同一份评审-消化报告。
+
+        - 仅当脚本预检开关开启且有脚本文件时执行（纯 JSON 内容技能跳过）；
+        - code_review 全维度（安全/性能/可维护性/API兼容性/测试）→ category=code
+          CR_FILE_<维度>（安全 warn、其余 info）；
+        - SecurityChecker 威胁扫描 → category=security SEC_FILE_SCRIPT
+          （高风险按 block_on_high_risk_script 映射 error/warn，中/低→warn/info）；
+        - 出现 error/critical 且当前审核为 PASSED → 降级 WARN / PENDING_REVIEW
+          （发布门禁保持，须人工复核）；FAILED 维持原状。
+        """
+        try:
+            from .assessor import digest_flag, digest_int
+            if not digest_flag("script_precheck_enabled", True):
+                return
+            names = self.file_store.list_scripts(skill.id)
+            if not names:
+                return
+        except Exception as e:  # noqa: BLE001
+            logger.warning("[Service] 脚本审查跳过 skill=%s: %s", skill.id, e)
+            return
+
+        try:
+            from agent.code_review import code_review
+            from agent.extensions.security_checker import SkillSecurityChecker
+        except Exception as e:  # noqa: BLE001
+            logger.warning("[Service] 脚本审查器不可用: %s", e)
+            return
+
+        checker = SkillSecurityChecker()
+        block_high = digest_flag("block_on_high_risk_script", True)
+        sev_map = {"高风险": "error" if block_high else "warn",
+                   "中风险": "warn", "低风险": "info"}
+        cap_files = digest_int("max_script_files", 20)
+        cap = digest_int("max_code_findings", 60)
+        added: List[ReviewFinding] = []
+        for name in (names or [])[:cap_files]:
+            try:
+                path = self.file_store.get_script_path(skill.id, name)
+                if not path.exists():
+                    continue
+                content = path.read_text(encoding="utf-8", errors="ignore")
+            except Exception:
+                continue
+            try:
+                cr = code_review(diff=content, dimensions=[
+                    "安全", "性能", "可维护性", "API兼容性", "测试"])
+                for dim in (cr or {}).get("dimensions", []) or []:
+                    dimname = str(dim.get("dimension", ""))
+                    if dimname not in ("安全", "性能", "可维护性", "API兼容性", "测试"):
+                        continue
+                    dimsev = "warn" if dimname == "安全" else "info"
+                    for f in dim.get("findings", []) or []:
+                        if len(added) >= cap:
+                            break
+                        desc = str(f.get("description", "") or "").strip()
+                        if not desc:
+                            continue
+                        suggestion = str(f.get("suggestion", "") or "").strip()
+                        message = f"[脚本审查·{name}·{dimname}] {desc}"
+                        if suggestion:
+                            message += f"。建议：{suggestion}"
+                        line = f.get("line")
+                        added.append(ReviewFinding(
+                            severity=dimsev, category="code",
+                            code=f"CR_FILE_{dimname}", message=message,
+                            location=f"{name}@{line}" if line is not None else name))
+                    if len(added) >= cap:
+                        break
+            except Exception:
+                pass
+            for hit in checker.scan_code_for_threats(content, name):
+                if len(added) >= cap:
+                    break
+                added.append(ReviewFinding(
+                    severity=sev_map.get(str(hit.get("severity", "")), "info"),
+                    category="security", code="SEC_FILE_SCRIPT",
+                    message=f"[脚本安装预检·{name}·{hit.get('category', '')}] "
+                            f"{hit.get('pattern', '')}",
+                    location=name))
+            if len(added) >= cap:
+                break
+
+        if not added:
+            return
+        result.findings.extend(added)
+        blocked = any(a.severity in ("error", "critical") for a in added)
+        if blocked:
+            result.digest_verdict = "block"
+            cur = getattr(result.status, "value", result.status)
+            if cur == "passed":
+                result.status = ReviewStatus.WARN
+                skill.status = SkillStatus.PENDING_REVIEW.value
+                result.summary = (result.summary or "审核通过") + \
+                    "；脚本文件审查存在高风险代码(阻断项)，需人工复核"
+                logger.info("[Service] 脚本审查阻断 skill=%s → PENDING_REVIEW", skill.id)
+        elif not result.digest_verdict:
+            result.digest_verdict = "ok"
 
     # ─── 发布（TASK-04 Step 3 强制审核链）───
 

@@ -75,11 +75,12 @@ def audit_exemption(skill_id: str, *, actor: str, reason: str) -> None:
         logger.warning("[ReviewGate] 审计日志写入失败 skill=%s: %s", skill_id, e)
 
 
-def read_audit_log(limit: int = 100) -> list:
+def read_audit_log(limit: int = 100, skill_id: str = "") -> list:
     """读取人工复核/强制发布审计记录（最新在前）。
 
     Args:
-        limit: 最多返回条数（取文件末尾 N 行再倒序）。
+        limit: 最多返回条数（从文件尾部回溯有效记录）。
+        skill_id: 非空时仅返回该技能的记录（精确匹配）。
 
     Returns:
         list[dict] — {ts, event, skill_id, actor, reason}；文件缺失/损坏行跳过。
@@ -104,10 +105,13 @@ def read_audit_log(limit: int = 100) -> list:
             continue
         if not isinstance(rec, dict):
             continue
+        rec_skill = str(rec.get("skill_id", ""))
+        if skill_id and rec_skill != skill_id:
+            continue
         records.append({
             "ts": rec.get("ts", ""),
             "event": rec.get("event", ""),
-            "skill_id": rec.get("skill_id", ""),
+            "skill_id": rec_skill,
             "actor": rec.get("actor", ""),
             "reason": rec.get("reason", ""),
         })

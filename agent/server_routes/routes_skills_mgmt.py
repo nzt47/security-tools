@@ -306,7 +306,8 @@ def register_routes(app, state):
         try:
             limit = request.args.get("limit", 100, type=int)
             limit = max(1, min(limit, 500))
-            records = _svc().audit_log(limit=limit)
+            skill_id = request.args.get("skill_id", "", type=str).strip()
+            records = _svc().audit_log(limit=limit, skill_id=skill_id)
             return jsonify({"ok": True, "records": records, "total": len(records)})
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500

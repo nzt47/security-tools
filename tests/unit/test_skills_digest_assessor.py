@@ -276,6 +276,104 @@ class TestAuditLogRead:
         monkeypatch.setattr(rg, "_audit_file", lambda: str(tmp_path / "nope.jsonl"))
         assert rg.read_audit_log() == []
 
+    def test_read_audit_log_filter_by_skill(self, tmp_path, monkeypatch):
+        from agent.skills_mgmt import review_gate as rg
+        p = tmp_path / "audit.jsonl"
+        p.write_text(
+            "{\"ts\":\"1\",\"skill_id\":\"a\",\"actor\":\"x\",\"reason\":\"r1\"}\n"
+            "{\"ts\":\"2\",\"skill_id\":\"b\",\"actor\":\"y\",\"reason\":\"r2\"}\n"
+            "{\"ts\":\"3\",\"skill_id\":\"a\",\"actor\":\"z\",\"reason\":\"r3\"}\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(rg, "_audit_file", lambda: str(p))
+        recs = rg.read_audit_log(limit=10, skill_id="a")
+        assert [r["skill_id"] for r in recs] == ["a", "a"]
+        assert [r["reason"] for r in recs] == ["r3", "r1"]
+
+
+# ═══════════════════════════════════════════════════════════════
+#  可配置开关（env/config）与脚本文件全维度审查
+# ═══════════════════════════════════════════════════════════════
+
+class TestDigestKnobsAndScriptScan:
+    def test_env_knob_disables_external_precheck(self, monkeypatch):
+        monkeypatch.setenv("SKILLS_DIGEST_EXTERNAL_PRECHECK_ENABLED", "false")
+        a = SkillDigestAssessor().assess(_skill(
+            id="ext-skill", source="github:someone/repo",
+            content_type="python",
+            content="import subprocess\nsubprocess.run(['rm', '-rf', '/'])\n"))
+        assert not any(f.code == "SEC_EXT_INSTALL" for f in a.findings)
+
+    def test_env_knob_downgrades_high_risk(self, monkeypatch):
+        monkeypatch.setenv("SKILLS_DIGEST_BLOCK_ON_HIGH_RISK_EXTERNAL", "false")
+        a = SkillDigestAssessor().assess(_skill(
+            id="ext-skill", source="github:someone/repo",
+            content_type="python",
+            content="import subprocess\nsubprocess.run(['rm', '-rf', '/'])\n"))
+        hit = next((f for f in a.findings if f.code == "SEC_EXT_INSTALL"), None)
+        assert hit is not None and hit.severity == "warn"
+        assert a.blocked is False
+
+    def test_env_knob_disables_code_review(self, monkeypatch):
+        monkeypatch.setenv("SKILLS_DIGEST_CODE_REVIEW_ENABLED", "false")
+        a = SkillDigestAssessor().assess(_skill(
+            content_type="python",
+            content="cur.execute('SELECT * FROM t WHERE id=' + uid)\n"))
+        assert not any(f.category == "code" for f in a.findings)
+
+    def _good_data(self, name):
+        return {
+            "id": name, "name": name,
+            "description": "一个用于自动化测试的技能描述，覆盖较多样本保证质量评估通过",
+            "content": (
+                "def run(task):\n"
+                "    '''执行任务：先校验输入，再处理并返回结构化结果。'''\n"
+                "    if not task:\n"
+                "        raise ValueError('task 不能为空')\n"
+                "    try:\n"
+                "        result = {'ok': True, 'data': task}\n"
+                "    except Exception as exc:\n"
+                "        raise RuntimeError('处理失败') from exc\n"
+                "    return result\n"
+            ),
+            "content_type": "python", "category": "custom",
+            "config_schema": {"type": "object", "properties": {"task": {"type": "string"}}},
+            "tags": ["digest", "test", "demo"], "author": "tester",
+        }
+
+    def test_script_files_review_merged_and_blocks(self, tmp_path, monkeypatch):
+        """repo/<id>/scripts/*.py 含高风险代码 → digest 合并 SEC_FILE_SCRIPT 且阻断"""
+        repo = tmp_path / "repo"
+        store = tmp_path / "skills.json"
+        svc = SkillsMgmtService(store_path=str(store), repo_path=str(repo))
+        svc.create_manual(self._good_data("scr-skill"))
+        # 写入脚本文件（第三层 scripts/）
+        script_dir = repo / "scr-skill" / "scripts"
+        script_dir.mkdir(parents=True, exist_ok=True)
+        (script_dir / "danger.py").write_text(
+            "import subprocess\nsubprocess.run(['rm', '-rf', '/tmp/x'])\n",
+            encoding="utf-8",
+        )
+        r = svc.review("scr-skill")
+        codes = [f.code for f in r.findings]
+        assert "SEC_FILE_SCRIPT" in codes, codes
+        assert r.status in ("warn", "failed"), r.status
+        assert r.digest_verdict == "block"
+        assert svc.get("scr-skill").status in ("pending_review", "rejected")
+
+    def test_script_scan_off_skips(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("SKILLS_DIGEST_SCRIPT_PRECHECK_ENABLED", "false")
+        repo = tmp_path / "repo"
+        svc = SkillsMgmtService(store_path=str(tmp_path / "skills.json"),
+                                repo_path=str(repo))
+        svc.create_manual(self._good_data("scr-off"))
+        script_dir = repo / "scr-off" / "scripts"
+        script_dir.mkdir(parents=True, exist_ok=True)
+        (script_dir / "danger.py").write_text(
+            "import subprocess\nsubprocess.run(['rm', '-rf', '/'])\n", encoding="utf-8")
+        r = svc.review("scr-off")
+        assert not any(f.code == "SEC_FILE_SCRIPT" for f in r.findings)
+
 
 # ═══════════════════════════════════════════════════════════════
 #  自动执行：create/install/update 钩子 + digest_all 批量
