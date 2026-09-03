@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   ChevronDown, ChevronRight, Loader2, PackagePlus, Plus, RefreshCw,
-  Rocket, ShieldCheck, Trash2, X, Zap,
+  Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
 import { hubGet, hubPost } from '../../hub/components/ui'
 
@@ -242,6 +242,85 @@ export default function SkillDigestManager() {
           onClose={() => setPublishTarget(null)}
           onConfirm={(reason) => confirmPublish(publishTarget, reason)}
         />
+      )}
+
+      {/* 发布审计（人工复核/强制发布记录）可视化 */}
+      <AuditPanel />
+    </div>
+  )
+}
+
+// ── 发布审计记录面板 ──────────────────────────────────────────────
+interface AuditRec { ts?: string; event?: string; skill_id?: string; actor?: string; reason?: string }
+function AuditPanel() {
+  const [records, setRecords] = useState<AuditRec[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [open, setOpen] = useState(false)
+
+  const load = useCallback(async () => {
+    setError('')
+    try {
+      const r = await hubGet<{ records?: AuditRec[] }>('/api/skills-mgmt/review/audit?limit=100')
+      setRecords(Array.isArray(r.records) ? r.records : [])
+    } catch (e) {
+      setError(`发布审计读取失败：${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { void load() }, [load])
+
+  return (
+    <div className="mt-5 rounded-lg border border-slate-800 bg-slate-900/30">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center gap-2 px-3 py-2 text-left"
+      >
+        <ScrollText size={13} className="text-slate-400" />
+        <span className="text-xs font-medium text-slate-200">发布审计（人工复核 / 强制发布记录）</span>
+        <span className="rounded-full bg-slate-800 px-1.5 text-[10px] text-slate-400">{records.length}</span>
+        <span className="ml-auto flex items-center gap-1.5">
+          <button
+            type="button"
+            className={BTN}
+            onClick={(e) => { e.stopPropagation(); void load() }}
+            title="刷新审计记录"
+          >
+            <RefreshCw size={11} /> 刷新
+          </button>
+          {open ? <ChevronDown size={13} className="text-slate-500" /> : <ChevronRight size={13} className="text-slate-500" />}
+        </span>
+      </button>
+      {open && (
+        <div className="border-t border-slate-800 px-3 pb-2 pt-2">
+          {error && <p className="mb-1 text-[11px] text-red-400">{error}</p>}
+          {loading ? (
+            <div className="flex items-center gap-2 py-2 text-[11px] text-slate-500">
+              <Loader2 size={12} className="animate-spin" /> 加载中…
+            </div>
+          ) : records.length === 0 ? (
+            <p className="py-2 text-[11px] text-slate-500">
+              暂无人工强制发布记录（未通过评审的发布会被记入 data/skills_mgmt_review_audit.jsonl）。
+            </p>
+          ) : (
+            <ul className="max-h-64 space-y-1 overflow-y-auto pr-1">
+              {records.map((r, i) => (
+                <li key={`${r.ts}-${i}`} className="rounded-md border border-slate-800/70 bg-slate-950/40 px-2.5 py-1.5 text-[11px] leading-relaxed">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-[10px] text-slate-500">{r.ts ?? ''}</span>
+                    {chip('强制发布', 'bg-amber-500/10 text-amber-400 border-amber-800/60')}
+                    <span className="font-medium text-slate-200">{r.skill_id ?? '-'}</span>
+                    <span className="text-slate-500">复核人：{r.actor ?? '-'}</span>
+                  </div>
+                  <div className="mt-0.5 text-slate-400">说明：{r.reason ?? '-'}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       )}
     </div>
   )
