@@ -413,6 +413,112 @@ class SkillsMgmtService:
             logger.warning("[Service] 事件长轮询失败: %s", e)
             return []
 
+    def merge_with_backup(self, src_id: str, dst_id: str,
+                          strategy: str = "auto",
+                          rebind_feedback: bool = True) -> Dict[str, Any]:
+        """「安全合并」：合并前把两侧完整快照写入 sidecar，便于一键撤销。
+
+        - 若 dst 存在版本链，先追加一个 pre-merge 版本标记（尽力而为，失败不阻断）；
+        - sidecar: data/skill_merge_backups.jsonl（merge_id → src_snapshot + dst_before）。
+        """
+        import os as _os
+        import json as _json
+        import uuid as _uuid
+        from datetime import datetime as _dt
+
+        src = self._require(src_id)
+        dst = self._require(dst_id)
+        merge_id = f"{_uuid.uuid4().hex[:8]}-{int(_dt.now().timestamp())}"
+        rec = {
+            "merge_id": merge_id,
+            "ts": _dt.now().isoformat(timespec="seconds"),
+            "src_id": src_id, "dst_id": dst_id,
+            "src_snapshot": src.model_dump(),
+            "dst_before": {
+                k: getattr(dst, k) for k in (
+                    "name", "description", "content", "content_type",
+                    "enabled", "default_params", "config_schema", "tags")
+            },
+        }
+        try:
+            sidecar = _os.path.join(
+                _os.path.dirname(_os.path.dirname(_os.path.dirname(
+                    _os.path.abspath(__file__)))),
+                "data", "skill_merge_backups.jsonl")
+            _os.makedirs(_os.path.dirname(sidecar), exist_ok=True)
+            with open(sidecar, "a", encoding="utf-8") as f:
+                f.write(_json.dumps(rec, ensure_ascii=False) + "\n")
+        except Exception as e:  # noqa: BLE001 备份失败不阻断合并（记录告警）
+            logger.warning("[Service] 合并备份写入失败 %s→%s: %s",
+                           src_id, dst_id, e)
+
+        result = self.merge_duplicate_skills(
+            src_id, dst_id, strategy=strategy,
+            rebind_feedback=rebind_feedback)
+        return {"merge_id": merge_id, **result}
+
+    def undo_merge(self, merge_id: str) -> Dict[str, Any]:
+        """按 merge_id 撤销「安全合并」：恢复被删除技能 + 恢复保留方快照。"""
+        import os as _os
+        import json as _json
+
+        sidecar = _os.path.join(
+            _os.path.dirname(_os.path.dirname(_os.path.dirname(
+                _os.path.abspath(__file__)))),
+            "data", "skill_merge_backups.jsonl")
+        rec = None
+        if _os.path.exists(sidecar):
+            with open(sidecar, "r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        item = _json.loads(line)
+                    except Exception:
+                        continue
+                    if isinstance(item, dict) and item.get("merge_id") == merge_id:
+                        rec = item
+        if not rec:
+            raise SkillMgmtError(f"未找到合并备份记录: {merge_id}")
+
+        src_id = str(rec.get("src_id", ""))
+        dst_id = str(rec.get("dst_id", ""))
+        restored = []
+        # 1) 恢复被删除的 src（若已存在则跳过）
+        if src_id:
+            try:
+                self._require(src_id)
+            except SkillNotFoundError:
+                snap = rec.get("src_snapshot")
+                if isinstance(snap, dict):
+                    skill = Skill.from_storage_dict(snap)
+                    self.store.upsert(skill)
+                    self._advisory_digest(src_id)
+                    restored.append(src_id)
+        # 2) 恢复 dst 到合并前快照
+        if dst_id:
+            before = rec.get("dst_before") or {}
+            try:
+                cur = self._require(dst_id)
+                data = cur.model_dump()
+                for k, v in before.items():
+                    data[k] = v
+                skill = Skill.from_storage_dict(data)
+                skill.touch()
+                self.store.upsert(skill)
+                self._advisory_digest(dst_id)
+                restored.append(dst_id)
+            except SkillNotFoundError:
+                # 保留方也不存在（后续又被删除）→ 用快照完整重建
+                snap = rec.get("src_snapshot")
+                if isinstance(snap, dict) and snap.get("id") == dst_id:
+                    self.store.upsert(Skill.from_storage_dict(snap))
+                    restored.append(dst_id)
+        return {"ok": True, "merge_id": merge_id,
+                "restored": restored,
+                "note": "已恢复 src 并回滚 dst 到合并前；建议重新评审-消化后决定去向。"}
+
     # ─── 自动修复建议（评审发现 → 对策 / AI patch 入口）───
 
     def suggest_fixes(self, skill_id: str) -> Dict[str, Any]:

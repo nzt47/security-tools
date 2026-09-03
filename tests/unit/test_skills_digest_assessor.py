@@ -475,6 +475,30 @@ class TestDailyArchiveAndCurate:
         assert r2["proposed"]["description"]
         assert r2["proposed"]["description"] == r["proposed"]["description"]
 
+    def test_safe_merge_then_undo(self, svc):
+        content_a = "# 解析PDF\n提取正文与元数据\n完整实现略"
+        content_b = "# 解析PDF\n提取正文与元数据\n完整实现略（另一份）"
+        svc.create_manual({
+            "id": "m-a", "name": "m-a", "description": "技能A（保留方）",
+            "content": content_a, "content_type": "markdown",
+            "category": "custom", "tags": ["m"], "author": "t",
+        })
+        svc.create_manual({
+            "id": "m-b", "name": "m-b", "description": "技能B（被合并）",
+            "content": content_b, "content_type": "markdown",
+            "category": "custom", "tags": ["m"], "author": "t",
+        })
+        merged = svc.merge_with_backup("m-b", "m-a", strategy="keep_dst")
+        assert merged.get("merge_id")
+        # 被合并方应已删除
+        with pytest.raises(Exception):
+            svc.get("m-b")
+        # 撤销：恢复 m-b 且 m-a 内容回到合并前
+        undo = svc.undo_merge(merged["merge_id"])
+        assert "m-b" in undo["restored"]
+        assert svc.get("m-b").content == content_b
+        assert svc.get("m-a").content == content_a
+
 
 # ═══════════════════════════════════════════════════════════════
 #  自动执行：create/install/update 钩子 + digest_all 批量

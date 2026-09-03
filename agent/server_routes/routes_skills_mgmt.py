@@ -299,6 +299,40 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/skills-mgmt/digest/merge-safe", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_merge_safe():
+        """安全合并：先写两侧快照(merge_id) 再执行合并，可一键撤销"""
+        try:
+            data = request.get_json() or {}
+            src_id = str(data.get("src_id", "") or "")
+            dst_id = str(data.get("dst_id", "") or "")
+            strategy = str(data.get("strategy", "auto") or "auto")
+            if not src_id or not dst_id:
+                return jsonify({"ok": False, "error": "src_id 与 dst_id 不能为空"}), 400
+            result = _svc().merge_with_backup(src_id, dst_id, strategy=strategy)
+            return jsonify({"ok": True, **result})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 400
+
+    @app.route("/api/skills-mgmt/digest/merge-undo", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_merge_undo():
+        """按 merge_id 撤销安全合并（恢复被删技能 + 回滚保留方）"""
+        try:
+            data = request.get_json() or {}
+            merge_id = str(data.get("merge_id", "") or "")
+            if not merge_id:
+                return jsonify({"ok": False, "error": "缺少 merge_id"}), 400
+            result = _svc().undo_merge(merge_id)
+            return jsonify(result)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 400
+
     @app.route("/api/skills-mgmt/<skill_id>/redraft", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token
