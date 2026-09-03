@@ -69,6 +69,8 @@ export default function SkillDigestManager() {
   const [versionsTarget, setVersionsTarget] = useState<SkillItem | null>(null)
   const [redraftTarget, setRedraftTarget] = useState<SkillItem | null>(null)
   const [curateOpen, setCurateOpen] = useState(false)
+  const [feedOpen, setFeedOpen] = useState(false)
+  const [cmdTarget, setCmdTarget] = useState<SkillItem | null>(null)
   interface DigestEv { ts?: string; kind?: string; skill_id?: string; verdict?: string; summary?: string }
   const [events, setEvents] = useState<DigestEv[]>([])
   const loadEvents = useCallback(async () => {
@@ -255,6 +257,9 @@ export default function SkillDigestManager() {
           <button type="button" className={BTN} onClick={() => setCurateOpen(true)} disabled={busy !== ''} title="对存量老技能一键体检：补齐中文说明/归档停用零使用/给出合并与拆分建议（可自动整理）">
             <ListTree size={12} /> 整理老技能
           </button>
+          <button type="button" className={BTN} onClick={() => setFeedOpen(true)} title="全部动态：digest 事件 + 人工复核审计 聚合时间线">
+            全部动态
+          </button>
           <button type="button" className={BTN} onClick={() => void load()} disabled={busy !== ''}>
             <RefreshCw size={12} /> 刷新
           </button>
@@ -342,6 +347,9 @@ export default function SkillDigestManager() {
                         <button type="button" className={BTN} onClick={() => setRedraftTarget(it)} disabled={busy !== ''} title="再定义：LLM/规则起草中文说明与展示名，差异预览后应用并重新评审">
                           再定义
                         </button>
+                        <button type="button" className={BTN} onClick={() => setCmdTarget(it)} disabled={busy !== ''} title="斜杠命令：info/versions/execute/params 快捷操作">
+                          命令
+                        </button>
                         <button type="button" className={BTN_EM} onClick={() => setPublishTarget(it)} disabled={busy !== ''} title="发布前人工复核（通过/强制并写审计）">
                           <Rocket size={11} /> 发布
                         </button>
@@ -397,6 +405,10 @@ export default function SkillDigestManager() {
       )}
       {curateOpen && (
         <CurateModal onClose={() => setCurateOpen(false)} onDone={() => { setCurateOpen(false); void load() }} />
+      )}
+      {feedOpen && <FeedModal onClose={() => setFeedOpen(false)} />}
+      {cmdTarget && (
+        <CommandModal item={cmdTarget} onClose={() => setCmdTarget(null)} />
       )}
 
       {/* 发布审计（人工复核/强制发布记录）可视化 */}
@@ -805,7 +817,7 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
   const [busy, setBusy] = useState('')
   const [runMsg, setRunMsg] = useState('')
   const [dups, setDups] = useState<{ skill_a?: string; skill_b?: string; name_a?: string; name_b?: string; jaccard?: number }[]>([])
-  const [lastMerge, setLastMerge] = useState('')
+  const [backs, setBacks] = useState<{ merge_id?: string; ts?: string; src_id?: string; dst_id?: string; src_name?: string; dst_name?: string; src_content_len?: number; dst_content_len?: number }[]>([])
 
   const loadDups = async () => {
     try {
@@ -814,31 +826,37 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     } catch { setDups([]) }
   }
 
+  const loadBacks = async () => {
+    try {
+      const r = await hubGet<{ backups?: typeof backs }>('/api/skills-mgmt/digest/merge-backups?limit=50')
+      setBacks(Array.isArray(r.backups) ? r.backups : [])
+    } catch { setBacks([]) }
+  }
+
   const safeMerge = async (srcId: string, dstId: string) => {
-    if (!window.confirm(`安全合并：先备份快照，再删除「${srcId}」并入「${dstId}」？（可一键撤销）`)) return
+    if (!window.confirm(`安全合并：先备份快照，再删除「${srcId}」并入「${dstId}」？（可随时撤销）`)) return
     setBusy('3'); setRunMsg('')
     try {
       const r = await hubPost<{ merge_id?: string; merged_id?: string }>('/api/skills-mgmt/digest/merge-safe', { src_id: srcId, dst_id: dstId, strategy: 'auto' })
-      const mid = r?.merge_id ?? ''
-      setLastMerge(mid)
-      setRunMsg(`已安全合并：${srcId} → ${dstId}${mid ? '（已备份，可“撤销合并”）' : ''}。`)
+      setRunMsg(`已安全合并：${srcId} → ${dstId}${r?.merge_id ? `（备份 ${r.merge_id}）` : ''}。可在下方「合并备份」中撤销。`)
       onDone()
       void loadDups()
+      void loadBacks()
     } catch (e) {
       setRunMsg(`合并失败：${e instanceof Error ? e.message : String(e)}`)
     } finally { setBusy('') }
   }
 
-  const undoMerge = async () => {
-    if (!lastMerge) return
-    if (!window.confirm('撤销上一次安全合并？（恢复被删技能并回滚保留方）')) return
+  const undoOne = async (mid: string) => {
+    if (!mid) return
+    if (!window.confirm('撤销该次安全合并？（恢复被删技能并回滚保留方）')) return
     setBusy('4'); setRunMsg('')
     try {
-      const r = await hubPost<{ restored?: string[] }>('/api/skills-mgmt/digest/merge-undo', { merge_id: lastMerge })
-      setRunMsg(`已撤销合并，恢复：${(r?.restored ?? []).join('、') || '-'}。`)
-      setLastMerge('')
+      const r = await hubPost<{ restored?: string[] }>('/api/skills-mgmt/digest/merge-undo', { merge_id: mid })
+      setRunMsg(`已撤销合并（${mid}），恢复：${(r?.restored ?? []).join('、') || '-'}。`)
       onDone()
       void loadDups()
+      void loadBacks()
     } catch (e) {
       setRunMsg(`撤销失败：${e instanceof Error ? e.message : String(e)}`)
     } finally { setBusy('') }
@@ -864,6 +882,8 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
   useEffect(() => {
     void plan()
     void loadDups()
+    void loadBacks()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (
@@ -898,12 +918,29 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       )}
       {runMsg && <p className="mt-2 rounded-md border border-cyan-900/60 bg-cyan-950/30 px-2 py-1 text-[11px] text-cyan-300">{runMsg}</p>}
 
-      {lastMerge && (
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="text-[11px] text-emerald-300">已备份合并（merge_id={lastMerge}），需要时可恢复：</span>
-          <button type="button" className={BTN_EM} onClick={() => void undoMerge()} disabled={busy !== ''} title="撤销上一次安全合并（恢复被删技能+回滚保留方）">
-            撤销合并
-          </button>
+      {backs.length > 0 && (
+        <div className="mt-2 rounded-md border border-slate-800 bg-slate-950/40 p-2">
+          <div className="mb-1 flex items-center gap-2">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-slate-500">合并备份（可撤销，{backs.length}）</span>
+            <button type="button" className={BTN} onClick={() => void loadBacks()} disabled={busy !== ''}>
+              <RefreshCw size={10} /> 刷新
+            </button>
+          </div>
+          <ul className="max-h-40 space-y-1 overflow-y-auto pr-1">
+            {backs.map((b) => (
+              <li key={b.merge_id} className="flex flex-wrap items-center gap-1.5 rounded-md border border-slate-800/70 bg-slate-900/40 px-2 py-1 text-[11px]">
+                <span className="font-mono text-[9px] text-slate-600">{b.ts ?? ''}</span>
+                <span className="text-slate-300">{b.src_name ?? b.src_id}</span>
+                <span className="text-slate-600">→</span>
+                <span className="text-slate-300">{b.dst_name ?? b.dst_id}</span>
+                <span className="font-mono text-[9px] text-slate-600">{b.merge_id}</span>
+                <button type="button" className={BTN_EM} disabled={busy !== ''}
+                  onClick={() => void undoOne(b.merge_id ?? '')} title="恢复被删技能并回滚保留方">
+                  撤销
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -1231,6 +1268,106 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
         <button type="button" className={BTN} onClick={onClose}>取消</button>
         <button type="button" className={BTN_EM} onClick={() => void apply()} disabled={busy || !draftDesc.trim()}>
           {busy ? <Loader2 size={12} className="animate-spin" /> : <Lightbulb size={12} />} 应用草稿并评审
+        </button>
+      </div>
+    </ModalShell>
+  )
+}
+
+// ── 全部动态（聚合时间线：digest 事件 + 人工复核审计）───────────────────
+function FeedModal({ onClose }: { onClose: () => void }) {
+  const [items, setItems] = useState<{ kind?: string; ts?: string; skill_id?: string; tag?: string; detail?: string }[]>([])
+  const [busy, setBusy] = useState(true)
+  const [err, setErr] = useState('')
+  const load = useCallback(async () => {
+    setErr('')
+    try {
+      const r = await hubGet<{ records?: { kind?: string; ts?: string; skill_id?: string; tag?: string; detail?: string }[] }>('/api/skills-mgmt/digest/feed?limit=150')
+      setItems(Array.isArray(r.records) ? r.records : [])
+    } catch (e) { setErr(`动态加载失败：${e instanceof Error ? e.message : String(e)}`) }
+    finally { setBusy(false) }
+  }, [])
+  useEffect(() => { void load() }, [load])
+  return (
+    <ModalShell title="全部动态（digest 评估 + 人工复核/发布审计）" onClose={onClose}>
+      <div className="mb-2 flex items-center gap-2">
+        <span className="text-[11px] text-slate-500">最近 {items.length} 条（时间倒序）</span>
+        <button type="button" className={BTN} onClick={() => void load()}>
+          <RefreshCw size={11} /> 刷新
+        </button>
+      </div>
+      {err && <p className="mb-2 text-[11px] text-red-400">{err}</p>}
+      {busy ? (
+        <div className="flex items-center gap-2 py-4 text-[11px] text-slate-500"><Loader2 size={12} className="animate-spin" /> 加载中…</div>
+      ) : items.length === 0 ? (
+        <p className="py-4 text-[11px] text-slate-500">暂无动态。</p>
+      ) : (
+        <ul className="max-h-[26rem] space-y-1 overflow-y-auto pr-1">
+          {items.map((r, i) => (
+            <li key={`${r.ts}-${i}`} className="flex items-start gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
+              {chip(r.kind === 'audit' ? '审计' : '评估', r.kind === 'audit' ? 'bg-amber-500/10 text-amber-400 border-amber-800/60' : 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
+              <span className="shrink-0 text-slate-300">{r.skill_id ?? '-'}</span>
+              {r.tag && <span className={r.tag === 'block' ? 'text-red-400' : r.tag === '强制发布' ? 'text-amber-300' : 'text-emerald-400'}>{r.tag}</span>}
+              <span className="min-w-0 flex-1 text-slate-500">{r.detail}</span>
+              <span className="shrink-0 font-mono text-[9px] text-slate-600">{r.ts ?? ''}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-3 flex justify-end">
+        <button type="button" className={BTN} onClick={onClose}>关闭</button>
+      </div>
+    </ModalShell>
+  )
+}
+
+// ── 斜杠命令（Slash 解析器入口：info/versions/execute/params）─────────────
+function CommandModal({ item, onClose }: { item: SkillItem; onClose: () => void }) {
+  const [cmd, setCmd] = useState('info')
+  const [scriptName, setScriptName] = useState('main.py')
+  const [paramsText, setParamsText] = useState('')
+  const [out, setOut] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const run = async () => {
+    setBusy(true); setErr(''); setOut('')
+    const body: Record<string, unknown> = { command: cmd }
+    if (cmd === 'execute') {
+      body.script_name = scriptName || 'main.py'
+      try { body.params = paramsText.trim() ? JSON.parse(paramsText) : {} } catch { setErr('params 需为合法 JSON'); setBusy(false); return }
+    }
+    try {
+      const r = await hubPost<{ ok?: boolean; error?: string }>(`/api/skills-mgmt/skill/${item.id}`, body)
+      setOut(JSON.stringify(r, null, 2).slice(0, 3000))
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)) }
+    finally { setBusy(false) }
+  }
+  return (
+    <ModalShell title={`斜杠命令 · ${item.name || item.id}`} onClose={onClose}>
+      <p className="mb-2 text-[11px] text-slate-500">技能库已接入统一 Slash 解析器（/api/skills-mgmt/skill/&lt;id&gt;）——直接执行 info / versions / execute / params。</p>
+      <div className="mb-2 flex flex-wrap items-center gap-1.5">
+        {['info', 'versions', 'execute', 'params'].map((c) => (
+          <button key={c} type="button"
+            className={cmd === c ? `${BTN_EM} border-cyan-600/70` : BTN}
+            onClick={() => setCmd(c)}>{c}</button>
+        ))}
+      </div>
+      {cmd === 'execute' && (
+        <div className="mb-2 grid gap-2 md:grid-cols-2">
+          <input className={INPUT} value={scriptName} onChange={(e) => setScriptName(e.target.value)} placeholder="script_name（默认 main.py）" />
+          <input className={INPUT} value={paramsText} onChange={(e) => setParamsText(e.target.value)} placeholder='params JSON，如 {"file":"a.pdf"}' />
+        </div>
+      )}
+      {cmd === 'params' && (
+        <textarea className={`${INPUT} mb-2 font-mono`} rows={3} value={paramsText} onChange={(e) => setParamsText(e.target.value)}
+          placeholder='patch JSON，如 {"description":"…","enabled":true}' />
+      )}
+      {err && <p className="mb-2 text-[11px] text-red-400">{err}</p>}
+      {out && <pre className="mb-2 max-h-56 overflow-auto rounded-md border border-slate-800 bg-slate-950/60 p-2 font-mono text-[10px] text-cyan-200">{out}</pre>}
+      <div className="mt-3 flex justify-end gap-2">
+        <button type="button" className={BTN} onClick={onClose}>关闭</button>
+        <button type="button" className={BTN_EM} onClick={() => void run()} disabled={busy}>
+          {busy ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />} 执行
         </button>
       </div>
     </ModalShell>
