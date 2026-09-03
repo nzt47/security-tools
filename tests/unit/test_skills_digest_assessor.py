@@ -161,6 +161,43 @@ class TestCompatibilityDigest:
 
 
 # ═══════════════════════════════════════════════════════════════
+#  代码级审查（code_review 接入 digest）
+# ═══════════════════════════════════════════════════════════════
+
+class TestCodeReviewIntegration:
+    def test_sql_concat_code_flagged_in_code_category(self):
+        a = SkillDigestAssessor().assess(_skill(
+            content_type="python",
+            content=(
+                "def query(uid):\n"
+                "    conn = db.connect()\n"
+                "    cur = conn.cursor()\n"
+                "    cur.execute('SELECT * FROM users WHERE id=' + uid)\n"
+                "    return cur.fetchall()\n"
+            ),
+        ))
+        codes = [f.code for f in a.findings]
+        assert any(c == "CR_安全" for c in codes), codes
+        assert any(f.category == "code" for f in a.findings)
+
+    def test_benign_code_no_security_code_findings(self):
+        a = SkillDigestAssessor().assess(_skill(
+            content_type="python",
+            content=(
+                "def add(a, b):\n"
+                "    \"\"\"求和并返回\"\"\"\n"
+                "    return a + b\n"
+            ),
+        ))
+        assert not any(f.code == "CR_安全" for f in a.findings)
+
+    def test_non_code_content_skips_code_review(self):
+        a = SkillDigestAssessor().assess(_skill(
+            content_type="markdown", content="SELECT 相关的说明文档（非代码）"))
+        assert not any(f.category == "code" for f in a.findings)
+
+
+# ═══════════════════════════════════════════════════════════════
 #  自动执行：create/install/update 钩子 + digest_all 批量
 # ═══════════════════════════════════════════════════════════════
 

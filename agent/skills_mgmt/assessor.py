@@ -161,6 +161,45 @@ def _assess_security_and_compliance(skill: Skill) -> List[ReviewFinding]:
 
 
 # ═══════════════════════════════════════════════════════════════
+#  代码级审查（接入 agent.code_review）
+# ═══════════════════════════════════════════════════════════════
+
+def _assess_code_review(skill: Skill) -> List[ReviewFinding]:
+    """对 CODE 类内容运行 code_review（安全/性能维度），并入 digest。
+
+    code_review.code_review(diff=<content>) 支持纯文本审查（无文件系统依赖）；
+    输出为咨询性发现（category="code"，安全维度 warn、其余 info），
+    与 reviewer 的正则安全扫描互补（后者负责关键阻断）。
+    """
+    if skill.content_type not in _CODE_TYPES or not (skill.content or "").strip():
+        return []
+    try:
+        from agent.code_review import code_review
+        result = code_review(diff=skill.content, dimensions=["安全", "性能"])
+    except Exception:
+        return []
+    findings: List[ReviewFinding] = []
+    for dim in (result or {}).get("dimensions", []) or []:
+        dimension = str(dim.get("dimension", ""))
+        if dimension not in ("安全", "性能"):
+            continue
+        severity = "warn" if dimension == "安全" else "info"
+        for f in dim.get("findings", []) or []:
+            desc = str(f.get("description", "") or "").strip()
+            if not desc:
+                continue
+            suggestion = str(f.get("suggestion", "") or "").strip()
+            message = f"[代码审查·{dimension}] {desc}"
+            if suggestion:
+                message += f"。建议：{suggestion}"
+            line = f.get("line")
+            location = f"content@{line}" if line is not None else "content"
+            findings.append(_finding(
+                severity, "code", f"CR_{dimension}", message, location))
+    return findings
+
+
+# ═══════════════════════════════════════════════════════════════
 #  兼容性/资源/交互子评估
 # ═══════════════════════════════════════════════════════════════
 
@@ -295,8 +334,10 @@ class SkillDigestAssessor:
 
         sec_findings = _assess_security_and_compliance(skill)
         compat_findings = _assess_compatibility(skill, others, reserved=reserved)
+        code_findings = _assess_code_review(skill)
         findings.extend(sec_findings)
         findings.extend(compat_findings)
+        findings.extend(code_findings)
 
         # 兼容性评分仅按 compatibility 类扣分
         compat_penalty = 0
