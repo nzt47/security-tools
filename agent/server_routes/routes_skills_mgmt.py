@@ -262,6 +262,41 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    # ═══════════════════════════════════════════════════
+    #  评审-消化（自动评估钩子路由）
+    #  - digest/<skill_id>: 对单个技能执行权威「评审-消化」（三审+扩展评估），
+    #    扩展评估含：权限校验 / 攻击面 / 数据合规 + 原生冲突 / 操作重叠 /
+    #    资源竞争 / 交互冲突 / 重复合并建议；
+    #  - digest/run-all: 对尚无审核结果的现有技能批量执行咨询性自动评估。
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/skills-mgmt/digest/run-all", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_digest_run_all():
+        """批量自动评审-消化所有尚无审核结果的技能（不改技能状态）"""
+        try:
+            result = _svc().digest_all()
+            return jsonify({"ok": True, **result})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/digest/<skill_id>", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_digest(skill_id: str):
+        """对单个技能执行权威评审-消化（完整审核链 + 扩展评估）"""
+        try:
+            result = _svc().digest_skill(skill_id)
+            return jsonify({"ok": True, "review": result.model_dump(),
+                            "skill": _svc().get(skill_id).model_dump()})
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/skills-mgmt/<skill_id>/publish", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token

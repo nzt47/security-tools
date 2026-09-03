@@ -23,6 +23,7 @@ from .models import (
     SkillSearchResult,
     SkillStatus,
     ReviewResult,
+    ReviewStatus,
     SkillVersion,
 )
 from .exceptions import (
@@ -152,14 +153,20 @@ class SkillsMgmtService:
     def create_via_ai(self, *, name: str, intent: str,
                       category: str = "custom",
                       tags: Optional[list] = None) -> Skill:
-        return self.creator.create_via_ai(
+        skill = self.creator.create_via_ai(
             name=name, intent=intent, category=category, tags=tags)
+        self._advisory_digest(skill.id)   # 自动执行评审-消化（咨询性，不改状态）
+        return self._require(skill.id)    # 返回含自动评估报告的最新对象
 
     def create_manual(self, data: Dict[str, Any]) -> Skill:
-        return self.creator.create_manual(data)
+        skill = self.creator.create_manual(data)
+        self._advisory_digest(skill.id)   # 自动执行评审-消化（咨询性，不改状态）
+        return self._require(skill.id)
 
     def install(self, source: str, *, force: bool = False) -> Skill:
-        return self.creator.install(source, force=force)
+        skill = self.creator.install(source, force=force)
+        self._advisory_digest(skill.id)   # 外来技能进入即自动评审-消化
+        return self._require(skill.id)
 
     def install_from_zip(self, zip_path: str) -> Dict[str, Any]:
         """从 zip 技能包安装到三层架构文件仓库
@@ -206,6 +213,72 @@ class SkillsMgmtService:
                 except SkillMgmtError as e:
                     results.append({"skill_id": s.id, "error": e.message})
         return results
+
+    # ─── 评审-消化（自动评估钩子 + 批量）───
+
+    def _advisory_digest(self, skill_id: str) -> Optional[ReviewResult]:
+        """新增/外来技能进入时自动执行扩展评估（权限/攻击面/数据合规 + 兼容性）。
+
+        设计（守现有契约）：
+            - 仅在技能尚无 review 时写入咨询性报告（status 保持 draft 等原语义），
+              不改技能/审核状态——正式审核（review/digest_skill）才是权威判据；
+            - 自动钩子在 create_via_ai / create_manual / install / update 后触发，
+              让“新增及现有技能”一进来就有评估报告可见。
+        """
+        try:
+            skill = self._require(skill_id)
+            if skill.review is not None:
+                return skill.review
+            from .assessor import SkillDigestAssessor
+            others = [s for s in self.store.list_all() if s.id != skill_id]
+            digest = SkillDigestAssessor().assess(skill, others=others)
+            skill.review = ReviewResult(
+                status=ReviewStatus.PENDING,
+                findings=digest.findings,
+                compatibility_score=digest.compatibility_score,
+                auto_assessed=True,
+                digest_verdict="block" if digest.blocked else "ok",
+                dimension_summary=digest.dimension_summary,
+                summary=("自动评审-消化：扩展评估未发现阻断项，可执行正式审核后发布"
+                         if not digest.blocked
+                         else "自动评审-消化：扩展评估存在阻断项(权限/合规/兼容性)，待人工复核"),
+            )
+            skill.touch()
+            self.store.upsert(skill)
+            return skill.review
+        except Exception as e:  # noqa: BLE001 评估失败不阻断创建/安装主流程
+            logger.warning("[Service] advisory digest 失败 skill=%s: %s",
+                           skill_id, e)
+            return None
+
+    def digest_skill(self, skill_id: str) -> ReviewResult:
+        """对单个技能执行权威「评审-消化」= 完整审核链（三审 + 扩展评估）。
+
+        即 review() 的语义别名：便于 UI/路由按“消化”心智调用；
+        扩展阻断项会把审核状态置 WARN、技能置 PENDING_REVIEW（发布门禁保持）。
+        """
+        return self.review(skill_id)
+
+    def digest_all(self) -> Dict[str, Any]:
+        """对“尚无审核结果的现有技能”批量执行咨询性自动评审-消化。
+
+        Returns:
+            {total, assessed, blocked, with_review} — assessed 为本次新增评估数；
+            blocked 为存在阻断项的技能数。已有人工/正式审核记录的不覆盖。
+        """
+        total = 0
+        assessed = 0
+        blocked = 0
+        for s in self.store.list_all():
+            total += 1
+            if s.review is not None:
+                continue
+            r = self._advisory_digest(s.id)
+            if r is not None:
+                assessed += 1
+                if r.digest_verdict == "block":
+                    blocked += 1
+        return {"total": total, "assessed": assessed, "blocked": blocked}
 
     # ─── 发布（TASK-04 Step 3 强制审核链）───
 
@@ -262,6 +335,7 @@ class SkillsMgmtService:
         updated = Skill.from_storage_dict(data)
         updated.touch()
         self.store.upsert(updated)
+        self._advisory_digest(updated.id)  # 修改后自动重新评估（尚无正式审核时）
         return updated
 
     def delete(self, skill_id: str) -> bool:

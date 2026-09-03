@@ -108,6 +108,17 @@ class ReviewResult(BaseModel):
     quality_score: float = Field(0.0, ge=0.0, le=100.0,
                                  description="质量评分")
 
+    # 【评审-消化扩展】兼容性/合规评估（digest assessor，见 assessor.py）
+    # 兼容性分析：与原生功能冲突 / 操作重叠 / 资源竞争 / 交互冲突（100=无风险）
+    compatibility_score: float = Field(100.0, ge=0.0, le=100.0,
+                                       description="功能兼容性评分 (100=无冲突)")
+    # 是否已执行扩展评估（权限/攻击面/数据合规/兼容性维度）
+    auto_assessed: bool = Field(False, description="是否已自动执行扩展评估")
+    # 扩展评估结论: "" | "ok" | "block"（存在 error/critical 级阻断项）
+    digest_verdict: str = Field("", description="digest 结论: ok / block")
+    # 分维度摘要（供 UI 展示），如 {security:{counts}, compatibility:{...}}
+    dimension_summary: Dict[str, Any] = Field(default_factory=dict)
+
     reviewed_at: str = Field(default_factory=lambda: datetime.now().isoformat())
     reviewed_by: str = Field("auto")
     summary: str = ""

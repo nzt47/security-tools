@@ -430,20 +430,45 @@ class SkillReviewer:
                 summary=summary,
             )
 
+            # ── 评审-消化扩展评估（权限/攻击面/数据合规 + 兼容性/重叠/资源/交互）──
+            # 三审通过/失败都追加扩展发现用于报告；扩展阻断项将 PASSED 降级为
+            # WARN（skill→PENDING_REVIEW，发布门禁仍按 PASSED 判定 → 阻断发布）。
+            try:
+                from .assessor import SkillDigestAssessor
+                digest = SkillDigestAssessor().assess(skill, others=others)
+                result.findings.extend(digest.findings)
+                result.compatibility_score = digest.compatibility_score
+                result.auto_assessed = True
+                result.dimension_summary = digest.dimension_summary
+                if digest.blocked and status == ReviewStatus.PASSED:
+                    result.status = ReviewStatus.WARN
+                    result.digest_verdict = "block"
+                    result.summary = (summary or "审核通过") + \
+                        "；扩展评估(权限/合规/兼容性)存在阻断项，需人工复核"
+                elif digest.blocked:
+                    result.digest_verdict = "block"
+                else:
+                    result.digest_verdict = "ok"
+            except Exception as _de:  # noqa: BLE001 扩展评估失败不阻断主流程
+                logger.warning("[Reviewer] 扩展评估异常 skill=%s: %s", skill.id, _de)
+
             # 写回技能状态
             skill.review = result
-            if status == ReviewStatus.PASSED:
+            if result.status == ReviewStatus.PASSED:
                 skill.status = SkillStatus.APPROVED
                 emit_metric("yunshu_skill_review_total",
                             labels={"success": "true"}, kind="counter")
             else:
-                skill.status = SkillStatus.REJECTED
+                # FAILED（质量/重复/安全未达标）或 WARN（扩展评估阻断 → 待人工复核）
+                skill.status = SkillStatus.REJECTED if result.status == ReviewStatus.FAILED \
+                    else SkillStatus.PENDING_REVIEW
                 emit_metric("yunshu_skill_review_total",
-                            labels={"failure": "true", "reason": "quality"},
+                            labels={"failure": "true",
+                                    "reason": getattr(result.status, "value", result.status)},
                             kind="counter")
 
             ctx["score"] = overall
-            ctx["status"] = status.value
+            ctx["status"] = getattr(result.status, "value", result.status)
             return result
 
     # ─── 重复技能扫描 ───
