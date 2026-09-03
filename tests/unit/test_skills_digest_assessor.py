@@ -374,6 +374,37 @@ class TestDigestKnobsAndScriptScan:
         r = svc.review("scr-off")
         assert not any(f.code == "SEC_FILE_SCRIPT" for f in r.findings)
 
+    def test_blocking_severities_configurable(self, monkeypatch):
+        """阻断严重级可配置：仅 critical 视为阻断时，error 不再阻断"""
+        # 默认：error 阻断
+        a = SkillDigestAssessor().assess(_skill(
+            id="ext-skill", source="github:someone/repo",
+            content_type="python",
+            content="import subprocess\nsubprocess.run(['rm', '-rf', '/'])\n"))
+        assert a.blocked is True
+        # 配置只保留 critical → 高风险(error)不阻断
+        monkeypatch.setenv("SKILLS_DIGEST_BLOCKING_SEVERITIES", "critical")
+        a2 = SkillDigestAssessor().assess(_skill(
+            id="ext-skill", source="github:someone/repo",
+            content_type="python",
+            content="import subprocess\nsubprocess.run(['rm', '-rf', '/'])\n"))
+        assert a2.blocked is False
+
+    def test_audit_pagination_and_since(self, tmp_path, monkeypatch):
+        from agent.skills_mgmt import review_gate as rg
+        p = tmp_path / "audit.jsonl"
+        lines = []
+        for i in range(5):
+            lines.append('{"ts":"2026-09-03T10:0%d:00","skill_id":"s%d","actor":"a","reason":"r%d"}\n' % (i, i, i))
+        p.write_text("".join(lines), encoding="utf-8")
+        monkeypatch.setattr(rg, "_audit_file", lambda: str(p))
+        # 第 2 页（offset=2, limit=2）
+        page = rg.read_audit_log(limit=2, offset=2)
+        assert [r["skill_id"] for r in page] == ["s2", "s1"]
+        # since 过滤（>= 10:03）
+        recent = rg.read_audit_log(limit=10, since="2026-09-03T10:03:00")
+        assert [r["skill_id"] for r in recent] == ["s4", "s3"]
+
 
 # ═══════════════════════════════════════════════════════════════
 #  自动执行：create/install/update 钩子 + digest_all 批量

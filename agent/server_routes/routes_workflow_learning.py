@@ -242,7 +242,10 @@ def register_routes(app, state):
         try:
             data = request.get_json() or {}
             force = bool(data.get("force", False))
-            result = _svc().convert_to_skill(wf_id, force=force)
+            ad = data.get("auto_digest")
+            auto_digest = None if ad is None else bool(ad)
+            result = _svc().convert_to_skill(wf_id, force=force,
+                                             auto_digest=auto_digest)
             return jsonify({"ok": True, **result})
         except WorkflowNotFoundError as e:
             return _err(e, 404)

@@ -306,8 +306,24 @@ def register_routes(app, state):
         try:
             limit = request.args.get("limit", 100, type=int)
             limit = max(1, min(limit, 500))
+            offset = max(0, request.args.get("offset", 0, type=int))
             skill_id = request.args.get("skill_id", "", type=str).strip()
-            records = _svc().audit_log(limit=limit, skill_id=skill_id)
+            since = request.args.get("since", "", type=str).strip()
+            records = _svc().audit_log(limit=limit, skill_id=skill_id,
+                                       offset=offset, since=since)
+            return jsonify({"ok": True, "records": records, "total": len(records)})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/digest/events", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_digest_events():
+        """读取最近 digest 结果事件（轻量推送/通知源；最新在前）"""
+        try:
+            limit = max(1, min(request.args.get("limit", 50, type=int), 200))
+            records = _svc().digest_events(limit=limit)
             return jsonify({"ok": True, "records": records, "total": len(records)})
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500

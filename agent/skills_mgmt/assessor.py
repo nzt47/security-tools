@@ -45,10 +45,18 @@ _DIGEST_ENABLED_KEYS = {
     "script_precheck_enabled": True,    # 脚本文件(code_review+预检)并入
     "block_on_high_risk_external": True,  # 外来高风险→error(阻断)；False→warn
     "block_on_high_risk_script": True,    # 脚本高风险→error(阻断)；False→warn
+    # 工作流→技能转换后自动执行权威评审-消化（默认关，转换本身已含咨询性自动评估）
+    "auto_digest_after_workflow_convert": False,
 }
 _DIGEST_INT_KEYS = {
     "max_code_findings": 60,     # 单技能 code_review/脚本扫描发现上限
     "max_script_files": 20,      # 扫描脚本文件数上限
+}
+_DIGEST_LIST_KEYS = {
+    # 视为“阻断项”的严重级（默认 critical/error）
+    "blocking_severities": ["critical", "error"],
+    # 脚本文件扫描允许的后缀（第三层目前只落 .py，可扩展）
+    "script_languages": [".py"],
 }
 
 
@@ -105,6 +113,32 @@ def digest_int(key: str, default: int) -> int:
     except Exception:
         pass
     return default
+
+
+def digest_list(key: str, default: list) -> list:
+    """列表开关（逗号分隔）：SKILLS_DIGEST_<KEY> > config.yaml skills_mgmt.digest.<key> > default"""
+    if key not in _DIGEST_LIST_KEYS:
+        return list(default)
+    env = os.environ.get("SKILLS_DIGEST_" + key.upper())
+    if env is not None and env.strip():
+        return [x.strip().lower() for x in env.split(",") if x.strip()]
+    try:
+        cfg = _config_yaml()
+        if cfg is not None:
+            val = ((cfg.get("skills_mgmt", {}) or {}).get("digest", {}) or {}).get(key)
+            if isinstance(val, list):
+                return [str(x).strip().lower() for x in val if str(x).strip()]
+            if isinstance(val, str) and val.strip():
+                return [x.strip().lower() for x in val.split(",") if x.strip()]
+    except Exception:
+        pass
+    return list(default)
+
+
+def digest_blocking_severities() -> set:
+    """当前视为“阻断项”的严重级集合（默认 critical/error）"""
+    return set(digest_list("blocking_severities",
+                           _DIGEST_LIST_KEYS["blocking_severities"]))
 
 # ═══════════════════════════════════════════════════════════════
 #  工具
@@ -475,7 +509,6 @@ class DigestAssessment:
 
 
 _PENALTY = {"critical": 40, "error": 20, "warn": 8, "info": 2}
-_BLOCK_SEV = {"critical", "error"}
 
 
 class SkillDigestAssessor:
@@ -507,8 +540,8 @@ class SkillDigestAssessor:
             compat_penalty += _PENALTY.get(f.severity, 0)
         compat_score = max(0.0, 100.0 - compat_penalty)
 
-        # 阻断项：security/compatibility 扩展发现中 critical/error
-        blocked = any(f.severity in _BLOCK_SEV for f in findings)
+        # 阻断项：security/compatibility 扩展发现中命中可配置严重级（默认 error/critical）
+        blocked = any(f.severity in digest_blocking_severities() for f in findings)
 
         # 分维度摘要（供 UI/报告）
         summary: Dict[str, Any] = {}

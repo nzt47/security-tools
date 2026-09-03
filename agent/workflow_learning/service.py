@@ -169,16 +169,22 @@ class WorkflowLearningService:
 
     def convert_to_skill(self, wf_id: str, *,
                          skills_service=None,
-                         force: bool = False) -> Dict[str, Any]:
+                         force: bool = False,
+                         auto_digest: Optional[bool] = None) -> Dict[str, Any]:
         """把指定工作流抽象为 Skill 并注册到 skills_mgmt
 
         Args:
             wf_id: 工作流ID
             skills_service: SkillsMgmtService 实例（None 时延迟导入全局单例）
             force: 是否跳过质量门控
+            auto_digest: 转换成功后是否执行权威「评审-消化」
+                （None 读取 SKILLS_DIGEST_AUTO_DIGEST_AFTER_WORKFLOW_CONVERT /
+                 config.yaml skills_mgmt.digest.auto_digest_after_workflow_convert，
+                 默认 False——转换本身已通过 create_manual 自动携带咨询性评估）
 
         Returns:
-            {workflow_id, skill_id, skill_name, version, action}
+            {workflow_id, skill_id, skill_name, version, action, digest?}
+            digest: {verdict, status} 或 {error}
 
         Raises:
             WorkflowNotFoundError: 工作流不存在
@@ -186,7 +192,25 @@ class WorkflowLearningService:
         """
         svc = skills_service or self._resolve_skills_service()
         converter = self._build_converter(svc)
-        return converter.convert_workflow_to_skill(wf_id, force=force)
+        result = converter.convert_workflow_to_skill(wf_id, force=force)
+        if result.get("action") == "created":
+            if auto_digest is None:
+                try:
+                    from agent.skills_mgmt.assessor import digest_flag
+                    auto_digest = digest_flag("auto_digest_after_workflow_convert", False)
+                except Exception:
+                    auto_digest = False
+            if auto_digest:
+                try:
+                    rv = svc.digest_skill(result["skill_id"])
+                    result["digest"] = {
+                        "verdict": getattr(rv.digest_verdict, "value", rv.digest_verdict),
+                        "status": getattr(rv.status, "value", rv.status),
+                    }
+                except Exception as e:  # noqa: BLE001
+                    logger.warning("工作流转换后评审-消化失败 wf=%s: %s", wf_id, e)
+                    result["digest"] = {"error": str(e)}
+        return result
 
     def convert_external_skill(self, external_data: Dict[str, Any],
                                *, llm_client=None,

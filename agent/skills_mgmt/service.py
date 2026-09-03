@@ -200,6 +200,11 @@ class SkillsMgmtService:
             result = self.reviewer.review(skill, others=others)
             self._merge_script_review(skill, result)  # 脚本文件全维度审查并入
             self.store.upsert(skill)  # 持久化审核结果
+            self._emit_digest_event(
+                skill_id, "review",
+                getattr(result.digest_verdict, "value", result.digest_verdict)
+                or getattr(result.status, "value", result.status),
+                result.summary)
             return result
 
     def review_all_pending(self) -> List[Dict[str, Any]]:
@@ -248,6 +253,10 @@ class SkillsMgmtService:
             self._merge_script_review(skill, skill.review)  # 脚本文件审查并入
             skill.touch()
             self.store.upsert(skill)
+            self._emit_digest_event(
+                skill.id, "auto",
+                getattr(skill.review.digest_verdict, "value", skill.review.digest_verdict),
+                skill.review.summary)
             return skill.review
         except Exception as e:  # noqa: BLE001 评估失败不阻断创建/安装主流程
             logger.warning("[Service] advisory digest 失败 skill=%s: %s",
@@ -283,13 +292,75 @@ class SkillsMgmtService:
                     blocked += 1
         return {"total": total, "assessed": assessed, "blocked": blocked}
 
-    def audit_log(self, limit: int = 100, skill_id: str = "") -> List[Dict[str, Any]]:
-        """读取人工复核/强制发布审计记录（供技能中心可视化；可按技能筛选）"""
+    def audit_log(self, limit: int = 100, skill_id: str = "",
+                  offset: int = 0, since: str = "") -> List[Dict[str, Any]]:
+        """读取人工复核/强制发布审计记录（供技能中心可视化；可按技能/分页/时段筛选）"""
         try:
             from .review_gate import read_audit_log
-            return read_audit_log(limit=limit, skill_id=skill_id)
+            return read_audit_log(limit=limit, skill_id=skill_id,
+                                  offset=offset, since=since)
         except Exception as e:  # noqa: BLE001
             logger.warning("[Service] 读取审计日志失败: %s", e)
+            return []
+
+    # ─── digest 结果事件（轻量推送源：追加 data/skills_digest_events.jsonl）───
+
+    def _emit_digest_event(self, skill_id: str, kind: str, verdict: str,
+                           summary: str = "") -> None:
+        """记录一次 digest 结果事件（新评估/阻断等），供面板轮询展示。"""
+        try:
+            import os as _os
+            import json as _json
+            from datetime import datetime as _dt
+            events_file = _os.path.join(
+                _os.path.dirname(_os.path.dirname(_os.path.dirname(
+                    _os.path.abspath(__file__)))),
+                "data", "skills_digest_events.jsonl")
+            _os.makedirs(_os.path.dirname(events_file), exist_ok=True)
+            rec = {
+                "ts": _dt.now().isoformat(timespec="seconds"),
+                "kind": kind,          # auto | review
+                "skill_id": skill_id,
+                "verdict": verdict or "",
+                "summary": str(summary or "")[:400],
+            }
+            with open(events_file, "a", encoding="utf-8") as f:
+                f.write(_json.dumps(rec, ensure_ascii=False) + "\n")
+        except Exception as e:  # noqa: BLE001
+            logger.debug("[Service] digest 事件写入失败 skill=%s: %s", skill_id, e)
+
+    def digest_events(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """读取最近 digest 事件（最新在前；面板“消化动态”）"""
+        try:
+            import os as _os
+            import json as _json
+            events_file = _os.path.join(
+                _os.path.dirname(_os.path.dirname(_os.path.dirname(
+                    _os.path.abspath(__file__)))),
+                "data", "skills_digest_events.jsonl")
+            if not _os.path.exists(events_file):
+                return []
+            records = []
+            with open(events_file, "r", encoding="utf-8", errors="ignore") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        rec = _json.loads(line)
+                    except Exception:  # 坏行跳过
+                        continue
+                    if isinstance(rec, dict):
+                        records.append({
+                            "ts": rec.get("ts", ""),
+                            "kind": rec.get("kind", ""),
+                            "skill_id": rec.get("skill_id", ""),
+                            "verdict": rec.get("verdict", ""),
+                            "summary": rec.get("summary", ""),
+                        })
+            return records[-max(1, limit):][::-1]
+        except Exception as e:  # noqa: BLE001
+            logger.warning("[Service] 读取 digest 事件失败: %s", e)
             return []
 
     # ─── 脚本文件全维度审查并入 digest（第三层 scripts/*.py）───
@@ -308,10 +379,14 @@ class SkillsMgmtService:
           （发布门禁保持，须人工复核）；FAILED 维持原状。
         """
         try:
-            from .assessor import digest_flag, digest_int
+            from .assessor import (
+                digest_flag, digest_int, digest_list, digest_blocking_severities,
+            )
             if not digest_flag("script_precheck_enabled", True):
                 return
-            names = self.file_store.list_scripts(skill.id)
+            allowed_ext = digest_list("script_languages", [".py"])
+            names = [n for n in self.file_store.list_scripts(skill.id)
+                     if any(n.lower().endswith(ext) for ext in allowed_ext)]
             if not names:
                 return
         except Exception as e:  # noqa: BLE001
@@ -382,7 +457,8 @@ class SkillsMgmtService:
         if not added:
             return
         result.findings.extend(added)
-        blocked = any(a.severity in ("error", "critical") for a in added)
+        block_sev = digest_blocking_severities()
+        blocked = any(a.severity in block_sev for a in added)
         if blocked:
             result.digest_verdict = "block"
             cur = getattr(result.status, "value", result.status)

@@ -75,12 +75,15 @@ def audit_exemption(skill_id: str, *, actor: str, reason: str) -> None:
         logger.warning("[ReviewGate] 审计日志写入失败 skill=%s: %s", skill_id, e)
 
 
-def read_audit_log(limit: int = 100, skill_id: str = "") -> list:
+def read_audit_log(limit: int = 100, skill_id: str = "",
+                   offset: int = 0, since: str = "") -> list:
     """读取人工复核/强制发布审计记录（最新在前）。
 
     Args:
-        limit: 最多返回条数（从文件尾部回溯有效记录）。
+        limit: 每页最多条数。
         skill_id: 非空时仅返回该技能的记录（精确匹配）。
+        offset: 跳过前 N 条匹配记录（分页）。
+        since: 仅返回 ts >= since 的记录（ISO 字符串比较，如 "2026-09-03T00:00:00"）。
 
     Returns:
         list[dict] — {ts, event, skill_id, actor, reason}；文件缺失/损坏行跳过。
@@ -94,7 +97,8 @@ def read_audit_log(limit: int = 100, skill_id: str = "") -> list:
     except OSError as e:
         logger.warning("[ReviewGate] 审计日志读取失败: %s", e)
         return []
-    # 从尾部回溯，收集最多 limit 条有效记录（坏行/空行不占名额）
+    need = max(0, offset) + max(1, limit)
+    # 从尾部回溯，收集 up to need 条有效记录（坏行/空行不占名额）
     for line in reversed(lines):
         line = (line or "").strip()
         if not line:
@@ -106,18 +110,21 @@ def read_audit_log(limit: int = 100, skill_id: str = "") -> list:
         if not isinstance(rec, dict):
             continue
         rec_skill = str(rec.get("skill_id", ""))
+        rec_ts = str(rec.get("ts", ""))
         if skill_id and rec_skill != skill_id:
             continue
+        if since and rec_ts < since:
+            continue
         records.append({
-            "ts": rec.get("ts", ""),
+            "ts": rec_ts,
             "event": rec.get("event", ""),
             "skill_id": rec_skill,
             "actor": rec.get("actor", ""),
             "reason": rec.get("reason", ""),
         })
-        if len(records) >= max(1, limit):
+        if len(records) >= need:
             break
-    return records  # 已按文件倒序 = 最新在前
+    return records[offset: offset + max(1, limit)]  # 已按文件倒序 = 最新在前
 
 
 def _enforce_before_publish() -> bool:
