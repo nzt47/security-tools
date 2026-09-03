@@ -11,7 +11,7 @@ import {
   MessageSquare, LayoutDashboard, Brain, Wrench, RefreshCw, Globe, Factory, Database,
   Activity, FileText, Server, BookOpen, Search, Boxes, Terminal, Plug, Monitor,
   HeartPulse, CalendarClock, Users, Copy, Hammer, FolderHeart, Lightbulb, Palette,
-  Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Smile, Radio, Puzzle,
+  Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Smile, Puzzle,
   Workflow, FileDown,
 } from 'lucide-react'
 
@@ -51,8 +51,6 @@ const HubAdminLogs = lazy(() => import('@/pages/hub/admin/index').then((m) => ({
 const HubAdminExport = lazy(() => import('@/pages/hub/admin/export'))
 const PromptLab = lazy(() => import('@/pages/prompt-lab'))
 const PersonalityPage = lazy(() => import('@/pages/hub/personality'))
-const SystemPromptPage = lazy(() => import('@/pages/hub/system-prompt'))
-const LlmMonitorPage = lazy(() => import('@/pages/hub/llm-monitor'))
 const ModuleListPage = lazy(() => import('@/pages/hub/module-list'))
 const PluginManagePage = lazy(() => import('@/pages/hub/plugin-manage'))
 
@@ -106,8 +104,9 @@ export const HUB_NAV: HubNavItem[] = [
     key: 'persona', label: '人格与提示词', icon: Smile,
     children: [
       { key: 'persona/personality', label: '人格配置', icon: Smile, component: PersonalityPage },
-      { key: 'persona/system-prompt', label: '身份提示词', icon: ScrollText, component: SystemPromptPage },
-      { key: 'persona/llm-monitor', label: 'LLM 通信', icon: Radio, component: LlmMonitorPage },
+      // 注：原「身份提示词」「LLM 通信」两页已并入顶层「提示词实验室」
+      // （身份提示词 = 实验室系统提示词线上配置区；LLM 通信 = 实验室底部监控面板），
+      // 故不再作为独立导航项。
     ],
   },
   {

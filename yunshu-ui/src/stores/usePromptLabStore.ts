@@ -6,6 +6,10 @@
  *  - customFactors  ：用户自定义因素定义
  *  - llm            ：真实预览接口配置（endpoint/model；apiKey 本地存储，导出时遮蔽）
  * 反序列化均做结构校验，脏数据回退默认，避免白屏。
+ *
+ * 深度合并说明：系统提示词不再本地沙箱化（旧 systemParts/7 段组件已移除），
+ * 「身份提示词」线上配置由 IdentityPromptPanel / useIdentityPrompt 直接管理，
+ * 不进入本地持久化。
  */
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
@@ -14,9 +18,8 @@ import type {
   FactorControl,
   FactorValue,
   PromptFactorDef,
-  SystemPart,
 } from '../lib/promptFactorTypes';
-import { DEFAULT_VALUES, SYSTEM_PARTS, allFactors } from '../lib/promptFactors';
+import { DEFAULT_VALUES, allFactors } from '../lib/promptFactors';
 
 export interface LlmConfig {
   enabled: boolean;
@@ -32,15 +35,10 @@ const DEFAULT_LLM: LlmConfig = { enabled: false, endpoint: '', apiKey: '', model
 interface PromptLabState {
   values: Record<string, FactorValue>;
   customFactors: PromptFactorDef[];
-  systemParts: SystemPart[];
   llm: LlmConfig;
   setValue: (id: string, value: FactorValue) => void;
   addCustomFactor: (def: PromptFactorDef) => void;
   removeCustomFactor: (id: string) => void;
-  updateSystemPart: (id: string, patch: Partial<SystemPart>) => void;
-  addSystemPart: (part: SystemPart) => void;
-  removeSystemPart: (id: string) => void;
-  resetSystemParts: () => void;
   resetValues: () => void;
   setLlm: (patch: Partial<LlmConfig>) => void;
 }
@@ -98,48 +96,11 @@ function sanitizeLlm(raw: unknown): LlmConfig {
   };
 }
 
-/**
- * 反序列化校验：系统提示词组件。
- * 内置组件以 id 对齐默认定义（仅持久化 enabled/text 的编辑值，保证默认文本随版本更新）；
- * 自定义组件按完整结构校验。
- */
-function sanitizeSystemParts(raw: unknown): SystemPart[] {
-  if (!Array.isArray(raw)) return [...SYSTEM_PARTS];
-  const byId = new Map(SYSTEM_PARTS.map((p) => [p.id, p]));
-  const out: SystemPart[] = [];
-  for (const p of raw) {
-    if (!p || typeof p !== 'object') continue;
-    const item = p as Partial<SystemPart>;
-    if (typeof item.id !== 'string') continue;
-    const builtin = byId.get(item.id);
-    if (builtin) {
-      // 内置：保留默认文本，仅采纳编辑值
-      out.push({
-        ...builtin,
-        enabled: item.enabled === true,
-        text: typeof item.text === 'string' ? item.text : builtin.text,
-      });
-    } else if (typeof item.label === 'string' && typeof item.text === 'string') {
-      // 自定义组件
-      out.push({
-        id: item.id,
-        label: item.label,
-        enabled: item.enabled !== false,
-        text: item.text,
-        builtin: false,
-      });
-    }
-  }
-  // 兜底：若全部丢失则回退默认
-  return out.length > 0 ? out : [...SYSTEM_PARTS];
-}
-
 export const usePromptLabStore = create<PromptLabState>()(
   persist(
     (set) => ({
       values: { ...DEFAULT_VALUES },
       customFactors: [],
-      systemParts: [...SYSTEM_PARTS],
       llm: { ...DEFAULT_LLM },
 
       setValue: (id, value) =>
@@ -156,19 +117,6 @@ export const usePromptLabStore = create<PromptLabState>()(
           return { customFactors, values };
         }),
 
-      updateSystemPart: (id, patch) =>
-        set((s) => ({
-          systemParts: s.systemParts.map((p) => (p.id === id ? { ...p, ...patch } : p)),
-        })),
-
-      addSystemPart: (part) =>
-        set((s) => ({ systemParts: [...s.systemParts, { ...part, builtin: false }] })),
-
-      removeSystemPart: (id) =>
-        set((s) => ({ systemParts: s.systemParts.filter((p) => p.id !== id) })),
-
-      resetSystemParts: () => set({ systemParts: [...SYSTEM_PARTS] }),
-
       resetValues: () => set({ values: { ...DEFAULT_VALUES } }),
 
       setLlm: (patch) =>
@@ -178,21 +126,19 @@ export const usePromptLabStore = create<PromptLabState>()(
       name: 'yunshu:prompt-lab:v1',
       version: 1,
       storage: createJSONStorage(() => localStorage),
-      partialize: (s): Pick<PromptLabState, 'values' | 'customFactors' | 'systemParts' | 'llm'> => ({
+      partialize: (s): Pick<PromptLabState, 'values' | 'customFactors' | 'llm'> => ({
         values: s.values,
         customFactors: s.customFactors,
-        systemParts: s.systemParts,
         llm: s.llm,
       }),
       merge: (persisted, current) => {
         const saved = persisted as Partial<
-          Pick<PromptLabState, 'values' | 'customFactors' | 'systemParts' | 'llm'>
+          Pick<PromptLabState, 'values' | 'customFactors' | 'llm'>
         >;
         return {
           ...current,
           values: { ...DEFAULT_VALUES, ...sanitizeValues(saved.values) },
           customFactors: sanitizeCustomFactors(saved.customFactors),
-          systemParts: sanitizeSystemParts(saved.systemParts),
           llm: sanitizeLlm(saved.llm),
         };
       },

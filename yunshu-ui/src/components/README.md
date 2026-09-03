@@ -29,14 +29,18 @@
 
 ## 页面子组件（src/pages/prompt-lab/，提示词实验室拆分）
 
+> 深度合并：原工作台「身份提示词」「LLM 通信」已并入提示词实验室
+> （hubNav 不再挂载独立页）。本地沙箱 7 段「系统提示词组件」随之移除，
+> 系统提示词改由后端身份提示词配置（identityPrompt.ts）驱动。
+
 | 组件 | 说明 |
 |---|---|
 | `RadarChart` | 五维效果评估雷达图（SVG 手绘，零图表库依赖） |
 | `FactorControl` | 因素控件（slider/select/text/toggle 四态） |
 | `FactorCard` | 因素卡片（名称 + 说明 + 控件 + 自定义删除） |
-| `SystemPartCard` | 系统提示词组件卡片（启停/编辑/token 估算） |
-| `AddSystemPartForm` | 添加系统提示词组件弹窗 |
 | `CustomFactorForm` | 添加自定义因素弹窗（按控件类型动态表单） |
+| `IdentityPromptPanel` | 身份提示词编辑区（线上配置：启停/自定义内容/保存/重置/统计；并入原「身份提示词」页） |
+| `LlmMonitorPanel` | LLM 通信监控区（统计 + 收发记录 + 10s 自动刷新/清空；并入原「LLM 通信」页） |
 | `PreviewPanel` | 右侧实时预览面板（LLM 配置/提示词/模拟输出/雷达图/Token 估算/导出） |
 | `index.tsx` | 主页面编排（状态与布局，样式见 `src/pages/PromptLab.css`） |
 

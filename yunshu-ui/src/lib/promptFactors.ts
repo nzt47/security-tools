@@ -6,10 +6,15 @@
  *    当前值由 usePromptLabStore 持久化。默认因素不可改，仅可调值。
  *  - 因素 id 是持久化锚点（LocalStorage 键值），改名/删号即丢配置。
  *  - 所有纯数据，无 React 依赖，便于单测与导出。
+ *
+ * 深度合并说明（系统提示词不再本地沙箱化）：
+ *  - 提示词实验室注入预览/真实输出的 system message = 后端「身份提示词」
+ *    配置生成的模板（见 identityPrompt.ts），本地不再维护独立 7 段组件。
+ *  - 因此本文件只保留因素引擎与 token 估算；模板文本由上游传入。
  */
-import type { FactorCategory, PromptFactorDef, FactorValue, SystemPart } from './promptFactorTypes';
+import type { FactorCategory, PromptFactorDef, FactorValue } from './promptFactorTypes';
 
-export type { FactorCategory, PromptFactorDef, FactorValue, SystemPart };
+export type { FactorCategory, PromptFactorDef, FactorValue };
 
 /** 五大分类元数据：id 为锚点，label 用于界面展示 */
 export const CATEGORIES: { id: FactorCategory; label: string; short: string; desc: string; color: string }[] = [
@@ -133,21 +138,6 @@ export function boolOf(values: Record<string, FactorValue>, id: string): boolean
 }
 
 /**
- * 系统提示词组件（默认 7 段，内置不可删除）。
- * 每次真实 LLM 调用时按 enabled 过滤后拼接为 system message。
- * 注意：文本修改只影响生成，不会覆盖代码默认值（存储层持久化用户编辑）。
- */
-export const SYSTEM_PARTS: SystemPart[] = [
-  { id: 'sp_role', label: '角色定义', enabled: true, text: '你是一位资深的 AI 技术顾问，回答专业、严谨、可落地。', builtin: true },
-  { id: 'sp_background', label: '背景信息', enabled: true, text: '项目背景：云枢（Yunshu）AI 智能体工作台，基于 Electron + React + Mosaic 构建。', builtin: true },
-  { id: 'sp_context', label: '上下文规则', enabled: true, text: '结合对话历史作答；信息不足时先说明再提问，不臆造事实。', builtin: true },
-  { id: 'sp_task', label: '任务模板', enabled: true, text: '请完成用户的任务，输出前先明确目标与约束。', builtin: true },
-  { id: 'sp_constraints', label: '输出约束', enabled: true, text: '默认使用中文；结构化输出优先；控制在合理长度内。', builtin: true },
-  { id: 'sp_safety', label: '安全边界', enabled: true, text: '不提供危险操作指南；涉及敏感内容时明确拒绝并说明原因。', builtin: true },
-  { id: 'sp_examples', label: '示例', enabled: false, text: '示例：用户问「如何优化提示词？」→ 输出结构化建议。', builtin: true },
-];
-
-/**
  * Token 估算（近似，非精确）：CJK 字符约 0.7 token/字，其余按 4 字符/token。
  * 用于实时观察各组件与总提示词的体积，实际消耗以模型计数为准。
  */
@@ -157,41 +147,26 @@ export function estimateTokens(text: string): number {
   return Math.max(1, Math.ceil(cjk * 0.7 + other / 4));
 }
 
-/** 组装系统提示词：启用组件按顺序拼接 */
-export function assembleSystemPrompt(parts: SystemPart[]): string {
-  return parts
-    .filter((p) => p.enabled)
-    .map((p) => p.text)
-    .filter((t) => t.trim().length > 0)
-    .join('\n\n');
-}
-
-/** Token 用量报告：组件明细 + 系统提示词合计 + 用户提示词 + 总占用 */
-export function tokenReport(
-  parts: SystemPart[],
-  values: Record<string, FactorValue>,
+/**
+ * Token 用量报告（注入 system 文本 + 用户提示词 + 上下文窗口占用）。
+ * 输入文本为已知明文（后端模板 / 生成的提示词），直接估算，不做逐节拆分。
+ */
+export function usageReport(
+  systemText: string,
+  userText: string,
   contextWindow: number,
 ): {
-  rows: { id: string; label: string; enabled: boolean; tokens: number }[];
   systemTotal: number;
   userTokens: number;
   total: number;
   windowSize: number;
   usedPct: number;
-  systemText: string;
 } {
-  const rows = parts.map((p) => ({
-    id: p.id,
-    label: p.label,
-    enabled: p.enabled,
-    tokens: estimateTokens(p.text),
-  }));
-  const systemText = assembleSystemPrompt(parts);
   const systemTotal = estimateTokens(systemText);
-  const userTokens = estimateTokens(buildPrompt(values));
+  const userTokens = estimateTokens(userText);
   const total = systemTotal + userTokens;
   const usedPct = Math.min(100, Math.round((total / Math.max(1, contextWindow)) * 100));
-  return { rows, systemTotal, userTokens, total, windowSize: contextWindow, usedPct, systemText };
+  return { systemTotal, userTokens, total, windowSize: contextWindow, usedPct };
 }
 
 /** 分类 → 该分类下全部因素（默认 + 自定义） */
@@ -303,29 +278,32 @@ export function factorRow(def: PromptFactorDef, value: FactorValue): Record<stri
   };
 }
 
-/** 导出为 JSON 字符串（不包含 apiKey，包含系统提示词与 token 估算） */
+/**
+ * 导出为 JSON 字符串（不包含 apiKey）。
+ * systemText = 后端「身份提示词」生成的注入模板（见 identityPrompt.ts），
+ * 为空时表示线上配置未加载/不可用，导出仍以因素数据为主。
+ */
 export function exportJson(
   values: Record<string, FactorValue>,
   customFactors: PromptFactorDef[],
-  systemParts: SystemPart[],
+  systemText: string,
   contextWindow: number,
 ): string {
   const defs = allFactors(customFactors);
-  const report = tokenReport(systemParts, values, contextWindow);
+  const report = usageReport(systemText, buildPrompt(values), contextWindow);
   return JSON.stringify(
     {
       app: '云枢 · 提示词影响因素实验室',
-      version: 2,
+      version: 3,
       exportedAt: new Date().toISOString(),
       prompt: buildPrompt(values),
-      systemPrompt: report.systemText,
+      systemPrompt: systemText,
       tokenEstimate: {
         systemTokens: report.systemTotal,
         userPromptTokens: report.userTokens,
         totalTokens: report.total,
         contextWindow: report.windowSize,
         usedPct: report.usedPct,
-        parts: report.rows,
       },
       factors: defs.map((d) => ({
         id: d.id,

@@ -2,22 +2,34 @@
  * PreviewPanel —— 提示词实验室右侧实时预览面板
  * 从 prompt-lab/index.tsx 拆分（原 aside 部分，逻辑不变）。
  * 内部经 store 获取 llm 配置，其余数据经 props 传入。
+ *
+ * 深度合并说明：systemPrompt = 后端「身份提示词」生成的注入模板
+ * （见 identityPrompt.ts），本地不再维护 7 段沙箱组件，token 块相应
+ * 简化为「模板文本 + 用户提示词」的总量估算。
  */
 import { Loader2, Settings2, Download, Wrench } from 'lucide-react';
 import { usePromptLabStore } from '../../stores/usePromptLabStore';
-import { tokenReport } from '../../lib/promptFactors';
 import RadarChart from './RadarChart';
 
 export type PreviewMode = 'sim' | 'llm';
 
+export interface PreviewUsage {
+  systemTotal: number;
+  userTokens: number;
+  total: number;
+  windowSize: number;
+  usedPct: number;
+}
+
 interface PreviewPanelProps {
   mode: PreviewMode;
   onModeChange: (m: PreviewMode) => void;
+  /** 注入 system message：后端身份提示词配置生成的模板（可含运行时占位符） */
   systemPrompt: string;
   prompt: string;
   sim: string;
   radar: { label: string; value: number }[];
-  token: ReturnType<typeof tokenReport>;
+  token: PreviewUsage;
   llmOutput: string | null;
   llmError: string | null;
   llmLoading: boolean;
@@ -89,8 +101,12 @@ export default function PreviewPanel({
       )}
 
       <div className="pl-preview-block">
-        <h3>系统提示词（注入）</h3>
-        <pre className="pl-sim-out">{systemPrompt}</pre>
+        <h3>系统提示词（身份提示词 · 注入）</h3>
+        <pre className="pl-sim-out">
+          {systemPrompt
+            ? systemPrompt
+            : '（线上身份提示词模板未加载——编辑/保存左侧「身份提示词」区后此处实时更新）'}
+        </pre>
       </div>
 
       <div className="pl-preview-block">
@@ -124,14 +140,8 @@ export default function PreviewPanel({
       <div className="pl-preview-block">
         <h3>Token 用量估算</h3>
         <div className="pl-token-table">
-          {token.rows.map((r) => (
-            <div key={r.id} className={`pl-token-row ${r.enabled ? '' : 'off'}`}>
-              <span>{r.label}</span>
-              <span>{r.enabled ? `~${r.tokens} tok` : '—'}</span>
-            </div>
-          ))}
-          <div className="pl-token-row total">
-            <span>系统提示词合计</span>
+          <div className="pl-token-row">
+            <span>身份提示词模板（注入）</span>
             <span>~{token.systemTotal} tok</span>
           </div>
           <div className="pl-token-row">
@@ -169,7 +179,7 @@ export default function PreviewPanel({
 
       <div className="pl-export">
         <h3>数据导出</h3>
-        <p className="pl-export-hint">导出当前参数组合，便于提示词优化分析（JSON 可再导入，CSV 用于表格处理）。</p>
+        <p className="pl-export-hint">导出当前参数组合与身份提示词模板，便于提示词优化分析（JSON 可再导入，CSV 用于表格处理）。</p>
         <div className="pl-export-actions">
           <button type="button" className="pl-btn" onClick={() => onExport('json')}>
             <Download size={13} /> 导出 JSON

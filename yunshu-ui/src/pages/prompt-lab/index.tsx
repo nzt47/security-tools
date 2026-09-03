@@ -1,14 +1,19 @@
 /**
  * PromptLab —— 提示词影响因素管理面板（主页面编排）
  * ------------------------------------------------
- * 布局：顶部（返回/标题/添加因素/重置）+ 分类筛选 + 左侧因素模块 + 右侧预览（PreviewPanel）
- * 功能：5 类因素调节（滑块/下拉/文本/开关）、实时预览（模拟 + 预留真实 LLM）、
+ * 布局：顶栏 + 分类筛选 + 主体（左因素区 / 右预览 PreviewPanel）
+ * 功能：5 类因素调节（滑块/下拉/文本/开关）、实时预览（模拟 + 真实 LLM）、
  *       分类筛选、自定义因素添加/删除、JSON/CSV 导出。
- * 路由：独立页面 #/prompt-lab（不进 Mosaic 布局，顶部导航进入）。
+ *
+ * 【深度合并（身份提示词 + LLM 通信并入）】
+ *   - 「系统提示词」区不再本地沙箱：由 useIdentityPrompt 直接编辑后端
+ *     「身份提示词」线上配置（启停/自定义内容/保存/重置），预览与
+ *     「请求真实输出」注入的 system message 由后端模板引擎生成。
+ *   - 页面底部并入「LLM 通信监控」面板（LlmMonitorPanel，原工作台
+ *     「人格与提示词 → LLM 通信」页）。
  *
  * 子组件拆分见 prompt-lab/ 目录：RadarChart / FactorControl / FactorCard /
- * SystemPartCard / AddSystemPartForm / CustomFactorForm / PreviewPanel
- * （本文件仅保留状态与左侧编排）。
+ * CustomFactorForm / PreviewPanel / IdentityPromptPanel / LlmMonitorPanel。
  */
 import { useMemo, useState } from 'react';
 import { ArrowLeft, FlaskConical, Plus, RotateCcw } from 'lucide-react';
@@ -17,7 +22,6 @@ import { downloadFile } from '../../utils/system';
 import {
   CATEGORIES,
   allFactors,
-  assembleSystemPrompt,
   buildPrompt,
   exportCsv,
   exportJson,
@@ -26,14 +30,15 @@ import {
   radarData,
   requestLlmPreview,
   simulateOutput,
-  tokenReport,
+  usageReport,
 } from '../../lib/promptFactors';
 import type { FactorCategory, FactorValue } from '../../lib/promptFactorTypes';
 import FactorCard from './FactorCard';
-import SystemPartCard from './SystemPartCard';
-import AddSystemPartForm from './AddSystemPartForm';
 import CustomFactorForm from './CustomFactorForm';
 import PreviewPanel, { type PreviewMode } from './PreviewPanel';
+import IdentityPromptPanel, { toIdentityPromptPanelProps } from './IdentityPromptPanel';
+import LlmMonitorPanel from './LlmMonitorPanel';
+import { useIdentityPrompt } from './identityPrompt';
 import '../PromptLab.css';
 
 type Filter = 'all' | FactorCategory;
@@ -43,18 +48,16 @@ const dateTag = () => new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19
 export default function PromptLab() {
   const values = usePromptLabStore((s) => s.values);
   const customFactors = usePromptLabStore((s) => s.customFactors);
-  const systemParts = usePromptLabStore((s) => s.systemParts);
   const llm = usePromptLabStore((s) => s.llm);
   const setValue = usePromptLabStore((s) => s.setValue);
   const removeCustomFactor = usePromptLabStore((s) => s.removeCustomFactor);
-  const updateSystemPart = usePromptLabStore((s) => s.updateSystemPart);
-  const removeSystemPart = usePromptLabStore((s) => s.removeSystemPart);
-  const resetSystemParts = usePromptLabStore((s) => s.resetSystemParts);
   const resetValues = usePromptLabStore((s) => s.resetValues);
+
+  // 深度合并：线上「身份提示词」配置（后端模板 = 注入 system message 的唯一来源）
+  const identity = useIdentityPrompt();
 
   const [filter, setFilter] = useState<Filter>('all');
   const [showForm, setShowForm] = useState(false);
-  const [showPartForm, setShowPartForm] = useState(false);
   const [mode, setMode] = useState<PreviewMode>('sim');
   const [llmOutput, setLlmOutput] = useState<string | null>(null);
   const [llmError, setLlmError] = useState<string | null>(null);
@@ -65,11 +68,11 @@ export default function PromptLab() {
   const prompt = useMemo(() => buildPrompt(values), [values]);
   const sim = useMemo(() => simulateOutput(values), [values]);
   const radar = useMemo(() => radarData(values), [values]);
+  const systemPrompt = identity.template;
   const token = useMemo(
-    () => tokenReport(systemParts, values, llm.contextWindow),
-    [systemParts, values, llm.contextWindow],
+    () => usageReport(systemPrompt, prompt, llm.contextWindow),
+    [systemPrompt, prompt, llm.contextWindow],
   );
-  const systemPrompt = useMemo(() => assembleSystemPrompt(systemParts), [systemParts]);
 
   const shownCategories = useMemo(
     () => (filter === 'all' ? CATEGORIES : CATEGORIES.filter((c) => c.id === filter)),
@@ -115,7 +118,7 @@ export default function PromptLab() {
   const exportWith = (kind: 'json' | 'csv') => {
     const tag = dateTag();
     if (kind === 'json')
-      downloadFile(`prompt-factors-${tag}.json`, exportJson(values, customFactors, systemParts, llm.contextWindow), 'application/json');
+      downloadFile(`prompt-factors-${tag}.json`, exportJson(values, customFactors, systemPrompt, llm.contextWindow), 'application/json');
     else downloadFile(`prompt-factors-${tag}.csv`, exportCsv(values, customFactors), 'text/csv;charset=utf-8');
   };
 
@@ -133,14 +136,12 @@ export default function PromptLab() {
           </div>
           <div>
             <h1 className="pl-title">提示词影响因素实验室</h1>
-            <p className="pl-subtitle">系统化调节影响 LLM 提示词质量的 5 类因素，实时观察组合效果</p>
+            <p className="pl-subtitle">
+              系统化调节影响 LLM 提示词质量的 5 类因素 · 已并入「身份提示词」配置与「LLM 通信监控」
+            </p>
           </div>
         </div>
         <div className="pl-topbar-actions">
-          <button type="button" className="pl-btn" onClick={() => setShowPartForm(true)} title="新增自定义系统提示词组件">
-            <Plus size={13} />
-            添加组件
-          </button>
           <button type="button" className="pl-btn" onClick={() => setShowForm(true)}>
             <Plus size={13} />
             添加因素
@@ -167,34 +168,10 @@ export default function PromptLab() {
       </nav>
 
       <div className="pl-body">
-        {/* 左侧：因素模块 */}
+        {/* 左侧：因素模块 + 身份提示词 */}
         <main className="pl-factors">
-          {/* 系统提示词组件：注入每次 LLM 调用的 system message */}
-          <section className="pl-category">
-            <h2 className="pl-category-title" style={{ color: '#f472b6' }}>
-              <span className="pl-category-dot" style={{ background: '#f472b6' }} />
-              系统提示词组件
-              <span className="pl-category-count">{systemParts.length} 段 · 共 ~{token.systemTotal} tok</span>
-            </h2>
-            <p className="pl-category-desc">
-              每次真实 LLM 调用注入的 system message 由下列组件按顺序拼接，可逐段启停 / 编辑 / 新增，实时估算 token。
-            </p>
-            <div className="pl-card-grid">
-              {systemParts.map((p) => (
-                <SystemPartCard key={p.id} part={p} onUpdate={updateSystemPart} onRemove={removeSystemPart} />
-              ))}
-            </div>
-            <div className="pl-syspart-actions">
-              <button type="button" className="pl-btn" onClick={() => setShowPartForm(true)}>
-                <Plus size={13} />
-                添加组件
-              </button>
-              <button type="button" className="pl-btn" onClick={resetSystemParts} title="恢复默认 7 段组件">
-                <RotateCcw size={13} />
-                恢复默认组件
-              </button>
-            </div>
-          </section>
+          {/* 身份提示词（线上配置）——原「人格与提示词 → 身份提示词」并入 */}
+          <IdentityPromptPanel {...toIdentityPromptPanelProps(identity)} />
 
           {shownCategories.map((cat) => (
             <section key={cat.id} className="pl-category">
@@ -238,8 +215,10 @@ export default function PromptLab() {
         />
       </div>
 
+      {/* LLM 通信监控——原「人格与提示词 → LLM 通信」并入 */}
+      <LlmMonitorPanel />
+
       {showForm && <CustomFactorForm onClose={() => setShowForm(false)} />}
-      {showPartForm && <AddSystemPartForm onClose={() => setShowPartForm(false)} />}
     </div>
   );
 }
