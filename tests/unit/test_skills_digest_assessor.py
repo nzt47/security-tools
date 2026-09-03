@@ -490,6 +490,10 @@ class TestDailyArchiveAndCurate:
         })
         merged = svc.merge_with_backup("m-b", "m-a", strategy="keep_dst")
         assert merged.get("merge_id")
+        # 备份列表应能看到该次合并
+        backs = svc.list_merge_backups(limit=10)
+        assert any(b["merge_id"] == merged["merge_id"] and b["src_id"] == "m-b"
+                   for b in backs)
         # 被合并方应已删除
         with pytest.raises(Exception):
             svc.get("m-b")

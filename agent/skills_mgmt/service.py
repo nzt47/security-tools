@@ -455,7 +455,64 @@ class SkillsMgmtService:
         result = self.merge_duplicate_skills(
             src_id, dst_id, strategy=strategy,
             rebind_feedback=rebind_feedback)
+        self._emit_digest_event(
+            src_id, "merge", "ok",
+            f"安全合并：{src_id} → {dst_id}（备份 merge_id={merge_id}）")
         return {"merge_id": merge_id, **result}
+
+    def list_merge_backups(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """列出最近的安全合并备份（不含完整快照，含名称与内容规模）"""
+        import os as _os
+        import json as _json
+        sidecar = _os.path.join(
+            _os.path.dirname(_os.path.dirname(_os.path.dirname(
+                _os.path.abspath(__file__)))),
+            "data", "skill_merge_backups.jsonl")
+        records: List[Dict[str, Any]] = []
+        if not _os.path.exists(sidecar):
+            return records
+        with open(sidecar, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    item = _json.loads(line)
+                except Exception:
+                    continue
+                if not isinstance(item, dict):
+                    continue
+                snap = item.get("src_snapshot") or {}
+                dst = item.get("dst_before") or {}
+                records.append({
+                    "merge_id": item.get("merge_id", ""),
+                    "ts": item.get("ts", ""),
+                    "src_id": item.get("src_id", ""),
+                    "dst_id": item.get("dst_id", ""),
+                    "src_name": snap.get("name") or item.get("src_id", ""),
+                    "dst_name": dst.get("name") or item.get("dst_id", ""),
+                    "src_content_len": len(str(snap.get("content", "") or "")),
+                    "dst_content_len": len(str(dst.get("content", "") or "")),
+                })
+        return records[-max(1, limit):][::-1]
+
+    def digest_feed(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """“全部动态”聚合流：digest 事件 + 人工复核审计，按时间倒序。"""
+        events = self.digest_events(limit=max(1, limit))
+        audit = self.audit_log(limit=max(1, limit))
+        feed: List[Dict[str, Any]] = []
+        for e in events:
+            feed.append({"kind": "digest", "ts": e.get("ts", ""),
+                         "skill_id": e.get("skill_id", ""),
+                         "tag": e.get("verdict", ""),
+                         "detail": e.get("summary", "")})
+        for a in audit:
+            feed.append({"kind": "audit", "ts": a.get("ts", ""),
+                         "skill_id": a.get("skill_id", ""),
+                         "tag": "强制发布",
+                         "detail": f"复核人 {a.get('actor', '')}：{a.get('reason', '')}"})
+        feed.sort(key=lambda r: str(r.get("ts", "")), reverse=True)
+        return feed[:max(1, limit)]
 
     def undo_merge(self, merge_id: str) -> Dict[str, Any]:
         """按 merge_id 撤销「安全合并」：恢复被删除技能 + 恢复保留方快照。"""
@@ -515,6 +572,9 @@ class SkillsMgmtService:
                 if isinstance(snap, dict) and snap.get("id") == dst_id:
                     self.store.upsert(Skill.from_storage_dict(snap))
                     restored.append(dst_id)
+        self._emit_digest_event(
+            dst_id, "merge-undo", "ok",
+            f"撤销合并 {merge_id}：恢复 {'、'.join(restored) or '-'}（快照回滚）")
         return {"ok": True, "merge_id": merge_id,
                 "restored": restored,
                 "note": "已恢复 src 并回滚 dst 到合并前；建议重新评审-消化后决定去向。"}

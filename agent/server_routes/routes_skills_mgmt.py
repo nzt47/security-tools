@@ -317,6 +317,32 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 400
 
+    @app.route("/api/skills-mgmt/digest/merge-backups", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_merge_backups():
+        """列出最近的安全合并备份（供可视化/批量撤销选择）"""
+        try:
+            limit = max(1, min(request.args.get("limit", 50, type=int), 200))
+            records = _svc().list_merge_backups(limit=limit)
+            return jsonify({"ok": True, "backups": records, "total": len(records)})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/digest/feed", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_digest_feed():
+        """“全部动态”聚合流：digest 事件 + 人工复核审计（时间倒序）"""
+        try:
+            limit = max(1, min(request.args.get("limit", 100, type=int), 300))
+            records = _svc().digest_feed(limit=limit)
+            return jsonify({"ok": True, "records": records, "total": len(records)})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/skills-mgmt/digest/merge-undo", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token
