@@ -66,6 +66,8 @@ export default function SkillDigestManager() {
   const [importOpen, setImportOpen] = useState(false)
   const [publishTarget, setPublishTarget] = useState<SkillItem | null>(null)
   const [adviceTarget, setAdviceTarget] = useState<SkillItem | null>(null)
+  const [versionsTarget, setVersionsTarget] = useState<SkillItem | null>(null)
+  const [redraftTarget, setRedraftTarget] = useState<SkillItem | null>(null)
   const [curateOpen, setCurateOpen] = useState(false)
   interface DigestEv { ts?: string; kind?: string; skill_id?: string; verdict?: string; summary?: string }
   const [events, setEvents] = useState<DigestEv[]>([])
@@ -334,6 +336,12 @@ export default function SkillDigestManager() {
                         <button type="button" className={BTN} onClick={() => setAdviceTarget(it)} disabled={busy !== ''} title="学习/迭代建议：参数优化 + 评审改进意见">
                           <Lightbulb size={11} /> 建议
                         </button>
+                        <button type="button" className={BTN} onClick={() => setVersionsTarget(it)} disabled={busy !== ''} title="版本历史：升级小/中版本、一键回滚到任意版本">
+                          版本
+                        </button>
+                        <button type="button" className={BTN} onClick={() => setRedraftTarget(it)} disabled={busy !== ''} title="再定义：LLM/规则起草中文说明与展示名，差异预览后应用并重新评审">
+                          再定义
+                        </button>
                         <button type="button" className={BTN_EM} onClick={() => setPublishTarget(it)} disabled={busy !== ''} title="发布前人工复核（通过/强制并写审计）">
                           <Rocket size={11} /> 发布
                         </button>
@@ -372,6 +380,14 @@ export default function SkillDigestManager() {
       )}
       {adviceTarget && (
         <AdviceModal item={adviceTarget} onClose={() => setAdviceTarget(null)} />
+      )}
+      {versionsTarget && (
+        <VersionsModal item={versionsTarget} onClose={() => setVersionsTarget(null)}
+          onDone={() => { setVersionsTarget(null); void load() }} />
+      )}
+      {redraftTarget && (
+        <RedraftModal item={redraftTarget} onClose={() => setRedraftTarget(null)}
+          onDone={() => { setRedraftTarget(null); void load(); void loadEvents() }} />
       )}
       {genOpen && (
         <GenerateRequirementModal onClose={() => setGenOpen(false)} onDone={() => { setGenOpen(false); void load(); void loadEvents() }} />
@@ -1031,6 +1047,164 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
             </button>
           </>
         )}
+      </div>
+    </ModalShell>
+  )
+}
+
+// ── 版本历史 / 回滚 ─────────────────────────────────────────────────
+interface SkillVersionLike { version?: string; changelog?: string; created_at?: string; content?: string }
+function VersionsModal({ item, onClose, onDone }: { item: SkillItem; onClose: () => void; onDone: () => void }) {
+  const [versions, setVersions] = useState<SkillVersionLike[]>([])
+  const [busy, setBusy] = useState('')
+  const [err, setErr] = useState('')
+  const [msg, setMsg] = useState('')
+
+  const load = useCallback(async () => {
+    setErr('')
+    try {
+      const r = await hubGet<{ versions?: SkillVersionLike[] }>(`/api/skills-mgmt/${item.id}/versions`)
+      setVersions(Array.isArray(r.versions) ? r.versions : [])
+    } catch (e) {
+      setErr(`版本读取失败：${e instanceof Error ? e.message : String(e)}`)
+    }
+  }, [item.id])
+  useEffect(() => { void load() }, [load])
+
+  const bump = async (kind: 'patch' | 'minor') => {
+    setBusy(kind); setErr(''); setMsg('')
+    try {
+      await hubPost(`/api/skills-mgmt/${item.id}/versions/bump`, { kind, changelog: `UI 升级 ${kind}` })
+      setMsg(`已升级 ${kind} 版本。`)
+      await load(); onDone()
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)) }
+    finally { setBusy('') }
+  }
+  const roll = async (v: string) => {
+    if (!window.confirm(`确定回滚到 ${v}？当前内容将切到该版本快照（可再升级回来）。`)) return
+    setBusy('rb'); setErr(''); setMsg('')
+    try {
+      await hubPost(`/api/skills-mgmt/${item.id}/versions/rollback`, { target_version: v })
+      setMsg(`已回滚到 ${v}。`)
+      await load(); onDone()
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)) }
+    finally { setBusy('') }
+  }
+
+  return (
+    <ModalShell title={`版本历史 · ${item.name || item.id}（当前 ${item.version ?? '-'}）`} onClose={onClose}>
+      {err && <p className="mb-2 text-[11px] text-red-400">{err}</p>}
+      {msg && <p className="mb-2 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1 text-[11px] text-emerald-300">{msg}</p>}
+      <div className="mb-2 flex flex-wrap gap-1.5">
+        <button type="button" className={BTN_EM} onClick={() => void bump('patch')} disabled={busy !== ''} title="语义化 PATCH（修复级）">升级 PATCH</button>
+        <button type="button" className={BTN_EM} onClick={() => void bump('minor')} disabled={busy !== ''} title="语义化 MINOR（特性级）">升级 MINOR</button>
+      </div>
+      {busy !== '' && <div className="flex items-center gap-2 py-2 text-[11px] text-slate-500"><Loader2 size={12} className="animate-spin" /> 处理中…</div>}
+      {versions.length === 0 ? (
+        <p className="py-3 text-[11px] text-slate-500">暂无版本记录（首次保存/升级后出现）。</p>
+      ) : (
+        <ul className="max-h-64 space-y-1 overflow-y-auto pr-1">
+          {versions.map((v) => (
+            <li key={v.version ?? v.created_at ?? Math.random()}
+              className="flex flex-wrap items-center gap-2 rounded-md border border-slate-800 bg-slate-950/40 px-2 py-1.5 text-[11px]">
+              <span className="font-mono text-cyan-300">{v.version}</span>
+              {v.version === item.version && <span className="text-[10px] text-slate-500">(当前)</span>}
+              <span className="font-mono text-[10px] text-slate-600">{v.created_at ?? ''}</span>
+              {v.changelog && <span className="min-w-0 flex-1 truncate text-slate-400">{v.changelog}</span>}
+              <span className="text-[10px] text-slate-600">{v.content ? `${v.content.length} 字符` : ''}</span>
+              <button type="button" className={BTN} disabled={busy !== '' || v.version === item.version}
+                onClick={() => void roll(v.version ?? '')} title={`回滚到 ${v.version}`}>回滚到此版</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-3 flex justify-end">
+        <button type="button" className={BTN} onClick={onClose}>关闭</button>
+      </div>
+    </ModalShell>
+  )
+}
+
+// ── 再定义草稿（LLM/规则起草 + 差异预览 + 应用）────────────────────────
+function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () => void; onDone: () => void }) {
+  const [busy, setBusy] = useState(false)
+  const [llm, setLlm] = useState(false)
+  const [cur, setCur] = useState<{ name?: string; description?: string } | null>(null)
+  const [draftName, setDraftName] = useState('')
+  const [draftDesc, setDraftDesc] = useState('')
+  const [source, setSource] = useState('')
+  const [err, setErr] = useState('')
+  const [msg, setMsg] = useState('')
+
+  const gen = async (useLlm: boolean) => {
+    setBusy(true); setErr(''); setMsg('')
+    try {
+      const r = await hubPost<{ current?: { name?: string; description?: string }; proposed?: { name?: string; description?: string }; source?: string }>(
+        `/api/skills-mgmt/${item.id}/redraft`, { llm: useLlm })
+      setCur(r?.current ?? null)
+      setDraftName(r?.proposed?.name ?? item.name ?? '')
+      setDraftDesc(r?.proposed?.description ?? '')
+      setSource(r?.source ?? 'rules')
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)) }
+    finally { setBusy(false) }
+  }
+  useEffect(() => { void gen(false) }, [item.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const apply = async () => {
+    setBusy(true); setErr(''); setMsg('')
+    try {
+      const r = await fetch(`/api/skills-mgmt/${item.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: draftName.trim(), description: draftDesc.trim() }),
+      })
+      if (!r.ok) {
+        const b = await r.json().catch(() => null)
+        throw new Error(b?.error ?? `HTTP ${r.status}`)
+      }
+      await hubPost(`/api/skills-mgmt/digest/${item.id}`)
+      setMsg('已应用再定义草稿并重新评审-消化。')
+      onDone()
+    } catch (e) { setErr(e instanceof Error ? e.message : String(e)) }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <ModalShell title={`再定义草稿 · ${item.name || item.id}`} onClose={onClose}>
+      <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
+        起草新的中文说明/展示名（LLM 不可用自动回退规则草稿），右侧可编辑；应用后自动重新评审-消化。
+      </p>
+      <div className="mb-2 flex flex-wrap items-center gap-1.5">
+        <button type="button" className={BTN} onClick={() => void gen(false)} disabled={busy} title="规则起草（快、确定）">规则起草</button>
+        <button type="button" className={BTN_EM} onClick={() => void gen(true)} disabled={busy} title="尝试用 LLM 起草（失败回退规则）">LLM 起草</button>
+        {source && <span className="text-[10px] text-slate-600">来源：{source === 'llm' ? 'LLM' : '规则'}</span>}
+        <label className="ml-auto flex items-center gap-1 text-[11px] text-slate-400">
+          <input type="checkbox" checked={llm} onChange={(e) => { setLlm(e.target.checked); void gen(e.target.checked) }} />
+          起草时用 LLM
+        </label>
+      </div>
+      {err && <p className="mb-2 text-[11px] text-red-400">{err}</p>}
+      {msg && <p className="mb-2 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1 text-[11px] text-emerald-300">{msg}</p>}
+      <div className="mb-2 grid gap-2 md:grid-cols-2">
+        <div>
+          <div className="mb-1 text-[10px] uppercase tracking-wider text-slate-500">当前</div>
+          <div className="rounded-md border border-slate-800 bg-slate-950/40 p-2 text-[11px] text-slate-500">
+            <div className="mb-1 font-medium text-slate-300">{cur?.name ?? item.name}</div>
+            <div className="whitespace-pre-wrap">{cur?.description ?? '（无说明）'}</div>
+          </div>
+        </div>
+        <div>
+          <div className="mb-1 text-[10px] uppercase tracking-wider text-slate-500">草稿（可编辑）</div>
+          <input className={INPUT} value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="展示名" />
+          <textarea className={`${INPUT} mt-1 font-mono`} rows={6} value={draftDesc}
+            onChange={(e) => setDraftDesc(e.target.value)} placeholder="中文说明（≤160 字）" />
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        <button type="button" className={BTN} onClick={onClose}>取消</button>
+        <button type="button" className={BTN_EM} onClick={() => void apply()} disabled={busy || !draftDesc.trim()}>
+          {busy ? <Loader2 size={12} className="animate-spin" /> : <Lightbulb size={12} />} 应用草稿并评审
+        </button>
       </div>
     </ModalShell>
   )

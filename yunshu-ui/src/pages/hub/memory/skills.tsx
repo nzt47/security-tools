@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import { Power } from 'lucide-react'
 import {  Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost , pickList } from '../components/ui'
 import { getApiToken } from '../../../lib/apiToken'
+import ApiTokenPrompt from './api-token-prompt'
 
 interface Skill {
   id: string
@@ -18,12 +19,14 @@ interface Skill {
   params?: Record<string, unknown>
 }
 
-/** 运行时写接口（启停/补说明）需要 FLASK_API_TOKEN，无令牌时给出引导 */
-function tokenOrHint(e: unknown, setError: (s: string) => void) {
+/** 运行时写接口（启停/补说明）需要 FLASK_API_TOKEN：401 → 显示令牌引导框 */
+function tokenOrHint(e: unknown, setError: (s: string) => void, needAuth: (b: boolean) => void) {
   const m = e instanceof Error ? e.message : String(e)
   if (m.includes('401') || m.includes('未授权')) {
-    setError(`${m}：运行时技能启停/补说明为受保护写接口，请在界面「API 令牌」输入框填入后端 FLASK_API_TOKEN 后重试。`)
+    needAuth(true)
+    setError('')
   } else {
+    needAuth(false)
     setError(m)
   }
 }
@@ -34,6 +37,7 @@ export function MemorySkillsTable() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
+  const [needAuth, setNeedAuth] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -51,7 +55,7 @@ export function MemorySkillsTable() {
     try {
       await hubPost('/api/skills/toggle', { id }, getApiToken())
       load()
-    } catch (e) { tokenOrHint(e, setError) }
+    } catch (e) { tokenOrHint(e, setError, setNeedAuth) }
   }
 
   /** 手工补中文说明（写入覆盖层 data/skills_descriptions_overlay.json） */
@@ -63,7 +67,7 @@ export function MemorySkillsTable() {
       await hubPost('/api/skills/describe', { id: s.id, description: text.trim() }, getApiToken())
       setInfo(`已为「${s.name || s.id}」补写中文说明。`)
       load()
-    } catch (e) { tokenOrHint(e, setError) }
+    } catch (e) { tokenOrHint(e, setError, setNeedAuth) }
   }
 
   /** 自动补全已知内置技能的缺省中文说明（自省反思/邮件/记忆摘要等） */
@@ -72,7 +76,7 @@ export function MemorySkillsTable() {
       const r = await hubPost<{ count?: number }>('/api/skills/describe/auto', undefined, getApiToken())
       setInfo(`自动补全完成（${r?.count ?? 0} 项）。仍缺描述的（如 mock 测试项）可手工补写或删除。`)
       load()
-    } catch (e) { tokenOrHint(e, setError) }
+    } catch (e) { tokenOrHint(e, setError, setNeedAuth) }
   }
 
   return (
@@ -90,6 +94,7 @@ export function MemorySkillsTable() {
           </button>
         </div>
       </div>
+      {needAuth && <ApiTokenPrompt onSaved={() => { setNeedAuth(false); setInfo('已保存令牌，重试成功。'); load() }} />}
       {info && <div className="mb-2 rounded-md border border-cyan-900/60 bg-cyan-950/30 px-2 py-1 text-[11px] text-cyan-300">{info}</div>}
       {error && <div className="mb-4"><ErrorBox message={error} /></div>}
       {loading ? <Loading /> : (
@@ -157,3 +162,4 @@ export default function MemorySkills() {
     </div>
   )
 }
+
