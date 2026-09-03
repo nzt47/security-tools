@@ -1,0 +1,387 @@
+/**
+ * SkillDigestManager —— 技能资产「评审-消化」全生命周期管理（skills-mgmt）
+ * ------------------------------------------------------------------
+ * 满足：安装 / 创建 / 修改 / 删除 全生命周期 + 自动验证评估流程：
+ *   - 新建 / 外来安装 / 修改后，后端自动执行扩展评估（权限/攻击面/数据合规 +
+ *     兼容性：原生冲突/操作重叠/资源竞争/交互冲突/重复建议）；本组件直接呈现
+ *     评估结论（digest verdict + 安全/质量/兼容分数 + findings）。
+ *   - 动作：新建(手写)、外来安装(source)、评审-消化(digest)、批量审核、
+ *     全量自动评审-消化(run-all)、启停、发布（发布门禁=PASSED）、删除。
+ * 说明：与上方「运行时注入启停」表互补——这里是资产库（skills-mgmt 数据），
+ * 通过（发布+启用）的资产会进入运行时能力集（上下文注入层消费）。
+ */
+import { useCallback, useEffect, useState } from 'react'
+import {
+  ChevronDown, ChevronRight, Loader2, PackagePlus, Plus, RefreshCw,
+  Rocket, ShieldCheck, Trash2, X, Zap,
+} from 'lucide-react'
+import { hubGet, hubPost } from '../../hub/components/ui'
+
+const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
+const BTN_EM = `${BTN} border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10`
+const INPUT = 'w-full rounded-md border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-200 outline-none focus:border-cyan-600'
+const BTN_RED = `${BTN} hover:bg-red-500/10 hover:text-red-400`
+
+interface Finding { severity: string; category: string; code: string; message: string; location?: string }
+interface ReviewLike {
+  status?: string; score?: number; security_score?: number; quality_score?: number
+  compatibility_score?: number; duplicate_score?: number; digest_verdict?: string
+  auto_assessed?: boolean; summary?: string; findings?: Finding[]
+}
+interface SkillItem {
+  id: string; name: string; description?: string; status?: string; enabled?: boolean
+  content_type?: string; category?: string; version?: string; review?: ReviewLike
+}
+
+const SEV: Record<string, string> = {
+  critical: 'bg-red-500/15 text-red-400 border-red-800',
+  error: 'bg-orange-500/15 text-orange-400 border-orange-800',
+  warn: 'bg-amber-500/15 text-amber-400 border-amber-800',
+  info: 'bg-slate-500/15 text-slate-400 border-slate-700',
+}
+const chip = (txt: string, cls: string) => (
+  <span className={`inline-flex items-center whitespace-nowrap rounded-full border px-1.5 py-0.5 text-[10px] ${cls}`}>{txt}</span>
+)
+const statusChip = (s?: string) => chip(
+  s ?? '-',
+  s === 'published' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-800'
+    : s === 'approved' ? 'bg-cyan-500/15 text-cyan-400 border-cyan-800'
+      : s === 'pending_review' ? 'bg-amber-500/15 text-amber-400 border-amber-800'
+        : s === 'rejected' ? 'bg-red-500/15 text-red-400 border-red-800'
+          : 'bg-slate-500/15 text-slate-400 border-slate-700',
+)
+
+export default function SkillDigestManager() {
+  const [items, setItems] = useState<SkillItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [msg, setMsg] = useState('')
+  const [busy, setBusy] = useState('')
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+  const [createOpen, setCreateOpen] = useState(false)
+  const [installOpen, setInstallOpen] = useState(false)
+
+  const load = useCallback(async () => {
+    setError('')
+    try {
+      const r = await hubGet<{ items?: SkillItem[] }>('/api/skills-mgmt')
+      setItems(Array.isArray(r.items) ? r.items : [])
+    } catch (e) {
+      setError(`技能资产加载失败：${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { void load() }, [load])
+
+  const act = async (label: string, fn: () => Promise<unknown>) => {
+    setBusy(label); setError(''); setMsg('')
+    try {
+      const r = (await fn()) as { ok?: boolean; error?: string } | undefined
+      if (r && r.ok === false && r.error) setMsg(`操作未完成：${r.error}`)
+      else setMsg(`${label} 完成`)
+      await load()
+    } catch (e) {
+      setMsg(`${label} 失败：${e instanceof Error ? e.message : String(e)}`)
+    } finally { setBusy('') }
+  }
+
+  const digestOne = (id: string) => act('评审-消化', () => hubPost(`/api/skills-mgmt/digest/${id}`))
+  const runAll = () => act('全量自动评审-消化', () => hubPost('/api/skills-mgmt/digest/run-all'))
+  const batchReview = () => act('批量审核', () => hubPost('/api/skills-mgmt/review/batch'))
+  const publish = (id: string) => act('发布', () => hubPost(`/api/skills-mgmt/${id}/publish`))
+  const toggle = (it: SkillItem) => act('启停', () => hubPost(`/api/skills-mgmt/${it.id}/toggle`, { enabled: !it.enabled }))
+  const remove = async (it: SkillItem) => {
+    if (!window.confirm(`确定从资产库删除技能「${it.name || it.id}」？`)) return
+    setBusy('删除'); setError(''); setMsg('')
+    try {
+      const r = await fetch(`/api/skills-mgmt/${it.id}`, { method: 'DELETE' })
+      const body = await r.json().catch(() => null)
+      if (!r.ok) setMsg(`删除失败：${body?.error ?? `HTTP ${r.status}`}`)
+      else setMsg(`已删除「${it.name || it.id}」`)
+      await load()
+    } catch (e) {
+      setMsg(`删除失败：${e instanceof Error ? e.message : String(e)}`)
+    } finally { setBusy('') }
+  }
+  const toggleRow = (id: string) => setExpanded((p) => ({ ...p, [id]: !p[id] }))
+
+  return (
+    <div className="mt-5">
+      <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <h3 className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-200">
+          <ShieldCheck size={14} className="text-emerald-400" />
+          技能资产库 · 评审-消化管线（skills-mgmt）
+        </h3>
+        <span className="text-[11px] text-slate-500">
+          新建/外来技能自动评估（权限 · 攻击面 · 数据合规 + 兼容性/重叠/资源/交互），通过发布即成为运行时能力
+        </span>
+        <div className="ml-auto flex flex-wrap gap-1.5">
+          <button type="button" className={BTN_EM} onClick={() => setCreateOpen(true)}>
+            <Plus size={12} /> 新建技能
+          </button>
+          <button type="button" className={BTN_EM} onClick={() => setInstallOpen(true)}>
+            <PackagePlus size={12} /> 外来安装
+          </button>
+          <button type="button" className={BTN_EM} onClick={() => void runAll()} disabled={busy !== ''}>
+            {busy === '全量自动评审-消化' ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
+            全量自动评审-消化
+          </button>
+          <button type="button" className={BTN} onClick={() => void batchReview()} disabled={busy !== ''}>
+            批量审核
+          </button>
+          <button type="button" className={BTN} onClick={() => void load()} disabled={busy !== ''}>
+            <RefreshCw size={12} /> 刷新
+          </button>
+        </div>
+      </div>
+
+      {error && <p className="mb-2 text-[11px] text-red-400">{error}</p>}
+      {msg && <p className="mb-2 rounded-md border border-cyan-900/60 bg-cyan-950/30 px-2 py-1 text-[11px] text-cyan-300">{msg}</p>}
+
+      {loading ? (
+        <div className="flex items-center gap-2 py-6 text-xs text-slate-500">
+          <Loader2 size={14} className="animate-spin" /> 加载技能资产…
+        </div>
+      ) : items.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-slate-800 px-4 py-8 text-center text-xs leading-relaxed text-slate-500">
+          资产库暂无技能。用「新建技能」沉淀新生能力，或用「外来安装」（github:/url:/local:/registry: 源）把外部技能吃进来——
+          二者都会自动进入评审-消化评估，通过后发布即为自身能力。
+        </div>
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-slate-800">
+          <table className="w-full text-left text-xs">
+            <thead>
+              <tr className="border-b border-slate-800 bg-slate-900/70 text-[10px] uppercase tracking-wider text-slate-500">
+                <th className="w-7 px-2 py-1.5" />
+                <th className="px-2 py-1.5 font-medium">技能</th>
+                <th className="px-2 py-1.5 font-medium">状态</th>
+                <th className="px-2 py-1.5 font-medium">评审</th>
+                <th className="px-2 py-1.5 font-medium">安全/质量/兼容</th>
+                <th className="px-2 py-1.5 font-medium">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((it) => {
+                const rv = it.review
+                const open = !!expanded[it.id]
+                return (
+                  <tr key={it.id} className={`border-b border-slate-800/60 transition-colors hover:bg-slate-900/40 ${open ? 'bg-slate-900/60' : ''}`}>
+                    <td className="px-2 py-2">
+                      <button type="button" onClick={() => toggleRow(it.id)} className="text-slate-500 hover:text-slate-300" title={open ? '收起报告' : '展开评审-消化报告'}>
+                        {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                      </button>
+                    </td>
+                    <td className="max-w-[22rem] px-2 py-2">
+                      <div className="truncate font-medium text-slate-200">{it.name || it.id}</div>
+                      <div className="truncate text-[10px] text-slate-500">{it.description ?? ''}</div>
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {statusChip(it.status)}
+                        {it.enabled ? chip('启用', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60') : chip('停用', 'bg-slate-500/10 text-slate-400 border-slate-700')}
+                      </div>
+                    </td>
+                    <td className="px-2 py-2">
+                      {rv?.auto_assessed
+                        ? (rv.digest_verdict === 'block'
+                          ? chip('阻断·待复核', 'bg-red-500/15 text-red-400 border-red-800')
+                          : chip('已自动评估', 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60'))
+                        : chip('未评估', 'bg-slate-500/10 text-slate-400 border-slate-700')}
+                    </td>
+                    <td className="px-2 py-2 font-mono text-[10px] text-slate-400">
+                      {Math.round(rv?.security_score ?? 0)}/{Math.round(rv?.quality_score ?? 0)}/{Math.round(rv?.compatibility_score ?? 0)}
+                    </td>
+                    <td className="px-2 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        <button type="button" className={BTN_EM} onClick={() => void digestOne(it.id)} disabled={busy !== ''} title="执行完整评审-消化（三审+扩展评估）">
+                          <Zap size={11} /> 评审-消化
+                        </button>
+                        <button type="button" className={BTN_EM} onClick={() => publish(it.id)} disabled={busy !== ''} title="发布（需评审 PASSED）">
+                          <Rocket size={11} /> 发布
+                        </button>
+                        <button type="button" className={BTN} onClick={() => toggle(it)} disabled={busy !== ''}>
+                          {it.enabled ? '停用' : '启用'}
+                        </button>
+                        <button type="button" className={BTN_RED} onClick={() => void remove(it)} disabled={busy !== ''} title="从资产库删除">
+                          <Trash2 size={11} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {items.map((it) => expanded[it.id] && (
+        <ReportPanel key={`report-${it.id}`} item={it} onClose={() => toggleRow(it.id)} />
+      ))}
+
+      {createOpen && (
+        <CreateModal onClose={() => setCreateOpen(false)} onDone={() => { setCreateOpen(false); void load() }} />
+      )}
+      {installOpen && (
+        <InstallModal onClose={() => setInstallOpen(false)} onDone={() => { setInstallOpen(false); void load() }} />
+      )}
+    </div>
+  )
+}
+
+// ── 评审-消化报告面板 ──────────────────────────────────────────────
+function ReportPanel({ item, onClose }: { item: SkillItem; onClose: () => void }) {
+  const rv = item.review
+  const findings = rv?.findings ?? []
+  const stat = (label: string, v?: number) => (
+    <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-1 text-center">
+      <div className="text-[9px] uppercase tracking-wider text-slate-500">{label}</div>
+      <div className="font-mono text-[12px] text-cyan-300">{Math.round(v ?? 0)}</div>
+    </div>
+  )
+  return (
+    <div className="mt-1.5 rounded-lg border border-slate-800 bg-slate-900/50 p-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-200">
+          <ShieldCheck size={13} className="text-emerald-400" />
+          评审-消化报告 · {item.name || item.id}
+          {rv?.digest_verdict === 'block'
+            ? chip('存在阻断项 · 需人工复核', 'bg-red-500/15 text-red-400 border-red-800')
+            : rv?.auto_assessed ? chip('无阻断项', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60') : null}
+          {rv?.summary && <span className="text-[10px] font-normal text-slate-500">{rv.summary}</span>}
+        </div>
+        <button type="button" onClick={onClose} className="text-slate-500 hover:text-slate-300"><X size={13} /></button>
+      </div>
+      <div className="mb-2 grid max-w-md grid-cols-4 gap-1.5">
+        {stat('综合', rv?.score)}{stat('安全', rv?.security_score)}
+        {stat('质量', rv?.quality_score)}{stat('兼容', rv?.compatibility_score)}
+      </div>
+      {findings.length === 0 ? (
+        <p className="text-[11px] text-slate-500">未发现评估问题（重复/安全/质量/兼容）。</p>
+      ) : (
+        <ul className="max-h-56 space-y-1 overflow-y-auto pr-1">
+          {findings.map((f, i) => (
+            <li key={`${f.code}-${i}`} className="flex items-start gap-2 text-[11px] leading-relaxed">
+              {chip(f.severity ?? 'info', SEV[f.severity ?? 'info'] ?? SEV.info)}
+              <span className="shrink-0 font-mono text-[10px] text-slate-500">{f.code}</span>
+              <span className="min-w-0 flex-1 text-slate-300">{f.message}</span>
+              {f.location && <span className="shrink-0 text-[10px] text-slate-600">{f.location}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// ── 新建（手写）模态 ─────────────────────────────────────────────
+function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [form, setForm] = useState({ name: '', description: '', content_type: 'markdown', content: '', tags: '' })
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const slug = (s: string) => s.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'skill'
+  const submit = async () => {
+    if (!form.name.trim() || !form.content.trim()) return
+    setBusy(true); setErr('')
+    try {
+      await hubPost('/api/skills-mgmt/create/manual', {
+        id: slug(form.name), name: form.name.trim(), description: form.description.trim(),
+        content: form.content, content_type: form.content_type,
+        tags: form.tags.split(/[,，\s]+/).filter(Boolean), author: 'workbench', category: 'custom',
+      })
+      onDone()
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e))
+    } finally { setBusy(false) }
+  }
+  return (
+    <ModalShell title="新建技能（手写，创建即自动评审-消化）" onClose={onClose}>
+      <Field label="技能名称 *">
+        <input className={INPUT} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="如 PDF 解析器" />
+      </Field>
+      <Field label="说明">
+        <input className={INPUT} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="用途与场景（影响兼容性/重叠评估）" />
+      </Field>
+      <Field label="类型">
+        <select className={INPUT} value={form.content_type} onChange={(e) => setForm({ ...form, content_type: e.target.value })}>
+          <option value="markdown">markdown（指令/说明）</option>
+          <option value="python">python（脚本）</option>
+          <option value="javascript">javascript</option>
+          <option value="shell">shell</option>
+          <option value="yaml">yaml</option>
+        </select>
+      </Field>
+      <Field label="标签（逗号分隔）">
+        <input className={INPUT} value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="pdf, extract" />
+      </Field>
+      <Field label="内容 *">
+        <textarea rows={7} className={`${INPUT} font-mono`} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })}
+          placeholder="技能主体（Markdown 指令或代码）——保存后自动进入安全+兼容评估" />
+      </Field>
+      {err && <p className="mt-1 text-[11px] text-red-400">{err}</p>}
+      <div className="mt-3 flex justify-end gap-2">
+        <button type="button" className={BTN} onClick={onClose}>取消</button>
+        <button type="button" className={BTN_EM} onClick={() => void submit()} disabled={busy || !form.name.trim() || !form.content.trim()}>
+          {busy ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />} 创建
+        </button>
+      </div>
+    </ModalShell>
+  )
+}
+
+// ── 外来安装模态 ─────────────────────────────────────────────────
+function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [source, setSource] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const submit = async () => {
+    if (!source.trim()) return
+    setBusy(true); setErr('')
+    try {
+      await hubPost('/api/skills-mgmt/install', { source: source.trim() })
+      onDone()
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e))
+    } finally { setBusy(false) }
+  }
+  return (
+    <ModalShell title="外来技能安装（自动评审-消化）" onClose={onClose}>
+      <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
+        支持 <code className="text-cyan-400">github:user/repo</code>、
+        <code className="text-cyan-400">url:https://…</code>、
+        <code className="text-cyan-400">local:./路径</code>、
+        <code className="text-cyan-400">registry:skill-name</code> 等源；安装后自动进入评估管线。
+      </p>
+      <input className={INPUT} value={source} onChange={(e) => setSource(e.target.value)} placeholder="github:user/repo 或 url:https://…" />
+      {err && <p className="mt-1 text-[11px] text-red-400">{err}</p>}
+      <div className="mt-3 flex justify-end gap-2">
+        <button type="button" className={BTN} onClick={onClose}>取消</button>
+        <button type="button" className={BTN_EM} onClick={() => void submit()} disabled={busy || !source.trim()}>
+          {busy ? <Loader2 size={12} className="animate-spin" /> : <PackagePlus size={12} />} 安装并评估
+        </button>
+      </div>
+    </ModalShell>
+  )
+}
+
+function ModalShell({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6" onClick={onClose}>
+      <div className="max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="mb-3 text-sm font-semibold text-slate-100">{title}</h3>
+        {children}
+      </div>
+    </div>
+  )
+}
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="mb-2.5 block">
+      <span className="mb-1 block text-[11px] text-slate-400">{label}</span>
+      {children}
+    </label>
+  )
+}
+
