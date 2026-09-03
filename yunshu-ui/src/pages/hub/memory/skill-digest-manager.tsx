@@ -10,9 +10,9 @@
  * 说明：与上方「运行时注入启停」表互补——这里是资产库（skills-mgmt 数据），
  * 通过（发布+启用）的资产会进入运行时能力集（上下文注入层消费）。
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ListTree, ChevronDown, ChevronRight, Download, FileInput, Filter, Lightbulb, Loader2, PackagePlus, Plus,
+  ListTree, ChevronDown, ChevronRight, Download, FileInput, Filter, Folder, Lightbulb, Loader2, Layers, PackagePlus, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
 import { hubGet, hubPost } from '../../hub/components/ui'
@@ -222,7 +222,178 @@ export default function SkillDigestManager() {
       setMsg(`删除失败：${e instanceof Error ? e.message : String(e)}`)
     } finally { setBusy('') }
   }
+
+  // ── 技能自动分类（同类折叠浏览：新技能自动归类/自动新建类）──
+  interface ClassGroup { name: string; count?: number; auto?: boolean; skills?: { id?: string }[] }
+  const [grouped, setGrouped] = useState(false)
+  const [collapsedCls, setCollapsedCls] = useState<Record<string, boolean>>({})
+  const [classView, setClassView] = useState<ClassGroup[] | null>(null)
+  const loadClasses = useCallback(async () => {
+    try {
+      const r = await hubGet<{ groups?: ClassGroup[] }>('/api/skills-mgmt/classes')
+      setClassView(Array.isArray(r.groups) ? r.groups : [])
+      setError('')
+    } catch (e) {
+      setMsg(`分类视图加载失败：${e instanceof Error ? e.message : String(e)}`)
+    }
+  }, [])
+  const toggleGrouped = () => {
+    const next = !grouped
+    setGrouped(next)
+    if (next) void loadClasses()
+  }
+  const rerunAutoClassify = async () => {
+    setBusy('自动分类'); setMsg(''); setError('')
+    try {
+      const r = await hubPost<{ classified?: number; created_classes?: number }>('/api/skills-mgmt/classes/run-auto')
+      setMsg(`自动分类完成：新归类 ${r?.classified ?? 0} 项，自动新建类 ${r?.created_classes ?? 0} 个。`)
+      await Promise.all([load(), loadClasses()])
+    } catch (e) {
+      setMsg(`自动分类失败：${e instanceof Error ? e.message : String(e)}`)
+    } finally { setBusy('') }
+  }
+  /** 行内移动技能到其它分类（人工选择；后续自动重判不再覆盖） */
+  const moveClass = async (it: SkillItem, cls: string) => {
+    try {
+      const r = await hubPost<{ ok?: boolean; error?: string }>('/api/skills-mgmt/classes/move', { skill_id: it.id, class_name: cls })
+      if (r && r.ok === false) setMsg(`移动失败：${r.error}`)
+      else { setMsg(`已将「${it.name || it.id}」移至「${cls}」`); await Promise.all([load(), loadClasses()]) }
+    } catch (e) { setMsg(`移动失败：${e instanceof Error ? e.message : String(e)}`) }
+  }
+  /** 可移动到的分类候选：分类视图 + 未分类 */
+  const classOptions = useMemo(() => {
+    const names = [...(classView ?? []).map((g) => g.name)]
+    if (!names.includes('未分类')) names.push('未分类')
+    return names
+  }, [classView])
+  const toggleCls = (name: string) => setCollapsedCls((p) => ({ ...p, [name]: !p[name] }))
+
   const toggleRow = (id: string) => setExpanded((p) => ({ ...p, [id]: !p[id] }))
+
+  /** 资产行渲染（表格模式逐行；分类折叠模式下由分组头包裹） */
+  const renderAssetRow = (it: SkillItem) => {
+    const rv = it.review
+    const open = !!expanded[it.id]
+    let cur = ''
+    if (grouped) {
+      cur = '未分类'
+      for (const g of classView ?? []) {
+        if ((g.skills ?? []).some((s) => s?.id === it.id)) { cur = g.name; break }
+      }
+    }
+    return (
+      <tr key={it.id} className={`border-b border-slate-800/60 transition-colors hover:bg-slate-900/40 ${open ? 'bg-slate-900/60' : ''}`}>
+        <td className="px-2 py-2">
+          <button type="button" onClick={() => toggleRow(it.id)} className="text-slate-500 hover:text-slate-300" title={open ? '收起报告' : '展开评审-消化报告'}>
+            {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+          </button>
+        </td>
+        <td className="max-w-[24rem] px-2 py-2">
+          <div className="truncate font-medium text-slate-200">{it.name || it.id}</div>
+          <div className="truncate text-[10px] text-slate-500">{it.description ?? ''}</div>
+          {/* 触发条件：发布+启用才参与运行时注入；命中方式=语义匹配(描述/标签/内容) */}
+          <div className="mt-1 flex flex-wrap items-center gap-1">
+            {it.enabled && (it.status === 'published' || it.status === 'approved')
+              ? chip('触发·注入生效', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')
+              : chip(it.enabled ? '已启用·待发布不触发' : '停用·不触发', 'bg-slate-500/10 text-slate-400 border-slate-700')}
+            {chip(['python', 'javascript', 'shell', 'js'].includes(String(it.content_type ?? '').toLowerCase())
+              ? '脚本型·命中后执行脚本'
+              : `指令型·命中后注入提示`, 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
+            {it.is_sensitive && chip('敏感·隔离注入', 'bg-amber-500/10 text-amber-400 border-amber-800/60')}
+            {(it.tags ?? []).slice(0, 3).map((t) => chip(`#${t}`, 'bg-indigo-500/10 text-indigo-300 border-indigo-800/50'))}
+          </div>
+        </td>
+        <td className="px-2 py-2">
+          <div className="flex flex-wrap gap-1">
+            {statusChip(it.status)}
+            {it.enabled ? chip('启用', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60') : chip('停用', 'bg-slate-500/10 text-slate-400 border-slate-700')}
+          </div>
+        </td>
+        <td className="px-2 py-2">
+          {rv?.auto_assessed
+            ? (rv.digest_verdict === 'block'
+              ? chip('阻断·待复核', 'bg-red-500/15 text-red-400 border-red-800')
+              : chip('已自动评估', 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60'))
+            : chip('未评估', 'bg-slate-500/10 text-slate-400 border-slate-700')}
+        </td>
+        <td className="px-2 py-2 font-mono text-[10px] text-slate-400">
+          {Math.round(rv?.security_score ?? 0)}/{Math.round(rv?.quality_score ?? 0)}/{Math.round(rv?.compatibility_score ?? 0)}
+        </td>
+        <td className="px-2 py-2">
+          <div className="flex flex-wrap items-center gap-1">
+            {grouped && classOptions.length > 0 && (
+              <select value={cur} onChange={(e) => void moveClass(it, e.target.value)}
+                title="人工移动到其它分类（之后自动重判不再覆盖人工选择）"
+                className="max-w-[7.5rem] rounded border border-slate-700 bg-slate-950 px-1 py-0.5 text-[10px] text-slate-300 outline-none focus:border-cyan-600">
+                {classOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+              </select>
+            )}
+            <button type="button" className={BTN_EM} onClick={() => void digestOne(it.id)} disabled={busy !== ''} title="执行完整评审-消化（三审+扩展评估）">
+              <Zap size={11} /> 评审-消化
+            </button>
+            <button type="button" className={BTN} onClick={() => setAdviceTarget(it)} disabled={busy !== ''} title="学习/迭代建议：参数优化 + 评审改进意见">
+              <Lightbulb size={11} /> 建议
+            </button>
+            <button type="button" className={BTN} onClick={() => setVersionsTarget(it)} disabled={busy !== ''} title="版本历史：升级小/中版本、一键回滚到任意版本">
+              版本
+            </button>
+            <button type="button" className={BTN} onClick={() => setRedraftTarget(it)} disabled={busy !== ''} title="再定义：LLM/规则起草中文说明与展示名，差异预览后应用并重新评审">
+              再定义
+            </button>
+            <button type="button" className={BTN} onClick={() => setCmdTarget(it)} disabled={busy !== ''} title="斜杠命令：info/versions/execute/params 快捷操作">
+              命令
+            </button>
+            <button type="button" className={BTN_EM} onClick={() => setPublishTarget(it)} disabled={busy !== ''} title="发布前人工复核（通过/强制并写审计）">
+              <Rocket size={11} /> 发布
+            </button>
+            <button type="button" className={BTN} onClick={() => toggle(it)} disabled={busy !== ''}>
+              {it.enabled ? '停用' : '启用'}
+            </button>
+            <button type="button" className={BTN_RED} onClick={() => void remove(it)} disabled={busy !== ''} title="从资产库删除">
+              <Trash2 size={11} />
+            </button>
+          </div>
+        </td>
+      </tr>
+    )
+  }
+
+  /** 表体：分类折叠模式（同类分组头 + 可折叠行）或平铺模式 */
+  const renderBody = () => {
+    if (!grouped) return items.map(renderAssetRow)
+    if (!classView) {
+      return (
+        <tr><td colSpan={6} className="px-2 py-4 text-[11px] text-slate-500">
+          <Loader2 size={12} className="mr-1 inline animate-spin" /> 分类视图加载中…
+        </td></tr>
+      )
+    }
+    const idCls = new Map<string, string>()
+    for (const g of classView) for (const s of g.skills ?? []) if (s?.id) idCls.set(s.id, g.name)
+    const out: React.ReactElement[] = []
+    const pushGroup = (name: string, members: SkillItem[]) => {
+      if (members.length === 0) return
+      const isOpen = !collapsedCls[name]
+      const g = classView.find((x) => x.name === name)
+      out.push(
+        <tr key={`g-${name}`} className="bg-slate-900/85">
+          <td colSpan={6} className="px-1.5 py-1">
+            <button type="button" onClick={() => toggleCls(name)} className="flex w-full items-center gap-2 rounded px-1.5 py-1 text-left hover:bg-slate-800/60" title={isOpen ? '折叠该类' : '展开该类'}>
+              {isOpen ? <ChevronDown size={13} className="shrink-0 text-slate-400" /> : <ChevronRight size={13} className="shrink-0 text-slate-400" />}
+              <Folder size={13} className="shrink-0 text-cyan-400" />
+              <span className="text-[11px] font-medium text-slate-100">{name}</span>
+              <span className="rounded-full bg-slate-800 px-1.5 text-[10px] text-slate-400">{members.length}</span>
+              {g?.auto && chip('自动建类', 'bg-violet-500/10 text-violet-300 border-violet-800/60')}
+            </button>
+          </td>
+        </tr>
+      )
+      if (isOpen) members.forEach((m) => out.push(renderAssetRow(m)))
+    }
+    for (const g of classView) pushGroup(g.name, items.filter((it) => idCls.get(it.id) === g.name))
+    pushGroup('未分类', items.filter((it) => !idCls.has(it.id)))
+    return out
+  }
 
   return (
     <div className="mt-5">
@@ -257,6 +428,17 @@ export default function SkillDigestManager() {
           <button type="button" className={BTN} onClick={() => setCurateOpen(true)} disabled={busy !== ''} title="对存量老技能一键体检：补齐中文说明/归档停用零使用/给出合并与拆分建议（可自动整理）">
             <ListTree size={12} /> 整理老技能
           </button>
+          <button type="button" className={grouped ? BTN_EM : BTN} onClick={toggleGrouped} disabled={busy !== ''}
+            title="按自动分类分组，同类可折叠；新技能自动归类（不匹配时自动新建类）">
+            <Layers size={12} /> {grouped ? '按分类折叠中' : '按分类折叠'}
+          </button>
+          {grouped && (
+            <button type="button" className={BTN} onClick={() => void rerunAutoClassify()} disabled={busy !== ''}
+              title="为尚未归类的技能自动判定（含自动新建类；人工移动过的保留）">
+              {busy === '自动分类' ? <Loader2 size={12} className="animate-spin" /> : <Folder size={12} />}
+              重新自动分类
+            </button>
+          )}
           <button type="button" className={BTN} onClick={() => setFeedOpen(true)} title="全部动态：digest 事件 + 人工复核审计 聚合时间线">
             全部动态
           </button>
@@ -292,78 +474,7 @@ export default function SkillDigestManager() {
               </tr>
             </thead>
             <tbody>
-              {items.map((it) => {
-                const rv = it.review
-                const open = !!expanded[it.id]
-                return (
-                  <tr key={it.id} className={`border-b border-slate-800/60 transition-colors hover:bg-slate-900/40 ${open ? 'bg-slate-900/60' : ''}`}>
-                    <td className="px-2 py-2">
-                      <button type="button" onClick={() => toggleRow(it.id)} className="text-slate-500 hover:text-slate-300" title={open ? '收起报告' : '展开评审-消化报告'}>
-                        {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
-                      </button>
-                    </td>
-                    <td className="max-w-[24rem] px-2 py-2">
-                      <div className="truncate font-medium text-slate-200">{it.name || it.id}</div>
-                      <div className="truncate text-[10px] text-slate-500">{it.description ?? ''}</div>
-                      {/* 触发条件：发布+启用才参与运行时注入；命中方式=语义匹配(描述/标签/内容) */}
-                      <div className="mt-1 flex flex-wrap items-center gap-1">
-                        {it.enabled && (it.status === 'published' || it.status === 'approved')
-                          ? chip('触发·注入生效', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')
-                          : chip(it.enabled ? '已启用·待发布不触发' : '停用·不触发', 'bg-slate-500/10 text-slate-400 border-slate-700')}
-                        {chip(['python', 'javascript', 'shell', 'js'].includes(String(it.content_type ?? '').toLowerCase())
-                          ? '脚本型·命中后执行脚本'
-                          : `指令型·命中后注入提示`, 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
-                        {it.is_sensitive && chip('敏感·隔离注入', 'bg-amber-500/10 text-amber-400 border-amber-800/60')}
-                        {(it.tags ?? []).slice(0, 3).map((t) => chip(`#${t}`, 'bg-indigo-500/10 text-indigo-300 border-indigo-800/50'))}
-                      </div>
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="flex flex-wrap gap-1">
-                        {statusChip(it.status)}
-                        {it.enabled ? chip('启用', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60') : chip('停用', 'bg-slate-500/10 text-slate-400 border-slate-700')}
-                      </div>
-                    </td>
-                    <td className="px-2 py-2">
-                      {rv?.auto_assessed
-                        ? (rv.digest_verdict === 'block'
-                          ? chip('阻断·待复核', 'bg-red-500/15 text-red-400 border-red-800')
-                          : chip('已自动评估', 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60'))
-                        : chip('未评估', 'bg-slate-500/10 text-slate-400 border-slate-700')}
-                    </td>
-                    <td className="px-2 py-2 font-mono text-[10px] text-slate-400">
-                      {Math.round(rv?.security_score ?? 0)}/{Math.round(rv?.quality_score ?? 0)}/{Math.round(rv?.compatibility_score ?? 0)}
-                    </td>
-                    <td className="px-2 py-2">
-                      <div className="flex flex-wrap gap-1">
-                        <button type="button" className={BTN_EM} onClick={() => void digestOne(it.id)} disabled={busy !== ''} title="执行完整评审-消化（三审+扩展评估）">
-                          <Zap size={11} /> 评审-消化
-                        </button>
-                        <button type="button" className={BTN} onClick={() => setAdviceTarget(it)} disabled={busy !== ''} title="学习/迭代建议：参数优化 + 评审改进意见">
-                          <Lightbulb size={11} /> 建议
-                        </button>
-                        <button type="button" className={BTN} onClick={() => setVersionsTarget(it)} disabled={busy !== ''} title="版本历史：升级小/中版本、一键回滚到任意版本">
-                          版本
-                        </button>
-                        <button type="button" className={BTN} onClick={() => setRedraftTarget(it)} disabled={busy !== ''} title="再定义：LLM/规则起草中文说明与展示名，差异预览后应用并重新评审">
-                          再定义
-                        </button>
-                        <button type="button" className={BTN} onClick={() => setCmdTarget(it)} disabled={busy !== ''} title="斜杠命令：info/versions/execute/params 快捷操作">
-                          命令
-                        </button>
-                        <button type="button" className={BTN_EM} onClick={() => setPublishTarget(it)} disabled={busy !== ''} title="发布前人工复核（通过/强制并写审计）">
-                          <Rocket size={11} /> 发布
-                        </button>
-                        <button type="button" className={BTN} onClick={() => toggle(it)} disabled={busy !== ''}>
-                          {it.enabled ? '停用' : '启用'}
-                        </button>
-                        <button type="button" className={BTN_RED} onClick={() => void remove(it)} disabled={busy !== ''} title="从资产库删除">
-                          <Trash2 size={11} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
+              {renderBody()}
             </tbody>
           </table>
         </div>

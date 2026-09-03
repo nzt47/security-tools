@@ -361,6 +361,51 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/skills-mgmt/classes", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_classes():
+        """技能分类视图：自动归类 + 按类分组（同类折叠浏览的数据源）。
+
+        读取即幂等补齐未归类项；返回 {total, groups:[{name,count,auto,skills}]}。
+        """
+        try:
+            result = _svc().skill_classes()
+            return jsonify({"ok": True, **result})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/classes/run-auto", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_classes_run_auto():
+        """全量自动分类：为尚未归类的技能自动判定（可自动新建类；人工移动不受影响）。"""
+        try:
+            result = _svc().run_auto_classify()
+            return jsonify({"ok": True, **result})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/classes/move", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_classes_move():
+        """人工移动技能到指定分类（后续自动重判不再覆盖人工选择）。"""
+        try:
+            data = request.get_json() or {}
+            skill_id = str(data.get("skill_id", "") or "")
+            class_name = str(data.get("class_name", "") or "")
+            if not skill_id or not class_name:
+                return jsonify({"ok": False,
+                                "error": "缺少 skill_id/class_name"}), 400
+            result = _svc().move_class(skill_id, class_name)
+            return jsonify(result)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 400
+
     @app.route("/api/skills-mgmt/digest/merge-undo", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token

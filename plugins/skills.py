@@ -206,6 +206,33 @@ def api_skills_get():
     # 中文说明覆盖层：补缺描述
     _apply_desc_overlay(installed)
 
+    # 自动分类（与技能资产库共用分类注册表；新技能出现自动归类/新建类）
+    try:
+        from agent.skills_mgmt.categorizer import SkillClassRegistry, UNCLASSIFIED
+        reg = SkillClassRegistry()
+        for s in installed:
+            try:
+                s["class_name"] = reg.resolve(
+                    f"rt:{s.get('id', '')}",
+                    name=s.get("name", ""),
+                    description=s.get("description", ""),
+                    content=s.get("content", "") or s.get("script", ""),
+                    tags=s.get("tags"))
+            except Exception:  # noqa: BLE001 单条失败不影响列表
+                s["class_name"] = UNCLASSIFIED
+        for s in available:
+            try:
+                s["class_name"] = reg.resolve(
+                    f"rt:{s.get('id', '')}",
+                    name=s.get("name", ""),
+                    description=s.get("description", ""),
+                    content=s.get("content", ""),
+                    tags=s.get("tags"))
+            except Exception:  # noqa: BLE001
+                s["class_name"] = UNCLASSIFIED
+    except Exception:  # noqa: BLE001 分类不可用时列表照常返回
+        pass
+
     return jsonify({
         "installed": installed,
         "available": available,

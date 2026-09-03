@@ -53,7 +53,8 @@ class SkillsMgmtService:
                  llm_client: Optional[Any] = None,
                  http_timeout: int = 15,
                  review_thresholds: Optional[ReviewThresholds] = None,
-                 repo_path: Optional[str] = None):
+                 repo_path: Optional[str] = None,
+                 class_registry_path: Optional[str] = None):
         self.store = SkillStore(path=store_path)
         self.creator = SkillCreator(self.store, llm_client=llm_client,
                                     http_timeout=http_timeout)
@@ -62,6 +63,15 @@ class SkillsMgmtService:
         self.enhancer = SkillEnhancer(self.store)
         # EVO-T1 谱系档案库：默认取全局单例，测试可注入隔离实例
         self._lineage_archive = get_default_archive()
+
+        # 自动分类注册表（同层目录 skills_classes.json；测试可注入 tmp 路径）
+        from .categorizer import SkillClassRegistry
+        if class_registry_path is None and store_path:
+            import os as _os
+            class_registry_path = _os.path.join(
+                _os.path.dirname(_os.path.abspath(store_path)),
+                "skills_classes.json")
+        self._class_registry = SkillClassRegistry(path=class_registry_path)
 
         # 三层架构组件
         self.file_store = SkillFileStore(repo_path=repo_path)
@@ -157,16 +167,19 @@ class SkillsMgmtService:
         skill = self.creator.create_via_ai(
             name=name, intent=intent, category=category, tags=tags)
         self._advisory_digest(skill.id)   # 自动执行评审-消化（咨询性，不改状态）
+        self._auto_classify(skill.id)     # 自动归类（新技能进分类注册表）
         return self._require(skill.id)    # 返回含自动评估报告的最新对象
 
     def create_manual(self, data: Dict[str, Any]) -> Skill:
         skill = self.creator.create_manual(data)
         self._advisory_digest(skill.id)   # 自动执行评审-消化（咨询性，不改状态）
+        self._auto_classify(skill.id)     # 自动归类
         return self._require(skill.id)
 
     def install(self, source: str, *, force: bool = False) -> Skill:
         skill = self.creator.install(source, force=force)
         self._advisory_digest(skill.id)   # 外来技能进入即自动评审-消化
+        self._auto_classify(skill.id)     # 外来技能自动归类（可自动新建类）
         return self._require(skill.id)
 
     def install_from_zip(self, zip_path: str) -> Dict[str, Any]:
@@ -262,6 +275,66 @@ class SkillsMgmtService:
             logger.warning("[Service] advisory digest 失败 skill=%s: %s",
                            skill_id, e)
             return None
+
+    # ─── 自动分类（新技能自动归类/建类；同处注册表与运行时共用）───
+
+    def _auto_classify(self, skill_id: str) -> str:
+        """新技能进入后自动归类（创建/安装/更新钩子调用；失败不阻断主流程）。"""
+        try:
+            skill = self._require(skill_id)
+            return self._class_registry.resolve(
+                f"asset:{skill_id}",
+                name=skill.name or skill_id,
+                description=skill.description or "",
+                content=skill.content or "",
+                tags=list(skill.tags or []))
+        except Exception as e:  # noqa: BLE001 分类是附加能力
+            logger.debug("[Service] 自动分类失败 skill=%s: %s", skill_id, e)
+            return "未分类"
+
+    def _asset_dicts(self) -> List[Dict[str, Any]]:
+        """把资产库技能转成分类引擎所需字段视图（不落库）。"""
+        out = []
+        for s in self.store.list_all():
+            out.append({
+                "id": s.id, "name": s.name or s.id,
+                "description": s.description or "",
+                "content": s.content or "",
+                "content_type": getattr(s.content_type, "value", s.content_type),
+                "tags": list(s.tags or []),
+                "status": getattr(s.status, "value", s.status),
+                "enabled": bool(s.enabled),
+                "version": s.version or "",
+            })
+        return out
+
+    def skill_classes(self) -> Dict[str, Any]:
+        """资产库分类视图：先补齐未归类项（幂等落盘），再按类分组（倒序）。"""
+        views = self._asset_dicts()
+        for v in views:
+            self._class_registry.resolve(
+                f"asset:{v['id']}", name=v.get("name", ""),
+                description=v.get("description", ""),
+                content=v.get("content", ""), tags=v.get("tags"))
+        return self._class_registry.group_summary(views, ns="asset")
+
+    def run_auto_classify(self) -> Dict[str, Any]:
+        """全量自动分类：只为尚未归类的技能判定（人工移动不受影响）。"""
+        return self._class_registry.run_auto(self._asset_dicts(), ns="asset")
+
+    def move_class(self, skill_id: str, class_name: str) -> Dict[str, Any]:
+        """人工移动技能到指定类（种子类/已建自动类/未分类 均可）。"""
+        from .categorizer import SEED_NAMES, UNCLASSIFIED
+        skill = self._require(skill_id)
+        target = str(class_name or "").strip()
+        known = set(SEED_NAMES) | {UNCLASSIFIED}
+        known |= set(self._class_registry.snapshot().get("auto_classes", {}))
+        if target not in known:
+            raise SkillMgmtError(
+                f"未知分类: {target}（可用: {sorted(known)[:12]}…）")
+        self._class_registry.assign(f"asset:{skill_id}", target)
+        logger.info("[Service] 技能 %s 人工移动至分类 %s", skill_id, target)
+        return {"ok": True, "skill_id": skill_id, "class_name": target}
 
     def digest_skill(self, skill_id: str) -> ReviewResult:
         """对单个技能执行权威「评审-消化」= 完整审核链（三审 + 扩展评估）。
@@ -979,6 +1052,7 @@ class SkillsMgmtService:
         updated.touch()
         self.store.upsert(updated)
         self._advisory_digest(updated.id)  # 修改后自动重新评估（尚无正式审核时）
+        self._auto_classify(updated.id)    # 内容变化后自动重判分类（人工移动过的保留）
         return updated
 
     def delete(self, skill_id: str) -> bool:

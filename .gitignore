@@ -330,3 +330,5 @@ data/skills_digest_events*.jsonl
 data/skills_mgmt_review_audit.jsonl
 # 「安全合并」备份（merge-safe 撤销依据，运行时追加）
 data/skill_merge_backups.jsonl
+# 技能自动分类注册表（assignments + auto_classes，运行时追加）
+data/skills_classes.json
