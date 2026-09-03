@@ -805,6 +805,7 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
   const [busy, setBusy] = useState('')
   const [runMsg, setRunMsg] = useState('')
   const [dups, setDups] = useState<{ skill_a?: string; skill_b?: string; name_a?: string; name_b?: string; jaccard?: number }[]>([])
+  const [lastMerge, setLastMerge] = useState('')
 
   const loadDups = async () => {
     try {
@@ -813,16 +814,33 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     } catch { setDups([]) }
   }
 
-  const mergePair = async (srcId: string, dstId: string) => {
-    if (!window.confirm(`合并技能：删除「${srcId}」并入「${dstId}」？将回填反馈并记录版本。`)) return
+  const safeMerge = async (srcId: string, dstId: string) => {
+    if (!window.confirm(`安全合并：先备份快照，再删除「${srcId}」并入「${dstId}」？（可一键撤销）`)) return
     setBusy('3'); setRunMsg('')
     try {
-      await hubPost('/api/skills-mgmt/merge', { src_id: srcId, dst_id: dstId, strategy: 'auto' })
-      setRunMsg(`已合并：${srcId} → ${dstId}。`)
+      const r = await hubPost<{ merge_id?: string; merged_id?: string }>('/api/skills-mgmt/digest/merge-safe', { src_id: srcId, dst_id: dstId, strategy: 'auto' })
+      const mid = r?.merge_id ?? ''
+      setLastMerge(mid)
+      setRunMsg(`已安全合并：${srcId} → ${dstId}${mid ? '（已备份，可“撤销合并”）' : ''}。`)
       onDone()
       void loadDups()
     } catch (e) {
       setRunMsg(`合并失败：${e instanceof Error ? e.message : String(e)}`)
+    } finally { setBusy('') }
+  }
+
+  const undoMerge = async () => {
+    if (!lastMerge) return
+    if (!window.confirm('撤销上一次安全合并？（恢复被删技能并回滚保留方）')) return
+    setBusy('4'); setRunMsg('')
+    try {
+      const r = await hubPost<{ restored?: string[] }>('/api/skills-mgmt/digest/merge-undo', { merge_id: lastMerge })
+      setRunMsg(`已撤销合并，恢复：${(r?.restored ?? []).join('、') || '-'}。`)
+      setLastMerge('')
+      onDone()
+      void loadDups()
+    } catch (e) {
+      setRunMsg(`撤销失败：${e instanceof Error ? e.message : String(e)}`)
     } finally { setBusy('') }
   }
 
@@ -880,6 +898,15 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       )}
       {runMsg && <p className="mt-2 rounded-md border border-cyan-900/60 bg-cyan-950/30 px-2 py-1 text-[11px] text-cyan-300">{runMsg}</p>}
 
+      {lastMerge && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-[11px] text-emerald-300">已备份合并（merge_id={lastMerge}），需要时可恢复：</span>
+          <button type="button" className={BTN_EM} onClick={() => void undoMerge()} disabled={busy !== ''} title="撤销上一次安全合并（恢复被删技能+回滚保留方）">
+            撤销合并
+          </button>
+        </div>
+      )}
+
       {/* 重复技能对：一键合并（删除被合并方并入保留方，含反馈回填与版本记录） */}
       {dups.length > 0 && (
         <div className="mt-2 rounded-md border border-slate-800 bg-slate-950/40 p-2">
@@ -899,10 +926,10 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
                   <span className="max-w-[14rem] truncate text-slate-200">{lb}</span>
                   <span className="font-mono text-[10px] text-amber-300">{(d.jaccard ?? 0).toFixed(0)}%</span>
                   <span className="ml-auto flex gap-1">
-                    <button type="button" className={BTN} disabled={busy !== ''} title={`删除 ${b} 并入 ${a}`}
-                      onClick={() => void mergePair(b, a)}>保留左 · 合并右</button>
-                    <button type="button" className={BTN} disabled={busy !== ''} title={`删除 ${a} 并入 ${b}`}
-                      onClick={() => void mergePair(a, b)}>保留右 · 合并左</button>
+                    <button type="button" className={BTN} disabled={busy !== ''} title={`安全合并：备份后删除 ${b} 并入 ${a}`}
+                      onClick={() => void safeMerge(b, a)}>保留左 · 合并右</button>
+                    <button type="button" className={BTN} disabled={busy !== ''} title={`安全合并：备份后删除 ${a} 并入 ${b}`}
+                      onClick={() => void safeMerge(a, b)}>保留右 · 合并左</button>
                   </span>
                 </li>
               )
