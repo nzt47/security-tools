@@ -52,16 +52,17 @@ export function MemoryWorkflowTable() {
   }
 
   /** 工作流 → 技能 自动消化：满足质量门控(成功次数/置信度/ACTIVE)才可转化；
-      转化走 skills-mgmt 创建 → 自动评审-消化，随后可到「LLM 技能」Tab 查看报告并发布 */
+      转化走 skills-mgmt 创建 → 自动评审-消化(auto_digest)，随后可到「LLM 技能」Tab 查看报告并发布 */
   const convert = async (wf: Workflow) => {
     try {
-      const r = await hubPost<{ skill_id?: string; skill_name?: string; action?: string; error?: string }>(
+      const r = await hubPost<{ skill_id?: string; skill_name?: string; action?: string; error?: string; digest?: { verdict?: string; status?: string } }>(
         `/api/workflow-learning/workflows/${wf.id}/convert-to-skill`,
-        { force: false },
+        { force: false, auto_digest: true },
       )
       if (r?.error) { setExecMsg(`转化失败：${r.error}`); return }
       const action = r?.action === 'already_converted' ? '已转化过' : '已转化为技能'
-      setExecMsg(`${action}「${r?.skill_name ?? wf.name ?? wf.id}」（skill_id=${r?.skill_id}），评审-消化报告见 LLM 技能 Tab`) 
+      const digest = r?.digest?.verdict === 'block' ? '，评审存在阻断项(待人工复核)' : '，评审-消化通过'
+      setExecMsg(`${action}「${r?.skill_name ?? wf.name ?? wf.id}」（skill_id=${r?.skill_id}）${digest}，报告见 LLM 技能 Tab`)
       load()
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)

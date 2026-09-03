@@ -10,10 +10,10 @@
  * 说明：与上方「运行时注入启停」表互补——这里是资产库（skills-mgmt 数据），
  * 通过（发布+启用）的资产会进入运行时能力集（上下文注入层消费）。
  */
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
-  ChevronDown, ChevronRight, Download, Loader2, PackagePlus, Plus, RefreshCw,
-  Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
+  ChevronDown, ChevronRight, Download, FileInput, Lightbulb, Loader2, PackagePlus, Plus,
+  RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
 import { hubGet, hubPost } from '../../hub/components/ui'
 
@@ -31,6 +31,7 @@ interface ReviewLike {
 interface SkillItem {
   id: string; name: string; description?: string; status?: string; enabled?: boolean
   content_type?: string; category?: string; version?: string; review?: ReviewLike
+  tags?: string[]; is_sensitive?: boolean; isolation_strategy?: string; source?: string
 }
 
 const SEV: Record<string, string> = {
@@ -60,7 +61,18 @@ export default function SkillDigestManager() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [createOpen, setCreateOpen] = useState(false)
   const [installOpen, setInstallOpen] = useState(false)
+  const [genOpen, setGenOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [publishTarget, setPublishTarget] = useState<SkillItem | null>(null)
+  interface DigestEv { ts?: string; kind?: string; skill_id?: string; verdict?: string; summary?: string }
+  const [events, setEvents] = useState<DigestEv[]>([])
+  const loadEvents = useCallback(async () => {
+    try {
+      const r = await hubGet<{ records?: DigestEv[] }>('/api/skills-mgmt/digest/events?limit=10')
+      setEvents(Array.isArray(r.records) ? r.records : [])
+    } catch { /* 事件源不可用时不打扰 */ }
+  }, [])
+  useEffect(() => { void loadEvents() }, [loadEvents])
 
   const load = useCallback(async () => {
     setError('')
@@ -85,7 +97,7 @@ export default function SkillDigestManager() {
       await load()
     } catch (e) {
       setMsg(`${label} 失败：${e instanceof Error ? e.message : String(e)}`)
-    } finally { setBusy('') }
+    } finally { setBusy(''); void loadEvents() }
   }
 
   const digestOne = (id: string) => act('评审-消化', () => hubPost(`/api/skills-mgmt/digest/${id}`))
@@ -132,6 +144,12 @@ export default function SkillDigestManager() {
           </button>
           <button type="button" className={BTN_EM} onClick={() => setInstallOpen(true)}>
             <PackagePlus size={12} /> 外来安装
+          </button>
+          <button type="button" className={BTN_EM} onClick={() => setGenOpen(true)} title="把对话提示词中的能力要求自动写成技能草稿（生成后自动评审-消化，可再审核）">
+            <Lightbulb size={12} /> 从对话要求生成
+          </button>
+          <button type="button" className={BTN_EM} onClick={() => setImportOpen(true)} title="把其他 Agent 的技能描述(JSON)自动改写为云枢格式并评审">
+            <FileInput size={12} /> 改写导入
           </button>
           <button type="button" className={BTN_EM} onClick={() => void runAll()} disabled={busy !== ''}>
             {busy === '全量自动评审-消化' ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
@@ -182,9 +200,18 @@ export default function SkillDigestManager() {
                         {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                       </button>
                     </td>
-                    <td className="max-w-[22rem] px-2 py-2">
+                    <td className="max-w-[24rem] px-2 py-2">
                       <div className="truncate font-medium text-slate-200">{it.name || it.id}</div>
                       <div className="truncate text-[10px] text-slate-500">{it.description ?? ''}</div>
+                      {/* 触发条件：发布+启用才参与运行时注入；命中方式=语义匹配(描述/标签/内容) */}
+                      <div className="mt-1 flex flex-wrap items-center gap-1">
+                        {it.enabled && (it.status === 'published' || it.status === 'approved')
+                          ? chip('触发·注入生效', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')
+                          : chip(it.enabled ? '已启用·待发布不触发' : '停用·不触发', 'bg-slate-500/10 text-slate-400 border-slate-700')}
+                        {chip(`语义匹配·${it.content_type ?? 'markdown'}`, 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')}
+                        {it.is_sensitive && chip('敏感·隔离注入', 'bg-amber-500/10 text-amber-400 border-amber-800/60')}
+                        {(it.tags ?? []).slice(0, 3).map((t) => chip(`#${t}`, 'bg-indigo-500/10 text-indigo-300 border-indigo-800/50'))}
+                      </div>
                     </td>
                     <td className="px-2 py-2">
                       <div className="flex flex-wrap gap-1">
@@ -243,9 +270,40 @@ export default function SkillDigestManager() {
           onConfirm={(reason) => confirmPublish(publishTarget, reason)}
         />
       )}
+      {genOpen && (
+        <GenerateModal onClose={() => setGenOpen(false)} onDone={() => { setGenOpen(false); void load(); void loadEvents() }} />
+      )}
+      {importOpen && (
+        <ImportModal onClose={() => setImportOpen(false)} onDone={() => { setImportOpen(false); void load(); void loadEvents() }} />
+      )}
 
       {/* 发布审计（人工复核/强制发布记录）可视化 */}
       <AuditPanel />
+
+      {/* digest 结果动态（轻量推送源） */}
+      <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/30 px-3 py-2">
+        <Zap size={12} className="text-cyan-400" />
+        <span className="text-xs font-medium text-slate-200">消化动态</span>
+        <span className="rounded-full bg-slate-800 px-1.5 text-[10px] text-slate-400">{events.length}</span>
+        <button type="button" className={BTN} onClick={() => void loadEvents()} title="刷新 digest 事件">
+          <RefreshCw size={11} /> 刷新
+        </button>
+        <span className="text-[10px] text-slate-600">自动评估 / 评审-消化结果推送（进行新评估或发布后自动更新）</span>
+        {events.length > 0 && (
+          <span className="flex w-full flex-wrap items-center gap-1.5">
+            {events.map((e, i) => (
+              <span key={i} className="inline-flex items-center gap-1 rounded border border-slate-800 bg-slate-950/60 px-1.5 py-0.5 text-[10px] text-slate-400">
+                <span className="font-mono text-[9px] text-slate-600">{e.kind ?? ''}</span>
+                <span className="text-cyan-300">{e.skill_id ?? ''}</span>
+                <span className={e.verdict === 'block' ? 'text-red-400' : 'text-emerald-400'}>
+                  {e.verdict === 'block' ? '阻断' : e.verdict === 'ok' ? '通过' : e.verdict ?? ''}
+                </span>
+                {e.summary && <span className="max-w-[26rem] truncate text-slate-500">{e.summary}</span>}
+              </span>
+            ))}
+          </span>
+        )}
+      </div>
     </div>
   )
 }
@@ -255,15 +313,29 @@ interface AuditRec { ts?: string; event?: string; skill_id?: string; actor?: str
 function AuditPanel() {
   const [records, setRecords] = useState<AuditRec[]>([])
   const [loading, setLoading] = useState(true)
+  const [hasMore, setHasMore] = useState(false)
   const [error, setError] = useState('')
   const [open, setOpen] = useState(false)
   const [filterText, setFilterText] = useState('')
+  const [timeSel, setTimeSel] = useState('all')
+  const baseRef = useRef<AuditRec[]>([])
+  const PAGE = 100
 
-  const load = useCallback(async () => {
+  const merge = (a: AuditRec[], b: AuditRec[]) => {
+    const seen = new Set(a.map((x) => `${x.ts ?? ''}|${x.skill_id ?? ''}`))
+    return [...a, ...b.filter((x) => !seen.has(`${x.ts ?? ''}|${x.skill_id ?? ''}`))]
+  }
+
+  const load = useCallback(async (offset: number, append: boolean) => {
     setError('')
+    if (!append) setLoading(true)
     try {
-      const r = await hubGet<{ records?: AuditRec[] }>('/api/skills-mgmt/review/audit?limit=100')
-      setRecords(Array.isArray(r.records) ? r.records : [])
+      const r = await hubGet<{ records?: AuditRec[] }>(`/api/skills-mgmt/review/audit?limit=${PAGE}&offset=${offset}`)
+      const recs = Array.isArray(r.records) ? r.records : []
+      const next = append ? merge(baseRef.current, recs) : recs
+      baseRef.current = next
+      setRecords(next)
+      setHasMore(recs.length === PAGE)
     } catch (e) {
       setError(`发布审计读取失败：${e instanceof Error ? e.message : String(e)}`)
     } finally {
@@ -271,13 +343,16 @@ function AuditPanel() {
     }
   }, [])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => { void load(0, false) }, [load])
 
-  const shown = filterText.trim()
-    ? records.filter((r) =>
-        [r.skill_id, r.actor, r.reason, r.ts].some((v) =>
-          String(v ?? '').toLowerCase().includes(filterText.trim().toLowerCase())))
-    : records
+  const cutoff = timeSel === 'all' ? 0 : Date.now() - (timeSel === 'day' ? 864e5 : 7 * 864e5)
+  const shown = records.filter((r) => {
+    const t = new Date(r.ts ?? '').getTime()
+    if (!Number.isFinite(t) || t < cutoff) return false
+    if (!filterText.trim()) return true
+    return [r.skill_id, r.actor, r.reason, r.ts].some((v) =>
+      String(v ?? '').toLowerCase().includes(filterText.trim().toLowerCase()))
+  })
 
   const exportCsv = () => {
     const esc = (s?: string) => `"${String(s ?? '').replace(/"/g, '""')}"`
@@ -301,10 +376,10 @@ function AuditPanel() {
         <ScrollText size={13} className="text-slate-400" />
         <span className="text-xs font-medium text-slate-200">发布审计（人工复核 / 强制发布记录）</span>
         <span className="rounded-full bg-slate-800 px-1.5 text-[10px] text-slate-400">
-          {filterText ? `${shown.length}/${records.length}` : records.length}
+          {filterText || timeSel !== 'all' ? `${shown.length}/${records.length}` : records.length}
         </span>
         <span className="ml-auto flex items-center gap-1.5">
-          <button type="button" className={BTN} onClick={(e) => { e.stopPropagation(); void load() }} title="刷新审计记录">
+          <button type="button" className={BTN} onClick={(e) => { e.stopPropagation(); void load(0, false) }} title="刷新审计记录">
             <RefreshCw size={11} /> 刷新
           </button>
           {open ? <ChevronDown size={13} className="text-slate-500" /> : <ChevronRight size={13} className="text-slate-500" />}
@@ -314,14 +389,29 @@ function AuditPanel() {
         <div className="border-t border-slate-800 px-3 pb-2 pt-2">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <input
-              className="w-56 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200 outline-none placeholder:text-slate-600"
+              className="w-44 rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200 outline-none placeholder:text-slate-600"
               placeholder="按 技能/复核人/说明 筛选…"
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
             />
+            <select
+              className="rounded-md border border-slate-700 bg-slate-950 px-2 py-1 text-[11px] text-slate-200 outline-none"
+              value={timeSel}
+              onChange={(e) => setTimeSel(e.target.value)}
+              title="时间段筛选"
+            >
+              <option value="all">全部时间</option>
+              <option value="day">近 24 小时</option>
+              <option value="week">近 7 天</option>
+            </select>
             <button type="button" className={BTN} onClick={exportCsv} disabled={shown.length === 0} title="导出当前筛选记录为 CSV">
               <Download size={11} /> 导出 CSV
             </button>
+            {hasMore && (
+              <button type="button" className={BTN} onClick={() => void load(baseRef.current.length, true)} disabled={loading} title="加载更早的审计记录">
+                {loading ? <Loader2 size={11} className="animate-spin" /> : <ChevronRight size={11} />} 加载更多
+              </button>
+            )}
           </div>
           {error && <p className="mb-1 text-[11px] text-red-400">{error}</p>}
           {loading ? (
@@ -559,6 +649,113 @@ function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
         <button type="button" className={BTN_EM} onClick={() => void submit()} disabled={busy || !source.trim()}>
           {busy ? <Loader2 size={12} className="animate-spin" /> : <PackagePlus size={12} />} 安装并评估
         </button>
+      </div>
+    </ModalShell>
+  )
+}
+
+// ── 从对话要求生成技能 ─────────────────────────────────────────────
+function GenerateModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [name, setName] = useState('')
+  const [intent, setIntent] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const [okMsg, setOkMsg] = useState('')
+  const submit = async () => {
+    if (!intent.trim()) return
+    setBusy(true); setErr('')
+    try {
+      const r = await hubPost<{ skill?: SkillItem }>('/api/skills-mgmt/create/ai', {
+        name: name.trim() || `auto-req-${Date.now() % 1000000}`,
+        intent: intent.trim(),
+        tags: ['auto', 'requirement'],
+        category: 'custom',
+      })
+      const s = r?.skill
+      setOkMsg(s ? `已生成并自动评审-消化：「${s.name}」（${s.id}）——可展开查看报告，通过后发布即成为自身能力。` : '已生成（未返回详情）')
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e))
+    } finally { setBusy(false) }
+  }
+  return (
+    <ModalShell title="从对话要求生成技能（自动评审-消化）" onClose={onClose}>
+      <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
+        对话提示词里出现的“能力要求/新的处理规则”可直接写成技能草稿：粘贴要求→生成（AI 生成失败自动回退模板）→
+        自动进入权限/合规/兼容性评审；有审核兜底，不满意可编辑或删除。
+      </p>
+      <Field label="技能名称（可选）">
+        <input className={INPUT} value={name} onChange={(e) => setName(e.target.value)} placeholder="留空自动命名" />
+      </Field>
+      <Field label="对话中的要求 / 能力描述 *">
+        <textarea className={`${INPUT} font-mono`} rows={5} value={intent} onChange={(e) => setIntent(e.target.value)}
+          placeholder="例如：当用户提到『查天气』时先调用 weather_api，超时 5s 内重试一次并返回结构化结果" />
+      </Field>
+      {err && <p className="mt-1 text-[11px] text-red-400">{err}</p>}
+      {okMsg && <p className="mt-1 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1.5 text-[11px] text-emerald-300">{okMsg}</p>}
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        {okMsg ? (
+          <button type="button" className={BTN_EM} onClick={onDone}><ShieldCheck size={12} /> 完成</button>
+        ) : (
+          <>
+            <button type="button" className={BTN} onClick={onClose}>取消</button>
+            <button type="button" className={BTN_EM} onClick={() => void submit()} disabled={busy || !intent.trim()}>
+              {busy ? <Loader2 size={12} className="animate-spin" /> : <Lightbulb size={12} />} 生成并评审
+            </button>
+          </>
+        )}
+      </div>
+    </ModalShell>
+  )
+}
+
+// ── 外来其他 Agent 技能改写导入 ──────────────────────────────────────
+function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [jsonText, setJsonText] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const [okMsg, setOkMsg] = useState('')
+  const submit = async () => {
+    let obj: Record<string, unknown>
+    try {
+      obj = JSON.parse(jsonText)
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('需要 JSON 对象')
+    } catch (e) {
+      setErr(`JSON 解析失败：${e instanceof Error ? e.message : String(e)}`)
+      return
+    }
+    setBusy(true); setErr('')
+    try {
+      const r = await hubPost<{ skill_id?: string; skill_name?: string; source_format?: string }>(
+        '/api/workflow-learning/convert-external-skill',
+        { external_data: obj, llm_enabled: false },
+      )
+      setOkMsg(`已自动改写为云枢格式并注册：「${r?.skill_name ?? r?.skill_id ?? ''}」（skill_id=${r?.skill_id ?? '-'}，格式=${r?.source_format ?? '-'}）——已自动评审-消化，可审核后发布。`)
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e))
+    } finally { setBusy(false) }
+  }
+  return (
+    <ModalShell title="改写导入其他 Agent 的技能（自动改写成云枢格式）" onClose={onClose}>
+      <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
+        粘贴其他 Agent（如 Claude / GPTs / MCP / 社区）技能的 <strong>JSON 描述</strong>，系统用规则/LLM 翻译成云枢 SKILL
+        并注册 → 自动评审-消化（兼容性/重复/权限都会查）。示例：
+        <code className="mt-1 block text-cyan-400">{'{ "name": "pdf-extractor", "description": "从 PDF 提取正文", "steps": ["open", "parse"] }'}</code>
+      </p>
+      <textarea className={`${INPUT} font-mono`} rows={8} value={jsonText} onChange={(e) => setJsonText(e.target.value)}
+        placeholder='粘贴 JSON，如 {"name":"…","description":"…","steps":[…] / "prompt":…}' />
+      {err && <p className="mt-1 text-[11px] text-red-400">{err}</p>}
+      {okMsg && <p className="mt-1 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1.5 text-[11px] text-emerald-300">{okMsg}</p>}
+      <div className="mt-3 flex flex-wrap justify-end gap-2">
+        {okMsg ? (
+          <button type="button" className={BTN_EM} onClick={onDone}><ShieldCheck size={12} /> 完成</button>
+        ) : (
+          <>
+            <button type="button" className={BTN} onClick={onClose}>取消</button>
+            <button type="button" className={BTN_EM} onClick={() => void submit()} disabled={busy || !jsonText.trim()}>
+              {busy ? <Loader2 size={12} className="animate-spin" /> : <FileInput size={12} />} 改写并评审
+            </button>
+          </>
+        )}
       </div>
     </ModalShell>
   )
