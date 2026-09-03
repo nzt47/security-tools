@@ -788,6 +788,27 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
   } | null>(null)
   const [busy, setBusy] = useState('')
   const [runMsg, setRunMsg] = useState('')
+  const [dups, setDups] = useState<{ skill_a?: string; skill_b?: string; name_a?: string; name_b?: string; jaccard?: number }[]>([])
+
+  const loadDups = async () => {
+    try {
+      const r = await hubGet<{ duplicates?: { skill_a?: string; skill_b?: string; name_a?: string; name_b?: string; jaccard?: number }[] }>('/api/skills-mgmt/duplicates?min_jaccard=0.7')
+      setDups(Array.isArray(r.duplicates) ? r.duplicates : [])
+    } catch { setDups([]) }
+  }
+
+  const mergePair = async (srcId: string, dstId: string) => {
+    if (!window.confirm(`合并技能：删除「${srcId}」并入「${dstId}」？将回填反馈并记录版本。`)) return
+    setBusy('3'); setRunMsg('')
+    try {
+      await hubPost('/api/skills-mgmt/merge', { src_id: srcId, dst_id: dstId, strategy: 'auto' })
+      setRunMsg(`已合并：${srcId} → ${dstId}。`)
+      onDone()
+      void loadDups()
+    } catch (e) {
+      setRunMsg(`合并失败：${e instanceof Error ? e.message : String(e)}`)
+    } finally { setBusy('') }
+  }
 
   const plan = async () => {
     setBusy('1'); setRunMsg('')
@@ -806,7 +827,10 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     finally { setBusy('') }
   }
 
-  useEffect(() => { void plan() }, [])
+  useEffect(() => {
+    void plan()
+    void loadDups()
+  }, [])
 
   return (
     <ModalShell title="老技能整理（体检 / 自动整理）" onClose={onClose}>
@@ -839,6 +863,37 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         </>
       )}
       {runMsg && <p className="mt-2 rounded-md border border-cyan-900/60 bg-cyan-950/30 px-2 py-1 text-[11px] text-cyan-300">{runMsg}</p>}
+
+      {/* 重复技能对：一键合并（删除被合并方并入保留方，含反馈回填与版本记录） */}
+      {dups.length > 0 && (
+        <div className="mt-2 rounded-md border border-slate-800 bg-slate-950/40 p-2">
+          <div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">
+            检测到重复技能对（{dups.length}）——合并前请确认保留方
+          </div>
+          <ul className="max-h-40 space-y-1 overflow-y-auto pr-1">
+            {dups.map((d, i) => {
+              const a = d.skill_a ?? ''
+              const b = d.skill_b ?? ''
+              const la = d.name_a || a
+              const lb = d.name_b || b
+              return (
+                <li key={`${a}-${b}-${i}`} className="flex flex-wrap items-center gap-1.5 rounded-md border border-slate-800/70 bg-slate-900/40 px-2 py-1 text-[11px]">
+                  <span className="max-w-[14rem] truncate text-slate-200">{la}</span>
+                  <span className="text-slate-600">⇄</span>
+                  <span className="max-w-[14rem] truncate text-slate-200">{lb}</span>
+                  <span className="font-mono text-[10px] text-amber-300">{(d.jaccard ?? 0).toFixed(0)}%</span>
+                  <span className="ml-auto flex gap-1">
+                    <button type="button" className={BTN} disabled={busy !== ''} title={`删除 ${b} 并入 ${a}`}
+                      onClick={() => void mergePair(b, a)}>保留左 · 合并右</button>
+                    <button type="button" className={BTN} disabled={busy !== ''} title={`删除 ${a} 并入 ${b}`}
+                      onClick={() => void mergePair(a, b)}>保留右 · 合并左</button>
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         <button type="button" className={BTN} onClick={onClose}>关闭</button>
         <button type="button" className={BTN} onClick={() => void plan()} disabled={busy !== ''} title="重新体检">

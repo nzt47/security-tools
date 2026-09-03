@@ -106,6 +106,55 @@ def _get_enabled_tool_names() -> list[str] | None:
 #  技能配置 API
 # ════════════════════════════════════════════════════════════
 
+# 中文说明覆盖层：部分内置/外来技能元数据缺 description，
+# 允许在 UI 手工补中文说明并持久化于此（运行时启停/列表都会保留）。
+_DESC_OVERLAY_FILE = os.path.normpath(
+    os.path.join(os.path.dirname(__file__), '..', 'data', 'skills_descriptions_overlay.json')
+)
+
+# 已知内置技能的中文说明（供“自动补全中文说明”使用）
+_CURATED_DESCRIPTIONS = {
+    "self_reflection": "自省反思：复盘自身行为与决策，沉淀经验与改进方向",
+    "email-helper": "邮件处理助手：起草、整理与管理邮件（处理收件与回复）",
+    "memory_summary": "记忆摘要：压缩与归纳对话历史与长期记忆，控制上下文占用",
+    "scripted-selftest": "三层架构示例技能：演示 skill.md 元数据 + 脚本执行 + 参数注入契约",
+}
+
+
+def _load_desc_overlay() -> dict:
+    try:
+        if os.path.exists(_DESC_OVERLAY_FILE):
+            with open(_DESC_OVERLAY_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data if isinstance(data, dict) else {}
+    except Exception:
+        pass
+    return {}
+
+
+def _save_desc_overlay(overlay: dict) -> bool:
+    try:
+        os.makedirs(os.path.dirname(_DESC_OVERLAY_FILE), exist_ok=True)
+        with open(_DESC_OVERLAY_FILE, 'w', encoding='utf-8') as f:
+            json.dump(overlay, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception:
+        return False
+
+
+def _apply_desc_overlay(items: list) -> None:
+    """把覆盖层里的中文说明补到缺描述的已安装技能上"""
+    try:
+        overlay = _load_desc_overlay()
+        for s in items:
+            o = overlay.get(s.get("id", ""))
+            if o and isinstance(o, dict) and o.get("description") \
+                    and not str(s.get("description", "") or "").strip():
+                s["description"] = o["description"]
+    except Exception:
+        pass
+
+
 @bp.route("/api/skills", methods=["GET"])
 @_log_request(show_response=False)
 def api_skills_get():
@@ -154,6 +203,9 @@ def api_skills_get():
             "builtin": s.get("builtin", False),
         })
 
+    # 中文说明覆盖层：补缺描述
+    _apply_desc_overlay(installed)
+
     return jsonify({
         "installed": installed,
         "available": available,
@@ -165,67 +217,122 @@ def api_skills_get():
 @_log_request()
 def api_skills_toggle():
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
-    from app_server import _skills_mgr, logger
+    from app_server import _skills_mgr, logger as _logger
     data = request.get_json() or {}
-    skill_id = data.get("id", "")
+    skill_id = str(data.get("id", "") or "")
+    if not skill_id:
+        return jsonify({"ok": False, "error": "缺少 id"}), 400
     result = _skills_mgr.toggle(skill_id)
-    new_enabled = result.get("enabled", True)
-    # 直接写入全部三个文件，确保 ext_list 和 UI 数据一致
+    new_enabled = bool(result.get("enabled", True))
+    new_name = str(result.get("name") or skill_id)
+    overlay = _load_desc_overlay()
+    new_desc = str((overlay.get(skill_id) or {}).get("description", "")
+                   or result.get("description", "") or "")
+
+    # 1/2) 写 root 与 agent/data/skills.json：只更新目标行，保留其它技能行
+    import json as _json
+    skills_file = os.path.normpath(
+        os.path.join(os.path.dirname(__file__), '..', 'data', 'skills.json'))
     try:
-        import json
-        all_skill_ids = ['self_reflection','memory_summary','emotion_expression',
-                         'proactive_suggestion','context_aware','safety_guard','voice_interaction']
-        # 重新读取完整状态
-        skills_file = os.path.join(os.path.dirname(__file__), '..', 'data', 'skills.json')
+        all_skills = {"skills": []}
         if os.path.exists(skills_file):
-            with open(skills_file, 'r', encoding='utf-8') as f:
-                all_skills = json.load(f)
-        else:
-            all_skills = {"skills": []}
-        skill_names = {s["id"]: s.get("name", s["id"]) for s in all_skills.get("skills", [])}
-        skill_descs = {s["id"]: s.get("description", "") for s in all_skills.get("skills", [])}
-
-        # 构建完整技能列表
-        skills_list = []
-        for sid in all_skill_ids:
-            s_enabled = True
-            for s in all_skills.get("skills", []):
-                if s["id"] == sid:
-                    s_enabled = s.get("enabled", True)
-                    break
-            skills_list.append({
-                "id": sid, "name": skill_names.get(sid, sid),
-                "enabled": s_enabled, "description": skill_descs.get(sid, ""),
-                "params": {}
-            })
-        skills_data = {"skills": skills_list}
-
-        # 1) 写入 root data/skills.json（UI 读取）
-        with open(skills_file, 'w', encoding='utf-8') as f:
-            json.dump(skills_data, f, ensure_ascii=False, indent=2)
-
-        # 2) 写入 agent/data/skills.json
-        os.makedirs('agent/data', exist_ok=True)
-        with open('agent/data/skills.json', 'w', encoding='utf-8') as f:
-            json.dump(skills_data, f, ensure_ascii=False, indent=2)
-
-        # 3) 写入 agent/data/extensions.json（ext_list 读取）
-        ext_skills = []
-        for s in skills_list:
-            ext_skills.append({
-                "ext_id": s["id"], "ext_type": "skill",
-                "name": s["name"], "description": s["description"],
-                "status": "enabled" if s["enabled"] else "disabled",
-                "source": "builtin",
-            })
-        with open('agent/data/extensions.json', 'w', encoding='utf-8') as f:
-            json.dump({
-                "skills": ext_skills, "claude_skills": [],
-                "mcps": [], "channels": [], "plugins": [],
-            }, f, ensure_ascii=False, indent=2)
+            try:
+                with open(skills_file, 'r', encoding='utf-8') as f:
+                    all_skills = _json.load(f)
+            except Exception:
+                all_skills = {"skills": []}
+        skills = all_skills.setdefault("skills", [])
+        entry = next((s for s in skills if s.get("id") == skill_id), None)
+        if entry is None:
+            entry = {"id": skill_id}
+            skills.append(entry)
+        # manager 未返回 enabled（未知 id 等情况）时沿用文件里既有状态
+        new_enabled = bool(result.get("enabled", entry.get("enabled", True)))
+        entry.update({
+            "name": new_name,
+            "enabled": new_enabled,
+            "description": new_desc,
+            "params": entry.get("params", {}) if isinstance(entry.get("params"), dict) else {},
+        })
+        payload = _json.dumps(all_skills, ensure_ascii=False, indent=2)
+        targets = [
+            skills_file,
+            os.path.normpath(os.path.join(os.path.dirname(__file__), '..',
+                                          'agent', 'data', 'skills.json')),
+        ]
+        for target in targets:
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            with open(target, 'w', encoding='utf-8') as f:
+                f.write(payload)
     except Exception as e:
-        logger.error("[SKILL_SYNC] 同步扩展注册表失败: %s", e)
+        _logger.error("[SKILL_SYNC] 同步 skills.json 失败: %s", e)
+
+    # 3) 扩展注册表：保留现有条目，仅更新目标行状态
+    try:
+        ext_file = os.path.normpath(os.path.join(os.path.dirname(__file__), '..',
+                                                 'agent', 'data', 'extensions.json'))
+        if os.path.exists(ext_file):
+            with open(ext_file, 'r', encoding='utf-8') as f:
+                ext_data = _json.load(f)
+        else:
+            ext_data = {"skills": [], "claude_skills": [], "mcps": [],
+                        "channels": [], "plugins": []}
+        skills = ext_data.setdefault("skills", [])
+        e = next((x for x in skills if x.get("ext_id") == skill_id), None)
+        if e is None:
+            e = {"ext_id": skill_id, "ext_type": "skill", "source": "builtin"}
+            skills.append(e)
+        e.update({
+            "name": new_name,
+            "status": "enabled" if new_enabled else "disabled",
+            "description": new_desc,
+        })
+        with open(ext_file, 'w', encoding='utf-8') as f:
+            f.write(_json.dumps(ext_data, ensure_ascii=False, indent=2))
+    except Exception as e:
+        _logger.error("[SKILL_SYNC] 同步 extensions.json 失败: %s", e)
+
     return jsonify(result)
+
+
+@bp.route("/api/skills/describe", methods=["POST"])
+@_require_token
+@_log_request()
+def api_skills_describe():
+    """手工补写某个运行时技能的中文说明（持久化到覆盖层）"""
+    data = request.get_json() or {}
+    skill_id = str(data.get("id", "") or "")
+    description = str(data.get("description", "") or "").strip()
+    if not skill_id:
+        return jsonify({"ok": False, "error": "缺少 id"}), 400
+    overlay = _load_desc_overlay()
+    overlay[skill_id] = {"description": description}
+    ok = _save_desc_overlay(overlay)
+    return jsonify({"ok": ok, "id": skill_id, "description": description})
+
+
+@bp.route("/api/skills/describe/auto", methods=["POST"])
+@_require_token
+@_log_request()
+def api_skills_describe_auto():
+    """为缺描述的已知内置技能自动补中文说明（自省/邮件/记忆摘要等）"""
+    data = request.get_json() or {}
+    ids = data.get("ids") or list(_CURATED_DESCRIPTIONS.keys())
+    overlay = _load_desc_overlay()
+    applied = []
+    for sid in ids:
+        sid = str(sid)
+        cur = _CURATED_DESCRIPTIONS.get(sid)
+        if not cur:
+            continue
+        # 目标描述为空才覆盖（不覆盖用户已填写的）
+        existing = str((overlay.get(sid) or {}).get("description", "") or "")
+        if existing:
+            continue
+        overlay[sid] = {"description": cur}
+        applied.append({"id": sid, "description": cur})
+    ok = _save_desc_overlay(overlay)
+    return jsonify({"ok": ok, "applied": applied, "count": len(applied)})
 
 
 @bp.route("/api/skills/params", methods=["POST"])

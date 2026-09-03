@@ -546,10 +546,46 @@ class SkillsMgmtService:
                     except Exception:
                         pass
 
+        if auto_clean and applied:
+            self._emit_digest_event(
+                "curate", "curate", "ok",
+                f"老技能自动整理完成 {len(applied)} 项（补说明/归档）")
+
         return {"total": len(all_skills), "dry_run": dry_run,
                 "auto_clean": auto_clean,
                 "issues": len(plan), "plan": plan[:200],
                 "applied_count": len(applied), "applied": applied[:200]}
+
+    def suggest_redraft(self, skill_id: str) -> Dict[str, Any]:
+        """“再定义”草稿（确定性）：依据内容重写中文说明/展示名建议。
+
+        草稿需人工确认后应用（应用即 update + 重新评审-消化）。
+        """
+        skill = self._require(skill_id)
+        name = skill.name or skill.id
+        desc = (skill.description or "").strip()
+        lines = (skill.content or "").strip().splitlines()
+        meaningful = [l.strip() for l in lines
+                      if l.strip() and not l.strip().startswith(("#", "-", "```", "```"))]
+        draft_desc = ""
+        for l in meaningful:
+            if len(l) >= 6:
+                draft_desc = l
+                break
+        if not draft_desc:
+            draft_desc = f"（自动再定义说明）{name}：基于内容重写的技能，请人工修订。"
+        draft_desc = draft_desc[:160]
+        # 展示名建议：若名称/描述均非中文，给一个中文包装（不改 id）
+        has_cjk = any("\u4e00" <= ch <= "\u9fff" for ch in f"{name} {desc}")
+        draft_name = name
+        if not has_cjk:
+            draft_name = f"{name}（{name}）" if len(name) > 16 else f"{name}（自动整理）"
+        return {
+            "skill_id": skill_id,
+            "current": {"name": name, "description": desc},
+            "proposed": {"name": draft_name, "description": draft_desc},
+            "note": "确定性草稿；确认后应用会写回并自动重新评审-消化。",
+        }
 
     # ─── 脚本文件全维度审查并入 digest（第三层 scripts/*.py）───
 

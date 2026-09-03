@@ -299,6 +299,20 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/skills-mgmt/<skill_id>/redraft", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_redraft(skill_id: str):
+        """生成「再定义」草稿（确定性）：按内容重写中文说明/展示名，供确认后应用"""
+        try:
+            result = _svc().suggest_redraft(skill_id)
+            return jsonify({"ok": True, **result})
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/skills-mgmt/<skill_id>/suggest-fix", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token
