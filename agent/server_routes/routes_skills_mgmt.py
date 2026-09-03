@@ -297,6 +297,20 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/skills-mgmt/review/audit", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_review_audit():
+        """读取人工复核/强制发布审计记录（技能中心可视化；最新在前）"""
+        try:
+            limit = request.args.get("limit", 100, type=int)
+            limit = max(1, min(limit, 500))
+            records = _svc().audit_log(limit=limit)
+            return jsonify({"ok": True, "records": records, "total": len(records)})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/skills-mgmt/<skill_id>/publish", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token

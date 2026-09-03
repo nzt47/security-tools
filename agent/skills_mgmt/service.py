@@ -280,6 +280,15 @@ class SkillsMgmtService:
                     blocked += 1
         return {"total": total, "assessed": assessed, "blocked": blocked}
 
+    def audit_log(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """读取人工复核/强制发布审计记录（供技能中心可视化）"""
+        try:
+            from .review_gate import read_audit_log
+            return read_audit_log(limit=limit)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("[Service] 读取审计日志失败: %s", e)
+            return []
+
     # ─── 发布（TASK-04 Step 3 强制审核链）───
 
     def publish(self, skill_id: str, *, force: bool = False,

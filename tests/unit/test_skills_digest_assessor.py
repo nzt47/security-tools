@@ -198,6 +198,86 @@ class TestCodeReviewIntegration:
 
 
 # ═══════════════════════════════════════════════════════════════
+#  选择性维度接入（按技能类型） + 外来安装安全预检并入
+# ═══════════════════════════════════════════════════════════════
+
+class TestSelectiveDimensionsAndExternalPrecheck:
+    def test_dimensions_by_type_and_shape(self):
+        from agent.skills_mgmt.assessor import _code_review_dimensions
+        # python 定义对外函数 → 含 可维护性 + API兼容性（无测试标记则无 测试）
+        api = _skill(content_type="python",
+                     content="def extract_pdf(path):\n    return path\n")
+        dims = _code_review_dimensions(api)
+        assert {"安全", "性能", "可维护性", "API兼容性"} <= set(dims), dims
+        assert "测试" not in dims
+        # 含测试形态 → 追加 测试
+        with_test = _skill(content_type="python",
+                           content="def test_extract_pdf():\n    assert True\n")
+        assert "测试" in _code_review_dimensions(with_test)
+        # markdown 不触发代码审查
+        md = _skill(content_type="markdown", content="说明文档")
+        assert _code_review_dimensions(md) == []
+
+    def test_external_install_precheck_merged_and_blocks(self):
+        """github 外来技能含 subprocess → SEC_EXT_INSTALL error，digest 阻断"""
+        a = SkillDigestAssessor().assess(_skill(
+            id="ext-skill", source="github:someone/repo",
+            content_type="python",
+            content="import subprocess\nsubprocess.run(['rm', '-rf', '/'])\n"))
+        codes = [f.code for f in a.findings]
+        assert "SEC_EXT_INSTALL" in codes, codes
+        hit = next(f for f in a.findings if f.code == "SEC_EXT_INSTALL")
+        assert hit.severity == "error"
+        assert hit.category == "security"
+        assert a.blocked is True
+
+    def test_self_built_skill_not_subject_to_external_gate(self):
+        a = SkillDigestAssessor().assess(_skill(
+            id="self-skill", source="manual",
+            content_type="python",
+            content="import subprocess\nsubprocess.run(['ls'])\n"))
+        assert not any(f.code == "SEC_EXT_INSTALL" for f in a.findings)
+
+    def test_external_benign_no_precheck_findings(self):
+        a = SkillDigestAssessor().assess(_skill(
+            id="ext-ok", source="url:https://x/skill.json",
+            content_type="python", content="def f(x):\n    return x\n"))
+        assert not any(f.code == "SEC_EXT_INSTALL" for f in a.findings)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  审计记录读取（技能中心可视化数据源）
+# ═══════════════════════════════════════════════════════════════
+
+class TestAuditLogRead:
+    def test_read_audit_log_latest_first(self, tmp_path, monkeypatch):
+        from agent.skills_mgmt import review_gate as rg
+        p = tmp_path / "audit.jsonl"
+        p.write_text(
+            "{\"ts\":\"2026-09-03T10:00:00\",\"event\":\"review_waiver_publish\","
+            "\"skill_id\":\"a\",\"actor\":\"x\",\"reason\":\"r1\"}\n"
+            "{\"ts\":\"2026-09-03T10:01:00\",\"event\":\"review_waiver_publish\","
+            "\"skill_id\":\"b\",\"actor\":\"y\",\"reason\":\"r2\"}\n"
+            "not-json\n"
+            "{\"ts\":\"2026-09-03T10:02:00\",\"event\":\"review_waiver_publish\","
+            "\"skill_id\":\"c\",\"actor\":\"z\",\"reason\":\"r3\"}\n",
+            encoding="utf-8",
+        )
+        monkeypatch.setattr(rg, "_audit_file", lambda: str(p))
+        recs = rg.read_audit_log(limit=100)
+        assert [r["skill_id"] for r in recs] == ["c", "b", "a"]
+        assert recs[0]["reason"] == "r3"
+        # limit 截断 → 只返回最新 2 条
+        recs2 = rg.read_audit_log(limit=2)
+        assert [r["skill_id"] for r in recs2] == ["c", "b"]
+
+    def test_read_audit_log_missing_file(self, tmp_path, monkeypatch):
+        from agent.skills_mgmt import review_gate as rg
+        monkeypatch.setattr(rg, "_audit_file", lambda: str(tmp_path / "nope.jsonl"))
+        assert rg.read_audit_log() == []
+
+
+# ═══════════════════════════════════════════════════════════════
 #  自动执行：create/install/update 钩子 + digest_all 批量
 # ═══════════════════════════════════════════════════════════════
 

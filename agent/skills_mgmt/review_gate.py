@@ -75,6 +75,47 @@ def audit_exemption(skill_id: str, *, actor: str, reason: str) -> None:
         logger.warning("[ReviewGate] 审计日志写入失败 skill=%s: %s", skill_id, e)
 
 
+def read_audit_log(limit: int = 100) -> list:
+    """读取人工复核/强制发布审计记录（最新在前）。
+
+    Args:
+        limit: 最多返回条数（取文件末尾 N 行再倒序）。
+
+    Returns:
+        list[dict] — {ts, event, skill_id, actor, reason}；文件缺失/损坏行跳过。
+    """
+    path = Path(_audit_file())
+    if not path.exists():
+        return []
+    records = []
+    try:
+        lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    except OSError as e:
+        logger.warning("[ReviewGate] 审计日志读取失败: %s", e)
+        return []
+    # 从尾部回溯，收集最多 limit 条有效记录（坏行/空行不占名额）
+    for line in reversed(lines):
+        line = (line or "").strip()
+        if not line:
+            continue
+        try:
+            rec = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(rec, dict):
+            continue
+        records.append({
+            "ts": rec.get("ts", ""),
+            "event": rec.get("event", ""),
+            "skill_id": rec.get("skill_id", ""),
+            "actor": rec.get("actor", ""),
+            "reason": rec.get("reason", ""),
+        })
+        if len(records) >= max(1, limit):
+            break
+    return records  # 已按文件倒序 = 最新在前
+
+
 def _enforce_before_publish() -> bool:
     """优先级: 环境变量 SKILLS_REVIEW_ENFORCE_PUBLISH > config.yaml > 默认 true。"""
     env = os.environ.get("SKILLS_REVIEW_ENFORCE_PUBLISH")

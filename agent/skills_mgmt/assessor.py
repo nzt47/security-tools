@@ -164,8 +164,34 @@ def _assess_security_and_compliance(skill: Skill) -> List[ReviewFinding]:
 #  代码级审查（接入 agent.code_review）
 # ═══════════════════════════════════════════════════════════════
 
+def _code_review_dimensions(skill: Skill) -> List[str]:
+    """按技能类型选择 code_review 维度：
+    - 所有代码类：安全 / 性能
+    - python/js/shell：+ 可维护性
+    - python/js 且定义了函数/类/导出（对外 API）：+ API兼容性
+    - python/js 且含测试形态（def test_/pytest/unittest/describe/it/…）：+ 测试
+    """
+    ct = skill.content_type
+    if ct not in _CODE_TYPES:
+        return []
+    content = skill.content or ""
+    dims = ["安全", "性能", "可维护性"]
+    api_like = bool(re.search(
+        r"\b(?:def\s+\w+\s*\(|class\s+\w+|function\s+\w*\(|"
+        r"export\s+(?:default\s+)?(?:function|const|class)|"
+        r"async\s+function\s+\w*\()", content))
+    test_like = bool(re.search(
+        r"(?:def\s+test_|\bpytest\b|\bunittest\b|describe\s*\(|\bit\s*\(|\btest\s*\(|go test)",
+        content))
+    if api_like and ct in (ContentType.PYTHON, ContentType.JAVASCRIPT):
+        dims.append("API兼容性")
+    if test_like and ct in (ContentType.PYTHON, ContentType.JAVASCRIPT):
+        dims.append("测试")
+    return dims
+
+
 def _assess_code_review(skill: Skill) -> List[ReviewFinding]:
-    """对 CODE 类内容运行 code_review（安全/性能维度），并入 digest。
+    """对 CODE 类内容运行 code_review（按类型选择维度），并入 digest。
 
     code_review.code_review(diff=<content>) 支持纯文本审查（无文件系统依赖）；
     输出为咨询性发现（category="code"，安全维度 warn、其余 info），
@@ -175,13 +201,13 @@ def _assess_code_review(skill: Skill) -> List[ReviewFinding]:
         return []
     try:
         from agent.code_review import code_review
-        result = code_review(diff=skill.content, dimensions=["安全", "性能"])
+        result = code_review(diff=skill.content, dimensions=_code_review_dimensions(skill))
     except Exception:
         return []
     findings: List[ReviewFinding] = []
     for dim in (result or {}).get("dimensions", []) or []:
         dimension = str(dim.get("dimension", ""))
-        if dimension not in ("安全", "性能"):
+        if dimension not in ("安全", "性能", "可维护性", "API兼容性", "测试"):
             continue
         severity = "warn" if dimension == "安全" else "info"
         for f in dim.get("findings", []) or []:
@@ -196,6 +222,57 @@ def _assess_code_review(skill: Skill) -> List[ReviewFinding]:
             location = f"content@{line}" if line is not None else "content"
             findings.append(_finding(
                 severity, "code", f"CR_{dimension}", message, location))
+    return findings
+
+
+# 外来安装 scheme（触发安装级安全预检并入 digest）
+_EXTERNAL_SCHEMES = ("github:", "url:", "local:", "registry:", "zip", "mcp:")
+_EXTERNAL_CATEGORIES = ("claude", "community", "mcp")
+
+
+def _is_external(skill: Skill) -> bool:
+    source = str(skill.source or "").strip().lower()
+    if any(source.startswith(s) for s in _EXTERNAL_SCHEMES):
+        return True
+    category = str(getattr(skill.category, "value", skill.category) if not isinstance(skill.category, str) else skill.category)
+    return (category or "").lower() in _EXTERNAL_CATEGORIES
+
+
+def _assess_external_precheck(skill: Skill) -> List[ReviewFinding]:
+    """把「外来技能安装安全预检」（extensions.security_checker）结果并入 digest。
+
+    仅对来自 github/url/local/registry/zip/mcp 或 claude/community 类别的外来技能
+    执行（自建/手写技能不受此严格门控约束）。映射：高风险→error（阻断，须人工
+    复核）、中风险→warn、低风险→info；代码内容走 scan_code_for_threats，
+    描述另做权限/数据合规关键词预检。
+    """
+    if not _is_external(skill):
+        return []
+    findings: List[ReviewFinding] = []
+    sev_map = {"高风险": "error", "中风险": "warn", "低风险": "info"}
+    try:
+        from agent.extensions.security_checker import SkillSecurityChecker
+        checker = SkillSecurityChecker()
+        code = skill.content or ""
+        if code.strip():
+            for f in checker.scan_code_for_threats(code, f"{skill.id}"):
+                findings.append(_finding(
+                    sev_map.get(str(f.get("severity", "")), "info"),
+                    "security", "SEC_EXT_INSTALL",
+                    f"[外来技能安装预检·{f.get('category', '')}] "
+                    f"{f.get('pattern', '')}",
+                    f"content@{f.get('location', '')}"))
+        # 权限/数据合规关键词预检（与描述联动）
+        info = {"description": skill.description or "", "name": skill.name or ""}
+        for issue in (checker.check_permissions(info) or []) + (checker.check_data_compliance(info) or []):
+            findings.append(_finding(
+                sev_map.get(str(issue.get("severity", "")), "info"),
+                "security", "SEC_EXT_INSTALL",
+                f"[外来技能安装预检·{issue.get('category', '')}] {issue.get('message', '')}",
+                "description"))
+    except Exception:
+        # 预检器不可用时不阻断主评估
+        return []
     return findings
 
 
@@ -335,9 +412,11 @@ class SkillDigestAssessor:
         sec_findings = _assess_security_and_compliance(skill)
         compat_findings = _assess_compatibility(skill, others, reserved=reserved)
         code_findings = _assess_code_review(skill)
+        ext_findings = _assess_external_precheck(skill)
         findings.extend(sec_findings)
         findings.extend(compat_findings)
         findings.extend(code_findings)
+        findings.extend(ext_findings)
 
         # 兼容性评分仅按 compatibility 类扣分
         compat_penalty = 0
