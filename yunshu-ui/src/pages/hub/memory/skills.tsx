@@ -6,7 +6,7 @@
  * 确定性、本地执行的「工作流技能」不在此列（见技能中心 → 工作流技能 Tab）。
  */
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, Layers, Power } from 'lucide-react'
+import { ChevronDown, ChevronRight, Layers, Loader2, Power } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
 import { getApiToken } from '../../../lib/apiToken'
 import ApiTokenPrompt from './api-token-prompt'
@@ -46,6 +46,7 @@ export function MemorySkillsTable() {
   /** 视图：flat=表格 / group=按自动分类折叠 */
   const [grouped, setGrouped] = useState(true)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const [clsBusy, setClsBusy] = useState(false)
 
   const load = () => {
     setLoading(true)
@@ -87,6 +88,18 @@ export function MemorySkillsTable() {
     } catch (e) { tokenOrHint(e, setError, setNeedAuth) }
   }
 
+  /** 一键自动归类：为运行时「未分类」重新判定（可自动新建类；人工移动保留） */
+  const runAutoClassify = async () => {
+    setClsBusy(true); setError('')
+    try {
+      const r = await hubPost<{ classified?: number; created_classes?: number }>(
+        '/api/skills/classify/run-auto', undefined, getApiToken())
+      setInfo(`运行时自动分类完成：重判 ${r?.classified ?? 0} 项，自动新建类 ${r?.created_classes ?? 0} 个。`)
+      load()
+    } catch (e) { tokenOrHint(e, setError, setNeedAuth) }
+    finally { setClsBusy(false) }
+  }
+
   /** 按自动分类分组（同名类合并；无分类 → 未分类），组按成员数倒序 */
   const groups = useMemo(() => {
     const buckets = new Map<string, Skill[]>()
@@ -98,6 +111,7 @@ export function MemorySkillsTable() {
       .map(([name, list]) => ({ name, list }))
       .sort((a, b) => b.list.length - a.list.length || a.name.localeCompare(b.name, 'zh'))
   }, [skills])
+  const uncCount = groups.find((g) => g.name === '未分类')?.list.length ?? 0
 
   const allCollapsed = grouped && groups.every((g) => collapsed[g.name])
   const foldAll = (fold: boolean) => {
@@ -168,6 +182,13 @@ export function MemorySkillsTable() {
           {grouped && skills.length > 0 && (
             <button type="button" onClick={() => foldAll(!allCollapsed)} className="rounded-md border border-slate-700 px-2.5 py-1 text-[11px] text-slate-300 hover:bg-slate-800">
               {allCollapsed ? '全部展开' : '全部折叠'}
+            </button>
+          )}
+          {grouped && uncCount > 0 && (
+            <button type="button" onClick={() => void runAutoClassify()} disabled={clsBusy}
+              title="为「未分类」的运行时技能重新自动归类（可自动新建类；人工移动过的不动）"
+              className="flex items-center gap-1.5 rounded-md border border-violet-700/60 bg-violet-500/10 px-2.5 py-1 text-[11px] text-violet-300 hover:bg-violet-500/20 disabled:opacity-50">
+              {clsBusy ? <Loader2 size={11} className="animate-spin" /> : <Layers size={11} />} 一键归类未分类({uncCount})
             </button>
           )}
           <button type="button" onClick={() => void autoDescribe()}

@@ -60,7 +60,9 @@ export function ChatPanel() {
       const cmd = cmds.find((k) => (k.token ?? '').toLowerCase() === m[1].toLowerCase());
       if (cmd) {
         const task = (m[2] ?? '').trim();
-        return `请调用已注册技能「${cmd.name ?? cmd.id}」（${cmd.id}）。${task ? `任务：${task}` : '请按该技能用途处理。'}`;
+        const brief = String(cmd.description ?? '').trim().slice(0, 140);
+        // 展开为可执行调用指令：名称/id + 任务 + 技能用途说明（随消息进入会话上下文，模型按此执行）
+        return `请调用已注册技能「${cmd.name ?? cmd.id}」（${cmd.id}）。${task ? `任务：${task}` : '请按该技能用途处理。'}${brief ? `\n技能用途：${brief}` : ''}`;
       }
     }
     return raw.trim();

@@ -400,7 +400,8 @@ export default function SkillDigestManager() {
   const handlePickSkill = (skillId: string) => {
     const it = items.find((x) => x.id === skillId)
     if (!it) {
-      setMsg(`技能「${skillId}」不在资产库（可能仅为运行时技能或已删除）。`)
+      try { void navigator.clipboard?.writeText(skillId) } catch { /* 忽略 */ }
+      setMsg(`技能「${skillId}」不在资产库（可能仅为运行时技能或已删除）。id 已复制，可到上方「LLM 技能」分类里查看。`)
       return
     }
     setExpanded((p) => ({ ...p, [skillId]: true }))

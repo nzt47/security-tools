@@ -209,6 +209,23 @@ def api_skills_get():
     # 自动分类（与技能资产库共用分类注册表；新技能出现自动归类/新建类）
     try:
         from agent.skills_mgmt.categorizer import SkillClassRegistry, UNCLASSIFIED
+
+        def _asset_fallback(reg, sid, fallback_cls):
+            """运行时行弱判定（未分类）时，实时查同名资产并按其分类兜底。"""
+            try:
+                from agent.state_manager import get_skills_mgmt_service
+                a = get_skills_mgmt_service().get(sid)  # 资产库无此 id 会抛错
+                acls = reg.resolve(
+                    f"asset:{sid}",
+                    name=a.name or sid, description=a.description or "",
+                    content=a.content or "", tags=list(a.tags or []))
+                if acls and acls != UNCLASSIFIED:
+                    reg.mirror(f"asset:{sid}", f"rt:{sid}")
+                    return acls
+            except Exception:  # noqa: BLE001 资产侧缺失/失败时保持原判定
+                pass
+            return fallback_cls
+
         reg = SkillClassRegistry()
         auto_names = reg.auto_class_names()
         for s in installed:
@@ -219,6 +236,9 @@ def api_skills_get():
                     description=s.get("description", ""),
                     content=s.get("content", "") or s.get("script", ""),
                     tags=s.get("tags"))
+                if s["class_name"] == UNCLASSIFIED:
+                    s["class_name"] = _asset_fallback(
+                        reg, s.get("id", ""), s["class_name"])
                 s["class_auto"] = s.get("class_name") in auto_names
             except Exception:  # noqa: BLE001 单条失败不影响列表
                 s["class_name"] = UNCLASSIFIED
@@ -250,7 +270,7 @@ def api_skills_get():
 def api_skills_toggle():
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     from app_server import _skills_mgr, logger as _logger
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     skill_id = str(data.get("id", "") or "")
     if not skill_id:
         return jsonify({"ok": False, "error": "缺少 id"}), 400
@@ -332,7 +352,7 @@ def api_skills_toggle():
 @_log_request()
 def api_skills_describe():
     """手工补写某个运行时技能的中文说明（持久化到覆盖层）"""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     skill_id = str(data.get("id", "") or "")
     description = str(data.get("description", "") or "").strip()
     if not skill_id:
@@ -348,7 +368,7 @@ def api_skills_describe():
 @_log_request()
 def api_skills_describe_auto():
     """为缺描述的已知内置技能自动补中文说明（自省/邮件/记忆摘要等）"""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     ids = data.get("ids") or list(_CURATED_DESCRIPTIONS.keys())
     overlay = _load_desc_overlay()
     applied = []
@@ -367,13 +387,50 @@ def api_skills_describe_auto():
     return jsonify({"ok": ok, "applied": applied, "count": len(applied)})
 
 
+@bp.route("/api/skills/classify/run-auto", methods=["POST"])
+@_require_token
+@_log_request()
+def api_skills_classify_run_auto():
+    """运行时技能「一键自动分类」：为未归类（含未分类存量）重新判定，可自动建类。
+
+    与资产库共用分类注册表（rt: 命名空间）；人工移动过的不动。
+    """
+    from agent.skills_mgmt.categorizer import SkillClassRegistry
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _skills_mgr
+    installed = _skills_mgr.get_all()
+    seen = {s["id"] for s in installed}
+    # 扩展存储里额外安装的技能（与 /api/skills 视图一致）
+    try:
+        from agent.extensions.store import ExtensionStore
+        from agent.extensions.base import ExtensionType
+        ext_store = ExtensionStore()
+        for ext_type in (ExtensionType.SKILL, ExtensionType.CLAUDE_SKILL):
+            for ext in ext_store.list_all(ext_type):
+                ext_id = ext.get("ext_id", "")
+                if ext_id and ext_id not in seen:
+                    installed.append({
+                        "id": ext_id,
+                        "name": ext.get("name", ext_id),
+                        "description": ext.get("description", ""),
+                        "script": ext.get("script", ""),
+                        "config": ext.get("config", {}),
+                    })
+                    seen.add(ext_id)
+    except Exception:
+        pass
+    reg = SkillClassRegistry()
+    result = reg.run_auto(installed, ns="rt", force_unclassified=True)
+    return jsonify({"ok": True, **result})
+
+
 @bp.route("/api/skills/params", methods=["POST"])
 @_require_token
 @_log_request()
 def api_skills_params():
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     from app_server import _skills_mgr
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     return jsonify(_skills_mgr.update_params(data.get("id", ""), data.get("params", {})))
 
 
@@ -383,7 +440,7 @@ def api_skills_params():
 def api_skills_add():
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     from app_server import _skills_mgr
-    return jsonify(_skills_mgr.add(request.get_json() or {}))
+    return jsonify(_skills_mgr.add(request.get_json(silent=True) or {}))
 
 
 @bp.route("/api/skills/delete", methods=["POST"])
@@ -392,7 +449,7 @@ def api_skills_add():
 def api_skills_delete():
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     from app_server import _skills_mgr
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     skill_id = data.get("id", "")
 
     # 内置技能不可删除
@@ -472,7 +529,7 @@ def api_extensions_install():
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     from app_server import _extension_mgr
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         ext_type = data.get("type", "")
         source = data.get("source", data.get("id", ""))
         kwargs = data.get("params", {})
@@ -494,7 +551,7 @@ def api_extensions_uninstall():
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     from app_server import _extension_mgr
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         ext_type = data.get("type", "")
         ext_id = data.get("id", "")
 
@@ -515,7 +572,7 @@ def api_extensions_toggle():
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     from app_server import _extension_mgr
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         ext_type = data.get("type", "")
         ext_id = data.get("id", "")
         enabled = data.get("enabled")  # None 表示切换
@@ -537,7 +594,7 @@ def api_extensions_configure():
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     from app_server import _extension_mgr
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         ext_type = data.get("type", "")
         ext_id = data.get("id", "")
         config = data.get("config", {})
@@ -623,7 +680,7 @@ def api_extensions_channel_send():
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
     from app_server import _extension_mgr
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         channel_id = data.get("channel_id", "")
         message = data.get("message", "")
         kwargs = data.get("params", {})
@@ -672,7 +729,7 @@ def api_tools_config():
 @_log_request()
 def api_tools_toggle():
     """切换工具启用状态"""
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     tool_name = data.get("name", "")
     enabled = data.get("enabled", True)
     _set_tool_state(tool_name, enabled)
@@ -697,7 +754,7 @@ def api_tools_categories():
 @_require_token
 @_log_request()
 def api_tools_keywords_add():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     category = data.get("category", "")
     keyword = data.get("keyword", "").strip()
     if not category or not keyword:
@@ -711,7 +768,7 @@ def api_tools_keywords_add():
 @_require_token
 @_log_request()
 def api_tools_keywords_remove():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     category = data.get("category", "")
     keyword = data.get("keyword", "").strip()
     if not category or not keyword:
@@ -725,7 +782,7 @@ def api_tools_keywords_remove():
 @_require_token
 @_log_request()
 def api_tools_keywords_update():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     category = data.get("category", "")
     old_kw = data.get("old_keyword", "").strip()
     new_kw = data.get("new_keyword", "").strip()

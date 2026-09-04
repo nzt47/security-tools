@@ -8,13 +8,6 @@
       "params": {}
     },
     {
-      "id": "memory_summary",
-      "name": "记忆摘要",
-      "enabled": true,
-      "description": "定期压缩历史对话为结构化摘要",
-      "params": {}
-    },
-    {
       "id": "emotion_expression",
       "name": "情感表达",
       "enabled": true,
@@ -25,28 +18,52 @@
       "id": "proactive_suggestion",
       "name": "主动建议",
       "enabled": true,
-      "description": "在适当时机主动提出建议和想法",
+      "description": "在用户未明确提问时，基于对话上下文识别潜在需求，主动提出有依据的建议与后续想法",
       "params": {}
     },
     {
       "id": "context_aware",
       "name": "上下文感知",
       "enabled": true,
-      "description": "感知对话上下文变化，自动调整回应策略",
+      "description": "持续追踪对话主题、用户意图与时间线的演变，在上下文发生切换或漂移时自动调整回应策略与记忆检索范围",
       "params": {}
     },
     {
       "id": "safety_guard",
       "name": "安全守护",
       "enabled": true,
-      "description": "检测和过滤不安全的内容和操作",
+      "description": "在生成回应与执行工具调用前检测潜在风险内容，对敏感操作执行拦截、告警或要求二次确认，保障对话与操作安全",
       "params": {}
     },
     {
       "id": "voice_interaction",
       "name": "语音交互",
+      "enabled": true,
+      "description": "通过语音输入与输出与用户进行交互，支持语音转文字识别、文字转语音合成与语音指令路由，适用于免手操作与无障碍场景",
+      "params": {}
+    },
+    {
+      "id": "scripted-selftest",
+      "name": "带脚本技能示例",
+      "enabled": true,
+      "description": "三层架构示例技能，演示 skill.md 元数据 + scripts/main.py 执行脚本 + default_params 参数注入的完整契约，作为新增带脚本技能的参考模板",
+      "params": {
+        "greeting": "hello",
+        "count": 3
+      }
+    },
+    {
+      "id": "email-helper",
+      "name": "email-helper",
+      "enabled": true,
+      "description": "邮件处理助手，用于管理和回复邮件",
+      "params": {}
+    },
+    {
+      "id": "skill",
+      "name": "skill",
       "enabled": false,
-      "description": "通过语音与用户进行交互",
+      "description": "",
       "params": {}
     }
   ]

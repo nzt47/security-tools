@@ -139,7 +139,7 @@ def register_routes(app, state):
         Body: {name, intent, category?, tags?}
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             name = data.get("name", "").strip()
             intent = data.get("intent", "").strip()
             if not name or not intent:
@@ -163,7 +163,7 @@ def register_routes(app, state):
     def api_skills_mgmt_create_manual():
         """手动创建技能 — 直接提交完整字段"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             skill = _svc().create_manual(data)
             return jsonify({"ok": True, "skill": skill.model_dump()}), 201
         except SkillMgmtError as e:
@@ -181,7 +181,7 @@ def register_routes(app, state):
         Body: {source: 'github:user/repo' | 'url:...' | 'local:...' | 'registry:...', force?}
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             source = data.get("source", "").strip()
             if not source:
                 return jsonify({"ok": False, "error": "缺少 source"}), 400
@@ -306,7 +306,7 @@ def register_routes(app, state):
     def api_skills_mgmt_merge_safe():
         """安全合并：先写两侧快照(merge_id) 再执行合并，可一键撤销"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             src_id = str(data.get("src_id", "") or "")
             dst_id = str(data.get("dst_id", "") or "")
             strategy = str(data.get("strategy", "auto") or "auto")
@@ -395,7 +395,7 @@ def register_routes(app, state):
     def api_skills_mgmt_classes_move():
         """人工移动技能到指定分类（后续自动重判不再覆盖人工选择）。"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             skill_id = str(data.get("skill_id", "") or "")
             class_name = str(data.get("class_name", "") or "")
             if not skill_id or not class_name:
@@ -413,7 +413,7 @@ def register_routes(app, state):
     def api_skills_mgmt_merge_undo():
         """按 merge_id 撤销安全合并（恢复被删技能 + 回滚保留方）"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             merge_id = str(data.get("merge_id", "") or "")
             if not merge_id:
                 return jsonify({"ok": False, "error": "缺少 merge_id"}), 400
@@ -429,7 +429,7 @@ def register_routes(app, state):
     def api_skills_mgmt_redraft(skill_id: str):
         """生成「再定义」草稿（LLM 可选，失败回退确定性）：中文说明/展示名，供确认后应用"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             use_llm = bool(data.get("llm", False))
             result = _svc().suggest_redraft(skill_id, use_llm=use_llm)
             return jsonify({"ok": True, **result})
@@ -553,7 +553,7 @@ def register_routes(app, state):
                     "quality_min": t.quality_min,
                     "overall_min": t.overall_min,
                 }})
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             svc.reviewer.thresholds = ReviewThresholds(
                 duplicate_max=float(data.get("duplicate_max", 60.0)),
                 security_min=float(data.get("security_min", 70.0)),
@@ -577,7 +577,7 @@ def register_routes(app, state):
     def api_skills_mgmt_update(skill_id: str):
         """部分更新技能字段 (白名单: name/description/tags/content/...)"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             skill = _svc().update(skill_id, data)
             return jsonify({"ok": True, "skill": skill.model_dump()})
         except SkillMgmtError as e:
@@ -606,7 +606,7 @@ def register_routes(app, state):
     def api_skills_mgmt_toggle(skill_id: str):
         """切换启用状态 (防连点 — 由后端权威决定)"""
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             enabled = bool(data.get("enabled", True))
             skill = _svc().set_enabled(skill_id, enabled)
             return jsonify({"ok": True, "skill": skill.model_dump()})
@@ -645,7 +645,7 @@ def register_routes(app, state):
         Body: {kind: 'major'|'minor'|'patch', changelog?, content?}
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             kind = data.get("kind", "patch")
             bump = _svc().bump_version(
                 skill_id, kind,
@@ -673,7 +673,7 @@ def register_routes(app, state):
         Body: {target_version: 'x.y.z'}
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             target = data.get("target_version", "")
             if not target:
                 return jsonify({"ok": False, "error": "缺少 target_version"}), 400
@@ -716,7 +716,7 @@ def register_routes(app, state):
                # Dynamic Few-shot: feedback_rating=5 且 success=True 时自动采集
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             params_used = data.get("params_used")
             if params_used is not None and not isinstance(params_used, dict):
                 return jsonify({
@@ -796,7 +796,7 @@ def register_routes(app, state):
                 - VALIDATION_ERROR (400)
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             trace_id = str(data.get("trace_id", "") or "")
             feedback_type = str(data.get("feedback_type", "") or "")
             rating = int(data.get("rating", 0) or 0)
@@ -996,7 +996,7 @@ def register_routes(app, state):
                 - SKILL_NOT_FOUND (404)
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             src_id = str(data.get("src_id", "") or "")
             dst_id = str(data.get("dst_id", "") or "")
             strategy = str(data.get("strategy", "auto") or "auto")
@@ -1045,7 +1045,7 @@ def register_routes(app, state):
         Body: {min_jaccard?: 0.85, max_merges?: 10}
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             min_jaccard = float(data.get("min_jaccard", 0.85))
             max_merges = int(data.get("max_merges", 10))
             if min_jaccard < 0.5 or min_jaccard > 1.0:
@@ -1099,7 +1099,7 @@ def register_routes(app, state):
             {ok, matches: [...], total_scanned, elapsed_ms, estimated_total_tokens}
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             intent = (data.get("intent") or "").strip()
             if not intent:
                 return jsonify({"ok": False,
@@ -1173,7 +1173,7 @@ def register_routes(app, state):
         try:
             from agent.skills_mgmt.memory_abstractor import MemorySkillAbstractor
 
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             days = int(data.get("days", 30))
             max_skills = int(data.get("max_skills", 5))
             auto_register = bool(data.get("auto_register", False))
@@ -1270,7 +1270,7 @@ def register_routes(app, state):
             {ok, success, result?, error?, exit_code, duration_ms, timed_out}
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             script_name = data.get("script_name", "main.py")
             params = data.get("params")
             timeout = data.get("timeout")
@@ -1309,7 +1309,7 @@ def register_routes(app, state):
             {ok, prompt, matches, instruction?, estimated_tokens, layers_used}
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             intent = (data.get("intent") or "").strip()
             if not intent:
                 return jsonify({"ok": False,
@@ -1354,7 +1354,7 @@ def register_routes(app, state):
             {ok, command, result, ...} — 各命令的统一响应格式
         """
         try:
-            data = request.get_json() or {}
+            data = request.get_json(silent=True) or {}
             command = (data.get("command") or "").strip().lower()
             if not command:
                 return jsonify({

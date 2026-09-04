@@ -56,7 +56,14 @@ _GENERIC_TOKENS = {
     "ui", "new", "example", "the", "and", "for", "with", "from", "into",
     "v1", "v2", "ext", "self", "my", "tool", "run", "auto", "data",
     "script", "helper", "helper", "probe", "notes", "feedback", "weather",
+    "digest", "redraft", "audit", "clone", "version", "eval", "adv", "req",
+    "sma", "smb", "pub", "last", "legacy", "c3", "cr", "knob", "ver",
+    "selftest", "meta", "gen", "sync", "watch", "sys", "util", "utils",
+    "core", "base", "api", "app", "admin", "agent", "bot", "chat", "page",
+    "guide", "craft", "maker", "assistant", "generator", "master", "lab",
 }
+# 英文 token 触发「自动建类」的最短长度（防测试残留/短缩写产生碎片类）
+_AUTO_TOKEN_MIN_LEN = 5
 # 英文新概念 → 更友好的中文类名（可选；缺省用原 token）
 TOPIC_NAMES = {
     "meditation": "冥想", "mindfulness": "冥想正念",
@@ -195,7 +202,8 @@ def classify_fields(name: str = "", description: str = "",
                 auto_name = cand
         if auto_name is None:
             toks = [t for t in _ASCII_TOKEN.findall(str(name or "").lower())
-                    if len(t) >= 3 and t not in _GENERIC_TOKENS
+                    if len(t) >= _AUTO_TOKEN_MIN_LEN
+                    and t not in _GENERIC_TOKENS
                     and not _is_seed_like(t)]
             if toks:
                 t = toks[0]
@@ -314,7 +322,16 @@ class SkillClassRegistry:
             verdict = classify_fields(name, description, content, tags)
             confident = verdict.get("class")  # 种子类置信命中
             cls_name = confident
-            if cls_name is None:
+            # 运行时生态弱判定（无置信种子命中：未分类/名称派生弱类）→
+            # 回退同名资产分类（asset: 为准，信息更全；资产人工移动过则不受影响）
+            asset_fallback = False
+            if key.startswith("rt:") and confident is None:
+                sid = key.split(":", 1)[1]
+                akey = f"asset:{sid}"
+                if akey in assignments and akey not in manual:
+                    cls_name = assignments[akey]
+                    asset_fallback = True
+            if cls_name is None and not asset_fallback:
                 auto_name = verdict.get("auto_name") or UNCLASSIFIED
                 if auto_name != UNCLASSIFIED:
                     st.setdefault("auto_classes", {}).setdefault(
@@ -324,21 +341,27 @@ class SkillClassRegistry:
                         st["auto_classes"][auto_name].get("hits", 0) + 1
                 cls_name = auto_name
             if key in assignments:
-                if confident is None:
+                if confident is None and not asset_fallback:
                     return assignments[key]  # 弱判定不覆盖既有归类
-                assignments[key] = cls_name  # 置信种子命中 → 重分类
+                assignments[key] = cls_name  # 置信命中/资产回退 → 落盘
             else:
                 assignments[key] = cls_name
             self._save(st)
             return cls_name
 
-    def run_auto(self, skills: List[Dict[str, Any]], ns: str = "asset"
-                 ) -> Dict[str, Any]:
-        """对一组技能批量自动归类；返回统计（不重复处理已归类项）。"""
+    def run_auto(self, skills: List[Dict[str, Any]], ns: str = "asset",
+                 force_unclassified: bool = False) -> Dict[str, Any]:
+        """对一组技能批量自动归类；返回统计。
+
+        - 默认只补未记录项（人工/已有归类不受影响）；
+        - force_unclassified=True 时，落在「未分类」的存量也重新判定一次
+          （仍尊重人工移动 manual）。
+        """
         classified, created, by_class = 0, 0, {}
         with _REG_LOCK:
             st = self._load()
             assignments = st.setdefault("assignments", {})
+            manual = set(st.get("manual", []))
             auto_classes = st.setdefault("auto_classes", {})
             for s in skills:
                 sid = str(s.get("id", ""))
@@ -346,9 +369,15 @@ class SkillClassRegistry:
                     continue
                 key = f"{ns}:{sid}"
                 if key in assignments:
-                    by_class[assignments[key]] = by_class.get(
-                        assignments[key], 0) + 1
-                    continue
+                    if key in manual:
+                        by_class[assignments[key]] = by_class.get(
+                            assignments[key], 0) + 1
+                        continue
+                    if not (force_unclassified
+                            and assignments[key] == UNCLASSIFIED):
+                        by_class[assignments[key]] = by_class.get(
+                            assignments[key], 0) + 1
+                        continue
                 verdict = classify_fields(
                     s.get("name", ""), s.get("description", ""),
                     s.get("content", "") or s.get("script", ""),

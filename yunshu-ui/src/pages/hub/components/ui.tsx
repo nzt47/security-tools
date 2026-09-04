@@ -140,7 +140,7 @@ export function PageHeader({ title, description, actions }: { title: string; des
 
 /** 通用请求 hook：GET JSON，返回 {data, loading, error, reload} */
 export async function hubGet<T = unknown>(url: string, token?: string | null): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const headers: Record<string, string> = {}
   if (token) headers.Authorization = `Bearer ${token}`
   const res = await fetch(url, { headers })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -148,9 +148,15 @@ export async function hubGet<T = unknown>(url: string, token?: string | null): P
 }
 
 export async function hubPost<T = unknown>(url: string, body?: unknown, token?: string | null): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  const headers: Record<string, string> = {}
+  // 仅确有 body 时声明 JSON 内容类型：空 body + JSON 头会让 Flask get_json() 抛 400
+  if (body !== undefined && body !== null) headers['Content-Type'] = 'application/json'
   if (token) headers.Authorization = `Bearer ${token}`
-  const res = await fetch(url, { method: 'POST', headers, body: body ? JSON.stringify(body) : undefined })
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: body !== undefined && body !== null ? JSON.stringify(body) : undefined,
+  })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json() as Promise<T>
 }

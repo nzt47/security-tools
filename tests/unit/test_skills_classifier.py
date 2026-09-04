@@ -134,6 +134,23 @@ class TestRegistry:
         assert reg.assignment("asset:b") == UNCLASSIFIED
         assert reg.assignment("asset:c") == "语音与多媒体"
 
+    def test_run_auto_force_reclassifies_unclassified_keeps_manual(self, reg):
+        # 自动判定落「未分类」的存量，在 force 下可被重新归类
+        reg.resolve("asset:x", name="xx", description="", content="print(1)")
+        assert reg.assignment("asset:x") == UNCLASSIFIED
+        reg.assign("asset:y", "未分类")  # 人工钉住未分类
+        skills = [
+            {"id": "x", "name": "语音播报", "description": "通过语音朗读", "content": ""},
+            {"id": "y", "name": "yy", "description": "", "content": ""},
+        ]
+        out = reg.run_auto(skills, ns="asset", force_unclassified=True)
+        assert out["classified"] == 1
+        assert reg.assignment("asset:x") == "语音与多媒体"  # 自动未分类被重判
+        assert reg.assignment("asset:y") == UNCLASSIFIED    # 人工保留
+        # 非 force 时不再重判
+        out2 = reg.run_auto(skills, ns="asset")
+        assert out2["classified"] == 0
+
     def test_group_summary(self, reg):
         reg.resolve("asset:a", name="语音助手", description="语音交互", content="")
         reg.resolve("asset:b", name="mock", description="Mock", content="print(1)")
@@ -151,6 +168,18 @@ class TestRegistry:
         assert reg.assignment("rt:x") == "邮件与通讯"
         assert reg.mirror("asset:x", "rt:x") is True
         assert reg.assignment("rt:x") == "语音与多媒体"  # 资产侧胜出（自动跟随）
+
+    def test_runtime_weak_verdict_falls_back_to_asset_class(self, reg):
+        reg.resolve("asset:y", name="易之三义", description="Yi-Jing Coding Agent",
+                    content="coding agent")
+        assert reg.assignment("asset:y") == "代码与工程"
+        # 运行时行缺正文/描述 → 弱判定未分类 → 回退资产分类
+        cls = reg.resolve("rt:y", name="易之三义", description="", content="")
+        assert cls == "代码与工程"
+        assert reg.assignment("rt:y") == "代码与工程"
+        # 运行时人工钉住的不回退
+        reg.assign("rt:y", "未分类")
+        assert reg.resolve("rt:y", name="易之三义", description="", content="") == "未分类"
 
     def test_mirror_keeps_runtime_manual(self, reg):
         reg.resolve("asset:x", name="语音助手", description="语音交互", content="")
