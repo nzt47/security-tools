@@ -208,6 +208,147 @@ class SkillsMgmtService:
         except Exception:  # noqa: BLE001 检测失败不阻断（后续权威 digest 仍会拦截）
             return None
 
+    # ─── 云枢自动完成评审改进（QUAL_NO_SCHEMA / QUAL_NO_TAGS / DATA_COLLECT_SENSITIVE）───
+
+    @staticmethod
+    def _content_type_tags(content_type: str) -> List[str]:
+        """按内容类型给出基础标签候选（保证至少有稳定标签可检索）。"""
+        m = {
+            "python": ["脚本", "python"],
+            "javascript": ["脚本", "javascript"],
+            "js": ["脚本", "js"],
+            "shell": ["脚本", "shell"],
+            "markdown": ["指令型"],
+            "text": ["指令型"],
+            "yaml": ["配置"],
+            "json": ["配置"],
+        }
+        return list(m.get(str(content_type or "").lower(), ["指令型"]))
+
+    def _derive_tags(self, skill, current: List[str]) -> List[str]:
+        """由 现有标签 + 内容类型 + 自动分类 推导 2-5 个检索标签。"""
+        import re as _re
+        tags: List[str] = []
+        for t in (current or []):
+            s = str(t).strip()
+            if s and s not in tags:
+                tags.append(s)
+        for t in self._content_type_tags(skill.content_type):
+            if t not in tags:
+                tags.append(t)
+        try:
+            cls = self._class_registry.assignment(f"asset:{skill.id}")
+        except Exception:  # noqa: BLE001
+            cls = None
+        if cls and str(cls) != "未分类" and str(cls) not in tags:
+            tags.append(str(cls))
+        if len(tags) < 2:  # 兜底：名称派生的稳定 token
+            name = str(skill.name or skill.id or "")
+            tok = ""
+            mm = _re.search(r"[a-zA-Z0-9][a-zA-Z0-9_\-]{2,}", name)
+            if mm:
+                tok = mm.group(0)
+            else:
+                cjk = _re.findall(r"[\u4e00-\u9fff]{2,}", name)
+                if cjk:
+                    tok = cjk[0]
+            if tok and tok not in tags:
+                tags.append(tok[:12])
+        return tags[:5]
+
+    @staticmethod
+    def _build_config_schema(skill) -> Dict[str, Any]:
+        """依 default_params 生成 config_schema（无参数则给自由任务描述型 schema）。"""
+        dp = getattr(skill, "default_params", None) or {}
+        if isinstance(dp, dict) and dp:
+            props: Dict[str, Any] = {}
+            for k, v in dp.items():
+                if isinstance(v, bool):
+                    t = "boolean"
+                elif isinstance(v, (int, float)):
+                    t = "number"
+                else:
+                    t = "string"
+                props[str(k)] = {"type": t, "title": str(k)}
+            return {"type": "object", "properties": props,
+                    "additionalProperties": True}
+        return {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": True,
+            "description": "无固定参数：调用方可直接传入自由文本任务描述",
+        }
+
+    def apply_auto_fixes(self, skill_id: str,
+                         codes: Optional[List[str]] = None) -> Dict[str, Any]:
+        """云枢自动完成评审改进：补 config_schema / 标签 / is_sensitive 后重新评审。
+
+        Args:
+            skill_id: 技能 id
+            codes: 限定修复哪些 code（缺省自动应用评审发现中的全部可修复项）
+        """
+        import json as _json
+        skill = self._require(skill_id)
+        fixable = {"QUAL_NO_SCHEMA", "QUAL_NO_TAGS", "DATA_COLLECT_SENSITIVE"}
+        findings = list(skill.review.findings or []) if skill.review else []
+        present = {f.code for f in findings}
+        wanted = (set(codes) & fixable) if codes else (present & fixable)
+        if not wanted:
+            return {"ok": True, "applied": [], "applied_codes": [],
+                    "already_fixed": [], "skipped": [], "refreshed": False}
+
+        patch: Dict[str, Any] = {}
+        applied: List[Dict[str, Any]] = []
+        skipped: List[str] = []
+        for code in sorted(wanted):
+            if code == "DATA_COLLECT_SENSITIVE":
+                if getattr(skill, "is_sensitive", False):
+                    skipped.append(code)
+                else:
+                    patch["is_sensitive"] = True
+                    applied.append({"code": code,
+                                    "action": "标记 is_sensitive=true（隔离注入 + 合规处理）",
+                                    "detail": "is_sensitive=true"})
+            elif code == "QUAL_NO_TAGS":
+                cur_tags = list(skill.tags or [])
+                if len(cur_tags) >= 2:  # 已有 2-5 个标签即视为就绪
+                    skipped.append(code)
+                else:
+                    new_tags = self._derive_tags(skill, cur_tags)
+                    if set(new_tags) == set(cur_tags):
+                        skipped.append(code)
+                    else:
+                        patch["tags"] = new_tags
+                        applied.append({"code": code,
+                                        "action": f"自动补齐检索标签 → {new_tags}",
+                                        "detail": str(new_tags)})
+            elif code == "QUAL_NO_SCHEMA":
+                if getattr(skill, "config_schema", None):
+                    skipped.append(code)
+                else:
+                    schema = self._build_config_schema(skill)
+                    patch["config_schema"] = schema
+                    applied.append({"code": code,
+                                    "action": "自动生成 config_schema（供前端生成配置 UI）",
+                                    "detail": _json.dumps(schema, ensure_ascii=False)[:200]})
+        if not patch:
+            return {"ok": True, "applied": [], "applied_codes": [],
+                    "already_fixed": sorted(wanted), "skipped": skipped,
+                    "refreshed": False}
+        self.update(skill_id, patch)   # 持久化（含自动归类钩子）
+        refreshed = False
+        try:  # 重新权威评审-消化，刷新发现（修复项应消失）
+            self.digest_skill(skill_id)
+            refreshed = True
+        except Exception as e:  # noqa: BLE001 刷新失败不阻断返回
+            logger.warning("[Service] 自动修复后重新评审失败 skill=%s: %s",
+                           skill_id, e)
+        return {"ok": True, "applied": applied,
+                "applied_codes": [a["code"] for a in applied],
+                "already_fixed": sorted(wanted - {a["code"] for a in applied}
+                                        if not skipped else []),
+                "skipped": skipped, "refreshed": refreshed}
+
     # ─── 外来安装预检 / 导入审核队列 ───
 
     def install_precheck(self, source: str) -> Dict[str, Any]:

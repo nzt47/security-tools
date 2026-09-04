@@ -770,3 +770,65 @@ class TestNativeDuplicateRule:
         # force=True 显式豁免可进入
         ok = svc.install("local:mem", force=True)
         assert ok.id == "inst-mem"
+
+
+# ═══════════════════════════════════════════════════════════════
+#  云枢自动完成评审改进（QUAL_NO_SCHEMA / QUAL_NO_TAGS / 敏感标记）
+# ═══════════════════════════════════════════════════════════════
+
+class TestAutoFixRule:
+    """apply_auto_fixes：补 config_schema / 检索标签 / is_sensitive 并重新评审。"""
+
+    def _seed(self, svc, sid, **extra):
+        from agent.skills_mgmt.models import Skill as SK
+        data = dict(
+            id=sid, name=sid, description="desc-" + sid,
+            content="# " + sid, content_type="markdown",
+            category="custom", tags=[], author="tester", enabled=False,
+        )
+        data.update(extra)
+        svc.store.upsert(SK.from_storage_dict(data))
+
+    def test_schema_generated_from_default_params(self, svc):
+        self._seed(svc, "cfg-x", default_params={"top_k": 3, "verbose": True})
+        out = svc.apply_auto_fixes("cfg-x", codes=["QUAL_NO_SCHEMA"])
+        assert any(a["code"] == "QUAL_NO_SCHEMA" for a in out["applied"])
+        s = svc.get("cfg-x")
+        assert s.config_schema
+        props = s.config_schema["properties"]
+        assert props["top_k"]["type"] == "number"
+        assert props["verbose"]["type"] == "boolean"
+        assert out["refreshed"] is True  # 已重新评审
+
+    def test_schema_generic_when_no_params(self, svc):
+        self._seed(svc, "cfg-y")
+        out = svc.apply_auto_fixes("cfg-y", codes=["QUAL_NO_SCHEMA"])
+        assert any(a["code"] == "QUAL_NO_SCHEMA" for a in out["applied"])
+        assert svc.get("cfg-y").config_schema["type"] == "object"
+
+    def test_tags_derived_at_least_two(self, svc):
+        self._seed(svc, "tag-x", content_type="markdown", name="语音助手")
+        out = svc.apply_auto_fixes("tag-x", codes=["QUAL_NO_TAGS"])
+        assert any(a["code"] == "QUAL_NO_TAGS" for a in out["applied"])
+        tags = list(svc.get("tag-x").tags or [])
+        assert len(tags) >= 2
+        assert "指令型" in tags  # content_type 派生
+        assert len(tags) <= 5
+
+    def test_sensitive_marked(self, svc):
+        self._seed(svc, "sens-x",
+                   content="处理用户手机号 13800138000 与姓名用于推荐")
+        out = svc.apply_auto_fixes("sens-x", codes=["DATA_COLLECT_SENSITIVE"])
+        assert any(a["code"] == "DATA_COLLECT_SENSITIVE" for a in out["applied"])
+        assert svc.get("sens-x").is_sensitive is True
+
+    def test_nothing_to_fix_returns_empty(self, svc):
+        # 已具备 schema + 标签 → 无需改动
+        self._seed(svc, "ok-x", config_schema={"type": "object",
+                                               "properties": {}},
+                   tags=["a", "b"])
+        out = svc.apply_auto_fixes("ok-x", codes=["QUAL_NO_SCHEMA",
+                                                  "QUAL_NO_TAGS"])
+        assert out["applied"] == []
+        assert set(out["already_fixed"]) <= {"QUAL_NO_SCHEMA", "QUAL_NO_TAGS"}
+        assert out["refreshed"] is False

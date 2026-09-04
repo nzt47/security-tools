@@ -483,6 +483,32 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/skills-mgmt/<skill_id>/fix-auto", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_mgmt_fix_auto(skill_id: str):
+        """云枢自动完成评审改进（确定性补丁 + 重新评审）：
+
+        - QUAL_NO_SCHEMA → 依 default_params/内容生成 config_schema
+        - QUAL_NO_TAGS   → 按分类/内容类型自动补齐 2-5 个标签
+        - DATA_COLLECT_SENSITIVE → 自动标记 is_sensitive=true（隔离注入+合规）
+
+        Body: {codes?: [str]} — 缺省自动应用全部可修复项
+        """
+        try:
+            data = request.get_json(silent=True) or {}
+            codes = data.get("codes")
+            if codes is not None and not isinstance(codes, list):
+                return jsonify({"ok": False,
+                                "error": "codes 必须是 list"}), 400
+            result = _svc().apply_auto_fixes(skill_id, codes=codes)
+            return jsonify({"ok": True, **result})
+        except SkillMgmtError as e:
+            return _err(e)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/skills-mgmt/digest/<skill_id>", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token
@@ -1365,7 +1391,7 @@ def register_routes(app, state):
     #  P1.5 Slash 命令解析器 — 统一入口
     # ═══════════════════════════════════════════════════
 
-    @app.route("/api/skills-mgmt/skill/<skill_id>", methods=["POST"])
+    @app.route("/api/skills-mgmt/slash/<skill_id>", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token
     @log_request(show_response=False)

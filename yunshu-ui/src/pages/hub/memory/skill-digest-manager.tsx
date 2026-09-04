@@ -606,7 +606,8 @@ export default function SkillDigestManager() {
         />
       )}
       {adviceTarget && (
-        <AdviceModal item={adviceTarget} onClose={() => setAdviceTarget(null)} />
+        <AdviceModal item={adviceTarget} onClose={() => setAdviceTarget(null)}
+          onDone={() => { void load(); void refreshQueue() }} />
       )}
       {versionsTarget && (
         <VersionsModal item={versionsTarget} onClose={() => setVersionsTarget(null)}
@@ -1270,17 +1271,24 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 }
 
 // ── 学习/迭代建议弹窗（参数优化 + 评审改进意见 + 自动修复建议）────────────────────────
-function AdviceModal({ item, onClose }: { item: SkillItem; onClose: () => void }) {
+function AdviceModal({ item, onClose, onDone }: { item: SkillItem; onClose: () => void; onDone?: () => void }) {
   const [sug, setSug] = useState<string[]>([])
   const [busy, setBusy] = useState(true)
   const [err, setErr] = useState('')
   const [fixList, setFixList] = useState<{ code?: string; severity?: string; finding?: string; fix?: string }[]>([])
+  const [fixBusy, setFixBusy] = useState(false)
+  const [fixMsg, setFixMsg] = useState('')
   useEffect(() => {
     let cancelled = false
     hubPost<{ suggestions?: string[] }>(`/api/skills-mgmt/${item.id}/optimize`).then((r) => {
       if (cancelled) return
       setSug(Array.isArray(r?.suggestions) ? r.suggestions : [])
-    }).catch((e) => { if (!cancelled) setErr(e instanceof Error ? e.message : String(e)) })
+    }).catch((e) => {
+      if (cancelled) return
+      const m = e instanceof Error ? e.message : String(e)
+      // 后端 4xx（如暂无执行数据）按“暂无建议”优雅降级，不显示红色 HTTP 400
+      if (!/^HTTP 4/.test(m)) setErr(m)
+    })
       .finally(() => { if (!cancelled) setBusy(false) })
     hubPost<{ fixes?: { code?: string; severity?: string; finding?: string; fix?: string }[] }>(
       `/api/skills-mgmt/${item.id}/suggest-fix`,
@@ -1288,6 +1296,25 @@ function AdviceModal({ item, onClose }: { item: SkillItem; onClose: () => void }
     return () => { cancelled = true }
   }, [item.id])
   const rv = item.review
+  /** 评审发现中云枢可直接自动完成的项 */
+  const AUTO_FIX_CODES = ['QUAL_NO_SCHEMA', 'QUAL_NO_TAGS', 'DATA_COLLECT_SENSITIVE'] as const
+  const autoCodes = [...new Set((rv?.findings ?? [])
+    .map((f) => f.code)
+    .filter((c): c is typeof AUTO_FIX_CODES[number] => (AUTO_FIX_CODES as readonly string[]).includes(c ?? '')))]
+  const runAutoFix = async () => {
+    if (autoCodes.length === 0) return
+    setFixBusy(true); setFixMsg('')
+    try {
+      const r = await hubPost<{ applied?: { code?: string; action?: string }[]; applied_codes?: string[]; already_fixed?: string[]; refreshed?: boolean }>(
+        `/api/skills-mgmt/${item.id}/fix-auto`, { codes: autoCodes })
+      const appliedN = (r?.applied_codes ?? []).length
+      const done = (r?.already_fixed ?? []).length
+      setFixMsg(`云枢已完成自动修复：应用 ${appliedN} 项${done ? `，另 ${done} 项已就绪无需改动` : ''}${r?.refreshed ? '，并已重新评审（建议关闭后重新打开查看最新结论）' : ''}。`)
+      onDone?.()
+    } catch (e) {
+      setFixMsg(`自动修复失败：${e instanceof Error ? e.message : String(e)}`)
+    } finally { setFixBusy(false) }
+  }
   const digestAdvice: string[] = []
   if (rv) {
     if (rv.digest_verdict === 'block') digestAdvice.push('评审存在阻断项：先处理 critical/error 发现并重新「评审-消化」后再发布。')
@@ -1337,6 +1364,21 @@ function AdviceModal({ item, onClose }: { item: SkillItem; onClose: () => void }
             ))}
           </ul>
         </>
+      )}
+      {autoCodes.length > 0 && (
+        <div className="mb-3 rounded-md border border-emerald-800/60 bg-emerald-950/20 px-2.5 py-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-medium text-emerald-300">云枢可自动完成（{autoCodes.length} 项）</span>
+            <span className="text-[10px] text-emerald-500/80">
+              {autoCodes.map((c) => c === 'QUAL_NO_SCHEMA' ? '补 config_schema' : c === 'QUAL_NO_TAGS' ? '补检索标签' : '标记敏感隔离').join(' · ')}
+            </span>
+            <button type="button" className={`${BTN_EM} ml-auto`} onClick={() => void runAutoFix()} disabled={fixBusy}
+              title="一键让云枢自动补 config_schema / 标签 / is_sensitive，并重新评审">
+              {fixBusy ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />} 一键自动修复并重新评审
+            </button>
+          </div>
+          {fixMsg && <p className="mt-1.5 text-[11px] text-emerald-300">{fixMsg}</p>}
+        </div>
       )}
       <div className="mt-3 flex justify-end">
         <button type="button" className={BTN} onClick={onClose}>关闭</button>
@@ -1741,7 +1783,7 @@ function CommandModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
       try { body.params = paramsText.trim() ? JSON.parse(paramsText) : {} } catch { setErr('patch 需为合法 JSON'); setBusy(false); return }
     }
     try {
-      const r = await hubPost<{ ok?: boolean; error?: string }>(`/api/skills-mgmt/skill/${item.id}`, body)
+      const r = await hubPost<{ ok?: boolean; error?: string }>(`/api/skills-mgmt/slash/${item.id}`, body)
       setOut(JSON.stringify(r, null, 2).slice(0, 3000))
       // 成功执行/打补丁后刷新父级行数据（启用状态、描述等可能已变化）
       if (r && r.ok !== false) onDone?.()
@@ -1750,7 +1792,7 @@ function CommandModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
   }
   return (
     <ModalShell title={`斜杠命令 · ${item.name || item.id}`} onClose={onClose}>
-      <p className="mb-2 text-[11px] text-slate-500">技能库已接入统一 Slash 解析器（/api/skills-mgmt/skill/&lt;id&gt;）——直接执行 info / versions / execute / params。</p>
+      <p className="mb-2 text-[11px] text-slate-500">技能库已接入统一 Slash 解析器（/api/skills-mgmt/slash/&lt;id&gt;）——直接执行 info / versions / execute / params。</p>
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
         {['info', 'versions', 'execute', 'params'].map((c) => (
           <button key={c} type="button"
