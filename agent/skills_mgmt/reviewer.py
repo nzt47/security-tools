@@ -342,9 +342,10 @@ class SkillReviewer:
                          skill.id, dup_score, dup_with or "-")
             if dup_score >= self.thresholds.duplicate_max:
                 findings.append(ReviewFinding(
-                    severity="error", category="duplicate",
+                    severity="warn", category="duplicate",
                     code="DUPLICATE_HIGH",
-                    message=f"与已有技能重复度 {dup_score:.1f}% (>= {self.thresholds.duplicate_max}%)",
+                    message=f"与已有技能重复度 {dup_score:.1f}% (>= {self.thresholds.duplicate_max}%)"
+                            "——吸收策略：不再整包拒绝，重叠部分按增量吸收，可用「合并」并入已有技能",
                     location=",".join(dup_with) if dup_with else None,
                 ))
             elif dup_score >= 30.0:
@@ -394,14 +395,10 @@ class SkillReviewer:
             originality = 100.0 - dup_score
             overall = (sec_score * 0.5 + qual_score * 0.3 + originality * 0.2)
 
-            # 5) 决策
-            failed = (
-                dup_score >= self.thresholds.duplicate_max
-                or sec_score < self.thresholds.security_min
-                or qual_score < self.thresholds.quality_min
-                or overall < self.thresholds.overall_min
-            )
-            status = ReviewStatus.FAILED if failed else ReviewStatus.PASSED
+            # 5) 决策（吸收优先策略：重复/质量/综合分不足不再整包拒绝——
+            #    重叠部分按增量吸收，由「合并/去重」流程兜底；仅 critical 级安全
+            #    风险在上方 SecurityScanner 已抛错判 REJECTED 直接返回）
+            status = ReviewStatus.PASSED
             logger.info(
                 "[Reviewer] 审核决策 skill=%s status=%s overall=%.2f "
                 "dup=%.2f/%s sec=%.2f/%s qual=%.2f/%s",
@@ -412,12 +409,14 @@ class SkillReviewer:
 
             summary_parts = []
             if dup_score >= self.thresholds.duplicate_max:
-                summary_parts.append(f"重复度过高 ({dup_score:.0f}%)")
+                summary_parts.append(f"与已有技能重复度较高 ({dup_score:.0f}%)——已按吸收策略保留增量，建议用「合并」吸收")
+            if dup_score >= 30.0 and dup_score < self.thresholds.duplicate_max:
+                summary_parts.append(f"疑似重复 ({dup_score:.0f}%)")
             if sec_score < self.thresholds.security_min:
-                summary_parts.append(f"安全分过低 ({sec_score:.0f})")
+                summary_parts.append(f"安全分偏低 ({sec_score:.0f})")
             if qual_score < self.thresholds.quality_min:
-                summary_parts.append(f"质量分过低 ({qual_score:.0f})")
-            summary = "；".join(summary_parts) if summary_parts else "审核通过"
+                summary_parts.append(f"质量分偏低 ({qual_score:.0f})，建议完善后再次消化")
+            summary = "；".join(summary_parts) if summary_parts else "审核通过（增量吸收）"
 
             result = ReviewResult(
                 status=status,

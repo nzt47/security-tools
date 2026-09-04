@@ -275,7 +275,7 @@ class TestImportQueueAndPrecheck:
         assert ids == {"ext-1", "ext-2"}
         assert q[0]["review"] is None or isinstance(q[0]["review"], dict)
 
-    def test_precheck_local_native_dup_reports_blocked(self, svc, tmp_path):
+    def test_precheck_local_native_dup_reports_absorb(self, svc, tmp_path):
         import json
         p = tmp_path / "dup-mem.json"
         p.write_text(json.dumps({
@@ -285,7 +285,9 @@ class TestImportQueueAndPrecheck:
         }, ensure_ascii=False), encoding="utf-8")
         out = svc.install_precheck("local:" + str(p))
         assert out["ok"] is True
-        assert out["blocked"] is True
+        # 吸收优先：原生重叠不再是阻断项（blocked=False），提示按增量吸收
+        assert out["blocked"] is False
+        assert out["overlap_action"] == "absorb"
         assert any(n["id"] == "memory_summary" for n in out["native_dups"])
         assert any(f["code"] == "DUP_NATIVE_FUNC" for f in out["findings"])
 

@@ -3,6 +3,7 @@
  */
 import type { ReactNode } from 'react'
 import { Loader2, AlertTriangle, Inbox } from 'lucide-react'
+import { getApiToken } from '../../../lib/apiToken'
 
 /** 面板卡片：标题 + 可选操作区 + 内容 */
 export function Card({
@@ -141,7 +142,9 @@ export function PageHeader({ title, description, actions }: { title: string; des
 /** 通用请求 hook：GET JSON，返回 {data, loading, error, reload} */
 export async function hubGet<T = unknown>(url: string, token?: string | null): Promise<T> {
   const headers: Record<string, string> = {}
-  if (token) headers.Authorization = `Bearer ${token}`
+  // 未显式传令牌时自动附带本地保存的 API 令牌（受保护写接口 401 的集中根治）
+  const auth = token !== undefined && token !== null ? token : getApiToken()
+  if (auth) headers.Authorization = `Bearer ${auth}`
   const res = await fetch(url, { headers })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json() as Promise<T>
@@ -151,7 +154,8 @@ export async function hubPost<T = unknown>(url: string, body?: unknown, token?: 
   const headers: Record<string, string> = {}
   // 仅确有 body 时声明 JSON 内容类型：空 body + JSON 头会让 Flask get_json() 抛 400
   if (body !== undefined && body !== null) headers['Content-Type'] = 'application/json'
-  if (token) headers.Authorization = `Bearer ${token}`
+  const auth = token !== undefined && token !== null ? token : getApiToken()
+  if (auth) headers.Authorization = `Bearer ${auth}`
   const res = await fetch(url, {
     method: 'POST',
     headers,

@@ -180,22 +180,18 @@ class SkillsMgmtService:
         skill = self.creator.install(source, force=force)
         self._advisory_digest(skill.id)   # 外来技能进入即自动评审-消化
         self._auto_classify(skill.id)     # 外来技能自动归类（可自动新建类）
-        # 与云枢自身功能重复的外来技能「禁止进入」（force=True 显式豁免）
+        # 吸收策略：与云枢自身功能重叠 ≠ 整包拒绝——保留技能并标记「增量吸收」
+        # （原生未覆盖的增量内容照常可用；重叠提示由 digest 以 warn 呈现）
         dup = self.reject_native_duplicate(skill)
-        if dup and not force:
-            try:
-                self.delete(skill.id)
-            except Exception:  # noqa: BLE001 尽力清理
-                pass
-            raise SkillMgmtError(
-                f"外来技能与云枢自身功能重复，禁止进入：{dup}。"
-                f"系统已内置该能力，请直接使用或改造为增量能力（若确需保留请 force）")
+        if dup:
+            self.absorb_overlap(skill.id, overlap=dup, source="install")
         return self._require(skill.id)
 
     def reject_native_duplicate(self, skill) -> Optional[str]:
-        """检测技能是否与云枢自身功能重复；返回匹配说明（None=无重复）。
+        """检测技能是否与云枢自身功能重叠；返回重叠说明（None=无重叠）。
 
-        审核规则：与系统本身功能重复的技能不得进入（DUP_NATIVE_FUNC 阻断项）。
+        注意：仅作「检测/提示」，不再删除或拒绝——调用方应改用 absorb_overlap
+        按增量吸收保留（吸收优先策略）。
         """
         try:
             from .assessor import detect_native_duplicates
@@ -205,8 +201,35 @@ class SkillsMgmtService:
                 return None
             return "、".join(
                 f"「{h['name']}」({h['id']})" for h in hits)
-        except Exception:  # noqa: BLE001 检测失败不阻断（后续权威 digest 仍会拦截）
+        except Exception:  # noqa: BLE001 检测失败不阻断（后续权威 digest 仍会提示）
             return None
+
+    def absorb_overlap(self, skill_id: str, *,
+                       overlap: str = "", source: str = "import") -> Skill:
+        """吸收优先策略：与原生/已有能力重叠时不再整包拒绝。
+
+        保留技能并打上吸收标记（absorbed / native-overlap），记录 digest 吸收事件，
+        让「原生与已有技能未覆盖的增量」继续走评审-消化/合并流程吸收进来。
+        """
+        skill = self._require(skill_id)
+        tags = list(skill.tags or [])
+        add = ["absorbed"]
+        if overlap:
+            add.append("native-overlap")
+        changed = False
+        for t in add:
+            if t not in tags:
+                tags.append(t)
+                changed = True
+        if changed:
+            skill.tags = tags
+            skill.touch()
+            self.store.upsert(skill)
+        self._emit_digest_event(
+            skill_id, "absorb", "ok",
+            f"{source}: 与已有/原生能力重叠，已按「增量吸收」保留（不再整包拒绝）。"
+            + (f" 重叠项: {overlap}" if overlap else ""))
+        return skill
 
     # ─── 云枢自动完成评审改进（QUAL_NO_SCHEMA / QUAL_NO_TAGS / DATA_COLLECT_SENSITIVE）───
 
@@ -352,9 +375,11 @@ class SkillsMgmtService:
     # ─── 外来安装预检 / 导入审核队列 ───
 
     def install_precheck(self, source: str) -> Dict[str, Any]:
-        """外来安装「预检」：拉取来源 payload 并评估（与云枢自身功能重复/阻断项），不落库。
+        """外来安装「预检」：拉取来源 payload 并评估（重叠提示 / 安全合规阻断），不落库。
 
         与 install 相同的来源解析与抓取，失败返回 {ok: False, error}。
+        吸收策略：与原生/已有能力重叠不再算阻断（blocked 仅指安全/合规 critical/error），
+        重叠项会作为「增量吸收」提示返回（overlap_action="absorb"）。
         """
         try:
             scheme, payload = self.creator._installer.fetch_payload(source)  # noqa: SLF001
@@ -371,7 +396,8 @@ class SkillsMgmtService:
                 "source": source,
                 "skill_id": skill.id,
                 "skill_name": skill.name or skill.id,
-                "blocked": digest.blocked or bool(natives),
+                "blocked": digest.blocked,
+                "overlap_action": "absorb" if natives else "",
                 "native_dups": [
                     {"id": n["id"], "name": n["name"],
                      "matched": n.get("matched", [])} for n in natives],

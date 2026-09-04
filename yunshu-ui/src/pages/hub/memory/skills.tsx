@@ -6,10 +6,11 @@
  * 确定性、本地执行的「工作流技能」不在此列（见技能中心 → 工作流技能 Tab）。
  */
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, Layers, Loader2, Power } from 'lucide-react'
+import { ChevronDown, ChevronRight, Eye, Layers, Loader2, Power } from 'lucide-react'
 import { Card, Loading, ErrorBox, DataTable, Badge, PageHeader, hubGet, hubPost, pickList } from '../components/ui'
 import { getApiToken } from '../../../lib/apiToken'
 import ApiTokenPrompt from './api-token-prompt'
+import SkillContentModal from './skill-content-modal'
 import ClassIcon from './class-icon'
 
 interface Skill {
@@ -43,6 +44,8 @@ export function MemorySkillsTable() {
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
   const [needAuth, setNeedAuth] = useState(false)
+  /** 行内「查看技能具体内容」的目标行 */
+  const [viewSkill, setViewSkill] = useState<Skill | null>(null)
   /** 视图：flat=表格 / group=按自动分类折叠 */
   const [grouped, setGrouped] = useState(true)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
@@ -169,6 +172,24 @@ export function MemorySkillsTable() {
       <Power size={12} /> {r.enabled ? '停用' : '启用'}
     </button>
   )
+  /** 行内「查看技能具体内容」按钮（弹出 GET /api/skills/content 解析后的正文） */
+  const viewBtn = (r: Skill) => (
+    <button
+      type="button"
+      onClick={() => setViewSkill(r)}
+      className="flex items-center gap-1.5 rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800 hover:text-slate-200"
+      title="查看该技能的具体内容（注入正文 / 脚本 / 参数）"
+    >
+      <Eye size={12} /> 查看内容
+    </button>
+  )
+  /** 行操作组（查看内容 + 启停），表格与分组视图共用 */
+  const rowActions = (r: Skill) => (
+    <div className="flex items-center gap-1.5">
+      {viewBtn(r)}
+      {toggleBtn(r)}
+    </div>
+  )
 
   return (
     <div>
@@ -228,7 +249,7 @@ export function MemorySkillsTable() {
                         {skillCell(r)}
                         <div className="flex shrink-0 flex-col items-end gap-1.5">
                           <Badge color={r.enabled ? 'green' : 'slate'}>{r.enabled ? '启用' : '停用'}</Badge>
-                          {toggleBtn(r)}
+                          {rowActions(r)}
                         </div>
                       </div>
                     ))}
@@ -248,11 +269,13 @@ export function MemorySkillsTable() {
               { key: 'enabled', title: '状态', render: (r) => (
                 <Badge color={r.enabled ? 'green' : 'slate'}>{r.enabled ? '启用' : '停用'}</Badge>
               ) },
-              { key: 'actions', title: '操作', render: toggleBtn },
+              { key: 'actions', title: '操作', render: rowActions },
             ]}
           />
         </Card>
       )}
+
+      {viewSkill && <SkillContentModal skill={viewSkill} onClose={() => setViewSkill(null)} />}
     </div>
   )
 }

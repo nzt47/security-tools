@@ -47,7 +47,7 @@ _DIGEST_ENABLED_KEYS = {
     "block_on_high_risk_script": True,    # 脚本高风险→error(阻断)；False→warn
     # 工作流→技能转换后自动执行权威评审-消化（默认关，转换本身已含咨询性自动评估）
     "auto_digest_after_workflow_convert": False,
-    # 与云枢自身功能重复 → error 阻断（外来/新建技能禁止重复进入）
+    # 与云枢自身功能重叠 → warn 增量吸收提示（不再作为 error 阻断/禁止进入）
     "native_dup_enabled": True,
 }
 _DIGEST_INT_KEYS = {
@@ -400,7 +400,7 @@ def _assess_external_precheck(skill: Skill) -> List[ReviewFinding]:
 # ═══════════════════════════════════════════════════════════════
 
 # ── 云枢自身功能目录（原生能力）────────────────────────────
-# 外来技能若与“系统本身能力”重复 → 判定为重复，禁止进入。
+# 外来技能若与“系统本身能力”重叠 → 提示增量吸收（不再判定为“禁止进入”）。
 # 结构：{原生技能/模块 id: {"name": 中文名, "keywords": [...]}}
 # 匹配规则：文本（名称×3 + 描述×2 + 正文×1）中出现任意“强短语”（≥3 字的
 # 中文词或整英文 token），或命中 ≥2 个弱关键词 → 判为与该原生能力重复。
@@ -518,15 +518,16 @@ def _assess_compatibility(skill: Skill, others: List[Skill],
             "error", "compatibility", "NAT_RESERVED_ID",
             f"ID '{skill.id}' 与系统保留标识冲突，请更换命名", "id"))
 
-    # 1b) 与云枢自身功能重复 → 阻断（外来/新建技能重复系统已有能力不得进入）
+    # 1b) 与云枢自身功能重叠 → warn 增量吸收提示（吸收策略：不整包拒绝——
+    #     外来/新建技能取其原生未覆盖的增量保留；install/convert 会打吸收标记）
     if digest_flag("native_dup_enabled", True):
         for nat in detect_native_duplicates(
                 skill.name or "", skill.description or "", content):
             findings.append(_finding(
-                "error", "compatibility", "DUP_NATIVE_FUNC",
-                f"与云枢自身功能「{nat['name']}」（{nat['id']}）重复"
-                f"（命中: {', '.join(nat['matched'])}）——系统已有该能力，"
-                f"禁止作为重复技能进入，请改造为增量能力或直接使用原生能力",
+                "warn", "compatibility", "DUP_NATIVE_FUNC",
+                f"与云枢自身功能「{nat['name']}」（{nat['id']}）重叠"
+                f"（命中: {', '.join(nat['matched'])}）——原生未覆盖的增量内容仍会保留，"
+                f"按「增量吸收」并入使用（不再整包拒绝）；若确无增量建议停用或删除",
                 "name"))
 
     # 2) 与已装技能名称冲突 / 操作重叠 / 交互冲突

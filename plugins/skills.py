@@ -264,6 +264,132 @@ def api_skills_get():
     })
 
 
+@bp.route("/api/skills/content", methods=["GET"])
+@_log_request(show_response=False)
+def api_skills_content():
+    """按 id 取运行时技能的「具体内容」供 UI 查看（只读，无需令牌）。
+
+    逐级解析（谁命中用谁）：
+      1. 技能资产库（skills-mgmt）同 id/同名资产 → 资产正文（最权威）；
+      2. data/skills_repo/<id>/skill.md → 技能仓库正文；
+      3. 扩展注册表（ExtensionStore skills/claude_skills）；
+      4. 内置技能注册表（BUILTIN_EXTENSIONS）；
+      5. 兜底仅返回运行时元数据（描述/参数/启停）——「skill」这类无正文的
+         残留行也能如实展示出「没有指令正文」。
+    """
+    skill_id = str((request.args.get("id") or "").strip())
+    if not skill_id:
+        return jsonify({"ok": False, "error": "缺少 id"}), 400
+
+    # 运行时行元数据（skills.json 为准）
+    meta = {"id": skill_id, "name": skill_id, "description": "",
+            "enabled": True, "params": {}}
+    try:
+        from app_server import _skills_mgr
+        for s in _skills_mgr.get_all():
+            if s.get("id") == skill_id:
+                meta.update({
+                    "name": s.get("name") or skill_id,
+                    "description": s.get("description", "") or "",
+                    "enabled": bool(s.get("enabled", True)),
+                    "params": s.get("params")
+                    if isinstance(s.get("params"), dict) else {},
+                })
+                break
+    except Exception:  # noqa: BLE001 元数据缺失时保持默认
+        pass
+
+    def _hit(source, content, content_type="", extra=None):
+        return jsonify({"ok": True, "skill": {
+            **meta,
+            "source": source,
+            "content": str(content or ""),
+            "content_type": content_type,
+            "extra": extra or {},
+        }})
+
+    # 1) 技能资产库（skills-mgmt）：按 id，再同名兜底（运行时 id 可能 ≠ 资产 id）
+    try:
+        from agent.state_manager import get_skills_mgmt_service
+        svc = get_skills_mgmt_service()
+        asset = None
+        try:
+            asset = svc.get(skill_id)
+        except Exception:  # noqa: BLE001 资产库无此 id 会抛错
+            asset = None
+        if asset is None:
+            target_name = str(meta["name"] or "").strip()
+            for cand in svc.list_all():
+                if target_name and str(getattr(cand, "name", "") or "").strip() == target_name:
+                    asset = cand
+                    break
+        if asset is not None:
+            return _hit(
+                "asset-library",
+                getattr(asset, "content", ""),
+                str(getattr(asset, "content_type", "") or ""),
+                {
+                    "tags": list(getattr(asset, "tags", None) or []),
+                    "category": str(getattr(asset, "category", "") or ""),
+                    "status": str(getattr(asset, "status", "") or ""),
+                    "params": dict(getattr(asset, "default_params", None) or {}),
+                    "matched_by": "name" if getattr(asset, "id", "") != skill_id else "id",
+                },
+            )
+    except Exception:  # noqa: BLE001 资产侧失败时继续下级解析
+        pass
+
+    # 2) 技能仓库正文 data/skills_repo/<id>/skill.md
+    try:
+        safe = skill_id.replace("\\", "/").rsplit("/", 1)[-1]
+        repo_md = os.path.normpath(os.path.join(
+            os.path.dirname(__file__), '..', 'data', 'skills_repo', safe, 'skill.md'))
+        if os.path.isfile(repo_md):
+            with open(repo_md, 'r', encoding='utf-8') as f:
+                text = f.read()
+            if text.strip():
+                return _hit("skills-repo", text, "markdown")
+    except Exception:  # noqa: BLE001
+        pass
+
+    # 3) 扩展注册表（ExtensionStore skills/claude_skills）
+    try:
+        from agent.extensions.store import ExtensionStore
+        from agent.extensions.base import ExtensionType
+        ext_store = ExtensionStore()
+        for ext_type in (ExtensionType.SKILL, ExtensionType.CLAUDE_SKILL):
+            ext = ext_store.get(ext_type, skill_id)
+            if ext:
+                return _hit(
+                    "extension",
+                    ext.get("content") or ext.get("script") or "",
+                    str(ext.get("content_type", "") or ""),
+                    {"status": ext.get("status", "")},
+                )
+    except Exception:  # noqa: BLE001
+        pass
+
+    # 4) 内置技能注册表
+    try:
+        from agent.extensions.base import BUILTIN_EXTENSIONS
+        for s in BUILTIN_EXTENSIONS.get("skill", []):
+            if s.get("id") == skill_id:
+                return _hit(
+                    "builtin-registry",
+                    s.get("content") or s.get("script") or "",
+                    "",
+                    {"builtin": s.get("builtin", False)},
+                )
+    except Exception:  # noqa: BLE001
+        pass
+
+    # 5) 兜底：仅元数据（如实告知无正文）
+    return jsonify({"ok": True, "skill": {
+        **meta, "source": "runtime-only", "content": "",
+        "content_type": "", "extra": {},
+    }})
+
+
 @bp.route("/api/skills/toggle", methods=["POST"])
 @_require_token
 @_log_request()
@@ -870,6 +996,7 @@ PLUGIN = register_plugin(Plugin(
     blueprint=bp,
     routes=[
         "/api/skills",
+        "/api/skills/content",
         "/api/skills/add",
         "/api/skills/delete",
         "/api/skills/params",

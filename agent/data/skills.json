@@ -58,13 +58,6 @@
       "enabled": true,
       "description": "邮件处理助手，用于管理和回复邮件",
       "params": {}
-    },
-    {
-      "id": "skill",
-      "name": "skill",
-      "enabled": false,
-      "description": "",
-      "params": {}
     }
   ]
 }

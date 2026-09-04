@@ -12,13 +12,15 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
-  ListTree, ChevronDown, ChevronRight, Download, FileInput, Filter, Folder, Lightbulb, Loader2, Layers, PackagePlus, Plus,
+  ListTree, ChevronDown, ChevronRight, Download, Eye, FileInput, Filter, Folder, Lightbulb, Loader2, Layers, PackagePlus, Plus,
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
 import { hubGet, hubPost } from '../../hub/components/ui'
-import { getApiToken } from '../../../lib/apiToken'
+import { getApiToken, authHeader } from '../../../lib/apiToken'
 import GenerateRequirementModal from './generate-requirement-modal'
 import ClassIcon from './class-icon'
+import ApiTokenPrompt from './api-token-prompt'
+import SkillContentModal from './skill-content-modal'
 
 const BTN = 'inline-flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-300 transition-colors hover:bg-slate-800 hover:text-slate-200 disabled:cursor-not-allowed disabled:opacity-50'
 const BTN_EM = `${BTN} border-cyan-700/70 text-cyan-300 hover:bg-cyan-500/10`
@@ -67,6 +69,8 @@ export default function SkillDigestManager() {
   const [genOpen, setGenOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [publishTarget, setPublishTarget] = useState<SkillItem | null>(null)
+  const [contentTarget, setContentTarget] = useState<SkillItem | null>(null)
+  const [needAuth, setNeedAuth] = useState(false)
   const [adviceTarget, setAdviceTarget] = useState<SkillItem | null>(null)
   const [versionsTarget, setVersionsTarget] = useState<SkillItem | null>(null)
   const [redraftTarget, setRedraftTarget] = useState<SkillItem | null>(null)
@@ -207,14 +211,16 @@ export default function SkillDigestManager() {
   useEffect(() => { void refreshQueue() }, [refreshQueue])
 
   const act = async (label: string, fn: () => Promise<unknown>) => {
-    setBusy(label); setError(''); setMsg('')
+    setBusy(label); setError(''); setMsg(''); setNeedAuth(false)
     try {
       const r = (await fn()) as { ok?: boolean; error?: string } | undefined
       if (r && r.ok === false && r.error) setMsg(`操作未完成：${r.error}`)
       else setMsg(`${label} 完成`)
       await load()
     } catch (e) {
-      setMsg(`${label} 失败：${e instanceof Error ? e.message : String(e)}`)
+      const m = e instanceof Error ? e.message : String(e)
+      if (m.includes('401') || m.includes('未授权')) setNeedAuth(true)
+      setMsg(`${label} 失败：${m}`)
     } finally { setBusy(''); void loadEvents() }
   }
 
@@ -235,7 +241,7 @@ export default function SkillDigestManager() {
     if (!window.confirm(`确定从资产库删除技能「${it.name || it.id}」？`)) return
     setBusy('删除'); setError(''); setMsg('')
     try {
-      const r = await fetch(`/api/skills-mgmt/${it.id}`, { method: 'DELETE' })
+      const r = await fetch(`/api/skills-mgmt/${it.id}`, { method: 'DELETE', headers: authHeader() })
       const body = await r.json().catch(() => null)
       if (!r.ok) setMsg(`删除失败：${body?.error ?? `HTTP ${r.status}`}`)
       else setMsg(`已删除「${it.name || it.id}」`)
@@ -350,6 +356,9 @@ export default function SkillDigestManager() {
                 {classOptions.map((o) => <option key={o} value={o}>{o}</option>)}
               </select>
             )}
+            <button type="button" className={BTN} onClick={() => setContentTarget(it)} disabled={busy !== ''} title="查看该技能的具体内容（正文 / 参数 / 标签）">
+              <Eye size={11} /> 查看内容
+            </button>
             <button type="button" className={BTN_EM} onClick={() => void digestOne(it.id)} disabled={busy !== ''} title="执行完整评审-消化（三审+扩展评估）">
               <Zap size={11} /> 评审-消化
             </button>
@@ -460,7 +469,7 @@ export default function SkillDigestManager() {
           <button type="button" className={BTN_EM} onClick={() => setGenOpen(true)} title="把对话提示词中的能力要求自动写成技能草稿（生成后自动评审-消化，可再审核）">
             <Lightbulb size={12} /> 从对话要求生成
           </button>
-          <button type="button" className={BTN_EM} onClick={() => setImportOpen(true)} title="批量/单个导入其他 Agent 的技能 JSON → 自动改写为云枢格式并逐个评审-消化；与云枢自身功能重复的会被拒绝进入">
+          <button type="button" className={BTN_EM} onClick={() => setImportOpen(true)} title="批量/单个导入外部技能的 JSON 或 Markdown → 自动改写为云枢格式并逐个评审-消化；与原生/已有能力重叠者按增量吸收合并，不再整包拒绝">
             <FileInput size={12} /> 批量导入消化
           </button>
           <button type="button" className={BTN_EM} onClick={() => void runAll()} disabled={busy !== ''}>
@@ -495,6 +504,7 @@ export default function SkillDigestManager() {
 
       {error && <p className="mb-2 text-[11px] text-red-400">{error}</p>}
       {msg && <p className="mb-2 rounded-md border border-cyan-900/60 bg-cyan-950/30 px-2 py-1 text-[11px] text-cyan-300">{msg}</p>}
+      {needAuth && <ApiTokenPrompt onSaved={() => { setNeedAuth(false); void load(); void refreshQueue() }} />}
 
       {loading ? (
         <div className="flex items-center gap-2 py-6 text-xs text-slate-500">
@@ -630,6 +640,9 @@ export default function SkillDigestManager() {
       {feedOpen && <FeedModal onClose={() => setFeedOpen(false)} onPick={handlePickSkill} />}
       {cmdTarget && (
         <CommandModal item={cmdTarget} onClose={() => setCmdTarget(null)} onDone={() => void load()} />
+      )}
+      {contentTarget && (
+        <SkillContentModal skill={contentTarget} onClose={() => setContentTarget(null)} />
       )}
 
       {/* 发布审计（人工复核/强制发布记录）可视化 */}
@@ -1007,7 +1020,7 @@ function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
     findings?: { code?: string; severity?: string; message?: string }[]
   }
   const [pre, setPre] = useState<Precheck | null>(null)
-  /** 预检：拉取来源并评估（与云枢自身功能重复 / 安全阻断），不落库 */
+  /** 预检：拉取来源并评估（原生重叠提示 / 安全合规阻断），不落库 */
   const runPrecheck = async () => {
     const src = source.trim()
     if (!src) return
@@ -1037,7 +1050,7 @@ function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
       })
       const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; message?: string } | null
       if (!res.ok) {
-        setErr(`安装被拒：${body?.error ?? body?.message ?? `HTTP ${res.status}`}（含「与云枢自身功能重复」等预检项时系统禁止进入）`)
+        setErr(`安装失败：${body?.error ?? body?.message ?? `HTTP ${res.status}`}`)
         return
       }
       onDone()
@@ -1046,14 +1059,15 @@ function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
     } finally { setBusy(false) }
   }
   return (
-    <ModalShell title="外来技能安装（自动评审-消化）" onClose={onClose}>
+    <ModalShell title="外来技能安装（自动评审-消化 · 增量吸收）" onClose={onClose}>
       <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
         支持 <code className="text-cyan-400">github:user/repo</code>、
         <code className="text-cyan-400">url:https://…</code>、
         <code className="text-cyan-400">local:./路径</code>、
         <code className="text-cyan-400">registry:skill-name</code> 等源。先「预检」可看到
-        <strong className="text-amber-300"> 与云枢自身功能重复 / 安全阻断</strong>结论，再决定安装；
-        安装后仍会执行权威预检与自动评估（与自身功能重复者 <strong>禁止进入</strong>）。
+        <strong className="text-amber-300"> 原生能力重叠提示</strong>与<strong className="text-red-300"> 安全/合规阻断项</strong>；
+        与原生/已有能力重叠不再禁止进入——取其增量内容按「增量吸收 / 合并」保留
+        （仅严重安全风险仍会拦截）。
       </p>
       <div className="flex gap-2">
         <input className={INPUT} value={source} onChange={(e) => { setSource(e.target.value); setPre(null) }} placeholder="github:user/repo 或 url:https://…" />
@@ -1068,16 +1082,21 @@ function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
             <p>预检失败：{pre.error}</p>
           ) : pre.blocked ? (
             <div className="space-y-1">
-              <p className="font-medium text-red-300">✕ 将拒绝进入（存在阻断项）：{pre.skill_name || pre.skill_id || source}</p>
+              <p className="font-medium text-red-300">✕ 存在安全/合规阻断项（critical/error）：{pre.skill_name || pre.skill_id || source}</p>
               {(pre.native_dups ?? []).length > 0 && (
-                <p>· 与云枢自身功能重复：{(pre.native_dups ?? []).map((n) => `「${n.name}」(${n.id})`).join('、')} —— 系统已内置该能力</p>
+                <p className="text-amber-300">· 原生能力重叠（将按增量吸收保留，不因重叠拒绝）：{(pre.native_dups ?? []).map((n) => `「${n.name}」(${n.id})`).join('、')}</p>
               )}
               {(pre.findings ?? []).filter((f) => f.severity === 'error' || f.severity === 'critical').slice(0, 6).map((f, i) => (
                 <p key={i}>· [{f.code}] {f.message}</p>
               ))}
             </div>
           ) : (
-            <p>✓ 预检通过：未发现与云枢自身功能重复或阻断项（{pre.skill_name || source}）。可安全安装。</p>
+            <div className="space-y-1">
+              <p>✓ 无安全/合规阻断项（{pre.skill_name || source}），可安全安装。</p>
+              {(pre.native_dups ?? []).length > 0 && (
+                <p className="text-amber-300">· 与原生能力重叠：{(pre.native_dups ?? []).map((n) => `「${n.name}」(${n.id})`).join('、')} —— 将按「增量吸收」保留其增量内容（不再整包拒绝）。</p>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -1394,13 +1413,61 @@ interface BatchResult {
   merged?: BatchItem[]; strengthened?: BatchItem[]; created?: BatchItem[]; failed?: BatchItem[]
 }
 function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const [mode, setMode] = useState<'json' | 'md'>('md')
   const [jsonText, setJsonText] = useState('')
   const [queueMode, setQueueMode] = useState(true)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [okMsg, setOkMsg] = useState('')
   const [batch, setBatch] = useState<BatchResult | null>(null)
-  const submit = async () => {
+
+  // ── Markdown 模式：批量选择 .md 技能文件（正文含 # 标题等语法，原样导入）──
+  interface MdSkill { key: string; fileName: string; name: string; text: string }
+  const [mdSkills, setMdSkills] = useState<MdSkill[]>([])
+  const fileRef = useRef<HTMLInputElement | null>(null)
+
+  const pickMd = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    setErr(''); setOkMsg(''); setBatch(null)
+    const added: MdSkill[] = []
+    for (const f of Array.from(files)) {
+      let text = ''
+      try { text = await f.text() } catch { /* 读取失败的文件跳过 */ }
+      if (!text.trim()) continue
+      added.push({
+        key: `${f.name}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        fileName: f.name,
+        name: f.name.replace(/\.(md|markdown|txt)$/i, ''),
+        text,
+      })
+    }
+    if (added.length === 0) { setErr('未读到可用内容（文件为空或读取失败）'); return }
+    setMdSkills((prev) => [...prev, ...added].slice(0, 200))
+  }
+
+  const mdSubmit = async () => {
+    if (mdSkills.length === 0) throw new Error('请先选择 .md 技能文件（可多选）')
+    const items = mdSkills.map((m) => ({
+      name: m.name.trim() || m.fileName,
+      content: m.text,
+      source_format: 'markdown',
+    }))
+    const r = await hubPost<BatchResult & { ok?: boolean; error?: string }>(
+      '/api/workflow-learning/batch-convert-external-skills',
+      { external_skills: items, llm_enabled: false, queue_mode: queueMode },
+    )
+    if (r && r.ok === false && r.error) throw new Error(r.error)
+    setBatch(r ?? {})
+    const c = (r.created ?? []).length
+    const m = (r.merged ?? []).length
+    const s = (r.strengthened ?? []).length
+    const f = (r.failed ?? []).length
+    setOkMsg(queueMode
+      ? `已把 ${items.length} 个 .md 技能转为草稿并入「待放行队列」：${c} 个（各含自动评审-消化结论）。请到下方「外部导入 · 待放行队列」逐个人工放行 / 驳回。${f ? `另 ${f} 个失败（解析/注册异常；与已有/原生能力重叠者已按增量吸收，不会整包拒绝）。` : ''}`
+      : `批量消化完成：输入 ${r.total_input ?? items.length} → 新建 ${c} / 合并 ${m} / 加强 ${s} / 失败 ${f}（每个新技能均已自动评审-消化）`)
+  }
+
+  const jsonSubmit = async () => {
     let parsed: unknown
     try {
       parsed = JSON.parse(jsonText)
@@ -1408,35 +1475,40 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       setErr(`JSON 解析失败：${e instanceof Error ? e.message : String(e)}`)
       return
     }
+    if (Array.isArray(parsed)) {
+      // 批量：逐个改写注册 → 自动合并/加强/新建 + 各自自动评审-消化
+      if (parsed.length === 0) throw new Error('批量导入数组为空')
+      if (parsed.length > 200) throw new Error('单次批量最多 200 个技能')
+      const r = await hubPost<BatchResult & { ok?: boolean; error?: string }>(
+        '/api/workflow-learning/batch-convert-external-skills',
+        { external_skills: parsed, llm_enabled: false, queue_mode: queueMode },
+      )
+      if (r && r.ok === false && r.error) throw new Error(r.error)
+      setBatch(r ?? {})
+      const c = (r.created ?? []).length
+      const m = (r.merged ?? []).length
+      const s = (r.strengthened ?? []).length
+      const f = (r.failed ?? []).length
+      setOkMsg(queueMode
+        ? `已批量转为草稿并入「待放行队列」：${c} 个（各含自动评审-消化结论）。请到下方「外部导入 · 待放行队列」逐个人工放行 / 驳回。${f ? `另 ${f} 个失败（解析/注册异常；与已有/原生能力重叠者已按增量吸收，不会整包拒绝）。` : ''}`
+        : `批量消化完成：输入 ${r.total_input ?? parsed.length} → 新建 ${c} / 合并 ${m} / 加强 ${s} / 失败 ${f}（每个新技能均已自动评审-消化）`)
+    } else {
+      if (!parsed || typeof parsed !== 'object') throw new Error('需要 JSON 对象或数组')
+      const obj = parsed as Record<string, unknown>
+      const r = await hubPost<{ skill_id?: string; skill_name?: string; source_format?: string; ok?: boolean; error?: string }>(
+        '/api/workflow-learning/convert-external-skill',
+        { external_data: obj, llm_enabled: false },
+      )
+      if (r && r.ok === false && r.error) throw new Error(r.error)
+      setOkMsg(`已自动改写为云枢格式并注册：「${r?.skill_name ?? r?.skill_id ?? ''}」（skill_id=${r?.skill_id ?? '-'}，格式=${r?.source_format ?? '-'}）——已自动评审-消化，可审核后发布。`)
+    }
+  }
+
+  const submit = async () => {
     setBusy(true); setErr(''); setOkMsg(''); setBatch(null)
     try {
-      if (Array.isArray(parsed)) {
-        // 批量：逐个改写注册 → 自动合并/加强/新建 + 各自自动评审-消化
-        if (parsed.length === 0) throw new Error('批量导入数组为空')
-        if (parsed.length > 200) throw new Error('单次批量最多 200 个技能')
-        const r = await hubPost<BatchResult & { ok?: boolean; error?: string }>(
-          '/api/workflow-learning/batch-convert-external-skills',
-          { external_skills: parsed, llm_enabled: false, queue_mode: queueMode },
-        )
-        if (r && r.ok === false && r.error) throw new Error(r.error)
-        setBatch(r ?? {})
-        const c = (r.created ?? []).length
-        const m = (r.merged ?? []).length
-        const s = (r.strengthened ?? []).length
-        const f = (r.failed ?? []).length
-        setOkMsg(queueMode
-          ? `已批量转为草稿并入「待放行队列」：${c} 个（各含自动评审-消化结论）。请到下方「外部导入 · 待放行队列」逐个人工放行 / 驳回。${f ? `另 ${f} 个被拒绝：与云枢自身功能重复或解析失败。` : ''}`
-          : `批量消化完成：输入 ${r.total_input ?? parsed.length} → 新建 ${c} / 合并 ${m} / 加强 ${s} / 失败 ${f}（每个新技能均已自动评审-消化）`)
-      } else {
-        if (!parsed || typeof parsed !== 'object') throw new Error('需要 JSON 对象或数组')
-        const obj = parsed as Record<string, unknown>
-        const r = await hubPost<{ skill_id?: string; skill_name?: string; source_format?: string; ok?: boolean; error?: string }>(
-          '/api/workflow-learning/convert-external-skill',
-          { external_data: obj, llm_enabled: false },
-        )
-        if (r && r.ok === false && r.error) throw new Error(r.error)
-        setOkMsg(`已自动改写为云枢格式并注册：「${r?.skill_name ?? r?.skill_id ?? ''}」（skill_id=${r?.skill_id ?? '-'}，格式=${r?.source_format ?? '-'}）——已自动评审-消化，可审核后发布。`)
-      }
+      if (mode === 'md') await mdSubmit()
+      else await jsonSubmit()
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e))
     } finally { setBusy(false) }
@@ -1472,24 +1544,75 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     )
   }
   return (
-    <ModalShell title="导入其他 Agent 技能并消化（单个 / 批量）" onClose={onClose}>
-      <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
-        粘贴其他 Agent（Claude / GPTs / MCP / 社区）技能的 <strong>JSON</strong>：
-        <strong>单个对象</strong> → 单个改写消化；<strong>JSON 数组</strong>（多个技能）→ 批量改写注册，
-        逐个自动评审-消化（权限/攻击面/数据合规 + 与系统/已有技能重复都会查）。
-        与<strong className="text-cyan-300">云枢自身功能重复</strong>的技能将被拒绝进入。示例：
-        <code className="mt-1 block text-cyan-400">{'[{ "name": "pdf-extractor", "description": "从 PDF 提取正文", "steps": ["open", "parse"] }, { "name": "…", "description": "…" }]'}</code>
-      </p>
-      <label className="mb-2 flex cursor-pointer items-start gap-2 rounded-md border border-cyan-900/50 bg-cyan-950/20 px-2.5 py-2 text-[11px] leading-relaxed text-slate-300">
+    <ModalShell title="导入外部技能并消化（JSON / Markdown 均可批量）" onClose={onClose}>
+      {/* 格式选择：Markdown 技能文件 优先（支持 .md 原样导入，含 # 标题） */}
+      <div className="mb-2 flex flex-wrap items-center gap-1.5">
+        {(['md', 'json'] as const).map((k) => (
+          <button key={k} type="button"
+            onClick={() => { setMode(k); setErr(''); setOkMsg(''); setBatch(null) }}
+            className={`rounded-md px-3 py-1 text-[11px] transition-colors ${mode === k ? 'bg-cyan-500/15 font-medium text-cyan-300' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}>
+            {k === 'md' ? 'Markdown 技能文件（.md）' : 'JSON 粘贴（对象 / 数组）'}
+          </button>
+        ))}
+        <span className="ml-auto text-[10px] text-slate-600">
+          {mode === 'md' ? '批量选择 .md 文件，正文原样导入（支持 # 标题等 Markdown 语法）' : '粘贴 Claude / GPTs / MCP / 社区技能的 JSON'}
+        </span>
+      </div>
+
+      {mode === 'md' ? (
+        <div className="space-y-2">
+          <div
+            className="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-cyan-800/60 bg-cyan-950/10 px-3 py-5 text-center transition-colors hover:bg-cyan-950/30"
+            onClick={() => fileRef.current?.click()}
+            role="button"
+            title="点击选择 .md 技能文件（可多选，可继续追加）"
+          >
+            <FileInput size={16} className="text-cyan-400" />
+            <span className="text-[11px] text-slate-300">点击选择 .md / .markdown / .txt 技能文件（可多选）</span>
+            <span className="text-[10px] text-slate-500">SKILL.md 风格的 front matter（name/description）会被解析；正文含 # 标题等 Markdown 语法，原样保留</span>
+            <input ref={fileRef} type="file" accept=".md,.markdown,.txt,text/markdown,text/plain" multiple hidden
+              onChange={(e) => { void pickMd(e.target.files); e.target.value = '' }} />
+          </div>
+          {mdSkills.length > 0 && (
+            <ul className="max-h-56 space-y-1 overflow-y-auto rounded-lg border border-slate-800 bg-slate-950/40 p-2">
+              {mdSkills.map((s) => (
+                <li key={s.key} className="flex flex-wrap items-center gap-2 rounded-md border border-slate-800 bg-slate-900/50 px-2 py-1.5">
+                  <input className={`${INPUT} !mb-0 w-44 font-mono text-[11px]`} value={s.name}
+                    onChange={(e) => setMdSkills((prev) => prev.map((x) => (x.key === s.key ? { ...x, name: e.target.value } : x)))}
+                    title="技能名称（front matter 未写 name 时使用；也可手工改）" />
+                  <span className="max-w-[10rem] truncate font-mono text-[10px] text-slate-500" title={s.fileName}>{s.fileName}</span>
+                  <span className="shrink-0 text-[10px] text-slate-600">{s.text.length} 字符</span>
+                  <span className="min-w-0 flex-1 truncate text-[10px] text-slate-600">{s.text.split('\n').find((l) => l.trim())?.slice(0, 60) ?? ''}</span>
+                  <button type="button" className={BTN} onClick={() => setMdSkills((prev) => prev.filter((x) => x.key !== s.key))} title="移除该文件">移除</button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : (
+        <>
+          <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
+            粘贴其他 Agent（Claude / GPTs / MCP / 社区）技能的 <strong>JSON</strong>：
+            <strong>单个对象</strong> → 单个改写消化；<strong>JSON 数组</strong>（多个技能）→ 批量改写注册，
+            逐个自动评审-消化（权限/攻击面/数据合规 + 与系统/已有技能重叠都会查）。
+            与<strong className="text-cyan-300">云枢自身功能重叠</strong>者不再整包拒绝——取其增量内容，
+            按「增量吸收 / 合并」处理（仅严重安全风险会拦截）。示例：
+            <code className="mt-1 block text-cyan-400">{'[{ "name": "pdf-extractor", "description": "从 PDF 提取正文", "steps": ["open", "parse"] }, { "name": "…", "description": "…" }]'}</code>
+          </p>
+          <textarea className={`${INPUT} font-mono`} rows={8} value={jsonText} onChange={(e) => setJsonText(e.target.value)}
+            placeholder='粘贴 JSON 对象或数组：[{"name":"…","description":"…","content":"Markdown 正文（可选）"}, …]' />
+        </>
+      )}
+
+      <label className="mb-2 mt-2 flex cursor-pointer items-start gap-2 rounded-md border border-cyan-900/50 bg-cyan-950/20 px-2.5 py-2 text-[11px] leading-relaxed text-slate-300">
         <input type="checkbox" checked={queueMode} onChange={(e) => setQueueMode(e.target.checked)} className="mt-0.5 accent-cyan-500" />
         <span>
-          <strong className="text-cyan-300">先存草稿·人工逐个放行（推荐）</strong>：批量技能一律转为草稿（各带自动评审-消化结论），
+          <strong className="text-cyan-300">先存草稿·人工逐个放行（推荐）</strong>：导入技能一律转为草稿（各带自动评审-消化结论），
           不自动合并/加强已有技能；随后在下方「外部导入 · 待放行队列」逐个人工 放行（走发布复核）或 驳回。
           关闭后则自动新建/合并/加强（原有消化方式）。
         </span>
       </label>
-      <textarea className={`${INPUT} font-mono`} rows={8} value={jsonText} onChange={(e) => setJsonText(e.target.value)}
-        placeholder='粘贴 JSON 对象或数组：[{"name":"…","description":"…","steps":[…] / "prompt":…}, …]' />
+
       {err && <p className="mt-1 text-[11px] text-red-400">{err}</p>}
       {okMsg && <p className="mt-1 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1.5 text-[11px] text-emerald-300">{okMsg}</p>}
       {batch && (
@@ -1497,7 +1620,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
           {renderBatchList('✓ 新建（已自动评审-消化）', batch.created, 'ok')}
           {renderBatchList('⇄ 与已有技能合并', batch.merged, 'merge')}
           {renderBatchList('↑ 加强已有技能', batch.strengthened, 'strong')}
-          {renderBatchList('✕ 拒绝/失败（含与云枢自身功能重复）', batch.failed, 'fail')}
+          {renderBatchList('✕ 失败（解析/注册异常；重叠项已增量吸收）', batch.failed, 'fail')}
         </div>
       )}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
@@ -1506,8 +1629,10 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         ) : (
           <>
             <button type="button" className={BTN} onClick={onClose}>取消</button>
-            <button type="button" className={BTN_EM} onClick={() => void submit()} disabled={busy || !jsonText.trim()}>
-              {busy ? <Loader2 size={12} className="animate-spin" /> : <FileInput size={12} />} 改写并消化
+            <button type="button" className={BTN_EM}
+              onClick={() => void submit()}
+              disabled={busy || (mode === 'json' ? !jsonText.trim() : mdSkills.length === 0)}>
+              {busy ? <Loader2 size={12} className="animate-spin" /> : <FileInput size={12} />} {mode === 'md' ? '批量改写并消化' : '改写并消化'}
             </button>
           </>
         )}

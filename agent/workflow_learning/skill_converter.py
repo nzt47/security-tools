@@ -364,21 +364,25 @@ class WorkflowToSkillConverter:
                     code="CREATE_FAILED",
                 ) from e
 
-            # 与云枢自身功能重复 → 外来技能禁止进入（delete 后报错，批量侧记为失败）
+            # 与云枢自身功能重叠 → 吸收优先策略：不再删除/整包拒绝，
+            # 打上「增量吸收」标记后保留（原生未覆盖的增量继续可用）
             try:
                 dup = self._svc.reject_native_duplicate(skill)
-            except Exception:  # noqa: BLE001 检测失败不阻断（权威 digest 仍拦截）
+            except Exception:  # noqa: BLE001 检测失败不阻断（digest 仍会提示）
                 dup = None
             if dup:
                 try:
-                    self._svc.delete(skill.id)
-                except Exception:  # noqa: BLE001 尽力清理
-                    pass
-                raise WorkflowConvertError(
-                    f"与云枢自身功能重复，禁止进入：{dup}。系统已内置该能力，"
-                    f"请直接使用原生能力或改造为增量能力",
-                    code="NATIVE_DUPLICATE",
-                )
+                    self._svc.absorb_overlap(skill.id, overlap=dup, source="convert")
+                except Exception:  # noqa: BLE001 标记失败不阻断注册
+                    logger.warning("[Convert] 增量吸收标记失败 skill=%s: %s",
+                                   skill.id, dup)
+                return {
+                    "skill_id": skill.id,
+                    "skill_name": skill.name,
+                    "source_format": source_format,
+                    "action": "absorbed",
+                    "native_overlap": dup,
+                }
 
             duration_ms = (time.time() - t0) * 1000
             logger.info(log_dict({'module_name': 'skill_converter', 'action': 'convert_external.ok', 'skill_id': skill.id, 'source_format': source_format, 'level': 'INFO'}))
@@ -463,13 +467,90 @@ class WorkflowToSkillConverter:
         except json.JSONDecodeError:
             return None
 
+    # ─── Markdown 解析辅助（SKILL.md / 普通 .md 技能） ───
+
+    @staticmethod
+    def _parse_md_front_matter(text: str):
+        """解析 SKILL.md 风格 front matter（首行 --- ... ---），返回 (meta, body)。
+
+        meta 键名统一小写并去引号；无 front matter 时返回 ({}, 原文本)。
+        """
+        m = re.match(r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*\r?\n", text, re.DOTALL)
+        if not m:
+            return {}, text
+        meta: Dict[str, str] = {}
+        for line in m.group(1).splitlines():
+            if ":" in line:
+                k, v = line.split(":", 1)
+                meta[k.strip().lower()] = v.strip().strip('"\'')
+        return meta, text[m.end():]
+
+    @staticmethod
+    def _first_md_paragraph(text: str) -> str:
+        """正文里第一段非空、非标题的文字（description 兜底）。"""
+        for line in text.splitlines():
+            s = line.strip()
+            if s and not s.startswith("#"):
+                return s[:500]
+        return ""
+
     def _rule_translate(self, external_data: Dict[str, Any]) -> Dict[str, Any]:
-        """规则式翻译：把外部技能描述映射为云枢格式（无 LLM 时的兜底）"""
+        """规则式翻译：把外部技能描述映射为云枢格式（无 LLM 时的兜底）
+
+        支持两类输入：
+          1. JSON 描述：{name/title, description, steps/actions, prompt/instructions}
+          2. Markdown 技能（.md / SKILL.md 原样导入）：携带 content/markdown/body/
+             raw_content 键，或 source_format == "markdown" 且正文在 prompt 中——
+             正文原样保留（# 标题等 Markdown 语法不做任何删改）；
+             front matter 的 name/description 会被解析出来。
+        """
         name = external_data.get("name") or external_data.get("title") or "external-skill"
         description = external_data.get("description", "")
         steps = external_data.get("steps") or external_data.get("actions") or []
         prompt = external_data.get("prompt") or external_data.get("instructions") or ""
 
+        # ── Markdown 原样保留分支（正文 = 粘贴的 .md，支持 # 等语法）──
+        raw_md = ""
+        for key in ("content", "markdown", "body", "raw_content"):
+            v = external_data.get(key)
+            if isinstance(v, str) and v.strip():
+                raw_md = v
+                break
+        if not raw_md and str(external_data.get("source_format", "")).lower() == "markdown" and prompt:
+            raw_md = prompt
+        if raw_md and not steps:
+            meta, body = self._parse_md_front_matter(raw_md)
+            fm_name = str(meta.get("name") or meta.get("title") or "").strip()
+            fm_desc = str(meta.get("description") or meta.get("summary") or "").strip()
+            filename_hint = str(external_data.get("_filename") or "").strip()
+            if fm_name:
+                name = fm_name
+            elif not name or name == "external-skill":
+                name = filename_hint or ""
+            if not name:
+                # 无 front matter 时取正文第一个标题（# 标题）
+                for line in body.splitlines():
+                    s = line.strip()
+                    if s.startswith("#"):
+                        name = s.lstrip("#").strip()
+                        break
+            name = name or "external-skill"
+            desc = (description or fm_desc
+                    or self._first_md_paragraph(body)
+                    or f"外部技能 {name}")
+            content = body.strip() or raw_md.strip()
+            skill_id = self._derive_external_id(name, "")
+            return {
+                "id": skill_id,
+                "name": name[:200],
+                "description": desc[:500],
+                "content": content,
+                "content_type": "markdown",
+                "tags": ["external", "imported", "markdown"],
+                "dependencies": [],
+            }
+
+        # ── JSON 描述分支（原有行为）──
         # 编译 content
         lines = [f"# {name}", ""]
         if description:

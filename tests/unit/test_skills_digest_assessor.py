@@ -697,13 +697,13 @@ class TestSlashCommands:
 
 
 # ═══════════════════════════════════════════════════════════════
-#  与云枢自身功能重复 → 禁止进入（审核规则）
+#  与云枢自身功能重叠 → 增量吸收提示（吸收优先：不再整包拒绝）
 # ═══════════════════════════════════════════════════════════════
 
 class TestNativeDuplicateRule:
-    """外来/新建技能与系统内置能力重复 → error 阻断项（不得进入）。"""
+    """外来/新建技能与系统内置能力重叠 → warn 增量吸收提示（不再 error 阻断/拒绝）。"""
 
-    def test_duplicate_memory_summary_blocks(self):
+    def test_duplicate_memory_summary_advisory(self):
         a = SkillDigestAssessor().assess(_skill(
             id="ext-mem", name="外部记忆摘要助手",
             description="压缩对话历史生成结构化摘要",
@@ -711,16 +711,17 @@ class TestNativeDuplicateRule:
         codes = [f.code for f in a.findings]
         assert "DUP_NATIVE_FUNC" in codes
         hit = next(f for f in a.findings if f.code == "DUP_NATIVE_FUNC")
-        assert hit.severity == "error"
+        assert hit.severity == "warn"          # 不再是 error
         assert "记忆摘要" in hit.message
-        assert a.blocked is True
+        assert "增量吸收" in hit.message
+        assert a.blocked is False              # 重叠不阻断
 
-    def test_duplicate_voice_interaction_blocks(self):
+    def test_duplicate_voice_interaction_advisory(self):
         a = SkillDigestAssessor().assess(_skill(
             id="ext-voice", name="语音助手", description="通过语音交互完成任务",
             content="voice_interaction 实现语音对话"))
         assert any(f.code == "DUP_NATIVE_FUNC" for f in a.findings)
-        assert a.blocked is True
+        assert a.blocked is False
 
     def test_unique_skill_not_flagged(self):
         a = SkillDigestAssessor().assess(_skill(
@@ -729,7 +730,7 @@ class TestNativeDuplicateRule:
             content="# 用法\n读取 pdf 文件，输出结构化正文"))
         assert not any(f.code == "DUP_NATIVE_FUNC" for f in a.findings)
 
-    def test_reject_gate_returns_native_names(self, svc):
+    def test_detect_returns_native_names(self, svc):
         svc.create_manual({
             "id": "dup-mem", "name": "记忆摘要-外部版",
             "description": "压缩对话为摘要", "content": "定期总结对话历史",
@@ -747,7 +748,7 @@ class TestNativeDuplicateRule:
         })
         assert svc.reject_native_duplicate(svc.get("uniq-pdf")) is None
 
-    def test_install_gate_refuses_native_dup_with_force_exempt(self, svc, monkeypatch):
+    def test_install_absorbs_native_dup_keeps_skill(self, svc, monkeypatch):
         from agent.skills_mgmt.models import Skill as SK
         # 绕过真实下载，直接注入 creator.install（模拟安装完成并已落库）
         def fake_install(source, force=False):
@@ -760,16 +761,12 @@ class TestNativeDuplicateRule:
             svc.store.upsert(skill)
             return skill
         monkeypatch.setattr(svc.creator, "install", fake_install)
-        from agent.skills_mgmt.exceptions import SkillMgmtError
-        with pytest.raises(SkillMgmtError) as exc:
-            svc.install("local:mem")
-        assert "与云枢自身功能重复" in str(exc.value)
-        # 非 force 被拒后技能已清理
-        with pytest.raises(Exception):
-            svc.get("inst-mem")
-        # force=True 显式豁免可进入
-        ok = svc.install("local:mem", force=True)
-        assert ok.id == "inst-mem"
+        # 吸收策略：与原生重叠不再抛错/删除——保留并打吸收标记
+        skill = svc.install("local:mem")
+        assert skill.id == "inst-mem"
+        tags = set(skill.tags or [])
+        assert "absorbed" in tags
+        assert "native-overlap" in tags
 
 
 # ═══════════════════════════════════════════════════════════════

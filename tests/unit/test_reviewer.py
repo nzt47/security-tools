@@ -246,31 +246,34 @@ class TestSkillReviewer:
         assert result.score == 100.0
         assert skill.status == SkillStatus.APPROVED
 
-    def test_failed_on_duplicate(self):
+    def test_duplicate_absorbed_not_failed(self):
+        # 吸收优先：高重复不再整包拒绝（FAILED/REJECTED）——保留增量并给出合并提示
         skill = make_skill()
         others = [make_skill("twin-skill", content=skill.content)]
         result = SkillReviewer().review(skill, others=others)
-        assert result.status == ReviewStatus.FAILED
+        assert result.status != ReviewStatus.FAILED
         assert any(f.code == "DUPLICATE_HIGH" for f in result.findings)
-        assert skill.status == SkillStatus.REJECTED
+        assert skill.status != SkillStatus.REJECTED
 
-    def test_failed_on_low_security(self):
-        # 3 个 eval(error 级) → sec=55 < 70
+    def test_low_security_error_kept_for_human_review(self):
+        # 3 个 eval(error 级) → sec=55 < 70；无 critical 时不再整包拒绝，
+        # 由扩展评估/发布门禁以 WARN·待人工复核收口（REJECTED 仅留给 critical 安全）
         skill = make_skill(content="eval(a) eval(b) eval(c)")
         result = SkillReviewer().review(skill)
-        assert result.status == ReviewStatus.FAILED
         assert result.security_score == 55.0
-        assert skill.status == SkillStatus.REJECTED
+        assert result.status != ReviewStatus.FAILED
+        assert skill.status != SkillStatus.REJECTED
 
-    def test_failed_on_low_quality(self):
+    def test_low_quality_no_longer_rejected(self):
+        # 质量分低只是完善建议，不再作为整包拒绝依据
         skill = make_skill(skill_id="low-quality", name="x", description="",
                            content="", content_type=ContentType.MARKDOWN,
                            tags=[], version="0.0.0", author="unknown",
                            config_schema={})
         result = SkillReviewer().review(skill)
-        assert result.status == ReviewStatus.FAILED
         assert result.quality_score == 30.0
-        assert skill.status == SkillStatus.REJECTED
+        assert result.status != ReviewStatus.FAILED
+        assert skill.status != SkillStatus.REJECTED
 
     def test_critical_security_returns_failed_and_rejected(self):
         skill = make_skill(content="rm -rf /")
@@ -293,9 +296,9 @@ class TestSkillReviewer:
         assert result.status == ReviewStatus.PASSED
         assert skill.status == SkillStatus.APPROVED
 
-    def test_tight_security_threshold_fails_full_score(self):
-        # security_min=101 > 满分 100 → 即使安全满分也判定失败
+    def test_thresholds_no_longer_alone_cause_failure(self):
+        # 吸收优先：单一阈值(如 security_min)不再独自判 FAILED——硬拒绝只留给 critical
         reviewer = SkillReviewer(thresholds=ReviewThresholds(
             security_min=101.0))
         result = reviewer.review(make_skill())
-        assert result.status == ReviewStatus.FAILED
+        assert result.status != ReviewStatus.FAILED
