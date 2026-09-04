@@ -47,6 +47,8 @@ _DIGEST_ENABLED_KEYS = {
     "block_on_high_risk_script": True,    # 脚本高风险→error(阻断)；False→warn
     # 工作流→技能转换后自动执行权威评审-消化（默认关，转换本身已含咨询性自动评估）
     "auto_digest_after_workflow_convert": False,
+    # 与云枢自身功能重复 → error 阻断（外来/新建技能禁止重复进入）
+    "native_dup_enabled": True,
 }
 _DIGEST_INT_KEYS = {
     "max_code_findings": 60,     # 单技能 code_review/脚本扫描发现上限
@@ -397,6 +399,99 @@ def _assess_external_precheck(skill: Skill) -> List[ReviewFinding]:
 #  兼容性/资源/交互子评估
 # ═══════════════════════════════════════════════════════════════
 
+# ── 云枢自身功能目录（原生能力）────────────────────────────
+# 外来技能若与“系统本身能力”重复 → 判定为重复，禁止进入。
+# 结构：{原生技能/模块 id: {"name": 中文名, "keywords": [...]}}
+# 匹配规则：文本（名称×3 + 描述×2 + 正文×1）中出现任意“强短语”（≥3 字的
+# 中文词或整英文 token），或命中 ≥2 个弱关键词 → 判为与该原生能力重复。
+NATIVE_CAPABILITIES: Dict[str, Dict[str, Any]] = {
+    "self_reflection": {
+        "name": "自省反思",
+        "keywords": ["自省反思", "自我反思", "复盘自身", "反思自身", "反思决策",
+                     "self_reflection", "self-reflection", "retrospect"],
+    },
+    "memory_summary": {
+        "name": "记忆摘要",
+        "keywords": ["记忆摘要", "对话摘要", "历史摘要", "压缩对话", "总结对话",
+                     "memory_summary", "memory summary", "summarize conversation",
+                     "conversation summary", "compress history"],
+    },
+    "emotion_expression": {
+        "name": "情感表达",
+        "keywords": ["情感表达", "表达情感", "情绪表达", "回应更生动", "情感色彩",
+                     "emotion_expression", "emotional expression", "expressive"],
+    },
+    "proactive_suggestion": {
+        "name": "主动建议",
+        "keywords": ["主动建议", "主动提出建议", "适时建议", "proactive_suggestion",
+                     "proactive suggestion", "offer suggestion"],
+    },
+    "context_aware": {
+        "name": "上下文感知",
+        "keywords": ["上下文感知", "语境感知", "感知上下文", "调整回应策略",
+                     "context_aware", "context-aware", "conversation context"],
+    },
+    "safety_guard": {
+        "name": "安全守护",
+        "keywords": ["安全守护", "过滤不安全", "不安全内容", "安全过滤", "内容过滤",
+                     "safety_guard", "safety guard", "filter unsafe", "content filter"],
+    },
+    "voice_interaction": {
+        "name": "语音交互",
+        "keywords": ["语音交互", "语音对话", "语音互动", "voice_interaction",
+                     "voice interaction", "speech interaction"],
+    },
+    "email_helper": {
+        "name": "邮件助手",
+        "keywords": ["邮件助手", "邮件处理", "处理邮件", "起草邮件", "撰写邮件",
+                     "整理邮件", "收发邮件", "email-helper", "email helper",
+                     "email assistant", "draft email", "handle email"],
+    },
+    "voice_tts_ocr": {
+        "name": "语音合成与OCR识别",
+        "keywords": ["语音合成", "文本转语音", "语音朗读", "图片转文字", "图像识别",
+                     "文字识别", "tts", "text-to-speech", "optical character",
+                     "ocr 识别", "识别图片文字"],
+    },
+}
+# 强短语：命中任意一个即足以判定（避免弱词误伤）
+_NATIVE_STRONG_MIN_LEN = 3
+_WEAK_FALLBACK_HITS = 2   # 无强短语时，≥2 个弱关键词也判定
+
+
+def detect_native_duplicates(name: str = "", description: str = "",
+                             content: str = "") -> List[Dict[str, Any]]:
+    """检测技能文本与「云枢自身功能」的重复。
+
+    Returns:
+        [{id, name, matched: [...], strong: bool}, ...]（无重复 → []）
+    """
+    name = str(name or "")
+    desc = str(description or "")
+    body = str(content or "")
+    hay = "\n".join([name] * 3
+                    + ([desc] * 2 if desc.strip() else [])
+                    + ([body] if body.strip() else [])).lower()
+    hits: List[Dict[str, Any]] = []
+    for cap_id, cap in NATIVE_CAPABILITIES.items():
+        strong = []
+        weak = []
+        for kw in cap["keywords"]:
+            k = kw.lower()
+            if not k:
+                continue
+            if k not in hay:
+                continue
+            if len(k) >= _NATIVE_STRONG_MIN_LEN:
+                strong.append(kw)
+            else:
+                weak.append(kw)
+        if strong or len(weak) >= _WEAK_FALLBACK_HITS:
+            hits.append({"id": cap_id, "name": cap.get("name", cap_id),
+                         "matched": (strong + weak)[:6], "strong": bool(strong)})
+    return hits
+
+
 # 从内容/描述抽取“触发词/工具声明”（slash 命令、tool:xx、调用 xx 等）
 _TRIGGER_RE = re.compile(r"(?:^|\s)(?:slash|命令|tool|工具|函数|调用)[：:\s]*([a-z][a-z0-9_\-]{2,})", re.I)
 
@@ -422,6 +517,17 @@ def _assess_compatibility(skill: Skill, others: List[Skill],
         findings.append(_finding(
             "error", "compatibility", "NAT_RESERVED_ID",
             f"ID '{skill.id}' 与系统保留标识冲突，请更换命名", "id"))
+
+    # 1b) 与云枢自身功能重复 → 阻断（外来/新建技能重复系统已有能力不得进入）
+    if digest_flag("native_dup_enabled", True):
+        for nat in detect_native_duplicates(
+                skill.name or "", skill.description or "", content):
+            findings.append(_finding(
+                "error", "compatibility", "DUP_NATIVE_FUNC",
+                f"与云枢自身功能「{nat['name']}」（{nat['id']}）重复"
+                f"（命中: {', '.join(nat['matched'])}）——系统已有该能力，"
+                f"禁止作为重复技能进入，请改造为增量能力或直接使用原生能力",
+                "name"))
 
     # 2) 与已装技能名称冲突 / 操作重叠 / 交互冲突
     own_tokens = _tokens(f"{skill.name} {skill.description}")

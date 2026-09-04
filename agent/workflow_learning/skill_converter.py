@@ -364,6 +364,22 @@ class WorkflowToSkillConverter:
                     code="CREATE_FAILED",
                 ) from e
 
+            # 与云枢自身功能重复 → 外来技能禁止进入（delete 后报错，批量侧记为失败）
+            try:
+                dup = self._svc.reject_native_duplicate(skill)
+            except Exception:  # noqa: BLE001 检测失败不阻断（权威 digest 仍拦截）
+                dup = None
+            if dup:
+                try:
+                    self._svc.delete(skill.id)
+                except Exception:  # noqa: BLE001 尽力清理
+                    pass
+                raise WorkflowConvertError(
+                    f"与云枢自身功能重复，禁止进入：{dup}。系统已内置该能力，"
+                    f"请直接使用原生能力或改造为增量能力",
+                    code="NATIVE_DUPLICATE",
+                )
+
             duration_ms = (time.time() - t0) * 1000
             logger.info(log_dict({'module_name': 'skill_converter', 'action': 'convert_external.ok', 'skill_id': skill.id, 'source_format': source_format, 'level': 'INFO'}))
             emit_metric("yunshu_external_skill_convert_total",

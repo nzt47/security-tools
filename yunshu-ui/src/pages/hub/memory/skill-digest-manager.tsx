@@ -439,8 +439,8 @@ export default function SkillDigestManager() {
           <button type="button" className={BTN_EM} onClick={() => setGenOpen(true)} title="把对话提示词中的能力要求自动写成技能草稿（生成后自动评审-消化，可再审核）">
             <Lightbulb size={12} /> 从对话要求生成
           </button>
-          <button type="button" className={BTN_EM} onClick={() => setImportOpen(true)} title="把其他 Agent 的技能描述(JSON)自动改写为云枢格式并评审">
-            <FileInput size={12} /> 改写导入
+          <button type="button" className={BTN_EM} onClick={() => setImportOpen(true)} title="批量/单个导入其他 Agent 的技能 JSON → 自动改写为云枢格式并逐个评审-消化；与云枢自身功能重复的会被拒绝进入">
+            <FileInput size={12} /> 批量导入消化
           </button>
           <button type="button" className={BTN_EM} onClick={() => void runAll()} disabled={busy !== ''}>
             {busy === '全量自动评审-消化' ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
@@ -536,7 +536,8 @@ export default function SkillDigestManager() {
         <GenerateRequirementModal onClose={() => setGenOpen(false)} onDone={() => { setGenOpen(false); void load(); void loadEvents() }} />
       )}
       {importOpen && (
-        <ImportModal onClose={() => setImportOpen(false)} onDone={() => { setImportOpen(false); void load(); void loadEvents() }} />
+        <ImportModal onClose={() => setImportOpen(false)}
+          onDone={() => { setImportOpen(false); void load(); void loadEvents(); if (grouped) void loadClasses() }} />
       )}
       {curateOpen && (
         <CurateModal onClose={() => setCurateOpen(false)} onDone={() => { setCurateOpen(false); void load() }} />
@@ -1198,51 +1199,115 @@ function AdviceModal({ item, onClose }: { item: SkillItem; onClose: () => void }
   )
 }
 
-// ── 外来其他 Agent 技能改写导入 ──────────────────────────────────────
+// ── 外来其他 Agent 技能（单个/批量）改写导入消化 ─────────────────────
+interface BatchItem { external_name?: string; skill_id?: string; skill_name?: string; source_format?: string; digest_verdict?: string; auto_assessed?: boolean; merged_into?: string; strengthened_skill_id?: string; jaccard?: number; error?: string }
+interface BatchResult {
+  total_input?: number; converted?: number
+  merged?: BatchItem[]; strengthened?: BatchItem[]; created?: BatchItem[]; failed?: BatchItem[]
+}
 function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [jsonText, setJsonText] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [okMsg, setOkMsg] = useState('')
+  const [batch, setBatch] = useState<BatchResult | null>(null)
   const submit = async () => {
-    let obj: Record<string, unknown>
+    let parsed: unknown
     try {
-      obj = JSON.parse(jsonText)
-      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('需要 JSON 对象')
+      parsed = JSON.parse(jsonText)
     } catch (e) {
       setErr(`JSON 解析失败：${e instanceof Error ? e.message : String(e)}`)
       return
     }
-    setBusy(true); setErr('')
+    setBusy(true); setErr(''); setOkMsg(''); setBatch(null)
     try {
-      const r = await hubPost<{ skill_id?: string; skill_name?: string; source_format?: string }>(
-        '/api/workflow-learning/convert-external-skill',
-        { external_data: obj, llm_enabled: false },
-      )
-      setOkMsg(`已自动改写为云枢格式并注册：「${r?.skill_name ?? r?.skill_id ?? ''}」（skill_id=${r?.skill_id ?? '-'}，格式=${r?.source_format ?? '-'}）——已自动评审-消化，可审核后发布。`)
+      if (Array.isArray(parsed)) {
+        // 批量：逐个改写注册 → 自动合并/加强/新建 + 各自自动评审-消化
+        if (parsed.length === 0) throw new Error('批量导入数组为空')
+        if (parsed.length > 200) throw new Error('单次批量最多 200 个技能')
+        const r = await hubPost<BatchResult & { ok?: boolean; error?: string }>(
+          '/api/workflow-learning/batch-convert-external-skills',
+          { external_skills: parsed, llm_enabled: false },
+        )
+        if (r && r.ok === false && r.error) throw new Error(r.error)
+        setBatch(r ?? {})
+        const c = (r.created ?? []).length
+        const m = (r.merged ?? []).length
+        const s = (r.strengthened ?? []).length
+        const f = (r.failed ?? []).length
+        setOkMsg(`批量消化完成：输入 ${r.total_input ?? parsed.length} → 新建 ${c} / 合并 ${m} / 加强 ${s} / 失败 ${f}（每个新技能均已自动评审-消化）`)
+      } else {
+        if (!parsed || typeof parsed !== 'object') throw new Error('需要 JSON 对象或数组')
+        const obj = parsed as Record<string, unknown>
+        const r = await hubPost<{ skill_id?: string; skill_name?: string; source_format?: string; ok?: boolean; error?: string }>(
+          '/api/workflow-learning/convert-external-skill',
+          { external_data: obj, llm_enabled: false },
+        )
+        if (r && r.ok === false && r.error) throw new Error(r.error)
+        setOkMsg(`已自动改写为云枢格式并注册：「${r?.skill_name ?? r?.skill_id ?? ''}」（skill_id=${r?.skill_id ?? '-'}，格式=${r?.source_format ?? '-'}）——已自动评审-消化，可审核后发布。`)
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e))
     } finally { setBusy(false) }
   }
+  const renderBatchList = (title: string, items: BatchItem[] | undefined, kind: 'ok' | 'merge' | 'strong' | 'fail') => {
+    if (!items || items.length === 0) return null
+    const colors = kind === 'fail' ? 'text-red-300' : kind === 'merge' ? 'text-amber-300' : kind === 'strong' ? 'text-violet-300' : 'text-emerald-300'
+    return (
+      <div className="mt-2">
+        <div className={`text-[11px] font-medium ${colors}`}>{title}（{items.length}）</div>
+        <ul className="mt-1 max-h-36 space-y-0.5 overflow-y-auto rounded border border-slate-800 bg-slate-950/50 p-1.5 font-mono text-[10px]">
+          {items.map((it, i) => (
+            <li key={`${kind}-${i}`} className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-slate-400">
+              <span className="text-slate-300">{it.external_name || it.skill_name || it.skill_id || '-'}</span>
+              {kind === 'fail' && it.error && <span className="text-red-400/90">{it.error}</span>}
+              {kind === 'ok' && (
+                <>
+                  <span>{it.skill_id}</span>
+                  {it.digest_verdict
+                    ? (it.digest_verdict === 'block'
+                      ? <span className="text-red-400">消化=阻断·待人工复核</span>
+                      : <span className="text-emerald-400">消化=通过</span>)
+                    : <span className="text-slate-500">已注册</span>}
+                </>
+              )}
+              {kind === 'merge' && it.merged_into && <span>→ 并入 {it.merged_into}（{it.jaccard ? `${Math.round(it.jaccard * 100)}%` : ''}）</span>}
+              {kind === 'strong' && it.strengthened_skill_id && <span>→ 加强 {it.strengthened_skill_id}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
   return (
-    <ModalShell title="改写导入其他 Agent 的技能（自动改写成云枢格式）" onClose={onClose}>
+    <ModalShell title="导入其他 Agent 技能并消化（单个 / 批量）" onClose={onClose}>
       <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
-        粘贴其他 Agent（如 Claude / GPTs / MCP / 社区）技能的 <strong>JSON 描述</strong>，系统用规则/LLM 翻译成云枢 SKILL
-        并注册 → 自动评审-消化（兼容性/重复/权限都会查）。示例：
-        <code className="mt-1 block text-cyan-400">{'{ "name": "pdf-extractor", "description": "从 PDF 提取正文", "steps": ["open", "parse"] }'}</code>
+        粘贴其他 Agent（Claude / GPTs / MCP / 社区）技能的 <strong>JSON</strong>：
+        <strong>单个对象</strong> → 单个改写消化；<strong>JSON 数组</strong>（多个技能）→ 批量改写注册，
+        逐个自动评审-消化（权限/攻击面/数据合规 + 与系统/已有技能重复都会查）。
+        与<strong className="text-cyan-300">云枢自身功能重复</strong>的技能将被拒绝进入。示例：
+        <code className="mt-1 block text-cyan-400">{'[{ "name": "pdf-extractor", "description": "从 PDF 提取正文", "steps": ["open", "parse"] }, { "name": "…", "description": "…" }]'}</code>
       </p>
       <textarea className={`${INPUT} font-mono`} rows={8} value={jsonText} onChange={(e) => setJsonText(e.target.value)}
-        placeholder='粘贴 JSON，如 {"name":"…","description":"…","steps":[…] / "prompt":…}' />
+        placeholder='粘贴 JSON 对象或数组：[{"name":"…","description":"…","steps":[…] / "prompt":…}, …]' />
       {err && <p className="mt-1 text-[11px] text-red-400">{err}</p>}
       {okMsg && <p className="mt-1 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1.5 text-[11px] text-emerald-300">{okMsg}</p>}
+      {batch && (
+        <div className="mt-1">
+          {renderBatchList('✓ 新建（已自动评审-消化）', batch.created, 'ok')}
+          {renderBatchList('⇄ 与已有技能合并', batch.merged, 'merge')}
+          {renderBatchList('↑ 加强已有技能', batch.strengthened, 'strong')}
+          {renderBatchList('✕ 拒绝/失败（含与云枢自身功能重复）', batch.failed, 'fail')}
+        </div>
+      )}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
         {okMsg ? (
-          <button type="button" className={BTN_EM} onClick={onDone}><ShieldCheck size={12} /> 完成</button>
+          <button type="button" className={BTN_EM} onClick={onDone}><ShieldCheck size={12} /> 完成并刷新</button>
         ) : (
           <>
             <button type="button" className={BTN} onClick={onClose}>取消</button>
             <button type="button" className={BTN_EM} onClick={() => void submit()} disabled={busy || !jsonText.trim()}>
-              {busy ? <Loader2 size={12} className="animate-spin" /> : <FileInput size={12} />} 改写并评审
+              {busy ? <Loader2 size={12} className="animate-spin" /> : <FileInput size={12} />} 改写并消化
             </button>
           </>
         )}

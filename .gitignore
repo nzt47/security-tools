@@ -263,6 +263,8 @@ docs/zh/_b3_timing_*.log
 /_tmp_*.md
 # 进化谱系运行时数据（EVOLUTION_ARCHIVE_PATH 指向 agent/data/；根 data/ 同型运行时产物不入库）
 data/evolution_archive*.jsonl
+# agent/data 下的进化谱系运行时侧车（同型不入库）
+agent/data/evolution_archive*.jsonl
 
 # 本地开发辅助脚本（2026-08-15 重新追加，勿提交：等待并行会话空闲后切换分支的一次性工具）
 # 注：reset --hard 后丢失，重新追加

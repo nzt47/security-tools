@@ -694,3 +694,79 @@ class TestSlashCommands:
         result = svc.slash_commands()
         tokens = [c["token"] for c in result["commands"]]
         assert tokens == sorted(tokens) == ["/skill:alpha", "/skill:beta"]
+
+
+# ═══════════════════════════════════════════════════════════════
+#  与云枢自身功能重复 → 禁止进入（审核规则）
+# ═══════════════════════════════════════════════════════════════
+
+class TestNativeDuplicateRule:
+    """外来/新建技能与系统内置能力重复 → error 阻断项（不得进入）。"""
+
+    def test_duplicate_memory_summary_blocks(self):
+        a = SkillDigestAssessor().assess(_skill(
+            id="ext-mem", name="外部记忆摘要助手",
+            description="压缩对话历史生成结构化摘要",
+            content="# 用法\n把长对话总结为记忆摘要，定期归档"))
+        codes = [f.code for f in a.findings]
+        assert "DUP_NATIVE_FUNC" in codes
+        hit = next(f for f in a.findings if f.code == "DUP_NATIVE_FUNC")
+        assert hit.severity == "error"
+        assert "记忆摘要" in hit.message
+        assert a.blocked is True
+
+    def test_duplicate_voice_interaction_blocks(self):
+        a = SkillDigestAssessor().assess(_skill(
+            id="ext-voice", name="语音助手", description="通过语音交互完成任务",
+            content="voice_interaction 实现语音对话"))
+        assert any(f.code == "DUP_NATIVE_FUNC" for f in a.findings)
+        assert a.blocked is True
+
+    def test_unique_skill_not_flagged(self):
+        a = SkillDigestAssessor().assess(_skill(
+            id="ext-pdf", name="pdf-extractor",
+            description="解析 PDF 提取表格与正文",
+            content="# 用法\n读取 pdf 文件，输出结构化正文"))
+        assert not any(f.code == "DUP_NATIVE_FUNC" for f in a.findings)
+
+    def test_reject_gate_returns_native_names(self, svc):
+        svc.create_manual({
+            "id": "dup-mem", "name": "记忆摘要-外部版",
+            "description": "压缩对话为摘要", "content": "定期总结对话历史",
+            "content_type": "markdown", "category": "custom",
+            "tags": [], "author": "tester",
+        })
+        skill = svc.get("dup-mem")
+        dup = svc.reject_native_duplicate(skill)
+        assert dup and "记忆摘要" in dup
+        svc.create_manual({
+            "id": "uniq-pdf", "name": "pdf-extractor",
+            "description": "解析 PDF 提取表格", "content": "读取 pdf 输出正文",
+            "content_type": "markdown", "category": "custom",
+            "tags": [], "author": "tester",
+        })
+        assert svc.reject_native_duplicate(svc.get("uniq-pdf")) is None
+
+    def test_install_gate_refuses_native_dup_with_force_exempt(self, svc, monkeypatch):
+        from agent.skills_mgmt.models import Skill as SK
+        # 绕过真实下载，直接注入 creator.install（模拟安装完成并已落库）
+        def fake_install(source, force=False):
+            skill = SK.from_storage_dict({
+                "id": "inst-mem", "name": "记忆摘要器",
+                "description": "压缩对话历史为摘要", "content": "总结长对话",
+                "content_type": "markdown", "category": "custom",
+                "tags": [], "author": "tester", "enabled": False,
+            })
+            svc.store.upsert(skill)
+            return skill
+        monkeypatch.setattr(svc.creator, "install", fake_install)
+        from agent.skills_mgmt.exceptions import SkillMgmtError
+        with pytest.raises(SkillMgmtError) as exc:
+            svc.install("local:mem")
+        assert "与云枢自身功能重复" in str(exc.value)
+        # 非 force 被拒后技能已清理
+        with pytest.raises(Exception):
+            svc.get("inst-mem")
+        # force=True 显式豁免可进入
+        ok = svc.install("local:mem", force=True)
+        assert ok.id == "inst-mem"

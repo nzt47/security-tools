@@ -180,7 +180,33 @@ class SkillsMgmtService:
         skill = self.creator.install(source, force=force)
         self._advisory_digest(skill.id)   # 外来技能进入即自动评审-消化
         self._auto_classify(skill.id)     # 外来技能自动归类（可自动新建类）
+        # 与云枢自身功能重复的外来技能「禁止进入」（force=True 显式豁免）
+        dup = self.reject_native_duplicate(skill)
+        if dup and not force:
+            try:
+                self.delete(skill.id)
+            except Exception:  # noqa: BLE001 尽力清理
+                pass
+            raise SkillMgmtError(
+                f"外来技能与云枢自身功能重复，禁止进入：{dup}。"
+                f"系统已内置该能力，请直接使用或改造为增量能力（若确需保留请 force）")
         return self._require(skill.id)
+
+    def reject_native_duplicate(self, skill) -> Optional[str]:
+        """检测技能是否与云枢自身功能重复；返回匹配说明（None=无重复）。
+
+        审核规则：与系统本身功能重复的技能不得进入（DUP_NATIVE_FUNC 阻断项）。
+        """
+        try:
+            from .assessor import detect_native_duplicates
+            hits = detect_native_duplicates(
+                skill.name or "", skill.description or "", skill.content or "")
+            if not hits:
+                return None
+            return "、".join(
+                f"「{h['name']}」({h['id']})" for h in hits)
+        except Exception:  # noqa: BLE001 检测失败不阻断（后续权威 digest 仍会拦截）
+            return None
 
     def install_from_zip(self, zip_path: str) -> Dict[str, Any]:
         """从 zip 技能包安装到三层架构文件仓库

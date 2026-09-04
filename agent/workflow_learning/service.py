@@ -259,6 +259,23 @@ class WorkflowLearningService:
 
     # ─── 批量 LLM 转换外部 agent 技能 ───
 
+    @staticmethod
+    def _created_digest_view(svc, skill_id: str) -> Dict[str, Any]:
+        """新建技能创建后的自动评审-消化结论（供批量结果展示；失败返回空）。"""
+        try:
+            skill = svc.get(skill_id)
+            review = getattr(skill, "review", None)
+            if review is None:
+                return {}
+            return {
+                "digest_verdict": getattr(review.digest_verdict, "value",
+                                          review.digest_verdict)
+                or "",
+                "auto_assessed": bool(getattr(review, "auto_assessed", False)),
+            }
+        except Exception:  # noqa: BLE001 结果视图尽力而为
+            return {}
+
     def batch_convert_external_skills(self, external_skills: List[Dict[str, Any]],
                                        *, llm_client=None,
                                        skills_service=None,
@@ -327,6 +344,7 @@ class WorkflowLearningService:
                             "skill_id": new_skill_id,
                             "skill_name": conv["skill_name"],
                             "source_format": conv.get("source_format", "unknown"),
+                            **self._created_digest_view(svc, new_skill_id),
                         })
                         continue
 

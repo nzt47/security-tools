@@ -13,6 +13,7 @@ from agent.workflow_learning import (
     WorkflowNotFoundError,
     LearningRecord,
 )
+from agent.workflow_learning.skill_converter import WorkflowConvertError
 
 logger = logging.getLogger(__name__)
 
@@ -319,6 +320,12 @@ def register_routes(app, state):
                 "ok": False,
                 "error": str(e),
                 "code": "VALIDATION_ERROR",
+            }), 400
+        except WorkflowConvertError as e:
+            return jsonify({
+                "ok": False,
+                "error": str(e),
+                "code": getattr(e, "code", "CONVERT_FAILED"),
             }), 400
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
