@@ -342,7 +342,8 @@ def register_routes(app, state):
             external_skills: [{name, description, steps/prompt, source_format?}, ...],
             llm_enabled?: bool,
             merge_threshold?: float (默认 0.85),
-            strengthen_threshold?: float (默认 0.7)
+            strengthen_threshold?: float (默认 0.7),
+            queue_mode?: bool（默认 false；true=仅入草稿审核队列，不自动合并/加强）
         }
 
         Returns:
@@ -369,6 +370,7 @@ def register_routes(app, state):
                 }), 400
 
             llm_enabled = bool(data.get("llm_enabled", False))
+            queue_mode = bool(data.get("queue_mode", False))
             llm_client = None
             if llm_enabled:
                 try:
@@ -382,6 +384,7 @@ def register_routes(app, state):
                 llm_client=llm_client,
                 merge_threshold=merge_threshold,
                 strengthen_threshold=strengthen_threshold,
+                queue_mode=queue_mode,
             )
             return jsonify({"ok": True, **summary})
         except ValueError as e:

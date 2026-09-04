@@ -246,3 +246,63 @@ class TestServiceIntegration:
     def test_seed_names_exported(self):
         assert "交流与人格" in SEED_NAMES
         assert UNCLASSIFIED == "未分类"
+
+
+# ═══════════════════════════════════════════════════════════════
+#  外部导入队列 / 安装预检（先存草稿逐个放行 + 自身重复预检明示）
+# ═══════════════════════════════════════════════════════════════
+
+class TestImportQueueAndPrecheck:
+    def _upsert(self, svc, sid, source, status="draft", **extra):
+        from agent.skills_mgmt.models import Skill as SK, SkillStatus
+        data = dict(
+            id=sid, name=sid, description="desc-" + sid,
+            content="# " + sid, content_type="markdown",
+            category="custom", tags=[], author="tester",
+            enabled=False, source=source,
+            status=SkillStatus(status),
+        )
+        data.update(extra)
+        svc.store.upsert(SK.from_storage_dict(data))
+
+    def test_import_queue_lists_only_external_drafts(self, svc):
+        self._upsert(svc, "ext-1", "external_agent")
+        self._upsert(svc, "ext-2", "github:someone/repo")
+        self._upsert(svc, "manual-1", "manual")
+        self._upsert(svc, "wf-1", "workflow")
+        q = svc.import_queue()
+        ids = {r["id"] for r in q}
+        assert ids == {"ext-1", "ext-2"}
+        assert q[0]["review"] is None or isinstance(q[0]["review"], dict)
+
+    def test_precheck_local_native_dup_reports_blocked(self, svc, tmp_path):
+        import json
+        p = tmp_path / "dup-mem.json"
+        p.write_text(json.dumps({
+            "id": "mem-x", "name": "记忆摘要器",
+            "description": "压缩对话历史为摘要",
+            "content": "总结长对话并归档",
+        }, ensure_ascii=False), encoding="utf-8")
+        out = svc.install_precheck("local:" + str(p))
+        assert out["ok"] is True
+        assert out["blocked"] is True
+        assert any(n["id"] == "memory_summary" for n in out["native_dups"])
+        assert any(f["code"] == "DUP_NATIVE_FUNC" for f in out["findings"])
+
+    def test_precheck_local_benign_not_blocked(self, svc, tmp_path):
+        import json
+        p = tmp_path / "pdf-x.json"
+        p.write_text(json.dumps({
+            "id": "pdf-x", "name": "pdf-extractor",
+            "description": "解析 PDF 提取表格",
+            "content": "读取 pdf 输出结构化正文",
+        }, ensure_ascii=False), encoding="utf-8")
+        out = svc.install_precheck("local:" + str(p))
+        assert out["ok"] is True
+        assert out["blocked"] is False
+        assert out["native_dups"] == []
+
+    def test_precheck_local_missing_reports_error(self, svc):
+        out = svc.install_precheck("local:C:/nope/nonexistent.json")
+        assert out["ok"] is False
+        assert "不存在" in out["error"] or "错误" in out["error"]

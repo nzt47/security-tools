@@ -208,6 +208,74 @@ class SkillsMgmtService:
         except Exception:  # noqa: BLE001 检测失败不阻断（后续权威 digest 仍会拦截）
             return None
 
+    # ─── 外来安装预检 / 导入审核队列 ───
+
+    def install_precheck(self, source: str) -> Dict[str, Any]:
+        """外来安装「预检」：拉取来源 payload 并评估（与云枢自身功能重复/阻断项），不落库。
+
+        与 install 相同的来源解析与抓取，失败返回 {ok: False, error}。
+        """
+        try:
+            scheme, payload = self.creator._installer.fetch_payload(source)  # noqa: SLF001
+            payload.setdefault("source", source)
+            skill = Skill.from_storage_dict(payload)
+            from .assessor import SkillDigestAssessor, detect_native_duplicates
+            natives = detect_native_duplicates(
+                skill.name or "", skill.description or "", skill.content or "")
+            others = [s for s in self.store.list_all() if s.id != skill.id]
+            digest = SkillDigestAssessor().assess(skill, others=others)
+            return {
+                "ok": True,
+                "scheme": scheme,
+                "source": source,
+                "skill_id": skill.id,
+                "skill_name": skill.name or skill.id,
+                "blocked": digest.blocked or bool(natives),
+                "native_dups": [
+                    {"id": n["id"], "name": n["name"],
+                     "matched": n.get("matched", [])} for n in natives],
+                "findings": [
+                    {"code": f.code, "severity": f.severity,
+                     "category": f.category, "message": f.message}
+                    for f in digest.findings],
+                "compatibility_score": digest.compatibility_score,
+            }
+        except Exception as e:  # noqa: BLE001 预检失败给出可读原因
+            return {"ok": False, "source": source, "error": str(e)}
+
+    def import_queue(self, limit: int = 200) -> List[Dict[str, Any]]:
+        """外部导入·待人工放行队列：外来源（external_agent / scheme:…）的草稿，最新在前。"""
+        prefixes = ("github:", "url:", "local:", "registry:", "http:", "https:")
+        rows = []
+        for s in self.store.list_all():
+            status = getattr(s.status, "value", s.status)
+            if status != SkillStatus.DRAFT.value:
+                continue
+            src = str(s.source or "")
+            if src in ("", "manual") or src in ("ai_assisted", "workflow"):
+                continue
+            if src != "external_agent" and not src.startswith(prefixes):
+                continue
+            rv = s.review
+            rows.append({
+                "id": s.id,
+                "name": s.name or s.id,
+                "description": s.description or "",
+                "source": src,
+                "content_type": getattr(s.content_type, "value", s.content_type),
+                "enabled": bool(s.enabled),
+                "status": status,
+                "created_at": s.created_at or "",
+                "review": None if rv is None else {
+                    "auto_assessed": bool(getattr(rv, "auto_assessed", False)),
+                    "digest_verdict": getattr(rv.digest_verdict, "value",
+                                              rv.digest_verdict) or "",
+                    "blocked": (getattr(rv, "digest_verdict", "") or "") == "block",
+                },
+            })
+        rows.sort(key=lambda r: str(r.get("created_at", "")), reverse=True)
+        return rows[:max(1, min(int(limit), 500))]
+
     def install_from_zip(self, zip_path: str) -> Dict[str, Any]:
         """从 zip 技能包安装到三层架构文件仓库
 

@@ -185,22 +185,7 @@ class SkillInstaller:
         """
         with traced_action("skill_install", source=source, force=force) as ctx:
             track_event("skill_install_start", {"source": source})
-            scheme, rest = self._parse_source(source)
-
-            if scheme == "github":
-                payload = self._from_github(rest)
-            elif scheme == "url":
-                payload = self._from_url(rest)
-            elif scheme == "local":
-                payload = self._from_local(rest)
-            elif scheme == "registry":
-                payload = self._from_registry(rest)
-            else:
-                raise SkillInstallError(
-                    f"不支持的安装来源: {scheme}",
-                    code=ErrorCode.INSTALL_FORMAT_UNSUPPORTED,
-                    details={"source": source, "scheme": scheme},
-                )
+            scheme, payload = self.fetch_payload(source)
 
             payload.setdefault("source", source)
             payload.setdefault("status", SkillStatus.PENDING_REVIEW.value)
@@ -219,6 +204,29 @@ class SkillInstaller:
                         kind="counter")
             logger.info("[Installer] 安装成功: %s (scheme=%s)", skill.id, scheme)
             return skill
+
+    def fetch_payload(self, source: str) -> tuple:
+        """按来源解析并拉取技能 payload（不落库）——供安装与「安装预检」共用。
+
+        Returns:
+            (scheme, payload dict)
+        """
+        scheme, rest = self._parse_source(source)
+        if scheme == "github":
+            payload = self._from_github(rest)
+        elif scheme == "url":
+            payload = self._from_url(rest)
+        elif scheme == "local":
+            payload = self._from_local(rest)
+        elif scheme == "registry":
+            payload = self._from_registry(rest)
+        else:
+            raise SkillInstallError(
+                f"不支持的安装来源: {scheme}",
+                code=ErrorCode.INSTALL_FORMAT_UNSUPPORTED,
+                details={"source": source, "scheme": scheme},
+            )
+        return scheme, payload
 
     # ─── 解析 ───
 

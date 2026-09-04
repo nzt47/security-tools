@@ -16,6 +16,7 @@ import {
   RefreshCw, Rocket, ScrollText, ShieldCheck, Trash2, X, Zap,
 } from 'lucide-react'
 import { hubGet, hubPost } from '../../hub/components/ui'
+import { getApiToken } from '../../../lib/apiToken'
 import GenerateRequirementModal from './generate-requirement-modal'
 import ClassIcon from './class-icon'
 
@@ -171,6 +172,24 @@ export default function SkillDigestManager() {
     }
   }
 
+  // ── 外部导入 · 待放行队列（先存草稿 → 人工逐个放行/驳回）──
+  interface QueueItem {
+    id: string; name?: string; description?: string; source?: string
+    content_type?: string; enabled?: boolean; status?: string; created_at?: string
+    review?: { auto_assessed?: boolean; digest_verdict?: string; blocked?: boolean }
+  }
+  const [queueOpen, setQueueOpen] = useState(false)
+  const [queue, setQueue] = useState<QueueItem[]>([])
+  const [qLoading, setQLoading] = useState(false)
+  const refreshQueue = useCallback(async () => {
+    setQLoading(true)
+    try {
+      const r = await hubGet<{ items?: QueueItem[] }>('/api/skills-mgmt/queue')
+      setQueue(Array.isArray(r.items) ? r.items : [])
+    } catch { setQueue([]) }
+    finally { setQLoading(false) }
+  }, [])
+
   const load = useCallback(async () => {
     setError('')
     try {
@@ -180,10 +199,12 @@ export default function SkillDigestManager() {
       setError(`技能资产加载失败：${e instanceof Error ? e.message : String(e)}`)
     } finally {
       setLoading(false)
+      void refreshQueue()
     }
-  }, [])
+  }, [refreshQueue])
 
   useEffect(() => { void load() }, [load])
+  useEffect(() => { void refreshQueue() }, [refreshQueue])
 
   const act = async (label: string, fn: () => Promise<unknown>) => {
     setBusy(label); setError(''); setMsg('')
@@ -503,6 +524,69 @@ export default function SkillDigestManager() {
           </table>
         </div>
       )}
+
+      {/* ── 外部导入 · 待放行队列（先存草稿 → 人工逐个放行/驳回）── */}
+      <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/30">
+        <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+          <ScrollText size={12} className="text-amber-400" />
+          <span className="text-xs font-medium text-slate-200">外部导入 · 待放行队列</span>
+          <span className={`rounded-full px-1.5 text-[10px] ${queue.length > 0 ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-800 text-slate-400'}`}>{queue.length}</span>
+          <span className="text-[10px] text-slate-600">批量「先存草稿」的外部技能（含自动评审-消化结论）——人工逐个 放行（发布复核）或 驳回</span>
+          <div className="ml-auto flex items-center gap-1.5">
+            <button type="button" className={BTN} onClick={() => void refreshQueue()} disabled={qLoading} title="刷新队列">
+              <RefreshCw size={11} /> 刷新
+            </button>
+            <button type="button" className={BTN} onClick={() => setQueueOpen(!queueOpen)} title={queueOpen ? '收起' : '展开'}>
+              {queueOpen ? <ChevronDown size={11} /> : <ChevronRight size={11} />} {queueOpen ? '收起' : '展开'}
+            </button>
+          </div>
+        </div>
+        {queueOpen && (
+          qLoading ? (
+            <div className="flex items-center gap-2 px-3 py-3 text-[11px] text-slate-500"><Loader2 size={12} className="animate-spin" /> 加载队列…</div>
+          ) : queue.length === 0 ? (
+            <p className="px-3 pb-3 text-[11px] text-slate-500">队列为空。「批量导入消化」勾选「先存草稿·人工逐个放行」后，外部技能会先到这里等人工放行。</p>
+          ) : (
+            <ul className="divide-y divide-slate-800/60 border-t border-slate-800/60">
+              {queue.map((q) => {
+                const full = items.find((i) => i.id === q.id) ?? null
+                const part = (full ?? { id: q.id, name: q.name ?? q.id }) as SkillItem
+                const b = q.review?.blocked
+                return (
+                  <li key={q.id} className="flex flex-wrap items-center gap-x-2 gap-y-1.5 px-3 py-2">
+                    <div className="min-w-0 max-w-[20rem] flex-1">
+                      <div className="truncate text-xs font-medium text-slate-200">{q.name || q.id}</div>
+                      <div className="truncate text-[10px] text-slate-500">{q.description ?? ''}</div>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-1">
+                      {chip(`源:${q.source ?? '-'}`, 'bg-indigo-500/10 text-indigo-300 border-indigo-800/50')}
+                      {b === true
+                        ? chip('阻断·放行需人工复核', 'bg-red-500/15 text-red-400 border-red-800')
+                        : q.review?.auto_assessed
+                          ? chip('已自动评估', 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60')
+                          : chip('未评估', 'bg-slate-500/10 text-slate-400 border-slate-700')}
+                      {chip('草稿', 'bg-slate-500/10 text-slate-400 border-slate-700')}
+                      {q.created_at && <span className="font-mono text-[9px] text-slate-600">{q.created_at.slice(0, 16).replace('T', ' ')}</span>}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      <button type="button" className={BTN} onClick={() => void digestOne(part.id)} disabled={busy !== '' || !full} title={full ? '执行权威评审-消化' : '技能已被移除，先刷新'}>
+                        <Zap size={11} /> 评审-消化
+                      </button>
+                      <button type="button" className={BTN_EM} onClick={() => full && setPublishTarget(full)} disabled={busy !== '' || !full}
+                        title={b ? '阻断项：放行需人工复核（通过/强制并写审计）' : '放行 = 人工复核后发布为运行时能力'}>
+                        <Rocket size={11} /> 放行
+                      </button>
+                      <button type="button" className={BTN_RED} onClick={() => void remove(part)} disabled={busy !== '' || !full} title="驳回并删除该草稿">
+                        <Trash2 size={11} /> 驳回
+                      </button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )
+        )}
+      </div>
 
       {items.map((it) => expanded[it.id] && (
         <ReportPanel key={`report-${it.id}`} item={it} onClose={() => toggleRow(it.id)} />
@@ -913,15 +997,51 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [source, setSource] = useState('')
   const [busy, setBusy] = useState(false)
+  const [pbusy, setPbusy] = useState(false)
   const [err, setErr] = useState('')
+  interface Precheck {
+    ok?: boolean; scheme?: string; skill_id?: string; skill_name?: string
+    blocked?: boolean; error?: string
+    native_dups?: { id?: string; name?: string; matched?: string[] }[]
+    findings?: { code?: string; severity?: string; message?: string }[]
+  }
+  const [pre, setPre] = useState<Precheck | null>(null)
+  /** 预检：拉取来源并评估（与云枢自身功能重复 / 安全阻断），不落库 */
+  const runPrecheck = async () => {
+    const src = source.trim()
+    if (!src) return
+    setPbusy(true); setErr(''); setPre(null)
+    try {
+      const headers: Record<string, string> = {}
+      const tok = getApiToken()
+      if (tok) headers.Authorization = `Bearer ${tok}`
+      const res = await fetch(`/api/skills-mgmt/install/precheck?source=${encodeURIComponent(src)}`, { headers })
+      const body = (await res.json().catch(() => null)) as Precheck | null
+      if (!res.ok || !body) throw new Error(body?.error ?? `HTTP ${res.status}`)
+      setPre(body)
+    } catch (e) {
+      setErr(`预检失败：${e instanceof Error ? e.message : String(e)}`)
+    } finally { setPbusy(false) }
+  }
   const submit = async () => {
-    if (!source.trim()) return
+    const src = source.trim()
+    if (!src) return
     setBusy(true); setErr('')
     try {
-      await hubPost('/api/skills-mgmt/install', { source: source.trim() })
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+      const tok = getApiToken()
+      if (tok) headers.Authorization = `Bearer ${tok}`
+      const res = await fetch('/api/skills-mgmt/install', {
+        method: 'POST', headers, body: JSON.stringify({ source: src }),
+      })
+      const body = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; message?: string } | null
+      if (!res.ok) {
+        setErr(`安装被拒：${body?.error ?? body?.message ?? `HTTP ${res.status}`}（含「与云枢自身功能重复」等预检项时系统禁止进入）`)
+        return
+      }
       onDone()
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e))
+      setErr(`安装失败：${e instanceof Error ? e.message : String(e)}`)
     } finally { setBusy(false) }
   }
   return (
@@ -930,10 +1050,36 @@ function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
         支持 <code className="text-cyan-400">github:user/repo</code>、
         <code className="text-cyan-400">url:https://…</code>、
         <code className="text-cyan-400">local:./路径</code>、
-        <code className="text-cyan-400">registry:skill-name</code> 等源；安装后自动进入评估管线。
+        <code className="text-cyan-400">registry:skill-name</code> 等源。先「预检」可看到
+        <strong className="text-amber-300"> 与云枢自身功能重复 / 安全阻断</strong>结论，再决定安装；
+        安装后仍会执行权威预检与自动评估（与自身功能重复者 <strong>禁止进入</strong>）。
       </p>
-      <input className={INPUT} value={source} onChange={(e) => setSource(e.target.value)} placeholder="github:user/repo 或 url:https://…" />
+      <div className="flex gap-2">
+        <input className={INPUT} value={source} onChange={(e) => { setSource(e.target.value); setPre(null) }} placeholder="github:user/repo 或 url:https://…" />
+        <button type="button" className={BTN} onClick={() => void runPrecheck()} disabled={pbusy || !source.trim() || busy}>
+          {pbusy ? <Loader2 size={12} className="animate-spin" /> : <ShieldCheck size={12} />} 预检
+        </button>
+      </div>
       {err && <p className="mt-1 text-[11px] text-red-400">{err}</p>}
+      {pre && (
+        <div className={`mt-2 rounded-md border px-2.5 py-2 text-[11px] ${pre.blocked ? 'border-red-800/70 bg-red-950/20 text-red-300' : 'border-emerald-800/70 bg-emerald-950/20 text-emerald-300'}`}>
+          {pre.ok === false ? (
+            <p>预检失败：{pre.error}</p>
+          ) : pre.blocked ? (
+            <div className="space-y-1">
+              <p className="font-medium text-red-300">✕ 将拒绝进入（存在阻断项）：{pre.skill_name || pre.skill_id || source}</p>
+              {(pre.native_dups ?? []).length > 0 && (
+                <p>· 与云枢自身功能重复：{(pre.native_dups ?? []).map((n) => `「${n.name}」(${n.id})`).join('、')} —— 系统已内置该能力</p>
+              )}
+              {(pre.findings ?? []).filter((f) => f.severity === 'error' || f.severity === 'critical').slice(0, 6).map((f, i) => (
+                <p key={i}>· [{f.code}] {f.message}</p>
+              ))}
+            </div>
+          ) : (
+            <p>✓ 预检通过：未发现与云枢自身功能重复或阻断项（{pre.skill_name || source}）。可安全安装。</p>
+          )}
+        </div>
+      )}
       <div className="mt-3 flex justify-end gap-2">
         <button type="button" className={BTN} onClick={onClose}>取消</button>
         <button type="button" className={BTN_EM} onClick={() => void submit()} disabled={busy || !source.trim()}>
@@ -1207,6 +1353,7 @@ interface BatchResult {
 }
 function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [jsonText, setJsonText] = useState('')
+  const [queueMode, setQueueMode] = useState(true)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [okMsg, setOkMsg] = useState('')
@@ -1227,7 +1374,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         if (parsed.length > 200) throw new Error('单次批量最多 200 个技能')
         const r = await hubPost<BatchResult & { ok?: boolean; error?: string }>(
           '/api/workflow-learning/batch-convert-external-skills',
-          { external_skills: parsed, llm_enabled: false },
+          { external_skills: parsed, llm_enabled: false, queue_mode: queueMode },
         )
         if (r && r.ok === false && r.error) throw new Error(r.error)
         setBatch(r ?? {})
@@ -1235,7 +1382,9 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         const m = (r.merged ?? []).length
         const s = (r.strengthened ?? []).length
         const f = (r.failed ?? []).length
-        setOkMsg(`批量消化完成：输入 ${r.total_input ?? parsed.length} → 新建 ${c} / 合并 ${m} / 加强 ${s} / 失败 ${f}（每个新技能均已自动评审-消化）`)
+        setOkMsg(queueMode
+          ? `已批量转为草稿并入「待放行队列」：${c} 个（各含自动评审-消化结论）。请到下方「外部导入 · 待放行队列」逐个人工放行 / 驳回。${f ? `另 ${f} 个被拒绝：与云枢自身功能重复或解析失败。` : ''}`
+          : `批量消化完成：输入 ${r.total_input ?? parsed.length} → 新建 ${c} / 合并 ${m} / 加强 ${s} / 失败 ${f}（每个新技能均已自动评审-消化）`)
       } else {
         if (!parsed || typeof parsed !== 'object') throw new Error('需要 JSON 对象或数组')
         const obj = parsed as Record<string, unknown>
@@ -1264,9 +1413,10 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
               {kind === 'ok' && (
                 <>
                   <span>{it.skill_id}</span>
+                  {(it as { queued?: boolean }).queued && <span className="text-cyan-300">已入队·待人工放行</span>}
                   {it.digest_verdict
                     ? (it.digest_verdict === 'block'
-                      ? <span className="text-red-400">消化=阻断·待人工复核</span>
+                      ? <span className="text-red-400">消化=阻断·放行时需人工复核</span>
                       : <span className="text-emerald-400">消化=通过</span>)
                     : <span className="text-slate-500">已注册</span>}
                 </>
@@ -1288,6 +1438,14 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         与<strong className="text-cyan-300">云枢自身功能重复</strong>的技能将被拒绝进入。示例：
         <code className="mt-1 block text-cyan-400">{'[{ "name": "pdf-extractor", "description": "从 PDF 提取正文", "steps": ["open", "parse"] }, { "name": "…", "description": "…" }]'}</code>
       </p>
+      <label className="mb-2 flex cursor-pointer items-start gap-2 rounded-md border border-cyan-900/50 bg-cyan-950/20 px-2.5 py-2 text-[11px] leading-relaxed text-slate-300">
+        <input type="checkbox" checked={queueMode} onChange={(e) => setQueueMode(e.target.checked)} className="mt-0.5 accent-cyan-500" />
+        <span>
+          <strong className="text-cyan-300">先存草稿·人工逐个放行（推荐）</strong>：批量技能一律转为草稿（各带自动评审-消化结论），
+          不自动合并/加强已有技能；随后在下方「外部导入 · 待放行队列」逐个人工 放行（走发布复核）或 驳回。
+          关闭后则自动新建/合并/加强（原有消化方式）。
+        </span>
+      </label>
       <textarea className={`${INPUT} font-mono`} rows={8} value={jsonText} onChange={(e) => setJsonText(e.target.value)}
         placeholder='粘贴 JSON 对象或数组：[{"name":"…","description":"…","steps":[…] / "prompt":…}, …]' />
       {err && <p className="mt-1 text-[11px] text-red-400">{err}</p>}

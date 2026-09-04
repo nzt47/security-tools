@@ -280,7 +280,8 @@ class WorkflowLearningService:
                                        *, llm_client=None,
                                        skills_service=None,
                                        merge_threshold: float = 0.85,
-                                       strengthen_threshold: float = 0.7) -> Dict[str, Any]:
+                                       strengthen_threshold: float = 0.7,
+                                       queue_mode: bool = False) -> Dict[str, Any]:
         """批量把外部 agent 的技能转换为本地技能并自动合并/加强/新建
 
         对每个外部技能执行:
@@ -292,12 +293,17 @@ class WorkflowLearningService:
                   （合并 tags/dependencies 到现有技能，删除新建的临时技能）
                 - Jaccard < strengthen_threshold → 保留新建技能
 
+        queue_mode=True（「先存草稿再人工逐个放行」）时跳过第 2/3 步的自动
+        合并/加强：每个外部技能一律转为独立草稿（含自动评审-消化结论）进入
+        待放行队列，由人工逐个放行/驳回。
+
         Args:
             external_skills: 外部技能列表（每个元素是 dict）
             llm_client: LLM 客户端（None 时走规则转换）
             skills_service: SkillsMgmtService 实例
             merge_threshold: 触发合并的 Jaccard 阈值（默认 0.85）
             strengthen_threshold: 触发加强的 Jaccard 阈值（默认 0.7）
+            queue_mode: True=仅入草稿队列（不自动合并/加强）
 
         Returns:
             {total_input, converted, merged: [...], strengthened: [...],
@@ -306,7 +312,8 @@ class WorkflowLearningService:
         with traced_action("svc_batch_convert_external",
                            total=len(external_skills),
                            merge_threshold=merge_threshold,
-                           strengthen_threshold=strengthen_threshold):
+                           strengthen_threshold=strengthen_threshold,
+                           queue_mode=queue_mode):
             svc = skills_service or self._resolve_skills_service()
             converter = self._build_converter(svc)
 
@@ -326,6 +333,17 @@ class WorkflowLearningService:
                     conv = converter.convert_external_skill(ext, llm_client)
                     new_skill_id = conv["skill_id"]
                     summary["converted"] += 1
+
+                    if queue_mode:
+                        # 草稿队列模式：一律保留为草稿，不做自动合并/加强
+                        summary["created"].append({
+                            "skill_id": new_skill_id,
+                            "skill_name": conv["skill_name"],
+                            "source_format": conv.get("source_format", "unknown"),
+                            "queued": True,
+                            **self._created_digest_view(svc, new_skill_id),
+                        })
+                        continue
 
                     # 2. 检测与现有技能的相似度
                     try:

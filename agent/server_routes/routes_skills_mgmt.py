@@ -192,6 +192,37 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
+    @app.route("/api/skills-mgmt/install/precheck", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_install_precheck():
+        """外来安装预检：拉取来源并评估（与云枢自身功能重复/阻断项），不落库。
+
+        Query: ?source=github:user/repo 或 url:… / local:… / registry:…
+        """
+        try:
+            source = request.args.get("source", "").strip()
+            if not source:
+                return jsonify({"ok": False,
+                                "error": "缺少 source 查询参数"}), 400
+            return jsonify(_svc().install_precheck(source))
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/queue", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request(show_response=False)
+    def api_skills_mgmt_queue():
+        """外部导入·待人工放行队列（外来源草稿，最新在前）"""
+        try:
+            limit = request.args.get("limit", 200, type=int)
+            rows = _svc().import_queue(limit=limit)
+            return jsonify({"ok": True, "total": len(rows), "items": rows})
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"ok": False, "error": str(e)}), 500
+
     @app.route("/api/skills-mgmt/upload", methods=["POST"])
     @trace_route("SkillsMgmt")
     @require_token
