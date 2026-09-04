@@ -1,5 +1,5 @@
 {
-  "trace_id": "043bbac90451480e",
+  "trace_id": "28850fcc8205407f",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -559,7 +559,7 @@
       "name": "state_manager",
       "layer": "core",
       "file_path": "",
-      "in_degree": 14,
+      "in_degree": 15,
       "out_degree": 4
     },
     {
@@ -808,7 +808,7 @@
       "layer": "workflow_learning",
       "file_path": "agent/workflow_learning/service.py",
       "in_degree": 1,
-      "out_degree": 2
+      "out_degree": 3
     },
     {
       "path": "agent.skills_mgmt.service",
@@ -816,7 +816,15 @@
       "layer": "skills_mgmt",
       "file_path": "",
       "in_degree": 4,
-      "out_degree": 3
+      "out_degree": 6
+    },
+    {
+      "path": "agent.skills_mgmt.assessor",
+      "name": "assessor",
+      "layer": "skills_mgmt",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 2
     },
     {
       "path": "agent.workflow_learning.observability",
@@ -831,7 +839,7 @@
       "name": "skill_converter",
       "layer": "workflow_learning",
       "file_path": "agent/workflow_learning/skill_converter.py",
-      "in_degree": 0,
+      "in_degree": 1,
       "out_degree": 1
     },
     {
@@ -1568,7 +1576,7 @@
       "layer": "server_routes",
       "file_path": "agent/server_routes/routes_workflow_learning.py",
       "in_degree": 0,
-      "out_degree": 6
+      "out_degree": 7
     },
     {
       "path": "agent.server_routes.routes_business_dashboard",
@@ -1927,7 +1935,7 @@
       "name": "code_review",
       "layer": "core",
       "file_path": "",
-      "in_degree": 1,
+      "in_degree": 3,
       "out_degree": 0
     },
     {
@@ -2017,6 +2025,14 @@
       "file_path": "",
       "in_degree": 1,
       "out_degree": 0
+    },
+    {
+      "path": "agent.extensions.security_checker",
+      "name": "security_checker",
+      "layer": "extensions",
+      "file_path": "",
+      "in_degree": 4,
+      "out_degree": 3
     },
     {
       "path": "agent.skills_mgmt.creator",
@@ -2787,14 +2803,6 @@
       "out_degree": 2
     },
     {
-      "path": "agent.extensions.security_checker",
-      "name": "security_checker",
-      "layer": "extensions",
-      "file_path": "agent/extensions/security_checker.py",
-      "in_degree": 2,
-      "out_degree": 3
-    },
-    {
       "path": "agent.extensions.security_check_skill",
       "name": "security_check_skill",
       "layer": "extensions",
@@ -3484,7 +3492,7 @@
       "source_layer": "core",
       "target_layer": "orchestrator",
       "import_type": "from_import",
-      "line": 369,
+      "line": 377,
       "source_file": "agent/digital_life.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4966,7 +4974,7 @@
       "source_layer": "workflow_learning",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 429,
+      "line": 489,
       "source_file": "agent/workflow_learning/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -4979,7 +4987,20 @@
       "source_layer": "workflow_learning",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 433,
+      "line": 493,
+      "source_file": "agent/workflow_learning/service.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.workflow_learning.service",
+      "target": "agent.skills_mgmt.assessor",
+      "source_layer": "workflow_learning",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 199,
       "source_file": "agent/workflow_learning/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6643,7 +6664,7 @@
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 499,
+      "line": 811,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6656,7 +6677,7 @@
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 651,
+      "line": 963,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6669,7 +6690,7 @@
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 919,
+      "line": 1231,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6682,7 +6703,7 @@
       "source_layer": "server_routes",
       "target_layer": "skills_mgmt",
       "import_type": "from_import",
-      "line": 1148,
+      "line": 1460,
       "source_file": "agent/server_routes/routes_skills_mgmt.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8043,11 +8064,11 @@
     },
     {
       "source": "agent.server_routes.routes_workflow_learning",
-      "target": "agent.state_manager",
+      "target": "agent.workflow_learning.skill_converter",
       "source_layer": "server_routes",
-      "target_layer": "core",
+      "target_layer": "workflow_learning",
       "import_type": "from_import",
-      "line": 305,
+      "line": 16,
       "source_file": "agent/server_routes/routes_workflow_learning.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8060,7 +8081,20 @@
       "source_layer": "server_routes",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 365,
+      "line": 309,
+      "source_file": "agent/server_routes/routes_workflow_learning.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_workflow_learning",
+      "target": "agent.state_manager",
+      "source_layer": "server_routes",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 377,
       "source_file": "agent/server_routes/routes_workflow_learning.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10504,7 +10538,33 @@
       "source_layer": "skills_mgmt",
       "target_layer": "health",
       "import_type": "from_import",
-      "line": 133,
+      "line": 145,
+      "source_file": "agent/skills_mgmt/service.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.service",
+      "target": "agent.code_review",
+      "source_layer": "skills_mgmt",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 1171,
+      "source_file": "agent/skills_mgmt/service.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.service",
+      "target": "agent.extensions.security_checker",
+      "source_layer": "skills_mgmt",
+      "target_layer": "extensions",
+      "import_type": "from_import",
+      "line": 1172,
       "source_file": "agent/skills_mgmt/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10517,7 +10577,20 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 384,
+      "line": 1424,
+      "source_file": "agent/skills_mgmt/service.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.service",
+      "target": "agent.state_manager",
+      "source_layer": "skills_mgmt",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 1104,
       "source_file": "agent/skills_mgmt/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10530,7 +10603,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 616,
+      "line": 1656,
       "source_file": "agent/skills_mgmt/service.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10543,7 +10616,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 329,
+      "line": 337,
       "source_file": "agent/skills_mgmt/creator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10556,7 +10629,7 @@
       "source_layer": "skills_mgmt",
       "target_layer": "extensions",
       "import_type": "from_import",
-      "line": 297,
+      "line": 305,
       "source_file": "agent/skills_mgmt/creator.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -10922,6 +10995,32 @@
       "import_type": "from_import",
       "line": 294,
       "source_file": "agent/skills_mgmt/evolution_scheduler.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.assessor",
+      "target": "agent.code_review",
+      "source_layer": "skills_mgmt",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 314,
+      "source_file": "agent/skills_mgmt/assessor.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.skills_mgmt.assessor",
+      "target": "agent.extensions.security_checker",
+      "source_layer": "skills_mgmt",
+      "target_layer": "extensions",
+      "import_type": "from_import",
+      "line": 373,
+      "source_file": "agent/skills_mgmt/assessor.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -15492,10 +15591,10 @@
     }
   ],
   "stats": {
-    "total_files": 426,
-    "total_nodes": 366,
-    "total_edges": 966,
-    "cross_layer_edges": 633,
+    "total_files": 429,
+    "total_nodes": 367,
+    "total_edges": 973,
+    "cross_layer_edges": 640,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -15512,7 +15611,7 @@
       "unknown": 1,
       "lazy_loader": 3,
       "cognitive": 13,
-      "skills_mgmt": 31,
+      "skills_mgmt": 32,
       "workflow_learning": 6,
       "audit": 3,
       "guardrails": 4,
@@ -15541,6 +15640,6 @@
       "quality": 2,
       "prompt_manager": 5
     },
-    "build_duration_ms": 1993.9093459999954
+    "build_duration_ms": 2093.2185009999957
   }
 }

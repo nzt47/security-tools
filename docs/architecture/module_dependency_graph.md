@@ -127,7 +127,7 @@ flowchart LR
         agent_extensions_plugins_installer["agent.extensions.plugins_installer"]
         agent_extensions_sandbox["agent.extensions.sandbox"]
         agent_extensions_security_check_skill["agent.extensions.security_check_skill"]
-        agent_extensions_security_checker["agent.extensions.security_checker"]
+        agent_extensions_security_checker["agent.extensions.security_checker"]:::crosslayer
         agent_extensions_skills_installer["agent.extensions.skills_installer"]
         agent_extensions_store["agent.extensions.store"]:::crosslayer
     end
@@ -346,6 +346,7 @@ flowchart LR
     end
     subgraph skills_mgmt [skills_mgmt]
         agent_skills_mgmt["agent.skills_mgmt"]:::crosslayer
+        agent_skills_mgmt_assessor["agent.skills_mgmt.assessor"]:::crosslayer
         agent_skills_mgmt_bm25_searcher["agent.skills_mgmt.bm25_searcher"]
         agent_skills_mgmt_context_injector["agent.skills_mgmt.context_injector"]
         agent_skills_mgmt_creator["agent.skills_mgmt.creator"]:::crosslayer
@@ -450,7 +451,7 @@ flowchart LR
         agent_workflow_learning_models["agent.workflow_learning.models"]:::crosslayer
         agent_workflow_learning_observability["agent.workflow_learning.observability"]
         agent_workflow_learning_service["agent.workflow_learning.service"]:::crosslayer
-        agent_workflow_learning_skill_converter["agent.workflow_learning.skill_converter"]
+        agent_workflow_learning_skill_converter["agent.workflow_learning.skill_converter"]:::crosslayer
     end
     agent_p6_snapshot --> agent_logging_utils
     agent_p6_snapshot --> agent_behavior_controller
@@ -610,6 +611,7 @@ flowchart LR
     agent_guardrails_output_guard -.-> agent_logging_utils
     agent_workflow_learning_service -.-> agent_state_manager
     agent_workflow_learning_service -.-> agent_skills_mgmt_service
+    agent_workflow_learning_service -.-> agent_skills_mgmt_assessor
     agent_workflow_learning_observability -.-> agent_monitoring_business_metrics
     agent_workflow_learning_skill_converter -.-> agent_logging_utils
     agent_workflow_learning_matcher -.-> agent_logging_utils
@@ -845,6 +847,7 @@ flowchart LR
     agent_server_routes_routes_workflow_learning --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_workflow_learning -.-> agent_state_manager
     agent_server_routes_routes_workflow_learning -.-> agent_workflow_learning
+    agent_server_routes_routes_workflow_learning -.-> agent_workflow_learning_skill_converter
     agent_server_routes_routes_workflow_learning -.-> agent_state_manager
     agent_server_routes_routes_workflow_learning -.-> agent_state_manager
     agent_server_routes_routes_business_dashboard -.-> agent_server_auth
@@ -1035,7 +1038,10 @@ flowchart LR
     agent_skills_mgmt_memory_abstractor -.-> agent_feedback_collector
     agent_skills_mgmt_memory_abstractor -.-> agent_memory_long_term_memory
     agent_skills_mgmt_service -.-> agent_health_dashboard
+    agent_skills_mgmt_service -.-> agent_code_review
+    agent_skills_mgmt_service -.-> agent_extensions_security_checker
     agent_skills_mgmt_service -.-> agent_feedback
+    agent_skills_mgmt_service -.-> agent_state_manager
     agent_skills_mgmt_service -.-> agent_feedback
     agent_skills_mgmt_creator -.-> agent_error_handler
     agent_skills_mgmt_creator -.-> agent_extensions_market
@@ -1067,6 +1073,8 @@ flowchart LR
     agent_skills_mgmt_evolution_scheduler --> agent_skills_mgmt_service
     agent_skills_mgmt_evolution_scheduler -.-> agent_task_scheduler
     agent_skills_mgmt_evolution_scheduler -.-> agent_task_scheduler
+    agent_skills_mgmt_assessor -.-> agent_code_review
+    agent_skills_mgmt_assessor -.-> agent_extensions_security_checker
     agent_skills_mgmt_few_shot_injector -.-> agent_logging_utils
     agent_skills_mgmt_file_store -.-> agent_logging_utils
     agent_skills_mgmt_context_injector -.-> agent_logging_utils
@@ -1426,10 +1434,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 426
-- 模块节点数: 366
-- 依赖边数: 966
-- 跨层调用数: 633
+- 扫描文件数: 429
+- 模块节点数: 367
+- 依赖边数: 973
+- 跨层调用数: 640
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1993.91 ms
+- 构建耗时: 2093.22 ms
