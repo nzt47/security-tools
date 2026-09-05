@@ -85,6 +85,41 @@ class TestWorkflowLearning:
             # 部分实现会对失败交互抛异常，这也是合理行为
             pass
 
+    # ═══ 冷启动死锁修复（confidence 初值 + record_execution 演化）═══
+
+    def test_learned_confidence_passes_match_gate(self, svc):
+        """新学 workflow 的 confidence 应 ≥ matcher.min_confidence（0.4），
+        保证冷启动可被匹配（修复 0.3 < 0.4 永远匹配不到的死锁）。"""
+        wf = svc.learn_from_interaction(_make_record())
+        assert wf.confidence >= svc.matcher.min_confidence
+
+    def test_record_execution_monotonic_after_cold_start(self, svc):
+        """首次成功执行后 confidence 应上升（不跌破门槛），
+        修复旧对数公式把 0.4 砸回 ~0.18 的二次死锁。"""
+        wf = svc.learn_from_interaction(_make_record())
+        before = wf.confidence
+        wf.record_execution(success=True)
+        assert wf.confidence > before
+        assert wf.confidence >= svc.matcher.min_confidence
+        # 失败温和下调但保留下限
+        wf.record_execution(success=False)
+        assert wf.confidence >= 0.05
+
+    def test_cold_start_workflow_matches_original_query(self, svc):
+        """冷启动 workflow 应能匹配原样复述请求并免 LLM 执行
+        （修复索引缺 steps 工具名/原始输入导致的 0 相似）。"""
+        svc.set_tool_executor(lambda t, p: {"ok": True})
+        user_input = "帮我搜索 AI 最新论文并生成摘要"
+        wf = svc.learn_from_interaction(_make_record(user_input=user_input))
+        # search 应命中（matcher 综合分已过自身过滤）
+        hits = svc.search(user_input, top_k=3)
+        assert any(h["workflow_id"] == wf.id for h in hits)
+        # 免 LLM 执行原请求
+        res = svc.try_execute(user_input)
+        assert res.matched is True
+        assert res.success is True
+        assert res.steps_executed >= 1
+
 
 # ═══════════════════════════════════════════════════════════════════
 #  2. 匹配功能测试

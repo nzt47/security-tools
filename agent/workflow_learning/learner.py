@@ -122,7 +122,11 @@ class WorkflowLearner:
                 steps=steps,
                 source_session_id=record.session_id,
                 source_user_input=record.user_input[:500],
-                confidence=0.3,  # 初始低置信度，待执行验证
+                confidence=0.4,  # 初始置信度 = matcher.min_confidence 门槛，
+                # 保证"刚学到"的 workflow 立即可被匹配执行（冷启动死锁修复：
+                # 此前 0.3 < 默认 min_confidence 0.4 → 永远匹配不到 → 无法
+                # 执行累积 → 恒卡 0.3，自动学习形同虚设）。首次执行成功后由
+                # record_execution 单调上调；失败则温和下调。
                 priority=50,
                 tags=["learned"] + triggers[:3],
             )

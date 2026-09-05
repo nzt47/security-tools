@@ -1654,6 +1654,28 @@ class Orchestrator:
                     logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.tool_executor_failed', 'trace_id_ctx': trace_id, 'message': '[工作流层] ToolExecutor 注入失败，降级 LLM: %s' % (inj_e,)}))
                     return None
 
+                # 【工作流技能 vs 工作流】步骤级 LLM runner 注入：
+                # hybrid 工作流的 need_llm 步骤（本地工具解不了、需 LLM 决策/
+                # 生成的步骤）用它。runner = (prompt_text, ctx) → str，内部走
+                # 主代理同一 LLMService.chat；失败抛异常由 executor 捕获降级。
+                # 注意：此注入不影响 DAG 纯工具链（toolchain 无 need_llm 步骤，
+                # 仍 0-Token 免 LLM）。
+                try:
+                    if not getattr(svc, "_llm_runner_injected", False):
+                        _llm = getattr(self, "_llm", None)
+                        if _llm is not None:
+                            def _step_llm(prompt_text, _ctx):
+                                return _llm.chat(
+                                    [{"role": "user",
+                                      "content": str(prompt_text)}])
+                            svc.set_llm_step_runner(_step_llm)
+                            svc._llm_runner_injected = True
+                            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.llm_runner', 'trace_id_ctx': trace_id, 'message': '[工作流层] 步骤级 LLM runner 已注入（hybrid need_llm 步骤可用）'}))
+                        else:
+                            logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.llm_runner_skip', 'trace_id_ctx': trace_id, 'message': '[工作流层] 无 LLM 实例，步骤级 LLM runner 跳过（hybrid need_llm 步骤将报错）'}))
+                except Exception as _lr_e:
+                    logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.llm_runner_failed', 'trace_id_ctx': trace_id, 'message': '[工作流层] 步骤级 LLM runner 注入失败: %s' % (_lr_e,)}))
+
             result = svc.try_execute(routing_input, min_score=float(cfg["min_score"]))
             elapsed_ms = (time.perf_counter() - _ts_pf) * 1000
 

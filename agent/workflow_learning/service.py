@@ -29,7 +29,9 @@ class WorkflowLearningService:
                  min_confidence: float = 0.4,
                  min_score: float = 0.3,
                  tool_validator: Optional[Callable[[str], bool]] = None,
-                 tool_executor: Optional[ToolExecutor] = None):
+                 tool_executor: Optional[ToolExecutor] = None,
+                 llm_step_runner=None,
+                 agent_executor=None):
         self.repo = WorkflowRepository(path=repo_path)
         self.matcher = WorkflowMatcher(
             min_similarity=min_similarity,
@@ -42,6 +44,8 @@ class WorkflowLearningService:
         self.executor = WorkflowExecutor(
             self.repo, self.matcher,
             min_score=min_score, tool_executor=tool_executor,
+            agent_executor=agent_executor,
+            llm_step_runner=llm_step_runner,
         )
         # 启动时从仓库重建索引
         self._rebuild_index()
@@ -164,6 +168,17 @@ class WorkflowLearningService:
 
     def set_tool_executor(self, executor: ToolExecutor) -> None:
         self.executor.set_tool_executor(executor)
+
+    def set_llm_step_runner(self, runner) -> None:
+        """注入步骤级 LLM runner：(prompt_text, ctx) → str
+
+        供 workflow_type='hybrid' 的 need_llm 步骤使用。
+        """
+        self.executor.set_llm_step_runner(runner)
+
+    def set_agent_executor(self, executor) -> None:
+        """注入整条 Agent 模式执行器（>10步/复杂分支工作流用）"""
+        self.executor.set_agent_executor(executor)
 
     # ─── 工作流 → 技能 转换 ───
 

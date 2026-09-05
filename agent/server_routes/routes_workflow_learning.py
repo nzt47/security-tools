@@ -19,7 +19,18 @@ logger = logging.getLogger(__name__)
 
 
 def _svc():
-    return get_workflow_learning_service()
+    svc = get_workflow_learning_service()
+    # 【修复】HTTP 直调 execute 时 service 从未注入 tool_executor →
+    # "未配置工具执行器" 执行失败。注入一次 agent.tools.call。
+    if svc is not None and not getattr(svc, "_http_tool_executor_injected", False):
+        try:
+            from agent.tools import call as _tool_call
+            svc.set_tool_executor(
+                lambda tool_name, params: _tool_call(tool_name, **params))
+            svc._http_tool_executor_injected = True
+        except Exception as e:  # noqa: BLE001
+            logger.warning("工作流 HTTP tool_executor 注入失败: %s", e)
+    return svc
 
 
 def _err(e: WorkflowLearningError, default_status: int = 400):
@@ -252,6 +263,15 @@ def register_routes(app, state):
             return _err(e, 404)
         except WorkflowLearningError as e:
             return _err(e)
+        except WorkflowConvertError as e:
+            # 【修复】WorkflowConvertError 继承裸 Exception（非
+            # WorkflowLearningError/ValueError），此前质量门控失败漏到
+            # 末位 except → 500；前端 convert 按钮无法识别。应返回 400。
+            return jsonify({
+                "ok": False,
+                "error": str(e),
+                "code": getattr(e, "code", "QUALITY_GATE_FAILED"),
+            }), 400
         except ValueError as e:
             return jsonify({
                 "ok": False,

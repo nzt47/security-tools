@@ -191,10 +191,16 @@ class WorkflowToSkillConverter:
     # ─── 生成 skill 数据 ───
 
     def _generate_skill_data(self, wf: LearnedWorkflow) -> Dict[str, Any]:
-        """把 LearnedWorkflow 编译为 SkillsMgmtService.create_manual 所需字典"""
+        """把 LearnedWorkflow 编译为 SkillsMgmtService.create_manual 所需字典
+
+        【工作流技能 vs LLM 技能】产物为**供 LLM 参考的叙述说明**
+        （markdown）：把工作流步骤叙述成可给 LLM 复用的说明。此产物**不
+        替代工作流本体**——原工作流仍留在"工作流技能"体系（本地执行免
+        LLM），导出仅是"LLM 参考副本"（前端以"导出为 LLM 参考"呈现）。
+        """
         skill_id = self._derive_skill_id(wf.id)
-        skill_name = wf.name[:200] if wf.name else f"由工作流 {wf.id} 转换"
-        description = wf.description or f"自动从工作流 {wf.id} 抽象而来"
+        skill_name = wf.name[:200] if wf.name else f"由工作流 {wf.id} 导出"
+        description = wf.description or f"从工作流 {wf.id} 导出的 LLM 参考"
         content = self._compile_skill_content(wf)
 
         return {
@@ -204,7 +210,8 @@ class WorkflowToSkillConverter:
             "content": content,
             "content_type": "markdown",
             "category": "custom",
-            "tags": list(set([*wf.tags, "from_workflow", "auto_converted"])),
+            "tags": list(set([*wf.tags, "from_workflow", "auto_converted",
+                              "llm_reference"])),
             "author": "skill_converter",
             "source": "workflow_learning",
             "source_url": "",

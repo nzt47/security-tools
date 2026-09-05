@@ -173,12 +173,19 @@ def _eval_condition(expr: str, ctx: Dict[str, Any]) -> bool:
 
 
 class WorkflowExecutor:
-    """工作流执行器"""
+    """工作流执行器
+
+    - tool_executor:   本地工具执行器 (免 LLM，DAG 每步调用)
+    - llm_step_runner: 步骤级 LLM runner（workflow_type=hybrid 的 need_llm 步骤用）
+    - agent_executor:  整条 Agent 模式执行器 (分支>3/步骤>10 时)
+    """
 
     def __init__(self, repo: WorkflowRepository, matcher: WorkflowMatcher,
                  *, min_score: float = 0.3,
                  tool_executor: Optional[ToolExecutor] = None,
-                 agent_executor: Optional[AgentExecutor] = None):
+                 agent_executor: Optional[AgentExecutor] = None,
+                 llm_step_runner: Optional[Callable[[str, Dict[str, Any]],
+                                                     str]] = None):
         self._repo = repo
         self._matcher = matcher
         self.min_score = min_score
@@ -186,6 +193,9 @@ class WorkflowExecutor:
         # [TLM-L1] Agent 执行器 — classify_workflow_mode 返回 "agent" 时启用
         # None 时降级走 DAG (带 warning), 不中断主流程 (【不易】边界显性化)
         self._agent_executor = agent_executor
+        # 【工作流技能 vs 工作流】步骤级 LLM runner：need_llm=True 的步骤调用
+        # (prompt_text, ctx) → str；None 时 need_llm 步骤报错（不静默跳过）
+        self._llm_step_runner = llm_step_runner
         self._exec_locks: Dict[str, threading.Lock] = {}
         self._locks_guard = threading.Lock()
 
@@ -195,6 +205,13 @@ class WorkflowExecutor:
     def set_agent_executor(self, executor: AgentExecutor) -> None:
         """后置注入 Agent 执行器 (与 set_tool_executor 同构)"""
         self._agent_executor = executor
+
+    def set_llm_step_runner(self, runner) -> None:
+        """后置注入步骤级 LLM runner：(prompt_text, ctx) → str
+
+        用于 workflow_type='hybrid' 中 need_llm=True 的步骤。
+        """
+        self._llm_step_runner = runner
 
     # ─── 主入口: 尝试本地工作流 ───
 
@@ -325,7 +342,11 @@ class WorkflowExecutor:
             blackboard = SharedBlackboard()
             steps_executed = 0
             try:
-                if not self._tool_executor:
+                # 【工作流技能 vs 工作流】仅当存在本地工具步骤时才要求
+                # tool_executor；纯 need_llm 步骤的 hybrid 工作流可无工具执行器。
+                has_tool_steps = any(
+                    not getattr(s, "need_llm", False) for s in wf.steps)
+                if has_tool_steps and not self._tool_executor:
                     raise WorkflowExecutionError(
                         "未配置工具执行器，无法执行工作流",
                         code=ErrorCode.EXECUTE_FAILED,
@@ -347,7 +368,29 @@ class WorkflowExecutor:
 
                     # 执行
                     step_t0 = time.time()
-                    output = self._tool_executor(step.tool_name, resolved_params)
+                    if getattr(step, "need_llm", False):
+                        # 【工作流技能 vs 工作流】步骤级 LLM 混合：
+                        # need_llm=True → 本步由 llm_step_runner 决策/生成，
+                        # 其余步骤仍走本地工具（免 LLM）。
+                        if self._llm_step_runner is None:
+                            raise WorkflowExecutionError(
+                                f"步骤 {step.step_id} 需要 LLM (need_llm=True) "
+                                "但未配置 llm_step_runner",
+                                code=ErrorCode.EXECUTE_FAILED,
+                            )
+                        prompt = _resolve_template(
+                            step.prompt_template or step.description
+                            or f"执行步骤: {step.step_id}", ctx, blackboard)
+                        output = self._llm_step_runner(prompt, ctx)
+                        # 归一化：runner 返回 str；空结果视为失败由调用方兜底
+                        if output is None:
+                            raise WorkflowExecutionError(
+                                f"步骤 {step.step_id} LLM 返回空结果",
+                                code=ErrorCode.EXECUTE_FAILED,
+                            )
+                    else:
+                        output = self._tool_executor(
+                            step.tool_name, resolved_params)
                     step_elapsed = (time.time() - step_t0) * 1000
                     steps_executed += 1
 
@@ -404,7 +447,11 @@ class WorkflowExecutor:
                 output=final_output,
                 steps_executed=steps_executed,
                 success=success,
-                skipped_llm=success,  # 成功则跳过 LLM
+                # 【工作流技能 vs 工作流】skipped_llm 语义：
+                #   纯工具链（无 need_llm 步骤）执行成功 → True（免 LLM）；
+                #   hybrid（含 need_llm 步骤）→ False（本工作流实际调用了 LLM）
+                skipped_llm=success and not any(
+                    getattr(s, "need_llm", False) for s in wf.steps),
                 execution_time_ms=round(elapsed, 2),
                 error=error,
             )

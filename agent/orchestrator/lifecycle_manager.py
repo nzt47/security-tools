@@ -1026,6 +1026,13 @@ class LifecycleManager:
         from agent.tools.software_tools import register_all as reg_software
         from agent.tools.system_tools import register_all as reg_system
         from agent.tools.code_tools import register_all as reg_code
+        # 过程蒸馏工具（知识库 → 可复现步骤 → workflow/skill 固化）
+        # 失败仅记日志，不影响其余内置工具注册（守主链路稳定）
+        try:
+            from agent.process_distill.tools import register_distill_tools
+            register_distill_tools()
+        except Exception as _pd_e:  # noqa: BLE001
+            logger.warning("[lifecycle] 过程蒸馏工具注册失败（跳过）: %s", _pd_e)
 
         reg_core(self)
         reg_file(self)

@@ -855,6 +855,12 @@ def _make_test_orch(**overrides):
         "_memory_token_limit": 4096,
         "_planning_enabled": False, "_planner": None, "_needs_planning": lambda x: False,
         "_is_skill_enabled": lambda x: False,
+        # 【变易】隔离真实技能库：语义层/工作流学习层走真实 SkillLoader/
+        # workflow 仓库，测试输入可能意外命中蒸馏入库的技能（如 "Test input"
+        # 撞上英文方法论 skill）→ 短路返回 instruction，破坏"应走 LLM"的断言。
+        # 本测试聚焦 process() 容错契约，不测检索，故显式 mock 这两层为未命中。
+        "_workflow_learning_layer_match": MagicMock(return_value=None),
+        "_semantic_layer_match": MagicMock(return_value=None),
         # 【不易】拒识兜底：默认放行，避免双未命中时 _should_reject 拦截 LLM 降级路径
         "_should_reject": MagicMock(return_value=(False, "test_allow")),
         "check_health": MagicMock(return_value=[]),

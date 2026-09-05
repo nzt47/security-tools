@@ -219,6 +219,8 @@ class TestSkillContentCompilation:
         result = converter.convert_workflow_to_skill(wf.id)
         skill = skills_svc.get(result["skill_id"])
 
+        # 【工作流 → LLM 参考导出】产物为 markdown 叙述（LLM 参考副本，
+        # 不替代工作流本体）
         assert "## 触发条件" in skill.content
         assert "trigger-wf-demo" in skill.content
         assert "## 步骤清单" in skill.content

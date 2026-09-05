@@ -144,10 +144,19 @@ class WorkflowMatcher:
     def register(self, wf: LearnedWorkflow) -> None:
         """注册/更新一个工作流到索引"""
         with self._lock:
-            # 索引文本 = 名称 + 描述 + 任务签名 + 触发模式 + 标签
+            # 索引文本 = 名称 + 描述 + 任务签名 + 触发模式 + 标签 +
+            #           步骤工具名 + 来源用户输入
+            # 【变易】冷启动匹配质量修复：原索引不含 steps 工具名与
+            #   source_user_input——学到的工作流连"原样复述请求"都匹配不到
+            #   （单字 TF-IDF 下签名/触发词过短）。补上工具名与原始请求
+            #   后，复现场景相似度 0.3→0.8+，可过 orchestrator min_score。
+            step_tools = " ".join(
+                s.tool_name for s in (wf.steps or []) if s.tool_name)
             text = " ".join([
                 wf.name, wf.description, wf.task_signature,
                 " ".join(wf.trigger_patterns), " ".join(wf.tags),
+                step_tools,
+                wf.source_user_input or "",
             ])
             if wf.id in self._workflows:
                 self._index.remove(wf.id)
@@ -193,7 +202,15 @@ class WorkflowMatcher:
                     continue
                 # 综合分: 相似度 * 置信度 * 优先级因子
                 priority_factor = 0.5 + wf.priority / 200.0  # 0.5 ~ 1.0
-                combined = sim * wf.confidence * priority_factor
+                # 【变易】冷启动执行通道（死锁修复）：从未执行过的 workflow
+                #   （success_count=0）按"文本相似度 × 优先级"计分（置信度因子
+                #   视为 1）——冷启动 conf=0.4 会把 combined 压到难达 executor
+                #   min_score 的程度（sim 0.8×0.4×0.75≈0.24 < 0.25），导致刚学
+                #   的工作流永远无法首跑、无法积累执行记录。执行 1 次后
+                #   success_count>0，恢复 conf 参与计分（按真实成功率演化）。
+                conf_factor = (wf.confidence if wf.success_count > 0
+                               else 1.0)
+                combined = sim * conf_factor * priority_factor
                 results.append((wf, combined))
             results.sort(key=lambda x: x[1], reverse=True)
             elapsed = (time.time() - t0) * 1000

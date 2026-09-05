@@ -44,29 +44,33 @@ export function MemoryWorkflowTable() {
     } catch (e) { setError(String(e)) }
   }
 
-  const exec = async (id: string) => {
+  const exec = async (id: string, fallbackTask?: string) => {
     try {
-      const r = await hubPost(`/api/workflow-learning/execute/${id}`)
+      const r = await hubPost(`/api/workflow-learning/execute/${id}`, {
+        task_text: fallbackTask || '执行该工作流',
+      })
       setExecMsg(`执行结果：${JSON.stringify(r).slice(0, 120)}`)
     } catch (e) { setExecMsg(`执行失败：${e instanceof Error ? e.message : e}`) }
   }
 
-  /** 工作流 → 技能 自动消化：满足质量门控(成功次数/置信度/ACTIVE)才可转化；
-      转化走 skills-mgmt 创建 → 自动评审-消化(auto_digest)，随后可到「LLM 技能」Tab 查看报告并发布 */
+  /** 工作流 → LLM 参考说明导出：把工作流步骤叙述成给 LLM 看的说明（markdown）。
+      注意：此导出**不替代工作流本体**——原工作流仍在「工作流技能」Tab（本地执行
+      免 LLM）；导出副本仅作 LLM 参考（skills-mgmt），不改变工作流的执行属性。
+      满足质量门控(成功次数/置信度/ACTIVE)才可导出。 */
   const convert = async (wf: Workflow) => {
     try {
       const r = await hubPost<{ skill_id?: string; skill_name?: string; action?: string; error?: string; digest?: { verdict?: string; status?: string } }>(
         `/api/workflow-learning/workflows/${wf.id}/convert-to-skill`,
         { force: false, auto_digest: true },
       )
-      if (r?.error) { setExecMsg(`转化失败：${r.error}`); return }
-      const action = r?.action === 'already_converted' ? '已转化过' : '已转化为技能'
+      if (r?.error) { setExecMsg(`导出失败：${r.error}`); return }
+      const action = r?.action === 'already_converted' ? '已导出过' : '已导出为 LLM 参考'
       const digest = r?.digest?.verdict === 'block' ? '，评审存在阻断项(待人工复核)' : '，评审-消化通过'
-      setExecMsg(`${action}「${r?.skill_name ?? wf.name ?? wf.id}」（skill_id=${r?.skill_id}）${digest}，报告见 LLM 技能 Tab`)
+      setExecMsg(`${action}「${r?.skill_name ?? wf.name ?? wf.id}」（skill_id=${r?.skill_id}）${digest}——本工作流仍保留在「工作流技能」Tab，本地执行免 LLM`)
       load()
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
-      setExecMsg(`转化失败：${msg}（未达质量门控时需先积累成功次数/置信度）`)
+      setExecMsg(`导出失败：${msg}（未达质量门控时需先积累成功次数/置信度）`)
     }
   }
 
@@ -87,7 +91,7 @@ export function MemoryWorkflowTable() {
                 key: 'actions', title: '操作',
                 render: (r) => (
                   <div className="flex flex-wrap gap-2">
-                    <button onClick={() => exec(r.id)} className="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500" title="立即执行该工作流">
+                    <button onClick={() => exec(r.id, String(r.source_user_input ?? r.name ?? r.id ?? ''))} className="flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-xs text-white hover:bg-blue-500" title="立即执行该工作流">
                       <Play size={11} /> 执行
                     </button>
                     <button onClick={() => toggle(r.id)} className="rounded-md border border-slate-700 px-3 py-1.5 text-xs text-slate-300 hover:bg-slate-800" title={r.enabled ? '停用该工作流' : '启用该工作流'}>
@@ -98,11 +102,11 @@ export function MemoryWorkflowTable() {
                       className="flex items-center gap-1 rounded-md border border-emerald-800/70 px-3 py-1.5 text-xs text-emerald-300 hover:bg-emerald-950/40"
                       title={
                         r.converted_to_skill_id
-                          ? `已转化为技能 ${r.converted_to_skill_id}（再次点击返回既有技能）`
-                          : '把高频稳定工作流转化为 LLM 技能（skills-mgmt），并自动执行评审-消化'
+                          ? `已导出 LLM 参考 ${r.converted_to_skill_id}（再次点击返回既有参考）`
+                          : '把工作流步骤导出为 LLM 参考说明（markdown，skills-mgmt）——不替代本工作流，本工作流仍本地执行免 LLM'
                       }
                     >
-                      转化为技能
+                      导出为 LLM 参考
                     </button>
                   </div>
                 ),

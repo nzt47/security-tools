@@ -194,7 +194,9 @@ class TestSkillConverterIntegration:
         assert "auto_converted" in skill_data["tags"]
         assert "web_search" in skill_data["dependencies"]
         assert "summarize" in skill_data["dependencies"]
+        # 【工作流 → LLM 参考导出】产物为 markdown 叙述（LLM 参考副本）
         assert skill_data["content_type"] == "markdown"
+        assert "llm_reference" in skill_data["tags"]
 
         # 验证回写 converted_to_skill_id
         assert wf.converted_to_skill_id == "wf-qualified-test-skill"
@@ -259,6 +261,9 @@ class TestSkillConverterIntegration:
 
         # mock skill 不存在
         mock_svc.get.side_effect = Exception("not found")
+        # 【修复】吸收优先分支：reject_native_duplicate 默认返回 MagicMock
+        # (truthy) → 误判"与原生重叠"→ absorbed；mock 场景应为无重叠。
+        mock_svc.reject_native_duplicate.return_value = None
 
         created_skill = MagicMock()
         created_skill.id = "gpt-search-helper"
@@ -302,6 +307,8 @@ class TestSkillConverterIntegration:
 
         # mock skill 不存在
         mock_svc.get.side_effect = Exception("not found")
+        # 【修复】吸收优先分支：mock 场景应无重叠(见 rule_translate 注释)
+        mock_svc.reject_native_duplicate.return_value = None
 
         created_skill = MagicMock()
         created_skill.id = "llm-translated-skill"
