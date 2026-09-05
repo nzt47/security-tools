@@ -595,66 +595,69 @@ _workspace_path = init_workspace()
 logger.info(f"受保护工作区: {_workspace_path}")
 
 # ── 技能配置管理器 ──
-_SKILLS_FILE = os.path.join(os.path.dirname(__file__), 'data', 'skills.json')
+# 【legacy 迁移】SkillsManager 数据源从 data/skills.json 切换到统一技能
+# 注册表（SkillRegistry：主轨 JSON + 文件轨 skill.md），data/skills.json 不再
+# 是权威/写入目标。保留 get_all/toggle/add/delete 旧接口兼容 /api/assets 与
+# 旧 /api/skills 路由，行为不变但状态落到主轨/文件轨。
 
 class SkillsManager:
-    """管理云枢的技能配置"""
+    """管理云枢的技能配置（基于 SkillRegistry，legacy 迁移后）"""
+
+    def _reg(self):
+        from agent.skills_mgmt.registry import SkillRegistry
+        return SkillRegistry()
 
     def _load(self) -> dict:
-        try:
-            with open(_SKILLS_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError):
-            return {"skills": []}
+        return {"skills": self._reg().as_legacy_rows()}
 
     def _save(self, data: dict):
-        with open(_SKILLS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        # 迁移后：skills.json 不再是权威写入目标。行内 enabled 变更由
+        # toggle/add/delete 直接落主轨/文件轨；此处保留为 no-op 兼容。
+        pass
 
     def get_all(self) -> list:
-        return self._load().get("skills", [])
+        return self._reg().as_legacy_rows()
 
     def toggle(self, skill_id: str) -> dict:
-        data = self._load()
-        for s in data["skills"]:
-            if s["id"] == skill_id:
-                s["enabled"] = not s.get("enabled", True)
-                self._save(data)
-                return {"ok": True, "id": skill_id, "enabled": s["enabled"]}
-        return {"ok": False, "error": f"未知技能: {skill_id}"}
+        return self._reg().toggle(skill_id)
 
     def update_params(self, skill_id: str, params: dict) -> dict:
-        data = self._load()
-        for s in data["skills"]:
-            if s["id"] == skill_id:
-                s["params"].update(params)
-                self._save(data)
-                return {"ok": True, "id": skill_id, "params": s["params"]}
-        return {"ok": False, "error": f"未知技能: {skill_id}"}
+        # params 仅主轨技能有（default_params）；文件轨技能无 params 概念
+        from agent.skills_mgmt.registry import SkillRegistry
+        return SkillRegistry()._svc().update(
+            skill_id, {"default_params": params})
 
     def add(self, skill: dict) -> dict:
-        data = self._load()
-        skill_id = skill.get("id", "")
-        if any(s["id"] == skill_id for s in data["skills"]):
-            return {"ok": False, "error": f"技能已存在: {skill_id}"}
-        data["skills"].append({
-            "id": skill_id,
-            "name": skill.get("name", skill_id),
-            "enabled": skill.get("enabled", True),
-            "description": skill.get("description", ""),
-            "params": skill.get("params", {}),
-        })
-        self._save(data)
-        return {"ok": True, "id": skill_id}
+        from agent.skills_mgmt.registry import SkillRegistry
+        svc = SkillRegistry()._svc()
+        try:
+            svc.create_manual({
+                "id": skill.get("id", ""),
+                "name": skill.get("name", skill.get("id", "")),
+                "content": skill.get("content", "# " + skill.get("name", "")),
+                "content_type": skill.get("content_type", "markdown"),
+                "description": skill.get("description", ""),
+                "enabled": skill.get("enabled", True),
+            })
+            return {"ok": True, "id": skill.get("id")}
+        except Exception as e:  # noqa: BLE001
+            return {"ok": False, "error": str(e)}
 
     def delete(self, skill_id: str) -> dict:
-        data = self._load()
-        before = len(data["skills"])
-        data["skills"] = [s for s in data["skills"] if s["id"] != skill_id]
-        if len(data["skills"]) < before:
-            self._save(data)
-            return {"ok": True}
-        return {"ok": False, "error": f"未知技能: {skill_id}"}
+        from agent.skills_mgmt.registry import SkillRegistry
+        svc = SkillRegistry()._svc()
+        try:
+            # 主轨有→删主轨；否则文件轨有→删文件轨；否则报未知
+            if svc.store.get(skill_id) is not None:
+                svc.delete(skill_id)
+                return {"ok": True}
+            meta = svc.file_store.get_metadata(skill_id)
+            if meta is not None:
+                svc.file_store.delete(skill_id)
+                return {"ok": True}
+            return {"ok": False, "error": f"未知技能: {skill_id}"}
+        except Exception as e:  # noqa: BLE001
+            return {"ok": False, "error": str(e)}
 
 _skills_mgr = SkillsManager()
 
@@ -759,6 +762,19 @@ try:
     logger.info("工作流学习系统路由已注册 (/api/workflow-learning/*)")
 except Exception as e:
     logger.error("加载工作流学习路由失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
+#  过程蒸馏路由（/api/process-distill/*）
+#  知识库/素材 → 子代理蒸馏 → workflow/skill 固化
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_process_distill import register_routes as reg_process_distill
+    reg_process_distill(app, lambda: None)
+    logger.info("过程蒸馏路由已注册 (/api/process-distill/*)")
+except Exception as e:
+    logger.error("加载过程蒸馏路由失败: %s", e)
 
 
 # ════════════════════════════════════════════════════════════
@@ -1378,6 +1394,14 @@ if __name__ == "__main__":
             print(f"✅ TASK-05 学习类定时任务注册: {learning_tasks}")
         except Exception as e:
             print(f"⚠️ TASK-05 学习类定时任务注册失败（不阻断主流程）: {e}")
+        # 技能清理周期任务（孤儿扫描 / 无用淘汰；默认关闭 + dry-run，见
+        # skills_mgmt.cleanup_scheduler 配置说明）
+        try:
+            from agent.skills_mgmt.cleanup_scheduler import register_cleanup_schedulers
+            cleanup_tasks = register_cleanup_schedulers()
+            print(f"✅ 技能清理定时任务注册: {cleanup_tasks}")
+        except Exception as e:
+            print(f"⚠️ 技能清理定时任务注册失败（不阻断主流程）: {e}")
         scheduler.start_daemon(check_interval=10)
         print("✅ 定时任务调度器已启动 (daemon)")
     except Exception as e:

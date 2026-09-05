@@ -670,6 +670,23 @@ skills_mgmt:
   scale:
     upgrade_threshold: 30
 
+  # 自动清理（技能中心：清除无用技能/孤儿残留；默认关闭 + dry-run 保守）
+  # 模块入口：agent/skills_mgmt/cleanup.py + cleanup_scheduler.py
+  # env 覆盖：SKILL_CLEANUP_*（见 cleanup_scheduler.py 配置说明）
+  cleanup:
+    # 总开关 - true 时注册周期清理任务（调度触发默认仍 dry-run 只报告）
+    enabled: false
+    # 周期（小时）
+    interval_hours: 24
+    # 孤儿残留清理 dry-run（true=只报告；false=真正清除主轨已无的脏数据）
+    orphans_dry_run: true
+    # 无用技能物理删除 dry-run（true=只报告；false=真正删除）
+    unused_dry_run: true
+    # 停用零使用超此天数视为无用候选
+    unused_days: 90
+    # 已归档超此天数可物理删除
+    archived_days: 180
+
 # ═══════════════════════════════════════════════════════════════
 #  智能工作流学习系统配置 (Workflow Learning)
 #  从大模型成功交互中学习方法，自动生成可执行工作流

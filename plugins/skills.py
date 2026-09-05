@@ -407,45 +407,12 @@ def api_skills_toggle():
     new_desc = str((overlay.get(skill_id) or {}).get("description", "")
                    or result.get("description", "") or "")
 
-    # 1/2) 写 root 与 agent/data/skills.json：只更新目标行，保留其它技能行
+    # 【legacy 迁移】data/skills.json 不再是权威/写入目标——技能启停已由
+    # SkillsManager → SkillRegistry 落主轨/文件轨（见 app_server.SkillsManager），
+    # 此处删除原 skills.json ×2 镜像写入，避免旧文件残留与双写漂移。
     import json as _json
-    skills_file = os.path.normpath(
-        os.path.join(os.path.dirname(__file__), '..', 'data', 'skills.json'))
-    try:
-        all_skills = {"skills": []}
-        if os.path.exists(skills_file):
-            try:
-                with open(skills_file, 'r', encoding='utf-8') as f:
-                    all_skills = _json.load(f)
-            except Exception:
-                all_skills = {"skills": []}
-        skills = all_skills.setdefault("skills", [])
-        entry = next((s for s in skills if s.get("id") == skill_id), None)
-        if entry is None:
-            entry = {"id": skill_id}
-            skills.append(entry)
-        # manager 未返回 enabled（未知 id 等情况）时沿用文件里既有状态
-        new_enabled = bool(result.get("enabled", entry.get("enabled", True)))
-        entry.update({
-            "name": new_name,
-            "enabled": new_enabled,
-            "description": new_desc,
-            "params": entry.get("params", {}) if isinstance(entry.get("params"), dict) else {},
-        })
-        payload = _json.dumps(all_skills, ensure_ascii=False, indent=2)
-        targets = [
-            skills_file,
-            os.path.normpath(os.path.join(os.path.dirname(__file__), '..',
-                                          'agent', 'data', 'skills.json')),
-        ]
-        for target in targets:
-            os.makedirs(os.path.dirname(target), exist_ok=True)
-            with open(target, 'w', encoding='utf-8') as f:
-                f.write(payload)
-    except Exception as e:
-        _logger.error("[SKILL_SYNC] 同步 skills.json 失败: %s", e)
 
-    # 3) 扩展注册表：保留现有条目，仅更新目标行状态
+    # 扩展注册表：保留现有条目，仅更新目标行状态
     try:
         ext_file = os.path.normpath(os.path.join(os.path.dirname(__file__), '..',
                                                  'agent', 'data', 'extensions.json'))
