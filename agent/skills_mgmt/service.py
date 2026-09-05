@@ -1331,11 +1331,42 @@ class SkillsMgmtService:
         return updated
 
     def delete(self, skill_id: str) -> bool:
-        ok = self.store.remove(skill_id)
-        if not ok:
+        """删除技能（多轨同步，根治孤儿残留）。
+
+        除主轨外同步清除：legacy(data/skills.json ×2)、文件轨
+        (skills_repo/<id>/)、分类注册表、digest 事件——否则 UI 会残留
+        "该技能没有可查看的指令正文（仅运行时元数据）"的孤儿项。
+        """
+        if self.store.get(skill_id) is None:
             raise SkillNotFoundError(skill_id)
-        logger.info("[Service] 技能已删除: %s", skill_id)
+        from agent.skills_mgmt.cleanup import remove_skill_everywhere
+        remove_skill_everywhere(self, skill_id)
+        logger.info("[Service] 技能已删除(多轨): %s", skill_id)
         return True
+
+    # ─── 清理能力（技能中心：孤儿扫描 / 无用淘汰）───
+
+    def cleanup_report(self) -> Dict[str, Any]:
+        """技能中心清理总览（只报告不删除）。"""
+        from agent.skills_mgmt.cleanup import report
+        return report(self)
+
+    def cleanup_orphans(self, *, dry_run: bool = True) -> Dict[str, Any]:
+        """清除孤儿残留（dry_run=True 只报告）。"""
+        from agent.skills_mgmt.cleanup import cleanup_orphans
+        return cleanup_orphans(self, dry_run=dry_run)
+
+    def cleanup_unused(self, *, dry_run: bool = True,
+                       unused_days: Optional[int] = None,
+                       archived_days: Optional[int] = None) -> Dict[str, Any]:
+        """物理删除无用技能（dry_run=True 只报告，默认保守）。"""
+        from agent.skills_mgmt.cleanup import cleanup_unused
+        kwargs: Dict[str, Any] = {}
+        if unused_days is not None:
+            kwargs["unused_days"] = unused_days
+        if archived_days is not None:
+            kwargs["archived_days"] = archived_days
+        return cleanup_unused(self, dry_run=dry_run, **kwargs)
 
     # ─── 增强器代理 ───
 

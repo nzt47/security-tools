@@ -540,47 +540,64 @@ class SkillStore:
     # ──────────────────────────────────────────
 
     def sync_to_legacy_skills_json(self) -> int:
-        """把启用状态的技能同步到 data/skills.json，保持向后兼容
+        """把技能状态同步到 data/skills.json（兼容快照，全量重建）。
 
-        旧 SkillsManager / routes_skills.py 仍读取 data/skills.json，
-        此方法确保新系统的技能在旧 UI 也能看到。
-        Returns: 同步的技能数量
+        【legacy 迁移】data/skills.json 不再作为权威数据源/写入目标——技能
+        启停已由 SkillRegistry 统一落主轨 + 文件轨 front matter（迁移前此
+        方法"只追加不删除"，主轨删除的技能在 legacy 永久残留 → UI 孤儿）。
+        现改为从主轨 + 文件轨全量重建快照：旧读方（未迁移的消费者/脚本）
+        仍可见，且主轨/文件轨删除的技能在快照中一并消失（孤儿根治）。
+        Returns: 同步的技能行数
         """
         try:
             legacy_path = self._path.parent / "skills.json"
-            with open(legacy_path, "r", encoding="utf-8") as f:
-                legacy = json.load(f)
-            if not isinstance(legacy, dict):
-                legacy = {"skills": []}
-            legacy.setdefault("skills", [])
-            existing_ids = {s.get("id") for s in legacy["skills"]}
-
-            count = 0
-            for skill_dict in self._load().values():
-                if skill_dict.get("id") in existing_ids:
-                    continue
-                # 仅同步启用且非草稿的技能，避免污染旧 UI
-                if (skill_dict.get("enabled", True)
-                        and skill_dict.get("status", SkillStatus.DRAFT.value)
-                        in (SkillStatus.APPROVED.value,
-                            SkillStatus.PUBLISHED.value,
-                            SkillStatus.DRAFT.value)):
-                    legacy["skills"].append({
-                        "id": skill_dict["id"],
-                        "name": skill_dict.get("name", skill_dict["id"]),
-                        "enabled": True,
-                        "description": skill_dict.get("description", ""),
-                        "params": skill_dict.get("default_params", {}),
-                    })
-                    count += 1
-            if count > 0:
-                with open(legacy_path, "w", encoding="utf-8") as f:
-                    json.dump(legacy, f, ensure_ascii=False, indent=2)
-                logger.info("[SkillStore] 同步 %d 个技能到 legacy skills.json", count)
-            return count
-        except Exception as e:  # noqa: BLE001  向后兼容同步失败不阻塞主流程
-            logger.warning("[SkillStore] 同步 legacy 失败: %s", e)
+            rows = self._collect_legacy_rows()
+            data = {"skills": rows}
+            legacy_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(legacy_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            # 同步镜像到旧兼容副本 agent/data/skills.json（若仓库存在该路径）
+            try:
+                alt = self._path.parent.parent / "agent" / "data" / "skills.json"
+                if alt.parent.exists():
+                    with open(alt, "w", encoding="utf-8") as f:
+                        json.dump(data, f, ensure_ascii=False, indent=2)
+            except OSError:
+                pass
+            logger.info("[SkillStore] legacy 快照已重建: %d 行", len(rows))
+            return len(rows)
+        except Exception as e:  # noqa: BLE001  快照失败不阻塞主流程
+            logger.warning("[SkillStore] 重建 legacy 快照失败: %s", e)
             return 0
+
+    def _collect_legacy_rows(self) -> list:
+        """收集兼容快照行：主轨技能 + 文件轨内置技能（合并去重）。"""
+        rows = []
+        seen = set()
+        # 主轨技能（权威）
+        for skill_dict in self._load().values():
+            sid = skill_dict.get("id", "")
+            if not sid or sid in seen:
+                continue
+            seen.add(sid)
+            rows.append({
+                "id": sid,
+                "name": skill_dict.get("name", sid),
+                "enabled": bool(skill_dict.get("enabled", True)),
+                "description": skill_dict.get("description", ""),
+                "params": skill_dict.get("default_params", {}),
+            })
+        # 文件轨内置 persona 技能（主轨未注册，旧读方/资产概览依赖）
+        try:
+            from agent.skills_mgmt.registry import SkillRegistry
+            for row in SkillRegistry(service=None).as_legacy_rows():
+                if row["id"] in seen:
+                    continue
+                seen.add(row["id"])
+                rows.append(row)
+        except Exception:  # noqa: BLE001  文件轨扫描失败仅缺内置行
+            pass
+        return rows
 
     def health(self) -> Dict[str, Any]:
         """健康检查 (供 /api/skills-mgmt/health 调用)"""

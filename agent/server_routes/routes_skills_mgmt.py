@@ -57,6 +57,63 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     # ═══════════════════════════════════════════════════
+    #  清理能力（技能中心：孤儿扫描 / 无用淘汰 / 一键清除）
+    # ═══════════════════════════════════════════════════
+
+    @app.route("/api/skills-mgmt/cleanup/report", methods=["GET"])
+    @trace_route("SkillsMgmt")
+    @log_request(show_response=False)
+    def api_skills_cleanup_report():
+        """技能中心清理总览：孤儿残留 + 无用技能候选（只报告不删除）。"""
+        try:
+            return jsonify(_svc().cleanup_report())
+        except Exception as e:  # noqa: BLE001
+            logger.exception("cleanup report failed")
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/cleanup/orphans", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_cleanup_orphans():
+        """清除孤儿残留技能。
+
+        Body: {dry_run?: bool}（默认 true=只报告不删；传 false 才真正清除）
+        """
+        try:
+            data = request.get_json(silent=True) or {}
+            dry_run = bool(data.get("dry_run", True))
+            return jsonify(_svc().cleanup_orphans(dry_run=dry_run))
+        except Exception as e:  # noqa: BLE001
+            logger.exception("cleanup orphans failed")
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    @app.route("/api/skills-mgmt/cleanup/unused", methods=["POST"])
+    @trace_route("SkillsMgmt")
+    @require_token
+    @log_request()
+    def api_skills_cleanup_unused():
+        """物理删除无用技能（归档超期零使用）。
+
+        Body: {dry_run?: bool（默认 true）, unused_days?, archived_days?}
+        """
+        try:
+            data = request.get_json(silent=True) or {}
+            dry_run = bool(data.get("dry_run", True))
+            unused_days = data.get("unused_days")
+            archived_days = data.get("archived_days")
+            kwargs = {}
+            if unused_days is not None:
+                kwargs["unused_days"] = int(unused_days)
+            if archived_days is not None:
+                kwargs["archived_days"] = int(archived_days)
+            return jsonify(
+                _svc().cleanup_unused(dry_run=dry_run, **kwargs))
+        except Exception as e:  # noqa: BLE001
+            logger.exception("cleanup unused failed")
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+    # ═══════════════════════════════════════════════════
     #  搜索 / 列表 / 详情
     # ═══════════════════════════════════════════════════
 

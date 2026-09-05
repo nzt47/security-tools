@@ -386,45 +386,33 @@ class DigitalLifePersonaMixin:
         return result
 
     def _is_skill_enabled(self, skill_id: str) -> bool:
-        """检查指定技能是否已启用"""
+        """检查指定技能是否已启用（统一读主轨/文件轨，不再直接读 data/skills.json）"""
         try:
-            result = True
-            for sf in [
-                os.path.join(os.path.dirname(__file__), '..', 'agent', 'data', 'skills.json'),
-                os.path.join(os.path.dirname(__file__), '..', 'data', 'skills.json'),
-            ]:
-                if os.path.exists(sf):
-                    with open(sf, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    for s in data.get("skills", []):
-                        if s["id"] == skill_id:
-                            result = s.get("enabled", True)
-            return result
+            from agent.skills_mgmt.registry import SkillRegistry
+            return SkillRegistry().is_enabled(skill_id)
         except Exception:
             return True
 
     def _build_skill_instructions(self) -> str:
-        """根据已启用的技能构建对应的系统提示词片段（带缓存）"""
+        """根据已启用的技能构建对应的系统提示词片段（带缓存）。
+
+        启用源统一走 SkillRegistry（主轨 + 文件轨 front matter），不再直接
+        读 legacy data/skills.json。
+        """
         if self._cached_skill_instructions is not None:
             return self._cached_skill_instructions
 
         try:
-            skills_file = os.path.join(os.path.dirname(__file__), '..', 'data', 'skills.json')
-            if not os.path.exists(skills_file):
-                return ""
-            with open(skills_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            installed = data.get("skills", [])
+            from agent.skills_mgmt.registry import SkillRegistry
+            enabled_ids = set(SkillRegistry().list_enabled_ids())
         except Exception:
-            return ""
+            enabled_ids = set()
 
         parts = []
         loaded_ids: list = []
-        for s in installed:
-            sid = s["id"]
-            enabled = s.get("enabled", True)
-            if enabled and sid in self._SKILL_PROMPTS:
-                parts.append(self._SKILL_PROMPTS[sid])
+        for sid, prompt in self._SKILL_PROMPTS.items():
+            if sid in enabled_ids:
+                parts.append(prompt)
                 loaded_ids.append(sid)
         self._loaded_skill_ids = loaded_ids  # [护栏集成] 供 orchestrator 校验幻觉
         result = "\n\n".join(parts)

@@ -51,15 +51,13 @@ class SkillsInstaller:
     # ── 应用层技能管理 ──
 
     def list_installed_skills(self) -> List[Dict]:
-        """列出已安装的应用层技能"""
+        """列出已安装的应用层技能（统一读 SkillRegistry 视图）"""
         try:
-            if _SKILLS_FILE.exists():
-                with open(_SKILLS_FILE, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                return data.get("skills", [])
-        except (json.JSONDecodeError, OSError) as e:
-            logger.warning(log_dict({'module_name': 'skills_installer', 'action': 'log', 'msg': f'[技能安装器] 加载技能文件失败: {e}'}))
-        return []
+            from agent.skills_mgmt.registry import SkillRegistry
+            return SkillRegistry().as_legacy_rows()
+        except Exception as e:  # noqa: BLE001
+            logger.warning(log_dict({'module_name': 'skills_installer', 'action': 'log', 'msg': f'[技能安装器] 读取技能注册表失败: {e}'}))
+            return []
 
     def add_builtin_skill(self, skill_id: str) -> Tuple[bool, str]:
         """从内置注册表安装应用层技能
@@ -80,26 +78,30 @@ class SkillsInstaller:
         if not builtin:
             return False, f"未找到内置技能: {skill_id}"
 
-        # 读取现有技能
-        skills = self.list_installed_skills()
-
-        # 检查是否已存在
-        if any(s["id"] == skill_id for s in skills):
-            return True, f"技能已存在: {skill_id}"
-
-        # 添加技能
-        skills.append({
-            "id": skill_id,
-            "name": builtin["name"],
-            "enabled": True,
-            "description": builtin["description"],
-            "params": {},
-        })
-
-        # 保存
-        _SKILLS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(_SKILLS_FILE, "w", encoding="utf-8") as f:
-            json.dump({"skills": skills}, f, ensure_ascii=False, indent=2)
+        # 【legacy 迁移】内置 persona 技能在文件轨已有 skill.md（front matter
+        # enabled），安装 = 确保 registry 能查到并启用；不再直写 data/skills.json
+        try:
+            from agent.skills_mgmt.registry import SkillRegistry
+            reg = SkillRegistry()
+            if reg.is_enabled(skill_id):
+                # 已存在且启用 → 幂等成功（但确保 ExtensionStore 有记录）
+                pass
+            else:
+                res = reg.set_enabled(skill_id, True)
+                if not res.get("ok"):
+                    # 文件轨也没有 → 落主轨创建
+                    svc = reg._svc()
+                    svc.create_manual({
+                        "id": skill_id,
+                        "name": builtin.get("name", skill_id),
+                        "description": builtin.get("description", ""),
+                        "content": f"# {builtin.get('name', skill_id)}\n\n"
+                                   f"{builtin.get('description', '')}",
+                        "content_type": "markdown",
+                        "enabled": True,
+                    })
+        except Exception as e:  # noqa: BLE001
+            return False, f"写入技能注册表失败: {e}"
 
         # 记录到扩展存储
         meta = ExtensionMetadata(
@@ -140,17 +142,22 @@ class SkillsInstaller:
         if not name or not name.strip():
             return False, "自定义技能名称不能为空"
 
-        skills.append({
-            "id": skill_id,
-            "name": name,
-            "enabled": True,
-            "description": description,
-            "params": params or {},
-        })
-
-        _SKILLS_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(_SKILLS_FILE, "w", encoding="utf-8") as f:
-            json.dump({"skills": skills}, f, ensure_ascii=False, indent=2)
+        # 【legacy 迁移】技能数据落主轨（SkillsMgmtService），不再直写
+        # data/skills.json（该文件已是只读兼容快照）
+        try:
+            from agent.skills_mgmt.registry import SkillRegistry
+            reg = SkillRegistry()
+            reg._svc().create_manual({
+                "id": skill_id,
+                "name": name,
+                "description": description or "",
+                "content": f"# {name}\n\n{description}",
+                "content_type": "markdown",
+                "enabled": True,
+                "default_params": params or {},
+            })
+        except Exception as e:  # noqa: BLE001
+            return False, f"写入技能注册表失败: {e}"
 
         # 记录到扩展存储
         meta = ExtensionMetadata(
@@ -170,63 +177,59 @@ class SkillsInstaller:
         return True, f"已添加技能: {name}"
 
     def remove_skill(self, skill_id: str) -> Tuple[bool, str]:
-        """移除应用层技能"""
-        skills = self.list_installed_skills()
-        before = len(skills)
-        skills = [s for s in skills if s["id"] != skill_id]
-
-        if len(skills) < before:
-            _SKILLS_FILE.parent.mkdir(parents=True, exist_ok=True)
-            with open(_SKILLS_FILE, "w", encoding="utf-8") as f:
-                json.dump({"skills": skills}, f, ensure_ascii=False, indent=2)
-
+        """移除应用层技能（registry 主轨/文件轨删除，同步 ExtensionStore）"""
+        try:
+            from agent.skills_mgmt.registry import SkillRegistry
+            reg = SkillRegistry()
+            svc = reg._svc()
+            if svc.store.get(skill_id) is not None:
+                svc.delete(skill_id)
+            else:
+                meta = svc.file_store.get_metadata(skill_id)
+                if meta is not None:
+                    svc.file_store.delete(skill_id)
+                else:
+                    return False, f"技能不存在: {skill_id}"
             self._store.remove(ExtensionType.SKILL, skill_id)
             logger.info(log_dict({'module_name': 'skills_installer', 'action': 'skill_id', 'msg': f'[技能安装器] 已移除技能: {skill_id}'}))
             return True, f"已移除技能: {skill_id}"
-
-        return False, f"技能不存在: {skill_id}"
+        except Exception as e:  # noqa: BLE001
+            return False, f"移除失败: {e}"
 
     def toggle_skill(self, skill_id: str, enabled: bool = None) -> Tuple[bool, str, bool]:
-        """切换技能启用状态
+        """切换技能启用状态（registry 主轨/文件轨，同步 ExtensionStore）"""
+        try:
+            from agent.skills_mgmt.registry import SkillRegistry
+            reg = SkillRegistry()
+            if not reg.is_enabled(skill_id) and enabled is None:
+                cur = False
+            else:
+                cur = reg.is_enabled(skill_id)
+            target = enabled if enabled is not None else (not cur)
+            res = reg.set_enabled(skill_id, target)
+            if not res.get("ok"):
+                return False, f"技能不存在: {skill_id}", False
 
-        Returns:
-            (成功标志, 消息, 当前启用状态)
-        """
-        skills = self.list_installed_skills()
-        for s in skills:
-            if s["id"] == skill_id:
-                if enabled is not None:
-                    s["enabled"] = enabled
-                else:
-                    s["enabled"] = not s.get("enabled", True)
-
-                _SKILLS_FILE.parent.mkdir(parents=True, exist_ok=True)
-                with open(_SKILLS_FILE, "w", encoding="utf-8") as f:
-                    json.dump({"skills": skills}, f, ensure_ascii=False, indent=2)
-
-                status = ExtensionStatus.ENABLED if s["enabled"] else ExtensionStatus.DISABLED
-                self._store.update_status(ExtensionType.SKILL, skill_id, status)
-                logger.info(log_dict({'module_name': 'skills_installer', 'action': 'skill_id.status.value', 'msg': f'[技能安装器] 已切换技能状态: {skill_id} → {status.value}'}))
-                return True, f"技能 {'已启用' if s['enabled'] else '已禁用'}: {skill_id}", s["enabled"]
-
-        return False, f"技能不存在: {skill_id}", False
+            status = ExtensionStatus.ENABLED if target else ExtensionStatus.DISABLED
+            self._store.update_status(ExtensionType.SKILL, skill_id, status)
+            logger.info(log_dict({'module_name': 'skills_installer', 'action': 'skill_id.status.value', 'msg': f'[技能安装器] 已切换技能状态: {skill_id} → {status.value}'}))
+            return True, f"技能 {'已启用' if target else '已禁用'}: {skill_id}", target
+        except Exception as e:  # noqa: BLE001
+            return False, f"切换失败: {e}", False
 
     def update_skill_params(self, skill_id: str, params: Dict) -> Tuple[bool, str]:
-        """更新技能参数"""
-        skills = self.list_installed_skills()
-        for s in skills:
-            if s["id"] == skill_id:
-                s.setdefault("params", {}).update(params)
-
-                _SKILLS_FILE.parent.mkdir(parents=True, exist_ok=True)
-                with open(_SKILLS_FILE, "w", encoding="utf-8") as f:
-                    json.dump({"skills": skills}, f, ensure_ascii=False, indent=2)
-
-                self._store.update_config(ExtensionType.SKILL, skill_id, params)
-                logger.info(log_dict({'module_name': 'skills_installer', 'action': 'skill_id', 'msg': f'[技能安装器] 已更新技能参数: {skill_id}'}))
-                return True, f"已更新技能参数: {skill_id}"
-
-        return False, f"技能不存在: {skill_id}"
+        """更新技能参数（registry 主轨 default_params，同步 ExtensionStore）"""
+        try:
+            from agent.skills_mgmt.registry import SkillRegistry
+            svc = SkillRegistry()._svc()
+            if svc.store.get(skill_id) is None:
+                return False, f"技能不存在: {skill_id}"
+            svc.update(skill_id, {"default_params": params})
+            self._store.update_config(ExtensionType.SKILL, skill_id, params)
+            logger.info(log_dict({'module_name': 'skills_installer', 'action': 'skill_id', 'msg': f'[技能安装器] 已更新技能参数: {skill_id}'}))
+            return True, f"已更新技能参数: {skill_id}"
+        except Exception as e:  # noqa: BLE001
+            return False, f"更新失败: {e}"
 
     # ── Claude Code 技能管理 ──
 
