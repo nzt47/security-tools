@@ -1,1 +1,233 @@
-{}
+{
+  "python-eb17ed25": {
+    "id": "python-eb17ed25",
+    "name": "自动学习: 统-计-项",
+    "description": "从会话 demo-seed 中学习得到。原始任务: 统计项目里所有 Python 文件的行数并保存报告",
+    "task_signature": "python|件|所|文|有|目|统|计|里|项",
+    "trigger_patterns": [
+      "统",
+      "计",
+      "项",
+      "目",
+      "里"
+    ],
+    "steps": [
+      {
+        "step_id": "step_1",
+        "tool_name": "search_files",
+        "params_template": {
+          "query": "*.py",
+          "path": "C:/project"
+        },
+        "output_key": "step_1_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      },
+      {
+        "step_id": "step_2",
+        "tool_name": "shell_execute",
+        "params_template": {
+          "cmd": "wc -l *.py"
+        },
+        "output_key": "step_2_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      },
+      {
+        "step_id": "step_3",
+        "tool_name": "write_file",
+        "params_template": {
+          "path": "report.txt"
+        },
+        "output_key": "step_3_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      }
+    ],
+    "expected_output_pattern": "",
+    "source_session_id": "demo-seed",
+    "source_user_input": "统计项目里所有 Python 文件的行数并保存报告",
+    "success_count": 3,
+    "failure_count": 1,
+    "confidence": 0.5989050799113622,
+    "priority": 80,
+    "status": "active",
+    "enabled": true,
+    "tags": [
+      "learned",
+      "统",
+      "计",
+      "项"
+    ],
+    "workflow_type": "toolchain",
+    "created_at": "2026-09-05T02:50:43.250330",
+    "updated_at": "2026-09-05T23:15:07.474599",
+    "last_used_at": "2026-09-05T23:15:07.474599",
+    "converted_to_skill_id": ""
+  },
+  "zip-d2968c59": {
+    "id": "zip-d2968c59",
+    "name": "自动学习: 包-代-码",
+    "description": "从会话 demo-seed 中学习得到。原始任务: 把代码仓库打包成 zip 压缩包",
+    "task_signature": "zip|仓|代|包|压|库|成|打|码|缩",
+    "trigger_patterns": [
+      "包",
+      "代",
+      "码",
+      "仓",
+      "库"
+    ],
+    "steps": [
+      {
+        "step_id": "step_1",
+        "tool_name": "list_directory",
+        "params_template": {
+          "path": "C:/project"
+        },
+        "output_key": "step_1_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      },
+      {
+        "step_id": "step_2",
+        "tool_name": "compress",
+        "params_template": {
+          "path": "C:/project",
+          "format": "zip"
+        },
+        "output_key": "step_2_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      }
+    ],
+    "expected_output_pattern": "",
+    "source_session_id": "demo-seed",
+    "source_user_input": "把代码仓库打包成 zip 压缩包",
+    "success_count": 5,
+    "failure_count": 0,
+    "confidence": 0.748719139932487,
+    "priority": 80,
+    "status": "active",
+    "enabled": true,
+    "tags": [
+      "learned",
+      "包",
+      "代",
+      "码"
+    ],
+    "workflow_type": "toolchain",
+    "created_at": "2026-09-05T02:50:43.267058",
+    "updated_at": "2026-09-05T23:35:36.199060",
+    "last_used_at": "2026-09-05T23:35:35.999044",
+    "converted_to_skill_id": "zip-d2968c59-skill"
+  },
+  "json-30a189b6": {
+    "id": "json-30a189b6",
+    "name": "自动学习: 读-取-json",
+    "description": "从会话 demo-seed 中学习得到。原始任务: 读取 JSON 配置文件并转换为 YAML 格式",
+    "task_signature": "json|件|取|并|换|文|置|读|转|配",
+    "trigger_patterns": [
+      "读",
+      "取",
+      "json",
+      "配",
+      "置"
+    ],
+    "steps": [
+      {
+        "step_id": "step_1",
+        "tool_name": "read_file",
+        "params_template": {
+          "path": "config.${input}"
+        },
+        "output_key": "step_1_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      },
+      {
+        "step_id": "step_2",
+        "tool_name": "json_query",
+        "params_template": {
+          "query": "$"
+        },
+        "output_key": "step_2_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      },
+      {
+        "step_id": "step_3",
+        "tool_name": "json_to_yaml",
+        "params_template": {},
+        "output_key": "step_3_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      },
+      {
+        "step_id": "step_4",
+        "tool_name": "write_file",
+        "params_template": {
+          "path": "config.yaml"
+        },
+        "output_key": "step_4_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      }
+    ],
+    "expected_output_pattern": "",
+    "source_session_id": "demo-seed",
+    "source_user_input": "读取 JSON 配置文件并转换为 YAML 格式",
+    "success_count": 1,
+    "failure_count": 0,
+    "confidence": 0.5,
+    "priority": 60,
+    "status": "active",
+    "enabled": true,
+    "tags": [
+      "learned",
+      "读",
+      "取",
+      "json"
+    ],
+    "workflow_type": "toolchain",
+    "created_at": "2026-09-05T02:50:43.267058",
+    "updated_at": "2026-09-05T23:15:27.957516",
+    "last_used_at": "2026-09-05T23:15:27.957516",
+    "converted_to_skill_id": ""
+  }
+}

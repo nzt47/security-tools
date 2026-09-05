@@ -1,24 +1,143 @@
 {
   "skills": [
     {
-      "id": "self_reflection",
-      "name": "self_reflection",
+      "id": "engineering-test-delivery",
+      "name": "engineering-test-delivery",
       "enabled": true,
-      "description": "",
+      "description": "在代码开发与生成的完整生命周期中，严格执行质量保障与过程管理规范，确保交付生产级高质量代码，并保证全流程可追溯、便于后续审查与排查。",
       "params": {}
     },
     {
-      "id": "emotion_expression",
-      "name": "情感表达",
+      "id": "global-core-principles",
+      "name": "global-core-principles",
       "enabled": true,
-      "description": "在对话中表达情感色彩，让回应更生动",
+      "description": "资深软件工程专家的核心行为准则，涵盖真实透明、边界保护、自主工作、语言偏好、开发规范与工具使用。适用于所有对话、代码生成与任务执行场景，作为基础行为底线始终生效。",
       "params": {}
     },
     {
-      "id": "proactive_suggestion",
-      "name": "主动建议",
+      "id": "code-observability",
+      "name": "code-observability",
       "enabled": true,
-      "description": "在用户未明确提问时，基于对话上下文识别潜在需求，主动提出有依据的建议与后续想法",
+      "description": "生成功能模块代码或后端 API 时使用。遵循\"存在即可见\"原则，强制输出结构化日志、显性错误边界、埋点预留与健康检查接口，且不引入昂贵的第三方付费依赖。",
+      "params": {}
+    },
+    {
+      "id": "frontend-state-sync",
+      "name": "frontend-state-sync",
+      "enabled": true,
+      "description": "生成涉及前后端交互、状态更新、异步请求或数据展示的 Web 代码时使用。确保 UI 与后端数据\"所见即所得\"，覆盖竞态防御、请求取消、乐观更新回滚、防抖节流、WebSocket 健壮性、框架对齐与防连点。",
+      "params": {}
+    },
+    {
+      "id": "self-explanatory-ui",
+      "name": "self-explanatory-ui",
+      "enabled": true,
+      "description": "进行界面设计或前端 UI 开发时使用。将功能说明与帮助信息直接集成到可视化界面中，通过视觉层次、图标提示、状态反馈和上下文帮助，实现零学习成本的自解释用户界面。",
+      "params": {}
+    },
+    {
+      "id": "pd-brainstorming-697b717a-skill",
+      "name": "brainstorming",
+      "enabled": true,
+      "description": "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-dispatching-parallel-agents-b8065ccd-skill",
+      "name": "dispatching-parallel-agents",
+      "enabled": true,
+      "description": "Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-executing-plans-95cbf64a-skill",
+      "name": "executing-plans",
+      "enabled": true,
+      "description": "Use when you have a written implementation plan to execute in a separate session with review checkpoints。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-finishing-a-development-branch-e085de5a-skill",
+      "name": "finishing-a-development-branch",
+      "enabled": true,
+      "description": "Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-frontend-design-77ea5c4e-skill",
+      "name": "frontend-design",
+      "enabled": true,
+      "description": "Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, or applications. Generates creative, polished code that avoids generic AI aesthetics.。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-receiving-code-review-8934157e-skill",
+      "name": "receiving-code-review",
+      "enabled": true,
+      "description": "Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-requesting-code-review-ca5ae995-skill",
+      "name": "requesting-code-review",
+      "enabled": true,
+      "description": "Use when completing tasks, implementing major features, or before merging to verify work meets requirements。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-subagent-driven-development-8c375695-skill",
+      "name": "subagent-driven-development",
+      "enabled": true,
+      "description": "Use when executing implementation plans with independent tasks in the current session。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-systematic-debugging-556faa20-skill",
+      "name": "systematic-debugging",
+      "enabled": true,
+      "description": "Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-test-driven-development-8562c8ad-skill",
+      "name": "test-driven-development",
+      "enabled": true,
+      "description": "Use when implementing any feature or bugfix, before writing implementation code。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-using-git-worktrees-d516703a-skill",
+      "name": "using-git-worktrees",
+      "enabled": true,
+      "description": "Use when starting feature work that needs isolation from current workspace or before executing implementation plans - ensures an isolated workspace exists via native tools or git worktree fallback。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-using-superpowers-3aea3fc9-skill",
+      "name": "using-superpowers",
+      "enabled": true,
+      "description": "Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-verification-before-completion-af010352-skill",
+      "name": "verification-before-completion",
+      "enabled": true,
+      "description": "Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-writing-plans-f846e3a2-skill",
+      "name": "writing-plans",
+      "enabled": true,
+      "description": "Use when you have a spec or requirements for a multi-step task, before touching code。由 1 份素材蒸馏生成",
+      "params": {}
+    },
+    {
+      "id": "pd-writing-skills-5da20e67-skill",
+      "name": "writing-skills",
+      "enabled": true,
+      "description": "适用于创建、编辑或验证 agent 技能（SKILL.md）之前或过程中，核心是将 TDD 应用于流程文档编写。。由 1 份素材蒸馏生成。预期产出: 一份经 RED-GREEN-REFACTOR 验证、无已知漏洞且可被其他 agent 正确触发和使用的 SKILL.md 文档。",
       "params": {}
     },
     {
@@ -29,6 +148,27 @@
       "params": {}
     },
     {
+      "id": "emotion_expression",
+      "name": "情感表达",
+      "enabled": true,
+      "description": "在对话中表达情感色彩，让回应更生动",
+      "params": {}
+    },
+    {
+      "id": "memory_summary",
+      "name": "memory_summary",
+      "enabled": true,
+      "description": "记忆摘要技能 — 对长对话或历史记忆做结构化压缩，保留关键事实与决策。适用于总结对话历史、压缩记忆、梳理历史、归纳之前的内容等场景",
+      "params": {}
+    },
+    {
+      "id": "proactive_suggestion",
+      "name": "主动建议",
+      "enabled": true,
+      "description": "在用户未明确提问时，基于对话上下文识别潜在需求，主动提出有依据的建议与后续想法",
+      "params": {}
+    },
+    {
       "id": "safety_guard",
       "name": "安全守护",
       "enabled": true,
@@ -36,27 +176,24 @@
       "params": {}
     },
     {
-      "id": "voice_interaction",
-      "name": "语音交互",
-      "enabled": true,
-      "description": "通过语音输入与输出与用户进行交互，支持语音转文字识别、文字转语音合成与语音指令路由，适用于免手操作与无障碍场景",
-      "params": {}
-    },
-    {
       "id": "scripted-selftest",
       "name": "带脚本技能示例",
       "enabled": true,
       "description": "三层架构示例技能，演示 skill.md 元数据 + scripts/main.py 执行脚本 + default_params 参数注入的完整契约，作为新增带脚本技能的参考模板",
-      "params": {
-        "greeting": "hello",
-        "count": 3
-      }
+      "params": {}
     },
     {
-      "id": "email-helper",
-      "name": "email-helper",
+      "id": "self_reflection",
+      "name": "self_reflection",
       "enabled": true,
-      "description": "邮件处理助手，用于管理和回复邮件",
+      "description": "自我反思技能 — 让模型回顾自身推理与回答过程，识别可能的疏漏并改进。适用于复查、核对、自检、反思、检查回答逻辑漏洞等场景",
+      "params": {}
+    },
+    {
+      "id": "voice_interaction",
+      "name": "语音交互",
+      "enabled": true,
+      "description": "通过语音输入与输出与用户进行交互，支持语音转文字识别、文字转语音合成与语音指令路由，适用于免手操作与无障碍场景",
       "params": {}
     }
   ]
