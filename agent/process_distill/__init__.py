@@ -26,12 +26,26 @@
     result = svc.distill(query="git gc 维护复盘", artifact="both")
 """
 
-from agent.process_distill.service import ProcessDistillService
-from agent.process_distill.models import (
-    DistilledProcess,
-    DistilledStep,
-    DistillMaterial,
-)
+# PEP 562 模块级懒加载（与 agent.skills_mgmt 同款惯例）：
+#   __init__ 顶层不再 from ...service import ... —— 否则 service 反向
+#   `from agent.process_distill import sources` 会构成
+#   process_distill → process_distill.service → process_distill 的包级循环，
+#   被架构规则 no_circular_dependency 拦截（CI 架构规则校验）。
+#   副作用收益：仅 import 包名（如 CI 脚本）时不拉入 service → knowledge.search
+#   等重依赖链，导入更快、更稳。
+# 向后兼容：`from agent.process_distill import ProcessDistillService` 等用法不变，
+#   首次访问时经 __getattr__ 导入并缓存到 globals()，后续零额外开销。
+_PKG = __name__  # "agent.process_distill"
+
+# 符号名 → (来源模块路径, 符号名)
+_LAZY_IMPORTS = {
+    # 服务层（重依赖入口：service → knowledge.search / workflow_learning / skills_mgmt）
+    "ProcessDistillService": (f"{_PKG}.service", "ProcessDistillService"),
+    # 数据模型（轻量 dataclass）
+    "DistilledProcess": (f"{_PKG}.models", "DistilledProcess"),
+    "DistilledStep": (f"{_PKG}.models", "DistilledStep"),
+    "DistillMaterial": (f"{_PKG}.models", "DistillMaterial"),
+}
 
 __all__ = [
     "ProcessDistillService",
@@ -39,3 +53,18 @@ __all__ = [
     "DistilledStep",
     "DistillMaterial",
 ]
+
+
+def __getattr__(name):
+    """PEP 562: 仅在访问时才导入子模块，避免包级循环依赖与重依赖提前加载."""
+    if name in _LAZY_IMPORTS:
+        import importlib
+        module_path, attr_name = _LAZY_IMPORTS[name]
+        attr = getattr(importlib.import_module(module_path), attr_name)
+        globals()[name] = attr  # 缓存到全局，后续访问零开销
+        return attr
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def __dir__():
+    return sorted(list(globals()) + list(_LAZY_IMPORTS))
