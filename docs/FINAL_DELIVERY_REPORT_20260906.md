@@ -64,9 +64,19 @@
 
 - 本机等价门禁（push 前）：
   - `python -m pytest tests/unit/test_skills_digest_assessor.py tests/unit/test_skills_classifier.py tests/unit/test_reviewer.py` → **117 passed**
-  - `npm run check`（yunshu-ui，tsc -b --noEmit）→ **0 错误**
-  - 变更 Python 模块 `py_compile` → 通过
-- 推送后由远端 CI 流水线（`.github/workflows/`：ci.yml / skills-check.yml / yunshui-ui-tests.yml 等）自动复验；本节在推送完成后核对远端状态并回填。
+  - `npm run check`（yunshu-ui，tsc -b --noEmit）→ **0 错误**；变更 Python 模块 `py_compile` → 通过
+  - `TestSkillSearch` 本机 4/4 通过（7s）
+- 推送（`d14052a7` → origin + gitee）后远端 CI 复核实况：
+
+| 流水线 / 门禁 | 结果 |
+|---|---|
+| 架构规则校验 / 循环依赖校验 / 核心不变量 / master commit 来源守卫 | ✅ success |
+| 硬编码密码扫描 / lock-discipline-scan / 环境健康检查 / kwarg→SonarQube / kwarg Docker 扫描 / 日志性能守护 / 部署 GitHub Pages / Error Reporting CI-CD | ✅ success |
+| 云枢系统测试流程（单元×6 + 集成×4 + E2E + 安全 + 性能 + 知识库审计 + 文档链接…） | ✅ success（首次 Shard5 `TestSkillSearch` 60s 超时 → 重跑全绿） |
+| 可观测性质量保障（全项目测试覆盖率 Shard 4/6） | ✅ success（首次同一用例 300s 超时 → 重跑全绿） |
+
+- 超时说明：两次失败均为 `tests/unit/test_skills_mgmt.py::TestSkillSearch` 在 CI 高负载下的
+  pytest-timeout；本机 4/4 秒过、两处重跑均绿，与本次改动无涉（搜索路径未改动）。
 
 ## 6. 遗留与后续建议
 
@@ -77,7 +87,8 @@
 ## 7. stakeholder 确认清单
 
 - [x] 全部代码改动已提交、工作区干净（`git status` 无输出）
-- [x] 双远端推送完成、远端分支与本地一致（见推送记录）
+- [x] 双远端推送完成、远端分支与本地一致（origin / gitee 均至 `d14052a7`）
 - [x] 本地 CI 等价门禁通过（117 pytest + tsc 0 错）
+- [x] 远端 CI 复核通过（两处并发超时 flake 均已重跑转绿）
 - [x] 交付报告生成（本文件）并入库
 - [ ] 请项目 owner 确认：技能中心收尾交付物符合预期 → 结案
