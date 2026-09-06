@@ -220,13 +220,27 @@ class TestSkillReview:
 # ═══════════════════════════════════════════════════════════════════
 
 class TestSkillSearch:
-    """技能搜索与筛选测试"""
+    """技能搜索与筛选测试
+
+    CI 加固说明（2026-09-06）：本类只验证“对已存技能的搜索/筛选/分页语义”，
+    与创建路径无关。此前用 svc.create_manual 造数会连带触发 advisory digest
+    （含 python 代码审查扫描）与自动分类，在 CI 多分片 + 覆盖率并行的慢负载下
+    偶发 pytest-timeout（60s/300s）。现改为直接落库造数，跳过无关副作用，
+    专注搜索语义且天然抗超时。
+    """
+
+    @staticmethod
+    def _seed(svc, name, **overrides):
+        """直接把技能写入存储（不经 create_manual：无 digest/分类副作用）。"""
+        from agent.skills_mgmt.models import Skill
+        svc.store.upsert(Skill.from_storage_dict(
+            _make_skill_data(name=name, **overrides)))
 
     def _setup_test_skills(self, svc):
         """创建一批测试技能"""
-        svc.create_manual(_make_skill_data(name="email-helper", description="邮件处理助手", tags=["email", "work"]))
-        svc.create_manual(_make_skill_data(name="code-reviewer", description="代码审查工具", tags=["code", "review"]))
-        svc.create_manual(_make_skill_data(name="data-fetcher", description="数据抓取器", tags=["data", "web"]))
+        self._seed(svc, name="email-helper", description="邮件处理助手", tags=["email", "work"])
+        self._seed(svc, name="code-reviewer", description="代码审查工具", tags=["code", "review"])
+        self._seed(svc, name="data-fetcher", description="数据抓取器", tags=["data", "web"])
 
     def test_search_by_keyword(self, svc):
         """关键词搜索应返回匹配项"""
@@ -250,7 +264,7 @@ class TestSkillSearch:
     def test_search_pagination(self, svc):
         """分页应正确返回对应页码"""
         for i in range(15):
-            svc.create_manual(_make_skill_data(name=f"page-skill-{i}", content=f"print({i})\n"))
+            self._seed(svc, name=f"page-skill-{i}", content=f"print({i})\n")
         result = svc.search(SkillSearchParams(page=2, page_size=5))
         assert result.page == 2
         assert result.page_size == 5
