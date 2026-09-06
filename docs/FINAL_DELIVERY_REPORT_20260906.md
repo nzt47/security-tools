@@ -72,23 +72,27 @@
 |---|---|
 | 架构规则校验 / 循环依赖校验 / 核心不变量 / master commit 来源守卫 | ✅ success |
 | 硬编码密码扫描 / lock-discipline-scan / 环境健康检查 / kwarg→SonarQube / kwarg Docker 扫描 / 日志性能守护 / 部署 GitHub Pages / Error Reporting CI-CD | ✅ success |
-| 云枢系统测试流程（单元×6 + 集成×4 + E2E + 安全 + 性能 + 知识库审计 + 文档链接…） | ✅ success（首次 Shard5 `TestSkillSearch` 60s 超时 → 重跑全绿） |
-| 可观测性质量保障（全项目测试覆盖率 Shard 4/6） | ✅ success（首次同一用例 300s 超时 → 重跑全绿） |
+| 云枢系统测试流程（单元×6 + 集成×4 + E2E + 安全 + 性能 + 知识库审计 + 文档链接…） | ✅ success（最终头 `b3d03253` push run 一次通过；此前 Shard5 `TestSkillSearch` 60s 超时 flake 已重跑转绿） |
+| 可观测性质量保障（全项目测试覆盖率 Shard 4/6） | ✅ success（最终头定时同头 run；此前同用例 300s 超时 flake 已重跑转绿） |
 
-- 超时说明：两次失败均为 `tests/unit/test_skills_mgmt.py::TestSkillSearch` 在 CI 高负载下的
-  pytest-timeout；本机 4/4 秒过、两处重跑均绿，与本次改动无涉（搜索路径未改动）。
+- 超时根因与加固（已闭环，commit `d2e95e62` + `b3d03253`）：
+  搜索类用例原先用 `create_manual` 造数，连带 advisory digest（python 代码审查扫描）与自动分类，
+  在 CI 多分片 + 覆盖率并行高负载下偶发 pytest-timeout；已改为 store 直接落库造数（本机 4/4 共 1.4s、
+  整文件 75 passed），并消除显式参数与 `**kwargs` 同名冲突（kwarg 扫描 MAJOR）。最终头全绿。
 
 ## 6. 遗留与后续建议
 
 1. 并行会话已结案（其工作全部入库推送）；后续多路并行请使用独立分支 / worktree，避免共享后端与数据文件互相踩。
 2. （可选治理项）`data/skills_classes.json`、`data/skills.json`、`agent/data/extensions.json` 等纯运行时产物已被 gitignore；若再遇其它追踪数据文件被后台写脏，在 `scripts/clean_runtime_noise.py` 的 `ACCOUNTING_PATHS / NEWLINE_ONLY_PATHS` 中登记字段即可。
 3. 新克隆 / 新机器需执行一次 `git config core.hooksPath hooks` 启用提交前噪音清理。
+4. TestSkillSearch CI 超时（原遗留项）已加固闭环，见 §5；无阻塞性遗留。
 
 ## 7. stakeholder 确认清单
 
 - [x] 全部代码改动已提交、工作区干净（`git status` 无输出）
-- [x] 双远端推送完成、远端分支与本地一致（origin / gitee 均至 `d14052a7`）
+- [x] 双远端推送完成、远端分支与本地一致（origin / gitee 均至 `b3d03253`）
 - [x] 本地 CI 等价门禁通过（117 pytest + tsc 0 错）
-- [x] 远端 CI 复核通过（两处并发超时 flake 均已重跑转绿）
+- [x] 远端 CI 复核通过：主套件（云枢系统测试流程）success、kwarg→SonarQube success、覆盖率 success（定时同头）、架构/循环依赖/密码扫描等门禁全绿
+- [x] TestSkillSearch CI 超时加固完成（`d2e95e62` 直接落库造数 + `b3d03253` 消除 **kwargs 同名冲突），最终头全绿、本机整文件 75 passed
 - [x] 交付报告生成（本文件）并入库
-- [ ] 请项目 owner 确认：技能中心收尾交付物符合预期 → 结案
+- [x] 项目 owner 已确认结案（2026-09-06）：技能中心收尾交付物符合预期 → **正式结案**
