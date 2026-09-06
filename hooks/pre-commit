@@ -1,0 +1,17 @@
+#!/bin/sh
+# 每次 git commit 前自动清理“运行噪音”（统计字段漂移 / 换行差异）。
+# 由 scripts/clean_runtime_noise.py 实现；真正的代码/数据改动不受影响。
+PY=$(command -v python 2>/dev/null || command -v python3 2>/dev/null || true)
+if [ -z "$PY" ]; then
+  echo "[pre-commit] 未找到 python，跳过运行噪音清理（不影响提交）" >&2
+  exit 0
+fi
+ROOT=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+cd "$ROOT" || exit 0
+"$PY" scripts/clean_runtime_noise.py
+RC=$?
+if [ "$RC" -ne 0 ]; then
+  echo "[pre-commit] 运行噪音清理失败（退出码 $RC），已中止提交" >&2
+  exit "$RC"
+fi
+exit 0
