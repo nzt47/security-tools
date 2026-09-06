@@ -231,10 +231,14 @@ class TestSkillSearch:
 
     @staticmethod
     def _seed(svc, name, **overrides):
-        """直接把技能写入存储（不经 create_manual：无 digest/分类副作用）。"""
+        """直接把技能写入存储（不经 create_manual：无 digest/分类副作用）。
+
+        注：name 通过 overrides.setdefault 并入单个 ** 展开（不做
+        `f(name=name, **overrides)` 的显式+展开混合，避免 kwarg 同名冲突）。
+        """
         from agent.skills_mgmt.models import Skill
-        svc.store.upsert(Skill.from_storage_dict(
-            _make_skill_data(name=name, **overrides)))
+        overrides.setdefault("name", name)
+        svc.store.upsert(Skill.from_storage_dict(_make_skill_data(**overrides)))
 
     def _setup_test_skills(self, svc):
         """创建一批测试技能"""
