@@ -162,12 +162,15 @@ class TestRegistry:
         assert v["count"] == 1 and v["auto"] is False
         assert out["total"] == 2
 
-    def test_mirror_asset_to_runtime_when_not_manual(self, reg):
+    def test_same_skill_auto_alignment_rt_authoritative(self, reg):
+        # 同名双生态：rt(名称/描述=意图)后落盘时，asset 的自动归类自动对齐 rt，
+        # 资产库与技能面板两个视图不再分叉
         reg.resolve("asset:x", name="语音助手", description="语音交互", content="")
+        assert reg.assignment("asset:x") == "语音与多媒体"
         reg.resolve("rt:x", name="邮件工具", description="处理邮件", content="")
         assert reg.assignment("rt:x") == "邮件与通讯"
-        assert reg.mirror("asset:x", "rt:x") is True
-        assert reg.assignment("rt:x") == "语音与多媒体"  # 资产侧胜出（自动跟随）
+        assert reg.assignment("asset:x") == "邮件与通讯"   # 自动对齐 rt（未人工移动）
+        assert reg.mirror("asset:x", "rt:x") is False      # 已一致，无需再镜像
 
     def test_runtime_weak_verdict_falls_back_to_asset_class(self, reg):
         reg.resolve("asset:y", name="易之三义", description="Yi-Jing Coding Agent",
@@ -186,6 +189,29 @@ class TestRegistry:
         reg.assign("rt:x", "翻译与写作")  # 人工钉住运行时
         assert reg.mirror("asset:x", "rt:x") is False
         assert reg.assignment("rt:x") == "翻译与写作"
+
+    def test_ui_skill_not_misclassified_by_doc_noise(self):
+        # 回归：self-explanatory-ui 的正文/标签含「外部文档」「markdown」等噪音，
+        # 不应把 UI/前端开发技能误归「文档与办公」；且 markdown 不再作为该种子关键词
+        verdict = classify_fields(
+            name="self-explanatory-ui",
+            description="进行界面设计或前端 UI 开发时使用。将功能说明与帮助信息"
+                        "直接集成到可视化界面中",
+            tags=["external", "imported", "markdown"],
+            content="# 自解释 UI 设计规范\n确保 UI 开发遵循该规范，用户无需查阅"
+                    "外部文档，仅凭界面展示即可操作；生成前端 UI 组件或页面代码时使用。")
+        assert verdict["class"] == "代码与工程"
+
+    def test_late_asset_resolve_stays_aligned_with_rt(self, reg):
+        # rt 先归类（意图：代码与工程），asset 后解析（正文带文档噪音）→ 仍以 rt 为准，两侧一致
+        reg.resolve("rt:z", name="代码审查助手", description="重构与代码审查",
+                    content="")
+        assert reg.assignment("rt:z") == "代码与工程"
+        cls = reg.resolve("asset:z", name="代码审查助手",
+                          description="重构与代码审查",
+                          content="输出代码审查报告文档与笔记", tags=["markdown"])
+        assert cls == "代码与工程"          # 不再被正文噪音带偏
+        assert reg.assignment("asset:z") == reg.assignment("rt:z")
 
     def test_auto_class_names_reports_created(self, reg):
         reg.resolve("asset:z", name="冥想引导器", description="专注放松", content="")

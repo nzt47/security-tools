@@ -105,7 +105,7 @@ SEED_CLASSES: List[Dict[str, Any]] = [
     ]},
     {"name": "文档与办公", "keywords": [
         "文档", "表格", "报告", "笔记", "纪要", "起草", "整理", "文件",
-        "office", "excel", "ppt", "markdown", "document", "note", "report",
+        "office", "excel", "ppt", "document", "note", "report",
         "pdf", "word", "resume", "letter",
     ]},
     {"name": "代码与工程", "keywords": [
@@ -305,6 +305,35 @@ class SkillClassRegistry:
         with _REG_LOCK:
             return set(self._load().get("auto_classes", {}).keys())
 
+    @staticmethod
+    def _reconcile_same_skill(st: Dict[str, Any], key: str) -> bool:
+        """同名技能双生态（asset:/rt:）自动归类收敛，返回是否发生了改写。
+
+        同一技能 id 同时存在于「技能资产库(asset:)」与「运行时(rt:)」时，两侧
+        自动归类必须一致，否则 技能资产库 与 技能面板(LLM 技能) 两个视图会分叉。
+        权威方向：运行时(rt:) 使用 名称/描述（技能意图）；资产侧还会掺入正文/标签
+        噪音（如正文提到“查阅外部文档”、标签 markdown 会误导打分）——因此无论哪侧
+        先/后落盘，asset 的自动归类都对齐到 rt（rt 不存在或 rt 为人工移动时不动 asset；
+        人工移动过的 key 一律不动）。
+        """
+        assignments = st.setdefault("assignments", {})
+        manual = set(st.get("manual", []))
+        if key.startswith("asset:"):
+            sid = key.split(":", 1)[1]
+            rk = f"rt:{sid}"
+            if rk in assignments and rk not in manual \
+                    and assignments[rk] != assignments[key]:
+                assignments[key] = assignments[rk]   # asset 对齐 rt（rt 意图为准）
+                return True
+        elif key.startswith("rt:"):
+            sid = key.split(":", 1)[1]
+            ak = f"asset:{sid}"
+            if ak in assignments and ak not in manual \
+                    and assignments[ak] != assignments[key]:
+                assignments[ak] = assignments[key]   # asset 对齐 rt
+                return True
+        return False
+
     def resolve(self, key: str, *, name: str = "", description: str = "",
                 content: str = "", tags: Optional[list] = None) -> str:
         """取技能分类；未记录则自动判定并落盘。
@@ -346,6 +375,8 @@ class SkillClassRegistry:
                 assignments[key] = cls_name  # 置信命中/资产回退 → 落盘
             else:
                 assignments[key] = cls_name
+            # 同名双生态收敛：asset:/rt: 自动归类保持一致（人工不动）
+            self._reconcile_same_skill(st, key)
             self._save(st)
             return cls_name
 
@@ -394,7 +425,10 @@ class SkillClassRegistry:
                         created += 1
                     cls_name = auto_name
                 assignments[key] = cls_name
-                by_class[cls_name] = by_class.get(cls_name, 0) + 1
+                # 同名双生态收敛：asset:/rt: 保持一致（人工不动）
+                self._reconcile_same_skill(st, key)
+                final_cls = assignments[key]
+                by_class[final_cls] = by_class.get(final_cls, 0) + 1
                 classified += 1
             self._save(st)
         return {"processed": len(skills), "classified": classified,
