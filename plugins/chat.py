@@ -441,9 +441,14 @@ def api_sessions_create():
 def api_sessions_delete(session_id):
     """删除会话"""
     # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
-    from app_server import _session_mgr
+    from app_server import _session_mgr, _session_groups, logger
     import app_server as _app_server  # _CHAT_HISTORY 共享缓存（同一对象）
     if _session_mgr.delete_session(session_id):
+        # 清理分组归属（groups.json membership，幂等）
+        try:
+            _session_groups.remove_member(session_id)
+        except Exception as _e:
+            logger.warning("清理会话分组归属失败（忽略）: %s", _e)
         # 如果删除的是当前会话，清空历史缓存
         if session_id == _session_mgr.get_current_id():
             _app_server._CHAT_HISTORY.clear()
@@ -503,6 +508,237 @@ def api_sessions_messages(session_id):
     limit = request.args.get("limit", 50, type=int)
     messages = _session_mgr.get_messages(session_id, limit=limit)
     return jsonify(messages)
+
+
+@bp.route("/api/sessions/<session_id>/messages", methods=["DELETE"])
+@_require_token
+def api_sessions_messages_clear(session_id):
+    """清空单个会话的消息（不删除会话本身；历史缓存由切换/刷新时重建）"""
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _session_mgr
+    if not _session_mgr.get_session(session_id):
+        return jsonify({"error": "会话不存在"}), 404
+    _session_mgr.clear_messages(session_id)
+    return jsonify({"ok": True})
+
+
+# ════════════════════════════════════════════════════════════
+#  会话工作空间（任务工作目录）API
+#  默认：data/sessions/{id}/workspace；可绑定自定义本地目录（仿 DSH 添加工作区）
+# ════════════════════════════════════════════════════════════
+
+@bp.route("/api/sessions/<session_id>/workspace")
+def api_sessions_workspace(session_id):
+    """列出会话工作空间文件树（会话不存在 404）
+
+    默认工作空间目录缺失时惰性补齐；绑定目录缺失时如实返回 exists=False
+    （前端提示修复/恢复默认）。
+    """
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _session_mgr
+    if not _session_mgr.get_session(session_id):
+        return jsonify({"error": "会话不存在"}), 404
+    meta = _session_mgr.get_session_metadata(session_id) or {}
+    if not meta.get("workspace_root"):
+        # 默认工作空间惰性补齐：历史会话升级前无 workspace 目录，首次查看即创建
+        try:
+            _session_mgr.ensure_workspace_path(session_id)
+        except Exception as _e:
+            return jsonify({"error": f"工作空间初始化失败: {_e}"}), 500
+    result = _session_mgr.list_session_workspace(session_id)
+    result["session_id"] = session_id
+    return jsonify(result)
+
+
+@bp.route("/api/sessions/<session_id>/workspace-root", methods=["PUT"])
+@_require_token
+def api_sessions_workspace_bind(session_id):
+    """绑定/切换会话工作空间到本地绝对路径（仿 DSH 添加工作区）
+
+    body: {"path": "C:\\...", "create": bool}
+    path 为空 = 恢复默认工作空间。绑定成功自动登记到「已添加的工作区」。
+    """
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _session_mgr, _workspace_registry, logger as _log
+    data = request.get_json(silent=True) or {}
+    path = data.get("path", "")
+    create = bool(data.get("create"))
+    ok, payload = _session_mgr.bind_workspace_root(session_id, path, create=create)
+    if not ok:
+        return jsonify({"error": payload}), 400
+    root = payload["root"]
+    if "changed" not in payload:
+        # 绑定了自定义目录 → 登记记忆，方便其它会话快速选择
+        try:
+            _workspace_registry.add_workspace(root)
+        except Exception as _e:
+            _log.warning("登记工作区记忆失败（忽略）: %s", _e)
+    return jsonify({"ok": True, **payload})
+
+
+@bp.route("/api/sessions/<session_id>/workspace-root", methods=["DELETE"])
+@_require_token
+def api_sessions_workspace_unbind(session_id):
+    """恢复会话默认工作空间（移除自定义绑定）"""
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _session_mgr
+    ok, payload = _session_mgr.clear_workspace_root(session_id)
+    if not ok:
+        return jsonify({"error": payload}), 404
+    return jsonify({"ok": True, **payload})
+
+
+@bp.route("/api/sessions/<session_id>/workspace/reveal", methods=["POST"])
+@_require_token
+def api_sessions_workspace_reveal(session_id):
+    """在系统文件管理器中打开该会话的工作空间目录（本机桌面应用场景）"""
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _session_mgr, logger as _log
+    if not _session_mgr.get_session(session_id):
+        return jsonify({"error": "会话不存在"}), 404
+    meta = _session_mgr.get_session_metadata(session_id) or {}
+    if meta.get("workspace_root"):
+        # 绑定目录缺失时如实报错，不静默重建用户目录
+        root = _session_mgr.workspace_path(session_id)
+        if root is None:
+            return jsonify({"error": "绑定的工作区目录不存在，请先修正路径或恢复默认"}), 400
+    else:
+        try:
+            root = _session_mgr.ensure_workspace_path(session_id)
+        except Exception as _e:
+            return jsonify({"error": f"工作空间初始化失败: {_e}"}), 500
+    import subprocess
+    import sys as _sys
+    try:
+        if _sys.platform.startswith("win"):
+            os.startfile(str(root))  # type: ignore[attr-defined]  # Windows only
+        elif _sys.platform == "darwin":
+            subprocess.Popen(["open", str(root)])
+        else:
+            subprocess.Popen(["xdg-open", str(root)])
+        _log.info("[workspace] 已在文件管理器打开会话工作空间: %s", root)
+        return jsonify({"ok": True, "root": str(root)})
+    except Exception as _e:
+        return jsonify({"ok": False, "error": str(_e), "root": str(root)}), 500
+
+
+# ════════════════════════════════════════════════════════════
+#  「已添加的工作区」记忆 API（跨会话复用；workspaces.json）
+# ════════════════════════════════════════════════════════════
+
+@bp.route("/api/workspaces")
+def api_workspaces_list():
+    """列出已添加的工作区（路径/名称/添加时间）"""
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _workspace_registry
+    return jsonify({"workspaces": _workspace_registry.list_workspaces()})
+
+
+@bp.route("/api/workspaces", methods=["POST"])
+@_require_token
+def api_workspaces_add():
+    """登记一个工作区目录：body {path, create?}；路径须为本地绝对路径"""
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _workspace_registry
+    import os as _os
+    data = request.get_json(silent=True) or {}
+    path = (data.get("path") or "").strip().strip('"').strip("'")
+    if not path:
+        return jsonify({"error": "路径不能为空"}), 400
+    if not _os.path.isabs(path):
+        return jsonify({"error": "请输入本地绝对路径（例如 C:\\Users\\you\\myproject）"}), 400
+    resolved = _os.path.normpath(path)
+    if not _os.path.exists(resolved):
+        if not data.get("create"):
+            return jsonify({"error": f"目录不存在：{resolved}（勾选“自动创建”可新建）"}), 400
+        try:
+            _os.makedirs(resolved, exist_ok=True)
+        except OSError as _e:
+            return jsonify({"error": f"创建目录失败：{_e}"}), 400
+    if not _os.path.isdir(resolved):
+        return jsonify({"error": f"路径不是文件夹：{resolved}"}), 400
+    entry = _workspace_registry.add_workspace(resolved)
+    if entry is None:
+        return jsonify({"error": "登记失败"}), 400
+    return jsonify(entry), 201
+
+
+@bp.route("/api/workspaces", methods=["DELETE"])
+@_require_token
+def api_workspaces_remove():
+    """从记忆列表移除一个工作区（不影响目录本身）：body {path}"""
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _workspace_registry
+    data = request.get_json(silent=True) or {}
+    path = data.get("path") or ""
+    removed = _workspace_registry.remove_workspace(path)
+    return jsonify({"ok": removed})
+
+
+# ════════════════════════════════════════════════════════════
+#  会话分组 API（按项目/用途归类会话；存储 groups.json）
+# ════════════════════════════════════════════════════════════
+
+@bp.route("/api/session-groups")
+def api_session_groups_list():
+    """列出全部分组及 会话→分组 归属表"""
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _session_groups
+    return jsonify(_session_groups.list_groups())
+
+
+@bp.route("/api/session-groups", methods=["POST"])
+@_require_token
+def api_session_groups_create():
+    """新建分组（name 缺省为「新分组」）"""
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _session_groups, logger
+    data = request.get_json(silent=True) or {}
+    group = _session_groups.create_group(name=data.get("name", ""))
+    logger.info("创建会话分组: %s — %s", group["id"], group["name"])
+    return jsonify(group), 201
+
+
+@bp.route("/api/session-groups/<group_id>", methods=["PUT"])
+@_require_token
+def api_session_groups_rename(group_id):
+    """重命名分组"""
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _session_groups
+    data = request.get_json(silent=True) or {}
+    title = data.get("name", "")
+    if not title:
+        return jsonify({"error": "分组名不能为空"}), 400
+    if _session_groups.rename_group(group_id, title):
+        return jsonify({"ok": True})
+    return jsonify({"error": "分组不存在"}), 404
+
+
+@bp.route("/api/session-groups/<group_id>", methods=["DELETE"])
+@_require_token
+def api_session_groups_delete(group_id):
+    """删除分组（组内会话自动变为未分组，不删除会话）"""
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _session_groups
+    if _session_groups.delete_group(group_id):
+        return jsonify({"ok": True})
+    return jsonify({"error": "分组不存在"}), 404
+
+
+@bp.route("/api/sessions/<session_id>/group", methods=["PUT"])
+@_require_token
+def api_sessions_set_group(session_id):
+    """把会话移入/移出分组：body {group_id: string|null}；null = 未分组"""
+    # 共享依赖：函数内延迟 import（避免循环导入，见 PLAN-1 §4）
+    from app_server import _session_mgr, _session_groups
+    if not _session_mgr.get_session(session_id):
+        return jsonify({"error": "会话不存在"}), 404
+    data = request.get_json(silent=True) or {}
+    group_id = data.get("group_id") or None
+    if group_id is not None and not _session_groups.get_group(group_id):
+        return jsonify({"error": "分组不存在"}), 404
+    _session_groups.assign(session_id, group_id)
+    return jsonify({"ok": True})
 
 
 @bp.route("/api/history")
@@ -654,6 +890,22 @@ def _workbench_real_stream(question, session_id=""):
                 messages.append({"role": "user", "content": question})
         except Exception as _e:
             logger.debug("[workbench][SSE] 会话历史加载失败（忽略）: %s", _e)
+
+    # ── 会话持久化（2026-09-07 修复：工作台 SSE 此前不落盘，刷新即丢）──
+    # 用户消息在历史快照之后落盘（避免自身混入上下文）；首条消息自动命名会话。
+    # 助手回复由路由层 gen() 在流结束时统一落盘（见 api_chat_stream）。
+    if session_id:
+        try:
+            from app_server import _session_mgr as _sm
+            _meta = _sm.get_session(session_id)
+            if _meta and not _meta.get("message_count") and question:
+                try:
+                    _sm.rename_session(session_id, question[:28] or "新会话")
+                except Exception:
+                    pass
+            _sm.add_message(session_id, "user", question)
+        except Exception as _e:
+            logger.debug("[workbench][SSE] 用户消息落盘失败（忽略）: %s", _e)
 
     llm = LLMService(
         provider=provider, api_key=api_key, model=model,
@@ -831,19 +1083,63 @@ def api_chat_stream():
 
     data = request.get_json(silent=True) or {}
     question = (data.get("message") or data.get("question") or "").strip()
-    session_id = data.get("session_id", "") or data.get("sessionId", "") or ""
+    raw_session_id = data.get("session_id", "") or data.get("sessionId", "") or ""
     if not question:
         return jsonify({"error": "消息不能为空"}), 400
-    logger.info("[workbench][SSE] 开始流式响应: %s", question[:60])
+
+    # ── 会话解析（2026-09-07 修复） ──
+    # 与 /api/chat 对齐：请求显式传了会话 ID 但后端不存在时自动创建
+    # （外部调用方/旧前端可能持有过期 ID）；否则回退全局当前会话。
+    # 非法 ID（路径穿越/保留名/超长）回退默认会话，不因外部参数崩掉请求。
+    session_id = raw_session_id
+    if session_id:
+        try:
+            from app_server import _session_mgr as _sm_resolve
+            if not _sm_resolve.get_session(session_id):
+                try:
+                    created = _sm_resolve.create_session(
+                        session_id=session_id,
+                        title=f"会话 {session_id[:24]}",
+                    )
+                    session_id = created["id"]
+                except (ValueError, OSError):
+                    logger.warning("[workbench][SSE] 会话 ID 非法，回退默认会话: %s", session_id)
+                    session_id = ""
+        except Exception as _e:
+            logger.warning("[workbench][SSE] 会话解析失败，回退默认会话: %s", _e)
+            session_id = ""
+    if not session_id:
+        from app_server import _get_current_session_id as _gcid
+        session_id = _gcid()
+    logger.info("[workbench][SSE] 开始流式响应（会话 %s）: %s", session_id, question[:60])
 
     def gen():
+        # 累积流式 chunk 文本，流结束时落盘为 assistant 消息（会话持久化；
+        # 客户端中途断开时 finally 仍会保存已生成的部分回复）。
+        acc_parts: list = []
         try:
-            yield from _workbench_real_stream(question, session_id)
+            for _evt in _workbench_real_stream(question, session_id):
+                _payload = _evt[len("data:"):].strip() if _evt.startswith("data:") else ""
+                if _payload:
+                    try:
+                        _obj = json.loads(_payload)
+                        if isinstance(_obj, dict) and _obj.get("type") == "chunk":
+                            acc_parts.append(str(_obj.get("text") or ""))
+                    except Exception:
+                        pass
+                yield _evt
         except GeneratorExit:
             # 客户端提前断开（前端点"停止生成"或关闭标签页）
             logger.info("[workbench][SSE] 客户端断开，终止生成")
         except Exception as _e:
             logger.error("[workbench][SSE] 生成器异常: %s", _e)
+        finally:
+            if session_id and acc_parts:
+                try:
+                    from app_server import _session_mgr as _sm_persist
+                    _sm_persist.add_message(session_id, "assistant", "".join(acc_parts))
+                except Exception as _e2:
+                    logger.warning("[workbench][SSE] 回复落盘失败: %s", _e2)
 
     resp = Response(stream_with_context(gen()), mimetype="text/event-stream")
     # SSE 关键响应头；after_request 会再补 no-store，对 SSE 无碍
@@ -869,7 +1165,14 @@ PLUGIN = register_plugin(Plugin(
         "/api/sessions/<session_id>",
         "/api/sessions/<session_id>/messages",
         "/api/sessions/<session_id>/rename",
+        "/api/sessions/<session_id>/workspace",
+        "/api/sessions/<session_id>/workspace-root",
+        "/api/sessions/<session_id>/workspace/reveal",
+        "/api/sessions/<session_id>/group",
         "/api/sessions/current",
+        "/api/session-groups",
+        "/api/session-groups/<group_id>",
+        "/api/workspaces",
         "/api/voice/listen",
         "/api/voice/status",
     ],

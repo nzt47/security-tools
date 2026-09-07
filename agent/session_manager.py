@@ -6,6 +6,7 @@
 
 import json
 import logging
+import os
 import threading
 import uuid
 from datetime import datetime, timezone
@@ -153,6 +154,12 @@ class SessionManager:
             )
 
             (session_dir / "messages.jsonl").write_text("", encoding="utf-8")
+
+            # [2026-09-07 会话工作空间] 每个会话拥有独立任务工作空间目录
+            # （data/sessions/{id}/workspace，仿 DSH 每会话工作目录语义）。
+            # 会话删除时随会话目录一并 rmtree 清理（delete_session 已处理）。
+            (session_dir / "workspace").mkdir(exist_ok=True)
+            (session_dir / "workspace" / ".gitkeep").write_text("", encoding="utf-8")
 
             index = self._read_index()
             index.append(session_info)
@@ -423,3 +430,407 @@ class SessionManager:
                     self._write_index(index)
                     return True
         return False
+
+    # ════════════════════════════════════════════════════════════════
+    # 会话工作空间（每个会话的任务工作目录）
+    # 两种模式（仿 DSH「添加工作区」语义）：
+    #   1. 默认工作空间：data/sessions/{session_id}/workspace（随会话删除清理）
+    #   2. 绑定自定义目录：会话 meta.json 记录 workspace_root=<绝对路径>
+    #      （绑定本地任意文件夹/项目，可在「添加工作区」中切换或恢复默认）
+    # ════════════════════════════════════════════════════════════════
+
+    def get_session_workspace_dir(self, session_id: str):
+        """返回该会话应使用的工作空间根目录（可能不存在，不创建）。
+
+        绑定自定义根（meta.workspace_root）时返回该路径，否则返回默认
+        data/sessions/{session_id}/workspace。
+        """
+        meta = self.get_session_metadata(session_id) or {}
+        custom = meta.get("workspace_root")
+        if custom:
+            return Path(str(custom))
+        return self._sessions_dir / session_id / "workspace"
+
+    def workspace_path(self, session_id: str):
+        """返回当前工作空间目录（不存在返回 None，不创建）"""
+        root = self.get_session_workspace_dir(session_id)
+        try:
+            return root if root.is_dir() else None
+        except OSError:
+            return None
+
+    def ensure_workspace_path(self, session_id: str):
+        """确保当前工作空间目录存在并返回 Path。
+
+        会话不存在时抛 SessionNotFoundError（调用方应先 get_session 校验）。
+        默认工作空间补充 .gitkeep；绑定目录不写入任何文件（避免污染用户目录）。
+        """
+        session_dir = self._sessions_dir / session_id
+        if not session_dir.exists():
+            raise SessionNotFoundError(f"会话不存在: {session_id}")
+        root = self.get_session_workspace_dir(session_id)
+        with self._lock:
+            root.mkdir(parents=True, exist_ok=True)
+            if str(root) == str(session_dir / "workspace"):
+                gitkeep = root / ".gitkeep"
+                if not gitkeep.exists():
+                    gitkeep.write_text("", encoding="utf-8")
+        return root
+
+    def bind_workspace_root(self, session_id: str, path: str,
+                            create: bool = False) -> tuple:
+        """把会话工作空间绑定到本地绝对路径（仿 DSH 添加工作区）。
+
+        Args:
+            session_id: 会话 ID（不存在返回 (False, "会话不存在")）
+            path: 本地绝对路径；空串 = 恢复默认工作空间
+            create: 目录不存在时自动创建
+
+        Returns:
+            (ok: bool, payload: str|dict) —— ok=False 时 payload 为错误信息；
+            ok=True 时 payload 为 {"root": resolved, "created": bool}
+        """
+        session_dir = self._sessions_dir / session_id
+        if not session_dir.exists():
+            return False, "会话不存在"
+        path = (path or "").strip().strip('"').strip("'")
+        if not path:
+            # 恢复默认
+            return self.clear_workspace_root(session_id)
+        if not os.path.isabs(path):
+            return False, "请输入本地绝对路径（例如 C:\\Users\\you\\myproject）"
+        resolved = Path(os.path.normpath(path))
+        created = False
+        if not resolved.exists():
+            if not create:
+                return False, f"目录不存在：{resolved}（勾选“自动创建”可新建）"
+            try:
+                resolved.mkdir(parents=True, exist_ok=True)
+                created = True
+            except OSError as _e:
+                return False, f"创建目录失败：{_e}"
+        if not resolved.is_dir():
+            return False, f"路径不是文件夹：{resolved}"
+        self.update_session_metadata(session_id, workspace_root=str(resolved))
+        return True, {"root": str(resolved), "created": created}
+
+    def clear_workspace_root(self, session_id: str) -> tuple:
+        """恢复会话默认工作空间（移除 workspace_root 绑定）"""
+        session_dir = self._sessions_dir / session_id
+        if not session_dir.exists():
+            return False, "会话不存在"
+        meta_path = session_dir / "meta.json"
+        changed = False
+        with self._lock:
+            try:
+                meta: dict = {}
+                if meta_path.exists():
+                    try:
+                        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                    except (json.JSONDecodeError, OSError):
+                        meta = {}
+                if "workspace_root" in meta:
+                    del meta["workspace_root"]
+                    changed = True
+                meta["updated_at"] = datetime.now(timezone.utc).isoformat()
+                meta_path.write_text(
+                    json.dumps(meta, ensure_ascii=False, indent=2),
+                    encoding="utf-8",
+                )
+            except OSError as _e:
+                return False, f"写入 meta 失败：{_e}"
+        return True, {
+            "root": str(self._sessions_dir / session_id / "workspace"),
+            "changed": changed,
+        }
+
+    def list_session_workspace(self, session_id: str,
+                               max_depth: int = 3,
+                               max_entries: int = 400) -> dict:
+        """列出会话工作空间内的文件树（条目天然被限制在该目录内）。
+
+        Returns:
+            {
+              "exists": bool,          # 工作空间目录是否存在
+              "root": str,             # 工作空间根路径（绑定目录或默认目录）
+              "custom": bool,          # 是否绑定了自定义工作区
+              "files": [               # 深度受限（max_depth）的文件/目录条目
+                  {"name","rel","type","size","mtime"}
+              ],
+              "truncated": bool,       # 条目数达上限被截断
+            }
+        """
+        root = self.get_session_workspace_dir(session_id)
+        meta = self.get_session_metadata(session_id) or {}
+        custom = bool(meta.get("workspace_root"))
+        try:
+            root_exists = root.exists() and root.is_dir()
+        except OSError:
+            root_exists = False
+        if not root_exists:
+            return {
+                "exists": False, "root": str(root), "custom": custom,
+                "files": [], "truncated": False,
+            }
+
+        files: list[dict] = []
+        truncated = False
+
+        def _stat(p: Path) -> tuple:
+            try:
+                st = p.stat()
+                size = st.st_size if not p.is_dir() else 0
+                mtime = datetime.fromtimestamp(st.st_mtime).isoformat(timespec="seconds")
+                return size, mtime
+            except OSError:
+                return 0, ""
+
+        def _walk(d: Path, depth: int):
+            nonlocal truncated
+            if truncated:
+                return
+            try:
+                children = sorted(d.iterdir(), key=lambda p: (not p.is_dir(), p.name.lower()))
+            except OSError:
+                return
+            for p in children:
+                if truncated:
+                    return
+                name = p.name
+                if name == ".gitkeep":
+                    continue
+                try:
+                    rel = str(p.relative_to(root)).replace("\\", "/")
+                except ValueError:
+                    continue
+                try:
+                    is_dir = p.is_dir()
+                except OSError:
+                    is_dir = False
+                size, mtime = _stat(p)
+                files.append({
+                    "name": name,
+                    "rel": rel,
+                    "type": "dir" if is_dir else "file",
+                    "size": size,
+                    "mtime": mtime,
+                })
+                if len(files) >= max_entries:
+                    truncated = True
+                    return
+                if is_dir and depth < max_depth:
+                    _walk(p, depth + 1)
+
+        _walk(root, 0)
+        return {
+            "exists": True, "root": str(root), "custom": custom,
+            "files": files, "truncated": truncated,
+        }
+
+
+class SessionGroupStore:
+    """会话分组存储（2026-09-07：会话列表按项目/用途分组）。
+
+    持久化位置：data/sessions/groups.json，结构：
+      {"groups": [{"id","name","created_at"}], "membership": {"<session_id>": "<group_id>"}}
+
+    分组与会话本体解耦：
+    - 删除会话 → 调用方调 remove_member 清理归属（路由层在 delete_session 后同步）；
+    - 删除分组 → delete_group 自动清空该组下所有成员的归属；
+    - 分组名称只做展示，不参与会话 ID / 目录命名，无路径风险。
+    """
+
+    def __init__(self, sessions_dir: str = "./data/sessions"):
+        self._groups_path = Path(sessions_dir) / "groups.json"
+        self._lock = threading.Lock()
+        self._groups_path.parent.mkdir(parents=True, exist_ok=True)
+        self._ensure()
+
+    def _ensure(self):
+        if not self._groups_path.exists():
+            self._write({"groups": [], "membership": {}})
+
+    def _read(self) -> dict:
+        try:
+            data = json.loads(self._groups_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            data = {}
+        return {
+            "groups": data.get("groups") if isinstance(data.get("groups"), list) else [],
+            "membership": data.get("membership") if isinstance(data.get("membership"), dict) else {},
+        }
+
+    def _write(self, payload: dict):
+        self._groups_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    @staticmethod
+    def _gen_id() -> str:
+        return f"grp_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+
+    def list_groups(self) -> dict:
+        """返回 {groups: [{id,name,created_at,count}], membership: {sid: gid}}"""
+        with self._lock:
+            data = self._read()
+        counts: dict[str, int] = {}
+        for gid in data["membership"].values():
+            counts[gid] = counts.get(gid, 0) + 1
+        groups = [dict(g, count=counts.get(g["id"], 0)) for g in data["groups"]]
+        return {"groups": groups, "membership": dict(data["membership"])}
+
+    def create_group(self, name: str = "") -> dict:
+        name = (name or "").strip() or "新分组"
+        with self._lock:
+            data = self._read()
+            group = {
+                "id": self._gen_id(),
+                "name": name[:40],
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            }
+            data["groups"].append(group)
+            self._write(data)
+        return dict(group)
+
+    def get_group(self, group_id: str) -> dict | None:
+        with self._lock:
+            data = self._read()
+        for g in data["groups"]:
+            if g["id"] == group_id:
+                return dict(g)
+        return None
+
+    def rename_group(self, group_id: str, name: str) -> bool:
+        name = (name or "").strip()
+        if not name:
+            return False
+        with self._lock:
+            data = self._read()
+            for g in data["groups"]:
+                if g["id"] == group_id:
+                    g["name"] = name[:40]
+                    self._write(data)
+                    return True
+        return False
+
+    def delete_group(self, group_id: str) -> bool:
+        """删除分组；组内成员自动变为未分组"""
+        with self._lock:
+            data = self._read()
+            before = len(data["groups"])
+            data["groups"] = [g for g in data["groups"] if g["id"] != group_id]
+            removed = len(data["groups"]) != before
+            if removed:
+                data["membership"] = {
+                    sid: gid for sid, gid in data["membership"].items() if gid != group_id
+                }
+                self._write(data)
+        return removed
+
+    def assign(self, session_id: str, group_id: str | None) -> bool:
+        """把会话归入分组；group_id 为 None/空串 = 移出分组（未分组）。
+
+        分组必须存在（None 除外），会话存在性由调用方校验。
+        """
+        group_id = group_id or None
+        with self._lock:
+            data = self._read()
+            if group_id is not None and not any(g["id"] == group_id for g in data["groups"]):
+                return False
+            if group_id is None:
+                data["membership"].pop(session_id, None)
+            else:
+                data["membership"][session_id] = group_id
+            self._write(data)
+        return True
+
+    def remove_member(self, session_id: str):
+        """删除会话后清理其分组归属（幂等）"""
+        with self._lock:
+            data = self._read()
+            if session_id in data["membership"]:
+                del data["membership"][session_id]
+                self._write(data)
+
+
+class WorkspaceRegistry:
+    """「已添加的工作区」记忆（仿 DSH 添加工作区）。
+
+    持久化位置：data/sessions/workspaces.json，结构：
+      {"workspaces": [{"path","name","added_at"}]}
+
+    仅做记忆/快速选择：会话绑定自定义工作区时自动登记；
+    目录本身的生命周期不受本注册表影响。
+    """
+
+    def __init__(self, sessions_dir: str = "./data/sessions"):
+        self._path = Path(sessions_dir) / "workspaces.json"
+        self._lock = threading.Lock()
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        self._ensure()
+
+    def _ensure(self):
+        if not self._path.exists():
+            self._write({"workspaces": []})
+
+    def _read(self) -> dict:
+        try:
+            data = json.loads(self._path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            data = {}
+        ws = data.get("workspaces") if isinstance(data.get("workspaces"), list) else []
+        return {"workspaces": [w for w in ws if isinstance(w, dict) and w.get("path")]}
+
+    def _write(self, payload: dict):
+        self._path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    @staticmethod
+    def _name_of(path: str) -> str:
+        p = Path(path)
+        return p.name or str(p)
+
+    def list_workspaces(self) -> list[dict]:
+        with self._lock:
+            data = self._read()
+        return [dict(w) for w in data["workspaces"]]
+
+    def add_workspace(self, path: str) -> dict | None:
+        """登记一个工作区目录（重复登记幂等返回现有条目）"""
+        path = (path or "").strip().strip('"').strip("'")
+        if not path:
+            return None
+        resolved = os.path.normpath(path)
+        with self._lock:
+            data = self._read()
+            for w in data["workspaces"]:
+                if os.path.normpath(w["path"]) == resolved:
+                    return dict(w)
+            entry = {
+                "path": resolved,
+                "name": self._name_of(resolved),
+                "added_at": datetime.now(timezone.utc).isoformat(),
+            }
+            data["workspaces"].insert(0, entry)
+            # 只保留最近 50 条记忆
+            data["workspaces"] = data["workspaces"][:50]
+            self._write(data)
+        return dict(entry)
+
+    def remove_workspace(self, path: str) -> bool:
+        """从记忆列表移除一个工作区（不影响目录本身）"""
+        path = (path or "").strip()
+        resolved = os.path.normpath(path) if path else ""
+        with self._lock:
+            data = self._read()
+            before = len(data["workspaces"])
+            data["workspaces"] = [
+                w for w in data["workspaces"] if os.path.normpath(w["path"]) != resolved
+            ]
+            removed = len(data["workspaces"]) != before
+            if removed:
+                self._write(data)
+        return removed

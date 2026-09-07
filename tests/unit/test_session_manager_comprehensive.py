@@ -543,3 +543,61 @@ class TestCreateSessionBoundary:
         assert len(matches) == 1, f"并发同 ID 创建应仅 1 条索引，实际 {len(matches)}"
         # 全部返回同一会话
         assert len({r["id"] for r in results}) == 1
+
+
+# ── 10. 会话工作空间（2026-09-07：每会话独立任务工作目录）────
+
+
+class TestSessionWorkspace:
+    def test_create_creates_workspace_dir(self, manager, tmp_path):
+        """新建会话自动创建 workspace 目录与 .gitkeep"""
+        info = manager.create_session(title="WS")
+        ws = tmp_path / "sessions" / info["id"] / "workspace"
+        assert ws.exists()
+        assert (ws / ".gitkeep").exists()
+
+    def test_workspace_path_absent_returns_none(self, manager):
+        assert manager.workspace_path("nonexistent") is None
+
+    def test_ensure_workspace_lazily_creates(self, manager, tmp_path):
+        """历史会话（无 workspace）经 ensure 惰性补齐"""
+        info = manager.create_session()
+        ws_dir = tmp_path / "sessions" / info["id"] / "workspace"
+        import shutil
+        shutil.rmtree(ws_dir)  # 模拟升级前的旧会话
+        assert manager.workspace_path(info["id"]) is None
+        created = manager.ensure_workspace_path(info["id"])
+        assert created.exists() and created == ws_dir
+
+    def test_ensure_workspace_nonexistent_session(self, manager):
+        from agent.session_manager import SessionNotFoundError
+        with pytest.raises(SessionNotFoundError):
+            manager.ensure_workspace_path("nonexistent")
+
+    def test_list_workspace_entries(self, manager, tmp_path):
+        """文件树列出文件/目录，跳过 .gitkeep"""
+        info = manager.create_session()
+        root = tmp_path / "sessions" / info["id"] / "workspace"
+        (root / "报告.md").write_text("# 报告", encoding="utf-8")
+        (root / "src").mkdir()
+        (root / "src" / "main.py").write_text("print(1)", encoding="utf-8")
+
+        result = manager.list_session_workspace(info["id"])
+        assert result["exists"] is True
+        rels = {f["rel"] for f in result["files"]}
+        assert "报告.md" in rels
+        assert "src" in rels
+        assert "src/main.py" in rels
+        assert ".gitkeep" not in rels
+        types = {f["rel"]: f["type"] for f in result["files"]}
+        assert types["src"] == "dir"
+        assert types["报告.md"] == "file"
+        assert types["src/main.py"] == "file"
+
+    def test_delete_session_removes_workspace(self, manager, tmp_path):
+        """删除会话连同工作空间一并清理"""
+        info = manager.create_session()
+        ws = tmp_path / "sessions" / info["id"] / "workspace"
+        assert ws.exists()
+        manager.delete_session(info["id"])
+        assert not (tmp_path / "sessions" / info["id"]).exists()

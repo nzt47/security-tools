@@ -77,7 +77,7 @@ from agent.system_tools import (
     WORKSPACE_DIR,
 )
 from agent.web import HttpClient, Scraper, SearchEngine, DataProcessor, CrawlerController
-from agent.session_manager import SessionManager
+from agent.session_manager import SessionManager, SessionGroupStore, WorkspaceRegistry
 from agent.log_system.dashboard import register_log_system
 
 logging.basicConfig(level=logging.INFO, encoding="utf-8", force=True)
@@ -392,6 +392,10 @@ def log_request(show_body=True, show_response=True):
 
 # ── 多会话管理器（保留 _CHAT_HISTORY 作为向后兼容的缓存） ──
 _session_mgr = SessionManager(sessions_dir="./data/sessions")
+# 会话分组（项目/用途归类；groups.json 独立持久化，见 SessionGroupStore）
+_session_groups = SessionGroupStore(sessions_dir="./data/sessions")
+# 「已添加的工作区」记忆（仿 DSH 添加工作区；workspaces.json）
+_workspace_registry = WorkspaceRegistry(sessions_dir="./data/sessions")
 
 # 用于全景视图等旧功能的向后兼容缓存
 _CHAT_HISTORY = []
