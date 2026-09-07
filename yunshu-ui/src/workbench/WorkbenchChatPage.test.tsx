@@ -57,7 +57,7 @@ function createFetchMock() {
   let groups: SessionGroup[] = [];
   let membership: Record<string, string> = {};
   let groupSeq = 0;
-  let boundRoots: Record<string, string> = {};
+  const boundRoots: Record<string, string> = {};
   let knownWorkspaces: Array<{ path: string; name: string; added_at: string }> = [];
 
   return {
