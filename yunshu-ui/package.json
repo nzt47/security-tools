@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "description": "云枢数字生命体 · Web / Electron 双模式前端",
+  "author": "Yunshu Team",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -12,7 +15,71 @@
     "check": "tsc -b --noEmit",
     "smoke:kb": "node ../scripts/dev/kb_workbench_smoke.mjs",
     "smoke:wb": "node ../scripts/dev/workbench_acceptance_smoke.mjs",
-    "smoke:route": "node ../scripts/dev/route_unify_smoke.mjs --url http://127.0.0.1:5678/chat#/workbench"
+    "smoke:route": "node ../scripts/dev/route_unify_smoke.mjs --url http://127.0.0.1:5678/chat#/workbench",
+    "check:electron": "tsc -p electron/tsconfig.json --noEmit",
+    "dev:electron": "vite",
+    "build:electron": "vite build",
+    "dist:electron": "node scripts/dist-electron.mjs"
+  },
+  "build": {
+    "appId": "com.yunshu.desktop",
+    "productName": "云枢",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**",
+      "dist-electron/**",
+      "package.json",
+      "!node_modules/**",
+      "!dist/storage-test.html",
+      "!dist/storage-test.js",
+      "!dist-electron/preload.mjs"
+    ],
+    "asar": true,
+    "compression": "maximum",
+    "beforePack": "scripts/beforePack.mjs",
+    "afterPack": "scripts/afterPack.mjs",
+    "electronDist": "node_modules/electron/dist",
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
+    "npmRebuild": false,
+    "electronDownload": {
+      "cache": "${env.TEMP}/eb-cache/electron"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "云枢",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Utility"
+    }
   },
   "dependencies": {
     "@sentry/react": "^7.120.4",
@@ -46,6 +113,8 @@
     "@vitest/coverage-v8": "^2.1.9",
     "autoprefixer": "^10.4.21",
     "babel-plugin-react-dev-locator": "^1.0.0",
+    "electron": "^43.4.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
@@ -56,6 +125,8 @@
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
     "vite": "^6.3.5",
+    "vite-plugin-electron": "^1.1.1",
+    "vite-plugin-electron-renderer": "^1.0.0",
     "vite-plugin-trae-solo-badge": "^1.0.0",
     "vite-tsconfig-paths": "^5.1.4",
     "vitest": "^2.1.9"

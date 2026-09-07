@@ -17,6 +17,8 @@ export const IPC = {
   WindowMeta: 'window:get-meta',
   /** 独立窗口启动时拉取分离瞬间的状态快照（补偿广播时序） */
   GetInitialState: 'window:get-initial-state',
+  /** 渲染层请求：调起系统「选择文件夹」对话框（会话工作区绑定用） */
+  PickWorkspaceDirectory: 'window:pick-workspace-directory',
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];
@@ -49,6 +51,14 @@ export interface WindowMeta {
   kind: WindowKind;
   /** 独立窗口对应的面板 ID */
   detachedPanelId?: DetachablePanelId;
+}
+
+/** 系统目录选择结果（dialog.showOpenDialog 归一化） */
+export interface WorkspaceDirectoryPick {
+  /** 用户取消时为 true（无 path） */
+  canceled: boolean;
+  /** 选中的目录绝对路径（canceled=false 时存在） */
+  path?: string;
 }
 
 /**

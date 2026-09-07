@@ -22,3 +22,17 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+# 构建产物（Vite / Electron / electron-builder）
+dist/
+dist-ssr/
+dist-electron/
+release/
+node_modules/
+
+# 本地配置与密钥（保留 .env.example 作为模板）
+.env
+.env.*
+!.env.example
+
+# Electron 下载缓存（electron-builder 字面 ${env.TEMP} 路径未展开时产生的缓存目录）
+${env.TEMP}/

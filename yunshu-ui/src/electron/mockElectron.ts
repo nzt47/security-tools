@@ -16,7 +16,6 @@
  */
 import type { DetachPanelRequest, StateSyncPayload, WindowMeta } from './ipc';
 import type { WindowElectronAPI } from './types';
-
 const CHANNEL = 'yunshu:mock-ipc';
 const SNAPSHOT_KEY = 'yunshu:mock:initial-snapshot';
 
@@ -76,6 +75,17 @@ function createMockAPI(): WindowElectronAPI {
       const listener = (e: MessageEvent<StateSyncPayload>) => cb(e.data);
       channel.addEventListener('message', listener);
       return () => channel.removeEventListener('message', listener);
+    },
+
+    /**
+     * 目录选择器无法在 Web 端模拟（浏览器拿不到绝对路径）。
+     * 返回 canceled=true，提示在真实 Electron 中运行以调起系统对话框；
+     * 工作空间抽屉的「浏览…」按钮仅在 isElectron() 时显示，故这里主要用于
+     * 双标签页联调时不至于因为缺方法而崩溃。
+     */
+    async pickWorkspaceDirectory() {
+      console.info('[云枢·Mock] 目录选择器仅 Electron 桌面版可用（Web 联调返回取消）');
+      return { canceled: true };
     },
   };
 }

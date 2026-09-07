@@ -4,7 +4,12 @@
  * 形状与 electron/preload.ts 中 contextBridge 暴露的 API 一一对应。
  * Web 环境下不存在 window.electronAPI，代码须判空（见 isElectron）。
  */
-import type { DetachPanelRequest, StateSyncPayload, WindowMeta } from './ipc';
+import type {
+  DetachPanelRequest,
+  StateSyncPayload,
+  WindowMeta,
+  WorkspaceDirectoryPick,
+} from './ipc';
 
 export interface WindowElectronAPI {
   /** 请求主进程将面板分离为独立系统窗口，resolve 新窗口 webContents.id */
@@ -17,6 +22,8 @@ export interface WindowElectronAPI {
   broadcastState(payload: StateSyncPayload): void;
   /** 订阅其它窗口的状态快照，返回取消订阅函数 */
   onStateSync(cb: (payload: StateSyncPayload) => void): () => void;
+  /** 调起系统「选择文件夹」对话框（会话工作区绑定；仅 Electron 可用） */
+  pickWorkspaceDirectory(): Promise<WorkspaceDirectoryPick>;
 }
 
 declare global {
