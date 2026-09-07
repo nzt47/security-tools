@@ -65,6 +65,17 @@
 > 说明：远端 CI（GitHub Actions 各 workflow）将在推送后自动运行；
 > 本机环境未安装 ruff，Python 代码静态检查以 CI 流水线为准（推送前已 py_compile + 全量相关单测验证）。
 
+### 四·二、远端 CI 复核记录（2026-09-07 推送后，提交 `c9248949` → 修复后 `1fc3c28d`）
+
+| 结论 | 说明 |
+|---|---|
+| ✅ 推送门禁全绿 | 最终提交 `1fc3c28d` 共 17 个 push 触发 run，**0 失败**；关键门禁 `yunshu-ui 前端测试`、`云枢系统测试流程` 均 success |
+| ✅ 首推发现并修复 1 个问题 | 前端测试 workflow 首次失败：ESLint `prefer-const`（测试 mock 中 `boundRoots` 未重赋值）。已修复（`fix(lint)` 提交 `482e9c16`）并推 `1fc3c28d`，重跑转绿 |
+| ⚠️ 可观测性质量保障（全项目 6-shard 覆盖率） | 首次推送时 Shard 4（prometheus/tracing 等与本次改动无关的既有用例）失败 → 已 `gh run rerun --failed` 复核，结果见下方追加；该 workflow 对最终提交因 concurrency/触发时序未生成新 run |
+| ⏳ 链式/周期任务 | `Daily Regression Tests`、`扩展系统健康检查` 为 `workflow_run` 链式任务，推送后仍在排队/运行，非本次交付直接门禁 |
+
+> 复核结论追加（rerun 结果）：____________________
+
 ## 五、待确认/遗留事项
 
 1. 【待确认】远端 CI 结果：推送后请确认 GitHub Actions 各 workflow 转绿（尤其 `ci.yml`、`yunshui-ui-tests.yml`、覆盖率类）。
