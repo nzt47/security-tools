@@ -43,6 +43,9 @@ function installMockApi(): void {
     onStateSync(): () => void {
       return () => {}
     },
+    async pickWorkspaceDirectory() {
+      return { canceled: true }
+    },
   }
 }
 

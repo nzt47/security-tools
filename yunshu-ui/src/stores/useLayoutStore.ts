@@ -37,6 +37,12 @@ interface LayoutStore {
   activeStreamId: string | null;
   /** 历史问话跳转定位：需要滚动/高亮的消息 ID（由 ChatPanel 消费并在动画后清空） */
   highlightMsgId: string | null;
+  /**
+   * 当前激活的会话 ID（会话任务页多会话视图的单一数据源）。
+   * sendMessage 据此把流式请求归属到该会话（后端落盘持久化）；
+   * 非会话页（独立窗口/单会话遗留场景）保持 null → 走后端全局当前会话。
+   */
+  activeSessionId: string | null;
 
   setLayout: (next: MosaicNode<PanelId> | null) => void;
   resetLayout: () => void;
@@ -47,6 +53,8 @@ interface LayoutStore {
   loadSessionHistory: (sessionId: string, opts?: { force?: boolean }) => Promise<void>;
   /** 请求滚动定位到某条消息（由 ChatPanel 渲染层消费，动画结束后自动置空） */
   setHighlightMsg: (id: string | null) => void;
+  /** 设置当前激活会话（会话切换/新建/删除后由页面调用） */
+  setActiveSession: (id: string | null) => void;
 }
 
 // 仅暴露给 persist 的字段（layout 之外的动态数据不做本地持久化）
@@ -93,6 +101,7 @@ export const useLayoutStore = create<LayoutStore>()(
       streaming: false,
       activeStreamId: null,
       highlightMsgId: null,
+      activeSessionId: null,
 
       setLayout: (next) => set({ layout: next }),
 
@@ -155,7 +164,13 @@ export const useLayoutStore = create<LayoutStore>()(
 
         let accumulated = 0;
         try {
-          for await (const event of createChatStream(text, abortController.signal)) {
+          // 携带当前激活会话 ID → 后端按该会话落盘（多会话持久化关键）
+          const sessionId = get().activeSessionId ?? undefined;
+          for await (const event of createChatStream(
+            text,
+            abortController.signal,
+            { sessionId },
+          )) {
             if (event.type === 'chunk') {
               accumulated += event.text.length;
               emitStreamLog({
@@ -226,7 +241,11 @@ export const useLayoutStore = create<LayoutStore>()(
         try {
           const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/messages`);
           if (!res.ok) return;
+          // 竞态防护：加载期间用户已切到其他会话 → 丢弃过期响应
+          const activeNow = get().activeSessionId;
+          if (activeNow && activeNow !== sessionId) return;
           const hist = (await res.json()) as { role?: string; content?: string; timestamp?: string }[];
+          if (activeNow && activeNow !== sessionId) return;
           if (!Array.isArray(hist) || hist.length === 0) {
             if (opts?.force) set({ messages: [] });
             return;
@@ -247,6 +266,12 @@ export const useLayoutStore = create<LayoutStore>()(
       },
 
       setHighlightMsg: (id) => set({ highlightMsgId: id }),
+
+      setActiveSession: (id) => {
+        // 会话切换/新建/删除后由页面调用；只更新归属标记，不清空消息流
+        // （消息流的清空由页面 clearConversation + loadSessionHistory 负责）
+        set({ activeSessionId: id });
+      },
     }),
     {
       name: LAYOUT_STORAGE_KEY,

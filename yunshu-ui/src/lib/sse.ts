@@ -47,6 +47,8 @@ function parseEventBlock(block: string): StreamEvent | null {
  * - 由调用方传入 AbortSignal 以支持"停止生成"
  * - HTTP 非 2xx 或响应体缺失时抛出带状态码的错误
  * - 可选 onError 回调：网络/HTTP 失败时触发（默认行为不变，调用方可不传）
+ * - 可选 sessionId：随请求体传给后端 /api/chat/stream，实现会话归属与持久化
+ *   （会话任务页多会话场景必传；缺省时后端按全局当前会话处理）
  *
  * 三类终止语义（调用方判定）：
  *   1. 正常结束：产出 type:'done' 事件（或流自然读完）——非错误
@@ -56,7 +58,7 @@ function parseEventBlock(block: string): StreamEvent | null {
 export async function* createChatStream(
   question: string,
   signal?: AbortSignal,
-  options?: { onError?: (err: Error) => void },
+  options?: { onError?: (err: Error) => void; sessionId?: string },
 ): AsyncGenerator<StreamEvent> {
   const startedAt = performance.now();
   console.debug('[云枢·SSE] 请求发出:', { url: API_URL, ts: Date.now() });
@@ -66,7 +68,10 @@ export async function* createChatStream(
     res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: question }),
+      body: JSON.stringify({
+        message: question,
+        ...(options?.sessionId ? { session_id: options.sessionId } : {}),
+      }),
       signal,
     });
   } catch (err) {
