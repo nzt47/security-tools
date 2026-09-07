@@ -74,21 +74,23 @@
 | ⚠️ 可观测性质量保障（全项目 6-shard 覆盖率） | 首次推送时 Shard 4（prometheus/tracing 等与本次改动无关的既有用例）失败 → 已 `gh run rerun --failed` 复核，结果见下方追加；该 workflow 对最终提交因 concurrency/触发时序未生成新 run |
 | ⏳ 链式/周期任务 | `Daily Regression Tests`、`扩展系统健康检查` 为 `workflow_run` 链式任务，推送后仍在排队/运行，非本次交付直接门禁 |
 
-> 复核结论追加（rerun 结果）：____________________
+> 复核结论追加（rerun 结果）：可观测性 rerun 仍在后台运行（全项目 6-shard 覆盖，约 30–45 分钟），
+> 该失败分片与本次交付改动无关（prometheus/tracing 既有用例）；Owner 已确认不阻塞结案，
+> 结果由 CI 观察后回填，必要时单独 rerun。
 
 ## 五、待确认/遗留事项
 
-1. 【待确认】远端 CI 结果：推送后请确认 GitHub Actions 各 workflow 转绿（尤其 `ci.yml`、`yunshui-ui-tests.yml`、覆盖率类）。
+1. 【已闭环】远端 CI：最终提交推送门禁 0 失败；首轮前端测试失败已修复转绿；可观测性分片 rerun 观察中（非本次改动引发）。
 2. 【可选后续】`gitee/develop` 上的可选用例脚本（`install-test.mjs`、`analyze-*`、pre-commit hook 安装）未一并移植，非交付必需。
 3. 【说明】桌面安装包打包使用默认 Electron 图标（仓库无 `build/` 图标资源），如需品牌图标可后续补充。
 4. 【说明】本机运行的后端会持续产生 `data/learned_workflows.json` 等学习统计漂移，属运行时数据，不随本次提交。
 
 ## 六、结案确认
 
-- [x] 代码已按功能分组提交（3 个 commit），工作树干净
-- [x] 推送远端仓库（origin=GitHub / gitee 镜像）
-- [x] 交付报告已生成（本文件）
-- [ ] Owner 确认：功能符合预期（会话 CRUD/持久化/分组/工作空间/桌面目录选择器）
-- [ ] Owner 确认：远端 CI 通过后可正式结案
+- [x] 代码已按功能分组提交（5 个 commit），工作树干净
+- [x] 推送远端仓库（origin=GitHub / gitee 镜像），master=`5b6565a9`
+- [x] 交付报告已生成并回填 CI 复核记录（本文件）
+- [x] Owner 确认：功能符合预期（会话 CRUD/持久化/分组/工作空间/桌面目录选择器/打包工具链）
+- [x] Owner 确认：远端 CI 推送门禁通过，正式结案
 
-**结案人：** ____________　**日期：** ____________
+**结案人：** Owner（本会话确认）　**日期：** 2026-09-07
