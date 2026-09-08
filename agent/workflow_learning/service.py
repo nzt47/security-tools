@@ -185,21 +185,25 @@ class WorkflowLearningService:
     def convert_to_skill(self, wf_id: str, *,
                          skills_service=None,
                          force: bool = False,
-                         auto_digest: Optional[bool] = None) -> Dict[str, Any]:
+                         auto_review: Optional[bool] = None) -> Dict[str, Any]:
         """把指定工作流抽象为 Skill 并注册到 skills_mgmt
 
         Args:
             wf_id: 工作流ID
             skills_service: SkillsMgmtService 实例（None 时延迟导入全局单例）
             force: 是否跳过质量门控
-            auto_digest: 转换成功后是否执行权威「评审-消化」
-                （None 读取 SKILLS_DIGEST_AUTO_DIGEST_AFTER_WORKFLOW_CONVERT /
-                 config.yaml skills_mgmt.digest.auto_digest_after_workflow_convert，
-                 默认 False——转换本身已通过 create_manual 自动携带咨询性评估）
+            auto_review: 转换成功后是否执行权威「评审」
+                （None 读取 SKILLS_ASSESS_AUTO_REVIEW_AFTER_WORKFLOW_CONVERT /
+                 config.yaml skills_mgmt.assess.auto_review_after_workflow_convert，
+                 默认 False——转换本身已通过 create_manual 自动携带咨询性评估；
+                 兼容旧参数名 auto_digest 与旧环境变量 SKILLS_DIGEST_*
+                 读取见 assessor.py 兼容层）
 
         Returns:
-            {workflow_id, skill_id, skill_name, version, action, digest?}
-            digest: {verdict, status} 或 {error}
+            {workflow_id, skill_id, skill_name, version, action, review?}
+            review: {verdict, status} 或 {error}
+            （≤1 minor 兼容键 digest 亦随附，语义同 review——评审语义，与
+             v7.2 内化语义无关）
 
         Raises:
             WorkflowNotFoundError: 工作流不存在
@@ -209,22 +213,27 @@ class WorkflowLearningService:
         converter = self._build_converter(svc)
         result = converter.convert_workflow_to_skill(wf_id, force=force)
         if result.get("action") == "created":
-            if auto_digest is None:
+            if auto_review is None:
                 try:
-                    from agent.skills_mgmt.assessor import digest_flag
-                    auto_digest = digest_flag("auto_digest_after_workflow_convert", False)
+                    from agent.skills_mgmt.assessor import assess_flag
+                    auto_review = assess_flag("auto_review_after_workflow_convert", False)
                 except Exception:
-                    auto_digest = False
-            if auto_digest:
+                    auto_review = False
+            if auto_review:
                 try:
-                    rv = svc.digest_skill(result["skill_id"])
-                    result["digest"] = {
-                        "verdict": getattr(rv.digest_verdict, "value", rv.digest_verdict),
+                    rv = svc.review_skill(result["skill_id"])
+                    review_view = {
+                        "verdict": getattr(rv.review_verdict, "value",
+                                           rv.review_verdict),
                         "status": getattr(rv.status, "value", rv.status),
                     }
+                    result["review"] = review_view
+                    result["digest"] = review_view  # 兼容旧键（≤1 minor）
                 except Exception as e:  # noqa: BLE001
-                    logger.warning("工作流转换后评审-消化失败 wf=%s: %s", wf_id, e)
-                    result["digest"] = {"error": str(e)}
+                    logger.warning("工作流转换后评审失败 wf=%s: %s", wf_id, e)
+                    err = {"error": str(e)}
+                    result["review"] = err
+                    result["digest"] = err  # 兼容旧键（≤1 minor）
         return result
 
     def convert_external_skill(self, external_data: Dict[str, Any],
@@ -275,18 +284,26 @@ class WorkflowLearningService:
     # ─── 批量 LLM 转换外部 agent 技能 ───
 
     @staticmethod
-    def _created_digest_view(svc, skill_id: str) -> Dict[str, Any]:
-        """新建技能创建后的自动评审-消化结论（供批量结果展示；失败返回空）。"""
+    def _created_review_view(svc, skill_id: str) -> Dict[str, Any]:
+        """新建技能创建后的自动评审结论（供批量结果展示；失败返回空）。
+
+        术语纪律（TASK-S0-01）：键 review_verdict 为主，旧兼容键 digest_verdict
+        随附（≤1 minor；评审语义，与 v7.2 内化语义无关）。
+        """
         try:
             skill = svc.get(skill_id)
             review = getattr(skill, "review", None)
             if review is None:
                 return {}
             return {
+                "review_verdict": getattr(review.review_verdict, "value",
+                                           review.review_verdict)
+                or "",
+                "auto_assessed": bool(getattr(review, "auto_assessed", False)),
+                # 兼容旧键（≤1 minor）：评审语义旧名 digest_verdict
                 "digest_verdict": getattr(review.digest_verdict, "value",
                                           review.digest_verdict)
                 or "",
-                "auto_assessed": bool(getattr(review, "auto_assessed", False)),
             }
         except Exception:  # noqa: BLE001 结果视图尽力而为
             return {}
@@ -309,7 +326,7 @@ class WorkflowLearningService:
                 - Jaccard < strengthen_threshold → 保留新建技能
 
         queue_mode=True（「先存草稿再人工逐个放行」）时跳过第 2/3 步的自动
-        合并/加强：每个外部技能一律转为独立草稿（含自动评审-消化结论）进入
+        合并/加强：每个外部技能一律转为独立草稿（含自动评审-评估结论）进入
         待放行队列，由人工逐个放行/驳回。
 
         Args:
@@ -356,7 +373,7 @@ class WorkflowLearningService:
                             "skill_name": conv["skill_name"],
                             "source_format": conv.get("source_format", "unknown"),
                             "queued": True,
-                            **self._created_digest_view(svc, new_skill_id),
+                            **self._created_review_view(svc, new_skill_id),
                         })
                         continue
 
@@ -377,7 +394,7 @@ class WorkflowLearningService:
                             "skill_id": new_skill_id,
                             "skill_name": conv["skill_name"],
                             "source_format": conv.get("source_format", "unknown"),
-                            **self._created_digest_view(svc, new_skill_id),
+                            **self._created_review_view(svc, new_skill_id),
                         })
                         continue
 

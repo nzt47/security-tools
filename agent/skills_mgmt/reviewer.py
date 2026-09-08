@@ -415,7 +415,7 @@ class SkillReviewer:
             if sec_score < self.thresholds.security_min:
                 summary_parts.append(f"安全分偏低 ({sec_score:.0f})")
             if qual_score < self.thresholds.quality_min:
-                summary_parts.append(f"质量分偏低 ({qual_score:.0f})，建议完善后再次消化")
+                summary_parts.append(f"质量分偏低 ({qual_score:.0f})，建议完善后再次评审-评估")
             summary = "；".join(summary_parts) if summary_parts else "审核通过（增量吸收）"
 
             result = ReviewResult(
@@ -429,27 +429,27 @@ class SkillReviewer:
                 summary=summary,
             )
 
-            # ── 评审-消化扩展评估（权限/攻击面/数据合规 + 兼容性/重叠/资源/交互）──
+            # ── 评审-评估扩展评估（权限/攻击面/数据合规 + 兼容性/重叠/资源/交互）──
             # 三审通过/失败都追加扩展发现用于报告；扩展阻断项将 PASSED 降级为
             # WARN（skill→PENDING_REVIEW，发布门禁仍按 PASSED 判定 → 阻断发布）。
             try:
-                from .assessor import SkillDigestAssessor
-                digest = SkillDigestAssessor().assess(skill, others=others)
-                result.findings.extend(digest.findings)
-                result.compatibility_score = digest.compatibility_score
+                from .assessor import SkillAssessor
+                assessment = SkillAssessor().assess(skill, others=others)
+                result.findings.extend(assessment.findings)
+                result.compatibility_score = assessment.compatibility_score
                 result.auto_assessed = True
-                result.dimension_summary = digest.dimension_summary
-                if digest.blocked and status == ReviewStatus.PASSED:
+                result.dimension_summary = assessment.dimension_summary
+                if assessment.blocked and status == ReviewStatus.PASSED:
                     result.status = ReviewStatus.WARN
-                    result.digest_verdict = "block"
+                    result.review_verdict = "block"
                     result.summary = (summary or "审核通过") + \
                         "；扩展评估(权限/合规/兼容性)存在阻断项，需人工复核"
-                elif digest.blocked:
-                    result.digest_verdict = "block"
+                elif assessment.blocked:
+                    result.review_verdict = "block"
                 else:
-                    result.digest_verdict = "ok"
-            except Exception as _de:  # noqa: BLE001 扩展评估失败不阻断主流程
-                logger.warning("[Reviewer] 扩展评估异常 skill=%s: %s", skill.id, _de)
+                    result.review_verdict = "ok"
+            except Exception as _ae:  # noqa: BLE001 扩展评估失败不阻断主流程
+                logger.warning("[Reviewer] 扩展评估异常 skill=%s: %s", skill.id, _ae)
 
             # 写回技能状态
             skill.review = result

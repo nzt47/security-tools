@@ -56,6 +56,8 @@ _GENERIC_TOKENS = {
     "ui", "new", "example", "the", "and", "for", "with", "from", "into",
     "v1", "v2", "ext", "self", "my", "tool", "run", "auto", "data",
     "script", "helper", "helper", "probe", "notes", "feedback", "weather",
+    # 注：digest 仅为通用词 token（旧评审语义名遗留的类名黑词，非语义使用点；
+    # TASK-S0-01 术语纪律：不改分类行为，仅保留注释说明）
     "digest", "redraft", "audit", "clone", "version", "eval", "adv", "req",
     "sma", "smb", "pub", "last", "legacy", "c3", "cr", "knob", "ver",
     "selftest", "meta", "gen", "sync", "watch", "sys", "util", "utils",
@@ -87,6 +89,8 @@ SEED_CLASSES: List[Dict[str, Any]] = [
     {"name": "记忆与知识", "keywords": [
         "记忆", "摘要", "知识", "归档", "检索", "回忆", "压缩", "总结", "归纳",
         "备忘", "知识库", "长期记忆", "memory", "summary", "recall",
+        # 注：digest 为「记忆与知识」英文关键词（摘要语义，非云枢评审语义；
+        # TASK-S0-01 术语纪律：不改分类行为，仅保留注释说明）
         "knowledge", "archive", "summarize", "digest",
     ]},
     {"name": "安全与合规", "keywords": [

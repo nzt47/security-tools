@@ -59,14 +59,16 @@ export function MemoryWorkflowTable() {
       满足质量门控(成功次数/置信度/ACTIVE)才可导出。 */
   const convert = async (wf: Workflow) => {
     try {
-      const r = await hubPost<{ skill_id?: string; skill_name?: string; action?: string; error?: string; digest?: { verdict?: string; status?: string } }>(
+      const r = await hubPost<{ skill_id?: string; skill_name?: string; action?: string; error?: string; review?: { verdict?: string; status?: string }; digest?: { verdict?: string; status?: string } }>(
         `/api/workflow-learning/workflows/${wf.id}/convert-to-skill`,
-        { force: false, auto_digest: true },
+        // 术语纪律（TASK-S0-01）：新参数 auto_review（评审语义；旧 auto_digest 由后端兼容）
+        { force: false, auto_review: true },
       )
       if (r?.error) { setExecMsg(`导出失败：${r.error}`); return }
       const action = r?.action === 'already_converted' ? '已导出过' : '已导出为 LLM 参考'
-      const digest = r?.digest?.verdict === 'block' ? '，评审存在阻断项(待人工复核)' : '，评审-消化通过'
-      setExecMsg(`${action}「${r?.skill_name ?? wf.name ?? wf.id}」（skill_id=${r?.skill_id}）${digest}——本工作流仍保留在「工作流技能」Tab，本地执行免 LLM`)
+      const review = r?.review ?? r?.digest  // 兼容旧服务端响应键 digest（≤1 minor）
+      const verdictMsg = review?.verdict === 'block' ? '，评审存在阻断项(待人工复核)' : '，评审-评估通过'
+      setExecMsg(`${action}「${r?.skill_name ?? wf.name ?? wf.id}」（skill_id=${r?.skill_id}）${verdictMsg}——本工作流仍保留在「工作流技能」Tab，本地执行免 LLM`)
       load()
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)

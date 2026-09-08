@@ -219,7 +219,7 @@ def solidify_to_skill(proc: DistilledProcess, *, skills_svc=None,
 
     流程：
         1. 质量门槛自检（_quality_check）——不通过返回 action=skipped；
-        2. create_manual 落 JSON 轨（status=draft，自动触发咨询性 digest）；
+        2. create_manual 落 JSON 轨（status=draft，自动触发咨询性评估）；
         3. file_store.create 落文件轨（meta 补 status/enabled，双轨一致）；
         4. run_review=True 时调 review() 走正式三审——PASSED→APPROVED、
            WARN→PENDING_REVIEW、FAILED→REJECTED（仍不自动 publish，
@@ -292,15 +292,15 @@ def solidify_to_skill(proc: DistilledProcess, *, skills_svc=None,
             "status": "draft",
         }
 
-        # B. 正式评审-消化（权威三审；通过→APPROVED，仍不自动 publish）
+        # B. 正式评审-评估（权威三审；通过→APPROVED，仍不自动 publish）
         if run_review:
             try:
                 r = skills_svc.review(skill_id)
                 rev_status = getattr(r.status, "value", r.status)
                 result["review"] = {
                     "status": rev_status,
-                    "verdict": getattr(r.digest_verdict, "value",
-                                       r.digest_verdict)
+                    "verdict": getattr(r.review_verdict, "value",
+                                       r.review_verdict)
                     or rev_status,
                     "score": getattr(r, "score", None),
                     "summary": getattr(r, "summary", "")[:200],

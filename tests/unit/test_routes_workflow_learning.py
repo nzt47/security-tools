@@ -68,16 +68,30 @@ class TestConvertToSkillRoute:
         assert body.get("code") == "QUALITY_GATE_FAILED"
 
     def test_convert_success_returns_200(self, client, wf_svc, tmp_path):
-        """达标(force=True) 转技能 → 200。"""
+        """达标(force=True) 转技能 → 200。
+
+        TASK-S0-01：新参数 auto_review（评审语义）；旧参数 auto_digest 兼容
+        （由 test_convert_success_legacy_auto_digest_key 覆盖）。
+        """
+        c, svc = client
+        wf = wf_svc[1]
+        r = c.post(
+            f"/api/workflow-learning/workflows/{wf.id}/convert-to-skill",
+            json={"force": True, "auto_review": False})
+        assert r.status_code == 200
+        body = r.get_json()
+        assert body.get("ok") is True
+        assert body.get("skill_id")
+
+    def test_convert_success_legacy_auto_digest_key(self, client, wf_svc):
+        """旧参数名 auto_digest（评审语义旧名）仍被接受（≤1 minor 兼容）。"""
         c, svc = client
         wf = wf_svc[1]
         r = c.post(
             f"/api/workflow-learning/workflows/{wf.id}/convert-to-skill",
             json={"force": True, "auto_digest": False})
         assert r.status_code == 200
-        body = r.get_json()
-        assert body.get("ok") is True
-        assert body.get("skill_id")
+        assert r.get_json().get("ok") is True
 
 
 class TestExecuteRoute:

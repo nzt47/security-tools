@@ -3,7 +3,7 @@
  * ------------------------------------------------------------------
  * 技能中心两处共用：
  *   - LLM 技能行（MemorySkillsTable）→ GET /api/skills/content?id=<id>
- *   - 技能资产库行（SkillDigestManager）→ 同上（资产 id 命中资产正文）
+ *   - 技能资产库行（SkillAssessManager）→ 同上（资产 id 命中资产正文）
  * 后端逐级解析正文来源（资产库正文 → skills_repo/skill.md → 扩展/内置注册
  * → 仅元数据兜底），本组件只负责展示；无正文时如实提示「没有指令正文」。
  */

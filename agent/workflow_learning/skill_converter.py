@@ -375,7 +375,7 @@ class WorkflowToSkillConverter:
             # 打上「增量吸收」标记后保留（原生未覆盖的增量继续可用）
             try:
                 dup = self._svc.reject_native_duplicate(skill)
-            except Exception:  # noqa: BLE001 检测失败不阻断（digest 仍会提示）
+            except Exception:  # noqa: BLE001 检测失败不阻断（权威评审仍会提示）
                 dup = None
             if dup:
                 try:

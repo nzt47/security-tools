@@ -11,7 +11,7 @@ import enum
 import re
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Union
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
 
 # ──────────────────────────────────────────────
@@ -108,14 +108,16 @@ class ReviewResult(BaseModel):
     quality_score: float = Field(0.0, ge=0.0, le=100.0,
                                  description="质量评分")
 
-    # 【评审-消化扩展】兼容性/合规评估（digest assessor，见 assessor.py）
+    # 【评审-评估扩展】兼容性/合规评估（SkillAssessor，见 assessor.py）
     # 兼容性分析：与原生功能冲突 / 操作重叠 / 资源竞争 / 交互冲突（100=无风险）
     compatibility_score: float = Field(100.0, ge=0.0, le=100.0,
                                        description="功能兼容性评分 (100=无冲突)")
     # 是否已执行扩展评估（权限/攻击面/数据合规/兼容性维度）
     auto_assessed: bool = Field(False, description="是否已自动执行扩展评估")
     # 扩展评估结论: "" | "ok" | "block"（存在 error/critical 级阻断项）
-    digest_verdict: str = Field("", description="digest 结论: ok / block")
+    # 术语纪律（TASK-S0-01）：云枢旧 digest（评审语义）已更名为 review/assess，
+    # 与 v7.2 七态内化语义（Internalization）无关；本字段为评审结论。
+    review_verdict: str = Field("", description="评审结论: ok / block")
     # 分维度摘要（供 UI 展示），如 {security:{counts}, compatibility:{...}}
     dimension_summary: Dict[str, Any] = Field(default_factory=dict)
 
@@ -124,6 +126,39 @@ class ReviewResult(BaseModel):
     summary: str = ""
 
     model_config = ConfigDict(use_enum_values=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_legacy_digest_verdict(cls, data: Any) -> Any:
+        """存储/旧调用兼容（≤1 minor）：旧评审语义键 digest_verdict → review_verdict。
+
+        仅接受旧键且新键缺失时迁移；新旧并存时以新键 review_verdict 为准，
+        多余旧键按 pydantic 默认 extra=ignore 忽略（重写落盘时不再含旧键）。
+        """
+        if isinstance(data, dict) and "digest_verdict" in data:
+            data = dict(data)
+            if "review_verdict" not in data:
+                data["review_verdict"] = data["digest_verdict"]
+            data.pop("digest_verdict", None)
+        return data
+
+    @property
+    def digest_verdict(self) -> str:
+        """已废弃兼容属性（评审语义旧名）：请改用 review_verdict。
+
+        保留仅为旧调用方/旧数据读取兼容；与 v7.2 内化语义（Internalization）无关。
+        """
+        return self.review_verdict
+
+    @digest_verdict.setter
+    def digest_verdict(self, value: str) -> None:
+        self.review_verdict = value
+
+    def api_payload(self) -> Dict[str, Any]:
+        """API 下发视图：新键 review_verdict 为主，双发旧兼容键 digest_verdict（≤1 minor）。"""
+        d = self.model_dump()
+        d["digest_verdict"] = d.get("review_verdict", "")
+        return d
 
 
 class SkillMetrics(BaseModel):

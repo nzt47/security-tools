@@ -254,10 +254,12 @@ def register_routes(app, state):
         try:
             data = request.get_json() or {}
             force = bool(data.get("force", False))
-            ad = data.get("auto_digest")
-            auto_digest = None if ad is None else bool(ad)
+            # 术语纪律（TASK-S0-01）：新参数 auto_review 为主；旧参数 auto_digest
+            # 兼容读取（≤1 minor；评审语义，与 v7.2 内化语义无关）
+            ar = data.get("auto_review", data.get("auto_digest"))
+            auto_review = None if ar is None else bool(ar)
             result = _svc().convert_to_skill(wf_id, force=force,
-                                             auto_digest=auto_digest)
+                                             auto_review=auto_review)
             return jsonify({"ok": True, **result})
         except WorkflowNotFoundError as e:
             return _err(e, 404)

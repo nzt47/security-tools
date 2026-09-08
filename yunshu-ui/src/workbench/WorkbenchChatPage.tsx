@@ -449,7 +449,7 @@ export default function WorkbenchChatPage() {
                 setGenIntent('')
                 setSkillGenOpen(true)
               }}
-              title="把对话中出现的可用能力要求直接生成技能草稿（自动评审-消化；预填最近一条用户消息）"
+              title="把对话中出现的可用能力要求直接生成技能草稿（自动评审-评估；预填最近一条用户消息）"
               className="flex items-center gap-1.5 rounded-md border border-cyan-700/60 px-2.5 py-1 text-[11px] text-cyan-300 transition-colors hover:bg-cyan-500/10"
             >
               <Lightbulb size={11} />
@@ -517,12 +517,12 @@ export default function WorkbenchChatPage() {
             onClick={openFromSelection}
             className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] text-cyan-300 hover:bg-cyan-500/10"
           >
-            <Lightbulb size={12} /> 生成技能（自动评审-消化）
+            <Lightbulb size={12} /> 生成技能（自动评审-评估）
           </button>
         </div>
       )}
 
-      {/* 从对话要求生成技能（自动评审-消化） */}
+      {/* 从对话要求生成技能（自动评审-评估） */}
       {skillGenOpen && (
         <GenerateRequirementModal
           initialIntent={genIntent || lastUserMsg}

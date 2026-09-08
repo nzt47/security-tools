@@ -1,6 +1,6 @@
-"""技能评审-消化扩展评估器（Digest Assessor）
+"""技能评审-评估扩展评估器（Skill Assessor）
 
-对“新增/外来的技能”做自动“评审-消化”的扩展维度检查，覆盖基础三审
+对“新增/外来的技能”做自动“评审-评估”的扩展维度检查，覆盖基础三审
 （reviewer.py：重复/安全正则/质量）之外的清单项：
 
 安全维度（category="security"，规则化启发式 + 人工复核边界）：
@@ -24,6 +24,9 @@
       触发 review 状态降级到 WARN（须人工复核），发布门禁保持不变。
     - 规则是启发式护栏而非安全认证；代码级/多文件脚本的深度审计由
       extensions/security_checker + agent/code_review 在安装/脚本层负责。
+
+术语纪律（TASK-S0-01）：云枢旧 digest（评审语义）已更名 review/assess，
+本模块为“评审/评估”语义；与 v7.2 七态内化语义（Internalization）无关。
 """
 
 from __future__ import annotations
@@ -36,29 +39,36 @@ from typing import Any, Dict, List, Optional, Tuple
 from .models import Skill, ReviewFinding, ContentType
 
 # ═══════════════════════════════════════════════════════════════
-#  可配置开关（env SKILLS_DIGEST_<KEY> > config.yaml skills_mgmt.digest.<key>）
+#  可配置开关（env SKILLS_ASSESS_<KEY> > config.yaml skills_mgmt.assess.<key>）
+#  兼容：旧评审语义前缀 SKILLS_DIGEST_* 与配置节 skills_mgmt.digest.* 仍可读取（≤1 minor）。
+# 术语纪律（TASK-S0-01）：本组开关对应“评审/评估”语义，与 v7.2 内化语义无关。
 # ═══════════════════════════════════════════════════════════════
 
-_DIGEST_ENABLED_KEYS = {
+_ASSESS_ENABLED_KEYS = {
     "code_review_enabled": True,        # code_review 接入
     "external_precheck_enabled": True,  # 外来安装安全预检并入
     "script_precheck_enabled": True,    # 脚本文件(code_review+预检)并入
     "block_on_high_risk_external": True,  # 外来高风险→error(阻断)；False→warn
     "block_on_high_risk_script": True,    # 脚本高风险→error(阻断)；False→warn
-    # 工作流→技能转换后自动执行权威评审-消化（默认关，转换本身已含咨询性自动评估）
-    "auto_digest_after_workflow_convert": False,
+    # 工作流→技能转换后自动执行权威评审（默认关，转换本身已含咨询性自动评估）
+    "auto_review_after_workflow_convert": False,
     # 与云枢自身功能重叠 → warn 增量吸收提示（不再作为 error 阻断/禁止进入）
     "native_dup_enabled": True,
 }
-_DIGEST_INT_KEYS = {
+_ASSESS_INT_KEYS = {
     "max_code_findings": 60,     # 单技能 code_review/脚本扫描发现上限
     "max_script_files": 20,      # 扫描脚本文件数上限
 }
-_DIGEST_LIST_KEYS = {
+_ASSESS_LIST_KEYS = {
     # 视为“阻断项”的严重级（默认 critical/error）
     "blocking_severities": ["critical", "error"],
     # 脚本文件扫描允许的后缀（第三层目前只落 .py，可扩展）
     "script_languages": [".py"],
+}
+
+# 更名键映射：新键名 → 旧键名（评审语义旧名，仅供兼容读取）
+_ASSESS_LEGACY_KEYS = {
+    "auto_review_after_workflow_convert": "auto_digest_after_workflow_convert",
 }
 
 
@@ -75,72 +85,108 @@ def _config_yaml() -> Optional[dict]:
         return None
 
 
-def digest_flag(key: str, default: bool) -> bool:
-    """布尔开关：SKILLS_DIGEST_<KEY> > config.yaml skills_mgmt.digest.<key> > default"""
-    if key not in _DIGEST_ENABLED_KEYS:
-        return default
-    env = os.environ.get("SKILLS_DIGEST_" + key.upper())
-    if env is not None and env.strip():
-        return env.strip().lower() in ("1", "true", "yes", "on")
+def _env_value(key: str) -> Optional[str]:
+    """读取开关环境变量：新前缀 SKILLS_ASSESS_<KEY> 为主，旧前缀 SKILLS_DIGEST_<旧KEY> 兜底。"""
+    v = os.environ.get("SKILLS_ASSESS_" + key.upper())
+    if v is not None:
+        return v
+    legacy_key = _ASSESS_LEGACY_KEYS.get(key, key)
+    return os.environ.get("SKILLS_DIGEST_" + legacy_key.upper())
+
+
+def _cfg_value(key: str) -> Any:
+    """读取 config.yaml：skills_mgmt.assess.<key> 为主，skills_mgmt.digest.<旧key> 兜底。"""
     try:
         cfg = _config_yaml()
-        if cfg is not None:
-            val = ((cfg.get("skills_mgmt", {}) or {}).get("digest", {}) or {}).get(key)
+        if cfg is None:
+            return None
+        mgmt = (cfg.get("skills_mgmt", {}) or {})
+        for section, use_key in (("assess", key),
+                                 ("digest", _ASSESS_LEGACY_KEYS.get(key, key))):
+            val = (mgmt.get(section, {}) or {}).get(use_key)
             if val is not None:
-                return str(val).strip().lower() in ("true", "1", "yes", "on")
+                return val
     except Exception:
         pass
+    return None
+
+
+def assess_flag(key: str, default: bool) -> bool:
+    """布尔开关：SKILLS_ASSESS_<KEY> > config.yaml skills_mgmt.assess.<key> > default"""
+    if key not in _ASSESS_ENABLED_KEYS:
+        return default
+    env = _env_value(key)
+    if env is not None and env.strip():
+        return env.strip().lower() in ("1", "true", "yes", "on")
+    val = _cfg_value(key)
+    if val is not None:
+        return str(val).strip().lower() in ("true", "1", "yes", "on")
     return default
 
 
-def digest_int(key: str, default: int) -> int:
-    """整数开关：SKILLS_DIGEST_<KEY> > config.yaml skills_mgmt.digest.<key> > default"""
-    if key not in _DIGEST_INT_KEYS:
+def assess_int(key: str, default: int) -> int:
+    """整数开关：SKILLS_ASSESS_<KEY> > config.yaml skills_mgmt.assess.<key> > default"""
+    if key not in _ASSESS_INT_KEYS:
         return default
-    env = os.environ.get("SKILLS_DIGEST_" + key.upper())
+    env = _env_value(key)
     if env is not None and env.strip():
         try:
             return max(1, int(env.strip()))
         except ValueError:
             pass
-    try:
-        cfg = _config_yaml()
-        if cfg is not None:
-            val = ((cfg.get("skills_mgmt", {}) or {}).get("digest", {}) or {}).get(key)
-            if val is not None:
-                try:
-                    return max(1, int(val))
-                except (TypeError, ValueError):
-                    pass
-    except Exception:
-        pass
+    val = _cfg_value(key)
+    if val is not None:
+        try:
+            return max(1, int(val))
+        except (TypeError, ValueError):
+            pass
     return default
 
 
-def digest_list(key: str, default: list) -> list:
-    """列表开关（逗号分隔）：SKILLS_DIGEST_<KEY> > config.yaml skills_mgmt.digest.<key> > default"""
-    if key not in _DIGEST_LIST_KEYS:
+def assess_list(key: str, default: list) -> list:
+    """列表开关（逗号分隔）：SKILLS_ASSESS_<KEY> > config.yaml skills_mgmt.assess.<key> > default"""
+    if key not in _ASSESS_LIST_KEYS:
         return list(default)
-    env = os.environ.get("SKILLS_DIGEST_" + key.upper())
+    env = _env_value(key)
     if env is not None and env.strip():
         return [x.strip().lower() for x in env.split(",") if x.strip()]
-    try:
-        cfg = _config_yaml()
-        if cfg is not None:
-            val = ((cfg.get("skills_mgmt", {}) or {}).get("digest", {}) or {}).get(key)
-            if isinstance(val, list):
-                return [str(x).strip().lower() for x in val if str(x).strip()]
-            if isinstance(val, str) and val.strip():
-                return [x.strip().lower() for x in val.split(",") if x.strip()]
-    except Exception:
-        pass
+    val = _cfg_value(key)
+    if isinstance(val, list):
+        return [str(x).strip().lower() for x in val if str(x).strip()]
+    if isinstance(val, str) and val.strip():
+        return [x.strip().lower() for x in val.split(",") if x.strip()]
     return list(default)
 
 
-def digest_blocking_severities() -> set:
+def blocking_severities() -> set:
     """当前视为“阻断项”的严重级集合（默认 critical/error）"""
-    return set(digest_list("blocking_severities",
-                           _DIGEST_LIST_KEYS["blocking_severities"]))
+    return set(assess_list("blocking_severities",
+                           _ASSESS_LIST_KEYS["blocking_severities"]))
+
+
+# ═══════════════════════════════════════════════════════════════
+#  已废弃兼容别名（TASK-S0-01 更名；评审语义，与 v7.2 内化语义无关）
+#  仅保留 ≤1 minor 供旧调用方/旧测试使用，之后随旧 API 一并移除。
+# ═══════════════════════════════════════════════════════════════
+
+def digest_flag(key: str, default: bool) -> bool:
+    """已废弃（旧名）：请改用 assess_flag()。评审语义，与 v7.2 内化语义无关。"""
+    return assess_flag(key, default)
+
+
+def digest_int(key: str, default: int) -> int:
+    """已废弃（旧名）：请改用 assess_int()。评审语义，与 v7.2 内化语义无关。"""
+    return assess_int(key, default)
+
+
+def digest_list(key: str, default: list) -> list:
+    """已废弃（旧名）：请改用 assess_list()。评审语义，与 v7.2 内化语义无关。"""
+    return assess_list(key, default)
+
+
+def digest_blocking_severities() -> set:
+    """已废弃（旧名）：请改用 blocking_severities()。评审语义，与 v7.2 内化语义无关。"""
+    return blocking_severities()
 
 # ═══════════════════════════════════════════════════════════════
 #  工具
@@ -299,14 +345,14 @@ def _code_review_dimensions(skill: Skill) -> List[str]:
 
 
 def _assess_code_review(skill: Skill) -> List[ReviewFinding]:
-    """对 CODE 类内容运行 code_review（按类型选择维度），并入 digest。
+    """对 CODE 类内容运行 code_review（按类型选择维度），并入评估。
 
     code_review.code_review(diff=<content>) 支持纯文本审查（无文件系统依赖）；
     输出为咨询性发现（category="code"，安全维度 warn、其余 info），
     与 reviewer 的正则安全扫描互补（后者负责关键阻断）。
-    可用 SKILLS_DIGEST_CODE_REVIEW_ENABLED / config.yaml skills_mgmt.digest 关闭。
+    可用 SKILLS_ASSESS_CODE_REVIEW_ENABLED / config.yaml skills_mgmt.assess 关闭。
     """
-    if not digest_flag("code_review_enabled", True):
+    if not assess_flag("code_review_enabled", True):
         return []
     if skill.content_type not in _CODE_TYPES or not (skill.content or "").strip():
         return []
@@ -315,7 +361,7 @@ def _assess_code_review(skill: Skill) -> List[ReviewFinding]:
         result = code_review(diff=skill.content, dimensions=_code_review_dimensions(skill))
     except Exception:
         return []
-    cap = digest_int("max_code_findings", _DIGEST_INT_KEYS["max_code_findings"])
+    cap = assess_int("max_code_findings", _ASSESS_INT_KEYS["max_code_findings"])
     findings: List[ReviewFinding] = []
     for dim in (result or {}).get("dimensions", []) or []:
         dimension = str(dim.get("dimension", ""))
@@ -339,7 +385,7 @@ def _assess_code_review(skill: Skill) -> List[ReviewFinding]:
     return findings
 
 
-# 外来安装 scheme（触发安装级安全预检并入 digest）
+# 外来安装 scheme（触发安装级安全预检并入评估）
 _EXTERNAL_SCHEMES = ("github:", "url:", "local:", "registry:", "zip", "mcp:")
 _EXTERNAL_CATEGORIES = ("claude", "community", "mcp")
 
@@ -353,20 +399,20 @@ def _is_external(skill: Skill) -> bool:
 
 
 def _assess_external_precheck(skill: Skill) -> List[ReviewFinding]:
-    """把「外来技能安装安全预检」（extensions.security_checker）结果并入 digest。
+    """把「外来技能安装安全预检」（extensions.security_checker）结果并入评估。
 
     仅对来自 github/url/local/registry/zip/mcp 或 claude/community 类别的外来技能
     执行（自建/手写技能不受此严格门控约束）。映射：高风险→error（阻断，须人工
     复核）、中风险→warn、低风险→info；代码内容走 scan_code_for_threats，
     描述另做权限/数据合规关键词预检。
     """
-    if not digest_flag("external_precheck_enabled", True):
+    if not assess_flag("external_precheck_enabled", True):
         return []
     if not _is_external(skill):
         return []
     findings: List[ReviewFinding] = []
-    block_high = digest_flag("block_on_high_risk_external",
-                             _DIGEST_ENABLED_KEYS["block_on_high_risk_external"])
+    block_high = assess_flag("block_on_high_risk_external",
+                             _ASSESS_ENABLED_KEYS["block_on_high_risk_external"])
     sev_map = {"高风险": "error" if block_high else "warn",
                "中风险": "warn", "低风险": "info"}
     try:
@@ -520,7 +566,7 @@ def _assess_compatibility(skill: Skill, others: List[Skill],
 
     # 1b) 与云枢自身功能重叠 → warn 增量吸收提示（吸收策略：不整包拒绝——
     #     外来/新建技能取其原生未覆盖的增量保留；install/convert 会打吸收标记）
-    if digest_flag("native_dup_enabled", True):
+    if assess_flag("native_dup_enabled", True):
         for nat in detect_native_duplicates(
                 skill.name or "", skill.description or "", content):
             findings.append(_finding(
@@ -607,8 +653,8 @@ def _assess_compatibility(skill: Skill, others: List[Skill],
 # ═══════════════════════════════════════════════════════════════
 
 @dataclass
-class DigestAssessment:
-    """评审-消化扩展评估结果"""
+class AssessmentResult:
+    """评审-评估扩展评估结果"""
     findings: List[ReviewFinding] = field(default_factory=list)
     compatibility_score: float = 100.0
     blocked: bool = False          # 存在 critical/error 级阻断项
@@ -618,15 +664,15 @@ class DigestAssessment:
 _PENALTY = {"critical": 40, "error": 20, "warn": 8, "info": 2}
 
 
-class SkillDigestAssessor:
-    """评审-消化扩展评估器门面"""
+class SkillAssessor:
+    """评审-评估扩展评估器门面（TASK-S0-01 更名：原 SkillDigestAssessor）"""
 
     def assess(self, skill: Skill, others: Optional[List[Skill]] = None,
-               reserved: Optional[List[str]] = None) -> DigestAssessment:
+               reserved: Optional[List[str]] = None) -> AssessmentResult:
         """对单个技能执行扩展评估（安全/合规 + 兼容性）
 
         Returns:
-            DigestAssessment: findings（含 security/compatibility/duplicate 三类
+            AssessmentResult: findings（含 security/compatibility/duplicate 三类
             扩展发现）、compatibility_score（100 - 扣分）、blocked（是否有阻断项）。
         """
         others = others or []
@@ -648,7 +694,7 @@ class SkillDigestAssessor:
         compat_score = max(0.0, 100.0 - compat_penalty)
 
         # 阻断项：security/compatibility 扩展发现中命中可配置严重级（默认 error/critical）
-        blocked = any(f.severity in digest_blocking_severities() for f in findings)
+        blocked = any(f.severity in blocking_severities() for f in findings)
 
         # 分维度摘要（供 UI/报告）
         summary: Dict[str, Any] = {}
@@ -659,9 +705,15 @@ class SkillDigestAssessor:
         for bucket in summary.values():
             bucket["severities"] = sorted(set(bucket["severities"]))
 
-        return DigestAssessment(
+        return AssessmentResult(
             findings=findings,
             compatibility_score=round(compat_score, 1),
             blocked=blocked,
             dimension_summary=summary,
         )
+
+
+# 已废弃兼容别名（TASK-S0-01 更名；评审语义，与 v7.2 内化语义无关）
+# 仅保留 ≤1 minor 供旧调用方/旧测试使用，之后随旧 API 一并移除。
+SkillDigestAssessor = SkillAssessor          # type: ignore[assignment]
+DigestAssessment = AssessmentResult          # type: ignore[assignment]

@@ -223,7 +223,7 @@ class TestSkillSearch:
     """技能搜索与筛选测试
 
     CI 加固说明（2026-09-06）：本类只验证“对已存技能的搜索/筛选/分页语义”，
-    与创建路径无关。此前用 svc.create_manual 造数会连带触发 advisory digest
+    与创建路径无关。此前用 svc.create_manual 造数会连带触发 advisory assess
     （含 python 代码审查扫描）与自动分类，在 CI 多分片 + 覆盖率并行的慢负载下
     偶发 pytest-timeout（60s/300s）。现改为直接落库造数，跳过无关副作用，
     专注搜索语义且天然抗超时。
@@ -231,7 +231,7 @@ class TestSkillSearch:
 
     @staticmethod
     def _seed(svc, name, **overrides):
-        """直接把技能写入存储（不经 create_manual：无 digest/分类副作用）。
+        """直接把技能写入存储（不经 create_manual：无评估/分类副作用）。
 
         注：name 通过 overrides.setdefault 并入单个 ** 展开（不做
         `f(name=name, **overrides)` 的显式+展开混合，避免 kwarg 同名冲突）。

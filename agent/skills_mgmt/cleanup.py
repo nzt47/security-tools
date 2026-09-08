@@ -3,7 +3,7 @@
 背景（Why）:
     skills_mgmt 历史上"删除技能只删主轨"（store.remove），legacy
     （data/skills.json / agent/data/skills.json 旧副本）、文件轨
-    （skills_repo/<id>/）、分类注册表、digest 事件均不同步 → UI 出现
+    （skills_repo/<id>/）、分类注册表、评估事件均不同步 → UI 出现
     "该技能没有可查看的指令正文（仅运行时元数据）"的孤儿残留；
     且无"无用技能"的物理淘汰（lifecycle.py 只做状态迁移不删文件）。
 
@@ -103,7 +103,7 @@ def _write_json(path: Path, data: Dict[str, Any]) -> None:
 # ═══════════════════════════════════════════════════════════════
 
 def remove_skill_everywhere(svc, skill_id: str) -> Dict[str, Any]:
-    """从全部存储轨删除一个技能：主轨/legacy×2/文件轨/分类/digest。
+    """从全部存储轨删除一个技能：主轨/legacy×2/文件轨/分类/评估事件。
 
     幂等：任何轨不存在该 id 都跳过不报错。返回各轨删除结果。
     """
@@ -159,19 +159,24 @@ def remove_skill_everywhere(svc, skill_id: str) -> Dict[str, Any]:
     except Exception as e:  # noqa: BLE001
         logger.warning("[Cleanup] 分类清理失败 %s: %s", skill_id, e)
 
-    # 5) digest 事件文件（逐行过滤）
+    # 5) 评估事件文件（逐行过滤；新名 + 旧名 live 文件都清理）
     try:
-        ev_path = Path("data/skills_digest_events.jsonl")
-        if ev_path.exists():
+        from .log_archiver import (
+            repo_data_dir, ASSESSMENT_EVENTS_BASENAME,
+            LEGACY_DIGEST_EVENTS_BASENAME)
+        for ev_path in (repo_data_dir() / ASSESSMENT_EVENTS_BASENAME,
+                        repo_data_dir() / LEGACY_DIGEST_EVENTS_BASENAME):
+            if not ev_path.exists():
+                continue
             lines = ev_path.read_text(encoding="utf-8").splitlines()
             kept = [ln for ln in lines
                     if f'"{skill_id}"' not in ln and skill_id not in ln]
             if len(kept) != len(lines):
                 ev_path.write_text("\n".join(kept) + ("\n" if kept else ""),
                                    encoding="utf-8")
-                result["removed"].append("digest_events")
+                result["removed"].append("assessment_events")
     except Exception as e:  # noqa: BLE001
-        logger.warning("[Cleanup] digest 事件清理失败 %s: %s", skill_id, e)
+        logger.warning("[Cleanup] 评估事件清理失败 %s: %s", skill_id, e)
 
     # 6) 扩展注册表 extensions.json（ExtensionStore；旧 /api/skills 从它补
     #    installed → 残留会让技能面板显示已删的"无正文"技能）

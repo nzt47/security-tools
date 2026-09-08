@@ -2,7 +2,7 @@
  * GenerateRequirementModal —— 把“对话提示词中的能力要求”自动写成技能
  * ------------------------------------------------------------------
  * 会话页快捷入口与技能中心共用：粘贴要求 → create/ai 生成草稿（失败自动
- * 回退模板）→ 服务端自动执行评审-消化（权限/合规/兼容性），有审核兜底。
+ * 回退模板）→ 服务端自动执行评审-评估（权限/合规/兼容性），有审核兜底。
  * 成功后可到「记忆管理 → 技能中心 → LLM 技能」查看报告、编辑并发布。
  */
 import { useState } from 'react'
@@ -39,7 +39,7 @@ export default function GenerateRequirementModal({ initialIntent = '', onClose, 
       setCreatedId(s?.id)
       setOkMsg(
         s
-          ? `已生成并自动评审-消化：「${s.name}」（${s.id}）——请到「技能中心 → LLM 技能」查看报告，通过后发布即成为自身能力。`
+          ? `已生成并自动评审-评估：「${s.name}」（${s.id}）——请到「技能中心 → LLM 技能」查看报告，通过后发布即成为自身能力。`
           : '已生成（未返回详情）。',
       )
     } catch (e) {
@@ -51,7 +51,7 @@ export default function GenerateRequirementModal({ initialIntent = '', onClose, 
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6" onClick={onClose}>
       <div className="max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-xl border border-slate-700 bg-slate-900 p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <h3 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-slate-100">
-          <Lightbulb size={15} className="text-cyan-400" /> 从对话要求生成技能（自动评审-消化）
+          <Lightbulb size={15} className="text-cyan-400" /> 从对话要求生成技能（自动评审-评估）
         </h3>
         <p className="mb-3 text-[11px] leading-relaxed text-slate-500">
           对话提示词里出现的“能力要求 / 新处理规则”可直接沉淀为技能草稿：AI 生成（失败自动回退模板）→

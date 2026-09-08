@@ -1,12 +1,12 @@
 /**
- * SkillDigestManager —— 技能资产「评审-消化」全生命周期管理（skills-mgmt）
+ * SkillAssessManager —— 技能资产「评审-评估」全生命周期管理（skills-mgmt）
  * ------------------------------------------------------------------
  * 满足：安装 / 创建 / 修改 / 删除 全生命周期 + 自动验证评估流程：
  *   - 新建 / 外来安装 / 修改后，后端自动执行扩展评估（权限/攻击面/数据合规 +
  *     兼容性：原生冲突/操作重叠/资源竞争/交互冲突/重复建议）；本组件直接呈现
- *     评估结论（digest verdict + 安全/质量/兼容分数 + findings）。
- *   - 动作：新建(手写)、外来安装(source)、评审-消化(digest)、批量审核、
- *     全量自动评审-消化(run-all)、启停、发布（发布门禁=PASSED）、删除。
+ *     评估结论（review verdict + 安全/质量/兼容分数 + findings）。
+ *   - 动作：新建(手写)、外来安装(source)、评审-评估(assess)、批量审核、
+ *     全量自动评审-评估(run-all)、启停、发布（发布门禁=PASSED）、删除。
  * 说明：与上方「运行时注入启停」表互补——这里是资产库（skills-mgmt 数据），
  * 通过（发布+启用）的资产会进入运行时能力集（上下文注入层消费）。
  */
@@ -30,7 +30,7 @@ const BTN_RED = `${BTN} hover:bg-red-500/10 hover:text-red-400`
 interface Finding { severity: string; category: string; code: string; message: string; location?: string }
 interface ReviewLike {
   status?: string; score?: number; security_score?: number; quality_score?: number
-  compatibility_score?: number; duplicate_score?: number; digest_verdict?: string
+  compatibility_score?: number; duplicate_score?: number; review_verdict?: string
   auto_assessed?: boolean; summary?: string; findings?: Finding[]
 }
 interface SkillItem {
@@ -57,7 +57,7 @@ const statusChip = (s?: string) => chip(
           : 'bg-slate-500/15 text-slate-400 border-slate-700',
 )
 
-export default function SkillDigestManager() {
+export default function SkillAssessManager() {
   const [items, setItems] = useState<SkillItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -77,11 +77,11 @@ export default function SkillDigestManager() {
   const [curateOpen, setCurateOpen] = useState(false)
   const [feedOpen, setFeedOpen] = useState(false)
   const [cmdTarget, setCmdTarget] = useState<SkillItem | null>(null)
-  interface DigestEv { ts?: string; kind?: string; skill_id?: string; verdict?: string; summary?: string }
-  const [events, setEvents] = useState<DigestEv[]>([])
+  interface AssessmentEv { ts?: string; kind?: string; skill_id?: string; verdict?: string; summary?: string }
+  const [events, setEvents] = useState<AssessmentEv[]>([])
   const loadEvents = useCallback(async () => {
     try {
-      const r = await hubGet<{ records?: DigestEv[] }>('/api/skills-mgmt/digest/events?limit=10')
+      const r = await hubGet<{ records?: AssessmentEv[] }>('/api/skills-mgmt/assess/events?limit=10')
       const recs = Array.isArray(r.records) ? r.records : []
       setEvents(recs)
       const mx = recs.reduce<string>((a, e) => (e.ts && e.ts > a ? e.ts : a), '')
@@ -90,16 +90,17 @@ export default function SkillDigestManager() {
   }, [])
   useEffect(() => { void loadEvents() }, [loadEvents])
 
-  // ── 消化动态：未读角标 + 轮询 + 原生通知 ──
+  // ── 评估动态：未读角标 + 轮询 + 原生通知 ──
   const [lastSeen, setLastSeen] = useState<string>(() => {
-    try { return localStorage.getItem('yunshu:digest:last-seen') ?? '' } catch { return '' }
+    // 兼容旧键（≤1 minor）：yunshu:digest:last-seen 为更名前键名（评审语义）
+    try { return localStorage.getItem('yunshu:assess:last-seen') ?? localStorage.getItem('yunshu:digest:last-seen') ?? '' } catch { return '' }
   })
   const lastSeenRef = useRef(lastSeen)
   useEffect(() => { lastSeenRef.current = lastSeen }, [lastSeen])
   const sinceRef = useRef('')
   const unread = events.filter((e) => e.ts && (!lastSeen || e.ts > lastSeen)).length
 
-  // 实时推送：digest/stream 长轮询（服务端 hold 至多 20s，有新事件立即返回）
+  // 实时推送：assess/stream 长轮询（服务端 hold 至多 20s，有新事件立即返回）
   useEffect(() => {
     let alive = true
     const poll = async () => {
@@ -108,10 +109,10 @@ export default function SkillDigestManager() {
         const q = sinceRef.current ? `?since=${encodeURIComponent(sinceRef.current)}&timeout_sec=20` : ''
         const ctrl = new AbortController()
         const tmr = setTimeout(() => ctrl.abort(), 30000)
-        const res = await fetch(`/api/skills-mgmt/digest/stream${q}`, { signal: ctrl.signal })
+        const res = await fetch(`/api/skills-mgmt/assess/stream${q}`, { signal: ctrl.signal })
         clearTimeout(tmr)
         if (res.ok) {
-          const d = (await res.json()) as { records?: DigestEv[] }
+          const d = (await res.json()) as { records?: AssessmentEv[] }
           const recs = Array.isArray(d.records) ? d.records : []
           if (recs.length > 0) {
             setEvents((prev) => {
@@ -140,7 +141,7 @@ export default function SkillDigestManager() {
       if (unseen.length === 0) return
       const target = unseen[unseen.length - 1]
       if (Notification.permission === 'granted') {
-        new Notification('云枢 · 技能评审-消化', {
+        new Notification('云枢 · 技能评审-评估', {
           body: `${target.skill_id ?? ''}：${target.verdict === 'block' ? '存在阻断项，需人工复核' : target.verdict === 'ok' ? '评估通过' : '评估完成'}${target.summary ? ` · ${target.summary.slice(0, 60)}` : ''}`,
         })
       }
@@ -150,25 +151,25 @@ export default function SkillDigestManager() {
   const markEventsSeen = () => {
     const mx = events.reduce<string>((a, e) => (e.ts && e.ts > a ? e.ts : a), '')
     setLastSeen(mx)
-    try { localStorage.setItem('yunshu:digest:last-seen', mx) } catch { /* ignore */ }
+    try { localStorage.setItem('yunshu:assess:last-seen', mx) } catch { /* ignore */ }
   }
 
-  /** 导出总览 CSV：审计（人工复核）+ 消化动态（评估事件）合并 */
+  /** 导出总览 CSV：审计（人工复核）+ 评估动态（评估事件）合并 */
   const exportOverview = async () => {
     try {
       const [a, e] = await Promise.all([
         hubGet<{ records?: { ts?: string; event?: string; skill_id?: string; actor?: string; reason?: string }[] }>('/api/skills-mgmt/review/audit?limit=500'),
-        hubGet<{ records?: DigestEv[] }>('/api/skills-mgmt/digest/events?limit=200'),
+        hubGet<{ records?: AssessmentEv[] }>('/api/skills-mgmt/assess/events?limit=200'),
       ])
       const esc = (s?: string) => `"${String(s ?? '').replace(/"/g, '""')}"`
       const rows: string[] = []
       rows.push(['type', 'ts', 'skill_id', 'actor/verdict', 'detail'].join(','))
       for (const r of a.records ?? []) rows.push(['audit', r.ts, r.skill_id, r.actor, r.reason].map(esc).join(','))
-      for (const r of e.records ?? []) rows.push(['digest', r.ts, r.skill_id, r.verdict, r.summary].map(esc).join(','))
+      for (const r of e.records ?? []) rows.push(['assess', r.ts, r.skill_id, r.verdict, r.summary].map(esc).join(','))
       const blob = new Blob([`\uFEFF${rows.join('\n')}`], { type: 'text/csv;charset=utf-8' })
       const el = document.createElement('a')
       el.href = URL.createObjectURL(blob)
-      el.download = `skills-digest-overview-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`
+      el.download = `skills-assess-overview-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`
       el.click()
       URL.revokeObjectURL(el.href)
     } catch (err) {
@@ -180,7 +181,7 @@ export default function SkillDigestManager() {
   interface QueueItem {
     id: string; name?: string; description?: string; source?: string
     content_type?: string; enabled?: boolean; status?: string; created_at?: string
-    review?: { auto_assessed?: boolean; digest_verdict?: string; blocked?: boolean }
+    review?: { auto_assessed?: boolean; review_verdict?: string; blocked?: boolean }
   }
   const [queueOpen, setQueueOpen] = useState(false)
   const [queue, setQueue] = useState<QueueItem[]>([])
@@ -224,13 +225,13 @@ export default function SkillDigestManager() {
     } finally { setBusy(''); void loadEvents() }
   }
 
-  const digestOne = (id: string) => act('评审-消化', () => hubPost(`/api/skills-mgmt/digest/${id}`))
-  const runAll = () => act('全量自动评审-消化', () => hubPost('/api/skills-mgmt/digest/run-all'))
+  const assessOne = (id: string) => act('评审-评估', () => hubPost(`/api/skills-mgmt/assess/${id}`))
+  const runAll = () => act('全量自动评审-评估', () => hubPost('/api/skills-mgmt/assess/run-all'))
   const batchReview = () => act('批量审核', () => hubPost('/api/skills-mgmt/review/batch'))
   /** 发布（先经「人工复核」弹窗确认；未通过评审时须填原因强制发布并写入审计） */
   const confirmPublish = (it: SkillItem, reason?: string) => {
     setPublishTarget(null)
-    const needsReason = it.review?.status !== 'passed' || it.review?.digest_verdict === 'block'
+    const needsReason = it.review?.status !== 'passed' || it.review?.review_verdict === 'block'
     void act('发布', () =>
       needsReason
         ? hubPost(`/api/skills-mgmt/${it.id}/publish?force=1&reason=${encodeURIComponent(reason || 'manual_review_passed')}`)
@@ -312,7 +313,7 @@ export default function SkillDigestManager() {
     return (
       <tr key={it.id} id={`skill-row-${it.id}`} className={`border-b border-slate-800/60 transition-colors hover:bg-slate-900/40 ${open ? 'bg-slate-900/60' : ''}`}>
         <td className="px-2 py-2">
-          <button type="button" onClick={() => toggleRow(it.id)} className="text-slate-500 hover:text-slate-300" title={open ? '收起报告' : '展开评审-消化报告'}>
+          <button type="button" onClick={() => toggleRow(it.id)} className="text-slate-500 hover:text-slate-300" title={open ? '收起报告' : '展开评审-评估报告'}>
             {open ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           </button>
         </td>
@@ -339,7 +340,7 @@ export default function SkillDigestManager() {
         </td>
         <td className="px-2 py-2">
           {rv?.auto_assessed
-            ? (rv.digest_verdict === 'block'
+            ? (rv.review_verdict === 'block'
               ? chip('阻断·待复核', 'bg-red-500/15 text-red-400 border-red-800')
               : chip('已自动评估', 'bg-cyan-500/10 text-cyan-400 border-cyan-800/60'))
             : chip('未评估', 'bg-slate-500/10 text-slate-400 border-slate-700')}
@@ -359,8 +360,8 @@ export default function SkillDigestManager() {
             <button type="button" className={BTN} onClick={() => setContentTarget(it)} disabled={busy !== ''} title="查看该技能的具体内容（正文 / 参数 / 标签）">
               <Eye size={11} /> 查看内容
             </button>
-            <button type="button" className={BTN_EM} onClick={() => void digestOne(it.id)} disabled={busy !== ''} title="执行完整评审-消化（三审+扩展评估）">
-              <Zap size={11} /> 评审-消化
+            <button type="button" className={BTN_EM} onClick={() => void assessOne(it.id)} disabled={busy !== ''} title="执行完整评审-评估（三审+扩展评估）">
+              <Zap size={11} /> 评审-评估
             </button>
             <button type="button" className={BTN} onClick={() => setAdviceTarget(it)} disabled={busy !== ''} title="学习/迭代建议：参数优化 + 评审改进意见">
               <Lightbulb size={11} /> 建议
@@ -454,7 +455,7 @@ export default function SkillDigestManager() {
       <div className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
         <h3 className="flex items-center gap-1.5 text-[13px] font-semibold text-slate-200">
           <ShieldCheck size={14} className="text-emerald-400" />
-          技能资产库 · 评审-消化管线（skills-mgmt）
+          技能资产库 · 评审-评估管线（skills-mgmt）
         </h3>
         <span className="text-[11px] text-slate-500">
           新建/外来技能自动评估（权限 · 攻击面 · 数据合规 + 兼容性/重叠/资源/交互），通过发布即成为运行时能力
@@ -466,15 +467,15 @@ export default function SkillDigestManager() {
           <button type="button" className={BTN_EM} onClick={() => setInstallOpen(true)}>
             <PackagePlus size={12} /> 外来安装
           </button>
-          <button type="button" className={BTN_EM} onClick={() => setGenOpen(true)} title="把对话提示词中的能力要求自动写成技能草稿（生成后自动评审-消化，可再审核）">
+          <button type="button" className={BTN_EM} onClick={() => setGenOpen(true)} title="把对话提示词中的能力要求自动写成技能草稿（生成后自动评审-评估，可再审核）">
             <Lightbulb size={12} /> 从对话要求生成
           </button>
-          <button type="button" className={BTN_EM} onClick={() => setImportOpen(true)} title="批量/单个导入外部技能的 JSON 或 Markdown → 自动改写为云枢格式并逐个评审-消化；与原生/已有能力重叠者按增量吸收合并，不再整包拒绝">
-            <FileInput size={12} /> 批量导入消化
+          <button type="button" className={BTN_EM} onClick={() => setImportOpen(true)} title="批量/单个导入外部技能的 JSON 或 Markdown → 自动改写为云枢格式并逐个评审-评估；与原生/已有能力重叠者按增量吸收合并，不再整包拒绝">
+            <FileInput size={12} /> 批量导入评估
           </button>
           <button type="button" className={BTN_EM} onClick={() => void runAll()} disabled={busy !== ''}>
-            {busy === '全量自动评审-消化' ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
-            全量自动评审-消化
+            {busy === '全量自动评审-评估' ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
+            全量自动评审-评估
           </button>
           <button type="button" className={BTN} onClick={() => void batchReview()} disabled={busy !== ''}>
             批量审核
@@ -493,7 +494,7 @@ export default function SkillDigestManager() {
               重新自动分类
             </button>
           )}
-          <button type="button" className={BTN} onClick={() => setFeedOpen(true)} title="全部动态：digest 事件 + 人工复核审计 聚合时间线">
+          <button type="button" className={BTN} onClick={() => setFeedOpen(true)} title="全部动态：评估事件 + 人工复核审计 聚合时间线">
             全部动态
           </button>
           <button type="button" className={BTN} onClick={() => void load()} disabled={busy !== ''}>
@@ -513,7 +514,7 @@ export default function SkillDigestManager() {
       ) : items.length === 0 ? (
         <div className="rounded-lg border border-dashed border-slate-800 px-4 py-8 text-center text-xs leading-relaxed text-slate-500">
           资产库暂无技能。用「新建技能」沉淀新生能力，或用「外来安装」（github:/url:/local:/registry: 源）把外部技能吃进来——
-          二者都会自动进入评审-消化评估，通过后发布即为自身能力。
+          二者都会自动进入评审-评估评估，通过后发布即为自身能力。
         </div>
       ) : (
         <div className="overflow-hidden rounded-lg border border-slate-800">
@@ -541,7 +542,7 @@ export default function SkillDigestManager() {
           <ScrollText size={12} className="text-amber-400" />
           <span className="text-xs font-medium text-slate-200">外部导入 · 待放行队列</span>
           <span className={`rounded-full px-1.5 text-[10px] ${queue.length > 0 ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-800 text-slate-400'}`}>{queue.length}</span>
-          <span className="text-[10px] text-slate-600">批量「先存草稿」的外部技能（含自动评审-消化结论）——人工逐个 放行（发布复核）或 驳回</span>
+          <span className="text-[10px] text-slate-600">批量「先存草稿」的外部技能（含自动评审-评估结论）——人工逐个 放行（发布复核）或 驳回</span>
           <div className="ml-auto flex items-center gap-1.5">
             <button type="button" className={BTN} onClick={() => void refreshQueue()} disabled={qLoading} title="刷新队列">
               <RefreshCw size={11} /> 刷新
@@ -555,7 +556,7 @@ export default function SkillDigestManager() {
           qLoading ? (
             <div className="flex items-center gap-2 px-3 py-3 text-[11px] text-slate-500"><Loader2 size={12} className="animate-spin" /> 加载队列…</div>
           ) : queue.length === 0 ? (
-            <p className="px-3 pb-3 text-[11px] text-slate-500">队列为空。「批量导入消化」勾选「先存草稿·人工逐个放行」后，外部技能会先到这里等人工放行。</p>
+            <p className="px-3 pb-3 text-[11px] text-slate-500">队列为空。「批量导入评估」勾选「先存草稿·人工逐个放行」后，外部技能会先到这里等人工放行。</p>
           ) : (
             <ul className="divide-y divide-slate-800/60 border-t border-slate-800/60">
               {queue.map((q) => {
@@ -579,8 +580,8 @@ export default function SkillDigestManager() {
                       {q.created_at && <span className="font-mono text-[9px] text-slate-600">{q.created_at.slice(0, 16).replace('T', ' ')}</span>}
                     </div>
                     <div className="flex flex-wrap gap-1">
-                      <button type="button" className={BTN} onClick={() => void digestOne(part.id)} disabled={busy !== '' || !full} title={full ? '执行权威评审-消化' : '技能已被移除，先刷新'}>
-                        <Zap size={11} /> 评审-消化
+                      <button type="button" className={BTN} onClick={() => void assessOne(part.id)} disabled={busy !== '' || !full} title={full ? '执行权威评审-评估' : '技能已被移除，先刷新'}>
+                        <Zap size={11} /> 评审-评估
                       </button>
                       <button type="button" className={BTN_EM} onClick={() => full && setPublishTarget(full)} disabled={busy !== '' || !full}
                         title={b ? '阻断项：放行需人工复核（通过/强制并写审计）' : '放行 = 人工复核后发布为运行时能力'}>
@@ -648,11 +649,11 @@ export default function SkillDigestManager() {
       {/* 发布审计（人工复核/强制发布记录）可视化 */}
       <AuditPanel />
 
-      {/* digest 结果动态（轻量推送源：轮询 + 未读角标 + 原生通知） */}
+      {/* 评估结果动态（轻量推送源：轮询 + 未读角标 + 原生通知） */}
       <div className="mt-3 rounded-lg border border-slate-800 bg-slate-900/30">
         <div className="flex flex-wrap items-center gap-2 px-3 py-2">
           <Zap size={12} className="text-cyan-400" />
-          <span className="text-xs font-medium text-slate-200">消化动态</span>
+          <span className="text-xs font-medium text-slate-200">评估动态</span>
           <span className="rounded-full bg-slate-800 px-1.5 text-[10px] text-slate-400">{events.length}</span>
           {unread > 0 && (
             <span className="rounded-full bg-red-500/20 px-1.5 text-[10px] font-semibold text-red-300" title={`${unread} 条未读（在技能中心内每 15s 轮询；授权后新结果会发系统通知）`}>
@@ -666,10 +667,10 @@ export default function SkillDigestManager() {
                 全部已读
               </button>
             )}
-            <button type="button" className={BTN} onClick={() => void exportOverview()} title="导出审计(人工复核)+消化动态 合并 CSV">
+            <button type="button" className={BTN} onClick={() => void exportOverview()} title="导出审计(人工复核)+评估动态 合并 CSV">
               <Download size={11} /> 导出总览(审计+动态)
             </button>
-            <button type="button" className={BTN} onClick={() => void loadEvents()} title="刷新 digest 事件">
+            <button type="button" className={BTN} onClick={() => void loadEvents()} title="刷新 评估事件">
               <RefreshCw size={11} /> 刷新
             </button>
           </div>
@@ -838,7 +839,7 @@ function PublishModal({ item, onClose, onConfirm }: {
   item: SkillItem; onClose: () => void; onConfirm: (reason?: string) => void
 }) {
   const rv = item.review
-  const needsReason = rv?.status !== 'passed' || rv?.digest_verdict === 'block'
+  const needsReason = rv?.status !== 'passed' || rv?.review_verdict === 'block'
   const findings = rv?.findings ?? []
   const blockers = findings.filter((f) => f.severity === 'critical' || f.severity === 'error')
   const [reason, setReason] = useState('')
@@ -846,12 +847,12 @@ function PublishModal({ item, onClose, onConfirm }: {
   return (
     <ModalShell title={`发布前人工复核 · ${item.name || item.id}`} onClose={onClose}>
       <p className="mb-2 text-[11px] leading-relaxed text-slate-400">
-        发布后技能将进入运行时能力集。请人工复核下方评审-消化结论：系统评估为启发式护栏，
+        发布后技能将进入运行时能力集。请人工复核下方评审-评估结论：系统评估为启发式护栏，
         最终发布决定由复核人做出。
       </p>
       <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[11px]">
         {statusChip(item.status ?? '-')}
-        {rv?.digest_verdict === 'block'
+        {rv?.review_verdict === 'block'
           ? chip('存在阻断项', 'bg-red-500/15 text-red-400 border-red-800')
           : rv?.status === 'passed'
             ? chip('评审通过', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60')
@@ -907,7 +908,7 @@ function PublishModal({ item, onClose, onConfirm }: {
   )
 }
 
-// ── 评审-消化报告面板 ──────────────────────────────────────────────
+// ── 评审-评估报告面板 ──────────────────────────────────────────────
 function ReportPanel({ item, onClose }: { item: SkillItem; onClose: () => void }) {
   const rv = item.review
   const findings = rv?.findings ?? []
@@ -922,8 +923,8 @@ function ReportPanel({ item, onClose }: { item: SkillItem; onClose: () => void }
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-200">
           <ShieldCheck size={13} className="text-emerald-400" />
-          评审-消化报告 · {item.name || item.id}
-          {rv?.digest_verdict === 'block'
+          评审-评估报告 · {item.name || item.id}
+          {rv?.review_verdict === 'block'
             ? chip('存在阻断项 · 需人工复核', 'bg-red-500/15 text-red-400 border-red-800')
             : rv?.auto_assessed ? chip('无阻断项', 'bg-emerald-500/10 text-emerald-400 border-emerald-800/60') : null}
           {rv?.summary && <span className="text-[10px] font-normal text-slate-500">{rv.summary}</span>}
@@ -973,7 +974,7 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     } finally { setBusy(false) }
   }
   return (
-    <ModalShell title="新建技能（手写，创建即自动评审-消化）" onClose={onClose}>
+    <ModalShell title="新建技能（手写，创建即自动评审-评估）" onClose={onClose}>
       <Field label="技能名称 *">
         <input className={INPUT} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="如 PDF 解析器" />
       </Field>
@@ -1059,7 +1060,7 @@ function InstallModal({ onClose, onDone }: { onClose: () => void; onDone: () => 
     } finally { setBusy(false) }
   }
   return (
-    <ModalShell title="外来技能安装（自动评审-消化 · 增量吸收）" onClose={onClose}>
+    <ModalShell title="外来技能安装（自动评审-评估 · 增量吸收）" onClose={onClose}>
       <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
         支持 <code className="text-cyan-400">github:user/repo</code>、
         <code className="text-cyan-400">url:https://…</code>、
@@ -1130,7 +1131,7 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 
   const loadBacks = async () => {
     try {
-      const r = await hubGet<{ backups?: typeof backs }>('/api/skills-mgmt/digest/merge-backups?limit=50')
+      const r = await hubGet<{ backups?: typeof backs }>('/api/skills-mgmt/assess/merge-backups?limit=50')
       setBacks(Array.isArray(r.backups) ? r.backups : [])
     } catch { setBacks([]) }
   }
@@ -1139,7 +1140,7 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     if (!window.confirm(`安全合并：先备份快照，再删除「${srcId}」并入「${dstId}」？（可随时撤销）`)) return
     setBusy('3'); setRunMsg('')
     try {
-      const r = await hubPost<{ merge_id?: string; merged_id?: string }>('/api/skills-mgmt/digest/merge-safe', { src_id: srcId, dst_id: dstId, strategy: 'auto' })
+      const r = await hubPost<{ merge_id?: string; merged_id?: string }>('/api/skills-mgmt/assess/merge-safe', { src_id: srcId, dst_id: dstId, strategy: 'auto' })
       setRunMsg(`已安全合并：${srcId} → ${dstId}${r?.merge_id ? `（备份 ${r.merge_id}）` : ''}。可在下方「合并备份」中撤销。`)
       onDone()
       void loadDups()
@@ -1154,7 +1155,7 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     if (!window.confirm('撤销该次安全合并？（恢复被删技能并回滚保留方）')) return
     setBusy('4'); setRunMsg('')
     try {
-      const r = await hubPost<{ restored?: string[] }>('/api/skills-mgmt/digest/merge-undo', { merge_id: mid })
+      const r = await hubPost<{ restored?: string[] }>('/api/skills-mgmt/assess/merge-undo', { merge_id: mid })
       setRunMsg(`已撤销合并（${mid}），恢复：${(r?.restored ?? []).join('、') || '-'}。`)
       onDone()
       void loadDups()
@@ -1166,14 +1167,14 @@ function CurateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 
   const plan = async () => {
     setBusy('1'); setRunMsg('')
-    try { setRes(await hubPost('/api/skills-mgmt/digest/curate?dry_run=1')) }
+    try { setRes(await hubPost('/api/skills-mgmt/assess/curate?dry_run=1')) }
     catch (e) { setRunMsg(`体检失败：${e instanceof Error ? e.message : String(e)}`) }
     finally { setBusy('') }
   }
   const apply = async () => {
     setBusy('2'); setRunMsg('')
     try {
-      const r = await hubPost<{ applied_count?: number; applied?: { id?: string; action?: string }[] }>('/api/skills-mgmt/digest/curate?dry_run=0&auto_clean=1')
+      const r = await hubPost<{ applied_count?: number; applied?: { id?: string; action?: string }[] }>('/api/skills-mgmt/assess/curate?dry_run=0&auto_clean=1')
       setRes(r)
       setRunMsg(`已自动整理 ${r?.applied_count ?? 0} 项：${(r?.applied ?? []).map((a) => `${a.id ?? ''}·${a.action ?? ''}`).join('；') || '无'}。合并/拆分需人工决策，见体检计划。`)
       onDone()
@@ -1334,20 +1335,20 @@ function AdviceModal({ item, onClose, onDone }: { item: SkillItem; onClose: () =
       setFixMsg(`自动修复失败：${e instanceof Error ? e.message : String(e)}`)
     } finally { setFixBusy(false) }
   }
-  const digestAdvice: string[] = []
+  const reviewAdvice: string[] = []
   if (rv) {
-    if (rv.digest_verdict === 'block') digestAdvice.push('评审存在阻断项：先处理 critical/error 发现并重新「评审-消化」后再发布。')
-    else if (rv.status === 'passed') digestAdvice.push('评审通过：可「发布」使其进入运行时注入生效。')
-    else digestAdvice.push('尚未通过正式评审：先「评审-消化」，达标后发布（未通过也可人工复核强制发布并留审计）。')
-    if (rv.summary) digestAdvice.push(`评审摘要：${rv.summary}`)
+    if (rv.review_verdict === 'block') reviewAdvice.push('评审存在阻断项：先处理 critical/error 发现并重新「评审-评估」后再发布。')
+    else if (rv.status === 'passed') reviewAdvice.push('评审通过：可「发布」使其进入运行时注入生效。')
+    else reviewAdvice.push('尚未通过正式评审：先「评审-评估」，达标后发布（未通过也可人工复核强制发布并留审计）。')
+    if (rv.summary) reviewAdvice.push(`评审摘要：${rv.summary}`)
     const warns = (rv.findings ?? []).filter((f) => f.severity === 'warn' || f.severity === 'info').slice(0, 4)
-    if (warns.length) digestAdvice.push(`改进建议：${warns.map((f) => f.message).join('；')}`)
-  } else digestAdvice.push('尚无评审记录：先「评审-消化」获取权限/合规/兼容性结论。')
+    if (warns.length) reviewAdvice.push(`改进建议：${warns.map((f) => f.message).join('；')}`)
+  } else reviewAdvice.push('尚无评审记录：先「评审-评估」获取权限/合规/兼容性结论。')
   return (
     <ModalShell title={`学习/迭代建议 · ${item.name || item.id}`} onClose={onClose}>
-      <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-slate-500">评审-消化建议</div>
+      <div className="mb-2 text-[11px] font-medium uppercase tracking-wider text-slate-500">评审-评估建议</div>
       <ul className="mb-3 space-y-1">
-        {digestAdvice.map((t, i) => (
+        {reviewAdvice.map((t, i) => (
           <li key={i} className="flex items-start gap-1.5 text-[11px] leading-relaxed text-slate-300">
             <Lightbulb size={11} className="mt-0.5 shrink-0 text-cyan-400" /> {t}
           </li>
@@ -1406,8 +1407,8 @@ function AdviceModal({ item, onClose, onDone }: { item: SkillItem; onClose: () =
   )
 }
 
-// ── 外来其他 Agent 技能（单个/批量）改写导入消化 ─────────────────────
-interface BatchItem { external_name?: string; skill_id?: string; skill_name?: string; source_format?: string; digest_verdict?: string; auto_assessed?: boolean; merged_into?: string; strengthened_skill_id?: string; jaccard?: number; error?: string }
+// ── 外来其他 Agent 技能（单个/批量）改写导入评估 ─────────────────────
+interface BatchItem { external_name?: string; skill_id?: string; skill_name?: string; source_format?: string; review_verdict?: string; auto_assessed?: boolean; merged_into?: string; strengthened_skill_id?: string; jaccard?: number; error?: string }
 interface BatchResult {
   total_input?: number; converted?: number
   merged?: BatchItem[]; strengthened?: BatchItem[]; created?: BatchItem[]; failed?: BatchItem[]
@@ -1463,8 +1464,8 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     const s = (r.strengthened ?? []).length
     const f = (r.failed ?? []).length
     setOkMsg(queueMode
-      ? `已把 ${items.length} 个 .md 技能转为草稿并入「待放行队列」：${c} 个（各含自动评审-消化结论）。请到下方「外部导入 · 待放行队列」逐个人工放行 / 驳回。${f ? `另 ${f} 个失败（解析/注册异常；与已有/原生能力重叠者已按增量吸收，不会整包拒绝）。` : ''}`
-      : `批量消化完成：输入 ${r.total_input ?? items.length} → 新建 ${c} / 合并 ${m} / 加强 ${s} / 失败 ${f}（每个新技能均已自动评审-消化）`)
+      ? `已把 ${items.length} 个 .md 技能转为草稿并入「待放行队列」：${c} 个（各含自动评审-评估结论）。请到下方「外部导入 · 待放行队列」逐个人工放行 / 驳回。${f ? `另 ${f} 个失败（解析/注册异常；与已有/原生能力重叠者已按增量吸收，不会整包拒绝）。` : ''}`
+      : `批量评估完成：输入 ${r.total_input ?? items.length} → 新建 ${c} / 合并 ${m} / 加强 ${s} / 失败 ${f}（每个新技能均已自动评审-评估）`)
   }
 
   const jsonSubmit = async () => {
@@ -1476,7 +1477,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       return
     }
     if (Array.isArray(parsed)) {
-      // 批量：逐个改写注册 → 自动合并/加强/新建 + 各自自动评审-消化
+      // 批量：逐个改写注册 → 自动合并/加强/新建 + 各自自动评审-评估
       if (parsed.length === 0) throw new Error('批量导入数组为空')
       if (parsed.length > 200) throw new Error('单次批量最多 200 个技能')
       const r = await hubPost<BatchResult & { ok?: boolean; error?: string }>(
@@ -1490,8 +1491,8 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       const s = (r.strengthened ?? []).length
       const f = (r.failed ?? []).length
       setOkMsg(queueMode
-        ? `已批量转为草稿并入「待放行队列」：${c} 个（各含自动评审-消化结论）。请到下方「外部导入 · 待放行队列」逐个人工放行 / 驳回。${f ? `另 ${f} 个失败（解析/注册异常；与已有/原生能力重叠者已按增量吸收，不会整包拒绝）。` : ''}`
-        : `批量消化完成：输入 ${r.total_input ?? parsed.length} → 新建 ${c} / 合并 ${m} / 加强 ${s} / 失败 ${f}（每个新技能均已自动评审-消化）`)
+        ? `已批量转为草稿并入「待放行队列」：${c} 个（各含自动评审-评估结论）。请到下方「外部导入 · 待放行队列」逐个人工放行 / 驳回。${f ? `另 ${f} 个失败（解析/注册异常；与已有/原生能力重叠者已按增量吸收，不会整包拒绝）。` : ''}`
+        : `批量评估完成：输入 ${r.total_input ?? parsed.length} → 新建 ${c} / 合并 ${m} / 加强 ${s} / 失败 ${f}（每个新技能均已自动评审-评估）`)
     } else {
       if (!parsed || typeof parsed !== 'object') throw new Error('需要 JSON 对象或数组')
       const obj = parsed as Record<string, unknown>
@@ -1500,7 +1501,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         { external_data: obj, llm_enabled: false },
       )
       if (r && r.ok === false && r.error) throw new Error(r.error)
-      setOkMsg(`已自动改写为云枢格式并注册：「${r?.skill_name ?? r?.skill_id ?? ''}」（skill_id=${r?.skill_id ?? '-'}，格式=${r?.source_format ?? '-'}）——已自动评审-消化，可审核后发布。`)
+      setOkMsg(`已自动改写为云枢格式并注册：「${r?.skill_name ?? r?.skill_id ?? ''}」（skill_id=${r?.skill_id ?? '-'}，格式=${r?.source_format ?? '-'}）——已自动评审-评估，可审核后发布。`)
     }
   }
 
@@ -1528,10 +1529,10 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
                 <>
                   <span>{it.skill_id}</span>
                   {(it as { queued?: boolean }).queued && <span className="text-cyan-300">已入队·待人工放行</span>}
-                  {it.digest_verdict
-                    ? (it.digest_verdict === 'block'
-                      ? <span className="text-red-400">消化=阻断·放行时需人工复核</span>
-                      : <span className="text-emerald-400">消化=通过</span>)
+                  {it.review_verdict
+                    ? (it.review_verdict === 'block'
+                      ? <span className="text-red-400">评估=阻断·放行时需人工复核</span>
+                      : <span className="text-emerald-400">评审=通过</span>)
                     : <span className="text-slate-500">已注册</span>}
                 </>
               )}
@@ -1544,7 +1545,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
     )
   }
   return (
-    <ModalShell title="导入外部技能并消化（JSON / Markdown 均可批量）" onClose={onClose}>
+    <ModalShell title="导入外部技能并评估（JSON / Markdown 均可批量）" onClose={onClose}>
       {/* 格式选择：Markdown 技能文件 优先（支持 .md 原样导入，含 # 标题） */}
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
         {(['md', 'json'] as const).map((k) => (
@@ -1593,8 +1594,8 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
         <>
           <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
             粘贴其他 Agent（Claude / GPTs / MCP / 社区）技能的 <strong>JSON</strong>：
-            <strong>单个对象</strong> → 单个改写消化；<strong>JSON 数组</strong>（多个技能）→ 批量改写注册，
-            逐个自动评审-消化（权限/攻击面/数据合规 + 与系统/已有技能重叠都会查）。
+            <strong>单个对象</strong> → 单个改写评估；<strong>JSON 数组</strong>（多个技能）→ 批量改写注册，
+            逐个自动评审-评估（权限/攻击面/数据合规 + 与系统/已有技能重叠都会查）。
             与<strong className="text-cyan-300">云枢自身功能重叠</strong>者不再整包拒绝——取其增量内容，
             按「增量吸收 / 合并」处理（仅严重安全风险会拦截）。示例：
             <code className="mt-1 block text-cyan-400">{'[{ "name": "pdf-extractor", "description": "从 PDF 提取正文", "steps": ["open", "parse"] }, { "name": "…", "description": "…" }]'}</code>
@@ -1607,9 +1608,9 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       <label className="mb-2 mt-2 flex cursor-pointer items-start gap-2 rounded-md border border-cyan-900/50 bg-cyan-950/20 px-2.5 py-2 text-[11px] leading-relaxed text-slate-300">
         <input type="checkbox" checked={queueMode} onChange={(e) => setQueueMode(e.target.checked)} className="mt-0.5 accent-cyan-500" />
         <span>
-          <strong className="text-cyan-300">先存草稿·人工逐个放行（推荐）</strong>：导入技能一律转为草稿（各带自动评审-消化结论），
+          <strong className="text-cyan-300">先存草稿·人工逐个放行（推荐）</strong>：导入技能一律转为草稿（各带自动评审-评估结论），
           不自动合并/加强已有技能；随后在下方「外部导入 · 待放行队列」逐个人工 放行（走发布复核）或 驳回。
-          关闭后则自动新建/合并/加强（原有消化方式）。
+          关闭后则自动新建/合并/加强（原有评估方式）。
         </span>
       </label>
 
@@ -1617,7 +1618,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
       {okMsg && <p className="mt-1 rounded-md border border-emerald-800/60 bg-emerald-950/30 px-2 py-1.5 text-[11px] text-emerald-300">{okMsg}</p>}
       {batch && (
         <div className="mt-1">
-          {renderBatchList('✓ 新建（已自动评审-消化）', batch.created, 'ok')}
+          {renderBatchList('✓ 新建（已自动评审-评估）', batch.created, 'ok')}
           {renderBatchList('⇄ 与已有技能合并', batch.merged, 'merge')}
           {renderBatchList('↑ 加强已有技能', batch.strengthened, 'strong')}
           {renderBatchList('✕ 失败（解析/注册异常；重叠项已增量吸收）', batch.failed, 'fail')}
@@ -1632,7 +1633,7 @@ function ImportModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
             <button type="button" className={BTN_EM}
               onClick={() => void submit()}
               disabled={busy || (mode === 'json' ? !jsonText.trim() : mdSkills.length === 0)}>
-              {busy ? <Loader2 size={12} className="animate-spin" /> : <FileInput size={12} />} {mode === 'md' ? '批量改写并消化' : '改写并消化'}
+              {busy ? <Loader2 size={12} className="animate-spin" /> : <FileInput size={12} />} {mode === 'md' ? '批量改写并评估' : '改写并评估'}
             </button>
           </>
         )}
@@ -1751,8 +1752,8 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
         const b = await r.json().catch(() => null)
         throw new Error(b?.error ?? `HTTP ${r.status}`)
       }
-      await hubPost(`/api/skills-mgmt/digest/${item.id}`)
-      setMsg('已应用再定义草稿并重新评审-消化。')
+      await hubPost(`/api/skills-mgmt/assess/${item.id}`)
+      setMsg('已应用再定义草稿并重新评审-评估。')
       onDone()
     } catch (e) { setErr(e instanceof Error ? e.message : String(e)) }
     finally { setBusy(false) }
@@ -1761,7 +1762,7 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
   return (
     <ModalShell title={`再定义草稿 · ${item.name || item.id}`} onClose={onClose}>
       <p className="mb-2 text-[11px] leading-relaxed text-slate-500">
-        起草新的中文说明/展示名（LLM 不可用自动回退规则草稿），右侧可编辑；应用后自动重新评审-消化。
+        起草新的中文说明/展示名（LLM 不可用自动回退规则草稿），右侧可编辑；应用后自动重新评审-评估。
       </p>
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
         <button type="button" className={BTN} onClick={() => void gen(false)} disabled={busy} title="规则起草（快、确定）">规则起草</button>
@@ -1799,7 +1800,7 @@ function RedraftModal({ item, onClose, onDone }: { item: SkillItem; onClose: () 
   )
 }
 
-// ── 全部动态（聚合时间线：digest 事件 + 人工复核审计）───────────────────
+// ── 全部动态（聚合时间线：评估事件 + 人工复核审计）───────────────────
 function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId: string) => void }) {
   type FeedItem = { kind?: string; ts?: string; skill_id?: string; tag?: string; detail?: string }
   const PAGE = 60
@@ -1815,7 +1816,7 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
     if (!append) setBusy(true)
     try {
       const q = filterId.trim() ? `&skill_id=${encodeURIComponent(filterId.trim())}` : ''
-      const r = await hubGet<{ records?: FeedItem[] }>(`/api/skills-mgmt/digest/feed?limit=${PAGE}&offset=${offset}${q}`)
+      const r = await hubGet<{ records?: FeedItem[] }>(`/api/skills-mgmt/assess/feed?limit=${PAGE}&offset=${offset}${q}`)
       const recs = Array.isArray(r.records) ? r.records : []
       const next = append ? [...baseRef.current, ...recs] : recs
       baseRef.current = next
@@ -1827,7 +1828,7 @@ function FeedModal({ onClose, onPick }: { onClose: () => void; onPick?: (skillId
   useEffect(() => { void load(0, false) }, [load])
   const applyFilter = () => setFilterId(draft.trim())
   return (
-    <ModalShell title="全部动态（digest 评估 + 人工复核/发布审计）" onClose={onClose}>
+    <ModalShell title="全部动态（评估 + 人工复核/发布审计）" onClose={onClose}>
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <span className="text-[11px] text-slate-500">已加载 {items.length} 条（时间倒序，分页加载）</span>
         <input

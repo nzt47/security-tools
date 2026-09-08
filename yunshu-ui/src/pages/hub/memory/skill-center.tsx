@@ -14,7 +14,7 @@ import { Hammer, PenTool, Sparkles, Workflow } from 'lucide-react'
 import { MemorySkillsTable } from './skills'
 import { MemoryWorkflowTable } from './workflow'
 import MemoryWorkflowVisual from './workflow-visual'
-import SkillDigestManager from './skill-digest-manager'
+import SkillAssessManager from './skill-assess-manager'
 
 type CenterTab = 'llm' | 'workflow' | 'visual'
 
@@ -83,8 +83,8 @@ export default function SkillCenter() {
               </span>
             </div>
             <MemorySkillsTable />
-            {/* 技能资产库 · 评审-消化管线：新建/外来安装/评估/发布 全生命周期 */}
-            <SkillDigestManager />
+            {/* 技能资产库 · 评审-评估管线：新建/外来安装/评估/发布 全生命周期 */}
+            <SkillAssessManager />
           </div>
         )}
 

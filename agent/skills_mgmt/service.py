@@ -166,22 +166,22 @@ class SkillsMgmtService:
                       tags: Optional[list] = None) -> Skill:
         skill = self.creator.create_via_ai(
             name=name, intent=intent, category=category, tags=tags)
-        self._advisory_digest(skill.id)   # 自动执行评审-消化（咨询性，不改状态）
+        self._advisory_assess(skill.id)   # 自动执行评审-评估（咨询性，不改状态）
         self._auto_classify(skill.id)     # 自动归类（新技能进分类注册表）
         return self._require(skill.id)    # 返回含自动评估报告的最新对象
 
     def create_manual(self, data: Dict[str, Any]) -> Skill:
         skill = self.creator.create_manual(data)
-        self._advisory_digest(skill.id)   # 自动执行评审-消化（咨询性，不改状态）
+        self._advisory_assess(skill.id)   # 自动执行评审-评估（咨询性，不改状态）
         self._auto_classify(skill.id)     # 自动归类
         return self._require(skill.id)
 
     def install(self, source: str, *, force: bool = False) -> Skill:
         skill = self.creator.install(source, force=force)
-        self._advisory_digest(skill.id)   # 外来技能进入即自动评审-消化
+        self._advisory_assess(skill.id)   # 外来技能进入即自动评审-评估
         self._auto_classify(skill.id)     # 外来技能自动归类（可自动新建类）
         # 吸收策略：与云枢自身功能重叠 ≠ 整包拒绝——保留技能并标记「增量吸收」
-        # （原生未覆盖的增量内容照常可用；重叠提示由 digest 以 warn 呈现）
+        # （原生未覆盖的增量内容照常可用；重叠提示由评估以 warn 呈现）
         dup = self.reject_native_duplicate(skill)
         if dup:
             self.absorb_overlap(skill.id, overlap=dup, source="install")
@@ -201,15 +201,15 @@ class SkillsMgmtService:
                 return None
             return "、".join(
                 f"「{h['name']}」({h['id']})" for h in hits)
-        except Exception:  # noqa: BLE001 检测失败不阻断（后续权威 digest 仍会提示）
+        except Exception:  # noqa: BLE001 检测失败不阻断（后续权威评审仍会提示）
             return None
 
     def absorb_overlap(self, skill_id: str, *,
                        overlap: str = "", source: str = "import") -> Skill:
         """吸收优先策略：与原生/已有能力重叠时不再整包拒绝。
 
-        保留技能并打上吸收标记（absorbed / native-overlap），记录 digest 吸收事件，
-        让「原生与已有技能未覆盖的增量」继续走评审-消化/合并流程吸收进来。
+        保留技能并打上吸收标记（absorbed / native-overlap），记录评估吸收事件，
+        让「原生与已有技能未覆盖的增量」继续走评审-评估/合并流程吸收进来。
         """
         skill = self._require(skill_id)
         tags = list(skill.tags or [])
@@ -225,7 +225,7 @@ class SkillsMgmtService:
             skill.tags = tags
             skill.touch()
             self.store.upsert(skill)
-        self._emit_digest_event(
+        self._emit_assessment_event(
             skill_id, "absorb", "ok",
             f"{source}: 与已有/原生能力重叠，已按「增量吸收」保留（不再整包拒绝）。"
             + (f" 重叠项: {overlap}" if overlap else ""))
@@ -360,8 +360,8 @@ class SkillsMgmtService:
                     "refreshed": False}
         self.update(skill_id, patch)   # 持久化（含自动归类钩子）
         refreshed = False
-        try:  # 重新权威评审-消化，刷新发现（修复项应消失）
-            self.digest_skill(skill_id)
+        try:  # 重新权威评审-评估，刷新发现（修复项应消失）
+            self.review_skill(skill_id)
             refreshed = True
         except Exception as e:  # noqa: BLE001 刷新失败不阻断返回
             logger.warning("[Service] 自动修复后重新评审失败 skill=%s: %s",
@@ -385,18 +385,18 @@ class SkillsMgmtService:
             scheme, payload = self.creator._installer.fetch_payload(source)  # noqa: SLF001
             payload.setdefault("source", source)
             skill = Skill.from_storage_dict(payload)
-            from .assessor import SkillDigestAssessor, detect_native_duplicates
+            from .assessor import SkillAssessor, detect_native_duplicates
             natives = detect_native_duplicates(
                 skill.name or "", skill.description or "", skill.content or "")
             others = [s for s in self.store.list_all() if s.id != skill.id]
-            digest = SkillDigestAssessor().assess(skill, others=others)
+            assessment = SkillAssessor().assess(skill, others=others)
             return {
                 "ok": True,
                 "scheme": scheme,
                 "source": source,
                 "skill_id": skill.id,
                 "skill_name": skill.name or skill.id,
-                "blocked": digest.blocked,
+                "blocked": assessment.blocked,
                 "overlap_action": "absorb" if natives else "",
                 "native_dups": [
                     {"id": n["id"], "name": n["name"],
@@ -404,8 +404,8 @@ class SkillsMgmtService:
                 "findings": [
                     {"code": f.code, "severity": f.severity,
                      "category": f.category, "message": f.message}
-                    for f in digest.findings],
-                "compatibility_score": digest.compatibility_score,
+                    for f in assessment.findings],
+                "compatibility_score": assessment.compatibility_score,
             }
         except Exception as e:  # noqa: BLE001 预检失败给出可读原因
             return {"ok": False, "source": source, "error": str(e)}
@@ -435,9 +435,12 @@ class SkillsMgmtService:
                 "created_at": s.created_at or "",
                 "review": None if rv is None else {
                     "auto_assessed": bool(getattr(rv, "auto_assessed", False)),
+                    "review_verdict": getattr(rv.review_verdict, "value",
+                                              rv.review_verdict) or "",
+                    "blocked": (getattr(rv, "review_verdict", "") or "") == "block",
+                    # 兼容旧键（≤1 minor）：评审语义旧名 digest_verdict
                     "digest_verdict": getattr(rv.digest_verdict, "value",
                                               rv.digest_verdict) or "",
-                    "blocked": (getattr(rv, "digest_verdict", "") or "") == "block",
                 },
             })
         rows.sort(key=lambda r: str(r.get("created_at", "")), reverse=True)
@@ -474,9 +477,9 @@ class SkillsMgmtService:
             result = self.reviewer.review(skill, others=others)
             self._merge_script_review(skill, result)  # 脚本文件全维度审查并入
             self.store.upsert(skill)  # 持久化审核结果
-            self._emit_digest_event(
+            self._emit_assessment_event(
                 skill_id, "review",
-                getattr(result.digest_verdict, "value", result.digest_verdict)
+                getattr(result.review_verdict, "value", result.review_verdict)
                 or getattr(result.status, "value", result.status),
                 result.summary)
             return result
@@ -495,14 +498,14 @@ class SkillsMgmtService:
                     results.append({"skill_id": s.id, "error": e.message})
         return results
 
-    # ─── 评审-消化（自动评估钩子 + 批量）───
+    # ─── 评审-评估（自动评估钩子 + 批量）───
 
-    def _advisory_digest(self, skill_id: str) -> Optional[ReviewResult]:
+    def _advisory_assess(self, skill_id: str) -> Optional[ReviewResult]:
         """新增/外来技能进入时自动执行扩展评估（权限/攻击面/数据合规 + 兼容性）。
 
         设计（守现有契约）：
             - 仅在技能尚无 review 时写入咨询性报告（status 保持 draft 等原语义），
-              不改技能/审核状态——正式审核（review/digest_skill）才是权威判据；
+              不改技能/审核状态——正式审核（review/review_skill）才是权威判据；
             - 自动钩子在 create_via_ai / create_manual / install / update 后触发，
               让“新增及现有技能”一进来就有评估报告可见。
         """
@@ -510,30 +513,30 @@ class SkillsMgmtService:
             skill = self._require(skill_id)
             if skill.review is not None:
                 return skill.review
-            from .assessor import SkillDigestAssessor
+            from .assessor import SkillAssessor
             others = [s for s in self.store.list_all() if s.id != skill_id]
-            digest = SkillDigestAssessor().assess(skill, others=others)
+            assessment = SkillAssessor().assess(skill, others=others)
             skill.review = ReviewResult(
                 status=ReviewStatus.PENDING,
-                findings=digest.findings,
-                compatibility_score=digest.compatibility_score,
+                findings=assessment.findings,
+                compatibility_score=assessment.compatibility_score,
                 auto_assessed=True,
-                digest_verdict="block" if digest.blocked else "ok",
-                dimension_summary=digest.dimension_summary,
-                summary=("自动评审-消化：扩展评估未发现阻断项，可执行正式审核后发布"
-                         if not digest.blocked
-                         else "自动评审-消化：扩展评估存在阻断项(权限/合规/兼容性)，待人工复核"),
+                review_verdict="block" if assessment.blocked else "ok",
+                dimension_summary=assessment.dimension_summary,
+                summary=("自动评审-评估：扩展评估未发现阻断项，可执行正式审核后发布"
+                         if not assessment.blocked
+                         else "自动评审-评估：扩展评估存在阻断项(权限/合规/兼容性)，待人工复核"),
             )
             self._merge_script_review(skill, skill.review)  # 脚本文件审查并入
             skill.touch()
             self.store.upsert(skill)
-            self._emit_digest_event(
+            self._emit_assessment_event(
                 skill.id, "auto",
-                getattr(skill.review.digest_verdict, "value", skill.review.digest_verdict),
+                getattr(skill.review.review_verdict, "value", skill.review.review_verdict),
                 skill.review.summary)
             return skill.review
         except Exception as e:  # noqa: BLE001 评估失败不阻断创建/安装主流程
-            logger.warning("[Service] advisory digest 失败 skill=%s: %s",
+            logger.warning("[Service] advisory assess 失败 skill=%s: %s",
                            skill_id, e)
             return None
 
@@ -611,16 +614,24 @@ class SkillsMgmtService:
         logger.info("[Service] 技能 %s 人工移动至分类 %s", skill_id, target)
         return {"ok": True, "skill_id": skill_id, "class_name": target}
 
-    def digest_skill(self, skill_id: str) -> ReviewResult:
-        """对单个技能执行权威「评审-消化」= 完整审核链（三审 + 扩展评估）。
+    def review_skill(self, skill_id: str) -> ReviewResult:
+        """对单个技能执行权威「评审」= 完整审核链（三审 + 扩展评估）。
 
-        即 review() 的语义别名：便于 UI/路由按“消化”心智调用；
-        扩展阻断项会把审核状态置 WARN、技能置 PENDING_REVIEW（发布门禁保持）。
+        即 review() 的语义化命名入口；扩展阻断项会把审核状态置 WARN、
+        技能置 PENDING_REVIEW（发布门禁保持）。
+        术语纪律（TASK-S0-01）：评审语义，与 v7.2 七态内化语义（Internalization）无关。
         """
         return self.review(skill_id)
 
-    def digest_all(self) -> Dict[str, Any]:
-        """对“尚无审核结果的现有技能”批量执行咨询性自动评审-消化。
+    def digest_skill(self, skill_id: str) -> ReviewResult:
+        """已废弃兼容别名（旧名 digest_skill，评审语义，与 v7.2 内化语义无关）。
+
+        请改用 review_skill()（二者等价：均为权威评审，含三审 + 扩展评估）。
+        """
+        return self.review_skill(skill_id)
+
+    def assess_all(self) -> Dict[str, Any]:
+        """对“尚无审核结果的现有技能”批量执行咨询性自动评估。
 
         Returns:
             {total, assessed, blocked, with_review} — assessed 为本次新增评估数；
@@ -633,12 +644,19 @@ class SkillsMgmtService:
             total += 1
             if s.review is not None:
                 continue
-            r = self._advisory_digest(s.id)
+            r = self._advisory_assess(s.id)
             if r is not None:
                 assessed += 1
-                if r.digest_verdict == "block":
+                if r.review_verdict == "block":
                     blocked += 1
         return {"total": total, "assessed": assessed, "blocked": blocked}
+
+    def digest_all(self) -> Dict[str, Any]:
+        """已废弃兼容别名（旧名 digest_all，评审语义，与 v7.2 内化语义无关）。
+
+        请改用 assess_all()：对尚无审核结果的现有技能批量执行咨询性自动评估。
+        """
+        return self.assess_all()
 
     def audit_log(self, limit: int = 100, skill_id: str = "",
                   offset: int = 0, since: str = "") -> List[Dict[str, Any]]:
@@ -651,20 +669,19 @@ class SkillsMgmtService:
             logger.warning("[Service] 读取审计日志失败: %s", e)
             return []
 
-    # ─── digest 结果事件（轻量推送源：追加 data/skills_digest_events.jsonl）───
+    # ─── 评估结果事件（轻量推送源：追加 data/skills_assessment_events.jsonl）───
+    # 术语纪律（TASK-S0-01）：云枢旧 digest（评审语义）已更名 review/assess，
+    # 事件文件新名为主；旧名 data/skills_digest_events.jsonl 只读兼容（≤1 minor）。
 
-    def _emit_digest_event(self, skill_id: str, kind: str, verdict: str,
-                           summary: str = "") -> None:
-        """记录一次 digest 结果事件（新评估/阻断等），供面板轮询展示。"""
+    def _emit_assessment_event(self, skill_id: str, kind: str, verdict: str,
+                               summary: str = "") -> None:
+        """记录一次评估结果事件（新评估/阻断等），供面板轮询展示。"""
         try:
-            import os as _os
             import json as _json
             from datetime import datetime as _dt
-            events_file = _os.path.join(
-                _os.path.dirname(_os.path.dirname(_os.path.dirname(
-                    _os.path.abspath(__file__)))),
-                "data", "skills_digest_events.jsonl")
-            _os.makedirs(_os.path.dirname(events_file), exist_ok=True)
+            from .log_archiver import active_events_file
+            events_file = active_events_file()
+            events_file.parent.mkdir(parents=True, exist_ok=True)
             rec = {
                 "ts": _dt.now().isoformat(timespec="seconds"),
                 "kind": kind,          # auto | review
@@ -675,65 +692,84 @@ class SkillsMgmtService:
             with open(events_file, "a", encoding="utf-8") as f:
                 f.write(_json.dumps(rec, ensure_ascii=False) + "\n")
         except Exception as e:  # noqa: BLE001
-            logger.debug("[Service] digest 事件写入失败 skill=%s: %s", skill_id, e)
+            logger.debug("[Service] 评估事件写入失败 skill=%s: %s", skill_id, e)
 
-    def digest_events(self, limit: int = 50) -> List[Dict[str, Any]]:
-        """读取最近 digest 事件（最新在前；面板“消化动态”）"""
+    def assessment_events(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """读取最近评估事件（最新在前；面板“评估动态”）。
+
+        新文件不存在时兜底读旧名 live 文件（迁移失败/旧版本残留场景）。
+        """
         try:
-            import os as _os
             import json as _json
-            from .log_archiver import archive_daily_file
-            events_file = _os.path.join(
-                _os.path.dirname(_os.path.dirname(_os.path.dirname(
-                    _os.path.abspath(__file__)))),
-                "data", "skills_digest_events.jsonl")
+            from .log_archiver import (
+                archive_daily_file, active_events_file,
+                LEGACY_DIGEST_EVENTS_BASENAME)
+            events_file = active_events_file()
             archive_daily_file(events_file)  # 按日归档（进程内每日一次）
-            if not _os.path.exists(events_file):
-                return []
+            candidates = [events_file]
+            if not events_file.exists():
+                legacy = events_file.parent / LEGACY_DIGEST_EVENTS_BASENAME
+                if legacy.exists():
+                    candidates = [legacy]
             records = []
-            with open(events_file, "r", encoding="utf-8", errors="ignore") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        rec = _json.loads(line)
-                    except Exception:  # 坏行跳过
-                        continue
-                    if isinstance(rec, dict):
-                        records.append({
-                            "ts": rec.get("ts", ""),
-                            "kind": rec.get("kind", ""),
-                            "skill_id": rec.get("skill_id", ""),
-                            "verdict": rec.get("verdict", ""),
-                            "summary": rec.get("summary", ""),
-                        })
+            for ef in candidates:
+                if not ef.exists():
+                    continue
+                with open(ef, "r", encoding="utf-8", errors="ignore") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            rec = _json.loads(line)
+                        except Exception:  # 坏行跳过
+                            continue
+                        if isinstance(rec, dict):
+                            records.append({
+                                "ts": rec.get("ts", ""),
+                                "kind": rec.get("kind", ""),
+                                "skill_id": rec.get("skill_id", ""),
+                                "verdict": rec.get("verdict", ""),
+                                "summary": rec.get("summary", ""),
+                            })
             return records[-max(1, limit):][::-1]
         except Exception as e:  # noqa: BLE001
-            logger.warning("[Service] 读取 digest 事件失败: %s", e)
+            logger.warning("[Service] 读取评估事件失败: %s", e)
             return []
 
-    def digest_events_since(self, since: str = "",
-                            timeout_ms: int = 20000) -> List[Dict[str, Any]]:
-        """实时推送源（长轮询）：返回 ts > since 的新增事件（时间序）。
+    def digest_events(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """已废弃兼容别名（旧名 digest_events，评审语义，与 v7.2 内化语义无关）。
+
+        请改用 assessment_events()：读取最近评估事件。
+        """
+        return self.assessment_events(limit=limit)
+
+    def assessment_events_since(self, since: str = "",
+                                timeout_ms: int = 20000) -> List[Dict[str, Any]]:
+        """实时推送源（长轮询）：返回 ts > since 的新增评估事件（时间序）。
 
         请求方循环调用即可获得“服务端推送”体验；超时无新事件返回空列表。
         """
         try:
-            import os as _os
             import json as _json
             import time as _time
-            from .log_archiver import archive_daily_file
-            events_file = _os.path.join(
-                _os.path.dirname(_os.path.dirname(_os.path.dirname(
-                    _os.path.abspath(__file__)))),
-                "data", "skills_digest_events.jsonl")
+            from .log_archiver import (
+                archive_daily_file, active_events_file,
+                LEGACY_DIGEST_EVENTS_BASENAME)
+            events_file = active_events_file()
             archive_daily_file(events_file)  # 按日归档（进程内每日一次）
+            candidates = [events_file]
+            if not events_file.exists():
+                legacy = events_file.parent / LEGACY_DIGEST_EVENTS_BASENAME
+                if legacy.exists():
+                    candidates = [legacy]
             deadline = _time.time() + max(1000, min(int(timeout_ms), 25000)) / 1000.0
             while _time.time() < deadline:
                 recs: List[Dict[str, Any]] = []
-                if _os.path.exists(events_file):
-                    with open(events_file, "r", encoding="utf-8", errors="ignore") as f:
+                for ef in candidates:
+                    if not ef.exists():
+                        continue
+                    with open(ef, "r", encoding="utf-8", errors="ignore") as f:
                         for line in f:
                             line = line.strip()
                             if not line:
@@ -760,6 +796,14 @@ class SkillsMgmtService:
         except Exception as e:  # noqa: BLE001
             logger.warning("[Service] 事件长轮询失败: %s", e)
             return []
+
+    def digest_events_since(self, since: str = "",
+                            timeout_ms: int = 20000) -> List[Dict[str, Any]]:
+        """已废弃兼容别名（旧名 digest_events_since，评审语义，与 v7.2 内化语义无关）。
+
+        请改用 assessment_events_since()：评估事件实时推送源（长轮询）。
+        """
+        return self.assessment_events_since(since=since, timeout_ms=timeout_ms)
 
     def merge_with_backup(self, src_id: str, dst_id: str,
                           strategy: str = "auto",
@@ -803,7 +847,7 @@ class SkillsMgmtService:
         result = self.merge_duplicate_skills(
             src_id, dst_id, strategy=strategy,
             rebind_feedback=rebind_feedback)
-        self._emit_digest_event(
+        self._emit_assessment_event(
             src_id, "merge", "ok",
             f"安全合并：{src_id} → {dst_id}（备份 merge_id={merge_id}）")
         return {"merge_id": merge_id, **result}
@@ -844,18 +888,19 @@ class SkillsMgmtService:
                 })
         return records[-max(1, limit):][::-1]
 
-    def digest_feed(self, limit: int = 100, offset: int = 0,
-                    skill_id: str = "") -> List[Dict[str, Any]]:
-        """“全部动态”聚合流：digest 事件 + 人工复核审计，按时间倒序 + 分页。
+    def assessment_feed(self, limit: int = 100, offset: int = 0,
+                        skill_id: str = "") -> List[Dict[str, Any]]:
+        """“全部动态”聚合流：评估事件 + 人工复核审计，按时间倒序 + 分页。
 
         skill_id 非空时仅保留该技能（精确 id 或包含匹配）相关记录。
+        术语纪律（TASK-S0-01）：记录 kind 由旧 digest 更名 assess（评审语义）。
         """
         need = max(1, limit) + max(0, offset)
-        events = self.digest_events(limit=need)
+        events = self.assessment_events(limit=need)
         audit = self.audit_log(limit=need)
         feed: List[Dict[str, Any]] = []
         for e in events:
-            feed.append({"kind": "digest", "ts": e.get("ts", ""),
+            feed.append({"kind": "assess", "ts": e.get("ts", ""),
                          "skill_id": e.get("skill_id", ""),
                          "tag": e.get("verdict", ""),
                          "detail": e.get("summary", "")})
@@ -869,6 +914,14 @@ class SkillsMgmtService:
             feed = [r for r in feed if q in str(r.get("skill_id", "")).lower()]
         feed.sort(key=lambda r: str(r.get("ts", "")), reverse=True)
         return feed[offset: offset + max(1, limit)]
+
+    def digest_feed(self, limit: int = 100, offset: int = 0,
+                    skill_id: str = "") -> List[Dict[str, Any]]:
+        """已废弃兼容别名（旧名 digest_feed，评审语义，与 v7.2 内化语义无关）。
+
+        请改用 assessment_feed()：“全部动态”聚合流（评估事件 + 人工复核审计）。
+        """
+        return self.assessment_feed(limit=limit, offset=offset, skill_id=skill_id)
 
     def slash_commands(self) -> Dict[str, Any]:
         """斜杠命令注册表：把“已发布且启用”的技能注册为会话 `/skill:<id>` 命令。"""
@@ -927,7 +980,7 @@ class SkillsMgmtService:
                 if isinstance(snap, dict):
                     skill = Skill.from_storage_dict(snap)
                     self.store.upsert(skill)
-                    self._advisory_digest(src_id)
+                    self._advisory_assess(src_id)
                     restored.append(src_id)
         # 2) 恢复 dst 到合并前快照
         if dst_id:
@@ -940,7 +993,7 @@ class SkillsMgmtService:
                 skill = Skill.from_storage_dict(data)
                 skill.touch()
                 self.store.upsert(skill)
-                self._advisory_digest(dst_id)
+                self._advisory_assess(dst_id)
                 restored.append(dst_id)
             except SkillNotFoundError:
                 # 保留方也不存在（后续又被删除）→ 用快照完整重建
@@ -948,12 +1001,12 @@ class SkillsMgmtService:
                 if isinstance(snap, dict) and snap.get("id") == dst_id:
                     self.store.upsert(Skill.from_storage_dict(snap))
                     restored.append(dst_id)
-        self._emit_digest_event(
+        self._emit_assessment_event(
             dst_id, "merge-undo", "ok",
             f"撤销合并 {merge_id}：恢复 {'、'.join(restored) or '-'}（快照回滚）")
         return {"ok": True, "merge_id": merge_id,
                 "restored": restored,
-                "note": "已恢复 src 并回滚 dst 到合并前；建议重新评审-消化后决定去向。"}
+                "note": "已恢复 src 并回滚 dst 到合并前；建议重新评审-评估后决定去向。"}
 
     # ─── 自动修复建议（评审发现 → 对策 / AI patch 入口）───
 
@@ -1006,7 +1059,7 @@ class SkillsMgmtService:
                 })
         return {"skill_id": skill_id, "fixes": fixes,
                 "count": len(fixes),
-                "note": "规则化对策；可对 content 手动应用后重新「评审-消化」"}
+                "note": "规则化对策；可对 content 手动应用后重新「评审-评估」"}
 
     # ─── 老技能整理（整理/补齐描述/清理/合并/拆分建议）───
 
@@ -1089,7 +1142,7 @@ class SkillsMgmtService:
                         pass
 
         if auto_clean and applied:
-            self._emit_digest_event(
+            self._emit_assessment_event(
                 "curate", "curate", "ok",
                 f"老技能自动整理完成 {len(applied)} 项（补说明/归档）")
 
@@ -1102,7 +1155,7 @@ class SkillsMgmtService:
                         use_llm: bool = False) -> Dict[str, Any]:
         """“再定义”草稿：LLM（可选）或确定性规则起草中文说明/展示名。
 
-        草稿需人工确认后应用（应用即 update + 重新评审-消化）。
+        草稿需人工确认后应用（应用即 update + 重新评审-评估）。
         use_llm=True 时尝试 LLM 起草，失败/不可用自动回退确定性草稿。
         """
         skill = self._require(skill_id)
@@ -1160,15 +1213,15 @@ class SkillsMgmtService:
             "source": source,
             "current": {"name": name, "description": desc},
             "proposed": {"name": draft_name, "description": draft_desc},
-            "note": "草稿需确认后应用：写回并自动重新评审-消化。",
+            "note": "草稿需确认后应用：写回并自动重新评审-评估。",
         }
 
-    # ─── 脚本文件全维度审查并入 digest（第三层 scripts/*.py）───
+    # ─── 脚本文件全维度审查并入评估（第三层 scripts/*.py）───
 
     def _merge_script_review(self, skill: Skill,
                              result: ReviewResult) -> None:
         """把技能脚本文件（repo/<skill_id>/scripts/*.py）的 code_review 全维度
-        与安装级威胁扫描并入同一份评审-消化报告。
+        与安装级威胁扫描并入同一份评审-评估报告。
 
         - 仅当脚本预检开关开启且有脚本文件时执行（纯 JSON 内容技能跳过）；
         - code_review 全维度（安全/性能/可维护性/API兼容性/测试）→ category=code
@@ -1180,11 +1233,11 @@ class SkillsMgmtService:
         """
         try:
             from .assessor import (
-                digest_flag, digest_int, digest_list, digest_blocking_severities,
+                assess_flag, assess_int, assess_list, blocking_severities,
             )
-            if not digest_flag("script_precheck_enabled", True):
+            if not assess_flag("script_precheck_enabled", True):
                 return
-            allowed_ext = digest_list("script_languages", [".py"])
+            allowed_ext = assess_list("script_languages", [".py"])
             names = [n for n in self.file_store.list_scripts(skill.id)
                      if any(n.lower().endswith(ext) for ext in allowed_ext)]
             if not names:
@@ -1201,11 +1254,11 @@ class SkillsMgmtService:
             return
 
         checker = SkillSecurityChecker()
-        block_high = digest_flag("block_on_high_risk_script", True)
+        block_high = assess_flag("block_on_high_risk_script", True)
         sev_map = {"高风险": "error" if block_high else "warn",
                    "中风险": "warn", "低风险": "info"}
-        cap_files = digest_int("max_script_files", 20)
-        cap = digest_int("max_code_findings", 60)
+        cap_files = assess_int("max_script_files", 20)
+        cap = assess_int("max_code_findings", 60)
         added: List[ReviewFinding] = []
         for name in (names or [])[:cap_files]:
             try:
@@ -1257,10 +1310,10 @@ class SkillsMgmtService:
         if not added:
             return
         result.findings.extend(added)
-        block_sev = digest_blocking_severities()
+        block_sev = blocking_severities()
         blocked = any(a.severity in block_sev for a in added)
         if blocked:
-            result.digest_verdict = "block"
+            result.review_verdict = "block"
             cur = getattr(result.status, "value", result.status)
             if cur == "passed":
                 result.status = ReviewStatus.WARN
@@ -1268,8 +1321,8 @@ class SkillsMgmtService:
                 result.summary = (result.summary or "审核通过") + \
                     "；脚本文件审查存在高风险代码(阻断项)，需人工复核"
                 logger.info("[Service] 脚本审查阻断 skill=%s → PENDING_REVIEW", skill.id)
-        elif not result.digest_verdict:
-            result.digest_verdict = "ok"
+        elif not result.review_verdict:
+            result.review_verdict = "ok"
 
     # ─── 发布（TASK-04 Step 3 强制审核链）───
 
@@ -1326,7 +1379,7 @@ class SkillsMgmtService:
         updated = Skill.from_storage_dict(data)
         updated.touch()
         self.store.upsert(updated)
-        self._advisory_digest(updated.id)  # 修改后自动重新评估（尚无正式审核时）
+        self._advisory_assess(updated.id)  # 修改后自动重新评估（尚无正式审核时）
         self._auto_classify(updated.id)    # 内容变化后自动重判分类（人工移动过的保留）
         return updated
 
@@ -1334,7 +1387,7 @@ class SkillsMgmtService:
         """删除技能（多轨同步，根治孤儿残留）。
 
         除主轨外同步清除：legacy(data/skills.json ×2)、文件轨
-        (skills_repo/<id>/)、分类注册表、digest 事件——否则 UI 会残留
+        (skills_repo/<id>/)、分类注册表、评估事件——否则 UI 会残留
         "该技能没有可查看的指令正文（仅运行时元数据）"的孤儿项。
         """
         if self.store.get(skill_id) is None:
