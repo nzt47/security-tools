@@ -112,6 +112,9 @@ flowchart LR
     subgraph dao [dao]
         agent_data_observability["agent.data.observability"]
     end
+    subgraph descriptors [descriptors]
+        agent_descriptors_bridge["agent.descriptors.bridge"]
+    end
     subgraph evolution [evolution]
         agent_evolution_injector["agent.evolution.injector"]:::crosslayer
     end
@@ -1082,6 +1085,7 @@ flowchart LR
     agent_cognitive_loop --> agent_cognitive_actor_critic
     agent_cognitive_loop --> agent_cognitive_debate
     agent_cognitive_loop -.-> agent_logging_utils
+    agent_descriptors_bridge -.-> agent_skills_mgmt_store
     agent_lazy_loader -.-> agent_logging_utils
     agent_lazy_loader -.-> agent_utils_singleton_manager
     agent_lazy_loader__core -.-> agent_logging_utils
@@ -1506,10 +1510,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 442
-- 模块节点数: 383
-- 依赖边数: 1027
-- 跨层调用数: 672
+- 扫描文件数: 447
+- 模块节点数: 384
+- 依赖边数: 1028
+- 跨层调用数: 673
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1176.48 ms
+- 构建耗时: 2060.43 ms
