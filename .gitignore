@@ -130,6 +130,9 @@ data/skill_vectors/
 data/blackbox/
 data/heartbeat_history.json
 data/skills_mgmt.json
+# ToolDescriptor Registry 持久化（TASK-S1-01 运行时台账，同 skills_mgmt.json 不入库）
+data/descriptors.json
+data/descriptors.corrupted.json
 # 注意: data/permission_policies.json 是 RBAC/ABAC 静态配置(与 dangerous_commands.json 同性质),已入库跟踪,勿加回忽略
 # Embedding 子进程探测缓存(机器特定,不入库)
 data/.embedding_probe

@@ -319,3 +319,21 @@
 - L3（子代理 C）：output_schema 精确表述＝"21/21 有键但全空 {}"；文件轨 23 目录＝15 pd-* + 7 内置 persona（种子在 `extensions/base.py BUILTIN_EXTENSIONS["skill"]`）＋ scripted-selftest 示例；lifecycle 自动降级**默认 dry_run=true**；enhancer 直赋 PUBLISHED 弱门；review 放行真实判据＝无 critical 安全命中 ∧ 无 digest 阻断（阈值仅日志用）；双轨无通用双向同步（front matter 白名单 16 字段/legacy 快照重建触发面窄）；`skill.md` 小写命名；
 - L2（子代理 B）：学习触发点（orchestrator.py:1289-1294/1816-1862，失败调用在 :1807 剔除）；定时自动升格（lifecycle_manager.py:776-808，300s）；**workflow→Skill 转换路径无强制评审**（create_manual 落 draft，auto_review 默认关；正式三审仅在 process_distill 固化 run_review=True）；WorkflowStatus 四态仅 ACTIVE 可达（全仓无写侧转移）；蒸馏为真实并行 LLM worker，占位仅 subagent/ 容器；
 - L1（子代理 A）：结论与本文档第一手证据一致（注册表无 trust 字段/无独立 capability registry/MCP 三轨互不相通：connector 直入 L1、adapter 无调用方、executor 死路径；approval 仅存于 L3 内容变更与 HITL 调用点）。A 标注 3 处「未确认」不影响本文件结论：TOOL_PROTOCOL_MAP 是否外部注入、orchestrator.py:3075 注入前是否过滤 enabled、agent/ 顶层遗留 *_tools 模块是否仍被直接 import——S1-01 接线时复核。
+
+---
+
+## 附录 D：S1-01 回写注记（2026-09-09，TASK-S0-02 验收遗留 #2 收口）
+
+> TASK-S1-01（ToolDescriptor 契约层）已按本文件 C7 与 §3.2/§3.4 落地
+> `agent/descriptors/`（models/validator/registry/bridge，详见 TASK-S1-01 验收报告）。
+> 本注记回写 S0-02 验收报告遗留 #2：**L3 轻量视图映射未调整矩阵，仅实现化**。
+
+| 回写点 | S0-02 原文 | S1-01 实现（无矩阵调整） |
+|---|---|---|
+| L1 MCP 接入即 borrowed | §3.2 L1 列 ✅ | `bridge.descriptor_from_mcp_tool` 默认 stage=borrowed + trace_policy 默认调用侧策略（S2 台账前置声明） |
+| 内置工具 native 证据缺 | §3.4 存量不自动置位 | `descriptor_from_builtin_tool` 默认 stage=None（30 天零回退台账前置，S3 补验） |
+| L3 外来导入≈borrowed 特例 | §3.2 L3 列 ◐ / §3.4 | `map_skill_stage`：claude/community/mcp/ai_generated 或 github:/url:/http:/install/market/external_agent → borrowed（自动补 trace_policy） |
+| L3 deprecated 同义复用 | §3.4 | status deprecated/archived → stage=deprecated |
+| published 不自动 internalized | §3.4 | published（本土）→ stage=None，rationale 注明"无验收证据待 S3" |
+| risk/data_class/stage None 语义 | §2.3 全缺摸底 | 模型层 None=未评估/未分级/未入轨（validator 出 warning 不出 error），S1-02 回填目标显式化 |
+| 七态/trust/provenance 字段全缺 | §2.1/§5.2 | 九字段组模型 + 三不变量校验器 + ID 规则（cp.<source_id>.<upstream_id>）+ registry 合并/variant/alias 全部落地 |
