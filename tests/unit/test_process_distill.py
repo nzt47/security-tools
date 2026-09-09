@@ -576,8 +576,13 @@ class TestTools:
         )
         assert task["ok"] is True
         tid = task["task_id"]
-        # 轮询至完成（规则降级很快）
-        for _ in range(30):
+        # 轮询至完成（规则降级很快；健康态首次 completed 即退出，耗时不变）
+        # 【变易·2026-09-09】30×0.2s(6s) 预算在 CI 高负载分片下被证伪：
+        #   Shard 6 runner 实测 275~380 线程 / ~160 进程（thread-monitor），
+        #   后台蒸馏线程被调度饿死超 6s，status 仍 running（与 TASK-S1-01
+        #   新增测试引起的分片重排同现，非产品回归）。放宽至 150×0.2s(30s)
+        #   仅扩大等待上界，不改变语义；健康路径仍 ~1s 内退出。
+        for _ in range(150):
             st = executor.get_status(tid)
             if st.get("status") in ("completed", "failed"):
                 break
