@@ -67,20 +67,38 @@ _AUDIT_CAP = 2000
 # ═════════════════════════════════════════════════════════════
 
 
+_CJK_RE = re.compile(r"[\u4e00-\u9fff\u3400-\u4dbf]")
+
+
 def normalize_name(name: str) -> str:
-    """名称归一：小写、非字母数字 → 空格、压缩空白"""
+    """名称归一：小写、非字母数字 → 空格、压缩空白。
+
+    【S1-02 修正】纯 CJK 名称（无 ASCII 语义 token）不再被清洗为空串——
+    原实现把"安全守护/上下文感知"都归为 ""，导致 name_similarity 恒 1.0，
+    触发"宁冗余勿误合"原则下的误合并（5 个 persona 技能被并入同一 descriptor）。
+    现保留原串小写，交由 name_similarity 走字符级比较。
+    """
     if not name:
         return ""
-    return re.sub(r"\s+", " ", re.sub(r"[^0-9A-Za-z]+", " ", name.lower())).strip()
+    s = re.sub(r"\s+", " ", re.sub(r"[^0-9A-Za-z]+", " ", name.lower())).strip()
+    if s:
+        return s
+    return name.lower().strip()
 
 
 def name_similarity(a: str, b: str) -> float:
-    """名称相似度 [0,1]：分词 Jaccard；无法分词时退化为编辑相似度。"""
+    """名称相似度 [0,1]：分词 Jaccard；无法分词时退化为编辑相似度。
+
+    含 CJK 的名称走字符级 SequenceMatcher（token 化对单字中文名无区分度，
+    且避免清洗为空导致的恒等误判）。
+    """
     na, nb = normalize_name(a), normalize_name(b)
     if not na and not nb:
         return 1.0
     if not na or not nb:
         return 0.0
+    if _CJK_RE.search(na) or _CJK_RE.search(nb):
+        return SequenceMatcher(None, na, nb).ratio()
     ta, tb = set(na.split()), set(nb.split())
     if ta and tb:
         return len(ta & tb) / len(ta | tb)

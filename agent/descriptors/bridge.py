@@ -540,10 +540,23 @@ def demo_pipeline(registry: Optional[Any] = None) -> Dict[str, Any]:
       3) SKILL.md 资产 2 条（published 本土 + claude 外来导入）→ 轻量视图；
       4) 第二个 MCP server(fs-dup) 声明同 schema 的 read_file → 三路投票合并留别名；
       5) 导出 list_with_trust() 能力清单。
+
+    【S1-02】registry=None 时改用一次性临时路径（autosave=False，永不落盘），
+    与共享运行时台账 data/descriptors.json 彻底隔离——演示不读不写真实台账，
+    避免被既有台账内容干扰断言（S1-02 起台账由存量回填/安装接线常态化写入）。
     """
     from .registry import DescriptorRegistry
 
-    reg = registry if registry is not None else DescriptorRegistry(autosave=False)
+    if registry is not None:
+        reg = registry
+    else:
+        import os as _os
+        import tempfile as _tempfile
+        import uuid as _uuid
+        _tmp = _os.path.join(
+            _tempfile.gettempdir(),
+            f"descriptors_demo_{_uuid.uuid4().hex[:12]}.json")
+        reg = DescriptorRegistry(path=_tmp, autosave=False)
     steps: Dict[str, Any] = {}
 
     mcp_tools = [

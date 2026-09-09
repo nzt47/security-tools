@@ -185,6 +185,8 @@ class SkillsMgmtService:
         dup = self.reject_native_duplicate(skill)
         if dup:
             self.absorb_overlap(skill.id, overlap=dup, source="install")
+        # 【S1-02 接线】同步 Descriptor（provenance/trust 回填，advisory 不阻断）
+        self._sync_descriptor_advisory(skill.id, source=source, skill=skill)
         return self._require(skill.id)
 
     def reject_native_duplicate(self, skill) -> Optional[str]:
@@ -380,6 +382,10 @@ class SkillsMgmtService:
         与 install 相同的来源解析与抓取，失败返回 {ok: False, error}。
         吸收策略：与原生/已有能力重叠不再算阻断（blocked 仅指安全/合规 critical/error），
         重叠项会作为「增量吸收」提示返回（overlap_action="absorb"）。
+
+        【S1-02 §2.3 合并预检】返回中并入 v7.2 provenance 分类（scheme/manifest →
+        signed/declared/unknown + 升级路径），与既有安全预检合并而非另起炉灶
+        （见 agent/descriptors/backfill.classify_install_provenance）。
         """
         try:
             scheme, payload = self.creator._installer.fetch_payload(source)  # noqa: SLF001
@@ -390,6 +396,8 @@ class SkillsMgmtService:
                 skill.name or "", skill.description or "", skill.content or "")
             others = [s for s in self.store.list_all() if s.id != skill.id]
             assessment = SkillAssessor().assess(skill, others=others)
+            provenance = self._classify_install_provenance(
+                scheme, source, payload, category=skill.category)
             return {
                 "ok": True,
                 "scheme": scheme,
@@ -406,9 +414,66 @@ class SkillsMgmtService:
                      "category": f.category, "message": f.message}
                     for f in assessment.findings],
                 "compatibility_score": assessment.compatibility_score,
+                "provenance": provenance,
             }
         except Exception as e:  # noqa: BLE001 预检失败给出可读原因
             return {"ok": False, "source": source, "error": str(e)}
+
+    @staticmethod
+    def _classify_install_provenance(scheme: str, source: str,
+                                     payload: Optional[Dict[str, Any]] = None,
+                                     category: Any = None) -> Dict[str, Any]:
+        """v7.2 provenance 分类（§2.3 manifest 合并预检）。
+
+        懒加载 agent.descriptors.backfill（descriptors 包可被 skills_mgmt 复用，
+        方向 skills_mgmt → descriptors，无环）；descriptors 不可用时降级
+        unknown 提示，绝不阻断安装预检主流程（advisory）。
+        """
+        try:
+            from agent.descriptors.backfill import classify_install_provenance
+            cat = None
+            if category is not None:
+                cat = getattr(category, "value", category) \
+                    if not isinstance(category, str) else category
+            return classify_install_provenance(scheme, source,
+                                               dict(payload or {}),
+                                               category=cat)
+        except Exception as e:  # noqa: BLE001 advisory
+            logger.warning("[Service] provenance 分类失败(advisory): %s", e)
+            return {"level": "unknown", "scheme": scheme, "source": source,
+                    "evidence": [], "upgrade_path": "",
+                    "rationale": "provenance 分类器不可用（降级 unknown）",
+                    "rule": "PRV-X"}
+
+    def _sync_descriptor_advisory(self, skill_id: str, source: str = "",
+                                  skill: Any = None) -> None:
+        """技能入库后同步 Descriptor（advisory：失败仅记日志，绝不阻断主流程）。
+
+        Descriptor 台账与技能主轨同目录（隔离服务/测试 store 时随 tmp store 隔离，
+        避免污染全局 data/descriptors.json——默认 store 时即全局台账路径）。
+        """
+        try:
+            from agent.descriptors.backfill import sync_skill_descriptor
+            reg_path = None
+            try:
+                from pathlib import Path as _Path
+                sp = getattr(self.store, "_path", None)
+                if sp:
+                    reg_path = str(_Path(sp).resolve().parent / "descriptors.json")
+            except Exception:  # noqa: BLE001
+                reg_path = None
+            payload = None
+            if skill is not None and hasattr(skill, "to_storage_dict"):
+                try:
+                    payload = skill.to_storage_dict()
+                except Exception:  # noqa: BLE001
+                    payload = None
+            sync_skill_descriptor(skill_id, source=source,
+                                  actor="skill_install", payload=payload,
+                                  registry_path=reg_path)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("[Service] 技能 descriptor 同步失败(advisory) "
+                           "skill=%s: %s", skill_id, e)
 
     def import_queue(self, limit: int = 200) -> List[Dict[str, Any]]:
         """外部导入·待人工放行队列：外来源（external_agent / scheme:…）的草稿，最新在前。"""
@@ -424,6 +489,12 @@ class SkillsMgmtService:
             if src != "external_agent" and not src.startswith(prefixes):
                 continue
             rv = s.review
+            # 【S1-02】外来导入队列并入 v7.2 provenance 建议（合并预检，advisory）
+            prov_scheme = next(
+                (p.rstrip(":") for p in ("github:", "url:", "local:",
+                                          "registry:", "market:")
+                 if src.startswith(p)), src)
+            provenance = self._classify_install_provenance(prov_scheme, src)
             rows.append({
                 "id": s.id,
                 "name": s.name or s.id,
@@ -433,6 +504,7 @@ class SkillsMgmtService:
                 "enabled": bool(s.enabled),
                 "status": status,
                 "created_at": s.created_at or "",
+                "provenance": provenance,
                 "review": None if rv is None else {
                     "auto_assessed": bool(getattr(rv, "auto_assessed", False)),
                     "review_verdict": getattr(rv.review_verdict, "value",
@@ -453,19 +525,22 @@ class SkillsMgmtService:
             zip_path: zip 文件路径
 
         Returns:
-            dict — {skill_id, name, version, scripts_count}
+            dict — {skill_id, name, version, scripts_count, provenance}
         """
         from .skill_manager import SkillManager
         mgr = SkillManager(repo_path=str(self.file_store.repo_path))
         skill_id = mgr.install_from_zip(zip_path)
         meta = self.file_store.get_metadata(skill_id) or {}
         scripts = self.file_store.list_scripts(skill_id)
-        return {
+        result = {
             "skill_id": skill_id,
             "name": meta.get("name", skill_id),
             "version": meta.get("version", "0.0.0"),
             "scripts_count": len(scripts),
         }
+        # 【S1-02 接线】zip 外来技能同步 Descriptor（advisory 不阻断安装）
+        self._sync_descriptor_advisory(skill_id, source="zip")
+        return result
 
     # ─── 审核 ───
 
