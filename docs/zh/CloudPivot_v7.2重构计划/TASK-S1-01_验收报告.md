@@ -6,8 +6,9 @@
 > 依赖输入：TASK-S0-01（RFC 方案 A + 术语映射表）、TASK-S0-02（C7 对象范围 +
 > §3.2/§3.4 状态机作用域矩阵）、01 号审计报告 §6（G1/S1 行）
 > 来源设计文档：`CloudPivot_v7.2_final_合并归档(智谱审核版).md` §2.6/§3.2/§3.3.1（P7.2-24/P7.2-05）
-> 交付记录：commit `fec4c4ec`（feat(descriptors)）已推送 origin(github) + gitee；CI 见
-> [`S1-01_交付结案报告_20260909.md`](S1-01_交付结案报告_20260909.md) §4.3
+> 交付记录：commit `fec4c4ec`（feat(descriptors)）＋ `9bf0988a`（CI Shard6 轮询预算修复，
+> 详见 [`S1-01_交付结案报告_20260909.md`](S1-01_交付结案报告_20260909.md) §4.3）已推送
+> origin(github) + gitee；push 门禁 ci.yml 全 job success
 > 状态：✅ 验收通过
 
 ---
