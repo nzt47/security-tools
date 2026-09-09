@@ -620,6 +620,7 @@ class TestServiceIntegration:
         }
         res = sync_skill_descriptor(
             "sync-skill", source="github:user/repo",
+            payload=payload,
             registry_path=tmp_path / "descriptors.json")
         assert res["ok"] is True
         assert res["provenance"] == "unknown"
@@ -630,6 +631,13 @@ class TestServiceIntegration:
         assert d.origin.provenance.value == "unknown"
         assert d.trust.data_class.value == "internal"
         assert d.evolution.stage.value == "borrowed"  # 外来导入
+
+    def test_sync_requires_payload_no_store_fallback(self, tmp_path):
+        """descriptors 不反向依赖 skills_mgmt：缺 payload 返回错误而非读库。"""
+        res = sync_skill_descriptor(
+            "no-such-skill", registry_path=tmp_path / "descriptors.json")
+        assert res["ok"] is False
+        assert "payload" in res["error"]
 
 
 # ─────────────────────────────────────────────────────────────

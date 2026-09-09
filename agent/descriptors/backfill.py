@@ -1209,27 +1209,18 @@ def sync_skill_descriptor(skill_id: str, *, source: str = "",
     """运行时接线（S1-01 遗留 #4 / S1-02 输出 3）：单技能 → descriptor 注册 + 回填。
 
     install / install_from_zip 成功后调用（advisory：任何失败不阻断主流程）。
-    payload 可直接传入（调用方已持有 Skill 对象时避免二次读库/存储轨错配）；
-    未传时按 skill_id 懒加载主轨 → 文件轨。
+
+    【架构纪律】payload 必须由调用方传入（调用方读取主轨/文件轨并持有 Skill 对象
+    或 meta dict）——本模块不 import skills_mgmt（保持 descriptors 为纯依赖叶子，
+    避免 skills_mgmt → descriptors → skills_mgmt 循环依赖；架构规则校验强制）。
+    payload 缺失时返回错误（advisory），不自动回退读库。
     """
     from .registry import DescriptorRegistry  # 延迟
 
     if payload is None:
-        try:
-            from agent.skills_mgmt.store import SkillStore  # 懒加载
-            skill = SkillStore().get(skill_id)
-            if skill is not None:
-                payload = skill.to_storage_dict()
-        except Exception as e:  # noqa: BLE001
-            logger.warning("[backfill] sync(%s) 主轨读取失败: %s", skill_id, e)
-    if payload is None:
-        try:
-            from agent.skills_mgmt.file_store import SkillFileStore  # 懒加载
-            meta = SkillFileStore().get_metadata(skill_id) or {}
-            payload = dict(meta)
-            payload.setdefault("id", skill_id)
-        except Exception as e:  # noqa: BLE001
-            return {"ok": False, "skill_id": skill_id, "error": f"读取失败: {e}"}
+        return {"ok": False, "skill_id": skill_id,
+                "error": "payload 必传（调用方负责读取主轨/文件轨；"
+                         "descriptors 包不反向依赖 skills_mgmt）"}
     payload.setdefault("id", skill_id)
 
     asset = _normalize_asset(payload,

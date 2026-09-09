@@ -451,6 +451,10 @@ class SkillsMgmtService:
 
         Descriptor 台账与技能主轨同目录（隔离服务/测试 store 时随 tmp store 隔离，
         避免污染全局 data/descriptors.json——默认 store 时即全局台账路径）。
+
+        【架构纪律】payload 在本方法内组装（主轨 skill → 文件轨 meta）后传入
+        descriptors.backfill.sync_skill_descriptor——descriptors 包不反向依赖
+        skills_mgmt（避免循环依赖，架构规则校验强制）。
         """
         try:
             from agent.descriptors.backfill import sync_skill_descriptor
@@ -462,10 +466,26 @@ class SkillsMgmtService:
                     reg_path = str(_Path(sp).resolve().parent / "descriptors.json")
             except Exception:  # noqa: BLE001
                 reg_path = None
+            # 组装 payload：优先调用方持有的 Skill 对象 → 主轨 → 文件轨
             payload = None
             if skill is not None and hasattr(skill, "to_storage_dict"):
                 try:
                     payload = skill.to_storage_dict()
+                except Exception:  # noqa: BLE001
+                    payload = None
+            if payload is None:
+                try:
+                    rec = self.store.get(skill_id)
+                    if rec is not None:
+                        payload = rec.to_storage_dict()
+                except Exception:  # noqa: BLE001
+                    payload = None
+            if payload is None:
+                try:
+                    meta = self.file_store.get_metadata(skill_id) or {}
+                    if meta:
+                        payload = dict(meta)
+                        payload.setdefault("id", skill_id)
                 except Exception:  # noqa: BLE001
                     payload = None
             sync_skill_descriptor(skill_id, source=source,
