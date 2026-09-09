@@ -308,6 +308,14 @@ rollback_version 的真实补偿描述）。队列机制就绪：destructive 候
 
 ---
 
-*补记：本任务顺带修正 S1-01 两个与回填直接相关的缺陷（registry CJK 名称误合并、
+*补记一：本任务顺带修正 S1-01 两个与回填直接相关的缺陷（registry CJK 名称误合并、
 demo_pipeline 依赖共享台账），均以单测/既有套件回归锁定；存量主轨（Skill/状态机/
 发布门禁/前端）零改动。*
+
+*补记二（推送收尾，2026-09-09）：CI 架构规则校验（no_circular_dependency）在代码头
+740d042f 失败——service 侧 skills_mgmt→descriptors.backfill 懒加载与 backfill→
+skills_mgmt 懒加载构成环；已修复（commit `d3fa0a7b`）：sync_skill_descriptor 改为
+payload 必传（调用方组装），descriptors 保持纯依赖叶子。修复后 descriptors 套件
+179 passed（新增单测 +1：缺 payload 契约）、受影响合并套件 320 passed/1 xfailed、
+本地架构规则校验 0 未豁免违规、CI 架构规则校验 ✅ success（head `d3fa0a7b`）。本报告
+测试计数以修复后为准：descriptors **179 passed**。*
