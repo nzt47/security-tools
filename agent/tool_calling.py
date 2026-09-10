@@ -803,8 +803,34 @@ class ToolCallingService:
             result["ok"] = True
         return result
 
+    def _record_unified_tool_trace(self, func_name: str, args: dict,
+                                   result: dict, started_mono: float) -> None:
+        """工具级统一 Trace 记录（TASK-S2-01 透传，best-effort）。
+
+        仅在存在任务级 TraceContext（由 orchestrator/TraceFacade.start 注入）时记录；
+        否则跳过——不单独为无上下文工具调用新建统一 Trace（避免污染共享台账）。
+        任何异常都不影响工具执行主路径。
+        """
+        try:
+            from agent.observability.trace_v2 import TraceContext, TraceFacade
+            if TraceContext.current() is None:
+                return
+            ok = bool(result.get("ok", True)) if isinstance(result, dict) else True
+            status = "success" if ok else "error"
+            error_code = ""
+            if not ok and isinstance(result, dict):
+                error_code = result.get("error_code") or result.get("error") or "ToolError"
+            TraceFacade.instance().record(
+                func_name, args=args, output=result,
+                status=status, error_code=error_code,
+                duration_ms=(time.perf_counter() - started_mono) * 1000,
+            )
+        except Exception:  # noqa: BLE001  统一 Trace 失败绝不阻断工具执行
+            pass
+
     def _execute_safe(self, func_name: str, args: dict) -> dict:
         """安全执行工具（集成 trace 记录 + 错误恢复 + 结果后处理）"""
+        _unified_start = time.perf_counter()
         # trace 记录（安全降级：recorder 不可用时不影响工具执行）
         recorder = None
         ctx = None
@@ -835,6 +861,7 @@ class ToolCallingService:
 
                 if recorder is not None and ctx is not None:
                     recorder.finish_trace(ctx, result, None)
+                self._record_unified_tool_trace(func_name, args, result, _unified_start)
                 return result
             except tools.ToolError as e:
                 error_msg = str(e)
@@ -848,6 +875,7 @@ class ToolCallingService:
                 result = {"ok": False, "error": error_msg}
                 if recorder is not None and ctx is not None:
                     recorder.finish_trace(ctx, result, e)
+                self._record_unified_tool_trace(func_name, args, result, _unified_start)
                 return result
             except Exception as e:
                 logger.error(log_dict({'module_name': 'tool_calling', 'action': 'log', 'msg': '工具 %s 执行异常: %s' % (func_name, e)}))
@@ -859,11 +887,13 @@ class ToolCallingService:
                 result = {"ok": False, "error": f"工具执行异常: {e}"}
                 if recorder is not None and ctx is not None:
                     recorder.finish_trace(ctx, result, e)
+                self._record_unified_tool_trace(func_name, args, result, _unified_start)
                 return result
 
         result = {"ok": False, "error": f"工具 {func_name} 执行失败（已重试 3 次）"}
         if recorder is not None and ctx is not None:
             recorder.finish_trace(ctx, result, None)
+        self._record_unified_tool_trace(func_name, args, result, _unified_start)
         return result
 
     def _get_last_assistant_text(self, messages: list) -> str:

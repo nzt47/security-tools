@@ -70,6 +70,53 @@ _LLM_CALL_POOL = ThreadPoolExecutor(
 _LLM_CALL_TIMEOUT = int(os.getenv("LLM_CALL_TIMEOUT", "60"))
 
 
+# ── TASK-S2-01 统一 Trace 透传辅助（best-effort，失败绝不影响主链路） ──────
+
+
+def _begin_unified_task_trace(session_id: Optional[str], task_id: Optional[str] = None) -> str:
+    """任务级统一 Trace 起点：注入 TraceContext（工具链透传），返回 trace_id。
+
+    workspace_id 来源（P7.1-19）：会话绑定工作区 / 默认工作空间 → workspace-hash；
+    无会话时取进程工作目录哈希（仍带 workspace_id，不触发缺字段降级）。
+    P7.2-08：workspace(repository) = 逻辑租户 ⇒ tenant_id = workspace-hash。
+    """
+    try:
+        from agent.observability.trace_v2 import TraceFacade, derive_workspace_id
+        workspace_id = ""
+        if session_id:
+            try:
+                from agent.session_manager import SessionManager
+                workspace_id = SessionManager().workspace_id_for(str(session_id))
+            except Exception:  # noqa: BLE001
+                workspace_id = ""
+        if not workspace_id:
+            workspace_id = derive_workspace_id(os.getcwd())
+        return TraceFacade.instance().start(
+            task_id=str(task_id or ""),
+            tenant_id=workspace_id or "default",
+            workspace_id=workspace_id,
+            subject_id=str(session_id or ""),
+        )
+    except Exception:  # noqa: BLE001
+        return ""
+
+
+def _end_unified_task_trace(task_trace_id: str, status: str = "success",
+                            error_code: str = "") -> None:
+    """任务级统一 Trace 收尾（best-effort）：落账任务主 Trace + 清理 TraceContext。"""
+    if not task_trace_id:
+        return
+    try:
+        from agent.observability.trace_v2 import TraceContext, TraceFacade
+        ctx = TraceContext.current()
+        if ctx is None or ctx.trace_id != task_trace_id:
+            return
+        TraceFacade.instance().finish(
+            trace_id=task_trace_id, status=status, error_code=error_code)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 # ── TASK-03 学习度量辅助（埋点异常绝不影响主链路） ──────────────
 _LEARNING_SAVED_EST: Optional[int] = None
 
@@ -1010,6 +1057,11 @@ class Orchestrator:
             # 【变易】耗时用 perf_counter 配对计时; ts_llm（墙上时钟）仅供 TraceSpan 时间戳
             _ts_llm_pf = time.perf_counter()
             ts_llm = time.time()
+            # ── TASK-S2-01：任务级统一 Trace 上下文（工具链 TraceContext 透传起点）──
+            _unified_task_trace_id = _begin_unified_task_trace(
+                kwargs.get("session_id"), trace_id)
+            _unified_status = "success"
+            _unified_error_code = ""
             try:
                 if self._v2_lifetrace and self._trace_recorder:
                     # V2 路径：Persona 系统 + ToolCallingService
@@ -1023,6 +1075,9 @@ class Orchestrator:
                     # 标准路径
                     response = self._call_llm(user_input, body_status)
             except Exception as e:
+                # TASK-S2-01：任务级 Trace 标记失败（供 finally 落账）
+                _unified_status = "error"
+                _unified_error_code = type(e).__name__
                 # 【TD-1】LLM 调用失败独立计层（llm_error 为 llm 的失败子指标）
                 # llm（L507，INV-4 调用前埋点）计"尝试"；llm_error 计"失败"，
                 # 成功路径不记 llm_error，面板 10 用 llm_error/llm 计算错误率
@@ -1067,6 +1122,10 @@ class Orchestrator:
                 return ResponseBuilder.error(
                     "抱歉，处理您的请求时遇到了问题：%s" % e
                 ).to_dict()
+            finally:
+                # TASK-S2-01：任务主 Trace 落账（含早退/异常路径，无 ContextVar 泄漏）
+                _end_unified_task_trace(
+                    _unified_task_trace_id, _unified_status, _unified_error_code)
             llm_duration_ms = (time.perf_counter() - _ts_llm_pf) * 1000
         else:
             # wire 规划成功：跳过 LLM 调用与置信度兜底（规划结果视为高置信度）

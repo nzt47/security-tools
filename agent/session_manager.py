@@ -451,6 +451,22 @@ class SessionManager:
             return Path(str(custom))
         return self._sessions_dir / session_id / "workspace"
 
+    def workspace_id_for(self, session_id: str) -> str:
+        """P7.1-19 / P7.2-08：会话工作区 → workspace_id（workspace-hash 默认）。
+
+        绑定自定义根（meta.workspace_root）时取该路径哈希，否则取默认工作空间
+        data/sessions/{session_id}/workspace 路径哈希（确定性：同路径恒同 id）。
+        目录不存在也返回路径哈希（调用方据此写入 S2-01 Trace tenancy.workspace_id）。
+        """
+        root = self.get_session_workspace_dir(session_id)
+        try:
+            from agent.observability.trace_v2 import derive_workspace_id
+            return derive_workspace_id(str(root))
+        except Exception:  # noqa: BLE001  trace_v2 不可用时本地兜底
+            import hashlib
+            norm = os.path.normcase(os.path.normpath(os.path.abspath(str(root))))
+            return "ws_" + hashlib.sha256(norm.encode("utf-8")).hexdigest()[:16]
+
     def workspace_path(self, session_id: str):
         """返回当前工作空间目录（不存在返回 None，不创建）"""
         root = self.get_session_workspace_dir(session_id)
