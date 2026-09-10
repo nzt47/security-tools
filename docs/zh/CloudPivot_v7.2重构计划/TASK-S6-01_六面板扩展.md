@@ -32,7 +32,8 @@
   - 能力地图：`GET /api/cp/descriptors/map`（registry.list_with_trust + stage）；
   - 审批收件箱：`GET /api/cp/approvals/inbox`（+批量裁决 POST）；
   - ROI：`GET /api/cp/roi`（S5-03 成本聚合 + S3-03 ROI 报告）；
-  - 审计导出：`GET /api/cp/audit/export`（S2-02 链式审计，CSV/JSON）。
+  - 审计导出：`GET /api/cp/audit/export`（消费 S2-02 已交付的 `agent/audit/chain.py::verify_chain()` 验签结果 + 链式台账，CSV/JSON）；
+  - **【S2-03 遗留 #12 —— 事件流消费（数据源已就绪）】** ACR/UTC 面板消费 `agent/observability/acr.py::acr_snapshot()/acr_daily()/acr_weekly()` 与 `utc.py::utc_daily()/utc_weekly()`；模型降级拓扑消费 `agent/observability/model_degrade.py`（`model.degraded` 事件）；逃逸清单消费 `agent/observability/escape.py`（`escape` 事件）。以上四类面板当前均未接前端，本任务补齐。
 - 前端 API 客户端 + 类型（对齐既有 apiClient 模式，自动带 token）。
 
 ### 步骤 2：六面板组件
@@ -71,5 +72,6 @@
 - [ ] 永不自动化五类操作 UI 显式确认 + 60s 时效
 - [ ] UI 安全渲染验证：外来文本 TaintBadge、无 script 注入、审批按钮区 DOM 隔离
 - [ ] 审计导出含验签摘要
+- [ ] **【S2-03 #12】** ACR/UTC 面板消费 `acr.py`/`utc.py` 真实聚合；模型降级拓扑消费 `model_degrade.py`；逃逸清单消费 `escape.py`（四类面板均非 mock）
 - [ ] 前端 tsc/eslint 零告警；vitest 新增用例全绿；既有技能中心零回归
 - [ ] 无"不可追溯百分比"（五坑⑤红线自查通过）

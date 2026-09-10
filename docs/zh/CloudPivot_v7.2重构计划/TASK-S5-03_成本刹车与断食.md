@@ -18,9 +18,11 @@
 
 ## 二、执行步骤
 
-### 步骤 1：成本数据源与基线
-- 消费 S2-03 成本事件（cost_normalized_cents 日聚合）；定义 UTC 基线（近 7 日滚动日均成本或 budget 配置）。
+### 步骤 1：成本数据源与基线（含接收 S2-03 移交的裁定项）
+- 消费 S2-03 已交付的成本接口：`agent/observability/utc.py::record_cost()` 写入、`utc_daily()`/`utc_weekly()`/`utc_window()` 聚合、`coefficient_table()`/`anchor_prices_cents()`/`resolve_anchor_model()` 取系数与锚价；定义 UTC 基线（近 7 日滚动日均成本或 budget 配置）。
 - 复用既有成本监控脚本（verify_budget_break.py 等）数据源，归一为 `data/cost_daily.json`。
+- **【S2-03 遗留 #5 —— 开工前须裁定】** 归一化系数是否进入校准（需跨模型成本-效果数据）：本任务开工前由 Owner 裁定"沿用锚价系数表（现状）"或"启用校准流程"；若启用，须定义校准数据来源与周期。
+- **【S2-03 遗留 #9 —— 双成本轨收敛裁定】** 既有 `cost_log.jsonl`（`CostTracker.record()` 仅测试调用、生产未接线，`reconcile_cost_log()` 多为 rows=0）与 S2-03 事件流成本轨并存：裁定"收敛到事件流单一数据源"或"保留双轨 + 定期对账"，并在本任务内落实对账或下线。
 
 ### 步骤 2：日级硬熔断
 - `daily_breaker`：当日累计成本 > budget.daily_cents → 停非关键 outbound（关键=用户显式请求/审批中任务），次日 00:00 自动恢复；熔断触发记录审计 + metrics.delta/healing 事件。
@@ -57,3 +59,6 @@
 - [ ] 审批衰减率指标可计算（披露不考核）
 - [ ] 既有成本/预算套件零回归；新增单测全绿、覆盖率 ≥80%
 - [ ] 熔断/断食演练记录在验收报告
+- [ ] **【S2-03 #5】** 归一化系数裁定结论已落文档（沿用锚价系数表 或 启用校准），落地方案与裁定一致
+- [ ] **【S2-03 #9】** 双成本轨处置结论落地（收敛到事件流单一数据源，或保留双轨 + 对账脚本可跑）
+- [ ] 成本读取复用 `utc.py::utc_daily()/utc_weekly()`（未另建聚合逻辑）

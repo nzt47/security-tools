@@ -29,8 +29,9 @@
 - 回调：任务结束回调地址（记录结果/触发后续），超时注入（上下文包⑦）。
 
 ### 步骤 3：回收三件套
-- `collect(agent_id) -> {artifacts, trace, reflection}`：产物（任务文件输出）、轨迹（S2-01 子 Trace 链）、反思（上游自评 + 云枢复评——复用既有反思评估器或 LLM judge）。
+- `collect(agent_id) -> {artifacts, trace, reflection}`：产物（任务文件输出）、轨迹（**S2-01 已交付的 `TraceContext.child()` 生成子 Trace 链**——S2-01 遗留 #5 指派本任务消费，child() 已交付并单测，直接用即可）、反思（上游自评 + 云枢复评——复用既有反思评估器或 LLM judge）。
 - 三件套缺任一 → 标记浪费、不计成本核算、阻塞相关 stage 推进（联动 S3 stage 迁移证据）。
+- 子 Trace 的 actor 标注为 `sub_agent`（对齐 S2-03 `events.py` 的 `ACTOR_SUB_AGENT` 常量与 §7.0 矩阵）。
 
 ### 步骤 4：安全（临时凭据 + 工具裁剪）
 - 凭据：临时凭据注入环境（TTL ≤ 任务时长），任务结束销毁（finally + 单测验证销毁）；每来源独立凭据。
@@ -59,5 +60,6 @@
 - [ ] 临时凭据 TTL 结束销毁（注入后强制销毁用例）；每来源独立凭据
 - [ ] 裁剪工具集外调用被拒（无记忆读写/核心改写/审批权断言）
 - [ ] 委派全程 Trace 带 actor=sub_agent + parent_trace_id
+- [ ] **【S2-01 #5】** 子 Trace 经 `TraceContext.child()` 生成（复用 S2-01 已交付实现，不自建上下文传递）
 - [ ] 既有 process_distill/subagent 套件零回归；新增单测全绿、覆盖率 ≥80%
 - [ ] 真实委派端到端样例在验收报告可复现

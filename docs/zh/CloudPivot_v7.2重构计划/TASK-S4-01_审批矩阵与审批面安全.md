@@ -25,32 +25,35 @@
 
 ## 二、执行步骤
 
-### 步骤 1：现状盘点
+### 步骤 1：现状盘点（含 S2 移交的裁定项）
 - 盘点 ApprovalFlow（submit/approve/reject/merge/mark_manual_executed/route_level）与 human_in_the_loop（hitl/ethics/takeover_queue）现有 actor 字段与权限校验点。
 - 盘点谁在调用审批：skill 发布/审批、EVO 受控编辑、S3-03 手动 promote、未来熔炉切换；确认各调用方的 actor 类型标注。
+- **【S2-02 遗留 #1 / S2-03 遗留 #13 —— 开工前须裁定的身份层方案】** 现状无 session/current_user 体系：`require_token` 仅共享令牌，UI actor 为"头/Cookie/令牌指纹/`ui:<remote_addr>`"降级，`identity_source` 已如实标注；S2-03 埋点 actor 沿用同一降级口径。本任务开工前须由 Owner 裁定方案（三选一：① 引入 session 会话体系；② 信任反代注入头；③ 令牌→用户映射表），并在本任务内落地为可判定的 actor 来源——**§7.0 矩阵的 human 行依赖此裁定**。
+- **【S2-02 遗留 #11 —— PII 口径】** 认证 IP 是否掩码（掩码 vs 原文留链）需一并裁定并落地（默认建议掩码 + 保留哈希用于关联）。
 
 ### 步骤 2：Actor 矩阵落地（后端单表校验）
 - 定义 `ActorType`（human/auto(skill)/sub_agent）+ 权限判定表（对齐 §7.0 矩阵行）；在 ApprovalFlow/审批入口加 actor 校验：auto/sub_agent 调用 approve/reject → 拒绝 + 审计（越权告警事件）。
-- human 操作记录 actor=登录用户（会话绑定）；审批记录入 S2-02 链式审计（approval.granted 等 action）与 S2-03 事件（approval.required）。
+- human 操作记录 actor=登录用户（会话绑定，来源遵循步骤 1 裁定）；审批记录经 S2-02 已交付的统一门面入链：`agent/audit/facade.py::audit.record(action, actor, subject, payload...)`（治理类事件已建立镜像规则，避免重复留痕）；审批事件经 S2-03 的 `agent/observability/acr.py::record_approval(...)` 与 `events.py` 落账。
 - sub_agent 执行 capability 仅授权子集：对接 S4-04（subagent 真实现工具裁剪）的授权清单。
 
 ### 步骤 3：审批面安全
-- 会话绑定：审批 token 与登录会话强绑定（禁分享式链接）；超时/换会话 → 失效。
+- 会话绑定：审批 token 与登录会话强绑定（禁分享式链接）；超时/换会话 → 失效（依赖步骤 1 身份层裁定）。
 - 审批链接时效 ≤15 分钟（可配）；过期 → 提示重新发起。
 - destructive 二次认证：risk=destructive 的审批要求二次认证（输入口令/确认码），复用 `server_auth.py`/会话校验设施。
-- 越权尝试 → 审计告警（对齐既有 alert 设施）+ 事件 policy.denied/越权事件。
+- 越权尝试 → 审计告警（对齐既有 alert 设施）+ 事件 policy.denied/越权事件（经 S2-03 `events.py::emit()`）。
 - 前端：审批按钮区 DOM 隔离固定 zIndex、CSRF 头携带、TaintBadge（若外来内容进审批上下文）。
 
 ### 步骤 4：回归与归档
-- 回归：skills approval/EVO/human_in_the_loop 套件零回归；新增单测（矩阵行判定、auto/sub_agent 越权拒绝、会话绑定、时效、二次认证、越权告警）≥30 例、覆盖率 ≥80%。
-- 撰写 `TASK-S4-01_验收报告.md`。
+- 回归：skills approval/EVO/human_in_the_loop 套件零回归；新增单测（矩阵行判定、auto/sub_agent 越权拒绝、会话绑定、时效、二次认证、越权告警、身份来源标注）≥30 例、覆盖率 ≥80%。
+- 撰写 `TASK-S4-01_验收报告.md`（含身份层裁定结论与 PII 口径记录）。
 
 ## 三、预期成果
 
 1. ActorType + 权限判定表（后端单表，对齐 §7.0）。
 2. 审批入口 actor 校验 + 越权告警审计。
 3. 审批面安全（会话绑定/时效/二次认证/前端 DOM 隔离）。
-4. `TASK-S4-01_验收报告.md`。
+4. **S2 遗留在本任务内的收口**：UI 身份层方案落地（#1）、认证 IP PII 口径落地（#11）、埋点 actor 归因口径统一（S2-03 #13）。
+5. `TASK-S4-01_验收报告.md`。
 
 ## 四、评估标准（验收清单）
 
@@ -61,3 +64,6 @@
 - [ ] destructive 审批触发二次认证（无二次认证不可通过）
 - [ ] 前端审批按钮区 DOM 隔离 + CSRF 保护验证
 - [ ] 既有 approval/EVO/hitl 套件零回归；新增单测全绿、覆盖率 ≥80%
+- [ ] **【S2-02 #1】** UI 身份层方案已裁定并落地；actor 不再仅靠 `ui:<remote_addr>` 降级（或降级路径显式声明为最终态）
+- [ ] **【S2-02 #11】** 认证 IP 的 PII 口径落地（掩码/哈希策略一致且可关联）
+- [ ] **【S2-03 #13】** 埋点 actor 归因口径与审批口径统一（`identity_source` 一致）
