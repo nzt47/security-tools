@@ -224,7 +224,8 @@ class EnvConfigManager:
             try:
                 from agent.audit import audit as _audit_facade
                 _audit_facade.record(
-                    f'config.env_{action}', actor=entry.get('user') or 'system',
+                    f'config.env_{action}',
+                    actor=str(entry.get('user') or 'system'),
                     subject=f'env:{key}',
                     payload={'key': key, 'pid': entry.get('pid'),
                              'trace_id': entry.get('trace_id'),

@@ -59,7 +59,8 @@ from collections import deque
 from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple
+from typing import (Any, Deque, Dict, Iterable, Iterator, List, Optional, Sequence,
+                    Tuple)
 
 logger = logging.getLogger("agent.audit.chain")
 
@@ -85,6 +86,8 @@ WRITER_BATCH_SIZE = 100
 WRITER_POLL_INTERVAL = 0.5
 FLUSH_TIMEOUT = 5.0
 RING_BUFFER_MAXLEN = 2000
+#: 每轮后台自动封存最多处理的天数（防「首个记录 ts 很旧 → 数千空日」无限封存）
+AUTO_SEAL_MAX_DAYS = 8
 
 #: 审计来源（P7.2-24 审计平权：UI 与 Agent 同表）
 SOURCE_AGENT = "agent"
@@ -633,13 +636,29 @@ class RootsSigner:
         self._key_path = key_path or DEFAULT_KEY_PATH
         self._enabled = bool(enabled)
         self._allow_generate = bool(allow_generate)
-        self._private = None
+        self._private: Optional[Any] = None
         self._public_hex = ""
         self._scheme = _SIGN_SCHEME_SHA256_SELF
         self._degraded = True
         self._degraded_reason = _DEGRADED_NO_KEY
-        if self._enabled:
-            self._init_key()
+        self._key_ready = False
+        # 已有密钥 → 立即加载（廉价）；**不存在时延迟到首次签名再生成**：
+        # 绝大多数进程只写审计、不封存每日根，没必要为每个台账做一次 OpenSSL 密钥生成
+        # （native 开销 + 密钥文件落盘），故 keygen 延后到真正签名时。
+        if self._enabled and os.path.exists(self._key_path):
+            self._ensure_key()
+
+    def _ensure_key(self) -> None:
+        """确保密钥就绪（幂等；首次调用时按需生成）
+
+        `enabled=False`（调用方显式关闭签名）时保持降级占位，不加载/生成密钥。
+        """
+        if self._key_ready:
+            return
+        self._key_ready = True
+        if not self._enabled:
+            return
+        self._init_key()
 
     def _init_key(self) -> None:
         try:
@@ -679,18 +698,22 @@ class RootsSigner:
 
     @property
     def scheme(self) -> str:
+        self._ensure_key()
         return self._scheme
 
     @property
     def degraded(self) -> bool:
+        self._ensure_key()
         return self._degraded
 
     @property
     def degraded_reason(self) -> str:
+        self._ensure_key()
         return self._degraded_reason
 
     @property
     def public_key_hex(self) -> str:
+        self._ensure_key()
         return self._public_hex
 
     @property
@@ -703,8 +726,10 @@ class RootsSigner:
         无 ed25519 私钥（库缺失 / 未启用 / 密钥不可用）时返回 **sha256 自签占位**，
         并已在 `degraded` / `degraded_reason` 显式记录降级（§3.5 单机降级路径）。
         """
+        self._ensure_key()
         if self._private is not None:
-            return self._private.sign(str(message).encode("utf-8")).hex()
+            sig: bytes = self._private.sign(str(message).encode("utf-8"))
+            return sig.hex()
         return sha256_hex(_SIGN_SCHEME_SHA256_SELF + "|" + str(message))
 
     @staticmethod
@@ -931,7 +956,7 @@ class AuditChain:
         self._write_lock = threading.RLock()
         self._local = threading.local()
         self._queue: "queue_module.Queue[Optional[AuditEntry]]" = queue_module.Queue()
-        self._failed_buffer: deque = deque(maxlen=self._ring_buffer_maxlen)
+        self._failed_buffer: Deque[AuditEntry] = deque(maxlen=self._ring_buffer_maxlen)
         self._degraded = False
         self._degraded_reason = ""
         #: DB 是否可用（初始化失败 → False：读路径不再碰库，全部走 ring buffer）
@@ -945,6 +970,8 @@ class AuditChain:
         self._next_seq = 1
         self._last_hash = GENESIS_PREV_HASH
         self._last_appended_ts = ""
+        #: 本进程观察到「有记录」的 UTC 日（后台自动封存只处理这些日，避免空日风暴）
+        self._observed_days: set = set()
         self._sealed_days: set = set()
         #: 后台 writer 线程（reader 角色恒为 None）
         self._writer_thread: Optional[threading.Thread] = None
@@ -1173,6 +1200,7 @@ class AuditChain:
             self._next_seq = seq + 1
             self._last_hash = entry.self_hash
             self._last_appended_ts = norm_ts
+            self._observed_days.add(day_of_ts(norm_ts))
             try:
                 self._queue.put_nowait(entry)
                 with self._count_lock:
@@ -1250,22 +1278,27 @@ class AuditChain:
     def _maybe_auto_seal(self) -> None:
         """自动封存「已过完的 UTC 日」的 Merkle 根（后台线程内执行，不占 append 路径）
 
-        判定用**内存内的最后一条 ts**（`append()` 写入），避免每批都开库查询——
-        既省一次连接，也避免空闲期占用台账文件（Windows 上会阻碍台账删除/替换）。
+        只封**确实有记录**的日（`_observed_days`），且每轮最多 `AUTO_SEAL_MAX_DAYS` 天：
+        否则「首条记录 ts 很旧」（如回填/导入 2020 年数据）会触发数千个空日封存，
+        后台线程长时间不退出（`close()` join 超时 → writer 线程泄漏）。
+        判定用**内存内的最后一条 ts**，避免每批都开库查询。
         """
         if not self._auto_seal or self._closed:
             return
         try:
-            last_ts = self._last_appended_ts
-            if not last_ts:
-                return
             today = datetime.now(timezone.utc).date().isoformat()
-            last_day = day_of_ts(last_ts)
-            if last_day >= today:
+            with self._append_lock:
+                pending = sorted(d for d in self._observed_days
+                                 if d < today and d not in self._sealed_days)
+            if not pending:
                 return
-            for day in self._days_between(last_day, today):
-                if day not in self._sealed_days:
-                    self.daily_merkle_root(day)
+            for day in pending[:AUTO_SEAL_MAX_DAYS]:
+                if self._closed:
+                    return
+                self.daily_merkle_root(day)
+            if len(pending) > AUTO_SEAL_MAX_DAYS:
+                logger.debug("自动封存仍有 %d 天待处理（下一轮继续）",
+                             len(pending) - AUTO_SEAL_MAX_DAYS)
         except Exception as e:  # noqa: BLE001 自动封存 best-effort，不影响写入
             logger.debug("自动封存每日根失败: %s", e)
 
@@ -1332,6 +1365,9 @@ class AuditChain:
                 pass
             if self._writer_thread.is_alive():
                 self._writer_thread.join(timeout=timeout)
+            if self._writer_thread.is_alive():   # 显式暴露：后台线程未能及时退出
+                logger.warning("审计 writer 线程未在 %.1fs 内退出（可能仍在封存每日根）",
+                               timeout)
         residual: List[AuditEntry] = []
         while True:
             try:

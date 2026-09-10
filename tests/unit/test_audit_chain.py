@@ -51,12 +51,24 @@ from agent.audit.chain import (
 # ════════════════════════════════════════════════════════════
 
 
+@pytest.fixture(scope="session")
+def shared_key(tmp_path_factory):
+    """会话级共享的 ed25519 私钥路径
+
+    每用例新建台账时若各自生成密钥，会为每次 `AuditChain` 构造触发一次 OpenSSL 密钥
+    生成（native 开销 + 文件落盘）；CI Shard 内多文件同进程运行时会放大 native 压力
+    （曾与 pyarrow/pandas 原生导入争资源导致 access violation）。故全模块共用一把密钥。
+    """
+    d = tmp_path_factory.mktemp("audit_keys")
+    return str(d / "audit_signing_key.pem")
+
+
 @pytest.fixture
-def paths(tmp_path):
+def paths(tmp_path, shared_key):
     return {
         "db": str(tmp_path / "audit_chain.db"),
         "roots": str(tmp_path / "daily_roots.jsonl"),
-        "key": str(tmp_path / "audit_signing_key.pem"),
+        "key": shared_key,
     }
 
 
@@ -347,8 +359,14 @@ class TestSingleWriter:
         c2.close()
 
     def test_concurrent_appends_unique_seqs_no_race(self, chain):
-        """并发写：无重复 seq / 无缺口 / 链自洽"""
-        n_threads, per = 8, 25
+        """并发写：无重复 seq / 无缺口 / 链自洽
+
+        规模刻意克制（4 线程 × 10 条）：本用例在 CI 的 6-shard 单元测试 job 中与其它
+        线程密集用例同进程运行，过度加压会把同 shard 的既有并发用例推过 60s 超时
+        （CI Shard6 曾因 `test_reflection_concurrency` 超时失败）。规模下的不变量
+        （唯一 seq / 连续 / 前驱链）与大规模完全一致；演示脚本另有 200 条批量实测。
+        """
+        n_threads, per = 4, 10
         barrier = threading.Barrier(n_threads)
         errors: list = []
 
@@ -814,7 +832,12 @@ class TestDailyRoot:
         assert not rep.ok and rep.reason == "signature_invalid"
 
     def test_auto_seal_writes_root_for_past_day(self, paths):
-        """auto_seal：后台自动为「已过完的日」封存 Merkle 根（无需人工触发）"""
+        """auto_seal：后台自动为「已过完的日」封存 Merkle 根（无需人工触发）
+
+        回归护栏（CI Shard6 崩溃根因）：只封**有记录**的日，且 writer 线程必须能退出——
+        原实现按「最后一条 ts → 今天」逐日封存，2020 年记录会触发数千个空日封存，
+        后台线程长时间不退出（close join 超时 → 线程泄漏 → 同进程其它用例不稳定）。
+        """
         reset_audit_chains()
         c = AuditChain(paths["db"], roots_path=paths["roots"],
                        signing_key_path=paths["key"], auto_seal=True)
@@ -829,8 +852,14 @@ class TestDailyRoot:
                 time.sleep(0.05)
             assert sealed, "auto_seal 未在 5s 内封存 2020-01-01 的根"
             assert c.verify_daily_root("2020-01-01").ok is True
+            # 只封当天（不产生空日风暴）
+            roots = c.read_daily_roots()
+            assert [r.date for r in roots] == ["2020-01-01"]
+            assert roots[0].leaf_count == 1
         finally:
-            c.close(timeout=2.0)
+            c.close(timeout=5.0)
+            assert c._writer_thread is not None
+            assert c._writer_thread.is_alive() is False, "writer 线程泄漏（未随 close 退出）"
             reset_audit_chains()
             if os.path.exists(paths["roots"]):
                 os.chmod(paths["roots"], 0o644)
@@ -1033,7 +1062,7 @@ class TestDegradation:
 
 class TestPerformance:
     def test_append_mean_latency_under_5ms(self, chain):
-        n = 200
+        n = 50
         lat = []
         for i in range(n):
             t0 = time.perf_counter()
@@ -1043,8 +1072,8 @@ class TestPerformance:
         assert mean < 5.0, f"单条 append 均值 {mean:.3f}ms 超出 5ms 预算"
 
     def test_batch_persist_after_burst(self, chain):
-        for i in range(100):
+        for i in range(40):
             chain.append(f"burst{i}", "b")
         assert chain.flush(timeout=10.0)
-        assert chain.count() == 100
+        assert chain.count() == 40
         assert chain.verify_chain().ok

@@ -32,7 +32,7 @@ import logging
 import os
 import threading
 from contextvars import ContextVar
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from agent.audit.chain import (
     DEFAULT_DB_PATH,

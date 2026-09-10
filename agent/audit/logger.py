@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional
 
 from agent.observability.tracer import get_trace_id
 from agent.logging_utils import log_dict
+from agent.audit.chain import AuditEntry
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +101,7 @@ class AuditLogger:
     # ── 写入 ────────────────────────────────────────────────
 
     def log(self, action: str, input_data: str = "", output_data: str = "",
-            status: str = "success", metadata: dict = None, *,
+            status: str = "success", metadata: Optional[dict] = None, *,
             actor: Optional[str] = None, subject: str = "") -> None:
         """记录一条审计日志（旧 JSONL 轨 + 链式轨双写；返回 None 保持既有契约）
 
@@ -172,7 +173,7 @@ class AuditLogger:
     def query(self, trace_id: str = "", action: str = "",
               limit: int = 100) -> List[dict]:
         """查询旧轨审计日志（按日分片倒序；行为与 S2-02 之前一致）"""
-        results = []
+        results: List[Dict[str, Any]] = []
         for log_file in sorted(self._log_dir.glob("audit_*.jsonl"), reverse=True):
             with open(log_file, "r", encoding="utf-8") as f:
                 for line in f:
@@ -186,12 +187,12 @@ class AuditLogger:
                         return results
         return results
 
-    def query_chain(self, limit: int = 100, **filters: Any) -> List[Any]:
+    def query_chain(self, limit: int = 100, **filters: Any) -> List[AuditEntry]:
         """查询链式轨（同表可查：UI 与 Agent 记录都在此表）"""
         chain = self.chain
         if chain is None:
             return []
-        entries = chain.entries(**filters)
+        entries: List[AuditEntry] = list(chain.entries(**filters))
         return entries[-int(limit):] if limit else entries
 
     def flush(self, timeout: float = 5.0) -> bool:
