@@ -454,6 +454,19 @@ class DescriptorRegistry:
         self._audit_log.append(entry)
         if len(self._audit_log) > _AUDIT_CAP:
             self._audit_log = self._audit_log[-_AUDIT_CAP:]
+        # S2-02：能力台账（descriptor registry）变更属治理动作 → 同步写入链式审计
+        # （与 UI/Agent 同表；内存审计环 + 链式留痕双轨，best-effort 不阻断登记）
+        try:
+            from agent.audit import audit as _audit_facade
+            _action = action if str(action).startswith("descriptor.") \
+                else f"descriptor.{action}"
+            _audit_facade.record(
+                _action, actor=actor or "system",
+                subject=f"capability:{capability_id}",
+                payload={"detail": detail or {}, "legacy": "descriptors.registry.audit"},
+                source="agent", status="ok")
+        except Exception as e:  # noqa: BLE001 审计失败不得影响台账操作
+            logger.debug("descriptor 链式审计留痕失败 %s/%s: %s", action, capability_id, e)
 
     # ── 查询 ────────────────────────────────────────────────
 

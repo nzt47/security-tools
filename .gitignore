@@ -48,6 +48,17 @@ data/lifetrace/sources/
 data/reports/
 data/audit/
 
+# S2-02 链式审计运行时产物（链式台账 / 每日 Merkle 根 / 签名密钥 / 存量归档 / 演示摘要）
+# 性质同 data/trace_v2_demo.db：运行时留痕，不入库；键与根属本机资产
+data/audit/audit_chain*.db*
+data/audit/audit_chain_demo.db*
+data/audit/daily_roots*.jsonl
+data/audit/audit_signing_key.pem
+data/audit/demo_signing_key.pem
+data/audit/audit_stats.json
+data/audit/legacy_archive/
+data/audit/legacy_archive_manifest.json
+
 # IDE 元数据
 .cursor/
 .trae/

@@ -367,6 +367,24 @@ class EvolutionArchive:
             self._persist_active()
             if archived_count:
                 self._persist_archive()
+            # S2-02：谱系写入属治理动作（版本演进留痕）→ 同步写入链式审计
+            # （旧 JSONL 轨与归档逻辑零改动，best-effort 不阻断追加）
+            try:
+                from agent.audit import audit as _audit_facade
+                _oid = str(record.object_id)
+                _subject = (_oid if _oid.startswith(f"{record.object_type}:")
+                            else f"{record.object_type}:{_oid}")
+                _audit_facade.record(
+                    "lineage.append", actor=str(getattr(record, "actor", "") or "system"),
+                    subject=_subject,
+                    payload={"record_id": record.record_id,
+                             "decision": str(getattr(record, "decision", "") or ""),
+                             "parent_version": str(getattr(record, "parent_version", "") or ""),
+                             "new_version": str(getattr(record, "new_version", "") or ""),
+                             "legacy": "evolution_archive.jsonl"},
+                    source="agent", status=str(getattr(record, "decision", "") or ""))
+            except Exception as _ae:  # noqa: BLE001 审计失败不得阻断谱系写入
+                logger.debug("[Lineage] 链式审计留痕失败 %s: %s", record.record_id, _ae)
             logger.info(
                 "[Lineage] 追加记录 %s object=%s/%s v%s→v%s decision=%s"
                 " (归档 %d)",

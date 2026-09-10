@@ -95,6 +95,18 @@ app = Flask(__name__, static_url_path='/static-assets')
 app.static_folder = os.path.join(os.path.dirname(__file__), 'static')
 app.template_folder = os.path.join(os.path.dirname(__file__), 'templates')
 
+# ── S2-02 审计平权（P7.2-24）：UI 写路由统一入链 ──
+# 位置：紧跟 app 构造之后注册 before/after/teardown 钩子，凡 POST/PUT/PATCH/DELETE
+# 一律落进与 Agent 相同的链式审计表（source="ui"）；新增写路由无需逐个改造。
+# 开关：AUDIT_UI_ENABLED=0 可关闭；审计异常绝不阻断业务请求（best-effort）。
+try:
+    from agent.audit.ui_middleware import install_flask_audit
+    _ui_audit_recorder = install_flask_audit(app)
+    logger.info("[启动] UI 写路由审计已安装（source=ui，P7.2-24 审计平权）")
+except Exception as _audit_e:  # noqa: BLE001 审计不可用不阻断启动
+    _ui_audit_recorder = None
+    logger.warning(f"[启动] UI 写路由审计安装失败（不阻断启动）: {_audit_e}")
+
 # 注册日志系统蓝图（/logs/dashboard 页面 + REST API）
 try:
     register_log_system(app)

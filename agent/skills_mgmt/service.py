@@ -786,6 +786,17 @@ class SkillsMgmtService:
             }
             with open(events_file, "a", encoding="utf-8") as f:
                 f.write(_json.dumps(rec, ensure_ascii=False) + "\n")
+            # S2-02：评估/评审结果事件同步进链（旧 JSONL 轨保持不变，双写过渡）
+            try:
+                from agent.audit import audit as _audit_facade
+                _audit_facade.record(
+                    f"skill.assess.{kind or 'unknown'}", actor="agent",
+                    subject=f"skill:{skill_id}",
+                    payload={"verdict": verdict or "", "summary": str(summary or "")[:400],
+                             "legacy": str(events_file)},
+                    source="agent", status=str(verdict or ""))
+            except Exception as _ae:  # noqa: BLE001 审计失败不影响评估
+                logger.debug("[Service] 链式审计留痕失败 skill=%s: %s", skill_id, _ae)
         except Exception as e:  # noqa: BLE001
             logger.debug("[Service] 评估事件写入失败 skill=%s: %s", skill_id, e)
 

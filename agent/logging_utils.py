@@ -865,7 +865,23 @@ class AuditLogger:
             ))
             self._logger.addHandler(handler)
             self._logger.propagate = False
-    
+
+    def _chain_audit(self, action: str, *, actor: str = "system",
+                     subject: str = "", payload: Optional[Dict[str, Any]] = None,
+                     status: str = "") -> None:
+        """S2-02：把敏感操作同步写入**链式审计表**（best-effort，不阻断主路径）
+
+        文本审计日志 `logs/audit.log` 逐字保留（旧轨）；链式轨提供防篡改与
+        「UI 与 Agent 同表」（P7.2-24）。配置访问/修改、权限变更、认证尝试、
+        加密密钥访问、敏感操作均属治理关键面。
+        """
+        try:
+            from agent.audit import audit as _audit_facade
+            _audit_facade.record(action, actor=actor or "system", subject=subject,
+                                 payload=payload or {}, source="agent", status=status)
+        except Exception as e:  # noqa: BLE001 审计失败不得影响业务
+            logging.getLogger(__name__).debug("链式审计留痕失败 %s: %s", action, e)
+
     def log_config_access(self, config_key: str, user: str = "system"):
         """
         记录配置访问
@@ -875,7 +891,8 @@ class AuditLogger:
             user: 访问用户（默认为系统）
         """
         self._logger.info(log_dict({'module_name': 'logging_utils', 'action': 'logging_utils.log_config_access.config_access', 'message': f'CONFIG_ACCESS | user={user} | key={config_key}'}))
-    
+        self._chain_audit('config.access', actor=user, subject=f'config:{config_key}')
+
     def log_config_modification(self, config_key: str, user: str = "system"):
         """
         记录配置修改
@@ -885,7 +902,8 @@ class AuditLogger:
             user: 修改用户（默认为系统）
         """
         self._logger.info(log_dict({'module_name': 'logging_utils', 'action': 'logging_utils.log_config_modification.config_modify', 'message': f'CONFIG_MODIFY | user={user} | key={config_key}'}))
-    
+        self._chain_audit('config.modify', actor=user, subject=f'config:{config_key}')
+
     def log_secure_config_access(self, config_key: str, success: bool, user: str = "system"):
         """
         记录安全配置访问
@@ -897,7 +915,11 @@ class AuditLogger:
         """
         status = "SUCCESS" if success else "FAILED"
         self._logger.info(log_dict({'module_name': 'logging_utils', 'action': 'logging_utils.log_secure_config_access.secure_config_access', 'message': f'SECURE_CONFIG_ACCESS | user={user} | key={config_key} | status={status}'}))
-    
+        self._chain_audit('config.secure_access', actor=user,
+                          subject=f'config:{config_key}',
+                          payload={'success': bool(success)},
+                          status='success' if success else 'failed')
+
     def log_encryption_key_access(self, success: bool, user: str = "system"):
         """
         记录加密密钥访问
@@ -908,7 +930,11 @@ class AuditLogger:
         """
         status = "SUCCESS" if success else "FAILED"
         self._logger.info(log_dict({'module_name': 'logging_utils', 'action': 'logging_utils.log_encryption_key_access.encryption_key_access', 'message': f'ENCRYPTION_KEY_ACCESS | user={user} | status={status}'}))
-    
+        self._chain_audit('config.encryption_key_access', actor=user,
+                          subject='config:encryption_key',
+                          payload={'success': bool(success)},
+                          status='success' if success else 'failed')
+
     def log_permission_change(self, action: str, resource: str, user: str = "system"):
         """
         记录权限变更
@@ -919,7 +945,9 @@ class AuditLogger:
             user: 操作用户（默认为系统）
         """
         self._logger.info(log_dict({'module_name': 'logging_utils', 'action': 'logging_utils.log_permission_change.permission_change', 'message': f'PERMISSION_CHANGE | user={user} | action={action} | resource={resource}'}))
-    
+        self._chain_audit('permission.change', actor=user, subject=str(resource),
+                          payload={'operation': str(action)})
+
     def log_authentication(self, username: str, success: bool, ip_address: str = None):
         """
         记录认证尝试
@@ -932,6 +960,9 @@ class AuditLogger:
         status = "SUCCESS" if success else "FAILED"
         ip_info = f" | ip={ip_address}" if ip_address else ""
         self._logger.info(log_dict({'module_name': 'logging_utils', 'action': 'logging_utils.log_authentication.authentication', 'message': f'AUTHENTICATION | username={username} | status={status}{ip_info}'}))
+        self._chain_audit('auth.attempt', actor=username, subject=f'user:{username}',
+                          payload={'success': bool(success), 'ip': ip_address or ""},
+                          status='success' if success else 'failed')
     
     def log_sensitive_operation(self, operation: str, details: dict = None, user: str = "system"):
         """
@@ -943,12 +974,17 @@ class AuditLogger:
             user: 操作用户（默认为系统）
         """
         details_str = ""
+        detail_keys: list = []
         if details:
             sanitizer = SensitiveDataFilter()
             sanitized_details = sanitizer._sanitize_dict(details)
             details_str = f" | details={json.dumps(sanitized_details, ensure_ascii=False)}"
-        
+            detail_keys = sorted(str(k) for k in (details or {}).keys())
+
         self._logger.info(log_dict({'module_name': 'logging_utils', 'action': 'logging_utils.log_sensitive_operation.sensitive_operation', 'message': f'SENSITIVE_OPERATION | user={user} | operation={operation}{details_str}'}))
+        # 链式审计只记「操作名 + 详情字段名」，值由门面二次脱敏（绝不落原文）
+        self._chain_audit('sensitive.operation', actor=user, subject=str(operation),
+                          payload={'detail_keys': detail_keys})
 
 
 # 全局审计日志实例

@@ -58,7 +58,7 @@ def enforce_review(skill, *, force: bool = False, actor: str = "reviewer",
 
 
 def audit_exemption(skill_id: str, *, actor: str, reason: str) -> None:
-    """豁免发布审计日志（JSONL 追加；写盘失败仅告警，不阻断发布）。"""
+    """豁免发布审计日志（JSONL 追加 + 链式审计；写盘失败仅告警，不阻断发布）。"""
     rec = {
         "ts": datetime.now().isoformat(timespec="seconds"),
         "event": "review_waiver_publish",
@@ -73,6 +73,15 @@ def audit_exemption(skill_id: str, *, actor: str, reason: str) -> None:
             f.write(json.dumps(rec, ensure_ascii=False) + "\n")
     except OSError as e:
         logger.warning("[ReviewGate] 审计日志写入失败 skill=%s: %s", skill_id, e)
+    # S2-02：豁免发布是治理关键动作（绕过评审闸门），必须进链（与 UI/Agent 同表）
+    try:
+        from agent.audit import audit as _audit_facade
+        _audit_facade.record(
+            "skill.review_waiver_publish", actor=actor, subject=f"skill:{skill_id}",
+            payload={"reason": str(reason or "")[:400], "legacy": _audit_file()},
+            source="agent", status="waived")
+    except Exception as e:  # noqa: BLE001 审计失败不得阻断发布
+        logger.debug("[ReviewGate] 链式审计留痕失败 skill=%s: %s", skill_id, e)
 
 
 def read_audit_log(limit: int = 100, skill_id: str = "",

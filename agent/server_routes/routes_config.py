@@ -16,6 +16,15 @@ from agent.config_validation import (
     validate_dict_against_rules,
 )
 
+# S2-02 审计平权：设置类写路由的语义化审计（不可用时退化为 no-op）
+try:
+    from agent.audit.ui_middleware import audit_action
+except Exception:  # noqa: BLE001 审计模块不可用 → 路由功能不受影响
+    def audit_action(*_a, **_kw):  # type: ignore[misc]
+        def _decorator(func):
+            return func
+        return _decorator
+
 logger = logging.getLogger(__name__)
 
 def _trace_id():
@@ -76,10 +85,13 @@ def register_routes(app, state):
     # ═══════════════════════════════════════════════════
 
     @app.route("/api/config", methods=["GET", "POST"])
+    @audit_action("config.write", payload_keys=("provider", "model", "base_url",
+                                                "api_endpoint"))
     @trace_route("Config")
     @require_token
     @log_request()
     def api_config():
+        """LLM 配置读写（S2-02：POST 写操作显式审计 config.write；api_key 内容不入链）"""
         if request.method == "GET":
             return jsonify(Yunshu.get_config())
 

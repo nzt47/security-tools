@@ -23,6 +23,15 @@ from agent.skills_mgmt import (
 )
 from agent.skills_mgmt.reviewer import ReviewThresholds
 
+# S2-02 审计平权：关键写路由的语义化审计装饰器（不可用时退化为 no-op，不阻断路由注册）
+try:
+    from agent.audit.ui_middleware import audit_action
+except Exception:  # noqa: BLE001 审计模块不可用 → 路由功能不受影响
+    def audit_action(*_a, **_kw):  # type: ignore[misc]
+        def _decorator(func):
+            return func
+        return _decorator
+
 logger = logging.getLogger(__name__)
 
 
@@ -650,11 +659,12 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/skills-mgmt/<skill_id>/publish", methods=["POST"])
+    @audit_action("skill.publish", subject_arg="skill_id")
     @trace_route("SkillsMgmt")
     @require_token
     @log_request()
     def api_skills_mgmt_publish(skill_id):
-        """发布技能（TASK-04 Step 3 强制审核链）
+        """发布技能（TASK-04 Step 3 强制审核链；S2-02：显式审计动作 skill.publish）
 
         force=1 显式豁免强制审核（须写审计日志 review_waiver_publish）；
         reason 为豁免原因（默认 http_waiver）。
@@ -718,11 +728,12 @@ def register_routes(app, state):
             return jsonify({"ok": False, "error": str(e)}), 500
 
     @app.route("/api/skills-mgmt/<skill_id>", methods=["DELETE"])
+    @audit_action("skill.delete", subject_arg="skill_id")
     @trace_route("SkillsMgmt")
     @require_token
     @log_request()
     def api_skills_mgmt_delete(skill_id: str):
-        """删除技能"""
+        """删除技能（S2-02：显式审计动作 skill.delete，与 Agent 操作同表）"""
         try:
             _svc().delete(skill_id)
             return jsonify({"ok": True})

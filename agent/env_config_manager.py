@@ -220,6 +220,18 @@ class EnvConfigManager:
             # JSONL 格式：每行一个 JSON 对象，追加写入
             with open(log_path, 'a', encoding='utf-8') as f:
                 f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+            # S2-02：配置变更同步写入链式审计表（旧 JSONL 轨保留；UI/Agent 同表）
+            try:
+                from agent.audit import audit as _audit_facade
+                _audit_facade.record(
+                    f'config.env_{action}', actor=entry.get('user') or 'system',
+                    subject=f'env:{key}',
+                    payload={'key': key, 'pid': entry.get('pid'),
+                             'trace_id': entry.get('trace_id'),
+                             'legacy': 'logs/config_audit.jsonl'},
+                    source='agent', status='success')
+            except Exception as _ae:  # noqa: BLE001 审计失败不阻塞配置写入
+                logger.debug(f'[Env配置] 链式审计留痕失败: {_ae}')
         except Exception as e:
             # 失败降级：仅 warning，不阻塞主流程
             # 原因：审计日志是合规增强，不应破坏配置写入（写入已成功）

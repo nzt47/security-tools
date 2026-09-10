@@ -181,9 +181,90 @@ def redact_then_hash(data: Any) -> tuple:
 
     Why 顺序关键：若先哈希再脱敏，哈希将绑定原文（可被字典攻击还原）；
     先脱敏再哈希使哈希只绑定脱敏后内容，原文不可恢复（§3.4 / 验收标准）。
+
+    S2-02（S2-01 遗留 #3）：脱敏**确实发生**时把该动作写入链式审计
+    （`trace.redact`，只记字段数与字段名，**绝不记被脱敏的值**）。
     """
     redacted = redact(data)
+    _audit_redaction_event(data, redacted)
     return redacted, hash_content(redacted)
+
+
+def _safe_changed(original: Any, redacted: Any) -> bool:
+    """安全比较（对象可能不支持 == / 返回数组等）——异常视为未变更"""
+    try:
+        return bool(original != redacted)
+    except Exception:  # noqa: BLE001 不可比较对象 → 不判定为变更
+        return False
+
+
+def _redacted_kinds(original: Any, redacted: Any) -> tuple:
+    """统计脱敏变更 → (变更计数, 顶层字段名清单)
+
+    只暴露**字段名**，不暴露任何值（避免把被脱敏的内容写进审计链）。
+    """
+    if isinstance(original, dict) and isinstance(redacted, dict):
+        kinds = [str(k) for k in original
+                 if k in redacted and _safe_changed(original.get(k), redacted.get(k))]
+        return len(kinds), kinds
+    if isinstance(original, list) and isinstance(redacted, list):
+        changed = sum(1 for a, b in zip(original, redacted) if _safe_changed(a, b))
+        if len(original) != len(redacted):
+            changed = max(changed, 1)
+        return changed, ["[list]"] if changed else []
+    if _safe_changed(original, redacted) and original not in (None, "", {}, []):
+        return 1, ["[text]"]
+    return 0, []
+
+
+def _audit_redaction_event(original: Any, redacted: Any) -> None:
+    """脱敏动作入链（best-effort；无变更则不产生审计噪声）"""
+    try:
+        if not _env_audit_trace_events():
+            return
+        count, kinds = _redacted_kinds(original, redacted)
+        if count <= 0:
+            return
+        from agent.audit import audit as _audit_facade
+        _audit_facade.record_redact_event(field_count=count, kinds=kinds)
+    except Exception:  # noqa: BLE001 审计失败绝不影响 trace 写入
+        pass
+
+
+def _env_audit_trace_events() -> bool:
+    """Trace 关键事件是否入链（环境开关 AUDIT_TRACE_EVENTS，默认 1）"""
+    return os.getenv("AUDIT_TRACE_EVENTS", "1").strip().lower() not in (
+        "0", "false", "no", "off")
+
+
+def _audit_trace_closed(trace: "UnifiedTrace") -> None:
+    """任务级 Trace 收尾入链（`trace.closed`，best-effort）"""
+    try:
+        if not _env_audit_trace_events():
+            return
+        from agent.audit import audit as _audit_facade
+        _audit_facade.record_trace_event(trace, event="trace.closed")
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def _audit_trace_failure(trace: "UnifiedTrace") -> None:
+    """能力级 Trace 失败/阻断入链（`trace.tool.failed`/`trace.tool.blocked`）
+
+    成功调用不逐条入链（避免审计噪声），仅治理相关结果留痕。
+    """
+    try:
+        if not _env_audit_trace_events():
+            return
+        status = str(getattr(trace.response, "status", "") or "")
+        if status not in (STATUS_ERROR, STATUS_BLOCKED):
+            return
+        from agent.audit import audit as _audit_facade
+        _audit_facade.record_trace_event(
+            trace, event=f"trace.tool.{status}",
+            extra={"error_code": str(getattr(trace.response, "error_code", "") or "")})
+    except Exception:  # noqa: BLE001
+        pass
 
 
 # ════════════════════════════════════════════════════════════
@@ -1014,6 +1095,8 @@ class TraceFacade:
             schema_version=SCHEMA_VERSION,
         )
         self._store.record(trace, strict=strict)
+        # S2-02：失败/阻断的能力级 Trace 入链（成功调用不逐条入链，避免审计噪声）
+        _audit_trace_failure(trace)
         return trace
 
     def finish(
@@ -1076,6 +1159,8 @@ class TraceFacade:
             schema_version=SCHEMA_VERSION,
         )
         self._store.record(trace)
+        # S2-02：任务级 Trace 收尾入链（`trace.closed`；节点级失败另有 trace.tool.*）
+        _audit_trace_closed(trace)
         # 清理 ContextVar（精确恢复 start() 之前的状态，防泄漏到下一次任务）
         if token is not None:
             TraceContext.exit(token)

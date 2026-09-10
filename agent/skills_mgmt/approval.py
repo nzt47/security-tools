@@ -423,6 +423,7 @@ class ApprovalFlow:
             rec.updated_at = rec.merged_at
             rec.actor = actor
             self._persist()
+            self._audit("approval.merged", rec)
             self._appliers.pop(record_id, None)
             logger.info("[Approval] 变更已合并生效 record=%s actor=%s",
                         record_id, actor)
@@ -446,6 +447,7 @@ class ApprovalFlow:
                 rec.decision_reason = (rec.decision_reason + f" | {note}").strip(" |")
             rec.actor = actor
             self._persist()
+            self._audit("approval.archived", rec, detail={"note": str(note or "")[:200]})
             logger.info("[Approval] 人工执行完成并归档 record=%s actor=%s", record_id, actor)
             return rec
 
@@ -506,10 +508,40 @@ class ApprovalFlow:
 
     # ─── 内部 ───
 
+    def _audit(self, action: str, rec: ApprovalRecord, *,
+               detail: Optional[Dict[str, Any]] = None) -> None:
+        """链式审计留痕（S2-02；best-effort，绝不阻断审批主路径）
+
+        审批是治理关键路径：**提交 / 审批 / 驳回 / 合并 / 归档**全部写入统一链式
+        审计表（P7.2-24 审计平权：与 UI 写路由同表同格式），旧 JSONL 留档不变。
+        """
+        try:
+            from agent.audit import audit as _audit_facade
+            payload: Dict[str, Any] = {
+                "record_id": rec.record_id,
+                "object_type": rec.object_type,
+                "object_id": rec.object_id,
+                "level": rec.level,
+                "state": rec.state,
+                "trigger": rec.trigger,
+                "manual_required": rec.manual_required,
+                "description": str(rec.description or "")[:400],
+                "legacy": "approval_records.jsonl",
+            }
+            if detail:
+                payload.update(detail)
+            _audit_facade.record(
+                action, actor=rec.actor,
+                subject=f"{rec.object_type}:{rec.object_id}", payload=payload,
+                source="agent", status=rec.state)
+        except Exception as e:  # noqa: BLE001 审计失败不得影响审批
+            logger.debug("[Approval] 链式审计留痕失败 action=%s: %s", action, e)
+
     def _append_record(self, rec: ApprovalRecord) -> None:
         self._records.append(rec)
         self._index[rec.record_id] = rec
         self._persist()
+        self._audit("approval.submit", rec)
 
     def _get_required(self, record_id: str) -> ApprovalRecord:
         self._ensure_loaded()
@@ -532,6 +564,7 @@ class ApprovalFlow:
         if reason:
             rec.decision_reason = reason
         self._persist()
+        self._audit(f"approval.{to}", rec, detail={"reason": str(reason or "")[:400]})
         logger.info("[Approval] %s/%s state: %s → %s actor=%s",
                     rec.object_type, rec.object_id, rec.record_id, to, actor)
 
