@@ -49,7 +49,9 @@ from agent.observability.trace_v2 import (
     redact_then_hash,
 )
 
-SECRET_VALUE = "sk-live-SUPERSECRET-0123456789abcdef"
+# 占位密钥：sk-test- 前缀命中仓库密钥扫描白名单（.github/gitleaks-config.toml），
+# 非真实密钥；用途＝验证「脱敏先于哈希 → 原文不可恢复」。
+SECRET_VALUE = "sk-test-SUPERSECRET-0123456789abcdef"
 
 
 def _module_source() -> str:
