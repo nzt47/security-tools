@@ -1,5 +1,5 @@
 {
-  "trace_id": "75e92e3157ce45c5",
+  "trace_id": "a1e55a7f7b224026",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -2856,7 +2856,15 @@
       "layer": "audit",
       "file_path": "agent/audit/logger.py",
       "in_degree": 1,
-      "out_degree": 4
+      "out_degree": 5
+    },
+    {
+      "path": "agent.audit.chain",
+      "name": "chain",
+      "layer": "audit",
+      "file_path": "",
+      "in_degree": 5,
+      "out_degree": 0
     },
     {
       "path": "agent.audit.migration",
@@ -2865,14 +2873,6 @@
       "file_path": "",
       "in_degree": 2,
       "out_degree": 2
-    },
-    {
-      "path": "agent.audit.chain",
-      "name": "chain",
-      "layer": "audit",
-      "file_path": "",
-      "in_degree": 4,
-      "out_degree": 0
     },
     {
       "path": "agent.audit.ui_middleware",
@@ -14468,11 +14468,24 @@
     },
     {
       "source": "agent.audit.logger",
+      "target": "agent.audit.chain",
+      "source_layer": "audit",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 31,
+      "source_file": "agent/audit/logger.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.audit.logger",
       "target": "agent.audit.facade",
       "source_layer": "audit",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 74,
+      "line": 75,
       "source_file": "agent/audit/logger.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -14485,7 +14498,7 @@
       "source_layer": "audit",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 85,
+      "line": 86,
       "source_file": "agent/audit/logger.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -17018,7 +17031,7 @@
   "stats": {
     "total_files": 453,
     "total_nodes": 394,
-    "total_edges": 1066,
+    "total_edges": 1067,
     "cross_layer_edges": 697,
     "violation_edges": 0,
     "dynamic_edges": 1,
@@ -17067,6 +17080,6 @@
       "server_routes": 29,
       "handoff": 1
     },
-    "build_duration_ms": 2146.9718970000004
+    "build_duration_ms": 2256.500347999996
   }
 }

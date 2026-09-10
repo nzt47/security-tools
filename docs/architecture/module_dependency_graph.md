@@ -1354,6 +1354,7 @@ flowchart LR
     agent_web_observability -.-> agent_monitoring_business_metrics
     agent_audit_logger -.-> agent_observability_tracer
     agent_audit_logger -.-> agent_logging_utils
+    agent_audit_logger --> agent_audit_chain
     agent_audit_logger --> agent_audit_facade
     agent_audit_logger --> agent_audit_migration
     agent_audit --> agent_audit_logger
@@ -1560,8 +1561,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 453
 - 模块节点数: 394
-- 依赖边数: 1066
+- 依赖边数: 1067
 - 跨层调用数: 697
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 2146.97 ms
+- 构建耗时: 2256.50 ms
