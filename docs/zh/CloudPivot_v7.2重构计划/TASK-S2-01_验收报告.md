@@ -180,8 +180,9 @@ capability ↔ descriptor join（S1-01 遗留 #3）：
 
 ### ✅ 7. 新增单测全绿、覆盖率 ≥80%
 
-- `tests/unit/test_trace_v2.py`（**99 例**）+ `tests/unit/test_trace_v2_integration.py`
-  （**21 例**）= **120 例全绿**（`120 passed`）。
+- `tests/unit/test_trace_v2.py`（**101 例**）+ `tests/unit/test_trace_v2_integration.py`
+  （**21 例**）= **122 例**（Windows 本地全绿；Linux CI 上 `test_windows_case_insensitive_paths`
+  按 `skipif(os.name != 'nt')` 跳过 → 121 passed / 1 skipped）。
 - `agent/observability/trace_v2.py` 覆盖率（branch=True，仅跑本任务两套件）：
 
 ```
@@ -239,7 +240,7 @@ agent\observability\trace_v2.py     558     33    144     14    93%
 | `agent/orchestrator/orchestrator.py`（存量，+52 行） | 新增模块级 `_begin_unified_task_trace()`/`_end_unified_task_trace()`；`process()` 的 LLM 调用段加 `try/finally`（工具执行期透传 TraceContext，收尾落账任务主 Trace） |
 | `scripts/demo_s2_01_trace.py`（新增，184 行） | 端到端演示 + `data/trace_stats.json` 摘要输出（`--db/--stats/--json`） |
 | `.gitignore`（+3 行） | `data/trace_stats.json`、`data/trace_v2_demo.db`（运行时台账摘要，同 `data/descriptors.json` 性质不入库） |
-| `tests/unit/test_trace_v2.py`（新增，902 行） | **99 例**（schema 10 / 脱敏哈希 12 / TraceContext 10 / workspace_id 5 / store 读写 13 / workspace 不变量 6 / append-only 6 / facade 15 / capability join 5 / capability 引用〔borrowed provenance〕7 / 兜底降级 10） |
+| `tests/unit/test_trace_v2.py`（新增，925 行） | **101 例**（schema 10 / 脱敏哈希 12 / TraceContext 10 / workspace_id 7 / store 读写 13 / workspace 不变量 6 / append-only 6 / facade 15 / capability join 5 / capability 引用〔borrowed provenance〕7 / 兜底降级 10） |
 | `tests/unit/test_trace_v2_integration.py`（新增，339 行） | **21 例**（会话层 4 / 工具链 6 / 编排层 7 / 端到端 4） |
 | 报告（runtime，gitignore） | `data/trace_stats.json`、`data/trace_v2_demo.db` |
 
@@ -260,10 +261,11 @@ agent\observability\trace_v2.py     558     33    144     14    93%
 ## 六、执行证据（2026-09-10 实跑）
 
 ```
-新增套件：120 passed / 0 failed（test_trace_v2.py 99 + test_trace_v2_integration.py 21）
+新增套件：122 例（Windows 全绿；Linux CI 121 passed / 1 skipped〔Windows 专属用例〕）
 覆盖率：agent/observability/trace_v2.py 93%（Stmts 558 / Miss 33 / Branch 144 / BrPart 14）
 全量扫描：python -m pytest tests/unit -q -p no:randomly
-          → 12524 passed / 0 failed / 302 skipped / 13 xfailed / 4 xpassed（24:22）
+          → 12524 passed / 0 failed / 302 skipped / 13 xfailed / 4 xpassed（24:22，修复前口径）
+CI 全量：云枢系统测试流程 21/21 job success（含单元测试 6 shard + 集成 4 shard + E2E + 性能 + 安全）
 既有定向回归：141 + 279 + 311 + 179 = 910 passed / 0 failed
   - tool_trace 65 + tool_router_hybrid_integration 14 + message_handler 17
     + feedback_engineering 16 + circuit_breaker_three_level 29 = 141
