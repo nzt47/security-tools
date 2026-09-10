@@ -115,9 +115,9 @@ parent 链全部指向主 Trace：True
   `TestRedactionBeforeHash::test_redact_then_hash_hashes_redacted_not_original`
   断言 `hash(redacted) != hash(原文)`（若先哈希后脱敏，二者相等 → 用例即失败）。
 - 密钥注入用例：`test_facade_persists_only_redacted_args_and_output`（args 含
-  `api_key=sk-live-...`、output 含 `Bearer sk-live-...`）→ 断言持久化记录 JSON 中
+  `api_key=sk-test-...` 占位密钥、output 含 `Bearer sk-test-...`）→ 断言持久化记录 JSON 中
   **原文子串不存在**，仅存 redacted + `args_hash`/`output_hash`。
-- 演示台账实测（`data/trace_v2_demo.db`，注入 `sk-demo-SHOULD-BE-REDACTED`）：
+- 演示台账实测（`data/trace_v2_demo.db`，注入 `sk-test-DEMO-SHOULD-BE-REDACTED`）：
 
 ```
 rows: 4
@@ -276,7 +276,7 @@ agent\observability\trace_v2.py     558     33    144     14    93%
   - orchestrator 边界（tests/boundary/test_orchestrator_boundary.py）= 29 passed
 演示实跑：scripts/demo_s2_01_trace.py → 链条 4 行、parent 链 3/3、join 3/3、
          全程含 workspace_id=True、任务成功率 0.6667、trace_stats.json 已写出
-         注入密钥 sk-demo-SHOULD-BE-REDACTED → 台账内 secret leaked: False
+         注入密钥 sk-test-DEMO-SHOULD-BE-REDACTED → 台账内 secret leaked: False
 ```
 
 ---

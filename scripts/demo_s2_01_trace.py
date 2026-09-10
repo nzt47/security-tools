@@ -68,9 +68,13 @@ def run_demo(db_path: str, stats_path: str) -> dict:
     )
 
     # ② 工具级子 Trace（actor 覆盖 human/auto/sub_agent 三态）
+    # 注入的占位密钥用 sk-test- 前缀：命中 .github/gitleaks-config.toml 的占位符白名单
+    # （^sk-(test|secret|real|instance)...，非真实密钥），用途＝验证 redact→hash→持久化
+    # 顺序下原文不可恢复。
     facade.record(
         "cp.builtin.read_file",
-        args={"path": "tests/test_demo.py", "api_key": "sk-demo-SHOULD-BE-REDACTED"},
+        args={"path": "tests/test_demo.py",
+              "api_key": "sk-test-DEMO-SHOULD-BE-REDACTED"},
         output={"ok": True, "content": "def test_demo(): assert 1 == 2"},
         actor=ACTOR_HUMAN,
         input_tokens=120, output_tokens=40, cost_usd=0.0009,
