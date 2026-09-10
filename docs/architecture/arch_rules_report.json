@@ -1,5 +1,5 @@
 {
-  "trace_id": "12f8d66c34ca494a",
+  "trace_id": "acbe9d8dbef44801",
   "root_dir": "agent",
   "passed": true,
   "total_rules": 7,
@@ -104,7 +104,7 @@
       "feedback_collector": 1,
       "task_planner": 5
     },
-    "build_duration_ms": 2092.452900018543
+    "build_duration_ms": 1946.0340000223368
   },
-  "duration_ms": 4020.71
+  "duration_ms": 3683.8
 }

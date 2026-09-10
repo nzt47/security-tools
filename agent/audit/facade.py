@@ -131,6 +131,7 @@ _REDACTED = "********"
 
 #: 文本级兜底脱敏规则（与 observability 侧同形：密钥/令牌形态不入链）
 _TEXT_PATTERNS = None
+_BEARER_PATTERN = None
 
 
 def _text_patterns():
@@ -142,9 +143,17 @@ def _text_patterns():
             _re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b"),
             _re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
             _re.compile(r"\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b"),
-            _re.compile(r"(?i)Bearer\s+[A-Za-z0-9\-._~+/]+=*"),
         )
     return _TEXT_PATTERNS
+
+
+def _bearer_pattern():
+    """Authorization 头形态单独处理：保留 `Bearer ` 前缀（与 trace_v2 兜底同形）"""
+    global _BEARER_PATTERN
+    if _BEARER_PATTERN is None:
+        import re as _re
+        _BEARER_PATTERN = _re.compile(r"(?i)Bearer\s+[A-Za-z0-9\-._~+/]+=*")
+    return _BEARER_PATTERN
 
 
 def _minimal_redact(data: Any) -> Any:
@@ -164,7 +173,7 @@ def _minimal_redact(data: Any) -> Any:
         text = data
         for pattern in _text_patterns():
             text = pattern.sub(_REDACTED, text)
-        return text
+        return _bearer_pattern().sub("Bearer " + _REDACTED, text)
     return data
 
 

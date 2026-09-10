@@ -171,6 +171,60 @@ class TestRedaction:
         got = chain.get(e.seq)
         assert got.recompute_payload_hash() == got.payload_hash
 
+    # ── 依赖倒置注入点与兜底脱敏（CI 循环依赖修复引入的分支） ──
+
+    def test_minimal_redact_masks_text_level_secrets(self):
+        """未注册脱敏器时的兜底：文本级密钥形态（sk-/ghp_/AKIA/JWT/Bearer）"""
+        from agent.audit.facade import _minimal_redact
+        assert "sk-test-TEXTLEVEL-LEAK" not in _minimal_redact(
+            "key=sk-test-TEXTLEVEL-LEAK;")
+        assert "ghp_" not in _minimal_redact("tok ghp_" + "a" * 24)
+        assert "AKIA" not in _minimal_redact("AKIAABCDEFGHIJKLMNOP")
+        assert _minimal_redact("Bearer abc.def.ghi") == "Bearer ********"
+        assert _minimal_redact(123) == 123          # 非字符串原样返回
+
+    def test_redact_payload_falls_back_when_sanitizer_absent(self, monkeypatch):
+        """脱敏器未注册（observability 未导入）→ 内置兜底仍不落原文"""
+        monkeypatch.setattr(facade_mod, "_PAYLOAD_SANITIZER", None)
+        out = redact_payload({"api_key": "sk-test-FALLBACK", "note": "Bearer xyz"})
+        assert out["api_key"] == "********"
+        assert out["note"] == "Bearer ********"
+
+    def test_redact_payload_falls_back_when_sanitizer_raises(self, monkeypatch):
+        """脱敏器异常 → 兜底（绝不返回原文）"""
+        def _boom(_payload):
+            raise RuntimeError("sanitizer down")
+
+        monkeypatch.setattr(facade_mod, "_PAYLOAD_SANITIZER", _boom)
+        assert redact_payload({"password": "p"}) == {"password": "********"}
+
+    def test_injection_points_roundtrip(self):
+        """注入点可注册/注销（依赖倒置接口契约）——**用例结束必须还原真实注册**"""
+        from agent.audit import facade as fm
+        prev_sanitizer = fm._PAYLOAD_SANITIZER
+        prev_provider = fm._TRACE_CONTEXT_PROVIDER
+        try:
+            fm.set_payload_sanitizer(lambda p: "S")
+            assert fm.redact_payload({"a": 1}) == "S"
+            fm.set_payload_sanitizer(None)
+            assert fm.redact_payload({"a": 1}) == {"a": 1}
+
+            fm.set_trace_context_provider(lambda: {"trace_id": "t"})
+            assert fm._trace_context_leaf() == {"trace_id": "t"}
+            fm.set_trace_context_provider(
+                lambda: (_ for _ in ()).throw(RuntimeError("provider down")))
+            assert fm._trace_context_leaf() == {}      # 提供者异常 → 无上下文
+        finally:
+            fm.set_payload_sanitizer(prev_sanitizer)
+            fm.set_trace_context_provider(prev_provider)
+        # 还原后：真实脱敏器/上下文提供者仍生效（不污染同进程后续用例）
+        assert fm.redact_payload({"api_key": "sk-test-RESTORED"})["api_key"] == "********"
+
+    def test_ui_actor_reset_tolerates_bad_token(self):
+        """reset_ui_actor 容错：非法 token 走显式清空分支"""
+        reset_ui_actor(("not-a-token", "not-a-token"))
+        assert get_ui_context() == {}
+
 
 # ════════════════════════════════════════════════════════════
 #  3. 开关 / best-effort / 严格模式
