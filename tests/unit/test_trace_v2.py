@@ -13,6 +13,7 @@
 """
 
 import json
+import os
 import pathlib
 import sqlite3
 import time
@@ -350,10 +351,26 @@ class TestWorkspaceId:
     def test_deterministic(self):
         assert derive_workspace_id("/a/b/c") == derive_workspace_id("/a/b/c")
 
-    def test_normalized_case_and_separators(self):
-        a = derive_workspace_id("C:/Repo/Demo")
-        b = derive_workspace_id("c:\\repo\\demo")
-        assert a == b
+    def test_normalized_case_and_separators(self, tmp_path):
+        """平台规范化（os.path.normcase）后恒等——跨平台安全。
+
+        Why 不用 `C:/Repo/Demo` vs `c:\\repo\\demo` 直接断言：Linux 上
+        normcase 为恒等且反斜杠非分隔符，两者本就是不同路径（CI ubuntu 首轮实测失败）。
+        大小写不敏感语义单独由 test_windows_case_insensitive_paths 覆盖（skipif nt）。
+        """
+        p = str(tmp_path / "Repo" / "Demo")
+        assert derive_workspace_id(p) == derive_workspace_id(os.path.normcase(p))
+
+    def test_normalized_separator_variants(self, tmp_path):
+        """同一路径的 / 与平台分隔符写法恒等（两种写法在本平台均指向同一路径）"""
+        p = tmp_path / "Repo" / "Demo"
+        mixed = str(p).replace(os.sep, "/") if os.sep != "/" else str(p)
+        assert derive_workspace_id(str(p)) == derive_workspace_id(mixed)
+
+    @pytest.mark.skipif(os.name != "nt",
+                        reason="Windows 路径大小写不敏感语义（Linux 上 normcase 为恒等）")
+    def test_windows_case_insensitive_paths(self):
+        assert derive_workspace_id("C:/Repo/Demo") == derive_workspace_id("c:\\repo\\demo")
 
     def test_different_paths_differ(self):
         assert derive_workspace_id("/a/b") != derive_workspace_id("/a/c")
