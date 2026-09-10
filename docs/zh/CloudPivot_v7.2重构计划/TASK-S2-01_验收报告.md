@@ -303,3 +303,10 @@ SQLite 轨迹）、`subscriber`（任务/会话级内存 span）、`tracer`（tr
 *补记二：`TraceFacade.record()` 的 parent 串联规则为「存在当前任务 TraceContext 时，
 trace_id 为新生成子 id、parent_trace_id=当前任务 trace_id；无上下文时不臆造父链」——
 后者使离线/单测场景的独立记录不产生悬挂父引用（`test_record_without_context_has_no_parent`）。*
+
+*补记三（交付收尾，2026-09-10）：首轮 push（`b9f17236`）CI 的「硬编码密码扫描（全分支）」
+job 报 1 处 gitleaks 误报——演示/单测的**假密钥占位串** `sk-demo-…` 命中规则 8
+`\b(sk|sk-ant)-[A-Za-z0-9_\-]{20,}\b`。已改用仓库既有白名单约定的 `sk-test-` 前缀
+（`.github/gitleaks-config.toml` 白名单 `^sk-(test|secret|real|instance)…`），语义与验证强度
+不变；修复提交 `3dc065cf` 该 job **success**。详见
+[S2-01_交付结案报告_20260910.md](S2-01_交付结案报告_20260910.md) §4.1。*
