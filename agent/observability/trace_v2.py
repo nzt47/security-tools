@@ -225,7 +225,7 @@ def _audit_redaction_event(original: Any, redacted: Any) -> None:
         count, kinds = _redacted_kinds(original, redacted)
         if count <= 0:
             return
-        from agent.audit import audit as _audit_facade
+        from agent.audit.facade import audit as _audit_facade
         _audit_facade.record_redact_event(field_count=count, kinds=kinds)
     except Exception:  # noqa: BLE001 审计失败绝不影响 trace 写入
         pass
@@ -242,7 +242,7 @@ def _audit_trace_closed(trace: "UnifiedTrace") -> None:
     try:
         if not _env_audit_trace_events():
             return
-        from agent.audit import audit as _audit_facade
+        from agent.audit.facade import audit as _audit_facade
         _audit_facade.record_trace_event(trace, event="trace.closed")
     except Exception:  # noqa: BLE001
         pass
@@ -259,12 +259,45 @@ def _audit_trace_failure(trace: "UnifiedTrace") -> None:
         status = str(getattr(trace.response, "status", "") or "")
         if status not in (STATUS_ERROR, STATUS_BLOCKED):
             return
-        from agent.audit import audit as _audit_facade
+        from agent.audit.facade import audit as _audit_facade
         _audit_facade.record_trace_event(
             trace, event=f"trace.tool.{status}",
             extra={"error_code": str(getattr(trace.response, "error_code", "") or "")})
     except Exception:  # noqa: BLE001
         pass
+
+
+def _audit_trace_context_leaf() -> dict:
+    """供审计门面读取的 TraceContext 叶子字段（依赖倒置注入用）
+
+    只回传叶子字段（trace_id/subject_id/workspace_id），不搬运 live 对象。
+    """
+    ctx = TraceContext.current()
+    if ctx is None:
+        return {}
+    return {
+        "trace_id": str(getattr(ctx, "trace_id", "") or ""),
+        "subject_id": str(getattr(ctx, "subject_id", "") or ""),
+        "workspace_id": str(getattr(ctx, "workspace_id", "") or ""),
+    }
+
+
+def _register_audit_hooks() -> bool:
+    """把本模块的「脱敏器 + TraceContext 提供者」注入审计包（依赖倒置）
+
+    方向 `agent.observability.trace_v2 → agent.audit.facade` 单向：审计包不得反向
+    导入本模块（否则构成 CI 架构规则禁止的循环依赖）。审计包不可用时静默跳过。
+    """
+    try:
+        from agent.audit.facade import set_payload_sanitizer, set_trace_context_provider
+        set_payload_sanitizer(redact)
+        set_trace_context_provider(_audit_trace_context_leaf)
+        return True
+    except Exception:  # noqa: BLE001 审计包不可用 → 审计侧用内置兜底脱敏
+        return False
+
+
+_AUDIT_HOOKS_REGISTERED = _register_audit_hooks()
 
 
 # ════════════════════════════════════════════════════════════

@@ -403,6 +403,83 @@ class TestUIAuditEquality:
 # ════════════════════════════════════════════════════════════
 
 
+class TestArchitectureGuard:
+    """CI 架构规则护栏（no_circular_dependency / import-linter）：依赖倒置不得回退
+
+    背景：S2-02 首轮 CI 因「agent.logging_utils → agent.audit」与
+    「agent.audit.facade → agent.observability.trace_v2」两处反向导入被判循环依赖
+    （导致 21 项 no_circular_dependency 违规 + import-linter 契约 BROKEN）。
+    修复方式为依赖倒置（审计侧注入 sink / observability 侧注册 provider），
+    本用例把该约束固化为回归护栏。
+    """
+
+    @staticmethod
+    def _src(module) -> str:
+        import pathlib
+        return pathlib.Path(module.__file__).read_text(encoding="utf-8")
+
+    @staticmethod
+    def _imported_modules(module) -> set:
+        """源码中的**实际导入语句**目标（AST 级，避免误判注释/文档字符串）"""
+        import ast
+        tree = ast.parse(TestArchitectureGuard._src(module))
+        names = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                names.update(a.name for a in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                names.add(node.module)
+        return names
+
+    def test_logging_utils_does_not_import_audit(self):
+        """logging_utils 不得导入 agent.audit（否则与其 AuditLogger→logging_utils 成环）"""
+        import agent.logging_utils as lu
+        imported = self._imported_modules(lu)
+        assert not [m for m in imported if m == "agent.audit"
+                    or m.startswith("agent.audit.")], imported
+
+    def test_audit_facade_does_not_import_observability(self):
+        """审计包不得导入 observability（否则与 trace_v2→审计 上报成环）"""
+        from agent.audit import facade as fmod
+        imported = self._imported_modules(fmod)
+        assert not [m for m in imported if m.startswith("agent.observability")], imported
+
+    def test_audit_modules_free_of_上层依赖(self):
+        from agent.audit import chain as cmod
+        from agent.audit import migration as mmod
+        from agent.audit import ui_middleware as umod
+        for mod in (cmod, mmod, umod):
+            imported = self._imported_modules(mod)
+            bad = [m for m in imported if m.startswith("agent.observability")]
+            assert not bad, (mod.__name__, bad)
+
+    def test_logging_sink_is_injected_by_audit_package(self):
+        """审计包导入时须已把写链函数注入 logging_utils（敏感操作面入链前提）"""
+        import agent.audit  # noqa: F401 触发注入
+        from agent.logging_utils import get_audit_chain_sink
+        assert get_audit_chain_sink() is not None
+
+    def test_trace_context_provider_registered_by_observability(self):
+        """observability 导入时须注册 TraceContext 提供者（审计记录含 trace_id 前提）"""
+        from agent.audit import facade as fmod
+        from agent.observability.trace_v2 import TraceContext
+        ctx = TraceContext(trace_id="arch-t", workspace_id="ws-arch",
+                           subject_id="op-arch")
+        token = ctx.enter()
+        try:
+            leaf = fmod._trace_context_leaf()
+        finally:
+            TraceContext.exit(token)
+        assert leaf.get("trace_id") == "arch-t"
+        assert leaf.get("workspace_id") == "ws-arch"
+
+    def test_context_leaf_is_empty_without_provider(self, monkeypatch):
+        """未注册提供者时报空（不臆造上下文）"""
+        from agent.audit import facade as fmod
+        monkeypatch.setattr(fmod, "_TRACE_CONTEXT_PROVIDER", None)
+        assert fmod._trace_context_leaf() == {}
+
+
 class TestVerifyCli:
     @staticmethod
     def _cli():

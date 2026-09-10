@@ -60,6 +60,33 @@ _ui_actor_var: ContextVar = ContextVar("audit_ui_actor", default=None)
 #: UI 请求上下文中的来源信息（ip / endpoint / 身份来源等，仅叶子字段）
 _ui_context_var: ContextVar = ContextVar("audit_ui_context", default=None)
 
+# ════════════════════════════════════════════════════════════
+#  依赖倒置注入点（避免 agent.audit ↔ agent.observability 循环依赖）
+# ════════════════════════════════════════════════════════════
+# 架构约束（CI 规则 no_circular_dependency / import-linter）：审计包不得在**模块级或
+# 函数级**静态导入 agent.observability / agent.logging_utils 以外的上层模块，否则会与
+# 「observability.trace_v2 → agent.audit（上报审计事件）」「logging_utils.AuditLogger →
+# agent.audit（上报敏感操作）」形成环。故本模块只提供**注入点**，由对侧在导入时注册：
+#   - TraceContext 叶子字段读取：由 agent.observability.trace_v2 注册；
+#   - 载荷脱敏器：由 agent.observability.trace_v2 注册（未注册时用包内置兜底）。
+
+#: TraceContext 叶子字段提供者：() -> {"trace_id","subject_id","workspace_id"}
+_TRACE_CONTEXT_PROVIDER: Optional[Callable[[], Dict[str, str]]] = None
+#: 载荷脱敏器：payload -> payload
+_PAYLOAD_SANITIZER: Optional[Callable[[Any], Any]] = None
+
+
+def set_trace_context_provider(provider: Optional[Callable[[], Dict[str, str]]]) -> None:
+    """注册 TraceContext 叶子提供者（依赖倒置；由 observability 侧调用）"""
+    global _TRACE_CONTEXT_PROVIDER
+    _TRACE_CONTEXT_PROVIDER = provider
+
+
+def set_payload_sanitizer(sanitizer: Optional[Callable[[Any], Any]]) -> None:
+    """注册载荷脱敏器（依赖倒置；由 observability 侧调用，未注册时用内置兜底）"""
+    global _PAYLOAD_SANITIZER
+    _PAYLOAD_SANITIZER = sanitizer
+
 
 def _env_flag(name: str, default: str = "1") -> bool:
     return os.getenv(name, default).strip().lower() not in ("0", "false", "no", "off")
@@ -89,25 +116,39 @@ def reset_ui_actor(tokens: Any) -> None:
 
 
 def redact_payload(payload: Any) -> Any:
-    """载荷脱敏（主路径复用 trace_v2.redact；不可用时内置兜底掩码）"""
-    try:
-        from agent.observability.trace_v2 import redact as _redact
-        return _redact(payload)
-    except Exception:  # noqa: BLE001 依赖缺失/异常 → 兜底（绝不放原文入链）
+    """载荷脱敏（已注册脱敏器优先，未注册时用包内置兜底）——**绝不落原文**"""
+    if _PAYLOAD_SANITIZER is not None:
         try:
-            from agent.observability.trace_v2 import _fallback_redact
-            return _fallback_redact(payload)
-        except Exception:  # noqa: BLE001
-            return _minimal_redact(payload)
+            return _PAYLOAD_SANITIZER(payload)
+        except Exception:  # noqa: BLE001 脱敏器异常 → 兜底（绝不返回原文）
+            pass
+    return _minimal_redact(payload)
 
 
 _SENSITIVE_KEYS = ("password", "passwd", "pwd", "secret", "api_key", "apikey", "token",
                    "auth", "credential", "private_key", "authorization")
 _REDACTED = "********"
 
+#: 文本级兜底脱敏规则（与 observability 侧同形：密钥/令牌形态不入链）
+_TEXT_PATTERNS = None
+
+
+def _text_patterns():
+    global _TEXT_PATTERNS
+    if _TEXT_PATTERNS is None:
+        import re as _re
+        _TEXT_PATTERNS = (
+            _re.compile(r"\bsk-[A-Za-z0-9_-]{8,}\b"),
+            _re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b"),
+            _re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
+            _re.compile(r"\beyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b"),
+            _re.compile(r"(?i)Bearer\s+[A-Za-z0-9\-._~+/]+=*"),
+        )
+    return _TEXT_PATTERNS
+
 
 def _minimal_redact(data: Any) -> Any:
-    """最小兜底掩码（仅按字段名，不做文本级规则）"""
+    """最小兜底掩码（字段名 + 文本级密钥形态；脱敏器未注册时的最后防线）"""
     if isinstance(data, dict):
         out: Dict[Any, Any] = {}
         for k, v in data.items():
@@ -119,6 +160,11 @@ def _minimal_redact(data: Any) -> Any:
         return out
     if isinstance(data, list):
         return [_minimal_redact(it) for it in data]
+    if isinstance(data, str):
+        text = data
+        for pattern in _text_patterns():
+            text = pattern.sub(_REDACTED, text)
+        return text
     return data
 
 
@@ -394,23 +440,42 @@ class AuditFacade:
 
 
 def _trace_context_leaf() -> Dict[str, str]:
-    """读取 TraceContext 的叶子字段（trace_id/workspace_id/subject_id）；不可用 → 空"""
+    """读取 TraceContext 的叶子字段（trace_id/workspace_id/subject_id）
+
+    依赖倒置：本包不导入 `agent.observability.trace_v2`（否则与「trace_v2 → agent.audit」
+    形成循环依赖）；由 trace_v2 在导入时注册提供者，未注册时报空（不臆造上下文）。
+    """
+    if _TRACE_CONTEXT_PROVIDER is None:
+        return {}
     try:
-        from agent.observability.trace_v2 import TraceContext
-        ctx = TraceContext.current()
-        if ctx is None:
-            return {}
-        return {
-            "trace_id": str(getattr(ctx, "trace_id", "") or ""),
-            "subject_id": str(getattr(ctx, "subject_id", "") or ""),
-            "workspace_id": str(getattr(ctx, "workspace_id", "") or ""),
-        }
-    except Exception:  # noqa: BLE001 TraceContext 不可用 → 无上下文（不臆造）
+        return dict(_TRACE_CONTEXT_PROVIDER() or {})
+    except Exception:  # noqa: BLE001 提供者异常 → 无上下文
         return {}
 
 
 #: 进程级统一审计门面（UI/Agent/Scheduler 共用；**唯一推荐入口**）
 audit = AuditFacade()
+
+
+def _install_logging_audit_sink() -> bool:
+    """把本门面注入 `agent.logging_utils`（敏感操作面：配置/权限/认证/密钥）
+
+    依赖倒置：`agent.logging_utils` **不**导入 `agent.audit`（否则与其
+    `AuditLogger → logging_utils` 形成循环依赖，违反 CI 架构规则）；改由审计包在导入时
+    把「写链函数」注入对侧。方向 `agent.audit → agent.logging_utils` 与既有
+    `agent.audit.logger → agent.logging_utils` 同向，不产生环。
+    """
+    try:
+        from agent.logging_utils import set_audit_chain_sink
+        set_audit_chain_sink(
+            lambda action, **kwargs: audit.record(action, **kwargs))
+        return True
+    except Exception as e:  # noqa: BLE001 logging_utils 不可用 → 敏感操作面暂不保证入链
+        logger.debug("注入 logging_utils 审计链 sink 失败: %s", e)
+        return False
+
+
+_LOGGING_SINK_INSTALLED = _install_logging_audit_sink()
 
 
 def record(action: str, actor: Optional[str] = None, subject: str = "",
@@ -433,5 +498,6 @@ def reset_audit_facade() -> None:
 
 __all__ = [
     "AuditFacade", "audit", "get_audit", "get_ui_context", "record", "redact_payload",
-    "reset_audit_facade", "reset_ui_actor", "set_ui_actor",
+    "reset_audit_facade", "reset_ui_actor", "set_payload_sanitizer",
+    "set_trace_context_provider", "set_ui_actor",
 ]

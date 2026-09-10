@@ -837,6 +837,24 @@ class SensitiveDataFilter(logging.Filter):
 # 审计日志
 # ─────────────────────────────────────────────────
 
+#: 链式审计写入口（依赖倒置注入点，S2-02）
+#: 本模块**不得**导入 `agent.audit`：`agent.audit.logger` 已导入本模块，反向导入会构成
+#: 循环依赖（CI `no_circular_dependency` / import-linter 契约阻断）。审计包导入时经
+#: `set_audit_chain_sink()` 注入；未注入时敏感操作只写文本轨（logs/audit.log）。
+_AUDIT_CHAIN_SINK: Optional[Callable[..., Any]] = None
+
+
+def set_audit_chain_sink(sink: Optional[Callable[..., Any]]) -> None:
+    """注册链式审计写入口（由 `agent.audit.facade` 在导入时调用）"""
+    global _AUDIT_CHAIN_SINK
+    _AUDIT_CHAIN_SINK = sink
+
+
+def get_audit_chain_sink() -> Optional[Callable[..., Any]]:
+    """取得链式审计写入口（未注册 → None）"""
+    return _AUDIT_CHAIN_SINK
+
+
 class AuditLogger:
     """
     权限操作审计日志记录器
@@ -874,11 +892,18 @@ class AuditLogger:
         文本审计日志 `logs/audit.log` 逐字保留（旧轨）；链式轨提供防篡改与
         「UI 与 Agent 同表」（P7.2-24）。配置访问/修改、权限变更、认证尝试、
         加密密钥访问、敏感操作均属治理关键面。
+
+        **依赖倒置**：本模块**不导入** `agent.audit`（否则与
+        `agent.audit.logger → agent.logging_utils` 形成循环依赖，违反 CI 架构规则
+        no_circular_dependency / import-linter）；改由审计包在导入时经
+        `set_audit_chain_sink()` 注入写链函数；未注入时为 no-op。
         """
+        sink = get_audit_chain_sink()
+        if sink is None:
+            return
         try:
-            from agent.audit import audit as _audit_facade
-            _audit_facade.record(action, actor=actor or "system", subject=subject,
-                                 payload=payload or {}, source="agent", status=status)
+            sink(action, actor=actor or "system", subject=subject,
+                 payload=payload or {}, source="agent", status=status)
         except Exception as e:  # noqa: BLE001 审计失败不得影响业务
             logging.getLogger(__name__).debug("链式审计留痕失败 %s: %s", action, e)
 
