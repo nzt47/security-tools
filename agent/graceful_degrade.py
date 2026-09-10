@@ -46,6 +46,34 @@ def get_trace_id() -> str:
     return _trace_id_ctx.get()
 
 
+# ── TASK-S2-03：模型类组件降级 → `model.degraded`（P7.1-18 第 9 事件） ──
+
+#: 组件名含这些片段即视为「模型/推理」类组件（降级需归一到 E_MODEL_DEGRADED）
+_MODEL_COMPONENT_HINTS = ("llm", "model", "chat", "completion", "reasoner",
+                          "embedding", "reranker")
+
+
+def _report_component_degrade(component: Any, level: Any) -> None:
+    """模型类组件降级 → emit `model.degraded {from, to, reason}`（best-effort）
+
+    云枢 `graceful_degrade` 是**通用组件**降级（critic/memory/llm…），本函数只对
+    模型类组件归一为 P7.1-18 的 `model.degraded`；非模型组件不臆造模型事件。
+    """
+    try:
+        name = str(component or "")
+        if not any(hint in name.lower() for hint in _MODEL_COMPONENT_HINTS):
+            return
+        from agent.observability.model_degrade import report_model_degraded
+        level_value = getattr(level, "value", level)
+        report_model_degraded(
+            from_model=name,
+            reason=f"graceful_degrade:{level_value}",
+            extra={"degrade_component": name, "degrade_level": str(level_value),
+                   "degrade_source": "graceful_degrade", "component_level": True})
+    except Exception as e:  # noqa: BLE001 埋点不得影响降级流程
+        logger.debug("[GracefulDegrade] model.degraded 埋点失败: %s", e)
+
+
 # ── 配置与指标数据类 ────────────────────────────────────────
 
 
@@ -907,6 +935,9 @@ class GracefulDegrade:
             state = self._states[component]
             state.level = DegradeLevel.FALLBACK
             state.degrade_until = time.time() + self._config.degrade_seconds
+            level = state.level
+        # TASK-S2-03：模型类组件进入降级 → emit `model.degraded`（P7.1-18 第 9 事件）
+        _report_component_degrade(component, level)
 
     def _maybe_recover(self, component: str) -> None:
         """成功调用后尝试恢复降级状态"""

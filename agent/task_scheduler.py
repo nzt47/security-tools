@@ -40,6 +40,17 @@ def _trace_id():
     return uuid.uuid4().hex[:16]
 
 
+def _record_rerun(task_id: str, task_name: str = "") -> None:
+    """人工重跑任务 → ACR 介入埋点（§6.1 重跑=1；TASK-S2-03；best-effort）"""
+    try:
+        from agent.observability.acr import record_intervention
+        record_intervention("rerun", task_id=str(task_id or ""),
+                            actor="human", source_ref=f"scheduler:{task_id}",
+                            extra={"task_name": str(task_name or "")})
+    except Exception as e:  # noqa: BLE001 埋点不得影响调度执行
+        logger.debug("[TaskScheduler] rerun 埋点失败: %s", e)
+
+
 # 数据文件路径
 DATA_DIR = Path(__file__).parent.parent / "data"
 SCHEDULED_TASKS_FILE = DATA_DIR / "scheduled_tasks.json"
@@ -389,10 +400,15 @@ class TaskScheduler:
                 self.run_task(task)
 
     def execute_now(self, task_id: str) -> Optional[Dict[str, Any]]:
-        """立即执行指定任务（手动触发）"""
+        """立即执行指定任务（手动触发）
+
+        TASK-S2-03 §6.1：人工重跑 = 介入（``rerun`` 权重 1）——这是「重跑」在云枢的
+        真实发生点（用户不经调度周期直接触发任务），埋点 best-effort 不影响执行。
+        """
         task = self.get_task(task_id)
         if not task:
             return None
+        _record_rerun(task_id, str(task.get("name") or ""))
         return self.run_task(task)
 
     def stop(self) -> None:

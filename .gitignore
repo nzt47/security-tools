@@ -59,6 +59,14 @@ data/audit/audit_stats.json
 data/audit/legacy_archive/
 data/audit/legacy_archive_manifest.json
 
+# S2-03 events.v1 事件流运行时产物（统一事件出口 / 受控写台账 / 演示事件流 / 快照摘要）
+# 性质同 data/audit/：运行时留痕，不入库
+data/events/
+data/events_demo/
+data/acr_snapshot.json
+data/utc_snapshot.json
+data/s2_03_demo_trace.db*
+
 # IDE 元数据
 .cursor/
 .trae/
@@ -350,8 +358,10 @@ yunshu-ui/coverage/
 # ≤1 minor 只读兼容，忽略规则保留）
 data/skills_digest_events*.jsonl
 data/skills_assessment_events*.jsonl
-# 人工复核/强制发布审计流水
-data/skills_mgmt_review_audit.jsonl
+# 人工复核/强制发布审计流水（含 log_archiver 按日归档分片
+# `skills_mgmt_review_audit-YYYY-MM-DD.jsonl`——基数名已忽略但分片名此前遗漏，
+# 跨日后归档产生分片即污染工作区；TASK-S2-03 全量回归实测发现并补齐）
+data/skills_mgmt_review_audit*.jsonl
 # 「安全合并」备份（merge-safe 撤销依据，运行时追加）
 data/skill_merge_backups.jsonl
 # 技能自动分类注册表（assignments + auto_classes，运行时追加）

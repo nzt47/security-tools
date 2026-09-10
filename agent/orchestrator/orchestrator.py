@@ -102,8 +102,15 @@ def _begin_unified_task_trace(session_id: Optional[str], task_id: Optional[str] 
 
 
 def _end_unified_task_trace(task_trace_id: str, status: str = "success",
-                            error_code: str = "") -> None:
-    """任务级统一 Trace 收尾（best-effort）：落账任务主 Trace + 清理 TraceContext。"""
+                            error_code: str = "",
+                            user_input: str = "") -> None:
+    """任务级统一 Trace 收尾（best-effort）：落账任务主 Trace + 清理 TraceContext。
+
+    TASK-S2-03：在同一收口点补 ``task.closed`` 埋点（§6.6：intent / difficulty /
+    intervened / intervention_kind）——它是「会话任务完成」的**真实发生点**
+    （含成功与异常早退路径），ACR 分母即由此计数（closed + failed，
+    排除 explore/consult）。
+    """
     if not task_trace_id:
         return
     try:
@@ -111,9 +118,43 @@ def _end_unified_task_trace(task_trace_id: str, status: str = "success",
         ctx = TraceContext.current()
         if ctx is None or ctx.trace_id != task_trace_id:
             return
-        TraceFacade.instance().finish(
+        trace = TraceFacade.instance().finish(
             trace_id=task_trace_id, status=status, error_code=error_code)
+        _record_task_closed_metrics(ctx, status, error_code, user_input, trace)
     except Exception:  # noqa: BLE001
+        pass
+
+
+def _record_task_closed_metrics(ctx: Any, status: str, error_code: str,
+                                user_input: str, trace: Any = None) -> None:
+    """task.closed 埋点（TASK-S2-03 §6.6；best-effort，绝不阻断主链路）
+
+    intent / difficulty 为**启发式分类结果**（只落标签，不落原始文本）；
+    intervened / intervention_kind 由介入台账（同一 correlation_id）推导。
+    """
+    try:
+        from agent.observability import acr as _acr
+        intent = _acr.classify_intent(user_input)
+        difficulty = _acr.classify_difficulty(user_input, intent)
+        closed_status = (_acr.STATUS_CLOSED if status == "success"
+                         else _acr.STATUS_FAILED)
+        duration_ms = None
+        timing = getattr(trace, "timing", None)
+        if timing is not None:
+            duration_ms = getattr(timing, "duration_ms", None)
+        _acr.record_task_closed(
+            task_id=str(getattr(ctx, "task_id", "") or getattr(ctx, "trace_id", "")),
+            status=closed_status, intent=intent, difficulty=difficulty,
+            duration_ms=duration_ms,
+            trace_id=str(getattr(ctx, "trace_id", "")),
+            correlation_id=str(getattr(ctx, "trace_id", "")),
+            # TraceFacade.finish() 已清空 ContextVar → 叶子字段必须由 ctx 显式携带
+            workspace_id=str(getattr(ctx, "workspace_id", "") or ""),
+            subject_id=str(getattr(ctx, "subject_id", "") or ""),
+            extra={"error_code": str(error_code or ""),
+                   "source": "orchestrator.process",
+                   "input_length": len(str(user_input or ""))})
+    except Exception:  # noqa: BLE001 埋点不得影响主链路
         pass
 
 
@@ -1124,8 +1165,10 @@ class Orchestrator:
                 ).to_dict()
             finally:
                 # TASK-S2-01：任务主 Trace 落账（含早退/异常路径，无 ContextVar 泄漏）
+                # TASK-S2-03：同一收口点补 task.closed 埋点（ACR 分母来源）
                 _end_unified_task_trace(
-                    _unified_task_trace_id, _unified_status, _unified_error_code)
+                    _unified_task_trace_id, _unified_status, _unified_error_code,
+                    user_input)
             llm_duration_ms = (time.perf_counter() - _ts_llm_pf) * 1000
         else:
             # wire 规划成功：跳过 LLM 调用与置信度兜底（规划结果视为高置信度）

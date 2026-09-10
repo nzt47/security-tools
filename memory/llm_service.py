@@ -86,6 +86,57 @@ class LLMService:
         logger.info("└─────────────────────────────────────────────")
         logger.warning("├─ 第 %d 次尝试失败: %s", attempt, error)
 
+    # ── TASK-S2-03：模型降级链（P7.1-18 第 9 事件 model.degraded） ──
+
+    def _shadow_service(self, model: str) -> "LLMService":
+        """构造「仅模型名不同」的影子实例（并发安全：不改 self.model）
+
+        影子复用同一 provider/api_key/base_url 与已建客户端；重试包装器按当前配置
+        重新绑定到影子的 ``_do_chat`` / ``_do_summarize``（既有实例零改动）。
+        """
+        import copy
+
+        from agent.error_handler import (
+            ExternalServiceError,
+            TemporaryNetworkError,
+            with_retry,
+        )
+        shadow = copy.copy(self)
+        shadow.model = model
+        shadow._summarize_with_retry = with_retry(
+            max_retries=self.max_retries, initial_delay=self.retry_delay,
+            max_delay=self.MAX_RETRY_DELAY, backoff_factor=2.0,
+            strategy="exponential", jitter_factor=0.1,
+            retryable_exceptions=(TemporaryNetworkError, ExternalServiceError),
+            error_counter="llm.summarize.fallback",
+            on_retry=self._on_summarize_retry)(shadow._do_summarize)
+        shadow._chat_with_retry = with_retry(
+            max_retries=self.max_retries, initial_delay=self.retry_delay,
+            max_delay=self.MAX_RETRY_DELAY, backoff_factor=2.0,
+            strategy="exponential", jitter_factor=0.1,
+            retryable_exceptions=(TemporaryNetworkError, ExternalServiceError),
+            error_counter="llm.chat.fallback",
+            on_retry=self._on_chat_retry)(shadow._do_chat)
+        return shadow
+
+    def _fallback_after_failure(self, kind: str, error: Exception,
+                                invoke) -> dict:
+        """主模型失败收口：**总是** emit `model.degraded`；按开关决定是否真切换
+
+        `CP_MODEL_FALLBACK_ENABLED` 默认 0 → 只发事件不改行为（P4 分级实施）；
+        置 1 且链上有候选时，用 `invoke(影子实例)` 真正降级重试。
+        """
+        try:
+            from agent.observability.model_degrade import handle_primary_failure
+            return handle_primary_failure(
+                model=self.model,
+                reason=f"{kind}: {type(error).__name__}: {error}",
+                retry=lambda candidate: invoke(self._shadow_service(candidate)),
+                provider=self.provider)
+        except Exception as inner:  # noqa: BLE001 埋点/降级不得掩盖原始错误
+            logger.debug("[LLM] 降级处理失败（保留原始异常）: %s", inner)
+            return {}
+
     def _validate_api_key(self, api_key: str):
         """验证 API Key 是否有效
 
@@ -187,6 +238,15 @@ class LLMService:
             logger.error("│   最大Token: %d", max_tokens)
             logger.error("│   最后错误: %s", e)
             logger.error("└─────────────────────────────────────────────")
+            # TASK-S2-03：主模型失败 → emit model.degraded（可选真实降级重试）
+            outcome = self._fallback_after_failure(
+                "summarize", e,
+                lambda shadow: shadow._summarize_with_retry(
+                    messages, max_tokens, system_prompt))
+            if outcome.get("succeeded"):
+                logger.warning("│ ↩ 已降级到 %s 完成摘要（%s）",
+                               outcome.get("to"), outcome.get("chain_source"))
+                return str(outcome["result"])
             raise LLMServiceError(f"摘要生成失败（已重试 {self.max_retries} 次）: {e}") from e
     
     def _do_chat(self, messages: list[dict], system_prompt: str = "",
@@ -259,6 +319,15 @@ class LLMService:
             logger.error("│   最大Token: %d", max_tokens)
             logger.error("│   最后错误: %s", e)
             logger.error("└─────────────────────────────────────────────")
+            # TASK-S2-03：主模型失败 → emit model.degraded（可选真实降级重试）
+            outcome = self._fallback_after_failure(
+                "chat", e,
+                lambda shadow: shadow._chat_with_retry(
+                    messages, system_prompt, max_tokens, temperature))
+            if outcome.get("succeeded"):
+                logger.warning("│ ↩ 已降级到 %s 完成对话（%s）",
+                               outcome.get("to"), outcome.get("chain_source"))
+                return str(outcome["result"])
             raise LLMServiceError(f"对话生成失败（已重试 {self.max_retries} 次）: {e}") from e
 
     def chat_stream(self, messages: list[dict], system_prompt: str = "",

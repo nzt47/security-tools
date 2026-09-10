@@ -59,6 +59,15 @@ class LLMInteraction:
     duration_ms: float = 0.0
     error: str = ""
 
+    # ── TASK-S2-03 UTC 成本埋点（§6.2/§6.6 cost；**additive**，默认值保持既有行为） ──
+    task_id: str = ""                 # 来自 S2-01 TraceContext
+    workspace_id: str = ""            # 来自 S2-01 TraceContext（P7.1-19）
+    subject_id: str = ""              # 来自 S2-01 TraceContext
+    retries: int = 0                  # 本次交互内的重试次数
+    shadow_overhead_ms: float = 0.0   # 影子/附加开销（§6.6 shadow_overhead）
+    cache_hit: bool = False           # P7.1-18：命中缓存 → 不计 token 成本
+    cost_normalized_cents: float = 0.0  # 归一成本（锚价 × 系数表）
+
     def to_dict(self) -> dict:
         d = asdict(self)
         d["timestamp_str"] = time.strftime("%H:%M:%S", time.localtime(self.timestamp))
@@ -113,6 +122,52 @@ class LLMMonitor:
             self._records.append(interaction)
             if len(self._records) > self._max:
                 self._records.pop(0)
+
+        # TASK-S2-03：UTC 成本埋点 + 模型降级事件（best-effort，绝不阻断监控主路径）
+        self._emit_observability(interaction)
+
+    def _emit_observability(self, interaction: LLMInteraction) -> None:
+        """把一次 LLM 交互接入 events.v1（§6.6 cost / P7.1-18 model.degraded）
+
+        - **cost**：task_id/workspace_id/subject_id（S2-01 TraceContext 注入）/
+          model/tokens_in/out/retries/shadow_overhead/cents/cache_hit；
+          缓存命中不计 token（P7.1-18）；同时算出归一成本并回填到 interaction。
+        - **model.degraded**：本次调用带 error → 主模型失败收口 emit
+          `model.degraded {from, to, reason}`（§11.6.0 `E_MODEL_DEGRADED`）；
+          是否真的切换由 `CP_MODEL_FALLBACK_ENABLED`（默认 0）决定，事件如实标注。
+        """
+        try:
+            from agent.observability import events as _events
+            from agent.observability import utc as _utc
+            fields = _events.trace_fields()
+            task_id = interaction.task_id or fields.get("task_id") or ""
+            workspace_id = interaction.workspace_id or fields.get("workspace_id") or ""
+            subject_id = interaction.subject_id or fields.get("subject_id") or ""
+            envelope = _utc.record_cost(
+                model=interaction.model, provider=interaction.provider,
+                source=interaction.source, tokens_in=interaction.request_tokens,
+                tokens_out=interaction.response_tokens,
+                cache_hit=interaction.cache_hit, retries=interaction.retries,
+                shadow_overhead_ms=interaction.shadow_overhead_ms,
+                task_id=task_id, interaction_id=interaction.id,
+                duration_ms=interaction.duration_ms, error=interaction.error)
+            if envelope is not None:
+                interaction.cost_normalized_cents = float(
+                    envelope.payload.get("cost_normalized_cents") or 0.0)
+            interaction.task_id = task_id
+            interaction.workspace_id = workspace_id
+            interaction.subject_id = subject_id
+        except Exception as e:  # noqa: BLE001 成本埋点 best-effort
+            logger.debug("LLM 成本埋点失败: %s", e)
+        if interaction.error:
+            try:
+                from agent.observability import model_degrade as _degrade
+                _degrade.report_model_degraded(
+                    from_model=interaction.model,
+                    reason=f"{interaction.source or 'llm'}: {interaction.error}"[:400],
+                    provider=interaction.provider)
+            except Exception as e:  # noqa: BLE001 降级埋点 best-effort
+                logger.debug("model.degraded 埋点失败: %s", e)
 
     # ── 查询 ──
 
@@ -229,6 +284,10 @@ class LLMMonitor:
         round_num: int = 0,
         duration_ms: float = 0.0,
         error: str = "",
+        retries: int = 0,
+        shadow_overhead_ms: float = 0.0,
+        cache_hit: bool = False,
+        task_id: str = "",
     ) -> "LLMInteraction":
         """从 API 调用参数创建记录"""
         if messages is None:
@@ -314,7 +373,26 @@ class LLMMonitor:
             total_tokens=req_tokens + res_tokens,
             duration_ms=round(duration_ms, 1),
             error=error,
+            retries=max(0, int(retries or 0)),
+            shadow_overhead_ms=round(float(shadow_overhead_ms or 0.0), 3),
+            cache_hit=bool(cache_hit),
+            task_id=task_id or _current_task_id(),
+            workspace_id=_current_trace_field("workspace_id"),
+            subject_id=_current_trace_field("subject_id"),
         )
+
+
+def _current_trace_field(name: str) -> str:
+    """读取当前 S2-01 TraceContext 的叶子字段（无上下文 → ""）"""
+    try:
+        from agent.observability.events import trace_fields
+        return str(trace_fields().get(name) or "")
+    except Exception:  # noqa: BLE001 无上下文不是错误
+        return ""
+
+
+def _current_task_id() -> str:
+    return _current_trace_field("task_id")
 
 
 # ── 全局单例 ──

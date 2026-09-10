@@ -107,10 +107,16 @@ class SkillsMgmtService:
         return self._auto_rollback
 
     def list_pending_approvals(self) -> List[Dict[str, Any]]:
-        """列出全部待审批记录（未接入审批流时返回空列表）"""
+        """列出全部待审批记录（未接入审批流时返回空列表）
+
+        TASK-S2-03 §6.1：人工**查看**待审批项 = 介入（``view`` 权重 0，只计数不加权）
+        ——查看是「审批疲劳/衰减率」的观测信号，记录在此真实发生点。
+        埋点委托审批域 `ApprovalFlow.record_view`（服务层不导入 observability，
+        避免与既有链路构成循环依赖，见 CI 架构规则 no_circular_dependency）。
+        """
         if self._approval is None:
             return []
-        return [
+        rows = [
             {
                 "record_id": r.record_id,
                 "object_type": r.object_type,
@@ -121,6 +127,23 @@ class SkillsMgmtService:
             }
             for r in self._approval.list({"state": "pending_review"})
         ]
+        self._record_approval_views(rows)
+        return rows
+
+    def _record_approval_views(self, rows: List[Dict[str, Any]]) -> None:
+        """查看待审批项 → ACR 介入埋点（view=0；best-effort，绝不阻断列表查询）"""
+        try:
+            record_view = getattr(self._approval, "record_view", None)
+            if record_view is None:
+                return
+            for row in rows or []:
+                record_view(
+                    str(row.get("record_id") or ""), actor="human",
+                    detail={"object_type": row.get("object_type"),
+                            "object_id": row.get("object_id"),
+                            "level": row.get("level")})
+        except Exception as e:  # noqa: BLE001 埋点不得影响查询
+            logger.debug("[SkillsMgmt] approval view 埋点失败: %s", e)
 
     def approve_change(self, record_id: str, actor: str = "reviewer",
                        note: str = "") -> Dict[str, Any]:

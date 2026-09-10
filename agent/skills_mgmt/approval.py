@@ -424,6 +424,8 @@ class ApprovalFlow:
             rec.actor = actor
             self._persist()
             self._audit("approval.merged", rec)
+            # TASK-S2-03 §6.6：合并生效是「系统执行审批结果」，只测量不计介入
+            self._emit_metrics("merged", rec, actor=actor, count_intervention=False)
             self._appliers.pop(record_id, None)
             logger.info("[Approval] 变更已合并生效 record=%s actor=%s",
                         record_id, actor)
@@ -448,8 +450,85 @@ class ApprovalFlow:
             rec.actor = actor
             self._persist()
             self._audit("approval.archived", rec, detail={"note": str(note or "")[:200]})
+            # TASK-S2-03 §6.6：L2 人工执行归档（测量事件；介入已在 approve 时计数）
+            self._emit_metrics("archived", rec, actor=actor,
+                               detail={"note": str(note or "")[:200]},
+                               count_intervention=False)
             logger.info("[Approval] 人工执行完成并归档 record=%s actor=%s", record_id, actor)
             return rec
+
+    # ─── 人工查看（§6.1「查看=0」的真实发生点） ───
+
+    def record_view(self, record_id: str, actor: str = "human",
+                    detail: Optional[Dict[str, Any]] = None) -> None:
+        """人工**查看**待审批项 → §6.1 介入埋点（``view`` 权重 0，只计数不加权）
+
+        由服务层列表接口（`SkillsMgmtService.list_pending_approvals`）逐条调用。
+        **放在审批域而非服务层**：服务层导入 `agent.observability` 会与
+        「observability → … → skills_mgmt.service」既有链路构成循环依赖（CI 架构规则
+        `no_circular_dependency` 实测拦截），而审批域已在治理侧持有埋点接线。
+        best-effort：任何失败都不影响审批查询。
+        """
+        try:
+            from agent.observability import acr as _acr
+            payload = {"record_id": str(record_id or "")}
+            payload.update({k: v for k, v in (detail or {}).items() if v is not None})
+            _acr.record_intervention(
+                _acr.KIND_VIEW, actor=str(actor or "human"),
+                source_ref=f"approval_view:{record_id}", extra=payload)
+        except Exception as e:  # noqa: BLE001 埋点不得影响查询
+            logger.debug("[Approval] view 埋点失败 record=%s: %s", record_id, e)
+
+    # ─── 超时未审批（§6.1「超时 Deny=2」的真实发生点） ───
+    def expire_pending(self, *, older_than_seconds: float = 86400.0,
+                       actor: str = "system", note: str = "",
+                       limit: Optional[int] = None,
+                       now: Optional[datetime] = None) -> List[ApprovalRecord]:
+        """把超时未处理的 ``pending_review`` 记录判为拒绝（timeout deny）
+
+        §6.1 计数口径中「超时 Deny=2」需要一个**真实发生点**：云枢此前没有任何审批
+        超时路径（S2-02 盘点结论：审批只经服务层网关，无定时器）。本方法提供该路径，
+        并保证：
+
+        - 只处理 ``pending_review``（``draft`` / 终态一律不动）；
+        - 判定依据是 ``created_at`` 的**实际待办时长**（可显式传 ``now`` 便于单测）；
+        - 迁移走统一漏斗 `_transition`（状态机+审计+埋点一致），但介入 kind 显式指定为
+          ``timeout_deny``（权重 2），**不与 ``reject`` 重复计数**；
+        - ``decision_reason`` 留痕超时阈值与待办时长（审计可复核）。
+
+        Returns:
+            被判定超时拒绝的记录列表（无超时记录 → 空列表）。
+        """
+        current = now or datetime.now()
+        threshold_ms = max(0.0, float(older_than_seconds) * 1000.0)
+        expired: List[ApprovalRecord] = []
+        with self._lock:
+            self._ensure_loaded()
+            for rec in list(self._records):
+                if rec.state != "pending_review":
+                    continue
+                try:
+                    created = datetime.fromisoformat(str(rec.created_at))
+                except (TypeError, ValueError):
+                    logger.warning("[Approval] 超时判定跳过（created_at 不可解析）record=%s",
+                                   rec.record_id)
+                    continue
+                elapsed_ms = (current - created).total_seconds() * 1000.0
+                if elapsed_ms < threshold_ms:
+                    continue
+                reason = (f"超时未审批（timeout deny）：待办 {elapsed_ms / 1000.0:.0f}s "
+                          f"≥ 阈值 {older_than_seconds:.0f}s")
+                if note:
+                    reason = f"{reason} | {note}"
+                self._transition(rec, "rejected", actor=actor, reason=reason,
+                                 metrics_kind="timeout_deny", latency_ms=elapsed_ms)
+                expired.append(rec)
+                if limit is not None and len(expired) >= int(limit):
+                    break
+        if expired:
+            logger.warning("[Approval] 超时未审批判定为拒绝 %d 条（§6.1 超时 Deny=2）",
+                           len(expired))
+        return expired
 
     # ─── 生效判定 ───
 
@@ -537,11 +616,75 @@ class ApprovalFlow:
         except Exception as e:  # noqa: BLE001 审计失败不得影响审批
             logger.debug("[Approval] 链式审计留痕失败 action=%s: %s", action, e)
 
+    # ─── ACR / 事件埋点（TASK-S2-03；best-effort，绝不阻断审批主路径） ───
+
+    @staticmethod
+    def _pending_since(rec: ApprovalRecord) -> Optional[float]:
+        """审批待办时长（ms）：created_at → now（解析失败/未来时间 → None）"""
+        try:
+            created = datetime.fromisoformat(str(rec.created_at))
+        except (TypeError, ValueError):
+            return None
+        try:
+            delta_ms = (datetime.now() - created).total_seconds() * 1000.0
+        except (TypeError, ValueError, OSError):
+            return None
+        return None if delta_ms < 0 else delta_ms
+
+    def _emit_metrics(self, kind: str, rec: ApprovalRecord, *,
+                      actor: Optional[str] = None,
+                      detail: Optional[Dict[str, Any]] = None,
+                      latency_ms: Optional[float] = None,
+                      count_intervention: bool = True,
+                      ts: Any = None) -> None:
+        """审批 → events.v1 埋点（§6.6 approval + §6.1 intervention）
+
+        ``kind`` 取 §6.1 口径：``approve`` / ``conditional`` / ``auto_pass`` /
+        ``timeout_deny`` / ``reject``（扩展项，见 `agent.observability.acr`）；
+        ``submit`` 一类「进入审批」动作用事件 ``approval.required``（§3.6 八事件之一）
+        表达，不计介入。
+        """
+        try:
+            from agent.observability import acr as _acr
+            from agent.observability import events as _events
+
+            if kind == "required":
+                _events.emit(
+                    _events.EV_APPROVAL_REQUIRED,
+                    {"record_id": rec.record_id, "object_type": rec.object_type,
+                     "object_id": rec.object_id, "level": rec.level,
+                     "state": rec.state, "trigger": rec.trigger,
+                     "manual_required": bool(rec.manual_required)},
+                    actor=str(actor or rec.actor or "system"),
+                    idempotency_key=f"approval.required:{rec.record_id}",
+                    ts=ts)
+                return
+
+            latency = latency_ms
+            if latency is None:
+                latency = self._pending_since(rec)
+            _acr.record_approval(
+                kind=kind, record_id=rec.record_id, state=rec.state,
+                object_type=rec.object_type, object_id=rec.object_id,
+                level=rec.level, actor=str(actor or rec.actor or "reviewer"),
+                latency_ms=latency, task_id="",
+                count_intervention=count_intervention,
+                extra={**(detail or {}),
+                       "manual_required": bool(rec.manual_required),
+                       "trigger": rec.trigger},
+                ts=ts)
+        except Exception as e:  # noqa: BLE001 埋点失败不得影响审批
+            logger.debug("[Approval] ACR 埋点失败 kind=%s: %s", kind, e)
+
     def _append_record(self, rec: ApprovalRecord) -> None:
         self._records.append(rec)
         self._index[rec.record_id] = rec
         self._persist()
         self._audit("approval.submit", rec)
+        # §3.6 approval.required（进入审批）；L0 / 审批关闭的「自动放行」另计介入
+        self._emit_metrics("required", rec)
+        if rec.state == "merged":
+            self._emit_metrics("auto_pass", rec, actor=rec.actor)
 
     def _get_required(self, record_id: str) -> ApprovalRecord:
         self._ensure_loaded()
@@ -553,7 +696,10 @@ class ApprovalFlow:
         return rec
 
     def _transition(self, rec: ApprovalRecord, to: str, *,
-                    actor: str, reason: str) -> None:
+                    actor: str, reason: str,
+                    metrics_kind: Optional[str] = None,
+                    latency_ms: Optional[float] = None,
+                    emit_metrics: bool = True) -> None:
         allowed = _TRANSITIONS.get(rec.state, ())
         if to not in allowed:
             raise ApprovalStateError(
@@ -565,6 +711,20 @@ class ApprovalFlow:
             rec.decision_reason = reason
         self._persist()
         self._audit(f"approval.{to}", rec, detail={"reason": str(reason or "")[:400]})
+        # TASK-S2-03 §6.1：人工处置 → 介入埋点（Approve=1 / 条件=0.5 / 驳回=扩展项）
+        # metrics_kind 由超时路径显式指定（timeout_deny=2），避免与 reject 重复计数
+        if emit_metrics:
+            kind = metrics_kind
+            if kind is None:
+                if to == "approved":
+                    kind = "conditional" if str(reason or "").strip() else "approve"
+                elif to == "rejected":
+                    kind = "reject"
+                else:
+                    kind = ""
+            if kind:
+                self._emit_metrics(kind, rec, actor=actor, latency_ms=latency_ms,
+                                   detail={"reason": str(reason or "")[:200]})
         logger.info("[Approval] %s/%s state: %s → %s actor=%s",
                     rec.object_type, rec.object_id, rec.record_id, to, actor)
 

@@ -6,10 +6,41 @@ import os
 import json
 import time
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 SCHEDULED_TASKS_FILE = os.path.join(os.path.dirname(__file__), "..", "..", "data", "scheduled_tasks.json")
+
+# 受控写入能力标识（TASK-S2-03 §6.6 escape.capability_id：本文件的本应写入路径）
+_GOVERNED_CAPABILITY = "cp.governed.scheduled_task.write"
+
+
+def _record_governed_write(writer: str, data: Optional[dict] = None) -> None:
+    """登记一次受控写（TASK-S2-03 逃逸检测基线；best-effort，绝不阻断任务管理）
+
+    同时登记当时的 ``task_ids`` 快照，供后续逃逸判定定位「被改的是哪个任务」。
+    用户后续**手工编辑**该文件（未走本模块的 create/delete/toggle）将在下次读取时
+    被 `detect_escapes()` 判定为逃逸（§3.8 任务生命周期「逃逸」）。
+    """
+    try:
+        from agent.observability.escape import record_governed_write
+        extra = None
+        if isinstance(data, dict) and isinstance(data.get("tasks"), list):
+            extra = {"task_ids": [str(t.get("id") or "") for t in data["tasks"]
+                                  if isinstance(t, dict)]}
+        record_governed_write(SCHEDULED_TASKS_FILE, writer=writer, extra=extra)
+    except Exception:
+        pass
+
+
+def _detect_escapes() -> None:
+    """检测受管任务文件被手工改动（TASK-S2-03；best-effort，只留痕不改写）"""
+    try:
+        from agent.observability.escape import detect_escapes
+        detect_escapes([SCHEDULED_TASKS_FILE])
+    except Exception:
+        pass
 
 
 def _load_tasks():
@@ -27,7 +58,8 @@ def _save_tasks(data):
 
 
 def list_scheduled_tasks():
-    """列出所有已注册的定时任务"""
+    """列出所有已注册的定时任务（读取前做一次逃逸检测）"""
+    _detect_escapes()
     return _load_tasks()
 
 
@@ -52,6 +84,7 @@ def create_scheduled_task(name, command, interval_sec=60, enabled=True):
     }
     data["tasks"].append(task)
     _save_tasks(data)
+    _record_governed_write("create_scheduled_task", data)
     # 同步注册到运行中的调度器
     try:
         from agent.task_scheduler import get_scheduler
@@ -69,6 +102,7 @@ def delete_scheduled_task(task_id):
     before = len(data["tasks"])
     data["tasks"] = [t for t in data["tasks"] if t["id"] != task_id]
     _save_tasks(data)
+    _record_governed_write("delete_scheduled_task", data)
     # 同步移除
     try:
         from agent.task_scheduler import get_scheduler
@@ -87,6 +121,7 @@ def toggle_scheduled_task(task_id, enabled):
         if t["id"] == task_id:
             t["enabled"] = enabled
             _save_tasks(data)
+            _record_governed_write("toggle_scheduled_task", data)
             # 同步状态
             try:
                 from agent.task_scheduler import get_scheduler
