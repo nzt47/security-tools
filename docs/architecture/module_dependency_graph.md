@@ -238,6 +238,7 @@ flowchart LR
     end
     subgraph model_router [model_router]
         agent_model_router_adapters["agent.model_router.adapters"]
+        agent_model_router_cost_tracker["agent.model_router.cost_tracker"]:::crosslayer
         agent_model_router_observability["agent.model_router.observability"]
         agent_model_router_router["agent.model_router.router"]
     end
@@ -279,12 +280,18 @@ flowchart LR
         agent_network_observability["agent.network.observability"]
     end
     subgraph observability [observability]
+        agent_observability["agent.observability"]:::crosslayer
+        agent_observability_acr["agent.observability.acr"]:::crosslayer
         agent_observability_arch_rules["agent.observability.arch_rules"]
         agent_observability_dependency_graph["agent.observability.dependency_graph"]
+        agent_observability_escape["agent.observability.escape"]:::crosslayer
+        agent_observability_events["agent.observability.events"]:::crosslayer
+        agent_observability_model_degrade["agent.observability.model_degrade"]:::crosslayer
         agent_observability_subscriber["agent.observability.subscriber"]:::crosslayer
         agent_observability_tool_trace["agent.observability.tool_trace"]:::crosslayer
         agent_observability_trace_v2["agent.observability.trace_v2"]:::crosslayer
         agent_observability_tracer["agent.observability.tracer"]:::crosslayer
+        agent_observability_utc["agent.observability.utc"]
     end
     subgraph orchestrator [orchestrator]
         agent_orchestrator["agent.orchestrator"]:::crosslayer
@@ -390,6 +397,7 @@ flowchart LR
         agent_skills_mgmt_lifecycle["agent.skills_mgmt.lifecycle"]
         agent_skills_mgmt_lineage["agent.skills_mgmt.lineage"]:::crosslayer
         agent_skills_mgmt_loader["agent.skills_mgmt.loader"]:::crosslayer
+        agent_skills_mgmt_log_archiver["agent.skills_mgmt.log_archiver"]:::crosslayer
         agent_skills_mgmt_memory_abstractor["agent.skills_mgmt.memory_abstractor"]:::crosslayer
         agent_skills_mgmt_meta_editor["agent.skills_mgmt.meta_editor"]
         agent_skills_mgmt_models["agent.skills_mgmt.models"]:::crosslayer
@@ -529,8 +537,10 @@ flowchart LR
     agent_learning_budget --> agent_circuit_breaker
     agent_learning_budget --> agent_rate_limiter
     agent_learning_budget -.-> agent_monitoring_metrics
+    agent_graceful_degrade -.-> agent_observability_model_degrade
     agent_task_scheduler --> agent_logging_utils
     agent_task_scheduler -.-> agent_utils_singleton_manager
+    agent_task_scheduler -.-> agent_observability_acr
     agent_task_scheduler --> agent_weekly_report_generator
     agent_task_scheduler -.-> agent_monitoring_observability_config
     agent_task_scheduler -.-> agent_monitoring_observability_config
@@ -606,7 +616,11 @@ flowchart LR
     agent_system_tools -.-> agent_tools_task_tools
     agent_system_tools -.-> agent_tools_shell_tools
     agent_llm_monitor -.-> agent_utils_singleton_manager
+    agent_llm_monitor -.-> agent_observability_events
+    agent_llm_monitor -.-> agent_observability
+    agent_llm_monitor -.-> agent_observability
     agent_llm_monitor -.-> agent_monitoring_observability_config
+    agent_llm_monitor -.-> agent_observability
     agent_session_manager -.-> agent_observability_trace_v2
     agent_learning_metrics -.-> agent_monitoring_metrics
     agent_learning_metrics -.-> agent_utils_singleton_manager
@@ -657,6 +671,8 @@ flowchart LR
     agent_tools_software_tools -.-> agent_software_manager
     agent_tools_software_tools -.-> agent_software_backends
     agent_tools_software_tools -.-> agent_web
+    agent_tools_task_tools -.-> agent_observability_escape
+    agent_tools_task_tools -.-> agent_observability_escape
     agent_tools_task_tools -.-> agent_task_scheduler
     agent_tools_task_tools -.-> agent_task_scheduler
     agent_tools_task_tools -.-> agent_task_scheduler
@@ -733,6 +749,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_digital_life
     agent_orchestrator_orchestrator -.-> agent_observability_trace_v2
     agent_orchestrator_orchestrator -.-> agent_observability_trace_v2
+    agent_orchestrator_orchestrator -.-> agent_observability
     agent_orchestrator_orchestrator -.-> agent_learning_metrics
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator -.-> agent_verification_output_validator
@@ -816,7 +833,22 @@ flowchart LR
     agent_prompt_manager_storage -.-> agent_logging_utils
     agent_prompt_manager_storage -.-> agent_utils_singleton_manager
     agent_observability_tool_trace -.-> agent_logging_utils
+    agent_observability_model_degrade --> agent_observability
+    agent_observability_model_degrade --> agent_observability_events
     agent_observability_subscriber -.-> agent_logging_utils
+    agent_observability_escape --> agent_observability
+    agent_observability_escape --> agent_observability_acr
+    agent_observability_escape --> agent_observability_events
+    agent_observability_utc --> agent_observability
+    agent_observability_utc --> agent_observability_acr
+    agent_observability_utc --> agent_observability_events
+    agent_observability_utc -.-> agent_model_router_cost_tracker
+    agent_observability_events --> agent_observability_trace_v2
+    agent_observability_events --> agent_observability_trace_v2
+    agent_observability_events -.-> agent_skills_mgmt_log_archiver
+    agent_observability_events -.-> agent_audit
+    agent_observability_acr --> agent_observability
+    agent_observability_acr --> agent_observability_events
     agent_observability_arch_rules --> agent_observability_dependency_graph
     agent_observability_trace_v2 -.-> agent_descriptors_bridge
     agent_observability_trace_v2 -.-> agent_descriptors_registry
@@ -1260,7 +1292,10 @@ flowchart LR
     agent_skills_mgmt_meta_editor -.-> agent_logging_utils
     agent_skills_mgmt_index_cache -.-> agent_logging_utils
     agent_skills_mgmt_vector_adapter -.-> agent_logging_utils
+    agent_skills_mgmt_approval -.-> agent_observability
     agent_skills_mgmt_approval -.-> agent_audit
+    agent_skills_mgmt_approval -.-> agent_observability
+    agent_skills_mgmt_approval -.-> agent_observability
     agent_skills_mgmt_feedback_agent --> agent_skills_mgmt_service
     agent_skills_mgmt_feedback_agent --> agent_skills_mgmt_reviewer
     agent_skills_mgmt_feedback_agent -.-> agent_task_scheduler
@@ -1559,10 +1594,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 453
-- 模块节点数: 394
-- 依赖边数: 1067
-- 跨层调用数: 697
+- 扫描文件数: 458
+- 模块节点数: 402
+- 依赖边数: 1094
+- 跨层调用数: 712
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 2256.50 ms
+- 构建耗时: 2014.70 ms
