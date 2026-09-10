@@ -1,5 +1,5 @@
 {
-  "trace_id": "f69d207010054a9e",
+  "trace_id": "75e92e3157ce45c5",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -14680,7 +14680,7 @@
       "source_layer": "audit",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 469,
+      "line": 478,
       "source_file": "agent/audit/facade.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -17067,6 +17067,6 @@
       "server_routes": 29,
       "handoff": 1
     },
-    "build_duration_ms": 2185.3156379999987
+    "build_duration_ms": 2146.9718970000004
   }
 }
