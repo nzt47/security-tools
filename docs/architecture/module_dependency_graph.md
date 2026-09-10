@@ -91,6 +91,7 @@ flowchart LR
         agent_security_utils["agent.security_utils"]
         agent_server_auth["agent.server_auth"]:::crosslayer
         agent_server_ui["agent.server_ui"]:::crosslayer
+        agent_session_manager["agent.session_manager"]:::crosslayer
         agent_software_backends["agent.software_backends"]:::crosslayer
         agent_software_manager["agent.software_manager"]:::crosslayer
         agent_state_manager["agent.state_manager"]:::crosslayer
@@ -114,7 +115,8 @@ flowchart LR
     end
     subgraph descriptors [descriptors]
         agent_descriptors_backfill["agent.descriptors.backfill"]:::crosslayer
-        agent_descriptors_bridge["agent.descriptors.bridge"]
+        agent_descriptors_bridge["agent.descriptors.bridge"]:::crosslayer
+        agent_descriptors_registry["agent.descriptors.registry"]:::crosslayer
     end
     subgraph evolution [evolution]
         agent_evolution_injector["agent.evolution.injector"]:::crosslayer
@@ -277,6 +279,7 @@ flowchart LR
         agent_observability_dependency_graph["agent.observability.dependency_graph"]
         agent_observability_subscriber["agent.observability.subscriber"]:::crosslayer
         agent_observability_tool_trace["agent.observability.tool_trace"]:::crosslayer
+        agent_observability_trace_v2["agent.observability.trace_v2"]:::crosslayer
         agent_observability_tracer["agent.observability.tracer"]:::crosslayer
     end
     subgraph orchestrator [orchestrator]
@@ -484,6 +487,7 @@ flowchart LR
     agent_tool_calling --> agent_rate_limiter
     agent_tool_calling --> agent_circuit_breaker
     agent_tool_calling --> agent_circuit_breaker
+    agent_tool_calling -.-> agent_observability_trace_v2
     agent_tool_calling -.-> agent_observability_tool_trace
     agent_tool_calling --> agent_response_workflows
     agent_llm_response_cache -.-> agent_caching_multi_level_cache
@@ -596,6 +600,7 @@ flowchart LR
     agent_system_tools -.-> agent_tools_shell_tools
     agent_llm_monitor -.-> agent_utils_singleton_manager
     agent_llm_monitor -.-> agent_monitoring_observability_config
+    agent_session_manager -.-> agent_observability_trace_v2
     agent_learning_metrics -.-> agent_monitoring_metrics
     agent_learning_metrics -.-> agent_utils_singleton_manager
     agent_error_reporting_config -.-> agent_monitoring_tracing
@@ -719,6 +724,8 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_tool_router
     agent_orchestrator_orchestrator -.-> agent_tool_router_hybrid
     agent_orchestrator_orchestrator -.-> agent_digital_life
+    agent_orchestrator_orchestrator -.-> agent_observability_trace_v2
+    agent_orchestrator_orchestrator -.-> agent_observability_trace_v2
     agent_orchestrator_orchestrator -.-> agent_learning_metrics
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator -.-> agent_verification_output_validator
@@ -735,6 +742,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_cognitive_reflection
     agent_orchestrator_orchestrator -.-> agent_autonomy
     agent_orchestrator_orchestrator -.-> agent_autonomy
+    agent_orchestrator_orchestrator -.-> agent_session_manager
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
@@ -803,6 +811,11 @@ flowchart LR
     agent_observability_tool_trace -.-> agent_logging_utils
     agent_observability_subscriber -.-> agent_logging_utils
     agent_observability_arch_rules --> agent_observability_dependency_graph
+    agent_observability_trace_v2 -.-> agent_descriptors_bridge
+    agent_observability_trace_v2 -.-> agent_descriptors_registry
+    agent_observability_trace_v2 -.-> agent_utils_sensitive_data_filter
+    agent_observability_trace_v2 --> agent
+    agent_observability_trace_v2 -.-> agent_descriptors_registry
     agent_observability_tracer -.-> agent_monitoring_tracing
     agent_p6_performance -.-> agent_logging_utils
     agent_p6 --> agent_p6_snapshot
@@ -1513,10 +1526,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 448
-- 模块节点数: 385
-- 依赖边数: 1030
-- 跨层调用数: 675
+- 扫描文件数: 449
+- 模块节点数: 388
+- 依赖边数: 1040
+- 跨层调用数: 684
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 2175.10 ms
+- 构建耗时: 2134.02 ms
