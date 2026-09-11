@@ -40,7 +40,7 @@ import hashlib
 import json
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from agent.eval import checkers as K
+import agent.eval.checkers as K
 from agent.eval.cases import EvalCase
 
 #: 解算器签名：用例 → 答案工件（`None` 表示"无法评测"，`{}` 表示"空答案"=不合格）

@@ -178,6 +178,38 @@ class TestL2Dataset:
         assert survivors == []
 
 
+class TestPackageHygiene:
+    """包内导入纪律（CI 架构规则的实际教训固化）
+
+    `agent.observability.arch_rules` 的 AST 依赖图把 `from agent.eval import x` 记为
+    「依赖**包根** agent.eval」，而包根 `__init__` 又导入各子模块 → 被判为循环依赖，
+    架构规则校验（阻断合并）报 4 处违规。故包内一律用 `import agent.eval.<mod> as X`。
+    """
+
+    def test_no_intra_package_import_of_package_root(self):
+        import ast
+
+        package_dir = os.path.join(A._REPO_ROOT, "agent", "eval")
+        offenders = []
+        for name in sorted(os.listdir(package_dir)):
+            if not name.endswith(".py") or name == "__init__.py":
+                continue
+            path = os.path.join(package_dir, name)
+            with open(path, "r", encoding="utf-8") as fh:
+                tree = ast.parse(fh.read())
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and node.module == "agent.eval":
+                    offenders.append(f"{name}:{node.lineno}")
+        assert offenders == [], (
+            "包内不得 `from agent.eval import …`（会构成包根循环依赖）：" + ", ".join(offenders))
+
+    def test_package_imports_cleanly(self):
+        import importlib
+        module = importlib.import_module("agent.eval")
+        for attr in ("AnchorStore", "run_l0", "load_case_set", "MECHANICAL_CHECKERS"):
+            assert hasattr(module, attr)
+
+
 class TestL3Dataset:
     def test_framework_placeholder(self):
         case_set = C.load_case_set(R.LAYER_CASESET_PATHS[C.LAYER_L3])

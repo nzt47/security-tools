@@ -38,7 +38,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from agent.eval import anchor as A
+import agent.eval.anchor as A
 from agent.observability import acr as ACR
 from agent.observability.events import EV_TASK_ABANDONED, EV_TASK_CLOSED, EventEnvelope
 
