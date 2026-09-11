@@ -1,5 +1,5 @@
 {
-  "trace_id": "02819551f92c47bd",
+  "trace_id": "e91b67a1ce104d00",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -663,7 +663,7 @@
       "name": "events",
       "layer": "observability",
       "file_path": "",
-      "in_degree": 10,
+      "in_degree": 14,
       "out_degree": 4
     },
     {
@@ -671,7 +671,7 @@
       "name": "observability",
       "layer": "observability",
       "file_path": "",
-      "in_degree": 11,
+      "in_degree": 17,
       "out_degree": 0
     },
     {
@@ -767,7 +767,7 @@
       "name": "feedback",
       "layer": "core",
       "file_path": "agent/feedback.py",
-      "in_degree": 13,
+      "in_degree": 14,
       "out_degree": 4
     },
     {
@@ -1416,7 +1416,7 @@
       "layer": "model_router",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 0
+      "out_degree": 2
     },
     {
       "path": "agent.skills_mgmt.log_archiver",
@@ -1447,7 +1447,7 @@
       "name": "registry",
       "layer": "descriptors",
       "file_path": "",
-      "in_degree": 9,
+      "in_degree": 10,
       "out_degree": 1
     },
     {
@@ -1455,7 +1455,7 @@
       "name": "facade",
       "layer": "audit",
       "file_path": "",
-      "in_degree": 16,
+      "in_degree": 18,
       "out_degree": 2
     },
     {
@@ -1535,7 +1535,15 @@
       "name": "shadow",
       "layer": "digestion",
       "file_path": "agent/digestion/shadow.py",
-      "in_degree": 0,
+      "in_degree": 2,
+      "out_degree": 4
+    },
+    {
+      "path": "agent.monitoring.cost_brake",
+      "name": "cost_brake",
+      "layer": "monitoring",
+      "file_path": "",
+      "in_degree": 3,
       "out_degree": 3
     },
     {
@@ -1616,7 +1624,7 @@
       "layer": "digestion",
       "file_path": "agent/digestion/internalize.py",
       "in_degree": 0,
-      "out_degree": 8
+      "out_degree": 9
     },
     {
       "path": "agent.skills_mgmt.approval",
@@ -1640,7 +1648,7 @@
       "layer": "digestion",
       "file_path": "agent/digestion/gate.py",
       "in_degree": 0,
-      "out_degree": 5
+      "out_degree": 6
     },
     {
       "path": "agent.process_distill.merge",
@@ -3057,6 +3065,78 @@
       "file_path": "agent/audit/observability.py",
       "in_degree": 0,
       "out_degree": 2
+    },
+    {
+      "path": "agent.eval",
+      "name": "eval",
+      "layer": "eval",
+      "file_path": "agent/eval/__init__.py",
+      "in_degree": 0,
+      "out_degree": 5
+    },
+    {
+      "path": "agent.eval.anchor",
+      "name": "anchor",
+      "layer": "eval",
+      "file_path": "",
+      "in_degree": 4,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.eval.cases",
+      "name": "cases",
+      "layer": "eval",
+      "file_path": "",
+      "in_degree": 5,
+      "out_degree": 2
+    },
+    {
+      "path": "agent.eval.checkers",
+      "name": "checkers",
+      "layer": "eval",
+      "file_path": "",
+      "in_degree": 5,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.eval.runner",
+      "name": "runner",
+      "layer": "eval",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 4
+    },
+    {
+      "path": "agent.eval.solvers",
+      "name": "solvers",
+      "layer": "eval",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 2
+    },
+    {
+      "path": "agent.eval.metrics",
+      "name": "metrics",
+      "layer": "eval",
+      "file_path": "agent/eval/metrics.py",
+      "in_degree": 1,
+      "out_degree": 6
+    },
+    {
+      "path": "agent.eval.baseline",
+      "name": "baseline",
+      "layer": "eval",
+      "file_path": "agent/eval/baseline.py",
+      "in_degree": 0,
+      "out_degree": 7
+    },
+    {
+      "path": "agent.eval.calibration",
+      "name": "calibration",
+      "layer": "eval",
+      "file_path": "agent/eval/calibration.py",
+      "in_degree": 0,
+      "out_degree": 3
     },
     {
       "path": "agent.server_routes.routes_visual_workflows",
@@ -7854,7 +7934,7 @@
       "source_layer": "observability",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 47,
+      "line": 59,
       "source_file": "agent/observability/utc.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -7867,7 +7947,7 @@
       "source_layer": "observability",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 48,
+      "line": 60,
       "source_file": "agent/observability/utc.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -7880,7 +7960,7 @@
       "source_layer": "observability",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 49,
+      "line": 61,
       "source_file": "agent/observability/utc.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -7893,7 +7973,7 @@
       "source_layer": "observability",
       "target_layer": "model_router",
       "import_type": "from_import",
-      "line": 100,
+      "line": 152,
       "source_file": "agent/observability/utc.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8318,11 +8398,24 @@
     },
     {
       "source": "agent.digestion.shadow",
+      "target": "agent.monitoring.cost_brake",
+      "source_layer": "digestion",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 274,
+      "source_file": "agent/digestion/shadow.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.shadow",
       "target": "agent.observability.events",
       "source_layer": "digestion",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 1374,
+      "line": 1420,
       "source_file": "agent/digestion/shadow.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8335,7 +8428,7 @@
       "source_layer": "digestion",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 1391,
+      "line": 1437,
       "source_file": "agent/digestion/shadow.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8348,7 +8441,7 @@
       "source_layer": "digestion",
       "target_layer": "model_router",
       "import_type": "from_import",
-      "line": 484,
+      "line": 525,
       "source_file": "agent/digestion/shadow.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8656,6 +8749,19 @@
     },
     {
       "source": "agent.digestion.internalize",
+      "target": "agent.monitoring.cost_brake",
+      "source_layer": "digestion",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 1487,
+      "source_file": "agent/digestion/internalize.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.internalize",
       "target": "agent.observability.trace_v2",
       "source_layer": "digestion",
       "target_layer": "observability",
@@ -8686,7 +8792,7 @@
       "source_layer": "digestion",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1497,
+      "line": 1514,
       "source_file": "agent/digestion/internalize.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8765,6 +8871,19 @@
       "target_layer": "descriptors",
       "import_type": "from_import",
       "line": 1208,
+      "source_file": "agent/digestion/gate.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.gate",
+      "target": "agent.monitoring.cost_brake",
+      "source_layer": "digestion",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 1217,
       "source_file": "agent/digestion/gate.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -11723,6 +11842,45 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.monitoring.cost_brake",
+      "target": "agent.observability",
+      "source_layer": "monitoring",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 55,
+      "source_file": "agent/monitoring/cost_brake.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.cost_brake",
+      "target": "agent.observability.events",
+      "source_layer": "monitoring",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 56,
+      "source_file": "agent/monitoring/cost_brake.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.cost_brake",
+      "target": "agent.audit.facade",
+      "source_layer": "monitoring",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 1172,
+      "source_file": "agent/monitoring/cost_brake.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.monitoring.tracing_config",
       "target": "agent.monitoring.observability_config",
       "source_layer": "monitoring",
@@ -12744,6 +12902,32 @@
       "import_type": "from_import",
       "line": 6,
       "source_file": "agent/model_router/router.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.model_router.cost_tracker",
+      "target": "agent.observability.events",
+      "source_layer": "model_router",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 146,
+      "source_file": "agent/model_router/cost_tracker.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.model_router.cost_tracker",
+      "target": "agent.audit.facade",
+      "source_layer": "model_router",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 154,
+      "source_file": "agent/model_router/cost_tracker.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -16091,6 +16275,396 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.eval",
+      "target": "agent.eval.anchor",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "from_import",
+      "line": 24,
+      "source_file": "agent/eval/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval",
+      "target": "agent.eval.cases",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "from_import",
+      "line": 37,
+      "source_file": "agent/eval/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval",
+      "target": "agent.eval.checkers",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "from_import",
+      "line": 58,
+      "source_file": "agent/eval/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval",
+      "target": "agent.eval.runner",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "from_import",
+      "line": 59,
+      "source_file": "agent/eval/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval",
+      "target": "agent.eval.solvers",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "from_import",
+      "line": 69,
+      "source_file": "agent/eval/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.metrics",
+      "target": "agent.observability",
+      "source_layer": "eval",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 56,
+      "source_file": "agent/eval/metrics.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.metrics",
+      "target": "agent.observability",
+      "source_layer": "eval",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 57,
+      "source_file": "agent/eval/metrics.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.metrics",
+      "target": "agent.observability.events",
+      "source_layer": "eval",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 58,
+      "source_file": "agent/eval/metrics.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.metrics",
+      "target": "agent.feedback",
+      "source_layer": "eval",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 847,
+      "source_file": "agent/eval/metrics.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.metrics",
+      "target": "agent.descriptors.registry",
+      "source_layer": "eval",
+      "target_layer": "descriptors",
+      "import_type": "from_import",
+      "line": 364,
+      "source_file": "agent/eval/metrics.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.metrics",
+      "target": "agent.digestion.shadow",
+      "source_layer": "eval",
+      "target_layer": "digestion",
+      "import_type": "from_import",
+      "line": 710,
+      "source_file": "agent/eval/metrics.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.solvers",
+      "target": "agent.eval.checkers",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "import",
+      "line": 43,
+      "source_file": "agent/eval/solvers.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.solvers",
+      "target": "agent.eval.cases",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "from_import",
+      "line": 44,
+      "source_file": "agent/eval/solvers.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.baseline",
+      "target": "agent.eval.anchor",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "import",
+      "line": 41,
+      "source_file": "agent/eval/baseline.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.baseline",
+      "target": "agent.eval.cases",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "import",
+      "line": 42,
+      "source_file": "agent/eval/baseline.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.baseline",
+      "target": "agent.eval.metrics",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "import",
+      "line": 43,
+      "source_file": "agent/eval/baseline.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.baseline",
+      "target": "agent.eval.runner",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "import",
+      "line": 44,
+      "source_file": "agent/eval/baseline.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.baseline",
+      "target": "agent.observability",
+      "source_layer": "eval",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 45,
+      "source_file": "agent/eval/baseline.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.baseline",
+      "target": "agent.digestion.shadow",
+      "source_layer": "eval",
+      "target_layer": "digestion",
+      "import_type": "from_import",
+      "line": 83,
+      "source_file": "agent/eval/baseline.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.baseline",
+      "target": "agent.observability",
+      "source_layer": "eval",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 134,
+      "source_file": "agent/eval/baseline.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.anchor",
+      "target": "agent.eval.cases",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "import",
+      "line": 32,
+      "source_file": "agent/eval/anchor.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.cases",
+      "target": "agent.eval.checkers",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "import",
+      "line": 454,
+      "source_file": "agent/eval/cases.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.cases",
+      "target": "agent.eval.checkers",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "import",
+      "line": 459,
+      "source_file": "agent/eval/cases.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.calibration",
+      "target": "agent.eval.anchor",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "import",
+      "line": 41,
+      "source_file": "agent/eval/calibration.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.calibration",
+      "target": "agent.observability",
+      "source_layer": "eval",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 42,
+      "source_file": "agent/eval/calibration.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.calibration",
+      "target": "agent.observability.events",
+      "source_layer": "eval",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 43,
+      "source_file": "agent/eval/calibration.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.runner",
+      "target": "agent.eval.anchor",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "import",
+      "line": 38,
+      "source_file": "agent/eval/runner.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.runner",
+      "target": "agent.eval.cases",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "import",
+      "line": 39,
+      "source_file": "agent/eval/runner.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.runner",
+      "target": "agent.eval.checkers",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "import",
+      "line": 40,
+      "source_file": "agent/eval/runner.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.eval.runner",
+      "target": "agent.eval.solvers",
+      "source_layer": "eval",
+      "target_layer": "eval",
+      "import_type": "import",
+      "line": 41,
+      "source_file": "agent/eval/runner.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.server_routes.routes_visual_workflows",
       "target": "agent.server_auth",
       "source_layer": "server_routes",
@@ -18419,10 +18993,10 @@
     }
   ],
   "stats": {
-    "total_files": 477,
-    "total_nodes": 415,
-    "total_edges": 1161,
-    "cross_layer_edges": 765,
+    "total_files": 487,
+    "total_nodes": 425,
+    "total_edges": 1199,
+    "cross_layer_edges": 784,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -18431,7 +19005,7 @@
       "descriptors": 3,
       "observability": 12,
       "caching": 2,
-      "monitoring": 30,
+      "monitoring": 31,
       "utils": 9,
       "skills_mgmt": 38,
       "workflow_learning": 8,
@@ -18468,9 +19042,10 @@
       "task_planner": 5,
       "feedback_collector": 1,
       "quality": 2,
+      "eval": 9,
       "server_routes": 29,
       "handoff": 1
     },
-    "build_duration_ms": 2544.6685010000037
+    "build_duration_ms": 2504.9611520000212
   }
 }
