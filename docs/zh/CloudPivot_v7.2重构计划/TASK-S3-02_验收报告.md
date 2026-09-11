@@ -5,7 +5,7 @@
 > 任务书：[TASK-S3-02_判定集与回放沙箱.md](TASK-S3-02_判定集与回放沙箱.md)
 > 上游设计：`CloudPivot_v7.2_final_合并归档(智谱审核版).md` §3.1 / §3.3 / §4.5 / §11.4（P7.2-23）
 > 结案报告：[S3-02_交付结案报告_20260911.md](S3-02_交付结案报告_20260911.md)
-> 状态：✅ **验收 8/8 通过**（逐条证据见 §三）
+> 状态：✅ **验收 8/8 通过 · 已结案**（Owner 于 2026-09-11 指示收尾并结案，见 §十一）
 
 ---
 
@@ -244,10 +244,12 @@ Seed Pack 的 TDD 用例即用该能力：`seed-tdd-red-green` 的条件步**执
 | 5 | 把 S3-01 的**描述性**分支条件当执行守卫 ⇒ 条件恒假、该步被永久跳过 | `PatternStep.condition` 是"该位次历史分支条件"的标注，不是守卫 | `PatternImplementation(use_conditions=False)` **默认不当守卫**，需要条件执行须显式给出 `ProgramStep.condition`（Seed Pack 即该通道） | `test_pattern_description_conditions_are_not_execution_guards`、`test_pattern_use_conditions_is_opt_in` |
 | 6 | 层②最初按**形态**比对 ⇒ "写对了形态、写错了具体位置"漏过硬性层；且在**内容**层一度只用路径+摘要，具体路径差异不可见 | 形态归一掩盖了具体目标 | 层②改为：两臂**具体目标**逐一相同 + 内容指纹相同 + 用例契约（具体优先、形态容忍）；形态视图保留在 detail 供报告 | `test_side_effect_layer_catches_target_drift`、`test_side_effect_layer_catches_content_drift` |
 | 7 | 台账基线（单次调用墙钟）被直接用作整链 p99 上限 ⇒ **错误判决**（14ms 被判 > 3ms） | 量纲/粒度不一致 | 阈值统一取同回放系统的上游臂；台账统计转为**披露字段** | `test_default_baseline_is_upstream_arm_not_ledger` |
-| 8 | 测试期 `acceptance_gate`/`advance_to_shadow` 默认 `PassportStore()` ⇒ 把通行证写进**运行时** `data/digestion/cases/passports/`（并污染后续用例） | 默认落点即运行时目录 | 测试全部显式传 `PassportStore(tmp)`；`PassportStore.save` 改为按 `passport_id` **幂等**；`_descriptor_view(registry=None)` 不再隐式读运行时台账 | `test_passport_store_round_trip`、`test_descriptor_view_is_explicit_only` |
+| 8 | 测试期 `acceptance_gate`/`advance_to_shadow` 默认 `PassportStore()` ⇒ 把通行证写进**运行时** `data/digestion/cases/passports/`（并污染后续用例） | 默认落点即运行时目录 | **首次修复不完整**（只改了被我注意到的用例），收尾轮次改为**会话级兜底**：4 个新套件各加 autouse fixture 把 `CP_DIGESTION_CASE_DIR` 隔离到 `tmp_path` ⇒ 无论用例是否显式传 store，默认落点都在临时目录；`PassportStore.save` 改为按 `passport_id` **幂等**；`_descriptor_view(registry=None)` 不再隐式读运行时台账 | `test_passport_store_round_trip`、`test_descriptor_view_is_explicit_only`；收尾实测：跑完 4 套件后 `data/digestion/cases` 与 `data/digestion/replay` **均未被创建**（见 §十一） |
 
-> 第 8 项是**本次自查发现并已清除**的污染：`data/digestion/cases/` 下的测试产物已删除，
-> 该目录属 gitignore 的运行时区（不入库）。
+> 第 8 项是**本次自查发现并已彻底闭合**的污染：`data/digestion/cases/` 与
+> `data/digestion/replay/` 下的测试产物已删除，且根因（默认落点未隔离）已在**会话级**
+> 兜住 —— 该目录属 gitignore 的运行时区（不入库），但"测试不得写运行时目录"是纪律项，
+> 故按根因处置而非逐例打补丁。
 
 ---
 
@@ -297,3 +299,60 @@ Seed Pack 的 TDD 用例即用该能力：`seed-tdd-red-green` 的条件步**执
   `deferred_to_downstream`，有既有用例与新增用例双重钉住）。
 - 未能闭环者已**逐条披露**（judge 默认非 LLM、人工抽检仅清单、p99 为模型时钟、
   结构型分支登记为观察项、用例↔候选适用性暂以 `active` 表达），并登记归属任务（见结案报告 §5）。
+
+---
+
+## 十一、收尾轮次（Owner 指示，2026-09-11）
+
+Owner 指示：「完成项目交付前的各项收尾工作（推送并确保经 CI/CD 验证、更新报告、
+最终状态确认与 stakeholder 核实）……如有遗留问题，处理后结案。」据此执行：
+
+### 11.1 冻结树终态复核（全部实跑，非引用历史结论）
+
+| 复核项 | 命令 | 结果 |
+|---|---|---|
+| 工作树 | `git status --porcelain` | ✅ 干净（无漂移） |
+| 双远端 | `git rev-parse origin/master gitee/master` + `git diff` | ✅ 同点（空 diff） |
+| 新套件 | `pytest tests/unit/test_digestion_{cases,sandbox,gate,seed_pack}.py` | ✅ **237 passed / 0 failed** |
+| 邻接回归（广域） | `pytest tests/unit -k "digestion or descriptors or skills_mgmt or trace or audit or events or orchestrator or tool_calling" -m "not slow"` | ✅ **2238 passed / 0 failed / 1 skipped / 1 xfailed** |
+| 端到端演示 | `python scripts/demo_s3_02_cases.py` | ✅ 门判决=True、stage=SHADOW、判定集版本=2 |
+| 文档门禁 | `scripts/dev/git_precommit_check.ps1` | ✅ 失效链接 0 + 锚点回归 4 passed |
+| 运行时区卫生 | 跑完 4 套件后检查 `data/digestion/cases`、`data/digestion/replay` | ✅ 均**未被创建**（收尾修复后） |
+| 敏感串速查 | 对新文件扫 `api_key/secret/password/token` 赋值形态 | ✅ 0 命中（CI「硬编码密码扫描（全分支）」亦 success） |
+
+### 11.2 收尾轮次发现并处置的缺陷（详见 §七 第 8 项）
+
+**测试隔离缺陷的根因闭合**：首次修复只改了"我注意到的"用例，收尾复核时发现
+`data/digestion/cases/passports/` 仍被重建 —— 说明仍有通过路径的用例把通行证写进了
+**运行时目录**。处置：4 个新套件各加 autouse fixture 把 `CP_DIGESTION_CASE_DIR`
+隔离到 `tmp_path`（**会话级兜底**，不依赖用例自觉传参），删除残留产物并实测确认
+零污染。这是"**逐例打补丁 ≠ 修根因**"的一次实证，与 S3-01 §4.5/§4.9/§4.7
+「门禁/隔离必须确认真的生效、且作用于该作用的地方」同源。
+
+### 11.3 遗留问题处置（收尾轮次结论）
+
+| # | 遗留 | 本轮处置 | 终态 |
+|---|---|---|---|
+| 1 | judge 默认非 LLM | 注入通道与 `judge_kind` 披露均已就位并有专测 | 📋 归 S3-03（灰度期接入） |
+| 2 | 10% 人工抽检仅清单 | 抽检为确定性可复现抽样，层③理由显式标注"未完成人工复核前不得视为已验收" | 📋 归 Owner/S3-03（人工动作） |
+| 3 | p99 为模型时钟量 | 门条件 detail 与通行证均写明 `clock` 字段 | 📋 归 S3-03（灰度采集真实 p99） |
+| 4 | 结构型分支为观察项 | 分类规则（`classify_condition`）与理由写入代码、报告与门 detail | 📋 需"可回放的中止注入"机制方可纳硬闸（S3-03/后续 RFC） |
+| 5 | 用例↔候选适用性 | 演示中已显式打印该标注与其重生成后的重施加；报告披露 | 📋 归 S3-03（引入显式字段） |
+| 6 | 判定集 TTL/容量治理 | `size_verdict` 已裁定 30–100 与超限理由；历史保留上限 `MAX_STORE_HISTORY=5` | 📋 归 S2/S5 生产化 |
+| 7 | 沙箱非容器隔离 | 模块文档显式声明边界（进程内确定性执行模型） | 📋 归 S3-03/生产化 |
+| 8 | 真实流量不足 | **未声称已实现真实能力内化**；验收依赖 Seed Pack + 合成同类轨迹（设计内离线设施） | 📋 随真实流量 |
+| 9 | 重探调度默认关闭 | 与 `evolution_scheduler` 同一条安全底线（env 显式开启），且有"禁用/启用"双向专测 | 📋 归部署/生产化 |
+| 10 | 门禁脚本产物漂移 | 本轮再次确认跟踪文件无漂移（`git status` 干净），本地跑门禁后已还原生成物 | ✅ **本轮闭环**（流程纪律） |
+| 11 | **测试隔离未兜住默认落点**（本轮新发现） | 会话级 autouse fixture + 删除残留 + 实测零污染 | ✅ **本轮闭环** |
+
+### 11.4 最终状态确认与结案
+
+- **交付物**（按 `git show --stat` 逐件核对）：`cases.py` / `sandbox.py` / `gate.py` /
+  `seed_pack.json` / `stage.py`（增量）/ `demo_s3_02_cases.py` / 4 个测试套件 /
+  两份报告 —— 与任务书 §三 6 项预期成果逐条对应（§6.1）。
+- **质量标准**：验收 8/8（§三）、冻结树复核全绿（§11.1）、
+  **代码实现基线 `36e27d9b` 的 CI 13/13 workflow 全绿（「云枢系统测试流程」21/21 job）**。
+- **stakeholder 核实**：Owner 于 2026-09-11 直接指示收尾并结案，据此确认交付物与质量标准；
+  报告内所有未能闭环项**逐条披露并登记归属**（§11.3），无隐瞒、无"以文档代替证据"。
+- **结案**：**TASK-S3-02 已结案**（验收 8/8；11 项遗留中 2 项本轮闭环、9 项带归属移交下游，
+  均不阻塞）；S3 串行链下一环 **S3-03 前置已就绪**（判定集资产 / 回放沙箱 / 验收门通行证与失败清单）。

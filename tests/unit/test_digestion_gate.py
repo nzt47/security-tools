@@ -69,6 +69,20 @@ def isolated_events(tmp_path, monkeypatch):
     events_mod.reset_event_stores()
 
 
+@pytest.fixture(autouse=True)
+def isolated_case_root(tmp_path, monkeypatch):
+    """判定集/通行证的**默认落点**也隔离到 tmp_path
+
+    为什么必须 autouse：`acceptance_gate` / `advance_to_shadow` / `PassportStore()` /
+    `open_case_store()` 的默认根都是 ``CP_DIGESTION_CASE_DIR``（生产上落在
+    `data/digestion/cases/`）。只要有一个用例忘了显式传 store，就会把通行证写进
+    **运行时目录**并污染同一文件内的后续用例（实现期实测：一次断言失败让"上一张通行证"
+    被后测读到）。故在**会话层**兜住默认落点，而不是靠每个用例自觉传参。
+    """
+    monkeypatch.setenv(C.CASE_ROOT_ENV, str(tmp_path / "cases"))
+    yield str(tmp_path / "cases")
+
+
 @pytest.fixture
 def store(tmp_path):
     return C.JsonCaseStore(str(tmp_path / "cases"))

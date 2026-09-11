@@ -28,6 +28,13 @@ from agent.digestion.models import (
 CAP = "cp.builtin.write_file"
 
 
+#: 会话级兜底：判定集/回放台账默认落点隔离（防运行时目录污染）
+@pytest.fixture(autouse=True)
+def isolated_case_root(tmp_path, monkeypatch):
+    monkeypatch.setenv(C.CASE_ROOT_ENV, str(tmp_path / "cases"))
+    yield str(tmp_path / "cases")
+
+
 # ════════════════════════════════════════════════════════════
 #  构造工具
 # ════════════════════════════════════════════════════════════

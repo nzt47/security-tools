@@ -23,6 +23,14 @@ from agent.digestion.models import SameTaskKey, Trajectory, TrajectoryStep
 CAP = "cp.builtin.read_file"
 
 
+#: 会话级兜底：判定集/通行证的默认落点（``CP_DIGESTION_CASE_DIR``）隔离到 tmp_path，
+#: 防止任何用例（含未来新增）把资产写进运行时目录 `data/digestion/cases/`
+@pytest.fixture(autouse=True)
+def isolated_case_root(tmp_path, monkeypatch):
+    monkeypatch.setenv(C.CASE_ROOT_ENV, str(tmp_path / "cases"))
+    yield str(tmp_path / "cases")
+
+
 # ════════════════════════════════════════════════════════════
 #  构造工具（刻意不接收 **kwargs，规避仓库 kwarg 冲突扫描规则）
 # ════════════════════════════════════════════════════════════

@@ -22,6 +22,13 @@ from agent.digestion import sandbox as S
 TDDSKILL = "cp.skill.pd-test-driven-development-8562c8ad-skill"
 
 
+#: 会话级兜底：判定集默认落点隔离（与 cases/gate 套件同口径；防运行时目录污染）
+@pytest.fixture(autouse=True)
+def isolated_case_root(tmp_path, monkeypatch):
+    monkeypatch.setenv(C.CASE_ROOT_ENV, str(tmp_path / "cases"))
+    yield str(tmp_path / "cases")
+
+
 @pytest.fixture(scope="module")
 def sandbox() -> S.ReplaySandbox:
     return S.ReplaySandbox()
