@@ -28,6 +28,18 @@
    把未经拟合的系数当真值会引入新的失真；归一化在此阶段的作用是**统一口径与
    可对账**，而不是制造"看起来更准"的数字。
 
+   **【S2-03 #5 · Owner 裁定 2026-09-11：沿用锚价系数表，本次不校准】**
+   校准需要「同一批标准任务在多模型实跑」的经验成本比，其量尺是 **L2 Core-50
+   基线**（由 S5-02 产出）；尺子不存在时无法校准。故本任务只标注口径版本，
+   校准评估的触发条件见 `CALIBRATION_TRIGGER`（不得丢失）。
+
+3. **【S2-03 #9 · Owner 裁定 2026-09-11：双成本轨收敛到事件流】**
+   成本**唯一数据源 ＝ 事件流**（本模块 `record_cost()` → `data/events/`）。
+   旧轨 `data/cost_log.jsonl` 已**停写**（`agent.model_router.cost_tracker` 的
+   `CostTracker.record()` 默认不再落盘，`CP_COST_LEGACY_LOG_WRITE=1` 可回滚，
+   停写期间有告警、不留静默丢账），仅保留**只读解析兼容 ≤1 minor**（归档不删）；
+   `reconcile_cost_log()` **降级为纯对账工具**（返回 `role="reconciliation_only"`）。
+
 ## UTC 定义
 
 ``UTC = cost_normalized_cents / 任务数``（单位任务成本，cents/任务）。
@@ -59,6 +71,26 @@ from agent.observability.events import (
 
 logger = logging.getLogger("agent.observability.utc")
 
+# ════════════════════════════════════════════════════════════
+#  口径版本标注（裁定 C / D 的落地锚点；**指标输出必须带这些标注**）
+# ════════════════════════════════════════════════════════════
+
+#: 本模块口径版本（任何口径变更须改此号，便于追溯"当时按哪版算的"）
+COST_SCHEMA_VERSION = "utc.v1"
+#: 归一化系数口径版本 —— **当前＝价格锚定系数（未经经验校准）**
+CALIBRATION_VERSION = "price_anchor.v1"
+#: 口径说明（进文档与指标输出；裁定 C 要求显式标注）
+CALIBRATION_NOTE = ("当前口径＝价格锚定系数（主力模型锚价 + 各模型价格比例，"
+                    "source=price_ratio），**未经经验校准**")
+#: 校准触发条件（裁定 C 的后续触发条件，**勿丢**）
+CALIBRATION_TRIGGER = ("待 S5-02 产出的 L2 Core-50 基线就绪后，启动校准评估"
+                       "（跨模型成本-效果实测 → 经验系数 → 替换价格系数）；"
+                       "届时须定义校准数据来源与复校周期（建议季度复校）")
+#: 成本唯一数据源（裁定 D）
+COST_SOURCE_OF_TRUTH = "events"
+#: 旧轨角色（已停写、只作对账）
+LEGACY_COST_LOG_ROLE = "reconciliation_only"
+
 #: 锚模型（主力模型）缺省与解析优先级：env > config.yaml llm.model > 默认
 DEFAULT_ANCHOR_MODEL = "gpt-4o-mini"
 ENV_ANCHOR_MODEL = "CP_UTC_ANCHOR_MODEL"
@@ -78,6 +110,26 @@ _BUILTIN_MODEL_COSTS: Dict[str, Dict[str, float]] = {
 }
 
 _CONFIG_CACHE: Dict[str, Any] = {}
+
+
+def calibration_block() -> Dict[str, Any]:
+    """口径标注块（**所有成本/UTC 指标输出都应带上它**）
+
+    裁定 C：显式标注「当前口径＝价格锚定系数，待 L2 基线后校准」+ 口径版本号。
+    裁定 D：显式标注「成本唯一数据源＝事件流」+ 旧轨角色。
+    """
+    anchor, source = resolve_anchor_model()
+    return {
+        "cost_schema_version": COST_SCHEMA_VERSION,
+        "calibration_version": CALIBRATION_VERSION,
+        "calibration_note": CALIBRATION_NOTE,
+        "calibration_trigger": CALIBRATION_TRIGGER,
+        "calibrated": False,
+        "anchor_model": anchor,
+        "anchor_source": source,
+        "source_of_truth": COST_SOURCE_OF_TRUTH,
+        "legacy_cost_log_role": LEGACY_COST_LOG_ROLE,
+    }
 
 
 class UTCNormalizationError(ValueError):
@@ -242,7 +294,8 @@ def coefficient_table(models: Optional[Iterable[str]] = None) -> Dict[str, Dict[
                             "price_usd_per_1k": price_usd_per_1k(str(name))}
     return {"anchor_model": anchor, "anchor_source": source,
             "anchor_price_cents_per_1k": anchor_prices_cents(),
-            "models": table}
+            "models": table,
+            "calibration": calibration_block()}
 
 
 # ════════════════════════════════════════════════════════════
@@ -452,6 +505,7 @@ def _finalize(totals: Dict[str, Any], tasks: Dict[str, int]) -> Dict[str, Any]:
         if tasks["acr_cohort"] else None)
     out["utc_formula"] = ("UTC = cost_normalized_cents / 任务数"
                           "（closed+failed；ACR 同口径变体排除 explore/consult）")
+    out["calibration"] = calibration_block()
     return out
 
 
@@ -522,8 +576,10 @@ def utc_snapshot(days: int = 7, *, directory: Optional[str] = None) -> Dict[str,
         "baseline_days": len(history),
         "ratio": ratio,
         "thresholds": {"fasting_in": 1.3, "fasting_out": 1.1, "cooldown_hours": 12,
-                       "owner": "S5-03（本任务只提供度量，不实现断食状态机）"},
+                       "owner": ("S5-03 已实现断食状态机："
+                                 "agent.monitoring.cost_brake（本快照是其数据源）")},
         "anchor_model": resolve_anchor_model()[0],
+        "calibration": calibration_block(),
     }
 
 
@@ -593,17 +649,32 @@ def reconcile_pricing(models: Optional[Iterable[str]] = None) -> Dict[str, Any]:
 
 def reconcile_cost_log(path: Optional[str] = None, *,
                        directory: Optional[str] = None) -> Dict[str, Any]:
-    """与既有成本监控**数据文件**对账（`data/cost_log.jsonl`，如存在）
+    """与旧成本轨**数据文件**对账（`data/cost_log.jsonl`）—— **纯对账工具**
 
-    既有多数部署下该文件由测试/脚本写入（生产运行未接线，属既有缺口，
-    已在验收报告遗留清单登记）；文件缺失时如实返回 ``rows=0`` 而非伪造一致。
+    【S2-03 #9 · Owner 裁定 D（2026-09-11）】本函数**已降级**：旧轨 `cost_log.jsonl`
+    已**停写**，成本唯一数据源是事件流（`record_cost()` → `data/events/`）。
+    因此本函数**不再是数据源**，只在下列场景使用：
+
+    - 迁移期核对「旧轨历史金额」与「同 token 组合按现行归一公式重算」是否一致
+      （`delta_cents` / `consistent`）；
+    - 排查"收敛后是否还有调用方往旧轨记账"（配合 `cost_tracker.legacy_track_status()`）。
+
+    返回里显式带 `role` / `authoritative_source` / `calibration`，避免被误当数据源。
+    文件缺失时如实返回 ``rows=0`` 而非伪造一致（不臆造）。
     """
     target = path or os.path.join(
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
         "data", "cost_log.jsonl")
+    base: Dict[str, Any] = {
+        "path": target,
+        "role": LEGACY_COST_LOG_ROLE,
+        "authoritative_source": COST_SOURCE_OF_TRUTH,
+        "calibration": calibration_block(),
+    }
     if not os.path.exists(target):
-        return {"path": target, "rows": 0, "consistent": None,
-                "note": "cost_log.jsonl 不存在（生产未接线，属既有缺口）"}
+        return {**base, "rows": 0, "consistent": None,
+                "note": ("cost_log.jsonl 不存在（旧轨已停写，属预期；"
+                         "成本唯一数据源＝事件流）")}
     legacy_cents = 0.0
     rows = 0
     normalized_cents = 0.0
@@ -627,22 +698,26 @@ def reconcile_cost_log(path: Optional[str] = None, *,
                     model=str(rec.get("model") or ""))
                 normalized_cents += calc["cost_normalized_cents"]
     except OSError as e:
-        return {"path": target, "rows": 0, "consistent": None, "note": f"读取失败: {e}"}
+        return {**base, "rows": 0, "consistent": None, "note": f"读取失败: {e}"}
     delta = round(normalized_cents - legacy_cents, 6)
     return {
-        "path": target,
+        **base,
         "rows": rows,
         "legacy_cents": round(legacy_cents, 6),
         "normalized_cents": round(normalized_cents, 6),
         "delta_cents": delta,
         "consistent": abs(delta) < 1e-6 if rows else None,
-        "note": "逐行按同一 token 组合重算比对（空文件 → consistent=None）",
+        "note": ("逐行按同一 token 组合重算比对（空文件 → consistent=None）；"
+                 "本函数为**只读对账**，不参与成本口径"),
     }
 
 
 __all__ = [
     "DEFAULT_ANCHOR_MODEL", "ENV_ANCHOR_MODEL", "ENV_COEFFICIENTS",
     "ENV_PRICE_OVERRIDES", "DEFAULT_MODEL_PRICE_USD_PER_1K", "UTCNormalizationError",
+    "COST_SCHEMA_VERSION", "CALIBRATION_VERSION", "CALIBRATION_NOTE",
+    "CALIBRATION_TRIGGER", "COST_SOURCE_OF_TRUTH", "LEGACY_COST_LOG_ROLE",
+    "calibration_block",
     "model_costs", "price_usd_per_1k", "resolve_anchor_model", "anchor_prices_cents",
     "coefficient", "coefficient_table", "normalize_cost", "record_cost",
     "reset_config_cache",
