@@ -370,3 +370,6 @@ data/skills_mgmt_review_audit*.jsonl
 data/skill_merge_backups.jsonl
 # 技能自动分类注册表（assignments + auto_classes，运行时追加）
 data/skills_classes.json
+
+# 并行会话隔离 worktree（new_session_worktree.py 生成）
+/.worktrees/
