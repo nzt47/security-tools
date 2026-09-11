@@ -17,12 +17,13 @@
 | 4 | 遗忘三触发 + TTL + 快照 30 天 + 被遗忘权 | `agent/memory/forgetting.py` | 1329 行 |
 | 5 | 主体伪名化与审计桥（匿名化 = 销毁盐） | `agent/memory/identity.py` | 318 行 |
 | 6 | 包导出接线（兼容叠加） | `agent/memory/__init__.py` | +84 行 |
-| 7 | 单测（4 套件 + 1 公共夹具模块） | `tests/unit/test_memory_{taxonomy,tenancy,layered_store,forgetting}.py` + `tests/unit/memory_layer_testkit.py` | **246 例 / 2320 行** |
+| 7 | 单测（4 套件 + 1 公共夹具模块） | `tests/unit/test_memory_{taxonomy,tenancy,layered_store,forgetting}.py` + `tests/unit/memory_layer_testkit.py` | **247 例 / 2364 行** |
 | 8 | 记忆分层映射表 | `docs/zh/CloudPivot_v7.2重构计划/TASK-S5-01_记忆分层映射表.md` | — |
 | 9 | 本验收报告 | 同目录 | — |
 | 10 | 交付结案报告 | `S5-01_交付结案报告_20260912.md` | — |
+| 11 | 审计台账保留边界草案（S2-02 遗留 #4 兑现准备） | `RFC-审计台账保留与冷存_边界草案.md` + `scripts/audit_chain_link_diag.py` | — |
 
-**代码总规模**：3888 行（5 个新模块）+ 246 例单测。**零运行时目录污染**（见 §四.4）。
+**代码总规模**：3888 行（5 个新模块）+ 247 例单测。**零运行时目录污染**（见 §四.4）。
 
 ---
 
@@ -136,7 +137,7 @@ python -m pytest tests/unit/test_memory_forgetting.py::TestRightToBeForgotten -v
 
 ### ✅ 7. 既有 memory/knowledge 套件零回归；新增单测全绿、覆盖率 ≥80%
 
-- 新增单测 **236 例全绿**，新增模块覆盖率 **91%**（见 §四.1）
+- 新增单测 **247 例全绿**，新增模块覆盖率 **91%**（见 §四.1）
 - 相关套件 + 邻接回归 **零回归**（见 §四.2）
 
 ---
@@ -202,8 +203,8 @@ python -m coverage report -m
 | `test_memory_taxonomy.py` | 50 |
 | `test_memory_tenancy.py` | 61 |
 | `test_memory_layered_store.py` | 59 |
-| `test_memory_forgetting.py` | 76 |
-| **合计** | **246** |
+| `test_memory_forgetting.py` | 77 |
+| **合计** | **247** |
 
 ### 4.2 相关套件与邻接回归
 
@@ -311,8 +312,9 @@ python -m pytest tests/unit/test_ci_l3_context_preflight.py::TestSimulatedCiFail
 | L5 | **多租户企业形态（tenant ≠ workspace）** 仅在 `resolve_tenancy` 层支持（显式 `tenant_id` + `workspace_id`），未有单测覆盖"一个租户多工作区"的完整召回面 | 后续（企业侧启用时） | 不阻塞：IDE 先行口径（P7.2-08）下 tenant = workspace-hash，已覆盖 |
 | L6 | 触发①的**基线来源**目前取 `descriptor.quality.success_rate`；S5-02 的 L2 Core-50 基线就绪后可切换为回归基线指针（`quality.regression_baseline_id`） | S5-02 交付后 | 不阻塞：`baseline_provider` 已是可注入缝 |
 | L7 | `lint-imports` 在本机 GBK 控制台需 `PYTHONUTF8=1` 才能读 UTF-8 的 `.importlinter` | 环境/工具链 | 不阻塞：属控制台编码，CI Linux 不受影响 |
-| L8 | **审计台账保留/归档策略缺失**（链式轨只增不减、无 TTL）—— S2-02 遗留 #4 原定归属" S2 生产化 / **S5**" | S5 轨后续（非 S5-01 验收项） | 不阻塞本任务：S5-01 的遗忘只删**记忆**，明确不删审计证据（§8「删的是记忆不是证据」）；台账保留策略需独立任务（涉及 `AuditChain` 的归档/只读冷存） |
-| L9 | 触发①基线除 `descriptor.quality.success_rate` 外，仓库已有现成替代数据源 `agent/digestion/gate.py::baseline_from_ledger(capability_id, *, store=None, limit=500)` / `baseline_from_traces(rows)` | S5-02 交付后统一 | 不阻塞：`baseline_provider` 已是可注入缝，切换为一行接线 |
+| L8 | **审计台账保留/归档策略缺失**（链式轨只增不减、无 TTL）—— S2-02 遗留 #4 原定归属" S2 生产化 / **S5**" | S5 轨后续（非 S5-01 验收项） | 不阻塞本任务：S5-01 的遗忘只删**记忆**，明确不删审计证据（§8「删的是记忆不是证据」）。**已产出边界草案**：[RFC-审计台账保留与冷存_边界草案.md](RFC-审计台账保留与冷存_边界草案.md)（含冷存设计 A/B/C、验收标准、接口冻结面、§8「365 天匿名化」的结构性口径裁定项 R1–R3） |
+| L9 | 触发①基线除 `descriptor.quality.success_rate` 外，仓库已有 `agent/digestion/gate.py::baseline_from_ledger(capability_id, *, store=None, limit=500)` | S5-02 交付后统一 | 不阻塞，且**已裁定不接线**（见下） |
+| L9-a | **裁定：`baseline_from_ledger` 不作为遗忘基线**（原"一行接线"提议经代码复核后否决） | — | 两条代码级理由：①它是"最近 500 条轨迹"的成功率（无时间窗，`source="s2-01_ledger"`），与触发①观测量（近 30 天）**同类不同窗** ⇒ 稳定流量下两窗几乎重合、比值恒 ≈1 ⇒ 触发①**静默失效**；流量波动时随调用量漂移 ⇒ 同一劣化得到不同裁决。§4.3 的"基线"在本项目有确定含义：S5-02 冻结的 L2 Core-50 基线，指针 `quality.regression_baseline_id`（P7.2-24）。②它内部 `query(capability_id=..., limit=500)` **不带租户过滤**，接上即**重新引入**修复 #9 刚消除的跨租户串扰。**已加回归护栏** `TestSuccessRateTrigger::test_ledger_derived_proxy_is_not_used_as_baseline`（断言引擎全程不咨询该代理量）。正确未来接线：`regression_baseline_id` → S5-02 冻结基线，经 `baseline_provider` 注入 |
 | L10 | 触发①的租户作用域过滤在**读取侧**完成（`query()` 无租户参数 ⇒ 需拉取该能力全部轨迹再过滤） | S2 生产化（给 `UnifiedTraceStore.query` 加 `tenant_id`/`workspace_id` 过滤 + 用既有 `idx_ut_workspace` 索引） | 不阻塞：正确性已保证；轨迹量大时是该路径的已知成本，已在映射表 §五记录 |
 | L11 | `AuditChain.entries()` 无 `workspace_id` 过滤（列已存在但未建索引） | S2 生产化 / S4-01 | 不阻塞本任务：删除权取证扫描是**治理通道**（跨租户全链扫描是必需的，否则无法证明"标识符已全局消失"） |
 
@@ -328,7 +330,7 @@ python -m pytest tests/unit/test_ci_l3_context_preflight.py::TestSimulatedCiFail
 4. 企业策略记忆 org 级只读下发（个人不可写、跨租户可读、治理通道可维护）✅
 5. 遗忘三触发各自触发用例 + 先快照后删除 + 快照留 30 天 + **删除后审计匿名化但链保留可验签** ✅
 6. TTL 到期自动降级候选生效（含短/长 TTL 分层与可配回退）✅
-7. 既有 memory/knowledge 套件零回归；新增 **246** 例全绿、覆盖率 **91%**（≥80%）✅
+7. 既有 memory/knowledge 套件零回归；新增 **247** 例全绿、覆盖率 **91%**（≥80%）✅
 
 **补充验证（复用 S2-01/S2-02 台账能力复读后加固）**：
 - 触发①的成功率样本**按条目租户作用域**（修复 #9）——治理决策不跨租户串扰；

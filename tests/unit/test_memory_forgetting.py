@@ -207,6 +207,54 @@ class TestSuccessRateTrigger:
         assert FORGET_SUCCESS_RATE_RATIO == 0.7
         assert FORGET_WINDOW_DAYS == 30
 
+    async def test_ledger_derived_proxy_is_not_used_as_baseline(
+        self, tmp_path, clock, store, monkeypatch
+    ):
+        """**刻意不接线**：`digestion.gate.baseline_from_ledger` 不得被当作遗忘基线
+
+        两条代码级理由（本用例把它们固化为回归护栏，防止后续会话"顺手接上"）：
+
+        1. **它不是基线**：`baseline_from_ledger(capability_id, limit=500)` 取的是该能力
+           *最近 500 条轨迹* 的成功率（`baseline_from_traces`，无时间窗，`source="s2-01_ledger"`）
+           —— 与触发①的观测值（最近 30 天）是**同类量的不同窗口**。拿它当基线等于
+           "近 30 天 vs 最近 500 次调用"：稳定流量下两窗几乎重合 ⇒ 比值恒 ≈1 ⇒ 触发①
+           **静默失效**；流量波动时又随调用量漂移 ⇒ 同一劣化得到不同裁决。而 §4.3 的
+           "基线"在本项目有确定含义：S5-02 冻结的 L2 Core-50 基线，指针为
+           `ToolDescriptor.quality.regression_baseline_id`（P7.2-24）。
+        2. **它没有租户作用域**：内部 `store.query(capability_id=..., limit=500)` 不带租户过滤，
+           接上即**重新引入**修复 #9 刚消除的跨租户串扰（租户 A 的流量决定租户 B 的基线）。
+
+        当前口径：基线只取 `descriptor.quality`（已记录、已认证的量）；**无基线 ⇒ 不触发**
+        （失败安全）。未来正确接线是 `regression_baseline_id` → S5-02 冻结基线产物，
+        经由 `baseline_provider` 注入缝，而不是台账代理量。
+        """
+        from agent.digestion import gate as gate_mod
+
+        calls = []
+
+        def _sentinel(capability_id, **kwargs):
+            calls.append(capability_id)
+            return {"success_rate": 0.99, "p99": 1.0, "sample_count": 999,
+                    "source": "s2-01_ledger"}
+
+        monkeypatch.setattr(gate_mod, "baseline_from_ledger", _sentinel, raising=False)
+
+        engine, _ = make_engine(tmp_path, store=store, clock=clock,
+                                traces=self._traces(0, 30),
+                                registry=self._healthy_without_quality())
+        await _seeded(store, source_capability_id=CAP)
+        # 来源健康（不触发②）但 quality.sample_count=0 ⇒ 无基线 ⇒ 不触发①；
+        # 且全程未咨询台账代理量
+        assert engine.baseline_for(CAP) is None
+        assert await engine.scan(apply_ttl=False) == []
+        assert calls == []
+
+    @staticmethod
+    def _healthy_without_quality():
+        """来源存在且未 deprecated，但无 quality 样本（`sample_count=0`）"""
+        return FakeRegistry({CAP: FakeDescriptor(stage="native", success_rate=0.0,
+                                                 sample_count=0)})
+
 
 # ════════════════════════════════════════════════════════════
 #  3. 触发②：来源失效（deprecated / 来源摘除）
