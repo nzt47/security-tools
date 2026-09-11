@@ -401,3 +401,14 @@ Owner 裁定 **C / D 的落地证据可机器校验**（`calibrated=False`、`so
 
 **遗留 8 项，全部不阻塞**，其中 2 项已在报告内如实纠正上游文档的陈旧引用（`verify_budget_break.py` /
 `data/cost_daily.json`），其余带明确归属与触发条件移交。
+
+---
+
+## 8. 推送与 CI（终态）
+
+| 项 | 值 |
+|---|---|
+| 代码提交 | `00d285ca` |
+| 合并提交（master） | `b656545a` |
+| 双远端同点 | ✅ origin / gitee / 本地 `master` 三者同为 `b656545a`（`git ls-remote` 实测） |
+| CI | `b656545a` 的运行被 GitHub Actions **并发取消**（S5-02 会话随后推送 `cae2abd3`，**非失败**）；合并树 `cae2abd3` 观察时 `in_progress`，**0 failure**。**本任务不以 CI 终态为结案依据**（见交付结案报告 §5） |
