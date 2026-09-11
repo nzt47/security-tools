@@ -486,7 +486,7 @@ python -m pytest -m "not slow" -p no:randomly -q
 | 范围 | 命令 | 结果 |
 |---|---|---|
 | `tests/unit`（本任务改动的主战场） | `pytest tests/unit -m "not slow" -p no:randomly -q -n 4 --dist=loadscope` | **14388 passed / 51 skipped / 13 xfailed / 4 xpassed / 0 failed**，`PYTEST_EXIT=0`，663.82s |
-| `tests/`（除 unit：boundary/contract/chaos/integration/e2e 等） | `pytest tests --ignore=tests/unit -m "not slow" -p no:randomly -q -n 4 --dist=loadscope` | 见 `reports/s402_nonunit_pytest.txt` |
+| `tests/`（除 unit：boundary/contract/chaos/integration/e2e 等） | `pytest tests --ignore=tests/unit -m "not slow" -p no:randomly -q -n 4 --dist=loadscope` | 跑到 **97%** 时 xdist worker 挂起（最后完成的用例属 `tests/chaos/test_rate_limiter_chaos.py`，之后 65 分钟无任何用例输出与进展），已**主动终止**；该区段与本任务改动面无关，原始输出留存 `reports/s402_nonunit_pytest.txt` |
 
 原始输出：`reports/s402_unit_pytest.txt`、`reports/s402_nonunit_pytest.txt`
 （以及未跑完的串行尝试 `reports/s402_full_pytest.txt`，保留以佐证「被终止」而非
