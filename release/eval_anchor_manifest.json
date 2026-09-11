@@ -1,0 +1,71 @@
+{
+  "schema": "eval.release_anchor.v1",
+  "anchor_dir": "eval\\l0_anchor",
+  "anchor_caseset_sha256": "d147ffa2c76a1c78d3ce595f733bf8adbdf6d41ac1d05c783b59981dd7bfbf92",
+  "anchor_manifest_sha256": "e6619a51c75cc34d92e0e002071c85ef4ab8b20a09b31c42ab74233e1c57f33e",
+  "anchor_count": 20,
+  "anchor_frozen_at": "2026-09-12T02:35:37+0800",
+  "anchor_frozen_by": "S5-02 执行会话（代行冻结；Owner 复核项见 TASK-S5-02_验收报告 §6）",
+  "reference_sha256": "abbb4a40c5478072316d5a6dada6f36b1f525c524059f622737d7465603b32a9",
+  "freeze_tool_version": "s5-02.1",
+  "layers": {
+    "L0": {
+      "path": "eval\\l0_anchor\\cases.json",
+      "exists": true,
+      "count": 20,
+      "caseset_sha256": "d147ffa2c76a1c78d3ce595f733bf8adbdf6d41ac1d05c783b59981dd7bfbf92",
+      "scenario_counts": {
+        "S1_fix_bug": 4,
+        "S2_codebase_qa": 3,
+        "S3_commit": 3,
+        "approval_intercept": 4,
+        "rollback": 3,
+        "router_decision": 3
+      },
+      "verdict_counts": {
+        "mechanical": 20
+      }
+    },
+    "L1": {
+      "path": "eval\\l1_min\\cases.json",
+      "exists": true,
+      "count": 10,
+      "caseset_sha256": "d3d93f6b9edc802387b15d571f8fb06dfd5cd7f0f1859113b38f9ca4972a7d34",
+      "scenario_counts": {
+        "S1_fix_bug": 3,
+        "S2_codebase_qa": 1,
+        "S3_commit": 1,
+        "approval_intercept": 2,
+        "rollback": 2,
+        "router_decision": 1
+      },
+      "verdict_counts": {
+        "mechanical": 10
+      }
+    },
+    "L2": {
+      "path": "eval\\l2_core50\\cases.json",
+      "exists": true,
+      "count": 50,
+      "caseset_sha256": "c42870ea6d4514d22d9afa6fce7252c1b1187a3a3701b7530ad8e5d4a8e7a8d8",
+      "scenario_counts": {
+        "S1_fix_bug": 20,
+        "S2_codebase_qa": 15,
+        "S3_commit": 15
+      },
+      "verdict_counts": {
+        "mechanical": 48,
+        "proxy": 2
+      }
+    },
+    "L3": {
+      "path": "eval\\l3_golden80\\cases.json",
+      "exists": true,
+      "count": 0,
+      "caseset_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "scenario_counts": {},
+      "verdict_counts": {}
+    }
+  },
+  "note": "L0 锚哈希锚定入发布清单：发布制品与评测数据一一对应；锚为系统不可写，任何改动都会使本清单失效（fail-closed）"
+}
