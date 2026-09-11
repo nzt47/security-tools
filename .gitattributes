@@ -8,6 +8,12 @@
 
 # 【不易】S5-02 评测锚与分层数据（eval/）是**哈希锚定对象**：必须跨平台逐字节一致。
 # core.autocrlf=true 的机器上，若允许 EOL 转换，参考解/用例集在 Windows(CRLF) 与
-# Linux(LF) 的字节不同，会让"锚完整性校验"在本地与 CI 之间产生假阳性
+# Linux(LF) 的字节不同，会让“锚完整性校验”在本地与 CI 之间产生假阳性
 # （fail-closed 会直接拒绝评测）。故显式声明 LF。
 eval/** text eol=lf
+
+# 【变易·TASK-S4-02】hooks/ 下的 git hook 无扩展名，不受上面 *.sh 规则覆盖，
+# 但同样由 sh 执行。CRLF 除了 shebang 问题外，还会让 `\` 续行失效
+# （`\` 去转义 CR，续行不生效 → syntax error near unexpected token），
+# 本任务实测踩到过。显式标为 LF。
+hooks/* text eol=lf

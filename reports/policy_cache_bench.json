@@ -1,0 +1,61 @@
+{
+  "schema": "policy.cache_bench.v1",
+  "generated_at": "2026-09-12T01:11:10+0800",
+  "python": "3.12.0",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "cpu_count": 12,
+  "params": {
+    "iterations": 20000,
+    "variants": 64,
+    "warmup": 200,
+    "cache_size": 2048,
+    "with_io": false,
+    "threshold_ms": 5.0
+  },
+  "policy_file": "data/policies/policies.json",
+  "result": {
+    "engine_latency_hit": {
+      "count": 4096,
+      "p50": 0.0167,
+      "p95": 0.0332,
+      "p99": 0.0355,
+      "max": 0.0603,
+      "mean": 0.0203,
+      "cache_hit": true
+    },
+    "engine_latency_miss": {
+      "count": 4096,
+      "p50": 0.0966,
+      "p95": 0.1874,
+      "p99": 0.2359,
+      "max": 0.4634,
+      "mean": 0.1092,
+      "cache_hit": false
+    },
+    "wall_hit": {
+      "count": 20000,
+      "p50": 0.0224,
+      "p95": 0.0411,
+      "p99": 0.0474,
+      "max": 0.7556,
+      "mean": 0.0245,
+      "stdev": 0.009
+    },
+    "wall_miss": {
+      "count": 20000,
+      "p50": 0.1043,
+      "p95": 0.2032,
+      "p99": 0.2319,
+      "max": 11.8685,
+      "mean": 0.1188,
+      "stdev": 0.1045
+    },
+    "cache_stats": {
+      "size": 64,
+      "capacity": 2048,
+      "hits": 40136,
+      "misses": 64
+    }
+  },
+  "verdict": "pass"
+}

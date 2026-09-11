@@ -1,0 +1,77 @@
+{
+  "schema": "policy.v1",
+  "policies": [
+    {
+      "id": "sec.opaque-destructive-deny",
+      "version": "1.0.0",
+      "owner": "security",
+      "effect": "deny",
+      "match": {
+        "all": [
+          {
+            "field": "capability.origin.opaque",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "field": "capability.trust.risk_level",
+            "op": "eq",
+            "value": "destructive"
+          }
+        ]
+      },
+      "message_template": "黑盒能力禁止破坏性操作（§5.6）：{capability_id} 尚未可验证（origin.opaque=true）",
+      "effective_range": null,
+      "break_glass_ttl_min": null,
+      "signature": ""
+    },
+    {
+      "id": "gov.confidential-external-ask",
+      "version": "1.0.0",
+      "owner": "governance",
+      "effect": "ask",
+      "match": {
+        "all": [
+          {
+            "field": "capability.trust.data_class",
+            "op": "eq",
+            "value": "confidential"
+          },
+          {
+            "field": "target.external",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      "message_template": "机密数据出域需人工确认：{capability_id} → {target_host}（§5.6 收件箱只收例外）",
+      "effective_range": null,
+      "break_glass_ttl_min": null,
+      "signature": ""
+    },
+    {
+      "id": "ops.freeze-external-egress",
+      "version": "1.0.0",
+      "owner": "ops",
+      "effect": "deny",
+      "match": {
+        "all": [
+          {
+            "field": "attributes.freeze_window",
+            "op": "eq",
+            "value": true
+          },
+          {
+            "field": "target.external",
+            "op": "eq",
+            "value": true
+          }
+        ]
+      },
+      "message_template": "冻结窗口内禁止一切外部出域：{action} → {target_host}；紧急情况可申请 break-glass（最长 30 分钟）",
+      "effective_range": null,
+      "break_glass_ttl_min": 30,
+      "signature": ""
+    }
+  ]
+}

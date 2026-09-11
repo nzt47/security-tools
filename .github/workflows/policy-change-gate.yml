@@ -1,0 +1,135 @@
+# 策略变更门禁（P7.2-19：策略变更 PR 必附模拟报告，否则不可合入）
+#
+# 触发条件：PR 触及 `data/policies/**` 下的策略文件，或本门禁脚本/策略包本身。
+# 检查内容（任一条不过即阻断）：
+#   1. 策略文件语法/schema/禁用 token/签名的自检；
+#   2. 存在一份 `policy.simulation.v1` 模拟报告，且其候选策略就是本次改动的策略；
+#   3. 高危变更（原 deny/ask 现 allow）在 PR 描述 `## 高危确认` 段逐条勾选；
+#   4. 无历史样本时，PR 描述显式声明「无历史决策样本」。
+#
+# 说明：本 workflow **不**自动重算模拟报告。模拟要在具备真实历史决策的环境里跑
+# （`data/policies/decisions.jsonl` 是运行时产物、不入库），CI 无法凭空造出样本；
+# 因此 CI 的职责是**核验报告与变更一致**，而不是伪造一份报告。
+
+name: 策略变更门禁
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    paths:
+      - 'data/policies/**'
+      - 'agent/policy/**'
+      - 'scripts/check_policy_change_gate.py'
+      - 'scripts/bench_policy_cache.py'
+      - '.github/workflows/policy-change-gate.yml'
+  push:
+    branches:
+      - master
+      - main
+      - develop
+    paths:
+      - 'data/policies/**'
+      - 'agent/policy/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  policy-schema:
+    name: 策略文件自检（schema / 禁用 token / 签名）
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || pip install pydantic cryptography
+
+      - name: 策略文件自检
+        run: |
+          python scripts/check_policy_change_gate.py --schema-only data/policies/policies.json
+
+      - name: 策略单测（新增机制不得回归）
+        run: |
+          python -m pytest tests/unit/test_policy_models.py tests/unit/test_policy_matcher.py \
+            tests/unit/test_policy_store.py tests/unit/test_policy_engine.py \
+            tests/unit/test_policy_egress.py tests/unit/test_policy_simulator.py \
+            tests/unit/test_policy_integration.py -q -p no:randomly
+
+  simulation-report-gate:
+    name: 模拟报告与高危确认门禁
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 需要与 base 比较（git diff base...HEAD）
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || pip install pydantic cryptography
+
+      - name: 写出 PR 描述与改动清单
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s' "$PR_BODY" > pr_body.md
+          git fetch --no-tags origin "${{ github.base_ref }}" || true
+          git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
+            | grep -E '^data/policies/.*\.json$' > changed_policies.txt || true
+          echo "改动策略文件："; cat changed_policies.txt || true
+
+      - name: 定位模拟报告
+        run: |
+          # 报告由 PR 作者随提交带上（约定路径），或从 PR 描述里以 <report: path> 指定
+          if [ -f reports/policy_simulation.json ]; then
+            echo "REPORT=reports/policy_simulation.json" >> "$GITHUB_ENV"
+          else
+            REPORT_FROM_BODY=$(grep -oE '<report:[^>]+>' pr_body.md | head -1 | sed -e 's/<report://' -e 's/>//' -e 's/^ *//' -e 's/ *$//' || true)
+            if [ -n "$REPORT_FROM_BODY" ] && [ -f "$REPORT_FROM_BODY" ]; then
+              echo "REPORT=$REPORT_FROM_BODY" >> "$GITHUB_ENV"
+            fi
+          fi
+
+      - name: 运行门禁
+        run: |
+          if [ ! -s changed_policies.txt ]; then
+            echo "本次未改动策略文件，门禁跳过"
+            exit 0
+          fi
+          if [ -z "${REPORT:-}" ]; then
+            echo "::error::改动触及策略文件，但未在 reports/policy_simulation.json 或 PR 描述 <report:path> 找到模拟报告。"
+            echo "P7.2-19：策略变更 PR 必附模拟报告，否则不可合入。"
+            echo "生成方式：python -m agent.policy.simulator --candidate <cand.json> --since 7d \\"
+            echo "          --out reports/policy_simulation.md --json-out reports/policy_simulation.json"
+            exit 1
+          fi
+          ARGS=""
+          while read -r line; do
+            [ -n "$line" ] && ARGS="$ARGS --changed $line"
+          done < changed_policies.txt
+          # shellcheck disable=SC2086
+          python scripts/check_policy_change_gate.py $ARGS \
+            --report "$REPORT" --pr-body pr_body.md
