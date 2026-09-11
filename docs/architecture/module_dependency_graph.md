@@ -1240,7 +1240,9 @@ flowchart LR
     agent_memory_forgetting -.-> agent_logging_utils
     agent_memory_forgetting --> agent_memory_identity
     agent_memory_forgetting --> agent_memory_taxonomy
+    agent_memory_forgetting --> agent_memory_tenancy
     agent_memory_forgetting -.-> agent_observability_trace_v2
+    agent_memory_forgetting -.-> agent_audit
     agent_memory_forgetting -.-> agent_observability_trace_v2
     agent_memory_forgetting -.-> agent_descriptors_registry
     agent_memory_forgetting -.-> agent_audit
@@ -1676,8 +1678,8 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 477
 - 模块节点数: 415
-- 依赖边数: 1159
-- 跨层调用数: 764
+- 依赖边数: 1161
+- 跨层调用数: 765
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 2456.14 ms
+- 构建耗时: 2544.67 ms
