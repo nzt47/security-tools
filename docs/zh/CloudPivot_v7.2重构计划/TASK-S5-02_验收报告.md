@@ -321,6 +321,7 @@ $ python scripts/report_slo_weekly.py --json --out data/reports/slo_weekly.json 
 | mypy（新增模块） | `mypy agent/eval/ --ignore-missing-imports --follow-imports=silent` | **0 error** |
 | mypy（既有阻塞模块） | `mypy agent/env_config_manager.py …` / `mypy agent/network_config.py …` | **Success: no issues found** ×2 |
 | importlinter | `lint-imports --config .importlinter` | **2 kept / 0 broken** |
+| 架构规则校验 | `python -m agent.observability.arch_rules --check --root agent --exemptions … ` | **passed=True｜未豁免违规 0**（存量 4 项均已豁免；本任务曾报 4 项，见 §5.3） |
 | 产物漂移 | `git status --short` | 仅本任务新增文件 + `.gitignore`（1 行区块）；门禁产物已还原，见 §5.2 |
 
 ### 5.1 广域回归 / 全量抽查结果
@@ -357,7 +358,20 @@ tool_calling or metrics or utc or acr"`）：
   `data/feedback/`（`test_compute_metrics_does_not_touch_data_dir` 等断言"不创建目录"）；
 * `data/eval/`（基线快照 / 拟合件）已加入 `.gitignore`，运行期产物不进入提交；
 * 锚目录 `eval/l0_anchor/` 由 `guard_write` 守门：基线 / 拟合件 / 周报**无法**写进锚；
-* 门禁后 `git status` 复核（见 §5.2 结论），未出现 tracked 文件漂移。
+* 门禁后 `git status` 复核（见 §5.2 结论），未出现 tracked 文件漂移
+  （`check_boundary_coverage.py` 曾改动 `docs/observability/boundary_coverage_report.json`，
+  已 `git checkout` 还原；`clean_runtime_noise.py` 还原 `data/learned_workflows.json` 统计漂移）。
+
+### 5.3 实现期真实问题（3 项，均已闭合）
+
+| # | 问题 | 发现方式 | 处置 |
+|---|---|---|---|
+| 1 | **逐符号全树遍历**导致 L2 用例在并发负载下超时（`os.walk` 每个新符号一次全树） | 首次全量抽查 `FAILED test_eval_datasets.py::test_reference_covers_all_and_passes`（pytest timeout 120s） | 改为**剪枝 + 语料缓存**：一次遍历入内存语料（实测 1.20s / 4091 文件），后续检索 0.02s；相关套件由超时 → 6.00s 全绿 |
+| 2 | **变异解区分度不足**：4 条 L2 `contains_all` 在"只删第一处片段"的变异下仍通过（短片段在别处再现） | 自检门 `check_eval_datasets.py` 的逐条判定负样本对照 | 变异策略改为"删除该片段的**全部**出现"，幸存数归零 |
+| 3 | **架构规则校验失败**：`from agent.eval import x` 被 AST 依赖图记为依赖包根，而包根导入子模块 → 判为循环依赖（4 处未豁免违规） | CI「架构规则校验」工作流（阻断合并） | 包内改为 `import agent.eval.<mod> as X`；**并新增回归守护**（`TestPackageHygiene` 用 AST 扫描禁止该写法）；重跑 arch_rules → passed=True、未豁免 0 |
+
+> 这三项都不是"跑绿一次就完"，而是被**机器门禁主动抓出来**的：① 全量抽查、② 自检门、
+> ③ CI 架构规则。它们同时也是本任务"标尺可信 + 门禁可信"的实例证据。
 
 ---
 
