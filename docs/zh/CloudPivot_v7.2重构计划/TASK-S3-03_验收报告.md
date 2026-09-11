@@ -285,13 +285,15 @@ $ python -m pytest tests/unit -k "digestion or descriptors or skills_mgmt or app
 - **复核动作通道已就绪且留痕**：`ManualReviewQueue.record_review(case_id, verdict, reviewer, role, note)`
   落盘（`reviewed` 记录）+ 链式审计 `digest.shadow.manual_review`；`summary()` 区分
   `human_reviewed` 与 `agent_assisted_reviewed`（**不把机器复核冒充人工**）。
-- **当前状态：待裁定**（`closed=False`，`pending=1`）。按 M5 口径
+- **当前状态：待裁定**（`closed=False`，`pending≥1`）。按 M5 口径
   ——"人工复核未完成前**不得视为已验收**"——本报告**不**声称该条目已通过人工复核。
-- **Owner 裁定方式**（一条命令）：
+  **Owner 已确认按此口径保持"待裁定"并如实披露（2026-09-11）**。
+- **Owner 裁定方式**（一条命令；`<case_id>` 取当前清单里的值 —— 每次灰度运行按 10%
+  确定性抽样入队，清单随运行累积）：
   ```powershell
   $env:PYTHONUTF8=1
-  python scripts/demo_s3_03_internalize.py --review-sheet
-  python scripts/demo_s3_03_internalize.py --record-review --case-id case_99f76861e36f `
+  python scripts/demo_s3_03_internalize.py --review-sheet      # 打印当前清单（含 case_id）
+  python scripts/demo_s3_03_internalize.py --record-review --case-id <case_id> `
       --verdict pass --reviewer <Owner> --review-note "已逐字段核对与上游等价"
   ```
   裁定后 `summary()["closed"]=True`，灰度报告的 `manual_review_closed` 随之转真。
