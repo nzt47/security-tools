@@ -238,13 +238,18 @@ flowchart LR
         agent_memory_context_assembler["agent.memory.context_assembler"]
         agent_memory_file_watcher["agent.memory.file_watcher"]
         agent_memory_filter["agent.memory.filter"]
+        agent_memory_forgetting["agent.memory.forgetting"]
         agent_memory_hotness_scorer["agent.memory.hotness_scorer"]
+        agent_memory_identity["agent.memory.identity"]
+        agent_memory_layered_store["agent.memory.layered_store"]
         agent_memory_long_term_memory["agent.memory.long_term_memory"]:::crosslayer
         agent_memory_markdown_syncer["agent.memory.markdown_syncer"]
         agent_memory_observability["agent.memory.observability"]
         agent_memory_reviewer["agent.memory.reviewer"]:::crosslayer
         agent_memory_router["agent.memory.router"]:::crosslayer
         agent_memory_short_term_memory["agent.memory.short_term_memory"]:::crosslayer
+        agent_memory_taxonomy["agent.memory.taxonomy"]
+        agent_memory_tenancy["agent.memory.tenancy"]
     end
     subgraph model_router [model_router]
         agent_model_router_adapters["agent.model_router.adapters"]:::crosslayer
@@ -1232,11 +1237,25 @@ flowchart LR
     agent_memory_filter -.-> agent_logging_utils
     agent_memory_filter -.-> agent_utils_sensitive_data_filter
     agent_memory_filter -.-> agent_utils_sensitive_data_filter
+    agent_memory_forgetting -.-> agent_logging_utils
+    agent_memory_forgetting --> agent_memory_identity
+    agent_memory_forgetting --> agent_memory_taxonomy
+    agent_memory_forgetting -.-> agent_observability_trace_v2
+    agent_memory_forgetting -.-> agent_observability_trace_v2
+    agent_memory_forgetting -.-> agent_descriptors_registry
+    agent_memory_forgetting -.-> agent_audit
     agent_memory --> agent_memory_base
     agent_memory --> agent_memory_router
     agent_memory --> agent_memory_adapters
+    agent_memory --> agent_memory_identity
+    agent_memory --> agent_memory_taxonomy
+    agent_memory --> agent_memory_tenancy
+    agent_memory --> agent_memory_layered_store
+    agent_memory --> agent_memory_forgetting
     agent_memory_context_assembler -.-> agent_logging_utils
     agent_memory_context_assembler --> agent_memory_observability
+    agent_memory_taxonomy -.-> agent_logging_utils
+    agent_memory_taxonomy -.-> agent_observability_trace_v2
     agent_memory_reviewer --> agent_memory_long_term_memory
     agent_memory_hotness_scorer -.-> agent_logging_utils
     agent_memory_hotness_scorer --> agent_memory_observability
@@ -1245,15 +1264,29 @@ flowchart LR
     agent_memory_router --> agent_memory_adapters_mem0_adapter
     agent_memory_router -.-> agent_logging_utils
     agent_memory_router --> agent_memory_filter
+    agent_memory_layered_store -.-> agent_logging_utils
+    agent_memory_layered_store --> agent_memory_identity
+    agent_memory_layered_store --> agent_memory_long_term_memory
+    agent_memory_layered_store --> agent_memory_taxonomy
+    agent_memory_layered_store --> agent_memory_tenancy
+    agent_memory_layered_store -.-> agent_utils_sensitive_data_filter
+    agent_memory_layered_store -.-> agent_observability_trace_v2
     agent_memory_file_watcher -.-> agent_logging_utils
     agent_memory_file_watcher --> agent_memory_markdown_syncer
     agent_memory_file_watcher --> agent_memory_observability
     agent_memory_markdown_syncer -.-> agent_logging_utils
     agent_memory_short_term_memory --> agent_memory_base
     agent_memory_short_term_memory -.-> agent_logging_utils
+    agent_memory_tenancy -.-> agent_logging_utils
+    agent_memory_tenancy --> agent_memory_taxonomy
+    agent_memory_tenancy -.-> agent_observability_trace_v2
+    agent_memory_tenancy -.-> agent_observability_trace_v2
+    agent_memory_tenancy -.-> agent_observability_trace_v2
     agent_memory_long_term_memory --> agent_memory_base
     agent_memory_long_term_memory -.-> agent_logging_utils
     agent_memory_long_term_memory -.-> agent_monitoring_business_metrics
+    agent_memory_identity -.-> agent_logging_utils
+    agent_memory_identity -.-> agent_audit
     agent_memory_observability -.-> agent_logging_utils
     agent_memory_observability -.-> agent_monitoring_business_metrics
     agent_memory_base -.-> agent_logging_utils
@@ -1641,10 +1674,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 472
-- 模块节点数: 410
-- 依赖边数: 1131
-- 跨层调用数: 748
+- 扫描文件数: 477
+- 模块节点数: 415
+- 依赖边数: 1159
+- 跨层调用数: 764
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 2673.05 ms
+- 构建耗时: 2456.14 ms
