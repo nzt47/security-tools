@@ -104,6 +104,31 @@ SIDE_EFFECT_SOURCES: Tuple[str, ...] = (SIDE_EFFECT_SOURCE_AUTHORED,
                                        SIDE_EFFECT_SOURCE_TRACE,
                                        SIDE_EFFECT_SOURCE_NONE)
 
+# ════════════════════════════════════════════════════════════
+#  用例 ↔ 候选 适用性（TASK-S3-03 / M4 收口）
+# ════════════════════════════════════════════════════════════
+#
+# S3-02 曾以 ``case.active`` + ``notes`` **临时表达**"该用例描述单次读取契约、
+# 与被评三段任务链形状不同 ⇒ 本次不纳入评估"。该表达有两个缺陷：
+#   ① 不可机检（要读人写的 notes 才知道为何排除）；
+#   ② 判定集重生成后**无处重新施加**（active 会被新生成的用例覆盖）。
+# 故本任务引入**显式字段** `EquivalenceCase.applicability`：候选用**稳定词表**声明
+# 适用/不适用，判定集重生成后可经 `apply_applicability()` **机器重新施加**。
+#
+# 词表与 `gate._candidate_kind()` 逐值同源（不改 gate 的公开行为，只是同词）：
+CANDIDATE_KIND_SEED_NATIVE = "seed_pack_native"     # Seed Pack 候选骨架
+CANDIDATE_KIND_PATTERN = "candidate_pattern"        # S3-01 候选模式（CandidatePattern）
+CANDIDATE_KIND_IMPLEMENTATION = "implementation"    # 显式实现对象（含 name 细分）
+CANDIDATE_KIND_PROVIDER = "provider"                # 按用例取实现的 callable
+CANDIDATE_KIND_EXPLICIT = "explicit"                # 其他显式候选
+CANDIDATE_KINDS: Tuple[str, ...] = (
+    CANDIDATE_KIND_SEED_NATIVE, CANDIDATE_KIND_PATTERN,
+    CANDIDATE_KIND_IMPLEMENTATION, CANDIDATE_KIND_PROVIDER,
+    CANDIDATE_KIND_EXPLICIT,
+)
+#: ``implementation:<name>`` 这类细粒度标签的分隔符
+CANDIDATE_KIND_SEP = ":"
+
 #: 存储位置（**独立于** `data/traces/`；Trace 90 天过期不影响判定集）
 DEFAULT_CASE_ROOT = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
@@ -214,6 +239,149 @@ def program_to_storage(steps: Sequence[ProgramStep]) -> List[Dict[str, Any]]:
 
 
 # ════════════════════════════════════════════════════════════
+#  CaseApplicability（M4：显式的用例 ↔ 候选适用性）
+# ════════════════════════════════════════════════════════════
+
+
+@dataclass
+class CaseApplicability:
+    """一条用例对**哪些候选**适用（显式、可机检、可重新施加）
+
+    语义（与 `active` 正交，二者不可互相冒充）：
+
+    - 空对象 = **不限**（对任何候选都适用）—— 判定集默认状态；
+    - ``include_kinds`` 非空 ⇒ 白名单：只对列出的候选类别适用；
+    - ``exclude_kinds`` ⇒ 黑名单：对列出的候选类别不适用（在白名单命中后仍会否决）；
+    - ``reason`` 必填才有可审计性：排除要有理由（对应 S3-02 曾写进 ``notes`` 的那句话）。
+
+    类别取值见 `CANDIDATE_KINDS`；``implementation:<name>`` 这类细粒度标签同时匹配
+    其**基类**（``implementation``）与本标签。
+    """
+
+    include_kinds: List[str] = field(default_factory=list)
+    exclude_kinds: List[str] = field(default_factory=list)
+    reason: str = ""
+    declared_by: str = ""
+    declared_at: float = 0.0
+
+    def __post_init__(self) -> None:
+        self.include_kinds = _normalize_kinds(self.include_kinds)
+        self.exclude_kinds = _normalize_kinds(self.exclude_kinds)
+        self.reason = str(self.reason or "")
+        self.declared_by = str(self.declared_by or "")
+
+    # ── 判定 ────────────────────────────────────────────────
+
+    @property
+    def restricted(self) -> bool:
+        """是否**有约束**（空对象 = 不限；据 this 决定是否落盘）"""
+        return bool(self.include_kinds or self.exclude_kinds)
+
+    def applies_to(self, candidate_kind: str) -> bool:
+        """该候选类别是否适用（白名单未命中或黑名单命中 ⇒ 不适用）"""
+        kind = normalize_candidate_kind(candidate_kind)
+        if any(candidate_kind_matches(k, kind) for k in self.exclude_kinds):
+            return False
+        if not self.include_kinds:
+            return True
+        return any(candidate_kind_matches(k, kind) for k in self.include_kinds)
+
+    def explain(self, candidate_kind: str) -> str:
+        """人类可读的判定依据（进报告与灰度台账，不静默）"""
+        kind = normalize_candidate_kind(candidate_kind)
+        if any(candidate_kind_matches(k, kind) for k in self.exclude_kinds):
+            return (f"候选 {kind} 在排除清单 {self.exclude_kinds}"
+                    f"（理由：{self.reason or '未填'}）")
+        if self.include_kinds and not any(
+                candidate_kind_matches(k, kind) for k in self.include_kinds):
+            return (f"候选 {kind} 不在适用清单 {self.include_kinds}"
+                    f"（理由：{self.reason or '未填'}）")
+        return f"候选 {kind} 适用（白名单 {self.include_kinds or '不限'}）"
+
+    # ── 序列化 ──────────────────────────────────────────────
+
+    def to_storage_dict(self) -> Dict[str, Any]:
+        return {"include_kinds": list(self.include_kinds),
+                "exclude_kinds": list(self.exclude_kinds),
+                "reason": self.reason, "declared_by": self.declared_by,
+                "declared_at": self.declared_at}
+
+    @classmethod
+    def from_storage_dict(cls, data: Any) -> "CaseApplicability":
+        if data is None:
+            return cls()
+        if isinstance(data, CaseApplicability):
+            return data
+        if not isinstance(data, dict):
+            raise CaseValidationError(
+                [f"applicability 不是 dict: {type(data).__name__}"])
+        unknown = set(data) - set(cls.__dataclass_fields__)
+        if unknown:
+            raise CaseValidationError(
+                [f"applicability 含未知字段（拒绝静默丢弃）: {sorted(unknown)}"])
+        return cls(**{k: v for k, v in data.items()})
+
+
+def _normalize_kinds(raw: Any) -> List[str]:
+    """候选类别列表归一（去空、去重、保序；非法项剔除并告警，不静默）"""
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        raw = [raw]
+    out: List[str] = []
+    for item in raw:
+        kind = normalize_candidate_kind(item)
+        if not kind:
+            logger.warning("适用性候选类别为空值，已忽略: %r", item)
+            continue
+        if kind not in out:
+            out.append(kind)
+    return out
+
+
+def normalize_candidate_kind(target: Any) -> str:
+    """候选 → 稳定类别标签（字符串原样归一，其他对象按类别推断）
+
+    与 `gate._candidate_kind()` **同词表**：``seed_pack_native`` /
+    ``candidate_pattern`` / ``implementation`` / ``provider`` / ``explicit``；
+    细粒度标签（``implementation:upstream``）保留，匹配时同时命中其基类。
+    """
+    if target is None:
+        return CANDIDATE_KIND_SEED_NATIVE
+    if isinstance(target, str):
+        return target.strip()
+    name = getattr(target, "name", None)
+    if isinstance(target, CandidatePattern):
+        return CANDIDATE_KIND_PATTERN
+    if callable(target):
+        return CANDIDATE_KIND_PROVIDER
+    if name:
+        return f"{CANDIDATE_KIND_IMPLEMENTATION}{CANDIDATE_KIND_SEP}{name}"
+    return CANDIDATE_KIND_EXPLICIT
+
+
+def candidate_kind_matches(declared: str, candidate_kind: str) -> bool:
+    """类别匹配规则（**基类标签**匹配其全部细粒度标签；两个不同细粒度标签不互相匹配）
+
+    - ``implementation`` ↔ ``implementation:upstream``：匹配（声明基类 = 对该类全部实现）；
+    - ``implementation:upstream`` ↔ ``implementation:candidate``：**不**匹配
+      （两个不同的具体实现不是同一个候选）。
+    """
+    left = str(declared or "").strip()
+    right = normalize_candidate_kind(candidate_kind)
+    if not left or not right:
+        return False
+    if left == right:
+        return True
+    left_detailed = CANDIDATE_KIND_SEP in left
+    right_detailed = CANDIDATE_KIND_SEP in right
+    if left_detailed and right_detailed:
+        return False
+    return (left.split(CANDIDATE_KIND_SEP)[0]
+            == right.split(CANDIDATE_KIND_SEP)[0])
+
+
+# ════════════════════════════════════════════════════════════
 #  EquivalenceCase
 # ════════════════════════════════════════════════════════════
 
@@ -261,6 +429,9 @@ class EquivalenceCase:
     active: bool = True
     title: str = ""
     notes: str = ""
+    #: **显式**用例 ↔ 候选适用性（M4；空对象 = 不限 —— 与 `active` 正交：
+    #: `active` 表达"这条用例本身是否生效"，`applicability` 表达"对**哪个候选**适用"）
+    applicability: CaseApplicability = field(default_factory=CaseApplicability)
 
     # ── 规范化 ──────────────────────────────────────────────
 
@@ -277,6 +448,10 @@ class EquivalenceCase:
         self.provenance = dict(self.provenance or {})
         self.provenance.setdefault("kind", PROV_SEED_PACK if self.kind == CASE_KIND_SEED
                                    else self.kind)
+        if self.applicability is None:
+            self.applicability = CaseApplicability()
+        elif isinstance(self.applicability, dict):
+            self.applicability = CaseApplicability.from_storage_dict(self.applicability)
 
     # ── 派生视图 ────────────────────────────────────────────
 
@@ -328,6 +503,15 @@ class EquivalenceCase:
         ])
         return _short_hash(material, 16)
 
+    # ── 适用性（M4）────────────────────────────────────────
+
+    def applies_to(self, candidate_kind: Any) -> bool:
+        """该用例是否适用于给定候选（``applies_to("candidate_pattern")``）"""
+        return self.applicability.applies_to(candidate_kind)
+
+    def applicability_reason(self, candidate_kind: Any) -> str:
+        return self.applicability.explain(candidate_kind)
+
     # ── 校验 ────────────────────────────────────────────────
 
     def validate(self) -> List[str]:
@@ -357,6 +541,10 @@ class EquivalenceCase:
             reasons.append("expected_output_schema 必须是 dict")
         if not isinstance(self.sandbox_root, str) or not self.sandbox_root:
             reasons.append("sandbox_root 必须是非空字符串")
+        if not isinstance(self.applicability, CaseApplicability):
+            reasons.append("applicability 必须是 CaseApplicability")
+        elif self.applicability.restricted and not self.applicability.reason:
+            reasons.append("声明了适用性约束但未给出 reason（排除必须可审计）")
         return reasons
 
     def require_valid(self) -> "EquivalenceCase":
@@ -368,7 +556,7 @@ class EquivalenceCase:
     # ── 序列化 ──────────────────────────────────────────────
 
     def to_storage_dict(self) -> Dict[str, Any]:
-        return {
+        payload: Dict[str, Any] = {
             "case_id": self.case_id,
             "capability_id": self.capability_id,
             "title": self.title,
@@ -395,6 +583,11 @@ class EquivalenceCase:
             "active": bool(self.active),
             "notes": self.notes,
         }
+        # 适用性：**未声明约束时不落盘**（既有判定集存储字节不变；一旦声明即持久化，
+        # 重生成后可经 apply_applicability() 重新施加 —— M4 的核心诉求）
+        if self.applicability.restricted:
+            payload["applicability"] = self.applicability.to_storage_dict()
+        return payload
 
     @classmethod
     def from_storage_dict(cls, data: Dict[str, Any]) -> "EquivalenceCase":
@@ -407,6 +600,8 @@ class EquivalenceCase:
         payload = dict(data)
         payload["upstream"] = program_from_storage(payload.get("upstream"))
         payload["native"] = program_from_storage(payload.get("native"))
+        payload["applicability"] = CaseApplicability.from_storage_dict(
+            payload.get("applicability"))
         return cls(**payload)
 
 
@@ -1543,6 +1738,116 @@ def pattern_capability_id(pattern: CandidatePattern) -> str:
     return str(getattr(getattr(pattern, "key", None), "capability_id", "") or "")
 
 
+# ════════════════════════════════════════════════════════════
+#  适用性施加（M4：判定集重生成后的**机器重新施加**通道）
+# ════════════════════════════════════════════════════════════
+
+
+def case_applies_to(case: EquivalenceCase, candidate_kind: Any) -> Tuple[bool, str]:
+    """``(是否适用, 理由)`` —— 供灰度/内化把"为什么这条用例没算"写进报告"""
+    applies = case.applies_to(candidate_kind)
+    return applies, case.applicability_reason(candidate_kind)
+
+
+def applicable_cases(cases: Sequence[EquivalenceCase],
+                     candidate_kind: Any) -> Tuple[List[EquivalenceCase], List[Dict[str, Any]]]:
+    """按适用性把用例分成 **(适用, 排除清单)**
+
+    排除清单逐条带 ``case_id`` / ``reason``，使"少了哪些用例、为什么"可审计 ——
+    这正是 S3-02 用 ``notes`` 表达时**做不到**的事（M4 的动机）。
+    """
+    kind = normalize_candidate_kind(candidate_kind)
+    kept: List[EquivalenceCase] = []
+    excluded: List[Dict[str, Any]] = []
+    for case in cases or []:
+        applies, reason = case_applies_to(case, kind)
+        if applies:
+            kept.append(case)
+        else:
+            excluded.append({
+                "case_id": case.case_id, "capability_id": case.capability_id,
+                "candidate_kind": kind, "reason": reason,
+                "applicability": case.applicability.to_storage_dict(),
+            })
+    return kept, excluded
+
+
+def _rule_matches(case: EquivalenceCase, match: Dict[str, Any]) -> bool:
+    """适用性规则是否命中该用例（``case_ids`` / ``labels_contain`` / ``step_count``）"""
+    if not match:
+        return False
+    case_ids = match.get("case_ids")
+    if case_ids is not None and case.case_id not in {str(c) for c in case_ids}:
+        return False
+    contains = match.get("labels_contain")
+    if contains:
+        labels = set(case.labels)
+        if not {str(c) for c in contains} & labels:
+            return False
+    step_count = match.get("step_count")
+    if step_count is not None and int(case.step_count) != int(step_count):
+        return False
+    return True
+
+
+def apply_applicability(
+    case_set: CaseSet,
+    *,
+    rules: Sequence[Dict[str, Any]],
+    declared_by: str = "",
+    declared_at: float = 0.0,
+    reset_first: bool = False,
+) -> Dict[str, Any]:
+    """把显式适用性**施加**到判定集（判定集重生成后重新跑本函数即可）
+
+    ``rules`` 每条形如::
+
+        {"match": {"case_ids": [...], "labels_contain": ["grep"], "step_count": 3},
+         "include_kinds": [], "exclude_kinds": ["candidate_pattern"],
+         "reason": "该用例描述单次读取契约，与被评三段任务链形状不同"}
+
+    语义：**命中 ``match`` 的用例**得到该规则的 include/exclude；未命中任何规则的用例
+    在 ``reset_first=True`` 时被重置为"不限"，否则保持既有声明。
+    返回施加报告（含逐条命中的 case_id 与最终约束），**不落盘** —— 落盘由调用方
+    （``store.save(case_set)``）决定，本函数是纯变换 + 报告。
+    """
+    report: Dict[str, Any] = {"capability_id": case_set.capability_id,
+                              "rules": len(list(rules or [])), "applied": [],
+                              "reset_first": bool(reset_first),
+                              "declared_by": str(declared_by or "")}
+    if reset_first:
+        for case in case_set.cases:
+            case.applicability = CaseApplicability()
+    touched: List[str] = []
+    for index, rule in enumerate(rules or []):
+        if not isinstance(rule, dict):
+            raise CaseValidationError([f"适用性规则 #{index} 不是 dict"])
+        match = dict(rule.get("match") or {})
+        applicability = CaseApplicability(
+            include_kinds=list(rule.get("include_kinds") or []),
+            exclude_kinds=list(rule.get("exclude_kinds") or []),
+            reason=str(rule.get("reason") or ""),
+            declared_by=str(declared_by or rule.get("declared_by") or ""),
+            declared_at=float(declared_at or rule.get("declared_at") or 0.0))
+        hit: List[str] = []
+        for case in case_set.cases:
+            if case.case_id in touched or not _rule_matches(case, match):
+                continue
+            case.applicability = applicability
+            hit.append(case.case_id)
+            touched.append(case.case_id)
+        report["applied"].append({"rule_index": index, "matched": hit,
+                                  "include_kinds": applicability.include_kinds,
+                                  "exclude_kinds": applicability.exclude_kinds,
+                                  "reason": applicability.reason})
+    report["restricted"] = sorted(
+        c.case_id for c in case_set.cases if c.applicability.restricted)
+    report["unrestricted_count"] = sum(
+        1 for c in case_set.cases if not c.applicability.restricted)
+    case_set.updated_at = _now()
+    return report
+
+
 __all__ = [
     "CaseError", "CaseValidationError",
     # 常量
@@ -1561,6 +1866,12 @@ __all__ = [
     # 模型
     "ProgramStep", "program_from_storage", "program_to_storage",
     "EquivalenceCase", "CaseSet", "build_case_set",
+    # 适用性（M4）
+    "CaseApplicability", "CANDIDATE_KINDS", "CANDIDATE_KIND_SEED_NATIVE",
+    "CANDIDATE_KIND_PATTERN", "CANDIDATE_KIND_IMPLEMENTATION",
+    "CANDIDATE_KIND_PROVIDER", "CANDIDATE_KIND_EXPLICIT",
+    "normalize_candidate_kind", "candidate_kind_matches",
+    "case_applies_to", "applicable_cases", "apply_applicability",
     # 存储
     "CaseStore", "JsonCaseStore", "SqliteCaseStore", "open_case_store",
     "default_case_root",

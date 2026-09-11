@@ -19,6 +19,8 @@
 | `cases` | **EquivalenceCase 判定集资产**（模型 + 独立存储 + 三通道生成 + Seed Pack） | S3-02 |
 | `sandbox` | **确定性回放沙箱**（双跑 + record-and-replay + 三层比对 + 配额） | S3-02 |
 | `gate` | **验收门四条件硬闸** + 通行证 + **漂移重探** | S3-02 |
+| `shadow` | **shadow 灰度**（预算/确定性抽样/灰度 5%/三层比对/真实墙钟/人工抽检/劣化） | S3-03 |
+| `internalize` | **内化六条件引擎** + stage.promote PR 产物 + 低流量手动通道（T2） | S3-03 |
 | `seed_pack.json` | P7.2-23 Seed Pack 资产（14 技能 × ≥3 组预置等价用例） | S3-02 |
 
 **import 纪律**：本包是**叶子**——既有模块不得反向导入 `agent.digestion`
@@ -27,9 +29,9 @@
 `agent.observability.trace_v2`、`agent.audit.facade`）一律在**函数体内**懒加载，
 故 `import agent.digestion` 无文件/DB/网络副作用。
 
-**范围边界**（不越权）：shadow 灰度与内化（S3-03）；发布签名与人工 review =
-既有 `skills_mgmt` 轨。本包产物一律停在 **draft**；判定集与通行证是**证据资产**，
-不是发布动作。
+**范围边界**（不越权）：发布签名与人工 review = 既有 `skills_mgmt` 轨；promote PR 的
+**合入**一律人工（S3-03 只产出本地可审阅产物，不推送远端、不自动合并）。本包产物
+一律停在 **draft**；判定集 / 通行证 / 灰度台账 / 内化决策是**证据资产**，不是发布动作。
 """
 
 from __future__ import annotations
@@ -106,6 +108,33 @@ from .sandbox import (  # noqa: F401
     three_layer_diff,
 )
 from .service import DigestionService  # noqa: F401
+from .shadow import (  # noqa: F401
+    JUDGE_KIND_LLM,
+    SHADOW_VERSION,
+    CompareVerdict,
+    ManualReviewQueue,
+    ShadowLedger,
+    ShadowReport,
+    ShadowRunner,
+    compare,
+    resolve_gray_policy,
+    resolve_judge,
+)
+from .internalize import (  # noqa: F401
+    COND_P99,
+    COND_PRIVACY,
+    CONDITIONS,
+    DIGEST_COUNT_MIN,
+    INTERNALIZE_VERSION,
+    MONTHLY_SAMPLES_MIN,
+    VERDICT_LOW_TRAFFIC_MANUAL,
+    VERDICT_PROMOTE,
+    VERDICT_VETO_BLOCKED,
+    InternalizeDecision,
+    InternalizeEngine,
+    PromotePR,
+    VETO_CONDITIONS,
+)
 
 __all__ = [
     # 门面
@@ -135,4 +164,13 @@ __all__ = [
     "register_reprobe_job", "baseline_from_ledger",
     "GATE_VERSION", "GATE_REPLAY_MIN", "GATE_SUCCESS_RATE_RATIO",
     "GATE_P99_RATIO",
+    # S3-03 shadow 灰度
+    "ShadowRunner", "ShadowReport", "ShadowLedger", "ManualReviewQueue",
+    "CompareVerdict", "compare",
+    "resolve_judge", "resolve_gray_policy", "SHADOW_VERSION", "JUDGE_KIND_LLM",
+    # S3-03 内化六条件
+    "InternalizeEngine", "InternalizeDecision", "PromotePR", "CONDITIONS",
+    "VETO_CONDITIONS", "COND_P99", "COND_PRIVACY", "DIGEST_COUNT_MIN",
+    "MONTHLY_SAMPLES_MIN", "VERDICT_PROMOTE", "VERDICT_VETO_BLOCKED",
+    "VERDICT_LOW_TRAFFIC_MANUAL", "INTERNALIZE_VERSION",
 ]

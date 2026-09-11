@@ -47,8 +47,10 @@ from .cases import (
     CaseSet,
     CaseStore,
     EquivalenceCase,
+    applicable_cases,
     canonical_json,
     default_case_root,
+    normalize_candidate_kind,
     open_case_store,
     regenerate_case_set,
     seed_candidate_for,
@@ -308,6 +310,9 @@ class GateResult:
     audit_seq: int = 0
     audit_hash: str = ""
     migration: Optional[stage_mod.StageMigration] = None
+    #: 用例 ↔ 候选**适用性**过滤报告（TASK-S3-03 / M4）：仅当调用方给出
+    #: ``candidate_kind`` 时才有内容；未给出 ⇒ 空 dict（既有行为不变）
+    applicability: Dict[str, Any] = field(default_factory=dict)
     note: str = ""
 
     def condition(self, name: str) -> Optional[GateConditionResult]:
@@ -350,6 +355,7 @@ class GateResult:
                        if self.replay_report is not None else {}),
             "failure_list": self.failure_list(),
             "branch_coverage": dict(self.branch_coverage),
+            "applicability": dict(self.applicability),
             "passport": dict(self.passport),
             "event_id": self.event_id,
             "audit_seq": self.audit_seq,
@@ -645,6 +651,7 @@ def acceptance_gate(
     write_passport: bool = True,
     emit_events: bool = True,
     advance: bool = False,
+    candidate_kind: str = "",
     actor: str = "digestion_service",
     now: float = 0.0,
 ) -> GateResult:
@@ -662,6 +669,9 @@ def acceptance_gate(
         baseline_store: S2-01 统一台账（给出即优先用作基线来源）
         advance: 通过后是否**立即**经既有 `stage.stage_migrate()` 推进
             ``mirrored → shadow``（默认 False：本任务只发证，不替 S3-03 灰度决策）
+        candidate_kind: **opt-in** 的候选身份（TASK-S3-03 / M4）：给出时按
+            ``EquivalenceCase.applicability`` 过滤生效用例（排除清单进
+            ``GateResult.applicability``）；**缺省不给出 ⇒ 行为与 S3-02 逐字一致**
 
     Returns:
         `GateResult`（未通过时 `failure_list()` 逐条列出失败用例与未过层次）
@@ -680,6 +690,16 @@ def acceptance_gate(
         return result
     result.case_set_version = int(resolved.version)
     cases = resolved.active_cases()
+    if candidate_kind:
+        # M4：显式适用性过滤（**空对象 = 不限** ⇒ 未声明约束的用例原样保留）
+        kind = normalize_candidate_kind(candidate_kind)
+        applicable, excluded = applicable_cases(cases, kind)
+        result.applicability = {
+            "candidate_kind": kind, "active": len(cases),
+            "applicable": len(applicable), "excluded": len(excluded),
+            "excluded_cases": excluded,
+            "field": "EquivalenceCase.applicability（M4 显式字段）"}
+        cases = applicable
     result.executed = len(cases)
     if not cases:
         result.note = "no_active_cases：判定集已失效或为空"

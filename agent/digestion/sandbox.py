@@ -876,6 +876,10 @@ class Observation:
     outputs: List[Dict[str, Any]] = field(default_factory=list)
     side_effects: Dict[str, List[str]] = field(default_factory=dict)
     duration_ms: float = 0.0
+    #: **真实墙钟**（ms；仅在 `measure_wall=True` 时测量，见 `ReplaySandbox`）——
+    #: 与 `duration_ms`（标称模型时钟量）**不同量纲、各自标注**：S3-03 的内化条件⑤
+    #: 必须用墙钟口径，故本字段默认 0.0（未测量即未测量，绝不用模型时钟冒充）
+    wall_ms: float = 0.0
     error_code: str = ""
     unbound: List[str] = field(default_factory=list)
     filled: List[Dict[str, Any]] = field(default_factory=list)
@@ -934,6 +938,7 @@ class Observation:
             "skipped": list(self.skipped),
             "side_effects": self.side_effect_set(),
             "duration_ms": round(self.duration_ms, 3),
+            "wall_ms": round(self.wall_ms, 3),
             "error_code": self.error_code,
             "unbound": list(self.unbound),
             "filled_params": list(self.filled),
@@ -1384,22 +1389,29 @@ def judge_similarity(reference: str, observed: str) -> float:
 def diff_judge(upstream: Observation, candidate: Observation, *,
                judge: Optional[Callable[[str, str], float]] = None,
                threshold: float = JUDGE_THRESHOLD,
-               manual_flagged: bool = False) -> LayerResult:
+               manual_flagged: bool = False,
+               judge_kind: str = "") -> LayerResult:
     """**层 3（软性）**：judge ≥0.85 语义等价比对 + 人工抽检标记
 
     ``judge`` 可注入（如 LLM-judge）；缺省用确定性本地打分器。层 3 只对
     **两臂 canonical 文本**打分（路径已形态归一），故不因具体路径差异误判。
+
+    ``judge_kind``：**实际所用 judge 的如实标注**（TASK-S3-03 / M1）。缺省时按
+    "是否注入"推断（``injected`` / ``deterministic_local``）；S3-03 灰度期传入
+    ``llm_judge`` 或 ``deterministic_local(llm_unavailable)`` 等精确标签，
+    使"确定性打分器"与"真实 LLM-judge"在报告里**可区分**。
     """
     reference = upstream.canonical_text()
     observed = candidate.canonical_text()
     scorer = judge or judge_similarity
+    kind = str(judge_kind or ("injected" if judge else "deterministic_local"))
     try:
         score = float(scorer(reference, observed))
     except Exception as e:  # noqa: BLE001  judge 异常不得中断回放
         return LayerResult(
             layer=LAYER_JUDGE, kind="soft", passed=False, score=0.0,
             reasons=[f"judge 执行失败: {type(e).__name__}: {e}"],
-            detail={"judge_kind": "injected" if judge else "deterministic_local"})
+            detail={"judge_kind": kind})
     passed = score >= float(threshold)
     reasons: List[str] = []
     if not passed:
@@ -1409,7 +1421,7 @@ def diff_judge(upstream: Observation, candidate: Observation, *,
     return LayerResult(
         layer=LAYER_JUDGE, kind="soft", passed=passed, score=score,
         reasons=reasons,
-        detail={"judge_kind": "injected" if judge else "deterministic_local",
+        detail={"judge_kind": kind,
                 "threshold": float(threshold),
                 "manual_review_flagged": bool(manual_flagged)})
 
@@ -1418,13 +1430,14 @@ def three_layer_diff(upstream: Observation, candidate: Observation,
                      case: EquivalenceCase, *,
                      judge: Optional[Callable[[str, str], float]] = None,
                      threshold: float = JUDGE_THRESHOLD,
-                     manual_flagged: bool = False) -> DiffResult:
+                     manual_flagged: bool = False,
+                     judge_kind: str = "") -> DiffResult:
     """§4.5 三层比对：结构 schema（硬）→ 副作用集合（硬）→ judge（软）"""
     return DiffResult(
         layers=[diff_structure(upstream, candidate, case),
                 diff_side_effects(upstream, candidate, case),
                 diff_judge(upstream, candidate, judge=judge, threshold=threshold,
-                           manual_flagged=manual_flagged)],
+                           manual_flagged=manual_flagged, judge_kind=judge_kind)],
         upstream_status=upstream.status, candidate_status=candidate.status)
 
 
@@ -1524,6 +1537,18 @@ class ReplayReport:
     def p99_upstream_ms(self) -> float:
         return _p99([r.upstream.duration_ms for r in self.replays])
 
+    # ── 真实墙钟口径（TASK-S3-03 / M2；仅在 measure_wall=True 时有值） ──
+
+    @property
+    def wall_measured(self) -> bool:
+        return any(r.candidate.wall_ms or r.upstream.wall_ms for r in self.replays)
+
+    def p99_wall_candidate_ms(self) -> float:
+        return _p99([r.candidate.wall_ms for r in self.replays])
+
+    def p99_wall_upstream_ms(self) -> float:
+        return _p99([r.upstream.wall_ms for r in self.replays])
+
     def failure_list(self) -> List[Dict[str, Any]]:
         """失败清单（哪些用例失败 / 哪层 diff 未过 —— 供 S3-03 灰度期观察）"""
         out: List[Dict[str, Any]] = []
@@ -1549,6 +1574,11 @@ class ReplayReport:
             "pass_rate": self.pass_rate,
             "p99_candidate_ms": self.p99_candidate_ms(),
             "p99_upstream_ms": self.p99_upstream_ms(),
+            "p99_wall_candidate_ms": self.p99_wall_candidate_ms(),
+            "p99_wall_upstream_ms": self.p99_wall_upstream_ms(),
+            "wall_measured": self.wall_measured,
+            "clock": ("模型时钟(duration_ms=标称延迟累加)；真实墙钟见 "
+                      "p99_wall_*（measure_wall=True 时采集）"),
             "manual_sample": list(self.manual_sample),
             "layer_failures": dict(self.layer_failures),
             "failure_list": self.failure_list(),
@@ -1570,12 +1600,20 @@ class ReplaySandbox:
                  tools: Optional[Dict[str, Callable[[Any, Dict[str, Any]], Dict[str, Any]]]] = None,
                  judge: Optional[Callable[[str, str], float]] = None,
                  judge_threshold: float = JUDGE_THRESHOLD,
-                 manual_ratio: float = MANUAL_SAMPLE_RATIO) -> None:
+                 manual_ratio: float = MANUAL_SAMPLE_RATIO,
+                 measure_wall: bool = False,
+                 judge_kind: str = "") -> None:
         self.quota = quota or SandboxQuota.from_env()
         self.tools = dict(tools or {})
         self.judge = judge
         self.judge_threshold = float(judge_threshold)
         self.manual_ratio = float(manual_ratio)
+        #: **真实墙钟**测量开关（TASK-S3-03 / M2）：默认关闭 ⇒ 既有调用方逐字段不变；
+        #: 开启后每臂额外记 `Observation.wall_ms`（`perf_counter` 墙钟），供内化条件⑤
+        #: 用真实墙钟判定 p99（S3-02 的 `duration_ms` 是标称**模型时钟**量，不同量纲）
+        self.measure_wall = bool(measure_wall)
+        #: 实际所用 judge 的如实标注（进层③ detail；见 `diff_judge`）
+        self.judge_kind = str(judge_kind or "")
 
     # ── 单例回放 ────────────────────────────────────────────
 
@@ -1583,21 +1621,33 @@ class ReplaySandbox:
         """按本沙箱的抽检比例给出**确定性**人工抽检清单（§4.5 的 10%）"""
         return manual_sample_ids(case_ids, ratio=self.manual_ratio)
 
+    def _run_arm(self, impl: Implementation, case: EquivalenceCase, *,
+                 measure_wall: bool) -> Observation:
+        """跑一臂（`measure_wall=True` 时记真实墙钟；墙钟**只测量不改语义**）"""
+        if not measure_wall:
+            return impl.run(case, quota=self.quota, tools=self.tools)
+        started = time.perf_counter()
+        obs = impl.run(case, quota=self.quota, tools=self.tools)
+        obs.wall_ms = round((time.perf_counter() - started) * 1000.0, 3)
+        return obs
+
     def replay_case(self, case: EquivalenceCase,
                     candidate: Any, *,
                     upstream: Any = None,
-                    manual_flagged: bool = False) -> CaseReplay:
+                    manual_flagged: bool = False,
+                    measure_wall: Optional[bool] = None) -> CaseReplay:
         """一组用例的双跑：上游（用例录制程序）vs 候选（原生实现）
 
         两臂各自使用**全新环境**（同夹具种子）—— 共享环境会让第二臂看到第一臂的
         写入，"等价性"就变成了顺序依赖的假象。
         """
+        wall = self.measure_wall if measure_wall is None else bool(measure_wall)
         upstream_impl = (as_implementation(upstream) if upstream is not None
                          else ProgramImplementation(list(case.upstream),
                                                    name="upstream"))
         candidate_impl = as_implementation(candidate, name="candidate")
-        up_obs = upstream_impl.run(case, quota=self.quota, tools=self.tools)
-        cand_obs = candidate_impl.run(case, quota=self.quota, tools=self.tools)
+        up_obs = self._run_arm(upstream_impl, case, measure_wall=wall)
+        cand_obs = self._run_arm(candidate_impl, case, measure_wall=wall)
         expectation_reasons: List[str] = []
         if case.expected_status != "any" and cand_obs.status != case.expected_status:
             expectation_reasons.append(
@@ -1607,7 +1657,8 @@ class ReplaySandbox:
             expectation_reasons.append(f"候选实现所需输入缺失: {missing}")
         diff = three_layer_diff(up_obs, cand_obs, case, judge=self.judge,
                                 threshold=self.judge_threshold,
-                                manual_flagged=manual_flagged)
+                                manual_flagged=manual_flagged,
+                                judge_kind=self.judge_kind)
         return CaseReplay(case_id=case.case_id, capability_id=case.capability_id,
                           upstream=up_obs, candidate=cand_obs, diff=diff,
                           expectation_ok=not expectation_reasons,

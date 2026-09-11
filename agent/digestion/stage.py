@@ -81,6 +81,19 @@ DOWNSTREAM_EDGES: Tuple[Tuple[str, str], ...] = (
 #:   拒绝理由不变）——本扩展不改变任何既有调用方的结果。
 ACCEPTANCE_PASSPORT_KEY = "acceptance_passport"
 
+#: **S3-03 内化决策**的证据键（``shadow → internalized``）。T2 修正后的内化有两条
+#: 合法路径，二者都产出本键：
+#:
+#: - **自动路径**：§4.5.1 六条件齐备（`internalize.InternalizeEngine.evaluate()`
+#:   判决 ``promote``）⇒ 自动创建 stage.promote PR，**人工合入**时把决策作为证据；
+#: - **低流量手动路径**（T2）：①②③（样本/ROI）不足**不阻塞**，但必须 ④⑤⑥ 复核
+#:   通过 + `skills_mgmt.approval` 留痕 + **人工批准** ⇒ 证据里带
+#:   ``approval_record_id`` 与 ``approval_effective``。
+#:
+#: 与通行证一样，本键是**opt-in**：调用方不带该键时 ``shadow → internalized``
+#: 的行为与 S3-01/S3-02 **逐字一致**（仍 ``deferred_to_downstream``）。
+INTERNALIZE_DECISION_KEY = "internalize_decision"
+
 
 def digest_run_id(*, capability_id: str, from_stage: Optional[str],
                   to_stage: Optional[str], evidence: Dict[str, Any]) -> str:
@@ -168,6 +181,65 @@ def acceptance_passport_ok(capability_id: str,
     return (not reasons), reasons
 
 
+def internalize_decision_ok(capability_id: str,
+                            evidence: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    """校验 S3-03 内化决策证据（**自洽性**校验，不依赖 internalize 的门槛常量）
+
+    校验项（缺一即不放行，理由逐条可读）：
+
+    1. 决策存在且为 dict；
+    2. ``capability_id`` 与本能力一致（防张冠李戴）；
+    3. ``target_stage == "internalized"``（防止拿别的目标的决策来推进）；
+    4. ``passed`` 为真（决策自身判定"可 promote"）；
+    5. 条件自洽：**一票否决**条件（``dimension == "veto"``）必须全过；非人工路径下
+       **全部**条件必须 passed；人工路径（T2）下只允许 ``manual_allowed_failed``
+       列出的条件未通过（列表外的任何失败都拒绝 —— 不接受"随手放宽"）；
+    6. **人工路径自洽**：``manual`` 为真时，必须带 ``approval_record_id`` 且
+       ``approval_effective`` 为真（T2 通道：人工裁定必须留痕且已生效）。
+    """
+    decision = evidence.get(INTERNALIZE_DECISION_KEY)
+    reasons: List[str] = []
+    if not isinstance(decision, dict) or not decision:
+        return False, ["缺少 internalize_decision 证据（S3-03 六条件引擎决策）——"
+                       "shadow→internalized 不放行"]
+    if str(decision.get("capability_id") or "") != str(capability_id or ""):
+        reasons.append(f"决策能力 {decision.get('capability_id')!r} 与目标 "
+                       f"{capability_id!r} 不一致")
+    if str(decision.get("target_stage") or "") != "internalized":
+        reasons.append("决策 target_stage 不是 internalized"
+                       f"（实际 {decision.get('target_stage')!r}）")
+    if not decision.get("passed"):
+        reasons.append(f"决策 passed=False（verdict={decision.get('verdict')!r}；"
+                       f"blocker={decision.get('blocker')!r}）")
+    conditions = decision.get("conditions") or []
+    if not conditions:
+        reasons.append("决策未附条件明细（conditions 为空）")
+    else:
+        failed = [str(c.get("name")) for c in conditions
+                  if not (isinstance(c, dict) and c.get("passed"))]
+        veto_failed = [str(c.get("name")) for c in conditions
+                       if isinstance(c, dict) and c.get("dimension") == "veto"
+                       and not c.get("passed")]
+        if veto_failed:
+            reasons.append(f"一票否决条件未通过：{veto_failed}（不可放行）")
+        if decision.get("manual"):
+            allowed = {str(x) for x in (decision.get("manual_allowed_failed") or [])}
+            unexpected = [name for name in failed if name not in allowed]
+            if unexpected:
+                reasons.append(
+                    f"人工通道只允许 {sorted(allowed) or '（无）'} 未通过；"
+                    f"其余未通过条件：{unexpected}")
+        elif failed:
+            reasons.append(f"决策条件未全通过：{failed}")
+    if decision.get("manual"):
+        if not str(decision.get("approval_record_id") or "").strip():
+            reasons.append("低流量人工通道缺少 approval_record_id（人工裁定须留痕）")
+        if not decision.get("approval_effective"):
+            reasons.append("低流量人工通道 approval_effective=False"
+                           "（人工未批准，不得放行）")
+    return (not reasons), reasons
+
+
 def evaluate_migration(*, capability_id: str, from_stage: Optional[str],
                        to_stage: str,
                        evidence: Dict[str, Any]) -> Tuple[str, List[str]]:
@@ -194,6 +266,21 @@ def evaluate_migration(*, capability_id: str, from_stage: Optional[str],
                 f" ⇒ mirrored → shadow 放行"]
         return VERDICT_INSUFFICIENT_EVIDENCE, passport_reasons + [
             "（S3-02 验收门未通过或证据缺失 ⇒ 保持 mirrored，不静默推进）"]
+
+    # ── S3-03 内化决策：shadow → internalized 的 opt-in 放行（见常量注释）──
+    # 同样只在调用方显式带上决策键时生效；不带键 ⇒ 与 S3-01/S3-02 行为逐字一致。
+    if edge == ("shadow", "internalized") and INTERNALIZE_DECISION_KEY in evidence:
+        ok, decision_reasons = internalize_decision_ok(capability_id, evidence)
+        if ok:
+            decision = evidence.get(INTERNALIZE_DECISION_KEY) or {}
+            label = str(decision.get("manual_label") or "").strip()
+            suffix = f"（{label}）" if label else ""
+            return VERDICT_APPLIED, [
+                f"内化六条件决策通过（verdict={decision.get('verdict')!r}，"
+                f"排序分 {decision.get('rank_score')}）{suffix}"
+                f" ⇒ shadow → internalized 放行"]
+        return VERDICT_INSUFFICIENT_EVIDENCE, decision_reasons + [
+            "（S3-03 六条件/人工裁定证据不足 ⇒ 保持 shadow，不静默推进）"]
 
     if edge in DOWNSTREAM_EDGES:
         return VERDICT_DEFERRED, [
@@ -694,8 +781,8 @@ def backfill_stages(
 
 __all__ = [
     "SEVEN_STATES", "MAIN_CHAIN", "SIDE_STATES", "DRIVEN_EDGES",
-    "DOWNSTREAM_EDGES", "ACCEPTANCE_PASSPORT_KEY",
+    "DOWNSTREAM_EDGES", "ACCEPTANCE_PASSPORT_KEY", "INTERNALIZE_DECISION_KEY",
     "digest_run_id", "evaluate_migration", "recommended_stage",
     "stage_migrate", "first_entry_stage", "backfill_stages",
-    "acceptance_passport_ok",
+    "acceptance_passport_ok", "internalize_decision_ok",
 ]
