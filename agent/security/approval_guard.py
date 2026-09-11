@@ -28,8 +28,8 @@ import logging
 from dataclasses import dataclass, replace
 from typing import Any, Callable, Dict, FrozenSet, Mapping, Optional
 
-from agent.security import alerts as alerts_mod
-from agent.security import pii as pii_mod
+import agent.security.alerts as alerts_mod
+import agent.security.pii as pii_mod
 from agent.security.actor_matrix import (
     OP_APPROVE,
     OP_DENY,

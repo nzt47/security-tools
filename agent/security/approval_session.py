@@ -42,7 +42,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
-from agent.security import pii as pii_mod
+import agent.security.pii as pii_mod
 
 logger = logging.getLogger("agent.security.approval_session")
 
