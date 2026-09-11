@@ -1,10 +1,27 @@
 # TASK-S3-02 EquivalenceCase 判定集资产 + 回放沙箱 + 验收门量化
 
-> 所属阶段：S3 消化流水线｜依赖：S3-01（管道）、S2-01（Trace 数据源）｜预估：5–8 人日
+> 所属阶段：S3 消化流水线｜依赖：**S3-01（已结案，前置已就绪）**、S2-01（Trace 台账）｜预估：5–8 人日
 > 来源设计文档：`CloudPivot_v7.2_final_合并归档(智谱审核版).md` §3.1（EquivalenceCase 30-100 组）/§3.3（mirrored→shadow 唯一通行证）/§4.5（验收门硬闸）/P7.2-23（Seed Pack 12 技能判定基线）
 > 验收报告归档于本目录 `docs/zh/CloudPivot_v7.2重构计划/`
+> ✅ **前置状态（2026-09-11 核实）**：S3-01 已结案（验收 15/15、CI 21/21 job 全绿），并**直接交付本任务所需输入**——见 §零。
 
 ---
+
+## 零、开工前置：S3-01 已交付的可直接复用资产（勿重复实现）
+
+S3-01 交付 `agent/digestion/`（8 模块 3435 行、333 例单测、覆盖率 93%），本任务**直接消费**以下接口：
+
+| 复用对象 | 位置 | 在本任务中的用途 |
+|---|---|---|
+| `Trajectory` / `TrajectoryStep` / `TraceSet` | `agent/digestion/models.py` | 判定集用例的**来源数据**（清洗后确定性轨迹，含噪声标记与负样本） |
+| `clean_trajectory()` / `trajectory_from_rows()` / `same_task_key()` / `intent_key_for_trace()` / `classify_outcome()` / `mark_negative()` | `agent/digestion/cleaning.py` | 从 Trace 生成用例时复用其**同类判定键与清洗口径**（保证"用例属于同一能力同一意图"） |
+| `CandidatePattern`（骨架/参数槽/分支条件/副作用画像）、`PatternStep`、`BranchCondition`、`ParameterSlot` | `agent/digestion/models.py` + `mining.py` + `generalize.py` | 判定集的"破坏性分支覆盖"判定依据（§4.5 验收门第 4 条）；`infer_parameter_slots`/`apply_slots` 复用于用例参数化 |
+| `SkillDraft` / `build_skill_draft()` / `compile_skill_body()` | `agent/digestion/generation.py` | 回放沙箱的**被评测候选实现**（draft 态，不自动发布） |
+| `pattern_quality_gate()` / `converter_gate_constants()` / `solidify_min_rule_steps()` | `agent/digestion/generation.py` | 与既有升格门口径**逐值对账**（S3-01 §4.3 已统一 `MIN_PATTERN_STEPS=2`（成形）与 `MIN_ASCENSION_STEPS=3`（可升格）——本任务判定集门槛须沿用同一语义，勿再引入第三套常量） |
+| `DigestionService.pipeline()` / `DigestionReport` | `agent/digestion/service.py` | 端到端串接：轨迹 → 候选模式 → 生成 draft → **本任务判定集与验收门** |
+| `stage_migrate()` / `evaluate_migration()` / `recommended_stage()` | `agent/digestion/stage.py` | 验收门通过后的 stage 推进入口（mirrored→shadow 的证据由本任务产出） |
+
+> **S3-01 移交给本任务的扩展点（其结案报告 §5 遗留 #4）**：决策树特征当前仅含「可选/骨架步骤有无 + 步数档位」，**参数级条件**（如"路径含 test 时才需 review"）未纳入 —— 本任务若判定集需要参数级分支覆盖，在此处扩展（属本任务范围内的合理扩展）。
 
 ## 一、目标描述
 
@@ -19,7 +36,8 @@
 ## 二、执行步骤
 
 ### 步骤 1：判定集模型与存储
-- 新增 `agent/digestion/cases.py`（或 `agent/descriptors/cases.py`）：`EquivalenceCase`（id/capability_id/input/expected_output/expected_side_effects/kind/origin_trace_id/created_at/active）、`CaseSet`（capability 维度 30-100 组 + 版本）、`CaseStore`（JSON/SQLite 持久化，独立于 Trace 存储；Trace 90 天过期不影响判定集）。
+- 新增 `agent/digestion/cases.py`（与 S3-01 同包，勿另起包）：`EquivalenceCase`（id/capability_id/input/expected_output/expected_side_effects/kind/origin_trace_id/created_at/active）、`CaseSet`（capability 维度 30-100 组 + 版本）、`CaseStore`（JSON/SQLite 持久化，独立于 Trace 存储；Trace 90 天过期不影响判定集）。
+- **用例生成通道（复用 §零 资产）**：① Seed Pack 预置；② 从 `TraceSet`/`Trajectory` 自动生成（经 `same_task_key()` 归组 + 复制数据脱离生命周期 + 记 `origin_trace_id`）；③ LLM 生成 + 人工抽检。
 - Seed Pack 起步（P7.2-23）：预置 ≥12 技能 × ≥3 组等价用例（复用既有测试数据/样例，标记 provenance）。
 
 ### 步骤 2：回放沙箱

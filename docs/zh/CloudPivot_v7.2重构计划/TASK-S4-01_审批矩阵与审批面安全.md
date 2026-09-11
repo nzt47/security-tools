@@ -28,8 +28,13 @@
 ### 步骤 1：现状盘点（含 S2 移交的裁定项）
 - 盘点 ApprovalFlow（submit/approve/reject/merge/mark_manual_executed/route_level）与 human_in_the_loop（hitl/ethics/takeover_queue）现有 actor 字段与权限校验点。
 - 盘点谁在调用审批：skill 发布/审批、EVO 受控编辑、S3-03 手动 promote、未来熔炉切换；确认各调用方的 actor 类型标注。
-- **【S2-02 遗留 #1 / S2-03 遗留 #13 —— 开工前须裁定的身份层方案】** 现状无 session/current_user 体系：`require_token` 仅共享令牌，UI actor 为"头/Cookie/令牌指纹/`ui:<remote_addr>`"降级，`identity_source` 已如实标注；S2-03 埋点 actor 沿用同一降级口径。本任务开工前须由 Owner 裁定方案（三选一：① 引入 session 会话体系；② 信任反代注入头；③ 令牌→用户映射表），并在本任务内落地为可判定的 actor 来源——**§7.0 矩阵的 human 行依赖此裁定**。
-- **【S2-02 遗留 #11 —— PII 口径】** 认证 IP 是否掩码（掩码 vs 原文留链）需一并裁定并落地（默认建议掩码 + 保留哈希用于关联）。
+- **【S2-02 遗留 #1 / S2-03 遗留 #13 —— 身份层方案：Owner 已裁定 2026-09-11，采用方案 A3「令牌 → 用户映射」】** 现状无 session/current_user 体系：`require_token` 仅共享令牌，UI actor 为"头/Cookie/令牌指纹/`ui:<remote_addr>`"降级，`identity_source` 已如实标注。
+  - **裁定内容**：采用 **A3 令牌映射**——每个使用者分配独立令牌，配置表映射 token → actor 名（如 `CP_UI_TOKENS=<token>:<name>,...` 或等价配置项，密钥/令牌经 SecretStore 管理）；actor 解析顺序为「会话/映射表 → 头 → 降级 `ui:<addr>`」，命中映射表时 `identity_source=token_map`，未命中仍降级并标注 `degraded`。
+  - **不做**（本次）：不引入完整 session 登录体系（A1）、不信任反代注入头（A2）——但 **actor 解析层须保持可替换**（S2-02 已抽象），以便企业侧（P5）平滑升级为 A1/A2。
+  - **落地**：本任务内实现映射表解析 + 单测（命中/未命中/多令牌/空配置回退），并确保 §7.0 矩阵 human 行依据该 actor 判定。
+- **【S2-02 遗留 #11 —— PII 口径：Owner 已裁定 2026-09-11，采用「掩码 + HMAC 哈希」】** 审计链永久保留（删不得），真实 IP 入链等于永久留存 PII。
+  - **裁定内容**：入链两个字段——`actor_ip_masked`（沿用仓库既有脱敏口径 `10.0.0.7` → `10.0.xxx.xxx`）+ `actor_ip_hash`（HMAC-SHA256，密钥存 SecretStore，不可还原）；**原始 IP 不落盘**。保留关联能力（同一 IP → 同哈希，可做"同一来源多次越权"分析）。
+  - **不做**：不写原文入链（方案②）；不用无密钥裸哈希（可被枚举反查）。
 
 ### 步骤 2：Actor 矩阵落地（后端单表校验）
 - 定义 `ActorType`（human/auto(skill)/sub_agent）+ 权限判定表（对齐 §7.0 矩阵行）；在 ApprovalFlow/审批入口加 actor 校验：auto/sub_agent 调用 approve/reject → 拒绝 + 审计（越权告警事件）。
