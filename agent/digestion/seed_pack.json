@@ -1,0 +1,974 @@
+{
+  "schema_version": 1,
+  "source": "P7.2-23 Seed Pack：12 技能的预置等价判定用例（每技能 ≥3 组）——消化自举不从 0 开始攒样本",
+  "generated_at": "2026-09-12",
+  "conventions": {
+    "sandbox_root": "C:/sandbox",
+    "note": "所有路径均为沙箱虚拟根内的合成路径（无真实数据）；upstream 为‘上游/现有实现’的步骤程序，native_template 为‘候选原生实现’的骨架模板（占位符按用例 input/bindings 绑定）；bindings 优先级高于 input。",
+    "side_effects_source": "authored —— 本包用例的副作用集合由人工按能力契约手写，回放时作硬性契约比对。"
+  },
+  "skills": [
+    {
+      "capability_id": "cp.builtin.read_file",
+      "display_name": "读取文件",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "descriptor+repo_sample",
+        "ref": "cp.builtin.read_file",
+        "note": "输入形态取自仓库既有读取类调用的真实参数键（path/encoding）；夹具内容为合成样例（tests/unit/digestion_util.py 的造数风格）。"
+      },
+      "native_template": [
+        {"label": "read_file", "params": {"path": "${path}", "encoding": "${encoding}"}}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-read_file-utf8",
+          "title": "读取 UTF-8 源文件",
+          "intent_key": "read+file",
+          "input": {"path": "C:/sandbox/src/mod.py", "encoding": "utf-8"},
+          "fixtures": {"C:/sandbox/src/mod.py": "def add(a, b):\n    return a + b\n"},
+          "upstream": [{"label": "read_file", "params": {"path": "C:/sandbox/src/mod.py", "encoding": "utf-8"}}],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number", "lines": "number"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["encoding 存在"]
+        },
+        {
+          "case_id": "seed-read_file-missing",
+          "title": "读取不存在的文件（失败路径等价）",
+          "intent_key": "read+file",
+          "input": {"path": "C:/sandbox/src/absent.py", "encoding": "utf-8"},
+          "fixtures": {},
+          "upstream": [{"label": "read_file", "params": {"path": "C:/sandbox/src/absent.py", "encoding": "utf-8"}}],
+          "expected_output_schema": {"ok": "bool", "error_code": "str", "error": "str", "path": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": []},
+          "expected_status": "error",
+          "destructive": false,
+          "branch_tags": ["路径缺失"]
+        },
+        {
+          "case_id": "seed-read_file-gbk",
+          "title": "以非默认编码读取",
+          "intent_key": "read+file",
+          "input": {"path": "C:/sandbox/src/legacy.txt", "encoding": "gbk"},
+          "fixtures": {"C:/sandbox/src/legacy.txt": "legacy line one\nlegacy line two\n"},
+          "upstream": [{"label": "read_file", "params": {"path": "C:/sandbox/src/legacy.txt", "encoding": "gbk"}}],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number", "lines": "number"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["encoding 非默认"]
+        },
+        {
+          "case_id": "seed-read_file-test-fixture",
+          "title": "读取测试文件（覆盖参数级失败倾向分支 path contains test）",
+          "intent_key": "read+file",
+          "input": {"path": "C:/sandbox/tests/test_mod.py", "encoding": "utf-8"},
+          "fixtures": {"C:/sandbox/tests/test_mod.py": "def test_mod():\n    assert compute() == 3\n"},
+          "upstream": [{"label": "read_file", "params": {"path": "C:/sandbox/tests/test_mod.py", "encoding": "utf-8"}}],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number", "lines": "number"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["path contains test"],
+          "provenance_note": "覆盖 S3-01 遗留 #4 的参数级分支（path contains test）：该分支由决策树无法表达，由本用例显式纳入判定集，使验收门条件 4（破坏性分支覆盖）可被真实满足。"
+        }
+      ]
+    },
+    {
+      "capability_id": "cp.builtin.write_file",
+      "display_name": "写入文件",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "descriptor+repo_sample",
+        "ref": "cp.builtin.write_file",
+        "note": "覆盖写（force/overwrite）是 §3.2 risk=destructive 的典型路径，故专门设一组破坏性用例覆盖该分支。"
+      },
+      "native_template": [
+        {"label": "write_file", "params": {"path": "${target}", "content": "${payload}"}}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-write_file-new",
+          "title": "新建文件",
+          "intent_key": "write+file",
+          "input": {"path": "C:/sandbox/out/new.txt"},
+          "bindings": {"target": "C:/sandbox/out/new.txt", "payload": "hello sandbox"},
+          "upstream": [{"label": "write_file", "params": {"path": "C:/sandbox/out/new.txt", "content": "hello sandbox"}}],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/new.txt"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["目标不存在"]
+        },
+        {
+          "case_id": "seed-write_file-overwrite",
+          "title": "覆盖既有文件（破坏性分支）",
+          "intent_key": "write+file",
+          "input": {"path": "C:/sandbox/out/existing.txt", "force": true},
+          "bindings": {"target": "C:/sandbox/out/existing.txt", "payload": "replaced content"},
+          "fixtures": {"C:/sandbox/out/existing.txt": "original content"},
+          "upstream": [{"label": "write_file", "params": {"path": "C:/sandbox/out/existing.txt", "content": "replaced content"}}],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/existing.txt"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": true,
+          "branch_tags": ["force 覆盖", "target 存在"]
+        },
+        {
+          "case_id": "seed-write_file-nested",
+          "title": "写入嵌套路径（含 test 语义的路径）",
+          "intent_key": "write+file",
+          "input": {"path": "C:/sandbox/tests/test_gen.py"},
+          "bindings": {"target": "C:/sandbox/tests/test_gen.py", "payload": "def test_gen():\n    assert True\n"},
+          "upstream": [{"label": "write_file", "params": {"path": "C:/sandbox/tests/test_gen.py", "content": "def test_gen():\n    assert True\n"}}],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/tests/test_gen.py"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["path contains test"]
+        }
+      ]
+    },
+    {
+      "capability_id": "cp.builtin.shell_execute",
+      "display_name": "执行命令",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "descriptor+repo_sample",
+        "ref": "cp.builtin.shell_execute",
+        "note": "本能力在回放沙箱中**永不真实执行**：一律记账为 external_calls 并返回确定性桩结果（§4.5 record-and-replay 绝不双写）。"
+      },
+      "native_template": [
+        {"label": "shell_execute", "params": {"cmd": "${cmd}"}}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-shell_execute-tests",
+          "title": "运行测试命令",
+          "intent_key": "shell+run",
+          "input": {"cmd": "python -m pytest tests/unit -q"},
+          "upstream": [{"label": "shell_execute", "params": {"cmd": "python -m pytest tests/unit -q"}}],
+          "expected_output_schema": {"ok": "bool", "simulated": "str", "cmd": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": ["shell_execute"]},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["cmd 为只读命令"]
+        },
+        {
+          "case_id": "seed-shell_execute-force-delete",
+          "title": "递归强制删除（破坏性分支）",
+          "intent_key": "shell+run",
+          "input": {"cmd": "rm -rf C:/sandbox/tmp --force"},
+          "upstream": [{"label": "shell_execute", "params": {"cmd": "rm -rf C:/sandbox/tmp --force"}}],
+          "expected_output_schema": {"ok": "bool", "simulated": "str", "cmd": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": ["shell_execute"]},
+          "expected_status": "success",
+          "destructive": true,
+          "branch_tags": ["cmd 含 force/rm -rf"]
+        },
+        {
+          "case_id": "seed-shell_execute-readonly",
+          "title": "只读盘点命令",
+          "intent_key": "shell+run",
+          "input": {"cmd": "git status --short"},
+          "upstream": [{"label": "shell_execute", "params": {"cmd": "git status --short"}}],
+          "expected_output_schema": {"ok": "bool", "simulated": "str", "cmd": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": ["shell_execute"]},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["cmd 为只读命令"]
+        }
+      ]
+    },
+    {
+      "capability_id": "cp.skill.code-observability",
+      "display_name": "代码可观测性",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "skill_descriptor",
+        "ref": "cp.skill.code-observability",
+        "note": "按该技能声明的‘读日志 → 定位 → 产出观测结论’流程手写等价用例（样例路径引自仓库 logs/ 与 reports/ 目录约定）。"
+      },
+      "native_template": [
+        {"label": "read_file", "params": {"path": "${log}", "encoding": "utf-8"}},
+        {"label": "grep", "params": {"pattern": "${needle}", "path": "${log}"}},
+        {"label": "write_file", "params": {"path": "${report}", "content": "observability findings"}}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-code-observability-error",
+          "title": "日志含 ERROR 时产出观测结论",
+          "intent_key": "observe+log",
+          "bindings": {"log": "C:/sandbox/logs/app.log", "needle": "ERROR", "report": "C:/sandbox/out/obs.md"},
+          "fixtures": {"C:/sandbox/logs/app.log": "INFO boot\nERROR db down\nTRACE retry\n"},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/logs/app.log", "encoding": "utf-8"}},
+            {"label": "grep", "params": {"pattern": "ERROR", "path": "C:/sandbox/logs/app.log"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/obs.md", "content": "observability findings"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/obs.md"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["日志含 ERROR"]
+        },
+        {
+          "case_id": "seed-code-observability-clean",
+          "title": "日志无异常时仍产出结论",
+          "intent_key": "observe+log",
+          "bindings": {"log": "C:/sandbox/logs/clean.log", "needle": "ERROR", "report": "C:/sandbox/out/obs_clean.md"},
+          "fixtures": {"C:/sandbox/logs/clean.log": "INFO boot\nINFO ready\n"},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/logs/clean.log", "encoding": "utf-8"}},
+            {"label": "grep", "params": {"pattern": "ERROR", "path": "C:/sandbox/logs/clean.log"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/obs_clean.md", "content": "observability findings"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/obs_clean.md"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["日志无 ERROR"]
+        },
+        {
+          "case_id": "seed-code-observability-missing-log",
+          "title": "日志缺失（失败路径等价）",
+          "intent_key": "observe+log",
+          "bindings": {"log": "C:/sandbox/logs/absent.log", "needle": "ERROR", "report": "C:/sandbox/out/obs_absent.md"},
+          "fixtures": {},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/logs/absent.log", "encoding": "utf-8"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "error_code": "str", "error": "str", "path": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": []},
+          "expected_status": "error",
+          "destructive": false,
+          "branch_tags": ["日志缺失"]
+        }
+      ]
+    },
+    {
+      "capability_id": "cp.skill.context_aware",
+      "display_name": "上下文感知",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "skill_descriptor",
+        "ref": "cp.skill.context_aware",
+        "note": "按‘盘点目录 → 读取关键文件 → 归纳上下文’手写；夹具使用仓库 src/ 与 docs/ 的同构目录布局。"
+      },
+      "native_template": [
+        {"label": "list_dir", "params": {"path": "${root}"}},
+        {"label": "read_file", "params": {"path": "${key_file}", "encoding": "utf-8"}},
+        {"label": "write_file", "params": {"path": "${summary}", "content": "context summary"}}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-context-aware-src",
+          "title": "盘点源码目录并归纳上下文",
+          "intent_key": "context+survey",
+          "bindings": {"root": "C:/sandbox/src", "key_file": "C:/sandbox/src/main.py", "summary": "C:/sandbox/out/ctx_src.md"},
+          "fixtures": {"C:/sandbox/src/main.py": "def main():\n    pass\n", "C:/sandbox/src/util.py": "VALUE = 1\n"},
+          "upstream": [
+            {"label": "list_dir", "params": {"path": "C:/sandbox/src"}},
+            {"label": "read_file", "params": {"path": "C:/sandbox/src/main.py", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/ctx_src.md", "content": "context summary"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/ctx_src.md"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["目录非空"]
+        },
+        {
+          "case_id": "seed-context-aware-docs",
+          "title": "盘点文档目录（含 test 语义路径）",
+          "intent_key": "context+survey",
+          "bindings": {"root": "C:/sandbox/docs", "key_file": "C:/sandbox/docs/test_plan.md", "summary": "C:/sandbox/out/ctx_docs.md"},
+          "fixtures": {"C:/sandbox/docs/test_plan.md": "# test plan\n", "C:/sandbox/docs/readme.md": "# readme\n"},
+          "upstream": [
+            {"label": "list_dir", "params": {"path": "C:/sandbox/docs"}},
+            {"label": "read_file", "params": {"path": "C:/sandbox/docs/test_plan.md", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/ctx_docs.md", "content": "context summary"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/ctx_docs.md"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["path contains test"]
+        },
+        {
+          "case_id": "seed-context-aware-missing-key",
+          "title": "关键文件缺失（失败路径等价）",
+          "intent_key": "context+survey",
+          "bindings": {"root": "C:/sandbox/empty", "key_file": "C:/sandbox/empty/main.py", "summary": "C:/sandbox/out/ctx_empty.md"},
+          "fixtures": {"C:/sandbox/empty/.keep": ""},
+          "upstream": [
+            {"label": "list_dir", "params": {"path": "C:/sandbox/empty"}},
+            {"label": "read_file", "params": {"path": "C:/sandbox/empty/main.py", "encoding": "utf-8"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "error_code": "str", "error": "str", "path": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": []},
+          "expected_status": "error",
+          "destructive": false,
+          "branch_tags": ["关键文件缺失"]
+        }
+      ]
+    },
+    {
+      "capability_id": "cp.skill.engineering-test-delivery",
+      "display_name": "工程测试交付",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "skill_descriptor",
+        "ref": "cp.skill.engineering-test-delivery",
+        "note": "按‘读实现 → 补测试 → 跑测试 → 写交付报告’手写；走 shell_execute 的步骤在沙箱内只记账不执行。"
+      },
+      "native_template": [
+        {"label": "read_file", "params": {"path": "${impl}", "encoding": "utf-8"}},
+        {"label": "write_file", "params": {"path": "${test_file}", "content": "${test_body}"}},
+        {"label": "shell_execute", "params": {"cmd": "python -m pytest ${test_file} -q"}},
+        {"label": "write_file", "params": {"path": "${report}", "content": "delivery report"}}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-eng-test-delivery-happy",
+          "title": "补测试并跑通交付",
+          "intent_key": "engineering+test",
+          "bindings": {
+            "impl": "C:/sandbox/src/calc.py", "test_file": "C:/sandbox/tests/test_calc.py",
+            "test_body": "def test_calc():\n    assert True\n", "report": "C:/sandbox/out/delivery.md"
+          },
+          "fixtures": {"C:/sandbox/src/calc.py": "def add(a, b):\n    return a + b\n"},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/src/calc.py", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/tests/test_calc.py", "content": "def test_calc():\n    assert True\n"}},
+            {"label": "shell_execute", "params": {"cmd": "python -m pytest C:/sandbox/tests/test_calc.py -q"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/delivery.md", "content": "delivery report"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {
+            "files_written": ["C:/sandbox/tests/test_calc.py", "C:/sandbox/out/delivery.md"],
+            "files_deleted": [], "external_calls": ["shell_execute"]
+          },
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["path contains test"]
+        },
+        {
+          "case_id": "seed-eng-test-delivery-no-impl",
+          "title": "实现缺失（失败路径等价）",
+          "intent_key": "engineering+test",
+          "bindings": {"impl": "C:/sandbox/src/absent.py", "test_file": "C:/sandbox/tests/test_absent.py",
+                       "test_body": "def test_absent():\n    assert True\n",
+                       "report": "C:/sandbox/out/delivery_absent.md"},
+          "fixtures": {},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/src/absent.py", "encoding": "utf-8"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "error_code": "str", "error": "str", "path": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": []},
+          "expected_status": "error",
+          "destructive": false,
+          "branch_tags": ["实现缺失"]
+        },
+        {
+          "case_id": "seed-eng-test-delivery-report-only",
+          "title": "仅产出交付报告（不写测试；用例级候选实现覆盖）",
+          "intent_key": "engineering+test",
+          "bindings": {"impl": "C:/sandbox/src/util.py", "report": "C:/sandbox/out/delivery_util.md"},
+          "fixtures": {"C:/sandbox/src/util.py": "VALUE = 2\n"},
+          "native": [
+            {"label": "read_file", "params": {"path": "${impl}", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "${report}", "content": "delivery report"}}
+          ],
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/src/util.py", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/delivery_util.md", "content": "delivery report"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/delivery_util.md"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["无测试步骤"]
+        }
+      ]
+    },
+    {
+      "capability_id": "cp.skill.memory_summary",
+      "display_name": "记忆摘要",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "skill_descriptor",
+        "ref": "cp.skill.memory_summary",
+        "note": "按‘读笔记 → 归并 → 写摘要’手写；夹具为合成笔记（无真实记忆内容）。"
+      },
+      "native_template": [
+        {"label": "read_file", "params": {"path": "${notes}", "encoding": "utf-8"}},
+        {"label": "write_file", "params": {"path": "${summary}", "content": "${body}"}}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-memory_summary-daily",
+          "title": "归并当日笔记",
+          "intent_key": "memory+summary",
+          "bindings": {"notes": "C:/sandbox/memory/daily.md", "summary": "C:/sandbox/out/summary.md",
+                       "body": "- item one\n- item two\n"},
+          "fixtures": {"C:/sandbox/memory/daily.md": "- item one\n- item two\n- item three\n"},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/memory/daily.md", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/summary.md", "content": "- item one\n- item two\n"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/summary.md"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["笔记存在"]
+        },
+        {
+          "case_id": "seed-memory_summary-empty",
+          "title": "空笔记（边界）",
+          "intent_key": "memory+summary",
+          "bindings": {"notes": "C:/sandbox/memory/empty.md", "summary": "C:/sandbox/out/summary_empty.md",
+                       "body": ""},
+          "fixtures": {"C:/sandbox/memory/empty.md": ""},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/memory/empty.md", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/summary_empty.md", "content": ""}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/summary_empty.md"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["笔记为空"]
+        },
+        {
+          "case_id": "seed-memory_summary-missing",
+          "title": "笔记缺失（失败路径等价）",
+          "intent_key": "memory+summary",
+          "bindings": {"notes": "C:/sandbox/memory/absent.md", "summary": "C:/sandbox/out/summary_absent.md",
+                       "body": ""},
+          "fixtures": {},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/memory/absent.md", "encoding": "utf-8"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "error_code": "str", "error": "str", "path": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": []},
+          "expected_status": "error",
+          "destructive": false,
+          "branch_tags": ["笔记缺失"]
+        }
+      ]
+    },
+    {
+      "capability_id": "cp.skill.pd-test-driven-development-8562c8ad-skill",
+      "display_name": "TDD 流程技能",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "skill_descriptor",
+        "ref": "cp.skill.pd-test-driven-development-8562c8ad-skill",
+        "note": "按该技能声明的红-绿-重构顺序手写；覆盖‘路径含 test 才需 review’这一**参数级条件**（S3-01 遗留 #4 扩展点）。"
+      },
+      "native_template": [
+        {"label": "read_file", "params": {"path": "${impl}", "encoding": "utf-8"}},
+        {"label": "write_file", "params": {"path": "${test_file}", "content": "${test_body}"}},
+        {"label": "shell_execute", "params": {"cmd": "python -m pytest ${test_file} -q"}},
+        {"label": "write_file", "params": {"path": "${review}", "content": "tdd review"},
+         "condition": "path contains test"}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-tdd-red-green",
+          "title": "红-绿闭环",
+          "intent_key": "tdd+cycle",
+          "bindings": {"impl": "C:/sandbox/src/parser.py", "test_file": "C:/sandbox/tests/test_parser.py",
+                       "test_body": "def test_parser():\n    assert True\n",
+                       "review": "C:/sandbox/out/test_review.md"},
+          "fixtures": {"C:/sandbox/src/parser.py": "def parse(text):\n    return text\n"},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/src/parser.py", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/tests/test_parser.py", "content": "def test_parser():\n    assert True\n"}},
+            {"label": "shell_execute", "params": {"cmd": "python -m pytest C:/sandbox/tests/test_parser.py -q"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/test_review.md", "content": "tdd review"}, "condition": "path contains test"}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {
+            "files_written": ["C:/sandbox/tests/test_parser.py", "C:/sandbox/out/test_review.md"],
+            "files_deleted": [], "external_calls": ["shell_execute"]
+          },
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["path contains test"]
+        },
+        {
+          "case_id": "seed-tdd-no-test-path",
+          "title": "非 test 路径（参数级条件步跳过）",
+          "intent_key": "tdd+cycle",
+          "bindings": {"impl": "C:/sandbox/src/lexer.py", "test_file": "C:/sandbox/specs/lexer_spec.py",
+                       "test_body": "def spec_lexer():\n    assert True\n",
+                       "review": "C:/sandbox/out/spec_review.md"},
+          "fixtures": {"C:/sandbox/src/lexer.py": "TOKENS = []\n"},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/src/lexer.py", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/specs/lexer_spec.py", "content": "def spec_lexer():\n    assert True\n"}},
+            {"label": "shell_execute", "params": {"cmd": "python -m pytest C:/sandbox/specs/lexer_spec.py -q"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/spec_review.md", "content": "tdd review"}, "condition": "path contains test"}
+          ],
+          "expected_output_schema": {"ok": "bool", "simulated": "str", "cmd": "str"},
+          "expected_side_effects": {
+            "files_written": ["C:/sandbox/specs/lexer_spec.py"],
+            "files_deleted": [], "external_calls": ["shell_execute"]
+          },
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["path 不含 test"]
+        },
+        {
+          "case_id": "seed-tdd-missing-impl",
+          "title": "实现缺失（失败路径等价）",
+          "intent_key": "tdd+cycle",
+          "bindings": {"impl": "C:/sandbox/src/absent.py", "test_file": "C:/sandbox/tests/test_absent.py",
+                       "test_body": "def test_absent():\n    assert True\n",
+                       "review": "C:/sandbox/out/absent_review.md"},
+          "fixtures": {},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/src/absent.py", "encoding": "utf-8"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "error_code": "str", "error": "str", "path": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": []},
+          "expected_status": "error",
+          "destructive": false,
+          "branch_tags": ["实现缺失"]
+        }
+      ]
+    },
+    {
+      "capability_id": "cp.skill.pd-systematic-debugging-556faa20-skill",
+      "display_name": "系统化调试技能",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "skill_descriptor",
+        "ref": "cp.skill.pd-systematic-debugging-556faa20-skill",
+        "note": "按‘读日志 → 检索异常 → 写诊断’手写；覆盖 traceback 命中与未命中两分支。"
+      },
+      "native_template": [
+        {"label": "read_file", "params": {"path": "${log}", "encoding": "utf-8"}},
+        {"label": "grep", "params": {"pattern": "Traceback", "path": "${log}"}},
+        {"label": "write_file", "params": {"path": "${diagnosis}", "content": "diagnosis"}}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-debugging-traceback",
+          "title": "命中异常栈",
+          "intent_key": "debug+trace",
+          "bindings": {"log": "C:/sandbox/logs/crash.log", "diagnosis": "C:/sandbox/out/diag.md"},
+          "fixtures": {"C:/sandbox/logs/crash.log": "Traceback (most recent call last):\nValueError: bad\n"},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/logs/crash.log", "encoding": "utf-8"}},
+            {"label": "grep", "params": {"pattern": "Traceback", "path": "C:/sandbox/logs/crash.log"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/diag.md", "content": "diagnosis"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/diag.md"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["日志含 Traceback"]
+        },
+        {
+          "case_id": "seed-debugging-no-traceback",
+          "title": "未命中异常栈（仍写诊断）",
+          "intent_key": "debug+trace",
+          "bindings": {"log": "C:/sandbox/logs/quiet.log", "diagnosis": "C:/sandbox/out/diag_quiet.md"},
+          "fixtures": {"C:/sandbox/logs/quiet.log": "INFO all good\n"},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/logs/quiet.log", "encoding": "utf-8"}},
+            {"label": "grep", "params": {"pattern": "Traceback", "path": "C:/sandbox/logs/quiet.log"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/diag_quiet.md", "content": "diagnosis"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/diag_quiet.md"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["日志无 Traceback"]
+        },
+        {
+          "case_id": "seed-debugging-missing-log",
+          "title": "日志缺失（失败路径等价）",
+          "intent_key": "debug+trace",
+          "bindings": {"log": "C:/sandbox/logs/absent.log", "diagnosis": "C:/sandbox/out/diag_absent.md"},
+          "fixtures": {},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/logs/absent.log", "encoding": "utf-8"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "error_code": "str", "error": "str", "path": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": []},
+          "expected_status": "error",
+          "destructive": false,
+          "branch_tags": ["日志缺失"]
+        }
+      ]
+    },
+    {
+      "capability_id": "cp.skill.pd-verification-before-completion-af010352-skill",
+      "display_name": "完工前验证技能",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "skill_descriptor",
+        "ref": "cp.skill.pd-verification-before-completion-af010352-skill",
+        "note": "按‘读改动 → 跑验证 → 写验证结论’手写；验证命令在沙箱内只记账。"
+      },
+      "native_template": [
+        {"label": "read_file", "params": {"path": "${diff_file}", "encoding": "utf-8"}},
+        {"label": "shell_execute", "params": {"cmd": "${verify_cmd}"}},
+        {"label": "write_file", "params": {"path": "${verdict}", "content": "verification verdict"}}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-verify-tests-green",
+          "title": "验证通过",
+          "intent_key": "verify+completion",
+          "bindings": {"diff_file": "C:/sandbox/reports/diff.txt",
+                       "verify_cmd": "python -m pytest tests/unit -q",
+                       "verdict": "C:/sandbox/out/verdict.md"},
+          "fixtures": {"C:/sandbox/reports/diff.txt": "diff --git a/x.py b/x.py\n"},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/reports/diff.txt", "encoding": "utf-8"}},
+            {"label": "shell_execute", "params": {"cmd": "python -m pytest tests/unit -q"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/verdict.md", "content": "verification verdict"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/verdict.md"], "files_deleted": [], "external_calls": ["shell_execute"]},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["验证命令只读"]
+        },
+        {
+          "case_id": "seed-verify-diff-missing",
+          "title": "改动集缺失（失败路径等价）",
+          "intent_key": "verify+completion",
+          "bindings": {"diff_file": "C:/sandbox/reports/absent.txt",
+                       "verify_cmd": "python -m pytest tests/unit -q",
+                       "verdict": "C:/sandbox/out/verdict_absent.md"},
+          "fixtures": {},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/reports/absent.txt", "encoding": "utf-8"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "error_code": "str", "error": "str", "path": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": []},
+          "expected_status": "error",
+          "destructive": false,
+          "branch_tags": ["改动集缺失"]
+        },
+        {
+          "case_id": "seed-verify-forced",
+          "title": "带 --force 的验证命令（破坏性分支）",
+          "intent_key": "verify+completion",
+          "bindings": {"diff_file": "C:/sandbox/reports/diff2.txt",
+                       "verify_cmd": "python -m pytest --force-recreate -q",
+                       "verdict": "C:/sandbox/out/verdict_force.md"},
+          "fixtures": {"C:/sandbox/reports/diff2.txt": "diff --git a/y.py b/y.py\n"},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/reports/diff2.txt", "encoding": "utf-8"}},
+            {"label": "shell_execute", "params": {"cmd": "python -m pytest --force-recreate -q"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/verdict_force.md", "content": "verification verdict"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/verdict_force.md"], "files_deleted": [], "external_calls": ["shell_execute"]},
+          "expected_status": "success",
+          "destructive": true,
+          "branch_tags": ["cmd 含 force"]
+        }
+      ]
+    },
+    {
+      "capability_id": "cp.skill.pd-requesting-code-review-ca5ae995-skill",
+      "display_name": "请求代码评审技能",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "skill_descriptor",
+        "ref": "cp.skill.pd-requesting-code-review-ca5ae995-skill",
+        "note": "术语按 S0-01 收敛为 review（非云枢旧‘评审’语义）；请求动作在沙箱内为外部调用桩。"
+      },
+      "native_template": [
+        {"label": "read_file", "params": {"path": "${diff_file}", "encoding": "utf-8"}},
+        {"label": "write_file", "params": {"path": "${request}", "content": "review request"}},
+        {"label": "shell_execute", "params": {"cmd": "git diff --stat"}}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-review-request-standard",
+          "title": "提交评审请求",
+          "intent_key": "review+request",
+          "bindings": {"diff_file": "C:/sandbox/reports/diff.txt", "request": "C:/sandbox/out/review.md"},
+          "fixtures": {"C:/sandbox/reports/diff.txt": "diff --git a/x.py b/x.py\n"},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/reports/diff.txt", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/review.md", "content": "review request"}},
+            {"label": "shell_execute", "params": {"cmd": "git diff --stat"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "simulated": "str", "cmd": "str"},
+          "expected_side_effects": {
+            "files_written": ["C:/sandbox/out/review.md"], "files_deleted": [],
+            "external_calls": ["shell_execute"]
+          },
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["改动集存在"]
+        },
+        {
+          "case_id": "seed-review-request-test-path",
+          "title": "测试文件改动触发评审",
+          "intent_key": "review+request",
+          "bindings": {"diff_file": "C:/sandbox/reports/test_diff.txt", "request": "C:/sandbox/out/review_test.md"},
+          "fixtures": {"C:/sandbox/reports/test_diff.txt": "diff --git a/tests/test_x.py b/tests/test_x.py\n"},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/reports/test_diff.txt", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/review_test.md", "content": "review request"}},
+            {"label": "shell_execute", "params": {"cmd": "git diff --stat"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "simulated": "str", "cmd": "str"},
+          "expected_side_effects": {
+            "files_written": ["C:/sandbox/out/review_test.md"], "files_deleted": [],
+            "external_calls": ["shell_execute"]
+          },
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["path contains test"]
+        },
+        {
+          "case_id": "seed-review-request-missing-diff",
+          "title": "改动集缺失（失败路径等价）",
+          "intent_key": "review+request",
+          "bindings": {"diff_file": "C:/sandbox/reports/absent.txt", "request": "C:/sandbox/out/review_absent.md"},
+          "fixtures": {},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/reports/absent.txt", "encoding": "utf-8"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "error_code": "str", "error": "str", "path": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": []},
+          "expected_status": "error",
+          "destructive": false,
+          "branch_tags": ["改动集缺失"]
+        }
+      ]
+    },
+    {
+      "capability_id": "cp.skill.safety_guard",
+      "display_name": "安全护栏",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "skill_descriptor",
+        "ref": "cp.skill.safety_guard",
+        "note": "覆盖删除类破坏性动作（delete_file）与审计留痕；删除目标限于沙箱根内的合成临时文件。"
+      },
+      "native_template": [
+        {"label": "read_file", "params": {"path": "${policy}", "encoding": "utf-8"}},
+        {"label": "delete_file", "params": {"path": "${victim}"}},
+        {"label": "write_file", "params": {"path": "${audit}", "content": "guard audit"}}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-safety-guard-delete-temp",
+          "title": "删除越权临时文件（破坏性分支）",
+          "intent_key": "guard+policy",
+          "bindings": {"policy": "C:/sandbox/policy/rules.md", "victim": "C:/sandbox/tmp/secret.env",
+                       "audit": "C:/sandbox/out/guard_audit.md"},
+          "fixtures": {"C:/sandbox/policy/rules.md": "- deny .env write\n",
+                       "C:/sandbox/tmp/secret.env": "TOKEN=synthetic\n"},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/policy/rules.md", "encoding": "utf-8"}},
+            {"label": "delete_file", "params": {"path": "C:/sandbox/tmp/secret.env"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/guard_audit.md", "content": "guard audit"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {
+            "files_written": ["C:/sandbox/out/guard_audit.md"],
+            "files_deleted": ["C:/sandbox/tmp/secret.env"], "external_calls": []
+          },
+          "expected_status": "success",
+          "destructive": true,
+          "branch_tags": ["delete 动作"]
+        },
+        {
+          "case_id": "seed-safety-guard-no-delete",
+          "title": "仅做策略核查（不删除；用例级候选实现覆盖）",
+          "intent_key": "guard+policy",
+          "bindings": {"policy": "C:/sandbox/policy/rules.md", "victim": "C:/sandbox/tmp/keep.txt",
+                       "audit": "C:/sandbox/out/guard_audit_keep.md"},
+          "fixtures": {"C:/sandbox/policy/rules.md": "- deny .env write\n"},
+          "native": [
+            {"label": "read_file", "params": {"path": "${policy}", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "${audit}", "content": "guard audit"}}
+          ],
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/policy/rules.md", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/guard_audit_keep.md", "content": "guard audit"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/guard_audit_keep.md"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["无删除动作"]
+        },
+        {
+          "case_id": "seed-safety-guard-policy-missing",
+          "title": "策略缺失（失败路径等价）",
+          "intent_key": "guard+policy",
+          "bindings": {"policy": "C:/sandbox/policy/absent.md", "victim": "C:/sandbox/tmp/none.env",
+                       "audit": "C:/sandbox/out/guard_absent.md"},
+          "fixtures": {},
+          "upstream": [
+            {"label": "read_file", "params": {"path": "C:/sandbox/policy/absent.md", "encoding": "utf-8"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "error_code": "str", "error": "str", "path": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": []},
+          "expected_status": "error",
+          "destructive": false,
+          "branch_tags": ["策略缺失"]
+        }
+      ]
+    },
+    {
+      "capability_id": "cp.skill.scripted-selftest",
+      "display_name": "脚本化自检",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "skill_descriptor",
+        "ref": "cp.skill.scripted-selftest",
+        "note": "按‘跑自检脚本 → 核对输出 → 写结果’手写；脚本执行在沙箱内退化为外部调用记账。"
+      },
+      "native_template": [
+        {"label": "shell_execute", "params": {"cmd": "python scripts/selftest.py"}},
+        {"label": "read_file", "params": {"path": "${result_file}", "encoding": "utf-8"}},
+        {"label": "write_file", "params": {"path": "${outcome}", "content": "selftest outcome"}}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-selftest-pass",
+          "title": "自检通过",
+          "intent_key": "selftest+run",
+          "bindings": {"result_file": "C:/sandbox/selftest/result.json", "outcome": "C:/sandbox/out/selftest_ok.md"},
+          "fixtures": {"C:/sandbox/selftest/result.json": "{\"ok\": true}\n"},
+          "upstream": [
+            {"label": "shell_execute", "params": {"cmd": "python scripts/selftest.py"}},
+            {"label": "read_file", "params": {"path": "C:/sandbox/selftest/result.json", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/selftest_ok.md", "content": "selftest outcome"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {
+            "files_written": ["C:/sandbox/out/selftest_ok.md"], "files_deleted": [],
+            "external_calls": ["shell_execute"]
+          },
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["自检结果存在"]
+        },
+        {
+          "case_id": "seed-selftest-result-missing",
+          "title": "自检结果缺失（失败路径等价）",
+          "intent_key": "selftest+run",
+          "bindings": {"result_file": "C:/sandbox/selftest/absent.json", "outcome": "C:/sandbox/out/selftest_absent.md"},
+          "fixtures": {},
+          "upstream": [
+            {"label": "shell_execute", "params": {"cmd": "python scripts/selftest.py"}},
+            {"label": "read_file", "params": {"path": "C:/sandbox/selftest/absent.json", "encoding": "utf-8"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "error_code": "str", "error": "str", "path": "str"},
+          "expected_side_effects": {"files_written": [], "files_deleted": [], "external_calls": ["shell_execute"]},
+          "expected_status": "error",
+          "destructive": false,
+          "branch_tags": ["自检结果缺失"]
+        },
+        {
+          "case_id": "seed-selftest-test-suite",
+          "title": "自检覆盖测试套件（含 test 语义）",
+          "intent_key": "selftest+run",
+          "bindings": {"result_file": "C:/sandbox/tests/selftest_result.json", "outcome": "C:/sandbox/out/selftest_suite.md"},
+          "fixtures": {"C:/sandbox/tests/selftest_result.json": "{\"passed\": 12}\n"},
+          "upstream": [
+            {"label": "shell_execute", "params": {"cmd": "python scripts/selftest.py"}},
+            {"label": "read_file", "params": {"path": "C:/sandbox/tests/selftest_result.json", "encoding": "utf-8"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/selftest_suite.md", "content": "selftest outcome"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {
+            "files_written": ["C:/sandbox/out/selftest_suite.md"], "files_deleted": [],
+            "external_calls": ["shell_execute"]
+          },
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["path contains test"]
+        }
+      ]
+    },
+    {
+      "capability_id": "cp.skill.testing-anti-patterns",
+      "display_name": "测试反模式检查",
+      "upstream_version": "1.0.0",
+      "provenance": {
+        "source": "skill_descriptor",
+        "ref": "cp.skill.testing-anti-patterns",
+        "note": "按‘检索测试目录 → 归纳反模式 → 写报告’手写；检索目标为沙箱内合成测试文件。"
+      },
+      "native_template": [
+        {"label": "list_dir", "params": {"path": "${tests_dir}"}},
+        {"label": "grep", "params": {"pattern": "assert True", "path": "${tests_dir}"}},
+        {"label": "write_file", "params": {"path": "${report}", "content": "anti-pattern findings"}}
+      ],
+      "cases": [
+        {
+          "case_id": "seed-antipatterns-found",
+          "title": "命中反模式",
+          "intent_key": "test+audit",
+          "bindings": {"tests_dir": "C:/sandbox/tests", "report": "C:/sandbox/out/anti.md"},
+          "fixtures": {"C:/sandbox/tests/test_a.py": "def test_a():\n    assert True\n",
+                       "C:/sandbox/tests/test_b.py": "def test_b():\n    assert 1 == 1\n"},
+          "upstream": [
+            {"label": "list_dir", "params": {"path": "C:/sandbox/tests"}},
+            {"label": "grep", "params": {"pattern": "assert True", "path": "C:/sandbox/tests"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/anti.md", "content": "anti-pattern findings"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/anti.md"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["path contains test"]
+        },
+        {
+          "case_id": "seed-antipatterns-clean",
+          "title": "无命中（干净目录）",
+          "intent_key": "test+audit",
+          "bindings": {"tests_dir": "C:/sandbox/specs", "report": "C:/sandbox/out/anti_clean.md"},
+          "fixtures": {"C:/sandbox/specs/spec_a.py": "def spec_a():\n    assert compute() == 2\n"},
+          "upstream": [
+            {"label": "list_dir", "params": {"path": "C:/sandbox/specs"}},
+            {"label": "grep", "params": {"pattern": "assert True", "path": "C:/sandbox/specs"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/anti_clean.md", "content": "anti-pattern findings"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/anti_clean.md"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["无命中"]
+        },
+        {
+          "case_id": "seed-antipatterns-empty-dir",
+          "title": "空测试目录（边界）",
+          "intent_key": "test+audit",
+          "bindings": {"tests_dir": "C:/sandbox/empty_tests", "report": "C:/sandbox/out/anti_empty.md"},
+          "fixtures": {"C:/sandbox/empty_tests/.keep": ""},
+          "upstream": [
+            {"label": "list_dir", "params": {"path": "C:/sandbox/empty_tests"}},
+            {"label": "grep", "params": {"pattern": "assert True", "path": "C:/sandbox/empty_tests"}},
+            {"label": "write_file", "params": {"path": "C:/sandbox/out/anti_empty.md", "content": "anti-pattern findings"}}
+          ],
+          "expected_output_schema": {"ok": "bool", "path": "str", "bytes": "number"},
+          "expected_side_effects": {"files_written": ["C:/sandbox/out/anti_empty.md"], "files_deleted": [], "external_calls": []},
+          "expected_status": "success",
+          "destructive": false,
+          "branch_tags": ["目录为空"]
+        }
+      ]
+    }
+  ]
+}

@@ -21,7 +21,10 @@
 - ``borrowed → mirrored``：条件 = **同类轨迹 ≥20 条**（清洗后）+ **模式可提取**
   （骨架非空且达到 `MIN_PATTERN_STEPS`）；验收物 = **副作用画像 + 候选模式**，
   两者缺一即拒（不静默推进）。
-- 其余边（``mirrored → shadow`` 等）由 S3-02 判定集 / S3-03 shadow 灰度门控；
+- ``mirrored → shadow``：**S3-02 验收门通行证**（§4.5 四条件齐）为 opt-in 放行
+  证据 —— 见 `acceptance_passport_ok()` 与 `ACCEPTANCE_PASSPORT_KEY` 的注释；
+  **无通行证时行为与 S3-01 逐字一致**（仍 `deferred_to_downstream`）。
+- 其余边（``shadow → internalized`` 等）由 S3-03 shadow 灰度门控；
   本模块返回 `deferred_to_downstream` 并如实记录，不越权推进。
 """
 
@@ -68,6 +71,16 @@ DOWNSTREAM_EDGES: Tuple[Tuple[str, str], ...] = (
     ("internalized", "native"), ("native", "permanent_borrowed"),
 )
 
+#: **S3-02 验收门通行证**的证据键（§3.3：``mirrored → shadow`` 的条件是
+#: "等价判定集通过 + 原生实现单元测试通过"）。S3-02 交付 `gate.acceptance_gate()`
+#: 后，"等价判定集通过"这一半有了**可审计的通行证资产**，故本模块为
+#: ``mirrored → shadow`` 开一条 **opt-in** 放行分支：
+#:
+#: - **有**合法通行证 ⇒ 放行（`VERDICT_APPLIED`）；
+#: - **无**通行证 ⇒ 行为与 S3-01 **逐字一致**（仍 `deferred_to_downstream`，
+#:   拒绝理由不变）——本扩展不改变任何既有调用方的结果。
+ACCEPTANCE_PASSPORT_KEY = "acceptance_passport"
+
 
 def digest_run_id(*, capability_id: str, from_stage: Optional[str],
                   to_stage: Optional[str], evidence: Dict[str, Any]) -> str:
@@ -110,6 +123,51 @@ def _scalar_view(evidence: Any, depth: int = 0) -> Any:
 # ════════════════════════════════════════════════════════════
 
 
+def acceptance_passport_ok(capability_id: str,
+                           evidence: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    """校验 S3-02 验收门通行证（**自洽性**校验，不依赖 S3-02 的门槛常量）
+
+    校验项（缺一即不放行，且理由逐条可读）：
+
+    1. 通行证存在且为 dict；
+    2. ``passed`` 为真；
+    3. ``capability_id`` 与本能力一致（防张冠李戴）；
+    4. 四条件**全部** passed（条件名/数量取自通行证自身，不写死 S3-02 常量）；
+    5. ``executed >= required_replays``（自洽：不许"用 3 条回放发的证"冒充 ≥20）；
+    6. ``case_set_version`` 为正（证指向某版判定集）。
+    """
+    passport = evidence.get(ACCEPTANCE_PASSPORT_KEY)
+    reasons: List[str] = []
+    if not isinstance(passport, dict) or not passport:
+        return False, ["缺少 acceptance_passport 证据（S3-02 验收门通行证）——"
+                       "mirrored→shadow 不放行"]
+    if not passport.get("passed"):
+        reasons.append("通行证 passed=False（验收门未通过）")
+    if str(passport.get("capability_id") or "") != str(capability_id or ""):
+        reasons.append(
+            f"通行证能力 {passport.get('capability_id')!r} 与目标 "
+            f"{capability_id!r} 不一致")
+    conditions = passport.get("conditions") or []
+    if not conditions:
+        reasons.append("通行证未附条件明细（conditions 为空）")
+    else:
+        failed = [str(c.get("name")) for c in conditions
+                  if not (isinstance(c, dict) and c.get("passed"))]
+        if failed:
+            reasons.append(f"通行证条件未全通过：{failed}")
+    executed = int(passport.get("executed") or 0)
+    required = int(passport.get("required_replays") or 0)
+    if required <= 0:
+        reasons.append("通行证缺少 required_replays（无法校验回放条数自洽）")
+    elif executed < required:
+        reasons.append(
+            f"通行证 executed={executed} < required_replays={required}"
+            f"（未达 §4.5 的 ≥20 条回放全过）")
+    if int(passport.get("case_set_version") or 0) <= 0:
+        reasons.append("通行证未指向有效的判定集版本（case_set_version）")
+    return (not reasons), reasons
+
+
 def evaluate_migration(*, capability_id: str, from_stage: Optional[str],
                        to_stage: str,
                        evidence: Dict[str, Any]) -> Tuple[str, List[str]]:
@@ -123,6 +181,19 @@ def evaluate_migration(*, capability_id: str, from_stage: Optional[str],
     if not capability_id:
         return VERDICT_NOT_FOUND, ["capability_id 为空"]
     edge = (from_stage, to_stage)
+
+    # ── S3-02 通行证：mirrored → shadow 的 opt-in 放行（见常量注释）──
+    # 仅当调用方**显式**带上通行证键时才走本分支；否则落到下面的
+    # `DOWNSTREAM_EDGES` 分支 —— 与 S3-01 的行为逐字一致（既有调用方零影响）。
+    if edge == ("mirrored", "shadow") and ACCEPTANCE_PASSPORT_KEY in evidence:
+        ok, passport_reasons = acceptance_passport_ok(capability_id, evidence)
+        if ok:
+            return VERDICT_APPLIED, [
+                f"等价判定集通过（§4.5 验收门通行证 "
+                f"{evidence.get(ACCEPTANCE_PASSPORT_KEY, {}).get('passport_id', '')}）"
+                f" ⇒ mirrored → shadow 放行"]
+        return VERDICT_INSUFFICIENT_EVIDENCE, passport_reasons + [
+            "（S3-02 验收门未通过或证据缺失 ⇒ 保持 mirrored，不静默推进）"]
 
     if edge in DOWNSTREAM_EDGES:
         return VERDICT_DEFERRED, [
@@ -623,7 +694,8 @@ def backfill_stages(
 
 __all__ = [
     "SEVEN_STATES", "MAIN_CHAIN", "SIDE_STATES", "DRIVEN_EDGES",
-    "DOWNSTREAM_EDGES",
+    "DOWNSTREAM_EDGES", "ACCEPTANCE_PASSPORT_KEY",
     "digest_run_id", "evaluate_migration", "recommended_stage",
     "stage_migrate", "first_entry_stage", "backfill_stages",
+    "acceptance_passport_ok",
 ]
