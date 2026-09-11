@@ -1,0 +1,107 @@
+{
+  "schema": "eval.baseline.v1",
+  "layer": "L2",
+  "solver": "reference",
+  "caseset_path": "C:\\Users\\Administrator\\agent\\.worktrees\\s502\\eval\\l2_core50\\cases.json",
+  "caseset_sha256": "c42870ea6d4514d22d9afa6fce7252c1b1187a3a3701b7530ad8e5d4a8e7a8d8",
+  "clock": "wall_clock(perf_counter)",
+  "recorded_at": "2026-09-12T01:12:39+0800",
+  "total": 50,
+  "assessed": 50,
+  "unassessed": 0,
+  "passed": 50,
+  "pass_rate": 1.0,
+  "counts": {
+    "pass": 50,
+    "fail": 0,
+    "error": 0,
+    "unassessed": 0
+  },
+  "by_scenario": {
+    "S1_fix_bug": {
+      "total": 20,
+      "assessed": 20,
+      "passed": 20,
+      "statuses": {
+        "pass": 20
+      },
+      "pass_rate": 1.0
+    },
+    "S2_codebase_qa": {
+      "total": 15,
+      "assessed": 15,
+      "passed": 15,
+      "statuses": {
+        "pass": 15
+      },
+      "pass_rate": 1.0
+    },
+    "S3_commit": {
+      "total": 15,
+      "assessed": 15,
+      "passed": 15,
+      "statuses": {
+        "pass": 15
+      },
+      "pass_rate": 1.0
+    }
+  },
+  "p99_wall_ms": 605.666,
+  "results": {
+    "L2-S1-01": "pass",
+    "L2-S1-02": "pass",
+    "L2-S1-03": "pass",
+    "L2-S1-04": "pass",
+    "L2-S1-05": "pass",
+    "L2-S1-06": "pass",
+    "L2-S1-07": "pass",
+    "L2-S1-08": "pass",
+    "L2-S1-09": "pass",
+    "L2-S1-10": "pass",
+    "L2-S1-11": "pass",
+    "L2-S1-12": "pass",
+    "L2-S1-13": "pass",
+    "L2-S1-14": "pass",
+    "L2-S1-15": "pass",
+    "L2-S1-16": "pass",
+    "L2-S1-17": "pass",
+    "L2-S1-18": "pass",
+    "L2-S1-19": "pass",
+    "L2-S1-20": "pass",
+    "L2-S2-01": "pass",
+    "L2-S2-02": "pass",
+    "L2-S2-03": "pass",
+    "L2-S2-04": "pass",
+    "L2-S2-05": "pass",
+    "L2-S2-06": "pass",
+    "L2-S2-07": "pass",
+    "L2-S2-08": "pass",
+    "L2-S2-09": "pass",
+    "L2-S2-10": "pass",
+    "L2-S2-11": "pass",
+    "L2-S2-12": "pass",
+    "L2-S2-13": "pass",
+    "L2-S2-14": "pass",
+    "L2-S2-15": "pass",
+    "L2-S3-01": "pass",
+    "L2-S3-02": "pass",
+    "L2-S3-03": "pass",
+    "L2-S3-04": "pass",
+    "L2-S3-05": "pass",
+    "L2-S3-06": "pass",
+    "L2-S3-07": "pass",
+    "L2-S3-08": "pass",
+    "L2-S3-09": "pass",
+    "L2-S3-10": "pass",
+    "L2-S3-11": "pass",
+    "L2-S3-12": "pass",
+    "L2-S3-13": "pass",
+    "L2-S3-14": "pass",
+    "L2-S3-15": "pass"
+  },
+  "mechanical_cases": 48,
+  "disclosures": [
+    "本次运行使用该层**参考解**：验证的是用例与判定器本身（参考解全过 + 变异解全负 = 判定器有区分度），**不代表任何模型能力**"
+  ],
+  "note": "判定器自检基线（solver=reference）：用于检出用例集/判定器漂移，不代表模型能力"
+}

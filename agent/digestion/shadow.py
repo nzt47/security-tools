@@ -261,15 +261,40 @@ def deterministic_sample(sample_ids: Iterable[str], size: int) -> List[str]:
     return ordered[:limit]
 
 
+def _cost_policy_factor(env: Optional[Dict[str, str]] = None) -> float:
+    """S5-03 成本刹车联动系数（**默认 1.0 = 无影响**）
+
+    断食/日熔断生效期返回 `CP_BUDGET_SHADOW_FACTOR_FASTING`（默认 0.0 = 归零，
+    可配 0.5 = 减半），用于 §4.5 每日预算的降本联动。
+
+    边界纪律：**任何异常、任何缺失都返回 1.0** —— 成本刹车是新增机制，
+    其故障不得让影子任务停摆（「新增机制失败不得阻断主流程」）。
+    """
+    try:
+        from agent.monitoring.cost_brake import shadow_budget_factor
+        return float(shadow_budget_factor(env=env))
+    except Exception as e:  # noqa: BLE001
+        logger.debug("成本刹车系数不可用（按 1.0 无影响处理）: %s", e)
+        return 1.0
+
+
 def daily_budget(daily_avg: float, *, ratio: float = SHADOW_BUDGET_RATIO,
                  cap: int = SHADOW_BUDGET_CAP,
-                 min_budget: int = SHADOW_MIN_BUDGET) -> int:
+                 min_budget: int = SHADOW_MIN_BUDGET,
+                 factor: Optional[float] = None) -> int:
     """每日预算 ``min(日均 × ratio, cap)``（§4.5；低流量保底 ``min_budget``）
 
     - ``日均 × ratio`` 取**下取整**（"不超"是硬要求）；
     - 结果为 0 且 ``日均 ≥ 1`` 且 ``min_budget > 0`` ⇒ 保底 ``min_budget``
       （T2 同源：否则低流量下 15% 永远抽不到样本）；
     - 上限 ``cap`` 优先于保底（"不超"仍是硬要求）。
+
+    Args:
+        factor: 成本刹车降本系数（S5-03 联动）。``None`` → 查询成本刹车
+            （未开启时恒为 1.0，即**零影响**）；``0.0`` 表示断食期**归零**、
+            ``0.5`` 表示减半。系数**在保底之后**生效，故 ``0.0`` 能真正归零
+            （否则低流量保底会把影子任务又放回来，与 §6.7「冻结非关键消化」相悖）。
+            ``0 < factor < 1`` 时下取整后不归零（至少保留 1 次，避免取整把影子任务关死）。
     """
     try:
         avg = max(0.0, float(daily_avg or 0.0))
@@ -286,7 +311,23 @@ def daily_budget(daily_avg: float, *, ratio: float = SHADOW_BUDGET_RATIO,
     planned = int(avg * rate)
     if planned == 0 and avg >= 1.0 and int(min_budget) > 0:
         planned = int(min_budget)
-    return max(0, min(planned, ceiling))
+    budget = max(0, min(planned, ceiling))
+
+    coeff = _cost_policy_factor() if factor is None else factor
+    try:
+        coeff_value = float(coeff)
+    except (TypeError, ValueError):
+        logger.warning("成本刹车系数 %r 非法，按 1.0 处理", coeff)
+        coeff_value = 1.0
+    if not (0.0 <= coeff_value <= 1.0):
+        logger.warning("成本刹车系数 %s 越界（须 0..1），按 1.0 处理", coeff_value)
+        coeff_value = 1.0
+    if coeff_value == 1.0:
+        return budget
+    scaled = int(budget * coeff_value)          # 下取整（"不超"是硬要求）
+    if coeff_value > 0.0 and budget > 0 and scaled == 0:
+        scaled = 1                              # 系数>0 ⇒ 不因取整关死影子任务
+    return max(0, min(scaled, ceiling))
 
 
 # ════════════════════════════════════════════════════════════
@@ -1004,6 +1045,9 @@ class ShadowPlan:
     gray: Dict[str, Any] = field(default_factory=dict)
     gray_routed: List[str] = field(default_factory=list)
     skipped_reason: str = ""
+    #: S5-03 成本刹车降本系数（1.0 = 无影响；0.0 = 断食/熔断期归零）
+    #: 记录它是为了让「为什么今天预算是 0」可解释（§1.5⑥ 不可做不可见之事）
+    cost_factor: float = 1.0
 
     def to_dict(self) -> Dict[str, Any]:
         return {"capability_id": self.capability_id, "enabled": self.enabled,
@@ -1013,7 +1057,9 @@ class ShadowPlan:
                 "sampled": len(self.sampled), "sampled_ids": list(self.sampled),
                 "gray": dict(self.gray), "gray_routed": list(self.gray_routed),
                 "skipped_reason": self.skipped_reason,
-                "formula": "min(日均 × ratio, cap)（低流量保底 min_budget）"}
+                "cost_factor": self.cost_factor,
+                "formula": ("min(日均 × ratio, cap)（低流量保底 min_budget）"
+                            "× cost_factor（S5-03 成本刹车降本系数，1.0=无影响）")}
 
 
 @dataclass
@@ -1522,8 +1568,10 @@ class ShadowRunner:
         enabled, reason = shadow_enabled(reason=True, env=self.env or None)
         avg = (float(daily_avg) if daily_avg is not None
                else self.ledger.daily_average(capability_id=capability_id))
+        # S5-03 成本刹车联动：断食/日熔断期预算系数（未开启时恒为 1.0 = 零影响）
+        factor = _cost_policy_factor(self.env or None)
         budget = daily_budget(avg, ratio=params["ratio"], cap=params["cap"],
-                              min_budget=params["min_budget"])
+                              min_budget=params["min_budget"], factor=factor)
         universe = sorted({str(s) for s in (sample_ids or [])})
         sampled = deterministic_sample(universe, budget)
         gray = resolve_gray_policy(shadow_config=shadow_config,
@@ -1534,7 +1582,8 @@ class ShadowRunner:
                           enabled_reason=reason, budget=budget, daily_avg=round(avg, 4),
                           ratio=params["ratio"], cap=params["cap"],
                           min_budget=params["min_budget"], universe=universe,
-                          sampled=sampled, gray=gray, gray_routed=routed)
+                          sampled=sampled, gray=gray, gray_routed=routed,
+                          cost_factor=float(factor))
 
     # ── 执行 ────────────────────────────────────────────────
 

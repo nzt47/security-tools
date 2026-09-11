@@ -5,3 +5,9 @@
 # 这是 Windows 开发者编辑 .sh 文件时的常见陷阱。
 # 强制 .sh 文件在 git 仓库中以 LF 存储,CI/Linux checkout 后直接可用。
 *.sh text eol=lf
+
+# 【不易】S5-02 评测锚与分层数据（eval/）是**哈希锚定对象**：必须跨平台逐字节一致。
+# core.autocrlf=true 的机器上，若允许 EOL 转换，参考解/用例集在 Windows(CRLF) 与
+# Linux(LF) 的字节不同，会让"锚完整性校验"在本地与 CI 之间产生假阳性
+# （fail-closed 会直接拒绝评测）。故显式声明 LF。
+eval/** text eol=lf

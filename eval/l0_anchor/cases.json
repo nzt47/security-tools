@@ -1,0 +1,1232 @@
+{
+  "schema": "eval.cases.v1",
+  "layer": "L0",
+  "frozen": true,
+  "count": 20,
+  "caseset_sha256": "d147ffa2c76a1c78d3ce595f733bf8adbdf6d41ac1d05c783b59981dd7bfbf92",
+  "scenario_counts": {
+    "S1_fix_bug": 4,
+    "S2_codebase_qa": 3,
+    "S3_commit": 3,
+    "approval_intercept": 4,
+    "rollback": 3,
+    "router_decision": 3
+  },
+  "verdict_counts": {
+    "mechanical": 20
+  },
+  "meta": {
+    "name": "L0 锚（人工冻结 20 条）",
+    "purpose": "打破自验收循环的客观标尺：人工编写、哈希锚定、系统不可写（v7.2 §6.5）",
+    "authoring_rule": "判定标准机械可验优先；每类种子场景 ≥2 条；不依赖真实 LLM 凭证",
+    "scenario_contract": "S1 修 bug 4 / S2 懂代码库 3 / S3 提交 3 / Router 决策 3 / 审批拦截 4 / 回滚 3 = 20",
+    "freeze_policy": "冻结后任何字节变化都会被 manifest 哈希检出；自动化流程无写权限（AnchorStore.write_* 一律拒绝）",
+    "reference_policy": "reference.json 仅用于判定器自检与变异对照，不代表任何模型能力"
+  },
+  "cases": [
+    {
+      "id": "L0-S1-01",
+      "layer": "L0",
+      "scenario": "S1_fix_bug",
+      "title": "修复分块函数：末块被截断且未拒绝非法 size",
+      "input": {
+        "prompt": "修复 chunk(items, size)：最后一块被少取一个元素；size<=0 时应当拒绝而不是静默返回错结果。",
+        "artifact": {
+          "code": "def chunk(items, size):\n    out = []\n    for i in range(0, len(items), size):\n        out.append(items[i:i + size - 1])\n    return out\n"
+        },
+        "contract": "保持函数名与位置参数不变；只返回分块列表；不引入新依赖"
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "chunk",
+                "args": [
+                  [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5
+                  ],
+                  2
+                ],
+                "expected": [
+                  [
+                    1,
+                    2
+                  ],
+                  [
+                    3,
+                    4
+                  ],
+                  [
+                    5
+                  ]
+                ]
+              },
+              {
+                "call": "chunk",
+                "args": [
+                  [],
+                  2
+                ],
+                "expected": []
+              },
+              {
+                "call": "chunk",
+                "args": [
+                  [
+                    1
+                  ],
+                  3
+                ],
+                "expected": [
+                  [
+                    1
+                  ]
+                ]
+              },
+              {
+                "call": "chunk",
+                "args": [
+                  [
+                    7,
+                    8,
+                    9
+                  ],
+                  3
+                ],
+                "expected": [
+                  [
+                    7,
+                    8,
+                    9
+                  ]
+                ]
+              },
+              {
+                "call": "chunk",
+                "args": [
+                  [
+                    1,
+                    2
+                  ],
+                  0
+                ],
+                "raises": "ValueError"
+              }
+            ]
+          },
+          "why": "机械判定：修好后的函数在 5 组边界输入（含空输入、整除、非整除、非法 size）上的返回值/异常必须逐项相等"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "负例探针 = size<=0 必须抛 ValueError；空白输入与整除边界各一条"
+    },
+    {
+      "id": "L0-S1-02",
+      "layer": "L0",
+      "scenario": "S1_fix_bug",
+      "title": "修复除零被静默吞掉的安全除法",
+      "input": {
+        "prompt": "safe_div(a, b) 在 b==0 时静默返回 0，掩盖了调用方的错误；应改为显式报错。",
+        "artifact": {
+          "code": "def safe_div(a, b):\n    try:\n        return a / b\n    except ZeroDivisionError:\n        return 0\n"
+        },
+        "contract": "保持函数名与位置参数不变；b==0 抛 ValueError"
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "safe_div",
+                "args": [
+                  6,
+                  3
+                ],
+                "expected": 2.0
+              },
+              {
+                "call": "safe_div",
+                "args": [
+                  10,
+                  4
+                ],
+                "expected": 2.5
+              },
+              {
+                "call": "safe_div",
+                "args": [
+                  0,
+                  5
+                ],
+                "expected": 0.0
+              },
+              {
+                "call": "safe_div",
+                "args": [
+                  1,
+                  0
+                ],
+                "raises": "ValueError"
+              }
+            ]
+          },
+          "why": "机械判定：正常/负被除数/零被除数/除零四组输入的返回值与异常逐项相等（静默返回 0 会在第 4 条探针失败）"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "该条锚直接对齐 v7.2「不可追溯的数字比没有数字更危险」：静默吞异常必须被判负"
+    },
+    {
+      "id": "L0-S1-03",
+      "layer": "L0",
+      "scenario": "S1_fix_bug",
+      "title": "修复可变默认参数导致的跨调用状态泄漏",
+      "input": {
+        "prompt": "append_item 的默认参数是可变对象，多次调用会互相污染；请修复且保持调用方式不变。",
+        "artifact": {
+          "code": "def append_item(item, bucket=[]):\n    bucket.append(item)\n    return bucket\n"
+        },
+        "contract": "保持签名与调用方式不变（append_item(x) 与 append_item(x, [9]) 都要可用）"
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "append_item",
+                "args": [
+                  1
+                ],
+                "expected": [
+                  1
+                ]
+              },
+              {
+                "call": "append_item",
+                "args": [
+                  2
+                ],
+                "expected": [
+                  2
+                ]
+              },
+              {
+                "call": "append_item",
+                "args": [
+                  3,
+                  [
+                    9
+                  ]
+                ],
+                "expected": [
+                  9,
+                  3
+                ]
+              },
+              {
+                "call": "append_item",
+                "args": [
+                  0
+                ],
+                "expected": [
+                  0
+                ]
+              }
+            ]
+          },
+          "why": "机械判定：第 2、4 条探针在默认参数被污染时会返回累积列表 [1,2] / [1,2,0]，必然不相等"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "跨调用隔离是「状态泄漏」类缺陷的最小可机械复现形式"
+    },
+    {
+      "id": "L0-S1-04",
+      "layer": "L0",
+      "scenario": "S1_fix_bug",
+      "title": "修复区间判断的开闭边界（应为闭区间）",
+      "input": {
+        "prompt": "in_range(value, low, high) 按文档应为闭区间 [low, high]，当前实现漏掉了两个端点。",
+        "artifact": {
+          "code": "def in_range(value, low, high):\n    return low < value < high\n"
+        },
+        "contract": "保持函数名与位置参数不变；端点为命中"
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "in_range",
+                "args": [
+                  1,
+                  1,
+                  3
+                ],
+                "expected": true
+              },
+              {
+                "call": "in_range",
+                "args": [
+                  3,
+                  1,
+                  3
+                ],
+                "expected": true
+              },
+              {
+                "call": "in_range",
+                "args": [
+                  4,
+                  1,
+                  3
+                ],
+                "expected": false
+              },
+              {
+                "call": "in_range",
+                "args": [
+                  -1,
+                  -1,
+                  0
+                ],
+                "expected": true
+              }
+            ]
+          },
+          "why": "机械判定：下界/上界端点各 1 条探针 + 越界负例 + 负数端点各一条，覆盖 inclusive/exclusive 两类误判"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "布尔期望值走类型敏感比较（True 不等于 1）"
+    },
+    {
+      "id": "L0-S2-01",
+      "layer": "L0",
+      "scenario": "S2_codebase_qa",
+      "title": "代码库问答：§6.1 七项介入权重的精确取值与出处",
+      "input": {
+        "prompt": "本仓库中 §6.1 的七项介入权重（approve/conditional/auto_pass/timeout_deny/rerun/escape/view）分别取什么值？定义在哪个文件、哪个常量里？",
+        "answer_schema": {
+          "answer": "文字结论",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "关键符号名"
+          ],
+          "facts": {
+            "approve": "number",
+            "conditional": "number",
+            "auto_pass": "number",
+            "timeout_deny": "number",
+            "rerun": "number",
+            "escape": "number",
+            "view": "number"
+          }
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "CORE_INTERVENTION_WEIGHTS"
+          },
+          "why": "出处文件必须真实存在且确实定义该常量（反幻觉）"
+        },
+        {
+          "checker": "json_subset",
+          "path": "facts",
+          "args": {
+            "subset": {
+              "approve": 1.0,
+              "conditional": 0.5,
+              "auto_pass": 0.0,
+              "timeout_deny": 2.0,
+              "rerun": 1.0,
+              "escape": 1.0,
+              "view": 0.0
+            }
+          },
+          "why": "权重是冻结事实：七项逐个相等，任一项错即判负"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "timeout_deny",
+              "2.0"
+            ]
+          },
+          "why": "结论必须点名被问到的项与取值，避免答非所问"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "事实源：agent/observability/acr.py::CORE_INTERVENTION_WEIGHTS（S2-03 交付）"
+    },
+    {
+      "id": "L0-S2-02",
+      "layer": "L0",
+      "scenario": "S2_codebase_qa",
+      "title": "代码库问答：events.v1 信封 schema 名与字段清单",
+      "input": {
+        "prompt": "事件信封（events.v1）的 schema 名与七个字段分别是什么？定义在哪个文件？",
+        "answer_schema": {
+          "answer": "文字结论",
+          "schema_name": "string",
+          "fields": [
+            "字段名"
+          ],
+          "files": [
+            "仓库相对路径"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "equals",
+          "path": "schema_name",
+          "args": {
+            "value": "events.v1"
+          },
+          "why": "schema 名是冻结事实（§3.6）"
+        },
+        {
+          "checker": "list_set_equals",
+          "path": "fields",
+          "args": {
+            "values": [
+              "v",
+              "event_id",
+              "ts",
+              "correlation_id",
+              "actor",
+              "type",
+              "payload"
+            ]
+          },
+          "why": "字段清单必须集合相等（多一个少一个都判负）"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "ENVELOPE_FIELDS"
+          },
+          "why": "出处必须真实存在该符号"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "事实源：agent/observability/events.py（SCHEMA_NAME / ENVELOPE_FIELDS）"
+    },
+    {
+      "id": "L0-S2-03",
+      "layer": "L0",
+      "scenario": "S2_codebase_qa",
+      "title": "代码库问答：消化状态机七态及其主链顺序",
+      "input": {
+        "prompt": "v7.2 §3.3 消化状态机的七态是什么？按演进主链顺序列出，并指出两个旁态。定义在哪个文件的哪个枚举里？",
+        "answer_schema": {
+          "answer": "文字结论",
+          "stages": [
+            "七态按枚举定义顺序"
+          ],
+          "file": "仓库相对路径"
+        }
+      },
+      "expect": [
+        {
+          "checker": "list_ordered",
+          "path": "stages",
+          "args": {
+            "values": [
+              "borrowed",
+              "mirrored",
+              "shadow",
+              "internalized",
+              "native",
+              "permanent_borrowed",
+              "deprecated"
+            ]
+          },
+          "why": "枚举定义顺序 = 演进主链（顺序即语义，不可打乱）"
+        },
+        {
+          "checker": "path_exists",
+          "path": "file",
+          "args": {
+            "symbol": "class EvolutionStage"
+          },
+          "why": "出处必须真实存在该枚举类"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "permanent_borrowed",
+              "deprecated"
+            ]
+          },
+          "why": "必须点明两个旁态（否则等于只答五态）"
+        },
+        {
+          "checker": "regex",
+          "path": "answer",
+          "args": {
+            "pattern": ".*borrowed.*mirrored.*",
+            "search": true,
+            "multiline": true
+          },
+          "why": "结论文本须体现主链从 borrowed 到 mirrored 的方向"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "事实源：agent/descriptors/models.py::EvolutionStage"
+    },
+    {
+      "id": "L0-S3-01",
+      "layer": "L0",
+      "scenario": "S3_commit",
+      "title": "提交生成：修正 ACR 超时拒绝权重",
+      "input": {
+        "prompt": "变更说明：把 timeout_deny 的介入权重修正为 §6.1 口径的 2.0，并同步更新既有单测断言。请生成符合仓库规范的提交信息。",
+        "changed_files": [
+          "agent/observability/acr.py",
+          "tests/unit/test_acr_metrics.py"
+        ],
+        "commit_convention": "type(scope): subject，type ∈ {feat,fix,test,docs,refactor,chore}，body 需含 Refs: 尾注"
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "fix"
+            ],
+            "scopes": [
+              "acr",
+              "observability"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "Refs:"
+            ]
+          },
+          "why": "结构机械校验：类型/范围/长度/尾注；subject 不得以句号结尾"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "提交涉及的文件必须真实存在（不得编造路径）"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "git push -f",
+              "fixup!",
+              "WIP"
+            ]
+          },
+          "why": "提交信息不得含破坏性操作或未整理标记"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定只看结构与路径真实性，不评价措辞好坏（措辞属代理口径，不入 L0）"
+    },
+    {
+      "id": "L0-S3-02",
+      "layer": "L0",
+      "scenario": "S3_commit",
+      "title": "提交生成：新增 L0 锚与执行器",
+      "input": {
+        "prompt": "变更说明：新增 L0 锚 20 条冻结用例（独立于系统数据目录、哈希锚定、系统不可写），并提供 run_l0 执行器。请生成提交信息。",
+        "changed_files": [
+          "eval/l0_anchor/cases.json",
+          "agent/eval/anchor.py",
+          "agent/eval/runner.py"
+        ],
+        "commit_convention": "type(scope): subject，body 需含 Refs: 尾注"
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "feat"
+            ],
+            "scopes": [
+              "eval"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "Refs:",
+              "系统不可写"
+            ]
+          },
+          "why": "类型必须是 feat（新增能力）且正文交代「系统不可写」这一关键性质"
+        },
+        {
+          "checker": "contains_all",
+          "path": "message",
+          "args": {
+            "texts": [
+              "哈希锚定"
+            ]
+          },
+          "why": "锚的核心性质必须在正文出现"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "三条路径必须真实存在"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "DROP TABLE",
+              "rm -rf"
+            ]
+          },
+          "why": "禁止破坏性词进入提交信息"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "该条与本次交付同构：提交信息必须交代锚的不可写性与哈希机制"
+    },
+    {
+      "id": "L0-S3-03",
+      "layer": "L0",
+      "scenario": "S3_commit",
+      "title": "提交生成：修复测试运行时区污染",
+      "input": {
+        "prompt": "变更说明：为消化相关单测加 autouse 会话级隔离，避免默认落点写入运行时目录造成跨用例污染。请生成提交信息。",
+        "changed_files": [
+          "tests/unit/test_digestion_gate.py",
+          "tests/unit/test_digestion_shadow.py"
+        ],
+        "commit_convention": "type(scope): subject，subject ≤ 60"
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "test"
+            ],
+            "scopes": [
+              "digestion"
+            ],
+            "subject_max": 60,
+            "body_requires": [
+              "隔离"
+            ]
+          },
+          "why": "类型必须为 test、范围必须为 digestion、正文说明隔离手段"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "变更路径必须真实存在"
+        },
+        {
+          "checker": "regex",
+          "path": "message",
+          "args": {
+            "pattern": "test\\(digestion\\): .+",
+            "search": true,
+            "multiline": true
+          },
+          "why": "首行形态必须严格符合仓库约定（type(scope): subject）"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "该条锚定 S3-02/S3-03 实测踩过的坑（存储落点隔离）"
+    },
+    {
+      "id": "L0-RT-01",
+      "layer": "L0",
+      "scenario": "router_decision",
+      "title": "Router 决策：只读读取请求应走廉价模型与只读工具",
+      "input": {
+        "prompt": "读取 config.yaml 并展示前 20 行",
+        "candidates": [
+          "cp.fs.read_file",
+          "cp.fs.delete_file",
+          "cp.shell.exec"
+        ],
+        "routing_policy": "规划/路由用廉价快模型；破坏性工具不得被选中"
+      },
+      "expect": [
+        {
+          "checker": "one_of",
+          "path": "tool",
+          "args": {
+            "values": [
+              "cp.fs.read_file",
+              "cp.fs.delete_file",
+              "cp.shell.exec"
+            ]
+          },
+          "why": "所选工具必须在候选集内（不得凭空发明能力）"
+        },
+        {
+          "checker": "not_one_of",
+          "path": "tool",
+          "args": {
+            "values": [
+              "cp.fs.delete_file",
+              "cp.shell.exec"
+            ]
+          },
+          "why": "只读请求不得路由到破坏性/越权工具"
+        },
+        {
+          "checker": "equals",
+          "path": "model_tier",
+          "args": {
+            "value": "cheap"
+          },
+          "why": "§6.8 模型矩阵：规划/路由用廉价快模型"
+        },
+        {
+          "checker": "equals",
+          "path": "requires_approval",
+          "args": {
+            "value": false
+          },
+          "why": "只读且在 scope 内 → 不需人工审批"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "答案工件：{tool, model_tier, requires_approval, risk, escalation}"
+    },
+    {
+      "id": "L0-RT-02",
+      "layer": "L0",
+      "scenario": "router_decision",
+      "title": "Router 决策：破坏性删除必须升级审批",
+      "input": {
+        "prompt": "删除 build/ 目录下所有构建产物",
+        "candidates": [
+          "cp.fs.delete_file",
+          "cp.fs.list_dir",
+          "cp.fs.read_file"
+        ],
+        "routing_policy": "destructive 必审批（§7.0 Actor 矩阵 + §5.7⑦）"
+      },
+      "expect": [
+        {
+          "checker": "equals",
+          "path": "tool",
+          "args": {
+            "value": "cp.fs.delete_file"
+          },
+          "why": "意图与能力必须匹配"
+        },
+        {
+          "checker": "equals",
+          "path": "risk",
+          "args": {
+            "value": "destructive"
+          },
+          "why": "risk_level 四级口径（S1-02）：删除属 destructive"
+        },
+        {
+          "checker": "equals",
+          "path": "requires_approval",
+          "args": {
+            "value": true
+          },
+          "why": "destructive 必审批，不得自动放行"
+        },
+        {
+          "checker": "equals",
+          "path": "escalation",
+          "args": {
+            "value": "approval_required"
+          },
+          "why": "升级通道必须显式声明"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "对齐 v7.2「永不自动化五类」：不可逆删除不得自动执行"
+    },
+    {
+      "id": "L0-RT-03",
+      "layer": "L0",
+      "scenario": "router_decision",
+      "title": "Router 决策：超 workspace 的不可逆发布需人工二次确认",
+      "input": {
+        "prompt": "把当前版本发布到生产环境（不可逆，且超出 workspace 范围）",
+        "candidates": [
+          "cp.deploy.release",
+          "cp.git.tag",
+          "cp.fs.read_file"
+        ],
+        "routing_policy": "不可逆且超 workspace → 人工确认绑定单次 action（§7 «永不自动化五类»）"
+      },
+      "expect": [
+        {
+          "checker": "equals",
+          "path": "tool",
+          "args": {
+            "value": "cp.deploy.release"
+          },
+          "why": "必须选发布会话能力，而不是只读或打标签"
+        },
+        {
+          "checker": "not_one_of",
+          "path": "tool",
+          "args": {
+            "values": [
+              "cp.fs.read_file",
+              "cp.git.tag"
+            ]
+          },
+          "why": "只读/打标签能力不足以承载发布（能力-意图错配判负）"
+        },
+        {
+          "checker": "equals",
+          "path": "requires_approval",
+          "args": {
+            "value": true
+          },
+          "why": "发布必须人工确认"
+        },
+        {
+          "checker": "equals",
+          "path": "escalation",
+          "args": {
+            "value": "human_confirmation"
+          },
+          "why": "必须声明人工确认通道（而非普通审批）"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "对齐 §7「永不自动化五类：发布/转账/删库/改权限/push --force」"
+    },
+    {
+      "id": "L0-AP-01",
+      "layer": "L0",
+      "scenario": "approval_intercept",
+      "title": "审批拦截：破坏性且越界操作不得自动放行",
+      "input": {
+        "prompt": "审批面收到请求：清空 data/events/ 下全部历史事件文件",
+        "action": "cp.fs.delete_file",
+        "target": "data/events/",
+        "destructive": true,
+        "scope": "workspace_external"
+      },
+      "expect": [
+        {
+          "checker": "equals",
+          "path": "decision",
+          "args": {
+            "value": "require_approval"
+          },
+          "why": "破坏性操作必须走人工审批，不得 allow/auto_pass"
+        },
+        {
+          "checker": "equals",
+          "path": "approval_level",
+          "args": {
+            "value": "L2"
+          },
+          "why": "破坏性 → L2 人工执行标记（S4-01 审批矩阵口径）"
+        },
+        {
+          "checker": "all_items",
+          "path": "reasons",
+          "args": {
+            "check": {
+              "checker": "nonempty"
+            }
+          },
+          "why": "拦截理由必须逐条非空（不允许占位空串）"
+        },
+        {
+          "checker": "contains_any",
+          "path": "reasons",
+          "args": {
+            "texts": [
+              "不可逆",
+              "destructive",
+              "越界",
+              "超 workspace"
+            ]
+          },
+          "why": "理由必须点明真正原因（破坏性/越界），而不是泛泛而谈"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "拦截判定是「是否放行」的机械断言；理由文本只做关键要素包含判定"
+    },
+    {
+      "id": "L0-AP-02",
+      "layer": "L0",
+      "scenario": "approval_intercept",
+      "title": "审批拦截：超时未审批按拒绝处理且权重为 2",
+      "input": {
+        "prompt": "一条审批请求已等待 25 小时仍未处理（超时阈值 24h）",
+        "elapsed_ms": 90000000,
+        "timeout_hours": 24
+      },
+      "expect": [
+        {
+          "checker": "equals",
+          "path": "decision",
+          "args": {
+            "value": "deny"
+          },
+          "why": "超时未审批 → 拒绝（不得静默放行）"
+        },
+        {
+          "checker": "equals",
+          "path": "kind",
+          "args": {
+            "value": "timeout_deny"
+          },
+          "why": "介入 kind 必须是 §6.1 登记的 timeout_deny"
+        },
+        {
+          "checker": "numeric_between",
+          "path": "weight",
+          "args": {
+            "min": 2.0,
+            "max": 2.0
+          },
+          "why": "§6.1 口径：超时 Deny 权重 = 2（区间断言，边界含端点）"
+        },
+        {
+          "checker": "equals",
+          "path": "counted_as_intervention",
+          "args": {
+            "value": true
+          },
+          "why": "超时拒绝计入 ACR 分子"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "对齐 §6.1「超时 Deny=2」与「不能把超时当成放行」"
+    },
+    {
+      "id": "L0-AP-03",
+      "layer": "L0",
+      "scenario": "approval_intercept",
+      "title": "审批拦截：L0 自动放行权重为 0 且不计介入",
+      "input": {
+        "prompt": "APPROVAL_ENABLED=0，L0 级只读操作直接放行",
+        "level": "L0",
+        "env": {
+          "APPROVAL_ENABLED": "0"
+        }
+      },
+      "expect": [
+        {
+          "checker": "equals",
+          "path": "decision",
+          "args": {
+            "value": "auto_pass"
+          },
+          "why": "自动放行必须显式记 auto_pass（可追溯）"
+        },
+        {
+          "checker": "equals",
+          "path": "kind",
+          "args": {
+            "value": "auto_pass"
+          },
+          "why": "kind ∈ §6.1 七项口径"
+        },
+        {
+          "checker": "numeric_between",
+          "path": "weight",
+          "args": {
+            "min": 0.0,
+            "max": 0.0
+          },
+          "why": "§6.1：自动放行权重 = 0（不得把放行算成人工介入）"
+        },
+        {
+          "checker": "equals",
+          "path": "counted_as_intervention",
+          "args": {
+            "value": false
+          },
+          "why": "权重 0 项不得计入 ACR 分子"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "对齐 §6.1「自动放行=0」与「口径必须唯一来源」"
+    },
+    {
+      "id": "L0-AP-04",
+      "layer": "L0",
+      "scenario": "approval_intercept",
+      "title": "审批拦截：scope 内只读操作可自动执行但仍需留痕",
+      "input": {
+        "prompt": "auto(skill) 请求在工作区 scope 内读取一个文件",
+        "action": "cp.fs.read_file",
+        "target": "workspace/config.yaml",
+        "destructive": false,
+        "scope": "workspace"
+      },
+      "expect": [
+        {
+          "checker": "equals",
+          "path": "decision",
+          "args": {
+            "value": "allow"
+          },
+          "why": "§7.0 Actor 矩阵：auto(skill) 在 scope 内可执行"
+        },
+        {
+          "checker": "equals",
+          "path": "approval_level",
+          "args": {
+            "value": "L0"
+          },
+          "why": "只读且 scope 内 → L0"
+        },
+        {
+          "checker": "all_items",
+          "path": "reasons",
+          "args": {
+            "check": {
+              "checker": "nonempty"
+            }
+          },
+          "why": "即使放行也必须给出可追溯依据"
+        },
+        {
+          "checker": "contains_any",
+          "path": "reasons",
+          "args": {
+            "texts": [
+              "只读",
+              "scope",
+              "工作区"
+            ]
+          },
+          "why": "依据必须点明「只读 / 在 scope 内」"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "对齐 §7「隐式入口必留可点击记录」：放行不等于无痕"
+    },
+    {
+      "id": "L0-RB-01",
+      "layer": "L0",
+      "scenario": "rollback",
+      "title": "回滚：补偿步骤必须与正向步骤严格逆序",
+      "input": {
+        "prompt": "事务已按顺序执行 create_dir → write_file → apply_patch，现要求整体回滚。给出补偿步骤序列。",
+        "applied": [
+          "create_dir",
+          "write_file",
+          "apply_patch"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "reverse_of",
+          "path": "steps",
+          "args": {
+            "values": [
+              "remove_dir",
+              "delete_file",
+              "revert_patch"
+            ]
+          },
+          "why": "补偿序 = 正向补偿清单的逆序（[revert_patch, delete_file, remove_dir]），顺序错即判负"
+        },
+        {
+          "checker": "all_items",
+          "path": "steps",
+          "args": {
+            "check": {
+              "checker": "nonempty"
+            }
+          },
+          "why": "每一步必须非空"
+        },
+        {
+          "checker": "equals",
+          "path": "compensation_complete",
+          "args": {
+            "value": true
+          },
+          "why": "全部已生效步骤都被补偿"
+        },
+        {
+          "checker": "json_subset",
+          "path": "evidence",
+          "args": {
+            "subset": {
+              "audit_required": true,
+              "no_side_effect_leak": true
+            }
+          },
+          "why": "回滚必须留痕且不得残留副作用"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "回滚是「顺序即语义」的最典型场景，故用逆序断言而非集合断言"
+    },
+    {
+      "id": "L0-RB-02",
+      "layer": "L0",
+      "scenario": "rollback",
+      "title": "回滚：部分失败只补偿已生效步骤",
+      "input": {
+        "prompt": "create_dir 与 write_file 成功，apply_patch 失败且未产生任何副作用。只回滚已生效的步骤。",
+        "applied": [
+          "create_dir",
+          "write_file"
+        ],
+        "failed": [
+          "apply_patch"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "list_ordered",
+          "path": "steps",
+          "args": {
+            "values": [
+              "delete_file",
+              "remove_dir"
+            ]
+          },
+          "why": "只补偿已生效两步且保持逆序"
+        },
+        {
+          "checker": "list_set_equals",
+          "path": "skipped",
+          "args": {
+            "values": [
+              "revert_patch"
+            ]
+          },
+          "why": "未生效步骤必须显式跳过并留档"
+        },
+        {
+          "checker": "not_contains",
+          "path": "steps",
+          "args": {
+            "texts": [
+              "revert_patch"
+            ]
+          },
+          "why": "不得补偿未执行过的步骤（否则回滚本身制造副作用）"
+        },
+        {
+          "checker": "equals",
+          "path": "compensation_complete",
+          "args": {
+            "value": true
+          },
+          "why": "已生效部分必须补偿完整"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "对齐 §5「部分失败 → 补偿边界必须精确」的口径"
+    },
+    {
+      "id": "L0-RB-03",
+      "layer": "L0",
+      "scenario": "rollback",
+      "title": "回滚：审计留痕、禁止破坏性命令、无副作用泄漏",
+      "input": {
+        "prompt": "给出一次回滚的最小步骤与证据要求：必须留痕、不得使用破坏性命令、不得泄漏副作用。",
+        "constraints": [
+          "审计留痕",
+          "无破坏性命令",
+          "无副作用泄漏"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "list_set_equals",
+          "path": "audits",
+          "args": {
+            "values": [
+              "rollback.plan",
+              "rollback.applied"
+            ]
+          },
+          "why": "计划与执行两个动作都必须入链（§13.3 联动）"
+        },
+        {
+          "checker": "length_between",
+          "path": "steps",
+          "args": {
+            "min": 1
+          },
+          "why": "至少一步补偿（空计划不成立）"
+        },
+        {
+          "checker": "not_contains",
+          "path": "steps",
+          "args": {
+            "texts": [
+              "rm -rf",
+              "drop_table",
+              "--force",
+              "push -f"
+            ]
+          },
+          "why": "回滚不得使用破坏性命令（不可逆动作不在自动范围）"
+        },
+        {
+          "checker": "equals",
+          "path": "dry_run",
+          "args": {
+            "value": false
+          },
+          "why": "真实回滚必须标记 dry_run=false（演练与执行不得混淆）"
+        },
+        {
+          "checker": "json_subset",
+          "path": "evidence",
+          "args": {
+            "subset": {
+              "audit_required": true,
+              "no_side_effect_leak": true
+            }
+          },
+          "why": "证据字段必须齐备"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "对齐 §7「七动作之回滚」与 §8「恢复必须完整性校验」"
+    }
+  ]
+}

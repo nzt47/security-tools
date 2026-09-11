@@ -1506,6 +1506,23 @@ def _audit(action: str, *, capability_id: str, payload: Dict[str, Any],
 # ════════════════════════════════════════════════════════════
 
 
+def cost_policy_restricted() -> Tuple[bool, str]:
+    """S5-03 成本刹车降本联动（默认 ``(False, "")`` = **不干预**）
+
+    断食/日熔断期间返回 ``(True, 原因)``，调度任务体据此**跳过本周期**
+    （§6.7：「错误预算耗尽 → 自动冻结非关键消化任务（停新 shadow/新内化，保执行）」）。
+
+    任何异常一律按「不抑制」处理：成本刹车是 S5-03 新增机制，
+    其自身故障**不得**让消化流水线停摆（新增机制失败不得阻断主流程）。
+    """
+    try:
+        from agent.monitoring.cost_brake import digestion_restricted
+        return digestion_restricted()
+    except Exception as e:  # noqa: BLE001
+        logger.debug("成本刹车状态不可用（按不抑制处理）: %s", e)
+        return False, ""
+
+
 def register_internalize_job(scheduler: Any = None, *,
                              engine: Optional[InternalizeEngine] = None,
                              enabled: Optional[bool] = None,
@@ -1535,6 +1552,12 @@ def register_internalize_job(scheduler: Any = None, *,
     box = engine or InternalizeEngine()
 
     def _tick() -> Dict[str, Any]:
+        # S5-03 成本刹车联动：断食/日熔断期冻结非关键消化任务（保执行，§6.7）
+        restricted, why = cost_policy_restricted()
+        if restricted:
+            logger.info("内化评估被成本刹车抑制（%s），本周期跳过", why)
+            return {"status": "suppressed", "reason": why,
+                    "source": "agent.monitoring.cost_brake"}
         try:
             ledger = box.ledger
             caps = sorted({str(row.get("capability_id") or "")

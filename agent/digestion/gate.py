@@ -1212,6 +1212,17 @@ def register_reprobe_job(
             return None
 
     def _tick() -> Dict[str, Any]:
+        # S5-03 成本刹车联动：断食/日熔断期冻结非关键重探（保执行，§6.7）
+        try:
+            from agent.monitoring.cost_brake import digestion_restricted
+            restricted, why = digestion_restricted()
+        except Exception as e:  # noqa: BLE001 新增机制故障不得阻断重探
+            logger.debug("成本刹车状态不可用（按不抑制处理）: %s", e)
+            restricted, why = False, ""
+        if restricted:
+            logger.info("漂移重探被成本刹车抑制（%s），本周期跳过", why)
+            return {"status": "suppressed", "reason": why,
+                    "source": "agent.monitoring.cost_brake"}
         try:
             reg = _registry()
             reports = [

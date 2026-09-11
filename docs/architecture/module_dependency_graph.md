@@ -129,8 +129,19 @@ flowchart LR
         agent_digestion_generation["agent.digestion.generation"]
         agent_digestion_internalize["agent.digestion.internalize"]
         agent_digestion_service["agent.digestion.service"]
-        agent_digestion_shadow["agent.digestion.shadow"]
+        agent_digestion_shadow["agent.digestion.shadow"]:::crosslayer
         agent_digestion_stage["agent.digestion.stage"]
+    end
+    subgraph eval [eval]
+        agent_eval["agent.eval"]
+        agent_eval_anchor["agent.eval.anchor"]
+        agent_eval_baseline["agent.eval.baseline"]
+        agent_eval_calibration["agent.eval.calibration"]
+        agent_eval_cases["agent.eval.cases"]
+        agent_eval_checkers["agent.eval.checkers"]
+        agent_eval_metrics["agent.eval.metrics"]
+        agent_eval_runner["agent.eval.runner"]
+        agent_eval_solvers["agent.eval.solvers"]
     end
     subgraph evolution [evolution]
         agent_evolution_injector["agent.evolution.injector"]:::crosslayer
@@ -238,13 +249,18 @@ flowchart LR
         agent_memory_context_assembler["agent.memory.context_assembler"]
         agent_memory_file_watcher["agent.memory.file_watcher"]
         agent_memory_filter["agent.memory.filter"]
+        agent_memory_forgetting["agent.memory.forgetting"]
         agent_memory_hotness_scorer["agent.memory.hotness_scorer"]
+        agent_memory_identity["agent.memory.identity"]
+        agent_memory_layered_store["agent.memory.layered_store"]
         agent_memory_long_term_memory["agent.memory.long_term_memory"]:::crosslayer
         agent_memory_markdown_syncer["agent.memory.markdown_syncer"]
         agent_memory_observability["agent.memory.observability"]
         agent_memory_reviewer["agent.memory.reviewer"]:::crosslayer
         agent_memory_router["agent.memory.router"]:::crosslayer
         agent_memory_short_term_memory["agent.memory.short_term_memory"]:::crosslayer
+        agent_memory_taxonomy["agent.memory.taxonomy"]
+        agent_memory_tenancy["agent.memory.tenancy"]
     end
     subgraph model_router [model_router]
         agent_model_router_adapters["agent.model_router.adapters"]:::crosslayer
@@ -260,6 +276,7 @@ flowchart LR
         agent_monitoring_business_metrics["agent.monitoring.business_metrics"]:::crosslayer
         agent_monitoring_chaos_injector["agent.monitoring.chaos_injector"]
         agent_monitoring_config_observability["agent.monitoring.config_observability"]
+        agent_monitoring_cost_brake["agent.monitoring.cost_brake"]:::crosslayer
         agent_monitoring_decorators["agent.monitoring.decorators"]
         agent_monitoring_error_reporter["agent.monitoring.error_reporter"]
         agent_monitoring_llm_monitor["agent.monitoring.llm_monitor"]:::crosslayer
@@ -886,6 +903,7 @@ flowchart LR
     agent_network --> agent_network_config_validator
     agent_network_observability -.-> agent_logging_utils
     agent_network_observability -.-> agent_monitoring_business_metrics
+    agent_digestion_shadow -.-> agent_monitoring_cost_brake
     agent_digestion_shadow -.-> agent_observability_events
     agent_digestion_shadow -.-> agent_audit_facade
     agent_digestion_shadow -.-> agent_model_router_adapters
@@ -912,6 +930,7 @@ flowchart LR
     agent_digestion_internalize -.-> agent_skills_mgmt_approval
     agent_digestion_internalize -.-> agent_observability_events
     agent_digestion_internalize -.-> agent_audit_facade
+    agent_digestion_internalize -.-> agent_monitoring_cost_brake
     agent_digestion_internalize -.-> agent_observability_trace_v2
     agent_digestion_internalize -.-> agent_descriptors_registry
     agent_digestion_internalize -.-> agent_task_scheduler
@@ -921,6 +940,7 @@ flowchart LR
     agent_digestion_gate -.-> agent_observability_trace_v2
     agent_digestion_gate -.-> agent_task_scheduler
     agent_digestion_gate -.-> agent_descriptors_registry
+    agent_digestion_gate -.-> agent_monitoring_cost_brake
     agent_process_distill_merge --> agent_process_distill_models
     agent_process_distill_service --> agent_process_distill
     agent_process_distill_service --> agent_process_distill_distiller
@@ -1148,6 +1168,9 @@ flowchart LR
     agent_monitoring_decorators --> agent_monitoring_error_reporter
     agent_monitoring_decorators -.-> agent_error_handler
     agent_monitoring_decorators -.-> agent_error_handler
+    agent_monitoring_cost_brake -.-> agent_observability
+    agent_monitoring_cost_brake -.-> agent_observability_events
+    agent_monitoring_cost_brake -.-> agent_audit_facade
     agent_monitoring_tracing_config --> agent_monitoring_observability_config
     agent_human_in_the_loop --> agent_human_in_the_loop_takeover_queue
     agent_human_in_the_loop_hitl -.-> agent_logging_utils
@@ -1227,16 +1250,34 @@ flowchart LR
     agent_task_planner_enhanced_dag --> agent_task_planner_dag
     agent_model_router_adapters -.-> agent_logging_utils
     agent_model_router_router -.-> agent_logging_utils
+    agent_model_router_cost_tracker -.-> agent_observability_events
+    agent_model_router_cost_tracker -.-> agent_audit_facade
     agent_model_router_observability -.-> agent_logging_utils
     agent_model_router_observability -.-> agent_monitoring_business_metrics
     agent_memory_filter -.-> agent_logging_utils
     agent_memory_filter -.-> agent_utils_sensitive_data_filter
     agent_memory_filter -.-> agent_utils_sensitive_data_filter
+    agent_memory_forgetting -.-> agent_logging_utils
+    agent_memory_forgetting --> agent_memory_identity
+    agent_memory_forgetting --> agent_memory_taxonomy
+    agent_memory_forgetting --> agent_memory_tenancy
+    agent_memory_forgetting -.-> agent_observability_trace_v2
+    agent_memory_forgetting -.-> agent_audit
+    agent_memory_forgetting -.-> agent_observability_trace_v2
+    agent_memory_forgetting -.-> agent_descriptors_registry
+    agent_memory_forgetting -.-> agent_audit
     agent_memory --> agent_memory_base
     agent_memory --> agent_memory_router
     agent_memory --> agent_memory_adapters
+    agent_memory --> agent_memory_identity
+    agent_memory --> agent_memory_taxonomy
+    agent_memory --> agent_memory_tenancy
+    agent_memory --> agent_memory_layered_store
+    agent_memory --> agent_memory_forgetting
     agent_memory_context_assembler -.-> agent_logging_utils
     agent_memory_context_assembler --> agent_memory_observability
+    agent_memory_taxonomy -.-> agent_logging_utils
+    agent_memory_taxonomy -.-> agent_observability_trace_v2
     agent_memory_reviewer --> agent_memory_long_term_memory
     agent_memory_hotness_scorer -.-> agent_logging_utils
     agent_memory_hotness_scorer --> agent_memory_observability
@@ -1245,15 +1286,29 @@ flowchart LR
     agent_memory_router --> agent_memory_adapters_mem0_adapter
     agent_memory_router -.-> agent_logging_utils
     agent_memory_router --> agent_memory_filter
+    agent_memory_layered_store -.-> agent_logging_utils
+    agent_memory_layered_store --> agent_memory_identity
+    agent_memory_layered_store --> agent_memory_long_term_memory
+    agent_memory_layered_store --> agent_memory_taxonomy
+    agent_memory_layered_store --> agent_memory_tenancy
+    agent_memory_layered_store -.-> agent_utils_sensitive_data_filter
+    agent_memory_layered_store -.-> agent_observability_trace_v2
     agent_memory_file_watcher -.-> agent_logging_utils
     agent_memory_file_watcher --> agent_memory_markdown_syncer
     agent_memory_file_watcher --> agent_memory_observability
     agent_memory_markdown_syncer -.-> agent_logging_utils
     agent_memory_short_term_memory --> agent_memory_base
     agent_memory_short_term_memory -.-> agent_logging_utils
+    agent_memory_tenancy -.-> agent_logging_utils
+    agent_memory_tenancy --> agent_memory_taxonomy
+    agent_memory_tenancy -.-> agent_observability_trace_v2
+    agent_memory_tenancy -.-> agent_observability_trace_v2
+    agent_memory_tenancy -.-> agent_observability_trace_v2
     agent_memory_long_term_memory --> agent_memory_base
     agent_memory_long_term_memory -.-> agent_logging_utils
     agent_memory_long_term_memory -.-> agent_monitoring_business_metrics
+    agent_memory_identity -.-> agent_logging_utils
+    agent_memory_identity -.-> agent_audit
     agent_memory_observability -.-> agent_logging_utils
     agent_memory_observability -.-> agent_monitoring_business_metrics
     agent_memory_base -.-> agent_logging_utils
@@ -1454,6 +1509,36 @@ flowchart LR
     agent_audit_ui_middleware --> agent_audit_facade
     agent_audit_facade --> agent_audit_chain
     agent_audit_facade -.-> agent_logging_utils
+    agent_eval --> agent_eval_anchor
+    agent_eval --> agent_eval_cases
+    agent_eval --> agent_eval_checkers
+    agent_eval --> agent_eval_runner
+    agent_eval --> agent_eval_solvers
+    agent_eval_metrics -.-> agent_observability
+    agent_eval_metrics -.-> agent_observability
+    agent_eval_metrics -.-> agent_observability_events
+    agent_eval_metrics -.-> agent_feedback
+    agent_eval_metrics -.-> agent_descriptors_registry
+    agent_eval_metrics -.-> agent_digestion_shadow
+    agent_eval_solvers --> agent_eval_checkers
+    agent_eval_solvers --> agent_eval_cases
+    agent_eval_baseline --> agent_eval_anchor
+    agent_eval_baseline --> agent_eval_cases
+    agent_eval_baseline --> agent_eval_metrics
+    agent_eval_baseline --> agent_eval_runner
+    agent_eval_baseline -.-> agent_observability
+    agent_eval_baseline -.-> agent_digestion_shadow
+    agent_eval_baseline -.-> agent_observability
+    agent_eval_anchor --> agent_eval_cases
+    agent_eval_cases --> agent_eval_checkers
+    agent_eval_cases --> agent_eval_checkers
+    agent_eval_calibration --> agent_eval_anchor
+    agent_eval_calibration -.-> agent_observability
+    agent_eval_calibration -.-> agent_observability_events
+    agent_eval_runner --> agent_eval_anchor
+    agent_eval_runner --> agent_eval_cases
+    agent_eval_runner --> agent_eval_checkers
+    agent_eval_runner --> agent_eval_solvers
     agent_server_routes_routes_visual_workflows -.-> agent_server_auth
     agent_server_routes_routes_visual_workflows --> agent_server_routes_tracing_decorator
     agent_server_routes_routes_dashboard -.-> agent_server_auth
@@ -1641,10 +1726,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 472
-- 模块节点数: 410
-- 依赖边数: 1131
-- 跨层调用数: 748
+- 扫描文件数: 487
+- 模块节点数: 425
+- 依赖边数: 1199
+- 跨层调用数: 784
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 2673.05 ms
+- 构建耗时: 2504.96 ms

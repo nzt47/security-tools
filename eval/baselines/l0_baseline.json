@@ -1,0 +1,106 @@
+{
+  "schema": "eval.baseline.v1",
+  "layer": "L0",
+  "solver": "reference",
+  "caseset_path": "C:\\Users\\Administrator\\agent\\.worktrees\\s502\\eval\\l0_anchor\\cases.json",
+  "caseset_sha256": "d147ffa2c76a1c78d3ce595f733bf8adbdf6d41ac1d05c783b59981dd7bfbf92",
+  "clock": "wall_clock(perf_counter)",
+  "recorded_at": "2026-09-12T01:12:33+0800",
+  "total": 20,
+  "assessed": 20,
+  "unassessed": 0,
+  "passed": 20,
+  "pass_rate": 1.0,
+  "counts": {
+    "pass": 20,
+    "fail": 0,
+    "error": 0,
+    "unassessed": 0
+  },
+  "by_scenario": {
+    "S1_fix_bug": {
+      "total": 4,
+      "assessed": 4,
+      "passed": 4,
+      "statuses": {
+        "pass": 4
+      },
+      "pass_rate": 1.0
+    },
+    "S2_codebase_qa": {
+      "total": 3,
+      "assessed": 3,
+      "passed": 3,
+      "statuses": {
+        "pass": 3
+      },
+      "pass_rate": 1.0
+    },
+    "S3_commit": {
+      "total": 3,
+      "assessed": 3,
+      "passed": 3,
+      "statuses": {
+        "pass": 3
+      },
+      "pass_rate": 1.0
+    },
+    "approval_intercept": {
+      "total": 4,
+      "assessed": 4,
+      "passed": 4,
+      "statuses": {
+        "pass": 4
+      },
+      "pass_rate": 1.0
+    },
+    "rollback": {
+      "total": 3,
+      "assessed": 3,
+      "passed": 3,
+      "statuses": {
+        "pass": 3
+      },
+      "pass_rate": 1.0
+    },
+    "router_decision": {
+      "total": 3,
+      "assessed": 3,
+      "passed": 3,
+      "statuses": {
+        "pass": 3
+      },
+      "pass_rate": 1.0
+    }
+  },
+  "p99_wall_ms": 0.378,
+  "results": {
+    "L0-S1-01": "pass",
+    "L0-S1-02": "pass",
+    "L0-S1-03": "pass",
+    "L0-S1-04": "pass",
+    "L0-S2-01": "pass",
+    "L0-S2-02": "pass",
+    "L0-S2-03": "pass",
+    "L0-S3-01": "pass",
+    "L0-S3-02": "pass",
+    "L0-S3-03": "pass",
+    "L0-RT-01": "pass",
+    "L0-RT-02": "pass",
+    "L0-RT-03": "pass",
+    "L0-AP-01": "pass",
+    "L0-AP-02": "pass",
+    "L0-AP-03": "pass",
+    "L0-AP-04": "pass",
+    "L0-RB-01": "pass",
+    "L0-RB-02": "pass",
+    "L0-RB-03": "pass"
+  },
+  "mechanical_cases": 20,
+  "disclosures": [
+    "L0 锚为人工冻结用例，存储独立于系统数据目录；哈希锚定，自动化流程无权修改",
+    "clock 口径：wall_clock(perf_counter)（报告内所有耗时均为此口径）",
+    "本次运行使用**参考解**（锚内冻结答案）：验证的是判定器与管道本身，**不代表任何模型能力**；真实能力评测须由被测解算器产出答案工件"
+  ],
+  "note": "判定器自检基线（solver=reference）：用于检出用例集/判定器漂移，不代表模型能力"
+}
