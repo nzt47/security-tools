@@ -409,7 +409,7 @@ Owner 裁定 **C / D 的落地证据可机器校验**（`calibrated=False`、`so
 | 项 | 值 |
 |---|---|
 | 代码提交 | `00d285ca` |
-| 合并提交（master） | `b656545a` → 最终同点 `c20d59aa` |
-| 双远端同点 | ✅ `git ls-remote origin/gitee master` 与本地 `master` **三者同为 `c20d59aa`**（实测） |
+| 合并提交（master） | `b656545a` → 本任务写入时终态 `d819e13c` |
+| 双远端同点 | ✅ `git ls-remote origin/gitee master` 与本地 `master` **三者同为 `d819e13c`**（实测）；本任务改动 `00d285ca`/`15f6f2a3` 经 `git merge-base --is-ancestor` 确认为其**祖先**（波次内兄弟会话继续推送会使 tip 前进，不改变该事实） |
 | 合并后校验 | main 工作区（master 树）复跑 3 套件 → **251 passed / 0 failed** |
 | CI（`c20d59aa`） | 14 运行：12 success / 1 in_progress / 1 failure；唯一失败 workflow（云枢系统测试流程）的 **3 个失败 job 已逐条归因**：2 个为 `00_总览` 第 279 行对 **S5-02** 未交付报告的悬空引用（该字符串在 `808beb90` 即存在，目标文件全历史 0 commits）；1 个为 **S5-01** 的 `test_memory_tenancy.py` 在 Linux 上的路径大小写归一缺陷（本机 Windows 61/61 全绿）。**均非 S5-03**，S5-03 相关文件所在 job 未失败。详见交付结案报告 §5 |
