@@ -273,33 +273,74 @@ $ python scripts/check_eval_datasets.py --layer L2
 
 ### 4.3 L2 基线快照（UTC 唯一依据 + 样本充分性 + S5-03 触发）
 
+**（a）真实态（本机无生产流量 / 台账为空，显式指定空数据源以免混入开发期噪声）**
+
 ```
-$ python scripts/run_eval.py --layer L2 --write-l2-baseline data/eval/l2_baseline.json
-- 用例集：50 条（sha256 c42870ea6d45）｜场景分布 {'S1_fix_bug': 20, 'S2_codebase_qa': 15, 'S3_commit': 15}
-- 成本/UTC：UTC = <utc.utc_window 实测值> cents/任务（锚模型见快照 anchor_model）
-- 灰度真实墙钟 p99：候选 / 上游（源 ShadowLedger.rows()，clock = wall_clock(perf_counter; per-arm real elapsed)）
-- 轨迹台账：<UnifiedTraceStore.snapshot_stats().total> 条；达标（≥20 条）能力 <…>
-- 校准触发条件（Owner 裁定 C）：**unlocked**（L2 数据集就绪）
-  - 未就绪项：成本样本 < 20/模型 → **不声称校准已完成**，系数仍沿用价格锚定表
-- 样本充分性缺口：逐条列出（灰度台账 / 轨迹台账 / 成本样本）
+$ python scripts/run_eval.py --layer L2 --solver null \
+    --events-dir .probe_empty_events --shadow-dir .probe_empty_shadow \
+    --trace-db .probe_empty/traces.db --write-l2-baseline .probe_empty/l2_baseline.json
+
+# L2 Core-50 基线快照
+- 用例集：50 条（sha256 `c42870ea6d45`）｜场景分布 {'S1_fix_bug': 20, 'S2_codebase_qa': 15, 'S3_commit': 15}
+- 本次运行：pass_rate=None（已评测 0 / 未评测 0）
+- 用例耗时 p99 = None ms（clock: wall_clock(perf_counter)）
+- 灰度真实墙钟 p99：候选 None ms ≤ 上游 None ms（clock: wall_clock(perf_counter; per-arm real elapsed)）
+- 成本/UTC：UTC = None cents/任务（归一成本 0.0，锚模型 gpt-4）
+- 轨迹台账：0 条；达标的（≥20 条）能力 []
+- 校准触发条件（Owner 裁定 C）：**unlocked**
+  - 就绪项：L2 数据集 = True
+  - 成本样本：0 / 20（未达阈值）；本任务**不声称**校准已完成：真实成本样本未达阈值前，系数仍沿用价格锚定表（沿用而非拟合）
+**样本充分性缺口**
+- 灰度台账无样本（真实墙钟 p99 与样本量趋势不可用）：灰度台账为空（.probe_empty_shadow）
+- 轨迹台账未达「每能力 ≥20 条同类轨迹」（源 .probe_empty/traces.db）
+- 成本事件样本 0 < 20（不足以拟合模型成本系数）
+```
+
+**（b）接线可用性（**合成样例**，仅证明三路数据源能真实取值，**非生产数据**）**
+
+```
+$ python scripts/run_eval.py --layer L2 --solver null \
+    --events-dir .probe_demo/events --shadow-dir .probe_demo/shadow --write-l2-baseline …
+
+- 灰度真实墙钟 p99：候选 45.0 ms ≤ 上游 63.0 ms（clock: wall_clock(perf_counter; per-arm real elapsed)）
+- 成本/UTC：UTC = 0.054218 cents/任务（归一成本 1.626525，锚模型 gpt-4）  # 分子 1.626525 / 分母 30 任务
+- 技能成功率 = 0.958333（样本 120，源 ShadowLedger.rows()：sampled 24×5 / passed 23×5）
+- 能力级样本量趋势 daily_average(cp.builtin.read_file) = 24.0（达标）
+- 消化吞吐 = None（insufficient_samples：窗口内无 digest.stage 事件 → **不以 0 冒充**）
+- 弃单率 = 0.0（30 任务中 abandoned 0）
+- 校准触发条件：**unlocked**；成本样本 30 / 20（已达阈值）→ 合成样例证明校准所需**两路输入齐备**
 ```
 
 > **本机与生产的口径差别（如实披露）**：本机 `data/events/` 含开发期测试噪声、
-> 轨迹/灰度台账为空，因此快照中的 UTC 与 p99 只作**结构演示与口径证明**，
-> **不构成生产基线**；生产取值须显式传 `--events-dir` / `--shadow-dir` / `--trace-db`
+> 轨迹/灰度台账为空，因此（a）是**真实态（无流量）**、（b）是**合成接线样例** ——
+> 两者都**不构成生产基线**；生产取值须显式传 `--events-dir` / `--shadow-dir` / `--trace-db`
 > （脚本缺省**不触碰**运行时目录，也不会创建任何目录）。
 > S5-03 的**触发条件已解锁**（口径、数据源、命令、验收标准均已定义），
-> 但**校准本身未执行**（真实成本样本未达每模型 ≥20 条）。
+> 但**校准本身未执行**：真实流量下仍须按 `sample_adequacy.shortfall` 的缺口清单启动。
 
 ### 4.4 §6.7 周报（数据源逐项可追溯）
 
 ```
-$ python scripts/report_slo_weekly.py --json --out data/reports/slo_weekly.json --md data/reports/slo_weekly.md
+$ python scripts/report_slo_weekly.py --days 7 --start 2026-09-05 --end 2026-09-11 \
+    --events-dir .probe_demo/events --shadow-dir .probe_demo/shadow --json
 | 指标 | 值 | 单位 | 目标 | 达标 | 样本 | 状态 | 数据源 | 公式 |
-| 消化吞吐 | … | 能力/周 | ≥2/周（W10 起） | … | … | … | agent.observability.events（EV_DIGEST_STAGE…） | count(distinct …) × 7 / 窗口天数 |
-| 内化转化率 | … | 比率 | ≥10% | … | … | … | agent.descriptors.registry.DescriptorRegistry | (n_internalized + n_native) / n_total |
-| …（共 11 项，8 项可计算）…
+|---|---|---|---|---|---|---|---|---|
+| 消化吞吐 | None | 能力/周 | ≥2/周（W10 起） | — | 0 | insufficient_samples | agent.observability.events（EV_DIGEST_STAGE） | count(distinct capability_id \| applied=True 且 to_stage='mirrored') × 7 / 窗口天数 |
+| 内化转化率 | 0.0 | 比率 | ≥10% | 未达标 | 32 | ok | agent.descriptors.registry.DescriptorRegistry | (n_internalized + n_native) / n_total |
+| 委派回收率 | None | 比率 | 100% | — | 0 | framework_only | 委派行契约（S4-04） | count(三件套齐全) / count(委派) |
+| 技能成功率 | 0.958333 | 比率 | ≥上游×0.98 | — | 120 | ok | agent.digestion.shadow.ShadowLedger.rows()（S3-03） | Σpassed / Σsampled |
+| MTTD / MTTR | None | ms | <3s / <30s | — | 0 | framework_only | EV_HEALING_TRIGGERED（S4-03 发射方） | median(mttd_ms) / median(mttr_ms) |
+| 审批衰减率 | None | 比率 | ≥70% | — | 0 | source_unavailable | agent.observability.events（EV_APPROVAL） | count(auto_pass) / count(approval) |
+| 委派中位周期 | None | 天 | ≤14 天 | — | 0 | source_unavailable | EV_DIGEST_STAGE | median(internalized.ts − borrowed.ts) |
+| 弃单率 | 0.0 | 比率 | 披露不考核 | — | 30 | ok | EV_TASK_CLOSED / EV_TASK_ABANDONED | count(abandoned) / count(全部任务) |
+| 路由准确率 | None | 比率 | >85%（W10 起） | — | 0 | framework_only | 事后标注行契约 | count(chosen==hindsight_best) / count(已标注) |
+| 探索满意度 | None | 比率 | 披露不考核 | — | 0 | source_unavailable | 👍率：agent.feedback；闭环率：acr.acr_summary()['exploration'] | like/(like+dislike)；closed/(closed+failed) |
+| UTC（辅助） | 0.054218 | cents/任务 | 由 S5-03 依 §6.3 设定 | — | 30 | ok | agent.observability.utc.utc_window() | cost_normalized_cents / (closed + failed) |
 ```
+
+（上表为**合成样例窗口**（60 条事件 + 灰度台账）下的**实测输出**：`——` 表示数据源缺位记 `None`、
+**不以 0 冒充**；`样本 < 20` 一律降级为 `insufficient_samples`、只披露不考核；
+`内化转化率 0.0` 是本机 capability 台账（32 条）中尚无 internalized/native 的真实读数。）
 
 报告头三条纪律逐字输出：数据源缺位记 `None`（不以 0 冒充）；样本 <20 只披露不考核；
 每个数字带数据源与公式。

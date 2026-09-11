@@ -358,8 +358,10 @@ def baseline_markdown(baseline: Mapping[str, Any]) -> str:
         f"{MIN_SAMPLES_PER_CAPABILITY} 条）能力 {traces.get('capabilities_with_adequate_samples')}",
         f"- 校准触发条件（Owner 裁定 C）：**{trigger.get('status')}**",
         f"  - 就绪项：L2 数据集 = {trigger.get('l2_dataset_ready')}",
-        f"  - 未就绪项：成本样本 {trigger.get('cost_samples')} / "
-        f"{trigger.get('min_cost_samples_required')}；{trigger.get('what_is_not_claimed')}",
+        f"  - 成本样本：{trigger.get('cost_samples')} / "
+        f"{trigger.get('min_cost_samples_required')}"
+        f"（{'已达阈值' if trigger.get('cost_samples_adequate') else '未达阈值'}）"
+        f"；{trigger.get('what_is_not_claimed')}",
     ]
     shortfall = list((baseline.get("sample_adequacy") or {}).get("shortfall") or [])
     if shortfall:
