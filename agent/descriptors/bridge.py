@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 import re
+import threading
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
@@ -60,6 +61,192 @@ def sanitize_id_part(value: str) -> str:
     s = re.sub(r"-{2,}", "-", s)
     s = s.strip("._-")
     return s[:120]
+
+
+# ═════════════════════════════════════════════════════════════
+# borrowed 轨迹策略：真实统一轨迹台账引用（TASK-S3-01 / 消费 S2-01 遗留 #9）
+# ═════════════════════════════════════════════════════════════
+
+#: 统一轨迹台账（S2-01 交付）——append-only 表，与既有 `tool_traces` **同库**
+TRACE_LEDGER_TABLE = "unified_traces"
+#: 台账数据库（相对仓库根；S2-01 明确「不新增第二存储介质/第二存储轨」）
+TRACE_LEDGER_DB = "agent/data/tool_trace.db"
+#: 按能力取轨迹的读接口（`list_by_capability(capability_id, limit)`，S3 挖掘数据源）
+TRACE_LEDGER_READER = "UnifiedTraceStore.list_by_capability"
+
+
+def ledger_trace_policy(*, source: str, capability_id: str,
+                        route: str = "") -> str:
+    """borrowed/opaque 能力的 ``evolution.trace_policy``：**真实台账引用**。
+
+    S1-01/S2 期该字段承载的是**占位串**（``…call-side(S2-ledger-pending)`` /
+    ``…import-ledger(S2-pending)``）——当时统一台账尚未建成，只能声明"策略待定"。
+    S2-01 已交付统一台账与读接口，S3-01 据此把默认串切换为可反查的真实引用：
+
+    ``trace:<source>[:<route>]:ledger=<表>@<库>#capability_id=<能力ID>#read=<读接口>``
+
+    四个要素齐备 ⇒ 人工或工具都能据此回答「该 borrowed 能力的完整轨迹落在哪张表、
+    用哪个读接口、按什么键取」；``capability_id`` 即 join 键，与
+    ``capability_reference()`` / `data/descriptors.json` 台账同源（S3-01 步骤 1 的
+    能力地图统一口径）。
+
+    Args:
+        source: 来源段（MCP server 名 / `skill-import` 等），经 ``sanitize_id_part`` 清洗
+        capability_id: 该能力的 canonical capability_id（join 键）
+        route: 可选的接入路径标注（如 `call-side` / `import-ledger`），空则省略
+    """
+    src = sanitize_id_part(source) or "unknown"
+    head = f"trace:{src}"
+    if route:
+        head += f":{sanitize_id_part(route) or route}"
+    cid = str(capability_id or "").strip()
+    return (f"{head}:ledger={TRACE_LEDGER_TABLE}@{TRACE_LEDGER_DB}"
+            f"#capability_id={cid}#read={TRACE_LEDGER_READER}")
+
+
+# ═════════════════════════════════════════════════════════════
+# 运行时工具名 → capability_id（TASK-S3-01 / 消费 S2-01 遗留 #1）
+# ═════════════════════════════════════════════════════════════
+
+#: 名字扫描索引缓存（键 = (registry 实例 id, registry.count())）
+_NAME_INDEX_CACHE: Dict[Any, Dict[str, str]] = {}
+_NAME_INDEX_CACHE_MAX = 16
+_NAME_INDEX_LOCK = threading.Lock()
+
+# 解析来源标注（供用例/报告断言「改写确实发生了」）
+RESOLVED_EMPTY = "empty"
+RESOLVED_ALREADY_CANONICAL = "already_canonical"
+RESOLVED_ALIAS = "alias"
+RESOLVED_REGISTRY_ID = "registry_id"
+RESOLVED_REGISTRY_NAME = "registry_name"
+RESOLVED_DERIVED = "derived"
+RESOLVED_FALLBACK = "advisory_fallback"
+
+
+def canonical_capability_id(tool_name: str, *, source_type: str = "builtin",
+                            source_id: str = "builtin") -> str:
+    """运行时工具名 → canonical capability_id（**确定性派生，不查台账**）
+
+    与 `descriptor_from_builtin_tool` / `descriptor_from_mcp_tool` 的 id 构式同构
+    （``cp.<source_id>.<sanitize(name)>``）——这是 S2-01 交付的 join 键口径
+    （``capability_reference()`` 用同一键查台账）。已是 ``cp.*`` 形式的原样返回。
+    """
+    raw = str(tool_name or "").strip()
+    if not raw:
+        return ""
+    if raw.startswith("cp."):
+        return raw
+    safe_src = (sanitize_id_part(source_id) or sanitize_id_part(source_type)
+                or "builtin")
+    safe_name = sanitize_id_part(raw)
+    if not safe_name:
+        return ""
+    return f"cp.{safe_src}.{safe_name}"
+
+
+def _name_index(registry: Any) -> Dict[str, str]:
+    """`capability.name`（原样 + 小写）→ capability_id 的映射（带缓存）
+
+    仅用于**派生候选与 alias 都未命中**时的兜底解析（如名字与 id 段不一致的
+    外来登记项）。缓存键含 ``registry.count()``，登记数量变化即自动失效。
+    """
+    try:
+        stamp = (id(registry), int(registry.count()))
+    except Exception:  # noqa: BLE001
+        stamp = (id(registry), -1)
+    with _NAME_INDEX_LOCK:
+        cached = _NAME_INDEX_CACHE.get(stamp)
+    if cached is not None:
+        return cached
+    index: Dict[str, str] = {}
+    try:
+        for desc in registry.list():
+            cid = str(getattr(desc, "capability_id", "") or "")
+            name = str(getattr(getattr(desc, "capability", None), "name", "") or "")
+            if not cid or not name:
+                continue
+            index.setdefault(name, cid)
+            index.setdefault(name.lower(), cid)
+    except Exception:  # noqa: BLE001  名字索引为 advisory 兜底，失败即空表
+        index = {}
+    with _NAME_INDEX_LOCK:
+        if len(_NAME_INDEX_CACHE) >= _NAME_INDEX_CACHE_MAX:
+            _NAME_INDEX_CACHE.clear()
+        _NAME_INDEX_CACHE[stamp] = index
+    return index
+
+
+def resolve_capability_id(tool_name: str, *, registry: Any = None,
+                          source_type: str = "builtin",
+                          source_id: str = "builtin") -> Dict[str, Any]:
+    """运行时**工具名 → descriptor capability_id** 改写（TASK-S3-01 消费 S2-01 遗留 #1）
+
+    S2-01 的工具级统一 Trace 直接以**工具名**落账 `trace.capability_id`，join 依赖
+    registry 侧事后匹配；本函数把改写提前到**落账点**，使
+    ``UnifiedTraceStore.list_by_capability(capability_id)`` 与
+    `data/descriptors.json` 台账可用**同一个键**直接 join（S3 模式挖掘的前置）。
+
+    解析顺序（确定性，逐级降级，**绝不伪造 provenance**）：
+
+    1. 空名 → ``capability_id=""``；
+    2. 已是 ``cp.*`` → 解析 alias 后原样（`resolved_by=already_canonical`）；
+    3. 名字本身命中 alias 表 → canonical（`alias`）；
+    4. 派生候选 ``cp.<source_id>.<name>`` 命中台账 → 直接采用（`registry_id`，
+       O(1) 字典查，工具链热路径的主命中）；
+    5. 台账中 ``capability.name`` 等于工具名 → 采用其 id（`registry_name`）；
+    6. 均未命中 → 返回**派生候选**并如实标注 ``joined=False``（`derived`）——
+       不冒充已登记，台账补齐后同键即可 join；
+    7. 台账不可用 → 回退工具名原文（`advisory_fallback`），**不丢轨迹**。
+
+    Args:
+        tool_name: 运行时工具名（或已是 capability_id）
+        registry: DescriptorRegistry；缺省懒加载默认台账 `data/descriptors.json`
+        source_type / source_id: 派生候选的来源段（内置工具 / MCP server 等）
+
+    Returns:
+        {"capability_id", "tool_name", "joined", "rewritten", "resolved_by"}
+    """
+    raw = str(tool_name or "").strip()
+    if not raw:
+        return {"capability_id": "", "tool_name": "", "joined": False,
+                "rewritten": False, "resolved_by": RESOLVED_EMPTY}
+    candidate = canonical_capability_id(
+        raw, source_type=source_type, source_id=source_id)
+    try:
+        reg = registry
+        if reg is None:
+            from agent.descriptors.registry import DescriptorRegistry
+            reg = DescriptorRegistry()
+        if raw.startswith("cp."):
+            canonical = reg.resolve_alias(raw) or raw
+            return {"capability_id": canonical, "tool_name": raw,
+                    "joined": reg.get(canonical) is not None,
+                    "rewritten": canonical != raw,
+                    "resolved_by": RESOLVED_ALREADY_CANONICAL}
+        for key in (raw, sanitize_id_part(raw)):
+            if not key:
+                continue
+            via_alias = reg.resolve_alias(key)
+            if via_alias:
+                return {"capability_id": via_alias, "tool_name": raw,
+                        "joined": reg.get(via_alias) is not None,
+                        "rewritten": via_alias != raw,
+                        "resolved_by": RESOLVED_ALIAS}
+        if candidate and reg.get(candidate) is not None:
+            return {"capability_id": candidate, "tool_name": raw, "joined": True,
+                    "rewritten": candidate != raw,
+                    "resolved_by": RESOLVED_REGISTRY_ID}
+        hit = _name_index(reg).get(raw) or _name_index(reg).get(raw.lower())
+        if hit:
+            return {"capability_id": hit, "tool_name": raw, "joined": True,
+                    "rewritten": hit != raw,
+                    "resolved_by": RESOLVED_REGISTRY_NAME}
+        return {"capability_id": candidate or raw, "tool_name": raw,
+                "joined": False, "rewritten": (candidate or raw) != raw,
+                "resolved_by": RESOLVED_DERIVED}
+    except Exception:  # noqa: BLE001  台账不可用 → 回退原文，绝不影响落账
+        return {"capability_id": raw, "tool_name": raw, "joined": False,
+                "rewritten": False, "resolved_by": RESOLVED_FALLBACK}
 
 
 # ═════════════════════════════════════════════════════════════
@@ -152,7 +339,9 @@ def descriptor_from_mcp_tool(
     safe_tool = sanitize_id_part(tool_name)
     cid = f"cp.{safe_server}.{safe_tool}"
     if not trace_policy:
-        trace_policy = f"trace:{safe_server}:call-side(S2-ledger-pending)"
+        # TASK-S3-01（S2-01 遗留 #9）：占位串 → 真实统一轨迹台账引用
+        trace_policy = ledger_trace_policy(
+            source=safe_server, capability_id=cid, route="call-side")
 
     ann = tool.get("annotations") if isinstance(tool.get("annotations"), dict) else {}
     if idempotent is None:
@@ -387,7 +576,9 @@ def skill_to_descriptor(
         success_rate = round(ok / sample_count, 4)
 
     if stage == EvolutionStage.BORROWED and not trace_policy:
-        trace_policy = f"trace:skill:{safe_id}:import-ledger(S2-pending)"
+        # TASK-S3-01（S2-01 遗留 #9）：占位串 → 真实统一轨迹台账引用
+        trace_policy = ledger_trace_policy(
+            source="skill-import", capability_id=cid, route="import-ledger")
 
     try:
         desc = ToolDescriptor(

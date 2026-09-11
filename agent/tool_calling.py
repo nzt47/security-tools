@@ -29,6 +29,24 @@ except ImportError:
         return None
 
 
+# ── TASK-S3-01（消费 S2-01 遗留 #1）：工具名 → capability_id 落账键改写 ──────
+
+
+def resolve_tool_capability_id(func_name: str) -> str:
+    """工具级统一 Trace 的落账键：工具名 → canonical ``capability_id``。
+
+    S2-01 期工具级 Trace 直接以工具名落账，join 留给 registry 侧事后匹配；
+    S3-01 把改写提前到落账点，使 trace 与 `data/descriptors.json` 台账同键可 join
+    （``UnifiedTraceStore.list_by_capability(capability_id)``）。**best-effort**：
+    descriptors 层不可用时回退工具名原文，绝不影响轨迹落账（守【不易】）。
+    """
+    try:
+        from agent.descriptors.bridge import resolve_capability_id
+        return resolve_capability_id(func_name)["capability_id"] or func_name
+    except Exception:  # noqa: BLE001  改写失败 → 回退原文，不丢轨迹
+        return func_name
+
+
 def _clean_for_json(obj, _seen=None):
     """递归清理对象，将 bytes 转为字符串，确保 JSON 可序列化
 
@@ -805,11 +823,17 @@ class ToolCallingService:
 
     def _record_unified_tool_trace(self, func_name: str, args: dict,
                                    result: dict, started_mono: float) -> None:
-        """工具级统一 Trace 记录（TASK-S2-01 透传，best-effort）。
+        """工具级统一 Trace 记录（TASK-S2-01 透传 + TASK-S3-01 capability_id 改写）。
 
         仅在存在任务级 TraceContext（由 orchestrator/TraceFacade.start 注入）时记录；
         否则跳过——不单独为无上下文工具调用新建统一 Trace（避免污染共享台账）。
         任何异常都不影响工具执行主路径。
+
+        TASK-S3-01（消费 S2-01 遗留 #1）：落账键由**工具名**改为 canonical
+        ``capability_id``（``cp.<source>.<name>``），使工具级 Trace 与
+        `data/descriptors.json` 台账用**同一个键**直接 join
+        （``UnifiedTraceStore.list_by_capability(capability_id)``），
+        不再依赖 registry 侧事后匹配。改写失败时回退工具名原文——**不丢轨迹**。
         """
         try:
             from agent.observability.trace_v2 import TraceContext, TraceFacade
@@ -821,7 +845,7 @@ class ToolCallingService:
             if not ok and isinstance(result, dict):
                 error_code = result.get("error_code") or result.get("error") or "ToolError"
             TraceFacade.instance().record(
-                func_name, args=args, output=result,
+                resolve_tool_capability_id(func_name), args=args, output=result,
                 status=status, error_code=error_code,
                 duration_ms=(time.perf_counter() - started_mono) * 1000,
             )

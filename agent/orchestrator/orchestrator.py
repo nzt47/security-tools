@@ -1024,6 +1024,19 @@ class Orchestrator:
         #         规划成功 → response 由 PlanningCore.chat() 生成并跳过 LLM 调用，
         #         同时抑制旧"第四步半"规划段（_planning_mode=False）防双规划；
         #         规划失败/超时/空响应 → 静默回退原 LLM 路径（守主链路稳定）。
+        # ── TASK-S3-01（消费 S2-01 遗留 #2 / S2-03 遗留 #1）：任务级统一 Trace 起点上提 ──
+        # 【不易】原先 `_begin_unified_task_trace()` 只存在于 LLM 段的 try/finally 内，而
+        #         wire 规划成功的任务**跳过整个 LLM 段**，于是既无任务级 Trace 也无
+        #         `task.closed` 埋点 → 该路径任务不进 ACR 分母（S2-03 结案报告 §5 #1 实测）。
+        #         现把起点上提到 wire 段之前，两条**互斥**路径各自在唯一收口点结束：
+        #         LLM 段 try/finally（原 :1169）与 wire 成功分支末尾；分流开关
+        #         `_wire_planning_used` 为二值 ⇒ 恒有且仅有一次开闭，无重复开闭。
+        # 【简易】默认（wire_enabled=false）时二者之间仅有 inert 的 wire 判定代码，
+        #         行为与原实现等价。
+        _unified_task_trace_id = _begin_unified_task_trace(
+            kwargs.get("session_id"), trace_id)
+        _unified_status = "success"
+        _unified_error_code = ""
         _wire_cfg = self._load_planning_wire_config()
         _wire_planning_used = False
         _wire_plan_result = None
@@ -1099,10 +1112,9 @@ class Orchestrator:
             _ts_llm_pf = time.perf_counter()
             ts_llm = time.time()
             # ── TASK-S2-01：任务级统一 Trace 上下文（工具链 TraceContext 透传起点）──
-            _unified_task_trace_id = _begin_unified_task_trace(
-                kwargs.get("session_id"), trace_id)
-            _unified_status = "success"
-            _unified_error_code = ""
+            # TASK-S3-01：起点已上提至 wire 段之前（见上方注释），此处不再重复开启；
+            #             `_unified_task_trace_id` / `_unified_status` / `_unified_error_code`
+            #             由外层统一持有。
             try:
                 if self._v2_lifetrace and self._trace_recorder:
                     # V2 路径：Persona 系统 + ToolCallingService
@@ -1174,6 +1186,13 @@ class Orchestrator:
             # wire 规划成功：跳过 LLM 调用与置信度兜底（规划结果视为高置信度）
             ts_llm = time.time()
             llm_duration_ms = 0.0
+            # ── TASK-S3-01（消费 S2-01 遗留 #2 / S2-03 遗留 #1）：wire 规划成功路径的
+            #    任务级统一 Trace 收口点。与 LLM 段 finally 互斥（`_wire_planning_used`
+            #    为二值开关），故本任务恒有且仅有一次开闭 —— 该路径任务自此产生
+            #    任务级 Trace 与 `task.closed`，进入 ACR 分母。──
+            _end_unified_task_trace(
+                _unified_task_trace_id, _unified_status, _unified_error_code,
+                user_input)
 
         # ── LLM 置信度校验（任务3：基于响应质量的启发式校验 + 低置信度降级）──
         # 【简易】空/过短/错误标记 → 低置信度；正常响应 → high

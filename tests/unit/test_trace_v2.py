@@ -809,7 +809,24 @@ class TestCapabilityReference:
         assert ref["provenance"] == "declared"          # 外来无签名 → declared
         assert ref["stage"] == "borrowed"               # 外部上游接入即借
         assert ref["trace_policy"]                       # borrowed 必记完整轨迹
-        assert "S2-ledger-pending" in ref["trace_policy"]
+
+    def test_trace_policy_is_real_ledger_reference_not_placeholder(self, reg):
+        """TASK-S3-01【L3】：trace_policy 为真实统一轨迹台账引用，非 S2 期占位串
+
+        S1-01/S2 期该字段为占位串（`…call-side(S2-ledger-pending)`），因为统一台账
+        尚未建成。S2-01 交付台账与读接口后，S3-01 切换为可反查的真实引用，四要素
+        齐备（表 / 库 / join 键 / 读接口）。
+        """
+        ref = capability_reference("cp.filesystem.remote_read", reg)
+        policy = ref["trace_policy"]
+        # 占位串彻底退场
+        assert "S2-pending" not in policy
+        assert "S2-ledger-pending" not in policy
+        assert "pending" not in policy
+        # 真实台账引用四要素
+        assert "ledger=unified_traces@agent/data/tool_trace.db" in policy
+        assert f"#capability_id=cp.filesystem.remote_read" in policy
+        assert "#read=UnifiedTraceStore.list_by_capability" in policy
 
     def test_unregistered_reference_is_honest(self, reg):
         ref = capability_reference("cp.unknown.thing", reg)

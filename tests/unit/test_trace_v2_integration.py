@@ -122,7 +122,7 @@ class TestToolCallingPropagation:
         assert result["ok"] is True
         assert unified.flush()
 
-        [child] = unified.list_by_capability("read_file")
+        [child] = unified.list_by_capability("cp.builtin.read_file")
         assert child.parent_trace_id == root
         assert child.task_id == "tk"
         assert child.tenancy.workspace_id == "ws_repo"
@@ -144,7 +144,7 @@ class TestToolCallingPropagation:
         svc = _service({"ok": False, "error": "boom"})
         svc._execute_safe("shell_execute", {"cmd": "pytest"})
         assert unified.flush()
-        [child] = unified.list_by_capability("shell_execute")
+        [child] = unified.list_by_capability("cp.builtin.shell_execute")
         assert child.response.status == STATUS_ERROR
         assert child.response.error_code == "boom"
 
@@ -155,7 +155,7 @@ class TestToolCallingPropagation:
         svc._execute_safe_core = MagicMock(side_effect=tools.ToolError("tool boom"))
         svc._execute_safe("read_file", {"path": "x"})
         assert unified.flush()
-        [child] = unified.list_by_capability("read_file")
+        [child] = unified.list_by_capability("cp.builtin.read_file")
         assert child.response.status == STATUS_ERROR
         assert "boom" in child.response.error_code
 
@@ -180,7 +180,9 @@ class TestToolCallingPropagation:
         assert len(rows) == 1
         assert rows[0].success is True
         assert unified.flush()
-        assert len(unified.list_by_capability("read_file")) == 1
+        # TASK-S3-01【L1】：统一轨落账键已由工具名改写为 canonical capability_id
+        # （既有 tool_trace 轨仍按工具名落账——两轨职责不同，未做同步改写）
+        assert len(unified.list_by_capability("cp.builtin.read_file")) == 1
 
 
 # ════════════════════════════════════════════════════════════
@@ -288,7 +290,9 @@ class TestEndToEndFixFailedTestTask:
         assert summary["failed_count"] == 1
         assert abs(summary["success_rate"] - 2 / 3) < 1e-4
         assert summary["workspace_id"] == workspace_id
-        assert summary["capabilities"] == ["read_file", "shell_execute", "write_file"]
+        assert summary["capabilities"] == [
+            "cp.builtin.read_file", "cp.builtin.shell_execute",
+            "cp.builtin.write_file"]
 
     def test_chain_supports_s3_pattern_mining_threshold(self, unified):
         """S3 模式挖掘：同一 capability 累积 ≥20 条同类轨迹可计量"""
