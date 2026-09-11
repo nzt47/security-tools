@@ -26,14 +26,14 @@
 | 10 | **【L2】** wire 规划成功路径任务级 Trace + `task.closed` | `agent/orchestrator/orchestrator.py:1028-1040` / `:1193` | — |
 | 11 | **【L3】** `trace_policy` 真实台账引用（含占位串切换） | `agent/descriptors/bridge.py::ledger_trace_policy` + `stage.refresh_trace_policies` | — |
 | 12 | **【L4】** 存量 stage 首次入轨（28 条）+ 入轨报告 | `scripts/run_s3_01_ingest.py` + 入轨报告 | — |
-| 13 | 新增单测 **332 例**（6 套件） | `tests/unit/test_digestion_*.py` / `test_s3_01_handover.py` | — |
+| 13 | 新增单测 **333 例**（6 套件） | `tests/unit/test_digestion_*.py` / `test_s3_01_handover.py` | — |
 | 14 | 端到端演示（9 步，可复现） | `scripts/demo_s3_01_digestion.py` | 287 |
 | 15 | 本验收报告 + 入轨报告 | `docs/zh/CloudPivot_v7.2重构计划/` | — |
 
 ### 1.2 关键量化结果
 
 ```
-新增单测：332 例全绿（Windows 本机，-p no:randomly）
+新增单测：333 例全绿（Windows 本机，-p no:randomly）
 覆盖率（agent/digestion/*，branch）：TOTAL 93%
   __init__ 100% / models 98% / cleaning 94% / generalize 94% / mining 94%
   generation 93% / capability 90% / stage 90% / service 89%
@@ -42,10 +42,12 @@
   批 2 trace/audit/events/acr/utc/escape    796 passed
   批 3 orchestrator/planning/tool_calling   375 passed / 1 skipped（需 --runslow）
 终态复核：37 个最相关既有套件在冻结树合并复跑 1449 passed / 0 failed
+CI 冷启动模拟（移除运行时台账 data/descriptors.json）：524 passed / 4 skipped / 0 failed
 门禁：arch_rules --check ✅ 0 未豁免违规｜lint-imports 2 kept / 0 broken
       mypy（11 文件含新模块与脚本）Success: no issues found
       verify_core_invariants 12/12 PASS｜boundary_coverage blocked_modules=[]
       docs 链接 1336 条 0 失效 + 锚点回归 4 passed
+      kwarg 冲突扫描 0 处｜密钥扫描 27 文件 0 命中（复刻 gitleaks 12 规则）
 ```
 
 ---
@@ -130,8 +132,8 @@
 | `tests/unit/test_digestion_generation.py` | 43 | 质量门控（含 **与 skill_converter / solidify 阈值逐值对账**、2 步骨架接缝）/ 草稿身份稳定性 / draft 纪律 8 项（含落盘不进 `skills_repo`）/ 正文复用 solidify 结构 / 升格桥接（`run_review=False` 强制、AST 断言流水线不自动升格） |
 | `tests/unit/test_digestion_stage.py` | 51 | 迁移门逐条（含 4 条验收物缺失）/ 七态与可驱动边 / run_id 确定性 / **三处联动 + 共享关联键**（含脱敏保真）/ 拒绝不静默（8 例）/ 首次入轨 / 批量回填 / stage 建议 |
 | `tests/unit/test_digestion_pipeline.py` | 55 | 端到端 ≥20 条达标 / 门槛与资格 / 负样本与分支 / 参数槽 / intent 分组 / **L1 入口键归一**（10 例）/ 显式 trace_set / stage 迁移驱动 / 服务装配 |
-| `tests/unit/test_s3_01_handover.py` | 39 | **L1–L4 收口**（含真实台账与 AST 结构断言） |
-| **合计** | **332** | 新增套件全绿（`-p no:randomly`） |
+| `tests/unit/test_s3_01_handover.py` | 40 | **L1–L4 收口**（含隔离台账 join、运行时台账 skip 守卫、AST 结构断言） |
+| **合计** | **333** | 新增套件全绿（`-p no:randomly`） |
 
 ### 4.2 覆盖率（branch，仅跑 6 个新套件）
 
@@ -158,7 +160,8 @@
 | 2 | `trace_v2` / `trace_v2_integration` / `tool_trace` / `trace_store` / `trace_coverage` / `audit`×8 / `events_v1` / `acr_metrics` / `utc_cost` / `escape_guard` / `model_degrade` / `env_config_audit` | **796 passed / 0 failed** |
 | 3 | `planning_wire` / `planning_defect_d7` / `orchestrator`×4 / `tool_calling`×2 / `planning_stage2-5` | **375 passed / 0 failed / 1 skipped**（需 `--runslow`） |
 | **合计** | | **1776 passed / 0 failed / 1 skipped** |
-| **终态复核** | 上述 37 个**最相关**套件在**冻结树**上合并复跑（交付前最后一次） | **1449 passed / 0 failed**（1 xfail = 既有 TF-IDF 基线）；另 6 个新增套件 **325 passed** |
+| **终态复核** | 上述 37 个**最相关**套件在**冻结树**上合并复跑（交付前最后一次） | **1449 passed / 0 failed**（1 xfail = 既有 TF-IDF 基线）；另 6 个新增套件 **333 passed** |
+| **CI 冷启动复核** | 移除运行时台账 `data/descriptors.json`（gitignore ⇒ CI 环境不存在）后复跑新增套件 + trace/descriptors 套件 | **524 passed / 4 skipped / 0 failed**（修复前 1 failed —— 见 §八「实现期缺陷 6」的本地绿/CI 红缺陷） |
 
 ### 4.4 门禁（本地复现 CI）
 
@@ -479,6 +482,8 @@ steps=3: digestion_gate=True  | solidify_gate=None                          ← 
 | 6 | 单机单写者：消化流水线为**离线批处理**，未做跨进程调度/锁（同 S2-01 #6） | S2 生产化 | 不阻塞 |
 | 7 | `first_entry_stage()` 一律 `borrowed` 起步；`native`/`internalized` 需 30 天零回退台账与验收门 | S6-01 能力地图 + 时间积累 | 不阻塞（已写入审计 reason 与入轨报告） |
 | 8 | S1-02 遗留 #2「NEEDS_REVIEW 7 条 / 6 资产」属 provenance/risk 人工复核，与本任务（stage 域）不同域，未在本轮处置 | S3-03 手动 promote 通道 + 人工复核 | 不阻塞 |
+| 9 | 预提交钩子 `CI_GUARD` 段**静默跳过**：引用已改名脚本 `simulate_ci_guard_failure.py`，且替代脚本 `simulate_ci_guard_pipeline.py` 不接受钩子所传的 `--assert-allowed`（**仅改名会阻断全部提交**） | dev 工具链（两步修法见[结案报告](S3-01_交付结案报告_20260911.md) §4.7） | 不阻塞（该门禁本意校验已实测通过；CI 侧等价校验由 `ci-guard-runner` 覆盖） |
+| 10 | L4 入轨改的是**运行时台账**（gitignore），CI/换机环境不继承 ⇒ 需幂等重跑 `scripts/run_s3_01_ingest.py --execute` | 部署/环境初始化流程 | 不阻塞（已提供幂等入口与干跑） |
 
 ---
 
@@ -490,10 +495,17 @@ steps=3: digestion_gate=True  | solidify_gate=None                          ← 
 - ✅ 任务书 §四 验收清单 **15/15** 逐条给出「文件 + 用例 + 演示」三级证据；
 - ✅ **S2 移交的 4 项遗留（L1–L4）全部收口**，其中 L2 的 ACR 分母缺口（S2-03 §5 #1）与
   L4 的 25 条 stage warning（S1-02 §5 #3）均以可复现命令清零；
-- ✅ 新增 325 例全绿、覆盖率 **93%**（最低模块 89%）；既有三批 **1776 passed / 0 failed** 零回归；
+- ✅ 新增 **333** 例全绿、覆盖率 **93%**（最低模块 89%）；既有三批 **1776 passed / 0 failed** 零回归；
+  **CI 冷启动模拟 524 passed / 0 failed**；
 - ✅ 本地门禁全绿：arch_rules 0 未豁免违规 / lint-imports 2 kept 0 broken / mypy Success /
-  核心不变量 12/12 / 边界覆盖 blocked_modules=[]；
-- ✅ 端到端样例（轨迹 → SKILL.md 草稿）在 §五 可逐步复现，产物已归档可查。
+  核心不变量 12/12 / 边界覆盖 blocked_modules=[] / 密钥扫描 27 文件 0 命中；
+- ✅ 端到端样例（轨迹 → SKILL.md 草稿）在 §五 可逐步复现，产物已归档可查；
+- ✅ 代码已推送 origin+gitee **双远端同点**（`24d5530c` → `3294c49a` → `457c85eb`），
+  CI 终态见[交付结案报告](S3-01_交付结案报告_20260911.md) §3。
+
+**实现期缺陷披露**（6 项已修 + 1 项登记，详见结案报告 §4）：4 项为**实现语义缺陷**
+（轨迹步骤顺序、分支提取盲点、升格门口径、三处联动关联键），2 项为**门禁/用例自身假绿**
+（密钥扫描漏扫、L1 join 用例依赖运行时台账）—— 后者经"移除运行时产物"的冷启动模拟才暴露。
 
 **下一任务接口**：S3-02（判定集与回放沙箱）可直接消费本任务产出的
 **清洗后的确定性轨迹集**（`TraceSet` + `Trajectory`）、**候选模式**（`CandidatePattern`：
