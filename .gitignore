@@ -373,3 +373,6 @@ data/skills_classes.json
 
 # 并行会话隔离 worktree（new_session_worktree.py 生成）
 /.worktrees/
+
+# S5-02 评测运行期产物（基线快照/难度拟合件）：与 L0 锚（eval/）分离，避免产物漂移
+data/eval/

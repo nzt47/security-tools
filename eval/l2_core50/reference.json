@@ -1,0 +1,370 @@
+{
+  "schema": "eval.cases.v1#reference",
+  "layer": "L2",
+  "answers": {
+    "L2-S1-01": {
+      "code": "def sum_first(values, n):\n    \"\"\"返回列表前 n 个元素之和（n<=0 时为 0）。\"\"\"\n    if n <= 0:\n        return 0\n    return sum(values[:n])\n"
+    },
+    "L2-S1-02": {
+      "code": "def average(values):\n    \"\"\"返回算术平均值；空列表必须抛 ValueError。\"\"\"\n    if not values:\n        raise ValueError(\"average() requires a non-empty list\")\n    return sum(values) / len(values)\n"
+    },
+    "L2-S1-03": {
+      "code": "def same_value(a, b):\n    \"\"\"仅当 a 与 b 的类型与取值都相同时返回 True（True 与 1 不算相同）。\"\"\"\n    if type(a) != type(b):\n        return False\n    return a == b\n"
+    },
+    "L2-S1-04": {
+      "code": "def append_tag(items, tag, acc=None):\n    \"\"\"返回 acc + items + [tag]；acc 缺省时每次都是新的空列表。\"\"\"\n    result = list(acc) if acc is not None else []\n    result.extend(items)\n    result.append(tag)\n    return result\n"
+    },
+    "L2-S1-05": {
+      "code": "def safe_div(a, b):\n    \"\"\"返回 a / b；b 为 0（含 0.0）时返回 None。\"\"\"\n    if b == 0:\n        return None\n    return a / b\n"
+    },
+    "L2-S1-06": {
+      "code": "def trim_edges(text, k):\n    \"\"\"去掉两端各 k 个字符；2*k >= len(text) 时返回空串。\"\"\"\n    if k <= 0:\n        return text\n    if 2 * k >= len(text):\n        return \"\"\n    return text[k:len(text) - k]\n"
+    },
+    "L2-S1-07": {
+      "code": "def rank_players(rows):\n    \"\"\"按分数降序排名；分数相同时保持输入顺序。\"\"\"\n    return sorted(rows, key=lambda row: -row[1])\n"
+    },
+    "L2-S1-08": {
+      "code": "def tally(words):\n    \"\"\"统计每个词出现次数并返回字典。\"\"\"\n    counts = {}\n    for word in words:\n        counts[word] = counts.get(word, 0) + 1\n    return counts\n"
+    },
+    "L2-S1-09": {
+      "code": "def factorial(n):\n    \"\"\"n 的阶乘；n 必须是非负整数，否则抛 ValueError。\"\"\"\n    if n < 0:\n        raise ValueError(\"factorial() requires n >= 0\")\n    if n <= 1:\n        return 1\n    return n * factorial(n - 1)\n"
+    },
+    "L2-S1-10": {
+      "code": "def price_with_tax(base, rate):\n    \"\"\"返回含税价，四舍五入到 2 位小数。\"\"\"\n    return round(base * (1 + rate), 2)\n"
+    },
+    "L2-S1-11": {
+      "code": "def sum_ints(values):\n    \"\"\"只累加真正的整数；布尔值（True/False）不计入。\"\"\"\n    total = 0\n    for value in values:\n        if isinstance(value, bool):\n            continue\n        total += value\n    return total\n"
+    },
+    "L2-S1-12": {
+      "code": "def safe_index(items, index):\n    \"\"\"返回 items[index]；越界返回 None，索引类型非法抛 TypeError。\"\"\"\n    try:\n        return items[index]\n    except IndexError:\n        return None\n"
+    },
+    "L2-S1-13": {
+      "code": "def in_range(value, low, high):\n    \"\"\"判断 value 是否落在闭区间 [low, high] 内。\"\"\"\n    return low <= value <= high\n"
+    },
+    "L2-S1-14": {
+      "code": "def dedupe(items):\n    \"\"\"去重，并保持元素首次出现的顺序。\"\"\"\n    out = []\n    for item in items:\n        if item not in out:\n            out.append(item)\n    return out\n"
+    },
+    "L2-S1-15": {
+      "code": "def wrap(value, size):\n    \"\"\"把 value 折回 [0, size) 区间（负数也要得到非负结果）。\"\"\"\n    return value % size\n"
+    },
+    "L2-S1-16": {
+      "code": "def smallest(values):\n    \"\"\"返回最小值；空列表必须抛 ValueError。\"\"\"\n    if not values:\n        raise ValueError(\"smallest() requires a non-empty list\")\n    best = values[0]\n    for value in values:\n        if value < best:\n            best = value\n    return best\n"
+    },
+    "L2-S1-17": {
+      "code": "def contains_ci(text, needle):\n    \"\"\"判断 needle 是否出现在 text 中（忽略大小写）。\"\"\"\n    return needle.lower() in text.lower()\n"
+    },
+    "L2-S1-18": {
+      "code": "def midpoint(a, b):\n    \"\"\"返回 a 与 b 的中点（允许小数）。\"\"\"\n    return (a + b) / 2\n"
+    },
+    "L2-S1-19": {
+      "code": "def all_positive(values):\n    \"\"\"判断是否所有元素都 > 0（空列表视为 True）。\"\"\"\n    for value in values:\n        if value <= 0:\n            return False\n    return True\n"
+    },
+    "L2-S1-20": {
+      "code": "def zip_stats(left, right):\n    \"\"\"返回 [配对元素两两之和的总和, 实际配对数]。\"\"\"\n    pairs = list(zip(left, right))\n    total = sum(a + b for a, b in pairs)\n    return [total, len(pairs)]\n"
+    },
+    "L2-S2-01": {
+      "answer": "CORE_INTERVENTION_WEIGHTS 定义在 agent/observability/acr.py，共七项：approve=1.0、conditional=0.5、auto_pass=0.0、timeout_deny=2.0、rerun=1.0、escape=1.0、view=0.0。这七项是 ACR 分子的唯一口径来源（acr_numerator 只累加这七类），其中 timeout_deny 的权重最高，为 2.0，代表超时拒绝的注意力代价最重。人工驳回 reject=1.0 属于 §6.1 之外的扩展介入，定义在 EXTENDED_INTERVENTION_WEIGHTS，不计入 ACR 分子，只在 interventions.extension_* 单列披露，这样既不丢信号也不篡改 §6.1 口径。",
+      "files": [
+        "agent/observability/acr.py"
+      ],
+      "symbols": [
+        "CORE_INTERVENTION_WEIGHTS",
+        "EXTENDED_INTERVENTION_WEIGHTS",
+        "KIND_TIMEOUT_DENY",
+        "INTERVENTION_WEIGHTS"
+      ]
+    },
+    "L2-S2-02": {
+      "answer": "EvolutionStage 定义在 agent/descriptors/models.py，是 str 枚举，共七个状态：主链 borrowed、mirrored、shadow、internalized、native，旁支终态 permanent_borrowed 与 deprecated。agent/digestion/stage.py 的 SEVEN_STATES 与 models.EvolutionStage 的取值顺序逐值对齐，MAIN_CHAIN 只含前五态（可顺序演进），SIDE_STATES 是 permanent_borrowed 与 deprecated。迁移条件上，borrowed 到 mirrored 要求同类轨迹不少于 20 条，mirrored 到 shadow 需要验收门通行证作为唯一证据。",
+      "files": [
+        "agent/descriptors/models.py",
+        "agent/digestion/stage.py"
+      ],
+      "symbols": [
+        "class EvolutionStage",
+        "SEVEN_STATES",
+        "MAIN_CHAIN",
+        "SIDE_STATES"
+      ]
+    },
+    "L2-S2-03": {
+      "answer": "事件信封的 schema 常量在 agent/observability/events.py：SCHEMA_NAME = \"events.v1\"（SCHEMA_VERSION = 1），活跃事件文件名 ACTIVE_FILENAME = \"events.jsonl\"。信封字段由 ENVELOPE_FIELDS 固定为 (\"v\", \"event_id\", \"ts\", \"correlation_id\", \"actor\", \"type\", \"payload\")，其中 correlation_id 用于把同一次会话/任务链上的事件串起来，actor 标识行为主体（human/auto），payload 承载业务载荷。EventStore 负责按天滚动落盘与读取，读取前会做长度与敏感键检查。",
+      "files": [
+        "agent/observability/events.py"
+      ],
+      "symbols": [
+        "SCHEMA_NAME",
+        "SCHEMA_VERSION",
+        "ENVELOPE_FIELDS",
+        "ACTIVE_FILENAME"
+      ]
+    },
+    "L2-S2-04": {
+      "answer": "p99_wall_candidate_ms 是「真实墙钟（perf_counter 实测）」口径下候选臂的 p99，方法在两处定义：agent/digestion/shadow.py 的 ShadowReport.p99_wall_candidate_ms() 对样本 wall_ms_candidate 取 p99；agent/digestion/sandbox.py 的 ReplayReport.p99_wall_candidate_ms() 对回放的 candidate.wall_ms 取 p99（仅在 measure_wall=True 时有值）。两者都与同报告的 p99_wall_upstream_ms 成对使用，支撑「候选不得比上游慢」的判决；绝不能把模型时钟口径的 p99_model_candidate_ms 说成真实墙钟 p99。",
+      "files": [
+        "agent/digestion/shadow.py",
+        "agent/digestion/sandbox.py"
+      ],
+      "symbols": [
+        "p99_wall_candidate_ms",
+        "class ShadowReport",
+        "class ReplayReport",
+        "p99_wall_upstream_ms"
+      ]
+    },
+    "L2-S2-05": {
+      "answer": "分层评测用例契约定义在 agent/eval/cases.py：SCHEMA_NAME = \"eval.cases.v1\"；LAYER_SIZES 规定 L0=20、L1=10、L2=50（L3 不设固定条数，为 None）。L2 的三类种子场景来自 SEED_SCENARIOS = (S1_fix_bug, S2_codebase_qa, S3_commit)，validate_case_set 强制 L2 每类种子场景至少 L2_MIN_PER_SEED=2 条。执行侧在 agent/eval/runner.py，run_l2() 按该用例集执行、逐条判定并汇总通过率，EvalCaseSet 承担规模与覆盖校验并给出用例集整体哈希。",
+      "files": [
+        "agent/eval/cases.py",
+        "agent/eval/runner.py"
+      ],
+      "symbols": [
+        "LAYER_SIZES",
+        "SEED_SCENARIOS",
+        "L2_MIN_PER_SEED",
+        "EvalCaseSet"
+      ]
+    },
+    "L2-S2-06": {
+      "answer": "判定器登记表在 agent/eval/checkers.py：MECHANICAL_CHECKERS 收录 22 个确定性判定器（equals、one_of、contains_all、regex、json_subset、length_between、all_items、keys_present、path_exists、paths_exist、symbols_exist、commit_message、nonempty、python_probes 等），PROXY_CHECKERS 只有 rubric_keywords 一个词表代理，引用它的用例必须把 verdict_kind 降级为 proxy 并在报告里披露「代理口径不等于语义正确」。python_probes 在受限命名空间执行被测代码，内置函数白名单 SAFE_BUILTINS 不含 import/open/eval；path_exists 与 symbols_exist 用真实仓库检索，把幻觉路径与幻觉符号直接判负。",
+      "files": [
+        "agent/eval/checkers.py",
+        "agent/eval/runner.py"
+      ],
+      "symbols": [
+        "MECHANICAL_CHECKERS",
+        "PROXY_CHECKERS",
+        "SAFE_BUILTINS",
+        "python_probes"
+      ]
+    },
+    "L2-S2-07": {
+      "answer": "agent/eval/runner.py 的状态口径是四态 STATUSES = (\"pass\", \"fail\", \"error\", \"unassessed\")：判定条目全部通过才是 pass，任一失败是 fail，解算器或判定器抛异常记 error，解算器返回 None 记 unassessed。通过率 pass_rate = pass / (pass + fail + error)，unassessed 不计入分母并在报告里单列，绝不用「未评测」冒充通过。耗时统一用 CLOCK_WALL = \"wall_clock(perf_counter)\"（单调墙钟，CI 插桩抖动下不做硬编码墙钟断言）；L2 用例集路径在 LAYER_CASESET_PATHS 里写作 eval/l2_core50/cases.json，L0 走锚存储并做 fail-closed 完整性校验。",
+      "files": [
+        "agent/eval/runner.py",
+        "agent/eval/cases.py"
+      ],
+      "symbols": [
+        "STATUS_UNASSESSED",
+        "CLOCK_WALL",
+        "LAYER_CASESET_PATHS",
+        "EvalReport"
+      ]
+    },
+    "L2-S2-08": {
+      "answer": "解算器在 agent/eval/solvers.py：reference_solver 读参考解（只用于判定器自检，不代表模型能力）、static_solver 用外部答案做回归快照、mutant_solver 做参数感知破坏、null_solver 永远返回 None 表示本环境无法评测。关键点是 mutant_solver 走 break_answer/break_value：它读取每条判定条目自己的参数，构造必然违反该条目的取值（contains_all 删掉一个必需片段、not_contains 追加禁止片段、path_exists 换成 MISSING_PATH、symbols_exist 换成 MISSING_SYMBOL、commit_message 换成不合规文本、python_probes 置空代码），因此「任一判定条目被破坏则该用例必须 fail」是可逐条断言的不变量。",
+      "files": [
+        "agent/eval/solvers.py"
+      ],
+      "symbols": [
+        "reference_solver",
+        "mutant_solver",
+        "null_solver",
+        "break_value"
+      ]
+    },
+    "L2-S2-09": {
+      "answer": "L0 锚存储在 agent/eval/anchor.py，用三个互相独立的机制保证它作为客观标尺可信：①位置独立——默认目录是仓库内的 eval/l0_anchor，不在任何系统数据目录（data/ 等）下，可用环境变量 CP_EVAL_ANCHOR_DIR 覆盖，assert_independent_of_system_data() 在加载时机器校验；②逻辑不可写——AnchorStore 不提供任何修改用例的方法，写入一律抛 AnchorReadOnlyError，任何落盘路径都要先过 guard_write()；③哈希锚定 fail-closed——manifest.json 记录逐条用例哈希、整体哈希与参考解哈希，任一不一致、缺失或多余即抛 AnchorIntegrityError 拒绝运行。freeze_anchor() 是唯一的冻结入口（写完后锚即只读，自动化流程无权修改）。",
+      "files": [
+        "agent/eval/anchor.py",
+        "agent/eval/cases.py"
+      ],
+      "symbols": [
+        "class AnchorStore",
+        "AnchorIntegrityError",
+        "AnchorReadOnlyError",
+        "guard_write",
+        "freeze_anchor"
+      ]
+    },
+    "L2-S2-10": {
+      "answer": "L2 Core-50 是本仓库 UTC 基线的唯一依据：agent/eval/runner.py 的 run_l2() 文档口径就是「L2 Core-50（UTC 基线唯一依据）」，基线对照只认这一层。它由 agent/eval/cases.py 的契约约束为恰好 50 条用例（LAYER_SIZES 规定 L2=50），覆盖 S1_fix_bug、S2_codebase_qa、S3_commit 三类种子场景且每类不少于 2 条；口径是机械可验优先，并且不允许 unsupported——无法判定的用例必须如实标注为未评测，不得混进通过率。baseline_payload() 固化逐条状态、用例集哈希与 clock 口径；当用例集哈希变化时 compare_to_baseline() 只披露「逐条对照不可信」而不判定回归。",
+      "files": [
+        "agent/eval/runner.py",
+        "agent/eval/cases.py"
+      ],
+      "symbols": [
+        "run_l2",
+        "LAYER_SIZES",
+        "baseline_payload",
+        "compare_to_baseline"
+      ]
+    },
+    "L2-S2-11": {
+      "answer": "L2 的用例集契约在 agent/eval/cases.py：LAYER_SIZES 规定 L2 恰好 50 条；SEED_SCENARIOS = (S1_fix_bug, S2_codebase_qa, S3_commit)，validate_case_set 对 L2 强制每类种子场景至少 L2_MIN_PER_SEED=2 条。verdict_kind 只能是 mechanical、proxy、unsupported：机械用例一旦引用代理判定器即校验失败，proxy 用例必须在 notes 写清回落口径与披露内容；unsupported 表示本环境无法判定，runner 记 unassessed、不计入通过率分母。用例哈希按规范化后的逐条用例计算，与文件缩进和键序无关，避免格式漂移被误判成锚变更。",
+      "files": [
+        "agent/eval/cases.py"
+      ],
+      "symbols": [
+        "SEED_SCENARIOS",
+        "L2_MIN_PER_SEED",
+        "VERDICT_UNSUPPORTED",
+        "validate_case_set"
+      ]
+    },
+    "L2-S2-12": {
+      "answer": "验收门硬闸在 agent/digestion/gate.py：GATE_VERSION = \"s3-02.1\"，四个条件是 GATE_CONDITIONS = (replay_all_pass, success_rate, p99, destructive_branch_coverage)。回放门槛 GATE_REPLAY_MIN = 20 且逐例通过率必须 100%；成功率门槛 GATE_SUCCESS_RATE_RATIO = 0.98（不低于基线×0.98）；p99 门槛 GATE_P99_RATIO = 1.0（不得高于上游臂）；并必须覆盖破坏性分支（destructive_keyword / failure_prone）。四条件齐发才产出通行证，通行证是 mirrored 到 shadow 的唯一证据；阈值默认取同一回放系统内的上游臂（BASELINE_SOURCE_SANDBOX），台账口径的来源会照实披露在 baseline 的 ledger 字段，绝不把模型时钟量说成真实墙钟 p99。agent/digestion/stage.py 的 SEVEN_STATES 与 MAIN_CHAIN 提供迁移边校验。",
+      "files": [
+        "agent/digestion/gate.py",
+        "agent/digestion/stage.py"
+      ],
+      "symbols": [
+        "GATE_CONDITIONS",
+        "GATE_REPLAY_MIN",
+        "GATE_SUCCESS_RATE_RATIO",
+        "GATE_P99_RATIO",
+        "SEVEN_STATES"
+      ]
+    },
+    "L2-S2-13": {
+      "answer": "模型路由在 agent/model_router/router.py：TaskType 是 str 枚举，四个取值 simple / normal / complex / creative；ModelSelector._TYPE_MODEL_MAP 把 simple 映射到 gpt-3.5-turbo、normal 映射到 gpt-4o-mini、complex 与 creative 映射到 gpt-4。COMPLEX_KEYWORDS 共七个词（分析、设计、架构、规划、重构、调试、优化），命中即判为复杂任务；ROUTING_TABLE 只有 simple / normal 两级关键词表；_safe_call 捕获异常、记录结构化日志后重新抛出，不会静默吞掉异常。",
+      "files": [
+        "agent/model_router/router.py"
+      ],
+      "symbols": [
+        "TaskType",
+        "ModelSelector",
+        "COMPLEX_KEYWORDS",
+        "_safe_call",
+        "ROUTING_TABLE"
+      ]
+    },
+    "L2-S2-14": {
+      "answer": "描述符登记表在 agent/descriptors/registry.py：MERGE_THRESHOLD = 0.9 是 schema 与三路投票的合并阈值（§3.2 要求 ≥0.9），NAME_FLOOR = 0.55 是判同名或近名的前提，低于该值不判合并/分裂而独立登记；three_way_vote(...) 做三路投票，name_similarity、text_similarity、structural_similarity 分别给出名字、文本、结构相似度，schema_diff_keys 给出 schema 差异键；DescriptorRegistry 是登记入口，未达 MERGE_THRESHOLD 的候选不会被合并进规范化描述符。",
+      "files": [
+        "agent/descriptors/registry.py",
+        "agent/descriptors/models.py"
+      ],
+      "symbols": [
+        "MERGE_THRESHOLD",
+        "NAME_FLOOR",
+        "three_way_vote",
+        "class DescriptorRegistry"
+      ]
+    },
+    "L2-S2-15": {
+      "answer": "事件层的上限与脱敏常量都在 agent/observability/events.py：MAX_STR_LEN = 400（单个事件字符串载荷的截断上限）、MAX_LINE_BYTES = 1<<20（单行读取上限，异常超长行直接断开而不拖垮读取）、MAX_IDEMPOTENCY_INDEX = 200000（幂等索引上限，超出后走磁盘去重）；活跃事件文件是 events.jsonl。写入前会按 _FORBIDDEN_KEYS_EXACT 等规则剔除 token、api_key 一类敏感键。而 ACR 侧的介入权重常量（KIND_TIMEOUT_DENY 等）定义在 agent/observability/acr.py，不在 events.py——两个文件是「事件基础层」与「干预口径层」的分工。",
+      "files": [
+        "agent/observability/events.py",
+        "agent/observability/acr.py"
+      ],
+      "symbols": [
+        "MAX_STR_LEN",
+        "MAX_LINE_BYTES",
+        "MAX_IDEMPOTENCY_INDEX",
+        "_FORBIDDEN_KEYS_EXACT"
+      ]
+    },
+    "L2-S3-01": {
+      "message": "fix(observability): ACR 分子计入超时拒绝权重\n\n影响面：ACR 分子口径与周报干预强度指标\n证据：tests/unit/test_acr_metrics.py 覆盖超时拒绝分支",
+      "files": [
+        "agent/observability/acr.py",
+        "tests/unit/test_acr_metrics.py"
+      ]
+    },
+    "L2-S3-02": {
+      "message": "feat(eval): 新增 L2 Core-50 分层用例集\n\n影响面：评测分层 L2 的用例集、判定器与执行入口\n证据：参考解全过与变异解逐条失败的双向自检",
+      "files": [
+        "agent/eval/cases.py",
+        "agent/eval/checkers.py",
+        "agent/eval/runner.py"
+      ]
+    },
+    "L2-S3-03": {
+      "message": "fix(eval): 修正 L2 通过率分母口径\n\n影响面：L2 通过率、基线对照与周报口径\n证据：counts() 与 baseline_payload() 的逐条状态一致",
+      "files": [
+        "agent/eval/runner.py",
+        "agent/eval/solvers.py",
+        "agent/eval/checkers.py"
+      ]
+    },
+    "L2-S3-04": {
+      "message": "fix(digestion): 验收门 p99 改用真实墙钟\n\n影响面：mirrored 到 shadow 的放行判定与漂移重探\n证据：tests/unit/test_digestion_gate.py 覆盖四条件齐发",
+      "files": [
+        "agent/digestion/gate.py",
+        "agent/digestion/sandbox.py",
+        "tests/unit/test_digestion_gate.py"
+      ]
+    },
+    "L2-S3-05": {
+      "message": "feat(descriptors): 合并阈值改为可配置\n\n影响面：描述符合并/分裂判定与规范化登记\n证据：tests/unit/test_descriptors_registry.py 覆盖阈值边界",
+      "files": [
+        "agent/descriptors/registry.py",
+        "tests/unit/test_descriptors_registry.py"
+      ]
+    },
+    "L2-S3-06": {
+      "message": "fix(model_router): 复杂关键词命中优先走强模型\n\n影响面：模型选择与推理成本\n证据：tests/unit/test_model_router.py 覆盖复杂任务分支",
+      "files": [
+        "agent/model_router/router.py",
+        "tests/unit/test_model_router.py"
+      ]
+    },
+    "L2-S3-07": {
+      "message": "chore(eval): 固化 L2 基线并接入周报\n\n影响面：UTC 基线的可比性与周报口径\n证据：baseline_payload 落盘逐条状态与用例集哈希",
+      "files": [
+        "agent/eval/runner.py",
+        "agent/eval/cases.py"
+      ]
+    },
+    "L2-S3-08": {
+      "message": "docs(observability): 补充事件信封字段说明\n\n影响面：事件 schema 的使用者与排障路径\n证据：docs/observability_ci_cd_integration.md 与 ENVELOPE_FIELDS 对齐",
+      "files": [
+        "agent/observability/events.py",
+        "docs/observability_ci_cd_integration.md"
+      ]
+    },
+    "L2-S3-09": {
+      "message": "perf(digestion): shadow 采样 p99 少一次遍历\n\n影响面：消化 shadow 阶段的采样耗时\n证据：tests/unit/test_digestion_shadow.py 覆盖样本边界",
+      "files": [
+        "agent/digestion/shadow.py",
+        "agent/digestion/sandbox.py",
+        "tests/unit/test_digestion_shadow.py"
+      ]
+    },
+    "L2-S3-10": {
+      "message": "test(eval): 补判定器区分度回归\n\n影响面：判定器的负样本对照与防退化\n证据：逐条 broken_answer_for_check 必须判 fail",
+      "files": [
+        "agent/eval/solvers.py",
+        "agent/eval/checkers.py",
+        "agent/eval/cases.py"
+      ]
+    },
+    "L2-S3-11": {
+      "message": "refactor(eval): 统一判定条目 why 展示\n\n影响面：评测报告的可读性与失败定位\n证据：run_check 的结构化结果逐条带 why",
+      "files": [
+        "agent/eval/checkers.py",
+        "agent/eval/runner.py"
+      ]
+    },
+    "L2-S3-12": {
+      "message": "fix(observability): 落盘前截断超长字符串载荷\n\n影响面：事件文件体积与读取稳定性\n证据：tests/unit/test_events_v1.py 覆盖 MAX_STR_LEN 边界",
+      "files": [
+        "agent/observability/events.py",
+        "tests/unit/test_events_v1.py"
+      ]
+    },
+    "L2-S3-13": {
+      "message": "feat(descriptors): 七态顺序作为常量导出\n\n影响面：演进状态机的迁移校验\n证据：tests/unit/test_descriptors_models.py 与 SEVEN_STATES 对齐",
+      "files": [
+        "agent/descriptors/models.py",
+        "agent/digestion/stage.py",
+        "tests/unit/test_descriptors_models.py"
+      ]
+    },
+    "L2-S3-14": {
+      "message": "fix(eval): 用例集哈希改为逐条排序后汇总\n\n影响面：L0 锚与基线对照的可比性\n证据：caseset_digest 对逐条哈希排序后再汇总，顺序调整不改变整体哈希",
+      "files": [
+        "agent/eval/cases.py",
+        "agent/eval/anchor.py"
+      ]
+    },
+    "L2-S3-15": {
+      "message": "chore(eval): 调整 L3 框架声明与晋升规则\n\n影响面：L2 到 L3 的用例晋升节奏\n证据：l3_framework 的 promotion_rule 与周期声明一致",
+      "files": [
+        "agent/eval/runner.py",
+        "agent/eval/cases.py"
+      ]
+    }
+  }
+}

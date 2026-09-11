@@ -1,0 +1,94 @@
+{
+  "schema": "eval.baseline.v1",
+  "layer": "L1",
+  "solver": "reference",
+  "caseset_path": "C:\\Users\\Administrator\\agent\\.worktrees\\s502\\eval\\l1_min\\cases.json",
+  "caseset_sha256": "d3d93f6b9edc802387b15d571f8fb06dfd5cd7f0f1859113b38f9ca4972a7d34",
+  "clock": "wall_clock(perf_counter)",
+  "recorded_at": "2026-09-12T01:12:33+0800",
+  "total": 10,
+  "assessed": 10,
+  "unassessed": 0,
+  "passed": 10,
+  "pass_rate": 1.0,
+  "counts": {
+    "pass": 10,
+    "fail": 0,
+    "error": 0,
+    "unassessed": 0
+  },
+  "by_scenario": {
+    "S1_fix_bug": {
+      "total": 3,
+      "assessed": 3,
+      "passed": 3,
+      "statuses": {
+        "pass": 3
+      },
+      "pass_rate": 1.0
+    },
+    "S2_codebase_qa": {
+      "total": 1,
+      "assessed": 1,
+      "passed": 1,
+      "statuses": {
+        "pass": 1
+      },
+      "pass_rate": 1.0
+    },
+    "S3_commit": {
+      "total": 1,
+      "assessed": 1,
+      "passed": 1,
+      "statuses": {
+        "pass": 1
+      },
+      "pass_rate": 1.0
+    },
+    "approval_intercept": {
+      "total": 2,
+      "assessed": 2,
+      "passed": 2,
+      "statuses": {
+        "pass": 2
+      },
+      "pass_rate": 1.0
+    },
+    "rollback": {
+      "total": 2,
+      "assessed": 2,
+      "passed": 2,
+      "statuses": {
+        "pass": 2
+      },
+      "pass_rate": 1.0
+    },
+    "router_decision": {
+      "total": 1,
+      "assessed": 1,
+      "passed": 1,
+      "statuses": {
+        "pass": 1
+      },
+      "pass_rate": 1.0
+    }
+  },
+  "p99_wall_ms": 71.437,
+  "results": {
+    "L1-01": "pass",
+    "L1-02": "pass",
+    "L1-03": "pass",
+    "L1-04": "pass",
+    "L1-05": "pass",
+    "L1-06": "pass",
+    "L1-07": "pass",
+    "L1-08": "pass",
+    "L1-09": "pass",
+    "L1-10": "pass"
+  },
+  "mechanical_cases": 10,
+  "disclosures": [
+    "本次运行使用该层**参考解**：验证的是用例与判定器本身（参考解全过 + 变异解全负 = 判定器有区分度），**不代表任何模型能力**"
+  ],
+  "note": "判定器自检基线（solver=reference）：用于检出用例集/判定器漂移，不代表模型能力"
+}

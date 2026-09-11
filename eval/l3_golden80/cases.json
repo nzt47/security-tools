@@ -1,0 +1,21 @@
+{
+  "schema": "eval.cases.v1",
+  "layer": "L3",
+  "frozen": false,
+  "meta": {
+    "status": "framework_only",
+    "name": "Golden-80",
+    "target_size": 80,
+    "layer_name": "L3 Golden-80（框架占位）",
+    "directory": "eval/l3_golden80/",
+    "caseset": "eval/l3_golden80/cases.json",
+    "runner": "agent.eval.runner.run_l3()（接口与 L0/L1/L2 同构：run_layer(layer)）",
+    "cli": "python scripts/run_eval.py --layer L3",
+    "cadence": "W15+ / M7+（设计文档 §6.5：L3 Golden-80 延后）；触发：发布前 + 每月一次（与 §6.6 baseline_remeasure 的 weekly 口径同源扩展）；上报事件 baseline_remeasure {weekly, core50_cost, golden_set_pass_rate}",
+    "promotion_rule": "L2 Core-50 连续 2 个窗口全绿且样本量达标 → 由 L2 抽取代表用例升入 L3，并保留 L2 原始证据链（case_id 不变，层前缀升级）",
+    "isolation": "L3 用例独立于系统数据目录（锚定在 eval/ 根下），复用 L0 的哈希锚定机制（agent.eval.anchor.freeze_anchor 可直接对 l3_golden80 目录执行）",
+    "baseline_remeasure_event": "baseline_remeasure {weekly, core50_cost, golden_set_pass_rate}",
+    "current_state": "本文件是**框架占位**：cases 为空数组，运行器可直接加载并返回框架声明（total=0、pass_rate=n/a）；实际 80 条用例的扩充入 M7+，不在 TASK-S5-02 范围内。"
+  },
+  "cases": []
+}

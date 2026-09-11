@@ -1,0 +1,4851 @@
+{
+  "schema": "eval.cases.v1",
+  "layer": "L2",
+  "frozen": false,
+  "meta": {
+    "name": "L2 Core-50",
+    "role": "UTC 基线唯一依据（v7.2 §6.5 评测分层 L2）",
+    "version": "l2-core50.1",
+    "authored_by": "TASK-S5-02 数据编写子任务",
+    "case_id_scheme": "L2-S1-01..20（修 bug）/ L2-S2-01..15（懂代码库）/ L2-S3-01..15（提交）",
+    "checker_caliber": "机械可验优先：48 条 mechanical；2 条 proxy（S2 rubric_keywords 词表代理）必须披露且附带机械兜底判定",
+    "reference": "eval/l2_core50/reference.json —— 仅用于判定器自检与变异对照，**不代表任何模型能力**",
+    "disclosure": [
+      "参考解是「判定器自检 + 变异对照」的对照物，不是被测系统的成绩；真实能力评测须由被测解算器产出答案工件",
+      "2 条 proxy 用例的解释覆盖度用词表代理判定，代理口径 ≠ 语义正确，README 与报告逐条披露",
+      "全部 50 条 mechanical/proxy 可评测，无 unsupported（L2 必须可评测）"
+    ]
+  },
+  "cases": [
+    {
+      "id": "L2-S1-01",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "切片多取一个元素：前 n 项之和 off-by-one",
+      "input": {
+        "prompt": "sum_first(values, n) 约定返回列表前 n 个元素之和、n<=0 时返回 0；现在 n=0 时会把第 1 个元素也算进去。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "sum_first.py",
+          "entry": "sum_first",
+          "code": "def sum_first(values, n):\n    \"\"\"返回列表前 n 个元素之和（n<=0 时为 0）。\"\"\"\n    return sum(values[:n + 1])\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "sum_first",
+                "args": [
+                  [
+                    1,
+                    2,
+                    3,
+                    4
+                  ],
+                  2
+                ],
+                "expected": 3
+              },
+              {
+                "call": "sum_first",
+                "args": [
+                  [
+                    1,
+                    2,
+                    3,
+                    4
+                  ],
+                  0
+                ],
+                "expected": 0
+              },
+              {
+                "call": "sum_first",
+                "args": [
+                  [
+                    5
+                  ],
+                  1
+                ],
+                "expected": 5
+              },
+              {
+                "call": "sum_first",
+                "args": [
+                  [],
+                  3
+                ],
+                "expected": 0
+              },
+              {
+                "call": "sum_first",
+                "args": [
+                  [
+                    1,
+                    2,
+                    3,
+                    4
+                  ],
+                  9
+                ],
+                "expected": 10
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：off_by_one_slice；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 5 条，其中边界/负例探针索引 [1, 3]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "off_by_one_slice"
+      ]
+    },
+    {
+      "id": "L2-S1-02",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "空输入未守卫：平均值触发 ZeroDivisionError",
+      "input": {
+        "prompt": "average(values) 约定返回算术平均值，空列表必须抛 ValueError；现在传空列表会抛 ZeroDivisionError。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "average.py",
+          "entry": "average",
+          "code": "def average(values):\n    \"\"\"返回算术平均值；空列表必须抛 ValueError。\"\"\"\n    return sum(values) / len(values)\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "average",
+                "args": [
+                  [
+                    1,
+                    2,
+                    3
+                  ]
+                ],
+                "expected": 2.0
+              },
+              {
+                "call": "average",
+                "args": [
+                  []
+                ],
+                "raises": "ValueError"
+              },
+              {
+                "call": "average",
+                "args": [
+                  [
+                    0
+                  ]
+                ],
+                "expected": 0.0
+              },
+              {
+                "call": "average",
+                "args": [
+                  [
+                    1,
+                    2
+                  ]
+                ],
+                "expected": 1.5
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：empty_input_guard；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 4 条，其中边界/负例探针索引 [1, 2]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "empty_input_guard"
+      ]
+    },
+    {
+      "id": "L2-S1-03",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "类型比较过宽：True 与 1 被判为同值",
+      "input": {
+        "prompt": "same_value(a, b) 约定「类型与取值都相同」才返回 True；现在 same_value(1, True) 会返回 True。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "same_value.py",
+          "entry": "same_value",
+          "code": "def same_value(a, b):\n    \"\"\"仅当 a 与 b 的类型与取值都相同时返回 True（True 与 1 不算相同）。\"\"\"\n    return a == b\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "same_value",
+                "args": [
+                  2,
+                  2
+                ],
+                "expected": true
+              },
+              {
+                "call": "same_value",
+                "args": [
+                  1,
+                  true
+                ],
+                "expected": false
+              },
+              {
+                "call": "same_value",
+                "args": [
+                  1,
+                  1.0
+                ],
+                "expected": false
+              },
+              {
+                "call": "same_value",
+                "args": [
+                  "1",
+                  1
+                ],
+                "expected": false
+              },
+              {
+                "call": "same_value",
+                "args": [
+                  true,
+                  true
+                ],
+                "expected": true
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：bool_int_type_confusion；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 5 条，其中边界/负例探针索引 [1, 2, 3]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "bool_int_type_confusion"
+      ]
+    },
+    {
+      "id": "L2-S1-04",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "可变默认参数：缺省 acc 在多次调用间被累积",
+      "input": {
+        "prompt": "append_tag(items, tag, acc) 约定返回 acc + items + [tag]，acc 缺省时每次调用都必须是新的空列表；现在两次调用会把结果串起来。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "append_tag.py",
+          "entry": "append_tag",
+          "code": "def append_tag(items, tag, acc=[]):\n    \"\"\"返回 acc + items + [tag]；acc 缺省时每次都是新的空列表。\"\"\"\n    acc.extend(items)\n    acc.append(tag)\n    return acc\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "append_tag",
+                "args": [
+                  [
+                    1
+                  ],
+                  "a"
+                ],
+                "expected": [
+                  1,
+                  "a"
+                ]
+              },
+              {
+                "call": "append_tag",
+                "args": [
+                  [],
+                  "b"
+                ],
+                "expected": [
+                  "b"
+                ]
+              },
+              {
+                "call": "append_tag",
+                "args": [
+                  [
+                    3
+                  ],
+                  "c",
+                  [
+                    9
+                  ]
+                ],
+                "expected": [
+                  9,
+                  3,
+                  "c"
+                ]
+              },
+              {
+                "call": "append_tag",
+                "args": [
+                  [
+                    2,
+                    4
+                  ],
+                  "d"
+                ],
+                "expected": [
+                  2,
+                  4,
+                  "d"
+                ]
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：mutable_default_argument；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 4 条，其中边界/负例探针索引 [1]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "mutable_default_argument"
+      ]
+    },
+    {
+      "id": "L2-S1-05",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "除零崩溃：b 为 0 时应返回 None",
+      "input": {
+        "prompt": "safe_div(a, b) 约定 b 为 0（含 0.0）时返回 None 而不是抛异常；现在会抛 ZeroDivisionError。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "safe_div.py",
+          "entry": "safe_div",
+          "code": "def safe_div(a, b):\n    \"\"\"返回 a / b；b 为 0（含 0.0）时返回 None。\"\"\"\n    return a / b\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "safe_div",
+                "args": [
+                  6,
+                  3
+                ],
+                "expected": 2.0
+              },
+              {
+                "call": "safe_div",
+                "args": [
+                  1,
+                  0
+                ],
+                "expected": null
+              },
+              {
+                "call": "safe_div",
+                "args": [
+                  0,
+                  5
+                ],
+                "expected": 0.0
+              },
+              {
+                "call": "safe_div",
+                "args": [
+                  1,
+                  0.0
+                ],
+                "expected": null
+              },
+              {
+                "call": "safe_div",
+                "args": [
+                  -6,
+                  3
+                ],
+                "expected": -2.0
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：divide_by_zero_sentinel；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 5 条，其中边界/负例探针索引 [1, 2, 3, 4]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "divide_by_zero_sentinel"
+      ]
+    },
+    {
+      "id": "L2-S1-06",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "字符串切片边界：k=0 时 -0 把整串切空",
+      "input": {
+        "prompt": "trim_edges(text, k) 约定去掉两端各 k 个字符，2*k >= len(text) 时返回空串；现在 k=0 会返回空串。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "trim_edges.py",
+          "entry": "trim_edges",
+          "code": "def trim_edges(text, k):\n    \"\"\"去掉两端各 k 个字符；2*k >= len(text) 时返回空串。\"\"\"\n    return text[k:-k]\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "trim_edges",
+                "args": [
+                  "abcdef",
+                  1
+                ],
+                "expected": "bcde"
+              },
+              {
+                "call": "trim_edges",
+                "args": [
+                  "abcdef",
+                  0
+                ],
+                "expected": "abcdef"
+              },
+              {
+                "call": "trim_edges",
+                "args": [
+                  "abc",
+                  5
+                ],
+                "expected": ""
+              },
+              {
+                "call": "trim_edges",
+                "args": [
+                  "ab",
+                  1
+                ],
+                "expected": ""
+              },
+              {
+                "call": "trim_edges",
+                "args": [
+                  "abcde",
+                  2
+                ],
+                "expected": "c"
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：string_slice_boundary；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 5 条，其中边界/负例探针索引 [2, 3]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "string_slice_boundary"
+      ]
+    },
+    {
+      "id": "L2-S1-07",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "排序稳定性：并列时按名字重排",
+      "input": {
+        "prompt": "rank_players(rows) 约定按分数降序排名，分数相同时必须保持输入顺序；现在分数相同的两人会按名字重新排序。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "rank_players.py",
+          "entry": "rank_players",
+          "code": "def rank_players(rows):\n    \"\"\"按分数降序排名；分数相同时保持输入顺序。\"\"\"\n    return sorted(rows, key=lambda row: (-row[1], row[0]))\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "rank_players",
+                "args": [
+                  [
+                    [
+                      "b",
+                      1
+                    ],
+                    [
+                      "a",
+                      1
+                    ],
+                    [
+                      "c",
+                      2
+                    ]
+                  ]
+                ],
+                "expected": [
+                  [
+                    "c",
+                    2
+                  ],
+                  [
+                    "b",
+                    1
+                  ],
+                  [
+                    "a",
+                    1
+                  ]
+                ]
+              },
+              {
+                "call": "rank_players",
+                "args": [
+                  []
+                ],
+                "expected": []
+              },
+              {
+                "call": "rank_players",
+                "args": [
+                  [
+                    [
+                      "x",
+                      5
+                    ]
+                  ]
+                ],
+                "expected": [
+                  [
+                    "x",
+                    5
+                  ]
+                ]
+              },
+              {
+                "call": "rank_players",
+                "args": [
+                  [
+                    [
+                      "p",
+                      3
+                    ],
+                    [
+                      "q",
+                      9
+                    ],
+                    [
+                      "r",
+                      3
+                    ]
+                  ]
+                ],
+                "expected": [
+                  [
+                    "q",
+                    9
+                  ],
+                  [
+                    "p",
+                    3
+                  ],
+                  [
+                    "r",
+                    3
+                  ]
+                ]
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：sort_stability；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 4 条，其中边界/负例探针索引 [1]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "sort_stability"
+      ]
+    },
+    {
+      "id": "L2-S1-08",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "字典默认值：setdefault 未回写导致计数恒为 0",
+      "input": {
+        "prompt": "tally(words) 约定返回每个词出现次数的字典；现在所有计数都是 0。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "tally.py",
+          "entry": "tally",
+          "code": "def tally(words):\n    \"\"\"统计每个词出现次数并返回字典。\"\"\"\n    counts = {}\n    for word in words:\n        counts.setdefault(word, 0) + 1\n    return counts\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "tally",
+                "args": [
+                  [
+                    "a",
+                    "b",
+                    "a"
+                  ]
+                ],
+                "expected": {
+                  "a": 2,
+                  "b": 1
+                }
+              },
+              {
+                "call": "tally",
+                "args": [
+                  []
+                ],
+                "expected": {}
+              },
+              {
+                "call": "tally",
+                "args": [
+                  [
+                    "x"
+                  ]
+                ],
+                "expected": {
+                  "x": 1
+                }
+              },
+              {
+                "call": "tally",
+                "args": [
+                  [
+                    "a",
+                    "a",
+                    "a"
+                  ]
+                ],
+                "expected": {
+                  "a": 3
+                }
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：dict_default_not_written；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 4 条，其中边界/负例探针索引 [1]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "dict_default_not_written"
+      ]
+    },
+    {
+      "id": "L2-S1-09",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "递归基线：n=0 无限递归，负数未守卫",
+      "input": {
+        "prompt": "factorial(n) 约定 n 为非负整数时返回阶乘、n<0 时抛 ValueError；现在 n=0 会无限递归。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "factorial.py",
+          "entry": "factorial",
+          "code": "def factorial(n):\n    \"\"\"n 的阶乘；n 必须是非负整数，否则抛 ValueError。\"\"\"\n    if n == 1:\n        return 1\n    return n * factorial(n - 1)\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "factorial",
+                "args": [
+                  5
+                ],
+                "expected": 120
+              },
+              {
+                "call": "factorial",
+                "args": [
+                  0
+                ],
+                "expected": 1
+              },
+              {
+                "call": "factorial",
+                "args": [
+                  1
+                ],
+                "expected": 1
+              },
+              {
+                "call": "factorial",
+                "args": [
+                  -1
+                ],
+                "raises": "ValueError"
+              },
+              {
+                "call": "factorial",
+                "args": [
+                  4
+                ],
+                "expected": 24
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：recursion_base_case；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 5 条，其中边界/负例探针索引 [3]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "recursion_base_case"
+      ]
+    },
+    {
+      "id": "L2-S1-10",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "浮点舍入：int() 截断代替四舍五入",
+      "input": {
+        "prompt": "price_with_tax(base, rate) 约定返回含税价并四舍五入到 2 位小数；现在用的是截断，19.99 元含 7.5% 税会少一分。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "price_with_tax.py",
+          "entry": "price_with_tax",
+          "code": "def price_with_tax(base, rate):\n    \"\"\"返回含税价，四舍五入到 2 位小数。\"\"\"\n    return int(base * (1 + rate) * 100) / 100\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "price_with_tax",
+                "args": [
+                  19.99,
+                  0.075
+                ],
+                "expected": 21.49
+              },
+              {
+                "call": "price_with_tax",
+                "args": [
+                  100.0,
+                  0.0
+                ],
+                "expected": 100.0
+              },
+              {
+                "call": "price_with_tax",
+                "args": [
+                  0.0,
+                  0.5
+                ],
+                "expected": 0.0
+              },
+              {
+                "call": "price_with_tax",
+                "args": [
+                  10.0,
+                  0.1
+                ],
+                "expected": 11.0
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：float_rounding_truncation；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 4 条，其中边界/负例探针索引 [2]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "float_rounding_truncation"
+      ]
+    },
+    {
+      "id": "L2-S1-11",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "布尔与整数混淆：True/False 被当成 1/0 累加",
+      "input": {
+        "prompt": "sum_ints(values) 约定只累加真正的整数，布尔值不计入；现在 sum_ints([True, 2]) 得到 3。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "sum_ints.py",
+          "entry": "sum_ints",
+          "code": "def sum_ints(values):\n    \"\"\"只累加真正的整数；布尔值（True/False）不计入。\"\"\"\n    return sum(values)\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "sum_ints",
+                "args": [
+                  [
+                    1,
+                    2,
+                    3
+                  ]
+                ],
+                "expected": 6
+              },
+              {
+                "call": "sum_ints",
+                "args": [
+                  [
+                    true,
+                    2
+                  ]
+                ],
+                "expected": 2
+              },
+              {
+                "call": "sum_ints",
+                "args": [
+                  [
+                    false,
+                    false
+                  ]
+                ],
+                "expected": 0
+              },
+              {
+                "call": "sum_ints",
+                "args": [
+                  [
+                    true,
+                    true,
+                    true
+                  ]
+                ],
+                "expected": 0
+              },
+              {
+                "call": "sum_ints",
+                "args": [
+                  []
+                ],
+                "expected": 0
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：bool_counted_as_int；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 5 条，其中边界/负例探针索引 [2, 3, 4]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "bool_counted_as_int"
+      ]
+    },
+    {
+      "id": "L2-S1-12",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "异常吞掉：except Exception 把 TypeError 也吞了",
+      "input": {
+        "prompt": "safe_index(items, index) 约定索引越界返回 None，但索引类型非法必须抛 TypeError；现在传字符串索引会静默返回 None。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "safe_index.py",
+          "entry": "safe_index",
+          "code": "def safe_index(items, index):\n    \"\"\"返回 items[index]；越界返回 None，索引类型非法抛 TypeError。\"\"\"\n    try:\n        return items[index]\n    except Exception:\n        return None\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "safe_index",
+                "args": [
+                  [
+                    1,
+                    2,
+                    3
+                  ],
+                  1
+                ],
+                "expected": 2
+              },
+              {
+                "call": "safe_index",
+                "args": [
+                  [
+                    1,
+                    2,
+                    3
+                  ],
+                  5
+                ],
+                "expected": null
+              },
+              {
+                "call": "safe_index",
+                "args": [
+                  [
+                    1,
+                    2,
+                    3
+                  ],
+                  "x"
+                ],
+                "raises": "TypeError"
+              },
+              {
+                "call": "safe_index",
+                "args": [
+                  [],
+                  0
+                ],
+                "expected": null
+              },
+              {
+                "call": "safe_index",
+                "args": [
+                  "abc",
+                  2
+                ],
+                "expected": "c"
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：swallowed_exception；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 5 条，其中边界/负例探针索引 [1, 2, 3]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "swallowed_exception"
+      ]
+    },
+    {
+      "id": "L2-S1-13",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "区间边界：闭区间被写成开区间",
+      "input": {
+        "prompt": "in_range(value, low, high) 约定判断 value 是否落在闭区间 [low, high] 内；现在端点会被判为不在区间内。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "in_range.py",
+          "entry": "in_range",
+          "code": "def in_range(value, low, high):\n    \"\"\"判断 value 是否落在闭区间 [low, high] 内。\"\"\"\n    return low < value < high\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "in_range",
+                "args": [
+                  5,
+                  1,
+                  5
+                ],
+                "expected": true
+              },
+              {
+                "call": "in_range",
+                "args": [
+                  1,
+                  1,
+                  5
+                ],
+                "expected": true
+              },
+              {
+                "call": "in_range",
+                "args": [
+                  0,
+                  1,
+                  5
+                ],
+                "expected": false
+              },
+              {
+                "call": "in_range",
+                "args": [
+                  6,
+                  1,
+                  5
+                ],
+                "expected": false
+              },
+              {
+                "call": "in_range",
+                "args": [
+                  3,
+                  3,
+                  3
+                ],
+                "expected": true
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：inclusive_exclusive_boundary；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 5 条，其中边界/负例探针索引 [2, 3]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "inclusive_exclusive_boundary"
+      ]
+    },
+    {
+      "id": "L2-S1-14",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "去重不保序：用 set 丢掉了首次出现顺序",
+      "input": {
+        "prompt": "dedupe(items) 约定去重并保持元素首次出现的顺序；现在 [3, 1, 3, 2, 1] 会返回别的顺序。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "dedupe.py",
+          "entry": "dedupe",
+          "code": "def dedupe(items):\n    \"\"\"去重，并保持元素首次出现的顺序。\"\"\"\n    return list(set(items))\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "dedupe",
+                "args": [
+                  [
+                    3,
+                    1,
+                    3,
+                    2,
+                    1
+                  ]
+                ],
+                "expected": [
+                  3,
+                  1,
+                  2
+                ]
+              },
+              {
+                "call": "dedupe",
+                "args": [
+                  []
+                ],
+                "expected": []
+              },
+              {
+                "call": "dedupe",
+                "args": [
+                  [
+                    7,
+                    7,
+                    7
+                  ]
+                ],
+                "expected": [
+                  7
+                ]
+              },
+              {
+                "call": "dedupe",
+                "args": [
+                  [
+                    5,
+                    4,
+                    5,
+                    4,
+                    3
+                  ]
+                ],
+                "expected": [
+                  5,
+                  4,
+                  3
+                ]
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：dedupe_order_lost；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 4 条，其中边界/负例探针索引 [1]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "dedupe_order_lost"
+      ]
+    },
+    {
+      "id": "L2-S1-15",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "负数取模：int() 截断让负数折回出界",
+      "input": {
+        "prompt": "wrap(value, size) 约定把 value 折回 [0, size) 区间，负数也必须得到非负结果；现在 wrap(-1, 5) 返回 -1。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "wrap.py",
+          "entry": "wrap",
+          "code": "def wrap(value, size):\n    \"\"\"把 value 折回 [0, size) 区间（负数也要得到非负结果）。\"\"\"\n    return value - size * int(value / size)\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "wrap",
+                "args": [
+                  -1,
+                  5
+                ],
+                "expected": 4
+              },
+              {
+                "call": "wrap",
+                "args": [
+                  -7,
+                  5
+                ],
+                "expected": 3
+              },
+              {
+                "call": "wrap",
+                "args": [
+                  7,
+                  5
+                ],
+                "expected": 2
+              },
+              {
+                "call": "wrap",
+                "args": [
+                  0,
+                  5
+                ],
+                "expected": 0
+              },
+              {
+                "call": "wrap",
+                "args": [
+                  -5,
+                  5
+                ],
+                "expected": 0
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：negative_modulo；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 5 条，其中边界/负例探针索引 [0, 1, 3, 4]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "negative_modulo"
+      ]
+    },
+    {
+      "id": "L2-S1-16",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "最小值初始化错误：best=0 让全正列表返回 0",
+      "input": {
+        "prompt": "smallest(values) 约定返回最小值、空列表抛 ValueError；现在全正列表会返回 0 且空列表不报错。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "smallest.py",
+          "entry": "smallest",
+          "code": "def smallest(values):\n    \"\"\"返回最小值；空列表必须抛 ValueError。\"\"\"\n    best = 0\n    for value in values:\n        if value < best:\n            best = value\n    return best\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "smallest",
+                "args": [
+                  [
+                    3,
+                    1,
+                    2
+                  ]
+                ],
+                "expected": 1
+              },
+              {
+                "call": "smallest",
+                "args": [
+                  [
+                    -5,
+                    -1
+                  ]
+                ],
+                "expected": -5
+              },
+              {
+                "call": "smallest",
+                "args": [
+                  []
+                ],
+                "raises": "ValueError"
+              },
+              {
+                "call": "smallest",
+                "args": [
+                  [
+                    0,
+                    0
+                  ]
+                ],
+                "expected": 0
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：min_seed_zero；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 4 条，其中边界/负例探针索引 [2, 3]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "min_seed_zero"
+      ]
+    },
+    {
+      "id": "L2-S1-17",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "大小写敏感：忽略大小写的包含判断写成了精确匹配",
+      "input": {
+        "prompt": "contains_ci(text, needle) 约定忽略大小写判断 needle 是否出现在 text 中；现在 contains_ci('Hello World', 'hello') 返回 False。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "contains_ci.py",
+          "entry": "contains_ci",
+          "code": "def contains_ci(text, needle):\n    \"\"\"判断 needle 是否出现在 text 中（忽略大小写）。\"\"\"\n    return needle in text\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "contains_ci",
+                "args": [
+                  "Hello World",
+                  "hello"
+                ],
+                "expected": true
+              },
+              {
+                "call": "contains_ci",
+                "args": [
+                  "abc",
+                  "ABC"
+                ],
+                "expected": true
+              },
+              {
+                "call": "contains_ci",
+                "args": [
+                  "abc",
+                  "xyz"
+                ],
+                "expected": false
+              },
+              {
+                "call": "contains_ci",
+                "args": [
+                  "",
+                  ""
+                ],
+                "expected": true
+              },
+              {
+                "call": "contains_ci",
+                "args": [
+                  "",
+                  "a"
+                ],
+                "expected": false
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：case_sensitive_compare；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 5 条，其中边界/负例探针索引 [2, 3, 4]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "case_sensitive_compare"
+      ]
+    },
+    {
+      "id": "L2-S1-18",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "整除代替真除：中点被向下取整",
+      "input": {
+        "prompt": "midpoint(a, b) 约定返回 a 与 b 的中点并允许小数；现在 midpoint(1, 2) 返回 1 而不是 1.5。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "midpoint.py",
+          "entry": "midpoint",
+          "code": "def midpoint(a, b):\n    \"\"\"返回 a 与 b 的中点（允许小数）。\"\"\"\n    return (a + b) // 2\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "midpoint",
+                "args": [
+                  1,
+                  2
+                ],
+                "expected": 1.5
+              },
+              {
+                "call": "midpoint",
+                "args": [
+                  3,
+                  3
+                ],
+                "expected": 3.0
+              },
+              {
+                "call": "midpoint",
+                "args": [
+                  0,
+                  1
+                ],
+                "expected": 0.5
+              },
+              {
+                "call": "midpoint",
+                "args": [
+                  -1,
+                  0
+                ],
+                "expected": -0.5
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：floor_division；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 4 条，其中边界/负例探针索引 [3]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "floor_division"
+      ]
+    },
+    {
+      "id": "L2-S1-19",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "提前返回：全正判断写成了「存在正数」",
+      "input": {
+        "prompt": "all_positive(values) 约定判断是否所有元素都大于 0（空列表视为 True）；现在只要有一个正数就返回 True，且空列表返回 False。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "all_positive.py",
+          "entry": "all_positive",
+          "code": "def all_positive(values):\n    \"\"\"判断是否所有元素都 > 0（空列表视为 True）。\"\"\"\n    for value in values:\n        if value > 0:\n            return True\n    return False\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "all_positive",
+                "args": [
+                  [
+                    1,
+                    2,
+                    3
+                  ]
+                ],
+                "expected": true
+              },
+              {
+                "call": "all_positive",
+                "args": [
+                  [
+                    1,
+                    -1,
+                    2
+                  ]
+                ],
+                "expected": false
+              },
+              {
+                "call": "all_positive",
+                "args": [
+                  []
+                ],
+                "expected": true
+              },
+              {
+                "call": "all_positive",
+                "args": [
+                  [
+                    0
+                  ]
+                ],
+                "expected": false
+              },
+              {
+                "call": "all_positive",
+                "args": [
+                  [
+                    -1
+                  ]
+                ],
+                "expected": false
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：early_return_short_circuit；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 5 条，其中边界/负例探针索引 [1, 2, 3, 4]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "early_return_short_circuit"
+      ]
+    },
+    {
+      "id": "L2-S1-20",
+      "layer": "L2",
+      "scenario": "S1_fix_bug",
+      "title": "迭代器被消费两次：zip 计数恒为 0",
+      "input": {
+        "prompt": "zip_stats(left, right) 约定返回 [配对元素两两之和的总和, 实际配对数]；现在配对数恒为 0。请修好它，保持函数名与签名不变。\n只允许使用内置函数，不得 import；回答必须给出修好的完整源码。",
+        "artifact": {
+          "path": "zip_stats.py",
+          "entry": "zip_stats",
+          "code": "def zip_stats(left, right):\n    \"\"\"返回 [配对元素两两之和的总和, 实际配对数]。\"\"\"\n    pairs = zip(left, right)\n    total = sum(a + b for a, b in pairs)\n    return [total, len(list(pairs))]\n"
+        },
+        "constraints": [
+          "纯 Python：只允许内置函数，不得 import",
+          "保持函数名与签名不变",
+          "必须给出修好的完整源码（不是补丁片段）"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "python_probes",
+          "path": "code",
+          "args": {
+            "probes": [
+              {
+                "call": "zip_stats",
+                "args": [
+                  [
+                    1,
+                    2
+                  ],
+                  [
+                    10,
+                    20
+                  ]
+                ],
+                "expected": [
+                  33,
+                  2
+                ]
+              },
+              {
+                "call": "zip_stats",
+                "args": [
+                  [
+                    1
+                  ],
+                  [
+                    2,
+                    3
+                  ]
+                ],
+                "expected": [
+                  3,
+                  1
+                ]
+              },
+              {
+                "call": "zip_stats",
+                "args": [
+                  [],
+                  []
+                ],
+                "expected": [
+                  0,
+                  0
+                ]
+              },
+              {
+                "call": "zip_stats",
+                "args": [
+                  [
+                    5,
+                    6,
+                    7
+                  ],
+                  [
+                    1,
+                    2,
+                    3
+                  ]
+                ],
+                "expected": [
+                  24,
+                  3
+                ]
+              }
+            ]
+          },
+          "why": "在受限命名空间里执行修好的源码并逐条断言探针（含边界/负例探针）：只有行为正确才能全部通过，杜绝「看起来像修好了」"
+        },
+        {
+          "checker": "not_contains",
+          "path": "code",
+          "args": {
+            "texts": [
+              "import ",
+              "__import__",
+              "eval(",
+              "exec(",
+              "open("
+            ]
+          },
+          "why": "约束「只用内置函数、不得 import」是机械可判的：源码里出现 import/__import__/eval/exec/open 即判不合格"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "缺陷类型：iterator_consumed_twice；判定为机械可验：python_probes 只执行被测源码本身（白名单内置函数，禁 import/open/eval），探针共 4 条，其中边界/负例探针索引 [2]；全部通过才算 pass。",
+      "tags": [
+        "S1",
+        "iterator_consumed_twice"
+      ]
+    },
+    {
+      "id": "L2-S2-01",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "ACR 分子口径：CORE_INTERVENTION_WEIGHTS 的七项与各自权重",
+      "input": {
+        "prompt": "在本仓库里，ACR（干预强度）分子的口径常量叫什么、定义在哪个文件、包含哪些项、各项权重是多少？扩展介入（人工驳回）为什么不计入分子？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "CORE_INTERVENTION_WEIGHTS"
+          },
+          "why": "答案给出的文件必须在真实仓库里存在，且确实定义了所声称的常量"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "答案提到的每个符号都必须真实存在（反幻觉）"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "CORE_INTERVENTION_WEIGHTS",
+              "timeout_deny",
+              "2.0",
+              "EXTENDED_INTERVENTION_WEIGHTS"
+            ]
+          },
+          "why": "关键论断必须逐条出现：常量名、最高权重项、权重值、扩展项常量名"
+        },
+        {
+          "checker": "not_contains",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "INTERVENTION_WEIGHTS_V1"
+            ]
+          },
+          "why": "不得凭空造出仓库里不存在的旧版本常量名"
+        },
+        {
+          "checker": "length_between",
+          "path": "answer",
+          "args": {
+            "min": 80
+          },
+          "why": "解释不得是空壳（至少 80 字才算回答了口径问题）"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：files/symbols 必须是仓库里真实存在的路径与符号（反幻觉），关键论断用 contains_all 逐条断言，并用 not_contains 拒绝已不存在的旧 API 名。",
+      "tags": [
+        "S2",
+        "mechanical"
+      ]
+    },
+    {
+      "id": "L2-S2-02",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "EvolutionStage 七态：取值顺序与主链/旁支划分",
+      "input": {
+        "prompt": "本仓库的演进状态 EvolutionStage 有几个取值、分别是什么、定义在哪个文件？主链与旁支终态怎么划分？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "class EvolutionStage"
+          },
+          "why": "七态枚举必须落在被声称的文件里（第一条文件即定义处）"
+        },
+        {
+          "checker": "all_items",
+          "path": "files",
+          "args": {
+            "check": {
+              "checker": "path_exists",
+              "args": {}
+            }
+          },
+          "why": "答案给出的每个文件路径都必须真实存在"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "该事实横跨 models.py 与 stage.py 两处，必须两个文件都给全"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "枚举与常量名必须真实存在"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "EvolutionStage",
+              "borrowed",
+              "mirrored",
+              "shadow",
+              "internalized",
+              "native",
+              "permanent_borrowed",
+              "deprecated"
+            ]
+          },
+          "why": "七个取值必须一字不漏（漏一个就是没答对七态）"
+        },
+        {
+          "checker": "not_contains",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "EvolutionStage.EVOLVED"
+            ]
+          },
+          "why": "不得出现仓库里不存在的旧状态名"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：files/symbols 必须是仓库里真实存在的路径与符号（反幻觉），关键论断用 contains_all 逐条断言，并用 not_contains 拒绝已不存在的旧 API 名。",
+      "tags": [
+        "S2",
+        "mechanical"
+      ]
+    },
+    {
+      "id": "L2-S2-03",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "事件信封 schema：SCHEMA_NAME、固定字段与落盘文件名",
+      "input": {
+        "prompt": "本仓库的可观测事件信封（envelope）schema 版本常量叫什么、取值是多少、固定字段有哪些、活跃事件文件叫什么？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "ENVELOPE_FIELDS"
+          },
+          "why": "schema 常量必须确实定义在被声称的文件里"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "答案提到的符号必须真实存在"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "events.v1",
+              "events.jsonl",
+              "ENVELOPE_FIELDS",
+              "correlation_id",
+              "payload"
+            ]
+          },
+          "why": "版本串、文件名、字段常量与两个关键字段名必须逐个出现"
+        },
+        {
+          "checker": "not_contains",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "events.v2"
+            ]
+          },
+          "why": "不得出现仓库里不存在的下一版 schema 名"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：files/symbols 必须是仓库里真实存在的路径与符号（反幻觉），关键论断用 contains_all 逐条断言，并用 not_contains 拒绝已不存在的旧 API 名。",
+      "tags": [
+        "S2",
+        "mechanical"
+      ]
+    },
+    {
+      "id": "L2-S2-04",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "p99_wall_candidate_ms 的两处定义与墙钟口径",
+      "input": {
+        "prompt": "本仓库里 p99_wall_candidate_ms 是哪个口径的指标、定义在哪些文件里？它和 p99_model_candidate_ms 有什么区别？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "class ShadowReport"
+          },
+          "why": "第一处定义在 shadow.py 的 ShadowReport 上（顺序即事实：先 shadow 后 sandbox）"
+        },
+        {
+          "checker": "all_items",
+          "path": "files",
+          "args": {
+            "check": {
+              "checker": "path_exists",
+              "args": {}
+            }
+          },
+          "why": "每个文件路径都必须真实存在"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "该指标在消化与回放两处各有一份实现，必须两处都给"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "方法名与两个报告类必须真实存在"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "ShadowReport",
+              "ReplayReport",
+              "p99_wall_upstream_ms"
+            ]
+          },
+          "why": "两处宿主类与上游对照指标必须出现，否则没答清口径对偶关系"
+        },
+        {
+          "checker": "not_contains",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "shadow_p99_ms"
+            ]
+          },
+          "why": "不得出现仓库里不存在的旧指标名"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：files/symbols 必须是仓库里真实存在的路径与符号（反幻觉），关键论断用 contains_all 逐条断言，并用 not_contains 拒绝已不存在的旧 API 名。",
+      "tags": [
+        "S2",
+        "mechanical"
+      ]
+    },
+    {
+      "id": "L2-S2-05",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "分层用例契约：eval.cases.v1 的规模表与 L2 种子场景覆盖",
+      "input": {
+        "prompt": "本仓库评测用例的数据契约在哪个文件？schema 名、各层规模、L2 覆盖哪些种子场景、每类至少几条？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "L2_MIN_PER_SEED"
+          },
+          "why": "契约文件必须是 cases.py（该常量只在 cases.py 里定义）"
+        },
+        {
+          "checker": "all_items",
+          "path": "files",
+          "args": {
+            "check": {
+              "checker": "path_exists",
+              "args": {}
+            }
+          },
+          "why": "文件路径必须真实存在"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "契约与执行器是两份文件，必须都给"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "四个符号必须真实存在"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "eval.cases.v1",
+              "LAYER_SIZES",
+              "50"
+            ]
+          },
+          "why": "schema 名、规模表常量名与 L2=50 这个关键数字必须出现"
+        },
+        {
+          "checker": "not_contains",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "eval.cases.v2"
+            ]
+          },
+          "why": "不得出现仓库里不存在的下一版 schema 名"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：files/symbols 必须是仓库里真实存在的路径与符号（反幻觉），关键论断用 contains_all 逐条断言，并用 not_contains 拒绝已不存在的旧 API 名。",
+      "tags": [
+        "S2",
+        "mechanical"
+      ]
+    },
+    {
+      "id": "L2-S2-06",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "判定器登记表：机械判定器数量与唯一的代理判定器",
+      "input": {
+        "prompt": "本仓库的评测判定器登记在哪？机械判定器有多少个？哪个是代理判定器、为什么它必须降级并披露？python_probes 的执行边界是什么？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[1]",
+          "args": {
+            "symbol": "STATUS_UNASSESSED"
+          },
+          "why": "第二个文件必须是执行器 runner.py（该四态常量只在 runner.py 里）"
+        },
+        {
+          "checker": "all_items",
+          "path": "files",
+          "args": {
+            "check": {
+              "checker": "path_exists",
+              "args": {}
+            }
+          },
+          "why": "文件路径必须真实存在"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "判定器与执行器是两份文件，必须都给"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "登记表与白名单常量必须真实存在"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "MECHANICAL_CHECKERS",
+              "rubric_keywords",
+              "python_probes",
+              "22"
+            ]
+          },
+          "why": "登记表名、唯一代理判定器名、受限执行判定器名与数量 22 必须出现"
+        },
+        {
+          "checker": "not_contains",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "MECHANICAL_CHECKER_V2"
+            ]
+          },
+          "why": "不得出现仓库里不存在的旧登记表名"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：files/symbols 必须是仓库里真实存在的路径与符号（反幻觉），关键论断用 contains_all 逐条断言，并用 not_contains 拒绝已不存在的旧 API 名。",
+      "tags": [
+        "S2",
+        "mechanical"
+      ]
+    },
+    {
+      "id": "L2-S2-07",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "执行器的四态口径：unassessed 为什么不计入通过率",
+      "input": {
+        "prompt": "本仓库评测执行器把用例结果分成哪几态？通过率的分母怎么算？耗时用什么 clock 口径？L2 层的用例集路径是什么？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[1]",
+          "args": {
+            "symbol": "class EvalCase"
+          },
+          "why": "第二个文件必须是契约文件 cases.py（EvalCase 类定义在那里）"
+        },
+        {
+          "checker": "all_items",
+          "path": "files",
+          "args": {
+            "check": {
+              "checker": "path_exists",
+              "args": {}
+            }
+          },
+          "why": "文件路径必须真实存在"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "执行器与契约各一份，必须都给"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "四态常量、clock 常量与路径表必须真实存在"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "unassessed",
+              "pass_rate",
+              "wall_clock(perf_counter)",
+              "eval/l2_core50/cases.json"
+            ]
+          },
+          "why": "未评测态、通过率字段、clock 口径与 L2 路径必须逐个出现"
+        },
+        {
+          "checker": "not_contains",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "STATUS_PENDING"
+            ]
+          },
+          "why": "不得出现仓库里不存在的旧状态名"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：files/symbols 必须是仓库里真实存在的路径与符号（反幻觉），关键论断用 contains_all 逐条断言，并用 not_contains 拒绝已不存在的旧 API 名。",
+      "tags": [
+        "S2",
+        "mechanical"
+      ]
+    },
+    {
+      "id": "L2-S2-08",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "解算器四种角色与变异解的参数感知破坏",
+      "input": {
+        "prompt": "本仓库评测的解算器有哪几种？变异解为什么必须「参数感知」？它怎么保证每条判定条目都有区分度？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "mutant_solver"
+          },
+          "why": "解算器必须确实定义在 solvers.py 里"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "四种解算器与破坏函数名必须真实存在"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "reference_solver",
+              "mutant_solver",
+              "null_solver",
+              "break_value"
+            ]
+          },
+          "why": "四种解算器与参数感知破坏函数必须逐个出现"
+        },
+        {
+          "checker": "not_contains",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "MUTATION_STRATEGIES"
+            ]
+          },
+          "why": "旧版按固定策略随机破坏的 MUTATION_STRATEGIES 在当前实现里已不存在，不得作为答案依据"
+        },
+        {
+          "checker": "length_between",
+          "path": "answer",
+          "args": {
+            "min": 100
+          },
+          "why": "解释必须展开到 mechanics 层面，不能只报名字"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：files/symbols 必须是仓库里真实存在的路径与符号（反幻觉），关键论断用 contains_all 逐条断言，并用 not_contains 拒绝已不存在的旧 API 名。",
+      "tags": [
+        "S2",
+        "mechanical"
+      ]
+    },
+    {
+      "id": "L2-S2-09",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "L0 锚的三机制：位置独立、逻辑不可写、哈希 fail-closed",
+      "input": {
+        "prompt": "本仓库 L0 锚为什么可信？它默认落在哪个目录、有哪些不可写保障、完整性校验失败会怎样？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "AnchorIntegrityError"
+          },
+          "why": "锚的三机制必须落在 anchor.py（该异常只在 anchor.py 里定义）"
+        },
+        {
+          "checker": "all_items",
+          "path": "files",
+          "args": {
+            "check": {
+              "checker": "path_exists",
+              "args": {}
+            }
+          },
+          "why": "文件路径必须真实存在"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "锚与用例契约各一份，必须都给"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "锚存储、两个异常、写守门与冻结入口必须真实存在"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "l0_anchor",
+              "AnchorReadOnlyError",
+              "AnchorIntegrityError",
+              "CP_EVAL_ANCHOR_DIR"
+            ]
+          },
+          "why": "默认目录、只读异常、完整性异常与环境变量名必须逐个出现"
+        },
+        {
+          "checker": "not_contains",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "EVAL_ANCHOR_PATH"
+            ]
+          },
+          "why": "不得出现仓库里不存在的旧环境变量名"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：files/symbols 必须是仓库里真实存在的路径与符号（反幻觉），关键论断用 contains_all 逐条断言，并用 not_contains 拒绝已不存在的旧 API 名。",
+      "tags": [
+        "S2",
+        "mechanical"
+      ]
+    },
+    {
+      "id": "L2-S2-10",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "L2 Core-50 与 UTC 基线的关系（proxy：解释覆盖度用词表代理）",
+      "input": {
+        "prompt": "为什么说 L2 Core-50 是 UTC 基线的唯一依据？它的规模契约、场景覆盖与「不允许 unsupported」分别意味着什么？请给出完整解释。\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "def run_l2"
+          },
+          "why": "UTC 基线口径的落点是执行器的 run_l2()，必须真实存在于 runner.py"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "答案提到的符号必须真实存在（反幻觉）"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "L2 Core-50",
+              "UTC",
+              "run_l2"
+            ]
+          },
+          "why": "机械兜底：唯一的基线依据名、UTC 口径词与函数名必须出现"
+        },
+        {
+          "checker": "rubric_keywords",
+          "path": "answer",
+          "args": {
+            "groups": [
+              [
+                "唯一依据",
+                "唯一"
+              ],
+              [
+                "基线",
+                "baseline"
+              ],
+              [
+                "50 条",
+                "恰好 50"
+              ],
+              [
+                "种子场景",
+                "S1_fix_bug",
+                "S2_codebase_qa",
+                "S3_commit"
+              ]
+            ]
+          },
+          "why": "proxy 词表：四组要点（唯一依据 / 基线 / 50 条规模 / 三类种子场景）都须覆盖"
+        }
+      ],
+      "verdict_kind": "proxy",
+      "notes": "本条的**解释覆盖度**用 rubric_keywords 词表代理判定：命中组数达阈值即通过。代理口径 ≠ 语义正确——词表只能证明「必要要点被提到」，不能证明论述成立；报告里逐条披露为 proxy，不当作机械证据。其余判定条目（path_exists / symbols_exist / contains_all）仍是机械可验的，保证本条不是纯代理。",
+      "tags": [
+        "S2",
+        "proxy"
+      ]
+    },
+    {
+      "id": "L2-S2-11",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "L2 用例集的校验硬约束：规模、种子场景、verdict_kind",
+      "input": {
+        "prompt": "L2 用例集在数据契约层面被强制约束了什么？三类种子场景叫什么？verdict_kind 有哪几种、unsupported 意味着什么？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "L2_MIN_PER_SEED"
+          },
+          "why": "契约必须落在 cases.py"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "场景常量、最低条数常量与校验函数必须真实存在"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "LAYER_SIZES",
+              "SEED_SCENARIOS",
+              "L2_MIN_PER_SEED",
+              "S1_fix_bug",
+              "S2_codebase_qa",
+              "S3_commit",
+              "unsupported"
+            ]
+          },
+          "why": "规模表、场景常量、三个场景名与 unsupported 语义必须逐个出现"
+        },
+        {
+          "checker": "not_contains",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "L2_MIN_PER_SCENARIO"
+            ]
+          },
+          "why": "不得把 L0 的 L0_MIN_PER_SCENARIO 误写成不存在的 L2_MIN_PER_SCENARIO"
+        },
+        {
+          "checker": "length_between",
+          "path": "answer",
+          "args": {
+            "min": 100
+          },
+          "why": "解释必须覆盖契约、场景与 verdict_kind 三层"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：files/symbols 必须是仓库里真实存在的路径与符号（反幻觉），关键论断用 contains_all 逐条断言，并用 not_contains 拒绝已不存在的旧 API 名。",
+      "tags": [
+        "S2",
+        "mechanical"
+      ]
+    },
+    {
+      "id": "L2-S2-12",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "验收门四条件与其阈值单点定义",
+      "input": {
+        "prompt": "本仓库的验收门（acceptance gate）有哪四个条件、各自的阈值是多少、定义在哪个文件？四条件齐发之后产出什么？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "GATE_REPLAY_MIN"
+          },
+          "why": "阈值必须定义在 gate.py（stage.py 里没有这些阈值常量）"
+        },
+        {
+          "checker": "all_items",
+          "path": "files",
+          "args": {
+            "check": {
+              "checker": "path_exists",
+              "args": {}
+            }
+          },
+          "why": "文件路径必须真实存在"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "门与状态机各一份，必须都给"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "四个门常量与七态常量必须真实存在"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "s3-02.1",
+              "GATE_REPLAY_MIN",
+              "0.98",
+              "GATE_P99_RATIO"
+            ]
+          },
+          "why": "门版本、回放条数门槛、成功率比例与 p99 倍数四个关键值必须出现"
+        },
+        {
+          "checker": "not_contains",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "GATE_VERSION_V2"
+            ]
+          },
+          "why": "不得出现仓库里不存在的旧门版本常量"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：files/symbols 必须是仓库里真实存在的路径与符号（反幻觉），关键论断用 contains_all 逐条断言，并用 not_contains 拒绝已不存在的旧 API 名。",
+      "tags": [
+        "S2",
+        "mechanical"
+      ]
+    },
+    {
+      "id": "L2-S2-13",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "模型路由的类型映射与关键词表（proxy：解释覆盖度用词表代理）",
+      "input": {
+        "prompt": "本仓库的模型路由怎么判任务类型、怎么选模型？复杂任务的关键词有几个、命中后走哪个模型？异常处理包装器会不会吞异常？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "ROUTING_TABLE"
+          },
+          "why": "路由表必须确实定义在 router.py 里"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "枚举、选择器、关键词表与包装器必须真实存在"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "TaskType",
+              "COMPLEX_KEYWORDS",
+              "_safe_call",
+              "gpt-4"
+            ]
+          },
+          "why": "机械兜底：任务类型枚举、复杂关键词表、异常包装器与强模型名必须出现"
+        },
+        {
+          "checker": "rubric_keywords",
+          "path": "answer",
+          "args": {
+            "groups": [
+              [
+                "simple",
+                "normal",
+                "complex",
+                "creative"
+              ],
+              [
+                "gpt-3.5-turbo",
+                "gpt-4o-mini"
+              ],
+              [
+                "七个",
+                "7 个",
+                "7个"
+              ]
+            ]
+          },
+          "why": "proxy 词表：三类要点（四个任务类型 / 两个轻量模型 / 复杂关键词数量）都须覆盖"
+        }
+      ],
+      "verdict_kind": "proxy",
+      "notes": "本条的**解释覆盖度**用 rubric_keywords 词表代理判定：命中组数达阈值即通过。代理口径 ≠ 语义正确——词表只能证明要点被提到，不能证明映射关系叙述无误；报告里逐条披露为 proxy。机械兜底为 path_exists(files[0], ROUTING_TABLE)、symbols_exist 与 contains_all，因此不是纯代理判定。",
+      "tags": [
+        "S2",
+        "proxy"
+      ]
+    },
+    {
+      "id": "L2-S2-14",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "描述符合并阈值与三路投票",
+      "input": {
+        "prompt": "本仓库描述符登记表的合并阈值是多少、同名前提阈值是多少？相似度怎么算？低于阈值会怎样？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "MERGE_THRESHOLD"
+          },
+          "why": "阈值必须定义在 registry.py（models.py 里没有该常量）"
+        },
+        {
+          "checker": "all_items",
+          "path": "files",
+          "args": {
+            "check": {
+              "checker": "path_exists",
+              "args": {}
+            }
+          },
+          "why": "文件路径必须真实存在"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "阈值在 registry.py、描述符模型在 models.py，必须都给"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "两个阈值常量、投票函数与登记类必须真实存在"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "MERGE_THRESHOLD",
+              "0.9",
+              "NAME_FLOOR",
+              "three_way_vote"
+            ]
+          },
+          "why": "两个阈值常量、0.9 这个关键数值与投票函数必须出现"
+        },
+        {
+          "checker": "not_contains",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "MERGE_THRESHOLD_V2"
+            ]
+          },
+          "why": "不得出现仓库里不存在的旧阈值常量名"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：files/symbols 必须是仓库里真实存在的路径与符号（反幻觉），关键论断用 contains_all 逐条断言，并用 not_contains 拒绝已不存在的旧 API 名。",
+      "tags": [
+        "S2",
+        "mechanical"
+      ]
+    },
+    {
+      "id": "L2-S2-15",
+      "layer": "L2",
+      "scenario": "S2_codebase_qa",
+      "title": "事件层上限常量与脱敏，以及 ACR 常量的归属",
+      "input": {
+        "prompt": "本仓库事件层的长度与幂等上限分别是多少、定义在哪个文件？敏感键怎么处理？ACR 的介入权重常量在不在同一个文件里？\n答案必须是 JSON 对象：{\"answer\": \"中文文字解释\", \"files\": [\"仓库相对路径\"], \"symbols\": [\"符号名\"]}。files 与 symbols 里的每一项都必须在本仓库里真实存在，不得编造路径或符号。",
+        "repo_root": ".",
+        "answer_format": {
+          "answer": "中文文字解释",
+          "files": [
+            "仓库相对路径"
+          ],
+          "symbols": [
+            "符号名"
+          ]
+        }
+      },
+      "expect": [
+        {
+          "checker": "path_exists",
+          "path": "files[1]",
+          "args": {
+            "symbol": "KIND_TIMEOUT_DENY"
+          },
+          "why": "第二个文件必须是 acr.py（介入权重常量只在 acr.py 里，不在 events.py）"
+        },
+        {
+          "checker": "all_items",
+          "path": "files",
+          "args": {
+            "check": {
+              "checker": "path_exists",
+              "args": {}
+            }
+          },
+          "why": "文件路径必须真实存在"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "事件层与 ACR 层各一份，必须都给"
+        },
+        {
+          "checker": "symbols_exist",
+          "path": "symbols",
+          "args": {},
+          "why": "三个上限常量与敏感键集合必须真实存在"
+        },
+        {
+          "checker": "contains_all",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "MAX_STR_LEN",
+              "400",
+              "MAX_LINE_BYTES"
+            ]
+          },
+          "why": "截断上限常量、其取值 400 与单行上限常量必须出现"
+        },
+        {
+          "checker": "contains_any",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "200000",
+              "200_000"
+            ]
+          },
+          "why": "幂等索引上限必须给出（允许 200000 或 200_000 两种写法）"
+        },
+        {
+          "checker": "not_contains",
+          "path": "answer",
+          "args": {
+            "texts": [
+              "MAX_STR_LEN_V2"
+            ]
+          },
+          "why": "不得出现仓库里不存在的旧常量名"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：files/symbols 必须是仓库里真实存在的路径与符号（反幻觉），关键论断用 contains_all 逐条断言，并用 not_contains 拒绝已不存在的旧 API 名。",
+      "tags": [
+        "S2",
+        "mechanical"
+      ]
+    },
+    {
+      "id": "L2-S3-01",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "修 ACR 分子：超时拒绝必须计入干预强度",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 observability，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/observability/acr.py",
+            "summary": "acr_numerator 之前漏加 timeout_deny 分支，现按 §6.1 七项口径补齐"
+          },
+          {
+            "path": "tests/unit/test_acr_metrics.py",
+            "summary": "补一条「超时拒绝计入分子」的回归用例"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "fix"
+          ],
+          "scopes": [
+            "observability"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "fix"
+            ],
+            "scopes": [
+              "observability"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "Conventional Commits 结构：type=fix、scope=observability、首行不超过 72 字符、正文含影响面与证据两行"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "变更清单里的每个路径都必须在真实仓库中存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "KIND_TIMEOUT_DENY"
+          },
+          "why": "清单第一项必须是本次改动的源文件 acr.py（顺序即事实）"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[1]",
+          "args": {
+            "symbol": "def test_"
+          },
+          "why": "清单第二项必须是真实的测试文件"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "本次变更恰好涉及两个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现 --force / DROP TABLE / rm -rf 等破坏性词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "observability"
+      ]
+    },
+    {
+      "id": "L2-S3-02",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "新增 L2 Core-50 分层用例集",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 eval，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/eval/cases.py",
+            "summary": "用例契约补充 L2 层规模与种子场景校验说明"
+          },
+          {
+            "path": "agent/eval/checkers.py",
+            "summary": "判定器登记表补 L2 需要的机械判定器"
+          },
+          {
+            "path": "agent/eval/runner.py",
+            "summary": "run_l2() 接入 L2 用例集与基线对照"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "feat"
+          ],
+          "scopes": [
+            "eval"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "feat"
+            ],
+            "scopes": [
+              "eval"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "Conventional Commits 结构：type=feat、scope=eval、首行长度与正文段落齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "三个变更文件都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "class EvalCaseSet"
+          },
+          "why": "清单第一项是契约文件 cases.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[2]",
+          "args": {
+            "symbol": "def run_l2"
+          },
+          "why": "清单最后一项是执行器 runner.py 的 L2 入口"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 3,
+            "max": 3
+          },
+          "why": "本次变更恰好涉及三个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "eval"
+      ]
+    },
+    {
+      "id": "L2-S3-03",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "修正 L2 通过率分母：未评测不计入",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 eval，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/eval/runner.py",
+            "summary": "pass_rate 分母排除 unassessed，报告单列未评测"
+          },
+          {
+            "path": "agent/eval/solvers.py",
+            "summary": "null 解算器返回 None 的语义在文档里写清"
+          },
+          {
+            "path": "agent/eval/checkers.py",
+            "summary": "判定条目机械性标记随结果一并输出"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "fix"
+          ],
+          "scopes": [
+            "eval"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "fix"
+            ],
+            "scopes": [
+              "eval"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "结构断言：type=fix、scope=eval、首行不超 72 字符、正文两行齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "三个变更文件都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "class EvalReport"
+          },
+          "why": "清单第一项是执行器 runner.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[2]",
+          "args": {
+            "symbol": "MECHANICAL_CHECKERS"
+          },
+          "why": "清单最后一项是判定器文件 checkers.py"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 3,
+            "max": 3
+          },
+          "why": "本次变更恰好涉及三个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "eval"
+      ]
+    },
+    {
+      "id": "L2-S3-04",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "验收门 p99 判决改用真实墙钟口径",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 digestion，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/digestion/gate.py",
+            "summary": "p99 条件改用 GATE_P99_RATIO 与真实墙钟臂比较"
+          },
+          {
+            "path": "agent/digestion/sandbox.py",
+            "summary": "回放报告暴露 p99_wall_candidate_ms/upstream"
+          },
+          {
+            "path": "tests/unit/test_digestion_gate.py",
+            "summary": "补四条件齐发与 p99 倒退两种用例"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "fix"
+          ],
+          "scopes": [
+            "digestion"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "fix"
+            ],
+            "scopes": [
+              "digestion"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "结构断言：type=fix、scope=digestion、首行不超 72 字符、正文两行齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "三个变更文件都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "GATE_P99_RATIO"
+          },
+          "why": "清单第一项是验收门 gate.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[2]",
+          "args": {
+            "symbol": "def test_"
+          },
+          "why": "清单最后一项是真实的测试文件"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 3,
+            "max": 3
+          },
+          "why": "本次变更恰好涉及三个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "digestion"
+      ]
+    },
+    {
+      "id": "L2-S3-05",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "描述符合并阈值改为可配置",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 descriptors，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/descriptors/registry.py",
+            "summary": "MERGE_THRESHOLD 改为可配置，默认仍为 0.9；低于 NAME_FLOOR 不再判合并"
+          },
+          {
+            "path": "tests/unit/test_descriptors_registry.py",
+            "summary": "补阈值边界（0.9 恰好合并、0.89 不合并）用例"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "feat"
+          ],
+          "scopes": [
+            "descriptors"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "feat"
+            ],
+            "scopes": [
+              "descriptors"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "结构断言：type=feat、scope=descriptors、首行不超 72 字符、正文两行齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "两个变更文件都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "three_way_vote"
+          },
+          "why": "清单第一项是登记表 registry.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[1]",
+          "args": {
+            "symbol": "def test_"
+          },
+          "why": "清单第二项是真实的测试文件"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "本次变更恰好涉及两个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "descriptors"
+      ]
+    },
+    {
+      "id": "L2-S3-06",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "路由：复杂关键词命中优先走强模型",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 model_router，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/model_router/router.py",
+            "summary": "ModelRouter.route 先判 COMPLEX_KEYWORDS 再走 ROUTING_TABLE"
+          },
+          {
+            "path": "tests/unit/test_model_router.py",
+            "summary": "补复杂任务命中强模型的用例"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "fix"
+          ],
+          "scopes": [
+            "model_router"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "fix"
+            ],
+            "scopes": [
+              "model_router"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "结构断言：type=fix、scope=model_router、首行不超 72 字符、正文两行齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "两个变更文件都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "COMPLEX_KEYWORDS"
+          },
+          "why": "清单第一项是路由器 router.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[1]",
+          "args": {
+            "symbol": "def test_"
+          },
+          "why": "清单第二项是真实的测试文件"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "本次变更恰好涉及两个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "model_router"
+      ]
+    },
+    {
+      "id": "L2-S3-07",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "固化 L2 基线并接入周报",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 eval，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/eval/runner.py",
+            "summary": "新增基线固化路径 eval/baselines/l2_baseline.json 的写入与对照"
+          },
+          {
+            "path": "agent/eval/cases.py",
+            "summary": "用例集哈希口径在文档里写清（逐条排序后汇总）"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "chore"
+          ],
+          "scopes": [
+            "eval"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "chore"
+            ],
+            "scopes": [
+              "eval"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "结构断言：type=chore、scope=eval、首行不超 72 字符、正文两行齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "两个变更文件都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "def run_l2"
+          },
+          "why": "清单第一项是执行器 runner.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[1]",
+          "args": {
+            "symbol": "L2_MIN_PER_SEED"
+          },
+          "why": "清单第二项是契约文件 cases.py"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "本次变更恰好涉及两个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "eval"
+      ]
+    },
+    {
+      "id": "L2-S3-08",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "补充事件信封字段的文档说明",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 observability，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/observability/events.py",
+            "summary": "ENVELOPE_FIELDS 的注释补齐 correlation_id/actor 语义"
+          },
+          {
+            "path": "docs/observability_ci_cd_integration.md",
+            "summary": "补事件信封字段与查询示例一节"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "docs"
+          ],
+          "scopes": [
+            "observability"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "docs"
+            ],
+            "scopes": [
+              "observability"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "结构断言：type=docs、scope=observability、首行不超 72 字符、正文两行齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "代码文件与文档路径都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "ENVELOPE_FIELDS"
+          },
+          "why": "清单第一项是事件模块 events.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[1]",
+          "args": {
+            "symbol": "observability"
+          },
+          "why": "清单第二项是真实存在的文档文件"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "本次变更恰好涉及两个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "observability"
+      ]
+    },
+    {
+      "id": "L2-S3-09",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "性能：shadow 采样 p99 少一次遍历",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 digestion，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/digestion/shadow.py",
+            "summary": "p99 采样改为单次遍历取样本墙钟"
+          },
+          {
+            "path": "agent/digestion/sandbox.py",
+            "summary": "回放报告复用同一 p99 实现"
+          },
+          {
+            "path": "tests/unit/test_digestion_shadow.py",
+            "summary": "补 p99 与样本数边界用例"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "perf"
+          ],
+          "scopes": [
+            "digestion"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "perf"
+            ],
+            "scopes": [
+              "digestion"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "结构断言：type=perf、scope=digestion、首行不超 72 字符、正文两行齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "三个变更文件都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "class ShadowReport"
+          },
+          "why": "清单第一项是 shadow.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[2]",
+          "args": {
+            "symbol": "def test_"
+          },
+          "why": "清单最后一项是真实的测试文件"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 3,
+            "max": 3
+          },
+          "why": "本次变更恰好涉及三个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "digestion"
+      ]
+    },
+    {
+      "id": "L2-S3-10",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "测试：补判定器区分度回归",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 eval，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/eval/solvers.py",
+            "summary": "暴露 broken_answer_for_check 供逐条负样本对照"
+          },
+          {
+            "path": "agent/eval/checkers.py",
+            "summary": "set_path/delete_path 仅在负样本对照中使用"
+          },
+          {
+            "path": "agent/eval/cases.py",
+            "summary": "用例字段契约补充 verdict_kind 说明"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "test"
+          ],
+          "scopes": [
+            "eval"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "test"
+            ],
+            "scopes": [
+              "eval"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "结构断言：type=test、scope=eval、首行不超 72 字符、正文两行齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "三个变更文件都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "broken_answer_for_check"
+          },
+          "why": "清单第一项是解算器 solvers.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[2]",
+          "args": {
+            "symbol": "L2_MIN_PER_SEED"
+          },
+          "why": "清单最后一项是契约 cases.py"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 3,
+            "max": 3
+          },
+          "why": "本次变更恰好涉及三个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "eval"
+      ]
+    },
+    {
+      "id": "L2-S3-11",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "重构：统一判定条目的 why 展示",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 eval，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/eval/checkers.py",
+            "summary": "run_check 返回结果统一带 why 与 detail"
+          },
+          {
+            "path": "agent/eval/runner.py",
+            "summary": "报告展示改为 why + detail 两列"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "refactor"
+          ],
+          "scopes": [
+            "eval"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "refactor"
+            ],
+            "scopes": [
+              "eval"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "结构断言：type=refactor、scope=eval、首行不超 72 字符、正文两行齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "两个变更文件都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "run_check"
+          },
+          "why": "清单第一项是判定器 checkers.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[1]",
+          "args": {
+            "symbol": "STATUS_UNASSESSED"
+          },
+          "why": "清单第二项是执行器 runner.py"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "本次变更恰好涉及两个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "eval"
+      ]
+    },
+    {
+      "id": "L2-S3-12",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "修事件落盘：超长字符串载荷截断",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 observability，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/observability/events.py",
+            "summary": "写入前按 MAX_STR_LEN 截断字符串载荷，避免事件文件被单条撑爆"
+          },
+          {
+            "path": "tests/unit/test_events_v1.py",
+            "summary": "补截断与不截断的边界用例"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "fix"
+          ],
+          "scopes": [
+            "observability"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "fix"
+            ],
+            "scopes": [
+              "observability"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "结构断言：type=fix、scope=observability、首行不超 72 字符、正文两行齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "两个变更文件都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "MAX_STR_LEN"
+          },
+          "why": "清单第一项是事件模块 events.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[1]",
+          "args": {
+            "symbol": "def test_"
+          },
+          "why": "清单第二项是真实的测试文件"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "本次变更恰好涉及两个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "observability"
+      ]
+    },
+    {
+      "id": "L2-S3-13",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "七态顺序常量导出并对齐迁移校验",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 descriptors，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/descriptors/models.py",
+            "summary": "EvolutionStage 七态顺序作为公开契约说明"
+          },
+          {
+            "path": "agent/digestion/stage.py",
+            "summary": "SEVEN_STATES 与枚举逐值对齐并加断言"
+          },
+          {
+            "path": "tests/unit/test_descriptors_models.py",
+            "summary": "补七态取值与顺序用例"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "feat"
+          ],
+          "scopes": [
+            "descriptors"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "feat"
+            ],
+            "scopes": [
+              "descriptors"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "结构断言：type=feat、scope=descriptors、首行不超 72 字符、正文两行齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "三个变更文件都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "class EvolutionStage"
+          },
+          "why": "清单第一项是描述符模型 models.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[1]",
+          "args": {
+            "symbol": "SEVEN_STATES"
+          },
+          "why": "清单第二项是状态机 stage.py"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 3,
+            "max": 3
+          },
+          "why": "本次变更恰好涉及三个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "descriptors"
+      ]
+    },
+    {
+      "id": "L2-S3-14",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "用例集哈希口径：逐条排序后汇总",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 eval，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/eval/cases.py",
+            "summary": "caseset_digest 改为逐条哈希排序后汇总，与文件缩进/键序无关"
+          },
+          {
+            "path": "agent/eval/anchor.py",
+            "summary": "锚清单记录逐条哈希便于定位被改动的用例"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "fix"
+          ],
+          "scopes": [
+            "eval"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "fix"
+            ],
+            "scopes": [
+              "eval"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "结构断言：type=fix、scope=eval、首行不超 72 字符、正文两行齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "两个变更文件都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "caseset_digest"
+          },
+          "why": "清单第一项是契约文件 cases.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[1]",
+          "args": {
+            "symbol": "class AnchorStore"
+          },
+          "why": "清单第二项是锚存储 anchor.py"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "本次变更恰好涉及两个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "eval"
+      ]
+    },
+    {
+      "id": "L2-S3-15",
+      "layer": "L2",
+      "scenario": "S3_commit",
+      "title": "调整 L3 框架声明与晋升规则",
+      "input": {
+        "prompt": "为这次变更写一条 Conventional Commits 提交信息，并给出本变更涉及的文件清单。scope 用 eval，正文必须含「影响面：」与「证据：」两行；提交信息里不得出现破坏性操作词。\n答案必须是 JSON 对象：{\"message\": \"type(scope): subject\\n\\n正文\", \"files\": [\"仓库相对路径\"]}。",
+        "changes": [
+          {
+            "path": "agent/eval/runner.py",
+            "summary": "l3_framework 的晋升规则改为「L2 连续两个窗口全绿才升入 L3」"
+          },
+          {
+            "path": "agent/eval/cases.py",
+            "summary": "L3 不设固定条数的说明与框架声明保持一致"
+          }
+        ],
+        "commit_convention": {
+          "types": [
+            "chore"
+          ],
+          "scopes": [
+            "eval"
+          ],
+          "scope_required": true,
+          "subject_max": 72,
+          "body_sections": [
+            "影响面：",
+            "证据："
+          ]
+        },
+        "forbidden_in_message": [
+          "--force",
+          "DROP TABLE",
+          "rm -rf",
+          "reset --hard",
+          "--no-verify"
+        ]
+      },
+      "expect": [
+        {
+          "checker": "commit_message",
+          "path": "message",
+          "args": {
+            "types": [
+              "chore"
+            ],
+            "scopes": [
+              "eval"
+            ],
+            "subject_max": 72,
+            "body_requires": [
+              "影响面：",
+              "证据："
+            ]
+          },
+          "why": "结构断言：type=chore、scope=eval、首行不超 72 字符、正文两行齐备"
+        },
+        {
+          "checker": "paths_exist",
+          "path": "files",
+          "args": {},
+          "why": "两个变更文件都必须真实存在"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[0]",
+          "args": {
+            "symbol": "def l3_framework"
+          },
+          "why": "清单第一项是执行器 runner.py"
+        },
+        {
+          "checker": "path_exists",
+          "path": "files[1]",
+          "args": {
+            "symbol": "LAYER_SIZES"
+          },
+          "why": "清单第二项是契约文件 cases.py"
+        },
+        {
+          "checker": "length_between",
+          "path": "files",
+          "args": {
+            "min": 2,
+            "max": 2
+          },
+          "why": "本次变更恰好涉及两个文件，清单必须给全"
+        },
+        {
+          "checker": "not_contains",
+          "path": "message",
+          "args": {
+            "texts": [
+              "--force",
+              "DROP TABLE",
+              "rm -rf",
+              "reset --hard",
+              "--no-verify"
+            ]
+          },
+          "why": "提交信息不得出现破坏性操作词"
+        }
+      ],
+      "verdict_kind": "mechanical",
+      "notes": "判定口径：commit_message 机械校验 Conventional Commits 结构（type/scope/subject 长度/正文必需段落）；paths_exist 与逐索引 path_exists 保证文件清单不是幻觉且顺序与变更一致；not_contains 拒绝破坏性操作词。",
+      "tags": [
+        "S3",
+        "eval"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "schema": "eval.anchor.v1",
+  "layer": "L0",
+  "frozen_at": "2026-09-12T02:35:37+0800",
+  "frozen_by": "S5-02 执行会话（代行冻结；Owner 复核项见 TASK-S5-02_验收报告 §6）",
+  "review_note": "L0 锚 v1 冻结：20 条 / 6 类场景（S1 4·S2 3·S3 3·Router 3·审批 4·回滚 3），全部机械可验；参考解 20/20 通过、逐条判定负样本无幸存；哈希口径 = canonical JSON + 文本 LF 归一（跨平台一致）",
+  "count": 20,
+  "caseset_sha256": "d147ffa2c76a1c78d3ce595f733bf8adbdf6d41ac1d05c783b59981dd7bfbf92",
+  "reference_sha256": "abbb4a40c5478072316d5a6dada6f36b1f525c524059f622737d7465603b32a9",
+  "tool_version": "s5-02.1",
+  "entries": {
+    "L0-AP-01": "4c5401fb495f8c6ef98b74e5370bf491ff310eb321b3ac55d684a4fedbc3392c",
+    "L0-AP-02": "0514316fedbd955df50674fb551f7023c8be4fa0174b6b04a28e67e3aaf92210",
+    "L0-AP-03": "f89661e8f79afa3256aa4c3429fed5c1ea14ebebec3027f8e0fbb325273eccc7",
+    "L0-AP-04": "50e577563d32364a693de50631b9791cc7e24563b442e8c9b5d4d4767b188d1d",
+    "L0-RB-01": "87603f9bcd261a47fc8638df6ad979ea26271d0c16ef6cf114d75ad4a4038761",
+    "L0-RB-02": "d980efd213dfc45f090222865e0fad747b02bb330f3c62a19550127748aa4fe4",
+    "L0-RB-03": "e424c34d274d21c0d610b7fc1accb4334ff90766da3c56c0eed5802a8e67544d",
+    "L0-RT-01": "d5ee4c3b1382159e6c578d102a82ee145a1947bd1445d168e615aadafad937ea",
+    "L0-RT-02": "6d1ce96aa85a325341ecdaf3a46368dfb0d669a2e72866c9e66fc11039f00945",
+    "L0-RT-03": "73de4545f13867d165ff2a287d32704f91d56071b65f2003867ffc5f106b7c07",
+    "L0-S1-01": "60e791ce38b755e28159dd5e470411095408b7778847133b8e1af815a47fd436",
+    "L0-S1-02": "deb66a356040c90efa23798eaed5b149436a34f5d3d9913014667c9a624e163d",
+    "L0-S1-03": "f3476c78cf5e5fcf4da7f3d53856ac0e35ff4d814f096c0639ddb3f3693c03d4",
+    "L0-S1-04": "7b819e36d16a2ea3891b913c4db3810a7411953c39e534115c873a5176aaf0c5",
+    "L0-S2-01": "a7fd282f3012f63cb734f08d1b38cbafc160a82fcfa24f0800490bf1a44517eb",
+    "L0-S2-02": "f8450cf0d7d612d4a11607a14f7bc1e67bffc57a640146772cadd7ad1da0e3ae",
+    "L0-S2-03": "89770f97375d900bc6b94e51a38f317eeec63bc183e9d7f44b31edb8e813b751",
+    "L0-S3-01": "5a6cd267d0a9ebaebd75564a55dc6dd8870e5e235d77d468d8b30861804656c0",
+    "L0-S3-02": "bd4a27217102f52760baca82838e0b237d1e7b0072d6bc727595acc6bd899795",
+    "L0-S3-03": "8b416c411ac4e13adaf81441078b2efbe4416d0722876c8b3083657519e6c7a4"
+  },
+  "meta": {
+    "scenario_counts": {
+      "S1_fix_bug": 4,
+      "S2_codebase_qa": 3,
+      "S3_commit": 3,
+      "approval_intercept": 4,
+      "rollback": 3,
+      "router_decision": 3
+    },
+    "verdict_counts": {
+      "mechanical": 20
+    }
+  }
+}
