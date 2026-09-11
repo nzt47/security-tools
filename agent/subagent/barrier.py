@@ -11,7 +11,9 @@
 
 import time
 import logging
+import random
 import threading
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any, Optional, Callable
 from enum import Enum
@@ -342,3 +344,244 @@ def enforce_isolation(func: Callable) -> Callable:
             "请使用 SubagentBarrier 的消息传递机制。"
         )
     return wrapper
+
+
+# ════════════════════════════════════════════════════════════════════
+#  并发屏障（v7.2 §4.2 调度层：并发上限 N + 回压）
+# ════════════════════════════════════════════════════════════════════
+#
+# 【任务定位】§4.2 要求委派并行受「并发上限 N」约束，超过上限时产生**回压**而不是
+#   无限排队或直接失败。SubagentBarrier（上文）解决的是「上下文隔离」，本类是另
+#   一件事：「并发闸门」。两者同属屏障语义，故同置一模块。
+#
+# 【不易】不变量：任一时刻 in_flight ≤ max_concurrency（由 BoundedSemaphore 保证；
+#   release 多余次数抛 ValueError，而不是悄悄抬高上限）。
+# 【变易】max_concurrency / queue_timeout 可配；退避参数是模块常量。
+# 【回压口径】等待采用「指数退避 + 抖动」（§4.2 原文），并在 queue_timeout 到期时
+#   抛 BackpressureTimeout —— 让「排不进去」成为**显式失败**，调用方据此降级或缩减
+#   批次，而不是把任务永久挂在队列里。
+
+#: 回压退避参数
+_BACKOFF_BASE_SECONDS = 0.005
+_BACKOFF_MAX_SECONDS = 0.25
+_BACKOFF_JITTER = 0.5          # 实际退避 ∈ [delay*(1-jitter), delay]
+
+
+class BackpressureTimeout(RuntimeError):
+    """回压超时：在 queue_timeout 内未取得并发槽位（§4.2）
+
+    这是**显式**的排队失败，不是任务失败——调用方应缩减批次或稍后重试。
+    """
+
+    code = "E_BACKPRESSURE_TIMEOUT"
+
+    def __init__(self, name: str, max_concurrency: int, waited_ms: float) -> None:
+        self.name = name
+        self.max_concurrency = int(max_concurrency)
+        self.waited_ms = float(waited_ms)
+        super().__init__(
+            f"{self.code}: 并发屏障 {name!r} 已满（上限 {max_concurrency}），"
+            f"等待 {waited_ms:.1f}ms 未取得槽位（§4.2 回压）")
+
+
+@dataclass
+class ConcurrencyBarrierStats:
+    """并发屏障统计（可直接入审计/验收证据）"""
+
+    name: str = ""
+    max_concurrency: int = 0
+    in_flight: int = 0
+    peak_in_flight: int = 0
+    total_admitted: int = 0
+    total_waited: int = 0          # 取得槽位前确实等待过的次数（回压发生次数）
+    total_rejected: int = 0        # 回压超时次数
+    total_released: int = 0
+    total_wait_ms: float = 0.0
+    max_wait_ms: float = 0.0
+    queue_timeout_seconds: Optional[float] = None
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name,
+            "max_concurrency": int(self.max_concurrency),
+            "in_flight": int(self.in_flight),
+            "peak_in_flight": int(self.peak_in_flight),
+            "total_admitted": int(self.total_admitted),
+            "total_waited": int(self.total_waited),
+            "total_rejected": int(self.total_rejected),
+            "total_released": int(self.total_released),
+            "total_wait_ms": round(float(self.total_wait_ms), 2),
+            "max_wait_ms": round(float(self.max_wait_ms), 2),
+            "queue_timeout_seconds": self.queue_timeout_seconds,
+            "saturated": int(self.in_flight) >= int(self.max_concurrency),
+        }
+
+
+class ConcurrencyBarrier:
+    """并发上限 + 回压闸门（§4.2）
+
+    用法::
+
+        gate = ConcurrencyBarrier(max_concurrency=4, queue_timeout=10.0)
+        with gate.slot():
+            ...                       # 任一时刻最多 4 个执行体进入
+
+    线程安全；``peak_in_flight`` 是可断言的不变量证据（≤ max_concurrency）。
+    """
+
+    def __init__(self, max_concurrency: int = 4, *,
+                 queue_timeout: Optional[float] = None,
+                 name: str = "delegation") -> None:
+        """
+        Args:
+            max_concurrency: 并发上限 N（≥1）。
+            queue_timeout: 排队等待上限（秒）；None = 无限等待（纯回压，不失败）。
+            name: 屏障名（审计用）。
+        """
+        if int(max_concurrency) < 1:
+            raise ValueError(f"max_concurrency 必须 ≥1：{max_concurrency!r}")
+        if queue_timeout is not None and float(queue_timeout) <= 0:
+            raise ValueError(f"queue_timeout 必须为正数或 None：{queue_timeout!r}")
+        self._name = str(name or "delegation")
+        self._max_concurrency = int(max_concurrency)
+        self._queue_timeout = (float(queue_timeout) if queue_timeout is not None else None)
+        self._sem = threading.BoundedSemaphore(self._max_concurrency)
+        self._lock = threading.Lock()
+        self._in_flight = 0
+        self._peak_in_flight = 0
+        self._total_admitted = 0
+        self._total_waited = 0
+        self._total_rejected = 0
+        self._total_released = 0
+        self._total_wait_ms = 0.0
+        self._max_wait_ms = 0.0
+
+    # ── 属性 ──
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    @property
+    def max_concurrency(self) -> int:
+        return self._max_concurrency
+
+    @property
+    def queue_timeout(self) -> Optional[float]:
+        return self._queue_timeout
+
+    @property
+    def in_flight(self) -> int:
+        with self._lock:
+            return self._in_flight
+
+    @property
+    def peak_in_flight(self) -> int:
+        with self._lock:
+            return self._peak_in_flight
+
+    @property
+    def saturated(self) -> bool:
+        """当前是否已满（调用方据此决定是否入队）"""
+        with self._lock:
+            return self._in_flight >= self._max_concurrency
+
+    # ── 获取 / 释放 ──
+
+    def _backoff_sleep(self, delay: float) -> None:
+        """指数退避 + 抖动（§4.2）"""
+        jitter = random.uniform(1.0 - _BACKOFF_JITTER, 1.0)
+        time.sleep(max(0.001, delay * jitter))
+
+    def acquire(self, timeout: Optional[float] = None) -> float:
+        """取得一个并发槽位（阻塞 + 回压）；返回等待毫秒数
+
+        Args:
+            timeout: 覆盖构造时的 ``queue_timeout``（秒）；None → 用构造值。
+
+        Raises:
+            BackpressureTimeout: 等待超时仍未取得槽位（**已计入 total_rejected**）。
+        """
+        limit = self._queue_timeout if timeout is None else float(timeout)
+        start = time.time()
+        delay = _BACKOFF_BASE_SECONDS
+        waited = False
+        while True:
+            if self._sem.acquire(blocking=False):
+                break
+            waited = True
+            elapsed = time.time() - start
+            if limit is not None and elapsed >= limit:
+                wait_ms = (time.time() - start) * 1000.0
+                with self._lock:
+                    self._total_rejected += 1
+                    self._total_wait_ms += wait_ms
+                    self._max_wait_ms = max(self._max_wait_ms, wait_ms)
+                raise BackpressureTimeout(self._name, self._max_concurrency, wait_ms)
+            slice_timeout = min(delay, _BACKOFF_MAX_SECONDS)
+            if limit is not None:
+                slice_timeout = max(0.001, min(slice_timeout, limit - elapsed))
+            if self._sem.acquire(timeout=slice_timeout):
+                break
+            self._backoff_sleep(delay)
+            delay = min(delay * 2.0, _BACKOFF_MAX_SECONDS)
+        wait_ms = (time.time() - start) * 1000.0
+        with self._lock:
+            self._in_flight += 1
+            self._peak_in_flight = max(self._peak_in_flight, self._in_flight)
+            self._total_admitted += 1
+            if waited:
+                self._total_waited += 1
+            self._total_wait_ms += wait_ms
+            self._max_wait_ms = max(self._max_wait_ms, wait_ms)
+        return wait_ms
+
+    def release(self) -> None:
+        """归还槽位（BoundedSemaphore 会在多还时抛 ValueError，不静默抬高上限）"""
+        self._sem.release()
+        with self._lock:
+            self._in_flight = max(0, self._in_flight - 1)
+            self._total_released += 1
+
+    @contextmanager
+    def slot(self, timeout: Optional[float] = None):
+        """``with gate.slot():`` —— 异常路径同样归还（try/finally）"""
+        self.acquire(timeout=timeout)
+        try:
+            yield self
+        finally:
+            self.release()
+
+    # ── 统计 ──
+
+    def stats(self) -> ConcurrencyBarrierStats:
+        with self._lock:
+            return ConcurrencyBarrierStats(
+                name=self._name,
+                max_concurrency=self._max_concurrency,
+                in_flight=self._in_flight,
+                peak_in_flight=self._peak_in_flight,
+                total_admitted=self._total_admitted,
+                total_waited=self._total_waited,
+                total_rejected=self._total_rejected,
+                total_released=self._total_released,
+                total_wait_ms=self._total_wait_ms,
+                max_wait_ms=self._max_wait_ms,
+                queue_timeout_seconds=self._queue_timeout,
+            )
+
+    def reset_stats(self) -> None:
+        """清空统计（**保留**在途计数与信号量状态；测试隔离用）"""
+        with self._lock:
+            self._peak_in_flight = self._in_flight
+            self._total_admitted = 0
+            self._total_waited = 0
+            self._total_rejected = 0
+            self._total_released = 0
+            self._total_wait_ms = 0.0
+            self._max_wait_ms = 0.0
+
+    def __repr__(self) -> str:
+        return (f"<ConcurrencyBarrier {self._name} "
+                f"in_flight={self.in_flight}/{self._max_concurrency} "
+                f"peak={self.peak_in_flight}>")
