@@ -122,6 +122,13 @@ flowchart LR
         agent_descriptors_bridge["agent.descriptors.bridge"]:::crosslayer
         agent_descriptors_registry["agent.descriptors.registry"]:::crosslayer
     end
+    subgraph digestion [digestion]
+        agent_digestion_capability["agent.digestion.capability"]
+        agent_digestion_cleaning["agent.digestion.cleaning"]
+        agent_digestion_generation["agent.digestion.generation"]
+        agent_digestion_service["agent.digestion.service"]
+        agent_digestion_stage["agent.digestion.stage"]
+    end
     subgraph evolution [evolution]
         agent_evolution_injector["agent.evolution.injector"]:::crosslayer
     end
@@ -323,10 +330,10 @@ flowchart LR
         agent_process_distill["agent.process_distill"]
         agent_process_distill_distiller["agent.process_distill.distiller"]
         agent_process_distill_merge["agent.process_distill.merge"]
-        agent_process_distill_models["agent.process_distill.models"]
+        agent_process_distill_models["agent.process_distill.models"]:::crosslayer
         agent_process_distill_prompts["agent.process_distill.prompts"]
         agent_process_distill_service["agent.process_distill.service"]:::crosslayer
-        agent_process_distill_solidify["agent.process_distill.solidify"]
+        agent_process_distill_solidify["agent.process_distill.solidify"]:::crosslayer
         agent_process_distill_sources["agent.process_distill.sources"]
         agent_process_distill_tools["agent.process_distill.tools"]:::crosslayer
     end
@@ -391,7 +398,7 @@ flowchart LR
         agent_skills_mgmt_executor["agent.skills_mgmt.executor"]
         agent_skills_mgmt_feedback_agent["agent.skills_mgmt.feedback_agent"]
         agent_skills_mgmt_few_shot_injector["agent.skills_mgmt.few_shot_injector"]
-        agent_skills_mgmt_file_store["agent.skills_mgmt.file_store"]
+        agent_skills_mgmt_file_store["agent.skills_mgmt.file_store"]:::crosslayer
         agent_skills_mgmt_index_cache["agent.skills_mgmt.index_cache"]
         agent_skills_mgmt_learning_scheduler["agent.skills_mgmt.learning_scheduler"]
         agent_skills_mgmt_lifecycle["agent.skills_mgmt.lifecycle"]
@@ -500,6 +507,7 @@ flowchart LR
     agent_tool_calling --> agent
     agent_tool_calling --> agent_rate_limiter
     agent_tool_calling --> agent_circuit_breaker
+    agent_tool_calling -.-> agent_descriptors_bridge
     agent_tool_calling --> agent_circuit_breaker
     agent_tool_calling -.-> agent_observability_trace_v2
     agent_tool_calling -.-> agent_observability_tool_trace
@@ -875,6 +883,25 @@ flowchart LR
     agent_network --> agent_network_config_validator
     agent_network_observability -.-> agent_logging_utils
     agent_network_observability -.-> agent_monitoring_business_metrics
+    agent_digestion_service -.-> agent_observability_trace_v2
+    agent_digestion_service -.-> agent_descriptors_registry
+    agent_digestion_service -.-> agent_observability_events
+    agent_digestion_stage -.-> agent_descriptors_registry
+    agent_digestion_stage -.-> agent_descriptors_bridge
+    agent_digestion_stage -.-> agent_observability_events
+    agent_digestion_stage -.-> agent_audit_facade
+    agent_digestion_stage -.-> agent_audit_facade
+    agent_digestion_capability -.-> agent_descriptors_bridge
+    agent_digestion_capability -.-> agent_descriptors_registry
+    agent_digestion_generation -.-> agent_workflow_learning_skill_converter
+    agent_digestion_generation -.-> agent_process_distill_solidify
+    agent_digestion_generation -.-> agent_process_distill_models
+    agent_digestion_generation -.-> agent_process_distill_models
+    agent_digestion_generation -.-> agent_process_distill_solidify
+    agent_digestion_generation -.-> agent_workflow_learning_models
+    agent_digestion_generation -.-> agent_process_distill_solidify
+    agent_digestion_generation -.-> agent_skills_mgmt_file_store
+    agent_digestion_cleaning -.-> agent_descriptors_bridge
     agent_process_distill_merge --> agent_process_distill_models
     agent_process_distill_service --> agent_process_distill
     agent_process_distill_service --> agent_process_distill_distiller
@@ -1142,6 +1169,7 @@ flowchart LR
     agent_cognitive_loop --> agent_cognitive_actor_critic
     agent_cognitive_loop --> agent_cognitive_debate
     agent_cognitive_loop -.-> agent_logging_utils
+    agent_descriptors_bridge --> agent_descriptors_registry
     agent_descriptors_bridge -.-> agent_skills_mgmt_store
     agent_descriptors_registry -.-> agent_audit
     agent_lazy_loader -.-> agent_logging_utils
@@ -1594,10 +1622,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 458
-- 模块节点数: 402
-- 依赖边数: 1094
-- 跨层调用数: 712
+- 扫描文件数: 467
+- 模块节点数: 407
+- 依赖边数: 1115
+- 跨层调用数: 732
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 2014.70 ms
+- 构建耗时: 2407.71 ms
