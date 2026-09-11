@@ -6,6 +6,10 @@
 - 选配的工具集
 - 独立的上下文窗口
 - 执行结果追踪
+
+【v7.2 升级（S4-04）】新增 ``run_delegation()``：把容器接入**真实委派执行器**
+（八要素契约 / CLI 通道 / 回收三件套 / 临时凭据 / 工具裁剪）。
+既有 ``execute()`` 的签名与行为**保持不变**（占位骨架仍是骨架，升级走新增路径）。
 """
 
 from __future__ import annotations
@@ -15,9 +19,13 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Iterable, Optional
 
 from agent.subagent.sandbox import Sandbox, PermissionDenied
+
+if TYPE_CHECKING:  # 仅类型检查期导入：容器模块不因此耦合安全/可观测域
+    from agent.subagent.delegation import DelegationContext
+    from agent.subagent.executor import ExecutionOutcome
 
 logger = logging.getLogger(__name__)
 
@@ -233,6 +241,72 @@ class SubagentContainer:
                 duration_ms=(time.time() - start_time) * 1000,
                 timestamp=datetime.now(timezone.utc).isoformat(),
             )
+
+    # ════════════════════════════════════════════════════════════════════
+    #  真实委派执行（v7.2 §3.9 / §3.10）
+    # ════════════════════════════════════════════════════════════════════
+
+    def run_delegation(
+        self,
+        ctx: "DelegationContext",
+        *,
+        executor: Any = None,
+        llm: Any = None,
+        tools: Iterable[str] = (),
+        authorized_capabilities: Optional[Iterable[str]] = None,
+        credentials: Iterable[dict[str, Any]] = (),
+        parent_trace: Any = None,
+        input_text: str = "",
+    ) -> "ExecutionOutcome":
+        """经**真执行器**执行一次委派（八要素 → task_file → CLI 通道 → 回收三件套）
+
+        与 ``execute()`` 的区别：``execute()`` 是既有占位骨架（保持原样，不调 LLM、
+        不做委派协议）；本方法走 ``DelegationExecutor`` 的完整治理链路——八要素校验
+        前置、工具裁剪、临时凭据 TTL 销毁、隔离环境、Trace（``actor=sub_agent``）、
+        回收三件套与成本记账。
+
+        Args:
+            ctx: 委派上下文（八要素）。
+            executor: 注入的执行器（缺省按 ``llm`` 构造内部 LLM 执行器）。
+            llm: 内部执行器所用 LLM（``chat(messages, system_prompt=)``）。
+            tools / authorized_capabilities / credentials / parent_trace / input_text:
+                透传 ``DelegationExecutor.execute``。
+
+        Returns:
+            ``ExecutionOutcome``（已销毁则返回 ``ok=False`` 的结果，不抛异常）。
+        """
+        from agent.subagent.executor import DelegationExecutor, ExecutionOutcome
+
+        if self._is_destroyed:
+            return ExecutionOutcome(
+                delegation_id=getattr(ctx, "delegation_id", ""), ok=False,
+                error_code="E_SUBAGENT_DESTROYED", error="分身已销毁，无法执行委派",
+                sub_reason="destroyed")
+
+        if executor is None:
+            executor = DelegationExecutor(llm=llm if llm is not None else getattr(self, "llm", None))
+
+        started = time.time()
+        # 显式标注：executor 为注入点（Any），标注后再返回可避免 no-any-return
+        outcome: "ExecutionOutcome" = executor.execute(
+            ctx, tools=tools, authorized_capabilities=authorized_capabilities,
+            credentials=list(credentials), parent_trace=parent_trace,
+            input_text=input_text or getattr(ctx, "goal", ""),
+        )
+        # 容器侧留痕（独立于执行器 Trace；仅供容器自省，不改 execute() 的上下文语义）
+        self.context.append({
+            "role": "delegation",
+            "delegation_id": getattr(ctx, "delegation_id", ""),
+            "ok": bool(getattr(outcome, "ok", False)),
+            "trace_id": getattr(outcome, "trace_id", ""),
+            "duration_ms": round((time.time() - started) * 1000, 2),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        })
+        self.updated_at = time.time()
+        logger.info("[Subagent:%s] 委派完成 delegation=%s ok=%s tier=%s",
+                    self.id, getattr(ctx, "delegation_id", ""),
+                    getattr(outcome, "ok", None), getattr(outcome, "tier", ""))
+        return outcome
 
     # ── 记忆增量管理 ──
 

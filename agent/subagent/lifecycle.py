@@ -11,10 +11,12 @@ SubagentLifecycleManager 管理所有分身容器的全生命周期：
 from __future__ import annotations  # 使 list[str] 等注解延迟求值，避免与类方法 list() 冲突
 
 import logging
+import math
 import threading
 import time
+from dataclasses import replace
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from agent.subagent.container import SubagentConfig, SubagentContainer
 
@@ -271,6 +273,68 @@ class SubagentLifecycleManager:
         """当前活跃分身数"""
         with self._lock:
             return len(self._subagents)
+
+    # ════════════════════════════════════════════════════════════════════
+    #  真实委派（v7.2 §3.9 / §5.9）
+    # ════════════════════════════════════════════════════════════════════
+
+    def delegate(
+        self,
+        config: SubagentConfig,
+        ctx: Any,
+        *,
+        executor: Any = None,
+        llm: Any = None,
+        destroy_after: bool = True,
+        tools: Any = (),
+        authorized_capabilities: Any = None,
+        credentials: Any = (),
+        parent_trace: Any = None,
+        input_text: str = "",
+    ) -> Any:
+        """创建分身 → 执行委派 → （默认）销毁：分身生命周期与委派契约对齐
+
+        两条与 §5.9 / §3.9 对齐的语义：
+
+        1. **分身 TTL 取契约⑦**：``config.ttl_seconds`` 为 0（永久）时改为
+           ``ceil(timeout_seconds)``——分身存活期不应超过委派契约声明的任务时长，
+           否则超时后的分身会长期残留。
+        2. **名称冲突自动消歧**：并行委派常复用同一份配置模板，同名会撞
+           ``create()`` 的唯一性检查。此处按 ``delegation_id`` 追加后缀，**不改**
+           ``create()`` 自身的既有一致性行为。
+
+        Args:
+            config: 分身配置模板。
+            ctx: 委派上下文（八要素）。
+            executor / llm / tools / authorized_capabilities / credentials /
+                parent_trace / input_text: 透传 ``SubagentContainer.run_delegation``。
+            destroy_after: 执行后是否销毁分身（默认 True——委派结束即回收）。
+
+        Returns:
+            ``ExecutionOutcome``。
+        """
+        if not config.ttl_seconds or config.ttl_seconds <= 0:
+            try:
+                config.ttl_seconds = max(1, int(math.ceil(float(ctx.timeout_seconds))))
+            except (TypeError, ValueError, AttributeError):
+                pass
+
+        name = config.name
+        with self._lock:
+            taken = name in self._subagents
+        if taken:
+            config = replace(config, name=f"{name}-{getattr(ctx, 'delegation_id', 'x')}")
+
+        container = self.create(config)
+        try:
+            return container.run_delegation(
+                ctx, executor=executor, llm=llm, tools=tools,
+                authorized_capabilities=authorized_capabilities,
+                credentials=credentials, parent_trace=parent_trace,
+                input_text=input_text)
+        finally:
+            if destroy_after and not container.is_destroyed:
+                self.destroy(container)
 
     # ════════════════════════════════════════════════════════════════════
     #  垃圾回收

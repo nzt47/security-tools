@@ -551,3 +551,117 @@ class Sandbox:
 
     def __repr__(self) -> str:
         return f"<Sandbox permissions={self._allowed_permissions}>"
+
+
+# ════════════════════════════════════════════════════════════════════
+#  第三方执行默认隔离（v7.2 §5.9 第 4 条）
+# ════════════════════════════════════════════════════════════════════
+#
+# §5.9 原文：「第三方 MCP Server 默认隔离容器（无宿主网络 / 无 SSH agent /
+# 无 $HOME）」。本段把它落成**执行配置默认值**：委派执行器在构造子进程环境时，
+# 先取宿主环境，再叠加本段的隔离覆盖，最后叠加临时凭据（credentials.py）。
+#
+# 不易：三个「无」是默认值，不是可选项——除非显式声明信任（见 IsolationPolicy
+#   .trusted），第三方执行一律走隔离默认值。
+# 变易：新增隔离维度只需往 ISOLATION_ENV_OVERRIDES / ISOLATION_ENV_BLOCKLIST
+#   加条目，apply_isolation_env 与全部调用点零改动。
+
+#: 第三方执行默认**禁掉**的能力（§5.9 三个「无」）
+THIRD_PARTY_DENIED_CAPABILITIES: tuple = (
+    "host_network",   # 无宿主网络
+    "ssh_agent",      # 无 SSH agent
+    "home",           # 无 $HOME
+)
+
+#: 隔离覆盖：强制写入的环境变量（值刻意为空串——「存在但为空」比「不存在」
+#: 更能挡住 `os.environ.get("SSH_AUTH_SOCK", default)` 一类回退默认值）
+ISOLATION_ENV_OVERRIDES: dict = {
+    # 无 $HOME：清空 HOME/USERPROFILE，并指到沙箱内不可用路径
+    "HOME": "",
+    "USERPROFILE": "",
+    # 无 SSH agent：清空 agent socket 与 ssh 已知主机/配置入口
+    "SSH_AUTH_SOCK": "",
+    "SSH_AGENT_PID": "",
+    "SSH_ASKPASS": "",
+    "GIT_SSH_COMMAND": "",
+    # 无宿主网络：清空全部代理出口，并显式置零宿主网络开关
+    "HTTP_PROXY": "",
+    "HTTPS_PROXY": "",
+    "ALL_PROXY": "",
+    "NO_PROXY": "",
+    "http_proxy": "",
+    "https_proxy": "",
+    "all_proxy": "",
+    "CP_SANDBOX_HOST_NETWORK": "0",
+    "CP_SANDBOX_SSH_AGENT": "0",
+    "CP_SANDBOX_HOME": "0",
+}
+
+#: 隔离**删除**的宿主凭据类环境变量（前缀命中即移除）——第三方子进程不该继承
+#: 宿主的云凭据；凭据只经 credentials.py 的临时凭据通道注入
+ISOLATION_ENV_BLOCKLIST_PREFIXES: tuple = (
+    "AWS_", "AZURE_", "GOOGLE_", "GCP_", "KUBECONFIG",
+    "DOCKER_", "GH_TOKEN", "GITHUB_TOKEN", "NPM_TOKEN",
+    "CP_UI_TOKENS", "OPENAI_", "ANTHROPIC_",
+)
+
+#: 隔离策略的生命周期标识（审计载荷引用）
+ISOLATION_POLICY_ID = "third_party_mcp_default"
+
+
+def isolation_env_overrides(*, container_root: str = "") -> dict:
+    """构造第三方执行的隔离环境覆盖（**默认值**，非可选）
+
+    Args:
+        container_root: 隔离容器内的工作根（非空时用作 HOME 指向，避免 HOME 为空串
+            导致部分工具异常退出）。缺省为空 → HOME 显式为 ``""``（「无 $HOME」）。
+    """
+    env = dict(ISOLATION_ENV_OVERRIDES)
+    if container_root:
+        env["HOME"] = str(container_root)
+        env["USERPROFILE"] = str(container_root)
+    return env
+
+
+def apply_isolation_env(base_env: dict, *,
+                        container_root: str = "",
+                        trusted: bool = False) -> dict:
+    """把隔离默认值叠加到子进程环境上，返回**新字典**（不修改入参）
+
+    顺序（后者覆盖前者）：宿主环境 → 隔离覆盖 → 删除宿主凭据类变量。
+    删除放在最后：即便宿主环境里没有对应键，覆盖也已完成。
+
+    Args:
+        base_env: 宿主环境（通常 ``dict(os.environ)`` 的拷贝）。
+        container_root: 隔离容器工作根（见 ``isolation_env_overrides``）。
+        trusted: 显式声明为可信执行（**默认 False**）。True 时不施加隔离，仅用于
+            云枢自有执行体；第三方 MCP / 外部 agent CLI 必须保持默认值。
+
+    Returns:
+        新的环境字典。
+    """
+    env = dict(base_env)
+    if trusted:
+        return env
+    env.update(isolation_env_overrides(container_root=container_root))
+    for key in list(env.keys()):
+        if any(str(key).upper().startswith(p) for p in ISOLATION_ENV_BLOCKLIST_PREFIXES):
+            del env[key]
+    return env
+
+
+def isolation_policy_report(*, container_root: str = "",
+                            trusted: bool = False) -> dict:
+    """隔离策略的机器可读声明（入审计载荷 / 验收报告证据）"""
+    return {
+        "policy_id": ISOLATION_POLICY_ID,
+        "trusted": bool(trusted),
+        "denied": list(THIRD_PARTY_DENIED_CAPABILITIES),
+        "host_network": bool(trusted),
+        "ssh_agent": bool(trusted),
+        "home": bool(trusted),
+        "container_root": str(container_root or ""),
+        "env_overrides": ({} if trusted
+                          else isolation_env_overrides(container_root=container_root)),
+        "blocked_prefixes": list(ISOLATION_ENV_BLOCKLIST_PREFIXES),
+    }

@@ -1,0 +1,298 @@
+{
+  "generated_at": "2026-09-11T23:18:43.381584+00:00",
+  "env": {
+    "agent_cli": "",
+    "llm_credential": "未配置（.env 为空）"
+  },
+  "A_success": {
+    "ok": true,
+    "tier": "jsonl",
+    "attempts": 1,
+    "task_file": "C:\\Windows\\TEMP\\s404-demo-x7g3q6a7\\task_file_dlg-13be951a9399.json",
+    "command": "'C:\\Users\\Administrator\\AppData\\Local\\Programs\\Python\\Python312\\python.exe' 'C:\\Users\\Administrator\\agent\\.worktrees\\s404\\scripts\\demo_s4_04_agent_cli.py' --emit jsonl -p 'C:\\Windows\\TEMP\\s404-demo-x7g3q6a7\\task_file_dlg-13be951a9399.json' --output-format json --max-turns 10",
+    "artifact_count": 1,
+    "triad_complete": true,
+    "cost_counted": true,
+    "counted_tokens": 1500,
+    "trace_id": "ba9ded210aae4afd",
+    "trace_actor": "sub_agent",
+    "trace_parent": "4247b5576d2c4c16",
+    "trace_status": "success",
+    "credentials_destroyed": true,
+    "credentials": [
+      {
+        "credential_id": "cred-60f910ca6f4e",
+        "name": "GITHUB_TOKEN",
+        "source": "mcp:github",
+        "env_var": "CP_TEMP_MCP_GITHUB_GITHUB_TOKEN",
+        "ttl_seconds": 120.0,
+        "issued_at": 1789168723.382,
+        "expires_at": 1789168843.382,
+        "value_fingerprint": "89c8fc562db22f47",
+        "destroyed": true,
+        "destroyed_at": 1789168723.457,
+        "destroy_reason": "task_end",
+        "wipe_verified": true
+      },
+      {
+        "credential_id": "cred-b448b66f7b1c",
+        "name": "SEARCH_KEY",
+        "source": "mcp:search",
+        "env_var": "CP_TEMP_MCP_SEARCH_SEARCH_KEY",
+        "ttl_seconds": 120.0,
+        "issued_at": 1789168723.382,
+        "expires_at": 1789168843.382,
+        "value_fingerprint": "d2fa5c9cf5a7135d",
+        "destroyed": true,
+        "destroyed_at": 1789168723.457,
+        "destroy_reason": "task_end",
+        "wipe_verified": true
+      }
+    ],
+    "tools_visible": [
+      "read_file",
+      "search_docs"
+    ],
+    "isolation": {
+      "policy_id": "third_party_mcp_default",
+      "trusted": false,
+      "denied": [
+        "host_network",
+        "ssh_agent",
+        "home"
+      ],
+      "host_network": false,
+      "ssh_agent": false,
+      "home": false,
+      "container_root": "",
+      "env_overrides": {
+        "HOME": "",
+        "USERPROFILE": "",
+        "SSH_AUTH_SOCK": "",
+        "SSH_AGENT_PID": "",
+        "SSH_ASKPASS": "",
+        "GIT_SSH_COMMAND": "",
+        "HTTP_PROXY": "",
+        "HTTPS_PROXY": "",
+        "ALL_PROXY": "",
+        "NO_PROXY": "",
+        "http_proxy": "",
+        "https_proxy": "",
+        "all_proxy": "",
+        "CP_SANDBOX_HOST_NETWORK": "0",
+        "CP_SANDBOX_SSH_AGENT": "0",
+        "CP_SANDBOX_HOME": "0"
+      },
+      "blocked_prefixes": [
+        "AWS_",
+        "AZURE_",
+        "GOOGLE_",
+        "GCP_",
+        "KUBECONFIG",
+        "DOCKER_",
+        "GH_TOKEN",
+        "GITHUB_TOKEN",
+        "NPM_TOKEN",
+        "CP_UI_TOKENS",
+        "OPENAI_",
+        "ANTHROPIC_"
+      ]
+    },
+    "child_probe": {
+      "home": "",
+      "userprofile": "",
+      "ssh_auth_sock": "",
+      "host_network_flag": "0",
+      "aws_secret_visible": false,
+      "github_token_visible": false,
+      "openai_key_visible": false,
+      "temp_credential_keys": [
+        "CP_TEMP_MCP_GITHUB_GITHUB_TOKEN",
+        "CP_TEMP_MCP_SEARCH_SEARCH_KEY"
+      ],
+      "cwd": "C:\\Users\\Administrator\\agent\\.worktrees\\s404"
+    },
+    "callback": {
+      "callback_url": "internal://pipeline/stage2",
+      "delivered": true,
+      "error": "",
+      "mode": "audit_record"
+    }
+  },
+  "B_tool_trim": {
+    "B1": {
+      "declared": [
+        "read_file"
+      ],
+      "ok": true,
+      "error_code": "",
+      "sub_reason": "",
+      "violations": []
+    },
+    "B2": {
+      "declared": [
+        "memory.write"
+      ],
+      "ok": false,
+      "error_code": "E_TOOL_NOT_AUTHORIZED",
+      "sub_reason": "tool_trimmed",
+      "violations": [
+        {
+          "tool": "{'name': 'memory.write'}",
+          "matched": "memory.write",
+          "matrix_operation": "memory.write"
+        }
+      ]
+    },
+    "B3": {
+      "declared": [
+        "mcp:filesystem::approval.approve"
+      ],
+      "ok": false,
+      "error_code": "E_TOOL_NOT_AUTHORIZED",
+      "sub_reason": "tool_trimmed",
+      "violations": [
+        {
+          "tool": "{'name': 'mcp:filesystem::approval.approve'}",
+          "matched": "approval.approve",
+          "matrix_operation": "approval.approve"
+        }
+      ]
+    }
+  },
+  "C_degradation": {
+    "tier3": {
+      "tier": "text_extract",
+      "ok": true,
+      "attempts": 2
+    },
+    "tier4": {
+      "tier": "upstream_format",
+      "ok": false,
+      "attempts": 2,
+      "error_code": "E_UPSTREAM_FORMAT",
+      "sub_reason": "no_llm",
+      "error": "解析失败且无 LLM 可抽取：JSON Lines 解析失败（第 1 行）: 出现 markdown 围栏，不是 JSON Lines"
+    }
+  },
+  "E_credentials": {
+    "ok": true,
+    "credentials_destroyed": true,
+    "active_after": 0,
+    "credential_records": [
+      {
+        "name": "SESSION_TOKEN",
+        "source": "mcp:demo",
+        "env_var": "CP_TEMP_MCP_DEMO_SESSION_TOKEN",
+        "ttl_seconds": 30.0,
+        "destroyed": true,
+        "wipe_verified": true,
+        "destroy_reason": "task_end",
+        "fingerprint": "af51df92a4233cfa"
+      }
+    ],
+    "issued_total": 3,
+    "destroyed_total": 3
+  },
+  "F_backpressure": {
+    "delegations": 6,
+    "succeeded": 6,
+    "peak_in_flight": 2,
+    "max_concurrency": 2,
+    "total_admitted": 6,
+    "order_preserved": true
+  },
+  "trace_rows": [
+    {
+      "trace_id": "ba9ded210aae4afd",
+      "actor": "sub_agent",
+      "status": "success",
+      "parent_trace_id": "4247b5576d2c4c16",
+      "capability_id": "subagent.delegate"
+    },
+    {
+      "trace_id": "8565e908c63f43a7",
+      "actor": "sub_agent",
+      "status": "success",
+      "parent_trace_id": "b1f40f08644c408e",
+      "capability_id": "subagent.delegate"
+    },
+    {
+      "trace_id": "5328644f27a447b8",
+      "actor": "sub_agent",
+      "status": "error",
+      "parent_trace_id": "1a3a305d46e94244",
+      "capability_id": "subagent.delegate"
+    },
+    {
+      "trace_id": "350ee6b2dcd045bc",
+      "actor": "sub_agent",
+      "status": "error",
+      "parent_trace_id": "fa749407a3664565",
+      "capability_id": "subagent.delegate"
+    },
+    {
+      "trace_id": "b2281b7ea07c4d77",
+      "actor": "sub_agent",
+      "status": "success",
+      "parent_trace_id": "10e055384a7d4152",
+      "capability_id": "subagent.delegate"
+    },
+    {
+      "trace_id": "c1cdfe02d3924d66",
+      "actor": "sub_agent",
+      "status": "error",
+      "parent_trace_id": "063e0caa09584431",
+      "capability_id": "subagent.delegate"
+    },
+    {
+      "trace_id": "575f632547574558",
+      "actor": "sub_agent",
+      "status": "success",
+      "parent_trace_id": "69a9b100ef1348b4",
+      "capability_id": "subagent.delegate"
+    },
+    {
+      "trace_id": "fb341a4659764eb2",
+      "actor": "sub_agent",
+      "status": "success",
+      "parent_trace_id": "55d48e52ef514bed",
+      "capability_id": "subagent.delegate"
+    },
+    {
+      "trace_id": "d31e7c9f4b88456b",
+      "actor": "sub_agent",
+      "status": "success",
+      "parent_trace_id": "f2c7ffad8ccc4c3b",
+      "capability_id": "subagent.delegate"
+    },
+    {
+      "trace_id": "3f1bba4afd90475c",
+      "actor": "sub_agent",
+      "status": "success",
+      "parent_trace_id": "ddd778f2b4424cb4",
+      "capability_id": "subagent.delegate"
+    },
+    {
+      "trace_id": "43fcd130ced641db",
+      "actor": "sub_agent",
+      "status": "success",
+      "parent_trace_id": "0b95774fe672442b",
+      "capability_id": "subagent.delegate"
+    },
+    {
+      "trace_id": "c87b7f0b1f9b4ce3",
+      "actor": "sub_agent",
+      "status": "success",
+      "parent_trace_id": "32fb9cbb12db4ff0",
+      "capability_id": "subagent.delegate"
+    },
+    {
+      "trace_id": "d93630b93de24448",
+      "actor": "sub_agent",
+      "status": "success",
+      "parent_trace_id": "de7d9b16a7bb4ffb",
+      "capability_id": "subagent.delegate"
+    }
+  ]
+}
