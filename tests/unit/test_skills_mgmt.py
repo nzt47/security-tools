@@ -56,6 +56,22 @@ def _make_skill_data(name="test-skill", **overrides):
     return data
 
 
+def _seed_skill(svc, name="test-skill", **overrides):
+    """**直接落库**造数（不经 `create_manual`：无评估/分类副作用）
+
+    仓库既定口径（见 `d2e95e62`「改直接落库造数，规避 CI 高负载 digest/分类超时」）：
+    仅验证"对已存技能的读取/计数/搜索语义"的用例与创建路径无关，用 `create_manual`
+    造数会连带 advisory 评估（python 代码审查扫描）与自动分类，在 CI
+    "多分片 + 覆盖率并行"的慢负载下**实测挂起**（2026-09-11 交付期：本机 11.3s，
+    CI 逾 60s；放宽超时到 180s 后仍逾 180s）⇒ 故一律走本函数。
+
+    `name` 经 `setdefault` 并入单个 `**` 展开（避免显式 + 展开的 kwarg 同名冲突）。
+    """
+    from agent.skills_mgmt.models import Skill
+    overrides.setdefault("name", name)
+    svc.store.upsert(Skill.from_storage_dict(_make_skill_data(**overrides)))
+
+
 # ═══════════════════════════════════════════════════════════════════
 #  1. 技能创建测试
 # ═══════════════════════════════════════════════════════════════════
@@ -235,10 +251,9 @@ class TestSkillSearch:
 
         注：name 通过 overrides.setdefault 并入单个 ** 展开（不做
         `f(name=name, **overrides)` 的显式+展开混合，避免 kwarg 同名冲突）。
+        实现委托模块级 `_seed_skill`（同口径，避免两处复制）。
         """
-        from agent.skills_mgmt.models import Skill
-        overrides.setdefault("name", name)
-        svc.store.upsert(Skill.from_storage_dict(_make_skill_data(**overrides)))
+        _seed_skill(svc, name=name, **overrides)
 
     def _setup_test_skills(self, svc):
         """创建一批测试技能"""
@@ -464,19 +479,23 @@ class TestRetrievalExtension:
         assert sm["available_methods"] == ["tfidf"]
         assert sm["upgrade_recommended"] is False, "1 个技能不应触发升级建议"
 
-    # 【不易】本用例逐个 create_manual 造 30 个技能（每个都触发 assess/分类），
-    # 是单元测试分片里最慢的一类。CI 以 `--timeout=60 --timeout-method=signal` 运行，
-    # 而 xdist worker 下 signal 会降级为 thread（pytest-timeout 设计），分片高负载时
-    # 实测 >60s 被误判失败（2026-09-11 S3-01 交付期实测：本机 11.3s、CI Shard 4 逾 60s）。
-    # pytest.ini 已约定「极慢测试应显式 @pytest.mark.timeout(N) 覆盖，不要依赖全局默认」，
-    # 故显式放宽至 180s（仍远小于 job 的 timeout-minutes，保留真实挂起检测能力）。
-    @pytest.mark.timeout(180)
     def test_health_upgrade_recommended_at_threshold(self, svc):
-        """技能数达到阈值 30 时 upgrade_recommended 应为 True"""
-        # 创建 30 个技能达到升级阈值
+        """技能数达到阈值 30 时 upgrade_recommended 应为 True
+
+        CI 加固说明（2026-09-11）：本用例只验证 ``health()`` 的**规模阈值判定**
+        （读 store 计数），与"创建路径"无关。此前用 ``svc.create_manual`` 造 30 个
+        技能，每个都连带 advisory 评估（python 代码审查扫描）与自动分类；在 CI
+        "多分片 + 覆盖率并行"的慢负载下该路径**实测挂起**：本机 11.3s，CI Shard 4
+        先逾 60s（2026-09-11 提交 457c85eb），把超时放宽到 180s 后仍逾 180s
+        （提交 2282b4f1，分片总时长 403s → 690s）⇒ 证明不是"略慢"，而是**该路径在
+        CI 环境下病态变慢**，放宽超时是错误修法（已回退）。
+
+        现按仓库既定口径（同 ``d2e95e62``：'改直接落库造数，规避 CI 高负载
+        digest/分类超时'）改为**直接落库造数**，跳过与断言无关的副作用。
+        """
         for i in range(30):
-            svc.create_manual(_make_skill_data(
-                name=f"thresh-skill-{i}", content=f"print({i})\n"))
+            _seed_skill(svc, name=f"thresh-skill-{i}",
+                        content=f"print({i})\n")
         health = svc.health()
         sm = health["scale_monitoring"]
         assert sm["total_skills"] == 30
