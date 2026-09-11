@@ -177,7 +177,7 @@ $ python scripts/demo_s3_03_internalize.py --tasks 40 --no-privacy --no-archive
 | 5 | ROI 报告数据来自 **S2-03 成本归一**且可复现（含摊销公式） | ✅ | `test_formula_is_reproducible`、`test_missing_upstream_cost_is_not_positive`、`unit_cost_from_utc()` 读 `utc.utc_window`（`source=s2-03_utc`）；演示 ROI 报告打印 UTC=0.042 分/任务与 `utc_formula` |
 | 6 | 手动 promote 通道：样本不足**不阻塞**但显著标注人工裁定；走 approval 留痕 | ✅ | `test_manual_promote_submits_approval_with_label`（`label=低样本人工裁定`、`level=L2`、`state=pending_review`）、`test_manual_promote_is_audited`、`test_low_sample_yields_manual_channel`；演示 §2.2 步骤 6 |
 | 7 | S1-02 NEEDS_REVIEW 7 条人工复核消费入口接通（复核后可进手动 promote） | ✅（入口已接通） | 手动通道复用**同一** approval 通道（`object_type=stage.promote` / L2 人工执行），与 S1-02 的 NEEDS_REVIEW 复核走同一 `skills_mgmt.approval` 留痕；trust 复核结果直接决定本引擎条件⑥（`evaluate_privacy_gate` 对未分级/受限等级**从严**）——演示中 `data_class` 未回填时 ⑥ 判 `unknown` 并**一票否决**，回填 `internal` 后 pass。见 §7 遗留 #1（逐条资产清单的**逐项**消费仍待 Owner 在复核时驱动） |
-| 8 | 既有 digestion/descriptors/approval/审计套件零回归；新增单测全绿、覆盖率 ≥80% | ✅ | 邻接回归 **2465 passed / 0 failed / 5 skipped / 1 xfailed**；新增 219 例全绿；覆盖率 shadow **91%** / internalize **89%** / 新增适用性代码路径全绿（§4） |
+| 8 | 既有 digestion/descriptors/approval/审计套件零回归；新增单测全绿、覆盖率 ≥80% | ✅ | 邻接回归 **2476 passed / 0 failed / 1 skipped / 1 xfailed**；新增 219 例全绿；覆盖率 shadow **91%** / internalize **89%** / 新增适用性代码路径全绿（§4） |
 | 9 | 完整内化决策样例在验收报告可复现 | ✅ | §2（命令 + 原始输出 + 决策表 + ROI + PR 产物 + 负样本） |
 | 10 | **【M1】** 灰度期接入真实 LLM-judge（≥0.85），结果如实标注 `judge_kind` | ✅ | `LLMJudge`（真模型调用通道，`ModelAdapterFactory` 惰性解析 + 可注入 `invoke`/adapter）+ `resolve_judge()` + `JudgeGuard`；`JUDGE_KIND_LLM` / `deterministic_local` / `deterministic_local(llm_unavailable)` 三态**可区分**；`test_real_adapter_channel_scores`、`test_runner_uses_llm_label_with_healthy_channel`、`test_runner_uses_fallback_label_without_false_negatives`。本环境无模型凭证 ⇒ 演示如实标注回落（§8.2） |
 | 11 | **【M2】** 条件⑤ 使用**真实墙钟 p99**（非 S3-02 模型时钟量），报告标注 clock 口径 | ✅ | `ReplaySandbox(measure_wall=True)` 记 `Observation.wall_ms`（`perf_counter`）；条件⑤ 两侧同口径（灰度内双跑实测）；报告含 `clock=wall_clock(perf_counter; per-arm real elapsed)` 与 `p99_model_*`（仅披露）；`test_wall_clock_p99_is_measured`、`test_p99_detail_separates_model_clock`、`test_ledger_wall_is_disclosure_only` |
@@ -219,9 +219,9 @@ agent\digestion\shadow.py          909     78    91%
 ```
 $ python -m pytest tests/unit -k "digestion or descriptors or skills_mgmt or approval or trace or audit
     or events or orchestrator or tool_calling" -m "not slow" -q -p no:randomly
-2465 passed, 5 skipped, 11669 deselected, 1 xfailed in 154.36s
+2476 passed, 1 skipped, 11669 deselected, 1 xfailed in 111.25s
 ```
-（5 skipped 为环境前置缺失类既有跳过；1 xfailed 为 S3-01 记录的 TF-IDF 基线既有 xfail。）
+（1 skipped 为既有环境前置缺失类跳过；1 xfailed 为 S3-01 记录的 TF-IDF 基线既有 xfail。注：worktree 内测量时为 3 skipped —— 其中 2 例「运行时台账不存在（CI 冷启动）」在台账存在的环境会真实执行并通过。）
 
 ### 4.3 本地门禁
 
@@ -350,7 +350,7 @@ $ python -m pytest tests/unit -k "digestion or descriptors or skills_mgmt or app
 
 - 交付物 **9 项齐备**（§1）；任务书 §四 **18/18 通过**（§3）；
 - S3-02 移交遗留 **M1–M6 六项全部处置**（4 项收口、1 项按口径待 Owner 裁定、1 项如实披露边界）（§7）；
-- 质量证据齐备：新增 **219 例**全绿、覆盖率 **91%/89%**、邻接回归 **2465 passed / 0 failed**、
+- 质量证据齐备：新增 **219 例**全绿、覆盖率 **91%/89%**、邻接回归 **2476 passed / 0 failed**、
   本地门禁全绿（kwarg 双路 0 处 / mypy 0 error / lint-imports 2 kept / arch 未豁免 0 /
   核心不变量 12/12 / 边界 `blocked_modules=[]` / 测试零污染）（§4）；
 - **已达成 v7.2 护城河闭环的最后一环**：`轨迹 → 判定集 → 灰度 → 自动内化 PR`（人工合入为门）。
