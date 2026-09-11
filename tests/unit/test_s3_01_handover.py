@@ -210,13 +210,45 @@ class TestL1ToolChainLedgerPoint:
         from agent.tool_calling import resolve_tool_capability_id
         assert resolve_tool_capability_id("read_file").startswith("cp.")
 
-    def test_trace_joins_real_ledger(self, facade):
-        """【L1】落账键 ↔ 真实 `data/descriptors.json` 台账可 join"""
+    def test_trace_joins_registered_ledger(self, facade, tmp_path):
+        """【L1】落账键 ↔ descriptor 台账可 join（**隔离台账**，不依赖运行时数据）
+
+        为何不用默认 `DescriptorRegistry()`：默认台账 `data/descriptors.json` 是
+        **运行时产物且已 gitignore** ⇒ CI 冷启动时不存在，registry 为空，
+        join 必然失败。本用例改为在隔离台账上按**真实桥接路径**登记后断言 join，
+        既证明 L1 的契约（改写键 == 登记键），又不依赖运行时状态。
+        （该缺陷是本地绿、CI 红的典型 —— 交付前用"移除运行时台账"复现确认。）
+        """
+        from agent.descriptors.bridge import register_bridge_view
         from agent.descriptors.registry import DescriptorRegistry
         from agent.tool_calling import ToolCallingService
 
-        ledger = DescriptorRegistry()          # 默认读真实台账
+        ledger = DescriptorRegistry(path=str(tmp_path / "l1_ledger.json"),
+                                    autosave=False)
+        register_bridge_view(ledger, "builtin",
+                             [{"name": "read_file", "description": "读文件"}])
         facade.start(task_id="task-l1c", workspace_id="ws_l1")
+        svc = ToolCallingService.__new__(ToolCallingService)
+        svc._execute_safe_core = MagicMock(return_value={"ok": True})
+        svc._execute_safe("read_file", {"path": "x.py"})
+        facade.finish()
+        assert facade.flush()
+
+        [row] = facade.list_by_capability("cp.builtin.read_file")
+        assert row.capability_id == "cp.builtin.read_file"   # 改写后的落账键
+        assert ledger.get(row.capability_id) is not None     # 同键可 join
+
+    def test_trace_joins_default_ledger_when_present(self, facade):
+        """【L1】运行时台账**存在时**同样可 join（CI 冷启动则跳过，不算失败）"""
+        import pathlib
+
+        if not pathlib.Path("data/descriptors.json").exists():
+            pytest.skip("运行时台账不存在（CI 冷启动）—— 契约由上一用例覆盖")
+        from agent.descriptors.registry import DescriptorRegistry
+        from agent.tool_calling import ToolCallingService
+
+        ledger = DescriptorRegistry()
+        facade.start(task_id="task-l1d", workspace_id="ws_l1")
         svc = ToolCallingService.__new__(ToolCallingService)
         svc._execute_safe_core = MagicMock(return_value={"ok": True})
         svc._execute_safe("read_file", {"path": "x.py"})
