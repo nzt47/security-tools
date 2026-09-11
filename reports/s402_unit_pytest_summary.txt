@@ -1,0 +1,63 @@
+# s402_unit_pytest.txt 摘要（原始文件 110448 行 / 19.29 MB，已按仓库纪律不入库）
+# 完整原始输出可由本文件首尾行给出的命令复现；命令见 docs/zh/CloudPivot_v7.2重构计划/TASK-S4-02_验收报告.md §五
+
+## 头部（前 15 行）
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+C:\Users\Administrator\AppData\Local\Programs\Python\Python312\Lib\site-packages\pytest_benchmark\logger.py:44: PytestBenchmarkWarning: Benchmarks are automatically disabled because xdist plugin is active.Benchmarks cannot be performed reliably in a parallelized environment.
+  warner(PytestBenchmarkWarning(text))
+2026-09-12 02:01:16,240 [    INFO] agent.utils.singleton_manager: [SingletonManager] 注册单例: ab_test_manager
+2026-09-12 02:01:16,498 [    INFO] agent.monitoring.business_metrics: {'module_name': 'business_metrics', 'action': 'log', 'message': '[BusinessMetrics] 业务指标收集器已初始化', 'trace_id': 'db3e0ce3bed74d76', 'duration_ms': 0}
+2026-09-12 02:01:16,557 [    INFO] agent.utils.singleton_manager: [SingletonManager] 注册单例: ab_test_manager
+2026-09-12 02:01:16,662 [    INFO] agent.utils.singleton_manager: [SingletonManager] 注册单例: ab_test_manager
+2026-09-12 02:01:16,719 [    INFO] agent.utils.singleton_manager: [SingletonManager] 注册单例: trace_storage
+
+…（中略）…
+
+## 尾部（后 40 行）
+SKIPPED [1] tests\unit\test_system_tools_platform.py:1312: 仅在 Unix/Linux 上运行
+SKIPPED [1] tests\unit\test_system_tools_platform.py:1323: 仅在 Unix/Linux 上运行
+SKIPPED [1] tests\unit\test_system_tools_platform.py:1027: 仅在 Unix/Linux 上运行
+SKIPPED [1] tests\unit\test_env_file_permissions.py:74: Unix 权限测试仅在非 Windows 平台运行
+SKIPPED [1] tests\unit\test_env_file_permissions.py:85: Unix 权限测试仅在非 Windows 平台运行
+SKIPPED [1] tests\unit\test_system_tools_core.py:3899: search_files 实现可能不同
+SKIPPED [1] tests\unit\test_system_tools_core.py:3905: search_files 实现可能不同
+SKIPPED [1] tests\unit\test_system_tools_core.py:3911: search_files 实现可能不同
+SKIPPED [1] tests\unit\test_system_tools_platform.py:986: 仅在 Unix/Linux 上运行
+SKIPPED [1] tests\unit\test_system_tools_platform.py:995: 仅在 Unix/Linux 上运行
+SKIPPED [1] tests\unit\test_system_tools_platform.py:1204: 仅在 Unix/Linux 上运行
+SKIPPED [1] tests\unit\test_system_tools_platform.py:1003: 仅在 Unix/Linux 上运行
+SKIPPED [1] tests\unit\test_env_file_permissions.py:284: Unix 权限测试仅在非 Windows 平台运行
+SKIPPED [1] tests\unit\test_prometheus_exporter.py:327: Testing behavior when prometheus not available
+SKIPPED [1] tests\unit\test_prometheus_exporter.py:334: Testing behavior when prometheus not available
+SKIPPED [1] tests\unit\test_system_tools_core.py:1545: search_files 实现可能不同
+SKIPPED [1] tests\unit\test_system_tools_core.py:1551: search_files 实现可能不同
+SKIPPED [1] tests\unit\test_error_handler.py:5277: get_status 方法实现可能不同
+SKIPPED [1] tests\unit\test_error_handler.py:5224: 时间依赖测试不稳定
+SKIPPED [1] tests\unit\test_negative_intent.py:278: _QUERY_PATTERNS 已于 commit 1159d88f 删除（TLM 三层路由取代 v6.1 规则）
+XFAIL tests/unit/test_tool_negative_samples.py::TestNegativeSamplesRetrieval::test_query_distinction[G1_web_search_family_q01] - 召回缺失:web_get 不在 top-5,fetch_news 泄漏(BM25 对 URL 不敏感) | 召回缺失=['web_get'] | 负样本泄漏=['fetch_news'] | selected=['fetch_news', 'web_xpath', 'web_css', 'read_pdf', 'write_file']
+XFAIL tests/unit/test_tool_negative_samples.py::TestNegativeSamplesRetrieval::test_query_distinction[G4_list_family_q07] - 召回缺失:list_directory 不在 top-5,list_async_tasks 泄漏 | 召回缺失=['list_directory'] | 负样本泄漏=['list_async_tasks'] | selected=['list_scheduled_tasks', 'web_download', 'list_async_tasks', 'get_sensor_summary', 'expand_context']
+XFAIL tests/unit/test_tool_negative_samples.py::TestNegativeSamplesRetrieval::test_query_distinction[G4_list_family_q08] - 负样本泄漏:list_async_tasks 进入 top-5(BM25 无法区分进程/任务列表语义,待 Reranker) | 负样本泄漏=['list_async_tasks'] | selected=['list_processes', 'get_persona_info', 'get_preferences', 'get_sensor_summary', 'list_async_tasks']
+XFAIL tests/unit/test_tool_negative_samples.py::TestNegativeSamplesRetrieval::test_query_distinction[G4_list_family_q09] - 召回缺失:list_async_tasks 不在 top-5,submit_task 词频更高 | 召回缺失=['list_async_tasks'] | selected=['submit_task', 'get_persona_info', 'get_preferences', 'get_sensor_summary', 'get_task_result']
+XFAIL tests/unit/test_tool_negative_samples.py::TestNegativeSamplesRetrieval::test_query_distinction[G5_install_family_q10] - 召回缺失:ext_install 不在 top-5,install_tool 词频更高 | 召回缺失=['ext_install'] | selected=['get_sensor_summary', 'web_css', 'generate_tool', 'install_tool', 'read_file']
+XFAIL tests/unit/test_tool_negative_samples.py::TestNegativeSamplesRetrieval::test_query_distinction[G6_task_family_q13] - 负样本泄漏:schedule_task 进入 top-5(BM25 对「任务」匹配过宽) | 负样本泄漏=['schedule_task'] | selected=['submit_task', 'get_task_result', 'compress', 'schedule_task', 'web_post']
+XFAIL tests/unit/test_tool_negative_samples.py::TestNegativeSamplesRetrieval::test_query_distinction[G6_task_family_q15] - 负样本泄漏:schedule_task + submit_task 进入 top-5 | 负样本泄漏=['schedule_task', 'submit_task'] | selected=['submit_task', 'cancel_scheduled_task', 'cancel_task', 'schedule_task', 'get_task_result']
+XFAIL tests/unit/test_tool_negative_samples.py::TestNegativeSamplesRetrieval::test_query_distinction[G7_compress_family_q16] - 方向性混淆:BM25 无法区分压缩/解压方向,待 Reranker(报告 q07) | 负样本泄漏=['decompress'] | selected=['decompress', 'compress', 'generate_tool', 'arch_diagram', 'list_async_tasks']
+XFAIL tests/unit/test_tool_negative_samples.py::TestNegativeSamplesRetrieval::test_query_distinction[G7_compress_family_q17] - 负样本泄漏:compress 进入 top-5(BM25 无法区分压缩/解压方向) | 负样本泄漏=['compress'] | selected=['decompress', 'compress', 'list_directory', 'get_file_info', 'json_validate']
+XFAIL tests/unit/test_tool_negative_samples.py::TestNegativeSamplesRetrieval::test_query_distinction[G8_format_convert_direction_q18] - 方向性混淆:BM25 无法区分转换方向,待 Reranker(报告 q08) | 负样本泄漏=['yaml_to_json'] | selected=['json_to_yaml', 'yaml_to_json', 'ext_configure', 'data_format_detect', 'get_weather']
+XFAIL tests/unit/test_tool_negative_samples.py::TestNegativeSamplesRetrieval::test_query_distinction[G8_format_convert_direction_q19] - 负样本泄漏:json_to_yaml 进入 top-5(BM25 无法区分转换方向) | 负样本泄漏=['json_to_yaml'] | selected=['json_query', 'json_to_yaml', 'yaml_to_json', 'read_file', 'data_format_detect']
+XFAIL tests/unit/test_tool_negative_samples.py::TestNegativeSamplesRetrieval::test_query_distinction[G9_search_semantic_family_q21] - 召回缺失:search_memory 不在 top-5,BM25 对「回忆」语义不敏感 | 召回缺失=['search_memory'] | selected=['arch_diagram', 'ext_configure', 'schedule_task', 'remember', 'expand_context']
+XFAIL tests/unit/test_skills_mgmt.py::TestRetrievalEvaluation::test_skill_retrieval_precision_above_threshold - TF-IDF 基线 Precision@3=0.4444 < 0.6 阈值。主要缺陷：self_reflection / memory_summary 的 description 为空，TF-IDF 无法用中文语义查询命中（7 个用例 Precision=0）。升级向量检索后应通过此测试。
+XPASS tests/unit/test_memory_comparison.py::TestMemoryStability::test_filter_chain_no_memory_growth - 内存增长受运行时环境和测试顺序影响，CI Linux 3.11 上可超阈值
+XPASS tests/unit/test_memory_comparison.py::TestMemoryStability::test_gc_reclaims_temp_objects - 内存绝对值测量受测试执行顺序影响，随机顺序下基线漂移可超阈值
+XPASS tests/unit/test_memory_comparison.py::TestRealPipelineMemory::test_real_pipeline_no_memory_leak - 内存绝对值测量受运行时环境和测试顺序影响，CI Linux 3.12 上可超阈值
+XPASS tests/unit/test_memory_comparison.py::TestRealPipelineMemory::test_dict_pipeline_vs_string_pipeline - 内存绝对值测量受测试执行顺序影响，随机顺序下基线漂移可超阈值
+= 14388 passed, 51 skipped, 13 xfailed, 4 xpassed, 65 warnings in 663.82s (0:11:03) =
+PYTEST_EXIT=0
+

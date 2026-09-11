@@ -63,7 +63,7 @@
 | `.github/pull_request_template.md` | PR 模板新增「策略变更 / 高危确认 / 无样本声明」三段 |
 | `.pre-commit-config.yaml` + `hooks/pre-commit` | 策略 schema 门禁（框架 hook + 本仓库实际生效的自定义 hook 各一处） |
 
-### 1.4 用例（9 个套件 / 572 例）
+### 1.4 用例（9 个套件 / 574 例）
 
 | 套件 | 例数 | 覆盖重点 |
 |---|---|---|
@@ -387,7 +387,7 @@ EXIT=0
 
 ### ✅ 7. 既有 guardrails/权限/审批套件零回归；新增单测全绿、覆盖率 ≥80%
 
-**新增 9 个套件 572 例全绿**，`agent/policy` + `egress_guard` 覆盖率 **93%**：
+**新增 9 个套件 574 例全绿**，`agent/policy` + `egress_guard` 覆盖率 **93%**：
 
 ```
 Name                               Stmts   Miss  Cover   Missing
@@ -406,7 +406,7 @@ agent\policy\store.py                312     13    96%   ...
 agent\policy\taint.py                241     20    92%   ...
 ----------------------------------------------------------------
 TOTAL                               2743    191    93%
-=============================== 572 passed in 16.06s ===============================
+=============================== 574 passed in 29.24s ===============================
 ```
 
 > **单模块也全部 ≥86%**（任务书要求 ≥80%）。三个原本低于 80% 的模块
@@ -451,7 +451,7 @@ test_策略_allow_不放宽既有拒绝
 
 | 门禁 | 命令 | 结果 |
 |---|---|---|
-| 新增套件 + 覆盖率 | `pytest tests/unit/test_policy*.py tests/unit/test_policy_support.py --cov=agent.policy --cov=agent.guardrails.egress_guard` | **572 passed / 0 failed**，覆盖率 **93%** |
+| 新增套件 + 覆盖率 | `pytest tests/unit/test_policy*.py tests/unit/test_policy_support.py --cov=agent.policy --cov=agent.guardrails.egress_guard` | **574 passed / 0 failed**，覆盖率 **93%** |
 | 邻接回归 | `pytest tests/unit/test_audit*.py tests/unit/test_events_v1.py tests/unit/test_permission*.py tests/unit/test_guardrails*.py tests/unit/test_hitl.py tests/unit/test_takeover_queue.py` | **417 passed / 0 failed** |
 | HTTP 邻接 | `pytest tests/unit/test_http_client.py tests/unit/test_web_http_client.py tests/unit/test_web_init.py` | **33 passed / 0 failed** |
 | kwarg 扫描（两条） | `python scripts/scan_kwarg_conflicts.py --path agent --min-risk HIGH` / `--path tests --min-risk HIGH` | **0 处**（exit 0 / exit 0） |
@@ -463,7 +463,7 @@ test_策略_allow_不放宽既有拒绝
 | 缓存 p99 实测 | `python scripts/bench_policy_cache.py --iterations 20000 --enforce` | **PASS**（命中 p99 0.0474 ms） |
 | 真实提交场景 pre-commit | 见 §五 | ✅ 已跑 |
 | 全量抽查（unit） | `pytest tests/unit -m "not slow" -p no:randomly -q -n 4 --dist=loadscope` | **14388 passed / 0 failed**（663.82s，`PYTEST_EXIT=0`） |
-| 全量抽查（非 unit） | `pytest tests --ignore=tests/unit -m "not slow" -p no:randomly -q -n 4 --dist=loadscope` | 见 `reports/s402_nonunit_pytest.txt` |
+| 全量抽查（非 unit） | `pytest tests --ignore=tests/unit -m "not slow" -p no:randomly -q -n 4 --dist=loadscope` | 见 `reports/s402_nonunit_pytest_summary.txt` |
 | 门禁产物漂移 | `git status` 检查 | 见 §五.3（`tests/contract/contracts/*.json` 6 个文件被既有契约用例改写，已还原） |
 
 ---
@@ -519,10 +519,10 @@ python -m pytest -m "not slow" -p no:randomly -q
 
 | 范围 | 命令 | 结果 |
 |---|---|---|
-| `tests/unit`（本任务改动的主战场） | `pytest tests/unit -m "not slow" -p no:randomly -q -n 4 --dist=loadscope` | **14388 passed / 51 skipped / 13 xfailed / 4 xpassed / 0 failed**，`PYTEST_EXIT=0`，663.82s |
-| `tests/`（除 unit：boundary/contract/chaos/integration/e2e 等） | `pytest tests --ignore=tests/unit -m "not slow" -p no:randomly -q -n 4 --dist=loadscope` | 跑到 **97%** 时 xdist worker 挂起（最后完成的用例属 `tests/chaos/test_rate_limiter_chaos.py`，之后 65 分钟无任何用例输出与进展），已**主动终止**；该区段与本任务改动面无关，原始输出留存 `reports/s402_nonunit_pytest.txt` |
+| `tests/unit`（本任务改动的主战场） | `pytest tests/unit -m "not slow" -p no:randomly -q -n 4 --dist=loadscope` | **15326 passed / 53 skipped / 13 xfailed / 4 xpassed / 0 failed**，`PYTEST_EXIT=0`，551.58s |
+| `tests/`（除 unit：boundary/contract/chaos/integration/e2e 等） | `pytest tests --ignore=tests/unit -m "not slow" -p no:randomly -q -n 4 --dist=loadscope` | 跑到 **97%** 时 xdist worker 挂起（最后完成的用例属 `tests/chaos/test_rate_limiter_chaos.py`，之后 65 分钟无任何用例输出与进展），已**主动终止**；该区段与本任务改动面无关，原始输出留存 `reports/s402_nonunit_pytest_summary.txt` |
 
-原始输出：`reports/s402_unit_pytest.txt`、`reports/s402_nonunit_pytest.txt`
+原始输出：`reports/s402_unit_pytest_summary.txt`、`reports/s402_nonunit_pytest_summary.txt`
 （以及未跑完的串行尝试 `reports/s402_full_pytest.txt`，保留以佐证「被终止」而非
 「有失败」）。
 
@@ -559,6 +559,40 @@ python -m pytest -m "not slow" -p no:randomly -q
 > 这条发现本身是交付物的一部分：**把「决策快」与「决策+埋点快」混为一谈**是这个
 > 指标最容易被做假的地方，因此两个口径都实测并分别列出。
 
+### 5.2.1 全量 xdist 下暴露的**隔离缺陷**（本任务自己的用例，已修）
+
+第一次全量 `tests/unit`（xdist `--dist=loadscope`）红了 **1 例**，而且正是本任务自己的用例：
+
+```
+FAILED tests/unit/test_policy_engine.py::TestObservability::test_决策写入链式审计
+E  AssertionError: assert 'policy.decision' in ['lineage.append', 'lineage.append', ...]
+   agent.audit.chain: 审计链 seq 冲突（单写者纪律被破坏？）: UNIQUE constraint failed: audit_chain.seq
+```
+
+**根因不是审计链坏了，而是两处隔离缺陷**：
+
+| # | 缺陷 | 为什么「单独跑绿、全量跑红」 |
+|---|---|---|
+| A | 用例读的是**进程级审计门面** `get_audit().recent(...)`，同 worker 内其它写者（`lineage.append`）会往同一条链写 | 断言对象变成「谁先写」；模块到 worker 的分配一变，结果就变 |
+| B | `policy_testkit` **没有隔离审计链**，策略用例的决策埋点写进了仓库运行时台账 `data/audit/audit_chain.db` | gitignore 挡住了产物漂移，但污染了开发者本地台账——正是通用硬约束 6 的同类问题 |
+
+**修复（两处都改用 S2-02 自己给出的唯一有效口径）**：
+
+- 断言改为**自有链**：显式构造 `AuditChain(tmp)` + `facade.bind(chain)`，从自有链按
+  `entries(action="policy.decision")` 精确过滤 → 对其它写者天然免疫（`test_audit_facade.py::bound_facade` 同款）。
+- testkit 增加 `_bind_tmp_audit_chain()`：逐测试把门面绑到 tmp 链。
+  **注意：设 `AUDIT_DB_PATH` 环境变量是无效的**——`agent.audit.facade.audit` 是模块级单例，
+  `_db_path` 在**导入期**就解析完，`reset_audit_facade()` 也不重建对象（只 close + bind(None)
+  + reset_counters）。实测：加了 env 之后仓库链里 `policy.decision` 仍 224 → 249、
+  `egress.blocked` 79 → 89；改用 `bind()` 后同一批用例再跑，两个计数**均为 0 增量**。
+- 新增 2 例**守卫「隔离本身」**的用例（`TestIsolationGuards`）：审计链必须在 `tmp_path` 下；
+  9 个落盘环境变量必须全部指向 `tmp_path`。隔离机制失效时会红灯，而不是安静地污染台账。
+
+修后全量 `tests/unit` **15326 passed / 0 failed**（`PYTEST_EXIT=0`）。
+
+> 这条发现值得单独记：**「用例断言了正确的行为」与「用例断言了正确的对象」是两件事**。
+> 前者靠被测代码正确，后者靠用例自己拥有被测状态。
+
 ### 5.3 产物漂移
 
 跑完门禁后 `git status --porcelain` 发现 6 个既有契约用例产物被改写：
@@ -592,6 +626,7 @@ python -m pytest -m "not slow" -p no:randomly -q
 | L8 | CI 侧 `policy-change-gate.yml` 未在本分支实测（需要真实 PR 上下文） | 本任务 | **非阻塞** | YAML 结构已按仓库既有 workflow 风格编写；门禁脚本本身的**每条失败路径**都有单测（44 例）+ 本地四场景实跑证据（§三.6）。真实 PR 上的首跑需 Owner 侧观察 |
 | L9 | **全量埋点使出域判定 p99 逼近/越过 5 ms**（命中 3.76 ms / 未命中 7.97 ms） | 部署侧 / S6-01（面板） | **非阻塞**（默认行为已满足验收；这是容量规划输入） | 决策本体 p99 仅 0.047 ms（余量 105×），成本全在链式审计的 SQLite 追加。已提供 `CP_POLICY_OBSERVE_SCOPE=governance` 降噪开关（默认 `all` 不变）。若生产环境外发 QPS 高，建议同时开启该开关并观察链增长速率；S6-01 面板可作为观测落点 |
 | L11 | ~~master 上 `architecture-check` 阻塞 job 仍红（`agent/security/*` 2 条 `no_circular_dependency`）~~ | **S4-01**（包归属） | ✅ **已解除**（跨任务最小修复） | 已用受控实验证明与本任务代码无关（干净基线 + 仅本任务改动 → 0 违规）；随后按仓库既有先例 `a2c0d20a`（S5-02 同类修复）把 `agent/security/{approval_guard,approval_session}.py` 的**包根自引用**改为指向具体兄弟模块（3 行），并验证运行时等价（4 种冷启动导入顺序 + 别名同一性）。修后 `arch_rules --check` **未豁免 0 / exit 0**；邻接回归 870 passed。详见提交 `112eea38` |
+| L12 | **已推送的历史中含 2 个 20MB 级测试日志 blob**（`reports/s402_unit_pytest.txt` 19.3MB、`reports/s402_nonunit_pytest.txt` 5.5MB，随 `faaec7c0` 入库） | 本任务 | **非阻塞**（HEAD 已收敛为摘要 + 加 .gitignore） | `-q` 的全量输出混有各模块结构化日志，体积大且无长期价值。本提交已把 HEAD 里的原始日志替换为 `*_pytest_summary.txt`（60 行 / <20KB）并加 `.gitignore`；**历史 blob 仍在**——改写历史会影响两个远端与其他并行会话，本任务不做。如需清理，建议 Owner 择机 `git filter-repo --path reports/s402_unit_pytest.txt --path reports/s402_nonunit_pytest.txt --invert-paths` 后强推并通知各会话重新克隆 |
 | L10 | 出域判定会对**每个**外部 HTTP 请求产生一条决策日志 | 部署侧 | **非阻塞** | 这正是模拟器的数据来源（不能省），但意味着 `data/policies/decisions.jsonl` 会随外发量线性增长。当前无自动轮转（`DecisionLog._candidate_files` 已支持读 `decisions.<day>.jsonl` 分片，但**未实现写入轮转**）。建议由运维侧按日志量配置外部轮转，或后续任务补 `rotate_on_size` |
 
 > 无「阻塞性」遗留；无需要 Owner 立即裁定的事项。
@@ -620,7 +655,7 @@ python -m pytest -m "not slow" -p no:randomly -q
 | 4. secret 出域 → deny（决策层 + 执行层双用例） | ✅ |
 | 5. LLM 无法在策略中写网络副作用（引擎纯决策） | ✅（装载期 + 静态 + 运行期三层） |
 | 6. 模拟器可重放并输出 deny→allow + 高危清单；PR 门禁存在 | ✅（样例 deny→allow=7 / ask→allow=9；门禁 5 道闸全有用例） |
-| 7. 既有套件零回归；新增单测全绿、覆盖率 ≥80% | ✅（572 例全绿 / 93% / 邻接 450 例零回归） |
+| 7. 既有套件零回归；新增单测全绿、覆盖率 ≥80% | ✅（574 例全绿 / 93% / 邻接回归见 §四） |
 
 **结论：7/7 通过，可结案。** 结案报告见
 [S4-02_交付结案报告_20260911.md](S4-02_交付结案报告_20260911.md)。

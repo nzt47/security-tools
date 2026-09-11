@@ -488,15 +488,39 @@ class TestInboxRouting:
 
 
 class TestObservability:
-    def test_决策写入链式审计(self, tmp_path, ctx_factory, monkeypatch):
-        from agent.audit.facade import reset_audit_facade, get_audit
-        monkeypatch.setenv("CP_AUDIT_CHAIN_DB", str(tmp_path / "chain.db"))
-        reset_audit_facade()
-        eng = PolicyEngine(make_store(), cache_size=0, decision_log=False,
-                           observer=DecisionObserver(), inbox=False)
-        eng.check(ctx_factory(data_class="secret", external=True))
-        actions = [entry.action for entry in get_audit().recent(limit=20)]
-        assert "policy.decision" in actions
+    def test_决策写入链式审计(self, tmp_path, ctx_factory):
+        """决策入链式审计（S2-02）
+
+        **隔离口径**：本用例只对**自己建的链**做断言。读进程级门面
+        （`get_audit().recent(...)`）在全量 xdist 下会被同 worker 内其它写者
+        （如 `lineage.append`）污染，并触发审计链的单写者 seq 冲突——被测对象
+        变成「谁先写」，用例就不再是本用例。这里照抄 S2-02 自己在
+        `test_audit_facade.py::bound_facade` 给出的口径：自有链 + 公开 `bind()`
+        + 从自有链按 action 精确过滤。
+        """
+        from agent.audit import facade as facade_mod
+        from agent.audit.chain import AuditChain, reset_audit_chains
+
+        reset_audit_chains()
+        chain = AuditChain(str(tmp_path / "policy_audit.db"),
+                           roots_path=str(tmp_path / "roots.jsonl"),
+                           signing_key_path=str(tmp_path / "k.pem"),
+                           auto_seal=False)
+        previous = facade_mod.audit.bind(chain)
+        old_enabled = facade_mod.audit.enabled
+        facade_mod.audit.enabled = True
+        try:
+            eng = PolicyEngine(make_store(), cache_size=0, decision_log=False,
+                               observer=DecisionObserver(), inbox=False)
+            eng.check(ctx_factory(data_class="secret", external=True))
+            recorded = chain.entries(action="policy.decision")
+        finally:
+            facade_mod.audit.bind(previous)
+            facade_mod.audit.enabled = old_enabled
+            chain.close(timeout=2.0)
+            reset_audit_chains()
+        assert len(recorded) >= 1
+        assert recorded[-1].source == "agent"
 
     def test_事件埋点_policy_decision_与_policy_denied(self, tmp_path, ctx_factory):
         eng = PolicyEngine(make_store(), cache_size=0, decision_log=False,
@@ -537,8 +561,6 @@ class TestObservability:
         是出域判定路径的主要开销（命中 p99 0.047ms → 3.764ms）。该开关把
         「策略层无异议」剔出账本，但**决策日志照写**——模拟器数据不受影响。
         """
-        from agent.audit.facade import get_audit, reset_audit_facade
-        monkeypatch_mod = None  # noqa: F841 占位，保持与其它用例同形
         eng = PolicyEngine(make_store(), cache_size=0, decision_log=False,
                            observer=DecisionObserver(scope="governance"), inbox=False)
         assert eng.stats["observer"]["scope"] == "governance"

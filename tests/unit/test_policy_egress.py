@@ -301,14 +301,42 @@ class TestEgressGuard:
         monkeypatch.setattr(egress_mod, "decide_egress", boom)
         assert EgressGuard.precheck(method="GET", url="https://example.com") is None
 
-    def test_拦截写入审计_egress_blocked(self, tmp_path, monkeypatch):
-        from agent.audit.facade import get_audit, reset_audit_facade
-        monkeypatch.setenv("CP_AUDIT_CHAIN_DB", str(tmp_path / "chain.db"))
-        reset_audit_facade()
-        EgressGuard.precheck(method="POST", url="https://api.example.com/x",
-                             data=FAKE_KEY)
-        actions = [entry.action for entry in get_audit().recent(limit=20)]
-        assert "egress.blocked" in actions
+    def test_拦截写入审计_egress_blocked(self, tmp_path):
+        """拦截留痕入链：`egress.blocked`（与决策侧 `policy.decision` 分开）
+
+        隔离口径同 `test_policy_engine.py::test_决策写入链式审计`：断言只针对
+        **自有链**，避免与同 worker 内其它写者抢进程级门面。
+        """
+        from agent.audit import facade as facade_mod
+        from agent.audit.chain import AuditChain, reset_audit_chains
+
+        reset_audit_chains()
+        chain = AuditChain(str(tmp_path / "egress_audit.db"),
+                           roots_path=str(tmp_path / "roots.jsonl"),
+                           signing_key_path=str(tmp_path / "k.pem"),
+                           auto_seal=False)
+        previous = facade_mod.audit.bind(chain)
+        old_enabled = facade_mod.audit.enabled
+        facade_mod.audit.enabled = True
+        try:
+            decision = EgressGuard.precheck(
+                method="POST", url="https://api.example.com/x", data=FAKE_KEY)
+            assert decision is not None and decision.allowed is False
+            blocked = chain.entries(action="egress.blocked")
+        finally:
+            facade_mod.audit.bind(previous)
+            facade_mod.audit.enabled = old_enabled
+            chain.close(timeout=2.0)
+            reset_audit_chains()
+        assert len(blocked) == 1
+        # 审计门面把业务字段包在 payload.payload 下（外层还有 actor_source/schema）
+        entry = blocked[0].payload or {}
+        fields = entry.get("payload") if isinstance(entry.get("payload"), dict) else entry
+        # 执行点留痕必须写明「网络动作未发生」——这是决策-执行分离的可核对证据
+        assert fields.get("network_action_taken") is False
+        assert fields.get("enforced") is True
+        assert str(fields.get("policy_id", "")).startswith("builtin.invariant.")
+        assert fields.get("data_class") == "secret"
 
     def test_header_names_接受_dict_与序列(self):
         assert EgressGuard.precheck(method="GET", url="https://example.com",

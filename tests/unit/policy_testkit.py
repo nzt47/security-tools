@@ -51,6 +51,15 @@ ENV_KEYS = (
     "CP_EVENTS_DIR",
     "CP_EVENTS_ENABLED",
     "CP_EVENTS_AUDIT_MIRROR",
+    # 审计链（S2-02）——**变量名以 agent/audit/facade.py:52-56 为准**，
+    # 不是 CP_AUDIT_*。此前漏了这三个，导致策略用例的决策埋点写进了仓库
+    # 运行时的 data/audit/audit_chain.db（gitignore 挡住了产物漂移，
+    # 但污染了开发者本地台账）。
+    "AUDIT_DB_PATH",
+    "AUDIT_ROOTS_PATH",
+    "AUDIT_SIGNING_KEY",
+    "AUDIT_CHAIN_ENABLED",
+    "AUDIT_DUAL_WRITE",
 )
 
 
@@ -69,7 +78,8 @@ def isolate_policy(tmp_path: Any, monkeypatch: Any, *,
 
     Returns:
         关键路径字典（``policy_file`` / ``decision_log`` / ``inbox`` /
-        ``private_key`` / ``public_key``）。
+        ``private_key`` / ``public_key`` / ``events_dir`` / ``audit_db`` /
+        ``audit_roots`` / ``audit_key``）。
     """
     base = tmp_path / "policy_io"
     base.mkdir(parents=True, exist_ok=True)
@@ -81,6 +91,9 @@ def isolate_policy(tmp_path: Any, monkeypatch: Any, *,
         "private_key": str(base / "signing_key.pem"),
         "public_key": str(base / "signing_key.pub.pem"),
         "events_dir": str(base / "events"),
+        "audit_db": str(base / "audit_chain.db"),
+        "audit_roots": str(base / "daily_roots.jsonl"),
+        "audit_key": str(base / "audit_signing_key.pem"),
     }
 
     for key in ENV_KEYS:
@@ -91,6 +104,14 @@ def isolate_policy(tmp_path: Any, monkeypatch: Any, *,
     monkeypatch.setenv("CP_POLICY_INBOX_PATH", paths["inbox"])
     monkeypatch.setenv("CP_POLICY_SIGNING_KEY", paths["private_key"])
     monkeypatch.setenv("CP_POLICY_PUBLIC_KEY", paths["public_key"])
+    # 审计链隔离（S2-02）：env 变量只是「尚未构造门面时」的兜底——`audit` 是模块级
+    # 单例，路径在导入期就解析完了，事后设 env 对它**无效**（实测：设了 env 仍往
+    # data/audit/audit_chain.db 写）。真正的重定向必须 `bind()` 一条自有链。
+    monkeypatch.setenv("AUDIT_DB_PATH", paths["audit_db"])
+    monkeypatch.setenv("AUDIT_ROOTS_PATH", paths["audit_roots"])
+    monkeypatch.setenv("AUDIT_SIGNING_KEY", paths["audit_key"])
+    monkeypatch.delenv("AUDIT_DUAL_WRITE", raising=False)
+
     # 事件层隔离（沿用 S2-03 用例的既有口径）
     monkeypatch.setenv("CP_EVENTS_DIR", paths["events_dir"])
     monkeypatch.delenv("CP_EVENTS_ENABLED", raising=False)
@@ -100,8 +121,45 @@ def isolate_policy(tmp_path: Any, monkeypatch: Any, *,
         with open(paths["policy_file"], "w", encoding="utf-8") as handle:
             json.dump({"schema": "policy.v1", "policies": []}, handle)
 
-    _reset_singletons()
+    _reset_singletons()          # 其中会 reset_audit_facade()（bind(None)）
+    _bind_tmp_audit_chain(paths, monkeypatch)   # ⇒ 必须在 reset 之后绑定
     return paths
+
+
+def _bind_tmp_audit_chain(paths: Dict[str, str], monkeypatch: Any) -> None:
+    """把进程级审计门面绑定到本用例自己的 tmp 链（逐测试独立台账）
+
+    为什么不是「设环境变量」：`agent.audit.facade.audit` 是模块级单例，其
+    `_db_path/_roots_path/_key_path` 在**导入期**就已解析，`reset_audit_facade()`
+    也不重建对象（只 close + bind(None) + reset_counters）。所以事后设 env 无效，
+    只能 `bind()` 一条显式构造的链。
+
+    这里用 `monkeypatch.setattr` 一步完成「绑定 + 测后还原」：setattr 会记录当前值，
+    teardown 时写回，于是不必把每个 fixture 改成生成器。
+    额外把 `_db_path` 等一并指向 tmp，使「链被关闭后懒重建」也不会落到默认路径。
+    """
+    try:
+        from agent.audit import facade as facade_mod
+        from agent.audit.chain import AuditChain, reset_audit_chains
+    except Exception:  # noqa: BLE001 审计栈不可用时无需绑定
+        return
+    try:
+        reset_audit_chains()
+        chain = AuditChain(paths["audit_db"],
+                           roots_path=paths["audit_roots"],
+                           signing_key_path=paths["audit_key"],
+                           auto_seal=False, auto_start_writer=False)
+        monkeypatch.setattr(facade_mod.audit, "_chain", chain, raising=False)
+        monkeypatch.setattr(facade_mod.audit, "_db_path", paths["audit_db"],
+                            raising=False)
+        monkeypatch.setattr(facade_mod.audit, "_roots_path", paths["audit_roots"],
+                            raising=False)
+        monkeypatch.setattr(facade_mod.audit, "_key_path", paths["audit_key"],
+                            raising=False)
+        monkeypatch.setattr(facade_mod.audit, "enabled", True, raising=False)
+        paths["audit_chain"] = chain
+    except Exception:  # noqa: BLE001 绑不上就退回"不写链"，绝不因隔离失败影响用例
+        pass
 
 
 def _reset_singletons() -> None:
@@ -115,6 +173,16 @@ def _reset_singletons() -> None:
     try:
         from agent.observability.events import reset_event_stores
         reset_event_stores()
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from agent.audit.facade import reset_audit_facade
+        reset_audit_facade()
+    except Exception:  # noqa: BLE001
+        pass
+    try:
+        from agent.audit.chain import reset_audit_chains
+        reset_audit_chains()
     except Exception:  # noqa: BLE001
         pass
     try:

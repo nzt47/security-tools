@@ -389,3 +389,8 @@ data/skills_classes.json
 
 # S5-02 评测运行期产物（基线快照/难度拟合件）：与 L0 锚（eval/）分离，避免产物漂移
 data/eval/
+
+# TASK-S4-02：全量 pytest 原始输出（-q 下混有各模块结构化日志，单文件 ~19MB）
+# 不入库；只提交 *_pytest_summary.txt 摘要。
+reports/*_pytest.txt
+reports/s4*_unit_pytest.txt

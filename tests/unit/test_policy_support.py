@@ -224,6 +224,35 @@ class _FakeQueue:
         return type("R", (), {"takeover_id": record["takeover_id"]})()
 
 
+class TestIsolationGuards:
+    """守卫「隔离本身」——隔离机制失效时要有红灯，而不是安静地污染运行时台账
+
+    背景（实现期实测）：策略用例的决策埋点会调用 `agent.audit.facade.audit`，而它是
+    **模块级单例**、`_db_path` 在**导入期**就解析完；`reset_audit_facade()` 也不重建
+    对象（只 close + bind(None) + reset_counters）。因此「设 `AUDIT_DB_PATH` 环境变量」
+    对它**无效**——实测设了 env 之后仓库链里 `policy.decision` 仍 224 → 249、
+    `egress.blocked` 79 → 89。唯一有效口径是显式构造链并 `bind()`（S2-02 自己在
+    `test_audit_facade.py` 的写法），本 testkit 已在 `_bind_tmp_audit_chain` 落地。
+    """
+
+    def test_审计链被绑定到本用例的_tmp(self, tmp_path):
+        from agent.audit import facade as facade_mod
+        chain = facade_mod.audit.chain
+        assert chain is not None, "审计门面未启用，隔离无从谈起"
+        assert str(tmp_path) in str(chain.db_path), (
+            f"审计链未隔离到 tmp_path：{chain.db_path}（应位于 {tmp_path} 下）")
+
+    def test_落盘路径全部指向_tmp(self, tmp_path):
+        import os
+        for name in ("CP_POLICY_FILE", "CP_POLICY_DECISION_LOG",
+                     "CP_POLICY_INBOX_PATH", "CP_POLICY_SIGNING_KEY",
+                     "CP_POLICY_PUBLIC_KEY", "CP_EVENTS_DIR",
+                     "AUDIT_DB_PATH", "AUDIT_ROOTS_PATH", "AUDIT_SIGNING_KEY"):
+            value = os.environ.get(name, "")
+            assert value and str(tmp_path) in value, (
+                f"{name} 未指向 tmp_path：{value!r}")
+
+
 class TestPolicyInbox:
     def test_log_后端落账(self, tmp_path):
         inbox = PolicyInbox(backend="log", path=str(tmp_path / "i.jsonl"))
