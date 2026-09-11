@@ -591,7 +591,7 @@ python -m pytest -m "not slow" -p no:randomly -q
 | L7 | 阈值/开关较多（13 个 `CP_POLICY_*` 环境变量） | 本任务 | **非阻塞** | 全部有默认值且非法值回退默认（通用硬约束 3）；`data/policies/README.md` §七 有全表 |
 | L8 | CI 侧 `policy-change-gate.yml` 未在本分支实测（需要真实 PR 上下文） | 本任务 | **非阻塞** | YAML 结构已按仓库既有 workflow 风格编写；门禁脚本本身的**每条失败路径**都有单测（44 例）+ 本地四场景实跑证据（§三.6）。真实 PR 上的首跑需 Owner 侧观察 |
 | L9 | **全量埋点使出域判定 p99 逼近/越过 5 ms**（命中 3.76 ms / 未命中 7.97 ms） | 部署侧 / S6-01（面板） | **非阻塞**（默认行为已满足验收；这是容量规划输入） | 决策本体 p99 仅 0.047 ms（余量 105×），成本全在链式审计的 SQLite 追加。已提供 `CP_POLICY_OBSERVE_SCOPE=governance` 降噪开关（默认 `all` 不变）。若生产环境外发 QPS 高，建议同时开启该开关并观察链增长速率；S6-01 面板可作为观测落点 |
-| L11 | **master 上 `architecture-check` 阻塞 job 仍红**：`agent/security/*` 有 2 条 `no_circular_dependency` 违规（`agent.security ↔ agent.security.approval_guard`、`agent.security.approval_session ↔ agent.security`） | **S4-01**（`agent/security/` 由其 commit `1cc3baa7` 新建） | **非阻塞本任务**（本任务代码已证明 0 违规），但**阻塞主干 CI** | 已用受控实验证明与本任务无关（干净基线 + 仅本任务改动 → 0 违规）。修复口径与本文 §4.2 同：依赖倒置或补 `docs/architecture/legacy_exemptions.json` 豁免。**请 S4-01 归属会话处置** |
+| L11 | ~~master 上 `architecture-check` 阻塞 job 仍红（`agent/security/*` 2 条 `no_circular_dependency`）~~ | **S4-01**（包归属） | ✅ **已解除**（跨任务最小修复） | 已用受控实验证明与本任务代码无关（干净基线 + 仅本任务改动 → 0 违规）；随后按仓库既有先例 `a2c0d20a`（S5-02 同类修复）把 `agent/security/{approval_guard,approval_session}.py` 的**包根自引用**改为指向具体兄弟模块（3 行），并验证运行时等价（4 种冷启动导入顺序 + 别名同一性）。修后 `arch_rules --check` **未豁免 0 / exit 0**；邻接回归 870 passed。详见提交 `112eea38` |
 | L10 | 出域判定会对**每个**外部 HTTP 请求产生一条决策日志 | 部署侧 | **非阻塞** | 这正是模拟器的数据来源（不能省），但意味着 `data/policies/decisions.jsonl` 会随外发量线性增长。当前无自动轮转（`DecisionLog._candidate_files` 已支持读 `decisions.<day>.jsonl` 分片，但**未实现写入轮转**）。建议由运维侧按日志量配置外部轮转，或后续任务补 `rotate_on_size` |
 
 > 无「阻塞性」遗留；无需要 Owner 立即裁定的事项。
