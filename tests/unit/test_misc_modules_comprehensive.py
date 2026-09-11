@@ -82,19 +82,60 @@ class TestCostTrackerInit:
 
 
 class TestCostTrackerRecord:
-    """测试 CostTracker.record 方法"""
+    """测试 CostTracker.record 方法
 
-    def test_record_writes_to_file(self, tmp_path):
+    【TASK-S5-03 / Owner 裁定 D（2026-09-11）：双成本轨收敛到事件流】
+    旧轨 `cost_log.jsonl` **默认停写**（唯一数据源＝事件流）；
+    `CP_COST_LEGACY_LOG_WRITE=1` 为回滚开关。以下用例因此分两组：
+    - 默认路径：断言**不写旧文件**且**有可见告警**（不静默丢账）；
+    - 回滚路径：打开开关后，原有写入/计价断言逐条保留（写入逻辑仍在、仍被覆盖）。
+    """
+
+    @pytest.fixture(autouse=True)
+    def _legacy_env(self, monkeypatch):
+        from agent.model_router import cost_tracker as ct
+        monkeypatch.delenv(ct.ENV_LEGACY_WRITE, raising=False)
+        ct.reset_legacy_alarm()
+        yield
+        ct.reset_legacy_alarm()
+
+    def test_record_does_not_write_legacy_file_by_default(self, tmp_path):
+        """默认停写：新写入只落事件流，旧轨文件不再被创建/追加"""
         from agent.model_router.cost_tracker import CostTracker
         log_path = tmp_path / "cost.jsonl"
         tracker = CostTracker(log_path=str(log_path))
+        tracker.record("gpt-4", 1000, 500, 1500.0, "chat", "trace1")
+        assert not log_path.exists()
+        # 内存统计仍照常（未丢账）
+        assert tracker.get_summary()["total_calls"] == 1
+
+    def test_suppressed_write_is_alarmed_not_silent(self, tmp_path):
+        """不得静默丢账：停写期间的 record() 必须留下可见告警痕迹"""
+        from agent.model_router import cost_tracker as ct
+        tracker = ct.CostTracker(log_path=str(tmp_path / "cost.jsonl"))
+        tracker.record("gpt-4", 1000, 500, 1500.0)
+        status = ct.legacy_track_status()
+        assert status["write_enabled"] is False
+        assert status["suppressed_write_attempts"] == 1
+        assert status["suppressed_records_total"] == 1
+        assert status["alarmed"] is True
+        assert status["source_of_truth"] == "events"
+
+    def test_record_writes_to_file_when_rollback_enabled(self, tmp_path, monkeypatch):
+        """回滚开关：恢复旧写入行为（收敛可回滚）"""
+        from agent.model_router import cost_tracker as ct
+        monkeypatch.setenv(ct.ENV_LEGACY_WRITE, "1")
+        log_path = tmp_path / "cost.jsonl"
+        tracker = ct.CostTracker(log_path=str(log_path))
         tracker.record("gpt-4", 1000, 500, 1500.0, "chat", "trace1")
         content = log_path.read_text(encoding="utf-8")
         assert "gpt-4" in content
         assert "trace1" in content
 
-    def test_record_calculates_cost_correctly(self, tmp_path):
+    def test_record_calculates_cost_correctly(self, tmp_path, monkeypatch):
+        from agent.model_router import cost_tracker as ct
         from agent.model_router.cost_tracker import CostTracker, MODEL_COSTS
+        monkeypatch.setenv(ct.ENV_LEGACY_WRITE, "1")
         log_path = tmp_path / "cost.jsonl"
         tracker = CostTracker(log_path=str(log_path))
         tracker.record("gpt-4", 1000, 500, 1000.0)
@@ -103,6 +144,29 @@ class TestCostTrackerRecord:
         expected_cost = 1000 / 1000 * MODEL_COSTS["gpt-4"]["input"] + \
                         500 / 1000 * MODEL_COSTS["gpt-4"]["output"]
         assert abs(record["cost_usd"] - round(expected_cost, 6)) < 0.0001
+
+    def test_invalid_rollback_value_keeps_stop_write(self, tmp_path, monkeypatch):
+        """非法取值**不得**被 bool(非空串) 当成"恢复写入"（保持停写）"""
+        from agent.model_router import cost_tracker as ct
+        monkeypatch.setenv(ct.ENV_LEGACY_WRITE, "maybe")
+        assert ct.legacy_write_enabled() is False
+        log_path = tmp_path / "cost.jsonl"
+        ct.CostTracker(log_path=str(log_path)).record("gpt-4", 10, 10, 1.0)
+        assert not log_path.exists()
+
+    def test_legacy_records_still_readable(self, tmp_path):
+        """只读兼容 ≤1 minor：历史 record 仍可查询（归档不删）"""
+        from agent.model_router.cost_tracker import CostTracker
+        log_path = tmp_path / "cost.jsonl"
+        log_path.write_text(json.dumps({
+            "timestamp": "2026-01-01T10:00:00", "model": "gpt-4",
+            "input_tokens": 100, "output_tokens": 50, "cost_usd": 0.006}) + "\n"
+            + "{broken json}\n", encoding="utf-8")
+        tracker = CostTracker(log_path=str(log_path))
+        rows = tracker.legacy_records()
+        assert len(rows) == 1 and rows[0]["model"] == "gpt-4"
+        # 旧文件未被删除/覆盖
+        assert log_path.exists()
 
     def test_record_unknown_model_uses_default_cost(self, tmp_path):
         from agent.model_router.cost_tracker import CostTracker
@@ -781,10 +845,25 @@ class TestIntegration:
         assert summary["total_calls"] == 3
         assert summary["total_cost_usd"] > 0
 
+        # 【S5-03 / 裁定 D】默认停写后，旧轨文件不再是持久化介质
+        # （唯一数据源＝事件流）；此处如实断言"不再落盘"这一新契约。
+        assert not log_path.exists()
+
+    def test_cost_tracker_full_lifecycle_with_rollback(self, tmp_path, monkeypatch):
+        """回滚开关下的完整生命周期（原「重新加载验证持久化」路径逐条保留）"""
+        from agent.model_router import cost_tracker as ct
+        from agent.model_router.cost_tracker import CostTracker
+        monkeypatch.setenv(ct.ENV_LEGACY_WRITE, "1")
+        log_path = tmp_path / "cost.jsonl"
+        tracker = CostTracker(log_path=str(log_path))
+        tracker.record("gpt-4", 1000, 500, 1000.0, "chat", "trace1")
+        tracker.record("gpt-3.5-turbo", 500, 200, 500.0, "summary", "trace2")
+        tracker.record("gpt-4o-mini", 2000, 1000, 2000.0, "translate", "trace3")
+        assert tracker.get_summary()["total_calls"] == 3
         # 重新加载验证持久化
         tracker2 = CostTracker(log_path=str(log_path))
-        summary2 = tracker2.get_summary()
-        assert summary2["total_calls"] == 3
+        assert tracker2.get_summary()["total_calls"] == 3
+        assert len(tracker2.legacy_records()) == 3
 
     def test_safety_guard_full_workflow(self, tmp_path):
         """测试 SafetyGuard 完整工作流"""

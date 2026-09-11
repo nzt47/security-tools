@@ -67,6 +67,11 @@ data/acr_snapshot.json
 data/utc_snapshot.json
 data/s2_03_demo_trace.db*
 
+# S5-03 成本刹车运行时产物（归一化日成本视图 / 断食熔断状态机状态）
+# 性质同 data/utc_snapshot.json：运行时留痕，不入库；验收报告引用其路径与内容
+data/cost_daily.json
+data/cost_brake_state.json
+
 # S3-01 消化流水线运行时产物（草稿暂存区 / 入轨报告 / 演示产物 / 台账备份）
 # 性质同 data/audit/、data/events/：运行时留痕，不入库；验收报告引用其路径与内容
 data/digestion/
