@@ -116,14 +116,46 @@ class FakeResponse:
         self.status = status
 
 
+class FakeTenancy:
+    """``UnifiedTrace.tenancy`` 替身（触发①作用域过滤用）"""
+
+    def __init__(self, tenant_id="", workspace_id=""):
+        self.tenant_id = tenant_id
+        self.workspace_id = workspace_id
+
+
+#: 与各测试文件中的 ROOT_A / ROOT_B 字面量一致（租户 = 其工作区哈希）
+ROOT_A = "C:/repos/alpha"
+ROOT_B = "C:/repos/beta"
+
+
+def workspace_hash(workspace_root):
+    """工作区根 → workspace-hash（= P7.2-08 的 tenant_id）"""
+    from agent.observability.trace_v2 import derive_workspace_id
+
+    return derive_workspace_id(workspace_root)
+
+
 class FakeTrace:
-    def __init__(self, capability_id, status="success"):
+    """``UnifiedTrace`` 替身；默认归属 ``ROOT_A`` 租户（与既有触发①用例的写入上下文一致）"""
+
+    def __init__(self, capability_id, status="success", tenant_id=None,
+                 workspace_id=None):
+        resolved = workspace_hash(ROOT_A) if tenant_id is None else tenant_id
         self.capability_id = capability_id
         self.response = FakeResponse(status)
+        self.tenancy = FakeTenancy(
+            tenant_id=resolved,
+            workspace_id=(resolved if workspace_id is None else workspace_id),
+        )
 
 
 class FakeTraceStore:
-    """``UnifiedTraceStore`` 替身：只实现遗忘引擎用到的 query 叶子"""
+    """``UnifiedTraceStore`` 替身：只实现遗忘引擎用到的 query 叶子
+
+    与真实 `UnifiedTraceStore.query()` 一致 —— **不提供租户过滤参数**
+    （真实的租户隔离由 `TraceQualitySource` 在读取侧完成，见修复 #9）。
+    """
 
     def __init__(self, traces=()):
         self.traces = list(traces)

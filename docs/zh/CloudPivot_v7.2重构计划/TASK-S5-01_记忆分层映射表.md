@@ -91,6 +91,12 @@
 
 **执行纪律**：任何物理删除前**先落快照**（①/② 类 `full` 模式，留 30 天可回滚）；③ 类用 `hash_only` **墓碑快照**（内容置空、`subject_id` 换伪引用，只留 `content_hash`），并对既有 `full` 快照中的该主体条目**就地墓碑化** —— 否则 30 天快照会把"记忆物理删除"抵消。删除默认 **dry-run**（`run(execute=False)` / `forget(dry_run=True)`），须显式开启才落盘。
 
+**触发①的租户作用域（修复 #9 —— 隔离延伸到治理决策）**：S2-01 的 `UnifiedTraceStore.query()` **没有租户过滤参数**（`_iter_persisted()` 读全表再在 Python 侧过滤）。而遗忘是**破坏性**决策：若按跨租户聚合的成功率判定，"租户 A 的劣化"会导致"租户 B 的记忆"被遗忘，与 P7.2-08 相悖。故：
+
+- `tenancy.sample_scope_for(entry)`：租户隔离层条目 ⇒ 取**本租户**；org 级下发条目 ⇒ 取 `""`（org 级聚合）；无租户 ⇒ `""`；
+- `TraceQualitySource.success_rate(..., tenant_id=...)` 在**读取侧**按 trace 的 `tenancy`（`tenant_id` / `workspace_id`）过滤，**无法归属租户的轨迹（tenant/workspace 均空）一律排除**（隔离从严）并计入 `unattributed`；
+- **守不易**：不改 `agent/observability/trace_v2.py`（S2-01 落点）即达成隔离；`sample_scope` / `unattributed_traces` 落进候选 `evidence` 供取证。
+
 ---
 
 ## 六、落点与可调参数
@@ -122,6 +128,7 @@
 | TTL（秒） | `MEMORY_TTL_WORKING` / `_FACT` / `_PREFERENCE` / `_STRATEGY` | 8h / 180d / 365d / 365d |
 | 快照保留 | `MEMORY_SNAPSHOT_RETENTION_DAYS` | 30 |
 | 触发①窗口/阈值/样本门槛 | `MEMORY_FORGET_WINDOW_DAYS` / `_SUCCESS_RATIO` / `_MIN_SAMPLES` | 30 / 0.7 / 20 |
+| 审计链取证扫描上限 | `MEMORY_AUDIT_SCAN_LIMIT` | `0` = 扫**完整**链（修复 #10；设为 N 则只扫前 N 条，扫描条数如实记入 `ErasureResult.chain_scanned`） |
 
 非法值一律回退默认并告警（批次总表 §三 硬约束 3）。
 

@@ -12,17 +12,17 @@
 | # | 交付物 | 路径 | 规模 |
 |---|---|---|---|
 | 1 | 四层模型（§3.11 对齐） | `agent/memory/taxonomy.py` | 616 行 |
-| 2 | 租户隔离矩阵与写入守卫（P7.2-08） | `agent/memory/tenancy.py` | 786 行 |
+| 2 | 租户隔离矩阵与写入守卫（P7.2-08） | `agent/memory/tenancy.py` | 808 行 |
 | 3 | 四层分片存储（复用既有引擎与检索） | `agent/memory/layered_store.py` | 817 行 |
-| 4 | 遗忘三触发 + TTL + 快照 30 天 + 被遗忘权 | `agent/memory/forgetting.py` | 1235 行 |
+| 4 | 遗忘三触发 + TTL + 快照 30 天 + 被遗忘权 | `agent/memory/forgetting.py` | 1329 行 |
 | 5 | 主体伪名化与审计桥（匿名化 = 销毁盐） | `agent/memory/identity.py` | 318 行 |
 | 6 | 包导出接线（兼容叠加） | `agent/memory/__init__.py` | +84 行 |
-| 7 | 单测（4 套件 + 1 公共夹具模块） | `tests/unit/test_memory_{taxonomy,tenancy,layered_store,forgetting}.py` + `tests/unit/memory_layer_testkit.py` | 236 例 / 2286 行 |
-| 8 | 记忆分层映射表 | `docs/zh/CloudPivot_v7.2重构计划/TASK-S5-01_记忆分层映射表.md` | 137 行 |
+| 7 | 单测（4 套件 + 1 公共夹具模块） | `tests/unit/test_memory_{taxonomy,tenancy,layered_store,forgetting}.py` + `tests/unit/memory_layer_testkit.py` | **246 例 / 2320 行** |
+| 8 | 记忆分层映射表 | `docs/zh/CloudPivot_v7.2重构计划/TASK-S5-01_记忆分层映射表.md` | — |
 | 9 | 本验收报告 | 同目录 | — |
 | 10 | 交付结案报告 | `S5-01_交付结案报告_20260912.md` | — |
 
-**代码总规模**：3772 行（5 个新模块）+ 236 例单测。**零运行时目录污染**（见 §四.4）。
+**代码总规模**：3888 行（5 个新模块）+ 246 例单测。**零运行时目录污染**（见 §四.4）。
 
 ---
 
@@ -94,6 +94,7 @@ python -m pytest tests/unit/test_memory_tenancy.py tests/unit/test_memory_layere
 |---|---|---|
 | ① 成功率 30 天 < 基线×0.7 | `TestSuccessRateTrigger::test_below_baseline_ratio_triggers` | 观测 0.40 < 0.9×0.7=0.63 → 候选，evidence 含 `observed_rate/baseline/threshold/samples/window_days` |
 | ① 边界与门槛 | `test_exactly_at_threshold_does_not_trigger` / `test_insufficient_samples_does_not_trigger`（样本 < 20 不判劣化）/ `test_no_quality_baseline_does_not_trigger` | 三条反例 |
+| ① **租户作用域**（修复 #9） | `TestSuccessRateTenantScoping`（7 例） | 租户 A 全失败 + 租户 B 全成功 ⇒ **B 的记忆不得被判劣化**；同组轨迹下 A 的条目标正常触发；无法归属租户的轨迹被排除并计数（`unattributed`）；org 级策略用 org 聚合样本 |
 | ② 来源失效 | `test_deprecated_source_triggers` / `test_removed_source_triggers` | reason `source_deprecated` / `source_removed` |
 | ② 反例 | `test_healthy_source_does_not_trigger` / `test_alias_merge_is_not_treated_as_removal` / `test_broken_registry_does_not_mark_invalid` | 改名≠摘除；数据源不可用不误删 |
 | ③ 删除权 | `test_erasure_deletes_subject_entries_across_tenants` | 跨租户删除该主体记忆，他人记忆不受影响 |
@@ -167,8 +168,12 @@ python -m pytest tests/unit/test_memory_forgetting.py::TestRightToBeForgotten -v
 | 21 | 任意 | 显式降级（`allow_missing_tenancy`） | 落 `__unscoped__` + 默认召回不含 | `TestEnforcedTenancy::test_degrade_mode_quarantines_entry` | ✅ |
 | 22 | 任意 | 召回优先级 | 策略 > 事实 > 偏好 > 工作；project 事实 > global 偏好；同级新者胜 | `TestRecallPriority`（5 例）+ `TestRecallPriority`（taxonomy 7 例） | ✅ |
 | 23 | 任意 | 只读操作零落盘 | 不创建任何文件 | `TestRecallPriority::test_read_only_operations_leave_no_files` | ✅ |
+| 24 | 任意 | **治理决策不跨租户串扰**（修复 #9） | 租户 A 的劣化不触发租户 B 的记忆遗忘 | `TestSuccessRateTenantScoping::test_other_tenant_failures_do_not_trigger_this_tenant`（＋正例 `test_own_tenant_failures_do_trigger`） | ✅ |
+| 25 | 任意 | 不可归属租户的轨迹不参与判定 | 被排除并计数 | `test_adapter_scopes_sample_and_reports_unattributed` | ✅ |
+| 26 | 任意 | org 级策略用 org 聚合样本 | `sample_scope == ""` | `test_org_level_strategy_uses_org_wide_sample` | ✅ |
+| 27 | 任意 | 删除权取证扫**全链** | `chain_scanned == 链长`（非尾部截断） | `test_chain_scan_covers_whole_chain_not_a_tail`（修复 #10） | ✅ |
 
-统计：**24 例隔离矩阵用例全绿**（`-k` 选择结果：`24 passed, 162 deselected`）。
+统计：**24 例隔离矩阵用例全绿**（判定/存储层 `-k` 选择结果：`24 passed, 162 deselected`），连同新增的治理决策隔离 4 例，本任务隔离相关用例共 **28 例**。
 
 ---
 
@@ -186,34 +191,36 @@ python -m coverage report -m
 | 模块 | 语句数 | 覆盖率 |
 |---|---|---|
 | `agent/memory/taxonomy.py` | 231 | **95%** |
-| `agent/memory/tenancy.py` | 252 | **97%** |
+| `agent/memory/tenancy.py` | 258 | **97%** |
 | `agent/memory/layered_store.py` | 320 | **88%** |
-| `agent/memory/forgetting.py` | 563 | **90%** |
+| `agent/memory/forgetting.py` | 605 | **91%** |
 | `agent/memory/identity.py` | 141 | **83%** |
-| **合计** | **1507** | **91%** |
+| **合计** | **1555** | **91%** |
 
 | 套件 | 用例数 |
 |---|---|
 | `test_memory_taxonomy.py` | 50 |
 | `test_memory_tenancy.py` | 61 |
 | `test_memory_layered_store.py` | 59 |
-| `test_memory_forgetting.py` | 66 |
-| **合计** | **236** |
+| `test_memory_forgetting.py` | 76 |
+| **合计** | **246** |
 
 ### 4.2 相关套件与邻接回归
 
 ```powershell
-# 相关套件（42 文件：test_memory* / test_knowledge* / test_memory_abstractor* / test_abstract_from_memory_route）
-python -m pytest <42 files> -q -p no:randomly
-# 1198 passed, 59 skipped, 4 xpassed, 0 failed（66.91s）
+# 相关套件 + 邻接 + 安全回归（49 文件：test_memory* / test_knowledge* /
+#   test_memory_abstractor* / skills_mgmt / trace_v2 / 链式审计 / tests/regression/test_p0_security_fix.py）
+python -m pytest <49 files> -q -p no:randomly
+# 1678 passed, 59 skipped, 1 xfailed, 4 xpassed, 0 failed（105.03s）
 
-# 邻接回归（skills_mgmt + memory_abstractor 邻接 + trace_v2 邻接 + 链式审计）
-python -m pytest tests/unit/test_skills_mgmt.py tests/unit/test_trace_v2.py `
-  tests/unit/test_trace_v2_integration.py tests/unit/test_trace_store.py `
-  tests/unit/test_audit_chain.py tests/unit/test_audit_facade.py tests/unit/test_audit_integration.py `
-  -q -p no:randomly
-# 420 passed, 1 xfailed, 0 failed（27.73s）
+# 分开口径（首轮交付时）
+# 相关套件 42 文件：1198 passed / 0 failed
+# 邻接 7 文件（skills_mgmt + trace_v2 + 链式审计）：420 passed / 0 failed / 1 xfailed
 ```
+
+> `tests/regression/test_p0_security_fix.py`（含 `TestCrossModuleConsistency`）**全绿** ——
+> 本任务只**读取**既有脱敏设施（`SensitiveDataFilter.detect_and_sanitize`），
+> 未改动 `sensitive_data_filter.py` / `error_reporting_config.py`，安全回归不受影响。
 
 全量抽查（`tests/unit -m "not slow"`）：
 
@@ -287,6 +294,9 @@ python -m pytest tests/unit/test_ci_l3_context_preflight.py::TestSimulatedCiFail
 | 6 | `run(execute=False)` 仍会清理到期快照（dry-run 下发生了删除动作） | 用例首轮失败 | dry-run 一律不删任何东西（快照清理亦属删除） |
 | 7 | 空 `capability_id` 被判为"来源失效" ⇒ 无来源指针的记忆会被误清理 | 用例首轮失败 | `SourceStatus.invalid` 对空指针返回 `False`（无可判定对象 ⇒ 不判失效） |
 | 8 | `LayeredMemoryStore.stats()` 复用既有 `get_stats()` 的键名口径 | 实现期 | 直接消费既有 `total_entries`，不新增统计口径 |
+| 9 | **触发①按跨租户聚合样本判定** ⇒ 租户 A 的劣化会触发租户 B 的记忆被遗忘（破坏性决策跨租户串扰，违反 P7.2-08） | 交付后复读 S2-01/S2-02 台账能力时发现（`UnifiedTraceStore.query()` 无租户参数） | `tenancy.sample_scope_for()` + `TraceQualitySource` **读取侧**按 trace `tenancy` 过滤；不可归属轨迹排除并计数；org 级策略用 org 聚合；补 `TestSuccessRateTenantScoping`（7 例）。**守不易**：未改 `trace_v2.py` |
+| 10 | 删除权的"链内无原始标识符残留"只扫**最近 5000 条** ⇒ 结论不可量化、长链下不成立 | 同轮复读（`facade.recent(limit=5000)`） | 改为**分批全链扫描**（`chain.iter_entries(batch=500)`），扫描条数如实记入 `ErasureResult.chain_scanned`；`MEMORY_AUDIT_SCAN_LIMIT` 可设上限（默认 0 = 全链）；补 2 例 |
+| 11 | `evaluate_success_rate` 的 `sample=None` 分支残留改名后的 `NameError`（`scan()` 总预取样本，故该分支未被任何用例覆盖） | **mypy**（`Name "scope_tenant_for" is not defined`） | 修正为 `sample_scope_for`；补 `test_evaluate_success_rate_without_precomputed_sample` 覆盖该分支并断言确实查了数据源。**教训**：未被用例触达的分支靠类型门禁兜底 |
 
 ---
 
@@ -301,6 +311,10 @@ python -m pytest tests/unit/test_ci_l3_context_preflight.py::TestSimulatedCiFail
 | L5 | **多租户企业形态（tenant ≠ workspace）** 仅在 `resolve_tenancy` 层支持（显式 `tenant_id` + `workspace_id`），未有单测覆盖"一个租户多工作区"的完整召回面 | 后续（企业侧启用时） | 不阻塞：IDE 先行口径（P7.2-08）下 tenant = workspace-hash，已覆盖 |
 | L6 | 触发①的**基线来源**目前取 `descriptor.quality.success_rate`；S5-02 的 L2 Core-50 基线就绪后可切换为回归基线指针（`quality.regression_baseline_id`） | S5-02 交付后 | 不阻塞：`baseline_provider` 已是可注入缝 |
 | L7 | `lint-imports` 在本机 GBK 控制台需 `PYTHONUTF8=1` 才能读 UTF-8 的 `.importlinter` | 环境/工具链 | 不阻塞：属控制台编码，CI Linux 不受影响 |
+| L8 | **审计台账保留/归档策略缺失**（链式轨只增不减、无 TTL）—— S2-02 遗留 #4 原定归属" S2 生产化 / **S5**" | S5 轨后续（非 S5-01 验收项） | 不阻塞本任务：S5-01 的遗忘只删**记忆**，明确不删审计证据（§8「删的是记忆不是证据」）；台账保留策略需独立任务（涉及 `AuditChain` 的归档/只读冷存） |
+| L9 | 触发①基线除 `descriptor.quality.success_rate` 外，仓库已有现成替代数据源 `agent/digestion/gate.py::baseline_from_ledger(capability_id, *, store=None, limit=500)` / `baseline_from_traces(rows)` | S5-02 交付后统一 | 不阻塞：`baseline_provider` 已是可注入缝，切换为一行接线 |
+| L10 | 触发①的租户作用域过滤在**读取侧**完成（`query()` 无租户参数 ⇒ 需拉取该能力全部轨迹再过滤） | S2 生产化（给 `UnifiedTraceStore.query` 加 `tenant_id`/`workspace_id` 过滤 + 用既有 `idx_ut_workspace` 索引） | 不阻塞：正确性已保证；轨迹量大时是该路径的已知成本，已在映射表 §五记录 |
+| L11 | `AuditChain.entries()` 无 `workspace_id` 过滤（列已存在但未建索引） | S2 生产化 / S4-01 | 不阻塞本任务：删除权取证扫描是**治理通道**（跨租户全链扫描是必需的，否则无法证明"标识符已全局消失"） |
 
 ---
 
@@ -314,6 +328,11 @@ python -m pytest tests/unit/test_ci_l3_context_preflight.py::TestSimulatedCiFail
 4. 企业策略记忆 org 级只读下发（个人不可写、跨租户可读、治理通道可维护）✅
 5. 遗忘三触发各自触发用例 + 先快照后删除 + 快照留 30 天 + **删除后审计匿名化但链保留可验签** ✅
 6. TTL 到期自动降级候选生效（含短/长 TTL 分层与可配回退）✅
-7. 既有 memory/knowledge 套件零回归；新增 236 例全绿、覆盖率 91%（≥80%）✅
+7. 既有 memory/knowledge 套件零回归；新增 **246** 例全绿、覆盖率 **91%**（≥80%）✅
 
-**未声称**：真实能力内化（触发① 沿用 ≥20 样本门槛）、P7.2-10 组装注入已接通、企业多工作区形态已全量覆盖。
+**补充验证（复用 S2-01/S2-02 台账能力复读后加固）**：
+- 触发①的成功率样本**按条目租户作用域**（修复 #9）——治理决策不跨租户串扰；
+- 删除权取证**扫全链**并报出扫描条数（修复 #10）；
+- `mypy` 拦下未被用例触达分支的 `NameError`（修复 #11），并已补用例覆盖该分支。
+
+**未声称**：真实能力内化（触发① 沿用 ≥20 样本门槛）、P7.2-10 组装注入已接通、企业多工作区形态已全量覆盖、审计台账保留策略已实现（见遗留 L8）。

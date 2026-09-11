@@ -16,10 +16,12 @@ from memory_layer_testkit import (  # noqa: F401  (autouse 夹具)
     FakeDescriptor,
     FakeRegistry,
     FakeTrace,
+    FakeTraceStore,
     bound_audit_chain,
     make_engine,
     make_store,
     memory_runtime,
+    workspace_hash,
 )
 
 from agent.memory.forgetting import (
@@ -35,6 +37,7 @@ from agent.memory.forgetting import (
     TraceQualitySource,
 )
 from agent.memory.identity import ERASED_MARKER, subject_ref
+from agent.memory.tenancy import WriteChannel
 
 ROOT_A = "C:/repos/alpha"
 ROOT_B = "C:/repos/beta"
@@ -306,6 +309,132 @@ class TestScan:
     async def test_scan_of_empty_store_is_empty(self, tmp_path, clock, store):
         engine, _ = make_engine(tmp_path, store=store, clock=clock)
         assert await engine.scan() == []
+
+
+# ════════════════════════════════════════════════════════════
+#  4b. 触发①的**租户作用域**（修复 #9：破坏性决策不得跨租户串扰）
+# ════════════════════════════════════════════════════════════
+
+
+class TestSuccessRateTenantScoping:
+    """租户 A 的劣化**不得**触发租户 B 的记忆被遗忘（P7.2-08 延伸到治理决策）"""
+
+    def _traces(self, successes, failures, tenant_id):
+        return (
+            [FakeTrace(CAP, "success", tenant_id=tenant_id) for _ in range(successes)]
+            + [FakeTrace(CAP, "error", tenant_id=tenant_id) for _ in range(failures)]
+        )
+
+    def _registry(self):
+        return FakeRegistry({CAP: FakeDescriptor(success_rate=0.9, sample_count=100)})
+
+    async def test_other_tenant_failures_do_not_trigger_this_tenant(self, tmp_path, clock):
+        """租户 A 全失败、租户 B 全成功 ⇒ B 的记忆不得被判定劣化"""
+        store = make_store(tmp_path, clock=clock)
+        traces = (self._traces(0, 30, workspace_hash(ROOT_A))
+                  + self._traces(30, 0, workspace_hash(ROOT_B)))
+        engine, _ = make_engine(tmp_path, store=store, clock=clock, traces=traces,
+                                registry=self._registry())
+        await store.write("B 租户的事实", memory_type="fact", workspace_root=ROOT_B,
+                          source_capability_id=CAP)
+        assert await engine.scan(apply_ttl=False) == []
+
+    async def test_own_tenant_failures_do_trigger(self, tmp_path, clock):
+        """同一组轨迹下换成租户 A 的条目 ⇒ 正常触发（证明上一条不是"功能失效"）"""
+        store = make_store(tmp_path, clock=clock)
+        traces = (self._traces(0, 30, workspace_hash(ROOT_A))
+                  + self._traces(30, 0, workspace_hash(ROOT_B)))
+        engine, _ = make_engine(tmp_path, store=store, clock=clock, traces=traces,
+                                registry=self._registry())
+        await store.write("A 租户的事实", memory_type="fact", workspace_root=ROOT_A,
+                          source_capability_id=CAP)
+        candidates = await engine.scan(apply_ttl=False)
+        assert [c.trigger for c in candidates] == [ForgetTrigger.SUCCESS_RATE]
+        assert candidates[0].evidence["sample_scope"] == workspace_hash(ROOT_A)
+        assert candidates[0].evidence["samples"] == 30
+
+    async def test_adapter_scopes_sample_and_reports_unattributed(self, tmp_path, clock):
+        """适配器侧：作用域过滤生效，且无法归属租户的轨迹被排除并计数"""
+        from memory_layer_testkit import FakeTraceStore
+        from agent.memory.forgetting import TraceQualitySource
+
+        ten_a = workspace_hash(ROOT_A)
+        fake = FakeTraceStore(
+            self._traces(1, 0, ten_a)
+            + self._traces(0, 5, ten_a)
+            + self._traces(5, 0, workspace_hash(ROOT_B))
+            + self._traces(5, 0, "")  # 不可归属（S2-01 缺 workspace 的降级记录）
+        )
+        source = TraceQualitySource(trace_store=fake)
+        sample = source.success_rate(CAP, now=1_000_000.0, tenant_id=ten_a)
+        assert sample.scope == ten_a
+        assert (sample.samples, sample.successes) == (6, 1)
+        assert sample.unattributed == 5
+
+    async def test_unscoped_sample_includes_all_tenants(self, tmp_path, clock):
+        """不给作用域 ⇒ org 级聚合（org 级策略记忆的判定口径）"""
+        from memory_layer_testkit import FakeTraceStore
+        from agent.memory.forgetting import TraceQualitySource
+
+        fake = FakeTraceStore(
+            self._traces(1, 1, workspace_hash(ROOT_A))
+            + self._traces(2, 0, workspace_hash(ROOT_B))
+        )
+        sample = TraceQualitySource(trace_store=fake).success_rate(CAP)
+        assert sample.scope == ""
+        assert sample.samples == 4
+
+    async def test_org_level_strategy_uses_org_wide_sample(self, tmp_path, clock):
+        """org 级策略记忆 ⇒ 不对应任何工作区轨迹，用 org 级聚合样本判定"""
+        store = make_store(tmp_path, clock=clock)
+        traces = self._traces(0, 30, workspace_hash(ROOT_A))
+        engine, _ = make_engine(tmp_path, store=store, clock=clock, traces=traces,
+                                registry=self._registry())
+        result = await store.write("企业规避规则", memory_type="strategy",
+                                   workspace_root=ROOT_A, channel=WriteChannel.ORG,
+                                   source_capability_id=CAP)
+        assert result.entry.is_org_level is True
+        candidates = await engine.scan(apply_ttl=False)
+        assert [c.trigger for c in candidates] == [ForgetTrigger.SUCCESS_RATE]
+        assert candidates[0].evidence["sample_scope"] == ""
+
+    async def test_preference_layer_scope_helper(self):
+        """sample_scope_for：租户隔离层取本租户；org 级取空；无租户取空"""
+        from agent.memory.tenancy import sample_scope_for
+        from memory_layer_testkit import make_entry
+
+        assert sample_scope_for(make_entry(type="fact", tenant_id="ws_a")) == "ws_a"
+        assert sample_scope_for(make_entry(type="working", tenant_id="ws_a")) == "ws_a"
+        assert sample_scope_for(
+            make_entry(type="strategy", tenant_id="__org__", org_level=True)) == ""
+        assert sample_scope_for(make_entry(type="fact", tenant_id="")) == ""
+        assert sample_scope_for(None) == ""
+
+    async def test_fake_trace_defaults_to_root_a_tenant(self):
+        """替身默认归属 ROOT_A：保证既有触发①用例仍打在"本租户"样本上"""
+        assert FakeTrace(CAP).tenancy.tenant_id == workspace_hash(ROOT_A)
+        assert workspace_hash(ROOT_A) != workspace_hash(ROOT_B)
+
+    async def test_evaluate_success_rate_without_precomputed_sample(
+        self, tmp_path, clock
+    ):
+        """无预置样本路径（`sample=None`）也必须走通并自带租户作用域
+
+        Why: `scan()` 总是预取样本并传入 `sample=`，故该分支不会被扫描路径覆盖；
+        曾因此在改名重构后留下 `NameError` 隐患（由 mypy 拦下，见验收报告 #11）。
+        """
+        store = make_store(tmp_path, clock=clock)
+        traces = (self._traces(30, 0, workspace_hash(ROOT_B))
+                  + self._traces(0, 30, workspace_hash(ROOT_A)))
+        engine, fake = make_engine(tmp_path, store=store, clock=clock, traces=traces,
+                                   registry=self._registry())
+        result = await store.write("A 租户的事实", memory_type="fact",
+                                   workspace_root=ROOT_A, source_capability_id=CAP)
+        candidate = engine.evaluate_success_rate(result.entry, now=clock())
+        assert candidate is not None
+        assert candidate.evidence["sample_scope"] == workspace_hash(ROOT_A)
+        assert candidate.evidence["samples"] == 30
+        assert fake.queries, "必须实际查询数据源（而非静默返回空样本）"
 
 
 # ════════════════════════════════════════════════════════════
@@ -646,6 +775,43 @@ class TestRightToBeForgotten:
                               workspace_root=ROOT_A, subject_id="alice")
         actions = [e.action for e in bound_audit_chain.entries()]
         assert "memory.write.rejected" in actions
+
+    async def test_chain_scan_covers_whole_chain_not_a_tail(
+        self, tmp_path, clock, bound_audit_chain
+    ):
+        """修复 #10：残留扫描覆盖**整条链**并如实报出扫描条数（不是只扫最近 N 条）"""
+        store = make_store(tmp_path, clock=clock, audit=True)
+        engine, _ = make_engine(tmp_path, store=store, clock=clock)
+        subject = "alice"
+        # 先制造一批与本主体无关的链记录，把目标记录"推离"尾部
+        for index in range(60):
+            await store.write("无关事实 %d" % index, memory_type="fact",
+                              workspace_root=ROOT_A, subject_id="bob")
+        await store.write("alice 的偏好", memory_type="preference",
+                          workspace_root=ROOT_A, subject_id=subject)
+        total = bound_audit_chain.count()
+        assert total > 60
+
+        result = await engine.erase_subject(subject)
+        assert result.chain_verified is True
+        # 全链，而非尾部截断；扫描含擦除自身追加的 memory.erase 记录 ⇒ 等于扫描时的链长
+        assert result.chain_scanned == total + 1
+        assert result.chain_scanned == bound_audit_chain.count()
+        assert result.residual_identifier_hits == []
+        assert result.anonymized is True
+
+    async def test_chain_scan_limit_is_a_visible_tradeoff(
+        self, tmp_path, clock, bound_audit_chain
+    ):
+        """扫描上限是**可见**的取舍：设上限后扫描条数如实下降（不谎报全链）"""
+        store = make_store(tmp_path, clock=clock, audit=True)
+        engine, _ = make_engine(tmp_path, store=store, clock=clock, audit_scan_limit=2)
+        for index in range(6):
+            await store.write("事实 %d" % index, memory_type="fact",
+                              workspace_root=ROOT_A, subject_id="bob")
+        result = await engine.erase_subject("bob")
+        assert result.chain_scanned == 2
+        assert bound_audit_chain.count() > 2
 
 
 # ════════════════════════════════════════════════════════════

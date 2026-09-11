@@ -78,6 +78,7 @@ __all__ = [
     "resolve_tenancy",
     "tenancy_context",
     "isolation_matrix_rows",
+    "sample_scope_for",
 ]
 
 #: org 级策略记忆所属的租户命名空间（企业侧只读下发）
@@ -311,6 +312,27 @@ ISOLATION_MATRIX: Tuple[IsolationRule, ...] = (
 def isolation_matrix_rows() -> List[Dict[str, Any]]:
     """隔离矩阵的行式视图（供验收报告与单测复用）"""
     return [rule.as_dict() for rule in ISOLATION_MATRIX]
+
+
+def sample_scope_for(entry: MemoryEntry) -> str:
+    """该条目应使用**哪个租户**的成功率样本（P7.2-08 隔离延伸到治理决策）
+
+    遗忘是破坏性决策：若用跨租户聚合的成功率判定，"租户 A 的劣化"会让"租户 B 的
+    记忆"被遗忘，与「事实/策略按租户隔离」相悖。故：
+
+    - org 级下发条目（企业策略记忆）⇒ 返回 ``""``：用 **org 级聚合**样本判定
+      （其 ``tenant_id`` 为 ``__org__``，不对应任何工作区轨迹）；
+    - 其余条目 ⇒ 返回其 ``tenant_id``（只统计本租户轨迹）；
+    - ``tenant_id`` 为空 ⇒ ``""``（无作用域可用，退回不作用域过滤）。
+
+    实际过滤在 ``agent.memory.forgetting.TraceQualitySource`` 的**读取侧**完成 ——
+    守不易：不改 S2-01 的 `agent/observability/trace_v2.py`（其 `query()` 无租户参数）。
+    """
+    if entry is None:
+        return ""
+    if entry.is_org_level:
+        return ""
+    return _clean(entry.tenant_id)
 
 
 # ════════════════════════════════════════════════════════════

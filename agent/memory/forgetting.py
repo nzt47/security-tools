@@ -50,6 +50,7 @@ from agent.memory.identity import (
     subject_ref,
 )
 from agent.memory.taxonomy import MemoryEntry
+from agent.memory.tenancy import sample_scope_for
 
 logger = logging.getLogger(__name__)
 
@@ -148,13 +149,19 @@ class ForgetCandidate:
 
 @dataclass
 class SuccessRateSample:
-    """成功率样本（触发①的观测值）"""
+    """成功率样本（触发①的观测值）
+
+    ``scope`` 为作用域过滤值（空 ⇒ org 级聚合）；``unattributed`` 为因无法归属租户
+    而被排除的轨迹数（隔离从严的取证字段）。
+    """
 
     capability_id: str
     samples: int
     successes: int
     rate: Optional[float]
     since: float = 0.0
+    scope: str = ""
+    unattributed: int = 0
 
     def as_dict(self) -> Dict[str, Any]:
         return {
@@ -163,6 +170,8 @@ class SuccessRateSample:
             "successes": self.successes,
             "rate": self.rate,
             "since": self.since,
+            "scope": self.scope,
+            "unattributed": self.unattributed,
         }
 
 
@@ -208,6 +217,14 @@ class TraceQualitySource:
 
     ``UnifiedTraceStore.__init__`` 会启动 daemon writer 线程并打开 SQLite，
     故此处只在首次真正查询时构造；测试请注入 ``trace_store`` 替身。
+
+    **租户隔离延伸（S5-01 修复 #9）**：S2-01 的 `UnifiedTraceStore.query()` 只支持
+    ``capability_id`` / ``task_id`` / ``parent_id`` / ``since``，**没有租户过滤参数**
+    （`_iter_persisted()` 会读取全表再在 Python 侧过滤）。遗忘是**破坏性**决策，
+    若按跨租户聚合的成功率判定，租户 A 的劣化会触发租户 B 的记忆被遗忘 —— 与
+    P7.2-08「事实/策略按租户隔离」相悖。故本适配器在**读取侧**按 trace 的
+    ``tenancy``（``tenant_id`` / ``workspace_id``）做作用域过滤：
+    守不易 —— 不改 `agent/observability/trace_v2.py`（S2-01 落点）即达成隔离。
     """
 
     def __init__(self, trace_store: Any = None) -> None:
@@ -223,15 +240,31 @@ class TraceQualitySource:
             self._owned = True
         return self._store
 
+    @staticmethod
+    def _trace_scope(trace: Any) -> Tuple[str, str]:
+        """只读叶子：trace 的 (tenant_id, workspace_id)（不序列化 live 对象）"""
+        tenancy = getattr(trace, "tenancy", None)
+        tid = str(getattr(tenancy, "tenant_id", "") or "")
+        wid = str(getattr(tenancy, "workspace_id", "") or "")
+        return tid, wid
+
     def success_rate(
         self, capability_id: str, *, window_days: float = FORGET_WINDOW_DAYS,
-        now: Optional[float] = None,
+        now: Optional[float] = None, tenant_id: str = "", workspace_id: str = "",
     ) -> SuccessRateSample:
-        """统计窗口内该能力的成功率（无数据 → ``rate=None``）"""
+        """统计窗口内该能力的成功率（无数据 → ``rate=None``）
+
+        Args:
+            tenant_id / workspace_id: 作用域过滤（P7.2-08）。给定任一非空值时，
+                只统计 tenancy 命中该值的轨迹；**无法归属租户（tenant/workspace 均空）
+                的轨迹会被排除**（隔离从严：不可归属的数据不得驱动某租户的遗忘）；
+                两者皆空 ⇒ 不作用域过滤（org 级聚合，用于 org 级策略记忆判定）。
+        """
         from agent.observability.trace_v2 import STATUS_SUCCESS
 
         ts = time.time() if now is None else float(now)
         since = ts - float(window_days) * 86400.0
+        scope = str(tenant_id or workspace_id or "").strip()
         try:
             traces = self.store.query(capability_id=capability_id, since=since)
         except Exception as exc:  # noqa: BLE001 数据源不可用 → 视为无样本（不误杀）
@@ -240,10 +273,23 @@ class TraceQualitySource:
                 "action": "quality.failed",
                 "msg": "[forgetting] 成功率数据源不可用: %s" % exc,
             }))
-            return SuccessRateSample(capability_id, 0, 0, None, since)
+            return SuccessRateSample(capability_id, 0, 0, None, since, scope=scope)
         steps = [t for t in (traces or []) if getattr(t, "capability_id", "") == capability_id]
+        unattributed = 0
+        if scope:
+            scoped: List[Any] = []
+            for trace in steps:
+                tid, wid = self._trace_scope(trace)
+                if not tid and not wid:
+                    unattributed += 1
+                    continue
+                if scope in (tid, wid):
+                    scoped.append(trace)
+            steps = scoped
         if not steps:
-            return SuccessRateSample(capability_id, 0, 0, None, since)
+            return SuccessRateSample(
+                capability_id, 0, 0, None, since,
+                scope=scope, unattributed=unattributed)
         successes = [
             t for t in steps
             if str(getattr(getattr(t, "response", None), "status", "")) == STATUS_SUCCESS
@@ -254,6 +300,8 @@ class TraceQualitySource:
             successes=len(successes),
             rate=len(successes) / float(len(steps)),
             since=since,
+            scope=scope,
+            unattributed=unattributed,
         )
 
     def close(self) -> None:
@@ -677,6 +725,7 @@ class ErasureResult:
     audit_recorded: bool = False
     chain_verified: bool = False
     chain_checked: int = 0
+    chain_scanned: int = 0
     chain_detail: str = ""
     chain_pseudonym_present: bool = False
     residual_identifier_hits: List[Tuple[str, str]] = field(default_factory=list)
@@ -705,6 +754,7 @@ class ErasureResult:
             "audit_recorded": self.audit_recorded,
             "chain_verified": self.chain_verified,
             "chain_checked": self.chain_checked,
+            "chain_scanned": self.chain_scanned,
             "chain_detail": self.chain_detail,
             "chain_pseudonym_present": self.chain_pseudonym_present,
             "residual_identifier_hits": [list(h) for h in self.residual_identifier_hits],
@@ -774,6 +824,7 @@ class ForgettingEngine:
         window_days: Optional[float] = None,
         success_ratio: Optional[float] = None,
         min_samples: Optional[int] = None,
+        audit_scan_limit: Optional[int] = None,
         audit: bool = True,
     ) -> None:
         self.store = store
@@ -797,6 +848,11 @@ class ForgettingEngine:
             if min_samples is None else int(min_samples)
         )
         self.audit = bool(audit)
+        # 审计链取证扫描上限：0（默认）= 扫完整条链，使"无原始标识符残留"可量化复核
+        self.audit_scan_limit = (
+            int(_env_float("MEMORY_AUDIT_SCAN_LIMIT", 0.0, minimum=0.0))
+            if audit_scan_limit is None else int(audit_scan_limit)
+        )
 
     # ── 时钟 ──
 
@@ -873,7 +929,13 @@ class ForgettingEngine:
         now: Optional[float] = None,
         sample: Optional[SuccessRateSample] = None,
     ) -> Optional[ForgetCandidate]:
-        """触发①判定：观测成功率 < 基线 × ratio（且样本数达门槛）"""
+        """触发①判定：观测成功率 < 基线 × ratio（且样本数达门槛）
+
+        **作用域按条目租户**（修复 #9）：租户隔离层条目的成功率样本**限定本租户**
+        （`UnifiedTraceStore` 无租户过滤参数，故在本适配器读取侧按 trace tenancy 过滤），
+        避免"租户 A 的劣化触发租户 B 的记忆被遗忘"；org 级策略记忆用 org 级聚合样本
+        （其 `tenant_id` 为 `__org__`，不对应任何工作区轨迹）。
+        """
         capability_id = str(entry.source_capability_id or "").strip()
         if not capability_id:
             return None
@@ -881,7 +943,8 @@ class ForgettingEngine:
         if baseline is None:
             return None
         obs = sample or self.quality_source.success_rate(
-            capability_id, window_days=self.window_days, now=now)
+            capability_id, window_days=self.window_days, now=now,
+            tenant_id=sample_scope_for(entry))
         if obs.rate is None or obs.samples < self.min_samples:
             return None
         threshold = baseline * self.success_ratio
@@ -899,6 +962,8 @@ class ForgettingEngine:
                 "ratio": self.success_ratio,
                 "samples": obs.samples,
                 "window_days": self.window_days,
+                "sample_scope": obs.scope,
+                "unattributed_traces": obs.unattributed,
             },
         )
 
@@ -945,7 +1010,8 @@ class ForgettingEngine:
                     candidates.append(ttl_candidate)
 
         # 触发①/② 只对带来源指针的条目有意义（偏好记忆无来源能力 → 跳过）
-        sampled: Dict[str, Optional[SuccessRateSample]] = {}
+        # 样本缓存键含**租户作用域**：租户隔离层只统计本租户轨迹（修复 #9）
+        sampled: Dict[Tuple[str, str], Optional[SuccessRateSample]] = {}
         statuses: Dict[str, SourceStatus] = {}
         for entry in pool:
             capability_id = str(entry.source_capability_id or "").strip()
@@ -954,11 +1020,13 @@ class ForgettingEngine:
             if entry.id in seen:
                 continue
             if wanted is None or ForgetTrigger.SUCCESS_RATE.value in wanted:
-                if capability_id not in sampled:
-                    sampled[capability_id] = self.quality_source.success_rate(
-                        capability_id, window_days=self.window_days, now=ts)
+                sample_key = (capability_id, sample_scope_for(entry))
+                if sample_key not in sampled:
+                    sampled[sample_key] = self.quality_source.success_rate(
+                        capability_id, window_days=self.window_days, now=ts,
+                        tenant_id=sample_key[1])
                 rate_candidate = self.evaluate_success_rate(
-                    entry, now=ts, sample=sampled.get(capability_id))
+                    entry, now=ts, sample=sampled.get(sample_key))
                 if rate_candidate is not None:
                     seen.add(entry.id)
                     candidates.append(rate_candidate)
@@ -1165,7 +1233,13 @@ class ForgettingEngine:
     def _verify_chain(
         self, result: ErasureResult, *, identifiers: Sequence[str], prior_pseudonym: str = ""
     ) -> None:
-        """校验审计链完整、无原始标识符残留，且旧伪名仍可证"证据未删"（删除权取证）"""
+        """校验审计链完整、无原始标识符残留，且旧伪名仍可证"证据未删"（删除权取证）
+
+        **全链扫描**（修复 #10）：`AUDIT_CHAIN_SCAN_LIMIT` 默认为 0 = 扫完整条链
+        （分批 `iter_entries`，不在内存里堆全表）；扫描条数如实记入
+        ``ErasureResult.chain_scanned``，使"链内无原始标识符残留"这一结论**可量化、可复核**，
+        而不是只覆盖最近 N 条。
+        """
         try:
             from agent.audit import get_audit
 
@@ -1176,20 +1250,40 @@ class ForgettingEngine:
             result.chain_verified = bool(getattr(verification, "ok", False)) and checked > 0
             result.chain_checked = checked
             result.chain_detail = str(getattr(verification, "summary", lambda: "")() or "")
-            try:
-                entries = facade.recent(limit=5000)
-            except Exception:  # noqa: BLE001
-                entries = []
             needles = [x for x in identifiers if str(x or "").strip()]
-            # 只扫"原始标识符"：伪名残留是**预期且必要**的（证明链条未被改写）
-            result.residual_identifier_hits = scan_audit_for_identifiers(entries, needles)
-            if prior_pseudonym:
-                texts = iter_audit_texts(entries)
-                result.chain_pseudonym_present = any(
-                    prior_pseudonym in text for text in texts)
+            hits, scanned, pseudonym_present = self._scan_chain(
+                needles, prior_pseudonym=prior_pseudonym)
+            result.residual_identifier_hits = hits
+            result.chain_scanned = scanned
+            result.chain_pseudonym_present = pseudonym_present
         except Exception as exc:  # noqa: BLE001 取证失败不阻断删除
             result.chain_verified = False
             result.chain_detail = "审计链校验失败: %s: %s" % (type(exc).__name__, exc)
+
+    def _scan_chain(
+        self, needles: Sequence[str], *, prior_pseudonym: str = ""
+    ) -> Tuple[List[Tuple[str, str]], int, bool]:
+        """分批扫描审计链，返回 ``(命中, 已扫条数, 旧伪名是否仍在链上)``"""
+        from agent.audit import get_audit
+
+        chain = get_audit().chain
+        if chain is None:
+            return ([], 0, False)
+        limit = int(self.audit_scan_limit or 0)
+        hits: List[Tuple[str, str]] = []
+        scanned = 0
+        pseudonym_present = False
+        iterator = chain.iter_entries(batch=500)
+        for entry in iterator:
+            scanned += 1
+            if needles:
+                hits.extend(scan_audit_for_identifiers([entry], needles))
+            if prior_pseudonym and not pseudonym_present:
+                pseudonym_present = any(
+                    prior_pseudonym in text for text in iter_audit_texts([entry]))
+            if limit and scanned >= limit:
+                break
+        return (hits, scanned, pseudonym_present)
 
     # ── 一键巡检 ──
 
