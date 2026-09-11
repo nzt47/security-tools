@@ -270,10 +270,14 @@ Seed Pack 的 TDD 用例即用该能力：`seed-tdd-red-green` 的条件步**执
 | 边界覆盖 | `python scripts/check_boundary_coverage.py` | ✅ `blocked_modules=[]`（场景覆盖 96%） |
 | 演示（正/负样本） | `python scripts/demo_s3_02_cases.py [--mutate] [--uncovered-branch]` | ✅ 正向发证+推进；两个负样本**均被拒绝** |
 
-**CI 终态（push 触发，SHA `36e27d9b`）**：**13/13 workflow 全绿（0 failure / 0 cancelled）**，
-其中「云枢系统测试流程」**21/21 job success**、「可观测性质量保障」19/20 success（1 skipped）、
-「kwarg 扫描 → SonarQube」success（`agent` 与 `tests` 两路均 0 处 HIGH）。
-原始统计与可复现命令见结案报告 §3.2。
+**CI 终态（push 触发）**：
+- **代码实现基线 `36e27d9b`：13/13 workflow 全绿（0 failure / 0 cancelled）**，
+  其中「云枢系统测试流程」**21/21 job success**、「可观测性质量保障」19/20 success（1 skipped）、
+  「kwarg 扫描 → SonarQube」success（`agent` 与 `tests` 两路均 0 处 HIGH）。
+- **收尾提交 `d5eb201b`（含测试隔离固化与两份报告）：20 success / 0 failure / 1 cancelled**
+  （`cancelled` 为辅助流「CI 失败通知」被并发策略取消，非门禁失败），
+  「云枢系统测试流程」**21/21 job success** —— 故实现与测试的**全部改动均经 CI 验证**。
+- 原始统计与可复现命令见结案报告 §3.2 与 §6.4。
 
 ---
 
@@ -356,3 +360,6 @@ Owner 指示：「完成项目交付前的各项收尾工作（推送并确保�
   报告内所有未能闭环项**逐条披露并登记归属**（§11.3），无隐瞒、无"以文档代替证据"。
 - **结案**：**TASK-S3-02 已结案**（验收 8/8；11 项遗留中 2 项本轮闭环、9 项带归属移交下游，
   均不阻塞）；S3 串行链下一环 **S3-03 前置已就绪**（判定集资产 / 回放沙箱 / 验收门通行证与失败清单）。
+- **CI 举证**：实现与测试的全部改动均经 CI 验证 —— 代码基线 `36e27d9b` 13/13 全绿、
+  收尾提交 `d5eb201b` 20 success / 0 failure（云枢系统测试流程 21/21 job）；本报告 §十一
+  的冻结树复核表为**收尾时点实跑**，非引用历史结论。
