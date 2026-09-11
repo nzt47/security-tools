@@ -30,6 +30,35 @@
 - [ ] 安全回归测试通过：`python -m pytest tests/regression/test_p0_security_fix.py -v`
 - [ ] 覆盖率未下降：`python -m pytest --cov=agent --cov-report=term-missing`
 
+## 策略变更（P7.2-19：仅当本 PR 触及 `data/policies/**` 时填写）
+
+> 策略即代码：策略变更走「模拟报告 + 人工合入」，**不得运行时静默改策略**。
+> 门禁脚本：`scripts/check_policy_change_gate.py`（CI：`.github/workflows/policy-change-gate.yml`）。
+
+- [ ] 本 PR 不涉及策略文件变更
+- [ ] 已附模拟报告：`reports/policy_simulation.json`（或 `<report: 路径>` 指定）
+- [ ] 模拟报告与本次改动一致（候选策略 id/version 出现在改动后的策略文件里）
+
+<!--
+  高危确认：只要模拟报告的 high_risk_hits 非空，就必须逐条勾选并写明理由。
+  格式必须是 `- [x] <policy_id> <capability_id> <理由>`（门禁按勾选数核对）。
+  无高危变更时，本节保留并写「（无高危变更）」即可。
+-->
+
+## 高危确认
+
+- [ ] （无高危变更时勾选本行；有高危变更时**删除本行**并逐条列出，格式 `- [x] <policy_id> <capability_id> <理由>`）
+
+## 无样本声明
+
+<!--
+  仅当模拟报告的 totals.total == 0（无历史决策样本）时需要勾选。
+  门禁要求此时本段存在**已勾选项**——「零变更」在无样本时不构成安全证据，
+  必须由人工显式承担未经模拟的风险。有样本时可留空或整段删除。
+-->
+
+- [ ] 本次变更无历史决策样本，未经模拟，风险由人工承担
+
 ## 关联 Issue
 
 <!-- 列出关联的 issue 号，如 Closes #123 -->

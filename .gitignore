@@ -162,6 +162,14 @@ data/descriptors_s1_02/
 data/trace_stats.json
 data/trace_v2_demo.db
 # 注意: data/permission_policies.json 是 RBAC/ABAC 静态配置(与 dangerous_commands.json 同性质),已入库跟踪,勿加回忽略
+# TASK-S4-02 策略即代码：policies.json / README.md 属策略配置(同 permission_policies.json 性质)已入库；
+# 下列为该目录的**运行时产物**（决策日志 / 例外收件箱账 / 签名密钥），不入库。
+data/policies/decisions.jsonl
+data/policies/decisions.*.jsonl
+data/policies/inbox.jsonl
+data/policies/inbox.*.jsonl
+data/policies/policy_signing_key.pem
+data/policies/policy_signing_key.pub.pem
 # Embedding 子进程探测缓存(机器特定,不入库)
 data/.embedding_probe
 # 技能索引缓存（预解析 front matter，启动时生成，机器/时间特定，不入库）

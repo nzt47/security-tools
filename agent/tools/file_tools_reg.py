@@ -9,6 +9,28 @@ from agent import tools as _tools
 logger = logging.getLogger(__name__)
 
 
+def _note_secret_read(path, result):
+    """出域链路监测的**读端点**（TASK-S4-02 / §5.7 机制 4）
+
+    「检测'读本地密钥→外发 HTTP'链路」需要两个端点，本函数是读端：读取敏感文件
+    且内容确实含凭据材料时，给当前作用域打污点；随后 ``agent/web/http_client.py``
+    的出域执行点看到污点即把 ``data_class`` 视为 secret，命中 §2.5 不变量而拒绝。
+
+    **纯旁路**：不改变 ``result``、不影响返回值、任何异常都被吞掉。窄口径闸门
+    （路径必须是凭据载体名 + 内容必须真的像凭据）见 ``agent.policy.taint``。
+    """
+    try:
+        if not isinstance(result, dict) or not result.get("ok"):
+            return
+        content = result.get("content")
+        if content is None:
+            return
+        from agent.policy.taint import observe_file_read
+        observe_file_read(str(path or result.get("path") or ""), content)
+    except Exception:  # noqa: BLE001 监测失败绝不影响读取
+        pass
+
+
 def register_all(dl):
     """注册所有文件系统工具
 
@@ -39,7 +61,9 @@ def register_all(dl):
         file_range = kwargs.get("range") or kwargs.get("file_range", "")
         if not path:
             return {"ok": False, "error": "请提供文件路径（path）"}
-        return read_file(path, encoding=encoding, max_size_mb=max_size_mb, range=file_range)
+        result = read_file(path, encoding=encoding, max_size_mb=max_size_mb, range=file_range)
+        _note_secret_read(path, result)
+        return result
 
     @_tools.register("write_file", "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数", schema={
         "type": "object",

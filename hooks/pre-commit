@@ -14,4 +14,28 @@ if [ "$RC" -ne 0 ]; then
   echo "[pre-commit] 运行噪音清理失败（退出码 $RC），已中止提交" >&2
   exit "$RC"
 fi
+
+# ── 策略即代码 schema 门禁（TASK-S4-02 / P7.2-19）────────────────────────────
+# 只在**暂存区确实有策略文件**时运行；不通过即中止提交。
+# 完整的策略变更门禁（模拟报告 + 高危确认）需要 PR 上下文，由
+# .github/workflows/policy-change-gate.yml 承担；此处只做可离线判定的 schema 自检。
+# 注意：本文件在 Windows 检出时可能是 CRLF——**不要用反斜杠续行**（`\` 会去转义
+# CR，续行失效 → `syntax error near unexpected token`）。管道必须写在一行里。
+# 同时 .gitattributes 已把 hooks/pre-commit 标为 eol=lf，从源头避免该问题。
+STAGED_POLICIES=$(git diff --cached --name-only --diff-filter=ACMR 2>/dev/null | grep -E '^data/policies/.*\.json$' || true)
+if [ -n "$STAGED_POLICIES" ]; then
+  if [ "${SKIP_POLICY_GATE:-0}" = "1" ]; then
+    echo "[pre-commit] SKIP_POLICY_GATE=1：按显式声明跳过策略 schema 门禁（须在提交说明中交代）" >&2
+  else
+    echo "[pre-commit] 检测到策略文件变更，运行 schema 门禁..." >&2
+    # shellcheck disable=SC2086
+    "$PY" scripts/check_policy_change_gate.py --schema-only $STAGED_POLICIES
+    RC=$?
+    if [ "$RC" -ne 0 ]; then
+      echo "[pre-commit] 策略 schema 门禁不通过（退出码 $RC），已中止提交" >&2
+      echo "[pre-commit] 修正策略文件后重试；确需跳过请设 SKIP_POLICY_GATE=1 并在提交说明中交代" >&2
+      exit "$RC"
+    fi
+  fi
+fi
 exit 0

@@ -135,6 +135,21 @@ repos:
           --only-under tests：仅对风险目录强制；scripts/ 独立基准脚本的
           模块级 disable 属刻意设计，不误伤。
 
+      - id: policy-schema-gate
+        name: 策略即代码 schema 门禁 (TASK-S4-02 / §3.11)
+        entry: python scripts/check_policy_change_gate.py --schema-only
+        language: system
+        pass_filenames: true
+        files: '^data/policies/.*\.json$'
+        stages: [pre-commit]
+        description: >
+          对 `data/policies/*.json` 做策略 schema 自检（§3.11 九字段、match 子集
+          语法、禁用 token、签名状态）。改动触及策略文件时才运行；不通过则阻断提交。
+          注意：本仓库的 pre-commit 由 `core.hooksPath = hooks` 指向 `hooks/pre-commit`
+          自定义脚本，**框架 hook 默认不随 git commit 触发**；本条目供
+          `pre-commit install` 启用框架后生效，另见 `hooks/pre-commit` 中的同名检查。
+          完整门禁（模拟报告 + 高危确认）见 `.github/workflows/policy-change-gate.yml`。
+
       - id: docs-broken-links-diagnose
         name: docs 链接预检诊断 (失效链接 + 修复建议)
         entry: pwsh -NoProfile -File scripts/dev/check_docs_broken_links.ps1

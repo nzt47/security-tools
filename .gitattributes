@@ -5,3 +5,9 @@
 # 这是 Windows 开发者编辑 .sh 文件时的常见陷阱。
 # 强制 .sh 文件在 git 仓库中以 LF 存储,CI/Linux checkout 后直接可用。
 *.sh text eol=lf
+
+# 【变易·TASK-S4-02】hooks/ 下的 git hook 无扩展名，不受上面 *.sh 规则覆盖，
+# 但同样由 sh 执行。CRLF 除了 shebang 问题外，还会让 `\` 续行失效
+# （`\` 去转义 CR，续行不生效 → syntax error near unexpected token），
+# 本任务实测踩到过。显式标为 LF。
+hooks/* text eol=lf

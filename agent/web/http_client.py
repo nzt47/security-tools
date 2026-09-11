@@ -47,6 +47,7 @@ class HttpClient:
             "total_requests": 0,
             "success_count": 0,
             "error_count": 0,
+            "blocked_count": 0,  # P7.1-20 出域执行点拦截计数（策略 deny/ask）
             "total_bytes": 0,
             "started_at": time.time(),
         }
@@ -96,6 +97,28 @@ class HttpClient:
 
     # ── 核心请求方法 ──────────────────────────────────────────────
 
+    def _egress_block(self, method: str, url: str, *, params: Any = None,
+                      data: Any = None, json_data: Any = None,
+                      headers: Any = None, capability_id: str = "",
+                      data_class: str = "") -> Optional[dict]:
+        """出域执行点：返回拦截结果 dict，放行时返回 None
+
+        与策略决策层（``agent/policy/egress.py``）通过
+        ``agent/guardrails/egress_guard.py`` 解耦：本方法只负责「问 + 应用结果」。
+        任何内部错误都在 ``EgressGuard.precheck`` 内被吞掉并按放行处理，因此
+        本方法**不会**因策略机制故障而阻断既有网络行为。
+        """
+        try:
+            from agent.guardrails.egress_guard import EgressGuard
+        except Exception:  # noqa: BLE001 守卫不可用 ⇒ 保持既有行为
+            return None
+        decision = EgressGuard.precheck(
+            method=method, url=url, params=params, data=data, json_data=json_data,
+            headers=headers, capability_id=capability_id, data_class=data_class)
+        if decision is None or decision.allowed:
+            return None
+        return EgressGuard.block_result(decision, url)
+
     def request(
         self,
         method: str,
@@ -142,6 +165,18 @@ class HttpClient:
         # URL 校验
         if not url.startswith(("http://", "https://")):
             return self._error_result(url, "仅支持 http/https 协议", start)
+
+        # ── 出域执行点（TASK-S4-02 / P7.1-20）────────────────────────────
+        # 策略引擎只出决策（agent/policy/egress.py），**执行**在这里：拦截时
+        # 网络动作尚未发生（下面 self._session.request 未被调用）。默认开启，
+        # 但仅在「有策略命中」或「载荷含凭据 / 本链路读过密钥」时才会拦截，
+        # 其余情况策略层无覆盖 ⇒ 行为与加装前一致。
+        blocked = self._egress_block(method, url, params=params, data=data,
+                                     json_data=json_data, headers=headers)
+        if blocked is not None:
+            self._stats["blocked_count"] += 1
+            blocked["elapsed"] = round(time.time() - start, 3)
+            return blocked
 
         try:
             # 过滤与显式参数同名的键，避免 **kwargs 展开冲突
@@ -249,6 +284,15 @@ class HttpClient:
         """
         import os
         start = time.time()
+        # 出域执行点：download 走 self._session.get 而非 request()，必须单独接线，
+        # 否则「下载」会成为绕过策略的旁路（同类旁路见 agent/monitoring/*.py 直连
+        # requests，那些不在本任务改动面内，已在验收报告「遗留问题」登记）。
+        # kwargs 一并交给守卫**扫描**（auth/token 一类凭据常从 kwargs 传入）。
+        blocked = self._egress_block("GET", url, params=kwargs)
+        if blocked is not None:
+            self._stats["blocked_count"] += 1
+            blocked["elapsed"] = round(time.time() - start, 3)
+            return blocked
         try:
             _http_reserved = {"url", "stream", "timeout"}
             safe_kwargs = {k: v for k, v in kwargs.items() if k not in _http_reserved}

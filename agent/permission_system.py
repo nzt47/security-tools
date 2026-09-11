@@ -36,6 +36,7 @@
 """
 
 import re
+import os
 import json
 import time
 import uuid
@@ -511,12 +512,30 @@ class PermissionGateway:
         self,
         policy_path: Optional[str] = None,
         permission_system: Optional[PermissionSystem] = None,
+        policy_engine: Any = None,
+        policy_enabled: Optional[bool] = None,
     ):
         self._ps = permission_system or PermissionSystem()
         self._policies: Dict[str, Dict[str, set]] = {}
         self._abac_rules: List[_ABACRule] = []
         self._default_role: Role = Role.GUEST
         self._degraded: bool = False
+
+        # ── TASK-S4-02 策略层（§5.6 / P7.1-20「决策-执行分离」）──────────────
+        # 「决策」在 agent/policy（PolicyEngine.check），「执行」在这里。
+        # **默认关闭**（通用硬约束 2）：需要显式传 policy_engine= 或设置
+        # CP_POLICY_GATEWAY_ENABLED=1 才启用。启用后语义是**只收敛不放宽**：
+        #   deny  → 直接拒绝（既有三层不再执行）
+        #   ask   → requires_confirmation=True，路由到审批/收件箱
+        #   allow / 未命中 → 继续走既有 RBAC/ABAC/正则（策略层不授予权限）
+        # 因此启用本层**不可能**让原本被拒的操作变成允许；未命中时回落到既有
+        # 判定，保证「策略未覆盖 ⇒ 零行为回归」。
+        self._policy_engine = policy_engine
+        if policy_enabled is None:
+            policy_enabled = str(
+                os.environ.get("CP_POLICY_GATEWAY_ENABLED", "0")
+            ).strip().lower() in ("1", "true", "yes", "on")
+        self._policy_enabled = bool(policy_enabled)
 
         path = policy_path or self.DEFAULT_POLICY_PATH
         if not self._load_policies(path):
@@ -633,6 +652,15 @@ class PermissionGateway:
             },
         )
 
+        # [层0] 策略即代码（TASK-S4-02；**默认关闭**，见 __init__ 注释）
+        # 「决策-执行分离」：决策在 agent/policy，执行在这里。本层**只收敛**：
+        # 只有 deny / ask 会短路，allow 与未命中都继续走既有三层——因此它不可能
+        # 放宽权限，未命中时也保证零行为回归（回落既有判定）。
+        policy_result = self._check_policy(tool_name, params, context, trace_id)
+        if policy_result is not None:
+            self._log_decision(trace_id, start_ts, "POLICY", tool_name, policy_result)
+            return policy_result
+
         # 降级模式: 跳过 RBAC/ABAC,仅走正则兜底
         if self._degraded:
             self._log_json(
@@ -712,6 +740,83 @@ class PermissionGateway:
             trace_id, start_ts, "REGEX", tool_name, result
         )
         return result
+
+    # ── 层0: 策略即代码（TASK-S4-02）─────────────────────────
+
+    def _policy_engine_or_none(self):
+        """解析策略引擎（显式注入优先；否则按开关取进程级默认引擎）"""
+        if self._policy_engine is not None:
+            return self._policy_engine
+        if not self._policy_enabled:
+            return None
+        try:
+            from agent.policy import get_policy_engine
+            engine = get_policy_engine()
+            self._policy_engine = engine
+            return engine
+        except Exception as e:  # noqa: BLE001 策略层不可用 ⇒ 回落既有判定
+            self._log_json("policy_engine_unavailable",
+                           {"error": f"{type(e).__name__}: {e}"},
+                           level=logging.WARNING)
+            self._policy_enabled = False
+            return None
+
+    def _check_policy(
+        self,
+        tool_name: str,
+        params: dict,
+        context: "ABACContext",
+        trace_id: str = "",
+    ) -> Optional[PermissionResult]:
+        """[层0] 策略决策 → 权限结果
+
+        Returns:
+            ``None`` ＝ 策略层无异议（继续既有三层）；
+            :class:`PermissionResult` ＝ 策略已决策（deny/ask 短路）。
+
+        拒绝原因统一为 ``"权限不足"``：与 RBAC/ABAC 同款口径，**不暴露策略细节**
+        （策略 id/命中字段只进审计与事件，不进用户可见文案）。
+        """
+        if not self._policy_enabled and self._policy_engine is None:
+            return None
+        engine = self._policy_engine_or_none()
+        if engine is None:
+            return None
+        try:
+            from agent.policy import PolicyContext
+            ctx = PolicyContext.build(
+                capability_id=str(tool_name or ""),
+                capability={"trust": {}, "origin": {}},
+                tenant_id=str(getattr(context, "tenant_id", "") or "default"),
+                actor="", actor_role=getattr(getattr(context, "role", None), "value", ""),
+                action=str(tool_name or ""), action_kind="tool",
+                target={"external": False},
+                attributes={
+                    "session_source": str(getattr(context, "session_source", "") or ""),
+                    "param_keys": sorted(str(k) for k in (params or {})),
+                    "ip_present": getattr(context, "ip", None) is not None,
+                },
+            )
+            decision = engine.check(ctx)
+        except Exception as e:  # noqa: BLE001 策略层异常 ⇒ 回落既有判定（不放行也不拦）
+            self._log_json("policy_layer_error",
+                           {"trace_id": trace_id, "tool": tool_name,
+                            "error": f"{type(e).__name__}: {e}"},
+                           level=logging.WARNING)
+            return None
+
+        self._log_json("policy_layer_decision", {
+            "trace_id": trace_id, "tool": tool_name, "effect": decision.effect,
+            "policy_id": decision.policy_id, "matched": decision.matched,
+            "reason_code": decision.reason_code,
+            "latency_ms": round(float(decision.latency_ms), 3),
+        })
+        if decision.effect == "deny" and decision.matched:
+            return PermissionResult(allowed=False, reason="权限不足")
+        if decision.effect == "ask":
+            return PermissionResult(allowed=False, reason="权限不足",
+                                    requires_confirmation=True)
+        return None  # allow / 未命中 ⇒ 继续既有三层（策略层不授予权限）
 
     # ── 层1: RBAC ────────────────────────────────────────────
 

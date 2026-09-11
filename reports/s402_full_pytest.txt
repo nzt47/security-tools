@@ -1,0 +1,628 @@
+============================= test session starts =============================
+collected 18084 items / 475 deselected / 1 skipped / 17609 selected
+
+tests\boundary\test_behavior_controller_boundary.py .................... [  0%]
+...................                                                      [  0%]
+tests\boundary\test_circuit_breaker_boundary.py ........................ [  0%]
+.......                                                                  [  0%]
+tests\boundary\test_cognitive_boundary.py .....................          [  0%]
+tests\boundary\test_config_boundary.py ................................. [  0%]
+.......................................................                  [  1%]
+tests\boundary\test_core_boundary.py ................................... [  1%]
+.........................                                                [  1%]
+tests\boundary\test_data_analytics_boundary.py .......................   [  1%]
+tests\boundary\test_disaster_recovery_boundary.py ...................... [  1%]
+.................................................                        [  1%]
+tests\boundary\test_feedback_boundary.py ............................... [  2%]
+.............                                                            [  2%]
+tests\boundary\test_graceful_degrade_boundary.py ....................... [  2%]
+.......................................                                  [  2%]
+tests\boundary\test_health_boundary.py ................................  [  2%]
+tests\boundary\test_lazy_loader_boundary.py ................             [  2%]
+2026-09-12 01:16:15,408 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:15,408 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:15,408 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:15,408 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-09-11T17:16:15.408711+00:00
+2026-09-12 01:16:40,474 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-09-12 01:16:40,474 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:40,474 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:40,474 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:40,523 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:40,523 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:40,523 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:40,523 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-09-11T17:16:40.523961+00:00
+2026-09-12 01:16:40,523 [ WARNING] memory.memory_manager: └═══════════════════════════════════════════════
+2026-09-12 01:16:40,663 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-09-12 01:16:40,663 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:40,663 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:40,663 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:40,663 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-09-11T17:16:40.663583+00:00
+2026-09-12 01:16:41,043 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:41,043 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:41,043 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:41,043 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-09-11T17:16:41.043611+00:00
+2026-09-12 01:16:41,043 [ WARNING] memory.memory_manager: └═══════════════════════════════════════════════
+2026-09-12 01:16:41,088 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:41,088 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:41,088 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:41,088 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-09-11T17:16:41.088013+00:00
+2026-09-12 01:16:41,733 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-09-12 01:16:41,733 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:41,733 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:41,733 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:41,824 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-09-12 01:16:41,825 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:41,825 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:41,825 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:41,825 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-09-11T17:16:41.825092+00:00
+2026-09-12 01:16:41,845 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-09-12 01:16:41,847 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:41,847 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:41,847 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:41,847 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-09-11T17:16:41.847565+00:00
+2026-09-12 01:16:41,847 [ WARNING] memory.memory_manager: └═══════════════════════════════════════════════
+2026-09-12 01:16:41,873 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:41,873 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:41,875 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:41,875 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-09-11T17:16:41.875456+00:00
+2026-09-12 01:16:41,904 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-09-12 01:16:41,904 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:41,904 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:41,904 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:41,904 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-09-11T17:16:41.904771+00:00
+2026-09-12 01:16:41,904 [ WARNING] memory.memory_manager: └═══════════════════════════════════════════════
+2026-09-12 01:16:41,943 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-09-12 01:16:41,943 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:41,945 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:41,945 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:41,965 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-09-12 01:16:41,965 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:41,965 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:41,965 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:41,965 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-09-11T17:16:41.965815+00:00
+2026-09-12 01:16:42,263 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-09-12 01:16:42,263 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:42,263 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:42,263 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:42,267 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-09-11T17:16:42.267258+00:00
+2026-09-12 01:16:42,303 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-09-12 01:16:42,303 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:42,303 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:42,303 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:42,304 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-09-11T17:16:42.304294+00:00
+2026-09-12 01:16:42,601 [ WARNING] memory.memory_manager: ┌═══════════════════════════════════════════════
+2026-09-12 01:16:42,601 [ WARNING] memory.memory_manager: │ 🔄 [后台压缩循环] 主循环启动
+2026-09-12 01:16:42,601 [ WARNING] memory.memory_manager: │    ├─ 事件循环: ProactorEventLoop, 运行中: True, 关闭: False
+2026-09-12 01:16:42,601 [ WARNING] memory.memory_manager: │    ├─ 检查间隔: 60s
+2026-09-12 01:16:42,601 [ WARNING] memory.memory_manager: │    └─ 启动时间: 2026-09-11T17:16:42.601013+00:00
+2026-09-12 01:16:42,601 [ WARNING] memory.memory_manager: └═══════════════════════════════════════════════
+tests\boundary\test_memory_boundary.py .......................           [  2%]
+tests\boundary\test_orchestrator_boundary.py ........................... [  3%]
+..                                                                       [  3%]
+tests\boundary\test_performance_logging_boundary.py .................... [  3%]
+......................................                                   [  3%]
+tests\boundary\test_rate_limiter_boundary.py ........................... [  3%]
+......                                                                   [  3%]
+tests\boundary\test_task_planner_boundary.py ........................... [  3%]
+.......                                                                  [  3%]
+tests\boundary\test_tools_boundary.py ...............                    [  3%]
+tests\boundary\test_workflow_engine_boundary.py ........................ [  3%]
+.                                                                        [  3%]
+tests\chaos\test_circuit_breaker_chaos.py ........                       [  4%]
+2026-09-12 01:16:51,807 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '878812e3a4df46af', 'duration_ms': 0}
+2026-09-12 01:16:51,807 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'e5514e5fbf93418f', 'duration_ms': 0}
+2026-09-12 01:16:51,807 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'f668d384ae5e42b6', 'duration_ms': 0}
+2026-09-12 01:16:51,807 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '9b012ff1a1d14c10', 'duration_ms': 0}
+2026-09-12 01:16:51,807 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '90a065fbc74c4e42', 'duration_ms': 0}
+2026-09-12 01:16:51,807 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '4e0b59c8c7cc48ab', 'duration_ms': 0}
+2026-09-12 01:16:51,807 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'e990bfa37519482e', 'duration_ms': 0}
+2026-09-12 01:16:51,820 [    INFO] agent.monitoring.alert_notifier: {'module_name': 'alert_notifier', 'action': 'init', 'channels': [], 'trace_id': 'b7f5af9b3b24493c', 'duration_ms': 0}
+2026-09-12 01:16:51,820 [ WARNING] agent.monitoring.alert_notifier: [Alert] 未找到通知渠道: default-notifications
+2026-09-12 01:16:51,820 [ WARNING] agent.monitoring.config_observability: 高风险配置变更告警已触发: retry.default_max_retries=20 (阈值超过上限: 10)
+2026-09-12 01:16:51,820 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'bd9e6bc1c8514508', 'duration_ms': 0}
+2026-09-12 01:16:51,831 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'b023eb788b714456', 'duration_ms': 0}
+2026-09-12 01:16:51,831 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '990982c138354ce5', 'duration_ms': 0}
+2026-09-12 01:16:51,831 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '3352bca20724460a', 'duration_ms': 0}
+2026-09-12 01:16:51,831 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '2ba56d9971c849e2', 'duration_ms': 0}
+2026-09-12 01:16:51,831 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '044cf64bc0e7470f', 'duration_ms': 0}
+2026-09-12 01:16:51,831 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '0aac447c55914d96', 'duration_ms': 0}
+2026-09-12 01:16:51,831 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '0c6b0f7ad813424d', 'duration_ms': 0}
+2026-09-12 01:16:51,853 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '5ad3e2f1ae1140b1', 'duration_ms': 0}
+2026-09-12 01:16:51,853 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '554440cd6a7446df', 'duration_ms': 0}
+2026-09-12 01:16:51,853 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'e669708efa1d4872', 'duration_ms': 0}
+2026-09-12 01:16:51,853 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '33eca6ae4a0b411d', 'duration_ms': 0}
+2026-09-12 01:16:51,853 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '475fb5f9c7f74ff8', 'duration_ms': 0}
+2026-09-12 01:16:51,853 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '5a033bef65a147fb', 'duration_ms': 0}
+2026-09-12 01:16:51,857 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'f03953465d07455a', 'duration_ms': 0}
+2026-09-12 01:16:51,868 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'd6db34c94b3c4a20', 'duration_ms': 0}
+2026-09-12 01:16:51,877 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'c78801ca692a487c', 'duration_ms': 0}
+2026-09-12 01:16:51,877 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '9f6654e9b0e74f13', 'duration_ms': 0}
+2026-09-12 01:16:51,877 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '1db133ce1bea4efd', 'duration_ms': 0}
+2026-09-12 01:16:51,878 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '2c13dd903d4847aa', 'duration_ms': 0}
+2026-09-12 01:16:51,878 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'ef0a0b4f800d4757', 'duration_ms': 0}
+2026-09-12 01:16:51,878 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '27a54531396d4074', 'duration_ms': 0}
+2026-09-12 01:16:52,136 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'c7c9e485604740ef', 'duration_ms': 0}
+2026-09-12 01:16:52,144 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'fed19a75d60d43f8', 'duration_ms': 0}
+2026-09-12 01:16:52,144 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '72544518128646f7', 'duration_ms': 0}
+2026-09-12 01:16:52,144 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '3e2d2d5b4c284927', 'duration_ms': 0}
+2026-09-12 01:16:52,147 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'e0ecda2a18f943b6', 'duration_ms': 0}
+2026-09-12 01:16:52,147 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'd8f538cb137b40a1', 'duration_ms': 0}
+2026-09-12 01:16:52,147 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'd18335aba93641dd', 'duration_ms': 0}
+2026-09-12 01:16:52,147 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '07aaca32b07d42fe', 'duration_ms': 0}
+2026-09-12 01:16:52,158 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'c16d7e62b262419d', 'duration_ms': 0}
+2026-09-12 01:16:52,167 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '9e84d3c5ecb946c1', 'duration_ms': 0}
+2026-09-12 01:16:52,167 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'aca793efadec47ff', 'duration_ms': 0}
+2026-09-12 01:16:52,167 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'a37b9af91c784ff9', 'duration_ms': 0}
+2026-09-12 01:16:52,167 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '95f16a93e7884747', 'duration_ms': 0}
+2026-09-12 01:16:52,167 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '9888fc9a16794533', 'duration_ms': 0}
+2026-09-12 01:16:52,167 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '1e726673f768458e', 'duration_ms': 0}
+2026-09-12 01:16:52,167 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'afe1a6e497044a3c', 'duration_ms': 0}
+2026-09-12 01:16:52,180 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'ea888ec8d4914503', 'duration_ms': 0}
+2026-09-12 01:16:52,187 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'b52539e384b9455e', 'duration_ms': 0}
+2026-09-12 01:16:52,187 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'ad9d60f0eb194dd1', 'duration_ms': 0}
+2026-09-12 01:16:52,187 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'ee751c56d20946c0', 'duration_ms': 0}
+2026-09-12 01:16:52,187 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'bfe81202ea674131', 'duration_ms': 0}
+2026-09-12 01:16:52,187 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '49785fd557b24e1a', 'duration_ms': 0}
+2026-09-12 01:16:52,187 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'c6f9be449e90413a', 'duration_ms': 0}
+2026-09-12 01:16:52,203 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'cc78b847b3544457', 'duration_ms': 0}
+2026-09-12 01:16:52,209 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'f609a6880a36463b', 'duration_ms': 0}
+2026-09-12 01:16:52,209 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '334f4a2213c440a0', 'duration_ms': 0}
+2026-09-12 01:16:52,209 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '86d3988242914cf2', 'duration_ms': 0}
+2026-09-12 01:16:52,209 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'fcbac9db802b451a', 'duration_ms': 0}
+2026-09-12 01:16:52,209 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'd7df85b2b7df4ddb', 'duration_ms': 0}
+2026-09-12 01:16:52,209 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '5f6d03bd593849ac', 'duration_ms': 0}
+2026-09-12 01:16:52,213 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '4d37f266abc44305', 'duration_ms': 0}
+2026-09-12 01:16:52,225 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '6954582cafa8460c', 'duration_ms': 0}
+2026-09-12 01:16:52,238 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'ec2e68b6255d40c6', 'duration_ms': 0}
+2026-09-12 01:16:52,238 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '591a5f11546f4a56', 'duration_ms': 0}
+2026-09-12 01:16:52,238 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'a526af2cc9374364', 'duration_ms': 0}
+2026-09-12 01:16:52,245 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'eb9fa9509ce34011', 'duration_ms': 0}
+2026-09-12 01:16:52,253 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'c6ae4201bf9142bb', 'duration_ms': 0}
+2026-09-12 01:16:52,253 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '5f7c8469d11847a9', 'duration_ms': 0}
+2026-09-12 01:16:52,253 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '210843489ead4425', 'duration_ms': 0}
+2026-09-12 01:16:52,253 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'bd95da910558466f', 'duration_ms': 0}
+2026-09-12 01:16:52,253 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'f57737ed7fc44976', 'duration_ms': 0}
+2026-09-12 01:16:52,253 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'e0bdeae11e44422c', 'duration_ms': 0}
+2026-09-12 01:16:52,253 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '61bbd197b96c4bd3', 'duration_ms': 0}
+2026-09-12 01:16:52,276 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '0f423fe118d44567', 'duration_ms': 0}
+2026-09-12 01:16:52,276 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '34d5286d8a6a4ed4', 'duration_ms': 0}
+2026-09-12 01:16:52,276 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '26c6fbb93b9a4a09', 'duration_ms': 0}
+2026-09-12 01:16:52,276 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '932899b53b374af0', 'duration_ms': 0}
+2026-09-12 01:16:52,276 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'b1eb23cd52b9484c', 'duration_ms': 0}
+2026-09-12 01:16:52,276 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'ae11d978b3ff458d', 'duration_ms': 0}
+2026-09-12 01:16:52,276 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '2cfd9bad261b4440', 'duration_ms': 0}
+2026-09-12 01:16:52,297 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '1af3969f95d94573', 'duration_ms': 0}
+2026-09-12 01:16:52,297 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '3afbc6ece756464f', 'duration_ms': 0}
+2026-09-12 01:16:52,297 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'dcb96b8f4163439e', 'duration_ms': 0}
+2026-09-12 01:16:52,297 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '80f65e72570d414e', 'duration_ms': 0}
+2026-09-12 01:16:52,297 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '5c36404d97594703', 'duration_ms': 0}
+2026-09-12 01:16:52,297 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '197e78c04f494e22', 'duration_ms': 0}
+2026-09-12 01:16:52,297 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '018e28a6579843e8', 'duration_ms': 0}
+2026-09-12 01:16:52,310 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '0c01d06174c84b2c', 'duration_ms': 0}
+2026-09-12 01:16:52,317 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '699311cf556540f2', 'duration_ms': 0}
+2026-09-12 01:16:52,317 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '176a523b82954166', 'duration_ms': 0}
+2026-09-12 01:16:52,317 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '5d041ce6aed449b4', 'duration_ms': 0}
+2026-09-12 01:16:52,320 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'a2bc7c384c8e403c', 'duration_ms': 0}
+2026-09-12 01:16:52,320 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '8221aab80ff24c26', 'duration_ms': 0}
+2026-09-12 01:16:52,320 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '404ef6a1819643f0', 'duration_ms': 0}
+2026-09-12 01:16:52,320 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'aff75c8f0def4949', 'duration_ms': 0}
+2026-09-12 01:16:52,373 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '618ab533bc414224', 'duration_ms': 0}
+2026-09-12 01:16:52,373 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'a00bfbdf55104b3a', 'duration_ms': 0}
+2026-09-12 01:16:52,384 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '212ac2dee6ce4412', 'duration_ms': 0}
+2026-09-12 01:16:52,393 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '4455c85fa5824579', 'duration_ms': 0}
+2026-09-12 01:16:52,393 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '965d4f64c1ee45ad', 'duration_ms': 0}
+2026-09-12 01:16:52,393 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'fcfb7ce388934cf6', 'duration_ms': 0}
+2026-09-12 01:16:52,393 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'bb0ae8331b624ba2', 'duration_ms': 0}
+2026-09-12 01:16:52,393 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '0fbf54ef636b426e', 'duration_ms': 0}
+2026-09-12 01:16:52,393 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '369a95fb1ff84686', 'duration_ms': 0}
+2026-09-12 01:16:52,393 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'a5b895236674404e', 'duration_ms': 0}
+2026-09-12 01:16:52,412 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '06d323da068d45b8', 'duration_ms': 0}
+2026-09-12 01:16:52,412 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '7b9fc5e7a7f4454e', 'duration_ms': 0}
+2026-09-12 01:16:52,412 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '0304d16125534d18', 'duration_ms': 0}
+2026-09-12 01:16:52,412 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'd2c3967ed32e4ddc', 'duration_ms': 0}
+2026-09-12 01:16:52,412 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'bb4b6b65ab7f4f88', 'duration_ms': 0}
+2026-09-12 01:16:52,412 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '1755b2ae8a0b4441', 'duration_ms': 0}
+2026-09-12 01:16:52,412 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '7b04874a28a84f15', 'duration_ms': 0}
+2026-09-12 01:16:52,457 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'ea42e925135d4119', 'duration_ms': 0}
+2026-09-12 01:16:52,457 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '394e28e789d34575', 'duration_ms': 0}
+2026-09-12 01:16:52,457 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '19b7280d605646c2', 'duration_ms': 0}
+2026-09-12 01:16:52,524 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'c6352168a8a8441b', 'duration_ms': 0}
+2026-09-12 01:16:52,524 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '0971c8f5ac234dc3', 'duration_ms': 0}
+2026-09-12 01:16:52,524 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'd5080ee8c2bb4761', 'duration_ms': 0}
+2026-09-12 01:16:52,524 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '99d0df31e89c40d3', 'duration_ms': 0}
+2026-09-12 01:16:52,524 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': '22a530b0f6a54255', 'duration_ms': 0}
+2026-09-12 01:16:52,524 [    INFO] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.client.init', 'enabled': 'http://localhost:3100', 'url': 'http://localhost:3100', 'trace_id': 'ec0b9da9c4cc4587', 'duration_ms': 0}
+tests\chaos\test_config_boundary_chaos.py .................              [  4%]
+tests\chaos\test_degrade_chaos.py ..........                             [  4%]
+tests\chaos\test_disaster_recovery_chaos.py ..........                   [  4%]
+tests\chaos\test_rate_limiter_chaos.py ........                          [  4%]
+tests\contract\test_contract_breaker_single_source.py ........           [  4%]
+2026-09-12 01:16:56,223 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '8e37f25ee4ca48eb', 'duration_ms': 0}
+2026-09-12 01:16:56,224 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '03922083af1d414b', 'duration_ms': 0}
+2026-09-12 01:16:56,224 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '075a64d9c58c4caa', 'duration_ms': 0}
+2026-09-12 01:16:56,224 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '01debfe2937246d8', 'duration_ms': 0}
+2026-09-12 01:16:56,241 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': 'cf2d5b8ce0994e50', 'duration_ms': 0}
+2026-09-12 01:16:56,241 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': 'e591e8d59c9e47e1', 'duration_ms': 0}
+2026-09-12 01:16:56,241 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '40bc91bba8814887', 'duration_ms': 0}
+2026-09-12 01:16:56,241 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '2fd27a3ef4934504', 'duration_ms': 0}
+2026-09-12 01:16:56,241 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': 'bcc692099ba94089', 'duration_ms': 0}
+2026-09-12 01:16:56,245 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': 'dc5dc8e07c1346f3', 'duration_ms': 0}
+2026-09-12 01:16:56,245 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '5ed9af2c849f40fe', 'duration_ms': 0}
+2026-09-12 01:16:56,245 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '406ce30861a94503', 'duration_ms': 0}
+2026-09-12 01:16:56,245 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': 'd72c7a9fc8074545', 'duration_ms': 0}
+2026-09-12 01:16:56,258 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '3d80338b4ad545f1', 'duration_ms': 0}
+2026-09-12 01:16:56,258 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': 'e77203c020e04805', 'duration_ms': 0}
+2026-09-12 01:16:56,258 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '78b9c7ab53fb424a', 'duration_ms': 0}
+2026-09-12 01:16:56,258 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '2311c524bf954add', 'duration_ms': 0}
+2026-09-12 01:16:56,258 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '30fb531964184ec5', 'duration_ms': 0}
+2026-09-12 01:16:56,258 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '401d4591378b44aa', 'duration_ms': 0}
+2026-09-12 01:16:56,262 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': 'fe32ea36ae6840d8', 'duration_ms': 0}
+2026-09-12 01:16:56,273 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '86cf435b7f4e4ca1', 'duration_ms': 0}
+2026-09-12 01:16:56,274 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '722d0cbf992a42eb', 'duration_ms': 0}
+2026-09-12 01:16:56,274 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '173690ab370d4352', 'duration_ms': 0}
+2026-09-12 01:16:56,277 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '54d26d3caea841b3', 'duration_ms': 0}
+2026-09-12 01:16:56,291 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': 'cd2b57e42d6247e9', 'duration_ms': 0}
+2026-09-12 01:16:56,292 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': 'ceb2ce97b7ed4983', 'duration_ms': 0}
+2026-09-12 01:16:56,292 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': '3f1f9422210c48ae', 'duration_ms': 0}
+2026-09-12 01:16:56,292 [   ERROR] agent.monitoring.loki: {'module_name': 'loki', 'action': 'loki.push.exception', 'error': 'HTTPConnectionPool(host=\'localhost\', port=3100): Max retries exceeded with url: /loki/api/v1/push (Caused by NewConnectionError("HTTPConnection(host=\'localhost\', port=3100): Failed to establish a new connection: [WinError 10061] 由于目标计算机积极拒绝，无法连接。"))', 'trace_id': 'e681f69c1e8f4ec5', 'duration_ms': 0}
+tests\contract\test_contracts.py ..............................          [  4%]
+tests\integration\test_ab_testing_integration.py .......                 [  4%]
+tests\integration\test_adapters_integration.py ......................... [  4%]
+........................................................                 [  5%]
+tests\integration\test_agent_integration.py .............                [  5%]
+tests\integration\test_alert_notifier_integration.py ................... [  5%]
+................................................................         [  5%]
+tests\integration\test_arch_rules_integration.py ....................... [  5%]
+............................................................             [  6%]
+tests\integration\test_audit_trace.py ..                                 [  6%]
+tests\integration\test_auto_tuner_integration.py ....................... [  6%]
+................................                                         [  6%]
+tests\integration\test_chaos_injector_integration.py ................... [  6%]
+2026-09-12 01:18:28,478 [    INFO] agent.monitoring.chaos_injector: {'module_name': 'chaos_injector', 'action': 'log', 'message': '[Chaos] 内存压力线程已停止', 'trace_id': '3fe6182f71a24033', 'duration_ms': 0}
+2026-09-12 01:18:34,177 [    INFO] agent.monitoring.chaos_injector: {'module_name': 'chaos_injector', 'action': 'log', 'message': '[Chaos] 内存压力线程已停止', 'trace_id': '806ebd3e60a04cf9', 'duration_ms': 0}
+..................................................................       [  6%]
+tests\integration\test_chat_full_pipeline.py ........                    [  6%]
+tests\integration\test_circuit_breaker_degrade_flow.py ......            [  6%]
+tests\integration\test_cognitive_workflow.py ....                        [  6%]
+tests\integration\test_crawler_control_integration.py ........           [  6%]
+tests\integration\test_digital_life_integration.py ..................... [  7%]
+2026-09-12 01:19:29,797 [    INFO] agent.workflow_learning: [Service] 已加载 3 个本地工作流到索引
+2026-09-12 01:19:29,875 [    INFO] agent.workflow_learning: [Service] 已加载 3 个本地工作流到索引
+2026-09-12 01:19:29,876 [    INFO] agent.orchestrator.lifecycle_manager: {'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._autonomous_loop.log', 'message': '[维护] 自主循环已停止', 'trace_id': '1db3c4425cd14771', 'duration_ms': 0}
+2026-09-12 01:19:30,215 [    INFO] agent.workflow_learning: [Service] 已加载 3 个本地工作流到索引
+2026-09-12 01:19:30,215 [    INFO] agent.orchestrator.lifecycle_manager: {'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._autonomous_loop.log', 'message': '[维护] 自主循环已停止', 'trace_id': 'b808b38b918748e3', 'duration_ms': 0}
+2026-09-12 01:19:30,295 [    INFO] agent.workflow_learning: [Service] 已加载 3 个本地工作流到索引
+..........................                                               [  7%]
+tests\integration\test_disaster_recovery_e2e.py ......                   [  7%]
+tests\integration\test_evolution_integration.py .......                  [  7%]
+tests\integration\test_feedback_integration.py ......                    [  7%]
+tests\integration\test_git_sync_e2e.py ................                  [  7%]
+tests\integration\test_guardrails_orchestrator.py ...                    [  7%]
+tests\integration\test_health_score_integration.py ..................... [  7%]
+........................................................................ [  7%]
+.....................................................                    [  8%]
+tests\integration\test_hitl_tools.py ...                                 [  8%]
+tests\integration\test_impact_analysis.py ............                   [  8%]
+tests\integration\test_imports.py ..                                     [  8%]
+tests\integration\test_knowledge_audit_ci_edge.py ....                   [  8%]
+tests\integration\test_lifecycle_manager_memory_router.py ........       [  8%]
+tests\integration\test_memory_abstractor_integration.py ................ [  8%]
+........................................................................ [  8%]
+.............                                                            [  9%]
+tests\integration\test_memory_consistency.py ......                      [  9%]
+tests\integration\test_memory_reviewer_integration.py ............       [  9%]
+tests\integration\test_model_router_cost.py ....                         [  9%]
+tests\integration\test_observability_security.py .....                   [  9%]
+2026-09-12 01:20:20,620 [   ERROR] agent.audit.chain: 审计链 seq 冲突（单写者纪律被破坏？）: UNIQUE constraint failed: audit_chain.seq；已重同步 seq 并保留记录于 ring buffer（不静默丢弃）
+tests\integration\test_orchestrator三层路由_e2e.py .........             [  9%]
+tests\integration\test_performance_optimization_integration.py ......... [  9%]
+........................................................................ [  9%]
+                                                                         [  9%]
+tests\integration\test_permission_gateway_e2e.py ....................... [  9%]
+.............                                                            [  9%]
+tests\integration\test_planning_budget_degrade_concurrency.py .......    [  9%]
+tests\integration\test_planning_cancel_concurrency.py ......             [  9%]
+tests\integration\test_planning_core.py ....................             [ 10%]
+tests\integration\test_planning_failure_reflection_e2e.py ..             [ 10%]
+tests\integration\test_planning_state_machine_flow.py ..........         [ 10%]
+tests\integration\test_rate_limit_api_gateway.py .....                   [ 10%]
+tests\integration\test_replay_storage_integration.py ................... [ 10%]
+..........................                                               [ 10%]
+tests\integration\test_resource_monitor_integration.py ................. [ 10%]
+........................................................................ [ 10%]
+.....................................................................    [ 11%]
+tests\integration\test_routes_config_integration.py .................... [ 11%]
+........................................................................ [ 11%]
+........                                                                 [ 11%]
+tests\integration\test_routes_logging_integration.py ................... [ 12%]
+........................................................................ [ 12%]
+..................................................................       [ 12%]
+tests\integration\test_routes_memory_review.py ........                  [ 12%]
+tests\integration\test_routes_skills_mgmt_integration.py .......         [ 12%]
+tests\integration\test_scheduling_integration.py ....................... [ 13%]
+..................................................................       [ 13%]
+tests\integration\test_self_healer_integration.py ...................... [ 13%]
+........................................................................ [ 13%]
+.................................                                        [ 14%]
+tests\integration\test_serialization_integration.py ...........          [ 14%]
+tests\integration\test_short_term_memory_integration.py ..............   [ 14%]
+tests\integration\test_skill_converter_integration.py ............       [ 14%]
+tests\integration\test_skill_install_loop.py .......                     [ 14%]
+tests\integration\test_skills_workflow_flow.py ..........                [ 14%]
+tests\integration\test_snapshot_integration.py ......................... [ 14%]
+........................................................................ [ 14%]
+...........................                                              [ 15%]
+tests\integration\test_task7_alert_escalation.py .........               [ 15%]
+tests\integration\test_tlm_bidirectional_sync.py ......                  [ 15%]
+tests\integration\test_tlm_embedding_search_e2e.py .................     [ 15%]
+tests\integration\test_tlm三层路由_e2e.py .......................        [ 15%]
+tests\integration\test_trace_integration.py ........                     [ 15%]
+tests\integration\test_verification_flow.py ..........                   [ 15%]
+tests\integration\test_visibility_report.py ............................ [ 15%]
+................................                                         [ 15%]
+tests\perf\test_config_manager_perf.py .............                     [ 15%]
+tests\regression\test_p0_security_fix.py ............................... [ 16%]
+.....................................                                    [ 16%]
+tests\regression\test_pr634_ci_fixes.py ............................     [ 16%]
+tests\regression\test_precommit_hook_blocking.py .....                   [ 16%]
+tests\test_api_gateway.py ............                                   [ 16%]
+tests\test_business_dashboard.py sssssssssssss                           [ 16%]
+tests\test_checkpoint_recovery_e2e.py ...                                [ 16%]
+tests\test_checkpoint_resume_failure.py ........                         [ 16%]
+tests\test_cognitive_boundary.py .........................               [ 16%]
+tests\test_dynamic_tools.py ................................             [ 17%]
+tests\test_error_handling.py .................................           [ 17%]
+tests\test_extensions.py ...xx......xx.                                  [ 17%]
+tests\test_lora_checkpoint.py .............                              [ 17%]
+tests\test_model_router.py ...xxxxx.x......                              [ 17%]
+tests\test_multi_search_engine.py ..............                         [ 17%]
+tests\test_multi_tenant.py ..........                                    [ 17%]
+tests\test_plugin_loader.py ........                                     [ 17%]
+tests\test_plugin_schema.py ................                             [ 17%]
+tests\test_plugin_submit_url.py ......                                   [ 17%]
+tests\test_state_persistence.py .....................                    [ 17%]
+tests\trace_context_test.py ......                                       [ 17%]
+tests\unit\test_ab_testing_framework.py ................                 [ 18%]
+tests\unit\test_abstract_from_memory_route.py .................          [ 18%]
+tests\unit\test_acr_metrics.py ......................................... [ 18%]
+..........                                                               [ 18%]
+tests\unit\test_adapters_comprehensive.py .............................. [ 18%]
+..................................................                       [ 18%]
+tests\unit\test_additional_modules_comprehensive.py .................... [ 18%]
+.................................................                        [ 19%]
+tests\unit\test_agentskills_io_compat.py ...............                 [ 19%]
+tests\unit\test_alert_evaluator_comprehensive.py ....................... [ 19%]
+....................................................................     [ 19%]
+tests\unit\test_alert_evaluator_singleton.py .......................     [ 20%]
+tests\unit\test_alert_manager_singleton.py ...................           [ 20%]
+tests\unit\test_alert_notifier_concurrency.py ....                       [ 20%]
+tests\unit\test_alert_notifier_singleton.py ............                 [ 20%]
+tests\unit\test_alert_system.py .................                        [ 20%]
+tests\unit\test_api_gateway.py ......................................... [ 20%]
+.......................                                                  [ 20%]
+tests\unit\test_api_planning.py ........                                 [ 20%]
+tests\unit\test_arch_rules.py ...........................                [ 20%]
+tests\unit\test_audit.py ......................                          [ 20%]
+tests\unit\test_audit_chain.py ......................................... [ 21%]
+........................................................................ [ 21%]
+...........                                                              [ 21%]
+tests\unit\test_audit_facade.py ........................................ [ 21%]
+.......                                                                  [ 21%]
+tests\unit\test_audit_integration.py ...............................     [ 22%]
+tests\unit\test_audit_logger_comprehensive.py .......................... [ 22%]
+..                                                                       [ 22%]
+tests\unit\test_audit_migration.py ..................................... [ 22%]
+....                                                                     [ 22%]
+tests\unit\test_audit_safety_logging_singleton.py ...................    [ 22%]
+tests\unit\test_audit_ui_middleware.py ................................. [ 22%]
+.............                                                            [ 22%]
+tests\unit\test_autonomy.py ......................                       [ 23%]
+tests\unit\test_backup_reflection.py ...                                 [ 23%]
+tests\unit\test_baseline_collector.py ............                       [ 23%]
+tests\unit\test_behavior_controller.py ......                            [ 23%]
+tests\unit\test_behavior_drift.py ..............                         [ 23%]
+tests\unit\test_bm25_skill_searcher.py ..........................        [ 23%]
+tests\unit\test_bom_encoding_hook.py ........................            [ 23%]
+tests\unit\test_browser_agent.py ...............                         [ 23%]
+tests\unit\test_business_metrics_comprehensive.py ...................... [ 23%]
+................................................                         [ 23%]
+tests\unit\test_business_metrics_tracking.py ........................... [ 24%]
+..........                                                               [ 24%]
+tests\unit\test_cache_tools_package_parity.py ..........                 [ 24%]
+tests\unit\test_caching_multi_level.py ................................. [ 24%]
+.....                                                                    [ 24%]
+tests\unit\test_caching_supplement.py .......                            [ 24%]
+tests\unit\test_chaos_cleanup_threads.py ......                          [ 24%]
+tests\unit\test_chaos_injector_comprehensive.py ........................ [ 24%]
+2026-09-12 01:39:30,214 [    INFO] agent.monitoring.chaos_injector: {'module_name': 'chaos_injector', 'action': 'cpu', 'message': '[Chaos] 所有CPU压力进程已终止', 'trace_id': '93e1072b29a14a75', 'duration_ms': 0}
+.........................................................                [ 24%]
+tests\unit\test_check_boundary_coverage.py ............................. [ 25%]
+                                                                         [ 25%]
+tests\unit\test_check_circular_deps.py ..........                        [ 25%]
+tests\unit\test_ci_guard_fix_regression.py ........................      [ 25%]
+tests\unit\test_ci_l3_context_preflight.py ...............               [ 25%]
+tests\unit\test_circuit_breaker_boundary.py ............................ [ 25%]
+........                                                                 [ 25%]
+tests\unit\test_circuit_breaker_three_level.py ......................... [ 25%]
+....                                                                     [ 25%]
+tests\unit\test_cleanup_scheduler.py ....                                [ 25%]
+tests\unit\test_code_review.py ..................                        [ 25%]
+tests\unit\test_code_review_additional.py ..........                     [ 25%]
+tests\unit\test_cognitive_loop.py ...................................... [ 26%]
+.....                                                                    [ 26%]
+tests\unit\test_compat_check.py .....................                    [ 26%]
+tests\unit\test_compatibility.py ................                        [ 26%]
+tests\unit\test_compression_tools.py ................................... [ 26%]
+......................                                                   [ 26%]
+tests\unit\test_conflict_resolver.py ..................................  [ 26%]
+tests\unit\test_context_assembler.py ..............                      [ 27%]
+tests\unit\test_context_engineering.py ................................. [ 27%]
+......                                                                   [ 27%]
+tests\unit\test_core.py ..                                               [ 27%]
+tests\unit\test_core_comprehensive.py ..............                     [ 27%]
+tests\unit\test_crawler_control.py ...................                   [ 27%]
+tests\unit\test_crawler_control_concurrency.py .....                     [ 27%]
+tests\unit\test_create_gitee_release_script.py ..                        [ 27%]
+tests\unit\test_dashboard.py .................                           [ 27%]
+tests\unit\test_data_analytics.py ......................                 [ 27%]
+tests\unit\test_data_process_tools.py .................................. [ 27%]
+......................................................                   [ 28%]
+tests\unit\test_decision_logger_comprehensive.py ....................... [ 28%]
+..................................                                       [ 28%]
+tests\unit\test_dependency_graph.py .................................... [ 28%]
+                                                                         [ 28%]
+tests\unit\test_deployment.py .......................................... [ 28%]
+..........                                                               [ 29%]
+tests\unit\test_descriptors_backfill.py ................................ [ 29%]
+.....................ss                                                  [ 29%]
+tests\unit\test_descriptors_bridge.py ..............................     [ 29%]
+tests\unit\test_descriptors_models.py ..........................         [ 29%]
+tests\unit\test_descriptors_registry.py ................................ [ 29%]
+..........                                                               [ 29%]
+tests\unit\test_descriptors_validator.py ..........................      [ 30%]
+tests\unit\test_detailed_profiler.py ..................                  [ 30%]
+tests\unit\test_diagram_tools.py ............                            [ 30%]
+tests\unit\test_dialog_state.py .................................        [ 30%]
+tests\unit\test_dialog_state_concurrency.py ........                     [ 30%]
+tests\unit\test_digestion_applicability.py ............................. [ 30%]
+                                                                         [ 30%]
+tests\unit\test_digestion_cases.py ..................................... [ 30%]
+................................                                         [ 31%]
+tests\unit\test_digestion_cleaning.py .................................. [ 31%]
+....................................................                     [ 31%]
+tests\unit\test_digestion_gate.py ...................................... [ 31%]
+........................                                                 [ 31%]
+tests\unit\test_digestion_generation.py ................................ [ 32%]
+...........                                                              [ 32%]
+tests\unit\test_digestion_internalize.py ............................... [ 32%]
+....................................................                     [ 32%]
+2026-09-12 01:44:40,397 [    INFO] agent.orchestrator.lifecycle_manager: {'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._run_maint_summary.log', 'message': '[维护] 周期性多层摘要已刷新', 'trace_id': 'bc217cb682e648c9', 'duration_ms': 0}
+2026-09-12 01:44:40,401 [    INFO] agent.orchestrator.lifecycle_manager: {'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._run_maint_summary.log', 'message': '[维护] 周期性多层摘要已刷新', 'trace_id': 'e65e116fefad4cfd', 'duration_ms': 0}
+2026-09-12 01:44:40,450 [    INFO] agent.workflow_learning: [Service] 已加载 3 个本地工作流到索引
+tests\unit\test_digestion_mining.py .................................... [ 32%]
+......................                                                   [ 32%]
+tests\unit\test_digestion_pipeline.py .................................. [ 33%]
+.....................                                                    [ 33%]
+tests\unit\test_digestion_sandbox.py ................................... [ 33%]
+...................................................                      [ 33%]
+tests\unit\test_digestion_seed_pack.py ....................              [ 33%]
+tests\unit\test_digestion_shadow.py .................................... [ 34%]
+.......................................................................  [ 34%]
+tests\unit\test_digestion_stage.py ..................................... [ 34%]
+..............                                                           [ 34%]
+tests\unit\test_digital_life_comprehensive.py .......................... [ 34%]
+2026-09-12 01:47:55,522 [    INFO] agent.orchestrator.lifecycle_manager: {'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager.stop.log', 'message': '* 云枢正在休眠...', 'trace_id': 'f0080d67b0d740e1', 'duration_ms': 0}
+........................................................                 [ 35%]
+tests\unit\test_disaster_recovery_comprehensive.py ..................... [ 35%]
+..............................                                           [ 35%]
+tests\unit\test_disaster_recovery_scenarios.py ......................... [ 35%]
+..............                                                           [ 35%]
+tests\unit\test_disaster_recovery_singleton.py ......................... [ 35%]
+...                                                                      [ 35%]
+tests\unit\test_distill_feedback.py ..................                   [ 35%]
+tests\unit\test_distiller.py ..........................                  [ 36%]
+tests\unit\test_dynamic_few_shot.py ....................                 [ 36%]
+tests\unit\test_edit_policy.py ......................................... [ 36%]
+.............................................................            [ 36%]
+tests\unit\test_env_config_audit.py ............................         [ 36%]
+tests\unit\test_env_config_manager.py ..........                         [ 37%]
+tests\unit\test_env_file_permissions.py ss..........s...                 [ 37%]
+tests\unit\test_env_hot_reload.py ...................................... [ 37%]
+..                                                                       [ 37%]
+tests\unit\test_error_handler.py ....................................... [ 37%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 38%]
+...........................................................s...s.s...... [ 39%]
+.........                                                                [ 39%]
+tests\unit\test_error_handler_comprehensive.py ......................... [ 39%]
+.......................................................................  [ 39%]
+tests\unit\test_error_handler_edge.py .................................. [ 39%]
+..                                                                       [ 39%]
+tests\unit\test_error_reporting.py ..................................... [ 40%]
+                                                                         [ 40%]
+tests\unit\test_error_reporting_config.py .............................  [ 40%]
+tests\unit\test_escape_guard.py ......................                   [ 40%]
+tests\unit\test_etcd_config_client.py ............                       [ 40%]
+tests\unit\test_ethics_engine.py .................                       [ 40%]
+tests\unit\test_evaluator.py ........................................... [ 40%]
+.........                                                                [ 40%]
+tests\unit\test_events_v1.py ........................................... [ 41%]
+..........                                                               [ 41%]
+tests\unit\test_evolution_defect_case.py ............                    [ 41%]
+tests\unit\test_evolution_injector.py ......................             [ 41%]
+tests\unit\test_evolution_loop.py ........                               [ 41%]
+tests\unit\test_evolution_selector.py .........                          [ 41%]
+tests\unit\test_evolver_real_eval.py ............                        [ 41%]
+tests\unit\test_evolver_schedule.py .......                              [ 41%]
+tests\unit\test_execute_with_retry_args.py .....................         [ 41%]
+tests\unit\test_extensions_api.py ................                       [ 41%]
+tests\unit\test_extensions_base.py .........                             [ 41%]
+tests\unit\test_extensions_manager.py .......                            [ 41%]
+tests\unit\test_extensions_sandbox.py .................................. [ 42%]
+...                                                                      [ 42%]
+tests\unit\test_extensions_store.py ...........                          [ 42%]
+tests\unit\test_failure_bucket.py ..............                         [ 42%]
+tests\unit\test_failure_collector.py ................................... [ 42%]
+.                                                                        [ 42%]
+tests\unit\test_fallback_submetric_ratio_invariant.py ........           [ 42%]
+tests\unit\test_feature_health.py ........                               [ 42%]
+tests\unit\test_feedback_agent.py ..........                             [ 42%]
+tests\unit\test_feedback_engineering.py ................                 [ 42%]
+tests\unit\test_feedback_skill_binding.py .......................        [ 42%]
+tests\unit\test_few_shot_injector.py .................                   [ 42%]
+tests\unit\test_full_stack_demo.py .............                         [ 43%]
+tests\unit\test_generate_visibility_trend.py ........................... [ 43%]
+.................                                                        [ 43%]
+tests\unit\test_git_sync.py ............................................ [ 43%]
+....                                                                     [ 43%]
+tests\unit\test_graceful_degrade_comprehensive.py ...................... [ 43%]
+........................................                                 [ 43%]
+tests\unit\test_graceful_degrade_scenarios.py .......................... [ 44%]
+....                                                                     [ 44%]
+tests\unit\test_guardrails.py .............                              [ 44%]
+tests\unit\test_guardrails_supplement.py ....                            [ 44%]
+tests\unit\test_handoff_generator.py ......                              [ 44%]
+tests\unit\test_health.py ...                                            [ 44%]
+tests\unit\test_health_assessor.py .............                         [ 44%]
+tests\unit\test_health_assessor_concurrency.py ....                      [ 44%]
+tests\unit\test_health_calculator_singleton.py ......................... [ 44%]
+..                                                                       [ 44%]
+tests\unit\test_health_probes_missing.py .............                   [ 44%]
+tests\unit\test_health_supplement.py ................................... [ 44%]
+................                                                         [ 44%]
+tests\unit\test_history_load_edge_cases.py ...                           [ 44%]
+tests\unit\test_hitl.py .....                                            [ 44%]
+tests\unit\test_holographic_adapter_concurrency.py ....                  [ 44%]
+tests\unit\test_hotness_scorer.py ..................................     [ 45%]
+tests\unit\test_http_client.py ...............                           [ 45%]
+tests\unit\test_impact_analysis_cache.py ............................... [ 45%]
+..................                                                       [ 45%]
+tests\unit\test_import_smoke.py ........................................ [ 45%]
+..................................                                       [ 45%]
+tests\unit\test_index_manager.py ..................                      [ 45%]
+tests\unit\test_index_manager_concurrency.py ....                        [ 46%]
+tests\unit\test_intelligent_optimization.py ............................ [ 46%]
+...............                                                          [ 46%]
+tests\unit\test_intent_layer_metrics.py ..........                       [ 46%]
+tests\unit\test_introspection_stop_mixin.py .........                    [ 46%]
+tests\unit\test_judge_llm_confidence_edge_cases.py ..................... [ 46%]
+..                                                                       [ 46%]
+tests\unit\test_knowledge_audit_edge.py ...........                      [ 46%]
+2026-09-12 01:59:42,044 [    INFO] agent.workflow_learning: [Service] 已加载 3 个本地工作流到索引
+2026-09-12 01:59:43,430 [    INFO] agent.orchestrator.lifecycle_manager: {'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._run_maint_summary.log', 'message': '[维护] 周期性多层摘要已刷新', 'trace_id': '00f1499937b5448a', 'duration_ms': 0}
+tests\unit\test_knowledge_card.py ...................................... [ 46%]
+.............................                                            [ 46%]
+tests\unit\test_knowledge_cli.py ....................................... [ 47%]
+..                                                                       [ 47%]
+tests\unit\test_knowledge_conflict.py ...........                        [ 47%]
+tests\unit\test_knowledge_discuss.py .........                           [ 47%]
+tests\unit\test_knowledge_distill.py ....................                [ 47%]
+tests\unit\test_knowledge_flush_pending.py .............                 [ 47%]
+tests\unit\test_knowledge_html_report.py .....................           [ 47%]
+tests\unit\test_knowledge_incremental.py ..........                      [ 47%]
+tests\unit\test_knowledge_ingest.py ..........................           [ 47%]
+tests\unit\test_knowledge_lifecycle.py ...................               [ 47%]
+tests\unit\test_knowledge_lifecycle_store.py ................            [ 48%]
+tests\unit\test_knowledge_light_loader.py .......                        [ 48%]
+tests\unit\test_knowledge_links.py .............
