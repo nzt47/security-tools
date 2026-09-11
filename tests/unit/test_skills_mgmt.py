@@ -464,6 +464,13 @@ class TestRetrievalExtension:
         assert sm["available_methods"] == ["tfidf"]
         assert sm["upgrade_recommended"] is False, "1 个技能不应触发升级建议"
 
+    # 【不易】本用例逐个 create_manual 造 30 个技能（每个都触发 assess/分类），
+    # 是单元测试分片里最慢的一类。CI 以 `--timeout=60 --timeout-method=signal` 运行，
+    # 而 xdist worker 下 signal 会降级为 thread（pytest-timeout 设计），分片高负载时
+    # 实测 >60s 被误判失败（2026-09-11 S3-01 交付期实测：本机 11.3s、CI Shard 4 逾 60s）。
+    # pytest.ini 已约定「极慢测试应显式 @pytest.mark.timeout(N) 覆盖，不要依赖全局默认」，
+    # 故显式放宽至 180s（仍远小于 job 的 timeout-minutes，保留真实挂起检测能力）。
+    @pytest.mark.timeout(180)
     def test_health_upgrade_recommended_at_threshold(self, svc):
         """技能数达到阈值 30 时 upgrade_recommended 应为 True"""
         # 创建 30 个技能达到升级阈值
