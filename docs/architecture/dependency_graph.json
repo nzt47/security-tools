@@ -1,5 +1,5 @@
 {
-  "trace_id": "8f9e094e39cf4fba",
+  "trace_id": "9495b593372c45bc",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -87,7 +87,7 @@
       "name": "trace_v2",
       "layer": "observability",
       "file_path": "",
-      "in_degree": 8,
+      "in_degree": 9,
       "out_degree": 9
     },
     {
@@ -343,7 +343,7 @@
       "name": "task_scheduler",
       "layer": "core",
       "file_path": "agent/task_scheduler.py",
-      "in_degree": 19,
+      "in_degree": 20,
       "out_degree": 10
     },
     {
@@ -663,7 +663,7 @@
       "name": "events",
       "layer": "observability",
       "file_path": "",
-      "in_degree": 8,
+      "in_degree": 10,
       "out_degree": 4
     },
     {
@@ -1407,7 +1407,7 @@
       "name": "utc",
       "layer": "observability",
       "file_path": "agent/observability/utc.py",
-      "in_degree": 0,
+      "in_degree": 1,
       "out_degree": 4
     },
     {
@@ -1447,7 +1447,7 @@
       "name": "registry",
       "layer": "descriptors",
       "file_path": "",
-      "in_degree": 7,
+      "in_degree": 8,
       "out_degree": 1
     },
     {
@@ -1455,7 +1455,7 @@
       "name": "facade",
       "layer": "audit",
       "file_path": "",
-      "in_degree": 13,
+      "in_degree": 16,
       "out_degree": 2
     },
     {
@@ -1531,6 +1531,22 @@
       "out_degree": 2
     },
     {
+      "path": "agent.digestion.shadow",
+      "name": "shadow",
+      "layer": "digestion",
+      "file_path": "agent/digestion/shadow.py",
+      "in_degree": 0,
+      "out_degree": 3
+    },
+    {
+      "path": "agent.model_router.adapters",
+      "name": "adapters",
+      "layer": "model_router",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 1
+    },
+    {
       "path": "agent.digestion.service",
       "name": "service",
       "layer": "digestion",
@@ -1593,6 +1609,22 @@
       "file_path": "",
       "in_degree": 1,
       "out_degree": 1
+    },
+    {
+      "path": "agent.digestion.internalize",
+      "name": "internalize",
+      "layer": "digestion",
+      "file_path": "agent/digestion/internalize.py",
+      "in_degree": 0,
+      "out_degree": 8
+    },
+    {
+      "path": "agent.skills_mgmt.approval",
+      "name": "approval",
+      "layer": "skills_mgmt",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 4
     },
     {
       "path": "agent.digestion.cleaning",
@@ -2427,14 +2459,6 @@
       "out_degree": 2
     },
     {
-      "path": "agent.model_router.adapters",
-      "name": "adapters",
-      "layer": "model_router",
-      "file_path": "agent/model_router/adapters.py",
-      "in_degree": 0,
-      "out_degree": 1
-    },
-    {
       "path": "agent.model_router.router",
       "name": "router",
       "layer": "model_router",
@@ -2777,14 +2801,6 @@
       "file_path": "agent/skills_mgmt/vector_adapter.py",
       "in_degree": 0,
       "out_degree": 1
-    },
-    {
-      "path": "agent.skills_mgmt.approval",
-      "name": "approval",
-      "layer": "skills_mgmt",
-      "file_path": "agent/skills_mgmt/approval.py",
-      "in_degree": 0,
-      "out_degree": 4
     },
     {
       "path": "agent.skills_mgmt.few_shot_injector",
@@ -8261,6 +8277,45 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.digestion.shadow",
+      "target": "agent.observability.events",
+      "source_layer": "digestion",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 1374,
+      "source_file": "agent/digestion/shadow.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.shadow",
+      "target": "agent.audit.facade",
+      "source_layer": "digestion",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 1391,
+      "source_file": "agent/digestion/shadow.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.shadow",
+      "target": "agent.model_router.adapters",
+      "source_layer": "digestion",
+      "target_layer": "model_router",
+      "import_type": "from_import",
+      "line": 484,
+      "source_file": "agent/digestion/shadow.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.digestion.service",
       "target": "agent.observability.trace_v2",
       "source_layer": "digestion",
@@ -8305,7 +8360,7 @@
       "source_layer": "digestion",
       "target_layer": "descriptors",
       "import_type": "from_import",
-      "line": 279,
+      "line": 366,
       "source_file": "agent/digestion/stage.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8318,7 +8373,7 @@
       "source_layer": "digestion",
       "target_layer": "descriptors",
       "import_type": "from_import",
-      "line": 486,
+      "line": 573,
       "source_file": "agent/digestion/stage.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8331,7 +8386,7 @@
       "source_layer": "digestion",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 287,
+      "line": 374,
       "source_file": "agent/digestion/stage.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8344,7 +8399,7 @@
       "source_layer": "digestion",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 316,
+      "line": 403,
       "source_file": "agent/digestion/stage.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8357,7 +8412,7 @@
       "source_layer": "digestion",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 339,
+      "line": 426,
       "source_file": "agent/digestion/stage.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8495,6 +8550,110 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.digestion.internalize",
+      "target": "agent.audit.facade",
+      "source_layer": "digestion",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 499,
+      "source_file": "agent/digestion/internalize.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.internalize",
+      "target": "agent.observability.utc",
+      "source_layer": "digestion",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 546,
+      "source_file": "agent/digestion/internalize.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.internalize",
+      "target": "agent.skills_mgmt.approval",
+      "source_layer": "digestion",
+      "target_layer": "skills_mgmt",
+      "import_type": "from_import",
+      "line": 1287,
+      "source_file": "agent/digestion/internalize.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.internalize",
+      "target": "agent.observability.events",
+      "source_layer": "digestion",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 1441,
+      "source_file": "agent/digestion/internalize.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.internalize",
+      "target": "agent.audit.facade",
+      "source_layer": "digestion",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 1458,
+      "source_file": "agent/digestion/internalize.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.internalize",
+      "target": "agent.observability.trace_v2",
+      "source_layer": "digestion",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 522,
+      "source_file": "agent/digestion/internalize.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.internalize",
+      "target": "agent.descriptors.registry",
+      "source_layer": "digestion",
+      "target_layer": "descriptors",
+      "import_type": "from_import",
+      "line": 881,
+      "source_file": "agent/digestion/internalize.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.internalize",
+      "target": "agent.task_scheduler",
+      "source_layer": "digestion",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 1497,
+      "source_file": "agent/digestion/internalize.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.digestion.cleaning",
       "target": "agent.descriptors.bridge",
       "source_layer": "digestion",
@@ -8513,7 +8672,7 @@
       "source_layer": "digestion",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 573,
+      "line": 579,
       "source_file": "agent/digestion/gate.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8526,7 +8685,7 @@
       "source_layer": "digestion",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 590,
+      "line": 596,
       "source_file": "agent/digestion/gate.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8539,7 +8698,7 @@
       "source_layer": "digestion",
       "target_layer": "observability",
       "import_type": "from_import",
-      "line": 401,
+      "line": 407,
       "source_file": "agent/digestion/gate.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8552,7 +8711,7 @@
       "source_layer": "digestion",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 1177,
+      "line": 1197,
       "source_file": "agent/digestion/gate.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -8565,7 +8724,7 @@
       "source_layer": "digestion",
       "target_layer": "descriptors",
       "import_type": "from_import",
-      "line": 1188,
+      "line": 1208,
       "source_file": "agent/digestion/gate.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -17830,10 +17989,10 @@
     }
   ],
   "stats": {
-    "total_files": 470,
-    "total_nodes": 408,
-    "total_edges": 1120,
-    "cross_layer_edges": 737,
+    "total_files": 472,
+    "total_nodes": 410,
+    "total_edges": 1131,
+    "cross_layer_edges": 748,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -17869,7 +18028,7 @@
       "model_router": 4,
       "p6": 5,
       "network": 3,
-      "digestion": 6,
+      "digestion": 8,
       "knowledge": 26,
       "dao": 1,
       "human_in_the_loop": 5,
@@ -17882,6 +18041,6 @@
       "server_routes": 29,
       "handoff": 1
     },
-    "build_duration_ms": 2328.9056669999936
+    "build_duration_ms": 2673.048020000003
   }
 }

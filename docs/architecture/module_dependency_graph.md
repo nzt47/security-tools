@@ -127,7 +127,9 @@ flowchart LR
         agent_digestion_cleaning["agent.digestion.cleaning"]
         agent_digestion_gate["agent.digestion.gate"]
         agent_digestion_generation["agent.digestion.generation"]
+        agent_digestion_internalize["agent.digestion.internalize"]
         agent_digestion_service["agent.digestion.service"]
+        agent_digestion_shadow["agent.digestion.shadow"]
         agent_digestion_stage["agent.digestion.stage"]
     end
     subgraph evolution [evolution]
@@ -245,7 +247,7 @@ flowchart LR
         agent_memory_short_term_memory["agent.memory.short_term_memory"]:::crosslayer
     end
     subgraph model_router [model_router]
-        agent_model_router_adapters["agent.model_router.adapters"]
+        agent_model_router_adapters["agent.model_router.adapters"]:::crosslayer
         agent_model_router_cost_tracker["agent.model_router.cost_tracker"]:::crosslayer
         agent_model_router_observability["agent.model_router.observability"]
         agent_model_router_router["agent.model_router.router"]
@@ -299,7 +301,7 @@ flowchart LR
         agent_observability_tool_trace["agent.observability.tool_trace"]:::crosslayer
         agent_observability_trace_v2["agent.observability.trace_v2"]:::crosslayer
         agent_observability_tracer["agent.observability.tracer"]:::crosslayer
-        agent_observability_utc["agent.observability.utc"]
+        agent_observability_utc["agent.observability.utc"]:::crosslayer
     end
     subgraph orchestrator [orchestrator]
         agent_orchestrator["agent.orchestrator"]:::crosslayer
@@ -385,7 +387,7 @@ flowchart LR
     end
     subgraph skills_mgmt [skills_mgmt]
         agent_skills_mgmt["agent.skills_mgmt"]:::crosslayer
-        agent_skills_mgmt_approval["agent.skills_mgmt.approval"]
+        agent_skills_mgmt_approval["agent.skills_mgmt.approval"]:::crosslayer
         agent_skills_mgmt_assessor["agent.skills_mgmt.assessor"]:::crosslayer
         agent_skills_mgmt_bm25_searcher["agent.skills_mgmt.bm25_searcher"]
         agent_skills_mgmt_cleanup["agent.skills_mgmt.cleanup"]
@@ -884,6 +886,9 @@ flowchart LR
     agent_network --> agent_network_config_validator
     agent_network_observability -.-> agent_logging_utils
     agent_network_observability -.-> agent_monitoring_business_metrics
+    agent_digestion_shadow -.-> agent_observability_events
+    agent_digestion_shadow -.-> agent_audit_facade
+    agent_digestion_shadow -.-> agent_model_router_adapters
     agent_digestion_service -.-> agent_observability_trace_v2
     agent_digestion_service -.-> agent_descriptors_registry
     agent_digestion_service -.-> agent_observability_events
@@ -902,6 +907,14 @@ flowchart LR
     agent_digestion_generation -.-> agent_workflow_learning_models
     agent_digestion_generation -.-> agent_process_distill_solidify
     agent_digestion_generation -.-> agent_skills_mgmt_file_store
+    agent_digestion_internalize -.-> agent_audit_facade
+    agent_digestion_internalize -.-> agent_observability_utc
+    agent_digestion_internalize -.-> agent_skills_mgmt_approval
+    agent_digestion_internalize -.-> agent_observability_events
+    agent_digestion_internalize -.-> agent_audit_facade
+    agent_digestion_internalize -.-> agent_observability_trace_v2
+    agent_digestion_internalize -.-> agent_descriptors_registry
+    agent_digestion_internalize -.-> agent_task_scheduler
     agent_digestion_cleaning -.-> agent_descriptors_bridge
     agent_digestion_gate -.-> agent_observability_events
     agent_digestion_gate -.-> agent_audit_facade
@@ -1628,10 +1641,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 470
-- 模块节点数: 408
-- 依赖边数: 1120
-- 跨层调用数: 737
+- 扫描文件数: 472
+- 模块节点数: 410
+- 依赖边数: 1131
+- 跨层调用数: 748
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 2328.91 ms
+- 构建耗时: 2673.05 ms
