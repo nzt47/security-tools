@@ -1,5 +1,5 @@
 {
-  "trace_id": "9495b593372c45bc",
+  "trace_id": "48b9483eda22403c",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -15,7 +15,7 @@
       "name": "logging_utils",
       "layer": "core",
       "file_path": "",
-      "in_degree": 201,
+      "in_degree": 206,
       "out_degree": 2
     },
     {
@@ -87,7 +87,7 @@
       "name": "trace_v2",
       "layer": "observability",
       "file_path": "",
-      "in_degree": 9,
+      "in_degree": 16,
       "out_degree": 9
     },
     {
@@ -503,7 +503,7 @@
       "name": "audit",
       "layer": "audit",
       "file_path": "",
-      "in_degree": 7,
+      "in_degree": 9,
       "out_degree": 5
     },
     {
@@ -727,7 +727,7 @@
       "name": "sensitive_data_filter",
       "layer": "utils",
       "file_path": "",
-      "in_degree": 7,
+      "in_degree": 8,
       "out_degree": 1
     },
     {
@@ -1327,7 +1327,7 @@
       "name": "long_term_memory",
       "layer": "memory",
       "file_path": "",
-      "in_degree": 3,
+      "in_degree": 4,
       "out_degree": 3
     },
     {
@@ -1447,7 +1447,7 @@
       "name": "registry",
       "layer": "descriptors",
       "file_path": "",
-      "in_degree": 8,
+      "in_degree": 9,
       "out_degree": 1
     },
     {
@@ -2483,12 +2483,36 @@
       "out_degree": 3
     },
     {
+      "path": "agent.memory.forgetting",
+      "name": "forgetting",
+      "layer": "memory",
+      "file_path": "agent/memory/forgetting.py",
+      "in_degree": 1,
+      "out_degree": 7
+    },
+    {
+      "path": "agent.memory.identity",
+      "name": "identity",
+      "layer": "memory",
+      "file_path": "",
+      "in_degree": 3,
+      "out_degree": 2
+    },
+    {
+      "path": "agent.memory.taxonomy",
+      "name": "taxonomy",
+      "layer": "memory",
+      "file_path": "",
+      "in_degree": 4,
+      "out_degree": 2
+    },
+    {
       "path": "agent.memory",
       "name": "memory",
       "layer": "memory",
       "file_path": "agent/memory/__init__.py",
       "in_degree": 0,
-      "out_degree": 3
+      "out_degree": 8
     },
     {
       "path": "agent.memory.base",
@@ -2505,6 +2529,22 @@
       "file_path": "",
       "in_degree": 1,
       "out_degree": 2
+    },
+    {
+      "path": "agent.memory.tenancy",
+      "name": "tenancy",
+      "layer": "memory",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 5
+    },
+    {
+      "path": "agent.memory.layered_store",
+      "name": "layered_store",
+      "layer": "memory",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 7
     },
     {
       "path": "agent.memory.context_assembler",
@@ -12775,12 +12815,103 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.memory.forgetting",
+      "target": "agent.logging_utils",
+      "source_layer": "memory",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 44,
+      "source_file": "agent/memory/forgetting.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.forgetting",
+      "target": "agent.memory.identity",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 45,
+      "source_file": "agent/memory/forgetting.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.forgetting",
+      "target": "agent.memory.taxonomy",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 52,
+      "source_file": "agent/memory/forgetting.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.forgetting",
+      "target": "agent.observability.trace_v2",
+      "source_layer": "memory",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 231,
+      "source_file": "agent/memory/forgetting.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.forgetting",
+      "target": "agent.observability.trace_v2",
+      "source_layer": "memory",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 220,
+      "source_file": "agent/memory/forgetting.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.forgetting",
+      "target": "agent.descriptors.registry",
+      "source_layer": "memory",
+      "target_layer": "descriptors",
+      "import_type": "from_import",
+      "line": 289,
+      "source_file": "agent/memory/forgetting.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.forgetting",
+      "target": "agent.audit",
+      "source_layer": "memory",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 1170,
+      "source_file": "agent/memory/forgetting.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.memory",
       "target": "agent.memory.base",
       "source_layer": "memory",
       "target_layer": "memory",
       "import_type": "from_import",
-      "line": 28,
+      "line": 40,
       "source_file": "agent/memory/__init__.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -12793,7 +12924,7 @@
       "source_layer": "memory",
       "target_layer": "memory",
       "import_type": "from_import",
-      "line": 33,
+      "line": 45,
       "source_file": "agent/memory/__init__.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -12806,7 +12937,72 @@
       "source_layer": "memory",
       "target_layer": "memory",
       "import_type": "from_import",
-      "line": 34,
+      "line": 46,
+      "source_file": "agent/memory/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory",
+      "target": "agent.memory.identity",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 50,
+      "source_file": "agent/memory/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory",
+      "target": "agent.memory.taxonomy",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 56,
+      "source_file": "agent/memory/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory",
+      "target": "agent.memory.tenancy",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 63,
+      "source_file": "agent/memory/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory",
+      "target": "agent.memory.layered_store",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 74,
+      "source_file": "agent/memory/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory",
+      "target": "agent.memory.forgetting",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 75,
       "source_file": "agent/memory/__init__.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -12835,6 +13031,32 @@
       "line": 522,
       "source_file": "agent/memory/context_assembler.py",
       "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.taxonomy",
+      "target": "agent.logging_utils",
+      "source_layer": "memory",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 45,
+      "source_file": "agent/memory/taxonomy.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.taxonomy",
+      "target": "agent.observability.trace_v2",
+      "source_layer": "memory",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 423,
+      "source_file": "agent/memory/taxonomy.py",
+      "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -12944,6 +13166,97 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.memory.layered_store",
+      "target": "agent.logging_utils",
+      "source_layer": "memory",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 42,
+      "source_file": "agent/memory/layered_store.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.layered_store",
+      "target": "agent.memory.identity",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 43,
+      "source_file": "agent/memory/layered_store.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.layered_store",
+      "target": "agent.memory.long_term_memory",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 44,
+      "source_file": "agent/memory/layered_store.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.layered_store",
+      "target": "agent.memory.taxonomy",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 45,
+      "source_file": "agent/memory/layered_store.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.layered_store",
+      "target": "agent.memory.tenancy",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 56,
+      "source_file": "agent/memory/layered_store.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.layered_store",
+      "target": "agent.utils.sensitive_data_filter",
+      "source_layer": "memory",
+      "target_layer": "utils",
+      "import_type": "from_import",
+      "line": 157,
+      "source_file": "agent/memory/layered_store.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.layered_store",
+      "target": "agent.observability.trace_v2",
+      "source_layer": "memory",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 181,
+      "source_file": "agent/memory/layered_store.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.memory.file_watcher",
       "target": "agent.logging_utils",
       "source_layer": "memory",
@@ -13022,6 +13335,71 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.memory.tenancy",
+      "target": "agent.logging_utils",
+      "source_layer": "memory",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 43,
+      "source_file": "agent/memory/tenancy.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.tenancy",
+      "target": "agent.memory.taxonomy",
+      "source_layer": "memory",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 44,
+      "source_file": "agent/memory/tenancy.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.tenancy",
+      "target": "agent.observability.trace_v2",
+      "source_layer": "memory",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 326,
+      "source_file": "agent/memory/tenancy.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.tenancy",
+      "target": "agent.observability.trace_v2",
+      "source_layer": "memory",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 417,
+      "source_file": "agent/memory/tenancy.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.tenancy",
+      "target": "agent.observability.trace_v2",
+      "source_layer": "memory",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 359,
+      "source_file": "agent/memory/tenancy.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.memory.long_term_memory",
       "target": "agent.memory.base",
       "source_layer": "memory",
@@ -13055,6 +13433,32 @@
       "import_type": "from_import",
       "line": 149,
       "source_file": "agent/memory/long_term_memory.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.identity",
+      "target": "agent.logging_utils",
+      "source_layer": "memory",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 34,
+      "source_file": "agent/memory/identity.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.memory.identity",
+      "target": "agent.audit",
+      "source_layer": "memory",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 249,
+      "source_file": "agent/memory/identity.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -17989,10 +18393,10 @@
     }
   ],
   "stats": {
-    "total_files": 472,
-    "total_nodes": 410,
-    "total_edges": 1131,
-    "cross_layer_edges": 748,
+    "total_files": 477,
+    "total_nodes": 415,
+    "total_edges": 1159,
+    "cross_layer_edges": 764,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -18022,7 +18426,7 @@
       "verification": 1,
       "context": 1,
       "learning": 2,
-      "memory": 15,
+      "memory": 20,
       "process_distill": 9,
       "prompt_manager": 5,
       "model_router": 4,
@@ -18041,6 +18445,6 @@
       "server_routes": 29,
       "handoff": 1
     },
-    "build_duration_ms": 2673.048020000003
+    "build_duration_ms": 2456.1356500000784
   }
 }
