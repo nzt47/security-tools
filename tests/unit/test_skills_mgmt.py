@@ -56,7 +56,7 @@ def _make_skill_data(name="test-skill", **overrides):
     return data
 
 
-def _seed_skill(svc, name="test-skill", **overrides):
+def _seed_skill(svc, **overrides):
     """**直接落库**造数（不经 `create_manual`：无评估/分类副作用）
 
     仓库既定口径（见 `d2e95e62`「改直接落库造数，规避 CI 高负载 digest/分类超时」）：
@@ -65,10 +65,13 @@ def _seed_skill(svc, name="test-skill", **overrides):
     "多分片 + 覆盖率并行"的慢负载下**实测挂起**（2026-09-11 交付期：本机 11.3s，
     CI 逾 60s；放宽超时到 180s 后仍逾 180s）⇒ 故一律走本函数。
 
-    `name` 经 `setdefault` 并入单个 `**` 展开（避免显式 + 展开的 kwarg 同名冲突）。
+    【不易】本函数**只接受 `**overrides`**，刻意不声明任何显式参数：显式参数 + 随后
+    把 `**overrides` 展开进调用会被 kwarg 扫描判为 HIGH（"显式参数可能与 **kwargs
+    中的同名键冲突"）而阻断 CI（提交 `a8d25cdb` 实测）。`name` 的默认值在函数体内
+    `setdefault`，调用方统一以关键字传入。
     """
     from agent.skills_mgmt.models import Skill
-    overrides.setdefault("name", name)
+    overrides.setdefault("name", "test-skill")
     svc.store.upsert(Skill.from_storage_dict(_make_skill_data(**overrides)))
 
 
@@ -246,14 +249,14 @@ class TestSkillSearch:
     """
 
     @staticmethod
-    def _seed(svc, name, **overrides):
+    def _seed(svc, **overrides):
         """直接把技能写入存储（不经 create_manual：无评估/分类副作用）。
 
-        注：name 通过 overrides.setdefault 并入单个 ** 展开（不做
-        `f(name=name, **overrides)` 的显式+展开混合，避免 kwarg 同名冲突）。
         实现委托模块级 `_seed_skill`（同口径，避免两处复制）。
+        同样**只接受 `**overrides`**：显式参数 + `**` 展开会被 kwarg 扫描判为 HIGH
+        而阻断 CI（见 `_seed_skill` docstring 的说明），故 `name` 由调用方以关键字传入。
         """
-        _seed_skill(svc, name=name, **overrides)
+        _seed_skill(svc, **overrides)
 
     def _setup_test_skills(self, svc):
         """创建一批测试技能"""
