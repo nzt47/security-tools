@@ -27,6 +27,7 @@ from agent.digestion import stage as ST
 from agent.digestion.shadow import CLOCK_WALL
 from agent.observability import events as ev
 from agent.security import approval_guard as G
+from agent.security import governance_bridge as GB
 from agent.security.actor_matrix import ACTOR_AUTO, ACTOR_HUMAN, ACTOR_SUB_AGENT
 from agent.skills_mgmt.approval import ApprovalPermissionError
 
@@ -203,7 +204,13 @@ class TestHumanFullPath:
 
     def test_governance_fields_traceable_after_approval(self, engine,
                                                        isolated_audit):
-        """审批记录的 undo_hint / 补偿动作可回溯（对齐 S1-02 governance）"""
+        """审批记录的 undo_hint / 补偿动作可回溯（对齐 S1-02 governance）
+
+        状态随「审批载荷是否声明」与「descriptor 台账是否可解析」而变：
+        `resolved`（有值）/ `missing`（台账有该能力但未填 undo_hint）/
+        `unresolved`（台账不可解析）。三者都必须**如实标注**且键齐备 ——
+        本用例锁定「可回溯性契约」而不是某个环境下的具体取值。
+        """
         eng, _ = engine
         decision = eng.evaluate(CAP, evidence=_evidence())
         request = eng.manual_promote(CAP, "owner", decision=decision,
@@ -214,10 +221,13 @@ class TestHumanFullPath:
                     if e.action == "approval.approved"]
         flat = _flat(payloads[0])
         assert flat["object_type"] == "stage.promote"
-        # 审批载荷未带 undo_hint ⇒ 由 governance 桥接从 S1-02 descriptor 解析
-        assert flat["undo_hint_status"] in ("resolved", "unresolved")
-        if flat["undo_hint_status"] == "resolved":
-            assert flat["undo_hint"]
+        assert flat["undo_hint_status"] in (GB.STATUS_RESOLVED, GB.STATUS_MISSING,
+                                            GB.STATUS_UNRESOLVED)
+        # 三个键恒在（事后可回答「能不能退、怎么退」）
+        for key in ("undo_hint", "compensating_action", "undo_hint_status"):
+            assert key in flat, key
+        if flat["undo_hint_status"] == GB.STATUS_RESOLVED:
+            assert flat["undo_hint"] or flat["compensating_action"]
 
     def test_reject_path_keeps_stage_unpromoted(self, engine, human):
         eng, registry = engine
