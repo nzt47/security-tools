@@ -268,6 +268,11 @@ Seed Pack 的 TDD 用例即用该能力：`seed-tdd-red-green` 的条件步**执
 | 边界覆盖 | `python scripts/check_boundary_coverage.py` | ✅ `blocked_modules=[]`（场景覆盖 96%） |
 | 演示（正/负样本） | `python scripts/demo_s3_02_cases.py [--mutate] [--uncovered-branch]` | ✅ 正向发证+推进；两个负样本**均被拒绝** |
 
+**CI 终态（push 触发，SHA `36e27d9b`）**：**13/13 workflow 全绿（0 failure / 0 cancelled）**，
+其中「云枢系统测试流程」**21/21 job success**、「可观测性质量保障」19/20 success（1 skipped）、
+「kwarg 扫描 → SonarQube」success（`agent` 与 `tests` 两路均 0 处 HIGH）。
+原始统计与可复现命令见结案报告 §3.2。
+
 ---
 
 ## 九、演示产物与取证文件
