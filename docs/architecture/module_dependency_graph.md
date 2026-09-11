@@ -125,6 +125,7 @@ flowchart LR
     subgraph digestion [digestion]
         agent_digestion_capability["agent.digestion.capability"]
         agent_digestion_cleaning["agent.digestion.cleaning"]
+        agent_digestion_gate["agent.digestion.gate"]
         agent_digestion_generation["agent.digestion.generation"]
         agent_digestion_service["agent.digestion.service"]
         agent_digestion_stage["agent.digestion.stage"]
@@ -902,6 +903,11 @@ flowchart LR
     agent_digestion_generation -.-> agent_process_distill_solidify
     agent_digestion_generation -.-> agent_skills_mgmt_file_store
     agent_digestion_cleaning -.-> agent_descriptors_bridge
+    agent_digestion_gate -.-> agent_observability_events
+    agent_digestion_gate -.-> agent_audit_facade
+    agent_digestion_gate -.-> agent_observability_trace_v2
+    agent_digestion_gate -.-> agent_task_scheduler
+    agent_digestion_gate -.-> agent_descriptors_registry
     agent_process_distill_merge --> agent_process_distill_models
     agent_process_distill_service --> agent_process_distill
     agent_process_distill_service --> agent_process_distill_distiller
@@ -1622,10 +1628,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 467
-- 模块节点数: 407
-- 依赖边数: 1115
-- 跨层调用数: 732
+- 扫描文件数: 470
+- 模块节点数: 408
+- 依赖边数: 1120
+- 跨层调用数: 737
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 1354.23 ms
+- 构建耗时: 2328.91 ms
