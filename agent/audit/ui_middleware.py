@@ -16,13 +16,24 @@
 【身份（诚实口径）】
     本仓库当前**没有**登录用户概念（`agent/server_auth.py::require_token` 仅比对共享
     令牌，无 session / current_user）。因此 actor 按下列顺序解析，并**如实记录来源**
-    （payload.actor_source），绝不臆造用户名：
+    （payload.actor_source / payload.identity_source），绝不臆造用户名：
+      0. **令牌映射表**（S4-01 裁定 A3）：`CP_UI_TOKENS` 命中 → 真实 actor 名，
+         来源 `token_map`（**权威**；权威度 `authoritative`）；
       1. 显式传入 actor（路由自身已知的操作者）；
       2. 请求头 `X-Audit-Actor` / `X-User` / `X-Username` / `X-Operator`；
       3. Cookie 中的 `user` / `username`（存在时）；
       4. `Authorization: Bearer <token>` → **令牌指纹**（sha256 前 12 位，不落令牌原文）；
       5. 降级：`ui:<remote_addr>`（来源标注 `remote_addr`）。
-    身份层补齐归 S4-01（审批矩阵与审批面安全）。
+    2–5 均为**降级路径**（`identity_authority=degraded`）；映射表为空时行为与
+    S2-02 逐字一致（新机制不得导致后台不可用）。
+
+    S4-01 起解析统一走 `agent/security/identity.py::resolve_identity`
+    （审计 / 埋点 / 审批共用同一口径，S2-03 #13 收口）。
+
+【PII 口径（S4-01 裁定 B）】
+    认证 IP **原始值不落盘**：链上只写 `actor_ip_masked`（`10.0.xxx.xxx`）与
+    `actor_ip_hash`（HMAC-SHA256，密钥经 `CP_IP_HMAC_KEY` / SecretStore；
+    **无密钥 → 显式标注 `degraded_no_key`，绝不退化为写原文**）。
 
 【环境开关】
     AUDIT_UI_ENABLED          UI 写路由审计总开关，默认 1
@@ -42,6 +53,13 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tupl
 from agent.audit.chain import SOURCE_UI
 from agent.audit.facade import audit as default_facade
 from agent.audit.facade import reset_ui_actor, set_ui_actor
+from agent.security.identity import (
+    ACTOR_HEADERS,
+    COOKIE_KEYS,
+    resolve_identity,
+    token_fingerprint,
+)
+from agent.security.pii import ip_pii_fields
 
 logger = logging.getLogger("agent.audit.ui_middleware")
 
@@ -58,9 +76,9 @@ DEFAULT_SKIP_PREFIXES: Tuple[str, ...] = (
     "/metrics", "/api/audit",
 )
 
-#: 身份来源头（按序优先）
-_ACTOR_HEADERS = ("X-Audit-Actor", "X-User", "X-Username", "X-Operator")
-_COOKIE_KEYS = ("user", "username", "login_user", "ui_user")
+#: 身份来源头（按序优先）——与 `agent.security.identity.ACTOR_HEADERS` 同源
+_ACTOR_HEADERS = ACTOR_HEADERS
+_COOKIE_KEYS = COOKIE_KEYS
 
 
 def _env_flag(name: str, default: str = "1") -> bool:
@@ -79,36 +97,40 @@ def _max_body_bytes() -> int:
         return 1048576
 
 
-def token_fingerprint(token: str) -> str:
-    """令牌指纹（不落原文；用于在无用户体系时仍可归因到「同一把钥匙」）"""
-    return "tok_" + hashlib.sha256(str(token).encode("utf-8")).hexdigest()[:12]
-
-
 def resolve_ui_actor(*, headers: Optional[Dict[str, str]] = None,
                      cookies: Optional[Dict[str, str]] = None,
                      remote_addr: str = "") -> Tuple[str, str]:
     """解析 UI 操作者 → (actor, actor_source)
 
-    无身份体系时降级为 `ui:<remote_addr>`，来源如实标注，不臆造用户名。
+    解析统一走 `agent.security.identity.resolve_identity`（S4-01 裁定 A3）：
+    映射表（`CP_UI_TOKENS`）命中 → 真实 actor + `token_map`；未命中 / 表为空 →
+    **完全回退** S2-02 的既有降级链（头 → Cookie → 令牌指纹 → `ui:<remote_addr>`），
+    返回值与历史实现逐字一致。
+
+    需要权威度 / 执行体类型 / PII 的调用方请直接用
+    `agent.security.identity.resolve_identity`（返回 `ResolvedIdentity`）。
     """
-    hdrs = {str(k).lower(): str(v) for k, v in (headers or {}).items()}
-    for name in _ACTOR_HEADERS:
-        val = hdrs.get(name.lower(), "").strip()
-        if val:
-            return val, f"header:{name}"
-    ck = cookies or {}
-    for key in _COOKIE_KEYS:
-        val = str(ck.get(key) or "").strip()
-        if val:
-            return val, f"cookie:{key}"
-    auth = hdrs.get("authorization", "")
-    if auth.lower().startswith("bearer "):
-        token = auth[7:].strip()
-        if token:
-            return token_fingerprint(token), "bearer_token_fingerprint"
+    identity = resolve_identity(headers=headers, cookies=cookies,
+                                remote_addr=remote_addr)
+    return identity.actor, identity.identity_source
+
+
+def identity_facts(*, headers: Optional[Dict[str, str]] = None,
+                   cookies: Optional[Dict[str, str]] = None,
+                   remote_addr: str = "") -> Dict[str, Any]:
+    """身份 + PII 叶子字段（**落盘用**；原始 IP 不在其中）
+
+    返回键：`identity_source` / `identity_authority` / `identity_degraded` /
+    `actor_type` / `actor_ip_masked` / `actor_ip_hash`（有密钥时）/
+    `actor_ip_hash_status`。
+    """
+    identity = resolve_identity(headers=headers, cookies=cookies,
+                                remote_addr=remote_addr)
+    facts: Dict[str, Any] = dict(identity.to_audit_fields())
+    facts["identity_source"] = identity.identity_source
     if remote_addr:
-        return f"ui:{remote_addr}", "remote_addr"
-    return "ui:unknown", "degraded_no_identity"
+        facts.update(ip_pii_fields(remote_addr))
+    return facts
 
 
 def action_from_request(method: str, path: str, endpoint: str = "") -> str:
@@ -248,6 +270,7 @@ class UIAuditRecorder:
             actor, actor_source = resolve_ui_actor(
                 headers=dict(request.headers), cookies=dict(request.cookies),
                 remote_addr=request.remote_addr or "")
+            remote_addr = request.remote_addr or ""
             g._audit_ui = {
                 "started": time.time(),
                 "method": method,
@@ -258,7 +281,10 @@ class UIAuditRecorder:
                 "body_hash": self._body_hash(request),
                 "body_bytes": self._body_len(request),
                 "query_keys": sorted(list(request.args.keys()))[:50],
-                "remote_addr": request.remote_addr or "",
+                # PII（裁定 B）：只留叶子字段（掩码 + HMAC），**原始 IP 不落盘**
+                "ip_facts": identity_facts(headers=dict(request.headers),
+                                           cookies=dict(request.cookies),
+                                           remote_addr=remote_addr),
             }
             g._audit_recorded = False
             g._audit_explicit = False
@@ -318,11 +344,12 @@ class UIAuditRecorder:
             "body_hash": info.get("body_hash"),
             "body_bytes": info.get("body_bytes"),
             "query_keys": info.get("query_keys"),
-            "remote_addr": info.get("remote_addr"),
             # 请求侧身份解析来源（与门面的 actor_source 区分：后者标「谁给的 actor」）
             "identity_source": info.get("identity_source"),
             "audit_scope": "ui_write_route",
         }
+        # 身份权威度 + PII 叶子字段（裁定 A3/B；**原始 IP 不落盘**）
+        facts.update(info.get("ip_facts") or {})
         if extra:
             facts.update(extra)
         if not status:
@@ -506,6 +533,6 @@ def reset_ui_recorders() -> None:
 
 __all__ = [
     "DEFAULT_SKIP_PREFIXES", "UIAuditRecorder", "WRITE_METHODS", "action_from_request",
-    "audit_action", "get_ui_recorders", "install_flask_audit", "reset_ui_recorders",
-    "resolve_ui_actor", "token_fingerprint",
+    "audit_action", "get_ui_recorders", "identity_facts", "install_flask_audit",
+    "reset_ui_recorders", "resolve_ui_actor", "token_fingerprint",
 ]

@@ -1,0 +1,27 @@
+/* 云枢 · 审批控制台（TASK-S4-01）
+ *
+ * 【DOM 隔离：固定 zIndex + 独立层叠上下文】
+ *   审批按钮区必须与宿主页布局解耦，否则要么被既有面板遮挡、要么遮挡宿主交互
+ *   （分发壳 §八-4 明确提示的「遮挡类回归」）。三道保险：
+ *     1. position: fixed + 固定 z-index（远高于常规面板/模态层）；
+ *     2. isolation: isolate —— 建立**独立层叠上下文**，内部 z-index 不再与宿主
+ *        元素比较，避免宿主里一个 z-index: 999999 的浮层盖住审批按钮；
+ *     3. contain: layout style paint —— 布局/绘制不外溢，宿主页重排不影响本区。
+ *   内部样式全部位于 Shadow Root（见 JS），本文件只负责宿主元素的定位与隔离。
+ */
+
+#cp-approval-console-root,
+.cp-approval-console-root {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 380px;
+  max-width: calc(100vw - 40px);
+  max-height: min(70vh, 640px);
+  z-index: 2147483000;        /* 固定值：审批面优先级最高 */
+  isolation: isolate;          /* 独立层叠上下文（内部 z-index 不与宿主比较） */
+  contain: layout style paint; /* 布局/样式/绘制不外溢 */
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  color: #1f2328;
+}

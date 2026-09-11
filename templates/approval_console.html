@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>云枢 · 审批控制台</title>
+  <!--
+    TASK-S4-01 审批控制台（v7.2 §5.7⑦ 前端部分）
+
+    【DOM 隔离】审批按钮区由 `static/js/approval_console.js` 挂载到
+    `#cp-approval-console-root` 的 **Shadow Root** 内，并由
+    `static/css/approval_console.css` 固定 zIndex 与层叠上下文：
+      - 宿主页样式影响不到审批按钮，审批按钮的样式也污染不到宿主页；
+      - 固定 z-index（2147483000）+ `isolation: isolate` ⇒ 不会被既有布局遮挡，
+        也不会遮挡宿主页的模态层之外的交互（面板可折叠）。
+    本页只是最小宿主；实际部署时该组件可挂到任意页面（含 React 外壳）。
+
+    【权限纪律】前端渲染的按钮**不是权限**：后端单表校验（§7.0）才是唯一权威，
+    隐藏按钮只是减少误操作。
+  -->
+  <link rel="stylesheet" href="/static/css/approval_console.css">
+</head>
+<body>
+  <main style="font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; padding: 24px; max-width: 860px;">
+    <h1 style="font-size: 20px; margin: 0 0 8px;">云枢 · 审批控制台</h1>
+    <p style="color: #57606a; font-size: 13px; line-height: 1.7; margin: 0 0 16px;">
+      审批按钮区以 <strong>Shadow DOM</strong> 隔离挂载于右下角（固定 zIndex）。
+      所有审批动作都经后端 §7.0 Actor 矩阵校验；链接与会话强绑定，
+      时效 ≤15 分钟，destructive 审批需二次认证。
+    </p>
+    <div id="cp-approval-console-host"></div>
+  </main>
+  <script src="/static/js/approval_console.js" defer></script>
+</body>
+</html>

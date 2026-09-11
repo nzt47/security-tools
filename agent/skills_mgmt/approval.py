@@ -25,6 +25,25 @@
 【配置（.env，全部带默认值）】
     APPROVAL_ENABLED              审批总开关，默认 1（开启）
     APPROVAL_RECORDS_PATH         审批记录 JSONL 路径，默认 agent/data/approval_records.jsonl
+
+【TASK-S4-01 Actor 矩阵接线（v7.2 §7.0 / §5.7⑦）】
+    审批入口加 **执行体校验**（`agent/security/actor_matrix.py` 为唯一权威表）：
+      - `approve` / `reject` / `merge` / `mark_manual_executed` → §7.0「审批
+        Approve/Deny」行 ⇒ **human 专属**；auto(skill) / sub_agent 调用一律
+        `ApprovalPermissionError`，并触发 **越权告警 + 链式审计**；
+      - `submit` → 只判矩阵格（提交提案 ≠ 审批生效）：auto 可提交（"自动只产出
+        建议"），sub_agent 不进审批面；`stage.promote` 一类强制推进对象在提交
+        阶段即要求 human（§7.0「强制推进 stage」行）；
+      - 二次认证 / reason 必填一类**前置条件**作用于生效动作，由路由
+        （`agent/server_routes/routes_approval.py`）经 `second_factor_ok=` 传入。
+
+    调用方以 `actor_ctx=` 传入**身份层解析出的**执行体上下文（`ActorContext`）；
+    不传时按 `actor` 名推断（`reviewer` / 用户名 → human），从而**既有调用点
+    行为零变化**。前端提交的 actor / actor_type **一律不可信**，路由必须经
+    `agent/security/identity.py` 解析后才构造上下文。
+
+    审批记录新增身份与 PII 叶子字段（`actor_type` / `identity_source` /
+    `actor_ip_masked` / `actor_ip_hash`…）：**原始 IP 不落盘**（裁定 B）。
 """
 
 from __future__ import annotations
@@ -41,6 +60,12 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from .observability import logger
+from agent.security.approval_guard import (
+    ActorContext,
+    authorize_approval_action,
+    resolve_risk,
+)
+from agent.security.governance_bridge import governance_trace_fields
 
 # 审批级别与状态枚举
 APPROVAL_LEVELS = ("L0", "L1", "L2")
@@ -83,6 +108,22 @@ class ApprovalLevelError(ApprovalError):
     """非法审批级别"""
 
 
+class ApprovalPermissionError(ApprovalError):
+    """执行体越权（§7.0 Actor 矩阵拒绝）
+
+    由 `agent/security/actor_matrix.py` 判定并附带 `PermissionDecision`：
+    调用方（路由）据 `decision.reason` 给出可读提示，`decision.denied_by_matrix`
+    区分「矩阵拒绝」与「缺少 reason / 未完成二次认证」两类前置条件不满足。
+
+    越权尝试在抛出前已由 `agent/security/approval_guard.py::report_denial`
+    完成 **告警 + 链式审计（policy.denied 镜像）**，故本异常只承载结果。
+    """
+
+    def __init__(self, message: str, decision: Any = None) -> None:
+        super().__init__(message)
+        self.decision = decision
+
+
 # ════════════════════════════════════════════════════════════
 #  数据模型
 # ════════════════════════════════════════════════════════════
@@ -110,6 +151,14 @@ class ApprovalRecord:
     created_at: str = ""
     updated_at: str = ""
     merged_at: str = ""
+    # ── TASK-S4-01：身份与 PII 口径（全部有默认值 ⇒ 旧 JSONL 可无损读回） ──
+    actor_type: str = ""                # human / auto / sub_agent（空=按 actor 名推断）
+    identity_source: str = ""           # 身份来源口径（S2-02/S2-03 统一）
+    actor_scope: str = ""               # 执行体 scope
+    session_id: str = ""                # 审批会话（§5.7⑦ 会话绑定）
+    actor_ip_masked: str = ""           # 裁定 B：掩码（如 10.0.xxx.xxx）
+    actor_ip_hash: str = ""             # 裁定 B：HMAC-SHA256（无密钥则空）
+    actor_ip_hash_status: str = ""      # hmac_sha256 / degraded_no_key / no_ip
 
     def __post_init__(self) -> None:
         if not self.record_id:
@@ -141,6 +190,48 @@ class ApprovalRecord:
     def effective(self) -> bool:
         """是否已生效（merged 才生效，守不易）"""
         return self.state == "merged"
+
+    # ── TASK-S4-01：身份与 PII 叶子字段（审计载荷用，只含叶子） ──
+
+    def identity_fields(self) -> Dict[str, Any]:
+        """身份口径叶子字段（与 S2-02/S2-03 埋点完全同源同值）"""
+        fields: Dict[str, Any] = {}
+        if self.actor_type:
+            fields["actor_type"] = self.actor_type
+        if self.identity_source:
+            fields["identity_source"] = self.identity_source
+        if self.session_id:
+            fields["session_id"] = self.session_id
+        return fields
+
+    def pii_fields(self) -> Dict[str, Any]:
+        """IP PII 叶子字段（裁定 B；**原始 IP 不在其中**）"""
+        fields: Dict[str, Any] = {}
+        if self.actor_ip_masked:
+            fields["actor_ip_masked"] = self.actor_ip_masked
+        if self.actor_ip_hash:
+            fields["actor_ip_hash"] = self.actor_ip_hash
+        if self.actor_ip_hash_status:
+            fields["actor_ip_hash_status"] = self.actor_ip_hash_status
+        return fields
+
+    def apply_actor_ctx(self, actor_ctx: Optional["ActorContext"]) -> None:
+        """把执行体上下文落到记录（身份 + PII；无上下文则保持原值）"""
+        if actor_ctx is None:
+            return
+        self.actor_type = actor_ctx.resolved_type()
+        if actor_ctx.identity_source:
+            self.identity_source = actor_ctx.identity_source
+        if actor_ctx.scope:
+            self.actor_scope = actor_ctx.scope
+        if actor_ctx.session_id:
+            self.session_id = actor_ctx.session_id
+        if actor_ctx.actor_ip:
+            ip_fields = actor_ctx.ip_fields()
+            self.actor_ip_masked = str(ip_fields.get("actor_ip_masked", "") or "")
+            self.actor_ip_hash = str(ip_fields.get("actor_ip_hash", "") or "")
+            self.actor_ip_hash_status = str(
+                ip_fields.get("actor_ip_hash_status", "") or "")
 
 
 # ════════════════════════════════════════════════════════════
@@ -286,18 +377,28 @@ class ApprovalFlow:
                actor: str = "system",
                trigger: str = "api",
                applier: Optional[Callable[[], Any]] = None,
-               level: Optional[str] = None) -> ApprovalRecord:
+               level: Optional[str] = None,
+               actor_ctx: Optional[ActorContext] = None) -> ApprovalRecord:
         """提交一次变更进入审批流
 
         - L0: 自动放行（执行 applier → merged，仅作审计留痕）；
         - L1: pending_review（不执行 applier，审批通过后 merge 时执行）；
         - L2: pending_review + manual_required（自动只产出建议）。
 
+        Args:
+            actor_ctx: 执行体上下文（TASK-S4-01）。**提交阶段只判矩阵格与范围
+                口径**：auto 可提交提案（"自动只产出建议"），sub_agent 不进审批面；
+                `stage.promote`（强制推进）一类对象在提交阶段即要求 human。
+
         Raises:
             ApprovalError: object_id 为空 / level 非法
+            ApprovalPermissionError: §7.0 Actor 矩阵拒绝（已告警 + 已审计）
         """
         if not object_id:
             raise ApprovalError("ApprovalRecord.object_id 不能为空")
+        self._guard(action=action or "submit", object_type=object_type,
+                    object_id=object_id, actor=actor, actor_ctx=actor_ctx,
+                    payload=payload, enforce_preconditions=False)
         resolved = level if level is not None else self.route_level(object_type, action)
         logger.debug(
             "[Approval] 提交变更 object_type=%s object_id=%s action=%s "
@@ -311,6 +412,7 @@ class ApprovalFlow:
                 actor=actor, trigger=trigger,
                 manual_required=(resolved == "L2"),
             )
+            rec.apply_actor_ctx(actor_ctx)
             self._validate(rec)
             if not self._enabled:
                 # 审批开关关闭（APPROVAL_ENABLED=0）：直接放行并执行 applier，
@@ -364,35 +466,67 @@ class ApprovalFlow:
     # ─── 审批动作 ───
 
     def approve(self, record_id: str, actor: str = "reviewer",
-                note: str = "") -> ApprovalRecord:
-        """审批通过（pending_review → approved）"""
+                note: str = "",
+                actor_ctx: Optional[ActorContext] = None,
+                second_factor_ok: bool = False) -> ApprovalRecord:
+        """审批通过（pending_review → approved）
+
+        §7.0：审批 Approve **仅 human**。auto(skill) / sub_agent 调用 →
+        `ApprovalPermissionError`（已告警 + 已审计）。
+
+        Args:
+            actor_ctx: 执行体上下文（路由经身份层构造；不传则按 actor 名推断）。
+            second_factor_ok: 是否已通过二次认证（§5.7⑦ destructive 强制）。
+        """
         with self._lock:
             rec = self._get_required(record_id)
+            self._guard(action="approve", object_type=rec.object_type,
+                        object_id=rec.object_id, actor=actor, actor_ctx=actor_ctx,
+                        record_id=record_id, reason=note, payload=rec.payload,
+                        second_factor_ok=second_factor_ok)
+            rec.apply_actor_ctx(actor_ctx)
             logger.info("[Approval] 审批通过 record=%s actor=%s note=%s state=%s",
                         record_id, actor, note, rec.state)
             self._transition(rec, "approved", actor=actor, reason=note)
             return rec
 
     def reject(self, record_id: str, actor: str = "reviewer",
-               reason: str = "") -> ApprovalRecord:
-        """驳回（pending_review → rejected）；reason 必填（审计要求）"""
+               reason: str = "",
+               actor_ctx: Optional[ActorContext] = None,
+               second_factor_ok: bool = False) -> ApprovalRecord:
+        """驳回（pending_review → rejected）；reason 必填（审计要求）
+
+        §7.0：审批 Deny **仅 human**（同 approve）。
+        """
         if not reason.strip():
             raise ApprovalError("reject 必须提供 reason（审计要求）")
         with self._lock:
             rec = self._get_required(record_id)
+            self._guard(action="reject", object_type=rec.object_type,
+                        object_id=rec.object_id, actor=actor, actor_ctx=actor_ctx,
+                        record_id=record_id, reason=reason, payload=rec.payload,
+                        second_factor_ok=second_factor_ok)
+            rec.apply_actor_ctx(actor_ctx)
             logger.warning("[Approval] 驳回 record=%s actor=%s reason=%s state=%s",
                            record_id, actor, reason, rec.state)
             self._transition(rec, "rejected", actor=actor, reason=reason)
             return rec
 
-    def merge(self, record_id: str, actor: str = "reviewer") -> ApprovalRecord:
+    def merge(self, record_id: str, actor: str = "reviewer",
+              actor_ctx: Optional[ActorContext] = None,
+              second_factor_ok: bool = False) -> ApprovalRecord:
         """合并生效（approved → merged）：执行 applier
 
         L2（manual_required）或 applier 缺失时抛 ApprovalStateError，
         由人工执行后调用 mark_manual_executed()（守不易：绝不自动执行 L2）。
+        §7.0：合并生效是审批结果落地，**仅 human**。
         """
         with self._lock:
             rec = self._get_required(record_id)
+            self._guard(action="merge", object_type=rec.object_type,
+                        object_id=rec.object_id, actor=actor, actor_ctx=actor_ctx,
+                        record_id=record_id, payload=rec.payload,
+                        second_factor_ok=second_factor_ok)
             if rec.state != "approved":
                 logger.warning(
                     "[Approval] merge 被拒：record=%s 当前 state=%s 非 approved",
@@ -422,6 +556,7 @@ class ApprovalFlow:
             rec.merged_at = datetime.now().isoformat(timespec="seconds")
             rec.updated_at = rec.merged_at
             rec.actor = actor
+            rec.apply_actor_ctx(actor_ctx)
             self._persist()
             self._audit("approval.merged", rec)
             # TASK-S2-03 §6.6：合并生效是「系统执行审批结果」，只测量不计介入
@@ -432,14 +567,19 @@ class ApprovalFlow:
             return rec
 
     def mark_manual_executed(self, record_id: str, actor: str = "reviewer",
-                             note: str = "") -> ApprovalRecord:
+                             note: str = "",
+                             actor_ctx: Optional[ActorContext] = None) -> ApprovalRecord:
         """人工执行完成标记（approved/rejected → archived）
 
         L2 高风险操作审批通过后由人工执行，执行完调用本方法归档，
         避免长期悬挂在 approved 状态造成审计困惑。
+        §7.0：归档是审批结果的人工落地，**仅 human**。
         """
         with self._lock:
             rec = self._get_required(record_id)
+            self._guard(action="mark_manual_executed", object_type=rec.object_type,
+                        object_id=rec.object_id, actor=actor, actor_ctx=actor_ctx,
+                        record_id=record_id, reason=note, payload=rec.payload)
             if rec.state not in ("approved", "rejected"):
                 raise ApprovalStateError(
                     f"仅 approved/rejected 可标记人工执行（当前 state={rec.state}）")
@@ -448,6 +588,7 @@ class ApprovalFlow:
             if note:
                 rec.decision_reason = (rec.decision_reason + f" | {note}").strip(" |")
             rec.actor = actor
+            rec.apply_actor_ctx(actor_ctx)
             self._persist()
             self._audit("approval.archived", rec, detail={"note": str(note or "")[:200]})
             # TASK-S2-03 §6.6：L2 人工执行归档（测量事件；介入已在 approve 时计数）
@@ -585,6 +726,34 @@ class ApprovalFlow:
                 "enabled": self._enabled,
             }
 
+    # ─── TASK-S4-01：执行体校验（§7.0 Actor 矩阵） ───
+
+    def _guard(self, *, action: str, object_type: str, object_id: str,
+               actor: str = "", actor_ctx: Optional[ActorContext] = None,
+               record_id: str = "", reason: str = "",
+               payload: Optional[Dict[str, Any]] = None,
+               second_factor_ok: bool = False,
+               enforce_preconditions: Optional[bool] = None) -> Any:
+        """审批入口执行体校验（**后端单表校验的唯一落点**）
+
+        拒绝时 `authorize_approval_action` 已调用
+        `agent/security/approval_guard.py::report_denial` 完成
+        **告警 + 链式审计（`policy.denied` 事件镜像）**，本方法只负责中止。
+        """
+        decision = authorize_approval_action(
+            action=action, object_type=object_type, object_id=object_id,
+            actor_ctx=actor_ctx, actor=actor, record_id=record_id, reason=reason,
+            second_factor_ok=second_factor_ok, payload=payload, source="agent",
+            enforce_preconditions=enforce_preconditions)
+        if not decision.allowed:
+            logger.warning(
+                "[Approval] ⛔ 执行体越权被拒 action=%s %s/%s actor=%s type=%s: %s",
+                action, object_type, object_id, actor or decision.actor,
+                decision.actor_type, decision.reason)
+            raise ApprovalPermissionError(
+                f"审批动作被拒（§7.0 Actor 矩阵）: {decision.reason}", decision)
+        return decision
+
     # ─── 内部 ───
 
     def _audit(self, action: str, rec: ApprovalRecord, *,
@@ -593,11 +762,21 @@ class ApprovalFlow:
 
         审批是治理关键路径：**提交 / 审批 / 驳回 / 合并 / 归档**全部写入统一链式
         审计表（P7.2-24 审计平权：与 UI 写路由同表同格式），旧 JSONL 留档不变。
+
+        TASK-S4-01 追加三类叶子字段（**同一条记录内**，不新增第二次写入）：
+          - 身份口径：`actor_type` / `identity_source` / `session_id`；
+          - PII 口径（裁定 B）：`actor_ip_masked` / `actor_ip_hash`（**原始 IP 不落盘**）；
+          - 治理可回溯：`undo_hint` / `compensating_action` / `undo_hint_status`
+            （`stage.promote` 一类对象「能不能退、怎么退」的事后可答性）。
+
+        【关联键走 `technical` 通道】`record_id` 是**内部生成的关联键**（非用户输入），
+        经普通 payload 会被统一脱敏器的启发式误伤（实测在链上被掩码为
+        `appr-202609********374219-...`），导致「按 record_id 查链」失效；
+        故按 S2-02 既定口径改走 `technical=`（该通道不脱敏，专为关联键设置）。
         """
         try:
             from agent.audit import audit as _audit_facade
             payload: Dict[str, Any] = {
-                "record_id": rec.record_id,
                 "object_type": rec.object_type,
                 "object_id": rec.object_id,
                 "level": rec.level,
@@ -607,12 +786,17 @@ class ApprovalFlow:
                 "description": str(rec.description or "")[:400],
                 "legacy": "approval_records.jsonl",
             }
+            payload.update(rec.identity_fields())
+            payload.update(rec.pii_fields())
+            payload.update(governance_trace_fields(
+                rec.object_type, rec.object_id, rec.payload))
             if detail:
                 payload.update(detail)
             _audit_facade.record(
                 action, actor=rec.actor,
                 subject=f"{rec.object_type}:{rec.object_id}", payload=payload,
-                source="agent", status=rec.state)
+                source="agent", status=rec.state,
+                technical={"record_id": rec.record_id})
         except Exception as e:  # noqa: BLE001 审计失败不得影响审批
             logger.debug("[Approval] 链式审计留痕失败 action=%s: %s", action, e)
 

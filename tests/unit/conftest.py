@@ -650,3 +650,89 @@ def guard_trace_log_example_data():
     with open(json_path, encoding="utf-8") as f:
         return json.load(f)
 
+
+# ════════════════════════════════════════════════════════════
+#  TASK-S4-01（审批 Actor 矩阵与审批面安全）专用 fixtures
+# ════════════════════════════════════════════════════════════
+# Why 需要 autouse 隔离: `agent.security` 持有**进程级**单例（令牌映射表、IP HMAC
+# 密钥、告警计数、审批会话、矩阵扩展行）。若不逐测试复位，一个用例注入的映射表/密钥
+# 会泄漏到后续全部用例 —— 与 S3-02/S3-03「落盘污染」同构的问题，故在此统一收口。
+
+
+@pytest.fixture(scope="function", autouse=True)
+def _s401_security_state_isolation():
+    """逐测试复位 `agent.security` 进程级状态（安全包不可导入时静默跳过）"""
+    def _reset():
+        try:
+            from agent.security.actor_matrix import reset_rules
+            from agent.security.alerts import reset_alerts
+            from agent.security.approval_guard import reset_object_operations
+            from agent.security.approval_session import reset_approval_sessions
+            from agent.security.governance_bridge import reset_bridge
+            from agent.security.identity import reset_identity
+            from agent.security.pii import reset_pii
+        except Exception:  # noqa: BLE001 不干扰未使用安全包的既有用例
+            return
+        reset_identity()
+        reset_pii()
+        reset_alerts()
+        reset_approval_sessions()
+        reset_bridge()
+        reset_object_operations()
+        reset_rules()
+
+    _reset()
+    yield
+    _reset()
+
+
+@pytest.fixture
+def s401_audit_chain(tmp_path):
+    """独立链式审计台账（绑定到统一门面；用例结束还原）"""
+    from agent.audit import facade as facade_mod
+    from agent.audit.chain import AuditChain
+
+    chain = AuditChain(str(tmp_path / "audit.db"),
+                       roots_path=str(tmp_path / "roots.jsonl"),
+                       signing_key_path=str(tmp_path / "k.pem"),
+                       auto_seal=False)
+    previous = facade_mod.audit.bind(chain)
+    facade_mod.audit.enabled = True
+    facade_mod.audit.reset_counters()
+    try:
+        yield chain
+    finally:
+        facade_mod.audit.bind(previous)
+        try:
+            chain.close(timeout=2.0)
+        except Exception:  # noqa: BLE001 已关闭/超时不阻断
+            pass
+
+
+@pytest.fixture
+def s401_events_dir(tmp_path, monkeypatch):
+    """事件目录隔离（`CP_EVENTS_DIR` → tmp；复位事件单例）"""
+    events_dir = tmp_path / "events"
+    monkeypatch.setenv("CP_EVENTS_DIR", str(events_dir))
+    import agent.observability.events as events_mod
+    events_mod.reset_event_stores()
+    yield events_dir
+    events_mod.reset_event_stores()
+
+
+@pytest.fixture
+def s401_flow(tmp_path):
+    """审批流实例（**显式 tmp 路径**：绝不写运行时 `data/approval_records.jsonl`）"""
+    from agent.skills_mgmt.approval import ApprovalFlow
+    return ApprovalFlow(records_path=str(tmp_path / "approval_records.jsonl"))
+
+
+@pytest.fixture
+def s401_ip_key():
+    """为当前用例注入 IP HMAC 密钥（裁定 B 的「有密钥」路径）"""
+    from agent.security.pii import set_hmac_key
+    key = b"s4-01-test-hmac-key-0123456789ab"
+    set_hmac_key(key)
+    yield key
+    set_hmac_key(None)
+

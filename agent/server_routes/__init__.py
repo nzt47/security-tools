@@ -75,3 +75,7 @@ def register_all_routes(app, state):
     # 智能工作流学习系统 (workflow_learning v1)
     from .routes_workflow_learning import register_routes as reg_workflow_learning
     reg_workflow_learning(app, state)
+
+    # 审批 HTTP 面（TASK-S4-01：§5.7⑦ 审批面安全 + §7.0 Actor 矩阵）
+    from .routes_approval import register_routes as reg_approval
+    reg_approval(app, state)
