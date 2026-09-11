@@ -40,6 +40,10 @@
 - 定义 `ActorType`（human/auto(skill)/sub_agent）+ 权限判定表（对齐 §7.0 矩阵行）；在 ApprovalFlow/审批入口加 actor 校验：auto/sub_agent 调用 approve/reject → 拒绝 + 审计（越权告警事件）。
 - human 操作记录 actor=登录用户（会话绑定，来源遵循步骤 1 裁定）；审批记录经 S2-02 已交付的统一门面入链：`agent/audit/facade.py::audit.record(action, actor, subject, payload...)`（治理类事件已建立镜像规则，避免重复留痕）；审批事件经 S2-03 的 `agent/observability/acr.py::record_approval(...)` 与 `events.py` 落账。
 - sub_agent 执行 capability 仅授权子集：对接 S4-04（subagent 真实现工具裁剪）的授权清单。
+- **【S3-03 已交付：审批矩阵的真实业务链路（2026-09-11 结案）】** S3-03 的低流量手动 promote 通道已复用 `skills_mgmt.approval` 的 L2 分级语义，产生 **`object_type=stage.promote`** 的真实审批对象（含 `ManualPromoteRequest` / `ManualReviewQueue`）。本任务应以该链路作为矩阵落地与端到端验收的**现成用例**（而非自造 mock 对象），并覆盖：
+  - `stage.promote` 的审批属 **human 专属**（auto/sub_agent 调用必须被拒）；
+  - 其 `undo_hint`/补偿动作可回溯（对齐 S1-02 的 governance 字段）；
+  - 审批动作须同时落 S2-02 链式审计与 S2-03 `record_approval()` 事件（勿双写重复留痕）。
 
 ### 步骤 3：审批面安全
 - 会话绑定：审批 token 与登录会话强绑定（禁分享式链接）；超时/换会话 → 失效（依赖步骤 1 身份层裁定）。

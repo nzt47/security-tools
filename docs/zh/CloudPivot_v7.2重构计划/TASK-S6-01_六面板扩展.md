@@ -34,6 +34,10 @@
   - ROI：`GET /api/cp/roi`（S5-03 成本聚合 + S3-03 ROI 报告）；
   - 审计导出：`GET /api/cp/audit/export`（消费 S2-02 已交付的 `agent/audit/chain.py::verify_chain()` 验签结果 + 链式台账，CSV/JSON）；
   - **【S2-03 遗留 #12 —— 事件流消费（数据源已就绪）】** ACR/UTC 面板消费 `agent/observability/acr.py::acr_snapshot()/acr_daily()/acr_weekly()` 与 `utc.py::utc_daily()/utc_weekly()`；模型降级拓扑消费 `agent/observability/model_degrade.py`（`model.degraded` 事件）；逃逸清单消费 `agent/observability/escape.py`（`escape` 事件）。以上四类面板当前均未接前端，本任务补齐。
+  - **【S3-03 已交付：消化/灰度/内化面板的真实数据源（2026-09-11 结案）】** 全部为可 JSON 序列化对象，直接作为面板数据源（勿再自建聚合）：
+    - `agent/digestion/shadow.py` → `ShadowReport.to_dict()`（灰度运行结果，含 `p99_wall_*`、`overhead.shadow_overhead_ms`、`judge_kind`）——**消化流水线泳道 + ROI 面板**；
+    - `agent/digestion/internalize.py` → `InternalizeDecision.to_dict()`（六条件逐项打分/否决原因）、`PromotePR.to_dict()`（待人工合入的 PR 产物）——**消化流水线泳道末端 + 审批收件箱（stage.promote）**；
+    - `ManualReviewQueue.summary()`（低流量手动 promote 与人工抽检队列）——**审批收件箱 / 记忆技能库面板**。
 - 前端 API 客户端 + 类型（对齐既有 apiClient 模式，自动带 token）。
 
 ### 步骤 2：六面板组件

@@ -28,6 +28,10 @@
 - **【S2-03 遗留 #9 —— 双成本轨：Owner 已裁定 2026-09-11，采用「收敛到事件流单一数据源」】** 既有 `data/cost_log.jsonl`（`CostTracker.record()` **生产零调用方**、仅测试调用，`reconcile_cost_log()` 多为 rows=0）与 S2-03 事件流成本轨并存。
   - **裁定内容**：**收敛到事件流唯一数据源**——S2-03 事件流（`utc.record_cost()` → `data/events/`）为成本唯一写入与查询来源；旧轨**停写**，保留只读解析兼容 ≤1 minor（按仓库惯例，旧文件归档不删除）；`reconcile_cost_log()` 降级为纯对账工具或下线，并在文档标注「成本唯一数据源＝事件流」。
   - **落地**：本任务内完成停写与兼容读，加单测断言"新写入只落事件流"；若发现仍有生产调用方，先补报警再收敛（不得静默丢账）。
+- **【S3-03 已交付：成本/ROI 同源设施（2026-09-11 结案）】** 勿另建成本聚合：
+  - `agent/digestion/internalize.py::ROIReport` 消费的正是 `utc.utc_window()`，与本任务**同一数据源**（口径天然一致）；
+  - `ShadowReport.overhead.shadow_overhead_ms` 记录了灰度自身开销（§6.6 `shadow_overhead` 字段）——**计入 UTC 时不应漏掉这部分**，断食判定需将其纳入成本口径；
+  - 该任务已把 `advisory`/灰度开关默认关闭，故断食期"限制非关键影子任务"可直接作用于其开关（步骤 3 联动点）。
 
 ### 步骤 2：日级硬熔断
 - `daily_breaker`：当日累计成本 > budget.daily_cents → 停非关键 outbound（关键=用户显式请求/审批中任务），次日 00:00 自动恢复；熔断触发记录审计 + metrics.delta/healing 事件。
