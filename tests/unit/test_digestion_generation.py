@@ -18,6 +18,11 @@ from agent.digestion.models import (
     PatternStep,
 )
 
+#: **生产默认落点**的快照（在 autouse 隔离 fixture 生效前捕获）——
+#: `test_default_draft_dir_is_outside_skills_repo` 断言的是"生产默认值"的性质，
+#: 不能读被用例隔离改写后的模块属性
+_PRODUCTION_DRAFT_DIR = gen.DEFAULT_DRAFT_DIR
+
 
 def make_pattern(*, support=22, sample_size=24, coverage=0.92, confidence=0.88,
                  steps=3, branches=None, slots=None, profile=None) -> CandidatePattern:
@@ -40,6 +45,26 @@ def make_pattern(*, support=22, sample_size=24, coverage=0.92, confidence=0.88,
             "external_calls_shape": [], "files_written_count": 0,
             "undo_hint": "仅写类副作用"},
         negative_samples=sample_size - support)
+
+
+# ════════════════════════════════════════════════════════════
+#  隔离（**会话级兜底**：默认落点隔离，而非靠每个用例自觉传参）
+# ════════════════════════════════════════════════════════════
+
+
+@pytest.fixture(autouse=True)
+def isolated_default_draft_dir(tmp_path, monkeypatch):
+    """草稿暂存区的**默认落点**隔离到 tmp_path
+
+    为什么必须 autouse：`persist_skill_draft(draft_dir="")` 会回退到
+    `generation.DEFAULT_DRAFT_DIR`（生产上是 `data/digestion/drafts/`）。
+    只要有一个用例走默认落点，就会把草稿写进**运行时目录**
+    （TASK-S3-03 收尾轮次实测：`test_persist_failure_is_advisory` 是唯一污染源）。
+    这与 S3-02 §4.7「逐例打补丁 ≠ 修根因」同源 —— 在**会话层**兜住默认落点。
+    """
+    target = tmp_path / "default_drafts"
+    monkeypatch.setattr(gen, "DEFAULT_DRAFT_DIR", str(target))
+    yield str(target)
 
 
 # ════════════════════════════════════════════════════════════
@@ -164,15 +189,19 @@ class TestDraftDiscipline:
         assert "skills_repo" not in path
         assert draft.path == path
 
-    def test_persist_failure_is_advisory(self):
+    def test_persist_failure_is_advisory(self, tmp_path):
         draft = gen.build_skill_draft(make_pattern())
-        assert gen.persist_skill_draft(draft, draft_dir="") or True
+        # 空 draft_dir → 回退默认落点（已被 autouse fixture 隔离到 tmp_path，
+        # **不写运行时区**）
+        default_path = gen.persist_skill_draft(draft, draft_dir="")
+        assert default_path and str(tmp_path) in default_path
         # 不可写路径 → 返回 ""，不抛
         assert gen.persist_skill_draft(draft, draft_dir="\0bad") == ""
 
     def test_default_draft_dir_is_outside_skills_repo(self):
-        assert "skills_repo" not in gen.DEFAULT_DRAFT_DIR
-        assert gen.DEFAULT_DRAFT_DIR.endswith(os.path.join("data", "digestion",
+        # 读**生产默认值快照**（隔离 fixture 会改写模块属性，见文件头注释）
+        assert "skills_repo" not in _PRODUCTION_DRAFT_DIR
+        assert _PRODUCTION_DRAFT_DIR.endswith(os.path.join("data", "digestion",
                                                            "drafts"))
 
 

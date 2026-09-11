@@ -6,6 +6,7 @@
 > 上游设计：`CloudPivot_v7.2_final_合并归档(智谱审核版).md` §4.5（Shadow 抽样/灰度 5%/转正）/§4.5.1（内化触发六条件★ P7.2-01）/ T2 修正
 > 前置：**S3-01（验收 15/15）、S3-02（验收 8/8）均已结案**；本报告同时核销 S3-02 移交遗留 **M1–M6** 六项
 > 验收结论：**§四 评估清单 18/18 通过**（逐条证据见 §3；其中 M5 的人工复核动作按 §6 披露口径处理）
+> 状态：✅ **已结案**（Owner 指示收尾并结案 2026-09-11；收尾轮次复核结论见 [S3-03_交付结案报告_20260911.md](S3-03_交付结案报告_20260911.md) §6.5）
 > **口径声明（先行）**：真实流量尚未达到"每能力 ≥20 条同类轨迹"，本任务验收依赖 **Seed Pack + 合成轨迹/回放**（设计内的离线设施）——
 > **未声称"已实现真实能力内化"**；灰度真实收益须待真实流量累积后评估（原话见 §8.1）。
 
@@ -177,7 +178,7 @@ $ python scripts/demo_s3_03_internalize.py --tasks 40 --no-privacy --no-archive
 | 5 | ROI 报告数据来自 **S2-03 成本归一**且可复现（含摊销公式） | ✅ | `test_formula_is_reproducible`、`test_missing_upstream_cost_is_not_positive`、`unit_cost_from_utc()` 读 `utc.utc_window`（`source=s2-03_utc`）；演示 ROI 报告打印 UTC=0.042 分/任务与 `utc_formula` |
 | 6 | 手动 promote 通道：样本不足**不阻塞**但显著标注人工裁定；走 approval 留痕 | ✅ | `test_manual_promote_submits_approval_with_label`（`label=低样本人工裁定`、`level=L2`、`state=pending_review`）、`test_manual_promote_is_audited`、`test_low_sample_yields_manual_channel`；演示 §2.2 步骤 6 |
 | 7 | S1-02 NEEDS_REVIEW 7 条人工复核消费入口接通（复核后可进手动 promote） | ✅（入口已接通） | 手动通道复用**同一** approval 通道（`object_type=stage.promote` / L2 人工执行），与 S1-02 的 NEEDS_REVIEW 复核走同一 `skills_mgmt.approval` 留痕；trust 复核结果直接决定本引擎条件⑥（`evaluate_privacy_gate` 对未分级/受限等级**从严**）——演示中 `data_class` 未回填时 ⑥ 判 `unknown` 并**一票否决**，回填 `internal` 后 pass。见 §7 遗留 #1（逐条资产清单的**逐项**消费仍待 Owner 在复核时驱动） |
-| 8 | 既有 digestion/descriptors/approval/审计套件零回归；新增单测全绿、覆盖率 ≥80% | ✅ | 邻接回归 **2476 passed / 0 failed / 1 skipped / 1 xfailed**；新增 219 例全绿；覆盖率 shadow **91%** / internalize **89%** / 新增适用性代码路径全绿（§4） |
+| 8 | 既有 digestion/descriptors/approval/审计套件零回归；新增单测全绿、覆盖率 ≥80% | ✅ | 邻接回归 **2476 passed / 0 failed / 1 skipped / 1 xfailed**；新增 219 例全绿；覆盖率 shadow **91%** / internalize **89%** / 新增适用性代码路径全绿（§4）。**收尾轮次**另闭合 S3-01 遗留的草稿默认落点测试污染 ⇒ 跑完全部 digestion 套件（749 例）后 `data/digestion/` **未被创建** |
 | 9 | 完整内化决策样例在验收报告可复现 | ✅ | §2（命令 + 原始输出 + 决策表 + ROI + PR 产物 + 负样本） |
 | 10 | **【M1】** 灰度期接入真实 LLM-judge（≥0.85），结果如实标注 `judge_kind` | ✅ | `LLMJudge`（真模型调用通道，`ModelAdapterFactory` 惰性解析 + 可注入 `invoke`/adapter）+ `resolve_judge()` + `JudgeGuard`；`JUDGE_KIND_LLM` / `deterministic_local` / `deterministic_local(llm_unavailable)` 三态**可区分**；`test_real_adapter_channel_scores`、`test_runner_uses_llm_label_with_healthy_channel`、`test_runner_uses_fallback_label_without_false_negatives`。本环境无模型凭证 ⇒ 演示如实标注回落（§8.2） |
 | 11 | **【M2】** 条件⑤ 使用**真实墙钟 p99**（非 S3-02 模型时钟量），报告标注 clock 口径 | ✅ | `ReplaySandbox(measure_wall=True)` 记 `Observation.wall_ms`（`perf_counter`）；条件⑤ 两侧同口径（灰度内双跑实测）；报告含 `clock=wall_clock(perf_counter; per-arm real elapsed)` 与 `p99_model_*`（仅披露）；`test_wall_clock_p99_is_measured`、`test_p99_detail_separates_model_clock`、`test_ledger_wall_is_disclosure_only` |
@@ -233,8 +234,10 @@ $ python -m pytest tests/unit -k "digestion or descriptors or skills_mgmt or app
 | 架构规则 | `python -m agent.observability.arch_rules --check` | ✅ 违规 4 / **未豁免 0** / 已豁免 4（均为既有豁免） |
 | 核心不变量 | `python scripts/verify_core_invariants.py` | ✅ **12/12 PASS** |
 | 边界覆盖 | `python scripts/check_boundary_coverage.py` | ✅ `blocked_modules=[]`（跑后已还原生成物，`git status` 干净） |
-| 测试隔离（S3-02 §4.7 教训） | 跑完 10 套 digestion 套件后检查运行时区 | ✅ `data/digestion/` **未被创建**（`ShadowLedger`/`ManualReviewQueue` 改为**写入时**惰性建目录 + 三套件 autouse 隔离 fixture） |
-| 端到端演示 | `python scripts/demo_s3_03_internalize.py`（+3 个负样本开关） | ✅ 正向全过；`--veto-p99`/`--no-privacy` 判 `veto_blocked`；`--low-traffic` 判 `low_traffic_manual` 且人工通道生效 |
+| 文档门禁 | `check_docs_broken_links.ps1` + `git_precommit_check.ps1` | ✅ **失效链接 0**；汇总 **2 通过 / 0 失败**（含锚点回归 **4 passed**） |
+| 敏感串速查 | `python scripts/scan_sensitive_data.py`（本任务 6 个文件） | ✅ **0 命中** |
+| 测试隔离（S3-02 §4.7 教训） | 跑完**全部 digestion 套件（749 例）**后检查运行时区 | ✅ `data/digestion/` **未被创建**（本任务新增存储类**构造期不建目录** + 三套件 autouse 隔离；**收尾轮次**再闭合 S3-01 遗留的草稿默认落点污染，见 §4.6） |
+| 端到端演示（含冷启动） | `python scripts/demo_s3_03_internalize.py`（+3 个负样本开关） | ✅ 正向全过；`--veto-p99`/`--no-privacy` 判 `veto_blocked`；`--low-traffic` 判 `low_traffic_manual` 且人工通道生效；**删除整个 `data/digestion/` 后重跑仍全过**（无运行时前置依赖） |
 
 ### 4.4 既有行为不变的证据（"不改公开接口签名与行为"）
 
@@ -261,7 +264,7 @@ $ python -m pytest tests/unit -k "digestion or descriptors or skills_mgmt or app
 
 ---
 
-## 5. 遗留问题（结案时点终态；逐条带归属）
+## 5. 遗留问题（结案时点终态；逐条带归属 —— 9 项移交/Owner 动作 + 1 项本轮闭环，无一阻塞）
 
 | # | 遗留 | 归属 | 阻塞性 | 说明 |
 |---|---|---|---|---|
@@ -273,7 +276,8 @@ $ python -m pytest tests/unit -k "digestion or descriptors or skills_mgmt or app
 | 6 | **灰度台账/人工抽检台账无保留策略**（与 #5 同源，本任务新增的两处运行时区） | S2/S5 生产化（与台账/事件/审计保留策略一并定） | 不阻塞 | 均为 gitignore 运行时区 |
 | 7 | **ROI 的自研单位成本与一次性投入默认 0**（纯原生实现假设） | 部署决策（`CP_DIGESTION_NATIVE_UNIT_COST_CENTS` / `CP_DIGESTION_NATIVE_INVESTMENT_CENTS`） | 不阻塞（假设已在 ROI 报告 assumptions 中显式列出） | 真实值需由运营侧给出 |
 | 8 | **真实流量未达"每能力 ≥20 条同类轨迹"**：`borrowed → mirrored` 与灰度真实收益均待流量累积 | 随真实流量 | 不阻塞（**未声称真实内化**） | §8.1 |
-| 9 | **`data/digestion/demo_s3_03/*` 与人工抽检台账为运行时产物**（gitignore），换机/CI 不继承 | 交付流程 | 不阻塞 | 复现只需一条演示命令 |
+| 9 | **`data/digestion/demo_s3_03/*` 与人工抽检台账为运行时产物**（gitignore），换机/CI 不继承 | 交付流程 | 不阻塞 | 复现只需一条演示命令（**收尾轮次已实测冷启动**：删除整个 `data/digestion/` 后重跑仍全过） |
+| 10 | ~~S3-01 遗留：`tests/unit/test_digestion_generation.py::test_persist_failure_is_advisory` 走草稿**默认落点** ⇒ 测试写入运行时区~~ | 本任务（收尾轮次） | 不阻塞 | ✅ **本轮闭环**：该文件加 autouse 会话级隔离 fixture（兜住默认落点）+ 用例改为断言落点确实在隔离目录 + 依赖生产默认值的用例改读隔离前快照；跑完全部 digestion 套件（749 例）后 `data/digestion/` **未被创建**（详见结案报告 §6.5(2)） |
 
 ---
 
@@ -352,5 +356,6 @@ $ python -m pytest tests/unit -k "digestion or descriptors or skills_mgmt or app
 - S3-02 移交遗留 **M1–M6 六项全部处置**（4 项收口、1 项按口径待 Owner 裁定、1 项如实披露边界）（§7）；
 - 质量证据齐备：新增 **219 例**全绿、覆盖率 **91%/89%**、邻接回归 **2476 passed / 0 failed**、
   本地门禁全绿（kwarg 双路 0 处 / mypy 0 error / lint-imports 2 kept / arch 未豁免 0 /
-  核心不变量 12/12 / 边界 `blocked_modules=[]` / 测试零污染）（§4）；
+  核心不变量 12/12 / 边界 `blocked_modules=[]` / 文档链接 0 失效 + 锚点回归 4 passed /
+  测试零污染）（§4）；
 - **已达成 v7.2 护城河闭环的最后一环**：`轨迹 → 判定集 → 灰度 → 自动内化 PR`（人工合入为门）。
