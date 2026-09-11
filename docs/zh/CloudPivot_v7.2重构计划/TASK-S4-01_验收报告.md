@@ -3,7 +3,7 @@
 > 任务书：[`TASK-S4-01_审批矩阵与审批面安全.md`](TASK-S4-01_审批矩阵与审批面安全.md)
 > 分发壳：[`START-S4-01_审批矩阵与审批面安全.md`](START-S4-01_审批矩阵与审批面安全.md)
 > 基线：`master` / `dced7c4f`（生成时）｜worktree：`s401`｜验收日期：2026-09-11
-> 结论：**验收清单 9/9 通过**（含 S2-02 #1/#11、S2-03 #13 三项收口）
+> 结论：**验收清单 11/11 通过**（含 S2-02 #1/#11、S2-03 #13 三项收口）
 
 ---
 
@@ -219,12 +219,16 @@ $ python -m pytest tests/unit/test_security_identity_pii.py -q -k "IpPii or Pii"
 | 新增单测 | **267 例**全绿（8 套件） |
 | 新增模块覆盖率 | `agent/security` **94%**（actor_matrix 98 / identity 97 / pii 86 / alerts 89 / guard 94 / session 97 / bridge 85）；`routes_approval.py` **91%**；`server_auth.py` **94%** |
 | 邻接回归 | 419 passed / 0 failed（`test_audit_*` / `test_s2_03_integration` / `test_skills_mgmt*` / `test_hitl` / `test_digestion_internalize` / `test_digestion_shadow`） |
+| 全量单元回归 | `pytest tests/unit/ -m "not slow and not skip_ci and not forked_incompatible" -p no:randomly` → **14734 passed / 10 failed / 51 skipped / 265 deselected / 13 xfailed / 4 xpassed（32 分 15 秒）**。10 例失败为**基线既有环境失败**：已在基线提交 `dced7c4f` 的干净检出上**逐例复现同样 10 例**（见 §八-1），**0 新增失败** |
 | 越权用例 | 覆盖 6 类越权路径（见 §四） |
 | kwarg 冲突扫描 | `--path agent --min-risk HIGH` → 0 处；`--path tests --min-risk HIGH` → 0 处 |
-| mypy | 改动/新增模块 **0 error**（仓库既有 1216 项存量报错见 §八） |
+| mypy | 改动/新增模块 **0 error**（仓库既有 1216 项存量报错见 §八-3） |
 | import-linter | **2 kept / 0 broken** |
 | 前端 | `node --check static/js/approval_console.js` 通过；DOM 隔离/CSRF 由 `TestFrontendIsolation` 断言 |
-| 落盘纪律 | 全套件显式传 tmp 路径或 autouse 隔离；`test_no_runtime_pollution` 断言无运行时目录写入 |
+| 落盘纪律 | 全套件显式传 tmp 路径或 autouse 隔离；`test_no_runtime_pollution` 断言无运行时目录写入；跑完门禁 `git status` 零漂移 |
+
+> **集成说明**：本任务在 `s401` worktree 完成后与已推进的 `master`（含 S4-02 / S5-01 / S5-02 / S5-03）
+> 集成，唯一冲突为 `00_总览` 的进度行（两侧内容已合并保留），代码文件零冲突。
 
 ---
 
