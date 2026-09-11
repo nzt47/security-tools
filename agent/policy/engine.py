@@ -855,16 +855,24 @@ class PolicyEngine:
             logger.warning("break-glass 审计写入失败: %s", exc)
 
     # ════════════════════════════════════════════════════════
-    #  模拟（P7.2-19 门面；实现见 simulator.py）
+    #  模拟（P7.2-19）——刻意**不**在本类提供便捷方法
     # ════════════════════════════════════════════════════════
-
-    def simulate(self, candidate: Any, *, since_days: float = 7,
-                 log_path: Optional[str] = None,
-                 limit: Optional[int] = None) -> Any:
-        """重放历史决策以评估候选策略（见 ``simulator.simulate``）"""
-        from agent.policy.simulator import simulate
-        return simulate(candidate, engine=self, since_days=since_days,
-                        log_path=log_path, limit=limit)
+    #
+    #  原因不是 API 偏好，而是架构护栏：
+    #
+    #  ``simulator`` 必须在模块级 ``import engine``（它要用 ``PolicyEngine`` 造
+    #  候选引擎），因此 engine 只要反过来引用 simulator——**哪怕是函数体内的延迟
+    #  导入**——``agent.observability.arch_rules`` 的 ``no_circular_dependency``
+    #  就会判为违规并阻断 CI（该规则统计函数级导入；repo 内既有的
+    #  ``agent.error_handler → agent.monitoring.*`` 违规正是这个形态，靠
+    #  ``docs/architecture/legacy_exemptions.json`` 豁免才通过）。
+    #
+    #  这里选择**消除环**而不是申请豁免：模拟器是决策引擎的**消费者**，依赖方向
+    #  天然是 ``simulator → engine``；为一行语法糖引入一个需要长期豁免的环不划算。
+    #  调用方直接写::
+    #
+    #      from agent.policy.simulator import simulate
+    #      report = simulate(candidate, engine=engine, since_days=7)
 
 
 # ════════════════════════════════════════════════════════════

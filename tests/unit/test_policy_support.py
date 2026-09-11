@@ -256,6 +256,62 @@ class TestPolicyInbox:
         assert item.takeover_id == "tk0"
         assert len(inbox.pending()) == 1
 
+    def test_解析器注入取代静态依赖(self, tmp_path):
+        """队列解析器由**组合根注册**；``agent.policy`` 不 import ``agent.monitoring``
+
+        这条不是风格问题：`agent.monitoring.self_healer → agent.permission_system`
+        已经存在，只要 policy 侧静态引用 `agent.monitoring.alert_manager`，
+        `arch_rules` 的 `no_circular_dependency` 就会判出环并阻断 CI。
+        """
+        from agent.policy.inbox import (
+            get_queue_resolver, register_queue_resolver,
+        )
+        queue = _FakeQueue()
+        assert get_queue_resolver() is None
+        register_queue_resolver(lambda: queue)
+        try:
+            assert get_queue_resolver() is not None
+            inbox = PolicyInbox(backend="takeover", path=str(tmp_path / "i.jsonl"))
+            item = inbox.submit(_decision(EFFECT_ASK), ctx=_ctx())
+            assert item.takeover_id == "tk0"
+            assert len(queue.created) == 1
+        finally:
+            register_queue_resolver(None)
+        assert get_queue_resolver() is None
+
+    def test_解析器抛异常不影响决策(self, tmp_path):
+        from agent.policy.inbox import register_queue_resolver
+        register_queue_resolver(lambda: (_ for _ in ()).throw(RuntimeError("boom")))
+        try:
+            inbox = PolicyInbox(backend="takeover", path=str(tmp_path / "i.jsonl"))
+            item = inbox.submit(_decision(EFFECT_ASK), ctx=_ctx())
+            assert item is not None and item.takeover_id == ""
+        finally:
+            register_queue_resolver(None)
+
+    def test_未注册解析器时_takeover_后端静默降级(self, tmp_path):
+        from agent.policy.inbox import register_queue_resolver
+        register_queue_resolver(None)
+        inbox = PolicyInbox(backend="takeover", path=str(tmp_path / "i.jsonl"))
+        item = inbox.submit(_decision(EFFECT_ASK), ctx=_ctx())
+        assert item is not None and item.takeover_id == ""
+
+    def test_policy_包不静态依赖_monitoring(self):
+        """AST 守卫：`agent/policy/*.py` 不得出现 `agent.monitoring` 的**导入**"""
+        import ast
+        import pathlib as _pl
+        offenders = []
+        for path in sorted(_pl.Path("agent/policy").glob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ImportFrom) and "monitoring" in str(node.module or ""):
+                    offenders.append(f"{path.name}:{node.lineno} from {node.module}")
+                elif isinstance(node, ast.Import):
+                    for alias in node.names:
+                        if "monitoring" in alias.name:
+                            offenders.append(f"{path.name}:{node.lineno} import {alias.name}")
+        assert offenders == [], f"agent.policy 静态依赖了 monitoring: {offenders}"
+
     def test_off_后端完全关闭(self, tmp_path):
         inbox = PolicyInbox(backend="off", path=str(tmp_path / "i.jsonl"))
         assert inbox.enabled is False

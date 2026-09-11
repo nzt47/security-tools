@@ -63,7 +63,7 @@
 | `.github/pull_request_template.md` | PR 模板新增「策略变更 / 高危确认 / 无样本声明」三段 |
 | `.pre-commit-config.yaml` + `hooks/pre-commit` | 策略 schema 门禁（框架 hook + 本仓库实际生效的自定义 hook 各一处） |
 
-### 1.4 用例（9 个套件 / 568 例）
+### 1.4 用例（9 个套件 / 572 例）
 
 | 套件 | 例数 | 覆盖重点 |
 |---|---|---|
@@ -93,7 +93,7 @@
 | D7 | 策略层的方向性 | **只收敛不放宽**：`allow` 仅表示「策略层无异议」，执行点仍须通过既有判定。因此引入引擎不可能放宽权限 | `engine.py` 核心不变量段 |
 | D8 | 决策日志为何存在（§6.6 埋点字段不足以重放） | §6.6 的 `policy.decision` 只有 `{policy_version, actor, scope, result, latency_ms}`——**没有决策输入**，无法回答「把候选策略放进去这条历史决策会变成什么」。因此额外持久化**脱敏后的决策输入** | `decisions.py` 模块 docstring |
 | D9 | 深扫 PII 是否并入凭据判定 | **默认不并入**：`agent/utils/sensitive_data_filter.py` 覆盖邮箱/手机号/身份证，并进来会让「给合作方 API 传邮箱」变成出域拦截，是把 §5.7-4 的「密钥外泄」误扩成「个人信息不得出境」。提供 `CP_POLICY_TAINT_DEEP_SCAN=1` 且只取 CRITICAL 级 | `taint._deep_scan` |
-| D10 | 收件箱后端 | 规格要求复用 `hitl/takeover_queue`；但该队列**纯内存、无单例、无存储路径**，且导入 `alert_manager` 会拉起监控栈。裁定为**可插拔适配器**：默认本地 JSONL 账（跨重启不丢），`takeover`/`both` 显式接线（有测试覆盖注入队列） | `inbox.py` 模块 docstring |
+| D10 | 收件箱后端 | 规格要求复用 `hitl/takeover_queue`；但该队列**纯内存、无单例、无存储路径**，且导入 `alert_manager` 会拉起监控栈。裁定为**可插拔适配器**：默认本地 JSONL 账（跨重启不丢），`takeover`/`both` 显式接线。**进一步裁定（实现期，见 §四.2）**：队列由调用方注入或由组合根 `register_queue_resolver()` 注册——`agent/policy` 侧**不 import `agent.monitoring`**，用依赖倒置消除架构环 | `inbox.py` 模块 docstring |
 | D11 | 策略签名是否强制 | **默认不强制**。单机部署下「没配密钥就装不上策略」会退化成**无策略**——那是安全降级而非增强。`CP_POLICY_REQUIRE_SIGNATURE=1` 时强制，且拒绝 `sha256-self` 占位 | `signing.py` 模块 docstring |
 
 ---
@@ -387,7 +387,7 @@ EXIT=0
 
 ### ✅ 7. 既有 guardrails/权限/审批套件零回归；新增单测全绿、覆盖率 ≥80%
 
-**新增 9 个套件 568 例全绿**，`agent/policy` + `egress_guard` 覆盖率 **93%**：
+**新增 9 个套件 572 例全绿**，`agent/policy` + `egress_guard` 覆盖率 **93%**：
 
 ```
 Name                               Stmts   Miss  Cover   Missing
@@ -405,8 +405,8 @@ agent\policy\simulator.py            288      7    98%   254, 346, 488-492
 agent\policy\store.py                312     13    96%   ...
 agent\policy\taint.py                241     20    92%   ...
 ----------------------------------------------------------------
-TOTAL                               2745    203    93%
-=============================== 568 passed in 34.36s ===============================
+TOTAL                               2743    191    93%
+=============================== 572 passed in 16.06s ===============================
 ```
 
 > **单模块也全部 ≥86%**（任务书要求 ≥80%）。三个原本低于 80% 的模块
@@ -451,13 +451,14 @@ test_策略_allow_不放宽既有拒绝
 
 | 门禁 | 命令 | 结果 |
 |---|---|---|
-| 新增套件 + 覆盖率 | `pytest tests/unit/test_policy*.py tests/unit/test_policy_support.py --cov=agent.policy --cov=agent.guardrails.egress_guard` | **568 passed / 0 failed**，覆盖率 **93%** |
+| 新增套件 + 覆盖率 | `pytest tests/unit/test_policy*.py tests/unit/test_policy_support.py --cov=agent.policy --cov=agent.guardrails.egress_guard` | **572 passed / 0 failed**，覆盖率 **93%** |
 | 邻接回归 | `pytest tests/unit/test_audit*.py tests/unit/test_events_v1.py tests/unit/test_permission*.py tests/unit/test_guardrails*.py tests/unit/test_hitl.py tests/unit/test_takeover_queue.py` | **417 passed / 0 failed** |
 | HTTP 邻接 | `pytest tests/unit/test_http_client.py tests/unit/test_web_http_client.py tests/unit/test_web_init.py` | **33 passed / 0 failed** |
 | kwarg 扫描（两条） | `python scripts/scan_kwarg_conflicts.py --path agent --min-risk HIGH` / `--path tests --min-risk HIGH` | **0 处**（exit 0 / exit 0） |
 | mypy 新增模块 | `python -m mypy agent/policy/ agent/guardrails/egress_guard.py` | **新增文件 0 error** |
 | mypy 既有阻塞模块 | `python -m mypy agent/env_config_manager.py agent/network_config.py` | 477 errors / 80 files —— 与 `master` 基线**逐字相同**（阻塞模块自身 0 error），**无新增回归** |
-| 架构护栏 | `lint-imports --config .importlinter` | **Contracts: 2 kept, 0 broken** |
+| 架构护栏（importlinter） | `lint-imports --config .importlinter` | **Contracts: 2 kept, 0 broken** |
+| 架构护栏（arch_rules，**CI 阻塞**） | `python scripts/ci_run_module.py agent.observability.arch_rules --check --root agent --exemptions docs/architecture/legacy_exemptions.json --config config.yaml` | 本任务代码 **0 违规**（见 §四.2）；当前 master 上余 2 条属 S4-01 的 `agent/security/` |
 | 策略 schema 门禁 | `python scripts/check_policy_change_gate.py --schema-only data/policies/policies.json` | 装载 3 条作者策略，自检通过 |
 | 缓存 p99 实测 | `python scripts/bench_policy_cache.py --iterations 20000 --enforce` | **PASS**（命中 p99 0.0474 ms） |
 | 真实提交场景 pre-commit | 见 §五 | ✅ 已跑 |
@@ -466,6 +467,39 @@ test_策略_allow_不放宽既有拒绝
 | 门禁产物漂移 | `git status` 检查 | 见 §五.3（`tests/contract/contracts/*.json` 6 个文件被既有契约用例改写，已还原） |
 
 ---
+
+### 4.2 架构护栏 arch_rules：实现期发现并修复的 2 处违规（**值得单列**）
+
+`importlinter` 的 2 条 contract 是**模块级**规则，因此它一路绿；而 CI 真正阻塞的是
+`architecture-check.yml` 里的 `agent.observability.arch_rules --check`——它统计
+**函数级导入**，规则集含 `no_circular_dependency`。本任务实现期被它抓到 2 处环，
+两处都修掉了，且结论用**受控实验**（干净基线上只叠加本任务改动）验证过：
+
+| # | 环路径 | 根因 | 处置 |
+|---|---|---|---|
+| 1 | `agent.policy.simulator → agent.policy.engine → agent.policy.simulator` | `PolicyEngine.simulate()` 便捷门面的函数体里反向 `import simulator` | **删除该门面**（调用方直接 `from agent.policy.simulator import simulate`）。模拟器是引擎的**消费者**，方向天然单向；为一行语法糖引入一个需长期豁免的环不划算 |
+| 2 | `agent.permission_system → agent.policy → agent.policy.egress → agent.policy.engine → agent.policy.inbox → agent.monitoring.alert_manager → agent.monitoring.self_healer → agent.permission_system` | `inbox._resolve_queue_once()` 为「自动找到 AlertManager 持有的接管队列」而 `import agent.monitoring.alert_manager` | **依赖倒置**（仓库对该规则的既有补救口径）：队列改为调用方注入（`queue=`）或由**组合根**调用 `register_queue_resolver()` 注册；`agent.policy` 侧只持有 `Callable`，环即消除。另加 AST 用例守着「`agent/policy/*.py` 不得出现 monitoring 导入」 |
+
+**受控实验（证明本任务对架构门禁的贡献为 0）**：
+
+```
+# 干净基线 d99a85e2（本任务合并前的 origin/master）
+$ python scripts/ci_run_module.py agent.observability.arch_rules --check ...
+  → 违规总数 4 / 未豁免 0 → ✅ 通过（exit 0）
+
+# 干净基线 + **仅本任务全部改动**（修复后）
+$ git apply <本任务 5 个路径的完整 diff> && 同命令
+  → 违规总数 4 / 未豁免 0 → ✅ 通过（exit 0）
+
+# 当前 master（含其他会话的合并）
+  → 违规总数 6 / 未豁免 2 → ❌ 违规
+     · agent.security → agent.security.approval_guard          （S4-01，commit 1cc3baa7）
+     · agent.security.approval_session → agent.security        （S4-01，commit 1cc3baa7）
+```
+
+> **一次性教训**：只跑 `lint-imports` 就宣称「架构护栏全绿」是不够的——它只覆盖
+> 模块级导入，而 CI 另有基于函数级导入的 `arch_rules`。本任务两处违规在
+> `lint-imports` 下完全不可见。
 
 ## 五、门禁产物漂移与全量回归
 
@@ -557,6 +591,7 @@ python -m pytest -m "not slow" -p no:randomly -q
 | L7 | 阈值/开关较多（13 个 `CP_POLICY_*` 环境变量） | 本任务 | **非阻塞** | 全部有默认值且非法值回退默认（通用硬约束 3）；`data/policies/README.md` §七 有全表 |
 | L8 | CI 侧 `policy-change-gate.yml` 未在本分支实测（需要真实 PR 上下文） | 本任务 | **非阻塞** | YAML 结构已按仓库既有 workflow 风格编写；门禁脚本本身的**每条失败路径**都有单测（44 例）+ 本地四场景实跑证据（§三.6）。真实 PR 上的首跑需 Owner 侧观察 |
 | L9 | **全量埋点使出域判定 p99 逼近/越过 5 ms**（命中 3.76 ms / 未命中 7.97 ms） | 部署侧 / S6-01（面板） | **非阻塞**（默认行为已满足验收；这是容量规划输入） | 决策本体 p99 仅 0.047 ms（余量 105×），成本全在链式审计的 SQLite 追加。已提供 `CP_POLICY_OBSERVE_SCOPE=governance` 降噪开关（默认 `all` 不变）。若生产环境外发 QPS 高，建议同时开启该开关并观察链增长速率；S6-01 面板可作为观测落点 |
+| L11 | **master 上 `architecture-check` 阻塞 job 仍红**：`agent/security/*` 有 2 条 `no_circular_dependency` 违规（`agent.security ↔ agent.security.approval_guard`、`agent.security.approval_session ↔ agent.security`） | **S4-01**（`agent/security/` 由其 commit `1cc3baa7` 新建） | **非阻塞本任务**（本任务代码已证明 0 违规），但**阻塞主干 CI** | 已用受控实验证明与本任务无关（干净基线 + 仅本任务改动 → 0 违规）。修复口径与本文 §4.2 同：依赖倒置或补 `docs/architecture/legacy_exemptions.json` 豁免。**请 S4-01 归属会话处置** |
 | L10 | 出域判定会对**每个**外部 HTTP 请求产生一条决策日志 | 部署侧 | **非阻塞** | 这正是模拟器的数据来源（不能省），但意味着 `data/policies/decisions.jsonl` 会随外发量线性增长。当前无自动轮转（`DecisionLog._candidate_files` 已支持读 `decisions.<day>.jsonl` 分片，但**未实现写入轮转**）。建议由运维侧按日志量配置外部轮转，或后续任务补 `rotate_on_size` |
 
 > 无「阻塞性」遗留；无需要 Owner 立即裁定的事项。
@@ -585,7 +620,7 @@ python -m pytest -m "not slow" -p no:randomly -q
 | 4. secret 出域 → deny（决策层 + 执行层双用例） | ✅ |
 | 5. LLM 无法在策略中写网络副作用（引擎纯决策） | ✅（装载期 + 静态 + 运行期三层） |
 | 6. 模拟器可重放并输出 deny→allow + 高危清单；PR 门禁存在 | ✅（样例 deny→allow=7 / ask→allow=9；门禁 5 道闸全有用例） |
-| 7. 既有套件零回归；新增单测全绿、覆盖率 ≥80% | ✅（568 例全绿 / 93% / 邻接 450 例零回归） |
+| 7. 既有套件零回归；新增单测全绿、覆盖率 ≥80% | ✅（572 例全绿 / 93% / 邻接 450 例零回归） |
 
 **结论：7/7 通过，可结案。** 结案报告见
 [S4-02_交付结案报告_20260911.md](S4-02_交付结案报告_20260911.md)。

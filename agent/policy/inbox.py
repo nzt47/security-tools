@@ -21,13 +21,31 @@
 
     因此本模块做成**可插拔适配器**，默认后端是本地 JSONL（``log``），并支持：
 
-      - ``backend="takeover"``：写入 ``TakeoverQueue``（测试显式注入队列实例，
-        或生产设置 ``CP_POLICY_INBOX_BACKEND=takeover`` 走 AlertManager 单例）；
+      - ``backend="takeover"``：写入 ``TakeoverQueue``；
       - ``backend="both"``：既写接管队列又写本地账（双保险）；
       - ``backend="log"``（默认）：只写本地账 ``data/policies/inbox.jsonl``。
 
     这样「复用 takeover_queue」是**真的接线**（有测试覆盖），而默认路径不会把
     监控栈拖进决策热路径。
+
+【依赖倒置：本模块**不 import** ``agent.monitoring``】
+    上面第 2 条理由（不把监控栈拖进决策热路径）落地时进一步发现：**静态导入本身
+    就是架构违规**。``agent.monitoring.self_healer`` 已经依赖
+    ``agent.permission_system``，而 ``PermissionGateway`` 的第 0 层依赖
+    ``agent.policy``；只要 ``agent.policy`` 里任何一处静态引用
+    ``agent.monitoring.alert_manager``，``arch_rules`` 的 ``no_circular_dependency``
+    就会判出这条环并**阻断 CI**：
+
+        agent.permission_system → agent.policy → agent.policy.egress
+          → agent.policy.engine → agent.policy.inbox
+          → agent.monitoring.alert_manager → agent.monitoring.self_healer
+          → agent.permission_system
+
+    仓库对该规则给出的补救正是「**通过依赖倒置或中间层解耦**」。这里采用前者：
+    队列由**调用方注入**（``queue=``）或由**组合根注册解析器**
+    （``register_queue_resolver``）；``agent.policy`` 侧只持有 ``Callable``，不认识
+    监控栈。组合根注册解析器时，``alert_manager`` 的导入发生在组合根里，
+    依赖方向是「组合根 → 两者」，环即消除。
 
 【防洪水（R5 审批疲劳）】
     同一 ``(policy_id, capability_id, tenant_id)`` 在 ``dedupe_window_seconds``
@@ -44,7 +62,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field, replace
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from agent.policy.models import PolicyContext, PolicyDecision, now_iso
 
@@ -116,7 +134,6 @@ class PolicyInbox:
         path: Optional[str] = None,
         queue: Any = None,
         dedupe_window_seconds: Optional[float] = None,
-        resolve_queue: bool = False,
     ) -> None:
         raw = str(backend if backend is not None
                   else os.environ.get(ENV_INBOX_BACKEND) or "log").strip().lower()
@@ -124,7 +141,6 @@ class PolicyInbox:
         self._path = str(path if path is not None
                          else os.environ.get(ENV_INBOX_PATH) or DEFAULT_INBOX_PATH)
         self._queue = queue
-        self._resolve_queue = bool(resolve_queue)
         if dedupe_window_seconds is None:
             dedupe_window_seconds = _env_float(ENV_INBOX_DEDUPE, DEFAULT_DEDUPE_SECONDS)
         self._dedupe_window = float(dedupe_window_seconds)
@@ -244,7 +260,7 @@ class PolicyInbox:
         """路由到 ``TakeoverQueue``（复用既有 hitl 设施）"""
         if self._backend not in ("takeover", "both"):
             return ""
-        queue = self._queue if self._queue is not None else self._resolve_queue_once()
+        queue = self._queue if self._queue is not None else _resolve_registered_queue()
         if queue is None:
             return ""
         try:
@@ -273,19 +289,6 @@ class PolicyInbox:
             logger.warning("例外入接管队列失败: %s: %s", type(exc).__name__, exc)
             return ""
 
-    def _resolve_queue_once(self) -> Optional[Any]:
-        """按需解析 AlertManager 持有的接管队列（**默认不做**，见模块 docstring）"""
-        if not self._resolve_queue:
-            return None
-        try:
-            from agent.monitoring.alert_manager import get_alert_manager
-            manager = get_alert_manager()
-            return getattr(manager, "_takeover_queue", None)
-        except Exception as exc:  # noqa: BLE001
-            with self._lock:
-                self._counts["failures"] += 1
-            logger.warning("解析接管队列失败: %s: %s", type(exc).__name__, exc)
-            return None
 
     def _append(self, item: InboxItem) -> bool:
         """追加一行待办（首次入箱与后续复发都走这里）
@@ -392,6 +395,51 @@ def _env_float(name: str, default: float) -> float:
 
 
 # ════════════════════════════════════════════════════════════
+#  接管队列解析器注册（依赖倒置的注入点）
+# ════════════════════════════════════════════════════════════
+
+#: 组合根注册的队列解析器（返回 ``TakeoverQueue`` 或 None）
+_QUEUE_RESOLVER: Optional[Callable[[], Any]] = None
+
+
+def register_queue_resolver(resolver: Optional[Callable[[], Any]]) -> None:
+    """注册接管队列解析器（**由组合根调用**）
+
+    组合根（如 ``app_server`` / ``lifecycle_manager``）在自己这一侧写：
+
+        from agent.monitoring.alert_manager import get_alert_manager
+        from agent.policy.inbox import register_queue_resolver
+        register_queue_resolver(
+            lambda: getattr(get_alert_manager(), "_takeover_queue", None))
+
+    这样 ``agent.policy`` 侧只有一个 ``Callable``，不认识监控栈；
+    ``alert_manager`` 的导入留在组合根里，架构图上不再出现
+    ``agent.policy → agent.monitoring`` 这条边。
+
+    ``resolver=None`` 表示注销。
+    """
+    global _QUEUE_RESOLVER
+    _QUEUE_RESOLVER = resolver
+
+
+def get_queue_resolver() -> Optional[Callable[[], Any]]:
+    """当前注册的队列解析器（诊断用）"""
+    return _QUEUE_RESOLVER
+
+
+def _resolve_registered_queue() -> Optional[Any]:
+    """调用已注册的解析器；未注册/失败一律返回 None（**不抛异常**）"""
+    resolver = _QUEUE_RESOLVER
+    if resolver is None:
+        return None
+    try:
+        return resolver()
+    except Exception as exc:  # noqa: BLE001 注入方的问题不该影响决策
+        logger.warning("接管队列解析器失败: %s: %s", type(exc).__name__, exc)
+        return None
+
+
+# ════════════════════════════════════════════════════════════
 #  进程级默认收件箱
 # ════════════════════════════════════════════════════════════
 
@@ -422,4 +470,5 @@ __all__ = [
     "ENV_INBOX_BACKEND", "ENV_INBOX_PATH", "ENV_INBOX_DEDUPE",
     "DEFAULT_INBOX_PATH", "DEFAULT_DEDUPE_SECONDS", "BACKENDS",
     "InboxItem", "PolicyInbox", "get_policy_inbox", "reset_policy_inbox",
+    "register_queue_resolver", "get_queue_resolver",
 ]

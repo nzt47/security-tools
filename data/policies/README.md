@@ -94,7 +94,7 @@ python scripts/check_policy_change_gate.py --sign data/policies/policies.json
 | `CP_POLICY_CACHE_SIZE` | `2048` | 决策缓存容量（`0` 关闭） |
 | `CP_POLICY_DECISION_LOG` | `data/policies/decisions.jsonl` | 决策日志路径 |
 | `CP_POLICY_DECISION_LOG_ENABLED` | `1` | 是否写决策日志（模拟器数据源） |
-| `CP_POLICY_INBOX_BACKEND` | `log` | 例外收件箱后端：`log`/`takeover`/`both`/`off` |
+| `CP_POLICY_INBOX_BACKEND` | `log` | 例外收件箱后端：`log`/`takeover`/`both`/`off`。**`takeover`/`both` 需要组合根先 `register_queue_resolver(...)` 注册队列解析器**（`agent/policy` 刻意不 import `agent.monitoring`，见下），否则只走本地账 |
 | `CP_POLICY_INBOX_PATH` | `data/policies/inbox.jsonl` | 收件箱本地账路径 |
 | `CP_POLICY_EGRESS_GUARD` | `1` | 出域执行点开关（`0` 关闭，排障用） |
 | `CP_POLICY_TAINT_ENABLED` | `1` | 出域链路污点台账（§5.7 机制 4） |
@@ -116,3 +116,31 @@ python scripts/check_policy_change_gate.py --sign data/policies/policies.json
 > 覆盖邮箱/手机号/身份证等 **PII**，比「凭据」宽。默认并进来会让「给合作方 API 传一个
 > 邮箱」变成出域拦截——那是把 §5.7-4 的「密钥外泄」误扩成「任何个人信息不得出境」。
 > 因此默认只用本包的**凭据形态**口径；需要更严时开启深扫且**只取 CRITICAL 级**。
+
+## 八、收件箱如何接上 AlertManager 的接管队列（依赖倒置）
+
+`agent/policy` **不** import `agent.monitoring`——不是洁癖，而是架构护栏要求：
+
+```
+agent.monitoring.self_healer → agent.permission_system        （既有）
+agent.permission_system → agent.policy → … → agent.policy.inbox
+agent.policy.inbox → agent.monitoring.alert_manager           （若静态导入）
+agent.monitoring.alert_manager → agent.monitoring.self_healer （既有）
+                        ⇓
+        no_circular_dependency 违规 → CI 阻塞
+```
+
+因此队列由**组合根**注入。在 `app_server.py` / `lifecycle_manager.py` 这类启动点写一次：
+
+```python
+from agent.monitoring.alert_manager import get_alert_manager
+from agent.policy.inbox import register_queue_resolver
+
+register_queue_resolver(
+    lambda: getattr(get_alert_manager(), "_takeover_queue", None))
+
+# 之后 takeover / both 后端即可把策略例外路由进人工接管队列
+```
+
+也可以对单个实例直接注入：`PolicyInbox(backend="takeover", queue=queue)`。
+两者的接线都有用例覆盖（`tests/unit/test_policy_support.py::TestPolicyInbox`）。

@@ -641,11 +641,16 @@ class TestEngineRobustness:
                     "store_fingerprint", "active_policies", "grants", "latency"):
             assert key in stats
 
-    def test_simulate_门面可用(self, tmp_path, ctx_factory):
+    def test_simulate_以引擎为基线可跑通(self, tmp_path, ctx_factory):
+        """引擎**不再**提供 `simulate()` 便捷方法（见 engine.py 的架构说明：
+        simulator 模块级 import engine，反向引用会形成 no_circular_dependency
+        违规并阻断 CI）。这里验证「引擎 + 空决策日志」这条调用路径仍然可用。
+        """
+        from agent.policy.simulator import simulate
         eng = PolicyEngine(make_store(), cache_size=0, decision_log=False,
                            observer=DecisionObserver(enabled=False), inbox=False)
-        report = eng.simulate(make_policy(id="sim.cand"), since_days=7,
-                              log_path=str(tmp_path / "empty.jsonl"))
+        report = simulate(make_policy(id="sim.cand"), engine=eng, since_days=7,
+                          log_path=str(tmp_path / "empty.jsonl"))
         assert report.total == 0
         assert report.verdict == "no_sample"
 
