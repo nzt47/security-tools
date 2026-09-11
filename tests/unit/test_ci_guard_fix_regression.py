@@ -20,6 +20,7 @@ Why:
 import io
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -228,6 +229,106 @@ class TestRenameConsistency:
         report = json.loads(p.stdout)
         assert report["tool"] == "simulate_ci_guard_pipeline"
         assert report["overall"]["status"] in ("pass", "fail")
+
+
+# ═══════════════════════════════════════════════════════════
+# 4b. 预提交钩子 CI_GUARD 段契约（2026-09-11 S3-01 收尾补齐）
+#
+# 背景：钩子 CI_GUARD 段长期引用 simulate_ci_guard_failure.py（git 历史中从未存在），
+# 且钩子设计为"脚本缺失时静默跳过" ⇒ 该门禁长期静默放过，给人"已受保护"的错觉。
+# 只改引用名也不行：本脚本原先不接受 --assert-allowed，会以 exit 2（unrecognized
+# arguments）**阻断仓库全部提交**。故两步缺一不可，且必须被回归锁定。
+# ═══════════════════════════════════════════════════════════
+
+_GUARD = os.path.join(SCRIPTS_DIR, "simulate_ci_guard_pipeline.py")
+
+#: 钩子模板（源 + 包内镜像副本，二者必须同源）
+_HOOK_TEMPLATES = [
+    os.path.join(PROJECT_ROOT, "scripts", "dev", "hook_fail_safe.psm1"),
+    os.path.join(PROJECT_ROOT, "packages", "tlm-hook-failsafe",
+                 "tlm-hook-failsafe.psm1"),
+]
+
+
+class TestPreCommitCiGuardContract:
+    def test_脚本接受assert_allowed且判定通过(self):
+        """钩子传入的标志必须被接受，且判定链通过时 exit 0（允许提交）"""
+        p = _run_ci_cmd([_GUARD, "--assert-allowed"], timeout=600)
+        assert p.returncode == 0, (
+            "CI_GUARD 判定链未通过或被参数解析阻断: "
+            f"exit={p.returncode} stderr={p.stderr[-500:]}")
+        assert "unrecognized arguments" not in (p.stderr or ""), \
+            "--assert-allowed 必须是已声明参数，否则钩子会以 exit 2 阻断全部提交"
+        assert "允许提交" in p.stdout
+
+    def test_判定失败时返回非0并列出被阻止项(self):
+        """**负向路径**：守卫失败必须阻止提交（否则比"静默跳过"更糟）"""
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("_guard_pipeline", _GUARD)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+
+        fake = {
+            "tool": "simulate_ci_guard_pipeline",
+            "workflows": [
+                {"workflow": "ci-guard-runner", "exit_code": 1, "overall": None},
+                {"workflow": "reranker-timeout-guard", "steps": [
+                    {"step": "verify 6 场景", "exit_code": 0},
+                    {"step": "pytest 9 用例", "exit_code": 2}]},
+            ],
+            "overall": {"status": "fail", "exit_code": 1},
+        }
+        blocked = mod._blocked_summary(fake)
+        assert any("ci-guard-runner" in b for b in blocked)
+        assert any("pytest 9 用例" in b for b in blocked)
+
+        # 端到端：monkeypatch 后 main 必须返回非 0
+        orig = mod.simulate
+        mod.simulate = lambda: fake
+        try:
+            sys.argv = ["simulate_ci_guard_pipeline.py", "--assert-allowed"]
+            rc = mod.main()
+        finally:
+            mod.simulate = orig
+            sys.argv = sys.argv[:1]
+        assert rc == 1, "判定失败时必须以非 0 退出以阻止提交"
+
+    def test_钩子模板已指向真实存在的脚本(self):
+        """钩子 `CI_GUARD=` **赋值行**必须指向真实存在的脚本（漂移即红）
+
+        注：只断言赋值行，不断言全文 —— 模板注释里**如实记载**旧名
+        `simulate_ci_guard_failure.py` 是必要的历史说明，不属于"仍在使用旧名"。
+        """
+        for tpl in _HOOK_TEMPLATES:
+            assert os.path.exists(tpl), f"钩子模板缺失: {tpl}"
+            text = open(tpl, encoding="utf-8").read()
+            m = re.search(r'CI_GUARD\s*=\s*"[^"]*/([^"/]+)"', text)
+            assert m, f"{os.path.basename(tpl)} 未找到 CI_GUARD 赋值行"
+            assert m.group(1) == "simulate_ci_guard_pipeline.py", (
+                f"{os.path.basename(tpl)} 的 CI_GUARD 指向 {m.group(1)}"
+                "（应为 simulate_ci_guard_pipeline.py，否则门禁静默跳过）")
+            # 旧名不得出现在任何可执行行（非注释行）
+            for line in text.splitlines():
+                stripped = line.strip()
+                if stripped.startswith("#") or stripped.startswith("'"):
+                    continue
+                assert "simulate_ci_guard_failure" not in stripped, \
+                    f"{os.path.basename(tpl)} 可执行行仍引用旧名: {stripped}"
+
+    def test_钩子模板保留不变量所需模式(self):
+        """`verify_core_invariants` H1/H2 要求 CI_GUARD= + --assert-allowed + SKIP_CI_GUARD"""
+        for tpl in _HOOK_TEMPLATES:
+            text = open(tpl, encoding="utf-8").read()
+            assert re.search(r"CI_GUARD\s*=", text)
+            assert "--assert-allowed" in text
+            assert "SKIP_CI_GUARD" in text
+
+    def test_两个钩子模板同源(self):
+        """源模板与包内镜像副本必须逐字一致（避免只改一处）"""
+        a = open(_HOOK_TEMPLATES[0], encoding="utf-8").read()
+        b = open(_HOOK_TEMPLATES[1], encoding="utf-8").read()
+        assert a == b, "scripts/dev/hook_fail_safe.psm1 与包内镜像副本已不同源"
 
 
 # ═══════════════════════════════════════════════════════════

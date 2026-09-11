@@ -12,7 +12,21 @@ Why:
 
 用法:
     python scripts/simulate_ci_guard_pipeline.py
-    python scripts/simulate_ci_guard_pipeline.py --json   # 结构化 JSON(供 CI 报告/看板消费)
+    python scripts/simulate_ci_guard_pipeline.py --json          # 结构化 JSON(供 CI 报告/看板消费)
+    python scripts/simulate_ci_guard_pipeline.py --assert-allowed # 预提交钩子 CI_GUARD 段用
+
+``--assert-allowed`` 语义（与 GH Actions「阻止 PR 合并」等价）::
+
+    exit 0  → 判定链全部通过 ⇒ **允许**本次提交/合并
+    非 0    → 任一守卫失败     ⇒ **阻止**（并在 stdout 给出被阻止的 workflow/step）
+
+【不易】该标志**不改变**判定逻辑，只把"是否允许"这一判定显式化为进程退出码 —— 它存在的
+原因见下：预提交钩子的 `CI_GUARD` 段自 2026-08 起引用了 `simulate_ci_guard_failure.py`
+（该文件名在 git 历史中**从未存在**），且钩子设计为"脚本缺失时静默跳过（跨仓库安全）"，
+于是该门禁长期**静默放过**、给人"已受保护"的错觉。2026-09-11（S3-01 收尾）复核发现：
+① 引用名漂移；② 即便只改引用，本脚本原先不接受 `--assert-allowed` ⇒ 会因
+"unrecognized arguments" 以 exit 2 退出，**反而阻断仓库全部提交**。故在此补齐该标志，
+再同步钩子引用（两步缺一不可）。
 """
 
 from __future__ import annotations
@@ -100,15 +114,41 @@ def simulate() -> dict:
     }
 
 
+def _blocked_summary(report: dict) -> list[str]:
+    """列出被阻止的 workflow/step（供 --assert-allowed 的阻断说明）"""
+    blocked: list[str] = []
+    for wf in report["workflows"]:
+        if wf["workflow"] == "ci-guard-runner":
+            if wf["exit_code"] != 0:
+                blocked.append(f"ci-guard-runner (exit={wf['exit_code']})")
+        else:
+            for s in wf["steps"]:
+                if s["exit_code"] != 0:
+                    blocked.append(f"{wf['workflow']} / {s['step']} "
+                                   f"(exit={s['exit_code']})")
+    return blocked
+
+
 def main() -> int:
     p = argparse.ArgumentParser(description="本地完整 CI 流水线模拟")
     p.add_argument("--json", action="store_true", help="输出结构化 JSON")
+    p.add_argument(
+        "--assert-allowed", action="store_true",
+        help="预提交钩子 CI_GUARD 语义：断言判定链通过；"
+             "exit 0=允许本次提交，非 0=阻止（并打印被阻止项）")
     args = p.parse_args()
 
     report = simulate()
+    allowed = report["overall"]["exit_code"] == 0
 
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
+    elif args.assert_allowed:
+        # 单行判定（钩子场景：成功静默、失败可定位）
+        if allowed:
+            print("[CI_GUARD] 判定链通过 → 允许提交")
+        else:
+            print("[CI_GUARD] 判定链未通过 → 阻止提交")
     else:
         print("\n" + "=" * 64)
         print("CI 流水线模拟汇总")
@@ -125,6 +165,10 @@ def main() -> int:
                           f"exit={s['exit_code']} {'PASS' if ok else 'FAIL'}")
         print(f"\n总体: {report['overall']['status'].upper()} "
               f"(exit={report['overall']['exit_code']})")
+
+    if args.assert_allowed and not allowed:
+        for item in _blocked_summary(report):
+            print(f"  被阻止: {item}", file=sys.stderr)
 
     return report["overall"]["exit_code"]
 
