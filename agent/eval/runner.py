@@ -35,10 +35,10 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from agent.eval import anchor as A
-from agent.eval import cases as C
-from agent.eval import checkers as K
-from agent.eval import solvers as S
+import agent.eval.anchor as A
+import agent.eval.cases as C
+import agent.eval.checkers as K
+import agent.eval.solvers as S
 
 logger = logging.getLogger("agent.eval.runner")
 

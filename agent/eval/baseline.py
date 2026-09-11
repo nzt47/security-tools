@@ -38,10 +38,10 @@ import time
 from datetime import date
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-from agent.eval import anchor as A
-from agent.eval import cases as C
-from agent.eval import metrics as M
-from agent.eval import runner as R
+import agent.eval.anchor as A
+import agent.eval.cases as C
+import agent.eval.metrics as M
+import agent.eval.runner as R
 from agent.observability import utc as UTC
 
 logger = logging.getLogger("agent.eval.baseline")

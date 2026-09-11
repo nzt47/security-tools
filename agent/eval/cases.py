@@ -451,12 +451,12 @@ def validate_case_set(case_set: EvalCaseSet, *,
 def _known_checkers(known: Optional[Iterable[str]]) -> set:
     if known is not None:
         return set(known)
-    from agent.eval import checkers as C
+    import agent.eval.checkers as C
     return set(C.MECHANICAL_CHECKERS) | set(C.PROXY_CHECKERS)
 
 
 def _proxy_checkers() -> set:
-    from agent.eval import checkers as C
+    import agent.eval.checkers as C
     return set(C.PROXY_CHECKERS)
 
 

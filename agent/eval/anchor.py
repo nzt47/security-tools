@@ -29,7 +29,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, NoReturn, Optional, Tuple
 
-from agent.eval import cases as C
+import agent.eval.cases as C
 
 logger = logging.getLogger("agent.eval.anchor")
 
