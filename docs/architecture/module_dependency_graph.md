@@ -167,6 +167,7 @@ flowchart LR
         agent_feedback_collector["agent.feedback_collector"]:::crosslayer
     end
     subgraph guardrails [guardrails]
+        agent_guardrails_egress_guard["agent.guardrails.egress_guard"]:::crosslayer
         agent_guardrails_input_guard["agent.guardrails.input_guard"]:::crosslayer
         agent_guardrails_observability["agent.guardrails.observability"]
         agent_guardrails_output_guard["agent.guardrails.output_guard"]:::crosslayer
@@ -341,6 +342,19 @@ flowchart LR
         agent_p6_performance["agent.p6.performance"]
         agent_p6_snapshot["agent.p6.snapshot"]
     end
+    subgraph policy [policy]
+        agent_policy["agent.policy"]:::crosslayer
+        agent_policy_decisions["agent.policy.decisions"]
+        agent_policy_egress["agent.policy.egress"]:::crosslayer
+        agent_policy_engine["agent.policy.engine"]
+        agent_policy_inbox["agent.policy.inbox"]
+        agent_policy_matcher["agent.policy.matcher"]
+        agent_policy_models["agent.policy.models"]
+        agent_policy_signing["agent.policy.signing"]
+        agent_policy_simulator["agent.policy.simulator"]
+        agent_policy_store["agent.policy.store"]
+        agent_policy_taint["agent.policy.taint"]:::crosslayer
+    end
     subgraph preflight [preflight]
         agent_preflight["agent.preflight"]
         agent_preflight___main__["agent.preflight.__main__"]
@@ -368,12 +382,23 @@ flowchart LR
         agent_quality_defect_tracker["agent.quality.defect_tracker"]
         agent_quality_observability["agent.quality.observability"]
     end
+    subgraph security [security]
+        agent_security["agent.security"]:::crosslayer
+        agent_security_actor_matrix["agent.security.actor_matrix"]:::crosslayer
+        agent_security_alerts["agent.security.alerts"]
+        agent_security_approval_guard["agent.security.approval_guard"]:::crosslayer
+        agent_security_approval_session["agent.security.approval_session"]
+        agent_security_governance_bridge["agent.security.governance_bridge"]:::crosslayer
+        agent_security_identity["agent.security.identity"]:::crosslayer
+        agent_security_pii["agent.security.pii"]:::crosslayer
+    end
     subgraph self_healing [self_healing]
         agent_self_healing_policy["agent.self_healing.policy"]:::crosslayer
     end
     subgraph server_routes [server_routes]
         agent_server_routes_extensions["agent.server_routes.extensions"]
         agent_server_routes_observability["agent.server_routes.observability"]
+        agent_server_routes_routes_approval["agent.server_routes.routes_approval"]
         agent_server_routes_routes_assets["agent.server_routes.routes_assets"]
         agent_server_routes_routes_business_dashboard["agent.server_routes.routes_business_dashboard"]
         agent_server_routes_routes_chat["agent.server_routes.routes_chat"]
@@ -634,6 +659,8 @@ flowchart LR
     agent_digital_life -.-> agent_monitoring
     agent_digital_life --> agent_system_prompt_manager
     agent_disaster_recovery -.-> agent_utils_singleton_manager
+    agent_server_auth -.-> agent_security_identity
+    agent_server_auth -.-> agent_security_identity
     agent_api_gateway --> agent_rate_limiter
     agent_api_gateway -.-> agent_monitoring_tracing
     agent_api_gateway -.-> agent_utils_singleton_manager
@@ -661,6 +688,8 @@ flowchart LR
     agent_mcp_executor --> agent_tool_router
     agent_ab_testing --> agent_logging_utils
     agent_ab_testing -.-> agent_utils_singleton_manager
+    agent_permission_system -.-> agent_policy
+    agent_permission_system -.-> agent_policy
     agent_tool_fewshot_store -.-> agent_utils_sensitive_data_filter
     agent_modules_api --> agent_modules_registry
     agent_modules_api --> agent_server_auth
@@ -689,6 +718,7 @@ flowchart LR
     agent_tools_file_tools_reg -.-> agent_system_tools
     agent_tools_file_tools_reg -.-> agent_compression_tools
     agent_tools_file_tools_reg -.-> agent_diff_tools
+    agent_tools_file_tools_reg -.-> agent_policy_taint
     agent_tools_discovery_service -.-> agent_extensions_base
     agent_tools_discovery_service --> agent_tools_mcp_connector
     agent_tools_discovery_service -.-> agent_extensions_market
@@ -728,6 +758,9 @@ flowchart LR
     agent_tools_web_tools -.-> agent_web
     agent_tools_web_tools -.-> agent_network_config
     agent_tools_web_tools -.-> agent_search_aggregator
+    agent_guardrails_egress_guard -.-> agent_policy_egress
+    agent_guardrails_egress_guard -.-> agent_audit_facade
+    agent_guardrails_egress_guard -.-> agent_policy_egress
     agent_guardrails_output_guard -.-> agent_logging_utils
     agent_guardrails_output_schema -.-> agent_monitoring_tracing
     agent_guardrails_output_schema -.-> agent_circuit_breaker
@@ -928,6 +961,7 @@ flowchart LR
     agent_digestion_internalize -.-> agent_audit_facade
     agent_digestion_internalize -.-> agent_observability_utc
     agent_digestion_internalize -.-> agent_skills_mgmt_approval
+    agent_digestion_internalize -.-> agent_security_approval_guard
     agent_digestion_internalize -.-> agent_observability_events
     agent_digestion_internalize -.-> agent_audit_facade
     agent_digestion_internalize -.-> agent_monitoring_cost_brake
@@ -1214,6 +1248,47 @@ flowchart LR
     agent_descriptors_bridge --> agent_descriptors_registry
     agent_descriptors_bridge -.-> agent_skills_mgmt_store
     agent_descriptors_registry -.-> agent_audit
+    agent_policy_signing --> agent_policy_models
+    agent_policy --> agent_policy_decisions
+    agent_policy --> agent_policy_egress
+    agent_policy --> agent_policy_engine
+    agent_policy --> agent_policy_inbox
+    agent_policy --> agent_policy_matcher
+    agent_policy --> agent_policy_models
+    agent_policy --> agent_policy_signing
+    agent_policy --> agent_policy_simulator
+    agent_policy --> agent_policy_store
+    agent_policy --> agent_policy_taint
+    agent_policy_store --> agent_policy_matcher
+    agent_policy_store --> agent_policy_models
+    agent_policy_store --> agent_policy_signing
+    agent_policy_store --> agent_policy_matcher
+    agent_policy_matcher --> agent_policy_models
+    agent_policy_taint --> agent_policy_models
+    agent_policy_taint -.-> agent_utils_sensitive_data_filter
+    agent_policy_taint -.-> agent_observability_events
+    agent_policy_taint -.-> agent_audit_facade
+    agent_policy_simulator --> agent_policy_decisions
+    agent_policy_simulator --> agent_policy_engine
+    agent_policy_simulator --> agent_policy_models
+    agent_policy_simulator --> agent_policy_store
+    agent_policy_simulator --> agent_policy_engine
+    agent_policy_inbox --> agent_policy_models
+    agent_policy_engine --> agent_policy_decisions
+    agent_policy_engine --> agent_policy_matcher
+    agent_policy_engine --> agent_policy_models
+    agent_policy_engine --> agent_policy_store
+    agent_policy_engine -.-> agent_audit_facade
+    agent_policy_engine -.-> agent_observability
+    agent_policy_engine -.-> agent_observability_events
+    agent_policy_engine -.-> agent_audit_facade
+    agent_policy_engine --> agent_policy_inbox
+    agent_policy_decisions --> agent_policy_models
+    agent_policy_decisions -.-> agent_observability_events
+    agent_policy_egress --> agent_policy_engine
+    agent_policy_egress --> agent_policy_models
+    agent_policy_egress --> agent_policy_taint
+    agent_policy_egress -.-> agent_observability_events
     agent_lazy_loader -.-> agent_logging_utils
     agent_lazy_loader -.-> agent_utils_singleton_manager
     agent_lazy_loader__core -.-> agent_logging_utils
@@ -1394,6 +1469,8 @@ flowchart LR
     agent_skills_mgmt_meta_editor -.-> agent_logging_utils
     agent_skills_mgmt_index_cache -.-> agent_logging_utils
     agent_skills_mgmt_vector_adapter -.-> agent_logging_utils
+    agent_skills_mgmt_approval -.-> agent_security_approval_guard
+    agent_skills_mgmt_approval -.-> agent_security_governance_bridge
     agent_skills_mgmt_approval -.-> agent_observability
     agent_skills_mgmt_approval -.-> agent_audit
     agent_skills_mgmt_approval -.-> agent_observability
@@ -1482,6 +1559,7 @@ flowchart LR
     agent_web_search -.-> agent_logging_utils
     agent_web_http_client -.-> agent_monitoring_observability_config
     agent_web_http_client -.-> agent_monitoring_observability_config
+    agent_web_http_client -.-> agent_guardrails_egress_guard
     agent_web_http_client -.-> agent_monitoring_observability_config
     agent_web_http_client -.-> agent_monitoring_observability_config
     agent_web_browser_agent -.-> agent_error_handler
@@ -1506,6 +1584,8 @@ flowchart LR
     agent_audit_ui_middleware --> agent_audit_chain
     agent_audit_ui_middleware --> agent_audit_facade
     agent_audit_ui_middleware --> agent_audit_facade
+    agent_audit_ui_middleware -.-> agent_security_identity
+    agent_audit_ui_middleware -.-> agent_security_pii
     agent_audit_ui_middleware --> agent_audit_facade
     agent_audit_facade --> agent_audit_chain
     agent_audit_facade -.-> agent_logging_utils
@@ -1539,8 +1619,33 @@ flowchart LR
     agent_eval_runner --> agent_eval_cases
     agent_eval_runner --> agent_eval_checkers
     agent_eval_runner --> agent_eval_solvers
+    agent_security --> agent_security_actor_matrix
+    agent_security --> agent_security_alerts
+    agent_security --> agent_security_approval_guard
+    agent_security --> agent_security_approval_session
+    agent_security --> agent_security_identity
+    agent_security --> agent_security_pii
+    agent_security_approval_guard --> agent_security_alerts
+    agent_security_approval_guard --> agent_security_pii
+    agent_security_approval_guard --> agent_security_actor_matrix
+    agent_security_approval_guard --> agent_security_identity
+    agent_security_approval_guard --> agent_security_identity
+    agent_security_approval_guard -.-> agent_observability_events
+    agent_security_pii -.-> agent_utils_sensitive_data_filter
+    agent_security_governance_bridge -.-> agent_descriptors_registry
+    agent_security_governance_bridge --> agent_security_approval_guard
+    agent_security_approval_session --> agent_security_pii
+    agent_security_identity --> agent_security_actor_matrix
     agent_server_routes_routes_visual_workflows -.-> agent_server_auth
     agent_server_routes_routes_visual_workflows --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_approval -.-> agent_security
+    agent_server_routes_routes_approval -.-> agent_security
+    agent_server_routes_routes_approval -.-> agent_security_actor_matrix
+    agent_server_routes_routes_approval -.-> agent_server_auth
+    agent_server_routes_routes_approval -.-> agent_security_actor_matrix
+    agent_server_routes_routes_approval -.-> agent_skills_mgmt_approval
+    agent_server_routes_routes_approval -.-> agent_security_governance_bridge
+    agent_server_routes_routes_approval -.-> agent_security_governance_bridge
     agent_server_routes_routes_dashboard -.-> agent_server_auth
     agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
     agent_server_routes_routes_dashboard -.-> agent_monitoring_metrics
@@ -1726,10 +1831,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 487
-- 模块节点数: 425
-- 依赖边数: 1199
-- 跨层调用数: 784
+- 扫描文件数: 508
+- 模块节点数: 446
+- 依赖边数: 1279
+- 跨层调用数: 818
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 2504.96 ms
+- 构建耗时: 2630.77 ms
