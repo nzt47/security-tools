@@ -1382,6 +1382,8 @@ class InternalizeEngine:
         """人工批准后**经审计通道**生效 ``shadow → internalized``
 
         门禁（缺一不放行）：审批记录存在且状态为 ``approved``/``merged``；
+        **§7.0「强制推进 stage」行：仅 human**（TASK-S4-01 接线 —— auto(skill) /
+        sub_agent 调用此处即越权，被拒 + 告警 + 链式审计）；
         ``require_approval=False`` 仅供测试/离线演示显式使用。
         """
         flow = self.approval_flow(flow)
@@ -1391,6 +1393,16 @@ class InternalizeEngine:
             return {"applied": False,
                     "reasons": [f"审批记录 {record_id!r} 状态 {state or '不存在'}"
                                 "（须人工批准后方可生效）"]}
+        # TASK-S4-01 §7.0：强制推进 stage 属 human 专属（reason 必填）。
+        # 越权由 `approval_guard.authorize` 负责告警 + policy.denied 审计镜像。
+        guard_reason = f"人工合入 stage.promote（审批记录 {record_id}）"
+        decision_check = _authorize_force_promote(
+            capability_id=capability_id, actor=str(actor or ""),
+            record_id=str(record_id or ""), reason=guard_reason)
+        if decision_check is not None and not decision_check.allowed:
+            return {"applied": False, "denied_by_matrix": True,
+                    "state": state,
+                    "reasons": [f"§7.0 越权拒绝：{decision_check.reason}"]}
         if record is not None and flow.enabled and state == "approved":
             try:
                 flow.merge(record_id, actor=str(actor or "reviewer"))
@@ -1422,6 +1434,26 @@ class InternalizeEngine:
                 "migration": migration, "state": state,
                 "reasons": list(getattr(migration, "reasons", []) or []),
                 "audit_seq": seq, "audit_hash": digest}
+
+
+def _authorize_force_promote(*, capability_id: str, actor: str, record_id: str,
+                             reason: str) -> Any:
+    """§7.0「强制推进 stage」执行体校验（TASK-S4-01；**best-effort 接线**）
+
+    返回 `PermissionDecision`；安全包不可用时返回 None（**回退既有行为**——
+    机制不可用不得阻断主流程；越权拦截仍由审批状态机一侧承担）。
+    """
+    try:
+        from agent.security.approval_guard import ActorContext, authorize
+    except Exception as e:  # noqa: BLE001 安全包不可用 → 回退既有行为
+        logger.debug("actor 矩阵不可用（跳过执行体校验）: %s", e)
+        return None
+    return authorize(
+        operation="governance.force_stage",
+        actor_ctx=ActorContext(actor=str(actor or ""),
+                               identity_source="internalize_manual_channel"),
+        object_type=APPROVAL_OBJECT_TYPE, object_id=str(capability_id or ""),
+        record_id=str(record_id or ""), reason=str(reason or ""), source="agent")
 
 
 def _pr_id(decision: InternalizeDecision) -> str:
