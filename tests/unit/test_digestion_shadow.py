@@ -83,11 +83,18 @@ def runner(tmp_path):
 
 
 def make_case(index: int = 0, *, root: str = "C:/sandbox") -> C.EquivalenceCase:
-    """一条可回放的三段任务链用例（上游程序 = 候选程序 ⇒ 三层比对全过）"""
+    """一条可回放的三段任务链用例（上游程序 = 候选程序 ⇒ 三层比对全过）
+
+    **S8-05（D2）**：步骤显式声明 `capability_id=CAP`（不靠 label 推断）——
+    该用例因此是"同一能力的多步调用"，形状与被评能力 `cp.builtin.read_file` 一致，
+    可进入抽检取样；若换成多能力链则会被形状过滤挡下（见新增的 D2 用例）。
+    """
     path = f"{root}/out/a{index}.txt"
-    steps = [C.ProgramStep(label="read_file", params={"path": path}),
+    steps = [C.ProgramStep(label="read_file", params={"path": path},
+                           capability_id=CAP),
              C.ProgramStep(label="write_file", params={"path": path,
-                                                       "content": f"c{index}"})]
+                                                       "content": f"c{index}"},
+                           capability_id=CAP)]
     return C.EquivalenceCase(
         case_id=f"case-{index:03d}", capability_id=CAP, input={"path": path},
         upstream=steps, native=steps,
@@ -98,6 +105,19 @@ def make_case(index: int = 0, *, root: str = "C:/sandbox") -> C.EquivalenceCase:
 
 def make_case_set(size: int = 4, **kwargs) -> C.CaseSet:
     return C.build_case_set(CAP, [make_case(i, **kwargs) for i in range(size)])
+
+
+def saved_case_ids(tmp_path, size: int = 4) -> list:
+    """把判定集真正落盘 → 返回其 case_id（**D1 的入队存活校验需要判定集存在**）
+
+    TASK-S8-05 起 `ManualReviewQueue.enqueue()` 会校验 case 是否在现行判定集中；
+    测试必须给队列一个**真实存在**的判定集，而不是随手编 case_id —— 这正是
+    "显式传路径 + 不污染运行时区"纪律在测试侧的落地。
+    """
+    store = C.open_case_store(str(tmp_path / "cases"))
+    case_set = make_case_set(size)
+    store.save(case_set, record_cost=False)
+    return [c.case_id for c in case_set.active_cases()]
 
 
 def issue_passport(case_set: C.CaseSet, tmp_path, **kwargs):
@@ -558,26 +578,34 @@ class TestCompareVerdict:
 
 
 class TestManualReviewQueue:
+    """M5 队列 + **S8-05（D1）存活校验**：入队必须引用**现行判定集里真实存在**的用例"""
+
     def test_enqueue_and_pending(self, tmp_path):
-        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"))
-        items = queue.enqueue(CAP, ["c1", "c2"], candidate_kind="candidate_pattern",
-                              reasons={"c1": ["10% 抽检"]})
-        assert [i.case_id for i in items] == ["c1", "c2"]
+        ids = saved_case_ids(tmp_path)
+        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"),
+                                     case_store=C.open_case_store(str(tmp_path / "cases")))
+        items = queue.enqueue(CAP, ids[:2], candidate_kind="candidate_pattern",
+                              reasons={ids[0]: ["10% 抽检"]})
+        assert [i.case_id for i in items] == ids[:2]
         summary = queue.summary(CAP)
         assert summary["sampled"] == 2 and summary["pending"] == 2
         assert summary["closed"] is False
         assert "不得视为已验收" in summary["note"]
 
     def test_enqueue_is_idempotent_for_pending(self, tmp_path):
-        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"))
-        queue.enqueue(CAP, ["c1"])
-        queue.enqueue(CAP, ["c1"])
+        ids = saved_case_ids(tmp_path)
+        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"),
+                                     case_store=C.open_case_store(str(tmp_path / "cases")))
+        queue.enqueue(CAP, ids[:1])
+        queue.enqueue(CAP, ids[:1])
         assert len(queue.items(CAP)) == 1
 
     def test_record_review_closes_item(self, tmp_path):
-        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"))
-        queue.enqueue(CAP, ["c1"])
-        item = queue.record_review("c1", capability_id=CAP,
+        ids = saved_case_ids(tmp_path)
+        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"),
+                                     case_store=C.open_case_store(str(tmp_path / "cases")))
+        queue.enqueue(CAP, ids[:1])
+        item = queue.record_review(ids[0], capability_id=CAP,
                                    verdict=SH.REVIEW_VERDICT_PASS,
                                    reviewer="owner", note="逐字段核对等价")
         assert item.decided and item.approved and item.role == SH.REVIEW_ROLE_HUMAN
@@ -586,53 +614,72 @@ class TestManualReviewQueue:
         assert queue.is_closed(CAP) is True
 
     def test_record_review_rejects_invalid_verdict(self, tmp_path):
-        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"))
+        ids = saved_case_ids(tmp_path)
+        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"),
+                                     case_store=C.open_case_store(str(tmp_path / "cases")))
         with pytest.raises(ValueError):
-            queue.record_review("c1", capability_id=CAP, verdict="looks-fine",
+            queue.record_review(ids[0], capability_id=CAP, verdict="looks-fine",
                                 reviewer="owner")
 
     def test_agent_assisted_review_is_distinguishable(self, tmp_path):
-        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"))
-        queue.enqueue(CAP, ["c1"])
-        queue.record_review("c1", capability_id=CAP, verdict="pass",
+        ids = saved_case_ids(tmp_path)
+        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"),
+                                     case_store=C.open_case_store(str(tmp_path / "cases")))
+        queue.enqueue(CAP, ids[:1])
+        queue.record_review(ids[0], capability_id=CAP, verdict="pass",
                             reviewer="agent", role=SH.REVIEW_ROLE_AGENT)
         summary = queue.summary(CAP)
         assert summary["agent_assisted_reviewed"] == 1
         assert summary["human_reviewed"] == 0
 
     def test_latest_verdict_wins(self, tmp_path):
-        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"))
-        queue.enqueue(CAP, ["c1"])
-        queue.record_review("c1", capability_id=CAP, verdict="uncertain",
+        ids = saved_case_ids(tmp_path)
+        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"),
+                                     case_store=C.open_case_store(str(tmp_path / "cases")))
+        queue.enqueue(CAP, ids[:1])
+        queue.record_review(ids[0], capability_id=CAP, verdict="uncertain",
                             reviewer="owner")
-        queue.record_review("c1", capability_id=CAP, verdict="fail", reviewer="owner")
+        queue.record_review(ids[0], capability_id=CAP, verdict="fail", reviewer="owner")
         assert queue.items(CAP)[-1].verdict == "fail"
 
     def test_summary_scoped_by_capability(self, tmp_path):
-        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"))
-        queue.enqueue(CAP, ["c1"])
-        queue.enqueue("other.cap", ["c2"])
+        ids = saved_case_ids(tmp_path)
+        store = C.open_case_store(str(tmp_path / "cases"))
+        other = C.build_case_set("other.cap", [
+            C.EquivalenceCase(case_id="other-000", capability_id="other.cap",
+                              upstream=[C.ProgramStep(label="other",
+                                                      capability_id="other.cap")])])
+        store.save(other, record_cost=False)
+        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"), case_store=store)
+        queue.enqueue(CAP, ids[:1])
+        queue.enqueue("other.cap", ["other-000"])
         assert queue.summary(CAP)["sampled"] == 1
         assert queue.summary("other.cap")["sampled"] == 1
 
     def test_review_sheet_marks_pending(self, tmp_path):
-        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"))
-        queue.enqueue(CAP, ["c1"])
+        ids = saved_case_ids(tmp_path)
+        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"),
+                                     case_store=C.open_case_store(str(tmp_path / "cases")))
+        queue.enqueue(CAP, ids[:1])
         sheet = queue.review_sheet(CAP)
-        assert "c1" in sheet and "待裁定" in sheet
+        assert ids[0] in sheet and "待裁定" in sheet
         assert "不得视为已验收" in sheet
 
     def test_review_writes_audit(self, tmp_path):
-        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"))
-        queue.enqueue(CAP, ["c1"])
-        queue.record_review("c1", capability_id=CAP, verdict="pass", reviewer="owner")
+        ids = saved_case_ids(tmp_path)
+        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"),
+                                     case_store=C.open_case_store(str(tmp_path / "cases")))
+        queue.enqueue(CAP, ids[:1])
+        queue.record_review(ids[0], capability_id=CAP, verdict="pass", reviewer="owner")
         actions = [e.action for e in facade_mod.audit.recent(limit=20)]
         assert SH.AUDIT_ACTION_REVIEWED in actions
 
     def test_corrupt_lines_are_skipped(self, tmp_path):
+        ids = saved_case_ids(tmp_path)
         path = tmp_path / "r.jsonl"
-        queue = SH.ManualReviewQueue(str(path))
-        queue.enqueue(CAP, ["c1"])
+        queue = SH.ManualReviewQueue(str(path),
+                                     case_store=C.open_case_store(str(tmp_path / "cases")))
+        queue.enqueue(CAP, ids[:1])
         with open(path, "a", encoding="utf-8") as fh:
             fh.write("{ not json\n")
         assert len(queue.items(CAP)) == 1

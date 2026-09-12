@@ -20,10 +20,27 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from agent.descriptors.backfill import (  # noqa: E402
+    needs_markdown,
     plan_backfill,
     run_backfill,
     survey_markdown,
 )
+
+DEFAULT_RESOLUTION_PATH = str(Path("data/descriptors/resolutions.jsonl"))
+DEFAULT_MAIN_PATH = str(Path("data/skills_mgmt.json"))
+DEFAULT_REGISTRY_PATH = str(Path("data/descriptors.json"))
+
+
+def _resolution_store(path: str, *, enabled: bool) -> object:
+    """裁定留痕台账（D4）；``--no-resolutions`` 或路径不可用时返回 None（零行为变化）"""
+    if not enabled:
+        return None
+    try:
+        from agent.digestion.resolutions import ResolutionStore
+    except Exception as exc:  # noqa: BLE001  台账不可用不得让清单产出失败
+        print(f"[warn] 裁定台账不可用，按未接入处理: {exc}")
+        return None
+    return ResolutionStore(path=path)
 
 
 def _equal(a, b) -> bool:
@@ -39,9 +56,21 @@ def main() -> int:
     ap.add_argument("--out-dir", default=str(Path("data/descriptors_s1_02")),
                     help="报告落点（默认 data/descriptors_s1_02）")
     ap.add_argument("--batch-size", type=int, default=200)
+    ap.add_argument("--resolutions", default=DEFAULT_RESOLUTION_PATH,
+                    help="人工裁定留痕台账路径（D4：已裁定项不再重复提醒）")
+    ap.add_argument("--no-resolutions", action="store_true",
+                    help="不接入裁定台账（与 S8-05 之前的行为逐字一致）")
+    ap.add_argument("--main-path", default="",
+                    help=f"技能主轨路径（默认 {DEFAULT_MAIN_PATH}）")
+    ap.add_argument("--registry-path", default="",
+                    help=f"descriptor 台账路径（默认 {DEFAULT_REGISTRY_PATH}）")
     args = ap.parse_args()
 
-    planned = plan_backfill()
+    store = _resolution_store(args.resolutions, enabled=not args.no_resolutions)
+    planned = plan_backfill(
+        main_path=Path(args.main_path) if args.main_path else None,
+        resolutions=store)
+    registry_path = Path(args.registry_path) if args.registry_path else None
     out = Path(args.out_dir)
     out.mkdir(parents=True, exist_ok=True)
 
@@ -63,6 +92,10 @@ def main() -> int:
                     "run2": {k: v for k, v in d2.items() if k != "run_id"}},
                    ensure_ascii=False, indent=1, default=str), encoding="utf-8")
 
+    # 待办清单（含已裁定项及其依据 —— D4"依据可见"）
+    (out / "needs_review_latest.md").write_text(
+        needs_markdown(planned["needs"]), encoding="utf-8")
+
     if args.dry_run:
         result = {"dry_run": True, "deterministic": deterministic,
                   "summary": survey["summary"],
@@ -70,7 +103,8 @@ def main() -> int:
                   "needs": planned["needs"]}
     else:
         # 步骤 3：实跑（逐条审计 + 分批回滚防护）+ 步骤 4 全量重校验
-        run = run_backfill(planned, batch_size=args.batch_size)
+        run = run_backfill(planned, batch_size=args.batch_size,
+                           registry_path=registry_path)
         (out / "run_latest.json").write_text(
             json.dumps(run, ensure_ascii=False, indent=1, default=str),
             encoding="utf-8")
@@ -95,12 +129,15 @@ def main() -> int:
     if args.json:
         print(json.dumps(result, ensure_ascii=False, indent=1, default=str))
     else:
+        needs = planned["needs"]
         print(f"资产规模: {survey['summary']['asset_count']}")
         print(f"来源分布: {survey['summary']['by_source']}")
         print(f"dry-run 两次一致性: {deterministic}")
         print(f"计划覆盖率: {planned['coverage']}")
-        print(f"NEEDS_REVIEW: {len(planned['needs']['needs_review'])} 条, "
-              f"NEEDS_UNDO_HINT: {len(planned['needs']['needs_undo_hint'])} 条")
+        print(f"NEEDS_REVIEW: {len(needs['needs_review'])} 条, "
+              f"NEEDS_UNDO_HINT: {len(needs['needs_undo_hint'])} 条")
+        print(f"已裁定不再提醒: {needs.get('resolution_skipped', 0)} 条"
+              f"（台账 {needs.get('resolution_summary', {}).get('active', 0)} 条生效裁定）")
         if not args.dry_run:
             v = run["validation"]
             print(f"实跑批次全 ok: {all(b['ok'] for b in run['batches'])} "

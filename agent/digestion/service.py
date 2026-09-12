@@ -29,6 +29,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from . import capability as capability_mod
 from . import cleaning, generalize, generation, mining, stage as stage_mod
+from . import models
 from .models import (
     MIN_PATTERN_STEPS,
     MIN_SAME_KIND_TRACES,
@@ -399,9 +400,19 @@ class DigestionService:
             return report
         primary = sorted(success_sets, key=lambda b: (-b.size, b.key.as_str()))[0]
         bucket = buckets[primary.key.as_str()]      # 由 primary 直接索引，必存在
-        failure_key = SameTaskKey(primary.key.capability_id, primary.key.intent_key,
-                                  "failure")
-        failure_set = buckets.get(failure_key.as_str())
+        # 失败集配对（S8-05 D3）：用**形状配对**而非裸键相等 ——
+        # 失败任务不走完全程（第 3 步不落账），其能力集合是成功轨迹的真子集，
+        # 裸键相等会让失败集恒为空、"负样本→分支提取"整条链路静默失效。
+        failure_set = None
+        for key_str, candidate in sorted(buckets.items()):
+            if candidate.key.outcome == OUTCOME_SUCCESS:
+                continue
+            if not models.same_task_shape(primary.key, candidate.key):
+                continue
+            if failure_set is None:
+                failure_set = candidate
+            else:
+                failure_set.trajectories.extend(candidate.trajectories)
         report.cleanup["primary_key"] = primary.key.as_str()
         report.cleanup["primary_size"] = primary.size
         if failure_set is not None:

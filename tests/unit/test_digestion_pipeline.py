@@ -19,6 +19,7 @@ from agent.audit import facade as facade_mod
 from agent.audit.chain import AuditChain
 from agent.digestion import DigestionService
 from agent.digestion import capability as cap_mod
+from agent.digestion import cleaning
 from agent.digestion.models import (
     MIN_SAME_KIND_TRACES,
     SameTaskKey,
@@ -293,14 +294,20 @@ class TestIntentGrouping:
         assert report.trace_sets[0]["size"] == 24
 
     def test_key_components(self, facade, svc):
+        """主键五维：能力 | v2 结构+文本意图 | 结果 | 步数档位 | 能力集合（S8-05 D3）
+
+        结构维度取自**清洗前**的原始步骤、且**先削前导探索/重试段**：任务形状不该因
+        某次执行多探一步（``list_dir``）而改变。故能力集合是"任务的能力"，不含探路步。
+        """
         build_ledger(facade, capability_id=CAP, tasks=22, fail_every=0)
         facade.flush()
         report = svc.pipeline(capability_id=CAP, migrate=False)
         key = report.cleanup["primary_key"]
-        capability_id, intent_key, outcome = key.split("|")
-        assert capability_id == CAP
-        assert intent_key.startswith("shape:")
-        assert outcome == "success"
+        assert key.startswith(CAP + "|")
+        tail = "|steps:3-5|caps:" + "+".join(sorted({CAP, *TRAILING}))
+        assert key.endswith(tail)
+        assert "|success|" in key
+        assert "‖shape:" in key                  # 文本维度仍在键内（`‖` 之后）
 
     def test_same_task_key_excludes_task_identity(self):
         key = SameTaskKey(CAP, "shape:path", "success")
@@ -315,12 +322,15 @@ class TestIntentGrouping:
         assert report.trajectories_total == 22
 
     def test_intent_override_creates_distinct_bucket(self, facade, svc):
+        """显式 intent 进的是 v2 键的**文本维度**（`‖` 之后），结构维度不变"""
         build_ledger(facade, capability_id=CAP, tasks=22, fail_every=0)
         facade.flush()
         report = svc.pipeline(capability_id=CAP, intent="修复失败测试",
                               migrate=False)
-        assert report.cleanup["primary_key"].split("|")[1] == \
-            "修+复+失+测+试+败"
+        intent_key = report.cleanup["primary_key"].split("|", 1)[1] \
+            .rsplit("|success|", 1)[0]
+        assert cleaning.text_key_of(intent_key) == "修+复+失+测+试+败"
+        assert cleaning.is_structural_key(intent_key) is True
 
 
 # ════════════════════════════════════════════════════════════
@@ -614,5 +624,10 @@ class TestServiceWiring:
         rows, _ = svc.collect(CAP)
         trajectories, meta = svc.build_trajectories(rows, capability_id=CAP)
         assert meta["trajectories"] == 3
-        assert meta["intent_keys"] == ["shape:encoding+path"]
+        # v2 口径：意图键 = 结构原子 + `‖` + 文本归一（S8-05 D3）
+        assert len(meta["intent_keys"]) == 1
+        assert cleaning.text_key_of(meta["intent_keys"][0]) == "shape:encoding+path"
+        assert meta["intent_keys"][0].startswith("v2|cap=")
         assert all(t.step_count == 3 for t in trajectories)
+        # 结构维度取自**清洗后削过前导噪声段**的任务步骤 ⇒ 步数档位与任务形状一致
+        assert all(t.key.step_count_bucket == "3-5" for t in trajectories)

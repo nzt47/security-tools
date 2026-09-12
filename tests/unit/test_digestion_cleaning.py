@@ -127,11 +127,35 @@ class TestOutcomeClassification:
 
 
 class TestSameTaskKey:
-    def test_triple_definition_and_no_task_id(self):
+    """同类判定键 = 三元组 + **S8-05（D3）两个结构维度**（口径变更见下）
+
+    ⚠️ **口径变更声明（TASK-S8-05）**：`intent_key` 由 S3-01 的**纯文本**键改为
+    **v2 结构键**（``v2|cap=…|steps:…‖<文本归一>``），`SameTaskKey` 另增
+    ``step_count_bucket`` / ``capability_set`` 两个维度。原因是 CJK 按字切分导致
+    60 条不同的任务链归一到同一键，"同类轨迹"判定近乎失效。文本维度**未删**：
+    `cleaning.text_key_of()` 仍可取回，且 "顺序无关/取值无关" 两条保证不变。
+    """
+
+    def test_key_dimensions_and_no_task_id(self):
         key = SameTaskKey("cp.builtin.read_file", "shape:path", OUTCOME_SUCCESS)
-        assert key.as_tuple() == ("cp.builtin.read_file", "shape:path", "success")
-        assert key.as_str() == "cp.builtin.read_file|shape:path|success"
+        # 前三元组（S3-01 语义）逐字保持
+        assert key.as_tuple()[:3] == ("cp.builtin.read_file", "shape:path", "success")
+        # 结构维度（D3 新增）：调用方未提供时如实为空/unknown，不臆造
+        assert key.as_tuple()[3:] == ("", "")
+        assert key.as_str() == ("cp.builtin.read_file|shape:path|success"
+                               "|steps:|caps:")
         assert "task" not in key.as_str()
+
+    def test_structural_dimensions_enter_the_key(self):
+        """结构维度不同的两条记录**不再同键**（D3 的核心断言）"""
+        chain = SameTaskKey("cp.builtin.read_file", "i", OUTCOME_SUCCESS,
+                            step_count_bucket="3-5",
+                            capability_set="cp.builtin.read_file+cp.builtin.write_file")
+        single = SameTaskKey("cp.builtin.read_file", "i", OUTCOME_SUCCESS,
+                             step_count_bucket="1",
+                             capability_set="cp.builtin.read_file")
+        assert chain.as_str() != single.as_str()
+        assert chain.as_tuple() != single.as_tuple()
 
     def test_outcome_splits_success_and_failure(self):
         ok = SameTaskKey("c", "i", OUTCOME_SUCCESS)
@@ -161,7 +185,10 @@ class TestSameTaskKey:
             capability_id = "c"
 
         key = cleaning.same_task_key(_T(), intent="修复 失败 测试")
-        assert key.intent_key == cleaning.normalize_intent("修复 失败 测试")
+        # v2 口径：文本维度被**包含**在键内（`‖` 之后），而非等于整个键
+        assert cleaning.text_key_of(key.intent_key) == \
+            cleaning.normalize_intent("修复 失败 测试")
+        assert cleaning.is_structural_key(key.intent_key) is True
 
     def test_notes_intent_channel(self):
         class _T:
@@ -170,7 +197,7 @@ class TestSameTaskKey:
             side_effects = type("SE", (), {"notes": ["intent:deploy service"]})()
             capability_id = "c"
 
-        assert cleaning.intent_key_for_trace(_T()) == \
+        assert cleaning.text_key_of(cleaning.intent_key_for_trace(_T())) == \
             cleaning.normalize_intent("deploy service")
 
     def test_unknown_intent_is_honest(self):
@@ -180,7 +207,17 @@ class TestSameTaskKey:
             side_effects = type("SE", (), {"notes": []})()
             capability_id = "c"
 
-        assert cleaning.intent_key_for_trace(_T()) == "none"
+        assert cleaning.text_key_of(cleaning.intent_key_for_trace(_T())) == "none"
+
+    def test_structural_false_keeps_s301_text_only_behaviour(self):
+        """``structural=False`` 保留 S3-01 纯文本口径（回归对照通道）"""
+        class _T:
+            request = type("R", (), {"args_redacted": None})()
+            response = type("S", (), {"status": "success"})()
+            side_effects = type("SE", (), {"notes": []})()
+            capability_id = "c"
+
+        assert cleaning.intent_key_for_trace(_T(), structural=False) == "none"
 
 
 # ════════════════════════════════════════════════════════════

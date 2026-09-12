@@ -51,6 +51,45 @@ from .validator import validate_descriptor
 
 logger = logging.getLogger(__name__)
 
+
+def _resolution_helpers() -> Any:
+    """裁定留痕接入（`agent.digestion.resolutions`；**函数内懒加载**）
+
+    架构纪律：descriptors 是纯依赖叶子，不得在导入期反向依赖 digestion 包
+    （否则 importlinter 的层次规则会被打破）。故本模块只在本函数内取用，
+    且**任何异常都退化为"未接入"**（needs 报告照旧产出，不因台账故障而中断）。
+    """
+    try:
+        from agent.digestion import resolutions as mod
+        return mod
+    except Exception as e:  # noqa: BLE001
+        logger.debug("裁定台账模块不可用（D4 过滤停用）: %s", e)
+        return None
+
+
+def enrich_needs(needs: Dict[str, Any], resolutions: Any) -> Dict[str, Any]:
+    """needs 报告 → 附带"已裁定项及其依据"（D4）
+
+    thin wrapper over `resolutions.enrich_needs`；``resolutions`` 为 None 或模块
+    不可用时**原样返回**（零行为变化）。
+    """
+    mod = _resolution_helpers() if resolutions is not None else None
+    if mod is None or resolutions is None:
+        out = dict(needs)
+        out.setdefault("needs_review_resolved", [])
+        out.setdefault("needs_undo_hint_resolved", [])
+        out.setdefault("resolution_summary", {"active": 0, "note": "未接入裁定台账"})
+        out.setdefault("resolution_skipped", 0)
+        out.setdefault("resolution_note", "")
+        return out
+    try:
+        return mod.enrich_needs(needs, resolutions)
+    except Exception as e:  # noqa: BLE001  台账故障不得让清单消失
+        logger.warning("裁定台账过滤失败（按未接入处理，清单照旧）: %s", e)
+        out = dict(needs)
+        out["resolution_summary"] = {"active": 0, "error": str(e)}
+        return out
+
 # ─────────────────────────────────────────────────────────────
 # 常量与规则表（确定性、可复现；规则 ID 供审计 reason 引用）
 # ─────────────────────────────────────────────────────────────
@@ -776,8 +815,15 @@ def derive_plan_item(asset: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def plan_backfill(*, main_path: Optional[Path] = None,
-                  repo_path: Optional[Path] = None) -> Dict[str, Any]:
-    """摸底 + 全量回填计划（dry-run 数据源；两次调用结果一致）。"""
+                  repo_path: Optional[Path] = None,
+                  resolutions: Any = None) -> Dict[str, Any]:
+    """摸底 + 全量回填计划（dry-run 数据源；两次调用结果一致）。
+
+    ``resolutions``：裁定留痕台账（`agent.digestion.resolutions.ResolutionStore`）。
+    给出时，``needs`` 中的已裁定项改列 ``needs_review_resolved``（D4：已裁定不再
+    重复提醒），并在 ``needs.resolution_summary`` 给出台账总览。**缺省不启用** ⇒
+    输出与从前逐字一致（零行为变化）。
+    """
     survey = survey_skill_assets(main_path=main_path, repo_path=repo_path)
     plan = [derive_plan_item(a) for a in survey["assets"]]
     return {
@@ -786,7 +832,7 @@ def plan_backfill(*, main_path: Optional[Path] = None,
         "plan": plan,
         "summary": survey["summary"],
         "coverage": plan_coverage(plan),
-        "needs": collect_needs(plan),
+        "needs": collect_needs(plan, resolutions=resolutions),
     }
 
 
@@ -824,8 +870,15 @@ def plan_coverage(plan: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def collect_needs(plan: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """NEEDS_REVIEW / NEEDS_UNDO_HINT 待补清单（资产级 + 处置路径）。"""
+def collect_needs(plan: List[Dict[str, Any]],
+                  *, resolutions: Any = None) -> Dict[str, Any]:
+    """NEEDS_REVIEW / NEEDS_UNDO_HINT 待补清单（资产级 + 处置路径）
+
+    **TASK-S8-05 / D4**：``resolutions`` 给出时，**已有人工裁定**的项不再列入
+    ``needs_review``，改列 ``needs_review_resolved``（附 ``basis``：谁/何时/依据
+    什么规则/理由/证据）—— 已裁定的不再重复提醒，**未裁定的仍逐条照报**。
+    ``resolutions=None`` 时输出与从前逐字一致（零行为变化）。
+    """
     review: List[Dict[str, Any]] = []
     undo: List[Dict[str, Any]] = []
     for p in plan:
@@ -847,7 +900,32 @@ def collect_needs(plan: List[Dict[str, Any]]) -> Dict[str, Any]:
                              "capability_id, undo_hint=…, compensating_action=…)；"
                              "补齐前不写入 destructive 风险（校验器三件套强制，不静默放行）"),
             })
-    return {"needs_review": review, "needs_undo_hint": undo}
+    return enrich_needs({"needs_review": review, "needs_undo_hint": undo},
+                        resolutions)
+
+
+def needs_markdown(needs: Dict[str, Any]) -> str:
+    """待办清单 Markdown（含**已裁定项及其依据** —— D4"依据可见"的落地载体）"""
+    review = needs.get("needs_review") or []
+    undo = needs.get("needs_undo_hint") or []
+    done = needs.get("needs_review_resolved") or []
+    lines = ["# S1-02 NEEDS_REVIEW 清单", "",
+             f"- 待人工复核：**{len(review)}** 条"
+             f"（已裁定 {len(done)} 条不再重复提醒）",
+             f"- 待补 undo_hint：**{len(undo)}** 条", ""]
+    if review:
+        lines += ["| 资产 | 域 | 规则 | 原因 |", "|---|---|---|---|"]
+        for row in review:
+            lines.append(f"| {row['asset_id']} | {row['scope']} | {row['rule']} | "
+                         f"{row['reason']} |")
+    else:
+        lines.append("（无待人工复核项）")
+    if done:
+        lines += ["", "## 已裁定项及其依据（不重复提醒；已入审计 resolution.record）", ""]
+        for row in done:
+            lines.append(f"- `{row['asset_id']}` · {row['scope']}/{row['rule']}："
+                         f"{row.get('basis', '')}")
+    return "\n".join(lines) + "\n"
 
 
 def _disposal_path(scope: str) -> str:
