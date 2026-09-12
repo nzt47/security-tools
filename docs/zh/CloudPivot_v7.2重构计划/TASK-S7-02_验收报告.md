@@ -221,8 +221,10 @@ Trace 查询前必须 `flush()`（`UnifiedTraceStore` 是"入队即返回、后�
 
 | 项 | 值 |
 |---|---|
-| 代码提交 | **`d677f3e6`**（33 文件 / 10159 insertions） |
-| 双远端同点 | `origin/s702/main` = `gitee/s702/main` = `d677f3e6405c022444e382fc30457461d70307a5`（`git ls-remote` 双侧实测一致） |
-| 提交后工作树 | `git status --short` 为空（零产物漂移）；新增套件复跑 285 passed / 0 failed |
-| **与 `master` 合并** | ⏳ **未完成**：主工作区当时处于**另一会话（S7-05）的未完成合并**（`UU agent/digestion/__init__.py` 等），git 拒绝新合并；本任务纪律禁止用 `checkout/reset/merge` 扰动他人中间状态。故推到 `s702/main` 并如实登记，合并命令与唯一预期冲突点见 [S7-02_交付结案报告_20260912.md](S7-02_交付结案报告_20260912.md) §8.1 |
+| 代码提交（worktree 分支） | **`d677f3e6`**（33 文件 / 10159 insertions）+ 文档补记 `eadc4fc4` |
+| `master` 合并提交 | **`7e0c2c62`**（父：`dac64884` ← `eadc4fc4`；**零冲突**） |
+| **双远端同点** | `origin/master` = `gitee/master` = **`7e0c2c62507d15d226b9e75c207d7572b049f0b4`**（`git ls-remote` 双侧实测一致） |
+| 合并后工作树 | 新增套件复跑 **285 passed / 0 failed**；S7-05 的进行中改动原样保留、未被本任务提交 |
+| 合并被阻塞的一小段经过 | 首次尝试时主工作区正处于 S7-05 的未完成合并（`UU agent/digestion/__init__.py` 等），git 拒绝新合并；本任务**先去推 `s702/main` 并如实登记**，待 S7-05 合并完成后以「只读预检 `git merge-tree` → `--no-commit` 合并」完成落库（详见 [交付结案报告](S7-02_交付结案报告_20260912.md) §8.1） |
+
 
