@@ -65,6 +65,17 @@ KNOWN_READ_HELPERS: frozenset = frozenset({
     "_env_flag", "_env_flag_bool", "_env_bool", "_env_int", "_env_float",
     "_env_str", "_env_path", "_bool_env", "_flag", "_env", "_getenv",
     "_read_env", "_env_value",
+    # 【S8-02 实测补登：三态开关读取助手】`DecisionLog` 的
+    # `CP_POLICY_DECISION_LOG_LOCK_APPENDS` 走 `_env_optional_flag(...)`
+    # ——它的语义正是"**未设置 ≠ False**"（未设置 = auto），因此**必须**用三态助手，
+    # 不能用 `_env_flag`。而本名单原无此名，且下面的正则也匹配不到
+    # （`_env_optional_flag` 中间夹了 `optional`，不在 `(?:flag|bool|int|float|str|path|value)`
+    # 允许集内）⇒ **零缺口硬守卫出现假阴性**：该开关读得到、却扫不出、于是可以
+    # "未登记还不报错"（本项目实测发生）。故显式登记名字。
+    # 【为什么补名单而不放宽正则（不易）】正则放宽会重演 S7-01 踩过的坑
+    # （`_` + 可选类型后缀 把 `self._path(x)` 这类普通方法误判成开关读取助手）；
+    # 名单是显式的、可审计的，新增一个助手名就补一行。
+    "_env_optional_flag",
 })
 
 #: 助手名匹配模式（覆盖 `_env_flag` / `_env_flag_bool` / `_env_int` 一类命名）

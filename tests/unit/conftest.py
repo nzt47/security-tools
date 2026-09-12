@@ -173,6 +173,53 @@ def _unit_stop_tool_trace_writer():
 
 
 @pytest.fixture(scope="function", autouse=True)
+def _unit_isolate_tool_trace_default_db(tmp_path, monkeypatch):
+    """把 ``ToolTraceRecorder`` 的**默认库路径**指向 ``tmp_path``
+
+    【为什么必须是 autouse（TASK-S8-02 硬约束 + 实测污染）】
+    任务书规定「用例若落盘必须**显式传路径或 autouse 隔离**」（S3-02/S3-03 两次污染教训）。
+    但有一类写入**显式传路径也拦不住**：``ToolCallingService._execute_safe`` 内部走
+    ``ToolTraceRecorder.instance()``，而该单例的库路径在**构造时**从模块全局
+    ``_DEFAULT_DB_PATH`` 取值（``agent/data/tool_trace.db``）。调用方没有任何参数
+    可以把它指到 tmp。
+
+    【实测证据】单独运行
+    ``tests/unit/test_s3_01_handover.py::TestL1ToolChainLedgerPoint::test_tool_chain_writes_canonical_key``
+    （其 ``facade`` fixture 本身是 tmp 隔离的）会**改动真实的
+    ``agent/data/tool_trace.db`` 的 mtime** —— 即该用例在写生产库。
+    这正是"pre-commit 反复还原运行时噪声"的来源之一；本任务给该库加了 WAL 之后
+    还会额外产生 ``-wal``/``-shm`` 侧文件。
+
+    【为什么可以全局 autouse】本片是**唯一**的隐式默认路径入口；显式传路径的用例
+    不受影响（monkeypatch 只改默认值）。已核对不受影响的既有断言：
+    ``test_eval_baseline.py`` 本就自己 monkeypatch 同一全局（同一技法先例）；
+    ``test_s7_05_real_data.py`` 用 ``chain.runtime_dirs(root)`` 自行拼路径、
+    不读该全局；断言字符串 ``ledger=unified_traces@agent/data/tool_trace.db`` 的
+    两处是读**策略/描述文本**，与运行期路径无关。
+    """
+    try:
+        import agent.observability.tool_trace as _tt
+    except Exception:  # noqa: BLE001 模块不可用时不干预（形同 no-op）
+        yield
+        return
+    if not hasattr(_tt, "_DEFAULT_DB_PATH"):  # pragma: no cover - 防御性
+        yield
+        return
+    monkeypatch.setattr(_tt, "_DEFAULT_DB_PATH",
+                        str(tmp_path / "tool_trace.db"), raising=False)
+    # 先重置，确保**本片内**首次 instance() 就按新默认路径构造
+    try:
+        _tt.ToolTraceRecorder.reset()
+    except Exception:  # noqa: BLE001
+        pass
+    yield
+    try:
+        _tt.ToolTraceRecorder.reset()   # 停掉后台 writer 线程，避免跨用例泄漏
+    except Exception:  # noqa: BLE001
+        pass
+
+
+@pytest.fixture(scope="function", autouse=True)
 def _unit_isolate_logger():
     """每个 unit 测试前后强制恢复 root logger 到黄金状态，并清理所有动态 logger。
 

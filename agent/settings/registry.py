@@ -1573,6 +1573,14 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _a("CP_POLICY_DECISION_LOG_DAILY_CHECK_SECONDS", CAT_SELF_HEALING, 60.0,
        "策略决策日志按天轮转的检查间隔（秒，默认 60.0）",
        owner="agent/policy/decisions.py", needs_restart=True),
+    # 【S8-02 补登：三态开关】`None` 默认值是刻意的——语义为 **auto**
+    # （仅轮转开启时才取跨进程锁）；"1" 强制取 / "0" 强制不取。
+    # 该开关一度**读得到但扫不出**（读取助手 `_env_optional_flag` 不在
+    # `scan_settings.KNOWN_READ_HELPERS` 内）⇒ 零缺口硬守卫假阴性；
+    # 已同时补名单（见 scripts/scan_settings.py）。
+    _a("CP_POLICY_DECISION_LOG_LOCK_APPENDS", CAT_SELF_HEALING, None,
+       "策略决策日志 append 是否取跨进程锁（未设置=auto：仅轮转开启时取；1=强制；0=强制不取）",
+       owner="agent/policy/decisions.py", needs_restart=True),
 
     # ── S8-03 灰度容器隔离与真实接管 ─────────────────────────
     _a("CP_DIGESTION_ISOLATION_MEMORY_MB", CAT_SKILLS, 256,
