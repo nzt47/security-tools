@@ -36,6 +36,7 @@ from .trace_v2 import (  # noqa: F401
 from .events import (  # noqa: F401
     ALL_EVENT_TYPES,
     CORE_EVENT_TYPES,
+    GOVERNANCE_EVENT_TYPES,
     METRIC_EVENT_TYPES,
     NINE_EVENT_TYPES,
     SCHEMA_NAME as EVENTS_SCHEMA_NAME,
@@ -98,7 +99,8 @@ __all__ = [
     "derive_workspace_id", "generate_trace_id", "hash_content",
     "load_runtime_descriptors", "redact", "redact_then_hash",
     # events.v1
-    "ALL_EVENT_TYPES", "CORE_EVENT_TYPES", "METRIC_EVENT_TYPES", "NINE_EVENT_TYPES",
+    "ALL_EVENT_TYPES", "CORE_EVENT_TYPES", "GOVERNANCE_EVENT_TYPES",
+    "METRIC_EVENT_TYPES", "NINE_EVENT_TYPES",
     "EVENTS_SCHEMA_NAME", "EventEnvelope", "EventStore", "EventType",
     "build_event_id", "emit", "emit_event", "event_day", "get_event_store",
     "iter_events", "read_events", "sanitize_payload",

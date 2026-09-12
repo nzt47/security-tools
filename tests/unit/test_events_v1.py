@@ -22,6 +22,7 @@ from agent.observability.events import (
     ALL_EVENT_TYPES,
     CORE_EVENT_TYPES,
     ENVELOPE_FIELDS,
+    GOVERNANCE_EVENT_TYPES,
     METRIC_EVENT_TYPES,
     NINE_EVENT_TYPES,
     SCHEMA_NAME,
@@ -143,9 +144,16 @@ class TestEventTypes:
             "task.closed", "task.abandoned", "approval", "escape",
             "intervention", "cost"}
 
+    def test_governance_events_cover_s8_01(self):
+        # S8-01 数据生命周期治理埋点：**新增分组**，不改上面三组的冻结语义
+        assert GOVERNANCE_EVENT_TYPES == ("retention.run",)
+
     def test_all_types_contains_everything(self):
-        assert set(ALL_EVENT_TYPES) == set(NINE_EVENT_TYPES) | set(METRIC_EVENT_TYPES)
+        assert set(ALL_EVENT_TYPES) == (set(NINE_EVENT_TYPES)
+                                       | set(METRIC_EVENT_TYPES)
+                                       | set(GOVERNANCE_EVENT_TYPES))
         assert EventType.isin("cost") and EventType.isin("model.degraded")
+        assert EventType.isin("retention.run")
         assert not EventType.isin("nope")
         assert set(EventType.values()) == set(ALL_EVENT_TYPES)
         assert EventType.COST == "cost"
