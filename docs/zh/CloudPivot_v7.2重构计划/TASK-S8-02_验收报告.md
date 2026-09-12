@@ -92,6 +92,26 @@ python -m pytest tests/unit/test_concurrency_multi_writer.py -k only_one_lock -q
 python -m pytest tests/unit/test_concurrency_multi_writer.py -q -p no:randomly
 ```
 
+### ✅ 3b. 损坏防护：写入原子性 + **校验和隔离告警**（按介质分别说明，含一处如实缩水）
+
+任务书原文：「损坏防护：写入原子性（临时文件 + rename / DB 事务），校验和不匹配即隔离并告警」。
+按**介质能力**逐路径对照——**校验和只能存在于自带哈希的格式里**，故口径如下：
+
+| 落盘点 | 介质 | 写入原子性 | 校验和依据 | 不匹配即隔离/告警 |
+|---|---|---|---|---|
+| `AuditChain` | SQLite | **DB 事务**（`synchronous=FULL`）+ 跨进程锁 | **自带两级哈希**：`payload_hash`（规范化记录 JSON）+ `self_hash`（`seq\|ts\|actor\|action\|subject\|payload_hash\|prev_hash`）+ 前驱链接 + 每日 Merkle 根 | ✅ `verify_chain()` 全链重算并报**首个**篡改位（`seq_not_monotonic` / `prev_hash_mismatch` / `payload_hash_mismatch` / `self_hash_mismatch`）；`verify_daily_root` 另以 `leaf_count` 兜区间空洞 ⇒ 篡改/删除/插入均**显式失败**（`stats()['chain_ok']=False`、CLI 退出码 1） |
+| `UnifiedTraceStore` | SQLite | WAL + 跨进程锁保护提交 | `hash_content`（行内 `args`/`output_hash`） | ✅ `verify_integrity()` 读侧重算 + `_integrity_checked` / `_integrity_mismatch` 计数（**显式调用**、可按 limit 抽样，不在默认读路径上跑） |
+| `EventStore` / 成本落盘 | JSONL | **单次 `os.write` 整行追加**（持锁）⇒ 结构上不可能撕行 | **格式本身无校验和字段** | ⚠️ **仅"可见性"，非"校验和"**：坏行/超长行计 `skipped_line_count` / `skipped_oversized_line_count` + 限流告警；不做逐条哈希校验 |
+| `DecisionLog` | JSONL | 轮转走 **临时文件 + `os.replace` + `fsync`**（已改为原子）；追加持锁 | **格式本身无校验和字段** | ⚠️ **仅"可见性"**：坏行跳过、**不可读分片计 `unreadable_shards` + 告警**（修掉了原先 `except OSError: continue` 的静默）；不做逐条哈希校验 |
+| 技能审计分片 | JSONL | 临时文件 + `os.replace` | 无 | ⚠️ 归档跳过/降级均计数 + 留痕 |
+
+**如实缩水说明（不做美化）**：`events.v1` 与 `policy.decision.v1` 两种 JSONL 信封
+**schema 里没有校验和字段**，因此"校验和不匹配即隔离"在这两条路径上**没有实现**——
+它们拿到的是"**损坏可见**"（计数 + 限流告警 + 不可读分片计数），不是"校验和校验"。
+给它们加校验和属于**改数据格式**（写侧多一个字段、读侧要兼容历史行），
+超出本任务"不改既有公开接口语义"的边界，故**刻意不做**，登记为遗留（§五 第 9 条）。
+自带哈希的两种介质（审计链 / 统一台账）则**完整满足**该验收条款。
+
 ### ✅ 4. 持锁进程被杀 → 锁可恢复、无死锁；锁超时 → 显式失败 + 审计/事件留痕
 
 | 场景 | 用例 | 实测 |
@@ -306,6 +326,7 @@ python -m mypy agent/utils/cross_process_lock.py agent/audit/seq_journal.py \
 | 4 | 其余"整文件重写"落盘点（`write_stats` / `write_cost_daily` / `_save_state` / `utc.write_utc_snapshot`）仍为非原子无锁写 | 盘点在册（优先级 P2）；本任务已给出原子写范式，建议随 S8-01 一并覆盖 |
 | 5 | `data/*.lock` 已加入 `.gitignore`（锁文件按设计永不删除，只能忽略） | 已在 `.gitignore` 内注明理由 |
 | 6 | 平台相关断言一律 gate 到跨平台语义（未使用 `os.path.normcase` 等 Windows 专属语义） | 已按 S5-01 教训执行 |
+| 9 | `events.v1` / `policy.decision.v1` 两种 JSONL **信封无校验和字段** ⇒ 这两条路径只有"损坏可见"（计数 + 告警 + 不可读分片计数），**没有**"校验和不匹配即隔离"；加校验和需改数据格式（写侧增字段 + 读侧兼容历史行），超出"不改既有公开接口语义"的边界 | **本任务刻意不做**；如要补齐，建议与 **S8-01**（数据生命周期治理，已在 master）一并设计格式迁移 |
 
 ---
 
