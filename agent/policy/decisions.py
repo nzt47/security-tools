@@ -147,6 +147,38 @@ class DecisionLogError(Exception):
     """决策日志错误（仅在显式 strict 模式下抛出）"""
 
 
+def _is_daily_hyphen_shard(name: str, stem: str, ext: str) -> bool:
+    """``name`` 是否是 ``<stem>-<YYYY-MM-DD><ext>``（log_archiver / S8-01 温层的产物）
+
+    【实测口径：是 ISO 带连字符的日期，不是 ``YYYYMMDD``（实现期踩坑）】
+    ``log_archiver.archive_daily_file`` 实际用
+    ``f"{p.stem}-{day}{p.suffix}"``、``day`` 取自 ``ts[:10]``
+    ⇒ 真实名字形如 ``decisions-2026-09-10.jsonl``。
+    但该模块**自己的 docstring 写的是 ``<stem>-YYYYMMDD<ext>``**（不准确），
+    照着它写匹配会得到"永远匹配不上"的死代码——本方法第一版即因此失效
+    （用例 ``test_s801_warm_archive_shards_stay_visible`` 实测抓到）。
+    故此处**同时接受** ISO 形态与紧凑 8 位形态，两种都不放过。
+
+    只认**恰好**这两种日期形态：``decisions-backup.jsonl`` / ``decisions-old.jsonl`` /
+    ``decisions-2026.jsonl`` / ``decisions-2026-09.jsonl`` 一律不收。
+    理由见 ``DecisionLog._candidate_files`` 的 docstring（宽进会**多**读数据，
+    同样是口径漂移）。
+    """
+    prefix = stem + "-"
+    suffix = "." + ext
+    if not name.startswith(prefix) or not name.endswith(suffix):
+        return False
+    middle = name[len(prefix):len(name) - len(suffix)]
+    if len(middle) == 10 and middle[4] == "-" and middle[7] == "-":
+        # ISO 形态：2026-09-10
+        return (middle[:4].isdigit() and middle[5:7].isdigit()
+                and middle[8:].isdigit())
+    if len(middle) == 8:
+        # 紧凑形态：20260910（历史/其它调用方可能使用）
+        return middle.isdigit()
+    return False
+
+
 class _ConcurrentWrite(RuntimeError):
     """活动文件在轮转期间被并发写入/替换（**放弃本轮，不动任何文件**）"""
 
@@ -1445,7 +1477,30 @@ class DecisionLog:
 
     @staticmethod
     def _candidate_files(target: str) -> List[str]:
-        """活动文件 + 同目录轮转分片（``*.jsonl``）"""
+        """活动文件 + 同目录轮转分片（**同时识别点号与连字符两种命名**）
+
+        【为什么必须两种都认（跨任务实测缺陷，S8-01 × S8-02 缝合处）】
+        本模块自己的轮转产出**点号**分片 ``decisions.<YYYYMMDD>.jsonl``，
+        于是读侧的门槛一度被写成"必须 ``startswith(stem + ".")``"。
+        但**归档不止本模块一处**：S8-01 数据生命周期治理把
+        ``policy_decisions`` 声明为 ``reader_shard_aware=True`` +
+        ``ARCHIVE_WARM_DAILY``，而温层**复用既有的**
+        ``agent/skills_mgmt/log_archiver.archive_daily_file``——该函数产出的是
+        **连字符**形态 ``decisions-YYYYMMDD.jsonl``。
+
+        两者一旦相遇，后果是**静默的口径漂移**：实测把 3 天决策（2 条历史日 +
+        1 条今日）交给 ``archive_daily_file`` 后，
+        ``read()`` 从 **3 条变成 1 条**（``_candidate_files`` 只返回活动文件），
+        即"归档成功、统计凭空少 2/3，而没有任何报错"。
+        S8-01 侧的指标复算校验的是 ``utc.weekly`` / ``digestion.throughput`` /
+        ``audit.chain``，**不覆盖** ``policy.decision_audit``，故那条路查不出来；
+        本任务验收项「读分片仍可用 / 轮转前后口径一致」正是该处的守卫。
+
+        【口径】点号形态（本模块轮转）**任意后缀**都收，因为它是"同一族的兄弟文件"；
+        连字符形态**只收 ``<stem>-<8位数字><ext>``**（``log_archiver`` 的既定格式），
+        以免把 ``decisions-backup.jsonl``、``decisions-old.jsonl`` 这类人工副本
+        误当分片读进来（那会**多**读数据，同样是口径漂移）。
+        """
         if not target:
             return []
         if os.path.isdir(target):
@@ -1460,7 +1515,13 @@ class DecisionLog:
                 for name in sorted(os.listdir(directory)):
                     if name == base or not name.endswith("." + ext):
                         continue
-                    if stem and name.startswith(stem + "."):
+                    if not stem:
+                        continue
+                    if name.startswith(stem + "."):
+                        # 本模块轮转的点号分片（如 decisions.20260912.jsonl）
+                        files.append(os.path.join(directory, name))
+                    elif _is_daily_hyphen_shard(name, stem, ext):
+                        # log_archiver / S8-01 温层的连字符按日分片
                         files.append(os.path.join(directory, name))
             except OSError:
                 pass
