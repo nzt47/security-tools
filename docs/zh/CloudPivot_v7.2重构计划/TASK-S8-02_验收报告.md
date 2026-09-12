@@ -324,6 +324,16 @@ clock 口径：`time.perf_counter()`，N=3000，同机同进程；样本已排�
 - p99 的 5.6ms 尖峰来自真正执行轮转的那几次 append（搬移 + 分片 fsync + `os.replace`），属预期；且只在显式开启轮转时才出现。
 - **安全性不依赖配置开关**：`os.replace` 前显式 `_close_handle()`；`_rotation_generation` 代际号（仅成功替换时自增）在每次命中句柄时比对；每 256 次写做一次 `(st_dev, st_ino)` 身份复核（覆盖"本进程配置看不到的跨进程替换"）。三条不变式均有反向验证。
 
+#### 3.3b 运维可见语义（实测确认，属"可观察行为"须申报）
+
+| 项 | 默认行为（实测） | 说明 |
+|---|---|---|
+| 是否产生 `.lock` 文件 | **默认不产生**（连写 10 条后目录只有 `decisions.jsonl`）；`lock_appends_effective == False` | `CP_POLICY_DECISION_LOG_LOCK_APPENDS` 是**三态**：未设置 = auto（**仅轮转开启时才取锁**）／`"1"` = 强制取／`"0"` = 强制不取。auto 的依据：默认配置下这把锁**没有第二个参与者**（单进程 + 本进程不轮转），逐条取锁实测 +35 µs p50 且不带来互斥收益；而轮转侧的"增量对账 + 替换前字节校验"本就覆盖"快照之后新到的写" |
+| `lock_appends` 何时必须开 | **混合配置部署**（部分进程开轮转、部分不开）建议设 `CP_POLICY_DECISION_LOG_LOCK_APPENDS=1` | 见下方残余风险 |
+| `rotate(force=True)` 在**未配置任何规则**时 | **按大小规则收缩到只剩最后一条**（实测 `trigger=size`、`records_moved=9`、`records_kept=1`、`read()` 仍返回全部 10 条） | `force` 是**运维显式动作**，故给确定性语义而非静默无操作；自动路径 `maybe_rotate()` **走不到**这里，**保守默认不受影响** |
+
+**残余风险（子任务自报，本报告确认在册）**：身份复核是**周期性**的（每 `HANDLE_RECHECK_EVERY = 256` 次写一次；本机 `os.stat` 实测 73 µs、`fstat+stat` 80 µs，逐条做比跨进程锁还贵）。因此在"**别的进程开着轮转、把我们正在写的 inode 换掉**"这一本进程配置看不见的场景下，最坏有**最多 255 条**写入落在孤儿 inode。缓解：混合配置部署显式开 `CP_POLICY_DECISION_LOG_LOCK_APPENDS=1`；Windows 上对方替换通常直接因共享冲突失败（表现为对方写入失败而非我们丢数据）。该取舍写在 `HANDLE_RECHECK_EVERY` 与 `lock_appends_effective` 的注释里。
+
 ---
 
 ## 四、质量证据（门禁原始输出）
@@ -365,6 +375,7 @@ python -m mypy agent/utils/cross_process_lock.py agent/audit/seq_journal.py \
 | 8 | `events.v1` / `policy.decision.v1` 两种 JSONL **信封无校验和字段** ⇒ 这两条路径只有"损坏可见"（计数 + 告警 + 不可读分片计数），**没有**"校验和不匹配即隔离"；加校验和需改数据格式（写侧增字段 + 读侧兼容历史行），超出"不改既有公开接口语义"的边界 | **本任务刻意不做**；如要补齐，建议与 **S8-01** 一并设计格式迁移 |
 | 9 | 新增的并发/超时旋钮（`journal_enabled` / `lock_enabled` / `seq_lock_timeout` / `queue_maxsize`）是**构造参数**，未登记进 `agent/settings/registry.py` 与 `digestion/switch_snapshot.py` | 建议后续（S7-01 开关中心 / S8-01 快照核对）；当前以构造参数形式可用，不阻塞验收 |
 | 10 | 决策日志轮转**未用真正的第二个 OS 进程**跑竞争用例（用的是"同进程第二个 `CrossProcessLock` 实例占锁（原语按实例判重入 ⇒ 与外部进程同路径被拒）"+"注入式复现并发追加"两种替代） | **声明的测试缺口**；原语跨进程语义由 `test_cross_process_lock.py`（真 `spawn` 子进程互斥 + 持锁进程被杀可恢复）覆盖，审计链 ≥4 进程正确性由 `test_concurrency_multi_writer.py` 覆盖。建议后续补一条真多进程轮转竞争用例 |
+| 12 | 决策日志句柄身份复核是**周期性**（每 256 次写）而非逐条 ⇒ "别的进程开着轮转换掉我们的 inode"时最坏 **≤255 条**写入落入孤儿 inode；默认配置下 `lock_appends` 为 auto（不取锁）故锁拦不住该场景 | **有意取舍**（逐条 `stat` 实测 73 µs 比跨进程锁还贵）。缓解：混合配置部署设 `CP_POLICY_DECISION_LOG_LOCK_APPENDS=1`；Windows 上通常表现为对方替换失败（不丢我方数据）。已写入代码注释与验收报告 §3.3b |
 | 11 | `_failed_buffer` 竞态用例是**守卫而非复现**（小容量下复现不出 `RuntimeError`） | 已如实标注；真复现需放大 GIL 切换窗口，而 `setswitchinterval` 是进程级全局状态，放进测试会顺序污染其它用例 |
 
 ---
