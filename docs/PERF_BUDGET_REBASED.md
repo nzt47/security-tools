@@ -219,3 +219,71 @@ python scripts/dev/cp_perf_probe.py --url "http://127.0.0.1:5757/chat#/workbench
 
 关联：`agent/monitoring/cost_brake.py`（S5-03 成本刹车，§三 为其自身预算）、
 `docs/zh/CloudPivot_v7.2重构计划/TASK-S5-03_验收报告.md`（验收证据）。
+
+---
+
+## 九、S7-03 成本口径补记：哪些模型已实测、哪些仍是价格锚定（2026-09-12）
+
+【为什么记在这里】成本口径决定 UTC 断食阈值（S5-03）、ROI 判断（`digestion.internalize`）
+与审批衰减率的输入量；而**"归一化系数是否经过实测校准"**直接决定这些数字能不能当事实引用。
+本节把"已实测／仍是价格锚定"**逐个模型写清楚**，避免把价格锚定值当成实测值引用。
+
+【口径版本与优先级（TASK-S7-03 落地）】
+
+| 项 | 取值 |
+|---|---|
+| 系数来源 | `override`（`CP_UTC_COEFFICIENTS`）> `measured`（实测校准件）> `price_ratio`（价格锚定，**回落**） |
+| 源头实现 | `agent/observability/utc.py::coefficient_detail()`（优先级**逐模型**判定）+ `coefficient_table()["coefficient_sources"]`（可按模型核对） |
+| 实测校准件 | `agent/observability/cost_calibration.py`；默认路径 `data/cost_coefficients.json`（`CP_UTC_CALIBRATION_FILE` 可覆盖；**运行期产物，不入库**） |
+| 版本号 | 完整实测 `measured.v1`｜降级部分校准 `measured.partial.v1`｜回落 `price_anchor.v1` |
+| 样本门槛 | **每模型 ≥ 20 条成本记录**（与 `agent/eval/baseline.MIN_COST_SAMPLES_PER_MODEL` 同值）；不足 → **只披露不结论**（不给系数、不进工件） |
+| 历史口径 | **不追溯**：旧 `cost` 事件保留写入时的系数与来源字段，聚合为"读字段求和"，改系数**不改变**历史成本数字 |
+
+【本机当前实况（截至 2026-09-12，逐模型）】
+
+| 模型 | 系数来源 | 依据 | 说明 |
+|---|---|---|---|
+| `gpt-4`（锚模型） | `price_ratio` | `coefficient_table()["coefficient_sources"]` | 锚自身系数恒 `1.0`（自比），**不需要也不应替换** |
+| `gpt-3.5-turbo` | `price_ratio` | 同上 | **仍是价格锚定**（无实测样本） |
+| `gpt-4o-mini` | `price_ratio` | 同上 | **仍是价格锚定**（无实测样本） |
+
+【为什么仍是价格锚定（两条独立原因，均已验证）】
+
+1. **无可用多模型凭证**：`LLM_API_KEY` 为占位符（`sk-test…`，形态即判为占位符；
+   端点 `GET https://api.deepseek.com/v1/models` 实测返回 **401**）→ 路径 A（L2 Core-50 实跑）**未执行**；
+2. **历史事件流样本远低于门槛**：`data/events/` 全量 `cost` 事件 **12 条**
+   （`gpt-4` 6 条、`m` 6 条）→ 每模型均 **< 20**，按门槛**只披露不结论**。
+
+【本轮可核对的数字（全部可溯源，未编造）】
+
+| 项 | 值 | 来源 |
+|---|---|---|
+| `cost` 事件总行数 | 12（去重后唯一 `event_id` 12，重复 0） | `data/events/events-2026-09-10.jsonl` ／ `events-2026-09-11.jsonl` ／ `events.jsonl` |
+| `gpt-4` 样本 | 6 条 ／ 48 input token ／ 0.144 分 | `scripts/calibrate_cost_coefficients.py --path b` 偏差表（逐行溯源见报告 §2.1） |
+| `m` 样本 | 6 条 ／ 42 input token ／ 0.042 分 | 同上 |
+| 锚样本 token 构成 | in 48 ／ out 0 | 同上（决定"有效标量价格系数"的权重） |
+
+> 结论：**成本系数校准管线已就绪，但完整实测未完成**——因此本文件中任何依赖归一成本的
+> 数字仍应按**价格锚定口径**引用（并在引用处注明），**不得**表述为"已按实测校准"。
+> 复校周期：**季度**（提前触发条件见校准方案 §九）。
+
+【这套设施怎么用（复跑命令）】
+
+```powershell
+# 0) 凭证探测（不产生计费；决定走 A 还是 B）
+python scripts/calibrate_cost_coefficients.py --probe-credentials
+# 1) 路径 A（有凭证）：L2 Core-50 × 多模型实跑（**有 --max-cost-cents 硬预算上限**）
+python scripts/calibrate_cost_coefficients.py --path a --models <m1>,<m2> `
+    --max-cases 50 --max-cost-cents 200 --report 偏差分析报告.md --write
+# 2) 路径 B（无凭证，降级）：离线重放 + 可选导入 CSV（**报告显式声明非完整实测**）
+python scripts/calibrate_cost_coefficients.py --path b --events-dir data/events `
+    --import-csv <实测.csv> --report 偏差分析报告.md
+```
+
+【关联】
+
+- 实验设计：`docs/zh/成本系数校准方案.md`（样本／变量／指标／对照／复校周期）；
+- 本轮偏差分析报告：`docs/zh/成本系数偏差分析报告.md`（含逐模型偏差表与逐数字溯源）；
+- 原始 JSON（凭证探测 + 偏差表 + 重放元数据）：`data/calibration_table.json`
+  （运行期产物，不入库；命令可复跑）；
+- 验收证据：`docs/zh/CloudPivot_v7.2重构计划/TASK-S7-03_验收报告.md`。
