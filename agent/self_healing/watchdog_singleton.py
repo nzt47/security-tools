@@ -11,12 +11,18 @@
     监测"，`SingletonManager` 管的是"同进程内单例"——两者都不跨进程）。本模块补的
     正是**跨进程**那一段。
 
-【与既有设施的关系（勿另建第二套锁）】
+【与既有设施的关系（勿另建第二套锁 / TASK-S8-02 步骤 3）】
     - **同进程**：走 `agent.utils.singleton_manager` 的既有单例登记（`_INPROC_KEY`），
       不另造进程内单例模式。
-    - **跨进程**：复用云枢既有 lockfile 惯用法——与 `agent/env_config_manager.py::
-      _acquire_process_lock` / `agent/knowledge/ingest.py` 同一套原语
-      （Windows `msvcrt.locking`，POSIX `fcntl.flock`），**不是**第二套锁实现。
+    - **跨进程**：调用 `agent.utils.cross_process_lock` 的**唯一**跨进程锁原语
+      （`CrossProcessLock.try_lock()`，非阻塞语义），与
+      `agent/env_config_manager.py::_acquire_process_lock`、
+      `agent/knowledge/ingest.py::_FileLock` 共用同一份实现。
+      【为什么必须改写（不易）】改写前本模块**自带**一份 OS 文件锁平台分支
+      （`_open_lockfile`/`_try_lock`/`_unlock`，Windows 字节区间锁 / POSIX flock），
+      与另外两处是**手抄关系**而非调用关系：三份实现各自长出了不同的坑（本文件的"身份槽定长""探测不得创建
+      文件"两条结论就是只有这一份踩到并修好的）。现统一由原语承载，本模块只保留
+      **语义包装**（非阻塞 → `SplitBrainError`；锁文件不可用 → `WatchdogLockError`）。
     - **与 lock_watchdog 的边界**：`lock_watchdog` = 持锁时长监测（阈值告警）；
       本模块 = 实例互斥（身份唯一性）。两者关注的量不同，无重叠、无冲突。
     - **P5 预留**：集群化（单领导者租约 + 奇数节点仲裁）**不在本任务范围**；
@@ -31,13 +37,13 @@
 【不易】非阻塞获取（第二个实例**被拒**而不是排队等待）；释放幂等；进程退出不依赖
        锁文件内容即可被判定为陈旧（靠 OS 锁随进程消亡自动释放）。
 【变易】`lock_path` 可显式注入（用例用临时目录，绝不碰真实运行目录）。
-【简易】纯标准库；无后台线程；无自动回收定时器（陈旧判定只在显式调用时发生）。
+【简易】只依赖标准库 + 唯一锁原语 `agent.utils.cross_process_lock`（自身不再有平台分支）；
+       无后台线程；无自动回收定时器（陈旧判定只在显式调用时发生）。
 """
 
 from __future__ import annotations
 
 import enum
-import json
 import logging
 import os
 import sys
@@ -47,6 +53,16 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+# 【为什么在模块级导入（TASK-S8-02 步骤 3）】统一原语只依赖标准库，无反向依赖，
+# 故可直接模块级导入；本模块**不再**出现任何平台分支（唯一的平台分支已在原语里）。
+from agent.utils.cross_process_lock import (
+    HOLDER_SLOT_BYTES as _CP_HOLDER_SLOT_BYTES,
+    HOLDER_SLOT_OFFSET as _CP_HOLDER_SLOT_OFFSET,
+    LOCK_REGION_BYTES as _CP_LOCK_REGION_BYTES,
+    CrossProcessLock,
+    LockFileError,
+)
 
 logger = logging.getLogger("agent.self_healing.watchdog_singleton")
 
@@ -68,19 +84,23 @@ LEASE_BACKEND_CLUSTER = "leader_lease"        # P5：单领导者租约 + 奇数
 #: 同进程单例键（复用 SingletonManager）
 _INPROC_KEY = "self_healing.watchdog_singleton"
 
-#: 锁文件最小字节数（Windows msvcrt 要求锁定区域 ≥1 字节）
-_LOCK_REGION_BYTES = 1
-
-#: 身份信息在锁文件中的**固定槽位**（字节 1 起，定长；字节 0 归锁专用）
-#:
-#: 【为什么定长且不定长截断（实现期实测踩到的真实缺陷）】
-#: Windows 的 `msvcrt.locking` 锁的是**字节区间**。若在持锁期间 `truncate()` 文件，
-#: 会让已持有的区间失效（实测解锁时报 `[Errno 13] Permission denied`）——那意味着
-#: **互斥可能在持有期内被破坏**。故：字节 0 是锁专用哨兵，永不 truncate；
-#: 身份 JSON 从字节 1 起以**定长**写入（不足补空格、超出截断），从而既不需要 truncate，
-#: 也不会残留上一次更长的内容。身份仅用于**诊断**，截断不影响唯一性判定。
-HOLDER_SLOT_OFFSET = _LOCK_REGION_BYTES
-HOLDER_SLOT_BYTES = 512
+# ── 锁文件布局常量（**别名，唯一权威在统一原语**）──
+#
+# 【为什么改成别名而不是本地定义（TASK-S8-02 步骤 3）】布局（字节 0 哨兵 + 字节 1
+# 起的定长身份槽）是与"谁去读写这个锁文件"绑定的：现在读写的是统一原语，布局必须
+# 由它定义。本地再写一遍 `= 1` / `= 512` 就是第四份"手抄的布局常量"，一旦原语调整
+# （例如载荷变长）本地不会跟着动，read_holder() 会静默读到错位的字节。
+# 保留这两个名字是因为本模块的既有调用方/文档/用例（`ws_mod.HOLDER_SLOT_*`）在引用。
+#
+# 【为什么定长且不 truncate（实现期实测踩到的真实缺陷，已写进原语）】
+# Windows 的字节区间锁在持锁期间 `truncate()` 会让已持有的区间失效（实测解锁时报
+# `[Errno 13] Permission denied`）——那意味着**互斥可能在持有期内被破坏**。
+# 故：字节 0 是锁专用哨兵，永不 truncate；身份 JSON 从字节 1 起**定长**写入
+# （不足补空格、超出截断），既不需要 truncate，也不会残留上一次更长的内容。
+# 身份仅用于**诊断**，截断不影响唯一性判定。
+_LOCK_REGION_BYTES = _CP_LOCK_REGION_BYTES
+HOLDER_SLOT_OFFSET = _CP_HOLDER_SLOT_OFFSET
+HOLDER_SLOT_BYTES = _CP_HOLDER_SLOT_BYTES
 
 
 class SplitBrainError(RuntimeError):
@@ -186,80 +206,26 @@ def _pid_alive(pid: int) -> bool:
 
 
 # ════════════════════════════════════════════════════════════
-#  OS 级非阻塞文件锁（复用云枢既有 lockfile 惯用法）
+#  OS 级非阻塞文件锁 → 已收敛到统一原语（TASK-S8-02 步骤 3）
 # ════════════════════════════════════════════════════════════
-
-
-def _open_lockfile(path: Any, *, create: bool) -> Optional[Any]:
-    """以**可定位写**的方式打开锁文件（返回二进制句柄；打不开/不存在返回 None）
-
-    【为什么不能用 `open(path, "a+")`（实现期实测踩到的真实缺陷）】
-    追加模式下**所有写入都被强制落到文件末尾**，`seek()` 对写无效。第一版用 `a+`：
-      - `_write_holder()` 的 `seek(1)` 被忽略 ⇒ 身份被**追加**到 EOF，
-        于是重新获取锁后 `read_holder()` 读到的是**上一个**持有者，且文件每次
-        acquire 增长 513 字节——恰好废掉了这套诊断信息的用途。
-    改用 `os.open(O_RDWR[|O_CREAT])` + `os.fdopen(fd, "r+b")`：
-      - `O_CREAT` **不截断**（不像 `w+`），并发创建不会互相清空；
-      - `r+b` 允许任意位置覆写 ⇒ 身份槽被真正重写。
-
-    Args:
-        create: True = 不存在则创建（仅 `acquire()` 路径）；
-            False = 只读探测（`is_stale()` / `status()` 等诊断路径，
-            **绝不产生副作用**——诊断不应改变被诊断对象）。
-    """
-    flags = os.O_RDWR | (os.O_CREAT if create else 0)
-    try:
-        fd = os.open(str(path), flags, 0o600)
-    except OSError:
-        return None
-    try:
-        handle = os.fdopen(fd, "r+b", buffering=0)
-    except OSError:
-        os.close(fd)
-        return None
-    # 锁区间要求至少 1 字节：仅对空文件补哨兵（不触碰已有内容）
-    try:
-        handle.seek(0, os.SEEK_END)
-        if handle.tell() == 0:
-            handle.seek(0)
-            handle.write(b"\0" * _LOCK_REGION_BYTES)
-    except OSError:  # noqa: BLE001 补哨兵失败留给后续锁调用报错
-        pass
-    return handle
-
-
-def _try_lock(handle: Any) -> bool:
-    """尝试**非阻塞**获取 OS 文件锁（成功 True / 已被占用 False）
-
-    与 `env_config_manager._acquire_process_lock` 同一套原语，唯一差别是
-    **非阻塞**（`LK_NBLCK` / `LOCK_EX|LOCK_NB`）——单例守卫需要的是"被拒"，
-    而不是"排队等待"。
-    """
-    try:
-        handle.seek(0)
-        if sys.platform == "win32":
-            import msvcrt
-            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, _LOCK_REGION_BYTES)
-        else:
-            import fcntl
-            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        return True
-    except OSError:
-        return False
-
-
-def _unlock(handle: Any) -> None:
-    """释放 OS 文件锁（失败只告警——句柄关闭时 OS 也会释放）"""
-    try:
-        if sys.platform == "win32":
-            import msvcrt
-            handle.seek(0)
-            msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, _LOCK_REGION_BYTES)
-        else:
-            import fcntl
-            fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("锁文件解锁失败（句柄关闭时 OS 会释放）: %s", exc)
+#
+# 【本段删掉了什么、为什么（不易）】改写前这里有三个模块级函数
+# `_open_lockfile` / `_try_lock` / `_unlock`——它们与
+# `agent/env_config_manager.py`、`agent/knowledge/ingest.py` 里的同名逻辑是**手抄**
+# 关系（同一套 OS 锁平台分支各写了一到两遍）。现在这些职责全部由
+# `agent.utils.cross_process_lock` 承担：
+#
+#   旧函数              现调用点
+#   ------------------  ------------------------------------------------------
+#   _open_lockfile()    CrossProcessLock 内部 open_lockfile()（不再由本模块开文件）
+#   _try_lock(handle)   CrossProcessLock.try_lock() → 原语 os_try_lock()
+#   _unlock(handle)     CrossProcessLock.release() → 原语 os_unlock()
+#
+# 【为什么删掉而不是留一层转发（简易）】留着 `def _try_lock(h): return os_try_lock(h)`
+# 这类纯转发，会让"平台分支到底在哪"这件事继续有两个答案（读代码的人仍要先看本文件
+# 的转发层）。本模块对外只保留**语义包装**：非阻塞 → `SplitBrainError`。
+# 若将来有外部引用 `watchdog_singleton._open_lockfile`（本仓库内已确认为零引用），
+# 直接改用 `agent.utils.cross_process_lock.open_lockfile` 即可。
 
 
 # ════════════════════════════════════════════════════════════
@@ -288,10 +254,24 @@ class WatchdogSingleton:
         self.lock_path = str(lock_path or default_lock_path())
         self.role = str(role or ROLE_WATCHDOG)
         self._holder = holder
-        self._handle: Optional[Any] = None
         self._held = False
         self._register_singleton = register_singleton
         self._lock = threading.RLock()
+        # 【为什么在 __init__ 就建锁对象（简易）】CrossProcessLock 构造**无副作用**
+        # （只是 abspath 一个路径，不建文件、不加锁），真正的文件创建发生在 acquire()
+        # 里；提前建好可以让 read_holder()/is_stale() 这些只读诊断路径直接复用同一实例，
+        # 且"同一实例"正是原语的重入判定口径（不同实例在本进程内会互斥，见原语注释）。
+        #
+        # 【为什么把身份作为 holder_info 传进去（不易）】改写前身份是本模块自己
+        # `_write_holder()` 写进定长槽的；现在写槽由原语负责，身份必须**交出去**。
+        # 这里传 `holder().to_dict()`（含 pid/host/role/backend/started_at/started_iso/
+        # note）而不是只传 pid：诊断槽的使用方（被拒的第二个实例、面板、运维）读的是
+        # 这些字段，少一个就是行为回退。字段总长实测 ~394B < 512B 槽位，原语的
+        # `_fit_payload()` 在超长时会先降级 path 再兜底，不会写出非法 JSON。
+        self._cp_lock = CrossProcessLock(
+            self.lock_path, name="watchdog_singleton",
+            holder_info=self.holder().to_dict(),
+        )
 
     # ── 身份 ──
 
@@ -340,7 +320,11 @@ class WatchdogSingleton:
                         f"{existing.holder().pid}）——单机仅允许一个 Watchdog 实例",
                         holder=existing.holder().to_dict(), lock_path=self.lock_path,
                     )
-            # 2) OS 级非阻塞锁（跨进程权威判定）
+            # 2) 跨进程权威判定：统一原语的**非阻塞**获取
+            #
+            # 【为什么这里不能用 acquire(timeout>0)（不易）】单机单例守卫要的是
+            # "第二个实例被拒"，不是排队——排队会让两个 Watchdog 都"活着"，
+            # 正是分裂脑本身。故只用 try_lock()，失败一律翻译成 SplitBrainError。
             path = Path(self.lock_path)
             try:
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -348,25 +332,29 @@ class WatchdogSingleton:
                 raise WatchdogLockError(
                     f"锁文件目录不可用 {path.parent}: {type(exc).__name__}: {exc}"
                 ) from exc
-            handle = _open_lockfile(path, create=True)
-            if handle is None:
-                raise WatchdogLockError(f"锁文件不可用 {path}（无法创建/打开）")
-            if not _try_lock(handle):
+            try:
+                acquired = self._cp_lock.try_lock()
+            except LockFileError as exc:
+                # 原语的 LockFileError ≡ 本模块的 WatchdogLockError 语义
+                # （锁文件不可用）；异常类型必须保持 WatchdogLockError，
+                # 故在此翻译而不是把原语异常透出去。
+                raise WatchdogLockError(f"锁文件不可用 {path}（{exc}）") from exc
+            if not acquired:
                 holder = self.read_holder()
-                handle.close()
                 raise SplitBrainError(
                     f"单机已有 Watchdog 实例持有 {self.lock_path}"
                     f"（pid={holder.get('pid') if holder else '未知'}）——"
                     f"分裂脑防护拒绝第二个实例（§4.4 P7.2-16）",
                     holder=holder, lock_path=self.lock_path,
                 )
-            # 3) 落身份（诊断用）+ 登记进程内单例
-            self._handle = handle
+            # 3) 登记进程内单例（身份槽已由原语在加锁成功时写入）
+            #
+            # 【为什么 _INPROC_GUARD 必须留（不易）】原语的进程内登记是**按路径**的，
+            # 它足以拒掉"同进程第二个 guard 对象"；但本模块需要的是更早、更明确的一条
+            # 诊断（"单机仅允许一个 Watchdog 实例" + 已有守卫的 holder），且 release()
+            # 要能被 reset_watchdog_singleton() 统一清空。故保留这层登记：
+            # 它**不是**第二套锁，是最上层的一句"同进程语义说明"。
             self._held = True
-            try:
-                self._write_holder(handle)
-            except Exception as exc:  # noqa: BLE001 身份写失败不影响互斥（锁已拿到）
-                logger.warning("写锁身份失败（互斥已生效）: %s", exc)
             if self._register_singleton:
                 _INPROC_GUARD[self.lock_path] = self
             logger.info("Watchdog 单例锁已获取: %s (pid=%d role=%s)",
@@ -376,15 +364,12 @@ class WatchdogSingleton:
     def release(self) -> bool:
         """释放单例锁（幂等；返回是否真的释放了）"""
         with self._lock:
-            if not self._held or self._handle is None:
+            if not self._held:
                 self._held = False
                 return False
-            _unlock(self._handle)
-            try:
-                self._handle.close()
-            except Exception:  # noqa: BLE001
-                pass
-            self._handle = None
+            # 原语 release() 幂等且线程亲和（只有属主线程能释放）；
+            # 句柄关闭、OS 解锁都在原语内部完成——本模块不再自持句柄。
+            self._cp_lock.release()
             self._held = False
             if self._register_singleton and _INPROC_GUARD.get(self.lock_path) is self:
                 _INPROC_GUARD.pop(self.lock_path, None)
@@ -402,71 +387,22 @@ class WatchdogSingleton:
     def read_holder(self) -> Dict[str, Any]:
         """读锁文件里的持有者信息（**仅诊断**；损坏/为空返回 {}）
 
-        【实现期实测的关键点（Windows）】`msvcrt.locking` 锁住的是**字节区间**，
+        【实现期实测的关键点（Windows）】字节区间锁锁住的是**字节**，
         而对已被锁的字节做**读取**同样会被拒（`PermissionError: [Errno 13]`）。
         整文件 `read_bytes()` 会读到字节 0 → 在本进程之外读持有者信息时必然失败
         ——而那正是最需要它的时候（报 `SplitBrainError` 时要说清"谁持有"）。
         故：**先 `seek(HOLDER_SLOT_OFFSET)` 跳过锁字节再读**，绕开被锁区间。
 
         兼容历史上"整文件就是 JSON"的形态（无哨兵时回退整文件解析）。
+
+        【为什么整段委托给原语（TASK-S8-02 步骤 3，不易）】本方法此前是**第二份**
+        "跳锁字节读定长槽 + 回退整文件 JSON"实现（`_read_slot`/`_read_whole`）。
+        统一原语里的 `read_holder()` 就是照这套语义写的（哨兵在字节 0、槽在字节 1 起、
+        容忍历史整文件 JSON、读不到一律 `{}`、**绝不创建文件**），故这里只做转发；
+        两份实现只要有一处漂移（比如一边截断了一边没截断），"谁持有"这句诊断就会
+        在最需要它的时候两边说法不一致。
         """
-        for reader in (self._read_slot, self._read_whole):
-            try:
-                parsed = reader()
-            except Exception:  # noqa: BLE001 读不到不是错误路径（诊断信息缺失）
-                continue
-            if parsed:
-                return parsed
-        return {}
-
-    def _read_slot(self) -> Dict[str, Any]:
-        """只读**锁字节之后**的定长身份槽（不触碰被锁区间，也不创建文件）"""
-        handle = _open_lockfile(self.lock_path, create=False)
-        if handle is None:
-            return {}
-        try:
-            handle.seek(HOLDER_SLOT_OFFSET)
-            raw = handle.read(HOLDER_SLOT_BYTES)
-        finally:
-            handle.close()
-        text = raw.decode("utf-8", errors="ignore").strip("\0 \r\n\t")
-        if not text:
-            return {}
-        parsed = json.loads(text)
-        return parsed if isinstance(parsed, dict) else {}
-
-    def _read_whole(self) -> Dict[str, Any]:
-        """整文件解析（锁已释放 / 历史形态兜底）"""
-        raw = Path(self.lock_path).read_bytes()
-        text = raw.decode("utf-8", errors="ignore").strip("\0 \r\n\t")
-        if not text:
-            return {}
-        # 历史形态：哨兵 + JSON 混排 → 取第一个 '{' 起的片段
-        start = text.find("{")
-        if start > 0:
-            text = text[start:]
-        parsed = json.loads(text)
-        return parsed if isinstance(parsed, dict) else {}
-
-    def _write_holder(self, handle: Any) -> None:
-        """写入本进程身份到锁文件的**定长槽**（真正的位置覆写，非追加）
-
-        字节 0 的锁哨兵保持不动；身份 JSON 从字节 1 起定长写入（补空格/截断），
-        末尾用 `truncate(513)` 清掉任何历史残留（截断点远在锁区间之上，
-        不影响字节 0 的锁有效性——这是不能用 `truncate(0)` 的原因）。
-        """
-        payload = json.dumps(self.holder().to_dict(), ensure_ascii=False)
-        encoded = payload.encode("utf-8")[:HOLDER_SLOT_BYTES]
-        if len(encoded) < HOLDER_SLOT_BYTES:
-            encoded = encoded + b" " * (HOLDER_SLOT_BYTES - len(encoded))
-        handle.seek(HOLDER_SLOT_OFFSET)
-        handle.write(encoded)
-        try:
-            handle.truncate(HOLDER_SLOT_OFFSET + HOLDER_SLOT_BYTES)
-        except OSError:  # noqa: BLE001 截断失败不影响身份可读性
-            pass
-        handle.flush()
-        os.fsync(handle.fileno())
+        return self._cp_lock.read_holder()
 
     # ── 陈旧判定（**显式调用**，不自动回收） ──
 
@@ -524,17 +460,20 @@ class WatchdogSingleton:
         }
 
     def _os_lock_acquirable(self) -> bool:
-        """能否立刻拿到 OS 锁（**不创建文件**；探测后立即释放）"""
+        """能否立刻拿到 OS 锁（**不创建文件**；探测后立即释放）
+
+        【为什么可以直接用原语的 is_stale()（TASK-S8-02 步骤 3，不易）】
+        原语 `is_stale()` 的判定式与这里的旧实现**逐字等价**：
+        `未持锁 ∧ 锁文件存在 ∧ 能立刻拿到 OS 锁`（原语内部即 `_os_lock_acquirable()`，
+        且同样用 `create=False` 打开、探测后立刻释放，**绝不产生副作用**）。
+        改写前这里是本模块自己的一份 open→try→unlock→close 探针，与另外两处是手抄
+        关系；现在直接复用公开入口，本模块不再持有任何探测逻辑。
+        外层 `self._held` 判断保留：本模块的持有标记比原语实例标记更早生效
+        （acquire 里先置位再由原语登记），两层都判不会误报"可获取"。
+        """
         if self._held:
             return False
-        handle = _open_lockfile(self.lock_path, create=False)
-        if handle is None:
-            return False
-        try:
-            return _try_lock(handle)
-        finally:
-            _unlock(handle)
-            handle.close()
+        return self._cp_lock.is_stale()
 
     def status(self) -> Dict[str, Any]:
         """守卫状态快照（诊断/面板用）"""

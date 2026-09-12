@@ -58,7 +58,13 @@ def enforce_review(skill, *, force: bool = False, actor: str = "reviewer",
 
 
 def audit_exemption(skill_id: str, *, actor: str, reason: str) -> None:
-    """豁免发布审计日志（JSONL 追加 + 链式审计；写盘失败仅告警，不阻断发布）。"""
+    """豁免发布审计日志（JSONL 追加 + 链式审计；写盘失败仅告警，不阻断发布）。
+
+    【TASK-S8-02】追加写改为走 `log_archiver.append_jsonl_locked()`：
+    持跨进程锁 + **单次 `os.write`**（多进程不再撕行/交错）；拿不到锁时按其
+    降级语义**照样写并计数留痕**（见该函数文档），绝不静默丢豁免记录。
+    载荷形状逐字不变（ts / event / skill_id / actor / reason）。
+    """
     rec = {
         "ts": datetime.now().isoformat(timespec="seconds"),
         "event": "review_waiver_publish",
@@ -67,10 +73,10 @@ def audit_exemption(skill_id: str, *, actor: str, reason: str) -> None:
         "reason": reason,
     }
     try:
+        from .log_archiver import append_jsonl_locked
         path = Path(_audit_file())
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        append_jsonl_locked(path, json.dumps(rec, ensure_ascii=False))
     except OSError as e:
         logger.warning("[ReviewGate] 审计日志写入失败 skill=%s: %s", skill_id, e)
     # S2-02：豁免发布是治理关键动作（绕过评审闸门），必须进链（与 UI/Agent 同表）

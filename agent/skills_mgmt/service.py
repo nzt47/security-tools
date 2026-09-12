@@ -793,11 +793,16 @@ class SkillsMgmtService:
 
     def _emit_assessment_event(self, skill_id: str, kind: str, verdict: str,
                                summary: str = "") -> None:
-        """记录一次评估结果事件（新评估/阻断等），供面板轮询展示。"""
+        """记录一次评估结果事件（新评估/阻断等），供面板轮询展示。
+
+        【TASK-S8-02】追加写改走 `log_archiver.append_jsonl_locked()`
+        （持跨进程锁 + 单次 os.write，多进程不撕行）；载荷形状逐字不变
+        （ts / kind / skill_id / verdict / summary），仍为 best-effort。
+        """
         try:
             import json as _json
             from datetime import datetime as _dt
-            from .log_archiver import active_events_file
+            from .log_archiver import active_events_file, append_jsonl_locked
             events_file = active_events_file()
             events_file.parent.mkdir(parents=True, exist_ok=True)
             rec = {
@@ -807,8 +812,7 @@ class SkillsMgmtService:
                 "verdict": verdict or "",
                 "summary": str(summary or "")[:400],
             }
-            with open(events_file, "a", encoding="utf-8") as f:
-                f.write(_json.dumps(rec, ensure_ascii=False) + "\n")
+            append_jsonl_locked(events_file, _json.dumps(rec, ensure_ascii=False))
             # S2-02：评估/评审结果事件同步进链（旧 JSONL 轨保持不变，双写过渡）
             try:
                 from agent.audit import audit as _audit_facade

@@ -169,6 +169,14 @@ agent/data/tool_trace.db
 data/memory/long_term.db
 data/skill_vectors/
 
+# 跨进程锁 / 预留日志（TASK-S8-02）：与所保护的运行时库同生命周期。
+# 【为什么必须忽略而不是清理】锁文件按设计**永不删除**——删掉会引入
+# "锁 inode 被换掉、旧持有者仍持旧 inode 锁"的静默互斥失效；
+# 预留日志（`*.seqjournal`）是崩溃恢复的来源，也只能由程序自行压缩。
+# 注意 `agent/data/` 不在 `data/` 规则覆盖范围内，必须单列。
+agent/data/*.lock
+agent/data/*.seqjournal
+
 # 运行时日志/状态产物（不入库）
 data/blackbox/
 data/heartbeat_history.json
@@ -186,6 +194,11 @@ data/trace_v2_demo.db
 # 下列为该目录的**运行时产物**（决策日志 / 例外收件箱账 / 签名密钥），不入库。
 data/policies/decisions.jsonl
 data/policies/decisions.*.jsonl
+# TASK-S8-02 步骤 4 轮转新增的运行时产物：
+#   decisions.jsonl.lock     跨进程锁（轮转是读-改-写，必须跨进程串行化）
+#   decisions.jsonl.*.tmp    原子替换用的临时文件（os.replace 的素材，崩溃遗留也绝不入库）
+data/policies/decisions.jsonl.lock
+data/policies/decisions.jsonl.*.tmp
 data/policies/inbox.jsonl
 data/policies/inbox.*.jsonl
 data/policies/policy_signing_key.pem
@@ -398,6 +411,10 @@ data/skills_mgmt_review_audit*.jsonl
 data/skill_merge_backups.jsonl
 # 技能自动分类注册表（assignments + auto_classes，运行时追加）
 data/skills_classes.json
+# 跨进程写锁文件（TASK-S8-02：JSONL 追加/按日归档互斥用，与上面的流水同目录同生命周期）
+# 【为什么会被忽略而不是删掉】锁文件按设计**永不删除**——删除会引入"锁 inode 被
+# 换掉、旧持有者仍持旧 inode 锁"的静默互斥失效；故它只能"入库即污染"，必须忽略。
+data/*.lock
 
 # 并行会话隔离 worktree（new_session_worktree.py 生成）
 /.worktrees/

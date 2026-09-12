@@ -41,6 +41,12 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Set
 
+from agent.utils.cross_process_lock import (
+    CrossProcessLock,
+    LockError,
+    lock_path_for,
+)
+
 logger = logging.getLogger("agent.observability.events")
 
 # ════════════════════════════════════════════════════════════
@@ -105,6 +111,22 @@ ENV_ENABLED = "CP_EVENTS_ENABLED"
 ENV_DIR = "CP_EVENTS_DIR"
 ENV_AUDIT_MIRROR = "CP_EVENTS_AUDIT_MIRROR"
 ENV_ARCHIVE = "CP_EVENTS_ARCHIVE"
+
+# ── 跨进程写锁与降级（TASK-S8-02；**默认保守**：开锁、有限等待、不丢数据）──
+# 【为什么直读 env 而不进 observability_config】该模块由别的任务拥有；
+# 本模块沿用既有 CP_EVENTS_* 直读风格，避免新的模块耦合边。
+#: 写锁总开关（"0" ⇒ 退回无锁追加，**仅供测试/应急**：Windows 上多进程会撕行）
+ENV_LOCK_ENABLED = "CP_EVENTS_LOCK_ENABLED"
+#: 取锁有限等待上限（秒）。**有限**是硬要求：事件写入在主路径上，绝不能无限阻塞。
+ENV_LOCK_TIMEOUT_SEC = "CP_EVENTS_LOCK_TIMEOUT_SEC"
+#: 降级缓冲上限（行）。超出 ⇒ 显式失败（计数 + 告警），绝不静默丢。
+ENV_PENDING_MAX = "CP_EVENTS_PENDING_MAX"
+#: 坏行告警的限流间隔（每 N 条告警一次；计数则**每次**都记）
+ENV_CORRUPT_LOG_EVERY = "CP_EVENTS_CORRUPT_LOG_EVERY"
+
+DEFAULT_LOCK_TIMEOUT_SEC = 2.0
+DEFAULT_PENDING_MAX = 10_000
+DEFAULT_CORRUPT_LOG_EVERY = 100
 
 
 class EventError(Exception):
@@ -508,6 +530,133 @@ def _env_flag(name: str, default: str = "1") -> bool:
     return str(os.getenv(name, default)).strip().lower() not in ("0", "false", "no", "off", "")
 
 
+def _env_float(name: str, default: float) -> float:
+    """环境变量浮点（非法/缺省 → 默认；**不抛**：坏配置不该打断事件写入）"""
+    raw = os.getenv(name)
+    if raw is None or not str(raw).strip():
+        return float(default)
+    try:
+        return float(str(raw).strip())
+    except (TypeError, ValueError):
+        logger.warning("%s 非法（%r），回落默认 %s", name, raw, default)
+        return float(default)
+
+
+def _env_int(name: str, default: int) -> int:
+    """环境变量整数（非法/缺省 → 默认）"""
+    raw = os.getenv(name)
+    if raw is None or not str(raw).strip():
+        return int(default)
+    try:
+        return int(str(raw).strip())
+    except (TypeError, ValueError):
+        logger.warning("%s 非法（%r），回落默认 %s", name, raw, default)
+        return int(default)
+
+
+# ════════════════════════════════════════════════════════════
+#  读侧腐坏可见化（TASK-S8-02 要求 4：坏行不得静默跳过）
+# ════════════════════════════════════════════════════════════
+#
+# 【为什么必须有】读侧一直"跳过解析不了的行"——这是**静默**的：
+# 多进程撕行造成的坏行、磁盘半写、人工误编辑，在面板上看起来都只是"事件变少了"。
+# 计数器（进 `EventStore.stats()`）+ 限流告警让腐坏**可见**；不做限流会在大面积
+# 腐坏时把日志冲垮，反而掩盖真相（与锁冲突留痕的冷却口径一致：计数不冷却，
+# 输出有窗口）。
+
+_READ_STATS_LOCK = threading.Lock()
+_READ_STATS: Dict[str, int] = {
+    "skipped_line_count": 0,            # 解析失败 / 非 dict 的行
+    "skipped_oversized_line_count": 0,  # 超长（> MAX_LINE_BYTES）被跳过的行
+    "unreadable_file_count": 0,         # 整文件不可读（OSError）
+    "corruption_warnings": 0,           # 实际发出的告警条数（限流后）
+}
+
+
+def read_stats() -> Dict[str, int]:
+    """读侧计数快照（**进程内**；`EventStore.stats()` 会并入其中三项）"""
+    with _READ_STATS_LOCK:
+        return dict(_READ_STATS)
+
+
+def reset_read_stats() -> None:
+    """清零读侧计数（**测试专用**：断言增量而非绝对值）"""
+    with _READ_STATS_LOCK:
+        for key in _READ_STATS:
+            _READ_STATS[key] = 0
+
+
+def _bump_unreadable_file() -> None:
+    """记一次"整文件不可读"（OSError：权限/被占用/半写目录）"""
+    with _READ_STATS_LOCK:
+        _READ_STATS["unreadable_file_count"] += 1
+
+
+def _note_skipped_line(path: str, line_no: int, *, oversized: bool = False,
+                       reason: str = "") -> None:
+    """记一次"被跳过的坏行"：计数 + **限流**告警（腐坏必须可见）
+
+    限流口径：第 1 条必报，其后每 `CP_EVENTS_CORRUPT_LOG_EVERY`（默认 100）条报一次。
+    计数**不**限流（每条坏行都进 `read_stats()`），因此"报警少了"仍可从计数看出来。
+    """
+    key = "skipped_oversized_line_count" if oversized else "skipped_line_count"
+    with _READ_STATS_LOCK:
+        _READ_STATS[key] += 1
+        total = _READ_STATS["skipped_line_count"] + _READ_STATS["skipped_oversized_line_count"]
+        every = max(1, _env_int(ENV_CORRUPT_LOG_EVERY, DEFAULT_CORRUPT_LOG_EVERY))
+        should_log = total == 1 or (total % every == 0)
+        if should_log:
+            _READ_STATS["corruption_warnings"] += 1
+    if should_log:
+        logger.warning(
+            "事件文件存在不可解析行（已跳过并计数）%s:%d（累计 %d 条，%s）",
+            path, int(line_no), total, reason or ("超长行" if oversized else "非法 JSON"))
+
+
+def _append_line_bytes(path: str, data: bytes, *, ensure_dir: bool = True) -> None:
+    """把整行**一次** `os.write` 追加到 JSONL（O_APPEND）
+
+    【为什么不用 `open(path, "a")` + `write`】文本层带缓冲，一行可能被拆成多次
+    系统调用；POSIX 上 `O_APPEND` 的**短写原子性**只在"单次 write"下成立。
+    显式 fd + `os.write` 让"取不到锁时的降级路径"也不会在 POSIX 上撕行
+    （Windows 无此保证，故仍以跨进程锁为主防线）。
+
+    与 `agent.skills_mgmt.log_archiver` 的同名底层写法**刻意保持一致**
+    （两处的锁文件派生规则由用例锁死同值，见
+    `tests/unit/test_events_write_hardening.py::test_lock_path_rule_matches_archiver`）。
+
+    建目录用 `pathlib.Path.mkdir`（与 `log_archiver` 同风格）而非 `os.makedirs`：
+    后者是**进程级全局函数**，会被既有单测 `patch('…os.makedirs')` 命中并污染其
+    调用计数断言（实现期实测 `test_save_tasks_creates_directory` 由此失败）。
+
+    Args:
+        ensure_dir: 是否先确保父目录存在。热路径上的调用方**缓存"目录已就绪"**，
+            只在首次（或目录被外部清掉后）传 True —— 实测依据见
+            `EventStore._write_line`。目录被外部删除时由下面的 FileNotFoundError
+            分支自愈（缓存过期不是数据风险）。
+    """
+    parent = os.path.dirname(path)
+    if parent and ensure_dir:
+        Path(parent).mkdir(parents=True, exist_ok=True)
+    try:
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+    except FileNotFoundError:
+        if not parent:
+            raise
+        # "目录已就绪"缓存过期（目录被外部清理 / 多进程首次竞态）⇒ 重建后重试一次
+        Path(parent).mkdir(parents=True, exist_ok=True)
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+    try:
+        view = memoryview(data)
+        while view:
+            written = os.write(fd, view)
+            if written <= 0:  # pragma: no cover - 理论不可达
+                raise OSError(f"os.write 返回 {written}（未写入任何字节）")
+            view = view[written:]
+    finally:
+        os.close(fd)
+
+
 def event_files(directory: Optional[str] = None) -> List[str]:
     """事件文件清单（活动文件 + 按日归档分片，按名升序；仅返回存在的文件）"""
     base = Path(directory or default_events_dir())
@@ -533,6 +682,15 @@ class EventStore:
         archive: 跨日是否调用 `log_archiver` 归档（None → `CP_EVENTS_ARCHIVE`）。
         strict: True 时 `append` 异常向上抛（默认 False = best-effort 不阻断主路径）。
         reader: True 时构造只读 store（不占 writer 登记、append 抛错）。
+
+    【TASK-S8-02 加固：多进程安全的追加写】
+        每次 `append` 的落盘现在是「**持 `<path>.lock` 跨进程锁 → 单次 `os.write`
+        追加**」（锁原语见 `agent.utils.cross_process_lock`；锁文件与被写文件
+        分离，避免原子写 `os.replace` 把锁落到旧 inode 上）。取锁**有限等待**
+        `CP_EVENTS_LOCK_TIMEOUT_SEC`（默认 2.0s）；等不到则走**排队降级**
+        （见 `_write_line` 的降级设计注释），绝不静默丢事件。
+
+    单写者纪律（§5.5）仍是**进程内**约束；跨进程互斥由上述文件锁提供。
     """
 
     def __init__(self, path: Optional[str] = None, *, enabled: Optional[bool] = None,
@@ -552,12 +710,37 @@ class EventStore:
         self._pending_interventions: Dict[str, List[str]] = {}
         self._closed = False
         self._write_count = 0
+        self._durable_write_count = 0
+        self._lock_write_count = 0
+        self._lock_bypass_count = 0
+        self._dropped_count = 0
         self._duplicate_count = 0
         self._failure_count = 0
         self._unknown_type_count = 0
         self._last_error = ""
         self._archived_total = 0
         self._last_archive_day = ""
+        # ── 跨进程写锁 / 降级缓冲（TASK-S8-02）──
+        self._lock_enabled = _env_flag(ENV_LOCK_ENABLED)
+        self._lock_timeout = max(0.0, _env_float(ENV_LOCK_TIMEOUT_SEC,
+                                                 DEFAULT_LOCK_TIMEOUT_SEC))
+        self._pending_max = max(1, _env_int(ENV_PENDING_MAX, DEFAULT_PENDING_MAX))
+        #: 降级缓冲：**尚未落盘**的整行字节（按写入先后顺序，排空时原序补齐）
+        self._pending_lines: List[bytes] = []
+        #: 父目录是否已确保存在（热路径优化：`Path.mkdir(parents=True, exist_ok=True)`
+        #: 每次追加要走 os.mkdir（必失败）+ is_dir 两次系统调用；本机实测单次
+        #: ~200us（Windows 实时防护/慢盘），而事件写入是热路径。缓存后只在首次付
+        #: 这个钱；目录若被外部清理，`_append_line_bytes` 会捕获 FileNotFoundError
+        #: 重建并重试一次（**自愈**，不引入"缓存过期 ⇒ 静默丢行"的风险）。
+        self._dir_ready = False
+        #: 锁文件路径：与被写文件分离；`Path.resolve()` 与 log_archiver 同规则
+        #: （两侧必须派生到**同一个**锁文件，否则互斥静默失效——由用例锁死）
+        self._lock_path = lock_path_for(Path(self._path).resolve())
+        self._write_guard: Optional[CrossProcessLock] = None
+        if self._lock_enabled:
+            self._write_guard = CrossProcessLock(
+                self._lock_path, name=f"events:{os.path.basename(self._path)}",
+                holder_info={"owner": f"pid:{os.getpid()}"})
         self._owner = f"{os.getpid()}:{id(self)}"
         self._registered = False
         if self._reader:
@@ -694,9 +877,30 @@ class EventStore:
     # ── 收尾/状态 ──
 
     def flush(self) -> bool:
-        return True  # 逐条 append 直写（无异步队列），保留接口语义
+        """把**降级缓冲**的积压行补写落盘；返回是否已无积压（True = 全部落盘）
+
+        【为什么这里成了有意义的操作】正常路径逐条直写（无异步队列），本方法是
+        历史接口的保留；但 S8-02 之后多了一条"取不到跨进程锁 ⇒ 先排队、
+        下一次成功取锁时排空"的降级路径，调用方需要一个显式的"现在就排空"入口。
+
+        【锁序（防死锁）】始终**先** `self._lock`（进程内）**后**跨进程锁：
+        `append()` 也是这个顺序。反过来会在两个线程间形成环形等待。
+        """
+        with self._lock:
+            if not self._pending_lines:
+                return True
+            if self._reader or not self._enabled:
+                return False
+            return self._drain_locked()
 
     def close(self) -> None:
+        """关闭 store：**先尽力排空降级缓冲**，再释放 writer 登记"""
+        try:
+            if self._pending_lines and not self._reader:
+                with self._lock:
+                    self._drain_locked()
+        except Exception as e:  # noqa: BLE001 关闭路径绝不因排空失败而抛
+            logger.warning("关闭前排空事件降级缓冲失败（已计数，行仍在内存缓冲）: %s", e)
         if self._registered:
             release_writer(self._path, self._owner)
             self._registered = False
@@ -704,6 +908,7 @@ class EventStore:
 
     def stats(self) -> Dict[str, Any]:
         with self._lock:
+            reads = read_stats()
             return {
                 "path": self._path,
                 "enabled": self._enabled,
@@ -718,22 +923,148 @@ class EventStore:
                 "idempotency_index_size": len(self._ids),
                 "archived_total": self._archived_total,
                 "last_error": self._last_error,
+                # ── TASK-S8-02 加固后的可观测面 ──
+                "lock_enabled": self._lock_enabled,
+                "lock_path": self._lock_path,
+                "lock_timeout_sec": self._lock_timeout,
+                "lock_write_count": self._lock_write_count,
+                "lock_bypass_count": self._lock_bypass_count,
+                "durable_write_count": self._durable_write_count,
+                "pending_unsaved": len(self._pending_lines),
+                "dropped_count": self._dropped_count,
+                # 读侧腐坏（进程内累计；坏行不再静默）
+                "skipped_line_count": reads["skipped_line_count"],
+                "skipped_oversized_line_count": reads["skipped_oversized_line_count"],
+                "unreadable_file_count": reads["unreadable_file_count"],
             }
 
     # ── 内部 ──
 
     def _write_line(self, line: str) -> None:
-        """追加一行（逐条直写：不长期持有文件句柄，避免 Windows 目录占用）
+        """跨进程安全追加一行（**持锁 → 单次 `os.write`**；取锁失败走排队降级）
 
-        建目录用 `pathlib.Path.mkdir`（与 `log_archiver` 同风格）而非 `os.makedirs`：
-        后者是**进程级全局函数**，会被既有单测 `patch('…os.makedirs')` 命中并污染其
-        调用计数断言（实现期实测 `test_save_tasks_creates_directory` 由此失败）。
+        【为什么必须加锁（TASK-S8-02）】原实现是 `open(path,"a")` + `write`：
+        POSIX 上 `O_APPEND` 的短行写入恰好原子，但 **Windows 无此保证**，而且
+        完全没有跨进程互斥——两个进程并发追加会**交错/撕行**；读侧又会静默跳过
+        解析不了的行，于是腐坏是**看不见的**。
+
+        【降级设计：有限等待 + 内存排队 + 排空（选项 b，配 (c) 作终端态）】
+        取锁用**有限等待**（`CP_EVENTS_LOCK_TIMEOUT_SEC`，默认 2.0s），等不到时
+        比较三种可选降级：
+
+        - **(a) 直接无锁追加**：写入"当前"文件——但归档方正在做
+          read-modify-write（`os.replace`）时，这一行会落在**即将被替换掉的旧
+          inode** 上，`os.replace` 后被**静默吞掉**。即"不丢"只是错觉。
+        - **(b) 内存排队 + 下次成功取锁时排空（本实现）**：把整行放进
+          `_pending_lines`，下一次取锁成功时**按原序**补写。既不撕行，也不会
+          撞上归档的替换窗口；`flush()` / `close()` 也各给一次排空机会。
+        - **(c) 显式失败（丢弃并计数）**：只在 (b) 的缓冲**打满**时作为终端态
+          使用——抛 `EventError`（由 `append()` 计入 `failure_count` 并告警，
+          `emit()` 返回 None），**不是静默**。
+
+        【为什么不用无条件阻塞长等待】本方法在热路径上（`emit()` 是主路径的
+        旁路），无限等待会把"另一个进程在归档"变成"本进程卡住"。
+
+        【降级必须可观测】`stats()` 里的 `lock_bypass_count` / `pending_unsaved`
+        / `dropped_count` 三者 + 限流告警 + 锁原语自身的冲突/超时留痕
+        （审计链 + 事件流），保证"降级"永远不是静默点。
+
+        【为什么缓存"父目录已就绪"（延迟实测结论）】原实现每次追加都调
+        `Path.mkdir(parents=True, exist_ok=True)`；本机实测该调用 p50 ≈ 200us
+        （os.mkdir 必失败 + is_dir 两次系统调用，Windows 实时防护下更慢），
+        而整条追加路径的裸 `os.open/write/close` 才 ~150us —— 即"每次建目录"
+        比"写文件"还贵。改为**首次付一次**、之后跳过；目录被外部清理时由
+        `_append_line_bytes` 的 FileNotFoundError 分支重建重试（自愈）。
         """
-        parent = os.path.dirname(self._path)
-        if parent:
-            Path(parent).mkdir(parents=True, exist_ok=True)
-        with open(self._path, "a", encoding="utf-8") as fh:
-            fh.write(line + "\n")
+        with self._lock:
+            data = (line + "\n").encode("utf-8")
+            ensure_dir = not self._dir_ready
+            guard = self._write_guard
+            if guard is None:
+                # 锁被显式关闭（`CP_EVENTS_LOCK_ENABLED=0`，测试/应急）：
+                # 仍用**单次 os.write**，POSIX 上短行仍不撕
+                _append_line_bytes(self._path, data, ensure_dir=ensure_dir)
+                self._dir_ready = True
+                self._durable_write_count += 1
+                return
+            try:
+                guard.acquire(self._lock_timeout)
+            except LockError as exc:
+                self._note_lock_degraded(exc)
+                self._buffer_pending(data)
+                return
+            try:
+                drained = self._drain_pending_locked()
+                _append_line_bytes(self._path, data, ensure_dir=ensure_dir)
+            except OSError:
+                # 补写失败：把积压与本次都留在缓冲（**一行都不丢**），异常照常上抛
+                # 由 `append()` 计入 failure_count 并告警（best-effort 不阻断主路径）
+                self._pending_lines.append(data)
+                raise
+            finally:
+                guard.release()
+            self._dir_ready = True
+            self._durable_write_count += 1 + drained
+            self._lock_write_count += 1
+
+    def _note_lock_degraded(self, exc: BaseException) -> None:
+        """取锁失败 → 计数 + 限流告警（锁原语已另行留痕到审计链/事件流）"""
+        self._lock_bypass_count += 1
+        self._last_error = f"lock:{type(exc).__name__}: {exc}"
+        total = self._lock_bypass_count
+        if total == 1 or total % 100 == 0:
+            logger.warning(
+                "事件写入未取得跨进程锁（第 %d 次，已转入排队降级，不丢数据）%s: %s",
+                total, self._path, exc)
+
+    def _buffer_pending(self, data: bytes) -> None:
+        """降级缓冲入队；缓冲**打满**时显式失败（绝不静默丢）"""
+        if len(self._pending_lines) >= self._pending_max:
+            self._dropped_count += 1
+            raise EventError(
+                f"事件降级缓冲已满（{self._pending_max} 行未落盘，锁持续不可用）"
+                f"，本条显式失败：{self._path}")
+        self._pending_lines.append(data)
+
+    def _drain_pending_locked(self) -> int:
+        """排空降级缓冲（**须已持跨进程锁**；返回本次补写行数）
+
+        顺序保证：补齐顺序 == 原写入顺序（FIFO）。逐行 `os.write` 而不是把多行
+        拼成一个块：拼接会放大单次写的大小，且中途失败时"已写/未写"的边界
+        更难界定（这里用"写一行、弹一行"）。
+        """
+        drained = 0
+        ensure_dir = not self._dir_ready
+        try:
+            for head in self._pending_lines:
+                _append_line_bytes(self._path, head, ensure_dir=ensure_dir)
+                ensure_dir = False
+                drained += 1
+        finally:
+            # 失败时只把**已成功落盘**的部分移出缓冲（剩下的留待下次，一行不丢）
+            if drained:
+                del self._pending_lines[:drained]
+                self._dir_ready = True
+        return drained
+
+    def _drain_locked(self) -> bool:
+        """在已有的进程内锁下尝试取跨进程锁并排空（`flush()`/`close()` 用）"""
+        guard = self._write_guard
+        if guard is None:
+            drained = self._drain_pending_locked()
+            self._durable_write_count += drained
+            return not self._pending_lines
+        try:
+            guard.acquire(self._lock_timeout)
+        except LockError as exc:
+            self._note_lock_degraded(exc)
+            return False
+        try:
+            drained = self._drain_pending_locked()
+        finally:
+            guard.release()
+        self._durable_write_count += drained
+        return not self._pending_lines
 
     def _remember(self, envelope: EventEnvelope) -> None:
         self._ids.add(envelope.event_id)
@@ -747,18 +1078,29 @@ class EventStore:
                 self._kinds.pop(eid, None)
 
     def _load_known_ids(self) -> None:
-        """从活动文件加载已知 event_id（幂等索引冷启动）"""
+        """从活动文件加载已知 event_id（幂等索引冷启动）
+
+        坏行**不再静默**：计入 `read_stats()`（并入 `stats()['skipped_line_count']`）
+        并限流告警——冷启动阶段恰是"上次崩溃/撕行"最可能被发现的地方。
+        """
         try:
             if not os.path.exists(self._path):
                 return
             with open(self._path, "r", encoding="utf-8", errors="ignore") as fh:
-                for line in fh:
+                for line_no, line in enumerate(fh, start=1):
                     line = line.strip()
-                    if not line or len(line) > MAX_LINE_BYTES:
+                    if not line:
+                        continue
+                    if len(line) > MAX_LINE_BYTES:
+                        _note_skipped_line(self._path, line_no, oversized=True)
                         continue
                     try:
                         data = json.loads(line)
                     except (json.JSONDecodeError, ValueError):
+                        _note_skipped_line(self._path, line_no, reason="非法 JSON")
+                        continue
+                    if not isinstance(data, dict):
+                        _note_skipped_line(self._path, line_no, reason="非 JSON 对象")
                         continue
                     eid = str(data.get("event_id") or "")
                     if eid:
@@ -925,15 +1267,20 @@ def iter_events(*, since: Optional[str] = None, until: Optional[str] = None,
             continue
         try:
             with open(path, "r", encoding="utf-8", errors="ignore") as fh:
-                for line in fh:
+                for line_no, line in enumerate(fh, start=1):
                     line = line.strip()
-                    if not line or len(line) > MAX_LINE_BYTES:
+                    if not line:
+                        continue
+                    if len(line) > MAX_LINE_BYTES:
+                        _note_skipped_line(path, line_no, oversized=True)
                         continue
                     try:
                         data = json.loads(line)
                     except (json.JSONDecodeError, ValueError):
+                        _note_skipped_line(path, line_no, reason="非法 JSON")
                         continue
                     if not isinstance(data, dict):
+                        _note_skipped_line(path, line_no, reason="非 JSON 对象")
                         continue
                     eid = str(data.get("event_id") or "")
                     if dedupe and eid and eid in seen:
@@ -951,11 +1298,13 @@ def iter_events(*, since: Optional[str] = None, until: Optional[str] = None,
                     try:
                         env = EventEnvelope.from_dict(data)
                     except EventEnvelopeError:
+                        _note_skipped_line(path, line_no, reason="信封字段非法")
                         continue
                     if dedupe and env.event_id:
                         seen.add(env.event_id)
                     out.append(env)
         except OSError as e:
+            _bump_unreadable_file()
             logger.warning("事件文件读取失败 %s: %s", path, e)
     out.sort(key=lambda e: (e.ts, e.event_id))
     if limit:
@@ -987,6 +1336,10 @@ __all__ = [
     "MAX_IDEMPOTENCY_INDEX", "AUDIT_MIRROR_TYPES",
     "ACTOR_HUMAN", "ACTOR_AUTO", "ACTOR_SUB_AGENT", "ACTOR_SYSTEM", "ACTOR_UI",
     "ENV_ENABLED", "ENV_DIR", "ENV_AUDIT_MIRROR", "ENV_ARCHIVE",
+    "ENV_LOCK_ENABLED", "ENV_LOCK_TIMEOUT_SEC", "ENV_PENDING_MAX",
+    "ENV_CORRUPT_LOG_EVERY",
+    "DEFAULT_LOCK_TIMEOUT_SEC", "DEFAULT_PENDING_MAX", "DEFAULT_CORRUPT_LOG_EVERY",
+    "read_stats", "reset_read_stats",
     "EV_TOOL_CALLED", "EV_DIGEST_STAGE", "EV_SKILL_GENERATED", "EV_APPROVAL_REQUIRED",
     "EV_HEALING_TRIGGERED", "EV_METRICS_DELTA", "EV_POLICY_DENIED", "EV_BACKUP_HEALTH",
     "EV_MODEL_DEGRADED", "EV_TASK_CLOSED", "EV_TASK_ABANDONED", "EV_APPROVAL",

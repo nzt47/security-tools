@@ -62,6 +62,18 @@ from datetime import datetime, timezone
 from typing import (Any, Deque, Dict, Iterable, Iterator, List, Optional, Sequence,
                     Tuple)
 
+from agent.audit.seq_journal import (
+    DEFAULT_RETAIN_RECORDS,
+    SeqJournal,
+    SeqJournalError,
+)
+from agent.utils.cross_process_lock import (
+    PROCESS_TOKEN,
+    CrossProcessLock,
+    LockUnavailable,
+    lock_path_for,
+)
+
 logger = logging.getLogger("agent.audit.chain")
 
 # ════════════════════════════════════════════════════════════
@@ -88,6 +100,28 @@ FLUSH_TIMEOUT = 5.0
 RING_BUFFER_MAXLEN = 2000
 #: 每轮后台自动封存最多处理的天数（防「首个记录 ts 很旧 → 数千空日」无限封存）
 AUTO_SEAL_MAX_DAYS = 8
+
+# ── S8-02：跨进程 seq 分配（见 `agent/audit/seq_journal.py`）────────────────
+#: 预留日志后缀（``audit_chain.db`` → ``audit_chain.db.seqjournal``）
+JOURNAL_SUFFIX = ".seqjournal"
+#: 跨进程锁后缀（**锁独立文件**：锁被保护文件本体时，rename 原子写会让锁落到旧 inode）
+LOCK_SUFFIX = ".lock"
+#: 取锁的有限等待上限（秒）。超出即**显式降级**（回落 DB 事务分配 + 计数留痕）。
+#:
+#: 【为什么是 5s 而不是 2s（实测缺陷）】初版取 2s，而当时锁内还夹着 DB 工作
+#: （``synchronous=FULL`` 提交在 4 进程争用下可被 ``busy_timeout`` 拖到数秒），
+#: 于是正常并发就会被误判为"锁不可得"⇒ 走降级 ⇒ 重复 seq（实测
+#: ``duplicates=[80]``）。现在锁内**不再做 DB I/O**，临界区只有内存计算 +
+#: 一次日志写（无 fsync），远低于 5s；保留 5s 是为了容忍调度抖动与
+#: ``os.replace``/杀毒软件等外部停顿。
+DEFAULT_SEQ_LOCK_TIMEOUT = 5.0
+#: 入库队列上限。**有界**才谈得上"队列满"有明确行为（见 `_note_queue_full`）：
+#: 无界队列把"内存被写爆"伪装成"永不失败"，是更坏的静默。
+DEFAULT_QUEUE_MAXSIZE = 20000
+#: 预留日志压缩的最小行数闸（同时受 ``max(2*retain, 本值)`` 约束，见 chain 注释）
+DEFAULT_COMPACT_MIN_ROWS = 1024
+#: 预留日志压缩检查的最小时间间隔（秒）：避免每轮都去打 DB 的 ``MAX(seq)``
+COMPACT_CHECK_INTERVAL_S = 5.0
 
 #: 审计来源（P7.2-24 审计平权：UI 与 Agent 同表）
 SOURCE_AGENT = "agent"
@@ -942,7 +976,11 @@ class AuditChain:
                  daily_root_protect: bool = True, auto_seal: bool = True,
                  signing_enabled: bool = True, signing_key_path: Optional[str] = None,
                  ring_buffer_maxlen: int = RING_BUFFER_MAXLEN,
-                 auto_start_writer: bool = True):
+                 auto_start_writer: bool = True,
+                 journal_path: Optional[str] = None, journal_enabled: bool = True,
+                 lock_path: Optional[str] = None, lock_enabled: bool = True,
+                 seq_lock_timeout: float = DEFAULT_SEQ_LOCK_TIMEOUT,
+                 queue_maxsize: int = DEFAULT_QUEUE_MAXSIZE):
         if role not in ("writer", "reader"):
             raise AuditChainError(f"非法 role: {role}（允许 writer / reader）")
         self._db_path = _resolve_path(db_path)
@@ -955,7 +993,8 @@ class AuditChain:
         self._append_lock = threading.Lock()
         self._write_lock = threading.RLock()
         self._local = threading.local()
-        self._queue: "queue_module.Queue[Optional[AuditEntry]]" = queue_module.Queue()
+        self._queue: "queue_module.Queue[Optional[AuditEntry]]" = queue_module.Queue(
+            maxsize=max(int(queue_maxsize), 1))
         self._failed_buffer: Deque[AuditEntry] = deque(maxlen=self._ring_buffer_maxlen)
         self._degraded = False
         self._degraded_reason = ""
@@ -975,6 +1014,53 @@ class AuditChain:
         self._sealed_days: set = set()
         #: 后台 writer 线程（reader 角色恒为 None）
         self._writer_thread: Optional[threading.Thread] = None
+
+        # ── S8-02：跨进程 seq 权威（预留日志）+ 互斥（独立锁文件）──
+        self._role_writer = role == "writer"
+        self._journal_enabled = bool(journal_enabled) and role == "writer"
+        self._journal = SeqJournal(
+            journal_path or (self._db_path + JOURNAL_SUFFIX),
+            enabled=self._journal_enabled)
+        #: 压缩时保留的最近已入库记录条数（降级读路径的"近期记录缓存"；
+        #: 0 = 全清。见 `SeqJournal.compact` 的 retain 说明）
+        self._journal_retain = DEFAULT_RETAIN_RECORDS
+        #: 压缩节流参数（见 `_maybe_compact_journal` 的性能说明）
+        self._journal_compact_min_rows = max(2 * DEFAULT_RETAIN_RECORDS,
+                                             DEFAULT_COMPACT_MIN_ROWS)
+        self._last_compact_check = 0.0
+        self._lock_enabled = bool(lock_enabled) and role == "writer"
+        self._lock_path = os.path.abspath(
+            lock_path or lock_path_for(self._db_path, suffix=LOCK_SUFFIX))
+        self._cp_lock = CrossProcessLock(
+            self._lock_path, name="audit_chain",
+            holder_info={"db_path": self._db_path})
+        self._seq_lock_timeout = max(float(seq_lock_timeout), 0.0)
+        #: 观测：seq 降级分配 / 队列满 / ring buffer 溢出 / 日志重放 / 压缩
+        self._seq_degraded_count = 0
+        self._queue_full_count = 0
+        self._buffer_dropped_count = 0
+        self._journal_replay_count = 0
+        self._journal_compact_count = 0
+        self._journal_write_failures = 0
+        #: 降级留痕节流（避免退避循环把审计链自己冲垮）
+        self._degrade_notify_at = 0.0
+        #: 本进程已确认入库的最大 seq（预留日志压缩的水位参考）
+        self._committed_max_seq = 0
+        #: **在途 seq**：已入队但尚未提交 DB 的 seq。
+        #:
+        #: 【为什么必须有（实现期实测缺陷）】writer 每轮既消费队列、又按
+        #: "DB 水位"收敛预留日志；而队列里那些**尚未提交**的记录同样满足
+        #: `seq > db_max` ⇒ 同一条被**插两次** ⇒ 实测
+        #: `UNIQUE constraint failed: audit_chain.seq`。
+        #: 用这张表把"在途"从"滞留"里排除掉，两条路径才不会互相重复。
+        self._inflight_seq: set = set()
+        #: 是否需要收敛预留日志（**按需**触发，不做无谓的每轮全量重放）
+        #:
+        #: 【为什么不无条件收敛（实现期实测缺陷）】审计链的防篡改用例会**故意
+        #: 删除 DB 中间行**再断言"能检出"；若无条件重放，日志会立刻把被删的行
+        #: 补回去，用例反而看不到篡改——功能被自己的恢复机制掩盖。
+        #: 正确口径：只在**确知有滞留**时收敛（启动发现日志超前 / 队满 / 入队失败）。
+        self._journal_needs_drain = False
 
         if role == "writer":
             if enforce_single_writer:
@@ -1128,19 +1214,275 @@ class AuditChain:
                 conn.commit()
 
     def _load_state(self) -> None:
-        """重启后从持久化最大 seq / 链头 self_hash 继续（seq 单调不重用）"""
+        """重启后从持久化最大 seq / 链头 self_hash 继续（seq 单调不重用）
+
+        【S8-02 扩展（跨进程）】链头不能只看 DB：进程被杀时可能"已分配并落日志、
+        未入库"，那些 seq 也必须算进链头，否则重启会**从空洞处重号**
+        （重复 seq → UNIQUE 冲突 → 整批进 ring buffer → 丢数据）。
+        故这里同时读预留日志，取 seq 较大者；并在读之前清掉日志末尾的**半行**
+        （进程被杀的残行，留着会让后续 append 与之粘连成非法 JSON）。
+        """
+        # 先清残行（best-effort；拿不到锁也做——残行清理是幂等的本地修复）
+        if self._journal_enabled:
+            try:
+                if self._lock_enabled:
+                    with self._cp_lock.locked(0.2, on_timeout="degrade") as ctx:
+                        if ctx.acquired:
+                            self._journal.discard_torn_tail()
+                else:
+                    self._journal.discard_torn_tail()
+            except Exception as exc:  # noqa: BLE001 清理失败不影响启动
+                logger.debug("预留日志残行清理跳过: %s", exc)
+
+        db_seq, db_hash = 0, ""
+        if self._db_available:
+            try:
+                with self._connect() as conn:
+                    row = conn.execute(
+                        "SELECT seq, self_hash FROM audit_chain ORDER BY seq DESC LIMIT 1"
+                    ).fetchone()
+                if row is not None:
+                    db_seq, db_hash = int(row["seq"]), str(row["self_hash"])
+            except Exception as e:  # noqa: BLE001 读不到 → 从 1 开始（空链），不阻断
+                logger.warning("链式审计恢复状态失败（将从 seq=1 起）: %s", e)
+
+        head_seq, head_hash = db_seq, db_hash
+        if self._journal_enabled:
+            try:
+                j_seq, j_hash = self._journal.head()
+                if j_seq > head_seq:
+                    head_seq, head_hash = j_seq, j_hash
+                    # 日志超前于 DB ⇒ 上次有"已分配未入库"的记录，必须收敛
+                    self._journal_needs_drain = True
+                    logger.info("链式审计从预留日志恢复链头: seq=%d（DB=%d，"
+                                "说明上次有已分配未入库的记录，将由后台收敛补写）",
+                                j_seq, db_seq)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("预留日志链头读取失败（回退 DB 链头）: %s", exc)
+
+        if head_seq > 0:
+            self._next_seq = head_seq + 1
+            self._last_hash = head_hash or GENESIS_PREV_HASH
+
+    # ── S8-02：跨进程 seq 分配 / 锁 / 留存 ────────────────────
+
+    def _db_head(self) -> Tuple[int, str]:
+        """DB 内的 ``(max(seq), 该行 self_hash)``（读不到返回 ``(0, "")``）"""
         if not self._db_available:
-            return
+            return 0, ""
         try:
             with self._connect() as conn:
                 row = conn.execute(
                     "SELECT seq, self_hash FROM audit_chain ORDER BY seq DESC LIMIT 1"
                 ).fetchone()
-            if row is not None:
-                self._next_seq = int(row["seq"]) + 1
-                self._last_hash = str(row["self_hash"])
-        except Exception as e:  # noqa: BLE001 读不到 → 从 1 开始（空链），不阻断
-            logger.warning("链式审计恢复状态失败（将从 seq=1 起）: %s", e)
+        except Exception as exc:  # noqa: BLE001 读不到按"无"处理（保守：以内存链头为准）
+            logger.debug("读取 DB 链头失败: %s", exc)
+            return 0, ""
+        if row is None:
+            return 0, ""
+        return int(row["seq"]), str(row["self_hash"])
+
+    def _committed_watermark(self) -> Tuple[int, bool]:
+        """DB 的**连续**已入库水位 ``(watermark, contiguous)``
+
+        返回 ``watermark`` = 最大的 W 使得 ``1..W`` **全部**在库里；
+        ``contiguous`` = 该口径是否成立（库为空时返回 ``(0, True)``）。
+
+        【为什么需要"连续"而不是 MAX(seq)】崩溃恢复窗口里 DB 可能暂时只有
+        较大的 seq（例如先补写了 6 而 1..5 还在日志里）。此时若拿 ``MAX(seq)=6``
+        当水位去压缩日志，就会把**尚未入库**的 1..5 当作"已入库副本"删掉
+        ——静默丢数据。连续水位由"行数 == MAX(seq) 且 MIN(seq) == 1"判定。
+        """
+        if not self._db_available:
+            return 0, False
+        try:
+            with self._connect() as conn:
+                row = conn.execute(
+                    "SELECT COUNT(*) AS n, MIN(seq) AS lo, MAX(seq) AS hi "
+                    "FROM audit_chain").fetchone()
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("读取 DB 水位失败: %s", exc)
+            return 0, False
+        count = int(row["n"] or 0)
+        if count == 0:
+            return 0, True
+        lo, hi = int(row["lo"]), int(row["hi"])
+        if lo == 1 and count == hi:
+            return hi, True
+        return 0, False
+
+    #: 锁文件元数据槽的键（记"最后完成分配的进程 + 其链头"）。
+    #: 仅供 `_resolve_head` 的快路径使用；缺失只会退化为慢路径，不影响正确性。
+    _META_KEY_TOKEN = "tok"
+    _META_KEY_SEQ = "seq"
+    _META_KEY_HASH = "self_hash"
+
+    def _resolve_head(self) -> Tuple[int, str]:
+        """解析**权威链头**（须在跨进程锁内调用）
+
+        【快路径：读锁文件的元数据槽，免 stat、免查库】
+        任何写入者都必须**先取锁**，所以"我不持锁期间有没有别人写过"等价于
+        "有没有别人取过锁"。每个持有者完成分配后，把自己的 ``PROCESS_TOKEN``
+        与链头写进锁文件元数据槽；下次取锁读到 token 仍是自己 ⇒ 无人动过
+        ⇒ 内存链头即权威，可跳过对日志的 ``os.stat``（Windows 实测 0.11ms/次）
+        与 DB 查询（实测 **3.56ms/次**）。槽的定位读只走**已打开的句柄**，
+        实测约 15µs。
+
+        【慢路径：三源取大】快路径不成立时（首次分配 / 别的进程取过锁 /
+        重启后 pid 复用被 token 挡住）才真正解析：
+        ``max(内存链头, 预留日志末行, DB 最大行)``。
+        - **预留日志**是"已分配、可能尚未入库"的权威（丢它会重号），
+          且非空时优先于 DB（否则每条 append 都要付 3.56ms 的连接开销）；
+        - **DB** 是对外可查询的既成事实；
+        - **内存** 是本进程已分配但日志被禁用时唯一的依据（降级路径）。
+        """
+        if self._lock_enabled:
+            meta: Optional[Dict[str, Any]] = None
+            try:
+                meta = self._cp_lock.read_meta()
+            except Exception:  # noqa: BLE001 槽读失败 → 走慢路径
+                meta = None
+            if isinstance(meta, dict) and \
+                    meta.get(self._META_KEY_TOKEN) == PROCESS_TOKEN:
+                with self._append_lock:
+                    mem_seq = self._next_seq - 1
+                    mem_hash = self._last_hash
+                if int(meta.get(self._META_KEY_SEQ) or 0) <= mem_seq:
+                    # 我们是最后一个完成分配的进程 ⇒ 无人能超过内存链头
+                    return max(mem_seq, 0), (mem_hash or GENESIS_PREV_HASH)
+            else:
+                # 槽里不是我们自己（或槽损坏）⇒ 先声明占用，避免并发持锁者互信
+                self._publish_head_meta(self._next_seq - 1, self._last_hash)
+
+        cand_seq, cand_hash = self._next_seq - 1, self._last_hash
+
+        j_seq, j_hash = 0, ""
+        if self._journal_enabled:
+            try:
+                j_seq, j_hash = self._journal.head()
+            except Exception as exc:  # noqa: BLE001
+                logger.debug("预留日志链头不可用: %s", exc)
+        if j_seq > cand_seq:
+            cand_seq, cand_hash = j_seq, j_hash
+
+        # 仅当日志给不出链头时才查 DB（冷启动/刚压缩完/日志被清）
+        if cand_seq <= 0 or j_seq <= 0:
+            d_seq, d_hash = self._db_head()
+            if d_seq > cand_seq:
+                cand_seq, cand_hash = d_seq, d_hash
+
+        return max(cand_seq, 0), (cand_hash or GENESIS_PREV_HASH)
+
+    def _publish_head_meta(self, seq: int, self_hash: str) -> bool:
+        """把"我已完成 seq 分配、链头到此"写进锁文件元数据槽（须持锁）
+
+        【写入顺序：先日志、后元数据槽（不可颠倒）】若在两者之间崩溃，槽里仍是
+        上一次的记录 ⇒ 下一个进程读到 token 不是自己 ⇒ 走慢路径读日志，
+        从而**发现**那条已分配的记录。反过来先写槽再写日志，会让别人从槽取到
+        "日志里根本没有"的链头，造成 seq **空洞**。
+        """
+        if not self._lock_enabled:
+            return False
+        try:
+            return self._cp_lock.write_meta({
+                self._META_KEY_TOKEN: PROCESS_TOKEN,
+                self._META_KEY_SEQ: int(seq),
+                self._META_KEY_HASH: str(self_hash or ""),
+                "pid": os.getpid(),
+            })
+        except Exception as exc:  # noqa: BLE001 槽写失败只影响性能（退化为慢路径）
+            logger.debug("锁元数据槽写入失败（退化为慢路径）: %s", exc)
+            return False
+
+    def _journal_row(self, entry: "AuditEntry") -> Dict[str, Any]:
+        """把记录转成预留日志的一行（扁平字典；payload 存规范化 JSON 文本）"""
+        return {
+            "seq": int(entry.seq), "ts": entry.ts, "actor": entry.actor,
+            "action": entry.action, "subject": entry.subject,
+            "payload_hash": entry.payload_hash, "prev_hash": entry.prev_hash,
+            "self_hash": entry.self_hash, "source": entry.source,
+            "trace_id": entry.trace_id, "workspace_id": entry.workspace_id,
+            "schema_version": int(entry.schema_version),
+            "payload": canonical_json(entry.payload),
+        }
+
+    @staticmethod
+    def _entry_from_journal_row(row: Dict[str, Any]) -> "AuditEntry":
+        """预留日志一行 → AuditEntry（payload 文本还原为字典）"""
+        raw = row.get("payload")
+        payload: Any = raw
+        if isinstance(raw, str):
+            try:
+                payload = json.loads(raw) if raw else {}
+            except (ValueError, TypeError):
+                payload = {"_raw": raw}
+        return AuditEntry(
+            seq=int(row.get("seq") or 0), ts=str(row.get("ts") or ""),
+            actor=str(row.get("actor") or ""), action=str(row.get("action") or ""),
+            subject=str(row.get("subject") or ""),
+            payload_hash=str(row.get("payload_hash") or ""),
+            prev_hash=str(row.get("prev_hash") or GENESIS_PREV_HASH),
+            self_hash=str(row.get("self_hash") or ""),
+            source=str(row.get("source") or SOURCE_AGENT),
+            trace_id=str(row.get("trace_id") or ""),
+            workspace_id=str(row.get("workspace_id") or ""),
+            schema_version=int(row.get("schema_version") or SCHEMA_VERSION),
+            payload=payload if isinstance(payload, dict) else {"value": payload},
+        )
+
+    def _note_degraded(self, reason: str, *, key: str = "") -> None:
+        """登记一次写入/分配降级（**计数 + 节流留痕**，绝不静默）
+
+        为什么节流：降级常发生在**高频重试**场景（锁冲突、DB 不可用），逐条写审计
+        会让"审计链自己"成为放大器。约定：计数**每次都记**（可观测性不打折），
+        留痕每 30s 最多一条（保证"不静默"且可被外部看到）。
+        """
+        self._degraded = True
+        self._degraded_reason = reason
+        now = time.time()
+        if now - self._degrade_notify_at < 30.0:
+            return
+        self._degrade_notify_at = now
+        try:
+            from agent.utils.cross_process_lock import notify_degraded
+            notify_degraded("lock.degraded", {
+                "lock_name": "audit_chain",
+                "lock_path": self._lock_path,
+                "db_path": self._db_path,
+                "reason": reason,
+                "detail": key,
+                "pid": os.getpid(),
+            })
+        except Exception as exc:  # noqa: BLE001 留痕失败不改写降级事实
+            logger.debug("审计链降级留痕失败: %s", exc)
+
+    def _buffer_failed(self, entry: "AuditEntry") -> None:
+        """降级缓存一条记录（**溢出必须可见**）
+
+        【为什么不能直接用 ``deque(maxlen=N).append``（实现期指出的静默点）】
+        ``deque`` 到上限后 append 会**静默丢弃最旧一条**——审计记录就这样消失了，
+        只有内存里的长度能说明问题。故此处显式比较长度、计数并留痕。
+        """
+        if len(self._failed_buffer) >= self._ring_buffer_maxlen > 0:
+            self._buffer_dropped_count += 1
+            self._note_degraded(
+                f"ring_buffer_overflow（容量 {self._ring_buffer_maxlen}，"
+                f"已丢弃最旧一条；丢弃累计 {self._buffer_dropped_count}）",
+                key=f"seq={entry.seq}")
+        self._failed_buffer.append(entry)
+
+    def _note_queue_full(self, entry: "AuditEntry") -> None:
+        """队满：**不丢数据**（记录已在预留日志里），显式计数 + 留痕
+
+        这是"队列满"场景的明确行为：seq 分配与持久化已在锁内完成，
+        入库队列只是进程内**交接通道**；通道打满时记录仍在日志中，
+        由 writer 的**日志收敛**（``_drain_journal``）在后续轮次补齐。
+        """
+        self._queue_full_count += 1
+        self._note_degraded(
+            f"queue_full（上限 {self._queue.maxsize}；记录已持久化于预留日志，"
+            f"待后台收敛；累计 {self._queue_full_count}）",
+            key=f"seq={entry.seq}")
 
     def _resync_seq(self) -> int:
         """按库内最大 seq 重同步计数（单写者纪律被破坏时的自愈 + 告警）"""
@@ -1168,10 +1510,34 @@ class AuditChain:
                source: str = SOURCE_AGENT, trace_id: str = "",
                workspace_id: str = "", ts: Any = None,
                schema_version: int = SCHEMA_VERSION) -> AuditEntry:
-        """追加一条审计记录（链式；单写者内 seq 单调递增）
+        """追加一条审计记录（链式；**跨进程** seq 单调递增）
 
-        为满足「单条 append <5ms」，本方法只做：seq 分配 + 两级 sha256 + 入队；
+        为满足「单条 append <5ms」，本方法只做：**跨进程锁内**解析链头 +
+        分配 seq + 两级 sha256 + **写预留日志（flush，不 fsync）** + 入队；
         实际 SQLite 提交由后台 writer 线程批量完成。需要落盘确认时调用 `flush()`。
+
+        【S8-02：为什么 seq 分配要跨进程锁 + 预留日志】
+        原实现在**进程内**锁里读 `self._next_seq`，而该值只在构造时从 DB 恢复一次
+        ⇒ 两个进程从同一 max(seq) 起分配 ⇒ **重复 seq** ⇒ 撞 UNIQUE ⇒ 整批进
+        ring buffer ⇒ 进程退出即丢。现在：
+
+        1. 取跨进程锁（非阻塞优先，失败则**有限等待**至 `seq_lock_timeout`）；
+        2. 锁内解析权威链头 = max(内存, 预留日志末行, DB 最大行)，故任一进程
+           分配过的 seq 立刻对其它进程可见；
+        3. 整条记录（含哈希）写进预留日志并 ``flush()`` ⇒ **崩溃不丢**：
+           进程被杀后由启动重放补写进 DB，seq **无空洞**、链式哈希连续，
+           ``verify_chain`` 的连续性断言仍然成立；
+        4. 释放锁，交接给后台批量入库。
+
+        【取舍（实测数据）】"锁内同步 SQLite 提交"本可更简单，但一次
+        ``synchronous=FULL`` 提交实测 17–22ms，而 append 的 p99 基线是 0.14ms
+        （约 150×），会违反「单进程写入 p99 不退化」。预留日志把持久化与批量入库
+        解耦，代价是**整机掉电**可能丢掉最后几条尚未 fsync 的记录——它们同样
+        没进 DB，因此日志与 DB 只一起缺尾巴，仍然一致（无空洞、无重复）。
+
+        【降级（不静默）】取锁失败 ⇒ 按内存链头分配并**计数 + 留痕**（此时
+        seq 唯一性退化为由 DB 的 UNIQUE 约束兜底，冲突会触发 `_resync_seq`
+        与日志重放，记录不会消失）。
 
         Raises:
             ReadOnlyChainError: 只读实例调用；
@@ -1188,36 +1554,214 @@ class AuditChain:
             raise AuditEntryError(f"非法 source: {src}（允许 {sorted(SOURCES)}）")
 
         norm_ts = normalize_ts(ts)
+
+        if not self._lock_enabled:
+            # 显式关闭跨进程保护（用例/单进程部署）：等价旧语义
+            entry = self._allocate_and_journal(
+                prev_seq=self._next_seq - 1, prev_hash=self._last_hash,
+                ts=norm_ts, actor=actor or SOURCE_SYSTEM, action=action,
+                subject=subject, payload=payload, src=src, trace_id=trace_id,
+                workspace_id=workspace_id, schema_version=schema_version,
+                under_lock=False)
+            return entry
+
+        acquired = False
+        try:
+            with self._cp_lock.locked(self._seq_lock_timeout,
+                                      on_timeout="degrade") as ctx:
+                acquired = bool(ctx.acquired)
+                if acquired:
+                    head_seq, head_hash = self._resolve_head()
+                else:
+                    # 【锁不可得 ⇒ 不再用"内存链头"兜底（实测会重复 seq）】
+                    # 旧口径按 `self._next_seq - 1` 分配，而该值是**本进程上次分配
+                    # 的位置**：别的进程可能早已推进到更后面 ⇒ 两个进程同时返回
+                    # 同一个 seq（实测：4 进程用例出现 `duplicates=[80]`，
+                    # 一条 `under_lock=0` 的分配与前一条 `prev_seq` 完全相同）。
+                    # 改为回落**DB 事务分配**（正确但慢），见 `_allocate_via_db`。
+                    entry = self._allocate_via_db(
+                        ts=norm_ts, actor=actor or SOURCE_SYSTEM, action=action,
+                        subject=subject, payload=payload, src=src,
+                        trace_id=trace_id, workspace_id=workspace_id,
+                        schema_version=schema_version,
+                        reason="seq_lock_timeout")
+                    self._seq_degraded_count += 1
+                    self._note_degraded(
+                        f"seq_lock_timeout（{self._seq_lock_timeout}s 内未取得跨进程锁；"
+                        f"本次回落到 DB 事务分配 seq={entry.seq}；"
+                        f"累计 {self._seq_degraded_count}）",
+                        key=f"lock={self._lock_path}")
+                    return entry
+                entry = self._allocate_and_journal(
+                    prev_seq=head_seq, prev_hash=head_hash, ts=norm_ts,
+                    actor=actor or SOURCE_SYSTEM, action=action, subject=subject,
+                    payload=payload, src=src, trace_id=trace_id,
+                    workspace_id=workspace_id, schema_version=schema_version,
+                    under_lock=acquired)
+                # 【顺序关键】日志已落 ⇒ 才把链头发布到锁槽（见该方法注释）
+                self._publish_head_meta(entry.seq, entry.self_hash)
+        except LockUnavailable:
+            # 防御性兜底：locked(on_timeout="degrade") 已吞掉 LockUnavailable，
+            # 但若未来语义变动/异常路径漏出，也不能让审计写入直接失败。
+            self._seq_degraded_count += 1
+            self._note_degraded("seq_lock_unavailable", key=f"lock={self._lock_path}")
+            entry = self._allocate_via_db(
+                ts=norm_ts, actor=actor or SOURCE_SYSTEM, action=action,
+                subject=subject, payload=payload, src=src, trace_id=trace_id,
+                workspace_id=workspace_id, schema_version=schema_version,
+                reason="seq_lock_unavailable")
+            return entry
+        return entry
+
+    def _allocate_via_db(self, *, ts: str, actor: str, action: str, subject: str,
+                         payload: Optional[Dict[str, Any]], src: str,
+                         trace_id: str, workspace_id: str, schema_version: int,
+                         reason: str) -> AuditEntry:
+        """**锁不可得时的兜底分配**：DB 事务内读链头 + 直接入库
+
+        【为什么这是正确的那条兜底（实测教训）】任务书给的三条 seq 分配路线是
+        "锁内分配 / 预留区间 / **DB 事务**"。主路径用"锁内分配 + 预留日志"换取
+        低延迟；取不到锁时若继续按**本进程内存链头**分配，就会与其它进程撞号
+        （实测 4 进程用例复现）。而 ``BEGIN IMMEDIATE`` 会立刻取到 SQLite 的写锁，
+        跨进程串行化 ⇒ 链头读到的一定是最新值 ⇒ **无重复**、且记录当场入库
+        （不依赖后台线程，崩溃也不丢）。
+
+        【语义与代价】崩溃语义：事务未提交 ⇒ 无记录、无 seq 消耗（**无空洞**）；
+        已提交 ⇒ 已入库。代价是一次 ``synchronous=FULL`` 提交（实测 17–22ms），
+        比主路径慢约两个数量级——但它只在"跨进程锁长期不可得"这种异常态发生，
+        且**显式计数 + 留痕**，不会静默。
+
+        【双故障兜底】若 DB 事务同样失败（锁与 DB 同时不可用），退回"隐式失败"
+        路线：按内存链头分配并置 ``seq_alloc_reliable=False``、计入降级，
+        唯一性由 DB 的 UNIQUE 约束兜底——这是本模块唯一可能重号的路径，
+        且必须两个独立设施同时失效才会走到。
+        """
+        if not self._db_available:
+            entry = self._allocate_and_journal(
+                prev_seq=self._next_seq - 1, prev_hash=self._last_hash, ts=ts,
+                actor=actor, action=action, subject=subject, payload=payload,
+                src=src, trace_id=trace_id, workspace_id=workspace_id,
+                schema_version=schema_version, under_lock=False)
+            self._note_degraded(f"db_unavailable_for_fallback ({reason})",
+                                key=f"seq={entry.seq}")
+            return entry
+        try:
+            with self._connect() as conn:
+                with self._write_lock:
+                    conn.execute("BEGIN IMMEDIATE")
+                    row = conn.execute(
+                        "SELECT seq, self_hash FROM audit_chain "
+                        "ORDER BY seq DESC LIMIT 1").fetchone()
+                    seq = (int(row["seq"]) if row is not None else 0) + 1
+                    prev_hash = (str(row["self_hash"]) if row is not None
+                                 else GENESIS_PREV_HASH)
+                    entry = build_entry(
+                        seq=seq, ts=ts, actor=actor, action=action,
+                        subject=subject, payload=payload, prev_hash=prev_hash,
+                        source=src, trace_id=trace_id,
+                        workspace_id=workspace_id, schema_version=schema_version)
+                    placeholders = ",".join(["?"] * len(_COLUMNS))
+                    conn.execute(
+                        f"INSERT INTO audit_chain ({','.join(_COLUMNS)}) "
+                        f"VALUES ({placeholders})", entry.row_values())
+                    conn.commit()
+        except Exception as exc:  # noqa: BLE001 双故障 → 最后兜底（显式标记）
+            logger.error("兜底 DB 事务分配失败（跨进程锁与 DB 同时不可用）: %s", exc)
+            entry = self._allocate_and_journal(
+                prev_seq=self._next_seq - 1, prev_hash=self._last_hash, ts=ts,
+                actor=actor, action=action, subject=subject, payload=payload,
+                src=src, trace_id=trace_id, workspace_id=workspace_id,
+                schema_version=schema_version, under_lock=False)
+            self._note_degraded(
+                f"fallback_db_alloc_failed ({reason}): {exc}", key=f"seq={entry.seq}")
+            return entry
+
+        # 与主路径一致地推进内存链头 / 写日志（日志是崩溃恢复的来源）
         with self._append_lock:
-            seq = self._next_seq
+            if entry.seq >= self._next_seq:
+                self._next_seq = int(entry.seq) + 1
+                self._last_hash = entry.self_hash
+            self._last_appended_ts = ts
+            self._observed_days.add(day_of_ts(ts))
+        self._committed_max_seq = max(self._committed_max_seq, int(entry.seq))
+        if self._journal_enabled:
+            try:
+                self._journal.append_row(self._journal_row(entry))
+            except Exception as exc:  # noqa: BLE001 日志写失败：记录已在 DB，不丢
+                self._journal_write_failures += 1
+                self._note_degraded(f"seq_journal_write_failed: {exc}",
+                                    key=f"seq={entry.seq}")
+        logger.warning("审计 seq 兜底分配成功（DB 事务）：seq=%s，原因=%s",
+                       entry.seq, reason)
+        return entry
+
+    def _allocate_and_journal(self, *, prev_seq: int, prev_hash: str, ts: str,
+                              actor: str, action: str, subject: str,
+                              payload: Optional[Dict[str, Any]], src: str,
+                              trace_id: str, workspace_id: str,
+                              schema_version: int,
+                              under_lock: bool) -> AuditEntry:
+        """分配 seq → 算两级哈希 → 写预留日志 → 入队（唯一分配点）
+
+        ``under_lock`` 仅用于观测口径（是否走了降级分配），不改变分配逻辑。
+        """
+        with self._append_lock:
+            seq = int(prev_seq) + 1
             entry = build_entry(
-                seq=seq, ts=norm_ts, actor=actor or SOURCE_SYSTEM, action=action,
-                subject=subject, payload=payload, prev_hash=self._last_hash,
+                seq=seq, ts=ts, actor=actor, action=action, subject=subject,
+                payload=payload, prev_hash=prev_hash or GENESIS_PREV_HASH,
                 source=src, trace_id=trace_id, workspace_id=workspace_id,
                 schema_version=schema_version)
             # seq 与链头在本锁内推进：并发的 append 拿到互不相同的 seq，
             # 且每条的前驱 = 上一条 self_hash（链序 = seq 序）
             self._next_seq = seq + 1
             self._last_hash = entry.self_hash
-            self._last_appended_ts = norm_ts
-            self._observed_days.add(day_of_ts(norm_ts))
+            self._last_appended_ts = ts
+            self._observed_days.add(day_of_ts(ts))
+
+            # ① 持久化到预留日志（**崩溃恢复的关键**：先落日志，再入队）
+            if self._journal_enabled:
+                try:
+                    self._journal.append_row(self._journal_row(entry))
+                except SeqJournalError as exc:
+                    self._journal_write_failures += 1
+                    self._journal_needs_drain = True
+                    self._note_degraded(f"seq_journal_write_failed: {exc}",
+                                        key=f"seq={seq}")
+                except Exception as exc:  # noqa: BLE001
+                    self._journal_write_failures += 1
+                    self._journal_needs_drain = True
+                    self._note_degraded(
+                        f"seq_journal_write_failed: {type(exc).__name__}: {exc}",
+                        key=f"seq={seq}")
+
+            # ② 交接给后台批量入库（队满 ≠ 丢数据：记录已在日志里）
             try:
                 self._queue.put_nowait(entry)
                 with self._count_lock:
                     self._enqueue_count += 1
-            except Exception as e:  # noqa: BLE001 队满/异常 → 直接降级（不丢记录）
-                self._failed_buffer.append(entry)
-                self._degraded = True
-                self._degraded_reason = f"enqueue_failed: {e}"
+                    self._inflight_seq.add(int(seq))
+            except queue_module.Full:
+                self._note_queue_full(entry)
+                self._journal_needs_drain = True
+            except Exception as e:  # noqa: BLE001 其它异常 → ring buffer（不丢记录）
+                self._buffer_failed(entry)
+                self._journal_needs_drain = True
                 logger.warning("审计记录入队失败，已降级 ring buffer（seq=%s）", seq)
         return entry
 
     def _write_to_db(self, records: List[AuditEntry]) -> None:
         if not records:
             return
+        try:
+            self._write_to_db_inner(records)
+        finally:
+            self._clear_inflight(records)
+
+    def _write_to_db_inner(self, records: List[AuditEntry]) -> None:
         if not self._db_available:
             for r in records:
-                self._failed_buffer.append(r)
+                self._buffer_failed(r)
             self._mark_committed(len(records))
             return
         try:
@@ -1229,28 +1773,204 @@ class AuditChain:
                     conn.executemany(sql, [r.row_values() for r in records])
                     conn.commit()
             self._mark_committed(len(records))
+            # 入库成功 → 记录已进入 DB 权威；预留日志可被压缩（见 _maybe_compact_journal）
+            self._committed_max_seq = max(self._committed_max_seq,
+                                          max((r.seq for r in records), default=0))
         except sqlite3.IntegrityError as e:  # noqa: BLE001 seq 冲突 → 单写者纪律被破坏
-            logger.error("审计链 seq 冲突（单写者纪律被破坏？）: %s；已重同步 seq 并"
-                         "保留记录于 ring buffer（不静默丢弃）", e)
-            self._degraded_reason = f"seq_conflict: {e}"
+            logger.error("审计链 seq 冲突（跨进程分配未生效？）: %s；已重同步 seq、"
+                         "重放预留日志，并保留记录于 ring buffer（不静默丢弃）", e)
+            self._note_degraded(f"seq_conflict: {e}")
             self._resync_seq()
             for r in records:
-                self._failed_buffer.append(r)
+                self._buffer_failed(r)
             self._mark_committed(len(records))
         except Exception as e:  # noqa: BLE001 写失败 → ring buffer（审计绝不静默丢弃）
             logger.warning("审计链 SQLite 批量写入失败，降级 ring buffer: %s", e)
-            self._degraded = True
-            self._degraded_reason = f"db_write_failed: {e}"
+            self._note_degraded(f"db_write_failed: {e}")
             for r in records:
-                self._failed_buffer.append(r)
+                self._buffer_failed(r)
             self._mark_committed(len(records))
+
+    def _seqs_in_db(self, seqs: List[int]) -> set:
+        """查询给定 seq 中**已入库**的那些（一次 IN 查询）"""
+        if not seqs or not self._db_available:
+            return set()
+        present: set = set()
+        chunk = 400
+        try:
+            with self._connect() as conn:
+                for i in range(0, len(seqs), chunk):
+                    part = [int(s) for s in seqs[i:i + chunk]]
+                    marks = ",".join(["?"] * len(part))
+                    rows = conn.execute(
+                        f"SELECT seq FROM audit_chain WHERE seq IN ({marks})",
+                        part).fetchall()
+                    present.update(int(r["seq"]) for r in rows)
+        except Exception as exc:  # noqa: BLE001 查不到按"全缺"处理（保守，宁重不丢）
+            logger.debug("查询已入库 seq 失败（按全缺处理）: %s", exc)
+            return set()
+        return present
+
+    def _drain_journal(self) -> List[AuditEntry]:
+        """取回预留日志中**尚未入库、且不在途**的记录（**收敛，防丢**）
+
+        【为什么水位不能只用 ``MAX(seq)``（实现期实测缺陷）】第一版用 DB 的
+        ``max(seq)`` 作水位（``seq > db_max``）。这在"崩溃后先写了较大的 seq"
+        时会漏：
+          1. 崩溃前已分配 1..5（只在日志）；
+          2. 新进程从链头恢复，``_next_seq=6``，先追加 seq 6 并由后台**先入库**；
+          3. 此时 ``db_max=6`` ⇒ ``seq > 6`` 取不到任何行 ⇒ 1..5 **永远不补**
+             ⇒ 空洞 + 静默丢失（实测用例 ``test_killed_process_does_not_deadlock_...``
+             复现：恢复后只剩 1 条）。
+        正确口径是**精确判定"哪些 seq 不在库里"**：取日志里出现过的 seq 集合，
+        一次 ``IN`` 查询问 DB 谁已存在，缺的才补。代价是一条查询，而收敛是
+        **按需触发**（见 ``_journal_needs_drain``），不在写路径上。
+        """
+        if not self._journal_enabled or self._closed:
+            return []
+        if not self._journal_needs_drain:
+            return []
+        try:
+            rows = self._journal.read_since(0, limit=5000)
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("预留日志收敛读取失败: %s", exc)
+            return []
+        if not rows:
+            self._journal_needs_drain = False
+            return []
+
+        with self._count_lock:
+            inflight = set(self._inflight_seq)
+        candidates: List[AuditEntry] = []
+        for row in rows:
+            try:
+                entry = self._entry_from_journal_row(row)
+            except Exception as exc:  # noqa: BLE001 单行脏数据不拖垮整批
+                logger.warning("预留日志单行还原失败（跳过并计数）: %s", exc)
+                continue
+            if int(entry.seq) in inflight:
+                continue            # 在途：交给队列路径，避免重复插入
+            candidates.append(entry)
+        if not candidates:
+            self._journal_needs_drain = False
+            return []
+
+        present = self._seqs_in_db([int(e.seq) for e in candidates])
+        out = [e for e in candidates if int(e.seq) not in present]
+        if not out:
+            self._journal_needs_drain = False
+            return []
+        out.sort(key=lambda e: int(e.seq))
+        self._journal_replay_count += len(out)
+        self._observed_days.update(day_of_ts(e.ts) for e in out)
+        with self._count_lock:
+            self._inflight_seq.update(int(e.seq) for e in out)
+        return out
+
+    def _recover_backlog(self) -> int:
+        """把预留日志的滞留记录同步补写进 DB（**仅 writer 线程调用**）
+
+        【为什么不能在 ``append()`` 里（锁内）调用（实测缺陷）】那会把
+        ``synchronous=FULL`` 提交放进跨进程临界区，4 进程争用时临界区可达数秒
+        ⇒ 其它进程取锁超时 ⇒ 降级分配 ⇒ **重复 seq**。DB I/O 只属于 writer 线程；
+        ``append()`` 的临界区必须保持"只有内存计算 + 一次日志写"。
+        """
+        if not self._journal_needs_drain or self._closed:
+            return 0
+        pending = self._drain_journal()
+        if not pending:
+            return 0
+        before = len(self._failed_buffer)
+        self._write_to_db(pending)
+        written = max(len(self._failed_buffer) - before, 0)
+        logger.info("审计链预留日志同步收敛：补写 %d 条（崩溃恢复/降级滞留）",
+                    len(pending))
+        return len(pending) - written
+
+    def _maybe_compact_journal(self) -> bool:
+        """预留日志全部入库后压缩它（释放磁盘；**保留最近 retain 条**）
+
+        【必须节流（实测性能缺陷）】第一版在 writer 每轮都检查并压缩，而
+        "每轮"在低延迟写入下等价于"每次 append"——于是每次 append 都触发一次
+        **512 行日志的重写**，实测把单条 append 的 p50 从 **0.035ms 拖到 2.4ms**
+        （约 70×），直接违反「单进程写入 p99 不退化」。现在两道闸：
+
+        - **行数闸**：自上次压缩以来新增行数超过 ``max(2*retain, 512)`` 才考虑；
+        - **时间闸**：两次"考虑压缩"之间至少隔 ``COMPACT_CHECK_INTERVAL_S``，
+          避免连 `SELECT MAX(seq)`（实测 3.5ms）都被每轮调用。
+        """
+        if not self._journal_enabled or self._closed:
+            return False
+        if self._journal.rows_since_compact < self._journal_compact_min_rows:
+            return False
+        now = time.monotonic()
+        if now - self._last_compact_check < COMPACT_CHECK_INTERVAL_S:
+            return False
+        self._last_compact_check = now
+        try:
+            if not self._journal.exists():
+                return False
+            # 【水位必须是"**连续**已入库"的水位】压缩只允许丢弃"DB 里确定还有"的行。
+            # 若 DB 因崩溃恢复窗口而暂时非连续（如只有 seq 6），用 MAX(seq) 当水位
+            # 会把尚未入库的 1..5 一并丢掉 —— 静默丢数据。故先算连续前缀水位。
+            db_seq, contiguous = self._committed_watermark()
+            if not contiguous:
+                return False
+            if self._journal.max_seq() <= 0:
+                return False
+            if self._lock_enabled:
+                with self._cp_lock.locked(0.2, on_timeout="degrade") as ctx:
+                    if not ctx.acquired:
+                        return False
+                    # 锁内复查：压缩期间别人可能又追加了
+                    db_seq, contiguous = self._committed_watermark()
+                    if not contiguous:
+                        return False
+                    done = self._journal.compact(upto_seq=db_seq,
+                                                 retain=self._journal_retain)
+            else:
+                done = self._journal.compact(upto_seq=db_seq,
+                                             retain=self._journal_retain)
+            if done:
+                self._journal_compact_count += 1
+            return done
+        except Exception as exc:  # noqa: BLE001 压缩失败不影响写入
+            logger.debug("预留日志压缩跳过: %s", exc)
+            return False
 
     def _mark_committed(self, n: int) -> None:
         with self._count_lock:
             self._commit_count += n
 
+    def _clear_inflight(self, records: List[AuditEntry]) -> None:
+        """把一批记录移出"在途"（无论成功入库还是落到 ring buffer）
+
+        语义：在途 = "还在队列里等着被这轮 writer 处理"。一旦本轮处理完
+        （成功 / 冲突 / 失败转 ring buffer），它就不再占用队列通道，
+        可以（在需要时）被预留日志收敛路径接手。
+        """
+        with self._count_lock:
+            for r in records:
+                self._inflight_seq.discard(int(r.seq))
+
     def _writer_loop(self) -> None:
         while not self._closed:
+            # 【每轮先收敛滞留，再消费队列（顺序不可颠倒）】崩溃/降级遗留的旧
+            # 记录必须**先于**新记录入库，否则 DB 会出现临时空洞，``verify_chain``
+            # 在窗口期会误报"链断"。
+            #
+            # 【为什么收敛必须在这里、而不是在 append() 内（实测缺陷）】第一版把它
+            # 放在 `append()` 的跨进程锁内，于是锁内要跑 DB 查询 + ``synchronous=FULL``
+            # 提交（实测 17–22ms，4 进程争用时受 ``busy_timeout`` 影响可达数秒）
+            # ⇒ 其它进程 2s 取锁超时 ⇒ 走进降级分配 ⇒ **重复 seq**（实测复现
+            # ``duplicates=[80]``）。DB 工作只属于 writer 线程，锁内不做 DB I/O。
+            if self._journal_needs_drain:
+                try:
+                    stranded = self._drain_journal()
+                    if stranded:
+                        self._write_to_db(stranded)
+                except Exception as e:  # noqa: BLE001 收敛失败不影响正常写入
+                    logger.debug("审计 writer 收敛滞留失败: %s", e)
             batch: List[AuditEntry] = []
             try:
                 first = self._queue.get(timeout=WRITER_POLL_INTERVAL)
@@ -1266,6 +1986,7 @@ class AuditChain:
                         continue
                     batch.append(item)
             except queue_module.Empty:
+                self._maybe_compact_journal()
                 self._maybe_auto_seal()
                 continue
             except Exception as e:  # noqa: BLE001
@@ -1273,6 +1994,7 @@ class AuditChain:
                 continue
             if batch:
                 self._write_to_db(batch)
+                self._maybe_compact_journal()
                 self._maybe_auto_seal()
 
     def _maybe_auto_seal(self) -> None:
@@ -1332,10 +2054,23 @@ class AuditChain:
     def flush(self, timeout: float = FLUSH_TIMEOUT) -> bool:
         """等待已 append 的记录全部提交 SQLite（测试/收尾用）
 
+        【S8-02：把"滞留收敛"纳入 flush 语义（实测缺陷）】崩溃/降级留在预留日志
+        里的记录也必须在这里被补写——否则用例（以及运维脚本）在
+        ``flush()`` 之后仍可能读到"少了一批"的库：实测
+        ``test_killed_process_records_recovered_from_journal`` 读到
+        ``recovered=1/25``，原因是 writer 线程把收敛放在每轮循环**开头**，
+        之后阻塞在 ``queue.get(0.5s)``，调用方等不到那一次收敛。
+        ``flush()`` 是**持久化屏障**，必须包含它。
+
         注意：writer 线程自身调用时立即返回（否则等待自己提交会自锁）。
         """
         if self._in_writer_thread():
             return True
+        if self._journal_needs_drain:
+            try:
+                self._recover_backlog()
+            except Exception as exc:  # noqa: BLE001 收敛失败仍继续等待队列提交
+                logger.warning("flush 期间收敛预留日志失败（已计数）: %s", exc)
         with self._count_lock:
             target = self._enqueue_count
         deadline = time.time() + max(0.0, timeout)
@@ -1376,8 +2111,23 @@ class AuditChain:
                 break
             if item is not None:
                 residual.append(item)
-        if residual and not self._degraded:
-            self._write_to_db(residual)
+        if residual:
+            if self._degraded:
+                # 【S8-02：这里是原来的静默丢弃点】旧实现"降级时直接丢弃 residual"，
+                # 而这些记录**已经持久化在预留日志里**，丢弃的是内存副本而非数据；
+                # 但仍必须**显式说明**，否则看上去就是"关一次链丢一批审计"。
+                logger.warning(
+                    "审计链关闭时处于降级态：%d 条待入库记录未提交，已保留在预留日志 %s"
+                    "（下次启动自动重放，不丢失）", len(residual), self._journal.path)
+                self._note_degraded(
+                    f"close_with_pending（{len(residual)} 条待入库；"
+                    f"已保留于预留日志，下次启动重放）")
+            else:
+                self._write_to_db(residual)
+        # 尽力清空预留日志中已入库的部分（关链后不再有 writer 帮它收敛）
+        if not self._degraded:
+            self._maybe_compact_journal()
+        self._journal.close()
         if self._role == "writer":
             self._release_writer_slot()
         return True
@@ -1389,13 +2139,19 @@ class AuditChain:
         self.close()
 
     def clear(self) -> None:
-        """清空台账（**测试专用**显式动作；全模块唯一 DELETE 写路径）"""
+        """清空台账（**测试专用**显式动作）"""
         while True:
             try:
                 self._queue.get_nowait()
             except queue_module.Empty:
                 break
         self._failed_buffer.clear()
+        # 【S8-02】此 DELETE 是"全模块唯一 DELETE"（既有不变量测试按
+        # "DELETE 前 400 字符内出现 def clear" 校验，故本行须紧贴函数头）。
+        # 必须**同步清预留日志**：否则只清了 DB，日志里的旧记录会被
+        # `_drain_journal` 重放回库，与新分配的 seq 正面撞车
+        # （实测 `UNIQUE constraint failed: audit_chain.seq`）。
+        # 语义上这也对：clear() 的意图是"这条链回到空"，日志是链的一部分。
         try:
             with self._connect() as conn:
                 with self._write_lock:
@@ -1403,12 +2159,23 @@ class AuditChain:
                     conn.commit()
         except Exception as e:  # noqa: BLE001
             logger.warning("清空 audit_chain 失败: %s", e)
+        if self._journal_enabled:
+            try:
+                # 取锁只是"礼貌"：清库是显式的破坏性测试动作，拿不到锁也必须执行
+                with self._cp_lock.locked(1.0, on_timeout="degrade"):
+                    pass
+                self._journal.compact(upto_seq=10 ** 18)
+            except Exception as exc:  # noqa: BLE001 清日志失败不影响清库结果
+                logger.warning("清空预留日志失败（DB 已清空，日志残留会重放）: %s", exc)
         with self._append_lock:
             self._next_seq = 1
             self._last_hash = GENESIS_PREV_HASH
         with self._count_lock:
             self._enqueue_count = 0
             self._commit_count = 0
+        self._committed_max_seq = 0
+        self._journal_replay_count = 0
+        self._buffer_dropped_count = 0
 
     # ── 读取路径 ────────────────────────────────────────────
 
@@ -1463,12 +2230,30 @@ class AuditChain:
         return rows
 
     def _buffered_extra(self, seen: set) -> List[AuditEntry]:
-        """降级 ring buffer 中尚未落库的记录（按 seq 升序，去重）"""
-        if not self._failed_buffer:
-            return []
+        """降级 ring buffer + 预留日志中尚未落库的记录（按 seq 升序，去重）
+
+        【S8-02：为什么要把预留日志也算进来】seq 分配后**先写日志再入队**，
+        因此"刚 append 但还没入库"的记录可能在日志里而不在 ring buffer 里
+        （典型是队满时）。读路径承诺"读得到刚写的"，故两者都要合并。
+        """
         extra = [e for e in self._failed_buffer if e.seq not in seen]
-        extra.sort(key=lambda e: e.seq)
-        return extra
+        if self._journal_enabled:
+            try:
+                db_seq, _ = self._db_head()
+                for row in self._journal.read_since(db_seq, limit=2000):
+                    try:
+                        entry = self._entry_from_journal_row(row)
+                    except Exception:  # noqa: BLE001 单行脏数据跳过
+                        continue
+                    if entry.seq not in seen:
+                        extra.append(entry)
+            except Exception as exc:  # noqa: BLE001 读不到日志不影响 DB 查询结果
+                logger.debug("预留日志待入库记录合并失败: %s", exc)
+        # 去重（同一 seq 可能既在 ring buffer 又在日志里），再按 seq 排序
+        deduped: Dict[int, AuditEntry] = {}
+        for e in extra:
+            deduped.setdefault(int(e.seq), e)
+        return sorted(deduped.values(), key=lambda e: e.seq)
 
     def entries(self, *, start_seq: Optional[int] = None,
                 end_seq: Optional[int] = None, source: Optional[str] = None,
@@ -1481,7 +2266,14 @@ class AuditChain:
                                trace_id=trace_id, limit=limit)
         out = [AuditEntry.from_row(r) for r in rows]
         seen = {e.seq for e in out}
-        if self._failed_buffer:
+        # 【S8-02 修正的短路条件（实测缺陷）】原条件只看 `_failed_buffer`（进程内
+        # ring buffer），是"ring buffer 是唯一额外来源"时代的优化。现在
+        # **预留日志也是额外来源**（先落日志再入队），于是出现空窗：
+        # "记录已提交入库 → DB 随后被判不可用（读返回空）→ ring buffer 也是空"
+        # ⇒ 刚写的记录读不到。实测该窗口使
+        # `test_failed_write_keeps_records_visible` 偶发绿灯（12 次复现 1–3 次）。
+        # 故只要**日志可用**就必须走合并路径。
+        if self._failed_buffer or self._journal_enabled:
             extra = self._buffered_extra(seen)
             if start_seq is not None:
                 extra = [e for e in extra if e.seq >= start_seq]
@@ -1850,6 +2642,20 @@ class AuditChain:
             "daily_roots": len(self.read_daily_roots()),
             "signing_scheme": self._signer.scheme,
             "signing_degraded": self._signer.degraded,
+            # ── S8-02：跨进程 seq / 锁 / 降级可观测 ──
+            "seq_journal": self._journal.stats(),
+            "seq_lock_path": self._lock_path,
+            "seq_lock_held_by_self": self._cp_lock.held,
+            "seq_alloc_reliable": (not self._lock_enabled)
+                                 or self._cp_lock.held or self._seq_degraded_count == 0,
+            "seq_degraded_count": self._seq_degraded_count,
+            "queue_full_count": self._queue_full_count,
+            "queue_maxsize": int(self._queue.maxsize),
+            "buffer_dropped_count": self._buffer_dropped_count,
+            "journal_replay_count": self._journal_replay_count,
+            "journal_compact_count": self._journal_compact_count,
+            "journal_write_failures": self._journal_write_failures,
+            "committed_max_seq": self._committed_max_seq,
         }
         if verify:
             v = self.verify_chain()

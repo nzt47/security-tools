@@ -24,11 +24,21 @@ import os
 import shutil
 import sys
 import threading
-import time
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Sequence
+
+# 【为什么模块级导入唯一锁原语（TASK-S8-02 步骤 3，不易）】本模块的 `_FileLock`
+# 改写前自带一份 OS 锁平台分支（Windows 字节区间锁 / POSIX flock）+ 自己拼的
+# 50ms 轮询超时，与 `agent/self_healing/watchdog_singleton.py`、
+# `agent/env_config_manager.py` 是**手抄关系**。现在三处共用
+# `agent.utils.cross_process_lock`：本模块不再出现任何平台分支。
+from agent.utils.cross_process_lock import (
+    CrossProcessLock,
+    LockUnavailable,
+    lock_path_for,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +59,12 @@ ENV_ROOT = "KNOWLEDGE_ROOT"
 _SAMPLE_LIMIT = 1024 * 1024  # 敏感检测采样上限（1MB，防大文件拖慢入库）
 
 # 进程内互斥：Windows 字节锁按进程判定，同进程多线程需先串行化（见 _FileLock）
+# 【TASK-S8-02 步骤 3：这层现在与原语的进程内登记**部分冗余**（原语按锁路径持有
+# 进程内 RLock，同进程第二个 _FileLock 实例会被它拒掉）。仍**保留**的原因：
+# ① 原语的 RLock 是**按路径**的，本锁是**全局**的——不同知识库（不同 log.md）之间的
+#    串行化口径由它维持，去掉会让"多知识库并发写"从串行变并发（可观测行为变化）；
+# ② 它同时覆盖 `_FileLock.__enter__` 里 open 失败等原语之外的临界区。
+# 代价是多一次无竞争的线程锁获取（纳秒级），不值得为此改变既有并发语义。
 _THREAD_LOCK = threading.Lock()
 
 
@@ -187,10 +203,11 @@ def detect_sensitive(text: str) -> tuple[bool, list[str]]:
 # ═══════════════════════════════════════════════════════════════
 
 class _FileLock:
-    """log.md 跨进程文件锁。
+    """log.md 跨进程文件锁（**唯一锁原语** `agent.utils.cross_process_lock` 的调用方）。
 
-    - Windows: msvcrt.locking（字节锁）；POSIX: fcntl.flock（整文件锁）。
-    - 叠加模块级线程锁：Windows 字节锁按进程判定，同进程多线程必须先串行化。
+    - 锁语义：非阻塞 OS 锁 + 有限等待（超时抛本模块的 `LockTimeout`）；
+    锁文件是独立的 ``<log.md>.lock``，**不锁 log.md 本体**。
+    - 叠加模块级线程锁：保持改写前的进程内串行化口径（见下方 `_THREAD_LOCK` 说明）。
     - 锁只保护 log.md 的读改写（最小化持锁时长，锁内无外部调用）。
     """
 
@@ -205,30 +222,37 @@ class _FileLock:
         self._path = path
         self._timeout = timeout
         self._fh = None
+        # 【为什么锁文件与被保护文件**分离**（TASK-S8-02 步骤 3，不易）】
+        # 改写前锁的是 log.md **本体**的字节 0。这对本模块自身可行（读改写都复用
+        # 同一 fd），但只要有人用 rename 原子替换 log.md（外部同步工具/编辑器常见），
+        # 锁就落在被淘汰的 inode 上，后来者可以立刻拿到"新文件"的锁——互斥**静默失效**。
+        # 故改为 <log.md>.lock：路径由原语的 `lock_path_for()` 统一派生，
+        # 全仓只有一种派生规则（审计链、日志归档同规则）。
+        self._lock = CrossProcessLock(
+            lock_path_for(path), name="knowledge.log",
+        )
 
     def __enter__(self) -> "_FileLock":
         _THREAD_LOCK.acquire()
-        fh = open(self._path, "a+b")  # 不存在则创建，保证至少有可锁文件
-        fh.seek(0)
+        fh = None
         try:
-            if os.name == "nt":
-                import msvcrt
-
-                deadline = time.monotonic() + self._timeout
-                while True:
-                    try:
-                        msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK, 1)
-                        break
-                    except OSError:
-                        if time.monotonic() >= deadline:
-                            raise LockTimeout(f"获取文件锁超时: {self._path}")
-                        time.sleep(0.05)
-            else:
-                import fcntl
-
-                fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+            fh = open(self._path, "a+b")  # 不存在则创建，保证至少有可锁文件
+            try:
+                # 有限等待：原语内部用**非阻塞** OS 锁轮询至多 self._timeout 秒，
+                # 超时显式失败（改写前的 50ms 轮询 + 手工 deadline 已收敛到原语）。
+                self._lock.acquire(self._timeout)
+            except LockUnavailable as exc:
+                # 【为什么要翻译异常类型（不易）】本模块对外承诺的是**本地**
+                # `LockTimeout`（RuntimeError 子类）；调用方若按它写 except，
+                # 直接透出原语的 LockTimeout 会让 except 落空。
+                # 消息文本保持与改写前逐字一致（既有断言/日志检索不受影响）。
+                raise LockTimeout(f"获取文件锁超时: {self._path}") from exc
         except Exception:
-            fh.close()
+            # 【为什么用 fh 判空 + 统一释放（不易）】改写前 `open()` 在 try 之外：
+            # open 抛错时 `_THREAD_LOCK` 永不释放，本进程后续所有 log.md 写入都会
+            # 静默卡死（实测路径：目录权限/路径过长）。这里把 open 纳入 try 并统一回滚。
+            if fh is not None:
+                fh.close()
             _THREAD_LOCK.release()
             raise
         self._fh = fh
@@ -238,22 +262,20 @@ class _FileLock:
     def fh(self):
         """被锁定的文件句柄（调用方应仅在此 fd 上做读改写，勿再 open 同路径）。
 
-        Why 单 fd（不易）：Windows CRT 下对已持 msvcrt 字节锁的文件再次 open
-        会抛 PermissionError（共享冲突），故读改写必须复用锁持有者的句柄。
+        Why 单 fd（不易，改写后**保留**）：log.md 的写回是"读 → 判重 → 截断 → 写回"
+        的复合操作，必须落在同一个文件对象上——跨进程锁只保证"持锁者互斥"，
+        不保证"持锁者内部两个句柄之间的写入顺序"，再 open 一个句柄写会与截断竞态。
+        另：锁已移到独立的 log.md.lock，Windows CRT"对已锁文件再次 open 会
+        PermissionError（共享冲突）"这条限制对 log.md 本体不再成立；此处**不因此放宽**
+        约定——放宽只会让调用方多一条"能不能再 open"的隐含知识，且一旦将来把锁挪回
+        被保护文件就会立刻踩回老坑。锁内读改写一律走本句柄。
         """
         return self._fh
 
     def __exit__(self, *exc) -> bool:
         try:
-            self._fh.seek(0)
-            if os.name == "nt":
-                import msvcrt
-
-                msvcrt.locking(self._fh.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                import fcntl
-
-                fcntl.flock(self._fh.fileno(), fcntl.LOCK_UN)
+            # 解锁与句柄关闭都在原语内部完成（幂等、线程亲和）
+            self._lock.release()
         finally:
             self._fh.close()
             _THREAD_LOCK.release()
