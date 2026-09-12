@@ -69,12 +69,12 @@ logger = logging.getLogger("agent.monitoring.cost_brake")
 _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # ════════════════════════════════════════════════════════════
-#  口径版本（裁定 C：沿用价格锚定系数，本次不校准）
+#  口径版本（裁定 C：价格锚定系数 + **TASK-S7-03：实测可覆盖**）
 # ════════════════════════════════════════════════════════════
 
 #: 本模块输出的口径版本（任何口径变更须改此号，便于追溯"当时按哪版判定"）
 COST_SCHEMA_VERSION = "s5-03.v1"
-#: 归一化系数口径版本（**当前＝价格锚定系数，未校准**）
+#: 归一化系数口径版本（**回落值**＝价格锚定系数；有实测校准件时以 `utc` 的实效版本为准）
 CALIBRATION_VERSION = "price_anchor.v1"
 #: 口径说明（裁定 C 的落地文案；进文档与指标输出）
 CALIBRATION_NOTE = ("当前口径＝价格锚定系数（主力模型锚价 + 各模型价格比例），"
@@ -85,6 +85,28 @@ CALIBRATION_TRIGGER = ("待 S5-02 产出的 L2 Core-50 基线就绪后，启动�
                        "并定义校准数据来源与复校周期（建议季度）")
 #: 成本唯一数据源（裁定 D）
 COST_SOURCE_OF_TRUTH = "events"
+
+
+def effective_calibration_labels() -> Tuple[str, str]:
+    """**实效**口径标签：``(calibration_version, calibration_note)``
+
+    本模块自己不做系数计算（口径唯一源头是 `agent.observability.utc`，裁定 D 的
+    "未另建聚合/第二套系数表"纪律）。此处只是把 `utc.calibration_block()` 的
+    实效版本**透传**出来，避免"`utc` 已按实测校准、`cost_brake` 仍写死
+    `price_anchor.v1`"这类**静默失真**（TASK-S7-03 的实现期发现）。
+
+    * 无校准件 / 非法 / 过期 → 返回模块常量（与升级前**逐字一致**，零行为回归）；
+    * 有生效实测件 → 返回 `measured.v1`（或降级时的 `measured.partial.v1`）与对应说明；
+    * `utc` 不可用 → 回落模块常量（成本口径不因校准层故障而中断）。
+    """
+    try:
+        block = _utc.calibration_block()
+    except Exception as e:  # noqa: BLE001 口径层不可用 → 回落常量（不中断刹车）
+        logger.debug("utc 口径块不可用（回落模块常量）: %s", e)
+        return CALIBRATION_VERSION, CALIBRATION_NOTE
+    version = str(block.get("calibration_version") or CALIBRATION_VERSION)
+    note = str(block.get("calibration_note") or CALIBRATION_NOTE)
+    return version, note
 
 # ════════════════════════════════════════════════════════════
 #  环境键（全部可调参数走 .env；非法值回退默认）
@@ -976,7 +998,7 @@ def shadow_overhead_audit(*, day: Optional[str] = None,
                     if rate > 0 else
                     "**未折价**（未配置机时费率，不臆造金额）")),
         "cost_schema_version": COST_SCHEMA_VERSION,
-        "calibration_version": CALIBRATION_VERSION,
+        "calibration_version": effective_calibration_labels()[0],
     }
 
 
@@ -1015,6 +1037,7 @@ def cost_daily_view(*, day: Optional[str] = None, now: Optional[datetime] = None
         baseline = rolling_baseline(moment, days=cfg.baseline_days,
                                     directory=directory)
     base_cost = baseline.get("cost_cents_per_day")
+    _cal_version, _cal_note = effective_calibration_labels()
     return {
         "date": target,
         # ── 成本（utc.utc_daily 原样透传）──
@@ -1049,8 +1072,8 @@ def cost_daily_view(*, day: Optional[str] = None, now: Optional[datetime] = None
         # ── 口径标注（裁定 C / D：指标输出必须带版本号）──
         "shadow": shadow,
         "cost_schema_version": COST_SCHEMA_VERSION,
-        "calibration_version": CALIBRATION_VERSION,
-        "calibration_note": CALIBRATION_NOTE,
+        "calibration_version": _cal_version,
+        "calibration_note": _cal_note,
         "source_of_truth": COST_SOURCE_OF_TRUTH,
         "source": "utc.utc_daily（成本唯一数据源＝事件流；本视图不另建聚合）",
     }
@@ -1174,7 +1197,7 @@ def _audit(action: str, *, subject: str, payload: Dict[str, Any],
             action, actor=actor, subject=subject, payload=payload,
             source="agent", status=status,
             technical={"cost_schema_version": COST_SCHEMA_VERSION,
-                       "calibration_version": CALIBRATION_VERSION})
+                       "calibration_version": effective_calibration_labels()[0]})
         if entry is None:
             return 0, ""
         return (int(getattr(entry, "seq", 0) or 0),
@@ -1339,7 +1362,7 @@ class CostBrake:
             return
         payload = {
             "cost_schema_version": COST_SCHEMA_VERSION,
-            "calibration_version": CALIBRATION_VERSION,
+            "calibration_version": status.calibration_version,
             "evaluated_at": status.evaluated_at,
             "enabled": status.enabled,
             "day_breaker_open": status.day_breaker_open,
@@ -1369,6 +1392,10 @@ class CostBrake:
         """
         with self._lock:
             self._status.fasting = self._machine.to_dict()
+            # 口径标签**每次读取都刷新**：校准件可在进程存活期间被换版，
+            # 写死初值会出现"成本已按实测校准、状态里仍报价格锚定"的静默失真
+            self._status.calibration_version, self._status.calibration_note = (
+                effective_calibration_labels())
             return self._status.to_dict()
 
     def _is_stale(self, now: datetime) -> bool:
@@ -1532,6 +1559,8 @@ class CostBrake:
                 shadow=shadow,
                 config_warnings=list(cfg.warnings),
                 config_sources=dict(cfg.sources),
+                calibration_version=effective_calibration_labels()[0],
+                calibration_note=effective_calibration_labels()[1],
             )
             self._status = status
             if opened_this_call:

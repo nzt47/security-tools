@@ -77,15 +77,30 @@ logger = logging.getLogger("agent.observability.utc")
 
 #: 本模块口径版本（任何口径变更须改此号，便于追溯"当时按哪版算的"）
 COST_SCHEMA_VERSION = "utc.v1"
-#: 归一化系数口径版本 —— **当前＝价格锚定系数（未经经验校准）**
+#: 归一化系数**回落**口径版本 —— 价格锚定系数（未实测时的缺省）
 CALIBRATION_VERSION = "price_anchor.v1"
+#: 归一化系数**实测**口径版本（TASK-S7-03：来源为实测校准件时才用此版本号；
+#: 与 `agent.observability.cost_calibration.MEASURED_VERSION` 同值）
+MEASURED_CALIBRATION_VERSION = "measured.v1"
+#: 降级**部分校准**版本（离线重放 / 导入 CSV；**不得**当作完整实测）
+MEASURED_PARTIAL_CALIBRATION_VERSION = "measured.partial.v1"
 #: 口径说明（进文档与指标输出；裁定 C 要求显式标注）
 CALIBRATION_NOTE = ("当前口径＝价格锚定系数（主力模型锚价 + 各模型价格比例，"
                     "source=price_ratio），**未经经验校准**")
+#: 有实测来源时的口径说明（**只说生效范围，不夸大**）
+CALIBRATION_NOTE_MEASURED = ("归一系数来源＝**实测校准件**（TASK-S7-03）："
+                             "命中实测的模型用实测系数，未命中者逐模型回落价格锚定系数")
 #: 校准触发条件（裁定 C 的后续触发条件，**勿丢**）
 CALIBRATION_TRIGGER = ("待 S5-02 产出的 L2 Core-50 基线就绪后，启动校准评估"
                        "（跨模型成本-效果实测 → 经验系数 → 替换价格系数）；"
-                       "届时须定义校准数据来源与复校周期（建议季度复校）")
+                       "届时须定义校准数据来源与复校周期（建议季度复校）"
+                       "【2026-09-12 S5-02 已交付 L2 Core-50 → 触发条件已解锁；"
+                       "TASK-S7-03 已落地实测校准管线与来源优先级】")
+#: 校准执行状况（TASK-S7-03 的和盘托出；**不含任何编造数字**）
+CALIBRATION_STATUS = ("管线已就绪（`agent/observability/cost_calibration.py` + "
+                      "`scripts/calibrate_cost_coefficients.py`）；"
+                      "本机**无可用多模型凭证**，完整实测（路径 A）未执行，"
+                      "历史成本事件样本亦未达每模型 20 条 → 系数仍为价格锚定")
 #: 成本唯一数据源（裁定 D）
 COST_SOURCE_OF_TRUTH = "events"
 #: 旧轨角色（已停写、只作对账）
@@ -117,19 +132,114 @@ def calibration_block() -> Dict[str, Any]:
 
     裁定 C：显式标注「当前口径＝价格锚定系数，待 L2 基线后校准」+ 口径版本号。
     裁定 D：显式标注「成本唯一数据源＝事件流」+ 旧轨角色。
+
+    **TASK-S7-03 升级**：额外标注**实测校准件的落点与生效范围**——
+    `calibrated` / `calibration_version` / `measured_models` / `calibrated_at` /
+    `coefficient_sources` / `calibration_method` / `calibration_partial` /
+    `stale_reason`。约定：
+
+    * 无校准件 / 非法 / 过期 → 与升级前**逐字一致**（`calibrated=False`、
+      `calibration_version=price_anchor.v1`）：不产生行为回归；
+    * 有生效实测件 → `calibrated=True`、`calibration_version=measured.v1`；
+    * **降级部分校准**（离线重放 / 导入 CSV）→ `calibrated` **保持 False**
+      且 `calibration_partial=True` + 版本 `measured.partial.v1`
+      （**不得用价格系数冒充实测，也不得把部分校准说成完整实测**）。
     """
     anchor, source = resolve_anchor_model()
+    art = None
+    try:
+        CC = _calibration_module()
+        art = CC.load_artifact()
+    except Exception as e:  # noqa: BLE001 校准层不可用 → 纯价格锚定
+        logger.debug("实测校准件不可用（回落价格锚定）: %s", e)
+    stale = _artifact_stale_reason(art)
+    # **过期件的口径一律按"回落价格锚定"报告**：否则会出现"文件里写着已校准、
+    # 实际系数却没生效"的谎报（这正是本任务要避免的失真）。
+    active = bool(art is not None and not stale)
+    current = art if active else None
     return {
         "cost_schema_version": COST_SCHEMA_VERSION,
-        "calibration_version": CALIBRATION_VERSION,
-        "calibration_note": CALIBRATION_NOTE,
+        "calibration_version": _active_calibration_version(art, active=active),
+        "calibration_note": (_calibration_note(art, active=active)),
         "calibration_trigger": CALIBRATION_TRIGGER,
-        "calibrated": False,
+        "calibration_status": CALIBRATION_STATUS,
+        "calibrated": bool(current is not None and current.calibrated),
+        "calibration_partial": bool(current is not None and current.partial),
+        "calibration_method": (str(current.method) if current is not None else ""),
+        "calibrated_at": (str(current.created_at) if current is not None else ""),
+        "calibration_source_path": (str(art.path) if art is not None else ""),
+        "measured_models": (list(current.measured_models)
+                            if current is not None else []),
+        "coefficient_sources": _coefficient_sources_summary(),
+        "stale_reason": stale,
         "anchor_model": anchor,
         "anchor_source": source,
         "source_of_truth": COST_SOURCE_OF_TRUTH,
         "legacy_cost_log_role": LEGACY_COST_LOG_ROLE,
     }
+
+
+def _active_calibration_version(art: Any, *, active: bool = True) -> str:
+    """当前生效的口径版本号（**实测覆盖价格锚定，其余回落**）"""
+    if art is None or not active:
+        return CALIBRATION_VERSION
+    if art.calibrated:
+        return MEASURED_CALIBRATION_VERSION
+    if art.partial:
+        return MEASURED_PARTIAL_CALIBRATION_VERSION
+    return CALIBRATION_VERSION
+
+
+def _calibration_note(art: Any, *, active: bool = True) -> str:
+    if art is None:
+        return CALIBRATION_NOTE
+    if not active:
+        return (f"{CALIBRATION_NOTE}；另有校准件 `{art.path}` 但**未生效**"
+                f"（{_artifact_stale_reason(art)}）——系数按价格锚定计算")
+    if art.calibrated:
+        return CALIBRATION_NOTE_MEASURED
+    if art.partial:
+        return (f"{CALIBRATION_NOTE_MEASURED}；但本件为**降级部分校准**"
+                f"（method={art.method}）——**未完成完整实测校准，结论置信度受限**，"
+                "不作为系数替换依据（见 TASK-S7-03 验收报告）")
+    return CALIBRATION_NOTE
+
+
+def _artifact_stale_reason(art: Any) -> str:
+    if art is None:
+        return "no_artifact"
+    try:
+        CC = _calibration_module()
+        anchor, _ = resolve_anchor_model()
+        return str(CC.stale_reason(art, anchor_model=anchor,
+                                   caseset_sha256=_caseset_sha256()))
+    except Exception as e:  # noqa: BLE001 判定失败 → 如实标注不可判定
+        logger.debug("校准件过期判定失败: %s", e)
+        return "unknown"
+
+
+def _coefficient_sources_summary() -> Dict[str, Any]:
+    """按来源统计当前系数表（**让人一眼看出"哪些模型已实测、哪些仍是价格锚定"**）"""
+    try:
+        measured = _measured_coefficients()
+    except Exception as e:  # noqa: BLE001 实测层不可用 → 全价格锚定
+        logger.debug("实测系数读取失败: %s", e)
+        measured = {}
+    overrides = _coefficient_overrides()
+    names = sorted(set(model_costs().keys()) | set(measured) | set(overrides))
+    sources: Dict[str, str] = {}
+    for name in names:
+        if name in overrides:
+            sources[name] = "override"
+        elif name in measured:
+            sources[name] = "measured"
+        else:
+            sources[name] = "price_ratio"
+    counts: Dict[str, int] = {}
+    for value in sources.values():
+        counts[value] = counts.get(value, 0) + 1
+    return {"by_model": sources, "counts": dict(sorted(counts.items())),
+            "priority": ["override", "measured", "price_ratio"]}
 
 
 class UTCNormalizationError(ValueError):
@@ -199,7 +309,7 @@ def resolve_anchor_model() -> Tuple[str, str]:
     """
     cached = _CONFIG_CACHE.get("anchor")
     if cached:
-        return cached
+        return (str(cached[0]), str(cached[1]))
     env_model = str(os.getenv(ENV_ANCHOR_MODEL) or "").strip()
     if env_model:
         resolved = (env_model, "env")
@@ -212,7 +322,7 @@ def resolve_anchor_model() -> Tuple[str, str]:
 
 
 def reset_config_cache() -> None:
-    """清空锚模型解析缓存（**测试 / 配置热加载**用）"""
+    """清空锚模型解析缓存与校准件派生缓存（**测试 / 配置热加载**用）"""
     _CONFIG_CACHE.clear()
 
 
@@ -261,40 +371,145 @@ def _coefficient_overrides() -> Dict[str, Dict[str, float]]:
     return out
 
 
-def coefficient(model: str) -> Dict[str, Any]:
-    """模型换算系数（相对锚价；T6「系数表（模型 × 计价）」）
+def price_ratio_coefficient(model: str) -> Dict[str, Any]:
+    """**纯价格锚定**系数（相对锚价；不含 override / 实测层）
 
-    Returns:
-        ``{"in": k_in, "out": k_out, "source": "override"|"price_ratio"}``
+    抽出为独立函数，供两条路径共用：
+
+    1. `coefficient()` 的兜底分支（未校准模型的回落值）；
+    2. `cost_calibration.build_calibration()` 的**价格对照列**（偏差表要拿它比）。
+
+    这样"价格系数"只有一个实现，不会出现"偏差表里的价格列"与"实际生效的价格系数"
+    由两处代码各算一遍而漂移。
     """
-    anchor, _ = resolve_anchor_model()
-    overrides = _coefficient_overrides()
-    if str(model or "") in overrides:
-        item = overrides[str(model)]
-        return {"in": float(item["in"]), "out": float(item["out"]),
-                "source": "override"}
     base = anchor_prices_cents()
     try:
         own = price_usd_per_1k(model)
     except UTCNormalizationError:
         own = dict(DEFAULT_MODEL_PRICE_USD_PER_1K)
-    own_cents = {"input": own["input"] * 100.0, "output": own["output"] * 100.0}
-    k_in = own_cents["input"] / base["input"] if base["input"] else 1.0
-    k_out = own_cents["output"] / base["output"] if base["output"] else 1.0
+    own_in = float(own["input"]) * 100.0
+    own_out = float(own["output"]) * 100.0
+    k_in = own_in / float(base["input"]) if base["input"] else 1.0
+    k_out = own_out / float(base["output"]) if base["output"] else 1.0
     return {"in": k_in, "out": k_out, "source": "price_ratio"}
 
 
-def coefficient_table(models: Optional[Iterable[str]] = None) -> Dict[str, Dict[str, Any]]:
-    """系数表（模型 × 计价）→ 供指标字典（§6.7 口径表）与验收报告引用"""
+def _calibration_module() -> Any:
+    """惰性导入实测校准模块（**避免 `utc` ↔ `cost_calibration` 循环导入**）"""
+    from agent.observability import cost_calibration as CC
+    return CC
+
+
+def _measured_coefficients() -> Dict[str, Dict[str, float]]:
+    """当前**可生效**的实测系数（`model -> {in, out}`）
+
+    校准件缺失 / 非法 / 过期 → 返回 ``{}``（**逐模型回落价格系数**，
+    与 S5-03 现状逐字一致，因此不产生行为回归）。
+    """
+    try:
+        CC = _calibration_module()
+        art = CC.load_artifact()
+    except Exception as e:  # noqa: BLE001 校准层不可用 → 纯价格锚定（不阻断成本口径）
+        logger.debug("实测校准件不可用（回落价格锚定）: %s", e)
+        return {}
+    anchor, _ = resolve_anchor_model()
+    resolved: Dict[str, Dict[str, float]] = dict(
+        CC.measured_coefficients(art, anchor_model=anchor,
+                                 caseset_sha256=_caseset_sha256()))
+    return resolved
+
+
+def _caseset_sha256() -> str:
+    """当前 L2 基线记录的用例集哈希（**只用于判断校准件是否过期**）
+
+    从 `data/eval/l2_baseline.json` 尽力读取：不存在 / 非法 → 空串（
+    "不知道" → `stale_reason` 不做哈希判定，**不因为读不到就判过期**）。
+    """
+    cached = _CONFIG_CACHE.get("caseset_sha256")
+    if cached is not None:
+        return str(cached)
+    value = ""
+    try:
+        from agent.eval.baseline import load_l2_baseline
+        value = str((load_l2_baseline().get("caseset") or {}).get("caseset_sha256") or "")
+    except Exception as e:  # noqa: BLE001 基线不可读 → 不做哈希判定
+        logger.debug("L2 基线不可读（跳过用例集哈希判定）: %s", e)
+    _CONFIG_CACHE["caseset_sha256"] = value
+    return value
+
+
+def coefficient_detail(model: str) -> Dict[str, Any]:
+    """系数解析的**完整明细**（含来源与优先级依据；指标字典/审计用）
+
+    优先级（**逐模型**判定，高到低）：
+
+    1. ``CP_UTC_COEFFICIENTS``（``source="override"``，人工兜底）；
+    2. 实测校准件（``source="measured"``，仅当该模型样本量达标且校准件未过期）；
+    3. 价格锚定（``source="price_ratio"``，**回落值**）。
+
+    Returns:
+        ``{"in", "out", "source", "origin", "calibrated", "calibration_version"}``
+    """
+    overrides = _coefficient_overrides()
+    name = str(model or "")
+    if name in overrides:
+        item = overrides[name]
+        return {"in": float(item["in"]), "out": float(item["out"]),
+                "source": "override", "origin": "env:CP_UTC_COEFFICIENTS",
+                "calibrated": False, "calibration_version": CALIBRATION_VERSION}
+    measured = _measured_coefficients()
+    if name in measured:
+        item = measured[name]
+        return {"in": float(item["in"]), "out": float(item["out"]),
+                "source": "measured",
+                "origin": (f"artifact:{_calibration_module().artifact_path()}"),
+                "calibrated": True, "calibration_version": MEASURED_CALIBRATION_VERSION}
+    price = price_ratio_coefficient(name)
+    return {**price, "origin": "price_anchor:MODEL_COSTS",
+            "calibrated": False, "calibration_version": CALIBRATION_VERSION}
+
+
+def coefficient(model: str) -> Dict[str, Any]:
+    """模型换算系数（相对锚价；T6「系数表（模型 × 计价）」）
+
+    返回**保持既有三键契约**（``in`` / ``out`` / ``source``），新增字段仅在
+    `coefficient_detail()` 中给出——既有调用方（`normalize_cost` / 指标输出）
+    逐字不变。
+
+    Returns:
+        ``{"in": k_in, "out": k_out, "source": "override"|"measured"|"price_ratio"}``
+    """
+    detail = coefficient_detail(model)
+    return {"in": float(detail["in"]), "out": float(detail["out"]),
+            "source": str(detail["source"])}
+
+
+def coefficient_table(models: Optional[Iterable[str]] = None) -> Dict[str, Any]:
+    """系数表（模型 × 计价）→ 供指标字典（§6.7 口径表）与验收报告引用
+
+    每行带 **来源标注**：``source`` / ``origin``（生效依据）与
+    ``price_coefficient``（同模型的价格锚定值，便于逐项比对偏差）。
+    """
     names = list(models) if models else sorted(model_costs().keys())
     anchor, source = resolve_anchor_model()
     table: Dict[str, Dict[str, Any]] = {}
     for name in names:
-        table[str(name)] = {**coefficient(str(name)),
-                            "price_usd_per_1k": price_usd_per_1k(str(name))}
+        detail = coefficient_detail(str(name))
+        table[str(name)] = {
+            "in": float(detail["in"]), "out": float(detail["out"]),
+            "source": str(detail["source"]), "origin": str(detail["origin"]),
+            "calibrated": bool(detail["calibrated"]),
+            "calibration_version": str(detail["calibration_version"]),
+            "price_coefficient": price_ratio_coefficient(str(name)),
+            "price_usd_per_1k": price_usd_per_1k(str(name)),
+        }
+    measured = _measured_coefficients()
     return {"anchor_model": anchor, "anchor_source": source,
             "anchor_price_cents_per_1k": anchor_prices_cents(),
             "models": table,
+            "coefficient_sources": {name: row["source"]
+                                    for name, row in sorted(table.items())},
+            "measured_models": sorted(measured),
             "calibration": calibration_block()}
 
 
@@ -717,9 +932,12 @@ __all__ = [
     "ENV_PRICE_OVERRIDES", "DEFAULT_MODEL_PRICE_USD_PER_1K", "UTCNormalizationError",
     "COST_SCHEMA_VERSION", "CALIBRATION_VERSION", "CALIBRATION_NOTE",
     "CALIBRATION_TRIGGER", "COST_SOURCE_OF_TRUTH", "LEGACY_COST_LOG_ROLE",
+    "MEASURED_CALIBRATION_VERSION", "MEASURED_PARTIAL_CALIBRATION_VERSION",
+    "CALIBRATION_NOTE_MEASURED", "CALIBRATION_STATUS",
     "calibration_block",
     "model_costs", "price_usd_per_1k", "resolve_anchor_model", "anchor_prices_cents",
-    "coefficient", "coefficient_table", "normalize_cost", "record_cost",
+    "coefficient", "coefficient_detail", "price_ratio_coefficient",
+    "coefficient_table", "normalize_cost", "record_cost",
     "reset_config_cache",
     "utc_daily", "utc_window", "utc_weekly", "utc_snapshot", "write_utc_snapshot",
     "reconcile_pricing", "reconcile_cost_log", "RECONCILE_PROBE",

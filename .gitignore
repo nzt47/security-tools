@@ -72,6 +72,13 @@ data/s2_03_demo_trace.db*
 data/cost_daily.json
 data/cost_brake_state.json
 
+# S7-03 成本系数校准运行时产物（实测校准件 / 偏差表 / 报告中间件）
+# 性质同上：由 scripts/calibrate_cost_coefficients.py 生成，命令可复跑；
+# 正式交付文档为 docs/zh/成本系数偏差分析报告.md（入库）
+data/cost_coefficients.json
+data/calibration_table.json
+data/calibration_report.md
+
 # S3-01 消化流水线运行时产物（草稿暂存区 / 入轨报告 / 演示产物 / 台账备份）
 # 性质同 data/audit/、data/events/：运行时留痕，不入库；验收报告引用其路径与内容
 data/digestion/
