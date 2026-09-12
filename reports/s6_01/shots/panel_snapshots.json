@@ -1,0 +1,121 @@
+{
+  "snapshots": [
+    {
+      "panel": "pipeline",
+      "label": "消化流水线",
+      "url": "http://127.0.0.1:5757/chat#/workbench",
+      "nav_clicked": true,
+      "nav_error": "group[] leaf[]",
+      "shot": "reports/s6_01/shots/pipeline.png",
+      "evidence": [
+        "治理面板",
+        "消化流水线",
+        "轨迹采集",
+        "灰度"
+      ],
+      "evidence_missing": [],
+      "body_len": 3752,
+      "generated_at": "2026-09-12T11:30:56"
+    },
+    {
+      "panel": "approvals",
+      "label": "审批收件箱",
+      "url": "http://127.0.0.1:5757/chat#/workbench",
+      "nav_clicked": true,
+      "nav_error": "group[] leaf[]",
+      "shot": "reports/s6_01/shots/approvals.png",
+      "evidence": [
+        "审批收件箱",
+        "一键批",
+        "不出气泡"
+      ],
+      "evidence_missing": [],
+      "body_len": 1458,
+      "generated_at": "2026-09-12T11:31:01"
+    },
+    {
+      "panel": "capabilities",
+      "label": "能力地图",
+      "url": "http://127.0.0.1:5757/chat#/workbench",
+      "nav_clicked": true,
+      "nav_error": "group[] leaf[]",
+      "shot": "reports/s6_01/shots/capabilities.png",
+      "evidence": [
+        "能力地图",
+        "cp.builtin.read_file",
+        "数据源"
+      ],
+      "evidence_missing": [],
+      "body_len": 3873,
+      "generated_at": "2026-09-12T11:31:07"
+    },
+    {
+      "panel": "roi",
+      "label": "成本 ROI",
+      "url": "http://127.0.0.1:5757/chat#/workbench",
+      "nav_clicked": true,
+      "nav_error": "group[] leaf[]",
+      "shot": "reports/s6_01/shots/roi.png",
+      "evidence": [
+        "成本 ROI",
+        "决策本体",
+        "策略延迟"
+      ],
+      "evidence_missing": [],
+      "body_len": 2472,
+      "generated_at": "2026-09-12T11:31:12"
+    },
+    {
+      "panel": "incidents",
+      "label": "自愈事故",
+      "url": "http://127.0.0.1:5757/chat#/workbench",
+      "nav_clicked": true,
+      "nav_error": "group[] leaf[]",
+      "shot": "reports/s6_01/shots/incidents.png",
+      "evidence": [
+        "自愈事故",
+        "MTTD",
+        "备份"
+      ],
+      "evidence_missing": [],
+      "body_len": 1272,
+      "generated_at": "2026-09-12T11:31:18"
+    },
+    {
+      "panel": "memory",
+      "label": "记忆技能库",
+      "url": "http://127.0.0.1:5757/chat#/workbench",
+      "nav_clicked": true,
+      "nav_error": "group[] leaf[]",
+      "shot": "reports/s6_01/shots/memory.png",
+      "evidence": [
+        "记忆",
+        "召回优先级",
+        "strategy"
+      ],
+      "evidence_missing": [],
+      "body_len": 1200,
+      "generated_at": "2026-09-12T11:31:23"
+    },
+    {
+      "panel": "audit",
+      "label": "审计导出",
+      "url": "http://127.0.0.1:5757/chat#/workbench",
+      "nav_clicked": true,
+      "nav_error": "group[] leaf[]",
+      "shot": "reports/s6_01/shots/audit.png",
+      "evidence": [
+        "审计导出",
+        "验签"
+      ],
+      "evidence_missing": [],
+      "body_len": 16012,
+      "generated_at": "2026-09-12T11:31:29"
+    }
+  ],
+  "console_errors": [
+    "Failed to load resource: the server responded with a status of 404 (NOT FOUND)",
+    "Failed to load resource: the server responded with a status of 404 (NOT FOUND)",
+    "Failed to load resource: the server responded with a status of 404 (NOT FOUND)"
+  ]
+}

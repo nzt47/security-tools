@@ -808,6 +808,35 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════
+#  审批 HTTP 面（/api/approval/*，TASK-S4-01）
+#  §5.7⑦ 审批面安全（会话绑定 / CSRF / 链接 ≤900s / 二次认证 / DOM 隔离）
+#  ⚠ 此前只在 `agent/server_routes/__init__.py::register_all_routes` 中登记，
+#    而该函数**无调用方**（S2-02 盘点已记为死代码）⇒ 审批路由从未真正注册。
+#    本任务（S6-01）补上显式注册，使审批收件箱与批量裁决真正可达。
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_approval import register_routes as reg_approval
+    reg_approval(app, lambda: None)
+    logger.info("审批 HTTP 面已注册 (/api/approval/*)")
+except Exception as e:
+    logger.error("加载审批 HTTP 面失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
+#  治理可观测六面板（/api/cp/*，TASK-S6-01）
+#  §7 六面板 + 七动作 + 审计导出 + 安全渲染常量；只读为主，写动作走既有审批
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.server_routes.routes_ui_panels import register_routes as reg_ui_panels
+    reg_ui_panels(app, lambda: None)
+    logger.info("治理可观测面板路由已注册 (/api/cp/*)")
+except Exception as e:
+    logger.error("加载治理可观测面板路由失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
 #  运行时诊断路由（可观测性 E2E 测试所需的 7 个诊断端点）
 #  包含：/api/diagnostics/health、/api/diagnostics/trace、
 #        /api/diagnostics/trace/inject、/api/diagnostics/metrics、

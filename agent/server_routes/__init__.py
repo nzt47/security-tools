@@ -79,3 +79,7 @@ def register_all_routes(app, state):
     # 审批 HTTP 面（TASK-S4-01：§5.7⑦ 审批面安全 + §7.0 Actor 矩阵）
     from .routes_approval import register_routes as reg_approval
     reg_approval(app, state)
+
+    # 治理可观测六面板 HTTP 面（TASK-S6-01：§7 六面板 + 七动作；只读为主）
+    from .routes_ui_panels import register_routes as reg_ui_panels
+    reg_ui_panels(app, state)
