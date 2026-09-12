@@ -3161,6 +3161,27 @@ class Orchestrator:
             cfg["enabled"] = True
         return cfg
 
+    def _injection_defense_guard_context(self) -> bool:
+        """注入防御机制 1（taint 禁入 system prompt）是否启用 — **默认关**
+
+        【为什么默认关】开启后 `assemble_guarded()` 会把长期检索层等外来段从
+        `system_text` 摘出、改挂沙箱槽位——这是 **system prompt 组成的变更**，
+        属通用硬约束"既有公开行为不变"的例外，必须由部署侧显式打开。
+        开关：`CP_GUARDRAILS_GUARD_CONTEXT=1`（见
+        `agent.guardrails.injection_defense.guard_context_enabled`）。
+
+        任何异常（组件缺失/导入失败）一律返回 False → 退回既有组装路径。
+        """
+        try:
+            from agent.guardrails.injection_defense import guard_context_enabled
+            return bool(guard_context_enabled())
+        except Exception as exc:
+            logger.debug(log_dict({'module_name': 'orchestrator',
+                                   'action': 'orchestrator.injection_defense.unavailable',
+                                   'error': str(exc),
+                                   'message': '[注入防御] 开关读取失败，按关闭处理'}))
+            return False
+
     def _context_assembler_long_term(self, task: str) -> list:
         """长期检索记忆提供者 — 反思经验文件 data/reflection/{experiences,lessons}.json"""
         chunks = []
@@ -3260,6 +3281,22 @@ class Orchestrator:
                 procedural_fn=self._context_assembler_procedural,
             )
             ctx = assembler.assemble(user_input, mode=mode)
+            # ── TASK-S4-03 注入防御机制 1 接线（**默认关**：开启会改变 system prompt 组成）──
+            # `assemble_guarded()` 把判定为外来文本的段（长期检索层 / 带 source 声明的段）
+            # 从 system prompt 摘出、改挂沙箱槽位；关掉时行为与今天逐字一致。
+            guarded = self._injection_defense_guard_context()
+            if guarded:
+                ctx = assembler.assemble_guarded(user_input, mode=mode)
+                if not ctx.memory_sections and not ctx.skill_instructions and not ctx.workflow_hint:
+                    logger.info(log_dict({
+                        'module_name': 'orchestrator',
+                        'action': 'orchestrator.context_assembler.all_blocked',
+                        'trace_id_ctx': _trace_id(),
+                        'sandbox_blocks': len(ctx.sandbox_blocks),
+                        'message': '[ContextAssembler] 全段被判定为外来文本，跳过注入'}))
+                    self._emit_context_assembler_metric(
+                        "empty", duration_ms=(time.time() - _t0) * 1000)
+                    return None
             if not ctx.memory_sections and not ctx.skill_instructions and not ctx.workflow_hint:
                 logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.context_assembler.empty',
                                       'trace_id_ctx': _trace_id(),
@@ -3269,7 +3306,7 @@ class Orchestrator:
                 self._emit_context_assembler_metric(
                     "empty", duration_ms=(time.time() - _t0) * 1000)
                 return None
-            text = assembler.render_text(ctx)
+            text = assembler.render_guarded_text(ctx) if guarded else assembler.render_text(ctx)
             logger.info(log_dict({
                 'module_name': 'orchestrator', 'action': 'orchestrator.context_assembler.injected',
                 'trace_id_ctx': _trace_id(),
@@ -3284,6 +3321,8 @@ class Orchestrator:
                 'skills_hit': [s.get('skill_id') for s in ctx.skill_instructions],
                 'workflow_hit': ctx.workflow_hint.get('wf_id') if ctx.workflow_hint else None,
                 'reflections_hit': len(ctx.reflection_notes),
+                'sandbox_blocks': len(ctx.sandbox_blocks),
+                'injection_defense_guard': guarded,
                 'message': '[ContextAssembler] 旁路注入: %d 字符, token=%d/%d' % (len(text), ctx.total_tokens, ctx.budget),
             }))
             self._emit_context_assembler_metric(

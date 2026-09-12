@@ -76,6 +76,14 @@ data/cost_brake_state.json
 # 性质同 data/audit/、data/events/：运行时留痕，不入库；验收报告引用其路径与内容
 data/digestion/
 
+# S4-03 自愈运行时产物（事故卡 / 整包 release 台账 / Saga journal）
+# 性质同 data/audit/、data/events/：运行时留痕，不入库；验收报告引用其路径与内容。
+# 对应模块：agent/self_healing/levels.py（事故卡）、release_bundle.py（台账）、
+#           saga.py（journal）；三者均支持显式传路径，用例一律用临时目录。
+data/healing_incidents/
+data/releases/
+data/saga/
+
 # IDE 元数据
 .cursor/
 .trae/

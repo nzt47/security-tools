@@ -22,7 +22,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 # 项目规范：环境变量 > config.yaml > 硬编码默认值。
@@ -66,6 +66,9 @@ class PromptContext:
     total_tokens: int = 0
     budget: int = 0
     truncated: bool = False
+    #: TASK-S4-03 注入防御机制 1：被判定为外来文本、**只能进受沙箱槽位**的段。
+    #: 仅 `assemble_guarded()` 会填充；既有 `assemble()` 恒为空列表（零行为变化）。
+    sandbox_blocks: List[Dict[str, Any]] = field(default_factory=list)
 
     def summary(self) -> Dict[str, Any]:
         return {
@@ -78,6 +81,7 @@ class PromptContext:
             "workflow_hit": self.workflow_hint.get("wf_id") if self.workflow_hint else None,
             "reflections_hit": len(self.reflection_notes),
             "tools": self.tools,
+            "sandbox_blocks": len(self.sandbox_blocks),
         }
 
 
@@ -235,4 +239,153 @@ class ContextAssembler:
         if ctx.workflow_hint:
             lines.append("[工作流提示] " + " → ".join(ctx.workflow_hint.get("tool_sequence", [])))
         lines.append(f"[上下文统计] token={ctx.total_tokens}/budget={ctx.budget} truncated={ctx.truncated}")
+        return "\n".join(lines)
+
+    # ── TASK-S4-03 注入防御机制 1：受守卫的组装路径（**新增，不改既有行为**）──
+
+    #: 视为「可信」的层/来源（不必打 taint）
+    TRUSTED_SOURCES = frozenset({"", "trusted", "working_memory", "user", "skill"})
+
+    def assemble_guarded(self, task: str, mode: str = "default", *,
+                         ledger: Optional[Any] = None,
+                         foreign_layers: Optional[Iterable[str]] = None,
+                         ) -> PromptContext:
+        """组装并施加**注入防御机制 1**（外来文本禁入 system prompt）
+
+        与 `assemble()` 的关系：**先**调 `assemble()` 得到与原路径逐字一致的基线，
+        **再**把判定为外来文本的段从 `system_text` 中摘出、改挂到 `sandbox_blocks`。
+        故关掉守卫（不调用本方法）时行为与今天完全一致。
+
+        外来来源判定（**有序**，可被 `foreign_layers` 覆盖）：
+            1. 段 dict 自带 `source` 字段 → 用它（取值见
+               `agent.guardrails.foreign_taint.ForeignSource`）；
+            2. 否则按层名：**长期检索层** → `retrieval`（§5.7 机制 1 明列的"检索结果"）；
+            3. 工作记忆 / 技能指令 / 工作流提示 → **trusted**。
+
+        【为什么技能指令按可信处理（显式判断，非遗漏）】§5.7 的"文件内容"指**原始**
+        外来文件；而进入程序性层的技能已过 §4.5 的确定性回放沙箱 + 验收门 + shadow
+        （S3-01/S3-03 交付），属**云枢自己的**程序性记忆。将其判为外来会与 §4.5 冲突，
+        且会把"自有用技能"这件事彻底关掉。该判断已登记在 S4-03 验收报告"判断项"。
+
+        Args:
+            task / mode: 同 `assemble()`。
+            ledger: 外来文本污点账（缺省进程级账）。
+            foreign_layers: 覆盖"哪些层视为外来"的层名集合（如 `{"长期检索记忆"}`）。
+
+        Returns:
+            `PromptContext`（`sandbox_blocks` 非空表示有段被摘出）。
+        """
+        if ledger is None:
+            try:
+                from agent.guardrails.foreign_taint import get_foreign_taint
+                ledger = get_foreign_taint()
+            except Exception as exc:  # noqa: BLE001 守卫不可用 → 退回基线（不阻断主链路）
+                logger.warning("[context_assembler] 注入防御账不可用，退回基线组装: %s", exc)
+                return self.assemble(task, mode=mode)
+
+        try:
+            from agent.guardrails.foreign_taint import (
+                DEST_SYSTEM_PROMPT, check_text, wrap_untrusted)
+        except Exception as exc:  # noqa: BLE001 同上：组件缺失不阻断
+            logger.warning("[context_assembler] 注入防御组件不可用，退回基线组装: %s", exc)
+            return self.assemble(task, mode=mode)
+
+        ctx = self.assemble(task, mode=mode)
+        forced = {str(x) for x in (foreign_layers or ())}
+
+        def _source_of(section: Dict[str, Any]) -> str:
+            declared = str(section.get("source") or "").strip().lower()
+            if declared:
+                return declared
+            layer = str(section.get("layer") or "")
+            if forced and layer in forced:
+                return "retrieval"
+            if layer == "长期检索记忆" or layer == "long_term":
+                return "retrieval"
+            return "trusted"
+
+        kept_sections: List[Dict[str, Any]] = []
+        blocks: List[Dict[str, Any]] = []
+        for section in ctx.memory_sections:
+            source = _source_of(section)
+            content = str(section.get("content") or "")
+            if source in self.TRUSTED_SOURCES or not content:
+                kept_sections.append(section)
+                continue
+            verdict = check_text(content, destination=DEST_SYSTEM_PROMPT, ledger=ledger,
+                                 surface="context_assembler.assemble_guarded")
+            if verdict.allowed:
+                kept_sections.append(section)
+                continue
+            block = wrap_untrusted(content, source,
+                                   ref=str(section.get("title") or section.get("layer") or ""),
+                                   ledger=ledger)
+            block["source_label"] = str(block.get("source_label") or source)
+            block["blocked_from"] = DEST_SYSTEM_PROMPT
+            block["layer"] = str(section.get("layer") or "")
+            blocks.append(block)
+            logger.info("[context_assembler] 外来段已摘出 system prompt: layer=%s source=%s "
+                        "chars=%d", section.get("layer"), source, len(content))
+
+        if not blocks:
+            return ctx
+
+        ctx.memory_sections = kept_sections
+        ctx.reflection_notes = [s for s in ctx.reflection_notes
+                                if any(s is k for k in kept_sections)]
+        ctx.sandbox_blocks = blocks
+        ctx.system_text = self._rebuild_system_text(ctx, mode=mode)
+        ctx.total_tokens = estimate_tokens(ctx.system_text)
+        ctx.truncated = ctx.total_tokens > self._budget
+        ctx.layer_tokens = {
+            **ctx.layer_tokens,
+            "sandbox_blocks": sum(estimate_tokens(str(b.get("text") or "")) for b in blocks),
+        }
+        return ctx
+
+    def _rebuild_system_text(self, ctx: PromptContext, *, mode: str = "default") -> str:
+        """按 `assemble()` 的同款结构重建 `system_text`（仅用于受守卫路径）
+
+        【为什么单独一个方法而不是改 `assemble()`】`assemble()` 的文本结构是既有
+        行为契约（既有用例与旁路注入按它断言）。守卫路径另起一份，产出同构文本，
+        从而"守卫开关只影响哪些段被放进来"，不影响文本结构本身。
+        """
+        tools = ["search", "read_file", "write_file"] if mode == "default" else ["*"]
+        parts = ["你是云枢数字生命体。", "【工作记忆】"]
+        parts += [s["content"] for s in ctx.memory_sections]
+        if ctx.reflection_notes:
+            parts.append("【反思经验（需遵循）】")
+            parts += [f"- {s['content']}" for s in ctx.reflection_notes]
+        if ctx.skill_instructions:
+            parts.append("【可用技能指令】")
+            parts += [s["instruction"] for s in ctx.skill_instructions]
+        if ctx.workflow_hint:
+            parts.append("【工作流提示】工具序列: "
+                         + " → ".join(ctx.workflow_hint.get("tool_sequence", [])))
+        parts.append("【可用工具】" + ", ".join(tools))
+        text = "\n".join(parts)
+        if estimate_tokens(text) > self._budget:
+            text = text[: self._budget * 3]
+        return text
+
+    def render_guarded_text(self, ctx: PromptContext) -> str:
+        """渲染受守卫上下文（外来段以 `cp-data` 包裹，**不回灌指令区**）
+
+        与 `render_text()` 的差别：末尾追加 `ctx.sandbox_blocks`，每段前置
+        "以下为不可信数据"声明并包在 `cp-data` 标记内（§5.7 机制 1/2 的渲染侧形态）。
+        """
+        base = self.render_text(ctx)
+        if not ctx.sandbox_blocks:
+            return base
+        try:
+            from agent.guardrails.instruction_data import (
+                DATA_BLOCK_CLOSE, DATA_BLOCK_OPEN, DATA_BLOCK_PREAMBLE)
+        except Exception:  # noqa: BLE001 组件缺失 → 只出基线文本（不阻断）
+            return base
+        lines = [base]
+        for block in ctx.sandbox_blocks:
+            lines.append(DATA_BLOCK_PREAMBLE)
+            lines.append(DATA_BLOCK_OPEN)
+            lines.append(str(block.get("text") or ""))
+            lines.append(DATA_BLOCK_CLOSE)
         return "\n".join(lines)
