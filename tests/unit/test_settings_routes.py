@@ -198,6 +198,84 @@ class TestIndexEndpoint:
         assert resp.headers["Cache-Control"] == "no-store"
 
 
+class TestPanelDiscipline:
+    """口径纪律（复用 S6-01）：数字可追溯 + 台账单一来源"""
+
+    def test_panel_ledger_comes_from_schema_panel_map(self, routes, monkeypatch):
+        """★ 面板台账必须取自 `ui_panels.schema.panel_map()`（不在路由里自造）"""
+        from agent.ui_panels import schema as S
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        panel = client.get("/api/cp/settings").get_json()["panel"]
+        expected = S.panel_map("settings_center")
+        assert panel["panel"] == "settings_center"
+        assert panel["priority"] == expected["priority"] == "P0"
+        assert panel["datasources"] == expected["datasources"]
+        assert panel["min_sample"] == expected["min_sample"]
+        assert panel["disclosure_note"] == expected["disclosure_note"]
+        assert S.PANEL_DATASOURCES["settings_center"] == tuple(panel["datasources"])
+
+    def test_counts_have_declared_provenance(self, routes, monkeypatch):
+        """★ 每个上屏数字都能找到出处（数据源 + 公式）"""
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        body = client.get("/api/cp/settings").get_json()
+        prov = body["counts_provenance"]
+        for field in body["counts"]:
+            assert field in prov, f"counts.{field} 没有出处说明"
+            assert str(prov[field]).strip()
+        assert prov["source"].startswith("agent/settings/registry.py::all_specs()")
+        assert prov["note"].strip()
+
+    def test_counts_match_registry_reality(self, routes, monkeypatch):
+        """计数不是装饰：与注册表真实统计逐项一致"""
+        from agent.settings import registry as R
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        body = client.get("/api/cp/settings").get_json()
+        assert body["counts"]["total"] == len(R.all_specs()) == body["registry_size"]
+        assert body["counts"]["by_risk"] == R.counts_by_risk()
+        assert body["counts"]["total"] == sum(body["counts"]["by_risk"].values())
+        assert body["counts"]["by_category"] == {
+            c["id"]: c["count"] for c in R.categories()}
+
+    def test_every_item_declares_its_owner_module(self, routes, monkeypatch):
+        """条目级溯源：每条都能回答"这个默认值出自哪个模块" """
+        import pathlib
+        repo = pathlib.Path(__file__).resolve().parents[2]
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        items = client.get("/api/cp/settings").get_json()["items"]
+        checked = 0
+        for item in items:
+            if item["owner_module"]:
+                assert (repo / item["owner_module"]).exists(), item["key"]
+                checked += 1
+            else:
+                assert item["dynamic_prefix"], item["key"]
+        assert checked > 300
+
+    def test_untraceable_scan_is_a_vacuous_pass_here(self, routes, monkeypatch):
+        """`untraceable_scan` 在 settings 响应上是**空扫**（如实断言，防误读）
+
+        Why 要显式写这条：`schema.OPAQUE_PREFIXES` 含 `items` 前缀，而本响应的数值
+        几乎都在 `items`（注册表声明默认值）与 `counts`（整数计数）里——因此
+        `untraceable_scan()` 返回 `ok=True` **但 `checked==0`**，属于"没检查"而不是
+        "检查通过"。真正的守护是上面三条断言（台账单一来源 + 出处 + 与注册表一致）。
+        """
+        from agent.ui_panels import schema as S
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        payload = client.get("/api/cp/settings").get_json()
+        scan = S.untraceable_scan(payload)
+        assert scan["ok"] is True
+        assert scan["violations"] == []
+        # ★ 空扫证据：0 个叶子被检查（items 为 pass-through 前缀 + counts 全是整数）
+        assert scan["checked"] == 0, (
+            "若此处不为 0，说明扫描真的开始覆盖本响应，"
+            "应把 items/counts 的数值纳入 metric() 信封或修正本用例的结论")
+
+
 # ════════════════════════════════════════════════════════════
 #  二、POST 改值
 # ════════════════════════════════════════════════════════════

@@ -46,6 +46,7 @@ from agent.settings.service import (
     CODE_SECOND_FACTOR_INVALID,
     get_settings_service,
 )
+from agent.ui_panels.schema import panel_map
 
 logger = logging.getLogger(__name__)
 
@@ -159,8 +160,19 @@ def _identity_fields() -> Dict[str, str]:
 def _build_index() -> Dict[str, Any]:
     """组装 `GET /api/cp/settings` 的响应体
 
-    C 级条目在序列化前就已是掩码形态（`masking.mask_display`），并有运行时
-    守卫 `assert_no_plaintext` 再核对一次（双保险，绝不把明文写进响应）。
+    【口径纪律（复用 S6-01，而非重造）】
+        - 面板台账**取自 `ui_panels.schema.panel_map()`**（唯一来源：不在本模块
+          自造数据源清单）；
+        - `counts` 的每个数字都在 `counts_provenance` 里给出**数据源 + 公式**
+          （"每个数字都能在此找到出处"）；
+        - C 级条目在序列化前就已是掩码形态（`masking.mask_display`），并有运行时
+          守卫 `assert_no_plaintext` 再核对一次（双保险，绝不把明文写进响应）。
+
+    注：`items` 子树的数值是注册表的**声明默认值**（含若干 0..1 比率），其出处由
+    每条的 `owner_module` + `description` 给出，不是"算出来的指标"，故不套 `metric()`
+    信封；`untraceable_scan()` 把 `items` 前缀按 pass-through 处理，因此它在 settings
+    响应上是**空扫**（`checked=0`）——这一点在 `test_settings_routes` 里有显式说明，
+    以免把"空扫通过"误读成"已通过口径自检"。
     """
     import os
     import time
@@ -181,28 +193,13 @@ def _build_index() -> Dict[str, Any]:
     editable = sum(1 for r in resolved if r.editable)
     overridden = sum(1 for r in resolved if r.override_present)
     env_locked = sum(1 for r in resolved if r.env_locked)
+    panel = panel_map(PANEL_NAME)
+    panel["name"] = PANEL_NAME          # 兼容前端既有 PanelMeta 之外的可选字段
+    panel["title"] = "开关中心"
     return {
         "ok": True,
         "prefix": PREFIX,
-        "panel": {
-            "name": PANEL_NAME,
-            "title": "开关中心",
-            "priority": "P0",
-            "datasources": [
-                {"id": "settings_registry",
-                 "label": "开关注册表（agent/settings/registry.py）",
-                 "kind": "code", "traceable": True},
-                {"id": "override_overlay",
-                 "label": "覆盖层 data/ui_settings.json（gitignore 运行时产物）",
-                 "kind": "runtime", "traceable": True},
-                {"id": "env",
-                 "label": "进程环境变量（运维注入）",
-                 "kind": "runtime", "traceable": True},
-                {"id": "config_yaml",
-                 "label": "config.yaml / ObservabilityConfig 运行态",
-                 "kind": "config", "traceable": True},
-            ],
-        },
+        "panel": panel,
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "source_priority": list(SOURCE_PRIORITY),
         "categories": [
@@ -221,6 +218,24 @@ def _build_index() -> Dict[str, Any]:
             "env_only": sum(1 for r in resolved if r.spec.env_only),
             "needs_restart": sum(1 for r in resolved if r.spec.needs_restart),
             "secret": sum(1 for r in resolved if r.spec.secret),
+        },
+        "counts_provenance": {
+            "source": ("agent/settings/registry.py::all_specs()"
+                       " + agent/settings/resolver.py::resolve_all()"),
+            "total": "注册表条目数（len(all_specs())）",
+            "by_category": "按 SettingSpec.category 分组计数",
+            "by_risk": "按 SettingSpec.risk（A/B/C）分组计数",
+            "editable": ("resolve() 判定为可改的条目数（非 C 级、未被 env 锁定、"
+                         "非纯 config.yaml 项）"),
+            "locked": "total - editable",
+            "overridden": "存在覆盖层记录（OverrideStore.has(key)）的条目数",
+            "locked_by_env": "被运维注入的环境变量锁定的条目数",
+            "env_only": ("有 env_name 而无 config_path 的条目数"
+                         "（UI 标注『仅支持环境变量』）"),
+            "needs_restart": "SettingSpec.needs_restart 为真的条目数",
+            "secret": "SettingSpec.secret 为真的条目数（值永不返回明文）",
+            "note": ("全部数字取自注册表真实统计，不含估算；"
+                     "每条条目的默认值出处见其 owner_module"),
         },
         "items": items,
         "read_only_notice": READ_ONLY_NOTICE,

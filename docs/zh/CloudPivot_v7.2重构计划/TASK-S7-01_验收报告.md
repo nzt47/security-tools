@@ -110,7 +110,7 @@ pytest tests/unit/test_settings*.py \
        tests/unit/test_s6_01_ui_panels.py tests/unit/test_security_actor_matrix.py \
        tests/unit/test_security_approval_guard.py tests/unit/test_audit_facade.py \
        tests/unit/test_audit_chain.py tests/unit/test_s4_01_stage_promote_chain.py
-       → 494 passed, 0 failed, 0 skipped（新增 119 + 邻接 375）
+       → 499 passed, 0 failed, 0 skipped（新增 124 + 邻接 375）
 ```
 
 覆盖率见 §六.3。
@@ -199,7 +199,7 @@ managed 开关名  : 311 （读取点 330）
 结论：存在缺口 ❌
 ```
 
-**这正是本门禁要证明的事**：它不是"写个脚本跑一次过"，而是**对新增代码持续有效**——并行任务新增 env 读取点后，合并态立刻报缺口。5 项已在 master 上补登记（合并态复跑 → `managed=311 / 注册表=311 / 缺口=0`），119 例全绿。补登记内容：`CP_DIGESTION_LIVENESS_ENABLED`（**B 级**：开启即按周期自动执行抽样探活，默认关闭）、`…_PROBE_SIZE`（A，默认 5）、`…_MAX_TARGETS`（A，默认 20）、`…_LIVENESS_DIR` / `…_CASE_COST_DIR`（C 级路径）。本报告与结案报告中的清单统计均为**补登记后**的数字（359 条）。
+**这正是本门禁要证明的事**：它不是"写个脚本跑一次过"，而是**对新增代码持续有效**——并行任务新增 env 读取点后，合并态立刻报缺口。5 项已在 master 上补登记（合并态复跑 → `managed=311 / 注册表=311 / 缺口=0`），124 例全绿。补登记内容：`CP_DIGESTION_LIVENESS_ENABLED`（**B 级**：开启即按周期自动执行抽样探活，默认关闭）、`…_PROBE_SIZE`（A，默认 5）、`…_MAX_TARGETS`（A，默认 20）、`…_LIVENESS_DIR` / `…_CASE_COST_DIR`（C 级路径）。本报告与结案报告中的清单统计均为**补登记后**的数字（359 条）。
 
 ---
 
@@ -283,6 +283,23 @@ POST …/confirm {"pending_id":"…","second_factor":"<第二位人工的凭据>
   → 链上 settings.change 载荷含 second_approver / requested_by
 ```
 
+### 5.6 口径纪律（S6-01）复用情况——**含一次如实纠偏**
+
+任务书 §步骤 4 要求"复用 S6-01 的口径纪律：不出现不可追溯的数字"。复核（对照 S6-01 的单测契约）发现**两处不及格**，已修正：
+
+| # | 问题 | 处置 |
+|---|---|---|
+| 1 | `panel` 块是**路由里手搓**的（`{name,title,priority,datasources:[{id,label,...}]}`），没有走 `ui_panels.schema.panel_map()` 这个唯一台账出口；且 `datasources` 是对象数组，与前端声明的 `PanelMeta.datasources: string[]` **类型不一致**（运行期不一致，只因前端没读它才没炸） | `schema.PANEL_PRIORITY` / `PANEL_DATASOURCES` 登记 `settings_center`（P0 + 四层来源），路由改为 `panel_map("settings_center")`；用例 `test_panel_ledger_comes_from_schema_panel_map` 断言逐字段相等 |
+| 2 | `counts` 的 10 个数字**没有出处说明**（虽然都取自注册表真实统计） | 新增 `counts_provenance`：逐字段给出数据源 + 公式 + 口径注；用例 `test_counts_have_declared_provenance` + `test_counts_match_registry_reality`（与 `all_specs()` / `counts_by_risk()` / `categories()` 逐项相等） |
+
+**另有一处必须如实说明的"假绿"**：把 `untraceable_scan()` 跑在本响应上会得到 `ok=True`，但那是**空扫**——`schema.OPAQUE_PREFIXES` 含 `items` 前缀（本响应的数值几乎都在 `items` 的声明默认值里），且 `counts` 全是整数（扫描器只认裸 0..1 浮点），故实测 `checked=0`：
+
+```
+untraceable_scan(payload) → {'ok': True, 'checked': 0, 'violations': []}
+```
+
+即 `ok=True` 表示"没检查"而非"已通过"。为防止后人把空扫当成合规证据，用例 `test_untraceable_scan_is_a_vacuous_pass_here` **显式断言 `checked == 0`** 并把上述理由写在用例里——一旦将来扫描范围变化（`checked != 0`），该用例会失败并提示"要么把数值纳入 `metric()` 信封，要么修正结论"。**真正的守护**是 5.6 表格里的两条修正 + 条目级溯源（`test_every_item_declares_its_owner_module` 断言 300+ 条条目的 `owner_module` 必须指向真实存在的文件）。
+
 ---
 
 ## 六、质量证据
@@ -294,14 +311,14 @@ POST …/confirm {"pending_id":"…","second_factor":"<第二位人工的凭据>
 | `tests/unit/test_settings_registry.py` | 23 | 零缺口 / 零重造 / 注册表完整性 / 反向防漂移 |
 | `tests/unit/test_settings_resolver.py` | 37 | 四层优先级 / 置灰原因 / C 级脱敏 / 覆盖层守不易 / bootstrap 零影响与幂等 |
 | `tests/unit/test_settings_service.py` | 32 | A/B/C 分流 / 双人确认 / 矩阵拒绝 / 审计入链 / 不双写 |
-| `tests/unit/test_settings_routes.py` | 27 | 三组路由 + confirm / 批量拒绝 / require_token / 无明文 |
-| **合计** | **119** | 全部通过 |
+| `tests/unit/test_settings_routes.py` | 32 | 三组路由 + confirm / 批量拒绝 / require_token / 无明文 |
+| **合计** | **124** | 全部通过 |
 | 前端 `settings.test.tsx` | 29 | 分类+徽章+来源标签 / 置灰原因 / 掩码 / B 级确认步骤 / 202 待办 / 搜索 |
 
 ### 6.2 邻接回归（零回归）
 
 ```
-**494 passed**（新增 119 + 邻接 375，共 10 套件）：test_settings_* ×4、test_s6_01_ui_panels、test_security_actor_matrix、
+**499 passed**（新增 124 + 邻接 375，共 10 套件）：test_settings_* ×4、test_s6_01_ui_panels、test_security_actor_matrix、
 test_security_approval_guard、test_audit_facade、test_audit_chain、test_s4_01_stage_promote_chain
 ```
 
@@ -320,7 +337,7 @@ agent\settings\registry.py                 219     16    93%
 agent\settings\resolver.py                 249     32    87%
 agent\settings\service.py                  288     33    89%
 TOTAL                                     1152    114    90%
-119 passed
+124 passed
 ```
 
 **90% ≥ 80%**；最低单模块 87%（`overrides` / `resolver`）。未覆盖行集中在"损坏覆盖层降级""异常兜底"等防御分支。

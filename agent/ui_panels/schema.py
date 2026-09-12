@@ -39,6 +39,8 @@ PANEL_PRIORITY: Dict[str, str] = {
     "roi": "P1",
     "incident": "P1",
     "memory_skills": "P2",
+    # TASK-S7-01 开关中心：治理动作（改开关）的入口，与审批收件箱同为 P0
+    "settings_center": "P0",
 }
 
 #: 面板 → 数据源（**验收用**：面板上屏的每个数字都能在此找到出处）
@@ -92,6 +94,13 @@ PANEL_DATASOURCES: Dict[str, Tuple[str, ...]] = {
     ),
     "authz_alerts": (
         "agent/security/alerts.py::get_denial_stats()/recent_denials()",
+    ),
+    # TASK-S7-01 开关中心：四层来源并列披露（口径不同，不得混用）
+    "settings_center": (
+        "agent/settings/registry.py::all_specs()（开关注册表：元数据/默认值/风险级）",
+        "agent/settings/resolver.py::resolve_all()（四层来源解析结果）",
+        "agent/settings/overrides.py::OverrideStore（覆盖层 data/ui_settings.json）",
+        "agent/settings/service.py::SettingsService（变更与审计回执）",
     ),
 }
 
