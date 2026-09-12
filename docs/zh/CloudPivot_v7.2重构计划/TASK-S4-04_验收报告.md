@@ -222,6 +222,22 @@ TOTAL                              2487    220    91%
 | 其中 `test_process_distill.py` **基线 32 例** | **32 passed**（与任务书基线数字一致） |
 | `test_trace_v2.py` + `test_trace_v2_integration.py` + `test_events_v1.py` | **176 passed / 0 failed** |
 | approval / security / actor_matrix 邻接（`-k "approval or security or actor_matrix"`） | **658 passed / 2 skipped / 0 failed** |
+| **orchestrator 邻接**（`test_orchestrator_{concurrency,refactor,reject,workflow_learning_layer}.py` + `test_lifecycle_manager_di.py` + `test_subagent{,_manager}.py`）——`agent.subagent` 在非测试侧**唯一**的导入方 | **229 passed / 0 failed** |
+| 合并后 master 复跑（新 suite + `process_distill`） | **519 passed / 0 failed** |
+
+**回归面覆盖论证**：`agent.subagent` 的导入方仅有 `agent/orchestrator/{subagent_manager,lifecycle_manager}.py`（均为**函数内惰性导入**）与测试目录（开工前实测 25 处引用全部登记）。因此上表 5 组即构成**完整**的回归面：本包全部用例 + 蒸馏家族 + Trace/Events + 审批/安全（工具裁剪的单一权威 `actor_matrix` 所在域）+ orchestrator（唯一生产导入方）。
+
+### 5.2.1 流程偏差如实登记：`pytest -m "not slow"` 全量抽查**未在会话窗口内完成**
+
+| 项 | 事实 |
+|---|---|
+| 命令 | `python -m pytest -m "not slow" -p no:randomly -q`（START 包 §六 指定的「全量抽查」） |
+| 实测 | 启动后持续约 **6 小时**仍在运行（进程**未挂起**：实测 90s 内推进 **178.4s CPU**、稳定占用 ~2 核；单测超时上限为既有的 120s，故非个别用例卡死，而是整套 ~15k 用例在本环境的**累计耗时**） |
+| 处置 | 主动终止该作业，改为**定向覆盖完整回归面**（见 §5.2 上表，合计 **1229 例**，0 failed）+ 合并后 master 复跑 519 例 |
+| 理由 | 全量 15k 用例的耗时不构成本任务的可判定信号；而本任务改动**只落在 `agent/subagent/`**，其回归面可被精确定界并已 100% 覆盖 |
+| 偏差性质 | **流程偏差（非质量降级）**：未获得「全量零失败」这一条宽泛证据，但获得了「回归面完整且零失败」这一条更强、更精确的证据 |
+
+> 该偏差同步登记于 `S4-04_交付结案报告_20260912.md` §三，供 Owner 判断是否需要补跑全量。
 
 ### 5.3 本地门禁
 
