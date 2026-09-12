@@ -190,8 +190,17 @@ python -m pytest tests/unit/test_context_assembler.py tests/unit/test_orchestrat
 ```powershell
 python -m pytest -m "not slow" -p no:randomly
 ```
-**实测**：见 §二.5（全量结论）。**十万级基线对照**：S4-02 结案时 `tests/unit` 全量为
-`15326 passed / 0 failed`；本任务全量为「基线 + 532 新增 + 0 回归」。
+**实测**：
+```
+= 18463 passed, 66 skipped, 476 deselected, 23 xfailed, 4 xpassed, 58 warnings in 4450.04s (1:14:10) =
+```
+**0 failed，exit 0**（`skipped` 66 / `xfailed` 23 / `xpassed` 4 均为**既有基线**状态，非本任务引入；
+本任务的 11 个新套件 0 skip / 0 xfail）。
+
+> 耗时说明：本机（Windows，单进程串行，`-m "not slow"`）全量 74 分钟；CI 分片并行远快于此。
+> **产物漂移已处置**：`tests/contract/contracts/*.json`（6 个）在跑完后被 `git checkout --` 还原；
+> `scripts/clean_runtime_noise.py` 报 `data/learned_workflows.json` 3 条统计漂移并自动还原；
+> 架构报告写至 `%TEMP%`，`docs/architecture/` 未被污染。提交前 `git status` 为空。
 
 ### 2.4 门禁四项
 
@@ -314,11 +323,11 @@ python scripts/smoke_s4_03_injection_defense.py
 | 架构护栏（CI 阻塞） | ✅ exit 0，未豁免违规 0 |
 | 新增单测 | ✅ 532 passed |
 | 邻接回归 | ✅ 533 passed |
-| 全量 `-m "not slow"` | 见 §二.3 / 结案报告 |
+| 全量 `-m "not slow"` | ✅ 18463 passed / **0 failed**（exit 0） |
 | 覆盖率 | ✅ 11 个新模块 84%–98%，均值 92.5% |
 | 混沌演练 | ✅ 4/4 |
-| pre-commit 真实提交场景 | 见结案报告 |
-| 门禁产物漂移还原 | ✅ `git status` 已核（架构报告写至 `%TEMP%`，未污染 `docs/architecture/`） |
+| **pre-commit 真实提交场景** | ✅ **实际 `git commit`（未用 `--no-verify`）**，`core.hooksPath=hooks` 的自定义 hook 正常执行并通过（含 `clean_runtime_noise.py`：报 `data/learned_workflows.json` 3 条统计漂移并自动还原） |
+| 门禁产物漂移还原 | ✅ `git checkout -- tests/contract/contracts/`（6 个 JSON）；架构报告写至 `%TEMP%`；提交前 `git status` 为空 |
 
 ---
 
