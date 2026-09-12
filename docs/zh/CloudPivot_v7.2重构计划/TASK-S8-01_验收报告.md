@@ -316,7 +316,9 @@ chain ok = True checked = 2
 
 | # | 遗留 | 归属 | 说明 |
 |---|---|---|---|
-| L1 | 真实审计链库 `data/audit/audit_chain.db` 在 `seq=17` 处 `prev_hash_mismatch`（`seq_range=(1,21060)` 而 `entries=21056`，另有 4 个空洞），`ok=False` | **S2-02 / 运营期**（非本任务） | 归档前后**完全相同**（`checked=16`、`head_self_hash` 不变）⇒ 归档未动链。S2-02 的既有裁定是"只归档不删、不改链"，故此断裂不由 S8-01 修复；本任务已把它**机械记录下来**（`audit.chain` 指标含 `ok/first_bad_seq/head_seq`）。建议运营期单列排查。 |
+| L1 | 真实审计链库 `data/audit/audit_chain.db` 在 `seq=17` 处 `prev_hash_mismatch`（`seq_range=(1,21060)` 而 `entries=21056`，另有 4 个空洞），`ok=False` | **S2-02 / 运营期**（非本任务） | **测得时点 `2026-09-13 01:44`**。归档前后**完全相同**（`checked=16`、`head_self_hash` 不变）⇒ 归档未动链。S2-02 的既有裁定是"只归档不删、不改链"，故此断裂不由 S8-01 修复。本任务已把它**机械记录下来**（`audit.chain` 指标含 `ok`/`first_bad_seq`/`bad_seq_count`/`head_seq`/`head_self_hash`，见 §十.1 补记）。**注：该库已于同日 02:00 被重置，见 L7。** |
+| **L7** | **🔴 `data/audit/` 于 `2026-09-13 02:00` 被清空重建：21 056 条链式审计留痕 + 54 个存量审计轨文件（约 2.1 MB）已不在磁盘上**；重建后的链只有 10 条（并行会话 S8-05 的脚本产物：`resolution.record`×6、`digest.shadow.enqueue_rejected`×3、`digest.shadow.review_stale`×1） | **Owner 复核归因**（非本任务） | S8-01 的归档**只读**审计链（`delete_source` 默认 false，红线类被 `PurgeGuard` 无条件拒绝删除），`01:44` 之后只做过只读普查与只读护栏查询 ⇒ **非本任务所致**。`data/audit/` 被 `.gitignore` 忽略 ⇒ Git 无任何副本，**S8-01 验收取证时留下的副本是仅存的完整留痕**，已保全到 `~/.cloudpivot/vault/audit_pre_reset_20260913/`（原样副本 + 已验证冷归档件 + 签名私钥 + 还原说明），见 §十二。 |
+
 | L2 | 每日 Merkle 根 `data/audit/daily_roots.jsonl` **当前不存在**（`daily_roots=0`） | S2-02 / 运营期 | 策略表已把 `daily_roots.jsonl` 纳入 `audit_chain`（红线，禁止删除），一旦生成即受保护并被归档。 |
 | L3 | 温层对 `policy_decisions` 会在**首次真实运行**时把历史行移入分片（实测：16 行 → `decisions-2026-09-12.jsonl`，逐字节相同） | S8-01 → **S8-02** | 读端分片感知（`_candidate_files()`），故口径不变；写入端轮转归 **S8-02**。本策略只消费其产物，不改写入语义。 |
 | L4 | 12 类中 4 类当前"未落盘"（`legacy_audit_archive`/`digestion_drafts`/`cost_daily`/`memory_snapshots`） | 运营期 | 无数据即无归档；策略已就位，落盘后自动纳入。 |
@@ -325,11 +327,59 @@ chain ok = True checked = 2
 
 ---
 
+### 十.1 结案后的补记（2026-09-13，`agent/retention` 一处增强）
+
+复核阶段的侦察确认 `AuditChain.verify_chain()` **在首个断裂处即停**（真实链 `checked=16`
+而 `entries=21056`），因此只报 `ok=False` 无法定位问题，运营期也无法把"归档动了链"与
+"链本来就断了"区分开。故为 `audit.chain` 指标**补两个字段**（纯增量，不改既有字段）：
+
+| 新字段 | 来源 | 用途 |
+|---|---|---|
+| `first_bad_seq` | `ChainVerification.first_bad_seq` | 指出**链从哪一条起不可信** |
+| `bad_seq_count` | `len(ChainVerification.bad_seqs)` | 断裂条目数（按 `_MAX_BAD_RECORDS` 截断） |
+
+用例 `test_audit_chain_metric_locates_the_break_point` 在临时链上篡改 `seq=2` 的
+`payload_hash`，断言 `ok=False` 且 `first_bad_seq == 2`，并断言 `entries` **不受校验结论影响**
+（归档前后仍可比）。既有对照表（§5.1 / 指标复算报告 §2.3）的所有字段保持不变，
+新增字段两侧同值，故"逐字段一致"的结论不受影响。
+
+---
+
 ## 十一、验收结论
 
-任务书 §四 八项验收标准**逐条通过**，三条不可越界原则**逐条机器化自证**。
-交付物齐备，邻接套件零回归，门禁四绿（kwarg 0 处 / mypy 新增 0 error /
+任务书 §四 八项验收标准**逐条通过**，三条不可越界原则**逐条机器化自证**。交付物齐备，邻接套件零回归，门禁四绿（kwarg 0 处 / mypy 新增 0 error /
 `lint-imports` 2 kept 0 broken / 开关零缺口），实现期发现并修复 3 处真实缺陷，
-6 项遗留已如实登记归属。
+7 项遗留已如实登记归属。
 
 **结论：通过。**
+
+---
+
+## 十二、审计链留痕保全件（L7 的处置证据）
+
+L7 记录的清空事故发生在验收取证**之后**。`data/audit/` 无 Git 副本，而 S8-01 在取证时
+恰好留下了两份完整副本，故已保全到仓库树之外的用户 profile 目录，**不做任何原地还原**
+（还原会覆盖并行会话当前正在写的链，须由 Owner 决定）：
+
+```
+~/.cloudpivot/vault/audit_pre_reset_20260913/
+├─ audit_chain.db                     17 268 736 B   重置前链库原样副本（21 056 条）
+├─ 2026-09-13.db.gz                    3 841 706 B   S8-01 冷归档件（已验签）
+├─ 2026-09-13.db.gz.manifest.json          1 502 B   自描述清单（record_count / row_digest / 双校验和）
+├─ audit_signing_key.pem                     119 B   ⚠️ 私钥（原 data/audit/ 内，清空后原位已无）
+└─ README_还原说明.md                                时点/证据/还原命令/处置建议
+```
+
+保全时已用**交付的还原路径**实测（不是"应该能还原"）：
+
+```
+archive_verified = True    payload_verified = True
+record_count = 21056       还原后 audit_chain 行数 = 21056      row_digest 一致 = True
+```
+
+**处置建议（供 Owner 决策）**：① 先保全再归因；② 私钥二选一（保留用于验证历史签名，
+或轮换后删除）；③ 把 `data/audit/` 纳入日常备份，并排查并行会话中直接清理
+`data/audit/` 的脚本/用例（S8-01 实现期已发现同型问题：`AUDIT_DB_PATH` 环境变量对
+进程级 `AuditFacade` 无效，用例会写到默认链上）；④ 若还原，`seq=17` 的既有断点会一并回来，
+属预期，需单独排查。
+

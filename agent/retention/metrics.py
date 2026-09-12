@@ -125,12 +125,19 @@ def audit_chain_metric(*, db_path: str = "") -> Dict[str, Any]:
     try:
         verification = chain.verify_chain()
         head = chain.chain_head()      # 键名取自 `AuditChain.chain_head()` 实际返回
+        bad = list(getattr(verification, "bad_seqs", []) or [])
         return {
             "metric": "audit.chain",
             "available": True,
             "ok": bool(getattr(verification, "ok", False)),
             "checked": int(getattr(verification, "checked", 0) or 0),
             "verify_reason": str(getattr(verification, "reason", "") or ""),
+            # 【为什么必须记断裂点】`verify_chain()` 在首个断裂处即停（本机
+            # 2026-09-13 01:44 实测真实链 `checked=16` 而 `entries=21056`），
+            # 只说 `ok=False` 无法定位问题；`first_bad_seq` 让"链从哪一条开始不可信"
+            # 变成机器可读，也让运营期能把"归档是否动链"与"链本来就断了"区分开。
+            "first_bad_seq": getattr(verification, "first_bad_seq", None),
+            "bad_seq_count": len(bad),
             "first_seq": int(head.get("first_seq") or 0),
             "head_seq": int(head.get("last_seq") or 0),
             "head_self_hash": str(head.get("head_self_hash") or ""),

@@ -1483,6 +1483,19 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        owner="agent/retention/scheduler.py",
        config_path="retention.minute", needs_restart=True,
        validator=_int_range(0, 59)),
+
+    # ────────────────────────────────────────────────────────
+    #  【跨任务补登】S8-05 裁定台账目录（2026-09-13）
+    #  `agent/digestion/resolutions.py` 读了 `CP_RESOLUTION_DIR` 但未登记，导致
+    #  `test_settings_registry.py::test_zero_gap_between_scan_and_registry` 在 master
+    #  上变红（"零缺口"是硬守卫，见该文件模块头 §1/§2）。此处只**机械补登**，
+    #  默认值与语义逐字取自该模块（`DEFAULT_RESOLUTION_DIR`、路径项只读展示），
+    #  **不改 S8-05 的任何行为**；归属仍为 `agent/digestion/resolutions.py`（S8-05）。
+    # ────────────────────────────────────────────────────────
+    _c("CP_RESOLUTION_DIR", CAT_SELF_HEALING, "data/descriptors",
+       "裁定台账目录覆盖（默认 data/descriptors；路径项，UI 只读展示）",
+       owner="agent/digestion/resolutions.py",
+       validator=Validator("path")),
 ]
 # ════════════════════════════════════════════════════════════
 #  与 observability_config 既有校验表合并（**勿重复造**）
