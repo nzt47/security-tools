@@ -51,15 +51,51 @@ _PROMPT_INJECTION_KEYWORDS: tuple = (
     "you are now", "system prompt", "</system>",
 )
 
-# 幻觉检测: 从 LLM 输出提取显式技能 ID 引用
+# 幻觉检测: 从 LLM 输出提取**显式**技能 ID 引用
 # 1) JSON/键值对中的 skill_id 字段
 _SKILL_ID_EXPLICIT_RE = re.compile(
     r'"?skill_?id"?\s*[:=]\s*["\']([a-z0-9][a-z0-9_\-]{2,})["\']',
     re.IGNORECASE,
 )
-# 2) 反引号包裹的 kebab/snake_case 标识符 (要求含分隔符, 排除纯字母词)
-_SKILL_BACKTICK_RE = re.compile(
-    r'`([a-z0-9][a-z0-9_\-]*[_\-][a-z0-9_\-]+)`'
+# 2) 反引号包裹的标识符 —— **仅在有显式技能语境时**才算技能引用
+#
+# 【2026-09-13 修正（真用前置 D1）】原实现是
+#     r'`([a-z0-9][a-z0-9_\-]*[_\-][a-z0-9_\-]+)`'
+# 即"任何反引号包裹的 snake_case / kebab-case 标识符"都算技能引用。实测后果：
+#   回复里出现**目录名** `coverage_report`（来自 list_directory 的真实结果）
+#   → 被判为"提及未加载的技能" → severity=critical
+#   → `orchestrator._guard_llm_output` 把**整条回复**替换为"（输出校验未通过，已拦截）"
+# 云枢的日常用途（读代码 / 改文件 / 跑测试 / 写文档）**必然**在回复里写
+# `list_directory`、`unified_traces`、`tool_trace.py` 这类标识符，
+# 于是"越专业越容易被自家护栏拦死"。这是假阳性，不是幻觉。
+#
+# 修法：只在**显式技能语境**下把反引号标识符当作技能引用；目录名/文件名/函数名一律不报。
+#   2a) `@标识符`                —— 显式提及
+#   2b) `技能 `标识符`` / `skill_id: `标识符`` —— 显式技能前缀
+#   2c) `` `标识符` 技能``        —— 显式技能后缀
+#   2d) 标识符**自身**符合技能命名约定（`skill-xxx` / `xxx-skill`）—— 自证
+# 注：2d 是必需的 —— 既有契约（tests/unit/test_skill_output_guard.py::\
+# test_validate_llm_output_hallucination_detected）要求
+# "我将调用 `skill-pdf-parser` 来处理文档" 仍被判定为幻觉，而该句并无
+# "技能/skill" 字样作语境，靠的正是标识符自证。
+_SKILL_ID_TOKEN = r'([a-z0-9][a-z0-9_\-]*[_\-][a-z0-9_\-]+)'
+_SKILL_AT_RE = re.compile(r'@' + _SKILL_ID_TOKEN)
+_SKILL_PREFIXED_RE = re.compile(
+    r'(?:技能\s*(?:id|ID|Id)?|skill[_\- ]?id|skills?)\s*[:：=]?\s*`'
+    + _SKILL_ID_TOKEN + r'`',
+    re.IGNORECASE,
+)
+_SKILL_SUFFIXED_RE = re.compile(
+    r'`' + _SKILL_ID_TOKEN + r'`\s*(?:技能|skill)',
+    re.IGNORECASE,
+)
+_SKILL_SELF_NAMING_RE = re.compile(
+    r'`((?:skill[_\-][a-z0-9][a-z0-9_\-]*)|(?:[a-z0-9][a-z0-9_\-]*[_\-]skill))`'
+)
+#: 幻觉检测使用的全部"技能引用"模式（显式语境 + 自证命名）
+_SKILL_REFERENCE_RES = tuple(
+    (_SKILL_ID_EXPLICIT_RE, _SKILL_AT_RE, _SKILL_PREFIXED_RE,
+     _SKILL_SUFFIXED_RE, _SKILL_SELF_NAMING_RE)
 )
 
 # 越界检测: 危险动作关键词
@@ -410,11 +446,18 @@ class SkillOutputGuard:
 
     def _check_hallucination(self, text: str, loaded_set: Set[str],
                              findings: List[GuardFinding]) -> None:
-        """幻觉检测: LLM 提到的技能 ID 不在 loaded_skills 中 → critical"""
+        """幻觉检测: LLM 提到的技能 ID 不在 loaded_skills 中 → critical
+
+        【2026-09-13 修正（真用前置 D1）】只提取**显式技能引用**（见文件顶部
+        `_SKILL_REFERENCE_RES` 的 2a-2d）。此前的实现把任何反引号包裹的
+        snake_case/kebab-case 标识符都当成技能 ID，导致回复里出现目录名
+        （如 `coverage_report`）就被判 critical 并**拦截整条回复**——
+        对"读代码/改文件/写文档"这类日常用途是必现的假阳性。
+        """
         if not text:
             return
         mentioned: Set[str] = set()
-        for pat in (_SKILL_ID_EXPLICIT_RE, _SKILL_BACKTICK_RE):
+        for pat in _SKILL_REFERENCE_RES:
             for m in pat.finditer(text):
                 sid = m.group(1)
                 if sid:
