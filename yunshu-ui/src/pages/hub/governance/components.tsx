@@ -8,6 +8,15 @@
  *   - `ReasonChain`："它现在在想什么"可解释性（**非原始 JSON**）
  *   - `TaintBadge`：外来文本恒带底色徽章（class 名来自后端常量）
  *   - `ApprovalZone`：审批按钮区 DOM 隔离（Shadow DOM + 固定 z-index）
+ *   - `Collapsible` / `PanelShell`：折叠组与面板外壳
+ *
+ * 【Collapsible / PanelShell 为什么落在这里（TASK-S7-01）】
+ *   两者原先定义在 `index.tsx` 内部（模块私有）。开关中心 `settings.tsx` 需要同一套
+ *   外壳，而 `settings.tsx` 被 `index.tsx` 静态导入——若让 `settings.tsx` 反向
+ *   import `index.tsx` 会形成**循环依赖**；若各自实现一份，又会留下"平行副本"
+ *   （S7-01 复核确实先复制了一份，随后删掉）。故按"共享 UI 原语放共享模块"的口径
+ *   **上移到本文件**：`index.tsx` 与 `settings.tsx` 都从 `./components` 引用，
+ *   **既无重复、也无环**。
  */
 
 import {
@@ -19,9 +28,86 @@ import {
   type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
-import { ChevronRight, Info, ShieldAlert, Siren, CircleSlash } from 'lucide-react'
+import {
+  AlertTriangle, ChevronDown, ChevronRight, CircleSlash, Info, Loader2,
+  RefreshCw, ShieldAlert, Siren,
+} from 'lucide-react'
 import { useSecurityState, formatNumber, formatPercent } from './usePanel'
 import type { Metric } from '@/lib/cpPanelsTypes'
+
+/**
+ * 折叠区（P1/P2 默认收起；P0 默认展开）
+ *
+ * `forceOpen`：外部强制展开（开关中心在搜索/筛选时要求分组展开）；
+ * 默认 `false`，既有调用行为不变。
+ */
+export function Collapsible({
+  title, subtitle, defaultOpen = false, icon, children, forceOpen = false,
+}: {
+  title: string
+  subtitle?: string
+  defaultOpen?: boolean
+  icon?: ReactNode
+  children: ReactNode
+  /** 强制展开（为真时以展开为准） */
+  forceOpen?: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  const expanded = forceOpen || open
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900/40">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={expanded}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left"
+      >
+        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        {icon}
+        <span className="text-sm font-medium text-slate-200">{title}</span>
+        {subtitle && <span className="text-xs text-slate-500">{subtitle}</span>}
+      </button>
+      {expanded && <div className="border-t border-slate-800 p-4">{children}</div>}
+    </div>
+  )
+}
+
+/** 面板外壳（加载中 / 错误条 / 刷新按钮） */
+export function PanelShell({
+  loading, error, reload, children, onRefresh,
+}: {
+  loading: boolean
+  error: string
+  reload: () => void
+  children: ReactNode
+  onRefresh?: () => void
+}) {
+  return (
+    <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="mb-2 flex items-center justify-end gap-2">
+        <button
+          type="button"
+          onClick={onRefresh || reload}
+          className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-400 hover:text-cyan-300"
+        >
+          <RefreshCw size={11} /> 刷新
+        </button>
+      </div>
+      {loading && (
+        <div className="flex items-center gap-2 py-8 text-sm text-slate-400">
+          <Loader2 size={16} className="animate-spin" /> 加载中…
+        </div>
+      )}
+      {!loading && error && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm text-red-300">
+          <AlertTriangle size={15} className="mt-0.5" />
+          <span className="break-all">{error}</span>
+        </div>
+      )}
+      {!loading && !error && children}
+    </div>
+  )
+}
 
 /** 虚拟滚动阈值（§11.2 / UI 五坑②：≥500 条必须虚拟滚动） */
 export const VIRTUAL_SCROLL_THRESHOLD = 500

@@ -20,22 +20,19 @@
  * 【口径纪律（§0.3）】所有数字要么来自 payload（`counts.*` / `categories[].count`），
  *   要么由 payload 的条目派生；缺位一律渲染 "—"，**绝不渲染 0**。
  *
- * 【为什么这里自带一个 Shell / 折叠组】`components.tsx` 没有导出折叠组件，
- *   `index.tsx` 的 `Collapsible` / `PanelShell` 是模块私有；本文件被 index.tsx
- *   反向导入，若把它们 export 出来会形成循环依赖，故按**同一套约定**
- *   （Loader2 加载中 / 红色错误条 / 刷新按钮）在此就地实现，不改动既有面板。
+ * 【外壳与折叠组从哪来】`Collapsible` / `PanelShell` 已由 `./components` 统一导出
+ *   （S7-01 复核把它们从 index.tsx 私有实现上移到共享模块：本文件若反向 import
+ *   index.tsx 会形成环，自建副本又会留下平行实现，上移后两者皆无）。
  */
 
 import {
-  useEffect,
   useMemo,
   useState,
   type CSSProperties,
   type ReactNode,
 } from 'react'
 import {
-  AlertTriangle, ChevronDown, ChevronRight, Clock, KeyRound, Loader2, Lock,
-  RefreshCw, RotateCcw, Search, Unlock, X,
+  Clock, KeyRound, Lock, RotateCcw, Search, Unlock, X,
 } from 'lucide-react'
 import { debounce } from '@/lib/apiClient'
 import {
@@ -53,8 +50,10 @@ import type {
 import { SwitchField } from '@/plugins/schema/fields/SwitchField'
 import {
   AbsentBox,
+  Collapsible,
   MetricValue,
   PanelHeader,
+  PanelShell,
   StatusBadge,
   VirtualList,
   VIRTUAL_SCROLL_THRESHOLD,
@@ -253,7 +252,13 @@ export function outcomeDisplayValue(
 //  小件
 // ═══════════════════════════════════════════════════════════
 
-/** 面板壳（与 index.tsx 的 PanelShell 同一套 loading/error 约定） */
+/**
+ * 面板壳（**复用既有 `PanelShell`**，不自建副本）
+ *
+ * S7-01 复核发现：本文件早期版本把 `index.tsx` 的 `PanelShell` **整段复制**了一份
+ * （平行实现，违反"不重造"），现改为导出复用——加载中 / 错误条 / 刷新按钮三处
+ * 只剩一份实现。
+ */
 function SettingsShell({
   loading,
   error,
@@ -266,33 +271,20 @@ function SettingsShell({
   children: ReactNode
 }) {
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto p-4">
-      <div className="mb-2 flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={reload}
-          className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-400 hover:text-cyan-300"
-        >
-          <RefreshCw size={11} /> 刷新
-        </button>
-      </div>
-      {loading && (
-        <div className="flex items-center gap-2 py-8 text-sm text-slate-400">
-          <Loader2 size={16} className="animate-spin" /> 加载中…
-        </div>
-      )}
-      {!loading && error && (
-        <div className="flex items-start gap-2 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm text-red-300">
-          <AlertTriangle size={15} className="mt-0.5" />
-          <span className="break-all">{error}</span>
-        </div>
-      )}
-      {!loading && !error && children}
-    </div>
+    <PanelShell loading={loading} error={error} reload={reload}>
+      {children}
+    </PanelShell>
   )
 }
 
 /** 分类折叠组（带"筛选后 / 登记表"两个计数） */
+/**
+ * 分类折叠组（**复用既有 `Collapsible`**，只补开关中心特有的头部计数）
+ *
+ * 说明：本组件早期版本把 `Collapsible` 的折叠机制又实现了一遍（平行实现），
+ * 现改为薄封装——折叠/箭头/`aria-expanded` 只有一份实现；开关中心的差异只有
+ * 「筛选后 N 项 / 登记表 M 项」这个计数文案与"筛选时强制展开"。
+ */
 function CategoryGroup({
   id,
   label,
@@ -308,31 +300,21 @@ function CategoryGroup({
   forceOpen: boolean
   children: ReactNode
 }) {
-  // 默认展开：开关中心的价值首先是"看得见"；折叠用于快速收起噪音（筛选时强制展开）
-  const [open, setOpen] = useState(true)
-  useEffect(() => {
-    if (forceOpen) setOpen(true)
-  }, [forceOpen])
-  const expanded = forceOpen || open
+  const subtitle = declared !== undefined && declared !== shown
+    ? `${shown} 项（登记表 ${declared} 项）`
+    : `${shown} 项`
   return (
-    <div
-      className="mb-2 rounded-xl border border-slate-800 bg-slate-900/40"
-      data-cp-settings-category={id}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={expanded}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left"
+    <div className="mb-2" data-cp-settings-category={id}>
+      <Collapsible
+        title={label}
+        subtitle={subtitle}
+        defaultOpen
+        forceOpen={forceOpen}
       >
-        {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        <span className="text-sm font-medium text-slate-200">{label}</span>
-        <span className="text-[11px] text-slate-500" data-cp-category-count={id}>
-          {shown} 项
-          {declared !== undefined && declared !== shown && `（登记表 ${declared} 项）`}
-        </span>
-      </button>
-      {expanded && <div className="border-t border-slate-800 p-2">{children}</div>}
+        <div className="p-2" data-cp-category-count={id}>
+          {children}
+        </div>
+      </Collapsible>
     </div>
   )
 }

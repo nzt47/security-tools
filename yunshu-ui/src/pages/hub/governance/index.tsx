@@ -15,8 +15,7 @@
 
 import { useMemo, useState } from 'react'
 import {
-  Activity, AlertTriangle, ChevronDown, ChevronRight, FileDown,
-  GitBranch, Layers, Loader2, RefreshCw, ScrollText, ShieldAlert,
+  Activity, FileDown, GitBranch, Layers, ScrollText, ShieldAlert,
   Siren, TrendingUp, Users,
 } from 'lucide-react'
 import {
@@ -60,6 +59,8 @@ import {
   toneForSeverity,
   toneForStage,
   VirtualList,
+  Collapsible,
+  PanelShell,
 } from './components'
 import {
   formatMs,
@@ -83,70 +84,15 @@ export type GovernancePanelId =
   // TASK-S7-01「开关中心」：登记表全量 + 生效来源 + 风险分级 + B 级二次确认
   | 'settings'
 
-/** 折叠区（P1/P2 默认收起；P0 默认展开） */
-function Collapsible({
-  title, subtitle, defaultOpen = false, icon, children,
-}: {
-  title: string
-  subtitle?: string
-  defaultOpen?: boolean
-  icon?: React.ReactNode
-  children: React.ReactNode
-}) {
-  const [open, setOpen] = useState(defaultOpen)
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/40">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left"
-      >
-        {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-        {icon}
-        <span className="text-sm font-medium text-slate-200">{title}</span>
-        {subtitle && <span className="text-xs text-slate-500">{subtitle}</span>}
-      </button>
-      {open && <div className="border-t border-slate-800 p-4">{children}</div>}
-    </div>
-  )
-}
+/**
+ * 折叠区 / 面板外壳**已上移到 `./components`**（TASK-S7-01）
+ *
+ * Why 移动：`settings.tsx`（被本文件静态导入）也需要同一套外壳；留在本文件会让
+ * 它反向 import 本文件 → 循环依赖，各自实现一份 → 平行副本。故按"共享 UI 原语放
+ * 共享模块"的口径上移，本文件与 `settings.tsx` 均从 `./components` 引用。
+ * 两者的**行为逐字未变**（含 `PanelShell.onRefresh` 与 `Collapsible.defaultOpen`）。
+ */
 
-function PanelShell({
-  loading, error, reload, children, onRefresh,
-}: {
-  loading: boolean
-  error: string
-  reload: () => void
-  children: React.ReactNode
-  onRefresh?: () => void
-}) {
-  return (
-    <div className="min-h-0 flex-1 overflow-y-auto p-4">
-      <div className="mb-2 flex items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={onRefresh || reload}
-          className="flex items-center gap-1 rounded-md border border-slate-700 px-2 py-1 text-[11px] text-slate-400 hover:text-cyan-300"
-        >
-          <RefreshCw size={11} /> 刷新
-        </button>
-      </div>
-      {loading && (
-        <div className="flex items-center gap-2 py-8 text-sm text-slate-400">
-          <Loader2 size={16} className="animate-spin" /> 加载中…
-        </div>
-      )}
-      {!loading && error && (
-        <div className="flex items-start gap-2 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-sm text-red-300">
-          <AlertTriangle size={15} className="mt-0.5" />
-          <span className="break-all">{error}</span>
-        </div>
-      )}
-      {!loading && !error && children}
-    </div>
-  )
-}
 
 export function GovernancePanels({ panel = 'pipeline' }: { panel?: GovernancePanelId }) {
   switch (panel) {

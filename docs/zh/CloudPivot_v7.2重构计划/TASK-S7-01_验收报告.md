@@ -285,12 +285,13 @@ POST …/confirm {"pending_id":"…","second_factor":"<第二位人工的凭据>
 
 ### 5.6 口径纪律（S6-01）复用情况——**含一次如实纠偏**
 
-任务书 §步骤 4 要求"复用 S6-01 的口径纪律：不出现不可追溯的数字"。复核（对照 S6-01 的单测契约）发现**两处不及格**，已修正：
+任务书 §步骤 4 要求"复用 S6-01 的口径纪律：不出现不可追溯的数字"，并要求**复用**既有组件。复核（对照 S6-01 的单测契约与组件清单）发现**三处不及格**，已修正：
 
 | # | 问题 | 处置 |
 |---|---|---|
 | 1 | `panel` 块是**路由里手搓**的（`{name,title,priority,datasources:[{id,label,...}]}`），没有走 `ui_panels.schema.panel_map()` 这个唯一台账出口；且 `datasources` 是对象数组，与前端声明的 `PanelMeta.datasources: string[]` **类型不一致**（运行期不一致，只因前端没读它才没炸） | `schema.PANEL_PRIORITY` / `PANEL_DATASOURCES` 登记 `settings_center`（P0 + 四层来源），路由改为 `panel_map("settings_center")`；用例 `test_panel_ledger_comes_from_schema_panel_map` 断言逐字段相等 |
 | 2 | `counts` 的 10 个数字**没有出处说明**（虽然都取自注册表真实统计） | 新增 `counts_provenance`：逐字段给出数据源 + 公式 + 口径注；用例 `test_counts_have_declared_provenance` + `test_counts_match_registry_reality`（与 `all_specs()` / `counts_by_risk()` / `categories()` 逐项相等） |
+| 3 | **前端平行实现**：`settings.tsx` 把 `index.tsx` 的私有 `PanelShell` **整段复制**成 `SettingsShell`，并把 `Collapsible` 的折叠机制又实现了一遍（`CategoryGroup`）——属"平行副本"，违反"不重造"（原实现者的理由是"反向 import 会形成循环依赖"，但那只说明**组件放错了模块**） | 把 `Collapsible` / `PanelShell` **上移到共享模块 `components.tsx`** 并导出；`index.tsx` 与 `settings.tsx` 都从 `./components` 引用 → **既无重复、也无环**。`settings.tsx` 的 `SettingsShell` 退化为薄封装、`CategoryGroup` 退化为 `Collapsible` 的头部计数封装、6 个因删除副本而失效的 import 一并清掉（eslint 零告警）。两者**行为逐字未变**（含 `PanelShell.onRefresh` 与 `Collapsible.defaultOpen`，新增可选参 `forceOpen` 默认 `false`，既有 7 处调用零影响） |
 
 **另有一处必须如实说明的"假绿"**：把 `untraceable_scan()` 跑在本响应上会得到 `ok=True`，但那是**空扫**——`schema.OPAQUE_PREFIXES` 含 `items` 前缀（本响应的数值几乎都在 `items` 的声明默认值里），且 `counts` 全是整数（扫描器只认裸 0..1 浮点），故实测 `checked=0`：
 
@@ -298,7 +299,11 @@ POST …/confirm {"pending_id":"…","second_factor":"<第二位人工的凭据>
 untraceable_scan(payload) → {'ok': True, 'checked': 0, 'violations': []}
 ```
 
-即 `ok=True` 表示"没检查"而非"已通过"。为防止后人把空扫当成合规证据，用例 `test_untraceable_scan_is_a_vacuous_pass_here` **显式断言 `checked == 0`** 并把上述理由写在用例里——一旦将来扫描范围变化（`checked != 0`），该用例会失败并提示"要么把数值纳入 `metric()` 信封，要么修正结论"。**真正的守护**是 5.6 表格里的两条修正 + 条目级溯源（`test_every_item_declares_its_owner_module` 断言 300+ 条条目的 `owner_module` 必须指向真实存在的文件）。
+即 `ok=True` 表示"没检查"而非"已通过"。为防止后人把空扫当成合规证据，用例 `test_untraceable_scan_is_a_vacuous_pass_here` **显式断言 `checked == 0`** 并把上述理由写在用例里——一旦将来扫描范围变化（`checked != 0`），该用例会失败并提示"要么把数值纳入 `metric()` 信封，要么修正结论"。**真正的守护**是 5.6 表格里的三条修正 + 条目级溯源（`test_every_item_declares_its_owner_module` 断言 300+ 条条目的 `owner_module` 必须指向真实存在的文件）。
+
+**一并核查过、结论是"没有漂移"的两项**（前端侦察提示的风险点）：
+- `build:flask` 的第三步会 `cpSync(dist/plugins → static/plugins)`，而 `static/plugins/demo-ui.js` **是被 git 跟踪的**——本该有污染风险。实测：三次构建后 `git status` 里**从未出现** `static/`，该文件内容与 HEAD 一致（`git log -- static/plugins/demo-ui.js` 只有一条无关的历史提交）。风险未发生，但**每次构建后都必须看一眼 `git status`** 这条纪律保留。
+- `SwitchField.tsx` 的主色依赖 `--mascot-*` CSS 变量，而这些变量只在无人 import 的 `src/styles/theme.css` 里定义（工作台里等于未定义）。前端实现在开关中心容器上补了局部兜底变量，开关能正常渲染；**根因未修**（属 S6-01 前端遗留，见 §七.10）。
 
 ---
 
