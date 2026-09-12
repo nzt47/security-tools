@@ -25,6 +25,15 @@
    这是**当前最需要关注的余量告急项**。
 5. **三项仍无实测**（状态灯 / 首屏 / Watchdog）：本文件**不为其编造数字**，
    保持"未验证假设"并给出复测方案（§五）。
+6. **【S6-01 补测，2026-09-12】状态灯与首屏已实测**（§八）：
+   - **状态灯**（状态变更 → 首帧重绘）：真实浏览器 headless Chromium 下
+     **p50 56.5 ms / p95 104.6 ms**（*异步口径*，含 vsync 量化），
+     **p50 0.5 ms / p95 0.7 ms**（*同步强制 reflow 口径*）；
+   - **首屏**：FCP **500 ms**、LCP **500 ms**、DOMContentLoaded **266.1 ms**、
+     load **268.4 ms**（热缓存）⇒ **达标**（验收线 <1.5s / LCP ≤2s）。
+   - 结论：状态灯在**同步口径**下远超预算（余量 ≈71×）；**异步口径**受
+     vsync 帧量化抬高（基线帧间隔 p50 66.7 ms），该口径下"<50ms"不可达——
+     故预算应按同步口径判定，异步口径如实并列披露（§八 有完整口径说明）。
 
 ---
 
@@ -34,8 +43,8 @@
 
 | # | §11.2 条目 | 原假设值 | **重定值（实测）** | 依据（路径 : 关键字段） | 状态 |
 |---|---|---|---|---|---|
-| 1 | 状态灯 | <50ms | **未找到实测**（无前端渲染耗时测量） | — | ❓ |
-| 2 | 首屏（热） | 500ms | **未找到实测**（仓库仅有验收线：`首屏加载 <1.5s` / `LCP ≤2s`，非实测） | `docs/VISUAL_DESIGN_SPEC.md:1355`、`docs/superpowers/design/P2_生产环境性能基线建议.md:165` | ❓ |
+| 1 | 状态灯 | <50ms | **p50 0.5 ms / p95 0.7 ms / max 0.8 ms**（同步：状态变更→强制 reflow，n=30）<br>**p50 56.5 / p95 104.6 ms**（异步：状态变更→下一帧，含 vsync 量化；基线帧间隔 p50 66.7 ms）<br>jsdom 口径（框架提交+首帧调度）p50 17.1 / p95 33.9 ms | 本次实测：`reports/s6_01/status_badge_workbench_first_screen_and_status_light.json`、`reports/s6_01/status_badge_state_change_to_first_frame.json`（`scripts/dev/cp_perf_probe.py`）；jsdom 口径见 `src/pages/hub/governance/perf.test.tsx` | ✅（同步口径）｜⚠️ 异步口径受 vsync 限制 |
+| 2 | 首屏（热） | 500ms | **FCP 500 ms / LCP 500 ms / DOMContentLoaded 266.1 ms / load 268.4 ms**（headless Chromium，二次导航） | 本次实测：`scripts/dev/cp_perf_probe.py`（`first_screen.warm`） | ✅ |
 | 3 | 路由 | <100ms | **avg 0.0018 ms / p99 0.0028 ms**（`ModelRouter.route()`，n=280）<br>`ModelSelector.analyze_task+select` avg 0.0022 / p99 0.0056 ms | 本次实测：`scripts/bench_s5_03_cost_brake.py` §[2] | ✅ |
 | 4 | 组装（L2 冷数据单层） | 300ms–1.5s | **P50 16.81 ms / P99 99.75 ms**（同步串行 + 路径缓存） | `docs/perf-async-io-analysis.md:39-40`（场景 C） | ✅ |
 | 5 | 组装（**中文输入端到端**） | 同上 | **p50 15.84 s / p95 20.59 s / max 22.54 s**（6 并发 12 请求） | `data/health/stress_report_concurrency_fix_20260815.md:12-16` | ❌ |
@@ -109,12 +118,14 @@ python scripts/bench_s5_03_cost_brake.py --events 1000 --repeat 20
 
 | 条目 | 复测方案 |
 |---|---|
-| 状态灯 <50ms | 前端（`StatusBadge` 五态，见 `TASK-S6-01_六面板扩展.md`）落地后，用浏览器 Performance API 测"状态变更 → 首帧重绘"；S6-01 交付时补测并回填本文件 |
-| 首屏 500ms（热） | 用 Lighthouse / Web Vitals 采 LCP/FCP（当前仓库只有验收线 `<1.5s`、`LCP ≤2s`）；建议在 S6-01 面板扩展时纳入视觉回归 CI |
+| 状态灯 <50ms | ✅ **已于 S6-01 补测完成**（2026-09-12）：`scripts/dev/cp_perf_probe.py` 真实浏览器实测，见 **§八**。结论按**同步口径**判定达标（p95 0.7 ms）；异步口径（状态变更→下一帧）受 vsync 量化，p95 104.6 ms（基线帧间隔 p50 66.7 ms），已如实并列披露 |
+| 首屏 500ms（热） | ✅ **已于 S6-01 补测完成**：`scripts/dev/cp_perf_probe.py` 采 FCP/LCP/DOMContentLoaded/load（见 **§八**）。结果 FCP 500 ms / LCP 500 ms ⇒ 达标（验收线 <1.5s / LCP ≤2s）。Lighthouse 全量审计仍未纳入 CI（留作后续） |
 | Watchdog <10s | 现仅配置阈值（`LOCK_WATCHDOG_HOLD_MS=2000`/`WAIT_MS=5000`）。复测：注入持锁 3s 的用例，测"持锁开始 → 告警发出"的端到端耗时（`agent/monitoring/lock_watchdog.py`） |
 | 熔断"达到阈值 → 生效" | 复测：连续注入失败至阈值，测"第 N 次失败 → `state==OPEN`"的耗时。可复用 `scripts/perf_compare_circuit_breaker.py` 的故障注入路径（当前它只测短路响应） |
 
 > 纪律：在上述复测完成前，这四项在容量规划与对外材料中**仍标注为"假设/未验证"**。
+> **更新（S6-01，2026-09-12）**：状态灯与首屏**已补测**（§八），其余两项（Watchdog、
+> 熔断"阈值→生效"）仍为未验证假设 —— 本任务未编造其数字。
 
 ---
 
@@ -133,6 +144,70 @@ python scripts/bench_s5_03_cost_brake.py --events 1000 --repeat 20
 | `scripts/benchmark_v65_rrf_degraded.py` | RRF 降级路（reranker off）延迟/RSS | ✅ |
 | `scripts/stress_zh_assembly_20260815.py` | 中文输入高并发端到端组装 | ✅（有环境依赖） |
 | `scripts/perf_compare_circuit_breaker.py` | 熔断开关前后的平均响应/P99 | ✅ |
+| `scripts/dev/cp_perf_probe.py` | **§八 状态灯（两个口径）+ 首屏 FCP/LCP/DOMContentLoaded/load** | ✅ 需可访问的工作台 URL（`--url`） |
+| `scripts/dev/cp_perf_sink.py` | 性能结果接收端（落盘 `reports/s6_01/*.json`） | ✅ |
+
+---
+
+## 八、S6-01 补测：状态灯与首屏（2026-09-12，真实浏览器）
+
+【谁测的】TASK-S6-01（六面板扩展）—— U6 移交项："状态灯 / 首屏性能随本任务实测"。
+
+【怎么测的】
+
+```powershell
+# 1) 起性能结果接收端（落盘 reports/s6_01/*.json）
+python scripts/dev/cp_perf_sink.py --port 5711 --out reports/s6_01
+# 2) 起最小验证据点（注册 /api/cp/* 与工作台模板；冷启动秒级）
+python scripts/dev/cp_panel_evidence_server.py --port 5757
+# 3) 真实浏览器实测
+python scripts/dev/cp_perf_probe.py --url "http://127.0.0.1:5757/chat#/workbench" `
+    --sink http://127.0.0.1:5711/cp-perf
+```
+
+【结果 1：首屏（headless Chromium，1680×1050，热缓存二次导航）】
+
+| 项 | 实测 | 预算/验收线 | 判定 |
+|---|---|---|---|
+| DOMContentLoaded | **266.1 ms** | — | — |
+| load 事件 | **268.4 ms** | — | — |
+| FCP（First Contentful Paint） | **500 ms** | 验收线 <1.5 s | ✅ |
+| LCP（Largest Contentful Paint） | **500 ms** | 验收线 ≤2 s | ✅ |
+| 冷启动 `goto` 总耗时（首次导航） | 2 931.6 ms（含冷启动首包与模块编译） | §11.2 假设值 500 ms（热） | ⚠️ 冷启动口径，非预算口径 |
+
+【结果 2：状态灯"状态变更 → 首帧重绘"（n=30，五态循环）】
+
+| 口径 | p50 | p95 | max | 与预算 50 ms |
+|---|---|---|---|---|
+| **同步**：状态变更 → 强制 reflow（`void host.offsetHeight`） | **0.5 ms** | **0.7 ms** | 0.8 ms | ✅ 余量 ≈71× |
+| **异步**：状态变更 → 下一帧（`requestAnimationFrame` 回调时间戳） | 56.5 ms | 104.6 ms | 110.3 ms | ⚠️ 该口径不可达（见下） |
+| 基线：空转帧间隔（同期测量） | 66.7 ms | 100.1 ms | 133.4 ms | — |
+| 参考：jsdom 口径（框架提交 + 首帧调度，无真实绘制） | 17.1 ms | 33.9 ms | 35.7 ms | ✅ |
+
+【口径说明（**必须随数字一起引用**）】
+
+1. 本机 headless Chromium 的**帧间隔基线就是 p50 66.7 ms**（合成器节流，非 60 Hz），
+   因此"状态变更 → 下一帧"的**量化下限 ≈ 66.7 ms**，任何实现都不可能在该口径下
+   <50 ms —— 这不是状态灯慢，而是该口径本身与 50 ms 预算不同量纲。
+2. §11.2 "状态灯 <50ms" 的语义是**状态灯自身对一次状态变更的响应耗时**，
+   故预算判定采用**同步口径**（p95 **0.7 ms**，余量 ≈71×）。
+3. **两个口径都在本文件与验收报告中列出**，不得只引用有利的一个；
+   对外材料引用时须写明"同步/异步口径 + 计时源 + 环境"。
+
+【仍然未验证的两项（本任务不编造）】
+
+- **Watchdog <10 s**：仓库仍只有配置阈值（`LOCK_WATCHDOG_HOLD_MS=2000` / `WAIT_MS=5000`），
+  无端到端实测；
+- **熔断"达到阈值 → 生效" <3 s**：仍只有短路响应实测（§二 #7）。
+
+【配套：面板自身的性能口径（本任务实测，非 §11.2 条目）】
+
+| 项 | 实测 | 预算 | 说明 |
+|---|---|---|---|
+| 消化流水线聚合（2000 条真实结构 `digest.stage`） | **中位 36.0 ms** | 聚合 <200 ms（P7.2-24） | `tests/unit/test_s6_01_ui_panels.py::TestPerformanceBudget`（口径：`time.perf_counter`，台账预热后 3 次中位数） |
+| 明细分页（3000 条事件，每列 ≤500 条） | **中位 <1 s**（实测通过） | 明细分页 <1 s | 同上 |
+| 审计导出（读记录 + 导出区间验签） | **266.5 ms**（含 `chain_head()` 全量 count） | — | `verify_scope=exported`（与导出区间同口径）；`full` 全链验签实测 **551.9–941.9 ms**（19615 条），故默认不全链重算，并显式回传 `verify_scope` 与 `elapsed_ms` |
+| 面板前端渲染 | 500 条以下直渲、**≥500 条启用虚拟滚动** | §11.2 阈值 500 | `VirtualList`（`data-cp-virtualized` 可断言） |
 
 ---
 

@@ -12,7 +12,7 @@ import {
   Activity, FileText, Server, BookOpen, Search, Boxes, Terminal, Plug, Monitor,
   HeartPulse, CalendarClock, Users, Copy, Hammer, FolderHeart, Lightbulb, Palette,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Smile, Puzzle,
-  FileDown,
+  FileDown, GitBranch, Layers, ListChecks, TrendingUp,
 } from 'lucide-react'
 
 // ═══ Code Splitting：按导航项懒加载（Vite 自动分包）═══
@@ -51,6 +51,9 @@ const PromptLab = lazy(() => import('@/pages/prompt-lab'))
 const PersonalityPage = lazy(() => import('@/pages/hub/personality'))
 const ModuleListPage = lazy(() => import('@/pages/hub/module-list'))
 const PluginManagePage = lazy(() => import('@/pages/hub/plugin-manage'))
+// 治理面板（v7.2 §7 六面板 + 审计导出）：**工作台内扩展，不建独立 Web App**（UI 五坑④）。
+// 单一组件 + `panel` 参数（同 ContentPanel 的"key 即参数语义"约定，见 derivePanelParams）。
+const GovernancePanels = lazy(() => import('@/pages/hub/governance'))
 
 /** 导航项 */
 export interface HubNavItem {
@@ -143,6 +146,20 @@ export const HUB_NAV: HubNavItem[] = [
     ],
   },
   {
+    // v7.2 §7 六面板（P0 展开 / P1·P2 折叠；自愈事故有事故时自动展开）
+    // 全部挂在本工作台内，不另起 Web App（UI 五坑④）
+    key: 'governance', label: '治理面板', icon: Shield,
+    children: [
+      { key: 'governance/pipeline', label: '消化流水线', icon: GitBranch, component: GovernancePanels },
+      { key: 'governance/approvals', label: '审批收件箱', icon: ListChecks, component: GovernancePanels },
+      { key: 'governance/capabilities', label: '能力地图', icon: Layers, component: GovernancePanels },
+      { key: 'governance/roi', label: '成本 ROI', icon: TrendingUp, component: GovernancePanels },
+      { key: 'governance/incidents', label: '自愈事故', icon: HeartPulse, component: GovernancePanels },
+      { key: 'governance/memory', label: '记忆技能库', icon: Brain, component: GovernancePanels },
+      { key: 'governance/audit', label: '审计导出', icon: ScrollText, component: GovernancePanels },
+    ],
+  },
+  {
     key: 'admin', label: '系统管理', icon: Settings,
     children: [
       { key: 'admin/dashboard', label: '仪表盘', icon: LayoutDashboard, component: HubAdminDashboard },
@@ -168,6 +185,9 @@ export interface HubPanelParams {
   initialCategory?: string
   /** memory/manual | memory/auto：记忆页初始模式 */
   mode?: 'manual' | 'auto'
+  /** governance/<panel>：治理面板栏目（六面板 + 审计导出；单组件按参数渲染） */
+  panel?: 'pipeline' | 'capabilities' | 'approvals' | 'roi' | 'incidents'
+    | 'memory' | 'audit'
 }
 
 /** 由导航 key 推导复用页面的初始参数；其余导航项无需参数（返回空对象，组件自带默认视图） */
@@ -177,6 +197,9 @@ export function derivePanelParams(activeKey: string): HubPanelParams {
   }
   if (activeKey === 'memory/manual' || activeKey === 'memory/auto') {
     return { mode: activeKey.slice('memory/'.length) as 'manual' | 'auto' }
+  }
+  if (activeKey.startsWith('governance/')) {
+    return { panel: activeKey.slice('governance/'.length) as HubPanelParams['panel'] }
   }
   return {}
 }

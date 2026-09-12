@@ -384,25 +384,62 @@ def _pseudo_decision(session: Any, reason: str) -> Any:
 
 
 def _do_decision(record_id: str, *, approve: bool) -> Any:
-    """审批动作的完整安全链（会话 → CSRF → 链接 → 二次认证 → 矩阵）"""
+    """审批动作的 HTTP 包装（**对外行为与升级前逐字一致**）
+
+    自 TASK-S6-01 起，安全链主体抽到 `_do_decision_with`，以便「审批收件箱」的
+    **批量裁决**逐条复用**同一条**链路（会话 → CSRF → 链接 → 二次认证 → 矩阵）。
+    本函数仍独占 HTTP 层职责：读请求、写 Cookie、决定状态码。
+    """
+    body = request.get_json(silent=True) or {}
+    payload, status, redeemed = _do_decision_with(
+        record_id, approve=approve,
+        note=str(body.get("note", "") or body.get("reason", "") or ""),
+        second_factor=str(body.get("second_factor", "") or ""),
+        link_token=str(body.get("link_token", "") or "") or str(
+            request.cookies.get(LINK_COOKIE_NAME, "") or ""),
+        redeem=True)
+    response = make_response(jsonify(payload), int(status))
+    if redeemed:
+        response.delete_cookie(LINK_COOKIE_NAME)
+    return response
+
+
+def _do_decision_with(record_id: str, *, approve: bool, note: str = "",
+                      second_factor: str = "", link_token: str = "",
+                      redeem: bool = True) -> Tuple[Dict[str, Any], int, bool]:
+    """审批安全链（**唯一实现**；单条端点与批量裁决共用）
+
+    顺序即安全边界（与 TASK-S4-01 交付时逐字一致）：
+        会话 → CSRF 双重提交 → 一次性链接（会话绑定 + record 绑定 + ≤900s）
+        → destructive 二次认证 → §7.0 Actor 矩阵 → 审批状态机。
+
+    Args:
+        record_id: 审批记录 id。
+        approve: True=批准，False=驳回（驳回必须给 note，否则 400）。
+        note: 备注 / 驳回理由。
+        second_factor: 二次认证确认码（destructive 必填）。
+        link_token: 一次性审批链接 token；空则退化为读 Cookie（单条路径行为）。
+        redeem: 成功后是否核销链接（单条路径恒 True；批量逐条核销）。
+
+    Returns:
+        ``(json_body, http_status, redeemed)``——**不构造 Flask 响应、不写 Cookie**；
+        这两个 HTTP 层副作用留给调用方，从而单条与批量共用同一判定实现。
+    """
     store = session_mod.get_session_store()
     session_id = _session_id()
     session = store.get_session(session_id)
     if session is None:
-        return _error(session_mod.CHECK_SESSION_UNKNOWN,
-                      "审批会话不存在或已过期（请重新开启会话并重新发起审批）", 401)
+        _resp, status = _error(session_mod.CHECK_SESSION_UNKNOWN,
+                               "审批会话不存在或已过期（请重新开启会话并重新发起审批）",
+                               401)
+        return _resp.get_json(), status, False
 
     csrf = store.verify_csrf(session_id, _csrf_header())
     if not csrf.ok:
         guard_mod.report_denial(_pseudo_decision(session, csrf.message),
                                 actor_ctx=_actor_ctx(session_id), source="ui")
-        return _error(csrf.code, csrf.message, 403)
-
-    body = request.get_json(silent=True) or {}
-    link_token = str(body.get("link_token", "") or "") or str(
-        request.cookies.get(LINK_COOKIE_NAME, "") or "")
-    note = str(body.get("note", "") or body.get("reason", "") or "")
-    second_factor = str(body.get("second_factor", "") or "")
+        _resp, status = _error(csrf.code, csrf.message, 403)
+        return _resp.get_json(), status, False
 
     check = store.check_link(link_token, session_id=session_id, record_id=record_id)
     if not check.ok:
@@ -411,24 +448,27 @@ def _do_decision(record_id: str, *, approve: bool) -> Any:
                                 record_id=record_id, source="ui")
         status = 401 if check.code in (session_mod.CHECK_SESSION_EXPIRED,
                                        session_mod.CHECK_UNKNOWN) else 403
-        return _error(check.code, check.message, status,
-                      requires_second_factor=check.requires_second_factor)
+        _resp, _ = _error(check.code, check.message, status,
+                          requires_second_factor=check.requires_second_factor)
+        return _resp.get_json(), status, False
 
     second_factor_ok = False
     if check.requires_second_factor:
         verify = store.verify_second_factor(
             session_id=session_id, record_id=record_id, code=second_factor)
         if not verify.ok:
-            return _error(verify.code, verify.message, 403,
-                          requires_second_factor=True)
+            _resp, status = _error(verify.code, verify.message, 403,
+                                   requires_second_factor=True)
+            return _resp.get_json(), status, False
         second_factor_ok = True
 
     actor_ctx = _actor_ctx(session_id)
     if _require_authoritative() and actor_ctx.degraded:
-        return _error("identity_degraded",
-                      "当前身份为降级来源（未命中令牌映射表），"
-                      "已配置为禁止其执行审批", 403,
-                      identity_source=actor_ctx.identity_source)
+        _resp, status = _error("identity_degraded",
+                               "当前身份为降级来源（未命中令牌映射表），"
+                               "已配置为禁止其执行审批", 403,
+                               identity_source=actor_ctx.identity_source)
+        return _resp.get_json(), status, False
 
     flow = get_approval_flow()
     try:
@@ -437,8 +477,10 @@ def _do_decision(record_id: str, *, approve: bool) -> Any:
                                   actor_ctx=actor_ctx,
                                   second_factor_ok=second_factor_ok)
         else:
-            if not note.strip():
-                return _error("reason_required", "驳回必须提供 reason（审计要求）", 400)
+            if not str(note or "").strip():
+                _resp, status = _error("reason_required",
+                                       "驳回必须提供 reason（审计要求）", 400)
+                return _resp.get_json(), status, False
             record = flow.reject(record_id, actor=actor_ctx.actor, reason=note,
                                  actor_ctx=actor_ctx,
                                  second_factor_ok=second_factor_ok)
@@ -448,13 +490,18 @@ def _do_decision(record_id: str, *, approve: bool) -> Any:
         status = 403 if decision is not None else 409
         logger.warning("[ApprovalRoutes] 审批动作失败 record=%s type=%s: %s",
                        record_id, name, e)
-        return _error("approval_denied" if decision is not None else "approval_failed",
-                      str(e), status, decision=_public_decision(decision))
+        _resp, _ = _error("approval_denied" if decision is not None
+                          else "approval_failed", str(e), status,
+                          decision=_public_decision(decision))
+        return _resp.get_json(), status, False
 
-    store.redeem_link(link_token, session_id=session_id, record_id=record_id)
+    redeemed = False
+    if redeem:
+        store.redeem_link(link_token, session_id=session_id, record_id=record_id)
+        redeemed = True
     logger.info("[ApprovalRoutes] 审批动作完成 record=%s state=%s actor=%s",
                 record_id, record.state, actor_ctx.actor)
-    response = make_response(jsonify({
+    return {
         "ok": True,
         "record": {
             "record_id": record.record_id, "state": record.state,
@@ -467,9 +514,7 @@ def _do_decision(record_id: str, *, approve: bool) -> Any:
         },
         "second_factor_ok": bool(second_factor_ok),
         "pii": record.pii_fields(),   # 只含掩码/HMAC，**原始 IP 不在其中**
-    }))
-    response.delete_cookie(LINK_COOKIE_NAME)
-    return response
+    }, 200, redeemed
 
 
 __all__ = [
