@@ -1,5 +1,5 @@
 {
-  "trace_id": "666e8bedb7df4479",
+  "trace_id": "a8fa1160cd1e4b45",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -335,7 +335,7 @@
       "name": "model_degrade",
       "layer": "observability",
       "file_path": "",
-      "in_degree": 1,
+      "in_degree": 2,
       "out_degree": 2
     },
     {
@@ -351,7 +351,7 @@
       "name": "acr",
       "layer": "observability",
       "file_path": "",
-      "in_degree": 3,
+      "in_degree": 5,
       "out_degree": 2
     },
     {
@@ -591,7 +591,7 @@
       "name": "disaster_recovery",
       "layer": "core",
       "file_path": "agent/disaster_recovery.py",
-      "in_degree": 1,
+      "in_degree": 2,
       "out_degree": 1
     },
     {
@@ -599,7 +599,7 @@
       "name": "server_auth",
       "layer": "core",
       "file_path": "agent/server_auth.py",
-      "in_degree": 25,
+      "in_degree": 26,
       "out_degree": 2
     },
     {
@@ -679,7 +679,7 @@
       "name": "events",
       "layer": "observability",
       "file_path": "",
-      "in_degree": 22,
+      "in_degree": 26,
       "out_degree": 4
     },
     {
@@ -943,7 +943,7 @@
       "name": "escape",
       "layer": "observability",
       "file_path": "",
-      "in_degree": 2,
+      "in_degree": 3,
       "out_degree": 3
     },
     {
@@ -1023,7 +1023,7 @@
       "name": "security",
       "layer": "security",
       "file_path": "",
-      "in_degree": 3,
+      "in_degree": 9,
       "out_degree": 6
     },
     {
@@ -1047,7 +1047,7 @@
       "name": "facade",
       "layer": "audit",
       "file_path": "",
-      "in_degree": 30,
+      "in_degree": 31,
       "out_degree": 2
     },
     {
@@ -1071,7 +1071,7 @@
       "name": "injection_defense",
       "layer": "guardrails",
       "file_path": "agent/guardrails/injection_defense.py",
-      "in_degree": 1,
+      "in_degree": 2,
       "out_degree": 11
     },
     {
@@ -1079,7 +1079,7 @@
       "name": "boundary_words",
       "layer": "guardrails",
       "file_path": "",
-      "in_degree": 2,
+      "in_degree": 4,
       "out_degree": 3
     },
     {
@@ -1095,7 +1095,7 @@
       "name": "safe_render",
       "layer": "guardrails",
       "file_path": "",
-      "in_degree": 1,
+      "in_degree": 2,
       "out_degree": 1
     },
     {
@@ -1119,7 +1119,7 @@
       "name": "levels",
       "layer": "self_healing",
       "file_path": "",
-      "in_degree": 3,
+      "in_degree": 5,
       "out_degree": 4
     },
     {
@@ -1527,7 +1527,7 @@
       "name": "utc",
       "layer": "observability",
       "file_path": "agent/observability/utc.py",
-      "in_degree": 1,
+      "in_degree": 3,
       "out_degree": 4
     },
     {
@@ -1567,7 +1567,7 @@
       "name": "registry",
       "layer": "descriptors",
       "file_path": "",
-      "in_degree": 11,
+      "in_degree": 14,
       "out_degree": 1
     },
     {
@@ -1647,7 +1647,7 @@
       "name": "shadow",
       "layer": "digestion",
       "file_path": "agent/digestion/shadow.py",
-      "in_degree": 2,
+      "in_degree": 4,
       "out_degree": 4
     },
     {
@@ -1655,7 +1655,7 @@
       "name": "cost_brake",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 3,
+      "in_degree": 6,
       "out_degree": 3
     },
     {
@@ -1735,7 +1735,7 @@
       "name": "internalize",
       "layer": "digestion",
       "file_path": "agent/digestion/internalize.py",
-      "in_degree": 0,
+      "in_degree": 1,
       "out_degree": 10
     },
     {
@@ -1935,7 +1935,7 @@
       "name": "actor_matrix",
       "layer": "security",
       "file_path": "",
-      "in_degree": 8,
+      "in_degree": 9,
       "out_degree": 0
     },
     {
@@ -2659,6 +2659,78 @@
       "out_degree": 2
     },
     {
+      "path": "agent.ui_panels.data",
+      "name": "data",
+      "layer": "ui_panels",
+      "file_path": "agent/ui_panels/data.py",
+      "in_degree": 0,
+      "out_degree": 30
+    },
+    {
+      "path": "agent.ui_panels.schema",
+      "name": "schema",
+      "layer": "ui_panels",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 1
+    },
+    {
+      "path": "agent.security.alerts",
+      "name": "alerts",
+      "layer": "security",
+      "file_path": "",
+      "in_degree": 3,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.memory.taxonomy",
+      "name": "taxonomy",
+      "layer": "memory",
+      "file_path": "",
+      "in_degree": 5,
+      "out_degree": 2
+    },
+    {
+      "path": "agent.memory.layered_store",
+      "name": "layered_store",
+      "layer": "memory",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 7
+    },
+    {
+      "path": "agent.server_routes.routes_approval",
+      "name": "routes_approval",
+      "layer": "server_routes",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 8
+    },
+    {
+      "path": "agent.security.governance_bridge",
+      "name": "governance_bridge",
+      "layer": "security",
+      "file_path": "",
+      "in_degree": 5,
+      "out_degree": 2
+    },
+    {
+      "path": "agent.eval.metrics",
+      "name": "metrics",
+      "layer": "eval",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 6
+    },
+    {
+      "path": "agent.audit.chain",
+      "name": "chain",
+      "layer": "audit",
+      "file_path": "",
+      "in_degree": 6,
+      "out_degree": 0
+    },
+    {
       "path": "agent.preflight",
       "name": "preflight",
       "layer": "preflight",
@@ -2771,14 +2843,6 @@
       "out_degree": 2
     },
     {
-      "path": "agent.memory.taxonomy",
-      "name": "taxonomy",
-      "layer": "memory",
-      "file_path": "",
-      "in_degree": 4,
-      "out_degree": 2
-    },
-    {
       "path": "agent.memory.tenancy",
       "name": "tenancy",
       "layer": "memory",
@@ -2809,14 +2873,6 @@
       "file_path": "",
       "in_degree": 1,
       "out_degree": 2
-    },
-    {
-      "path": "agent.memory.layered_store",
-      "name": "layered_store",
-      "layer": "memory",
-      "file_path": "",
-      "in_degree": 1,
-      "out_degree": 7
     },
     {
       "path": "agent.memory.context_assembler",
@@ -3115,14 +3171,6 @@
       "out_degree": 1
     },
     {
-      "path": "agent.security.governance_bridge",
-      "name": "governance_bridge",
-      "layer": "security",
-      "file_path": "",
-      "in_degree": 3,
-      "out_degree": 2
-    },
-    {
       "path": "agent.skills_mgmt.few_shot_injector",
       "name": "few_shot_injector",
       "layer": "skills_mgmt",
@@ -3307,14 +3355,6 @@
       "out_degree": 5
     },
     {
-      "path": "agent.audit.chain",
-      "name": "chain",
-      "layer": "audit",
-      "file_path": "",
-      "in_degree": 5,
-      "out_degree": 0
-    },
-    {
       "path": "agent.audit.migration",
       "name": "migration",
       "layer": "audit",
@@ -3395,14 +3435,6 @@
       "out_degree": 2
     },
     {
-      "path": "agent.eval.metrics",
-      "name": "metrics",
-      "layer": "eval",
-      "file_path": "agent/eval/metrics.py",
-      "in_degree": 1,
-      "out_degree": 6
-    },
-    {
       "path": "agent.eval.baseline",
       "name": "baseline",
       "layer": "eval",
@@ -3417,14 +3449,6 @@
       "file_path": "agent/eval/calibration.py",
       "in_degree": 0,
       "out_degree": 3
-    },
-    {
-      "path": "agent.security.alerts",
-      "name": "alerts",
-      "layer": "security",
-      "file_path": "",
-      "in_degree": 2,
-      "out_degree": 0
     },
     {
       "path": "agent.security.approval_session",
@@ -3449,14 +3473,6 @@
       "file_path": "",
       "in_degree": 22,
       "out_degree": 2
-    },
-    {
-      "path": "agent.server_routes.routes_approval",
-      "name": "routes_approval",
-      "layer": "server_routes",
-      "file_path": "agent/server_routes/routes_approval.py",
-      "in_degree": 0,
-      "out_degree": 8
     },
     {
       "path": "agent.server_routes.routes_dashboard",
@@ -3606,6 +3622,46 @@
       "path": "agent.server_ui",
       "name": "server_ui",
       "layer": "core",
+      "file_path": "",
+      "in_degree": 2,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.server_routes.routes_ui_panels",
+      "name": "routes_ui_panels",
+      "layer": "server_routes",
+      "file_path": "agent/server_routes/routes_ui_panels.py",
+      "in_degree": 0,
+      "out_degree": 19
+    },
+    {
+      "path": "agent.ui_panels",
+      "name": "ui_panels",
+      "layer": "ui_panels",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.self_healing",
+      "name": "self_healing",
+      "layer": "self_healing",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.guardrails",
+      "name": "guardrails",
+      "layer": "guardrails",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 0
+    },
+    {
+      "path": "agent.server_routes",
+      "name": "server_routes",
+      "layer": "server_routes",
       "file_path": "",
       "in_degree": 2,
       "out_degree": 0
@@ -14395,6 +14451,409 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.ui_panels.data",
+      "target": "agent.ui_panels.schema",
+      "source_layer": "ui_panels",
+      "target_layer": "ui_panels",
+      "import_type": "from_import",
+      "line": 32,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.security",
+      "source_layer": "ui_panels",
+      "target_layer": "security",
+      "import_type": "from_import",
+      "line": 608,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.observability.events",
+      "source_layer": "ui_panels",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 111,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.digestion.shadow",
+      "source_layer": "ui_panels",
+      "target_layer": "digestion",
+      "import_type": "from_import",
+      "line": 152,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.digestion.internalize",
+      "source_layer": "ui_panels",
+      "target_layer": "digestion",
+      "import_type": "from_import",
+      "line": 167,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.digestion.shadow",
+      "source_layer": "ui_panels",
+      "target_layer": "digestion",
+      "import_type": "from_import",
+      "line": 190,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.security.alerts",
+      "source_layer": "ui_panels",
+      "target_layer": "security",
+      "import_type": "from_import",
+      "line": 717,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.observability.events",
+      "source_layer": "ui_panels",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 728,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.monitoring.cost_brake",
+      "source_layer": "ui_panels",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 806,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.observability.utc",
+      "source_layer": "ui_panels",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 860,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.monitoring.cost_brake",
+      "source_layer": "ui_panels",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 877,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.observability.acr",
+      "source_layer": "ui_panels",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 929,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.observability.acr",
+      "source_layer": "ui_panels",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 964,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.observability.utc",
+      "source_layer": "ui_panels",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 969,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.observability.model_degrade",
+      "source_layer": "ui_panels",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 974,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.observability.escape",
+      "source_layer": "ui_panels",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 991,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.self_healing.levels",
+      "source_layer": "ui_panels",
+      "target_layer": "self_healing",
+      "import_type": "from_import",
+      "line": 1024,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.observability.events",
+      "source_layer": "ui_panels",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 1059,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.disaster_recovery",
+      "source_layer": "ui_panels",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 1110,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.memory.taxonomy",
+      "source_layer": "ui_panels",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 1166,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.memory.layered_store",
+      "source_layer": "ui_panels",
+      "target_layer": "memory",
+      "import_type": "from_import",
+      "line": 1183,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.guardrails.safe_render",
+      "source_layer": "ui_panels",
+      "target_layer": "guardrails",
+      "import_type": "from_import",
+      "line": 1383,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.guardrails.boundary_words",
+      "source_layer": "ui_panels",
+      "target_layer": "guardrails",
+      "import_type": "from_import",
+      "line": 1388,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.guardrails.injection_defense",
+      "source_layer": "ui_panels",
+      "target_layer": "guardrails",
+      "import_type": "from_import",
+      "line": 1393,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.descriptors.registry",
+      "source_layer": "ui_panels",
+      "target_layer": "descriptors",
+      "import_type": "from_import",
+      "line": 386,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.descriptors.registry",
+      "source_layer": "ui_panels",
+      "target_layer": "descriptors",
+      "import_type": "from_import",
+      "line": 456,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.server_routes.routes_approval",
+      "source_layer": "ui_panels",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 597,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.security.governance_bridge",
+      "source_layer": "ui_panels",
+      "target_layer": "security",
+      "import_type": "from_import",
+      "line": 621,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.eval.metrics",
+      "source_layer": "ui_panels",
+      "target_layer": "eval",
+      "import_type": "from_import",
+      "line": 913,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.data",
+      "target": "agent.audit.chain",
+      "source_layer": "ui_panels",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 1296,
+      "source_file": "agent/ui_panels/data.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.ui_panels.schema",
+      "target": "agent.monitoring.cost_brake",
+      "source_layer": "ui_panels",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 106,
+      "source_file": "agent/ui_panels/schema.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.context.assembler",
       "target": "agent.guardrails.foreign_taint",
       "source_layer": "context",
@@ -20232,6 +20691,253 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.security",
+      "source_layer": "server_routes",
+      "target_layer": "security",
+      "import_type": "from_import",
+      "line": 41,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.security.actor_matrix",
+      "source_layer": "server_routes",
+      "target_layer": "security",
+      "import_type": "from_import",
+      "line": 42,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.server_auth",
+      "source_layer": "server_routes",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 48,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.ui_panels",
+      "source_layer": "server_routes",
+      "target_layer": "ui_panels",
+      "import_type": "from_import",
+      "line": 149,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.self_healing",
+      "source_layer": "server_routes",
+      "target_layer": "self_healing",
+      "import_type": "from_import",
+      "line": 524,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.self_healing.levels",
+      "source_layer": "server_routes",
+      "target_layer": "self_healing",
+      "import_type": "from_import",
+      "line": 525,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.ui_panels.schema",
+      "source_layer": "server_routes",
+      "target_layer": "ui_panels",
+      "import_type": "from_import",
+      "line": 156,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.guardrails",
+      "source_layer": "server_routes",
+      "target_layer": "guardrails",
+      "import_type": "from_import",
+      "line": 377,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.guardrails.boundary_words",
+      "source_layer": "server_routes",
+      "target_layer": "guardrails",
+      "import_type": "from_import",
+      "line": 462,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.descriptors.registry",
+      "source_layer": "server_routes",
+      "target_layer": "descriptors",
+      "import_type": "from_import",
+      "line": 580,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.security.governance_bridge",
+      "source_layer": "server_routes",
+      "target_layer": "security",
+      "import_type": "from_import",
+      "line": 585,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.observability.events",
+      "source_layer": "server_routes",
+      "target_layer": "observability",
+      "import_type": "from_import",
+      "line": 602,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.audit.facade",
+      "source_layer": "server_routes",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 657,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.security",
+      "source_layer": "server_routes",
+      "target_layer": "security",
+      "import_type": "from_import",
+      "line": 747,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.server_routes",
+      "source_layer": "server_routes",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 748,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.security",
+      "source_layer": "server_routes",
+      "target_layer": "security",
+      "import_type": "from_import",
+      "line": 772,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.security",
+      "source_layer": "server_routes",
+      "target_layer": "security",
+      "import_type": "from_import",
+      "line": 837,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.server_routes",
+      "source_layer": "server_routes",
+      "target_layer": "server_routes",
+      "import_type": "from_import",
+      "line": 838,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.server_routes.routes_ui_panels",
+      "target": "agent.security",
+      "source_layer": "server_routes",
+      "target_layer": "security",
+      "import_type": "from_import",
+      "line": 867,
+      "source_file": "agent/server_routes/routes_ui_panels.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.server_routes.routes_business_dashboard",
       "target": "agent.server_auth",
       "source_layer": "server_routes",
@@ -21195,10 +21901,10 @@
     }
   ],
   "stats": {
-    "total_files": 525,
-    "total_nodes": 463,
-    "total_edges": 1345,
-    "cross_layer_edges": 850,
+    "total_files": 529,
+    "total_nodes": 470,
+    "total_edges": 1395,
+    "cross_layer_edges": 897,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -21223,8 +21929,8 @@
       "cognitive": 13,
       "workflow_engine": 5,
       "web": 5,
-      "guardrails": 12,
-      "self_healing": 4,
+      "guardrails": 13,
+      "self_healing": 5,
       "log_system": 10,
       "common": 1,
       "subagent": 13,
@@ -21241,15 +21947,16 @@
       "knowledge": 26,
       "dao": 1,
       "human_in_the_loop": 5,
+      "ui_panels": 3,
+      "server_routes": 32,
+      "eval": 9,
       "preflight": 3,
       "config": 2,
       "task_planner": 5,
       "feedback_collector": 1,
       "quality": 2,
-      "eval": 9,
-      "server_routes": 30,
       "handoff": 1
     },
-    "build_duration_ms": 2794.073972999996
+    "build_duration_ms": 2851.9207359999828
   }
 }

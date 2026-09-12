@@ -6,7 +6,7 @@ flowchart LR
     classDef crosslayer fill:#fff3cd,stroke:#ffc107,color:#664d03
     subgraph audit [audit]
         agent_audit["agent.audit"]:::crosslayer
-        agent_audit_chain["agent.audit.chain"]
+        agent_audit_chain["agent.audit.chain"]:::crosslayer
         agent_audit_facade["agent.audit.facade"]:::crosslayer
         agent_audit_logger["agent.audit.logger"]
         agent_audit_migration["agent.audit.migration"]
@@ -127,7 +127,7 @@ flowchart LR
         agent_digestion_cleaning["agent.digestion.cleaning"]
         agent_digestion_gate["agent.digestion.gate"]
         agent_digestion_generation["agent.digestion.generation"]
-        agent_digestion_internalize["agent.digestion.internalize"]
+        agent_digestion_internalize["agent.digestion.internalize"]:::crosslayer
         agent_digestion_service["agent.digestion.service"]
         agent_digestion_shadow["agent.digestion.shadow"]:::crosslayer
         agent_digestion_stage["agent.digestion.stage"]
@@ -139,7 +139,7 @@ flowchart LR
         agent_eval_calibration["agent.eval.calibration"]
         agent_eval_cases["agent.eval.cases"]
         agent_eval_checkers["agent.eval.checkers"]
-        agent_eval_metrics["agent.eval.metrics"]
+        agent_eval_metrics["agent.eval.metrics"]:::crosslayer
         agent_eval_runner["agent.eval.runner"]
         agent_eval_solvers["agent.eval.solvers"]
     end
@@ -167,7 +167,8 @@ flowchart LR
         agent_feedback_collector["agent.feedback_collector"]:::crosslayer
     end
     subgraph guardrails [guardrails]
-        agent_guardrails_boundary_words["agent.guardrails.boundary_words"]
+        agent_guardrails["agent.guardrails"]:::crosslayer
+        agent_guardrails_boundary_words["agent.guardrails.boundary_words"]:::crosslayer
         agent_guardrails_capability_exposure["agent.guardrails.capability_exposure"]
         agent_guardrails_egress_chain["agent.guardrails.egress_chain"]
         agent_guardrails_egress_guard["agent.guardrails.egress_guard"]:::crosslayer
@@ -178,7 +179,7 @@ flowchart LR
         agent_guardrails_observability["agent.guardrails.observability"]
         agent_guardrails_output_guard["agent.guardrails.output_guard"]:::crosslayer
         agent_guardrails_output_schema["agent.guardrails.output_schema"]
-        agent_guardrails_safe_render["agent.guardrails.safe_render"]
+        agent_guardrails_safe_render["agent.guardrails.safe_render"]:::crosslayer
     end
     subgraph handoff [handoff]
         agent_handoff_handoff_generator["agent.handoff.handoff_generator"]:::crosslayer
@@ -260,14 +261,14 @@ flowchart LR
         agent_memory_forgetting["agent.memory.forgetting"]
         agent_memory_hotness_scorer["agent.memory.hotness_scorer"]
         agent_memory_identity["agent.memory.identity"]
-        agent_memory_layered_store["agent.memory.layered_store"]
+        agent_memory_layered_store["agent.memory.layered_store"]:::crosslayer
         agent_memory_long_term_memory["agent.memory.long_term_memory"]:::crosslayer
         agent_memory_markdown_syncer["agent.memory.markdown_syncer"]
         agent_memory_observability["agent.memory.observability"]
         agent_memory_reviewer["agent.memory.reviewer"]:::crosslayer
         agent_memory_router["agent.memory.router"]:::crosslayer
         agent_memory_short_term_memory["agent.memory.short_term_memory"]:::crosslayer
-        agent_memory_taxonomy["agent.memory.taxonomy"]
+        agent_memory_taxonomy["agent.memory.taxonomy"]:::crosslayer
         agent_memory_tenancy["agent.memory.tenancy"]
     end
     subgraph model_router [model_router]
@@ -392,7 +393,7 @@ flowchart LR
     subgraph security [security]
         agent_security["agent.security"]:::crosslayer
         agent_security_actor_matrix["agent.security.actor_matrix"]:::crosslayer
-        agent_security_alerts["agent.security.alerts"]
+        agent_security_alerts["agent.security.alerts"]:::crosslayer
         agent_security_approval_guard["agent.security.approval_guard"]:::crosslayer
         agent_security_approval_session["agent.security.approval_session"]
         agent_security_governance_bridge["agent.security.governance_bridge"]:::crosslayer
@@ -400,15 +401,17 @@ flowchart LR
         agent_security_pii["agent.security.pii"]:::crosslayer
     end
     subgraph self_healing [self_healing]
+        agent_self_healing["agent.self_healing"]:::crosslayer
         agent_self_healing_levels["agent.self_healing.levels"]:::crosslayer
         agent_self_healing_policy["agent.self_healing.policy"]:::crosslayer
         agent_self_healing_release_bundle["agent.self_healing.release_bundle"]
         agent_self_healing_saga["agent.self_healing.saga"]
     end
     subgraph server_routes [server_routes]
+        agent_server_routes["agent.server_routes"]
         agent_server_routes_extensions["agent.server_routes.extensions"]
         agent_server_routes_observability["agent.server_routes.observability"]
-        agent_server_routes_routes_approval["agent.server_routes.routes_approval"]
+        agent_server_routes_routes_approval["agent.server_routes.routes_approval"]:::crosslayer
         agent_server_routes_routes_assets["agent.server_routes.routes_assets"]
         agent_server_routes_routes_business_dashboard["agent.server_routes.routes_business_dashboard"]
         agent_server_routes_routes_chat["agent.server_routes.routes_chat"]
@@ -431,6 +434,7 @@ flowchart LR
         agent_server_routes_routes_skills_mgmt["agent.server_routes.routes_skills_mgmt"]
         agent_server_routes_routes_subagent["agent.server_routes.routes_subagent"]
         agent_server_routes_routes_system_prompt["agent.server_routes.routes_system_prompt"]
+        agent_server_routes_routes_ui_panels["agent.server_routes.routes_ui_panels"]
         agent_server_routes_routes_visual_workflows["agent.server_routes.routes_visual_workflows"]
         agent_server_routes_routes_workflow_learning["agent.server_routes.routes_workflow_learning"]
         agent_server_routes_routes_workspace["agent.server_routes.routes_workspace"]
@@ -519,6 +523,11 @@ flowchart LR
         agent_tools_tool_generator["agent.tools.tool_generator"]
         agent_tools_web_tools["agent.tools.web_tools"]:::crosslayer
         agent_tools_workspace_tools["agent.tools.workspace_tools"]:::crosslayer
+    end
+    subgraph ui_panels [ui_panels]
+        agent_ui_panels["agent.ui_panels"]:::crosslayer
+        agent_ui_panels_data["agent.ui_panels.data"]
+        agent_ui_panels_schema["agent.ui_panels.schema"]:::crosslayer
     end
     subgraph unknown [unknown]
         agent["agent"]
@@ -1383,6 +1392,37 @@ flowchart LR
     agent_utils_sensitive_data_filter --> agent_utils_singleton_manager
     agent_utils_observability -.-> agent_logging_utils
     agent_utils_observability -.-> agent_monitoring_business_metrics
+    agent_ui_panels_data --> agent_ui_panels_schema
+    agent_ui_panels_data -.-> agent_security
+    agent_ui_panels_data -.-> agent_observability_events
+    agent_ui_panels_data -.-> agent_digestion_shadow
+    agent_ui_panels_data -.-> agent_digestion_internalize
+    agent_ui_panels_data -.-> agent_digestion_shadow
+    agent_ui_panels_data -.-> agent_security_alerts
+    agent_ui_panels_data -.-> agent_observability_events
+    agent_ui_panels_data -.-> agent_monitoring_cost_brake
+    agent_ui_panels_data -.-> agent_observability_utc
+    agent_ui_panels_data -.-> agent_monitoring_cost_brake
+    agent_ui_panels_data -.-> agent_observability_acr
+    agent_ui_panels_data -.-> agent_observability_acr
+    agent_ui_panels_data -.-> agent_observability_utc
+    agent_ui_panels_data -.-> agent_observability_model_degrade
+    agent_ui_panels_data -.-> agent_observability_escape
+    agent_ui_panels_data -.-> agent_self_healing_levels
+    agent_ui_panels_data -.-> agent_observability_events
+    agent_ui_panels_data -.-> agent_disaster_recovery
+    agent_ui_panels_data -.-> agent_memory_taxonomy
+    agent_ui_panels_data -.-> agent_memory_layered_store
+    agent_ui_panels_data -.-> agent_guardrails_safe_render
+    agent_ui_panels_data -.-> agent_guardrails_boundary_words
+    agent_ui_panels_data -.-> agent_guardrails_injection_defense
+    agent_ui_panels_data -.-> agent_descriptors_registry
+    agent_ui_panels_data -.-> agent_descriptors_registry
+    agent_ui_panels_data -.-> agent_server_routes_routes_approval
+    agent_ui_panels_data -.-> agent_security_governance_bridge
+    agent_ui_panels_data -.-> agent_eval_metrics
+    agent_ui_panels_data -.-> agent_audit_chain
+    agent_ui_panels_schema -.-> agent_monitoring_cost_brake
     agent_context_assembler -.-> agent_guardrails_foreign_taint
     agent_context_assembler -.-> agent_guardrails_instruction_data
     agent_context_assembler -.-> agent_guardrails_foreign_taint
@@ -1832,6 +1872,25 @@ flowchart LR
     agent_server_routes_routes_skills -.-> agent_extensions_base
     agent_server_routes_routes_skills -.-> agent_extensions_store
     agent_server_routes_routes_skills -.-> agent_extensions_base
+    agent_server_routes_routes_ui_panels -.-> agent_security
+    agent_server_routes_routes_ui_panels -.-> agent_security_actor_matrix
+    agent_server_routes_routes_ui_panels -.-> agent_server_auth
+    agent_server_routes_routes_ui_panels -.-> agent_ui_panels
+    agent_server_routes_routes_ui_panels -.-> agent_self_healing
+    agent_server_routes_routes_ui_panels -.-> agent_self_healing_levels
+    agent_server_routes_routes_ui_panels -.-> agent_ui_panels_schema
+    agent_server_routes_routes_ui_panels -.-> agent_guardrails
+    agent_server_routes_routes_ui_panels -.-> agent_guardrails_boundary_words
+    agent_server_routes_routes_ui_panels -.-> agent_descriptors_registry
+    agent_server_routes_routes_ui_panels -.-> agent_security_governance_bridge
+    agent_server_routes_routes_ui_panels -.-> agent_observability_events
+    agent_server_routes_routes_ui_panels -.-> agent_audit_facade
+    agent_server_routes_routes_ui_panels -.-> agent_security
+    agent_server_routes_routes_ui_panels --> agent_server_routes
+    agent_server_routes_routes_ui_panels -.-> agent_security
+    agent_server_routes_routes_ui_panels -.-> agent_security
+    agent_server_routes_routes_ui_panels --> agent_server_routes
+    agent_server_routes_routes_ui_panels -.-> agent_security
     agent_server_routes_routes_business_dashboard -.-> agent_server_auth
     agent_server_routes_routes_business_dashboard -.-> agent_monitoring_tracing
     agent_server_routes_routes_business_dashboard --> agent_server_routes_tracing_decorator
@@ -1914,10 +1973,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 525
-- 模块节点数: 463
-- 依赖边数: 1345
-- 跨层调用数: 850
+- 扫描文件数: 529
+- 模块节点数: 470
+- 依赖边数: 1395
+- 跨层调用数: 897
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 2794.07 ms
+- 构建耗时: 2851.92 ms
