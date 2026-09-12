@@ -76,6 +76,16 @@ STATUS_OK = "ok"
 STATUS_INSUFFICIENT = "insufficient_samples"
 STATUS_FRAMEWORK = "framework_only"
 STATUS_UNAVAILABLE = "source_unavailable"
+#: R4：委派行**跨判定主体**（mechanical / llm 混在一起）⇒ 不产出混合率
+STATUS_MIXED = "mixed_signal_kinds"
+
+#: 判定主体（R4 两列口径；标签与 `agent/subagent/mechanical.py` 同词表）
+SIGNAL_KIND_MECHANICAL = "mechanical"
+SIGNAL_KIND_LLM = "llm"
+SIGNAL_KIND_UNLABELED = "unlabeled"
+#: 两列（**严禁混算**；`unlabeled` 单独成列，不进任何一列）
+SIGNAL_KIND_COLUMNS: Tuple[str, ...] = (SIGNAL_KIND_MECHANICAL, SIGNAL_KIND_LLM,
+                                        SIGNAL_KIND_UNLABELED)
 
 #: 灰度台账目录环境变量（S3-03 交付 `ShadowLedger` 的默认落点）
 SHADOW_DIR_ENV = "CP_SHADOW_DIR"
@@ -131,15 +141,36 @@ METRIC_SPECS: Tuple[MetricSpec, ...] = (
     MetricSpec(
         key="delegation_recovery",
         name="委派回收率",
-        definition="回收三件套（产物 + 轨迹 + 反思）齐全的委派占比",
-        formula="count(三件套齐全) / count(委派)",
-        source="委派行契约（见 delegation_recovery_contract()）：产物/轨迹/反思三源齐全性",
+        definition="回收三件套（产物 + 轨迹 + 反思）齐全的委派占比（**机械 / LLM 两列**）",
+        formula=("两列分别计算：count(三件套齐全 ∧ signal_kind=k) / count(signal_kind=k)"
+                 "（k ∈ {mechanical, llm}）；**跨列不得合并**"),
+        source="委派行契约（见 delegation_recovery_contract()）：产物/轨迹/反思三源齐全性"
+               " + 复评半边的 signal_kind（R4）",
         target="100%",
         unit="比率",
         computable=False,
-        owner="S4-04（委派链路）+ S5-02（口径）",
+        owner="S4-04（委派链路）+ S5-02（口径）+ S7-06（R4 两列）",
         disclosure=("委派链路归 S4-04（未交付），当前无真实委派数据源；"
-                    "本任务只定义行契约与计算函数，缺数据时如实返回 framework_only"),
+                    "**R4 起按判定主体分两列披露**：机械列（①产物结构/②测试 fail→pass/"
+                    "③副作用核对/④可回放性）与 LLM 兜底列**严禁混算** —— 把 LLM 判定的"
+                    "成功算进机械成功率等于谎报证据强度；行未标 signal_kind 时单独记"
+                    "`unlabeled` 列，不并入任一列"),
+    ),
+    MetricSpec(
+        key="delegation_success_rate",
+        name="委派成功率",
+        definition="复评半边判定为通过的委派占比（**机械 / LLM 两列**，R4）",
+        formula=("两列分别计算：count(review_passed=True ∧ signal_kind=k) / "
+                 "count(已判定 ∧ signal_kind=k)（k ∈ {mechanical, llm}）；"
+                 "**跨列不得合并**"),
+        source="委派行契约的 `review_passed`（或 reflection.cloudpivot_review.passed）"
+               "+ `signal_kind`（R4）",
+        target="披露不考核（样本 < 20 只披露）",
+        unit="比率",
+        owner="S5-02（口径）+ S7-06（R4 两列）",
+        disclosure=("机械信号清单见 `delegation_signal_dictionary()`（单一事实源在 "
+                    "`agent/subagent/mechanical.py`）；两列**严禁混算**，"
+                    "且行未标 signal_kind 时记 `unlabeled` 列（不当机械、也不当 LLM）"),
     ),
     MetricSpec(
         key="skill_success_rate",
@@ -252,18 +283,129 @@ def computable_metrics() -> List[str]:
 
 
 def delegation_recovery_contract() -> Dict[str, Any]:
-    """委派回收率的数据源契约（S4-04 交付后按此填充即可计算）
+    """委派回收率/成功率的数据源契约（S4-04 交付后按此填充即可计算）
 
     一行 = 一次委派（把一类工作交给上游/子智能体）：
     ``{"delegation_id", "capability_id", "artifact": bool|dict, "trace": bool|str,
     "reflection": bool|dict}`` —— §3.9「回收三件套：产物 + 轨迹 + 反思」。
+
+    **R4 增补（可选，但决定该行进哪一列）**：
+
+    - ``signal_kind``：``mechanical`` / ``llm``（复评半边的判定主体；取值来自
+      `agent.subagent.mechanical`）。缺失即 ``unlabeled`` —— **不并入任一列**；
+    - ``review_passed``：复评半边的判定结论（布尔）；缺失即该行不计入成功率分母。
     """
     return {
         "rows": "Sequence[Mapping]",
         "required": ["delegation_id", "capability_id"],
         "triple_fields": ["artifact", "trace", "reflection"],
+        "optional": ["signal_kind", "review_passed"],
+        "signal_kinds": list(SIGNAL_KIND_COLUMNS),
         "source_owner": "S4-04（subagent 真实现）",
         "note": "三件套缺任一 → 该次委派不计回收（§3.9：缺一不计成本核算、视为浪费）",
+        "column_rule": ("判定主体两列**严禁混算**：机械列 = ①产物结构 / ②测试 fail→pass / "
+                        "③副作用核对 / ④可回放性；LLM 列 = 兜底复评（①-④ 全不适用）；"
+                        "未标注单列 `unlabeled`。跨列合并的比率**不产出**"),
+    }
+
+
+def delegation_signal_dictionary() -> List[Dict[str, Any]]:
+    """委派成功率的**机械信号清单**（R4；单一事实源在 `agent/subagent/mechanical.py`）
+
+    本函数只**引用**该清单（不复制一份），保证"指标字典里的定义"与"复评时执行的代码"
+    逐字一致；模块不可用时如实返回错误项（不静默给空表）。
+    """
+    try:
+        from agent.subagent.mechanical import mechanical_signal_catalog
+        return mechanical_signal_catalog()
+    except Exception as e:  # noqa: BLE001 清单不可用 ⇒ 如实标注
+        return [{"error": f"机械信号清单不可用: {type(e).__name__}: {e}"}]
+
+
+def delegation_signal_kind(row: Mapping[str, Any]) -> str:
+    """一行委派的判定主体（R4）：``mechanical`` / ``llm`` / ``unlabeled``"""
+    kind = str(row.get("signal_kind") or "").strip().lower()
+    if kind in (SIGNAL_KIND_MECHANICAL, SIGNAL_KIND_LLM):
+        return kind
+    # 兼容：嵌套 reflection 里带了 signal_kind（Subagent 三件套的原样行）
+    reflection = row.get("reflection")
+    if isinstance(reflection, Mapping):
+        nested = str(reflection.get("signal_kind") or "").strip().lower()
+        if nested in (SIGNAL_KIND_MECHANICAL, SIGNAL_KIND_LLM):
+            return nested
+    return SIGNAL_KIND_UNLABELED
+
+
+def delegation_review_passed(row: Mapping[str, Any]) -> Optional[bool]:
+    """一行的复评结论（``review_passed`` 优先，其次嵌套 ``cloudpivot_review.passed``）"""
+    if isinstance(row.get("review_passed"), bool):
+        return bool(row["review_passed"])
+    reflection = row.get("reflection")
+    if isinstance(reflection, Mapping):
+        review = reflection.get("cloudpivot_review")
+        if isinstance(review, Mapping) and isinstance(review.get("passed"), bool):
+            return bool(review["passed"])
+    return None
+
+
+def _signal_columns(delegations: Optional[Sequence[Mapping[str, Any]]]) -> Dict[str, Any]:
+    """按判定主体分列计算（R4；**每列独立算，跨列不合并**）
+
+    每列给出：``samples``（该列委派数）、``recovered/completed``（三件套齐全）、
+    ``recovery_rate``、``judged/passed``（已判定/判定通过）、``success_rate``、
+    ``status``（样本 < 20 ⇒ ``insufficient_samples``，只披露不考核）。
+    """
+    buckets: Dict[str, List[Mapping[str, Any]]] = {k: [] for k in SIGNAL_KIND_COLUMNS}
+    for row in delegations or []:
+        buckets[delegation_signal_kind(row)].append(row)
+    columns: Dict[str, Dict[str, Any]] = {}
+    for kind in SIGNAL_KIND_COLUMNS:
+        rows = buckets[kind]
+        samples = len(rows)
+        complete = sum(1 for r in rows
+                       if all(bool(r.get(f)) for f in ("artifact", "trace", "reflection")))
+        judged = 0
+        passed = 0
+        for r in rows:
+            verdict = delegation_review_passed(r)
+            if verdict is None:
+                continue
+            judged += 1
+            passed += 1 if verdict else 0
+        status = STATUS_OK
+        if samples == 0:
+            status = STATUS_UNAVAILABLE
+        elif samples < MIN_SAMPLES_FOR_ASSESSMENT:
+            status = STATUS_INSUFFICIENT
+        recovery = round(complete / samples, 6) if samples else None
+        success = round(passed / judged, 6) if judged else None
+        columns[kind] = {
+            "signal_kind": kind, "samples": samples,
+            "recovered": complete, "recovery_rate": recovery,
+            "recovery_target_met": (None if recovery is None else recovery >= 1.0),
+            "judged": judged, "passed": passed, "success_rate": success,
+            "status": status, "min_samples": MIN_SAMPLES_FOR_ASSESSMENT,
+            "assessment": ("只披露不考核（样本 < "
+                           f"{MIN_SAMPLES_FOR_ASSESSMENT}）" if status == STATUS_INSUFFICIENT
+                           else ("无样本" if status == STATUS_UNAVAILABLE else "可考核")),
+            "source": ("三件套齐全性 + signal_kind"
+                       if kind != SIGNAL_KIND_UNLABELED else
+                       "未标注 signal_kind 的委派行（**不并入任一列**）"),
+        }
+    labeled = [k for k in (SIGNAL_KIND_MECHANICAL, SIGNAL_KIND_LLM)
+               if columns[k]["samples"] > 0]
+    unlabeled = columns[SIGNAL_KIND_UNLABELED]["samples"]
+    mixed = bool(len(labeled) >= 2 or (labeled and unlabeled))
+    return {
+        "columns": columns,
+        "labeled_kinds": labeled,
+        "mixed": mixed,
+        "assessment": {
+            "basis": "columns",
+            "rule": ("两列分别计算、分别考核；**跨列合并的比率不产出**"
+                     "（把 LLM 判定的成功算进机械成功率等于谎报证据强度）"),
+            "mechanical_signals": list(SIGNAL_KIND_COLUMNS),
+        },
     }
 
 
@@ -388,10 +530,26 @@ def compute_internalization_rate(registry: Any = None, *,
 
 
 def compute_delegation_recovery(delegations: Optional[Sequence[Mapping[str, Any]]]) -> Dict[str, Any]:
-    """委派回收率：三件套齐全占比（数据源缺位时 framework_only，不填 0）"""
+    """委派回收率：三件套齐全占比（数据源缺位时 framework_only，不填 0）
+
+    **R4 两列口径**：结果按判定主体分 ``columns.mechanical`` / ``columns.llm``
+    （外加 ``columns.unlabeled``），**每列独立计算**。当行**跨判定主体**（同时存在
+    mechanical 与 llm，或已标注行与未标注行并存）时，顶层 ``value`` 置 ``None`` 且
+    ``status=mixed_signal_kinds`` —— 混合比率**不产出**（不得混算）。
+
+    兼容性：未标 ``signal_kind`` 的行走既有路径（顶层数字与 S5-02/S6-01 逐字一致），
+    仅**新增** ``columns`` / ``mixed`` / ``assessment`` / ``signals`` 字段。
+    """
     if delegations is None:
         return _metric("delegation_recovery", value=None, status=STATUS_FRAMEWORK,
-                       extra={"contract": delegation_recovery_contract()})
+                       extra={"contract": delegation_recovery_contract(),
+                              "signals": delegation_signal_dictionary(),
+                              "columns": {k: {"signal_kind": k, "samples": 0,
+                                              "status": STATUS_FRAMEWORK}
+                                          for k in SIGNAL_KIND_COLUMNS},
+                              "mixed": False,
+                              "assessment": {"basis": "columns",
+                                             "rule": "两列分别计算，跨列不合并"}})
     total = 0
     complete = 0
     incomplete: List[str] = []
@@ -403,11 +561,73 @@ def compute_delegation_recovery(delegations: Optional[Sequence[Mapping[str, Any]
         else:
             incomplete.append(str(row.get("delegation_id") or row.get("capability_id") or "?"))
     value = round(complete / total, 6) if total else None
-    return _metric("delegation_recovery", value=value, numerator=complete,
-                   denominator=total, samples=total,
-                   status=STATUS_OK if total else STATUS_FRAMEWORK,
-                   extra={"incomplete": incomplete[:20],
-                          "contract": delegation_recovery_contract()})
+    split = _signal_columns(delegations)
+    extra: Dict[str, Any] = {"incomplete": incomplete[:20],
+                             "contract": delegation_recovery_contract(),
+                             "signals": delegation_signal_dictionary(),
+                             "columns": split["columns"],
+                             "labeled_kinds": split["labeled_kinds"],
+                             "mixed": split["mixed"],
+                             "assessment": split["assessment"]}
+    row = _metric("delegation_recovery", value=value, numerator=complete,
+                  denominator=total, samples=total,
+                  status=STATUS_OK if total else STATUS_FRAMEWORK,
+                  extra=extra)
+    if split["mixed"] and total:
+        # **不混算**：跨判定主体时不产出合并率（各列数字见 columns）
+        row["value"] = None
+        row["numerator"] = None
+        row["denominator"] = None
+        row["status"] = STATUS_MIXED
+        row["target_met"] = None
+        row["reason"] = ("窗口内委派跨判定主体（mechanical / llm / unlabeled 并存）"
+                         "⇒ **不产出合并回收率**；请按 columns 分列读取"
+                         "（机械与 LLM 判定严禁混算）")
+        row["disclosure"] = (str(row.get("disclosure") or "") + " ｜ 本次为**混合样本**："
+                             "顶层 value 置空以强制分列读取").strip()
+    return row
+
+
+def compute_delegation_success_rate(
+        delegations: Optional[Sequence[Mapping[str, Any]]]) -> Dict[str, Any]:
+    """委派成功率：按判定主体分两列（R4；**跨列不合并**）
+
+    - 分子/分母只用**已判定**（``review_passed`` 可读）的行；
+    - 样本 < ``MIN_SAMPLES_FOR_ASSESSMENT`` ⇒ ``insufficient_samples``（只披露不考核）；
+    - 顶层 ``value`` 取 ``mechanical`` 列（**机械优先**），并显式标注
+      ``value_basis="mechanical"``；机械列无样本时才回落 ``llm`` 列 —— 两种情况下
+      ``columns`` 与 ``mixed`` 始终并列给出，任何单一数字都可追溯到列。
+    """
+    if delegations is None:
+        return _metric("delegation_success_rate", value=None, status=STATUS_FRAMEWORK,
+                       extra={"contract": delegation_recovery_contract(),
+                              "signals": delegation_signal_dictionary(),
+                              "columns": {k: {"signal_kind": k, "samples": 0,
+                                              "status": STATUS_FRAMEWORK}
+                                          for k in SIGNAL_KIND_COLUMNS},
+                              "mixed": False, "value_basis": ""})
+    split = _signal_columns(delegations)
+    columns = split["columns"]
+    basis = SIGNAL_KIND_MECHANICAL if columns[SIGNAL_KIND_MECHANICAL]["judged"] else (
+        SIGNAL_KIND_LLM if columns[SIGNAL_KIND_LLM]["judged"] else "")
+    value = columns[basis]["success_rate"] if basis else None
+    samples = columns[basis]["judged"] if basis else 0
+    status = STATUS_OK if basis else STATUS_FRAMEWORK
+    extra = {
+        "contract": delegation_recovery_contract(),
+        "signals": delegation_signal_dictionary(),
+        "columns": columns, "labeled_kinds": split["labeled_kinds"],
+        "mixed": split["mixed"], "assessment": split["assessment"],
+        "value_basis": basis,
+        "value_basis_note": ("顶层 value 仅取**单列**（机械优先）；跨列合并的比率不产出"
+                             if basis else "两列均无已判定样本 ⇒ value 记 None"),
+    }
+    row = _metric("delegation_success_rate", value=value,
+                  numerator=columns[basis]["passed"] if basis else None,
+                  denominator=samples or None, samples=samples, status=status,
+                  extra=extra)
+    row["target_met"] = None      # 披露不考核（样本门槛由 status 承担）
+    return row
 
 
 def compute_skill_success_rate(ledger_rows: Sequence[Mapping[str, Any]], *,
@@ -725,6 +945,7 @@ def compute_metrics(*, days: int = 7, start: str = "", end: str = "",
         "internalization_rate": compute_internalization_rate(
             registry, registry_path=registry_path),
         "delegation_recovery": compute_delegation_recovery(delegations),
+        "delegation_success_rate": compute_delegation_success_rate(delegations),
         "skill_success_rate": compute_skill_success_rate(
             ledger_rows, upstream_rate=upstream_rate),
         "healing_latency": compute_healing_latency(rows),
@@ -752,6 +973,7 @@ def compute_metrics(*, days: int = 7, start: str = "", end: str = "",
         },
         "metrics": metrics,
         "dictionary": metric_dictionary(),
+        "delegation_signals": delegation_signal_dictionary(),
         "acr_window": {"acr": acr_window.get("acr"),
                        "denominator": acr_window.get("denominator"),
                        "exploration": acr_window.get("exploration")},
@@ -813,6 +1035,41 @@ def render_weekly_markdown(report: Mapping[str, Any]) -> str:
             f"- 替代关系：{satisfaction.get('substitution')}",
             f"- 考核范围：{satisfaction.get('scope')}",
         ]
+    metrics = report.get("metrics") or {}
+    delegation = metrics.get("delegation_recovery") or {}
+    success = metrics.get("delegation_success_rate") or {}
+    if delegation.get("columns") or success.get("columns"):
+        lines += ["", "## 委派指标（机械 / LLM **两列，严禁混算**，R4）", ""]
+        for key, label, field in (("delegation_recovery", "委派回收率", "recovery_rate"),
+                                  ("delegation_success_rate", "委派成功率", "success_rate")):
+            row = metrics.get(key) or {}
+            columns = dict(row.get("columns") or {})
+            if not columns:
+                continue
+            lines.append(f"**{label}**（顶层 value={row.get('value')}，"
+                         f"basis={row.get('value_basis') or '—'}，"
+                         f"mixed={row.get('mixed')}）：")
+            lines.append("")
+            lines.append("| 判定主体 | 样本 | " + field + " | 状态 | 说明 |")
+            lines.append("|---|---|---|---|---|")
+            for kind in SIGNAL_KIND_COLUMNS:
+                column = dict(columns.get(kind) or {})
+                if not column:
+                    continue
+                lines.append(f"| {kind} | {column.get('samples')} | "
+                             f"{column.get(field)} | {column.get('status')} | "
+                             f"{column.get('assessment') or column.get('source') or '—'} |")
+            lines.append("")
+        rule = ((delegation.get("assessment") or {}).get("rule")
+                or (success.get("assessment") or {}).get("rule") or "")
+        lines.append(f"- 口径规则：{rule}")
+        lines.append("- 机械信号清单（单一事实源 `agent/subagent/mechanical.py`）：")
+        for spec in (delegation.get("signals") or report.get("delegation_signals") or []):
+            if spec.get("error"):
+                lines.append(f"  - ⚠ {spec['error']}")
+                continue
+            lines.append(f"  - {spec.get('order')}. `{spec.get('signal')}`"
+                         f"（{spec.get('kind')}）：{spec.get('definition')}")
     return "\n".join(lines)
 
 
@@ -851,11 +1108,16 @@ def feedback_summary_from_path(storage_path: str, *, days: int = 7) -> Optional[
 
 __all__ = [
     "MIN_SAMPLES_FOR_ASSESSMENT", "STATUS_OK", "STATUS_INSUFFICIENT",
-    "STATUS_FRAMEWORK", "STATUS_UNAVAILABLE", "MetricSpec", "METRIC_SPECS",
+    "STATUS_FRAMEWORK", "STATUS_UNAVAILABLE", "STATUS_MIXED",
+    "SIGNAL_KIND_MECHANICAL", "SIGNAL_KIND_LLM", "SIGNAL_KIND_UNLABELED",
+    "SIGNAL_KIND_COLUMNS", "MetricSpec", "METRIC_SPECS",
     "METRIC_BY_KEY", "metric_dictionary", "computable_metrics",
     "delegation_recovery_contract", "routing_annotation_contract",
+    "delegation_signal_dictionary", "delegation_signal_kind",
+    "delegation_review_passed",
     "compute_digest_throughput", "compute_internalization_rate",
-    "compute_delegation_recovery", "compute_skill_success_rate",
+    "compute_delegation_recovery", "compute_delegation_success_rate",
+    "compute_skill_success_rate",
     "compute_healing_latency", "compute_approval_decay_rate",
     "compute_delegation_cycle_days", "compute_abandoned_rate",
     "compute_routing_accuracy", "compute_exploration_satisfaction", "compute_utc",

@@ -150,6 +150,15 @@ SCHEDULE_TASK_NAME = "digestion_internalize_daily"
 INVESTMENT_ENV = "CP_DIGESTION_NATIVE_INVESTMENT_CENTS"
 NATIVE_UNIT_COST_ENV = "CP_DIGESTION_NATIVE_UNIT_COST_CENTS"
 
+#: 判定集构建成本（TASK-S7-06 R1）——**单列披露不参与摊销**为建议口径
+CASE_BUILD_AMORTIZATION_DEFAULT = False
+CASE_BUILD_DISCLOSURE = (
+    "判定集构建成本（一次性资产）**单列披露、默认不参与摊销**（建议口径②）："
+    "混入摊销会抬高月成本、系统性压低内化意愿，故条件③仍按『不含判定集成本』判定；"
+    "报告同时给出含/不含两种 ROI，保持透明可对比")
+CASE_BUILD_METHOD_NO_EVENTS = (
+    "无 case_build 成本事件 ⇒ 判定集构建成本不可得（记 None，不以 0 冒充）")
+
 #: 事件与审计（复用 `digest.stage`；不新增事件类型）
 EVENT_SCOPE_INTERNALIZE = "internalize"
 AUDIT_ACTION_EVALUATED = "digest.internalize.evaluated"
@@ -221,6 +230,20 @@ class ROIReport:
 
     ``月省 = (上游单位成本 − 自研单位成本) × 月样本数``；
     ``摊销 = 自研一次性投入 ÷ 12``；``ROI 为正 ⟺ 月省 > 摊销``。
+
+    ## 判定集构建成本的双口径（TASK-S7-06 R1）
+
+    判定集**构建成本**（生成用例的 LLM 调用 / 人工抽检工时 / 回放算力）是**一次性
+    资产投入**，与"是否内化"的**月成本**比较不同量纲。本报告因此给出**两种 ROI**
+    且**默认不把判定集成本混入摊销**（混入会抬高摊销、系统性压低内化意愿）：
+
+    | 口径 | 摊销基数 | 字段 |
+    |---|---|---|
+    | **不含**（条件③判定口径，与 S3-03 逐字一致） | ``one_time_investment_cents`` | ``net_monthly_cents`` / ``positive`` |
+    | **含**（透明对照，仅披露） | 一次性投入 + ``case_build_cost_cents`` | ``net_monthly_including_case_build_cents`` / ``positive_including_case_build`` |
+
+    ``case_build_in_amortization`` 固定为 ``False``（建议口径②：单列披露不参与摊销）；
+    若某部署坚持计入，改此字段即可，两种数字**始终同时可见**。
     """
 
     monthly_samples: int = 0
@@ -236,12 +259,41 @@ class ROIReport:
     assumptions: List[str] = field(default_factory=list)
     sources: Dict[str, Any] = field(default_factory=dict)
     caveats: List[str] = field(default_factory=list)
+    # ── R1：判定集构建成本（单列披露；不可得记 None，不以 0 冒充） ──
+    case_build_cost_cents: Optional[float] = None
+    case_build_cost_low_cents: Optional[float] = None
+    case_build_cost_high_cents: Optional[float] = None
+    case_build_cost_samples: int = 0
+    case_build_cost_method: str = ""
+    case_build_cost_source: str = ""
+    case_build_cost_channels: Dict[str, Any] = field(default_factory=dict)
+    case_build_cost_lower_bound: bool = False
+    case_build_cost_in_amortization: bool = False
+    # ── R1：双口径（含 / 不含判定集构建成本） ──
+    amortized_monthly_including_case_build_cents: float = 0.0
+    net_monthly_including_case_build_cents: float = 0.0
+    positive_including_case_build: bool = False
+    positive_excluding_case_build: bool = False
+
+    @property
+    def formula_excluding_case_build(self) -> str:
+        return ("【不含判定集成本】月省 = (上游单位成本 − 自研单位成本) × 月样本数；"
+                f"摊销 = 自研一次性投入 ÷ {ROI_AMORTIZE_MONTHS}；"
+                "ROI 为正 ⟺ 月省 > 摊销")
+
+    @property
+    def formula_including_case_build(self) -> str:
+        return ("【含判定集成本】月省 = (上游单位成本 − 自研单位成本) × 月样本数；"
+                f"摊销 = (自研一次性投入 + 判定集构建成本) ÷ {ROI_AMORTIZE_MONTHS}；"
+                "ROI 为正 ⟺ 月省 > 摊销（**仅披露，条件③仍按不含口径判定**）")
 
     def to_dict(self) -> Dict[str, Any]:
         payload = dict(self.__dict__)
-        payload["formula"] = (
-            "月省 = (上游单位成本 − 自研单位成本) × 月样本数；"
-            f"摊销 = 一次性投入 ÷ {ROI_AMORTIZE_MONTHS}；ROI 为正 ⟺ 月省 > 摊销")
+        payload["formula"] = self.formula_excluding_case_build
+        payload["formula_excluding_case_build"] = self.formula_excluding_case_build
+        payload["formula_including_case_build"] = self.formula_including_case_build
+        payload["net_monthly_excluding_case_build_cents"] = self.net_monthly_cents
+        payload["positive_excluding_case_build"] = self.positive
         return payload
 
     def markdown(self) -> str:
@@ -262,7 +314,38 @@ class ROIReport:
             "",
             "公式：月省 = (上游单位成本 − 自研单位成本) × 月样本数；"
             f"摊销 = 一次性投入 ÷ {ROI_AMORTIZE_MONTHS}；ROI 为正 ⟺ 月省 > 摊销。",
+            "",
+            "## 判定集构建成本（一次性投入 · R1 单列披露）",
+            "",
+            "| 项 | 值 |", "|---|---|",
+            f"| 可采集 | {self.case_build_cost_cents is not None} |",
+            f"| 点值 | {_show_cents(self.case_build_cost_cents)} 分"
+            + ("（**下界**：含未计价/未登记项）" if self.case_build_cost_lower_bound
+               else "") + " |",
+            f"| 区间 | [{_show_cents(self.case_build_cost_low_cents)}, "
+            f"{_show_cents(self.case_build_cost_high_cents)}] 分"
+            "（右端 `None` = 单价未配置 ⇒ 不可估，不臆造） |",
+            f"| 事件样本 | {self.case_build_cost_samples} 条 |",
+            f"| 估计方法 | {self.case_build_cost_method or '—'} |",
+            f"| 数据源 | `{self.case_build_cost_source or '—'}` |",
+            f"| 是否参与摊销 | **{self.case_build_cost_in_amortization}**"
+            "（建议口径②：单列披露） |",
+            "",
+            "### 双口径对照（透明可对比）",
+            "",
+            "| 口径 | 摊销基数（分/月） | 净月收益（分） | ROI 为正 |",
+            "|---|---|---|---|",
+            f"| 不含判定集成本（**条件③判定口径**） | {self.amortized_monthly_cents} | "
+            f"{self.net_monthly_cents} | {self.positive_excluding_case_build} |",
+            "| 含判定集成本（仅披露） | "
+            f"{self.amortized_monthly_including_case_build_cents} | "
+            f"{self.net_monthly_including_case_build_cents} | "
+            f"{self.positive_including_case_build} |",
         ]
+        if self.case_build_cost_channels:
+            lines += ["", "通道归因（用例数）：" + "、".join(
+                f"{k}={dict(v).get('cases')}"
+                for k, v in sorted(self.case_build_cost_channels.items()))]
         if self.sources:
             lines += ["", "## 数据源", ""]
             lines += [f"- `{k}`：{json.dumps(v, ensure_ascii=False, default=str)}"
@@ -274,6 +357,15 @@ class ROIReport:
             lines += ["", "## 口径提醒", ""]
             lines += [f"- {c}" for c in self.caveats]
         return "\n".join(lines) + "\n"
+
+
+def _show_cents(value: Any) -> str:
+    """金额展示（``None`` 明确写不可得，**不显示为 0**）"""
+    if value is None:
+        return "—（不可得，不以 0 冒充）"
+    if isinstance(value, float):
+        return f"{value:g}"
+    return str(value)
 
 
 @dataclass
@@ -641,8 +733,19 @@ def evaluate_privacy_gate(descriptor: Dict[str, Any], *,
 def build_roi_report(*, monthly_samples: int, upstream_unit_cents: Optional[float],
                      native_unit_cents: Optional[float] = None,
                      one_time_investment_cents: Optional[float] = None,
-                     sources: Optional[Dict[str, Any]] = None) -> ROIReport:
-    """ROI 报告（条件③；公式与假设全部显式）"""
+                     sources: Optional[Dict[str, Any]] = None,
+                     case_build_cost: Optional[Dict[str, Any]] = None,
+                     case_build_in_amortization: bool = False) -> ROIReport:
+    """ROI 报告（条件③；公式与假设全部显式）
+
+    Args:
+        case_build_cost: 判定集构建成本摘要（R1；`case_build_cost_from_ledger()` 的
+            返回值）。``None`` 或 ``available=False`` ⇒ ``case_build_cost_cents=None``
+            （**不以 0 冒充**：没有埋点数据 ≠ 构建免费）。
+        case_build_in_amortization: 是否把判定集成本计入摊销。**默认 False**（建议
+            口径②：一次性资产单列披露，不污染"是否内化"的月成本比较）；无论取值，
+            报告都同时给出含/不含两种 ROI。
+    """
     report = ROIReport(monthly_samples=max(0, int(monthly_samples or 0)),
                        sources=dict(sources or {}))
     upstream = upstream_unit_cents
@@ -650,6 +753,8 @@ def build_roi_report(*, monthly_samples: int, upstream_unit_cents: Optional[floa
         report.assumptions.append(
             "上游单位成本不可得（S2-03 UTC 无数据）⇒ ROI 不可判定")
         report.caveats.append("ROI 判定需要上游单位成本；缺值时本报告不给正值结论")
+        _apply_case_build_cost(report, case_build_cost,
+                               in_amortization=case_build_in_amortization)
         return report
     report.upstream_unit_cents = round(float(upstream), 6)
     if native_unit_cents is None:
@@ -678,10 +783,98 @@ def build_roi_report(*, monthly_samples: int, upstream_unit_cents: Optional[floa
     report.net_monthly_cents = round(
         report.monthly_saving_cents - report.amortized_monthly_cents, 6)
     report.positive = report.monthly_saving_cents > report.amortized_monthly_cents
+    report.positive_excluding_case_build = bool(report.positive)
     report.caveats.append(
         "单位成本口径：上游取 S2-03 归一成本（分/任务，本处以能力调用样本数"
         "作为任务数代理）；自研为假设值 —— 两项均在 assumptions 中列出")
+    _apply_case_build_cost(report, case_build_cost,
+                           in_amortization=case_build_in_amortization)
     return report
+
+
+def _apply_case_build_cost(report: ROIReport,
+                           summary: Optional[Dict[str, Any]], *,
+                           in_amortization: bool = False) -> ROIReport:
+    """把判定集构建成本摘要叠加到 ROI 报告（R1；**兼容叠加，不改既有字段语义**）
+
+    - ``case_build_cost_cents``：点值（缺数据 ⇒ ``None``）；
+    - 区间：``[low, high]``，``high=None`` 表示单价未配置**不可估**（不臆造）；
+    - 双口径：不含（既有 ``net_monthly_cents``/``positive`` 不变）与含
+      （``net_monthly_including_case_build_cents`` / ``positive_including_case_build``）。
+    """
+    report.case_build_cost_in_amortization = bool(in_amortization)
+    data = dict(summary or {})
+    if not data or not data.get("available"):
+        report.case_build_cost_method = str(
+            data.get("estimation_method") or CASE_BUILD_METHOD_NO_EVENTS)
+        report.case_build_cost_source = str(data.get("source") or "")
+        report.assumptions.append(
+            "判定集构建成本不可得（无 case_build 成本事件）⇒ 记 None，"
+            "**不以 0 冒充**；埋点在 CaseStore 落库路径")
+        report.caveats.append(CASE_BUILD_DISCLOSURE)
+        return report
+    total = data.get("total_cents")
+    report.case_build_cost_cents = None if total is None else round(float(total), 6)
+    low = data.get("low_cents")
+    high = data.get("high_cents")
+    report.case_build_cost_low_cents = None if low is None else round(float(low), 6)
+    report.case_build_cost_high_cents = None if high is None else round(float(high), 6)
+    report.case_build_cost_samples = int(data.get("samples")
+                                         or data.get("events") or 0)
+    report.case_build_cost_method = str(data.get("estimation_method") or "")
+    report.case_build_cost_source = str(data.get("source") or "")
+    report.case_build_cost_channels = dict(data.get("by_channel") or {})
+    report.case_build_cost_lower_bound = bool(data.get("lower_bound"))
+    report.assumptions.append(
+        "判定集构建成本（R1）= " + str(report.case_build_cost_cents)
+        + " 分（下界）——估计方法与样本见 `case_build_cost_method` / "
+          "`case_build_cost_samples`；区间右端不可估时记 None")
+    if report.case_build_cost_cents is not None:
+        base_incl = (report.one_time_investment_cents
+                     + (report.case_build_cost_cents if in_amortization else 0.0))
+        report.amortized_monthly_including_case_build_cents = round(
+            base_incl / float(ROI_AMORTIZE_MONTHS), 6)
+        report.net_monthly_including_case_build_cents = round(
+            report.monthly_saving_cents
+            - report.amortized_monthly_including_case_build_cents, 6)
+        report.positive_including_case_build = bool(
+            report.monthly_saving_cents
+            > report.amortized_monthly_including_case_build_cents)
+    report.caveats.append(CASE_BUILD_DISCLOSURE)
+    for caveat in (data.get("caveats") or []):
+        if caveat not in report.caveats:
+            report.caveats.append(str(caveat))
+    return report
+
+
+def case_build_cost_from_ledger(capability_id: str, *, days: int = 0,
+                                directory: str = "", now: float = 0.0
+                                ) -> Dict[str, Any]:
+    """判定集构建成本的**证据采集**（R1；源 = `case_cost` 的 case_build 成本流）
+
+    ``days=0``（默认）⇒ **全时**统计：判定集是一次性资产，构建可能早于 ROI 评估
+    窗口，按窗口截断会把早年构建判成"零成本"（那是口径错误，不是数据缺失）。
+    显式给出 ``days>0`` 时按该窗口截断，并在返回的 ``window`` 里如实标注。
+
+    台账不可用/无事件 ⇒ ``available=False``（**不猜、不以 0 冒充**）。
+    """
+    try:
+        from .case_cost import case_build_cost_window
+    except Exception as e:  # noqa: BLE001 成本模块不可用 ⇒ 如实标注不可得
+        return {"available": False, "total_cents": None,
+                "estimation_method": f"成本模块不可用: {type(e).__name__}: {e}",
+                "caveats": [CASE_BUILD_DISCLOSURE]}
+    start = ""
+    end = ""
+    span = int(days or 0)
+    if span > 0:
+        moment = float(now or _now())
+        end = time.strftime("%Y-%m-%d", time.localtime(moment))
+        start = time.strftime("%Y-%m-%d",
+                              time.localtime(moment - span * 86400.0))
+    return case_build_cost_window(start=start, end=end,
+                                  capability_id=str(capability_id or ""),
+                                  directory=directory)
 
 
 # ════════════════════════════════════════════════════════════
@@ -915,6 +1108,9 @@ class InternalizeEngine:
             digest = digest_count_from_audit(capability_id)
 
         # ② monthly_samples（台账窗口 + 灰度样本）
+        # 显式标注类型：缺省的 dict 推断会把 value 推成 object，导致下游 int() 报 mypy
+        # call-overload（既有债，TASK-S7-06 顺手修；无行为变化）
+        monthly: Dict[str, Any]
         if "monthly_samples" in given:
             monthly = {"value": int(given["monthly_samples"]), "source": SRC_EXPLICIT,
                        "detail": {}}
@@ -980,31 +1176,55 @@ class InternalizeEngine:
                 else unit_cost_from_utc(days=int(roi_inputs.get("days")
                                                  or SAMPLES_WINDOW_DAYS),
                                         directory=roi_inputs.get("cost_directory")))
+        # R1：判定集构建成本（一次性投入）——单列披露；调用方可显式注入（离线/演示）
+        case_build = (dict(roi_inputs.get("case_build_cost") or {})
+                      if isinstance(roi_inputs.get("case_build_cost"), dict)
+                      else case_build_cost_from_ledger(
+                          capability_id, days=int(roi_inputs.get("case_build_days")
+                                                  or 0),
+                          directory=str(roi_inputs.get("case_build_directory") or ""),
+                          now=now))
         roi = build_roi_report(
             monthly_samples=int(monthly["value"] or 0),
             upstream_unit_cents=cost.get("value"),
             native_unit_cents=roi_inputs.get("native_unit_cents"),
             one_time_investment_cents=roi_inputs.get("one_time_investment_cents"),
+            case_build_cost=case_build,
+            case_build_in_amortization=bool(
+                roi_inputs.get("case_build_in_amortization",
+                               CASE_BUILD_AMORTIZATION_DEFAULT)),
             sources={"monthly_samples": {"value": monthly["value"],
                                          "source": monthly["source"]},
                      "upstream_unit_cost": {"value": cost.get("value"),
                                             "source": cost["source"],
                                             "detail": cost.get("detail")},
                      "native_unit_cost": SRC_EXPLICIT,
-                     "one_time_investment": SRC_EXPLICIT})
+                     "one_time_investment": SRC_EXPLICIT,
+                     "case_build_cost": {
+                         "value": case_build.get("total_cents"),
+                         "source": case_build.get("source") or SRC_UNAVAILABLE,
+                         "detail": {"samples": case_build.get("samples"),
+                                    "range": [case_build.get("low_cents"),
+                                              case_build.get("high_cents")],
+                                    "estimation_method":
+                                        case_build.get("estimation_method"),
+                                    "directory": case_build.get("directory")}}})
 
         ledger_wall = self._ledger_wall(capability_id, ledger_store)
         return {"capability_id": capability_id, "collected_at": float(now or _now()),
                 "descriptor": view, "digest_count": digest,
                 "monthly_samples": monthly, "success_rate": rates, "p99": p99,
                 "privacy": privacy, "roi": roi.to_dict(), "cost": cost,
+                "case_build_cost": case_build,
                 "ledger_wall": ledger_wall,
                 "sources": {"digest_count": digest["source"],
                             "monthly_samples": monthly["source"],
                             "success_rate": rates["source"],
                             "p99": p99["source"],
                             "privacy": privacy.get("source"),
-                            "roi": cost["source"]}}
+                            "roi": cost["source"],
+                            "case_build_cost": case_build.get("source")
+                                               or SRC_UNAVAILABLE}}
 
     @staticmethod
     def _ledger_wall(capability_id: str, store: Any = None) -> Dict[str, Any]:
@@ -1606,6 +1826,8 @@ __all__ = [
     "MANUAL_LABEL_LOW_SAMPLE", "MANUAL_LABEL_CONFIRMED",
     "SCHEDULE_ENABLE_ENV", "SCHEDULE_TASK_NAME",
     "INVESTMENT_ENV", "NATIVE_UNIT_COST_ENV",
+    "CASE_BUILD_AMORTIZATION_DEFAULT", "CASE_BUILD_DISCLOSURE",
+    "CASE_BUILD_METHOD_NO_EVENTS",
     "EVENT_SCOPE_INTERNALIZE", "AUDIT_ACTION_EVALUATED", "AUDIT_ACTION_PROMOTE_PR",
     "AUDIT_ACTION_MANUAL_SUBMITTED", "AUDIT_ACTION_MANUAL_APPLIED",
     "AUDIT_ACTION_MANUAL_REJECTED",
@@ -1617,6 +1839,7 @@ __all__ = [
     # 证据与打分
     "digest_count_from_audit", "monthly_samples_from_ledger", "unit_cost_from_utc",
     "descriptor_view", "evaluate_privacy_gate", "build_roi_report",
+    "case_build_cost_from_ledger",
     "score_digest_count", "score_monthly_samples", "score_roi",
     "score_success_rate", "score_p99", "score_privacy", "rank_of",
     # 引擎

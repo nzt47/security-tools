@@ -362,6 +362,42 @@ def _decision_card(decision: Mapping[str, Any]) -> Dict[str, Any]:
                 formula="月省 − 月摊销", unit="cents"),
             "positive": roi.get("positive"),
             "monthly_samples": roi.get("monthly_samples"),
+            # ── R1（TASK-S7-06）：判定集构建成本单列披露 + 双口径 ROI（兼容叠加）──
+            "case_build_cost_cents": metric(
+                roi.get("case_build_cost_cents"),
+                source=str(roi.get("case_build_cost_source")
+                           or "agent/digestion/case_cost.py（cost 事件 stage=case_build）"),
+                formula=("判定集构建成本点值（下界）——估计方法见 "
+                         "`case_build_cost_method`，样本 "
+                         f"{roi.get('case_build_cost_samples')} 条"),
+                unit="cents",
+                sample_size=int(roi.get("case_build_cost_samples") or 0)),
+            "case_build_cost_range_cents": {
+                "low": roi.get("case_build_cost_low_cents"),
+                "high": roi.get("case_build_cost_high_cents"),
+                "note": ("右端 null = 人工/回放单价未配置 ⇒ **不可估**（不臆造）；"
+                         "配置 CP_DIGESTION_CASE_BUILD_MANUAL_RATE_CENTS / "
+                         "CP_DIGESTION_CASE_BUILD_REPLAY_RATE_CENTS 后可估"),
+                "lower_bound": bool(roi.get("case_build_cost_lower_bound")),
+            },
+            "case_build_cost_method": str(roi.get("case_build_cost_method") or ""),
+            "case_build_cost_in_amortization": bool(
+                roi.get("case_build_cost_in_amortization")),
+            "net_monthly_excluding_case_build_cents": metric(
+                roi.get("net_monthly_excluding_case_build_cents",
+                        roi.get("net_monthly_cents")),
+                source="agent/digestion/internalize.py::ROIReport",
+                formula=str(roi.get("formula_excluding_case_build")
+                            or roi.get("formula") or ""), unit="cents"),
+            "net_monthly_including_case_build_cents": metric(
+                roi.get("net_monthly_including_case_build_cents"),
+                source="agent/digestion/internalize.py::ROIReport",
+                formula=str(roi.get("formula_including_case_build") or ""),
+                unit="cents"),
+            "positive_excluding_case_build": roi.get(
+                "positive_excluding_case_build", roi.get("positive")),
+            "positive_including_case_build": roi.get(
+                "positive_including_case_build"),
             "caveats": list(roi.get("caveats") or []),
             "assumptions": list(roi.get("assumptions") or []),
         },
@@ -919,7 +955,10 @@ def roi_view(*, days: int = 7, events_dir: Optional[str] = None,
                 "window": rep.get("window"),
                 "traceability": rep.get("traceability"),
                 # 原样透传：S5-02 的每行已带 value/source/formula/samples/status
+                # R4（TASK-S7-06）：委派行另带 columns（mechanical/llm/unlabeled）与
+                # mixed 标记 —— 面板按列读取，**不得把两列合成一个数**
                 "metrics": rep.get("metrics"),
+                "delegation_signals": rep.get("delegation_signals"),
             }
         except Exception as e:  # noqa: BLE001
             out["slo_metrics"] = absent(f"eval.metrics 不可用: {type(e).__name__}")
