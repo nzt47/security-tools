@@ -3,7 +3,7 @@
 > 任务书：[TASK-S7-03_成本系数校准.md](TASK-S7-03_成本系数校准.md)｜分发壳：[START-S7-03_成本系数校准.md](START-S7-03_成本系数校准.md)
 > 批次总表：[PARALLEL_S7批次总表.md](PARALLEL_S7批次总表.md)｜基线 `master` / `531515e0`｜worktree `s703`
 > 上游设计：v7.2 §6.2 UTC 刹车 / §6.6 成本埋点 / §6.7 指标字典 / §6.8 模型矩阵
-> 提交：`s703/main` → **`80133139`**｜验收日期：**2026-09-12**
+> 提交：`s703/main` → **`80133139` → `f1d3c75c` → `ac2e9eac`**｜验收日期：**2026-09-12**
 
 ---
 
@@ -17,7 +17,7 @@
 
 这不是"没做完就交差"：任务书 §五 已明确"或如实报告未完成"是**允许的出口**，
 且本任务的价值（可复跑的校准设施 + 来源优先级 + 偏差表机制 + 诚实标注）
-已全部落地并被 50 例单测锁死。
+已全部落地并被 51 例单测锁死。
 
 ---
 
@@ -29,8 +29,8 @@
 | 2 | 实测校准核心模块 | `agent/observability/cost_calibration.py`（新建） | **678 行** |
 | 3 | 校准脚本（路径 A / 路径 B） | `scripts/calibrate_cost_coefficients.py`（新建） | **922 行** |
 | 4 | 偏差分析报告（含逐数字溯源） | `docs/zh/成本系数偏差分析报告.md`（新建） | 含偏差表 + 置信度 + 溯源清单 |
-| 5 | 来源标注 + 版本升级 | `agent/observability/utc.py`（改） | `coefficient_detail()` / `coefficient_table()` / `calibration_block()` |
-| 6 | 新增单测 | `tests/unit/test_s7_03_cost_calibration.py`（新建） | **530 行 / 50 例** |
+| 5 | 来源标注与版本升级 | `agent/observability/utc.py`（改）+ `agent/monitoring/cost_brake.py`（改：口径标签实效透传） | `coefficient_detail()` / `coefficient_table()` / `calibration_block()` / `effective_calibration_labels()` |
+| 6 | 新增单测 | `tests/unit/test_s7_03_cost_calibration.py`（新建） | **542 行 / 51 例** |
 | 7 | 成本口径文档更新 | `docs/PERF_BUDGET_REBASED.md` §九（改） | 逐模型标注"已实测/仍是价格锚定" |
 | 8 | 运行时产物不入库 | `.gitignore`（改） | +5 行（校准件/偏差表/报告中间件） |
 
@@ -146,11 +146,11 @@ calibration_version = "price_anchor.v1"｜calibrated = False｜stale_reason = "n
 
 | 套件 | 结果 |
 |---|---|
-| `tests/unit/test_s7_03_cost_calibration.py`（新增） | **50 passed** |
+| `tests/unit/test_s7_03_cost_calibration.py`（新增） | **51 passed** |
 | `tests/unit/test_utc_cost.py` | **37 passed** |
 | `tests/unit/test_acr_metrics.py` + `tests/unit/test_s5_03_cost_brake.py` | **158 passed** |
 | `tests/unit/test_eval_baseline.py` + `tests/unit/test_eval_datasets.py` | 并入下方合计 |
-| **合计（六个相关/邻接套件）** | **315 passed / 1 skipped / 0 failed** |
+| **合计（六个相关/邻接套件）** | **316 passed / 1 skipped / 0 failed** |
 | 覆盖率 `agent/observability/cost_calibration.py` | **91%**（≥80% 达标） |
 | 覆盖率 `agent/observability/utc.py` | **85%**（≥80% 达标） |
 
@@ -170,7 +170,7 @@ calibration_version = "price_anchor.v1"｜calibrated = False｜stale_reason = "n
 
 ---
 
-## 四、实现期间发现并处置的问题（不隐瞒）
+## 四、实现期间发现并处置的问题（9 项，不隐瞒）
 
 | # | 问题 | 处置 |
 |---|---|---|
@@ -182,6 +182,7 @@ calibration_version = "price_anchor.v1"｜calibrated = False｜stale_reason = "n
 | 6 | **`--path a` 的提示渲染拿不到用例输入**（`EvalCase` 的字段是 `id`/`input`，脚本初版按 `case_id` 取值） | 改为按契约字段渲染并兼容别名（已用真实 L2 用例验证） |
 | 7 | **凭证探测看不见 `.env`**（项目不自动加载 `.env`，会误判"没有端点/没有密钥"） | 增加只读 `.env` 解析（`CP_ENV_FILE` > worktree > **主工作区**），且**绝不注入进程环境** |
 | 8 | **报告泄露绝对路径**（可读性与可移植性差） | 溯源统一转仓库相对路径（优先主工作区根） |
+| 9 | **S5-03 侧口径标签写死**：`cost_brake.py` 把 `calibration_version/note` 固定为 `price_anchor.v1`——一旦有生效实测件，同一指标会同时出现"**系数按实测算**"与"**口径标注说价格锚定**"两种说法（正是本任务要消灭的静默失真） | 新增 `cost_brake.effective_calibration_labels()` 从 `utc.calibration_block()` **实效透传**（本模块仍不做系数计算，口径唯一源头保持 `utc`）；四处输出改用实效值；`status()` 每次读取刷新（进程存活期间换版也如实上报）；`cost_brake` 107 例零回归 |
 
 ---
 
@@ -203,7 +204,7 @@ calibration_version = "price_anchor.v1"｜calibrated = False｜stale_reason = "n
 |---|---|
 | 任务书 §四 八条 | **8/8 满足**（其中"完成实跑校准"一条按任务书许可走"如实报告未完成 + 显式声明"出口） |
 | 口径纪律 | 未编造任何数字；样本不足只披露不结论；历史口径不追溯；降级声明明确 |
-| 邻接零回归 | ✅ 315 passed / 0 failed（六个套件）；全量单测见交付结案报告 |
+| 邻接零回归 | ✅ 316 passed / 0 failed（六个套件）；全量单测见交付结案报告 |
 | 双远端 | 见 `S7-03_交付结案报告_20260912.md` |
 
 **结论：本任务**技术交付完整、口径诚实**；"实测校准"本身因外部条件（凭证 + 样本）
