@@ -1407,7 +1407,7 @@ def diff_judge(upstream: Observation, candidate: Observation, *,
                judge: Optional[Callable[[str, str], float]] = None,
                threshold: float = JUDGE_THRESHOLD,
                manual_flagged: bool = False,
-               judge_kind: str = "") -> LayerResult:
+               judge_kind: Any = "") -> LayerResult:
     """**层 3（软性）**：judge ≥0.85 语义等价比对 + 人工抽检标记
 
     ``judge`` 可注入（如 LLM-judge）；缺省用确定性本地打分器。层 3 只对
@@ -1417,18 +1417,32 @@ def diff_judge(upstream: Observation, candidate: Observation, *,
     "是否注入"推断（``injected`` / ``deterministic_local``）；S3-03 灰度期传入
     ``llm_judge`` 或 ``deterministic_local(llm_unavailable)`` 等精确标签，
     使"确定性打分器"与"真实 LLM-judge"在报告里**可区分**。
+
+    ``judge_kind`` 也可以是**可调用对象**（S8-04）：判定器可能在同一批样本中途
+    回落（超预算/通道故障），标签必须在**调用之后**解析 —— 否则"过渡样本"会带
+    着回落前的标签，出现"标着 llm 却用确定性打分器判的"这种不实标注。
     """
     reference = upstream.canonical_text()
     observed = candidate.canonical_text()
     scorer = judge or judge_similarity
-    kind = str(judge_kind or ("injected" if judge else "deterministic_local"))
+
+    def _resolve_kind() -> str:
+        if callable(judge_kind):
+            try:
+                return str(judge_kind() or "")
+            except Exception as e:  # noqa: BLE001 标签解析失败不得中断回放
+                logger.debug("judge_kind 解析失败（按空处理）: %s", e)
+                return ""
+        return str(judge_kind or ("injected" if judge else "deterministic_local"))
+
     try:
         score = float(scorer(reference, observed))
     except Exception as e:  # noqa: BLE001  judge 异常不得中断回放
         return LayerResult(
             layer=LAYER_JUDGE, kind="soft", passed=False, score=0.0,
             reasons=[f"judge 执行失败: {type(e).__name__}: {e}"],
-            detail={"judge_kind": kind})
+            detail={"judge_kind": _resolve_kind()})
+    kind = _resolve_kind()
     passed = score >= float(threshold)
     reasons: List[str] = []
     if not passed:
@@ -1448,8 +1462,11 @@ def three_layer_diff(upstream: Observation, candidate: Observation,
                      judge: Optional[Callable[[str, str], float]] = None,
                      threshold: float = JUDGE_THRESHOLD,
                      manual_flagged: bool = False,
-                     judge_kind: str = "") -> DiffResult:
-    """§4.5 三层比对：结构 schema（硬）→ 副作用集合（硬）→ judge（软）"""
+                     judge_kind: Any = "") -> DiffResult:
+    """§4.5 三层比对：结构 schema（硬）→ 副作用集合（硬）→ judge（软）
+
+    ``judge_kind`` 同 `diff_judge`：字符串**或**可调用标签解析器（S8-04）。
+    """
     return DiffResult(
         layers=[diff_structure(upstream, candidate, case),
                 diff_side_effects(upstream, candidate, case),
@@ -1620,6 +1637,7 @@ class ReplaySandbox:
                  manual_ratio: float = MANUAL_SAMPLE_RATIO,
                  measure_wall: bool = False,
                  judge_kind: str = "",
+                 judge_kind_resolver: Optional[Callable[[], str]] = None,
                  isolation_level: str = "") -> None:
         self.quota = quota or SandboxQuota.from_env()
         self.tools = dict(tools or {})
@@ -1632,6 +1650,9 @@ class ReplaySandbox:
         self.measure_wall = bool(measure_wall)
         #: 实际所用 judge 的如实标注（进层③ detail；见 `diff_judge`）
         self.judge_kind = str(judge_kind or "")
+        #: 判定器标签的**动态**解析器（S8-04）：批内回落时逐样本标签仍如实；
+        #: 给了它就优先于静态 `judge_kind`（静态字段保留给运行前的快照读者）。
+        self.judge_kind_resolver = judge_kind_resolver
         #: 执行隔离等级（TASK-S8-03 / v7.2 §5.1）：**只影响隔离执行通道**，
         #: 回放通道（`replay_case`）语义逐字不变。默认 `in_process` = S3-02 现状；
         #: 不可识别的取值一律回退 `in_process`（保守：宁可不隔离，也不冒称隔离）。
@@ -1680,7 +1701,8 @@ class ReplaySandbox:
         diff = three_layer_diff(up_obs, cand_obs, case, judge=self.judge,
                                 threshold=self.judge_threshold,
                                 manual_flagged=manual_flagged,
-                                judge_kind=self.judge_kind)
+                                judge_kind=(self.judge_kind_resolver
+                                            or self.judge_kind))
         return CaseReplay(case_id=case.case_id, capability_id=case.capability_id,
                           upstream=up_obs, candidate=cand_obs, diff=diff,
                           expectation_ok=not expectation_reasons,
