@@ -167,11 +167,18 @@ flowchart LR
         agent_feedback_collector["agent.feedback_collector"]:::crosslayer
     end
     subgraph guardrails [guardrails]
+        agent_guardrails_boundary_words["agent.guardrails.boundary_words"]
+        agent_guardrails_capability_exposure["agent.guardrails.capability_exposure"]
+        agent_guardrails_egress_chain["agent.guardrails.egress_chain"]
         agent_guardrails_egress_guard["agent.guardrails.egress_guard"]:::crosslayer
+        agent_guardrails_foreign_taint["agent.guardrails.foreign_taint"]:::crosslayer
+        agent_guardrails_injection_defense["agent.guardrails.injection_defense"]:::crosslayer
         agent_guardrails_input_guard["agent.guardrails.input_guard"]:::crosslayer
+        agent_guardrails_instruction_data["agent.guardrails.instruction_data"]:::crosslayer
         agent_guardrails_observability["agent.guardrails.observability"]
         agent_guardrails_output_guard["agent.guardrails.output_guard"]:::crosslayer
         agent_guardrails_output_schema["agent.guardrails.output_schema"]
+        agent_guardrails_safe_render["agent.guardrails.safe_render"]
     end
     subgraph handoff [handoff]
         agent_handoff_handoff_generator["agent.handoff.handoff_generator"]:::crosslayer
@@ -271,7 +278,7 @@ flowchart LR
     end
     subgraph monitoring [monitoring]
         agent_monitoring["agent.monitoring"]:::crosslayer
-        agent_monitoring_alert_evaluator["agent.monitoring.alert_evaluator"]
+        agent_monitoring_alert_evaluator["agent.monitoring.alert_evaluator"]:::crosslayer
         agent_monitoring_alert_manager["agent.monitoring.alert_manager"]:::crosslayer
         agent_monitoring_alert_notifier["agent.monitoring.alert_notifier"]
         agent_monitoring_business_metrics["agent.monitoring.business_metrics"]:::crosslayer
@@ -393,7 +400,10 @@ flowchart LR
         agent_security_pii["agent.security.pii"]:::crosslayer
     end
     subgraph self_healing [self_healing]
+        agent_self_healing_levels["agent.self_healing.levels"]:::crosslayer
         agent_self_healing_policy["agent.self_healing.policy"]:::crosslayer
+        agent_self_healing_release_bundle["agent.self_healing.release_bundle"]
+        agent_self_healing_saga["agent.self_healing.saga"]
     end
     subgraph server_routes [server_routes]
         agent_server_routes_extensions["agent.server_routes.extensions"]
@@ -469,11 +479,18 @@ flowchart LR
     end
     subgraph subagent [subagent]
         agent_subagent["agent.subagent"]
+        agent_subagent_barrier["agent.subagent.barrier"]
+        agent_subagent_channel["agent.subagent.channel"]
+        agent_subagent_collection["agent.subagent.collection"]
         agent_subagent_container["agent.subagent.container"]:::crosslayer
+        agent_subagent_credentials["agent.subagent.credentials"]
+        agent_subagent_delegation["agent.subagent.delegation"]
+        agent_subagent_executor["agent.subagent.executor"]
         agent_subagent_lifecycle["agent.subagent.lifecycle"]:::crosslayer
         agent_subagent_observability["agent.subagent.observability"]
         agent_subagent_sandbox["agent.subagent.sandbox"]
         agent_subagent_summarizer["agent.subagent.summarizer"]
+        agent_subagent_toolset["agent.subagent.toolset"]
     end
     subgraph task_planner [task_planner]
         agent_task_planner_dag["agent.task_planner.dag"]
@@ -758,14 +775,46 @@ flowchart LR
     agent_tools_web_tools -.-> agent_web
     agent_tools_web_tools -.-> agent_network_config
     agent_tools_web_tools -.-> agent_search_aggregator
+    agent_guardrails_capability_exposure -.-> agent_security
     agent_guardrails_egress_guard -.-> agent_policy_egress
     agent_guardrails_egress_guard -.-> agent_audit_facade
     agent_guardrails_egress_guard -.-> agent_policy_egress
+    agent_guardrails_instruction_data --> agent_guardrails_foreign_taint
+    agent_guardrails_instruction_data --> agent_guardrails_foreign_taint
+    agent_guardrails_instruction_data --> agent_guardrails_foreign_taint
+    agent_guardrails_instruction_data -.-> agent_audit_facade
+    agent_guardrails_injection_defense --> agent_guardrails_foreign_taint
+    agent_guardrails_injection_defense --> agent_guardrails_instruction_data
+    agent_guardrails_injection_defense --> agent_guardrails_boundary_words
+    agent_guardrails_injection_defense --> agent_guardrails_instruction_data
+    agent_guardrails_injection_defense --> agent_guardrails_instruction_data
+    agent_guardrails_injection_defense --> agent_guardrails_foreign_taint
+    agent_guardrails_injection_defense --> agent_guardrails_instruction_data
+    agent_guardrails_injection_defense --> agent_guardrails_capability_exposure
+    agent_guardrails_injection_defense --> agent_guardrails_egress_chain
+    agent_guardrails_injection_defense --> agent_guardrails_boundary_words
+    agent_guardrails_injection_defense --> agent_guardrails_safe_render
     agent_guardrails_output_guard -.-> agent_logging_utils
+    agent_guardrails_foreign_taint -.-> agent_audit_facade
+    agent_guardrails_foreign_taint -.-> agent_audit_facade
+    agent_guardrails_safe_render --> agent_guardrails_foreign_taint
     agent_guardrails_output_schema -.-> agent_monitoring_tracing
     agent_guardrails_output_schema -.-> agent_circuit_breaker
     agent_guardrails_output_schema -.-> agent_graceful_degrade
     agent_guardrails_output_schema -.-> agent_logging_utils
+    agent_guardrails_egress_chain -.-> agent_policy_taint
+    agent_guardrails_egress_chain -.-> agent_policy_taint
+    agent_guardrails_egress_chain -.-> agent_observability_events
+    agent_guardrails_egress_chain -.-> agent_policy_taint
+    agent_guardrails_egress_chain -.-> agent_policy_egress
+    agent_guardrails_egress_chain -.-> agent_circuit_breaker
+    agent_guardrails_egress_chain -.-> agent_self_healing_levels
+    agent_guardrails_egress_chain -.-> agent_audit_facade
+    agent_guardrails_egress_chain -.-> agent_circuit_breaker
+    agent_guardrails_egress_chain -.-> agent_observability_events
+    agent_guardrails_boundary_words -.-> agent_audit_facade
+    agent_guardrails_boundary_words -.-> agent_audit_facade
+    agent_guardrails_boundary_words -.-> agent_audit_facade
     agent_guardrails_input_guard -.-> agent_logging_utils
     agent_guardrails_observability -.-> agent_logging_utils
     agent_guardrails_observability -.-> agent_monitoring_business_metrics
@@ -821,6 +870,7 @@ flowchart LR
     agent_orchestrator_orchestrator -.-> agent_state_manager
     agent_orchestrator_orchestrator -.-> agent_workflow_learning_models
     agent_orchestrator_orchestrator -.-> agent_state_manager
+    agent_orchestrator_orchestrator -.-> agent_guardrails_injection_defense
     agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
     agent_orchestrator_orchestrator -.-> agent_context_assembler
     agent_orchestrator_orchestrator -.-> agent_state_manager
@@ -1004,9 +1054,33 @@ flowchart LR
     agent_subagent --> agent_subagent_container
     agent_subagent --> agent_subagent_lifecycle
     agent_subagent --> agent_subagent_sandbox
+    agent_subagent --> agent_subagent_barrier
+    agent_subagent --> agent_subagent_channel
+    agent_subagent --> agent_subagent_collection
+    agent_subagent --> agent_subagent_credentials
+    agent_subagent --> agent_subagent_delegation
+    agent_subagent --> agent_subagent_executor
+    agent_subagent --> agent_subagent_toolset
+    agent_subagent_executor -.-> agent_security_actor_matrix
+    agent_subagent_executor --> agent_subagent_barrier
+    agent_subagent_executor --> agent_subagent_channel
+    agent_subagent_executor --> agent_subagent_collection
+    agent_subagent_executor --> agent_subagent_credentials
+    agent_subagent_executor --> agent_subagent_delegation
+    agent_subagent_executor --> agent_subagent_sandbox
+    agent_subagent_executor --> agent_subagent_toolset
+    agent_subagent_executor -.-> agent_observability_trace_v2
+    agent_subagent_executor -.-> agent_observability_trace_v2
+    agent_subagent_executor -.-> agent_observability_trace_v2
     agent_subagent_lifecycle --> agent_subagent_container
     agent_subagent_lifecycle --> agent_subagent_sandbox
+    agent_subagent_collection -.-> agent_security_actor_matrix
+    agent_subagent_collection -.-> agent_cognitive_reflection
+    agent_subagent_toolset -.-> agent_security_actor_matrix
     agent_subagent_container --> agent_subagent_sandbox
+    agent_subagent_container --> agent_subagent_delegation
+    agent_subagent_container --> agent_subagent_executor
+    agent_subagent_container --> agent_subagent_executor
     agent_subagent_summarizer -.-> agent_logging_utils
     agent_subagent_observability -.-> agent_logging_utils
     agent_subagent_observability -.-> agent_monitoring_business_metrics
@@ -1211,6 +1285,12 @@ flowchart LR
     agent_human_in_the_loop_observability -.-> agent_logging_utils
     agent_human_in_the_loop_observability -.-> agent_monitoring_business_metrics
     agent_human_in_the_loop_ethics -.-> agent_logging_utils
+    agent_self_healing_levels -.-> agent_observability_events
+    agent_self_healing_levels -.-> agent_audit_facade
+    agent_self_healing_levels -.-> agent_monitoring_alert_evaluator
+    agent_self_healing_levels -.-> agent_monitoring_alert_manager
+    agent_self_healing_saga --> agent_self_healing_levels
+    agent_self_healing_release_bundle --> agent_self_healing_levels
     agent_cognitive_failure_analysis -.-> agent_logging_utils
     agent_cognitive_failure_analysis -.-> agent_utils_singleton_manager
     agent_cognitive_logging_integration --> agent_cognitive_failure_collector
@@ -1303,6 +1383,9 @@ flowchart LR
     agent_utils_sensitive_data_filter --> agent_utils_singleton_manager
     agent_utils_observability -.-> agent_logging_utils
     agent_utils_observability -.-> agent_monitoring_business_metrics
+    agent_context_assembler -.-> agent_guardrails_foreign_taint
+    agent_context_assembler -.-> agent_guardrails_instruction_data
+    agent_context_assembler -.-> agent_guardrails_foreign_taint
     agent_preflight --> agent_preflight_runner
     agent_preflight___main__ --> agent_preflight_runner
     agent_preflight_runner --> agent
@@ -1831,10 +1914,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 508
-- 模块节点数: 446
-- 依赖边数: 1279
-- 跨层调用数: 818
+- 扫描文件数: 525
+- 模块节点数: 463
+- 依赖边数: 1345
+- 跨层调用数: 850
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 2630.77 ms
+- 构建耗时: 2984.13 ms
