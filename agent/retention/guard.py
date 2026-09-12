@@ -2,8 +2,20 @@
 
 【为什么删除必须有一道独立闸门】
     "归档"是可逆的，"删除"不可逆。S8 批次三条不可越界原则里，**审计链永久保留**
-    与**默认保守**都只能靠一处机械闸门保证：任何删除动作在真正 `os.remove` 之前，
-    必须先过 `PurgeGuard.check()`。护栏不是注释里的约定，而是调用路径上的必经点。
+    与**默认保守**都只能靠一处机械闸门保证：**本治理层**的删除动作在真正 `os.remove`
+    之前，必须先过 `PurgeGuard.check()`。护栏不是注释里的约定，而是调用路径上的必经点
+    （`Archiver._do_purge` 里删前会**再判一次**，含"必须先有归档件"）。
+
+【管辖边界（**必须说清楚，否则就是过度声称**）】
+    本闸门管辖 **`agent/retention` 自己发起的删除**。仓库里还存在**各模块自带的既有
+    清理路径，它们不经过本闸门**，例如：
+        `monitoring/replay_storage.py::cleanup_old_records` / `p6/snapshot.py::cleanup_snapshots`
+        `memory/forgetting.py::prune` / `policy/inbox.py::prune_recent`
+        `tool_fewshot_store.py::cleanup_expired` / `task_scheduler.py::cleanup_old_logs`
+        `skills_mgmt/cleanup.py::cleanup_orphans|cleanup_unused` / `monitoring/resource_monitor.py::cleanup_persisted_history`
+    本任务**不接管**这些路径（接管属重构而非治理，会让既有语义变更）。因此本闸门
+    提供的是"**销毁类动作在本层不可绕过**"，**不是**"全仓库只有一条删除路径"。
+    策略表（`docs/zh/数据生命周期策略.md` §五）同步写明该边界。
 
 【四条拒绝理由（每条都有独立退出码，便于测试与排障）】
     1. `redline`         —— 红线类（审计链 + 每日 Merkle 根 / 纯审计轨 / 只读归档镜像）

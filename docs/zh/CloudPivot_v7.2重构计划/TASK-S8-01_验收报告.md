@@ -345,6 +345,39 @@ chain ok = True checked = 2
 
 ---
 
+### 十.2 结案后的补记之二：闸门**管辖边界**（撤销一处过度声称）
+
+复核上游侦察结论时发现，配套的 `agent/retention/guard.py` docstring 与
+`docs/zh/数据生命周期策略.md` §五初版写的是**绝对声称**：
+
+> ~~"任何删除动作在真正 `os.remove` 之前，必须先过 `PurgeGuard.check()`"~~
+
+这**不成立**。仓库里存在 8 处**各模块自带的既有清理路径**，它们不经过本闸门
+（已逐条核实存在）：
+
+| 既有清理路径 | 清理对象 |
+|---|---|
+| `agent/monitoring/replay_storage.py::cleanup_old_records` | 回放记录（`DELETE` + `os.remove`） |
+| `agent/p6/snapshot.py::cleanup_snapshots` / `agent_p6_snapshot.py::cleanup_snapshots` | 旧快照文件 |
+| `agent/memory/forgetting.py::prune` | 记忆快照库到期件（S5-01 自有口径） |
+| `agent/policy/inbox.py::prune_recent` | 策略收件箱近期项 |
+| `agent/tool_fewshot_store.py::cleanup_expired` | 过期 few-shot 样本 |
+| `agent/task_scheduler.py::cleanup_old_logs` | 调度器日志 |
+| `agent/skills_mgmt/cleanup.py::cleanup_orphans` / `cleanup_unused` | 技能资产孤儿/未用 |
+| `agent/monitoring/resource_monitor.py::cleanup_persisted_history` | 资源监控历史 |
+
+**已更正为准确口径**：本闸门管辖 **`agent/retention` 自己发起的删除**，提供的是
+"**销毁类动作在本层不可绕过**"，**不是**"全仓库只有一条删除路径"。本任务**不接管**
+那些既有路径（接管属重构而非治理，会变更既有语义）。
+
+**为什么这条更正重要**：过度声称会让人把"闸门存在"误读成"所有删除都被守卫"，
+从而对**未受守卫**的路径放松警惕 —— 这正是治理文档最危险的失效方式。
+`test_doc_states_guard_jurisdiction_boundary` 把边界声明与"绝对声称不得复现"一并钉住。
+策略文档另新增 §5.2「已知落点风险」（`decisions.py` 默认路径相对 CWD、`log_archiver`
+docstring 后缀与实际不符两处如实登记）。
+
+---
+
 ## 十一、验收结论
 
 任务书 §四 八项验收标准**逐条通过**，三条不可越界原则**逐条机器化自证**。交付物齐备，邻接套件零回归，门禁四绿（kwarg 0 处 / mypy 新增 0 error /
