@@ -149,6 +149,8 @@ EV_APPROVAL = "approval"
 EV_ESCAPE = "escape"
 EV_INTERVENTION = "intervention"
 EV_COST = "cost"
+# ── S8-01 数据生命周期治理埋点 ──
+EV_RETENTION_RUN = "retention.run"
 
 #: §3.6 八事件（第 9 个 model.degraded 为 P7.1-18 补丁）
 CORE_EVENT_TYPES = (
@@ -160,7 +162,10 @@ NINE_EVENT_TYPES = CORE_EVENT_TYPES + (EV_MODEL_DEGRADED,)
 #: §6.6 ACR/UTC 埋点事件
 METRIC_EVENT_TYPES = (EV_TASK_CLOSED, EV_TASK_ABANDONED, EV_APPROVAL,
                       EV_ESCAPE, EV_INTERVENTION, EV_COST)
-ALL_EVENT_TYPES = NINE_EVENT_TYPES + METRIC_EVENT_TYPES
+#: S8-01 数据生命周期治理埋点（保留策略每次执行一条；属**新增分组**，
+#: 不改动上面三组的语义 —— 上面三组是 §3.6/P7.1-18/§6.6 的冻结清单）
+GOVERNANCE_EVENT_TYPES = (EV_RETENTION_RUN,)
+ALL_EVENT_TYPES = NINE_EVENT_TYPES + METRIC_EVENT_TYPES + GOVERNANCE_EVENT_TYPES
 
 #: 需要同步镜像入链式审计（S2-02）的治理类事件（§13.3 联动表：事件名 ↔ 审计写入）
 #:
@@ -188,7 +193,7 @@ class EventType(str, _enum.Enum):
 
     以 `str` 混入实现，可直接与存量字符串事件名比较/落盘（`EventType.COST == "cost"`）。
     分组清单见模块常量 `CORE_EVENT_TYPES` / `NINE_EVENT_TYPES` / `METRIC_EVENT_TYPES`
-    / `ALL_EVENT_TYPES`（不放进枚举体，避免被 Enum 当作成员）。
+    / `GOVERNANCE_EVENT_TYPES` / `ALL_EVENT_TYPES`（不放进枚举体，避免被 Enum 当作成员）。
     """
 
     # §3.6 八事件
@@ -209,6 +214,8 @@ class EventType(str, _enum.Enum):
     ESCAPE = EV_ESCAPE
     INTERVENTION = EV_INTERVENTION
     COST = EV_COST
+    # S8-01 数据生命周期治理埋点
+    RETENTION_RUN = EV_RETENTION_RUN
 
     @classmethod
     def isin(cls, value: Any) -> bool:
@@ -990,8 +997,9 @@ __all__ = [
     "EV_TOOL_CALLED", "EV_DIGEST_STAGE", "EV_SKILL_GENERATED", "EV_APPROVAL_REQUIRED",
     "EV_HEALING_TRIGGERED", "EV_METRICS_DELTA", "EV_POLICY_DENIED", "EV_BACKUP_HEALTH",
     "EV_MODEL_DEGRADED", "EV_TASK_CLOSED", "EV_TASK_ABANDONED", "EV_APPROVAL",
-    "EV_ESCAPE", "EV_INTERVENTION", "EV_COST",
-    "CORE_EVENT_TYPES", "NINE_EVENT_TYPES", "METRIC_EVENT_TYPES", "ALL_EVENT_TYPES",
+    "EV_ESCAPE", "EV_INTERVENTION", "EV_COST", "EV_RETENTION_RUN",
+    "CORE_EVENT_TYPES", "NINE_EVENT_TYPES", "METRIC_EVENT_TYPES",
+    "GOVERNANCE_EVENT_TYPES", "ALL_EVENT_TYPES",
     "EventType", "EventEnvelope", "EventStore", "EventError", "EventEnvelopeError",
     "EventTypeError", "SingleWriterViolationError", "ReadOnlyEventStoreError",
     "normalize_type",
