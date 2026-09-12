@@ -198,6 +198,72 @@ if not response or len(response.strip()) < 5:
 
 ## 五、验收逐条（证据命令 + 原始输出）
 
+### 5.0 HTTP 层真机复验（判据 1/2/3/4 一次取全）
+
+**服务**：由 worktree 修复后代码提供服务（`app_server.py` 自带的"启动前清理 5678 端口"逻辑接管端口）。
+
+> ⚠️ **环境前提（必须照做，否则会得到"假阴性"）**：本机 shell 环境无 `LLM_API_KEY`，且运行期有组件会把
+> `.env` 的 `LLM_API_KEY` 改写成占位值（实测 worktree `.env` 由 144741 → 145606 字节，key 从 `sk-2cc…` 变为 `sk-test-key`）。
+> 直接用 `python app_server.py` 启动时，服务进程拿到的是**占位 key**，DeepSeek 返回
+> `401 Authentication Fails, Your api key: ****-key is invalid`，所有 LLM 调用失败 →
+> 响应统一变成低置信度兜底文案，**会把「答得对」误判为不达成**。
+> 取证时须先用项目自带入口 `agent.env_config_manager.get_env_config_manager().reload()`
+> 引导 `.env`，并用**主工作区 `.env`（权威源）**中的真实 key 覆盖 `os.environ` 后再启动。
+
+**判据 1 + 2（同一会话连续两问）**：
+
+```
+SESSION=s901-http-2561d026
+Q=帮我列出当前工作目录下的文件
+  tool_steps=[{"args":{},"id":"wf-f19dc52c","tool":"list_directory","type":"tool_call"},
+              {"id":"wf-f19dc52c","status":"success","summary":"{'ok': True, 'path': '.',
+               'abs_path': 'C:\\\\Users\\\\Administrator\\\\agent\\\\.worktrees\\\\s901', 'type': 'dir', ...",
+               "tool":"list_directory","type":"tool_result"}]
+  reasoning=
+  response=当前工作目录：`C:\Users\Administrator\agent\.worktrees\s901`
+
+           列出的是目录（未含普通文件，且列表有截断），可见条目如下：
+
+           ```
+           Modules/            __pycache__/        agent/
+           any/                backup/             backups/
+           cache/              cognitive/          config/
+           configs/            core/
+           ...
+Q=2 加 3 等于多少？只回答数字
+  tool_steps=
+  reasoning=The user asks 2+3, answer only the number. But the system says: 遇任何实操请求，首条回复必须是 tool_calls.
+            This is not an 实操请求 — it's a simple math question. Just answer "5". …
+  response=5
+
+            ---
+            💡 **当前会话上下文即将耗尽**（已使用 27%）。
+            点击下方「创建新会话」按钮，我会携带之前的记忆继续对话。
+```
+
+- 判据 1：两轮 `tool_steps` **不相等**（2 条 `list_directory` vs 空）；`reasoning` **不相等**（空 vs 本轮新产生的思考）；第二轮**返回空**而非上一轮值 ✅
+- 判据 2：`response` = **`5`**（含 `5`）；**不是**技能文档正文；**不是**原始工具 JSON ✅
+- 判据 4：第一轮工具**真实执行**并出现在 `tool_steps`（2 条，含真实目录摘要）✅
+
+**判据 3（两个 session_id 交替）**：
+
+```
+sessionA=s901-isoA-833b0b   sessionB=s901-isoB-cfec9c
+[isoA] 帮我列出当前工作目录下的文件      steps_n=2
+[isoB] 2 加 3 等于多少？只回答数字      steps_n=0  reasoning=用户重复问 2+3，只回答数字。前面已答 5。继续答 5。  response_head=5
+[isoA] 1 加 1 等于几？只回答数字        steps_n=0  reasoning=The user asks 1+1, only answer the number.        response_head=2
+
+A1.steps_n=2
+B.steps_n=0
+A2.steps_n=0
+A1.steps == A2.steps(A2 是否复用 A 上一轮)=False
+B.steps 非空(是否被 A 污染)=False
+B 含5=True
+A1 响应含原始JSON=False
+```
+
+- 判据 3：回到会话 A 的第二问 `steps_n=0`，**未复用** A 上一轮的 2 条；会话 B **未被** A 污染（`steps_n=0`）✅
+
 ### 5.1 判据 1 — 不串台
 
 **证据命令**（真机，服务进程外，`worktree s901`）：
