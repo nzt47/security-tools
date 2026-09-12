@@ -5,10 +5,10 @@
     "end": "2026-09-13",
     "days": 7
   },
-  "generated_at": "2026-09-13T00:45:39+0800",
+  "generated_at": "2026-09-13T01:05:14+0800",
   "events": {
     "directory": "(默认 data/events)",
-    "rows": 2445
+    "rows": 2499
   },
   "sources": {
     "acr": "agent.observability.acr.acr_summary(since, until)",
@@ -78,7 +78,7 @@
       "computable": false,
       "min_samples": 20,
       "target_met": null,
-      "disclosure": "委派链路归 S4-04（未交付），当前无真实委派数据源；**R4 起按判定主体分两列披露**：机械列（①产物结构/②测试 fail→pass/③副作用核对/④可回放性）与 LLM 兜底列**严禁混算** —— 把 LLM 判定的成功算进机械成功率等于谎报证据强度；行未标 signal_kind 时单独记`unlabeled` 列，不并入任一列",
+      "disclosure": "委派链路**已交付**（S4-04：八要素契约 + CLI 物理通道 + 回收三件套 + 真执行器，端到端样例 `scripts/demo_s4_04_delegation.py`），但生产侧**尚无委派调用点**（`agent/subagent/lifecycle.py::SubagentLifecycleManager.delegate()` 目前只被样例/测试驱动）⇒ 判定集内没有真实委派行，framework_only 源于**样本缺位**，**不是链路缺位**；**R4 起按判定主体分两列披露**：机械列（①产物结构/②测试 fail→pass/③副作用核对/④可回放性）与 LLM 兜底列**严禁混算** —— 把 LLM 判定的成功算进机械成功率等于谎报证据强度；行未标 signal_kind 时单独记`unlabeled` 列，不并入任一列",
       "contract": {
         "rows": "Sequence[Mapping]",
         "required": [
@@ -336,20 +336,20 @@
       "computable": false,
       "min_samples": 20,
       "target_met": null,
-      "disclosure": "`healing.triggered` 事件类型已登记（events.v1）但**当前无发射方**（自愈链路归 S4-03）；缺数据时返回 framework_only，不填 0",
+      "disclosure": "`healing.triggered` 的**发射方已交付**：`agent/self_healing/levels.py::emit_healing_triggered`（被 Saga / 发布包调用），另有直接发射点（成本熔断 `agent/monitoring/cost_brake.py`、修复流水线 `agent/repair/pipeline.py`）；事件类型亦已登记（events.v1）。当前窗口内 0 条事件 ⇒ framework_only 源于**尚未发生被分级记录的自愈事件**，**不是缺发射方**；缺数据时返回 framework_only，不填 0",
       "mttd_ms": null,
       "mttr_ms": null,
       "events": 0,
-      "reason": "无 healing.triggered 事件（发射方归 S4-03）"
+      "reason": "当前窗口内无 healing.triggered 事件（发射方已交付：agent/self_healing/levels.py::emit_healing_triggered）"
     },
     "approval_decay_rate": {
       "key": "approval_decay_rate",
       "name": "审批衰减率",
-      "value": 0.096983,
+      "value": 0.096154,
       "unit": "比率",
       "numerator": 45,
-      "denominator": 464,
-      "samples": 464,
+      "denominator": 468,
+      "samples": 468,
       "status": "ok",
       "definition": "审批面中由策略自动消化（auto_pass）的占比",
       "formula": "count(approval.kind='auto_pass') / count(approval)",
@@ -362,7 +362,7 @@
         "approve": 158,
         "archived": 30,
         "auto_pass": 45,
-        "conditional": 99,
+        "conditional": 103,
         "merged": 66,
         "reject": 66
       }
@@ -526,7 +526,7 @@
       "computable": false,
       "phase": "",
       "owner": "S4-04（委派链路）+ S5-02（口径）+ S7-06（R4 两列）",
-      "disclosure": "委派链路归 S4-04（未交付），当前无真实委派数据源；**R4 起按判定主体分两列披露**：机械列（①产物结构/②测试 fail→pass/③副作用核对/④可回放性）与 LLM 兜底列**严禁混算** —— 把 LLM 判定的成功算进机械成功率等于谎报证据强度；行未标 signal_kind 时单独记`unlabeled` 列，不并入任一列"
+      "disclosure": "委派链路**已交付**（S4-04：八要素契约 + CLI 物理通道 + 回收三件套 + 真执行器，端到端样例 `scripts/demo_s4_04_delegation.py`），但生产侧**尚无委派调用点**（`agent/subagent/lifecycle.py::SubagentLifecycleManager.delegate()` 目前只被样例/测试驱动）⇒ 判定集内没有真实委派行，framework_only 源于**样本缺位**，**不是链路缺位**；**R4 起按判定主体分两列披露**：机械列（①产物结构/②测试 fail→pass/③副作用核对/④可回放性）与 LLM 兜底列**严禁混算** —— 把 LLM 判定的成功算进机械成功率等于谎报证据强度；行未标 signal_kind 时单独记`unlabeled` 列，不并入任一列"
     },
     {
       "key": "delegation_success_rate",
@@ -565,7 +565,7 @@
       "computable": false,
       "phase": "",
       "owner": "S4-03（自愈与 Saga）",
-      "disclosure": "`healing.triggered` 事件类型已登记（events.v1）但**当前无发射方**（自愈链路归 S4-03）；缺数据时返回 framework_only，不填 0"
+      "disclosure": "`healing.triggered` 的**发射方已交付**：`agent/self_healing/levels.py::emit_healing_triggered`（被 Saga / 发布包调用），另有直接发射点（成本熔断 `agent/monitoring/cost_brake.py`、修复流水线 `agent/repair/pipeline.py`）；事件类型亦已登记（events.v1）。当前窗口内 0 条事件 ⇒ framework_only 源于**尚未发生被分级记录的自愈事件**，**不是缺发射方**；缺数据时返回 framework_only，不填 0"
     },
     {
       "key": "approval_decay_rate",
@@ -704,7 +704,7 @@
     }
   ],
   "acr_window": {
-    "acr": 1.127717,
+    "acr": 1.138587,
     "denominator": {
       "closed": 169,
       "failed": 15,

@@ -136,6 +136,17 @@ class TestSingleMetrics:
         assert row["value"] is None and row["status"] == M.STATUS_FRAMEWORK
         assert row["contract"]["source_owner"].startswith("S4-04")
 
+    def test_delegation_disclosure_no_longer_blames_missing_link(self):
+        """【2026-09-13 修正】披露不得再写成"委派链路未交付"（S4-04 已交付）
+
+        链路缺位与样本缺位是两件事：前者是"还没造出来"，后者是"造好了但生产
+        还没有调用点"。把后者写成前者会误导读者以为工程没做完。
+        """
+        disclosure = M.METRIC_BY_KEY["delegation_recovery"].disclosure
+        assert "已交付" in disclosure
+        assert "未交付" not in disclosure
+        assert "样本缺位" in disclosure
+
     def test_delegation_recovery_with_rows(self):
         rows = [
             {"delegation_id": "d1", "capability_id": "cp.a", "artifact": True,
@@ -166,7 +177,13 @@ class TestSingleMetrics:
     def test_healing_latency_framework_without_events(self):
         row = M.compute_healing_latency([])
         assert row["value"] is None and row["status"] == M.STATUS_FRAMEWORK
-        assert "S4-03" in row["disclosure"]
+        # 【2026-09-13 修正】披露文案**不得**再把 framework_only 归因于"无发射方"：
+        # 发射方已交付（发射点见 self_healing/levels.py::emit_healing_triggered），
+        # 事件缺位只说明"尚未发生被分级记录的自愈事件"。此处锁定新口径，防止回退。
+        assert "emit_healing_triggered" in row["disclosure"]
+        assert "不是缺发射方" in row["disclosure"]
+        assert "无发射方" not in row["disclosure"]
+        assert "emit_healing_triggered" in row["reason"]
 
     def test_healing_latency_with_events(self, isolated_events):
         ev.emit(ev.EV_HEALING_TRIGGERED, {"mttd_ms": 1000, "mttr_ms": 20000}, ts=TS)

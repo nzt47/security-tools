@@ -20,9 +20,9 @@ key                      指标                        目标             状态
 ======================  ==========================  ==============  ===============
 digest_throughput        消化吞吐                    ≥2/周（W10+）    可计算（事件）
 internalization_rate     内化转化率                  ≥10%             可计算（台账）
-delegation_recovery      委派回收率                  100%             框架（S4-04）
+delegation_recovery      委派回收率                  100%             框架（链路已交付，样本缺位）
 skill_success_rate       技能成功率                  ≥上游×0.98       可计算（灰度台账）
-healing_latency          MTTD / MTTR                 <3s / <30s       框架（无发射方）
+healing_latency          MTTD / MTTR                 <3s / <30s       框架（发射方已交付，事件缺位）
 approval_decay_rate      审批衰减率                  ≥70%             可计算（事件）
 delegation_cycle_days    委派中位周期                ≤14 天           可计算（事件）
 abandoned_rate           弃单率                      披露不考核        可计算（事件）
@@ -150,7 +150,12 @@ METRIC_SPECS: Tuple[MetricSpec, ...] = (
         unit="比率",
         computable=False,
         owner="S4-04（委派链路）+ S5-02（口径）+ S7-06（R4 两列）",
-        disclosure=("委派链路归 S4-04（未交付），当前无真实委派数据源；"
+        disclosure=("委派链路**已交付**（S4-04：八要素契约 + CLI 物理通道 + 回收三件套 + "
+                    "真执行器，端到端样例 `scripts/demo_s4_04_delegation.py`），但生产侧"
+                    "**尚无委派调用点**（`agent/subagent/lifecycle.py::"
+                    "SubagentLifecycleManager.delegate()` 目前只被样例/测试驱动）⇒ "
+                    "判定集内没有真实委派行，framework_only 源于**样本缺位**，"
+                    "**不是链路缺位**；"
                     "**R4 起按判定主体分两列披露**：机械列（①产物结构/②测试 fail→pass/"
                     "③副作用核对/④可回放性）与 LLM 兜底列**严禁混算** —— 把 LLM 判定的"
                     "成功算进机械成功率等于谎报证据强度；行未标 signal_kind 时单独记"
@@ -192,8 +197,14 @@ METRIC_SPECS: Tuple[MetricSpec, ...] = (
         unit="ms",
         computable=False,
         owner="S4-03（自愈与 Saga）",
-        disclosure=("`healing.triggered` 事件类型已登记（events.v1）但**当前无发射方**"
-                    "（自愈链路归 S4-03）；缺数据时返回 framework_only，不填 0"),
+        disclosure=("`healing.triggered` 的**发射方已交付**："
+                    "`agent/self_healing/levels.py::emit_healing_triggered`"
+                    "（被 Saga / 发布包调用），另有直接发射点"
+                    "（成本熔断 `agent/monitoring/cost_brake.py`、"
+                    "修复流水线 `agent/repair/pipeline.py`）；事件类型亦已登记"
+                    "（events.v1）。当前窗口内 0 条事件 ⇒ framework_only 源于"
+                    "**尚未发生被分级记录的自愈事件**，**不是缺发射方**；"
+                    "缺数据时返回 framework_only，不填 0"),
     ),
     MetricSpec(
         key="approval_decay_rate",
@@ -283,7 +294,8 @@ def computable_metrics() -> List[str]:
 
 
 def delegation_recovery_contract() -> Dict[str, Any]:
-    """委派回收率/成功率的数据源契约（S4-04 交付后按此填充即可计算）
+    """委派回收率/成功率的数据源契约（S4-04 已交付：链路可按此形状产出行，
+    接入生产调用点后即可计算；缺样本时如实返回 framework_only）
 
     一行 = 一次委派（把一类工作交给上游/子智能体）：
     ``{"delegation_id", "capability_id", "artifact": bool|dict, "trace": bool|str,
@@ -664,7 +676,7 @@ def compute_skill_success_rate(ledger_rows: Sequence[Mapping[str, Any]], *,
 
 
 def compute_healing_latency(rows: Sequence[EventEnvelope]) -> Dict[str, Any]:
-    """MTTD / MTTR：来自 `healing.triggered`（无发射方时 framework_only）"""
+    """MTTD / MTTR：来自 `healing.triggered`（事件缺位时 framework_only）"""
     mttd: List[float] = []
     mttr: List[float] = []
     for env in rows:
@@ -682,7 +694,7 @@ def compute_healing_latency(rows: Sequence[EventEnvelope]) -> Dict[str, Any]:
         return _metric("healing_latency", value=None, status=STATUS_FRAMEWORK,
                        extra={"mttd_ms": None, "mttr_ms": None,
                               "events": 0,
-                              "reason": "无 healing.triggered 事件（发射方归 S4-03）"})
+                              "reason": "当前窗口内无 healing.triggered 事件（发射方已交付：agent/self_healing/levels.py::emit_healing_triggered）"})
     return _metric("healing_latency", value=None, samples=len(mttd) or len(mttr),
                    status=STATUS_OK,
                    extra={"mttd_ms": round(statistics.median(mttd), 3) if mttd else None,
