@@ -336,3 +336,20 @@ def test_doc_states_defaults():
     for token in ("只归档不删除", "dry-run", "CP_RETENTION_ENABLED",
                   "retention.run", "S5-01", "禁止删除"):
         assert token in text, f"策略文档缺少关键结论：{token}"
+
+
+def test_doc_states_guard_jurisdiction_boundary():
+    """闸门文案必须写明**管辖边界**，否则会被读成"全仓库只有一条删除路径"。
+
+    S8-01 复核时发现初版写法是绝对声称（"任何 `os.remove` 之前都必须过"），
+    而仓库里存在 8 处各模块自带的清理路径并不经过本闸门 —— 过度声称会让人对
+    未受守卫的路径放松警惕。故此断言把"边界声明"钉住，防止被后续编辑删掉。
+    """
+    with open(DOC_PATH, "r", encoding="utf-8") as fh:
+        text = fh.read()
+    for token in ("管辖边界", "不在本治理层管辖内", "本治理层",
+                  "cleanup_old_records", "cleanup_snapshots",
+                  "forgetting.py::prune"):
+        assert token in text, f"策略文档缺少管辖边界声明：{token}"
+    assert "任何 `os.remove` 之前都必须过" not in text, "绝对声称不得复现"
+
