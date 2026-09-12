@@ -1,0 +1,649 @@
+{
+  "task": "TASK-S7-04",
+  "subtask": "A 性能预算补测",
+  "generated_at": "2026-09-12T16:19:44+0800",
+  "clock": "wall_clock(monotonic perf_counter; 单次采样单位 ms)",
+  "environment": {
+    "platform": "Windows-10-10.0.19045-SP0",
+    "python": "3.12.0",
+    "cpu_count": 12,
+    "clock": "wall_clock(monotonic perf_counter; 单次采样单位 ms)",
+    "isolation": "进程内受控环境：临时目录 + 桩实现；不 kill 生产进程、不读写运行时台账"
+  },
+  "repeat": 20,
+  "results": {
+    "watchdog-hold": {
+      "status": "measured",
+      "item": "Watchdog 持锁超时感知（PERF_BUDGET_REBASED §二 #9 / §五 指定方法）",
+      "budget_ms": 10000.0,
+      "clock": "wall_clock(monotonic perf_counter; 单次采样单位 ms)",
+      "injected": {
+        "hold_seconds": 3.0,
+        "hold_threshold_ms": 2000
+      },
+      "hold_to_alert": {
+        "n": 20,
+        "samples_ms": [
+          3002.3624,
+          3000.5051,
+          3000.8267,
+          3000.9487,
+          3000.7322,
+          3000.8984,
+          3001.2683,
+          3001.3442,
+          3000.9217,
+          3000.5885,
+          3001.9631,
+          3000.7833,
+          3001.3935,
+          3001.0056,
+          3000.7826,
+          3001.0862,
+          3001.069,
+          3000.5733,
+          3000.4594,
+          3001.1443
+        ],
+        "min": 3000.4594,
+        "p50": 3000.9487,
+        "p95": 3002.3624,
+        "max": 3002.3624,
+        "mean": 3001.0328
+      },
+      "release_to_alert_overhead": {
+        "n": 20,
+        "samples_ms": [
+          1.3261,
+          0.35,
+          0.4316,
+          0.2983,
+          0.2999,
+          0.3579,
+          0.403,
+          0.3683,
+          0.3674,
+          0.3659,
+          0.7451,
+          0.6367,
+          0.4141,
+          0.4393,
+          0.5019,
+          0.5295,
+          0.3869,
+          0.3594,
+          0.3519,
+          0.3625
+        ],
+        "min": 0.2983,
+        "p50": 0.3869,
+        "p95": 1.3261,
+        "max": 1.3261,
+        "mean": 0.4648
+      },
+      "runs": [
+        {
+          "hold_to_alert_ms": 3002.3624,
+          "release_to_alert_ms": 1.3261,
+          "observed_hold_ms": 3001.0363,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3000.5051,
+          "release_to_alert_ms": 0.35,
+          "observed_hold_ms": 3000.1551,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3000.8267,
+          "release_to_alert_ms": 0.4316,
+          "observed_hold_ms": 3000.3951,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3000.9487,
+          "release_to_alert_ms": 0.2983,
+          "observed_hold_ms": 3000.6504,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3000.7322,
+          "release_to_alert_ms": 0.2999,
+          "observed_hold_ms": 3000.4323,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3000.8984,
+          "release_to_alert_ms": 0.3579,
+          "observed_hold_ms": 3000.5405,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3001.2683,
+          "release_to_alert_ms": 0.403,
+          "observed_hold_ms": 3000.8653,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3001.3442,
+          "release_to_alert_ms": 0.3683,
+          "observed_hold_ms": 3000.9759,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3000.9217,
+          "release_to_alert_ms": 0.3674,
+          "observed_hold_ms": 3000.5543,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3000.5885,
+          "release_to_alert_ms": 0.3659,
+          "observed_hold_ms": 3000.2226,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3001.9631,
+          "release_to_alert_ms": 0.7451,
+          "observed_hold_ms": 3001.218,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3000.7833,
+          "release_to_alert_ms": 0.6367,
+          "observed_hold_ms": 3000.1466,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3001.3935,
+          "release_to_alert_ms": 0.4141,
+          "observed_hold_ms": 3000.9794,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3001.0056,
+          "release_to_alert_ms": 0.4393,
+          "observed_hold_ms": 3000.5663,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3000.7826,
+          "release_to_alert_ms": 0.5019,
+          "observed_hold_ms": 3000.2807,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3001.0862,
+          "release_to_alert_ms": 0.5295,
+          "observed_hold_ms": 3000.5567,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3001.069,
+          "release_to_alert_ms": 0.3869,
+          "observed_hold_ms": 3000.6821,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3000.5733,
+          "release_to_alert_ms": 0.3594,
+          "observed_hold_ms": 3000.2139,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3000.4594,
+          "release_to_alert_ms": 0.3519,
+          "observed_hold_ms": 3000.1075,
+          "alert_fired": true
+        },
+        {
+          "hold_to_alert_ms": 3001.1443,
+          "release_to_alert_ms": 0.3625,
+          "observed_hold_ms": 3000.7818,
+          "alert_fired": true
+        }
+      ],
+      "passed": true,
+      "boundary": "本仓库看门狗在**释放点**判定持锁超时 ⇒ 该口径测的是「已释放的超长持锁」；**永不释放**的持锁不会触发告警（此项由 W-2 的陈旧锁探测覆盖，如实并列，不合并成一个数字）"
+    },
+    "watchdog-liveness": {
+      "status": "measured",
+      "item": "Watchdog 主进程失联感知（PERF_BUDGET_REBASED §二 #9「主进程失联 → 感知」）",
+      "budget_ms": 10000.0,
+      "clock": "wall_clock(monotonic perf_counter; 单次采样单位 ms)",
+      "injected": {
+        "poll_interval_ms": 100.0,
+        "stub": "本脚本自起的桩子进程（terminate），非生产进程"
+      },
+      "detect": {
+        "n": 20,
+        "samples_ms": [
+          7.0991,
+          5.4658,
+          5.8924,
+          5.9914,
+          6.857,
+          7.2152,
+          9.9044,
+          7.2077,
+          7.546,
+          5.5449,
+          9.3115,
+          6.3904,
+          8.1067,
+          5.9592,
+          4.5001,
+          4.7379,
+          4.4613,
+          6.0266,
+          5.2078,
+          4.9063
+        ],
+        "min": 4.4613,
+        "p50": 6.0266,
+        "p95": 9.9044,
+        "max": 9.9044,
+        "mean": 6.4166
+      },
+      "runs": [
+        {
+          "status": "measured",
+          "detect_ms": 7.0991,
+          "stub_pid": 18764,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 5.4658,
+          "stub_pid": 17420,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 5.8924,
+          "stub_pid": 7908,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 5.9914,
+          "stub_pid": 10868,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 6.857,
+          "stub_pid": 20332,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 7.2152,
+          "stub_pid": 17112,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 9.9044,
+          "stub_pid": 19784,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 7.2077,
+          "stub_pid": 4644,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 7.546,
+          "stub_pid": 2680,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 5.5449,
+          "stub_pid": 8352,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 9.3115,
+          "stub_pid": 11620,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 6.3904,
+          "stub_pid": 3032,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 8.1067,
+          "stub_pid": 11896,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 5.9592,
+          "stub_pid": 17288,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 4.5001,
+          "stub_pid": 20048,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 4.7379,
+          "stub_pid": 10708,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 4.4613,
+          "stub_pid": 6920,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 6.0266,
+          "stub_pid": 19668,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 5.2078,
+          "stub_pid": 1672,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        },
+        {
+          "status": "measured",
+          "detect_ms": 4.9063,
+          "stub_pid": 7384,
+          "holder_alive_before_kill": true,
+          "poll_interval_ms": 100.0
+        }
+      ],
+      "passed": true,
+      "boundary": "`is_stale()` 是**显式调用**（不自动回收）：端到端「感知时间」= 探测周期 + 单次判定耗时；本口径按 poll_interval 固定披露，不把它说成「看门狗自动发现」"
+    },
+    "circuit-breaker": {
+      "status": "measured",
+      "item": "熔断「达到阈值 → 生效」（PERF_BUDGET_REBASED §二 #7b / §五 指定方法）",
+      "budget_ms": 3000.0,
+      "clock": "wall_clock(monotonic perf_counter; 单次采样单位 ms)",
+      "injected": {
+        "failure_threshold": 0.3,
+        "min_requests": 5,
+        "stub": "进程内抛错桩（无外部依赖、无真实 outbound）"
+      },
+      "threshold_to_open": {
+        "n": 20,
+        "samples_ms": [
+          0.0035,
+          0.0018,
+          0.0016,
+          0.0015,
+          0.0016,
+          0.0016,
+          0.0013,
+          0.0014,
+          0.0013,
+          0.0015,
+          0.0015,
+          0.0014,
+          0.0015,
+          0.0014,
+          0.0014,
+          0.0014,
+          0.0015,
+          0.0014,
+          0.0015,
+          0.0017
+        ],
+        "min": 0.0013,
+        "p50": 0.0015,
+        "p95": 0.0035,
+        "max": 0.0035,
+        "mean": 0.0016
+      },
+      "outbound_block_latency": {
+        "n": 20,
+        "samples_ms": [
+          0.0418,
+          0.0235,
+          0.0203,
+          0.0186,
+          0.0188,
+          0.0187,
+          0.017,
+          0.0167,
+          0.0168,
+          0.0172,
+          0.0178,
+          0.0182,
+          0.0171,
+          0.017,
+          0.0169,
+          0.0171,
+          0.025,
+          0.0175,
+          0.0174,
+          0.0176
+        ],
+        "min": 0.0167,
+        "p50": 0.0176,
+        "p95": 0.0418,
+        "max": 0.0418,
+        "mean": 0.0196
+      },
+      "runs": [
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0884,
+          "threshold_to_open_ms": 0.0035,
+          "outbound_block_latency_ms": 0.0418,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0277,
+          "threshold_to_open_ms": 0.0018,
+          "outbound_block_latency_ms": 0.0235,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0234,
+          "threshold_to_open_ms": 0.0016,
+          "outbound_block_latency_ms": 0.0203,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0216,
+          "threshold_to_open_ms": 0.0015,
+          "outbound_block_latency_ms": 0.0186,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.022,
+          "threshold_to_open_ms": 0.0016,
+          "outbound_block_latency_ms": 0.0188,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0215,
+          "threshold_to_open_ms": 0.0016,
+          "outbound_block_latency_ms": 0.0187,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0209,
+          "threshold_to_open_ms": 0.0013,
+          "outbound_block_latency_ms": 0.017,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0217,
+          "threshold_to_open_ms": 0.0014,
+          "outbound_block_latency_ms": 0.0167,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0204,
+          "threshold_to_open_ms": 0.0013,
+          "outbound_block_latency_ms": 0.0168,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0209,
+          "threshold_to_open_ms": 0.0015,
+          "outbound_block_latency_ms": 0.0172,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0215,
+          "threshold_to_open_ms": 0.0015,
+          "outbound_block_latency_ms": 0.0178,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.022,
+          "threshold_to_open_ms": 0.0014,
+          "outbound_block_latency_ms": 0.0182,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0213,
+          "threshold_to_open_ms": 0.0015,
+          "outbound_block_latency_ms": 0.0171,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0217,
+          "threshold_to_open_ms": 0.0014,
+          "outbound_block_latency_ms": 0.017,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0242,
+          "threshold_to_open_ms": 0.0014,
+          "outbound_block_latency_ms": 0.0169,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0211,
+          "threshold_to_open_ms": 0.0014,
+          "outbound_block_latency_ms": 0.0171,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0264,
+          "threshold_to_open_ms": 0.0015,
+          "outbound_block_latency_ms": 0.025,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0215,
+          "threshold_to_open_ms": 0.0014,
+          "outbound_block_latency_ms": 0.0175,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0209,
+          "threshold_to_open_ms": 0.0015,
+          "outbound_block_latency_ms": 0.0174,
+          "outbound_actually_blocked": true
+        },
+        {
+          "status": "measured",
+          "failures_until_open": 5,
+          "state_after_threshold": "open",
+          "threshold_call_span_ms": 0.0209,
+          "threshold_to_open_ms": 0.0017,
+          "outbound_block_latency_ms": 0.0176,
+          "outbound_actually_blocked": true
+        }
+      ],
+      "passed": true,
+      "boundary": "本口径测的是熔断器**自身**的「阈值 → 阻断下一次调用」时延；跨进程/跨节点的配置下发时延（若部署侧另有开关下发）不在此列，需集群环境，单机测不出 ⇒ 如实标注，不并入本数字"
+    }
+  }
+}

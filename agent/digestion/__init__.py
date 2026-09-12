@@ -21,6 +21,7 @@
 | `gate` | **验收门四条件硬闸** + 通行证 + **漂移重探** | S3-02 |
 | `shadow` | **shadow 灰度**（预算/确定性抽样/灰度 5%/三层比对/真实墙钟/人工抽检/劣化） | S3-03 |
 | `internalize` | **内化六条件引擎** + stage.promote PR 产物 + 低流量手动通道（T2） | S3-03 |
+| `probe` | **native 期探活设施**（判定集子集周重放 + 四项退化条件 + 回退建议 + 事故卡；调度默认关闭） | S7-04 |
 | `seed_pack.json` | P7.2-23 Seed Pack 资产（14 技能 × ≥3 组预置等价用例） | S3-02 |
 
 **import 纪律**：本包是**叶子**——既有模块不得反向导入 `agent.digestion`
@@ -135,6 +136,36 @@ from .internalize import (  # noqa: F401
     PromotePR,
     VETO_CONDITIONS,
 )
+from .probe import (  # noqa: F401
+    LIVENESS_CONDITIONS,
+    LIVENESS_COND_COST,
+    LIVENESS_COND_OVERDUE,
+    LIVENESS_COND_P99,
+    LIVENESS_COND_PASS_RATE,
+    LIVENESS_COST_INCREASE_RATIO,
+    LIVENESS_ENABLE_ENV,
+    LIVENESS_PASS_RATE_RATIO,
+    LIVENESS_PERIOD_DAYS,
+    LIVENESS_P99_REGRESSION_RATIO,
+    LIVENESS_TASK_NAME,
+    PROBE_STAGES,
+    PROBE_VERSION,
+    ROLLBACK_TO_STAGE,
+    VERDICT_DEGRADED,
+    VERDICT_NO_CAPABILITY,
+    VERDICT_NOT_APPLICABLE,
+    VERDICT_OK,
+    LivenessBaseline,
+    LivenessBaselineStore,
+    LivenessCondition,
+    LivenessProbe,
+    LivenessReport,
+    LivenessVerdict,
+    StageRollbackSuggestion,
+    evaluate_liveness,
+    register_liveness_job,
+    suggest_stage_rollback,
+)
 
 __all__ = [
     # 门面
@@ -173,4 +204,16 @@ __all__ = [
     "VETO_CONDITIONS", "COND_P99", "COND_PRIVACY", "DIGEST_COUNT_MIN",
     "MONTHLY_SAMPLES_MIN", "VERDICT_PROMOTE", "VERDICT_VETO_BLOCKED",
     "VERDICT_LOW_TRAFFIC_MANUAL", "INTERNALIZE_VERSION",
+    # S7-04 native 期探活设施
+    "LivenessProbe", "LivenessReport", "LivenessVerdict", "LivenessCondition",
+    "LivenessBaseline", "LivenessBaselineStore", "StageRollbackSuggestion",
+    "evaluate_liveness", "suggest_stage_rollback", "register_liveness_job",
+    "LIVENESS_COND_PASS_RATE", "LIVENESS_COND_P99", "LIVENESS_COND_COST",
+    "LIVENESS_COND_OVERDUE",
+    "LIVENESS_CONDITIONS", "LIVENESS_PASS_RATE_RATIO",
+    "LIVENESS_P99_REGRESSION_RATIO", "LIVENESS_COST_INCREASE_RATIO",
+    "LIVENESS_PERIOD_DAYS", "LIVENESS_ENABLE_ENV", "LIVENESS_TASK_NAME",
+    "PROBE_STAGES", "PROBE_VERSION", "ROLLBACK_TO_STAGE",
+    "VERDICT_OK", "VERDICT_DEGRADED", "VERDICT_NO_CAPABILITY",
+    "VERDICT_NOT_APPLICABLE",
 ]

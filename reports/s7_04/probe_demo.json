@@ -1,0 +1,297 @@
+{
+  "task": "TASK-S7-04",
+  "subtask": "B native 期探活设施演示",
+  "part1_real_ledger": {
+    "ledger_available": true,
+    "ledger_path": "",
+    "capabilities_total": 32,
+    "stage_counts": {
+      "borrowed": 32
+    },
+    "probe_stage_scope": [
+      "internalized",
+      "native"
+    ],
+    "probe_targets": [],
+    "internalized_or_native_count": 0,
+    "run_all_status": "no_capability",
+    "run_all_note": "无 ['internalized', 'native'] 能力 ⇒ 无可探活能力（不报错、不编造、不拿别的 stage 凑数）"
+  },
+  "part2_controlled_demo": {
+    "workdir": "C:\\Windows\\TEMP\\cp_s704_demo_v8j21xsw",
+    "capability_id": "cp.builtin.read_file",
+    "stage_before": "native",
+    "stage_after": "native",
+    "set_stage_calls": [],
+    "stage_unchanged": true,
+    "baseline_established_on_first": true,
+    "first_probe": {
+      "verdict": "ok",
+      "pass_rate": 1.0,
+      "p99_wall_candidate_ms": 0.067,
+      "clock": "wall_clock(perf_counter; per-arm real elapsed)",
+      "unmeasured_conditions": [
+        "pass_rate",
+        "p99_regression",
+        "cost_increase",
+        "overdue"
+      ],
+      "triggered_conditions": []
+    },
+    "healthy_probe": {
+      "verdict": "ok",
+      "pass_rate": 1.0,
+      "p99_wall_candidate_ms": 0.056,
+      "triggered_conditions": [],
+      "rollback_recommended": false
+    },
+    "degraded_probe": {
+      "verdict": "degraded",
+      "degraded": true,
+      "pass_rate": 0.0,
+      "triggered_conditions": [
+        "pass_rate"
+      ],
+      "unmeasured_conditions": [
+        "cost_increase"
+      ],
+      "failure_list": [
+        {
+          "case_id": "s704-case-000",
+          "failed_layers": [
+            "structure",
+            "side_effects"
+          ],
+          "expectation_ok": true,
+          "upstream_status": "success",
+          "candidate_status": "success",
+          "reasons": [
+            "[structure] 输出结构不一致：上游 {\"env_digest\": \"list[2]<str>\", \"env_files\": \"list[2]<str>\", \"error_code\": \"str\", \"last_result\": {\"bytes\": \"number\", \"ok\": \"bool\", \"path\": \"str\"}, \"status\": \"str\", \"step_count\": \"number\", \"steps\": \"list[3]<str>\"} ≠ 候选 {\"env_digest\": \"list[1]<str>\", \"env_files\": \"list[1]<str>\", \"error_code\": \"str\", \"last_result\": {\"cmd\": \"str\", \"ok\": \"bool\", \"simulated\": \"str\"}, \"status\": \"str\", \"step_count\": \"number\", \"steps\": \"list[2]<str>\"}",
+            "[structure] 候选结果缺声明字段 'path'（用例 expected_output_schema）",
+            "[structure] 候选结果缺声明字段 'bytes'（用例 expected_output_schema）",
+            "[side_effects] files_written 目标不一致：上游 ['C:/sandbox/out/s7_04_report000.md'] ≠ 候选 []",
+            "[side_effects] 写入内容指纹不一致：仅上游 1 项 / 仅候选 0 项（示例：['${path}=1d353336']）",
+            "[side_effects] files_written 与用例期望不一致：期望 ['C:/sandbox/out/s7_04_report000.md'] ≠ 候选 []"
+          ]
+        },
+        {
+          "case_id": "s704-case-002",
+          "failed_layers": [
+            "structure",
+            "side_effects"
+          ],
+          "expectation_ok": true,
+          "upstream_status": "success",
+          "candidate_status": "success",
+          "reasons": [
+            "[structure] 输出结构不一致：上游 {\"env_digest\": \"list[2]<str>\", \"env_files\": \"list[2]<str>\", \"error_code\": \"str\", \"last_result\": {\"bytes\": \"number\", \"ok\": \"bool\", \"path\": \"str\"}, \"status\": \"str\", \"step_count\": \"number\", \"steps\": \"list[3]<str>\"} ≠ 候选 {\"env_digest\": \"list[1]<str>\", \"env_files\": \"list[1]<str>\", \"error_code\": \"str\", \"last_result\": {\"cmd\": \"str\", \"ok\": \"bool\", \"simulated\": \"str\"}, \"status\": \"str\", \"step_count\": \"number\", \"steps\": \"list[2]<str>\"}",
+            "[structure] 候选结果缺声明字段 'path'（用例 expected_output_schema）",
+            "[structure] 候选结果缺声明字段 'bytes'（用例 expected_output_schema）",
+            "[side_effects] files_written 目标不一致：上游 ['C:/sandbox/out/s7_04_report002.md'] ≠ 候选 []",
+            "[side_effects] 写入内容指纹不一致：仅上游 1 项 / 仅候选 0 项（示例：['${path}=891236a1']）",
+            "[side_effects] files_written 与用例期望不一致：期望 ['C:/sandbox/out/s7_04_report002.md'] ≠ 候选 []"
+          ]
+        },
+        {
+          "case_id": "s704-case-004",
+          "failed_layers": [
+            "structure",
+            "side_effects",
+            "judge"
+          ],
+          "expectation_ok": true,
+          "upstream_status": "success",
+          "candidate_status": "success",
+          "reasons": [
+            "[structure] 输出结构不一致：上游 {\"env_digest\": \"list[2]<str>\", \"env_files\": \"list[2]<str>\", \"error_code\": \"str\", \"last_result\": {\"bytes\": \"number\", \"ok\": \"bool\", \"path\": \"str\"}, \"status\": \"str\", \"step_count\": \"number\", \"steps\": \"list[3]<str>\"} ≠ 候选 {\"env_digest\": \"list[1]<str>\", \"env_files\": \"list[1]<str>\", \"error_code\": \"str\", \"last_result\": {\"cmd\": \"str\", \"ok\": \"bool\", \"simulated\": \"str\"}, \"status\": \"str\", \"step_count\": \"number\", \"steps\": \"list[2]<str>\"}",
+            "[structure] 候选结果缺声明字段 'path'（用例 expected_output_schema）",
+            "[structure] 候选结果缺声明字段 'bytes'（用例 expected_output_schema）",
+            "[side_effects] files_written 目标不一致：上游 ['C:/sandbox/out/s7_04_report004.md'] ≠ 候选 []",
+            "[side_effects] 写入内容指纹不一致：仅上游 1 项 / 仅候选 0 项（示例：['${path}=20669fc5']）",
+            "[side_effects] files_written 与用例期望不一致：期望 ['C:/sandbox/out/s7_04_report004.md'] ≠ 候选 []",
+            "[judge] judge 相似度 0.7227 < 门槛 0.85"
+          ]
+        },
+        {
+          "case_id": "s704-case-005",
+          "failed_layers": [
+            "structure",
+            "side_effects",
+            "judge"
+          ],
+          "expectation_ok": true,
+          "upstream_status": "success",
+          "candidate_status": "success",
+          "reasons": [
+            "[structure] 输出结构不一致：上游 {\"env_digest\": \"list[2]<str>\", \"env_files\": \"list[2]<str>\", \"error_code\": \"str\", \"last_result\": {\"bytes\": \"number\", \"ok\": \"bool\", \"path\": \"str\"}, \"status\": \"str\", \"step_count\": \"number\", \"steps\": \"list[3]<str>\"} ≠ 候选 {\"env_digest\": \"list[1]<str>\", \"env_files\": \"list[1]<str>\", \"error_code\": \"str\", \"last_result\": {\"cmd\": \"str\", \"ok\": \"bool\", \"simulated\": \"str\"}, \"status\": \"str\", \"step_count\": \"number\", \"steps\": \"list[2]<str>\"}",
+            "[structure] 候选结果缺声明字段 'path'（用例 expected_output_schema）",
+            "[structure] 候选结果缺声明字段 'bytes'（用例 expected_output_schema）",
+            "[side_effects] files_written 目标不一致：上游 ['C:/sandbox/out/s7_04_report005.md'] ≠ 候选 []",
+            "[side_effects] 写入内容指纹不一致：仅上游 1 项 / 仅候选 0 项（示例：['${path}=fc2dc8e9']）",
+            "[side_effects] files_written 与用例期望不一致：期望 ['C:/sandbox/out/s7_04_report005.md'] ≠ 候选 []",
+            "[judge] judge 相似度 0.7227 < 门槛 0.85"
+          ]
+        },
+        {
+          "case_id": "s704-case-007",
+          "failed_layers": [
+            "structure",
+            "side_effects",
+            "judge"
+          ],
+          "expectation_ok": true,
+          "upstream_status": "success",
+          "candidate_status": "success",
+          "reasons": [
+            "[structure] 输出结构不一致：上游 {\"env_digest\": \"list[2]<str>\", \"env_files\": \"list[2]<str>\", \"error_code\": \"str\", \"last_result\": {\"bytes\": \"number\", \"ok\": \"bool\", \"path\": \"str\"}, \"status\": \"str\", \"step_count\": \"number\", \"steps\": \"list[3]<str>\"} ≠ 候选 {\"env_digest\": \"list[1]<str>\", \"env_files\": \"list[1]<str>\", \"error_code\": \"str\", \"last_result\": {\"cmd\": \"str\", \"ok\": \"bool\", \"simulated\": \"str\"}, \"status\": \"str\", \"step_count\": \"number\", \"steps\": \"list[2]<str>\"}",
+            "[structure] 候选结果缺声明字段 'path'（用例 expected_output_schema）",
+            "[structure] 候选结果缺声明字段 'bytes'（用例 expected_output_schema）",
+            "[side_effects] files_written 目标不一致：上游 ['C:/sandbox/out/s7_04_report007.md'] ≠ 候选 []",
+            "[side_effects] 写入内容指纹不一致：仅上游 1 项 / 仅候选 0 项（示例：['${path}=3eda8b6b']）",
+            "[side_effects] files_written 与用例期望不一致：期望 ['C:/sandbox/out/s7_04_report007.md'] ≠ 候选 []",
+            "[judge] judge 相似度 0.7227 < 门槛 0.85"
+          ]
+        }
+      ],
+      "conditions": [
+        {
+          "name": "pass_rate",
+          "label": "① 通过率 < 基线×0.98",
+          "applicable": true,
+          "triggered": true,
+          "evidence_missing": false,
+          "actual": 0.0,
+          "threshold": 0.98,
+          "comparator": ">=",
+          "reasons": [
+            "通过率 0.0 < 基线 1.0 × 0.98 = 0.98（质量下滑）"
+          ]
+        },
+        {
+          "name": "p99_regression",
+          "label": "② p99 回归超阈（真实墙钟）",
+          "applicable": true,
+          "triggered": false,
+          "evidence_missing": false,
+          "actual": 0.04,
+          "threshold": 0.1005,
+          "comparator": "<=",
+          "reasons": [
+            "真实墙钟 p99 0.04ms ≤ 基线 0.067ms × 1.5 = 0.1005ms（口径 wall_clock(perf_counter; per-arm real elapsed)）"
+          ]
+        },
+        {
+          "name": "cost_increase",
+          "label": "③ 成本显著上升",
+          "applicable": false,
+          "triggered": false,
+          "evidence_missing": true,
+          "actual": null,
+          "threshold": null,
+          "comparator": "<=",
+          "reasons": [
+            "未提供单位成本（无 `cost_provider` 且未显式给出）⇒ ③不判定（缺证据不当成「未上升」，也不编造成本数字）"
+          ]
+        },
+        {
+          "name": "overdue",
+          "label": "④ 超周期未成功探活",
+          "applicable": true,
+          "triggered": false,
+          "evidence_missing": false,
+          "actual": 60.0,
+          "threshold": 604800.0,
+          "comparator": "<=",
+          "reasons": [
+            "距上次成功探活 0.001 天 ≤ 周期 7.0 天"
+          ]
+        }
+      ],
+      "rollback": {
+        "capability_id": "cp.builtin.read_file",
+        "from_stage": "native",
+        "to_stage": "borrowed",
+        "recommended": true,
+        "executed": false,
+        "requires_approval": true,
+        "triggered_conditions": [
+          "pass_rate"
+        ],
+        "rule_id": "stage_rollback:cp.builtin.read_file.native->borrowed",
+        "apply_hint": "from agent.digestion.stage import stage_migrate; stage_migrate('cp.builtin.read_file', 'borrowed', evidence={'liveness_rollback': True, 'reason': ...}, actor='<approver>', reason='探活退化回退（TASK-S7-04）')",
+        "reasons": [
+          "探活 run=live_a0ce21c08786",
+          "探活判定退化（命中：['pass_rate']）⇒ 建议回退到上游实现（native → borrowed）",
+          "**本建议不自动执行**：stage 变更须走既有 `stage_migrate` + 审计 + 人工审批"
+        ],
+        "created_at": 1000120.0
+      },
+      "incident_id": "inc-f0841228eaa0",
+      "incident_missing_elements": [],
+      "incident_card": {
+        "id": "inc-f0841228eaa0",
+        "severity": "L3",
+        "root_cause": "cp.builtin.read_file（stage=native）自身实现退化：① 通过率 < 基线×0.98——pass_rate（探活 run=live_a0ce21c08786；样本 5 组，通过率 0.0，真实墙钟 p99 0.04ms）",
+        "fatal_change": "demo-commit-abc123",
+        "evasion_rule": "stage_rollback:cp.builtin.read_file.native->borrowed",
+        "in_strategy_memory": {
+          "yes": true,
+          "id": "liveness:cp.builtin.read_file"
+        },
+        "regression_case_added": {
+          "yes": true,
+          "case_id": "s704-case-000"
+        },
+        "trace_ids": [
+          "tr-s704-000",
+          "tr-s704-002",
+          "tr-s704-004",
+          "tr-s704-005",
+          "tr-s704-007"
+        ],
+        "mttd_ms": null,
+        "mttr_ms": null,
+        "status": "open",
+        "tenant_id": "default",
+        "created_at": "2026-09-12T16:28:16.740371",
+        "resolved_at": "",
+        "missing_elements": [],
+        "detail": {
+          "probe_run_id": "live_a0ce21c08786",
+          "capability_id": "cp.builtin.read_file",
+          "stage": "native",
+          "triggered_conditions": [
+            "pass_rate"
+          ],
+          "unmeasured_conditions": [
+            "cost_increase"
+          ],
+          "probe_ids": [
+            "s704-case-000",
+            "s704-case-002",
+            "s704-case-004",
+            "s704-case-005",
+            "s704-case-007"
+          ],
+          "failed_case_ids": [
+            "s704-case-000",
+            "s704-case-002",
+            "s704-case-004",
+            "s704-case-005",
+            "s704-case-007"
+          ],
+          "rollback_rule_id": "stage_rollback:cp.builtin.read_file.native->borrowed",
+          "rollback_to_stage": "borrowed",
+          "rollback_executed": false,
+          "clock": "wall_clock(perf_counter; per-arm real elapsed)",
+          "pass_rate": 0.0,
+          "p99_wall_candidate_ms": 0.04,
+          "cost_cents_per_unit": null,
+          "fatal_change_source": "explicit",
+          "note": "探活=自身实现退化（非上游契约漂移，后者见 gate.reprobe）；回退建议**不自动执行**"
+        }
+      },
+      "incident_resolvable": true
+    }
+  }
+}

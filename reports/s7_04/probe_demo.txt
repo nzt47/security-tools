@@ -1,0 +1,22 @@
+==============================================================================
+第一段：真实台账的可探活范围（只读）
+==============================================================================
+  台账能力总数：32（台账=默认路径）
+  stage 分布  ：{'borrowed': 32}
+  可探活目标  ：[]（['internalized', 'native'] 共 0 个）
+  run_all()   ：status=no_capability
+  说明        ：无 ['internalized', 'native'] 能力 ⇒ 无可探活能力（不报错、不编造、不拿别的 stage 凑数）
+
+==============================================================================
+第二段：受控演示（native 能力 → 健康探活 → 退化探活）
+==============================================================================
+  ① 首次探活：verdict=ok  基线已建立=True  通过率=1.0  真实墙钟 p99=0.165ms
+     未判定项（首次无基线，**不误报退化**）：['pass_rate', 'p99_regression', 'cost_increase', 'overdue']
+  ② 健康复探：verdict=ok  触发条件=[]  建议回退=False
+  ③ 退化探活：verdict=degraded  degraded=True  命中条件=['pass_rate']
+       [① 通过率 < 基线×0.98] 通过率 0.0 < 基线 1.0 × 0.98 = 0.98（质量下滑）
+     回退建议：native → borrowed  recommended=True  **executed=False**  requires_approval=True
+     建议规则 id：stage_rollback:cp.builtin.read_file.native->borrowed
+     若需执行的调用形状（本脚本**不执行**）：from agent.digestion.stage import stage_migrate; stage_migrate('cp.builtin.read_file', 'borrowed', evidence={'liveness_rollback': True, 'reason': ...}, actor='<approver>', reason='探活退化回退（TASK-S7-04）')
+     事故卡：inc-c76926106421  缺失要素=[]  可 resolved=True
+  台账 stage：native → native  set_stage 调用=[]  **未自动执行=True**

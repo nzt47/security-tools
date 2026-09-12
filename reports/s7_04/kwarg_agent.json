@@ -1,0 +1,1393 @@
+{
+  "scan_time": "2026-09-12 16:22:01",
+  "total": 90,
+  "summary": {
+    "HIGH": 0,
+    "MEDIUM": 17,
+    "LOW": 73
+  },
+  "findings": [
+    {
+      "file": "agent\\circuit_breaker.py",
+      "lineno": 590,
+      "col": 14,
+      "func_name": "CircuitBreaker",
+      "explicit_kwargs": [
+        "name",
+        "failure_threshold",
+        "cooldown_seconds"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 CircuitBreaker，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\circuit_breaker.py",
+      "lineno": 623,
+      "col": 30,
+      "func_name": "CircuitBreaker",
+      "explicit_kwargs": [
+        "name",
+        "failure_threshold",
+        "cooldown_seconds"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 CircuitBreaker，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\rate_limiter.py",
+      "lineno": 538,
+      "col": 22,
+      "func_name": "RateLimiter",
+      "explicit_kwargs": [
+        "max_concurrent",
+        "strategy"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 RateLimiter，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\audit\\chain.py",
+      "lineno": 1510,
+      "col": 20,
+      "func_name": "entries",
+      "explicit_kwargs": [
+        "start_seq",
+        "end_seq",
+        "limit"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 entries，若含键 ['limit', 'trace_id', 'self']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\audit\\chain.py",
+      "lineno": 1539,
+      "col": 15,
+      "func_name": "_query_rows",
+      "explicit_kwargs": [
+        "limit"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 _query_rows，若含键 ['refresh', 'offset', 'limit']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\audit\\chain.py",
+      "lineno": 1870,
+      "col": 15,
+      "func_name": "cls",
+      "explicit_kwargs": [
+        "role"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 cls，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\audit\\facade.py",
+      "lineno": 348,
+      "col": 15,
+      "func_name": "record",
+      "explicit_kwargs": [
+        "source"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 record，若含键 ['actor', 'action', 'kwargs']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\audit\\facade.py",
+      "lineno": 353,
+      "col": 15,
+      "func_name": "record",
+      "explicit_kwargs": [
+        "source"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 record，若含键 ['actor', 'action', 'kwargs']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\audit\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\caching\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\cognitive\\failure_collector.py",
+      "lineno": 413,
+      "col": 11,
+      "func_name": "collect_failure",
+      "explicit_kwargs": [
+        "trace_id",
+        "message",
+        "source",
+        "severity"
+      ],
+      "spread_expr": "safe_kwargs",
+      "risk_level": "LOW",
+      "reason": "**safe_kwargs 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\cognitive\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\data\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\descriptors\\backfill.py",
+      "lineno": 994,
+      "col": 8,
+      "func_name": "set_governance",
+      "explicit_kwargs": [
+        "actor",
+        "reason"
+      ],
+      "spread_expr": "gov_patch",
+      "risk_level": "LOW",
+      "reason": "外部函数 set_governance，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\descriptors\\bridge.py",
+      "lineno": 397,
+      "col": 16,
+      "func_name": "descriptor_from_mcp_tool",
+      "explicit_kwargs": [
+        "server",
+        "transport"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 descriptor_from_mcp_tool，若含键 ['timeout_ms', 'data_class', 'trace_policy']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\digestion\\probe.py",
+      "lineno": 1088,
+      "col": 19,
+      "func_name": "run",
+      "explicit_kwargs": [
+        "now"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 run，若含键 ['rebaseline', 'probe_size', 'period_days']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\digestion\\probe.py",
+      "lineno": 1112,
+      "col": 15,
+      "func_name": "run",
+      "explicit_kwargs": [
+        "now",
+        "rebaseline",
+        "emit_incident"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 run，若含键 ['rebaseline', 'probe_size', 'period_days']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\digestion\\shadow.py",
+      "lineno": 1886,
+      "col": 11,
+      "func_name": "run",
+      "explicit_kwargs": [
+        "case_set",
+        "candidate",
+        "trace_ids",
+        "daily_avg",
+        "force"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 run，若含键 ['write_ledger', 'trace_ids', 'pattern']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\eval\\runner.py",
+      "lineno": 463,
+      "col": 13,
+      "func_name": "run_layer",
+      "explicit_kwargs": [
+        "solver",
+        "solver_name"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 run_layer，若含键 ['compare_baseline', 'caseset_path', 'disclosures']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\extensions\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\guardrails\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\health\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\human_in_the_loop\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\lazy_loader\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\log_system\\models.py",
+      "lineno": 78,
+      "col": 15,
+      "func_name": "cls",
+      "explicit_kwargs": [
+        "category",
+        "level"
+      ],
+      "spread_expr": "data",
+      "risk_level": "LOW",
+      "reason": "外部函数 cls，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\log_system\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\memory\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\memory\\tenancy.py",
+      "lineno": 441,
+      "col": 11,
+      "func_name": "resolve_tenancy",
+      "explicit_kwargs": [
+        "use_current_context"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 resolve_tenancy，若含键 ['workspace_root', 'tenant_id', 'trace_id']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\model_router\\adapters.py",
+      "lineno": 111,
+      "col": 23,
+      "func_name": "create",
+      "explicit_kwargs": [
+        "model",
+        "messages"
+      ],
+      "spread_expr": "safe_kwargs",
+      "risk_level": "LOW",
+      "reason": "**safe_kwargs 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\model_router\\adapters.py",
+      "lineno": 140,
+      "col": 23,
+      "func_name": "create",
+      "explicit_kwargs": [
+        "model",
+        "messages"
+      ],
+      "spread_expr": "safe_kwargs",
+      "risk_level": "LOW",
+      "reason": "**safe_kwargs 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\model_router\\adapters.py",
+      "lineno": 400,
+      "col": 23,
+      "func_name": "create",
+      "explicit_kwargs": [
+        "model",
+        "messages"
+      ],
+      "spread_expr": "safe_kwargs",
+      "risk_level": "LOW",
+      "reason": "**safe_kwargs 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\model_router\\adapters.py",
+      "lineno": 429,
+      "col": 23,
+      "func_name": "create",
+      "explicit_kwargs": [
+        "model",
+        "messages"
+      ],
+      "spread_expr": "safe_kwargs",
+      "risk_level": "LOW",
+      "reason": "**safe_kwargs 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\model_router\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\monitoring\\trace_http_client.py",
+      "lineno": 247,
+      "col": 11,
+      "func_name": "get",
+      "explicit_kwargs": [
+        "headers"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 get，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\monitoring\\trace_http_client.py",
+      "lineno": 254,
+      "col": 11,
+      "func_name": "post",
+      "explicit_kwargs": [
+        "headers"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 post，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\monitoring\\trace_http_client.py",
+      "lineno": 261,
+      "col": 11,
+      "func_name": "put",
+      "explicit_kwargs": [
+        "headers"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 put，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\monitoring\\trace_http_client.py",
+      "lineno": 268,
+      "col": 11,
+      "func_name": "delete",
+      "explicit_kwargs": [
+        "headers"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 delete，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\network\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\observability\\acr.py",
+      "lineno": 418,
+      "col": 11,
+      "func_name": "record_task_closed",
+      "explicit_kwargs": [
+        "task_id",
+        "status",
+        "extra"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 record_task_closed，若含键 ['ts', 'correlation_id', 'trace_id']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\observability\\acr.py",
+      "lineno": 469,
+      "col": 11,
+      "func_name": "acr_summary",
+      "explicit_kwargs": [
+        "day"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 acr_summary，若含键 ['days', 'until', 'since']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\observability\\acr.py",
+      "lineno": 474,
+      "col": 11,
+      "func_name": "acr_summary",
+      "explicit_kwargs": [
+        "week_of"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 acr_summary，若含键 ['days', 'until', 'since']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\observability\\acr.py",
+      "lineno": 486,
+      "col": 18,
+      "func_name": "acr_summary",
+      "explicit_kwargs": [
+        "days"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 acr_summary，若含键 ['days', 'until', 'since']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\observability\\events.py",
+      "lineno": 677,
+      "col": 15,
+      "func_name": "iter_events",
+      "explicit_kwargs": [
+        "directory"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 iter_events，若含键 ['correlation_id', 'until', 'limit']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\orchestrator\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\orchestrator\\routing_observability.py",
+      "lineno": 261,
+      "col": 12,
+      "func_name": "add_layer",
+      "explicit_kwargs": [
+        "duration_ms",
+        "score"
+      ],
+      "spread_expr": "safe_fields",
+      "risk_level": "LOW",
+      "reason": "**safe_fields 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\p6\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\policy\\models.py",
+      "lineno": 602,
+      "col": 15,
+      "func_name": "build",
+      "explicit_kwargs": [
+        "capability_id",
+        "capability",
+        "tenant_id",
+        "target"
+      ],
+      "spread_expr": "overrides",
+      "risk_level": "MEDIUM",
+      "reason": "**overrides 展开到函数 build，若含键 ['target', 'tenant', 'tenant_id']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\prompt_manager\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\quality\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\security\\actor_matrix.py",
+      "lineno": 608,
+      "col": 15,
+      "func_name": "PermissionDecision",
+      "explicit_kwargs": [
+        "allowed",
+        "reason"
+      ],
+      "spread_expr": "base",
+      "risk_level": "LOW",
+      "reason": "外部函数 PermissionDecision，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\security\\actor_matrix.py",
+      "lineno": 612,
+      "col": 15,
+      "func_name": "PermissionDecision",
+      "explicit_kwargs": [
+        "allowed",
+        "reason"
+      ],
+      "spread_expr": "base",
+      "risk_level": "LOW",
+      "reason": "外部函数 PermissionDecision，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\security\\actor_matrix.py",
+      "lineno": 618,
+      "col": 15,
+      "func_name": "PermissionDecision",
+      "explicit_kwargs": [
+        "allowed",
+        "reason"
+      ],
+      "spread_expr": "base",
+      "risk_level": "LOW",
+      "reason": "外部函数 PermissionDecision，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\security\\actor_matrix.py",
+      "lineno": 624,
+      "col": 15,
+      "func_name": "PermissionDecision",
+      "explicit_kwargs": [
+        "allowed",
+        "reason"
+      ],
+      "spread_expr": "base",
+      "risk_level": "LOW",
+      "reason": "外部函数 PermissionDecision，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\security\\actor_matrix.py",
+      "lineno": 632,
+      "col": 19,
+      "func_name": "PermissionDecision",
+      "explicit_kwargs": [
+        "allowed",
+        "reason"
+      ],
+      "spread_expr": "base",
+      "risk_level": "LOW",
+      "reason": "外部函数 PermissionDecision，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\security\\actor_matrix.py",
+      "lineno": 638,
+      "col": 15,
+      "func_name": "PermissionDecision",
+      "explicit_kwargs": [
+        "allowed",
+        "reason"
+      ],
+      "spread_expr": "base",
+      "risk_level": "LOW",
+      "reason": "外部函数 PermissionDecision，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\security\\actor_matrix.py",
+      "lineno": 642,
+      "col": 15,
+      "func_name": "PermissionDecision",
+      "explicit_kwargs": [
+        "allowed",
+        "reason"
+      ],
+      "spread_expr": "base",
+      "risk_level": "LOW",
+      "reason": "外部函数 PermissionDecision，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\security\\actor_matrix.py",
+      "lineno": 647,
+      "col": 15,
+      "func_name": "PermissionDecision",
+      "explicit_kwargs": [
+        "allowed",
+        "reason"
+      ],
+      "spread_expr": "base",
+      "risk_level": "LOW",
+      "reason": "外部函数 PermissionDecision，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\security\\actor_matrix.py",
+      "lineno": 650,
+      "col": 11,
+      "func_name": "PermissionDecision",
+      "explicit_kwargs": [
+        "allowed",
+        "reason"
+      ],
+      "spread_expr": "base",
+      "risk_level": "LOW",
+      "reason": "外部函数 PermissionDecision，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\server_routes\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\server_routes\\routes_sessions.py",
+      "lineno": 93,
+      "col": 18,
+      "func_name": "create_session",
+      "explicit_kwargs": [
+        "title"
+      ],
+      "spread_expr": "meta",
+      "risk_level": "LOW",
+      "reason": "外部函数 create_session，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\server_routes\\routes_skills_mgmt.py",
+      "lineno": 120,
+      "col": 16,
+      "func_name": "cleanup_unused",
+      "explicit_kwargs": [
+        "dry_run"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 cleanup_unused，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\skills_mgmt\\edit_policy.py",
+      "lineno": 419,
+      "col": 15,
+      "func_name": "cls",
+      "explicit_kwargs": [
+        "files"
+      ],
+      "spread_expr": "keep",
+      "risk_level": "LOW",
+      "reason": "外部函数 cls，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\skills_mgmt\\evaluator.py",
+      "lineno": 1234,
+      "col": 43,
+      "func_name": "SkillExecutorEvaluator",
+      "explicit_kwargs": [
+        "allow_validator"
+      ],
+      "spread_expr": "{k: v for k, v in c.items() if k != 'allow_validator'}",
+      "risk_level": "LOW",
+      "reason": "字典推导式含条件过滤，风险较低",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\skills_mgmt\\evaluator.py",
+      "lineno": 1236,
+      "col": 43,
+      "func_name": "SkillExecutorEvaluator",
+      "explicit_kwargs": [
+        "consistency_runs"
+      ],
+      "spread_expr": "{k: v for k, v in c.items() if k != 'consistency_runs'}",
+      "risk_level": "LOW",
+      "reason": "字典推导式含条件过滤，风险较低",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\skills_mgmt\\evaluator.py",
+      "lineno": 1251,
+      "col": 15,
+      "func_name": "LlmEvaluator",
+      "explicit_kwargs": [
+        "llm_client"
+      ],
+      "spread_expr": "{k: v for k, v in overrides.items() if v is not None}",
+      "risk_level": "LOW",
+      "reason": "字典推导式含条件过滤，风险较低",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\skills_mgmt\\observability.py",
+      "lineno": 110,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms"
+      ],
+      "spread_expr": "safe",
+      "risk_level": "LOW",
+      "reason": "**safe 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\skills_mgmt\\observability.py",
+      "lineno": 142,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "status"
+      ],
+      "spread_expr": "safe_merged",
+      "risk_level": "LOW",
+      "reason": "**safe_merged 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\skills_mgmt\\observability.py",
+      "lineno": 146,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "status",
+        "error",
+        "error_type",
+        "level"
+      ],
+      "spread_expr": "safe",
+      "risk_level": "LOW",
+      "reason": "**safe 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\skills_mgmt\\observability.py",
+      "lineno": 205,
+      "col": 8,
+      "func_name": "record_span_attributes",
+      "explicit_kwargs": [
+        "trace_id"
+      ],
+      "spread_expr": "fields",
+      "risk_level": "LOW",
+      "reason": "外部函数 record_span_attributes，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\skills_mgmt\\service.py",
+      "lineno": 1551,
+      "col": 15,
+      "func_name": "cleanup_unused",
+      "explicit_kwargs": [
+        "dry_run"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "MEDIUM",
+      "reason": "**kwargs 展开到函数 cleanup_unused，若含键 ['self', 'dry_run', 'unused_days']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\subagent\\executor.py",
+      "lineno": 908,
+      "col": 15,
+      "func_name": "DelegationExecutor",
+      "explicit_kwargs": [
+        "channel",
+        "llm"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 DelegationExecutor，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\subagent\\executor.py",
+      "lineno": 910,
+      "col": 15,
+      "func_name": "DelegationExecutor",
+      "explicit_kwargs": [
+        "agent_cli",
+        "llm"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 DelegationExecutor，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\subagent\\executor.py",
+      "lineno": 911,
+      "col": 11,
+      "func_name": "DelegationExecutor",
+      "explicit_kwargs": [
+        "llm"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 DelegationExecutor，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\subagent\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\subagent\\summarizer.py",
+      "lineno": 344,
+      "col": 24,
+      "func_name": "summarize",
+      "explicit_kwargs": [
+        "output",
+        "subagent_id",
+        "strategy"
+      ],
+      "spread_expr": "safe_kwargs",
+      "risk_level": "LOW",
+      "reason": "**safe_kwargs 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\task_planner\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\tools\\ext_tools.py",
+      "lineno": 53,
+      "col": 21,
+      "func_name": "install",
+      "explicit_kwargs": [
+        "name",
+        "description"
+      ],
+      "spread_expr": "{k: v for k, v in params.items() if k not in ('name', 'description')}",
+      "risk_level": "LOW",
+      "reason": "字典推导式含条件过滤，风险较低",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\tools\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\utils\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\utils\\sensitive_data_filter.py",
+      "lineno": 957,
+      "col": 11,
+      "func_name": "SensitiveDataFilter",
+      "explicit_kwargs": [
+        "additional_key_patterns"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 SensitiveDataFilter，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\web\\http_client.py",
+      "lineno": 189,
+      "col": 19,
+      "func_name": "request",
+      "explicit_kwargs": [
+        "method",
+        "url",
+        "params",
+        "data",
+        "json",
+        "headers",
+        "cookies",
+        "timeout",
+        "allow_redirects",
+        "stream",
+        "verify"
+      ],
+      "spread_expr": "safe_kwargs",
+      "risk_level": "LOW",
+      "reason": "**safe_kwargs 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\web\\http_client.py",
+      "lineno": 301,
+      "col": 19,
+      "func_name": "get",
+      "explicit_kwargs": [
+        "stream",
+        "timeout"
+      ],
+      "spread_expr": "safe_kwargs",
+      "risk_level": "LOW",
+      "reason": "**safe_kwargs 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\web\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\web\\search.py",
+      "lineno": 448,
+      "col": 15,
+      "func_name": "handler",
+      "explicit_kwargs": [
+        "num_results",
+        "page"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 handler，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\web\\search.py",
+      "lineno": 819,
+      "col": 16,
+      "func_name": "search",
+      "explicit_kwargs": [
+        "engine"
+      ],
+      "spread_expr": "safe_kwargs",
+      "risk_level": "LOW",
+      "reason": "**safe_kwargs 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\workflow_engine\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "event_name"
+      ],
+      "spread_expr": "safe_payload",
+      "risk_level": "LOW",
+      "reason": "**safe_payload 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\workflow_learning\\observability.py",
+      "lineno": 46,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms"
+      ],
+      "spread_expr": "safe",
+      "risk_level": "LOW",
+      "reason": "**safe 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\workflow_learning\\observability.py",
+      "lineno": 49,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "status"
+      ],
+      "spread_expr": "safe",
+      "risk_level": "LOW",
+      "reason": "**safe 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\workflow_learning\\observability.py",
+      "lineno": 49,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "status"
+      ],
+      "spread_expr": "{k: v for k, v in ctx.items() if k not in ('trace_id', 'payload')}",
+      "risk_level": "LOW",
+      "reason": "字典推导式含条件过滤，风险较低",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "agent\\workflow_learning\\observability.py",
+      "lineno": 56,
+      "col": 8,
+      "func_name": "_emit_structured_log",
+      "explicit_kwargs": [
+        "trace_id",
+        "duration_ms",
+        "status",
+        "error",
+        "error_type",
+        "level"
+      ],
+      "spread_expr": "safe",
+      "risk_level": "LOW",
+      "reason": "**safe 已通过保留键过滤（变量名标记为已过滤）",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    }
+  ]
+}

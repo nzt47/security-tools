@@ -1,0 +1,525 @@
+{
+  "scan_time": "2026-09-12 16:22:12",
+  "total": 32,
+  "summary": {
+    "HIGH": 0,
+    "MEDIUM": 2,
+    "LOW": 30
+  },
+  "findings": [
+    {
+      "file": "tests\\unit\\descriptors_util.py",
+      "lineno": 57,
+      "col": 11,
+      "func_name": "ToolDescriptor",
+      "explicit_kwargs": [
+        "meta",
+        "origin",
+        "tenancy",
+        "capability",
+        "trust",
+        "runtime",
+        "evolution",
+        "quality",
+        "governance"
+      ],
+      "spread_expr": "extra",
+      "risk_level": "LOW",
+      "reason": "外部函数 ToolDescriptor，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\memory_layer_testkit.py",
+      "lineno": 79,
+      "col": 11,
+      "func_name": "LayeredMemoryStore",
+      "explicit_kwargs": [
+        "root"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 LayeredMemoryStore，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\memory_layer_testkit.py",
+      "lineno": 86,
+      "col": 11,
+      "func_name": "resolve_tenancy",
+      "explicit_kwargs": [
+        "workspace_root",
+        "subject_id",
+        "use_current_context"
+      ],
+      "spread_expr": "overrides",
+      "risk_level": "LOW",
+      "reason": "外部函数 resolve_tenancy，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\memory_layer_testkit.py",
+      "lineno": 234,
+      "col": 13,
+      "func_name": "ForgettingEngine",
+      "explicit_kwargs": [
+        "snapshots",
+        "quality_source",
+        "source_checker",
+        "clock"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 ForgettingEngine，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\policy_testkit.py",
+      "lineno": 252,
+      "col": 12,
+      "func_name": "PolicyStore",
+      "explicit_kwargs": [
+        "path"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 PolicyStore，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_audit_migration.py",
+      "lineno": 244,
+      "col": 15,
+      "func_name": "LegacyTrack",
+      "explicit_kwargs": [
+        "facade"
+      ],
+      "spread_expr": "kw",
+      "risk_level": "LOW",
+      "reason": "外部函数 LegacyTrack，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_context_assembler.py",
+      "lineno": 57,
+      "col": 11,
+      "func_name": "ContextAssembler",
+      "explicit_kwargs": [
+        "working_memory_fn",
+        "long_term_fn",
+        "procedural_fn"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 ContextAssembler，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_descriptors_registry.py",
+      "lineno": 146,
+      "col": 15,
+      "func_name": "make_descriptor",
+      "explicit_kwargs": [
+        "cid",
+        "name",
+        "source_type",
+        "source_id"
+      ],
+      "spread_expr": "kw",
+      "risk_level": "LOW",
+      "reason": "外部函数 make_descriptor，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_digestion_applicability.py",
+      "lineno": 22,
+      "col": 11,
+      "func_name": "EquivalenceCase",
+      "explicit_kwargs": [
+        "case_id",
+        "capability_id",
+        "input",
+        "upstream",
+        "expected_status",
+        "sandbox_root"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 EquivalenceCase，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_digestion_internalize.py",
+      "lineno": 133,
+      "col": 11,
+      "func_name": "InternalizeEngine",
+      "explicit_kwargs": [
+        "registry",
+        "passport_store",
+        "emit_events"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 InternalizeEngine，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_digestion_probe.py",
+      "lineno": 164,
+      "col": 11,
+      "func_name": "LivenessProbe",
+      "explicit_kwargs": [
+        "case_store",
+        "registry",
+        "baseline_store",
+        "env"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 LivenessProbe，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_digestion_shadow.py",
+      "lineno": 111,
+      "col": 13,
+      "func_name": "acceptance_gate",
+      "explicit_kwargs": [
+        "case_set",
+        "passport_store",
+        "emit_events"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 acceptance_gate，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_disaster_recovery_singleton.py",
+      "lineno": 103,
+      "col": 17,
+      "func_name": "BackupConfig",
+      "explicit_kwargs": [
+        "backup_dir"
+      ],
+      "spread_expr": "config_overrides",
+      "risk_level": "LOW",
+      "reason": "外部函数 BackupConfig，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_evolution_selector.py",
+      "lineno": 35,
+      "col": 11,
+      "func_name": "Strategy",
+      "explicit_kwargs": [
+        "strategy_id",
+        "case_id",
+        "prompt_patch",
+        "scope",
+        "scores"
+      ],
+      "spread_expr": "kw",
+      "risk_level": "LOW",
+      "reason": "外部函数 Strategy，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_guardrails_foreign_taint.py",
+      "lineno": 163,
+      "col": 15,
+      "func_name": "helper",
+      "explicit_kwargs": [
+        "ledger"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 helper，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_knowledge_card.py",
+      "lineno": 33,
+      "col": 11,
+      "func_name": "Card",
+      "explicit_kwargs": [
+        "title",
+        "slug",
+        "status",
+        "type",
+        "source",
+        "date",
+        "tags",
+        "links",
+        "insight"
+      ],
+      "spread_expr": "kw",
+      "risk_level": "LOW",
+      "reason": "外部函数 Card，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_meta_editor.py",
+      "lineno": 218,
+      "col": 11,
+      "func_name": "MetaEditor",
+      "explicit_kwargs": [
+        "policy",
+        "file_store",
+        "archive",
+        "evaluator",
+        "reviewer",
+        "git",
+        "proposal_generator"
+      ],
+      "spread_expr": "kw",
+      "risk_level": "LOW",
+      "reason": "外部函数 MetaEditor，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_novelty_pipeline.py",
+      "lineno": 58,
+      "col": 11,
+      "func_name": "ChangeDetector",
+      "explicit_kwargs": [
+        "persistent_log_dir"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 ChangeDetector，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_optimized_storage.py",
+      "lineno": 40,
+      "col": 12,
+      "func_name": "BatchLogWriter",
+      "explicit_kwargs": [
+        "write_func"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 BatchLogWriter，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_planning_stage2.py",
+      "lineno": 33,
+      "col": 15,
+      "func_name": "ExecutionRecord",
+      "explicit_kwargs": [
+        "step",
+        "task_id",
+        "action",
+        "result"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 ExecutionRecord，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_policy_integration.py",
+      "lineno": 236,
+      "col": 15,
+      "func_name": "PermissionGateway",
+      "explicit_kwargs": [
+        "policy_path"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 PermissionGateway，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_policy_support.py",
+      "lineno": 57,
+      "col": 11,
+      "func_name": "build",
+      "explicit_kwargs": [
+        "capability_id",
+        "actor",
+        "target"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 build，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_s5_03_cost_brake.py",
+      "lineno": 383,
+      "col": 15,
+      "func_name": "make_brake",
+      "explicit_kwargs": [
+        "enabled",
+        "daily_cents",
+        "state_path"
+      ],
+      "spread_expr": "kw",
+      "risk_level": "MEDIUM",
+      "reason": "**kw 展开到函数 make_brake，若含键 ['overrides', 'events_dir']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_s5_03_cost_brake.py",
+      "lineno": 526,
+      "col": 15,
+      "func_name": "make_brake",
+      "explicit_kwargs": [
+        "state_path"
+      ],
+      "spread_expr": "kw",
+      "risk_level": "MEDIUM",
+      "reason": "**kw 展开到函数 make_brake，若含键 ['overrides', 'events_dir']... 会触发 TypeError",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_saga.py",
+      "lineno": 104,
+      "col": 11,
+      "func_name": "SagaJournal",
+      "explicit_kwargs": [
+        "path"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 SagaJournal，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_saga.py",
+      "lineno": 112,
+      "col": 11,
+      "func_name": "Saga",
+      "explicit_kwargs": [
+        "steps"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 Saga，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_skills_mgmt_safety.py",
+      "lineno": 282,
+      "col": 15,
+      "func_name": "AutoRollback",
+      "explicit_kwargs": [
+        "archive",
+        "restorer",
+        "max_daily",
+        "success_drop_pct",
+        "latency_rise_pct",
+        "window_min",
+        "state_path"
+      ],
+      "spread_expr": "kw",
+      "risk_level": "LOW",
+      "reason": "外部函数 AutoRollback，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_subagent.py",
+      "lineno": 192,
+      "col": 15,
+      "func_name": "SubagentConfig",
+      "explicit_kwargs": [
+        "name",
+        "model_id"
+      ],
+      "spread_expr": "kw",
+      "risk_level": "LOW",
+      "reason": "外部函数 SubagentConfig，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_subagent.py",
+      "lineno": 511,
+      "col": 15,
+      "func_name": "SubagentConfig",
+      "explicit_kwargs": [
+        "name",
+        "model_id"
+      ],
+      "spread_expr": "kw",
+      "risk_level": "LOW",
+      "reason": "外部函数 SubagentConfig，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_subagent_credentials.py",
+      "lineno": 124,
+      "col": 12,
+      "func_name": "issue",
+      "explicit_kwargs": [
+        "task_timeout_seconds"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 issue，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_subagent_executor.py",
+      "lineno": 141,
+      "col": 11,
+      "func_name": "DelegationExecutor",
+      "explicit_kwargs": [
+        "channel",
+        "workspace",
+        "trace",
+        "audit"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 DelegationExecutor，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    },
+    {
+      "file": "tests\\unit\\test_subagent_toolset.py",
+      "lineno": 39,
+      "col": 11,
+      "func_name": "build",
+      "explicit_kwargs": [
+        "actor"
+      ],
+      "spread_expr": "kwargs",
+      "risk_level": "LOW",
+      "reason": "外部函数 build，无法确定签名",
+      "conflicting_params": [],
+      "suggested_fix": ""
+    }
+  ]
+}
