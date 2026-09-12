@@ -54,6 +54,7 @@ from agent.guardrails.foreign_taint import (
     set_foreign_taint,
     slice_fragments,
     taint_state,
+    VERDICT_BLOCK,
     wrap_untrusted,
 )
 
@@ -429,3 +430,68 @@ class TestDisabledAndState:
         assert state["by_source"] == {"mcp": 1}
         assert state["canonical_sources"] == list(CANONICAL_SOURCES)
         assert state["sandbox_slot"] == SANDBOX_SLOT
+
+
+class TestAuditDoesNotClaimUnperformedEnforcement:
+    """审计真实性：`enforced` 只在本模块**真的**阻断时为真
+
+    【为什么值得单测】审计链是系统的事实来源（§3.5/§11.10 D2 的整条前提）。
+    `check_text()` / `guard_*(enforce=False)` 只出判定、不执行阻断——若审计把
+    "已判定"写成"已拦住"，事后复查会把"没人拦"读成"拦住了"，正是 §7 UI 五坑⑤
+    「别让看板说谎」要禁的失真。故把三字段语义钉死：
+        verdict                = 判定结论
+        caller_action_required = 调用方必须据此阻断
+        enforced               = 本模块是否已阻断（仅 enforce=True 抛异常路径）
+    """
+
+    @pytest.fixture
+    def audited(self, tmp_path):
+        """把审计门面绑到临时链上（用完复位，避免污染真实台账）"""
+        from agent.audit.chain import AuditChain
+        from agent.audit.facade import audit
+
+        previous_enabled = audit.enabled
+        previous_chain = audit.bind(AuditChain(db_path=str(tmp_path / "audit.db")))
+        audit.enabled = True
+        try:
+            yield audit
+        finally:
+            audit.enabled = previous_enabled
+            audit.bind(previous_chain)
+
+    @staticmethod
+    def _block_payloads(audit, action):
+        """取出某动作的拦截载荷（`audit.record` 把业务载荷放在 payload.payload）"""
+        out = []
+        for entry in audit.recent(limit=50):
+            if entry.action != action:
+                continue
+            body = (entry.payload or {}).get("payload") or {}
+            out.append(body)
+        return out
+
+    def test_verdict_only_records_enforced_false(self, audited, ledger):
+        """只出判定（enforce=False）→ enforced 必须为 False，且声明需调用方处置"""
+        ledger.mark(FOREIGN_TEXT, ForeignSource.MCP)
+        guard_system_prompt(FOREIGN_TEXT, ledger=ledger)          # 不抛
+        payloads = self._block_payloads(audited, "guardrails.taint_blocked")
+        assert payloads, "未写入拦截审计"
+        assert payloads[-1]["enforced"] is False
+        assert payloads[-1]["caller_action_required"] is True
+        assert payloads[-1]["verdict"] == VERDICT_BLOCK
+
+    def test_enforced_path_records_enforced_true(self, audited, ledger):
+        """真阻断（enforce=True 抛异常）→ enforced 必须为 True"""
+        ledger.mark(FOREIGN_TEXT, ForeignSource.MCP)
+        with pytest.raises(TaintedContentError):
+            guard_system_prompt(FOREIGN_TEXT, ledger=ledger, enforce=True)
+        payloads = self._block_payloads(audited, "guardrails.taint_blocked")
+        assert payloads[-1]["enforced"] is True
+        assert payloads[-1]["verdict"] == VERDICT_BLOCK
+
+    def test_audit_payload_carries_no_original_text(self, audited, ledger):
+        """拦截审计不含原文（隐私纪律）"""
+        ledger.mark(FOREIGN_TEXT, ForeignSource.MCP)
+        guard_system_prompt(FOREIGN_TEXT, ledger=ledger)
+        payloads = self._block_payloads(audited, "guardrails.taint_blocked")
+        assert FOREIGN_TEXT[:40] not in json.dumps(payloads[-1], ensure_ascii=False)

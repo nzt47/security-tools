@@ -336,7 +336,7 @@ def guard_tool_call(
             arguments=verdicts,
             reason=f"工具 {tool_name} 的 {len(bad)} 个参数不合规（§5.7 机制 2）：{detail}",
         )
-        _audit_contamination(result)
+        _audit_contamination(result, enforced=enforce)
         if enforce:
             raise ParameterContaminationError(
                 result.reason, tool_name=str(tool_name or ""),
@@ -347,8 +347,14 @@ def guard_tool_call(
                        origin=default_origin, arguments=verdicts)
 
 
-def _audit_contamination(verdict: CallVerdict) -> None:
-    """污染拦截入审计（best-effort；**不含参数原文**）"""
+def _audit_contamination(verdict: CallVerdict, *, enforced: bool = False) -> None:
+    """污染拦截入审计（best-effort；**不含参数原文**）
+
+    【`enforced` 的真实含义（实现期复核修正）】`guard_tool_call` 默认
+    `enforce=False`——它只出判定，真正不执行工具由**调用方**决定。第一版硬编码
+    `"enforced": True` 会把"已判定"写成"已拦住"，属审计失真。现拆成
+    `verdict` / `caller_action_required` / `enforced`（仅 `enforce=True` 抛异常路径为真）。
+    """
     try:
         from agent.audit.facade import audit
         audit.record("guardrails.parameter_contaminated",
@@ -358,7 +364,9 @@ def _audit_contamination(verdict: CallVerdict) -> None:
                               "contaminated": verdict.contaminated[:20],
                               "origin": verdict.origin,
                               "tainted_args": [a.name for a in verdict.arguments if a.tainted][:20],
-                              "enforced": True})
+                              "verdict": "block",
+                              "caller_action_required": True,
+                              "enforced": bool(enforced)})
     except Exception as exc:  # noqa: BLE001
         logger.debug("参数污染审计写入失败: %s", exc)
 

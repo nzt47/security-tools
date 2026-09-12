@@ -364,7 +364,8 @@ class EgressChainMonitor:
                 verdict, source_refs=state.get("source_refs") or [],
                 trace_id=trace_id, tenant_id=tenant_id, incident_dir=incident_dir)
         self._audit(verdict, method=method, capability_id=capability_id,
-                    data_class=data_class, payload=payload, header_names=header_names)
+                    data_class=data_class, payload=payload, header_names=header_names,
+                    enforced=enforce)
         if enforce:
             raise EgressChainBlockedError(
                 verdict.reason, scope=verdict.scope, secret_kinds=kinds,
@@ -413,8 +414,19 @@ class EgressChainMonitor:
             return ""
 
     def _audit(self, verdict: ChainVerdict, *, method: str, capability_id: str,
-               data_class: str, payload: Any, header_names: Sequence[str]) -> None:
-        """拦截入审计（best-effort；**不含 payload 原文**）"""
+               data_class: str, payload: Any, header_names: Sequence[str],
+               enforced: bool = False) -> None:
+        """拦截入审计（best-effort；**不含 payload 原文**）
+
+        【`enforced` 的真实含义（实现期复核修正）】
+        第一版硬编码 `"enforced": True`——但 `evaluate(trip_breaker=False,
+        raise_card=False)` 时本模块**什么后果动作都没做**，此时写 True 是审计失真。
+        现拆成：
+            `consequence_actions_taken` = 本模块是否真的熔断/开卡
+            `caller_action_required`    = 调用方是否**必须**拦截本次出域
+            `enforced`                  = 调用方声明已按判定阻断（`enforce=True` 抛异常路径）
+        三者互不冒充，事后复查才不会把"没人拦"读成"拦住了"。
+        """
         try:
             from agent.audit.facade import audit
             audit.record("guardrails.egress_chain_blocked",
@@ -429,7 +441,11 @@ class EgressChainMonitor:
                                   "breaker_open": verdict.breaker_open,
                                   "incident_id": verdict.incident_id,
                                   "network_action_taken": False,
-                                  "enforced": True})
+                                  "verdict": verdict.verdict,
+                                  "consequence_actions_taken": bool(
+                                      verdict.breaker_open or verdict.incident_id),
+                                  "caller_action_required": True,
+                                  "enforced": bool(enforced)})
         except Exception as exc:  # noqa: BLE001
             logger.debug("出域链路审计写入失败: %s", exc)
 

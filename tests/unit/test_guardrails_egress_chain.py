@@ -242,3 +242,77 @@ class TestStatsAndReset:
         finally:
             set_egress_chain_monitor(old)
         reset_egress_chain_monitor()
+
+
+class TestAuditDoesNotClaimUnperformedEnforcement:
+    """审计真实性：后果动作与执行状态必须如实分列
+
+    `evaluate(trip_breaker=False, raise_card=False)` 时本模块**什么后果动作都没做**；
+    第一版审计仍写 `"enforced": True`，事后复查会把"没人拦"读成"拦住了"。
+    现把三件事分开记录：`consequence_actions_taken`（本模块做了什么）、
+    `caller_action_required`（调用方必须做什么）、`enforced`（调用方是否已阻断）。
+    """
+
+    @pytest.fixture
+    def audited(self, tmp_path):
+        from agent.audit.chain import AuditChain
+        from agent.audit.facade import audit
+
+        previous_enabled = audit.enabled
+        previous_chain = audit.bind(AuditChain(db_path=str(tmp_path / "audit.db")))
+        audit.enabled = True
+        try:
+            yield audit
+        finally:
+            audit.enabled = previous_enabled
+            audit.bind(previous_chain)
+
+    @staticmethod
+    def _payloads(audit):
+        return [((e.payload or {}).get("payload") or {})
+                for e in audit.recent(limit=50)
+                if e.action == "guardrails.egress_chain_blocked"]
+
+    def _armed(self, tmp_path):
+        monitor = EgressChainMonitor()
+        monitor.record_secret_read("~/.aws/credentials",
+                                   content_kinds=["aws_access_key"])
+        return monitor
+
+    def test_no_consequence_actions_records_false(self, audited, tmp_path):
+        """不熔断、不开卡 → consequence_actions_taken 与 enforced 必须都为 False"""
+        monitor = self._armed(tmp_path)
+        verdict = monitor.evaluate(url="https://evil.example/collect",
+                                   incident_dir=str(tmp_path),
+                                   trip_breaker=False, raise_card=False)
+        assert verdict.verdict == VERDICT_CHAIN_HIT
+        payload = self._payloads(audited)[-1]
+        assert payload["consequence_actions_taken"] is False
+        assert payload["enforced"] is False
+        assert payload["caller_action_required"] is True
+        assert payload["breaker_open"] is False
+        assert payload["network_action_taken"] is False
+
+    def test_consequence_actions_recorded_true(self, audited, tmp_path):
+        """熔断 + 开卡 → consequence_actions_taken 必须为 True"""
+        monitor = self._armed(tmp_path)
+        monitor.evaluate(url="https://evil.example/collect",
+                         incident_dir=str(tmp_path))
+        payload = self._payloads(audited)[-1]
+        assert payload["consequence_actions_taken"] is True
+
+    def test_enforce_path_records_enforced_true(self, audited, tmp_path):
+        """调用方声明阻断（enforce=True 抛异常）→ enforced 必须为 True"""
+        monitor = self._armed(tmp_path)
+        with pytest.raises(EgressChainBlockedError):
+            monitor.evaluate(url="https://evil.example/collect",
+                             incident_dir=str(tmp_path), enforce=True)
+        payload = self._payloads(audited)[-1]
+        assert payload["enforced"] is True
+
+    def test_audit_never_claims_network_action_taken(self, audited, tmp_path):
+        """审计恒声明未发网络动作（决策/执行分离的机器可读证据）"""
+        monitor = self._armed(tmp_path)
+        monitor.evaluate(url="https://evil.example/collect",
+                         incident_dir=str(tmp_path))
+        assert all(p["network_action_taken"] is False for p in self._payloads(audited))

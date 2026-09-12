@@ -568,13 +568,16 @@ def _dest_is_forbidden(destination: str) -> bool:
 
 
 def check_text(text: Any, *, destination: str, ledger: Optional[ForeignTaintLedger] = None,
-               surface: str = "") -> TaintVerdict:
+               surface: str = "", enforced: bool = False) -> TaintVerdict:
     """判定 `text` 能否进入 `destination`
 
     Args:
         text: 待判定文本（要被植入目标位置的**完整文本**）。
         destination: `DEST_SYSTEM_PROMPT` / `DEST_DECISION_BRANCH` / `DEST_SANDBOX_SLOT`。
         surface: 调用点标识（审计/错误文案定位用）。
+        enforced: **本模块是否已经阻断了动作**。本函数只出判定，故默认 `False`；
+            仅 `guard_*(enforce=True)` 抛异常的真实阻断路径传 `True`。
+            该值只影响审计字段（见 `_audit_block`），不影响判定与返回值。
 
     Returns:
         `TaintVerdict`（**不抛**）。
@@ -594,7 +597,8 @@ def check_text(text: Any, *, destination: str, ledger: Optional[ForeignTaintLedg
         + (f"；调用点={surface}" if surface else "")
     )
     active._note_block()
-    _audit_block(destination=destination, marks=marks, surface=surface)
+    _audit_block(destination=destination, marks=marks, surface=surface,
+                 enforced=enforced)
     return TaintVerdict(allowed=False, destination=str(destination or ""),
                         reason=reason, marks=marks, sources=sources)
 
@@ -610,7 +614,7 @@ def guard_system_prompt(text: Any, *, ledger: Optional[ForeignTaintLedger] = Non
         TaintedContentError: `enforce=True` 且判定为污染。
     """
     verdict = check_text(text, destination=DEST_SYSTEM_PROMPT, ledger=ledger,
-                         surface=surface)
+                         surface=surface, enforced=enforce)
     if enforce and not verdict.allowed:
         raise TaintedContentError(verdict.reason, destination=DEST_SYSTEM_PROMPT,
                                   marks=verdict.marks)
@@ -625,7 +629,7 @@ def guard_decision_branch(text: Any, *, ledger: Optional[ForeignTaintLedger] = N
     审批结论）。外来文本可以**被看到**（进沙箱槽位），但不得直接参与分支取值。
     """
     verdict = check_text(text, destination=DEST_DECISION_BRANCH, ledger=ledger,
-                         surface=surface)
+                         surface=surface, enforced=enforce)
     if enforce and not verdict.allowed:
         raise TaintedContentError(verdict.reason, destination=DEST_DECISION_BRANCH,
                                   marks=verdict.marks)
@@ -656,8 +660,19 @@ def wrap_untrusted(text: Any, source: Any = ForeignSource.UNKNOWN, *,
 
 
 def _audit_block(*, destination: str, marks: Sequence[ForeignMark],
-                 surface: str = "") -> None:
-    """拦截入审计（best-effort；**不含原文**）"""
+                 surface: str = "", enforced: bool = False) -> None:
+    """拦截入审计（best-effort；**不含原文**）
+
+    【三个字段的语义必须分清（实现期复核修正）】
+    第一版硬编码 `"enforced": True`——但 `check_text()` 与 `guard_*(enforce=False)`
+    **只出判定、不执行阻断**（阻断由调用方按 `allowed=False` 落实）。在审计里把
+    "已判定"写成"已执行"，正是 §7 UI 五坑⑤「别让看板说谎」要禁的那类失真——
+    审计链是系统的事实来源，这一字之差会让事后复查把"没人拦"读成"拦住了"。
+    现拆成三个互不冒充的字段：
+        `verdict`                 = 判定结论（本模块的看法）
+        `caller_action_required`  = 调用方是否**必须**据此阻断
+        `enforced`                = 本模块是否**已经**阻断了动作（抛异常路径）
+    """
     try:
         from agent.audit.facade import audit
         audit.record("guardrails.taint_blocked",
@@ -668,7 +683,9 @@ def _audit_block(*, destination: str, marks: Sequence[ForeignMark],
                               "mark_count": len(marks),
                               "sources": sorted({m.source for m in marks}),
                               "mark_ids": [m.mark_id for m in marks][:20],
-                              "enforced": True})
+                              "verdict": VERDICT_BLOCK,
+                              "caller_action_required": True,
+                              "enforced": bool(enforced)})
     except Exception as exc:  # noqa: BLE001
         logger.debug("taint 拦截审计写入失败: %s", exc)
 

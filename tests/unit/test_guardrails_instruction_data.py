@@ -303,3 +303,49 @@ class TestSegmentSeparation:
         assert DATA_BLOCK_OPEN in block and DATA_BLOCK_CLOSE in block
         assert "外部资料正文" in block
         assert block.index(DATA_BLOCK_OPEN) < block.index(DATA_BLOCK_CLOSE)
+
+
+class TestAuditDoesNotClaimUnperformedEnforcement:
+    """审计真实性：默认（enforce=False）只出判定，审计必须如实记录
+
+    `guard_tool_call` 默认 `enforce=False`——它不执行工具，"不执行"是**调用方**
+    按 `allowed=False` 落实的。第一版审计硬编码 `"enforced": True`，会把"已判定"
+    写成"已拦住"，属审计失真（§7 UI 五坑⑤「别让看板说谎」）。
+    """
+
+    @pytest.fixture
+    def audited(self, tmp_path):
+        from agent.audit.chain import AuditChain
+        from agent.audit.facade import audit
+
+        previous_enabled = audit.enabled
+        previous_chain = audit.bind(AuditChain(db_path=str(tmp_path / "audit.db")))
+        audit.enabled = True
+        try:
+            yield audit
+        finally:
+            audit.enabled = previous_enabled
+            audit.bind(previous_chain)
+
+    @staticmethod
+    def _payloads(audit):
+        return [((e.payload or {}).get("payload") or {})
+                for e in audit.recent(limit=50)
+                if e.action == "guardrails.parameter_contaminated"]
+
+    def test_default_verdict_records_enforced_false(self, audited, ledger):
+        """只出判定 → enforced 为 False，且声明需调用方处置"""
+        ledger.mark(INJECTION_TEXT, "mcp", ref="mcp:evil")
+        verdict = guard_tool_call("send_email", {"recipient": INJECTION_TEXT})
+        assert verdict.allowed is False
+        payload = self._payloads(audited)[-1]
+        assert payload["enforced"] is False
+        assert payload["caller_action_required"] is True
+        assert payload["verdict"] == "block"
+
+    def test_enforce_path_records_enforced_true(self, audited, ledger):
+        """enforce=True 抛异常（真不执行）→ enforced 为 True"""
+        ledger.mark(INJECTION_TEXT, "mcp", ref="mcp:evil")
+        with pytest.raises(ParameterContaminationError):
+            guard_tool_call("send_email", {"recipient": INJECTION_TEXT}, enforce=True)
+        assert self._payloads(audited)[-1]["enforced"] is True
