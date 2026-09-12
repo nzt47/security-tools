@@ -1,5 +1,5 @@
 {
-  "trace_id": "7effdb9d4f14439b",
+  "trace_id": "666e8bedb7df4479",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -6561,7 +6561,7 @@
       "source_layer": "guardrails",
       "target_layer": "guardrails",
       "import_type": "from_import",
-      "line": 420,
+      "line": 428,
       "source_file": "agent/guardrails/instruction_data.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -6574,7 +6574,7 @@
       "source_layer": "guardrails",
       "target_layer": "guardrails",
       "import_type": "from_import",
-      "line": 439,
+      "line": 447,
       "source_file": "agent/guardrails/instruction_data.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -6587,7 +6587,7 @@
       "source_layer": "guardrails",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 353,
+      "line": 359,
       "source_file": "agent/guardrails/instruction_data.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6769,7 +6769,7 @@
       "source_layer": "guardrails",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 662,
+      "line": 677,
       "source_file": "agent/guardrails/foreign_taint.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6912,7 +6912,7 @@
       "source_layer": "guardrails",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 379,
+      "line": 380,
       "source_file": "agent/guardrails/egress_chain.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6925,7 +6925,7 @@
       "source_layer": "guardrails",
       "target_layer": "self_healing",
       "import_type": "from_import",
-      "line": 396,
+      "line": 397,
       "source_file": "agent/guardrails/egress_chain.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6938,7 +6938,7 @@
       "source_layer": "guardrails",
       "target_layer": "audit",
       "import_type": "from_import",
-      "line": 419,
+      "line": 431,
       "source_file": "agent/guardrails/egress_chain.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -6951,7 +6951,7 @@
       "source_layer": "guardrails",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 451,
+      "line": 467,
       "source_file": "agent/guardrails/egress_chain.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -21250,6 +21250,6 @@
       "server_routes": 30,
       "handoff": 1
     },
-    "build_duration_ms": 2984.1262260001713
+    "build_duration_ms": 2794.073972999996
   }
 }
