@@ -25,7 +25,7 @@
 | 12 | **六机制统一接线与总闸门** | `agent/guardrails/injection_defense.py` | 146 语句；覆盖率 **89%** |
 | 13 | **混沌演练脚本 + 实测记录（4 项）** | `scripts/chaos_s4_03_drill.py`、[chaos_s4_03_drill_report.md](../chaos_s4_03_drill_report.md)、`chaos_s4_03_drill_record.json` | 4/4 通过 |
 | 14 | 实现期自检脚本 | `scripts/smoke_s4_03_injection_defense.py` | 38/38 自检通过 |
-| 15 | 新增单测（11 套件） | `tests/unit/test_self_healing_levels.py` 等 11 个文件 | **532 例全绿** |
+| 15 | 新增单测（11 套件） | `tests/unit/test_self_healing_levels.py` 等 11 个文件 | **541 例全绿** |
 | 16 | 机制 1 真实接线（**新增方法，不改既有行为**） | `agent/context/assembler.py`（`assemble_guarded` / `render_guarded_text`）、`agent/orchestrator/orchestrator.py`（`_injection_defense_guard_context` + 受守卫分支） | 见 §三.5 |
 
 **本任务改动的既有文件（4 个，全部为**新增**语义）**：
@@ -127,7 +127,7 @@
 
 ### ✅ 8. 既有 self_healing/monitoring/skills 套件零回归；新增单测全绿、覆盖率 ≥80%
 
-**证据（见 §二 质量证据）**：新增 532 例全绿；11 个新模块覆盖率 **84%–98%（均值 92.5%）**；邻接回归 533 例零失败（含 `test_context_assembler.py` 与 4 个 orchestrator 套件——即被改动的那两个文件）；`tests/unit` 全量（`-m "not slow"`）见 §二。
+**证据（见 §二 质量证据）**：新增 541 例全绿；11 个新模块覆盖率 **84%–98%（均值 92.5%）**；邻接回归 740 例零失败（含 `test_context_assembler.py` 与 4 个 orchestrator 套件——即被改动的那两个文件）；`tests/unit` 全量（`-m "not slow"`）见 §二。
 
 ### ✅ 9. 混沌演练 ≥2 项实际跑通（kill 主进程 / 注入篡改至少一项）并记录
 
@@ -152,7 +152,7 @@ python -m pytest tests/unit/test_self_healing_levels.py tests/unit/test_release_
   tests/unit/test_guardrails_boundary_words.py tests/unit/test_guardrails_safe_render.py `
   tests/unit/test_injection_defense_facade.py -q -p no:randomly
 ```
-**实测**：`532 passed`（通过 532 / 失败 0 / 跳过 0）。
+**实测**：`541 passed`（通过 541 / 失败 0 / 跳过 0）。
 
 | 套件 | 例数 | 模块覆盖率 |
 |---|---|---|
@@ -160,14 +160,14 @@ python -m pytest tests/unit/test_self_healing_levels.py tests/unit/test_release_
 | `test_release_bundle.py` | 54 | `release_bundle.py` **98%** |
 | `test_saga.py` | 90 | `saga.py` **97%** |
 | `test_watchdog_singleton.py` | 41 | `watchdog_singleton.py` **87%** |
-| `test_guardrails_foreign_taint.py` | 46 | `foreign_taint.py` **95%** |
-| `test_guardrails_instruction_data.py` | 36 | `instruction_data.py` **97%** |
+| `test_guardrails_foreign_taint.py` | 49 | `foreign_taint.py` **95%** |
+| `test_guardrails_instruction_data.py` | 38 | `instruction_data.py` **97%** |
 | `test_guardrails_capability_exposure.py` | 32 | `capability_exposure.py` **91%** |
-| `test_guardrails_egress_chain.py` | 18 | `egress_chain.py` **84%** |
+| `test_guardrails_egress_chain.py` | 22 | `egress_chain.py` **84%** |
 | `test_guardrails_boundary_words.py` | 59 | `boundary_words.py` **94%** |
 | `test_guardrails_safe_render.py` | 62 | `safe_render.py` **88%** |
 | `test_injection_defense_facade.py` | 29 | `injection_defense.py` **89%** |
-| **合计** | **532** | **均值 92.5%（最低 84%）** |
+| **合计** | **541** | **均值 92.5%（最低 84%）** |
 
 无 `xfail`/`skip` 哨兵（两个测试会话的收尾自查均确认 0 处）。用例隔离经**双向验证**：`tmp_path` + 显式路径 + 会话级复位；`data/` 全树快照在跑前跑后 **ADDED: NONE / CHANGED: NONE**。
 
@@ -183,7 +183,7 @@ python -m pytest tests/unit/test_context_assembler.py tests/unit/test_orchestrat
   tests/unit/test_policy_engine.py tests/unit/test_security_approval_guard.py `
   tests/unit/test_security_approval_session.py tests/unit/test_approval_routes.py -q -p no:randomly
 ```
-**实测**：`533 passed / 0 failed`。
+**实测**：`740 passed / 0 failed`。
 
 ### 2.3 全量抽查
 
@@ -226,7 +226,7 @@ python scripts/smoke_s4_03_injection_defense.py
 
 ---
 
-## 三、实现期发现并修复的真实缺陷（8 项）
+## 三、实现期发现并修复的真实缺陷（9 项）
 
 按 S2-02 起的留痕纪律，逐条登记。**每一项都是真实缺陷，不是风格问题**，且都补了回归用例。
 
@@ -252,6 +252,31 @@ python scripts/smoke_s4_03_injection_defense.py
 ---
 
 ## 四、判断项与口径声明（诚实边界）
+
+### 4.0 交付后复核追加修正：审计真实性（第 9 项缺陷）
+
+交付后复核独立测试会话的"次要观察"时，确认了一处**真实缺陷**并已修复（commit `63b56f90`）：
+三处拦截审计（`foreign_taint._audit_block` / `egress_chain._audit` /
+`instruction_data._audit_contamination`）把"本模块已出判定"硬编码写成
+`"enforced": True`——但 `check_text()` / `guard_*(enforce=False)` /
+`guard_tool_call()`（默认）/ `evaluate(trip_breaker=False, raise_card=False)`
+**都不执行阻断**，"不执行"是**调用方**按 `allowed=False` 落实的。
+
+**为什么这算缺陷而不是措辞问题**：审计链是系统的事实来源（§11.10 D2 的整条前提、
+S6-01「自愈事故」面板的数据源）。把"已判定"写成"已拦住"，事后复查会把
+**"没人拦"读成"拦住了"**——正是 §7 UI 五坑⑤「别让看板说谎」要禁的失真。
+
+**修正**：拆成三个互不冒充的字段，并新增 `consequence_actions_taken`（出域链路）：
+
+| 字段 | 含义 |
+|---|---|
+| `verdict` | 判定结论（本模块的看法） |
+| `caller_action_required` | 调用方是否**必须**据此阻断 |
+| `enforced` | 本模块是否**已经**阻断了动作（仅 `enforce=True` 抛异常路径为真） |
+| `consequence_actions_taken` | 出域链路专用：本模块是否真的熔断/开卡 |
+
+**回归用例 9 例**（`TestAuditDoesNotClaimUnperformedEnforcement` × 3 套件），
+把三字段语义钉死，并含两条不变量：「审计不含原文」「恒声明未发网络动作」。
 
 ### 4.1 三个开关的默认值与理由
 
@@ -345,8 +370,8 @@ S4-04 回答"该工具是否在**本次委派**的授权子集内"（未授权�
 | mypy（新增/改动 12 模块） | ✅ Success，0 error |
 | importlinter | ✅ 2 kept / 0 broken |
 | 架构护栏（CI 阻塞） | ✅ exit 0，未豁免违规 0 |
-| 新增单测 | ✅ 532 passed |
-| 邻接回归 | ✅ 533 passed |
+| 新增单测 | ✅ 541 passed |
+| 邻接回归 | ✅ 740 passed |
 | 全量 `-m "not slow"` | ✅ 18463 passed / **0 failed**（exit 0） |
 | 覆盖率 | ✅ 11 个新模块 84%–98%，均值 92.5% |
 | 混沌演练 | ✅ 4/4 |
@@ -367,8 +392,8 @@ S4-04 回答"该工具是否在**本次委派**的授权子集内"（未授权�
 5. taint 进不了 system prompt（**真实接线 + 对照实测**）与决策分支（对抗用例）；
 6. 边界词五类 + 单次 action + 60s 硬上限 + 文本批准不被采信；
 7. 单机 lockfile 拒第二个实例（演练实测）+ 杀伤后恢复；
-8. 新增 532 例全绿 / 邻接 533 例零回归 / 覆盖率均值 92.5%；
+8. 新增 541 例全绿 / 邻接 740 例零回归 / 覆盖率均值 92.5%；
 9. 混沌 4 项实跑留证。
 
-实现期发现并修复 **8 项真实缺陷**（含 1 个 XSS 漏洞、1 处隐私契约违反、2 处锁文件诊断失灵），
+实现期发现并修复 **9 项真实缺陷**（含 1 个 XSS 漏洞、1 处隐私契约违反、2 处锁文件诊断失灵、1 处审计真实性失真），
 全部补了回归用例。**7 项未覆盖/未声称**已在 §五 逐条登记，未做口径放大。
