@@ -23,7 +23,7 @@
 | 10 | **注入防御机制 5 人机边界词** | `agent/guardrails/boundary_words.py` | 269 语句；覆盖率 **94%** |
 | 11 | **注入防御机制 6 UI 安全渲染** | `agent/guardrails/safe_render.py` | 284 语句；覆盖率 **88%** |
 | 12 | **六机制统一接线与总闸门** | `agent/guardrails/injection_defense.py` | 146 语句；覆盖率 **89%** |
-| 13 | **混沌演练脚本 + 实测记录（4 项）** | `scripts/chaos_s4_03_drill.py`、[chaos_s4_03_drill_report.md](../chaos_s4_03_drill_report.md)、`chaos_s4_03_drill_record.json` | 4/4 通过 |
+| 13 | **混沌演练脚本 + 实测记录（4 项）** | `scripts/chaos_s4_03_drill.py`、[chaos_s4_03_drill_report.md](../../chaos_s4_03_drill_report.md)、`chaos_s4_03_drill_record.json` | 4/4 通过 |
 | 14 | 实现期自检脚本 | `scripts/smoke_s4_03_injection_defense.py` | 38/38 自检通过 |
 | 15 | 新增单测（11 套件） | `tests/unit/test_self_healing_levels.py` 等 11 个文件 | **541 例全绿** |
 | 16 | 机制 1 真实接线（**新增方法，不改既有行为**） | `agent/context/assembler.py`（`assemble_guarded` / `render_guarded_text`）、`agent/orchestrator/orchestrator.py`（`_injection_defense_guard_context` + 受守卫分支） | 见 §三.5 |
@@ -131,7 +131,7 @@
 
 ### ✅ 9. 混沌演练 ≥2 项实际跑通（kill 主进程 / 注入篡改至少一项）并记录
 
-**证据**：`scripts/chaos_s4_03_drill.py`，**4/4 通过**，落盘 [chaos_s4_03_drill_report.md](../chaos_s4_03_drill_report.md)（Markdown，含命令/期望/实测/恢复验证）+ `chaos_s4_03_drill_record.json`（完整证据）。
+**证据**：`scripts/chaos_s4_03_drill.py`，**4/4 通过**，落盘 [chaos_s4_03_drill_report.md](../../chaos_s4_03_drill_report.md)（Markdown，含命令/期望/实测/恢复验证）+ `chaos_s4_03_drill_record.json`（完整证据）。
 覆盖 §11.10 清单中的 4 项：**kill -9 主进程（D1）**、**向审计链注入篡改（D2）**、删最新快照（D3）、Saga 补偿失败（D4）。命令：
 ```powershell
 python scripts/chaos_s4_03_drill.py
