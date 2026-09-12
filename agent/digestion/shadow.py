@@ -69,8 +69,14 @@ from .cases import (
     normalize_candidate_kind,
     open_case_store,
     seed_candidate_for,
+    shape_applicable_cases,
 )
 from .gate import PassportStore
+from .resolutions import (
+    ResolutionStore,
+    resolution_basis as _resolution_basis_impl,
+    resolution_sheet as _resolution_sheet_impl,
+)
 from .sandbox import (
     JUDGE_THRESHOLD,
     LAYER_JUDGE,
@@ -229,6 +235,26 @@ AUDIT_ACTION_OBSERVED = "digest.shadow.observed"
 AUDIT_ACTION_DEGRADED = "digest.shadow.degraded"
 AUDIT_ACTION_BLOCKED = "digest.shadow.blocked"
 AUDIT_ACTION_REVIEWED = "digest.shadow.manual_review"
+
+#: 队列完整性（TASK-S8-05 / D1）：入队拒绝与失效标注**都要留痕**（不静默）
+AUDIT_ACTION_ENQUEUE_REJECTED = "digest.shadow.enqueue_rejected"
+AUDIT_ACTION_STALE = "digest.shadow.review_stale"
+#: 失效原因词表（可机检、可聚合）
+STALE_CASE_MISSING = "case_missing"
+STALE_CASE_REMOVED_AFTER_REGENERATION = "case_missing_after_regeneration"
+STALE_CASE_DEACTIVATED = "case_deactivated"
+STALE_REASONS: Tuple[str, ...] = (STALE_CASE_MISSING,
+                                  STALE_CASE_REMOVED_AFTER_REGENERATION,
+                                  STALE_CASE_DEACTIVATED)
+#: 入队拒绝原因词表
+REJECT_CASE_MISSING = "case_missing"
+REJECT_CASE_INACTIVE = "case_inactive"
+REJECT_SHAPE_MISMATCH = "shape_mismatch"
+REJECT_ALREADY_RESOLVED = "already_resolved"
+REJECT_REASONS: Tuple[str, ...] = (REJECT_CASE_MISSING, REJECT_CASE_INACTIVE,
+                                   REJECT_SHAPE_MISMATCH, REJECT_ALREADY_RESOLVED)
+#: 已裁定项在队列中的终态词（与 pass/fail/uncertain 并列可见，但不占"待裁定"）
+REVIEW_VERDICT_RESOLVED = "resolved"
 
 
 # ════════════════════════════════════════════════════════════
@@ -1160,7 +1186,15 @@ def resolve_judge(mode: str = "", *, invoke: Optional[Callable[[str], str]] = No
 
 @dataclass
 class ManualReviewItem:
-    """一条人工抽检项（S3-02 只产出清单；本任务**记录复核动作**）"""
+    """一条人工抽检项（S3-02 只产出清单；本任务**记录复核动作**）
+
+    TASK-S8-05 新增三个字段，用于把"清单为什么不干净"讲清楚（D1/D4）：
+
+    - ``stale`` / ``stale_reason``：**判定集重生成或删除后**该用例已不存在 ⇒ 显式
+      标注失效。**记录保留不删**（留痕优先）：删掉就再也说不清"当初抽到过什么"。
+    - ``case_version_at_enqueue``：入队时该能力判定集的版本 ⇒ 后来版本变了即可
+      机器判定"这条是重生成前的旧引用"，无需读时间戳猜。
+    """
 
     case_id: str
     capability_id: str = ""
@@ -1174,6 +1208,13 @@ class ManualReviewItem:
     role: str = ""
     note: str = ""
     reviewed_at: float = 0.0
+    #: D1：失效标注（true 即"该用例在现行判定集中已不存在"，不参与待裁定）
+    stale: bool = False
+    stale_reason: str = ""
+    #: D1：入队时的判定集版本（0 = 未记录）
+    case_version_at_enqueue: int = 0
+    #: D4：该（能力, 用例）已有裁定留痕时的依据摘要（非空即"已裁定"）
+    resolved_basis: str = ""
 
     @property
     def decided(self) -> bool:
@@ -1183,13 +1224,21 @@ class ManualReviewItem:
     def approved(self) -> bool:
         return self.verdict == REVIEW_VERDICT_PASS
 
+    @property
+    def pending(self) -> bool:
+        """待裁定 = 未裁定 **且未失效**（失效项没有可裁决的证据，不该占住清单）"""
+        return not self.decided and not self.stale
+
     def to_dict(self) -> Dict[str, Any]:
         return {"case_id": self.case_id, "capability_id": self.capability_id,
                 "sample_id": self.sample_id, "candidate_kind": self.candidate_kind,
                 "reasons": list(self.reasons), "queued_at": self.queued_at,
                 "queued_by": self.queued_by, "verdict": self.verdict,
                 "reviewer": self.reviewer, "role": self.role, "note": self.note,
-                "reviewed_at": self.reviewed_at, "decided": self.decided}
+                "reviewed_at": self.reviewed_at, "decided": self.decided,
+                "stale": bool(self.stale), "stale_reason": self.stale_reason,
+                "case_version_at_enqueue": self.case_version_at_enqueue,
+                "resolved_basis": self.resolved_basis}
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ManualReviewItem":
@@ -1203,13 +1252,33 @@ class ManualReviewQueue:
     M5 的口径："人工复核**未完成前不得视为已验收**" —— 故 `summary()["closed"]`
     为假时，调用方（`ShadowReport`/内化决策）一律标注 `manual_review_incomplete`，
     绝不把"抽检清单已产出"说成"已人工复核"。
+
+    ## 队列完整性（TASK-S8-05 / D1）
+
+    实测缺陷：3/10 条抽检引用的 case 在判定集 5 个版本中**均不存在**（入队 09-11、
+    判定集 09-12 重建），人工复核因此**无法取证**，只能记 `uncertain`。故本类：
+
+    - **入队即校验**：case 不在现行判定集 ⇒ **拒绝入队**并记事件/审计（不静默入队）；
+    - **重生成联动**：`liveness()` / `mark_stale()` 在判定集版本变化后把受影响项转为
+      ``stale``（带原因），**保留记录不删**（留痕优先）；
+    - ``pending()`` / ``is_closed()`` **排除失效项**：失效项既不能裁决，也不该让
+      队列永远"未闭合"。
+
+    ## 已裁定项（TASK-S8-05 / D4）
+
+    ``enqueue(..., resolutions=…)`` 时，已有裁定留痕的用例**不再重复入队**；
+    ``review_sheet()`` 会单列"已裁定项及其依据"，避免"看不清为什么消失"。
     """
 
     def __init__(self, path: str = "", *, directory: str = "",
-                 filename: str = MANUAL_REVIEW_FILENAME) -> None:
+                 filename: str = MANUAL_REVIEW_FILENAME,
+                 case_store: Optional[CaseStore] = None,
+                 clock: Optional[Callable[[], float]] = None) -> None:
         base = str(directory or os.getenv(SHADOW_DIR_ENV) or DEFAULT_SHADOW_DIR)
         self.dir = base
         self.path = str(path or os.path.join(base, filename))
+        self._case_store = case_store
+        self._clock = clock or time.time
         # **构造期不建目录**（只读调用方不应产生文件系统副作用）；
         # 写入时经 `_ensure_dir()` 惰性创建。
 
@@ -1217,6 +1286,117 @@ class ManualReviewQueue:
         parent = os.path.dirname(self.path)
         if parent:
             os.makedirs(parent, exist_ok=True)
+
+    # ── 存活校验（D1）────────────────────────────────────────
+
+    @property
+    def case_store(self) -> CaseStore:
+        if self._case_store is None:
+            self._case_store = open_case_store()
+        return self._case_store
+
+    def liveness(self, capability_id: str = "", *,
+                 case_set: Optional[CaseSet] = None) -> Dict[str, Any]:
+        """现行判定集里仍存在的 case_id 集合（供入队/读取校验）
+
+        以 ``case_set.active_cases()`` 为准 —— **失效（``invalidate``）的用例视同不存在**：
+        它已不参与评估，仍留在队列只会让复核无证据可查（正是 D1 的成因）。
+        """
+        resolved = case_set
+        if resolved is None:
+            resolved = self.case_store.load(str(capability_id or ""))
+        if resolved is None:
+            return {"capability_id": str(capability_id or ""), "version": 0,
+                    "case_ids": set(), "case_set_present": False}
+        return {"capability_id": resolved.capability_id,
+                "version": int(resolved.version),
+                "case_ids": {c.case_id for c in resolved.active_cases()},
+                "case_set_present": True}
+
+    def unknown_cases(self, capability_id: str, case_ids: Iterable[str], *,
+                      case_set: Optional[CaseSet] = None) -> List[str]:
+        """给定 case_id 中**不在现行判定集**的那些（入队拒绝的依据）"""
+        live = self.liveness(capability_id, case_set=case_set)
+        if not live["case_set_present"]:
+            return sorted({str(c) for c in (case_ids or [])})
+        return sorted({str(c) for c in (case_ids or [])
+                       if str(c) not in live["case_ids"]})
+
+    def stale_reasons(self, capability_id: str = "", *,
+                      case_set: Optional[CaseSet] = None) -> Dict[str, str]:
+        """已入队项 → 失效原因（仅列出**已失效**的；不失效的项不出现在结果里）
+
+        判定顺序（确定性，逐条可解释）：
+
+        1. 该能力的判定集**整个不存在** ⇒ ``case_missing``（无判定依据）；
+        2. case 仍在现行判定集 ⇒ 不失效；
+        3. 入队版本 ≠ 现行版本 ⇒ ``case_missing_after_regeneration``（重生成产生孤儿引用）；
+        4. 否则（同一版本内被删/失效）⇒ ``case_deleted``（同样如实标注）。
+        """
+        live = self.liveness(capability_id, case_set=case_set)
+        out: Dict[str, str] = {}
+        for item in self.items(capability_id):
+            if not live["case_set_present"]:
+                out[item.case_id] = STALE_CASE_MISSING
+                continue
+            if item.case_id in live["case_ids"]:
+                continue
+            recorded = int(item.case_version_at_enqueue or 0)
+            if recorded and recorded != int(live["version"]):
+                out[item.case_id] = STALE_CASE_REMOVED_AFTER_REGENERATION
+            else:
+                out[item.case_id] = STALE_CASE_MISSING
+        return out
+
+    def mark_stale(self, capability_id: str = "", *,
+                   case_set: Optional[CaseSet] = None, actor: str = "shadow_runner",
+                   reasons: Optional[Dict[str, str]] = None,
+                   now: float = 0.0) -> Dict[str, Any]:
+        """把失效项**显式标注**为 ``stale``（追加一条记录；**不删除**任何既有记录）
+
+        判定集**重生成后**调用本方法即完成"重生成联动扫描"。已是 stale 且原因相同的
+        项不重复追加（幂等），避免扫描多次把台账撑满。
+
+        Returns:
+            ``{"capability_id", "scanned", "marked", "already", "items": [...]}``
+        """
+        resolved_reasons = (reasons if reasons is not None
+                            else self.stale_reasons(capability_id, case_set=case_set))
+        existing = {i.case_id: i for i in self.items(capability_id)}
+        marked: List[Dict[str, Any]] = []
+        already = 0
+        stamp = float(now or self._clock())
+        for case_id, reason in sorted(resolved_reasons.items()):
+            item = existing.get(case_id)
+            if item is None:
+                continue
+            if item.stale and item.stale_reason == reason:
+                already += 1
+                continue
+            updated = ManualReviewItem.from_dict(item.to_dict())
+            updated.stale = True
+            updated.stale_reason = str(reason)
+            updated.queued_at = float(item.queued_at or stamp)
+            self._append(updated, "stale")
+            marked.append({"case_id": case_id, "reason": str(reason),
+                           "capability_id": str(capability_id or ""),
+                           "case_version_at_enqueue": item.case_version_at_enqueue})
+        if marked:
+            _audit(AUDIT_ACTION_STALE, capability_id=str(capability_id),
+                   payload={"marked": len(marked), "items": marked,
+                            "rule": "判定集重生成联动扫描（D1）"},
+                   status="stale", actor=str(actor or "shadow_runner"))
+        return {"capability_id": str(capability_id or ""),
+                "scanned": len(existing), "marked": len(marked),
+                "already": already, "items": marked}
+
+    def scan_after_regeneration(self, capability_id: str, *,
+                                case_set: Optional[CaseSet] = None,
+                                actor: str = "case_store_regeneration",
+                                now: float = 0.0) -> Dict[str, Any]:
+        """判定集重生成后的**联动扫描**入口（语义别名，便于调用方读懂意图）"""
+        return self.mark_stale(capability_id, case_set=case_set, actor=actor,
+                               now=now)
 
     # ── 写入 ────────────────────────────────────────────────
 
@@ -1232,27 +1412,98 @@ class ManualReviewQueue:
 
     def enqueue(self, capability_id: str, case_ids: Iterable[str], *,
                 candidate_kind: str = "", reasons: Optional[Dict[str, List[str]]] = None,
-                queued_by: str = "shadow_runner") -> List[ManualReviewItem]:
-        """把 10% 抽中的用例入队（**幂等**：已入队且未裁定的不重复追加）"""
+                queued_by: str = "shadow_runner",
+                case_set: Optional[CaseSet] = None,
+                cases: Optional[Sequence[EquivalenceCase]] = None,
+                resolutions: Any = None,
+                now: float = 0.0,
+                expect: Optional[Dict[str, Any]] = None) -> List[ManualReviewItem]:
+        """把 10% 抽中的用例入队（**幂等**：已入队且未裁定的不重复追加）
+
+        TASK-S8-05 的三道入口闸（任一不通过即**拒绝入队并留痕**，绝不静默）：
+
+        1. **存活校验（D1）**：case 不在现行判定集 ⇒ 拒绝（``case_missing``）；
+        2. **形状过滤（D2）**：``cases`` 给出时，用例与被评能力形状不匹配 ⇒ 拒绝
+           （``shape_mismatch``）——"问了错误的问题"的抽检不该进清单；
+        3. **已裁定跳过（D4）**：``resolutions`` 给出且该 (能力, 用例, 规则) 已裁定
+           ⇒ 拒绝（``already_resolved``），避免重复提醒。
+
+        被拒条目写入 ``expect["rejected"]``（同为 list，可与返回值一起进报告/审计）。
+
+        Args:
+            case_set: 现行判定集（缺省按能力从 `case_store` 读取）。
+            cases: 本次抽样所用用例对象（提供 ``applies_to_capability`` 判定）。
+            resolutions: `ResolutionStore`（或任何有 ``is_resolved`` 的对象）。
+            now: 注入时钟（测试/跨日隔离；0 = 取当前时间）。
+        """
+        live = self.liveness(capability_id, case_set=case_set)
+        version = int(live.get("version") or 0)
+        by_id = {c.case_id: c for c in (cases or [])}
+        rejected: List[Dict[str, Any]] = []
+        if expect is not None:
+            expect.setdefault("rejected", rejected)
         existing = {(i.capability_id, i.case_id) for i in self.items()
                     if not i.decided}
+        stamp = float(now or self._clock())
         out: List[ManualReviewItem] = []
         for case_id in case_ids or []:
             cid = str(case_id)
             if (str(capability_id), cid) in existing:
                 continue
+            rejection = self._enqueue_rejection(
+                capability_id, cid, live=live, by_id=by_id,
+                resolutions=resolutions)
+            if rejection:
+                rejected.append({"case_id": cid,
+                                 "capability_id": str(capability_id),
+                                 "reason": rejection[0], "detail": rejection[1]})
+                self._record_rejection(capability_id, cid, rejection,
+                                       queued_by=str(queued_by or ""))
+                continue
             item = ManualReviewItem(
                 case_id=cid, capability_id=str(capability_id), sample_id=cid,
                 candidate_kind=normalize_candidate_kind(candidate_kind),
                 reasons=list((reasons or {}).get(cid) or []),
-                queued_at=time.time(), queued_by=str(queued_by or ""))
+                queued_at=stamp, queued_by=str(queued_by or ""),
+                case_version_at_enqueue=version)
             self._append(item, "queued")
             out.append(item)
         return out
 
+    def _enqueue_rejection(self, capability_id: str, case_id: str, *,
+                           live: Dict[str, Any],
+                           by_id: Dict[str, EquivalenceCase],
+                           resolutions: Any) -> Optional[Tuple[str, str]]:
+        """入队闸判定 → ``(原因, 详情)``；通过则 ``None``"""
+        if not live.get("case_set_present"):
+            return (REJECT_CASE_MISSING,
+                    "该能力当前无判定集（判定集缺失或已被删除）")
+        if case_id not in live.get("case_ids", set()):
+            return (REJECT_CASE_MISSING,
+                    f"case {case_id} 不在现行判定集 v{live.get('version')}"
+                    "（含失效用例；重生成后旧引用不得入队）")
+        case = by_id.get(case_id)
+        if case is not None:
+            applies, why = case.applies_to_capability(capability_id)
+            if not applies:
+                return REJECT_SHAPE_MISMATCH, why
+        if resolutions is not None:
+            basis = _resolution_basis(resolutions, capability_id, case_id)
+            if basis:
+                return REJECT_ALREADY_RESOLVED, basis
+        return None
+
+    def _record_rejection(self, capability_id: str, case_id: str,
+                          rejection: Tuple[str, str], *, queued_by: str) -> None:
+        _audit(AUDIT_ACTION_ENQUEUE_REJECTED, capability_id=str(capability_id),
+               payload={"case_id": str(case_id), "reason": rejection[0],
+                        "detail": rejection[1], "queued_by": str(queued_by or ""),
+                        "rule": "入队存活/形状/已裁定校验（D1/D2/D4）"},
+               status="rejected", actor=str(queued_by or "shadow_runner"))
+
     def record_review(self, case_id: str, *, capability_id: str, verdict: str,
                       reviewer: str, role: str = REVIEW_ROLE_HUMAN,
-                      note: str = "") -> ManualReviewItem:
+                      note: str = "", now: float = 0.0) -> ManualReviewItem:
         """记录**人工复核动作**（M5 的核心；结论 + 复核人 + 角色 + 时间落盘并审计）
 
         Raises:
@@ -1265,7 +1516,7 @@ class ManualReviewQueue:
             case_id=str(case_id), capability_id=str(capability_id),
             sample_id=str(case_id), verdict=resolved,
             reviewer=str(reviewer or ""), role=str(role or REVIEW_ROLE_HUMAN),
-            note=str(note or ""), reviewed_at=time.time())
+            note=str(note or ""), reviewed_at=float(now or self._clock()))
         self._append(item, "reviewed")
         _audit(AUDIT_ACTION_REVIEWED, capability_id=str(capability_id),
                payload={"case_id": str(case_id), "verdict": resolved,
@@ -1303,49 +1554,162 @@ class ManualReviewQueue:
         return sorted(latest.values(), key=lambda i: (i.queued_at, i.case_id))
 
     def pending(self, capability_id: str = "") -> List[ManualReviewItem]:
-        return [i for i in self.items(capability_id) if not i.decided]
+        """待裁定项（**已失效项不计入** —— 失效项无可裁决的证据，D1）"""
+        return [i for i in self.items(capability_id) if i.pending]
+
+    def stale_items(self, capability_id: str = "") -> List[ManualReviewItem]:
+        """已标失效的队列项（保留在台账里，供报告如实披露）"""
+        return [i for i in self.items(capability_id) if i.stale]
 
     def summary(self, capability_id: str = "") -> Dict[str, Any]:
-        """抽检状态摘要（``closed`` 为假 ⇒ 不得视为已验收）"""
+        """抽检状态摘要（``closed`` 为假 ⇒ 不得视为已验收）
+
+        D1 口径：``stale`` 项**单独计数**且不阻塞闭合（它没有可裁决的证据），
+        但**绝不隐藏** —— 报告与复核表都要能看到"有几条因判定集重生成而失效"。
+        """
         items = self.items(capability_id)
         decided = [i for i in items if i.decided]
+        stale = [i for i in items if i.stale]
+        pending = [i for i in items if i.pending]
         by_verdict: Dict[str, int] = {}
         for item in decided:
             by_verdict[item.verdict] = by_verdict.get(item.verdict, 0) + 1
         human = [i for i in decided if i.role == REVIEW_ROLE_HUMAN]
+        by_stale_reason: Dict[str, int] = {}
+        for item in stale:
+            key = item.stale_reason or STALE_CASE_MISSING
+            by_stale_reason[key] = by_stale_reason.get(key, 0) + 1
         return {
             "sampled": len(items),
-            "pending": len(items) - len(decided),
+            "pending": len(pending),
             "decided": len(decided),
             "by_verdict": by_verdict,
             "human_reviewed": len(human),
             "agent_assisted_reviewed": len(decided) - len(human),
-            "closed": bool(items) and not [i for i in items if not i.decided],
-            "pending_case_ids": sorted(i.case_id for i in items if not i.decided),
+            "closed": bool(items) and not pending,
+            "pending_case_ids": sorted(i.case_id for i in pending),
+            "stale": len(stale),
+            "stale_case_ids": sorted(i.case_id for i in stale),
+            "by_stale_reason": by_stale_reason,
+            "resolved": len([i for i in items if i.resolved_basis]),
             "path": self.path,
             "note": ("人工复核未完成前不得视为已验收（M5 口径）"
-                     if [i for i in items if not i.decided] else "抽检全部已裁定"),
+                     if pending else "抽检全部已裁定"),
+            "stale_note": (f"{len(stale)} 条因判定集重生成/删除已失效"
+                           "（记录保留不删，见 stale_reason）" if stale else ""),
         }
 
     def is_closed(self, capability_id: str = "") -> bool:
         return bool(self.summary(capability_id).get("closed"))
 
-    def review_sheet(self, capability_id: str = "") -> str:
-        """人工复核工作表（Markdown；把清单交给 Owner 逐条裁定 —— 不是走过场）"""
+    def review_sheet(self, capability_id: str = "", *,
+                     resolutions: Any = None) -> str:
+        """人工复核工作表（Markdown；把清单交给 Owner 逐条裁定 —— 不是走过场）
+
+        TASK-S8-05：表里必须能看见三件"以前看不见的事"：
+
+        1. **失效项及其原因**（D1：不是静默消失，而是明说"判定集重生成后已失效"）；
+        2. **形状不匹配标注**（D2：这条用例问的是不是被评能力的问题）；
+        3. **已裁定项及其依据**（D4：`resolutions` 给出时单列，避免"为什么清单空了"）。
+        """
         items = self.items(capability_id)
         lines = [f"# 人工抽检复核表 — {capability_id or '(全部)'}", "",
                  f"抽检项 {len(items)} 条（10% 确定性抽样，可复现）。",
                  "复核口径（M5）：逐条判断候选实现与上游是否**行为等价**；",
                  "未裁定前该能力**不得视为已验收**。", "",
-                 "| # | case_id | 抽样键 | 候选 | 待核理由 | 结论 | 复核人 |",
-                 "|---|---|---|---|---|---|---|"]
+                 "| # | case_id | 抽样键 | 候选 | 待核理由 | 状态 | 结论 | 复核人 |",
+                 "|---|---|---|---|---|---|---|---|"]
         for index, item in enumerate(items, 1):
-            lines.append("| {} | `{}` | {} | {} | {} | {} | {} |".format(
+            if item.stale:
+                status = f"**已失效**（{item.stale_reason or STALE_CASE_MISSING}）"
+            elif item.decided:
+                status = "已裁定"
+            else:
+                status = "待裁定"
+            lines.append("| {} | `{}` | {} | {} | {} | {} | {} | {} |".format(
                 index, item.case_id, item.sample_id or "-",
                 item.candidate_kind or "-",
-                "；".join(item.reasons) or "-",
-                item.verdict or "**待裁定**", item.reviewer or "-"))
+                "；".join(item.reasons) or "-", status,
+                item.verdict or ("—" if item.stale else "**待裁定**"),
+                item.reviewer or "-"))
+        stale_rows = [i for i in items if i.stale]
+        if stale_rows:
+            lines += ["", "## 已失效项（保留留痕，不参与裁定）", ""]
+            for item in stale_rows:
+                lines.append(f"- `{item.case_id}`：{item.stale_reason or STALE_CASE_MISSING}"
+                             f"（入队判定集 v{item.case_version_at_enqueue or '?'}）")
+        if resolutions is not None:
+            sheet = resolution_sheet(resolutions, capability_id=capability_id)
+            if sheet:
+                lines += ["", sheet]
         return "\n".join(lines) + "\n"
+
+
+# ════════════════════════════════════════════════════════════
+#  队列完整性校验（TASK-S8-05 / D1：报告与重生成联动的对外入口）
+# ════════════════════════════════════════════════════════════
+
+
+def queue_liveness_report(queue: ManualReviewQueue, capability_id: str = "", *,
+                          case_set: Optional[CaseSet] = None) -> Dict[str, Any]:
+    """队列存活体检（只读；供报告与"入队→裁定→重算"闭环演示取证）
+
+    Returns:
+        ``{"capability_id", "case_set_version", "sampled", "live", "stale",
+        "stale_items", "pending", "closed"}``
+    """
+    live = queue.liveness(capability_id, case_set=case_set)
+    stale = queue.stale_reasons(capability_id, case_set=case_set)
+    summary = queue.summary(capability_id)
+    return {
+        "capability_id": str(capability_id or ""),
+        "case_set_version": int(live.get("version") or 0),
+        "case_set_present": bool(live.get("case_set_present")),
+        "sampled": summary["sampled"],
+        "live": int(summary["sampled"]) - len(stale),
+        "stale": len(stale),
+        "stale_items": [{"case_id": cid, "reason": why}
+                        for cid, why in sorted(stale.items())],
+        "pending": summary["pending"],
+        "closed": summary["closed"],
+    }
+
+
+def mark_stale_after_regeneration(queue: ManualReviewQueue, capability_id: str, *,
+                                  case_set: Optional[CaseSet] = None,
+                                  actor: str = "case_store_regeneration",
+                                  now: float = 0.0) -> Dict[str, Any]:
+    """判定集**重生成后**的队列联动扫描（D1 的对外入口；薄封装便于调用方发现）"""
+    return queue.mark_stale(capability_id, case_set=case_set, actor=actor,
+                            now=now)
+
+
+def _resolution_basis(resolutions: Any, capability_id: str, case_id: str) -> str:
+    """已裁定依据（D4）—— 台账缺省走 `resolutions.resolution_basis`，异常即当未裁定"""
+    if resolutions is None:
+        return ""
+    try:
+        if hasattr(resolutions, "by_subject"):
+            return _resolution_basis_impl(resolutions, case_id=case_id,
+                                          capability_id=capability_id)
+        found = resolutions.is_resolved("case", rule="", case_id=case_id)
+        return "已裁定" if found else ""
+    except Exception as e:  # noqa: BLE001  台账故障不得阻断入队
+        logger.debug("已裁定判定失败（按未裁定处理）: %s", e)
+        return ""
+
+
+def resolution_sheet(resolutions: Any, *, capability_id: str = "",
+                     case_ids: Optional[Iterable[str]] = None) -> str:
+    """已裁定项及其依据（Markdown；复核表/报告共用 —— D4"依据可见"）"""
+    if resolutions is None:
+        return ""
+    try:
+        return _resolution_sheet_impl(resolutions, capability_id=capability_id,
+                                      case_ids=case_ids)
+    except Exception as e:  # noqa: BLE001
+        logger.debug("已裁定清单生成失败: %s", e)
+        return ""
 
 
 # ════════════════════════════════════════════════════════════
@@ -1679,6 +2043,10 @@ class ShadowReport:
     judge: Dict[str, Any] = field(default_factory=dict)
     candidate_kind: str = ""
     applicability: Dict[str, Any] = field(default_factory=dict)
+    #: 形状过滤报告（D2：用例 ↔ 被评能力的形状匹配；抽检取样只从匹配项中抽）
+    shape: Dict[str, Any] = field(default_factory=dict)
+    #: 入队结果（D1/D2/D4：请求数 / 实际入队数 / 逐条拒绝原因 —— 拒绝必须可见）
+    enqueue: Dict[str, Any] = field(default_factory=dict)
     manual_sample: List[str] = field(default_factory=list)
     manual_review: Dict[str, Any] = field(default_factory=dict)
     layer_failures: Dict[str, int] = field(default_factory=dict)
@@ -1745,6 +2113,8 @@ class ShadowReport:
             "passport_reasons": list(self.passport_reasons),
             "candidate_kind": self.candidate_kind,
             "applicability": dict(self.applicability),
+            "shape": dict(self.shape),
+            "enqueue": dict(self.enqueue),
             "judge": dict(self.judge),
             "judge_kind": self.judge_kind,
             "judge_is_llm": self.judge_is_llm,
@@ -1786,6 +2156,10 @@ class ShadowReport:
             f"（日均 {self.plan.daily_avg} × {self.plan.ratio} 上限 {self.plan.cap}）",
             f"- 候选身份：{self.candidate_kind or '-'}｜"
             f"适用性排除 {self.applicability.get('excluded', 0)} 条",
+            f"- 形状过滤：被评 `{self.shape.get('evaluated_capability') or '-'}`｜"
+            f"候选 {self.shape.get('before_filter', 0)} → 形状匹配 "
+            f"{self.shape.get('applicable', 0)}（排除 {self.shape.get('excluded', 0)}）"
+            f"｜契约薄弱 {self.shape.get('weak_contract', 0)} 条",
             f"- judge：`{self.judge_kind}`（LLM={self.judge_is_llm}）"
             f"｜门槛 {self.judge.get('threshold')}",
             f"- 结果：{self.passed}/{self.total} 通过（通过率 {self.pass_rate}）"
@@ -1880,6 +2254,7 @@ class ShadowRunner:
                  case_store: Optional[CaseStore] = None,
                  ledger: Optional[ShadowLedger] = None,
                  review_queue: Optional[ManualReviewQueue] = None,
+                 resolutions: Optional[ResolutionStore] = None,
                  env: Optional[Dict[str, str]] = None,
                  emit_events: bool = True,
                  actor: str = "digestion_service",
@@ -1887,6 +2262,7 @@ class ShadowRunner:
         self.env = dict(env or {})
         self.emit_events = bool(emit_events)
         self.actor = str(actor or "digestion_service")
+        self._resolutions = resolutions
         # S8-04：`judge_runtime`（`judge_runtime.build_judge_runtime()` 的产物）
         # 提供"配置 + 凭证 + 预算护栏 + 判定存档"。**不传就完全走 S3-03 原路径**
         # （行为与既有断言逐字一致）；传了就必须与显式 sandbox 判定器不冲突。
@@ -1968,8 +2344,13 @@ class ShadowRunner:
     @property
     def review_queue(self) -> ManualReviewQueue:
         if self._review_queue is None:
-            self._review_queue = ManualReviewQueue()
+            self._review_queue = ManualReviewQueue(case_store=self.case_store)
         return self._review_queue
+
+    @property
+    def resolutions(self) -> Optional[ResolutionStore]:
+        """裁定留痕台账（缺省不自动创建：灰度器只读它，写入由裁定人显式做）"""
+        return self._resolutions
 
     # ── 门禁：凭通行证放行 ──────────────────────────────────
 
@@ -2107,14 +2488,32 @@ class ShadowRunner:
             "excluded": len(excluded), "excluded_cases": excluded,
             "field": "EquivalenceCase.applicability（M4 显式字段）"}
 
-        # ④ 抽样宇宙与计划
+        # ④ 形状过滤（D2）：只从"与被评能力形状匹配"的用例中抽取
+        #    —— 避免再次问错问题（多能力链不得用于单能力等价判定）
+        shape_kept, shape_excluded = shape_applicable_cases(applicable,
+                                                           report.capability_id)
+        report.shape = {
+            "evaluated_capability": report.capability_id,
+            "before_filter": len(applicable), "applicable": len(shape_kept),
+            "excluded": len(shape_excluded), "excluded_cases": shape_excluded,
+            "weak_contract": sum(1 for c in shape_kept if c.weak_contract),
+            "weak_contract_cases": sorted(c.case_id for c in shape_kept
+                                          if c.weak_contract),
+            "shapes": dict(sorted(
+                {c.shape_key: sum(1 for x in shape_kept if x.shape_key == c.shape_key)
+                 for c in shape_kept}.items())),
+            "rule": ("用例能力集合 ⊋ 被评能力 或 步数>1 ⇒ 不适用；"
+                     "多能力链仅在链路级评估中可用（D2）"),
+        }
+
+        # ⑤ 抽样宇宙与计划
         if trace_ids:
             ids: List[str] = []
-            for index, case in enumerate(applicable):
+            for index, case in enumerate(shape_kept):
                 ids.append(str(trace_ids[index % len(trace_ids)]))
-            pairs = list(zip(ids, applicable))
+            pairs = list(zip(ids, shape_kept))
         else:
-            pairs = [(sample_id_for(case), case) for case in applicable]
+            pairs = [(sample_id_for(case), case) for case in shape_kept]
         plan = self.plan(report.capability_id, sample_ids=[p[0] for p in pairs],
                          daily_avg=daily_avg, shadow_config=shadow_config)
         report.plan = plan
@@ -2122,12 +2521,12 @@ class ShadowRunner:
         chosen = [(sid, case) for sid, case in pairs if sid in selected]
         gray_set = set(plan.gray_routed)
 
-        # ⑤ 10% 人工抽检（确定性；先定清单再执行，避免"事后挑样本"）
+        # ⑥ 10% 人工抽检（确定性；先定清单再执行，避免"事后挑样本"）
         manual = set(manual_sample_ids([case.case_id for _, case in chosen],
                                        ratio=self.sandbox.manual_ratio))
         report.manual_sample = sorted(manual)
 
-        # ⑥ 逐样本双跑（沙箱；副作用只记录）
+        # ⑦ 逐样本双跑（沙箱；副作用只记录）
         for sample_id, case in chosen:
             picked = self._resolve_candidate(candidate, case)
             upstream = (upstream_provider(case) if upstream_provider is not None
@@ -2149,17 +2548,25 @@ class ShadowRunner:
             # S8-04：judge 判定与人工判定**并列存档**（一致率统计的数据源）
             self._record_judge_verdict(report, sample, case)
 
-        # ⑦ 人工抽检入队（M5：清单 + 待复核）
+        # ⑧ 人工抽检入队（M5：清单 + 待复核；D1/D4：存活校验 + 形状过滤 + 已裁定跳过）
+        report.enqueue = {"requested": len(report.manual_sample), "queued": 0,
+                          "rejected": []}
         if enqueue_manual and report.manual_sample:
-            self.review_queue.enqueue(
+            picked_cases = [case for _, case in chosen
+                            if case.case_id in set(report.manual_sample)]
+            queued = self.review_queue.enqueue(
                 report.capability_id, report.manual_sample,
                 candidate_kind=candidate_kind,
                 reasons={s.case_id: (s.reasons or ["10% 确定性抽检"]) for s in report.samples
                          if s.case_id in set(report.manual_sample)},
-                queued_by=self.actor)
+                queued_by=self.actor,
+                case_set=resolved_set, cases=picked_cases,
+                resolutions=self._resolutions,
+                expect=report.enqueue)
+            report.enqueue["queued"] = len(queued)
         report.manual_review = self.review_queue.summary(report.capability_id)
 
-        # ⑧ 劣化信号（R4）+ 开销 + 质量统计补丁
+        # ⑨ 劣化信号（R4）+ 开销 + 质量统计补丁
         report.degradation = assess_degradation(report.samples)
         report.judge["effective_kind"] = self.judge_guard.effective_kind
         report.judge["kind"] = self.judge_guard.effective_kind
@@ -2207,6 +2614,10 @@ class ShadowRunner:
                      "p99_wall_candidate_ms": report.p99_wall_candidate_ms(),
                      "p99_wall_upstream_ms": report.p99_wall_upstream_ms(),
                      "manual_review": report.manual_review,
+                     "enqueue": report.enqueue,
+                     "shape": {"applicable": report.shape.get("applicable", 0),
+                               "excluded": report.shape.get("excluded", 0),
+                               "weak_contract": report.shape.get("weak_contract", 0)},
                      "degradation": report.degradation},
             status=("degraded" if action == AUDIT_ACTION_DEGRADED else "observed"),
             actor=self.actor)
@@ -2386,6 +2797,12 @@ __all__ = [
     "REVIEW_VERDICTS", "REVIEW_ROLE_HUMAN", "REVIEW_ROLE_AGENT",
     "EVENT_SCOPE_SHADOW", "AUDIT_ACTION_OBSERVED", "AUDIT_ACTION_DEGRADED",
     "AUDIT_ACTION_BLOCKED", "AUDIT_ACTION_REVIEWED",
+    # 队列完整性（D1）
+    "AUDIT_ACTION_ENQUEUE_REJECTED", "AUDIT_ACTION_STALE",
+    "STALE_CASE_MISSING", "STALE_CASE_REMOVED_AFTER_REGENERATION",
+    "STALE_CASE_DEACTIVATED", "STALE_REASONS",
+    "REJECT_CASE_MISSING", "REJECT_CASE_INACTIVE", "REJECT_SHAPE_MISMATCH",
+    "REJECT_ALREADY_RESOLVED", "REJECT_REASONS", "REVIEW_VERDICT_RESOLVED",
     # 开关与抽样
     "shadow_enabled", "budget_from_env", "hash_fraction", "deterministic_sample",
     "daily_budget", "resolve_gray_policy", "gray_routed_ids",
@@ -2394,6 +2811,8 @@ __all__ = [
     "parse_judge_score",
     # 人工抽检
     "ManualReviewItem", "ManualReviewQueue",
+    "queue_liveness_report", "mark_stale_after_regeneration",
+    "resolution_sheet",
     # 台账与报告
     "ShadowLedger", "ShadowPlan", "ShadowSample", "ShadowReport",
     "assess_degradation", "isolation_declaration", "sample_id_for",

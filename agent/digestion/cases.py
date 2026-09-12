@@ -249,6 +249,50 @@ def program_to_storage(steps: Sequence[ProgramStep]) -> List[Dict[str, Any]]:
     return [s.to_storage_dict() for s in steps]
 
 
+#: 能力名归一的注册表缓存（**模块级单例**：判定集逐个比对会高频调用，不能每次重载台账）
+_CAPABILITY_REGISTRY: Any = None
+_CAPABILITY_REGISTRY_RESOLVED = False
+
+
+def _capability_registry() -> Any:
+    """惰性取 DescriptorRegistry（失败返回 None ⇒ 归一退原文，不阻断判定）"""
+    global _CAPABILITY_REGISTRY, _CAPABILITY_REGISTRY_RESOLVED
+    if not _CAPABILITY_REGISTRY_RESOLVED:
+        _CAPABILITY_REGISTRY_RESOLVED = True
+        try:
+            from agent.descriptors.registry import DescriptorRegistry
+            _CAPABILITY_REGISTRY = DescriptorRegistry()
+        except Exception as e:  # noqa: BLE001  台账不可用不是致命错
+            logger.debug("能力注册表不可用（形状比对退原文）: %s", e)
+            _CAPABILITY_REGISTRY = None
+    return _CAPABILITY_REGISTRY
+
+
+def reset_capability_registry_cache() -> None:
+    """清空归一缓存（测试隔离用；跨用例改台账后调用）"""
+    global _CAPABILITY_REGISTRY, _CAPABILITY_REGISTRY_RESOLVED
+    _CAPABILITY_REGISTRY = None
+    _CAPABILITY_REGISTRY_RESOLVED = False
+
+
+def normalize_capability_id(name: Any) -> str:
+    """能力名 → canonical（best-effort；台账不可用即**退原文**，不丢判定）
+
+    复用 `capability.resolve()`（→ `bridge.resolve_capability_id`），**不自建别名表**
+    —— 别名是 S2-01/S3-01 的既有资产，第二套必然与它漂移。
+    """
+    raw = str(name or "").strip()
+    if not raw:
+        return ""
+    from .capability import resolve  # 局部导入避环
+    try:
+        return str(resolve(raw, registry=_capability_registry()).get("capability_id")
+                   or raw)
+    except Exception as e:  # noqa: BLE001
+        logger.debug("能力名归一失败（退原文 %r）: %s", raw, e)
+        return raw
+
+
 # ════════════════════════════════════════════════════════════
 #  CaseApplicability（M4：显式的用例 ↔ 候选适用性）
 # ════════════════════════════════════════════════════════════
@@ -522,6 +566,103 @@ class EquivalenceCase:
 
     def applicability_reason(self, candidate_kind: Any) -> str:
         return self.applicability.explain(candidate_kind)
+
+    # ── 形状（shape）维度：用例 ↔ 被评**能力**的适用性（TASK-S8-05 / D2）
+
+    @property
+    def upstream_capabilities(self) -> List[str]:
+        """上游步骤调用的**能力集合**（``capability_id`` 优先，缺则用 ``label``）
+
+        同一步骤内同名能力去重；顺序无关（排序后返回）。
+        """
+        out: List[str] = []
+        for step in self.upstream:
+            cid = str(step.capability_id or step.label or "").strip()
+            if cid and cid not in out:
+                out.append(cid)
+        return sorted(out)
+
+    @property
+    def capability_set_key(self) -> str:
+        """能力集合摘要（``+`` 连接；空链 → ``none``）"""
+        return "+".join(self.upstream_capabilities) or "none"
+
+    @property
+    def step_count_bucket(self) -> str:
+        """步数**档位**（结构维度；与 `cleaning.step_count_bucket` 同口径）"""
+        from .cleaning import step_count_bucket  # 局部导入避环
+        return step_count_bucket(self.step_count)
+
+    @property
+    def shape_key(self) -> str:
+        """用例形状签名（``cap=<集合>|steps:<档位>``）—— 取样比对的**显式判据**"""
+        return f"cap={self.capability_set_key}|steps:{self.step_count_bucket}"
+
+    @property
+    def multi_capability(self) -> bool:
+        """是否为**多能力任务链**（能力集合 > 1）"""
+        return len(self.upstream_capabilities) > 1
+
+    @property
+    def weak_contract(self) -> bool:
+        """层①（结构）**无依据**：既无 ``expected_output_schema`` 又无 ``expected_output``
+
+        这样的用例无法据以判定行为等价（S7-05 的 7 条正是此状），故须**显式标注**，
+        不得让它以"有契约"的样子进入抽检（否则复核只能记 uncertain）。
+        """
+        return not (self.expected_output_schema or self.expected_output)
+
+    def applies_to_capability(self, capability_id: str) -> Tuple[bool, str]:
+        """``(是否适用于被评能力, 理由)`` —— **形状匹配**判定（D2 的核心规则）
+
+        规则（确定性、可机检、逐条给理由）：
+
+        1. 被评能力为空 ⇒ 不适用（无被评对象，无从判定）；
+        2. 用例上游**无能力标识** ⇒ 不适用（形状不可判定，不敢据以裁决）；
+        3. 用例能力集合 ⊋ {被评能力}（**多能力链**）⇒ **不适用**：多能力链只在
+           **链路级**评估中可用，不得用于单能力等价判定 —— 这正是"问了错误的问题"
+           的成因（D2）；
+        4. 用例能力集合与 {被评能力} 不一致 ⇒ 不适用（形状不匹配）；
+        5. 其余 ⇒ 适用。
+
+        **判据是"不同能力的个数"，不是步数**：同一能力的重复调用（重试、分批读）
+        步数 > 1 但能力集合仍为单元素，形状并未不符 —— 按步数一刀切会把这类用例
+        误排除（S8-05 实测：既有灰度用例即为"读+写"两步、同一能力）。
+
+        **能力名经规范归一对齐**（`normalize_capability_id`）：判定集里同一步骤可能记
+        工具名（``read_file``）或被评侧用 canonical（``cp.builtin.read_file``），
+        不归一就会把"同一步骤"误判成形状不符（S8-05 实测：4 条 Seed 单步用例
+        全部被误排除）。归一 best-effort，台账不可用时退原文（不丢判定、不伪造）。
+
+        ``weak_contract`` **不影响**本判定：契约缺失是"这条用例能不能支撑结论"的问题，
+        与"这条用例问对了问题没有"正交；两者都必须可见（见 `shape_notes()`）。
+        """
+        cap = normalize_capability_id(capability_id)
+        caps = sorted({normalize_capability_id(c) for c in self.upstream_capabilities})
+        if not cap:
+            return False, "未给出被评能力（无从判定适用性）"
+        if not caps:
+            return False, "用例上游步骤无能力标识（无法判定形状）"
+        if len(caps) > 1:
+            return False, (f"用例为 {self.step_count} 步多能力链"
+                           f"（能力集合 {caps}），与被评单能力 {cap} 形状不匹配"
+                           f"（多能力链仅在链路级评估中可用）")
+        if caps[0] != cap:
+            return False, (f"用例步骤能力为 {caps[0]}，与被评能力 {cap} 不一致")
+        return True, (f"形状匹配（单能力 {caps[0]}，{self.step_count} 步，"
+                      f"步数档位 {self.step_count_bucket}）")
+
+    def shape_notes(self, capability_id: str = "") -> List[str]:
+        """形状与契约的**如实标注**（进报告/复核表；不静默）"""
+        notes: List[str] = []
+        if capability_id:
+            applies, reason = self.applies_to_capability(capability_id)
+            if not applies:
+                notes.append(f"不适用：{reason}")
+        if self.weak_contract:
+            notes.append("weak_contract：expected_output_schema 与 expected_output "
+                         "均为空 ⇒ 层①无依据（据此只能记 uncertain）")
+        return notes
 
     # ── 校验 ────────────────────────────────────────────────
 
@@ -1817,6 +1958,55 @@ def applicable_cases(cases: Sequence[EquivalenceCase],
     return kept, excluded
 
 
+def shape_applicable_cases(
+        cases: Sequence[EquivalenceCase], capability_id: str,
+) -> Tuple[List[EquivalenceCase], List[Dict[str, Any]]]:
+    """按**形状**（用例 ↔ 被评能力）分成 **(适用, 排除清单)** —— D2 的取样过滤
+
+    与 `applicable_cases()`（候选类别维度，M4）**正交且可叠加**：
+
+    - M4 回答"这条用例对**哪个候选实现**适用"；
+    - 本函数回答"这条用例对**被评能力**问对了问题没有"。
+
+    排除清单逐条带 ``case_id`` / ``reason`` / ``shape``，使"哪些用例被挡在取样之外、
+    为什么"可审计 —— 与 D1 的 stale 标注同纪律（**不静默剔除**）。
+    """
+    kept: List[EquivalenceCase] = []
+    excluded: List[Dict[str, Any]] = []
+    for case in cases or []:
+        applies, reason = case.applies_to_capability(capability_id)
+        if applies:
+            kept.append(case)
+        else:
+            excluded.append({
+                "case_id": case.case_id, "capability_id": case.capability_id,
+                "evaluated_capability": str(capability_id or ""),
+                "shape": case.shape_key, "reason": reason,
+                "weak_contract": case.weak_contract,
+            })
+    return kept, excluded
+
+
+def shape_report(cases: Sequence[EquivalenceCase],
+                 capability_id: str = "") -> Dict[str, Any]:
+    """判定集形状分布报告（D2 取证：多少条属哪种形状、多少条契约薄弱）"""
+    rows = list(cases or [])
+    shapes: Dict[str, int] = {}
+    for case in rows:
+        shapes[case.shape_key] = shapes.get(case.shape_key, 0) + 1
+    return {
+        "capability_id": str(capability_id or ""),
+        "total": len(rows),
+        "shapes": dict(sorted(shapes.items(), key=lambda kv: (-kv[1], kv[0]))),
+        "multi_capability": sum(1 for c in rows if c.multi_capability),
+        "weak_contract": sum(1 for c in rows if c.weak_contract),
+        "applicable": (len(shape_applicable_cases(rows, capability_id)[0])
+                       if capability_id else len(rows)),
+        "excluded": (len(shape_applicable_cases(rows, capability_id)[1])
+                     if capability_id else 0),
+    }
+
+
 def _rule_matches(case: EquivalenceCase, match: Dict[str, Any]) -> bool:
     """适用性规则是否命中该用例（``case_ids`` / ``labels_contain`` / ``step_count``）"""
     if not match:
@@ -1917,6 +2107,9 @@ __all__ = [
     "CANDIDATE_KIND_PROVIDER", "CANDIDATE_KIND_EXPLICIT",
     "normalize_candidate_kind", "candidate_kind_matches",
     "case_applies_to", "applicable_cases", "apply_applicability",
+    "normalize_capability_id", "reset_capability_registry_cache",
+    # 形状（D2：用例 ↔ 被评能力的形状匹配）
+    "shape_applicable_cases", "shape_report",
     # 存储
     "CaseStore", "JsonCaseStore", "SqliteCaseStore", "open_case_store",
     "default_case_root",

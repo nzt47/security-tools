@@ -844,7 +844,9 @@ def judge_consistency(*, verdict_store: JudgeVerdictStore,
                       review_queue: Any, capability_id: str = "",
                       min_samples: int = CONSISTENCY_MIN_SAMPLES,
                       enqueue_disagreements: bool = False,
-                      queued_by: str = "judge_consistency") -> Dict[str, Any]:
+                      queued_by: str = "judge_consistency",
+                      case_set: Any = None,
+                      cases: Optional[Sequence[Any]] = None) -> Dict[str, Any]:
     """judge 判定 vs 人工裁定的**一致率统计** + 分歧样本清单（步骤 4）
 
     - 分母只算**已裁定且非 uncertain** 的人工结论（`uncertain` 计入 `uncertain` 计数，
@@ -852,6 +854,8 @@ def judge_consistency(*, verdict_store: JudgeVerdictStore,
     - 样本 < ``min_samples``（默认 20，S5-02 口径）⇒ ``conclusion=""`` 且
       ``disclosure`` 明说"只披露不结论"（**不在小样本上宣布一致/不一致**）；
     - 分歧样本可入 `ManualReviewQueue`（``enqueue_disagreements=True``）；
+      ``case_set`` / ``cases`` **透传**给入队闸（S8-05 的 D1/D2：不在现行判定集
+      或形状不匹配的用例**不得入队**）—— 不传则由队列自身的 CaseStore 兜底；
     - 只读叶子字段，不搬运 live 对象。
     """
     latest = verdict_store.latest(capability_id)
@@ -902,8 +906,13 @@ def judge_consistency(*, verdict_store: JudgeVerdictStore,
                 f"judge({entry['judge_verdict']}, conf={entry['judge_confidence']}) "
                 f"与人工({entry['human_verdict']}) 分歧"]
         for cap, case_ids in by_cap.items():
+            extra: Dict[str, Any] = {}
+            if case_set is not None:
+                extra["case_set"] = case_set
+            if cases is not None:
+                extra["cases"] = list(cases)
             items = review_queue.enqueue(cap, case_ids, reasons=reasons,
-                                         queued_by=str(queued_by))
+                                         queued_by=str(queued_by), **extra)
             enqueued.extend(i.case_id for i in items)
     sample_size = compared
     enough = sample_size >= int(min_samples)

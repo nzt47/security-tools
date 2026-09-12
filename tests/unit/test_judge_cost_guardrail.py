@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any, Tuple
 
 import pytest
 
@@ -97,10 +98,19 @@ def build_runtime(*, events_dir: str, tmp_path, enabled: bool = True,
 
 
 def make_case(index: int = 0, *, root: str = "C:/sandbox") -> C.EquivalenceCase:
+    """一条可回放的两步用例（上游程序 = 候选程序 ⇒ 三层比对全过）
+
+    **S8-05（D2）**：步骤必须显式声明 `capability_id=CAP` —— 形状过滤会把
+    "多能力链"挡在取样外（`用例能力集合 ⊋ 被评能力 ⇒ 不适用`）。不显式声明时
+    步骤的 `capability_id` 为空 ⇒ 被判成多能力链 ⇒ `shape_kept=[]` ⇒ 抽样为 0，
+    灰度会"跑完但一个样本都没有"（本任务在合并 master 后实测踩到，见结案报告 §四）。
+    """
     path = f"{root}/out/a{index}.txt"
-    steps = [C.ProgramStep(label="read_file", params={"path": path}),
+    steps = [C.ProgramStep(label="read_file", params={"path": path},
+                           capability_id=CAP),
              C.ProgramStep(label="write_file", params={"path": path,
-                                                       "content": f"c{index}"})]
+                                                       "content": f"c{index}"},
+                           capability_id=CAP)]
     return C.EquivalenceCase(
         case_id=f"case-{index:03d}", capability_id=CAP, input={"path": path},
         upstream=steps, native=steps, fixtures={path: f"c{index}"},
@@ -488,27 +498,37 @@ class TestShadowRunnerIntegration:
 
 
 def seed_consistency(tmp_path, pairs, *, uncertain=(),
-                     verdict_store=None, review_queue=None):
-    """铺 (judge_verdict, human_verdict) 对数，返回 (store, queue)"""
+                     verdict_store=None, review_queue=None,
+                     case_set=None) -> Tuple[Any, Any, Any]:
+    """铺 (judge_verdict, human_verdict) 对数 → ``(verdict_store, review_queue, case_set)``
+
+    **S8-05（D1）**：入队现在会校验"用例在现行判定集里"（孤儿引用不得入队），
+    故这里必须构造一份真实判定集并把 ``case_set`` 透传给入队闸 —— 否则条目会被
+    如实拒绝（``case_missing``），一致率统计就会"看起来没样本"。这层闸**保留不动**。
+    """
     store = verdict_store or JR.JudgeVerdictStore(str(tmp_path / "j.jsonl"))
     queue = review_queue or SH.ManualReviewQueue(str(tmp_path / "r.jsonl"))
+    cases = case_set
+    if cases is None:
+        cases = C.build_case_set(CAP, [make_case(i) for i in range(len(pairs))])
     for index, (judge_verdict, human_verdict) in enumerate(pairs):
         case_id = f"case-{index:03d}"
         store.record(capability_id=CAP, case_id=case_id, verdict=judge_verdict,
                      confidence=0.9, reason="stub", judge_kind="llm:probe:fake",
                      judge_score=0.9, manual_flagged=True)
-        queue.enqueue(CAP, [case_id], reasons={case_id: ["10% 抽检"]})
+        queue.enqueue(CAP, [case_id], reasons={case_id: ["10% 抽检"]},
+                      case_set=cases, cases=list(cases.cases))
         verdict = human_verdict or ("uncertain" if index in uncertain else "")
         if verdict:
             queue.record_review(case_id, capability_id=CAP, verdict=verdict,
                                 reviewer="owner", note="")
-    return store, queue
+    return store, queue, cases
 
 
 class TestConsistency:
     def test_small_sample_only_discloses(self, tmp_path):
         """样本 <20 ⇒ 只披露不结论（S5-02 口径）"""
-        store, queue = seed_consistency(
+        store, queue, _cases = seed_consistency(
             tmp_path, [("pass", "pass")] * 4 + [("fail", "pass")])
         report = JR.judge_consistency(verdict_store=store, review_queue=queue,
                                       capability_id=CAP)
@@ -520,7 +540,7 @@ class TestConsistency:
         assert "只披露不结论" in report["disclosure"]
 
     def test_enough_samples_reaches_a_conclusion(self, tmp_path):
-        store, queue = seed_consistency(
+        store, queue, _cases = seed_consistency(
             tmp_path, [("pass", "pass")] * 18 + [("fail", "fail")] * 2)
         report = JR.judge_consistency(verdict_store=store, review_queue=queue,
                                       capability_id=CAP)
@@ -531,7 +551,7 @@ class TestConsistency:
 
     def test_uncertain_is_excluded_from_the_denominator(self, tmp_path):
         """人工也给不出结论（uncertain）⇒ **不进分母**（否则算成 judge 错）"""
-        store, queue = seed_consistency(
+        store, queue, _cases = seed_consistency(
             tmp_path, [("pass", "pass"), ("pass", ""), ("fail", "")],
             uncertain={1, 2})
         report = JR.judge_consistency(verdict_store=store, review_queue=queue,
@@ -541,14 +561,14 @@ class TestConsistency:
         assert report["agreement_rate"] == pytest.approx(1.0)
 
     def test_undecided_is_counted_separately(self, tmp_path):
-        store, queue = seed_consistency(tmp_path, [("pass", "pass"), ("pass", "")])
+        store, queue, _cases = seed_consistency(tmp_path, [("pass", "pass"), ("pass", "")])
         report = JR.judge_consistency(verdict_store=store, review_queue=queue,
                                       capability_id=CAP)
         assert report["undecided"] == 1
         assert report["samples"] == 1
 
     def test_disagreements_list_carries_both_sides(self, tmp_path):
-        store, queue = seed_consistency(tmp_path, [("pass", "fail")])
+        store, queue, _cases = seed_consistency(tmp_path, [("pass", "fail")])
         report = JR.judge_consistency(verdict_store=store, review_queue=queue,
                                       capability_id=CAP)
         entry = report["disagreements"][0]
@@ -558,19 +578,39 @@ class TestConsistency:
         assert entry["reviewer"] == "owner"
 
     def test_disagreements_can_be_enqueued(self, tmp_path):
-        """分歧样本入 `ManualReviewQueue`（作为调提示词/阈值的依据）"""
-        store, queue = seed_consistency(
+        """分歧样本入 `ManualReviewQueue`（作为调提示词/阈值的依据）
+
+        S8-05 的入队闸（D1 存活 / D2 形状）**保留不动**：故这里把真实判定集透传进去，
+        被接受的条目才说明"闸门放行"，而不是绕过了闸门。
+        """
+        store, queue, cases = seed_consistency(
             tmp_path, [("pass", "fail"), ("fail", "pass"), ("pass", "pass")])
         report = JR.judge_consistency(verdict_store=store, review_queue=queue,
                                       capability_id=CAP,
-                                      enqueue_disagreements=True)
+                                      enqueue_disagreements=True,
+                                      case_set=cases, cases=list(cases.cases))
         assert sorted(report["enqueued"]) == ["case-000", "case-001"]
         pending = {i.case_id: i for i in queue.pending(CAP)}
         assert "case-000" in pending and "case-001" in pending
         assert any("分歧" in r for r in pending["case-000"].reasons)
 
+    def test_enqueue_without_live_case_set_is_rejected_not_silently_kept(
+            self, tmp_path):
+        """**不传判定集** ⇒ 入队闸如实拒绝（D1），统计侧不得假装已入队
+
+        这是"分歧处理"与"队列完整性"两件事的边界：拒绝**不静默**（进 `rejected`），
+        一致率统计照旧给出（统计不依赖入队成功）。
+        """
+        store, queue, _cases = seed_consistency(tmp_path, [("pass", "fail")])
+        report = JR.judge_consistency(verdict_store=store, review_queue=queue,
+                                      capability_id=CAP,
+                                      enqueue_disagreements=True)
+        assert report["enqueued"] == []
+        assert report["disagree"] == 1          # 分歧仍被统计
+        assert report["samples"] == 1
+
     def test_agreement_rate_is_none_without_comparable_samples(self, tmp_path):
-        store, queue = seed_consistency(tmp_path, [("pass", "")])
+        store, queue, _cases = seed_consistency(tmp_path, [("pass", "")])
         report = JR.judge_consistency(verdict_store=store, review_queue=queue,
                                       capability_id=CAP)
         assert report["samples"] == 0
@@ -578,14 +618,14 @@ class TestConsistency:
         assert report["disclosure"]
 
     def test_payload_is_json_safe(self, tmp_path):
-        store, queue = seed_consistency(tmp_path, [("pass", "fail")])
+        store, queue, _cases = seed_consistency(tmp_path, [("pass", "fail")])
         report = JR.judge_consistency(verdict_store=store, review_queue=queue,
                                       capability_id=CAP)
         json.dumps(report, ensure_ascii=False, default=str)
 
     def test_window_uses_calendar_day_not_epoch_prefix(self, tmp_path):
         """窗口用**日历日**（与 `utc.utc_daily` 同日桶），不是 epoch 字符串前缀"""
-        store, queue = seed_consistency(tmp_path, [("pass", "pass")])
+        store, queue, _cases = seed_consistency(tmp_path, [("pass", "pass")])
         report = JR.judge_consistency(verdict_store=store, review_queue=queue,
                                       capability_id=CAP)
         days = report["window"]["judge_days"]
@@ -594,7 +634,7 @@ class TestConsistency:
 
     def test_verdict_store_isolated_from_manual_ledger_files(self, tmp_path):
         """两本账**不同文件**（judge 独立存档；人工台账语义不被污染）"""
-        store, queue = seed_consistency(tmp_path, [("pass", "pass")])
+        store, queue, _cases = seed_consistency(tmp_path, [("pass", "pass")])
         assert store.path != queue.path
         assert store.rows()[0]["kind"] == "judge_verdict"
         assert "kind" not in {k for k in queue.rows()[0]} or \

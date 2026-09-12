@@ -155,14 +155,22 @@ def main() -> int:
     parser.add_argument("--record-review", action="store_true",
                         help="记录一条人工裁定（M5 留痕）")
     parser.add_argument("--case-id", default="", help="人工裁定：用例 id")
-    parser.add_argument("--verdict", default="pass", help="人工裁定：pass/fail/uncertain")
+    # TASK-S8-05 修正【上游已知坑 #4】：`--verdict` 曾有 default="pass" —— 复核人漏传
+    # 参数时会**静默签 pass**（虚假验收，违反 M5 与"不谎报"纪律）。现改为**必须显式传值**：
+    # 缺省即报错退出，且取值校验复用 `shadow.REVIEW_VERDICTS`（单一词表，不复制）。
+    parser.add_argument("--verdict", default=None,
+                        help="人工裁定：**必填**，取值 pass/fail/uncertain")
     parser.add_argument("--reviewer", default="", help="人工裁定：复核人")
     parser.add_argument("--review-note", default="", help="人工裁定：备注")
     args = parser.parse_args()
 
     # ── 人工裁定子命令（Owner 用；写到运行时台账，不依赖本次演示的临时目录） ──
     if args.review_sheet or args.record_review:
-        from agent.digestion.shadow import REVIEW_ROLE_HUMAN, ManualReviewQueue
+        from agent.digestion.shadow import (
+            REVIEW_ROLE_HUMAN,
+            REVIEW_VERDICTS,
+            ManualReviewQueue,
+        )
         queue = ManualReviewQueue(directory=SHADOW_RUNTIME_DIR)
         if args.review_sheet:
             print(queue.review_sheet(DEMO_CAP))
@@ -170,6 +178,13 @@ def main() -> int:
             return 0
         if not (args.case_id and args.reviewer):
             print("--record-review 需要 --case-id 与 --reviewer")
+            return 2
+        if not args.verdict:
+            print("--record-review 需要显式 --verdict（" + "/".join(REVIEW_VERDICTS)
+                  + "）—— 不提供默认值，避免误签 pass")
+            return 2
+        if str(args.verdict).strip().lower() not in REVIEW_VERDICTS:
+            print(f"非法 --verdict {args.verdict!r}（允许 {REVIEW_VERDICTS}）")
             return 2
         item = queue.record_review(args.case_id, capability_id=DEMO_CAP,
                                    verdict=args.verdict, reviewer=args.reviewer,
