@@ -22,6 +22,25 @@
 - **workspace_id 不变量（P7.1-19）**：缺 workspace_id 的持久化记录默认**显式降级**
   （入 ring buffer + 告警，不阻断主路径）；``strict=True`` 时抛 ``MissingWorkspaceError``。
 
+TASK-S8-02 写路径加固（``UnifiedTraceStore`` 是本模块**最后一条**未加固的写路径）：
+
+- **跨进程写序列化**：``<tool_trace.db>.lock``（锁原语唯一实现 =
+  ``agent.utils.cross_process_lock``；锁文件与被锁 DB **分离**），只管住
+  ``executemany + commit``。**不夸大**：SQLite 自身即串行化写者，本锁买的是
+  "排队确定 + 降级可见"，不是正确性必要条件（详见类文档）。
+- **WAL + ``synchronous=FULL``**：与 ``agent/audit/chain.py::_init_db`` 同口径，
+  best-effort（网络盘/只读目录上会失败，退回 rollback journal 仍正确）。
+- **有界队列 + 显式满溢行为**：队列满**不丢**，转 ring buffer 并**计数 + 限流告警**
+  （原实现的 ``except Exception`` 因队列无界而是死代码）。
+- **ring buffer 丢弃不再静默**：显式驱逐最旧 + ``ring_buffer_dropped`` 计数 +
+  限流告警 + 事件留痕（原 ``deque(maxlen=1000)`` 是**无声**数据丢失）。
+- **降级可恢复**：成功提交即清除 ``_degraded`` 并计 ``degraded_recoveries``；
+  ``consecutive_failures`` 区分"抖动"与"真死"（原实现一次失败终身降级）。
+- **``flush()`` 不说谎**：``True`` ＝ "在途清零"（提交**或**显式降级），真正的
+  落盘口径看 ``stats()['durable']`` / ``flush_durable()``。
+- **读侧腐坏可见**：坏行计 ``skipped_row_count`` + 限流告警；``verify_integrity()``
+  提供**显式 opt-in** 的哈希一致性抽查（默认**不**在读路径上跑）。
+
 公开 API：
     UnifiedTrace / Tenancy / Request / Response / Timing / Cost / SideEffects
     TraceContext / TraceFacade / UnifiedTraceStore
@@ -47,6 +66,16 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+# 【唯一锁实现（硬约束）】跨进程写序列化**只**用 agent.utils.cross_process_lock：
+# 本仓库历史上同一套 OS 原语被手抄过三份（各自长出不同的超时/重入语义），
+# TASK-S8-02 明令禁止出现第 N 份实现。本模块只**使用**该工具，不复制任何平台分支的
+# 锁代码（验收口径：全仓 ``agent/`` 下与平台锁 API 同名的符号只允许出现在该工具里）。
+from agent.utils.cross_process_lock import (
+    CrossProcessLock,
+    LockError,
+    lock_path_for,
+)
+
 logger = logging.getLogger("agent.observability.trace_v2")
 
 # ════════════════════════════════════════════════════════════
@@ -61,6 +90,41 @@ SCHEMA_VERSION = 1
 RING_BUFFER_MAXLEN = 1000
 WRITER_BATCH_SIZE = 100
 WRITER_POLL_INTERVAL = 1.0
+
+# ════════════════════════════════════════════════════════════
+#  TASK-S8-02 写路径加固配置（**默认保守**：开锁、有限等待、不静默丢）
+# ════════════════════════════════════════════════════════════
+#
+# 【为什么直读 env 而不进 observability_config】该模块由别的任务拥有（本任务硬约束
+# 禁止修改）；本模块沿用既有 ``AUDIT_TRACE_EVENTS`` 的直读风格，避免新增模块耦合边。
+#
+#: 跨进程写锁总开关（"0" ⇒ 退回只靠 SQLite 的 busy_timeout；**仅供测试/应急**）
+ENV_LOCK_ENABLED = "CP_TRACE_LOCK_ENABLED"
+#: 取锁**有限等待**上限（秒）。有限是硬要求：取不到锁**不丢数据**（仍照写），
+#: 但绝不允许无限阻塞把 writer 线程钉死。
+ENV_LOCK_TIMEOUT_SEC = "CP_TRACE_LOCK_TIMEOUT_SEC"
+#: 有界队列容量（条）。满 ⇒ 转 ring buffer + 计数 + 告警（**不丢**）。
+ENV_QUEUE_MAXSIZE = "CP_TRACE_QUEUE_MAXSIZE"
+#: ring buffer 容量（条）。满 ⇒ 驱逐最旧 + ``ring_buffer_dropped`` 计数（**不静默**）。
+ENV_RING_BUFFER_MAXLEN = "CP_TRACE_RING_BUFFER_MAXLEN"
+#: 降级态的**重试退避**（秒）。0 = 每批都重试（用例/应急）。
+ENV_DEGRADED_RETRY_SEC = "CP_TRACE_DEGRADED_RETRY_SEC"
+#: WAL 自动 checkpoint 阈值（页）。0 = 关闭自动 checkpoint（仅排障）。
+ENV_WAL_AUTOCHECKPOINT = "CP_TRACE_WAL_AUTOCHECKPOINT"
+#: 告警限流间隔：第 1 次必报，其后每 N 次报一次（**计数不限流**）
+ENV_CORRUPT_LOG_EVERY = "CP_TRACE_CORRUPT_LOG_EVERY"
+
+DEFAULT_LOCK_TIMEOUT_SEC = 2.0
+DEFAULT_QUEUE_MAXSIZE = 20000
+DEFAULT_DEGRADED_RETRY_SEC = 2.0
+#: SQLite 默认值（约 4MB WAL）。见 ``_apply_durability_pragmas`` 的实测说明。
+DEFAULT_WAL_AUTOCHECKPOINT = 1000
+DEFAULT_CORRUPT_LOG_EVERY = 100
+
+#: 写路径降级/溢出的事件类型（事件层结构化留痕；计数只在进程内存里，进程一退就没了）
+EVENT_TRACE_QUEUE_FULL = "trace.store.queue_full"
+EVENT_TRACE_OVERFLOW = "trace.store.overflow"
+EVENT_TRACE_DEGRADED = "trace.store.degraded"
 
 # actor 取值（§3.4）
 ACTOR_HUMAN = "human"
@@ -235,6 +299,36 @@ def _env_audit_trace_events() -> bool:
     """Trace 关键事件是否入链（环境开关 AUDIT_TRACE_EVENTS，默认 1）"""
     return os.getenv("AUDIT_TRACE_EVENTS", "1").strip().lower() not in (
         "0", "false", "no", "off")
+
+
+def _env_flag(name: str, default: str = "1") -> bool:
+    """布尔环境开关（缺省/空值 → 默认；口径与 ``events.py::_env_flag`` 一致）"""
+    return str(os.getenv(name, default)).strip().lower() not in (
+        "0", "false", "no", "off")
+
+
+def _env_float(name: str, default: float) -> float:
+    """浮点环境变量（非法/缺省 → 默认；**绝不抛**：坏配置不该打断 trace 写入）"""
+    raw = os.getenv(name)
+    if raw is None or not str(raw).strip():
+        return float(default)
+    try:
+        return float(str(raw).strip())
+    except (TypeError, ValueError):
+        logger.warning("%s 非法（%r），回落默认 %s", name, raw, default)
+        return float(default)
+
+
+def _env_int(name: str, default: int) -> int:
+    """整型环境变量（非法/缺省 → 默认；**绝不抛**）"""
+    raw = os.getenv(name)
+    if raw is None or not str(raw).strip():
+        return int(default)
+    try:
+        return int(str(raw).strip())
+    except (TypeError, ValueError):
+        logger.warning("%s 非法（%r），回落默认 %s", name, raw, default)
+        return int(default)
 
 
 def _audit_trace_closed(trace: "UnifiedTrace") -> None:
@@ -592,6 +686,25 @@ class UnifiedTraceStore:
     - append-only：仅 INSERT；``clear()`` 为测试专用显式动作（DELETE）。
     - workspace_id 不变量：缺失时默认降级（ring buffer + 告警），``strict=True`` 抛
       ``MissingWorkspaceError``。
+
+    【TASK-S8-02：本类是模块内最后一条未加固的写路径】
+    加固后的写路径 = 「**有界队列**（``CP_TRACE_QUEUE_MAXSIZE``）→ 后台 writer →
+    **持 ``<db>.lock`` 跨进程锁**（``agent.utils.cross_process_lock``）→ WAL 事务提交」。
+    四条硬口径：
+
+    1. **绝不静默丢观测**：队列满 / ring buffer 满 / 行损坏 / 取锁失败，全部
+       **计数 + 限流告警**（计数每次都记，日志按窗口节流），drop 不可避免时必须可数。
+    2. **降级可恢复**：``_degraded`` 不再是"终身标记"——成功提交会清除它并计入
+       ``degraded_recoveries``；``consecutive_failures`` 用来区分"抖动一次"与"真死"。
+    3. **``flush()`` 不说谎**：``True`` 只表示"已入队记录都被处理完"（提交**或**
+       **显式**降级），**不**表示落盘；落盘口径看 ``stats()['durable']`` /
+       ``flush_durable()``。理由见 ``flush()`` 文档。
+    4. **跨进程锁买到了什么（不夸大）**：SQLite 自身就会串行化写者，所以本锁
+       **不是**正确性的必要条件。它买的是 (a) 把"多进程争 ``busy_timeout``"变成
+       显式排队、避免长事务/锁序病理把某进程拖到超时；(b) 让"没能拿到锁"成为
+       **可计数的显式事件**（``lock_bypass_count``）而不是静默等待；(c) 让"交接"
+       （后一批写者开始写）是确定性的。**取不到锁不丢数据**：仍照写（WAL +
+       ``busy_timeout`` 兜底），只计数并留痕。
     """
 
     _COLUMNS = (
@@ -604,8 +717,37 @@ class UnifiedTraceStore:
     def __init__(self, db_path: Optional[str] = None, *, strict: bool = False):
         self._db_path = db_path or _DEFAULT_DB_PATH
         self._strict = strict
-        self._queue: "queue_module.Queue[UnifiedTrace]" = queue_module.Queue()
-        self._fallback_ring_buffer: deque = deque(maxlen=RING_BUFFER_MAXLEN)
+        self._is_memory = (self._db_path == ":memory:")
+
+        # ── 配置（读 env；**默认保守**）──
+        self._lock_enabled = _env_flag(ENV_LOCK_ENABLED)
+        self._lock_timeout = max(
+            0.0, _env_float(ENV_LOCK_TIMEOUT_SEC, DEFAULT_LOCK_TIMEOUT_SEC))
+        self._queue_maxsize = max(
+            1, _env_int(ENV_QUEUE_MAXSIZE, DEFAULT_QUEUE_MAXSIZE))
+        self._ring_maxlen = max(
+            1, _env_int(ENV_RING_BUFFER_MAXLEN, RING_BUFFER_MAXLEN))
+        self._degraded_retry_sec = max(
+            0.0, _env_float(ENV_DEGRADED_RETRY_SEC, DEFAULT_DEGRADED_RETRY_SEC))
+        self._wal_autocheckpoint = max(
+            0, _env_int(ENV_WAL_AUTOCHECKPOINT, DEFAULT_WAL_AUTOCHECKPOINT))
+        self._corrupt_log_every = max(
+            1, _env_int(ENV_CORRUPT_LOG_EVERY, DEFAULT_CORRUPT_LOG_EVERY))
+
+        # ── 有界队列（缺陷 #1）──
+        # 【为什么必须给 maxsize】原实现 ``queue.Queue()`` 无界 ⇒ ``put_nowait``
+        # **永不**抛 ``queue.Full`` ⇒ ``record()`` 里的 ``except Exception`` 是死代码，
+        # 而"真正的容量上限"落在了 ring buffer 上（见下一条）。有界 + 显式满溢处理
+        # 才能把"容量到了"变成一个**可观测**事件。
+        self._queue: "queue_module.Queue[UnifiedTrace]" = queue_module.Queue(
+            maxsize=self._queue_maxsize)
+        # ── ring buffer（缺陷 #2）──
+        # 【为什么**不用** ``deque(maxlen=N)``】``maxlen`` 满了以后 ``append`` 会
+        # **静默丢弃最旧**元素——观测存储里的无声数据丢失。这里改为无 maxlen 的
+        # deque，由 ``_ring_append()`` 显式驱逐 + 计数 + 留痕：行为完全一致
+        # （丢最旧、保最新），区别只在于"丢了多少"是**可知**的。
+        self._fallback_ring_buffer: deque = deque()
+        self._ring_lock = threading.Lock()
         self._degraded: bool = False
         self._stopped: bool = False
         self._write_lock = threading.Lock()
@@ -618,14 +760,59 @@ class UnifiedTraceStore:
         self._workspace_degraded_count = 0
         self._workspace_lock = threading.Lock()
 
-        if self._db_path == ":memory:":
+        # ── TASK-S8-02 可观测计数（进程内；每一个"没写成功"的口子都要有数字）──
+        self._lock_write_count = 0        # 持跨进程锁完成的批次数
+        self._lock_bypass_count = 0       # 取锁失败**仍照写**的次数（不丢数据但要可见）
+        self._queue_overflow_count = 0    # 队列满 ⇒ 转 ring buffer
+        self._ring_buffer_dropped = 0     # ring buffer 满 ⇒ 驱逐最旧（**显式**）
+        self._durable_count = 0           # 真正提交进 SQLite 的记录数
+        self._uncommitted_count = 0       # 因**写路径**降级而未落盘的记录数
+        self._batch_failure_count = 0     # 批量写失败的批次数（累计）
+        self._consecutive_failures = 0    # 连续失败批次数（成功即归零）
+        self._degraded_enter_count = 0    # 进入降级态的次数
+        self._degraded_recoveries = 0     # 由失败态**恢复**的次数
+        self._degraded_retry_skips = 0    # 退避窗口内跳过的重试批次数
+        self._skipped_row_count = 0       # 读侧不可解析行（缺陷 #8）
+        self._read_failure_count = 0      # 读侧整体查询失败
+        self._integrity_checked = 0       # 显式完整性抽查：已校验哈希数
+        self._integrity_mismatch = 0      # 显式完整性抽查：不一致数
+        self._last_error = ""
+        self._degraded_reason = ""
+        self._last_failure_mono = 0.0
+        self._last_recovery_ts = 0.0
+        self._journal_mode = ""
+        # 限流用（按 key 记"已报次数"）；计数**不**走这里，见 _rate_limited_warning
+        self._warn_counts: Dict[str, int] = {}
+        self._warn_lock = threading.Lock()
+
+        # ── 连接登记（缺陷 #5：原实现连接永不关闭，Windows 上一直占住库文件）──
+        self._conns: Dict[int, sqlite3.Connection] = {}
+        self._conn_lock = threading.Lock()
+
+        # ── 跨进程写锁（TASK-S8-02 要求 1）──
+        # 【为什么锁**独立**文件】锁 DB 本体时，一旦有人用 rename 替换该文件
+        # （原子写惯用法），锁就落到被淘汰的 inode 上、互斥**静默失效**；故始终锁
+        # ``<db>.lock``（见 cross_process_lock.lock_path_for 的既有结论）。
+        # 【为什么内存库不建锁】``:memory:`` 没有跨进程语义，建锁只会凭空产生一个
+        # 磁盘文件，反而让"测试不写 data/"的隔离更难保证。
+        self._lock_path = "" if self._is_memory else lock_path_for(
+            os.path.abspath(self._db_path))
+        self._write_guard: Optional[CrossProcessLock] = None
+        if self._lock_enabled and not self._is_memory:
+            self._write_guard = CrossProcessLock(
+                self._lock_path,
+                name=f"trace:{os.path.basename(self._db_path)}",
+                holder_info={"db_path": os.path.abspath(self._db_path)})
+
+        if self._is_memory:
             self._init_db()
         else:
             try:
                 self._init_db()
             except Exception as e:  # noqa: BLE001
                 logger.warning("统一 Trace SQLite 初始化失败，降级到 ring buffer: %s", e)
-                self._degraded = True
+                self._enter_degraded_state(
+                    f"init_db: {type(e).__name__}: {e}")
 
         self._writer_thread = threading.Thread(
             target=self._writer_loop, name="unified-trace-writer", daemon=True)
@@ -636,68 +823,297 @@ class UnifiedTraceStore:
     def _get_conn(self) -> sqlite3.Connection:
         """线程本地连接（同库双表：本模块表与 tool_traces 共用一个 DB 文件）
 
-        busy_timeout 显式设为 5s：与 tool_trace writer 线程同库并发写时等待文件锁，
-        而非立即抛 "database is locked"（超时仍失败则由 record/降级路径兜底）。
+        - ``busy_timeout`` 显式 5s：与 tool_trace writer 线程同库并发写时**等待**
+          文件锁，而非立即抛 "database is locked"（超时仍失败则由降级路径兜底）。
+        - ``journal_mode = WAL`` + ``synchronous = FULL``：见 ``_apply_durability_pragmas``。
+        - 连接**登记在册**（``_conns``），``stop()`` 时统一关闭（缺陷 #5：原实现连接
+          永不关闭，Windows 上会一直占住 ``db`` / ``-wal`` / ``-shm``，临时目录也删不掉）。
+          ``_get_conn`` 用"``self._local.conn`` 是否仍是登记本线程的那条连接"作为
+          存活判据：连接被关闭（从登记表移除）后下一句自动重开，不会把已关闭的连接
+          交给调用方。
         """
-        if not hasattr(self._local, "conn") or self._local.conn is None:
-            if self._db_path == ":memory:":
-                # 共享缓存内存库：跨线程（writer 线程 vs 主线程）共用同一张表
-                self._local.conn = sqlite3.connect(
-                    "file:unified_trace_mem?mode=memory&cache=shared",
-                    uri=True, check_same_thread=False)
-            else:
-                os.makedirs(os.path.dirname(self._db_path) or ".", exist_ok=True)
-                self._local.conn = sqlite3.connect(
-                    self._db_path, check_same_thread=False, timeout=5.0)
-            self._local.conn.row_factory = sqlite3.Row
-            try:
-                self._local.conn.execute("PRAGMA busy_timeout = 5000")
-            except Exception:  # noqa: BLE001  非致命：默认 timeout 已覆盖
-                pass
-        return self._local.conn
+        ident = threading.get_ident()
+        with self._conn_lock:
+            registered: Optional[sqlite3.Connection] = self._conns.get(ident)
+        cached: Optional[sqlite3.Connection] = getattr(self._local, "conn", None)
+        if cached is not None and cached is registered:
+            return cached
+        conn: sqlite3.Connection
+        if self._is_memory:
+            # 共享缓存内存库：跨线程（writer 线程 vs 主线程）共用同一张表
+            conn = sqlite3.connect(
+                "file:unified_trace_mem?mode=memory&cache=shared",
+                uri=True, check_same_thread=False)
+        else:
+            parent = os.path.dirname(self._db_path)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+            conn = sqlite3.connect(
+                self._db_path, check_same_thread=False, timeout=5.0)
+        conn.row_factory = sqlite3.Row
+        try:
+            conn.execute("PRAGMA busy_timeout = 5000")
+        except Exception:  # noqa: BLE001  非致命：默认 timeout 已覆盖
+            pass
+        if not self._is_memory:
+            self._apply_durability_pragmas(conn)
+        self._local.conn = conn
+        with self._conn_lock:
+            self._conns[ident] = conn
+        return conn
+
+    def _apply_durability_pragmas(self, conn: sqlite3.Connection) -> None:
+        """WAL + ``synchronous``（**best-effort**：平台差异不得阻断写入）
+
+        【为什么要 WAL（缺陷 #4）】原实现从不设 ``journal_mode``，即 rollback journal：
+        多个写者对整库文件互斥，只能靠 ``busy_timeout`` 硬等；WAL 下写者不阻塞读者、
+        "写-写"仍由 SQLite 自己串行化。写法与 ``agent/audit/chain.py::_init_db`` 对齐
+        （同样 best-effort + 吞异常）。
+        【为什么不因失败上抛】``journal_mode=WAL`` 在网络盘/NFS、只读目录、只读库上
+        会失败；退回 rollback journal 仍然**正确**（只是更慢），不该让 trace 写入
+        整体不可用。
+        【为什么 ``synchronous=FULL``（保守）】WAL 下 NORMAL 只在 checkpoint 时同步，
+        掉电/OS 崩溃可能丢已提交尾部；本存储的契约是"不静默丢观测"，故取 FULL
+        （代价 = 每批一次 fsync，批量提交把它摊销掉）。
+        """
+        try:
+            row = conn.execute("PRAGMA journal_mode = WAL").fetchone()
+            mode = str(row[0]).strip().lower() if row is not None else ""
+            if mode:
+                self._journal_mode = mode
+        except Exception as e:  # noqa: BLE001 平台/文件系统差异，退回 rollback journal
+            logger.debug("journal_mode=WAL 未生效（退回 rollback journal）: %s", e)
+        try:
+            conn.execute("PRAGMA synchronous = FULL")
+        except Exception as e:  # noqa: BLE001
+            logger.debug("synchronous=FULL 未生效: %s", e)
+        try:
+            conn.execute(f"PRAGMA wal_autocheckpoint = {int(self._wal_autocheckpoint)}")
+        except Exception as e:  # noqa: BLE001
+            logger.debug("wal_autocheckpoint 未生效: %s", e)
+
+    #: 【实测：WAL 自动 checkpoint 会给**同进程其它线程**带来一次多毫秒停顿】
+    #:
+    #: 单进程 6000 条（payload ≈ 700B）本机实测 ``record()`` 延迟：
+    #:
+    #: ==========================  =========  =========  =========  ==========
+    #: 配置                        p50        p99        max        mean
+    #: ==========================  =========  =========  =========  ==========
+    #: 加固后（默认 1000 页）      1.5µs      8.5µs      **19.4ms**  5.8µs
+    #: 加固后（关自动 checkpoint） 1.5µs      6.2µs      **0.31ms**  2.1µs
+    #: 加固前（HEAD，rollback）    1.3µs      3.6µs      0.03ms     1.5µs
+    #: ==========================  =========  =========  =========  ==========
+    #:
+    #: 即：**尾部**那一两次多毫秒停顿来自 checkpoint（把 WAL 并回主库 + fsync），
+    #: 而 pysqlite 在 sqlite3 API 调用期间**持 GIL**，停顿会传导到同进程其它线程。
+    #: 默认仍取 SQLite 的 1000 页（磁盘占用可控、停顿频次低，约每 4MB WAL 一次）；
+    #: 延迟敏感部署可调大 ``CP_TRACE_WAL_AUTOCHECKPOINT``（停顿更少但单次更长、
+    #: WAL 更大），调 0 = 关闭自动 checkpoint（仅排障用，WAL 会无界增长）。
 
     def _init_db(self) -> None:
         conn = self._get_conn()
         with self._write_lock:
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS unified_traces (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    trace_id TEXT NOT NULL,
-                    task_id TEXT NOT NULL,
-                    capability_id TEXT NOT NULL,
-                    parent_trace_id TEXT NOT NULL DEFAULT '',
-                    workspace_id TEXT NOT NULL DEFAULT '',
-                    tenant_id TEXT NOT NULL DEFAULT 'default',
-                    actor TEXT NOT NULL DEFAULT 'auto',
-                    status TEXT NOT NULL DEFAULT 'success',
-                    error_code TEXT NOT NULL DEFAULT '',
-                    started_at REAL NOT NULL,
-                    finished_at REAL,
-                    duration_ms REAL,
-                    input_tokens INTEGER DEFAULT 0,
-                    output_tokens INTEGER DEFAULT 0,
-                    total_tokens INTEGER DEFAULT 0,
-                    cost_usd REAL DEFAULT 0,
-                    schema_version INTEGER DEFAULT 1,
-                    payload TEXT NOT NULL
-                )
-            """)
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_ut_cap_time "
-                "ON unified_traces(capability_id, started_at)")
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_ut_task_time "
-                "ON unified_traces(task_id, started_at)")
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_ut_parent "
-                "ON unified_traces(parent_trace_id)")
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_ut_workspace "
-                "ON unified_traces(workspace_id, started_at)")
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_ut_actor "
-                "ON unified_traces(actor, started_at)")
-            conn.commit()
+            # 【为什么 DDL 也纳入跨进程串行化】4 个进程同时构造 store 会并发执行
+            # CREATE TABLE/INDEX：SQLite 会用 busy_timeout 串行化，但"谁先建表"
+            # 不确定，失败一方会**整体降级**（本模块最贵的失败模式）。用同一把
+            # ``<db>.lock`` 把建表段串起来，让"交接"确定化。取不到锁仍照做
+            # （DDL 本身幂等且 SQLite 会兜底），只计数。
+            guard = self._acquire_guard()
+            try:
+                if not self._is_memory:
+                    self._apply_durability_pragmas(conn)
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS unified_traces (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        trace_id TEXT NOT NULL,
+                        task_id TEXT NOT NULL,
+                        capability_id TEXT NOT NULL,
+                        parent_trace_id TEXT NOT NULL DEFAULT '',
+                        workspace_id TEXT NOT NULL DEFAULT '',
+                        tenant_id TEXT NOT NULL DEFAULT 'default',
+                        actor TEXT NOT NULL DEFAULT 'auto',
+                        status TEXT NOT NULL DEFAULT 'success',
+                        error_code TEXT NOT NULL DEFAULT '',
+                        started_at REAL NOT NULL,
+                        finished_at REAL,
+                        duration_ms REAL,
+                        input_tokens INTEGER DEFAULT 0,
+                        output_tokens INTEGER DEFAULT 0,
+                        total_tokens INTEGER DEFAULT 0,
+                        cost_usd REAL DEFAULT 0,
+                        schema_version INTEGER DEFAULT 1,
+                        payload TEXT NOT NULL
+                    )
+                """)
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_ut_cap_time "
+                    "ON unified_traces(capability_id, started_at)")
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_ut_task_time "
+                    "ON unified_traces(task_id, started_at)")
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_ut_parent "
+                    "ON unified_traces(parent_trace_id)")
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_ut_workspace "
+                    "ON unified_traces(workspace_id, started_at)")
+                conn.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_ut_actor "
+                    "ON unified_traces(actor, started_at)")
+                conn.commit()
+            finally:
+                self._release_guard(guard)
+
+    # ── 加固辅助（TASK-S8-02）─────────────────────────────────
+
+    def _enter_degraded_state(self, reason: str) -> None:
+        """进入降级态（幂等：已在降级态则不重复计"进入"次数）"""
+        with self._count_lock:
+            if not self._degraded:
+                self._degraded_enter_count += 1
+        self._degraded = True
+        self._degraded_reason = reason
+        self._last_error = reason
+        self._last_failure_mono = time.monotonic()
+
+    def _rate_limited_warning(self, key: str, message: str, *args: Any) -> bool:
+        """限流告警：第 1 次必报，其后每 ``CP_TRACE_CORRUPT_LOG_EVERY`` 次报一次
+
+        【为什么计数不限流、日志才限流】计数（``stats()``）是**事实**，每一次都要记；
+        日志是**信号**，热循环里"每条一条"会把日志冲垮、反而掩盖真相（与
+        ``events.py`` 坏行告警同一口径：计数不冷却，输出有窗口）。
+
+        Returns:
+            本次是否真的打了日志（调用方据此决定是否**同频**发事件留痕）。
+        """
+        with self._warn_lock:
+            seen = self._warn_counts.get(key, 0) + 1
+            self._warn_counts[key] = seen
+        if seen == 1 or (seen % self._corrupt_log_every == 0):
+            logger.warning("[第 %d 次] " + message, seen, *args)
+            return True
+        return False
+
+    def _emit_store_event(self, event_type: str, payload: Dict[str, Any]) -> None:
+        """把写路径降级/溢出事件发给事件层（best-effort，**绝不抛出**）
+
+        【为什么必须有】计数只活在**本进程内存**里，进程一退就没了；事件层是落盘的
+        结构化留痕，能回答"什么时候、哪个库、丢了多少"。
+        【为什么调用点一律在临界区外】本方法会取事件文件的锁；放进 Trace 写锁/
+        跨进程锁的临界区就会形成"Trace 锁 → 事件锁"的锁序，别的模块一旦反向持有
+        即死锁——这正是本任务要消除的锁序病理。
+        """
+        try:
+            from agent.observability.events import emit
+            emit(event_type, payload, actor="system")
+        except Exception as e:  # noqa: BLE001 事件层不可用不影响 trace 写入
+            logger.debug("Trace 写路径事件留痕失败（best-effort）: %s", e)
+
+    def _degrade_payload(self, extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """降级/溢出事件的**叶子字段**载荷（只回传标量，绝不搬运 live 对象）"""
+        with self._count_lock:
+            payload: Dict[str, Any] = {
+                "db_path": self._db_path,
+                "degraded": bool(self._degraded),
+                "degraded_reason": self._degraded_reason,
+                "consecutive_failures": self._consecutive_failures,
+                "batch_failure_count": self._batch_failure_count,
+                "uncommitted_count": self._uncommitted_count,
+                "ring_buffer_pending": len(self._fallback_ring_buffer),
+                "ring_buffer_dropped": self._ring_buffer_dropped,
+                "queue_overflow_count": self._queue_overflow_count,
+                "durable_count": self._durable_count,
+                "pid": os.getpid(),
+            }
+        payload.update(extra or {})
+        return payload
+
+    def _ring_append(self, trace: UnifiedTrace, *, reason: str = "",
+                     durable_overflow: bool = True) -> None:
+        """把一条记录放进 ring buffer（**满时显式驱逐最旧 + 计数 + 留痕**）
+
+        【为什么不用 ``deque(maxlen=N)``（缺陷 #2）】``maxlen`` 满后 ``append`` 会
+        **静默丢弃最旧**元素；观测存储里的静默丢弃等价于"观测凭空消失"。本方法
+        显式判长 + ``popleft`` + 计数 + 限流告警 + 事件留痕：行为一致（丢最旧保最新），
+        但"丢了多少"从此**可知**。
+
+        Args:
+            reason: 降级原因（诊断用）。
+            durable_overflow: 是否计入 ``uncommitted_count``（**写路径**降级为 True；
+                缺 workspace_id 属于**策略性**降级，另有 ``workspace_degraded`` 计数，
+                不计入"未落盘"口径，避免两类语义互相污染）。
+        """
+        dropped = 0
+        with self._ring_lock:
+            while len(self._fallback_ring_buffer) >= self._ring_maxlen:
+                self._fallback_ring_buffer.popleft()
+                dropped += 1
+            self._fallback_ring_buffer.append(trace)
+        if durable_overflow:
+            with self._count_lock:
+                self._uncommitted_count += 1
+        if dropped:
+            with self._count_lock:
+                self._ring_buffer_dropped += dropped
+                total = self._ring_buffer_dropped
+            logged = self._rate_limited_warning(
+                "ring_dropped",
+                "统一 Trace ring buffer 已满（maxlen=%d）⇒ 丢弃最旧 %d 条"
+                "（reason=%s，累计丢弃 %d 条；已计数 + 留痕，**不是静默丢弃**）",
+                self._ring_maxlen, dropped, reason or "?", total)
+            if logged:
+                self._emit_store_event(EVENT_TRACE_OVERFLOW, self._degrade_payload(
+                    {"reason": reason, "dropped": dropped}))
+
+    def _should_attempt_db(self) -> bool:
+        """当前是否该（重新）尝试写 SQLite
+
+        【为什么要有退避（缺陷 #3 的连带修复）】降级态下若每批都重试，每次都要付
+        ``busy_timeout``（默认 5s）等待 + 一次异常构造；一个"库真的坏了"的进程会
+        因此把 writer 线程钉死。``CP_TRACE_DEGRADED_RETRY_SEC``（默认 2s）让重试
+        成为**有节拍**的而不是狂热的；设 0 = 每批都重试（用例/应急）。
+        """
+        if not self._degraded:
+            return True
+        if self._degraded_retry_sec <= 0:
+            return True
+        return (time.monotonic() - self._last_failure_mono) >= self._degraded_retry_sec
+
+    def _acquire_guard(self) -> Optional[CrossProcessLock]:
+        """尝试取跨进程写锁（**绝不抛**；拿不到返回 None 并计数）
+
+        【不夸大】SQLite 自身即串行化写者，所以"没拿到锁"**不是**数据风险：返回
+        None 后调用方**照常写**，由 WAL + ``busy_timeout`` 兜底。锁买的是"排队
+        确定性 + 降级可见性"（见类文档第 4 条）。锁原语自身的冲突/超时留痕
+        （审计链 + 事件流）由 ``cross_process_lock`` 负责。
+        """
+        guard = self._write_guard
+        if guard is None:
+            return None
+        try:
+            guard.acquire(self._lock_timeout)
+        except LockError as exc:
+            with self._count_lock:
+                self._lock_bypass_count += 1
+                bypass = self._lock_bypass_count
+            self._rate_limited_warning(
+                "lock_bypass",
+                "未能取得 Trace 跨进程写锁（%s），**仍照写**（WAL + busy_timeout 兜底，"
+                "不丢数据）；累计 %d 次: %s",
+                self._lock_path, bypass, exc)
+            return None
+        with self._count_lock:
+            self._lock_write_count += 1
+        return guard
+
+    def _release_guard(self, guard: Optional[CrossProcessLock]) -> None:
+        """释放跨进程写锁（失败只告警：OS 在句柄关闭时也会释放）"""
+        if guard is None:
+            return
+        try:
+            guard.release()
+        except Exception as e:  # noqa: BLE001 释放失败不该推翻已完成的提交
+            logger.debug("释放 Trace 跨进程写锁异常: %s", e)
 
     def record(self, trace: UnifiedTrace, *, strict: Optional[bool] = None) -> bool:
         """入队一条统一 Trace（append-only）。
@@ -708,14 +1124,16 @@ class UnifiedTraceStore:
                     False→缺 workspace_id 显式降级（ring buffer + 告警）。
 
         Returns:
-            True=正常入队（将异步落 SQLite）；False=显式降级（ring buffer）。
+            True=正常入队（将异步落 SQLite）；False=**显式降级**（已转 ring buffer 且
+            已计数）：缺 workspace_id（P7.1-19 不变量）或队列已满。
         """
         want_strict = self._strict if strict is None else strict
         if not trace.tenancy.workspace_id:
             if want_strict:
                 raise MissingWorkspaceError(trace.trace_id)
             # 显式降级：记入 ring buffer + 告警，不阻断主路径（P7.1-19）
-            self._fallback_ring_buffer.append(trace)
+            self._ring_append(trace, reason="missing_workspace",
+                              durable_overflow=False)
             with self._workspace_lock:
                 self._workspace_degraded_count += 1
             logger.warning(
@@ -727,8 +1145,27 @@ class UnifiedTraceStore:
             with self._count_lock:
                 self._enqueue_count += 1
             return True
-        except Exception:  # noqa: BLE001
-            self._fallback_ring_buffer.append(trace)
+        except queue_module.Full:
+            # 【缺陷 #1 修复】队列**有界**后这条分支才真正可达：满 ⇒ 不丢，
+            # 转 ring buffer，且两个口子分别计数（队列溢出 + ring 溢出）。
+            with self._count_lock:
+                self._queue_overflow_count += 1
+                overflow = self._queue_overflow_count
+            logged = self._rate_limited_warning(
+                "queue_full",
+                "统一 Trace 队列已满（maxsize=%d）⇒ 转入 ring buffer（**不丢数据**，"
+                "累计 %d 次；请检查 writer 是否被慢库/长事务拖住）",
+                self._queue_maxsize, overflow)
+            self._ring_append(trace, reason="queue_full")
+            if logged:
+                self._emit_store_event(EVENT_TRACE_QUEUE_FULL, self._degrade_payload(
+                    {"queue_maxsize": self._queue_maxsize}))
+            return False
+        except Exception as e:  # noqa: BLE001 其余入队异常同样**显式降级**，绝不静默丢
+            with self._count_lock:
+                self._queue_overflow_count += 1
+            logger.warning("统一 Trace 入队异常，显式降级到 ring buffer: %s", e)
+            self._ring_append(trace, reason="enqueue_error")
             return False
 
     def _row_values(self, t: UnifiedTrace) -> tuple:
@@ -743,29 +1180,118 @@ class UnifiedTraceStore:
         )
 
     def _write_to_db(self, records: List[UnifiedTrace]) -> None:
+        """批量提交到 SQLite（**持跨进程锁**；失败则显式降级 + 计数）
+
+        【锁的边界】只包住 ``executemany + commit``（真正动库的部分），**不**包住
+        ring buffer 追加与限流告警/事件留痕——把跨模块调用放进临界区会人为拉长
+        持锁时间，制造本任务正要消除的锁序病理。
+        【append-only】本方法里只有 INSERT；没有任何改写/删除语句（硬不变量，
+        ``test_trace_v2.py`` 按**源码文本**锁死本方法体，故 SQL 字面量必须留在
+        这里、且注释里也不能出现那两个 SQL 动词）。
+        """
         if not records:
             return
-        if self._degraded:
-            for r in records:
-                self._fallback_ring_buffer.append(r)
-            self._mark_committed(len(records))
-            return
+        total = len(records)
+        committed = 0
+        entered_degraded = False
+        degrade_reason = "batch_write_failed"
+        with self._write_lock:
+            guard = self._acquire_guard()
+            try:
+                if not self._should_attempt_db():
+                    # 降级态 + 退避窗口内：本轮不碰库（只记"跳过一次重试"）
+                    degrade_reason = "degraded_backoff"
+                    with self._count_lock:
+                        self._degraded_retry_skips += 1
+                else:
+                    conn = None
+                    try:
+                        conn = self._get_conn()
+                        placeholders = ",".join(["?"] * len(self._COLUMNS))
+                        sql = (f"INSERT INTO unified_traces "
+                               f"({','.join(self._COLUMNS)}) VALUES ({placeholders})")
+                        conn.executemany(sql, [self._row_values(r) for r in records])
+                        conn.commit()
+                    except Exception as e:  # noqa: BLE001 写失败 ⇒ 显式降级
+                        # 【为什么要显式 rollback】``executemany`` 成功但 ``commit`` 失败
+                        # 时，连接上会残留一个**未提交事务**；不显式回滚就继续复用该连接，
+                        # 后续读取会看到脏数据、下一批写入还会落进同一个事务（"以为提交了
+                        # 其实没有"）。故失败路径先 best-effort 回滚，再把整批转 ring
+                        # buffer——宁可重放在内存里，也不要**半提交**。
+                        if conn is not None:
+                            try:
+                                conn.rollback()
+                            except Exception:  # noqa: BLE001 回滚失败也照走降级
+                                pass
+                        entered_degraded = self._note_db_failure(e, total)
+                    else:
+                        self._note_db_success(total)
+                        committed = total
+            finally:
+                self._release_guard(guard)
         try:
-            conn = self._get_conn()
-            placeholders = ",".join(["?"] * len(self._COLUMNS))
-            sql = f"INSERT INTO unified_traces ({','.join(self._COLUMNS)}) VALUES ({placeholders})"
-            with self._write_lock:
-                conn.executemany(sql, [self._row_values(r) for r in records])
-                conn.commit()
-            self._mark_committed(len(records))
-        except Exception as e:  # noqa: BLE001
-            logger.warning("统一 Trace SQLite 批量写入失败，降级到 ring buffer: %s", e)
-            self._degraded = True
-            for r in records:
-                self._fallback_ring_buffer.append(r)
-            self._mark_committed(len(records))
+            if committed < total:
+                for r in records[committed:]:
+                    self._ring_append(r, reason=degrade_reason)
+        finally:
+            # 【口径】无论提交还是降级，被 writer 接手的记录都算"已处理"——
+            # 这正是 flush() 的 True 所保证的东西（见 flush 文档）。
+            self._mark_committed(total)
+        if entered_degraded:
+            # 只在**一次降级事件的开头**留痕（后续同一次降级只计数），避免风暴
+            self._emit_store_event(EVENT_TRACE_DEGRADED, self._degrade_payload(
+                {"records": total}))
+
+    def _note_db_failure(self, exc: BaseException, n: int) -> bool:
+        """记录一次批量写失败（计数 + 状态迁移 + 限流告警）；返回是否**新进入**降级
+
+        【缺陷 #3 修复：降级必须可恢复】原实现一次失败即置 ``_degraded`` 且**永不复位**
+        ——一次瞬时抖动（另一进程持锁、磁盘瞬时满、连接被关）就让本进程**余生**只写
+        内存：观测丢失且没有任何信号。现在：
+
+        - ``_degraded`` 仍置位（保持既有语义："最近一次尝试失败了"）；
+        - 每次批量写都会**再试**（受 ``CP_TRACE_DEGRADED_RETRY_SEC`` 退避约束），
+          成功即清位并计入 ``degraded_recoveries``；
+        - ``consecutive_failures`` 用来区分"抖一次就恢复"与"连续 N 次都失败（真死）"。
+        """
+        with self._count_lock:
+            was_degraded = bool(self._degraded)
+            self._batch_failure_count += 1
+            self._consecutive_failures += 1
+            consecutive = self._consecutive_failures
+            failures = self._batch_failure_count
+        self._enter_degraded_state(f"{type(exc).__name__}: {exc}")
+        self._rate_limited_warning(
+            "db_failure",
+            "统一 Trace SQLite 批量写入失败（%d 条转 ring buffer；连续失败 %d 次，"
+            "累计 %d 次）: %s",
+            n, consecutive, failures, exc)
+        return not was_degraded
+
+    def _note_db_success(self, n: int) -> None:
+        """记录一次成功提交（**清除降级态** + 计恢复）"""
+        with self._count_lock:
+            self._durable_count += n
+            was_degraded = bool(self._degraded)
+            failures_before = self._consecutive_failures
+            self._consecutive_failures = 0
+            if was_degraded:
+                self._degraded_recoveries += 1
+                recoveries = self._degraded_recoveries
+        self._degraded = False
+        self._degraded_reason = ""
+        if was_degraded:
+            self._last_recovery_ts = time.time()
+            logger.info(
+                "统一 Trace 写路径**已从降级恢复**（此前连续失败 %d 次，"
+                "累计恢复 %d 次）: %s", failures_before, recoveries, self._db_path)
 
     def _mark_committed(self, n: int) -> None:
+        """记录 n 条记录**已被 writer 处理**（提交 或 显式降级，二者都算）
+
+        注意口径：本计数是 ``flush()`` 的依据，**不**代表落盘——落盘见
+        ``_note_db_success`` 的 ``_durable_count``。
+        """
         with self._count_lock:
             self._commit_count += n
 
@@ -794,7 +1320,25 @@ class UnifiedTraceStore:
                 self._write_to_db(batch)
 
     def flush(self, timeout: float = 2.0) -> bool:
-        """等待已入队记录全部持久化（测试用；对齐 tool_trace 的 commit 追平机制）"""
+        """等待已入队记录被 writer **处理完**（**不是**"等落盘"，口径见下）
+
+        【返回值口径（TASK-S8-02 要求 6：``flush()`` 不许说谎）】
+        ``True`` ⇔ 调用瞬间 ``handled >= enqueued``，其中 handled ＝ 该记录要么
+        **提交进 SQLite**、要么被**显式降级**（转 ring buffer 且已计数/告警）。
+        也就是说 ``True`` 保证的是"**没有在途记录**"，**不**保证"都已落盘"。
+        【为什么不干脆改成"全部落盘才 True"】降级态（库不可用）下那将意味着
+        ``flush()`` **永远**返回 False，调用方（S3/S5/用例）无法把它与"真的还
+        没写完"区分开——把"处理完了但降级了"伪装成"没处理完"，**同样是说谎**。
+        故契约拆成两个都不说谎的入口：
+
+        - ``flush()``            → "在途清零"（本方法；保持既有签名与语义）；
+        - ``flush_durable()``    → "在途清零 **且** 没有写路径降级未落盘的记录"；
+        - ``stats()['durable']`` → 随时可查的同一判据（ops/面板/用例）。
+
+        注：原实现的 ring buffer 路径也调用 ``_mark_committed``，因此"``flush() is True``
+        但一条都没落盘"确实可能发生——这一点现在由上面的第二个口径**显式暴露**，
+        而不是靠把 ``flush()`` 改成永久 False 来掩盖。
+        """
         with self._count_lock:
             target = self._enqueue_count
         deadline = time.time() + timeout
@@ -806,8 +1350,32 @@ class UnifiedTraceStore:
             time.sleep(0.01)
         return False
 
+    def _durability_ok(self) -> bool:
+        """当前是否"没有因写路径降级而未落盘的记录"（**不读库**，只看计数）"""
+        with self._count_lock:
+            uncommitted = self._uncommitted_count
+        return uncommitted == 0 and not self._degraded
+
+    def flush_durable(self, timeout: float = 2.0) -> bool:
+        """等待并判定"**真正落盘**"（在途清零 **且** 无未落盘记录）
+
+        与 ``flush()`` 的唯一区别就是这一条：降级态下 ``flush()`` 可为 True 而本方法
+        为 False——这正是"诚实"的落点（``stats()['durable']`` 是同一判据的查询入口）。
+        """
+        if not self.flush(timeout=timeout):
+            return False
+        return self._durability_ok()
+
     def stop(self, timeout: float = 5.0) -> bool:
-        """优雅停止 writer 线程 + flush 残留（幂等）"""
+        """优雅停止 writer 线程 + flush 残留 + 关闭连接（幂等；**终态**）
+
+        【终态语义】停止后 writer **不会**重启（``_stopped`` 只置位不复位）：停止后
+        再 ``record()`` 只会把记录堆在队列里直到 ``stop()`` 的排空路径处理它们。
+        用例必须显式调用本方法（或接受"进程退出时 daemon 线程被丢弃、队列残留丢失"）。
+        【连接收尾（缺陷 #5）】关闭全部登记在册的 SQLite 连接（WAL 下关闭最后一个
+        连接会顺带 checkpoint，把 ``-wal`` 并回主库）。``:memory:`` 库**不关**——
+        共享缓存内存库在最后一个连接关闭时会被销毁，关掉等于把数据抹了。
+        """
         if self._stopped:
             return True
         self._stopped = True
@@ -828,38 +1396,89 @@ class UnifiedTraceStore:
                 break
         if residual:
             self._write_to_db(residual)
+        if not self._is_memory:
+            self._close_connections()
         return not self._writer_thread.is_alive()
 
-    def clear(self) -> None:
-        """清空表 + ring buffer（**测试专用**显式动作，非运行时写路径）"""
-        self._queue.queue.clear()
-        self._fallback_ring_buffer.clear()
-        if not self._degraded:
+    def _close_connections(self) -> int:
+        """关闭本 store 打开过的全部 SQLite 连接（返回关闭条数；幂等）
+
+        关闭后再次 ``_get_conn()``/读接口会**自动重开**（``_get_conn`` 以"是否仍是
+        登记在册的那条连接"为存活判据），所以读接口在 ``stop()`` 之后仍然可用。
+        """
+        with self._conn_lock:
+            conns = list(self._conns.values())
+            self._conns.clear()
+        closed = 0
+        for conn in conns:
             try:
-                conn = self._get_conn()
-                with self._write_lock:
-                    conn.execute("DELETE FROM unified_traces")
-                    conn.commit()
-            except Exception as e:  # noqa: BLE001
-                logger.warning("清空 unified_traces 失败: %s", e)
+                conn.close()
+                closed += 1
+            except Exception as e:  # noqa: BLE001 收尾失败不影响 stop 的返回值
+                logger.debug("关闭统一 Trace 连接失败: %s", e)
+        # 本线程的 thread-local 必须清掉：否则会拿到刚被关闭的连接
+        self._local.conn = None
+        return closed
+
+    def clear(self) -> None:
+        """清空表 + ring buffer（**测试专用**显式动作，非运行时写路径）
+
+        与既有实现的差异：不再用 ``_degraded`` 短路（降级可恢复后，"降级"不代表
+        库里没有数据；测试专用清理应当真的清干净）。计数**不**清零——它们是
+        进程生命周期内的累计事实，清零会让"丢了多少"这一断言失去意义。
+        """
+        self._queue.queue.clear()
+        with self._ring_lock:
+            self._fallback_ring_buffer.clear()
+        try:
+            conn = self._get_conn()
+            with self._write_lock:
+                conn.execute("DELETE FROM unified_traces")
+                conn.commit()
+        except Exception as e:  # noqa: BLE001
+            logger.warning("清空 unified_traces 失败: %s", e)
 
     # ── 读取接口 ─────────────────────────────────────────────
 
     def _iter_persisted(self) -> List[UnifiedTrace]:
-        # 合并 DB 与 ring buffer（workspace 降级/写失败降级的记录始终可见）
-        traces: List[UnifiedTrace] = list(self._fallback_ring_buffer)
-        if not self._degraded:
+        """合并 DB 与 ring buffer（workspace 降级/写失败的记录始终可见）
+
+        【为什么不再用 ``_degraded`` 短路 DB 读取（缺陷 #3 的连带修复）】原实现一旦
+        降级就**再也不读库**：即使后续恢复、或别的进程已经写进去了，本进程的读侧也
+        看不见，而且没有任何信号。现在无论降级与否都尝试读库，失败则计数 + 限流告警。
+        【坏行不再静默（缺陷 #8）】解析失败的 payload 计入 ``skipped_row_count``
+        并限流告警——否则"行坏了"在面板上只表现为"记录变少了"。
+        """
+        with self._ring_lock:
+            traces: List[UnifiedTrace] = list(self._fallback_ring_buffer)
+        try:
+            conn = self._get_conn()
+            rows = conn.execute(
+                "SELECT payload FROM unified_traces ORDER BY started_at ASC").fetchall()
+        except Exception as e:  # noqa: BLE001
+            with self._count_lock:
+                self._read_failure_count += 1
+                failures = self._read_failure_count
+            self._rate_limited_warning(
+                "read_failure",
+                "查询统一 Trace 失败（累计 %d 次；ring buffer 中的 %d 条仍然可见）: %s",
+                failures, len(traces), e)
+            return traces
+        skipped = 0
+        for row in rows:
             try:
-                conn = self._get_conn()
-                rows = conn.execute(
-                    "SELECT payload FROM unified_traces ORDER BY started_at ASC").fetchall()
-                for row in rows:
-                    try:
-                        traces.append(UnifiedTrace.from_dict(json.loads(row["payload"])))
-                    except Exception:  # noqa: BLE001
-                        continue
-            except Exception as e:  # noqa: BLE001
-                logger.warning("查询统一 Trace 失败: %s", e)
+                traces.append(UnifiedTrace.from_dict(json.loads(row["payload"])))
+            except Exception:  # noqa: BLE001 坏行：跳过但**计数 + 告警**
+                skipped += 1
+        if skipped:
+            with self._count_lock:
+                self._skipped_row_count += skipped
+                total = self._skipped_row_count
+            self._rate_limited_warning(
+                "corrupt_row",
+                "统一 Trace 存在**不可解析行**（本次跳过 %d 条；累计 %d 条）——"
+                "已计数，请核对磁盘/并发写/人工编辑",
+                skipped, total)
         return traces
 
     def query(
@@ -944,6 +1563,86 @@ class UnifiedTraceStore:
     def count(self) -> int:
         return len(self._iter_persisted())
 
+    def verify_integrity(self, *, limit: Optional[int] = None,
+                         sample: int = 0) -> Dict[str, Any]:
+        """抽查持久化行的哈希一致性（**显式 opt-in**，默认不在读路径上跑）
+
+        【为什么默认不跑（TASK-S8-02 要求 8 的取舍）】``_iter_persisted()`` 是
+        ``count()/query()/chain()`` 的公共底座；每次读都重算 SHA256 会把读成本成倍
+        放大，而"篡改/半写"是**低频**事件。本任务给了"显式入口"或"廉价抽样"两条路，
+        这里选**显式入口**（可运维按需调用、可被用例锁死），不引入默认读放大。
+
+        【口径与已知边界（不夸大检测力）】只校验 ``args_hash``/``output_hash``
+        **非空**的记录（``TraceFacade.finish()`` 的任务级主 Trace 显式留空 hash，
+        空 = 未哈希，不能当损坏）。哈希绑定的是**脱敏后**内容（``redact_then_hash``），
+        读侧重算 ``hash_content(redacted)``；若原始 args 含非 JSON 可序列化对象，
+        写侧的 ``default=str`` 兜底会改变落盘形态，这类记录会被判为"不一致"——
+        因此本方法的产物是**可疑清单 + 计数**，不是"篡改定论"。
+
+        Args:
+            limit: 只校验最近 N 行（按 ``started_at``）；None = 全部。
+            sample: >0 时随机抽 N 行（在 ``limit`` 之后生效）。
+
+        Returns:
+            {"checked", "unhashed", "mismatch", "skipped_rows", "suspicious": [...]}
+        """
+        try:
+            conn = self._get_conn()
+            rows = conn.execute(
+                "SELECT trace_id, payload FROM unified_traces "
+                "ORDER BY started_at ASC").fetchall()
+        except Exception as e:  # noqa: BLE001 读失败如实上报，不抛
+            return {"checked": 0, "unhashed": 0, "mismatch": 0, "skipped_rows": 0,
+                    "suspicious": [], "error": f"{type(e).__name__}: {e}"}
+        if limit is not None and limit >= 0:
+            rows = rows[-limit:] if limit else []
+        if sample and sample > 0 and len(rows) > sample:
+            import random
+            rows = random.sample(list(rows), int(sample))
+
+        checked = unhashed = mismatch = skipped = 0
+        suspicious: List[Dict[str, Any]] = []
+        for row in rows:
+            try:
+                parsed = UnifiedTrace.from_dict(json.loads(row["payload"]))
+            except Exception:  # noqa: BLE001 坏行单独计数（与读路径同口径）
+                skipped += 1
+                continue
+            for label, content, expected in (
+                    ("args", parsed.request.args_redacted, parsed.request.args_hash),
+                    ("output", parsed.response.output_redacted,
+                     parsed.response.output_hash)):
+                if not expected:
+                    unhashed += 1
+                    continue
+                checked += 1
+                if hash_content(content) != expected:
+                    mismatch += 1
+                    suspicious.append({
+                        "trace_id": str(row["trace_id"]),
+                        "field": label,
+                        "expected_hash": expected,
+                    })
+        with self._count_lock:
+            self._integrity_checked += checked
+            self._integrity_mismatch += mismatch
+        if mismatch:
+            self._rate_limited_warning(
+                "integrity",
+                "统一 Trace 完整性抽查发现**哈希不一致** %d 处"
+                "（本次校验 %d 处；累计不一致 %d 处）",
+                mismatch, checked, self._integrity_mismatch)
+        return {"checked": checked, "unhashed": unhashed, "mismatch": mismatch,
+                "skipped_rows": skipped, "suspicious": suspicious}
+
+    def stats(self) -> Dict[str, Any]:
+        """统计快照（``snapshot_stats()`` 的别名；TASK-S8-02 要求的统一查询入口）
+
+        含 **``durable``** 这一诚实口径：True ⇔ 没有因写路径降级而未落盘的记录，
+        且当前不在降级态。``flush()`` 的 True 与之**不等价**（见 ``flush()`` 文档）。
+        """
+        return self.snapshot_stats()
+
     def snapshot_stats(self) -> Dict[str, Any]:
         traces = self._iter_persisted()
         by_cap: Dict[str, int] = {}
@@ -955,6 +1654,38 @@ class UnifiedTraceStore:
             by_actor[t.actor] = by_actor.get(t.actor, 0) + 1
             if t.response.status == STATUS_SUCCESS:
                 success += 1
+        with self._count_lock:
+            write_stats = {
+                "enqueue_count": self._enqueue_count,
+                "handled_count": self._commit_count,
+                "durable_count": self._durable_count,
+                "uncommitted_count": self._uncommitted_count,
+                "queue_maxsize": self._queue_maxsize,
+                "queue_overflow_count": self._queue_overflow_count,
+                "ring_buffer_maxlen": self._ring_maxlen,
+                "ring_buffer_pending": len(self._fallback_ring_buffer),
+                "ring_buffer_dropped": self._ring_buffer_dropped,
+                "degraded": bool(self._degraded),
+                "degraded_reason": self._degraded_reason,
+                "degraded_enter_count": self._degraded_enter_count,
+                "degraded_recoveries": self._degraded_recoveries,
+                "degraded_retry_skips": self._degraded_retry_skips,
+                "consecutive_failures": self._consecutive_failures,
+                "batch_failure_count": self._batch_failure_count,
+                "last_error": self._last_error,
+                "last_recovery_ts": self._last_recovery_ts,
+                "lock_enabled": bool(self._lock_enabled),
+                "lock_path": self._lock_path,
+                "lock_timeout_sec": self._lock_timeout,
+                "lock_write_count": self._lock_write_count,
+                "lock_bypass_count": self._lock_bypass_count,
+                "skipped_row_count": self._skipped_row_count,
+                "read_failure_count": self._read_failure_count,
+                "integrity_checked": self._integrity_checked,
+                "integrity_mismatch": self._integrity_mismatch,
+                "journal_mode": self._journal_mode,
+                "durable": (self._uncommitted_count == 0 and not self._degraded),
+            }
         return {
             "total": len(traces),
             "success_count": success,
@@ -964,6 +1695,7 @@ class UnifiedTraceStore:
             "workspace_degraded": self._workspace_degraded_count,
             "schema_version": SCHEMA_VERSION,
             "append_only": True,
+            **write_stats,
         }
 
 
@@ -1237,6 +1969,14 @@ class TraceFacade:
 
     def flush(self, timeout: float = 2.0) -> bool:
         return self._store.flush(timeout=timeout)
+
+    def flush_durable(self, timeout: float = 2.0) -> bool:
+        """等待并判定"**真正落盘**"（口径见 ``UnifiedTraceStore.flush_durable``）
+
+        与 ``flush()`` 的差别只有一条：降级态下 ``flush()`` 可能为 True（在途清零，
+        但记录只在内存 ring buffer 里），本方法此时返回 False——不给调用方看假象。
+        """
+        return self._store.flush_durable(timeout=timeout)
 
 
 # ════════════════════════════════════════════════════════════

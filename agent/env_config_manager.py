@@ -45,7 +45,21 @@ from pathlib import Path
 
 from agent.logging_utils import log_dict
 
+# 【为什么模块级导入唯一锁原语（TASK-S8-02 步骤 3，不易）】本模块此前**自带一份**
+# OS 文件锁平台分支（Windows `LK_LOCK` 字节锁 / POSIX `flock` 阻塞整文件锁，
+# **无超时**），与 `agent/self_healing/watchdog_singleton.py`、`agent/knowledge/ingest.py`
+# 是**手抄关系**。现在三处共用 `agent.utils.cross_process_lock`：本模块不再出现任何
+# 平台分支（`platform.locking` / `flock` 这类调用只应存在于原语里）。
+# 原语只依赖标准库（无反向依赖），可安全模块级导入。
+from agent.utils.cross_process_lock import CrossProcessLock, LockUnavailable
+
 logger = logging.getLogger(__name__)
+
+#: 跨进程锁的有限等待上限（秒）——**兜底值**，正常从 observability_config 读取。
+#: 【为什么是 10s（不易）】写 .env 本身是毫秒级操作；10s 只可能来自"另一个进程
+#: 卡住"。取 10s 既不会让正常并发写入被误伤，又保证卡死场景**有限**失败
+#: （改写前是无限阻塞等待）。
+DEFAULT_ENV_LOCK_TIMEOUT_SEC = 10.0
 
 
 class EnvConfigManager:
@@ -75,7 +89,14 @@ class EnvConfigManager:
         # 【CHG-2026-0810】跨进程文件锁（.env.lock）：防多进程并发写 .env
         # 与 _file_lock（进程内线程锁）互补：进程内互斥 + 跨进程互斥
         self._lock_file = Path(str(self._env_file) + '.lock')
-        self._lock_fd = None
+        # 【为什么锁对象在 __init__ 就建好（简易）】CrossProcessLock 构造是**无副作用**的
+        # （只规范化路径，不建文件、不加锁）；真正的文件创建发生在 acquire() 里。
+        # 【为什么不再持有裸句柄（不易）】改写前这里存 `self._lock_fd`（open('a+') 的
+        # 文本句柄）：追加模式下 seek 对写无效、句柄生命周期要手工配对，且"同进程跨线程"
+        # 完全没被覆盖。现在句柄与解锁都由原语托管，本属性随之删除（仓库内无外部引用）。
+        self._cp_lock = CrossProcessLock(
+            self._lock_file, name='env_config.lock',
+        )
         self._ensure_file_exists()
 
     def _ensure_file_exists(self):
@@ -310,11 +331,23 @@ class EnvConfigManager:
     def _acquire_process_lock(self):
         """获取跨进程文件锁（写 .env 期间与其它进程互斥）
 
-        【变易】Windows 用 msvcrt.locking，Unix 用 fcntl.flock；
-        锁文件为独立的 .env.lock（不锁 .env 本体，避免 rename 替换导致锁失效）。
-        注意: msvcrt.locking 要求锁定区域至少 1 字节，空文件需先写占位字节。
+        【变易】锁原语由 `agent.utils.cross_process_lock` 提供（唯一实现）：
+        平台分支（Windows 字节区间锁 / POSIX flock 整文件锁）**只在原语里**；
+        锁文件仍为独立的 .env.lock（不锁 .env 本体，避免 rename 替换导致锁失效），
+        路径与改写前完全一致（运维既有工具/清理脚本无需改动）。
+        原语自己处理"空文件补哨兵"（Windows 字节锁要求锁定区域 ≥1 字节）。
         【CHG-2026-0810】日志增强：记录获取耗时，>1s 提示可能锁竞争
         （多进程同时写 .env 时的排查线索）。
+
+        【为什么从"无限阻塞"改成"有限等待 + 显式失败"（TASK-S8-02 步骤 3，不易）】
+        改写前用 `LK_LOCK` / `LOCK_EX` 阻塞式加锁、**没有超时**：另一个持锁进程若
+        卡住（写盘 hang / 调试器断点 / 被杀在异常路径），本进程会**永远**停在
+        `_atomic_write` 里——.env 写不进去、调用方也拿不到任何错误，只能人工介入。
+        现在改为原语的有限等待：超过 `_lock_timeout_sec()` **抛 `LockTimeout`**，
+        并先留一条 warning（进程内计数 + 审计/事件留痕由原语负责）。
+        【为什么不降级为"无锁继续写"（不易）】.env 是唯一敏感数据源，且写入是
+        "读→改→临时文件→rename"的非原子复合操作；无锁继续写会**静默丢失**另一个
+        进程刚写入的 KEY（比抛错危险得多）。宁可显式失败让调用方/运维看见。
         """
         t0 = time.monotonic()
         logger.info(log_dict({
@@ -322,18 +355,25 @@ class EnvConfigManager:
             'action': 'env_config.lock_acquire_start',
             'message': f'[Env配置] 尝试获取跨进程锁: {self._lock_file.name}'
         }))
-        self._lock_fd = open(self._lock_file, 'a+', encoding='utf-8')
-        if sys.platform == 'win32':
-            import msvcrt
-            self._lock_fd.seek(0, 2)
-            if self._lock_fd.tell() == 0:
-                self._lock_fd.write('\0')
-                self._lock_fd.flush()
-            self._lock_fd.seek(0)
-            msvcrt.locking(self._lock_fd.fileno(), msvcrt.LK_LOCK, 1)
-        else:
-            import fcntl
-            fcntl.flock(self._lock_fd.fileno(), fcntl.LOCK_EX)
+        timeout_s = self._lock_timeout_sec()
+        try:
+            self._cp_lock.acquire(timeout_s)
+        except LockUnavailable as exc:
+            # LockTimeout 是 LockUnavailable 的子类：一个 except 覆盖"超时"与
+            # "非阻塞被拒"两种语义（原语有意如此设计）。
+            elapsed_ms = int((time.monotonic() - t0) * 1000)
+            logger.warning(log_dict({
+                'module_name': 'env_config',
+                'action': 'env_config.lock_timeout',
+                'message': (
+                    f'[Env配置] 获取跨进程锁失败（等待 {elapsed_ms}ms / 上限 '
+                    f'{timeout_s:g}s），疑似其它进程长时间持有 {self._lock_file.name}，'
+                    f'本次写入已放弃（不降级为无锁写入，避免静默丢配置）'
+                ),
+                'lock_wait_ms': elapsed_ms,
+                'lock_timeout_sec': timeout_s,
+            }))
+            raise
         elapsed_ms = int((time.monotonic() - t0) * 1000)
         logger.info(log_dict({
             'module_name': 'env_config',
@@ -353,22 +393,43 @@ class EnvConfigManager:
             }))
 
     def _release_process_lock(self):
-        """释放跨进程文件锁（与 _acquire_process_lock 配对）"""
+        """释放跨进程文件锁（与 _acquire_process_lock 配对）
+
+        【不易】原语的 `release()` 幂等且**线程亲和**（只有持有线程能释放），
+        句柄关闭与 OS 解锁都在原语内部完成；本方法不再持有裸 fd，
+        因此也不会出现"忘记 close 导致句柄泄漏"的路径。
+        """
         try:
-            if sys.platform == 'win32':
-                import msvcrt
-                msvcrt.locking(self._lock_fd.fileno(), msvcrt.LK_UNLCK, 1)
-            else:
-                import fcntl
-                fcntl.flock(self._lock_fd.fileno(), fcntl.LOCK_UN)
+            self._cp_lock.release()
         finally:
-            self._lock_fd.close()
-            self._lock_fd = None
-        logger.info(log_dict({
-            'module_name': 'env_config',
-            'action': 'env_config.lock_released',
-            'message': f'[Env配置] 已释放跨进程锁: {self._lock_file.name}'
-        }))
+            logger.info(log_dict({
+                'module_name': 'env_config',
+                'action': 'env_config.lock_released',
+                'message': f'[Env配置] 已释放跨进程锁: {self._lock_file.name}'
+            }))
+
+    def _lock_timeout_sec(self) -> float:
+        """跨进程锁的有限等待上限（秒）
+
+        【为什么读 `knowledge.file_lock_timeout_sec`（简易）】它是云枢目前**唯一**
+        的"文件锁超时"配置项（`observability_config` 声明 1-60s）。复用它可以避免
+        再开一个只有一处用到的配置面；代价是键名带 knowledge 前缀、语义上更宽泛
+        （两者都是"本机文件锁最多等多久"）。
+        【为什么必须有兜底（不易）】配置模块不可用/键缺失时**绝不能**退化成
+        "无限等待"——那正是本次要消灭的行为。解析失败一律回落 10s
+        （实测写 .env 是毫秒级操作，10s 已远超正常等待）。
+        """
+        fallback = DEFAULT_ENV_LOCK_TIMEOUT_SEC
+        try:
+            from agent.monitoring.observability_config import get_observability_config
+
+            value = float(get_observability_config().get(
+                'knowledge.file_lock_timeout_sec', fallback))
+        except Exception as exc:  # noqa: BLE001 配置不可用不阻断加锁
+            logger.warning('[Env配置] 读取锁超时配置失败，使用默认 %.1fs: %s',
+                           fallback, exc)
+            return fallback
+        return value if value > 0 else fallback
 
     def _update_env_file(self, key: str, value: str):
         """更新 .env 文件中的某个 KEY（存在则更新，不存在则追加）"""
