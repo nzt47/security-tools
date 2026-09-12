@@ -55,11 +55,41 @@ def _read_audit(tmp_path: Path):
 
 
 # ── 注册行为 ──────────────────────────────────────────────
-def test_disabled_by_default_does_not_register(isolate):
+def test_disabled_by_config_does_not_register(isolate, monkeypatch):
+    """配置层关闭 ⇒ 不注册（安全底线）
+
+    【2026-09-13 修正（自伤回归）】原用例名 `test_disabled_by_default_does_not_register`
+    依赖**仓库里 config.yaml 的当前取值**（当时 `slo_report.enabled: false`）。
+    当天 Owner 要求把周报真正挂上调度，该值改为 `true` ⇒ 本用例变成
+    "断言部署取值"而失败。**那是用例设计问题**（把"机制"和"部署选择"混在一起），
+    不是功能回归。改为**显式注入配置段**，两个方向都可确定性验证，
+    不再随仓库配置漂移；"部署是否开启"由 config.yaml 与运维文档负责，**不由单测锁死**。
+    """
+    monkeypatch.setattr(mod, "_cfg_section", lambda: {"enabled": False})
     r = mod.register_slo_report_scheduler(FakeScheduler())
     assert r["ok"] is True
     assert r["registered"] is False
     assert r["reason"] == "disabled"
+
+
+def test_enabled_by_config_registers(isolate, monkeypatch):
+    """配置层开启（且无 env 覆盖）⇒ 注册，cron 默认周一 09:00
+
+    与上一个用例配对：证明"关/开"两向都由配置层正确驱动（补上原先缺的一向）。
+    """
+    monkeypatch.setattr(mod, "_cfg_section", lambda: {"enabled": True})
+    sched = FakeScheduler()
+    r = mod.register_slo_report_scheduler(sched)
+    assert r["registered"] is True
+    assert r["schedule"] == {"day_of_week": 0, "hour": 9, "minute": 0}
+
+
+def test_env_overrides_config_disabled(isolate, monkeypatch):
+    """env 优先于配置：配置开启但 env 显式关闭 ⇒ 不注册（可应急停用）"""
+    monkeypatch.setattr(mod, "_cfg_section", lambda: {"enabled": True})
+    monkeypatch.setenv(f"{mod._ENV_PREFIX}_ENABLED", "false")
+    r = mod.register_slo_report_scheduler(FakeScheduler())
+    assert r["registered"] is False and r["reason"] == "disabled"
 
 
 def test_enabled_registers_cron_with_expected_schedule(isolate, monkeypatch):
