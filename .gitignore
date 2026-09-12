@@ -402,3 +402,9 @@ data/eval/
 # 不入库；只提交 *_pytest_summary.txt 摘要。
 reports/*_pytest.txt
 reports/s4*_unit_pytest.txt
+
+# TASK-S7-02：自修复 L1 运行期产物（体检报告 / 补丁 / PR 描述 / 运行报告 /
+# 临时 junitxml / 子代理 task_file 落盘）。**不入库**：
+#   ① 它们是"这一次运行"的证据，不是源码；
+#   ② 补丁产物必须止于本地未跟踪状态，才谈得上「不自动落地」这条边界。
+data/repair/
