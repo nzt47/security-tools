@@ -75,22 +75,79 @@ class SameTaskKey:
 
     **不含** ``task_id``：任务身份不是"同类"的依据（否则 20 条门槛永远达不到）；
     任务身份保留在 `Trajectory.task_id` 供溯源。
+
+    **TASK-S8-05（D3）结构性维度**：S3-01 的 ``intent_key`` 在 CJK 文本上按**字**切分，
+    实测 60 条不同的三步任务链归一到同一键（"同类轨迹"判定近乎失效 ⇒ 归组不可靠，
+    即 D2 的上游原因）。故在保持三元组语义的前提下补两个**结构维度**：
+
+    4. ``step_count_bucket``：步数**档位**（```cleaning.step_count_bucket()` ``；0/1/2/3-5/6-10/11+）。
+       用档位而非精确步数：同任务的重试/合并会让步数抖动 ±1，档位吸收该抖动。
+    5. ``capability_set``：该轨迹**能力集合**的稳定摘要（排序去重后按 ``+`` 连接）。
+
+    二者与 ``capability_id`` **不完全重合**（后者是"触发能力"，前者是"整条链的形状"），
+    故并列入键而非冗余。``intent_key`` 里同时嵌入结构原子（``cleaning.structural_atom()``，
+    ``v2|`` 前缀）—— 如此**单独使用** ``intent_key`` 的调用方（判定集、报告）同样获得
+    结构区分度，且旧键与新键**不相等**（口径变更显式可辨，不会静默混用）。
     """
 
     capability_id: str
     intent_key: str
     outcome: str
+    #: 步数档位（结构维度 ④；缺省空串 = 调用方未提供 ⇒ 参与键但不伪报）
+    step_count_bucket: str = ""
+    #: 能力集合摘要（结构维度 ⑤；缺省空串 = 调用方未提供）
+    capability_set: str = ""
 
-    def as_tuple(self) -> Tuple[str, str, str]:
-        return (self.capability_id, self.intent_key, self.outcome)
+    def as_tuple(self) -> Tuple[str, str, str, str, str]:
+        return (self.capability_id, self.intent_key, self.outcome,
+                self.step_count_bucket, self.capability_set)
 
     def as_str(self) -> str:
-        """稳定字符串（供 dict 键/事件载荷/审计 subject）"""
-        return f"{self.capability_id}|{self.intent_key}|{self.outcome}"
+        """稳定字符串（供 dict 键/事件载荷/审计 subject）
+
+        格式（S8-05 v2）：``capability_id|intent_key|outcome|steps:<bucket>|caps:<set>``
+        —— 前三元组与 S3-01 逐字一致（既有解析兼容），结构维度**追加**在后。
+        """
+        return (f"{self.capability_id}|{self.intent_key}|{self.outcome}"
+                f"|steps:{self.step_count_bucket}|caps:{self.capability_set}")
 
     @property
     def is_negative(self) -> bool:
         return self.outcome != OUTCOME_SUCCESS
+
+
+def same_capability_set(left: str, right: str, *, sep: str = "+") -> bool:
+    """两个能力集合摘要是否**含同一活**（相等，或一方为另一方的子集）
+
+    ``+`` 连接即为集合语义（去重、排序），故子集判定可直接做字符串拆分比对。
+
+    为什么需要"子集"而不只是"相等"：**失败任务不会走完全程**。
+    实测（S8-05 D3）：三步链（读→执行→写）在第 2 步失败时，第 3 步根本不落账，
+    其能力集合是成功轨迹的**真子集**。若按"集合相等"配对，失败集恒为空，
+    "负样本 → 分支提取"整条链路静默失效（负样本 3 → 0）。
+    """
+    left_set = {p for p in str(left or "").split(sep) if p}
+    right_set = {p for p in str(right or "").split(sep) if p}
+    if not left_set or not right_set:
+        return False
+    return left_set <= right_set or right_set <= left_set
+
+
+def same_task_shape(primary: "SameTaskKey", other: "SameTaskKey") -> bool:
+    """``other`` 是否为 ``primary`` 的**形状变体**（供失败集配对；S8-05 D3）
+
+    判据逐项（能力 / 意图**文本** / 步数档位 / 能力集合含同一活），**不含**
+    ``outcome`` —— 本函数回答的正是"成败两条轨迹是不是同一个任务的两次执行"。
+
+    ``intent_key`` 的比对取**文本维度**（``‖`` 之后）：v2 键的结构原子由各条轨迹
+    自己的形状生成，直接用整键比较会退化成"形状全等"，与"变体"的语义自相矛盾。
+    文本维度的提取用 `cleaning.text_key_of()`（**唯一实现**，不在此处复制一份）。
+    """
+    from .cleaning import text_key_of  # 局部导入避环
+    return (primary.capability_id == other.capability_id
+            and text_key_of(primary.intent_key) == text_key_of(other.intent_key)
+            and primary.step_count_bucket == other.step_count_bucket
+            and same_capability_set(primary.capability_set, other.capability_set))
 
 
 # ════════════════════════════════════════════════════════════

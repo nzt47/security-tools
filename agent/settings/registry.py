@@ -1442,8 +1442,48 @@ _REGISTRY_ROWS: List[SettingSpec] = [
             "HOUR / MINUTE；由 _ENV_PREFIX + 后缀拼接，UI 只读展示）"),
         risk=RISK_A, env_name="", dynamic_prefix="CP_SLO_SCHEDULE_",
         owner_module="agent/monitoring/slo_report_scheduler.py"),
-]
 
+    # ────────────────────────────────────────────────────────
+    #  数据生命周期治理（TASK-S8-01，2026-09-13）
+    # ────────────────────────────────────────────────────────
+    _a("CP_RETENTION_ENABLED", CAT_OBSERVABILITY, False,
+       "数据保留策略归档调度开关（默认关闭；开启后每周日 03:00 注册一次归档任务）",
+       owner="agent/retention/scheduler.py",
+       config_path="retention.enabled", needs_restart=True),
+    _a("CP_RETENTION_DRY_RUN", CAT_OBSERVABILITY, True,
+       "保留策略是否只做 dry-run（默认 true＝只列清单与体积、不落盘；"
+       "**无论此值如何，本进程首跑强制 dry-run**）",
+       owner="agent/retention/archiver.py",
+       config_path="retention.dry_run", needs_restart=True),
+    _b("CP_RETENTION_DELETE_SOURCE", CAT_OBSERVABILITY, False,
+       "归档后是否删除源文件（默认 false＝只归档不删除；"
+       "开启后仍需过 PurgeGuard：红线类/记忆类/未标可删/有指标依赖一律拒绝）",
+       owner="agent/retention/guard.py",
+       config_path="retention.delete_source", needs_restart=True),
+    _c("CP_RETENTION_ARCHIVE_DIR", CAT_OBSERVABILITY, "data/archive",
+       "冷归档根目录（默认 data/archive；只读展示）",
+       owner="agent/retention/policy.py",
+       validator=Validator("path")),
+    _a("CP_RETENTION_CLASSES", CAT_OBSERVABILITY, "",
+       "保留策略限定数据类（逗号分隔；空＝全部 12 类）",
+       owner="agent/retention/policy.py",
+       config_path="retention.classes", needs_restart=True),
+    _a("CP_RETENTION_DAY_OF_WEEK", CAT_OBSERVABILITY, 6,
+       "保留策略归档触发星期（0=周一 … 6=周日；Python weekday 语义）",
+       owner="agent/retention/scheduler.py",
+       config_path="retention.day_of_week", needs_restart=True,
+       validator=_int_range(0, 6)),
+    _a("CP_RETENTION_HOUR", CAT_OBSERVABILITY, 3,
+       "保留策略归档触发小时（0-23）",
+       owner="agent/retention/scheduler.py",
+       config_path="retention.hour", needs_restart=True,
+       validator=_int_range(0, 23)),
+    _a("CP_RETENTION_MINUTE", CAT_OBSERVABILITY, 0,
+       "保留策略归档触发分钟（0-59）",
+       owner="agent/retention/scheduler.py",
+       config_path="retention.minute", needs_restart=True,
+       validator=_int_range(0, 59)),
+]
 # ════════════════════════════════════════════════════════════
 #  与 observability_config 既有校验表合并（**勿重复造**）
 # ════════════════════════════════════════════════════════════

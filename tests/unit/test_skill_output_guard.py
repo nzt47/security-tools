@@ -119,6 +119,77 @@ def test_validate_llm_output_hallucination_detected():
     assert gr.severity == "critical"
 
 
+# ════════════════════════════════════════════════════════════
+#  2b. 幻觉检测的**假阳性**回归（真用前置 D1，2026-09-13）
+#
+#  背景：原 `_SKILL_BACKTICK_RE` 把"任何反引号包裹的 snake_case/kebab-case
+#  标识符"都当成技能 ID。实测后果：回复里出现 list_directory 的真实结果
+#  里的目录名 `coverage_report` → 判 critical → orchestrator._guard_llm_output
+#  把整条回复替换为"（输出校验未通过，已拦截）"。
+#  云枢日常（读代码/改文件/跑测试/写文档）必然在回复里写这类标识符。
+#  以下用例锁死"日常标识符不得被判幻觉"，同时锁死真正的技能引用仍要报。
+# ════════════════════════════════════════════════════════════
+
+def _hallucination_findings(gr):
+    return [f for f in gr.findings if f.category == "hallucination"]
+
+
+@pytest.mark.parametrize("text,label", [
+    # 目录名 / 文件名 / 函数名 / 配置键 —— 全部来自真实使用场景
+    ("当前目录下有 `coverage_report`、`htmlcov` 和 `data`。", "目录名"),
+    ("我读了 `tool_trace.py`，里面是 `_writer_loop`。", "文件名+方法名"),
+    ("指标来自 `unified_traces` 与 `tool_traces` 两张表。", "表名"),
+    ("开关是 `slo_report.enabled`，不是 `CP_SLO_SCHEDULE_ENABLED`。", "配置键"),
+    ("日志里出现 `prev_hash_mismatch` 与 `seq` 字段。", "错误码"),
+    ("`_last_tool_steps` 目前是全局单例属性。", "私有属性名"),
+    ("这条走了 `list_directory`，返回 195 项。", "工具名（非技能引用）"),
+])
+def test_validate_llm_output_daily_identifiers_not_hallucination(text, label):
+    """【D1 回归】日常标识符出现在反引号里 → **不得**判为技能幻觉
+
+    判据：无任何 hallucination finding（因此 severity 不因它升到 critical，
+    回复不会被 orchestrator 拦截）。
+    """
+    guard = SkillOutputGuard()
+    gr = guard.validate_llm_output(text, ["skill-translator"], intent="排查问题")
+    assert _hallucination_findings(gr) == [], f"{label} 被误判为技能幻觉: {text}"
+
+
+def test_validate_llm_output_directory_name_does_not_block_reply():
+    """【D1 回归·端到端判据】目录名不得把 severity 顶到 critical
+
+    这条直接对应真实故障：`coverage_report` 让整条回复变成
+    "（输出校验未通过，已拦截）"。severity 一旦是 critical，
+    orchestrator._guard_llm_output 就会替换回复 ⇒ 这里断言它不是 critical。
+    """
+    guard = SkillOutputGuard()
+    gr = guard.validate_llm_output(
+        "已列出目录：`coverage_report`、`agent`、`docs`，共 195 项。",
+        ["skill-translator"], intent="列出当前目录",
+    )
+    assert gr.severity != "critical"
+    assert gr.sanitized_output is None or "coverage_report" in gr.sanitized_output
+
+
+@pytest.mark.parametrize("text,expected", [
+    # 显式语境 —— 必须仍然报（真幻觉不能被放过）
+    ("我将调用 `skill-pdf-parser` 来处理文档", "skill-pdf-parser"),   # 自证命名（既有契约）
+    ("我先用 @pdf_parser 再继续", "pdf_parser"),                      # @ 显式提及
+    ("技能 `pdf_parser` 已加载", "pdf_parser"),                        # 技能前缀
+    ("用的是 `pdf_parser` 技能", "pdf_parser"),                        # 技能后缀
+    ('{"skill_id": "pdf_parser"}', "pdf_parser"),                      # JSON 字段
+    ("skills: `pdf_parser`", "pdf_parser"),                            # skills 前缀
+])
+def test_validate_llm_output_explicit_skill_reference_still_flagged(text, expected):
+    """【D1 回归】显式技能引用仍须判为幻觉（收紧不等于关掉）"""
+    guard = SkillOutputGuard()
+    gr = guard.validate_llm_output(text, ["skill-translator"], intent="解析PDF")
+    hits = _hallucination_findings(gr)
+    assert len(hits) == 1, f"应恰好命中 1 条: {text} → {hits}"
+    assert expected in hits[0].message
+    assert hits[0].severity == "critical"
+
+
 def test_validate_llm_output_pii_sanitized():
     """PII 被脱敏 — sanitized_output 中手机号已替换"""
     guard = SkillOutputGuard()

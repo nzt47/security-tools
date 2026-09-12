@@ -67,6 +67,11 @@ data/acr_snapshot.json
 data/utc_snapshot.json
 data/s2_03_demo_trace.db*
 
+# S8-01 数据生命周期治理的冷归档产物（保留策略归档件 + 自描述清单）
+# 性质同 data/audit/：运行时留痕（且属压缩二进制，入库会让仓库膨胀）；
+# 归档件由 `scripts/run_retention.py` 按策略生成，可用 `--verify` 校验与还原。
+data/archive/
+
 # S5-03 成本刹车运行时产物（归一化日成本视图 / 断食熔断状态机状态）
 # 性质同 data/utc_snapshot.json：运行时留痕，不入库；验收报告引用其路径与内容
 data/cost_daily.json
