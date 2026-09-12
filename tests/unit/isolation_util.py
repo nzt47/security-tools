@@ -18,11 +18,20 @@ CAP = "cp.builtin.read_file"
 
 
 def make_case(index: int = 0, *, root: str = "C:/sandbox") -> C.EquivalenceCase:
-    """一条可回放的两段任务链用例（上游程序 = 候选程序 ⇒ 三层比对全过）"""
+    """一条可回放的两段任务链用例（上游程序 = 候选程序 ⇒ 三层比对全过）
+
+    **S8-05（D2）口径**：步骤显式声明 ``capability_id=CAP``（不靠 label 推断），
+    该用例因此是"同一能力的多步调用"，形状与被评能力一致、可进入抽样；
+    否则会被 `shadow.py` 的**形状过滤**挡下（`用例能力集合 ⊋ 被评能力 或 步数>1
+    ⇒ 不适用`）——本任务在合并 master 时实测踩到过这一点（8 例 takeover 用例集体
+    失败，根因就是夹具形状不匹配，而不是接管逻辑坏了）。
+    """
     path = f"{root}/out/a{index}.txt"
-    steps = [C.ProgramStep(label="read_file", params={"path": path}),
-             C.ProgramStep(label="write_file", params={"path": path,
-                                                       "content": f"c{index}"})]
+    steps = [C.ProgramStep(label="read_file", params={"path": path},
+                           capability_id=CAP),
+             C.ProgramStep(label="write_file",
+                           params={"path": path, "content": f"c{index}"},
+                           capability_id=CAP)]
     return C.EquivalenceCase(
         case_id=f"case-{index:03d}", capability_id=CAP, input={"path": path},
         upstream=steps, native=steps, fixtures={path: f"c{index}"},
