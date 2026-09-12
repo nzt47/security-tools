@@ -996,6 +996,10 @@ class AuditChain:
         self._queue: "queue_module.Queue[Optional[AuditEntry]]" = queue_module.Queue(
             maxsize=max(int(queue_maxsize), 1))
         self._failed_buffer: Deque[AuditEntry] = deque(maxlen=self._ring_buffer_maxlen)
+        #: 保护 ``_failed_buffer`` 的锁：**writer 线程写、任意读线程遍历**
+        #: （见 `_failed_snapshot` 的说明——无锁遍历会撞
+        #: `RuntimeError: deque mutated during iteration`）
+        self._buffer_lock = threading.Lock()
         self._degraded = False
         self._degraded_reason = ""
         #: DB 是否可用（初始化失败 → False：读路径不再碰库，全部走 ring buffer）
@@ -1456,20 +1460,49 @@ class AuditChain:
         except Exception as exc:  # noqa: BLE001 留痕失败不改写降级事实
             logger.debug("审计链降级留痕失败: %s", exc)
 
+    def _failed_snapshot(self) -> List[AuditEntry]:
+        """``_failed_buffer`` 的**一致快照**（持锁拷贝）
+
+        【为什么必须有它（实测指出的线程安全缺口）】
+        ``_failed_buffer`` 被 **writer 线程**写（``_buffer_failed`` / ``clear``），
+        又被**任意读线程**遍历（``entries`` / ``verify_chain`` / ``seq_range`` /
+        ``stats`` ...）。CPython 的 ``deque`` 在"一边 append 一边迭代"时会抛
+        ``RuntimeError: deque mutated during iteration`` —— 那会让**审计读路径**
+        （含验签、面板）随机失败。原实现全程无锁遍历，属真实的崩溃级竞态。
+        改用"持锁拷贝后遍历"：读路径拿到一致视图，且不再与写者共享迭代状态。
+        """
+        with self._buffer_lock:
+            return list(self._failed_buffer)
+
+    def _failed_len(self) -> int:
+        """``_failed_buffer`` 当前长度（持锁读；避免读到撕裂状态）"""
+        with self._buffer_lock:
+            return len(self._failed_buffer)
+
     def _buffer_failed(self, entry: "AuditEntry") -> None:
         """降级缓存一条记录（**溢出必须可见**）
 
         【为什么不能直接用 ``deque(maxlen=N).append``（实现期指出的静默点）】
         ``deque`` 到上限后 append 会**静默丢弃最旧一条**——审计记录就这样消失了，
         只有内存里的长度能说明问题。故此处显式比较长度、计数并留痕。
+
+        【计数与 append 必须在同一临界区】否则"判长 → 计数 → append"之间
+        可能被另一个写者插入，导致丢弃数被少计、或计数与实际丢弃数不符。
         """
-        if len(self._failed_buffer) >= self._ring_buffer_maxlen > 0:
-            self._buffer_dropped_count += 1
+        with self._buffer_lock:
+            if len(self._failed_buffer) >= self._ring_buffer_maxlen > 0:
+                self._buffer_dropped_count += 1
+                dropped = self._buffer_dropped_count
+                overflow = True
+            else:
+                dropped = self._buffer_dropped_count
+                overflow = False
+            self._failed_buffer.append(entry)
+        if overflow:
             self._note_degraded(
                 f"ring_buffer_overflow（容量 {self._ring_buffer_maxlen}，"
-                f"已丢弃最旧一条；丢弃累计 {self._buffer_dropped_count}）",
+                f"已丢弃最旧一条；丢弃累计 {dropped}）",
                 key=f"seq={entry.seq}")
-        self._failed_buffer.append(entry)
 
     def _note_queue_full(self, entry: "AuditEntry") -> None:
         """队满：**不丢数据**（记录已在预留日志里），显式计数 + 留痕
@@ -1880,9 +1913,9 @@ class AuditChain:
         pending = self._drain_journal()
         if not pending:
             return 0
-        before = len(self._failed_buffer)
+        before = self._failed_len()
         self._write_to_db(pending)
-        written = max(len(self._failed_buffer) - before, 0)
+        written = max(self._failed_len() - before, 0)
         logger.info("审计链预留日志同步收敛：补写 %d 条（崩溃恢复/降级滞留）",
                     len(pending))
         return len(pending) - written
@@ -2047,8 +2080,10 @@ class AuditChain:
                 return str(rows[-1]["ts"])
         except Exception:  # noqa: BLE001
             pass
-        if self._failed_buffer:
-            return str(self._failed_buffer[-1].ts)
+        if self._failed_len():
+            buffered = self._failed_snapshot()
+            if buffered:
+                return str(buffered[-1].ts)
         return ""
 
     def flush(self, timeout: float = FLUSH_TIMEOUT) -> bool:
@@ -2145,7 +2180,8 @@ class AuditChain:
                 self._queue.get_nowait()
             except queue_module.Empty:
                 break
-        self._failed_buffer.clear()
+        with self._buffer_lock:
+            self._failed_buffer.clear()
         # 【S8-02】此 DELETE 是"全模块唯一 DELETE"（既有不变量测试按
         # "DELETE 前 400 字符内出现 def clear" 校验，故本行须紧贴函数头）。
         # 必须**同步清预留日志**：否则只清了 DB，日志里的旧记录会被
@@ -2236,7 +2272,7 @@ class AuditChain:
         因此"刚 append 但还没入库"的记录可能在日志里而不在 ring buffer 里
         （典型是队满时）。读路径承诺"读得到刚写的"，故两者都要合并。
         """
-        extra = [e for e in self._failed_buffer if e.seq not in seen]
+        extra = [e for e in self._failed_snapshot() if e.seq not in seen]
         if self._journal_enabled:
             try:
                 db_seq, _ = self._db_head()
@@ -2273,7 +2309,7 @@ class AuditChain:
         # ⇒ 刚写的记录读不到。实测该窗口使
         # `test_failed_write_keeps_records_visible` 偶发绿灯（12 次复现 1–3 次）。
         # 故只要**日志可用**就必须走合并路径。
-        if self._failed_buffer or self._journal_enabled:
+        if self._failed_len() or self._journal_enabled:
             extra = self._buffered_extra(seen)
             if start_seq is not None:
                 extra = [e for e in extra if e.seq >= start_seq]
@@ -2313,7 +2349,7 @@ class AuditChain:
         rows = self._query_rows(start_seq=int(seq), end_seq=int(seq))
         if rows:
             return AuditEntry.from_row(rows[0])
-        for e in self._failed_buffer:
+        for e in self._failed_snapshot():
             if e.seq == int(seq):
                 return e
         return None
@@ -2322,8 +2358,9 @@ class AuditChain:
         rows = self._query_rows(limit=1, order_desc=True)
         if rows:
             return AuditEntry.from_row(rows[-1])
-        if self._failed_buffer:
-            return self._failed_buffer[-1]
+        buffered = self._failed_snapshot()
+        if buffered:
+            return buffered[-1]
         return None
 
     def count(self, **kwargs: Any) -> int:
@@ -2339,14 +2376,15 @@ class AuditChain:
 
     def seq_range(self) -> Tuple[int, int]:
         """(最小 seq, 最大 seq)；空链返回 (0, 0)"""
+        buffered = self._failed_snapshot()
         rows = self._query_rows(limit=None)
         if not rows:
-            buffered = [e.seq for e in self._failed_buffer]
-            if buffered:
-                return (min(buffered), max(buffered))
+            buffered_seqs = [e.seq for e in buffered]
+            if buffered_seqs:
+                return (min(buffered_seqs), max(buffered_seqs))
             return (0, 0)
         lo, hi = int(rows[0]["seq"]), int(rows[-1]["seq"])
-        for e in self._failed_buffer:
+        for e in buffered:
             lo, hi = min(lo, e.seq), max(hi, e.seq)
         return (lo, hi)
 
@@ -2366,7 +2404,7 @@ class AuditChain:
         rows = self._query_rows(start_seq=start_seq, end_seq=end_seq)
         entries = [AuditEntry.from_row(r) for r in rows]
         seen = {e.seq for e in entries}
-        if self._failed_buffer:
+        if self._failed_len():
             extra = self._buffered_extra(seen)
             if start_seq is not None:
                 extra = [e for e in extra if e.seq >= start_seq]
@@ -2638,7 +2676,7 @@ class AuditChain:
             "schema_version": SCHEMA_VERSION,
             "degraded": self._degraded,
             "degraded_reason": self._degraded_reason,
-            "failed_buffer": len(self._failed_buffer),
+            "failed_buffer": self._failed_len(),
             "daily_roots": len(self.read_daily_roots()),
             "signing_scheme": self._signer.scheme,
             "signing_degraded": self._signer.degraded,

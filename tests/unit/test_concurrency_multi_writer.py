@@ -23,13 +23,16 @@ import json
 import multiprocessing
 import os
 import sys
+import threading
 import time
 
 import pytest
 
 from agent.audit.chain import (
+    GENESIS_PREV_HASH,
     AuditChain,
     SeqJournal,
+    build_entry,
     get_audit_chain,
     reset_audit_chains,
 )
@@ -698,3 +701,135 @@ def test_get_audit_chain_singleton_reuse(paths):
         assert get_audit_chain(paths["db"]) is chain
     finally:
         chain.close()
+
+
+# ════════════════════════════════════════════════════════════
+#  7. 进程内线程安全：ring buffer 的"写者 vs 读者"竞态
+# ════════════════════════════════════════════════════════════
+
+
+@pytest.mark.timeout(180)
+def test_failed_buffer_read_while_written_is_thread_safe(paths):
+    """**写者 append 与读者遍历并发时不得抛异常**（不变式守卫）
+
+    【问题】``_failed_buffer`` 是普通 ``collections.deque``：**writer 线程**写
+    （``_buffer_failed`` / ``clear``），而读路径（``entries`` / ``seq_range`` /
+    ``stats`` / ``verify_chain``）可能在任何线程上遍历它。CPython 的 ``deque``
+    在"一边 append 一边迭代"时会抛
+    ``RuntimeError: deque mutated during iteration``（**已单独实测复现**：
+    需要一个**足够大**的 deque 让迭代跨越 GIL 切换点，配合极端切换间隔
+    ``sys.setswitchinterval(1e-6)`` 稳定复现）。修法是把读写都收进
+    ``_buffer_lock``，读走 ``_failed_snapshot()`` 的**持锁拷贝**再遍历。
+
+    【本用例的诚实定位：**守卫，不是复现**】这里用 ``ring_buffer_maxlen=64``
+    （默认 2000 量级的迭代在**一个 GIL 时间片内**就跑完，窗口极窄），
+    因此它**复现不出**那个 RuntimeError，跑的是"并发读写不抛异常 + 溢出仍被计数"
+    这两条不变量。真正的复现需要放大切换窗口，而 ``setswitchinterval`` 是
+    **进程级全局状态**，放进测试会波及其它用例（顺序污染），故刻意不这么做。
+    也就是说：本用例通过 **≠** 竞态已绝迹，只保证不回归。
+    """
+    chain = AuditChain(paths["db"], roots_path=paths["roots"],
+                       signing_enabled=False, auto_seal=False,
+                       ring_buffer_maxlen=64, auto_start_writer=False)
+    errors: List[str] = []
+    errors_lock = threading.Lock()
+    stop = threading.Event()
+
+    def _note(exc: BaseException) -> None:
+        with errors_lock:
+            errors.append(f"{type(exc).__name__}: {exc}")
+
+    def writer() -> None:
+        try:
+            for i in range(4000):
+                entry = build_entry(
+                    seq=i + 1, ts="2026-09-13T00:00:00+00:00", actor="a",
+                    action="race.write", subject="", payload={"i": i},
+                    prev_hash=GENESIS_PREV_HASH)
+                chain._buffer_failed(entry)          # noqa: SLF001 专测该路径
+        except BaseException as exc:  # noqa: BLE001 竞态会把异常直接抛出
+            _note(exc)
+        finally:
+            stop.set()
+
+    def reader() -> None:
+        try:
+            while not stop.is_set():
+                chain._failed_snapshot()             # noqa: SLF001
+                chain.seq_range()
+                chain.stats()
+                chain.last_entry()
+                chain.count()
+        except BaseException as exc:  # noqa: BLE001
+            _note(exc)
+
+    alive: List[str] = []
+    try:
+        threads = [threading.Thread(target=writer, name="race-w") for _ in range(2)]
+        threads += [threading.Thread(target=reader, name="race-r") for _ in range(3)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=60.0)
+        alive = [t.name for t in threads if t.is_alive()]
+        dropped = chain.stats()["buffer_dropped_count"]
+        buffered = chain._failed_len()               # noqa: SLF001
+    finally:
+        chain.close()
+
+    assert not alive, f"线程未在时限内退出（疑似死锁）: {alive}"
+    assert not errors, f"ring buffer 读写竞态导致异常: {errors[:5]}"
+    # 容量 64、写入 8000 条 ⇒ 必然溢出，且溢出必须被计数（不静默）
+    assert buffered <= 64, buffered
+    assert dropped > 0, "ring buffer 溢出未计数"
+
+
+@pytest.mark.timeout(120)
+def test_clear_is_thread_safe_against_reads(paths):
+    """``clear()`` 与读路径并发时同样不得抛异常（clear 也在改 deque）"""
+    chain = AuditChain(paths["db"], roots_path=paths["roots"],
+                       signing_enabled=False, auto_seal=False,
+                       ring_buffer_maxlen=32, auto_start_writer=False)
+    errors: List[str] = []
+    errors_lock = threading.Lock()
+    stop = threading.Event()
+
+    def churn() -> None:
+        try:
+            i = 0
+            while not stop.is_set():
+                i += 1
+                chain._buffer_failed(build_entry(      # noqa: SLF001
+                    seq=i, ts="2026-09-13T00:00:00+00:00", actor="a",
+                    action="race.clear", subject="", payload={},
+                    prev_hash=GENESIS_PREV_HASH))
+                if i % 50 == 0:
+                    with chain._buffer_lock:               # noqa: SLF001
+                        chain._failed_buffer.clear()       # noqa: SLF001
+        except BaseException as exc:  # noqa: BLE001
+            with errors_lock:
+                errors.append(f"{type(exc).__name__}: {exc}")
+        finally:
+            stop.set()
+
+    def reader() -> None:
+        try:
+            while not stop.is_set():
+                chain.stats()
+                chain._failed_snapshot()                   # noqa: SLF001
+        except BaseException as exc:  # noqa: BLE001
+            with errors_lock:
+                errors.append(f"{type(exc).__name__}: {exc}")
+
+    try:
+        threads = [threading.Thread(target=churn) for _ in range(2)]
+        threads += [threading.Thread(target=reader) for _ in range(2)]
+        for t in threads:
+            t.start()
+        time.sleep(1.0)
+        stop.set()
+        for t in threads:
+            t.join(timeout=30.0)
+    finally:
+        chain.close()
+    assert not errors, f"clear 与读并发导致异常: {errors[:5]}"
