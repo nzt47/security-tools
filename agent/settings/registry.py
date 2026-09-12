@@ -243,6 +243,22 @@ class SettingSpec:
     def requires_dual_approval(self) -> bool:
         return self.risk in SECOND_FACTOR_RISKS
 
+    def _public_default(self) -> Any:
+        """默认值的对外投影。
+
+        **C 级（只读脱敏）一律不投影默认值原文（返回 None）**：C 级涵盖密钥 /
+        路径 / 端点，其 default 可能是真实可用值；且当 `.env` 里的值恰好等于
+        默认值（按默认配置填写的常见情形）时，`masking.assert_no_plaintext`
+        会在投影里命中该字符串并抛错，使 `GET /api/cp/settings` **必现 500**
+        （2026-09-13 实测：`ERROR_REPORTING_FILE_PATH` 触发，原因是此前只对
+        `secret=True` 屏蔽，路径类 C 级项 `secret=False` 被漏掉）。
+        故按"C 级永不返回明文"的统一纪律处理；A/B 级照常投影（可编辑项
+        的默认值有 UI 价值）。
+        """
+        if self.risk == RISK_C:
+            return None
+        return self.default
+
     def to_public_dict(self) -> Dict[str, Any]:
         """元数据投影（**不含值**；值由 resolver 注入，C 级永不含明文）"""
         return {
@@ -250,8 +266,7 @@ class SettingSpec:
             "category": self.category,
             "category_label": CATEGORY_LABELS.get(self.category, self.category),
             "type": self.type,
-            "default": self.default if self.risk != RISK_C or not self.secret
-            else None,
+            "default": self._public_default(),
             "risk": self.risk,
             "risk_label": RISK_LABELS.get(self.risk, self.risk),
             "description": self.description,
@@ -1398,6 +1413,35 @@ _REGISTRY_ROWS: List[SettingSpec] = [
             "常见实例已逐条登记，UI 只读展示）"),
         risk=RISK_A, env_name="", dynamic_prefix="SKILL_CLEANUP_",
         owner_module="agent/skills_mgmt/cleanup_scheduler.py"),
+
+    # ────────────────────────────────────────────────────────
+    #  SLO 周报调度 与 成本校准件（2026-09-13）
+    # ────────────────────────────────────────────────────────
+    _a("CP_SLO_SCHEDULE_ENABLED", CAT_OBSERVABILITY, False,
+       "SLO 指标周报定时生成开关（每周自动生成并存档到 docs/zh/周报存档/）",
+       owner="agent/monitoring/slo_report_scheduler.py",
+       config_path="slo_report.enabled", needs_restart=True),
+    _c("CP_SLO_SCHEDULE_OUT_DIR", CAT_OBSERVABILITY, "docs/zh/周报存档",
+       "SLO 周报存档目录（只读展示）",
+       owner="agent/monitoring/slo_report_scheduler.py",
+       validator=Validator("path")),
+    _c("CP_SLO_SCHEDULE_AUDIT_FILE", CAT_OBSERVABILITY,
+       "data/slo_report_audit.jsonl",
+       "SLO 周报运行审计文件（只读展示）",
+       owner="agent/monitoring/slo_report_scheduler.py",
+       validator=Validator("path")),
+    # S7-03 成本校准引入的 env 读取点（此前未登记，2026-09-13 零缺口门抓出）
+    _c("CP_UTC_CALIBRATION_FILE", CAT_OBSERVABILITY, None,
+       "成本校准件路径（S7-03 实测校准结果；只读展示）",
+       owner="agent/observability/cost_calibration.py",
+       validator=Validator("path")),
+    SettingSpec(
+        key="CP_SLO_SCHEDULE_<KEY>", category=CAT_OBSERVABILITY, type="int",
+        default=None, description=(
+            "SLO 周报调度参数族：CP_SLO_SCHEDULE_<KEY>（DAYS / DAY_OF_WEEK / "
+            "HOUR / MINUTE；由 _ENV_PREFIX + 后缀拼接，UI 只读展示）"),
+        risk=RISK_A, env_name="", dynamic_prefix="CP_SLO_SCHEDULE_",
+        owner_module="agent/monitoring/slo_report_scheduler.py"),
 ]
 
 # ════════════════════════════════════════════════════════════

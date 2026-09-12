@@ -189,12 +189,22 @@ def _build_index() -> Dict[str, Any]:
     resolved = resolve_all()
     items = [r.to_public_dict() for r in resolved]
     # ★ 运行时守卫：C 级若漏了明文，这里直接抛错（而不是"悄悄发出去"）
+    # 【2026-09-13 修正】只检查**承载值**的字段（value/display_value），不对整条
+    # 投影做子串匹配。原因：元数据（default / validator.options / description）
+    # 本身就是公开信息且与"当前值"无关，其中的字面量会与短值/枚举值撞车而误判：
+    #   · ERROR_REPORTING_FILE_PATH 的 default 与 .env 值相同（按默认配置填写）
+    #   · CP_POLICY_INBOX_BACKEND 的枚举值（如 "memory"）出现在 validator.options
+    # 两者都会让 fail-closed 守卫误抛，使 GET /api/cp/settings 必现 500。
+    # 精确到值字段后，"值泄漏"仍然 fail-closed（C 级 value 应恒为 None、
+    # display_value 应为掩码形态），安全性不降低；C 级 default 亦已不投影。
     for r in resolved:
         spec = r.spec
         if spec.risk == "C" and spec.env_name:
             raw = os.environ.get(spec.env_name)
             if raw:
-                masking.assert_no_plaintext(items, raw, label=spec.key)
+                masking.assert_no_plaintext(
+                    {"value": r.value, "display_value": r.display_value},
+                    raw, label=spec.key)
     by_category: Dict[str, int] = {c: 0 for c in CATEGORY_ORDER}
     for r in resolved:
         by_category[r.spec.category] = by_category.get(r.spec.category, 0) + 1
