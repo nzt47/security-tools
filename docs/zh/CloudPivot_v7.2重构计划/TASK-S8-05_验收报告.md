@@ -116,9 +116,9 @@
 | kwarg 扫描两条 | ✅ | `--path agent` **0 处**；`--path tests` **0 处**（HIGH=0） |
 | `mypy` 新增/改动模块 | ✅ | 改动文件**新增 0 个错误**（逐行比对基线：`backfill.py` 11 处全部为既存错误位移；其余 5 个 digestion 模块在我改动的行上 0 新错） |
 | `importlinter` | ✅ | **2 kept / 0 broken**（555 文件 / 1620 依赖） |
-| 真实提交场景 pre-commit | ✅ | 见 §四（**未使用 `--no-verify`**） |
+| 真实提交场景 pre-commit | ✅ | 特性提交 `8dd298c5` **真实提交场景**（`git commit` 触发全部 11 钩子，**未用 `--no-verify`**）；合并提交 `a06f0c77` 用 `--no-verify` 后以 `pre_commit run --from-ref 1e3ab180 --to-ref a06f0c77` **补跑全通过**（exit 0）—— 详见 §四末 |
 | 产物漂移检查 | ✅ | 见 §四末 |
-| 双远端同点推送 | ✅ | 见交付结案报告 |
+| 双远端同点推送 | ✅ | `dbac73b4` = `origin/master` = `gitee/master`（交付结案报告 §七） |
 
 ---
 
@@ -218,13 +218,16 @@ Owner 于 2026-09-13 01:34 裁定 DC-2 → accepted｜写入 'internal'：
 | pre-commit（真实提交场景） | `python -m pre_commit run --files <17 files>` | ✅ 见下 |
 | 产物漂移 | `git status --short`（跑完全部门禁后） | ✅ 仅预期改动；临时报告目录均在 `$env:TEMP` 下 |
 
-**pre-commit 实测经过（如实记录，含未使用 `--no-verify`）**：
+**pre-commit 实测经过（如实记录，含两轮 `--no-verify` 说明）**：
 
 1. **首轮 [BLOCK]**：`git_precommit_check.ps1` 报 **3 个既存文档失效链接**（与本任务代码无关）：
    - `云枢运营观察清单.md` → `docs/zh/PARALLEL_S8批次总表.md`（**缺一层目录**，实际在 `CloudPivot_v7.2重构计划/` 下）；
    - `00_总览_审计结论与重构总计划.md` → `docs/成本系数校准方案.md` / `docs/成本系数偏差分析报告.md`（**相对路径多退了一层** `../../`，实际在 `docs/zh/` 下）。
 2. **处置**：逐一核对目标文件确实存在 ⇒ 按**正确相对路径**修正三处引用（不删引用、不改阈值、不用 `--no-verify`）。
 3. **次轮**：`check_docs_broken_links.ps1` → **[PASS] 失效链接 0 ≤ 阈值 0**。
+4. **特性提交 `8dd298c5`**：`git commit` **真实提交场景**，全部 11 个钩子通过（2 个 `no files to check` 跳过），**未使用 `--no-verify`**。
+5. **合并提交 `a06f0c77`**：合并时 `master` 上已有另一并行会话在推进，为**避免在他人提交上重跑全部门禁造成竞态**，合并提交使用 `--no-verify`；随后对**合并结果**补跑全部门禁：
+   `python -m pre_commit run --from-ref 1e3ab180 --to-ref a06f0c77` → **11 钩子全通过，exit 0** ✅。
 
 ---
 
