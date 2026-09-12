@@ -110,6 +110,46 @@ def test_audit_chain_metric_verifies_chain(tmp_path):
     assert data["available"] is True
     assert data["ok"] is True and data["checked"] == 2
     assert data["entries"] == 2 and data["head_seq"] == 2
+    assert data["first_bad_seq"] is None and data["bad_seq_count"] == 0
+
+
+def test_audit_chain_metric_locates_the_break_point(tmp_path):
+    """链断了要能指出**断在哪一条**：`ok=False` 之外还须给 `first_bad_seq`。
+
+    【为什么需要这条】S8-01 实测真实链库在 `seq=17` 处 `prev_hash_mismatch`，
+    而 `verify_chain()` 在首个断裂处即停（`checked=16` 而 `entries=21056`）——
+    只报 `ok=False` 无法定位，运营期也无法把"归档动了链"与"链本来就断了"区分开。
+    """
+    import sqlite3
+
+    from agent.audit.chain import AuditChain
+
+    db = str(tmp_path / "chain.db")
+    chain = AuditChain(db_path=db, roots_path=str(tmp_path / "roots.jsonl"),
+                       signing_key_path=str(tmp_path / "k.pem"))
+    try:
+        for i in range(4):
+            chain.append(f"act.{i}", "tester")
+        assert chain.flush(timeout=5.0) is True
+    finally:
+        chain.close()
+
+    healthy = audit_chain_metric(db_path=db)
+    assert healthy["ok"] is True and healthy["first_bad_seq"] is None
+    assert healthy["bad_seq_count"] == 0
+
+    # 篡改第 2 条：链自此不可信（本条与后继全部不通过）
+    conn = sqlite3.connect(db)
+    conn.execute("UPDATE audit_chain SET payload_hash = ? WHERE seq = 2", ("0" * 64,))
+    conn.commit()
+    conn.close()
+
+    broken = audit_chain_metric(db_path=db)
+    assert broken["ok"] is False
+    assert broken["first_bad_seq"] == 2, "必须指出断点"
+    assert broken["bad_seq_count"] >= 1
+    assert broken["verify_reason"]
+    assert broken["entries"] == 4, "条数不受校验结论影响（归档前后仍可比）"
 
 
 # ── 2. 归档前后一致（≥2 个指标）──────────────────────────────
