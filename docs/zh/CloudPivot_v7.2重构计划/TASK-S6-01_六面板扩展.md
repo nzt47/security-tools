@@ -1,10 +1,47 @@
 # TASK-S6-01 六面板扩展（消化流水线 / 能力地图 / 审批收件箱 / ROI / 审计导出）
 
-> 所属阶段：S6 UI 面板｜依赖：S2（数据/事件）、S3（流水线）、S5（评测/成本）｜预估：8–12 人日
+> 所属阶段：S6 UI 面板｜依赖：**S2/S3/S4/S5 全部已结案（前置已就绪）**｜预估：8–12 人日
 > 来源设计文档：`CloudPivot_v7.2_final_合并归档(智谱审核版).md` §7（六面板 / 七动作 / UI 五坑 / 永不自动化五类）/P7.2-24（组件名清单/可解释性）/§13.3（联动）
 > 验收报告归档于本目录 `docs/zh/CloudPivot_v7.2重构计划/`
+> ✅ **前置状态（2026-09-12 核实）**：S2 / S3 / S4（S4-01/02/03/04）/ S5（S5-01/02/03）**全部结案**，本任务所需的全部数据源与后端约束均已交付——见 §零。
 
 ---
+
+## 零、开工前置：各阶段已交付的面板数据源与必须接收的移交项
+
+### 0.1 面板 → 数据源对照（**均为已交付接口，勿自建聚合**）
+
+| 面板 | 数据源（已交付） |
+|---|---|
+| **消化流水线** | `agent/digestion/shadow.py` → `ShadowReport.to_dict()`（含 `p99_wall_*`、`overhead.shadow_overhead_ms`、`judge_kind`）；`agent/digestion/internalize.py` → `InternalizeDecision.to_dict()`（六条件逐项打分/否决原因）、`PromotePR.to_dict()`、`ManualReviewQueue.summary()`；`agent/digestion/service.py` → `DigestionReport.as_dict()`；stage 事件 `digest.stage`（`events.py`） |
+| **能力地图** | `agent/descriptors/registry.py` → `list_with_trust()`（含 provenance / risk / data_class / evolution.stage）；`capability_reference()` / `load_runtime_descriptors()`（S2-01） |
+| **审批收件箱** | `agent/skills_mgmt/approval.py`（ApprovalFlow）+ `PermissionDecision.to_dict()`（`allowed/reason/operation/actor_type/matrix_hit/denied_by_matrix/requires_second_factor/requires_reason`，S4-01）；**`object_type=stage.promote`** 真实链路；越权告警聚合口径（`actor_ip_hash` 计数 + 窗口阈值，S4-01 #8，**面板消费未建 → 本任务补**） |
+| **ROI / 成本** | `agent/observability/utc.py` → `utc_daily()/utc_window()/utc_weekly()/utc_snapshot()/cost_daily_view()`、`coefficient_table()`、`shadow_overhead_audit()`、`approval_decay_rate()`（**各指标带 `calibration` 块**，S5-03）；`COST_SOURCE_OF_TRUTH="events"` |
+| **自愈事故** | `agent/self_healing/levels.py` → `IncidentCard.to_dict()` + `list_incidents()` + `healing.triggered` 事件（含 `mttd_ms`/`mttr_ms`，S4-03/S5-02）；备份健康卡片沿用既有 |
+| **记忆 / 技能库** | `LayeredMemoryStore.recall()`（四层，S5-01）、`taxonomy.recall_priority_key()`；既有技能中心（skill-center / skill-assess-manager） |
+| **ACR / UTC / 降级 / 逃逸** | `agent/observability/acr.py`（`acr_snapshot/acr_daily/acr_weekly`）、`utc.py`、`agent/observability/model_degrade.py`（`model.degraded`）、`agent/observability/escape.py`（`escape`）；**§6.7 周报 8 项指标**（S5-02）→ 面板数据源 |
+| **审计导出** | `agent/audit/chain.py::verify_chain()` + 链式台账（S2-02） |
+
+### 0.2 必须接收的移交遗留（各任务结案时明确指派给 S6-01）
+
+| # | 移交项 | 来源 | 处置要求 |
+|---|---|---|---|
+| U1 | **机制 6 前端组件**：TaintBadge 渲染 / 审批区 Shadow DOM / 边界词确认 UI | S4-03 #7 | 后端约束与常量已交付：`agent/guardrails/boundary_words.py::boundary_state()`（五类、60s 上限、`accepts_text_approval=False`、`single_action_bound=True`）、`agent/guardrails/safe_render.py::safe_render_state()`（白名单/CSP/代理前缀/`TaintBadge` 三个 class 名/审批区 `z-index` 固定值）→ 前端按其常量渲染，勿自定义 |
+| U2 | **前端审批区挂载统一**：现落在 Flask 侧（Shadow DOM 自治单元），未嵌入 `yunshu-ui` React 外壳 | S4-01 #6 | 本任务统一挂载到工作台（Shadow DOM 保留，可挂任意宿主） |
+| U3 | **越权告警聚合面板**：口径已具备（`actor_ip_hash` + 窗口阈值），**面板/报表消费未建** | S4-01 #8 | 本任务补面板消费 |
+| U4 | **熔断/回滚按钮接线**：整包回滚入口 `release_bundle.rollback_bundle(bundle_hash, applier=...)`；**L5 级 `requires_approval=True`、组件子集一律拒绝** | S4-03 | UI 按钮必须走审批（不得旁路） |
+| U5 | **记忆→组装注入未接线**（P7.2-10：`ContextAssembler` system 区 策略 > 事实 > 偏好） | S5-01 L1 | 优先级已固化为 `taxonomy.recall_priority_key()`，`LayeredMemoryStore.recall()` 即注入源；如属前端可见范围则本任务接线，否则登记后续 |
+| U6 | **S5-03 四项性能实测缺位**：状态灯 / 首屏 / Watchdog / 熔断"达阈值→生效" | S5-03 #2 | `PERF_BUDGET_REBASED.md` §五 已给复测方案 → 状态灯/首屏**随本任务补测** |
+| U7 | **周期性评估调度点**（`evaluate_brakes()`） | S5-03 #5 | 建议随本任务或部署编排接入；`allow_outbound()` 已有惰性兜底 |
+| U8 | **策略决策日志口径**：全量埋点使出域判定 p99 逼近 5ms（命中 3.76 / 未命中 7.97ms），决策本体 p99 仅 0.047ms；有 `CP_POLICY_OBSERVE_SCOPE=governance` 降噪开关 | S4-02 L9 | 面板展示须**注明口径**（本体 vs 全量埋点），不得混用；轮转缺失（L10）属部署侧 |
+| U9 | `app_server.py::require_token` 历史副本清理（不走 `server_auth` 新实现） | S4-01 #3 | 本任务或专项清理（不阻塞） |
+| U10 | **委派回收率无真实数据源** | S5-02 #4 | 行契约 + 计算函数已交付 → 接线即可计算（与 S4-04 产物对接） |
+
+### 0.3 指标与口径纪律（S5-02 确立，本任务须遵守）
+
+- **样本 < 20 只披露不考核**；数据源缺位一律记 `None`，**不得以 0 冒充**；
+- 每个数字须带数据源与公式（**不可追溯的百分比禁止上屏**，对齐 UI 五坑⑤）；
+- L0 锚为**系统不可写**的验收标尺（`run_eval.py --layer L0/L1/L2`）。
 
 ## 一、目标描述
 
@@ -64,7 +101,8 @@
 2. 六面板组件（StatusBadge/StagePipeline/CapabilityMap/ApprovalInbox/ROIChart/IncidentCard/ReasonChain）。
 3. 七动作 UI 接线（只读为主、写动作走审批）+ 永不自动化五类确认 UI。
 4. 审计导出 + 安全渲染（TaintBadge/审批 DOM 隔离/CSP）。
-5. `TASK-S6-01_验收报告.md`。
+5. **§0.2 的 U1–U10 移交项处置**（逐条收口或明确登记后续）。
+6. `TASK-S6-01_验收报告.md`。
 
 ## 四、评估标准（验收清单）
 
@@ -79,3 +117,14 @@
 - [ ] **【S2-03 #12】** ACR/UTC 面板消费 `acr.py`/`utc.py` 真实聚合；模型降级拓扑消费 `model_degrade.py`；逃逸清单消费 `escape.py`（四类面板均非 mock）
 - [ ] 前端 tsc/eslint 零告警；vitest 新增用例全绿；既有技能中心零回归
 - [ ] 无"不可追溯百分比"（五坑⑤红线自查通过）
+- [ ] **【U1】** TaintBadge / 审批区 Shadow DOM / 边界词确认 UI 按 `guardrails.boundary_words.boundary_state()` 与 `safe_render.safe_render_state()` 的**既有常量**渲染（未自定义五类/60s/z-index）
+- [ ] **【U2】** 前端审批区统一挂载到工作台（Shadow DOM 保留），不再游离于 Flask 侧
+- [ ] **【U3】** 越权告警聚合面板消费 `actor_ip_hash` + 窗口阈值口径
+- [ ] **【U4】** 熔断/回滚按钮走 `release_bundle.rollback_bundle(bundle_hash, applier=...)` 且 **L5 强制审批**（旁路不成立）
+- [ ] **【U5】** 记忆→组装注入（策略 > 事实 > 偏好）按 `taxonomy.recall_priority_key()` 接线，或明确登记后续
+- [ ] **【U6】** 状态灯 / 首屏性能按 `PERF_BUDGET_REBASED.md` §五 复测方案**实测并标注 clock 口径**
+- [ ] **【U7】** 周期性评估调度点接入（或登记部署编排）
+- [ ] **【U8】** 成本/策略类数字**标注口径**（决策本体 p99 vs 全量埋点），不得混用
+- [ ] **【U9】** `app_server.py::require_token` 历史副本清理（或登记专项）
+- [ ] **【U10】** 委派回收率接线（行契约 + 计算函数已交付）
+- [ ] **【§0.3】** 样本 <20 仅披露、缺数据记 `None`（不以 0 冒充）；每个数字带数据源与公式
