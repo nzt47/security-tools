@@ -1473,6 +1473,17 @@ if __name__ == "__main__":
             print(f"✅ 技能清理定时任务注册: {cleanup_tasks}")
         except Exception as e:
             print(f"⚠️ 技能清理定时任务注册失败（不阻断主流程）: {e}")
+        # SLO 指标周报定时生成（§6.7；默认关闭，需 CP_SLO_SCHEDULE_ENABLED=true
+        # 或 config.yaml slo_report.enabled=true；默认周一 09:00，存档 docs/zh/周报存档/）
+        try:
+            from agent.monitoring.slo_report_scheduler import register_slo_report_scheduler
+            slo_task = register_slo_report_scheduler(scheduler)
+            if slo_task.get("registered"):
+                print(f"✅ SLO 周报定时任务注册: {slo_task}")
+            else:
+                print(f"ℹ️ SLO 周报定时任务未注册: {slo_task.get('reason')}")
+        except Exception as e:
+            print(f"⚠️ SLO 周报定时任务注册失败（不阻断主流程）: {e}")
         scheduler.start_daemon(check_interval=10)
         print("✅ 定时任务调度器已启动 (daemon)")
     except Exception as e:

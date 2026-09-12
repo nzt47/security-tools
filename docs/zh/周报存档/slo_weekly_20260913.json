@@ -1,0 +1,737 @@
+{
+  "schema": "eval.slo_weekly.v1",
+  "window": {
+    "start": "2026-09-07",
+    "end": "2026-09-13",
+    "days": 7
+  },
+  "generated_at": "2026-09-13T00:45:39+0800",
+  "events": {
+    "directory": "(默认 data/events)",
+    "rows": 2445
+  },
+  "sources": {
+    "acr": "agent.observability.acr.acr_summary(since, until)",
+    "utc": "agent.observability.utc.utc_window(start, end)",
+    "shadow_ledger": "未提供（--shadow-dir 缺省时跳过，避免触碰运行时目录）",
+    "events": "agent.observability.events.iter_events(since, until)",
+    "feedback": "未接入（👍率列置空）"
+  },
+  "metrics": {
+    "digest_throughput": {
+      "key": "digest_throughput",
+      "name": "消化吞吐",
+      "value": 1.0,
+      "unit": "能力/周",
+      "numerator": 1,
+      "denominator": 7,
+      "samples": 114,
+      "status": "ok",
+      "definition": "窗口内新达成 mirrored 的能力数（日增 mirrored 能力，折算为每周）",
+      "formula": "count(distinct capability_id | digest.stage.applied=True 且 to_stage='mirrored') × 7 / 窗口天数",
+      "source": "agent.observability.events（EV_DIGEST_STAGE，S3-01/S3-02 写入）",
+      "target": "≥2/周（W10 起）",
+      "computable": true,
+      "min_samples": 20,
+      "target_met": false,
+      "window_days": 7,
+      "capabilities": [
+        "cp.builtin.read_file"
+      ],
+      "digest_stage_events": 114,
+      "normalization": "×7/窗口天数"
+    },
+    "internalization_rate": {
+      "key": "internalization_rate",
+      "name": "内化转化率",
+      "value": 0.0,
+      "unit": "比率",
+      "numerator": 0,
+      "denominator": 32,
+      "samples": 32,
+      "status": "ok",
+      "definition": "(internalized + native) 能力数 / 总能力数",
+      "formula": "(n_internalized + n_native) / n_total",
+      "source": "agent.descriptors.registry.DescriptorRegistry（capability 台账 stage 字段）",
+      "target": "≥10%",
+      "computable": true,
+      "min_samples": 20,
+      "target_met": false,
+      "by_stage": {
+        "borrowed": 31,
+        "shadow": 1
+      }
+    },
+    "delegation_recovery": {
+      "key": "delegation_recovery",
+      "name": "委派回收率",
+      "value": null,
+      "unit": "比率",
+      "numerator": null,
+      "denominator": null,
+      "samples": 0,
+      "status": "framework_only",
+      "definition": "回收三件套（产物 + 轨迹 + 反思）齐全的委派占比（**机械 / LLM 两列**）",
+      "formula": "两列分别计算：count(三件套齐全 ∧ signal_kind=k) / count(signal_kind=k)（k ∈ {mechanical, llm}）；**跨列不得合并**",
+      "source": "委派行契约（见 delegation_recovery_contract()）：产物/轨迹/反思三源齐全性 + 复评半边的 signal_kind（R4）",
+      "target": "100%",
+      "computable": false,
+      "min_samples": 20,
+      "target_met": null,
+      "disclosure": "委派链路归 S4-04（未交付），当前无真实委派数据源；**R4 起按判定主体分两列披露**：机械列（①产物结构/②测试 fail→pass/③副作用核对/④可回放性）与 LLM 兜底列**严禁混算** —— 把 LLM 判定的成功算进机械成功率等于谎报证据强度；行未标 signal_kind 时单独记`unlabeled` 列，不并入任一列",
+      "contract": {
+        "rows": "Sequence[Mapping]",
+        "required": [
+          "delegation_id",
+          "capability_id"
+        ],
+        "triple_fields": [
+          "artifact",
+          "trace",
+          "reflection"
+        ],
+        "optional": [
+          "signal_kind",
+          "review_passed"
+        ],
+        "signal_kinds": [
+          "mechanical",
+          "llm",
+          "unlabeled"
+        ],
+        "source_owner": "S4-04（subagent 真实现）",
+        "note": "三件套缺任一 → 该次委派不计回收（§3.9：缺一不计成本核算、视为浪费）",
+        "column_rule": "判定主体两列**严禁混算**：机械列 = ①产物结构 / ②测试 fail→pass / ③副作用核对 / ④可回放性；LLM 列 = 兜底复评（①-④ 全不适用）；未标注单列 `unlabeled`。跨列合并的比率**不产出**"
+      },
+      "signals": [
+        {
+          "order": 1,
+          "signal": "artifact_structure",
+          "kind": "mechanical",
+          "name": "产物结构",
+          "definition": "产物是否**结构性通过** task_file ⑤产物的格式声明（schema / 必需字段）",
+          "applies_when": "契约⑤产物格式为**机器可验**形态（dict：``required_fields`` / ``schema``，或 JSON 对象串）**且**给出产物条目",
+          "passed_when": "存在 ≥1 条非空产物，且每条产物都含全部必需字段、字段类型与 schema 声明一致",
+          "source": "agent.subagent.delegation.DelegationContext.artifact_format（八要素⑤）+ 执行结果的 artifacts",
+          "disclosure": "自然语言写的产物格式**不可机验** ⇒ 本条不适用（不做关键词猜测）；适用时 schema 只做字段名/类型校验，**不做值语义判定**"
+        },
+        {
+          "order": 2,
+          "signal": "test_transition",
+          "kind": "mechanical",
+          "name": "测试/校验（fail→pass）",
+          "definition": "涉代码的委派：目标用例是否从 fail 变为 pass（可执行的直接证据）",
+          "applies_when": "给出测试证据：``{before, after}`` 或 ``{failing_ids, passed_ids}``",
+          "passed_when": "``after == pass``（逐号形态要求失败 id 集全部进入通过 id 集）",
+          "source": "调用方/执行器的**真实测试运行**证据（不入库则不适用）",
+          "disclosure": "``before == pass`` 时如实标注 `strict_fail_to_pass=False`（起始即通过 ⇒ 非 fail→pass 转变，证据强度降级但结论仍为机械可验）"
+        },
+        {
+          "order": 3,
+          "signal": "side_effects",
+          "kind": "mechanical",
+          "name": "副作用核对",
+          "definition": "**声明副作用 vs 实际副作用**集合是否一致",
+          "applies_when": "给出声明集合 + 实际集合，或 S3-02 比对结果（`LayerResult` 形）",
+          "passed_when": "声明集合逐条在实测集合中命中（**具体值优先、`${path}` 形态容忍**）",
+          "source": "复用 S3-02：`agent.digestion.sandbox`（`SIDE_EFFECT_KINDS` / `Observation.side_effect_set()` / `diff_side_effects()` 集合匹配规则）",
+          "disclosure": "声明侧无内容指纹 ⇒ 内容指纹检查**不适用**（不当作通过），仅在 evidence 中如实标注；目标集合比对始终执行"
+        },
+        {
+          "order": 4,
+          "signal": "replayability",
+          "kind": "mechanical",
+          "name": "可回放性",
+          "definition": "产物能否**重放复现**（同一输入同一结果）",
+          "applies_when": "给出 ≥2 次重放指纹 ``{fingerprints: [...]}``，或 ``{runs, identical}``",
+          "passed_when": "≥2 次重放且指纹全同（``identical`` 为真且 ``runs >= 2``）",
+          "source": "S3-02 回放沙箱的重放/`determinism_probe` 结果或等价调用方证据",
+          "disclosure": "单次重放**不构成**可回放性证据（不适用，非通过）"
+        },
+        {
+          "order": 5,
+          "signal": "llm_review",
+          "kind": "llm",
+          "name": "LLM 复评（兜底）",
+          "definition": "①-④ 均不适用时由云枢侧复评器给出的判定（ReflectionEngine / 规则复评）",
+          "applies_when": "机械信号全部不适用（**唯一**触发条件）",
+          "passed_when": "复评器 ``passed`` 为真（口径见 `agent.subagent.collection`）",
+          "source": "`reflection_engine_reviewer` / 注入的复评器（S4-04）",
+          "disclosure": "**必须**标注 `judge_kind` 并抽样人工校准（沿用 S3-02 M1 口径：≥0.85 仅软性 + 10% 人工抽检）；LLM 判定**不得**与机械判定混算"
+        }
+      ],
+      "columns": {
+        "mechanical": {
+          "signal_kind": "mechanical",
+          "samples": 0,
+          "status": "framework_only"
+        },
+        "llm": {
+          "signal_kind": "llm",
+          "samples": 0,
+          "status": "framework_only"
+        },
+        "unlabeled": {
+          "signal_kind": "unlabeled",
+          "samples": 0,
+          "status": "framework_only"
+        }
+      },
+      "mixed": false,
+      "assessment": {
+        "basis": "columns",
+        "rule": "两列分别计算，跨列不合并"
+      }
+    },
+    "delegation_success_rate": {
+      "key": "delegation_success_rate",
+      "name": "委派成功率",
+      "value": null,
+      "unit": "比率",
+      "numerator": null,
+      "denominator": null,
+      "samples": 0,
+      "status": "framework_only",
+      "definition": "复评半边判定为通过的委派占比（**机械 / LLM 两列**，R4）",
+      "formula": "两列分别计算：count(review_passed=True ∧ signal_kind=k) / count(已判定 ∧ signal_kind=k)（k ∈ {mechanical, llm}）；**跨列不得合并**",
+      "source": "委派行契约的 `review_passed`（或 reflection.cloudpivot_review.passed）+ `signal_kind`（R4）",
+      "target": "披露不考核（样本 < 20 只披露）",
+      "computable": true,
+      "min_samples": 20,
+      "target_met": null,
+      "disclosure": "机械信号清单见 `delegation_signal_dictionary()`（单一事实源在 `agent/subagent/mechanical.py`）；两列**严禁混算**，且行未标 signal_kind 时记 `unlabeled` 列（不当机械、也不当 LLM）",
+      "contract": {
+        "rows": "Sequence[Mapping]",
+        "required": [
+          "delegation_id",
+          "capability_id"
+        ],
+        "triple_fields": [
+          "artifact",
+          "trace",
+          "reflection"
+        ],
+        "optional": [
+          "signal_kind",
+          "review_passed"
+        ],
+        "signal_kinds": [
+          "mechanical",
+          "llm",
+          "unlabeled"
+        ],
+        "source_owner": "S4-04（subagent 真实现）",
+        "note": "三件套缺任一 → 该次委派不计回收（§3.9：缺一不计成本核算、视为浪费）",
+        "column_rule": "判定主体两列**严禁混算**：机械列 = ①产物结构 / ②测试 fail→pass / ③副作用核对 / ④可回放性；LLM 列 = 兜底复评（①-④ 全不适用）；未标注单列 `unlabeled`。跨列合并的比率**不产出**"
+      },
+      "signals": [
+        {
+          "order": 1,
+          "signal": "artifact_structure",
+          "kind": "mechanical",
+          "name": "产物结构",
+          "definition": "产物是否**结构性通过** task_file ⑤产物的格式声明（schema / 必需字段）",
+          "applies_when": "契约⑤产物格式为**机器可验**形态（dict：``required_fields`` / ``schema``，或 JSON 对象串）**且**给出产物条目",
+          "passed_when": "存在 ≥1 条非空产物，且每条产物都含全部必需字段、字段类型与 schema 声明一致",
+          "source": "agent.subagent.delegation.DelegationContext.artifact_format（八要素⑤）+ 执行结果的 artifacts",
+          "disclosure": "自然语言写的产物格式**不可机验** ⇒ 本条不适用（不做关键词猜测）；适用时 schema 只做字段名/类型校验，**不做值语义判定**"
+        },
+        {
+          "order": 2,
+          "signal": "test_transition",
+          "kind": "mechanical",
+          "name": "测试/校验（fail→pass）",
+          "definition": "涉代码的委派：目标用例是否从 fail 变为 pass（可执行的直接证据）",
+          "applies_when": "给出测试证据：``{before, after}`` 或 ``{failing_ids, passed_ids}``",
+          "passed_when": "``after == pass``（逐号形态要求失败 id 集全部进入通过 id 集）",
+          "source": "调用方/执行器的**真实测试运行**证据（不入库则不适用）",
+          "disclosure": "``before == pass`` 时如实标注 `strict_fail_to_pass=False`（起始即通过 ⇒ 非 fail→pass 转变，证据强度降级但结论仍为机械可验）"
+        },
+        {
+          "order": 3,
+          "signal": "side_effects",
+          "kind": "mechanical",
+          "name": "副作用核对",
+          "definition": "**声明副作用 vs 实际副作用**集合是否一致",
+          "applies_when": "给出声明集合 + 实际集合，或 S3-02 比对结果（`LayerResult` 形）",
+          "passed_when": "声明集合逐条在实测集合中命中（**具体值优先、`${path}` 形态容忍**）",
+          "source": "复用 S3-02：`agent.digestion.sandbox`（`SIDE_EFFECT_KINDS` / `Observation.side_effect_set()` / `diff_side_effects()` 集合匹配规则）",
+          "disclosure": "声明侧无内容指纹 ⇒ 内容指纹检查**不适用**（不当作通过），仅在 evidence 中如实标注；目标集合比对始终执行"
+        },
+        {
+          "order": 4,
+          "signal": "replayability",
+          "kind": "mechanical",
+          "name": "可回放性",
+          "definition": "产物能否**重放复现**（同一输入同一结果）",
+          "applies_when": "给出 ≥2 次重放指纹 ``{fingerprints: [...]}``，或 ``{runs, identical}``",
+          "passed_when": "≥2 次重放且指纹全同（``identical`` 为真且 ``runs >= 2``）",
+          "source": "S3-02 回放沙箱的重放/`determinism_probe` 结果或等价调用方证据",
+          "disclosure": "单次重放**不构成**可回放性证据（不适用，非通过）"
+        },
+        {
+          "order": 5,
+          "signal": "llm_review",
+          "kind": "llm",
+          "name": "LLM 复评（兜底）",
+          "definition": "①-④ 均不适用时由云枢侧复评器给出的判定（ReflectionEngine / 规则复评）",
+          "applies_when": "机械信号全部不适用（**唯一**触发条件）",
+          "passed_when": "复评器 ``passed`` 为真（口径见 `agent.subagent.collection`）",
+          "source": "`reflection_engine_reviewer` / 注入的复评器（S4-04）",
+          "disclosure": "**必须**标注 `judge_kind` 并抽样人工校准（沿用 S3-02 M1 口径：≥0.85 仅软性 + 10% 人工抽检）；LLM 判定**不得**与机械判定混算"
+        }
+      ],
+      "columns": {
+        "mechanical": {
+          "signal_kind": "mechanical",
+          "samples": 0,
+          "status": "framework_only"
+        },
+        "llm": {
+          "signal_kind": "llm",
+          "samples": 0,
+          "status": "framework_only"
+        },
+        "unlabeled": {
+          "signal_kind": "unlabeled",
+          "samples": 0,
+          "status": "framework_only"
+        }
+      },
+      "mixed": false,
+      "value_basis": ""
+    },
+    "skill_success_rate": {
+      "key": "skill_success_rate",
+      "name": "技能成功率",
+      "value": null,
+      "unit": "比率",
+      "numerator": 0,
+      "denominator": 0,
+      "samples": 0,
+      "status": "source_unavailable",
+      "definition": "灰度期候选通过率（与上游通过率对比）",
+      "formula": "Σpassed / Σsampled（ShadowLedger 行）；上游基准 = 上游臂通过率",
+      "source": "agent.digestion.shadow.ShadowLedger.rows()（S3-03 交付）",
+      "target": "≥上游 × 0.98",
+      "computable": true,
+      "min_samples": 20,
+      "target_met": null,
+      "reason": "灰度台账为空（无 shadow 运行记录）",
+      "ledger_rows": 0
+    },
+    "healing_latency": {
+      "key": "healing_latency",
+      "name": "MTTD / MTTR",
+      "value": null,
+      "unit": "ms",
+      "numerator": null,
+      "denominator": null,
+      "samples": 0,
+      "status": "framework_only",
+      "definition": "故障发现时间（MTTD）与恢复时间（MTTR）",
+      "formula": "median(healing.triggered.mttd_ms) / median(healing.triggered.mttr_ms)",
+      "source": "agent.observability.events（EV_HEALING_TRIGGERED，S4-03 归口的发射方）",
+      "target": "<3s / <30s",
+      "computable": false,
+      "min_samples": 20,
+      "target_met": null,
+      "disclosure": "`healing.triggered` 事件类型已登记（events.v1）但**当前无发射方**（自愈链路归 S4-03）；缺数据时返回 framework_only，不填 0",
+      "mttd_ms": null,
+      "mttr_ms": null,
+      "events": 0,
+      "reason": "无 healing.triggered 事件（发射方归 S4-03）"
+    },
+    "approval_decay_rate": {
+      "key": "approval_decay_rate",
+      "name": "审批衰减率",
+      "value": 0.096983,
+      "unit": "比率",
+      "numerator": 45,
+      "denominator": 464,
+      "samples": 464,
+      "status": "ok",
+      "definition": "审批面中由策略自动消化（auto_pass）的占比",
+      "formula": "count(approval.kind='auto_pass') / count(approval)",
+      "source": "agent.observability.events（EV_APPROVAL，S2-03 埋点）",
+      "target": "≥70%",
+      "computable": true,
+      "min_samples": 20,
+      "target_met": false,
+      "by_kind": {
+        "approve": 158,
+        "archived": 30,
+        "auto_pass": 45,
+        "conditional": 99,
+        "merged": 66,
+        "reject": 66
+      }
+    },
+    "delegation_cycle_days": {
+      "key": "delegation_cycle_days",
+      "name": "委派中位周期",
+      "value": null,
+      "unit": "天",
+      "numerator": null,
+      "denominator": null,
+      "samples": 0,
+      "status": "source_unavailable",
+      "definition": "能力从 borrowed 到 internalized 的天数中位数",
+      "formula": "median(internalized.ts − borrowed.ts)（按 capability_id 配对）",
+      "source": "agent.observability.events（EV_DIGEST_STAGE 的 stage 迁移时间戳）",
+      "target": "≤14 天",
+      "computable": true,
+      "min_samples": 20,
+      "target_met": null,
+      "reason": "窗口内无成对的 borrowed→internalized 迁移",
+      "pairs": []
+    },
+    "abandoned_rate": {
+      "key": "abandoned_rate",
+      "name": "弃单率",
+      "value": 0.0,
+      "unit": "比率",
+      "numerator": 0,
+      "denominator": 120,
+      "samples": 120,
+      "status": "ok",
+      "definition": "abandoned 任务 / 全部任务（含 explore/consult）",
+      "formula": "count(task.abandoned) / count(task.closed + task.abandoned)",
+      "source": "agent.observability.events（EV_TASK_CLOSED / EV_TASK_ABANDONED）",
+      "target": "披露不考核",
+      "computable": true,
+      "min_samples": 20,
+      "target_met": null,
+      "closed": 105,
+      "failed": 15,
+      "abandoned": 0
+    },
+    "routing_accuracy": {
+      "key": "routing_accuracy",
+      "name": "路由准确率",
+      "value": null,
+      "unit": "比率",
+      "numerator": null,
+      "denominator": null,
+      "samples": 0,
+      "status": "framework_only",
+      "definition": "Router 选择与事后最优一致率",
+      "formula": "count(router_choice == hindsight_best) / count(已标注决策)",
+      "source": "事后标注行契约（人工裁定 / 结果回测，见 routing_annotation_contract()）",
+      "target": ">85%（W10 起）",
+      "computable": false,
+      "min_samples": 20,
+      "target_met": null,
+      "disclosure": "事后最优尚无标注源（设计文档要求人工/结果回测标注）；本任务交付标注契约与计算函数，未标注时返回 framework_only",
+      "contract": {
+        "rows": "Sequence[Mapping]",
+        "required": [
+          "task_id",
+          "chosen",
+          "hindsight_best"
+        ],
+        "annotators": [
+          "human",
+          "replay"
+        ],
+        "note": "设计文档要求「shadow 事后标注」；本任务先交付契约与计算函数，标注源接入后即可计算；未标注时不得声称已有路由准确率"
+      }
+    },
+    "exploration_satisfaction": {
+      "key": "exploration_satisfaction",
+      "name": "探索满意度（S2-03 遗留 #4 正式口径）",
+      "value": null,
+      "unit": "比率",
+      "numerator": 0,
+      "denominator": 0,
+      "samples": 0,
+      "status": "source_unavailable",
+      "definition": "explore/consult 任务的 👍率 与 任务闭环率（双列，均不纳入 ACR 考核）",
+      "formula": "👍率 = like/(like+dislike)；闭环率 = closed/(closed+failed)",
+      "source": "👍率：agent.feedback.FeedbackManager.get_feedback_summary()；闭环率：acr.acr_summary()['exploration']",
+      "target": "披露不考核",
+      "computable": true,
+      "min_samples": 20,
+      "target_met": null,
+      "disclosure": "闭环率是**代理口径**（原实现），👍率是直接信号；二者并列披露，替代关系为「👍率为主 + 闭环率兜底」，任一口径都不得单独用于考核",
+      "thumbs_up_rate": null,
+      "thumbs_up_numerator": 0,
+      "thumbs_up_denominator": 0,
+      "closure_rate": null,
+      "closure_basis": "closure_success_ratio（关闭成功 / (关闭成功+失败)）",
+      "explore_tasks": 0,
+      "feedback_available": false,
+      "substitution": "正式口径 = 👍率（直接信号，源 agent.feedback）与任务闭环率（代理指标，源 acr.exploration）**并列双列**；闭环率单独使用会把「没被投诉的沉默放弃」算成满意，故不得单独用于考核",
+      "scope": "explore/consult 任务排除在 ACR 分母之外；本指标披露不考核（P7.1-16）",
+      "reason": "两列均无数据：👍率需反馈库（agent.feedback），闭环率需窗口内 explore/consult 任务收尾事件"
+    },
+    "utc_cents_per_task": {
+      "key": "utc_cents_per_task",
+      "name": "UTC（单位任务成本，辅助指标）",
+      "value": 0.820375,
+      "unit": "cents/任务",
+      "numerator": 98.445,
+      "denominator": 120,
+      "samples": 120,
+      "status": "ok",
+      "definition": "窗口内归一化成本 / 任务数（closed+failed）",
+      "formula": "cost_normalized_cents / (closed + failed)",
+      "source": "agent.observability.utc.utc_window()（S2-03 交付，与 S5-03 同源）",
+      "target": "由 S5-03 依 §6.3 阶段阈值设定",
+      "computable": true,
+      "min_samples": 20,
+      "target_met": null,
+      "disclosure": "本指标非 §6.7 条目，作为 UTC 刹车（S5-03）的数据源透传展示",
+      "window_days": 7,
+      "utc_formula": "UTC = cost_normalized_cents / 任务数（closed+failed；ACR 同口径变体排除 explore/consult）",
+      "anchor_model": "gpt-4",
+      "cache_hit_rate": 0.0
+    }
+  },
+  "dictionary": [
+    {
+      "key": "digest_throughput",
+      "name": "消化吞吐",
+      "definition": "窗口内新达成 mirrored 的能力数（日增 mirrored 能力，折算为每周）",
+      "formula": "count(distinct capability_id | digest.stage.applied=True 且 to_stage='mirrored') × 7 / 窗口天数",
+      "source": "agent.observability.events（EV_DIGEST_STAGE，S3-01/S3-02 写入）",
+      "target": "≥2/周（W10 起）",
+      "unit": "能力/周",
+      "computable": true,
+      "phase": "W10+",
+      "owner": "S5-02",
+      "disclosure": ""
+    },
+    {
+      "key": "internalization_rate",
+      "name": "内化转化率",
+      "definition": "(internalized + native) 能力数 / 总能力数",
+      "formula": "(n_internalized + n_native) / n_total",
+      "source": "agent.descriptors.registry.DescriptorRegistry（capability 台账 stage 字段）",
+      "target": "≥10%",
+      "unit": "比率",
+      "computable": true,
+      "phase": "",
+      "owner": "S5-02",
+      "disclosure": ""
+    },
+    {
+      "key": "delegation_recovery",
+      "name": "委派回收率",
+      "definition": "回收三件套（产物 + 轨迹 + 反思）齐全的委派占比（**机械 / LLM 两列**）",
+      "formula": "两列分别计算：count(三件套齐全 ∧ signal_kind=k) / count(signal_kind=k)（k ∈ {mechanical, llm}）；**跨列不得合并**",
+      "source": "委派行契约（见 delegation_recovery_contract()）：产物/轨迹/反思三源齐全性 + 复评半边的 signal_kind（R4）",
+      "target": "100%",
+      "unit": "比率",
+      "computable": false,
+      "phase": "",
+      "owner": "S4-04（委派链路）+ S5-02（口径）+ S7-06（R4 两列）",
+      "disclosure": "委派链路归 S4-04（未交付），当前无真实委派数据源；**R4 起按判定主体分两列披露**：机械列（①产物结构/②测试 fail→pass/③副作用核对/④可回放性）与 LLM 兜底列**严禁混算** —— 把 LLM 判定的成功算进机械成功率等于谎报证据强度；行未标 signal_kind 时单独记`unlabeled` 列，不并入任一列"
+    },
+    {
+      "key": "delegation_success_rate",
+      "name": "委派成功率",
+      "definition": "复评半边判定为通过的委派占比（**机械 / LLM 两列**，R4）",
+      "formula": "两列分别计算：count(review_passed=True ∧ signal_kind=k) / count(已判定 ∧ signal_kind=k)（k ∈ {mechanical, llm}）；**跨列不得合并**",
+      "source": "委派行契约的 `review_passed`（或 reflection.cloudpivot_review.passed）+ `signal_kind`（R4）",
+      "target": "披露不考核（样本 < 20 只披露）",
+      "unit": "比率",
+      "computable": true,
+      "phase": "",
+      "owner": "S5-02（口径）+ S7-06（R4 两列）",
+      "disclosure": "机械信号清单见 `delegation_signal_dictionary()`（单一事实源在 `agent/subagent/mechanical.py`）；两列**严禁混算**，且行未标 signal_kind 时记 `unlabeled` 列（不当机械、也不当 LLM）"
+    },
+    {
+      "key": "skill_success_rate",
+      "name": "技能成功率",
+      "definition": "灰度期候选通过率（与上游通过率对比）",
+      "formula": "Σpassed / Σsampled（ShadowLedger 行）；上游基准 = 上游臂通过率",
+      "source": "agent.digestion.shadow.ShadowLedger.rows()（S3-03 交付）",
+      "target": "≥上游 × 0.98",
+      "unit": "比率",
+      "computable": true,
+      "phase": "",
+      "owner": "S5-02",
+      "disclosure": ""
+    },
+    {
+      "key": "healing_latency",
+      "name": "MTTD / MTTR",
+      "definition": "故障发现时间（MTTD）与恢复时间（MTTR）",
+      "formula": "median(healing.triggered.mttd_ms) / median(healing.triggered.mttr_ms)",
+      "source": "agent.observability.events（EV_HEALING_TRIGGERED，S4-03 归口的发射方）",
+      "target": "<3s / <30s",
+      "unit": "ms",
+      "computable": false,
+      "phase": "",
+      "owner": "S4-03（自愈与 Saga）",
+      "disclosure": "`healing.triggered` 事件类型已登记（events.v1）但**当前无发射方**（自愈链路归 S4-03）；缺数据时返回 framework_only，不填 0"
+    },
+    {
+      "key": "approval_decay_rate",
+      "name": "审批衰减率",
+      "definition": "审批面中由策略自动消化（auto_pass）的占比",
+      "formula": "count(approval.kind='auto_pass') / count(approval)",
+      "source": "agent.observability.events（EV_APPROVAL，S2-03 埋点）",
+      "target": "≥70%",
+      "unit": "比率",
+      "computable": true,
+      "phase": "",
+      "owner": "S5-02",
+      "disclosure": ""
+    },
+    {
+      "key": "delegation_cycle_days",
+      "name": "委派中位周期",
+      "definition": "能力从 borrowed 到 internalized 的天数中位数",
+      "formula": "median(internalized.ts − borrowed.ts)（按 capability_id 配对）",
+      "source": "agent.observability.events（EV_DIGEST_STAGE 的 stage 迁移时间戳）",
+      "target": "≤14 天",
+      "unit": "天",
+      "computable": true,
+      "phase": "",
+      "owner": "S5-02",
+      "disclosure": ""
+    },
+    {
+      "key": "abandoned_rate",
+      "name": "弃单率",
+      "definition": "abandoned 任务 / 全部任务（含 explore/consult）",
+      "formula": "count(task.abandoned) / count(task.closed + task.abandoned)",
+      "source": "agent.observability.events（EV_TASK_CLOSED / EV_TASK_ABANDONED）",
+      "target": "披露不考核",
+      "unit": "比率",
+      "computable": true,
+      "phase": "",
+      "owner": "S5-02",
+      "disclosure": ""
+    },
+    {
+      "key": "routing_accuracy",
+      "name": "路由准确率",
+      "definition": "Router 选择与事后最优一致率",
+      "formula": "count(router_choice == hindsight_best) / count(已标注决策)",
+      "source": "事后标注行契约（人工裁定 / 结果回测，见 routing_annotation_contract()）",
+      "target": ">85%（W10 起）",
+      "unit": "比率",
+      "computable": false,
+      "phase": "",
+      "owner": "S5-02（框架）+ 后续标注源",
+      "disclosure": "事后最优尚无标注源（设计文档要求人工/结果回测标注）；本任务交付标注契约与计算函数，未标注时返回 framework_only"
+    },
+    {
+      "key": "exploration_satisfaction",
+      "name": "探索满意度（S2-03 遗留 #4 正式口径）",
+      "definition": "explore/consult 任务的 👍率 与 任务闭环率（双列，均不纳入 ACR 考核）",
+      "formula": "👍率 = like/(like+dislike)；闭环率 = closed/(closed+failed)",
+      "source": "👍率：agent.feedback.FeedbackManager.get_feedback_summary()；闭环率：acr.acr_summary()['exploration']",
+      "target": "披露不考核",
+      "unit": "比率",
+      "computable": true,
+      "phase": "",
+      "owner": "S5-02",
+      "disclosure": "闭环率是**代理口径**（原实现），👍率是直接信号；二者并列披露，替代关系为「👍率为主 + 闭环率兜底」，任一口径都不得单独用于考核"
+    },
+    {
+      "key": "utc_cents_per_task",
+      "name": "UTC（单位任务成本，辅助指标）",
+      "definition": "窗口内归一化成本 / 任务数（closed+failed）",
+      "formula": "cost_normalized_cents / (closed + failed)",
+      "source": "agent.observability.utc.utc_window()（S2-03 交付，与 S5-03 同源）",
+      "target": "由 S5-03 依 §6.3 阶段阈值设定",
+      "unit": "cents/任务",
+      "computable": true,
+      "phase": "",
+      "owner": "S5-03（阈值）+ S5-02（口径透传）",
+      "disclosure": "本指标非 §6.7 条目，作为 UTC 刹车（S5-03）的数据源透传展示"
+    }
+  ],
+  "delegation_signals": [
+    {
+      "order": 1,
+      "signal": "artifact_structure",
+      "kind": "mechanical",
+      "name": "产物结构",
+      "definition": "产物是否**结构性通过** task_file ⑤产物的格式声明（schema / 必需字段）",
+      "applies_when": "契约⑤产物格式为**机器可验**形态（dict：``required_fields`` / ``schema``，或 JSON 对象串）**且**给出产物条目",
+      "passed_when": "存在 ≥1 条非空产物，且每条产物都含全部必需字段、字段类型与 schema 声明一致",
+      "source": "agent.subagent.delegation.DelegationContext.artifact_format（八要素⑤）+ 执行结果的 artifacts",
+      "disclosure": "自然语言写的产物格式**不可机验** ⇒ 本条不适用（不做关键词猜测）；适用时 schema 只做字段名/类型校验，**不做值语义判定**"
+    },
+    {
+      "order": 2,
+      "signal": "test_transition",
+      "kind": "mechanical",
+      "name": "测试/校验（fail→pass）",
+      "definition": "涉代码的委派：目标用例是否从 fail 变为 pass（可执行的直接证据）",
+      "applies_when": "给出测试证据：``{before, after}`` 或 ``{failing_ids, passed_ids}``",
+      "passed_when": "``after == pass``（逐号形态要求失败 id 集全部进入通过 id 集）",
+      "source": "调用方/执行器的**真实测试运行**证据（不入库则不适用）",
+      "disclosure": "``before == pass`` 时如实标注 `strict_fail_to_pass=False`（起始即通过 ⇒ 非 fail→pass 转变，证据强度降级但结论仍为机械可验）"
+    },
+    {
+      "order": 3,
+      "signal": "side_effects",
+      "kind": "mechanical",
+      "name": "副作用核对",
+      "definition": "**声明副作用 vs 实际副作用**集合是否一致",
+      "applies_when": "给出声明集合 + 实际集合，或 S3-02 比对结果（`LayerResult` 形）",
+      "passed_when": "声明集合逐条在实测集合中命中（**具体值优先、`${path}` 形态容忍**）",
+      "source": "复用 S3-02：`agent.digestion.sandbox`（`SIDE_EFFECT_KINDS` / `Observation.side_effect_set()` / `diff_side_effects()` 集合匹配规则）",
+      "disclosure": "声明侧无内容指纹 ⇒ 内容指纹检查**不适用**（不当作通过），仅在 evidence 中如实标注；目标集合比对始终执行"
+    },
+    {
+      "order": 4,
+      "signal": "replayability",
+      "kind": "mechanical",
+      "name": "可回放性",
+      "definition": "产物能否**重放复现**（同一输入同一结果）",
+      "applies_when": "给出 ≥2 次重放指纹 ``{fingerprints: [...]}``，或 ``{runs, identical}``",
+      "passed_when": "≥2 次重放且指纹全同（``identical`` 为真且 ``runs >= 2``）",
+      "source": "S3-02 回放沙箱的重放/`determinism_probe` 结果或等价调用方证据",
+      "disclosure": "单次重放**不构成**可回放性证据（不适用，非通过）"
+    },
+    {
+      "order": 5,
+      "signal": "llm_review",
+      "kind": "llm",
+      "name": "LLM 复评（兜底）",
+      "definition": "①-④ 均不适用时由云枢侧复评器给出的判定（ReflectionEngine / 规则复评）",
+      "applies_when": "机械信号全部不适用（**唯一**触发条件）",
+      "passed_when": "复评器 ``passed`` 为真（口径见 `agent.subagent.collection`）",
+      "source": "`reflection_engine_reviewer` / 注入的复评器（S4-04）",
+      "disclosure": "**必须**标注 `judge_kind` 并抽样人工校准（沿用 S3-02 M1 口径：≥0.85 仅软性 + 10% 人工抽检）；LLM 判定**不得**与机械判定混算"
+    }
+  ],
+  "acr_window": {
+    "acr": 1.127717,
+    "denominator": {
+      "closed": 169,
+      "failed": 15,
+      "total": 184
+    },
+    "exploration": {
+      "tasks": 0,
+      "closed_success": 0,
+      "failed": 0,
+      "abandoned": 0,
+      "intervention_weight": 0.0,
+      "intervention_counts": {},
+      "satisfaction": null,
+      "satisfaction_basis": "closure_success_ratio（关闭成功 / (关闭成功+失败)）",
+      "note": "P7.1-16 探索满意度：源文档未给公式，本实现以「关闭成功率」为代理指标并同时披露介入权重"
+    }
+  },
+  "utc_window": {
+    "utc_cents_per_task": 0.820375,
+    "cost_normalized_cents": 98.445,
+    "tasks": {
+      "closed_and_failed": 120,
+      "acr_cohort": 120,
+      "excluded_explore_consult": 0,
+      "abandoned": 0
+    },
+    "anchor_model": "gpt-4"
+  },
+  "traceability": "每个 metric 均带 source（数据源）+ formula（公式）+ numerator/denominator（分子分母）+ samples（样本量）；value=None 表示数据源缺位，不以 0 冒充"
+}

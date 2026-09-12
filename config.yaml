@@ -741,3 +741,16 @@ workflow_learning:
     # 环境变量 WF_SKILL_AUTO_UPGRADE_ENABLED / WF_SKILL_AUTO_UPGRADE_INTERVAL 覆盖
 
 
+# ── SLO 指标周报定时生成（默认关闭，安全底线）────────────────────────
+# 开启后由 TaskScheduler 每周自动生成 §6.7 指标周报并存档，
+# 便于运营期"与 W0 基线和上周对比"。也可用 CP_SLO_SCHEDULE_* 环境变量覆盖。
+slo_report:
+  enabled: false          # true 时注册周报定时任务（等价 CP_SLO_SCHEDULE_ENABLED=true）
+  day_of_week: 0          # 0=周一 … 6=周日（Python weekday() 语义）
+  hour: 9                 # 触发小时（0-23）
+  minute: 0               # 触发分钟（0-59）
+  days: 7                 # 周报窗口天数（1-90）
+  # out_dir: docs/zh/周报存档                    # 缺省即此目录
+  # audit_file: data/slo_report_audit.jsonl      # 每次运行追加审计
+
+
