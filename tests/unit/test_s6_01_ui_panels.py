@@ -476,6 +476,64 @@ class TestMemorySkillsPanel:
         assert view["layers"]["available"] is False
         assert view["layers"]["value"] is None
 
+    def test_memory_card_maps_real_entry_fields(self):
+        """★ 用**真实** `MemoryEntry` 走 `_memory_card()`（§3.11 字段逐字映射）
+
+        覆盖重点：
+          - `type` 是 `MemoryType` 枚举 ⇒ 必须取 `.value` 作为 layer；
+          - `content_redacted` 是**脱敏后**文本（面板不导出原文）；
+          - `ttl_expires_at` 与 `created_at` 都是数值时才派生 `ttl_seconds`。
+        """
+        from agent.memory.taxonomy import MemoryEntry, MemoryType
+        entry = MemoryEntry(
+            id="mem-1", tenant_id="t1", subject_id="s1",
+            type=MemoryType.FACT, content_redacted="脱敏后内容",
+            content_hash="", scope="project:ws-1",
+            created_at=1000.0, ttl_expires_at=1300.0, confidence=0.9)
+        view = D.memory_skills_view(store=_FixedMemoryStore([entry]), limit=5)
+        card = view["layers"]["entries"][0]
+        assert card["memory_id"] == "mem-1"
+        assert card["layer"] == "fact"                 # 枚举 → value
+        assert card["scope_kind"] == "project"
+        assert card["content_redacted"] == "脱敏后内容"
+        assert card["ttl_seconds"] == 300.0            # 1300 − 1000
+        assert card["content_hash"]                    # __post_init__ 自动补齐
+
+    def test_memory_card_without_numeric_ttl(self):
+        """无非数值 TTL ⇒ `ttl_seconds` 记 None（不臆造）"""
+        from agent.memory.taxonomy import MemoryEntry, MemoryType
+        entry = MemoryEntry(id="mem-2", tenant_id="t", subject_id="s",
+                            type=MemoryType.PREFERENCE, content_redacted="x",
+                            content_hash="h", scope="global", created_at=5.0)
+        view = D.memory_skills_view(store=_FixedMemoryStore([entry]), limit=5)
+        card = view["layers"]["entries"][0]
+        assert card["ttl_seconds"] is None
+        assert card["scope_kind"] == "global"
+
+    def test_layers_filter_applies(self):
+        from agent.memory.taxonomy import MemoryEntry, MemoryType
+        rows = [
+            MemoryEntry(id="a", tenant_id="t", subject_id="s",
+                        type=MemoryType.FACT, content_redacted="f",
+                        content_hash="h", scope="global"),
+            MemoryEntry(id="b", tenant_id="t", subject_id="s",
+                        type=MemoryType.STRATEGY, content_redacted="s",
+                        content_hash="h", scope="global"),
+        ]
+        view = D.memory_skills_view(store=_FixedMemoryStore(rows), layers=["fact"])
+        assert [e["memory_id"] for e in view["layers"]["entries"]] == ["a"]
+        assert view["layers"]["by_layer"] == {"fact": 1}
+
+
+class _FixedMemoryStore:
+    """返回固定条目的最小 store（`recall` 为 async，与真实 `LayeredMemoryStore` 同形）"""
+
+    def __init__(self, rows):
+        self._rows = list(rows)
+
+    async def recall(self, *a, **k):
+        return list(self._rows)
+
 
 class TestSecurityAndAuthz:
     """U1 常量单一来源 + U3 越权告警聚合"""
@@ -1076,3 +1134,100 @@ class TestNoUntraceablePercentages:
         for name, payload in payloads.items():
             report = S.untraceable_scan(payload)
             assert report["ok"] is True, f"{name}: {report['violations'][:5]}"
+
+
+class TestGracefulDegradation:
+    """★ 守不易：**新增机制失败不得阻断主流程**
+
+    逐个面板把数据源打成"不可用"，断言：
+        - 不抛异常、HTTP 仍 200；
+        - 受影响区段记为 `absent`（`value=None` + `reason`），**不用 0 或空表冒充**；
+        - 该面板其余区段仍可用（局部降级而非整体失败）。
+    """
+
+    def test_roi_sub_sources_unavailable_are_absent(self, tmp_path, monkeypatch):
+        """ROI 面板：ACR / UTC 子源不可用 ⇒ 记为 absent，其余仍可读"""
+        import agent.observability.acr as acr
+        import agent.observability.utc as utc
+
+        def _boom(*a, **k):
+            raise RuntimeError("source down")
+
+        monkeypatch.setattr(utc, "utc_snapshot", _boom)
+        monkeypatch.setattr(utc, "utc_weekly", _boom)
+        monkeypatch.setattr(acr, "acr_daily", _boom)
+        monkeypatch.setattr(acr, "acr_weekly", _boom)
+        view = D.roi_view(days=7, events_dir=str(tmp_path / "e"))
+        assert view["ok"] is True
+        for key in ("utc_weekly", "utc_snapshot", "acr_daily", "acr_weekly"):
+            assert view[key]["available"] is False, key
+            assert view[key]["value"] is None, key
+            assert "utc 不可用" in view[key]["reason"] or "acr 不可用" in view[key]["reason"]
+        # 未受影响的区段仍可用
+        assert view["policy_latency"]["decision_body"]["value"] == 0.0474
+
+    def test_observability_stream_degrades_per_section(self, tmp_path, monkeypatch):
+        """事件流面板：单个聚合源失败不影响其余三块"""
+        import agent.observability.model_degrade as md
+
+        def _boom(*a, **k):
+            raise RuntimeError("degrade summary down")
+
+        monkeypatch.setattr(md, "degrade_summary", _boom)
+        view = D.observability_stream(days=7, events_dir=str(tmp_path / "e"))
+        assert view["ok"] is True
+        assert view["model_degrade"]["available"] is False
+        assert "model_degrade 不可用" in view["model_degrade"]["reason"]
+        # 其余三块不受影响
+        assert "acr" in view and "utc" in view and "escape" in view
+
+    def test_incidents_mttd_source_down_is_absent(self, tmp_path, monkeypatch):
+        """自愈面板：healing.triggered 读取失败 ⇒ MTTD/MTTR 记 absent（不填 0）"""
+        import agent.observability.events as ev
+
+        def _boom(*a, **k):
+            raise RuntimeError("events down")
+
+        monkeypatch.setattr(ev, "iter_events", _boom)
+        view = D.incidents_view(incidents_dir=str(tmp_path / "i"),
+                                events_dir=str(tmp_path / "e"))
+        assert view["ok"] is True
+        assert view["mttd_ms"]["available"] is False
+        assert view["mttd_ms"]["value"] is None
+        assert "healing.triggered 读取失败" in view["mttd_ms"]["reason"]
+
+    def test_backup_health_source_down_is_absent(self, monkeypatch):
+        """备份健康卡片：disaster_recovery 不可用 ⇒ absent（不伪造事件）"""
+        import agent.disaster_recovery as dr
+
+        def _boom(*a, **k):
+            raise RuntimeError("dr down")
+
+        monkeypatch.setattr(dr, "get_disaster_recovery", _boom)
+        card = D._backup_health()
+        assert card["available"] is False
+        assert card["value"] is None
+        assert "disaster_recovery 不可用" in card["reason"]
+
+    def test_promote_dir_unreadable_yields_empty_not_error(self, tmp_path):
+        """内化决策目录不可读 ⇒ 空列表（面板显示"无产物"而非报错）"""
+        bad = tmp_path / "not-a-dir"
+        bad.write_text("i am a file", encoding="utf-8")
+        view = D.pipeline_view(days=7, events_dir=str(tmp_path / "e"),
+                               shadow_dir=str(tmp_path / "s"),
+                               promote_dir=str(bad))
+        assert view["ok"] is True
+        assert view["internalize"] == []
+        assert view["summary"]["internalize_rate"]["value"] is None
+
+    def test_audit_export_chain_unavailable_reports_error(self):
+        """审计导出：台账不可用 ⇒ ok=False + load_error，且条目为空（不伪造）"""
+        class _Boom:
+            def entries(self, **k):
+                raise RuntimeError("chain closed")
+
+        view = D.audit_export(limit=5, chain=_Boom())
+        assert view["ok"] is False
+        assert "chain closed" in view["load_error"]
+        assert view["entries"] == []
+        assert view["count"] == 0
