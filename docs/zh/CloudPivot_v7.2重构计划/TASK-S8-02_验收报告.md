@@ -145,9 +145,21 @@ python -m pytest tests/unit/test_cross_process_lock.py tests/unit/test_concurren
   置、同 `ts` 按文件序），排序只在 `read()` 内做，`iter_records` 保持流式契约。
 - **不可读分片不再静默**：`except OSError: continue` 现改为计数 + 告警（此前会静默把一个
   分片整体排除在统计之外，等于静默污染分母）。
-- **S8-01 联动**：S8-01 的保留注册表在盘点时尚未落地（`agent/retention/` 不存在），
-  故本任务**只遵守约束、不制造耦合**：只归档不删、默认关闭、口径不变，
-  并在 `stats()` 中暴露轮转产出物（分片路径 / 时间范围 / 条数）供 S8-01 后续登记。
+- **S8-01 联动（合并期已实测，并修掉缝合处一处静默口径漂移）**：S8-01 在本任务
+  开发期间已合入 master。其 `policy_decisions` 类声明
+  `reader_shard_aware=True` + `ARCHIVE_WARM_DAILY`，温层**复用既有**
+  `log_archiver.archive_daily_file`——该函数产出**连字符**形态
+  （实际是 ISO 日期 `decisions-2026-09-10.jsonl`），而本模块读侧门槛一度只认
+  **点号**形态。**实测后果**：3 天决策经归档后 `read()` 由 **3 条跌到 1 条**
+  ——归档"成功"、统计凭空少 2/3、**无任何报错**；S8-01 侧的口径复算校验
+  `utc.weekly` / `digestion.throughput` / `audit.chain`，**不覆盖**
+  `policy.decision_audit`，故查不出来。
+  **已修**：读侧同时识别两种命名（点号任意后缀；连字符只认
+  `<stem>-YYYY-MM-DD<ext>` 与 `<stem>-YYYYMMDD<ext>`，形近人工副本不收），
+  并新增"调用**真实** `archive_daily_file` 后多重集恒等"的跨任务回归用例；
+  修复后实测恢复 **3 → 3 条**。顺带更正 `log_archiver` docstring 的命名笔误
+  （写 `YYYYMMDD`、实为 `YYYY-MM-DD`，正是该缺陷的成因）。
+  详见 [`../并发与写入路径盘点.md`](../并发与写入路径盘点.md) §四。
 
 **证据命令**：
 
