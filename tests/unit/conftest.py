@@ -736,3 +736,22 @@ def s401_ip_key():
     yield key
     set_hmac_key(None)
 
+
+# ════════════════════════════════════════════════════════════
+#  TASK-S7-02 自修复 L1：隔离留痕器
+# ════════════════════════════════════════════════════════════
+
+
+@pytest.fixture
+def run_logger(tmp_path):
+    """自修复流水线的留痕器（**隔离**：Trace 库 / 审计库 / 事件目录全在 tmp_path）
+
+    隔离是硬要求（任务书 §八 #5）：委派与留痕类用例会产生运行时写入，
+    必须显式传路径，绝不触碰 ``agent/data/tool_trace.db`` 与 ``data/audit/``。
+    """
+    from repair_fixtures import close_run_logger, make_run_logger
+
+    logger, facade = make_run_logger(tmp_path)
+    yield logger
+    close_run_logger(logger, facade)
+

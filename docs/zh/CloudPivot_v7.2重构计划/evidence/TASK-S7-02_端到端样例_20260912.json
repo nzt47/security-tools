@@ -1,0 +1,613 @@
+{
+  "task": "TASK-S7-02 自动诊断与补丁 PR（自修复 L1）",
+  "stage": "applied",
+  "repo_root": "C:\\Users\\Administrator\\agent\\.worktrees\\s702",
+  "workspace": "C:\\Windows\\TEMP\\cp-s702-demo\\ws",
+  "artifacts": "C:\\Windows\\TEMP\\cp-s702-demo\\art",
+  "injection": {
+    "module": "agent/demo_s7_02.py",
+    "test": "tests/unit/test_demo_s7_02.py",
+    "bug": "increment(n) 实现写成 `return n - 1`（应为 `n + 1`）",
+    "fix_diff": "diff --git a/agent/demo_s7_02.py b/agent/demo_s7_02.py\n--- a/agent/demo_s7_02.py\n+++ b/agent/demo_s7_02.py\n--- a/agent/demo_s7_02.py\n+++ b/agent/demo_s7_02.py\n@@ -3,4 +3,4 @@\n \n def increment(n: int) -> int:\n     \"\"\"把 n 加一后返回\"\"\"\n-    return n - 1          # ← 注入的 bug：应为 n + 1\n+    return n + 1\n",
+    "sandbox_commit_ok": true
+  },
+  "stub_boundary": {
+    "stubbed": "子代理的产出（固定 diff 通道桩）——本环境无外部 agent CLI 凭据",
+    "real": [
+      "体检(pytest+junitxml)",
+      "定位(git 只读 + 锚 + L0 锚)",
+      "护栏(只读区/文件数/行数)",
+      "隔离验证(临时副本 + 真实 pytest + 真实 L0 锚)",
+      "产出(本地分支 + 补丁 + PR 描述)",
+      "审计(Trace + 链式审计 + verify_chain)"
+    ]
+  },
+  "pipeline": {
+    "schema": "repair.v1",
+    "run_id": "rep-demo-s702",
+    "status": "proposed",
+    "reason": "",
+    "reasons": [],
+    "produced": true,
+    "diagnosis": {
+      "schema": "repair.v1",
+      "run_id": "rep-demo-s702",
+      "repo_root": "C:\\Windows\\TEMP\\cp-s702-demo\\ws",
+      "ok": false,
+      "failure_count": 3,
+      "failures": [
+        {
+          "node_id": "tests.unit.test_demo_s7_02::test_increment_positive",
+          "file": "tests/unit/test_demo_s7_02.py",
+          "line": 7,
+          "message": "assert 0 == 2 + where 0 = increment(1)",
+          "stack_fingerprint": "b4ba276262b11f23",
+          "kind": "failure",
+          "source_mtime": 1789203438.6910844
+        },
+        {
+          "node_id": "tests.unit.test_demo_s7_02::test_increment_zero",
+          "file": "tests/unit/test_demo_s7_02.py",
+          "line": 11,
+          "message": "assert -1 == 1 + where -1 = increment(0)",
+          "stack_fingerprint": "8abacdf55e079975",
+          "kind": "failure",
+          "source_mtime": 1789203438.6910844
+        },
+        {
+          "node_id": "tests.unit.test_demo_s7_02::test_increment_negative",
+          "file": "tests/unit/test_demo_s7_02.py",
+          "line": 15,
+          "message": "assert -4 == -2 + where -4 = increment(-3)",
+          "stack_fingerprint": "bd30e7407580657d",
+          "kind": "failure",
+          "source_mtime": 1789203438.6910844
+        }
+      ],
+      "failures_by_fingerprint": {
+        "b4ba276262b11f23": 1,
+        "8abacdf55e079975": 1,
+        "bd30e7407580657d": 1
+      },
+      "tests_passed": 0,
+      "tests_failed": 3,
+      "tests_error": 0,
+      "tests_skipped": 0,
+      "test_command": "python -m pytest -q --tb=short --no-header -p no:randomly --continue-on-collection-errors --junitxml=C:\\Windows\\TEMP\\cp-s702-demo\\art\\junit_rep-demo-s702.xml tests/unit/test_demo_s7_02.py",
+      "junit_path": "C:\\Windows\\TEMP\\cp-s702-demo\\art\\junit_rep-demo-s702.xml",
+      "anchor_ok": true,
+      "anchor_detail": {
+        "layer": "L0",
+        "total": 20,
+        "counts": {
+          "pass": 20,
+          "fail": 0,
+          "error": 0,
+          "unassessed": 0
+        },
+        "failures": 0,
+        "integrity_ok": true,
+        "solver": "reference"
+      },
+      "audit": {
+        "enabled": true,
+        "chain_ok": true,
+        "entries": 323,
+        "head_hash": "be4633c3ee969061",
+        "issues": [],
+        "error": ""
+      },
+      "recent_changes": [
+        {
+          "sha": "fa2f1e6ef02757285eed559ac46fe66d406805e4",
+          "short": "fa2f1e6",
+          "subject": "demo: 注入 off-by-one bug + 演示测试",
+          "date": "2026-09-12T16:57:18+08:00",
+          "file_count": 4,
+          "files": [
+            "agent/__init__.py",
+            "agent/demo_s7_02.py",
+            "tests/unit/test_demo_s7_02.py",
+            "6d0d768507c73477081f20ea61ca587292477f66"
+          ],
+          "in_head_commit": true
+        },
+        {
+          "sha": "agent/__init__.py\nagent/demo_s7_02.py\ntests/unit/test_demo_s7_02.py\n6d0d768507c73477081f20ea61ca587292477f66",
+          "short": "6d0d768",
+          "subject": "demo sandbox base",
+          "date": "2026-09-12T16:57:05+08:00",
+          "file_count": 5689,
+          "files": [
+            ".ci_logs/py310_win/unit-test-results.xml",
+            ".ci_logs/py311_ubuntu/unit-test-results.xml",
+            ".ci_logs/py312_ubuntu/unit-test-results.xml",
+            ".claude/settings.json",
+            ".commit_msg_fix.md",
+            ".commit_msg_test.md",
+            ".coveragerc_scripts",
+            ".dockerignore",
+            ".env.corrupt_backup_20260810",
+            ".env.example",
+            ".gitattributes",
+            ".github/gitleaks-config.toml",
+            ".github/monitoring/develop_stability_counter.json",
+            ".github/pull_request_template.md",
+            ".github/scripts/develop_stability_monitor.py",
+            ".github/workflow-templates/README.md",
+            ".github/workflow-templates/examples/flask-auth-p0-security.yml",
+            ".github/workflow-templates/examples/nodejs-auth-p0-security.yml",
+            ".github/workflow-templates/p0-security.template.yml",
+            ".github/workflows/architecture-check.yml"
+          ],
+          "in_head_commit": true
+        },
+        {
+          "path": "agent/__init__.py",
+          "source": "head_commit",
+          "mtime": 1789203438.6900852,
+          "tracked": true
+        },
+        {
+          "path": "agent/demo_s7_02.py",
+          "source": "head_commit",
+          "mtime": 1789203438.6910844,
+          "tracked": true
+        },
+        {
+          "path": "tests/unit/test_demo_s7_02.py",
+          "source": "head_commit",
+          "mtime": 1789203438.6910844,
+          "tracked": true
+        },
+        {
+          "path": "tests/unit/test_demo_s7_02.py",
+          "source": "interest",
+          "mtime": 1789203438.6910844,
+          "tracked": true
+        },
+        {
+          "path": "tests/unit/test_demo_s7_02.py",
+          "source": "interest",
+          "mtime": 1789203438.6910844,
+          "tracked": true
+        },
+        {
+          "path": "tests/unit/test_demo_s7_02.py",
+          "source": "interest",
+          "mtime": 1789203438.6910844,
+          "tracked": true
+        }
+      ],
+      "disclosures": [],
+      "duration_ms": 7000.79
+    },
+    "ticket_id": "tkt-dee1d98337240cd6",
+    "patch": {
+      "has_diff": true,
+      "diff_chars": 295,
+      "rationale": "increment(n) 的语义是 n 加一，但实现写成 `return n - 1`：对 n=1 返回 0，与断言 increment(1) == 2 相差 2，属 off-by-one 的典型表现（同一个常量写错方向）。根因在单行实现，故最小修复就是把该行改回 `n + 1`；不涉及调用方与测试。",
+      "files": [
+        "agent/demo_s7_02.py"
+      ],
+      "self_eval": {
+        "verdict": "pass",
+        "score": 0.9,
+        "summary": "单行修复，未触碰测试与只读区",
+        "issues": []
+      },
+      "delegation_id": "dlg-5be863ad2977",
+      "trace_id": "",
+      "toolset": {
+        "actor": "sub_agent:dlg-5be863ad2977",
+        "tools": [
+          "read_file",
+          "list_dir",
+          "grep",
+          "read_only_git"
+        ],
+        "authorized_subset": [
+          "grep",
+          "list_dir",
+          "read_file",
+          "read_only_git"
+        ],
+        "denied_count": 0
+      },
+      "guard": {
+        "ok": true,
+        "files": [
+          {
+            "path": "agent/demo_s7_02.py",
+            "added": 1,
+            "removed": 1,
+            "changed_lines": 2,
+            "is_new": false,
+            "is_deleted": false,
+            "is_test": false,
+            "readonly_hit": false
+          }
+        ],
+        "changed_files": 1,
+        "max_file_changed_lines": 2,
+        "readonly_hits": {},
+        "test_assertions_touched": [],
+        "violations": [],
+        "policy": {
+          "max_changed_files": 3,
+          "max_lines_per_file": 120,
+          "budget_tokens": 200000,
+          "max_rounds": 1,
+          "timeout_seconds": 600.0,
+          "slice_radius": 40,
+          "history_commits": 10,
+          "notes": []
+        },
+        "parse_error": ""
+      },
+      "rejected_reason": ""
+    },
+    "verification": {
+      "ok": true,
+      "target": {
+        "name": "target",
+        "passed": true,
+        "effective_pass": true,
+        "command": "python -m pytest -q --tb=short --no-header -p no:randomly --continue-on-collection-errors --junitxml=C:\\Windows\\TEMP\\cp-repair-b9lsxxmd\\ws\\.repair_junit\\target.xml tests/unit/test_demo_s7_02.py::test_increment_positive",
+        "exit_code": 0,
+        "output_summary": "============================= test session starts ============================= collected 1 item tests\\unit\\test_demo_s7_02.py . [100%] - generated xml file: C:\\Windows\\TEMP\\cp-repair-b9lsxxmd\\ws\\.repair_junit\\target.xml - ================================== 所有测试通过！✓ =================================== 测试统计: 通过: 1 失败: 0 跳过: 0 ============================== 1 passed in 1.51s ==============================",
+        "passed_count": 1,
+        "failed_count": 0,
+        "duration_ms": 3304.05,
+        "skipped": false,
+        "skip_reason": ""
+      },
+      "anchor": {
+        "name": "anchor",
+        "passed": true,
+        "effective_pass": true,
+        "command": "agent.eval.runner.run_l0(reference=True)",
+        "exit_code": 0,
+        "output_summary": "{'layer': 'L0', 'total': 20, 'counts': {'pass': 20, 'fail': 0, 'error': 0, 'unassessed': 0}, 'failures': 0, 'integrity_ok': True, 'solver': 'reference'}",
+        "passed_count": 20,
+        "failed_count": 0,
+        "duration_ms": 0.0,
+        "skipped": false,
+        "skip_reason": ""
+      },
+      "adjacent": {
+        "name": "adjacent",
+        "passed": true,
+        "effective_pass": true,
+        "command": "python -m pytest -q --tb=short --no-header -p no:randomly --continue-on-collection-errors --junitxml=C:\\Windows\\TEMP\\cp-repair-b9lsxxmd\\ws\\.repair_junit\\adjacent.xml tests/unit/test_demo_s7_02.py",
+        "exit_code": 0,
+        "output_summary": "============================= test session starts ============================= collected 3 items tests\\unit\\test_demo_s7_02.py ... [100%] - generated xml file: C:\\Windows\\TEMP\\cp-repair-b9lsxxmd\\ws\\.repair_junit\\adjacent.xml - ================================== 所有测试通过！✓ =================================== 测试统计: 通过: 3 失败: 0 跳过: 0 ============================== 3 passed in 1.17s ==============================",
+        "passed_count": 3,
+        "failed_count": 0,
+        "duration_ms": 2952.34,
+        "skipped": false,
+        "skip_reason": ""
+      },
+      "target_failed_before": true,
+      "temp_root": "C:\\Windows\\TEMP\\cp-repair-b9lsxxmd\\ws",
+      "apply_error": "",
+      "diff_sha256": "c9ab07d044116fd5c8226f6924af6b1a8ff06a5ed23b8b0ce588393355c511a0"
+    },
+    "proposal": {
+      "branch": "repair/20260912-tests-unit-test-demo-s7-02test-increment-positiv",
+      "patch_path": "C:\\Windows\\TEMP\\cp-s702-demo\\art\\patch_rep-demo-s702.patch",
+      "description_path": "C:\\Windows\\TEMP\\cp-s702-demo\\art\\PR_rep-demo-s702.md",
+      "diagnose_path": "C:\\Windows\\TEMP\\cp-s702-demo\\art\\diagnose_rep-demo-s702.md",
+      "pr_description_chars": 4612,
+      "review_focus": [
+        "**根因是否成立**：补丁修的是「失败用例指出的那个根因」，还是只是让断言恰好通过？（对照下方证据链里的 Trace/最近改动自行判断）",
+        "**是否有测试断言被改松**：若本 PR 触及测试文件，请逐行确认改动属于「修正测试自身错误」，而非「放宽断言以过关」。",
+        "**范围是否最小**：是否夹带了与目标失败项无关的重构、格式化或重命名？",
+        "**证据缺口**：工单列出的缺口项是否会让根因判断站不住？（缺口已如实披露，不视为缺陷但影响置信度）",
+        "**验证隔离性**：三关均在临时副本上跑（`verify.py`），主工作区与本会话 worktree 未被改动——可复核 `git status` 无漂移。",
+        "**回滚口径**：见下方 `undo_hint`；合并前请确认回滚路径可用。"
+      ],
+      "undo_hint": "`git branch -D repair/20260912-tests-unit-test-demo-s7-02test-increment-positiv`（未合并时直接删除产物分支）；若已合并：`git revert -m 1 <merge_sha>`。补丁文件保留在产物目录，可用 `git apply -R <patch>` 反向撤销工作区改动。",
+      "created_branch": true,
+      "pushed": false,
+      "merged": false
+    },
+    "audit_trail": [
+      {
+        "step": "diagnose",
+        "action": "repair.diagnose",
+        "actor": "auto",
+        "subject": "tests/unit/test_demo_s7_02.py",
+        "status": "error",
+        "trace_id": "7fb6e69f713840d4ad76cb83380ee026",
+        "seq": 324,
+        "duration_ms": 0.0,
+        "detail": {
+          "failure_count": 3,
+          "tests_failed": 3,
+          "anchor_ok": true,
+          "command": "python -m pytest -q --tb=short --no-header -p no:randomly --continue-on-collection-errors --junitxml=C:\\Windows\\TEMP\\cp-s702-demo\\art\\junit_rep-demo-s702.xml tests/unit/test_demo_s7_02.py",
+          "error": "发现 3 条失败"
+        }
+      },
+      {
+        "step": "locate",
+        "action": "repair.locate",
+        "actor": "auto",
+        "subject": "tkt-dee1d98337240cd6",
+        "status": "ok",
+        "trace_id": "823a93b17f024fb281951724b5f68aea",
+        "seq": 326,
+        "duration_ms": 0.0,
+        "detail": {
+          "failure": "tests.unit.test_demo_s7_02::test_increment_positive",
+          "slices": 2,
+          "impl_files": [
+            "agent/demo_s7_02.py"
+          ],
+          "trace_records": 1,
+          "descriptors": 0,
+          "evidence_gaps": 1,
+          "repo_head": "fa2f1e6ef027",
+          "adjacent_tests": [
+            "tests/unit/test_demo_s7_02.py"
+          ]
+        }
+      },
+      {
+        "step": "delegate",
+        "action": "repair.delegate",
+        "actor": "auto",
+        "subject": "tkt-dee1d98337240cd6",
+        "status": "ok",
+        "trace_id": "158d66e238664d61b7d34611c58474b4",
+        "seq": 327,
+        "duration_ms": 0.0,
+        "detail": {
+          "delegation_id": "dlg-5be863ad2977",
+          "tier": "jsonl",
+          "tokens_used": 0,
+          "changed_files": 1,
+          "max_file_changed_lines": 2,
+          "readonly_hits": [],
+          "test_assertions_touched": [],
+          "toolset": {
+            "actor": "sub_agent:dlg-5be863ad2977",
+            "tools": [
+              "read_file",
+              "list_dir",
+              "grep",
+              "read_only_git"
+            ],
+            "authorized_subset": [
+              "grep",
+              "list_dir",
+              "read_file",
+              "read_only_git"
+            ],
+            "denied_count": 0
+          },
+          "diff_chars": 295
+        }
+      },
+      {
+        "step": "verify",
+        "action": "repair.verify",
+        "actor": "auto",
+        "subject": "tkt-dee1d98337240cd6",
+        "status": "ok",
+        "trace_id": "b18f3e17c59a4b3dbee3141c4d8f5b02",
+        "seq": 328,
+        "duration_ms": 0.0,
+        "detail": {
+          "ok": true,
+          "target_pass": true,
+          "target_failed_before": true,
+          "anchor_pass": true,
+          "adjacent_pass": true,
+          "adjacent_targets": [
+            "tests/unit/test_demo_s7_02.py"
+          ],
+          "apply_error": "",
+          "diff_sha256": "c9ab07d044116fd5c8226f6924af6b1a8ff06a5ed23b8b0ce588393355c511a0",
+          "copy_cleaned": true,
+          "duration_ms": 38040.57
+        }
+      },
+      {
+        "step": "propose",
+        "action": "repair.propose",
+        "actor": "auto",
+        "subject": "repair/20260912-tests-unit-test-demo-s7-02test-increment-positiv",
+        "status": "ok",
+        "trace_id": "c0aca3dad6e14ea9b570414eef3a9704",
+        "seq": 329,
+        "duration_ms": 0.0,
+        "detail": {
+          "branch": "repair/20260912-tests-unit-test-demo-s7-02test-increment-positiv",
+          "patch_path": "C:\\Windows\\TEMP\\cp-s702-demo\\art\\patch_rep-demo-s702.patch",
+          "description_path": "C:\\Windows\\TEMP\\cp-s702-demo\\art\\PR_rep-demo-s702.md",
+          "diagnose_path": "C:\\Windows\\TEMP\\cp-s702-demo\\art\\diagnose_rep-demo-s702.md",
+          "pr_description_chars": 4612,
+          "review_focus": [
+            "**根因是否成立**：补丁修的是「失败用例指出的那个根因」，还是只是让断言恰好通过？（对照下方证据链里的 Trace/最近改动自行判断）",
+            "**是否有测试断言被改松**：若本 PR 触及测试文件，请逐行确认改动属于「修正测试自身错误」，而非「放宽断言以过关」。",
+            "**范围是否最小**：是否夹带了与目标失败项无关的重构、格式化或重命名？",
+            "**证据缺口**：工单列出的缺口项是否会让根因判断站不住？（缺口已如实披露，不视为缺陷但影响置信度）",
+            "**验证隔离性**：三关均在临时副本上跑（`verify.py`），主工作区与本会话 worktree 未被改动——可复核 `git status` 无漂移。",
+            "**回滚口径**：见下方 `undo_hint`；合并前请确认回滚路径可用。"
+          ],
+          "undo_hint": "`git branch -D repair/20260912-tests-unit-test-demo-s7-02test-increment-positiv`（未合并时直接删除产物分支）；若已合并：`git revert -m 1 <merge_sha>`。补丁文件保留在产物目录，可用 `git apply -R <patch>` 反向撤销工作区改动。",
+          "created_branch": true,
+          "pushed": false,
+          "merged": false,
+          "branch_error": "",
+          "report_path": "C:\\Windows\\TEMP\\cp-s702-demo\\art\\report_rep-demo-s702.json",
+          "review_focus_count": 6
+        }
+      }
+    ],
+    "chain_ok": true,
+    "rounds_used": 1,
+    "tokens_used": 0,
+    "budget_notes": [
+      "token 消耗未计量（subagent）——如实记 0，不估算"
+    ],
+    "started_at": "2026-09-12T08:57:18+00:00",
+    "finished_at": "2026-09-12T08:58:04+00:00",
+    "duration_ms": 45750.75
+  },
+  "produced": true,
+  "status": "proposed",
+  "audit_complete": true,
+  "audit_missing_steps": [],
+  "proposal": {
+    "branch": "repair/20260912-tests-unit-test-demo-s7-02test-increment-positiv",
+    "patch_path": "C:\\Windows\\TEMP\\cp-s702-demo\\art\\patch_rep-demo-s702.patch",
+    "description_path": "C:\\Windows\\TEMP\\cp-s702-demo\\art\\PR_rep-demo-s702.md",
+    "diagnose_path": "C:\\Windows\\TEMP\\cp-s702-demo\\art\\diagnose_rep-demo-s702.md",
+    "pr_description_chars": 4612,
+    "review_focus": [
+      "**根因是否成立**：补丁修的是「失败用例指出的那个根因」，还是只是让断言恰好通过？（对照下方证据链里的 Trace/最近改动自行判断）",
+      "**是否有测试断言被改松**：若本 PR 触及测试文件，请逐行确认改动属于「修正测试自身错误」，而非「放宽断言以过关」。",
+      "**范围是否最小**：是否夹带了与目标失败项无关的重构、格式化或重命名？",
+      "**证据缺口**：工单列出的缺口项是否会让根因判断站不住？（缺口已如实披露，不视为缺陷但影响置信度）",
+      "**验证隔离性**：三关均在临时副本上跑（`verify.py`），主工作区与本会话 worktree 未被改动——可复核 `git status` 无漂移。",
+      "**回滚口径**：见下方 `undo_hint`；合并前请确认回滚路径可用。"
+    ],
+    "undo_hint": "`git branch -D repair/20260912-tests-unit-test-demo-s7-02test-increment-positiv`（未合并时直接删除产物分支）；若已合并：`git revert -m 1 <merge_sha>`。补丁文件保留在产物目录，可用 `git apply -R <patch>` 反向撤销工作区改动。",
+    "created_branch": true,
+    "pushed": false,
+    "merged": false
+  },
+  "merge": {
+    "applied": true,
+    "patch_path": "C:\\Windows\\TEMP\\cp-s702-demo\\art\\patch_rep-demo-s702.patch",
+    "applied_files": [
+      "agent/demo_s7_02.py"
+    ],
+    "target_pytest": {
+      "command": "python -m pytest -q --tb=short --no-header -p no:randomly tests/unit/test_demo_s7_02.py",
+      "exit_code": 0,
+      "summary": "  失败: 0 /   跳过: 0 / ============================== 3 passed in 1.57s =============================="
+    },
+    "anchor_ok": true,
+    "anchor_detail": {
+      "layer": "L0",
+      "total": 20,
+      "counts": {
+        "pass": 20,
+        "fail": 0,
+        "error": 0,
+        "unassessed": 0
+      },
+      "failures": 0,
+      "integrity_ok": true,
+      "solver": "reference"
+    },
+    "diagnose_after_merge": {
+      "schema": "repair.v1",
+      "run_id": "",
+      "repo_root": "C:\\Windows\\TEMP\\cp-s702-demo\\ws",
+      "ok": true,
+      "failure_count": 0,
+      "failures": [],
+      "failures_by_fingerprint": {},
+      "tests_passed": 3,
+      "tests_failed": 0,
+      "tests_error": 0,
+      "tests_skipped": 0,
+      "test_command": "python -m pytest -q --tb=short --no-header -p no:randomly --continue-on-collection-errors --junitxml=C:\\Windows\\TEMP\\cp-s702-demo\\art\\junit_after_merge.xml tests/unit/test_demo_s7_02.py",
+      "junit_path": "C:\\Windows\\TEMP\\cp-s702-demo\\art\\junit_after_merge.xml",
+      "anchor_ok": true,
+      "anchor_detail": {
+        "layer": "L0",
+        "total": 20,
+        "counts": {
+          "pass": 20,
+          "fail": 0,
+          "error": 0,
+          "unassessed": 0
+        },
+        "failures": 0,
+        "integrity_ok": true,
+        "solver": "reference"
+      },
+      "audit": {
+        "enabled": false,
+        "chain_ok": null,
+        "entries": 0,
+        "head_hash": "",
+        "issues": [],
+        "error": ""
+      },
+      "recent_changes": [
+        {
+          "sha": "587fdc3c872ac1793f716f33fc0005b792211d9a",
+          "short": "587fdc3",
+          "subject": "demo: 人工合入修复补丁（模拟人工 review 后合入）",
+          "date": "2026-09-12T16:58:09+08:00",
+          "file_count": 2,
+          "files": [
+            "agent/demo_s7_02.py",
+            "fa2f1e6ef02757285eed559ac46fe66d406805e4"
+          ],
+          "in_head_commit": true
+        },
+        {
+          "sha": "agent/demo_s7_02.py\nfa2f1e6ef02757285eed559ac46fe66d406805e4",
+          "short": "fa2f1e6",
+          "subject": "demo: 注入 off-by-one bug + 演示测试",
+          "date": "2026-09-12T16:57:18+08:00",
+          "file_count": 4,
+          "files": [
+            "agent/__init__.py",
+            "agent/demo_s7_02.py",
+            "tests/unit/test_demo_s7_02.py",
+            "6d0d768507c73477081f20ea61ca587292477f66"
+          ],
+          "in_head_commit": true
+        },
+        {
+          "sha": "agent/__init__.py\nagent/demo_s7_02.py\ntests/unit/test_demo_s7_02.py\n6d0d768507c73477081f20ea61ca587292477f66",
+          "short": "6d0d768",
+          "subject": "demo sandbox base",
+          "date": "2026-09-12T16:57:05+08:00",
+          "file_count": 5689,
+          "files": [
+            ".ci_logs/py310_win/unit-test-results.xml",
+            ".ci_logs/py311_ubuntu/unit-test-results.xml",
+            ".ci_logs/py312_ubuntu/unit-test-results.xml",
+            ".claude/settings.json",
+            ".commit_msg_fix.md",
+            ".commit_msg_test.md",
+            ".coveragerc_scripts",
+            ".dockerignore",
+            ".env.corrupt_backup_20260810",
+            ".env.example",
+            ".gitattributes",
+            ".github/gitleaks-config.toml",
+            ".github/monitoring/develop_stability_counter.json",
+            ".github/pull_request_template.md",
+            ".github/scripts/develop_stability_monitor.py",
+            ".github/workflow-templates/README.md",
+            ".github/workflow-templates/examples/flask-auth-p0-security.yml",
+            ".github/workflow-templates/examples/nodejs-auth-p0-security.yml",
+            ".github/workflow-templates/p0-security.template.yml",
+            ".github/workflows/architecture-check.yml"
+          ],
+          "in_head_commit": false
+        },
+        {
+          "path": "agent/demo_s7_02.py",
+          "source": "head_commit",
+          "mtime": 1789203489.1601808,
+          "tracked": true
+        }
+      ],
+      "disclosures": [],
+      "duration_ms": 3884.46
+    },
+    "demo_ok": true
+  }
+}
