@@ -124,11 +124,14 @@ flowchart LR
     end
     subgraph digestion [digestion]
         agent_digestion_capability["agent.digestion.capability"]
+        agent_digestion_case_cost["agent.digestion.case_cost"]
+        agent_digestion_cases["agent.digestion.cases"]:::crosslayer
         agent_digestion_cleaning["agent.digestion.cleaning"]
         agent_digestion_gate["agent.digestion.gate"]
         agent_digestion_generation["agent.digestion.generation"]
         agent_digestion_internalize["agent.digestion.internalize"]:::crosslayer
         agent_digestion_probe["agent.digestion.probe"]
+        agent_digestion_sandbox["agent.digestion.sandbox"]:::crosslayer
         agent_digestion_service["agent.digestion.service"]
         agent_digestion_shadow["agent.digestion.shadow"]:::crosslayer
         agent_digestion_stage["agent.digestion.stage"]
@@ -492,6 +495,7 @@ flowchart LR
         agent_subagent_delegation["agent.subagent.delegation"]
         agent_subagent_executor["agent.subagent.executor"]
         agent_subagent_lifecycle["agent.subagent.lifecycle"]:::crosslayer
+        agent_subagent_mechanical["agent.subagent.mechanical"]:::crosslayer
         agent_subagent_observability["agent.subagent.observability"]
         agent_subagent_sandbox["agent.subagent.sandbox"]
         agent_subagent_summarizer["agent.subagent.summarizer"]
@@ -1010,6 +1014,11 @@ flowchart LR
     agent_digestion_stage -.-> agent_audit_facade
     agent_digestion_capability -.-> agent_descriptors_bridge
     agent_digestion_capability -.-> agent_descriptors_registry
+    agent_digestion_case_cost -.-> agent_observability_events
+    agent_digestion_case_cost -.-> agent_observability_utc
+    agent_digestion_case_cost -.-> agent_observability_events
+    agent_digestion_case_cost -.-> agent_observability_events
+    agent_digestion_case_cost -.-> agent_observability_events
     agent_digestion_generation -.-> agent_workflow_learning_skill_converter
     agent_digestion_generation -.-> agent_process_distill_solidify
     agent_digestion_generation -.-> agent_process_distill_models
@@ -1089,6 +1098,8 @@ flowchart LR
     agent_subagent_lifecycle --> agent_subagent_sandbox
     agent_subagent_collection -.-> agent_security_actor_matrix
     agent_subagent_collection -.-> agent_cognitive_reflection
+    agent_subagent_mechanical -.-> agent_digestion_cases
+    agent_subagent_mechanical -.-> agent_digestion_sandbox
     agent_subagent_toolset -.-> agent_security_actor_matrix
     agent_subagent_container --> agent_subagent_sandbox
     agent_subagent_container --> agent_subagent_delegation
@@ -1725,6 +1736,7 @@ flowchart LR
     agent_eval_metrics -.-> agent_observability
     agent_eval_metrics -.-> agent_observability_events
     agent_eval_metrics -.-> agent_feedback
+    agent_eval_metrics -.-> agent_subagent_mechanical
     agent_eval_metrics -.-> agent_descriptors_registry
     agent_eval_metrics -.-> agent_digestion_shadow
     agent_eval_solvers --> agent_eval_checkers
@@ -1977,10 +1989,10 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 530
-- 模块节点数: 471
-- 依赖边数: 1398
-- 跨层调用数: 900
+- 扫描文件数: 532
+- 模块节点数: 475
+- 依赖边数: 1406
+- 跨层调用数: 908
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 2880.05 ms
+- 构建耗时: 2863.26 ms
