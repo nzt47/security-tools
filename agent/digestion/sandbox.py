@@ -16,9 +16,13 @@
    judge ≥0.85 **软性** + 10% 人工抽检清单。任一层失败都在 `DiffResult.layers`
    里有独立、可读的理由，而不是一个笼统的 False。
 
-**边界（不越权）**：本沙箱是**进程内确定性执行模型**，不是容器隔离；§5.2 的
-"生成代码一律 Docker" 属执行型产物的隔离要求，由 S3-03/生产化承接。回放的目标是
-**行为等价性判定**，不是执行不可信代码。
+**边界（不越权）**：本沙箱的**回放通道**是**进程内确定性执行模型**，不是容器隔离；
+§5.2 的 "生成代码一律 Docker" 属执行型产物的隔离要求，由 S8-03 承接。自 S8-03 起
+本类另有 `isolation_level` 与 `execute_isolated()`：**真正的执行隔离**走
+`agent.digestion.isolation` 的容器/强隔离子进程执行器，而**回放通道一行未改**
+——`replay_case()` 依然全程在 `ReplayEnv` 内存模型里跑，`commit()` 依然恒抛。
+两条通道的分工是刻意的：**判定行为等价性**（回放）与**安全执行真实代码**（隔离）
+是两件事，混在一起会让"等价"这个结论失去确定性。
 
 **import 纪律**：只依赖同包 `cases`/`models`；judge 可注入（默认为确定性本地打分器，
 LLM-judge 由 S3-03 经 `judge=` 注入），故本模块无网络、无模型调用、无文件 I/O
@@ -127,6 +131,19 @@ DEFAULT_JOURNAL_DIR = os.path.join(
 #: 视作"路径参数"的键名（沙箱根守卫的作用域）
 _PATH_PARAM_HINTS = ("path", "file", "filepath", "file_path", "target", "dest",
                      "destination", "src", "source", "dir", "directory", "root")
+
+
+def _normalize_isolation_level(value: Any) -> str:
+    """隔离等级归一（**懒加载** `isolation` 模块；不可识别即 `in_process`）
+
+    懒加载是为了守住本模块的 import 纪律：`sandbox` 是 S3-02 的叶子模块，
+    不应在导入期拉起 S8-03 的隔离实现（那里会碰 `subprocess`/`docker`）。
+    """
+    try:
+        from .isolation import ISOLATION_IN_PROCESS, normalize_level
+    except Exception:  # noqa: BLE001  隔离模块不可用 ⇒ 保持现状（in_process）
+        return "in_process"
+    return normalize_level(value) or ISOLATION_IN_PROCESS
 
 
 class SandboxError(Exception):
@@ -1602,7 +1619,8 @@ class ReplaySandbox:
                  judge_threshold: float = JUDGE_THRESHOLD,
                  manual_ratio: float = MANUAL_SAMPLE_RATIO,
                  measure_wall: bool = False,
-                 judge_kind: str = "") -> None:
+                 judge_kind: str = "",
+                 isolation_level: str = "") -> None:
         self.quota = quota or SandboxQuota.from_env()
         self.tools = dict(tools or {})
         self.judge = judge
@@ -1614,6 +1632,10 @@ class ReplaySandbox:
         self.measure_wall = bool(measure_wall)
         #: 实际所用 judge 的如实标注（进层③ detail；见 `diff_judge`）
         self.judge_kind = str(judge_kind or "")
+        #: 执行隔离等级（TASK-S8-03 / v7.2 §5.1）：**只影响隔离执行通道**，
+        #: 回放通道（`replay_case`）语义逐字不变。默认 `in_process` = S3-02 现状；
+        #: 不可识别的取值一律回退 `in_process`（保守：宁可不隔离，也不冒称隔离）。
+        self.isolation_level = _normalize_isolation_level(isolation_level)
 
     # ── 单例回放 ────────────────────────────────────────────
 
@@ -1711,6 +1733,76 @@ class ReplaySandbox:
                 "diffs": diffs,
                 "fingerprint_first": first.candidate.fingerprint(),
                 "fingerprint_second": second.candidate.fingerprint()}
+
+    # ── 隔离执行通道（TASK-S8-03；**回放通道一行未改**）──────
+
+    def isolation_plan(self, *, env: Optional[Dict[str, str]] = None,
+                       requested: str = "") -> Any:
+        """解析生效隔离等级（缺省用本沙箱的 `isolation_level`）
+
+        返回 `isolation.IsolationPlan`。``requested`` 留空且本沙箱等级为
+        `in_process` 时按 `in_process` 处理（**不**偷偷探测成容器）——只有显式
+        传 `auto` 才走 Docker 探测。
+        """
+        from .isolation import ISOLATION_REQUEST_AUTO, resolve_isolation_level
+        ask = str(requested or "").strip()
+        if not ask:
+            ask = (ISOLATION_REQUEST_AUTO if self.isolation_level == "auto"
+                   else self.isolation_level)
+        return resolve_isolation_level(requested=ask, env=env)
+
+    def isolation_executor(self, *, env: Optional[Dict[str, str]] = None,
+                           quota: Any = None,
+                           source_root: str = "", work_dir: str = "",
+                           keep_work_dir: bool = False,
+                           network: str = "") -> Any:
+        """按生效等级取隔离执行器（等级与执行器一一对应，不做隐式升/降级）
+
+        参数**逐个显式**（不用 `**kwargs` 透传）：本方法的签名就是"能传什么"的
+        唯一说明，调用方不必去翻 `executor_for` 的实现才知道有哪些旋钮。
+        """
+        from .isolation import executor_for
+        plan = self.isolation_plan(env=env)
+        return executor_for(plan, env=env or None, quota=quota,
+                            source_root=source_root, work_dir=work_dir,
+                            keep_work_dir=keep_work_dir, network=network)
+
+    def execute_isolated(self, job: Dict[str, Any], *,
+                         env: Optional[Dict[str, str]] = None,
+                         executor: Any = None, quota: Any = None,
+                         source_root: str = "", work_dir: str = "",
+                         keep_work_dir: bool = False,
+                         network: str = "") -> Any:
+        """在隔离边界内执行一个作业（返回 `IsolationResult`）
+
+        **`record-and-replay` 语义不变**：本方法不提供任何真实落盘/外发通道；
+        被隔离进程的唯一可写根是一次性临时目录，副作用只记录。故调用方拿到的
+        始终是"记录"，而不是"已经改过真实环境"。
+        """
+        box = executor if executor is not None else self.isolation_executor(
+            env=env, quota=quota, source_root=source_root, work_dir=work_dir,
+            keep_work_dir=keep_work_dir, network=network)
+        return box.run(dict(job or {}))
+
+    def verify_isolation(self, *, env: Optional[Dict[str, str]] = None,
+                         host_secret_dir: str = "",
+                         job_timeout_s: float = 4.0) -> Dict[str, Any]:
+        """对**本沙箱的等级**跑一次隔离探针 → 机器可读证据
+
+        等级为 `in_process` 时如实返回"拒绝执行"的证据（而不是编一份看起来
+        通过的表格）。
+        """
+        from .isolation import (comparison_rows, isolation_boundaries,
+                                run_probe_suite)
+        plan = self.isolation_plan(env=env)
+        box = self.isolation_executor(env=env)
+        runs = run_probe_suite(box, host_secret_dir=host_secret_dir,
+                               job_timeout_s=job_timeout_s)
+        by_level = {plan.level: runs}
+        return {"plan": plan.to_dict(), "boundaries": isolation_boundaries(
+            plan.level).to_dict(),
+            "probes": [r.to_dict() for r in runs],
+            "comparison": comparison_rows(by_level)}
 
 
 # ════════════════════════════════════════════════════════════

@@ -34,19 +34,31 @@
 | M1 | 接入**真实 LLM-judge**（≥0.85）且 `judge_kind` 可区分 | `LLMJudge`（真模型调用，可注入 `invoke`/adapter）+ `resolve_judge()`；层③ 经 `judge_kind=` 写精确标签；模型不可用/无凭证时**如实标注回落** |
 | M2 | 条件⑤ 用**真实墙钟 p99** | `ReplaySandbox(measure_wall=True)`：每臂记 `Observation.wall_ms`（`perf_counter`）；报告 `clock` 字段显式标注口径 |
 | M5 | 10% 人工抽检**实际执行并留痕** | `ManualReviewQueue`：清单 + `record_review()`（复核人/角色/结论/时间落盘 + 链式审计）；`is_closed()` 未闭合即**不得视为已验收** |
-| M6 | 隔离边界明确或显式声明 | `ShadowReport.isolation` 固定声明"进程内确定性执行模型，非容器隔离"，且 `real_takeover=False` |
+| M6 | 隔离边界明确或显式声明 | `ShadowReport.isolation` 如实声明三层事实：实际执行模型（`mode`）、本次是否真接管（`real_takeover`）、环境最高等级（`available_level`）；并附**不保证边界**清单（S8-03） |
 
-## 隔离边界（M6，显式声明）
+## 隔离边界（M6，显式声明；S8-03 起**可开但默认关**）
 
-S3-02 的回放沙箱是**进程内确定性执行模型**，不是容器隔离。本模块的灰度同样如此：
-`gray.routed=True` 只表示"**若**真实接管，这条流量会走候选实现"，本任务**不**打开真实
-接管（`real_takeover=False`）—— 因为 §5.2「生成代码一律 Docker」是执行型产物的隔离
-要求，进程内模型不能满足。真实接管须由生产化任务给出容器沙箱后再开。
+S3-02 的回放沙箱是**进程内确定性执行模型**，不是容器隔离。S3-03 期间本模块因此
+**不打开**真实接管。S8-03 补齐了执行隔离（`agent.digestion.isolation`：容器 /
+强隔离子进程）之后：
+
+- `real_takeover` **默认仍然关闭**，需 `CP_DIGESTION_REAL_TAKEOVER=true` **且**给出
+  显式比例（`CP_DIGESTION_REAL_TAKEOVER_RATIO` 或能力级
+  `shadow_config.real_takeover_ratio`）；
+- 隔离等级为 `in_process`（无 Docker 且子进程不可用）⇒ **拒绝**接管
+  （`reasons` 写明，绝不"看起来能接管"）；
+- 接管执行**仍在隔离边界内**，副作用只记录不双写；**产物不自动合入**
+  （`TakeoverReport.adopted` 恒 `False`）；
+- 连续失败 N 次 ⇒ 自动回落 `sandbox_replay_only` + 事故卡（见 `takeover.py`）。
+
+`isolation_declaration()` 因此同时报告三件事：**本次实际用的执行模型**
+（`mode`）、**本次是否真的接管了**（`real_takeover`）、**环境具备的最高等级**
+（`available_level`）——三者分开，才谈得上"等级如实标注"。
 
 **import 纪律**：与同包一致，重依赖（`agent.observability.events` / `agent.audit.facade` /
 `agent.descriptors.registry` / `agent.observability.trace_v2` / `agent.model_router.adapters`）
 一律**函数体内懒加载**；本模块导入期无文件/DB/网络副作用（唯一写盘是显式构造的
-`ShadowLedger` / `ManualReviewQueue`）。
+`ShadowLedger` / `ManualReviewQueue` / `TakeoverLedger`）。
 """
 
 from __future__ import annotations
@@ -71,14 +83,30 @@ from .cases import (
     seed_candidate_for,
 )
 from .gate import PassportStore
+from .isolation import (
+    ISOLATION_IN_PROCESS,
+    IsolationPlan,
+    isolation_boundaries,
+    resolve_isolation_level,
+)
 from .sandbox import (
     JUDGE_THRESHOLD,
     LAYER_JUDGE,
     LAYER_SIDE_EFFECTS,
     LAYER_STRUCTURE,
     ReplaySandbox,
+    as_implementation,
     judge_similarity,
     manual_sample_ids,
+)
+from .takeover import (
+    TAKEOVER_STATUS_NOT_REQUESTED,
+    TAKEOVER_STATUS_NOT_SAMPLED,
+    TRANSPORT_ISOLATED_TAKEOVER,
+    TakeoverEngine,
+    TakeoverLedger,
+    TakeoverReport,
+    resolve_takeover_policy,
 )
 
 logger = logging.getLogger("agent.digestion.shadow")
@@ -125,6 +153,10 @@ JUDGE_KIND_LLM_FALLBACK = "deterministic_local(llm_unavailable)"
 CLOCK_WALL = "wall_clock(perf_counter; per-arm real elapsed)"
 CLOCK_MODEL = "model_clock(标称延迟累加)"
 TRANSPORT_SANDBOX_ONLY = "sandbox_replay_only"
+
+#: 执行模型（`isolation.mode` 的取值；与 S3-03 的旧值**逐字兼容**）
+MODE_IN_PROCESS = "in_process_deterministic_model"
+MODE_ISOLATED = "isolated_execution"
 
 #: 落盘位置（**运行时区**，gitignore；测试须显式隔离）
 DEFAULT_SHADOW_DIR = os.path.join(
@@ -1080,6 +1112,11 @@ class ShadowSample:
     model_clock_ms_upstream: float = 0.0
     manual_flagged: bool = False
     gray_routed: bool = False
+    #: ── 真实接管（TASK-S8-03；默认全为"未请求"，不改变既有样本形态）──
+    takeover: bool = False
+    takeover_status: str = ""
+    takeover_matched: bool = False
+    takeover_level: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {"sample_id": self.sample_id, "case_id": self.case_id,
@@ -1091,7 +1128,11 @@ class ShadowSample:
                 "model_clock_ms_candidate": self.model_clock_ms_candidate,
                 "model_clock_ms_upstream": self.model_clock_ms_upstream,
                 "manual_flagged": self.manual_flagged,
-                "gray_routed": self.gray_routed}
+                "gray_routed": self.gray_routed,
+                "takeover": self.takeover,
+                "takeover_status": self.takeover_status,
+                "takeover_matched": self.takeover_matched,
+                "takeover_level": self.takeover_level}
 
 
 def _p99(values: Sequence[float]) -> float:
@@ -1282,6 +1323,8 @@ class ShadowReport:
     overhead: Dict[str, Any] = field(default_factory=dict)
     quality_patch: Dict[str, Any] = field(default_factory=dict)
     isolation: Dict[str, Any] = field(default_factory=dict)
+    #: 真实接管报告（TASK-S8-03；默认关闭时只有"未开启"的理由，无副作用）
+    takeover: Dict[str, Any] = field(default_factory=dict)
     generated_at: float = 0.0
     event_id: str = ""
     audit_seq: int = 0
@@ -1354,6 +1397,7 @@ class ShadowReport:
             "overhead": dict(self.overhead),
             "quality_patch": dict(self.quality_patch),
             "isolation": dict(self.isolation),
+            "takeover": dict(self.takeover),
             "clock": CLOCK_WALL,
             "model_clock": CLOCK_MODEL,
             "p99_wall_candidate_ms": self.p99_wall_candidate_ms(),
@@ -1396,9 +1440,21 @@ class ShadowReport:
             f"- 劣化判定：{self.degradation.get('verdict')}"
             f"（action={self.degradation.get('action')}）",
             f"- 隔离：{self.isolation.get('mode')}"
-            f"（容器隔离={self.isolation.get('container_isolated')}，"
+            f"（生效等级={self.isolation.get('level')}，"
+            f"容器隔离={self.isolation.get('container_isolated')}，"
             f"真实接管={self.isolation.get('real_takeover')}）",
         ]
+        if self.takeover:
+            lines.append(
+                f"- 接管：{'开启' if self.takeover.get('enabled') else '关闭'}"
+                f"（传输 `{self.takeover.get('transport')}`）"
+                f"｜执行 {self.takeover.get('executed', 0)}"
+                f"／一致 {self.takeover.get('matched', 0)}"
+                f"／失败 {self.takeover.get('failed', 0)}"
+                f"｜预算 {self.takeover.get('budget', 0)}"
+                + (f"｜**已回落** `{self.takeover.get('fallback_transport')}`"
+                   f"（事故卡 `{self.takeover.get('incident_id')}`）"
+                   if self.takeover.get("fallback") else ""))
         if self.blocked_reasons:
             lines += ["", "**阻断理由**"] + [f"- {r}" for r in self.blocked_reasons]
         if self.negative:
@@ -1478,10 +1534,27 @@ class ShadowRunner:
                  review_queue: Optional[ManualReviewQueue] = None,
                  env: Optional[Dict[str, str]] = None,
                  emit_events: bool = True,
-                 actor: str = "digestion_service") -> None:
+                 actor: str = "digestion_service",
+                 isolation_level: str = "",
+                 isolation_plan: Optional[IsolationPlan] = None,
+                 isolation_executor: Any = None,
+                 takeover_ledger: Optional[TakeoverLedger] = None,
+                 incident_dir: str = "",
+                 trace: Any = None,
+                 trace_db: str = "") -> None:
         self.env = dict(env or {})
         self.emit_events = bool(emit_events)
         self.actor = str(actor or "digestion_service")
+        #: ── 执行隔离（TASK-S8-03）──
+        #: 显式等级 > 显式决议 > 环境变量/探测（**懒解析**：不构造期探测 Docker，
+        #: 免得"只是想跑一次灰度"也付一次 `docker info` 的代价）
+        self._isolation_level = str(isolation_level or "")
+        self._isolation_plan = isolation_plan
+        self._isolation_executor = isolation_executor
+        self._takeover_ledger = takeover_ledger
+        self.incident_dir = str(incident_dir or "")
+        self.trace = trace
+        self.trace_db = str(trace_db or "")
         resolved = resolve_judge(judge_mode, invoke=judge_invoke, judge=judge,
                                  env=self.env or None)
         if judge_kind:
@@ -1541,6 +1614,47 @@ class ShadowRunner:
         if self._review_queue is None:
             self._review_queue = ManualReviewQueue()
         return self._review_queue
+
+    # ── 执行隔离（TASK-S8-03；懒解析，不改回放通道）──────────
+
+    @property
+    def isolation_plan(self) -> IsolationPlan:
+        """生效隔离决议（首次访问才探测 Docker；结果进报告与审计）"""
+        if self._isolation_plan is None:
+            requested = self._isolation_level or ""
+            if not requested and self.sandbox.isolation_level != ISOLATION_IN_PROCESS:
+                # 显式构造的沙箱已声明等级 ⇒ 尊重它（不重复探测、不覆盖）
+                requested = self.sandbox.isolation_level
+            self._isolation_plan = resolve_isolation_level(
+                requested=requested, env=self.env or None)
+            self.sandbox.isolation_level = self._isolation_plan.level
+        return self._isolation_plan
+
+    @property
+    def takeover_ledger(self) -> TakeoverLedger:
+        if self._takeover_ledger is None:
+            self._takeover_ledger = TakeoverLedger()
+        return self._takeover_ledger
+
+    def takeover_policy(self, *, shadow_config: Optional[Dict[str, Any]] = None
+                        ) -> Any:
+        """接管策略（**默认关闭**；无隔离即拒绝）"""
+        return resolve_takeover_policy(shadow_config=shadow_config,
+                                       env=self.env or None,
+                                       isolation=self.isolation_plan)
+
+    def takeover_engine(self, *, shadow_config: Optional[Dict[str, Any]] = None
+                        ) -> TakeoverEngine:
+        """接管引擎（隔离执行器按生效等级取；**不隐式升/降级**）"""
+        executor = self._isolation_executor
+        if executor is None:
+            from .isolation import executor_for
+            executor = executor_for(self.isolation_plan, env=self.env or None)
+        return TakeoverEngine(executor=executor, ledger=self.takeover_ledger,
+                              env=self.env or None, incident_dir=self.incident_dir,
+                              trace=self.trace, trace_db=self.trace_db,
+                              emit=self.emit_events,
+                              actor=f"{self.actor}.takeover")
 
     # ── 门禁：凭通行证放行 ──────────────────────────────────
 
@@ -1610,7 +1724,12 @@ class ShadowRunner:
         """
         report = ShadowReport(capability_id=str(capability_id or ""),
                               generated_at=float(now or time.time()))
-        report.isolation = isolation_declaration()
+        # 隔离决议：**先解析再声明**（声明必须描述本次实际会发生的事，不是愿望）
+        # 【命名纪律】变量名刻意叫 `iso_plan` 而不是 `plan`：本方法下文中
+        # `plan` 已被**抽样计划**（`ShadowPlan`）占用，同名会让最终声明拿到
+        # 一个没有 `.level` 的对象、静默回落成 in_process —— 实现期实测踩到过。
+        iso_plan = self.isolation_plan
+        report.isolation = isolation_declaration(plan=iso_plan)
         # judge 探针：把有效标签定在**样本之前**（LLM 不可用 ⇒ 如实回落并标注）
         probe = self.judge_guard.probe()
         self.sandbox.judge_kind = self.judge_guard.effective_kind
@@ -1652,6 +1771,7 @@ class ShadowRunner:
             report.manual_review = self.review_queue.summary(report.capability_id)
             report.plan = self.plan(report.capability_id, sample_ids=(),
                                     daily_avg=daily_avg, shadow_config=shadow_config)
+            report.takeover = self._blocked_takeover(shadow_config)
             if write_ledger:
                 self.ledger.record(report)
             report.audit_seq, report.audit_hash = _audit(
@@ -1696,6 +1816,7 @@ class ShadowRunner:
         report.manual_sample = sorted(manual)
 
         # ⑥ 逐样本双跑（沙箱；副作用只记录）
+        replays: Dict[str, Any] = {}
         for sample_id, case in chosen:
             picked = self._resolve_candidate(candidate, case)
             upstream = (upstream_provider(case) if upstream_provider is not None
@@ -1703,6 +1824,7 @@ class ShadowRunner:
             replay = self.sandbox.replay_case(
                 case, picked, upstream=upstream, manual_flagged=case.case_id in manual,
                 measure_wall=True)
+            replays[sample_id] = replay
             sample = self._sample_of(sample_id, case, replay,
                                      manual_flagged=case.case_id in manual,
                                      gray_routed=sample_id in gray_set)
@@ -1720,6 +1842,14 @@ class ShadowRunner:
                 queued_by=self.actor)
         report.manual_review = self.review_queue.summary(report.capability_id)
 
+        # ⑥.5 真实接管（TASK-S8-03；**默认关闭**、有预算、失败自动回落）
+        takeover = self._run_takeover(
+            report, shadow_config=shadow_config, daily_avg=daily_avg,
+            chosen=chosen, gray_set=gray_set, replays=replays,
+            candidate=candidate)
+        report.takeover = takeover.to_dict()
+        self._annotate_takeover(report, takeover)
+
         # ⑧ 劣化信号（R4）+ 开销 + 质量统计补丁
         report.degradation = assess_degradation(report.samples)
         report.judge["effective_kind"] = self.judge_guard.effective_kind
@@ -1732,6 +1862,13 @@ class ShadowRunner:
         if write_ledger:
             self.ledger.record(report)
 
+        # 隔离声明：**跑完才定稿**（本次到底接管没有、用的哪一档，跑完才知道）
+        report.isolation = isolation_declaration(
+            plan=iso_plan,
+            real_takeover=bool(takeover.enabled and takeover.executed > 0),
+            real_takeover_enabled=bool(takeover.enabled),
+            executed=int(takeover.executed))
+
         correlation = f"shadow:{report.capability_id}:{int(report.generated_at)}"
         if self.emit_events:
             report.event_id = _emit_shadow_event(
@@ -1741,14 +1878,21 @@ class ShadowRunner:
                              if report.degradation.get("verdict") == DEGRADE_VERDICT_DEGRADED
                              else "shadow_observed"),
                  "scope": EVENT_SCOPE_SHADOW,
-                 "reasons": [f"judge_kind={report.judge_kind}",
-                             f"pass_rate={report.pass_rate}",
-                             f"p99_wall_candidate_ms={report.p99_wall_candidate_ms()}",
-                             f"p99_wall_upstream_ms={report.p99_wall_upstream_ms()}"],
+                  "reasons": [f"judge_kind={report.judge_kind}",
+                              f"pass_rate={report.pass_rate}",
+                              f"isolation_level={report.isolation.get('level')}",
+                              f"real_takeover={report.isolation.get('real_takeover')}",
+                              f"takeover_fallback={report.takeover.get('fallback')}",
+                              f"p99_wall_candidate_ms={report.p99_wall_candidate_ms()}",
+                              f"p99_wall_upstream_ms={report.p99_wall_upstream_ms()}"],
                  "digest_run_id": report.passport.get("passport_id", ""),
                  "passport_id": report.passport.get("passport_id", ""),
                  "executed": report.total, "pass_rate": report.pass_rate,
-                 "note": "shadow 只记录不接管真实执行（" + TRANSPORT_SANDBOX_ONLY + "）"},
+                 "note": ("shadow 只记录不接管真实执行（" + TRANSPORT_SANDBOX_ONLY + "）"
+                          if not report.isolation.get("real_takeover")
+                          else ("接管在隔离边界内执行（等级 "
+                                + str(report.isolation.get("level"))
+                                + "），副作用只记录不双写"))},
                 correlation_id=correlation,
                 idempotency_key=f"{correlation}:{report.total}")
         action = (AUDIT_ACTION_DEGRADED
@@ -1761,6 +1905,14 @@ class ShadowRunner:
                      "total": report.total, "pass_rate": report.pass_rate,
                      "negative": report.negative,
                      "clock": CLOCK_WALL,
+                     "isolation_level": report.isolation.get("level"),
+                     "real_takeover": report.isolation.get("real_takeover"),
+                     "takeover": {"enabled": report.takeover.get("enabled"),
+                                  "executed": report.takeover.get("executed"),
+                                  "failed": report.takeover.get("failed"),
+                                  "fallback": report.takeover.get("fallback"),
+                                  "incident_id": report.takeover.get("incident_id"),
+                                  "adopted": report.takeover.get("adopted")},
                      "p99_wall_candidate_ms": report.p99_wall_candidate_ms(),
                      "p99_wall_upstream_ms": report.p99_wall_upstream_ms(),
                      "manual_review": report.manual_review,
@@ -1768,6 +1920,79 @@ class ShadowRunner:
             status=("degraded" if action == AUDIT_ACTION_DEGRADED else "observed"),
             actor=self.actor)
         return report
+
+    @staticmethod
+    def _annotate_takeover(report: ShadowReport,
+                           takeover: TakeoverReport) -> None:
+        """把接管结果回填到样本上（**"没跑"三态可分**：未请求 / 未抽样 / 已跑）
+
+        刻意不把"未抽样"写成"成功"：那正是"看起来接管了"的起点。回放判定的
+        `passed/negative` 字段**不因接管而改写**——接管只增列事实，不改判定口径。
+        """
+        by_sample = {a.sample_id: a for a in takeover.attempts}
+        for sample in report.samples:
+            attempt = by_sample.get(sample.sample_id)
+            if attempt is not None:
+                sample.takeover = True
+                sample.takeover_status = attempt.status
+                sample.takeover_matched = attempt.matched
+                sample.takeover_level = attempt.level
+                continue
+            sample.takeover = False
+            sample.takeover_level = takeover.level if takeover.enabled else ""
+            sample.takeover_status = (TAKEOVER_STATUS_NOT_SAMPLED if takeover.enabled
+                                      else TAKEOVER_STATUS_NOT_REQUESTED)
+
+    # ── 真实接管（TASK-S8-03） ───────────────────────────────
+
+    def _blocked_takeover(self, shadow_config: Optional[Dict[str, Any]]
+                          ) -> Dict[str, Any]:
+        """被阻断的灰度运行**不做接管**（但仍如实给出策略与理由）"""
+        policy = self.takeover_policy(shadow_config=shadow_config)
+        return TakeoverReport(capability_id="", policy=policy.to_dict(),
+                              level=policy.isolation_level,
+                              enabled=False, transport=TRANSPORT_SANDBOX_ONLY,
+                              reasons=list(policy.reasons) + [
+                                  "本次灰度被阻断（未获通行证/未开启/无判定集）"
+                                  "⇒ 不执行接管"]).to_dict()
+
+    def _candidate_steps(self, candidate: Any, case: EquivalenceCase) -> Any:
+        """候选 → 步骤程序（与回放**同一解析路径**：`_resolve_candidate` +
+        `as_implementation().steps_for()`），故两条通道跑的是同一个候选定义"""
+        picked = self._resolve_candidate(candidate, case)
+        implementation = as_implementation(picked, name="candidate")
+        return implementation.steps_for(case)
+
+    def _run_takeover(self, report: ShadowReport, *,
+                      shadow_config: Optional[Dict[str, Any]],
+                      daily_avg: Optional[float],
+                      chosen: Sequence[Tuple[str, EquivalenceCase]],
+                      gray_set: set,
+                      replays: Dict[str, Any],
+                      candidate: Any) -> TakeoverReport:
+        """按策略执行真实接管（**默认关闭**；任何"没跑"都写进 reasons）
+
+        三条纪律在本方法里落死：
+
+        1. 只有**被灰度选中**（``gray_routed``）且在**预算内**的样本才接管；
+        2. 接管执行一律经隔离执行器（等级来自 `isolation_plan`，`in_process`
+           时策略层就已拒绝）；
+        3. 比对对象是**同一候选**的回放观测（`replays`），不是上游——比的是
+           "真实执行与回放是否一致"，这样"接管"才有可判定的意义。
+        """
+        policy = self.takeover_policy(shadow_config=shadow_config)
+        engine = self.takeover_engine(shadow_config=shadow_config)
+        case_map = {sample_id: case for sample_id, case in chosen}
+        avg = (float(daily_avg) if daily_avg is not None
+               else self.ledger.daily_average(capability_id=report.capability_id))
+        return engine.run(
+            report.capability_id, policy=policy,
+            gray_routed=sorted(str(s) for s in gray_set),
+            cases=case_map,
+            candidate_for=lambda case: self._candidate_steps(candidate, case),
+            replay_obs_for=lambda sample_id: getattr(
+                replays.get(sample_id), "candidate", None),
+            daily_avg=avg, isolation=self.isolation_plan)
 
     # ── 内部工具 ────────────────────────────────────────────
 
@@ -1854,19 +2079,64 @@ class ShadowRunner:
         return {"applied": True, "patch": patch}
 
 
-def isolation_declaration() -> Dict[str, Any]:
-    """隔离边界声明（M6：显式声明"进程内确定性模型"，不冒充容器隔离）"""
-    return {
-        "mode": "in_process_deterministic_model",
-        "container_isolated": False,
-        "real_takeover": False,
-        "candidate_execution": TRANSPORT_SANDBOX_ONLY,
-        "note": ("S3-02/S3-03 的回放与灰度均为**进程内确定性执行模型**：副作用只记录"
-                 "（`ReplayEnv.commit()` 恒抛）、出界即 `SandboxEscapeError`。"
-                 "§5.2「生成代码一律 Docker」是**执行型产物**的隔离要求，进程内模型"
-                 "不能满足 ⇒ 本任务**不打开真实接管**，真实接管须由生产化任务提供"
-                 "容器沙箱后再开。"),
+def isolation_declaration(*, plan: Optional[IsolationPlan] = None,
+                          real_takeover: bool = False,
+                          real_takeover_enabled: bool = False,
+                          executed: int = 0,
+                          not_guaranteed: Optional[Sequence[str]] = None) -> Dict[str, Any]:
+    """隔离边界声明（M6 / S8-03：**三层事实分开报告**，不合并成一句好听话）
+
+    | 字段 | 含义 | 为什么必须分开 |
+    |---|---|---|
+    | `mode` | **本次实际**用的执行模型 | 开关关着时"实际用的"就是进程内回放 |
+    | `real_takeover` | **本次是否真的接管了**真实流量 | "开关开着但预算为 0 ⇒ 一次没跑"必须能看出来 |
+    | `available_level` | 环境**具备**的最高隔离等级 | 不能因为"这次没用"就把能力说成没有，反之也不行 |
+    | `level` / `container_isolated` | 本次**生效**的等级 | 容器不可用时这里绝不会是 `container` |
+    | `not_guaranteed` | **不保证的边界**清单 | 诚实底线：等级弱在哪，必须写在报告里 |
+
+    向后兼容：无参调用逐字保持 S3-03 的形态（`mode=in_process_deterministic_model`、
+    `container_isolated=False`、`real_takeover=False`、`candidate_execution=sandbox_replay_only`）。
+    """
+    level = str(getattr(plan, "level", "") or ISOLATION_IN_PROCESS) \
+        if plan is not None else ISOLATION_IN_PROCESS
+    effective_takeover = bool(real_takeover and executed > 0
+                              and level != ISOLATION_IN_PROCESS)
+    boundaries = isolation_boundaries(level).to_dict()
+    gaps = list(not_guaranteed) if not_guaranteed is not None \
+        else list(boundaries["not_guaranteed"])
+    payload: Dict[str, Any] = {
+        "mode": MODE_ISOLATED if effective_takeover else MODE_IN_PROCESS,
+        "container_isolated": bool(effective_takeover
+                                   and level == "container"),
+        "real_takeover": effective_takeover,
+        "real_takeover_enabled": bool(real_takeover_enabled),
+        "real_takeover_executed": int(executed),
+        "level": level,
+        "available_level": level,
+        "available_container_isolated": bool(level == "container"),
+        "kernel_isolation": bool(boundaries["kernel_isolation"]),
+        "display": str(boundaries["display"]),
+        "candidate_execution": (TRANSPORT_ISOLATED_TAKEOVER if effective_takeover
+                                else TRANSPORT_SANDBOX_ONLY),
+        "guarantees": list(boundaries["guarantees"]),
+        "not_guaranteed": gaps,
+        "enforcement": dict(boundaries["enforcement"]),
+        "plan": plan.to_dict() if plan is not None else {},
+        "note": (
+            ("接管**在隔离边界内**执行（等级 " + level + "），副作用只记录不双写；"
+             "产物**不自动合入**。")
+            if effective_takeover else
+            ("本次未接管真实流量：候选执行一律在 S3-02 的进程内确定性回放模型里"
+             "（副作用只记录，`ReplayEnv.commit()` 恒抛）。"
+             + ("接管开关已开启但本次未执行（预算/抽样/回落所致），"
+                "隔离等级为 " + level + "。" if real_takeover_enabled
+                else "接管默认关闭（需显式配置 + 显式比例）。")
+             + "环境具备的最高隔离等级为 " + level
+             + ("（容器，内核级）" if level == "container"
+                else "（**非**内核级，差距见 not_guaranteed）"
+                if level != ISOLATION_IN_PROCESS else "（无执行隔离）"))),
     }
+    return payload
 
 
 def shadow_quality(
@@ -1897,7 +2167,9 @@ __all__ = [
     "JUDGE_MODE_AUTO", "JUDGE_MODE_LLM", "JUDGE_MODE_LOCAL",
     "JUDGE_KIND_LLM", "JUDGE_KIND_LOCAL", "JUDGE_KIND_INJECTED",
     "JUDGE_KIND_LLM_FALLBACK", "CLOCK_WALL", "CLOCK_MODEL",
-    "TRANSPORT_SANDBOX_ONLY", "DEFAULT_SHADOW_DIR", "SHADOW_DIR_ENV",
+    "TRANSPORT_SANDBOX_ONLY", "TRANSPORT_ISOLATED_TAKEOVER",
+    "MODE_IN_PROCESS", "MODE_ISOLATED",
+    "DEFAULT_SHADOW_DIR", "SHADOW_DIR_ENV",
     "SHADOW_LEDGER_FILENAME", "MANUAL_REVIEW_FILENAME",
     "DEGRADE_WINDOW", "DEGRADE_RATE_FLOOR", "DEGRADE_CONSECUTIVE",
     "DEGRADE_MIN_SAMPLES", "DEGRADE_VERDICT_INSUFFICIENT",
@@ -1918,6 +2190,9 @@ __all__ = [
     # 台账与报告
     "ShadowLedger", "ShadowPlan", "ShadowSample", "ShadowReport",
     "assess_degradation", "isolation_declaration", "sample_id_for",
+    # 真实接管（TASK-S8-03）
+    "TakeoverEngine", "TakeoverLedger", "TakeoverReport",
+    "resolve_takeover_policy",
     # 三层比对流水线
     "CompareVerdict", "compare",
     # 门面
