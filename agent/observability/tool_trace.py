@@ -572,13 +572,39 @@ class ToolTraceRecorder:
     # ── SQLite 持久化 ────────────────────────────────────────
 
     def _get_conn(self) -> sqlite3.Connection:
-        """获取线程本地 SQLite 连接"""
+        """获取线程本地 SQLite 连接（与 ``UnifiedTraceStore`` **同库**，口径必须一致）
+
+        【S8-02：为什么这里也要显式设 PRAGMA（跨进程加固的一致性缺口）】
+        `tool_traces` 与 `unified_traces` 是**同一个物理库文件**
+        （`agent/data/tool_trace.db`，见两个模块的注释与 `_DEFAULT_DB_PATH`），
+        却由**两个不同的类、两条不同的 writer 线程**写。加固前两者的连接口径不一致：
+
+        - `trace_v2.py` 显式 ``PRAGMA busy_timeout = 5000`` + ``journal_mode = WAL``；
+        - 本模块两者都没有，靠 ``sqlite3.connect`` 的默认 ``timeout=5.0`` 兜底
+          （默认值恰好也是 5s，所以**不至于**立刻报 "database is locked"，
+          但这是"靠巧合对上了"，不是显式约定；一旦默认值变化或有人改 connect 参数，
+          同库的双写者就会以不同耐心争锁）。
+
+        【WAL 的持久性说明】``journal_mode`` 是**写在库文件里的持久属性**：只要
+        `UnifiedTraceStore` 先初始化过一次，本库即为 WAL，本模块随之受益。
+        但"只用了 `ToolTraceRecorder`、从未构造过 trace store"的部署下，库会停在
+        rollback journal ⇒ 多进程写者在文件锁上串行且等待更久。故此处**主动设定**，
+        不再依赖"另一个类碰巧先跑过"。
+
+        三处均 best-effort（与 `trace_v2` 同纪律）：平台差异不该让写入路径直接失败。
+        """
         if not hasattr(self._local, "conn") or self._local.conn is None:
             os.makedirs(os.path.dirname(self._db_path) or ".", exist_ok=True)
             self._local.conn = sqlite3.connect(
-                self._db_path, check_same_thread=False
+                self._db_path, check_same_thread=False, timeout=5.0
             )
             self._local.conn.row_factory = sqlite3.Row
+            for pragma in ("PRAGMA busy_timeout = 5000",
+                           "PRAGMA journal_mode = WAL"):
+                try:
+                    self._local.conn.execute(pragma)
+                except Exception as e:  # noqa: BLE001 平台差异/只读库：非致命
+                    logger.debug("tool_traces PRAGMA 设置失败（%s）: %s", pragma, e)
         return self._local.conn
 
     def _init_db(self) -> None:

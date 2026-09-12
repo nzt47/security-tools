@@ -811,3 +811,54 @@ class TestStopGracefulShutdown:
         ToolTraceRecorder.reset()
         assert not writer_t.is_alive()
         assert r._stopped is True
+
+
+class TestSameDbWriterConsistency:
+    """与 `UnifiedTraceStore` **同库**的写者口径一致性（TASK-S8-02 跨进程加固）
+
+    【为什么必须有这条（勘察报告发现的缺口）】`tool_traces` 与 `unified_traces`
+    是**同一个物理库文件**（`agent/data/tool_trace.db`），却由两个不同的类、
+    两条不同的 writer 线程写。加固前：`trace_v2.py` 显式设
+    `busy_timeout=5000` + `journal_mode=WAL`，而本模块两者都没设，
+    只靠 `sqlite3.connect` 的默认 `timeout=5.0` 兜底——"恰好也是 5s"纯属巧合，
+    不是约定；且 WAL 虽会随库持久化，但"只用了 `ToolTraceRecorder`、
+    从未构造过 trace store"的部署会停在 rollback journal，
+    多进程写者要在文件锁上串行等待更久。
+
+    本用例把"同库两写者口径一致"钉成回归：**只构造 recorder**（不构造 trace store），
+    断言其连接已是 WAL + 5000ms busy_timeout。
+    """
+
+    def test_recorder_only_connection_uses_wal_and_busy_timeout(self, tmp_path):
+        ToolTraceRecorder.reset()
+        recorder = ToolTraceRecorder(db_path=str(tmp_path / "same_db.db"))
+        try:
+            conn = recorder._get_conn()                     # noqa: SLF001
+            journal = str(conn.execute("PRAGMA journal_mode").fetchone()[0]).lower()
+            busy = int(conn.execute("PRAGMA busy_timeout").fetchone()[0])
+        finally:
+            recorder.stop(timeout=2.0)
+            ToolTraceRecorder.reset()
+        assert journal == "wal", f"同库写者应为 WAL，实际 {journal}"
+        assert busy == 5000, f"同库写者 busy_timeout 应为 5000，实际 {busy}"
+
+    def test_same_db_as_trace_store_is_consistent(self, tmp_path):
+        """两个写者指向同一文件时，PRAGMA 口径必须一致（不允许"靠默认值巧合"）"""
+        from agent.observability.trace_v2 import UnifiedTraceStore
+
+        db = str(tmp_path / "shared.db")
+        recorder = ToolTraceRecorder(db_path=db)
+        store = UnifiedTraceStore(db)
+        try:
+            rc = recorder._get_conn()                        # noqa: SLF001
+            sc = store._get_conn()                           # noqa: SLF001
+            rj = str(rc.execute("PRAGMA journal_mode").fetchone()[0]).lower()
+            sj = str(sc.execute("PRAGMA journal_mode").fetchone()[0]).lower()
+            rb = int(rc.execute("PRAGMA busy_timeout").fetchone()[0])
+            sb = int(sc.execute("PRAGMA busy_timeout").fetchone()[0])
+        finally:
+            recorder.stop(timeout=2.0)
+            store.stop(timeout=2.0)
+            ToolTraceRecorder.reset()
+        assert rj == sj == "wal", (rj, sj)
+        assert rb == sb == 5000, (rb, sb)
