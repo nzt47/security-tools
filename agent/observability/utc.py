@@ -957,10 +957,12 @@ def write_utc_snapshot(path: Optional[str] = None, *, days: int = 7,
         os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
         "data", "utc_snapshot.json")
     try:
-        target_path = Path(target)
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(target, "w", encoding="utf-8") as fh:
-            json.dump(snapshot, fh, ensure_ascii=False, indent=2)
+        # 【S8-02 损坏防护】原为 open(target,"w") 整文件覆盖写：**截断在前、写入在后**，
+        # 崩在中间即留下半截 JSON。本文件是 S5-03 断食/刹车的**数据源声明**，
+        # 损坏会让下游读不到当日口径 ⇒ 静默失去预算保护。改用统一原子写
+        # （临时文件 + os.replace，见 agent/utils/atomic_write.py）。
+        from agent.utils.atomic_write import atomic_write_json
+        atomic_write_json(target, snapshot)
     except OSError as e:  # noqa: BLE001 best-effort
         logger.warning("写出 utc_snapshot.json 失败: %s", e)
     return snapshot

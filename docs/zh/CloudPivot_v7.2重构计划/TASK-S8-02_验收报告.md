@@ -121,6 +121,18 @@ python -m pytest tests/unit/test_concurrency_multi_writer.py -q -p no:randomly
 | `EventStore` / 成本落盘 | JSONL | **单次 `os.write` 整行追加**（持锁）⇒ 结构上不可能撕行 | **格式本身无校验和字段** | ⚠️ **仅"可见性"，非"校验和"**：坏行/超长行计 `skipped_line_count` / `skipped_oversized_line_count` + 限流告警；不做逐条哈希校验 |
 | `DecisionLog` | JSONL | 轮转走 **临时文件 + `os.replace` + `fsync`**（已改为原子）；追加持锁 | **格式本身无校验和字段** | ⚠️ **仅"可见性"**：坏行跳过、**不可读分片计 `unreadable_shards` + 告警**（修掉了原先 `except OSError: continue` 的静默）；不做逐条哈希校验 |
 | 技能审计分片 | JSONL | 临时文件 + `os.replace` | 无 | ⚠️ 归档跳过/降级均计数 + 留痕 |
+| **整文件 JSON 快照/状态**（`utc_snapshot` / `cost_daily` / `cost_brake_state` / `trace_stats`） | JSON | **统一原子写**（`agent/utils/atomic_write.py`：同目录临时文件 + `os.replace` + fsync） | 无（无校验和字段） | ⚠️ 同上；但**写入原子性已补齐**——这 4 个文件原是"截断在前、写入在后"的整文件覆盖写，崩在中间即半截 JSON，而它们是 **S5-03 预算刹车**的输入 ⇒ 损坏可能让刹车静默失去保护 |
+
+**⚠️ 原子写在 Windows 上的已知代价（实测，有意接受）**：`os.replace` 需要目标**未**被
+其它句柄以"不共享 delete"的方式打开，而 Python 的 `read_text()` 正是这种打开。因此
+① **写侧**：目标被瞬时占用会报 `WinError 5`，原语用有界重试（`REPLACE_ATTEMPTS`）消化；
+② **读侧**：换名瞬间并发读者可能拿到 `Errno 13`；③ **持续不让出的读者可饿死写者**
+（已用 `test_continuous_reader_can_starve_writer_on_windows` 固化）。
+**这是有意用它换掉"读者静默读到半截 JSON"**：对这些文件而言，"这一轮没刷新、
+下轮会成功"远优于"预算刹车读到错误数值"。故**不**断言"写入零失败"
+（实测该断言在 2 写者 + 2 间歇读者下稳定失败，写成断言只会得到偶发绿灯），
+只断言设计真正保证的不变量：**读者要么拿到完整旧版本、要么完整新版本、要么拿到
+可重试的瞬时错误，绝不会拿到半截/交错内容**。
 
 **如实缩水说明（不做美化）**：`events.v1` 与 `policy.decision.v1` 两种 JSONL 信封
 **schema 里没有校验和字段**，因此"校验和不匹配即隔离"在这两条路径上**没有实现**——

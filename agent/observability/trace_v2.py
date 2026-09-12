@@ -1960,9 +1960,11 @@ class TraceFacade:
         stats = self.snapshot_stats()
         target = path or os.path.join(_PROJECT_ROOT, "data", "trace_stats.json")
         try:
-            os.makedirs(os.path.dirname(target) or ".", exist_ok=True)
-            with open(target, "w", encoding="utf-8") as f:
-                json.dump(stats, f, ensure_ascii=False, indent=2)
+            # 【S8-02 损坏防护】原为 open(target,"w") 整文件覆盖写（截断在前、
+            # 写入在后）：崩在中间留下半截 JSON，而本文件是 S3 判定集与 S5 评测的
+            # **数据源声明** ⇒ 下游读不到就会误判"无数据"。改用统一原子写。
+            from agent.utils.atomic_write import atomic_write_json
+            atomic_write_json(target, stats)
         except Exception as e:  # noqa: BLE001  best-effort 摘要写出，绝不阻断主路径
             logger.warning("写出 trace_stats.json 失败: %s", e)
         return stats

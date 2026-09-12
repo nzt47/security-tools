@@ -1091,10 +1091,12 @@ def write_cost_daily(path: Optional[str] = None, *, day: Optional[str] = None,
     view = cost_daily_view(day=day, now=now, directory=directory, config=config)
     target = path or DEFAULT_COST_DAILY_PATH
     try:
-        target_path = Path(target)
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        target_path.write_text(json.dumps(view, ensure_ascii=False, indent=2),
-                               encoding="utf-8")
+        # 【S8-02 损坏防护】原为 write_text 整文件覆盖写（**截断在前、写入在后**），
+        # 崩在中间即留下半截 JSON。本文件是**归一化日成本数据源**，且是 S5-03
+        # 预算刹车的输入 ⇒ 损坏可能让刹车读不到当日累计而静默失去保护。
+        # 改用统一原子写（临时文件 + os.replace，见 agent/utils/atomic_write.py）。
+        from agent.utils.atomic_write import atomic_write_json
+        atomic_write_json(target, view)
     except OSError as e:  # noqa: BLE001 best-effort
         logger.warning("写出 cost_daily.json 失败: %s", e)
     return view
@@ -1371,10 +1373,11 @@ class CostBrake:
             "fasting": self._machine.to_dict(),
         }
         try:
-            target = Path(self._state_path)
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(json.dumps(payload, ensure_ascii=False, indent=2),
-                              encoding="utf-8")
+            # 【S8-02 损坏防护】原来是非原子的整文件覆盖写：刹车状态（断食/冷却/
+            # 日闸开启）一旦被写成半截 JSON，重启后 `_load_state` 读不出来 ⇒
+            # 刹车状态**静默重置**，当日已开启的闸门会重新放开。改用统一原子写。
+            from agent.utils.atomic_write import atomic_write_json
+            atomic_write_json(self._state_path, payload)
         except OSError as e:  # noqa: BLE001 best-effort
             logger.debug("成本刹车状态写入失败: %s", e)
 
