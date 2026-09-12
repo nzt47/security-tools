@@ -921,6 +921,27 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "消化晋升产物目录", owner="agent/digestion/internalize.py"),
     _a("CP_DIGESTION_REPROBE_ENABLED", CAT_ORCHESTRATION, False,
        "消化复探（reprobe）开关", owner="agent/digestion/gate.py"),
+    # ── S7-04 探活设施 + S7-06 判定集成本台账（合并后补齐登记）──
+    # 说明：这 5 项由 S7-04 / S7-06 交付引入；本注册表在**合并态复跑零缺口门**时
+    #       如实报出缺口（`CP_DIGESTION_LIVENESS_*` / `CP_DIGESTION_CASE_COST_DIR`），
+    #       故在此补登记——这正是零缺口门"合并后仍有守护力"的证据。
+    _b("CP_DIGESTION_LIVENESS_ENABLED", CAT_SKILLS, False,
+       "native 能力探活调度总开关（默认关闭；开启即按周期自动执行抽样探活）",
+       owner="agent/digestion/probe.py",
+       impact="影响面：是否自动周期性发起 native 能力探活"
+              "（只读测量，但属自动化执行类）"),
+    _a("CP_DIGESTION_LIVENESS_PROBE_SIZE", CAT_SKILLS, 5,
+       "单次探活的抽样规模（非法值回退默认 5）",
+       owner="agent/digestion/probe.py", validator=_int_range(1, 1000)),
+    _a("CP_DIGESTION_LIVENESS_MAX_TARGETS", CAT_SKILLS, 20,
+       "单周期探活的能力数上限（预算上限；非法值回退默认 20）",
+       owner="agent/digestion/probe.py", validator=_int_range(1, 10000)),
+    _c("CP_DIGESTION_LIVENESS_DIR", CAT_SKILLS, None,
+       "探活基线台账目录（只读；默认 <判定集根>/_liveness）",
+       owner="agent/digestion/probe.py"),
+    _c("CP_DIGESTION_CASE_COST_DIR", CAT_SKILLS, None,
+       "判定集构建成本台账目录（只读；默认 <判定集根>/_case_cost）",
+       owner="agent/digestion/case_cost.py"),
     _a("PREFLIGHT_FAKE_FAIL", CAT_ORCHESTRATION, "",
        "预检演练：强制失败注入（仅测试/演练用）",
        owner="agent/preflight/__main__.py"),
