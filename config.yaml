@@ -741,11 +741,17 @@ workflow_learning:
     # 环境变量 WF_SKILL_AUTO_UPGRADE_ENABLED / WF_SKILL_AUTO_UPGRADE_INTERVAL 覆盖
 
 
-# ── SLO 指标周报定时生成（默认关闭，安全底线）────────────────────────
-# 开启后由 TaskScheduler 每周自动生成 §6.7 指标周报并存档，
-# 便于运营期"与 W0 基线和上周对比"。也可用 CP_SLO_SCHEDULE_* 环境变量覆盖。
+# ── SLO 指标周报定时生成（2026-09-13 起开启）──────────────────────────
+# 由 TaskScheduler 每周一 09:00 自动生成 §6.7 指标周报并存档，
+# 供运营期"与 W0 基线和上周对比"。也可用 CP_SLO_SCHEDULE_* 环境变量覆盖。
+#
+# 【开启理由（2026-09-13）】周报是运营期的**连续可比序列**（漏周即无法与 W0 对比），
+# 靠人工记得跑不可靠；周报生成本身也是云枢真实运行的一部分（会写审计 + 事件）。
+# 任务只读事件流/台账并写 docs/zh/周报存档/，不触发任何自动化改动 ⇒ 无副作用风险。
+# 【留意】slo_report 段落此前只是"占位默认关闭"，从未真正注册过任务；
+# 若需临时停掉：改回 false 并重启，或置 CP_SLO_SCHEDULE_ENABLED=false。
 slo_report:
-  enabled: false          # true 时注册周报定时任务（等价 CP_SLO_SCHEDULE_ENABLED=true）
+  enabled: true           # true 时注册周报定时任务（等价 CP_SLO_SCHEDULE_ENABLED=true）
   day_of_week: 0          # 0=周一 … 6=周日（Python weekday() 语义）
   hour: 9                 # 触发小时（0-23）
   minute: 0               # 触发分钟（0-59）
