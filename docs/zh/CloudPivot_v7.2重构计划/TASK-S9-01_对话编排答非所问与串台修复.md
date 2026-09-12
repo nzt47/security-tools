@@ -27,7 +27,19 @@
    ```
    二者取自**全局单例 `Yunshu` 的实例属性**（last-write-wins），**未按会话隔离**；
    本轮若没写入，就返回上一轮的值。
-   注意同文件 342-344 行注释声称已"根治会话串扰"，但**只覆盖了 `session_id`**，没覆盖这两个属性。
+   注意同文件注释声称已"根治会话串扰"，但**只覆盖了 `session_id`**，没覆盖这两个属性。
+
+   > **⚠️ 先看这条，否则会改错文件（2026-09-13 02:3x 修正）**
+   > 线上 `/api/chat` 的 handler 是 **`plugins/chat.py`**（`plugins/chat.py:313-314`）——
+   > 实测响应字段含 `context` / `voice_result` 且**不含** `thinking_mode`；
+   > `agent/server_routes/routes_chat.py:428-429` 是同款写法但**不是线上**（它的返回里有 `thinking_mode`）。
+   > 两处都有这两行，**以 `plugins/chat.py` 为准**；`routes_chat.py` 若已不生效请在报告中一并说明。
+   >
+   > **⚠️ 复验必须用请求体的 `session_id`**：`plugins/chat.py:148-149` 只认 body 里的
+   > `session_id`（`session` 只在**查询参数**位置被接受）。传错字段会**静默回落到全局会话**，
+   > 让你误以为"没有会话隔离"。最初的探测证据就是踩了这个坑；已用正确字段 + 全新会话复验，
+   > **D2 仍复现**（「2 加 3 等于多少」→ self_reflection 技能文档；
+   > 「帮我列出当前工作目录下的文件」→ 原始工具结果 JSON）。
 
 2. **这两个属性的写入点**（共 7 处，注意有些写法是"不回退"的）：
    - 初始化：`agent/orchestrator/lifecycle_manager.py:445-446`

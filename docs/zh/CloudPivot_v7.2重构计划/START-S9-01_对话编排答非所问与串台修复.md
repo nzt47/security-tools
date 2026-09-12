@@ -36,11 +36,19 @@
   判据：换了完全不同的问题，tool_steps 与 reasoning 却与上一轮**逐字相同** ⇒ 全局残留。
 
 ━━━ 三、已定位部分（不用重新查）━━━
-  ① 串台直接原因：agent/server_routes/routes_chat.py:428-429
+  ⚠️⚠️ 两个前置坑（2026-09-13 02:3x 修正，先看这两条否则会白干）：
+   ★ 线上 /api/chat 的 handler 是 **plugins/chat.py**（plugins/chat.py:313-314），
+     **不是** agent/server_routes/routes_chat.py（后者返回里有 thinking_mode，实测线上没有）。
+     两处都有同款两行，**以 plugins/chat.py 为准**；routes_chat.py 若已不生效请在报告中说明。
+   ★ 复验请求体必须用 **session_id**（plugins/chat.py:148-149 只认这个字段；`session` 只在
+     查询参数位置被接受）。传错字段会**静默回落到全局会话**，让你误以为"没有会话隔离"——
+     最初的证据就是踩了这个坑；已用正确字段 + 全新会话复验，**D2 仍复现**。
+  ① 取"上一轮值"的位置：
+       plugins/chat.py:313-314（线上） / routes_chat.py:428-429（同款，非线上）
        "tool_steps": getattr(Yunshu, '_last_tool_steps', []),
        "reasoning":  getattr(Yunshu, '_last_reasoning', None),
      取自**全局单例实例属性**，未按会话隔离；本轮没写就返回上一轮的值。
-     （同文件 342-344 行注释声称已"根治会话串扰"，但只覆盖 session_id，没覆盖这两个属性。）
+     （相关注释声称已"根治会话串扰"，但只覆盖 session_id，没覆盖这两个属性。）
   ② 这两个属性的写入点共 7 处：lifecycle_manager.py:445-446（初始化）、
      orchestrator.py:2880 / 2979 / 3017 / 3057 / 3440-3441 / 3450-3451。
      ⚠️ 3441/3451 写作 `_result.get("reasoning") or self._last_reasoning` —— **or 保留旧值**，
@@ -70,10 +78,10 @@
 ━━━ 六、真机复验命令（照此取证，别只看单测）━━━
   $env:PYTHONIOENCODING='utf-8'
   $tok = (Select-String -Path 'C:\Users\Administrator\agent\.env' -Pattern '^FLASK_API_TOKEN=(.*)$').Matches[0].Groups[1].Value.Trim()
-  # 连续两次不同提问，对比 tool_steps / reasoning / response
+  # ★ 必须用 session_id（不是 session！），且**每次全新会话**，否则会静默落到全局会话、结论失真
   foreach ($q in @('帮我列出当前工作目录下的文件','2 加 3 等于多少？只回答数字')) {
-    $body = @{ message = $q; session = "s901-$([guid]::NewGuid().ToString('N').Substring(0,8))" } | ConvertTo-Json -Compress
-    $r = Invoke-WebRequest -Uri 'http://127.0.0.1:5678/api/chat' -Method POST -ContentType 'application/json; charset=utf-8' `
+    $body = @{ message = $q; session_id = "s901-$([guid]::NewGuid().ToString('N').Substring(0,8))" } | ConvertTo-Json -Compress
+    $r = Invoke-WebRequest -Uri 'http://127.0.0.1:5678/api/chat' -Method POST -Headers @{ 'X-API-Token'=$tok } -ContentType 'application/json; charset=utf-8' `
          -Body ([Text.Encoding]::UTF8.GetBytes($body)) -UseBasicParsing -TimeoutSec 150
     $j = $r.Content | ConvertFrom-Json
     "Q=$q"; "  tool_steps=$($j.tool_steps | ConvertTo-Json -Compress -Depth 4)"; "  reasoning=$($j.reasoning)"; "  response=$($j.response.Substring(0,[Math]::Min(200,$j.response.Length)))"
