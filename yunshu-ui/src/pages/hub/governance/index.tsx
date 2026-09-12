@@ -71,6 +71,7 @@ import {
 } from './usePanel'
 import { AbsoluteActionBar } from './actions'
 import { ImplicitEntryLog, recordImplicitEntry } from './implicitEntry'
+import { SettingsPanel } from './settings'
 
 // ═══════════════════════════════════════════════════════════
 //  容器：按 panel 渲染（P0 展开 / P1·P2 折叠 / 自愈自动展开）
@@ -79,6 +80,8 @@ import { ImplicitEntryLog, recordImplicitEntry } from './implicitEntry'
 export type GovernancePanelId =
   | 'pipeline' | 'capabilities' | 'approvals'
   | 'roi' | 'incidents' | 'memory' | 'audit'
+  // TASK-S7-01「开关中心」：登记表全量 + 生效来源 + 风险分级 + B 级二次确认
+  | 'settings'
 
 /** 折叠区（P1/P2 默认收起；P0 默认展开） */
 function Collapsible({
@@ -159,6 +162,8 @@ export function GovernancePanels({ panel = 'pipeline' }: { panel?: GovernancePan
       return <MemorySkillsPanel />
     case 'audit':
       return <AuditExportPanel />
+    case 'settings':
+      return <SettingsPanel />
     case 'pipeline':
     default:
       return <DigestionPipelinePanel />

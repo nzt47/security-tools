@@ -29,6 +29,10 @@ import type {
   PipelineView,
   RoiView,
   SecurityRenderState,
+  SettingsChangeBody,
+  SettingsChangeResponse,
+  SettingsConfirmBody,
+  SettingsView,
 } from './cpPanelsTypes'
 
 const PREFIX = '/api/cp'
@@ -218,4 +222,57 @@ export function batchDecide(body: {
     method: 'POST',
     body,
   })
+}
+
+// ═══════════════════════════════════════════════════════════
+//  开关中心（TASK-S7-01「开关中心」）
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * 开关登记表全量读取（≈300 项）
+ *
+ * 【契约要点（FROZEN）】
+ *   - `source` ∈ env | ui_override | config | default；`shadowed_by` 是"存在但未生效"的低优先级来源；
+ *   - `secret=true` 时后端只给 `value: null` + `masked: true` + **已脱敏的** `display_value`
+ *     与 `configured` 布尔——前端**永不期望明文、永不自行拼装掩码串**；
+ *   - `locked=true ⇒ editable=false`，且 `locked_reason` 必须原样上屏。
+ */
+export function fetchSettings(): Promise<SettingsView> {
+  return request<SettingsView>(`${PREFIX}/settings`)
+}
+
+/**
+ * 变更单个开关（**无批量端点**：数组体一律 `400 batch_not_supported`）
+ *
+ * 200 ⇒ 已生效（`applied:true`，`source` 通常转为 `ui_override`）；
+ * 202 ⇒ `pending:true` + `pending_id`，**需第二位人工**走 `confirmSetting()`；
+ * 4xx ⇒ `ApiError`（`code` + `message` + 可选 `decision`，见 `settingsDenialMessage()`）。
+ */
+export function changeSetting(
+  key: string,
+  body: SettingsChangeBody,
+): Promise<SettingsChangeResponse> {
+  return request<SettingsChangeResponse>(
+    `${PREFIX}/settings/${encodeURIComponent(key)}`,
+    { method: 'POST', body },
+  )
+}
+
+/** B 级开关的第二位人工确认（`pending_id` 来自 202 响应；**不能由同一人自查自批**） */
+export function confirmSetting(
+  key: string,
+  body: SettingsConfirmBody,
+): Promise<SettingsChangeResponse> {
+  return request<SettingsChangeResponse>(
+    `${PREFIX}/settings/${encodeURIComponent(key)}/confirm`,
+    { method: 'POST', body },
+  )
+}
+
+/** 回滚到默认（`source` 回到 `default`；也用于撤销 `ui_override`） */
+export function resetSetting(key: string): Promise<SettingsChangeResponse> {
+  return request<SettingsChangeResponse>(
+    `${PREFIX}/settings/${encodeURIComponent(key)}/reset`,
+    { method: 'POST' },
+  )
 }

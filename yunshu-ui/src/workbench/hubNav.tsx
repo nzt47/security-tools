@@ -12,7 +12,7 @@ import {
   Activity, FileText, Server, BookOpen, Search, Boxes, Terminal, Plug, Monitor,
   HeartPulse, CalendarClock, Users, Copy, Hammer, FolderHeart, Lightbulb, Palette,
   Settings, Shield, ListTree, History, Bell, ScrollText, FlaskConical, Smile, Puzzle,
-  FileDown, GitBranch, Layers, ListChecks, TrendingUp,
+  FileDown, GitBranch, Layers, ListChecks, TrendingUp, SlidersHorizontal,
 } from 'lucide-react'
 
 // ═══ Code Splitting：按导航项懒加载（Vite 自动分包）═══
@@ -157,6 +157,8 @@ export const HUB_NAV: HubNavItem[] = [
       { key: 'governance/incidents', label: '自愈事故', icon: HeartPulse, component: GovernancePanels },
       { key: 'governance/memory', label: '记忆技能库', icon: Brain, component: GovernancePanels },
       { key: 'governance/audit', label: '审计导出', icon: ScrollText, component: GovernancePanels },
+      // TASK-S7-01「开关中心」：登记表全量（分类分组 + 搜索 + 风险分级 + 生效来源）
+      { key: 'governance/settings', label: '开关中心', icon: SlidersHorizontal, component: GovernancePanels },
     ],
   },
   {
@@ -185,9 +187,9 @@ export interface HubPanelParams {
   initialCategory?: string
   /** memory/manual | memory/auto：记忆页初始模式 */
   mode?: 'manual' | 'auto'
-  /** governance/<panel>：治理面板栏目（六面板 + 审计导出；单组件按参数渲染） */
+  /** governance/<panel>：治理面板栏目（六面板 + 审计导出 + 开关中心；单组件按参数渲染） */
   panel?: 'pipeline' | 'capabilities' | 'approvals' | 'roi' | 'incidents'
-    | 'memory' | 'audit'
+    | 'memory' | 'audit' | 'settings'
 }
 
 /** 由导航 key 推导复用页面的初始参数；其余导航项无需参数（返回空对象，组件自带默认视图） */
