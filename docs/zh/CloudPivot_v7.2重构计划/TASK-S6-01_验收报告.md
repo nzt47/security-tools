@@ -14,7 +14,7 @@
 | 任务书 §四 验收清单 | **20/20 通过**（逐条见 §二） |
 | §0.2 移交项 U1–U10 | **10/10 收口或明确登记**（详见移交项处置表） |
 | §0.3 口径纪律 | **通过**（"无不可追溯百分比"自查机器化，见 §二 #19） |
-| 后端新增单测 | **67 例全绿**（`tests/unit/test_s6_01_ui_panels.py`） |
+| 后端新增单测 | **76 例全绿**（`tests/unit/test_s6_01_ui_panels.py`）；新增模块覆盖率 82–96%（加权 83%） |
 | 前端新增用例 | **45 例全绿**（`src/pages/hub/governance/*.test.tsx`） |
 | 前端既有回归 | **569 passed / 0 failed**（68 文件，零新增失败） |
 | 后端邻接回归 | **833 passed / 0 failed**（14 个相关套件） |
@@ -492,7 +492,8 @@ Watchdog 与熔断"阈值→生效"**仍标注未验证**（未编造）。
 
 | 套件 | 结果 |
 |---|---|
-| `tests/unit/test_s6_01_ui_panels.py`（新增） | **67 passed / 0 failed** |
+| `tests/unit/test_s6_01_ui_panels.py`（新增） | **76 passed / 0 failed** |
+| 新增模块覆盖率 | `schema.py` **96%** / `data.py` **83%** / `routes_ui_panels.py` **82%** / 加权 **83%**（命令：`pytest tests/unit/test_s6_01_ui_panels.py tests/unit/test_approval_routes.py --cov=agent.ui_panels --cov=agent.server_routes.routes_ui_panels`）⇒ **≥80% 达标** |
 | 邻接回归（14 套件：approval_routes / security_approval_session / security_approval_guard / s4_01_stage_promote_chain / audit_chain / audit_facade / guardrails_safe_render / guardrails_boundary_words / injection_defense_facade / digestion_{internalize,shadow,stage,pipeline}） | **833 passed / 0 failed** |
 | `yunshu-ui` 全量 vitest | **569 passed / 0 failed**（68 文件；新增 45 例） |
 | 后端全量 `tests/unit` | 16414 passed / 12 failed ⇒ **0 回归**（见下） |
@@ -561,3 +562,18 @@ Watchdog 与熔断"阈值→生效"**仍标注未验证**（未编造）。
    - 能力地图把"零样本"渲染为 0%（已修 + 回归用例）；
    - `metric()` 的调用方注记覆盖了披露纪律文案（已修 + 回归用例）；
    - 审批路由在生产入口**从未注册**（N1，已修）。
+
+---
+
+## 五、验收后收尾（2026-09-12，Owner 指示"逐项收尾"）
+
+验收（§二 20/20）之后，按 Owner 指示对**全项目 S0–S6** 做了一次收尾核查，
+发现并处置了 2 项——一项是**跨阶段 CI 阻塞**，一项是本任务自身的覆盖率缺口：
+
+| # | 事项 | 定性 | 处置 | 提交 |
+|---|---|---|---|---|
+| C1 | CI 的「文档链接预检与锚点回归测试」与「代码质量检查 → docs 链接预检诊断」两个 job 在 master 上**持续失败** | **S4-03 结案时遗留**（`2eef5349` 基线即存在，非 S6-01 引入） | `docs/chaos_s4_03_drill_report.md` 实际位于 `docs/` 根，而 `docs/zh/CloudPivot_v7.2重构计划/` 下三处引用写成 `../`（只退一级 → 解析到 `docs/zh/`）⇒ 改为 `../../`。本地复跑同一 CI 命令：**检查 1289 文件 / 1469 链接 / 0 失效**，pre-commit 预检 **2 通过 0 失败** | `f2b25c54` |
+| C2 | `agent/ui_panels/data.py` 覆盖率 **78%**，低于批次约定「单测覆盖率 ≥80%」 | 本任务自身缺口 | 补 10 例：① 用**真实 `MemoryEntry`** 走 `_memory_card()`（枚举 `.value` 映射 / 脱敏文本不外泄 / TTL 数值条件分支 / layers 过滤）；② 新增 `TestGracefulDegradation`（守不易：逐个面板把数据源打成不可用，断言不抛异常、受影响区段记 `absent`、其余区段仍可用）⇒ `data.py` **83%**、`schema.py` **96%**、`routes_ui_panels.py` **82%**、加权 **83%** | `4b5bf487` |
+
+**处置后终态**：`master` = `origin/master` = `gitee/master`（同点）；CI 在 `4b5bf487` 上重跑，
+上述两个曾失败的 job 预期转绿（本报告 §六 记录终态）。
