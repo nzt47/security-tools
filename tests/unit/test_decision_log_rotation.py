@@ -186,24 +186,38 @@ class TestShardNaming:
         assert shard_name("data/policies/decisions", "2026-09-11") == ""
 
     def test_分片名与_candidate_files_口径一致(self, tmp_path):
-        """★ 口径守卫：轮转产出的名字必须能被既有读取端枚举到
+        """★ 口径守卫：**两种**分片命名都必须能被读端枚举到
 
-        连字符形态（``log_archiver.archive_daily_file`` 的写法）刻意作为**反例**
-        钉在这里：它不满足 ``name.startswith(stem + ".")``，对 ``read()`` 完全不可见。
+        【本条已按跨任务实测缺陷修正（原断言是反的）】最初这里把连字符形态
+        （``log_archiver.archive_daily_file`` 的写法）当作**反例**钉住——
+        理由是"它不满足 ``startswith(stem + '.')``，对 ``read()`` 不可见"。
+        那对**选择我们自己的分片名**是对的，但作为**读侧契约**是错的：
+        S8-01 数据生命周期治理把 ``policy_decisions`` 声明为
+        ``reader_shard_aware=True`` + ``ARCHIVE_WARM_DAILY``，温层**复用既有**
+        ``log_archiver``，产出的就是连字符分片。若读端不认，归档即等于
+        **静默丢统计**（实测 3 条 → 1 条）。
+
+        故现在断言两件事同时成立：
+        ① 本模块轮转**产出**点号形态（写入端契约不变，S8-01 的 globs 也按点号声明）；
+        ② 读端**两种都认**（读侧兼容，避免跨任务口径漂移）。
         """
         path = tmp_path / "decisions.jsonl"
         _write_raw(path, _series(2))
         shard = tmp_path / "decisions.20260911.jsonl"
-        assert shard_name(str(path), "2026-09-11") == str(shard)
+        assert shard_name(str(path), "2026-09-11") == str(shard)   # ① 我们产出点号
         shard.write_text(_rec("2026-09-11T10:00:00+08:00").to_json_line() + "\n",
                          encoding="utf-8")
         candidates = DecisionLog._candidate_files(str(path))  # noqa: SLF001
         assert str(shard) in candidates                # 点号形态：读得到
-        hyphen = tmp_path / "decisions-20260911.jsonl"
+
+        # ② 连字符形态（log_archiver / S8-01 温层）**同样必须读得到**
+        hyphen = tmp_path / "decisions-2026-09-11.jsonl"
         hyphen.write_text(_rec("2026-09-11T11:00:00+08:00").to_json_line() + "\n",
                           encoding="utf-8")
-        assert str(hyphen) not in candidates           # 连字符形态：读不到（陷阱）
-        assert len(_read(path)) == 3                   # 活动 2 条 + 点号分片 1 条
+        # 必须**重新枚举**：candidates 是快照，创建文件前算的那份看不到它
+        candidates = DecisionLog._candidate_files(str(path))  # noqa: SLF001
+        assert str(hyphen) in candidates, "连字符分片不可见 ⇒ 归档即静默丢统计"
+        assert len(_read(path)) == 4                   # 活动 2 + 点号 1 + 连字符 1
 
     def test_分片名反解日期(self):
         assert shard_day("decisions.20260911.jsonl") == "2026-09-11"
@@ -1128,4 +1142,112 @@ class TestWritePathFastPath:
         assert other.exists() and other.stat().st_size > 0
         # 复核只在"拿不到 inode"时才放弃判定；本机（Windows）st_ino 可用
         assert os.stat(path).st_ino and os.stat(other).st_ino
+
+
+# ════════════════════════════════════════════════════════════
+#  跨任务缝合：S8-01 温层归档产物（**连字符**分片）必须对读端可见
+# ════════════════════════════════════════════════════════════
+
+
+def _raw_line(ts: str, effect: str, marker: str) -> str:
+    """直接构造一行决策记录（绕开 DecisionLog 写入，用于铺设历史分片）"""
+    return json.dumps({
+        "ts": ts, "schema": "policy.decision.v1", "input": {"marker": marker},
+        "effect": effect, "policy_id": "p-" + marker, "policy_version": "1",
+        "reason_code": "r", "cache_hit": False, "latency_ms": 1.0,
+        "fingerprint": "f", "revision": 1, "tenant_id": "default",
+        "capability_id": "c", "action": "a", "actor": "u",
+    }, ensure_ascii=False)
+
+
+def test_s801_warm_archive_shards_stay_visible(tmp_path):
+    """**跨任务回归**：S8-01 温层用 ``log_archiver`` 归档后，读端不得丢可见性
+
+    【为什么必须有这条（实测缺陷，S8-01 × S8-02 缝合处）】
+    - 本模块的轮转产出**点号**分片 ``decisions.<YYYYMMDD>.jsonl``；
+    - S8-01 把 ``policy_decisions`` 声明为 ``reader_shard_aware=True`` +
+      ``ARCHIVE_WARM_DAILY``，温层**复用既有**
+      ``agent/skills_mgmt/log_archiver.archive_daily_file``，它产出的是
+      **连字符**形态 ``decisions-YYYYMMDD.jsonl``；
+    - 而读侧门槛一度是"必须 ``startswith(stem + ".")``"。
+
+    实测后果：3 天决策（2 条历史日 + 1 条今日）经 ``archive_daily_file`` 之后，
+    ``read()`` 由 **3 条跌到 1 条**——归档成功、统计凭空少 2/3，**且无任何报错**。
+    S8-01 侧的口径复算校验的是 ``utc.weekly`` / ``digestion.throughput`` /
+    ``audit.chain``，**不覆盖** ``policy.decision_audit``，故那条路查不出来；
+    本任务验收项「读分片仍可用 / 轮转前后口径一致」正是该处唯一的守卫。
+
+    本用例调用**真实的** ``archive_daily_file``（而不是伪造连字符文件名），
+    断言归档前后 ``read()`` 的多重集恒等。
+    """
+    from agent.skills_mgmt.log_archiver import archive_daily_file
+
+    path = tmp_path / "decisions.jsonl"
+    lines = [
+        _raw_line("2026-09-10T10:00:00+00:00", "deny", "d10"),
+        _raw_line("2026-09-11T10:00:00+00:00", "allow", "d11"),
+        _raw_line("2026-09-13T10:00:00+00:00", "ask", "d13"),
+    ]
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    reader = DecisionLog(str(path), enabled=False)
+
+    before = sorted((r.effect, r.input.get("marker")) for r in reader.read())
+    assert len(before) == 3, before
+
+    result = archive_daily_file(path)
+    assert result["archived"] == 2, result          # 两条历史日被移入分片
+
+    # 先确认归档器产出的确实是**连字符**形态，否则本用例会失去意义
+    shards = sorted(p.name for p in tmp_path.iterdir()
+                    if p.name.startswith("decisions-"))
+    assert shards, "log_archiver 未产出连字符分片，本用例前提失效"
+
+    after = sorted((r.effect, r.input.get("marker")) for r in reader.read())
+    assert after == before, (
+        f"归档后读端可见记录发生变化（口径漂移）: {before} -> {after}；"
+        f"可见文件={[os.path.basename(p) for p in DecisionLog._candidate_files(str(path))]}")
+
+
+def test_dot_and_hyphen_shards_both_visible(tmp_path):
+    """两种命名**共存**时都必须被读到（本模块轮转与 S8-01 温层可同时发生）"""
+    path = tmp_path / "decisions.jsonl"
+    path.write_text(_raw_line("2026-09-13T10:00:00+00:00", "ask", "active") + "\n",
+                    encoding="utf-8")
+    (tmp_path / "decisions.20260912.jsonl").write_text(
+        _raw_line("2026-09-12T10:00:00+00:00", "deny", "dot") + "\n", encoding="utf-8")
+    (tmp_path / "decisions-20260911.jsonl").write_text(
+        _raw_line("2026-09-11T10:00:00+00:00", "allow", "hyphen") + "\n",
+        encoding="utf-8")
+    # 紧凑 8 位形态也收（历史/其它调用方可能使用）
+    (tmp_path / "decisions-20260910.jsonl").write_text(
+        _raw_line("2026-09-10T10:00:00+00:00", "deny", "compact") + "\n",
+        encoding="utf-8")
+
+    reader = DecisionLog(str(path), enabled=False)
+    markers = sorted(r.input.get("marker") for r in reader.read())
+    assert markers == ["active", "compact", "dot", "hyphen"], markers
+
+
+def test_lookalike_files_are_not_treated_as_shards(tmp_path):
+    """**反例**：人工副本 / 非按日命名的同族文件不得被误当分片读入
+
+    【为什么"宽进"也是错】漏读让统计**偏小**（静默丢），多读让统计**偏大**
+    （同样与历史不可比）。故连字符形态只认
+    ``<stem>-YYYY-MM-DD<ext>``（ISO）与 ``<stem>-YYYYMMDD<ext>``（紧凑）两种。
+    """
+    path = tmp_path / "decisions.jsonl"
+    path.write_text(_raw_line("2026-09-13T10:00:00+00:00", "ask", "active") + "\n",
+                    encoding="utf-8")
+    for name in ("decisions-backup.jsonl", "decisions-old.jsonl",
+                 "decisions-2026.jsonl", "decisions-2026-09.jsonl",
+                 "decisions-2026-9-10.jsonl", "decisions-2026091.jsonl",
+                 "decisions-202609111.jsonl", "decisions-abcdefgh.jsonl"):
+        (tmp_path / name).write_text(
+            _raw_line("2026-09-12T10:00:00+00:00", "deny", "noise") + "\n",
+            encoding="utf-8")
+
+    reader = DecisionLog(str(path), enabled=False)
+    markers = sorted(r.input.get("marker") for r in reader.read())
+    assert markers == ["active"], markers
+
 

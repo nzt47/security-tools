@@ -2,7 +2,15 @@
 
 把评估事件 / 人工复核审计这类 JSONL 按 ts 的日期分档：
 - 当日记录保留在原文件；
-- 历史记录（ts 早于今天）移入 `<stem>-YYYYMMDD<ext>` 归档文件（追加模式）。
+- 历史记录（ts 早于今天）移入 `<stem>-<YYYY-MM-DD><ext>` 归档文件（追加模式）。
+
+【命名口径勘误（TASK-S8-02 实现期实测）】此处原写 `<stem>-YYYYMMDD<ext>`，
+**与实际不符**：`day` 取自 `ts[:10]`（ISO 带连字符），故真实产物是
+`decisions-2026-09-10.jsonl` 而非 `decisions-20260910.jsonl`。
+该笔误已实际导致 `DecisionLog._candidate_files` 的分片匹配写成
+"只认紧凑 8 位"而**永远匹配不上**（用例
+`test_s801_warm_archive_shards_stay_visible` 抓到）。读侧现同时接受两种形态，
+但**本文档以实际产物为准**。
 幂等：进程内按"路径→日期"记忆已归档，重复调用/轮询廉价；
 文件缺失/无历史行时零操作。
 
@@ -361,7 +369,7 @@ def _ts_day(line: str) -> Optional[str]:
 
 
 def archive_daily_file(path: Path | str) -> dict:
-    """把 path（JSONL）中的历史行按日归档到同目录 `<stem>-YYYYMMDD<ext>`。
+    """把 path（JSONL）中的历史行按日归档到同目录 `<stem>-<YYYY-MM-DD><ext>`。
 
     Args:
         path: 待归档的 JSONL 活动文件（**显式传入**；生产调用方传
@@ -376,8 +384,9 @@ def archive_daily_file(path: Path | str) -> dict:
         - 公开签名与返回形状不变（`EventStore._maybe_archive` / skills 侧同上）；
         - 进程内 `_ARCHIVED` 记忆语义不变（同一天同路径只做一次）；
         - **归档不删**：历史行只被"搬家"到分片，任何情况下都不被丢弃；
-        - 分片命名固定 `<stem>-YYYYMMDD<ext>`（**不是** `_candidate_files` 需要的
-          点号形态——那是 `DecisionLog` 自家的事，不在本函数职责内）。
+        - 分片命名固定 `<stem>-<YYYY-MM-DD><ext>`（**不是** `DecisionLog` 轮转用的
+          点号形态；两侧由读端同时兼容，见 `DecisionLog._candidate_files`）。
+          注意日期是 **ISO 带连字符**（`ts[:10]`），不是紧凑 `YYYYMMDD`。
     """
     p = Path(path).resolve()
     if not p.exists():
