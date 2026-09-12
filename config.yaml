@@ -760,3 +760,29 @@ slo_report:
   # audit_file: data/slo_report_audit.jsonl      # 每次运行追加审计
 
 
+# ── 数据生命周期治理（TASK-S8-01，2026-09-13；**默认全部关闭**）──────────
+# 保留策略 = 「留多久 / 怎么归档 / 能不能删」的成文规则，机器可读同源版本见
+# agent/retention/policy.py::DEFAULT_CLASSES，成文版见 docs/zh/数据生命周期策略.md。
+#
+# 【安全底线（S8 批次总表 §二）】
+#   · enabled 默认 false ⇒ 不注册任何调度任务；
+#   · delete_source 默认 false ⇒ **只归档不删除**（唯一可删类 digestion_drafts 也需显式开启）；
+#   · 无论 dry_run 取何值，**本进程首跑强制 dry-run**（先列清单与体积，第二次才落盘）；
+#   · 审计链 / 每日 Merkle 根为红线类：PurgeGuard 一律拦截，永久保留、只归档不删。
+#
+# 【开启方式】enabled: true（等价 CP_RETENTION_ENABLED=true），重启后生效。
+# 【停掉方式】enabled: false 并重启，或置 CP_RETENTION_ENABLED=false。
+retention:
+  enabled: false          # true 时注册每周归档任务（等价 CP_RETENTION_ENABLED=true）
+  dry_run: true           # true=只列清单与体积、不落盘（首跑强制 dry-run 不受此值影响）
+  delete_source: false    # true=归档后删除源（仍需过 PurgeGuard；默认只归档不删除）
+  day_of_week: 6          # 0=周一 … 6=周日（缺省周日）
+  hour: 3                 # 触发小时（0-23）
+  minute: 0               # 触发分钟（0-59）
+  # archive_dir: data/archive                    # 缺省即此目录
+  # classes: events,policy_decisions             # 缺省＝全部 12 类
+  # classes_override:                            # 逐类覆盖（非法值一律回退默认）
+  #   events:
+  #     cold_days: 90
+
+

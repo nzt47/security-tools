@@ -229,5 +229,54 @@
     "updated_at": "2026-09-05T23:15:27.957516",
     "last_used_at": "2026-09-05T23:15:27.957516",
     "converted_to_skill_id": ""
+  },
+  "wf-f19dc52c": {
+    "id": "wf-f19dc52c",
+    "name": "自动学习: 列-出-当",
+    "description": "从会话 sess_20260907_220445_39c3ebf7 中学习得到。原始任务: 帮我列出当前工作目录下的文件",
+    "task_signature": "件|作|出|列|前|工|当|录|文|目",
+    "trigger_patterns": [
+      "列",
+      "出",
+      "当",
+      "前",
+      "工"
+    ],
+    "steps": [
+      {
+        "step_id": "step_1",
+        "tool_name": "list_directory",
+        "params_template": {
+          "path": "."
+        },
+        "output_key": "step_1_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      }
+    ],
+    "expected_output_pattern": "",
+    "source_session_id": "sess_20260907_220445_39c3ebf7",
+    "source_user_input": "帮我列出当前工作目录下的文件",
+    "success_count": 1,
+    "failure_count": 0,
+    "confidence": 0.5,
+    "priority": 80,
+    "status": "active",
+    "enabled": true,
+    "tags": [
+      "learned",
+      "列",
+      "出",
+      "当"
+    ],
+    "workflow_type": "toolchain",
+    "created_at": "2026-09-13T01:42:26.321551",
+    "updated_at": "2026-09-13T01:42:48.292667",
+    "last_used_at": "2026-09-13T01:42:48.292667",
+    "converted_to_skill_id": ""
   }
 }
