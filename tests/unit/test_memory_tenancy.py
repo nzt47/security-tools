@@ -7,6 +7,8 @@
 3. **个人偏好绝不污染企业策略记忆** —— 策略层个人写入被拒；org 级只读下发。
 """
 
+import os
+
 import pytest
 
 from memory_layer_testkit import memory_runtime  # noqa: F401  (autouse 夹具)
@@ -108,7 +110,19 @@ class TestResolveTenancy:
         assert t.tenant_id == t.workspace_id
         assert t.tenant_derived is True
 
-    def test_same_root_is_deterministic_and_case_insensitive(self):
+    def test_same_root_is_deterministic(self):
+        """同一 root 恒产同一 tenant（**跨平台**契约：确定性）"""
+        first = resolve_tenancy(workspace_root="/repo/a", use_current_context=False)
+        second = resolve_tenancy(workspace_root="/repo/a", use_current_context=False)
+        assert first.tenant_id == second.tenant_id
+        assert first.tenant_id == derive_workspace_id("/repo/a")
+
+    @pytest.mark.skipif(
+        os.name != "nt",
+        reason=("路径大小写不敏感是 **Windows 专属语义**（`os.path.normcase` 在 nt 上 "
+                "lower()，在 POSIX 上恒等）——与 test_trace_v2.py 的 "
+                "test_windows_case_insensitive_paths 同一 gate，非跨平台契约"))
+    def test_same_root_is_case_insensitive_on_windows(self):
         first = resolve_tenancy(workspace_root="/repo/A", use_current_context=False)
         second = resolve_tenancy(workspace_root="/repo/a", use_current_context=False)
         assert first.tenant_id == second.tenant_id
