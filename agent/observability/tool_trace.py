@@ -35,7 +35,7 @@ import contextvars
 import queue as queue_module
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Any, List, Optional
+from typing import Any, Callable, List, Mapping, Optional
 from agent.logging_utils import log_dict
 
 logger = logging.getLogger("agent.observability.tool_trace")
@@ -798,6 +798,65 @@ class ToolTraceRecorder:
                 self._fallback_ring_buffer.append(r)
 
 
+def traced_tool_call(
+    func_name: str,
+    args: Optional[Mapping[str, Any]],
+    call: Callable[[], Any],
+) -> Any:
+    """在 `ToolTraceRecorder` 记录下执行一次工具调用（供**不经过** ToolCallingService 的调用方）
+
+    【为什么需要（真用前置 D3，2026-09-13）】
+        `ToolTraceRecorder` 原先只装在
+        `agent.tool_calling.ToolCallingService._execute_safe` 里；而
+        `agent.workflow_learning.executor` 是通过**注入的 tool_executor**
+        （`orchestrator` 注入的正是 `agent.tools.call`）直接执行工具的 ⇒
+        **工作流回放路径的工具调用一条工具级轨迹都不落**。
+        实测：`list_directory` 真实执行并返回 195 项，但 `tool_traces` 行数不变，
+        `unified_traces` 里也只有任务级行（`capability_id` 为空）。
+        ⇒ "工具级轨迹"不该取决于**调用方恰好是不是** ToolCallingService。
+
+    【纪律】
+        - **绝不抛**：记录器不可用或记录失败，都不得影响工具执行（与 `_execute_safe` 同款降级）；
+        - 语义与 `_execute_safe` 一致：`dict` 含 `ok=False` 记为失败；异常记 `error_type` 并原样抛出；
+        - **不改采样策略**：是否采样仍由 `ToolTraceRecorder.record()` 决定
+          （高频工具 10% 采样是既有设计，要改需单独裁定）；
+        - 入参只做**脱敏哈希**（`input_hash`），不落明文。
+
+    Args:
+        func_name: 工具名（落账用）
+        args: 工具入参（可 None）
+        call: 无参可调用对象，真正执行工具并返回结果
+
+    Returns:
+        `call()` 的返回值（原样透传）
+    """
+    recorder: Optional[ToolTraceRecorder] = None
+    ctx: Optional[_TraceContext] = None
+    try:
+        recorder = ToolTraceRecorder.instance()
+        ctx = recorder.start_trace(func_name, args or {})
+    except Exception:  # noqa: BLE001 记录器不可用不得影响工具执行
+        recorder = None
+        ctx = None
+
+    try:
+        result = call()
+    except Exception as exc:
+        if recorder is not None and ctx is not None:
+            try:
+                recorder.finish_trace(ctx, None, exc)
+            except Exception:  # noqa: BLE001 记录失败不得掩盖原异常
+                pass
+        raise
+
+    if recorder is not None and ctx is not None:
+        try:
+            recorder.finish_trace(ctx, result, None)
+        except Exception:  # noqa: BLE001
+            pass
+    return result
+
+
 # ════════════════════════════════════════════════════════════
 #  兼容入口: 复用现有 trace_id 生成方式
 # ════════════════════════════════════════════════════════════
@@ -815,4 +874,5 @@ __all__ = [
     "ToolTraceRecord",
     "ToolTraceRecorder",
     "HIGH_FREQ_TOOLS",
+    "traced_tool_call",
 ]

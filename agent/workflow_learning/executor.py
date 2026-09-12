@@ -21,6 +21,7 @@ from __future__ import annotations
 import re
 import threading
 import time
+from functools import partial
 from typing import Any, Callable, Dict, List, Optional
 
 from .models import (
@@ -41,6 +42,7 @@ from .mode_classifier import (
 from .agent_executor import AgentExecutor, AgentRunner
 from .repository import WorkflowRepository
 from .matcher import WorkflowMatcher
+from agent.observability.tool_trace import traced_tool_call
 
 
 # 工具执行器接口: (tool_name, params) -> output (str/dict)
@@ -389,8 +391,25 @@ class WorkflowExecutor:
                                 code=ErrorCode.EXECUTE_FAILED,
                             )
                     else:
-                        output = self._tool_executor(
-                            step.tool_name, resolved_params)
+                        # 【真用前置 D3，2026-09-13】工作流回放的工具调用原先**不进**
+                        # ToolTraceRecorder（记录器只装在 ToolCallingService._execute_safe，
+                        # 而这里走的是注入的 tool_executor = agent.tools.call）⇒
+                        # 工具真实执行了却一条工具级轨迹都不落。改为经 traced_tool_call
+                        # 包一层，使"工具级轨迹"不再取决于调用方是谁。
+                        #
+                        # 顺带把"未注入执行器"从 TypeError('NoneType' object is not
+                        # callable) 显式化为 WorkflowExecutionError ——
+                        # 与本文件"边界显性化：执行失败均抛 WorkflowExecutionError"的设计一致。
+                        _tool_exec = self._tool_executor
+                        if _tool_exec is None:
+                            raise WorkflowExecutionError(
+                                f"步骤 {step.step_id} 需要工具执行器但未注入 "
+                                "(set_tool_executor 未被调用)",
+                                code=ErrorCode.EXECUTE_FAILED,
+                            )
+                        output = traced_tool_call(
+                            step.tool_name, resolved_params,
+                            partial(_tool_exec, step.tool_name, resolved_params))
                     step_elapsed = (time.time() - step_t0) * 1000
                     steps_executed += 1
 
