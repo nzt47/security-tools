@@ -286,6 +286,9 @@ def _shadow_card(row: Mapping[str, Any]) -> Dict[str, Any]:
         "passed": row.get("passed"),
         "negative": row.get("negative"),
         "judge_kind": str(row.get("judge_kind") or ""),
+        # S8-04：judge 可用性三态（available / no_credentials / disabled）
+        # 与 `judge_kind` 并列可读；旧台账无此列 ⇒ 空串（不改既有字段语义）
+        "judge_state": str(row.get("judge_state") or ""),
         "degradation": str(row.get("degradation") or ""),
         "shadow_version": str(row.get("shadow_version") or ""),
         "p99_wall_candidate_ms": metric(

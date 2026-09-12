@@ -121,6 +121,74 @@ JUDGE_KIND_LOCAL = "deterministic_local"
 JUDGE_KIND_INJECTED = "injected"
 JUDGE_KIND_LLM_FALLBACK = "deterministic_local(llm_unavailable)"
 
+# ── S8-04：judge_kind **精确标注**（诚信底线）────────────────────────────
+#
+# 真实 judge 标 `llm:<provider>:<model>`（逐字可复盘"当时用的哪个模型"）；
+# 回落标 `deterministic_local(<具体原因>)`。两者都由 `is_llm_kind()` 判族，
+# 故 S3-03 既有断言（`JUDGE_KIND_LLM`）与 S8-04 精确标签**并存不冲突**。
+#: 真实 judge 精确标签前缀
+JUDGE_KIND_LLM_PREFIX = "llm:"
+#: 回落原因码（`deterministic_local(<码>)` 里的 `<码>`）
+JUDGE_REASON_DISABLED = "disabled"                    # enabled=false（默认关闭）
+JUDGE_REASON_NO_CREDENTIALS = "no_credentials"        # 缺凭证/缺 provider/model
+JUDGE_REASON_BUDGET_EXCEEDED = "budget_exceeded"      # 每日 judge 预算超限
+JUDGE_REASON_BUDGET_UNREADABLE = "budget_unreadable"  # 预算读不到（fail-closed）
+JUDGE_REASON_FASTING = "cost_policy_fasting"          # 断食/日熔断期策略停用
+JUDGE_REASON_LLM_UNAVAILABLE = "llm_unavailable"      # 通道不可用/调用失败
+#: 解析失败的原因码（与 §11.6.0 归一错误码同字；语义：**不猜**，按上游格式错误处理）
+JUDGE_REASON_FORMAT = "E_UPSTREAM_FORMAT"
+#: 回落原因码 → 人话（供报告/日志可读）
+JUDGE_REASON_NOTES: Dict[str, str] = {
+    JUDGE_REASON_DISABLED: "真实 judge 未启用（CP_DIGESTION_JUDGE_ENABLED=false，默认关闭）",
+    JUDGE_REASON_NO_CREDENTIALS: "缺凭证或未配置 provider/model ⇒ 不冒充 LLM",
+    JUDGE_REASON_BUDGET_EXCEEDED: "当日 judge 预算已超限 ⇒ 自动停用真实 judge",
+    JUDGE_REASON_BUDGET_UNREADABLE: "judge 成本读不到 ⇒ fail-closed 停用真实 judge",
+    JUDGE_REASON_FASTING: "断食/日熔断期成本策略 ⇒ 停用真实 judge（策略默认跟随）",
+    JUDGE_REASON_LLM_UNAVAILABLE: "LLM 通道不可用或调用失败",
+    JUDGE_REASON_FORMAT: "judge 回复无法结构化解析（E_UPSTREAM_FORMAT；不猜分数）",
+}
+
+
+def is_llm_kind(kind: Any) -> bool:
+    """`judge_kind` 是否属于 **LLM-judge 族**（`llm_judge` 或精确 `llm:<p>:<m>`）
+
+    族判定单点定义：S3-03 的粗标签与 S8-04 的精确标签**都算真实 LLM-judge**，
+    避免"精确标签出现后探针/报告不再认它是 LLM"这类隐性回归。
+    """
+    text = str(kind or "")
+    return text == JUDGE_KIND_LLM or text.startswith(JUDGE_KIND_LLM_PREFIX)
+
+
+def judge_kind_for(provider: str, model: str) -> str:
+    """真实 judge 的精确标签：``llm:<provider>:<model>``（缺项如实标 ``default``）"""
+    return (f"{JUDGE_KIND_LLM_PREFIX}{str(provider or '').strip() or 'default'}"
+            f":{str(model or '').strip() or 'default'}")
+
+
+def judge_fallback_kind(reason: str) -> str:
+    """回落标签：``deterministic_local(<具体原因>)``（原因码缺失 → `llm_unavailable`）"""
+    code = str(reason or "").strip() or JUDGE_REASON_LLM_UNAVAILABLE
+    return f"{JUDGE_KIND_LOCAL}({code})"
+
+
+def _reason_code_of(source: Any) -> str:
+    """回落原因 → **原因码**（异常自带的 `reason_code` 优先，其次扫描已知码）
+
+    单点定义，使 `JudgeGuard` 不必认识每个异常类型；未知原因如实归
+    ``llm_unavailable``（宁可粗，不可编造一个不存在的原因）。
+    """
+    code = str(getattr(source, "reason_code", "") or "").strip()
+    if code:
+        return code
+    text = str(source or "")
+    for known in (JUDGE_REASON_BUDGET_EXCEEDED, JUDGE_REASON_BUDGET_UNREADABLE,
+                  JUDGE_REASON_FASTING, JUDGE_REASON_DISABLED,
+                  JUDGE_REASON_NO_CREDENTIALS, JUDGE_REASON_FORMAT,
+                  JUDGE_REASON_LLM_UNAVAILABLE):
+        if known in text:
+            return known
+    return JUDGE_REASON_LLM_UNAVAILABLE
+
 #: 墙钟口径标注（M2）
 CLOCK_WALL = "wall_clock(perf_counter; per-arm real elapsed)"
 CLOCK_MODEL = "model_clock(标称延迟累加)"
@@ -444,6 +512,9 @@ _JUDGE_PROMPT = """你是"实现等价性判定器"。下面给出同一任务�
 【候选观测】{observed}
 
 只输出一行 JSON：{{"score": <0..1 的小数>, "reason": "<一句话>"}}"""
+#: 旧式（只问分数）提示词 —— **保留供兼容与对照**；S8-04 起主路径用
+#: `_JUDGE_STRUCTURED_PROMPT`（结构化 `{verdict, confidence, reason}`），
+#: 但解析器仍接受旧式回复（`parse_judge_verdict` 的 `legacy_score` 分支）。
 
 _JSON_SCORE = re.compile(r'"score"\s*:\s*"?([0-9]*\.?[0-9]+)"?\s*(%?)')
 _ANY_SCORE = re.compile(r"([0-9]*\.?[0-9]+)\s*(%?)")
@@ -451,6 +522,157 @@ _ANY_SCORE = re.compile(r"([0-9]*\.?[0-9]+)\s*(%?)")
 
 class JudgeUnavailable(RuntimeError):
     """LLM-judge 不可用（无凭证 / 无适配器 / 调用失败）—— 调用方据此**如实回落**"""
+
+    #: 回落原因码（`JudgeGuard` 据此写精确 `judge_kind`；S8-04）
+    reason_code = JUDGE_REASON_LLM_UNAVAILABLE
+
+    def __init__(self, message: str = "", *, reason_code: str = "") -> None:
+        super().__init__(message)
+        if reason_code:
+            self.reason_code = str(reason_code)
+
+
+class JudgeFormatError(JudgeUnavailable):
+    """judge 回复**无法结构化解析**（按 ``E_UPSTREAM_FORMAT`` 语义处理）
+
+    为什么不猜：层③是"软性判定"，一旦把错误串里的数字当成相似度（如 429 → 1.0），
+    就会把**通道故障**记成"语义等价"，进而让负例消失。故本异常一律向上抛，
+    由 `JudgeGuard` 如实回落并把这个原因写进 `judge_kind`。
+    """
+
+    reason_code = JUDGE_REASON_FORMAT
+    #: §11.6.0 归一错误码（与 `agent/subagent/channel.E_UPSTREAM_FORMAT` 同字）
+    error_code = JUDGE_REASON_FORMAT
+
+
+#: 结构化判定问题（S8-04：`{verdict, confidence, reason}` 三件套）
+_JUDGE_STRUCTURED_PROMPT = """你是"实现等价性判定器"。下面给出同一任务的两次执行观测（已做路径形态归一）。
+请只判断二者在**语义上是否等价**（步骤/输出/副作用一致），并给出结论与置信度。
+
+【上游观测】{reference}
+
+【候选观测】{observed}
+
+只输出一行 JSON：{{"verdict": "equivalent" 或 "different", "confidence": <0 到 1 的小数>, "reason": "<一句话>"}}"""
+
+#: verdict 词表（中英兼容 → 统一 pass / fail）
+_VERDICT_TRUE = ("equivalent", "pass", "passed", "same", "equal", "yes", "true",
+                 "一致", "等价", "相同", "通过")
+_VERDICT_FALSE = ("different", "fail", "failed", "differs", "no", "false",
+                  "不一致", "不等价", "不同", "不通过")
+
+
+def _extract_json_object(text: str) -> Optional[Dict[str, Any]]:
+    """从回复里取出**第一个完整 JSON 对象**（字符串/转义感知的括号扫描）
+
+    模型常在 JSON 外包一层说明文字，故不能只 `json.loads(整个回复)`；但也不能
+    正则乱抓数字（那正是"猜"的来源）。
+    """
+    start = text.find("{")
+    while start != -1:
+        depth = 0
+        in_string = False
+        escaped = False
+        for index in range(start, len(text)):
+            char = text[index]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+                continue
+            if char == '"':
+                in_string = True
+            elif char == "{":
+                depth += 1
+            elif char == "}":
+                depth -= 1
+                if depth == 0:
+                    chunk = text[start:index + 1]
+                    try:
+                        parsed = json.loads(chunk)
+                    except (ValueError, TypeError):
+                        break
+                    if isinstance(parsed, dict):
+                        return parsed
+                    break
+        start = text.find("{", start + 1)
+    return None
+
+
+def _normalize_verdict(value: Any) -> str:
+    """verdict 原始值 → ``"pass"`` / ``"fail"`` / ``""``（无法归一 → 空，不猜）
+
+    **否定词先判**：``"不等价"`` 里含 ``"等价"``、``"不通过"`` 里含 ``"通过"``、
+    ``"not equivalent"`` 里含 ``"no"`` —— 先扫肯定词会把否定结论**读反**，而层③把
+    "不等价"读成"通过"正是最危险的一类错误。故本函数顺序固定为"先否后肯"。
+    """
+    if isinstance(value, bool):
+        return REVIEW_VERDICT_PASS if value else REVIEW_VERDICT_FAIL
+    text = str(value or "").strip().lower()
+    if not text:
+        return ""
+    for token in _VERDICT_FALSE:
+        if token in text:
+            return REVIEW_VERDICT_FAIL
+    for token in _VERDICT_TRUE:
+        if token in text:
+            return REVIEW_VERDICT_PASS
+    return ""
+
+
+def parse_judge_verdict(text: Any, *,
+                        threshold: float = JUDGE_THRESHOLD) -> Optional[Dict[str, Any]]:
+    """judge 回复 → 结构化 ``{verdict, confidence, reason, format}``；解析失败 → ``None``
+
+    - **优先结构化**：``{"verdict": ..., "confidence": 0.9, "reason": ...}``；
+    - **兼容旧式**：只有 ``{"score": 0.9}`` / ``0.9`` / ``90%`` 时，用 **0.85 阈值**
+      把分数折成 verdict，并如实标 ``format="legacy_score"``（不假装模型给了 verdict）；
+    - 越界/非数值的 confidence 一律 ``None``（**不截断成假分**，不猜）。
+
+    ``verdict`` 的口径（§4.5 逐字）：**``confidence >= 0.85`` ⇒ ``pass``，否则 ``fail``**
+    —— confidence 是模型自报的置信度，阈值是"软性通过"的门槛。模型自己的措辞另存
+    ``model_verdict``：当它与阈值判定相左时置 ``conflict=True``（**如实披露，不静默改写**），
+    使"模型说 different 但给了高分"这类情况在报告里看得见，而不是被悄悄归成通过。
+    """
+    raw = str(text or "").strip()
+    if not raw:
+        return None
+    confidence = parse_judge_score(raw)
+    payload = _extract_json_object(raw)
+    reason = ""
+    format_kind = "legacy_score"
+    model_verdict = ""
+    if payload is not None:
+        reason = str(payload.get("reason") or payload.get("rationale")
+                     or payload.get("why") or "")[:400]
+        model_verdict = _normalize_verdict(payload.get("verdict")
+                                           if "verdict" in payload
+                                           else payload.get("result"))
+        structured_confidence = (payload.get("confidence")
+                                 if payload.get("confidence") is not None
+                                 else payload.get("score"))
+        if structured_confidence is not None:
+            candidate = parse_judge_score(json.dumps(
+                {"score": structured_confidence}, ensure_ascii=False))
+            if candidate is not None:
+                confidence = candidate
+        if model_verdict:
+            format_kind = "structured"
+    if confidence is None:
+        return None
+    verdict = (REVIEW_VERDICT_PASS if float(confidence) >= float(threshold)
+               else REVIEW_VERDICT_FAIL)
+    return {"verdict": verdict, "confidence": round(float(confidence), 4),
+            "reason": reason, "format": format_kind,
+            "threshold": float(threshold), "model_verdict": model_verdict,
+            "conflict": bool(model_verdict and model_verdict != verdict),
+            "note": ("" if not (model_verdict and model_verdict != verdict) else
+                     ("模型措辞与该置信度下的阈值判定不一致："
+                      f"model_verdict={model_verdict} / threshold_verdict={verdict}"
+                      "（如实披露，未改写模型结论）"))}
 
 
 def parse_judge_score(text: Any) -> Optional[float]:
@@ -479,41 +701,98 @@ def parse_judge_score(text: Any) -> Optional[float]:
 
 
 def _extract_reply(out: Any) -> str:
-    """适配器返回值 → 文本（dict 取常见文本键；其他直接 str）"""
+    """适配器返回值 → 文本（dict 取常见文本键；其他直接 str）
+
+    **失败回复不算回复**（S8-04）：``{"success": False, "error": "429 ..."}`` 若被
+    当成文本，数字会被相似度解析器读成"高分"（429 → 1.0），把通道故障伪装成
+    "语义等价"。故失败回复一律抛 `JudgeUnavailable`（如实回落，不猜）。
+    """
     if isinstance(out, dict):
         for key in ("text", "content", "output", "response"):
             if out.get(key):
                 return str(out[key])
+        if out.get("success") is False or out.get("error"):
+            raise JudgeUnavailable(
+                f"模型返回失败: {str(out.get('error') or out)[:160]}")
         return json.dumps(out, ensure_ascii=False, default=str)
     return str(out)
 
 
+def _extract_usage(out: Any) -> Dict[str, int]:
+    """适配器返回值 → 真实 token 用量（拿不到 → ``{}``，**不估计**）
+
+    `OpenAIAdapter.generate` 等返回 ``{"usage": {"prompt_tokens", "completion_tokens"}}``；
+    只有拿到真实用量才会计入 UTC（估计值由调用方显式标注，见 `usage_estimated`）。
+    """
+    if not isinstance(out, dict):
+        return {}
+    usage = out.get("usage")
+    if not isinstance(usage, dict):
+        return {}
+    try:
+        prompt = int(usage.get("prompt_tokens") or usage.get("input_tokens") or 0)
+        completion = int(usage.get("completion_tokens")
+                         or usage.get("output_tokens") or 0)
+    except (TypeError, ValueError):
+        return {}
+    if prompt <= 0 and completion <= 0:
+        return {}
+    return {"tokens_in": max(0, prompt), "tokens_out": max(0, completion),
+            "estimated": 0}
+
+
 class LLMJudge:
-    """真实 LLM-judge（§4.5 层③ 的"软性 ≥0.85"；M1）
+    """真实 LLM-judge（§4.5 层③ 的"软性 ≥0.85"；M1 + S8-04 结构化）
 
     - 真模型调用：``invoke`` 可注入（测试/自有通道），缺省走 `ModelAdapterFactory`；
     - **可用性如实**：适配器不可用或调用抛错 ⇒ `JudgeUnavailable`，
       由 `resolve_judge()` 回落到确定性打分器并**标注回落原因**（绝不静默冒充 LLM）；
-    - judge 自身的 token/耗时计入 `usage`（shadow_overhead，S2-03 字段）。
+    - judge 自身的 token/耗时计入 `usage`（shadow_overhead，S2-03 字段）；
+    - **结构化输出（S8-04）**：`score_structured()` → ``{verdict, confidence, reason}``；
+      解析失败抛 `JudgeFormatError`（``E_UPSTREAM_FORMAT`` 语义，**不猜**）；
+    - **真实用量（S8-04）**：适配器给了 ``usage`` 就记进 `last_usage`（供 UTC 计价），
+      拿不到就留空 —— 绝不编造 token 数。
     """
 
     def __init__(self, *, invoke: Optional[Callable[[str], str]] = None,
                  adapter: Any = None, provider: str = "", model: str = "",
-                 threshold: float = JUDGE_THRESHOLD) -> None:
+                 threshold: float = JUDGE_THRESHOLD,
+                 api_key: str = "") -> None:
         self.provider = str(provider or "")
         self.model = str(model or "")
         self.threshold = float(threshold)
         self._invoke = invoke
         self._adapter = adapter
+        #: 显式凭证（S8-04：SecretStore/.env 解析结果；**私有字段，绝不进日志/报告**）
+        self._api_key = str(api_key or "")
         self._unavailable = ""
         self.calls = 0
         self.usage: Dict[str, Any] = {"prompt_chars": 0, "reply_chars": 0}
+        #: 最近一次调用的**真实** token 用量（`{}` = 未知，不估计）
+        self.last_usage: Dict[str, int] = {}
+        #: 最近一次调用的字符数（**单次**，非累计 —— 成本按次计，累计会把第 2 次
+        #: 之后的每次调用都算成"从头再来一遍"，凭空放大 judge 开销）
+        self.last_prompt_chars = 0
+        self.last_reply_chars = 0
+        #: 最近一次调用的结构化判定（`{}` = 未产生结构化结果）
+        self.last_structured: Dict[str, Any] = {}
+        #: 结构化 `{verdict, confidence, reason}` 解析失败次数（可观测）
+        self.format_errors = 0
 
     # ── 可用性 ──────────────────────────────────────────────
 
     @property
     def unavailable_reason(self) -> str:
         return self._unavailable
+
+    def _adapter_kwargs(self) -> Dict[str, Any]:
+        """适配器构造参数（**只有显式给过 api_key 才传**，否则保留其原生 env 解析）
+
+        S8-04：凭证可能来自 SecretStore / `.env`（不在进程环境里），而
+        `ModelAdapterFactory` 的适配器默认只读 ``os.environ``——不把解析结果显式
+        传下去，"优先 SecretStore、回落 .env"就只是纸面承诺。
+        """
+        return {"api_key": self._api_key} if self._api_key else {}
 
     def _resolve_invoke(self) -> Callable[[str], str]:
         """解析出真正可用的调用通道（**不做探针式模型调用**：只查适配器可用性）"""
@@ -529,7 +808,8 @@ class LLMJudge:
                 raise JudgeUnavailable("未配置 provider/model（"
                                        f"{JUDGE_PROVIDER_ENV} / {JUDGE_MODEL_ENV}）")
             try:
-                adapter = ModelAdapterFactory.create(self.provider, self.model)
+                adapter = ModelAdapterFactory.create(self.provider, self.model,
+                                                     **self._adapter_kwargs())
             except Exception as e:  # noqa: BLE001
                 raise JudgeUnavailable(
                     f"模型适配器构造失败: {type(e).__name__}: {e}") from e
@@ -551,6 +831,9 @@ class LLMJudge:
                 out = adapter.generate(prompt)
             except Exception as e:  # noqa: BLE001
                 raise JudgeUnavailable(f"模型调用失败: {type(e).__name__}: {e}") from e
+            usage = _extract_usage(out)
+            if usage:
+                self.last_usage = usage
             return _extract_reply(out)
 
         self._invoke = _invoke
@@ -590,15 +873,18 @@ class LLMJudge:
 
     # ── 打分 ────────────────────────────────────────────────
 
-    def score(self, reference: str, observed: str) -> Dict[str, Any]:
-        """返回 ``{"score": float, "kind": ..., "raw": ...}``；不可用/解析失败抛错"""
+    def _ask(self, reference: str, observed: str, prompt_template: str) -> str:
+        """打一次真实模型调用（异常一律如实转为 `JudgeUnavailable`，不吞不伪装）"""
         if self._unavailable:
             raise JudgeUnavailable(self._unavailable)
         invoke = self._resolve_invoke()
-        prompt = _JUDGE_PROMPT.format(reference=str(reference or ""),
-                                      observed=str(observed or ""))
+        prompt = prompt_template.format(reference=str(reference or ""),
+                                        observed=str(observed or ""))
         self.calls += 1
         self.usage["prompt_chars"] += len(prompt)
+        self.last_prompt_chars = len(prompt)
+        self.last_reply_chars = 0
+        self.last_usage = {}
         try:
             raw = invoke(prompt)
         except JudgeUnavailable:
@@ -606,11 +892,47 @@ class LLMJudge:
         except Exception as e:  # noqa: BLE001  通道异常一律如实转为"不可用"
             raise JudgeUnavailable(f"模型调用失败: {type(e).__name__}: {e}") from e
         self.usage["reply_chars"] += len(str(raw or ""))
-        score = parse_judge_score(raw)
-        if score is None:
-            raise JudgeUnavailable(f"judge 回复无法解析为分数: {str(raw)[:120]!r}")
-        return {"score": score, "kind": JUDGE_KIND_LLM, "raw": str(raw)[:400],
-                "provider": self.provider, "model": self.model}
+        self.last_reply_chars = len(str(raw or ""))
+        return str(raw or "")
+
+    def score(self, reference: str, observed: str) -> Dict[str, Any]:
+        """返回 ``{"score", "verdict", "confidence", "reason", "kind", ...}``
+
+        兼容契约（S3-03 断言不变）：``score`` / ``kind`` / ``raw`` 照旧；
+        S8-04 **新增** ``verdict`` / ``confidence`` / ``reason``（结构化三件套）。
+        不可用或**解析失败**抛错（解析失败抛 `JudgeFormatError`，``E_UPSTREAM_FORMAT``）。
+        """
+        raw = self._ask(reference, observed, _JUDGE_STRUCTURED_PROMPT)
+        verdict = parse_judge_verdict(raw, threshold=self.threshold)
+        if verdict is None:
+            self.calls_format_error()
+            raise JudgeFormatError(
+                f"judge 回复无法结构化解析（{JUDGE_REASON_FORMAT}）: "
+                f"{str(raw)[:120]!r}")
+        self.last_structured = dict(verdict)
+        return {"score": float(verdict["confidence"]),
+                "kind": JUDGE_KIND_LLM, "raw": str(raw)[:400],
+                "provider": self.provider, "model": self.model,
+                "verdict": verdict["verdict"],
+                "confidence": float(verdict["confidence"]),
+                "reason": verdict["reason"],
+                "model_verdict": verdict.get("model_verdict", ""),
+                "conflict": bool(verdict.get("conflict")),
+                "format": verdict["format"]}
+
+    def score_structured(self, reference: str, observed: str) -> Dict[str, Any]:
+        """结构化判定（S8-04 主路径）：``{verdict, confidence, reason}`` + 元数据
+
+        ``verdict`` ∈ ``pass`` / ``fail``；``confidence ≥ 0.85`` 为**软性通过**
+        （阈值由 `JUDGE_THRESHOLD` 单点定义，可用例断言 0.84/0.85/0.86 边界）。
+        """
+        return self.score(reference, observed)
+
+    def calls_format_error(self) -> None:
+        """记一次结构化解析失败（可观测计数；不吞错 —— 调用方仍会收到异常）"""
+        self.format_errors += 1
+        logger.warning("judge 回复解析失败（%s），累计 %d 次 ⇒ 如实回落，不猜分数",
+                       JUDGE_REASON_FORMAT, self.format_errors)
 
     def __call__(self, reference: str, observed: str) -> float:
         return float(self.score(reference, observed)["score"])
@@ -632,7 +954,7 @@ class ResolvedJudge:
 
     @property
     def is_llm(self) -> bool:
-        return self.kind == JUDGE_KIND_LLM
+        return is_llm_kind(self.kind)
 
     def to_dict(self) -> Dict[str, Any]:
         return {"kind": self.kind, "mode": self.mode, "is_llm": self.is_llm,
@@ -649,65 +971,139 @@ class JudgeGuard:
 
     - `probe()`：灰度开始前一次端到端探针 ⇒ 标签在**样本之前**就是准的；
     - `__call__`：运行中若仍失败，同样回落（`fallbacks` 记录次数与原因）。
+
+    S8-04 新增三处**兼容叠加**（默认 ``None`` ⇒ 行为与 S3-03 逐字一致）：
+
+    - ``precheck``：调用**之前**的放行检查（每日 judge 预算 / 断食策略），返回非空
+      原因 ⇒ 直接回落且**不发真实调用**（省的是钱，不是标签）；
+    - ``kind_fallback_for``：回落原因码 → 精确标签（``deterministic_local(<码>)``），
+      使 ``budget_exceeded`` 与 ``llm_unavailable`` 在报告里**可区分**；
+    - ``on_call``：一次真实调用**成功之后**的回调（记账 / 存结构化判定），
+      回调异常**不断判定链**（只记 `callback_errors`）。
     """
 
     def __init__(self, primary: Callable[[str, str], float], *,
                  kind_primary: str, fallback: Optional[Callable[[str, str], float]] = None,
-                 kind_fallback: str = JUDGE_KIND_LLM_FALLBACK) -> None:
+                 kind_fallback: str = JUDGE_KIND_LLM_FALLBACK,
+                 kind_fallback_for: Optional[Callable[[str], str]] = None,
+                 precheck: Optional[Callable[[], str]] = None,
+                 on_call: Optional[Callable[[], None]] = None) -> None:
         self._primary = primary
         self._fallback = fallback or judge_similarity
         self.kind_primary = str(kind_primary)
         self.kind_fallback = str(kind_fallback)
+        self._kind_fallback_for = kind_fallback_for
+        self._precheck = precheck
+        self._on_call = on_call
         self.active = "primary"
         self.fallbacks = 0
         self.reasons: List[str] = []
+        self.reason_code = ""
         self.probe_result: Dict[str, Any] = {}
+        self.callback_errors = 0
+        self.precheck_blocks = 0
 
     # ── 标签 ────────────────────────────────────────────────
 
     @property
     def effective_kind(self) -> str:
-        return self.kind_primary if self.active == "primary" else self.kind_fallback
+        if self.active != "fallback":
+            return self.kind_primary
+        return self.fallback_label(self.reason_code)
 
-    def _fall_back(self, why: str) -> None:
+    def fallback_label(self, reason_code: str) -> str:
+        """回落标签（给了 `kind_fallback_for` 就按**具体原因**精确标注）"""
+        code = str(reason_code or "").strip()
+        if self._kind_fallback_for is not None and code:
+            try:
+                return str(self._kind_fallback_for(code))
+            except Exception as e:  # noqa: BLE001 标签函数故障 → 退回常量标签
+                logger.debug("judge 回落标签定制失败（用常量标签）: %s", e)
+        return self.kind_fallback
+
+    def _fall_back(self, why: str, reason_code: str = "") -> None:
         if self.active != "fallback":
             self.active = "fallback"
+            self.reason_code = str(reason_code or "")
             self.reasons.append(why)
-            logger.warning("judge 回落确定性打分器：%s", why)
+            logger.warning("judge 回落确定性打分器：%s（judge_kind=%s）",
+                           why, self.effective_kind)
         self.fallbacks += 1
+
+    # ── 前置检查 / 回调 ─────────────────────────────────────
+
+    def _blocked_reason(self) -> str:
+        """前置检查（预算/断食）；返回 ``""`` = 放行。任何异常 ⇒ 如实回落（保守）"""
+        if self._precheck is None:
+            return ""
+        try:
+            return str(self._precheck() or "")
+        except Exception as e:  # noqa: BLE001 检查自身故障 ⇒ fail-closed
+            logger.warning("judge 前置检查失败（fail-closed 回落）: %s", e)
+            return f"{JUDGE_REASON_BUDGET_UNREADABLE}: {type(e).__name__}: {e}"
+
+    def _notify_call(self) -> None:
+        if self._on_call is None:
+            return
+        try:
+            self._on_call()
+        except Exception as e:  # noqa: BLE001 记账/存档失败不得中断判定链
+            self.callback_errors += 1
+            logger.warning("judge 调用后回调失败（advisory，不影响判定）: %s", e)
 
     # ── 探针与调用 ──────────────────────────────────────────
 
     def probe(self) -> Dict[str, Any]:
         """灰度开始前的一次端到端探针（失败即回落，返回如实标签与原因）"""
-        if self.active == "fallback" or not (self.kind_primary == JUDGE_KIND_LLM):
+        if self.active == "fallback" or not is_llm_kind(self.kind_primary):
             self.probe_result = {"ok": self.active == "primary",
                                  "kind": self.effective_kind,
                                  "reason": "" if self.active == "primary" else "已回落"}
             return self.probe_result
+        blocked = self._blocked_reason()
+        if blocked:
+            self.precheck_blocks += 1
+            self._fall_back(blocked, _reason_code_of(blocked))
+            self.probe_result = {"ok": False, "kind": self.effective_kind,
+                                 "reason": blocked, "precheck": True}
+            return self.probe_result
         try:
             self._primary("probe: equal", "probe: equal")
         except Exception as e:  # noqa: BLE001  LLM 通道任何失败都回落
-            self._fall_back(f"judge 探针失败: {type(e).__name__}: {e}")
+            self._fall_back(f"judge 探针失败: {type(e).__name__}: {e}",
+                            _reason_code_of(e))
             self.probe_result = {"ok": False, "kind": self.effective_kind,
                                  "reason": self.reasons[-1]}
             return self.probe_result
+        self._notify_call()
         self.probe_result = {"ok": True, "kind": self.effective_kind, "reason": ""}
         return self.probe_result
 
     def __call__(self, reference: str, observed: str) -> float:
         if self.active == "fallback":
             return float(self._fallback(reference, observed))
-        try:
-            return float(self._primary(reference, observed))
-        except Exception as e:  # noqa: BLE001  运行期失败同样如实回落
-            self._fall_back(f"judge 调用失败: {type(e).__name__}: {e}")
+        blocked = self._blocked_reason()
+        if blocked:
+            self.precheck_blocks += 1
+            self._fall_back(blocked, _reason_code_of(blocked))
             return float(self._fallback(reference, observed))
+        try:
+            value = float(self._primary(reference, observed))
+        except Exception as e:  # noqa: BLE001  运行期失败同样如实回落
+            self._fall_back(f"judge 调用失败: {type(e).__name__}: {e}",
+                            _reason_code_of(e))
+            return float(self._fallback(reference, observed))
+        self._notify_call()
+        return value
 
     def to_dict(self) -> Dict[str, Any]:
         return {"effective_kind": self.effective_kind, "primary_kind": self.kind_primary,
                 "active": self.active, "fallbacks": self.fallbacks,
-                "reasons": list(self.reasons), "probe": dict(self.probe_result)}
+                "reasons": list(self.reasons), "probe": dict(self.probe_result),
+                "reason_code": self.reason_code,
+                "precheck_blocks": self.precheck_blocks,
+                "callback_errors": self.callback_errors,
+                "is_llm": is_llm_kind(self.effective_kind)}
 
 
 def resolve_judge(mode: str = "", *, invoke: Optional[Callable[[str], str]] = None,
@@ -973,6 +1369,11 @@ class ShadowLedger:
                "budget": report.plan.budget, "sampled": len(report.samples),
                "passed": report.passed, "negative": report.negative,
                "judge_kind": report.judge_kind,
+               # S8-04：judge 可用性三态（available/no_credentials/disabled）随台账落盘，
+               # 供面板直读（**兼容叠加**：无运行时时为空串，不改既有字段语义）
+               "judge_state": (str((report.judge.get("runtime") or {}).get(
+                   "availability", {}).get("state") or "")
+                   if isinstance(report.judge.get("runtime"), dict) else ""),
                "degradation": report.degradation.get("verdict", ""),
                "p99_wall_candidate_ms": report.p99_wall_candidate_ms(),
                "p99_wall_upstream_ms": report.p99_wall_upstream_ms(),
@@ -1080,6 +1481,8 @@ class ShadowSample:
     model_clock_ms_upstream: float = 0.0
     manual_flagged: bool = False
     gray_routed: bool = False
+    #: 本样本**实际所用**判定器的如实标注（S8-04：批内超预算回落时逐样本可解释）
+    judge_kind: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {"sample_id": self.sample_id, "case_id": self.case_id,
@@ -1091,7 +1494,8 @@ class ShadowSample:
                 "model_clock_ms_candidate": self.model_clock_ms_candidate,
                 "model_clock_ms_upstream": self.model_clock_ms_upstream,
                 "manual_flagged": self.manual_flagged,
-                "gray_routed": self.gray_routed}
+                "gray_routed": self.gray_routed,
+                "judge_kind": self.judge_kind}
 
 
 def _p99(values: Sequence[float]) -> float:
@@ -1311,7 +1715,7 @@ class ShadowReport:
 
     @property
     def judge_is_llm(self) -> bool:
-        return self.judge_kind == JUDGE_KIND_LLM
+        return is_llm_kind(self.judge_kind)
 
     def negative_samples(self) -> List[Dict[str, Any]]:
         return [s.to_dict() for s in self.samples if s.negative]
@@ -1478,12 +1882,23 @@ class ShadowRunner:
                  review_queue: Optional[ManualReviewQueue] = None,
                  env: Optional[Dict[str, str]] = None,
                  emit_events: bool = True,
-                 actor: str = "digestion_service") -> None:
+                 actor: str = "digestion_service",
+                 judge_runtime: Any = None) -> None:
         self.env = dict(env or {})
         self.emit_events = bool(emit_events)
         self.actor = str(actor or "digestion_service")
-        resolved = resolve_judge(judge_mode, invoke=judge_invoke, judge=judge,
-                                 env=self.env or None)
+        # S8-04：`judge_runtime`（`judge_runtime.build_judge_runtime()` 的产物）
+        # 提供"配置 + 凭证 + 预算护栏 + 判定存档"。**不传就完全走 S3-03 原路径**
+        # （行为与既有断言逐字一致）；传了就必须与显式 sandbox 判定器不冲突。
+        self.runtime = judge_runtime
+        if (judge_runtime is not None and sandbox is not None
+                and getattr(sandbox, "judge", None) is not None):
+            raise ValueError(
+                "judge_runtime 与自带判定器的显式 sandbox 不可同时提供"
+                "（两套判定器会各写各的 judge_kind —— 标签将不再如实）")
+        resolved = (judge_runtime.resolved if judge_runtime is not None
+                    else resolve_judge(judge_mode, invoke=judge_invoke, judge=judge,
+                                       env=self.env or None))
         if judge_kind:
             # 调用方给出**精确标签**（如 `deterministic_local(llm_unavailable)`）：
             # 覆盖推断值，使报告里的 judge_kind 与实际所用判定器**逐字一致**（M1）
@@ -1506,7 +1921,15 @@ class ShadowRunner:
                 judge_kind=(judge_kind or resolved.kind))
         self._judge_kind = str(judge_kind or self.judge.kind)
         # **判定器守卫**：LLM 通道失败即如实回落（M1），标签在样本之前就准
-        self.judge_guard = JudgeGuard(self.judge.scorer, kind_primary=self.judge.kind)
+        self.judge_guard = (judge_runtime.guard if judge_runtime is not None
+                            else JudgeGuard(self.judge.scorer,
+                                            kind_primary=self.judge.kind))
+        if judge_runtime is not None:
+            # S8-04：标签来自运行时（真实 ⇒ `llm:<provider>:<model>`）；同时挂**动态
+            # 解析器**，使批内回落时"过渡样本"也带回落后的标签（不留不实标注）。
+            self.sandbox.judge_kind = self.judge_guard.effective_kind
+            self.sandbox.judge_kind_resolver = (
+                lambda: self.judge_guard.effective_kind)
         if sandbox is None:
             self.sandbox.judge = self.judge_guard
         elif self.sandbox.judge is None:
@@ -1515,6 +1938,12 @@ class ShadowRunner:
         self._case_store = case_store
         self._ledger = ledger
         self._review_queue = review_queue
+        # S8-04：judge 判定存档（未建运行时 ⇒ None ⇒ 零影响）
+        self._verdict_store = (getattr(judge_runtime, "verdict_store", None)
+                               if judge_runtime is not None else None)
+        # S8-04：结构化判定（confidence/reason）挂在实际的 LLMJudge 上
+        self._judge_guard_primary = (getattr(judge_runtime, "judge", None)
+                                     if judge_runtime is not None else None)
 
     # ── 依赖（懒加载；显式传入才读写运行时区） ──────────────
 
@@ -1619,6 +2048,9 @@ class ShadowRunner:
             "kind": self.judge_guard.effective_kind,
             "effective_kind": self.judge_guard.effective_kind,
             "probe": probe, "guard": self.judge_guard.to_dict()}
+        if self.runtime is not None:
+            # S8-04：可用性三态 + 预算护栏快照进报告（面板/报告可读，无明文凭证）
+            report.judge["runtime"] = self.runtime.to_dict()
         report.quality_patch = {}
 
         # ① 开关（默认关闭）
@@ -1703,12 +2135,19 @@ class ShadowRunner:
             replay = self.sandbox.replay_case(
                 case, picked, upstream=upstream, manual_flagged=case.case_id in manual,
                 measure_wall=True)
+            # S8-04：批内标签跟着**实际判定器**走 —— 若中途超预算/通道故障回落到
+            # 确定性打分器，后续样本的层③标注必须同步，否则"同一批样本内
+            # judge_kind 可解释"就成了空话。
+            self.sandbox.judge_kind = self.judge_guard.effective_kind
             sample = self._sample_of(sample_id, case, replay,
                                      manual_flagged=case.case_id in manual,
-                                     gray_routed=sample_id in gray_set)
+                                     gray_routed=sample_id in gray_set,
+                                     judge_kind=self.judge_guard.effective_kind)
             report.samples.append(sample)
             for layer in sample.failed_layers:
                 report.layer_failures[layer] = report.layer_failures.get(layer, 0) + 1
+            # S8-04：judge 判定与人工判定**并列存档**（一致率统计的数据源）
+            self._record_judge_verdict(report, sample, case)
 
         # ⑦ 人工抽检入队（M5：清单 + 待复核）
         if enqueue_manual and report.manual_sample:
@@ -1723,7 +2162,11 @@ class ShadowRunner:
         # ⑧ 劣化信号（R4）+ 开销 + 质量统计补丁
         report.degradation = assess_degradation(report.samples)
         report.judge["effective_kind"] = self.judge_guard.effective_kind
+        report.judge["kind"] = self.judge_guard.effective_kind
         report.judge["guard"] = self.judge_guard.to_dict()
+        if self.runtime is not None:
+            # 运行结束后刷新（批内可能已回落到确定性打分器 ⇒ 标签与护栏态要最新）
+            report.judge["runtime"] = self.runtime.to_dict()
         report.overhead = self._overhead(report)
         report.quality_patch = self._quality_patch(report)
         if write_quality and registry is not None:
@@ -1794,7 +2237,8 @@ class ShadowRunner:
 
     @staticmethod
     def _sample_of(sample_id: str, case: EquivalenceCase, replay: Any, *,
-                   manual_flagged: bool, gray_routed: bool) -> ShadowSample:
+                   manual_flagged: bool, gray_routed: bool,
+                   judge_kind: str = "") -> ShadowSample:
         verdict = CompareVerdict.of(replay)
         return ShadowSample(
             sample_id=str(sample_id), case_id=case.case_id,
@@ -1809,7 +2253,35 @@ class ShadowRunner:
             model_clock_ms_candidate=float(verdict.model_clock_ms_candidate),
             model_clock_ms_upstream=float(verdict.model_clock_ms_upstream),
             manual_flagged=bool(manual_flagged),
-            gray_routed=bool(gray_routed))
+            gray_routed=bool(gray_routed),
+            judge_kind=str(judge_kind or verdict.judge_kind or ""))
+
+    def _record_judge_verdict(self, report: ShadowReport, sample: ShadowSample,
+                              case: EquivalenceCase) -> None:
+        """把本样本的 judge 判定与人工抽检**并列存档**（S8-04 步骤 4）
+
+        - 未配置判定存档（``verdict_store is None``）⇒ 不做任何事（零影响）；
+        - 存档失败 ⇒ advisory（不得中断灰度），由 `verdict_store.errors` 计数；
+        - **只存结构化叶子字段**，不序列化 live judge 对象。
+        """
+        store = self._verdict_store
+        if store is None:
+            return
+        confidence = float(getattr(self._judge_guard_primary, "last_structured",
+                                   {}).get("confidence") or 0.0)
+        structured = dict(getattr(self._judge_guard_primary, "last_structured", {}) or {})
+        store.record(
+            capability_id=report.capability_id, case_id=sample.case_id,
+            sample_id=sample.sample_id,
+            verdict=str(structured.get("verdict")
+                        or (REVIEW_VERDICT_PASS if sample.judge_score >= JUDGE_THRESHOLD
+                            else REVIEW_VERDICT_FAIL)),
+            confidence=confidence or float(sample.judge_score),
+            reason=str(structured.get("reason") or ""),
+            judge_kind=str(sample.judge_kind or ""),
+            judge_score=float(sample.judge_score),
+            manual_flagged=bool(sample.manual_flagged),
+            format=str(structured.get("format") or ""))
 
     def _overhead(self, report: ShadowReport) -> Dict[str, Any]:
         """shadow_overhead（S2-03 字段口径）：灰度自身的额外开销，**非业务成本**"""
@@ -1896,7 +2368,14 @@ __all__ = [
     "JUDGE_MODE_ENV", "JUDGE_PROVIDER_ENV", "JUDGE_MODEL_ENV", "JUDGE_MODES",
     "JUDGE_MODE_AUTO", "JUDGE_MODE_LLM", "JUDGE_MODE_LOCAL",
     "JUDGE_KIND_LLM", "JUDGE_KIND_LOCAL", "JUDGE_KIND_INJECTED",
-    "JUDGE_KIND_LLM_FALLBACK", "CLOCK_WALL", "CLOCK_MODEL",
+    "JUDGE_KIND_LLM_FALLBACK",
+    # S8-04：精确标签 / 原因码 / 结构化解析
+    "JUDGE_KIND_LLM_PREFIX", "JUDGE_REASON_DISABLED", "JUDGE_REASON_NO_CREDENTIALS",
+    "JUDGE_REASON_BUDGET_EXCEEDED", "JUDGE_REASON_BUDGET_UNREADABLE",
+    "JUDGE_REASON_FASTING", "JUDGE_REASON_LLM_UNAVAILABLE", "JUDGE_REASON_FORMAT",
+    "JUDGE_REASON_NOTES", "is_llm_kind", "judge_kind_for", "judge_fallback_kind",
+    "parse_judge_verdict", "JudgeFormatError",
+    "CLOCK_WALL", "CLOCK_MODEL",
     "TRANSPORT_SANDBOX_ONLY", "DEFAULT_SHADOW_DIR", "SHADOW_DIR_ENV",
     "SHADOW_LEDGER_FILENAME", "MANUAL_REVIEW_FILENAME",
     "DEGRADE_WINDOW", "DEGRADE_RATE_FLOOR", "DEGRADE_CONSECUTIVE",

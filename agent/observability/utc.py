@@ -106,6 +106,24 @@ COST_SOURCE_OF_TRUTH = "events"
 #: 旧轨角色（已停写、只作对账）
 LEGACY_COST_LOG_ROLE = "reconciliation_only"
 
+# ── 成本两栏（TASK-S8-04 步骤 3；沿用 S5-02 两列纪律）────────────────────
+#
+# `cost` 事件的 `source` 字段把同一批成本切成两栏：**业务成本**与 **judge 成本**。
+# 纪律：两栏**不得混算** —— 总成本 `cost_normalized_cents` 语义**不变**（= 全部
+# cost 事件之和，故日熔断/周断食判定仍看得见 judge 开销），两栏由 `_finalize()`
+# 单独派生（`cost_columns`），**不覆盖**任何既有字段。
+#: judge（层③ LLM-judge）成本的事件来源标注（`record_cost(source=...)`）
+JUDGE_COST_SOURCE = "judge"
+#: 未标注 source 的历史事件归入此栏（既不冒充业务、也不冒充 judge）
+UNSPECIFIED_COST_SOURCE = "unspecified"
+#: 两栏口径说明（进聚合输出，避免下游各自解释）
+COST_COLUMNS_NOTE = (
+    "两栏口径（S8-04 / S5-02 两列纪律）：`business` = 除 "
+    f"`source={JUDGE_COST_SOURCE}` 外的全部 cost 事件；`judge` = 层③ LLM-judge "
+    "自身的调用成本（计入 UTC 总额，故参与日熔断/周断食判定）；"
+    "`total` = 二者之和，与 `cost_normalized_cents` 逐分一致。**两栏不得混算**："
+    "报业务成本时用 `business` 栏，报 judge 开销时用 `judge` 栏。")
+
 #: 锚模型（主力模型）缺省与解析优先级：env > config.yaml llm.model > 默认
 DEFAULT_ANCHOR_MODEL = "gpt-4o-mini"
 ENV_ANCHOR_MODEL = "CP_UTC_ANCHOR_MODEL"
@@ -577,11 +595,16 @@ def record_cost(*, model: str = "", provider: str = "", source: str = "",
                 actor: str = ACTOR_AUTO, interaction_id: str = "",
                 duration_ms: Optional[float] = None, error: str = "",
                 store: Optional[EventStore] = None,
-                ts: Optional[str] = None) -> Optional[EventEnvelope]:
+                ts: Optional[str] = None,
+                extra: Optional[Dict[str, Any]] = None) -> Optional[EventEnvelope]:
     """记录一次 LLM 调用的成本（§6.6 cost 埋点）
 
     幂等键 = ``cost:llm:{interaction_id}``（`LLMInteraction.id` 为每次交互唯一 id），
     因此「同一次交互重复记账」被折叠，而「同参多次调用」各自计数。
+
+    ``extra``：**附加审计字段**（S8-04 用，如 ``tokens_estimated`` 标注估算）。
+    **不得覆盖**既有字段（``source``/``model``/``cost_*`` 等一律以显式参数为准），
+    否则"两栏口径"可被下游悄悄改写。
     """
     calc = normalize_cost(
         tokens_in=tokens_in, tokens_out=tokens_out, model=model,
@@ -604,6 +627,12 @@ def record_cost(*, model: str = "", provider: str = "", source: str = "",
         "interaction_id": str(interaction_id or ""),
         **calc,
     }
+    if extra:
+        # 附加字段只能**新增**：既有一律以显式参数为准（防口径被悄悄改写）
+        for key, value in dict(extra).items():
+            name = str(key)
+            if name and name not in payload:
+                payload[name] = value
     key = f"cost:llm:{interaction_id}" if interaction_id else ""
     return emit(EV_COST, payload, actor=actor, correlation_id=cid,
                 idempotency_key=key, ts=ts, store=store)
@@ -629,7 +658,15 @@ def _empty_totals() -> Dict[str, Any]:
         "shadow_overhead_cents": 0.0,
         "errors": 0,
         "by_model": {},
+        # 成本两栏（S8-04）：按 `source` 分桶，`_finalize()` 据此派生 business/judge
+        "by_source": {},
     }
+
+
+def _empty_source_totals() -> Dict[str, Any]:
+    """单个 `source` 桶（成本两栏的原子计数单元）"""
+    return {"calls": 0, "cost_raw_cents": 0.0, "cost_normalized_cents": 0.0,
+            "tokens_in": 0, "tokens_out": 0, "errors": 0}
 
 
 def _fold(totals: Dict[str, Any], env: EventEnvelope) -> None:
@@ -657,6 +694,19 @@ def _fold(totals: Dict[str, Any], env: EventEnvelope) -> None:
             pass
     if payload.get("error"):
         totals["errors"] += 1
+    # ── 成本两栏（S8-04）：按 source 分桶（空 source → unspecified，不冒充任一栏）
+    source = str(payload.get("source") or "").strip() or UNSPECIFIED_COST_SOURCE
+    bucket = totals["by_source"].setdefault(source, _empty_source_totals())
+    bucket["calls"] += 1
+    bucket["cost_raw_cents"] = round(bucket["cost_raw_cents"] + raw, 6)
+    bucket["cost_normalized_cents"] = round(
+        bucket["cost_normalized_cents"] + norm, 6)
+    bucket["errors"] += 1 if payload.get("error") else 0
+    try:
+        bucket["tokens_in"] += int(payload.get("tokens_in") or 0)
+        bucket["tokens_out"] += int(payload.get("tokens_out") or 0)
+    except (TypeError, ValueError):
+        pass
     entry = totals["by_model"].setdefault(
         model, {"calls": 0, "cost_normalized_cents": 0.0, "tokens_in": 0,
                 "tokens_out": 0, "cache_hits": 0})
@@ -699,6 +749,56 @@ def _task_counts(rows: Sequence[EventEnvelope]) -> Dict[str, int]:
             "excluded_explore_consult": excluded, "abandoned": abandoned}
 
 
+def _cost_columns(totals: Dict[str, Any]) -> Dict[str, Any]:
+    """成本两栏（S8-04）：业务 / judge 分列，且**与总额自洽**（不混算、不丢账）
+
+    - `judge` 栏 = `source == JUDGE_COST_SOURCE` 的事件（层③ LLM-judge 自身开销）；
+    - `business` 栏 = 其余全部（含未标注 source 的历史事件 → 计业务，但由
+      `by_source` 里的 `unspecified` 桶保留可追溯性）；
+    - `total` 栏 = 两栏之和，**必与既有 `cost_normalized_cents` 逐分一致**；
+    - `unattributed_cents` 恒为 0（自洽断言；非 0 说明有账未归类）。
+    """
+    by_source = {name: dict(bucket)
+                 for name, bucket in sorted(totals["by_source"].items())}
+    judge = dict(by_source.get(JUDGE_COST_SOURCE) or _empty_source_totals())
+    total = _empty_source_totals()
+    for bucket in by_source.values():
+        total["calls"] += int(bucket.get("calls") or 0)
+        total["cost_raw_cents"] += float(bucket.get("cost_raw_cents") or 0.0)
+        total["cost_normalized_cents"] += float(
+            bucket.get("cost_normalized_cents") or 0.0)
+        total["tokens_in"] += int(bucket.get("tokens_in") or 0)
+        total["tokens_out"] += int(bucket.get("tokens_out") or 0)
+        total["errors"] += int(bucket.get("errors") or 0)
+    business = _empty_source_totals()
+    for field in ("calls", "tokens_in", "tokens_out", "errors"):
+        business[field] = int(total[field]) - int(judge.get(field) or 0)
+    business["cost_raw_cents"] = round(
+        float(total["cost_raw_cents"]) - float(judge.get("cost_raw_cents") or 0.0), 6)
+    business["cost_normalized_cents"] = round(
+        float(total["cost_normalized_cents"])
+        - float(judge.get("cost_normalized_cents") or 0.0), 6)
+    total["cost_raw_cents"] = round(float(total["cost_raw_cents"]), 6)
+    total["cost_normalized_cents"] = round(
+        float(total["cost_normalized_cents"]), 6)
+    for column in (judge, business):
+        column["cost_raw_cents"] = round(float(column["cost_raw_cents"]), 6)
+        column["cost_normalized_cents"] = round(
+            float(column["cost_normalized_cents"]), 6)
+    return {
+        "business": business,
+        "judge": judge,
+        "total": total,
+        "by_source": by_source,
+        "judge_source": JUDGE_COST_SOURCE,
+        "unattributed_cents": round(
+            float(total["cost_normalized_cents"])
+            - float(business["cost_normalized_cents"])
+            - float(judge["cost_normalized_cents"]), 6),
+        "note": COST_COLUMNS_NOTE,
+    }
+
+
 def _finalize(totals: Dict[str, Any], tasks: Dict[str, int]) -> Dict[str, Any]:
     calls = totals["llm_calls"] or 0
     out = dict(totals)
@@ -711,6 +811,17 @@ def _finalize(totals: Dict[str, Any], tasks: Dict[str, int]) -> Dict[str, Any]:
     out["shadow_overhead_cents"] = round(totals["shadow_overhead_cents"], 6)
     out["cache_hit_rate"] = round(totals["cache_hits"] / calls, 6) if calls else None
     out["by_model"] = {k: v for k, v in sorted(totals["by_model"].items())}
+    # ── 成本两栏（S8-04；**新增字段，既有字段语义不变**）──────────────────
+    columns = _cost_columns(totals)
+    out["cost_columns"] = columns
+    out["by_source"] = columns["by_source"]
+    out["judge_cost_raw_cents"] = columns["judge"]["cost_raw_cents"]
+    out["judge_cost_normalized_cents"] = columns["judge"]["cost_normalized_cents"]
+    out["judge_calls"] = columns["judge"]["calls"]
+    out["business_cost_raw_cents"] = columns["business"]["cost_raw_cents"]
+    out["business_cost_normalized_cents"] = (
+        columns["business"]["cost_normalized_cents"])
+    out["business_calls"] = columns["business"]["calls"]
     out["tasks"] = tasks
     out["utc_cents_per_task"] = (
         round(out["cost_normalized_cents"] / tasks["closed_and_failed"], 6)
@@ -718,8 +829,18 @@ def _finalize(totals: Dict[str, Any], tasks: Dict[str, int]) -> Dict[str, Any]:
     out["utc_cents_per_task_acr_cohort"] = (
         round(out["cost_normalized_cents"] / tasks["acr_cohort"], 6)
         if tasks["acr_cohort"] else None)
+    # 两栏各自的单任务成本（**派生列**；主列 `utc_cents_per_task` 口径不变）
+    denominator = tasks["closed_and_failed"]
+    out["utc_cents_per_task_business"] = (
+        round(out["business_cost_normalized_cents"] / denominator, 6)
+        if denominator else None)
+    out["utc_cents_per_task_judge"] = (
+        round(out["judge_cost_normalized_cents"] / denominator, 6)
+        if denominator else None)
     out["utc_formula"] = ("UTC = cost_normalized_cents / 任务数"
-                          "（closed+failed；ACR 同口径变体排除 explore/consult）")
+                          "（closed+failed；ACR 同口径变体排除 explore/consult）；"
+                          "两栏派生列 utc_cents_per_task_business / "
+                          "utc_cents_per_task_judge 供成本两栏披露（不得混算）")
     out["calibration"] = calibration_block()
     return out
 
@@ -750,6 +871,36 @@ def utc_window(*, start: str, end: str, directory: Optional[str] = None) -> Dict
     out["window"] = {"start": str(start)[:10], "end": str(end)[:10]}
     out["anchor_model"] = resolve_anchor_model()[0]
     return out
+
+
+def judge_cost_cents(day: Optional[str] = None, *,
+                     directory: Optional[str] = None) -> Dict[str, Any]:
+    """当日 **judge 栏**成本（S8-04 每日 judge 预算护栏的读侧入口）
+
+    只读 `cost_columns.judge`（`source == "judge"` 的 cost 事件），故预算判定
+    与"业务成本"天然分账；返回里带 `error`（读取失败原因，成功为 `""`），
+    供护栏**fail-closed** 判定 —— 读不到预算就不放行真实 judge（不静默超支）。
+    """
+    target = str(day or date.today().isoformat())[:10]
+    try:
+        agg = utc_daily(target, directory=directory)
+    except Exception as e:  # noqa: BLE001 读侧失败不抛给调用方，如实标注
+        return {"day": target, "source": JUDGE_COST_SOURCE,
+                "cost_normalized_cents": None, "cost_raw_cents": None,
+                "calls": None, "error": f"{type(e).__name__}: {e}"}
+    column = (agg.get("cost_columns") or {}).get("judge") or {}
+    return {
+        "day": target,
+        "source": JUDGE_COST_SOURCE,
+        "cost_normalized_cents": float(column.get("cost_normalized_cents") or 0.0),
+        "cost_raw_cents": float(column.get("cost_raw_cents") or 0.0),
+        "calls": int(column.get("calls") or 0),
+        "tokens_in": int(column.get("tokens_in") or 0),
+        "tokens_out": int(column.get("tokens_out") or 0),
+        "error": "",
+        "note": ("judge 栏取自 cost_columns（source=judge）；业务成本另栏，"
+                 "不得混算"),
+    }
 
 
 def utc_weekly(anchor_day: Optional[str] = None,
@@ -934,11 +1085,13 @@ __all__ = [
     "CALIBRATION_TRIGGER", "COST_SOURCE_OF_TRUTH", "LEGACY_COST_LOG_ROLE",
     "MEASURED_CALIBRATION_VERSION", "MEASURED_PARTIAL_CALIBRATION_VERSION",
     "CALIBRATION_NOTE_MEASURED", "CALIBRATION_STATUS",
+    "JUDGE_COST_SOURCE", "UNSPECIFIED_COST_SOURCE", "COST_COLUMNS_NOTE",
     "calibration_block",
     "model_costs", "price_usd_per_1k", "resolve_anchor_model", "anchor_prices_cents",
     "coefficient", "coefficient_detail", "price_ratio_coefficient",
     "coefficient_table", "normalize_cost", "record_cost",
     "reset_config_cache",
     "utc_daily", "utc_window", "utc_weekly", "utc_snapshot", "write_utc_snapshot",
+    "judge_cost_cents",
     "reconcile_pricing", "reconcile_cost_log", "RECONCILE_PROBE",
 ]
