@@ -61,6 +61,23 @@ grep -rn "msvcrt\|fcntl" agent/          # 仅命中 agent/utils/cross_process_l
 python -m pytest tests/unit/test_concurrency_multi_writer.py -k only_one_lock -q
 ```
 
+#### 2b. ⚠️ 改写三处旧锁时**有意的行为变更申报**（批次原则「不改既有公开接口行为」要求显式声明）
+
+把三处手抄实现统一到原语，**公开名与签名全部未变**，但有 4 处**可观察语义**确实变了。
+逐条申报，含理由与兼容性核查（不申报即为"静默改语义"）：
+
+| # | 位置 | 变更前 | 变更后 | 理由 / 兼容性核查 |
+|---|---|---|---|---|
+| 1 | `env_config_manager._acquire_process_lock` | `LOCK_EX`/`LK_LOCK` **无限阻塞**（无超时）；进程互等可永不返回 | **有限等待**（默认 **10s**，读 `knowledge.file_lock_timeout_sec`，异常/非正回落 10s）→ 超时先 warning 再 `raise` | 采纳任务书"锁超时须**显式失败**"要求。**不降级为无锁写**：`.env` 是"读改写 + rename"，无锁会静默丢配置。兼容性：生产唯一调用方 `agent/network_config.py::_save_secure` 外层已有 `except Exception` + `logger.error` ⇒ 新异常被接住并留痕；`scripts/diagnose.py` 的 set/delete 会以 traceback 结束（**变更前是永久阻塞**，故这是改进而非退化）。原有 `lock_acquire_start` / `lock_acquired(lock_wait_ms)` / `lock_contention(>1s)` 三条日志**原文保留** |
+| 2 | `knowledge.ingest._FileLock` 锁对象 | 锁 **`log.md` 本体**的字节 0 | 锁**独立**的 `<log.md>.lock` | 原语硬约束：对"可能被 rename 替换的文件本体"加锁，会让锁落到**被淘汰的 inode** 上 ⇒ 互斥静默失效。`.fh` 语义（单 fd 读改写）**保留**。副作用核查：新增文件在 KB 根目录、**不在** `inbox/`（`KnowledgeWatcher` 只监听 inbox）；且 `ingest` 的文件扫描本就排除 `*.lock`（glob `exclude=["*.meta.json","*.lock","*.tmp"]` 与名尾过滤双重排除）⇒ 不会被登记/索引 |
+| 3 | `knowledge.ingest._FileLock` 超时实现 | 自带 **50ms 轮询 + 手工 deadline**，单次 `LK_LOCK` 可阻塞约 10s | 原语 **5ms 轮询 + 非阻塞 OS 锁**，超时边界可预测 | 对外**异常类型与消息逐字保留**（仍是本地 `LockTimeout`，文案 `获取文件锁超时: …`），既有 `except` 与日志检索不受影响。`timeout=0` 时旧码可能仍阻塞约 10s、新码立刻超时——两者都是抛 `LockTimeout`，属边界收紧 |
+| 4 | `watchdog_singleton._os_lock_acquirable()` / 身份槽 | 本模块自实现探测；写身份槽末尾 `flush()+os.fsync()` | 委托原语 `is_stale()`；身份槽写入由原语负责，**不再 fsync** | 行为等价（"未持锁 ∧ 文件存在 ∧ 立刻可获取 OS 锁"，且 `create=False` 无副作用），但**不是同一段代码**：将来原语改 `is_stale()` 口径，本方法随之变化（已写入注释）。身份槽是**诊断信息、非授权依据**，去掉 fsync 不影响互斥正确性（锁由 OS 持有）。`SplitBrainError` / `WatchdogLockError` / 非阻塞语义（第二个实例**被拒**而非排队）全部保留 |
+
+> **顺带修掉的一个既有缺陷（有意修复，非回归）**：`ingest._FileLock.__enter__` 原本把
+> `open()` 放在 `try` **之外** ⇒ open 失败（目录权限/路径过长）时 `_THREAD_LOCK`
+> **永不释放**，本进程后续所有 `log.md` 写入静默卡死。现 open 纳入 try 并统一回滚，
+> 已由探针验证超时路径 `_THREAD_LOCK` 未泄漏。
+
 ### ✅ 3. 多进程（≥4）并发写：无重复 seq、无静默丢失、无损坏
 
 `tests/unit/test_concurrency_multi_writer.py` 使用 **`spawn` 真进程**（非线程模拟），
