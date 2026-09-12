@@ -569,7 +569,10 @@ class DelegationExecutor:
 
             # ── 步骤 9：回收三件套 → 成本 → 回调 ──
             base.triad = self._collector.collect_from_outcome(
-                base, upstream_payload=base.payload, input_text=input_text)
+                base, upstream_payload=base.payload, input_text=input_text,
+                # R4：把委派契约（八要素⑤产物格式）交给收集器 ⇒ 信号①产物结构
+                # 在真实链路里自动取到**可机验**的格式声明（无需调用方额外接线）
+                context=ctx)
             base.cost = self._ledger.account(
                 base.triad,
                 input_tokens=int(self._tokens_from_payload(base.payload, "input")),

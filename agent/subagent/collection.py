@@ -26,10 +26,20 @@ from __future__ import annotations
 
 import logging
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from agent.security.actor_matrix import ACTOR_SUB_AGENT
+
+from .mechanical import (
+    JUDGE_KIND_LOCAL,
+    JUDGE_KIND_MECHANICAL,
+    KIND_LLM,
+    KIND_MECHANICAL,
+    SIGNAL_LLM_REVIEW,
+    evaluate_mechanical,
+    mechanical_evidence,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +96,21 @@ class UpstreamSelfEval:
 
 @dataclass(frozen=True)
 class CloudPivotReview:
-    """云枢复评（三件套·反思的第二半）——由云枢侧评估器产出，**不是**上游自述"""
+    """云枢复评（三件套·反思的第二半）——由云枢侧评估器产出，**不是**上游自述
+
+    ## 判定主体（TASK-S7-06 R4）
+
+    ``signal_kind`` 标注这一半判定**由谁做出**：
+
+    - ``mechanical``：由 `agent.subagent.mechanical` 的机械信号（①产物结构 /
+      ②测试 fail→pass / ③副作用核对 / ④可回放性）判定 —— ``signal`` 指出是哪一条；
+    - ``llm``：**非机械兜底列**（①-④ 全不适用时才启用），``judge_kind`` 指出实际
+      判定器（``llm_judge`` / ``deterministic_local`` …，与 S3-02 `shadow.JUDGE_KIND_*`
+      同词表）—— 真实 LLM-judge 与确定性规则复评**必须可区分**（S3-02 M1 口径）。
+
+    两列在 `agent.eval` 指标中**分别披露、严禁混算**（把 LLM 判定的成功算进机械成功率
+    等于谎报证据强度）。
+    """
 
     verdict: str = "fail"          # pass / partial / fail
     score: float = 0.0
@@ -94,6 +118,14 @@ class CloudPivotReview:
     issues: Tuple[str, ...] = ()
     suggestions: Tuple[str, ...] = ()
     reviewer: str = "reflection_engine"
+    #: R4：判定主体（``mechanical`` / ``llm``；空串 = 未标注，指标按 ``llm`` 列兜底并披露）
+    signal_kind: str = ""
+    #: R4：机械信号名（`mechanical.SIGNAL_*`）；``llm`` 列固定 ``llm_review``
+    signal: str = ""
+    #: R4：实际判定器标签（S3-02 同词表；``mechanical`` 列为 ``mechanical_signal``）
+    judge_kind: str = ""
+    #: R4：判定过程证据（逐条信号的 verdict/适用性与理由；**只放本次判定所用证据**）
+    evidence: Mapping[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -103,7 +135,16 @@ class CloudPivotReview:
             "issues": list(self.issues),
             "suggestions": list(self.suggestions),
             "reviewer": self.reviewer,
+            "signal_kind": self.signal_kind or KIND_LLM,
+            "signal": self.signal or SIGNAL_LLM_REVIEW,
+            "judge_kind": self.judge_kind,
+            "evidence": dict(self.evidence),
         }
+
+    @property
+    def is_mechanical(self) -> bool:
+        """判定是否为机械可验（``signal_kind == mechanical``；空串**不**算机械）"""
+        return str(self.signal_kind or "") == KIND_MECHANICAL
 
 
 @dataclass(frozen=True)
@@ -126,10 +167,29 @@ class Reflection:
             out.append(REFLECTION_CLOUD)
         return tuple(out)
 
+    @property
+    def signal_kind(self) -> str:
+        """复评半边的**判定主体**（R4）：``mechanical`` / ``llm``；缺复评 → 空串
+
+        **缺复评不等于机械判定**（空串），指标侧据此把这行归入"未标注"而非任一列。
+        """
+        if self.cloudpivot_review is None:
+            return ""
+        return str(self.cloudpivot_review.signal_kind
+                   or getattr(self.cloudpivot_review, "signal_kind", "") or "")
+
+    @property
+    def signal(self) -> str:
+        if self.cloudpivot_review is None:
+            return ""
+        return str(self.cloudpivot_review.signal or "")
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "complete": self.is_complete,
             "missing_halves": list(self.missing_halves),
+            "signal_kind": self.signal_kind,
+            "signal": self.signal,
             REFLECTION_UPSTREAM: (self.upstream_self_eval.to_dict()
                                   if self.upstream_self_eval else None),
             REFLECTION_CLOUD: (self.cloudpivot_review.to_dict()
@@ -227,7 +287,15 @@ def reflection_engine_reviewer(*, task_id: str, input_text: str, output: str,
         verdict=_verdict_from_score(score, passed), score=score, passed=passed,
         issues=_coerce_str_tuple(getattr(result, "issues", ())),
         suggestions=_coerce_str_tuple(getattr(result, "suggestions", ())),
-        reviewer="reflection_engine")
+        reviewer="reflection_engine",
+        # R4：兜底列的标签——`ReflectionEngine` 当前是**确定性本地评估**（无模型调用），
+        # 故如实标 `deterministic_local` 而非 `llm_judge`（M1：判定器必须可区分）
+        signal_kind=KIND_LLM, signal=SIGNAL_LLM_REVIEW,
+        judge_kind=JUDGE_KIND_LOCAL,
+        evidence={"reviewer": "reflection_engine",
+                  "judge_note": ("ReflectionEngine 为确定性本地复评（当前实现无模型调用）"
+                                 "⇒ judge_kind 标注为 deterministic_local；"
+                                 "接入真实 LLM-judge 时须改标 llm_judge")})
 
 
 def rule_reviewer(*, task_id: str, input_text: str, output: str,
@@ -237,6 +305,8 @@ def rule_reviewer(*, task_id: str, input_text: str, output: str,
     """云枢复评（内置确定性实现）：云枢自有规则，零 Token、零外部依赖
 
     与 ``ReflectionEngine`` 同量级但不依赖认知子系统；作为回退与单测基准。
+    判定主体如实标注：``signal_kind=llm``（**非机械兜底列**）+ ``judge_kind=
+    deterministic_local``（与 S3-02 `shadow.JUDGE_KIND_LOCAL` 同词表）。
     """
     issues: List[str] = []
     score = 1.0
@@ -254,11 +324,41 @@ def rule_reviewer(*, task_id: str, input_text: str, output: str,
     passed = score >= 0.6
     return CloudPivotReview(verdict=_verdict_from_score(score, passed), score=score,
                             passed=passed, issues=tuple(issues),
-                            reviewer="rule_reviewer")
+                            reviewer="rule_reviewer",
+                            signal_kind=KIND_LLM, signal=SIGNAL_LLM_REVIEW,
+                            judge_kind=JUDGE_KIND_LOCAL,
+                            evidence={"reviewer": "rule_reviewer",
+                                      "judge_note": "确定性规则复评（零 Token）"})
 
 
 #: 复评器签名（可注入）
 CloudReviewer = Callable[..., CloudPivotReview]
+
+#: 机械信号证据的合法键（R4；多给即忽略，避免把无关字段塞进信号试算）
+_SIGNAL_EVIDENCE_KEYS: Tuple[str, ...] = (
+    "artifacts", "artifact_format", "test_evidence", "declared_side_effects",
+    "actual_side_effects", "side_effect_diff", "replay_evidence",
+)
+
+
+def _with_llm_signal(review: CloudPivotReview,
+                     trial: Mapping[str, Any]) -> CloudPivotReview:
+    """给**兜底复评**补上判定主体标注（R4）
+
+    注入的自定义复评器可能没标 ``signal_kind`` ⇒ 此处按 ``llm`` 列兜底（**绝不**默认
+    成机械列），并把四条机械信号的逐条试算结果写进 ``evidence["mechanical"]``，
+    使"为什么落到兜底"可审计。
+    """
+    evidence = dict(review.evidence or {})
+    evidence["mechanical"] = dict(trial or {})
+    evidence.setdefault(
+        "rule", "机械信号（①产物结构/②测试 fail→pass/③副作用核对/④可回放性）**全部不适用**"
+                " ⇒ 启用兜底复评；LLM 判定不得与机械判定混算")
+    return replace(review,
+                   signal_kind=str(review.signal_kind or KIND_LLM),
+                   signal=str(review.signal or SIGNAL_LLM_REVIEW),
+                   judge_kind=str(review.judge_kind or ""),
+                   evidence=evidence)
 
 
 # ════════════════════════════════════════════════════════════
@@ -430,6 +530,8 @@ class TriadCollector:
                              upstream_payload: Optional[Mapping[str, Any]] = None,
                              reflection: Optional[Reflection] = None,
                              input_text: str = "",
+                             context: Any = None,
+                             signal_evidence: Optional[Mapping[str, Any]] = None,
                              ) -> CollectedTriad:
         """从执行结果（``ExecutionOutcome`` / 任意鸭子类型）收集三件套
 
@@ -442,6 +544,9 @@ class TriadCollector:
             upstream_payload: 覆盖上游载荷（缺省取 ``outcome.payload``）。
             reflection: 显式指定反思（缺省由上游自评 + 云枢复评**现场合成**）。
             input_text: 委派目标文本（供复评的「输入长度 vs 输出长度」维度）。
+            context: 委派上下文（``DelegationContext``）—— 提供**⑧要素⑤产物格式**，
+                使信号①（产物结构）能在真实链路里自动取到可机验的格式声明。
+            signal_evidence: 显式机械信号证据（覆盖载荷派生的证据）。
         """
         delegation_id = str(getattr(outcome, "delegation_id", "") or "")
         payload = upstream_payload
@@ -467,6 +572,9 @@ class TriadCollector:
                 input_text=input_text,
                 execution_time_ms=float(getattr(outcome, "duration_ms", 0.0) or 0.0),
                 tool_calls=getattr(outcome, "tool_calls", ()) or (),
+                artifacts=artifacts,
+                artifact_format=self._artifact_format(context, payload),
+                signal_evidence=signal_evidence,
             )
 
         return collect(delegation_id,
@@ -474,21 +582,109 @@ class TriadCollector:
                        trace=trace,
                        reflection=reflection)
 
+    # ── 机械信号证据（R4） ──────────────────────────────────
+
+    @staticmethod
+    def _artifact_format(context: Any, payload: Optional[Mapping[str, Any]]) -> Any:
+        """产物格式声明（八要素⑤）：委派上下文优先，其次上游载荷的显式键"""
+        declared = getattr(context, "artifact_format", None)
+        if declared in (None, "", [], {}):
+            declared = (payload or {}).get("artifact_format")
+        return declared
+
+    @staticmethod
+    def signal_evidence_from(outcome: Any, *,
+                             payload: Optional[Mapping[str, Any]] = None,
+                             artifacts: Any = None, artifact_format: Any = None,
+                             explicit: Optional[Mapping[str, Any]] = None
+                             ) -> Dict[str, Any]:
+        """从执行结果 + 载荷的**显式键**派生机械信号证据（R4）
+
+        载荷契约（子代理可主动上报，**没报就是没有**，不猜）：
+
+        | 载荷键 | 信号 |
+        |---|---|
+        | ``artifact_format``（或委派上下文⑤） | ①产物结构 |
+        | ``test_evidence`` | ②测试 fail→pass |
+        | ``declared_side_effects`` + ``side_effects`` | ③副作用核对 |
+        | ``replay_evidence`` | ④可回放性 |
+
+        ``explicit`` 逐键覆盖派生值（调用方最清楚证据在哪）。
+        """
+        body = dict(payload) if isinstance(payload, Mapping) else {}
+        evidence: Dict[str, Any] = {
+            "artifacts": artifacts if artifacts is not None else body.get("artifacts"),
+            "artifact_format": artifact_format if artifact_format is not None
+                               else body.get("artifact_format"),
+            "test_evidence": body.get("test_evidence"),
+            "declared_side_effects": body.get("declared_side_effects"),
+            "actual_side_effects": body.get("side_effects"),
+            "replay_evidence": body.get("replay_evidence"),
+            "side_effect_diff": body.get("side_effect_diff"),
+        }
+        for key, value in dict(explicit or {}).items():
+            if value is not None:
+                evidence[key] = value
+        return evidence
+
     # ── 反思合成 ──
 
     def build_reflection(self, *, payload: Any, task_id: str = "", output: str = "",
                          input_text: str = "", execution_time_ms: float = 0.0,
                          tool_calls: Sequence[Mapping[str, Any]] = (),
+                         artifacts: Any = None, artifact_format: Any = None,
+                         signal_evidence: Optional[Mapping[str, Any]] = None,
                          ) -> Reflection:
-        """合成反思 = 上游自评（取自载荷，**缺失即 None**）+ 云枢复评（云枢侧产出）"""
+        """合成反思 = 上游自评（取自载荷，**缺失即 None**）+ 云枢复评（云枢侧产出）
+
+        **R4：复评半边改为「机械信号优先 + LLM 兜底」** —— 先按优先级试算四条机械
+        信号（①产物结构 → ②测试 fail→pass → ③副作用核对 → ④可回放性），任一适用即以
+        它为准（``signal_kind=mechanical``）；**全部不适用**才落到复评器
+        （``signal_kind=llm`` + ``judge_kind``）。
+
+        逐条试算结果（含 ``not_applicable`` 的理由）一并写进
+        ``cloudpivot_review.evidence["mechanical"]``，使"为什么没用机械判定"可审计。
+        """
         upstream = build_upstream_self_eval(payload)
-        try:
-            cloud = self._reviewer(
-                task_id=task_id, input_text=input_text, output=output,
-                execution_time_ms=execution_time_ms, tool_calls=tool_calls)
-        except Exception as e:  # noqa: BLE001  复评失败不得阻断收集；记 None 即「缺这一半」
-            logger.warning("[Collect] 云枢复评失败（%s）——反思记为不完整", e)
-            cloud = None
+        evidence = (dict(signal_evidence) if signal_evidence is not None
+                    else self.signal_evidence_from(payload, payload=payload,
+                                                   artifacts=artifacts,
+                                                   artifact_format=artifact_format))
+        if evidence.get("artifacts") is None and artifacts is not None:
+            evidence["artifacts"] = artifacts
+        if evidence.get("artifact_format") in (None, "", [], {}) and artifact_format:
+            evidence["artifact_format"] = artifact_format
+        trial = mechanical_evidence(**{k: v for k, v in evidence.items()
+                                       if k in _SIGNAL_EVIDENCE_KEYS})
+        cloud: Optional[CloudPivotReview]
+        if trial.get("mechanical_available"):
+            chosen = next(s for s in trial["signals"] if s["applicable"])
+            by_name = {s["signal"]: s for s in trial["signals"]}
+            reported = dict(by_name.get(chosen["signal"]) or chosen)
+            cloud = CloudPivotReview(
+                verdict=("pass" if reported["passed"] else "fail"),
+                score=1.0 if reported["passed"] else 0.0,
+                passed=bool(reported["passed"]),
+                issues=tuple(str(r) for r in (reported.get("reasons") or [])),
+                suggestions=(() if reported["passed"] else
+                             ("机械证据不通过 ⇒ 需修正后重跑"
+                              "（不得以 LLM 复评覆盖机械结论）",)),
+                reviewer=f"mechanical_signal:{reported['signal']}",
+                signal_kind=KIND_MECHANICAL, signal=str(reported["signal"]),
+                judge_kind=JUDGE_KIND_MECHANICAL,
+                evidence={"mechanical": trial, "chosen": reported,
+                          "rule": "机械信号优先：取优先级最高的**适用**信号为判定结论；"
+                                  "LLM 复评不参与（不得覆盖机械结论）"})
+        else:
+            try:
+                cloud = self._reviewer(
+                    task_id=task_id, input_text=input_text, output=output,
+                    execution_time_ms=execution_time_ms, tool_calls=tool_calls)
+            except Exception as e:  # noqa: BLE001  复评失败不得阻断收集；记 None 即「缺这一半」
+                logger.warning("[Collect] 云枢复评失败（%s）——反思记为不完整", e)
+                cloud = None
+            if cloud is not None:
+                cloud = _with_llm_signal(cloud, trial)
         return Reflection(upstream_self_eval=upstream, cloudpivot_review=cloud)
 
 
@@ -740,6 +936,9 @@ __all__ = [
     "UpstreamSelfEval", "CloudPivotReview", "Reflection",
     "build_upstream_self_eval", "reflection_engine_reviewer", "rule_reviewer",
     "CloudReviewer",
+    # 机械信号（R4）
+    "KIND_MECHANICAL", "KIND_LLM", "SIGNAL_LLM_REVIEW", "JUDGE_KIND_MECHANICAL",
+    "JUDGE_KIND_LOCAL", "evaluate_mechanical", "mechanical_evidence",
     # 三件套
     "CollectedTriad", "collect", "TriadCollector", "build_trace_lookup",
     # 成本

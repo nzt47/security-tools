@@ -37,9 +37,20 @@ import os
 import sqlite3
 import time
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+)
 
 from . import capability as capability_module
+from .case_cost import record_case_build_from_case_set
 from .generalize import (
     is_placeholder,
     normalize_param_value,
@@ -829,8 +840,15 @@ class CaseStore:
 
     backend = "base"
 
-    def __init__(self, root: str = "") -> None:
+    def __init__(self, root: str = "", *, cost_store: Any = None) -> None:
+        """
+        Args:
+            root: 判定集根目录（空 → `default_case_root()`）。
+            cost_store: 显式成本事件 store（测试/离线用；缺省按
+                `<root>/_case_cost/` 取本模块缓存的 writer —— 见 `case_cost`）。
+        """
         self.root = str(root or default_case_root())
+        self._cost_store = cost_store
         os.makedirs(self.root, exist_ok=True)
 
     # ── 子类实现 ────────────────────────────────────────────
@@ -847,14 +865,31 @@ class CaseStore:
 
     # ── 公共 API ────────────────────────────────────────────
 
-    def save(self, case_set: CaseSet, *, keep_history: bool = True) -> int:
-        """写入判定集（按 ``version`` 幂等覆盖；保留有限历史）→ 返回落库版本"""
+    def save(self, case_set: CaseSet, *, keep_history: bool = True,
+             cost_context: Optional[Mapping[str, Any]] = None,
+             record_cost: bool = True) -> int:
+        """写入判定集（按 ``version`` 幂等覆盖；保留有限历史）→ 返回落库版本
+
+        **构建成本埋点（TASK-S7-06 R1）**：当写入的是一个**新版本**判定集时，
+        记一条 ``cost`` 事件（``stage=case_build``）到 `<判定集根>/_case_cost/`，
+        供 ROI 报告单列披露一次性建造成本。同版本重复落库（如施加适用性后重存）
+        **不重复计费**（幂等键 = ``case_build:<capability>:v<version>``）。
+
+        Args:
+            keep_history: 是否保留有限历史版本。
+            cost_context: 构建成本的**实测**输入（``tokens_in``/``tokens_out``/``model``/
+                ``manual_review_minutes``/``replay_cpu_ms``/``extra_cents``/``source``/``note``）；
+                缺省即 0（如实为 0，不臆造）。
+            record_cost: 关闭埋点（仅供不需要成本流的内部重存调用）。
+        """
         reasons = case_set.validate()
         if reasons:
             raise CaseValidationError(reasons)
         all_rows = self._read_all()
         versions = all_rows.get(case_set.capability_id, [])
         payload = case_set.to_storage_dict()
+        is_new_version = not any(int(v.get("version") or 0) == case_set.version
+                                 for v in versions)
         versions = [v for v in versions if int(v.get("version") or 0)
                     != case_set.version]
         versions.append(payload)
@@ -862,6 +897,10 @@ class CaseStore:
         if keep_history and len(versions) > MAX_STORE_HISTORY:
             versions = versions[-MAX_STORE_HISTORY:]
         self._write(case_set.capability_id, versions)
+        if record_cost and is_new_version:
+            record_case_build_from_case_set(
+                case_set, cost_context=cost_context,
+                case_root=self.root, store=getattr(self, "_cost_store", None))
         return case_set.version
 
     def load(self, capability_id: str, *, version: Optional[int] = None
@@ -1680,8 +1719,12 @@ def regenerate_case_set(
     reason: str = "",
     created_at: float = 0.0,
     concrete_args: Optional[Callable[[Trajectory], Optional[Sequence[Any]]]] = None,
+    cost_context: Optional[Mapping[str, Any]] = None,
 ) -> Optional[CaseSet]:
     """判定集**失效重生成**（§4.5 漂移重探末端：重新从 Trace 采样 + Seed 回填）
+
+    ``cost_context``：本次重生成的**实测**成本输入（LLM token / 人工工时 / 回放算力），
+    随构建成本事件一并入账 —— 漂移重生成开销正是 T1 指出的「未计成本」之一。
 
     Returns:
         新版本判定集；若既无轨迹集也无 Seed 回填则返回 ``None``（**不生成空集**，
@@ -1711,7 +1754,7 @@ def regenerate_case_set(
             "regeneration_reason": str(reason or previous.drift_reason or ""),
         }
     case_set.updated_at = _now()
-    store.save(case_set)
+    store.save(case_set, cost_context=cost_context)
     return case_set
 
 
@@ -1722,6 +1765,7 @@ def case_set_for_capability(
     trace_set: Optional[TraceSet] = None,
     seed_backfill: bool = True,
     created_at: float = 0.0,
+    cost_context: Optional[Mapping[str, Any]] = None,
 ) -> Optional[CaseSet]:
     """取判定集；不存在则按可用通道生成并落库（幂等：已存在直接返回）"""
     cid = str(capability_id or "")
@@ -1730,7 +1774,8 @@ def case_set_for_capability(
         return existing
     return regenerate_case_set(cid, store=store, trace_set=trace_set,
                                seed_backfill=seed_backfill,
-                               reason="首次生成", created_at=created_at)
+                               reason="首次生成", created_at=created_at,
+                               cost_context=cost_context)
 
 
 def pattern_capability_id(pattern: CandidatePattern) -> str:
