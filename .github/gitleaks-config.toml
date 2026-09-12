@@ -57,6 +57,14 @@ paths = [
     '''scripts/generate_report\.py$''',
     # 环境变量回滚备份（本地自动生成，非提交物）
     '''\.env\.rollback_backup.*''',
+    # 【v2.0.3 / CHG-2026-0912】策略污点检测器的**规则定义本身**（S4-02 `faaec7c0` 引入）
+    # 命中样例: agent/policy/taint.py:84
+    #   ("openssh_private_key", re.compile(r"-----BEGIN OPENSSH PRIVATE KEY-----"))
+    # 该文件是 `SECRET_VALUE_PATTERNS` —— 凭据**判定规则表**，正则只用于识别、匹配文本
+    # 永不外传（模块 docstring 逐字如此）。规则里必须出现 PEM 头字面量，
+    # 否则无法检出；这是"检测器的模式"而非"凭据值"，属**结构性误报**。
+    # 豁免范围**精确到文件**（不放行 tests/ 之外的任何路径），不削弱真实密钥检出能力。
+    '''^agent/policy/taint\.py$''',
 ]
 regexes = [
     # Python 环境变量读取（os.environ.get / os.getenv）
