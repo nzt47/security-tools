@@ -97,6 +97,13 @@ OP_WRITE_MEMORY = "memory.write"                   # 写入记忆
 #: （「自动只产出建议」）：auto 提交提案必须放行，否则技能进化链路整条断掉。
 #: 故单列一行：human ✅ / auto ✅（提案不生效）/ sub_agent ❌（不进审批面）。
 OP_SUBMIT_APPROVAL = "approval.submit"
+#: 【§7.0 外的扩展行】切换开关（TASK-S7-01 开关中心）
+#: 与 §7.0「切换熔炉/修改策略」同性质（治理写操作），但**风险分级由开关注册表
+#: 决定**：A 级可直接切（不需要二次认证），B 级由服务层强制二次认证 + 双人确认。
+#: 故矩阵行只表达「human 专属」这一件事，二次认证的真值由
+#: `agent/settings/service.py` 按 `SettingSpec.risk` 逐条裁决——矩阵与开关表
+#: 各管一段，不重复表达同一事实（避免两处口径漂移）。
+OP_SETTINGS_CHANGE = "settings.change"
 
 #: 全部操作（文档顺序）
 OPERATIONS: Tuple[str, ...] = (
@@ -105,10 +112,17 @@ OPERATIONS: Tuple[str, ...] = (
     OP_SWITCH_FORGE, OP_MODIFY_POLICY,
     OP_FORCE_STAGE, OP_REMOVE_SOURCE,
     OP_EXECUTE_CAPABILITY, OP_WRITE_MEMORY, OP_SUBMIT_APPROVAL,
+    OP_SETTINGS_CHANGE,
 )
 
+#: §7.0 之外的**扩展行**（本表新增、但不属于 §7.0 原表的操作）
+EXTENSION_OPERATIONS: Tuple[str, ...] = (OP_SUBMIT_APPROVAL, OP_SETTINGS_CHANGE)
+
 #: §7.0 **核心行**对应的操作（验收清单「§7.0 矩阵核心行全部可判定」的判定集）
-CORE_MATRIX_OPERATIONS: Tuple[str, ...] = OPERATIONS[:-1]
+#: 说明：历史上写作 `OPERATIONS[:-1]`；S7-01 追加 `settings.change` 扩展行后改为
+#: **按扩展行集合显式排除**，取值与改造前完全一致（防扩展行悄悄混进核心行）。
+CORE_MATRIX_OPERATIONS: Tuple[str, ...] = tuple(
+    op for op in OPERATIONS if op not in EXTENSION_OPERATIONS)
 
 #: 操作别名 → 规范值（审批域既有动词 `approve` / `reject` / `deny`；MCP 风格的
 #: `approval.*` 写法亦接受）
@@ -135,7 +149,7 @@ OPERATION_ALIASES: Dict[str, str] = {
 #: 治理类操作（human 专属 + 审计强留痕）——越权尝试必须告警
 GOVERNANCE_OPERATIONS: FrozenSet[str] = frozenset({
     OP_APPROVE, OP_DENY, OP_SWITCH_FORGE, OP_MODIFY_POLICY,
-    OP_FORCE_STAGE, OP_REMOVE_SOURCE,
+    OP_FORCE_STAGE, OP_REMOVE_SOURCE, OP_SETTINGS_CHANGE,
 })
 
 #: 审批类操作（Approve/Deny 之外还含审批入口的提交/生效）
@@ -360,6 +374,16 @@ _RULES: Dict[Tuple[str, str], PermissionRule] = {
         desc="§7.0 外扩展：auto 可提交提案（自动只产出建议，不生效）"),
     (OP_SUBMIT_APPROVAL, ACTOR_SUB_AGENT): _deny(
         "§7.0 外扩展：sub_agent 不进审批面（不可查看/提交审批）"),
+
+    # ── 【§7.0 外扩展】切换开关：human 专属；auto / sub_agent 一律拒 ──
+    # 二次认证由 `agent/settings/service.py` 按风险级（A 免 / B 强制）裁量，
+    # 故矩阵行不加 sf=True（否则 A 级也会被矩阵拦下，与「A 可直接切」冲突）。
+    (OP_SETTINGS_CHANGE, ACTOR_HUMAN): _allow(
+        desc="§7.0 外扩展：human 切换开关（风险分级与二次认证见开关注册表）"),
+    (OP_SETTINGS_CHANGE, ACTOR_AUTO): _deny(
+        "§7.0 外扩展：改开关是治理动作，auto 一律拒绝"),
+    (OP_SETTINGS_CHANGE, ACTOR_SUB_AGENT): _deny(
+        "§7.0 外扩展：改开关是治理动作，sub_agent 一律拒绝"),
 }
 
 # ════════════════════════════════════════════════════════════
@@ -658,8 +682,10 @@ __all__ = [
     "OP_VIEW_TRACE", "OP_VIEW_MEMORY", "OP_VIEW_PANEL", "OP_APPROVE", "OP_DENY",
     "OP_SWITCH_FORGE", "OP_MODIFY_POLICY", "OP_FORCE_STAGE", "OP_REMOVE_SOURCE",
     "OP_EXECUTE_CAPABILITY", "OP_WRITE_MEMORY", "OP_SUBMIT_APPROVAL",
+    "OP_SETTINGS_CHANGE",
     "OPERATIONS", "OPERATION_ALIASES", "normalize_operation",
     "GOVERNANCE_OPERATIONS", "APPROVAL_OPERATIONS", "CORE_MATRIX_OPERATIONS",
+    "EXTENSION_OPERATIONS",
     # 范围
     "SCOPE_ALL", "SCOPE_OWN", "SCOPE_IN_SCOPE", "SCOPE_AUTHORIZED_SUBSET",
     "SCOPE_WORKING_MEMORY", "SCOPE_NONE", "MEMORY_LAYER_WORKING",

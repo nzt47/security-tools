@@ -837,6 +837,32 @@ except Exception as e:
 
 
 # ════════════════════════════════════════════════════════════
+#  开关中心（/api/cp/settings*，TASK-S7-01）
+#  ① 覆盖层启动应用：`needs_restart` 类开关靠这一步才真正生效；
+#     无覆盖层文件时**不做任何事**（对既有行为零影响）。
+#  ② 路由注册：GET 全量条目 / POST 改值 / POST reset / POST confirm（双人确认）。
+# ════════════════════════════════════════════════════════════
+
+try:
+    from agent.settings.bootstrap import apply_overrides as _apply_ui_overrides
+    _override_result = _apply_ui_overrides()
+    if _override_result.get("existed"):
+        logger.info("开关覆盖层已应用: applied=%d skipped=%d (%s)",
+                    len(_override_result.get("applied", [])),
+                    len(_override_result.get("skipped", [])),
+                    _override_result.get("overlay"))
+except Exception as e:
+    logger.error("开关覆盖层启动应用失败（不影响启动）: %s", e)
+
+try:
+    from agent.server_routes.routes_settings import register_routes as reg_settings
+    reg_settings(app, lambda: None)
+    logger.info("开关中心路由已注册 (/api/cp/settings*)")
+except Exception as e:
+    logger.error("加载开关中心路由失败: %s", e)
+
+
+# ════════════════════════════════════════════════════════════
 #  运行时诊断路由（可观测性 E2E 测试所需的 7 个诊断端点）
 #  包含：/api/diagnostics/health、/api/diagnostics/trace、
 #        /api/diagnostics/trace/inject、/api/diagnostics/metrics、

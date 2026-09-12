@@ -727,3 +727,140 @@ export type ActionName =
   | 'drop-database'
   | 'permission-change'
   | 'force-push'
+
+// ═══════════════════════════════════════════════════════════════
+//  开关中心（TASK-S7-01）—— `GET /api/cp/settings` 契约镜像
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * 生效来源（**契约逐字**：`env | ui_override | config | default`）
+ *
+ * 这是"这个值现在到底谁说了算"的唯一答案；`shadowed_by` 是**存在但未生效**的
+ * 低优先级来源（`source=env` + `shadowed_by=["ui_override","config"]` ⇒
+ * UI 覆盖项存在，但 env 赢）。
+ */
+export type SettingsSource = 'env' | 'ui_override' | 'config' | 'default';
+
+/** 风险分级（A 可直接切 / B 需第二位人工确认 / C 只读脱敏） */
+export type SettingsRisk = 'A' | 'B' | 'C';
+
+export interface SettingsItem {
+  key: string;
+  category: string;
+  category_label: string;
+  /** 值类型（bool / int / float / str / list / …由后端登记表给出） */
+  type: string;
+  risk: SettingsRisk | string;
+  risk_label: string;
+  /** `secret=true` 时后端送 `null`（**永不返回明文**） */
+  value: unknown;
+  display_value: string;
+  default: unknown;
+  source: SettingsSource | string;
+  /** 来源的人类可读名（如 `config.yaml` / `环境变量`） */
+  source_label: string;
+  /** 存在但**未生效**的低优先级来源 */
+  shadowed_by: string[];
+  locked: boolean;
+  /** `locked=true` 时必为非空中文句子，**必须显示在禁用控件旁** */
+  locked_reason: string;
+  /** `locked=true ⇒ editable=false` */
+  editable: boolean;
+  effect: string;
+  effect_label: string;
+  needs_restart: boolean;
+  env_name: string;
+  env_present: boolean;
+  config_path: string;
+  /** 仅支持环境变量（无 config.yaml 项） */
+  env_only: boolean;
+  secret: boolean;
+  masked: boolean;
+  /** 机密项"是否已配置"（密文串由后端给，前端**不得自行拼装**） */
+  configured: boolean;
+  description: string;
+  owner_module: string;
+  validator: { kind: string } & Record<string, unknown>;
+  requires_second_factor: boolean;
+  requires_dual_approval: boolean;
+  impact: string;
+  rollback: string;
+}
+
+export interface SettingsCategory {
+  id: string;
+  label: string;
+  count: number;
+}
+
+export interface SettingsCounts {
+  total: number;
+  by_category: Record<string, number>;
+  by_risk: Record<string, number>;
+  editable: number;
+  locked: number;
+  overridden: number;
+}
+
+export interface SettingsView {
+  ok: boolean;
+  prefix: string;
+  generated_at: string;
+  /** 优先级从高到低（后端给；前端**不得自定义**） */
+  source_priority: string[];
+  counts: SettingsCounts;
+  categories: SettingsCategory[];
+  items: SettingsItem[];
+  read_only_notice: string;
+}
+
+/**
+ * 变更 / 重置响应（200 已生效 或 202 待第二人确认）
+ *
+ * 202：`{ ok:true, applied:false, pending:true, pending_id, requires_dual_approval:true, message }`
+ * 200：`{ ok:true, applied:true, key, old, new, source:"ui_override", effect, effect_label, audit, receipt, item }`
+ *
+ * ★ 实测补充（`agent/settings/service.py::ChangeOutcome.to_dict`）：生效分支**没有**顶层
+ *   `value` / `display_value`，新值与展示值在 `item` 里（`item.display_value`）；
+ *   重置成功的标记在 `receipt.reset === true`（另有一版契约为顶层 `reset`）。
+ *   两个形状都接受 ⇒ 前端对两侧都不脆。
+ */
+export interface SettingsChangeResponse {
+  ok: boolean;
+  applied?: boolean;
+  pending?: boolean;
+  pending_id?: string;
+  requires_dual_approval?: boolean;
+  /** 后端原文（如"B 级开关需第二位人工确认后方可生效"）；前端**不得改写** */
+  message?: string;
+  key?: string;
+  old?: unknown;
+  new?: unknown;
+  source?: SettingsSource | string;
+  effect?: string;
+  effect_label?: string;
+  audit?: { seq?: number; self_hash?: string };
+  receipt?: Record<string, unknown>;
+  /** 生效/待确认后的条目快照（含 `display_value` / `source` / `shadowed_by`） */
+  item?: SettingsItem;
+  value?: unknown;
+  display_value?: string;
+  reset?: boolean;
+  code?: string;
+}
+
+/** 变更请求体（`POST /api/cp/settings/<key>`；数组体一律被后端拒绝——**无批量端点**） */
+export interface SettingsChangeBody {
+  value: unknown;
+  second_factor?: string;
+  reason?: string;
+  /** 仅在与既有待确认项关联时携带（正常链路由 202 响应给出） */
+  pending_id?: string;
+}
+
+/** 二次确认请求体（`POST /api/cp/settings/<key>/confirm`；**必须是另一位人工**） */
+export interface SettingsConfirmBody {
+  pending_id: string;
+  second_factor?: string;
+  reason?: string;
+}
