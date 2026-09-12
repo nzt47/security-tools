@@ -235,7 +235,7 @@ columns.mechanical.recovery_rate = 1.0（4 样本）｜columns.llm.recovery_rate
 |---|---|---|---|
 | 8 | 覆盖 ≥7 项，每项含"要求 / 实现 / 缺口 / 升级路径" | ✅ | 7 项 × 四列表；`test_at_least_seven_items`、`test_each_item_has_four_columns` |
 | 9 | 每项可追溯代码位置或验收报告；"已验证/未验证"标注齐全 | ✅ | §三 21 条断言；`test_code_paths_and_symbols_exist`、`test_evidence_test_files_exist`、`test_verified_and_unverified_are_both_present` |
-| 10 | 新文档链接通过本地 docs 链接预检 | ✅ | `pwsh -File scripts/dev/check_docs_broken_links.ps1` → **检查 1303 个文件 / 1543 个链接 / 0 个失效**；另有 `test_all_relative_links_resolve` |
+| 10 | 新文档链接通过本地 docs 链接预检 | ✅ | `pwsh -File scripts/dev/check_docs_broken_links.ps1` → **1303 文件 / 1543 链接 / 0 失效**（合并 S7-04 后复跑 1310 / 1560 / 0 失效）；另有 `test_all_relative_links_resolve` |
 
 ### 5.4 通用
 
@@ -294,7 +294,7 @@ columns.mechanical.recovery_rate = 1.0（4 样本）｜columns.llm.recovery_rate
 | kwarg 扫描 ② | `python scripts/scan_kwarg_conflicts.py --path tests` | **HIGH: 0 处**（MEDIUM 2 / LOW 29） |
 | mypy | `python -m mypy agent/digestion/{case_cost,cases,internalize}.py agent/subagent/{mechanical,collection,executor}.py agent/eval/metrics.py --ignore-missing-imports --warn-no-return --warn-return-any --follow-imports=silent` | **Success: no issues found in 7 source files** |
 | importlinter | `lint-imports` | **Contracts: 2 kept, 0 broken** |
-| docs 链接预检 | `pwsh -NoProfile -File scripts/dev/check_docs_broken_links.ps1` | **检查 1303 个文件 / 1543 个链接 / 0 个失效**（`[PASS] 阻塞模式：失效链接 0 <= 阈值 0`；含本任务 3 个新文档与 3 处文档改动） |
+| docs 链接预检 | `pwsh -NoProfile -File scripts/dev/check_docs_broken_links.ps1` | **0 个失效**（两次实测：本次交付提交前 **1303 文件 / 1543 链接**；合并 S7-04 文档后复跑 **1310 文件 / 1560 链接**，均 `[PASS] 阻塞模式：失效链接 0 <= 阈值 0`） |
 | pre-commit（真实提交场景） | `git commit`（**未用** `--no-verify`） | 见 §7 |
 | 产物漂移 | 跑完门禁后 `git status` | 无意外产物（判定集根/成本台账/事件目录均未在生产路径落盘） |
 
