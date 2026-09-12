@@ -1,0 +1,431 @@
+{
+  "task": "TASK-S4-03",
+  "started": "2026-09-12T07:14:38+08:00",
+  "finished": "2026-09-12T07:14:39+08:00",
+  "spec": "v7.2 §11.10 混沌演练清单",
+  "passed": 4,
+  "total": 4,
+  "records": [
+    {
+      "drill_id": "D1",
+      "title": "kill -9 主进程（Watchdog 持有者）→ 单机唯一性 + 杀伤后恢复",
+      "chaos": "kill -9 持有 watchdog.lock 的子进程（模拟主进程崩溃）",
+      "passed": true,
+      "steps": [
+        {
+          "ts": "2026-09-12T07:14:38+08:00",
+          "name": "spawn",
+          "detail": {
+            "pid": 7052,
+            "cmd": "python -c <child watchdog holder>"
+          }
+        },
+        {
+          "ts": "2026-09-12T07:14:38+08:00",
+          "name": "chaos",
+          "detail": {
+            "action": "kill -9",
+            "pid": 7052
+          }
+        },
+        {
+          "ts": "2026-09-12T07:14:38+08:00",
+          "name": "killed",
+          "detail": {
+            "pid": 7052,
+            "returncode": 1
+          }
+        },
+        {
+          "ts": "2026-09-12T07:14:39+08:00",
+          "name": "cleanup",
+          "detail": {
+            "lock_released": true
+          }
+        }
+      ],
+      "expectations": [
+        {
+          "claim": "子进程成功持有单例锁",
+          "ok": true,
+          "evidence": {
+            "lock_path": "C:\\Windows\\TEMP\\s403-chaos-3luka7kr\\d1\\watchdog.lock",
+            "holder": {}
+          }
+        },
+        {
+          "claim": "第二个 Watchdog 实例被拒（分裂脑防护）",
+          "ok": true,
+          "evidence": {
+            "exception": "SplitBrainError",
+            "holder": {
+              "pid": 7052,
+              "host": "DESKTOP-CN00D5I",
+              "role": "watchdog",
+              "started_at": 1789168478.7046254,
+              "started_iso": "2026-09-12T07:14:38.704625",
+              "backend": "single_host_lockfile",
+              "note": ""
+            },
+            "lock_path": "C:\\Windows\\TEMP\\s403-chaos-3luka7kr\\d1\\watchdog.lock"
+          }
+        }
+      ],
+      "recovery": [
+        {
+          "name": "杀伤后新实例可重获单例锁",
+          "ok": true,
+          "evidence": {
+            "held": true,
+            "holder": {
+              "pid": 20952,
+              "host": "DESKTOP-CN00D5I",
+              "role": "watchdog",
+              "started_at": 1789168479.227245,
+              "started_iso": "2026-09-12T07:14:39.227245",
+              "backend": "single_host_lockfile",
+              "note": ""
+            }
+          }
+        },
+        {
+          "name": "杀伤后锁文件被判为陈旧（可安全清理）",
+          "ok": true,
+          "evidence": {
+            "lockfile_holder": {
+              "pid": 20952,
+              "host": "DESKTOP-CN00D5I",
+              "role": "watchdog",
+              "started_at": 1789168479.227245,
+              "started_iso": "2026-09-12T07:14:39.227245",
+              "backend": "single_host_lockfile",
+              "note": ""
+            },
+            "note": "字节 0 哨兵 + 定长身份槽；OS 锁随进程消亡释放"
+          }
+        }
+      ]
+    },
+    {
+      "drill_id": "D2",
+      "title": "向审计链注入篡改 → 链式校验定位注入点（两种注入的影响范围分别验证）",
+      "chaos": "直接 UPDATE 审计 SQLite（绕过写入 API）：D2a 改 payload；D2b 改 payload_hash",
+      "passed": true,
+      "steps": [
+        {
+          "ts": "2026-09-12T07:14:39+08:00",
+          "name": "append",
+          "detail": {
+            "entries": 8,
+            "db": "C:\\Windows\\TEMP\\s403-chaos-3luka7kr\\d2\\audit.db",
+            "table": "audit_chain"
+          }
+        },
+        {
+          "ts": "2026-09-12T07:14:39+08:00",
+          "name": "chaos-D2a",
+          "detail": {
+            "action": "UPDATE payload",
+            "seq": 4
+          }
+        },
+        {
+          "ts": "2026-09-12T07:14:39+08:00",
+          "name": "chaos-D2b",
+          "detail": {
+            "action": "UPDATE payload_hash",
+            "seq": 4
+          }
+        },
+        {
+          "ts": "2026-09-12T07:14:39+08:00",
+          "name": "cleanup",
+          "detail": {
+            "db_removed_with_tmpdir": true
+          }
+        }
+      ],
+      "expectations": [
+        {
+          "claim": "注入前链完整（基线可信）",
+          "ok": true,
+          "evidence": {
+            "checked": 8,
+            "summary": "OK — 链完整，已校验 8 条（seq 1..8，链头 self_hash=428edf3879b1c0ac…）"
+          }
+        },
+        {
+          "claim": "D2a 篡改确实落到库中（影响行数=1）",
+          "ok": true,
+          "evidence": {
+            "rowcount": 1,
+            "seq": 4
+          }
+        },
+        {
+          "claim": "D2a 篡改被检出（链不再完整）",
+          "ok": true,
+          "evidence": {
+            "summary": "TAMPERED — 首个异常 seq=4（payload_hash 重算不一致（载荷/元数据被篡改））: payload_hash 重算=dcad4a7d242b36fc… ≠ 存储=31f9b38cd022f0fa…（载荷或元数据被改）；异常共 1 处（注入点之后因哈希前向传播全部失败）"
+          }
+        },
+        {
+          "claim": "D2a 首个异常位置 == 注入点",
+          "ok": true,
+          "evidence": {
+            "first_bad_seq": 4,
+            "expected": 4
+          }
+        },
+        {
+          "claim": "D2a 影响范围 = 恰好注入点 1 条（payload 只绑定本条）",
+          "ok": true,
+          "evidence": {
+            "bad_seqs": [
+              4
+            ],
+            "reason": "payload_hash_mismatch"
+          }
+        },
+        {
+          "claim": "D2b 篡改确实落到库中（影响行数=1）",
+          "ok": true,
+          "evidence": {
+            "rowcount": 1,
+            "seq": 4,
+            "field": "payload_hash"
+          }
+        },
+        {
+          "claim": "D2b 首个异常位置 == 注入点",
+          "ok": true,
+          "evidence": {
+            "first_bad_seq": 4,
+            "expected": 4
+          }
+        },
+        {
+          "claim": "D2b 影响范围 = 注入点及其后全部（哈希前向传播）",
+          "ok": true,
+          "evidence": {
+            "bad_seqs": [
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "reason": "payload_hash_mismatch"
+          }
+        }
+      ],
+      "recovery": [
+        {
+          "name": "D2a 还原 payload 后链恢复完整",
+          "ok": true,
+          "evidence": {
+            "checked": 8,
+            "summary": "OK — 链完整，已校验 8 条（seq 1..8，链头 self_hash=428edf3879b1c0ac…）"
+          }
+        },
+        {
+          "name": "D2b 还原 payload_hash 后链恢复完整",
+          "ok": true,
+          "evidence": {
+            "checked": 8,
+            "summary": "OK — 链完整，已校验 8 条（seq 1..8，链头 self_hash=428edf3879b1c0ac…）"
+          }
+        }
+      ]
+    },
+    {
+      "drill_id": "D3",
+      "title": "删最新快照 → 整包回滚被拒并升级 L4；回退到现存包恢复",
+      "chaos": "从整包台账中删除最新 bundle（模拟快照被误删/损坏）",
+      "passed": true,
+      "steps": [
+        {
+          "ts": "2026-09-12T07:14:39+08:00",
+          "name": "snapshot",
+          "detail": {
+            "bundles": 2,
+            "v1": "rb-4075d5bc73c8",
+            "v2": "rb-62e2a4a310cd"
+          }
+        },
+        {
+          "ts": "2026-09-12T07:14:39+08:00",
+          "name": "chaos",
+          "detail": {
+            "action": "delete newest bundle",
+            "deleted": "sha256:62e2a4a310cde1acd4fd06c950fc5a4268f02a776201daa779616fe93b70c9e9"
+          }
+        },
+        {
+          "ts": "2026-09-12T07:14:39+08:00",
+          "name": "cleanup",
+          "detail": {
+            "incident_dir": "C:\\Windows\\TEMP\\s403-chaos-3luka7kr\\d3\\incidents"
+          }
+        }
+      ],
+      "expectations": [
+        {
+          "claim": "最新包确已消失",
+          "ok": true,
+          "evidence": {
+            "count": 1
+          }
+        },
+        {
+          "claim": "回滚到缺失包被拒",
+          "ok": true,
+          "evidence": {
+            "exception": "BundleNotFoundError",
+            "message": "整包不在台账中: 'sha256:62e2a4a310cde1acd4fd06c950fc5a4268f02a776201daa779616fe93b70c9e9'"
+          }
+        },
+        {
+          "claim": "部分回滚被拒并触发 L4",
+          "ok": true,
+          "evidence": {
+            "missing": [
+              "code",
+              "weights",
+              "data_baseline",
+              "manifest"
+            ],
+            "incident_id": "inc-a6df96e785a6"
+          }
+        },
+        {
+          "claim": "L4 事故卡已落盘",
+          "ok": true,
+          "evidence": {
+            "cards": [
+              "inc-a6df96e785a6"
+            ],
+            "severities": [
+              "L4"
+            ]
+          }
+        }
+      ],
+      "recovery": [
+        {
+          "name": "回退到现存包可恢复（五组件整包计划）",
+          "ok": true,
+          "evidence": {
+            "applied": true,
+            "moves": 5,
+            "is_full_bundle": true,
+            "from_bundle": ""
+          }
+        }
+      ]
+    },
+    {
+      "drill_id": "D4",
+      "title": "Saga 补偿失败 → 升级 L4 + 最高告警 + journal 留证",
+      "chaos": "补偿回调抛异常（模拟「外部副作用已发生且无法自动撤销」）",
+      "passed": true,
+      "steps": [
+        {
+          "ts": "2026-09-12T07:14:39+08:00",
+          "name": "executed",
+          "detail": {
+            "state": "executed",
+            "three_phase": false
+          }
+        },
+        {
+          "ts": "2026-09-12T07:14:39+08:00",
+          "name": "chaos",
+          "detail": {
+            "action": "abort → compensate（其中一个补偿抛错）"
+          }
+        }
+      ],
+      "expectations": [
+        {
+          "claim": "补偿失败被标记（不静默）",
+          "ok": true,
+          "evidence": {
+            "failed": [
+              "rotate_key"
+            ],
+            "compensated": [
+              "write_config"
+            ]
+          }
+        },
+        {
+          "claim": "升级 L4（escalated=True）",
+          "ok": true,
+          "evidence": {
+            "state": "escalated",
+            "incident_id": "inc-6aa5c8ef084d"
+          }
+        },
+        {
+          "claim": "开出事故卡",
+          "ok": true,
+          "evidence": {
+            "incident_id": "inc-6aa5c8ef084d"
+          }
+        },
+        {
+          "claim": "事故卡级别为 L4",
+          "ok": true,
+          "evidence": {
+            "severities": [
+              "L4"
+            ]
+          }
+        },
+        {
+          "claim": "journal 含 prepare/execute/abort/补偿/escalate",
+          "ok": true,
+          "evidence": {
+            "steps": [
+              "prepare",
+              "execute",
+              "abort",
+              "compensate:rotate_key",
+              "compensate:write_config",
+              "escalate"
+            ]
+          }
+        },
+        {
+          "claim": "重复补偿幂等（已成功步骤跳过）",
+          "ok": true,
+          "evidence": {
+            "skipped": [
+              "write_config"
+            ],
+            "failed": [
+              "rotate_key"
+            ],
+            "calls": [
+              "boom",
+              "cfg",
+              "boom"
+            ]
+          }
+        }
+      ],
+      "recovery": [
+        {
+          "name": "journal 可从磁盘重读并重建状态（重启后仍可处置）",
+          "ok": true,
+          "evidence": {
+            "rebuilt_state": "escalated",
+            "journal_entries": 8,
+            "incomplete_sagas": []
+          }
+        }
+      ]
+    }
+  ]
+}
