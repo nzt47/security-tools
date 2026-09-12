@@ -171,8 +171,25 @@ class TestRealTaskRunner:
         from agent.digestion.cleaning import same_task_key
         key = same_task_key(seed, capability_id=rc.CAP_READ_FILE)
         assert key.outcome == "success"
-        # 归一意图键非空且不含具体数字（"同任务换目标仍同键"）
-        assert key.intent_key and not any(ch.isdigit() for ch in key.intent_key)
+        # 归一意图键非空，且**不含目标特定的数字**（"同任务换目标仍同键"）
+        #
+        # 【2026-09-13 修正（S8-05 × S7-05 接缝）】原断言是
+        #     `not any(ch.isdigit() for ch in key.intent_key)`
+        # 即"键里一个数字都不许有"。S8-05 的 D3 给归组键加了**结构版本前缀**
+        # （`agent/digestion/cleaning.py:191`：`v2|cap=<集合>|steps=<档位>|out=<结果>`），
+        # `v2` 自身含数字 ⇒ 该断言按**字面**失效，但**意图未失效**：
+        # 断言真正要守的是"不得把目标里的 `0000` 之类编进键"，版本前缀不影响该性质。
+        # 故按**意图**改断言，并补一条**正向**断言把新结构钉住（收紧而非放宽）。
+        assert key.intent_key
+        assert key.intent_key.startswith("v2|"), \
+            "结构版本前缀应显式存在（S8-05 D3 的归组键结构维度）"
+        assert "0000" not in key.intent_key, \
+            "目标特定的序号不得进入归组键（否则换目标即换键，归组失效）"
+        # 文本归一（分隔符 ‖ 之后）部分不得含数字：CJK 按字切分不会产生数字，
+        # 一旦出现说明归一化退化成原样拼接
+        _text_part = key.intent_key.split("‖", 1)[-1]
+        assert not any(ch.isdigit() for ch in _text_part), \
+            f"意图文本段不应含数字：{_text_part!r}"
 
     def test_real_test_failure_skips_report_and_records_error(
             self, trace_facade: Any, tmp_workspace: str) -> None:
