@@ -22,6 +22,8 @@
 | `shadow` | **shadow 灰度**（预算/确定性抽样/灰度 5%/三层比对/真实墙钟/人工抽检/劣化） | S3-03 |
 | `internalize` | **内化六条件引擎** + stage.promote PR 产物 + 低流量手动通道（T2） | S3-03 |
 | `probe` | **native 期探活设施**（判定集子集周重放 + 四项退化条件 + 回退建议 + 事故卡；调度默认关闭） | S7-04 |
+| `real_capture` | **真实任务轨迹采集**（受控工作区 + 真实工具调用 + 真实结果 → 能力级统一 Trace）+ 同类门槛核对 | S7-05 |
+| `switch_snapshot` | 消化链开关的**只读快照**（原始值 + 引擎生效值）与演示后复位对比 | S7-05 |
 | `seed_pack.json` | P7.2-23 Seed Pack 资产（14 技能 × ≥3 组预置等价用例） | S3-02 |
 
 **import 纪律**：本包是**叶子**——既有模块不得反向导入 `agent.digestion`
@@ -109,6 +111,29 @@ from .sandbox import (  # noqa: F401
     three_layer_diff,
 )
 from .service import DigestionService  # noqa: F401
+from .real_capture import (  # noqa: F401
+    CAP_READ_FILE,
+    CAP_SHELL_EXECUTE,
+    CAP_WRITE_FILE,
+    TASK_INSTRUCTION,
+    RealTaskResult,
+    RealTaskRunner,
+    RealTaskSpec,
+    build_workspace,
+    registry_coverage,
+    same_kind_summary,
+    summarize_results,
+)
+from .switch_snapshot import (  # noqa: F401
+    # 【命名纪律】刻意**不**在此导出同名函数 `switch_snapshot`：那会把包属性
+    # `agent.digestion.switch_snapshot` 从"子模块"覆盖成"函数"，使
+    # `from agent.digestion import switch_snapshot` 取到函数而非模块
+    # （实现期实测：与其它套件同会话跑时静默改变导入语义）。
+    # 需要该函数时显式 `from agent.digestion.switch_snapshot import switch_snapshot`。
+    SWITCH_KEYS,
+    diff_snapshots,
+    effective_switches,
+)
 from .shadow import (  # noqa: F401
     JUDGE_KIND_LLM,
     SHADOW_VERSION,
@@ -216,4 +241,9 @@ __all__ = [
     "PROBE_STAGES", "PROBE_VERSION", "ROLLBACK_TO_STAGE",
     "VERDICT_OK", "VERDICT_DEGRADED", "VERDICT_NO_CAPABILITY",
     "VERDICT_NOT_APPLICABLE",
+    # S7-05 真实数据打通
+    "RealTaskRunner", "RealTaskSpec", "RealTaskResult", "build_workspace",
+    "same_kind_summary", "registry_coverage", "summarize_results",
+    "CAP_READ_FILE", "CAP_SHELL_EXECUTE", "CAP_WRITE_FILE", "TASK_INSTRUCTION",
+    "effective_switches", "diff_snapshots", "SWITCH_KEYS",
 ]
