@@ -348,7 +348,15 @@ def _op_external_call(env: WorkerEnv, params: Dict[str, Any]) -> Dict[str, Any]:
 
 def _op_env_dump(env: WorkerEnv, params: Dict[str, Any]) -> Dict[str, Any]:
     names = [str(n) for n in (params.get("names") or ISOLATION_ENV_WATCH)]
-    values = {n: str(os.environ.get(n, "")) for n in names}
+    # 【2026-09-13】原为字典推导式 `{n: os.environ.get(n, "") for n in names}`。
+    # 开关机械扫描只认 `for x in 具名集合` 的循环形态，推导式会被记成
+    # **未解析的动态家族**（`<unresolved>`）⇒ 零缺口硬守卫变红。
+    # 改为显式 for 循环：读取点被如实归类为"透传点"，再由
+    # `scan_settings.py::PASS_THROUGH_SITES` 显式声明（诊断快照≠开关）。
+    # ⚠️ 语义完全不变（仍是"逐名取值、缺失记空串"）。
+    values: Dict[str, str] = {}
+    for n in names:
+        values[n] = str(os.environ.get(n, ""))
     return {"ok": True, "names": names,
             "values": values,
             "present": sorted(n for n, v in values.items() if v != ""),
@@ -596,8 +604,12 @@ def run_job(job: Dict[str, Any]) -> Dict[str, Any]:
     # ① 先留证：平台**原始**环境（未 scrub 前）——容器里 Docker/runc 会按 passwd
     #    条目把 HOME 覆写成 /root 或 /nonexistent，`-e HOME=` 挡不住（实测）。
     #    把原始值单独留档，才谈得上"如实标注"而不是"看起来已经清空了"。
-    env.platform_env_raw = {name: str(os.environ.get(name, ""))
-                            for name in ISOLATION_ENV_WATCH}
+    #    【2026-09-13】原为字典推导式；改为显式 for 循环，使读取点可被开关机械
+    #    扫描如实归类为"透传点"并显式声明（理由：诊断留证，不是开关）。语义不变。
+    _platform_env_raw: Dict[str, str] = {}
+    for name in ISOLATION_ENV_WATCH:
+        _platform_env_raw[name] = str(os.environ.get(name, ""))
+    env.platform_env_raw = _platform_env_raw
     # ② 再清空：与子进程路径同口径的「存在但为空」（S4-04 同款做法）。
     #    **默认 False**：清空 `os.environ` 是有破坏性的动作，必须由调用方显式要求
     #    （隔离执行器的 `_job_for()` 两个等级都会显式置 True）。默认 True 会让

@@ -951,15 +951,29 @@ class InProcessExecutor(IsolationExecutor):
             honest_notes=["in_process 不提供任何执行隔离，故本执行器永不执行作业"])
 
 
+#: 允许从宿主继承的环境变量（**白名单**：运行 Python 必需且非凭据）
+#:
+#: 【2026-09-13】由**类属性**提升为**模块级常量**，取值与语义完全不变。
+#: 原因：开关机械扫描 `scripts/scan_settings.py` 只认 `for x in 具名常量`
+#: （见其 `collect_loop_literals`），`for x in self.HOST_ENV_ALLOWLIST`
+#: 会被记成**未解析的动态家族**（`<unresolved>`）⇒ master 的
+#: `test_settings_registry.py::TestMechanicalZeroGap` 零缺口硬守卫变红。
+#: 提升为模块级后，该读取点被**如实归类为"透传点"**，再由
+#: `scan_settings.py::PASS_THROUGH_SITES` 显式声明并写明理由（白名单≠开关）。
+#: ⚠️ 这是"让读取点**可被如实披露**"，不是"把缺口藏起来"：
+#: 若未在 PASS_THROUGH_SITES 声明，它会以 `loop:<来源>` 进 `unregistered_dynamic`。
+HOST_ENV_ALLOWLIST: Tuple[str, ...] = ("SystemRoot", "WINDIR", "COMSPEC",
+                                       "PATHEXT", "NUMBER_OF_PROCESSORS",
+                                       "PROCESSOR_ARCHITECTURE")
+
+
 class SubprocessHardenedExecutor(IsolationExecutor):
     """强隔离子进程执行器（S4-04 范式的执行侧复用；**非**内核级隔离）"""
 
     level = ISOLATION_SUBPROCESS_HARDENED
 
-    #: 允许从宿主继承的环境变量（**白名单**：运行 Python 必需且非凭据）
-    HOST_ENV_ALLOWLIST: Tuple[str, ...] = ("SystemRoot", "WINDIR", "COMSPEC",
-                                           "PATHEXT", "NUMBER_OF_PROCESSORS",
-                                           "PROCESSOR_ARCHITECTURE")
+    #: 兼容既有类属性引用（与模块级常量同一对象）
+    HOST_ENV_ALLOWLIST: Tuple[str, ...] = HOST_ENV_ALLOWLIST
 
     def _hardened_env(self, work_root: str) -> Dict[str, str]:
         """构造子进程环境（**replace 语义**：宿主环境整块丢弃）
@@ -977,7 +991,9 @@ class SubprocessHardenedExecutor(IsolationExecutor):
         except Exception as exc:  # noqa: BLE001  兜底路径：绝不因此放弃清空
             logger.warning("apply_isolation_env 不可用（改用内置同规则实现）: %s", exc)
             env = _fallback_isolation_env()
-        for name in self.HOST_ENV_ALLOWLIST:
+        # 迭代**模块级具名常量**（而非 `self.HOST_ENV_ALLOWLIST`）：
+        # 使该读取点能被开关机械扫描如实归类为"透传点"并显式声明（见模块顶部说明）。
+        for name in HOST_ENV_ALLOWLIST:
             value = os.environ.get(name)
             if value:
                 env[name] = value

@@ -92,6 +92,22 @@ PASS_THROUGH_SITES: Dict[str, str] = {
     "agent/skills_mgmt/executor.py::_ENV_WHITELIST":
         "技能子进程环境白名单：把父进程既有 env 原样转发（PYTHONUTF8 等），"
         "不是可切换的云枢开关",
+    # ── 以下三项于 2026-09-13 补（S8-03 灰度容器隔离引入；当时使零缺口硬守卫变红）──
+    # 说明：三处都**只读环境变量用于转发或留证**，没有任何"运维可切换行为"的语义，
+    #       故按本表口径（透传白名单≠开关）显式声明。**未声明的来源照样进
+    #       `undeclared_passthrough`**（见 check_gaps），本表不放宽任何判定。
+    "agent/digestion/isolation.py::HOST_ENV_ALLOWLIST":
+        "隔离子进程的宿主环境白名单：把运行 Python 必需的 OS 变量"
+        "（SystemRoot/WINDIR/COMSPEC/PATHEXT/NUMBER_OF_PROCESSORS/"
+        "PROCESSOR_ARCHITECTURE）原样转发给隔离子进程；它们是操作系统提供的值，"
+        "不是云枢开关（改了也不改变云枢行为，只会让子进程起不来）",
+    "agent/digestion/isolation_worker.py::ISOLATION_ENV_WATCH":
+        "隔离环境**留证**名单：对固定的敏感变量清单（HOME/SSH_*/各代理/各家凭据）"
+        "做只读快照，用于「凭据可见性」的如实披露（`platform_env_raw`）；"
+        "只读出值、不做任何切换，故非开关",
+    "agent/digestion/isolation_worker.py::names":
+        "隔离诊断 op（`_op_env_dump`）的导出名单：默认取 ISOLATION_ENV_WATCH，"
+        "调用方（探测作业）可显式覆盖；用途是只读回报'哪些变量可见'，非开关",
 }
 
 #: 助手名 → 值类型推断
@@ -645,8 +661,28 @@ class _Extractor(ast.NodeVisitor):
                 if (not resolved and isinstance(arg0, ast.Name)
                         and arg0.id in self._loop_from_name):
                     # 名字来自具名集合：交由 PASS_THROUGH_SITES 显式裁定
-                    kind_eff = "loop_collection"
-                    name = ""
+                    #
+                    # 【2026-09-13 修**静默丢弃**（守卫自身的漏洞）】
+                    # 原实现此处**只设置 `kind_eff`/`name`，没有调用 `_record`**；
+                    # 而后续分支是 `elif / elif / else` ⇒ 本 `if` 一旦命中，
+                    # `_record` 永远不会被调用，该读取点被**整体丢弃**：
+                    # 既不在 `managed`、也不在 `dynamic`、也不在 `passthrough`。
+                    # 后果：`unregistered_dynamic` 与 `undeclared_passthrough` 都看不见它
+                    # ⇒ **零缺口硬守卫存在一个静默漏洞**（实测被吞掉的包括既有
+                    # `agent/skills_mgmt/executor.py::_ENV_WHITELIST` 与 S8-03 的
+                    # 隔离环境白名单：读取点消失，守卫却是绿的）。
+                    # 修法：与相邻分支同款**显式记录**为 `loop_collection`：
+                    #   · 已在 `PASS_THROUGH_SITES` 声明 → 进 `report.passthrough`（如实披露）；
+                    #   · 未声明 → 变成 `loop:<来源>` 动态家族 → `unregistered_dynamic` → 红灯。
+                    # ⚠️ 这是**堵漏（判定更严）**，不是放宽；配套回归用例见
+                    # `tests/unit/test_settings_registry.py::TestMechanicalZeroGap::`
+                    # `test_named_collection_reads_are_disclosed_not_dropped`。
+                    self._record(node, name="", resolved=False,
+                                 kind="loop_collection",
+                                 helper=base if is_helper else "",
+                                 value_type=self._type_hint(base, node))
+                    self.generic_visit(node)
+                    return
                 elif (isinstance(arg0, ast.Name)
                       and self._loop_literals.get(arg0.id)
                       and len(self._loop_literals[arg0.id]) > 1):

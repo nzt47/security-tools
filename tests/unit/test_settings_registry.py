@@ -113,6 +113,60 @@ class TestMechanicalZeroGap:
         assert observed == declared, (observed, declared)
         assert observed, "至少应有一个动态家族（技能评估/摘要/清理前缀族）"
 
+    # ────────────────────────────────────────────────────────
+    #  【2026-09-13 回归】具名集合来源的读取点**必须被披露**，不得静默丢弃
+    #
+    #  背景（守卫自身的漏洞）：`scan_settings.py::visit_Call` 的分支链是
+    #  `if / elif / elif / else`，而第一个分支（"名字来自具名集合"）**只设置
+    #  `kind_eff`/`name`、没有调用 `_record`** ⇒ 命中该分支的读取点被整体丢弃：
+    #  既不在 `managed`、也不在 `dynamic`、也不在 `passthrough`。
+    #  于是 `unregistered_dynamic` 与 `undeclared_passthrough` 都看不见它 ——
+    #  **零缺口守卫存在一个静默漏洞**。实测被吞掉的包括**既有的**
+    #  `agent/skills_mgmt/executor.py::_ENV_WHITELIST`（它在 PASS_THROUGH_SITES
+    #  里躺了很久却从未被命中）与 S8-03 隔离模块的白名单。
+    #  修法：该分支改为与相邻分支同款显式 `_record(kind="loop_collection")`；
+    #  下列两条用例锁死"能被看见"与"声明必须真的命中"。
+    # ────────────────────────────────────────────────────────
+
+    #: 已知的"具名集合来源"读取点（至少这些必须被看见）
+    _NAMED_COLLECTION_SITES = (
+        "agent/skills_mgmt/executor.py::_ENV_WHITELIST",
+        "agent/digestion/isolation.py::HOST_ENV_ALLOWLIST",
+        "agent/digestion/isolation_worker.py::ISOLATION_ENV_WATCH",
+        "agent/digestion/isolation_worker.py::names",
+    )
+
+    def test_named_collection_reads_are_disclosed_not_dropped(self, scan):
+        """具名集合来源的读取点必须进 `passthrough`（已声明）或 `dynamic`（未声明）
+
+        判据取"能被看见"这一最弱但最关键的性质：**不得消失**。
+        若有人把 `_record` 从这个分支里去掉（回到旧的静默丢弃），本用例立刻变红。
+        """
+        scanner, report = scan
+        gap = scanner.check_gaps(report)
+        disclosed = set(gap.passthrough_sites) | set(gap.dynamic_families)
+        for site in self._NAMED_COLLECTION_SITES:
+            assert site in disclosed, (
+                f"具名集合读取点被静默丢弃（既不在 passthrough 也不在 dynamic）：{site}"
+                "—— 见 scan_settings.py::visit_Call 的 loop_collection 分支")
+
+    def test_declared_passthrough_sites_are_actually_hit(self, scan):
+        """已声明的透传点必须**真的被命中**（防"声明了却永不触发"掩盖漏洞）
+
+        原实现下 `PASS_THROUGH_SITES` 的条目永远不会被命中，而
+        `test_declared_exclusions_are_exact_tables` 只检查"声明项有理由"、
+        不检查"声明项被命中" ⇒ 一个空转的声明可以掩盖整片缺口。
+        本用例补上这一向。
+        """
+        scanner, report = scan
+        gap = scanner.check_gaps(report)
+        observed = set(gap.passthrough_sites)
+        declared = set(scanner.PASS_THROUGH_SITES)
+        stale = sorted(declared - observed)
+        assert stale == [], (
+            f"已声明但从未被扫描命中的透传点：{stale}"
+            "（要么代码已改、声明该删；要么读取点被静默丢弃）")
+
     def test_scan_report_is_reproducible(self, scan):
         """两次扫描结果一致（机械提取必须确定，不能靠字典序偶然）"""
         scanner, report = scan
