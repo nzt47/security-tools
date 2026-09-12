@@ -1496,6 +1496,153 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "裁定台账目录覆盖（默认 data/descriptors；路径项，UI 只读展示）",
        owner="agent/digestion/resolutions.py",
        validator=Validator("path")),
+
+    # ────────────────────────────────────────────────────────
+    #  【跨任务补登】S8-02 / S8-03 / S8-04 新增 env 未登记（2026-09-13）
+    #
+    #  背景：S8-02（并发与运维加固）、S8-03（灰度容器隔离）、S8-04（LLM-judge）
+    #  各自新增了 env 读取点，但**未登记进本表** ⇒ master 上的硬守卫
+    #  `tests/unit/test_settings_registry.py::TestMechanicalZeroGap` 变红
+    #  （extracted=370 / registered=331，缺 39；同一守卫此前已补过 S8-05 的
+    #  `CP_RESOLUTION_DIR`，但只补了那一条）。本次**机械补登**：
+    #  类型 / 默认值 / 语义逐条取自各模块的**真实读取点**（`os.getenv`、
+    #  `_env_flag/_env_int/_env_float` 的 default 实参与对应常量），
+    #  **不改任何行为、不改任何默认值**。
+    #
+    #  【风险级裁定口径（保守优先）】不作 A 级（"可直接切"）的情形：
+    #    · 关掉**完整性强保护**（跨进程锁）会让写入交错/损坏 ⇒ **B**；
+    #    · 打开/放宽**成本护栏**（judge 预算与断食联动、接管预算）⇒ **B**；
+    #    · 打开**真实流量接管**（本系统最高危动作）⇒ **B**（代码侧另要求显式比例）；
+    #    · **路径 / 密钥文件位置**（台账目录、.env、密钥文件）⇒ **C**（只读脱敏）。
+    #    其余纯数值上限 / 超时 / 非安全开关保持 A。
+    #    ⚠️ 若后续复核认为某条应升/降级，请**连依据一起改**，不要只改级别。
+    #
+    #  【needs_restart 口径】仅在**构造期读取一次**的项（事件库 / Trace 库 /
+    #  决策日志在实例化时读）标 `True`；每次调用都读的项保持 `False`。
+    # ────────────────────────────────────────────────────────
+
+    # ── S8-02 跨进程锁与决策日志轮转 ─────────────────────────
+    _b("CP_ARCHIVE_LOCK_ENABLED", CAT_OBSERVABILITY, True,
+       "归档跨进程锁开关（默认开）；关闭后并发归档不再互斥，可能损坏归档产物",
+       owner="agent/skills_mgmt/log_archiver.py"),
+    _a("CP_ARCHIVE_LOCK_TIMEOUT_SEC", CAT_OBSERVABILITY, 5.0,
+       "归档锁有限等待上限（秒，默认 5.0）；等不到即走既有降级路径",
+       owner="agent/skills_mgmt/log_archiver.py"),
+    _b("CP_EVENTS_LOCK_ENABLED", CAT_OBSERVABILITY, True,
+       "事件库跨进程锁开关（默认开）；关闭后多写者不再互斥（测试/应急用）",
+       owner="agent/observability/events.py", needs_restart=True),
+    _a("CP_EVENTS_LOCK_TIMEOUT_SEC", CAT_OBSERVABILITY, 2.0,
+       "事件库取锁有限等待（秒，默认 2.0）；等不到转排队降级",
+       owner="agent/observability/events.py", needs_restart=True),
+    _a("CP_EVENTS_PENDING_MAX", CAT_OBSERVABILITY, 10000,
+       "事件库待写队列上限（默认 10000），满即按既有降级路径处理",
+       owner="agent/observability/events.py", needs_restart=True),
+    _a("CP_EVENTS_CORRUPT_LOG_EVERY", CAT_OBSERVABILITY, 100,
+       "事件损坏告警限流：第 1 条必报，其后每 N 条报一次（默认 100）",
+       owner="agent/observability/events.py", needs_restart=True),
+    _b("CP_TRACE_LOCK_ENABLED", CAT_OBSERVABILITY, True,
+       "统一 Trace 跨进程锁开关（默认开）；关闭后并发写不再互斥",
+       owner="agent/observability/trace_v2.py", needs_restart=True),
+    _a("CP_TRACE_LOCK_TIMEOUT_SEC", CAT_OBSERVABILITY, 2.0,
+       "统一 Trace 取锁有限等待（秒，默认 2.0）",
+       owner="agent/observability/trace_v2.py", needs_restart=True),
+    _a("CP_TRACE_QUEUE_MAXSIZE", CAT_OBSERVABILITY, 20000,
+       "统一 Trace 写入队列上限（默认 20000）",
+       owner="agent/observability/trace_v2.py", needs_restart=True),
+    _a("CP_TRACE_RING_BUFFER_MAXLEN", CAT_OBSERVABILITY, 1000,
+       "统一 Trace 降级时内存 ring buffer 容量（默认 1000）",
+       owner="agent/observability/trace_v2.py", needs_restart=True),
+    _a("CP_TRACE_DEGRADED_RETRY_SEC", CAT_OBSERVABILITY, 2.0,
+       "统一 Trace 降级后重试退避间隔（秒，默认 2.0）",
+       owner="agent/observability/trace_v2.py", needs_restart=True),
+    _a("CP_TRACE_WAL_AUTOCHECKPOINT", CAT_OBSERVABILITY, 1000,
+       "统一 Trace SQLite WAL 自动 checkpoint 页数（默认 1000；0=关闭）",
+       owner="agent/observability/trace_v2.py", needs_restart=True),
+    _a("CP_TRACE_CORRUPT_LOG_EVERY", CAT_OBSERVABILITY, 100,
+       "统一 Trace 损坏告警限流：第 1 次必报，其后每 N 次报一次（默认 100）",
+       owner="agent/observability/trace_v2.py", needs_restart=True),
+    _a("CP_POLICY_DECISION_LOG_MAX_BYTES", CAT_SELF_HEALING, 0,
+       "策略决策日志轮转阈值（字节，默认 0=不轮转；S8 原则：默认保守）",
+       owner="agent/policy/decisions.py", needs_restart=True),
+    _a("CP_POLICY_DECISION_LOG_ROTATE_DAILY", CAT_SELF_HEALING, False,
+       "策略决策日志是否按天轮转（默认关）",
+       owner="agent/policy/decisions.py", needs_restart=True),
+    _a("CP_POLICY_DECISION_LOG_KEEP_BYTES", CAT_SELF_HEALING, 0,
+       "策略决策日志轮转时保留字节数（默认 0）",
+       owner="agent/policy/decisions.py", needs_restart=True),
+    _a("CP_POLICY_DECISION_LOG_DAILY_CHECK_SECONDS", CAT_SELF_HEALING, 60.0,
+       "策略决策日志按天轮转的检查间隔（秒，默认 60.0）",
+       owner="agent/policy/decisions.py", needs_restart=True),
+
+    # ── S8-03 灰度容器隔离与真实接管 ─────────────────────────
+    _a("CP_DIGESTION_ISOLATION_MEMORY_MB", CAT_SKILLS, 256,
+       "灰度隔离子进程内存上限 MB（默认 256，下限 16）",
+       owner="agent/digestion/isolation.py"),
+    _a("CP_DIGESTION_ISOLATION_CPUS", CAT_SKILLS, 1.0,
+       "灰度隔离子进程 CPU 配额（默认 1.0，下限 0.1）",
+       owner="agent/digestion/isolation.py"),
+    _a("CP_DIGESTION_ISOLATION_PIDS_LIMIT", CAT_SKILLS, 64,
+       "灰度隔离子进程 PID 上限（默认 64，下限 8）",
+       owner="agent/digestion/isolation.py"),
+    _a("CP_DIGESTION_ISOLATION_TMPFS_MB", CAT_SKILLS, 32,
+       "灰度隔离 tmpfs 上限 MB（默认 32，下限 4）",
+       owner="agent/digestion/isolation.py"),
+    _a("CP_DIGESTION_ISOLATION_TIMEOUT_S", CAT_SKILLS, 30.0,
+       "灰度隔离子进程超时（秒，默认 30.0，下限 0.5）",
+       owner="agent/digestion/isolation.py"),
+    _a("CP_DIGESTION_ISOLATION_MAX_OUTPUT_BYTES", CAT_SKILLS, 65536,
+       "灰度隔离子进程输出上限字节（默认 65536）",
+       owner="agent/digestion/isolation.py"),
+    _a("CP_DIGESTION_ISOLATION_KEEP_WORK_DIR", CAT_SKILLS, False,
+       "隔离探测后是否保留工作目录（默认否；开启会留下临时产物）",
+       owner="agent/digestion/isolation.py"),
+    _a("CP_DIGESTION_ISOLATION_PROBE_TTL_S", CAT_SKILLS, 60.0,
+       "隔离能力探测结果缓存 TTL（秒，默认 60.0）",
+       owner="agent/digestion/isolation.py"),
+    _b("CP_DIGESTION_REAL_TAKEOVER", CAT_SKILLS, False,
+       "灰度**真实流量接管**总开关（默认关；最高危动作，代码另要求显式接管比例）",
+       owner="agent/digestion/takeover.py"),
+    _b("CP_DIGESTION_REAL_TAKEOVER_BUDGET_CAP", CAT_SKILLS, 50,
+       "真实接管预算上限（默认 50）；放开即放宽接管的成本护栏",
+       owner="agent/digestion/takeover.py"),
+    _b("CP_DIGESTION_REAL_TAKEOVER_MIN_BUDGET", CAT_SKILLS, 1,
+       "真实接管所需最小预算余额（默认 1）；调低即放宽接管准入",
+       owner="agent/digestion/takeover.py"),
+    _b("CP_DIGESTION_REAL_TAKEOVER_FAIL_THRESHOLD", CAT_SKILLS, 3,
+       "真实接管连续失败熔断阈值（默认 3）；调高即放宽熔断",
+       owner="agent/digestion/takeover.py"),
+    _c("CP_DIGESTION_TAKEOVER_DIR", CAT_SKILLS, "",
+       "真实接管台账目录（缺省由代码按运行时数据目录解析；路径项，UI 只读展示）",
+       owner="agent/digestion/takeover.py", validator=Validator("path")),
+
+    # ── S8-04 真实 LLM-judge 与成本护栏 ──────────────────────
+    _b("CP_DIGESTION_JUDGE_ENABLED", CAT_SKILLS, False,
+       "真实 LLM-judge 总开关（默认关）；打开即产生真实模型调用成本",
+       owner="agent/digestion/judge_runtime.py"),
+    _b("CP_DIGESTION_JUDGE_DAILY_BUDGET_CENTS", CAT_SKILLS, 100.0,
+       "judge 每日预算上限（分，默认 100.0）；调高即放宽 judge 成本护栏",
+       owner="agent/digestion/judge_runtime.py"),
+    _b("CP_DIGESTION_JUDGE_FOLLOW_FASTING", CAT_SKILLS, True,
+       "judge 是否联动成本断食（默认是）；关闭后断食期间 judge 仍会花钱",
+       owner="agent/digestion/judge_runtime.py"),
+    _a("CP_DIGESTION_JUDGE_THRESHOLD", CAT_SKILLS, 0.85,
+       "judge 软性判定阈值（默认 0.85，与 v7.2 §4.5 一致）",
+       owner="agent/digestion/judge_runtime.py"),
+    _a("CP_DIGESTION_JUDGE_PROVIDER", CAT_SKILLS, "",
+       "judge 模型提供方（空=自动；取值见模型适配层 provider 清单）",
+       owner="agent/digestion/shadow.py"),
+    _a("CP_DIGESTION_JUDGE_MODEL", CAT_SKILLS, "",
+       "judge 模型名（空=自动；需与 provider 匹配）",
+       owner="agent/digestion/shadow.py"),
+    _a("CP_DIGESTION_JUDGE_CHARS_PER_TOKEN", CAT_SKILLS, 4.0,
+       "judge 成本估算的字符/token 系数（默认 4.0）",
+       owner="agent/digestion/judge_runtime.py"),
+    _c("CP_DIGESTION_JUDGE_SECRET_FILE", CAT_SKILLS, "",
+       "judge 密钥文件位置（空=不启用文件取密钥；路径项，UI 只读展示）",
+       owner="agent/digestion/judge_runtime.py", validator=Validator("path")),
+    _c("CP_DIGESTION_JUDGE_DOTENV", CAT_SKILLS, "",
+       "judge 读取的 .env 路径覆盖（空=默认；路径项，UI 只读展示）",
+       owner="agent/digestion/judge_runtime.py", validator=Validator("path")),
 ]
 # ════════════════════════════════════════════════════════════
 #  与 observability_config 既有校验表合并（**勿重复造**）
