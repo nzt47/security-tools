@@ -193,7 +193,7 @@ budget=0.0  ⇒ guard.probe() = {ok: false, precheck: true,
 | 检查 | 结果 |
 |---|---|
 | `s804` worktree 内 `.env` | **不存在**（`.env` 被 gitignore，不随 worktree 复制 ⇒ 只有 `.env.example`） |
-| 主工作区 `.env` | **存在，但凭证无效**：运营期核查已实证 DeepSeek 端点 **401 Authentication Fails**（key 长度 24、尾 `****cdef`），`OPENAI_API_KEY` / `ANTHROPIC_API_KEY` 均为空 —— 见 [`../../真用前置_模型凭证核查_20260913.md`](../../真用前置_模型凭证核查_20260913.md)（master `1fcbaf24`） |
+| 主工作区 `.env` | **存在，但凭证无效**：运营期核查已实证 DeepSeek 端点 **401 Authentication Fails**（key 长度 24、尾 `****cdef`），`OPENAI_API_KEY` / `ANTHROPIC_API_KEY` 均为空 —— 见 [`../真用前置_模型凭证核查_20260913.md`](../真用前置_模型凭证核查_20260913.md)（master `1fcbaf24`） |
 | 进程环境 `LLM_API_KEY` / `LLM_PROVIDER` / `LLM_MODEL` | **unset** |
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `DEEPSEEK_API_KEY` | **unset** |
 | 密钥文件 `config/secrets/digestion_judge.env` | **不存在** |
