@@ -1065,7 +1065,6 @@ class TestCallLLMComplete:
         digital_life._tool_calling_service = None
         digital_life._get_enabled_tools_whitelist = MagicMock(return_value=[])
         digital_life._llm_pro = None
-        digital_life._last_tool_steps = []
 
         result = DigitalLife._call_llm(digital_life, "Hi", "Body status")
 
@@ -1115,7 +1114,6 @@ class TestCallLLMComplete:
         digital_life._tool_calling_service = None
         digital_life._get_enabled_tools_whitelist = MagicMock(return_value=[])
         digital_life._llm_pro = None
-        digital_life._last_tool_steps = []
         digital_life._memory = MagicMock()
         digital_life._prompt_builder = MagicMock()
 
@@ -1136,7 +1134,6 @@ class TestCallLLMComplete:
         digital_life._tool_calling_service = None
         digital_life._get_enabled_tools_whitelist = MagicMock(return_value=[])
         digital_life._llm_pro = None
-        digital_life._last_tool_steps = []
         digital_life._vector_memory = MagicMock()
         digital_life._memory = MockMemory()
 
@@ -1156,7 +1153,6 @@ class TestCallLLMComplete:
         digital_life._tool_calling_service = None
         digital_life._get_enabled_tools_whitelist = MagicMock(return_value=[])
         digital_life._llm_pro = None
-        digital_life._last_tool_steps = []
         digital_life._vector_memory = MagicMock()
         digital_life._memory = MockMemory()
 
@@ -1178,7 +1174,6 @@ class TestCallLLMComplete:
         digital_life._tool_calling_service = None
         digital_life._get_enabled_tools_whitelist = MagicMock(return_value=[])
         digital_life._llm_pro = None
-        digital_life._last_tool_steps = []
         mock_memory = MagicMock()
         mock_memory.get_context.side_effect = Exception("Memory error")
         digital_life._memory = mock_memory

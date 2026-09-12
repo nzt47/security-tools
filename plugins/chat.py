@@ -262,11 +262,13 @@ def api_chat():
         "timestamp": datetime.datetime.now().isoformat(),
     }
     # 保存到会话（附带工具步骤和推理过程，用于页面刷新后恢复显示）
+    # TASK-S9-01: 按会话读取本轮状态（修复前读全局实例属性，本轮没写就返回上一轮值）
+    _turn_state = _Yunshu.last_turn_state(session_id)
     _session_mgr.add_message(session_id, "user", user_input)
     _session_mgr.add_message(
         session_id, "assistant", response,
-        tool_steps=getattr(_Yunshu, '_last_tool_steps', None),
-        reasoning=getattr(_Yunshu, '_last_reasoning', None),
+        tool_steps=_turn_state["tool_steps"],
+        reasoning=_turn_state["reasoning"],
     )
     _app_server._CHAT_HISTORY.append(entry)
 
@@ -310,8 +312,8 @@ def api_chat():
         "health": [r.to_dict() for r in _Yunshu.check_health()],
         "llm_state": llm_state,
         "logs": logs,
-        "tool_steps": getattr(_Yunshu, '_last_tool_steps', []),
-        "reasoning": getattr(_Yunshu, '_last_reasoning', None),
+        "tool_steps": _turn_state["tool_steps"],
+        "reasoning": _turn_state["reasoning"],
         "timing": {
             "total": total_time,
             "safety_check": safety_time,

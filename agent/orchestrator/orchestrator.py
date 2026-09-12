@@ -59,7 +59,114 @@ from agent.tool_calling import (
 from agent.tool_router import get_tools_for_input
 from agent.tool_router_hybrid import hybrid_select_tools
 
+# TASK-S9-01: 「本轮 tool_steps / reasoning」按会话隔离存储（修复跨轮串台）
+from agent.orchestrator.turn_state import (
+    TurnStateStore,
+    UNSET as _TURN_STATE_UNSET,
+    DEFAULT_MAX_SESSIONS as _TURN_STATE_MAX_SESSIONS_DEFAULT,
+    normalize_session_key as _normalize_session_key,
+)
+
 logger = logging.getLogger(__name__)
+
+#: 语义层相关度门控：只有这些「有界到 [0,1] 的相似度」才可用于阈值比较。
+#: 反例：bm25_score 是无界原始分（实测 3.5184），rrf_normalized 是按 rank-1 归一化的
+#: 融合分（top1 恒 ≈1.0）——两者都不可当作「相似度阈值」使用（见 _bounded_relevance）。
+_BOUNDED_RELEVANCE_KEYS = ("tfidf_score", "vector_score", "rerank_score")
+
+#: 会话级 state 的惰性初始化锁（__new__ 构造的实例也要能用）
+_TURN_STATE_INIT_LOCK = threading.Lock()
+
+#: 工作流层「工具执行素材」注入 system prompt 的字符上限（防单次工具大输出撑爆上下文）。
+#: 注：只截断素材，不改动上下文预算逻辑（D4 归 S9-03）。
+_WF_MATERIAL_MAX_CHARS = int(os.getenv("ORCHESTRATOR_WF_MATERIAL_MAX_CHARS", "6000"))
+
+
+def _looks_like_tool_payload(value: Any) -> bool:
+    """判断工作流层的输出是否是「工具原始载荷」而非用户可读文本。
+
+    TASK-S9-01「答非所问」坏形态①的判定：真机实测「帮我列出当前工作目录下的文件」
+    的 response 是 ``list_directory`` 原始返回值的 Python repr（36074 字符）::
+
+        {'ok': True, 'path': '.', 'abs_path': 'C:\\\\Users\\\\Administrator\\\\agent',
+         'type': 'dir', 'items': [{'type': 'dir', ...}, ...]}
+
+    工具原始载荷 = 素材，**不得**当作最终答案直接回吐（TASK §1.3 目标 1）。
+    """
+    if value is None:
+        return False
+    if not isinstance(value, str):
+        # dict / list / 其它结构化对象 → 一律视为载荷
+        return True
+    text = value.strip()
+    if not text:
+        return False
+    # 字符串形态的载荷：JSON/repr 的对象或数组（首尾成对 + 内容含键值分隔符/元素）
+    if text.startswith("{") and text.endswith("}") and ":" in text:
+        return True
+    if text.startswith("[") and text.endswith("]"):
+        return True
+    return False
+
+
+def _workflow_user_facing_text(wf_result: Dict[str, Any]) -> Optional[str]:
+    """工作流层命中结果中「可直接作为用户回答」的文本；若只是工具载荷则返回 None。"""
+    raw = wf_result.get("raw_output")
+    if _looks_like_tool_payload(raw):
+        return None
+    text = wf_result.get("output")
+    if not isinstance(text, str) or not text.strip():
+        return None
+    return text
+
+
+def _render_workflow_material(wf_result: Dict[str, Any],
+                              max_chars: int = _WF_MATERIAL_MAX_CHARS) -> str:
+    """把工作流层已执行的工具结果渲染成「素材」文本，注入 system prompt 供 LLM 作答。
+
+    素材 ≠ 答案：LLM 需要把它转述成与提问相关的自然语言回答
+    （TASK §1.3 目标 1「工具结果只作为素材」）。
+    """
+    raw = wf_result.get("raw_output")
+    payload = raw if isinstance(raw, str) else repr(raw)
+    if len(payload) > max_chars:
+        payload = payload[:max_chars] + "\n…（素材已截断，共 %d 字符）" % len(payload)
+    tools = wf_result.get("step_tools") or []
+    return (
+        "【工具执行素材（非最终答案）】\n"
+        "用户这句话已被学习到的工作流「%s」(%s) 命中并执行完毕，共 %d 步%s。\n"
+        "以下为已执行的工具返回内容（原始载荷，仅供你组织答案）：\n"
+        "```\n%s\n```\n"
+        "请基于以上素材，用自然语言直接回答用户的问题；"
+        "这些工具**已经执行过**，不要重复调用它们。"
+        % (
+            wf_result.get("workflow_name") or "",
+            wf_result.get("workflow_id") or "",
+            int(wf_result.get("steps_executed") or 0),
+            ("，涉及工具: %s" % ", ".join(str(t) for t in tools)) if tools else "",
+            payload,
+        )
+    )
+
+
+def _workflow_turn_steps(wf_result: Dict[str, Any]) -> list:
+    """把工作流层的**真实**工具执行渲染成本轮 tool_steps（验收判据 4）。
+
+    工具名取自工作流定义（``step_tools``）；取不到时不臆造，返回空列表。
+    """
+    tools = [str(t) for t in (wf_result.get("step_tools") or []) if t]
+    if not tools:
+        return []
+    raw = wf_result.get("raw_output")
+    summary = (raw if isinstance(raw, str) else repr(raw))[:200]
+    wf_id = wf_result.get("workflow_id") or ""
+    steps: list = [{"type": "tool_call", "tool": t, "args": {}, "id": wf_id}
+                   for t in tools]
+    steps.append({
+        "type": "tool_result", "tool": tools[-1], "id": wf_id,
+        "status": "success", "summary": summary,
+    })
+    return steps
 
 # LLM 外呼看门狗: 独立线程池 + 有界超时（防单请求卡死 waitress 线程池）。
 # Why: 压测发现 DeepSeek 服务端排队会让单个请求挂起数分钟，占满 waitress 线程。
@@ -290,8 +397,14 @@ _LLM_ERROR_MARKERS = ("抱歉，处理", "遇到了问题", "无法完成", "出
 def _judge_llm_confidence(response: Optional[str]) -> Tuple[str, str]:
     """LLM 置信度启发式判定 — 基于响应质量
 
-    【简易】空/过短/错误标记 → low；正常响应 → high
+    【简易】空/纯空白/错误标记 → low；正常响应 → high
     【变易】未来可扩展为 LLM 自评 confidence 字段或工具调用成功率后验
+
+    【S9-01 修复】原判据为 ``len(response.strip()) < 5``（"过短"即低置信度），
+    但用户明确要求「只回答数字」时，LLM 的**合法**回答就是 ``5``（1 字符）——
+    会被判为低置信度并用兜底文案「抱歉，我暂时无法给出令人满意的回答」替换，
+    即**把已经答对的答案丢掉**（答非所问的第三条支路）。
+    现改为只把「空 / 纯空白」视为无内容；长度不再是置信度依据。
 
     Args:
         response: LLM 响应文本（可能为 None 或空字符串）
@@ -302,7 +415,7 @@ def _judge_llm_confidence(response: Optional[str]) -> Tuple[str, str]:
     """
     confidence = "high"
     low_reason = "normal"
-    if not response or len(response.strip()) < 5:
+    if not response or not response.strip():
         confidence = "low"
         low_reason = "empty_or_too_short"
     elif any(_marker in response for _marker in _LLM_ERROR_MARKERS):
@@ -384,6 +497,9 @@ class Orchestrator:
     - _input_guard: 输入护栏——检测提示词注入
     - _output_guard: 输出护栏——PII 遮盖
     """
+
+    #: TASK-S9-01: 会话级 turn state 的会话数上限（超出淘汰最久未更新者，内存有界）
+    _TURN_STATE_MAX_SESSIONS = _TURN_STATE_MAX_SESSIONS_DEFAULT
 
     # ════════════════════════════════════════════════════════════════════
     #  Guardrails 安全护栏（懒加载属性）
@@ -505,6 +621,11 @@ class Orchestrator:
         # 修复：重构时 _sid 定义行丢失，仅剩 8 处引用（get_dialog_state/_learn_workflow 等），
         #       导致 CI Shard 1/6、6/6 NameError: name '_sid' is not defined
         _sid = kwargs.get("session_id") or getattr(self, "_session_id", None)
+
+        # TASK-S9-01: 本轮入口先清空「本轮 tool_steps/reasoning」槽位（按会话）。
+        # 走短路路径（模板/语义/工作流层）的轮次不会写入这两个值，若不先清空，
+        # HTTP 响应装配会读到**上一轮**的残留值（实测 D2 串台现象）。
+        self._begin_turn(_sid)
 
         # ── 路由可观测性: 初始化单次请求上下文（累积各层中间结果）──
         # 任务6: 所有 log_layer_result / emit_route_decision 共享此上下文
@@ -859,8 +980,51 @@ class Orchestrator:
                 (wf_learning_result or {}).get('elapsed_ms', '-'),
                 '短路返回(跳过LLM)' if wf_learning_result is not None else '降级→语义层(SkillLoader)' )}))
 
+        # TASK-S9-01: 工作流层「工具执行素材」透传槽 —— 非空时本层不短路，
+        # 而是把已执行的工具结果作为**素材**下沉给 LLM 生成答案（坏形态①修复）。
+        _wf_material: str = ""
+        _wf_allow_tools: bool = True
+
         if wf_learning_result is not None:
-            output_text = wf_learning_result["output"]
+            _wf_user_text = _workflow_user_facing_text(wf_learning_result)
+            if _wf_user_text is None:
+                # ── 坏形态①：工作流 output 是**工具原始载荷**（dict/JSON/repr）──
+                # 真机实测「帮我列出当前工作目录下的文件」→ response 是 list_directory
+                # 原始返回值的 Python repr（36074 字符）。工具结果只是素材，
+                # 不得当作最终答案直接回吐 ⇒ 不短路，改由 LLM 转述成自然语言答案。
+                _wf_material = _render_workflow_material(wf_learning_result)
+                # 工作流已真实执行过工具 ⇒ 记入本轮 tool_steps（验收判据 4）；
+                # 同时**关闭本轮的再次工具调用**，避免同一副作用被执行两次。
+                _wf_allow_tools = False
+                _wf_steps = _workflow_turn_steps(wf_learning_result)
+                if _wf_steps:
+                    self._set_turn_state(_sid, tool_steps=_wf_steps)
+                logger.info(log_dict({
+                    'module_name': 'orchestrator',
+                    'action': 'orchestrator.wfl.material_not_answer',
+                    'trace_id_ctx': trace_id,
+                    'message': '[工作流层] 命中的 output 是工具原始载荷（%d 字符），'
+                               '不作为答案回吐 → 转 LLM 生成答案（wf=%s, 工具=%s）' % (
+                                   len(str(wf_learning_result.get('raw_output') or '')),
+                                   wf_learning_result.get('workflow_id'),
+                                   wf_learning_result.get('step_tools')),
+                }))
+                emit_route_decision(
+                    LAYER_WORKFLOW_LEARNING, DECISION_PASS, trace_id,
+                    message='[工作流层] 命中但产出为工具载荷（素材），下沉 LLM 转述: wf=%s' % (
+                        wf_learning_result['workflow_id'],),
+                    basis_extra={
+                        'workflow_id': wf_learning_result['workflow_id'],
+                        'workflow_name': wf_learning_result['workflow_name'],
+                        'score': wf_learning_result['score'],
+                        'steps_executed': wf_learning_result['steps_executed'],
+                        'step_tools': wf_learning_result.get('step_tools') or [],
+                        'reason': 'workflow_output_is_tool_payload',
+                    },
+                )
+
+        if wf_learning_result is not None and not _wf_material:
+            output_text = _workflow_user_facing_text(wf_learning_result)
             # 任务6: 统一路由决策（命中已在 _workflow_learning_layer_match 内记录层日志）
             emit_route_decision(
                 LAYER_WORKFLOW_LEARNING, DECISION_HIT, trace_id,
@@ -893,7 +1057,9 @@ class Orchestrator:
         #         命中高置信度技能时加载其 instruction（Layer 2）短路返回
         #         （与 WorkflowEngine.output 契约对称，无副作用）；
         #         未命中/异常降级到 LLM（守【不易】主链路稳定性）。
-        semantic_result = self._semantic_layer_match(user_input, trace_id)
+        #   【S9-01】工作流层已执行工具并把结果作为素材下沉时（_wf_material 非空），
+        #   不再走语义层/拒识层 —— 素材已在手，直接由 LLM 转述为答案。
+        semantic_result = None if _wf_material else self._semantic_layer_match(user_input, trace_id)
 
         if semantic_result is not None:
             # 语义层命中：短路返回技能 instruction
@@ -947,7 +1113,12 @@ class Orchestrator:
         _len_reject = (not _is_ellipsis and len(user_input.strip()) < _reject_min_len)
 
         # (b) 语义+规则双未命中拒识（新增：基于 _should_reject 隐式判定）
-        _semantic_reject, _reject_reason = self._should_reject(intent, confidence, semantic_result)
+        # 【S9-01】工作流层已执行工具并下沉素材时（_wf_material 非空），
+        # 本轮必然要由 LLM 转述，不适用「双未命中 → 拒识」判定。
+        _semantic_reject, _reject_reason = (
+            (False, "wf_material: 工作流已执行工具，LLM 转述素材")
+            if _wf_material else
+            self._should_reject(intent, confidence, semantic_result))
         # 指代句不拒识（DST 已补全，说明有上下文继承，不应判为未知意图）
         if _is_ellipsis:
             _semantic_reject = False
@@ -1119,14 +1290,20 @@ class Orchestrator:
                 if self._v2_lifetrace and self._trace_recorder:
                     # V2 路径：Persona 系统 + ToolCallingService
                     # 会话元数据经 kwargs 显式传递，避免依赖实例全局 _session_id（并发安全）
+                    # TASK-S9-01: extra_material/allow_tools 透传工作流层的工具执行素材
                     response = self._call_llm_v2(
                         user_input, body_status,
                         session_id=kwargs.get("session_id"),
                         session_mgr=kwargs.get("session_mgr"),
+                        extra_material=_wf_material,
+                        allow_tools=_wf_allow_tools,
                     )
                 else:
-                    # 标准路径
-                    response = self._call_llm(user_input, body_status)
+                    # 标准路径（TASK-S9-01: 显式传 session_id，本轮状态按会话写入）
+                    response = self._call_llm(
+                        user_input, body_status, session_id=_sid,
+                        extra_material=_wf_material,
+                        allow_tools=_wf_allow_tools)
             except Exception as e:
                 # TASK-S2-01：任务级 Trace 标记失败（供 finally 落账）
                 _unified_status = "error"
@@ -1409,7 +1586,7 @@ class Orchestrator:
 
         # ── 第七步半：工作流自动学习（自动闭环 v1）──
         # 【变易】走到这里说明 LLM 成功且非低置信度（低置信度已在前面 return 兜底）。
-        #         从 _last_tool_steps 提取成功的工具调用序列自动 learn_from_interaction，
+        #         从 last_turn_state(session_id) 提取成功的工具调用序列自动 learn_from_interaction，
         #         沉淀为本地工作流供下次 0 Token 命中。
         #         【不易】内部异常只记日志，不影响主链路；失败的工具步骤被过滤不学习。
         self._learn_workflow_from_interaction(user_input, session_id=_sid)
@@ -1851,8 +2028,20 @@ class Orchestrator:
                 "record_workflow_match", hit=True,
                 saved_tokens=_get_learning_saved_estimate(),
             )
+            # TASK-S9-01: 透出原始载荷与工作流定义的工具名，供上层判定
+            # 「用户可读文本 vs 工具原始载荷」（坏形态①：工具结果被当作最终答案回吐）
+            _raw_output = result.output
+            _step_tools: list = []
+            try:
+                _wf_def = svc.get(result.workflow_id)
+                _step_tools = [getattr(s, "tool_name", "") or ""
+                               for s in (getattr(_wf_def, "steps", None) or [])]
+            except Exception as _st_e:
+                logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.step_tools_failed', 'trace_id_ctx': trace_id, 'message': '[工作流层] 步骤工具名读取失败（不影响主链路）: %s' % (_st_e,)}))
             return {
                 "output": str(result.output or ""),
+                "raw_output": _raw_output,
+                "step_tools": _step_tools,
                 "workflow_id": result.workflow_id,
                 "workflow_name": result.workflow_name,
                 "score": result.similarity,
@@ -1938,7 +2127,7 @@ class Orchestrator:
                                          session_id: Optional[str] = None) -> bool:
         """从成功的 LLM 交互自动学习方法（自动闭环 v1）
 
-        数据源: self._last_tool_steps（由 _call_llm/_call_llm_v2 填充）
+        数据源: self.last_turn_state(session_id)（由 _call_llm/_call_llm_v2 按会话填充）
         触发条件: 自动学习开关开启 + 工具调用序列非空（≥ learner.min_tool_calls）
         【不易】任何异常只记日志，不影响主链路
 
@@ -1950,7 +2139,8 @@ class Orchestrator:
                 logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.learn_skip',
                     'message': '[工作流] 自动学习跳过: 开关关闭(ORCHESTRATOR_WF_LEARN_ENABLED / config workflow_learning.learn_from_interaction.enabled)'}))
                 return False
-            steps = getattr(self, "_last_tool_steps", None) or []
+            # TASK-S9-01: 按会话读取本轮工具步骤（原为全局槽位，会取到其它会话的调用序列）
+            steps = self.last_turn_state(session_id)["tool_steps"]
             tool_calls = self._extract_tool_calls_from_steps(steps)
             if not tool_calls:
                 logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.wfl.learn_skip',
@@ -2163,6 +2353,60 @@ class Orchestrator:
                 return None
 
             top1 = result.matches[0]
+
+            # ── 相关度门控（TASK-S9-01「答非所问」根因修复）──
+            # 下方 `top1.score < min_score` 在 RRF 融合路径上**形同虚设**：
+            # SkillLoader 对融合分做 rank-1 归一化（rrf_normalized），top1 恒 ≈1.0，
+            # 任取一条候选都能越过 min_score=0.3。真机实测：
+            #   query="2 加 3 等于多少？只回答数字"
+            #     top1 = self_reflection   score=0.9954 (rrf_normalized)
+            #     raw: tfidf_score=0.1  vector_score=None  bm25_score=3.5184
+            # → 噪声级相似度 0.1 被 rank 归一化抬到 0.9954 → 短路返回技能正文（答非所问）。
+            #
+            # 故此处补一道**用有界相似度**（TF-IDF 余弦 / 向量相似度 / rerank 概率）
+            # 的独立门控，让 orchestrator 层「二次校验阈值」恢复其注释所声明的语义。
+            # BM25 原始分无界、rrf_normalized 为排名归一化值，均不参与比较。
+            # 信号不可用（无 score_breakdown）→ 保持既有行为（向后兼容未改造的调用方）。
+            _relevance = self._bounded_relevance(top1)
+            if _relevance is not None and _relevance < min_score:
+                _reject_reason_kind = "low_bounded_relevance"
+            elif _relevance is None and self._has_bounded_breakdown(top1):
+                # 有界相似度路**存在但全部未命中**（真机形态：只 BM25 命中，
+                # tfidf_score=None/vector_score=None）⇒ 融合分仅为排名归一化值，
+                # 不能作为"相似度 ≥ min_score"的证据 ⇒ 不予短路，降级 LLM。
+                _reject_reason_kind = "no_bounded_evidence"
+            else:
+                _reject_reason_kind = ""
+            if _reject_reason_kind:
+                logger.info(log_dict({
+                    'module_name': 'orchestrator',
+                    'action': 'orchestrator.semantic.low_relevance',
+                    'trace_id_ctx': trace_id,
+                    'message': '[语义层] 候选不足信不予短路（kind=%s skill=%s 融合分=%.3f 有界相似度=%s min_score=%.2f），降级 LLM' % (
+                        _reject_reason_kind, top1.skill_id, top1.score,
+                        ("%.3f" % _relevance) if _relevance is not None else "无",
+                        min_score),
+                    'skill_id': top1.skill_id,
+                    'rrf_score': float(top1.score),
+                    'bounded_relevance': _relevance,
+                    'reject_kind': _reject_reason_kind,
+                    'min_score': min_score,
+                    'retrieval_method': result.retrieval_method,
+                }))
+                log_layer_result(
+                    LAYER_SEMANTIC, DECISION_MISS, trace_id,
+                    level=logging.DEBUG,
+                    action='orchestrator.semantic.low_relevance',
+                    message='[语义层] 未命中（%s；融合分 %.3f 为排名归一化值）: skill=%s' % (
+                        _reject_reason_kind, top1.score, top1.skill_id),
+                    duration_ms=elapsed_ms,
+                    score=top1.score,
+                    skill_id=top1.skill_id,
+                    retrieval_method=result.retrieval_method,
+                )
+                _emit_learning_metric("record_semantic_query", hit=False)
+                return None
+
             # 【变易】二次校验阈值 — 防御 SkillLoader.match 未过滤的低分候选
             # 不依赖 SkillLoader.match 内部过滤行为，orchestrator 层面独立把控阈值
             if top1.score < min_score:
@@ -2733,11 +2977,154 @@ class Orchestrator:
         return keywords[:max_keywords]
 
     # ════════════════════════════════════════════════════════════════════
+    #  会话级「本轮」状态（tool_steps / reasoning）—— TASK-S9-01
+    # ════════════════════════════════════════════════════════════════════
+    #
+    #  修复前：这两个值挂在全局单例的实例属性 `_last_tool_steps` / `_last_reasoning`
+    #  上（last-write-wins、未按会话隔离），本轮没写就返回上一轮的值 ⇒ 跨轮串台；
+    #  且 `_result.get("reasoning") or self._last_reasoning` 会在 None 时主动保留旧值。
+    #
+    #  修复后：唯一存储是 `_turn_state_store`（按会话键隔离），唯一写入口是
+    #  `_set_turn_state`（显式赋值，无 `or` 回退），唯一读入口是 `last_turn_state`
+    #  （本轮无内容返回空）。每轮入口 `_begin_turn` 先清空本轮槽位。
+
+    def _ensure_turn_state_store(self) -> TurnStateStore:
+        """惰性初始化会话级 state 存储（``__new__`` 构造的实例也要可用）。"""
+        store = self.__dict__.get("_turn_state_store")
+        if store is None:
+            with _TURN_STATE_INIT_LOCK:
+                store = self.__dict__.get("_turn_state_store")
+                if store is None:
+                    store = TurnStateStore(
+                        max_sessions=getattr(self, "_TURN_STATE_MAX_SESSIONS",
+                                             _TURN_STATE_MAX_SESSIONS_DEFAULT))
+                    self.__dict__["_turn_state_store"] = store
+        return store
+
+    def _begin_turn(self, session_id: Optional[str] = None) -> str:
+        """标记「本轮开始」：把上一次的本轮状态滚入 previous 并清空本轮槽位。
+
+        每轮入口（``process``）调用一次。清空是「本轮无内容 ⇒ 返回空」的前提：
+        走短路路径（模板层 / 语义层 / 工作流层）的轮次不会写 tool_steps，
+        若不先清空，响应装配会读到上一轮的残留值。
+
+        Returns:
+            归一化后的会话键（供本轮后续读写复用）
+        """
+        key = self._turn_session_key(session_id)
+        self._ensure_turn_state_store().begin(key)
+        return key
+
+    def _turn_session_key(self, session_id: Optional[str] = None) -> str:
+        """会话键归一化：显式参数 → 实例 ``_session_id`` → ``__default__``"""
+        return _normalize_session_key(
+            session_id if session_id is not None
+            else getattr(self, "_session_id", None))
+
+    def _set_turn_state(self, session_id: Optional[str] = None, *,
+                        tool_steps: Any = _TURN_STATE_UNSET,
+                        reasoning: Any = _TURN_STATE_UNSET) -> None:
+        """**唯一**写入口：显式写入本轮 tool_steps / reasoning。
+
+        【不易】禁止任何 ``value or old_value`` 形式的回退 —— 显式传入 ``None``
+        就必须真实落 ``None``（D2 串台的直接注入点正是这种回退）。
+        """
+        self._ensure_turn_state_store().set(
+            self._turn_session_key(session_id),
+            tool_steps=tool_steps if tool_steps is not _TURN_STATE_UNSET else _TURN_STATE_UNSET,
+            reasoning=reasoning if reasoning is not _TURN_STATE_UNSET else _TURN_STATE_UNSET,
+        )
+
+    def last_turn_state(self, session_id: Optional[str] = None) -> Dict[str, Any]:
+        """读取指定会话**本轮**的 ``{"tool_steps": list, "reasoning": str|None}``。
+
+        公开读入口（``/api/chat`` 响应装配、plugins/chat 与外部调用方均经此读取）。
+        本轮没有内容时返回空（``[]`` / ``None``），**绝不**复用上一轮或其它会话的值。
+        """
+        return self._ensure_turn_state_store().snapshot(
+            self._turn_session_key(session_id))
+
+    def previous_turn_state(self, session_id: Optional[str] = None) -> Dict[str, Any]:
+        """读取指定会话**上一轮**的状态（供上下文装配复用，无记录返回空）。"""
+        return self._ensure_turn_state_store().previous(
+            self._turn_session_key(session_id))
+
+    def _turn_state_sessions(self) -> list:
+        """当前持有 state 的会话键（诊断 / 有界性断言用）"""
+        return self._ensure_turn_state_store().sessions()
+
+    @staticmethod
+    def _bounded_relevance(match: Any) -> Optional[float]:
+        """从 SkillMatch 中取「有界到 [0,1] 的相关度」，取不到返回 ``None``。
+
+        为什么必须单独抽出来（TASK-S9-01 答非所问根因）::
+
+            semantic_layer.min_score 的语义是「相似度阈值」，但修复前它被拿去
+            比较的是 RRF 融合分 —— RRF 按 rank-1 归一化（``rrf_normalized``），
+            **top1 恒 ≈1.0**，于是阈值比较形同虚设：
+
+                真机实测 query="2 加 3 等于多少？只回答数字"
+                  self_reflection  score=0.9954 (rrf_normalized)
+                     score_breakdown: tfidf_score=0.1 vector_score=None bm25_score=3.5184
+
+            0.1 的相似度（噪声级）被 rank 归一化抬到 0.9954 → 越过 min_score=0.3
+            → 语义层短路 → 把技能正文当答案回吐（实测返回 `# self_reflection` 全文）。
+
+        因此这里只认**有界到 [0,1] 的相似度**（TF-IDF 余弦 / 向量相似度 /
+        Cross-Encoder sigmoid 概率）；BM25 是无界原始分（实测 3.5184）、
+        ``rrf_normalized`` 是排名归一化值，**都不可当作相似度阈值使用**。
+
+        信号不可用（无 ``score_breakdown``、或非 dict、或无任何有界路）→ 返回
+        ``None``，调用方保持既有阈值行为（向后兼容未改造的 loader / mock 调用方）。
+        """
+        breakdown = getattr(match, "score_breakdown", None)
+        if not isinstance(breakdown, dict):
+            return None
+        bounded = []
+        for key in _BOUNDED_RELEVANCE_KEYS:
+            value = breakdown.get(key)
+            if isinstance(value, bool):
+                continue
+            if isinstance(value, (int, float)):
+                bounded.append(float(value))
+        if not bounded:
+            return None
+        return max(bounded)
+
+    @staticmethod
+    def _has_bounded_breakdown(match: Any) -> bool:
+        """``score_breakdown`` 是否**声明了**有界相似度路（值可为 None）。
+
+        与 :meth:`_bounded_relevance` 的区别很重要：真机 RRF 融合在「只有 BM25 命中」
+        时会给出 ``{"tfidf_score": None, "vector_score": None, "bm25_score": 3.5184,
+        "rrf_normalized": 1.0}`` —— 此时有界路**存在但全部未命中**，
+        ``rrf_normalized`` 只是排名归一化值（top1 恒 ≈1.0），不能作为相似度证据。
+        真机实测 query="2 加 3 等于多少？只回答数字" 正是这一形态，
+        曾被短路返回 `# self_reflection` 技能正文。
+        """
+        breakdown = getattr(match, "score_breakdown", None)
+        if not isinstance(breakdown, dict):
+            return False
+        return any(key in breakdown for key in _BOUNDED_RELEVANCE_KEYS)
+
+    # ════════════════════════════════════════════════════════════════════
     #  LLM 调用
     # ════════════════════════════════════════════════════════════════════
 
-    def _call_llm(self, user_input: str, body_status: str) -> str:
-        """调用 LLM 生成响应（集成工作记忆 + Token 预算分配）"""
+    def _call_llm(self, user_input: str, body_status: str, *,
+                  session_id: Optional[str] = None,
+                  extra_material: str = "",
+                  allow_tools: bool = True) -> str:
+        """调用 LLM 生成响应（集成工作记忆 + Token 预算分配）
+
+        Args:
+            session_id: 会话 ID（TASK-S9-01：本轮 tool_steps/reasoning 按会话写入，
+                None 时回退实例 ``_session_id``，再回退 ``__default__``）
+            extra_material: TASK-S9-01 工作流层已执行的工具结果**素材**（非答案），
+                追加到 system prompt 由 LLM 转述（工具结果只作为素材，不回吐）
+            allow_tools: False 时本轮不再向模型暴露工具（工作流已执行过，防重复副作用）
+        """
+        _turn_key = self._turn_session_key(session_id)
         mode = self._current_mode
         profile = self._behavior.profile
 
@@ -2807,6 +3194,13 @@ class Orchestrator:
         if _ctx_extra:
             system_prompt = system_prompt + "\n\n" + _ctx_extra
 
+        # ── TASK-S9-01 工作流层工具执行素材注入（坏形态①修复）──
+        # 工作流层已执行的工具结果只是**素材**，注入 system prompt 由 LLM 转述成答案，
+        # 而不是把它（原始 JSON/repr）当作最终答案直接回吐。
+        if extra_material:
+            system_prompt = system_prompt + "\n\n" + extra_material
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.wf_material', 'message': '[工作流层] 已注入工具执行素材: %d 字符（allow_tools=%s）' % (len(extra_material), allow_tools)}))
+
         # ── System prompt Token 预算检查 ──
         try:
             _sp_tokens = self._memory._token_counter.count(system_prompt)
@@ -2832,7 +3226,9 @@ class Orchestrator:
         # ── 2. 组装上下文消息 ──
         messages = []
         # 固定 system 消息前置（提升 LLM 前缀缓存命中率）
-        if self._tool_calling_service:
+        # TASK-S9-01: allow_tools=False（工作流层已执行过工具）时不注入"立即调用工具"催促，
+        # 避免模型重复调用已在工作流中执行过的工具（尤其写类工具会重复产生副作用）。
+        if self._tool_calling_service and allow_tools:
             messages.append({
                 "role": "system",
                 "content": (
@@ -2846,7 +3242,9 @@ class Orchestrator:
             recent = self._memory._storage.load_recent_messages(limit=50)
             summary_data = self._memory.load_summary()
             summary_text = summary_data[0] if summary_data else None
-            tool_results = getattr(self, '_last_tool_steps', [])
+            # TASK-S9-01: 预算装配复用**本会话上一轮**的工具结果（原来是全局槽位，
+            # 会跨会话串台）。本轮槽位已在 process() 入口 _begin_turn 清空。
+            tool_results = self.previous_turn_state(session_id)["tool_steps"]
 
             budget_context = self._memory.get_budget_context(
                 recent_messages=recent,
@@ -2877,8 +3275,13 @@ class Orchestrator:
 
         if self._llm:
             try:
-                self._last_tool_steps = []
-                self._current_tool_steps = []
+                # TASK-S9-01: 本轮工具步骤用**局部列表**（原为实例属性 _current_tool_steps，
+                # 并发会话会互相追加）；单次写入会话级 state 由 _set_turn_state 收口。
+                _current_steps: list = []
+                # TASK-S9-01: allow_tools=False（工作流层已执行工具）时不清空本轮 tool_steps，
+                # 该槽位已由 process() 写入工作流的真实工具执行痕迹（验收判据 4）。
+                if allow_tools:
+                    self._set_turn_state(_turn_key, tool_steps=[])
 
                 from agent import tools as _tools
                 _whitelist = self._get_enabled_tools_whitelist()
@@ -2891,6 +3294,9 @@ class Orchestrator:
                     except Exception as _e:
                         logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm.log', 'message': '工具路由失败: %s' % (_e,)}))
                 _tool_defs = _tools.get_tool_defs(whitelist=_whitelist)
+                # TASK-S9-01: 工作流层已执行过工具 ⇒ 本轮不向模型暴露工具（防重复副作用）
+                if not allow_tools:
+                    _tool_defs = []
                 # 【Schema 裁剪】tool_router 选定后裁剪,守 [不易] required 不动、deprecated 移除
                 try:
                     from agent.tool_schema_pruner import prune_tool_defs
@@ -2976,7 +3382,8 @@ class Orchestrator:
 
                     _reasoning = _reasoning or getattr(_msg, "reasoning_content", None)
                     if _reasoning:
-                        self._last_reasoning = _reasoning
+                        # TASK-S9-01: 显式写入本会话本轮（禁止 or 回退旧值）
+                        self._set_turn_state(_turn_key, reasoning=_reasoning)
 
                     if not (hasattr(_msg, 'tool_calls') and _msg.tool_calls):
                         # 检测 XML 格式的工具调用
@@ -2995,7 +3402,7 @@ class Orchestrator:
                                 _fn_args = json.loads(_xc["function"]["arguments"])
                                 _tc_id = _xc["id"]
                                 _assistant_tc.append(_xc)
-                                self._current_tool_steps.append({
+                                _current_steps.append({
                                     "type": "tool_call", "tool": _fn_name,
                                     "args": _fn_args, "id": _tc_id,
                                 })
@@ -3006,7 +3413,7 @@ class Orchestrator:
                                 except Exception as _te:
                                     _tool_summary = f"执行失败: {_te}"
                                     _status = "error"
-                                self._current_tool_steps.append({
+                                _current_steps.append({
                                     "type": "tool_result", "tool": _fn_name, "id": _tc_id,
                                     "status": _status, "summary": _tool_summary[:200],
                                 })
@@ -3014,7 +3421,7 @@ class Orchestrator:
                                     "role": "tool", "tool_call_id": _tc_id,
                                     "content": _tool_summary[:2000],
                                 })
-                            self._last_tool_steps = list(self._current_tool_steps)
+                            self._set_turn_state(_turn_key, tool_steps=_current_steps)
                             _working.append({
                                 "role": "assistant", "content": _msg.content,
                                 "tool_calls": _assistant_tc,
@@ -3034,7 +3441,7 @@ class Orchestrator:
                             "id": _tc_id, "type": "function",
                             "function": {"name": _fn_name, "arguments": _tc.function.arguments},
                         })
-                        self._current_tool_steps.append({
+                        _current_steps.append({
                             "type": "tool_call", "tool": _fn_name, "args": _fn_args, "id": _tc_id,
                         })
                         try:
@@ -3044,7 +3451,7 @@ class Orchestrator:
                         except Exception as _te:
                             _tool_summary = f"执行失败: {_te}"
                             _status = "error"
-                        self._current_tool_steps.append({
+                        _current_steps.append({
                             "type": "tool_result", "tool": _fn_name, "id": _tc_id,
                             "status": _status, "summary": _tool_summary[:200],
                         })
@@ -3054,7 +3461,7 @@ class Orchestrator:
                                                   ensure_ascii=False)[:2000],
                         })
 
-                    self._last_tool_steps = list(self._current_tool_steps)
+                    self._set_turn_state(_turn_key, tool_steps=_current_steps)
                     _working.append({
                         "role": "assistant", "content": _msg.content,
                         "tool_calls": _assistant_tc,
@@ -3062,7 +3469,7 @@ class Orchestrator:
                     _working.extend(_tool_results)
                 else:
                     if not response:
-                        _last_summaries = [s.get("summary", "") for s in self._current_tool_steps
+                        _last_summaries = [s.get("summary", "") for s in _current_steps
                                            if s["type"] == "tool_result"][-3:]
                         response = ("（已获取以下信息：）" + "\n" +
                                     "\n".join(_last_summaries)) if _last_summaries else "（已处理完毕）"
@@ -3073,7 +3480,7 @@ class Orchestrator:
                 # 兜底：检测 XML 工具调用残留
                 if response and _re.search(r'<[^>]*tool_calls[^>]*>', response):
                     logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm._call_llm', 'message': '[_call_llm] 响应中包含 XML 工具调用，使用工具结果摘要替换'}))
-                    _fb_summaries = [s.get("summary", "") for s in self._current_tool_steps
+                    _fb_summaries = [s.get("summary", "") for s in _current_steps
                                      if s["type"] == "tool_result"][-5:]
                     if _fb_summaries:
                         response = "已获取到以下信息：\n" + "\n".join(f"  - {s}" for s in _fb_summaries)
@@ -3351,7 +3758,9 @@ class Orchestrator:
 
     def _call_llm_v2(self, user_input: str, body_status: str, *,
                      session_id: Optional[str] = None,
-                     session_mgr=None) -> str:
+                     session_mgr=None,
+                     extra_material: str = "",
+                     allow_tools: bool = True) -> str:
         """V2 调用 LLM 生成响应（使用 Persona 系统）
 
         Args:
@@ -3359,6 +3768,9 @@ class Orchestrator:
             body_status: 身体状态描述
             session_id: 会话 ID（显式传入，并发安全；None 时回退实例全局）
             session_mgr: SessionManager 实例（显式传入，并发安全）
+            extra_material: TASK-S9-01 工作流层已执行的工具结果**素材**（非答案）
+            allow_tools: False 时本轮不启用 ToolCallingService（工作流已执行过工具，
+                防重复副作用）
         """
         profile = self._behavior.profile
         self._set_thinking_mode()
@@ -3397,6 +3809,13 @@ class Orchestrator:
         if _ctx_extra:
             system_prompt = system_prompt + "\n\n" + _ctx_extra
 
+        # ── TASK-S9-01 工作流层工具执行素材注入（坏形态①修复）──
+        # 工作流层已执行的工具结果只是**素材**，注入 system prompt 由 LLM 转述成答案，
+        # 而不是把它（原始 JSON/repr）当作最终答案直接回吐。
+        if extra_material:
+            system_prompt = system_prompt + "\n\n" + extra_material
+            logger.info(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2.wf_material', 'message': '[工作流层] 已注入工具执行素材: %d 字符（allow_tools=%s）' % (len(extra_material), allow_tools)}))
+
         messages = []
         try:
             context = self._memory.get_context(token_limit=self._memory_token_limit)
@@ -3409,7 +3828,11 @@ class Orchestrator:
 
         if self._llm:
             try:
-                if self._tool_calling_service:
+                # TASK-S9-01: 本轮工具步骤用局部列表（原为实例属性 _current_tool_steps，
+                # 并发会话会互相追加；且未走工具路径时 XML 兜底会读到上一轮的值）
+                _current_steps: list = []
+                _round_steps: list = []
+                if self._tool_calling_service and allow_tools:
                     tools_whitelist = self._get_enabled_tools_whitelist()
                     if self._is_smart_tool_selection_enabled():
                         try:
@@ -3434,21 +3857,26 @@ class Orchestrator:
                             messages=messages, system_prompt=system_prompt,
                             max_tokens=8192, temperature=0.3,
                             tools_whitelist=tools_whitelist,
-                            on_step=lambda s: self._current_tool_steps.append(s),
+                            on_step=_current_steps.append,
                         ))
                         response = _result["text"]
-                        self._last_tool_steps = _result.get("steps", [])
-                        self._last_reasoning = _result.get("reasoning") or self._last_reasoning
+                        _round_steps = _result.get("steps", [])
                     else:
                         _result = self._run_llm_bounded(lambda: self._tool_calling_service.chat_with_steps(
                             messages=messages, system_prompt=system_prompt,
                             max_tokens=8192, temperature=0.3,
                             tools_whitelist=tools_whitelist,
-                            on_step=lambda s: self._current_tool_steps.append(s),
+                            on_step=_current_steps.append,
                         ))
                         response = _result["text"]
-                        self._last_tool_steps = _result.get("steps", [])
-                        self._last_reasoning = _result.get("reasoning") or self._last_reasoning
+                        _round_steps = _result.get("steps", [])
+                    # TASK-S9-01: 显式赋值（修复前为 `_result.get("reasoning") or self._last_reasoning`
+                    # —— `or` 在本轮 reasoning 为 None 时保留上一轮的值，是 D2 串台的直接注入点）
+                    self._set_turn_state(
+                        session_id,
+                        tool_steps=_round_steps,
+                        reasoning=_result.get("reasoning"),
+                    )
                 else:
                     response = self._run_llm_bounded(lambda: self._llm.chat(
                         messages=messages,
@@ -3462,7 +3890,7 @@ class Orchestrator:
                 # 兜底：检测 XML 工具调用
                 if response and _re.search(r'<[^>]*tool_calls[^>]*>', response):
                     logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._call_llm_v2._call_llm_v2', 'message': '[_call_llm_v2] 响应中包含 XML 工具调用，使用摘要替换'}))
-                    _fb_steps = self._last_tool_steps or []
+                    _fb_steps = _round_steps
                     _fb_summaries = [s.get("summary", "") for s in _fb_steps
                                      if s.get("type") == "tool_result"][-5:]
                     if _fb_summaries:

@@ -358,6 +358,14 @@ def register_routes(app, state):
             stack_trace = traceback.format_exc()
             logs.append(f"[STACK TRACE] {stack_trace[:500]}")
 
+        # TASK-S9-01: 本轮 tool_steps / reasoning 按**会话**读取（只读一次，装配与落库共用）。
+        # 修复前经 `getattr(Yunshu, '_last_tool_steps'/'_last_reasoning')` 读全局单例实例属性，
+        # 本轮没写入就返回上一轮（乃至其它会话）的值 ⇒ 跨轮串台（见真用前置 §八 D2）。
+        # 现在本轮无内容时返回空（[] / None），字段名与语义保持不变。
+        _turn_state = Yunshu.last_turn_state(session_id)
+        _turn_tool_steps = _turn_state["tool_steps"]
+        _turn_reasoning = _turn_state["reasoning"]
+
         # 语音合成
         voice_time = 0
         voice_result = None
@@ -383,8 +391,8 @@ def register_routes(app, state):
         session_mgr.add_message(session_id, "user", user_input)
         session_mgr.add_message(
             session_id, "assistant", response,
-            tool_steps=getattr(Yunshu, '_last_tool_steps', None),
-            reasoning=getattr(Yunshu, '_last_reasoning', None),
+            tool_steps=_turn_tool_steps,
+            reasoning=_turn_reasoning,
         )
         chat_history.append(entry)
 
@@ -425,8 +433,8 @@ def register_routes(app, state):
             "health": [r.to_dict() for r in Yunshu.check_health()],
             "llm_state": llm_state,
             "logs": logs,
-            "tool_steps": getattr(Yunshu, '_last_tool_steps', []),
-            "reasoning": getattr(Yunshu, '_last_reasoning', None),
+            "tool_steps": _turn_tool_steps,
+            "reasoning": _turn_reasoning,
             "timing": {
                 "total": total_time,
                 "safety_check": safety_time,

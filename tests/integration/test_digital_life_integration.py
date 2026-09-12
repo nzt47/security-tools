@@ -326,8 +326,9 @@ class TestBehaviorLoop:
 
                             assert digital_life._interaction_count == 0
 
-                            # 【不易】响应需 ≥5 字符，否则触发 LLM 低置信度兜底
-                            # （_judge_llm_confidence: len(strip) < 5 → low → _FALLBACK_MSG）
+                            # 【不易】响应需非空，否则触发 LLM 低置信度兜底
+                            # （_judge_llm_confidence: strip 后为空 → low → _FALLBACK_MSG；
+                            #  TASK-S9-01 起长度不再作为置信度判据）
                             digital_life._call_llm = MagicMock(return_value="测试响应成功")
                             digital_life._call_llm_v2 = MagicMock(return_value="测试响应成功")
 
@@ -660,7 +661,7 @@ class TestStatePersistence:
                                 return_value=(False, "test: bypass reject"))
                             digital_life.start()
 
-                            # Mock LLM 调用（【不易】响应 ≥5 字符，避免触发低置信度兜底）
+                            # Mock LLM 调用（【不易】响应需非空，避免触发低置信度兜底）
                             digital_life._call_llm = MagicMock(return_value="响应内容成功")
 
                             # 【不易】输入需 ≥3 字符以越过拒识阈值

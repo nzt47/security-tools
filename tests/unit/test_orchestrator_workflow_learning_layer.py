@@ -160,19 +160,20 @@ class TestLearnWorkflowFromInteraction:
         orch = _make_orchestrator()
         monkeypatch.setattr(Orchestrator, "_wf_learn_enabled",
                             classmethod(lambda cls: True))
-        orch._last_tool_steps = [
+        # TASK-S9-01: 本轮状态按会话写入（原 orch._last_tool_steps 全局槽位已下线）
+        orch._set_turn_state(None, tool_steps=[
             {"type": "tool_call", "tool": "search", "args": {}, "status": "running"},
-        ]  # 无配对 result → 无可学调用
+        ])  # 无配对 result → 无可学调用
         assert orch._learn_workflow_from_interaction("用户输入") is False
 
     def test_成功_返回True(self, monkeypatch):
         orch = _make_orchestrator()
         monkeypatch.setattr(Orchestrator, "_wf_learn_enabled",
                             classmethod(lambda cls: True))
-        orch._last_tool_steps = [
+        orch._set_turn_state(None, tool_steps=[
             {"type": "tool_call", "tool": "search", "args": {"q": "x"}, "status": "running"},
             {"type": "tool_result", "tool": "search", "status": "success", "summary": "结果"},
-        ]
+        ])
         svc = MagicMock()
         wf = SimpleNamespace(id="wf_1", steps=[{"name": "search"}], trigger_patterns=["测试"])
         svc.learn_from_interaction.return_value = wf
@@ -185,10 +186,10 @@ class TestLearnWorkflowFromInteraction:
         orch = _make_orchestrator()
         monkeypatch.setattr(Orchestrator, "_wf_learn_enabled",
                             classmethod(lambda cls: True))
-        orch._last_tool_steps = [
+        orch._set_turn_state(None, tool_steps=[
             {"type": "tool_call", "tool": "search", "args": {}, "status": "running"},
             {"type": "tool_result", "tool": "search", "status": "success", "summary": "r"},
-        ]
+        ])
         with patch("agent.state_manager.get_workflow_learning_service",
                    return_value=None):
             assert orch._learn_workflow_from_interaction("用户输入") is False
@@ -197,10 +198,29 @@ class TestLearnWorkflowFromInteraction:
         orch = _make_orchestrator()
         monkeypatch.setattr(Orchestrator, "_wf_learn_enabled",
                             classmethod(lambda cls: True))
-        orch._last_tool_steps = [
+        orch._set_turn_state(None, tool_steps=[
             {"type": "tool_call", "tool": "search", "args": {}, "status": "running"},
             {"type": "tool_result", "tool": "search", "status": "success", "summary": "r"},
-        ]
+        ])
         with patch("agent.state_manager.get_workflow_learning_service",
                    side_effect=RuntimeError("svc broken")):
             assert orch._learn_workflow_from_interaction("用户输入") is False
+
+    def test_按会话读取_不取其它会话的工具步骤(self, monkeypatch):
+        """TASK-S9-01 验收判据 3：自动学习必须读**指定会话**的本轮步骤
+
+        修复前读全局 `_last_tool_steps`，会把其它会话的工具调用序列学成本会话的工作流。
+        """
+        orch = _make_orchestrator()
+        monkeypatch.setattr(Orchestrator, "_wf_learn_enabled",
+                            classmethod(lambda cls: True))
+        # 会话 A 有可学调用；会话 B 没有
+        orch._set_turn_state("sess_A", tool_steps=[
+            {"type": "tool_call", "tool": "search", "args": {"q": "x"}, "status": "running"},
+            {"type": "tool_result", "tool": "search", "status": "success", "summary": "结果"},
+        ])
+        with patch("agent.state_manager.get_workflow_learning_service") as _svc:
+            assert orch._learn_workflow_from_interaction(
+                "用户输入", session_id="sess_B") is False
+            assert not _svc.return_value.learn_from_interaction.called, (
+                "会话 B 本轮无工具调用，不得拿会话 A 的步骤去学习")

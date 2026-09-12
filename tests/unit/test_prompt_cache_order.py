@@ -171,9 +171,9 @@ class TestOrchestratorV1MessagesOrder:
         orch._behavior.profile.description = "默认模式"
         orch._memory_token_limit = 8000
         orch._interaction_count = 0
-        orch._last_tool_steps = []
+        # TASK-S9-01: 全局 _last_tool_steps / _last_reasoning 已下线（跨轮串台根因），
+        # 本轮状态由会话级 TurnStateStore 惰性持有，无需在此预置。
         orch._current_tool_steps = []
-        orch._last_reasoning = None
         orch._llm_pro = None
 
         # mock _set_thinking_mode（空操作）

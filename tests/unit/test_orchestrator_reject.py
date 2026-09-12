@@ -19,6 +19,14 @@ from unittest.mock import patch
 import pytest
 
 from agent.orchestrator.orchestrator import Orchestrator
+# 【不易】置信度判定与兜底常量统一从 orchestrator 导入（禁止本地复制，防漂移）
+# TASK-S9-01: 原实现本地复制了一份 _judge_llm_confidence，与源实现存在漂移风险，
+# 且无法跟随「只判空、不以长度判低置信度」的修复；改为直接 import 源实现。
+from agent.orchestrator.orchestrator import (
+    _judge_llm_confidence,
+    _REJECT_MSG,
+    _FALLBACK_MSG,
+)
 
 
 # ──────────────────────────────────────────────────────────────
@@ -221,34 +229,10 @@ class TestRejectDefaults:
 
 
 # ──────────────────────────────────────────────────────────────
-#  LLM 置信度判定函数（与 orchestrator.py L486-493 同源）
+#  LLM 置信度判定函数 + 拒识/兜底文案常量
+#  【不易】统一从 orchestrator 源模块 import（见文件头 import 段），
+#          禁止本地复制同源逻辑（漂移风险）。
 # ──────────────────────────────────────────────────────────────
-
-def _judge_llm_confidence(response):
-    """LLM 置信度判定（与 orchestrator.py 同源逻辑，用于 AC-10/11/13 测试）
-
-    【不易】判定规则须与 orchestrator.py 保持一致
-    """
-    confidence = "high"
-    low_reason = "normal"
-    if not response or len(response.strip()) < 5:
-        confidence = "low"
-        low_reason = "empty_or_too_short"
-    elif any(_marker in response for _marker in ["抱歉，处理", "遇到了问题", "无法完成", "出错了"]):
-        confidence = "low"
-        low_reason = "error_marker_detected"
-    return confidence, low_reason
-
-
-# 拒识/兜底文案常量（与 orchestrator.py process() 同源）
-_REJECT_MSG = (
-    "抱歉，我不太理解你的意思。能否详细描述一下你想做什么？"
-    "如需人工帮助，请说「转人工」。"
-)
-_FALLBACK_MSG = (
-    "抱歉，我暂时无法给出令人满意的回答。"
-    "请尝试换种方式描述你的问题，或说「转人工」由人工协助处理。"
-)
 
 
 # ──────────────────────────────────────────────────────────────
@@ -422,12 +406,25 @@ class TestAcceptanceCriteria:
 
     # ── AC-10 ~ AC-14: LLM 置信度校验收 ──
 
-    def test_AC10_空响应过短低置信度(self):
-        """AC-10: LLM 空响应/过短响应判定为低置信度 (empty_or_too_short)"""
-        for resp in ["", "嗯嗯", "   ", None]:
+    def test_AC10_空响应低置信度(self):
+        """AC-10: LLM 空 / 纯空白 / None 响应判定为低置信度 (empty_or_too_short)
+
+        【S9-01 修复】判据由「过短（len<5）」改为「空/纯空白」：
+        用户要求「只回答数字」时，合法回答就是 ``5``（1 字符），
+        原判据会把已答对的短答判为低置信度并用兜底文案替换（答非所问）。
+        短但非空的响应见 test_AC10b。
+        """
+        for resp in ["", "   ", "\n\t ", None]:
             conf, reason = _judge_llm_confidence(resp)
             assert conf == "low", f"响应 {resp!r} 应为 low"
             assert reason == "empty_or_too_short"
+
+    def test_AC10b_短但非空的合法回答_不得判为低置信度(self):
+        """【S9-01 新增】短但非空的合法短答（如算术题只答 "5"）必须为 high"""
+        for resp in ["5", "嗯嗯", "是的", "abcd"]:
+            conf, reason = _judge_llm_confidence(resp)
+            assert conf == "high", f"响应 {resp!r} 是合法短答，不得判 low"
+            assert reason == "normal"
 
     def test_AC11_错误标记低置信度(self):
         """AC-11: LLM 含错误标记判定为低置信度 (error_marker_detected)"""
