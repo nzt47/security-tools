@@ -34,13 +34,13 @@
 
 ```
 扫描文件        : 537
-managed 开关名  : 311 （读取点 330）
+managed 开关名  : 318 （读取点 337）
 dynamic 家族    : 3（读取点 4）
 process_env 名  : 3（显式排除，非开关）
 pass-through 点 : 1（显式声明，非开关）
 运行时名字读取  : 1（显式声明形态）
 ------------------------------------------------------------------
-注册表开关数    : 311
+注册表开关数    : 318
 缺口（未注册）  : 0
 注册但未读到    : 0
 未声明的动态家族: 0
@@ -53,7 +53,7 @@ pass-through 点 : 1（显式声明，非开关）
 ### ② 每个条目都有说明/默认值/类型/风险级/生效方式；B/C 级不可被 UI 静默修改 —— ✅
 
 - 结构体级 fail-fast：`SettingSpec.__post_init__` 对 `description/key/risk/category/type/env_name|config_path/apply_mode` 逐项校验，**建表即抛错**（半成品条目进不了表）。
-- 用例 `test_every_item_carries_display_metadata`（HTTP 面）逐条断言 359 个条目都有 `description / risk / category_label / source / source_label / effect / effect_label`，且 `locked == not editable` 时 `locked_reason` 必非空。
+- 用例 `test_every_item_carries_display_metadata`（HTTP 面）逐条断言 366 个条目都有 `description / risk / category_label / source / source_label / effect / effect_label`，且 `locked == not editable` 时 `locked_reason` 必非空。
 - 生效方式三类**都有真实条目**（`hot` 346 / `needs_restart` 1 / `next_task` 7，见 §三）。
 
 ### ③ `resolve()` 如实返回生效来源；被 env 锁定的项在 UI 置灰并注明原因（附用例）—— ✅
@@ -110,7 +110,7 @@ pytest tests/unit/test_settings*.py \
        tests/unit/test_s6_01_ui_panels.py tests/unit/test_security_actor_matrix.py \
        tests/unit/test_security_approval_guard.py tests/unit/test_audit_facade.py \
        tests/unit/test_audit_chain.py tests/unit/test_s4_01_stage_promote_chain.py
-       → 512 passed, 0 failed, 0 skipped（新增 137 + 邻接 375）
+       → 514 passed, 0 failed, 0 skipped（新增 139 + 邻接 375）
 ```
 
 覆盖率见 §六.3。
@@ -119,21 +119,21 @@ pytest tests/unit/test_settings*.py \
 
 ## 三、开关清单统计（按类别 / 风险级）
 
-注册表 **359 条**（`agent/settings/registry.py`，其中 311 条来自机械提取的 env 读取点，48 条由既有 `OBSERVABILITY_VALIDATION_RULES` 合并）。
+注册表 **366 条**（`agent/settings/registry.py`，其中 318 条来自机械提取的 env 读取点，48 条由既有 `OBSERVABILITY_VALIDATION_RULES` 合并）。
 
 **按风险级**
 
 | 级 | 条数 | 含义 | UI 行为 |
 |---|---|---|---|
-| A | 224 | 可直接切 | 可编辑；`hot` 立即生效 |
-| B | 61 | 需二次认证 + 双人确认 | 可编辑但需两段式确认 |
+| A | 228 | 可直接切 | 可编辑；`hot` 立即生效 |
+| B | 64 | 需二次认证 + 双人确认 | 可编辑但需两段式确认 |
 | C | 74 | 只读脱敏 | 置灰；只出"是否已配置 + 指纹" |
 
 **按类别**
 
 | 类别 | 条数 | 类别 | 条数 |
 |---|---|---|---|
-| 自愈与安全 `self_healing_security` | 81 | 技能与检索 `skills_retrieval` | 81 |
+| 自愈与安全 `self_healing_security` | 88 | 技能与检索 `skills_retrieval` | 81 |
 | 可观测与阈值 `observability_threshold` | 72 | 学习与进化 `learning_evolution` | 56 |
 | 外部依赖与密钥 `external_secrets` | 37 | 编排与规划 `orchestration_planning` | 32 |
 
@@ -141,12 +141,12 @@ pytest tests/unit/test_settings*.py \
 
 | 维度 | 数值 |
 |---|---|
-| `hot`（下次读取即生效） | 351 |
+| `hot`（下次读取即生效） | 358 |
 | `needs_restart`（需重启进程） | 1（`PLANNING_WIRE_ENABLED`） |
 | `next_task`（下一调度轮生效） | 7 |
-| UI 可编辑 | 282 |
+| UI 可编辑 | 289 |
 | UI 置灰（C 级 74 + 动态家族 3） | 77 |
-| 仅支持环境变量（有 `env_name` 无 `config_path`） | 304 → UI 标注「仅支持环境变量」 |
+| 仅支持环境变量（有 `env_name` 无 `config_path`） | 311 → UI 标注「仅支持环境变量」 |
 | 密钥类（C 级 secret） | 13 |
 
 **B 级 60 项清单**（口径见 §七.2）：`APPROVAL_ENABLED`、`AUDIT_CHAIN_ENABLED`、`AUDIT_UI_ENABLED`、`CP_APPROVAL_CSRF_ENABLED`、`CP_APPROVAL_LINK_TTL_SECONDS`、`CP_APPROVAL_REQUIRE_AUTHORITATIVE`、`CP_APPROVAL_SESSION_TTL_SECONDS`、`CP_BUDGET_BRAKE_ENABLED`、`CP_DIGESTION_INTERNALIZE_ENABLED`、`CP_ESCAPE_GUARD`、`CP_GUARDRAILS_BOUNDARY_TTL_SECONDS`、`CP_GUARDRAILS_BOUNDARY_WORDS`、`CP_GUARDRAILS_EGRESS_CHAIN`、`CP_GUARDRAILS_FOREIGN_TAINT`、`CP_GUARDRAILS_FOREIGN_TAINT_MAX_MARKS`、`CP_GUARDRAILS_FOREIGN_TAINT_TTL_SECONDS`、`CP_GUARDRAILS_GUARD_CONTEXT`、`CP_GUARDRAILS_GUARD_TOOL`、`CP_GUARDRAILS_INSTRUCTION_DATA`、`CP_HEALING_LEVELS_ENABLED`、`CP_POLICY_BUILTIN_INVARIANTS`、`CP_POLICY_EGRESS_GUARD`、`CP_POLICY_GATEWAY_ENABLED`、`CP_POLICY_REQUIRE_SIGNATURE`、`CP_POLICY_TAINT_DEEP_SCAN`、`CP_POLICY_TAINT_ENABLED`、`CP_POLICY_TAINT_TTL_SECONDS`、`CP_SUBAGENT_CRED_TTL_MAX`、`EVOLUTION_DYNAMIC_BUDGET`、`EVOLUTION_ENABLED`、`EVOLUTION_LLM_GENERATE`、`EVOLUTION_SCHEDULE_ENABLED`、`LEARNING_BUDGET_MAX_DAILY_TOKENS`、`LEARNING_BUDGET_MAX_SINGLE_ACTION_TOKENS`、`LEARNING_BUDGET_MODE`、`LEARNING_BUDGET_RECOVERY_SECONDS`、`LEARNING_EVOLVER_ENABLED`、`LEARNING_FEEDBACK_AGENT_ENABLED`、`LEARNING_LIFECYCLE_ENABLED`、`LEARNING_PRECIPITATE_ENABLED`、`LLM_MODEL`、`LLM_PROVIDER`、`MEMORY_TENANCY_ALLOW_DEGRADE`、`META_EDIT_BLOCKED_PATTERNS`、`META_EDIT_EVAL_MIN_SCORE`、`META_EDIT_MAX_FILES_PER_ROUND`、`META_EDIT_MAX_SKILLS_PER_ROUND`、`META_EDIT_MAX_TOKENS_PER_ROUND`、`META_EDIT_STALL_ROUNDS`、`META_EDIT_WHITELIST_DIRS`、`ROLLBACK_ERROR_RISE_PCT`、`ROLLBACK_LATENCY_RISE_PCT`、`ROLLBACK_MAX_DAILY`、`ROLLBACK_SUCCESS_DROP_PCT`、`ROLLBACK_WINDOW_MIN`、`SKILLS_REVIEW_ENFORCE_PUBLISH`、`SKILL_CLEANUP_ENABLED`、`VALUE_GUARD_ENABLED`、`WF_SKILL_AUTO_UPGRADE_ENABLED`、`YUNSHU_FEATURE_SANDBOX`。
@@ -171,7 +171,7 @@ pytest tests/unit/test_settings*.py \
 
 | 分栏 | 数量 | 与注册表的关系 |
 |---|---|---|
-| `managed` | **311** 个开关名 / 330 读取点 | **必须 100% 被注册表覆盖**（缺口即失败） |
+| `managed` | **318** 个开关名 / 337 读取点 | **必须 100% 被注册表覆盖**（缺口即失败） |
 | `dynamic` | 3 个家族（`SKILLS_ASSESS_` / `SKILLS_DIGEST_` / `SKILL_CLEANUP_`） | 必须登记在注册表的 `dynamic_prefix` 白名单；UI 只读展示 |
 | `process_env` | 3 个（`HF_HOME` / `TRANSFORMERS_CACHE` / `SENTENCE_TRANSFORMERS_HOME`） | 必须命中显式排除表 `PROCESS_ENV_DENYLIST`（逐条带理由，第三方库缓存目录） |
 | `passthrough` | 1 个（`agent/skills_mgmt/executor.py::_ENV_WHITELIST`） | 必须命中显式声明表 `PASS_THROUGH_SITES`（技能子进程 env 白名单透传） |
@@ -183,12 +183,17 @@ pytest tests/unit/test_settings*.py \
 
 `agent/monitoring/observability_config.py::OBSERVABILITY_VALIDATION_RULES`（48 条，已有 path/校验器/默认值/说明）被 `_merge_observability_specs()` **机械合并**：默认值与说明文字**取自该既有表**，注册表只补 UI 需要的类别/风险/env 名。用例 `test_every_rule_path_is_merged` + `test_merged_defaults_are_identical` 双向守护（少一条或改一个默认值即失败）。
 
-### 4.4 合入 master 后复跑：零缺口门**真的会响**（并已补齐）
+### 4.4 合入 master 后复跑：零缺口门**真的会响**（两次，并已补齐）
+
+> **第二次（S7-02 合并后，`318/318`）**见 §4.5——那次暴露的是**提取器能力缺口**，
+> 比第一次更值得记录：门禁报的是 `<unresolved>` 家族，而不是逐条报缺，
+> 说明"名字没被解析出来"和"名字没被登记"是两类不同的漏报。
+
 
 本任务在 worktree 内的原始提取结果是 **306/306 零缺口**。合入 master 后（master 当时已含 S7-02 / S7-04 / S7-05 / S7-06 的交付）**复跑同一命令**，结果如实变为：
 
 ```
-managed 开关名  : 311 （读取点 330）
+managed 开关名  : 318 （读取点 337）
 注册表开关数    : 306
 缺口（未注册）  : 5
   - CP_DIGESTION_CASE_COST_DIR        (agent/digestion/case_cost.py:137) ← S7-06 引入
@@ -199,7 +204,57 @@ managed 开关名  : 311 （读取点 330）
 结论：存在缺口 ❌
 ```
 
-**这正是本门禁要证明的事**：它不是"写个脚本跑一次过"，而是**对新增代码持续有效**——并行任务新增 env 读取点后，合并态立刻报缺口。5 项已在 master 上补登记（合并态复跑 → `managed=311 / 注册表=311 / 缺口=0`），137 例全绿。补登记内容：`CP_DIGESTION_LIVENESS_ENABLED`（**B 级**：开启即按周期自动执行抽样探活，默认关闭）、`…_PROBE_SIZE`（A，默认 5）、`…_MAX_TARGETS`（A，默认 20）、`…_LIVENESS_DIR` / `…_CASE_COST_DIR`（C 级路径）。本报告与结案报告中的清单统计均为**补登记后**的数字（359 条）。
+**这正是本门禁要证明的事**：它不是"写个脚本跑一次过"，而是**对新增代码持续有效**——并行任务新增 env 读取点后，合并态立刻报缺口。5 项已在 master 上补登记（合并态复跑 → `managed=318 / 注册表=318 / 缺口=0`），139 例全绿。补登记内容：`CP_DIGESTION_LIVENESS_ENABLED`（**B 级**：开启即按周期自动执行抽样探活，默认关闭）、`…_PROBE_SIZE`（A，默认 5）、`…_MAX_TARGETS`（A，默认 20）、`…_LIVENESS_DIR` / `…_CASE_COST_DIR`（C 级路径）。本报告与结案报告中的清单统计与提取数量以**最终合并态**为准（注册表 366 条 / 提取 318 个开关名）。
+
+
+### 4.5 第二次合并复跑（S7-02 之后）：暴露的是**提取器能力缺口**
+
+S7-02（`7e0c2c62`）合入后复跑，报出：
+
+```
+未声明的动态家族:
+  - <unresolved>*  (agent/repair/policy.py:254)
+```
+
+根因**不是野读、也不是漏登记**，而是提取器读不懂 S7-02 的 env 名构造**形态**：
+
+```python
+ENV_PREFIX = "CP_REPAIR_"
+def _env_int(env, name, default, *, minimum, notes):     # 名字是**第二个**参数
+    text = _env_text(env, name)                           # 转发给内层
+def _env_text(env, name):
+    key = (ENV_PREFIX + name).lower()                     # 前缀拼接在**内层**
+    for k, v in env.items():                              # 而且是**字典查表**，不是 os.environ.get
+        if str(k).lower() == key: ...
+```
+
+早期提取器三处都不认（① 名字必须是第一个实参 ② 要有 env 访问 ③ 前缀拼接要出现在 env 访问里），
+于是整族 `CP_REPAIR_*` 落进 `<unresolved>` —— **这些开关在 UI 里根本看不见**，
+而报告上却可能被读成"只有 1 个未声明的动态家族"，比逐条报缺更隐蔽。
+
+**处置（3 步）**：
+
+1. **提取器**（`scripts/scan_settings.py`）：
+   - 模板扫描**不再要求是 env 访问**（dict 查表也算），且识别**任一**形参；
+   - 新增「沿本文件助手之间的转发传播前缀」的不动点迭代，并记录名字参数的**下标**，
+     调用点按该下标取实参（不再硬编码 `args[0]`）；
+   - **安全边界**：模板前缀必须符合环境变量形态 `^[A-Z][A-Z0-9_]*_$`。否则
+     `def _cache_key(name): return "cache:" + name` 这类普通拼接助手会被误判成
+     开关家族，把 `cache:FOO` 这种**并不存在**的开关名写进候选——而"编造的名字"
+     比"漏报"更危险（它带着"已被机械提取证实"的外观）。
+2. **登记 7 个真实开关**（逐名用 grep **独立复核**，不采信提取器自证）：
+   `CP_REPAIR_MAX_CHANGED_FILES`(3)、`MAX_LINES_PER_FILE`(120)、`MAX_ROUNDS`(2) 记 **B 级**
+   （放宽即扩大自动改动面，与 `META_EDIT_*` 同口径）；`CP_REPAIR_BUDGET_TOKENS`(60000)、
+   `TIMEOUT_SECONDS`(600.0)、`SLICE_RADIUS`(40)、`HISTORY_COMMITS`(10) 记 **A 级**。
+3. **两条回归用例**：
+   - `test_two_level_family_chain_is_resolved`：钉住"二级转发家族能解析出真实名 + 归类 `helper_family`"；
+   - `test_resolved_family_names_are_independently_verifiable`：**用另一种方法**（读源码取
+     `ENV_PREFIX` 常量 + 逐个核对后缀字面量）复核解析结果——防"提取器自己编名字"。
+
+合并态复跑：`managed=318 / 注册表=318 / 缺口=0`；合计 **514 passed** 全绿。
+
+> **两次复跑的共同结论**：这条门禁的价值不在于"跑过一次是绿的"，而在于它对**别人的新增代码**
+> 持续有效。两次都不是我自己的代码出问题，两次都被它在合并态抓出来。
 
 ---
 
@@ -332,17 +387,17 @@ untraceable_scan(payload) → {'ok': True, 'checked': 0, 'violations': []}
 
 | 套件 | 例数 | 覆盖重点 |
 |---|---|---|
-| `tests/unit/test_settings_registry.py` | 23 | 零缺口 / 零重造 / 注册表完整性 / 反向防漂移 |
+| `tests/unit/test_settings_registry.py` | 25 | 零缺口 / 零重造 / 注册表完整性 / 反向防漂移 |
 | `tests/unit/test_settings_resolver.py` | 39 | 四层优先级 / 置灰原因 / C 级脱敏 / 覆盖层守不易 / bootstrap 零影响与幂等 |
 | `tests/unit/test_settings_service.py` | 32 | A/B/C 分流 / 双人确认 / 矩阵拒绝 / 审计入链 / 不双写 |
 | `tests/unit/test_settings_routes.py` | 43 | 三组路由 + confirm / 批量拒绝 / require_token / 无明文 |
-| **合计** | **137** | 全部通过 |
+| **合计** | **139** | 全部通过 |
 | 前端 `settings.test.tsx` | 29 | 分类+徽章+来源标签 / 置灰原因 / 掩码 / B 级确认步骤 / 202 待办 / 搜索 |
 
 ### 6.2 邻接回归（零回归）
 
 ```
-**512 passed**（新增 137 + 邻接 375，共 10 套件）：test_settings_* ×4、test_s6_01_ui_panels、test_security_actor_matrix、
+**514 passed**（新增 139 + 邻接 375，共 10 套件）：test_settings_* ×4、test_s6_01_ui_panels、test_security_actor_matrix、
 test_security_approval_guard、test_audit_facade、test_audit_chain、test_s4_01_stage_promote_chain
 ```
 
@@ -382,7 +437,7 @@ TOTAL                                     1152    114    90%
 
 ## 七、口径与如实声明（诚实边界）
 
-1. **"73 个环境变量"与"311 个开关名"的口径差异**：任务书 §一 的 73 是指 `.env` 里**已配置**的条目（约 51 个布尔）；本注册表覆盖的是**代码里真实读取的全部 env 读取点**（311 个名字 / 330 个读取点），包含未在 `.env` 中配置、走代码默认或 `config.yaml` 的那些。前者是"当前配置量"，后者是"可发现性上限"。本任务按**后者**建表（"任何开关都能在 UI 找到"）。差异已在此显式声明，不以一个数字掩盖另一个。
+1. **"73 个环境变量"与"318 个开关名"的口径差异**：任务书 §一 的 73 是指 `.env` 里**已配置**的条目（约 51 个布尔）；本注册表覆盖的是**代码里真实读取的全部 env 读取点**（318 个名字 / 337 个读取点），包含未在 `.env` 中配置、走代码默认或 `config.yaml` 的那些。前者是"当前配置量"，后者是"可发现性上限"。本任务按**后者**建表（"任何开关都能在 UI 找到"）。差异已在此显式声明，不以一个数字掩盖另一个。
 2. **B 级范围的一次明确扩张**：任务书列举的 B 类（自愈自动执行 / 熔断回滚 / 关沙箱 / 审批豁免 / 自动合入 / 成本刹车阈值）之外，本表把"**关闭即降低防护的安全防线开关**"也归入 B（注入防线、egress 守卫、策略签名校验与不变量、污点防护、审计链开关、租户隔离降级、审批面 CSRF/时效）。理由：其切换动作本身就是一次安全姿态变更，与"关沙箱"同性质。**若 Owner 认为范围过宽，只需改注册表一行的 `risk`**（`_b(...)` → `_a(...)`），无逻辑改动。
 3. **`settings.change` 是 §7.0 之外的扩展行**。原表只到"切换熔炉/修改策略"；本任务按同一性质新开一行，并**保持 `CORE_MATRIX_OPERATIONS` 取值逐字不变**（改用 `EXTENSION_OPERATIONS` 显式排除，历史写法 `OPERATIONS[:-1]` 已替换并加注释）。二次认证的真值由开关表的风险级裁量，矩阵行只表达"human 专属"——**避免两处表达同一事实而漂移**。
 4. **`settings.change` / `policy.decision` 两个事件类型未登记进 `ALL_EVENT_TYPES`**（仅 `emit` 落 `events.jsonl`，`unknown_type_count` 会计数）。理由：`EventStore` 在默认非 strict 模式下对未登记类型**照写不误**（`agent/observability/events.py:615-627`），而既有 `DecisionObserver` 的 `policy.decision` 事件正是这一先例；为不惊动 `tests/unit/test_events_v1.py` 的**精确集合**断言（`ALL_EVENT_TYPES == NINE ∪ METRIC`）而选择不扩注册表。**若 Owner 要求登记**，改动点明确：`events.py` 加常量 + `EventType` 成员 + 组元组，并同步该用例的集合断言。
