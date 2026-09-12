@@ -589,18 +589,31 @@ class TestAdjacentNoRegression:
         from agent.monitoring import cost_brake as CB
         U.record_cost(model=ANCHOR, tokens_in=1000, tokens_out=0, task_id="t1",
                       interaction_id="brake-1", store=store)
-        write_artifact(make_calibration(coefficient=0.25),
-                       str(tmp_path / "cost_coefficients.json"))
         view = CB.cost_daily_view(day=None, directory=os.path.dirname(store.path),
                                   config=CB.load_config({}))
-        assert view["calibration_version"] == CB.CALIBRATION_VERSION or \
-            view.get("calibration", {}).get("calibration_version") in (
-                U.CALIBRATION_VERSION, U.MEASURED_CALIBRATION_VERSION)
+        # 无校准件时与 S5-03 现状逐字一致（零行为回归）
+        assert view["calibration_version"] == CB.CALIBRATION_VERSION
+        assert "价格锚定系数" in view["calibration_note"]
+        assert CB.effective_calibration_labels()[0] == CB.CALIBRATION_VERSION
+        assert "价格锚定系数" in CB.effective_calibration_labels()[1]
         # 未实测模型（gpt-3.5-turbo）必须仍按价格系数 → 与升级前逐分一致
         calc = U.normalize_cost(1000, 0, "gpt-3.5-turbo")
         assert calc["coefficient_source"] == "price_ratio"
         assert calc["cost_normalized_cents"] == pytest.approx(
             1000 / 1000 * 3.0 * (0.0015 / 0.03))
+
+    def test_cost_brake_labels_follow_measured_artifact(self, tmp_path, store):
+        """**口径标签不得写死**：有生效实测件时，S5-03 的输出也必须改成实测版本"""
+        from agent.monitoring import cost_brake as CB
+        write_artifact(make_calibration(), str(tmp_path / "cost_coefficients.json"))
+        version, note = CB.effective_calibration_labels()
+        assert version == U.MEASURED_CALIBRATION_VERSION
+        assert "实测校准件" in note
+        U.record_cost(model=ANCHOR, tokens_in=1000, tokens_out=0, task_id="t2",
+                      interaction_id="brake-2", store=store)
+        view = CB.cost_daily_view(day=None, directory=os.path.dirname(store.path),
+                                  config=CB.load_config({}))
+        assert view["calibration_version"] == U.MEASURED_CALIBRATION_VERSION
 
     def test_l2_baseline_hash_is_used_for_staleness(self, tmp_path, monkeypatch):
         """能读到 L2 基线的用例集哈希时，哈希不一致 → 校准件失效"""
