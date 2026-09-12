@@ -2,7 +2,9 @@
 
 > 定位：**不新增功能**，只解决"**跑得久**"与"**跑得真**"的前提设施 —— 覆盖 S0–S7 反复出现、且被收官审计与 S7 报告明确指出的生产化遗留。
 > 上游依据：收官审计 §8.2/§8.3；S7-05 未完成事项 #1/#3；S2-01/S2-02/S2-03/S3-01/S3-02/S3-03 多源同源遗留；S4-02 L10。
-> 基线：`master` / `7e094eab`｜生成：2026-09-12
+> 基线：`master` / `7e094eab`（规划时）｜生成：2026-09-12
+> **可分发复核：2026-09-13**（当时 master = `6caa07bb`，双远端同点；五个 `START-S8-0X` 均含
+> §二 可整段复制的启动提示词，结构齐备、工作区隔离与门禁口径一致 ⇒ **可直接分发给新会话**）
 > 配套：运营期主线见 [`../云枢运营观察清单.md`](../云枢运营观察清单.md)（**S8 与运营期并行**：一个加固、一个积累真实数据）
 
 ---
@@ -38,7 +40,7 @@ S0–S7 ✅ → S8-01 生命周期治理（trace/audit/events/判定集/草稿/�
 
 ```powershell
 cd C:\Users\Administrator\agent
-python scripts/dev/new_session_worktree.py create --id <s801..s804> --base master
+python scripts/dev/new_session_worktree.py create --id <s801..s805> --base master
 ```
 - 主工作区禁令：✗ `git checkout`　✗ `git reset --hard`　✗ `git add -A`　✓ 只 `git add <具体文件>`
 - 提交流程：worktree 内 add/commit → 主工作区 `git merge <id>/main` → 双远端同点 → `cleanup <id>`
@@ -59,12 +61,16 @@ python scripts/dev/new_session_worktree.py create --id <s801..s804> --base maste
 
 ## 五、待 Owner 的人工动作（与运营期并行，不阻塞 S8）
 
-| # | 事项 |
-|---|---|
-| 1 | **S7-05 新增的 10 条人工抽检**（真实数据产生，优先级最高） |
-| 2 | S3-03 M5 抽检复核（`--review-sheet` → `--record-review`） |
-| 3 | S1-02 NEEDS_REVIEW 7 条 / 6 资产复核 |
-| 4 | S8-04 若接真实 judge：提供凭证配置（`CP_DIGESTION_JUDGE_PROVIDER/MODEL`） |
+> **2026-09-13 更新**：原 #1–#3 三项人工复核已于 2026-09-12/13 在运营期主线完成
+> （过程、缺陷与复现命令见 [`../人工复核裁定记录_20260912.md`](../人工复核裁定记录_20260912.md)），
+> 其中暴露的 D1–D4 已立项为本批 #S8-05。**当前仅剩 #4 待 Owner 提供凭证。**
+
+| # | 事项 | 状态 |
+|---|---|---|
+| 1 | S7-05 新增的 10 条人工抽检 | ✅ 已完成（10/10 裁定 `uncertain`，队列 `pending:0 / closed:true`） |
+| 2 | S3-03 M5 抽检复核（`--review-sheet` → `--record-review`） | ✅ 已完成（与 #1 同批；`--verdict` 必显式传值） |
+| 3 | S1-02 NEEDS_REVIEW 7 条 / 6 资产复核 | ✅ 已完成（4 条 provenance 保持 `unknown`；2 条 `data_class`→`internal`；1 条风险 HIGH→MEDIUM） |
+| 4 | S8-04 若接真实 judge：提供凭证配置（`CP_DIGESTION_JUDGE_PROVIDER/MODEL`） | ⏳ 待 Owner（不阻塞 S8-04 交付：无凭证时按契约回落并如实标注 `judge_kind`） |
 
 ## 六、分发清单
 
