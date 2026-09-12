@@ -1,5 +1,5 @@
 {
-  "trace_id": "a8fa1160cd1e4b45",
+  "trace_id": "d856a2a4241e4eb3",
   "root_dir": "/home/runner/work/security-tools/security-tools/agent",
   "nodes": [
     {
@@ -343,7 +343,7 @@
       "name": "task_scheduler",
       "layer": "core",
       "file_path": "agent/task_scheduler.py",
-      "in_degree": 20,
+      "in_degree": 21,
       "out_degree": 10
     },
     {
@@ -1047,7 +1047,7 @@
       "name": "facade",
       "layer": "audit",
       "file_path": "",
-      "in_degree": 31,
+      "in_degree": 32,
       "out_degree": 2
     },
     {
@@ -1119,7 +1119,7 @@
       "name": "levels",
       "layer": "self_healing",
       "file_path": "",
-      "in_degree": 5,
+      "in_degree": 6,
       "out_degree": 4
     },
     {
@@ -1769,6 +1769,14 @@
       "file_path": "agent/digestion/gate.py",
       "in_degree": 0,
       "out_degree": 6
+    },
+    {
+      "path": "agent.digestion.probe",
+      "name": "probe",
+      "layer": "digestion",
+      "file_path": "agent/digestion/probe.py",
+      "in_degree": 0,
+      "out_degree": 3
     },
     {
       "path": "agent.process_distill.merge",
@@ -9791,6 +9799,45 @@
       "import_type": "from_import",
       "line": 1217,
       "source_file": "agent/digestion/gate.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.probe",
+      "target": "agent.self_healing.levels",
+      "source_layer": "digestion",
+      "target_layer": "self_healing",
+      "import_type": "from_import",
+      "line": 1268,
+      "source_file": "agent/digestion/probe.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.probe",
+      "target": "agent.audit.facade",
+      "source_layer": "digestion",
+      "target_layer": "audit",
+      "import_type": "from_import",
+      "line": 1207,
+      "source_file": "agent/digestion/probe.py",
+      "is_cross_layer": true,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.digestion.probe",
+      "target": "agent.task_scheduler",
+      "source_layer": "digestion",
+      "target_layer": "core",
+      "import_type": "from_import",
+      "line": 1393,
+      "source_file": "agent/digestion/probe.py",
       "is_cross_layer": true,
       "is_violation": false,
       "violation_desc": "",
@@ -21901,10 +21948,10 @@
     }
   ],
   "stats": {
-    "total_files": 529,
-    "total_nodes": 470,
-    "total_edges": 1395,
-    "cross_layer_edges": 897,
+    "total_files": 530,
+    "total_nodes": 471,
+    "total_edges": 1398,
+    "cross_layer_edges": 900,
     "violation_edges": 0,
     "dynamic_edges": 1,
     "layers": {
@@ -21943,7 +21990,7 @@
       "model_router": 4,
       "p6": 5,
       "network": 3,
-      "digestion": 8,
+      "digestion": 9,
       "knowledge": 26,
       "dao": 1,
       "human_in_the_loop": 5,
@@ -21957,6 +22004,6 @@
       "quality": 2,
       "handoff": 1
     },
-    "build_duration_ms": 2851.9207359999828
+    "build_duration_ms": 2880.0530860000035
   }
 }
