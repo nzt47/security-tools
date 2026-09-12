@@ -77,6 +77,19 @@ Q=2 加 3 等于多少？只回答数字
 > 说明：任务书 §六 给出的复验命令用 body 字段 `session`，但真机生效的是 **`plugins/chat.py::api_chat`**，
 > 它读的是 body 的 **`session_id`**（`plugins/chat.py:148`）。用 `session` 时会被忽略并回落到全局默认会话
 > （实测日志 `[SESSION] 会话 ID: sess_20260907_220445_39c3ebf7`）。本报告所有真机复验均用 `session_id`。
+>
+> **「`/api/chat` 由谁提供」四条独立证据（已核实）**：
+> 1. `app_server.py:972-973` 明写 ——「T7：会话交接（原 routes_sessions.register_handoff_routes 已移除，
+>    **会话 API 由 plugins/chat.py 提供，此处不再接线**）」；
+> 2. `app_server.py` 中 `routes_chat` 出现次数 = **0**（既无 import 也无 `register_routes` 调用；
+>    `agent/server_routes/routes_chat.py` 是**已死的注册路径**，仅 `agent/server_routes/__init__.py::register_all_routes`
+>    还列着它，而该函数**从未被 app_server 调用** —— `app_server.py:813` 只是一句注释）；
+> 3. `app_server.py:137-149` 走 `plugins.loader.register_blueprints(app)` + `app.register_blueprint(_p.blueprint)`，
+>    即 `/api/chat` 由插件蓝图注册；
+> 4. **日志指纹**：真机响应 `logs` 字段里的 `[CHAT] 开始调用 DigitalLife.chat()` 与 `[CHAT] 响应长度: N 字符`
+>    **只存在于 `plugins/chat.py:219/228`**（`routes_chat.py` 无此文案）。
+> ⇒ 本任务的响应装配修复必须覆盖 `plugins/chat.py`（已覆盖）；`routes_chat.py` 同步修正是**同源一致性**处理，
+> 不改变真机行为。
 
 ### 2.2 回归锚（新增用例，修复前必须失败）
 
@@ -391,13 +404,14 @@ tests/unit/test_orchestrator_turn_state_isolation.py ..... 25 passed / 26 passed
 
 | # | 遗留 | 证据 | 归属 |
 |---|---|---|---|
-| 1 | **D1 输出护栏仍拦截正常回复**：修复后真机第一轮 `response` = `"（输出校验未通过，已拦截）"` | `probe_fixed5.log` Round A | **S9-02**（`agent/skills_mgmt/output_guard.py`）—— 按任务书 §八.5，本任务**未动**该文件 |
-| 2 | **D4 上下文预算**：`response` 尾部被追加「当前会话上下文即将耗尽（已使用 37%）」；会话累计 token 仍超限 | 同上 | **S9-03** —— 本任务未改预算逻辑；素材注入另设 `ORCHESTRATOR_WF_MATERIAL_MAX_CHARS=6000` 截断，**不触碰预算机制** |
+| 1 | ~~D1 输出护栏拦截正常回复~~ —— **已由主线修复**（`output_guard.py` 的「显式技能语境」口径）。本任务**一行未动**该文件；本任务期间的进程内探针曾命中一次拦截（`probe_fixed5.log` Round A），但在**最终 HTTP 真机复验**中同一提问已返回正常自然语言目录列表，**未再复现拦截** | `git log -- agent/skills_mgmt/output_guard.py` → 最近改动为 `5a5c8fda`（基线内既有提交，非本任务）；HTTP 复验 §5.0 Round 1 | **S9-02（已修完）** —— 不重复修 |
+| 2 | **D4 上下文预算**：`response` 尾部被追加「当前会话上下文即将耗尽（已使用 27%/37%）」；会话累计 token 仍超限 | §5.0 原始输出尾部 | **S9-03** —— 本任务未改预算逻辑；素材注入另设 `ORCHESTRATOR_WF_MATERIAL_MAX_CHARS=6000` 截断，**不触碰预算机制** |
 | 3 | **检索层根因未动**：RRF 融合分按 rank-1 归一化（`agent/skills_mgmt/loader.py:1231`）使 top1 恒 ≈1.0；`_RRF_QUALITY_MIN` 质量门（`loader.py:1512-1524`）把**无界 BM25 原始分**计入 `max_raw_score` ⇒ 噪声级候选过闸 | `query="2 加 3 等于多少？只回答数字"` → `tfidf_score=0.1` 仍进入候选 | **S9-03 邻接 / 检索层专项**（本任务在**编排层**加固：`min_score` 只认有界相似度；检索层归一化语义建议专项收敛） |
 | 4 | **工作流学习层匹配质量**：`wf-f19dc52c` 由**单轮输入**自动学习（`trigger_patterns` 为单字 `["列","出","当","前","工"]`），并已 `convert_to_skill` 成 `wf-f19dc52c-skill` | `data/learned_workflows.json` | **工作流学习层调优**（本次未改学习/匹配阈值，避免与检索层同批改动） |
 | 5 | **工具链工作流不再 0-Token**：产出为工具载荷时改为「素材 → LLM 转述」，代价是 +1 次 LLM 调用（换答案正确） | 设计取舍，见 §四 #4 | 本任务已实现；若需恢复 0-Token，需工作流层定义"用户可读产出"契约 |
 | 6 | **worktree 环境事实**：`.worktrees/s901/.env` 原为 **0 字节**（主工作区 `.env` 为 144741 字节），导致 worktree 进程内 LLM 未配置、只能走离线响应；已把主工作区 `.env` 复制进 worktree（`.env` 被 `.gitignore` 忽略，不入库） | `(Get-Item .worktrees\s901\.env).Length` = 0 → 复制后 144741 | 工具链（`scripts/dev/new_session_worktree.py`）—— 建议后续为 worktree 自动链接 `.env` |
-| 7 | `tool_traces` 未落账（D3） | 本任务未涉及 | **D3 专项**（上游依据 §八 D3） |
+| 7 | ~~`tool_traces` 未落账（D3）~~ —— **已由主线修复**（workflow 路径工具轨迹）；本任务**未触碰**该链路，也不重复修 | 主线说明 + 本任务 `git diff` 不涉及 `agent/tool_calling.py` / `agent/observability/tool_trace.py` | **D3（已修完）** —— 不重复修 |
+| 8 | **LLM 凭证在工作区/运行期被降级为占位值**：本机 shell 无 `LLM_API_KEY`；运行期有组件把 `.env` 的 `LLM_API_KEY` 改写为 `sk-test-key`（实测 worktree `.env` 144741 → 145606 字节），服务进程遂对 DeepSeek 得到 `401 … api key: ****-key is invalid`，全部 LLM 调用失败 → 响应统一变成低置信度兜底文案，**极易把「答得对」误判为不达成** | §5.0 环境前提 | **凭证/环境专项**（`agent/network_config.py` 的实例 key 归一化与 `env_config_manager` 的写回行为需一并核查）|
 
 ---
 
