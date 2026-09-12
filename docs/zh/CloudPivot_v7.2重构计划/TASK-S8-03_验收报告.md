@@ -156,16 +156,27 @@ docker run --rm -i --network none --memory 256m --memory-swap 256m --cpus 1.0
 
 ### ✅ 9. 既有 `digestion`/`subagent`/`guardrails` 套件**零回归**；新增单测全绿、覆盖率 ≥80%
 
+> 下列数字为**合流后**（与 S8-01/S8-04/S8-05/S9 并行成果合并后）在 `master` 上的复测结果。
+
 | 套件 | 结果 |
 |---|---|
-| `digestion` 邻接 8 套件（shadow/sandbox/gate/cases/internalize/probe/stage/pipeline） | **559 passed / 0 failed** |
+| `digestion` 邻接 9 套件（shadow/sandbox/gate/cases/internalize/probe/stage/pipeline/applicability） | **588 passed / 0 failed** |
 | `subagent` 隔离范式邻接 3 套件（extensions_sandbox / execution_guard / multiprocess_boundary） | **81 passed / 0 failed / 1 skipped（既有，与本任务无关）** |
 | `guardrails`/egress 邻接 4 套件 | **127 passed / 0 failed** |
-| **新增 4 套件** | **205 passed / 0 failed / 1 skipped** |
+| 邻接合计 | **796 passed / 0 failed / 1 skipped** |
+| **新增 4 套件** | **216 passed / 0 failed / 1 skipped** |
 | 覆盖率（新模块） | `isolation.py` **86%**｜`isolation_worker.py` **91%**｜`takeover.py` **88%** |
 
 > 跳过的 1 例是 `_posix_limits` 的 POSIX 专属用例在 Windows 上 `skipif` ——
 > **如实标注**（Windows 无 `resource` 模块 ⇒ 无 rlimit），不是伪通过。
+
+**合流期实测暴露并修复的 1 处夹具口径问题**（如实记录）：
+S8-05 的 D2 **形状过滤**要求"用例能力集合 ⊆ 被评能力"，本任务的测试夹具
+（`tests/unit/isolation_util.make_case()`）未显式声明步骤 `capability_id` ⇒
+整批被挡在抽样之外 ⇒ **8 例 takeover 用例集体失败**。根因是**夹具形状**、
+不是接管逻辑（合流前本分支 216 例全绿）。夹具已按新口径对齐；
+该 fix 首轮合并时**漏 `git add`**，在 `master` 复测时被再次拦下并补齐 ——
+两次都由"跑完门禁后复核 `git status` + 在 master 上复测"这套纪律捕获。
 
 ---
 
@@ -368,15 +379,15 @@ source_tree_residue_after_cleanup = False  # 源码树上的探针临时目录�
 
 | 门禁 | 命令 | 结果 |
 |---|---|---|
-| 新增单测 | `pytest tests/unit/test_isolation_{levels,executors,takeover,shadow}.py` | **205 passed / 0 failed / 1 skipped** |
+| 新增单测 | `pytest tests/unit/test_isolation_{levels,executors,takeover,shadow}.py` | **216 passed / 0 failed / 1 skipped** |
 | 覆盖率（新模块） | `--cov=agent.digestion.{isolation,isolation_worker,takeover}` | isolation **86%** / worker **91%** / takeover **88%** |
-| `digestion` 邻接回归 | 8 套件 | **559 passed / 0 failed** |
+| `digestion` 邻接回归 | 9 套件 | **588 passed / 0 failed** |
 | `subagent`/`guardrails` 邻接 | 7 套件 | **208 passed / 0 failed / 1 skipped（既有）** |
 | kwarg 扫描（agent） | `scan_kwarg_conflicts.py --path agent --min-risk HIGH` | **0 处 HIGH**，exit 0 |
 | kwarg 扫描（tests） | `scan_kwarg_conflicts.py --path tests --min-risk HIGH` | **0 处 HIGH**，exit 0 |
 | mypy（新增/改动模块） | `mypy … --follow-imports=silent`（CI 同款） | **Success: no issues found in 5 source files** |
 | importlinter | `lint-imports`（需 `PYTHONUTF8=1`，见遗留 #3） | **2 kept / 0 broken** |
-| pre-commit | 真实提交（**未用 `--no-verify`**） | 见结案报告 §三 |
+| pre-commit | 真实提交（**未用 `--no-verify`**，3 次提交 3 次生效） | 见结案报告 §三 |
 | 产物漂移 | `git status` 跑完复核 | 运行时产物全在 `data/isolation/`（已 gitignore），源码树无残留 |
 
 ---
