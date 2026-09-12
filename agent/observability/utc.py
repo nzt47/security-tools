@@ -155,20 +155,21 @@ def calibration_block() -> Dict[str, Any]:
     stale = _artifact_stale_reason(art)
     # **过期件的口径一律按"回落价格锚定"报告**：否则会出现"文件里写着已校准、
     # 实际系数却没生效"的谎报（这正是本任务要避免的失真）。
-    active = art is not None and not stale
+    active = bool(art is not None and not stale)
+    current = art if active else None
     return {
         "cost_schema_version": COST_SCHEMA_VERSION,
         "calibration_version": _active_calibration_version(art, active=active),
         "calibration_note": (_calibration_note(art, active=active)),
         "calibration_trigger": CALIBRATION_TRIGGER,
         "calibration_status": CALIBRATION_STATUS,
-        "calibrated": bool(active and art is not None and art.calibrated),
-        "calibration_partial": bool(active and art is not None and art.partial),
-        "calibration_method": (str(art.method) if active and art is not None else ""),
-        "calibrated_at": (str(art.created_at) if active and art is not None else ""),
+        "calibrated": bool(current is not None and current.calibrated),
+        "calibration_partial": bool(current is not None and current.partial),
+        "calibration_method": (str(current.method) if current is not None else ""),
+        "calibrated_at": (str(current.created_at) if current is not None else ""),
         "calibration_source_path": (str(art.path) if art is not None else ""),
-        "measured_models": (list(art.measured_models)
-                            if active and art is not None else []),
+        "measured_models": (list(current.measured_models)
+                            if current is not None else []),
         "coefficient_sources": _coefficient_sources_summary(),
         "stale_reason": stale,
         "anchor_model": anchor,
