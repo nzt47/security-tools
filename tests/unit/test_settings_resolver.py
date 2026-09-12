@@ -423,3 +423,51 @@ class TestRuntimeLanding:
         resolved = RS.resolve_all(store=store)
         assert len(resolved) == len(R.all_specs())
         assert RS.resolve("NO_SUCH_KEY", store=store) is None
+
+
+class TestOverrideCountConsistency:
+    """`counts.overridden` 与前端"只看已覆盖"筛选**必须同义**
+
+    Why：前端芯片数字取自后端 `counts.overridden`（= `override_present` 计数），
+    而行筛选用的是 `source == 'ui_override' || 'ui_override' in shadowed_by`。
+    两者若不同义，就会出现"芯片说 3 项、筛出来 2 行"的面板说谎——前端实现者把这条
+    列为最需要复核的一处。本用例把等价关系**逐场景钉死**，而不是靠推理。
+    """
+
+    @staticmethod
+    def _frontend_predicate(resolved) -> bool:
+        pub = resolved.to_public_dict()
+        return (pub["source"] == "ui_override"
+                or "ui_override" in pub["shadowed_by"])
+
+    def test_equivalence_across_all_scenarios(self, store, monkeypatch):
+        # 场景 1：无覆盖、无 env
+        monkeypatch.delenv("LOCK_PROFILE", raising=False)
+        r1 = RS.resolve("LOCK_PROFILE", store=store)
+        assert r1.override_present is False
+        assert self._frontend_predicate(r1) is False
+
+        # 场景 2：仅覆盖（覆盖生效）
+        store.set("LOCK_PROFILE", True, actor="owner", risk="A")
+        r2 = RS.resolve("LOCK_PROFILE", store=store)
+        assert r2.override_present is True and r2.source == RS.SOURCE_OVERRIDE
+        assert self._frontend_predicate(r2) is True
+
+        # 场景 3：覆盖存在但被 env 遮蔽（前端必须仍算作"已覆盖"）
+        monkeypatch.setenv("LOCK_PROFILE", "0")
+        r3 = RS.resolve("LOCK_PROFILE", store=store)
+        assert r3.override_present is True and r3.source == RS.SOURCE_ENV
+        assert "ui_override" in r3.shadowed_by
+        assert self._frontend_predicate(r3) is True
+
+    def test_counts_overridden_equals_frontend_filter_size(self, store, monkeypatch):
+        """整表口径：`override_present` 计数 == 前端谓词命中数（含被 env 遮蔽的一例）"""
+        monkeypatch.delenv("LOCK_PROFILE", raising=False)
+        monkeypatch.delenv("LOCK_PROFILE_BATCH", raising=False)
+        store.set("LOCK_PROFILE", True, actor="owner", risk="A")
+        monkeypatch.setenv("LOCK_PROFILE_BATCH", "1")     # 第二个覆盖被 env 遮蔽
+        store.set("LOCK_PROFILE_BATCH", 9, actor="owner", risk="A")
+        resolved = RS.resolve_all(store=store)
+        backend_count = sum(1 for r in resolved if r.override_present)
+        front_count = sum(1 for r in resolved if self._frontend_predicate(r))
+        assert backend_count == front_count == 2

@@ -549,6 +549,36 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        "元编辑允许改动的目录白名单（逗号分隔）",
        owner="agent/skills_mgmt/edit_policy.py"),
 
+    # ── S7-02 自修复 L1（补丁 PR）的 CP_REPAIR_* 策略上限 ──
+    # 来源：`agent/repair/policy.py::policy_from_env()`（`ENV_PREFIX = "CP_REPAIR_"`）。
+    # 风险口径：**放宽自动改动面 / 自动迭代轮数**的归 B（与 META_EDIT_* 同性质——
+    # 自动化自改写类）；纯预算与读取参数（token 预算、超时、切片半径、读历史条数）归 A。
+    # 注：这批开关的 env 名是「**二级转发家族**」形态（`_env_int(env, name, …)` →
+    # `_env_text` 里 `ENV_PREFIX + name`）。机械提取器为此专门实现了转发链解析，
+    # 并由 `tests/unit/test_settings_registry.py::test_two_level_family_chain_is_resolved`
+    # 钉死——否则整族会以 `<unresolved>` **静默消失**在 UI 之外（S7-02 合并后实测命中）。
+    _b("CP_REPAIR_MAX_CHANGED_FILES", CAT_SELF_HEALING, 3,
+       "自动修复单个补丁最多改动的文件数（放宽即扩大自动改动面）",
+       owner="agent/repair/policy.py", validator=_int_range(1, 100)),
+    _b("CP_REPAIR_MAX_LINES_PER_FILE", CAT_SELF_HEALING, 120,
+       "自动修复单文件最多改动行数（放宽即扩大自动改动面）",
+       owner="agent/repair/policy.py", validator=_int_range(1, 10000)),
+    _b("CP_REPAIR_MAX_ROUNDS", CAT_SELF_HEALING, 2,
+       "自动修复最多迭代轮数（放宽即扩大自动改动面）",
+       owner="agent/repair/policy.py", validator=_int_range(1, 20)),
+    _a("CP_REPAIR_BUDGET_TOKENS", CAT_SELF_HEALING, 60000,
+       "自动修复单次 token 预算", owner="agent/repair/policy.py",
+       validator=_int_range(1, 10_000_000)),
+    _a("CP_REPAIR_TIMEOUT_SECONDS", CAT_SELF_HEALING, 600.0,
+       "自动修复单次超时（秒）", owner="agent/repair/policy.py",
+       validator=_range_validator(1, 86400)),
+    _a("CP_REPAIR_SLICE_RADIUS", CAT_SELF_HEALING, 40,
+       "代码切片上下文半径（行）", owner="agent/repair/policy.py",
+       validator=_int_range(0, 10000)),
+    _a("CP_REPAIR_HISTORY_COMMITS", CAT_SELF_HEALING, 10,
+       "读取历史提交条数（诊断用）", owner="agent/repair/policy.py",
+       validator=_int_range(0, 1000)),
+
     # 安全告警（A：观测类）
     _a("CP_SECURITY_ALERTS_ENABLED", CAT_SELF_HEALING, True,
        "越权/安全告警聚合开关", owner="agent/security/alerts.py"),

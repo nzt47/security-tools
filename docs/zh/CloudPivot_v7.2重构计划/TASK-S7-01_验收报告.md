@@ -110,7 +110,7 @@ pytest tests/unit/test_settings*.py \
        tests/unit/test_s6_01_ui_panels.py tests/unit/test_security_actor_matrix.py \
        tests/unit/test_security_approval_guard.py tests/unit/test_audit_facade.py \
        tests/unit/test_audit_chain.py tests/unit/test_s4_01_stage_promote_chain.py
-       → 499 passed, 0 failed, 0 skipped（新增 124 + 邻接 375）
+       → 512 passed, 0 failed, 0 skipped（新增 137 + 邻接 375）
 ```
 
 覆盖率见 §六.3。
@@ -199,7 +199,7 @@ managed 开关名  : 311 （读取点 330）
 结论：存在缺口 ❌
 ```
 
-**这正是本门禁要证明的事**：它不是"写个脚本跑一次过"，而是**对新增代码持续有效**——并行任务新增 env 读取点后，合并态立刻报缺口。5 项已在 master 上补登记（合并态复跑 → `managed=311 / 注册表=311 / 缺口=0`），124 例全绿。补登记内容：`CP_DIGESTION_LIVENESS_ENABLED`（**B 级**：开启即按周期自动执行抽样探活，默认关闭）、`…_PROBE_SIZE`（A，默认 5）、`…_MAX_TARGETS`（A，默认 20）、`…_LIVENESS_DIR` / `…_CASE_COST_DIR`（C 级路径）。本报告与结案报告中的清单统计均为**补登记后**的数字（359 条）。
+**这正是本门禁要证明的事**：它不是"写个脚本跑一次过"，而是**对新增代码持续有效**——并行任务新增 env 读取点后，合并态立刻报缺口。5 项已在 master 上补登记（合并态复跑 → `managed=311 / 注册表=311 / 缺口=0`），137 例全绿。补登记内容：`CP_DIGESTION_LIVENESS_ENABLED`（**B 级**：开启即按周期自动执行抽样探活，默认关闭）、`…_PROBE_SIZE`（A，默认 5）、`…_MAX_TARGETS`（A，默认 20）、`…_LIVENESS_DIR` / `…_CASE_COST_DIR`（C 级路径）。本报告与结案报告中的清单统计均为**补登记后**的数字（359 条）。
 
 ---
 
@@ -305,6 +305,25 @@ untraceable_scan(payload) → {'ok': True, 'checked': 0, 'violations': []}
 - `build:flask` 的第三步会 `cpSync(dist/plugins → static/plugins)`，而 `static/plugins/demo-ui.js` **是被 git 跟踪的**——本该有污染风险。实测：三次构建后 `git status` 里**从未出现** `static/`，该文件内容与 HEAD 一致（`git log -- static/plugins/demo-ui.js` 只有一条无关的历史提交）。风险未发生，但**每次构建后都必须看一眼 `git status`** 这条纪律保留。
 - `SwitchField.tsx` 的主色依赖 `--mascot-*` CSS 变量，而这些变量只在无人 import 的 `src/styles/theme.css` 里定义（工作台里等于未定义）。前端实现在开关中心容器上补了局部兜底变量，开关能正常渲染；**根因未修**（属 S6-01 前端遗留，见 §七.10）。
 
+### 5.7 前后端拒绝契约（把前端的"未联调"变成后端可执行断言）
+
+前端实现者明确声明"未与真实后端联调"，并点出两个**只能由后端保证**的前提。已各自钉成用例：
+
+| 前提 | 风险 | 守护用例 |
+|---|---|---|
+| 失败响应的人读文案放在 **`message`** 而不是 `error` | `apiClient.request()` 只把 `body.error` 当消息，`ApiError.message` 会退化成 `"HTTP 403"`（前端因此改读 `details.message`）；若某条拒绝路径只给 `code`，前端就只能显示"HTTP 403"——**等于用户看不到被拒原因** | `TestDenialContractForFrontend`：对 9 条拒绝路径（未知键/缺 value/非法值/C 级/env 锁定/矩阵拒绝/批量/缺二次认证/缺会话）逐条断言 `ok=false`、`code`、**`message` 非空**，且**响应体不含 `error` 键**（与认证失败的形状区分开） |
+| `counts.overridden` 与前端"只看已覆盖"筛选**同义** | 前端芯片数字取 `counts.overridden`，行筛选用 `source=='ui_override' \|\| 'ui_override' ∈ shadowed_by`；两者若不同义就会出现"芯片 3 项、筛出 2 行" | `TestOverrideCountConsistency`：三场景（无覆盖 / 覆盖生效 / **覆盖被 env 遮蔽**）逐场景断言两口径等价，并整表断言 `override_present` 计数 == 前端谓词命中数（含被遮蔽的一例） |
+
+**由该组用例反查出的一处真实缺陷（已修）**：`_second_factor_ok` 原先**先判凭据、后判会话**，导致最常见的第一条路径（运维还没开会话、也没带码）返回的是
+`"B 级开关需二次认证（身体字段 second_factor）"` —— **完全没提"必须先开审批会话"**，而前端只能提交认证码、无法自行开会话，用户会一直补码却始终不过。现改为**先判会话、再判凭据**，两条提示都可执行：
+
+```
+403 second_factor_required | B 级开关需二次认证，且必须先开启审批会话：请先 POST /api/approval/session，
+                              再带 second_factor 提交（开关中心只能提交认证码，会话需由运维侧开启）
+```
+
+**运维前置条件（如实登记，非缺陷）**：B 级改开关要求**已有的审批会话 cookie**（`cp_approval_session`，S4-01 既有设计，由 `POST /api/approval/session` 开启）。开关中心不负责开会话，只负责把后端的原话展示给用户——因此上多实例/新部署时，请把"先开会话"写进运维手册。
+
 ---
 
 ## 六、质量证据
@@ -314,16 +333,16 @@ untraceable_scan(payload) → {'ok': True, 'checked': 0, 'violations': []}
 | 套件 | 例数 | 覆盖重点 |
 |---|---|---|
 | `tests/unit/test_settings_registry.py` | 23 | 零缺口 / 零重造 / 注册表完整性 / 反向防漂移 |
-| `tests/unit/test_settings_resolver.py` | 37 | 四层优先级 / 置灰原因 / C 级脱敏 / 覆盖层守不易 / bootstrap 零影响与幂等 |
+| `tests/unit/test_settings_resolver.py` | 39 | 四层优先级 / 置灰原因 / C 级脱敏 / 覆盖层守不易 / bootstrap 零影响与幂等 |
 | `tests/unit/test_settings_service.py` | 32 | A/B/C 分流 / 双人确认 / 矩阵拒绝 / 审计入链 / 不双写 |
-| `tests/unit/test_settings_routes.py` | 32 | 三组路由 + confirm / 批量拒绝 / require_token / 无明文 |
-| **合计** | **124** | 全部通过 |
+| `tests/unit/test_settings_routes.py` | 43 | 三组路由 + confirm / 批量拒绝 / require_token / 无明文 |
+| **合计** | **137** | 全部通过 |
 | 前端 `settings.test.tsx` | 29 | 分类+徽章+来源标签 / 置灰原因 / 掩码 / B 级确认步骤 / 202 待办 / 搜索 |
 
 ### 6.2 邻接回归（零回归）
 
 ```
-**499 passed**（新增 124 + 邻接 375，共 10 套件）：test_settings_* ×4、test_s6_01_ui_panels、test_security_actor_matrix、
+**512 passed**（新增 137 + 邻接 375，共 10 套件）：test_settings_* ×4、test_s6_01_ui_panels、test_security_actor_matrix、
 test_security_approval_guard、test_audit_facade、test_audit_chain、test_s4_01_stage_promote_chain
 ```
 

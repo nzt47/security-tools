@@ -146,6 +146,10 @@ PROCESS_ENV_DENYLIST: Dict[str, str] = {
 #: （`dynamic_prefixes()`）；本脚本只负责把它们提取出来并交给检查器比对。
 _DYNAMIC_NAME_PATTERN = re.compile(r"^([A-Z][A-Z0-9_]*)$")
 
+#: 环境变量形态的**名字前缀**（如 `CP_REPAIR_`）：全大写 + 数字 + 下划线，且以 `_` 结尾。
+#: 用于把"拼接助手"里的普通字符串模板（`"cache:" + name`）与真正的开关名前缀区分开。
+_ENV_PREFIX_SHAPE = re.compile(r"^[A-Z][A-Z0-9_]*_$")
+
 
 # ════════════════════════════════════════════════════════════
 #  提取结果数据结构
@@ -487,32 +491,94 @@ class _Extractor(ast.NodeVisitor):
         | 形态 | 例子 | 处理 |
         |---|---|---|
         | 直通 | `def _env_flag(name, default): return os.getenv(name, default)...` | 调用点即读取点 |
-        | 前缀家族 | `def _env_bool(name, d): v = os.environ.get(f"{_ENV_PREFIX}_{name}")` | 调用点传的是**后缀**，真实开关名 = 前缀 + 后缀 |
+        | 前缀家族（直接） | `def _env_bool(name, d): v = os.environ.get(f"{_ENV_PREFIX}_{name}")` | 调用点传的是**后缀**；真实名 = 前缀 + 后缀 |
+        | 前缀家族（**二级转发**） | `def _env_int(env, name, d): return _env_text(env, name)`，而 `_env_text` 里 `key = ENV_PREFIX + name` | 名字在**内层**构造，外层只是转发；须沿转发链继承前缀 |
+
+        二级转发是 S7-02（`agent/repair/policy.py`）实测踩到的形态：助手签名是
+        `(env, name, default)`（**名字不是第一个参数**），而前缀拼接发生在其调用的
+        内层函数里。只认「第一个实参就是名字」会把这类读取点丢进 `<unresolved>`，
+        于是**真实开关名（`CP_REPAIR_*`）在 UI 里看不见**——故本方法做两件事：
+        ① 模板扫描不依赖 env 访问方式（dict 查表也算），并能识别**任一**形参；
+        ② 沿「本文件助手之间的转发」传播前缀，并记录名字参数的下标。
         """
-        self.local_helpers: Dict[str, Dict[str, str]] = {}
+        self.local_helpers: Dict[str, Dict[str, Any]] = {}
+        self._helper_defs: Dict[str, ast.AST] = {}
+        self._helper_params: Dict[str, List[str]] = {}
+
+        # ── 第一轮：直接形态（模板 / 直通）──
         for node in ast.walk(tree):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
             base = node.name
-            if not (base in KNOWN_READ_HELPERS
-                    or _READ_HELPER_PATTERN.match(base)):
-                continue
             params = [a.arg for a in node.args.args]
+            # 候选：① 名字像读取助手；② **名字不像但确实在构造环境变量名**
+            #    （如 `_env_text(env, name)`：`key = ENV_PREFIX + name`）——后者若不收，
+            #    二级转发链就断在中间，`CP_REPAIR_*` 整族会变成 <unresolved>。
+            tpl_pre = _template_prefix_in(node, params, self.consts)[0] if params else ""
+            if not (base in KNOWN_READ_HELPERS
+                    or _READ_HELPER_PATTERN.match(base) or tpl_pre):
+                continue
+            self._helper_defs[base] = node
+            self._helper_params[base] = params
             if not params:
-                self.local_helpers[base] = {"mode": "self_read", "prefix": ""}
+                self.local_helpers[base] = {"mode": "self_read", "prefix": "",
+                                            "name_index": 0}
                 continue
             first = params[0]
-            mode, prefix = "unknown", ""
+            mode, prefix, name_param = "unknown", "", first
+            # ① 模板扫描（**不要求是 env 访问**：`key = ENV_PREFIX + name` 也算）
+            tpl_prefix, tpl_param = _template_prefix_in(node, params, self.consts)
+            if tpl_prefix:
+                mode, prefix, name_param = "family", tpl_prefix, tpl_param
+            # ② env 访问扫描（补充：直通 / f-string 家族）
             for sub in ast.walk(node):
                 arg = _env_access_arg(sub)
                 if arg is None:
                     continue
                 if isinstance(arg, ast.Name) and arg.id == first:
-                    mode = "pass_through"
+                    if mode != "family":
+                        mode, name_param = "pass_through", first
                 elif _uses_name(arg, first):
-                    mode = "family"
-                    prefix = _dynamic_prefix(arg, self.consts) or prefix
-            self.local_helpers[base] = {"mode": mode, "prefix": prefix}
+                    mode, prefix, name_param = "family", (
+                        _dynamic_prefix(arg, self.consts) or prefix), first
+            self.local_helpers[base] = {
+                "mode": mode, "prefix": prefix, "name_param": name_param,
+                "name_index": params.index(name_param) if name_param in params else 0}
+
+        # ── 第二轮：沿转发链传播前缀（外层助手 → 内层助手；不动点迭代）──
+        for _ in range(4):
+            changed = False
+            for name, info in self.local_helpers.items():
+                if info.get("mode") == "family":
+                    continue
+                node = self._helper_defs.get(name)
+                params = self._helper_params.get(name) or []
+                if node is None or not params:
+                    continue
+                for sub in ast.walk(node):
+                    if not isinstance(sub, ast.Call):
+                        continue
+                    callee = self._call_name(sub.func).split(".")[-1]
+                    inner = self.local_helpers.get(callee)
+                    if inner is None or callee == name:
+                        continue
+                    inner_params = self._helper_params.get(callee) or []
+                    inner_param = inner.get("name_param", "")
+                    if not inner.get("prefix") or inner_param not in inner_params:
+                        continue
+                    idx = inner_params.index(inner_param)
+                    if len(sub.args) <= idx:
+                        continue
+                    passed = sub.args[idx]
+                    if not isinstance(passed, ast.Name) or passed.id not in params:
+                        continue
+                    info.update({"mode": "family", "prefix": inner["prefix"],
+                                 "name_param": passed.id,
+                                 "name_index": params.index(passed.id)})
+                    changed = True
+                    break
+            if not changed:
+                break
 
     def _in_environ_scope(self, lineno: int) -> bool:
         if not self._environ_params:
@@ -531,27 +597,34 @@ class _Extractor(ast.NodeVisitor):
 
         if (is_helper or is_os_env or is_bare_env) and node.args:
             arg0 = node.args[0]
+            info = self.local_helpers.get(base, {}) if is_helper else {}
+            is_family = info.get("mode") == "family"
+            # 家族助手的名字参数**未必是第一个实参**（如 `_env_int(env, name, d)`）
+            name_arg = arg0
+            if is_family:
+                idx = int(info.get("name_index", 0) or 0)
+                if len(node.args) > idx:
+                    name_arg = node.args[idx]
             kind = ("helper" if is_helper
                     else "os_environ" if is_os_env else "bare_environ")
             if is_bare_env and self._in_environ_scope(getattr(node, "lineno", 0)):
                 # WSGI environ，不是进程环境 → 不计入开关（见 PROCESS_ENV_DENYLIST 说明）
                 kind = "wsgi_environ"
-            if self._is_pass_through(node, arg0):
+            if self._is_pass_through(node, name_arg):
                 # 助手内部转发形参：真实名字在调用方，这里不记
                 kind = "pass_through"
                 self._record(node, name="", resolved=False, kind=kind,
                              helper=base if is_helper else "", value_type="")
-            elif is_helper and self.local_helpers.get(base, {}).get(
-                    "mode") == "family":
+            elif is_family:
                 # 前缀家族助手：调用点传的是后缀，真实名 = 前缀 + 后缀
-                prefix = self.local_helpers[base].get("prefix", "")
-                suffix = self._fold(arg0)
+                prefix = info.get("prefix", "")
+                suffix = self._fold(name_arg)
                 if suffix is not None:
                     self._record(node, name=prefix + suffix, resolved=True,
                                  kind="helper_family", helper=base,
                                  value_type=self._type_hint(base, node))
                 else:
-                    self._record(node, name=_dynamic_prefix(arg0, self.consts)
+                    self._record(node, name=_dynamic_prefix(name_arg, self.consts)
                                  or prefix, resolved=False,
                                  kind="helper_family", helper=base,
                                  value_type=self._type_hint(base, node))
@@ -647,6 +720,41 @@ class _Extractor(ast.NodeVisitor):
         else:
             rp.dynamic_prefix = name or "<unresolved>"
         self.reads.append(rp)
+
+
+def _template_prefix_in(node: ast.AST, params: Sequence[str],
+                        consts: Dict[str, Optional[str]]
+                        ) -> Tuple[str, str]:
+    """在函数体里找「**环境变量形态的**静态前缀 + 恰好一个形参」的字符串模板
+
+    形态：`f"{_ENV_PREFIX}_{name}"`、`ENV_PREFIX + name`、`"X_" + key` 等。
+    **不要求该表达式被用于 env 访问**——S7-02 的 `_env_text` 是拿它当**字典键**
+    （`env.items()` 里比对），若只认 `os.environ.get` 就会漏掉整族真实开关名。
+
+    【安全边界】前缀必须是**环境变量形态**（`^[A-Z][A-Z0-9_]*_$`）。
+    否则形如 `def _cache_key(name): return "cache:" + name` 的普通拼接助手会被误判成
+    "开关读取家族"，进而把 `cache:FOO` 这种**并不存在**的开关名写进候选清单——
+    而"误报的名字"比"漏报"更危险（它会带着"已被机械提取证实"的外观进注册表）。
+
+    Returns:
+        `(前缀, 形参名)`；找不到返回 `("", "")`。
+    """
+    best: Tuple[str, str] = ("", "")
+    for sub in ast.walk(node):
+        if not isinstance(sub, (ast.JoinedStr, ast.BinOp)):
+            continue
+        if isinstance(sub, ast.BinOp) and not isinstance(sub.op, ast.Add):
+            continue
+        used = [n.id for n in ast.walk(sub)
+                if isinstance(n, ast.Name) and n.id in params]
+        if len(set(used)) != 1:
+            continue                     # 用了 0 个或多个形参 → 不是本形态
+        prefix = _dynamic_prefix(sub, consts)
+        if not _ENV_PREFIX_SHAPE.match(prefix):
+            continue                     # 非环境变量形态 → 不算开关名家族
+        if len(prefix) > len(best[0]):
+            best = (prefix, used[0])
+    return best
 
 
 def _literal_str(node: Optional[ast.expr]) -> Optional[str]:

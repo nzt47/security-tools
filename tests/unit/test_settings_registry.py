@@ -119,6 +119,52 @@ class TestMechanicalZeroGap:
         second = scanner.scan_paths([REPO_ROOT / "agent"], REPO_ROOT)
         assert sorted(second.managed_names()) == sorted(report.managed_names())
 
+    def test_two_level_family_chain_is_resolved(self, scan):
+        """★ 二级转发家族必须解析出**真实开关名**（S7-02 合并后实测的漏报）
+
+        形态：`agent/repair/policy.py` 里
+            `_env_int(env, name, d)` → `_env_text(env, name)` → `key = ENV_PREFIX + name`
+        名字在**内层**构造，而且**不是第一个参数**。早期提取器只认"第一个实参就是名字"，
+        于是整族 `CP_REPAIR_*` 被归入 `<unresolved>`——**这些开关在 UI 里根本看不见**。
+        本用例把该能力钉死：既断言名字解析正确，也断言其归类为 `helper_family`。
+        """
+        _scanner, report = scan
+        names = report.managed_names()
+        expected = {
+            "CP_REPAIR_MAX_CHANGED_FILES", "CP_REPAIR_MAX_LINES_PER_FILE",
+            "CP_REPAIR_BUDGET_TOKENS", "CP_REPAIR_MAX_ROUNDS",
+            "CP_REPAIR_TIMEOUT_SECONDS", "CP_REPAIR_SLICE_RADIUS",
+            "CP_REPAIR_HISTORY_COMMITS",
+        }
+        missing = expected - set(names)
+        assert not missing, f"二级转发家族未解析出：{sorted(missing)}"
+        for name in expected:
+            kinds = {rp.kind for rp in names[name]}
+            assert "helper_family" in kinds, (name, kinds)
+            assert names[name][0].module == "agent/repair/policy.py"
+
+    def test_resolved_family_names_are_independently_verifiable(self, scan):
+        """★ 解析出的名字必须能在源码里**独立复核**（防"提取器自己编名字"）
+
+        提取器是"代码读了什么"的唯一来源：它若编出一个并不存在的开关名，注册表就会
+        带着"已被机械提取证实"的外观把假开关展示给用户。故此处用**另一种方法**
+        （直接读源码取 `ENV_PREFIX` 常量 + 调用点字面量后缀）复核同一批名字。
+        """
+        _scanner, report = scan
+        names = set(report.managed_names())
+        source = (REPO_ROOT / "agent/repair/policy.py").read_text(encoding="utf-8")
+        prefix_lines = [ln for ln in source.splitlines()
+                        if ln.startswith("ENV_PREFIX")]
+        assert prefix_lines, "源码里必须能直接读到 ENV_PREFIX 常量"
+        prefix = prefix_lines[0].split("=", 1)[1].strip().strip('"')
+        assert prefix == "CP_REPAIR_"
+        resolved = sorted(n for n in names if n.startswith(prefix))
+        assert resolved, "应解析出该前缀下的开关名"
+        for name in resolved:
+            suffix = name[len(prefix):]
+            assert f'"{suffix}"' in source, (
+                f"{name} 的后缀 {suffix} 未能在源码里独立复核（疑似提取器编造）")
+
 
 # ════════════════════════════════════════════════════════════
 #  二、零重造（合并既有 observability 校验表）

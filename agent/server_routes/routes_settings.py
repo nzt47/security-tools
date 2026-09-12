@@ -113,18 +113,27 @@ def _authorize_view() -> Optional[Any]:
 def _second_factor_ok(key: str) -> Tuple[bool, str]:
     """复用 S4-01 的二次认证（会话绑定 + 一次性确认码/配置口令）
 
+    【检查顺序＝提示顺序（S7-01 复核修正）】
+        先判**会话**、再判**凭据**。理由：会话是更根本的前置条件，而前端只能提交
+        二次认证码、**无法自行开会话**——若先报"缺少 second_factor"，首次使用的人
+        会一直补码却始终不过（实测：无会话且未带码时，旧实现的提示是
+        "B 级开关需二次认证（身体字段 second_factor）"，**完全没提要先开会话**）。
+        两段提示都要求可执行，且都不回显任何凭据。
+
     Returns:
-        `(ok, reason)`；`ok=False` 时 reason 为可读原因（不回显任何凭据）。
+        `(ok, reason)`；`ok=False` 时 reason 为可读原因。
     """
-    body = request.get_json(silent=True) or {}
-    code = str(body.get("second_factor", "") or "")
-    if not code:
-        return False, "B 级开关需二次认证（身体字段 second_factor）"
     import agent.security.approval_session as session_mod
 
+    body = request.get_json(silent=True) or {}
+    code = str(body.get("second_factor", "") or "")
     session_id = str(request.cookies.get(session_mod.SESSION_COOKIE_NAME, "") or "")
     if not session_id:
-        return False, "请先开启审批会话（POST /api/approval/session）后再做二次认证"
+        return False, ("B 级开关需二次认证，且必须先开启审批会话："
+                       "请先 POST /api/approval/session，再带 second_factor 提交"
+                       "（开关中心只能提交认证码，会话需由运维侧开启）")
+    if not code:
+        return False, "B 级开关需二次认证（请求体字段 second_factor）"
     store = session_mod.get_session_store()
     check = store.verify_second_factor(session_id=session_id,
                                        record_id=f"setting:{key}", code=code)

@@ -276,6 +276,127 @@ class TestPanelDiscipline:
             "应把 items/counts 的数值纳入 metric() 信封或修正本用例的结论")
 
 
+class TestDenialContractForFrontend:
+    """前后端**拒绝契约**（前端 `settingsDenialMessage` 依赖它，故在此钉死）
+
+    Why 需要：`lib/apiClient.ts::request()` 在 `!res.ok` 时只把 `body.error` 当消息，
+    `ApiError.message` 会退化成 `"HTTP 403"`；前端因此改为优先读 `details.message`
+    （`ApiError.details` 里放的是**完整响应体**）。这条链路成立的前提是：
+    **本路由的每一个拒绝响应都必须带可读的 `message` 字段**（而不是只有 `error`
+    或只有 `code`）。前端实现者明确点出"未与真实后端联调、该前提未实证"——故用本
+    组用例把它变成后端侧的可执行断言。
+    """
+
+    def _assert_denial_shape(self, resp, *, expect_code: str) -> None:
+        body = resp.get_json()
+        assert resp.status_code >= 400
+        assert body["ok"] is False
+        assert body["code"] == expect_code
+        # ★ 前端读的就是这个字段：必须存在、非空、是字符串
+        assert isinstance(body.get("message"), str)
+        assert body["message"].strip(), f"{expect_code} 的 message 不能为空"
+        # 认证失败用 `error`，业务拒绝用 `message`：两者不得混用（否则前端读不到）
+        assert "error" not in body
+
+    def test_unknown_key_denial_shape(self, routes, monkeypatch):
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        self._assert_denial_shape(
+            client.post("/api/cp/settings/NOPE", json={"value": True}),
+            expect_code="unknown_key")
+
+    def test_missing_value_denial_shape(self, routes, monkeypatch):
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        self._assert_denial_shape(
+            client.post("/api/cp/settings/LOCK_PROFILE", json={}),
+            expect_code="missing_value")
+
+    def test_invalid_value_denial_shape(self, routes, monkeypatch):
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        self._assert_denial_shape(
+            client.post("/api/cp/settings/LOCK_PROFILE_BATCH", json={"value": "abc"}),
+            expect_code="invalid_value")
+
+    def test_c_level_denial_shape(self, routes, monkeypatch):
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        self._assert_denial_shape(
+            client.post("/api/cp/settings/SMTP_PASSWORD", json={"value": "x"}),
+            expect_code="read_only_secret")
+
+    def test_env_locked_denial_shape(self, routes, monkeypatch):
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        monkeypatch.setenv("LOCK_PROFILE", "1")
+        self._assert_denial_shape(
+            client.post("/api/cp/settings/LOCK_PROFILE", json={"value": False}),
+            expect_code="locked_by_env")
+
+    def test_matrix_denial_shape(self, routes, monkeypatch):
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="auto:bot", actor_type="auto")
+        self._assert_denial_shape(
+            client.post("/api/cp/settings/LOCK_PROFILE", json={"value": True}),
+            expect_code="settings_denied")
+
+    def test_batch_denial_shape(self, routes, monkeypatch):
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        self._assert_denial_shape(
+            client.post("/api/cp/settings/LOCK_PROFILE", json=[{"key": "x"}]),
+            expect_code="batch_not_supported")
+
+    def test_second_factor_denial_shape(self, routes, monkeypatch):
+        """B 级缺二次认证：前端要能把后端原文展示给用户（不是"HTTP 403"）"""
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        resp = client.post(f"/api/cp/settings/{B_KEY}", json={"value": True})
+        self._assert_denial_shape(resp, expect_code="second_factor_required")
+        assert "二次认证" in resp.get_json()["message"]
+
+    def test_confirm_needs_approval_session(self, routes, monkeypatch):
+        """★ B 级的前置条件：**必须有审批会话**（`/confirm` 也一样）
+
+        前端只能收二次认证码文本、无法自行开会话，故该前置必须由后端明说
+        （返回可读 message，前端原样展示）——而不是静默失败。
+        """
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        resp = client.post(f"/api/cp/settings/{B_KEY}", json={"value": True},
+                           headers={})
+        body = resp.get_json()
+        assert resp.status_code == 403
+        assert "审批会话" in body["message"]
+
+    def test_confirm_without_session_is_denied_with_message(self, routes, monkeypatch):
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        resp = client.post(f"/api/cp/settings/{B_KEY}/confirm",
+                           json={"pending_id": "setp-x",
+                                 "second_factor": "unit-2fa-code"})
+        body = resp.get_json()
+        assert resp.status_code == 403
+        assert body["ok"] is False and body["message"].strip()
+
+    def test_no_response_anywhere_uses_only_error_field(self, routes, monkeypatch):
+        """全量扫一遍：拒绝响应里 `message` 是唯一的人读出口（与前端读取口径一致）"""
+        client, RS = routes
+        _force_actor(monkeypatch, RS, actor="owner")
+        probes = [
+            client.get("/api/cp/settings/../settings"),          # 非法路径（Flask 404）
+            client.post("/api/cp/settings/NOPE", json={"value": True}),
+            client.post("/api/cp/settings/SMTP_PASSWORD", json={"value": "x"}),
+            client.post(f"/api/cp/settings/{B_KEY}", json={"value": True}),
+        ]
+        for resp in probes:
+            body = resp.get_json() or {}
+            if resp.status_code >= 400:
+                assert body.get("message") or resp.status_code == 404, (
+                    f"拒绝响应缺少可读 message：{resp.status_code} {body}")
+
+
 # ════════════════════════════════════════════════════════════
 #  二、POST 改值
 # ════════════════════════════════════════════════════════════
