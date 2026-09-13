@@ -2333,6 +2333,10 @@ class ShadowRunner:
         runner = ShadowRunner()                       # judge=auto，沙箱 measure_wall=True
         report = runner.run(capability_id, case_set=cs, candidate=pattern)
         report.to_dict()["p99_wall_candidate_ms"], report.markdown()
+
+    S10-02：`CP_DIGESTION_JUDGE_ENABLED=true` 时构造期会经 `judge_runtime_from_env()`
+    注入**带预算护栏的真实 judge 运行时**（`judge_kind` 精确到 ``llm:<provider>:<model>``
+    且调用计入 UTC）；未开启（默认）时返回 `None`，判定器与报告**与接入前逐字节一致**。
     """
 
     def __init__(self, *, sandbox: Optional[ReplaySandbox] = None,
@@ -2373,6 +2377,20 @@ class ShadowRunner:
         # 提供"配置 + 凭证 + 预算护栏 + 判定存档"。**不传就完全走 S3-03 原路径**
         # （行为与既有断言逐字一致）；传了就必须与显式 sandbox 判定器不冲突。
         self.runtime = judge_runtime
+        # ── S10-02：**生产注入点** ──────────────────────────────────────────
+        # S8-04 的运行时此前只有"定义 + 导出"，没有任何生产调用者 ⇒ 灰度评测仍走
+        # 确定性打分器（遗留 W1-L3）。此处把"要不要用真实 judge"收敛到**一个**入口：
+        # 调用方**没有**给出任何显式判定器意图时，按环境决定（默认关闭 ⇒ None）。
+        #  · 显式 `judge=` / `judge_mode=` / `judge_kind=` / `judge_invoke=` = 更强的
+        #    调用方意图，一律**不覆盖**（注入纪律：显式优先，测试与演示桩不被夺权）；
+        #  · 显式 `sandbox` 自带判定器时同样不注入（否则触发下面的冲突检查）。
+        # 开关关闭时 `judge_runtime_from_env()` 返回 None ⇒ 本对象与接入前**逐字节一致**。
+        if (judge_runtime is None and judge is None and judge_invoke is None
+                and not str(judge_mode or "").strip()
+                and not str(judge_kind or "").strip()
+                and getattr(sandbox, "judge", None) is None):
+            judge_runtime = judge_runtime_from_env(env=self.env or None)
+            self.runtime = judge_runtime
         if (judge_runtime is not None and sandbox is not None
                 and getattr(sandbox, "judge", None) is not None):
             raise ValueError(
@@ -3055,6 +3073,43 @@ def isolation_declaration(*, plan: Optional[IsolationPlan] = None,
     return payload
 
 
+def judge_runtime_from_env(*, env: Optional[Dict[str, str]] = None,
+                           **kwargs: Any) -> Any:
+    """按环境构造 judge 运行时（**默认关闭 ⇒ `None`**）—— S10-02 的生产注入点
+
+    这是灰度链路**唯一**的真实 judge 构造入口：`ShadowRunner` 在构造期调用它，
+    故**每一个**生产调用方（`shadow_quality()` 门面、S7-05 真实链路脚本、
+    以及将来任何 `ShadowRunner(...)` 的调用者）都自动获得同一条通道，
+    不需要各自复制一份"要不要用真实 judge"的判断。
+
+    三条纪律：
+
+    1. **默认关闭**：只有 ``CP_DIGESTION_JUDGE_ENABLED=true`` 才构造真实运行时
+       （配置/凭证/预算/端点全部由 `judge_runtime` 单点解析，本函数不重复实现）；
+       关闭时返回 `None` ⇒ 灰度仍走确定性打分器，且报告与接入前**逐字节一致**。
+    2. **不静默**：开启并构造成功 ⇒ 记一条 INFO（含可用性三态，**无明文凭证**）；
+       开启但凭证/通道不可用 ⇒ 运行时仍返回（`judge_kind` 如实标
+       ``deterministic_local(no_credentials)``），由 `JudgeGuard` 在样本前探针时定标签。
+    3. **失败不阻断主流程**：构造抛错一律记 warning 并按"未启用"处理（返回 `None`）
+       —— 与 `_cost_policy_factor()` 同一条纪律：**新增机制失败不得让灰度停摆**。
+
+    Args:
+        env: 环境映射（``None`` ⇒ ``os.environ``）；调用方通常传 ``self.env or None``；
+        **kwargs: 透传给 `judge_runtime.build_judge_runtime_if_enabled` 的注入点
+            （``invoke`` / ``adapter`` / ``store`` / ``events_dir`` 等；验证脚本与
+            单测用桩通道，生产路径不传）。
+    """
+    try:
+        from . import judge_runtime as _judge_runtime
+        runtime = _judge_runtime.build_judge_runtime_if_enabled(env=env, **kwargs)
+    except Exception as e:  # noqa: BLE001 新增机制失败不得阻断灰度（按未启用处理）
+        logger.warning("judge 运行时构造失败（按未启用处理，灰度不中断）: %s", e)
+        return None
+    if runtime is not None:
+        logger.info("judge 真实通道已接入灰度链路：%s", runtime.availability.markdown())
+    return runtime
+
+
 def shadow_quality(
     capability_id: str,
     *,
@@ -3129,4 +3184,6 @@ __all__ = [
     "CompareVerdict", "compare",
     # 门面
     "ShadowRunner", "shadow_quality",
+    # S10-02：真实 judge 的生产注入点（默认关闭 ⇒ None）
+    "judge_runtime_from_env",
 ]
