@@ -39,6 +39,46 @@
    拿不准取更严；确切的"误匹配率"实测见报告（本仓库当前索引构造下
    未复现大面积误匹配，见 §实测，故此条定位为**结构性前置条件**而非实测热区）。
 
+4) 【TASK-S11-02】触发词列表**纯净度**（`CODE_IMPURE_TRIGGER_LIST`）
+   改前（S10-01）只要求"**存在**至少一个有效触发词"：`["读","取","json","配","置"]`
+   因为有 `json` 就整条放行，4 个单字原样留在声明里（存量 `json-30a189b6` 即此形态）。
+   改后要求列表**纯净**：任何一项无区分度即整条判 dirty。
+
+   为什么是这个阈值（不新增数字，复用 `MIN_TRIGGER_CHARS=2`）
+   ------------------------------------------------------
+   a) **零收益**：单字触发词本来就不进索引特征 —— `matcher.register` 在拼索引文本时
+      已用 `effective_trigger_patterns` 过滤（matcher.py:188）。留在声明里对匹配
+      没有任何正贡献，"严格一点总会丢东西"的顾虑不成立。
+   b) **实测负收益一：优先级倒挂**。`generator._compute_priority` 按
+      `len(wf.trigger_patterns) >= 3` 给 **+10**（generator.py:109），把单字算进长度
+      等于用垃圾触发词骗取优先级。实测 `json-30a189b6`：污染态 60 / 纯净态 50，
+      `priority_factor` 0.800 → 0.750。
+   c) **实测负收益二：单字从 tags 后门回流索引**。`learner` 把触发词镜像进 tags
+      （learner.py:137 `tags=["learned"] + triggers[:3]`，S10-01 之前写入的是**未过滤**
+      的原始单字），而 `matcher.register` 拼索引文本时对 tags **不过滤**
+      （matcher.py:190）——`matcher.py:188` 的过滤被 `matcher.py:190` 绕过。
+      实测：单字查询"读"在污染条目上 sim=0.361（≥ min_similarity 0.3，**成为候选**），
+      同条目换成纯净触发词后 sim=0.303。
+   d) **实测负收益三：导出契约被污染**。`skill_converter._compile_skill_content`
+      把原始列表逐项渲染进 SKILL.md 的「触发条件」（skill_converter.py:326-329），
+      5 行触发条件里 4 行是无用单字，作为"LLM 参考"的适用性声明交给模型。
+   e) **为什么不取比例阈值（如"有效占比 ≥ 50%"）**：比例阈值要引入一个新数字且
+      没有锚点（为什么是 50%？为什么不是 2 个？），而纯净度阈值不需要新数字 ——
+      它复用 §2 已有的 `MIN_TRIGGER_CHARS=2`，政策里始终只有**一个**阈值。
+      且"纯净列表"正是写入方（`learner`，learner.py:117 先过滤再落库）**本来就产出**
+      的形态，故政策与写入方契约一致、可机械核对。
+   f) **为什么"整条否决"不过严**：新学习路径在落库前已过滤单字（learner.py:117），
+      新条目**按构造即纯净**，本门槛对新路径是 no-op；它只在存量/demo/手工改写
+      的条目上触发，正是本次审核指出的漏洞面。真要让一条好工作流回来，
+      清掉单字即可（`--apply` 后仍可按 ID 人工执行，退役≠失效）。
+
+   ⚠️ **本门槛只关掉"声明/镜像"这一条通道，不等于关掉单字误触发这一现象**：
+   索引文本还含 `source_user_input` 与 `task_signature`（matcher.py:187-192），
+   它们对中文同样按字切分。同一份数据实测：把 `json-30a189b6` 的触发词换成纯净的
+   `["json"]` 后，单字查询"读"仍得 sim=0.303（≥ 0.3）**仍会命中**。
+   即"单字输入触发多步自动执行"的**根因在索引文本构成与 min_similarity 阈值**，
+   不在触发词列表；该项属匹配质量专项，已在 S11-02 报告中登记为遗留。
+
 3) `MIN_CROSS_SESSION_SUPPORT = 2`（最少样本数）
    "单轮来源"的机器可判定形式：同一 `task_signature` 只在**一个会话**里出现过
    ⇒ 只有 1 个样本，无从判断它是否会复现。自动升格为 Skill 属**资产沉淀**
@@ -71,6 +111,7 @@ __all__ = [
     "MIN_CROSS_SESSION_SUPPORT",
     "CODE_STEPS_TOO_FEW",
     "CODE_NO_DISCRIMINATIVE_TRIGGER",
+    "CODE_IMPURE_TRIGGER_LIST",
     "CODE_NOT_ACTIVE",
     "CODE_DISABLED",
     "CODE_SINGLE_SESSION_SUPPORT",
@@ -98,6 +139,8 @@ MIN_CROSS_SESSION_SUPPORT = 2
 
 CODE_STEPS_TOO_FEW = "STEPS_TOO_FEW"
 CODE_NO_DISCRIMINATIVE_TRIGGER = "NO_DISCRIMINATIVE_TRIGGER"
+#: 【TASK-S11-02】列表混入无区分度触发词（有有效触发词，但不纯净）—— 见 docstring §4
+CODE_IMPURE_TRIGGER_LIST = "IMPURE_TRIGGER_LIST"
 CODE_NOT_ACTIVE = "NOT_ACTIVE"
 CODE_DISABLED = "DISABLED"
 CODE_SINGLE_SESSION_SUPPORT = "SINGLE_SESSION_SUPPORT"
@@ -176,9 +219,9 @@ def check_structure(*, steps: Any,
             f"（单步=单次工具调用，不是可复用工作流）")
 
     good = effective_trigger_patterns(trigger_patterns)
+    bad = single_char_triggers(trigger_patterns)
     if not good:
         codes.append(CODE_NO_DISCRIMINATIVE_TRIGGER)
-        bad = single_char_triggers(trigger_patterns)
         if bad:
             detail = (f"有效触发词数 0 < 1；单字/空触发词 {len(bad)} 个: "
                       f"{bad[:5]}")
@@ -188,6 +231,16 @@ def check_structure(*, steps: Any,
             detail = ("触发词列表为空（中文按字切分产生的单字触发词已在入库前"
                       "丢弃；无任何有区分度的触发词）")
         reasons.append(f"无有区分度触发词（{detail}）")
+    elif bad:
+        # 【TASK-S11-02】纯净度门槛：有有效触发词但**混入**无区分度项 → 整条判
+        # dirty（改前只丢弃单字即放行，见 docstring §4 的 a)~f) 依据）。
+        # 与 CODE_NO_DISCRIMINATIVE_TRIGGER 互斥：全无有效触发词时只报前者，
+        # 避免同一条目因"全坏"与"混坏"两条码重复计数。
+        codes.append(CODE_IMPURE_TRIGGER_LIST)
+        reasons.append(
+            f"触发词列表不纯净：{len(bad)} 个无区分度触发词 {bad[:5]} 混在 "
+            f"{len(good)} 个有效触发词 {good[:5]} 中（单字触发词对匹配零增益，"
+            f"却会骗取优先级加成、经 tags 回流索引、污染导出触发条件）")
 
     return AdmissionDecision(codes=tuple(codes), reasons=tuple(reasons))
 

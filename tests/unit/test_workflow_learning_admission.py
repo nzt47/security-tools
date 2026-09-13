@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""工作流学习层准入门槛 — 单元测试（TASK-S10-01）
+"""工作流学习层准入门槛 — 单元测试（TASK-S10-01 / S11-02）
 
 覆盖：
   1. **回归锚**：单字触发词的工作流不得进入匹配候选
@@ -11,6 +11,12 @@
   5. 自动升格门槛：单会话/单轮来源（跨会话样本数 < 2）不得自动升格
   6. 存量退役：只标记不删除 + 追加式台账 + 幂等
   7. 正向回归：达标工作流照常匹配/执行；存量里达标条目仍在候选池
+  8. **【S11-02 政策变更】** 触发词列表**纯净度**：混入无区分度项即**整条**判 dirty
+     （改前 S10-01 语义为"存在 1 个有效触发词即放行"——存量 `json-30a189b6`
+     的 `['读','取','json','配','置']` 即靠此进入候选池；改后要求列表纯净。
+     阈值依据见 `agent/workflow_learning/admission.py` 模块 docstring §4）。
+     第 1 组中 `test_mixed_trigger_list_rejects_whole_entry` 与
+     `test_pure_multi_trigger_list_still_admitted` 为本变更的**反向/正向**锚。
 """
 import json
 
@@ -126,16 +132,55 @@ class TestSingleCharTriggerNeverCandidate:
         res = svc.try_execute(DIRTY_INPUT)
         assert res.matched is False
 
-    def test_single_char_triggers_never_become_index_features(self):
-        """混入单字触发词不否决整条（只丢弃单字），且单字不进有效触发词"""
+    def test_mixed_trigger_list_rejects_whole_entry(self):
+        """【政策变更 S11-02】混入单字触发词 → **整条**判 dirty
+
+        改前（S10-01）语义：只要还有 1 个有效触发词即放行，单字仅被丢弃
+        —— 存量 `json-30a189b6` 的 `['读','取','json','配','置']` 正是靠这条
+        以"存在 1 个 json"进入候选池。
+        改后（S11-02）语义：声明列表必须**纯净**，混入即整条否决。
+        阈值依据（为什么不新增数字、为什么整条否决）见 admission 模块 docstring §4。
+        """
         wf = _healthy_wf()
         wf.trigger_patterns = ["列", "出", "python"]  # 混入单字
+        d = check_structure(steps=wf.steps, trigger_patterns=wf.trigger_patterns)
+        assert d.admitted is False
+        assert d.codes == (admission.CODE_IMPURE_TRIGGER_LIST,), (
+            "混入单字只报 IMPURE_TRIGGER_LIST —— 与 NO_DISCRIMINATIVE_TRIGGER "
+            "互斥，避免同一条目因'全坏'与'混坏'重复计数")
+        assert "不纯净" in d.reason_text
+
         m = WorkflowMatcher()
-        assert m.register(wf) is True, "还有 'python' 可用，不该整条否决"
+        assert m.register(wf) is False, "不纯净条目不得进候选池"
+        assert "wf-healthy" not in m._workflows
+        assert "wf-healthy" not in m._index._docs, "不得留在索引里"
+
+        # 「丢弃单字」的**特征层**过滤语义仍保留（本任务只收紧准入，不改特征构造；
+        # 该过滤是 matcher.py:188 的既有行为，不改动）
         assert effective_trigger_patterns(wf.trigger_patterns) == ["python"]
-        # 全是单字时才否决（区分"丢弃单字"与"整条否决"两种语义）
+
+        # 全是单字 → 走 NO_DISCRIMINATIVE_TRIGGER（而非 IMPURE），两种语义不混
         assert check_structure(
-            steps=wf.steps, trigger_patterns=["列", "出"]).admitted is False
+            steps=wf.steps,
+            trigger_patterns=["列", "出"]).codes == (
+                admission.CODE_NO_DISCRIMINATIVE_TRIGGER,)
+
+    def test_pure_multi_trigger_list_still_admitted(self):
+        """正向收紧（防误伤）：**纯净**的多触发词列表不得被新门槛否决
+
+        新门槛只否决"混入无区分度项"，绝不能退化成"触发词多就否决"：
+        `generator._compute_priority` 的 `>=3 → +10` 加成面向的正是这种纯净多项列表。
+        """
+        wf = _healthy_wf()
+        wf.trigger_patterns = ["python", "统计", "报告", "行数"]
+        d = check_structure(steps=wf.steps, trigger_patterns=wf.trigger_patterns)
+        assert d.admitted is True
+        assert d.codes == () and d.reasons == ()
+        assert WorkflowMatcher().register(wf) is True
+        # 混合 ASCII/中文、恰好 2 字符的边界项应算"有区分度"
+        assert check_structure(
+            steps=wf.steps,
+            trigger_patterns=["ai", "读取"]).admitted is True
 
     def test_rejected_workflow_removed_from_index_when_degraded(self, repo):
         """先达标入池，后被改坏（触发词变单字）→ 同步剔除，不留残留候选"""
@@ -447,6 +492,11 @@ class TestStockRetirement:
         不依赖"文件当前是否已被归档"（运行期进程可能改写统计/状态），
         只断言代码层保证：脏条目注册后不进候选池，且达标条目仍在池中
         （防止断言因"对象从报告里消失"而假绿）。
+
+        【S11-02 口径变更】存量 6 条在新增的**纯净度**门槛下**全部**不达标
+        （含原被判 clean 的 `json-30a189b6`），故"达标条目仍在池中"改用
+        **合成达标条目**作正向对照，并把逐条判定与"按该条自身数据独立复算"
+        的结果对齐 —— 断言仍有牙齿，且不会因"全被拒"而失去意义。
         """
         from agent.workflow_learning.retirement import WORKFLOW_REPO_PATH
         if not WORKFLOW_REPO_PATH.exists():
@@ -454,17 +504,39 @@ class TestStockRetirement:
         data = json.loads(WORKFLOW_REPO_PATH.read_text(encoding="utf-8"))
         assert data, "存量仓库不应为空"
         m = WorkflowMatcher()
+
+        # 正向对照（先做，避免下面"被拒"断言在空池上失义）
+        assert m.register(_healthy_wf()) is True
+        assert "wf-healthy" in m._workflows
+
         admitted_ids, rejected_ids = [], []
         for wf_id, raw in data.items():
             wf = LearnedWorkflow(**raw)
             (admitted_ids if m.register(wf) else rejected_ids).append(wf_id)
+
         # 脏条件命中者一律不在候选池
         for wf_id in rejected_ids:
             assert wf_id not in m._workflows
-        # 反向证据：达标条目必须仍在池中（否则本用例会因"全被拒"而假绿）
-        assert admitted_ids, (
-            f"存量仓库里没有任何达标条目被保留（rejected={rejected_ids}），"
-            f"断言将失去意义")
-        # 具名证据：json-30a189b6（4 步 + 触发词含 'json'）应保持可用
+
+        # 逐条独立复算（不依赖被测判定函数，避免"用被测代码预测被测代码"）
+        def _should_reject(wf: LearnedWorkflow) -> bool:
+            status = str(getattr(wf.status, "value", wf.status))
+            return (len(wf.steps or []) < MIN_STEPS
+                    or not effective_trigger_patterns(wf.trigger_patterns)
+                    or bool(single_char_triggers(wf.trigger_patterns))
+                    or not wf.enabled or status != "active")
+
+        for wf_id, raw in data.items():
+            wf = LearnedWorkflow(**raw)
+            assert (wf_id in rejected_ids) is _should_reject(wf), (
+                f"{wf_id} 的准入判定与该条自身数据的独立复算不一致")
+
+        # 具名证据：json-30a189b6（4 个单字 + 'json'）必须被纯净度门槛否决
+        # （改前它因"存在 'json'"被判 clean 且 active —— 本次审核指出的漏洞）
         if "json-30a189b6" in data:
-            assert "json-30a189b6" in admitted_ids
+            assert "json-30a189b6" in rejected_ids
+            raw_json = data["json-30a189b6"]
+            codes = check_structure(
+                steps=LearnedWorkflow(**raw_json).steps,
+                trigger_patterns=raw_json["trigger_patterns"]).codes
+            assert admission.CODE_IMPURE_TRIGGER_LIST in codes

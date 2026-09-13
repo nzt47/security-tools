@@ -216,7 +216,7 @@
     "failure_count": 0,
     "confidence": 0.5,
     "priority": 60,
-    "status": "active",
+    "status": "archived",
     "enabled": true,
     "tags": [
       "learned",
@@ -355,7 +355,7 @@
     "failure_count": 0,
     "confidence": 0.4,
     "priority": 70,
-    "status": "draft",
+    "status": "archived",
     "enabled": true,
     "tags": [
       "learned"
