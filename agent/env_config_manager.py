@@ -61,6 +61,21 @@ logger = logging.getLogger(__name__)
 #: （改写前是无限阻塞等待）。
 DEFAULT_ENV_LOCK_TIMEOUT_SEC = 10.0
 
+#: 覆盖 `.env` **目标文件**的环境变量（未设置时行为与以往完全一致）
+#:
+#: 【2026-09-13 新增 —— 修 P0：测试把真实 `.env` 写掉】
+#: 原实现下 `get_env_config_manager()` 是**懒加载单例且无路径覆盖**，
+#: 于是任何走到 `NetworkConfigManager.update()` 的测试都会写**仓库根的真实 `.env`**。
+#: 实测：`tests/unit/test_network_config.py::TestNetworkConfigEncryption::`
+#: `test_no_secure_manager_warning` 会把 `LLM_API_KEY` 覆盖成 `sk-test-key`
+#: ⇒ 正在运行的服务随即对模型 401、响应退化成兜底文案，
+#: **极易把"答得对"误判为"不达成"**（S9-01 的验证就被这样误导过）。
+#: `.env.backups/` 已有数百次覆盖记录（2026-08-15 事故）⇒ 属**复发问题**。
+#:
+#: 本变量让测试把目标指向临时文件：**保留真实文件 I/O 契约**（比 mock 更好，
+#: 审计日志/权限等契约仍可验证），但**永不触碰仓库 `.env`**。
+ENV_FILE_OVERRIDE_VAR = "CP_ENV_FILE"
+
 
 class EnvConfigManager:
     """.env 文件配置管理器
@@ -81,9 +96,15 @@ class EnvConfigManager:
             env_file_path: .env 文件路径，默认为项目根目录的 .env
         """
         if env_file_path is None:
-            # 项目根目录（agent/ 的上一级）
-            project_root = Path(__file__).resolve().parent.parent
-            env_file_path = project_root / ".env"
+            # 【2026-09-13】优先取 `CP_ENV_FILE` 覆盖（测试/隔离用）；
+            # 未设置时仍是仓库根 `.env`（与以往行为完全一致）。
+            _override = str(os.environ.get(ENV_FILE_OVERRIDE_VAR) or "").strip()
+            if _override:
+                env_file_path = Path(_override)
+            else:
+                # 项目根目录（agent/ 的上一级）
+                project_root = Path(__file__).resolve().parent.parent
+                env_file_path = project_root / ".env"
         self._env_file = Path(env_file_path)
         self._file_lock = threading.Lock()
         # 【CHG-2026-0810】跨进程文件锁（.env.lock）：防多进程并发写 .env
@@ -629,3 +650,15 @@ def get_env_config_manager() -> EnvConfigManager:
     # mypy 无法通过 if 窄化 global 变量类型，assert 显式收窄为 EnvConfigManager
     assert _instance is not None
     return _instance
+
+
+def reset_env_config_manager() -> None:
+    """丢弃单例（**测试/隔离专用**）
+
+    Why 需要它：`get_env_config_manager()` 是懒加载单例，构造时就**定死**了
+    `.env` 目标路径。测试若要通过 `CP_ENV_FILE` 把目标重定向到临时文件，
+    必须能在每个用例之间重置单例，否则第二个用例仍会写上一个用例的目标
+    （若上一个正好是仓库根 `.env`，隔离就失效了）。
+    """
+    global _instance
+    _instance = None

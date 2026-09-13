@@ -359,6 +359,75 @@ def _mock_env_config_in_ci(request):
         yield
 
 
+# ════════════════════════════════════════════════════════════
+#  【2026-09-13 新增】把 `.env` 目标重定向到临时文件（**所有环境**，不止 CI）
+#
+#  背景（P0）：上面那个 `_mock_env_config_in_ci` 只在 `SKILLS_OFFLINE=1`
+#  时激活，本地开发**走真实写入** ⇒ 任何调用 `NetworkConfigManager.update()`
+#  的测试都会写**仓库根的真实 `.env`**。实测
+#  `tests/unit/test_network_config.py::TestNetworkConfigEncryption::`
+#  `test_no_secure_manager_warning` 会把 `LLM_API_KEY` 覆盖成 `sk-test-key`
+#  ⇒ 正在运行的服务随即对模型 401、响应退化成兜底文案，
+#  **极易把"答得对"误判为"不达成"**（S9-01 的验证就被这样误导过）。
+#  `.env.backups/` 已有数百次覆盖记录（2026-08-15 事故）⇒ 属复发问题。
+#
+#  修法：不 mock 掉真实 I/O、不动测试断言语义，而是**重定向目标文件**
+#  （`CP_ENV_FILE`）—— 真实文件读写/审计日志/权限契约仍可验证，
+#  但**永不触碰仓库 `.env`**。
+# ════════════════════════════════════════════════════════════
+
+@pytest.fixture(scope="function", autouse=True)
+def _isolate_dotenv_target(tmp_path):
+    """每个用例把 `EnvConfigManager` 的目标 `.env` 指向本用例的 tmp 目录"""
+    from agent import env_config_manager as _ecm
+
+    prev = os.environ.get(_ecm.ENV_FILE_OVERRIDE_VAR)
+    os.environ[_ecm.ENV_FILE_OVERRIDE_VAR] = str(tmp_path / "isolated.env")
+    _ecm.reset_env_config_manager()
+    try:
+        yield
+    finally:
+        # 先重置单例再还原变量：避免"单例仍指向本用例 tmp、变量已还原"的中间态
+        _ecm.reset_env_config_manager()
+        if prev is None:
+            os.environ.pop(_ecm.ENV_FILE_OVERRIDE_VAR, None)
+        else:
+            os.environ[_ecm.ENV_FILE_OVERRIDE_VAR] = prev
+        _ecm.reset_env_config_manager()
+
+
+def _llm_api_key_line(env_file) -> str:
+    """取 `.env` 里 `LLM_API_KEY=` 那一行（不存在则空串）"""
+    try:
+        for line in env_file.read_text(encoding="utf-8", errors="replace").splitlines():
+            if line.startswith("LLM_API_KEY="):
+                return line
+    except OSError:
+        return ""
+    return ""
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _guard_repo_dotenv_llm_key():
+    """会话级护栏：整轮测试结束后，仓库根 `.env` 的 `LLM_API_KEY` 必须**未被改写**
+
+    这是 P0 的**回归锁**：一旦有测试（现在或将来）绕过隔离写到真实 `.env`，
+    整轮测试会在收尾时报错，而不是**静默把在跑的服务打坏**。
+
+    只比对 `LLM_API_KEY` 这一行（而非整个文件）：既精确覆盖事故形态
+    （key 被覆盖成占位值），又不受并发会话对 `.env` 其它条目的合法改动干扰。
+    """
+    env_file = Path(__file__).resolve().parents[1] / ".env"
+    before = _llm_api_key_line(env_file)
+    yield
+    after = _llm_api_key_line(env_file)
+    if before != after:
+        pytest.fail(
+            "仓库根 .env 的 LLM_API_KEY 在测试期间被改写（P0：测试污染真实凭证）——"
+            "请检查是否有测试绕过 CP_ENV_FILE 隔离直接写 .env；"
+            f"before_len={len(before)} after_len={len(after)}")
+
+
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_environment():
     """设置测试环境 - 会话级别自动执行"""
