@@ -5,70 +5,43 @@ check_*.py 是运维检查脚本，在模块级直接发起 HTTP 请求连接 Pr
 
 策略：默认跳过这些脚本的收集，通过环境变量 RUN_PROM_CHECKS=1 启用。
 
-另含：原生扩展导入顺序固化（`_pin_native_import_order`），规避 Windows 上
-      pyarrow 原生初始化导致的进程级 0xC0000005 崩溃（S10-05）。
+另含：原生扩展导入顺序固化。**S11-01 起实现已提升为共用模块**
+      `agent/utils/native_preimport.py`，本文件只保留 S10-05 的原调用位
+      （不再内联实现，避免两份实现各自漂移）。
 """
-import importlib
-import logging
 import os
 import sys
-import time
 
 import pytest
 
+# 兼容"裁剪入口"：`pytest tests/integration --confcutdir=tests/integration`（或裸 `pytest`
+# 而非 `python -m pytest`）时，`tests/conftest.py` **不会被加载** ⇒ 它那句
+# `sys.path.insert(0, PROJECT_ROOT)` 也就没执行，下面 `from agent.utils...` 会
+# ModuleNotFoundError。S10-05 时本文件不 import agent（纯 collect_ignore），故没暴露；
+# S11-01 改为 import 共用实现后就暴露了。此处补一句幂等兜底（基线在该组合下本就
+# 有 48 个 collection error，这里只是不让它**更糟**：conftest 层直接 ImportError）。
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
 # ════════════════════════════════════════════════════════════
-# 原生扩展导入顺序固化（S10-05）
+# 原生扩展导入顺序固化（S10-05 引入 → S11-01 提升为进程入口共用实现）
 # ════════════════════════════════════════════════════════════
-# 【现象】单进程跑 `pytest tests/integration` 全量时，进程跑到 20%
-#   （tests/integration/test_digital_life_integration.py::
-#    TestModuleSafeImport::test_digital_life_initializes_with_missing_optional_modules，
-#    第 194 行 `DigitalLife(config={})`）被系统直接终止，退出码 -1073741819
-#    (0xC0000005 ACCESS_VIOLATION)，**没有 pytest 汇总行**，故拿不到 FAILED 列表。
-# 【根因（双证据：faulthandler 栈 + Windows 应用程序错误日志）】
-#   事件日志：错误模块 = site-packages\pyarrow\arrow.dll，异常代码 = 0xc0000005。
-#   faulthandler 当前线程栈（自下而上）：
-#     DigitalLife → agent/orchestrator/lifecycle_manager.py:118 `import sentence_transformers`
-#       → sentence_transformers/util/__init__.py:26 → util/retrieval.py:14
-#       → util/similarity.py:9 `import sklearn`
-#       → sklearn/utils/fixes.py:19 `import pandas`
-#       → pandas/compat/__init__.py:28 → pandas/compat/pyarrow.py:12 `import pyarrow`
-#       → pyarrow/__init__.py:71 `from pyarrow.lib import ...`
-#       （加载 lib.cp312-win_amd64.pyd → arrow.dll 原生初始化）→ ACCESS_VIOLATION
-#   即：pyarrow 的**原生初始化**被推迟到进程已加载 torch / onnxruntime / sklearn 等
-#   大量原生库**之后**才发生。这是 Windows 上已知的「原生 DLL 加载顺序 / 地址空间」
-#   缺陷（同类问题 2026-08-09 已在 tests/unit/test_vector_store_sqlite_vec.py 处置过），
-#   **不是**被测功能缺陷：同一用例单独跑 47/47 通过、连跑 3 次稳定。
-# 【处置】在收集阶段的最早时机（进程最干净时）按固定顺序完成同一批原生栈的导入；
-#   之后 sklearn / pandas 的 `import pyarrow` 命中 sys.modules，原生初始化不再发生，
-#   崩溃路径不可达。与产品侧既有处置同源同法（lifecycle_manager.py:118 预导入
-#   sentence_transformers 规避同一类崩溃）。
-# 【顺序】numpy → pyarrow → pandas → sklearn：与 sklearn.utils.fixes 的真实依赖链一致，
-#   保证 pyarrow 在任何重型原生库（torch/onnxruntime）之前完成原生初始化。
-# 【失败姿态】任何一步失败仅降级告警，不阻断收集——环境缺件应表现为用例失败/跳过，
-#   而不是整个会话崩溃（守【不易】主链路：规避逻辑不得引入新的硬依赖）。
-_NATIVE_IMPORT_ORDER = ("numpy", "pyarrow", "pandas", "sklearn")
-_NATIVE_PREIMPORT_RESULTS: dict[str, str] = {}
+# 【现象/根因/处置的完整记述已随实现搬到】`agent/utils/native_preimport.py`
+#   的模块 docstring（faulthandler 栈、arrow.dll 事件日志、顺序依据、失败姿态）。
+#   此处**不复制**那段记述，只保留"为什么这里还要调一次"。
+# 【为什么改为 import 而不保留副本（不易）】S11-01 要求 `app_server.py` 进程
+#   入口与 `tests/**` 共用**同一份**实现。两份实现必然各自漂移：顺序或开关语义
+#   只改一处 ⇒ 另一边**静默**失去保护（且守卫看不出来）。故本文件只 import。
+# 【为什么这里仍然调用一次】`tests/conftest.py` 已在更早时机跑过同一函数，且
+#   该函数**幂等**（第二次只返回首次结果、不重跑、不覆写耗时）。保留本调用位是
+#   为了让"只收集 integration 子目录"的入口（含 `--confcutdir` 等裁剪场景）也必然
+#   命中，不依赖上层 conftest 的加载顺序。
+from agent.utils.native_preimport import (  # noqa: E402
+    pin_native_import_order,
+)
 
-
-def _pin_native_import_order() -> None:
-    """按固定顺序预导入原生栈，使 pyarrow 在进程干净时完成原生初始化。"""
-    for _name in _NATIVE_IMPORT_ORDER:
-        if _name in sys.modules:
-            _NATIVE_PREIMPORT_RESULTS[_name] = "cached"
-            continue
-        _t0 = time.time()
-        try:
-            importlib.import_module(_name)
-        except Exception as _e:  # pragma: no cover - 仅环境缺件时走到
-            _NATIVE_PREIMPORT_RESULTS[_name] = "failed:%s" % _e
-            logging.getLogger(__name__).warning(
-                "[S10-05] 原生扩展预导入失败（降级，不阻断收集）: %s: %s", _name, _e
-            )
-        else:
-            _NATIVE_PREIMPORT_RESULTS[_name] = "ok:%.1fms" % ((time.time() - _t0) * 1000)
-
-
-_pin_native_import_order()
+pin_native_import_order()
 
 if os.environ.get("RUN_PROM_CHECKS", "0") != "1":
     collect_ignore = [
@@ -132,14 +105,10 @@ def skills_mgmt_client():
         p.stop()
 
 
-def pytest_report_header(config, start_path=None):
-    """把原生扩展预导入结果写进报告头。
+# 【报告头 hook 去向（S11-01）】原 S10-05 在本文件定义的
+#   `pytest_report_header`（打印原生预导入结果）已**上移**到 `tests/conftest.py`。
+#   原因：unit / integration 共用同一道保护后，报告头也应只有一份 —— 若两处都定义，
+#   pytest 会**两次**调用该 hook，integration 跑一次会打印两遍同一行；而 unit
+#   一遍也没有（unit 不进本文件）。上移后 unit / integration 都恰好一行，
+#   措辞统一取自 `agent/utils/native_preimport.py::report_line()`。
 
-    Why（不可省）：规避逻辑若静默失败，报告里看不出「崩溃路径是否真的被规避」，
-    等于假绿灯。此处把每一步的实际状态（ok/耗时、cached、failed:原因）显式打印，
-    使「被检查的对象不会从报告里消失」。
-    """
-    detail = ", ".join(
-        "%s=%s" % (k, v) for k, v in _NATIVE_PREIMPORT_RESULTS.items()
-    ) or "（未执行）"
-    return ["[S10-05] 原生扩展导入顺序固化: " + detail]

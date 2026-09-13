@@ -42,6 +42,38 @@ os.environ.setdefault("MKL_NUM_THREADS", "4")
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+# ════════════════════════════════════════════════════════════
+# 原生扩展导入顺序固化（S11-01：从 tests/integration 提升到 tests 根）
+# ════════════════════════════════════════════════════════════
+# 【为什么放在这里】必须早于任何测试模块的 import；本文件是 pytest 在
+#   tests/** 下加载的**第一个** conftest（rootdir→子目录逐级加载），且此时
+#   `sys.path` 刚补上 PROJECT_ROOT，故是"能 import 到 agent 的最早时机"。
+# 【为什么 unit 也要（S10-05 遗留 #6）】`tests/unit` 全量历史上同样崩过
+#   （同类 0xC0000005），此前保护只在 tests/integration 生效 —— unit 处于
+#   **无保护**状态。提到 tests 根后 unit / integration 共用同一道保护。
+# 【实现唯一】`agent/utils/native_preimport.py`（同一份实现，三处调用点共用；
+#   现象/根因/顺序依据/失败姿态/开关语义见该模块 docstring，此处不复制）。
+# 【可关闭】`CP_NATIVE_PREIMPORT_ENABLED=0` 整支关闭（已登记开关注册表）。
+# 【失败姿态】任何一步失败只降级告警，绝不阻断收集（不得引入新的硬依赖）。
+# 【为什么 import 出现在文件中部】它必须晚于 `sys.path` 补齐（第 43 行）才能
+#   解析到 `agent.*`，故只能在此处；`# noqa: E402` 即为此而加。
+try:
+    from agent.utils.native_preimport import (  # noqa: E402
+        pin_native_import_order,
+        report_line as native_preimport_report_line,
+    )
+
+    pin_native_import_order()
+except Exception as _native_preimport_e:  # pragma: no cover - 仅在环境缺件时走到
+    # 守【不易】：保护装不上 ≠ 测试不能跑（缺件应表现为用例失败/跳过）
+    logging.getLogger(__name__).warning(
+        "[S11-01] 原生扩展导入顺序固化装载失败（降级，不阻断收集）: %s",
+        _native_preimport_e,
+    )
+
+    def native_preimport_report_line() -> str:  # type: ignore[misc]
+        return "[S11-01] 原生扩展导入顺序固化: 装载失败（降级）"
+
 # 测试配置
 TEST_CONFIG = {
     "env": os.getenv("TEST_ENV", "development"),
@@ -74,6 +106,21 @@ def pytest_configure(config):
 
     # 设置测试日志
     _setup_test_logging(config)
+
+def pytest_report_header(config, start_path=None):
+    """把原生扩展预导入结果写进报告头（S11-01：unit / integration 共用一行）。
+
+    Why（不可省）：规避逻辑若静默失败，报告里看不出「崩溃路径是否真的被规避」，
+    等于假绿灯。此处把每一步的实际状态（ok/耗时、cached、failed:原因）显式打印，
+    使「被检查的对象不会从报告里消失」（纪律：宁可留一条真实红灯，不要假绿灯）。
+
+    【为什么放在 tests 根】本文件定义的 hook 对 `tests/unit` 与
+    `tests/integration` 都会被调用，故只在这里定义一次：integration 的 conftest
+    若同时定义，pytest 会把两处结果**拼接**，同一行会打印两遍。
+    措辞统一来自 `agent/utils/native_preimport.py::report_line()`。
+    """
+    return [native_preimport_report_line()]
+
 
 def pytest_collection_modifyitems(config, items):
     """修改测试用例集合 - 合并自动标记和跳过逻辑"""
