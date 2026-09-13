@@ -1078,6 +1078,12 @@ class ResolvedJudge:
 
     ``detail`` **只放 JSON 可序列化字段**；活的 judge 对象在 ``judge`` 字段
     （不进报告序列化 —— 内部活数据一律不序列化）。
+
+    S11-04 新增 ``guard_kwargs``：选中**真实通道**时随附的护栏接线
+    （``precheck`` / ``on_call`` / ``kind_fallback_for``），由调用方在建 `JudgeGuard`
+    时展开 —— 这样"预算前置拦截"与"回落标签"落在**同一个守卫**上，标签仍然逐字如实
+    （若改用嵌套守卫，外层会看不见内层的回落，``judge_kind`` 就会说假话）。
+    它是**活对象容器**（含可调用），故不进 ``to_dict()``。
     """
 
     scorer: Callable[[str, str], float]
@@ -1085,6 +1091,7 @@ class ResolvedJudge:
     mode: str
     detail: Dict[str, Any] = field(default_factory=dict)
     judge: Optional[LLMJudge] = None
+    guard_kwargs: Dict[str, Any] = field(default_factory=dict)
 
     @property
     def is_llm(self) -> bool:
@@ -1240,6 +1247,37 @@ class JudgeGuard:
                 "is_llm": is_llm_kind(self.effective_kind)}
 
 
+def _judge_master_switch_on(env: Optional[Dict[str, str]] = None) -> bool:
+    """真实 judge **总开关**（``CP_DIGESTION_JUDGE_ENABLED``）是否为真
+
+    键名与解析单点在 `judge_runtime.judge_config_from_env`（设置注册表的 owner 亦指向彼），
+    本函数**只转发、不新增 env 读取点** —— 同一个开关两处解析必然漂移。
+    读不到（导入失败/解析异常）⇒ **按"关"处理**（fail-closed：不花钱优先于可用性）。
+    """
+    try:
+        from . import judge_runtime as _jr
+        return bool(_jr.judge_config_from_env(env).enabled)
+    except Exception as e:  # noqa: BLE001 开关读不到不得让判定链崩，但必须如实留痕
+        logger.warning("judge 总开关解析失败（按关闭处理，不选真实通道）: %s", e)
+        return False
+
+
+def _judge_channel_wiring(env: Optional[Dict[str, str]] = None,
+                          judge: Optional[LLMJudge] = None) -> Any:
+    """真实通道的**预算护栏接线**（与 `build_judge_runtime` 共用同一份实现）
+
+    返回 `judge_runtime.JudgeBudgetWiring`；judge_runtime 不可用时返回 ``None``
+    ⇒ 调用方按"选不到受约束的通道"处理（**不选**），而不是无护栏地花钱。
+    """
+    try:
+        from . import judge_runtime as _jr
+        return _jr.build_judge_budget_wiring(
+            _jr.judge_config_from_env(env), lambda: judge, env=env)
+    except Exception as e:  # noqa: BLE001 护栏建不起来 ⇒ 不放行
+        logger.warning("judge 预算护栏构造失败（不选真实通道）: %s", e)
+        return None
+
+
 def resolve_judge(mode: str = "", *, invoke: Optional[Callable[[str], str]] = None,
                   judge: Optional[Callable[[str, str], float]] = None,
                   provider: str = "", model: str = "",
@@ -1249,6 +1287,21 @@ def resolve_judge(mode: str = "", *, invoke: Optional[Callable[[str], str]] = No
     优先级：显式 ``judge=`` > ``mode``（env ``CP_DIGESTION_JUDGE``，默认 ``auto``）。
     ``auto`` = 先试 LLM-judge，不可用则**如实回落**确定性打分器并标注
     ``deterministic_local(llm_unavailable)``。
+
+    **S11-04（口径变更，已声明）**：``auto`` 不再只看"通道能否构造出来"。
+    **由适配器自建的真实通道**必须满足两条才可入选，否则如实回落：
+
+    1. **总开关** ``CP_DIGESTION_JUDGE_ENABLED`` 为真 —— 此前它只被
+       `build_judge_runtime` 那条链读，于是"关着也可能花钱"（S10-02 遗留 L3）；
+    2. **每日预算** ``CP_DIGESTION_JUDGE_DAILY_BUDGET_CENTS`` 放行 —— 入选时先做一次
+       前置检查，选中后随附护栏接线（批内超预算同样前置拦截）。
+       回落原因沿用既有词表：``disabled`` / ``budget_exceeded`` /
+       ``budget_unreadable`` / ``cost_policy_fasting``。
+
+    **不受总开关约束的只有显式注入**（``invoke=`` / ``judge=``）：注入通道**不是**本部署
+    发起的真实调用，其成本属调用方，故既不拦也不记（记了就是编造成本）。
+    通道**本来就不可用**时，标签保持接入前的 ``deterministic_local(llm_unavailable)``
+    逐字不变 —— 本变更只改"本来能花钱"的那一种情况。
     """
     if judge is not None:
         return ResolvedJudge(scorer=judge, kind=JUDGE_KIND_INJECTED, mode="injected",
@@ -1267,21 +1320,52 @@ def resolve_judge(mode: str = "", *, invoke: Optional[Callable[[str], str]] = No
     # S9-02：端点复用部署级 `LLM_BASE_URL`（兼容端点不传端点 = 打错主机）
     base_url = str(env_map.get(JUDGE_BASE_URL_ENV) or "")
     llm = LLMJudge(invoke=invoke, provider=provider, model=model, base_url=base_url)
+    # ── S11-04：入选前的两道闸（只对**适配器自建**的真实通道生效）──────
+    real_channel = invoke is None
+    llm_available = llm.is_available()
+    if real_channel and llm_available and not _judge_master_switch_on(env_map):
+        return ResolvedJudge(
+            scorer=judge_similarity, kind=judge_fallback_kind(JUDGE_REASON_DISABLED),
+            mode=resolved_mode,
+            detail={"unavailable_reason": JUDGE_REASON_NOTES[JUDGE_REASON_DISABLED],
+                    "master_switch": "off",
+                    "channel_was_available": True,
+                    "provider": provider, "model": model,
+                    "note": ("S11-04：真实通道**本来可用**，但总开关"
+                             "（CP_DIGESTION_JUDGE_ENABLED）关闭 ⇒ 不入选"
+                             "（关着一定不花钱；此前这条路径会直接开跑且无预算护栏）")})
+    wiring = (_judge_channel_wiring(env_map, llm)
+              if (real_channel and llm_available) else None)
+    if wiring is not None:
+        blocked = wiring.precheck()
+        if blocked:
+            state = wiring.budget.state()
+            return ResolvedJudge(
+                scorer=judge_similarity,
+                kind=judge_fallback_kind(state.reason_code
+                                         or JUDGE_REASON_BUDGET_EXCEEDED),
+                mode=resolved_mode,
+                detail={"unavailable_reason": blocked,
+                        "budget": state.to_dict(),
+                        "provider": provider, "model": model,
+                        "note": ("S11-04：入选前预算前置拦截 ⇒ 不选真实通道"
+                                 "（一次真实调用都不发）")})
+    guard_kwargs = wiring.guard_kwargs() if wiring is not None else {}
     if resolved_mode == JUDGE_MODE_LLM:
-        if llm.is_available():
+        if llm_available:
             return ResolvedJudge(scorer=llm, kind=JUDGE_KIND_LLM, mode=resolved_mode,
                                  detail={"provider": provider, "model": model},
-                                 judge=llm)
+                                 judge=llm, guard_kwargs=dict(guard_kwargs))
         return ResolvedJudge(scorer=judge_similarity, kind=JUDGE_KIND_LLM_FALLBACK,
                              mode=resolved_mode,
                              detail={"unavailable_reason": llm.unavailable_reason,
                                      "provider": provider, "model": model,
                                      "note": "显式要求 LLM-judge 但不可用 ⇒ 如实回落"
                                              "确定性打分器（不冒充 LLM）"})
-    if llm.is_available():
+    if llm_available:
         return ResolvedJudge(scorer=llm, kind=JUDGE_KIND_LLM, mode=resolved_mode,
                              detail={"provider": provider, "model": model},
-                             judge=llm)
+                             judge=llm, guard_kwargs=dict(guard_kwargs))
     return ResolvedJudge(scorer=judge_similarity, kind=JUDGE_KIND_LLM_FALLBACK,
                          mode=resolved_mode,
                          detail={"unavailable_reason": llm.unavailable_reason,
@@ -2449,7 +2533,8 @@ class ShadowRunner:
             # 覆盖推断值，使报告里的 judge_kind 与实际所用判定器**逐字一致**（M1）
             resolved = ResolvedJudge(scorer=resolved.scorer, kind=str(judge_kind),
                                      mode=resolved.mode, detail=resolved.detail,
-                                     judge=resolved.judge)
+                                     judge=resolved.judge,
+                                     guard_kwargs=dict(resolved.guard_kwargs))
         self.judge = resolved
         if sandbox is not None:
             self.sandbox = sandbox
@@ -2465,10 +2550,13 @@ class ShadowRunner:
                 judge=resolved.scorer, measure_wall=True,
                 judge_kind=(judge_kind or resolved.kind))
         self._judge_kind = str(judge_kind or self.judge.kind)
-        # **判定器守卫**：LLM 通道失败即如实回落（M1），标签在样本之前就准
+        # **判定器守卫**：LLM 通道失败即如实回落（M1），标签在样本之前就准。
+        # S11-04：`resolve_judge` 选中真实通道时会随附**预算护栏接线**（前置拦截 +
+        # UTC 记账 + 精确回落标签），在此展开到**同一个**守卫上 —— 标签仍逐字如实。
         self.judge_guard = (judge_runtime.guard if judge_runtime is not None
                             else JudgeGuard(self.judge.scorer,
-                                            kind_primary=self.judge.kind))
+                                            kind_primary=self.judge.kind,
+                                            **dict(self.judge.guard_kwargs or {})))
         if judge_runtime is not None:
             # S8-04：标签来自运行时（真实 ⇒ `llm:<provider>:<model>`）；同时挂**动态
             # 解析器**，使批内回落时"过渡样本"也带回落后的标签（不留不实标注）。
@@ -2479,6 +2567,14 @@ class ShadowRunner:
             self.sandbox.judge = self.judge_guard
         elif self.sandbox.judge is None:
             self.sandbox.judge = self.judge_guard
+        if judge_runtime is None and sandbox is None and self.judge.guard_kwargs:
+            # S11-04：入选链（`resolve_judge`）选中的真实通道**同样**可能在批内被预算
+            # 拦下 ⇒ 逐样本标签要跟着实际判定器走（与运行时链同款动态解析器），
+            # 免得"标签说 llm、实际已在用确定性打分器"。
+            # 仅在有护栏接线（= 真实通道）时挂，保证开关关时逐字节一致。
+            self.sandbox.judge_kind = self.judge_guard.effective_kind
+            self.sandbox.judge_kind_resolver = (
+                lambda: self.judge_guard.effective_kind)
         self._passport_store = passport_store
         self._case_store = case_store
         self._ledger = ledger

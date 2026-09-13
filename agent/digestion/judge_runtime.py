@@ -1076,6 +1076,98 @@ class JudgeRuntime:
         return payload
 
 
+@dataclass
+class JudgeBudgetWiring:
+    """预算护栏接线（S11-04）：**一份实现，两条入选链共用**
+
+    为什么要有它：真实通道的"调用前拦截 + 调用后记账 + 按原因精确回落"原先只写在
+    `build_judge_runtime` 里 ⇒ 由 `shadow.resolve_judge` 选中的真实通道**既无预算上限、
+    也无成本记账**（S11-04 固化下来的现象）。把这段接线抽成一份，两条链拿到的是
+    同一个实现，不会各自漂移。
+    """
+
+    budget: "JudgeBudgetGuard"
+    #: 调用前的放行检查（``""`` = 放行，否则回落原因）
+    precheck: Callable[[], str]
+    #: 一次真实调用**成功之后**的记账回调（`utc.record_cost(source="judge")`）
+    on_call: Callable[[], None]
+    #: 回落原因码 → 精确标签（``deterministic_local(<码>)``）
+    kind_fallback_for: Callable[[str], str]
+    #: 本接线产生的事件（成本 / 回落），由调用方持有以便进报告
+    events: List[Dict[str, Any]] = field(default_factory=list)
+
+    def guard_kwargs(self) -> Dict[str, Any]:
+        """`shadow.JudgeGuard(...)` 的三件套（**唯一**接线出口）"""
+        return {"precheck": self.precheck, "on_call": self.on_call,
+                "kind_fallback_for": self.kind_fallback_for}
+
+
+def build_judge_budget_wiring(
+        config: JudgeConfig,
+        judge_ref: Callable[[], Optional[LLMJudge]],
+        *,
+        store: Any = None,
+        events_dir: str = "",
+        env: Optional[Mapping[str, str]] = None,
+        day: Optional[str] = None,
+        capability_id: str = "",
+        emit_fallback_event: bool = True,
+        events: Optional[List[Dict[str, Any]]] = None) -> JudgeBudgetWiring:
+    """构造预算护栏接线（前置拦截 + UTC 记账 + 精确回落标签）
+
+    Args:
+        config: judge 配置（预算/断食联动/provider/model 均取自它）；
+        judge_ref: **可调用**地取当前真实 judge 对象（懒取，因为本函数要在
+            `LLMJudge` 构造之前就能拿到护栏）；返回 ``None`` ⇒ 记账回调空转；
+        store / events_dir / env / day: 台账与事件目录覆盖（与 `JudgeBudgetGuard` 同口径）；
+        capability_id: 进事件载荷，便于"哪条能力在花钱"可查；
+        emit_fallback_event: 前置拦截时是否发 `model.degraded`（**不静默**）；
+        events: 调用方的事件收集列表（与 `JudgeRuntime.events` **同一只**表）。
+    """
+    budget = JudgeBudgetGuard(config, store=store, events_dir=events_dir,
+                              env=env, day=day)
+    collected: List[Dict[str, Any]] = events if events is not None else []
+
+    def _on_call() -> None:
+        """真实调用成功之后的记账 + 快照（前置拦截成功时不会走到这里）"""
+        judge_obj = judge_ref()
+        if judge_obj is None:
+            return
+        usage = dict(getattr(judge_obj, "last_usage", {}) or {})
+        estimated = False
+        tokens_in = int(usage.get("tokens_in") or 0)
+        tokens_out = int(usage.get("tokens_out") or 0)
+        if not usage:
+            # 适配器没给 usage ⇒ 按**本次**字符数估算，并显式标注 estimated
+            estimated = True
+            chars = float(config.chars_per_token or 4.0)
+            tokens_in = int(int(getattr(judge_obj, "last_prompt_chars", 0) or 0) / chars)
+            tokens_out = int(int(getattr(judge_obj, "last_reply_chars", 0) or 0) / chars)
+        record = budget.record(
+            model=config.model, provider=config.provider,
+            tokens_in=tokens_in, tokens_out=tokens_out, estimated=estimated,
+            interaction_id=(f"judge:{capability_id or 'digestion'}:"
+                            f"{getattr(judge_obj, 'calls', 0)}"))
+        collected.append({"kind": "judge_cost", **record})
+
+    def _precheck() -> str:
+        reason = budget.precheck()
+        if reason:
+            code = budget.state().reason_code or JUDGE_REASON_BUDGET_EXCEEDED
+            if emit_fallback_event:
+                event_id = emit_judge_fallback(
+                    from_model=judge_kind_for(config.provider, config.model),
+                    reason=reason, reason_code=code, provider=config.provider,
+                    capability_id=capability_id,
+                    extra={"budget": budget.state().to_dict()}, store=store)
+                collected.append({"kind": "judge_fallback", "reason_code": code,
+                                  "reason": reason, "event_id": event_id})
+        return reason
+
+    return JudgeBudgetWiring(budget=budget, precheck=_precheck, on_call=_on_call,
+                             kind_fallback_for=judge_fallback_kind, events=collected)
+
+
 def build_judge_runtime(config: Optional[JudgeConfig] = None, *,
                         env: Optional[Mapping[str, str]] = None,
                         invoke: Optional[Callable[[str], str]] = None,
@@ -1103,48 +1195,17 @@ def build_judge_runtime(config: Optional[JudgeConfig] = None, *,
     availability = judge_availability(
         resolved_config, env=env, secret_provider=secret_provider,
         dotenv_path=dotenv, invoke=invoke, adapter=adapter)
-    budget = JudgeBudgetGuard(resolved_config, store=store, events_dir=events_dir,
-                              env=env, day=day)
     judge_obj: Optional[LLMJudge] = None
     store_verdicts = verdict_store
     if store_verdicts is None and resolved_config.enabled:
         store_verdicts = JudgeVerdictStore()
-
-    def _on_call() -> None:
-        """真实调用成功后的记账 + 判定快照（前置拦截成功时不会走到这里）"""
-        if judge_obj is None:
-            return
-        usage = dict(judge_obj.last_usage or {})
-        estimated = False
-        tokens_in = int(usage.get("tokens_in") or 0)
-        tokens_out = int(usage.get("tokens_out") or 0)
-        if not usage:
-            # 适配器没给 usage ⇒ 按**本次**字符数估算，并显式标注 estimated
-            estimated = True
-            chars = float(resolved_config.chars_per_token or 4.0)
-            tokens_in = int(int(getattr(judge_obj, "last_prompt_chars", 0) or 0) / chars)
-            tokens_out = int(int(getattr(judge_obj, "last_reply_chars", 0) or 0) / chars)
-        record = budget.record(
-            model=resolved_config.model, provider=resolved_config.provider,
-            tokens_in=tokens_in, tokens_out=tokens_out, estimated=estimated,
-            interaction_id=f"judge:{capability_id or 'digestion'}:{judge_obj.calls}")
-        events.append({"kind": "judge_cost", **record})
-
-    def _precheck() -> str:
-        reason = budget.precheck()
-        if reason:
-            code = budget.state().reason_code or JUDGE_REASON_BUDGET_EXCEEDED
-            if emit_fallback_event:
-                event_id = emit_judge_fallback(
-                    from_model=judge_kind_for(resolved_config.provider,
-                                              resolved_config.model),
-                    reason=reason, reason_code=code,
-                    provider=resolved_config.provider,
-                    capability_id=capability_id, extra={"budget": budget.state().to_dict()},
-                    store=store)
-                events.append({"kind": "judge_fallback", "reason_code": code,
-                               "reason": reason, "event_id": event_id})
-        return reason
+    # S11-04：护栏接线与 `shadow.resolve_judge` 的入选链**共用同一份实现**
+    # （`judge_obj` 在下面才构造 ⇒ 用可调用引用懒取）
+    wiring = build_judge_budget_wiring(
+        resolved_config, lambda: judge_obj, store=store, events_dir=events_dir,
+        env=env, day=day, capability_id=capability_id,
+        emit_fallback_event=emit_fallback_event, events=events)
+    budget = wiring.budget
 
     if availability.available:
         judge_obj = LLMJudge(invoke=invoke, adapter=adapter,
@@ -1179,8 +1240,8 @@ def build_judge_runtime(config: Optional[JudgeConfig] = None, *,
             availability.state if availability.state == AVAILABILITY_NO_CREDENTIALS
             else JUDGE_REASON_DISABLED),
         kind_fallback_for=judge_fallback_kind,
-        precheck=_precheck if availability.available else None,
-        on_call=_on_call if availability.available else None)
+        precheck=wiring.precheck if availability.available else None,
+        on_call=wiring.on_call if availability.available else None)
     if not availability.available:
         # 未进入真实通道：标签已经是"如实回落"，但**不**伪造"已回落"次数
         guard.reason_code = (JUDGE_REASON_NO_CREDENTIALS
@@ -1305,6 +1366,7 @@ __all__ = [
     "JudgeConfig", "judge_config_from_env",
     "JudgeAvailability", "judge_availability",
     "JudgeBudgetState", "JudgeBudgetGuard", "cost_policy_factor",
+    "JudgeBudgetWiring", "build_judge_budget_wiring",
     "emit_judge_fallback",
     "JudgeVerdictStore", "judge_consistency",
     "JudgeRuntime", "build_judge_runtime", "build_judge_runtime_if_enabled",
