@@ -1183,10 +1183,23 @@ def test_s801_warm_archive_shards_stay_visible(tmp_path):
     from agent.skills_mgmt.log_archiver import archive_daily_file
 
     path = tmp_path / "decisions.jsonl"
+    # 【2026-09-14 修「日期定时炸弹」】原实现把"今天"**硬编码**成 2026-09-13：
+    # 写入 09-10 / 09-11 / 09-13 三条，并断言 `archived == 2`（"两条历史日 + 今日留存"）。
+    # 后果：**编写当天（09-13）通过，09-14 起 09-13 也成了历史日 ⇒ archived=3 ⇒ 必然失败**
+    # （2026-09-14 实测：`assert result["archived"] == 2` 失败，实际 3）。
+    # 现改为**相对当前日期推导**，口径与 `archive_daily_file` 一致 ——
+    # 后者用 `date.today()`（**本地时区**，见 agent/skills_mgmt/log_archiver.py:394），
+    # 故此处也用 `date.today()` 而非 UTC，避免退化成更隐蔽的"时区定时炸弹"。
+    _today = date.today()
+
+    def _at(days_ago: int) -> str:
+        """`days_ago` 天前的本地日期 + 固定时刻（固定时刻避免跨日边界再引入不确定性）"""
+        return (_today - timedelta(days=days_ago)).isoformat() + "T10:00:00+00:00"
+
     lines = [
-        _raw_line("2026-09-10T10:00:00+00:00", "deny", "d10"),
-        _raw_line("2026-09-11T10:00:00+00:00", "allow", "d11"),
-        _raw_line("2026-09-13T10:00:00+00:00", "ask", "d13"),
+        _raw_line(_at(3), "deny", "hist2"),
+        _raw_line(_at(2), "allow", "hist1"),
+        _raw_line(_at(0), "ask", "today"),
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     reader = DecisionLog(str(path), enabled=False)
@@ -1206,6 +1219,48 @@ def test_s801_warm_archive_shards_stay_visible(tmp_path):
     assert after == before, (
         f"归档后读端可见记录发生变化（口径漂移）: {before} -> {after}；"
         f"可见文件={[os.path.basename(p) for p in DecisionLog._candidate_files(str(path))]}")
+
+
+@pytest.mark.parametrize("offset_days", [0, 1, 7, 30, 400])
+def test_warm_archive_is_date_independent(tmp_path, monkeypatch, offset_days):
+    """**防复发守卫**：归档可见性断言不得依赖"今天"（2026-09-14 修「日期定时炸弹」）
+
+    【为什么必须有】上面那条用例曾把"今天"**硬编码**成 2026-09-13 ⇒
+    编写当天通过、**次日起必然失败**（`archived` 由 2 变 3，实测 2026-09-14）。
+    把那条用例改成"相对 `date.today()` 推导"只能修**当前这一处**；
+    本用例进一步把 `log_archiver` 的"今天"**伪造成未来多个日期**再跑同一场景，
+    使"用绝对日期表达今天"这类写法一旦回归就会被抓住。
+
+    判据：**任何**"今天"下，3 条记录（2 条历史日 + 1 条今日）都必须归档 2 条。
+    """
+    import agent.skills_mgmt.log_archiver as _la
+
+    real_today = date.today()
+    fake_today = real_today + timedelta(days=offset_days)
+
+    class _FakeDate(date):
+        @classmethod
+        def today(cls):  # type: ignore[override]
+            return fake_today
+
+    # `archive_daily_file` 内部用模块级 `date.today()`（本地时区）⇒ 替换模块属性即可
+    monkeypatch.setattr(_la, "date", _FakeDate)
+    _la._ARCHIVED.clear()          # 幂等缓存按路径记；清理以免与顺序相关
+
+    def _at(days_ago: int) -> str:
+        return (fake_today - timedelta(days=days_ago)).isoformat() + "T10:00:00+00:00"
+
+    path = tmp_path / "decisions.jsonl"
+    path.write_text("\n".join([
+        _raw_line(_at(3), "deny", "hist2"),
+        _raw_line(_at(2), "allow", "hist1"),
+        _raw_line(_at(0), "ask", "today"),
+    ]) + "\n", encoding="utf-8")
+
+    result = _la.archive_daily_file(path)
+    assert result["archived"] == 2, (
+        f"伪造今天={fake_today.isoformat()}（+{offset_days} 天）时 archived="
+        f"{result['archived']}，期望 2 —— 说明断言仍依赖真实日期（定时炸弹复发）：{result}")
 
 
 def test_dot_and_hyphen_shards_both_visible(tmp_path):
