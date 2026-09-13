@@ -31,7 +31,7 @@
 
 | # | 要求 | 本模块的落地 |
 |---|---|---|
-| M1 | 接入**真实 LLM-judge**（≥0.85）且 `judge_kind` 可区分 | `LLMJudge`（真模型调用，可注入 `invoke`/adapter）+ `resolve_judge()`；层③ 经 `judge_kind=` 写精确标签；模型不可用/无凭证时**如实标注回落** |
+| M1 | 接入**真实 LLM-judge**（≥0.85）且 `judge_kind` 可区分 | `LLMJudge`（真模型调用，可注入 `invoke`/adapter）+ `resolve_judge()`；层③ 经 `judge_kind=` 写精确标签；模型不可用/无凭证时**如实标注回落**。**S10-04 起门槛口径 = 结论前置 + 置信度 ≥0.85**（模型判"不等价"一律不通过） |
 | M2 | 条件⑤ 用**真实墙钟 p99** | `ReplaySandbox(measure_wall=True)`：每臂记 `Observation.wall_ms`（`perf_counter`）；报告 `clock` 字段显式标注口径 |
 | M5 | 10% 人工抽检**实际执行并留痕** | `ManualReviewQueue`：清单 + `record_review()`（复核人/角色/结论/时间落盘 + 链式审计）；`is_closed()` 未闭合即**不得视为已验收** |
 | M6 | 隔离边界明确或显式声明 | `ShadowReport.isolation` 如实声明三层事实：实际执行模型（`mode`）、本次是否真接管（`real_takeover`）、环境最高等级（`available_level`）；并附**不保证边界**清单（S8-03） |
@@ -608,14 +608,18 @@ class JudgeFormatError(JudgeUnavailable):
 
 
 #: 结构化判定问题（S8-04：`{verdict, confidence, reason}` 三件套）
+#: S10-04 起 `confidence` 的语义在提示词里写明 = **对该结论的把握**，不是相似度 ——
+#: 判据是 `verdict`，`confidence` 只回答"你有多确定"。两者不可混用
+#: （旧口径把 confidence 当相似度 ⇒ "different + 1.0" 被判成通过）。
 _JUDGE_STRUCTURED_PROMPT = """你是"实现等价性判定器"。下面给出同一任务的两次执行观测（已做路径形态归一）。
-请只判断二者在**语义上是否等价**（步骤/输出/副作用一致），并给出结论与置信度。
+请先判断二者在**语义上是否等价**（步骤/输出/副作用一致），得出 verdict 结论；
+confidence 表示**你对这个 verdict 结论的把握程度**（不是相似度、不是相似程度）。
 
 【上游观测】{reference}
 
 【候选观测】{observed}
 
-只输出一行 JSON：{{"verdict": "equivalent" 或 "different", "confidence": <0 到 1 的小数>, "reason": "<一句话>"}}"""
+只输出一行 JSON：{{"verdict": "equivalent" 或 "different", "confidence": <0 到 1 的小数，对该结论的把握>, "reason": "<一句话>"}}"""
 
 #: verdict 词表（中英兼容 → 统一 pass / fail）
 _VERDICT_TRUE = ("equivalent", "pass", "passed", "same", "equal", "yes", "true",
@@ -694,10 +698,27 @@ def parse_judge_verdict(text: Any, *,
       把分数折成 verdict，并如实标 ``format="legacy_score"``（不假装模型给了 verdict）；
     - 越界/非数值的 confidence 一律 ``None``（**不截断成假分**，不猜）。
 
-    ``verdict`` 的口径（§4.5 逐字）：**``confidence >= 0.85`` ⇒ ``pass``，否则 ``fail``**
-    —— confidence 是模型自报的置信度，阈值是"软性通过"的门槛。模型自己的措辞另存
-    ``model_verdict``：当它与阈值判定相左时置 ``conflict=True``（**如实披露，不静默改写**），
-    使"模型说 different 但给了高分"这类情况在报告里看得见，而不是被悄悄归成通过。
+    ``verdict`` 的口径（S10-04 起 = **结论前置 + 置信度门槛**）：
+
+    ======================  ========================  ==============
+    模型结论                confidence 与 0.85 门槛     ``verdict``
+    ======================  ========================  ==============
+    ``different``（不等价）   任意（含 1.0）            **``fail``**
+    ``equivalent``（等价）    ``>= 0.85``               ``pass``
+    ``equivalent``（等价）    ``< 0.85``                ``fail``
+    无结论（旧式只给分数）      ``>= 0.85``               ``pass``
+    无结论（旧式只给分数）      ``< 0.85``                ``fail``
+    ======================  ========================  ==============
+
+    为什么"结论前置"：``confidence`` 是模型对**自己结论**的把握（提示词问的是
+    "结论与置信度"），**不是**相似度。只按 confidence 判定会把
+    ``verdict=different + confidence=1.0``（"我 100% 确定它们不同"）判成**通过** ——
+    即"完全不同的执行被记成无回归、负例消失"，与本层"检测行为漂移"的目的正好相反
+    （S9-02 §1.5 实证；S10-04 修复）。只有模型没给结论（旧式回复）时才退回纯阈值折算。
+
+    两个分量各自**如实保留**：``model_verdict``（模型措辞归一）、``threshold_verdict``
+    （仅按 confidence 折算）。二者相左时置 ``conflict=True``（**如实披露**）—— 此时
+    **采纳模型结论**，而不是采纳分数。
     """
     raw = str(text or "").strip()
     if not raw:
@@ -725,16 +746,23 @@ def parse_judge_verdict(text: Any, *,
             format_kind = "structured"
     if confidence is None:
         return None
-    verdict = (REVIEW_VERDICT_PASS if float(confidence) >= float(threshold)
-               else REVIEW_VERDICT_FAIL)
+    threshold_verdict = (REVIEW_VERDICT_PASS if float(confidence) >= float(threshold)
+                         else REVIEW_VERDICT_FAIL)
+    # 结论前置：模型明确判"不等价" ⇒ 一律 fail（**不受 confidence 高低影响**）；
+    # 结论为"等价"或模型未给结论 ⇒ 由 0.85 置信度门槛折算（S8-04 原口径不变）。
+    verdict = (REVIEW_VERDICT_FAIL if model_verdict == REVIEW_VERDICT_FAIL
+               else threshold_verdict)
+    conflict = bool(model_verdict) and model_verdict != threshold_verdict
+    note = ""
+    if conflict:
+        note = (f"模型结论与该置信度下的阈值判定不一致：model_verdict={model_verdict} / "
+                f"threshold_verdict={threshold_verdict} ⇒ **采纳模型结论 verdict={verdict}**"
+                "（如实披露，未静默改写模型结论）")
     return {"verdict": verdict, "confidence": round(float(confidence), 4),
             "reason": reason, "format": format_kind,
             "threshold": float(threshold), "model_verdict": model_verdict,
-            "conflict": bool(model_verdict and model_verdict != verdict),
-            "note": ("" if not (model_verdict and model_verdict != verdict) else
-                     ("模型措辞与该置信度下的阈值判定不一致："
-                      f"model_verdict={model_verdict} / threshold_verdict={verdict}"
-                      "（如实披露，未改写模型结论）"))}
+            "threshold_verdict": threshold_verdict,
+            "conflict": conflict, "note": note}
 
 
 def parse_judge_score(text: Any) -> Optional[float]:
@@ -990,6 +1018,18 @@ class LLMJudge:
         兼容契约（S3-03 断言不变）：``score`` / ``kind`` / ``raw`` 照旧；
         S8-04 **新增** ``verdict`` / ``confidence`` / ``reason``（结构化三件套）。
         不可用或**解析失败**抛错（解析失败抛 `JudgeFormatError`，``E_UPSTREAM_FORMAT``）。
+
+        ``score`` 的口径（S10-04 起）= **层③软性得分（等价性得分）**：
+
+        - 模型**结论为"不等价"**（结构化 ``verdict=different``）⇒ ``score = 0.0`` ——
+          模型已判不等价，就不该再拿高 ``confidence`` 充作"很相似"。旧实现把
+          ``confidence`` 直接当相似度，导致 ``different + 1.0`` ⇒ 层③通过、负例消失。
+        - 其余情况（结论为等价、或旧式只给分数）⇒ **如实回报测量值**，
+          ``score`` 与 ``confidence`` 同值，不把"低分"改写成 0（保留"差多少"的信息）。
+
+        两种取值都保证 ``score`` 与 ``verdict`` 的通过/不通过在 **0.85 门槛上自洽**，
+        故层③既能拦住结论为"不等价"的样本，也不会丢掉低分样本的真实读数。
+        置信度本身在 ``confidence`` 字段如实保留，不被这条折算覆盖。
         """
         raw = self._ask(reference, observed, _JUDGE_STRUCTURED_PROMPT)
         verdict = parse_judge_verdict(raw, threshold=self.threshold)
@@ -999,21 +1039,26 @@ class LLMJudge:
                 f"judge 回复无法结构化解析（{JUDGE_REASON_FORMAT}）: "
                 f"{str(raw)[:120]!r}")
         self.last_structured = dict(verdict)
-        return {"score": float(verdict["confidence"]),
+        confidence = float(verdict["confidence"])
+        concluded_different = (str(verdict.get("model_verdict") or "")
+                               == REVIEW_VERDICT_FAIL)
+        return {"score": (0.0 if concluded_different else confidence),
                 "kind": JUDGE_KIND_LLM, "raw": str(raw)[:400],
                 "provider": self.provider, "model": self.model,
                 "verdict": verdict["verdict"],
-                "confidence": float(verdict["confidence"]),
+                "confidence": confidence,
                 "reason": verdict["reason"],
                 "model_verdict": verdict.get("model_verdict", ""),
+                "threshold_verdict": verdict.get("threshold_verdict", ""),
                 "conflict": bool(verdict.get("conflict")),
                 "format": verdict["format"]}
 
     def score_structured(self, reference: str, observed: str) -> Dict[str, Any]:
-        """结构化判定（S8-04 主路径）：``{verdict, confidence, reason}`` + 元数据
+        """结构化判定（S8-04 主路径，S10-04 起**结论前置**）：``{verdict, confidence, reason}``
 
-        ``verdict`` ∈ ``pass`` / ``fail``；``confidence ≥ 0.85`` 为**软性通过**
-        （阈值由 `JUDGE_THRESHOLD` 单点定义，可用例断言 0.84/0.85/0.86 边界）。
+        ``verdict`` ∈ ``pass`` / ``fail``；``pass`` ⟺ **模型结论为等价 ∧
+        ``confidence >= 0.85``**（阈值由 `JUDGE_THRESHOLD` 单点定义，可用例断言
+        0.84/0.85/0.86 边界）。模型判"不等价"时无论 confidence 多高均为 ``fail``。
         """
         return self.score(reference, observed)
 
@@ -1960,7 +2005,7 @@ class CompareVerdict:
     |---|---|---|
     | `structure` | **硬性** | 输出 schema（键/类型/列表基数 + 用例声明契约） |
     | `side_effects` | **硬性** | 副作用具体目标 + 内容指纹 + 用例契约 |
-    | `judge` | 软性 | judge 相似度 ≥0.85（`judge_kind` 如实标注实际判定器） |
+    | `judge` | 软性 | judge 判定通过（**结论为等价 ∧ 置信度 ≥0.85**；`judge_kind` 如实标注实际判定器）（S10-04） |
 
     **任一层失败 ⇒ `passed=False` ⇒ 该样本记负例**（供 R4 劣化检测）。
     人工抽检（10%）由 `manual_flagged` 标记，进入 `ManualReviewQueue` 复核。
@@ -2932,13 +2977,20 @@ class ShadowRunner:
         - 未配置判定存档（``verdict_store is None``）⇒ 不做任何事（零影响）；
         - 存档失败 ⇒ advisory（不得中断灰度），由 `verdict_store.errors` 计数；
         - **只存结构化叶子字段**，不序列化 live judge 对象。
+
+        **判定来源必须与本样本实际所用判定器一致**（S10-04）：``last_structured`` 是
+        LLM 判定器对象的**最后一条**结果，批内中途回落（超预算 / 通道故障）后它仍是
+        **上一个 LLM 样本**的结论 —— 直接读会把"确定性打分器判的样本"存成"LLM 判的
+        结论"，一致率统计因此混入不实来源。故仅当本样本 ``judge_kind`` 属于 LLM 族时
+        才采信 ``last_structured``；否则按本样本自己的 ``judge_score`` 阈值折算
+        （旧式口径，如实标 ``format=""``）。
         """
         store = self._verdict_store
         if store is None:
             return
-        confidence = float(getattr(self._judge_guard_primary, "last_structured",
-                                   {}).get("confidence") or 0.0)
-        structured = dict(getattr(self._judge_guard_primary, "last_structured", {}) or {})
+        structured = (dict(getattr(self._judge_guard_primary, "last_structured", {}) or {})
+                      if is_llm_kind(sample.judge_kind) else {})
+        confidence = float(structured.get("confidence") or 0.0)
         store.record(
             capability_id=report.capability_id, case_id=sample.case_id,
             sample_id=sample.sample_id,
@@ -2950,6 +3002,8 @@ class ShadowRunner:
             judge_kind=str(sample.judge_kind or ""),
             judge_score=float(sample.judge_score),
             manual_flagged=bool(sample.manual_flagged),
+            model_verdict=str(structured.get("model_verdict") or ""),
+            threshold_verdict=str(structured.get("threshold_verdict") or ""),
             format=str(structured.get("format") or ""))
 
     def _overhead(self, report: ShadowReport) -> Dict[str, Any]:

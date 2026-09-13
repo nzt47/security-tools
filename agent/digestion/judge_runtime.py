@@ -810,8 +810,15 @@ class JudgeVerdictStore:
                confidence: float = 0.0, reason: str = "", judge_kind: str = "",
                sample_id: str = "", judge_score: float = 0.0,
                manual_flagged: bool = False, format: str = "",
+               model_verdict: str = "", threshold_verdict: str = "",
                ts: Optional[float] = None) -> Dict[str, Any]:
-        """追加一条 judge 判定（幂等键 = (能力, 用例)；落盘失败只记 `errors`）"""
+        """追加一条 judge 判定（幂等键 = (能力, 用例)；落盘失败只记 `errors`）
+
+        ``verdict`` 口径（S10-04 起）= **结论前置 + 置信度门槛**（见
+        `shadow.parse_judge_verdict`）：模型判"不等价"时一律 ``fail``。两个分量
+        ``model_verdict`` / ``threshold_verdict`` **并列存盘**（additive 字段），
+        使"模型措辞与阈值判定相左"这件事在台账里可复核、不依赖内存态。
+        """
         import time as _time
         stamp = float(ts if ts is not None else _time.time())
         row = {"kind": "judge_verdict", "capability_id": str(capability_id or ""),
@@ -820,6 +827,9 @@ class JudgeVerdictStore:
                "reason": str(reason or "")[:400], "judge_kind": str(judge_kind or ""),
                "judge_score": float(judge_score or 0.0),
                "manual_flagged": bool(manual_flagged), "format": str(format or ""),
+               # S10-04：判定分量并列留痕（旧台账无此列 ⇒ 读侧按空串处理）
+               "model_verdict": str(model_verdict or ""),
+               "threshold_verdict": str(threshold_verdict or ""),
                # 日桶口径与 `utc.utc_daily()` 一致（同一日历日，便于成本两栏对齐）
                "day": date.fromtimestamp(stamp).isoformat(),
                "recorded_at": stamp}
@@ -871,9 +881,19 @@ class JudgeVerdictStore:
             verdict = str(row.get("verdict") or "unknown")
             by_verdict[verdict] = by_verdict.get(verdict, 0) + 1
         return {"stored": len(latest), "by_verdict": dict(sorted(by_verdict.items())),
+                # S10-04：模型措辞与阈值判定相左的条数（**结论前置已采纳模型结论**）
+                "conflicted": sum(1 for row in latest.values() if _row_conflicted(row)),
                 "path": self.path, "errors": self.errors,
                 "note": ("judge 判定独立存档；人工结论仍在 "
-                         "ManualReviewQueue（两账并列、不互写）")}
+                         "ManualReviewQueue（两账并列、不互写）；"
+                         "verdict 口径 = 结论前置 + 0.85 置信度门槛（S10-04）")}
+
+
+def _row_conflicted(row: Mapping[str, Any]) -> bool:
+    """存档行是否"模型措辞与阈值判定相左"（两分量都在且不等 ⇒ 该行由**结论**定案）"""
+    model = str(row.get("model_verdict") or "")
+    threshold = str(row.get("threshold_verdict") or "")
+    return bool(model) and bool(threshold) and model != threshold
 
 
 def _manual_verdict_to_judge(verdict: str) -> str:
@@ -902,7 +922,10 @@ def judge_consistency(*, verdict_store: JudgeVerdictStore,
     - 分歧样本可入 `ManualReviewQueue`（``enqueue_disagreements=True``）；
       ``case_set`` / ``cases`` **透传**给入队闸（S8-05 的 D1/D2：不在现行判定集
       或形状不匹配的用例**不得入队**）—— 不传则由队列自身的 CaseStore 兜底；
-    - 只读叶子字段，不搬运 live 对象。
+    - 只读叶子字段，不搬运 live 对象；
+    - ``conflicted``：进入分母的样本里"模型措辞与阈值判定相左"的条数（S10-04）。
+      这些样本的 ``verdict`` 由**模型结论**定案（结论前置），故分歧入队原因里会带上
+      两个分量，使人能直接看出"是结论不一致，还是置信度不够"。
     """
     latest = verdict_store.latest(capability_id)
     manual_items = review_queue.items(capability_id)
@@ -912,6 +935,7 @@ def judge_consistency(*, verdict_store: JudgeVerdictStore,
     uncertain = 0
     undecided = 0
     compared = 0
+    conflicted = 0
     for key, row in sorted(latest.items()):
         item = manual.get(key)
         if item is None:
@@ -927,6 +951,8 @@ def judge_consistency(*, verdict_store: JudgeVerdictStore,
         if judge_verdict not in ("pass", "fail"):
             continue
         compared += 1
+        if _row_conflicted(row):
+            conflicted += 1
         if judge_verdict == human:
             agree += 1
         else:
@@ -936,6 +962,9 @@ def judge_consistency(*, verdict_store: JudgeVerdictStore,
                 "judge_confidence": float(row.get("confidence") or 0.0),
                 "judge_reason": str(row.get("reason") or ""),
                 "judge_kind": str(row.get("judge_kind") or ""),
+                # S10-04：两分量并列，使分歧可复核（结论 vs 阈值）
+                "model_verdict": str(row.get("model_verdict") or ""),
+                "threshold_verdict": str(row.get("threshold_verdict") or ""),
                 "human_verdict": human,
                 "reviewer": str(getattr(item, "reviewer", "") or ""),
                 "role": str(getattr(item, "role", "") or ""),
@@ -973,6 +1002,8 @@ def judge_consistency(*, verdict_store: JudgeVerdictStore,
         "disagreements": disagree,
         "uncertain": uncertain,
         "undecided": undecided,
+        # S10-04：分母内"结论与阈值判定相左"的条数（verdict 由结论定案）
+        "conflicted": conflicted,
         "judge_verdicts": len(latest),
         "manual_items": len(manual_items),
         "enqueued": enqueued,
@@ -983,7 +1014,8 @@ def judge_consistency(*, verdict_store: JudgeVerdictStore,
                         "**只披露不结论**，不以小样本宣布一致或不一致")),
         "window": {"judge_days": days} if days else {},
         "note": ("一致率分母 = 已裁定且非 uncertain 的人工结论；"
-                 "judge 判定存档与人工台账并列、不互写"),
+                 "judge 判定存档与人工台账并列、不互写；"
+                 "judge verdict 口径 = 结论前置 + 0.85 置信度门槛（S10-04）"),
     }
 
 

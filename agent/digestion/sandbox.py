@@ -1408,10 +1408,15 @@ def diff_judge(upstream: Observation, candidate: Observation, *,
                threshold: float = JUDGE_THRESHOLD,
                manual_flagged: bool = False,
                judge_kind: Any = "") -> LayerResult:
-    """**层 3（软性）**：judge ≥0.85 语义等价比对 + 人工抽检标记
+    """**层 3（软性）**：judge 判定 ≥0.85 语义等价比对 + 人工抽检标记
 
     ``judge`` 可注入（如 LLM-judge）；缺省用确定性本地打分器。层 3 只对
     **两臂 canonical 文本**打分（路径已形态归一），故不因具体路径差异误判。
+
+    门槛量的口径（S10-04）：本层是**纯浮点门槛**（``score >= threshold``），门槛量由
+    判定器自己定义 —— 确定性打分器给的是**有界相似度**；`shadow.LLMJudge` 给的是
+    **等价性得分**（结论为"不等价"时取 0.0，见 `LLMJudge.score`）。二者都满足
+    "低于门槛 ⇒ 不通过"，故本层无需知道判定器内部结构。
 
     ``judge_kind``：**实际所用 judge 的如实标注**（TASK-S3-03 / M1）。缺省时按
     "是否注入"推断（``injected`` / ``deterministic_local``）；S3-03 灰度期传入

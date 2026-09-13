@@ -375,20 +375,69 @@ class TestStructuredVerdict:
         assert at_threshold.score_structured("a", "b")["confidence"] == pytest.approx(
             0.85, abs=1e-9)
 
-    def test_model_verdict_word_is_disclosed_when_it_conflicts(self):
-        """模型说 different 但给了高分 ⇒ **如实披露冲突**，不静默改写成通过
+    def test_model_conclusion_wins_over_high_confidence(self):
+        """模型说 different 且高置信 ⇒ **判不通过**（S10-04 结论前置）
 
-        §4.5 的软性门槛按 confidence ≥0.85 判定（本用例即 0.99 ⇒ pass），但模型自己的
-        措辞另存 `model_verdict` 并置 `conflict=True` —— 是否采纳由人看得到，而不是被吞掉。
+        旧口径只看 confidence（``≥0.85 ⇒ pass``）⇒ ``different + 0.99`` 被判成通过：
+        "完全不同的执行被记成无回归、负例消失"，与层③检测漂移的目的正好相反
+        （S9-02 §1.5 实证）。新口径下**模型结论定案**，两个分量仍并列披露，
+        ``conflict`` 如实标出"只按阈值会判 pass"这件事。
         """
         judge = SH.LLMJudge(invoke=lambda prompt: structured("different", 0.99))
         result = judge.score_structured("a", "b")
         assert result["confidence"] == pytest.approx(0.99)
-        assert result["verdict"] == "pass"
+        assert result["verdict"] == "fail"
         assert result["model_verdict"] == "fail"
+        # 只按阈值会判 pass —— 正是被修掉的那条读法；如实并列保留
+        assert result["threshold_verdict"] == "pass"
         assert result["conflict"] is True
+        # 层③得分跟着结论走（否则纯浮点门槛仍会放行）
+        assert result["score"] == 0.0
         assert judge.last_structured["conflict"] is True
-        assert "不一致" in judge.last_structured["note"]
+        assert "采纳模型结论" in judge.last_structured["note"]
+
+    def test_low_confidence_on_equivalent_conclusion_is_disclosed_and_fails(self):
+        """反向组合（结论等价但把握不足）⇒ fail，``conflict`` 同样如实披露"""
+        judge = SH.LLMJudge(invoke=lambda prompt: structured("equivalent", 0.40))
+        result = judge.score_structured("a", "b")
+        assert result["verdict"] == "fail"
+        assert result["model_verdict"] == "pass"
+        assert result["threshold_verdict"] == "fail"
+        assert result["conflict"] is True
+        assert "采纳模型结论" in judge.last_structured["note"]
+
+    @pytest.mark.parametrize("verdict_word,confidence,expected", [
+        # S9-02 §1.5 的原始反向样本（"我 100% 确定它们不同"）
+        ("different", 1.0, "fail"),
+        ("不等价", 0.95, "fail"),
+        # 结论为等价 ⇒ 与原口径逐字一致（0.85 门槛仍承重）
+        ("equivalent", 0.95, "pass"),
+        ("equivalent", 0.85, "pass"),
+        ("equivalent", 0.84, "fail"),
+        # 结论为不等价 ⇒ 低置信也仍是不通过
+        ("different", 0.20, "fail"),
+    ])
+    def test_judge_verdict_conclusion_first_table(self, verdict_word, confidence,
+                                                  expected):
+        """judge verdict 口径表（S10-04）：**结论前置 + 0.85 置信度门槛**"""
+        judge = SH.LLMJudge(
+            invoke=lambda prompt: structured(verdict_word, confidence))
+        result = judge.score("a", "b")
+        assert result["verdict"] == expected
+        # 通过与否在 0.85 门槛上与 score 自洽（层③只看浮点）⇒ 不得出现"verdict 通过但
+        # score 低于门槛"的分裂读法
+        assert (result["score"] >= SH.JUDGE_THRESHOLD) is (expected == "pass")
+
+    def test_judge_verdict_legacy_score_still_folds_on_threshold(self):
+        """旧式只给分数（模型未给结论）⇒ **纯阈值折算不变**（不因本次口径变更而漂移）"""
+        high = SH.LLMJudge(invoke=lambda prompt: '{"score": 0.9, "reason": "x"}')
+        low = SH.LLMJudge(invoke=lambda prompt: '{"score": 0.5, "reason": "x"}')
+        assert high.score("a", "b")["verdict"] == "pass"
+        assert high.score("a", "b")["score"] == pytest.approx(0.9)
+        assert low.score("a", "b")["verdict"] == "fail"
+        # 低分如实回报（不因"不通过"而压成 0）—— 保留"差多少"的信息
+        assert low.score("a", "b")["score"] == pytest.approx(0.5)
+        assert low.score("a", "b")["model_verdict"] == ""
 
     @pytest.mark.parametrize("word,expected", [
         ("不等价", "fail"), ("不同", "fail"), ("不通过", "fail"),
@@ -498,6 +547,31 @@ class TestStructuredVerdict:
             judge=boom, judge_kind=SH.judge_fallback_kind(SH.JUDGE_REASON_FORMAT))
         assert result.passed is False
         assert result.detail["judge_kind"] == "deterministic_local(E_UPSTREAM_FORMAT)"
+
+    @pytest.mark.parametrize("verdict_word,confidence,expected", [
+        ("different", 1.0, False),      # S9-02 §1.5 原始反向样本
+        ("different", 0.99, False),
+        ("不等价", 0.95, False),
+        ("equivalent", 0.95, True),
+        ("equivalent", 0.84, False),
+    ])
+    def test_layer_three_gate_follows_the_judge_conclusion(self, verdict_word,
+                                                           confidence, expected):
+        """**承重检查**：层③ 的真实 LLMJudge 门槛必须跟着结论走（S10-04）
+
+        只看 `verdict` 字段是不够的 —— 层③ 只从判定器拿到一个浮点（`__call__`），
+        旧实现把 confidence 直接当这个浮点 ⇒ `different + 1.0` 在**层③ 也被放行**，
+        报告记 `pass_rate=1.0 / negative=0`（负例消失）。本用例锁住端到端放行/拦截。
+        """
+        from agent.digestion.sandbox import Observation, diff_judge
+        judge = SH.LLMJudge(invoke=lambda prompt: structured(verdict_word, confidence))
+        kind = SH.judge_kind_for(judge.provider, judge.model)
+        result = diff_judge(Observation(implementation="u", steps=["read", "write"]),
+                            Observation(implementation="c", steps=["read", "write"]),
+                            judge=judge, judge_kind=kind)
+        assert result.passed is expected
+        assert result.detail["judge_kind"] == kind
+        assert kind.startswith(SH.JUDGE_KIND_LLM_PREFIX)
 
 
 # ════════════════════════════════════════════════════════════

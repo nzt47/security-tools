@@ -639,3 +639,133 @@ class TestConsistency:
         assert store.rows()[0]["kind"] == "judge_verdict"
         assert "kind" not in {k for k in queue.rows()[0]} or \
             queue.rows()[0]["kind"] in ("queued", "reviewed")
+
+
+# ════════════════════════════════════════════════════════════
+#  5. verdict 口径（S10-04：结论前置 + 0.85 置信度门槛）
+# ════════════════════════════════════════════════════════════
+
+
+class TestVerdictSemantics:
+    """S9-02 §1.5 的反向样本必须**成为负例**，且在报告/台账里**看得见**"""
+
+    def test_inverted_judge_verdict_becomes_a_negative_sample(
+            self, tmp_path, events_dir):
+        """judge 说"完全不同且 100% 确定" ⇒ 灰度通过率 0、逐样本负例、判定存档 fail
+
+        旧口径把 confidence 当相似度 ⇒ `different + 1.0` 在层③ 也放行，报告记
+        `pass_rate=1.0 / negative=0` —— 负例整批消失（这正是本任务要修的病害）。
+        同时核验"被检查的对象没从报告里消失"：样本数与存档条数必须仍是 `total`。
+        """
+        case_set = make_case_set(24)
+        _, store = issue_passport(case_set, tmp_path)
+        verdicts = JR.JudgeVerdictStore(str(tmp_path / "shadow" / "judge.jsonl"))
+        runtime = build_runtime(events_dir=events_dir, tmp_path=tmp_path,
+                                invoke=lambda prompt: stub_reply(1.0, "different"),
+                                verdict_store=verdicts)
+        runner = build_runner(tmp_path=tmp_path, runtime=runtime, store=store)
+        report = runner.run(CAP, case_set=case_set, force=True, daily_avg=40)
+
+        assert report.total > 0
+        assert report.judge_is_llm is True
+        assert report.passed == 0
+        assert report.negative == report.total
+        assert report.pass_rate == pytest.approx(0.0)
+        # 样本没有因为"判定为负例"而被丢掉
+        assert len(report.samples) == report.total
+        summary = verdicts.summary(CAP)
+        assert summary["stored"] == report.total
+        assert summary["by_verdict"] == {"fail": report.total}
+        row = verdicts.rows()[0]
+        assert row["verdict"] == "fail"
+        assert row["model_verdict"] == "fail"
+        assert row["threshold_verdict"] == "pass"   # 只按阈值会判 pass —— 已被结论否决
+        assert row["confidence"] == pytest.approx(1.0)
+        assert row["judge_score"] == pytest.approx(0.0)
+
+    def test_equivalent_conclusion_keeps_the_old_pass_behaviour(
+            self, tmp_path, events_dir):
+        """对照组：结论为等价 ⇒ 与原口径**逐字一致**（0.95 ⇒ 全过、无负例）"""
+        case_set = make_case_set(24)
+        _, store = issue_passport(case_set, tmp_path)
+        verdicts = JR.JudgeVerdictStore(str(tmp_path / "shadow" / "judge.jsonl"))
+        runtime = build_runtime(events_dir=events_dir, tmp_path=tmp_path,
+                                invoke=lambda prompt: stub_reply(0.95, "equivalent"),
+                                verdict_store=verdicts)
+        runner = build_runner(tmp_path=tmp_path, runtime=runtime, store=store)
+        report = runner.run(CAP, case_set=case_set, force=True, daily_avg=40)
+
+        assert report.passed == report.total
+        assert report.negative == 0
+        assert verdicts.summary(CAP)["by_verdict"] == {"pass": report.total}
+        assert verdicts.summary(CAP)["conflicted"] == 0
+
+    def test_conflicted_rows_are_counted_in_store_and_consistency(self, tmp_path):
+        """两分量相左的条数在**存档汇总**与**一致率报告**里都数得出来（披露不丢失）"""
+        store = JR.JudgeVerdictStore(str(tmp_path / "j.jsonl"))
+        queue = SH.ManualReviewQueue(str(tmp_path / "r.jsonl"))
+        cases = C.build_case_set(CAP, [make_case(i) for i in range(3)])
+        for index, (verdict, model, threshold) in enumerate([
+                ("fail", "fail", "pass"),        # 结论否决了阈值 ⇒ conflicted
+                ("pass", "pass", "pass"),
+                ("pass", "", ""),                # 旧式无结论 ⇒ 不算 conflicted
+        ]):
+            case_id = f"case-{index:03d}"
+            store.record(capability_id=CAP, case_id=case_id, verdict=verdict,
+                         confidence=0.95, reason="stub", judge_kind="llm:probe:fake",
+                         judge_score=0.95, model_verdict=model,
+                         threshold_verdict=threshold)
+            queue.enqueue(CAP, [case_id], reasons={case_id: ["10% 抽检"]},
+                          case_set=cases, cases=list(cases.cases))
+            queue.record_review(case_id, capability_id=CAP, verdict="pass",
+                                reviewer="owner", note="")
+        assert store.summary(CAP)["conflicted"] == 1
+        report = JR.judge_consistency(verdict_store=store, review_queue=queue,
+                                      capability_id=CAP)
+        assert report["conflicted"] == 1
+        assert report["samples"] == 3
+        # 分歧条目带上两分量，使"是结论不一致还是置信度不够"可直接复核
+        disagreement = report["disagreements"][0]
+        assert disagreement["judge_verdict"] == "fail"
+        assert disagreement["model_verdict"] == "fail"
+        assert disagreement["threshold_verdict"] == "pass"
+
+    def test_batch_fallback_does_not_store_a_stale_llm_verdict(
+            self, tmp_path, events_dir, monkeypatch):
+        """批内回落（超预算）后**不得**把上一个 LLM 样本的结论写成自己的（S10-04）
+
+        `last_structured` 挂在 LLM 判定器对象上，批内回落后它仍是上一个 LLM 样本的
+        结论 —— 直接读会把"确定性打分器判的样本"存成"LLM 判的结论"，一致率统计因此
+        混入不实来源。落盘行必须与本样本实际判定器一致。
+        """
+        case_set = make_case_set(24)
+        _, store = issue_passport(case_set, tmp_path)
+        verdicts = JR.JudgeVerdictStore(str(tmp_path / "shadow" / "judge.jsonl"))
+        runtime = build_runtime(events_dir=events_dir, tmp_path=tmp_path,
+                                budget=1000.0,
+                                invoke=lambda prompt: stub_reply(1.0, "different"),
+                                verdict_store=verdicts)
+        runner = build_runner(tmp_path=tmp_path, runtime=runtime, store=store)
+
+        def fake_spent():
+            spent = 9999.0 if len(runtime.budget.recorded) >= 2 else 0.0
+            return {"day": runtime.budget.day, "source": "judge",
+                    "cost_normalized_cents": spent, "cost_raw_cents": spent,
+                    "calls": len(runtime.budget.recorded), "error": ""}
+
+        monkeypatch.setattr(runtime.budget, "spent", fake_spent)
+        report = runner.run(CAP, case_set=case_set, force=True, daily_avg=40)
+        assert report.total >= 3, "抽样预算过小，用例无法观察批内回落"
+        rows = verdicts.rows()
+        assert len(rows) == report.total
+        llm_rows = [r for r in rows if str(r["judge_kind"]).startswith("llm:")]
+        fallback_rows = [r for r in rows if not str(r["judge_kind"]).startswith("llm:")]
+        assert llm_rows, "至少有一个样本走真实 LLM 通道"
+        assert fallback_rows, "至少有一个样本在批内回落"
+        # LLM 样本：结构化结论如实落盘
+        assert all(r["format"] == "structured" for r in llm_rows)
+        assert all(r["model_verdict"] == "fail" for r in llm_rows)
+        # 回落样本：不得带 LLM 的结构化标签（否则就是"不实来源"）
+        assert all(r["format"] == "" for r in fallback_rows)
+        assert all(r["model_verdict"] == "" for r in fallback_rows)
+        assert all(r["threshold_verdict"] == "" for r in fallback_rows)
