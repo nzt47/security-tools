@@ -44,8 +44,15 @@ if project_root not in sys.path:
 from agent.orchestrator.orchestrator import Orchestrator  # noqa: E402
 from agent.orchestrator.turn_state import TurnStateStore  # noqa: E402
 
-#: 真机读数形态：编排窗口内置默认值（config.yaml 的 memory 段未配 token_limit）
-REAL_WINDOW = 131072
+#: 桩上注入的编排窗口值（**刻意与任何真机值都不同**：既不同于修复前的显示分母 4096，
+#: 也不同于真机现值 —— 这样"读到了 131072"就只能来自单一事实源，
+#: 不可能是某个被硬编码回去的常量）。
+#:
+#: 真机现值（口径变更记录）：`config.yaml` 于 Owner 裁定 #1 显式写入
+#: `memory.token_limit: 32768`（见 docs/zh/Owner裁定记录_20260913.md §裁定 #1），
+#: 故 `context.token_limit` 真机应为 **32768**、来源 `config.yaml:memory.token_limit`。
+#: 本套件用桩值 131072 是为验证"读数跟着单一事实源走"，不主张真机数字。
+STUB_WINDOW = 131072
 
 #: 修复前的硬编码显示分母（必须**不再**出现为 context.token_limit）
 LEGACY_DISPLAY_LIMIT = 4096
@@ -114,7 +121,7 @@ class _YunshuStub:
 
     # ── 编排层公开读取口（TASK-S11-03 新增/复用）──
     def context_limit_info(self) -> dict:
-        return {"limit_tokens": REAL_WINDOW,
+        return {"limit_tokens": STUB_WINDOW,
                 "limit_source": "builtin_default(131072)", "available": True}
 
     def last_response_metadata(self, session_id=None) -> dict:
@@ -249,7 +256,7 @@ def test_context分母是真实编排窗口而非硬编码4096(chat_env):
     body = _post(client, "hello", "sess_A")
     ctx = body["context"]
 
-    assert ctx["token_limit"] == REAL_WINDOW
+    assert ctx["token_limit"] == STUB_WINDOW
     assert ctx["token_limit"] != LEGACY_DISPLAY_LIMIT
     assert ctx["token_limit_source"] == "builtin_default(131072)"
     # percentage 必须用**被披露的那个分母**，且被明确标注为"累计占比（非窗口占用）"
@@ -294,7 +301,7 @@ def test_告警在结构化字段里可见且不在正文里(chat_env):
     client, yunshu, _sessions = chat_env
     notice = {
         "kind": "system_notice", "level": "critical", "reason": "summary_degraded",
-        "pct": 0.8, "used_tokens": 1048, "limit_tokens": REAL_WINDOW,
+        "pct": 0.8, "used_tokens": 1048, "limit_tokens": STUB_WINDOW,
         "limit_source": "builtin_default(131072)",
         "message": f"{NOTICE_TEXT}（压缩退化）",
     }
@@ -313,7 +320,7 @@ def test_告警在结构化字段里可见且不在正文里(chat_env):
     assert body["metadata"]["context_notice"]["reason"] == "summary_degraded"
     # ③ 同一响应里 token 读数的**分母一致**（R3 与 S10-03 的口径合流点）
     assert body["context"]["token_limit"] == \
-        body["metadata"]["context_notice"]["limit_tokens"] == REAL_WINDOW
+        body["metadata"]["context_notice"]["limit_tokens"] == STUB_WINDOW
 
 
 def test_告警不跨会话串台(chat_env):
@@ -327,7 +334,7 @@ def test_告警不跨会话串台(chat_env):
     yunshu.next_response = "A 的回答"
     yunshu.next_metadata = {"context_notice": {
         "kind": "system_notice", "level": "critical", "reason": "usage_high",
-        "limit_tokens": REAL_WINDOW, "message": NOTICE_TEXT}}
+        "limit_tokens": STUB_WINDOW, "message": NOTICE_TEXT}}
     a = _post(client, "AAA", "sess_A")
     assert a["metadata"]["context_notice"]["level"] == "critical"
 
@@ -368,7 +375,7 @@ def test_不可序列化元数据被丢弃且显式披露(chat_env):
 #  编排层：context_limit_info / 按会话元数据留存
 # ════════════════════════════════════════════════════════════════════════════
 
-def _bare_orchestrator(limit=REAL_WINDOW, source="builtin_default(131072)"):
+def _bare_orchestrator(limit=STUB_WINDOW, source="builtin_default(131072)"):
     orch = Orchestrator.__new__(Orchestrator)
     orch._memory_token_limit = limit
     orch._memory_token_limit_source = source
@@ -378,7 +385,7 @@ def _bare_orchestrator(limit=REAL_WINDOW, source="builtin_default(131072)"):
 
 def test_编排层暴露窗口上限与来源():
     info = _bare_orchestrator().context_limit_info()
-    assert info == {"limit_tokens": REAL_WINDOW,
+    assert info == {"limit_tokens": STUB_WINDOW,
                     "limit_source": "builtin_default(131072)",
                     "available": True}
 
