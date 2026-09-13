@@ -328,8 +328,8 @@ python -m pytest tests/unit/test_judge_cost_guardrail.py::TestVerdictSemantics -
 | 本任务代码提交（`s10-04/main`） | `1e7632a8` |
 | 合并 master（含 S10-02 / S10-06，零冲突） | `38c0b760` |
 | 交付报告 + 对照脚本提交 | `8fe5a469` |
-| SHA 定稿（本行回填） | `__FINAL_SHA__` |
-| **双远端终态** | `origin/master` = `gitee/master` = `8fe5a469f7e9702b8f453c032f383d58e500a1b9` |
+| SHA 定稿（撰写本行时的 HEAD） | `a5cf0726`（定稿提交自身 SHA 见 `git log -1`） |
+| **双远端终态** | `origin/master` = `gitee/master` = `8fe5a469f7e9702b8f453c032f383d58e500a1b9`（定稿提交推送后同点，见文末推送输出） |
 
 合并方式：`git -C <主工作区> merge s10-04/main --no-edit` → **Fast-forward**（`aab04ca4..8fe5a469`），
 无合并提交、无冲突、无产物漂移（`git status --short agent/digestion tests/unit scripts/dev docs/...` 为空）。
