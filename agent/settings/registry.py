@@ -926,6 +926,25 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _a("LLM_CALL_TIMEOUT", CAT_ORCHESTRATION, 60,
        "单次 LLM 调用超时（秒）",
        owner="agent/orchestrator/orchestrator.py", validator=Validator("int")),
+
+    # ────────────────────────────────────────────────────────
+    #  【跨任务补登】S9-01 新增 2 个 env 未登记（2026-09-13）
+    #
+    #  背景：S9-01（对话编排答非所问与跨轮串台修复）新增了这两个读取点但未登记；
+    #  合并试跑时被零缺口硬守卫抓出（`missing=['ORCHESTRATOR_TURN_STATE_MAX_SESSIONS',
+    #  'ORCHESTRATOR_WF_MATERIAL_MAX_CHARS']`）。
+    #  ⚠️ 为什么 S9-01 自己没发现：它开发时 master 的守卫**本来就是红的**
+    #  （另有 `<unresolved>` 与 39 条未登记 env），新缺口藏在既有噪声里。
+    #  这正是"守卫要长期保持常绿"的理由 —— 红着的守卫会掩盖新违规。
+    #  类型/默认值逐条取自真实读取点（`os.environ.get(<字面量>, "<默认>")`），
+    #  两个都在**模块导入期**读取 ⇒ needs_restart=True。
+    # ────────────────────────────────────────────────────────
+    _a("ORCHESTRATOR_TURN_STATE_MAX_SESSIONS", CAT_ORCHESTRATION, 256,
+       "会话级 turn state 的保留会话数上限（LRU 淘汰，默认 256）",
+       owner="agent/orchestrator/turn_state.py", needs_restart=True),
+    _a("ORCHESTRATOR_WF_MATERIAL_MAX_CHARS", CAT_ORCHESTRATION, 6000,
+       "工作流素材注入的最大字符数（默认 6000，超出即截断）",
+       owner="agent/orchestrator/orchestrator.py", needs_restart=True),
     _a("AUTONOMY_DEFAULT_LEVEL", CAT_ORCHESTRATION, None,
        "自主性默认等级（config.yaml autonomy.default_level）",
        owner="agent/autonomy.py", config_path="autonomy.default_level"),
