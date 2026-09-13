@@ -33,6 +33,9 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Optional, Tuple
 from agent.logging_utils import log_dict
 
+# TASK-S9-01: 会话级「本轮 tool_steps / reasoning」存储（替代全局实例属性）
+from agent.orchestrator.turn_state import TurnStateStore
+
 # digital_life 符号延迟到文件末尾导入，避免与 digital_life.py:369 形成模块级循环导入.
 # 不变量(不易): 这些符号仅在方法/函数内使用(运行时解析), 模块加载完成时已就绪.
 # 循环链(修复前): lifecycle_manager.py:38→digital_life.py:369→agent.orchestrator.LifecycleManager
@@ -442,8 +445,9 @@ class LifecycleManager:
         # 递增（持锁纪律），防多线程并发 process() 丢更新
         self._interaction_lock = threading.Lock()
         self._reflection_history = []
-        self._last_tool_steps = []
-        self._last_reasoning = None
+        # TASK-S9-01: 「本轮 tool_steps / reasoning」由 TurnStateStore 按会话隔离持有；
+        # 原全局实例属性 _last_tool_steps / _last_reasoning 已下线（跨轮串台根因）。
+        self._turn_state_store = TurnStateStore()
         self._last_context_warning = None
         # [2026-08-15 并发修复] 上下文使用率检查节流时间戳（process() 入口
         # 按 CONTEXT_USAGE_CHECK_INTERVAL 间隔执行，避免每请求全量组装）

@@ -216,8 +216,8 @@ class TestLlmErrorWiring:
     def test_低置信度与异常_互不干扰(self):
         """低置信度(fallback)与失败(llm_error)是两个独立子指标，互不干扰"""
         orch = _make_test_orch()
-        # 1 次低置信度（返回过短响应）
-        orch._call_llm = MagicMock(return_value="嗯")
+        # 1 次低置信度（返回空响应；TASK-S9-01 起「空」判据为 strip 后为空）
+        orch._call_llm = MagicMock(return_value="   ")
         orch.process("触发低置信度请求")
         # 1 次失败
         orch._call_llm = MagicMock(side_effect=RuntimeError("LLM API timeout"))

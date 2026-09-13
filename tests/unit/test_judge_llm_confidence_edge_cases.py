@@ -60,23 +60,31 @@ class TestJudgeLlmConfidenceEdgeCases:
     def test_纯空白_判定_low_empty_or_too_short(self):
         """纯空白（strip 后为空）→ low + empty_or_too_short
 
-        【不易】strip 后 len < 5 触发 empty_or_too_short 分支
+        【S9-01 修复】判据由「strip 后 len < 5」改为「strip 后为空」——
+        短但非空的合法短答（如算术题只回 "5"）不再被误判为低置信度。
         """
         confidence, reason = _judge_llm_confidence("   \n\t  ")
         assert confidence == "low"
         assert reason == "empty_or_too_short"
 
-    def test_4字符_判定_low_empty_or_too_short(self):
-        """4 字符（< 5 阈值）→ low + empty_or_too_short"""
+    def test_4字符_合法短答_判定_high_normal(self):
+        """4 字符但非空 → high + normal
+
+        【S9-01 修复】原实现 `len(strip) < 5` 判 low，会把正确答案（如 "5"）
+        丢掉并替换成兜底文案，属答非所问；现只判空。
+        """
         confidence, reason = _judge_llm_confidence("abcd")
-        assert confidence == "low"
-        assert reason == "empty_or_too_short"
+        assert confidence == "high"
+        assert reason == "normal"
+
+    def test_单字符数字_合法短答_判定_high_normal(self):
+        """1 字符数字（"5"）→ high + normal（TASK-S9-01 验收判据 2 的直接防线）"""
+        confidence, reason = _judge_llm_confidence("5")
+        assert confidence == "high"
+        assert reason == "normal"
 
     def test_5字符_边界值_判定_high_normal(self):
-        """5 字符（恰好 = 5 阈值）→ high + normal
-
-        【不易】边界值：len(response.strip()) < 5 为 low，故 5 字符为 high
-        """
+        """5 字符 → high + normal（边界仍为 high，语义未收紧）"""
         confidence, reason = _judge_llm_confidence("abcde")
         assert confidence == "high"
         assert reason == "normal"
@@ -118,15 +126,16 @@ class TestJudgeLlmConfidenceEdgeCases:
         assert confidence == "high"
         assert reason == "normal"
 
-    def test_含错误标记但过短_优先判定_empty(self):
-        """含错误标记但响应过短 → 优先 empty_or_too_short（先判空再判标记）
+    def test_含错误标记的短响应_判定_error_marker(self):
+        """短但非空的错误标记响应 → low + error_marker_detected
 
-        【不易】_judge_llm_confidence 控制流：先判空/短 → 再判错误标记
+        【S9-01 修复】控制流语义调整：先判「空/纯空白」，再判错误标记。
+        长度不再是判据，故短响应（如 "出错了"）能正常命中错误标记分支；
+        空响应见 test_空字符串_* / test_纯空白_*。
         """
-        # 4 字符且不含任何完整错误标记
         confidence, reason = _judge_llm_confidence("出错了")
         assert confidence == "low"
-        assert reason == "empty_or_too_short"
+        assert reason == "error_marker_detected"
 
 
 # ──────────────────────────────────────────────────────────────

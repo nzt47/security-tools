@@ -100,8 +100,8 @@ def _make_mock_orchestrator():
     orch._session_id = "test_session"
     orch._last_was_template = False
     orch._last_context_warning = None
-    orch._last_reasoning = None
-    orch._last_tool_steps = []
+    # TASK-S9-01: 全局 _last_reasoning / _last_tool_steps 已下线，
+    # 本轮状态由会话级 TurnStateStore 持有（last_turn_state/_set_turn_state）。
     orch._current_tool_steps = []
     orch._semantic_matched_skills = []
     orch._memory_token_limit = 8000
