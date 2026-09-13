@@ -21,26 +21,79 @@
 
 ## 通用约定（六个任务都适用，不再在每个提示词里重复）
 
-```powershell
-cd C:\Users\Administrator\agent
-python scripts/dev/new_session_worktree.py create --id <见上表> --base master
+> **⚠️ 事后同步注记（2026-09-13）**：下面这段已**同步为最新正本**
+> （[`通用约定_任务派发.md`](通用约定_任务派发.md)）。
+> **本批次实际派发时用的是旧版**，两者差异（旧版缺 4 处、均为派发后实战教训）：
+> 1. **没有**「新增 env 必须登记注册表」独立成节（旧版只在一行里提了一句）；
+> 2. **没有**「测试隔离红线」（`CP_ENV_FILE` 重定向 + conftest 护栏）；
+> 3. **没有**「报告中必须写清是否需要重启才生效」（S10 四个任务都记了这条遗留 ⇒ 共性缺口）；
+> 4. 抖动清单**没有**"冷启动敏感"（实测：`test_killed_process_...` 第 1 次 35s 失败、后两次 3s 通过）。
+> 保留此注记是为了**不篡改历史**：S10 各会话当年收到的确实是旧版。
+
 ```
-- **`--base` 默认是 `develop`，必须显式写 `--base master`**；id 必须 `s<数字>`。
-- 主工作区禁令：✗ `git checkout`　✗ `git reset --hard`　✗ `git add -A`（只 add 具体文件）；
-  **主工作区可能同时有其它会话在活动**。
-- 提交信息含中文/反引号时，写进临时文件用 `git commit -F <文件> -- <具体路径>`
-  （PowerShell 引号会把多行中文提交信息拆坏，实测踩过）。
-- 提交流程：worktree 内 add/commit → 主工作区 `git merge <id>/main --no-edit` → 双远端 push。
-- 门禁四条：相关套件 + `scan_kwarg_conflicts.py --path agent|tests --min-risk HIGH`（各 0 处）
-  + `mypy` 改动模块 + `lint-imports --config .importlinter`；跑完 `git status` 检查产物漂移。
-- **新增任何 env 读取点必须登记 `agent/settings/registry.py`**（`_a` 可直接切 / `_b` 二次认证+双人确认 /
-  `_c` 只读脱敏；路径与密钥位置用 `_c`；关掉完整性保护或放宽成本护栏的开关用 `_b`）。
-  不登记 → 零缺口硬守卫变红（该守卫**现已修好且必须保持常绿**）。
-- 纪律：**不得放宽断言让用例通过**（断言比意图更严时，按意图改**并补正向断言收紧**）；
-  **不得接受假绿灯**（修完先验证"被检查的对象没从报告里消失"）；性能/时序类用例在并发下会假红，
-  **先隔离复跑再判断**；**不得编造数字**，做不到就写"未验证"。
-- PowerShell 跑 Python 前设 `$env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'`。
-- 服务在 127.0.0.1:5678 跑着；改了 `agent/**` 要重启才生效（`Get-NetTCPConnection -LocalPort 5678` 取 PID）。
+【通用约定（任务派发通用）】
+
+一、工作区与隔离（强制）
+    cd C:\Users\Administrator\agent
+    python scripts/dev/new_session_worktree.py create --id <见上表> --base master
+  · --base 默认是 develop，**必须显式写 --base master**；id 必须 s<数字>。
+  · 脚本会自动把主工作区 .env 供给到新 worktree（S10-06 已交付，实测输出
+    「开箱即用: .env 已由本脚本自动提供」）；若你看到 .env 为空，手工从主工作区复制。
+  · 此后所有 git 操作都在 worktree 内。主工作区禁令：✗ git checkout　✗ git reset --hard
+    ✗ git add -A（只 add 具体文件）—— **主工作区可能同时有其它会话在活动**。
+  · 提交流程：worktree 内 add/commit → 主工作区 `git merge <id>/main --no-edit` → 双远端 push
+    （git push origin master && git push gitee master）。
+  · 提交信息含中文/反引号时，**写进临时文件用 `git commit -F <文件> -- <具体路径>`**
+    （PowerShell 会把多行中文提交信息拆坏，实测踩过多次）。
+
+二、门禁四条（缺一不可）
+  · 相关套件 + 邻接回归
+  · python scripts/scan_kwarg_conflicts.py --path agent --min-risk HIGH  （0 处）
+    python scripts/scan_kwarg_conflicts.py --path tests --min-risk HIGH  （0 处）
+  · python -m mypy <改动模块>
+  · lint-imports --config .importlinter   （2 kept / 0 broken）
+  · 跑完 git status 检查产物漂移（pre-commit 会提示 clean-runtime-noise）。
+
+三、新增 env 必须登记注册表
+  任何新增的 env 读取点都要登记 agent/settings/registry.py，否则
+  tests/unit/test_settings_registry.py::TestMechanicalZeroGap 零缺口硬守卫变红：
+    _a = 可直接切（纯数值上限/超时/非安全开关）
+    _b = 二次认证 + 双人确认（关掉完整性保护、放宽成本护栏、高危动作开关）
+    _c = 只读脱敏（密钥/凭据/端点/**绝对路径**）
+  owner 必须指向**真实文件**；默认值与类型必须取自真实读取点；风险级拿不准就**取更严**并把依据写进注释。
+  该守卫曾有一个静默漏洞会吞掉读取点（2026-09-13 已修），**必须保持常绿** ——
+  红着的守卫会掩盖新违规（实测：S9-01 新增的 2 个 env 就是藏在既有红灯里没被发现）。
+
+四、测试隔离红线
+  · 测试**不得**写仓库根 .env：EnvConfigManager 现支持 CP_ENV_FILE 覆盖目标文件，
+    tests/conftest.py 已有 autouse 重定向 + session 级护栏（会校验 .env 的 LLM_API_KEY 未被改写）。
+    新增涉及 .env 的测试请沿用该隔离，不要自行 mock 掉真实文件 I/O。
+    （背景：曾有测试把真实 .env 的 LLM_API_KEY 覆盖成 sk-test-key，静默打坏在跑的服务。）
+  · 需要落盘的用例必须显式传路径或 autouse 隔离，避免污染真实 data/。
+
+五、纪律（均为实战踩过的）
+  · **先查清再改**：若某个守卫/检查变绿了，必须验证"被检查的对象**没有从报告里消失**"——
+    宁可留一条真实红灯，也不要一条假绿灯（曾出现两次：一次是真漏洞、一次是误改）。
+  · **不得为了让用例通过而放宽断言**。若断言比意图更严，按**意图**改并**补正向断言**收紧。
+  · **先怀疑自己的测量**：性能/时序类用例（<200ms / <1s）、依赖真实 HEAD 的用例、
+    依赖进程 kill 时序的用例，在并发或**冷启动**下会假红 ⇒
+    **先隔离复跑（含冷/热对比）再判断**，抖动不算缺陷。
+  · **不得编造数字**：做不到就写"未验证"；样本 <20 只披露不考核；数据源缺位记 None 不以 0 冒充。
+  · **不得用脚本造任务/造数据来刷指标**（会污染运营指标）。
+
+六、环境事实
+  · PowerShell 跑 Python 前设 $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'。
+  · 云枢服务在 127.0.0.1:5678 跑着（Get-NetTCPConnection -LocalPort 5678 取 PID）；
+    改了 agent/** 要**重启服务**才生效，且重启属运维动作 ——
+    请在报告里**明确写清"是否需要重启才生效"**（S10 四个任务都记了这条遗留，属共性缺口）。
+  · 模型凭证可用（DeepSeek，.env 的 LLM_API_KEY，35 位）；真调模型会产生**费用**，
+    除最小探针外请用注入桩并**标明是桩**。
+
+七、回报格式
+  交付物 / 验收逐条（含证据命令与原始输出）/ 根因（**代码行级**）/ 质量证据（套件与门禁结果）/
+  遗留（带归属）/ 文档更新 / 双远端 SHA。
+  口径纪律：**每个数字都能溯源**；区分"数字变化"与"口径变化"；口径变更必须显式声明变更点与影响面。
+```
 
 ---
 
