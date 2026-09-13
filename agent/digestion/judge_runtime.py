@@ -8,6 +8,11 @@
 - 成本记账仍走 `agent.observability.utc.record_cost()`（成本唯一数据源＝事件流）；
 - 人工抽检仍走 `shadow.ManualReviewQueue`（M5 口径不变）。
 
+**接入（S10-02）**：`build_judge_runtime_if_enabled()` 是本模块通往灰度链路的
+**生产调用点**（`shadow.ShadowRunner` 构造期调用）；开关关闭时它返回 `None`，
+调用方（以及报告）与接入前**逐字节一致** —— "默认仍是确定性打分器"是安全底线，
+不因本模块存在而改变。
+
 ## 五条可被用例断言的契约（验收清单逐条对应）
 
 1. **默认关闭**：``CP_DIGESTION_JUDGE_ENABLED`` 默认 ``false``；未显式开启时
@@ -1187,6 +1192,34 @@ def build_judge_runtime(config: Optional[JudgeConfig] = None, *,
                         budget=budget, verdict_store=store_verdicts, events=events)
 
 
+def build_judge_runtime_if_enabled(config: Optional[JudgeConfig] = None, *,
+                                   env: Optional[Mapping[str, str]] = None,
+                                   **kwargs: Any) -> Optional[JudgeRuntime]:
+    """灰度链路的**生产注入器**（S10-02）：仅当开关开启时构造真实 judge 运行时
+
+    为什么需要它（S8-04 遗留 W1-L3）：`build_judge_runtime()` 此前只有"定义 + 导出"，
+    全仓没有任何生产调用点 ⇒ `ShadowRunner(judge_runtime=...)` 无生产注入者 ⇒
+    灰度评测**仍在走确定性打分器**（"具备即用" ≠ "已接入"）。本函数就是那个调用点，
+    由 `shadow.ShadowRunner` 在**构造期**调用（复用既有注入通道，未新建通道）。
+
+    **关闭时返回 `None`，而不是"disabled 版运行时"** —— 这是刻意的：
+    注入 disabled 运行时会把报告里的 `judge_kind` 改成
+    ``deterministic_local(disabled)``，从而**改变开关关时的行为**；
+    只有返回 `None` 才能保证"关 = 与接入前逐字节一致"（安全底线：默认仍是确定性打分器）。
+
+    Args:
+        config: 显式配置（``None`` ⇒ 全部从 ``env`` 解析，即线上通路）；
+        env: 环境映射（``None`` ⇒ ``os.environ``；与 `judge_config_from_env` 同口径）；
+        **kwargs: 透传给 `build_judge_runtime` 的注入点（``invoke`` / ``adapter`` /
+            ``store`` / ``events_dir`` / ``verdict_store`` / ``capability_id`` 等）——
+            供灰度调用方与验证脚本注入桩通道或隔离事件目录，**不改变开关语义**。
+    """
+    resolved = config if config is not None else judge_config_from_env(env)
+    if not resolved.enabled:
+        return None
+    return build_judge_runtime(resolved, env=env, **kwargs)
+
+
 def judge_self_check(config: Optional[JudgeConfig] = None, *,
                      env: Optional[Mapping[str, str]] = None,
                      secret_provider: Optional[Callable[[str], Optional[str]]] = None,
@@ -1274,5 +1307,6 @@ __all__ = [
     "JudgeBudgetState", "JudgeBudgetGuard", "cost_policy_factor",
     "emit_judge_fallback",
     "JudgeVerdictStore", "judge_consistency",
-    "JudgeRuntime", "build_judge_runtime", "judge_self_check",
+    "JudgeRuntime", "build_judge_runtime", "build_judge_runtime_if_enabled",
+    "judge_self_check",
 ]

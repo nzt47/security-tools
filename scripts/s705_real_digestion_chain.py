@@ -491,8 +491,17 @@ def main(argv: Optional[List[str]] = None) -> int:
                            draft_dir=paths["drafts"], persist_drafts=True,
                            emit_events=True)
     judge = SH.resolve_judge("auto")
+    # ── S10-02：真实 judge 的生产注入（**默认关闭**）──────────────────────────
+    # `CP_DIGESTION_JUDGE_ENABLED=true` ⇒ 灰度走 S8-04 通道（凭证三级解析 + 每日
+    # 预算护栏 + UTC 计费 + 精确 `judge_kind=llm:<provider>:<model>`）；
+    # 未开启 ⇒ 保持 S7-05 既有语义（`resolve_judge("auto")` 的判定器与标签），
+    # **逐字节不变**。本脚本是 S7-05 的真实链路驱动，故显式注入而非依赖缺省。
+    judge_runtime = SH.judge_runtime_from_env(env=dict(os.environ))
+    runner_kwargs: Dict[str, Any] = (
+        {"judge_runtime": judge_runtime} if judge_runtime is not None
+        else {"judge": judge.scorer, "judge_kind": judge.kind})
     shadow_runner = SH.ShadowRunner(
-        judge=judge.scorer, judge_kind=judge.kind, passport_store=passport_store,
+        **runner_kwargs, passport_store=passport_store,
         case_store=case_store, ledger=shadow_ledger, review_queue=review_queue,
         env=dict(os.environ), emit_events=True)
     engine = InternalizeEngine(passport_store=passport_store, registry=reg,

@@ -22,6 +22,14 @@
     - 分支前缀 sN/：该会话内所有新分支必须命名为 sN/<name>，禁止跨前缀操作
     - 会话元数据写入 <repo>/.git/worktrees/sN/session-config.json
       （git 内部目录，不入版本库）
+    - 创建成功后自动提供主工作区 .env（优先符号链接，失败回退复制）；
+      已存在的 .env 绝不覆盖，未被 .gitignore 忽略时回滚删除（禁止入 git）
+
+.env 供给（Why）:
+    worktree 是独立工作目录，主工作区的 .env 不会自动出现。缺 .env 的 worktree
+    内进程没有 LLM 配置，只能走离线响应，极易把"环境没配"误判成"功能不达标"
+    （S9-01 实测登记遗留 #6：.worktrees/<id>/.env 为 0 字节，主工作区为 144741 字节）。
+    因此 create 成功后默认提供 .env，让新会话开箱即用。
 """
 
 from __future__ import annotations
@@ -29,6 +37,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import shutil
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -38,11 +47,19 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 WORKTREES_DIR = REPO_ROOT / ".worktrees"
 SESSION_RE = re.compile(r"^s(\d+)$")
 GITIGNORE_MARKER = "# 并行会话隔离 worktree（new_session_worktree.py 生成）"
+ENV_NAME = ".env"
 
 
 def git(*args: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         ["git", *args], cwd=REPO_ROOT, capture_output=True, text=True, encoding="utf-8"
+    )
+
+
+def _git_at(path: Path, *args: str) -> subprocess.CompletedProcess:
+    """在指定目录（如 worktree 根）内执行 git，取该 worktree 自身的视图"""
+    return subprocess.run(
+        ["git", "-C", str(path), *args], capture_output=True, text=True, encoding="utf-8"
     )
 
 
@@ -81,6 +98,99 @@ def _ensure_gitignore() -> None:
     print(f"[gitignore] 已追加 /.worktrees/ 到 .gitignore")
 
 
+def _file_size(path: Path) -> int:
+    """文件大小（跟随符号链接）；不可读/断链返回 0"""
+    try:
+        return path.stat().st_size
+    except OSError:
+        return 0
+
+
+def _env_status_entry(wt_path: Path) -> str | None:
+    """`git -C <worktree> status --short` 中与 .env 相关的行；None 表示未出现。
+
+    两条守卫语义：
+      - 返回 None  ≈ .env 已被 .gitignore 忽略（期望值，不入 git）；
+      - 返回非 None ⇒ .env 会以未跟踪文件出现在 status 里，有被 add/commit 的风险。
+    注：worktree 内的忽略判定用的是 worktree 自身的树（`/.worktrees/` 锚定的是
+    worktree 根，管不到 worktree 根下的 .env），真正兜底的是 .gitignore 里的通用
+    `.env` 规则 —— 故此处必须实测 status，而不是假定"在 .worktrees/ 下必然被忽略"。
+    """
+    r = _git_at(wt_path, "status", "--short", "--untracked-files=all", "--", ENV_NAME)
+    if r.returncode != 0:
+        return None  # 非 git 目录等无法判定场景：不阻断（不臆造结论）
+    return r.stdout.strip() or None
+
+
+def _try_symlink(source: Path, target: Path) -> bool:
+    """优先建符号链接（随主工作区同步更新）；无权限/不支持时返回 False 交回退处理"""
+    try:
+        target.symlink_to(source)
+        return True
+    except (OSError, NotImplementedError):
+        return False
+
+
+def _provide_env(wt_path: Path, source: Path | None = None) -> dict:
+    """在 worktree 根提供主工作区 .env：符号链接优先，失败回退复制。
+
+    不覆盖已存在的 .env；写完实测 `git status --short`，一旦 .env 会出现在 status
+    里（即未被忽略）立即回滚删除，绝不把 .env 带进 git。
+
+    返回 {"mode", "path", "bytes"[,"status_entry"]}，mode ∈
+      linked / copied / skipped-exists / missing-source / blocked-untracked
+    """
+    source = source if source is not None else REPO_ROOT / ENV_NAME
+    target = wt_path / ENV_NAME
+
+    if target.exists() or target.is_symlink():
+        return {"mode": "skipped-exists", "path": target, "bytes": _file_size(target)}
+    if not source.exists():
+        return {"mode": "missing-source", "path": source, "bytes": 0}
+
+    linked = _try_symlink(source, target)
+    if not linked:
+        # 符号链接失败的半成品残留（极少见）先清掉，保证复制路径干净
+        if target.exists() or target.is_symlink():
+            target.unlink()
+        shutil.copy2(source, target)
+
+    size = _file_size(target)
+    entry = _env_status_entry(wt_path)
+    if entry is not None:
+        target.unlink()
+        return {
+            "mode": "blocked-untracked",
+            "path": target,
+            "bytes": size,
+            "status_entry": entry,
+        }
+    return {"mode": "linked" if linked else "copied", "path": target, "bytes": size}
+
+
+def _report_env(result: dict) -> None:
+    """打印 .env 供给结论：明确是链接还是复制，并点出复制不跟随主工作区更新"""
+    mode = result["mode"]
+    target = result["path"]
+    size = result["bytes"]
+    if mode == "linked":
+        print(f"[env] .env 已提供（符号链接）: {target}")
+        print(f"      ← {REPO_ROOT / ENV_NAME}（{size} 字节；自动跟随主工作区更新）")
+        print("      自检: git status --short 未出现 .env（已被 .gitignore 忽略）")
+    elif mode == "copied":
+        print(f"[env] .env 已提供（复制）: {target}（{size} 字节）")
+        print("      ⚠ 复制不会自动跟随主工作区更新：主工作区的 .env 变更后需重新创建或手工同步")
+        print("      自检: git status --short 未出现 .env（已被 .gitignore 忽略）")
+    elif mode == "skipped-exists":
+        print(f"[env] .env 已存在，未覆盖: {target}（{size} 字节）")
+    elif mode == "missing-source":
+        print(f"[env] ⚠ 主工作区无 {result['path']}：本 worktree 内进程没有 LLM 配置，")
+        print("      只能走离线响应（勿把“环境没配”误判成“功能不达标”）")
+    else:  # blocked-untracked
+        print(f"[env] ✗ .env 未被 .gitignore 忽略（git status 出现: {result['status_entry']}）")
+        print("      已回滚删除，拒绝把 .env 带进 git；请先在 .gitignore 加入 .env 再重新创建")
+
+
 def cmd_create(args: argparse.Namespace) -> None:
     session_id = args.id or _next_id()
     base = args.base
@@ -115,11 +225,22 @@ def cmd_create(args: argparse.Namespace) -> None:
         ),
         encoding="utf-8",
     )
+    env_result = _provide_env(wt_path)
     print(f"[OK] 会话 {session_id} 就绪:")
     print(f"      worktree: {wt_path}")
     print(f"      初始分支: {branch}（基准 {base}）")
     print(f"      分支前缀: {session_id}/（本会话新分支必须用此前缀）")
     print(f"      操作入口: 在 worktree 目录内执行 git 命令，互不干扰")
+    _report_env(env_result)
+    if env_result["mode"] in ("missing-source", "blocked-untracked"):
+        # worktree 本身已建好，但 .env 供给未达成 —— 用非零码（3）让自动化流程无法忽略，
+        # 避免重演 S9-01 遗留 #6（缺 .env 走离线响应被误判成功能不达标）。
+        print(
+            f"[env] ✗ worktree 已创建，但 .env 未就绪（{env_result['mode']}）："
+            f"本 worktree 内进程没有 LLM 配置（退出码 3）"
+        )
+        sys.exit(3)
+    print(f"      开箱即用: .env 已由本脚本自动提供，新会话不必手工复制")
 
 
 def cmd_list(args: argparse.Namespace) -> None:
