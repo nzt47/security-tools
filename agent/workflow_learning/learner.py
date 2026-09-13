@@ -16,9 +16,10 @@ import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from .models import LearnedWorkflow, WorkflowStep, LearningRecord
+from .models import LearnedWorkflow, WorkflowStep, LearningRecord, WorkflowStatus
 from .exceptions import WorkflowLearningError, ErrorCode
 from .observability import logger, emit_metric, track_event, traced_action
+from . import admission
 
 # 简易停用词表 (中英文混合)
 _STOP_WORDS = {
@@ -107,8 +108,13 @@ class WorkflowLearner:
                 )
 
             # 2) 任务签名 & 触发模式
+            #    【TASK-S10-01】触发模式只收**有区分度**的触发词：中文按字切分
+            #    得到的是单字（"帮我列出…" → ["列","出","当","前","工"]），
+            #    单字特征等价于"任意输入都可能命中"。单字触发词既不进
+            #    trigger_patterns（技能"触发条件"章节的展示源），也不进索引。
             signature = _make_task_signature(record.user_input)
-            triggers = _extract_keywords(record.user_input, top_k=5)
+            triggers_raw = _extract_keywords(record.user_input, top_k=5)
+            triggers = admission.effective_trigger_patterns(triggers_raw)
 
             # 3) 生成工作流
             wf_id = self._derive_id(record, signature)
@@ -130,11 +136,35 @@ class WorkflowLearner:
                 priority=50,
                 tags=["learned"] + triggers[:3],
             )
+
+            # 4) 准入门槛（TASK-S10-01）——不达标者**不得**进入匹配候选，
+            #    也不得自动转技能，只留草稿态（仍可按 ID 人工执行）。
+            decision = admission.check_structure(
+                steps=wf.steps, trigger_patterns=wf.trigger_patterns)
+            if not decision.admitted:
+                wf.status = WorkflowStatus.DRAFT
+                wf.description += (
+                    f"\n【准入未通过 {'/'.join(decision.codes)}】"
+                    f"{decision.reason_text}"
+                    f"（草稿态：不进入匹配候选、不可自动转技能；"
+                    f"可按 ID 人工执行）")
+                for code in decision.codes:
+                    emit_metric("yunshu_wf_admission_draft_total",
+                                labels={"code": code}, kind="counter")
+                track_event("wf_learned_draft", {
+                    "workflow_id": wf.id, "session_id": record.session_id,
+                    "codes": list(decision.codes),
+                })
+                logger.info(
+                    "[Learner] 工作流 %s 未通过准入门槛 → 草稿态: %s",
+                    wf.id, decision.reason_text)
+
             ctx["workflow_id"] = wf.id
             ctx["steps"] = len(steps)
+            ctx["admitted"] = decision.admitted
             track_event("wf_learned", {
                 "workflow_id": wf.id, "session_id": record.session_id,
-                "steps": len(steps),
+                "steps": len(steps), "admitted": decision.admitted,
             })
             emit_metric("yunshu_wf_learned_total",
                         labels={"success": "true"}, kind="counter")

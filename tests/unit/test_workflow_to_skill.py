@@ -64,13 +64,20 @@ def _make_workflow(wf_id="wf-demo", *,
                    status=WorkflowStatus.ACTIVE,
                    steps=None,
                    tags=None,
-                   converted_to_skill_id=""):
-    """构造一个测试 workflow"""
+                   converted_to_skill_id="",
+                   task_signature=None,
+                   source_session_id="sess-001"):
+    """构造一个测试 workflow
+
+    TASK-S10-01：新增 `task_signature` / `source_session_id` 可选参数——
+    自动升格多了"跨会话样本数 ≥ 2"门槛（见 test_only_qualified_workflows_listed
+    里 `wf-ok-repeat` 的用法）；默认值保持既有语义不变。
+    """
     wf = LearnedWorkflow(
         id=wf_id,
         name=f"测试工作流 {wf_id}",
         description=f"用于测试的 {wf_id}",
-        task_signature=f"signature-{wf_id}",
+        task_signature=task_signature or f"signature-{wf_id}",
         trigger_patterns=[f"trigger-{wf_id}"],
         steps=steps or [
             WorkflowStep(
@@ -89,7 +96,7 @@ def _make_workflow(wf_id="wf-demo", *,
             ),
         ],
         expected_output_pattern=r"\d+ results",
-        source_session_id="sess-001",
+        source_session_id=source_session_id,
         source_user_input="帮我搜索并格式化",
         success_count=success_count,
         failure_count=1,
@@ -392,14 +399,25 @@ class TestListConvertible:
             wf_id="wf-converted",
             converted_to_skill_id="existing-skill-id",
         )
-        for wf in [wf_ok, wf_low_success, wf_low_conf, wf_converted]:
+        # TASK-S10-01：自动升格另有"跨会话样本数 ≥ 2"门槛（最少样本数）。
+        # 同 task_signature 在第二个会话复现 → wf-ok 支持数=2；该复现样本
+        # 自身统计不达标，故不会额外入候选（原断言不变：恰好 1 条）。
+        wf_ok_repeat = _make_workflow(
+            wf_id="wf-ok-repeat", success_count=0, confidence=0.3,
+            task_signature="signature-wf-ok", source_session_id="sess-002",
+        )
+        for wf in [wf_ok, wf_low_success, wf_low_conf, wf_converted,
+                   wf_ok_repeat]:
             wf_repo.upsert(wf)
+
+        assert wf_repo.count_distinct_sessions("signature-wf-ok") == 2
 
         svc = WorkflowLearningService(repo_path=str(wf_repo._path))
         candidates = svc.list_convertible_workflows()
 
         assert len(candidates) == 1
         assert candidates[0]["workflow_id"] == "wf-ok"
+        assert candidates[0]["support_sessions"] == 2
 
 
 # ═══════════════════════════════════════════════════════════════════

@@ -3,7 +3,13 @@
 覆盖：
     - convert-to-skill 质量门控失败应返回 400（此前 WorkflowConvertError
       继承裸 Exception，漏到末位 except → 500，前端按钮报 HTTP 500）
+    - convert-to-skill 结构性准入失败（单字触发词/单步，force 不可越过）返回 400
     - _svc 注入 tool_executor（execute 可直接执行）
+
+TASK-S10-01 变更（只改 fixture，不放宽断言）：准入门槛要求"触发词有区分度 +
+步骤数 ≥ 2"，故 fixture 的用户输入带上 ASCII 词（`Python` → 触发词 `python`），
+使被转换对象本身是**达标**工作流——原断言（200 / skill_id / 400 门控码）语义
+全部保留；新增结构性拒绝的路由级用例。
 """
 
 import pathlib
@@ -16,6 +22,9 @@ from agent.server_routes import routes_workflow_learning as rwl
 from agent.workflow_learning import WorkflowLearningService
 from agent.workflow_learning.models import LearningRecord
 
+#: 达标样例任务（含 ASCII 词 → 有区分度触发词 `python`）
+TASK_TEXT = "统计 Python 文件行数并保存"
+
 
 @pytest.fixture
 def wf_svc(tmp_path):
@@ -23,11 +32,27 @@ def wf_svc(tmp_path):
     svc.set_tool_executor(lambda t, p: {"ok": True, "tool": t})
     wf = svc.learn_from_interaction(LearningRecord(
         session_id="route-test",
-        user_input="统计文件行数并保存",
+        user_input=TASK_TEXT,
         tool_calls=[
             {"name": "read_file", "params": {"path": "/a.txt"},
              "success": True},
             {"name": "write_file", "params": {}, "success": True},
+        ],
+        success=True))
+    return svc, wf
+
+
+@pytest.fixture
+def dirty_wf_svc(tmp_path):
+    """单步 + 单字触发词（结构性不可准入）"""
+    svc = WorkflowLearningService(repo_path=str(tmp_path / "wf2.json"))
+    svc.set_tool_executor(lambda t, p: {"ok": True, "tool": t})
+    wf = svc.learn_from_interaction(LearningRecord(
+        session_id="route-test-dirty",
+        user_input="帮我列出当前工作目录下的文件",
+        tool_calls=[
+            {"name": "list_directory", "params": {"path": "."},
+             "success": True},
         ],
         success=True))
     return svc, wf
@@ -42,6 +67,27 @@ def client(wf_svc, tmp_path, monkeypatch):
     iso_skills = SkillsMgmtService(
         store_path=str(tmp_path / "skills_mgmt.json"),
         repo_path=str(tmp_path / "skills_repo"))
+    monkeypatch.setattr(
+        "agent.state_manager.get_skills_mgmt_service",
+        lambda: iso_skills)
+    app = Flask(__name__)
+    app.config["TESTING"] = True
+    orig_svc = rwl._svc
+    rwl._svc = lambda: svc
+    rwl.register_routes(app, None)
+    c = app.test_client()
+    yield c, svc
+    rwl._svc = orig_svc
+
+
+@pytest.fixture
+def dirty_client(dirty_wf_svc, tmp_path, monkeypatch):
+    """结构性不可准入条目（单步 + 单字触发词）的 HTTP 客户端"""
+    svc, _ = dirty_wf_svc
+    from agent.skills_mgmt import SkillsMgmtService
+    iso_skills = SkillsMgmtService(
+        store_path=str(tmp_path / "skills_mgmt_dirty.json"),
+        repo_path=str(tmp_path / "skills_repo_dirty"))
     monkeypatch.setattr(
         "agent.state_manager.get_skills_mgmt_service",
         lambda: iso_skills)
@@ -93,6 +139,30 @@ class TestConvertToSkillRoute:
         assert r.status_code == 200
         assert r.get_json().get("ok") is True
 
+    def test_structural_gate_returns_400_even_with_force(
+            self, dirty_client, dirty_wf_svc):
+        """结构性准入失败（单步 + 单字触发词）→ 400，force 也不放行
+
+        TASK-S10-01：`wf-f19dc52c` → `wf-f19dc52c-skill` 的历史路径必须关闭。
+        """
+        c, svc = dirty_client
+        wf = dirty_wf_svc[1]
+        r = c.post(
+            f"/api/workflow-learning/workflows/{wf.id}/convert-to-skill",
+            json={"force": True})
+        assert r.status_code == 400
+        body = r.get_json()
+        assert body.get("ok") is False
+        assert body.get("code") == "QUALITY_GATE_FAILED"
+        assert "结构性准入" in body.get("error", "")
+
+    def test_dirty_workflow_not_listed_as_convertible(self, dirty_client):
+        """自动升格候选接口不得列出脏条目"""
+        c, svc = dirty_client
+        r = c.get("/api/workflow-learning/convertible")
+        assert r.status_code == 200
+        assert r.get_json().get("candidates") == []
+
 
 class TestExecuteRoute:
     def test_execute_missing_task_text_400(self, client, wf_svc):
@@ -106,7 +176,7 @@ class TestExecuteRoute:
         c, svc = client
         wf = wf_svc[1]
         r = c.post(f"/api/workflow-learning/execute/{wf.id}",
-                   json={"task_text": "统计文件行数并保存"})
+                   json={"task_text": TASK_TEXT})
         assert r.status_code == 200
         body = r.get_json()
         assert body.get("ok") is True

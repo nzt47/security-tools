@@ -4,10 +4,16 @@
 让通过对话学到的工作流沉淀为可复用的技能资产。
 
 转换门控:
+    - 结构性准入（TASK-S10-01，**force 不可越过**）:
+        步骤数 ≥ admission.MIN_STEPS（1 步 == 单次工具调用，不是可复用工作流）
+        触发词需有区分度（≥ admission.MIN_TRIGGER_CHARS 有效字符；单字触发词
+        如 ["列","出","当","前","工"] 不携带区分信息）
     - success_count >= MIN_SUCCESS_COUNT (默认 5)
     - confidence >= MIN_CONFIDENCE (默认 0.7)
     - status == ACTIVE
     - 未转换过 (converted_to_skill_id == "")
+    - （自动升格路径另有）跨会话样本数 ≥ admission.MIN_CROSS_SESSION_SUPPORT
+      —— 见 WorkflowLearningService.list_convertible_workflows
 
 外部技能翻译:
     - convert_external_skill(external_data, llm_client) 调用 LLM
@@ -28,6 +34,7 @@ import logging
 from typing import Any, Dict, List, Optional
 
 from .models import LearnedWorkflow, WorkflowStatus
+from . import admission
 from .observability import logger, emit_metric, track_event, traced_action
 from agent.logging_utils import log_dict
 
@@ -40,10 +47,13 @@ class WorkflowConvertError(Exception):
     """工作流转换异常"""
 
     def __init__(self, message: str, *, code: str = "CONVERT_FAILED",
-                 workflow_id: str = ""):
+                 workflow_id: str = "", codes: Optional[List[str]] = None):
         super().__init__(message)
         self.code = code
         self.workflow_id = workflow_id
+        # 机器可读的准入拒绝码（admission.CODE_*）；HTTP 层沿用
+        # QUALITY_GATE_FAILED 单一 code 以保持前端契约稳定（≤1 minor）
+        self.codes: List[str] = list(codes or [])
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -53,6 +63,34 @@ class WorkflowConvertError(Exception):
 MIN_SUCCESS_COUNT = 5        # 至少成功 5 次才考虑转换
 MIN_CONFIDENCE = 0.7         # 置信度阈值
 MIN_PRIORITY = 50            # 默认优先级门控
+
+
+def quality_gate_reasons(wf: LearnedWorkflow) -> List[str]:
+    """统计性质量门控的未通过原因（空列表 = 通过）
+
+    说明（TASK-S10-01）：这四条是**统计性**门控——`force=True` 允许人工越过
+    （人已作判断）。**结构性**门控（`admission.check_structure`：步骤数下限 +
+    触发词区分度）不在此列，且 `force` 不得越过——见
+    `WorkflowToSkillConverter._check_structural_gate`。
+    """
+    reasons: List[str] = []
+    if wf.status != WorkflowStatus.ACTIVE.value:
+        reasons.append(f"状态为 {wf.status}（需 ACTIVE）")
+    if not wf.enabled:
+        reasons.append("工作流未启用")
+    if wf.success_count < MIN_SUCCESS_COUNT:
+        reasons.append(
+            f"success_count={wf.success_count} < {MIN_SUCCESS_COUNT}"
+        )
+    if wf.confidence < MIN_CONFIDENCE:
+        reasons.append(
+            f"confidence={wf.confidence:.2f} < {MIN_CONFIDENCE}"
+        )
+    if wf.priority < MIN_PRIORITY:
+        reasons.append(
+            f"priority={wf.priority} < {MIN_PRIORITY}"
+        )
+    return reasons
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -116,7 +154,11 @@ class WorkflowToSkillConverter:
                         "action": "already_converted",
                     }
 
-            # 质量门控
+            # 结构准入（TASK-S10-01）——`force` 也不得越过：
+            # 单字触发词/单步工作流不是"还没养熟的资产"，而是"根本不是资产"。
+            self._check_structural_gate(wf)
+
+            # 质量门控（统计性，force 可越过）
             if not force:
                 self._check_quality_gate(wf)
 
@@ -160,26 +202,36 @@ class WorkflowToSkillConverter:
 
     # ─── 质量门控 ───
 
-    def _check_quality_gate(self, wf: LearnedWorkflow) -> None:
-        """检查 workflow 是否达到转换门控"""
-        reasons: List[str] = []
+    def _check_structural_gate(self, wf: LearnedWorkflow) -> None:
+        """结构性准入（TASK-S10-01）——**不因 `force` 放行**
 
-        if wf.status != WorkflowStatus.ACTIVE.value:
-            reasons.append(f"状态为 {wf.status}（需 ACTIVE）")
-        if not wf.enabled:
-            reasons.append("工作流未启用")
-        if wf.success_count < MIN_SUCCESS_COUNT:
-            reasons.append(
-                f"success_count={wf.success_count} < {MIN_SUCCESS_COUNT}"
-            )
-        if wf.confidence < MIN_CONFIDENCE:
-            reasons.append(
-                f"confidence={wf.confidence:.2f} < {MIN_CONFIDENCE}"
-            )
-        if wf.priority < MIN_PRIORITY:
-            reasons.append(
-                f"priority={wf.priority} < {MIN_PRIORITY}"
-            )
+        单字触发词（无区分度）或步骤数 < `admission.MIN_STEPS` 的工作流不得
+        转成 Skill。历史事故：`wf-f19dc52c`（1 步 `list_directory`、触发词
+        `["列","出","当","前","工"]`、单会话来源）被转成 `wf-f19dc52c-skill`。
+
+        错误码沿用 `QUALITY_GATE_FAILED`（前端/路由契约稳定，≤1 minor），
+        具体原因在 message 中给出，机器可读拒绝码见 `exc.codes`。
+        """
+        decision = admission.check_structure(
+            steps=wf.steps, trigger_patterns=wf.trigger_patterns)
+        if decision.admitted:
+            return
+        logger.warning(log_dict({
+            'module_name': 'skill_converter',
+            'action': 'convert.structural_gate_failed',
+            'workflow_id': wf.id, 'codes': list(decision.codes),
+            'level': 'WARNING'}))
+        raise WorkflowConvertError(
+            f"工作流 {wf.id} 未通过结构性准入（force 不可越过）: "
+            f"{decision.reason_text}",
+            code="QUALITY_GATE_FAILED",
+            workflow_id=wf.id,
+            codes=list(decision.codes),
+        )
+
+    def _check_quality_gate(self, wf: LearnedWorkflow) -> None:
+        """检查 workflow 是否达到转换门控（统计性）"""
+        reasons = quality_gate_reasons(wf)
 
         if reasons:
             raise WorkflowConvertError(

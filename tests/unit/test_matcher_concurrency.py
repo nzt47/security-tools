@@ -5,13 +5,18 @@ _rebuild（遍历 _docs）并发会抛 RuntimeError（dictionary changed size du
 iteration），add 的 df 读-改-写丢计数。修复后：WorkflowMatcher 公开操作
 （register/unregister/rebuild/match 的 query 段）统一 threading.RLock，
 锁内仅内存计算，match 的观测/日志/metrics 在锁外（持锁纪律）。
+
+TASK-S10-01 变更（不改断言，只让 fixture 满足新前置条件）：matcher 增加了
+**准入**（步骤数 ≥ admission.MIN_STEPS、触发词需有区分度），不达标的条目不再
+入索引。本文件的断言全部是"并发下注册/索引计数精确、无孤儿、不抛异常"，
+故 fixture 补 2 个步骤（而非放宽断言）——计数与索引完整性语义原样保留。
 """
 
 import threading
 import time
 
 from agent.workflow_learning.matcher import WorkflowMatcher
-from agent.workflow_learning.models import LearnedWorkflow
+from agent.workflow_learning.models import LearnedWorkflow, WorkflowStep
 
 
 def _make_wf(wf_id: str, keyword: str, *, enabled: bool = True) -> LearnedWorkflow:
@@ -21,6 +26,13 @@ def _make_wf(wf_id: str, keyword: str, *, enabled: bool = True) -> LearnedWorkfl
         description="concurrency test workflow",
         task_signature=f"匹配任务 {keyword}",
         trigger_patterns=[keyword],
+        steps=[
+            WorkflowStep(step_id="s1", tool_name="tool_a",
+                         params_template={"q": "$input"}, output_key="o1"),
+            WorkflowStep(step_id="s2", tool_name="tool_b",
+                         params_template={"d": "$prev_output"},
+                         output_key="o2"),
+        ],
         tags=["test"],
         confidence=0.9,
         priority=60,

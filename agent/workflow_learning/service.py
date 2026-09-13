@@ -19,6 +19,8 @@ from .matcher import WorkflowMatcher
 from .learner import WorkflowLearner
 from .generator import WorkflowGenerator
 from .executor import WorkflowExecutor, ToolExecutor
+from . import admission
+from . import retirement
 
 
 class WorkflowLearningService:
@@ -47,14 +49,16 @@ class WorkflowLearningService:
             agent_executor=agent_executor,
             llm_step_runner=llm_step_runner,
         )
-        # 启动时从仓库重建索引
+        # 启动时从仓库重建索引（准入否决的条目不会进索引）
         self._rebuild_index()
 
     def _rebuild_index(self) -> None:
         """从仓库重建匹配器索引"""
         workflows = self.repo.list_all()
         self.matcher.rebuild(workflows)
-        logger.info("[Service] 已加载 %d 个本地工作流到索引", len(workflows))
+        # 读数据：索引里的是**通过准入**的条数（≠ 仓库条数，含草稿/归档）
+        logger.info("[Service] 仓库 %d 个本地工作流，准入入索引 %d 个",
+                    len(workflows), len(self.matcher._workflows))
 
     # ─── 学习入口 ───
 
@@ -157,6 +161,17 @@ class WorkflowLearningService:
                 "min_similarity": self.matcher.min_similarity,
                 "min_confidence": self.matcher.min_confidence,
                 "indexed": len(self.matcher._workflows),
+                "admission_rejected": self.matcher.admission_rejected_counts(),
+            },
+            "admission": {
+                "MIN_STEPS": admission.MIN_STEPS,
+                "MIN_TRIGGER_CHARS": admission.MIN_TRIGGER_CHARS,
+                "MIN_CROSS_SESSION_SUPPORT":
+                    admission.MIN_CROSS_SESSION_SUPPORT,
+                "draft": sum(1 for w in all_wf
+                             if w.status == WorkflowStatus.DRAFT.value),
+                "archived": sum(1 for w in all_wf
+                                if w.status == WorkflowStatus.ARCHIVED.value),
             },
             "executor": {
                 "min_score": self.executor.min_score,
@@ -258,28 +273,121 @@ class WorkflowLearningService:
         )
 
     def list_convertible_workflows(self) -> List[Dict[str, Any]]:
-        """列出当前可转换为 Skill 的工作流（满足质量门控且未转换过）"""
-        from .skill_converter import (
-            MIN_SUCCESS_COUNT, MIN_CONFIDENCE, MIN_PRIORITY,
-        )
+        """列出当前可转换为 Skill 的工作流（满足质量门控且未转换过）
+
+        【TASK-S10-01】**自动升格**路径的门槛 = 结构性准入（步骤数下限 +
+        触发词区分度，`force` 也不可越过）+ 统计性门控 + 跨会话样本数
+        ≥ `admission.MIN_CROSS_SESSION_SUPPORT`（"最少样本数"：单会话/单轮
+        来源无从判断是否会复现，不得自动沉淀为资产）。
+        逐条未通过原因见 `admission_report()`。
+        """
+        from .skill_converter import quality_gate_reasons
         candidates = []
         for wf in self.repo.list_all(enabled_only=True):
             if wf.converted_to_skill_id:
                 continue
-            if (wf.status == WorkflowStatus.ACTIVE.value
-                    and wf.success_count >= MIN_SUCCESS_COUNT
-                    and wf.confidence >= MIN_CONFIDENCE
-                    and wf.priority >= MIN_PRIORITY):
-                candidates.append({
-                    "workflow_id": wf.id,
-                    "name": wf.name,
-                    "success_count": wf.success_count,
-                    "failure_count": wf.failure_count,
-                    "confidence": wf.confidence,
-                    "priority": wf.priority,
-                    "last_used_at": wf.last_used_at,
-                })
+            if self._promotion_blockers(wf) or quality_gate_reasons(wf):
+                continue
+            candidates.append({
+                "workflow_id": wf.id,
+                "name": wf.name,
+                "success_count": wf.success_count,
+                "failure_count": wf.failure_count,
+                "confidence": wf.confidence,
+                "priority": wf.priority,
+                "support_sessions": self.repo.count_distinct_sessions(
+                    wf.task_signature),
+                "last_used_at": wf.last_used_at,
+            })
         return candidates
+
+    def _promotion_blockers(self, wf: LearnedWorkflow) -> Dict[str, Any]:
+        """自动升格的结构性/样本数阻断项（空 dict = 无阻断）"""
+        decision = admission.check_structure(
+            steps=wf.steps, trigger_patterns=wf.trigger_patterns)
+        blockers: Dict[str, Any] = {}
+        if not decision.admitted:
+            blockers["structure"] = decision.to_dict()
+        support = self.repo.count_distinct_sessions(wf.task_signature)
+        sample = admission.check_cross_session_support(
+            support_sessions=support)
+        if not sample.admitted:
+            blockers["support"] = sample.to_dict()
+            blockers["support_sessions"] = support
+        return blockers
+
+    def admission_report(self) -> Dict[str, Any]:
+        """准入读数（可复算）——存量条数 / 命中条件 / 拒绝码分布
+
+        Returns:
+            {thresholds, total, match_candidates, draft_or_blocked: [...],
+             rejected_by_code: {...}, with_dirty_triggers: [...],
+             single_step: [...], single_session: [...]}
+        """
+        from .skill_converter import quality_gate_reasons
+        all_wf = self.repo.list_all()
+        report: Dict[str, Any] = {
+            "thresholds": {
+                "MIN_STEPS": admission.MIN_STEPS,
+                "MIN_TRIGGER_CHARS": admission.MIN_TRIGGER_CHARS,
+                "MIN_CROSS_SESSION_SUPPORT":
+                    admission.MIN_CROSS_SESSION_SUPPORT,
+            },
+            "total": len(all_wf),
+            "match_candidates": 0,
+            "disabled_or_blocked": [],
+            "rejected_by_code": {},
+            "single_char_trigger_workflows": [],
+            "single_step_workflows": [],
+            "single_session_workflows": [],
+            "convertible": [],
+        }
+        for wf in sorted(all_wf, key=lambda w: w.id):
+            decision = admission.check_match_eligibility(wf)
+            if decision.admitted:
+                report["match_candidates"] += 1
+            else:
+                report["disabled_or_blocked"].append({
+                    "workflow_id": wf.id,
+                    "status": str(getattr(wf.status, "value", wf.status)),
+                    **decision.to_dict(),
+                })
+            for code in decision.codes:
+                report["rejected_by_code"][code] = (
+                    report["rejected_by_code"].get(code, 0) + 1)
+            bad = admission.single_char_triggers(wf.trigger_patterns)
+            if bad:
+                report["single_char_trigger_workflows"].append({
+                    "workflow_id": wf.id, "single_char_triggers": bad,
+                    "trigger_patterns": list(wf.trigger_patterns),
+                })
+            if len(wf.steps or []) < admission.MIN_STEPS:
+                report["single_step_workflows"].append(wf.id)
+            support = self.repo.count_distinct_sessions(wf.task_signature)
+            if support < admission.MIN_CROSS_SESSION_SUPPORT:
+                report["single_session_workflows"].append({
+                    "workflow_id": wf.id,
+                    "task_signature": wf.task_signature,
+                    "support_sessions": support,
+                })
+            if (not wf.converted_to_skill_id
+                    and not self._promotion_blockers(wf)
+                    and not quality_gate_reasons(wf)):
+                report["convertible"].append(wf.id)
+        return report
+
+    def retire_dirty_workflows(self, *, apply: bool = False) -> Dict[str, Any]:
+        """存量脏工作流退役（默认 dry-run；只标记不删除 + 追加台账）
+
+        【不易】**不在服务构造时自动写盘**：仓库里若混入脏条目，构造服务会
+        改写 `data/learned_workflows.json` 并追加台账——那正是"测试/构造覆盖
+        真实运行期数据"的复发面（参见 P0「测试不再覆盖真实 .env」）。故退役
+        只走**显式**入口：本方法（人工/运维调用）或
+        `scripts/retire_dirty_workflows.py --apply`。
+        运行时对脏条目的隔离**不依赖**写盘：`matcher` 的结构性准入已在
+        每次 register/match 时生效（与 status 无关）。
+        """
+        return retirement.retire_dirty_workflows(self.repo, apply=apply)
 
     # ─── 批量 LLM 转换外部 agent 技能 ───
 

@@ -18,6 +18,7 @@ import threading
 from typing import Dict, List, Set, Tuple
 
 from .models import LearnedWorkflow
+from . import admission
 from .observability import logger, emit_metric, traced_action
 from agent.logging_utils import log_dict
 
@@ -134,6 +135,8 @@ class WorkflowMatcher:
         self.min_confidence = min_confidence
         self._index = TfidfIndex()
         self._workflows: Dict[str, LearnedWorkflow] = {}
+        # 准入否决计数（TASK-S10-01）：{拒绝码: 条数}，供 health()/审计读数
+        self._admission_rejected: Dict[str, int] = {}
         # Why RLock 保护索引与工作流表：register/unregister 的 add/remove（写
         # _docs/_df）与 match 触发的 _rebuild（遍历 _docs）并发会抛 RuntimeError
         # （dictionary changed size during iteration），add 的 df 读-改-写也会丢
@@ -141,27 +144,72 @@ class WorkflowMatcher:
         # 观测/日志/metrics 在锁外（持锁纪律）。
         self._lock = threading.RLock()
 
-    def register(self, wf: LearnedWorkflow) -> None:
-        """注册/更新一个工作流到索引"""
+    # ─── 准入（TASK-S10-01）───
+
+    @staticmethod
+    def _record_rejection(decision) -> None:
+        """记录准入否决（结构化日志 + 指标；不进候选、不写索引）"""
+        for code in decision.codes:
+            emit_metric("yunshu_wf_admission_rejected_total",
+                        labels={"code": code}, kind="counter")
+
+    def register(self, wf: LearnedWorkflow) -> bool:
+        """注册/更新一个工作流到索引
+
+        【TASK-S10-01】准入否决的条目**不得进入匹配候选**：单字触发词
+        （无区分度）或步骤数 < `admission.MIN_STEPS` 的条目直接从索引与工作流表
+        中剔除（若此前注册过则一并移除），只留在仓库里（草稿/归档态）。
+        返回 True 表示已进入候选池。
+        """
+        decision = admission.check_match_eligibility(wf)
         with self._lock:
-            # 索引文本 = 名称 + 描述 + 任务签名 + 触发模式 + 标签 +
-            #           步骤工具名 + 来源用户输入
-            # 【变易】冷启动匹配质量修复：原索引不含 steps 工具名与
-            #   source_user_input——学到的工作流连"原样复述请求"都匹配不到
-            #   （单字 TF-IDF 下签名/触发词过短）。补上工具名与原始请求
-            #   后，复现场景相似度 0.3→0.8+，可过 orchestrator min_score。
-            step_tools = " ".join(
-                s.tool_name for s in (wf.steps or []) if s.tool_name)
-            text = " ".join([
-                wf.name, wf.description, wf.task_signature,
-                " ".join(wf.trigger_patterns), " ".join(wf.tags),
-                step_tools,
-                wf.source_user_input or "",
-            ])
-            if wf.id in self._workflows:
+            if not decision.admitted:
+                # 曾有版本已进索引（如状态/触发词被改坏）→ 同步剔除，避免残留候选
                 self._index.remove(wf.id)
-            self._index.add(wf.id, text)
-            self._workflows[wf.id] = wf
+                self._workflows.pop(wf.id, None)
+                for code in decision.codes:
+                    self._admission_rejected[code] = (
+                        self._admission_rejected.get(code, 0) + 1)
+                rejected = True
+            else:
+                # 索引文本 = 名称 + 描述 + 任务签名 + 触发模式 + 标签 +
+                #           步骤工具名 + 来源用户输入
+                # 【变易】冷启动匹配质量修复：原索引不含 steps 工具名与
+                #   source_user_input——学到的工作流连"原样复述请求"都匹配不到
+                #   （单字 TF-IDF 下签名/触发词过短）。补上工具名与原始请求
+                #   后，复现场景相似度 0.3→0.8+，可过 orchestrator min_score。
+                # 【TASK-S10-01】触发词只取**有区分度**的那些：单字触发词
+                #   （如 ["列","出","当","前","工"]）不携带区分信息，作为特征
+                #   等价于"任意中文输入都可能命中"，故不得进入索引文本。
+                step_tools = " ".join(
+                    s.tool_name for s in (wf.steps or []) if s.tool_name)
+                text = " ".join([
+                    wf.name, wf.description, wf.task_signature,
+                    " ".join(admission.effective_trigger_patterns(
+                        wf.trigger_patterns)),
+                    " ".join(wf.tags),
+                    step_tools,
+                    wf.source_user_input or "",
+                ])
+                if wf.id in self._workflows:
+                    self._index.remove(wf.id)
+                self._index.add(wf.id, text)
+                self._workflows[wf.id] = wf
+                rejected = False
+        if rejected:
+            # 锁外记日志/指标（持锁纪律）
+            self._record_rejection(decision)
+            logger.info(log_dict({
+                'module_name': 'matcher', 'action': 'wf_admission.rejected',
+                'workflow_id': wf.id, 'codes': list(decision.codes),
+                'reasons': decision.reason_text,
+                'level': 'INFO'}))
+        return not rejected
+
+    def admission_rejected_counts(self) -> Dict[str, int]:
+        """被准入否决的条数（按拒绝码）——健康检查/审计读数"""
+        with self._lock:
+            return dict(self._admission_rejected)
 
     def unregister(self, wf_id: str) -> None:
         with self._lock:
@@ -195,6 +243,11 @@ class WorkflowMatcher:
             for wf_id, sim in candidates:
                 wf = self._workflows.get(wf_id)
                 if not wf or not wf.enabled:
+                    continue
+                # 【TASK-S10-01】准入复核：单字触发词 / 步骤数下限 / 非 ACTIVE
+                # 一律不得进入候选（防"注册后触发词或状态被改坏"的残留候选；
+                # 结构性判定为 O(触发词数+步骤数)，无 I/O）
+                if not admission.check_match_eligibility(wf).admitted:
                     continue
                 if sim < self.min_similarity:
                     continue

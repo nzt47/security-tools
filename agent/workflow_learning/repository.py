@@ -93,6 +93,41 @@ class WorkflowRepository:
     def count(self) -> int:
         return len(self._load())
 
+    def count_distinct_sessions(self, task_signature: str) -> int:
+        """同一 `task_signature` 出现在多少个**不同会话**里（样本数）
+
+        【TASK-S10-01】"单轮来源"的机器可判定形式：签名只在 1 个会话出现
+        ⇒ 只有 1 个样本。自动升格为 Skill 要求 ≥
+        `admission.MIN_CROSS_SESSION_SUPPORT`（见 admission 模块 §3）。
+        注意：`learner._derive_id` 把 session_id 计入哈希，同一任务在不同会话
+        会生成**不同 id**（这正是存量 `wf-f19dc52c` / `wf-c7499f27` 成对出现的
+        原因），故支持数只能按 `task_signature` 聚合，不能按 id 去重。
+        """
+        if not task_signature:
+            return 0
+        data = self._load()
+        sessions = {
+            str(v.get("source_session_id") or "")
+            for v in data.values()
+            if str(v.get("task_signature") or "") == str(task_signature)
+        }
+        sessions.discard("")
+        return len(sessions)
+
+    def signatures(self) -> Dict[str, int]:
+        """{task_signature: 跨会话样本数}（可复算读数的唯一来源）"""
+        data = self._load()
+        buckets: Dict[str, set] = {}
+        for v in data.values():
+            sig = str(v.get("task_signature") or "")
+            if not sig:
+                continue
+            bucket = buckets.setdefault(sig, set())
+            sid = str(v.get("source_session_id") or "")
+            if sid:
+                bucket.add(sid)
+        return {sig: len(s) for sig, s in buckets.items()}
+
     def health(self) -> Dict[str, Any]:
         try:
             count = self.count()

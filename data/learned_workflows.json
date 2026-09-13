@@ -63,7 +63,7 @@
     "failure_count": 1,
     "confidence": 0.5989050799113622,
     "priority": 80,
-    "status": "active",
+    "status": "archived",
     "enabled": true,
     "tags": [
       "learned",
@@ -127,7 +127,7 @@
     "failure_count": 0,
     "confidence": 0.748719139932487,
     "priority": 80,
-    "status": "active",
+    "status": "archived",
     "enabled": true,
     "tags": [
       "learned",
@@ -265,7 +265,7 @@
     "failure_count": 0,
     "confidence": 0.5,
     "priority": 80,
-    "status": "active",
+    "status": "archived",
     "enabled": true,
     "tags": [
       "learned",
@@ -312,7 +312,7 @@
     "failure_count": 0,
     "confidence": 0.4,
     "priority": 80,
-    "status": "active",
+    "status": "archived",
     "enabled": true,
     "tags": [
       "learned",
