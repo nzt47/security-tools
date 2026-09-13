@@ -1307,6 +1307,17 @@ _REGISTRY_ROWS: List[SettingSpec] = [
 
     _secret("LLM_API_KEY", CAT_EXTERNAL, "LLM 服务 API Key（只读脱敏）",
             owner="agent/orchestrator/lifecycle_manager.py"),
+    # 【2026-09-13 补登（自伤回归）】P0 修复（commit bbc5d821）给
+    # `EnvConfigManager` 加了 `.env` 目标覆盖口 `CP_ENV_FILE`，用于让测试把写入
+    # 重定向到临时文件（此前测试会把**仓库根真实 `.env`** 的 `LLM_API_KEY`
+    # 覆盖成 `sk-test-key`，静默打坏在跑的服务）。**当时漏了登记本表** ⇒
+    # 零缺口硬守卫变红（`missing=['CP_ENV_FILE']`），由 S10-05 的"勘误"首先发现。
+    # 定为 **C 级**（绝对路径项，只读脱敏）：它能改变"密钥/配置从哪个文件读"，
+    # 属于**配置完整性相关**的部署级旋钮，不应从 UI 随手切换；
+    # 默认空串 = 与以往行为完全一致（仍读仓库根 `.env`）。
+    _c("CP_ENV_FILE", CAT_EXTERNAL, "",
+       "`.env` 目标文件覆盖（空=仓库根 .env；测试隔离用；路径项，UI 只读展示）",
+       owner="agent/env_config_manager.py", validator=Validator("path")),
     _secret("OPENAI_API_KEY", CAT_EXTERNAL, "OpenAI API Key（只读脱敏）",
             owner="agent/orchestrator/lifecycle_manager.py"),
     _secret("DEEPSEEK_API_KEY", CAT_EXTERNAL, "DeepSeek API Key（只读脱敏）",
