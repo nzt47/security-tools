@@ -305,6 +305,7 @@ $ git status --short        # 提交后产物漂移
 | L5 | LLM 路径的 `judge_score`（等价性得分）与确定性打分器的 `judge_score`（有界相似度）**不是同一量** | S10-04 自留 / 运营期 | `diff_judge` 只做浮点门槛，两者可混跑但**分布不可直接比较**；同一批样本内回落时（`judge_kind` 逐样本不同）尤其如此。已在文档字符串写明，未做归一（归一需要新规格）。 |
 | L6 | judge 真实判定样本仍只有 3 条，一致率无结论 | 运营期（S9-02 W1-L2） | `CONSISTENCY_MIN_SAMPLES=20` 口径不变；本次只把统计**输入**修正，未新增真实样本。 |
 | L7 | 新增字段未在 UI 面板透出 | 运营期 / 面板域 | `conflicted` 目前只在存档汇总、一致率报告与 `JudgeRuntime.to_dict()` 里可读；`agent/ui_panels/data.py::_shadow_card` 仍是 `passed/negative/pass_rate/judge_kind`。未扩面板（跨域）。 |
+| L8 | **运行期生效需重启服务** | 批次出口 / 值班 | 在跑的 `127.0.0.1:5678` 服务（PID **9092**，`python.exe`，启动于 2026-09-13 19:07:33）加载的是**改动前**的 `agent/**`（与 S10-03 §遗留 R6 同源）；本任务**未**重启该服务（多会话共用，避免打断他人）。影响有限：judge 真实通道**默认关闭**（`CP_DIGESTION_JUDGE_ENABLED=false` ⇒ `judge_kind=deterministic_local(disabled)`），故口径变更在重启并显式开启前**不改变线上判定**。 |
 
 ---
 
@@ -323,7 +324,12 @@ python -m pytest tests/unit/test_judge_cost_guardrail.py::TestVerdictSemantics -
 
 | 项 | SHA |
 |---|---|
-| 本任务提交（`s10-04/main`） | `1e7632a8` |
-| 合并 master（含 S10-02 / S10-06） | `38c0b760` |
-| 交付报告提交 | `__REPORT_SHA__` |
-| 双远端终态 | `__REMOTE_SHA__` |
+| 基线（开工时 master） | `717d530e`（任务书写的是 `bbc5d821`；两者对本任务判据无差异，见 §八 L1） |
+| 本任务代码提交（`s10-04/main`） | `1e7632a8` |
+| 合并 master（含 S10-02 / S10-06，零冲突） | `38c0b760` |
+| 交付报告 + 对照脚本提交 | `8fe5a469` |
+| SHA 定稿（本行回填） | `__FINAL_SHA__` |
+| **双远端终态** | `origin/master` = `gitee/master` = `8fe5a469f7e9702b8f453c032f383d58e500a1b9` |
+
+合并方式：`git -C <主工作区> merge s10-04/main --no-edit` → **Fast-forward**（`aab04ca4..8fe5a469`），
+无合并提交、无冲突、无产物漂移（`git status --short agent/digestion tests/unit scripts/dev docs/...` 为空）。
