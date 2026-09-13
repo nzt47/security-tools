@@ -289,7 +289,7 @@ $ git diff --name-only 9c736dad 66a67888 | Select-String "digestion|orchestrator
 | 3 | `learner._WORD_RE` 的中文**按字切分**未改（改它会把"无有区分度触发词"这一判定条件本身消解掉）。若后续要提升中文触发词质量，需引入真正的分词/词表，属**学习质量专项** | `learner.py:37` | 工作流学习层后续专项（S10 邻接） |
 | 4 | `_idf` 的 df=0 分支给最大权重，导致"问句里出现文档没有的罕见词"时相似度骤降到 ≈0（实测 0.001），即当前 matcher 偏保守、长问句几乎不可能命中 | §2.2 初测；`matcher.py::_idf` | 检索/匹配层专项（与 S9-03 的 RRF 归一化同族，非本任务范围） |
 | 5 | `generator._compute_priority` 对 ≤3 步给 +20（优先级倒挂）未改：1 步条目已进不了候选，倒挂不再有实际影响，但语义仍反直觉 | `generator.py:102-103` | 工作流学习层调优（低优先） |
-| 6 | `scripts/seed_demo_workflows.py` 直连**生产仓库** `WorkflowLearningService()` 并以 `demo-seed` 造 3 条演示数据——正是存量 3 条 `demo-seed` 条目的来源；本次未运行它（避免造数据），但它仍是"脚本刷真实数据"的风险点 | 脚本第 60/68 行 | 工具链（建议后续加 `--dry-run`/显式 `--repo` 必填） |
+| 6 | `scripts/seed_demo_workflows.py` 直连**生产仓库** `WorkflowLearningService()` 并以 `demo-seed` 造 3 条演示数据——正是存量 3 条 `demo-seed` 条目的来源；本次未运行它（避免造数据），但它仍是"脚本刷真实数据"的风险点 | 脚本第 60/68 行 | ✅ **已由 S11-02 关闭**（`0363221d`）：现为 `--repo` 必填 + 默认 dry-run（写临时仓库）+ 写盘须显式 `--apply`；实测省略 `--repo` 退出码 2 且生产仓库 SHA256 不变。见 [`TASK-S11-02_验收报告.md`](TASK-S11-02_验收报告.md) §五 |
 | 7 | 工作区 `data/learned_workflows.json` 与主工作区该文件存在双份（worktree 各自持有一份运行期数据）。本次只在 worktree 内退役，主工作区未动 | worktree 结构 | 工具链（同 S9-01 记的 `.env` worktree 问题） |
 
 ---
