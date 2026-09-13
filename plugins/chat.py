@@ -55,6 +55,65 @@ def _log_request(*args, **kwargs):
     return _decorator
 
 
+def _json_safe_metadata(metadata):
+    """仅保留可 JSON 序列化的元数据键（TASK-S11-03 R5）。
+
+    Why: ``/api/chat`` 的响应由 ``jsonify`` 序列化，而 ``metadata`` 由编排层装配
+    （``context_notice`` / ``plan_summary`` / ``used_planning`` …）。一旦混入
+    不可序列化对象，``jsonify`` 会抛 ``TypeError`` ⇒ **整个对话接口 500**。
+    读数通道不得拖垮主链路，故在边界上过滤。
+
+    被丢弃的键**显式披露**在返回值里（由调用方放进 ``metadata_omitted_keys``），
+    不静默吞掉 —— 否则"键不见了"会被误读成"编排层没产出这个键"。
+
+    Returns:
+        ``(safe: dict, dropped_keys: list[str])``
+    """
+    if not isinstance(metadata, dict):
+        return {}, []
+    safe = {}
+    dropped = []
+    for key, value in metadata.items():
+        try:
+            json.dumps(value, ensure_ascii=False)
+        except (TypeError, ValueError):
+            dropped.append(str(key))
+        else:
+            safe[key] = value
+    return safe, dropped
+
+
+def _context_limit_info(yunshu):
+    """读取编排窗口上限及其来源（TASK-S11-03 R3）。
+
+    单一事实源是 ``DigitalLife.context_limit_info()``（由 LifecycleManager 在初始化时
+    写入 ``_memory_token_limit`` / ``_memory_token_limit_source``，
+    见 agent/orchestrator/lifecycle_manager.py:283-289）。
+
+    【不易】取不到时返回 ``limit_tokens=None`` + ``limit_source="unavailable"``，
+    **绝不**回退到 4096 之类的硬编码值——那样比没有读数更坏：它看起来像个可信的数。
+    ``getattr`` 兜底是为了兼容 mock / 旧对象（缺方法时不炸请求）。
+    """
+    getter = getattr(yunshu, "context_limit_info", None)
+    if callable(getter):
+        try:
+            info = getter()
+        except Exception:
+            info = None
+        if isinstance(info, dict):
+            limit = info.get("limit_tokens")
+            source = info.get("limit_source")
+            if isinstance(limit, int) and not isinstance(limit, bool) and limit > 0:
+                return {
+                    "limit_tokens": int(limit),
+                    "limit_source": (
+                        source if isinstance(source, str) and source
+                        else "unavailable"
+                    ),
+                }
+    return {"limit_tokens": None, "limit_source": "unavailable"}
+
+
 # ── 语音输入 API ──
 @bp.route("/api/voice/listen", methods=["POST"])
 @_require_token
@@ -122,7 +181,7 @@ def api_chat():
     import app_server as _app_server
     from app_server import (
         _Yunshu, _session_mgr, _get_current_session_id, _safety_guard,
-        _save_conversation_record, _get_token_counter, _cfg, logger,
+        _save_conversation_record, _get_token_counter, logger,
         PROMETHEUS_AVAILABLE, SECURITY_BLOCKS,
     )
     import time
@@ -291,19 +350,47 @@ def api_chat():
         print(log)
     print("="*80 + "\n")
 
-    # 计算本次消息的 token 用量
+    # ── 本次读数（TASK-S11-03 R3：口径统一到「本请求会话 + 真实窗口上限」）──
+    # 修复前（本文件 :294-330）三处口径缺陷：
+    #   ① `_session_id_ctx = _get_current_session_id()` 取的是**全局当前会话**，
+    #      而同一 handler 在 :149 是按**请求**解析 session_id 的
+    #      ⇒ A 会话聊天可能报 B 会话的数字（读数串台）；
+    #   ② `_token_limit = _cfg.get("memory", "token_limit", default=4096)`：
+    #      config.yaml 的 memory 段**没有** token_limit 键
+    #      （agent/orchestrator/lifecycle_manager.py:283-289），分母恒为硬编码 4096，
+    #      与真正用于组装上下文的编排窗口（内置默认 131072）差 32 倍；
+    #   ③ 于是 `percentage = 累计/4096` 几轮必然 >100%，
+    #      与 metadata.context_notice.pct（÷131072）在同一响应里自相矛盾。
+    # 现：会话取**本请求**解析出的 `session_id`；分母取编排窗口的单一事实源
+    #     `_Yunshu.context_limit_info()` 并**披露来源**；分母不可得时记 None
+    #     （不以 4096 之类硬编码冒充，见 _context_limit_info）。
     _ctx_counter = _get_token_counter()
     _input_tokens = _ctx_counter.count(user_input)
     _output_tokens = _ctx_counter.count(response)
 
-    # 计算会话累计 token（快速估算，仅统计 content 字段）
-    _session_id_ctx = _get_current_session_id()
-    _all_msgs = _session_mgr.get_messages(_session_id_ctx, limit=0)
+    # 会话累计 token（快速估算，仅统计 content 字段）——**本请求会话**，非全局会话。
+    # limit=0 = 不截断，取该会话全部消息（含刚写入的本轮）。
+    _all_msgs = _session_mgr.get_messages(session_id, limit=0)
     _session_total = sum(
         _ctx_counter.count((m.get("content") or ""))
         for m in _all_msgs
     )
-    _token_limit = _cfg.get("memory", "token_limit", default=4096)
+    _limit_info = _context_limit_info(_Yunshu)
+    _token_limit = _limit_info["limit_tokens"]
+    _token_limit_source = _limit_info["limit_source"]
+    if _token_limit is None:
+        # 读数缺位必须**可见**：宁可是一个显式的 None + 告警，也不要一个像样的假分母
+        logger.warning(
+            "[context] 编排窗口上限不可得（_Yunshu.context_limit_info 缺位），"
+            "context.token_limit 记 None —— 不以硬编码分母冒充"
+        )
+
+    # R5：读回本轮结构化元数据（含 S10-03 的 metadata.context_notice）并转发进
+    # HTTP 响应。修复前本文件根本不转发 metadata ⇒ 新口径的告警在 Web 端看不到。
+    # 只转发**可 JSON 序列化**的键：元数据由编排层装配，一旦混入不可序列化对象，
+    # jsonify 会抛 TypeError 让整个 /api/chat 500 —— 读数通道不得拖垮主链路。
+    _response_metadata, _metadata_dropped = _json_safe_metadata(
+        _Yunshu.last_response_metadata(session_id))
 
     return jsonify({
         "response": response,
@@ -321,12 +408,34 @@ def api_chat():
             "voice_synthesis": voice_time,
         },
         "voice_result": voice_result,
+        # 结构化系统提示（如 context_notice）随响应外发，**不**混进 response 正文
+        # （TASK-S10-03 硬要求；TASK-S11-03 R5 接通到 HTTP）
+        "metadata": _response_metadata,
+        **({"metadata_omitted_keys": _metadata_dropped} if _metadata_dropped else {}),
         "context": {
+            # ── 归属：本次读数属于哪个会话（= 本请求解析出的 session_id，可自查）
+            "session_id": session_id,
+            "session_message_count": len(_all_msgs),
+            # ── 分子：来源分别为「本请求输入/输出」与「该会话全部消息的 content 估算」
             "input_tokens": _input_tokens,
             "output_tokens": _output_tokens,
             "session_total_tokens": _session_total,
+            "session_total_source": (
+                "session_manager:messages.jsonl 全量消息（仅 content 字段估算）"
+            ),
+            # ── 分母：编排窗口上限（单一事实源）+ 来源披露
             "token_limit": _token_limit,
-            "percentage": round(_session_total / _token_limit * 100, 1) if _token_limit > 0 else 0,
+            "token_limit_source": _token_limit_source,
+            # ── percentage 的分母语义（**口径变更**：修复前是硬编码 4096）
+            # 这是「会话累计占编排窗口的比例」，**不是**当前窗口占用率。
+            "percentage": (round(_session_total / _token_limit * 100, 1)
+                           if _token_limit else None),
+            "percentage_semantics": "session_cumulative_share_of_window",
+            "percentage_note": (
+                "= 会话累计 token ÷ token_limit（session_total_tokens / token_limit），"
+                "**非**当前窗口占用率；窗口占用率见 metadata.context_notice 的 "
+                "used_tokens / pct（其分母同为 token_limit，来自对话记忆装配结果）"
+            ),
         },
     })
 

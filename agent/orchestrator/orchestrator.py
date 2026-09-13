@@ -569,6 +569,12 @@ class Orchestrator:
                 session_mgr=session_mgr,
             )
         if isinstance(result, dict):
+            # TASK-S11-03 R5：把本轮响应元数据按会话留存，供 HTTP 层读取转发。
+            # 修复前 `chat()` 只取 text、**直接丢弃 metadata** ⇒ S10-03 把上下文告警
+            # 改走 `metadata.context_notice` 之后，该告警在 Web 端根本无从取到
+            # （"修好了但没人看得见"）。`chat()` 的返回类型（str）是本公开入口的
+            # 既有契约，**不改**；元数据另走 `last_response_metadata(session_id)`。
+            self._set_response_metadata(session_id, result.get("metadata"))
             text = result.get("response", "")
             if not text:
                 data = result.get("data", "")
@@ -2883,6 +2889,41 @@ class Orchestrator:
         """获取我当前的行为模式"""
         return self._current_mode
 
+    def context_limit_info(self) -> Dict[str, Any]:
+        """上下文窗口上限 + 来源的**公开读取口**（TASK-S11-03 R3）。
+
+        Why（真机口径分叉，代码行级）::
+
+            `plugins/chat.py:306` 修复前是
+                ``_token_limit = _cfg.get("memory", "token_limit", default=4096)``
+            而 `config.yaml` 的 ``memory`` 段**没有** ``token_limit`` 键
+            （`agent/orchestrator/lifecycle_manager.py:283-289` 已实测确认），
+            于是分母恒为硬编码 4096；真正用于组装上下文的是
+            ``_memory_token_limit``（同一处落到内置默认值 131072）。
+            两个分母差 32 倍 —— 同一响应里 ``context.percentage`` 会报 >100%，
+            而 ``metadata.context_notice.pct`` 只报个位数，读数互相矛盾。
+
+        本方法是该上限对**插件/HTTP 层**暴露的唯一读取口，取代各调用方自行
+        ``getattr(obj, "_memory_token_limit", 4096)`` 这类会重新长出硬编码分母的写法。
+
+        Returns:
+            ``{"limit_tokens": int|None, "limit_source": str, "available": bool}``
+
+            【不易】上限不可得（属性缺位 / 非正整数 / 类型不对）时
+            ``limit_tokens`` 记 ``None``、``limit_source`` 记 ``"unavailable"``，
+            **绝不以 4096 之类的硬编码值冒充分母** —— 那样比没有读数更坏：
+            它看起来像个可信的数。
+        """
+        limit = getattr(self, "_memory_token_limit", None)
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit <= 0:
+            return {"limit_tokens": None, "limit_source": "unavailable",
+                    "available": False}
+        return {
+            "limit_tokens": int(limit),
+            "limit_source": self._context_limit_source(),
+            "available": True,
+        }
+
     def _context_limit_source(self) -> str:
         """上下文窗口上限的**来源**（供告警披露，读数必须可复核）。
 
@@ -3078,6 +3119,30 @@ class Orchestrator:
             tool_steps=tool_steps if tool_steps is not _TURN_STATE_UNSET else _TURN_STATE_UNSET,
             reasoning=reasoning if reasoning is not _TURN_STATE_UNSET else _TURN_STATE_UNSET,
         )
+
+    def _set_response_metadata(self, session_id: Optional[str] = None,
+                               metadata: Any = None) -> None:
+        """**唯一**写入口：按会话留存本轮 ``process()`` 的响应元数据（TASK-S11-03 R5）。
+
+        由 ``chat()`` 在 ``process()`` 返回后调用。显式赋值，**无** ``or`` 回退：
+        ``process()`` 本轮没产出 metadata（或传 ``None``）就真实落空。
+        """
+        self._ensure_turn_state_store().set_metadata(
+            self._turn_session_key(session_id), metadata)
+
+    def last_response_metadata(self, session_id: Optional[str] = None) -> Dict[str, Any]:
+        """读取指定会话**本轮**的响应元数据快照（无则空 ``dict``）。
+
+        TASK-S11-03 R5：``metadata.context_notice``（S10-03 的口径修正产物）
+        经此读回并转发进 ``/api/chat`` 的 HTTP 响应；``process()`` 的
+        ``metadata`` 默认即 ``{}``，故这里"无内容"同样以空 ``dict`` 表示。
+
+        【不易】按会话隔离、且只认**本轮**：元数据描述的是"这一轮回了什么"，
+        复用上一轮（或别的会话的）等于把别的请求的结构化告警当成本轮外发内容。
+        """
+        md = self._ensure_turn_state_store().metadata_snapshot(
+            self._turn_session_key(session_id))
+        return md if isinstance(md, dict) else {}
 
     def last_turn_state(self, session_id: Optional[str] = None) -> Dict[str, Any]:
         """读取指定会话**本轮**的 ``{"tool_steps": list, "reasoning": str|None}``。
