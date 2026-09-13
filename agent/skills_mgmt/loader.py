@@ -81,6 +81,13 @@ def _meta_to_meta_text(meta: Dict[str, Any]) -> str:
 #  分词与匹配（第一层）
 # ════════════════════════════════════════════════════════════
 
+#: 质量门**只认**这些「有界到 [0,1] 的相似度」键（TASK-S10-03 现象B 口径）。
+#: 反例（都不是相似度，不得参与阈值比较）：
+#:   - ``bm25_score``：BM25Okapi 原始分**无上界**（同一技能库实测 1.2 ~ 21.0）；
+#:   - ``rrf_score`` / ``rrf_normalized``：RRF 按 rank-1 归一化的**排名分**，top1 恒 ≈1.0。
+#: 口径与编排层 ``orchestrator._BOUNDED_RELEVANCE_KEYS`` 逐字对齐（同键名、同语义）。
+_BOUNDED_QUALITY_KEYS: tuple = ("tfidf_score", "vector_score", "rerank_score")
+
 # 英文整词 + 连续中文串（中文不再按单字切分，见 _tokenize 的 Why）
 _WORD_RE = re.compile(r"[a-zA-Z0-9_]+|[\u4e00-\u9fff]+")
 
@@ -808,7 +815,7 @@ class SkillLoader:
     # k 越大，对低位排名的容错越强；k 越小，越偏向头部排名
     _RRF_K = 60
 
-    # 【不易】负样本质量门禁阈值：RRF top1 的 max(各路原始分数) 低于此值判定为负样本误召回
+    # 【不易】负样本质量门禁阈值：**有界相似度**低于此值判定为负样本误召回
     # 根因：RRF 只看排名，归一化分数（top1 恒为 1.0）无法反映绝对匹配质量。
     #       负样本两路都低分召回时（如 TF-IDF 0.14 + 向量 0.14），RRF 归一化后 score=0.5
     #       误判为高质量，需用原始分数兜底拦截。
@@ -817,7 +824,44 @@ class SkillLoader:
     #   - 正样本「解析PDF文件」TF-IDF 0.7143 → max=0.7143 > 0.3，保留 ✓
     #   - 正样本「检查代码bug」TF-IDF/向量均 >0.5 → 保留 ✓
     # 阈值 0.3 在负样本(0.14)与正样本(0.5+)之间留有安全边际
+    # 【不易·TASK-S10-03】阈值语义 = 「有界相似度阈值」，因此**只有**
+    #   _BOUNDED_QUALITY_KEYS 里的键可以参与比较（见 _bounded_quality_score）：
+    #   修复前把无界 BM25 原始分一起 max() ⇒ 噪声级候选（tfidf=0.1 + bm25=3.5184）过闸。
     _RRF_QUALITY_MIN = 0.3
+
+    @staticmethod
+    def _bounded_quality_score(breakdown: Optional[Dict[str, Any]]) -> Optional[float]:
+        """从 ``score_breakdown`` 取「有界到 [0,1] 的相关度」，取不到返回 ``None``。
+
+        【不易】为什么必须只认有界键（TASK-S10-03 现象B 根因，真机实测）::
+
+            query = "2 加 3 等于多少？只回答数字"
+              self_reflection  rrf_normalized=0.9954
+                tfidf_score=0.1（有界余弦）  vector_score=None  bm25_score=3.5184（无界）
+
+            修复前的质量门把各路 ``*_score`` 一股脑 max() 再与有界阈值
+            ``_RRF_QUALITY_MIN=0.3`` 比大小 ⇒ **量纲混用**：无界 BM25 分（3.5184）
+            恒赢，tfidf=0.1 的噪声级候选照样过闸（见
+            docs/zh/CloudPivot_v7.2重构计划/TASK-S9-01_验收报告.md §3.2）。
+
+        返回值语义：
+            - 有界路**声明且命中** → ``max(有界相似度)``；
+            - 有界路**声明但全部未命中**（只有 BM25 命中）→ ``None``
+              （与编排层 ``_bounded_relevance`` 同口径：不可信，不构成相似度证据）；
+            - **未声明**任何有界路（自定义 loader / mock breakdown）→ ``None``
+              （调用方据此保持既有行为，向后兼容）。
+        """
+        if not isinstance(breakdown, dict):
+            return None
+        bounded: List[float] = []
+        for key in _BOUNDED_QUALITY_KEYS:
+            value = breakdown.get(key)
+            if isinstance(value, bool):
+                # bool 是 int 子类：True 会被当成 1.0 放行一切，必须排除
+                continue
+            if isinstance(value, (int, float)):
+                bounded.append(float(value))
+        return max(bounded) if bounded else None
 
     def _rrf_fuse(
         self,
@@ -1500,33 +1544,45 @@ class SkillLoader:
 
         # 融合后不再二次过滤 min_score：各路已应用阈值，避免归一化分数压缩导致阈值失效
 
-        # ── 负样本质量门禁（基于原始分数阈值过滤）──
+        # ── 负样本质量门禁（阈值只与**有界相似度**比较）──
         # 【不易】RRF 只看排名，归一化分数（top1 恒为 1.0）无法反映绝对匹配质量。
         #         负样本两路都低分召回时（如 TF-IDF 0.14 + 向量 0.14），RRF 归一化后
-        #         score=0.5 误判为高质量，需用各路原始分数的 max 兜底拦截。
-        # 【变易】门禁检查 top1 的 max(各路原始分数) < _RRF_QUALITY_MIN 时判定为误召回，
-        #         返回空 MatchResult（不触发 TF-IDF fallback，避免引入新误召回路径）。
-        # 【简易】仅检查 top1：负样本的典型特征是所有候选原始分数都低，top1 即可代表。
-        #         阈值通过类常量 _RRF_QUALITY_MIN 配置，可未来下沉到 config.yaml。
+        #         score=0.5 误判为高质量，需用各路**有界**相似度兜底拦截。
+        # 【变易·TASK-S10-03】过滤口径由「max(各路 *_score)」收敛为
+        #         「max(有界相似度)」——BM25 无界原始分与 rrf 归一化排名分**不参与**。
+        #         修复前（现象B 根因）把 bm25_score=3.5184 一起 max()，与有界阈值 0.3
+        #         比大小 ⇒ 量纲混用，tfidf=0.1 的噪声候选过闸。
+        # 【简易】仅检查 top1：负样本的典型特征是所有候选有界相似度都低，top1 即可代表；
+        #         因此本次是「挡低质」，不重排高分（保守优先）。
         if fused and self._RRF_QUALITY_MIN > 0:
             top1 = fused[0]
             bd = top1.score_breakdown or {}
-            # 提取各路原始分数（双路: tfidf_score/vector_score; 三路: +bm25_score）
-            # 排除 rrf_score / rrf_normalized（非各路原始分数）
-            raw_scores = [
-                v for k, v in bd.items()
-                if k.endswith("_score")
-                and k not in ("rrf_score",)
-                and v is not None
-            ]
-            max_raw_score = max(raw_scores) if raw_scores else 0.0
-            # 记录详细日志：原始分数 + 归一化分数，便于验证负样本过滤逻辑
-            logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.check', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'top1_rrf_normalized': bd.get('rrf_normalized'), 'raw_scores': {k: v for k, v in bd.items() if k.endswith('_score') and k != 'rrf_score' and (v is not None)}, 'max_raw_score': round(max_raw_score, 6), 'threshold': self._RRF_QUALITY_MIN, 'use_bm25': use_bm25, 'decision': 'reject' if max_raw_score < self._RRF_QUALITY_MIN else 'pass'}))
-            if max_raw_score < self._RRF_QUALITY_MIN:
+            bounded_key_declared = [k for k in _BOUNDED_QUALITY_KEYS if k in bd]
+            bounded_score = self._bounded_quality_score(bd)
+            if bounded_key_declared:
+                # 有界路已声明：阈值只与有界相似度比较
+                effective_score = bounded_score if bounded_score is not None else 0.0
+                reject_reason = (
+                    "bounded_similarity_below_threshold" if bounded_score is not None
+                    else "bounded_paths_declared_but_all_missed"
+                )
+            else:
+                # 【不易】向后兼容：breakdown 未声明任何有界路（自定义 loader / mock），
+                #         沿用旧口径（各路 *_score 的 max），不新增拒召回。
+                _legacy = [
+                    float(v) for k, v in bd.items()
+                    if k.endswith("_score") and k != "rrf_score"
+                    and isinstance(v, (int, float)) and not isinstance(v, bool)
+                ]
+                effective_score = max(_legacy) if _legacy else 0.0
+                reject_reason = "legacy_breakdown_no_bounded_key"
+            # 记录详细日志：有界相似度 + 无界原始分 + 归一化排名分（三者分开，便于复核）
+            logger.info(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.check', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'top1_rrf_normalized': bd.get('rrf_normalized'), 'bounded_similarity': bounded_score, 'bounded_keys_declared': bounded_key_declared, 'bm25_raw_unbounded': bd.get('bm25_score'), 'effective_score': round(effective_score, 6), 'threshold': self._RRF_QUALITY_MIN, 'use_bm25': use_bm25, 'decision': 'reject' if effective_score < self._RRF_QUALITY_MIN else 'pass', 'note': 'threshold applies to bounded similarity only; bm25_score is unbounded and never compared here'}))
+            if effective_score < self._RRF_QUALITY_MIN:
                 # 【变易】返回空 MatchResult（retrieval_method="rrf"），不触发 TF-IDF fallback
                 # 原因：负样本 query 在 TF-IDF 路本身就是低分召回，fallback 会引入新误召回
                 elapsed = (time.time() - t0) * 1000
-                logger.warning(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.rejected', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'max_raw_score': round(max_raw_score, 6), 'threshold': self._RRF_QUALITY_MIN, 'fused_count': len(fused), 'reason': 'all_paths_low_raw_score_negative_sample'}))
+                logger.warning(log_dict({'module_name': 'loader', 'action': 'rrf.quality_gate.rejected', 'intent': intent[:100], 'top1_skill_id': top1.skill_id, 'effective_score': round(effective_score, 6), 'bounded_similarity': bounded_score, 'bm25_raw_unbounded': bd.get('bm25_score'), 'threshold': self._RRF_QUALITY_MIN, 'fused_count': len(fused), 'reason': reject_reason}))
                 emit_metric("yunshu_skill_rrf_quality_gate_rejected",
                             value=1, kind="counter",
                             labels={"layer": "1", "method": "rrf"})

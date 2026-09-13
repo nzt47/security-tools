@@ -1625,7 +1625,18 @@ class Orchestrator:
         self._memory.add_message("user", user_input)
         self._memory.add_message("assistant", response)
 
-        # 上下文快满时追加切换建议
+        # ── 上下文告警：**不得混进正式回答**（TASK-S10-03 现象A）──
+        # 修复前：只要 level=="critical" 就往 response 尾部拼
+        #   "💡 **当前会话上下文即将耗尽**（已使用 {pct:.0f}%）。"
+        # 两个问题：
+        #   ① 文案与成因脱钩：critical 可来自 compress_rounds>=5（摘要退化，与占用无关），
+        #      此时仍宣称"即将耗尽（已使用 27%）"——自相矛盾的读数；
+        #   ② `response` 会被 plugins/chat.py:267-272 原样写入会话历史 ⇒ 告警文本
+        #      回流成后续上下文（自我污染），且它并非模型答案却与答案同形。
+        # 现在：正式回答保持原样，告警走**结构化系统提示** metadata.context_notice
+        #      （含 level/reason/pct/used_tokens/limit_tokens/limit_source），
+        #      调用方（前端/编排上层）据此自行呈现；last_context_warning 属性契约不变。
+        _context_notice: Optional[dict] = None
         if self._last_context_warning and self._last_context_warning["level"] == "critical":
             carry_summary = ""
             try:
@@ -1640,11 +1651,9 @@ class Orchestrator:
                     f"最新用户提问：{user_input[:200]}"
                 )
             self._last_context_warning["summary"] = carry_summary
-            response += (
-                "\n\n---\n💡 **当前会话上下文即将耗尽**"
-                f"（已使用 {self._last_context_warning['pct']:.0f}%）。"
-                "\n点击下方「创建新会话」按钮，我会携带之前的记忆继续对话。"
-            )
+            _context_notice = dict(self._last_context_warning)
+            _context_notice["kind"] = "system_notice"
+            logger.warning(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator.context.notice', 'message': '[上下文] %s' % (self._last_context_warning['message'],), 'level': self._last_context_warning['level'], 'reason': self._last_context_warning.get('reason'), 'pct': self._last_context_warning['pct'], 'used_tokens': self._last_context_warning.get('used_tokens'), 'limit_tokens': self._last_context_warning.get('limit_tokens'), 'limit_source': self._last_context_warning.get('limit_source'), 'note': '告警以系统提示暴露，不拼进 response'}))
 
         # ── Trace: 结束记录 ──
         if trace_id:
@@ -1666,6 +1675,9 @@ class Orchestrator:
             collector.increment_counter("count.digital_life.chat.success")
 
         _resp = ResponseBuilder.success(response).to_dict()
+        # TASK-S10-03：上下文告警随响应外发，但走**结构化系统提示**而非拼进 response
+        if _context_notice is not None:
+            _resp.setdefault("metadata", {})["context_notice"] = _context_notice
         # 评估标准：E2E 断言响应含 used_planning/plan_summary（D7 规划覆盖标识）
         if _planning_used:
             _resp.setdefault("metadata", {})["used_planning"] = True
@@ -2871,11 +2883,37 @@ class Orchestrator:
         """获取我当前的行为模式"""
         return self._current_mode
 
+    def _context_limit_source(self) -> str:
+        """上下文窗口上限的**来源**（供告警披露，读数必须可复核）。
+
+        TASK-S10-03 现象A：修复前告警只给一个百分比，分母（``_memory_token_limit``）
+        从哪来完全不可见——而 `plugins/chat.py:298-327` 的 ``context.percentage``
+        用的是另一个硬编码 4096（见 docs/zh/真用前置_模型凭证核查_20260913.md §八 D4），
+        两个分母混着读，就会出现「27% 却即将耗尽」这类自相矛盾的结论。
+        故此处显式声明来源，由 LifecycleManager 在初始化时写入
+        （``config.yaml:memory.token_limit`` / ``builtin_default`` / 运行时注入）。
+        """
+        source = getattr(self, "_memory_token_limit_source", None)
+        if isinstance(source, str) and source:
+            return source
+        return "runtime_injected"
+
     def _check_context_usage(self) -> Optional[dict]:
-        """检查上下文使用率和压缩退化程度，返回警告信息
+        """检查上下文使用率和压缩退化程度，返回结构化告警（或 None）
+
+        TASK-S10-03 现象A 口径修正:
+            "critical" 有**两个互相独立**的成因，文案必须分别说清，不得混用：
+              1. ``summary_degraded``：``compress_rounds >= 5`` —— 摘要退化，
+                 与窗口占用百分比**无关**（真机 27% 就是这一支）；
+              2. ``usage_high``：``pct >= 95`` —— 真实窗口占用高。
+            修复前 `process()` 无视成因，一律拼「当前会话上下文即将耗尽（已使用 27%）」，
+            造出自相矛盾的读数。
 
         Returns:
-            {"level": "info"|"warning"|"critical", "pct": float, "message": str, ...}
+            {"level": "info"|"warning"|"critical",
+             "reason": "summary_degraded"|"usage_high"|"summary_warning"|"usage_info",
+             "pct": float, "used_tokens": int, "limit_tokens": int,
+             "limit_source": str, "compress_rounds": int, "message": str}
         """
         if not self._memory:
             return None
@@ -2885,50 +2923,56 @@ class Orchestrator:
                 return None
             total_tokens = self._memory._token_counter.count_messages(context)
             limit = self._memory_token_limit
-            pct = (total_tokens / limit) * 100
+            pct = (total_tokens / limit) * 100 if limit else 0.0
             compress_rounds = self._memory.compress_rounds
 
+            base = {
+                "pct": round(pct, 1),
+                "used_tokens": int(total_tokens),
+                "limit_tokens": int(limit),
+                "limit_source": self._context_limit_source(),
+                "compress_rounds": compress_rounds,
+            }
+            # 读数尾巴：把分母与来源一起给出，避免「百分比孤零零」被误读。
+            # 两种变体：(1) 供「不提百分比」的摘要退化文案用；(2) 供已含百分比的占用文案用。
+            usage_tail = (
+                f"（窗口占用 {pct:.0f}%：{int(total_tokens)}/{int(limit)} tokens，"
+                f"上限来源 {base['limit_source']}）"
+            )
+            usage_tail_short = (
+                f"（{int(total_tokens)}/{int(limit)} tokens，"
+                f"上限来源 {base['limit_source']}）"
+            )
+
             if compress_rounds >= 5:
-                return {
-                    "level": "critical",
-                    "pct": round(pct, 1),
-                    "compress_rounds": compress_rounds,
-                    "message": (
-                        f"已压缩 {compress_rounds} 次，摘要退化明显"
-                        f"（当前使用 {pct:.0f}%），建议创建新会话继续对话"
-                    ),
-                }
+                # 【不易】这一支与 pct 无关：不得出现「即将耗尽」措辞
+                return dict(base, level="critical", reason="summary_degraded",
+                            message=(
+                                f"上下文摘要已压缩 {compress_rounds} 次，摘要退化明显，"
+                                f"建议创建新会话继续对话；{usage_tail}"
+                            ))
             if compress_rounds >= 3:
-                return {
-                    "level": "warning",
-                    "pct": round(pct, 1),
-                    "compress_rounds": compress_rounds,
-                    "message": (
-                        f"已压缩 {compress_rounds} 次，建议准备切换到新会话"
-                    ),
-                }
+                return dict(base, level="warning", reason="summary_warning",
+                            message=(
+                                f"上下文摘要已压缩 {compress_rounds} 次，"
+                                f"建议准备切换到新会话；{usage_tail}"
+                            ))
 
             if pct >= 95:
-                return {
-                    "level": "critical",
-                    "pct": round(pct, 1),
-                    "compress_rounds": compress_rounds,
-                    "message": f"上下文已使用 {pct:.0f}%，即将耗尽，建议创建新会话继续对话",
-                }
+                return dict(base, level="critical", reason="usage_high",
+                            message=(
+                                f"上下文窗口占用已达 {pct:.0f}%，即将耗尽，"
+                                f"建议创建新会话继续对话；{usage_tail_short}"
+                            ))
             elif pct >= 80:
-                return {
-                    "level": "warning",
-                    "pct": round(pct, 1),
-                    "compress_rounds": compress_rounds,
-                    "message": f"上下文已使用 {pct:.0f}%，建议准备切换到新会话",
-                }
+                return dict(base, level="warning", reason="usage_high",
+                            message=(
+                                f"上下文窗口占用 {pct:.0f}%，"
+                                f"建议准备切换到新会话；{usage_tail_short}"
+                            ))
             elif pct >= 60:
-                return {
-                    "level": "info",
-                    "pct": round(pct, 1),
-                    "compress_rounds": compress_rounds,
-                    "message": f"上下文已使用 {pct:.0f}%",
-                }
+                return dict(base, level="info", reason="usage_info",
+                            message=f"上下文窗口占用 {pct:.0f}%；{usage_tail_short}")
             return None
         except Exception as e:
             logger.debug(log_dict({'module_name': 'orchestrator', 'action': 'orchestrator._check_context_usage.log', 'message': '检查上下文使用率时出错: %s' % (e,)}))

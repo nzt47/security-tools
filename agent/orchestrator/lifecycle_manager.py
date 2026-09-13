@@ -273,7 +273,20 @@ class LifecycleManager:
         # ── 3. 我的记忆：记忆层 ──
         memory_cfg = self._config.get("memory", {})
         self._memory = MemoryManager(memory_cfg)
-        self._memory_token_limit = memory_cfg.get("token_limit", 131072)
+        # TASK-S10-03：上下文窗口上限的**单一事实源 + 来源披露**
+        # 【不易】告警的百分比分母必须与「真正用于组装上下文的那个上限」一致，
+        #         且必须能说清它从哪来。config.yaml 的 memory 段当前**未配** token_limit，
+        #         于是这里落到 131072 的**内置默认值**——修复前这一点完全不可见，
+        #         读数的人只会看到一个孤零零的百分比（详见
+        #         docs/zh/真用前置_模型凭证核查_20260913.md §八 D4 与 D4 修正说明）。
+        # 【变易】配了 memory.token_limit 即自动切到该值（无需改代码），并如实标注来源。
+        _configured_token_limit = memory_cfg.get("token_limit")
+        if _configured_token_limit:
+            self._memory_token_limit = _configured_token_limit
+            self._memory_token_limit_source = "config.yaml:memory.token_limit"
+        else:
+            self._memory_token_limit = 131072
+            self._memory_token_limit_source = "builtin_default(131072)"
         self._llm = self._memory._llm_service
         self._llm_pro = None  # 深度模型（由模型调度器加载）
         self._tool_calling_service = None
