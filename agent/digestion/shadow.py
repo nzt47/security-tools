@@ -145,6 +145,10 @@ GRAY_RATIO_DEFAULT = 0.0
 JUDGE_MODE_ENV = "CP_DIGESTION_JUDGE"
 JUDGE_PROVIDER_ENV = "CP_DIGESTION_JUDGE_PROVIDER"
 JUDGE_MODEL_ENV = "CP_DIGESTION_JUDGE_MODEL"
+#: 端点（S9-02）：**复用部署级 `LLM_BASE_URL`**，不新造同名概念。
+#: OpenAI 兼容端点（DeepSeek 等）必须靠它才能把请求指到正确的主机；
+#: 该键早已登记进 `agent/settings/registry.py`（`_c` 只读脱敏），故无需新增开关。
+JUDGE_BASE_URL_ENV = "LLM_BASE_URL"
 JUDGE_MODE_AUTO = "auto"
 JUDGE_MODE_LLM = "llm"
 JUDGE_MODE_LOCAL = "local"
@@ -764,6 +768,14 @@ def _extract_reply(out: Any) -> str:
     **失败回复不算回复**（S8-04）：``{"success": False, "error": "429 ..."}`` 若被
     当成文本，数字会被相似度解析器读成"高分"（429 → 1.0），把通道故障伪装成
     "语义等价"。故失败回复一律抛 `JudgeUnavailable`（如实回落，不猜）。
+
+    **"成功但没内容"同样不算回复**（S9-02，实测复现）：推理型模型（如
+    ``deepseek-v4-flash``）会把 token 预算先花在 ``reasoning_content`` 上，
+    ``finish_reason="length"`` 时可见 ``content`` 为**空串**而 ``success`` 仍为
+    ``True`` ⇒ 旧代码走过文本键循环落到 ``json.dumps(out)``，那份 JSON 里第一个
+    数字（如 ``prompt_tokens=95``）会被 `_ANY_SCORE` 读成 **0.95 → 判"通过"**。
+    这是 S8-04 堵的那个洞的**另一扇门**：通道截断被伪装成语义等价。
+    故文本键全空 ⇒ 一样抛 `JudgeUnavailable`（如实回落，不猜）。
     """
     if isinstance(out, dict):
         for key in ("text", "content", "output", "response"):
@@ -772,6 +784,13 @@ def _extract_reply(out: Any) -> str:
         if out.get("success") is False or out.get("error"):
             raise JudgeUnavailable(
                 f"模型返回失败: {str(out.get('error') or out)[:160]}")
+        if any(key in out for key in ("text", "content", "output", "response")):
+            # 文本键**存在但为空**：模型确实被调用了、也自认成功，只是没给出可见文本
+            # （最常见成因：推理 token 吃满预算 / 内容过滤）⇒ 无回复可用
+            raise JudgeUnavailable(
+                "模型成功返回但无可见文本（文本键为空；"
+                f"finish_reason={out.get('finish_reason')!r}）"
+                "⇒ 如实回落，不得把用量字段当作分数")
         return json.dumps(out, ensure_ascii=False, default=str)
     return str(out)
 
@@ -815,7 +834,7 @@ class LLMJudge:
     def __init__(self, *, invoke: Optional[Callable[[str], str]] = None,
                  adapter: Any = None, provider: str = "", model: str = "",
                  threshold: float = JUDGE_THRESHOLD,
-                 api_key: str = "") -> None:
+                 api_key: str = "", base_url: str = "") -> None:
         self.provider = str(provider or "")
         self.model = str(model or "")
         self.threshold = float(threshold)
@@ -823,6 +842,9 @@ class LLMJudge:
         self._adapter = adapter
         #: 显式凭证（S8-04：SecretStore/.env 解析结果；**私有字段，绝不进日志/报告**）
         self._api_key = str(api_key or "")
+        #: 端点（S9-02：OpenAI 兼容端点必需；来自部署级 `LLM_BASE_URL`）。
+        #: 空串 = 交给适配器自己的缺省端点，**不臆造**。
+        self._base_url = str(base_url or "")
         self._unavailable = ""
         self.calls = 0
         self.usage: Dict[str, Any] = {"prompt_chars": 0, "reply_chars": 0}
@@ -844,13 +866,22 @@ class LLMJudge:
         return self._unavailable
 
     def _adapter_kwargs(self) -> Dict[str, Any]:
-        """适配器构造参数（**只有显式给过 api_key 才传**，否则保留其原生 env 解析）
+        """适配器构造参数（**只有显式给过才传**，否则保留其原生 env 解析）
 
         S8-04：凭证可能来自 SecretStore / `.env`（不在进程环境里），而
         `ModelAdapterFactory` 的适配器默认只读 ``os.environ``——不把解析结果显式
         传下去，"优先 SecretStore、回落 .env"就只是纸面承诺。
+
+        S9-02：``base_url`` 同理。OpenAI **兼容**端点（DeepSeek 等）若拿不到端点，
+        请求会打到 ``api.openai.com``（或落到 SDK 缺省）——那不是"回落"，那是**打错地方**。
+        故端点和凭证一样，解析出来就必须显式传下去。
         """
-        return {"api_key": self._api_key} if self._api_key else {}
+        kwargs: Dict[str, Any] = {}
+        if self._api_key:
+            kwargs["api_key"] = self._api_key
+        if self._base_url:
+            kwargs["base_url"] = self._base_url
+        return kwargs
 
     def _resolve_invoke(self) -> Callable[[str], str]:
         """解析出真正可用的调用通道（**不做探针式模型调用**：只查适配器可用性）"""
@@ -1188,7 +1219,9 @@ def resolve_judge(mode: str = "", *, invoke: Optional[Callable[[str], str]] = No
                              detail={"note": "显式要求本地确定性打分器"})
     provider = provider or str(env_map.get(JUDGE_PROVIDER_ENV) or "")
     model = model or str(env_map.get(JUDGE_MODEL_ENV) or "")
-    llm = LLMJudge(invoke=invoke, provider=provider, model=model)
+    # S9-02：端点复用部署级 `LLM_BASE_URL`（兼容端点不传端点 = 打错主机）
+    base_url = str(env_map.get(JUDGE_BASE_URL_ENV) or "")
+    llm = LLMJudge(invoke=invoke, provider=provider, model=model, base_url=base_url)
     if resolved_mode == JUDGE_MODE_LLM:
         if llm.is_available():
             return ResolvedJudge(scorer=llm, kind=JUDGE_KIND_LLM, mode=resolved_mode,
@@ -3046,7 +3079,8 @@ __all__ = [
     "SHADOW_MIN_BUDGET", "SHADOW_ENABLE_ENV", "SHADOW_BUDGET_RATIO_ENV",
     "SHADOW_BUDGET_CAP_ENV", "SHADOW_MIN_BUDGET_ENV", "GRAY_ENABLE_ENV",
     "GRAY_RATIO_ENV", "GRAY_RATIO_BASELINE", "GRAY_RATIO_DEFAULT",
-    "JUDGE_MODE_ENV", "JUDGE_PROVIDER_ENV", "JUDGE_MODEL_ENV", "JUDGE_MODES",
+    "JUDGE_MODE_ENV", "JUDGE_PROVIDER_ENV", "JUDGE_MODEL_ENV", "JUDGE_BASE_URL_ENV",
+    "JUDGE_MODES",
     "JUDGE_MODE_AUTO", "JUDGE_MODE_LLM", "JUDGE_MODE_LOCAL",
     "JUDGE_KIND_LLM", "JUDGE_KIND_LOCAL", "JUDGE_KIND_INJECTED",
     "JUDGE_KIND_LLM_FALLBACK",

@@ -40,6 +40,7 @@ from datetime import date
 from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from .shadow import (
+    JUDGE_BASE_URL_ENV,
     JUDGE_KIND_LOCAL,
     JUDGE_MODE_ENV,
     JUDGE_MODEL_ENV,
@@ -80,6 +81,10 @@ JUDGE_SECRET_FILE_ENV = "CP_DIGESTION_JUDGE_SECRET_FILE"
 JUDGE_DOTENV_ENV = "CP_DIGESTION_JUDGE_DOTENV"
 #: 估算 token 的字符/ token 比（**仅当适配器不给 usage 时**用，且必须显式标注估算）
 JUDGE_CHARS_PER_TOKEN_ENV = "CP_DIGESTION_JUDGE_CHARS_PER_TOKEN"
+#: 端点环境键（S9-02）：复用部署级 `LLM_BASE_URL`（从 `.shadow` 导入，定义单点在彼）。
+#: 不新造 `CP_DIGESTION_JUDGE_BASE_URL` —— 同一部署里"模型端点"只有一个真实来源，
+#: 造第二个同名概念只会让两处漂移；该键已登记进 `agent/settings/registry.py`（`_c`），
+#: 故本次改动**不引入任何未登记 env**。
 
 #: 可用性三态（验收清单要求可读）
 AVAILABILITY_AVAILABLE = "available"
@@ -127,7 +132,7 @@ _PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
 
 #: 自检状态字段（供面板/日志读取；**不含任何明文凭证**）
 SELF_CHECK_FIELDS: Tuple[str, ...] = (
-    "state", "reason", "provider", "model", "kind", "enabled",
+    "state", "reason", "provider", "model", "kind", "base_url", "enabled",
     "daily_budget_cents", "threshold", "credential_source", "credential_name",
     "credential_fingerprint", "follow_fasting", "runtime_version")
 
@@ -260,6 +265,9 @@ class JudgeConfig:
     secret_file: str = ""
     dotenv_path: str = ""
     chars_per_token: float = 4.0
+    #: 端点（S9-02）：复用部署级 `LLM_BASE_URL`，**不新造同名概念**。
+    #: OpenAI 兼容端点（DeepSeek 等）必需；空串 = 交给适配器缺省端点。
+    base_url: str = ""
     source: Dict[str, str] = field(default_factory=dict)
 
     @property
@@ -275,6 +283,7 @@ class JudgeConfig:
                 "secret_file": self.secret_file,
                 "dotenv_path": self.dotenv_path,
                 "chars_per_token": float(self.chars_per_token),
+                "base_url": self.base_url,
                 "source": dict(self.source),
                 "note": ("凭证只以指纹形式出现在自检/报告里；本结构不含密钥明文")}
 
@@ -315,13 +324,17 @@ def judge_config_from_env(env: Optional[Mapping[str, str]] = None, *,
     chars = _env_float(JUDGE_CHARS_PER_TOKEN_ENV, 4.0, env)
     if chars <= 0:
         chars = 4.0
+    # S9-02：端点复用部署级 `LLM_BASE_URL`（兼容端点不传端点 ⇒ 请求打到错误主机）
+    base_url = _env_str(JUDGE_BASE_URL_ENV, "", env)
+    sources["base_url"] = (f"env:{JUDGE_BASE_URL_ENV}" if base_url
+                           else "default:适配器缺省端点")
     return JudgeConfig(
         enabled=enabled, provider=provider, model=model,
         daily_budget_cents=float(budget), threshold=float(threshold),
         follow_fasting=_env_flag(JUDGE_FOLLOW_FASTING_ENV, True, env),
         secret_file=_env_str(JUDGE_SECRET_FILE_ENV, "", env),
         dotenv_path=_env_str(JUDGE_DOTENV_ENV, "", env),
-        chars_per_token=float(chars), source=sources)
+        chars_per_token=float(chars), base_url=base_url, source=sources)
 
 
 # ════════════════════════════════════════════════════════════
@@ -437,6 +450,8 @@ class JudgeAvailability:
     provider: str = ""
     model: str = ""
     kind: str = ""
+    #: 端点（S9-02；**非密钥**，可进日志/报告 —— "打的是哪台主机"必须可复盘）
+    base_url: str = ""
     credential: CredentialResolution = field(default_factory=CredentialResolution)
     registered: bool = False
 
@@ -447,12 +462,14 @@ class JudgeAvailability:
     def to_dict(self) -> Dict[str, Any]:
         return {"state": self.state, "reason": self.reason,
                 "provider": self.provider, "model": self.model, "kind": self.kind,
+                "base_url": self.base_url,
                 "credential": self.credential.to_dict(),
                 "registered": bool(self.registered)}
 
     def markdown(self) -> str:
         return (f"judge 可用性：**{self.state}**"
-                f"（provider=`{self.provider or '-'}` model=`{self.model or '-'}`；"
+                f"（provider=`{self.provider or '-'}` model=`{self.model or '-'}`"
+                f" endpoint=`{self.base_url or '适配器缺省'}`；"
                 f"凭证来源={self.credential.source}"
                 f"{'/' + self.credential.name if self.credential.name else ''}"
                 f"{' ' + self.credential.fingerprint if self.credential.fingerprint else ''}；"
@@ -481,7 +498,7 @@ def judge_availability(config: JudgeConfig, *,
     if not config.enabled:
         return JudgeAvailability(
             state=AVAILABILITY_DISABLED, reason=JUDGE_REASON_NOTES[JUDGE_REASON_DISABLED],
-            provider=config.provider, model=config.model,
+            provider=config.provider, model=config.model, base_url=config.base_url,
             kind=judge_fallback_kind(JUDGE_REASON_DISABLED),
             credential=CredentialResolution(reason="未启用，不解析凭证"))
     if not (config.provider and config.model):
@@ -494,7 +511,7 @@ def judge_availability(config: JudgeConfig, *,
             reason=(f"未配置 {'/'.join(missing)}"
                     f"（当前 {JUDGE_PROVIDER_ENV}={meta.get(JUDGE_PROVIDER_ENV, '')!r} "
                     f"{JUDGE_MODEL_ENV}={meta.get(JUDGE_MODEL_ENV, '')!r}）"),
-            provider=config.provider, model=config.model,
+            provider=config.provider, model=config.model, base_url=config.base_url,
             kind=judge_fallback_kind(JUDGE_REASON_NO_CREDENTIALS))
     if invoke is not None or adapter is not None:
         credential = CredentialResolution(
@@ -512,18 +529,19 @@ def judge_availability(config: JudgeConfig, *,
                 credential=credential)
     probe = LLMJudge(invoke=invoke, adapter=adapter, provider=config.provider,
                      model=config.model, threshold=config.threshold,
-                     api_key=credential.secret)
+                     api_key=credential.secret, base_url=config.base_url)
     if not probe.is_available():
         return JudgeAvailability(
             state=AVAILABILITY_NO_CREDENTIALS,
             reason=(f"judge 通道不可用：{probe.unavailable_reason}"
                     "（缺依赖/适配器不可用，与『缺密钥』区分）"),
             provider=config.provider, model=config.model,
+            base_url=config.base_url,
             kind=judge_fallback_kind(JUDGE_REASON_NO_CREDENTIALS),
             credential=credential)
     return JudgeAvailability(
         state=AVAILABILITY_AVAILABLE, reason="凭证与通道就绪（未发起模型调用）",
-        provider=config.provider, model=config.model,
+        provider=config.provider, model=config.model, base_url=config.base_url,
         kind=judge_kind_for(config.provider, config.model), credential=credential,
         registered=True)
 
@@ -597,6 +615,9 @@ class JudgeBudgetGuard:
         self._utc = utc_module
         self.recorded: List[Dict[str, Any]] = []
         self.record_errors: List[str] = []
+        #: 写侧 store 缓存（见 `_writer_store`；**读写必须同一本账**）
+        self._writer: Any = None
+        self._writer_resolved = False
 
     # ── 读侧 ────────────────────────────────────────────────
 
@@ -609,6 +630,31 @@ class JudgeBudgetGuard:
             return self._utc
         from agent.observability import utc as utc_mod
         return utc_mod
+
+    def _writer_store(self) -> Any:
+        """写侧 store（**与读侧同目录**，否则护栏永远看不见自己的花销）
+
+        S9-02 修复的**护栏失聪**：`spent()` 按 `events_dir` 读当日 judge 栏，而
+        `utc.record_cost(store=None)` 落到**全局默认**事件目录（`CP_EVENTS_DIR`
+        /`data/events`）。只给 `events_dir` 而不给 `store` 时，读写指向**两本不同的账**
+        ⇒ `spent_cents` 恒为 0 ⇒ 每日预算**永远不会触发**（"超预算回落"沦为纸面条款），
+        同时花销被记到另一个目录。故：调用方给了 `events_dir`，写侧就显式绑到同目录；
+        显式 `store` 仍然最优先（不夺走调用方的注入权）。
+        """
+        if self._store is not None:
+            return self._store
+        if self._writer_resolved:
+            return self._writer
+        self._writer_resolved = True
+        if not self._events_dir:
+            return None                      # 读写都走全局默认目录 ⇒ 天然一致
+        try:
+            from agent.observability.events import EventStore, active_events_path
+            self._writer = EventStore(path=active_events_path(self._events_dir))
+        except Exception as e:  # noqa: BLE001 绑不上就退回全局（并留痕，不静默）
+            logger.warning("judge 写侧事件目录绑定失败（退回全局默认目录）: %s", e)
+            self._writer = None
+        return self._writer
 
     def spent(self) -> Dict[str, Any]:
         """当日 judge 栏花销（事件流；读失败 → ``error`` 非空 ⇒ fail-closed）"""
@@ -678,7 +724,7 @@ class JudgeBudgetGuard:
                 source=JUDGE_COST_SOURCE, tokens_in=payload["tokens_in"],
                 tokens_out=payload["tokens_out"], interaction_id=str(interaction_id or ""),
                 task_id=str(task_id or ""), correlation_id=str(correlation_id or ""),
-                duration_ms=duration_ms, store=self._store,
+                duration_ms=duration_ms, store=self._writer_store(),
                 extra={"tokens_estimated": bool(estimated),
                        "cost_column": JUDGE_COST_SOURCE,
                        "recorded_by": f"judge_runtime/{JUDGE_RUNTIME_VERSION}"})
@@ -1068,11 +1114,13 @@ def build_judge_runtime(config: Optional[JudgeConfig] = None, *,
                              provider=resolved_config.provider,
                              model=resolved_config.model,
                              threshold=resolved_config.threshold,
-                             api_key=availability.credential.secret)
+                             api_key=availability.credential.secret,
+                             base_url=resolved_config.base_url)
         resolved = ResolvedJudge(
             scorer=judge_obj, kind=availability.kind, mode="llm",
             detail={"provider": resolved_config.provider,
                     "model": resolved_config.model,
+                    "base_url": resolved_config.base_url,
                     "threshold": resolved_config.threshold,
                     "credential_source": availability.credential.source,
                     "credential_fingerprint": availability.credential.fingerprint,

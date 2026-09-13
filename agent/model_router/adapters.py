@@ -22,6 +22,21 @@ def _trace_id():
     return uuid.uuid4().hex[:16]
 
 
+#: OpenAI **兼容**端点（S9-02）：这些提供商说的是 OpenAI 的
+#: ``chat/completions`` 协议，差别只在 ``base_url`` 与模型名，故复用 `OpenAIAdapter`。
+#:
+#: 存在的理由：`agent/digestion/judge_runtime.py::PROVIDER_CREDENTIAL_ENVS` 早已把
+#: `deepseek` / `siliconflow` 当**一等 provider**（各自有凭证键），但本工厂此前不认它们
+#: ⇒ `create()` 返回 ``None`` ⇒ 真实 LLM-judge 永远报"未构造出适配器"，
+#: 于是"有凭证即用"沦为纸面承诺。此处补齐，**只为这些 provider 增加分支**，
+#: 不改动既有分支的任何行为。
+#:
+#: 表里的值是**缺省端点**，仅当调用方未显式传 ``base_url`` 时生效；部署级
+#: ``LLM_BASE_URL`` 优先（由调用方传入，见 `LLMJudge._adapter_kwargs`）。
+OPENAI_COMPATIBLE_BASE_URLS: Dict[str, str] = {
+    "deepseek": "https://api.deepseek.com/v1",
+}
+
 
 class ModelAdapter(ABC):
     """模型适配器抽象基类"""
@@ -58,9 +73,10 @@ class ModelAdapter(ABC):
 
 
 class OpenAIAdapter(ModelAdapter):
-    """OpenAI 模型适配器"""
-    
-    def __init__(self, model_name: str, api_key: str = None, base_url: str = None):
+    """OpenAI 模型适配器（**也承载 OpenAI 兼容端点**，见 `OPENAI_COMPATIBLE_BASE_URLS`）"""
+
+    def __init__(self, model_name: str, api_key: Optional[str] = None,
+                 base_url: Optional[str] = None):
         self._model_name = model_name
         self._api_key = api_key
         self._base_url = base_url
@@ -117,6 +133,11 @@ class OpenAIAdapter(ModelAdapter):
             return {
                 "success": True,
                 "content": response.choices[0].message.content,
+                # S9-02：推理型模型可能把 token 预算吃在 reasoning 上 ⇒
+                # 可见 content 为空而 success 仍为 True。透出 finish_reason
+                # （``length`` = 被截断）让这种"成功但无内容"在生产日志里**可诊断**，
+                # 而不是只看到一句"模型没回复"。
+                "finish_reason": getattr(response.choices[0], "finish_reason", None),
                 "usage": {
                     "prompt_tokens": response.usage.prompt_tokens,
                     "completion_tokens": response.usage.completion_tokens,
@@ -146,6 +167,7 @@ class OpenAIAdapter(ModelAdapter):
             return {
                 "success": True,
                 "content": response.choices[0].message.content,
+                "finish_reason": getattr(response.choices[0], "finish_reason", None),
                 "usage": {
                     "prompt_tokens": response.usage.prompt_tokens,
                     "completion_tokens": response.usage.completion_tokens,
@@ -561,6 +583,11 @@ class ModelAdapterFactory:
         
         if provider == "openai":
             return OpenAIAdapter(model_name, kwargs.get("api_key"), kwargs.get("base_url"))
+        elif provider in OPENAI_COMPATIBLE_BASE_URLS:
+            # S9-02：OpenAI 兼容端点（DeepSeek 等）——同协议，只是端点与模型名不同
+            base_url = str(kwargs.get("base_url")
+                           or OPENAI_COMPATIBLE_BASE_URLS[provider])
+            return OpenAIAdapter(model_name, kwargs.get("api_key"), base_url)
         elif provider == "claude":
             return ClaudeAdapter(model_name, kwargs.get("api_key"))
         elif provider == "gemini":

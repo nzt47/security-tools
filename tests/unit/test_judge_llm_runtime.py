@@ -35,7 +35,7 @@ def isolated_paths(tmp_path, monkeypatch):
                  "CP_DIGESTION_JUDGE_THRESHOLD", "CP_DIGESTION_JUDGE_FOLLOW_FASTING",
                  "CP_DIGESTION_JUDGE_SECRET_FILE", "CP_DIGESTION_JUDGE_DOTENV",
                  "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "DEEPSEEK_API_KEY",
-                 "LLM_API_KEY", "LLM_PROVIDER"):
+                 "LLM_API_KEY", "LLM_PROVIDER", "LLM_BASE_URL"):
         monkeypatch.delenv(name, raising=False)
     events_mod.reset_event_stores()
     yield tmp_path
@@ -613,3 +613,272 @@ class TestNoPlaintext:
         assert runtime.availability.state == JR.AVAILABILITY_AVAILABLE
         assert seen["api_key"] == SECRET
         assert "OPENAI_API_KEY" not in __import__("os").environ
+
+
+# ════════════════════════════════════════════════════════════
+#  8. S9-02：OpenAI 兼容端点（base_url）+ "成功但无内容"的假绿门
+# ════════════════════════════════════════════════════════════
+
+#: 真实捕获（S9-02 实测）：推理型模型 `deepseek-v4-flash` 在 ``max_tokens`` 被
+#: reasoning 吃满时，OpenAI SDK 仍返回 ``choice.finish_reason="length"``、
+#: ``message.content=""``，适配器则包成 ``success=True``。**此 dict 逐字段照抄
+#: 当时 OpenAIChatCompletion 的真实返回结构**，不是臆造的测试夹具。
+REAL_TRUNCATED_REPLY = {
+    "success": True,
+    "content": "",
+    "finish_reason": "length",
+    "usage": {"prompt_tokens": 95, "completion_tokens": 64, "total_tokens": 159},
+    "model": "deepseek-v4-flash",
+    "provider": "openai",
+}
+
+DEPLOY_BASE_URL = "https://api.deepseek.com/v1"
+
+
+class TestOpenAICompatibleEndpoint:
+    """S9-02：OpenAI 兼容端点（DeepSeek 等）拿得到 base_url 才谈得上"具备即用"""
+
+    def test_base_url_read_from_deployment_env(self):
+        """端点复用**部署级** ``LLM_BASE_URL``（不新造同名开关）"""
+        cfg = JR.JudgeConfig(enabled=True, provider="deepseek", model="m")
+        resolved = JR.judge_config_from_env(
+            {SH.JUDGE_PROVIDER_ENV: "deepseek", SH.JUDGE_MODEL_ENV: "m",
+             SH.JUDGE_BASE_URL_ENV: DEPLOY_BASE_URL})
+        assert resolved.base_url == DEPLOY_BASE_URL
+        assert cfg.base_url == ""                     # 未给就是空串，不臆造端点
+        assert resolved.source["base_url"] == f"env:{SH.JUDGE_BASE_URL_ENV}"
+
+    def test_no_base_url_is_not_invented(self):
+        """没有 ``LLM_BASE_URL`` 时**不编造**端点（交给适配器缺省，且如实标注来源）"""
+        resolved = JR.judge_config_from_env({SH.JUDGE_PROVIDER_ENV: "deepseek"})
+        assert resolved.base_url == ""
+        assert resolved.source["base_url"] == "default:适配器缺省端点"
+
+    def test_base_url_reaches_adapter_and_kind_is_accurate(self, tmp_path, monkeypatch):
+        """端点与凭证一样，解析出来就必须**显式传给适配器**；kind 标真实 provider"""
+        seen = {}
+
+        class CaptureFactory:
+            @staticmethod
+            def create(provider, model, **kwargs):
+                seen.update(kwargs, provider=provider, model=model)
+
+                class Adapter:
+                    def is_available(self):
+                        return True
+
+                    def generate(self, prompt, **kwargs):
+                        return {"content": structured("equivalent", 0.9),
+                                "usage": {"prompt_tokens": 11,
+                                          "completion_tokens": 7}}
+
+                return Adapter()
+
+        monkeypatch.setattr("agent.model_router.adapters.ModelAdapterFactory",
+                            CaptureFactory, raising=False)
+        runtime = JR.build_judge_runtime(
+            JR.JudgeConfig(enabled=True, provider="deepseek",
+                           model="deepseek-v4-flash", base_url=DEPLOY_BASE_URL),
+            env={}, secret_provider=lambda name: SECRET if name == "LLM_API_KEY" else None,
+            dotenv_path=str(tmp_path / "absent.env"))
+        assert runtime.availability.state == JR.AVAILABILITY_AVAILABLE
+        assert seen["base_url"] == DEPLOY_BASE_URL
+        assert seen["api_key"] == SECRET
+        assert seen["provider"] == "deepseek"
+        # kind 标**真实** provider/model（不把 DeepSeek 谎报成 openai）
+        assert runtime.kind == "llm:deepseek:deepseek-v4-flash"
+        assert SH.is_llm_kind(runtime.kind) is True
+        assert runtime.to_dict()["base_url"] == DEPLOY_BASE_URL
+
+    def test_base_url_is_public_and_secret_is_not(self, tmp_path):
+        """端点可复盘（非密钥）；凭证仍然只出指纹"""
+        check = JR.judge_self_check(
+            JR.JudgeConfig(enabled=True, provider="deepseek", model="m",
+                           base_url=DEPLOY_BASE_URL),
+            env={"LLM_API_KEY": SECRET}, secret_provider=lambda name: None,
+            dotenv_path=str(tmp_path / "absent.env"), log=False)
+        assert check["base_url"] == DEPLOY_BASE_URL
+        assert SECRET not in json.dumps(check, ensure_ascii=False, default=str)
+
+    def test_deepseek_provider_constructs_openai_compatible_adapter(self):
+        """S9-02 修复的**根因**：工厂此前不认 ``deepseek``，于是永远"未构造出适配器" """
+        from agent.model_router.adapters import (ModelAdapterFactory, OpenAIAdapter,
+                                                 OPENAI_COMPATIBLE_BASE_URLS)
+        adapter = ModelAdapterFactory.create("deepseek", "deepseek-v4-flash")
+        assert isinstance(adapter, OpenAIAdapter)
+        # 未显式给端点 ⇒ 用该 provider 的缺省端点（不再是 None / 不落到 api.openai.com）
+        assert adapter._base_url == OPENAI_COMPATIBLE_BASE_URLS["deepseek"]
+        # 显式端点优先（部署级 LLM_BASE_URL 覆盖缺省值）
+        override = ModelAdapterFactory.create(
+            "deepseek", "deepseek-v4-flash", base_url=DEPLOY_BASE_URL)
+        assert override._base_url == DEPLOY_BASE_URL
+
+    def test_unknown_provider_still_returns_none(self):
+        """反向守卫：补齐 deepseek 不得顺手把"未知 provider"也变成可构造"""
+        from agent.model_router.adapters import ModelAdapterFactory
+        assert ModelAdapterFactory.create("definitely-not-a-provider", "m") is None
+
+
+class TestSuccessWithoutContentIsNotAReply:
+    """S9-02：**"成功但无内容"必须回落，不得被当成高分**
+
+    这是 S8-04 堵过的那个洞的另一扇门：S8-04 处理了 ``success=False``，
+    但 ``success=True`` + 空 ``content`` 会走到 ``json.dumps(out)``，
+    而那份 JSON 里第一个数字（``prompt_tokens``）会被 `_ANY_SCORE` 读成分数。
+    """
+
+    def test_the_raw_dump_would_have_scored_a_false_pass(self):
+        """**先证明风险是真的**：截断回复一旦被字符串化，就会被读成 0.95 → 通过"""
+        dump = json.dumps(REAL_TRUNCATED_REPLY, ensure_ascii=False)
+        # 95（prompt_tokens）→ >1.0 按百分比归一 → 0.95 ≥ 0.85 阈值 ⇒ 假"通过"
+        assert SH.parse_judge_score(dump) == 0.95
+        assert SH.parse_judge_verdict(dump, threshold=0.85)["verdict"] == "pass"
+
+    def test_truncated_success_is_unavailable_not_a_score(self):
+        """故：文本键存在但为空 ⇒ 抛 `JudgeUnavailable`（如实回落，不猜分数）"""
+        judge = SH.LLMJudge(invoke=lambda prompt: _adapter_reply(REAL_TRUNCATED_REPLY),
+                            provider="deepseek", model="deepseek-v4-flash")
+        with pytest.raises(SH.JudgeUnavailable) as e:
+            judge.score("a", "b")
+        assert "无可见文本" in str(e.value)
+        # 不得被记成一次成功判定
+        assert judge.last_structured == {}
+
+    def test_extract_reply_rejects_empty_text_keys_directly(self):
+        with pytest.raises(SH.JudgeUnavailable):
+            SH._extract_reply(REAL_TRUNCATED_REPLY)
+        for key in ("text", "content", "output", "response"):
+            with pytest.raises(SH.JudgeUnavailable):
+                SH._extract_reply({"success": True, key: ""})
+
+    def test_positive_control_real_reply_still_works(self):
+        """**正向断言**（防"把一切都判成不可用"的假修复）：正常回复照旧解析"""
+        reply = {"success": True, "content": structured("equivalent", 0.92),
+                 "finish_reason": "stop",
+                 "usage": {"prompt_tokens": 95, "completion_tokens": 123}}
+        assert SH._extract_reply(reply) == structured("equivalent", 0.92)
+        judge = SH.LLMJudge(invoke=lambda prompt: _adapter_reply(reply),
+                            provider="deepseek", model="deepseek-v4-flash")
+        assert judge.score("a", "b")["verdict"] == "pass"
+
+    def test_positive_control_failure_reply_still_unavailable(self):
+        """既有 S8-04 行为回归：失败回复仍然抛（没被本次修改放宽）"""
+        with pytest.raises(SH.JudgeUnavailable):
+            SH._extract_reply({"success": False, "error": "429 Too Many Requests"})
+
+    def test_runtime_labels_fallback_when_channel_truncates(self, tmp_path):
+        """端到端：通道截断 ⇒ judge_kind 如实回落，绝不继续冒充 LLM"""
+        runtime = JR.build_judge_runtime(
+            JR.JudgeConfig(enabled=True, provider="deepseek", model="deepseek-v4-flash",
+                           base_url=DEPLOY_BASE_URL),
+            env={"LLM_API_KEY": SECRET}, secret_provider=lambda name: None,
+            dotenv_path=str(tmp_path / "absent.env"), emit_fallback_event=False,
+            adapter=None)
+        assert runtime.judge is not None
+        assert runtime.kind == "llm:deepseek:deepseek-v4-flash"
+        # 让真实调用"截断"：适配器返回 success=True 但文本为空
+        runtime.judge._invoke = lambda prompt: _adapter_reply(REAL_TRUNCATED_REPLY)
+        runtime.judge._unavailable = ""
+        value = runtime.guard("a", "b")               # Guard 捕获异常 ⇒ 回落
+        assert isinstance(value, float)
+        assert SH.is_llm_kind(runtime.guard.effective_kind) is False, (
+            "截断后必须回落标注，不得继续冒充 LLM")
+        assert runtime.guard.active == "fallback"
+        assert runtime.guard.reasons, "回落原因必须留痕（不得静默）"
+
+
+def _adapter_reply(payload):
+    """把"适配器返回 dict"这一步如实走一遍 → 复用被测的 `_extract_reply`
+
+    可用时返回文本；不可用时由 `_extract_reply` 抛 `JudgeUnavailable`，
+    与真实适配器路径的异常语义一致。
+    """
+    return SH._extract_reply(payload)
+
+
+# ════════════════════════════════════════════════════════════
+#  9. S9-02：预算护栏的**读写必须同一本账**（否则护栏永远失聪）
+# ════════════════════════════════════════════════════════════
+
+
+class TestBudgetGuardSeesItsOwnSpend:
+    """`spent()` 按 `events_dir` 读，写侧也必须落到同一目录
+
+    修复前：`record()` 传 `store=self._store`（None）⇒ `utc.record_cost` 落到
+    **全局默认**事件目录，而 `spent()` 读 `events_dir` ⇒ 两本不同的账
+    ⇒ `spent_cents` 恒为 0 ⇒ **每日预算永远不触发**（"超预算回落"变成纸面条款）。
+    """
+
+    @staticmethod
+    def _stub_runtime(events_dir, budget, monkeypatch, tmp_path):
+        """构造一个"通道可用"的运行时（stub 通道，**不花钱**、不访问网络）
+
+        用 `build_judge_runtime(adapter=...)` 这个**显式注入点**让通道"可用"
+        （凭证来源记为 ``injected``）——而不是靠真凭证，否则本用例会依赖环境。
+        """
+
+        class Adapter:
+            def is_available(self):
+                return True
+
+            def generate(self, prompt, **kwargs):
+                return {"content": structured("equivalent", 0.9),
+                        "usage": {"prompt_tokens": 100, "completion_tokens": 50}}
+
+        return JR.build_judge_runtime(
+            JR.JudgeConfig(enabled=True, provider="deepseek", model="deepseek-v4-flash",
+                           daily_budget_cents=float(budget)),
+            events_dir=str(events_dir), dotenv_path=str(tmp_path / "absent.env"),
+            adapter=Adapter(), emit_fallback_event=False)
+
+    def test_written_cost_is_visible_in_the_ledger_the_guard_reads(
+            self, tmp_path, monkeypatch):
+        events_dir = tmp_path / "events"
+        # 全局默认目录**故意**指到别处：修复前写侧会落到这里，读侧看不见
+        monkeypatch.setenv("CP_EVENTS_DIR", str(tmp_path / "somewhere_else"))
+        runtime = self._stub_runtime(events_dir, 100.0, monkeypatch, tmp_path)
+
+        runtime.guard("a", "b")                       # 真实路径：调用 + 记账
+
+        assert runtime.budget.recorded, "必须已记一次成本"
+        assert not runtime.budget.record_errors
+        spent = runtime.budget.state().spent_cents
+        assert spent > 0, (
+            "护栏必须看得见自己刚花的钱；spent=0 说明读写指向了两本不同的账")
+        # 独立复核：直接读护栏所读的那个目录
+        assert JR.JudgeBudgetGuard(
+            runtime.config, events_dir=str(events_dir)).state().spent_cents > 0
+        # 且**没有**把花销漏记到全局默认目录
+        assert JR.JudgeBudgetGuard(
+            runtime.config, events_dir=str(tmp_path / "somewhere_else")
+        ).state().spent_cents == 0
+
+    def test_explicit_store_still_wins(self, tmp_path, monkeypatch):
+        """调用方显式给 `store` 时不被夺走（注入权优先于便利默认）"""
+        events_dir = tmp_path / "events"
+        sentinel = object()
+        guard = JR.JudgeBudgetGuard(JR.JudgeConfig(enabled=True), store=sentinel,
+                                    events_dir=str(events_dir))
+        assert guard._writer_store() is sentinel
+
+    def test_no_events_dir_falls_back_to_global(self, tmp_path):
+        """未给 `events_dir` ⇒ 读写同走全局默认目录（天然一致，不做多余绑定）"""
+        guard = JR.JudgeBudgetGuard(JR.JudgeConfig(enabled=True), events_dir="")
+        assert guard._writer_store() is None
+
+    def test_budget_actually_exhausts_after_real_spend(self, tmp_path, monkeypatch):
+        """端到端语义：花掉的钱**真的**能把后续判定挡住（前置拦截，不再调用）"""
+        events_dir = tmp_path / "events"
+        monkeypatch.setenv("CP_EVENTS_DIR", str(tmp_path / "somewhere_else"))
+        runtime = self._stub_runtime(events_dir, 100.0, monkeypatch, tmp_path)
+        runtime.guard("a", "b")
+        spent = runtime.budget.state().spent_cents
+        assert spent > 0
+        calls_after_first = runtime.judge.calls
+
+        # 把预算压到"已经花掉"的水位以下 ⇒ 下一次必须被前置拦截
+        runtime.budget.config.daily_budget_cents = spent / 2.0
+        runtime.guard("c", "d")
+        assert runtime.judge.calls == calls_after_first, "超预算后不得再发真实调用"
+        assert runtime.guard.active == "fallback"
+        assert runtime.guard.reason_code == SH.JUDGE_REASON_BUDGET_EXCEEDED
