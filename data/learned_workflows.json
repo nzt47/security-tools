@@ -325,5 +325,45 @@
     "updated_at": "2026-09-13T19:09:06.562023",
     "last_used_at": null,
     "converted_to_skill_id": ""
+  },
+  "wf-28f2775d": {
+    "id": "wf-28f2775d",
+    "name": "自动学习工作流 (audit-4a)",
+    "description": "从会话 audit-4a3b4826 中学习得到。原始任务: 帮我列出当前工作目录下的文件\n【准入未通过 STEPS_TOO_FEW/NO_DISCRIMINATIVE_TRIGGER】步骤数 1 < 2（单步=单次工具调用，不是可复用工作流）；无有区分度触发词（触发词列表为空（中文按字切分产生的单字触发词已在入库前丢弃；无任何有区分度的触发词））（草稿态：不进入匹配候选、不可自动转技能；可按 ID 人工执行）",
+    "task_signature": "件|作|出|列|前|工|当|录|文|目",
+    "trigger_patterns": [],
+    "steps": [
+      {
+        "step_id": "step_1",
+        "tool_name": "list_directory",
+        "params_template": {
+          "path": "."
+        },
+        "output_key": "step_1_output",
+        "output_schema": null,
+        "condition": null,
+        "description": "",
+        "need_llm": false,
+        "prompt_template": "",
+        "timeout_ms": 30000
+      }
+    ],
+    "expected_output_pattern": "",
+    "source_session_id": "audit-4a3b4826",
+    "source_user_input": "帮我列出当前工作目录下的文件",
+    "success_count": 0,
+    "failure_count": 0,
+    "confidence": 0.4,
+    "priority": 70,
+    "status": "draft",
+    "enabled": true,
+    "tags": [
+      "learned"
+    ],
+    "workflow_type": "toolchain",
+    "created_at": "2026-09-13T23:02:21.891223",
+    "updated_at": "2026-09-13T23:02:21.894575",
+    "last_used_at": null,
+    "converted_to_skill_id": ""
   }
 }
