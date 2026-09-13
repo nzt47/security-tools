@@ -359,6 +359,7 @@ E  AssertionError: assert 373 == 374
 | **R3** | `plugins/chat.py:298-330` 的 `context.percentage` 仍是「**全局会话累计 ÷ 硬编码 4096**」的显示公式，且 `session_total_tokens` 取 `_get_current_session_id()`（非请求指定的会话）。 | D4 → 读数可信性专项（任务书明确划在本任务范围外） | 本任务**未触碰** `plugins/chat.py`。但请注意：修完 A 之后，同一响应里会同时存在**两个不同分母**的读数——`context.percentage`（÷4096，显示公式）与 `metadata.context_notice.limit_tokens`（÷真实窗口上限）。建议 D4 专项把 `context` 块也切到 `_memory_token_limit` 并回显实际 `session_id`。 |
 | **R4** | 三处 token 上限仍三套默认值：`MemoryManager` 压缩阈值 4096（`memory/memory_manager.py:286`）、编排窗口 131072（`lifecycle_manager.py:288`）、`plugins/chat.py` 显示 4096。 | 记忆层/上下文预算专项 | 本次只让**告警**口径统一到「真实窗口上限 + 来源披露」；**未改压缩策略**（属策略决定：把 4096→131072 会显著减少压缩次数，需 Owner 裁定）。这也是真机「压缩 5 次」轻易触发的直接来源。 |
 | **R5** | 告警外发通道变了：`response` 里不再有那段文字。若前端此前**依赖正文尾部的这段话**渲染「创建新会话」按钮，需改读 `metadata.context_notice`。 | 前端 / `plugins/chat.py` | 已在仓库内检索：`tests/**` 与 `scripts/**` 均无对该段文案的断言或解析（`grep "即将耗尽"` 仅命中 orchestrator 自身与文档）；`plugins/chat.py` 目前**不转发** `metadata`，故 Web 端短期会「看不到」该提示（但也不再被污染）。这符合任务书「不得混进正式回答」的硬要求，前端接线归后续。 |
+| **R6** | **运行期生效需重启**：两处改动都在 `agent/**`（`orchestrator.py` / `lifecycle_manager.py` / `loader.py`），在跑的 5678 服务仍持有旧代码。 | 运维 / 工具链（本任务不含重启授权） | 实测服务在跑：`Get-NetTCPConnection -LocalPort 5678 -State Listen` ⇒ `127.0.0.1:5678` PID **9092**。重启前，真机 `/api/chat` 仍会追加告警文本、检索层质量门仍按旧口径放行；重启后两者同时生效（无迁移、无数据变更）。本任务用**进程内**探针（`scripts/dev/s1003_*`）取证，未触碰该服务进程。 |
 
 ---
 
