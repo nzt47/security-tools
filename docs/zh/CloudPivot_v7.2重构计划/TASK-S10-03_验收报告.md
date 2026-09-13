@@ -243,31 +243,42 @@ python scripts/dev/s1003_retrieval_gate_probe.py
 
 ## 七、质量证据（门禁四条 + 邻接回归）
 
+> 本节全部命令均在**交付版本**（`727e2d5b`）上复跑过一遍；`mypy` 的 1236 条存量错误数
+> 与基线逐字相同（见 7.3）。未跑全量 `tests/unit`（1.7 万例）：本任务爆炸半径由
+> 7.1 的邻接 843 例 + 定向套件覆盖，且全量跑与其它会话并发时存在性能/时序类假红，
+> 故**不作为本报告的证据**（如需补跑，属后续验收动作）。
+
 ### 7.1 相关套件（邻接回归）
 
 任务书给的命令在 pytest 8 下是非法表达式（`-k` 需显式 `and`/`or`），按**意图**等价的 `or` 形式执行：
 
 ```
 $ python -m pytest tests/unit -q -k "context or prompt or loader or retrieval or skills_mgmt"
-843 passed, 13 skipped, 17470 deselected, 13 xfailed, 10 warnings in 84.03s
+843 passed, 13 skipped, 17470 deselected, 13 xfailed, 10 warnings in 38.64s
 ```
 
 （原命令 `-k "context prompt loader retrieval skills_mgmt"` 报
 `ERROR: Wrong expression passed to '-k' … expected end of input; got identifier`。）
 
-补充定向套件：
+> 该 843 例在**本报告对应的交付版本上复跑过一次**：计数逐项相同
+> （`843 passed, 13 skipped, 13 xfailed`），仅墙钟时间不同（早先一次 84.03s / 末次 38.64s，
+> 差异来自同机并发负载，非用例增减）。
+
+补充定向套件（与门禁四条同批，在交付版本上跑）：
 
 ```
-$ python -m pytest tests/unit/test_bm25_skill_searcher.py tests/unit/test_vector_skill_searcher.py \
+$ python -m pytest tests/unit/test_s10_03_context_budget_notice.py \
+    tests/unit/test_s10_03_retrieval_quality_gate.py \
+    tests/unit/test_bm25_skill_searcher.py tests/unit/test_vector_skill_searcher.py \
     tests/unit/test_skills_mgmt.py tests/unit/test_orchestrator_turn_state_isolation.py \
-    tests/unit/test_orchestrator_refactor.py tests/unit/test_context_assembler.py \
-    tests/unit/test_prompt_builder.py tests/unit/test_prompt_cache_order.py -q
-238 passed, 6 skipped, 1 xfailed in 15.64s
-
-$ python -m pytest tests/integration/test_orchestrator三层路由_e2e.py \
+    tests/unit/test_orchestrator_refactor.py \
+    tests/integration/test_orchestrator三层路由_e2e.py \
     tests/integration/test_digital_life_integration.py -q
-56 passed, 2 skipped, 3 warnings in 21.30s
+286 passed, 2 skipped, 1 xfailed, 3 warnings in 36.32s
 ```
+
+（新增两套件单独跑时的对照见 §二：`test_s10_03_context_budget_notice.py` 7 例、
+`test_s10_03_retrieval_quality_gate.py` 13 例，修复前分别 6 红 / 10 红。）
 
 ### 7.2 `scan_kwarg_conflicts --min-risk HIGH`（各 0 处）
 
