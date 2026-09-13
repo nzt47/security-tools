@@ -26,12 +26,10 @@ import sys
 import urllib.request as _ur
 import urllib.parse as _up
 import json as _js
-import requests as _http  # 注意：Flask 的 request 对象会覆盖 requests 模块，用 _http 别名
-
-# 插件机制（T1.1–T1.10）：协议层 + 装配器（注册表见 plugins/plugin_api.py）
-from plugins.plugin_api import get_plugins, manifest as plugin_manifest
 
 # 修复 Windows 控制台编码，避免中文日志乱码
+# 【S11-01 为何上移】原生扩展预导入要打印一行 `[S11-01]` 启动记录（见下），
+# 该行必须在 stdout 已切成 UTF-8 之后才可靠（中文摘要 + 中文 Windows GBK 下会乱码）。
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -42,11 +40,57 @@ if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
 # Why: main.py 已按此模式加载；app_server 若不加载，LLM 密钥 / HF_HUB_OFFLINE /
 #      LOG_LEVEL / CONTEXT_ASSEMBLER_LOG_LEVEL 等 .env 配置全部失效。
 #      必须在读取环境变量的模块级代码之前执行（reload 覆盖同名变量为 .env 值）。
+# 【S11-01 为何上移到此处】紧随其后的原生扩展预导入有一个 env 开关
+#      （`CP_NATIVE_PREIMPORT_ENABLED`）。若 .env 加载晚于它，写在 `.env` 里的
+#      开关值就不生效（只有真实 OS 环境变量才生效）—— 与「配置走 .env」
+#      单一数据源相悖。故把 .env 加载提前到「任何 env 读取点」之前。
 try:
     from agent.env_config_manager import get_env_config_manager
     get_env_config_manager().reload()
 except Exception as _e:
     logging.getLogger(__name__).warning(f".env 加载失败（继续使用系统环境变量）: {_e}")
+
+# ════════════════════════════════════════════════════════════════════════════
+# [S11-01] 进程入口：原生扩展导入顺序固化（防 arrow.dll 打崩长寿命进程）
+# ════════════════════════════════════════════════════════════════════════════
+# 【为什么必须在最前（Why here）】本进程是**长寿命生产进程**。若 `pyarrow` 的
+#   原生初始化（`pyarrow\arrow.dll`）被推迟到进程已加载 torch / onnxruntime 等
+#   重型原生库之后才发生，Windows 上会触发 `0xC0000005 ACCESS_VIOLATION`，
+#   进程被系统**直接终止**（没有 traceback、没有日志）。此前该保护只在
+#   `agent/orchestrator/lifecycle_manager.py:118`（DigitalLife 构造时）才生效，
+#   **生产进程（app_server）没有这道保护** —— 这就是 S10-05 遗留 #1。
+# 【位置纪律（不易）】必须早于**任何其它 agent.\* / plugins.\* 导入**：
+#   `plugins/__init__.py` 会连带导入 memory/admin/skills/chat 等重模块，
+#   它们一旦先加载，pyarrow 的"干净窗口"就没了。故此处紧跟 .env 加载，
+#   位于 `requests` / `plugins.plugin_api` / `flask` 等一切非 stdlib 导入之前。
+# 【实现唯一（不易）】复用 `agent/utils/native_preimport.py` —— 与
+#   `tests/conftest.py`、`tests/integration/conftest.py`、以及 S10-05 的原实现
+#   **同一份代码**（不是复制）。现象/根因/顺序依据/失败姿态见该模块 docstring。
+# 【失败姿态（不易）】装载失败只打印一行降级告警并继续启动：本保护是为了
+#   "更不容易崩"，绝不能反过来变成"装不上就起不来"（守「规避逻辑不得引入新的
+#   硬依赖」）。开关 `CP_NATIVE_PREIMPORT_ENABLED=0` 可整支关闭（已登记注册表）。
+# 【为什么用 print 而不是 logger】此处 `logging.basicConfig` 尚未执行
+#   （第 83 行才配置），logger 只有 lastResort 兜底；而这一行是"保护有没有装上"
+#   的唯一启动期证据，必须无条件可见。启动后可用 grep `[S11-01]` 复核。
+_NATIVE_PREIMPORT_RESULT: dict = {}
+try:
+    from agent.utils.native_preimport import (
+        pin_native_import_order as _pin_native_import_order,
+        report_line as _native_preimport_report_line,
+    )
+
+    _NATIVE_PREIMPORT_RESULT = _pin_native_import_order()
+    print(_native_preimport_report_line(), flush=True)
+except Exception as _native_e:  # noqa: BLE001 保护装不上不阻断启动
+    print(
+        "[S11-01] 原生扩展导入顺序固化装载失败（降级，不阻断启动）: %s" % _native_e,
+        flush=True,
+    )
+
+import requests as _http  # 注意：Flask 的 request 对象会覆盖 requests 模块，用 _http 别名
+
+# 插件机制（T1.1–T1.10）：协议层 + 装配器（注册表见 plugins/plugin_api.py）
+from plugins.plugin_api import get_plugins, manifest as plugin_manifest
 
 from flask import Flask, jsonify, render_template, request, g
 

@@ -635,6 +635,32 @@ _REGISTRY_ROWS: List[SettingSpec] = [
     _a("CP_POLICY_INBOX_DEDUPE_SECONDS", CAT_SELF_HEALING, None,
        "审批收件箱去重窗口（秒）", owner="agent/policy/inbox.py",
        validator=Validator("float")),
+
+    # ── S11-01 原生扩展导入顺序固化（进程入口级崩溃防护）──────────────
+    # 【读取点（唯一）】`agent/utils/native_preimport.py::is_enabled()` 内的
+    #   `raw = os.environ.get(_ENV_KEY)`，`_ENV_KEY = "CP_NATIVE_PREIMPORT_ENABLED"`。
+    #   **未设置**（`raw is None`）⇒ 代码里按**开启**处理 ⇒ 本表默认值取 `True`
+    #   （bool），与真实读取点一致（`scripts/scan_settings.py` 机械核对读取点）。
+    # 【语义】关闭 = 跳过 `numpy → pyarrow → pandas → sklearn` 的定序预导入，
+    #   回到"谁先用到谁触发原生初始化"的旧行为（= 本模块引入之前的行为）。
+    # 【生效方式】进程入口读取，故 needs_restart=True（改了必须重启进程）。
+    # 【风险级裁定：B（拿不准取更严）】支撑依据与反例一并写清，便于复核：
+    #   · 支撑 B：关闭后**长寿命进程**（app_server）若在已加载 torch / onnxruntime
+    #     等重型原生库之后才首次 `import sentence_transformers`
+    #     （→sklearn→pandas→pyarrow），可能被 `pyarrow\arrow.dll` 的原生初始化打成
+    #     `0xC0000005 ACCESS_VIOLATION`：**进程被系统直接终止、没有 traceback**。
+    #     这与同表 `CP_ARCHIVE_LOCK_ENABLED` / `CP_EVENTS_LOCK_ENABLED` /
+    #     `CP_TRACE_LOCK_ENABLED` 的「关掉即失去完整性/存活强保护」**同型**，而那些
+    #     条目按下方既有「风险级裁定口径（保守优先）」注释定为 B。
+    #   · 反例（已考虑，未采纳）：同表 `CP_MODEL_FALLBACK_ENABLED` 定为 A —— 但关掉
+    #     它只让调用**显式失败**、进程照常存活，不产生静默崩溃，故不同型。
+    #   · 结论：A 降 B 只多一次确认成本；B 降 A 则可能让"关掉崩溃防护"变成随手可切。
+    #     该裁定已随 S11-01 交付报告显式声明（口径变更需可追溯）。
+    _b("CP_NATIVE_PREIMPORT_ENABLED", CAT_SELF_HEALING, True,
+       "原生扩展导入顺序固化开关（默认开）；关闭后不做 numpy→pyarrow→pandas→"
+       "sklearn 的定序预导入，长寿命进程可能被 arrow.dll 原生初始化打成 0xC0000005",
+       owner="agent/utils/native_preimport.py", needs_restart=True),
+
     _c("CP_WATCHDOG_LOCK_PATH", CAT_SELF_HEALING, None,
        "看门狗单例锁文件路径（只读）",
        owner="agent/self_healing/watchdog_singleton.py"),
