@@ -20,6 +20,11 @@
 - 会话数有界（``OrderedDict`` + 上限 + 淘汰最旧），长跑进程不因会话增长而泄漏内存；
 - 读写均由内部锁保护，多用户并发下不同会话互不干扰。
 
+TASK-S11-03（R5）在同一存储上追加 ``metadata`` 槽位（本轮响应元数据快照），
+理由与 `tool_steps` 完全同构：它也是"本轮"的属性，也必须按会话归属、
+也必须"本轮没写就返回空"、也必须有界。追加该槽位**不改变**
+``snapshot()`` / ``previous()`` 的返回形状。
+
 本模块**只做存储**，不承担路由、上下文装配或响应装配语义。
 """
 
@@ -41,7 +46,14 @@ DEFAULT_MAX_SESSIONS = int(os.environ.get("ORCHESTRATOR_TURN_STATE_MAX_SESSIONS"
 
 
 def _empty_state() -> Dict[str, Any]:
-    return {"tool_steps": [], "reasoning": None}
+    #: ``metadata`` = 本轮 ``process()`` 响应元数据的**结构化快照**（TASK-S11-03 R5：
+    #: S10-03 把上下文告警改走 ``metadata.context_notice`` 之后，``chat()`` 只取
+    #: text 把 metadata 丢掉 ⇒ 告警在 Web 端根本看不到）。由 ``chat()`` 在
+    #: ``process()`` 返回后按会话写入，HTTP 层经 ``last_response_metadata`` 读回。
+    #: 【不易】``snapshot()`` / ``previous()`` **不**暴露该字段：
+    #: ``last_turn_state()`` 的返回形状（``{"tool_steps","reasoning"}``）是对外契约，
+    #: 不得因新增字段而改变。
+    return {"tool_steps": [], "reasoning": None, "metadata": None}
 
 
 class TurnStateStore:
@@ -105,7 +117,32 @@ class TurnStateStore:
             if reasoning is not UNSET:
                 current["reasoning"] = reasoning
 
+    def set_metadata(self, key: str, metadata: Any) -> None:
+        """**显式**写入本轮「响应元数据」快照（无 ``or`` 回退）。
+
+        显式传 ``None`` / 非 dict 就真实落 ``None``（表示本轮无元数据）——
+        与 ``set()`` 同一纪律：禁止 ``value or old_value`` 形式的回退，
+        否则上一轮（乃至其它请求）的元数据会被当成"本轮"读出去。
+        传 dict 时做**浅拷贝**：调用方随后改原 dict 不反向污染存储。
+        """
+        with self._lock:
+            current = self._entry_locked(key)["current"]
+            current["metadata"] = dict(metadata) if isinstance(metadata, dict) else None
+
     # ── 读 ──────────────────────────────────────────────────────
+
+    def metadata_snapshot(self, key: str) -> Optional[Dict[str, Any]]:
+        """本轮响应元数据快照；本轮没写 → ``None``。
+
+        【不易】**绝不**回退 ``previous``：元数据描述的是"这一轮回了什么"，
+        复用上一轮等于把上一轮的结构化告警当成本轮的外发内容。
+        """
+        with self._lock:
+            entry = self._sessions.get(key)
+            if entry is None:
+                return None
+            md = entry["current"].get("metadata")
+            return dict(md) if isinstance(md, dict) else None
 
     def snapshot(self, key: str) -> Dict[str, Any]:
         """本轮快照；本轮无内容 → ``{"tool_steps": [], "reasoning": None}``。"""
