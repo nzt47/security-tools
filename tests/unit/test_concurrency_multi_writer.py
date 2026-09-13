@@ -91,6 +91,70 @@ def _crash_worker(db_path: str, roots_path: str, count: int,
         time.sleep(0.2)
 
 
+def _crash_worker_committed_then_holds_lock(db_path: str, roots_path: str,
+                                            count: int,
+                                            out) -> None:  # pragma: no cover - 子进程内执行
+    """子进程：写 count 条并**确认全部落盘** → **持有跨进程锁** → 等父进程硬杀
+
+    【与 `_crash_worker` 的分工（S11-05，Owner 裁定 #4）】
+      · `_crash_worker`：写完只落**预留日志**就发信号 ⇒ 覆盖"日志重放补齐"
+        （见 `test_killed_process_records_recovered_from_journal`）；
+      · 本 worker：**落盘确认 + 持锁**之后才发信号 ⇒ 覆盖"**持锁**进程被杀 →
+        锁自动释放 + 新写者接着原链头续写"，并把"在途未落盘"这一**不确定性**
+        从用例里彻底移除（裁定 #4 的要求：先等落盘再杀，断言才可要求总数）。
+
+    【为什么要持锁】用例承诺的是"**持锁**进程被杀不得死锁"。worker 若不持锁，
+    杀它时锁早已在 `append()` 返回时释放 —— 用例就只能证明"能续写"，证明不了
+    "OS 文件锁随进程消亡自动释放"。持锁后父进程的 `append()` 必须**真取到锁**，
+    父进程以 `seq_degraded_count == 0` 正向断言之：否则它会等满 `seq_lock_timeout`
+    再走降级分配，而**降级分配同样**能给出 seq=6 —— 只断言总数会**假绿**。
+    """
+    chain = AuditChain(db_path, roots_path=roots_path, signing_enabled=False,
+                       auto_seal=False, enforce_single_writer=False)
+    seqs = [int(chain.append("mp.crash", actor="crash",
+                             payload={"i": i}).seq) for i in range(count)]
+    flushed = chain.flush(timeout=30.0)
+    db_head = chain._db_head()[0]   # noqa: SLF001 只读确认"DB 内最大 seq"
+    if not flushed or db_head != count:
+        out.put(("not-committed", seqs,
+                 f"落盘未确认: flush={flushed} db_head={db_head}"))
+        return
+    with chain._cp_lock.locked(10.0, on_timeout="degrade") as ctx:  # noqa: SLF001
+        if not ctx.acquired:        # pragma: no cover - 无竞争者时不应发生
+            out.put(("lock-unavailable", seqs, "worker 自身未取到锁"))
+            return
+        out.put(("lock-held", seqs, ""))
+        while True:                 # **持锁**等父进程 terminate（硬杀）
+            time.sleep(0.2)
+
+
+def _in_flight_worker(db_path: str, roots_path: str, count: int,
+                      out) -> None:  # pragma: no cover - 子进程内执行
+    """子进程：制造**纯在途**记录（只在进程内队列里）→ 等父进程硬杀
+
+    `auto_start_writer=False` + `journal_enabled=False` 两个开关一起用，才能把
+    "在途"钉成**确定性**状态：
+      · 无后台 writer ⇒ 记录不进 DB；
+      · 无预留日志 ⇒ 记录不落任何存储。
+    于是"硬杀即丢"是**必然**，而不是时序运气（选择理由见用例 docstring）。
+    """
+    chain = AuditChain(db_path, roots_path=roots_path, signing_enabled=False,
+                       auto_seal=False, enforce_single_writer=False,
+                       auto_start_writer=False, journal_enabled=False)
+    seqs = [int(chain.append("mp.in-flight", actor="in-flight",
+                             payload={"i": i}).seq) for i in range(count)]
+    # ⚠️ 必须 `refresh=False`：读路径对 writer 角色默认先 `flush()`（"读得到刚写的"），
+    # 而本 worker **没有**后台 writer 来消费队列 ⇒ 会白等满 FLUSH_TIMEOUT（实测 5.00s）。
+    # 口径不受影响：本处只确认"记录既不在 DB、也不在预留日志"。
+    if chain.count(refresh=False) != 0:
+        out.put(("unexpected-persist", seqs,
+                 f"在途前提不成立: count={chain.count(refresh=False)}"))
+        return
+    out.put(("in-flight", seqs, ""))
+    while True:                     # 等父进程 terminate
+        time.sleep(0.2)
+
+
 # ════════════════════════════════════════════════════════════
 #  夹具
 # ════════════════════════════════════════════════════════════
@@ -258,7 +322,8 @@ def test_multi_process_payloads_all_present(paths):
 
 
 # ════════════════════════════════════════════════════════════
-#  2. 崩溃场景：持锁进程被杀 → 已分配未入库的记录不丢、链不断
+#  2. 崩溃场景：持锁进程被杀 → 锁可恢复、能续写；**已落预留日志**的记录不丢
+#     （口径边界：**不**承诺"硬杀一条不丢"，见本节的"已知语义"用例）
 # ════════════════════════════════════════════════════════════
 
 
@@ -310,18 +375,43 @@ def test_killed_process_records_recovered_from_journal(paths):
 
 @pytest.mark.timeout(300)
 def test_killed_process_does_not_deadlock_next_writer(paths):
-    """**持锁进程被杀不得死锁**：下一个写入者能在有限时间内正常写入
+    """**持锁进程被杀不得死锁**：锁随进程消亡释放 ⇒ 下一个写入者能续写且无空洞
 
-    机制：OS 文件锁随进程消亡自动释放；预留日志让新进程能接着原链头续写。
+    机制：OS 文件锁随进程消亡自动释放；新写者接着原链头（预留日志 / DB）续写。
+
+    【S11-05 按意图修正（Owner 裁定 #4）】原版在 worker 只报了"5 条已进预留日志"
+    之后**立刻**硬杀，却断言 `len(rows) == 6` —— 那等于顺带要求"硬杀不丢在途数据"
+    这条**本用例从未承诺**的 fsync 语义（异步刷盘的固有语义，Owner 已裁定**可接受**）。
+    实测根因（S11-05 隔离探针，12 轮复现 2 次）：**少的那条不是被杀进程的**，而是
+    **幸存者自己**刚 `append()` 的 seq 6 —— 它还在 writer 队列里，而 `flush()` 的屏障
+    （`_commit_count >= _enqueue_count`）被"预留日志重放"那 5 条的提交**提前满足**
+    ⇒ flush 提前返回，`entries()` 于是读到 5 条；0.5s 后 DB 就是 1..6，
+    **没有任何记录丢失**（详见 S11-05 报告 §根因）。故按意图修正为：
+
+      · worker **确认 5 条已落盘**（flush + DB 链头确认）后才发信号 ⇒ "在途丢失"
+        这一不确定性被移除，于是断言可以名正言顺地要求**总数 = 6（seq 1..6 无空洞）**；
+      · worker **持有跨进程锁**再发信号 ⇒ 真正测到"锁随进程消亡自动释放"；
+      · 断言对象回到**恢复能力**（锁释放 + 能续写），并以 `seq_degraded_count == 0`
+        **正向收紧** —— 降级分配同样能给出 seq=6，只断言总数会**假绿**。
+
+    ⚠️ 关于"总数 = 6"：worker 落盘确认之后才被杀，故这**不是**在顺带要求
+    "硬杀不丢在途数据"；硬杀会丢的**在途**语义由
+    `test_hard_kill_loses_in_flight_records_that_never_reached_storage` 显式记录。
     """
     ctx = multiprocessing.get_context("spawn")
     out = ctx.Queue()
-    proc = ctx.Process(target=_crash_worker, args=(paths["db"], paths["roots"], 5, out))
+    proc = ctx.Process(target=_crash_worker_committed_then_holds_lock,
+                       args=(paths["db"], paths["roots"], 5, out))
     proc.start()
     try:
-        out.get(timeout=_MP_TIMEOUT)
-        proc.terminate()
+        tag, allocated, err = out.get(timeout=_MP_TIMEOUT)
+        assert tag == "lock-held" and not err, (
+            f"崩溃用例前置失败：tag={tag} err={err}（要求 5 条已落盘 + 已持锁）")
+        assert allocated == [1, 2, 3, 4, 5], f"worker 分配的 seq 异常: {allocated}"
+        proc.terminate()            # 硬杀：**持锁**进程消失
         proc.join(timeout=60.0)
+        assert not proc.is_alive()
+        assert proc.exitcode != 0, "worker 应为被硬杀（非优雅退出）"
     finally:
         if proc.is_alive():  # pragma: no cover
             proc.terminate()
@@ -333,15 +423,89 @@ def test_killed_process_does_not_deadlock_next_writer(paths):
     try:
         t0 = time.monotonic()
         entry = chain.append("after.crash", actor="survivor")
-        chain.flush(timeout=30.0)
+        flushed = chain.flush(timeout=30.0)
         elapsed = time.monotonic() - t0
         rows = chain.entries()
+        stats = chain.stats()
     finally:
         chain.close()
 
-    assert entry.seq == 6, f"续写的 seq 应为 6（5 条已由日志恢复），实际 {entry.seq}"
-    assert len(rows) == 6, f"恢复+续写后应有 6 条，实际 {len(rows)}"
+    seqs_in_db = [int(r.seq) for r in rows]
+    assert flushed, "续写后 flush 未在时限内完成"
+    assert entry.seq == 6, f"续写的 seq 应为 6（5 条已确认落盘），实际 {entry.seq}"
+    assert seqs_in_db == [1, 2, 3, 4, 5, 6], (
+        f"恢复+续写后应为 1..6 连续无空洞（锁已释放 + 能续写），实际 {seqs_in_db}")
+    assert stats["journal_replay_count"] == 0, (
+        f"本用例前提是 5 条已落盘（无滞留可重放），实际重放 "
+        f"{stats['journal_replay_count']} 条")
+    # 正向收紧：新写者**真取到锁**（而非等满超时后走降级分配）
+    assert stats["seq_degraded_count"] == 0, (
+        f"新写者走了降级 seq 分配（锁未被释放？）：{stats['seq_degraded_count']} 次")
     assert elapsed < 30.0, f"续写耗时 {elapsed:.1f}s（疑似死锁）"
+
+
+@pytest.mark.timeout(300)
+def test_hard_kill_loses_in_flight_records_that_never_reached_storage(paths):
+    """**已知语义（Owner 裁定 #4）**：硬杀会丢"在途"记录 —— 审计链**不保证**"一条不丢"
+
+    【为什么要专门写一条】原 crash 用例曾把"少一条"读成产品缺陷，进而容易让人以为
+    "硬杀不丢数据"是产品承诺。裁定 #4 已明确：异步刷盘下**丢在途是可接受的固有语义**。
+    本用例把"**会丢**"这件事钉成可执行记录，防止后人再误读成保证。
+
+    【"在途"的两种口径 —— 本用例钉的是第一种，可确定性复现】
+      ① **未落预留日志的在途**：记录只在进程内队列里（预留日志未启用 / 写失败）
+         ⇒ 硬杀即**永久丢失**：新写者看不到它，DB 与日志都不会再出现（本用例覆盖）；
+      ② 已落预留日志的在途：`append()` 返回前就写了预留日志（`flush` 到 OS、**非**
+         fsync）⇒ 进程被杀**不会**丢，下次启动由重放补齐（由
+         `test_killed_process_records_recovered_from_journal` 与
+         `test_killed_process_does_not_deadlock_next_writer` 覆盖）。
+      （第三种：**整机掉电**时最后若干条未 fsync 的记录可能丢 —— 无法在用例里
+        确定性复现，仅在此文档化。）
+
+    【为什么用"断言丢发生"而不是 `xfail`、也不是"断言可能 < 6"】
+      · `xfail` 的语义是"这是**应当被修掉的失败**"，而本语义已被 Owner 裁定为
+        **可接受**；挂 xfail 会把一条正常语义长期留成"红灯/待修"，反而掩盖真回归；
+      · "断言可能 < 6" 是**不确定性断言**：在本用例口径下丢是**必然**，而一旦将来
+        有人给队列加了同步落盘，它又会静默退化成"看运气通过" —— 正是纪律禁止的**假绿**；
+      · 故改为**确定性断言"丢"本身**（`rows == [1]`），与兄弟用例的"已落日志的不丢"
+        形成两侧正向断言，口径可复核。
+    """
+    ctx = multiprocessing.get_context("spawn")
+    out = ctx.Queue()
+    proc = ctx.Process(target=_in_flight_worker,
+                       args=(paths["db"], paths["roots"], 5, out))
+    proc.start()
+    try:
+        tag, allocated, err = out.get(timeout=_MP_TIMEOUT)
+        assert tag == "in-flight" and not err, (
+            f"在途用例前置失败：tag={tag} err={err}")
+        assert allocated == [1, 2, 3, 4, 5], f"worker 分配的 seq 异常: {allocated}"
+        proc.terminate()            # 硬杀：在途记录随进程消亡
+        proc.join(timeout=60.0)
+        assert not proc.is_alive()
+    finally:
+        if proc.is_alive():  # pragma: no cover
+            proc.terminate()
+            proc.join(timeout=30.0)
+
+    chain = AuditChain(paths["db"], roots_path=paths["roots"],
+                       signing_enabled=False, auto_seal=False,
+                       enforce_single_writer=False)
+    try:
+        entry = chain.append("after.crash", actor="survivor")
+        chain.flush(timeout=30.0)
+        rows = [int(r.seq) for r in chain.entries()]
+        stats = chain.stats()
+    finally:
+        chain.close()
+
+    # ① 那 5 条**永久**没了：新写者从 seq=1 重新开始，库里只有幸存者这一条
+    assert entry.seq == 1, (
+        f"在途记录未落任何存储 ⇒ 新写者应从 seq=1 起，实际 {entry.seq}")
+    assert rows == [1], f"被杀进程的 5 条在途记录本应丢失，实际仍在: {rows}"
+    # ② 且**不是**靠重放补回来的（它们从未进过预留日志）
+    assert stats["journal_replay_count"] == 0, (
+        f"不应存在可重放记录，实际重放 {stats['journal_replay_count']} 条")
 
 
 # ════════════════════════════════════════════════════════════
