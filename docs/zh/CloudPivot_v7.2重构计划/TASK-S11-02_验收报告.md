@@ -330,9 +330,8 @@ seed_demo_workflows.py: error: the following arguments are required: --repo
 ## 八、双远端 SHA
 
 > **本节不写"本提交自身的 SHA"**：提交哈希由内容决定，报告无法自指。下面只登记
-> **已存在且不可变**的提交；`origin/master` 与 `gitee/master` 同点，等于
-> **本文档所在提交**（即包含下列提交的最新 `master`），其精确值以
-> `git log --oneline -1 origin/master` 为准。
+> **已存在且不可变**的提交；`origin/master` 与 `gitee/master` 交付时同点，其精确值
+> 以 `git ls-remote origin gitee refs/heads/master` 为准。
 
 | 项 | SHA / 取值 |
 |---|---|
@@ -340,8 +339,12 @@ seed_demo_workflows.py: error: the following arguments are required: --repo
 | ① 代码 + 测试 + 数据 | `0363221d` |
 | ② 验收报告 + 文档回填 | `6fbfbe6d` |
 | ③ 合并 `origin/master`（并入 S11-03 等 3 个提交） | `37d60fa1` |
-| ④ §八 SHA 回填（本文档所在提交） | = 双远端 `master` 当前值 |
-| `origin/master` / `gitee/master` | 同点 = ④（快进，无额外合并提交） |
+| ④ §八 SHA 回填 | `dcf57e0f` |
+| ⑤ 合并主线 `be9c77be`（S11-05 提示词文档） | `99683a65` |
+| **交付时双远端 `master`** | **`99683a65`**（origin 与 gitee 同点，已用 `git ls-remote` 核对） |
+
+> 口径提示：`master` 由主线持续推进，⑤ 之后的 tip 可能已前进；**交付内容的权威标识是
+> ①~④**，`master` 的任何后续推进都包含它们（FF 快进，无重写）。
 
 **基线说明（口径差异已显式声明）**：
 1. 任务书写 `master = 4e1f5b67`，但创建 worktree 时 `master` 已推进到 **`506aeb60`**
