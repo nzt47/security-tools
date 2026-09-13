@@ -1,9 +1,7 @@
 # PARALLEL S11 批次：S10 审核遗留待修项（4 件，可全部并行）
 
 > 来源：S10 六份交付报告里的「遗留」段（S10-01 §七 / S10-02 §六 / S10-03 §八 / S10-05 §10）+ 主线审核补充。
-> 基线：`master` = `4e1f5b67`（双远端同点）。
-> **通用约定照抄 [`PARALLEL_S10批次_S9遗留待修项.md`](PARALLEL_S10批次_S9遗留待修项.md) 的「## 通用约定」一节**
-> （worktree 创建、门禁四条、提交约定、纪律红线、env 必须登记注册表）—— 不再重复给出。
+> 基线：`master` = `e1c1ac7f`（双远端同点）。
 
 | 任务 | 名称 | worktree id | 关联遗留 |
 |---|---|---|---|
@@ -14,6 +12,73 @@
 
 **主线已完成（勿重复）**：`CP_ENV_FILE` 已补登注册表（`4e1f5b67`，守卫转绿）；服务已重启（S10-01/03/04 运行期生效，
 真机复验三问全对、response 不再追加"上下文即将耗尽"）；脏工作流 4 条已是 `archived`。
+
+---
+
+## 通用约定（S11 四个任务都适用；**本文件自包含，不必再去找别的文件**）
+
+> 用法：每个新会话粘 **本「通用约定」整段** + **对应任务那一段**（本文件里每个 `## S11-0X` 标题下的代码块）。
+
+```
+【通用约定（S11 批次四个任务都适用）】
+
+一、工作区与隔离（强制）
+    cd C:\Users\Administrator\agent
+    python scripts/dev/new_session_worktree.py create --id <s1101..s1104> --base master
+  · --base 默认是 develop，**必须显式写 --base master**；id 必须 s<数字>。
+  · 脚本会自动把主工作区 .env 供给到新 worktree（S10-06 已交付，实测输出
+    「开箱即用: .env 已由本脚本自动提供」）；若你看到 .env 为空，手工从主工作区复制。
+  · 此后所有 git 操作都在 worktree 内。主工作区禁令：✗ git checkout　✗ git reset --hard
+    ✗ git add -A（只 add 具体文件）—— **主工作区可能同时有其它会话在活动**。
+  · 提交流程：worktree 内 add/commit → 主工作区 `git merge <id>/main --no-edit` → 双远端 push
+    （git push origin master && git push gitee master）。
+  · 提交信息含中文/反引号时，**写进临时文件用 `git commit -F <文件> -- <具体路径>`**
+    （PowerShell 会把多行中文提交信息拆坏，本轮又踩过一次）。
+
+二、门禁四条（缺一不可）
+  · 相关套件 + 邻接回归
+  · python scripts/scan_kwarg_conflicts.py --path agent --min-risk HIGH  （0 处）
+    python scripts/scan_kwarg_conflicts.py --path tests --min-risk HIGH  （0 处）
+  · python -m mypy <改动模块>
+  · lint-imports --config .importlinter   （2 kept / 0 broken）
+  · 跑完 git status 检查产物漂移（pre-commit 会提示 clean-runtime-noise）。
+
+三、新增 env 必须登记注册表（**本轮主线自己踩过这条**）
+  任何新增的 env 读取点都要登记 agent/settings/registry.py，否则
+  tests/unit/test_settings_registry.py::TestMechanicalZeroGap 零缺口硬守卫变红：
+    _a = 可直接切（纯数值上限/超时/非安全开关）
+    _b = 二次认证 + 双人确认（关掉完整性保护、放宽成本护栏、高危动作开关）
+    _c = 只读脱敏（密钥/凭据/端点/**绝对路径**）
+  owner 必须指向**真实文件**；默认值与类型必须取自真实读取点；风险级拿不准就**取更严**并把依据写进注释。
+  该守卫现已修好（此前有个静默漏洞会吞掉读取点）且**必须保持常绿** —— 红着的守卫会掩盖新违规。
+
+四、测试隔离红线
+  · 测试**不得**写仓库根 .env：EnvConfigManager 现支持 CP_ENV_FILE 覆盖目标文件，
+    tests/conftest.py 已有 autouse 重定向 + session 级护栏（会校验 .env 的 LLM_API_KEY 未被改写）。
+    新增涉及 .env 的测试请沿用该隔离，不要自行 mock 掉真实文件 I/O。
+  · 需要落盘的用例必须显式传路径或 autouse 隔离，避免污染真实 data/。
+
+五、纪律（都是本轮实际踩过的）
+  · **先查清再改**：若某个守卫/检查变绿了，必须验证"被检查的对象**没有从报告里消失**"——
+    宁可留一条真实红灯，也不要一条假绿灯（本轮出现过两次：一次真漏洞、一次我自己的误改）。
+  · **不得为了让用例通过而放宽断言**。若断言比意图更严，按**意图**改并**补正向断言**收紧。
+  · **先怀疑自己的测量**：性能/时序类用例（<200ms / <1s）与依赖真实 HEAD、依赖进程 kill 时序的用例
+    在并发或冷启动下会假红 ⇒ **先隔离复跑（含冷/热对比）再判断**，抖动不算缺陷。
+  · **不得编造数字**：做不到就写"未验证"；样本 <20 只披露不考核；数据源缺位记 None 不以 0 冒充。
+  · **不得用脚本造任务/造数据来刷指标**（会污染运营指标）。
+
+六、环境事实
+  · PowerShell 跑 Python 前设 $env:PYTHONIOENCODING='utf-8'; $env:PYTHONUTF8='1'。
+  · 云枢服务在 127.0.0.1:5678 跑着（Get-NetTCPConnection -LocalPort 5678 取 PID）；
+    改了 agent/** 要**重启服务**才生效，且重启属运维动作 —— 请在报告里写清"是否需要重启才生效"。
+  · 模型凭证可用（DeepSeek，.env 的 LLM_API_KEY，35 位）；真调模型会产生**费用**，
+    除最小探针外请用注入桩并**标明是桩**。
+
+七、回报格式
+  交付物 / 验收逐条（含证据命令与原始输出）/ 根因（**代码行级**）/ 质量证据（套件与门禁结果）/
+  遗留（带归属）/ 文档更新 / 双远端 SHA。
+  口径纪律：**每个数字都能溯源**；区分"数字变化"与"口径变化"；口径变更必须显式声明变更点与影响面。
+```
 
 ---
 
