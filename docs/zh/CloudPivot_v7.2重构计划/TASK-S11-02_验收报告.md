@@ -329,13 +329,44 @@ seed_demo_workflows.py: error: the following arguments are required: --repo
 
 ## 八、双远端 SHA
 
-| 远端 | SHA |
-|---|---|
-| `origin/master` | 见文末交付说明（推送后回填） |
-| `gitee/master` | 见文末交付说明（推送后回填） |
-| 分支提交 | `0363221d`（`s11-02/main`） |
+> **本节不写"本提交自身的 SHA"**：提交哈希由内容决定，报告无法自指。下面只登记
+> **已存在且不可变**的提交；`origin/master` 与 `gitee/master` 同点，等于
+> **本文档所在提交**（即包含下列提交的最新 `master`），其精确值以
+> `git log --oneline -1 origin/master` 为准。
 
-**基线说明**：任务书写 `master = 4e1f5b67`，但创建 worktree 时 `master` 已推进到
-`506aeb60`（`docs(流程): 建「通用约定」唯一正本…`）。本 worktree 以 **`506aeb60`** 为基点
-（`--base master` 的实际取值），故交付内容建立在 `506aeb60` 之上；`4e1f5b67` 上的
-`CP_ENV_FILE` 补登等改动已包含在 `506aeb60` 的历史中。**口径差异已显式声明**。
+| 项 | SHA / 取值 |
+|---|---|
+| 交付分支 | `s11-02/main` |
+| ① 代码 + 测试 + 数据 | `0363221d` |
+| ② 验收报告 + 文档回填 | `6fbfbe6d` |
+| ③ 合并 `origin/master`（并入 S11-03 等 3 个提交） | `37d60fa1` |
+| ④ §八 SHA 回填（本文档所在提交） | = 双远端 `master` 当前值 |
+| `origin/master` / `gitee/master` | 同点 = ④（快进，无额外合并提交） |
+
+**基线说明（口径差异已显式声明）**：
+1. 任务书写 `master = 4e1f5b67`，但创建 worktree 时 `master` 已推进到 **`506aeb60`**
+   （`docs(流程): 建「通用约定」唯一正本…`），故 worktree 以 `506aeb60` 为基点
+   （`--base master` 的实际取值）。
+2. 交付过程中主线又推了 3 个提交（`7cbb8668` S11-03 / `fb957ca4` / `c45c97e1`，触及
+   `agent/orchestrator/`、`plugins/chat.py`、`config.yaml`、新增 `tests/unit/test_s11_03_*`），
+   master 推进到 **`c45c97e1`**。本任务已 `git merge origin/master` 并入后**全部门禁重新跑过**
+   （见下"新基点复跑"），与本任务无文件交集、无冲突。
+3. **合并落地方式的偏离（已获 Owner 选择 A 授权）**：约定的"主工作区 `git merge`"被
+   git 拒绝 —— 主工作区 `data/learned_workflows.json` 存在**其它会话未提交的改动**
+   （暂存区为"删除 `wf-28f2775d`"，工作区又被运行中服务写回）。为避免改动他人未提交的工作，
+   经 Owner 选择后改为从本 worktree 直接 `git push <sha>:master`（FF 快进），
+   **主工作区的未提交改动全程未被触碰**。
+
+**新基点复跑（`origin/master` 合并后全部重跑）**：
+
+| 门禁 | 结果 |
+|---|---|
+| `pytest tests/unit -q -k "workflow_learning"` | 75 passed / 0 failed / 1 skipped |
+| 邻接回归①（7 个文件） | 135 passed / 0 failed |
+| 邻接回归②（6 个文件） | 136 passed / 0 failed |
+| `scan_kwarg_conflicts --path agent --min-risk HIGH` | 总计 0 处 |
+| `scan_kwarg_conflicts --path tests --min-risk HIGH` | 总计 0 处 |
+| `mypy`（4 个改动文件，`--follow-imports=skip`） | Success: no issues found in 4 source files |
+| `lint-imports --config .importlinter` | 2 kept / 0 broken |
+| 政策探针复跑 | 候选池仍为 `[]`，改前/改后对比结论不变 |
+
