@@ -27,8 +27,19 @@ from agent.observability import events as ev
 from agent.observability import utc as U
 from agent.monitoring import cost_brake as CB
 
-#: 固定基准时刻（带本地时区）——所有用例据此注入时钟，避免跨日/墙钟漂移
-BASE = datetime(2026, 9, 14, 10, 0, tzinfo=datetime.now().astimezone().tzinfo)
+#: 基准时刻 = **今天** 10:00（带本地时区）——所有用例据此注入时钟。
+#: 【S11-06 修「日期定时炸弹」】原为硬编码 `datetime(2026, 9, 14, 10, 0, ...)`：
+#:   · `seed_cost(day=BASE.date().isoformat())` 把成本事件钉在**硬编码日**；
+#:   · 但 `allow_outbound()` 在不传 `now=` 时用**真实时钟**
+#:     （agent/monitoring/cost_brake.py:1661 `moment = now or self._clock()`，
+#:     且 L1664 `_is_stale(moment)` 为真时会用真实时刻**重新判定**）；
+#:   两者只在"真实今天 == 2026-09-14"（= 编写当天）时重合 ⇒ 次日起
+#:   `TestDailyBreaker` 的阻塞断言必然失败（实测 +1 天即 2 failed）；
+#:   `TestApprovalDecay` 走的 `approval_decay_rate` 更直接用真实 `_now()`
+#:   取窗口（cost_brake.py:1129/1131）⇒ 窗口滑过种子日即失败（实测 +400 天 3 failed）。
+#: 现改为**相对真实今天**推导，与产品时钟（`_now()` = 本地 `datetime.now()`）**同一口径**。
+BASE = datetime.now().astimezone().replace(
+    hour=10, minute=0, second=0, microsecond=0)
 
 
 def at(day_offset: int = 0, hour: int = 10) -> datetime:
@@ -186,7 +197,14 @@ class TestConfig:
 
 class TestThetaStages:
     def test_before_start_is_w1_w4(self):
-        info = CB.resolve_phase(BASE, phase_start="2026-10-01")
+        # 【S11-06】原为绝对 phase_start="2026-10-01"（与当时**钉死**的
+        # BASE=2026-09-14 相差 17 天）。BASE 改为"相对真实今天"后（见文件头说明），
+        # 绝对起点会让本用例**自 2026-10-01 起必然失败**（实测：+400 天平移即红）
+        # —— 那等于把"日期炸弹"从一处搬到另一处。
+        # 现改为**相对 BASE**推导，保持"now 严格早于阶段起点 ⇒ W1_W4"的原语义，
+        # 间距沿用原来的 17 天。
+        info = CB.resolve_phase(
+            BASE, phase_start=(BASE.date() + timedelta(days=17)).isoformat())
         assert info["phase"] == CB.PHASE_W1_W4
 
     def test_week_5_and_9_map_to_w5_w9(self):

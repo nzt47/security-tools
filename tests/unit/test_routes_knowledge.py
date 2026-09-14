@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from unittest.mock import patch
 
 import pytest
@@ -24,7 +25,14 @@ def _card_dict(title: str = "Test Card", **overrides) -> dict:
         "status": "current",
         "type": "concepts",
         "source": "manual",
-        "date": "2026-08-01",
+        # 【S11-06 修「日期定时炸弹」】原为硬编码 "2026-08-01"：知识巡检的
+        # 「过期声明」规则是 status=current 且 date 距今 > stale_days（默认 90 天，
+        # 见 agent/knowledge/lint.py:240 用真实 date.today()）⇒
+        # 2026-08-01 + 90 = 2026-10-31，**自 2026-10-31 起本文件的健康分断言必然变红**
+        # （扣 3 分：98.0 → 95.0，2026-09-14 以日期平移差分实测复现）。
+        # 现改为**相对今天**推导（与本文件断言口径一致：默认卡片是"当前且未过期"），
+        # 任何日期下天数=0 ⇒ 恒不触发过期扣分。
+        "date": date.today().isoformat(),
         "tags": [],
         "links": [],
         "contradictions": [],

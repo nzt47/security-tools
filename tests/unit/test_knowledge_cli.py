@@ -44,7 +44,12 @@ def make_card(
         status=status,
         type=type,
         source="inbox/test.md",
-        date="2026-08-02",
+        # 【S11-06 修「日期定时炸弹」】原为硬编码 "2026-08-02"：知识巡检「过期声明」
+        # 用真实 date.today() 与卡片 date 比较（stale_days 默认 90，lint.py:240）⇒
+        # 2026-08-02 + 90 = 2026-10-31 起，`test_main_audit_direct` 断言的
+        # "健康分 98.0" 会变成 95.0（扣 3 分过期声明）⇒ 必然失败。
+        # 现改为**相对今天**推导（默认卡片语义即"当前且未过期"），任何日期下恒不触发。
+        date=date.today().isoformat(),
         tags=[],
         links=links if links is not None else [],
         contradictions=contradictions if contradictions is not None else [],
