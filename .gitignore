@@ -444,3 +444,16 @@ data/repair/
 data/isolation/
 .tmp_iso_ro_probe/
 .tmp_iso_witness/
+
+# ── 运行期状态（服务每次运行都写，不是仓库内容）────────────────────
+# 【2026-09-14 策略】把「运行期状态」与「仓库内容」分开：这些文件由服务运行期持续写入，
+# 逐次提交只会把真实变更埋进噪声。先例：pre-commit 的 clean-runtime-noise 钩子
+# 早已自动还原 data/learned_workflows.json 的统计漂移。
+# ⚠️ 需要留痕的内容**不在此列**（仍跟踪）：docs/zh/周报存档/**、data/slo_report_audit.jsonl、
+# data/feedback_agent_audit.jsonl、data/learned_workflows_retired.jsonl。
+data/lifetrace/
+data/summary.txt
+data/summary_version.txt
+data/personality.json
+agent/data/skills.json
+

@@ -771,7 +771,7 @@ workflow_learning:
 slo_report:
   enabled: true           # true 时注册周报定时任务（等价 CP_SLO_SCHEDULE_ENABLED=true）
   day_of_week: 0          # 0=周一 … 6=周日（Python weekday() 语义）
-  hour: 9                 # 触发小时（0-23）
+  hour: 0                 # 触发小时（0-23）
   minute: 0               # 触发分钟（0-59）
   days: 7                 # 周报窗口天数（1-90）
   # out_dir: docs/zh/周报存档                    # 缺省即此目录
