@@ -64,3 +64,44 @@
 
 **SHA 记录**：S11-06 交付 `d91978ef`（合并 `b6ef5e2e`）｜前置修复 `64665851`｜
 补录时 master = `b44b1c92`（补录提交见后续）｜双远端同点。
+
+---
+
+## 五、⚠️ 补录后的**重要更正**（2026-09-14 当晚，主线）
+
+**本报告 §二 隐含的"扫清已完成"结论不成立 —— 残留量远比 S11-06 修掉的多。**
+
+**证据（平移**全量**，非抽样）**：
+```
+CP_DATE_SHIFT_DAYS=400 python -m pytest tests/unit -q -p tests._date_shift_plugin
+  → 54 failed / 18079 passed / 308 skipped（3414.66s / 56m54s）
+```
+
+**已证实是"真炸弹"而非平移副作用**（分类实验）：
+```
+tests/unit/test_snapshot_comprehensive.py
+  · 不平移（基线） → 92 passed
+  · 平移 +1 天     → 25 failed / 67 passed     ← 只差一天就崩，是真炸弹
+  · 平移 +400 天   → 同样失败（复现）
+```
+⇒ 单这一个文件就有 **25 个**日期敏感用例，S11-06 **完全没有触及**它。
+
+**因此 §三 的"未留档"一条要升级**：不只是"清单没写下来"，而是
+**扫清本身未完成**（它只改了 `test_decision_log_rotation.py` / `test_knowledge_cli.py` /
+`test_routes_knowledge.py` / `test_s5_03_cost_brake.py` 四个文件）。
+
+**工具是好的，但用得不全**：`tests/_date_shift_plugin.py` 确实能跑出真实敏感点
+（本轮即靠它查实），但 S11-06 **没有把它跑遍整库**。插件另有
+`python tests/_date_shift_plugin.py --candidates` 输出**静态候选文件清单**
+（含 `test_task_scheduler*.py`、`test_utc_cost.py`、`test_retention_*.py`、
+`test_replay_*`、`test_precipitate_*`、`test_singleton_performance.py` 等，与时间域高度相关）。
+
+**主线自身的失误（一并记录，避免后人误读）**：
+1. 首次跑平移全量时用 `Select-Object -Last 25` **丢了完整 FAILED 清单**，
+   只拿到总数与尾部 5 个文件名 ⇒ **修复前必须重跑一次并把输出落文件**；
+2. 报告初稿把"S11-06 改的 4 个文件在 ±400 天下全过"当成足够强的判据就写了"扫清"，
+   **未自行跑整库平移** ⇒ 教训：**单点判据不能替代全局判据**。
+
+**结论**：本任务**未达交付标准**，残留 ≈54 个日期敏感用例（确切分布待完整清单确认）。
+应立 **S11-07** 修复；**在 S11-07 完成前不得宣告"日期炸弹已清"**。
+
