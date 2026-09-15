@@ -519,7 +519,25 @@ class DependencyGraphBuilder:
     # ── 内部实现 ──────────────────────────────────────────────────
 
     def _collect_python_files(self) -> List[Path]:
-        """收集 root_dir 下所有 .py 文件（排除 __pycache__、tests）"""
+        """收集 root_dir 下所有 .py 文件（排除 __pycache__、tests）
+
+        **返回值按 `Path.as_posix()` 稳定排序**（S11-09 修复门禁不可复现）。
+
+        为什么必须排序：`Path.rglob` 的产出顺序来自文件系统 readdir 顺序，
+        ext4（CI/Linux）与 NTFS（本机/Windows）并不相同。而下游
+        `ArchRuleValidator._check_circular_dependencies` 是**三色 DFS**，
+        "报告哪一条边"取决于**边序** ⇒ 同一棵树在 CI 与本机会得到不同的违规集合与条数
+        （实测同一 commit：CI 报 20 条/未豁免 16，本机报 15 条/未豁免 11；
+        把边序反转或固定种子随机置换可得到 13~25 条）。排序后该门禁结论**与环境无关**。
+
+        为什么用 `as_posix()` 而不是 `str(path)`：后者在 Windows 带 `\\`、Linux 带 `/`，
+        两者排序键在跨平台时**并不等价**（例如 `agent/aX.py` 与 `agent/a/x.py`：
+        `X`(0x58) 与 `\\`(0x5C) 的序在 Windows 与 Linux 上相反）。
+        统一成 posix 形式可保证 CI 与本机得到**同一个**顺序。
+
+        Returns:
+            已排序的 .py 文件路径列表（跨平台确定）
+        """
         files: List[Path] = []
         for path in self.root_dir.rglob("*.py"):
             # 排除 __pycache__、tests 目录
@@ -528,6 +546,9 @@ class DependencyGraphBuilder:
             if "tests" in path.parts:
                 continue
             files.append(path)
+        # S11-09：确定性排序（理由见 docstring）——不得删除，否则
+        # architecture-check 会退化为"依赖文件系统顺序"的不可复现门禁。
+        files.sort(key=lambda p: p.as_posix())
         return files
 
     def _parse_imports(self, file_path: Path) -> List[DependencyEdge]:

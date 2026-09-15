@@ -5,6 +5,7 @@
 """
 import json
 import os
+import random
 import tempfile
 from pathlib import Path
 from textwrap import dedent
@@ -634,3 +635,135 @@ class TestDataclasses:
         stats = GraphStats(total_files=10, total_nodes=5)
         d = stats.to_dict()
         assert d["total_files"] == 10
+
+
+# ── 确定性收集回归守卫（S11-09）────────────────────────────────
+
+
+class TestDeterministicFileCollection:
+    """`_collect_python_files` 必须**确定性排序**（S11-09 修复的回归守卫）。
+
+    回归背景（实测，勿删本类）：`Path.rglob` 的产出顺序来自文件系统 readdir 顺序，
+    ext4（CI/Linux）与 NTFS（本机/Windows）并不相同；而
+    `ArchRuleValidator._check_circular_dependencies` 是**三色 DFS**——
+    "报告哪一条边"取决于**边序**。故修复前，同一棵树、同一解释器会得到不同的
+    违规集合与条数：
+
+      · 同一 commit：CI 报 20 条 / 未豁免 16，本机报 15 条 / 未豁免 11；
+      · 对照臂（边序反转 / 固定种子随机置换）在**同一棵树**上得到 13~25 条。
+
+    排序后门禁结论与环境无关（7 臂逐字节一致：total=19 / active=15 / exempted=4）。
+    """
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_collect_python_files_is_sorted_by_posix(self, sample_project: Path):
+        """收集结果必须按 `as_posix()` 升序（跨平台得到同一顺序）。"""
+        builder = DependencyGraphBuilder(root_dir=str(sample_project / "agent"))
+        files = builder._collect_python_files()
+        assert files, "夹具项目应至少收集到一个 .py 文件"
+        keys = [p.as_posix() for p in files]
+        assert keys == sorted(keys), f"未按 as_posix() 排序：{keys}"
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_collect_python_files_ignores_rglob_enumeration_order(
+        self, sample_project: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """把 `rglob` 产出**反转 / 随机置换**，收集结果必须完全相同。
+
+        这是对"门禁不可复现"最直接的回归：只要该断言成立，文件枚举顺序
+        就再也无法影响下游 DFS 的结论。
+        """
+        root = sample_project / "agent"
+        baseline = [
+            p.as_posix()
+            for p in DependencyGraphBuilder(root_dir=str(root))._collect_python_files()
+        ]
+        assert baseline, "夹具项目应至少收集到一个 .py 文件"
+
+        real_rglob = Path.rglob
+
+        def make_fake(mode: str):
+            def fake_rglob(self, pattern):  # noqa: ANN001
+                items = list(real_rglob(self, pattern))
+                if mode == "reverse":
+                    items.reverse()
+                else:
+                    random.Random(20260915).shuffle(items)
+                return iter(items)
+
+            return fake_rglob
+
+        for mode in ("reverse", "shuffle"):
+            with monkeypatch.context() as m:
+                m.setattr(Path, "rglob", make_fake(mode))
+                got = [
+                    p.as_posix()
+                    for p in DependencyGraphBuilder(
+                        root_dir=str(root)
+                    )._collect_python_files()
+                ]
+            assert got == baseline, f"rglob 枚举顺序（{mode}）影响了收集结果"
+
+    @pytest.mark.unit
+    @pytest.mark.p0
+    def test_verdict_is_stable_under_rglob_permutation(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        """**端到端**：rglob 枚举顺序被置换后，校验结论必须逐字节不变。
+
+        注意本测试断言的**不是** "DFS 对任意边序都给出同一结果"——三色 DFS 按设计
+        只报告**环的代表边**（每条独立环 1 条），所以**人为置换边序确实会改变**报告
+        哪一条边（这正是原缺陷的机理）。可复现性的达成方式是：让**上游收集顺序确定**
+        （`_collect_python_files` 排序），从而使 DFS 拿到的边序与环境无关。
+        本测试锁定的就是这个不变量。
+        """
+        from agent.observability.arch_rules import ArchRuleValidator
+
+        agent = tmp_path / "agent"
+        agent.mkdir()
+        (agent / "__init__.py").write_text("", encoding="utf-8")
+        # a ↔ b 构成环；c 指向环内模块（增加可被报告的代表边候选）
+        (agent / "a.py").write_text("import agent.b\n", encoding="utf-8")
+        (agent / "b.py").write_text("import agent.a\n", encoding="utf-8")
+        (agent / "c.py").write_text("import agent.a\n", encoding="utf-8")
+
+        def snapshot():
+            builder = DependencyGraphBuilder(root_dir=str(agent))
+            builder.build()
+            edge_seq = [
+                (e.source, e.target, e.line, e.source_file) for e in builder.edges
+            ]
+            report = ArchRuleValidator(
+                root_dir=str(agent), trace_id="order-test"
+            ).validate()
+            verdict = sorted(
+                (v.rule_id, v.source, v.target, v.line) for v in report.violations
+            )
+            return edge_seq, verdict, report.total_violations
+
+        baseline_edges, baseline_verdict, baseline_total = snapshot()
+        assert baseline_total > 0, "夹具应至少报出 1 条循环违规"
+        assert baseline_verdict, "夹具应至少报出 1 条循环违规"
+
+        real_rglob = Path.rglob
+
+        def make_fake(mode: str):
+            def fake_rglob(self, pattern):  # noqa: ANN001
+                items = list(real_rglob(self, pattern))
+                if mode == "reverse":
+                    items.reverse()
+                else:
+                    random.Random(20260915).shuffle(items)
+                return iter(items)
+
+            return fake_rglob
+
+        for mode in ("reverse", "shuffle"):
+            with monkeypatch.context() as m:
+                m.setattr(Path, "rglob", make_fake(mode))
+                edges2, verdict2, total2 = snapshot()
+            assert edges2 == baseline_edges, f"rglob 顺序（{mode}）改变了边序"
+            assert verdict2 == baseline_verdict, f"rglob 顺序（{mode}）改变了违规集合"
+            assert total2 == baseline_total
