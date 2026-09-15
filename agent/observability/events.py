@@ -1362,3 +1362,15 @@ __all__ = [
     "get_event_store", "get_event_reader", "default_correlation_id", "trace_fields",
     "emit", "iter_events", "read_events", "group_by_day", "filter_types",
 ]
+
+
+# ── 【S11-10 / R2】向叶子出口注册本层的 emit ────────────────────────────────
+# 依赖倒置的收口：`agent.utils.cross_process_lock` 与 `agent.observability.trace_v2`
+# 都向"留痕出口"发事件，而本模块（events）又**模块级**依赖 cross_process_lock
+# （见本文件 L44：事件文件写入要取跨进程锁）。若底层直接 import 本模块即成环，
+# 故把出口下沉为叶子模块 `agent.utils.obs_hooks`，**由本层在导入时注册**。
+# 放在文件末尾是必要的：此时 `emit` 已定义完毕。
+# ⚠️ 行为边界：未导入本模块时，底层留痕只记 debug、不落痕（见 obs_hooks docstring）。
+from agent.utils.obs_hooks import register_event_emitter as _register_event_emitter
+
+_register_event_emitter(emit)

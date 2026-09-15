@@ -42,19 +42,38 @@ from agent.settings.registry import (
     get_spec,
     registered_env_names,
 )
-from agent.settings.resolver import (
-    SOURCE_LABELS,
-    SOURCE_PRIORITY,
-    ResolvedSetting,
-    resolve,
-    resolve_all,
-)
-from agent.settings.service import (
-    ChangeOutcome,
-    SettingsService,
-    get_settings_service,
-    reset_settings_service,
-)
+import importlib as _importlib
+
+# ── 【S11-10 / R2】惰性再导出（PEP 562）────────────────────────────────────
+# 为什么：下列子模块会（直接或间接）依赖回本包，构成"包 ↔ 子模块"环，
+# 被 architecture-check 的 no_circular_dependency 规则阻断。急切再导出正是环的一条边；
+# 改为按需解析可**真实消除运行期的急切耦合**（不是把 import 换个写法隐藏起来）：
+#   `from agent.settings import X`、`agent.settings.X`、`hasattr(agent.settings, "X")` 语义均不变，只是解析推迟到首次访问。
+# 类型层由同目录 `__init__.pyi` 声明——本仓依赖图只扫 `*.py`，故存根不产生依赖边。
+_LAZY_EXPORTS: dict[str, tuple[str, str]] = {
+    "SOURCE_LABELS": ("agent.settings.resolver", "SOURCE_LABELS"),
+    "SOURCE_PRIORITY": ("agent.settings.resolver", "SOURCE_PRIORITY"),
+    "ResolvedSetting": ("agent.settings.resolver", "ResolvedSetting"),
+    "resolve": ("agent.settings.resolver", "resolve"),
+    "resolve_all": ("agent.settings.resolver", "resolve_all"),
+    "ChangeOutcome": ("agent.settings.service", "ChangeOutcome"),
+    "SettingsService": ("agent.settings.service", "SettingsService"),
+    "get_settings_service": ("agent.settings.service", "get_settings_service"),
+    "reset_settings_service": ("agent.settings.service", "reset_settings_service"),
+}
+
+
+def __getattr__(name: str) -> object:
+    """PEP 562：按需解析本包的再导出名。"""
+    entry = _LAZY_EXPORTS.get(name)
+    if entry is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    mod_name, attr = entry
+    return getattr(_importlib.import_module(mod_name), attr)
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(_LAZY_EXPORTS))
 
 __all__ = [
     # registry

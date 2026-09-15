@@ -75,6 +75,8 @@ from agent.utils.cross_process_lock import (
     LockError,
     lock_path_for,
 )
+# 【S11-10 / R2】留痕出口叶子模块（自身不依赖任何 agent.*）——见 agent/utils/obs_hooks.py
+from agent.utils.obs_hooks import emit_event
 
 logger = logging.getLogger("agent.observability.trace_v2")
 
@@ -1002,12 +1004,13 @@ class UnifiedTraceStore:
         【为什么调用点一律在临界区外】本方法会取事件文件的锁；放进 Trace 写锁/
         跨进程锁的临界区就会形成"Trace 锁 → 事件锁"的锁序，别的模块一旦反向持有
         即死锁——这正是本任务要消除的锁序病理。
+        【S11-10 / R2】改走叶子出口 `agent.utils.obs_hooks`：原为函数内
+        `from agent.observability.events import emit`，而 events 又（函数内）取本模块的
+        `TraceContext` ⇒ 构成 `events ↔ trace_v2` 环。现在单向汇入叶子，环消散。
+        ⚠️ 行为边界：出口需事件层已导入才会注册；未注册时只记 debug、不落痕。
         """
-        try:
-            from agent.observability.events import emit
-            emit(event_type, payload, actor="system")
-        except Exception as e:  # noqa: BLE001 事件层不可用不影响 trace 写入
-            logger.debug("Trace 写路径事件留痕失败（best-effort）: %s", e)
+        if not emit_event(event_type, payload, actor="system"):
+            logger.debug("Trace 写路径事件未落痕：留痕出口尚未注册（best-effort）")
 
     def _degrade_payload(self, extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """降级/溢出事件的**叶子字段**载荷（只回传标量，绝不搬运 live 对象）"""

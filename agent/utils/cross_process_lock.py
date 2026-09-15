@@ -65,6 +65,10 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List, Optional
 
+# 【S11-10 / R2】留痕出口叶子模块（自身不依赖任何 agent.*）：
+# 本模块是依赖链底部，不得静态触达审计/事件层，否则成环（见该模块 docstring）。
+from agent.utils.obs_hooks import emit_event
+
 logger = logging.getLogger("agent.utils.cross_process_lock")
 
 # ════════════════════════════════════════════════════════════
@@ -352,12 +356,14 @@ def _default_notify(action: str, detail: Dict[str, Any]) -> None:
                              payload=payload, source="system")
     except Exception as exc:  # noqa: BLE001 审计不可用不阻断
         logger.warning("锁降级留痕（审计）失败: %s", exc)
-    try:
-        from agent.observability.events import emit
-        emit(EVENT_LOCK_CONTENTION,
-             {"action": action, **payload}, actor="auto")
-    except Exception as exc:  # noqa: BLE001 事件不可用不阻断
-        logger.warning("锁降级留痕（事件）失败: %s", exc)
+    # 【S11-10 / R2】事件留痕改走**叶子出口** `agent.utils.obs_hooks`：
+    # 原为函数内 `from agent.observability.events import emit`，而 events 又**模块级**依赖
+    # 本模块（`events.py:44`，事件文件写入要取跨进程锁）⇒ 构成
+    # `events ↔ cross_process_lock` 环（architecture-check 会阻断）。
+    # 现在边方向单向化（events → obs_hooks ← cross_process_lock），环消散。
+    # ⚠️ 行为边界：出口需事件层已导入才会注册；未注册时只记 debug、不落痕。
+    if not emit_event(EVENT_LOCK_CONTENTION, {"action": action, **payload}, actor="auto"):
+        logger.debug("锁降级事件未落痕：留痕出口尚未注册（事件层未导入）")
 
 
 def notify_degraded(action: str, detail: Dict[str, Any]) -> None:

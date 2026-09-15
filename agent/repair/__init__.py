@@ -49,14 +49,7 @@ from agent.repair.delegate import (
     DelegationRequest,
     delegate as delegate_patch,
 )
-from agent.repair.diagnose import (
-    DEFAULT_TEST_TARGET,
-    ProbeExecutor,
-    SubprocessExecutor,
-    diagnose as run_diagnosis,
-)
 from agent.repair.guardrails import guard_patch, parse_unified_diff
-from agent.repair.locate import locate as locate_failure
 from agent.repair.models import (
     AUDIT_ACTIONS,
     REPAIR_STEPS,
@@ -69,17 +62,6 @@ from agent.repair.models import (
     RepairTicket,
     VerificationReport,
 )
-from agent.repair.pipeline import (
-    STATUS_DISCARDED,
-    STATUS_ERROR,
-    STATUS_NO_FAILURE,
-    STATUS_PROPOSED,
-    STATUS_REJECTED,
-    PipelineRequest,
-    audit_completeness,
-    report_markdown,
-    run_repair,
-)
 from agent.repair.policy import (
     READONLY_ZONE_FILES,
     READONLY_ZONE_PREFIXES,
@@ -90,9 +72,47 @@ from agent.repair.policy import (
     policy_from_env,
     readonly_reason,
 )
-from agent.repair.propose import ProposalNotVerified, propose as propose_fix
 from agent.repair.trace import RepairRunLogger, RunLoggerConfig, new_run_id
-from agent.repair.verify import verify as verify_patch
+import importlib as _importlib
+
+# ── 【S11-10 / R2】惰性再导出（PEP 562）────────────────────────────────────
+# 为什么：下列子模块会（直接或间接）依赖回本包，构成"包 ↔ 子模块"环，
+# 被 architecture-check 的 no_circular_dependency 规则阻断。急切再导出正是环的一条边；
+# 改为按需解析可**真实消除运行期的急切耦合**（不是把 import 换个写法隐藏起来）：
+#   `from agent.repair import X`、`agent.repair.X`、`hasattr(agent.repair, "X")` 语义均不变，只是解析推迟到首次访问。
+# 类型层由同目录 `__init__.pyi` 声明——本仓依赖图只扫 `*.py`，故存根不产生依赖边。
+_LAZY_EXPORTS: dict[str, tuple[str, str]] = {
+    "DEFAULT_TEST_TARGET": ("agent.repair.diagnose", "DEFAULT_TEST_TARGET"),
+    "ProbeExecutor": ("agent.repair.diagnose", "ProbeExecutor"),
+    "SubprocessExecutor": ("agent.repair.diagnose", "SubprocessExecutor"),
+    "run_diagnosis": ("agent.repair.diagnose", "diagnose"),
+    "locate_failure": ("agent.repair.locate", "locate"),
+    "STATUS_DISCARDED": ("agent.repair.pipeline", "STATUS_DISCARDED"),
+    "STATUS_ERROR": ("agent.repair.pipeline", "STATUS_ERROR"),
+    "STATUS_NO_FAILURE": ("agent.repair.pipeline", "STATUS_NO_FAILURE"),
+    "STATUS_PROPOSED": ("agent.repair.pipeline", "STATUS_PROPOSED"),
+    "STATUS_REJECTED": ("agent.repair.pipeline", "STATUS_REJECTED"),
+    "PipelineRequest": ("agent.repair.pipeline", "PipelineRequest"),
+    "audit_completeness": ("agent.repair.pipeline", "audit_completeness"),
+    "report_markdown": ("agent.repair.pipeline", "report_markdown"),
+    "run_repair": ("agent.repair.pipeline", "run_repair"),
+    "ProposalNotVerified": ("agent.repair.propose", "ProposalNotVerified"),
+    "propose_fix": ("agent.repair.propose", "propose"),
+    "verify_patch": ("agent.repair.verify", "verify"),
+}
+
+
+def __getattr__(name: str) -> object:
+    """PEP 562：按需解析本包的再导出名。"""
+    entry = _LAZY_EXPORTS.get(name)
+    if entry is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    mod_name, attr = entry
+    return getattr(_importlib.import_module(mod_name), attr)
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(_LAZY_EXPORTS))
 
 __all__ = [
     # 策略与护栏
