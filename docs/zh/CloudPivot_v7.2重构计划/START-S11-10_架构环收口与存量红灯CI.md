@@ -142,7 +142,11 @@ LAZY  (拟改)   mypy exit=1  consumer.py:6: error: Returning Any from function 
   IMPORT_RE = re.compile(r"^from\s+(?P<mod>[\w.]+)\s+import\s+(?P<names>\([^)]*\)|[^(\n]+)$",
                          re.MULTILINE)
 
-  def names_of(raw: str) -> list[str]:
+  def names_of(raw: str) -> list[tuple[str, str]]:
+      """返回 (模块内真名, 对外名)。**必须保留别名**——原 `__init__.py` 里有
+      `from agent.repair.delegate import delegate as delegate_patch` 这种写法，
+      若把对外名当成真名，就会产出 `import delegate_patch as delegate_patch`
+      ⇒ mypy 报 attr-defined（实测踩到 5 条，见 S11-09 报告 §2.8）。"""
       raw = raw.strip()
       if raw.startswith("("):
           raw = raw[1:-1]
@@ -151,7 +155,11 @@ LAZY  (拟改)   mypy exit=1  consumer.py:6: error: Returning Any from function 
           part = part.strip()
           if not part or part == "*":
               continue
-          out.append(part.split(" as ")[-1].strip())   # 记录对外名
+          if " as " in part:
+              attr, export = [x.strip() for x in part.split(" as ", 1)]
+          else:
+              attr = export = part
+          out.append((attr, export))
       return out
 
   def main(pkg_dir: str) -> int:
@@ -170,7 +178,10 @@ LAZY  (拟改)   mypy exit=1  consumer.py:6: error: Returning Any from function 
               continue                 #   `from __future__ import (annotations as annotations)`（已实测踩到）
           if not ns:
               continue
-          lines.append("from %s import (%s)" % (mod, ", ".join("%s as %s" % (n, n) for n in ns)))
+          lines.append(
+              "from %s import (%s)"
+              % (mod, ", ".join("%s as %s" % (attr, export) for attr, export in ns))
+          )
       out = init.with_suffix(".pyi")
       out.write_text("\n".join(lines) + "\n", encoding="utf-8")
       print("written:", out, "(%d 行)" % len(lines))
