@@ -52,6 +52,7 @@ from agent.retention.scan import (
 )
 
 from retention_testkit import (       # noqa: E402
+    days_ago,
     drafts_class,
     events_class,
     fixed_clock,
@@ -403,7 +404,7 @@ def _archive(tmp_path, root: str) -> str:
 
     draft = _write(os.path.join(root, "data", "digestion", "drafts", "d", "SKILL.md"),
                    "# a\n")
-    touch_old(draft, "2026-01-01")          # 冷层按"归属日"选片
+    touch_old(draft, days_ago(255))         # 冷层按"归属日"选片（相对推导，勿钉绝对日）
     policy = make_policy(root, [drafts_class()])
     report = Archiver(policy, root=root, clock=fixed_clock(), audit=False,
                       emit_events=False).run(confirm=True)

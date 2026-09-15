@@ -417,11 +417,17 @@ class TestAssessKnobsAndScriptScan:
 class TestDailyArchiveAndCurate:
     def test_archive_daily_moves_old_lines(self, tmp_path):
         from datetime import date as _date
+        from datetime import timedelta as _td
         from agent.skills_mgmt.log_archiver import archive_daily_file
-        today = _date.today().isoformat()
+        # 单次取时钟：`today` 与两条"历史行"必须同源（钉绝对日会在时钟回溯时翻成"未来行"，
+        # 而被测口径是 `day >= today` 即留在活动文件 ⇒ archived 恒为 0）
+        today_day = _date.today()
+        today = today_day.isoformat()
         p = tmp_path / "skills_assessment_events.jsonl"
-        old1 = '{"ts":"2026-08-31T10:00:00","skill_id":"a","kind":"auto","verdict":"ok"}\n'
-        old2 = '{"ts":"2026-09-01T10:00:00","skill_id":"b","kind":"auto","verdict":"ok"}\n'
+        old1 = '{"ts":"%sT10:00:00","skill_id":"a","kind":"auto","verdict":"ok"}\n' % (
+            (today_day - _td(days=13)).isoformat())
+        old2 = '{"ts":"%sT10:00:00","skill_id":"b","kind":"auto","verdict":"ok"}\n' % (
+            (today_day - _td(days=12)).isoformat())
         new1 = '{"ts":"%sT10:00:00","skill_id":"c","kind":"auto","verdict":"ok"}\n' % today
         p.write_text(old1 + old2 + new1, encoding="utf-8")
         out = archive_daily_file(p)

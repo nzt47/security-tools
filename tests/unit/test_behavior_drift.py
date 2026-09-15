@@ -29,6 +29,23 @@ def _write_week_baseline(tmp_path, week: str, metrics: dict) -> None:
         json.dumps({"week": week, "metrics": metrics}), encoding="utf-8")
 
 
+def _write_prev_week_baseline(tmp_path, metrics: dict) -> str:
+    """写入**上一周**的周基线，返回周键（TASK-S11-08）。
+
+    【为什么必须是相对周、不能钉固定绝对周】
+    · `week_key()` 取的是**运行期**本周周一（`sensor/novelty.py:196`）；
+    · 而 Scheduler 用"最近两份基线"（`agent/learning/behavior_drift.py:132-133`），
+      而 `list_baselines()` 按**周键字符串升序**（`sensor/behavior_sensor.py:1207`）。
+    固定绝对周在时钟整体回溯到它之前时会**排到当前周之后** ⇒ previous/current 颠倒，
+    漂移度从 1.0 变成 0.5（平移 −400 实测：`assert 0.5 == 1.0`）。
+    """
+    import datetime as dt
+
+    week = week_key(dt.date.today() - dt.timedelta(days=7))
+    _write_week_baseline(tmp_path, week, metrics)
+    return week
+
+
 def _cleanup_drift_scheduler():
     """清理可能残留的漂移检测任务（跨测试安全）。"""
     try:
@@ -191,7 +208,7 @@ def test_drift_run_produces_event_with_draft(tmp_path, monkeypatch):
     monkeypatch.setattr(bd, "_sensor_learning_enabled", lambda: True)
     monkeypatch.setattr(bd, "_drift_threshold", lambda: 0.3)
     monkeypatch.setattr(bd, "_baseline_retention_weeks", lambda: 8)
-    _write_week_baseline(tmp_path, "2026-08-03", {"behavior_mem_percent": 40.0})
+    _write_prev_week_baseline(tmp_path, {"behavior_mem_percent": 40.0})
     sensor = ActivityBehaviorSensor(baseline_dir=str(tmp_path))
     sensor.capture_baseline = lambda: {"captured_at": "t",
                                        "metrics": {"behavior_mem_percent": 80.0}}
@@ -218,7 +235,7 @@ def test_drift_run_no_drift(tmp_path, monkeypatch):
     monkeypatch.setattr(bd, "_sensor_learning_enabled", lambda: True)
     monkeypatch.setattr(bd, "_drift_threshold", lambda: 0.3)
     monkeypatch.setattr(bd, "_baseline_retention_weeks", lambda: 8)
-    _write_week_baseline(tmp_path, "2026-08-03", {"behavior_mem_percent": 40.0})
+    _write_prev_week_baseline(tmp_path, {"behavior_mem_percent": 40.0})
     sensor = ActivityBehaviorSensor(baseline_dir=str(tmp_path))
     sensor.capture_baseline = lambda: {"captured_at": "t",
                                        "metrics": {"behavior_mem_percent": 40.0}}

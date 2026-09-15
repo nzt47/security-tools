@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import json
 import os
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Dict, List, Optional, Sequence
 
 from agent.observability.events import EventStore, reset_event_stores
@@ -25,13 +25,50 @@ from agent.retention.policy import (
     RetentionPolicy,
 )
 
-#: 测试用固定"今天"（注入时钟；跨午夜/时区不参与判定）
-FIXED_TODAY = "2026-09-13"
+# ── 「今天」的唯一来源（TASK-S11-08）────────────────────────────
+# ⚠️ 两个都必须**调用期**取值，不得在模块级算常量：
+#    模块级 `X = date.today()` 是"导入期取时钟"，会在跨零点时与产品侧
+#    "运行期取时钟"分叉（S11-07 §2.5 实测：整库跨零点多出 5 个伪红）。
+# ⚠️ 同一用例内只取一次时钟，再用 `days_before()` 派生其余日期：
+#    两次 `days_ago()` 之间若跨过 00:00，夹具日与断言日就会差一天。
+
+
+def today_str() -> str:
+    """调用期的"今天"（`YYYY-MM-DD`）。
+
+    【为什么不能是固定绝对日（S11-07 §3.4 的根因）】
+    本模块的注入时钟与夹具历史日必须同源。产品温层走**运行期真实时钟**
+    （`agent/skills_mgmt/log_archiver.py:394 today = date.today().isoformat()`，
+    `:434 if day is None or day >= today`）。此前这里钉死 `2026-09-13` + 用例钉死
+    `write_events(root, "2026-09-10"/"2026-09-11")`：时钟一旦整体回溯（平移 −400），
+    真实"今天"落到夹具日之前，那些行就被判成"未来行"因而不搬走 ⇒ 5 个假失败。
+    """
+    return date.today().isoformat()
+
+
+def days_ago(n: int) -> str:
+    """调用期的"n 天前"（`n` 为正数 = 过去）。"""
+    return (date.today() - timedelta(days=int(n))).isoformat()
+
+
+def days_before(day: str, n: int) -> str:
+    """**纯函数**：把锚点日 `day` 前推 `n` 天（保持原有相对间距）。
+
+    与 `days_ago()` 的分工：需要多个相对日期时，**只取一次** `today = today_str()`，
+    其余全部由本纯函数派生 —— 这样同一用例内不可能出现"两次取时钟跨了零点"。
+    """
+    stamp = datetime.strptime(day, "%Y-%m-%d") - timedelta(days=int(n))
+    return stamp.date().isoformat()
 
 
 def fixed_clock(now: Optional[str] = None):
-    """注入时钟：返回固定 `datetime` 的 callable（任务书 §七.2 要求）。"""
-    stamp = now or FIXED_TODAY
+    """注入时钟：返回固定 `datetime` 的 callable（任务书 §七.2 要求）。
+
+    `now` 缺省 = **调用期的今天**（`today_str()`）—— 注入时钟与产品侧的运行期
+    真实时钟必须同源，否则两者分叉：注入侧若钉死绝对日，"今天"整体回溯时
+    夹具历史日会翻到"未来"，保留/归档类断言集体落空（S11-07 §3.4 实测 5 个）。
+    """
+    stamp = now or today_str()
 
     def _clock() -> datetime:
         return datetime.strptime(stamp, "%Y-%m-%d")
@@ -77,11 +114,15 @@ def write_events(root: str, day: str, *, count: int = 3,
 
 
 def write_shadow_ledger(root: str, *, runs: int = 2, sampled: int = 5,
-                        day: str = "2026-01-01") -> str:
+                        day: Optional[str] = None) -> str:
     """写灰度台账（`shadow_ledger.jsonl`）与人工复核队列。
 
     mtime 一律拨到 `day`（冷层按"归属日"选片；文件名无日期时退回 mtime）。
+    `day` 缺省 = 调用期推导的"旧日"（约一年前）：**必须是相对日**，否则注入时钟
+    跟随真实时钟回溯时它就成了"未来 mtime"，`cold_files()`（`day < now - cold_days`）
+    会把文件判成热层而选不中。
     """
+    day = day or days_ago(255)
     directory = os.path.join(root, "data", "digestion", "shadow")
     os.makedirs(directory, exist_ok=True)
     ledger = os.path.join(directory, "shadow_ledger.jsonl")
@@ -103,8 +144,10 @@ def write_shadow_ledger(root: str, *, runs: int = 2, sampled: int = 5,
     return ledger
 
 
-def write_decisions(root: str, *, count: int = 2, day: str = "2026-01-01") -> str:
-    """写策略决策日志（`decisions.jsonl`）。"""
+def write_decisions(root: str, *, count: int = 2,
+                    day: Optional[str] = None) -> str:
+    """写策略决策日志（`decisions.jsonl`）。`day` 缺省 = 调用期的"旧日"。"""
+    day = day or days_ago(255)
     path = os.path.join(root, "data", "policies", "decisions.jsonl")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "a", encoding="utf-8") as fh:
@@ -219,7 +262,8 @@ def cleanup_event_stores() -> None:
 
 
 __all__ = [
-    "FIXED_TODAY", "fixed_clock", "make_root", "write_events", "write_shadow_ledger",
+    "today_str", "days_ago", "days_before", "fixed_clock", "make_root",
+    "write_events", "write_shadow_ledger",
     "write_decisions", "write_json_file", "make_sqlite", "touch_old",
     "retention_class", "make_policy", "events_class", "drafts_class", "sqlite_class",
     "cleanup_event_stores", "KIND_TREE", "KIND_JSONL", "KIND_SQLITE",

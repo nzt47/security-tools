@@ -3,6 +3,20 @@
 用法：
     CP_DATE_SHIFT_DAYS=400 python -m pytest tests/unit/xxx.py -p tests._date_shift_plugin
 
+**晚替换模式（TASK-S11-08 固化，用于盲区 #2）**：
+    CP_DATE_SHIFT_DAYS=1 CP_DATE_SHIFT_LATE=1 python -m pytest <目标> -p tests._date_shift_plugin
+
+    普通模式下替换发生在 `pytest_configure`（= 测试模块**导入之前**）⇒ 导入期与运行期
+    被**同步**挪动，于是"导入期取时钟 vs 运行期取时钟"这类口径分叉**原理上查不出**
+    （S11-07 只能用一次性探针查）。`CP_DATE_SHIFT_LATE=1` 把替换推迟到
+    `pytest_collection_modifyitems`（= 测试模块**已导入之后**）：测试模块的模块级常量
+    已按**真实**日期求值，而产品侧的运行期时钟却整体 +delta ⇒ 确定性地复刻"跨零点"
+    那种一天之差，无需真的等到 00:00。
+    自检（探针必须"有牙齿"，且不得误报）：`tests/unit/test_date_shift_blindspots_guard.py`
+    的 `test_late_probe_detects_import_time_constant` /
+    `test_late_probe_does_not_flag_call_time_capture` /
+    `test_early_probe_is_blind_to_import_time_constant`。
+
 原理：`datetime.date` / `datetime.datetime` 是 C 类型，无法直接改 `today`；
 故用 Python 子类替换 `datetime` 模块属性，并同步**已导入模块**里 `from datetime
 import date` 造成的模块级绑定（freezegun 的核心手法，这里只实现所需子集）。
@@ -13,7 +27,18 @@ import date` 造成的模块级绑定（freezegun 的核心手法，这里只实
     `FILETIME`/`fromtimestamp` 也按真实时间解释。测试若把"Python 的今天"与"文件的
     mtime"当同一口径用，平移会暴露**口径不一致**（不是炸弹，是工具盲区，见 §四纪律）；
   · 闭包内已捕获真实类的引用、模块级默认参数 `def f(t=date.today())`（导入期求值）
-    不会被替换；
+    不会被替换 ⇒ **原理上查不出**（两侧同步挪）。
+    TASK-S11-08 起由 `tests/unit/test_date_shift_blindspots_guard.py` 两条手段覆盖：
+    静态检测（模块级时钟常量 / 默认参数 / 逃逸闭包）+ 上面的**晚替换探针**；
+  · **跨进程不参与平移**：`subprocess` 起的子进程是**新解释器**，本插件只替换
+    **当前进程**的 `datetime` ⇒ 父进程用（被平移的）时钟造的夹具，与子进程读到的
+    真实时钟判定会差 delta 天。
+    实测实例（TASK-S11-08 新查出）：`tests/integration/test_knowledge_audit_ci_edge.py`
+    —— 父进程 `date.today()-90` 造的卡，在 −400 下被子进程
+    （`python -m agent.knowledge audit`）判成 `days_unaccessed=490`；
+    四臂实跑 不平移 4 passed / CONTROL 4 passed / +400 2 failed / −400 3 failed
+    ⇒ **口径差，非炸弹、非替换伪影**。
+    静态候选扫描：`tests/unit/test_date_shift_blindspots_guard.py::detect_cross_process_clock`；
   · `datetime.datetime` 被替换为子类后，少数 C 扩展（pandas 等）可能行为异常
     ⇒ 差异只作**候选**，必须逐条人工判定，不作结论；
   · `repr()` 差一个模块前缀（CPython 的 `date.__repr__` 用 C 层 `tp_name`，子类的
@@ -56,11 +81,19 @@ _CONTROL = bool(os.environ.get("CP_DATE_SHIFT_CONTROL", "").strip() not in ("", 
 _DELTA_DAYS = 0 if _CONTROL else _SHIFT
 _ACTIVE = _CONTROL or _SHIFT != 0
 
+# ⚠️ 晚替换开关（TASK-S11-08，盲区 #2 的动态臂）：
+#   `CP_DATE_SHIFT_LATE=1` ⇒ **不在** `pytest_configure` 替换，改到
+#   `pytest_collection_modifyitems`（收集完成 = 测试模块**已按真实日期**求值）。
+#   这样"模块级常量（真实日）"与"产品侧运行期时钟（真实日 + delta）"必然差 delta 天 ——
+#   确定性地复刻整库跨 00:00 的"导入期 vs 运行期"分叉。
+_LATE = bool(os.environ.get("CP_DATE_SHIFT_LATE", "").strip() not in ("", "0", "false", "False"))
+
 _REAL_DATE = _dt.date
 _REAL_DATETIME = _dt.datetime
 _REAL_DATETIME_NS = getattr(_dt, "datetime", None)
 
 _saved: list = []
+_installed: bool = False
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -178,13 +211,52 @@ def _patch_module_attrs(FakeDate, FakeDatetime) -> None:
             _saved.append((mod, name, cur))
 
 
+def is_installed() -> bool:
+    """当前进程是否已装上假的 `date`/`datetime`（供守卫与调用方判定）"""
+    return _installed
+
+
+def apply_shift(delta_days: int) -> None:
+    """把"今天"整体挪 `delta_days` 天（幂等：重复调用只装一次）"""
+    global _installed
+    if _installed:
+        return
+    FakeDate, FakeDatetime = _make_fakes(delta_days)
+    # mypy: `datetime.date` 是**类型**，直接赋值会被判 "Cannot assign to a type"。
+    # （原实现写在无返回注解的 `pytest_configure` 里，mypy 跳过无注解函数体，
+    #  所以此前从未报错；S11-08 把逻辑抽成有注解的函数后必须显式忽略。）
+    _dt.date = FakeDate            # type: ignore[misc]
+    _dt.datetime = FakeDatetime    # type: ignore[misc]
+    _patch_module_attrs(FakeDate, FakeDatetime)
+    _installed = True
+
+
+def revert_shift() -> None:
+    """逐字还原：模块属性按 `_saved` 逆序回滚，`datetime.date/datetime` 复原"""
+    global _installed
+    for mod, name, real in _saved:
+        try:
+            setattr(mod, name, real)
+        except Exception:  # noqa: BLE001
+            pass
+    _saved.clear()
+    _dt.date = _REAL_DATE          # type: ignore[misc]
+    _dt.datetime = _REAL_DATETIME  # type: ignore[misc]
+    _installed = False
+
+
 def pytest_configure(config):
     if not _ACTIVE:
         return
-    FakeDate, FakeDatetime = _make_fakes(_DELTA_DAYS)
-    _dt.date = FakeDate
-    _dt.datetime = FakeDatetime
-    _patch_module_attrs(FakeDate, FakeDatetime)
+    if _LATE:
+        return                       # 故意推迟到收集之后，见 pytest_collection_modifyitems
+    apply_shift(_DELTA_DAYS)
+
+
+def pytest_collection_modifyitems(config, items):
+    """晚替换模式：**收集完成**（测试模块已按真实日期求值）之后才换时钟"""
+    if _ACTIVE and _LATE:
+        apply_shift(_DELTA_DAYS)
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config):
@@ -218,14 +290,7 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
 def pytest_unconfigure(config):
     if not _ACTIVE:
         return
-    for mod, name, real in _saved:
-        try:
-            setattr(mod, name, real)
-        except Exception:  # noqa: BLE001
-            pass
-    _saved.clear()
-    _dt.date = _REAL_DATE
-    _dt.datetime = _REAL_DATETIME
+    revert_shift()
 
 
 if __name__ == "__main__":  # pragma: no cover

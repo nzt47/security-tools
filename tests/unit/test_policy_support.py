@@ -45,6 +45,22 @@ def _iso(tmp_path, monkeypatch):
     return isolate_policy(tmp_path, monkeypatch)
 
 
+def _relative_days(*offsets: int) -> "tuple[str, ...]":
+    """**调用期**取一次时钟 → 派生多个"n 天前"日期（`YYYY-MM-DD`）。
+
+    【为什么不做模块级常量、也不逐个现取（TASK-S11-08）】
+    · 模块级 `X = date.today()` 是"导入期取时钟"，与被测
+      `DecisionLog.iter_records()` 里 `datetime.now()` 的"运行期取时钟"会在跨零点分叉
+      （S11-07 §2.5 实测踩过）；
+    · 逐个 `days_ago()` 之间若跨过 00:00，夹具日与断言日会差一天
+      ⇒ 故只取一次，其余全部由同一个 `today` 派生。
+    """
+    from datetime import date as _date, timedelta as _td
+
+    today = _date.today()
+    return tuple((today - _td(days=int(n))).isoformat() for n in offsets)
+
+
 def _decision(effect=EFFECT_DENY, **kwargs):
     base = dict(effect=effect, policy_id="p.one", policy_version="1.0.0",
                 reason_code="policy_deny", capability_id="cp.a.b",
@@ -154,12 +170,15 @@ class TestDecisionLog:
     def test_时间窗过滤(self, tmp_path):
         path = str(tmp_path / "d.jsonl")
         log = DecisionLog(path)
-        log.append(_ctx(), _decision(), ts="2026-01-01T00:00:00+08:00")
-        log.append(_ctx(), _decision(), ts="2026-09-01T00:00:00+08:00")
+        # 单次取时钟后派生三条口径日，**保持原有相对间距**：
+        # 原为 2026-01-01 / 2026-09-01 / 2026-06-01（相对 2026-09-13 = 255 / 12 / 104 天前）。
+        old_day, new_day, cutoff = _relative_days(255, 12, 104)
+        log.append(_ctx(), _decision(), ts=f"{old_day}T00:00:00+08:00")
+        log.append(_ctx(), _decision(), ts=f"{new_day}T00:00:00+08:00")
         log.close()
         reader = DecisionLog(path, enabled=False)
-        assert len(reader.read(since="2026-06-01")) == 1
-        assert len(reader.read(until="2026-06-01")) == 1
+        assert len(reader.read(since=cutoff)) == 1
+        assert len(reader.read(until=cutoff)) == 1
         assert len(reader.read(since_days=1)) == 0
         assert len(reader.read(limit=1)) == 1
 

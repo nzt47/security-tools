@@ -24,8 +24,9 @@ from agent.retention.restorer import RestoreRefusedError, Restorer, cleanup_rest
 from agent.retention.scan import sqlite_row_digest
 
 from retention_testkit import (       # noqa: E402  (pytest.ini 已把 tests/unit 加入 sys.path)
-    FIXED_TODAY,
     cleanup_event_stores,
+    days_ago,
+    days_before,
     drafts_class,
     events_class,
     fixed_clock,
@@ -34,6 +35,7 @@ from retention_testkit import (       # noqa: E402  (pytest.ini 已把 tests/uni
     make_sqlite,
     retention_class,
     sqlite_class,
+    today_str,
     touch_old,
     write_events,
 )
@@ -60,7 +62,9 @@ def _draft(root: str, name: str = "dig-abc/SKILL.md", body: str = "# draft\n") -
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(body)
-    touch_old(path, "2026-01-01")
+    # 「旧日」必须是**相对**推导：冷层口径是 `day < now - cold_days`，钉死绝对日
+    # 在时钟回溯时会翻到"未来"而选不中（TASK-S11-08）
+    touch_old(path, days_ago(255))
     return path
 
 
@@ -122,10 +126,12 @@ def test_dry_run_lists_files_and_sizes(tmp_path):
 
 def test_cold_pack_is_self_describing(tmp_path):
     root = make_root(tmp_path)
-    write_events(root, "2026-09-10", count=4)
-    write_events(root, "2026-09-11", count=3)
+    today = today_str()                          # 单次取时钟，其余日期由它派生
+    d3, d2 = days_before(today, 3), days_before(today, 2)
+    write_events(root, d3, count=4)
+    write_events(root, d2, count=3)
     # 冷层按"归属日"选片（文件名里的日期，取不到则退回 mtime）——故把 mtime 拨回过去
-    touch_old(os.path.join(root, "data", "events", "events.jsonl"), "2026-09-11")
+    touch_old(os.path.join(root, "data", "events", "events.jsonl"), d2)
     policy = make_policy(root, [retention_class("ev",
                                                 globs=("data/events/events*.jsonl",),
                                                 cold_days=1)])
@@ -142,8 +148,8 @@ def test_cold_pack_is_self_describing(tmp_path):
     assert manifest.class_id == "ev"
     assert manifest.record_count == 7
     assert manifest.file_count == len(manifest.files) >= 1
-    assert manifest.first_ts.startswith("2026-09-10")
-    assert manifest.last_ts.startswith("2026-09-11")
+    assert manifest.first_ts.startswith(d3)
+    assert manifest.last_ts.startswith(d2)
     assert manifest.payload_sha256 and manifest.archive_sha256
     assert manifest.archive_bytes == os.path.getsize(manifest.archive_file)
     assert manifest.verify_archive_bytes() is True
@@ -318,7 +324,7 @@ def test_conflicting_archive_is_not_overwritten(tmp_path):
     # 源文件内容变了（同名归档件已存在但内容不同）→ 必须报错而不是覆盖
     with open(draft, "w", encoding="utf-8") as fh:
         fh.write("# changed\n")
-    touch_old(draft, "2026-01-01")
+    touch_old(draft, days_ago(255))          # 仍须是"旧日"才会被选进冷层
     second = box.run(confirm=True).classes[0].archives[0]
     assert second["status"] == "error"
     assert "拒绝覆盖" in second["error"]
@@ -332,8 +338,10 @@ def test_conflicting_archive_is_not_overwritten(tmp_path):
 
 def test_warm_split_keeps_events_visible_to_reader(tmp_path):
     root = make_root(tmp_path)
-    write_events(root, "2026-09-10", count=3)
-    write_events(root, "2026-09-11", count=2)
+    today = today_str()                          # 单次取时钟：下面 3 处必须同源
+    d3, d2 = days_before(today, 3), days_before(today, 2)
+    write_events(root, d3, count=3)
+    write_events(root, d2, count=2)
     directory = os.path.join(root, "data", "events")
 
     from agent.observability.events import iter_events, reset_event_stores
@@ -349,7 +357,7 @@ def test_warm_split_keeps_events_visible_to_reader(tmp_path):
     warm = report.classes[0].warm
     assert warm["enabled"] is True
     assert warm["result"]["moved"] == 5, "历史行应全部移入按日分片"
-    assert os.path.exists(os.path.join(directory, "events-2026-09-10.jsonl"))
+    assert os.path.exists(os.path.join(directory, f"events-{d3}.jsonl"))
 
     reset_event_stores()
     after = {e.event_id for e in iter_events(directory=directory)}
@@ -370,7 +378,7 @@ def test_warm_layer_not_invented_here(tmp_path, monkeypatch):
 
     monkeypatch.setattr(archiver_mod, "archive_daily_file", spy)
     root = make_root(tmp_path)
-    write_events(root, "2026-09-10", count=2)
+    write_events(root, days_ago(3), count=2)
     box = Archiver(make_policy(root, [events_class()]), root=root,
                    clock=fixed_clock(), audit=False, emit_events=False)
     box.run(confirm=True)
@@ -379,7 +387,7 @@ def test_warm_layer_not_invented_here(tmp_path, monkeypatch):
 
 def test_warm_layer_skipped_when_reader_not_shard_aware(tmp_path):
     root = make_root(tmp_path)
-    write_events(root, "2026-09-10", count=2)
+    write_events(root, days_ago(3), count=2)
     cls = events_class(warm_days=0, reader_shard_aware=False)
     box = Archiver(make_policy(root, [cls]), root=root, clock=fixed_clock(),
                    audit=False, emit_events=False)
@@ -433,14 +441,15 @@ def test_delete_source_on_never_touches_events(tmp_path):
     **PurgeGuard 的删除计数为 0**，以及分片内容完好。
     """
     root = make_root(tmp_path)
-    write_events(root, "2026-09-10", count=3)
+    d3 = days_ago(3)                             # 单次取时钟：夹具日与分片名同源
+    write_events(root, d3, count=3)
     directory = os.path.join(root, "data", "events")
     policy = make_policy(root, [events_class()], delete_source=True)
     report = Archiver(policy, root=root, clock=fixed_clock(), audit=False,
                       emit_events=False).run(confirm=True)
     assert report.totals["deleted_files"] == 0
     assert report.classes[0].deleted == []
-    shard = os.path.join(directory, "events-2026-09-10.jsonl")
+    shard = os.path.join(directory, f"events-{d3}.jsonl")
     assert os.path.exists(shard), "温层分片不应被删除"
     assert sum(1 for line in open(shard, encoding="utf-8") if line.strip()) == 3
     assert report.classes[0].purge["code"] in ("not_deletable", "no_paths")

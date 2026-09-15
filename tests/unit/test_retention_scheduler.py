@@ -16,6 +16,7 @@ from agent.retention.policy import (
 from agent.retention.scheduler import DEFAULT_SCHEDULE, TASK_NAME, register_retention_job
 
 from retention_testkit import (       # noqa: E402
+    days_ago,
     drafts_class,
     fixed_clock,
     make_policy,
@@ -47,7 +48,7 @@ def _draft(root: str, i: int = 0) -> str:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as fh:
         fh.write(f"# draft {i}\n")
-    touch_old(path, "2026-01-01")
+    touch_old(path, days_ago(255))       # 「旧日」须相对推导（冷层口径 day < now - cold_days）
     return path
 
 
