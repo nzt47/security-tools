@@ -589,6 +589,7 @@ flowchart LR
         agent_utils_compatibility["agent.utils.compatibility"]:::crosslayer
         agent_utils_cross_process_lock["agent.utils.cross_process_lock"]:::crosslayer
         agent_utils_index_manager["agent.utils.index_manager"]
+        agent_utils_obs_hooks["agent.utils.obs_hooks"]:::crosslayer
         agent_utils_observability["agent.utils.observability"]
         agent_utils_perf_monitor["agent.utils.perf_monitor"]
         agent_utils_periodic_sampler["agent.utils.periodic_sampler"]:::crosslayer
@@ -631,11 +632,6 @@ flowchart LR
     agent_api_gateway -.-> agent_utils_singleton_manager
     agent_async_executor -.-> agent_tools
     agent_async_executor -.-> agent_utils_singleton_manager
-    agent_audit --> agent_audit_logger
-    agent_audit --> agent_audit_chain
-    agent_audit --> agent_audit_facade
-    agent_audit --> agent_audit_migration
-    agent_audit --> agent_audit_ui_middleware
     agent_audit_chain --> agent_audit_seq_journal
     agent_audit_chain -.-> agent_utils_cross_process_lock
     agent_audit_chain -.-> agent_utils_cross_process_lock
@@ -1317,6 +1313,7 @@ flowchart LR
     agent_observability_escape --> agent_observability_acr
     agent_observability_escape --> agent_observability_events
     agent_observability_events -.-> agent_utils_cross_process_lock
+    agent_observability_events -.-> agent_utils_obs_hooks
     agent_observability_events --> agent_observability_trace_v2
     agent_observability_events --> agent_observability_trace_v2
     agent_observability_events -.-> agent_skills_mgmt_log_archiver
@@ -1326,6 +1323,7 @@ flowchart LR
     agent_observability_subscriber -.-> agent_logging_utils
     agent_observability_tool_trace -.-> agent_logging_utils
     agent_observability_trace_v2 -.-> agent_utils_cross_process_lock
+    agent_observability_trace_v2 -.-> agent_utils_obs_hooks
     agent_observability_trace_v2 -.-> agent_descriptors_bridge
     agent_observability_trace_v2 -.-> agent_descriptors_registry
     agent_observability_trace_v2 -.-> agent_utils_sensitive_data_filter
@@ -1334,7 +1332,6 @@ flowchart LR
     agent_observability_trace_v2 -.-> agent_audit_facade
     agent_observability_trace_v2 -.-> agent_audit_facade
     agent_observability_trace_v2 --> agent
-    agent_observability_trace_v2 --> agent_observability_events
     agent_observability_trace_v2 -.-> agent_utils_atomic_write
     agent_observability_trace_v2 -.-> agent_descriptors_registry
     agent_observability_tracer -.-> agent_monitoring_tracing
@@ -1554,15 +1551,10 @@ flowchart LR
     agent_rate_limiter -.-> agent_monitoring_metrics
     agent_repair --> agent_repair_budget
     agent_repair --> agent_repair_delegate
-    agent_repair --> agent_repair_diagnose
     agent_repair --> agent_repair_guardrails
-    agent_repair --> agent_repair_locate
     agent_repair --> agent_repair_models
-    agent_repair --> agent_repair_pipeline
     agent_repair --> agent_repair_policy
-    agent_repair --> agent_repair_propose
     agent_repair --> agent_repair_trace
-    agent_repair --> agent_repair_verify
     agent_repair_budget --> agent_repair_models
     agent_repair_budget --> agent_repair_policy
     agent_repair_delegate --> agent_repair_budget
@@ -1885,8 +1877,6 @@ flowchart LR
     agent_settings --> agent_settings_masking
     agent_settings --> agent_settings_overrides
     agent_settings --> agent_settings_registry
-    agent_settings --> agent_settings_resolver
-    agent_settings --> agent_settings_service
     agent_settings_bootstrap --> agent_settings_overrides
     agent_settings_bootstrap --> agent_settings_registry
     agent_settings_bootstrap --> agent_settings_resolver
@@ -2166,9 +2156,9 @@ flowchart LR
     agent_ui_panels_data -.-> agent_eval_metrics
     agent_ui_panels_data -.-> agent_audit_chain
     agent_ui_panels_schema -.-> agent_monitoring_cost_brake
+    agent_utils_cross_process_lock --> agent_utils_obs_hooks
     agent_utils_cross_process_lock -.-> agent_monitoring_metrics
     agent_utils_cross_process_lock -.-> agent_audit
-    agent_utils_cross_process_lock -.-> agent_observability_events
     agent_utils_index_manager --> agent_utils_singleton_manager
     agent_utils_observability -.-> agent_logging_utils
     agent_utils_observability -.-> agent_monitoring_business_metrics
@@ -2213,9 +2203,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 579
-- 模块节点数: 518
-- 依赖边数: 1581
-- 跨层调用数: 986
+- 扫描文件数: 580
+- 模块节点数: 519
+- 依赖边数: 1570
+- 跨层调用数: 987
 - 违规调用数: 0
 - 动态 import 数: 1
