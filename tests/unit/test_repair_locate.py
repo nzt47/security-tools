@@ -14,7 +14,7 @@ import os
 
 import pytest
 
-from repair_fixtures import make_failure
+from repair_fixtures import make_failure, outside_repo_tempdir
 
 from agent.repair import locate as L
 from agent.repair.models import DiagnosisReport, FailureItem, RepairTicket
@@ -131,11 +131,17 @@ class TestInferImplFiles:
 
 @pytest.fixture(scope="module")
 def outside_repo():
-    """**仓库之外**的临时目录（``tmp_path``/pytest basetemp 都在仓库内，git 会命中）"""
+    """**仓库之外**的临时目录（``tmp_path``/pytest basetemp 都在仓库内，git 会命中）
+
+    实现与依据（含 SystemRoot 跨平台缺陷的完整归因）见
+    ``tests/unit/repair_fixtures.py::outside_repo_tempdir``。改写前这里写的是
+    ``os.path.join(os.environ.get("SystemRoot", ""), "Temp")``：Linux 上得到
+    **相对路径** ``"Temp"``，``mkdtemp(dir="Temp")`` 因父目录不存在直接抛
+    ``FileNotFoundError``（CI Shard 1 的唯一 ERROR）。
+    """
     import shutil
-    import tempfile
-    base = os.path.join(os.environ.get("SystemRoot", ""), "Temp") or None
-    path = tempfile.mkdtemp(prefix="cp-repair-locate-outside-", dir=base)
+
+    path = outside_repo_tempdir(prefix="cp-repair-locate-outside-")
     yield path
     shutil.rmtree(path, ignore_errors=True)
 

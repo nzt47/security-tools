@@ -353,10 +353,23 @@ def test_data_manager():
 # CI 上验证 EnvConfigManager 自身 .env 文件写入/审计日志/权限行为的测试，
 # 契约是真实文件 I/O，必须排除在 _mock_env_config_in_ci 之外（mock 的
 # set/delete 只操作 os.environ，会导致审计文件永不创建、.env 内容为空）。
+#
+# 【S11-10/R9 补登 test_env_isolation_p0.py（为什么必须排除）】
+#   该文件的判据之一就是"隔离目标文件**真的**收到写入"，用来证明修法是
+#   "重定向真实 I/O"而非"把 set 变成 no-op 的假修法"（见其模块 docstring
+#   §判据 2）。把 set 换成只写 os.environ 的 mock，恰恰就是它要拦截的那种
+#   "掩盖"，于是 CI(SKILLS_OFFLINE=1) 上必然失败：
+#     AssertionError: 隔离目标文件未收到写入 —— 同上：这不是重定向，是掩盖
+#   CI 日志佐证：env_config_manager 只出现 `init`/`secure_permissions`，
+#   完全没有 `write_start` / `env_config.set`（即 _update_env_file 未被调用），
+#   而 network_config._save_secure 仍打印"已写入 .env"（mock 不抛异常）。
+#   本地复现：`$env:SKILLS_OFFLINE='1'` 跑该文件 → 1 failed 1 passed，
+#   与 CI 逐字一致；不设该变量 → 2 passed（对照臂）。
 _MOCK_ENV_CONFIG_EXCLUDED_FILES = (
     'test_env_config_audit.py',
     'test_env_hot_reload.py',
     'test_env_file_permissions.py',
+    'test_env_isolation_p0.py',
 )
 
 

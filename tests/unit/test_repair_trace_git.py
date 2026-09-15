@@ -15,6 +15,8 @@ import os
 
 import pytest
 
+from repair_fixtures import outside_repo_tempdir
+
 from agent.repair import gitio as G
 from agent.repair.budget import BudgetExceeded, RepairBudget
 from agent.repair.models import AUDIT_ACTIONS, REPAIR_STEPS
@@ -36,6 +38,9 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 def outside_repo():
     """**仓库之外**的临时目录
 
+    实现与依据（含 SystemRoot 跨平台缺陷的完整归因）见
+    ``tests/unit/repair_fixtures.py::outside_repo_tempdir``。
+
     【为什么不能直接用 ``tempfile.mkdtemp()`` 或 ``tmp_path``】
       - ``tmp_path`` 位于 ``<repo>/.pytest_tmp/``；
       - pytest 会把 ``tempfile.tempdir`` 指到它自己的 basetemp（也在仓库内）；
@@ -43,10 +48,8 @@ def outside_repo():
     "非仓库退化"这条路径根本没被走到（实测踩过）。故显式指定系统临时目录。
     """
     import shutil
-    import tempfile
-    base = os.environ.get("SystemRoot") and os.path.join(
-        os.environ.get("SystemRoot", ""), "Temp") or None
-    path = tempfile.mkdtemp(prefix="cp-repair-outside-", dir=base)
+
+    path = outside_repo_tempdir()
     assert G.is_git_repo(path) is False, "夹具前提失败：该目录应位于 git 仓库之外"
     yield path
     shutil.rmtree(path, ignore_errors=True)

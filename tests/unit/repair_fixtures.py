@@ -37,6 +37,91 @@ from agent.repair.policy import REPAIR_SUBAGENT_TOOLS, RepairPolicy
 from agent.repair.trace import RepairRunLogger, RunLoggerConfig
 
 
+def outside_repo_tempdir(prefix: str = "cp-repair-outside-") -> str:
+    """造一个**确实位于 git 仓库之外**的临时目录，返回其**绝对路径**。
+
+    供"非仓库退化"类用例使用（`is_git_repo` / `repo_head` / `recent_commits` /
+    `branch_exists` 等只读 git 层，以及 locate 的 `repo_root=...`）。
+
+    【为什么不能直接用 ``tempfile.mkdtemp()`` / ``tmp_path``】
+      - ``tmp_path`` 位于 ``<repo>/.pytest_tmp/``；
+      - pytest 会把 ``tempfile.tempdir`` 指到自己的 basetemp（同样在仓库内）；
+      两者都会让 git 向上查找命中本仓库 ⇒ ``is_git_repo`` 返回 True，
+      "非仓库退化"这条路径根本没被走到（实测踩过）。
+
+    【为什么不能只看 ``SystemRoot``（S11-10 · R9 修正的真实缺陷）】
+      改写前两处夹具都用 ``os.environ.get("SystemRoot")`` 拼临时目录基址，
+      而 **``SystemRoot`` 是仅 Windows 存在的环境变量**，于是 Linux CI 上分叉成
+      两种症状（同一根因）：
+        · ``test_repair_trace_git.py``：变量不存在 ⇒ 基址 ``None`` ⇒
+          ``mkdtemp(dir=None)`` 落到 pytest basetemp（**仓库内**）⇒
+          夹具断言 ``is_git_repo(path) is False`` 失败（6 个用例 ERROR）；
+        · ``test_repair_locate.py``：``os.path.join("", "Temp")`` 得到**相对路径**
+          ``"Temp"``（真值！）⇒ ``mkdtemp(dir="Temp")`` 因父目录不存在直接抛
+          ``FileNotFoundError: [Errno 2] ... 'Temp/cp-repair-locate-outside-...'``。
+      故改为"候选基址 → 逐个校验确不在 git 仓库内 → 建目录 → 复核"的跨平台挑选。
+
+    【为什么与 ``gitio.is_git_repo`` 同源】
+      这里用的判据就是被测代码自己的 ``is_git_repo``，避免"夹具认为不在仓库内、
+      被测代码认为在"的口径漂移（那会让"非仓库退化"用例测的不是同一条路径）。
+
+    Args:
+        prefix: 临时目录名前缀。
+
+    Returns:
+        新建临时目录的绝对路径（保证 ``is_git_repo() is False``）。
+
+    Raises:
+        AssertionError: 所有候选基址都不可用或都落在 git 仓库内（此时应显式报错，
+            而不是退化成"仓库内目录"让用例静默测错路径）。
+    """
+    import os
+    import tempfile
+
+    from agent.repair.gitio import is_git_repo
+
+    candidates = []
+
+    # 1) 系统临时目录：先临时摘掉 pytest 对 ``tempfile.tempdir`` 的改写，
+    #    让 ``gettempdir()`` 重新按 TMPDIR/TEMP/系统默认裁决。
+    saved_tempdir = tempfile.tempdir
+    tempfile.tempdir = None
+    try:
+        candidates.append(tempfile.gettempdir())
+    finally:
+        tempfile.tempdir = saved_tempdir
+
+    # 2) 平台显式兜底（Windows 的 SystemRoot\Temp / POSIX 的 /tmp）
+    system_root = os.environ.get("SystemRoot")
+    if system_root:
+        candidates.append(os.path.join(system_root, "Temp"))
+    candidates.append("/tmp")
+
+    # 3) 其它显式环境变量
+    for var in ("TMPDIR", "TEMP", "TMP"):
+        value = os.environ.get(var)
+        if value:
+            candidates.append(value)
+
+    tried = []
+    for base in candidates:
+        base_abs = os.path.abspath(base)
+        tried.append(base_abs)
+        if not os.path.isdir(base_abs):
+            continue
+        if is_git_repo(base_abs):
+            continue
+        path = os.path.abspath(tempfile.mkdtemp(prefix=prefix, dir=base_abs))
+        assert is_git_repo(path) is False, (
+            f"夹具前提失败：新建的临时目录仍位于 git 仓库内: {path}")
+        return path
+
+    raise AssertionError(
+        "找不到任何'位于 git 仓库之外'的可用临时目录基址；已尝试: "
+        + ", ".join(tried)
+        + "（单测依赖'非仓库退化'路径，不可退化为仓库内目录）")
+
+
 def make_failure(**overrides: Any) -> FailureItem:
     """一条典型失败项（可覆盖任意字段）"""
     data: Dict[str, Any] = {
