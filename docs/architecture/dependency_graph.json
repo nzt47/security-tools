@@ -198,8 +198,8 @@
       "name": "observability_config",
       "layer": "monitoring",
       "file_path": "",
-      "in_degree": 38,
-      "out_degree": 5
+      "in_degree": 39,
+      "out_degree": 4
     },
     {
       "path": "agent.caching.observability",
@@ -799,7 +799,7 @@
       "layer": "monitoring",
       "file_path": "",
       "in_degree": 1,
-      "out_degree": 0
+      "out_degree": 1
     },
     {
       "path": "agent.system_prompt_manager",
@@ -1978,6 +1978,14 @@
       "out_degree": 2
     },
     {
+      "path": "agent.monitoring.config_observability",
+      "name": "config_observability",
+      "layer": "monitoring",
+      "file_path": "",
+      "in_degree": 1,
+      "out_degree": 5
+    },
+    {
       "path": "agent.monitoring.alert_evaluator",
       "name": "alert_evaluator",
       "layer": "monitoring",
@@ -2039,14 +2047,6 @@
       "layer": "monitoring",
       "file_path": "agent/monitoring/chaos_injector.py",
       "in_degree": 0,
-      "out_degree": 4
-    },
-    {
-      "path": "agent.monitoring.config_observability",
-      "name": "config_observability",
-      "layer": "monitoring",
-      "file_path": "agent/monitoring/config_observability.py",
-      "in_degree": 1,
       "out_degree": 4
     },
     {
@@ -11462,6 +11462,19 @@
       "is_dynamic": false
     },
     {
+      "source": "agent.monitoring",
+      "target": "agent.monitoring.config_observability",
+      "source_layer": "monitoring",
+      "target_layer": "monitoring",
+      "import_type": "import",
+      "line": 193,
+      "source_file": "agent/monitoring/__init__.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
       "source": "agent.monitoring.alert_evaluator",
       "target": "agent.logging_utils",
       "source_layer": "monitoring",
@@ -11827,11 +11840,24 @@
     },
     {
       "source": "agent.monitoring.config_observability",
+      "target": "agent.monitoring.observability_config",
+      "source_layer": "monitoring",
+      "target_layer": "monitoring",
+      "import_type": "from_import",
+      "line": 31,
+      "source_file": "agent/monitoring/config_observability.py",
+      "is_cross_layer": false,
+      "is_violation": false,
+      "violation_desc": "",
+      "is_dynamic": false
+    },
+    {
+      "source": "agent.monitoring.config_observability",
       "target": "agent.monitoring.tracing",
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 24,
+      "line": 32,
       "source_file": "agent/monitoring/config_observability.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -11844,7 +11870,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 45,
+      "line": 53,
       "source_file": "agent/monitoring/config_observability.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -11857,7 +11883,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 136,
+      "line": 144,
       "source_file": "agent/monitoring/config_observability.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -11870,7 +11896,7 @@
       "source_layer": "monitoring",
       "target_layer": "monitoring",
       "import_type": "from_import",
-      "line": 142,
+      "line": 150,
       "source_file": "agent/monitoring/config_observability.py",
       "is_cross_layer": false,
       "is_violation": false,
@@ -12156,7 +12182,7 @@
       "source_layer": "monitoring",
       "target_layer": "utils",
       "import_type": "from_import",
-      "line": 1074,
+      "line": 1131,
       "source_file": "agent/monitoring/observability_config.py",
       "is_cross_layer": true,
       "is_violation": false,
@@ -12169,22 +12195,9 @@
       "source_layer": "monitoring",
       "target_layer": "core",
       "import_type": "from_import",
-      "line": 702,
+      "line": 759,
       "source_file": "agent/monitoring/observability_config.py",
       "is_cross_layer": true,
-      "is_violation": false,
-      "violation_desc": "",
-      "is_dynamic": false
-    },
-    {
-      "source": "agent.monitoring.observability_config",
-      "target": "agent.monitoring.config_observability",
-      "source_layer": "monitoring",
-      "target_layer": "monitoring",
-      "import_type": "from_import",
-      "line": 668,
-      "source_file": "agent/monitoring/observability_config.py",
-      "is_cross_layer": false,
       "is_violation": false,
       "violation_desc": "",
       "is_dynamic": false
@@ -24569,7 +24582,7 @@
   "stats": {
     "total_files": 580,
     "total_nodes": 519,
-    "total_edges": 1570,
+    "total_edges": 1571,
     "cross_layer_edges": 987,
     "violation_edges": 0,
     "dynamic_edges": 1,

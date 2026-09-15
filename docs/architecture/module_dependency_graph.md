@@ -1187,6 +1187,7 @@ flowchart LR
     agent_modules_api --> agent_rate_limiter
     agent_modules_api -.-> agent_health_dashboard
     agent_modules_api --> agent_system_tools
+    agent_monitoring --> agent_monitoring_config_observability
     agent_monitoring_alert_evaluator -.-> agent_logging_utils
     agent_monitoring_alert_evaluator --> agent_monitoring_tracing
     agent_monitoring_alert_evaluator --> agent_monitoring_metrics
@@ -1215,6 +1216,7 @@ flowchart LR
     agent_monitoring_chaos_injector -.-> agent_logging_utils
     agent_monitoring_chaos_injector -.-> agent_utils_singleton_manager
     agent_monitoring_chaos_injector --> agent_monitoring_observability_config
+    agent_monitoring_config_observability --> agent_monitoring_observability_config
     agent_monitoring_config_observability --> agent_monitoring_tracing
     agent_monitoring_config_observability --> agent_monitoring_prometheus
     agent_monitoring_config_observability --> agent_monitoring_loki
@@ -1242,7 +1244,6 @@ flowchart LR
     agent_monitoring_observability_config -.-> agent_logging_utils
     agent_monitoring_observability_config -.-> agent_utils_singleton_manager
     agent_monitoring_observability_config -.-> agent_disaster_recovery
-    agent_monitoring_observability_config --> agent_monitoring_config_observability
     agent_monitoring_observability_optimizations --> agent_monitoring_tracing
     agent_monitoring_observability_optimizations -.-> agent_utils_singleton_manager
     agent_monitoring_optimized_metrics --> agent_monitoring_tracing
@@ -2205,7 +2206,7 @@ flowchart LR
 ## 统计信息
 - 扫描文件数: 580
 - 模块节点数: 519
-- 依赖边数: 1570
+- 依赖边数: 1571
 - 跨层调用数: 987
 - 违规调用数: 0
 - 动态 import 数: 1
