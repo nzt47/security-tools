@@ -17,6 +17,16 @@
     `test_late_probe_does_not_flag_call_time_capture` /
     `test_early_probe_is_blind_to_import_time_constant`。
 
+    ⚠️ **晚模式自带一类伪影 —— 判定前必须跑它自己的对照臂**
+    （`CP_DATE_SHIFT_LATE=1 CP_DATE_SHIFT_CONTROL=1`，照样替换但 delta=0）：
+    晚模式在"收集完成之后"才替换，此时 `yaml` 等第三方库**早已按真实类注册好 representer**
+    （`SafeRepresenter.add_representer(datetime.date, …)` 注册的是**类对象**），随后安装假类
+    ⇒ 假类实例喂给 `yaml.safe_dump` 会 `RepresenterError: ('cannot represent an object', date(…))`
+    （实测微实验：真实 `date` 可 dump，假类实例必抛）。
+    实测（TASK-S11-08）：`tests/unit/test_knowledge_card.py` + `test_knowledge_cli.py`
+    晚模式 `6 failed`；**晚模式 delta=0 同样 `6 failed`**；而**早模式 delta=0 `108 passed`**
+    ⇒ 这 6 个全是**晚模式伪影**，不是"导入期取时钟"实例。
+
 原理：`datetime.date` / `datetime.datetime` 是 C 类型，无法直接改 `today`；
 故用 Python 子类替换 `datetime` 模块属性，并同步**已导入模块**里 `from datetime
 import date` 造成的模块级绑定（freezegun 的核心手法，这里只实现所需子集）。
