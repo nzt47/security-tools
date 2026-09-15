@@ -821,11 +821,20 @@ class TestPredefinedTasks:
         old_file = log_dir / "blackbox_20250101.jsonl"
         old_file.write_text("old log", encoding="utf-8")
         # 设置 mtime 为 60 天前
-        old_time = time.time() - (60 * 24 * 60 * 60)
+        # 【S11-08 遗留 #3 收口，2026-09-15】mtime 口径与产品同源：产品
+        # `cleanup_old_logs` 的 cutoff 由 `datetime.now()` 算得，故这里也用
+        # `datetime.now().timestamp()`。原 `time.time()` 属时钟源分叉（日期平移
+        # 工具只挪 datetime，不挪 time.time / 文件系统时钟）⇒ 平移下必然差 delta 天。
+        old_time = datetime.now().timestamp() - (60 * 24 * 60 * 60)
         os.utime(str(old_file), (old_time, old_time))
 
         new_file = log_dir / "blackbox_20260701.jsonl"
         new_file.write_text("new log", encoding="utf-8")
+        # 【S11-08 遗留 #3 收口】"新文件"必须显式设 mtime，且与产品同源：
+        # 不设时取**真实**文件系统时间，在 +400 方向会被平移后的 cutoff
+        # （真实今天 +400−30 天）判为"过期"而误删 ⇒ `assert new_file.exists()` 失败。
+        new_time = datetime.now().timestamp() - (5 * 24 * 60 * 60)
+        os.utime(str(new_file), (new_time, new_time))
 
         monkeypatch.setattr("agent.task_scheduler.DATA_DIR", tmp_path)
         cleanup_old_logs()

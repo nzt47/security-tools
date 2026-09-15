@@ -835,7 +835,10 @@ class TestPredefinedFunctions:
         old_log.write_text("{}", encoding="utf-8")
         # 修改访问时间为很早以前
         import os
-        old_time = time.time() - (31 * 24 * 60 * 60)
+        # 【S11-08 遗留 #3 收口，2026-09-15】mtime 口径与产品同源（产品 cutoff 走
+        # `datetime.now()`）。本用例只验证"不抛异常"、无断言，故原 `time.time()`
+        # 不会失败；此处对齐是为避免将来补断言时踩同一口径分叉（日期平移盲区 #1/#3）。
+        old_time = datetime.now().timestamp() - (31 * 24 * 60 * 60)
         os.utime(str(old_log), (old_time, old_time))
         # 用 mock 重定向 DATA_DIR
         with mock.patch("agent.task_scheduler.DATA_DIR", tmp_path):

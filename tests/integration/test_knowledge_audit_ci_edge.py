@@ -66,13 +66,21 @@ def _audit_cli(wiki: Path, index: Path, reports: Path) -> dict:
 
     【不易】与 CI knowledge-audit-smoke 同口径：exit 0 断言 + JSON 落盘。
     cwd 固定仓库根（与 CI 一致），wiki/index 用绝对路径隔离。
+
+    【S11-08 遗留 #1 收口，2026-09-15】显式传 `--now`（父进程的 `date.today()`）：
+    日期平移工具（`tests/_date_shift_plugin.py`）只替换**当前进程**的 `datetime`，
+    子进程是新解释器、读真实时钟 ⇒ 父进程用平移时钟造的夹具（如 today-90）会被
+    子进程按真实今天判成 `days_unaccessed=490`（+400/−400 下 2–3 failed 的根因，
+    S11-08 §4.5/§5.1 实证）。把父进程"今天"透传给子进程后两侧口径一致。
+    不平移时 `date.today()` 即真实今天 ⇒ **与原行为逐字等价**（--now 缺省亦同）。
     """
     out = index.parent / "audit.json"
     env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
     proc = subprocess.run(
         [sys.executable, "-m", "agent.knowledge", "audit",
          "--wiki", str(wiki), "--index", str(index),
-         "--reports-dir", str(reports), "--no-email", "--json", str(out)],
+         "--reports-dir", str(reports), "--no-email", "--json", str(out),
+         "--now", date.today().isoformat()],
         capture_output=True, text=True, encoding="utf-8",
         cwd=str(_REPO_ROOT), env=env, timeout=120,
     )

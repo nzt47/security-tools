@@ -52,21 +52,27 @@ def run_knowledge_audit(
     log_path: Optional[str | Path] = None,
     reports_dir: Optional[str | Path] = None,
     stale_days: int = 90,
+    now: Optional[date] = None,
 ):
     """执行一次完整审计：lint → 报告落盘（md + html）→ log.md 登记。
 
     参数缺省时使用 CardStore 默认布局（wiki_root 父目录下的 index.md / log.md）。
     返回 HealthReport（调用方可直接检查健康分）。
+
+    now（S11-08 遗留 #1 收口，2026-09-15 起）：可选"今天"注入点，缺省 `None`
+    = 走 `date.today()`（**默认行为零变化**）；供跨进程调用方（CLI `--now`）
+    把父进程时钟口径传给子进程，消除平移场景下的差 delta 天分叉。
     """
     store = _get_store(wiki_root)
     index_path = index_path or store._index_path
     log_path = log_path or store._log_path
     reports_dir = reports_dir or DEFAULT_REPORTS_DIR
     reports_dir = Path(reports_dir)
+    _today = now or date.today()
 
-    report = lint_all(store, index_path=index_path, stale_days=stale_days)
-    _write_report(report, reports_dir)
-    _write_html_report(report, reports_dir)
+    report = lint_all(store, index_path=index_path, stale_days=stale_days, now=_today)
+    _write_report(report, reports_dir, now=_today)
+    _write_html_report(report, reports_dir, now=_today)
     append_log(
         "audit", "health", f"score={report.health_score:.2f}", log_path=log_path,
     )
@@ -77,19 +83,19 @@ def run_knowledge_audit(
     return report
 
 
-def _write_report(report, reports_dir: Path) -> Path:
+def _write_report(report, reports_dir: Path, now: Optional[date] = None) -> Path:
     """健康报告落盘：data/knowledge/reports/knowledge_health_<YYYYMMDD>.md。"""
     reports_dir.mkdir(parents=True, exist_ok=True)
-    path = reports_dir / f"knowledge_health_{date.today().strftime('%Y%m%d')}.md"
+    path = reports_dir / f"knowledge_health_{(now or date.today()).strftime('%Y%m%d')}.md"
     path.write_text(render_report(report), encoding="utf-8")
     logger.info("健康报告已落盘: %s", path)
     return path
 
 
-def _write_html_report(report, reports_dir: Path) -> Path:
+def _write_html_report(report, reports_dir: Path, now: Optional[date] = None) -> Path:
     """HTML 健康报告落盘：knowledge_health_<YYYYMMDD>.html（含可视化图表）。"""
     reports_dir.mkdir(parents=True, exist_ok=True)
-    path = reports_dir / f"knowledge_health_{date.today().strftime('%Y%m%d')}.html"
+    path = reports_dir / f"knowledge_health_{(now or date.today()).strftime('%Y%m%d')}.html"
     path.write_text(render_html_report(report), encoding="utf-8")
     logger.info("HTML 健康报告已落盘: %s", path)
     return path

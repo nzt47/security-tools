@@ -41,6 +41,20 @@ _DEFAULT_INDEX = "knowledge/index.md"
 logger = logging.getLogger(__name__)
 
 
+def _parse_now(raw: str | None):
+    """把 `--now` 的 ISO 日期字符串解析为 `date`；缺省/空值返回 `None`。
+
+    `None` 语义 = 调用方未注入时钟 ⇒ 下游走 `date.today()`（零行为变化）。
+    非法格式直接抛 `ValueError`（argparse 层报错，不静默降级为"真实今天"，
+    避免测试/自动化在拼错日期时得到"看起来通过"的假绿）。
+    """
+    if raw is None or not str(raw).strip():
+        return None
+    from datetime import date
+
+    return date.fromisoformat(str(raw).strip())
+
+
 def cmd_index_rebuild(args: argparse.Namespace) -> int:
     """全量重建 index.md（rebuild_index 与增量叠加一致性已由测试保障）。"""
     logger.info("CLI index-rebuild: 开始全量重建 wiki=%s index=%s", args.wiki, args.index)
@@ -136,6 +150,7 @@ def cmd_audit(args: argparse.Namespace) -> int:
         args.wiki,
         index_path=args.index,
         reports_dir=args.reports_dir,
+        now=_parse_now(args.now),
     )
     if not args.no_email:
         ok = send_knowledge_report_email(report)
@@ -161,7 +176,8 @@ def cmd_audit(args: argparse.Namespace) -> int:
         import webbrowser
 
         reports_dir = Path(args.reports_dir) if args.reports_dir else DEFAULT_REPORTS_DIR
-        html_path = reports_dir / f"knowledge_health_{date.today().strftime('%Y%m%d')}.html"
+        _html_day = _parse_now(args.now) or date.today()
+        html_path = reports_dir / f"knowledge_health_{_html_day.strftime('%Y%m%d')}.html"
         opened = webbrowser.open(html_path.resolve().as_uri())
         print(f"HTML 报告: {'已在浏览器打开 ✓' if opened else '打开失败'} {html_path}")
         logger.info("CLI audit: --open 尝试打开 HTML=%s success=%s", html_path, opened)
@@ -366,6 +382,12 @@ def build_parser() -> argparse.ArgumentParser:
                    help="导出结构化健康报告 JSON（含扣分明细/卡片矛盾标记）到指定路径")
     p.add_argument("--open", action="store_true",
                    help="巡检完成后自动在浏览器打开 HTML 报告")
+    # S11-08 遗留 #1 收口：可选时钟注入。缺省 None = 走真实 date.today()，
+    # 对既有调用方**零行为变化**；仅供跨进程调用方（测试/自动化）把父进程的
+    # 时钟口径传给子进程，消除平移场景下"父进程造夹具用平移时钟、子进程判定
+    # 用真实时钟"的差 delta 天分叉（见 tests/_date_shift_plugin.py 跨进程一节）。
+    p.add_argument("--now", default=None, metavar="YYYY-MM-DD",
+                   help="注入『今天』（ISO 日期，缺省用系统真实日期；仅供跨进程口径传递）")
     p.add_argument("--verbose", action="store_true", help="打开 INFO 级日志（含各模块耗时统计与断链明细）")
     p.add_argument("--quiet", action="store_true", help="仅输出 ERROR 级日志（默认 WARNING）")
     p.set_defaults(func=cmd_audit)

@@ -348,25 +348,40 @@ class TestScheduledTasks:
 
     @pytest.mark.unit
     @pytest.mark.p3
-    def test_cleanup_old_logs(self):
-        """测试清理旧日志任务"""
-        import tempfile
+    def test_cleanup_old_logs(self, tmp_path):
+        """清理旧日志：超阈值（31 天前）删除、未超阈值保留（边界显式化）。
+
+        【S11-08 遗留 #4 收口，2026-09-15】原用例只调 `cleanup_old_logs()` 而
+        无任何断言（"不崩即通过"），且靠 `patch('agent.task_scheduler.Path')`
+        造替身 —— 但 `DATA_DIR` 是**导入期**求值的真实 `Path`，`DATA_DIR / "blackbox"`
+        走的是真实目录，替身从未生效 ⇒ 用例实际**空转**（补断言即暴露：
+        `unlink` 调用 0 次）。现改为**真实临时目录**：patch `DATA_DIR` 指向
+        `tmp_path`，真造两个 `blackbox_*.jsonl`（31 天前 / 29.99 天前），
+        真跑 glob/stat/unlink 全链路后断言文件存留。
+        **边界口径**：不用"恰好 30 天"——测试读时钟与函数内部读时钟相差数毫秒，
+        恰好边界会因这丝漂移翻转 ⇒ 用"差约 1 分钟"的表达守稳。
+        **时钟口径前提**：测试与产品两侧都走 `datetime.now()`（见
+        `cleanup_old_logs` 的 cutoff 计算）；产品若改走 `time.time()` 等别的时钟源，
+        日期平移工具下两侧会分叉，本用例的边界表达能暴露那类改动。
+        """
         import os
-        
-        with tempfile.TemporaryDirectory() as tmpdir:
-            # 创建测试日志文件
-            old_file = os.path.join(tmpdir, "blackbox_20240101.jsonl")
-            with open(old_file, "w", encoding="utf-8") as f:
-                f.write("test")
-            
-            # 修改文件时间为31天前
-            old_time = (datetime.now() - timedelta(days=31)).timestamp()
-            os.utime(old_file, (old_time, old_time))
-            
-            with patch('agent.task_scheduler.Path') as mock_path:
-                mock_path.return_value.exists.return_value = True
-                mock_path.return_value.glob.return_value = [type('obj', (), {'stat': lambda: type('stat', (), {'st_mtime': old_time})(), 'unlink': MagicMock()})()]
-                cleanup_old_logs()
+
+        blackbox = tmp_path / "blackbox"
+        blackbox.mkdir()
+        old_file = blackbox / "blackbox_20240101.jsonl"
+        recent_file = blackbox / "blackbox_recent.jsonl"
+        old_file.write_text("old", encoding="utf-8")
+        recent_file.write_text("recent", encoding="utf-8")
+
+        now_ts = datetime.now().timestamp()
+        os.utime(old_file, (now_ts - 31 * 86400, now_ts - 31 * 86400))
+        os.utime(recent_file, (now_ts - 29.99 * 86400, now_ts - 29.99 * 86400))
+
+        with patch('agent.task_scheduler.DATA_DIR', tmp_path):
+            cleanup_old_logs()
+
+        assert not old_file.exists(), "31 天前的日志应被删除"
+        assert recent_file.exists(), "未超阈值（约 30 天）的日志应保留"
 
 # === 来自 test_task_scheduler_complete.py ===
 
@@ -837,14 +852,20 @@ class TestPredefinedTasks:
             old_file = os.path.join(log_dir, "blackbox_old.jsonl")
             with open(old_file, "w", encoding="utf-8") as f:
                 f.write("{}")
-            old_time = time.time() - (40 * 24 * 60 * 60)
+            # 【S11-08 遗留 #3 收口，2026-09-15】mtime 口径必须与产品同源：
+            # `cleanup_old_logs` 的 cutoff 由 `datetime.now()` 算得，故这里也用
+            # `datetime.now().timestamp()`。原用 `time.time()` 属**时钟源分叉**
+            # （日期平移工具只挪 datetime，不挪 time.time / 文件系统时钟）——
+            # 真日期推进时两者同步、用例恒绿，但平移下必然差 delta 天（实测
+            # −400 该断言失败），属工具盲区暴露的口径问题，不是真炸弹。
+            old_time = datetime.now().timestamp() - (40 * 24 * 60 * 60)
             os.utime(old_file, (old_time, old_time))
 
             # 创建一个新日志文件（5天前），应该被保留
             new_file = os.path.join(log_dir, "blackbox_new.jsonl")
             with open(new_file, "w", encoding="utf-8") as f:
                 f.write("{}")
-            new_time = time.time() - (5 * 24 * 60 * 60)
+            new_time = datetime.now().timestamp() - (5 * 24 * 60 * 60)
             os.utime(new_file, (new_time, new_time))
 
             # patch DATA_DIR 指向测试目录（源码用模块级 DATA_DIR,不受 chdir 影响）
@@ -1227,7 +1248,10 @@ class TestCleanupOldLogsDelete:
         old_file.write_text("{}")
 
         # 设置文件修改时间为很久以前（40天前）
-        old_time = time.time() - (40 * 24 * 60 * 60)
+        # 【S11-08 遗留 #3 收口】口径与产品同源：cutoff 由 `datetime.now()` 算得，
+        # 故 mtime 也用 `datetime.now().timestamp()`（原 `time.time()` 在日期平移下
+        # 与产品时钟分叉 ⇒ −400 实测失败，属工具盲区暴露的口径问题）。
+        old_time = datetime.now().timestamp() - (40 * 24 * 60 * 60)
         os.utime(old_file, (old_time, old_time))
 
         # Patch DATA_DIR 指向测试目录

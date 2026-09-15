@@ -162,6 +162,7 @@ def lint_all(
     stale_days: int = 90,
     parallel_read: bool = False,
     light_read: bool = True,
+    now: date | None = None,
 ) -> HealthReport:
     """全量巡检：孤儿/断链/index 漂移/过期声明/未裁决矛盾。
 
@@ -171,8 +172,14 @@ def lint_all(
     light_read=True（默认）时卡片加载走 CardStore.list_light() 轻量检测
     视图（P0 内存优化：只解析检测六字段，不驻留正文/insight）；store 无
     list_light 时自动回退 list()（第三方/测试替身兼容，检测语义不变）。
+    now（S11-08 遗留 #1 收口，2026-09-15 起）：可选的"今天"注入点，缺省
+    `None` = 走 `date.today()`（**默认行为零变化**）。提供它仅为让
+    **跨进程调用方**（如 `python -m agent.knowledge audit --now`）能把父进程的
+    时钟口径传给子进程，消除"父进程造夹具用平移时钟、子进程判定用真实时钟"
+    造成的差 delta 天口径分叉（详见 tests/_date_shift_plugin.py 跨进程盲区一节）。
     """
     _t0 = time.perf_counter()
+    _today = now or date.today()
     if light_read:
         # 优先轻量检测视图（P0 内存优化）；store 无 list_light（第三方/替身）时回退 list()
         getter = getattr(card_store, "list_light", None)
@@ -183,7 +190,7 @@ def lint_all(
     else:
         cards = list(card_store.list(parallel=parallel_read))
     report = HealthReport(
-        checked_at=date.today().isoformat(),
+        checked_at=_today.isoformat(),
         total_cards=len(cards),
     )
     logger.info(
@@ -237,7 +244,7 @@ def lint_all(
 
     # 4. 过期声明（status=current 且 date 超期）
     _t4 = time.perf_counter()
-    report.stale_cards = _find_stale_cards(cards, stale_days, date.today())
+    report.stale_cards = _find_stale_cards(cards, stale_days, _today)
     t_stale = (time.perf_counter() - _t4) * 1000
     if report.stale_cards:
         logger.warning(
