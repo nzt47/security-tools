@@ -59,7 +59,7 @@ jobs:
           pip install pyyaml
           pip install -e .
 
-      - name: 盲区静态扫描（6 个检测器 + 已裁定清单）
+      - name: 盲区静态扫描（7 个 AST 检测器 + 已裁定清单）
         run: python tests/unit/test_date_shift_blindspots_guard.py --scan
 
       - name: 守卫套件（含晚替换探针端到端自检）
@@ -116,13 +116,20 @@ jobs:
 
       - name: 定向日期敏感面（常规档）
         # 目标集 = S11-06/07/08 修复面 + 跨进程关闭面（test_knowledge_audit_ci_edge）：
-        # retention 三件套 / policy_support / behavior_drift / skills_digest_assessor
+        # retention 五件套（archive / scan / scheduler / metrics / guard）/
+        # policy_support / behavior_drift / skills_digest_assessor
         # + 知识审计 CLI 跨进程边界（S11-08 遗留 #1：--now 注入后应全绿）。
+        # 【S11-09 补齐 §十.3-任务2】retention_metrics / retention_guard 与其余三件套
+        # **共享夹具 retention_testkit**：夹具一改即牵动整族，S11-08 的回归批次本已含
+        # 这两个文件，但本工作流漏列 ⇒ 夹具在"时钟被平移"的四臂下没有覆盖。故同批纳入，
+        # 与其余文件共用一个 pytest 进程（口径不变：-p no:randomly + 本臂平移插件）。
         run: |
           python -m pytest \
             tests/unit/test_retention_archive.py \
             tests/unit/test_retention_scan.py \
             tests/unit/test_retention_scheduler.py \
+            tests/unit/test_retention_metrics.py \
+            tests/unit/test_retention_guard.py \
             tests/unit/test_policy_support.py \
             tests/unit/test_behavior_drift.py \
             tests/unit/test_skills_digest_assessor.py \

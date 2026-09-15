@@ -36,13 +36,26 @@ TASK_REF_RE = re.compile(r"任务(\d+)")
 
 # 每个任务的验收契约（来自各任务文档的"交付物清单"与"测试运行命令"）。
 # 交付物全部命中才算该任务"已实现"，随后运行 tests。
+#
+# 【S11-09 口径变更 CHG-2026-0915】本条契约自 d164dd24（2026-08-11）起未再同步，
+# 落后于仓库事实决策，导致 knowledge-tasks.yml 自 2026-09-12 起连续红：
+#   ① T0 原列 `knowledge/index.md` / `knowledge/log.md`，但这两者是**运行期生成物**，
+#      已于 4436a509（2026-09-02，`chore(data): 运行数据移出版本控制`）移出版本控制，
+#      现由 `.gitignore:398-399` 排除、由 `agent/knowledge/` 自动维护
+#      （`knowledge/AGENTS.md:24` 逐字如此）。**干净 checkout 必然不存在**，
+#      拿它当交付物等于门禁永远红 —— 故从契约中移除（依据：git 事实 + 仓库文档）。
+#   ② T6 原列 `yunshu-ui/src/pages/Knowledge.tsx`，该文件已于 a218a672
+#      （`feat(ui): 知识库完整版迁入统一工作台`）迁至
+#      `yunshu-ui/src/pages/hub/memory/knowledge.tsx` —— 更新为新路径。
+#   ③ 同步**补齐**文档 §五 明文要求、但本契约此前漏查的交付物（T4 路由 / T5 audit_job /
+#      T6 组件 / T7 工具与演示数据）：这是**加严**而非放宽，避免"漏查项静默通过"。
 TASK_SPECS: dict[str, dict] = {
     "T0": {
         "name": "知识库宪法与目录/卡片 Schema 定义",
         "deliverables": [
             "knowledge/AGENTS.md",
-            "knowledge/index.md",
-            "knowledge/log.md",
+            # 注：`knowledge/index.md` / `knowledge/log.md` 已按 CHG-2026-0915 移出
+            # 契约（运行期生成物，见上方 ①）。
             "agent/knowledge/__init__.py",
             "agent/knowledge/schema.py",
             "agent/knowledge/lifecycle.py",
@@ -88,7 +101,11 @@ TASK_SPECS: dict[str, dict] = {
     },
     "T4": {
         "name": "知识检索整合",
-        "deliverables": ["agent/knowledge/search.py"],
+        "deliverables": [
+            "agent/knowledge/search.py",
+            # CHG-2026-0915 ③：文档 §五 明文要求的路由此前漏查
+            "agent/server_routes/routes_knowledge.py",
+        ],
         "tests": ["tests/unit/test_knowledge_search.py"],
     },
     "T5": {
@@ -96,6 +113,8 @@ TASK_SPECS: dict[str, dict] = {
         "deliverables": [
             "agent/knowledge/lint.py",
             "agent/knowledge/conflict.py",
+            # CHG-2026-0915 ③：文档 §五 明文要求的每日审计作业此前漏查
+            "agent/knowledge/audit_job.py",
         ],
         "tests": [
             "tests/unit/test_knowledge_lint.py",
@@ -107,7 +126,11 @@ TASK_SPECS: dict[str, dict] = {
         "name": "前端知识库视图与 API",
         "deliverables": [
             "agent/server_routes/routes_knowledge.py",
-            "yunshu-ui/src/pages/Knowledge.tsx",
+            # CHG-2026-0915 ②：原 `yunshu-ui/src/pages/Knowledge.tsx` 已由 a218a672
+            # 迁至统一工作台，旧路径是**过时契约**（干净 checkout 必然 MISSING）。
+            "yunshu-ui/src/pages/hub/memory/knowledge.tsx",
+            # CHG-2026-0915 ③：文档 §五 明文要求的组件目录此前漏查
+            "yunshu-ui/src/components/Knowledge",
             "yunshu-ui/src/api/knowledge.ts",
         ],
         "tests": ["tests/unit/test_routes_knowledge.py"],
@@ -118,6 +141,9 @@ TASK_SPECS: dict[str, dict] = {
             "agent/knowledge/workflow.py",
             "agent/knowledge/discuss.py",
             "scripts/knowledge_demo.py",
+            # CHG-2026-0915 ③：文档 §五 明文要求的对话工具与演示数据此前漏查
+            "agent/knowledge/tools.py",
+            "data/demo_knowledge",
         ],
         "tests": ["tests/unit/test_knowledge_workflow.py"],
     },

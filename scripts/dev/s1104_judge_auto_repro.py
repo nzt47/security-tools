@@ -34,7 +34,21 @@ if _ROOT not in sys.path:
 
 #: 桩密钥：只为让 `OpenAIAdapter.is_available()` 造出 client（该函数**不发网络请求**），
 #: 便于在**不产生费用**的前提下走通"通道可选"这条判定。绝不打真实端点。
-_STUB_KEY = "sk-stub-s1104-not-a-real-key"
+#: 【S11-09 取证】该字面量**不是凭证**，故按 gitleaks 官方**逐行**机制放行
+#: （只放行本行，不改 `.github/gitleaks-config.toml`，不削弱仓库级检出能力）：
+#:   ① 本行是显式桩：命名 `_STUB_KEY` + 本注释即声明"桩"，且 `main()` 里
+#:      `os.environ["OPENAI_API_KEY"] = _STUB_KEY` 是**强制覆盖**——脚本不回退读取
+#:      .env / 环境里的真 key，因此该值只能来自本文件；
+#:   ② `_install_transport_stub()` 已把 `OpenAIAdapter.generate` 替换为桩（无网络），
+#:      该值不存在任何"被用于发起真实请求"的代码路径；
+#:   ③ `git log -S` 检索本行的桩值字面量，只命中 45297cab（本文件**新增**的那一次，
+#:      179 行全为新增），即它自诞生起就是该字面量，从未承载过真实值；
+#:      （注：本注释块**刻意不复写**该字面量——`# gitleaks:allow` 只放行**本行**，
+#:        在此抄写一遍会立刻成为一条新的真实命中，实测已踩到并修正。）
+#:   ④ gitleaks 自报 Entropy=1.000000（低熵的描述性字符串，与随机凭证的高熵特征不符）。
+#: 反例（为何不退到仓库级宽正则）：实测把 `sk-.*` 加进 allowlist.regexes 后，
+#: 一个 `sk-` + 40 位高熵的**真形状** key 也会变成 0 命中（`.tmp-s1109/1a_counterexample.txt`）。
+_STUB_KEY = "sk-stub-s1104-not-a-real-key"  # gitleaks:allow 桩值，非凭证（理由见上）
 
 STUB_REPLY = json.dumps({"verdict": "equivalent", "confidence": 0.93,
                          "reason": "s1104 桩回复（无网络）"}, ensure_ascii=False)
