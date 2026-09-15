@@ -144,21 +144,39 @@ class TurnStateStore:
             md = entry["current"].get("metadata")
             return dict(md) if isinstance(md, dict) else None
 
+    #: `snapshot()` / `previous()` 的**对外契约键**
+    #: 【不易】**不含** `metadata` —— 它是 TASK-S11-03（R5）追加的内部槽位，
+    #: 只能经 `metadata_snapshot()` 单独读回；本模块文档头已写明该不变量。
+    _PUBLIC_KEYS: Tuple[str, ...] = ("tool_steps", "reasoning")
+
+    def _public(self, state: Dict[str, Any]) -> Dict[str, Any]:
+        """按对外契约裁剪（只保留 `_PUBLIC_KEYS`）
+
+        【2026-09-15 修】S11-03 追加 `metadata` 槽位时，`snapshot()`/`previous()`
+        直接把内部状态整份返回，**把 `metadata` 一起暴露了**，违反本模块文档头的
+        【不易】不变量（对外形状恒为 `{"tool_steps","reasoning"}`）。
+        该缺陷由 S9-01 的 `test_orchestrator_turn_state_isolation.py::`
+        `test_未知会话返回空` 抓住（`{'metadata': None}` 多出键）。
+        此处按**契约**收紧（不是放宽断言），并保留深拷贝语义。
+        """
+        copied = self._copy(state)
+        return {k: copied.get(k) for k in self._PUBLIC_KEYS}
+
     def snapshot(self, key: str) -> Dict[str, Any]:
-        """本轮快照；本轮无内容 → ``{"tool_steps": [], "reasoning": None}``。"""
+        """本轮快照；本轮无内容 → ``{"tool_steps": [], "reasoning": None}``（不含 `metadata`）。"""
         with self._lock:
             entry = self._sessions.get(key)
             if entry is None:
-                return _empty_state()
-            return self._copy(entry["current"])
+                return self._public(_empty_state())
+            return self._public(entry["current"])
 
     def previous(self, key: str) -> Dict[str, Any]:
-        """上一轮快照（供上下文装配复用）；无记录 → 空。"""
+        """上一轮快照（供上下文装配复用）；无记录 → 空（同样不含 `metadata`）。"""
         with self._lock:
             entry = self._sessions.get(key)
             if entry is None:
-                return _empty_state()
-            return self._copy(entry["previous"])
+                return self._public(_empty_state())
+            return self._public(entry["previous"])
 
     # ── 观测 / 维护 ─────────────────────────────────────────────
 

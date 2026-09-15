@@ -93,6 +93,19 @@ def test_env_overrides_config_disabled(isolate, monkeypatch):
 
 
 def test_enabled_registers_cron_with_expected_schedule(isolate, monkeypatch):
+    """env 开启 ⇒ 注册，且 **cron 走代码默认**（周一 09:00）
+
+    【2026-09-15 修（自伤回归）】原用例只设 `CP_SLO_SCHEDULE_ENABLED`（不设 HOUR/MINUTE），
+    于是 hour 会**回落到仓库 `config.yaml` 的取值** —— 而 Owner 在 2026-09-14 把
+    `slo_report.hour` 从 9 改成 0（周报改周一 0 点）⇒ 断言变成"断言部署取值"而失败。
+    这与 `test_disabled_by_default_does_not_register` 当年那次是**同一类问题**：
+    用例把「**机制**」与「**部署选择**」混在一起。
+    现改为**注入配置段**（只声明 enabled），使 hour/minute 明确走**代码默认**，
+    锁住"默认调度 = 周一 09:00"这一**代码不变量**，不再随仓库配置漂移。
+    ⚠️ 部署实际时间为周一 00:00（见 `config.yaml` 注释与 `Owner裁定记录_20260913.md`）
+    —— 那是**部署选择**，由配置与文档负责，不由本用例锁。
+    """
+    monkeypatch.setattr(mod, "_cfg_section", lambda: {"enabled": True})
     monkeypatch.setenv(f"{mod._ENV_PREFIX}_ENABLED", "true")
     sched = FakeScheduler()
     r = mod.register_slo_report_scheduler(sched)
