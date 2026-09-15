@@ -65,6 +65,18 @@ passed(active==0) = True
 > 前 4 项的 13 条边本质同型：**包的 `__init__.py` 急切再导出子模块**，而子模块又（直接或间接）依赖回包。
 > 这就是经典的"包 ↔ 子模块"环，`__init__` 惰性化是教科书解。
 
+**其中第 3 项最独立、最容易，建议先做它**（不涉及惰性化、不涉及 `.pyi`）：
+`agent/monitoring/observability_config.py:668` 有一处**函数内**的
+`from agent.monitoring.config_observability import on_config_changed`；
+而反向 `config_observability.py` 里对 `observability_config` **只有 docstring 提及、并非 import**（已核实）。
+所以 SCC1 的环是靠 `observability_config → config_observability → {alert_notifier,loki,prometheus}
+→ … → error_handler → observability_config` 兜起来的，**砍掉这一条边即整环消散**（模拟已证：最小拆除边集就是这 1 条）。
+改法 = **依赖倒置/回调注册**：在 `observability_config` 里开一个
+`register_config_change_hook(fn)`，由 `config_observability` 在导入时注册自己；
+边方向变为 `config_observability → observability_config`，此时 `observability_config` 无出边 ⇒ 无环。
+⚠️ **附带行为影响（必须声明）**：原来"首次 `set()` 时按需 import 配置观察层"会变成
+"只有该层已被导入时才回调"——与硬约束 #3 同类。请给出"服务/测试运行期该层确已被导入"的证据。
+
 **复现当前违规清单**（在任何时候都可自查）：
 
 ```powershell
@@ -97,17 +109,85 @@ LAZY  (拟改)   mypy exit=1  consumer.py:6: error: Returning Any from function 
 
 **候选解法（按推荐序，任选其一并在报告里写明取舍）**：
 
-- **(a) 为惰性化的包补 `.pyi` 类型存根**（推荐）：
+- **(a) 为惰性化的包补 `.pyi` 类型存根 —— ✅ 已裁定为默认路线（最容易且不返工）**：
   `agent/{repair,settings,audit}/__init__.pyi` 里写常规的 `from .sub import X as X` 再导出声明。
   mypy 见到 `.pyi` 就**不再看 `__init__.py`**，静态类型完整恢复；
   而 `_collect_python_files` 只扫 `rglob("*.py")` ⇒ **`.pyi` 不产生依赖边**。
   语义上是站得住的：`__init__.py` 的**运行期**急切依赖已真的消失，`.pyi` 只是**类型层声明**、不执行。
   ⚠️ 必须在报告里**显式声明这一取舍**（"边消失是因为运行期惰性化 + 类型声明放在不参与运行期依赖图的 `.pyi`"），
-  并给出"改动前后运行期导入行为等价"的证据（见 2.4）。
+  并给出"改动前后运行期导入行为等价"的证据（见 2.3-2）。
+
+  **为什么不做"裸惰性化"（不补存根）**——已实测规模，风险不划算：
+  | 包 | 再导出名 ≈ | 消费方 `from <pkg> import` |
+  |---|---|---|
+  | `agent.settings` | 29 | 14 条 / 9 文件 |
+  | `agent.audit` | 40 | 55 条 / 46 文件 |
+  | `agent.repair` | 46 | 32 条 / 13 文件 |
+  | **合计** | **≈115** | **101 条 / 68 文件** |
+
+  裸惰性化会让这 101 处退化为 `Any`（探针已证 mypy 不报"无此属性"，但会在需要真类型的上下文里
+  报 `no-any-return` 等**新错误**）⇒ 直接触碰"不得引入新 mypy 错误"门禁。补 `.pyi` 可**保证**
+  与基线逐条持平。
+
+  **省事做法（已备好脚本，直接粘贴运行）**：先照 §2.2 把 `__init__.py` 惰性化，再跑下面这个
+  生成器自动产出 `.pyi`（它只读 `__init__.py` 的 `from … import …` 列表，逐名写成
+  `X as X` 的显式再导出），最后用 mypy 与基线对比：
+
+  ```python
+  # .tmp-s1110/gen_reexport_pyi.py  —— 由 __init__.py 机械生成再导出存根
+  from __future__ import annotations
+  import re, sys
+  from pathlib import Path
+
+  IMPORT_RE = re.compile(r"^from\s+(?P<mod>[\w.]+)\s+import\s+(?P<names>\([^)]*\)|[^(\n]+)$",
+                         re.MULTILINE)
+
+  def names_of(raw: str) -> list[str]:
+      raw = raw.strip()
+      if raw.startswith("("):
+          raw = raw[1:-1]
+      out = []
+      for part in raw.split(","):
+          part = part.strip()
+          if not part or part == "*":
+              continue
+          out.append(part.split(" as ")[-1].strip())   # 记录对外名
+      return out
+
+  def main(pkg_dir: str) -> int:
+      init = Path(pkg_dir) / "__init__.py"
+      text = init.read_text(encoding="utf-8")
+      lines = ['"""自动生成的再导出类型存根（S11-10 / R2）。**仅供类型检查，不参与运行期。**',
+               '',
+               '本文件的存在意义：让 `__init__.py` 可以安全地做 PEP 562 惰性再导出',
+               '（打断"包 ↔ 子模块"环），同时保住 mypy 的静态类型。',
+               '改动 `__init__.py` 的再导出清单后，请重跑生成器。',
+               '"""',
+               'from __future__ import annotations', '']
+      for m in IMPORT_RE.finditer(text):
+          mod, ns = m.group("mod"), names_of(m.group("names"))
+          if mod == "__future__":      # ← 必须跳过！否则会生成
+              continue                 #   `from __future__ import (annotations as annotations)`（已实测踩到）
+          if not ns:
+              continue
+          lines.append("from %s import (%s)" % (mod, ", ".join("%s as %s" % (n, n) for n in ns)))
+      out = init.with_suffix(".pyi")
+      out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+      print("written:", out, "(%d 行)" % len(lines))
+      return 0
+
+  if __name__ == "__main__":
+      raise SystemExit(main(sys.argv[1]))
+  ```
+  用法：`python .tmp-s1110/gen_reexport_pyi.py agent/settings`（三个包各跑一次）。
+  前序已用该脚本的**自检模式**在副本上试跑过（`.tmp-s1109/pyi_selftest/`），产出再导出名
+  **settings 29 / repair 46 / audit 40**，与手工统计一致；**自检时踩到并修掉了
+  `__future__` 那条坑**（见上面 `continue`），所以请保留该判断。
+  ⚠️ 生成后**必须人工过一眼**（`__all__`、`TYPE_CHECKING` 分支、重名 `as` 别名），
+  并确认 `python -c "import agent.settings"` 与 `from agent.settings import <名>` 均可用。
 - **(b) 先量化 mypy 代价再决定**：实测"惰性化前后 mypy 错误数/文件数"的差值
   （基线：`python -m mypy <被测文件>`，**注意换回 HEAD 复测做对照臂**）。
-  若新增错误为 0（或可全部归因于既有存量），可直接惰性化而无需 `.pyi`。
-  ⚠️ 门禁判据是"**不得引入新 mypy 错误**"，不是"mypy 必须 0 错误"（仓库当前存量约 549~550 条）。
+  若新增为 0，可省掉 `.pyi`。（本仓存量约 549~550 条，判据是"**不得引入新错误**"。）
 - **(c) 不惰性化 `__init__`，改为让子模块不再依赖包**：**前序已明确否决"仅换写法"这一形式**——
   把 `from agent.repair import gitio` 改成 `import agent.repair.gitio`，解析器的 target 变了，
   但**运行期完全一致**（两种写法都会执行包 `__init__`），并未消除任何耦合，属"隐瞒形状"。
