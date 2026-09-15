@@ -2,57 +2,22 @@
   "description": "架构规则校验存量豁免清单",
   "purpose": "对存量代码中已知的架构违规进行豁免，仅对新增代码强制执行架构规则。新增违规不在此清单中将被阻断合并。",
   "created_at": "2026-06-26",
-  "last_updated": "2026-08-10",
-  "exemptions": [
+  "last_updated": "2026-09-16",
+  "exemptions": [],
+  "reclaimed_history": [
     {
-      "rule_id": "no_circular_dependency",
-      "source": "agent.monitoring.prometheus",
-      "target": "agent.monitoring.observability_config",
-      "reason": "配置化重试次数延迟导入：prometheus.py 在 __init__ 的 try/except 块中延迟 import get_prometheus_max_retries，运行时安全。observability_config 仅导入 tracing 模块，arch_rules 静态分析检测到 from 语句。",
-      "added_at": "2026-07-06",
-      "owner": "observability-team",
-      "tech_debt_ticket": "ARCH-DEBT-003",
-      "mitigation": "prometheus.py:60 使用函数内延迟 import（try/except 包裹），运行期不会触发循环。后续应通过依赖注入将配置值作为参数传入。"
-    },
-    {
-      "rule_id": "no_circular_dependency",
-      "source": "agent.monitoring.loki",
-      "target": "agent.monitoring.observability_config",
-      "reason": "配置化超时延迟导入：loki.py 在 __init__ 的 try/except 块中延迟 import get_loki_push_timeout/get_loki_query_timeout，运行时安全。arch_rules 静态分析检测到 from 语句。",
-      "added_at": "2026-07-06",
-      "owner": "observability-team",
-      "tech_debt_ticket": "ARCH-DEBT-004",
-      "mitigation": "loki.py:46 使用函数内延迟 import（try/except 包裹），运行期不会触发循环。后续应通过依赖注入将配置值作为参数传入。"
-    },
-    {
-      "rule_id": "no_circular_dependency",
-      "source": "agent.monitoring.alert_notifier",
-      "target": "agent.monitoring.observability_config",
-      "reason": "配置化超时延迟导入：alert_notifier.py 在 __init__ 的 try/except 块中延迟 import get_alert_timeout，运行时安全。arch_rules 静态分析检测到 from 语句。",
-      "added_at": "2026-07-06",
-      "owner": "observability-team",
-      "tech_debt_ticket": "ARCH-DEBT-005",
-      "mitigation": "alert_notifier.py:85 使用函数内延迟 import（try/except 包裹），运行期不会触发循环。后续应通过依赖注入将配置值作为参数传入。"
-    },
-    {
-      "rule_id": "no_circular_dependency",
-      "source": "agent.error_handler",
-      "target": "agent.monitoring.observability_config",
-      "reason": "配置化重试次数延迟导入：error_handler.py 在 RetryPolicy.__init__ 中延迟 import get_default_max_retries，运行时安全。arch_rules 静态分析检测到 from 语句。",
-      "added_at": "2026-07-06",
-      "owner": "observability-team",
-      "tech_debt_ticket": "ARCH-DEBT-006",
-      "mitigation": "error_handler.py:339 使用函数内延迟 import，运行期不会触发循环。后续应将默认重试次数作为参数传入 RetryPolicy。"
-    },
-    {
-      "rule_id": "no_circular_dependency",
-      "source": "agent.monitoring.prometheus",
-      "target": "agent.error_handler",
-      "reason": "重试策略延迟导入：prometheus.py 在 execute_with_error_handling 方法内延迟 import RetryPolicy，运行时安全。arch_rules 静态分析检测到 from 语句，与 ARCH-DEBT-003~006 同源（commit f2542a94 的延迟导入修复），但当时漏登此豁免。",
-      "added_at": "2026-07-07",
-      "owner": "observability-team",
-      "tech_debt_ticket": "ARCH-DEBT-007",
-      "mitigation": "prometheus.py:291 使用函数内延迟 import（方法体内 from agent.error_handler import RetryPolicy），运行期不会触发循环。后续应通过依赖注入将 RetryPolicy 实例作为参数传入 PrometheusMetricsExporter，彻底消除 prometheus→error_handler 静态依赖边。"
+      "reclaimed_at": "2026-09-16",
+      "reclaimed_by": "S11-10 / R2（架构环收口落地）",
+      "count": 5,
+      "reason": "原来的 6 节点强连通分量（observability_config ↔ config_observability ↔ {prometheus,loki,alert_notifier} ↔ error_handler）已通过依赖倒置真实拆除，环内边不再构成循环，故这些豁免已**无对应违规**。豁免清单里留无用条目会在该环将来复发时静默放行，属假绿灯风险，故一并回收。",
+      "reclaimed_entries": [
+        "agent.monitoring.prometheus → agent.monitoring.observability_config（ARCH-DEBT-003）",
+        "agent.monitoring.loki → agent.monitoring.observability_config（ARCH-DEBT-004）",
+        "agent.monitoring.alert_notifier → agent.monitoring.observability_config（ARCH-DEBT-005）",
+        "agent.error_handler → agent.monitoring.observability_config（ARCH-DEBT-006）",
+        "agent.monitoring.prometheus → agent.error_handler（ARCH-DEBT-007，改前即已无匹配：改前报告 exempted=4 而清单为 5 条）"
+      ],
+      "evidence": "改后 `ci_run_module agent.observability.arch_rules --check` → exit=0 / total=0 / active=0 / exempted=0"
     }
   ],
   "guidelines": [

@@ -164,3 +164,32 @@ __all__ = [
 ]
 
 __version__ = '1.1.0'
+
+
+# ════════════════════════════════════════════════════════════════════════════
+#  装配点：注册"配置变更 → 配置可观测性"钩子（S11-10 · R2）
+# ════════════════════════════════════════════════════════════════════════════
+# Why(不易): observability_config 不得反向依赖 config_observability（否则构成
+#   6 节点环，见其模块顶部说明），改为观测层导入时自我注册。注册必须**早于
+#   第一次 ObservabilityConfig.set()**，否则配置变更不再推送 Loki/指标/告警。
+#   放在包 __init__ 末尾可给出**结构性**保证而非"恰好也被导入"的巧合：
+#   任何使用 ObservabilityConfig 的代码都必须先 import
+#   agent.monitoring.observability_config，而导入任何子模块都必然先执行本
+#   __init__ ⇒ 钩子必已注册。
+# 位置(不易): 必须置于 __getattr__ / __all__ **之后**。此导入会拉起
+#   config_observability → tracing → logging_utils 链；若本行在前，链中任何
+#   `from agent.monitoring import X` 都会命中尚未定义 __getattr__ 的半初始化包。
+# 写法(不易): 必须用**绝对子模块导入**而非 `from agent.monitoring import
+#   config_observability`——后者被 `dependency_graph._parse_imports` 按
+#   `node.module` 解析成 self 边 `agent.monitoring → agent.monitoring`，
+#   会被 DFS 判为 1 节点自环（实测：错写即得 total=1/active=1）。
+#   绝对子模块导入把边精确指向真实依赖 `agent.monitoring.config_observability`，
+#   该边**依然计入依赖图**（非隐藏形状），且经图模拟确认不构成任何环。
+# 代价(变易，已实测): 裸 `import agent.monitoring` 由 2 个 agent 模块 / ~7ms
+#   变为 23 个 / ~170ms（多出 config_observability + tracing + logging_utils +
+#   singleton_manager 等）。该链在导入 observability_config（真实调用方的必经
+#   路径）时本就要付出，故对实际使用方**无新增成本**；仅"只导入包、不用任何
+#   子模块"这一形状变重（agent/ 内无此调用方，tests/ 内亦无断言该形状轻量）。
+import agent.monitoring.config_observability as _config_observability  # noqa: E402,F401
+
+del _config_observability

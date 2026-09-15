@@ -5,9 +5,16 @@
 2. Prometheus 指标：暴露 config_changes_total（Counter）和 config_value（Gauge）
 3. Alert 触发：高风险配置变更（如 pool_size > 50）触发告警通知
 
-使用方式（由 observability_config.py 的 set() 方法在变更记录后调用）：
-    from agent.monitoring.config_observability import on_config_changed
-    on_config_changed(change_record)
+使用方式（依赖倒置，S11-10·R2）：
+    本模块在**导入时**调用 observability_config.register_config_change_hook
+    完成自我注册，之后 ObservabilityConfig.set() 会广播变更记录到本模块：
+        from agent.monitoring.config_observability import on_config_changed
+        on_config_changed(change_record)
+    装配点：agent/monitoring/__init__.py 末尾（包 __init__ 必然早于任何
+    ObservabilityConfig 使用被导入 ⇒ 注册早于第一次 set()）。
+
+    Why 不写成 observability_config 内 `import config_observability`：
+    该反向边（即便写在函数内）会被 arch_rules 计入依赖图，形成 6 节点环。
 
 设计要点：
 - 三路并行处理，互不阻塞主流程
@@ -21,6 +28,7 @@ import threading
 import time
 from typing import Any, Dict, Optional
 
+from agent.monitoring.observability_config import register_config_change_hook
 from agent.monitoring.tracing import get_trace_id
 
 logger = logging.getLogger(__name__)
@@ -288,3 +296,22 @@ def get_config_value_gauge():
     """获取 config_value Gauge（供外部指标注册使用）"""
     _init_metrics()
     return _config_value_gauge
+
+
+# ============================================================================
+# 依赖倒置注册（S11-10·R2）——必须在 on_config_changed 定义之后
+# ============================================================================
+
+def _notify_observer(change_record: Dict[str, Any]) -> None:
+    """转发到本模块的 on_config_changed（薄包装，故意"晚绑定"）
+
+    Why 不直接把 on_config_changed 注册进钩子表：晚绑定按名字在调用时查模块
+    全局，使 `monkeypatch.setattr("agent.monitoring.config_observability.
+    on_config_changed", ...)` 之类的打桩仍然生效（tests/unit/
+    test_tracing_config_delegation.py 的 _no_async_config_push 夹具依赖此语义，
+    用于阻止 set() 启动 Loki/告警 daemon 线程）。
+    """
+    on_config_changed(change_record)
+
+
+register_config_change_hook(_notify_observer)

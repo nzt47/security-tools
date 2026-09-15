@@ -41,6 +41,65 @@ logger = logging.getLogger(__name__)
 
 
 # ============================================================================
+# 配置变更钩子（依赖倒置出口 / S11-10·R2）
+# ============================================================================
+# Why(不易): 观测层 `agent.monitoring.config_observability` 需要感知配置变更，
+#   但本模块**不得**反向 import 它。历史上的函数内
+#   `from agent.monitoring.config_observability import on_config_changed`
+#   虽为延迟导入，仍被 arch_rules 静态解析计入依赖边（本仓 `_parse_imports`
+#   遍历整棵 AST，含函数体），于是构成 6 节点环：
+#     observability_config → config_observability → {prometheus,loki,alert_notifier}
+#       → observability_config（error_handler 亦在环内）
+#   现改为：本模块只持有"钩子"抽象（不依赖任何 agent.* 观测实现），
+#   观测层在导入时调用 register_config_change_hook 主动注册，
+#   依赖方向变为 config_observability → observability_config，环消散。
+# 不变量(不易): set() 触发一次广播、单个钩子异常不阻断配置提交与其它钩子，
+#   与历史 `try: on_config_changed(...) except: debug` 的容错语义一致。
+# 变易(必读): 钩子只在**注册后**生效。装配点见 `agent/monitoring/__init__.py`
+#   末尾：任何使用 ObservabilityConfig 的代码都必须先导入本模块，而导入本模块
+#   必然先执行 agent.monitoring 包 __init__ ⇒ 注册必定早于第一次 set()。
+_config_change_hooks: List[Callable[[Dict[str, Any]], None]] = []
+_config_change_hooks_lock = threading.Lock()
+
+
+def register_config_change_hook(hook: Callable[[Dict[str, Any]], None]) -> None:
+    """注册配置变更钩子（幂等）
+
+    供观测层（`agent.monitoring.config_observability`）在导入时调用，
+    以**依赖倒置**方式订阅配置变更，避免本模块反向依赖观测层形成循环依赖。
+
+    Args:
+        hook: 回调函数 (change_record) -> None；重复注册同一对象不会重复触发
+    """
+    with _config_change_hooks_lock:
+        if all(existing is not hook for existing in _config_change_hooks):
+            _config_change_hooks.append(hook)
+
+
+def unregister_config_change_hook(hook: Callable[[Dict[str, Any]], None]) -> None:
+    """注销配置变更钩子（测试隔离用；按对象同一性精确移除）"""
+    with _config_change_hooks_lock:
+        _config_change_hooks[:] = [h for h in _config_change_hooks if h is not hook]
+
+
+def _notify_config_change(change_record: Dict[str, Any]) -> None:
+    """向所有已注册钩子广播配置变更（单个钩子失败不影响其它钩子）"""
+    with _config_change_hooks_lock:
+        hooks = list(_config_change_hooks)
+    if not hooks:
+        logger.debug(
+            "配置变更未广播：尚无已注册的观测钩子"
+            "（装配点 agent/monitoring/__init__.py 未生效？）"
+        )
+        return
+    for hook in hooks:
+        try:
+            hook(change_record)
+        except Exception as e:
+            logger.debug(f"配置变更可观测性通知失败（非致命）: {e}")
+
+
+# ============================================================================
 # ValidationRule 声明式验证架构
 # ============================================================================
 
@@ -663,12 +722,10 @@ class ObservabilityConfig:
             self._fire_callbacks(key, value)
 
             # 7. 配置变更可观测性（Loki 推送 + Prometheus 指标 + 高风险告警）
-            #    异步处理，不影响主流程；lazy import 避免循环依赖
-            try:
-                from agent.monitoring.config_observability import on_config_changed
-                on_config_changed(change_record)
-            except Exception as e:
-                logger.debug(f"配置变更可观测性通知失败（非致命）: {e}")
+            #    由观测层注册的钩子接管（依赖倒置，见模块顶部"配置变更钩子"说明）：
+            #    本模块不再（即使延迟地）import agent.monitoring.config_observability，
+            #    以消除 6 节点循环依赖。异步处理，不影响主流程。
+            _notify_config_change(change_record)
 
             logger.info(log_dict({'module_name': 'observability_config', 'action': 'set', 'key': key, 'old_value': old_value, 'new_value': value}))
             return True
