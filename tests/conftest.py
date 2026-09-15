@@ -953,6 +953,27 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     terminalreporter.write_line(f"  失败: {len(stats.get('failed', []))}")
     terminalreporter.write_line(f"  跳过: {len(stats.get('skipped', []))}")
 
+    # 【S11-09】把"收集级跳过"单独标注出来。
+    # 背景：pytest 的结尾 outcome 合计取自 `stats`，而 `--collect-only` 报的
+    # "N tests collected" 取自 `_numcollected`（只数 Item）。一个模块级
+    # `pytest.skip(..., allow_module_level=True)` 会产生一条 **0 条目**的
+    # CollectReport：`stats["skipped"] += 1` 但 `_numcollected += 0`
+    # （见 `_pytest/terminal.py::pytest_collectreport`）。
+    # ⇒ 合计 = collected + 收集级跳过数，历史上被误读为"少了/多了 1 个用例"。
+    # 这里显式分列，使该差值**自带出处**，无需再靠人去追因。
+    # 判据：用例级 skip 的 nodeid 含 `::`（如 `a/b.py::test_x`）；
+    #       收集级 skip 的 nodeid 是裸文件路径（如 `a/b.py`）。
+    skipped = stats.get("skipped", [])
+    collection_skips = [r for r in skipped if "::" not in getattr(r, "nodeid", "")]
+    if collection_skips:
+        terminalreporter.write_line(
+            f"    ├ 其中收集级（非用例）: {len(collection_skips)}"
+            "  ← 计入上面/结尾的 outcome 合计，但**不计入** --collect-only 的条目数"
+        )
+        terminalreporter.write_line(
+            f"    └ 用例级: {len(skipped) - len(collection_skips)}"
+        )
+
 # ============================================================================
 # 导出公共API
 # ============================================================================

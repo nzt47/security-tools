@@ -123,8 +123,18 @@ BUILTIN_RULES: Dict[str, ArchRule] = {
         rule_id="no_circular_dependency",
         desc="禁止循环依赖（A→B→A）",
         severity="high",
-        suggestion="检测到循环依赖，请通过依赖倒置或中间层解耦，"
-        "或使用 agent/lazy_loader_async.py 延迟加载",
+        # 【S11-09 订正】原文案为"…或使用 agent/lazy_loader_async.py 延迟加载"，
+        # 但实测该建议**对本规则无效**（`.tmp-s1109/r2_edge_probe.txt`）：
+        #   ① `dependency_graph._parse_imports` 用 `ast.walk` 遍历**整棵树含函数体**，
+        #      且把 `importlib.import_module('x.y')` / `__import__('x.y')` 这类
+        #      **字面量**动态 import 也记成边（import_type="dynamic"）；
+        #   ② `_check_circular_dependencies` 使用**全部**边，从不筛 `is_dynamic`
+        #      （`dependency_graph.py` 里 `if is_dynamic:` 分支是空 `pass`）。
+        # ⇒ 把 import 挪进函数体、或用 importlib / lazy_loader 延迟加载，
+        #    **都不会**消除本项违规。故文案改为给出真正有效的两条路径。
+        suggestion="检测到循环依赖，请通过依赖倒置或中间层解耦"
+        "（把共享符号下沉到无依赖的叶子契约模块，让底层模块依赖契约而非上层包）。"
+        "注意：本检查**对动态 import 同样计边**，故「延迟加载」不适用。",
     ),
     "no_agent_import_tests": ArchRule(
         rule_id="no_agent_import_tests",
@@ -464,8 +474,16 @@ class ArchRuleValidator:
         """检测循环依赖（A→B→A）
 
         使用 DFS + 三色标记法检测环。
-        为避免误报，仅在模块点级别检测（而非文件级别），
-        且对白名单中的动态 import 边予以放宽。
+        为避免误报，仅在模块点级别检测（而非文件级别）。
+
+        **【S11-09 订正】原 docstring 写"且对白名单中的动态 import 边予以放宽"，
+        与实际实现不符**：本方法使用**全部**边构建邻接表，从不检查 `is_dynamic`
+        （`dependency_graph._make_edge` 里 `if is_dynamic:` 分支是空 `pass`，
+        既不删边也不标记豁免）。因此"动态 import / 延迟加载可豁免环"这一说法
+        不成立——已用对照实验证实（`.tmp-s1109/r2_edge_probe.txt`：把 import 挪进
+        函数体、或改用 `importlib.import_module('x.y')`，边**依然存在**）。
+        是否要**恢复**该放宽语义属架构策略决定（会削弱环检测），未擅自实施；
+        当前如实记录为实际行为。见 S11-09 报告 R3。
 
         Args:
             edges: 依赖边列表

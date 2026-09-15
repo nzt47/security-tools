@@ -342,7 +342,7 @@ class DependencyGraphBuilder:
             "stats": self.stats.to_dict(),
         }
 
-    def to_mermaid(self) -> str:
+    def to_mermaid(self, *, include_timing: bool = True) -> str:
         """生成 Mermaid 拓扑图字符串
 
         跨层违规调用用红色标出（classDef violation + linkStyle 红色粗线），
@@ -429,7 +429,12 @@ class DependencyGraphBuilder:
         lines.append(f"- 跨层调用数: {self.stats.cross_layer_edges}")
         lines.append(f"- 违规调用数: {self.stats.violation_edges}")
         lines.append(f"- 动态 import 数: {self.stats.dynamic_edges}")
-        lines.append(f"- 构建耗时: {self.stats.build_duration_ms:.2f} ms")
+        if include_timing:
+            # 【S11-09】墙钟耗时只在**控制台/调试**输出保留。
+            # 该 .md 会被 CI 的"提交依赖图文档"步骤提交入库，
+            # 而耗时每次运行都不同 ⇒ 会让版本库产物每次产生一行伪 diff。
+            # 写盘路径（write_mermaid_to_file）传 include_timing=False 以保可复现。
+            lines.append(f"- 构建耗时: {self.stats.build_duration_ms:.2f} ms")
         lines.append("")
 
         # 违规清单
@@ -460,7 +465,9 @@ class DependencyGraphBuilder:
         output_file = Path(output_path)
         try:
             output_file.parent.mkdir(parents=True, exist_ok=True)
-            content = self.to_mermaid()
+            # 【S11-09】写盘产物必须**可复现** ⇒ 借 include_timing=False 剔除墙钟耗时
+            # （该文件会被 CI 提交入库，耗时每次都变会造成伪 diff）。
+            content = self.to_mermaid(include_timing=False)
             output_file.write_text(content, encoding="utf-8")
             self._log_action(
                 "write_mermaid",
@@ -488,8 +495,20 @@ class DependencyGraphBuilder:
         output_file = Path(output_path)
         try:
             output_file.parent.mkdir(parents=True, exist_ok=True)
+            # 【S11-09】写盘产物必须**可复现**：剔除每次运行都会变的非确定性字段，
+            # 否则 CI 的"提交依赖图文档"步骤每跑一次都会产生一行伪 diff。
+            #   · `trace_id`                —— 每次进程随机生成（uuid4）
+            #   · `stats.build_duration_ms` —— 墙钟耗时
+            # 二者仍保留在内存对象 `to_json()`（`build()` 的返回值）与结构化日志中，
+            # 下游读取方（`generate_arch_compliance_report.py:273`、
+            # `scripts/simulate_pr_review.py:240`）均以 `.get(..., 0)` 取值，缺省安全；
+            # `scripts/visibility_report.py` 只读 nodes/edges 计数。无消费方依赖这两键。
+            payload = self.to_json()
+            payload.pop("trace_id", None)
+            if isinstance(payload.get("stats"), dict):
+                payload["stats"].pop("build_duration_ms", None)
             output_file.write_text(
-                json.dumps(self.to_json(), ensure_ascii=False, indent=2),
+                json.dumps(payload, ensure_ascii=False, indent=2),
                 encoding="utf-8",
             )
             return str(output_file)

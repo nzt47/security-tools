@@ -41,7 +41,15 @@ knowledge/
 └── AGENTS.md             # 规则协议层：知识库"宪法"
 ```
 
-每个目录放入 `.gitkeep` 以保持空目录可提交。`index.md`、`log.md`、`AGENTS.md` 提供初始模板内容。
+每个目录放入 `.gitkeep` 以保持空目录可提交。`AGENTS.md` 提供初始模板内容并**入库**。
+
+> **【CHG-2026-0915 口径变更】`index.md` / `log.md` 是「运行期生成物」，不再作为交付物入库。**
+> 依据：提交 `4436a509`（2026-09-02，`chore(data): 运行数据移出版本控制`）已把
+> `knowledge/index.md`、`log.md`、`index_links.md` 移出版本控制，现由
+> `.gitignore:398-399` 排除，并**由 `agent/knowledge/` 自动维护**
+> （`knowledge/AGENTS.md:24` 逐字如此）。因此"干净 checkout 必然不存在这两个文件"
+> 是**预期状态**，不是缺交付物。此前 `scripts/run_knowledge_tasks.py` 的
+> `TASK_SPECS` 仍把二者列为 T0 交付物 ⇒ 门禁自 2026-09-12 起永久红（已同步修正）。
 
 ### Step 2：编写 AGENTS.md 知识库宪法
 
@@ -166,7 +174,7 @@ python -m pytest tests/unit/test_knowledge_schema.py tests/unit/test_knowledge_l
 
 ## 三、预期成果
 
-1. `knowledge/` 物理目录 + `AGENTS.md` + `index.md`/`log.md` 模板。
+1. `knowledge/` 物理目录 + `AGENTS.md`（入库模板）；`index.md`/`log.md` 为**运行期生成物**、不入库（见上 CHG-2026-0915）。
 2. `agent/knowledge/` 新包：`__init__.py`、`schema.py`、`lifecycle.py`（含 type hints 与 docstring）。
 3. 至少 20 个测试用例（schema 校验正反例 + 状态机迁移矩阵），覆盖率 ≥ 85%。
 
@@ -183,9 +191,9 @@ python -m pytest tests/unit/test_knowledge_schema.py tests/unit/test_knowledge_l
 
 | 文件 | 说明 |
 |------|------|
-| `knowledge/AGENTS.md` | 知识库宪法 |
-| `knowledge/index.md` | 内容索引模板 |
-| `knowledge/log.md` | 时间线日志模板 |
+| `knowledge/AGENTS.md` | 知识库宪法（**入库交付物**） |
+| ~~`knowledge/index.md`~~ | ~~内容索引模板~~ → **运行期生成物，不入库**（`.gitignore:398`；见上 CHG-2026-0915） |
+| ~~`knowledge/log.md`~~ | ~~时间线日志模板~~ → **运行期生成物，不入库**（`.gitignore:399`；见上 CHG-2026-0915） |
 | `agent/knowledge/__init__.py` | 包导出（Card, validate_card, slugify, CardStatus, can_transition 等） |
 | `agent/knowledge/schema.py` | Schema + 校验器 |
 | `agent/knowledge/lifecycle.py` | 生命周期状态机 |

@@ -11,6 +11,7 @@ flowchart LR
         agent_audit_logger["agent.audit.logger"]
         agent_audit_migration["agent.audit.migration"]
         agent_audit_observability["agent.audit.observability"]
+        agent_audit_seq_journal["agent.audit.seq_journal"]
         agent_audit_ui_middleware["agent.audit.ui_middleware"]:::crosslayer
     end
     subgraph caching [caching]
@@ -123,6 +124,7 @@ flowchart LR
         agent_descriptors_registry["agent.descriptors.registry"]:::crosslayer
     end
     subgraph digestion [digestion]
+        agent_digestion["agent.digestion"]:::crosslayer
         agent_digestion_capability["agent.digestion.capability"]
         agent_digestion_case_cost["agent.digestion.case_cost"]
         agent_digestion_cases["agent.digestion.cases"]:::crosslayer
@@ -130,16 +132,21 @@ flowchart LR
         agent_digestion_gate["agent.digestion.gate"]
         agent_digestion_generation["agent.digestion.generation"]
         agent_digestion_internalize["agent.digestion.internalize"]:::crosslayer
+        agent_digestion_isolation["agent.digestion.isolation"]
+        agent_digestion_judge_runtime["agent.digestion.judge_runtime"]
         agent_digestion_probe["agent.digestion.probe"]
+        agent_digestion_real_capture["agent.digestion.real_capture"]
+        agent_digestion_resolutions["agent.digestion.resolutions"]
         agent_digestion_sandbox["agent.digestion.sandbox"]:::crosslayer
         agent_digestion_service["agent.digestion.service"]
         agent_digestion_shadow["agent.digestion.shadow"]:::crosslayer
         agent_digestion_stage["agent.digestion.stage"]
+        agent_digestion_takeover["agent.digestion.takeover"]
     end
     subgraph eval [eval]
-        agent_eval["agent.eval"]
+        agent_eval["agent.eval"]:::crosslayer
         agent_eval_anchor["agent.eval.anchor"]
-        agent_eval_baseline["agent.eval.baseline"]
+        agent_eval_baseline["agent.eval.baseline"]:::crosslayer
         agent_eval_calibration["agent.eval.calibration"]
         agent_eval_cases["agent.eval.cases"]
         agent_eval_checkers["agent.eval.checkers"]
@@ -323,6 +330,7 @@ flowchart LR
         agent_observability["agent.observability"]:::crosslayer
         agent_observability_acr["agent.observability.acr"]:::crosslayer
         agent_observability_arch_rules["agent.observability.arch_rules"]
+        agent_observability_cost_calibration["agent.observability.cost_calibration"]
         agent_observability_dependency_graph["agent.observability.dependency_graph"]
         agent_observability_escape["agent.observability.escape"]:::crosslayer
         agent_observability_events["agent.observability.events"]:::crosslayer
@@ -346,6 +354,7 @@ flowchart LR
         agent_orchestrator_status_reporter["agent.orchestrator.status_reporter"]
         agent_orchestrator_subagent_manager["agent.orchestrator.subagent_manager"]
         agent_orchestrator_task_dispatcher["agent.orchestrator.task_dispatcher"]
+        agent_orchestrator_turn_state["agent.orchestrator.turn_state"]
     end
     subgraph p6 [p6]
         agent_p6["agent.p6"]
@@ -394,12 +403,38 @@ flowchart LR
         agent_quality_defect_tracker["agent.quality.defect_tracker"]
         agent_quality_observability["agent.quality.observability"]
     end
+    subgraph repair [repair]
+        agent_repair["agent.repair"]
+        agent_repair_budget["agent.repair.budget"]
+        agent_repair_delegate["agent.repair.delegate"]
+        agent_repair_diagnose["agent.repair.diagnose"]
+        agent_repair_guardrails["agent.repair.guardrails"]
+        agent_repair_locate["agent.repair.locate"]
+        agent_repair_models["agent.repair.models"]
+        agent_repair_patchapply["agent.repair.patchapply"]
+        agent_repair_pipeline["agent.repair.pipeline"]
+        agent_repair_policy["agent.repair.policy"]
+        agent_repair_propose["agent.repair.propose"]
+        agent_repair_trace["agent.repair.trace"]
+        agent_repair_verify["agent.repair.verify"]
+    end
+    subgraph retention [retention]
+        agent_retention["agent.retention"]
+        agent_retention_archiver["agent.retention.archiver"]
+        agent_retention_guard["agent.retention.guard"]
+        agent_retention_manifest["agent.retention.manifest"]
+        agent_retention_metrics["agent.retention.metrics"]
+        agent_retention_policy["agent.retention.policy"]
+        agent_retention_restorer["agent.retention.restorer"]
+        agent_retention_scan["agent.retention.scan"]
+        agent_retention_scheduler["agent.retention.scheduler"]
+    end
     subgraph security [security]
         agent_security["agent.security"]:::crosslayer
         agent_security_actor_matrix["agent.security.actor_matrix"]:::crosslayer
         agent_security_alerts["agent.security.alerts"]:::crosslayer
         agent_security_approval_guard["agent.security.approval_guard"]:::crosslayer
-        agent_security_approval_session["agent.security.approval_session"]
+        agent_security_approval_session["agent.security.approval_session"]:::crosslayer
         agent_security_governance_bridge["agent.security.governance_bridge"]:::crosslayer
         agent_security_identity["agent.security.identity"]:::crosslayer
         agent_security_pii["agent.security.pii"]:::crosslayer
@@ -410,6 +445,7 @@ flowchart LR
         agent_self_healing_policy["agent.self_healing.policy"]:::crosslayer
         agent_self_healing_release_bundle["agent.self_healing.release_bundle"]
         agent_self_healing_saga["agent.self_healing.saga"]
+        agent_self_healing_watchdog_singleton["agent.self_healing.watchdog_singleton"]
     end
     subgraph server_routes [server_routes]
         agent_server_routes["agent.server_routes"]
@@ -434,6 +470,7 @@ flowchart LR
         agent_server_routes_routes_process_distill["agent.server_routes.routes_process_distill"]
         agent_server_routes_routes_replay["agent.server_routes.routes_replay"]
         agent_server_routes_routes_sessions["agent.server_routes.routes_sessions"]
+        agent_server_routes_routes_settings["agent.server_routes.routes_settings"]
         agent_server_routes_routes_skills["agent.server_routes.routes_skills"]
         agent_server_routes_routes_skills_mgmt["agent.server_routes.routes_skills_mgmt"]
         agent_server_routes_routes_subagent["agent.server_routes.routes_subagent"]
@@ -444,6 +481,15 @@ flowchart LR
         agent_server_routes_routes_workspace["agent.server_routes.routes_workspace"]
         agent_server_routes_tracing_decorator["agent.server_routes.tracing_decorator"]
         agent_server_routes_tracing_middleware["agent.server_routes.tracing_middleware"]
+    end
+    subgraph settings [settings]
+        agent_settings["agent.settings"]:::crosslayer
+        agent_settings_bootstrap["agent.settings.bootstrap"]
+        agent_settings_masking["agent.settings.masking"]
+        agent_settings_overrides["agent.settings.overrides"]
+        agent_settings_registry["agent.settings.registry"]:::crosslayer
+        agent_settings_resolver["agent.settings.resolver"]:::crosslayer
+        agent_settings_service["agent.settings.service"]:::crosslayer
     end
     subgraph skills_mgmt [skills_mgmt]
         agent_skills_mgmt["agent.skills_mgmt"]:::crosslayer
@@ -492,12 +538,12 @@ flowchart LR
         agent_subagent_collection["agent.subagent.collection"]
         agent_subagent_container["agent.subagent.container"]:::crosslayer
         agent_subagent_credentials["agent.subagent.credentials"]
-        agent_subagent_delegation["agent.subagent.delegation"]
+        agent_subagent_delegation["agent.subagent.delegation"]:::crosslayer
         agent_subagent_executor["agent.subagent.executor"]
         agent_subagent_lifecycle["agent.subagent.lifecycle"]:::crosslayer
         agent_subagent_mechanical["agent.subagent.mechanical"]:::crosslayer
         agent_subagent_observability["agent.subagent.observability"]
-        agent_subagent_sandbox["agent.subagent.sandbox"]
+        agent_subagent_sandbox["agent.subagent.sandbox"]:::crosslayer
         agent_subagent_summarizer["agent.subagent.summarizer"]
         agent_subagent_toolset["agent.subagent.toolset"]
     end
@@ -539,7 +585,9 @@ flowchart LR
     end
     subgraph utils [utils]
         agent_utils["agent.utils"]:::crosslayer
+        agent_utils_atomic_write["agent.utils.atomic_write"]:::crosslayer
         agent_utils_compatibility["agent.utils.compatibility"]:::crosslayer
+        agent_utils_cross_process_lock["agent.utils.cross_process_lock"]:::crosslayer
         agent_utils_index_manager["agent.utils.index_manager"]
         agent_utils_observability["agent.utils.observability"]
         agent_utils_perf_monitor["agent.utils.perf_monitor"]
@@ -567,6 +615,7 @@ flowchart LR
     end
     subgraph workflow_learning [workflow_learning]
         agent_workflow_learning["agent.workflow_learning"]:::crosslayer
+        agent_workflow_learning_executor["agent.workflow_learning.executor"]
         agent_workflow_learning_generator["agent.workflow_learning.generator"]:::crosslayer
         agent_workflow_learning_matcher["agent.workflow_learning.matcher"]:::crosslayer
         agent_workflow_learning_models["agent.workflow_learning.models"]:::crosslayer
@@ -575,35 +624,174 @@ flowchart LR
         agent_workflow_learning_service["agent.workflow_learning.service"]:::crosslayer
         agent_workflow_learning_skill_converter["agent.workflow_learning.skill_converter"]:::crosslayer
     end
-    agent_software_backends --> agent_logging_utils
-    agent_weekly_report_generator --> agent_logging_utils
-    agent_weekly_report_generator --> agent_data_analytics
-    agent_memory_optimized --> agent_logging_utils
-    agent_tool_calling --> agent_logging_utils
-    agent_tool_calling --> agent
-    agent_tool_calling --> agent_rate_limiter
-    agent_tool_calling --> agent_circuit_breaker
-    agent_tool_calling -.-> agent_descriptors_bridge
-    agent_tool_calling --> agent_circuit_breaker
-    agent_tool_calling -.-> agent_observability_trace_v2
-    agent_tool_calling -.-> agent_observability_tool_trace
-    agent_tool_calling --> agent_response_workflows
-    agent_llm_response_cache -.-> agent_caching_multi_level_cache
-    agent_llm_response_cache --> agent_logging_utils
-    agent_prometheus_exporter -.-> agent_monitoring_prometheus
-    agent_text_tools --> agent_logging_utils
-    agent_state_manager --> agent_logging_utils
-    agent_state_manager -.-> agent_utils_singleton_manager
-    agent_state_manager -.-> agent_skills_mgmt
-    agent_state_manager -.-> agent_workflow_learning
-    agent_performance_logging --> agent_logging_utils
-    agent_performance_logging -.-> agent_monitoring_performance
-    agent_test_permission_system --> agent_permission_system
-    agent_digital_life_state --> agent_state_manager
-    agent_digital_life_state --> agent_logging_utils
-    agent_digital_life_state --> agent_p6_snapshot
-    agent_digital_life_state --> agent_p6_snapshot
-    agent_digital_life_state --> agent_behavior_controller
+    agent_ab_testing --> agent_logging_utils
+    agent_ab_testing -.-> agent_utils_singleton_manager
+    agent_api_gateway --> agent_rate_limiter
+    agent_api_gateway -.-> agent_monitoring_tracing
+    agent_api_gateway -.-> agent_utils_singleton_manager
+    agent_async_executor -.-> agent_tools
+    agent_async_executor -.-> agent_utils_singleton_manager
+    agent_audit --> agent_audit_logger
+    agent_audit --> agent_audit_chain
+    agent_audit --> agent_audit_facade
+    agent_audit --> agent_audit_migration
+    agent_audit --> agent_audit_ui_middleware
+    agent_audit_chain --> agent_audit_seq_journal
+    agent_audit_chain -.-> agent_utils_cross_process_lock
+    agent_audit_chain -.-> agent_utils_cross_process_lock
+    agent_audit_facade --> agent_audit_chain
+    agent_audit_facade -.-> agent_logging_utils
+    agent_audit_logger -.-> agent_observability_tracer
+    agent_audit_logger -.-> agent_logging_utils
+    agent_audit_logger --> agent_audit_chain
+    agent_audit_logger --> agent_audit_facade
+    agent_audit_logger --> agent_audit_migration
+    agent_audit_migration --> agent_audit_chain
+    agent_audit_migration --> agent_audit_facade
+    agent_audit_observability -.-> agent_logging_utils
+    agent_audit_observability -.-> agent_monitoring_business_metrics
+    agent_audit_ui_middleware --> agent_audit_chain
+    agent_audit_ui_middleware --> agent_audit_facade
+    agent_audit_ui_middleware --> agent_audit_facade
+    agent_audit_ui_middleware -.-> agent_security_identity
+    agent_audit_ui_middleware -.-> agent_security_pii
+    agent_audit_ui_middleware --> agent_audit_facade
+    agent_auto_tuner --> agent_logging_utils
+    agent_auto_tuner -.-> agent_utils_singleton_manager
+    agent_auto_tuner -.-> agent_evolution_injector
+    agent_auto_tuner -.-> agent_evolution_injector
+    agent_auto_tuner -.-> agent_evolution_injector
+    agent_auto_tuner -.-> agent_evolution_injector
+    agent_behavior_controller --> agent_logging_utils
+    agent_caching_multi_level_cache -.-> agent_logging_utils
+    agent_caching_multi_level_cache -.-> agent_monitoring_observability_config
+    agent_caching_observability -.-> agent_logging_utils
+    agent_caching_observability -.-> agent_monitoring_business_metrics
+    agent_cognitive --> agent_cognitive_loop
+    agent_cognitive --> agent_cognitive_reflection
+    agent_cognitive --> agent_cognitive_knowledge
+    agent_cognitive --> agent_cognitive_actor_critic
+    agent_cognitive --> agent_cognitive_debate
+    agent_cognitive_actor_critic -.-> agent_logging_utils
+    agent_cognitive_critic -.-> agent_monitoring_tracing
+    agent_cognitive_critic -.-> agent_circuit_breaker
+    agent_cognitive_critic -.-> agent_graceful_degrade
+    agent_cognitive_critic -.-> agent_logging_utils
+    agent_cognitive_critic -.-> agent_evolution_injector
+    agent_cognitive_debate -.-> agent_logging_utils
+    agent_cognitive_failure_analysis -.-> agent_logging_utils
+    agent_cognitive_failure_analysis -.-> agent_utils_singleton_manager
+    agent_cognitive_failure_collector --> agent_cognitive_failure_analysis
+    agent_cognitive_failure_collector -.-> agent_logging_utils
+    agent_cognitive_failure_collector -.-> agent_utils_singleton_manager
+    agent_cognitive_logging_integration --> agent_cognitive_failure_collector
+    agent_cognitive_loop --> agent_cognitive_reflection
+    agent_cognitive_loop --> agent_cognitive_knowledge
+    agent_cognitive_loop --> agent_cognitive_actor_critic
+    agent_cognitive_loop --> agent_cognitive_debate
+    agent_cognitive_loop -.-> agent_logging_utils
+    agent_cognitive_observability -.-> agent_logging_utils
+    agent_cognitive_observability -.-> agent_monitoring_business_metrics
+    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_evaluator
+    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_lineage
+    agent_cognitive_prompt_optimizer --> agent_cognitive_failure_bucket
+    agent_cognitive_prompt_optimizer -.-> agent_logging_utils
+    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_observability
+    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_observability
+    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_observability
+    agent_cognitive_reflection -.-> agent_logging_utils
+    agent_cognitive_reflection -.-> agent_monitoring_observability_config
+    agent_compression_tools --> agent_logging_utils
+    agent_compression_tools --> agent_system_tools
+    agent_compression_tools --> agent_system_tools
+    agent_config_etcd_config_client -.-> agent_logging_utils
+    agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
+    agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
+    agent_config_etcd_config_client -.-> agent_monitoring_metrics
+    agent_config_etcd_config_client -.-> agent_error_handler
+    agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
+    agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
+    agent_context_assembler -.-> agent_guardrails_foreign_taint
+    agent_context_assembler -.-> agent_guardrails_instruction_data
+    agent_context_assembler -.-> agent_guardrails_foreign_taint
+    agent_data_observability -.-> agent_logging_utils
+    agent_data_observability -.-> agent_monitoring_business_metrics
+    agent_data_analytics --> agent_logging_utils
+    agent_data_analytics -.-> agent_monitoring_observability_config
+    agent_descriptors_backfill -.-> agent_digestion
+    agent_descriptors_bridge --> agent_descriptors_registry
+    agent_descriptors_bridge -.-> agent_skills_mgmt_store
+    agent_descriptors_registry -.-> agent_audit
+    agent_diff_tools --> agent_logging_utils
+    agent_diff_tools --> agent_system_tools
+    agent_digestion_capability -.-> agent_descriptors_bridge
+    agent_digestion_capability -.-> agent_descriptors_registry
+    agent_digestion_case_cost -.-> agent_observability_events
+    agent_digestion_case_cost -.-> agent_observability_utc
+    agent_digestion_case_cost -.-> agent_observability_events
+    agent_digestion_case_cost -.-> agent_observability_events
+    agent_digestion_case_cost -.-> agent_observability_events
+    agent_digestion_cases -.-> agent_descriptors_registry
+    agent_digestion_cleaning -.-> agent_descriptors_bridge
+    agent_digestion_gate -.-> agent_observability_events
+    agent_digestion_gate -.-> agent_audit_facade
+    agent_digestion_gate -.-> agent_observability_trace_v2
+    agent_digestion_gate -.-> agent_task_scheduler
+    agent_digestion_gate -.-> agent_descriptors_registry
+    agent_digestion_gate -.-> agent_monitoring_cost_brake
+    agent_digestion_generation -.-> agent_workflow_learning_skill_converter
+    agent_digestion_generation -.-> agent_process_distill_solidify
+    agent_digestion_generation -.-> agent_process_distill_models
+    agent_digestion_generation -.-> agent_process_distill_models
+    agent_digestion_generation -.-> agent_process_distill_solidify
+    agent_digestion_generation -.-> agent_workflow_learning_models
+    agent_digestion_generation -.-> agent_process_distill_solidify
+    agent_digestion_generation -.-> agent_skills_mgmt_file_store
+    agent_digestion_internalize -.-> agent_audit_facade
+    agent_digestion_internalize -.-> agent_observability_utc
+    agent_digestion_internalize -.-> agent_skills_mgmt_approval
+    agent_digestion_internalize -.-> agent_security_approval_guard
+    agent_digestion_internalize -.-> agent_observability_events
+    agent_digestion_internalize -.-> agent_audit_facade
+    agent_digestion_internalize -.-> agent_monitoring_cost_brake
+    agent_digestion_internalize -.-> agent_observability_trace_v2
+    agent_digestion_internalize -.-> agent_descriptors_registry
+    agent_digestion_internalize -.-> agent_task_scheduler
+    agent_digestion_isolation -.-> agent_subagent_sandbox
+    agent_digestion_judge_runtime -.-> agent_monitoring_cost_brake
+    agent_digestion_judge_runtime -.-> agent_observability
+    agent_digestion_judge_runtime -.-> agent_observability_model_degrade
+    agent_digestion_judge_runtime -.-> agent_observability_events
+    agent_digestion_probe -.-> agent_self_healing_levels
+    agent_digestion_probe -.-> agent_audit_facade
+    agent_digestion_probe -.-> agent_task_scheduler
+    agent_digestion_real_capture -.-> agent_tools_file_tools
+    agent_digestion_real_capture -.-> agent_tools_shell_tools
+    agent_digestion_real_capture -.-> agent_tools_file_tools
+    agent_digestion_real_capture -.-> agent_observability_trace_v2
+    agent_digestion_real_capture -.-> agent_observability_trace_v2
+    agent_digestion_resolutions -.-> agent_audit_facade
+    agent_digestion_service -.-> agent_observability_trace_v2
+    agent_digestion_service -.-> agent_descriptors_registry
+    agent_digestion_service -.-> agent_observability_events
+    agent_digestion_shadow -.-> agent_monitoring_cost_brake
+    agent_digestion_shadow -.-> agent_observability_events
+    agent_digestion_shadow -.-> agent_audit_facade
+    agent_digestion_shadow -.-> agent_model_router_adapters
+    agent_digestion_stage -.-> agent_descriptors_registry
+    agent_digestion_stage -.-> agent_descriptors_bridge
+    agent_digestion_stage -.-> agent_observability_events
+    agent_digestion_stage -.-> agent_audit_facade
+    agent_digestion_stage -.-> agent_audit_facade
+    agent_digestion_takeover -.-> agent_self_healing_levels
+    agent_digestion_takeover -.-> agent_audit_facade
+    agent_digestion_takeover -.-> agent_observability_events
+    agent_digestion_takeover -.-> agent_observability_trace_v2
+    agent_digestion_takeover -.-> agent_observability_trace_v2
+    agent_digital_life --> agent_logging_utils
+    agent_digital_life -.-> agent_orchestrator
+    agent_digital_life -.-> agent_monitoring
+    agent_digital_life --> agent_system_prompt_manager
     agent_digital_life_persona --> agent_logging_utils
     agent_digital_life_persona --> agent_behavior_controller
     agent_digital_life_persona -.-> agent_tools
@@ -613,32 +801,16 @@ flowchart LR
     agent_digital_life_persona --> agent_performance_monitor
     agent_digital_life_persona -.-> agent_extensions_store
     agent_digital_life_persona -.-> agent_extensions_base
-    agent_async_executor -.-> agent_tools
-    agent_async_executor -.-> agent_utils_singleton_manager
-    agent_network_config --> agent_logging_utils
-    agent_network_config --> agent_env_config_manager
-    agent_network_config -.-> agent_tools
-    agent_learning_budget --> agent_circuit_breaker
-    agent_learning_budget --> agent_rate_limiter
-    agent_learning_budget -.-> agent_monitoring_metrics
-    agent_graceful_degrade -.-> agent_observability_model_degrade
-    agent_task_scheduler --> agent_logging_utils
-    agent_task_scheduler -.-> agent_utils_singleton_manager
-    agent_task_scheduler -.-> agent_observability_acr
-    agent_task_scheduler --> agent_weekly_report_generator
-    agent_task_scheduler -.-> agent_monitoring_observability_config
-    agent_task_scheduler -.-> agent_monitoring_observability_config
-    agent_task_scheduler -.-> agent_monitoring_observability_config
-    agent_task_scheduler -.-> agent_monitoring_observability_config
-    agent_task_scheduler -.-> agent_monitoring_observability_config
-    agent_task_scheduler -.-> agent_monitoring_observability_config
-    agent_diff_tools --> agent_logging_utils
-    agent_diff_tools --> agent_system_tools
-    agent_p6_snapshot --> agent_logging_utils
-    agent_p6_snapshot --> agent_behavior_controller
-    agent_security_utils --> agent_logging_utils
-    agent_performance_monitor --> agent_logging_utils
-    agent_performance_monitor -.-> agent_monitoring_performance
+    agent_digital_life_state --> agent_state_manager
+    agent_digital_life_state --> agent_logging_utils
+    agent_digital_life_state --> agent_p6_snapshot
+    agent_digital_life_state --> agent_p6_snapshot
+    agent_digital_life_state --> agent_behavior_controller
+    agent_disaster_recovery -.-> agent_utils_singleton_manager
+    agent_env_config_manager --> agent_logging_utils
+    agent_env_config_manager -.-> agent_utils_cross_process_lock
+    agent_env_config_manager -.-> agent_monitoring_observability_config
+    agent_env_config_manager -.-> agent_audit
     agent_error_handler --> agent_logging_utils
     agent_error_handler --> agent_circuit_breaker
     agent_error_handler --> agent_circuit_breaker
@@ -649,154 +821,113 @@ flowchart LR
     agent_error_handler -.-> agent_monitoring_observability_config
     agent_error_handler -.-> agent_monitoring_metrics
     agent_error_handler -.-> agent_monitoring_metrics
-    agent_tool_router -.-> agent_observability_tool_trace
-    agent_tool_router -.-> agent_evolution_injector
-    agent_tool_router -.-> agent_monitoring_tracing
-    agent_v2_performance_patch --> agent_logging_utils
-    agent_compression_tools --> agent_logging_utils
-    agent_compression_tools --> agent_system_tools
-    agent_compression_tools --> agent_system_tools
-    agent_software_manager --> agent_logging_utils
-    agent_auto_tuner --> agent_logging_utils
-    agent_auto_tuner -.-> agent_utils_singleton_manager
-    agent_auto_tuner -.-> agent_evolution_injector
-    agent_auto_tuner -.-> agent_evolution_injector
-    agent_auto_tuner -.-> agent_evolution_injector
-    agent_auto_tuner -.-> agent_evolution_injector
-    agent_p6_config_loader --> agent_p6_snapshot
-    agent_tool_router_hybrid --> agent_logging_utils
-    agent_tool_router_hybrid -.-> agent_observability_tool_trace
-    agent_tool_router_hybrid --> agent_tool_router
-    agent_lazy_loader_async -.-> agent_lazy_loader
-    agent_lazy_loader_async -.-> agent_lazy_loader__core
-    agent_lazy_loader_async --> agent_logging_utils
-    agent_lazy_loader_async -.-> agent_utils_singleton_manager
-    agent_logging_utils -.-> agent_utils_singleton_manager
-    agent_logging_utils -.-> agent_utils
-    agent_behavior_controller --> agent_logging_utils
-    agent_env_config_manager --> agent_logging_utils
-    agent_env_config_manager -.-> agent_audit
-    agent_multi_tenant -.-> agent_monitoring_tracing
-    agent_tool_router_reranker --> agent_logging_utils
-    agent_tool_router_reranker -.-> agent_utils_singleton_manager
-    agent_learning_metrics_api --> agent_learning_metrics
-    agent_scheduling --> agent_logging_utils
-    agent_scheduling -.-> agent_utils_singleton_manager
-    agent_data_analytics --> agent_logging_utils
-    agent_data_analytics -.-> agent_monitoring_observability_config
-    agent_system_prompt_config -.-> agent_utils_singleton_manager
-    agent_digital_life --> agent_logging_utils
-    agent_digital_life -.-> agent_orchestrator
-    agent_digital_life -.-> agent_monitoring
-    agent_digital_life --> agent_system_prompt_manager
-    agent_disaster_recovery -.-> agent_utils_singleton_manager
-    agent_server_auth -.-> agent_security_identity
-    agent_server_auth -.-> agent_security_identity
-    agent_api_gateway --> agent_rate_limiter
-    agent_api_gateway -.-> agent_monitoring_tracing
-    agent_api_gateway -.-> agent_utils_singleton_manager
-    agent_system_tools -.-> agent_tools_file_tools
-    agent_system_tools -.-> agent_tools_workspace_tools
-    agent_system_tools -.-> agent_tools_browser_tools
-    agent_system_tools -.-> agent_tools_process_tools
-    agent_system_tools -.-> agent_tools_task_tools
-    agent_system_tools -.-> agent_tools_shell_tools
-    agent_llm_monitor -.-> agent_utils_singleton_manager
-    agent_llm_monitor -.-> agent_observability_events
-    agent_llm_monitor -.-> agent_observability
-    agent_llm_monitor -.-> agent_observability
-    agent_llm_monitor -.-> agent_monitoring_observability_config
-    agent_llm_monitor -.-> agent_observability
-    agent_session_manager -.-> agent_observability_trace_v2
-    agent_learning_metrics -.-> agent_monitoring_metrics
-    agent_learning_metrics -.-> agent_utils_singleton_manager
     agent_error_reporting_config -.-> agent_monitoring_tracing
-    agent_rate_limiter --> agent_logging_utils
-    agent_rate_limiter -.-> agent_monitoring_metrics
-    agent_search_aggregator --> agent_logging_utils
-    agent_mcp_executor -.-> agent_utils_singleton_manager
-    agent_mcp_executor --> agent_tool_router
-    agent_mcp_executor --> agent_tool_router
-    agent_ab_testing --> agent_logging_utils
-    agent_ab_testing -.-> agent_utils_singleton_manager
-    agent_permission_system -.-> agent_policy
-    agent_permission_system -.-> agent_policy
-    agent_tool_fewshot_store -.-> agent_utils_sensitive_data_filter
-    agent_modules_api --> agent_modules_registry
-    agent_modules_api --> agent_server_auth
-    agent_modules_api --> agent_rate_limiter
-    agent_modules_api -.-> agent_health_dashboard
-    agent_modules_api --> agent_system_tools
+    agent_eval --> agent_eval_anchor
+    agent_eval --> agent_eval_cases
+    agent_eval --> agent_eval_checkers
+    agent_eval --> agent_eval_runner
+    agent_eval --> agent_eval_solvers
+    agent_eval_anchor --> agent_eval_cases
+    agent_eval_baseline --> agent_eval_anchor
+    agent_eval_baseline --> agent_eval_cases
+    agent_eval_baseline --> agent_eval_metrics
+    agent_eval_baseline --> agent_eval_runner
+    agent_eval_baseline -.-> agent_observability
+    agent_eval_baseline -.-> agent_digestion_shadow
+    agent_eval_baseline -.-> agent_observability
+    agent_eval_calibration --> agent_eval_anchor
+    agent_eval_calibration -.-> agent_observability
+    agent_eval_calibration -.-> agent_observability_events
+    agent_eval_cases --> agent_eval_checkers
+    agent_eval_cases --> agent_eval_checkers
+    agent_eval_metrics -.-> agent_observability
+    agent_eval_metrics -.-> agent_observability
+    agent_eval_metrics -.-> agent_observability_events
+    agent_eval_metrics -.-> agent_feedback
+    agent_eval_metrics -.-> agent_subagent_mechanical
+    agent_eval_metrics -.-> agent_descriptors_registry
+    agent_eval_metrics -.-> agent_digestion_shadow
+    agent_eval_runner --> agent_eval_anchor
+    agent_eval_runner --> agent_eval_cases
+    agent_eval_runner --> agent_eval_checkers
+    agent_eval_runner --> agent_eval_solvers
+    agent_eval_solvers --> agent_eval_checkers
+    agent_eval_solvers --> agent_eval_cases
+    agent_evolution_injector -.-> agent_utils_singleton_manager
+    agent_extensions --> agent_extensions_base
+    agent_extensions --> agent_extensions_manager
+    agent_extensions --> agent_extensions_store
+    agent_extensions_base -.-> agent_logging_utils
+    agent_extensions_channels_installer --> agent_extensions_base
+    agent_extensions_channels_installer --> agent_extensions_installer
+    agent_extensions_channels_installer --> agent_extensions_store
+    agent_extensions_channels_installer -.-> agent_logging_utils
+    agent_extensions_dependency_manager -.-> agent_monitoring_tracing
+    agent_extensions_dependency_manager -.-> agent_logging_utils
+    agent_extensions_installer -.-> agent_logging_utils
+    agent_extensions_manager --> agent_extensions_base
+    agent_extensions_manager --> agent_extensions_store
+    agent_extensions_manager --> agent_extensions_skills_installer
+    agent_extensions_manager --> agent_extensions_mcp_installer
+    agent_extensions_manager --> agent_extensions_channels_installer
+    agent_extensions_manager --> agent_extensions_plugins_installer
+    agent_extensions_manager -.-> agent_logging_utils
+    agent_extensions_market --> agent_extensions_base
+    agent_extensions_market -.-> agent_logging_utils
+    agent_extensions_mcp_installer --> agent_extensions_base
+    agent_extensions_mcp_installer --> agent_extensions_installer
+    agent_extensions_mcp_installer --> agent_extensions_store
+    agent_extensions_mcp_installer -.-> agent_logging_utils
+    agent_extensions_observability -.-> agent_logging_utils
+    agent_extensions_observability -.-> agent_monitoring_business_metrics
+    agent_extensions_plugins_installer --> agent_extensions_base
+    agent_extensions_plugins_installer --> agent_extensions_installer
+    agent_extensions_plugins_installer --> agent_extensions_store
+    agent_extensions_plugins_installer -.-> agent_logging_utils
+    agent_extensions_sandbox -.-> agent_monitoring_tracing
+    agent_extensions_sandbox -.-> agent_logging_utils
+    agent_extensions_security_check_skill --> agent_extensions_security_checker
+    agent_extensions_security_check_skill -.-> agent_logging_utils
+    agent_extensions_security_check_skill --> agent_extensions_security_checker
+    agent_extensions_security_checker -.-> agent_logging_utils
+    agent_extensions_security_checker -.-> agent_utils_singleton_manager
+    agent_extensions_security_checker --> agent_extensions_base
+    agent_extensions_skills_installer --> agent_extensions_base
+    agent_extensions_skills_installer --> agent_extensions_installer
+    agent_extensions_skills_installer --> agent_extensions_store
+    agent_extensions_skills_installer -.-> agent_logging_utils
+    agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
+    agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
+    agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
+    agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
+    agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
+    agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
+    agent_extensions_store --> agent_extensions_base
+    agent_extensions_store -.-> agent_logging_utils
     agent_feedback --> agent_logging_utils
     agent_feedback -.-> agent_utils_singleton_manager
     agent_feedback -.-> agent_cognitive_failure_analysis
     agent_feedback --> agent_learning_metrics
-    agent_safety_guard -.-> agent_utils_singleton_manager
-    agent_search_performance_monitor --> agent_logging_utils
-    agent_search_performance_monitor -.-> agent_monitoring_search
-    agent_workflow_engine_registry -.-> agent_logging_utils
-    agent_workflow_engine_matcher -.-> agent_logging_utils
-    agent_workflow_engine_observability -.-> agent_logging_utils
-    agent_workflow_engine_observability -.-> agent_monitoring_business_metrics
-    agent_tools_mcp_connector --> agent
-    agent_tools_core_tools --> agent
-    agent_tools_core_tools -.-> agent_system_tools
-    agent_tools_tool_generator --> agent
-    agent_tools_tool_generator -.-> agent_logging_utils
-    agent_tools -.-> agent_rate_limiter
-    agent_tools_file_tools -.-> agent_logging_utils
-    agent_tools_file_tools_reg --> agent
-    agent_tools_file_tools_reg -.-> agent_system_tools
-    agent_tools_file_tools_reg -.-> agent_compression_tools
-    agent_tools_file_tools_reg -.-> agent_diff_tools
-    agent_tools_file_tools_reg -.-> agent_policy_taint
-    agent_tools_discovery_service -.-> agent_extensions_base
-    agent_tools_discovery_service --> agent_tools_mcp_connector
-    agent_tools_discovery_service -.-> agent_extensions_market
-    agent_tools_pdf_tools --> agent
-    agent_tools_pdf_tools -.-> agent_logging_utils
-    agent_tools_pdf_tools -.-> agent_pdf_tools
-    agent_tools_software_tools --> agent
-    agent_tools_software_tools -.-> agent_software_manager
-    agent_tools_software_tools -.-> agent_software_backends
-    agent_tools_software_tools -.-> agent_web
-    agent_tools_task_tools -.-> agent_observability_escape
-    agent_tools_task_tools -.-> agent_observability_escape
-    agent_tools_task_tools -.-> agent_task_scheduler
-    agent_tools_task_tools -.-> agent_task_scheduler
-    agent_tools_task_tools -.-> agent_task_scheduler
-    agent_tools_code_tools --> agent
-    agent_tools_code_tools -.-> agent_diagram_tools
-    agent_tools_code_tools -.-> agent_text_tools
-    agent_tools_code_tools -.-> agent_data_process_tools
-    agent_tools_code_tools -.-> agent_async_executor
-    agent_tools_code_tools -.-> agent_code_review
-    agent_tools_code_tools -.-> agent_scheduling
-    agent_tools_code_tools -.-> agent_scheduling
-    agent_tools_code_tools -.-> agent_scheduling
-    agent_tools_code_tools -.-> agent_scheduling
-    agent_tools_code_tools -.-> agent_scheduling
-    agent_tools_code_tools -.-> agent_scheduling
-    agent_tools_system_tools --> agent
-    agent_tools_system_tools -.-> agent_system_tools
-    agent_tools_system_tools -.-> agent_system_tools
-    agent_tools_ext_tools --> agent
-    agent_tools_ext_tools -.-> agent_extensions_market
-    agent_tools_ext_tools --> agent_tools_tool_generator
-    agent_tools_observability -.-> agent_logging_utils
-    agent_tools_observability -.-> agent_monitoring_business_metrics
-    agent_tools_web_tools --> agent
-    agent_tools_web_tools -.-> agent_web
-    agent_tools_web_tools -.-> agent_network_config
-    agent_tools_web_tools -.-> agent_search_aggregator
+    agent_graceful_degrade -.-> agent_observability_model_degrade
+    agent_guardrails_boundary_words -.-> agent_audit_facade
+    agent_guardrails_boundary_words -.-> agent_audit_facade
+    agent_guardrails_boundary_words -.-> agent_audit_facade
     agent_guardrails_capability_exposure -.-> agent_security
+    agent_guardrails_egress_chain -.-> agent_policy_taint
+    agent_guardrails_egress_chain -.-> agent_policy_taint
+    agent_guardrails_egress_chain -.-> agent_observability_events
+    agent_guardrails_egress_chain -.-> agent_policy_taint
+    agent_guardrails_egress_chain -.-> agent_policy_egress
+    agent_guardrails_egress_chain -.-> agent_circuit_breaker
+    agent_guardrails_egress_chain -.-> agent_self_healing_levels
+    agent_guardrails_egress_chain -.-> agent_audit_facade
+    agent_guardrails_egress_chain -.-> agent_circuit_breaker
+    agent_guardrails_egress_chain -.-> agent_observability_events
     agent_guardrails_egress_guard -.-> agent_policy_egress
     agent_guardrails_egress_guard -.-> agent_audit_facade
     agent_guardrails_egress_guard -.-> agent_policy_egress
-    agent_guardrails_instruction_data --> agent_guardrails_foreign_taint
-    agent_guardrails_instruction_data --> agent_guardrails_foreign_taint
-    agent_guardrails_instruction_data --> agent_guardrails_foreign_taint
-    agent_guardrails_instruction_data -.-> agent_audit_facade
+    agent_guardrails_foreign_taint -.-> agent_audit_facade
+    agent_guardrails_foreign_taint -.-> agent_audit_facade
     agent_guardrails_injection_defense --> agent_guardrails_foreign_taint
     agent_guardrails_injection_defense --> agent_guardrails_instruction_data
     agent_guardrails_injection_defense --> agent_guardrails_boundary_words
@@ -808,101 +939,414 @@ flowchart LR
     agent_guardrails_injection_defense --> agent_guardrails_egress_chain
     agent_guardrails_injection_defense --> agent_guardrails_boundary_words
     agent_guardrails_injection_defense --> agent_guardrails_safe_render
+    agent_guardrails_input_guard -.-> agent_logging_utils
+    agent_guardrails_instruction_data --> agent_guardrails_foreign_taint
+    agent_guardrails_instruction_data --> agent_guardrails_foreign_taint
+    agent_guardrails_instruction_data --> agent_guardrails_foreign_taint
+    agent_guardrails_instruction_data -.-> agent_audit_facade
+    agent_guardrails_observability -.-> agent_logging_utils
+    agent_guardrails_observability -.-> agent_monitoring_business_metrics
     agent_guardrails_output_guard -.-> agent_logging_utils
-    agent_guardrails_foreign_taint -.-> agent_audit_facade
-    agent_guardrails_foreign_taint -.-> agent_audit_facade
-    agent_guardrails_safe_render --> agent_guardrails_foreign_taint
     agent_guardrails_output_schema -.-> agent_monitoring_tracing
     agent_guardrails_output_schema -.-> agent_circuit_breaker
     agent_guardrails_output_schema -.-> agent_graceful_degrade
     agent_guardrails_output_schema -.-> agent_logging_utils
-    agent_guardrails_egress_chain -.-> agent_policy_taint
-    agent_guardrails_egress_chain -.-> agent_policy_taint
-    agent_guardrails_egress_chain -.-> agent_observability_events
-    agent_guardrails_egress_chain -.-> agent_policy_taint
-    agent_guardrails_egress_chain -.-> agent_policy_egress
-    agent_guardrails_egress_chain -.-> agent_circuit_breaker
-    agent_guardrails_egress_chain -.-> agent_self_healing_levels
-    agent_guardrails_egress_chain -.-> agent_audit_facade
-    agent_guardrails_egress_chain -.-> agent_circuit_breaker
-    agent_guardrails_egress_chain -.-> agent_observability_events
-    agent_guardrails_boundary_words -.-> agent_audit_facade
-    agent_guardrails_boundary_words -.-> agent_audit_facade
-    agent_guardrails_boundary_words -.-> agent_audit_facade
-    agent_guardrails_input_guard -.-> agent_logging_utils
-    agent_guardrails_observability -.-> agent_logging_utils
-    agent_guardrails_observability -.-> agent_monitoring_business_metrics
-    agent_log_system_models -.-> agent_logging_utils
+    agent_guardrails_safe_render --> agent_guardrails_foreign_taint
+    agent_handoff_handoff_generator -.-> agent_utils_token_redactor
+    agent_handoff_handoff_generator -.-> agent_state_manager
+    agent_health_assessor -.-> agent_logging_utils
+    agent_health_collector --> agent_health_assessor
+    agent_health_collector --> agent_health_probes
+    agent_health_collector --> agent_health_storage
+    agent_health_dashboard --> agent_health_assessor
+    agent_health_dashboard --> agent_health_probes
+    agent_health_dashboard --> agent_health_storage
+    agent_health_health_score -.-> agent_logging_utils
+    agent_health_health_score -.-> agent_utils_singleton_manager
+    agent_health_observability -.-> agent_logging_utils
+    agent_health_observability -.-> agent_monitoring_business_metrics
+    agent_health_probes -.-> agent_logging_utils
+    agent_health_probes -.-> agent_monitoring_metrics
+    agent_health_probes -.-> agent_monitoring_metrics
+    agent_health_probes -.-> agent_feedback
+    agent_health_probes -.-> agent_circuit_breaker
+    agent_human_in_the_loop --> agent_human_in_the_loop_takeover_queue
+    agent_human_in_the_loop_ethics -.-> agent_logging_utils
+    agent_human_in_the_loop_hitl -.-> agent_logging_utils
+    agent_human_in_the_loop_observability -.-> agent_logging_utils
+    agent_human_in_the_loop_observability -.-> agent_monitoring_business_metrics
+    agent_knowledge --> agent_knowledge_schema
+    agent_knowledge --> agent_knowledge_lifecycle
+    agent_knowledge --> agent_knowledge_logbook
+    agent_knowledge --> agent_knowledge_links
+    agent_knowledge --> agent_knowledge_card
+    agent_knowledge --> agent_knowledge_index
+    agent_knowledge --> agent_knowledge_link_cache
+    agent_knowledge --> agent_knowledge_search
+    agent_knowledge___main__ --> agent_knowledge_card
+    agent_knowledge___main__ --> agent_knowledge_distill
+    agent_knowledge___main__ --> agent_knowledge_index
+    agent_knowledge___main__ --> agent_knowledge_links
+    agent_knowledge___main__ --> agent_knowledge_audit_job
+    agent_knowledge___main__ --> agent_knowledge_lint
+    agent_knowledge___main__ --> agent_knowledge_conflict
+    agent_knowledge___main__ --> agent_knowledge_skill_bridge
+    agent_knowledge___main__ -.-> agent_skills_mgmt_store
+    agent_knowledge_audit_job --> agent_knowledge_lint
+    agent_knowledge_audit_job --> agent_knowledge_logbook
+    agent_knowledge_audit_job --> agent_knowledge_reporting
+    agent_knowledge_card --> agent_knowledge_index
+    agent_knowledge_card --> agent_knowledge_lifecycle
+    agent_knowledge_card --> agent_knowledge_light_loader
+    agent_knowledge_card --> agent_knowledge_links
+    agent_knowledge_card --> agent_knowledge_links_index
+    agent_knowledge_card --> agent_knowledge_logbook
+    agent_knowledge_card --> agent_knowledge_schema
+    agent_knowledge_card -.-> agent_logging_utils
+    agent_knowledge_conflict --> agent_knowledge_card
+    agent_knowledge_conflict --> agent_knowledge_logbook
+    agent_knowledge_discuss --> agent_knowledge_ingest
+    agent_knowledge_discuss --> agent_knowledge_logbook
+    agent_knowledge_discuss --> agent_knowledge_observability
+    agent_knowledge_discuss --> agent_knowledge_prompts
+    agent_knowledge_distill --> agent_knowledge_card
+    agent_knowledge_distill --> agent_knowledge_ingest
+    agent_knowledge_distill --> agent_knowledge_logbook
+    agent_knowledge_distill --> agent_knowledge_observability
+    agent_knowledge_distill --> agent_knowledge_prompts
+    agent_knowledge_distill --> agent_knowledge_schema
+    agent_knowledge_distill -.-> agent_logging_utils
+    agent_knowledge_distill_feedback -.-> agent_cognitive_prompt_optimizer
+    agent_knowledge_distill_feedback -.-> agent_feedback
+    agent_knowledge_distill_feedback --> agent_knowledge_ingest
+    agent_knowledge_index --> agent_knowledge_links
+    agent_knowledge_index --> agent_knowledge_links_index
+    agent_knowledge_index --> agent_knowledge_schema
+    agent_knowledge_ingest -.-> agent_utils_cross_process_lock
+    agent_knowledge_ingest -.-> agent_utils_sensitive_data_filter
+    agent_knowledge_ingest -.-> agent_monitoring_observability_config
+    agent_knowledge_link_cache --> agent_knowledge_links
+    agent_knowledge_link_cache --> agent_knowledge_schema
+    agent_knowledge_links --> agent_knowledge_schema
+    agent_knowledge_links_index --> agent_knowledge_links
+    agent_knowledge_lint --> agent_knowledge_index
+    agent_knowledge_lint --> agent_knowledge_links
+    agent_knowledge_reporting --> agent_knowledge_lint
+    agent_knowledge_search --> agent_knowledge_card
+    agent_knowledge_search --> agent_knowledge_link_cache
+    agent_knowledge_search --> agent_knowledge_schema
+    agent_knowledge_search -.-> agent_utils_periodic_sampler
+    agent_knowledge_search -.-> agent_logging_utils
+    agent_knowledge_skill_bridge -.-> agent_skills_mgmt_creator
+    agent_knowledge_skill_bridge -.-> agent_skills_mgmt_exceptions
+    agent_knowledge_skill_bridge -.-> agent_skills_mgmt_reviewer
+    agent_knowledge_skill_bridge -.-> agent_learning_metrics
+    agent_knowledge_skill_bridge -.-> agent_skills_mgmt_store
+    agent_knowledge_skill_bridge -.-> agent_skills_mgmt_creator
+    agent_knowledge_skill_bridge --> agent_knowledge_card
+    agent_knowledge_tools --> agent_knowledge_card
+    agent_knowledge_tools --> agent_knowledge_observability
+    agent_knowledge_tools --> agent_knowledge_workflow
+    agent_knowledge_tools -.-> agent_logging_utils
+    agent_knowledge_tools -.-> agent_tools
+    agent_knowledge_tools -.-> agent_tools
+    agent_knowledge_tools --> agent_knowledge_card
+    agent_knowledge_tools --> agent_knowledge_search
+    agent_knowledge_watcher --> agent_knowledge_ingest
+    agent_knowledge_workflow --> agent_knowledge_card
+    agent_knowledge_workflow --> agent_knowledge_discuss
+    agent_knowledge_workflow --> agent_knowledge_distill
+    agent_knowledge_workflow --> agent_knowledge_ingest
+    agent_knowledge_workflow --> agent_knowledge_lint
+    agent_knowledge_workflow --> agent_knowledge_logbook
+    agent_knowledge_workflow --> agent_knowledge_schema
+    agent_knowledge_workflow -.-> agent_logging_utils
+    agent_lazy_loader -.-> agent_logging_utils
+    agent_lazy_loader -.-> agent_utils_singleton_manager
+    agent_lazy_loader__core -.-> agent_logging_utils
+    agent_lazy_loader_observability -.-> agent_logging_utils
+    agent_lazy_loader_observability -.-> agent_monitoring_business_metrics
+    agent_lazy_loader_async -.-> agent_lazy_loader
+    agent_lazy_loader_async -.-> agent_lazy_loader__core
+    agent_lazy_loader_async --> agent_logging_utils
+    agent_lazy_loader_async -.-> agent_utils_singleton_manager
+    agent_learning_behavior_drift --> agent_learning_novelty_hooks
+    agent_learning_behavior_drift -.-> agent_task_scheduler
+    agent_learning_behavior_drift -.-> agent_task_scheduler
+    agent_learning_budget --> agent_circuit_breaker
+    agent_learning_budget --> agent_rate_limiter
+    agent_learning_budget -.-> agent_monitoring_metrics
+    agent_learning_metrics -.-> agent_monitoring_metrics
+    agent_learning_metrics -.-> agent_utils_singleton_manager
+    agent_learning_metrics_api --> agent_learning_metrics
+    agent_llm_monitor -.-> agent_utils_singleton_manager
+    agent_llm_monitor -.-> agent_observability_events
+    agent_llm_monitor -.-> agent_observability
+    agent_llm_monitor -.-> agent_observability
+    agent_llm_monitor -.-> agent_monitoring_observability_config
+    agent_llm_monitor -.-> agent_observability
+    agent_llm_response_cache -.-> agent_caching_multi_level_cache
+    agent_llm_response_cache --> agent_logging_utils
     agent_log_system_dashboard -.-> agent_logging_utils
     agent_log_system_formatter -.-> agent_logging_utils
-    agent_log_system_optimized_storage -.-> agent_logging_utils
-    agent_log_system_optimized_storage -.-> agent_utils_singleton_manager
     agent_log_system_handlers -.-> agent_logging_utils
     agent_log_system_handlers --> agent_log_system_formatter
     agent_log_system_handlers --> agent_log_system_emoji_map
     agent_log_system_handlers --> agent_log_system_safe_logger
-    agent_log_system_observability -.-> agent_logging_utils
-    agent_log_system_observability -.-> agent_monitoring_business_metrics
     agent_log_system_introspection -.-> agent_common_stop_mixin
     agent_log_system_introspection -.-> agent_logging_utils
     agent_log_system_introspection -.-> agent_tool_calling
-    agent_log_system_storage -.-> agent_logging_utils
+    agent_log_system_models -.-> agent_logging_utils
+    agent_log_system_observability -.-> agent_logging_utils
+    agent_log_system_observability -.-> agent_monitoring_business_metrics
+    agent_log_system_optimized_storage -.-> agent_logging_utils
+    agent_log_system_optimized_storage -.-> agent_utils_singleton_manager
     agent_log_system_safe_logger -.-> agent_utils_sensitive_data_filter
     agent_log_system_safe_logger -.-> agent_logging_utils
     agent_log_system_safe_logger -.-> agent_utils_singleton_manager
-    agent_orchestrator_message_handler -.-> agent_logging_utils
-    agent_orchestrator_message_handler --> agent_orchestrator_dialog_state
-    agent_orchestrator_subagent_manager -.-> agent_subagent_container
-    agent_orchestrator_subagent_manager -.-> agent_subagent_container
-    agent_orchestrator_task_dispatcher --> agent
-    agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
-    agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
-    agent_orchestrator_task_dispatcher -.-> agent_tool_router
-    agent_orchestrator_task_dispatcher -.-> agent_tool_router_hybrid
-    agent_orchestrator_orchestrator -.-> agent_autonomy
-    agent_orchestrator_orchestrator -.-> agent_guardrails_input_guard
-    agent_orchestrator_orchestrator -.-> agent_guardrails_output_guard
-    agent_orchestrator_orchestrator -.-> agent_observability_subscriber
-    agent_orchestrator_orchestrator --> agent_orchestrator_message_handler
-    agent_orchestrator_orchestrator --> agent_orchestrator_response_builder
-    agent_orchestrator_orchestrator -.-> agent_logging_utils
-    agent_orchestrator_orchestrator --> agent_orchestrator_routing_observability
-    agent_orchestrator_orchestrator -.-> agent_tool_calling
-    agent_orchestrator_orchestrator -.-> agent_tool_router
-    agent_orchestrator_orchestrator -.-> agent_tool_router_hybrid
-    agent_orchestrator_orchestrator -.-> agent_digital_life
-    agent_orchestrator_orchestrator -.-> agent_observability_trace_v2
-    agent_orchestrator_orchestrator -.-> agent_observability_trace_v2
-    agent_orchestrator_orchestrator -.-> agent_observability
-    agent_orchestrator_orchestrator -.-> agent_learning_metrics
-    agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
-    agent_orchestrator_orchestrator -.-> agent_verification_output_validator
-    agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
-    agent_orchestrator_orchestrator -.-> agent_response_workflows
-    agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
-    agent_orchestrator_orchestrator -.-> agent_state_manager
-    agent_orchestrator_orchestrator -.-> agent_state_manager
-    agent_orchestrator_orchestrator -.-> agent_workflow_learning_models
-    agent_orchestrator_orchestrator -.-> agent_state_manager
-    agent_orchestrator_orchestrator -.-> agent_guardrails_injection_defense
-    agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
-    agent_orchestrator_orchestrator -.-> agent_context_assembler
-    agent_orchestrator_orchestrator -.-> agent_state_manager
-    agent_orchestrator_orchestrator -.-> agent_cognitive_reflection
-    agent_orchestrator_orchestrator -.-> agent_autonomy
-    agent_orchestrator_orchestrator -.-> agent_autonomy
-    agent_orchestrator_orchestrator -.-> agent_session_manager
-    agent_orchestrator_orchestrator -.-> agent_state_manager
-    agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
-    agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
-    agent_orchestrator_orchestrator --> agent
-    agent_orchestrator_orchestrator -.-> agent_skills_mgmt_loader
-    agent_orchestrator_orchestrator -.-> agent_tools
-    agent_orchestrator_orchestrator -.-> agent_tool_schema_pruner
-    agent_orchestrator_orchestrator -.-> agent_tool_fewshot_store
-    agent_orchestrator_orchestrator --> agent_orchestrator_prompt_builder
-    agent_orchestrator_orchestrator -.-> agent_monitoring_llm_monitor
+    agent_log_system_storage -.-> agent_logging_utils
+    agent_logging_utils -.-> agent_utils_singleton_manager
+    agent_logging_utils -.-> agent_utils
+    agent_mcp_executor -.-> agent_utils_singleton_manager
+    agent_mcp_executor --> agent_tool_router
+    agent_mcp_executor --> agent_tool_router
+    agent_memory --> agent_memory_base
+    agent_memory --> agent_memory_router
+    agent_memory --> agent_memory_adapters
+    agent_memory --> agent_memory_identity
+    agent_memory --> agent_memory_taxonomy
+    agent_memory --> agent_memory_tenancy
+    agent_memory --> agent_memory_layered_store
+    agent_memory --> agent_memory_forgetting
+    agent_memory_adapters --> agent_memory_adapters_holographic_adapter
+    agent_memory_adapters --> agent_memory_adapters_mem0_adapter
+    agent_memory_adapters_holographic_adapter --> agent_memory_base
+    agent_memory_adapters_holographic_adapter -.-> agent_logging_utils
+    agent_memory_adapters_holographic_adapter -.-> agent_error_handler
+    agent_memory_adapters_holographic_adapter --> agent_memory_markdown_syncer
+    agent_memory_adapters_holographic_adapter --> agent_memory_file_watcher
+    agent_memory_adapters_holographic_adapter -.-> agent_caching_multi_level_cache
+    agent_memory_adapters_holographic_adapter --> agent_memory_observability
+    agent_memory_adapters_mem0_adapter --> agent_memory_base
+    agent_memory_adapters_mem0_adapter -.-> agent_logging_utils
+    agent_memory_base -.-> agent_logging_utils
+    agent_memory_context_assembler -.-> agent_logging_utils
+    agent_memory_context_assembler --> agent_memory_observability
+    agent_memory_file_watcher -.-> agent_logging_utils
+    agent_memory_file_watcher --> agent_memory_markdown_syncer
+    agent_memory_file_watcher --> agent_memory_observability
+    agent_memory_filter -.-> agent_logging_utils
+    agent_memory_filter -.-> agent_utils_sensitive_data_filter
+    agent_memory_filter -.-> agent_utils_sensitive_data_filter
+    agent_memory_forgetting -.-> agent_logging_utils
+    agent_memory_forgetting --> agent_memory_identity
+    agent_memory_forgetting --> agent_memory_taxonomy
+    agent_memory_forgetting --> agent_memory_tenancy
+    agent_memory_forgetting -.-> agent_observability_trace_v2
+    agent_memory_forgetting -.-> agent_audit
+    agent_memory_forgetting -.-> agent_observability_trace_v2
+    agent_memory_forgetting -.-> agent_descriptors_registry
+    agent_memory_forgetting -.-> agent_audit
+    agent_memory_hotness_scorer -.-> agent_logging_utils
+    agent_memory_hotness_scorer --> agent_memory_observability
+    agent_memory_identity -.-> agent_logging_utils
+    agent_memory_identity -.-> agent_audit
+    agent_memory_layered_store -.-> agent_logging_utils
+    agent_memory_layered_store --> agent_memory_identity
+    agent_memory_layered_store --> agent_memory_long_term_memory
+    agent_memory_layered_store --> agent_memory_taxonomy
+    agent_memory_layered_store --> agent_memory_tenancy
+    agent_memory_layered_store -.-> agent_utils_sensitive_data_filter
+    agent_memory_layered_store -.-> agent_observability_trace_v2
+    agent_memory_long_term_memory --> agent_memory_base
+    agent_memory_long_term_memory -.-> agent_logging_utils
+    agent_memory_long_term_memory -.-> agent_monitoring_business_metrics
+    agent_memory_markdown_syncer -.-> agent_logging_utils
+    agent_memory_observability -.-> agent_logging_utils
+    agent_memory_observability -.-> agent_monitoring_business_metrics
+    agent_memory_reviewer --> agent_memory_long_term_memory
+    agent_memory_router --> agent_memory_base
+    agent_memory_router --> agent_memory_adapters_holographic_adapter
+    agent_memory_router --> agent_memory_adapters_mem0_adapter
+    agent_memory_router -.-> agent_logging_utils
+    agent_memory_router --> agent_memory_filter
+    agent_memory_short_term_memory --> agent_memory_base
+    agent_memory_short_term_memory -.-> agent_logging_utils
+    agent_memory_taxonomy -.-> agent_logging_utils
+    agent_memory_taxonomy -.-> agent_observability_trace_v2
+    agent_memory_tenancy -.-> agent_logging_utils
+    agent_memory_tenancy --> agent_memory_taxonomy
+    agent_memory_tenancy -.-> agent_observability_trace_v2
+    agent_memory_tenancy -.-> agent_observability_trace_v2
+    agent_memory_tenancy -.-> agent_observability_trace_v2
+    agent_memory_optimized --> agent_logging_utils
+    agent_model_router_adapters -.-> agent_logging_utils
+    agent_model_router_cost_tracker -.-> agent_observability_events
+    agent_model_router_cost_tracker -.-> agent_audit_facade
+    agent_model_router_observability -.-> agent_logging_utils
+    agent_model_router_observability -.-> agent_monitoring_business_metrics
+    agent_model_router_router -.-> agent_logging_utils
+    agent_modules_api --> agent_modules_registry
+    agent_modules_api --> agent_server_auth
+    agent_modules_api --> agent_rate_limiter
+    agent_modules_api -.-> agent_health_dashboard
+    agent_modules_api --> agent_system_tools
+    agent_monitoring_alert_evaluator -.-> agent_logging_utils
+    agent_monitoring_alert_evaluator --> agent_monitoring_tracing
+    agent_monitoring_alert_evaluator --> agent_monitoring_metrics
+    agent_monitoring_alert_evaluator -.-> agent_utils_singleton_manager
+    agent_monitoring_alert_evaluator -.-> agent_utils_singleton_manager
+    agent_monitoring_alert_evaluator -.-> agent_health_health_score
+    agent_monitoring_alert_evaluator -.-> agent_health_health_score
+    agent_monitoring_alert_manager --> agent_monitoring_tracing
+    agent_monitoring_alert_manager -.-> agent_logging_utils
+    agent_monitoring_alert_manager --> agent_monitoring_alert_evaluator
+    agent_monitoring_alert_manager --> agent_monitoring_alert_notifier
+    agent_monitoring_alert_manager --> agent_monitoring_self_healer
+    agent_monitoring_alert_manager -.-> agent_human_in_the_loop_takeover_queue
+    agent_monitoring_alert_manager -.-> agent_utils_singleton_manager
+    agent_monitoring_alert_manager -.-> agent_human_in_the_loop_takeover_queue
+    agent_monitoring_alert_manager -.-> agent_self_healing_policy
+    agent_monitoring_alert_manager --> agent_monitoring_observability_config
+    agent_monitoring_alert_notifier --> agent_monitoring_tracing
+    agent_monitoring_alert_notifier -.-> agent_logging_utils
+    agent_monitoring_alert_notifier -.-> agent_utils_singleton_manager
+    agent_monitoring_alert_notifier --> agent_monitoring_observability_config
+    agent_monitoring_alert_notifier --> agent_monitoring_prometheus
+    agent_monitoring_business_metrics --> agent_monitoring_utils
+    agent_monitoring_business_metrics -.-> agent_logging_utils
+    agent_monitoring_chaos_injector --> agent_monitoring_tracing
+    agent_monitoring_chaos_injector -.-> agent_logging_utils
+    agent_monitoring_chaos_injector -.-> agent_utils_singleton_manager
+    agent_monitoring_chaos_injector --> agent_monitoring_observability_config
+    agent_monitoring_config_observability --> agent_monitoring_tracing
+    agent_monitoring_config_observability --> agent_monitoring_prometheus
+    agent_monitoring_config_observability --> agent_monitoring_loki
+    agent_monitoring_config_observability --> agent_monitoring_alert_notifier
+    agent_monitoring_cost_brake -.-> agent_observability
+    agent_monitoring_cost_brake -.-> agent_observability_events
+    agent_monitoring_cost_brake -.-> agent_utils_atomic_write
+    agent_monitoring_cost_brake -.-> agent_audit_facade
+    agent_monitoring_cost_brake -.-> agent_utils_atomic_write
+    agent_monitoring_decorators --> agent_monitoring_metrics
+    agent_monitoring_decorators --> agent_monitoring_tracing
+    agent_monitoring_decorators --> agent_monitoring_error_reporter
+    agent_monitoring_decorators -.-> agent_error_handler
+    agent_monitoring_decorators -.-> agent_error_handler
+    agent_monitoring_error_reporter -.-> agent_logging_utils
+    agent_monitoring_error_reporter --> agent_monitoring_tracing
+    agent_monitoring_error_reporter -.-> agent_error_handler
+    agent_monitoring_error_reporter -.-> agent_utils_singleton_manager
+    agent_monitoring_error_reporter -.-> agent_error_reporting_config
+    agent_monitoring_loki -.-> agent_logging_utils
+    agent_monitoring_loki -.-> agent_utils_singleton_manager
+    agent_monitoring_loki --> agent_monitoring_observability_config
+    agent_monitoring_metrics -.-> agent_logging_utils
+    agent_monitoring_observability_config --> agent_monitoring_tracing
+    agent_monitoring_observability_config -.-> agent_logging_utils
+    agent_monitoring_observability_config -.-> agent_utils_singleton_manager
+    agent_monitoring_observability_config -.-> agent_disaster_recovery
+    agent_monitoring_observability_config --> agent_monitoring_config_observability
+    agent_monitoring_observability_optimizations --> agent_monitoring_tracing
+    agent_monitoring_observability_optimizations -.-> agent_utils_singleton_manager
+    agent_monitoring_optimized_metrics --> agent_monitoring_tracing
+    agent_monitoring_optimized_metrics -.-> agent_utils_singleton_manager
+    agent_monitoring_performance -.-> agent_logging_utils
+    agent_monitoring_performance --> agent_monitoring_tracing
+    agent_monitoring_performance -.-> agent_utils_singleton_manager
+    agent_monitoring_performance_optimization --> agent_monitoring_tracing
+    agent_monitoring_performance_optimization -.-> agent_utils_singleton_manager
+    agent_monitoring_performance_optimization --> agent_monitoring_tracing
+    agent_monitoring_prometheus -.-> agent_logging_utils
+    agent_monitoring_prometheus -.-> agent_error_handler
+    agent_monitoring_prometheus -.-> agent_error_handler
+    agent_monitoring_prometheus --> agent_monitoring_observability_config
+    agent_monitoring_prometheus -.-> agent_error_handler
+    agent_monitoring_prometheus -.-> agent_error_handler
+    agent_monitoring_prometheus -.-> agent_error_handler
+    agent_monitoring_prometheus -.-> agent_error_handler
+    agent_monitoring_prometheus --> agent_monitoring_observability_config
+    agent_monitoring_replay_storage -.-> agent_utils_singleton_manager
+    agent_monitoring_replay_storage --> agent_monitoring_observability_config
+    agent_monitoring_resource_monitor --> agent_monitoring_tracing
+    agent_monitoring_resource_monitor -.-> agent_logging_utils
+    agent_monitoring_resource_monitor -.-> agent_utils_singleton_manager
+    agent_monitoring_resource_monitor --> agent_monitoring_observability_config
+    agent_monitoring_resource_monitor --> agent_monitoring_business_metrics
+    agent_monitoring_search -.-> agent_logging_utils
+    agent_monitoring_search --> agent_monitoring_tracing
+    agent_monitoring_search -.-> agent_common_stop_mixin
+    agent_monitoring_search -.-> agent_utils_singleton_manager
+    agent_monitoring_search --> agent_monitoring_observability_config
+    agent_monitoring_self_healer --> agent_monitoring_tracing
+    agent_monitoring_self_healer -.-> agent_logging_utils
+    agent_monitoring_self_healer -.-> agent_utils_singleton_manager
+    agent_monitoring_self_healer -.-> agent_circuit_breaker
+    agent_monitoring_self_healer --> agent_monitoring_observability_config
+    agent_monitoring_self_healer -.-> agent_permission_system
+    agent_monitoring_self_healer -.-> agent_circuit_breaker
+    agent_monitoring_self_healer -.-> agent_health_assessor
+    agent_monitoring_self_healer -.-> agent_self_healing_policy
+    agent_monitoring_sensitive_data_filter -.-> agent_utils_sensitive_data_filter
+    agent_monitoring_sensitive_data_filter -.-> agent_utils_singleton_manager
+    agent_monitoring_trace_http_client -.-> agent_logging_utils
+    agent_monitoring_trace_http_client --> agent_monitoring_tracing
+    agent_monitoring_tracing -.-> agent_logging_utils
+    agent_monitoring_tracing -.-> agent_observability_subscriber
+    agent_monitoring_tracing -.-> agent_observability_subscriber
+    agent_monitoring_tracing -.-> agent_utils_singleton_manager
+    agent_monitoring_tracing_cache --> agent_monitoring_tracing
+    agent_monitoring_tracing_cache -.-> agent_utils_singleton_manager
+    agent_monitoring_tracing_cache --> agent_monitoring_observability_config
+    agent_monitoring_tracing_config --> agent_monitoring_observability_config
+    agent_monitoring_tracing_perf -.-> agent_logging_utils
+    agent_monitoring_tracing_sampling -.-> agent_utils_singleton_manager
+    agent_multi_tenant -.-> agent_monitoring_tracing
+    agent_network -.-> agent_network_config
+    agent_network --> agent_network_config_validator
+    agent_network_observability -.-> agent_logging_utils
+    agent_network_observability -.-> agent_monitoring_business_metrics
+    agent_network_config --> agent_logging_utils
+    agent_network_config --> agent_env_config_manager
+    agent_network_config -.-> agent_tools
+    agent_observability_acr --> agent_observability
+    agent_observability_acr --> agent_observability_events
+    agent_observability_arch_rules --> agent_observability_dependency_graph
+    agent_observability_cost_calibration --> agent_observability
+    agent_observability_escape --> agent_observability
+    agent_observability_escape --> agent_observability_acr
+    agent_observability_escape --> agent_observability_events
+    agent_observability_events -.-> agent_utils_cross_process_lock
+    agent_observability_events --> agent_observability_trace_v2
+    agent_observability_events --> agent_observability_trace_v2
+    agent_observability_events -.-> agent_skills_mgmt_log_archiver
+    agent_observability_events -.-> agent_audit
+    agent_observability_model_degrade --> agent_observability
+    agent_observability_model_degrade --> agent_observability_events
+    agent_observability_subscriber -.-> agent_logging_utils
+    agent_observability_tool_trace -.-> agent_logging_utils
+    agent_observability_trace_v2 -.-> agent_utils_cross_process_lock
+    agent_observability_trace_v2 -.-> agent_descriptors_bridge
+    agent_observability_trace_v2 -.-> agent_descriptors_registry
+    agent_observability_trace_v2 -.-> agent_utils_sensitive_data_filter
+    agent_observability_trace_v2 -.-> agent_audit_facade
+    agent_observability_trace_v2 -.-> agent_audit_facade
+    agent_observability_trace_v2 -.-> agent_audit_facade
+    agent_observability_trace_v2 -.-> agent_audit_facade
+    agent_observability_trace_v2 --> agent
+    agent_observability_trace_v2 --> agent_observability_events
+    agent_observability_trace_v2 -.-> agent_utils_atomic_write
+    agent_observability_trace_v2 -.-> agent_descriptors_registry
+    agent_observability_tracer -.-> agent_monitoring_tracing
+    agent_observability_utc --> agent_observability
+    agent_observability_utc --> agent_observability_acr
+    agent_observability_utc --> agent_observability_events
+    agent_observability_utc --> agent_observability
+    agent_observability_utc -.-> agent_model_router_cost_tracker
+    agent_observability_utc -.-> agent_eval_baseline
+    agent_observability_utc -.-> agent_utils_atomic_write
     agent_orchestrator_lifecycle_manager -.-> agent_logging_utils
+    agent_orchestrator_lifecycle_manager --> agent_orchestrator_turn_state
     agent_orchestrator_lifecycle_manager -.-> agent_monitoring_tracing
     agent_orchestrator_lifecycle_manager -.-> agent_digital_life
     agent_orchestrator_lifecycle_manager -.-> agent_tools_core_tools
@@ -938,115 +1382,133 @@ flowchart LR
     agent_orchestrator_lifecycle_manager --> agent
     agent_orchestrator_lifecycle_manager -.-> agent_tool_calling
     agent_orchestrator_lifecycle_manager -.-> agent_web
-    agent_orchestrator_routing_observability -.-> agent_logging_utils
-    agent_orchestrator_response_builder -.-> agent_logging_utils
-    agent_orchestrator_prompt_builder -.-> agent_logging_utils
-    agent_orchestrator_prompt_builder -.-> agent_digital_life
+    agent_orchestrator_message_handler -.-> agent_logging_utils
+    agent_orchestrator_message_handler --> agent_orchestrator_dialog_state
     agent_orchestrator_observability -.-> agent_logging_utils
     agent_orchestrator_observability -.-> agent_monitoring_business_metrics
+    agent_orchestrator_orchestrator -.-> agent_autonomy
+    agent_orchestrator_orchestrator -.-> agent_guardrails_input_guard
+    agent_orchestrator_orchestrator -.-> agent_guardrails_output_guard
+    agent_orchestrator_orchestrator -.-> agent_observability_subscriber
+    agent_orchestrator_orchestrator --> agent_orchestrator_message_handler
+    agent_orchestrator_orchestrator --> agent_orchestrator_response_builder
+    agent_orchestrator_orchestrator -.-> agent_logging_utils
+    agent_orchestrator_orchestrator --> agent_orchestrator_routing_observability
+    agent_orchestrator_orchestrator -.-> agent_tool_calling
+    agent_orchestrator_orchestrator -.-> agent_tool_router
+    agent_orchestrator_orchestrator -.-> agent_tool_router_hybrid
+    agent_orchestrator_orchestrator --> agent_orchestrator_turn_state
+    agent_orchestrator_orchestrator -.-> agent_digital_life
+    agent_orchestrator_orchestrator -.-> agent_observability_trace_v2
+    agent_orchestrator_orchestrator -.-> agent_observability_trace_v2
+    agent_orchestrator_orchestrator -.-> agent_observability
+    agent_orchestrator_orchestrator -.-> agent_learning_metrics
+    agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
+    agent_orchestrator_orchestrator -.-> agent_verification_output_validator
+    agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
+    agent_orchestrator_orchestrator -.-> agent_response_workflows
+    agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
+    agent_orchestrator_orchestrator -.-> agent_state_manager
+    agent_orchestrator_orchestrator -.-> agent_state_manager
+    agent_orchestrator_orchestrator -.-> agent_workflow_learning_models
+    agent_orchestrator_orchestrator -.-> agent_state_manager
+    agent_orchestrator_orchestrator -.-> agent_guardrails_injection_defense
+    agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
+    agent_orchestrator_orchestrator -.-> agent_context_assembler
+    agent_orchestrator_orchestrator -.-> agent_state_manager
+    agent_orchestrator_orchestrator -.-> agent_cognitive_reflection
+    agent_orchestrator_orchestrator -.-> agent_autonomy
+    agent_orchestrator_orchestrator -.-> agent_autonomy
+    agent_orchestrator_orchestrator -.-> agent_session_manager
+    agent_orchestrator_orchestrator -.-> agent_state_manager
+    agent_orchestrator_orchestrator --> agent_orchestrator_dialog_state
+    agent_orchestrator_orchestrator -.-> agent_monitoring_prometheus
+    agent_orchestrator_orchestrator --> agent
+    agent_orchestrator_orchestrator -.-> agent_skills_mgmt_loader
+    agent_orchestrator_orchestrator -.-> agent_tools
+    agent_orchestrator_orchestrator -.-> agent_tool_schema_pruner
+    agent_orchestrator_orchestrator -.-> agent_tool_fewshot_store
+    agent_orchestrator_orchestrator --> agent_orchestrator_prompt_builder
+    agent_orchestrator_orchestrator -.-> agent_monitoring_llm_monitor
+    agent_orchestrator_prompt_builder -.-> agent_logging_utils
+    agent_orchestrator_prompt_builder -.-> agent_digital_life
+    agent_orchestrator_response_builder -.-> agent_logging_utils
+    agent_orchestrator_routing_observability -.-> agent_logging_utils
     agent_orchestrator_status_reporter --> agent
-    agent_prompt_manager_registry -.-> agent_logging_utils
-    agent_prompt_manager_registry -.-> agent_utils_singleton_manager
-    agent_prompt_manager_version_control -.-> agent_logging_utils
-    agent_prompt_manager_version_control -.-> agent_utils_singleton_manager
-    agent_prompt_manager_deployment -.-> agent_logging_utils
-    agent_prompt_manager_deployment -.-> agent_utils_singleton_manager
-    agent_prompt_manager_deployment --> agent_prompt_manager_version_control
-    agent_prompt_manager_deployment --> agent_prompt_manager_version_control
-    agent_prompt_manager_observability -.-> agent_logging_utils
-    agent_prompt_manager_observability -.-> agent_monitoring_business_metrics
-    agent_prompt_manager_storage -.-> agent_logging_utils
-    agent_prompt_manager_storage -.-> agent_utils_singleton_manager
-    agent_observability_tool_trace -.-> agent_logging_utils
-    agent_observability_model_degrade --> agent_observability
-    agent_observability_model_degrade --> agent_observability_events
-    agent_observability_subscriber -.-> agent_logging_utils
-    agent_observability_escape --> agent_observability
-    agent_observability_escape --> agent_observability_acr
-    agent_observability_escape --> agent_observability_events
-    agent_observability_utc --> agent_observability
-    agent_observability_utc --> agent_observability_acr
-    agent_observability_utc --> agent_observability_events
-    agent_observability_utc -.-> agent_model_router_cost_tracker
-    agent_observability_events --> agent_observability_trace_v2
-    agent_observability_events --> agent_observability_trace_v2
-    agent_observability_events -.-> agent_skills_mgmt_log_archiver
-    agent_observability_events -.-> agent_audit
-    agent_observability_acr --> agent_observability
-    agent_observability_acr --> agent_observability_events
-    agent_observability_arch_rules --> agent_observability_dependency_graph
-    agent_observability_trace_v2 -.-> agent_descriptors_bridge
-    agent_observability_trace_v2 -.-> agent_descriptors_registry
-    agent_observability_trace_v2 -.-> agent_utils_sensitive_data_filter
-    agent_observability_trace_v2 -.-> agent_audit_facade
-    agent_observability_trace_v2 -.-> agent_audit_facade
-    agent_observability_trace_v2 -.-> agent_audit_facade
-    agent_observability_trace_v2 -.-> agent_audit_facade
-    agent_observability_trace_v2 --> agent
-    agent_observability_trace_v2 -.-> agent_descriptors_registry
-    agent_observability_tracer -.-> agent_monitoring_tracing
-    agent_p6_performance -.-> agent_logging_utils
+    agent_orchestrator_subagent_manager -.-> agent_subagent_container
+    agent_orchestrator_subagent_manager -.-> agent_subagent_container
+    agent_orchestrator_task_dispatcher --> agent
+    agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
+    agent_orchestrator_task_dispatcher -.-> agent_system_prompt_config
+    agent_orchestrator_task_dispatcher -.-> agent_tool_router
+    agent_orchestrator_task_dispatcher -.-> agent_tool_router_hybrid
     agent_p6 --> agent_p6_snapshot
     agent_p6 --> agent_p6_performance
     agent_p6 --> agent_p6_frequency
+    agent_p6_frequency -.-> agent_logging_utils
+    agent_p6_observability -.-> agent_logging_utils
+    agent_p6_observability -.-> agent_monitoring_business_metrics
+    agent_p6_performance -.-> agent_logging_utils
     agent_p6_snapshot --> agent_p6_performance
     agent_p6_snapshot --> agent_p6_frequency
     agent_p6_snapshot -.-> agent_logging_utils
     agent_p6_snapshot -.-> agent_behavior_controller
-    agent_p6_frequency -.-> agent_logging_utils
-    agent_p6_observability -.-> agent_logging_utils
-    agent_p6_observability -.-> agent_monitoring_business_metrics
-    agent_network -.-> agent_network_config
-    agent_network --> agent_network_config_validator
-    agent_network_observability -.-> agent_logging_utils
-    agent_network_observability -.-> agent_monitoring_business_metrics
-    agent_digestion_shadow -.-> agent_monitoring_cost_brake
-    agent_digestion_shadow -.-> agent_observability_events
-    agent_digestion_shadow -.-> agent_audit_facade
-    agent_digestion_shadow -.-> agent_model_router_adapters
-    agent_digestion_service -.-> agent_observability_trace_v2
-    agent_digestion_service -.-> agent_descriptors_registry
-    agent_digestion_service -.-> agent_observability_events
-    agent_digestion_stage -.-> agent_descriptors_registry
-    agent_digestion_stage -.-> agent_descriptors_bridge
-    agent_digestion_stage -.-> agent_observability_events
-    agent_digestion_stage -.-> agent_audit_facade
-    agent_digestion_stage -.-> agent_audit_facade
-    agent_digestion_capability -.-> agent_descriptors_bridge
-    agent_digestion_capability -.-> agent_descriptors_registry
-    agent_digestion_case_cost -.-> agent_observability_events
-    agent_digestion_case_cost -.-> agent_observability_utc
-    agent_digestion_case_cost -.-> agent_observability_events
-    agent_digestion_case_cost -.-> agent_observability_events
-    agent_digestion_case_cost -.-> agent_observability_events
-    agent_digestion_generation -.-> agent_workflow_learning_skill_converter
-    agent_digestion_generation -.-> agent_process_distill_solidify
-    agent_digestion_generation -.-> agent_process_distill_models
-    agent_digestion_generation -.-> agent_process_distill_models
-    agent_digestion_generation -.-> agent_process_distill_solidify
-    agent_digestion_generation -.-> agent_workflow_learning_models
-    agent_digestion_generation -.-> agent_process_distill_solidify
-    agent_digestion_generation -.-> agent_skills_mgmt_file_store
-    agent_digestion_internalize -.-> agent_audit_facade
-    agent_digestion_internalize -.-> agent_observability_utc
-    agent_digestion_internalize -.-> agent_skills_mgmt_approval
-    agent_digestion_internalize -.-> agent_security_approval_guard
-    agent_digestion_internalize -.-> agent_observability_events
-    agent_digestion_internalize -.-> agent_audit_facade
-    agent_digestion_internalize -.-> agent_monitoring_cost_brake
-    agent_digestion_internalize -.-> agent_observability_trace_v2
-    agent_digestion_internalize -.-> agent_descriptors_registry
-    agent_digestion_internalize -.-> agent_task_scheduler
-    agent_digestion_cleaning -.-> agent_descriptors_bridge
-    agent_digestion_gate -.-> agent_observability_events
-    agent_digestion_gate -.-> agent_audit_facade
-    agent_digestion_gate -.-> agent_observability_trace_v2
-    agent_digestion_gate -.-> agent_task_scheduler
-    agent_digestion_gate -.-> agent_descriptors_registry
-    agent_digestion_gate -.-> agent_monitoring_cost_brake
-    agent_digestion_probe -.-> agent_self_healing_levels
-    agent_digestion_probe -.-> agent_audit_facade
-    agent_digestion_probe -.-> agent_task_scheduler
+    agent_p6_config_loader --> agent_p6_snapshot
+    agent_p6_snapshot --> agent_logging_utils
+    agent_p6_snapshot --> agent_behavior_controller
+    agent_performance_logging --> agent_logging_utils
+    agent_performance_logging -.-> agent_monitoring_performance
+    agent_performance_monitor --> agent_logging_utils
+    agent_performance_monitor -.-> agent_monitoring_performance
+    agent_permission_system -.-> agent_policy
+    agent_permission_system -.-> agent_policy
+    agent_policy --> agent_policy_decisions
+    agent_policy --> agent_policy_egress
+    agent_policy --> agent_policy_engine
+    agent_policy --> agent_policy_inbox
+    agent_policy --> agent_policy_matcher
+    agent_policy --> agent_policy_models
+    agent_policy --> agent_policy_signing
+    agent_policy --> agent_policy_simulator
+    agent_policy --> agent_policy_store
+    agent_policy --> agent_policy_taint
+    agent_policy_decisions --> agent_policy_models
+    agent_policy_decisions -.-> agent_utils_cross_process_lock
+    agent_policy_decisions -.-> agent_observability_events
+    agent_policy_egress --> agent_policy_engine
+    agent_policy_egress --> agent_policy_models
+    agent_policy_egress --> agent_policy_taint
+    agent_policy_egress -.-> agent_observability_events
+    agent_policy_engine --> agent_policy_decisions
+    agent_policy_engine --> agent_policy_matcher
+    agent_policy_engine --> agent_policy_models
+    agent_policy_engine --> agent_policy_store
+    agent_policy_engine -.-> agent_audit_facade
+    agent_policy_engine -.-> agent_observability
+    agent_policy_engine -.-> agent_observability_events
+    agent_policy_engine -.-> agent_audit_facade
+    agent_policy_engine --> agent_policy_inbox
+    agent_policy_inbox --> agent_policy_models
+    agent_policy_matcher --> agent_policy_models
+    agent_policy_signing --> agent_policy_models
+    agent_policy_simulator --> agent_policy_decisions
+    agent_policy_simulator --> agent_policy_engine
+    agent_policy_simulator --> agent_policy_models
+    agent_policy_simulator --> agent_policy_store
+    agent_policy_simulator --> agent_policy_engine
+    agent_policy_store --> agent_policy_matcher
+    agent_policy_store --> agent_policy_models
+    agent_policy_store --> agent_policy_signing
+    agent_policy_store --> agent_policy_matcher
+    agent_policy_taint --> agent_policy_models
+    agent_policy_taint -.-> agent_utils_sensitive_data_filter
+    agent_policy_taint -.-> agent_observability_events
+    agent_policy_taint -.-> agent_audit_facade
+    agent_preflight --> agent_preflight_runner
+    agent_preflight___main__ --> agent_preflight_runner
+    agent_preflight_runner --> agent
+    agent_process_distill_distiller --> agent_process_distill_models
+    agent_process_distill_distiller --> agent_process_distill_prompts
     agent_process_distill_merge --> agent_process_distill_models
     agent_process_distill_service --> agent_process_distill
     agent_process_distill_service --> agent_process_distill_distiller
@@ -1056,16 +1518,6 @@ flowchart LR
     agent_process_distill_service -.-> agent_env_config_manager
     agent_process_distill_service -.-> agent_state_manager
     agent_process_distill_service -.-> agent_state_manager
-    agent_process_distill_tools --> agent_process_distill_service
-    agent_process_distill_tools --> agent
-    agent_process_distill_tools --> agent
-    agent_process_distill_tools -.-> agent_async_executor
-    agent_process_distill_sources -.-> agent_knowledge_search
-    agent_process_distill_sources --> agent_process_distill_models
-    agent_process_distill_sources --> agent_process_distill_prompts
-    agent_process_distill_sources -.-> agent_knowledge_card
-    agent_process_distill_distiller --> agent_process_distill_models
-    agent_process_distill_distiller --> agent_process_distill_prompts
     agent_process_distill_solidify --> agent_process_distill_models
     agent_process_distill_solidify -.-> agent_workflow_learning_models
     agent_process_distill_solidify --> agent
@@ -1073,6 +1525,484 @@ flowchart LR
     agent_process_distill_solidify -.-> agent_workflow_learning_matcher
     agent_process_distill_solidify -.-> agent_workflow_learning_repository
     agent_process_distill_solidify -.-> agent_skills_mgmt
+    agent_process_distill_sources -.-> agent_knowledge_search
+    agent_process_distill_sources --> agent_process_distill_models
+    agent_process_distill_sources --> agent_process_distill_prompts
+    agent_process_distill_sources -.-> agent_knowledge_card
+    agent_process_distill_tools --> agent_process_distill_service
+    agent_process_distill_tools --> agent
+    agent_process_distill_tools --> agent
+    agent_process_distill_tools -.-> agent_async_executor
+    agent_prometheus_exporter -.-> agent_monitoring_prometheus
+    agent_prompt_manager_deployment -.-> agent_logging_utils
+    agent_prompt_manager_deployment -.-> agent_utils_singleton_manager
+    agent_prompt_manager_deployment --> agent_prompt_manager_version_control
+    agent_prompt_manager_deployment --> agent_prompt_manager_version_control
+    agent_prompt_manager_observability -.-> agent_logging_utils
+    agent_prompt_manager_observability -.-> agent_monitoring_business_metrics
+    agent_prompt_manager_registry -.-> agent_logging_utils
+    agent_prompt_manager_registry -.-> agent_utils_singleton_manager
+    agent_prompt_manager_storage -.-> agent_logging_utils
+    agent_prompt_manager_storage -.-> agent_utils_singleton_manager
+    agent_prompt_manager_version_control -.-> agent_logging_utils
+    agent_prompt_manager_version_control -.-> agent_utils_singleton_manager
+    agent_quality_defect_tracker -.-> agent_monitoring_observability_config
+    agent_quality_defect_tracker -.-> agent_monitoring_observability_config
+    agent_quality_observability -.-> agent_logging_utils
+    agent_quality_observability -.-> agent_monitoring_business_metrics
+    agent_rate_limiter --> agent_logging_utils
+    agent_rate_limiter -.-> agent_monitoring_metrics
+    agent_repair --> agent_repair_budget
+    agent_repair --> agent_repair_delegate
+    agent_repair --> agent_repair_diagnose
+    agent_repair --> agent_repair_guardrails
+    agent_repair --> agent_repair_locate
+    agent_repair --> agent_repair_models
+    agent_repair --> agent_repair_pipeline
+    agent_repair --> agent_repair_policy
+    agent_repair --> agent_repair_propose
+    agent_repair --> agent_repair_trace
+    agent_repair --> agent_repair_verify
+    agent_repair_budget --> agent_repair_models
+    agent_repair_budget --> agent_repair_policy
+    agent_repair_delegate --> agent_repair_budget
+    agent_repair_delegate --> agent_repair_guardrails
+    agent_repair_delegate --> agent_repair_models
+    agent_repair_delegate --> agent_repair_policy
+    agent_repair_delegate --> agent_repair_trace
+    agent_repair_delegate -.-> agent_subagent_delegation
+    agent_repair_delegate -.-> agent_subagent_delegation
+    agent_repair_delegate --> agent_repair_budget
+    agent_repair_diagnose --> agent_repair
+    agent_repair_diagnose --> agent_repair_models
+    agent_repair_diagnose --> agent_repair_policy
+    agent_repair_diagnose --> agent_repair_trace
+    agent_repair_diagnose -.-> agent_eval
+    agent_repair_diagnose -.-> agent_eval
+    agent_repair_diagnose -.-> agent_audit_facade
+    agent_repair_guardrails --> agent_repair_models
+    agent_repair_guardrails --> agent_repair_policy
+    agent_repair_locate --> agent_repair
+    agent_repair_locate --> agent_repair_diagnose
+    agent_repair_locate --> agent_repair_models
+    agent_repair_locate --> agent_repair_policy
+    agent_repair_locate --> agent_repair_trace
+    agent_repair_locate -.-> agent_descriptors_registry
+    agent_repair_patchapply --> agent_repair_guardrails
+    agent_repair_pipeline --> agent_repair
+    agent_repair_pipeline --> agent_repair_budget
+    agent_repair_pipeline --> agent_repair_models
+    agent_repair_pipeline --> agent_repair_policy
+    agent_repair_pipeline --> agent_repair_trace
+    agent_repair_pipeline --> agent_repair_trace
+    agent_repair_pipeline --> agent_repair
+    agent_repair_pipeline --> agent_repair
+    agent_repair_pipeline --> agent_repair
+    agent_repair_pipeline --> agent_repair
+    agent_repair_pipeline --> agent_repair_delegate
+    agent_repair_propose --> agent_repair
+    agent_repair_propose --> agent_repair_guardrails
+    agent_repair_propose --> agent_repair_models
+    agent_repair_propose --> agent_repair_policy
+    agent_repair_propose --> agent_repair_trace
+    agent_repair_trace --> agent_repair_models
+    agent_repair_trace -.-> agent_observability_trace_v2
+    agent_repair_trace -.-> agent_observability_trace_v2
+    agent_repair_trace -.-> agent_observability_events
+    agent_repair_trace -.-> agent_observability_trace_v2
+    agent_repair_trace -.-> agent_audit_facade
+    agent_repair_trace -.-> agent_observability_events
+    agent_repair_verify --> agent_repair_diagnose
+    agent_repair_verify --> agent_repair_models
+    agent_repair_verify --> agent_repair_patchapply
+    agent_repair_verify --> agent_repair_policy
+    agent_repair_verify --> agent_repair_trace
+    agent_retention --> agent_retention_archiver
+    agent_retention --> agent_retention_guard
+    agent_retention --> agent_retention_manifest
+    agent_retention --> agent_retention_metrics
+    agent_retention --> agent_retention_policy
+    agent_retention --> agent_retention_restorer
+    agent_retention --> agent_retention_scan
+    agent_retention --> agent_retention_scheduler
+    agent_retention_archiver --> agent_retention_manifest
+    agent_retention_archiver --> agent_retention_policy
+    agent_retention_archiver --> agent_retention_scan
+    agent_retention_archiver --> agent_retention_guard
+    agent_retention_archiver --> agent_retention_guard
+    agent_retention_archiver -.-> agent_skills_mgmt_log_archiver
+    agent_retention_archiver -.-> agent_audit
+    agent_retention_archiver -.-> agent_audit_facade
+    agent_retention_archiver -.-> agent_observability_events
+    agent_retention_guard --> agent_retention_policy
+    agent_retention_guard --> agent_retention_scan
+    agent_retention_manifest --> agent_retention_scan
+    agent_retention_metrics --> agent_retention_policy
+    agent_retention_metrics -.-> agent_observability_utc
+    agent_retention_metrics -.-> agent_digestion_shadow
+    agent_retention_metrics -.-> agent_audit_chain
+    agent_retention_restorer --> agent_retention_manifest
+    agent_retention_restorer --> agent_retention_policy
+    agent_retention_restorer --> agent_retention_scan
+    agent_retention_scan --> agent_retention_policy
+    agent_retention_scheduler --> agent_retention_archiver
+    agent_retention_scheduler --> agent_retention_policy
+    agent_retention_scheduler -.-> agent_task_scheduler
+    agent_safety_guard -.-> agent_utils_singleton_manager
+    agent_scheduling --> agent_logging_utils
+    agent_scheduling -.-> agent_utils_singleton_manager
+    agent_search_aggregator --> agent_logging_utils
+    agent_search_performance_monitor --> agent_logging_utils
+    agent_search_performance_monitor -.-> agent_monitoring_search
+    agent_security --> agent_security_actor_matrix
+    agent_security --> agent_security_alerts
+    agent_security --> agent_security_approval_guard
+    agent_security --> agent_security_approval_session
+    agent_security --> agent_security_identity
+    agent_security --> agent_security_pii
+    agent_security_approval_guard --> agent_security_alerts
+    agent_security_approval_guard --> agent_security_pii
+    agent_security_approval_guard --> agent_security_actor_matrix
+    agent_security_approval_guard --> agent_security_identity
+    agent_security_approval_guard --> agent_security_identity
+    agent_security_approval_guard -.-> agent_observability_events
+    agent_security_approval_session --> agent_security_pii
+    agent_security_governance_bridge -.-> agent_descriptors_registry
+    agent_security_governance_bridge --> agent_security_approval_guard
+    agent_security_identity --> agent_security_actor_matrix
+    agent_security_pii -.-> agent_utils_sensitive_data_filter
+    agent_security_utils --> agent_logging_utils
+    agent_self_healing_levels -.-> agent_observability_events
+    agent_self_healing_levels -.-> agent_audit_facade
+    agent_self_healing_levels -.-> agent_monitoring_alert_evaluator
+    agent_self_healing_levels -.-> agent_monitoring_alert_manager
+    agent_self_healing_release_bundle --> agent_self_healing_levels
+    agent_self_healing_saga --> agent_self_healing_levels
+    agent_self_healing_watchdog_singleton -.-> agent_utils_cross_process_lock
+    agent_server_auth -.-> agent_security_identity
+    agent_server_auth -.-> agent_security_identity
+    agent_server_routes_extensions -.-> agent_server_auth
+    agent_server_routes_observability -.-> agent_logging_utils
+    agent_server_routes_observability -.-> agent_monitoring_business_metrics
+    agent_server_routes_routes_approval -.-> agent_security
+    agent_server_routes_routes_approval -.-> agent_security
+    agent_server_routes_routes_approval -.-> agent_security_actor_matrix
+    agent_server_routes_routes_approval -.-> agent_server_auth
+    agent_server_routes_routes_approval -.-> agent_security_actor_matrix
+    agent_server_routes_routes_approval -.-> agent_skills_mgmt_approval
+    agent_server_routes_routes_approval -.-> agent_security_governance_bridge
+    agent_server_routes_routes_approval -.-> agent_security_governance_bridge
+    agent_server_routes_routes_assets --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_business_dashboard -.-> agent_server_auth
+    agent_server_routes_routes_business_dashboard -.-> agent_monitoring_tracing
+    agent_server_routes_routes_business_dashboard --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_business_dashboard -.-> agent_logging_utils
+    agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
+    agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
+    agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
+    agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
+    agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
+    agent_server_routes_routes_chat -.-> agent_server_auth
+    agent_server_routes_routes_chat --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_chat -.-> agent_logging_utils
+    agent_server_routes_routes_chat -.-> agent_monitoring_tracing
+    agent_server_routes_routes_chat --> agent_server_routes_observability
+    agent_server_routes_routes_chat -.-> agent_system_tools
+    agent_server_routes_routes_chat --> agent_server_routes_routes_sessions
+    agent_server_routes_routes_chat -.-> agent_web
+    agent_server_routes_routes_chat -.-> agent_web
+    agent_server_routes_routes_config -.-> agent_server_auth
+    agent_server_routes_routes_config -.-> agent_network_config
+    agent_server_routes_routes_config --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_config -.-> agent_logging_utils
+    agent_server_routes_routes_config -.-> agent_config_validation
+    agent_server_routes_routes_config -.-> agent_audit_ui_middleware
+    agent_server_routes_routes_config -.-> agent_orchestrator_orchestrator
+    agent_server_routes_routes_config -.-> agent_orchestrator_orchestrator
+    agent_server_routes_routes_config -.-> agent_monitoring_metrics
+    agent_server_routes_routes_config -.-> agent_tools
+    agent_server_routes_routes_config -.-> agent_monitoring_metrics
+    agent_server_routes_routes_dashboard -.-> agent_server_auth
+    agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
+    agent_server_routes_routes_dashboard -.-> agent_monitoring_metrics
+    agent_server_routes_routes_dashboard -.-> agent_health_assessor
+    agent_server_routes_routes_dashboard --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_dashboard -.-> agent_logging_utils
+    agent_server_routes_routes_dashboard -.-> agent_cognitive_failure_analysis
+    agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
+    agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
+    agent_server_routes_routes_feedback -.-> agent_logging_utils
+    agent_server_routes_routes_feedback -.-> agent_feedback
+    agent_server_routes_routes_feedback -.-> agent_feedback
+    agent_server_routes_routes_feedback -.-> agent_feedback
+    agent_server_routes_routes_feedback -.-> agent_feedback
+    agent_server_routes_routes_feedback -.-> agent_feedback
+    agent_server_routes_routes_feedback -.-> agent_feedback
+    agent_server_routes_routes_feedback -.-> agent_feedback
+    agent_server_routes_routes_health -.-> agent_server_auth
+    agent_server_routes_routes_health -.-> agent_health_health_score
+    agent_server_routes_routes_health -.-> agent_logging_utils
+    agent_server_routes_routes_health -.-> agent_utils_singleton_manager
+    agent_server_routes_routes_health -.-> agent_monitoring_alert_manager
+    agent_server_routes_routes_health -.-> agent_monitoring_alert_manager
+    agent_server_routes_routes_health -.-> agent_task_scheduler
+    agent_server_routes_routes_health -.-> agent_prometheus_exporter
+    agent_server_routes_routes_knowledge -.-> agent_knowledge
+    agent_server_routes_routes_knowledge -.-> agent_knowledge_links_index
+    agent_server_routes_routes_knowledge -.-> agent_knowledge_lint
+    agent_server_routes_routes_knowledge -.-> agent_server_auth
+    agent_server_routes_routes_knowledge --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_knowledge -.-> agent_tool_router_reranker
+    agent_server_routes_routes_llm_monitor --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_logging -.-> agent_server_auth
+    agent_server_routes_routes_logging -.-> agent_monitoring_tracing
+    agent_server_routes_routes_logging -.-> agent_monitoring_metrics
+    agent_server_routes_routes_logging -.-> agent_monitoring_performance
+    agent_server_routes_routes_logging -.-> agent_monitoring_prometheus
+    agent_server_routes_routes_logging -.-> agent_health_assessor
+    agent_server_routes_routes_logging -.-> agent_tools
+    agent_server_routes_routes_logging --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_logging -.-> agent_monitoring_sensitive_data_filter
+    agent_server_routes_routes_logging -.-> agent_logging_utils
+    agent_server_routes_routes_logging -.-> agent_utils_singleton_manager
+    agent_server_routes_routes_logging -.-> agent_monitoring_replay_storage
+    agent_server_routes_routes_logging -.-> agent_error_reporting_config
+    agent_server_routes_routes_logging -.-> agent_log_system_storage
+    agent_server_routes_routes_logging -.-> agent_monitoring_loki
+    agent_server_routes_routes_logging -.-> agent_monitoring_loki
+    agent_server_routes_routes_logging -.-> agent_monitoring_loki
+    agent_server_routes_routes_logging -.-> agent_monitoring_tracing
+    agent_server_routes_routes_logging -.-> agent_monitoring_tracing
+    agent_server_routes_routes_memory -.-> agent_server_auth
+    agent_server_routes_routes_memory --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_memory -.-> agent_logging_utils
+    agent_server_routes_routes_monitoring -.-> agent_server_auth
+    agent_server_routes_routes_monitoring -.-> agent_task_scheduler
+    agent_server_routes_routes_monitoring -.-> agent_system_tools
+    agent_server_routes_routes_monitoring --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
+    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
+    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
+    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
+    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
+    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
+    agent_server_routes_routes_panorama -.-> agent_server_auth
+    agent_server_routes_routes_panorama -.-> agent_tools
+    agent_server_routes_routes_panorama --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_permission -.-> agent_server_auth
+    agent_server_routes_routes_permission -.-> agent_tools
+    agent_server_routes_routes_permission -.-> agent_tools
+    agent_server_routes_routes_permission --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_personality -.-> agent_server_auth
+    agent_server_routes_routes_personality --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_personality -.-> agent_logging_utils
+    agent_server_routes_routes_process_distill -.-> agent_server_auth
+    agent_server_routes_routes_process_distill --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_process_distill -.-> agent_process_distill_service
+    agent_server_routes_routes_replay -.-> agent_server_auth
+    agent_server_routes_routes_replay -.-> agent_monitoring_replay_storage
+    agent_server_routes_routes_replay -.-> agent_logging_utils
+    agent_server_routes_routes_sessions -.-> agent_server_auth
+    agent_server_routes_routes_sessions --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_sessions -.-> agent_logging_utils
+    agent_server_routes_routes_sessions -.-> agent_handoff_handoff_generator
+    agent_server_routes_routes_settings -.-> agent_security
+    agent_server_routes_routes_settings -.-> agent_security_actor_matrix
+    agent_server_routes_routes_settings -.-> agent_server_auth
+    agent_server_routes_routes_settings -.-> agent_settings
+    agent_server_routes_routes_settings -.-> agent_settings_registry
+    agent_server_routes_routes_settings -.-> agent_settings_resolver
+    agent_server_routes_routes_settings -.-> agent_settings_service
+    agent_server_routes_routes_settings -.-> agent_ui_panels_schema
+    agent_server_routes_routes_settings -.-> agent_security_approval_session
+    agent_server_routes_routes_settings -.-> agent_settings_registry
+    agent_server_routes_routes_skills -.-> agent_server_auth
+    agent_server_routes_routes_skills -.-> agent_tools
+    agent_server_routes_routes_skills --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_skills -.-> agent_server_ui
+    agent_server_routes_routes_skills -.-> agent_server_ui
+    agent_server_routes_routes_skills -.-> agent_extensions_store
+    agent_server_routes_routes_skills -.-> agent_extensions_base
+    agent_server_routes_routes_skills -.-> agent_extensions_base
+    agent_server_routes_routes_skills -.-> agent_extensions_base
+    agent_server_routes_routes_skills -.-> agent_extensions_store
+    agent_server_routes_routes_skills -.-> agent_extensions_base
+    agent_server_routes_routes_skills_mgmt -.-> agent_server_auth
+    agent_server_routes_routes_skills_mgmt --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_skills_mgmt -.-> agent_state_manager
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_reviewer
+    agent_server_routes_routes_skills_mgmt -.-> agent_audit_ui_middleware
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_enhancer
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_models
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_memory_abstractor
+    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_offline_evolver
+    agent_server_routes_routes_subagent -.-> agent_server_auth
+    agent_server_routes_routes_subagent --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_system_prompt --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_system_prompt -.-> agent_server_auth
+    agent_server_routes_routes_system_prompt -.-> agent_system_prompt_config
+    agent_server_routes_routes_system_prompt -.-> agent_system_prompt_manager
+    agent_server_routes_routes_system_prompt -.-> agent_system_prompt_manager
+    agent_server_routes_routes_system_prompt -.-> agent_system_prompt_manager
+    agent_server_routes_routes_ui_panels -.-> agent_security
+    agent_server_routes_routes_ui_panels -.-> agent_security_actor_matrix
+    agent_server_routes_routes_ui_panels -.-> agent_server_auth
+    agent_server_routes_routes_ui_panels -.-> agent_ui_panels
+    agent_server_routes_routes_ui_panels -.-> agent_self_healing
+    agent_server_routes_routes_ui_panels -.-> agent_self_healing_levels
+    agent_server_routes_routes_ui_panels -.-> agent_ui_panels_schema
+    agent_server_routes_routes_ui_panels -.-> agent_guardrails
+    agent_server_routes_routes_ui_panels -.-> agent_guardrails_boundary_words
+    agent_server_routes_routes_ui_panels -.-> agent_descriptors_registry
+    agent_server_routes_routes_ui_panels -.-> agent_security_governance_bridge
+    agent_server_routes_routes_ui_panels -.-> agent_observability_events
+    agent_server_routes_routes_ui_panels -.-> agent_audit_facade
+    agent_server_routes_routes_ui_panels -.-> agent_security
+    agent_server_routes_routes_ui_panels --> agent_server_routes
+    agent_server_routes_routes_ui_panels -.-> agent_security
+    agent_server_routes_routes_ui_panels -.-> agent_security
+    agent_server_routes_routes_ui_panels --> agent_server_routes
+    agent_server_routes_routes_ui_panels -.-> agent_security
+    agent_server_routes_routes_visual_workflows -.-> agent_server_auth
+    agent_server_routes_routes_visual_workflows --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_workflow_learning -.-> agent_server_auth
+    agent_server_routes_routes_workflow_learning --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_workflow_learning -.-> agent_state_manager
+    agent_server_routes_routes_workflow_learning -.-> agent_workflow_learning
+    agent_server_routes_routes_workflow_learning -.-> agent_workflow_learning_skill_converter
+    agent_server_routes_routes_workflow_learning -.-> agent_tools
+    agent_server_routes_routes_workflow_learning -.-> agent_state_manager
+    agent_server_routes_routes_workflow_learning -.-> agent_state_manager
+    agent_server_routes_routes_workspace -.-> agent_server_auth
+    agent_server_routes_routes_workspace -.-> agent_system_tools
+    agent_server_routes_routes_workspace --> agent_server_routes_tracing_decorator
+    agent_server_routes_routes_workspace -.-> agent_system_tools
+    agent_server_routes_tracing_decorator -.-> agent_monitoring_tracing
+    agent_server_routes_tracing_decorator -.-> agent_logging_utils
+    agent_server_routes_tracing_middleware -.-> agent_monitoring_tracing
+    agent_session_manager -.-> agent_observability_trace_v2
+    agent_settings --> agent_settings_masking
+    agent_settings --> agent_settings_overrides
+    agent_settings --> agent_settings_registry
+    agent_settings --> agent_settings_resolver
+    agent_settings --> agent_settings_service
+    agent_settings_bootstrap --> agent_settings_overrides
+    agent_settings_bootstrap --> agent_settings_registry
+    agent_settings_bootstrap --> agent_settings_resolver
+    agent_settings_masking -.-> agent_utils_sensitive_data_filter
+    agent_settings_registry -.-> agent_monitoring_observability_config
+    agent_settings_registry -.-> agent_monitoring_observability_config
+    agent_settings_resolver --> agent_settings
+    agent_settings_resolver --> agent_settings_overrides
+    agent_settings_resolver --> agent_settings_registry
+    agent_settings_resolver -.-> agent_monitoring_observability_config
+    agent_settings_resolver -.-> agent_monitoring_observability_config
+    agent_settings_resolver -.-> agent_monitoring_observability_config
+    agent_settings_service -.-> agent_security_actor_matrix
+    agent_settings_service --> agent_settings
+    agent_settings_service --> agent_settings_overrides
+    agent_settings_service --> agent_settings_registry
+    agent_settings_service --> agent_settings_resolver
+    agent_settings_service -.-> agent_audit_facade
+    agent_settings_service -.-> agent_audit_facade
+    agent_settings_service -.-> agent_audit_facade
+    agent_settings_service -.-> agent_observability_events
+    agent_skills_mgmt_approval -.-> agent_security_approval_guard
+    agent_skills_mgmt_approval -.-> agent_security_governance_bridge
+    agent_skills_mgmt_approval -.-> agent_observability
+    agent_skills_mgmt_approval -.-> agent_audit
+    agent_skills_mgmt_approval -.-> agent_observability
+    agent_skills_mgmt_approval -.-> agent_observability
+    agent_skills_mgmt_assessor -.-> agent_code_review
+    agent_skills_mgmt_assessor -.-> agent_extensions_security_checker
+    agent_skills_mgmt_bm25_searcher -.-> agent_logging_utils
+    agent_skills_mgmt_cleanup -.-> agent_logging_utils
+    agent_skills_mgmt_cleanup -.-> agent_extensions_base
+    agent_skills_mgmt_cleanup -.-> agent_extensions_store
+    agent_skills_mgmt_cleanup_scheduler -.-> agent_logging_utils
+    agent_skills_mgmt_cleanup_scheduler -.-> agent_state_manager
+    agent_skills_mgmt_cleanup_scheduler -.-> agent_config
+    agent_skills_mgmt_cleanup_scheduler -.-> agent_scheduling
+    agent_skills_mgmt_cleanup_scheduler -.-> agent_scheduling
+    agent_skills_mgmt_context_injector -.-> agent_logging_utils
+    agent_skills_mgmt_creator -.-> agent_error_handler
+    agent_skills_mgmt_creator -.-> agent_extensions_market
+    agent_skills_mgmt_enhancer -.-> agent_feedback
+    agent_skills_mgmt_evaluator -.-> agent_feedback
+    agent_skills_mgmt_evolution_scheduler -.-> agent_learning_metrics
+    agent_skills_mgmt_evolution_scheduler --> agent_skills_mgmt_service
+    agent_skills_mgmt_evolution_scheduler -.-> agent_task_scheduler
+    agent_skills_mgmt_evolution_scheduler -.-> agent_task_scheduler
+    agent_skills_mgmt_exceptions -.-> agent_logging_utils
+    agent_skills_mgmt_executor -.-> agent_logging_utils
+    agent_skills_mgmt_feedback_agent --> agent_skills_mgmt_service
+    agent_skills_mgmt_feedback_agent --> agent_skills_mgmt_reviewer
+    agent_skills_mgmt_feedback_agent -.-> agent_task_scheduler
+    agent_skills_mgmt_feedback_agent -.-> agent_task_scheduler
+    agent_skills_mgmt_few_shot_injector -.-> agent_logging_utils
+    agent_skills_mgmt_file_store -.-> agent_logging_utils
+    agent_skills_mgmt_index_cache -.-> agent_logging_utils
+    agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_feedback_agent
+    agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_evolution_scheduler
+    agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_lifecycle
+    agent_skills_mgmt_learning_scheduler -.-> agent_learning_behavior_drift
+    agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_feedback_agent
+    agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_evolution_scheduler
+    agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_lifecycle
+    agent_skills_mgmt_learning_scheduler -.-> agent_learning_behavior_drift
+    agent_skills_mgmt_learning_scheduler -.-> agent_task_scheduler
+    agent_skills_mgmt_lifecycle -.-> agent_logging_utils
+    agent_skills_mgmt_lifecycle --> agent_skills_mgmt_service
+    agent_skills_mgmt_lifecycle -.-> agent_task_scheduler
+    agent_skills_mgmt_lifecycle -.-> agent_task_scheduler
+    agent_skills_mgmt_lineage -.-> agent_audit
+    agent_skills_mgmt_loader -.-> agent_logging_utils
+    agent_skills_mgmt_loader -.-> agent_monitoring_prometheus
+    agent_skills_mgmt_log_archiver -.-> agent_utils_cross_process_lock
+    agent_skills_mgmt_memory_abstractor -.-> agent_state_manager
+    agent_skills_mgmt_memory_abstractor -.-> agent_workflow_learning_service
+    agent_skills_mgmt_memory_abstractor -.-> agent_feedback_collector
+    agent_skills_mgmt_memory_abstractor -.-> agent_memory_long_term_memory
+    agent_skills_mgmt_meta_editor -.-> agent_logging_utils
+    agent_skills_mgmt_negative_intent_detector -.-> agent_logging_utils
+    agent_skills_mgmt_observability -.-> agent_monitoring_business_metrics
+    agent_skills_mgmt_observability -.-> agent_monitoring_tracing
+    agent_skills_mgmt_offline_evolver -.-> agent_logging_utils
+    agent_skills_mgmt_offline_evolver -.-> agent_task_scheduler
+    agent_skills_mgmt_offline_evolver -.-> agent_task_scheduler
+    agent_skills_mgmt_precipitate -.-> agent_logging_utils
+    agent_skills_mgmt_precipitate -.-> agent_learning_metrics
+    agent_skills_mgmt_precipitate --> agent_skills_mgmt_memory_abstractor
+    agent_skills_mgmt_precipitate -.-> agent_task_scheduler
+    agent_skills_mgmt_precipitate -.-> agent_task_scheduler
+    agent_skills_mgmt_registry -.-> agent_logging_utils
+    agent_skills_mgmt_registry --> agent_skills_mgmt_service
+    agent_skills_mgmt_reranker -.-> agent_logging_utils
+    agent_skills_mgmt_review_gate -.-> agent_audit
+    agent_skills_mgmt_searcher -.-> agent_logging_utils
+    agent_skills_mgmt_service -.-> agent_health_dashboard
+    agent_skills_mgmt_service --> agent_skills_mgmt_cleanup
+    agent_skills_mgmt_service --> agent_skills_mgmt_cleanup
+    agent_skills_mgmt_service --> agent_skills_mgmt_cleanup
+    agent_skills_mgmt_service --> agent_skills_mgmt_cleanup
+    agent_skills_mgmt_service -.-> agent_descriptors_backfill
+    agent_skills_mgmt_service -.-> agent_descriptors_backfill
+    agent_skills_mgmt_service -.-> agent_code_review
+    agent_skills_mgmt_service -.-> agent_extensions_security_checker
+    agent_skills_mgmt_service -.-> agent_feedback
+    agent_skills_mgmt_service -.-> agent_audit
+    agent_skills_mgmt_service -.-> agent_state_manager
+    agent_skills_mgmt_service -.-> agent_feedback
+    agent_skills_mgmt_skill_manager -.-> agent_logging_utils
+    agent_skills_mgmt_store --> agent_skills_mgmt_registry
+    agent_skills_mgmt_vector_adapter -.-> agent_logging_utils
+    agent_software_backends --> agent_logging_utils
+    agent_software_manager --> agent_logging_utils
+    agent_state_manager --> agent_logging_utils
+    agent_state_manager -.-> agent_utils_singleton_manager
+    agent_state_manager -.-> agent_skills_mgmt
+    agent_state_manager -.-> agent_workflow_learning
     agent_subagent --> agent_subagent_container
     agent_subagent --> agent_subagent_lifecycle
     agent_subagent --> agent_subagent_sandbox
@@ -1083,6 +2013,12 @@ flowchart LR
     agent_subagent --> agent_subagent_delegation
     agent_subagent --> agent_subagent_executor
     agent_subagent --> agent_subagent_toolset
+    agent_subagent_collection -.-> agent_security_actor_matrix
+    agent_subagent_collection -.-> agent_cognitive_reflection
+    agent_subagent_container --> agent_subagent_sandbox
+    agent_subagent_container --> agent_subagent_delegation
+    agent_subagent_container --> agent_subagent_executor
+    agent_subagent_container --> agent_subagent_executor
     agent_subagent_executor -.-> agent_security_actor_matrix
     agent_subagent_executor --> agent_subagent_barrier
     agent_subagent_executor --> agent_subagent_channel
@@ -1096,317 +2032,109 @@ flowchart LR
     agent_subagent_executor -.-> agent_observability_trace_v2
     agent_subagent_lifecycle --> agent_subagent_container
     agent_subagent_lifecycle --> agent_subagent_sandbox
-    agent_subagent_collection -.-> agent_security_actor_matrix
-    agent_subagent_collection -.-> agent_cognitive_reflection
     agent_subagent_mechanical -.-> agent_digestion_cases
     agent_subagent_mechanical -.-> agent_digestion_sandbox
-    agent_subagent_toolset -.-> agent_security_actor_matrix
-    agent_subagent_container --> agent_subagent_sandbox
-    agent_subagent_container --> agent_subagent_delegation
-    agent_subagent_container --> agent_subagent_executor
-    agent_subagent_container --> agent_subagent_executor
-    agent_subagent_summarizer -.-> agent_logging_utils
     agent_subagent_observability -.-> agent_logging_utils
     agent_subagent_observability -.-> agent_monitoring_business_metrics
     agent_subagent_sandbox -.-> agent_permission_system
-    agent_knowledge_card --> agent_knowledge_index
-    agent_knowledge_card --> agent_knowledge_lifecycle
-    agent_knowledge_card --> agent_knowledge_light_loader
-    agent_knowledge_card --> agent_knowledge_links
-    agent_knowledge_card --> agent_knowledge_links_index
-    agent_knowledge_card --> agent_knowledge_logbook
-    agent_knowledge_card --> agent_knowledge_schema
-    agent_knowledge_card -.-> agent_logging_utils
-    agent_knowledge_links --> agent_knowledge_schema
-    agent_knowledge_search --> agent_knowledge_card
-    agent_knowledge_search --> agent_knowledge_link_cache
-    agent_knowledge_search --> agent_knowledge_schema
-    agent_knowledge_search -.-> agent_utils_periodic_sampler
-    agent_knowledge_search -.-> agent_logging_utils
-    agent_knowledge --> agent_knowledge_schema
-    agent_knowledge --> agent_knowledge_lifecycle
-    agent_knowledge --> agent_knowledge_logbook
-    agent_knowledge --> agent_knowledge_links
-    agent_knowledge --> agent_knowledge_card
-    agent_knowledge --> agent_knowledge_index
-    agent_knowledge --> agent_knowledge_link_cache
-    agent_knowledge --> agent_knowledge_search
-    agent_knowledge_distill --> agent_knowledge_card
-    agent_knowledge_distill --> agent_knowledge_ingest
-    agent_knowledge_distill --> agent_knowledge_logbook
-    agent_knowledge_distill --> agent_knowledge_observability
-    agent_knowledge_distill --> agent_knowledge_prompts
-    agent_knowledge_distill --> agent_knowledge_schema
-    agent_knowledge_distill -.-> agent_logging_utils
-    agent_knowledge_links_index --> agent_knowledge_links
-    agent_knowledge_watcher --> agent_knowledge_ingest
-    agent_knowledge_lint --> agent_knowledge_index
-    agent_knowledge_lint --> agent_knowledge_links
-    agent_knowledge_workflow --> agent_knowledge_card
-    agent_knowledge_workflow --> agent_knowledge_discuss
-    agent_knowledge_workflow --> agent_knowledge_distill
-    agent_knowledge_workflow --> agent_knowledge_ingest
-    agent_knowledge_workflow --> agent_knowledge_lint
-    agent_knowledge_workflow --> agent_knowledge_logbook
-    agent_knowledge_workflow --> agent_knowledge_schema
-    agent_knowledge_workflow -.-> agent_logging_utils
-    agent_knowledge_ingest -.-> agent_utils_sensitive_data_filter
-    agent_knowledge_ingest -.-> agent_monitoring_observability_config
-    agent_knowledge_discuss --> agent_knowledge_ingest
-    agent_knowledge_discuss --> agent_knowledge_logbook
-    agent_knowledge_discuss --> agent_knowledge_observability
-    agent_knowledge_discuss --> agent_knowledge_prompts
-    agent_knowledge_conflict --> agent_knowledge_card
-    agent_knowledge_conflict --> agent_knowledge_logbook
-    agent_knowledge_link_cache --> agent_knowledge_links
-    agent_knowledge_link_cache --> agent_knowledge_schema
-    agent_knowledge_tools --> agent_knowledge_card
-    agent_knowledge_tools --> agent_knowledge_observability
-    agent_knowledge_tools --> agent_knowledge_workflow
-    agent_knowledge_tools -.-> agent_logging_utils
-    agent_knowledge_tools -.-> agent_tools
-    agent_knowledge_tools -.-> agent_tools
-    agent_knowledge_tools --> agent_knowledge_card
-    agent_knowledge_tools --> agent_knowledge_search
-    agent_knowledge_index --> agent_knowledge_links
-    agent_knowledge_index --> agent_knowledge_links_index
-    agent_knowledge_index --> agent_knowledge_schema
-    agent_knowledge_audit_job --> agent_knowledge_lint
-    agent_knowledge_audit_job --> agent_knowledge_logbook
-    agent_knowledge_audit_job --> agent_knowledge_reporting
-    agent_knowledge___main__ --> agent_knowledge_card
-    agent_knowledge___main__ --> agent_knowledge_distill
-    agent_knowledge___main__ --> agent_knowledge_index
-    agent_knowledge___main__ --> agent_knowledge_links
-    agent_knowledge___main__ --> agent_knowledge_audit_job
-    agent_knowledge___main__ --> agent_knowledge_lint
-    agent_knowledge___main__ --> agent_knowledge_conflict
-    agent_knowledge___main__ --> agent_knowledge_skill_bridge
-    agent_knowledge___main__ -.-> agent_skills_mgmt_store
-    agent_knowledge_skill_bridge -.-> agent_skills_mgmt_creator
-    agent_knowledge_skill_bridge -.-> agent_skills_mgmt_exceptions
-    agent_knowledge_skill_bridge -.-> agent_skills_mgmt_reviewer
-    agent_knowledge_skill_bridge -.-> agent_learning_metrics
-    agent_knowledge_skill_bridge -.-> agent_skills_mgmt_store
-    agent_knowledge_skill_bridge -.-> agent_skills_mgmt_creator
-    agent_knowledge_skill_bridge --> agent_knowledge_card
-    agent_knowledge_distill_feedback -.-> agent_cognitive_prompt_optimizer
-    agent_knowledge_distill_feedback -.-> agent_feedback
-    agent_knowledge_distill_feedback --> agent_knowledge_ingest
-    agent_knowledge_reporting --> agent_knowledge_lint
-    agent_data_observability -.-> agent_logging_utils
-    agent_data_observability -.-> agent_monitoring_business_metrics
-    agent_monitoring_prometheus -.-> agent_logging_utils
-    agent_monitoring_prometheus -.-> agent_error_handler
-    agent_monitoring_prometheus -.-> agent_error_handler
-    agent_monitoring_prometheus --> agent_monitoring_observability_config
-    agent_monitoring_prometheus -.-> agent_error_handler
-    agent_monitoring_prometheus -.-> agent_error_handler
-    agent_monitoring_prometheus -.-> agent_error_handler
-    agent_monitoring_prometheus -.-> agent_error_handler
-    agent_monitoring_prometheus --> agent_monitoring_observability_config
-    agent_monitoring_alert_manager --> agent_monitoring_tracing
-    agent_monitoring_alert_manager -.-> agent_logging_utils
-    agent_monitoring_alert_manager --> agent_monitoring_alert_evaluator
-    agent_monitoring_alert_manager --> agent_monitoring_alert_notifier
-    agent_monitoring_alert_manager --> agent_monitoring_self_healer
-    agent_monitoring_alert_manager -.-> agent_human_in_the_loop_takeover_queue
-    agent_monitoring_alert_manager -.-> agent_utils_singleton_manager
-    agent_monitoring_alert_manager -.-> agent_human_in_the_loop_takeover_queue
-    agent_monitoring_alert_manager -.-> agent_self_healing_policy
-    agent_monitoring_alert_manager --> agent_monitoring_observability_config
-    agent_monitoring_tracing_cache --> agent_monitoring_tracing
-    agent_monitoring_tracing_cache -.-> agent_utils_singleton_manager
-    agent_monitoring_tracing_cache --> agent_monitoring_observability_config
-    agent_monitoring_resource_monitor --> agent_monitoring_tracing
-    agent_monitoring_resource_monitor -.-> agent_logging_utils
-    agent_monitoring_resource_monitor -.-> agent_utils_singleton_manager
-    agent_monitoring_resource_monitor --> agent_monitoring_observability_config
-    agent_monitoring_resource_monitor --> agent_monitoring_business_metrics
-    agent_monitoring_business_metrics --> agent_monitoring_utils
-    agent_monitoring_business_metrics -.-> agent_logging_utils
-    agent_monitoring_self_healer --> agent_monitoring_tracing
-    agent_monitoring_self_healer -.-> agent_logging_utils
-    agent_monitoring_self_healer -.-> agent_utils_singleton_manager
-    agent_monitoring_self_healer -.-> agent_circuit_breaker
-    agent_monitoring_self_healer --> agent_monitoring_observability_config
-    agent_monitoring_self_healer -.-> agent_permission_system
-    agent_monitoring_self_healer -.-> agent_circuit_breaker
-    agent_monitoring_self_healer -.-> agent_health_assessor
-    agent_monitoring_self_healer -.-> agent_self_healing_policy
-    agent_monitoring_search -.-> agent_logging_utils
-    agent_monitoring_search --> agent_monitoring_tracing
-    agent_monitoring_search -.-> agent_common_stop_mixin
-    agent_monitoring_search -.-> agent_utils_singleton_manager
-    agent_monitoring_search --> agent_monitoring_observability_config
-    agent_monitoring_replay_storage -.-> agent_utils_singleton_manager
-    agent_monitoring_replay_storage --> agent_monitoring_observability_config
-    agent_monitoring_performance -.-> agent_logging_utils
-    agent_monitoring_performance --> agent_monitoring_tracing
-    agent_monitoring_performance -.-> agent_utils_singleton_manager
-    agent_monitoring_observability_optimizations --> agent_monitoring_tracing
-    agent_monitoring_observability_optimizations -.-> agent_utils_singleton_manager
-    agent_monitoring_tracing -.-> agent_logging_utils
-    agent_monitoring_tracing -.-> agent_observability_subscriber
-    agent_monitoring_tracing -.-> agent_observability_subscriber
-    agent_monitoring_tracing -.-> agent_utils_singleton_manager
-    agent_monitoring_alert_notifier --> agent_monitoring_tracing
-    agent_monitoring_alert_notifier -.-> agent_logging_utils
-    agent_monitoring_alert_notifier -.-> agent_utils_singleton_manager
-    agent_monitoring_alert_notifier --> agent_monitoring_observability_config
-    agent_monitoring_alert_notifier --> agent_monitoring_prometheus
-    agent_monitoring_metrics -.-> agent_logging_utils
-    agent_monitoring_error_reporter -.-> agent_logging_utils
-    agent_monitoring_error_reporter --> agent_monitoring_tracing
-    agent_monitoring_error_reporter -.-> agent_error_handler
-    agent_monitoring_error_reporter -.-> agent_utils_singleton_manager
-    agent_monitoring_error_reporter -.-> agent_error_reporting_config
-    agent_monitoring_tracing_sampling -.-> agent_utils_singleton_manager
-    agent_monitoring_config_observability --> agent_monitoring_tracing
-    agent_monitoring_config_observability --> agent_monitoring_prometheus
-    agent_monitoring_config_observability --> agent_monitoring_loki
-    agent_monitoring_config_observability --> agent_monitoring_alert_notifier
-    agent_monitoring_tracing_perf -.-> agent_logging_utils
-    agent_monitoring_loki -.-> agent_logging_utils
-    agent_monitoring_loki -.-> agent_utils_singleton_manager
-    agent_monitoring_loki --> agent_monitoring_observability_config
-    agent_monitoring_optimized_metrics --> agent_monitoring_tracing
-    agent_monitoring_optimized_metrics -.-> agent_utils_singleton_manager
-    agent_monitoring_chaos_injector --> agent_monitoring_tracing
-    agent_monitoring_chaos_injector -.-> agent_logging_utils
-    agent_monitoring_chaos_injector -.-> agent_utils_singleton_manager
-    agent_monitoring_chaos_injector --> agent_monitoring_observability_config
-    agent_monitoring_alert_evaluator -.-> agent_logging_utils
-    agent_monitoring_alert_evaluator --> agent_monitoring_tracing
-    agent_monitoring_alert_evaluator --> agent_monitoring_metrics
-    agent_monitoring_alert_evaluator -.-> agent_utils_singleton_manager
-    agent_monitoring_alert_evaluator -.-> agent_utils_singleton_manager
-    agent_monitoring_alert_evaluator -.-> agent_health_health_score
-    agent_monitoring_alert_evaluator -.-> agent_health_health_score
-    agent_monitoring_trace_http_client -.-> agent_logging_utils
-    agent_monitoring_trace_http_client --> agent_monitoring_tracing
-    agent_monitoring_observability_config --> agent_monitoring_tracing
-    agent_monitoring_observability_config -.-> agent_logging_utils
-    agent_monitoring_observability_config -.-> agent_utils_singleton_manager
-    agent_monitoring_observability_config -.-> agent_disaster_recovery
-    agent_monitoring_observability_config --> agent_monitoring_config_observability
-    agent_monitoring_performance_optimization --> agent_monitoring_tracing
-    agent_monitoring_performance_optimization -.-> agent_utils_singleton_manager
-    agent_monitoring_performance_optimization --> agent_monitoring_tracing
-    agent_monitoring_sensitive_data_filter -.-> agent_utils_sensitive_data_filter
-    agent_monitoring_sensitive_data_filter -.-> agent_utils_singleton_manager
-    agent_monitoring_decorators --> agent_monitoring_metrics
-    agent_monitoring_decorators --> agent_monitoring_tracing
-    agent_monitoring_decorators --> agent_monitoring_error_reporter
-    agent_monitoring_decorators -.-> agent_error_handler
-    agent_monitoring_decorators -.-> agent_error_handler
-    agent_monitoring_cost_brake -.-> agent_observability
-    agent_monitoring_cost_brake -.-> agent_observability_events
-    agent_monitoring_cost_brake -.-> agent_audit_facade
-    agent_monitoring_tracing_config --> agent_monitoring_observability_config
-    agent_human_in_the_loop --> agent_human_in_the_loop_takeover_queue
-    agent_human_in_the_loop_hitl -.-> agent_logging_utils
-    agent_human_in_the_loop_observability -.-> agent_logging_utils
-    agent_human_in_the_loop_observability -.-> agent_monitoring_business_metrics
-    agent_human_in_the_loop_ethics -.-> agent_logging_utils
-    agent_self_healing_levels -.-> agent_observability_events
-    agent_self_healing_levels -.-> agent_audit_facade
-    agent_self_healing_levels -.-> agent_monitoring_alert_evaluator
-    agent_self_healing_levels -.-> agent_monitoring_alert_manager
-    agent_self_healing_saga --> agent_self_healing_levels
-    agent_self_healing_release_bundle --> agent_self_healing_levels
-    agent_cognitive_failure_analysis -.-> agent_logging_utils
-    agent_cognitive_failure_analysis -.-> agent_utils_singleton_manager
-    agent_cognitive_logging_integration --> agent_cognitive_failure_collector
-    agent_cognitive --> agent_cognitive_loop
-    agent_cognitive --> agent_cognitive_reflection
-    agent_cognitive --> agent_cognitive_knowledge
-    agent_cognitive --> agent_cognitive_actor_critic
-    agent_cognitive --> agent_cognitive_debate
-    agent_cognitive_failure_collector --> agent_cognitive_failure_analysis
-    agent_cognitive_failure_collector -.-> agent_logging_utils
-    agent_cognitive_failure_collector -.-> agent_utils_singleton_manager
-    agent_cognitive_actor_critic -.-> agent_logging_utils
-    agent_cognitive_debate -.-> agent_logging_utils
-    agent_cognitive_critic -.-> agent_monitoring_tracing
-    agent_cognitive_critic -.-> agent_circuit_breaker
-    agent_cognitive_critic -.-> agent_graceful_degrade
-    agent_cognitive_critic -.-> agent_logging_utils
-    agent_cognitive_critic -.-> agent_evolution_injector
-    agent_cognitive_reflection -.-> agent_logging_utils
-    agent_cognitive_reflection -.-> agent_monitoring_observability_config
-    agent_cognitive_observability -.-> agent_logging_utils
-    agent_cognitive_observability -.-> agent_monitoring_business_metrics
-    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_evaluator
-    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_lineage
-    agent_cognitive_prompt_optimizer --> agent_cognitive_failure_bucket
-    agent_cognitive_prompt_optimizer -.-> agent_logging_utils
-    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_observability
-    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_observability
-    agent_cognitive_prompt_optimizer -.-> agent_skills_mgmt_observability
-    agent_cognitive_loop --> agent_cognitive_reflection
-    agent_cognitive_loop --> agent_cognitive_knowledge
-    agent_cognitive_loop --> agent_cognitive_actor_critic
-    agent_cognitive_loop --> agent_cognitive_debate
-    agent_cognitive_loop -.-> agent_logging_utils
-    agent_descriptors_bridge --> agent_descriptors_registry
-    agent_descriptors_bridge -.-> agent_skills_mgmt_store
-    agent_descriptors_registry -.-> agent_audit
-    agent_policy_signing --> agent_policy_models
-    agent_policy --> agent_policy_decisions
-    agent_policy --> agent_policy_egress
-    agent_policy --> agent_policy_engine
-    agent_policy --> agent_policy_inbox
-    agent_policy --> agent_policy_matcher
-    agent_policy --> agent_policy_models
-    agent_policy --> agent_policy_signing
-    agent_policy --> agent_policy_simulator
-    agent_policy --> agent_policy_store
-    agent_policy --> agent_policy_taint
-    agent_policy_store --> agent_policy_matcher
-    agent_policy_store --> agent_policy_models
-    agent_policy_store --> agent_policy_signing
-    agent_policy_store --> agent_policy_matcher
-    agent_policy_matcher --> agent_policy_models
-    agent_policy_taint --> agent_policy_models
-    agent_policy_taint -.-> agent_utils_sensitive_data_filter
-    agent_policy_taint -.-> agent_observability_events
-    agent_policy_taint -.-> agent_audit_facade
-    agent_policy_simulator --> agent_policy_decisions
-    agent_policy_simulator --> agent_policy_engine
-    agent_policy_simulator --> agent_policy_models
-    agent_policy_simulator --> agent_policy_store
-    agent_policy_simulator --> agent_policy_engine
-    agent_policy_inbox --> agent_policy_models
-    agent_policy_engine --> agent_policy_decisions
-    agent_policy_engine --> agent_policy_matcher
-    agent_policy_engine --> agent_policy_models
-    agent_policy_engine --> agent_policy_store
-    agent_policy_engine -.-> agent_audit_facade
-    agent_policy_engine -.-> agent_observability
-    agent_policy_engine -.-> agent_observability_events
-    agent_policy_engine -.-> agent_audit_facade
-    agent_policy_engine --> agent_policy_inbox
-    agent_policy_decisions --> agent_policy_models
-    agent_policy_decisions -.-> agent_observability_events
-    agent_policy_egress --> agent_policy_engine
-    agent_policy_egress --> agent_policy_models
-    agent_policy_egress --> agent_policy_taint
-    agent_policy_egress -.-> agent_observability_events
-    agent_lazy_loader -.-> agent_logging_utils
-    agent_lazy_loader -.-> agent_utils_singleton_manager
-    agent_lazy_loader__core -.-> agent_logging_utils
-    agent_lazy_loader_observability -.-> agent_logging_utils
-    agent_lazy_loader_observability -.-> agent_monitoring_business_metrics
-    agent_utils_perf_monitor -.-> agent_logging_utils
-    agent_utils_perf_monitor -.-> agent_logging_utils
-    agent_utils_perf_monitor -.-> agent_logging_utils
-    agent_utils_perf_monitor -.-> agent_logging_utils
-    agent_utils_token_redactor -.-> agent_logging_utils
-    agent_utils_index_manager --> agent_utils_singleton_manager
-    agent_utils_sensitive_data_filter --> agent_utils_singleton_manager
-    agent_utils_observability -.-> agent_logging_utils
-    agent_utils_observability -.-> agent_monitoring_business_metrics
+    agent_subagent_summarizer -.-> agent_logging_utils
+    agent_subagent_toolset -.-> agent_security_actor_matrix
+    agent_system_prompt_config -.-> agent_utils_singleton_manager
+    agent_system_tools -.-> agent_tools_file_tools
+    agent_system_tools -.-> agent_tools_workspace_tools
+    agent_system_tools -.-> agent_tools_browser_tools
+    agent_system_tools -.-> agent_tools_process_tools
+    agent_system_tools -.-> agent_tools_task_tools
+    agent_system_tools -.-> agent_tools_shell_tools
+    agent_task_planner_dag -.-> agent_logging_utils
+    agent_task_planner_enhanced_dag -.-> agent_logging_utils
+    agent_task_planner_enhanced_dag --> agent_task_planner_dag
+    agent_task_planner_enhanced_planner --> agent_task_planner_enhanced_dag
+    agent_task_planner_enhanced_planner -.-> agent_logging_utils
+    agent_task_planner_observability -.-> agent_logging_utils
+    agent_task_planner_observability -.-> agent_monitoring_business_metrics
+    agent_task_planner_planner -.-> agent_logging_utils
+    agent_task_scheduler --> agent_logging_utils
+    agent_task_scheduler -.-> agent_utils_singleton_manager
+    agent_task_scheduler -.-> agent_observability_acr
+    agent_task_scheduler --> agent_weekly_report_generator
+    agent_task_scheduler -.-> agent_monitoring_observability_config
+    agent_task_scheduler -.-> agent_monitoring_observability_config
+    agent_task_scheduler -.-> agent_monitoring_observability_config
+    agent_task_scheduler -.-> agent_monitoring_observability_config
+    agent_task_scheduler -.-> agent_monitoring_observability_config
+    agent_task_scheduler -.-> agent_monitoring_observability_config
+    agent_test_permission_system --> agent_permission_system
+    agent_text_tools --> agent_logging_utils
+    agent_tool_calling --> agent_logging_utils
+    agent_tool_calling --> agent
+    agent_tool_calling --> agent_rate_limiter
+    agent_tool_calling --> agent_circuit_breaker
+    agent_tool_calling -.-> agent_descriptors_bridge
+    agent_tool_calling --> agent_circuit_breaker
+    agent_tool_calling -.-> agent_observability_trace_v2
+    agent_tool_calling -.-> agent_observability_tool_trace
+    agent_tool_calling --> agent_response_workflows
+    agent_tool_fewshot_store -.-> agent_utils_sensitive_data_filter
+    agent_tool_router -.-> agent_observability_tool_trace
+    agent_tool_router -.-> agent_evolution_injector
+    agent_tool_router -.-> agent_monitoring_tracing
+    agent_tool_router_hybrid --> agent_logging_utils
+    agent_tool_router_hybrid -.-> agent_observability_tool_trace
+    agent_tool_router_hybrid --> agent_tool_router
+    agent_tool_router_reranker --> agent_logging_utils
+    agent_tool_router_reranker -.-> agent_utils_singleton_manager
+    agent_tools -.-> agent_rate_limiter
+    agent_tools_code_tools --> agent
+    agent_tools_code_tools -.-> agent_diagram_tools
+    agent_tools_code_tools -.-> agent_text_tools
+    agent_tools_code_tools -.-> agent_data_process_tools
+    agent_tools_code_tools -.-> agent_async_executor
+    agent_tools_code_tools -.-> agent_code_review
+    agent_tools_code_tools -.-> agent_scheduling
+    agent_tools_code_tools -.-> agent_scheduling
+    agent_tools_code_tools -.-> agent_scheduling
+    agent_tools_code_tools -.-> agent_scheduling
+    agent_tools_code_tools -.-> agent_scheduling
+    agent_tools_code_tools -.-> agent_scheduling
+    agent_tools_core_tools --> agent
+    agent_tools_core_tools -.-> agent_system_tools
+    agent_tools_discovery_service -.-> agent_extensions_base
+    agent_tools_discovery_service --> agent_tools_mcp_connector
+    agent_tools_discovery_service -.-> agent_extensions_market
+    agent_tools_ext_tools --> agent
+    agent_tools_ext_tools -.-> agent_extensions_market
+    agent_tools_ext_tools --> agent_tools_tool_generator
+    agent_tools_file_tools -.-> agent_logging_utils
+    agent_tools_file_tools_reg --> agent
+    agent_tools_file_tools_reg -.-> agent_system_tools
+    agent_tools_file_tools_reg -.-> agent_compression_tools
+    agent_tools_file_tools_reg -.-> agent_diff_tools
+    agent_tools_file_tools_reg -.-> agent_policy_taint
+    agent_tools_mcp_connector --> agent
+    agent_tools_observability -.-> agent_logging_utils
+    agent_tools_observability -.-> agent_monitoring_business_metrics
+    agent_tools_pdf_tools --> agent
+    agent_tools_pdf_tools -.-> agent_logging_utils
+    agent_tools_pdf_tools -.-> agent_pdf_tools
+    agent_tools_software_tools --> agent
+    agent_tools_software_tools -.-> agent_software_manager
+    agent_tools_software_tools -.-> agent_software_backends
+    agent_tools_software_tools -.-> agent_web
+    agent_tools_system_tools --> agent
+    agent_tools_system_tools -.-> agent_system_tools
+    agent_tools_system_tools -.-> agent_system_tools
+    agent_tools_task_tools -.-> agent_observability_escape
+    agent_tools_task_tools -.-> agent_observability_escape
+    agent_tools_task_tools -.-> agent_task_scheduler
+    agent_tools_task_tools -.-> agent_task_scheduler
+    agent_tools_task_tools -.-> agent_task_scheduler
+    agent_tools_tool_generator --> agent
+    agent_tools_tool_generator -.-> agent_logging_utils
+    agent_tools_web_tools --> agent
+    agent_tools_web_tools -.-> agent_web
+    agent_tools_web_tools -.-> agent_network_config
+    agent_tools_web_tools -.-> agent_search_aggregator
     agent_ui_panels_data --> agent_ui_panels_schema
     agent_ui_panels_data -.-> agent_security
     agent_ui_panels_data -.-> agent_observability_events
@@ -1438,549 +2166,45 @@ flowchart LR
     agent_ui_panels_data -.-> agent_eval_metrics
     agent_ui_panels_data -.-> agent_audit_chain
     agent_ui_panels_schema -.-> agent_monitoring_cost_brake
-    agent_context_assembler -.-> agent_guardrails_foreign_taint
-    agent_context_assembler -.-> agent_guardrails_instruction_data
-    agent_context_assembler -.-> agent_guardrails_foreign_taint
-    agent_preflight --> agent_preflight_runner
-    agent_preflight___main__ --> agent_preflight_runner
-    agent_preflight_runner --> agent
+    agent_utils_cross_process_lock -.-> agent_monitoring_metrics
+    agent_utils_cross_process_lock -.-> agent_audit
+    agent_utils_cross_process_lock -.-> agent_observability_events
+    agent_utils_index_manager --> agent_utils_singleton_manager
+    agent_utils_observability -.-> agent_logging_utils
+    agent_utils_observability -.-> agent_monitoring_business_metrics
+    agent_utils_perf_monitor -.-> agent_logging_utils
+    agent_utils_perf_monitor -.-> agent_logging_utils
+    agent_utils_perf_monitor -.-> agent_logging_utils
+    agent_utils_perf_monitor -.-> agent_logging_utils
+    agent_utils_sensitive_data_filter --> agent_utils_singleton_manager
+    agent_utils_token_redactor -.-> agent_logging_utils
+    agent_v2_performance_patch --> agent_logging_utils
     agent_verification_output_validator -.-> agent_monitoring_metrics
     agent_verification_output_validator -.-> agent_guardrails_output_guard
-    agent_config_etcd_config_client -.-> agent_logging_utils
-    agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
-    agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
-    agent_config_etcd_config_client -.-> agent_monitoring_metrics
-    agent_config_etcd_config_client -.-> agent_error_handler
-    agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
-    agent_config_etcd_config_client -.-> agent_orchestrator_orchestrator
-    agent_task_planner_enhanced_planner --> agent_task_planner_enhanced_dag
-    agent_task_planner_enhanced_planner -.-> agent_logging_utils
-    agent_task_planner_planner -.-> agent_logging_utils
-    agent_task_planner_dag -.-> agent_logging_utils
-    agent_task_planner_observability -.-> agent_logging_utils
-    agent_task_planner_observability -.-> agent_monitoring_business_metrics
-    agent_task_planner_enhanced_dag -.-> agent_logging_utils
-    agent_task_planner_enhanced_dag --> agent_task_planner_dag
-    agent_model_router_adapters -.-> agent_logging_utils
-    agent_model_router_router -.-> agent_logging_utils
-    agent_model_router_cost_tracker -.-> agent_observability_events
-    agent_model_router_cost_tracker -.-> agent_audit_facade
-    agent_model_router_observability -.-> agent_logging_utils
-    agent_model_router_observability -.-> agent_monitoring_business_metrics
-    agent_memory_filter -.-> agent_logging_utils
-    agent_memory_filter -.-> agent_utils_sensitive_data_filter
-    agent_memory_filter -.-> agent_utils_sensitive_data_filter
-    agent_memory_forgetting -.-> agent_logging_utils
-    agent_memory_forgetting --> agent_memory_identity
-    agent_memory_forgetting --> agent_memory_taxonomy
-    agent_memory_forgetting --> agent_memory_tenancy
-    agent_memory_forgetting -.-> agent_observability_trace_v2
-    agent_memory_forgetting -.-> agent_audit
-    agent_memory_forgetting -.-> agent_observability_trace_v2
-    agent_memory_forgetting -.-> agent_descriptors_registry
-    agent_memory_forgetting -.-> agent_audit
-    agent_memory --> agent_memory_base
-    agent_memory --> agent_memory_router
-    agent_memory --> agent_memory_adapters
-    agent_memory --> agent_memory_identity
-    agent_memory --> agent_memory_taxonomy
-    agent_memory --> agent_memory_tenancy
-    agent_memory --> agent_memory_layered_store
-    agent_memory --> agent_memory_forgetting
-    agent_memory_context_assembler -.-> agent_logging_utils
-    agent_memory_context_assembler --> agent_memory_observability
-    agent_memory_taxonomy -.-> agent_logging_utils
-    agent_memory_taxonomy -.-> agent_observability_trace_v2
-    agent_memory_reviewer --> agent_memory_long_term_memory
-    agent_memory_hotness_scorer -.-> agent_logging_utils
-    agent_memory_hotness_scorer --> agent_memory_observability
-    agent_memory_router --> agent_memory_base
-    agent_memory_router --> agent_memory_adapters_holographic_adapter
-    agent_memory_router --> agent_memory_adapters_mem0_adapter
-    agent_memory_router -.-> agent_logging_utils
-    agent_memory_router --> agent_memory_filter
-    agent_memory_layered_store -.-> agent_logging_utils
-    agent_memory_layered_store --> agent_memory_identity
-    agent_memory_layered_store --> agent_memory_long_term_memory
-    agent_memory_layered_store --> agent_memory_taxonomy
-    agent_memory_layered_store --> agent_memory_tenancy
-    agent_memory_layered_store -.-> agent_utils_sensitive_data_filter
-    agent_memory_layered_store -.-> agent_observability_trace_v2
-    agent_memory_file_watcher -.-> agent_logging_utils
-    agent_memory_file_watcher --> agent_memory_markdown_syncer
-    agent_memory_file_watcher --> agent_memory_observability
-    agent_memory_markdown_syncer -.-> agent_logging_utils
-    agent_memory_short_term_memory --> agent_memory_base
-    agent_memory_short_term_memory -.-> agent_logging_utils
-    agent_memory_tenancy -.-> agent_logging_utils
-    agent_memory_tenancy --> agent_memory_taxonomy
-    agent_memory_tenancy -.-> agent_observability_trace_v2
-    agent_memory_tenancy -.-> agent_observability_trace_v2
-    agent_memory_tenancy -.-> agent_observability_trace_v2
-    agent_memory_long_term_memory --> agent_memory_base
-    agent_memory_long_term_memory -.-> agent_logging_utils
-    agent_memory_long_term_memory -.-> agent_monitoring_business_metrics
-    agent_memory_identity -.-> agent_logging_utils
-    agent_memory_identity -.-> agent_audit
-    agent_memory_observability -.-> agent_logging_utils
-    agent_memory_observability -.-> agent_monitoring_business_metrics
-    agent_memory_base -.-> agent_logging_utils
-    agent_health_assessor -.-> agent_logging_utils
-    agent_health_dashboard --> agent_health_assessor
-    agent_health_dashboard --> agent_health_probes
-    agent_health_dashboard --> agent_health_storage
-    agent_health_collector --> agent_health_assessor
-    agent_health_collector --> agent_health_probes
-    agent_health_collector --> agent_health_storage
-    agent_health_health_score -.-> agent_logging_utils
-    agent_health_health_score -.-> agent_utils_singleton_manager
-    agent_health_probes -.-> agent_logging_utils
-    agent_health_probes -.-> agent_monitoring_metrics
-    agent_health_probes -.-> agent_monitoring_metrics
-    agent_health_probes -.-> agent_feedback
-    agent_health_probes -.-> agent_circuit_breaker
-    agent_health_observability -.-> agent_logging_utils
-    agent_health_observability -.-> agent_monitoring_business_metrics
-    agent_skills_mgmt_assessor -.-> agent_code_review
-    agent_skills_mgmt_assessor -.-> agent_extensions_security_checker
-    agent_skills_mgmt_lineage -.-> agent_audit
-    agent_skills_mgmt_enhancer -.-> agent_feedback
-    agent_skills_mgmt_bm25_searcher -.-> agent_logging_utils
-    agent_skills_mgmt_registry -.-> agent_logging_utils
-    agent_skills_mgmt_registry --> agent_skills_mgmt_service
-    agent_skills_mgmt_review_gate -.-> agent_audit
-    agent_skills_mgmt_executor -.-> agent_logging_utils
-    agent_skills_mgmt_file_store -.-> agent_logging_utils
-    agent_skills_mgmt_memory_abstractor -.-> agent_state_manager
-    agent_skills_mgmt_memory_abstractor -.-> agent_workflow_learning_service
-    agent_skills_mgmt_memory_abstractor -.-> agent_feedback_collector
-    agent_skills_mgmt_memory_abstractor -.-> agent_memory_long_term_memory
-    agent_skills_mgmt_service -.-> agent_health_dashboard
-    agent_skills_mgmt_service --> agent_skills_mgmt_cleanup
-    agent_skills_mgmt_service --> agent_skills_mgmt_cleanup
-    agent_skills_mgmt_service --> agent_skills_mgmt_cleanup
-    agent_skills_mgmt_service --> agent_skills_mgmt_cleanup
-    agent_skills_mgmt_service -.-> agent_descriptors_backfill
-    agent_skills_mgmt_service -.-> agent_descriptors_backfill
-    agent_skills_mgmt_service -.-> agent_code_review
-    agent_skills_mgmt_service -.-> agent_extensions_security_checker
-    agent_skills_mgmt_service -.-> agent_feedback
-    agent_skills_mgmt_service -.-> agent_audit
-    agent_skills_mgmt_service -.-> agent_state_manager
-    agent_skills_mgmt_service -.-> agent_feedback
-    agent_skills_mgmt_loader -.-> agent_logging_utils
-    agent_skills_mgmt_loader -.-> agent_monitoring_prometheus
-    agent_skills_mgmt_lifecycle -.-> agent_logging_utils
-    agent_skills_mgmt_lifecycle --> agent_skills_mgmt_service
-    agent_skills_mgmt_lifecycle -.-> agent_task_scheduler
-    agent_skills_mgmt_lifecycle -.-> agent_task_scheduler
-    agent_skills_mgmt_store --> agent_skills_mgmt_registry
-    agent_skills_mgmt_cleanup_scheduler -.-> agent_logging_utils
-    agent_skills_mgmt_cleanup_scheduler -.-> agent_state_manager
-    agent_skills_mgmt_cleanup_scheduler -.-> agent_config
-    agent_skills_mgmt_cleanup_scheduler -.-> agent_scheduling
-    agent_skills_mgmt_cleanup_scheduler -.-> agent_scheduling
-    agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_feedback_agent
-    agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_evolution_scheduler
-    agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_lifecycle
-    agent_skills_mgmt_learning_scheduler -.-> agent_learning_behavior_drift
-    agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_feedback_agent
-    agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_evolution_scheduler
-    agent_skills_mgmt_learning_scheduler --> agent_skills_mgmt_lifecycle
-    agent_skills_mgmt_learning_scheduler -.-> agent_learning_behavior_drift
-    agent_skills_mgmt_learning_scheduler -.-> agent_task_scheduler
-    agent_skills_mgmt_skill_manager -.-> agent_logging_utils
-    agent_skills_mgmt_offline_evolver -.-> agent_logging_utils
-    agent_skills_mgmt_offline_evolver -.-> agent_task_scheduler
-    agent_skills_mgmt_offline_evolver -.-> agent_task_scheduler
-    agent_skills_mgmt_evolution_scheduler -.-> agent_learning_metrics
-    agent_skills_mgmt_evolution_scheduler --> agent_skills_mgmt_service
-    agent_skills_mgmt_evolution_scheduler -.-> agent_task_scheduler
-    agent_skills_mgmt_evolution_scheduler -.-> agent_task_scheduler
-    agent_skills_mgmt_exceptions -.-> agent_logging_utils
-    agent_skills_mgmt_reranker -.-> agent_logging_utils
-    agent_skills_mgmt_precipitate -.-> agent_logging_utils
-    agent_skills_mgmt_precipitate -.-> agent_learning_metrics
-    agent_skills_mgmt_precipitate --> agent_skills_mgmt_memory_abstractor
-    agent_skills_mgmt_precipitate -.-> agent_task_scheduler
-    agent_skills_mgmt_precipitate -.-> agent_task_scheduler
-    agent_skills_mgmt_meta_editor -.-> agent_logging_utils
-    agent_skills_mgmt_index_cache -.-> agent_logging_utils
-    agent_skills_mgmt_vector_adapter -.-> agent_logging_utils
-    agent_skills_mgmt_approval -.-> agent_security_approval_guard
-    agent_skills_mgmt_approval -.-> agent_security_governance_bridge
-    agent_skills_mgmt_approval -.-> agent_observability
-    agent_skills_mgmt_approval -.-> agent_audit
-    agent_skills_mgmt_approval -.-> agent_observability
-    agent_skills_mgmt_approval -.-> agent_observability
-    agent_skills_mgmt_feedback_agent --> agent_skills_mgmt_service
-    agent_skills_mgmt_feedback_agent --> agent_skills_mgmt_reviewer
-    agent_skills_mgmt_feedback_agent -.-> agent_task_scheduler
-    agent_skills_mgmt_feedback_agent -.-> agent_task_scheduler
-    agent_skills_mgmt_observability -.-> agent_monitoring_business_metrics
-    agent_skills_mgmt_observability -.-> agent_monitoring_tracing
-    agent_skills_mgmt_cleanup -.-> agent_logging_utils
-    agent_skills_mgmt_cleanup -.-> agent_extensions_base
-    agent_skills_mgmt_cleanup -.-> agent_extensions_store
-    agent_skills_mgmt_few_shot_injector -.-> agent_logging_utils
-    agent_skills_mgmt_context_injector -.-> agent_logging_utils
-    agent_skills_mgmt_negative_intent_detector -.-> agent_logging_utils
-    agent_skills_mgmt_creator -.-> agent_error_handler
-    agent_skills_mgmt_creator -.-> agent_extensions_market
-    agent_skills_mgmt_evaluator -.-> agent_feedback
-    agent_skills_mgmt_searcher -.-> agent_logging_utils
-    agent_extensions_security_checker -.-> agent_logging_utils
-    agent_extensions_security_checker -.-> agent_utils_singleton_manager
-    agent_extensions_security_checker --> agent_extensions_base
-    agent_extensions_manager --> agent_extensions_base
-    agent_extensions_manager --> agent_extensions_store
-    agent_extensions_manager --> agent_extensions_skills_installer
-    agent_extensions_manager --> agent_extensions_mcp_installer
-    agent_extensions_manager --> agent_extensions_channels_installer
-    agent_extensions_manager --> agent_extensions_plugins_installer
-    agent_extensions_manager -.-> agent_logging_utils
-    agent_extensions_plugins_installer --> agent_extensions_base
-    agent_extensions_plugins_installer --> agent_extensions_installer
-    agent_extensions_plugins_installer --> agent_extensions_store
-    agent_extensions_plugins_installer -.-> agent_logging_utils
-    agent_extensions --> agent_extensions_base
-    agent_extensions --> agent_extensions_manager
-    agent_extensions --> agent_extensions_store
-    agent_extensions_store --> agent_extensions_base
-    agent_extensions_store -.-> agent_logging_utils
-    agent_extensions_skills_installer --> agent_extensions_base
-    agent_extensions_skills_installer --> agent_extensions_installer
-    agent_extensions_skills_installer --> agent_extensions_store
-    agent_extensions_skills_installer -.-> agent_logging_utils
-    agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
-    agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
-    agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
-    agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
-    agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
-    agent_extensions_skills_installer -.-> agent_skills_mgmt_registry
-    agent_extensions_installer -.-> agent_logging_utils
-    agent_extensions_mcp_installer --> agent_extensions_base
-    agent_extensions_mcp_installer --> agent_extensions_installer
-    agent_extensions_mcp_installer --> agent_extensions_store
-    agent_extensions_mcp_installer -.-> agent_logging_utils
-    agent_extensions_channels_installer --> agent_extensions_base
-    agent_extensions_channels_installer --> agent_extensions_installer
-    agent_extensions_channels_installer --> agent_extensions_store
-    agent_extensions_channels_installer -.-> agent_logging_utils
-    agent_extensions_dependency_manager -.-> agent_monitoring_tracing
-    agent_extensions_dependency_manager -.-> agent_logging_utils
-    agent_extensions_observability -.-> agent_logging_utils
-    agent_extensions_observability -.-> agent_monitoring_business_metrics
-    agent_extensions_security_check_skill --> agent_extensions_security_checker
-    agent_extensions_security_check_skill -.-> agent_logging_utils
-    agent_extensions_security_check_skill --> agent_extensions_security_checker
-    agent_extensions_base -.-> agent_logging_utils
-    agent_extensions_sandbox -.-> agent_monitoring_tracing
-    agent_extensions_sandbox -.-> agent_logging_utils
-    agent_extensions_market --> agent_extensions_base
-    agent_extensions_market -.-> agent_logging_utils
-    agent_workflow_learning_service -.-> agent_state_manager
-    agent_workflow_learning_service -.-> agent_skills_mgmt_service
-    agent_workflow_learning_service -.-> agent_skills_mgmt_assessor
-    agent_workflow_learning_matcher -.-> agent_logging_utils
-    agent_workflow_learning_skill_converter -.-> agent_logging_utils
-    agent_workflow_learning_observability -.-> agent_monitoring_business_metrics
-    agent_caching_multi_level_cache -.-> agent_logging_utils
-    agent_caching_multi_level_cache -.-> agent_monitoring_observability_config
-    agent_caching_observability -.-> agent_logging_utils
-    agent_caching_observability -.-> agent_monitoring_business_metrics
-    agent_quality_defect_tracker -.-> agent_monitoring_observability_config
-    agent_quality_defect_tracker -.-> agent_monitoring_observability_config
-    agent_quality_observability -.-> agent_logging_utils
-    agent_quality_observability -.-> agent_monitoring_business_metrics
-    agent_evolution_injector -.-> agent_utils_singleton_manager
-    agent_web_search -.-> agent_logging_utils
+    agent_web_browser_agent -.-> agent_error_handler
+    agent_web_browser_agent -.-> agent_error_handler
+    agent_web_browser_agent -.-> agent_error_handler
     agent_web_http_client -.-> agent_monitoring_observability_config
     agent_web_http_client -.-> agent_monitoring_observability_config
     agent_web_http_client -.-> agent_guardrails_egress_guard
     agent_web_http_client -.-> agent_monitoring_observability_config
     agent_web_http_client -.-> agent_monitoring_observability_config
-    agent_web_browser_agent -.-> agent_error_handler
-    agent_web_browser_agent -.-> agent_error_handler
-    agent_web_browser_agent -.-> agent_error_handler
     agent_web_observability -.-> agent_logging_utils
     agent_web_observability -.-> agent_monitoring_business_metrics
-    agent_audit_logger -.-> agent_observability_tracer
-    agent_audit_logger -.-> agent_logging_utils
-    agent_audit_logger --> agent_audit_chain
-    agent_audit_logger --> agent_audit_facade
-    agent_audit_logger --> agent_audit_migration
-    agent_audit --> agent_audit_logger
-    agent_audit --> agent_audit_chain
-    agent_audit --> agent_audit_facade
-    agent_audit --> agent_audit_migration
-    agent_audit --> agent_audit_ui_middleware
-    agent_audit_migration --> agent_audit_chain
-    agent_audit_migration --> agent_audit_facade
-    agent_audit_observability -.-> agent_logging_utils
-    agent_audit_observability -.-> agent_monitoring_business_metrics
-    agent_audit_ui_middleware --> agent_audit_chain
-    agent_audit_ui_middleware --> agent_audit_facade
-    agent_audit_ui_middleware --> agent_audit_facade
-    agent_audit_ui_middleware -.-> agent_security_identity
-    agent_audit_ui_middleware -.-> agent_security_pii
-    agent_audit_ui_middleware --> agent_audit_facade
-    agent_audit_facade --> agent_audit_chain
-    agent_audit_facade -.-> agent_logging_utils
-    agent_eval --> agent_eval_anchor
-    agent_eval --> agent_eval_cases
-    agent_eval --> agent_eval_checkers
-    agent_eval --> agent_eval_runner
-    agent_eval --> agent_eval_solvers
-    agent_eval_metrics -.-> agent_observability
-    agent_eval_metrics -.-> agent_observability
-    agent_eval_metrics -.-> agent_observability_events
-    agent_eval_metrics -.-> agent_feedback
-    agent_eval_metrics -.-> agent_subagent_mechanical
-    agent_eval_metrics -.-> agent_descriptors_registry
-    agent_eval_metrics -.-> agent_digestion_shadow
-    agent_eval_solvers --> agent_eval_checkers
-    agent_eval_solvers --> agent_eval_cases
-    agent_eval_baseline --> agent_eval_anchor
-    agent_eval_baseline --> agent_eval_cases
-    agent_eval_baseline --> agent_eval_metrics
-    agent_eval_baseline --> agent_eval_runner
-    agent_eval_baseline -.-> agent_observability
-    agent_eval_baseline -.-> agent_digestion_shadow
-    agent_eval_baseline -.-> agent_observability
-    agent_eval_anchor --> agent_eval_cases
-    agent_eval_cases --> agent_eval_checkers
-    agent_eval_cases --> agent_eval_checkers
-    agent_eval_calibration --> agent_eval_anchor
-    agent_eval_calibration -.-> agent_observability
-    agent_eval_calibration -.-> agent_observability_events
-    agent_eval_runner --> agent_eval_anchor
-    agent_eval_runner --> agent_eval_cases
-    agent_eval_runner --> agent_eval_checkers
-    agent_eval_runner --> agent_eval_solvers
-    agent_security --> agent_security_actor_matrix
-    agent_security --> agent_security_alerts
-    agent_security --> agent_security_approval_guard
-    agent_security --> agent_security_approval_session
-    agent_security --> agent_security_identity
-    agent_security --> agent_security_pii
-    agent_security_approval_guard --> agent_security_alerts
-    agent_security_approval_guard --> agent_security_pii
-    agent_security_approval_guard --> agent_security_actor_matrix
-    agent_security_approval_guard --> agent_security_identity
-    agent_security_approval_guard --> agent_security_identity
-    agent_security_approval_guard -.-> agent_observability_events
-    agent_security_pii -.-> agent_utils_sensitive_data_filter
-    agent_security_governance_bridge -.-> agent_descriptors_registry
-    agent_security_governance_bridge --> agent_security_approval_guard
-    agent_security_approval_session --> agent_security_pii
-    agent_security_identity --> agent_security_actor_matrix
-    agent_server_routes_routes_visual_workflows -.-> agent_server_auth
-    agent_server_routes_routes_visual_workflows --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_approval -.-> agent_security
-    agent_server_routes_routes_approval -.-> agent_security
-    agent_server_routes_routes_approval -.-> agent_security_actor_matrix
-    agent_server_routes_routes_approval -.-> agent_server_auth
-    agent_server_routes_routes_approval -.-> agent_security_actor_matrix
-    agent_server_routes_routes_approval -.-> agent_skills_mgmt_approval
-    agent_server_routes_routes_approval -.-> agent_security_governance_bridge
-    agent_server_routes_routes_approval -.-> agent_security_governance_bridge
-    agent_server_routes_routes_dashboard -.-> agent_server_auth
-    agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
-    agent_server_routes_routes_dashboard -.-> agent_monitoring_metrics
-    agent_server_routes_routes_dashboard -.-> agent_health_assessor
-    agent_server_routes_routes_dashboard --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_dashboard -.-> agent_logging_utils
-    agent_server_routes_routes_dashboard -.-> agent_cognitive_failure_analysis
-    agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
-    agent_server_routes_routes_dashboard -.-> agent_monitoring_tracing
-    agent_server_routes_routes_subagent -.-> agent_server_auth
-    agent_server_routes_routes_subagent --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_feedback -.-> agent_logging_utils
-    agent_server_routes_routes_feedback -.-> agent_feedback
-    agent_server_routes_routes_feedback -.-> agent_feedback
-    agent_server_routes_routes_feedback -.-> agent_feedback
-    agent_server_routes_routes_feedback -.-> agent_feedback
-    agent_server_routes_routes_feedback -.-> agent_feedback
-    agent_server_routes_routes_feedback -.-> agent_feedback
-    agent_server_routes_routes_feedback -.-> agent_feedback
-    agent_server_routes_routes_permission -.-> agent_server_auth
-    agent_server_routes_routes_permission -.-> agent_tools
-    agent_server_routes_routes_permission -.-> agent_tools
-    agent_server_routes_routes_permission --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_system_prompt --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_system_prompt -.-> agent_server_auth
-    agent_server_routes_routes_system_prompt -.-> agent_system_prompt_config
-    agent_server_routes_routes_system_prompt -.-> agent_system_prompt_manager
-    agent_server_routes_routes_system_prompt -.-> agent_system_prompt_manager
-    agent_server_routes_routes_system_prompt -.-> agent_system_prompt_manager
-    agent_server_routes_tracing_middleware -.-> agent_monitoring_tracing
-    agent_server_routes_routes_personality -.-> agent_server_auth
-    agent_server_routes_routes_personality --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_personality -.-> agent_logging_utils
-    agent_server_routes_routes_config -.-> agent_server_auth
-    agent_server_routes_routes_config -.-> agent_network_config
-    agent_server_routes_routes_config --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_config -.-> agent_logging_utils
-    agent_server_routes_routes_config -.-> agent_config_validation
-    agent_server_routes_routes_config -.-> agent_audit_ui_middleware
-    agent_server_routes_routes_config -.-> agent_orchestrator_orchestrator
-    agent_server_routes_routes_config -.-> agent_orchestrator_orchestrator
-    agent_server_routes_routes_config -.-> agent_monitoring_metrics
-    agent_server_routes_routes_config -.-> agent_tools
-    agent_server_routes_routes_config -.-> agent_monitoring_metrics
-    agent_server_routes_routes_llm_monitor --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_chat -.-> agent_server_auth
-    agent_server_routes_routes_chat --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_chat -.-> agent_logging_utils
-    agent_server_routes_routes_chat -.-> agent_monitoring_tracing
-    agent_server_routes_routes_chat --> agent_server_routes_observability
-    agent_server_routes_routes_chat -.-> agent_system_tools
-    agent_server_routes_routes_chat --> agent_server_routes_routes_sessions
-    agent_server_routes_routes_chat -.-> agent_web
-    agent_server_routes_routes_chat -.-> agent_web
-    agent_server_routes_routes_memory -.-> agent_server_auth
-    agent_server_routes_routes_memory --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_memory -.-> agent_logging_utils
-    agent_server_routes_routes_monitoring -.-> agent_server_auth
-    agent_server_routes_routes_monitoring -.-> agent_task_scheduler
-    agent_server_routes_routes_monitoring -.-> agent_system_tools
-    agent_server_routes_routes_monitoring --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
-    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
-    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
-    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
-    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
-    agent_server_routes_routes_monitoring -.-> agent_search_performance_monitor
-    agent_server_routes_routes_logging -.-> agent_server_auth
-    agent_server_routes_routes_logging -.-> agent_monitoring_tracing
-    agent_server_routes_routes_logging -.-> agent_monitoring_metrics
-    agent_server_routes_routes_logging -.-> agent_monitoring_performance
-    agent_server_routes_routes_logging -.-> agent_monitoring_prometheus
-    agent_server_routes_routes_logging -.-> agent_health_assessor
-    agent_server_routes_routes_logging -.-> agent_tools
-    agent_server_routes_routes_logging --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_logging -.-> agent_monitoring_sensitive_data_filter
-    agent_server_routes_routes_logging -.-> agent_logging_utils
-    agent_server_routes_routes_logging -.-> agent_utils_singleton_manager
-    agent_server_routes_routes_logging -.-> agent_monitoring_replay_storage
-    agent_server_routes_routes_logging -.-> agent_error_reporting_config
-    agent_server_routes_routes_logging -.-> agent_log_system_storage
-    agent_server_routes_routes_logging -.-> agent_monitoring_loki
-    agent_server_routes_routes_logging -.-> agent_monitoring_loki
-    agent_server_routes_routes_logging -.-> agent_monitoring_loki
-    agent_server_routes_routes_logging -.-> agent_monitoring_tracing
-    agent_server_routes_routes_logging -.-> agent_monitoring_tracing
-    agent_server_routes_routes_knowledge -.-> agent_knowledge
-    agent_server_routes_routes_knowledge -.-> agent_knowledge_links_index
-    agent_server_routes_routes_knowledge -.-> agent_knowledge_lint
-    agent_server_routes_routes_knowledge -.-> agent_server_auth
-    agent_server_routes_routes_knowledge --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_knowledge -.-> agent_tool_router_reranker
-    agent_server_routes_routes_skills -.-> agent_server_auth
-    agent_server_routes_routes_skills -.-> agent_tools
-    agent_server_routes_routes_skills --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_skills -.-> agent_server_ui
-    agent_server_routes_routes_skills -.-> agent_server_ui
-    agent_server_routes_routes_skills -.-> agent_extensions_store
-    agent_server_routes_routes_skills -.-> agent_extensions_base
-    agent_server_routes_routes_skills -.-> agent_extensions_base
-    agent_server_routes_routes_skills -.-> agent_extensions_base
-    agent_server_routes_routes_skills -.-> agent_extensions_store
-    agent_server_routes_routes_skills -.-> agent_extensions_base
-    agent_server_routes_routes_ui_panels -.-> agent_security
-    agent_server_routes_routes_ui_panels -.-> agent_security_actor_matrix
-    agent_server_routes_routes_ui_panels -.-> agent_server_auth
-    agent_server_routes_routes_ui_panels -.-> agent_ui_panels
-    agent_server_routes_routes_ui_panels -.-> agent_self_healing
-    agent_server_routes_routes_ui_panels -.-> agent_self_healing_levels
-    agent_server_routes_routes_ui_panels -.-> agent_ui_panels_schema
-    agent_server_routes_routes_ui_panels -.-> agent_guardrails
-    agent_server_routes_routes_ui_panels -.-> agent_guardrails_boundary_words
-    agent_server_routes_routes_ui_panels -.-> agent_descriptors_registry
-    agent_server_routes_routes_ui_panels -.-> agent_security_governance_bridge
-    agent_server_routes_routes_ui_panels -.-> agent_observability_events
-    agent_server_routes_routes_ui_panels -.-> agent_audit_facade
-    agent_server_routes_routes_ui_panels -.-> agent_security
-    agent_server_routes_routes_ui_panels --> agent_server_routes
-    agent_server_routes_routes_ui_panels -.-> agent_security
-    agent_server_routes_routes_ui_panels -.-> agent_security
-    agent_server_routes_routes_ui_panels --> agent_server_routes
-    agent_server_routes_routes_ui_panels -.-> agent_security
-    agent_server_routes_routes_business_dashboard -.-> agent_server_auth
-    agent_server_routes_routes_business_dashboard -.-> agent_monitoring_tracing
-    agent_server_routes_routes_business_dashboard --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_business_dashboard -.-> agent_logging_utils
-    agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
-    agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
-    agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
-    agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
-    agent_server_routes_routes_business_dashboard -.-> agent_monitoring_business_metrics
-    agent_server_routes_routes_assets --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_workflow_learning -.-> agent_server_auth
-    agent_server_routes_routes_workflow_learning --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_workflow_learning -.-> agent_state_manager
-    agent_server_routes_routes_workflow_learning -.-> agent_workflow_learning
-    agent_server_routes_routes_workflow_learning -.-> agent_workflow_learning_skill_converter
-    agent_server_routes_routes_workflow_learning -.-> agent_tools
-    agent_server_routes_routes_workflow_learning -.-> agent_state_manager
-    agent_server_routes_routes_workflow_learning -.-> agent_state_manager
-    agent_server_routes_routes_workspace -.-> agent_server_auth
-    agent_server_routes_routes_workspace -.-> agent_system_tools
-    agent_server_routes_routes_workspace --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_workspace -.-> agent_system_tools
-    agent_server_routes_observability -.-> agent_logging_utils
-    agent_server_routes_observability -.-> agent_monitoring_business_metrics
-    agent_server_routes_tracing_decorator -.-> agent_monitoring_tracing
-    agent_server_routes_tracing_decorator -.-> agent_logging_utils
-    agent_server_routes_routes_skills_mgmt -.-> agent_server_auth
-    agent_server_routes_routes_skills_mgmt --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_skills_mgmt -.-> agent_state_manager
-    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt
-    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_reviewer
-    agent_server_routes_routes_skills_mgmt -.-> agent_audit_ui_middleware
-    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_enhancer
-    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_models
-    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_memory_abstractor
-    agent_server_routes_routes_skills_mgmt -.-> agent_skills_mgmt_offline_evolver
-    agent_server_routes_routes_process_distill -.-> agent_server_auth
-    agent_server_routes_routes_process_distill --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_process_distill -.-> agent_process_distill_service
-    agent_server_routes_routes_sessions -.-> agent_server_auth
-    agent_server_routes_routes_sessions --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_sessions -.-> agent_logging_utils
-    agent_server_routes_routes_sessions -.-> agent_handoff_handoff_generator
-    agent_server_routes_routes_panorama -.-> agent_server_auth
-    agent_server_routes_routes_panorama -.-> agent_tools
-    agent_server_routes_routes_panorama --> agent_server_routes_tracing_decorator
-    agent_server_routes_routes_replay -.-> agent_server_auth
-    agent_server_routes_routes_replay -.-> agent_monitoring_replay_storage
-    agent_server_routes_routes_replay -.-> agent_logging_utils
-    agent_server_routes_extensions -.-> agent_server_auth
-    agent_server_routes_routes_health -.-> agent_server_auth
-    agent_server_routes_routes_health -.-> agent_health_health_score
-    agent_server_routes_routes_health -.-> agent_logging_utils
-    agent_server_routes_routes_health -.-> agent_utils_singleton_manager
-    agent_server_routes_routes_health -.-> agent_monitoring_alert_manager
-    agent_server_routes_routes_health -.-> agent_monitoring_alert_manager
-    agent_server_routes_routes_health -.-> agent_task_scheduler
-    agent_server_routes_routes_health -.-> agent_prometheus_exporter
-    agent_handoff_handoff_generator -.-> agent_utils_token_redactor
-    agent_handoff_handoff_generator -.-> agent_state_manager
-    agent_learning_behavior_drift --> agent_learning_novelty_hooks
-    agent_learning_behavior_drift -.-> agent_task_scheduler
-    agent_learning_behavior_drift -.-> agent_task_scheduler
-    agent_memory_adapters_mem0_adapter --> agent_memory_base
-    agent_memory_adapters_mem0_adapter -.-> agent_logging_utils
-    agent_memory_adapters --> agent_memory_adapters_holographic_adapter
-    agent_memory_adapters --> agent_memory_adapters_mem0_adapter
-    agent_memory_adapters_holographic_adapter --> agent_memory_base
-    agent_memory_adapters_holographic_adapter -.-> agent_logging_utils
-    agent_memory_adapters_holographic_adapter -.-> agent_error_handler
-    agent_memory_adapters_holographic_adapter --> agent_memory_markdown_syncer
-    agent_memory_adapters_holographic_adapter --> agent_memory_file_watcher
-    agent_memory_adapters_holographic_adapter -.-> agent_caching_multi_level_cache
-    agent_memory_adapters_holographic_adapter --> agent_memory_observability
+    agent_web_search -.-> agent_logging_utils
+    agent_weekly_report_generator --> agent_logging_utils
+    agent_weekly_report_generator --> agent_data_analytics
+    agent_workflow_engine_matcher -.-> agent_logging_utils
+    agent_workflow_engine_observability -.-> agent_logging_utils
+    agent_workflow_engine_observability -.-> agent_monitoring_business_metrics
+    agent_workflow_engine_registry -.-> agent_logging_utils
+    agent_workflow_learning_executor -.-> agent_observability_tool_trace
+    agent_workflow_learning_matcher -.-> agent_logging_utils
+    agent_workflow_learning_observability -.-> agent_monitoring_business_metrics
+    agent_workflow_learning_service -.-> agent_state_manager
+    agent_workflow_learning_service -.-> agent_skills_mgmt_service
+    agent_workflow_learning_service -.-> agent_skills_mgmt_assessor
+    agent_workflow_learning_skill_converter -.-> agent_logging_utils
 ```
 
 ## 图例说明
@@ -1989,10 +2213,9 @@ flowchart LR
 - `==>|违规|` : 跨层违规调用（红色粗线，目标节点红色背景，需修复）
 
 ## 统计信息
-- 扫描文件数: 532
-- 模块节点数: 475
-- 依赖边数: 1406
-- 跨层调用数: 908
+- 扫描文件数: 579
+- 模块节点数: 518
+- 依赖边数: 1581
+- 跨层调用数: 986
 - 违规调用数: 0
 - 动态 import 数: 1
-- 构建耗时: 2863.26 ms
