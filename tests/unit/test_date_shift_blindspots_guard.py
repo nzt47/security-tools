@@ -9,7 +9,7 @@
 
 | # | 盲区 | 为什么平移法查不出 | 本文件的手段 |
 |---|---|---|---|
-| 1 | 文件系统时钟不平移 | `os.stat().st_mtime` / `os.utime()` / `fromtimestamp()` 走**真实 OS 时钟**，平移只动 Python 的"今天" | :func:`test_fs_clock_is_not_mixed_with_python_today`（同一函数内混用即报警）+ 人工分诊表 |
+| 1 | 文件系统时钟不平移 | `os.stat().st_mtime` / `os.utime()` / `fromtimestamp()` 走**真实 OS 时钟**，平移只动 Python 的"今天" | ① :func:`test_fs_clock_is_not_mixed_with_python_today`（同函数内混用即报警）；② **第二形状** :func:`test_mtime_is_not_derived_from_the_unshifted_posix_clock`（`time.time()` 派生的值写进 mtime —— 修复前的慢档写法，形状里没有时钟调用，①抓不到）；③ 人工分诊表 |
 | 2 | 导入期取时钟 vs 运行期取时钟 | 平移对"导入期"和"运行期"是**同步**挪的，永远不会制造两者分歧 | ①静态：:func:`test_no_import_time_clock_constants`；②动态：**晚替换探针** `CP_DATE_SHIFT_LATE=1`（端到端自检见 :func:`test_late_probe_detects_import_time_constant`） |
 | 3 | 只用 `time.time()` 推"今天是哪天" | 平移不替换 `time` 模块 | :func:`test_time_time_is_not_used_to_derive_the_day`（判据见 :data:`TIME_DERIVED_DAY_ATTRS`） |
 | 4 | 闭包 / 默认参数里已捕获的时钟值 | 默认参数在 **def 求值期**求值；闭包捕获的是**值** | :func:`test_no_clock_captured_in_default_arguments`、:func:`test_no_clock_captured_in_escaping_closures` |
@@ -507,6 +507,64 @@ def _cross_process_clock(tree: ast.Module) -> List[Hit]:
 
 
 # ════════════════════════════════════════════════════════════════════
+#  检测器 ⑦：用 time.time() 派生文件 mtime（盲区 #1 的第二形状）
+# ════════════════════════════════════════════════════════════════════
+
+
+def detect_mtime_from_time_time(src: str) -> List[Hit]:
+    """**同函数**内把 `time.time()` 派生的值喂给文件 mtime 操作
+
+    【为什么单列一条（S11-08 遗留收口期实测）】本工具**刻意不平移** `time.time()`
+    与文件系统时钟，而被测的"旧文件/过期"判据通常是 `datetime.now()` 派生
+    ⇒ 用 `time.time()` 给文件设 mtime 属**两个时钟源混用**：平移下必然差 delta 天
+    （慢档 `test_task_scheduler.py` 实测 4 处：−400 下旧文件落不到截止线内）。
+
+    ⚠️ **这是 `detect_fs_clock_vs_today` 抓不到的形状**：那条规则的判据要求同函数内
+    出现时钟调用，而**修复前的写法里没有**（产品的比较基准在别的模块）
+    ⇒ 该类只能靠四臂实跑发现。本规则改为按"`time.time()` 的值**流入** mtime 操作"
+    这一可判定形状报警，从而把"修复前的形状"也钉住。
+
+    **刻意不报**：同函数里既测耗时（`elapsed = time.time() - t0`）、又把 mtime 设成
+    **显式常量**——值没流入 mtime，属惰性（见 `_SAMPLE_INERT`）。
+    """
+    return _mtime_from_time_time(ast.parse(src))
+
+
+def _carries_posix_clock(node: ast.AST, derived: Dict[str, int]) -> bool:
+    """表达式是否携带 `time.time()`：直接调用，或引用了它的派生局部名"""
+    for n in ast.walk(node):
+        if isinstance(n, ast.Call) and _dotted(n.func) == "time.time":
+            return True
+        if isinstance(n, ast.Name) and n.id in derived:
+            return True
+    return False
+
+
+def _mtime_from_time_time(tree: ast.Module) -> List[Hit]:
+    """`detect_mtime_from_time_time` 的 tree 版"""
+    hits: List[Hit] = []
+    for fn in [n for n in ast.walk(tree)
+               if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
+        attrs = {n.attr for n in ast.walk(fn) if isinstance(n, ast.Attribute)}
+        if not (attrs & _FS_CLOCK_ATTRS):
+            continue
+        derived = _time_time_names(fn)          # 由 time.time() 绑定的局部名 → 行号
+        for call in [n for n in ast.walk(fn) if isinstance(n, ast.Call)]:
+            attr = call.func.attr if isinstance(call.func, ast.Attribute) else None
+            if attr != "utime":
+                continue
+            args = list(call.args) + [k.value for k in call.keywords]
+            if any(_carries_posix_clock(a, derived) for a in args):
+                hits.append((
+                    "mtime_from_time_time", f"{fn.name}@{call.lineno}",
+                    f"第{call.lineno}行把 `time.time()` 派生的值写进 mtime"
+                    f"（该时钟**不被平移**）⇒ 与被测的 `datetime.now()` 判据差 delta 天；"
+                    f"请改用 `datetime.now().timestamp()` 派生（与被测同源）"))
+                break
+    return hits
+
+
+# ════════════════════════════════════════════════════════════════════
 #  扫描面
 # ════════════════════════════════════════════════════════════════════
 
@@ -515,6 +573,7 @@ _DETECTORS = (
     ("default_arg_clock", _default_arg_clock),
     ("escaping_closure_clock", _escaping_closure_clock),
     ("fs_clock_vs_today", _fs_clock_vs_today),
+    ("mtime_from_time_time", _mtime_from_time_time),
     ("time_time_derived_day", _time_time_derived_day),
     ("cross_process_clock", _cross_process_clock),
 )
@@ -691,6 +750,20 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
         "`datetime.now()` 派生。关键在后者——原实现新卡**不设** mtime ⇒ 取真实 FS 时间，"
         "+400 下会被平移后的 cutoff（真实今天+370 天）判为过期而误删 ⇒ "
         "`assert new_file.exists()` 1 failed。两侧同源后四臂 259 passed ×4。",
+
+    # ── 盲区 #1 **第二形状**：`time.time()` 派生的值写进 mtime ──────────
+    # （本条规则是 S11-08 遗留收口**之后**新加的：上面 4 条登记的是"修好之后"的形状，
+    #   而"修复前的形状"在 detect_fs_clock_vs_today 下抓不到 —— 同函数内没有时钟调用。
+    #   新规则按"值流入 mtime"判定，把修复前的形状也钉住。）
+    ("tests/unit/test_task_scheduler.py",
+     "tests/unit/test_task_scheduler.py::test_cleanup_old_logs_exception@1281"):
+        "**惰性、无实例**：该用例只验证「`datetime.now()` 抛异常时错误被记录」"
+        "（`assert mock_logger.error.called`）—— 它把 `agent.task_scheduler.datetime` "
+        "整体换成会抛异常的 MagicMock，产品在算 cutoff 时**即抛错**，"
+        "故 L1281 设的 mtime **从不参与任何判定**，`time.time()` 与"
+        "「被测 cutoff 由 `datetime.now()` 派生」不构成实际分叉。"
+        "（同文件其余 3 处同形写法已在 S11-08 遗留 #3 收口时改为 "
+        "`datetime.now().timestamp()`。）",
 }
 
 
@@ -749,6 +822,20 @@ def test_time_time_is_not_used_to_derive_the_day():
     _fail("time_time_derived_day", _unexpected("time_time_derived_day"),
           "`time` 模块不被平移 ⇒ 用它推「今天」的代码平移法测不出。"
           "请改用 `date.today()` 等可被平移/可注入的口径。")
+
+
+def test_mtime_is_not_derived_from_the_unshifted_posix_clock():
+    """盲区 #1 **第二形状**：`time.time()` 派生的值不得写进文件 mtime
+
+    修复前的慢档写法（`old_time = time.time() - 40*86400; os.utime(...)`）在
+    `detect_fs_clock_vs_today` 下**抓不到**（同函数内没有时钟调用），只能靠四臂实跑发现
+    —— 本规则把它钉住，避免"修好之后再悄悄回来"。
+    """
+    _fail("mtime_from_time_time", _unexpected("mtime_from_time_time"),
+          "`time.time()` 与文件系统时钟**都不被平移**，而被测的『旧文件/过期』判据"
+          "通常是 `datetime.now()` 派生 ⇒ 平移下必然差 delta 天。"
+          "修法：mtime 也走 `datetime.now().timestamp()`（与被测同源）；"
+          "若确认该 mtime 不参与任何判定（惰性），请登记 ALLOWLIST 并写明理由。")
 
 
 def test_cross_process_children_read_the_unshifted_clock():
@@ -832,6 +919,20 @@ _SAMPLE_SPAWN_ONLY = (
     "    assert subprocess.run([sys.executable, '-V']).returncode == 0\n"
 )
 
+_SAMPLE_MTIME_POSIX = (
+    "import os, time\n"
+    "def f(path):\n"
+    "    ts = time.time() - 40 * 86400\n"
+    "    os.utime(path, (ts, ts))\n"
+)
+
+_SAMPLE_MTIME_PYTHON = (
+    "import os, datetime as dt\n"
+    "def f(path):\n"
+    "    ts = dt.datetime.now().timestamp() - 40 * 86400\n"
+    "    os.utime(path, (ts, ts))\n"
+)
+
 
 @pytest.mark.parametrize("detector,sample,expect", [
     (detect_import_time_clock, _SAMPLE_IMPORT_TIME, 2),
@@ -840,6 +941,7 @@ _SAMPLE_SPAWN_ONLY = (
     (detect_fs_clock_vs_today, _SAMPLE_FS_CLOCK, 1),
     (detect_time_time_derived_day, _SAMPLE_TIME_DERIVED, 1),
     (detect_cross_process_clock, _SAMPLE_CROSS_PROCESS, 1),
+    (detect_mtime_from_time_time, _SAMPLE_MTIME_POSIX, 1),
 ])
 def test_detectors_catch_their_sample_defects(detector, sample, expect):
     """**正向对照**：每个检测器必须命中它的样本缺陷（否则守卫是空转的假绿）"""
@@ -859,6 +961,10 @@ def test_detectors_ignore_inert_shapes():
     assert detect_cross_process_clock(_SAMPLE_SPAWN_ONLY) == []
     # 只读时钟、不起子进程 ⇒ 不得命中
     assert detect_cross_process_clock(_SAMPLE_DEFAULT_ARG) == []
+    # 测耗时 + **显式常量** mtime（值没流入 mtime）⇒ 不得命中
+    assert detect_mtime_from_time_time(_SAMPLE_INERT) == []
+    # mtime 由 **datetime.now()** 派生（与被测同源）⇒ 不得命中
+    assert detect_mtime_from_time_time(_SAMPLE_MTIME_PYTHON) == []
 
 
 def test_import_time_detector_skips_function_locals():
