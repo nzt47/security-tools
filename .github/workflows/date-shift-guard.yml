@@ -1,0 +1,132 @@
+# 日期平移守卫（四臂：不平移 / CONTROL / +400 / −400）
+#
+# 目的（TASK-S11-08 §八 遗留 #6）：把「三向 + CONTROL 四臂」纳入夜间 CI。
+#   **关键是 CONTROL 臂**（`CP_DATE_SHIFT_CONTROL=1`，照样替换类但 delta=0）——
+#   缺它会把"工具替换自带伪影"误判成"日期炸弹"（S11-06 的 54 误判即此教训）。
+#
+# 覆盖：
+#   · 盲区静态扫描（6 个 AST 检测器 + 已裁定清单）+ 守卫套件（29 用例）；
+#   · 定向日期敏感面四臂跑（含慢档 `--runslow`，S11-08 遗留 #3 收口后纳入）。
+#
+# 与主 CI 的分工：主 CI（ci.yml / test.yml）按 `-p no:randomly` 跑常规序一次；
+#   本工作流专门跑"时钟被平移"的四个方向，两者互补、不重复。
+#
+# 判定：任一臂 failed ⇒ 本工作流失败（可收到告警）。例行交接：
+#   · CONTROL 臂失败 ⇒ 工具伪影（查 representer/pickle 类替换副作用），不是炸弹；
+#   · ±400 臂失败而 CONTROL 绿 ⇒ 真·日期敏感（按 S11-07/08 纪律逐条判定后修）。
+name: 日期平移守卫
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  schedule:
+    - cron: '0 5 * * *'   # 每天 UTC 05:00（北京时间 13:00）
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  # ──────────────────────────────────────────────────────────────
+  # Job 1: 静态盲区扫描 + 守卫套件（快，无需平移）
+  # ──────────────────────────────────────────────────────────────
+  static-scan:
+    name: 盲区静态扫描 + 守卫套件
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: 盲区静态扫描（6 个检测器 + 已裁定清单）
+        run: python tests/unit/test_date_shift_blindspots_guard.py --scan
+
+      - name: 守卫套件（含晚替换探针端到端自检）
+        run: python -m pytest tests/unit/test_date_shift_blindspots_guard.py -q -p no:randomly
+
+  # ──────────────────────────────────────────────────────────────
+  # Job 2: 四臂日期平移（矩阵：不平移 / CONTROL / +400 / −400）
+  # ──────────────────────────────────────────────────────────────
+  four-arms:
+    name: 四臂平移（${{ matrix.arm.name }}）
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false          # 四臂互不遮蔽：一臂失败仍要看其余臂结论
+      matrix:
+        arm:
+          - name: 不平移
+            shift_control: ''
+            shift_days: ''
+            plugin: ''
+          - name: CONTROL(delta=0)
+            shift_control: '1'
+            shift_days: ''
+            plugin: '-p tests._date_shift_plugin'
+          - name: '+400'
+            shift_control: ''
+            shift_days: '400'
+            plugin: '-p tests._date_shift_plugin'
+          - name: '-400'
+            shift_control: ''
+            shift_days: '-400'
+            plugin: '-p tests._date_shift_plugin'
+    env:
+      # 空串 ⇒ 插件侧解析为"未启用/0"（`os.environ.get(..., "")` 与 `int("" or "0")`）
+      CP_DATE_SHIFT_CONTROL: ${{ matrix.arm.shift_control }}
+      CP_DATE_SHIFT_DAYS: ${{ matrix.arm.shift_days }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 设置Python环境
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: 定向日期敏感面（常规档）
+        # 目标集 = S11-06/07/08 修复面 + 跨进程关闭面（test_knowledge_audit_ci_edge）：
+        # retention 三件套 / policy_support / behavior_drift / skills_digest_assessor
+        # + 知识审计 CLI 跨进程边界（S11-08 遗留 #1：--now 注入后应全绿）。
+        run: |
+          python -m pytest \
+            tests/unit/test_retention_archive.py \
+            tests/unit/test_retention_scan.py \
+            tests/unit/test_retention_scheduler.py \
+            tests/unit/test_policy_support.py \
+            tests/unit/test_behavior_drift.py \
+            tests/unit/test_skills_digest_assessor.py \
+            tests/integration/test_knowledge_audit_ci_edge.py \
+            -q -p no:randomly ${{ matrix.arm.plugin }}
+
+      - name: 慢档日期敏感面（--runslow；S11-08 遗留 #3 收口后纳入）
+        # 三文件 259 项原属 `pytest.mark.slow` 默认跳过 ⇒ 长期未被 ±400 覆盖；
+        # 收口时对齐了 mtime 与产品的时钟口径（原 time.time() vs datetime.now() 分叉）。
+        run: |
+          python -m pytest \
+            tests/unit/test_task_scheduler.py \
+            tests/unit/test_task_scheduler_comprehensive.py \
+            tests/integration/test_task_scheduler_integration.py \
+            --runslow -q -p no:randomly ${{ matrix.arm.plugin }}

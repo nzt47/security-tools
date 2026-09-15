@@ -613,11 +613,15 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
         "派生 ⇒ 不存在'两个时钟来源'的比较。",
     ("tests/unit/test_task_scheduler.py",
      "tests/unit/test_task_scheduler.py::test_cleanup_old_logs@351"):
-        "两侧同源：`old_time`（now-31 天，L363）与产品侧的比较基准都由同一个 "
+        "两侧同源：`old_time`（now-31 天）与产品侧的比较基准都由同一个 "
         "`datetime.now()` 派生，平移/回溯下**同步**移动 ⇒ 不构成盲区实例"
-        "（31 > 阈值 30，相对关系恒成立）。**残留脆弱点如实登记**：余量仅 1 天，"
-        "若将来产品侧改用另一个时钟源（如 `time.time()`），本用例会翻转；"
-        "该用例**无断言**（仅冒烟'不抛异常'，L369），故本轮不改。",
+        "（31 > 阈值 30，相对关系恒成立）。"
+        "**S11-08 遗留 #4 收口（2026-09-15）**：原用例无断言、且用 "
+        "`patch('agent.task_scheduler.Path')` 造替身——但 `DATA_DIR` 是导入期真实 `Path`，"
+        "替身从未生效（补断言即暴露：`unlink` 0 次）⇒ 用例实际空转。"
+        "已改为**真实 tmp 目录**（patch `DATA_DIR`）+ 真跑 glob/stat/unlink，"
+        "并补两条断言（31 天前必删 / 29.99 天前必留，避开微秒漂移）。"
+        "三臂（不平移/+400/−400）实测 1 passed ×3。",
 
     # ── 盲区 #3：time.time() 换算成日期串 ──────────────────────────
     ("tests/integration/test_resource_monitor_integration.py",
@@ -631,14 +635,16 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
     # ── 盲区 #5：跨进程（本轮新查出）──────────────────────────────
     ("tests/integration/test_knowledge_audit_ci_edge.py",
      "tests/integration/test_knowledge_audit_ci_edge.py::<whole-file>"):
-        "**【真实实例，本轮新查出并已量化】**父进程用被平移的 `date.today()`"
-        "（L142/L180）造卡，子进程 `python -m agent.knowledge audit`（L72）读**真实**时钟。"
-        "四臂实跑：不平移 **4 passed**｜CONTROL(delta=0) **4 passed**｜+400 **2 failed**｜"
-        "−400 **3 failed** ⇒ CONTROL 绿 + 仅平移档红 = **跨进程口径差**（非产品缺陷、"
-        "非 S11-06 式替换伪影）。−400 探针量化：父进程 today=2025-08-11，子进程把"
-        "'恰好 90 天'的卡判成 `days_unaccessed=490`（= 真实今天 2026-09-15 − 2025-05-13）。"
-        "**处置：不改用例**（要修得给 audit CLI 加 `--now` 注入 = 产品改动，须另立任务"
-        "并声明影响面）；盲区本身已写入 `tests/_date_shift_plugin.py` docstring。",
+        "**【真实实例，已修复（S11-08 遗留 #1 收口，2026-09-15）】**原状：父进程用被平移的 "
+        "`date.today()`（L142/L180）造卡，子进程 `python -m agent.knowledge audit`（L72）"
+        "读**真实**时钟 ⇒ 四臂实跑 不平移 4 passed｜CONTROL 4 passed｜+400 **2 failed**｜"
+        "−400 **3 failed**（−400 探针量化：父进程 today=2025-08-11，子进程把「恰好 90 天」"
+        "的卡判成 `days_unaccessed=490`）。"
+        "**处置：已按 S11-08 §八#1 建议方案 (a) 修复** —— `agent.knowledge audit` 增加"
+        "**可选** `--now`（ISO 日期，缺省 `None` = 走 `date.today()`，**默认行为零变化**），"
+        "`lint_all`/`run_knowledge_audit` 增加同名可选参数贯通；测试侧 `_audit_cli` 传"
+        "父进程 `date.today()` ⇒ 两侧口径一致。**修后四臂 4 passed ×4**。"
+        "本形状（子进程 + 时钟）仍保留在检测器视野内，故登记而非移除。",
     ("tests/unit/test_knowledge_cli.py",
      "tests/unit/test_knowledge_cli.py::<whole-file>"):
         "同样跨进程（`_run_cli` L65 跑 `python -m agent.knowledge`）+ `make_card` 用"
@@ -652,7 +658,39 @@ ALLOWLIST: Dict[Tuple[str, str], str] = {
      "tests/unit/test_task_scheduler.py::<whole-file>"):
         "该文件 `pytestmark = pytest.mark.slow`（L8）⇒ 默认 fast 模式下 **80 项全部 skip**"
         "（四臂实跑一致：`80 skipped in 0.74s`）⇒ 其中的子进程/时钟代码本轮未被执行，"
-        "无实例。**残留**：slow 档未被 ±400 覆盖（见报告遗留）。",
+        "无实例。**残留已于 S11-08 遗留收口消除**：慢档（本文件 + comprehensive + "
+        "integration 三件套共 259 项）现纳入夜间工作流 `date-shift-guard.yml` 的四臂矩阵"
+        "（`--runslow`），实测 259 passed ×4。",
+
+    # ── S11-08 遗留收口（2026-09-15）：mtime 与产品 cutoff 统一为 datetime.now() ──
+    # 命名说明：以下四条的探测形状是"同函数内既有 os.utime（FS 时钟）又有
+    # datetime.now（Python 今天侧）"。判定关键**不是形状，而是两侧是否同源**——
+    # 产品 `cleanup_old_logs` 的 cutoff 由 `datetime.now()` 派生，故只要 mtime 也由
+    # `datetime.now()` 派生即同源、平移下同步移动；原实现用 `time.time()`（工具
+    # **刻意不平移**的时钟源）才是真分叉。
+    ("tests/unit/test_task_scheduler.py",
+     "tests/unit/test_task_scheduler.py::test_cleanup_old_logs_with_files@843"):
+        "**已按统一时钟口径修正（S11-08 遗留 #3 收口）**：mtime 由 "
+        "`datetime.now().timestamp() - 40/5 天` 派生，与产品 `cleanup_old_logs` 的 "
+        "cutoff（`datetime.now()` 派生）**同源** ⇒ 平移/回溯下同步移动。"
+        "原用 `time.time()`（工具只挪 datetime、不挪 time.time）⇒ ±400 实跑曾红："
+        "−400 下旧文件落不到截止线内。修后慢档三件套四臂 **259 passed ×4**。",
+    ("tests/unit/test_task_scheduler.py",
+     "tests/unit/test_task_scheduler.py::test_cleanup_old_logs_deletes_old_file@1238"):
+        "同上（S11-08 遗留 #3 收口）：`old_time` 改由 "
+        "`datetime.now().timestamp() - 40 天` 派生，与产品 cutoff 同源；"
+        "原 `time.time()` 在 −400 下使旧文件判不到「过期」"
+        "（`assert not old_file.exists()` 失败）。",
+    ("tests/unit/test_task_scheduler_comprehensive.py",
+     "tests/unit/test_task_scheduler_comprehensive.py::test_cleanup_old_logs_no_exception@830"):
+        "同上（S11-08 遗留 #3 收口）：本用例只验「不抛异常」、无断言，原 `time.time()` "
+        "不会致红；对齐为 `datetime.now()` 是为避免将来补断言时踩同一口径分叉。",
+    ("tests/integration/test_task_scheduler_integration.py",
+     "tests/integration/test_task_scheduler_integration.py::test_cleanup_old_logs_with_files@818"):
+        "同上（S11-08 遗留 #3 收口）：旧卡 mtime 与**新卡** mtime 都显式设为 "
+        "`datetime.now()` 派生。关键在后者——原实现新卡**不设** mtime ⇒ 取真实 FS 时间，"
+        "+400 下会被平移后的 cutoff（真实今天+370 天）判为过期而误删 ⇒ "
+        "`assert new_file.exists()` 1 failed。两侧同源后四臂 259 passed ×4。",
 }
 
 
