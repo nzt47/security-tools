@@ -44,7 +44,19 @@ pytestmark = [pytest.mark.unit]
 #: Windows 上进程创建（spawn + 解释器启动）比 POSIX 慢得多，上界留足
 _MP_TIMEOUT = 90.0
 _ENVELOPE_KEYS = set(ev.ENVELOPE_FIELDS)
-_TODAY = date.today().isoformat()
+
+
+def _today() -> str:
+    """取"今天"（**调用时**读取，不在导入期固定）
+
+    【S11-07 修「跨零点」】原为模块级常量 `_TODAY = date.today().isoformat()`，
+    在**导入期**求值；而被测的 `log_archiver.archive_daily_file` 在**运行期**用
+    `date.today()` 判"今日行"（`agent/skills_mgmt/log_archiver.py:394` 取 today，
+    `:434 if day is None or day >= today`）。整库跑**跨越 00:00** 时两者差一天 ⇒
+    这些行被误判成历史（实测 `{'archived': 4, ..., 'today': 0}`）。
+    改为调用时读取，与本模块内被测代码的时钟口径一致（**断言逐字未改**）。
+    """
+    return date.today().isoformat()
 
 
 # ════════════════════════════════════════════════════════════
@@ -391,7 +403,7 @@ def test_archive_rewrite_failure_loses_no_record(tmp_path, monkeypatch):
     p = tmp_path / "skills_assessment_events.jsonl"
     old = [json.dumps({"ts": "2020-01-01T00:00:00", "skill_id": f"s{i}"})
            for i in range(3)]
-    today_line = json.dumps({"ts": f"{_TODAY}T10:00:00", "skill_id": "today"})
+    today_line = json.dumps({"ts": f"{_today()}T10:00:00", "skill_id": "today"})
     original = "\n".join(old + [today_line]) + "\n"
     p.write_text(original, encoding="utf-8")
 
@@ -424,8 +436,8 @@ def test_archive_conserves_records_and_keeps_shard_naming(tmp_path):
         json.dumps({"ts": "2020-01-01T00:00:00", "skill_id": "a"}),
         json.dumps({"ts": "2020-01-02T00:00:00", "skill_id": "b"}),
         json.dumps({"ts": "2020-01-02T01:00:00", "skill_id": "c"}),
-        json.dumps({"ts": f"{_TODAY}T09:00:00", "skill_id": "d"}),
-        json.dumps({"ts": f"{_TODAY}T10:00:00", "skill_id": "e"}),
+        json.dumps({"ts": f"{_today()}T09:00:00", "skill_id": "d"}),
+        json.dumps({"ts": f"{_today()}T10:00:00", "skill_id": "e"}),
     ]
     p.write_text("\n".join(recs) + "\n", encoding="utf-8")
 
@@ -449,7 +461,7 @@ def test_archive_skips_round_when_lock_unavailable(tmp_path, monkeypatch):
     p = tmp_path / "skills_assessment_events.jsonl"
     old = [json.dumps({"ts": "2020-01-01T00:00:00", "skill_id": f"s{i}"})
            for i in range(3)]
-    today_line = json.dumps({"ts": f"{_TODAY}T10:00:00", "skill_id": "today"})
+    today_line = json.dumps({"ts": f"{_today()}T10:00:00", "skill_id": "today"})
     original = "\n".join(old + [today_line]) + "\n"
     p.write_text(original, encoding="utf-8")
 

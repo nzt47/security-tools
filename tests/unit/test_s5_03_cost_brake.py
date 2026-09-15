@@ -18,6 +18,7 @@
 
 import json
 import os
+import sys
 from datetime import datetime, timedelta
 
 import pytest
@@ -40,6 +41,27 @@ from agent.monitoring import cost_brake as CB
 #: 现改为**相对真实今天**推导，与产品时钟（`_now()` = 本地 `datetime.now()`）**同一口径**。
 BASE = datetime.now().astimezone().replace(
     hour=10, minute=0, second=0, microsecond=0)
+
+
+def _base_now() -> datetime:
+    """基准时刻 = **今天** 10:00（带本地时区），**调用时**重算
+
+    【S11-07 修「跨零点」】`BASE` 原为**导入期**求值的模块常量。被测
+    `cost_brake.allow_outbound()` 在不传 `now=` 时读**真实时钟**
+    （`agent/monitoring/cost_brake.py:1661 moment = now or self._clock()`），
+    而种子成本用 `BASE.date()` 钉日 ⇒ 整库跑**跨越 00:00** 时，"种子日"与
+    "真实今天"差一天，日级熔断不再触发（实测 `assert True is False`）。
+    这正是"导入期取时钟 vs 运行期取时钟"的日期口径不一致 ——
+    平移工具查不出它（平移对导入期与运行期是**同步**挪的）。
+    """
+    return datetime.now().astimezone().replace(
+        hour=10, minute=0, second=0, microsecond=0)
+
+
+@pytest.fixture(autouse=True)
+def _refresh_base(monkeypatch):
+    """每个用例开始前把 BASE 重算为"当下今天"（**断言逐字未改**）"""
+    monkeypatch.setattr(sys.modules[__name__], "BASE", _base_now())
 
 
 def at(day_offset: int = 0, hour: int = 10) -> datetime:

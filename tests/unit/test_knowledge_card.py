@@ -908,6 +908,14 @@ def test_list_since_returns_only_new_files(store):
     Why（P0 #1 增量转换）: convert_cards 增量依赖 CardStore.list_since，
     必须验证"按文件 mtime 过滤"语义——旧卡（mtime 早于 since）不出现，
     新卡（mtime 晚于 since）出现；语义与 list() 一致（类型目录序 + 损坏卡跳过）。
+
+    时钟口径（S11-07）: ``list_since`` 比的是**文件系统 mtime**
+    （``agent/knowledge/card.py`` 的 ``st.st_mtime < since.timestamp()``），
+    所以 mtime 与 since 必须取自**同一个时钟**。原写法只显式写了旧卡的 mtime，
+    新卡靠"刚 create 出来的 mtime 恰好等于 Python 的 now"这个**隐含假设**——
+    一旦 OS 时钟与 Python 时钟不一致（NTP 校时、跨时区、网络盘、或测试里整体
+    平移"今天"），新卡就会被判成"早于 since"而漏掉。现显式给两个文件都写 mtime，
+    把该假设去掉；**断言逐字未改**。
     """
     import os
     from datetime import datetime, timedelta
@@ -915,13 +923,18 @@ def test_list_since_returns_only_new_files(store):
     store.create(make_card("旧卡"))
     store.create(make_card("新卡"))
 
-    # 把旧卡文件 mtime 拨回 2 小时前，使其早于 since
+    now = datetime.now()
     old_path = store._find_path("旧卡")
+    new_path = store._find_path("新卡")
     assert old_path is not None
-    old_ts = (datetime.now() - timedelta(hours=2)).timestamp()
+    assert new_path is not None
+    # 两个 mtime 全由 now 推导 ⇒ 与 since 同一口径（旧卡早 2 小时，新卡即"现在"）
+    old_ts = (now - timedelta(hours=2)).timestamp()
+    new_ts = now.timestamp()
     os.utime(old_path, (old_ts, old_ts))
+    os.utime(new_path, (new_ts, new_ts))
 
-    since = datetime.now() - timedelta(minutes=1)
+    since = now - timedelta(minutes=1)
     assert [c.slug for c in store.list_since(since)] == ["新卡"]
 
     # since=None → 等价全量 list()（向后兼容契约）

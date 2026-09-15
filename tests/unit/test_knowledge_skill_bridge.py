@@ -226,6 +226,12 @@ def test_convert_cards_since_only_new(stores):
 
     Why（P0 #1）: 增量复用 CardStore.list_since 过滤；dry_run 无副作用，
     断言结果只含新卡、旧卡不进入转换管线、技能库零落盘。
+
+    时钟口径（S11-07）: 过滤依据是**文件系统 mtime**（``CardStore.list_since`` 里
+    ``st.st_mtime < since.timestamp()``）⇒ mtime 与 since 必须同一时钟来源。
+    原写法只显式写旧卡 mtime，新卡靠"create 的 mtime 恰好等于 Python now"的隐含
+    假设；OS 时钟与 Python 时钟不一致时新卡会被误判为旧卡。现两个 mtime 都由同一个
+    ``now`` 推导；**断言逐字未改**。
     """
     import os
     from datetime import datetime, timedelta
@@ -234,13 +240,18 @@ def test_convert_cards_since_only_new(stores):
     card_store.create(make_card("旧增量卡", metadata={"distilled": True}))
     card_store.create(make_card("新增量卡", metadata={"distilled": True}))
 
-    # 旧卡文件 mtime 拨回 2 小时前 → 早于 since，不得进入转换
+    now = datetime.now()
     old_path = card_store._find_path("旧增量卡")
+    new_path = card_store._find_path("新增量卡")
     assert old_path is not None
-    old_ts = (datetime.now() - timedelta(hours=2)).timestamp()
+    assert new_path is not None
+    # 旧卡 mtime 早 2 小时 → 早于 since，不得进入转换；新卡 mtime 即"现在"
+    old_ts = (now - timedelta(hours=2)).timestamp()
+    new_ts = now.timestamp()
     os.utime(old_path, (old_ts, old_ts))
+    os.utime(new_path, (new_ts, new_ts))
 
-    since = datetime.now() - timedelta(minutes=1)
+    since = now - timedelta(minutes=1)
     results = _bridge(card_store, skill_store).convert_cards(
         dry_run=True, since=since,
     )
