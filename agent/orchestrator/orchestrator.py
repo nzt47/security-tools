@@ -3518,7 +3518,13 @@ class Orchestrator:
                                 try:
                                     _tool_result_data = _tools.call(_fn_name, **_fn_args)
                                     _tool_summary = _summarize_tool_result(_fn_name, _tool_result_data)
-                                    _status = "success"
+                                    # 状态与摘要同口径：工具"返回"失败（如被集中式工具闸门拒绝，
+                                    # 返回 {"ok": False, "blocked": True}）时记为 error，
+                                    # 而不是"没抛异常就算成功"。
+                                    _status = "success" if (
+                                        not isinstance(_tool_result_data, dict)
+                                        or _tool_result_data.get("ok", True)
+                                    ) else "error"
                                 except Exception as _te:
                                     _tool_summary = f"执行失败: {_te}"
                                     _status = "error"
@@ -3556,7 +3562,11 @@ class Orchestrator:
                         try:
                             _tool_result_data = _tools.call(_fn_name, **_fn_args)
                             _tool_summary = _summarize_tool_result(_fn_name, _tool_result_data)
-                            _status = "success"
+                            # 同上一处：状态与摘要同口径（被闸门拒绝/工具自报失败 ⇒ error）
+                            _status = "success" if (
+                                not isinstance(_tool_result_data, dict)
+                                or _tool_result_data.get("ok", True)
+                            ) else "error"
                         except Exception as _te:
                             _tool_summary = f"执行失败: {_te}"
                             _status = "error"
