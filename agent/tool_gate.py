@@ -18,14 +18,15 @@
     ``allowed_tools`` 里、也不匹配 ``"*"`` 时返回 ``allowed=False``；角色在策略文件
     里**不存在**时同样直接拒绝（L832-838）。
     而 ``data/permission_policies.json`` 的 ``default_role`` 是 **``guest``**，其
-    ``allowed_tools`` 只有 ``["web_search", "file_read"]``；更致命的是策略里的工具名
-    与真实注册表**严重错位**：``file_read`` / ``file_write`` / ``code_runner`` /
-    ``system_format`` / ``system_shutdown`` 在注册表里**并不存在**，真实名字是
-    ``read_file`` / ``write_file`` / ``code_review``。
-    ⇒ 把 RBAC 白名单直接套到这条**必经**路径上，``default_role=guest`` 会**当场封杀
-    几乎所有工具（包括 read_file 本身）**——"接入权限"变成"系统瘫痪"。这不是保守与否
-    的取舍，而是策略数据与注册表错位导致的必然误杀。
-    因此本闸门的语义被刻意定为 **fail-open + 显式拒绝**：只有策略文件或描述符
+    ``allowed_tools`` 只有 ``["web_search", "read_file"]`` ⇒ 严格白名单下 74 个真实
+    工具里**只有 2 个能过**（封杀 72 个 ≈ 97.3%）。
+    （历史核对：修复前策略里的工具名与真实注册表**严重错位**——``file_read`` /
+    ``file_write`` / ``code_runner`` / ``system_format`` / ``system_shutdown`` 在注册表里
+    **并不存在**，真实名字是 ``read_file`` / ``write_file`` / ``code_review``，当时是 72 个
+    工具里只放行 1 个 ≈ 98.6%。错位已修，但那只是把"几乎全封"改善成"绝大多数被封"。）
+    ⇒ 把 RBAC 白名单直接套到这条**必经**路径上，``default_role=guest`` 仍会**封杀
+    绝大多数工具**——"接入权限"变成"系统瘫痪"。这不是保守与否的取舍。
+    因此本闸门的**默认**语义被刻意定为 **fail-open + 显式拒绝**：只有策略文件或描述符
     **显式**声明拒绝/需要审批时才拦，其余一律放行；RBAC 白名单留在它原有的、由各工具
     自行调用 ``check_action`` 的位置上，**不在此处收口**。
     （现状核对：``data/permission_policies.json`` 各角色 ``denied_tools`` 里没有真实
@@ -40,11 +41,58 @@
     2. 读 ``data/descriptors.json``，该工具的描述符 ``trust.requires_approval=true``
        → 拒绝（按工具原名与 canonical id ``cp.<source>.<name>`` 双向查找，任一命中
        即算命中）；
-    3. 其余情况 → 放行（返回 ``None``）。
+    3. 其余情况 → 放行（返回 ``None``）；
+    4. **（可选，默认关闭）严格模式** —— 仅当 ``CP_TOOL_GATE_STRICT`` 取
+       ``1/true/yes/on`` 时才执行，且**只在第 1–2 步都未拒绝之后**追加一道
+       ``PermissionGateway.check()`` 的 RBAC + ABAC 判定；网关返回
+       ``allowed=False`` → 拒绝。详见下方"严格模式"一节。
+
+严格模式（``CP_TOOL_GATE_STRICT``，**默认关闭**）：
+    开关：``CP_TOOL_GATE_STRICT`` ∈ ``1/true/yes/on``（大小写不敏感、两侧空白忽略）
+    才启用；**未设置或其它任何取值一律保持上面的 fail-open 行为**。
+    启用后追加的判定：
+        角色 = 环境变量 ``CP_PERMISSION_DEFAULT_ROLE``（缺省 ``owner``；取值不是
+        ``Role`` 枚举合法值 → 告警并回退 ``owner``）；
+        来源 = 环境变量 ``CP_PERMISSION_SESSION_SOURCE``（缺省 ``"cli"``）；
+        ``PermissionGateway.check(tool_name, params, ABACContext(role=..., session_source=...))``
+        返回 ``PermissionResult(allowed=False)`` ⇒ 拒绝（拒绝结构与既有规则一致，
+        文案注明"RBAC 严格模式所拒"并带上网关的 ``reason``）。
+    为什么默认关闭（这是本节的唯一重点）：
+        ① ``default_role`` 是 ``guest``，其严格白名单只放行 74 个工具中的 2 个
+           （封杀 ≈ 97.3%）——直接开启等于"当场把系统打瘫"；
+        ② ABAC 的 ``time_outside`` 会让某个工具**在一天中的某些时段失效** ⇒ 造成
+           **时段相关的偶发失败**：同一份代码白天全绿、夜里变红，且与代码改动无关，
+           是最难排查的一类失败。
+           **现状**：原先唯一的时段规则 ``off-hours-shell-restriction``
+           （``shell_execute`` + ``time_outside ["09:00","18:00"]``）已从
+           ``data/permission_policies.json`` 的 ``abac_rules`` **移除**（意图与恢复方法
+           留档在同文件的 ``_policy_notes``）——因为本机所有者是 **18:00 开始工作**，
+           该窗口会把他的整个工作时段禁掉。所以**当前数据下** ② 不会发生；
+           但**机制仍在**：任何人把 ``time_outside`` 规则加回 ``abac_rules``（数据侧），
+           或将来新增同类规则，② 就会立刻回来。故这一条仍未过时。
+           （配套修复：``PermissionGateway._time_in_window`` 原先用字符串比较
+           ``start <= now <= end``，``start > end`` 时**恒为假** ⇒ 连"18:00–06:00
+           这种跨午夜作息"都表达不出来；现已支持跨午夜窗口，改窗口即可按自己的作息配置。）
+    开启前必须先确认（缺一不可）：
+        1. ``data/permission_policies.json`` 的 ``default_role`` **不是** ``guest``，
+           或 ``CP_PERMISSION_DEFAULT_ROLE`` 指向一个白名单符合预期的角色
+           （本仓库为此新增了 ``owner``：``allowed_tools=["*"]``、``denied_tools=[]``，
+           ABAC 仍生效——它正是"开了不会当场全封"的那个角色）；
+        2. 该角色在策略文件的 ``roles`` 里**真实存在**（角色不存在 ⇒ 直接全量拒绝）；
+        3. 清楚 ``session_source`` 该报什么（缺省 ``"cli"``；报 ``"scheduled"`` 会命中
+           ``scheduled-no-write`` / ``scheduled-no-edit`` 两条 ABAC 规则）。
+    回滚方式：**去掉 ``CP_TOOL_GATE_STRICT`` 环境变量**（或置为 ``0``）即可回到
+        fail-open 口径；本层不改任何数据文件、不改任何默认值，故回滚无残留。
 
 健壮性纪律（本闸门自身的 bug **绝不能**阻断工具执行）：
     - 文件缺失 / JSON 解析失败 / 结构异常 / 任何未预期异常 → 一律放行 + ``logger.warning``；
-    - 导入期不做文件 IO 与重活；每次调用读文件，按 ``(st_mtime_ns, st_size)`` 轻量缓存；
+    - **严格层同样如此**：网关构造失败、策略文件降级、``PermissionResult`` 结构异常
+      （缺 ``allowed`` / ``reason`` 字段）等任何异常 → 放行 + 告警，绝不让闸门自身的
+      bug 阻断工具执行。**但网关明确返回 ``allowed=False`` 时必须真的拒绝**——
+      fail-open 针对的是"闸门出错"，不是"网关说不行"。
+    - 导入期不做文件 IO 与重活（严格模式的网关**惰性构造并缓存**，仿
+      ``agent/task_scheduler.py`` 的回退权限对象写法）；每次调用读文件，按
+      ``(st_mtime_ns, st_size)`` 轻量缓存；
     - 纯标准库（json/logging/os/re/threading/typing）；不调用 shell；**不写任何数据文件**。
 """
 
@@ -78,6 +126,20 @@ GATE_ENABLED_ENV = "CP_TOOL_GATE_ENABLED"
 #: 视为"关闭"的取值（大小写不敏感）
 _DISABLED_VALUES = frozenset({"0", "false", "no", "off"})
 
+# ── RBAC 严格模式（**默认关闭**；见模块 docstring"严格模式"一节）──────────────
+#: 严格模式开关（未设置/其它值 ⇒ 保持既有 fail-open 行为）
+STRICT_ENABLED_ENV = "CP_TOOL_GATE_STRICT"
+#: 严格模式使用的角色（缺省 owner）
+STRICT_ROLE_ENV = "CP_PERMISSION_DEFAULT_ROLE"
+#: 严格模式使用的会话来源（缺省 cli）
+STRICT_SOURCE_ENV = "CP_PERMISSION_SESSION_SOURCE"
+#: 视为"启用"的取值（大小写不敏感、两侧空白忽略）
+_ENABLED_VALUES = frozenset({"1", "true", "yes", "on"})
+#: 严格模式缺省角色：`owner` 的白名单是 ``["*"]``，开了不会当场封杀 97.3% 的工具
+_DEFAULT_STRICT_ROLE = "owner"
+#: 严格模式缺省会话来源（报 "scheduled" 会命中 scheduled-no-write / scheduled-no-edit）
+_DEFAULT_STRICT_SOURCE = "cli"
+
 #: ``denied_tools`` 通配符：命中即拒绝一切工具
 _WILDCARD = "*"
 
@@ -95,6 +157,10 @@ _CACHE_LOCK = threading.Lock()
 _DERIVED_CACHE: Dict[str, Tuple[Tuple[int, int], Any]] = {}
 #: 已告警过的 key（同一异常不刷屏）
 _WARNED: Set[str] = set()
+
+#: 严格模式的 PermissionGateway 单例（**惰性构造**：导入期零重活）
+_STRICT_GATEWAY: Any = None
+_GATEWAY_LOCK = threading.Lock()
 
 #: id 段清洗（与 agent/descriptors/bridge.py::sanitize_id_part 同构，保持 join 键一致）
 _ID_PART_RE = re.compile(r"[^0-9A-Za-z_.\-]+")
@@ -115,18 +181,22 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
     1. 总开关 ``CP_TOOL_GATE_ENABLED`` 为 0/false/no/off → 放行；
     2. ``roles[*].denied_tools`` 并集含 ``"*"`` → 拒绝一切；含本次工具名 → 拒绝；
     3. 描述符 ``trust.requires_approval=true``（工具原名或 canonical id 命中）→ 拒绝；
-    4. 其余 → 放行。
+    4. **（可选，默认关闭）** ``CP_TOOL_GATE_STRICT`` 取 1/true/yes/on 时，追加
+       ``PermissionGateway.check()`` 的 RBAC+ABAC 判定；``allowed=False`` → 拒绝；
+    5. 其余 → 放行。
 
-    **为什么不用 RBAC 白名单**：见模块 docstring——策略数据里的工具名与真实注册表
-    严重错位，且 ``default_role`` 是严格白名单语义的 ``guest``，直接套用会全量封杀
-    （连 ``read_file`` 都不放过）。这是本闸门坚持 fail-open 的硬理由。
+    **为什么默认不用 RBAC 白名单**：见模块 docstring——``default_role`` 是严格白名单
+    语义的 ``guest``（只放行 74 个工具中的 2 个），直接套用会封杀 ≈97.3% 的工具。
+    这是本闸门默认 fail-open 的硬理由；严格模式只作为**显式开启**的选项存在。
 
     健壮性：本函数**不抛异常**。文件缺失/JSON 损坏/结构异常/任何未预期异常一律
-    放行并记 ``logger.warning``；闸门自身的 bug 绝不能阻断工具执行。
+    放行并记 ``logger.warning``；闸门自身的 bug 绝不能阻断工具执行。**严格层亦然**
+    （含网关构造失败与策略降级），但网关明确返回 ``allowed=False`` 时**会真的拒绝**。
 
     Args:
         func_name: 工具名（也接受 canonical id ``cp.<source>.<name>`` 形态）
-        args: 本次调用的参数。**当前不参与判定**（保留扩展位：参数级规则）
+        args: 本次调用的参数。默认口径下**不参与判定**（保留扩展位：参数级规则）；
+              严格模式开启时会作为 ``params`` 传给 ``PermissionGateway.check()``
         dl: DigitalLife 实例（可选）。**当前不参与判定**（保留扩展位：会话/角色上下文）
 
     Returns:
@@ -158,6 +228,14 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
             return _deny(name, "该工具的描述符要求人工审批（trust.requires_approval=true，"
                               "来源: %s 能力 %s）；请先走审批流程后再调用"
                          % (DESCRIPTORS_PATH, cid))
+
+        # 4. 【可选，默认关闭】RBAC 严格模式：只在上面两步都未拒绝之后才追加。
+        #    本步自带 fail-open 边界（见 _strict_deny）：严格层内部的任何异常都放行，
+        #    但网关**明确返回 allowed=False** 时必须真的拒绝。
+        if _strict_enabled():
+            strict_denied = _strict_deny_or_open(name, args)
+            if strict_denied is not None:
+                return strict_denied
         return None
     except Exception as e:  # noqa: BLE001  闸门自身故障绝不断工具执行（fail-open）
         logger.warning("[tool_gate] 闸门判定异常（按 fail-open 放行）: %s: %s",
@@ -204,6 +282,131 @@ def _disabled_by_env() -> bool:
     if raw is None:
         return False
     return str(raw).strip().lower() in _DISABLED_VALUES
+
+
+# ─────────────────────────────────────────────────────────────
+# RBAC 严格模式（可选；**默认关闭**——见模块 docstring"严格模式"一节）
+# ─────────────────────────────────────────────────────────────
+
+
+def _env_str(name: str) -> Optional[str]:
+    """读环境变量并去空白；读不到（未设置/空串/读取异常）→ ``None``
+
+    环境变量不可读时返回 ``None``（＝走缺省值），不抛异常。
+    """
+    try:
+        raw = os.environ.get(name)
+    except Exception:  # noqa: BLE001  环境变量不可读 → 按未设置处理
+        return None
+    if raw is None:
+        return None
+    text = str(raw).strip()
+    return text or None
+
+
+def _strict_enabled() -> bool:
+    """严格模式开关：``CP_TOOL_GATE_STRICT`` ∈ {1,true,yes,on}（大小写不敏感）才启用
+
+    **未设置或其它任何取值一律返回 False**（＝保持既有 fail-open 行为）。
+    读取异常按"未启用"处理——严格模式只在被显式要求时才可能收紧。
+    """
+    raw = _env_str(STRICT_ENABLED_ENV)
+    if raw is None:
+        return False
+    return raw.lower() in _ENABLED_VALUES
+
+
+def _strict_role() -> Any:
+    """严格模式使用的角色（``CP_PERMISSION_DEFAULT_ROLE``；缺省/非法 → ``owner``）
+
+    返回 ``agent.permission_system.Role`` 枚举成员。只接受合法枚举值；**非法值告警并
+    回退 ``_DEFAULT_STRICT_ROLE``**（不抛异常——回退比"因为拼错一个环境变量就变成
+    全量拒绝"安全得多）。``Role`` 导入失败向上抛，由 :func:`_strict_deny_or_open`
+    的 fail-open 边界放行。
+    """
+    from agent.permission_system import Role
+
+    raw = _env_str(STRICT_ROLE_ENV)
+    if raw is None:
+        return Role(_DEFAULT_STRICT_ROLE)
+    try:
+        return Role(raw.lower())
+    except Exception as e:  # noqa: BLE001  非法角色值 → 回退缺省角色并告警
+        _warn_once("strict-role:" + raw,
+                   "严格模式角色取值非法（回退 %s）: %r (%s)",
+                   _DEFAULT_STRICT_ROLE, raw, type(e).__name__)
+        return Role(_DEFAULT_STRICT_ROLE)
+
+
+def _strict_source() -> str:
+    """严格模式使用的会话来源（``CP_PERMISSION_SESSION_SOURCE``；缺省 ``cli``）"""
+    raw = _env_str(STRICT_SOURCE_ENV)
+    return raw if raw is not None else _DEFAULT_STRICT_SOURCE
+
+
+def _strict_gateway() -> Any:
+    """惰性构造并缓存 ``PermissionGateway``（导入期零重活）
+
+    Why 惰性：本模块被 ``agent/tools/__init__.py`` 在**每次工具调用**时导入，导入期
+    做策略文件 IO / 构造三层的网关属于"在热路径上做重活"。写法仿
+    ``agent/task_scheduler.py:67-84`` 的回退权限对象（模块级惰性单例）。
+
+    Why 显式绝对策略路径：``PermissionGateway.DEFAULT_POLICY_PATH`` 是**相对路径**
+    ``"data/permission_policies.json"``，按**当前工作目录**解析；从非仓库根启动时
+    会加载失败 ⇒ ``_degraded=True`` ⇒ 跳过 RBAC/ABAC（严格模式会静默退化成"只走正则"）。
+    这里显式传仓库内绝对路径，让"严格"是真的严格。
+
+    构造失败**向上抛**，由 :func:`_strict_deny_or_open` 的 fail-open 边界兜底。
+    """
+    global _STRICT_GATEWAY
+    if _STRICT_GATEWAY is None:
+        with _GATEWAY_LOCK:
+            if _STRICT_GATEWAY is None:
+                from agent.permission_system import PermissionGateway
+                _STRICT_GATEWAY = PermissionGateway(
+                    policy_path=os.path.join(_REPO_ROOT, "data",
+                                             "permission_policies.json"),
+                )
+    return _STRICT_GATEWAY
+
+
+def _strict_deny_or_open(func_name: str, args: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """执行严格层判定，**fail-open 边界就在这个函数里**
+
+    Returns:
+        ``None`` ＝ 放行（含"网关出错/策略降级/未知结构"等 fail-open 情形）；
+        ``dict`` ＝ 拒绝（只在网关**明确**返回 ``allowed=False`` 时产生）。
+
+    **fail-open 边界（写死在这里，别挪走）**：
+        网关构造失败、策略文件降级、``check()`` 抛异常、返回值缺 ``allowed`` 字段等
+        **任何**异常 ⇒ ``logger.warning`` + 放行。闸门自身的 bug 绝不阻断工具执行。
+        但网关**明确**给出 ``allowed=False`` 时必须真的拒绝——fail-open 针对的是
+        "闸门出错"，不是"网关说不行"。
+    """
+    try:
+        from agent.permission_system import ABACContext
+
+        role = _strict_role()
+        source = _strict_source()
+        gateway = _strict_gateway()
+        context = ABACContext(role=role, session_source=source)
+        result = gateway.check(func_name, dict(args or {}), context)
+        if result is None or bool(getattr(result, "allowed", True)):
+            return None
+        reason = str(getattr(result, "reason", "") or "未提供原因")
+        requires_confirmation = bool(getattr(result, "requires_confirmation", False))
+        return _deny(
+            func_name,
+            "RBAC 严格模式（%s=%s）所拒：角色 %r 不允许调用该工具"
+            "（会话来源 %r；网关 reason: %s%s）"
+            % (STRICT_ENABLED_ENV, _env_str(STRICT_ENABLED_ENV),
+               getattr(role, "value", role), source, reason,
+               "；网关标记为需要二次确认" if requires_confirmation else ""),
+        )
+    except Exception as e:  # noqa: BLE001  严格层自身故障 ⇒ **放行**（见上方边界说明）
+        logger.warning("[tool_gate] 严格模式判定异常（按 fail-open 放行）: %s: %s",
+                       type(e).__name__, e)
+        return None
 
 
 # ─────────────────────────────────────────────────────────────

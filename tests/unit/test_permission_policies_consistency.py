@@ -12,6 +12,11 @@
 5. ``_inactive_rules``（备忘区）的目标工具必须**未注册**——它正是因为目标不存在才被移出
    活规则；若将来注册了同名工具，本测试会失败并要求把它移回 ``abac_rules``。
 6. ``_inactive_rules`` 每条必须带非空 ``inactive_reason``（移出时必须留下理由）。
+7. ``_policy_notes``（顶层**文档键**，加载器与其它断言都不读）：
+   提到的规则名**不得**同时出现在 ``abac_rules``（防"一边备忘已禁用、一边仍在生效"），
+   且每条必须写清 ``rule`` / ``disabled_reason`` / ``reenable_hint``。
+   存在的理由：``_inactive_rules`` 只收"目标工具**未注册**"的规则，**已注册**工具的
+   策略被停用时没有地方留档（首例：``off-hours-shell-restriction``，见文件内注释）。
 
 为什么存在（真实事故）：
     修复前 ``developer.allowed_tools`` 写的是 ``file_read`` / ``file_write`` /
@@ -202,6 +207,35 @@ class TestRuleHygiene:
                 f"_inactive_rules[{rule.get('name', '?')}] 缺少 inactive_reason："
                 "移出活规则必须留下理由，否则后人无从判断该不该恢复"
             )
+
+    # ── 顶层文档键 _policy_notes（纯备忘，加载器与其它断言都不读它）──────────
+    # Why 需要它：`_inactive_rules` 的不变量是"目标工具**未注册**"，因此**已注册**工具的
+    # 策略一旦被停用就没地方留档。`_policy_notes` 补上这个位置：它不被 `_load_policies`
+    # 读取（那里只读 roles / abac_rules / default_role），也不被上面的断言读取。
+    # 代价是"备忘说已禁用、活规则里却还在"这种自相矛盾没人管 ⇒ 由下面两条钉死。
+
+    def test_文档键提到的规则不得同时留在活规则里(self, policy):
+        """防"一边备忘已禁用、一边还在 abac_rules 里生效"的自相矛盾"""
+        active = {rule.get("name", "") for rule in policy.get("abac_rules", []) or []}
+        notes = policy.get("_policy_notes", []) or []
+        assert isinstance(notes, list), "_policy_notes 必须是数组"
+        conflicting = sorted(
+            {str(note.get("rule", "")).strip() for note in notes if isinstance(note, dict)}
+            & active
+        )
+        assert not conflicting, (
+            f"这些规则同时出现在 _policy_notes（声明已禁用）与 abac_rules（仍在生效）: "
+            f"{conflicting} —— 二者只能取其一"
+        )
+
+    def test_文档键每条都要写明禁用理由与恢复方法(self, policy):
+        """格式纪律：只有写清"为什么禁用 + 怎么恢复"，备忘才有价值"""
+        for note in policy.get("_policy_notes", []) or []:
+            assert isinstance(note, dict), f"_policy_notes 元素必须是对象: {note!r}"
+            for key in ("rule", "disabled_reason", "reenable_hint"):
+                assert str(note.get(key, "")).strip(), (
+                    f"_policy_notes[{note.get('rule', '?')}] 缺少非空字段: {key}"
+                )
 
 
 class TestPolicyLoadable:

@@ -27,18 +27,15 @@
         "read_file"
       ],
       "denied_tools": []
+    },
+    "owner": {
+      "description": "本地单用户/所有者,全工具可用,ABAC 仍生效(供 agent/tool_gate.py 的 RBAC 严格模式 CP_TOOL_GATE_STRICT 选择;default_role 仍为 guest,故不启用严格模式时本角色无影响)",
+      "allowed_tools": ["*"],
+      "denied_tools": []
     }
   },
 
   "abac_rules": [
-    {
-      "name": "off-hours-shell-restriction",
-      "tool": "shell_execute",
-      "description": "工作时间窗口外禁止执行 Shell",
-      "deny_if": {
-        "time_outside": ["09:00", "18:00"]
-      }
-    },
     {
       "name": "scheduled-no-write",
       "tool": "write_file",
@@ -54,6 +51,14 @@
       "deny_if": {
         "session_source_in": ["scheduled"]
       }
+    }
+  ],
+
+  "_policy_notes": [
+    {
+      "rule": "off-hours-shell-restriction",
+      "disabled_reason": "原窗口是 09:00-18:00(白天上班作息),而本机所有者实际作息是 18:00 开始工作 ⇒ 开启 RBAC 严格模式(agent/tool_gate.py 的 CP_TOOL_GATE_STRICT)后,shell_execute 会在其整个工作时段被 ABAC 拒绝。此外原 _time_in_window 用字符串比较(start <= now <= end),start > end 时恒为假,连『改成 18:00-06:00 这种跨午夜作息』都表达不出来(现已修复,见下方 reenable_hint)。综上:该规则既不符合主人作息、在修复前也无法按主人作息配置,故本次从 abac_rules 移除(不能放 _inactive_rules:该键的不变量是『目标工具未注册』,而 shell_execute 是已注册工具)。",
+      "reenable_hint": "想按自己的作息恢复时,把下面这段整段拷回 abac_rules 即可: {\"name\": \"off-hours-shell-restriction\", \"tool\": \"shell_execute\", \"description\": \"工作时间窗口外禁止执行 Shell\", \"deny_if\": {\"time_outside\": [\"18:00\", \"06:00\"]}} —— time_outside 现已支持跨午夜窗口(PermissionGateway._time_in_window: start > end 视为跨午夜,判定为 now >= start or now <= end),把窗口改成自己的作息即可;注意窗口是『允许』区间,窗口之外一律拒绝。"
     }
   ],
 

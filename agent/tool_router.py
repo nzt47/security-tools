@@ -5,6 +5,7 @@
 1. 根据用户输入只发送相关的工具定义（节省 ~60-80% tools token）
 2. 为工具集成视图提供分类信息
 3. 触发关键词可从文件加载，支持运行时增删改
+4. PINNED_TOOLS 关注名单：类别已命中却被 max_tools 挤掉的工具会被补回（见该常量）
 """
 
 import os
@@ -245,6 +246,26 @@ TOOL_ALIASES: dict[str, list[str]] = {
     "list_directory": ["list_processes"],  # "列出"语义歧义,目录列出优先于进程列出
 }
 
+# ════════════════════════════════════════════════════════════
+#  "永不被截断"关注名单（pin list）
+# ════════════════════════════════════════════════════════════
+# 【不易】这些工具必须在"其所属类别**已被关键词命中**"的前提下，即使被 max_tools
+#         截断也要补回结果（补回后**允许总数略超 max_tools**）。
+#         —— 宁可多一个工具，也不让"委派"这种跨步骤能力在复合请求里凭空消失。
+# 【变易】名单可增删；**只能放"类别命中才生效"的工具**，不得用来凭空塞入未命中类别的工具。
+# 【简易】补回逻辑见 _restore_pinned_tools：只在"类别命中 ∧ 被截断丢掉"时补，
+#         因此未命中 async 类别的输入仍拿不到 delegate（路由语义不被绕过）。
+#
+# 为什么是 pin list，而不是"全局调优"（提优先级 / 塞进 core）：
+#   1. 提 async 的 priority 会把它排到 code(3) 之前 ⇒ **挤掉 code 分类的工具**
+#      （每一次命中 code 的请求都受影响），且实测**不可靠**：复合输入下 25 的截断点
+#      落在 code 组内部，async 仍可能被丢——治标不治本，还引入了全量 schema 漂移。
+#   2. 把 delegate 放进 core 等于"每轮常驻"：它带八要素 schema，实测每轮多约
+#      500–800 token，且与输入是否真的需要委派无关。
+#   3. 两种做法都会改变**每一轮**请求的 schema 与 token 成本；而 pin list 是**定向**的：
+#      只影响"该工具本来就被类别命中、却又被数量上限挤掉"的那部分输入。
+PINNED_TOOLS: tuple = ("delegate",)
+
 
 # ════════════════════════════════════════════════════════════
 #  默认关键词（当配置文件不存在时使用）
@@ -419,6 +440,10 @@ def get_tools_for_input(
       3. 别名合并（功能2）— 主工具在结果中时,移除其别名工具(避免语义重复)
       4. 优先级排序（功能1）— 按 category.priority 升序;跨类别工具取最小 priority
       5. 数量截断（功能3）— 按 max_tools 截断,保留高优先级工具
+      6. 关注名单补回（功能4）— 把 PINNED_TOOLS 中"类别已命中却被第 5 步挤掉"的
+         工具补回结果末尾;**补回后允许总数略超 max_tools**(宁可多一个工具,也不让
+         "委派"这种能力在复合请求里凭空消失)。未命中其类别的 pinned 工具**不会**
+         被加入——补回不是绕过路由。
 
     Args:
         user_input: 用户原始输入文本
@@ -426,7 +451,7 @@ def get_tools_for_input(
         max_tools: 返回工具数上限,默认 25;None 或 <=0 表示不限制
 
     Returns:
-        排序+截断后的工具名列表
+        排序+截断(可能含补回的 pinned 工具,故长度可能为 max_tools+len(补回数))后的工具名列表
     """
     categories = classify_user_input(user_input)
     selected = set()
@@ -483,6 +508,45 @@ def get_tools_for_input(
     return result
 
 
+def _restore_pinned_tools(
+    sorted_tools: list[str],
+    selected: set,
+    max_tools: int,
+) -> list[str]:
+    """按 priority 截断,再把 PINNED_TOOLS 中被截掉的工具补回末尾
+
+    (从 _apply_alias_merge_and_priority_sort 的"数量截断"步骤抽出,供其两处定义共用)
+
+    Args:
+        sorted_tools: 已按 priority 升序排序、**尚未截断**的工具名列表
+        selected: 已过白名单交集与别名合并的候选集合(＝类别命中集合)
+        max_tools: 上限;调用方保证 ``max_tools`` 为正整数且 ``len(sorted_tools) > max_tools``
+
+    Returns:
+        截断后(可能补回若干 pinned 工具)的工具名列表;
+        **补回后总数允许略超 max_tools**——见模块常量 PINNED_TOOLS 的理由。
+
+    【不易】补回条件必须同时成立:①该工具在 PINNED_TOOLS 里;②它**本来就在
+            `selected` 里**(＝其所属类别被关键词命中,且通过了白名单交集;
+            别名合并也可能把它移除);③它**本来就在 `sorted_tools` 里却被截断点丢掉**。
+            故未命中类别的 pinned 工具**不可能**被加入——不会绕过路由。
+    【变易】名单可增删;`selected` / `sorted_tools` 的语义由调用方保证。
+    【简易】纯函数;只读 max_tools,不改写任何模块状态。
+    """
+    kept = list(sorted_tools[:max_tools])
+    dropped = set(sorted_tools[max_tools:])
+    for tool in PINNED_TOOLS:
+        if tool in kept:
+            continue
+        # 只补"本来就被类别命中"的工具:dropped 是 selected 的子集(selected 已过
+        # 白名单交集与别名合并),两项同时检查是为了把这条不变量写在代码里。
+        if tool in dropped and tool in selected:
+            logger.info("[工具路由] 关注名单补回被截断的工具: %s(总数 %d → %d, 上限 %d)",
+                        tool, len(kept), len(kept) + 1, max_tools)
+            kept.append(tool)
+    return kept
+
+
 def _apply_alias_merge_and_priority_sort(
     selected: set,
     categories: set,
@@ -492,6 +556,8 @@ def _apply_alias_merge_and_priority_sort(
 
     【不易】TOOL_ALIASES 合并 + 优先级去重 + 25 上限逻辑保留
            — 主工具存在 → 别名移除;跨类别工具取最小 priority;max_tools None/<=0 不限制
+    【功能 4】数量截断后由 _restore_pinned_tools 补回 PINNED_TOOLS 中被挤掉的工具;
+            **补回后允许总数略超 max_tools**（见 PINNED_TOOLS 与 _restore_pinned_tools）
     【变易】抽为独立函数,供 tool_router_hybrid.HybridRetriever 复用,确保单一来源
     【简易】纯函数无副作用,输入 selected 集合 + categories 集合,返回排序+截断后的列表
 
@@ -528,8 +594,10 @@ def _apply_alias_merge_and_priority_sort(
 
     # 【功能 3】数量限制:按 priority 排序后截断,保留高优先级工具
     # 【变易】max_tools 可配置;None 或 <=0 表示不限制(向后兼容)
+    # 【功能 4】关注名单:截断后由 _restore_pinned_tools 把 PINNED_TOOLS 中"类别已命中
+    #          却被截断丢掉"的工具补回末尾;**补回后允许总数略超 max_tools**
     if max_tools is not None and max_tools > 0 and len(result) > max_tools:
-        result = result[:max_tools]
+        result = _restore_pinned_tools(result, selected, max_tools)
 
     return result
 
@@ -542,8 +610,8 @@ def _apply_alias_merge_and_priority_sort(
     """别名合并 + 优先级排序 + 数量截断(从 get_tools_for_input 抽取,行为不变)
 
     Why: tool_router_hybrid.py 复用此 helper,确保别名/优先级/截断逻辑单一来源。
-    约束: 行为与 get_tools_for_input L440-466 完全一致(包括 TOOL_ALIASES 顺序、
-         tool_to_priority 取最小值、max_tools<=0 不限制)。
+    约束: 行为与 get_tools_for_input L445 的调用口径完全一致(包括 TOOL_ALIASES 顺序、
+         tool_to_priority 取最小值、max_tools<=0 不限制、PINNED_TOOLS 关注名单补回)。
     """
     # 【功能 2】别名合并:主工具被选中时,移除其别名工具
     if TOOL_ALIASES:
@@ -567,8 +635,10 @@ def _apply_alias_merge_and_priority_sort(
     result = sorted(selected, key=lambda t: tool_to_priority.get(t, 99))
 
     # 【功能 3】数量限制:按 priority 排序后截断
+    # 【功能 4】截断后补回 PINNED_TOOLS 中被挤掉的工具(见 _restore_pinned_tools;
+    #         补回后允许总数略超 max_tools)
     if max_tools is not None and max_tools > 0 and len(result) > max_tools:
-        result = result[:max_tools]
+        result = _restore_pinned_tools(result, selected, max_tools)
     return result
 
 

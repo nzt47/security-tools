@@ -436,10 +436,19 @@ class PermissionSystem:
 
 
 class Role(Enum):
-    """用户角色枚举(RBAC)"""
+    """用户角色枚举(RBAC)
+
+    ``OWNER`` 是**新增的本地单用户/所有者角色**（不改任何既有枚举值）：
+    ``data/permission_policies.json`` 里对应角色 ``owner`` 的 ``allowed_tools`` 为
+    ``["*"]``、``denied_tools`` 为空 ⇒ 全工具可用，但 ABAC 规则仍然生效。
+    它存在的唯一目的是给「RBAC 严格模式」（``agent/tool_gate.py`` 的
+    ``CP_TOOL_GATE_STRICT``，**默认关闭**）提供一个"开了不会当场封杀 98.6% 工具"的
+    可选角色；``default_role`` 仍然保持 ``guest``，故不影响既有行为。
+    """
     ADMIN = "admin"
     DEVELOPER = "developer"
     GUEST = "guest"
+    OWNER = "owner"
 
 
 @dataclass
@@ -975,13 +984,44 @@ class PermissionGateway:
     # ── 辅助 ────────────────────────────────────────────────
 
     @staticmethod
-    def _time_in_window(start: str, end: str) -> bool:
-        """当前本地时间是否在 [start, end] 窗口内(含端点)
+    def _time_in_window(start: str, end: str, now: str = "") -> bool:
+        """当前本地时间是否在时间窗口内(含端点;**支持跨午夜窗口**)
 
-        时间格式: HH:MM (字符串字典序与时间序一致)
+        语义分界**只看** ``start <= end``(``"HH:MM"`` 的字符串字典序与时间序一致):
+
+        - ``start <= end`` ⇒ **同日窗口** ``[start, end]``(含端点)。
+          例 ``("09:00", "18:00")``: ``12:00`` 在内,``20:00`` 在外。
+          这是本函数的历史语义,**与加入跨午夜支持之前逐字节等价**。
+        - ``start > end`` ⇒ **跨午夜窗口**: ``now >= start or now <= end``,
+          即 ``[start, 24:00)`` 与 ``[00:00, end]`` 两段的并集(含端点)。
+          例 ``("18:00", "06:00")``: ``20:00`` / ``02:00`` 在内,``12:00`` 在外。
+
+        **为什么原先表达不了跨午夜窗口(缺陷说明,勿删)**:
+            原实现是 ``return start <= now <= end`` —— 一次链式字符串比较。当
+            ``start > end``(跨午夜写法)时该式**恒为假**: 任何 ``now`` 都不可能同时
+            ``>= "18:00"`` 且 ``<= "06:00"``。而 ``time_outside`` 的语义是
+            **"不在窗口内就拒绝"** ⇒ ``["18:00", "06:00"]`` 不是"只在 18:00–06:00 内
+            允许",而是**全天拒绝**。也就是说,想按"18:00 开始上班"的作息配置这条规则,
+            在原实现下**根本做不到**。这不是数据问题,是判定函数缺失一种语义。
+
+        Args:
+            start: 窗口起点 ``"HH:MM"``
+            end:   窗口终点 ``"HH:MM"``
+            now:   参与判定的 ``"HH:MM"``;**留空**时取 ``datetime.now()`` 的本地时间
+                   (``strftime("%H:%M")``)。该参数**只为可测性而加**——测试不必去
+                   monkeypatch 全局 ``datetime``/系统时钟。既有调用点都不传它
+                   (``_check_abac`` 只传 start/end),故**行为与改动前一致**。
+
+        Returns:
+            True = ``now`` 落在窗口内(即 ``time_outside`` 规则**不**拒绝)
         """
-        now = datetime.now().strftime("%H:%M")
-        return start <= now <= end
+        if not now:
+            now = datetime.now().strftime("%H:%M")
+        if start <= end:
+            # 同日窗口 —— 历史语义,表达式一字未改
+            return start <= now <= end
+        # 跨午夜窗口:落在 [start, 24:00) 或 [00:00, end] 即为窗口内
+        return now >= start or now <= end
 
     @staticmethod
     def _ip_in_any_cidr(ip: Optional[str], cidr_list: List[str]) -> bool:
