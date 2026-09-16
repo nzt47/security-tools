@@ -162,6 +162,39 @@ def is_binary_content(data: bytes) -> bool:
     return (text_char_count / len(chunk)) < 0.85
 
 
+def _is_probably_binary(raw_data: bytes, encoding: str) -> bool:
+    """``read_file`` 专用的二进制判据：**能否严格解码成文本**（而非 ASCII 字节占比）
+
+    Why 不复用 ``is_binary_content``：后者只把 ASCII 可打印字节（0x20-0x7E 与 0x09-0x0D）
+    计为"文本"，而**中文字节全部 >= 0x80** ⇒ 中文稍多的文本文件非文本占比就超过 0.15，
+    被判成二进制，``read_file`` 于是返回 base64——对一个中文智能体等于"读不了中文文件"
+    （实测：纯中文与中英混合的 .txt 都被判二进制，纯 ASCII 正常）。
+    ``is_binary_content`` 的历史语义被多处测试钉住（如断言 "mostly_text" 为二进制），
+    故**不改它**，只让 ``read_file`` 换用本判据：NUL 字节快速判二进制，否则逐个尝试严格
+    解码（声明编码 → utf-8 → gbk），任一成功即视为文本。
+
+    与旧行为的一致性：含 NUL 的文件（PNG/PDF 主体、UTF-16 文本等）依旧返回 base64；
+    差别仅在"无 NUL 但非 ASCII"这一类——正是中文/GBK 文本，现在能正常读出来了。
+    """
+    chunk = raw_data[:8192]
+    if not chunk:
+        return False
+    if b"\x00" in chunk:
+        return True
+    tried = set()
+    for candidate in (encoding, "utf-8", "gbk"):
+        if not candidate or candidate in tried:
+            continue
+        tried.add(candidate)
+        try:
+            # 严格解码**整份**数据（只用前 8KB 会在多字节字符被截断处误判为二进制）
+            raw_data.decode(candidate)
+            return False
+        except (UnicodeDecodeError, LookupError):
+            continue
+    return True
+
+
 def is_executable_extension(path: str) -> bool:
     """检查文件扩展名是否为可执行/脚本类型"""
     ext = os.path.splitext(path)[1].lower()
@@ -230,7 +263,7 @@ def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10,
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'safe_path.safe_path', 'msg': f'[read_file] OS错误: safe_path={safe_path}, error={e}'}))
         return {"ok": False, "error": f"读取文件失败: {e}"}
 
-    is_binary = is_binary_content(raw_data)
+    is_binary = _is_probably_binary(raw_data, encoding)
     logger.info(log_dict({'module_name': 'file_tools', 'action': 'is_binary.is_binary', 'msg': f'[read_file] 二进制检测结果: is_binary={is_binary}'}))
 
     if encoding is None or is_binary:
@@ -254,15 +287,23 @@ def read_file(path: str, encoding: str = "utf-8", max_size_mb: int = 10,
         logger.info(log_dict({'module_name': 'file_tools', 'action': 'encoding.encoding.content_length', 'msg': f'[read_file] 解码成功: encoding={encoding}, content_length={len(content)}'}))
     except UnicodeDecodeError as e:
         logger.warning(log_dict({'module_name': 'file_tools', 'action': 'encoding.encoding.error', 'msg': f'[read_file] 解码失败，尝试降级: encoding={encoding}, error={e}'}))
-        # 编码不对，尝试自动检测
+        # 声明的编码不对：**先按 GBK 严格试一次**。GBK 在中文 Windows 上极常见，而下面
+        # 的"替换式降级"会把 GBK 字节逐字节替换成 U+FFFD，读出来是乱码——对中文智能体
+        # 等于读不了这类文件（与上面 _is_probably_binary 修的是同一类问题）。
         try:
-            content = raw_data.decode("utf-8", errors="replace")
-            encoding = "utf-8 (with replacements)"
-            logger.info(log_dict({'module_name': 'file_tools', 'action': 'encoding.encoding', 'msg': f'[read_file] 降级解码成功: encoding={encoding}'}))
-        except Exception as e2:
-            logger.warning(log_dict({'module_name': 'file_tools', 'action': 'utf.latin.error', 'msg': f'[read_file] utf-8降级失败，使用latin-1: error={e2}'}))
-            content = raw_data.decode("latin-1")
-            encoding = "latin-1"
+            content = raw_data.decode("gbk")
+            encoding = "gbk"
+            logger.info(log_dict({'module_name': 'file_tools', 'action': 'encoding.encoding', 'msg': f'[read_file] GBK 严格解码成功: encoding={encoding}'}))
+        except UnicodeDecodeError:
+            # 编码不对，尝试自动检测
+            try:
+                content = raw_data.decode("utf-8", errors="replace")
+                encoding = "utf-8 (with replacements)"
+                logger.info(log_dict({'module_name': 'file_tools', 'action': 'encoding.encoding', 'msg': f'[read_file] 降级解码成功: encoding={encoding}'}))
+            except Exception as e2:
+                logger.warning(log_dict({'module_name': 'file_tools', 'action': 'utf.latin.error', 'msg': f'[read_file] utf-8降级失败，使用latin-1: error={e2}'}))
+                content = raw_data.decode("latin-1")
+                encoding = "latin-1"
 
     logger.info(log_dict({'module_name': 'file_tools', 'action': 'true.encoding', 'msg': f'[read_file] 文件读取完成: ok=True, encoding={encoding}, binary=False'}))
 

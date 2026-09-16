@@ -2199,7 +2199,8 @@ class TestReadFileBoundaryCases:
             temp_path = f.name
         try:
             # 强制不识别为二进制，测试文本解码路径
-            with patch("agent.tools.file_tools.is_binary_content", return_value=False):
+            # （mock 目标随实现更新：read_file 现用 _is_probably_binary，不再用 is_binary_content）
+            with patch("agent.tools.file_tools._is_probably_binary", return_value=False):
                 result = read_file(temp_path, encoding="utf-8")
                 assert result["ok"] is True
                 assert result["binary"] is False
@@ -2215,7 +2216,8 @@ class TestReadFileBoundaryCases:
             f.write(b"\xff\xfe\xfd")
             temp_path = f.name
         try:
-            with patch("agent.tools.file_tools.is_binary_content", return_value=False):
+            # mock 目标随实现更新：read_file 现用 _is_probably_binary，不再用 is_binary_content
+            with patch("agent.tools.file_tools._is_probably_binary", return_value=False):
                 # 测试编码降级路径
                 result = read_file(temp_path, encoding="utf-8")
                 assert result["ok"] is True
