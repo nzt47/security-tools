@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-16T22:26:21",
-  "tool_count": 72,
+  "generated_at": "2026-09-16T23:05:13",
+  "tool_count": 73,
   "categories": [
     "async",
     "code",
@@ -24,6 +24,23 @@
       "deprecated": false,
       "parameter_names": [
         "task_id"
+      ]
+    },
+    {
+      "name": "delegate",
+      "category": "async",
+      "description": "把任务委派给一个独立的子代理执行（delegate / subagent / dispatch task）。调用前必须写全八要素——①目标 ②约束 ③已有成果 ④禁止事项 ⑤产物格式 ⑥预算令牌 ⑦超时 ⑧回调地址：八要素全部必填，缺一即拒且不会被默认补齐。③已有成果与④禁止事项确实没有内容时传空列表 []（「声明为空」与「未声明」是两件事）；②约束不得为空列表。执行器按⑤核对交付形态、按⑥记账、按⑦设执行超时并据此回收分身；无③时的首次委派是合法的，纯探索委派无④也是合法的。Dispatch a task to an independent subagent under the eight-element delegation contract.",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "goal",
+        "constraints",
+        "prior_artifacts",
+        "prohibitions",
+        "artifact_format",
+        "budget_tokens",
+        "timeout_seconds",
+        "callback_url"
       ]
     },
     {

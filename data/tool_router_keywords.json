@@ -179,7 +179,14 @@
       "background",
       "async",
       "submit",
-      "task"
+      "task",
+      "委派",
+      "子代理",
+      "分身",
+      "交给子代理",
+      "并行执行",
+      "delegate",
+      "subagent"
     ],
     "schedule": [
       "定时",

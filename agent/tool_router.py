@@ -132,7 +132,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "priority": 8,
         "tools": [
             "submit_task", "get_task_status", "get_task_result", "cancel_task",
-            "list_async_tasks",
+            "list_async_tasks", "delegate",
         ],
     },
     "schedule": {

@@ -1,0 +1,53 @@
+name: delegate
+category: async
+description: 把任务委派给一个独立的子代理执行（delegate / subagent / dispatch task）。调用前必须写全八要素——①目标
+  ②约束 ③已有成果 ④禁止事项 ⑤产物格式 ⑥预算令牌 ⑦超时 ⑧回调地址：八要素全部必填，缺一即拒且不会被默认补齐。③已有成果与④禁止事项确实没有内容时传空列表
+  []（「声明为空」与「未声明」是两件事）；②约束不得为空列表。执行器按⑤核对交付形态、按⑥记账、按⑦设执行超时并据此回收分身；无③时的首次委派是合法的，纯探索委派无④也是合法的。Dispatch
+  a task to an independent subagent under the eight-element delegation contract.
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    goal:
+      type: string
+      description: ①目标：子代理要达成的结果，必须具体可判定（至少 8 字符）。含糊目标会被拒绝——80% 的委派失败源于此。示例：把 docs/zh
+        下 12 篇设计稿抽取为可复现步骤序列
+    constraints:
+      type: array
+      items:
+        type: string
+      description: ②约束：必须遵守的边界条件，字符串列表且**不得为空列表**（无约束的委派等同于未声明边界）。示例：[只读仓库，不得修改任何文件,
+        不得访问网络]
+    prior_artifacts:
+      type: array
+      items:
+        type: string
+      description: ③已有成果：子代理可直接复用的既有产物引用（文件路径/URL/标识）。确实没有时传空列表 []，**不得省略该字段**——未声明与声明为「无」是两件事
+    prohibitions:
+      type: array
+      items:
+        type: string
+      description: ④禁止事项：明确不许做的事项（字符串列表）。确实没有时传空列表 []，**不得省略该字段**。示例：[不得删除任何文件, 不得对外发送数据]
+    artifact_format:
+      type: string
+      description: ⑤产物格式：子代理必须交付的形态，需可机器判定（子代理据此知道交付什么）。示例：JSON Lines：每行 {name, steps[]}
+    budget_tokens:
+      type: integer
+      description: ⑥预算令牌：本次委派允许消耗的令牌上限，正整数且大于 0（用于成本记账与超支拦截）；不必填 0，缺失会导致成本不可控
+    timeout_seconds:
+      type: integer
+      description: ⑦超时：本次委派的最长执行秒数，正整数且大于 0；执行器据此设置执行超时，并据此时长回收分身（分身存活期不超过任务时长）
+    callback_url:
+      type: string
+      description: ⑧回调地址：结果投递目标，非空字符串（如 internal://pipeline/stage2 或 https://…）。空串/纯空白等同于未声明，会被拒绝
+  required:
+  - goal
+  - constraints
+  - prior_artifacts
+  - prohibitions
+  - artifact_format
+  - budget_tokens
+  - timeout_seconds
+  - callback_url
+examples: []

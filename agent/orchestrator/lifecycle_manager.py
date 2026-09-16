@@ -1044,6 +1044,7 @@ class LifecycleManager:
         from agent.tools.system_tools import register_all as reg_system
         from agent.tools.code_tools import register_all as reg_code
         from agent.tools.search_tools import register_all as reg_search
+        from agent.tools.subagent_tools import register_all as reg_subagent
         # 过程蒸馏工具（知识库 → 可复现步骤 → workflow/skill 固化）
         # 失败仅记日志，不影响其余内置工具注册（守主链路稳定）
         try:
@@ -1061,6 +1062,7 @@ class LifecycleManager:
         reg_system(self)
         reg_code(self)
         reg_search(self)
+        reg_subagent(self)
 
         logger.info(log_dict({'module_name': 'lifecycle_manager', 'action': 'lifecycle_manager._register_builtin_tools.log', 'message': '全部内置工具注册完成（模块化加载）'}))
 
