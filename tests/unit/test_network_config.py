@@ -27,8 +27,11 @@ from agent.network_config import (
 
 
 # ──────────────────────────────────────────────────────────────────────────
-# CI 环境隔离 fixture _mock_env_config_in_ci 已提取至 tests/conftest.py
-# 作为全局 autouse fixture（SKILLS_OFFLINE=1 时激活），本文件零侵入复用。
+# 【S11-10 · R9-c】原 `_mock_env_config_in_ci`（SKILLS_OFFLINE=1 时把
+# EnvConfigManager.set/delete 变成 no-op）已**整体删除**；本文件的 `.env`
+# 写入改为真实 I/O，目标文件由 tests/conftest.py 的 `_isolate_dotenv_target`
+# 通过 `CP_ENV_FILE` 重定向到每个用例的 tmp 目录（仓库根 .env 仍碰不到）。
+# 理由与三条证据见 tests/conftest.py「已删除 CI 专用 mock」一节。
 # ──────────────────────────────────────────────────────────────────────────
 
 
