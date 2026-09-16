@@ -64,6 +64,25 @@ MAX_HISTORY_LINES = 1000       # 向后兼容别名，实际值通过 get_schedu
 HEARTBEAT_INTERVAL = 60        # 向后兼容别名，实际值通过 get_scheduler_heartbeat_interval() 读取
 MAX_HEARTBEAT_HISTORY = 1440   # 向后兼容别名，实际值通过 get_scheduler_max_heartbeat_history() 读取
 
+# ── 定时命令安全闸门的回退权限系统（模块级惰性单例）────────────────────────
+# Why 需要回退：生产路径下 app_server 在启动时注入 scheduler._yunshu_ref = _Yunshu
+# （app_server.py:1497），DigitalLife 上经 ._permission 暴露 LifecycleManager 构造的
+# PermissionSystem（与 tools/system_tools.shell_execute 同源，含其运行时状态）。
+# 但 _yunshu_ref 未注入的场景（单测、脚本直连调度器、任何先于注入就 tick 的路径）
+# 若因此"取不到权限对象就跳过检查"，这条路径就退化成一条**无防护的无人值守命令
+# 执行通道**——正是本次要堵的洞。故此处惰性创建并缓存一个真实 PermissionSystem()
+# 兜底：策略/正则仍是真实规则，只是不含生产实例的运行时计数与告警历史。
+_fallback_permission_system = None  # type: Optional[Any]
+
+
+def _get_fallback_permission_system():
+    """惰性创建并缓存回退用 PermissionSystem（只建一次；构造失败向上抛，由调用方 fail-closed）"""
+    global _fallback_permission_system
+    if _fallback_permission_system is None:
+        from agent.permission_system import PermissionSystem
+        _fallback_permission_system = PermissionSystem()
+    return _fallback_permission_system
+
 
 class TaskScheduler:
     """增强型定时任务调度器"""
@@ -183,6 +202,59 @@ class TaskScheduler:
 
         return False
 
+    def _guard_scheduled_command(self, command: str) -> str:
+        """定时命令执行前的安全闸门（与 tools/system_tools.shell_execute 同口径）
+
+        system_command 任务由 API 创建、由 daemon 线程**无人值守**执行，此前直接
+        ``subprocess.Popen(command, shell=True)``——没有任何权限校验，可绕过
+        「危险命令会被安全系统阻止」这一承诺。本方法把交互式 shell_execute
+        （agent/tools/system_tools.py:110-136）的判定口径原样搬过来，作为执行前的
+        最后一道防线。
+
+        判定顺序（与 shell_execute 完全一致）:
+            1. check_text(command) 为 "critical" → 拒绝；
+            2. 为 "warning" → check_action(...)，not allowed → 拒绝；
+            3. 其余 → 放行；
+            4. 空命令 → 拒绝；
+            5. 任何异常 → fail-closed 拒绝（安全检查不可用时绝不放行）。
+
+        权限对象取法（顺序敏感，决定既有良性命令测试是否仍能执行）:
+            优先 ``getattr(self._yunshu_ref, "_permission", None)``——生产里
+            app_server 启动时注入 _yunshu_ref = _Yunshu（app_server.py:1497），
+            DigitalLife 上即 LifecycleManager 构造的真实权限系统（含运行时状态）；
+            取不到时**回退**到模块级惰性缓存的 PermissionSystem()，而不是「跳过
+            检查」——否则 _yunshu_ref 未注入的路径（单测/脚本直连/注入前 tick）
+            就成了无防护通道，正是本次修复要堵的洞。
+
+        Returns:
+            str: "" = 放行；非空 = 拒绝原因（人可读，可直接写入 result["error"]）
+        """
+        if not command or not command.strip():
+            return "命令为空"
+
+        try:
+            permission = getattr(self._yunshu_ref, "_permission", None)
+            if permission is None:
+                # 构造失败同样进 except → fail-closed（不把无权限对象当成放行）
+                permission = _get_fallback_permission_system()
+            check = permission.check_text(command)
+            if check.get("level") == "critical":
+                matches = [m.get("description", "") for m in check.get("matches", [])]
+                return f"危险命令被安全系统阻止: {matches}"
+            elif check.get("level") == "warning":
+                desc = "; ".join(m.get("description", "") for m in check.get("matches", []))
+                perm = permission.check_action(
+                    f"system_command:warning:{desc[:100]}",
+                    f"定时任务执行可能危险的命令: {desc}",
+                )
+                if not perm.allowed:
+                    return f"权限系统拒绝: {perm.reason}"
+        except Exception as e:  # noqa: BLE001 fail-closed：检查不可用 ⇒ 拒绝执行
+            logger.warning(log_dict({'module_name': 'task_scheduler', 'action': 'log', 'msg': f'[TaskScheduler] 定时命令安全检查异常，已拒绝执行: {e}'}))
+            return "安全检查系统故障，拒绝执行定时命令任务"
+
+        return ""
+
     def run_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
         """执行单个任务，返回执行结果"""
         start_time = datetime.now()
@@ -208,29 +280,42 @@ class TaskScheduler:
 
             elif task["type"] == "system_command":
                 command = task.get("command", "")
-                logger.info(log_dict({'module_name': 'task_scheduler', 'action': 'command', 'msg': f'[TaskScheduler] 执行命令: {command}'}))
-                proc = subprocess.Popen(
-                    command,
-                    shell=True,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    text=True,
-                )
-                try:
-                    # 配置化：从 Config 读取命令超时（支持热加载）
-                    from agent.monitoring.observability_config import get_scheduler_command_timeout
-                    _cmd_timeout = get_scheduler_command_timeout()
-                    stdout, stderr = proc.communicate(timeout=_cmd_timeout)
-                    if proc.returncode == 0:
-                        result["status"] = "success"
-                        result["output"] = stdout.strip()[:500]
-                    else:
-                        result["status"] = "failed"
-                        result["error"] = stderr.strip()[:500]
-                except subprocess.TimeoutExpired:
-                    proc.kill()
+                # 安全闸门（本次修复）：与交互式 shell_execute 同口径，见
+                # _guard_scheduled_command。被拒时**不执行 Popen**，只把拒绝原因写进
+                # result；因而不 return——函数尾部还要统一补 end_time/duration_ms 并
+                # 走 _append_history 落盘（被拒任务同样要留痕，且不破坏既有尾部逻辑）。
+                _guard_error = self._guard_scheduled_command(command)
+                if _guard_error:
                     result["status"] = "failed"
-                    result["error"] = f"命令执行超时 ({_cmd_timeout}秒)"
+                    result["error"] = _guard_error
+                    logger.warning(log_dict({'module_name': 'task_scheduler', 'action': 'command', 'msg': f'[TaskScheduler] 定时命令被安全闸门拒绝: {task["name"]}: {_guard_error}'}))
+                else:
+                    logger.info(log_dict({'module_name': 'task_scheduler', 'action': 'command', 'msg': f'[TaskScheduler] 执行命令: {command}'}))
+                    # 保留 shell=True 的取舍：命令可能含管道/重定向/内建等 shell 语法，
+                    # 改 shell=False 会把整串当单个 argv[0]、破坏既有用法；本任务的目的是
+                    # 补上执行前的权限闸门，而不是重写执行方式（闸门在 Popen 之前生效）。
+                    proc = subprocess.Popen(
+                        command,
+                        shell=True,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=True,
+                    )
+                    try:
+                        # 配置化：从 Config 读取命令超时（支持热加载）
+                        from agent.monitoring.observability_config import get_scheduler_command_timeout
+                        _cmd_timeout = get_scheduler_command_timeout()
+                        stdout, stderr = proc.communicate(timeout=_cmd_timeout)
+                        if proc.returncode == 0:
+                            result["status"] = "success"
+                            result["output"] = stdout.strip()[:500]
+                        else:
+                            result["status"] = "failed"
+                            result["error"] = stderr.strip()[:500]
+                    except subprocess.TimeoutExpired:
+                        proc.kill()
+                        result["status"] = "failed"
+                        result["error"] = f"命令执行超时 ({_cmd_timeout}秒)"
 
             elif task["type"] == "heartbeat":
                 if self._heartbeat_func:
