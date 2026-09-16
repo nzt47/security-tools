@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "RBAC 角色策略 + ABAC 属性规则。角色先做工具级拦截,ABAC 再做属性级校验,最后由 permission_system.py 的正则黑名单兜底。",
+  "description": "RBAC 角色策略 + ABAC 属性规则。角色先做工具级拦截,ABAC 再做属性级校验,最后由 permission_system.py 的正则黑名单兜底。不变量:roles[*].allowed_tools/denied_tools 与 abac_rules[*].tool 中的工具名必须真实存在于 data/tool_definitions/*.yaml,不得留未注册名(由 tests/unit/test_permission_policies_consistency.py 守护);未注册目标的规则请放 _inactive_rules。",
   "default_role": "guest",
 
   "roles": {
@@ -10,25 +10,21 @@
       "denied_tools": []
     },
     "developer": {
-      "description": "开发者,可用文件/搜索/代码执行/Shell,禁用系统级破坏工具",
+      "description": "开发者,可用文件读取/写入/编辑、搜索与 Shell",
       "allowed_tools": [
         "web_search",
-        "file_read",
-        "file_write",
-        "shell_execute",
-        "code_runner",
-        "browser_navigate"
+        "read_file",
+        "write_file",
+        "edit",
+        "shell_execute"
       ],
-      "denied_tools": [
-        "system_format",
-        "system_shutdown"
-      ]
+      "denied_tools": []
     },
     "guest": {
       "description": "访客,仅查询类工具",
       "allowed_tools": [
         "web_search",
-        "file_read"
+        "read_file"
       ],
       "denied_tools": []
     }
@@ -45,16 +41,28 @@
     },
     {
       "name": "scheduled-no-write",
-      "tool": "file_write",
+      "tool": "write_file",
       "description": "定时任务来源禁止写文件",
       "deny_if": {
         "session_source_in": ["scheduled"]
       }
     },
     {
+      "name": "scheduled-no-edit",
+      "tool": "edit",
+      "description": "定时任务来源禁止编辑文件(与 scheduled-no-write 同义,覆盖 edit 写路径)",
+      "deny_if": {
+        "session_source_in": ["scheduled"]
+      }
+    }
+  ],
+
+  "_inactive_rules": [
+    {
       "name": "internal-only-format",
       "tool": "system_format",
       "description": "格式化仅允许内网 IP 段(含 ADMIN)",
+      "inactive_reason": "目标工具 system_format 未在工具注册表中(data/tool_definitions/*.yaml 无此名),规则永不触发,故移出 abac_rules 仅作备忘;若将来注册同名工具,请移回 abac_rules(由 tests/unit/test_permission_policies_consistency.py 守护)",
       "deny_if": {
         "ip_not_in_cidr": ["10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"]
       }
@@ -63,6 +71,7 @@
       "name": "admin-shutdown-internal-only",
       "tool": "system_shutdown",
       "description": "ADMIN 关机操作仅允许内网 IP 段(ABAC 约束 ADMIN)",
+      "inactive_reason": "目标工具 system_shutdown 未在工具注册表中,规则永不触发,故移出 abac_rules 仅作备忘",
       "deny_if": {
         "ip_not_in_cidr": ["10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"]
       }
