@@ -20,7 +20,7 @@
 | 交付物 | 内容 | 状态 |
 |--------|------|------|
 | [permission_system.py](../agent/permission_system.py) | `PermissionGateway`/`Role`/`Permission`/`ABACContext`/`_ABACRule` + `_log_json` JSON 日志 | ✅ 扩展不重写，原 PermissionSystem 0 改动 |
-| [permission_policies.json](../data/permission_policies.json) | 3 角色（admin/developer/guest）+ 4 条 ABAC 规则（时间窗口/来源/IP 段） | ✅ 已入库跟踪（修复 .gitignore 历史忽略） |
+| [permission_policies.json](../data/permission_policies.json) | **4 角色（admin/developer/guest/owner）** + ABAC 规则（来源；原时间窗口规则已移除，见下） | ✅ 已入库跟踪（修复 .gitignore 历史忽略） |
 | [test_permission_gateway.py](../tests/unit/test_permission_gateway.py) | 单元测试 43 项：RBAC/ABAC/正则/三层叠加/降级/统一reason/JSON日志 | ✅ 全 PASS |
 | [test_permission_gateway_e2e.py](../tests/integration/test_permission_gateway_e2e.py) | 集成测试 39 项：角色矩阵/时间/IP/会话模拟 | ✅ 全 PASS |
 | [permission_arch.md](../docs/permission_arch.md) | 架构说明：调用链/短路语义/配置字段/JSON 日志格式/ELK 集成/扩展指南 | ✅ 已生成 |
@@ -47,7 +47,7 @@
 | 工作区修改反复丢失 | 开发会话编辑未落盘 / 被并行会话回滚 | 交付前逐文件核对 git status + 行数 + 关键符号（`class PermissionGateway`）确认落盘 |
 | JSON 日志测试捕获到非 JSON 行 | `PermissionSystem.__init__` 有既有非 JSON 中文日志 | 测试只收集以 `{` 开头的 PermissionGateway JSON 行，既有日志保持不变量不改动 |
 | `test_params_snapshot_truncated` 断言失败 | 截断后 = 50 字符 + `...(truncated)` 标记，总长 61 | 断言改为校验截断标记存在 + 长度 < 70 |
-| ADMIN 执行 `rm -rf /` 预期正则拦截但被 ABAC 拦 | 测试运行时间为凌晨，命中 `off-hours` 时间窗口规则 | 测试中 mock `_time_in_window=True`，聚焦验证"正则兜底"语义本身 |
+| ADMIN 执行 `rm -rf /` 预期正则拦截但被 ABAC 拦 | 测试运行时间为凌晨，命中 `off-hours` 时间窗口规则 | 测试中 mock `_time_in_window=True`，聚焦验证"正则兜底"语义本身（**该时段规则 `off-hours-shell-restriction` 事后已从 `abac_rules` 移除**，见 [permission_arch.md](permission_arch.md) §4 与 `data/permission_policies.json` 顶层 `_policy_notes`） |
 | `data/permission_policies.json` 被 .gitignore 忽略 | 旧版本时期归类为"运行时产物"（当时纯正则无需该文件） | 从 .gitignore 移除该行 + 注释说明，配置入库（对齐 dangerous_commands.json） |
 | 交付报告链接失效致 CI 文档链接预检失败 | 报告内 `~~策略配置~~ ⚠ (待确认)` 相对路径错误（应指向 `../data/`） | 修正为上级相对路径，本地 `precheck_docs.ps1` 验证 0 失效后重新推送 |
 | CI 报"scripts 覆盖率缺口 1.0pp"注解 | `test_scripts_coverage_gate.py::test_custom_warn_gap_zero` 故意构造 49% 覆盖率触发 `::error::` 输出，被 GitHub 识别为 error 注解（pre-existing 测试输出噪音，非真实门禁失败） | 确认所有 job success、run conclusion=success，判定非交付引入，记录为遗留问题 |

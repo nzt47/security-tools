@@ -554,61 +554,6 @@ def _apply_alias_merge_and_priority_sort(
 ) -> list[str]:
     """别名合并 + 优先级排序 + 数量截断(从 get_tools_for_input 抽取,行为不变)
 
-    【不易】TOOL_ALIASES 合并 + 优先级去重 + 25 上限逻辑保留
-           — 主工具存在 → 别名移除;跨类别工具取最小 priority;max_tools None/<=0 不限制
-    【功能 4】数量截断后由 _restore_pinned_tools 补回 PINNED_TOOLS 中被挤掉的工具;
-            **补回后允许总数略超 max_tools**（见 PINNED_TOOLS 与 _restore_pinned_tools）
-    【变易】抽为独立函数,供 tool_router_hybrid.HybridRetriever 复用,确保单一来源
-    【简易】纯函数无副作用,输入 selected 集合 + categories 集合,返回排序+截断后的列表
-
-    Args:
-        selected: 已经过白名单交集的工具集合(会被原地修改:移除别名)
-        categories: 命中的工具类别集合(用于查询 priority)
-        max_tools: 返回工具数上限;None 或 <=0 表示不限制
-
-    Returns:
-        排序+截断后的工具名列表
-    """
-    # 【功能 2】别名合并:主工具被选中时,移除其别名工具
-    # 【不易】别名规则不变 — 主工具存在 → 别名移除
-    if TOOL_ALIASES:
-        aliases_to_remove: set[str] = set()
-        for main_tool, alias_list in TOOL_ALIASES.items():
-            if main_tool in selected:
-                aliases_to_remove.update(alias_list)
-        selected -= aliases_to_remove
-
-    # 【功能 1】优先级排序:工具 → 其所属类别中最小的 priority
-    # 【简易】跨类别工具取最小 priority,确保高优先级类别工具排前
-    tool_to_priority: dict[str, int] = {}
-    for cat in categories:
-        cat_info = TOOL_CATEGORIES.get(cat)
-        if not cat_info:
-            continue
-        pri = cat_info.get("priority", 99)
-        for tool in cat_info["tools"]:
-            if tool in selected:
-                if tool not in tool_to_priority or pri < tool_to_priority[tool]:
-                    tool_to_priority[tool] = pri
-    result = sorted(selected, key=lambda t: tool_to_priority.get(t, 99))
-
-    # 【功能 3】数量限制:按 priority 排序后截断,保留高优先级工具
-    # 【变易】max_tools 可配置;None 或 <=0 表示不限制(向后兼容)
-    # 【功能 4】关注名单:截断后由 _restore_pinned_tools 把 PINNED_TOOLS 中"类别已命中
-    #          却被截断丢掉"的工具补回末尾;**补回后允许总数略超 max_tools**
-    if max_tools is not None and max_tools > 0 and len(result) > max_tools:
-        result = _restore_pinned_tools(result, selected, max_tools)
-
-    return result
-
-
-def _apply_alias_merge_and_priority_sort(
-    selected: set,
-    categories: set,
-    max_tools: int,
-) -> list[str]:
-    """别名合并 + 优先级排序 + 数量截断(从 get_tools_for_input 抽取,行为不变)
-
     Why: tool_router_hybrid.py 复用此 helper,确保别名/优先级/截断逻辑单一来源。
     约束: 行为与 get_tools_for_input L445 的调用口径完全一致(包括 TOOL_ALIASES 顺序、
          tool_to_priority 取最小值、max_tools<=0 不限制、PINNED_TOOLS 关注名单补回)。

@@ -84,6 +84,24 @@
     回滚方式：**去掉 ``CP_TOOL_GATE_STRICT`` 环境变量**（或置为 ``0``）即可回到
         fail-open 口径；本层不改任何数据文件、不改任何默认值，故回滚无残留。
 
+``session_source`` 的取值优先级（高 → 低）：
+    ① ``check_tool_call(..., session_source="scheduled")`` **调用方显式传入**；
+    ② 上下文变量 ``current_session_source()``——由 ``set_session_source("scheduled")``
+       设置，返回的句柄可用于 ``with`` 语句或 ``.reset()``；**默认空**（空 ⇒ 落到 ③）；
+    ③ 环境变量 ``CP_PERMISSION_SESSION_SOURCE``；
+    ④ 缺省 ``"cli"``（＝改动前的唯一口径）。
+    为什么要有 ②（这是本机制存在的唯一理由，别删）：环境变量是**进程级**的，无法区分
+    "这一次调用来自定时任务"还是"来自人机对话"——把 ``CP_PERMISSION_SESSION_SOURCE``
+    整体设成 ``scheduled`` 会让**所有**会话都报定时任务来源，等于把两条 ABAC 规则变成
+    全局禁令。``contextvars`` 是**按执行上下文**的，于是同一进程里两条链路可以报出不同
+    的来源：``agent/task_scheduler.py::run_task`` 在**执行线程内**设置 ``scheduled``，
+    人机对话链路不设置（读到空 ⇒ 落到环境变量/缺省 ``cli``）。
+    注意：``contextvars`` **不跨线程继承**——在调度线程里设置对执行线程无效，新线程读到
+    的永远是空值。所以设置点必须在真正执行任务的那个线程内部（``run_task`` 体内，
+    而非 ``_run_loop``/``tick`` 内）。
+    本节只新增①/②两级，**不新增任何环境变量**（环境变量须在
+    ``agent/settings/registry.py`` 登记），③/④ 一字未改 ⇒ 不设任何环境变量时行为与改动前一致。
+
 健壮性纪律（本闸门自身的 bug **绝不能**阻断工具执行）：
     - 文件缺失 / JSON 解析失败 / 结构异常 / 任何未预期异常 → 一律放行 + ``logger.warning``；
     - **严格层同样如此**：网关构造失败、策略文件降级、``PermissionResult`` 结构异常
@@ -98,6 +116,7 @@
 
 from __future__ import annotations
 
+import contextvars
 import json
 import logging
 import os
@@ -168,12 +187,111 @@ _ID_DASH_RE = re.compile(r"-{2,}")
 
 
 # ─────────────────────────────────────────────────────────────
+# 会话来源的调用上下文（contextvar；**默认空** ⇒ 落到环境变量/缺省 cli）
+# ─────────────────────────────────────────────────────────────
+# Why contextvar 而不是环境变量：环境变量是**进程级**的，无法区分"这一次调用来自定时
+#   任务"还是"来自人机对话"（把 CP_PERMISSION_SESSION_SOURCE 整体设成 scheduled 等于把
+#   两条 ABAC 规则变成全局禁令）。contextvars 是按执行上下文的，于是同一进程里两条链路
+#   可以报出不同的来源。
+# Why 默认空串而不是 "cli"：空 ⇒ 走既有的环境变量/缺省链路（第 ③/④ 级），语义上
+#   "本次上下文没有声明来源"，与"声明了 cli"是两件事。缺省 "cli" 会让"未声明"与
+#   "显式声明 cli"无法区分，也就无法保留改动前的取值优先级。
+# 线程语义（**关键**）：contextvars **不跨线程继承**——在调度线程里设置对执行线程无效，
+#   新线程读到的永远是空值。故设置点必须在真正执行任务的那个线程内部；反过来，这也正是
+#   "定时任务报 scheduled、人机对话报 cli"能互不串味的原因。
+_SESSION_SOURCE_VAR: contextvars.ContextVar = contextvars.ContextVar(
+    "cp_permission_session_source", default="",
+)
+
+
+class _SessionSourceHandle:
+    """``set_session_source()`` 的返回值：可用于 ``with``，也可手动 ``reset()``
+
+    语义与 ``contextvars.Token`` 一致（且只允许 reset 一次），只是额外支持 ``with``：:
+
+        with set_session_source("scheduled"):
+            ...            # 本上下文内 current_session_source() == "scheduled"
+        # 退出即还原（含异常路径）
+
+    也可用 ``try/finally``：``handle = set_session_source(...)`` / ``handle.reset()``。
+    """
+
+    __slots__ = ("_token",)
+
+    def __init__(self, token: Any) -> None:
+        self._token = token
+
+    @property
+    def token(self) -> Any:
+        """底层 ``contextvars.Token``（需要手工 ``ContextVar.reset`` 时用）"""
+        return self._token
+
+    def reset(self) -> None:
+        """还原到设置前的值；重复调用是幂等的空操作"""
+        token = self._token
+        if token is None:
+            return
+        self._token = None
+        _SESSION_SOURCE_VAR.reset(token)
+
+    def __enter__(self) -> "_SessionSourceHandle":
+        return self
+
+    def __exit__(self, *_exc: Any) -> bool:
+        self.reset()
+        return False
+
+
+def set_session_source(source: str) -> _SessionSourceHandle:
+    """把**当前执行上下文**的会话来源设为 ``source``（返回可 ``with``/``reset`` 的句柄）
+
+    只影响当前上下文（当前线程 / 当前 asyncio 任务），**不改环境变量、不写任何文件**；
+    句柄 ``reset()``（或 ``with`` 退出）即还原。空串/空白 ⇒ 等价于"本次上下文未声明来源"
+    （判定时落到环境变量 ``CP_PERMISSION_SESSION_SOURCE``、再落到缺省 ``"cli"``）。
+
+    **设置点必须在真正执行任务的线程内部**——contextvars 不跨线程继承，在调度线程里
+    设置对执行线程无效（``agent/task_scheduler.py::run_task`` 即按此在体内设置）。
+    """
+    return _SessionSourceHandle(_SESSION_SOURCE_VAR.set(str(source or "").strip()))
+
+
+def current_session_source() -> str:
+    """读当前执行上下文的会话来源；**未设置/空白 ⇒ 空串**（调用方据此走下一级优先级）
+
+    不抛异常（极端情况下 contextvar 不可用也返回空串——闸门自身的健壮性纪律）。
+    """
+    try:
+        raw = _SESSION_SOURCE_VAR.get()
+    except Exception:  # noqa: BLE001  上下文不可读 ⇒ 按"未声明来源"处理
+        return ""
+    return str(raw or "").strip()
+
+
+def reset_session_source(handle: Any) -> None:
+    """还原会话来源：接受 :func:`set_session_source` 的句柄，也接受裸 ``Token``
+
+    ``None`` / 非法对象 ⇒ 静默空操作（便于 ``try/finally`` 里无脑调用）。
+    """
+    if handle is None:
+        return
+    try:
+        reset = getattr(handle, "reset", None)
+        if callable(reset):
+            reset()
+            return
+        _SESSION_SOURCE_VAR.reset(handle)
+    except Exception as e:  # noqa: BLE001  还原失败不得影响主流程（只告警）
+        logger.warning("[tool_gate] 会话来源还原失败: %s: %s", type(e).__name__, e)
+
+
+# ─────────────────────────────────────────────────────────────
 # 对外入口
 # ─────────────────────────────────────────────────────────────
 
 
 def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
-                    dl: Any = None) -> Optional[Dict[str, Any]]:
+                    dl: Any = None,
+                    session_source: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """集中式工具闸门：返回 ``None`` = 放行；返回 dict = 拒绝结果（直接作为工具结果返回）
 
     判定顺序（模块 docstring 有完整口径；**除显式拒绝外一律放行**）：
@@ -198,6 +316,11 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
         args: 本次调用的参数。默认口径下**不参与判定**（保留扩展位：参数级规则）；
               严格模式开启时会作为 ``params`` 传给 ``PermissionGateway.check()``
         dl: DigitalLife 实例（可选）。**当前不参与判定**（保留扩展位：会话/角色上下文）
+        session_source: **（可选，默认 None）** 本次调用的会话来源，仅严格模式使用。
+            取值优先级：本参数 → ``current_session_source()``（由 ``set_session_source``
+            设置的上下文变量）→ 环境变量 ``CP_PERMISSION_SESSION_SOURCE`` → 缺省
+            ``"cli"``。传 ``None``/空串等于"本次未声明"（向后兼容：既有调用方不传该参数，
+            行为与改动前完全一致）。
 
     Returns:
         ``None`` = 放行；否则为
@@ -233,7 +356,7 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
         #    本步自带 fail-open 边界（见 _strict_deny）：严格层内部的任何异常都放行，
         #    但网关**明确返回 allowed=False** 时必须真的拒绝。
         if _strict_enabled():
-            strict_denied = _strict_deny_or_open(name, args)
+            strict_denied = _strict_deny_or_open(name, args, session_source)
             if strict_denied is not None:
                 return strict_denied
         return None
@@ -338,10 +461,24 @@ def _strict_role() -> Any:
         return Role(_DEFAULT_STRICT_ROLE)
 
 
-def _strict_source() -> str:
-    """严格模式使用的会话来源（``CP_PERMISSION_SESSION_SOURCE``；缺省 ``cli``）"""
-    raw = _env_str(STRICT_SOURCE_ENV)
-    return raw if raw is not None else _DEFAULT_STRICT_SOURCE
+def _strict_source(explicit: Optional[str] = None) -> str:
+    """严格模式使用的会话来源；取值优先级（高 → 低）：
+
+    ① ``explicit``——``check_tool_call(..., session_source=...)`` 显式传入；
+    ② ``current_session_source()``——上下文变量（``set_session_source`` 设置；默认空）；
+    ③ 环境变量 ``CP_PERMISSION_SESSION_SOURCE``；
+    ④ 缺省 ``"cli"``（＝改动前的唯一口径，不设任何环境变量时结果一字不变）。
+
+    空白/``None`` 一律视为"本级别未声明"，继续往下一级找 ⇒ 上下文变量置空即回到
+    环境变量/缺省链路（这正是"还原正确性"赖以成立的语义）。
+    """
+    for candidate in (explicit, current_session_source(), _env_str(STRICT_SOURCE_ENV)):
+        if candidate is None:
+            continue
+        text = str(candidate).strip()
+        if text:
+            return text
+    return _DEFAULT_STRICT_SOURCE
 
 
 def _strict_gateway() -> Any:
@@ -370,7 +507,8 @@ def _strict_gateway() -> Any:
     return _STRICT_GATEWAY
 
 
-def _strict_deny_or_open(func_name: str, args: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+def _strict_deny_or_open(func_name: str, args: Optional[Dict[str, Any]],
+                         session_source: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """执行严格层判定，**fail-open 边界就在这个函数里**
 
     Returns:
@@ -387,7 +525,7 @@ def _strict_deny_or_open(func_name: str, args: Optional[Dict[str, Any]]) -> Opti
         from agent.permission_system import ABACContext
 
         role = _strict_role()
-        source = _strict_source()
+        source = _strict_source(session_source)
         gateway = _strict_gateway()
         context = ABACContext(role=role, session_source=source)
         result = gateway.check(func_name, dict(args or {}), context)

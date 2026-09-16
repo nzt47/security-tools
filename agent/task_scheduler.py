@@ -84,6 +84,53 @@ def _get_fallback_permission_system():
     return _fallback_permission_system
 
 
+# ── 任务执行期的"定时任务来源"上报（contextvar；供 ABAC 规则识别来源）──────────────
+# Why 需要（这是本机制存在的唯一理由）：
+#   data/permission_policies.json 的 scheduled-no-write / scheduled-no-edit 两条 ABAC 规则
+#   靠 ABACContext.session_source == "scheduled" 触发。但改动前**没有任何生产链路**报这个
+#   来源——严格模式（agent/tool_gate.py 的 CP_TOOL_GATE_STRICT）里来源只来自**进程级**环境
+#   变量 CP_PERMISSION_SESSION_SOURCE（默认 "cli"），无法区分"这次调用来自定时任务"还是
+#   "来自人机对话" ⇒ 两条规则永远触发不了，是纯粹的摆设。这里在**任务执行期**把来源标为
+#   scheduled，让规则第一次真的有来源可判。
+# Why 设置在 run_task 体内（而不是 tick/_run_loop 里）：contextvars **不跨线程继承**——
+#   定时任务由 tick() 在 daemon 线程（_run_loop）里执行，在调度线程里设置对执行线程无效，
+#   新线程读到的永远是空值。故设置点必须落在**真正执行任务体**的那个线程内部。
+# 作用范围（**默认零行为变化**）：该来源只有开启 CP_TOOL_GATE_STRICT 后才会被 ABAC 消费；
+#   未开启时闸门默认 fail-open、根本不构造 ABACContext ⇒ 本上报对工具调用毫无影响。
+#   _guard_scheduled_command（正则层）的判定口径**不涉及**本来源，未被改动。
+# 失败姿态：上报/还原失败一律只告警，绝不阻断、也不改变任务的执行结果。
+_SCHEDULED_SESSION_SOURCE = "scheduled"
+
+
+def _enter_scheduled_session_source():
+    """把**当前执行线程**的会话来源标为 ``scheduled``；返回还原句柄（失败 ⇒ ``None``）
+
+    延迟导入 ``agent.tool_gate``（与本文件其它可选依赖同款写法）：导入失败只告警不抛，
+    任务照常执行——上报是增强，不是任务的前置条件。
+    """
+    try:
+        from agent.tool_gate import set_session_source
+        return set_session_source(_SCHEDULED_SESSION_SOURCE)
+    except Exception as e:  # noqa: BLE001 上报失败不得影响任务执行
+        logger.warning(log_dict({'module_name': 'task_scheduler', 'action': 'log', 'msg': f'[TaskScheduler] 会话来源上报失败（不影响任务执行）: {e}'}))
+        return None
+
+
+def _exit_scheduled_session_source(handle) -> None:
+    """还原会话来源（**任何退出路径都必须调用**；失败只告警，不掩盖任务结果）
+
+    Why 必须还原：contextvar 是本线程的，daemon 线程会持续跑下去，若不还原，后续
+    人机对话（若复用同一线程执行）会继续被当成"定时任务来源"⇒ ABAC 规则误伤正常会话。
+    """
+    if handle is None:
+        return
+    try:
+        from agent.tool_gate import reset_session_source
+        reset_session_source(handle)
+    except Exception as e:  # noqa: BLE001 还原失败不得影响任务结果（已告警）
+        logger.warning(log_dict({'module_name': 'task_scheduler', 'action': 'log', 'msg': f'[TaskScheduler] 会话来源还原失败: {e}'}))
+
+
 class TaskScheduler:
     """增强型定时任务调度器"""
 
@@ -256,7 +303,27 @@ class TaskScheduler:
         return ""
 
     def run_task(self, task: Dict[str, Any]) -> Dict[str, Any]:
-        """执行单个任务，返回执行结果"""
+        """执行单个任务，返回执行结果
+
+        **执行期会话来源上报（本次新增）**：任务体在 ``_run_task_body`` 里执行；本方法在
+        **执行线程内**（``tick()`` 由 daemon 线程 ``_run_loop`` 调用，故执行线程即设置线程）
+        把会话来源标为 ``scheduled``，并用 ``try/finally`` 在**任何退出路径**（成功 / 任务体
+        抛异常 / 返回值中途出错）还原，杜绝污染后续人机对话的工具调用。
+
+        作用范围：该来源只被 ``agent/tool_gate.py`` 的**严格模式**消费（``CP_TOOL_GATE_STRICT``，
+        **默认关闭**）⇒ 不开严格模式时本上报对行为**零影响**；开启后，定时任务里的
+        ``write_file`` / ``edit`` 会命中 ``data/permission_policies.json`` 的
+        ``scheduled-no-write`` / ``scheduled-no-edit`` 两条 ABAC 规则而被拒绝。
+        ``_guard_scheduled_command``（正则层）的判定口径**不涉及**本来源，未被改动。
+        """
+        _source_handle = _enter_scheduled_session_source()
+        try:
+            return self._run_task_body(task)
+        finally:
+            _exit_scheduled_session_source(_source_handle)
+
+    def _run_task_body(self, task: Dict[str, Any]) -> Dict[str, Any]:
+        """任务体（原 ``run_task`` 实现逐字未改；执行期的会话来源由 ``run_task`` 包裹）"""
         start_time = datetime.now()
         result = {
             "task_id": task.get("task_id", ""),

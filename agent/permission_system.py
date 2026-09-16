@@ -467,7 +467,10 @@ class ABACContext:
     属性聚合:
     - role:           用户角色(同时供 RBAC 使用,避免双传)
     - session_source: 会话来源,枚举值 cli | web | api | scheduled
-    - time_window:    会话允许时间窗口,None 表示不限制
+    - time_window:    【保留字段,当前未生效】会话允许时间窗口,None 表示不限制。
+                      PermissionGateway._check_abac **从不读取本字段**——真正生效的是
+                      规则级 deny_if["time_outside"](见 _ABACRule);本字段仅为兼容既有
+                      构造方而保留,赋任何值都不改变判定结果。
     - ip:             客户端 IP 字符串,None 表示未提供
     """
     role: Role = Role.GUEST

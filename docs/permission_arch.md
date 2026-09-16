@@ -8,7 +8,7 @@
 
 原 `PermissionSystem` 是纯正则黑名单（`DANGEROUS_PATTERNS` / `BLACKLIST` / `SENSITIVE_EXTENSIONS`），适合做兜底，但无法表达"用户 A 可调用 `shell_execute` 但不可调用 `system_format`"这类基于角色/属性的权限控制。本架构在其上加两层：
 
-- **RBAC**（基于角色）：admin / developer / guest，每角色一份工具允许/禁止列表
+- **RBAC**（基于角色）：admin / developer / guest / owner（**4 个角色**），每角色一份工具允许/禁止列表
 - **ABAC**（基于属性）：会话来源、时间窗口、IP 段等动态属性
 - **正则黑名单**：原 `PermissionSystem`，作为最后兜底
 
@@ -74,28 +74,50 @@ PermissionGateway.check(tool_name, params, context)
       "denied_tools": []
     },
     "developer": {
-      "description": "开发者",
-      "allowed_tools": ["web_search", "file_read", "file_write", "shell_execute", "code_runner"],
-      "denied_tools": ["system_format", "system_shutdown"]
+      "description": "开发者,可用文件读取/写入/编辑、搜索与 Shell",
+      "allowed_tools": ["web_search", "read_file", "write_file", "edit", "shell_execute"],
+      "denied_tools": []
     },
     "guest": {
-      "description": "访客,仅查询",
-      "allowed_tools": ["web_search", "file_read"],
+      "description": "访客,仅查询类工具",
+      "allowed_tools": ["web_search", "read_file"],
+      "denied_tools": []
+    },
+    "owner": {
+      "description": "本地单用户/所有者,全工具可用,ABAC 仍生效",
+      "allowed_tools": ["*"],
       "denied_tools": []
     }
   },
   "abac_rules": [
-    { "name": "off-hours-shell-restriction", "tool": "shell_execute",
-      "deny_if": { "time_outside": ["09:00", "18:00"] } },
-    { "name": "scheduled-no-write", "tool": "file_write",
+    { "name": "scheduled-no-write", "tool": "write_file",
       "deny_if": { "session_source_in": ["scheduled"] } },
+    { "name": "scheduled-no-edit", "tool": "edit",
+      "deny_if": { "session_source_in": ["scheduled"] } }
+  ],
+  "_policy_notes": [
+    { "rule": "off-hours-shell-restriction",
+      "disabled_reason": "该规则原为 shell_execute 的 09:00-18:00 时间窗口拒绝;因不符合本机所有者作息,"
+                         "已从 abac_rules 移除,仅在此留档(不能放 _inactive_rules:那个键的不变量是『目标工具未注册』,"
+                         "而 shell_execute 是已注册工具)",
+      "reenable_hint": "按自己作息拷回 abac_rules 即可:time_outside 现已支持跨午夜窗口"
+                       "(start > end 视为跨午夜,见 §4.2),例 \"deny_if\": {\"time_outside\": [\"18:00\", \"06:00\"]}" }
+  ],
+  "_inactive_rules": [
     { "name": "internal-only-format", "tool": "system_format",
+      "inactive_reason": "目标工具未注册,规则永不触发,仅作备忘",
       "deny_if": { "ip_not_in_cidr": ["10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"] } },
     { "name": "admin-shutdown-internal-only", "tool": "system_shutdown",
+      "inactive_reason": "目标工具未注册,规则永不触发,仅作备忘",
       "deny_if": { "ip_not_in_cidr": ["10.0.0.0/8", "192.168.0.0/16", "172.16.0.0/12"] } }
   ]
 }
 ```
+
+> ⚠ **`off-hours-shell-restriction` 已不是活规则**：它已从 `abac_rules` 移除，仅留档在顶层
+> `_policy_notes`（原因：原窗口 09:00-18:00 不符合本机所有者作息）。上例中的 `abac_rules`
+> 只有 `scheduled-no-write` / `scheduled-no-edit` 两条。
+> `_inactive_rules` 是**目标工具未注册**的规则备忘（永不触发），与 `_policy_notes` 语义不同，不可混用。
 
 ### 4.1 字段说明
 
@@ -119,11 +141,26 @@ PermissionGateway.check(tool_name, params, context)
 #### `deny_if` 支持的条件
 | 条件 | 格式 | 语义 |
 |------|------|------|
-| `time_outside` | `["HH:MM", "HH:MM"]` | 当前本地时间**不在** `[start, end]` 窗口内 → 拒绝 |
+| `time_outside` | `["HH:MM", "HH:MM"]` | 当前本地时间**不在** `[start, end]` 窗口内 → 拒绝（窗口是**允许**区间）；`start <= end` 为同日窗口，`start > end` 视为**跨午夜**窗口，详见 §4.2 |
 | `session_source_in` | `["src", ...]` | 当前会话来源**命中**列表 → 拒绝（来源值：`cli` / `web` / `api` / `scheduled`） |
 | `ip_not_in_cidr` | `["cidr", ...]` | 当前 IP**不在**任一 CIDR 段内 → 拒绝 |
 
 同一规则的多个 `deny_if` 条件**各自独立**判定，任一命中即拒绝。
+
+### 4.2 `time_outside` 的窗口语义（含跨午夜）
+
+`PermissionGateway._time_in_window(start, end)` 按 `start <= end` 分两种情形（`"HH:MM"` 的字符串字典序与时间序一致）：
+
+| 情形 | 判定式 | 例 |
+|------|--------|-----|
+| `start <= end`（同日窗口） | `start <= now <= end`（含端点） | `["09:00", "18:00"]`：`12:00` 在内、`20:00` 在外 |
+| `start > end`（**跨午夜窗口**） | `now >= start or now <= end`，即 `[start, 24:00)` ∪ `[00:00, end]`（含端点） | `["18:00", "06:00"]`：`20:00` / `02:00` 在内、`12:00` 在外 |
+
+`time_outside` 的语义是「**不在**窗口内就拒绝」⇒ 窗口是**允许**区间，窗口之外一律拒绝。
+
+**跨午夜支持是后续修复**：原实现为 `start <= now <= end` 一次链式字符串比较，`start > end` 时**恒为假**
+⇒ `["18:00", "06:00"]` 不是"只在 18:00–06:00 内允许"，而是**全天拒绝**（想按"18:00 下班后工作"的作息
+配置这条规则在原实现下根本做不到）。现 `start > end` 即按跨午夜窗口判定。
 
 ## 5. 数据类
 
@@ -133,6 +170,7 @@ class Role(Enum):
     ADMIN = "admin"
     DEVELOPER = "developer"
     GUEST = "guest"
+    OWNER = "owner"        # 本地单用户/所有者(全工具可用,ABAC 仍生效)
 ```
 
 ### `Permission` (dataclass)
@@ -151,9 +189,12 @@ class Permission:
 class ABACContext:
     role: Role = Role.GUEST
     session_source: str = "cli"          # cli | web | api | scheduled
-    time_window: Optional[Tuple[str, str]] = None
+    time_window: Optional[Tuple[str, str]] = None   # ⚠ 保留字段:当前**未生效**(见下)
     ip: Optional[str] = None
 ```
+
+> ⚠ **`time_window` 当前未生效（保留字段）**：`PermissionGateway._check_abac` **不读取**该字段，
+> 真正生效的是**规则级** `deny_if.time_outside`（见 §4.2）。该字段仅为兼容既有调用方而保留。
 
 ### `PermissionResult` (dataclass，不变量)
 ```python
@@ -330,6 +371,13 @@ PermissionGateway 不直接调用 `hitl.py`。集成时：
 - `TestAdminABACConstraint::test_admin_external_ip_blocked_for_shutdown` — ADMIN ABAC 约束
 - `TestCrossRoleMatrix::test_system_format_access_matrix` — 跨角色对比矩阵
 - `TestSessionSimulation::test_developer_typical_session` — 完整会话模拟
+
+> **关于时间窗口用例与策略文件的关系**：`TestABACTimeWindow` 的三个用例（含
+> `test_time_window_outside_blocks`）在**测试内自带 `abac_rules`**，并不读取
+> `data/permission_policies.json`。因此 `off-hours-shell-restriction` 已从策略文件移除
+> **不影响**这些用例——它们验证的是 `time_outside` **条件类型**本身（`_time_in_window` +
+> `_check_abac` 分支），而不是某条随附规则是否开启。策略文件里当前只有
+> `scheduled-no-write` / `scheduled-no-edit` 两条 ABAC 规则（见 §4 与 §4.2）。
 
 ## 11. 相关文件
 
