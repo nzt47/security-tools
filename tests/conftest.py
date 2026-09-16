@@ -350,79 +350,41 @@ def test_data_manager():
 # 测试环境管理
 # ============================================================================
 
-# CI 上验证 EnvConfigManager 自身 .env 文件写入/审计日志/权限行为的测试，
-# 契约是真实文件 I/O，必须排除在 _mock_env_config_in_ci 之外（mock 的
-# set/delete 只操作 os.environ，会导致审计文件永不创建、.env 内容为空）。
+# ════════════════════════════════════════════════════════════
+#  【S11-10 · R9-c】已删除 CI 专用 mock `_mock_env_config_in_ci`
 #
-# 【S11-10/R9 补登 test_env_isolation_p0.py（为什么必须排除）】
-#   该文件的判据之一就是"隔离目标文件**真的**收到写入"，用来证明修法是
-#   "重定向真实 I/O"而非"把 set 变成 no-op 的假修法"（见其模块 docstring
-#   §判据 2）。把 set 换成只写 os.environ 的 mock，恰恰就是它要拦截的那种
-#   "掩盖"，于是 CI(SKILLS_OFFLINE=1) 上必然失败：
-#     AssertionError: 隔离目标文件未收到写入 —— 同上：这不是重定向，是掩盖
-#   CI 日志佐证：env_config_manager 只出现 `init`/`secure_permissions`，
-#   完全没有 `write_start` / `env_config.set`（即 _update_env_file 未被调用），
-#   而 network_config._save_secure 仍打印"已写入 .env"（mock 不抛异常）。
-#   本地复现：`$env:SKILLS_OFFLINE='1'` 跑该文件 → 1 failed 1 passed，
-#   与 CI 逐字一致；不设该变量 → 2 passed（对照臂）。
-_MOCK_ENV_CONFIG_EXCLUDED_FILES = (
-    'test_env_config_audit.py',
-    'test_env_hot_reload.py',
-    'test_env_file_permissions.py',
-    'test_env_isolation_p0.py',
-)
-
-
-@pytest.fixture(scope="function", autouse=True)
-def _mock_env_config_in_ci(request):
-    """CI 环境中 mock EnvConfigManager.set/delete，绕过 .env 文件 I/O。
-
-    【不易】不改变测试断言语义——仍验证 NetworkConfigManager 正确调用
-           _save_secure 并传递正确的 key/value 到 EnvConfigManager。
-    【变易】仅 SKILLS_OFFLINE=1（CI 环境）激活，本地开发走真实 .env 写入；
-           全局 autouse 对非 CI 环境为 no-op（早返回），零副作用。
-           【CHG-2026-0801】黑名单排除验证 EnvConfigManager 自身文件写入/
-           审计日志/权限契约的测试（见 _MOCK_ENV_CONFIG_EXCLUDED_FILES），
-           否则 mock 的 set/delete 会破坏其断言（CI 上 13+8+4=25 个失败）。
-    【简易】mock 直接操作 os.environ，无文件 I/O。
-
-    Why 集中到 conftest.py: 原 test_network_config.py 与
-         test_network_config_save_regression.py 各自定义了完全相同的 fixture，
-         违反 DRY。提取后两个测试文件零侵入复用，新增同类测试亦自动继承。
-    Why autouse=True 安全: SKILLS_OFFLINE 守卫保证仅 CI 环境激活 mock；
-         CI 中所有测试都依赖 EnvConfigManager 写入，mock 后改走 os.environ，
-         断言语义不变（仍校验 key/value 正确传递）。
-    """
-    if not os.environ.get('SKILLS_OFFLINE'):
-        yield
-        return
-
-    # 【不易】黑名单排除：验证 EnvConfigManager 自身文件写入/审计日志/权限
-    # 契约的测试需要真实 I/O，全局 mock 会破坏断言，必须放行。
-    if any(f in request.node.nodeid for f in _MOCK_ENV_CONFIG_EXCLUDED_FILES):
-        yield
-        return
-
-    from unittest.mock import patch
-    from agent.env_config_manager import EnvConfigManager
-
-    def _mock_set(self, key, value):
-        """绕过 .env 文件写入，直接设置 os.environ（热重载等效）"""
-        os.environ[key] = value
-
-    def _mock_delete(self, key):
-        """绕过 .env 文件删除，直接移除 os.environ"""
-        os.environ.pop(key, None)
-
-    with patch.object(EnvConfigManager, 'set', _mock_set), \
-         patch.object(EnvConfigManager, 'delete', _mock_delete):
-        yield
+#  历史：为了让 CI 不去写 `.env`，该 autouse 夹具在 `SKILLS_OFFLINE=1` 时把
+#  `EnvConfigManager.set/delete` 整体替换为"只写 os.environ"的 no-op，并靠
+#  `_MOCK_ENV_CONFIG_EXCLUDED_FILES`（文件名黑名单）给"契约是真实文件 I/O"的
+#  测试放行（历史记录：CHG-2026-0801，CI 上曾 13+8+4=25 个失败）。
+#
+#  为什么现在可以删除（三条证据）：
+#    1. **它的原始目的已被更强的机制取代**：`_isolate_dotenv_target`
+#       （见下方 §2026-09-13）用 `CP_ENV_FILE` 把写入**重定向**到每个用例的
+#       tmp 文件 —— 仓库根 `.env` 依然碰不到，而且**保留真实文件读写**。
+#       即"保护仓库 .env"不再需要"把写入变成 no-op"。
+#    2. **它本身会制造假绿灯**：把 `set` 变成 no-op 正是
+#       `tests/unit/test_env_isolation_p0.py` 要拦截的"掩盖"形状——该护栏
+#       在 CI 上因此**必然失败**（S11-10/R9 实测：CI 日志里
+#       `env_config_manager` 只有 `init`/`secure_permissions`，**完全没有**
+#       `write_start`/`env_config.set`，而 `_save_secure` 仍打印"已写入 .env"）。
+#       黑名单只能靠人工补登，漏登一次就复现一次（本次就是）。
+#    3. **真实 I/O 在 CI 上早已被验证可用**：被排除的那 4 个文件本来就在
+#       CI（`SKILLS_OFFLINE=1`）里做真实写盘/chmod 600/跨进程锁，长期稳定；
+#       且真实 `set()` 的副产物路径 `logs/config_audit.jsonl` 与审计链 `*.db`
+#       均已被 `.gitignore` 覆盖（`.gitignore:32` 的 `logs/`、`:170` 的 `*.db`），
+#       不会造成产物漂移。
+#
+#  不变量（删除后仍然成立）：仓库根 `.env` 不被测试改写 —— 由
+#  `_isolate_dotenv_target`（重定向）+ `_guard_repo_dotenv_llm_key`
+#  （会话级回归锁，比对 `LLM_API_KEY` 行）双重保证。
+# ════════════════════════════════════════════════════════════
 
 
 # ════════════════════════════════════════════════════════════
 #  【2026-09-13 新增】把 `.env` 目标重定向到临时文件（**所有环境**，不止 CI）
 #
-#  背景（P0）：上面那个 `_mock_env_config_in_ci` 只在 `SKILLS_OFFLINE=1`
+#  背景（P0）：删掉的 `_mock_env_config_in_ci` 只在 `SKILLS_OFFLINE=1`
 #  时激活，本地开发**走真实写入** ⇒ 任何调用 `NetworkConfigManager.update()`
 #  的测试都会写**仓库根的真实 `.env`**。实测
 #  `tests/unit/test_network_config.py::TestNetworkConfigEncryption::`
@@ -434,6 +396,8 @@ def _mock_env_config_in_ci(request):
 #  修法：不 mock 掉真实 I/O、不动测试断言语义，而是**重定向目标文件**
 #  （`CP_ENV_FILE`）—— 真实文件读写/审计日志/权限契约仍可验证，
 #  但**永不触碰仓库 `.env`**。
+#  【S11-10 · R9-c】该重定向生效后，"CI 再额外 mock 掉 set/delete"已无必要，
+#  故如上一节所述把那个 mock 整体删除（`SKILLS_OFFLINE` 分支随之消失）。
 # ════════════════════════════════════════════════════════════
 
 @pytest.fixture(scope="function", autouse=True)
