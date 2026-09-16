@@ -1,0 +1,31 @@
+name: grep
+category: file
+description: 按内容（正则表达式）检索文件，返回命中的相对路径、1-based 行号与该行原文。自动跳过 .git/data/node_modules
+  等大目录、二进制文件与超过 2MB 的文件。Search file contents by regular expression, search in files,
+  grep
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    pattern:
+      type: string
+      description: 正则表达式（必填），如 \bdef\s+compose\b
+    path:
+      type: string
+      description: 搜索根路径，默认当前工作目录
+    include:
+      type: string
+      description: 文件名 glob 过滤，如 *.py 或 *.{md,txt}
+    max_results:
+      type: integer
+      description: 结果条数上限，默认 200
+    case_sensitive:
+      type: boolean
+      description: 是否大小写敏感，默认 false
+    context_lines:
+      type: integer
+      description: 每命中行附加上下文的行数，默认 0
+  required:
+  - pattern
+examples: []

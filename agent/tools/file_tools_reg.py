@@ -5,6 +5,7 @@
 """
 import logging
 from agent import tools as _tools
+from agent.tools.search_tools import note_file_read
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +64,8 @@ def register_all(dl):
             return {"ok": False, "error": "请提供文件路径（path）"}
         result = read_file(path, encoding=encoding, max_size_mb=max_size_mb, range=file_range)
         _note_secret_read(path, result)
+        if isinstance(result, dict) and result.get("ok"):
+            note_file_read(path)  # 登记"已读"：edit 工具要求先读后改
         return result
 
     @_tools.register("write_file", "将内容写入本地文件（可创建新文件或覆盖已有文件）。必须同时提供 path（文件路径）和 content（写入内容）两个参数", schema={

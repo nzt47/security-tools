@@ -212,6 +212,16 @@ def call(*args, **params) -> Any:
     if not name:
         raise ToolError("调用工具时缺少工具名称")
 
+    # 集中式工具闸门（**唯一汇聚点**：所有调用方——含 orchestrator 直连——
+    # 都必经此处；fail-open，闸门异常视为放行；被拒直接 return，不抛异常）
+    try:
+        from agent.tool_gate import check_tool_call as _gate_check
+        _denied = _gate_check(name, params)
+    except Exception:  # noqa: BLE001  闸门故障/不可用 ⇒ 放行
+        _denied = None
+    if _denied is not None:
+        return _denied
+
     # 限流检查
     if not _rate_limiter.check(name):
         wait = _rate_limiter.wait_time(name)

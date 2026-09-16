@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-08-08T00:37:05",
-  "tool_count": 70,
+  "generated_at": "2026-09-16T22:26:21",
+  "tool_count": 72,
   "categories": [
     "async",
     "code",
@@ -334,6 +334,19 @@
       ]
     },
     {
+      "name": "edit",
+      "category": "file",
+      "description": "对文件做精准局部替换（old_string → new_string），只改指定片段、不重写全文；old_string 必须在文件中唯一（除非 replace_all=true）。必须先调用 read_file 读过该文件。Edit a file by replacing an exact string, replace text in a file",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "path",
+        "old_string",
+        "new_string",
+        "replace_all"
+      ]
+    },
+    {
       "name": "get_file_info",
       "category": "file",
       "description": "获取文件或目录的详细信息（大小、修改时间、权限等）",
@@ -341,6 +354,21 @@
       "deprecated": false,
       "parameter_names": [
         "path"
+      ]
+    },
+    {
+      "name": "grep",
+      "category": "file",
+      "description": "按内容（正则表达式）检索文件，返回命中的相对路径、1-based 行号与该行原文。自动跳过 .git/data/node_modules 等大目录、二进制文件与超过 2MB 的文件。Search file contents by regular expression, search in files, grep",
+      "version": "1.0.0",
+      "deprecated": false,
+      "parameter_names": [
+        "pattern",
+        "path",
+        "include",
+        "max_results",
+        "case_sensitive",
+        "context_lines"
       ]
     },
     {
@@ -761,7 +789,7 @@
     {
       "name": "web_search",
       "category": "web",
-      "description": "在互联网上搜索网页内容和最新信息，联网查询资料、浏览网页搜索结果（搜索引擎）。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）。Search the web, find information online, internet search",
+      "description": "搜索互联网信息。默认单引擎搜索，设置 aggregate=true 启用多引擎聚合：并发调用 2-3 个搜索引擎，去重评分排序后返回最优结果（质量更高但稍慢）。Search the web, find information online, internet search",
       "version": "1.0.0",
       "deprecated": false,
       "parameter_names": [

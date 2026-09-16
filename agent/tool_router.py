@@ -68,6 +68,7 @@ _DEFAULT_TOOL_CATEGORIES = {
         "tools": [
             "read_file", "write_file", "list_directory", "get_file_info",
             "search_files", "compress", "decompress", "diff_files",
+            "grep", "edit",
         ],
     },
     "code": {

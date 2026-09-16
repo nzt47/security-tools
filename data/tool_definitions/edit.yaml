@@ -1,0 +1,27 @@
+name: edit
+category: file
+description: 对文件做精准局部替换（old_string → new_string），只改指定片段、不重写全文；old_string 必须在文件中唯一（除非
+  replace_all=true）。必须先调用 read_file 读过该文件。Edit a file by replacing an exact string,
+  replace text in a file
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    path:
+      type: string
+      description: 文件路径（必填）
+    old_string:
+      type: string
+      description: 待替换的原文（必填），需在文件中唯一
+    new_string:
+      type: string
+      description: 替换后的内容（必填）
+    replace_all:
+      type: boolean
+      description: 是否替换全部匹配，默认 false（要求 old_string 唯一）
+  required:
+  - path
+  - old_string
+  - new_string
+examples: []

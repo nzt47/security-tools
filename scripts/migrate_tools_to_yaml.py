@@ -108,14 +108,24 @@ def _scan_file(path: str) -> list[dict]:
 
 
 def _build_category_map() -> dict[str, str]:
-    """从 tool_router 构建 tool_name -> category 反查表。"""
+    """从 tool_router 构建 tool_name -> category 反查表。
+
+    【不易】YAML 派生结果（TOOL_CATEGORIES）为权威：同名工具以它为准，
+            允许 YAML 把工具挪到别的分类。
+    【变易】代码内兜底默认（_DEFAULT_TOOL_CATEGORIES）作为**首份 YAML 生成前**的
+            分类来源：新注册的工具此时尚未进入 YAML 派生的 TOOL_CATEGORIES，
+            若不以默认表兜底就会被写成 uncategorized（新工具永远进不了路由分类）。
+    """
     sys.path.insert(0, _PROJECT_ROOT)
     try:
-        from agent.tool_router import TOOL_CATEGORIES  # noqa: WPS433
+        from agent.tool_router import (  # noqa: WPS433
+            TOOL_CATEGORIES, _DEFAULT_TOOL_CATEGORIES,
+        )
     except Exception as e:  # 兜底：导入失败直接报错（迁移依赖现有分类）
         raise SystemExit(f"无法导入 TOOL_CATEGORIES: {e}")
     mapping: dict[str, str] = {}
-    for cat_key, cat_info in TOOL_CATEGORIES.items():
+    # 先铺代码内默认分类（兜底），再用 YAML 派生结果覆盖
+    for cat_key, cat_info in list(_DEFAULT_TOOL_CATEGORIES.items()) + list(TOOL_CATEGORIES.items()):
         for tool in cat_info.get("tools", []):
             mapping[tool] = cat_key
     return mapping

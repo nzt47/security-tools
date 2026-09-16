@@ -681,9 +681,9 @@ class TestMigrationScript:
         assert migrate_mod._is_register_call(plain) is False
 
     def test_build_category_map_has_64_categorized_tools(self):
-        """_build_category_map 反查表包含 64 个 categorized 工具。"""
+        """_build_category_map 反查表包含 66 个 categorized 工具。"""
         cat_map = migrate_mod._build_category_map()
-        assert len(cat_map) == 64  # 11 个分类的工具总数
+        assert len(cat_map) == 66  # 11 个分类的工具总数
         # 不应包含 uncategorized 工具
         uncat = {"market_search", "install_tool", "generate_tool",
                  "scan_mcp", "connect_mcp", "disconnect_mcp"}
@@ -723,7 +723,7 @@ class TestMigrationScript:
 
 
 # ════════════════════════════════════════════════════════════
-#  7. 70 个 YAML 与原 Python @register 字段一致性
+#  7. 72 个 YAML 与原 Python @register 字段一致性
 # ════════════════════════════════════════════════════════════
 
 def _extract_python_register_defs() -> dict:
@@ -756,7 +756,7 @@ def _extract_python_register_defs() -> dict:
 
 
 class TestYamlPythonConsistency:
-    """70 个 YAML 文件与原 Python @register 调用的字段一致性。"""
+    """72 个 YAML 文件与原 Python @register 调用的字段一致性。"""
 
     @pytest.fixture(scope="class")
     def py_defs(self) -> dict:
@@ -770,9 +770,9 @@ class TestYamlPythonConsistency:
         return docs
 
     def test_yaml_count_equals_python_register_count(self, py_defs, yaml_docs):
-        """YAML 文件数应等于 Python @register 调用数（70）。"""
-        assert len(py_defs) == 70, f"Python @register 抽取数: {len(py_defs)}"
-        assert len(yaml_docs) == 70, f"YAML 文件数: {len(yaml_docs)}"
+        """YAML 文件数应等于 Python @register 调用数（72）。"""
+        assert len(py_defs) == 72, f"Python @register 抽取数: {len(py_defs)}"
+        assert len(yaml_docs) == 72, f"YAML 文件数: {len(yaml_docs)}"
 
     def test_all_yaml_names_have_python_counterpart(self, py_defs, yaml_docs):
         """每个 YAML 工具在 Python @register 中都有对应定义。"""
@@ -837,7 +837,7 @@ class TestMigrationIdempotency:
     """迁移脚本幂等性：多次运行结果一致，可安全重复执行。"""
 
     def test_migrate_script_is_idempotent(self):
-        """运行迁移脚本后，70 个 YAML 文件 hash 完全一致（幂等）。"""
+        """运行迁移脚本后，72 个 YAML 文件 hash 完全一致（幂等）。"""
         import hashlib
         import subprocess
 
@@ -848,7 +848,7 @@ class TestMigrationIdempotency:
             return hashes
 
         before = hash_yamls()
-        assert len(before) == 70, f"迁移前 YAML 数量异常: {len(before)}"
+        assert len(before) == 72, f"迁移前 YAML 数量异常: {len(before)}"
 
         # 运行迁移脚本
         r = subprocess.run(
