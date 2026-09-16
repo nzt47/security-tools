@@ -41,6 +41,18 @@ dependencies = [
   "chromadb>=0.4.0,<0.5.0",
   "sentence-transformers>=2.2.0,<3.0.0",
   "numpy>=2.0.0,<3.0.0",
+  # 【S11-10 · R9-e】pyarrow 显式声明（此前是"未声明但被依赖"的隐式件）。
+  # Why 必须声明：`agent/utils/native_preimport.py` 的原生栈固化顺序
+  #   `numpy → pyarrow → pandas → sklearn` 里 pyarrow 是核心一环——Windows 上
+  #   pyarrow 的原生初始化（arrow.dll）若晚于 torch/onnxruntime/sklearn 等重型
+  #   原生库，会触发 0xC0000005 ACCESS_VIOLATION（进程直接消失，无 traceback）。
+  #   而 CI 只执行 `pip install -e .`（不读 requirements*.txt），此前 pyarrow
+  #   既未声明、也不在其它依赖的传递闭包内 ⇒ CI 上必然缺失，
+  #   `tests/unit/test_native_preimport.py` 的"每个模块都不得预导入失败"断言
+  #   在 CI 上**永远无法满足**（Shard 5 长期红，会话前基线逐字相同）。
+  # 版本下限：>=24.0.0 取"本机实测通过"的版本（该环境下 test_native_preimport
+  #   24 passed），避免对更早版本与 NumPy 2.x 的兼容性做未经验证的假设。
+  "pyarrow>=24.0.0,<26.0.0",
   "pyttsx3>=2.90,<2.92",
   "SpeechRecognition>=3.10.0,<3.11.0",
   "pyautogui>=0.9.53,<0.9.60",
