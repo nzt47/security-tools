@@ -741,22 +741,57 @@ class TestVerboseCliFlag:
     【不易】--verbose 必须将日志级别切换为 DEBUG; 默认(无参数)保持 INFO
     【变易】subprocess 隔离运行,不污染当前测试进程的 logger 状态
     【简易】断言 stdout/stderr 中的关键标记,不依赖日志格式细节
+
+    【为什么输出走临时文件而不是 capture_output=True 管道】
+    tests/conftest.py 会 os.environ.setdefault("PYTHONUTF8", "1") 与
+    ("PYTHONIOENCODING", "utf-8"),子进程因此按 **UTF-8** 写管道;而
+    capture_output=True + text=True 未显式指定 encoding 时,父进程按本地代码页
+    (中文 Windows = cp936/gbk)解码该管道。子进程的 UTF-8 字节不是合法 GBK 序列
+    ⇒ subprocess 的读线程解码抛 UnicodeDecodeError、缓冲区留空 ⇒
+    result.stdout/stderr 变成 **None**(不是空串),
+    `result.stdout + result.stderr` 抛 TypeError。
+    实测: 同一条命令加 encoding="utf-8" 正常、不指定则双 None;把输出重定向到
+    文件再显式按 UTF-8 读回同样正常,且能分别保留 stdout/stderr 两个通道
+    (test_env_critical_falls_back_to_info 需要分通道断言)。
+    故此处改为文件重定向:只换「怎么拿到输出」,每个用例的断言语义不变。
     """
 
     @staticmethod
-    def _run_cli(*args: str) -> subprocess.CompletedProcess:
-        """辅助:以子进程运行 mcp_executor.py CLI。"""
+    def _run_cli(tmp_path, *args: str, extra_env=None) -> subprocess.CompletedProcess:
+        """辅助:以子进程运行 mcp_executor.py CLI,输出重定向到临时文件后读回。
+
+        【不易】env 仍继承 os.environ(与原实现一致),仅补
+                PYTHONIOENCODING=utf-8 让子进程的输出编码确定,避免父进程
+                按本地代码页解码而失败
+        【变易】stdout/stderr 分别落两个临时文件,读回后放回
+                CompletedProcess 的同名字段 ⇒ 用例里的断言写法无需改动
+        【简易】文件重定向绕开管道解码问题,可观测行为与 capture_output 等价
+        """
         import sys as _sys
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        return subprocess.run(
-            [_sys.executable, os.path.join("agent", "mcp_executor.py"), *args],
-            capture_output=True, text=True, timeout=15,
-            cwd=project_root,
+        env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+        if extra_env:
+            env.update(extra_env)
+        stdout_path = os.path.join(str(tmp_path), "cli_stdout.txt")
+        stderr_path = os.path.join(str(tmp_path), "cli_stderr.txt")
+        with open(stdout_path, "w", encoding="utf-8") as stdout_file, \
+                open(stderr_path, "w", encoding="utf-8") as stderr_file:
+            completed = subprocess.run(
+                [_sys.executable, os.path.join("agent", "mcp_executor.py"), *args],
+                stdout=stdout_file, stderr=stderr_file, timeout=15,
+                cwd=project_root, env=env,
+            )
+        with open(stdout_path, "r", encoding="utf-8", errors="replace") as stdout_file:
+            stdout = stdout_file.read()
+        with open(stderr_path, "r", encoding="utf-8", errors="replace") as stderr_file:
+            stderr = stderr_file.read()
+        return subprocess.CompletedProcess(
+            completed.args, completed.returncode, stdout, stderr,
         )
 
-    def test_verbose_flag_switches_to_debug(self):
+    def test_verbose_flag_switches_to_debug(self, tmp_path):
         """--verbose 应切换日志级别为 DEBUG,输出 DEBUG 级别协议日志。"""
-        result = self._run_cli("--verbose")
+        result = self._run_cli(tmp_path, "--verbose")
         assert result.returncode == 0, f"CLI 异常退出: {result.stderr}"
         combined = result.stdout + result.stderr
         # 应显示 DEBUG 模式标记
@@ -764,9 +799,9 @@ class TestVerboseCliFlag:
         # DEBUG 级别的 initialize 日志应出现(仅 DEBUG 可见)
         assert "[MCP] initialize 成功" in combined
 
-    def test_default_mode_stays_info(self):
+    def test_default_mode_stays_info(self, tmp_path):
         """无 --verbose 时默认 INFO,不输出 DEBUG 级别日志。"""
-        result = self._run_cli()
+        result = self._run_cli(tmp_path)
         assert result.returncode == 0, f"CLI 异常退出: {result.stderr}"
         combined = result.stdout + result.stderr
         # 应显示 INFO 模式标记
@@ -774,14 +809,14 @@ class TestVerboseCliFlag:
         # DEBUG 级别的 initialize 日志不应出现
         assert "[MCP] initialize 成功" not in combined
 
-    def test_short_flag_v_works(self):
+    def test_short_flag_v_works(self, tmp_path):
         """-v 短标志等价于 --verbose。"""
-        result = self._run_cli("-v")
+        result = self._run_cli(tmp_path, "-v")
         assert result.returncode == 0, f"CLI 异常退出: {result.stderr}"
         combined = result.stdout + result.stderr
         assert "日志级别已切换为 DEBUG" in combined
 
-    def test_verbose_overrides_env_warning(self):
+    def test_verbose_overrides_env_warning(self, tmp_path):
         """--verbose 应覆盖 env MCP_LOG_LEVEL=WARNING,最终级别为 DEBUG。
 
         优先级: CLI --verbose > env MCP_LOG_LEVEL > 默认 INFO
@@ -790,11 +825,9 @@ class TestVerboseCliFlag:
         """
         import sys as _sys
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        env = {**os.environ, "MCP_LOG_LEVEL": "WARNING", "PYTHONPATH": project_root}
-        result = subprocess.run(
-            [_sys.executable, os.path.join("agent", "mcp_executor.py"), "--verbose"],
-            capture_output=True, text=True, timeout=15,
-            cwd=project_root, env=env,
+        result = self._run_cli(
+            tmp_path, "--verbose",
+            extra_env={"MCP_LOG_LEVEL": "WARNING", "PYTHONPATH": project_root},
         )
         assert result.returncode == 0, f"CLI 异常退出: {result.stderr}"
         combined = result.stdout + result.stderr
@@ -805,7 +838,7 @@ class TestVerboseCliFlag:
         # 不应出现 WARNING 级别的最终状态
         assert "日志级别=WARNING" not in combined
 
-    def test_env_warning_without_verbose_stays_warning(self):
+    def test_env_warning_without_verbose_stays_warning(self, tmp_path):
         """无 --verbose 时 env MCP_LOG_LEVEL=WARNING 应保持 WARNING。
 
         对照实验: 与 test_verbose_overrides_env_warning 形成对比,
@@ -813,11 +846,9 @@ class TestVerboseCliFlag:
         """
         import sys as _sys
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        env = {**os.environ, "MCP_LOG_LEVEL": "WARNING", "PYTHONPATH": project_root}
-        result = subprocess.run(
-            [_sys.executable, os.path.join("agent", "mcp_executor.py")],
-            capture_output=True, text=True, timeout=15,
-            cwd=project_root, env=env,
+        result = self._run_cli(
+            tmp_path,
+            extra_env={"MCP_LOG_LEVEL": "WARNING", "PYTHONPATH": project_root},
         )
         assert result.returncode == 0, f"CLI 异常退出: {result.stderr}"
         combined = result.stdout + result.stderr
@@ -826,7 +857,7 @@ class TestVerboseCliFlag:
         # DEBUG 级别日志不应出现(WARNING > DEBUG,被过滤)
         assert "[MCP] initialize 成功" not in combined
 
-    def test_env_critical_falls_back_to_info(self):
+    def test_env_critical_falls_back_to_info(self, tmp_path):
         """MCP_LOG_LEVEL=CRITICAL(恶意值)应回退到 INFO,程序正常启动且 ERROR 日志可见。
 
         【不易】CRITICAL=50 > ERROR=40,若接受会抑制 ERROR 日志;必须回退到 INFO
@@ -841,11 +872,9 @@ class TestVerboseCliFlag:
         """
         import sys as _sys
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        env = {**os.environ, "MCP_LOG_LEVEL": "CRITICAL", "PYTHONPATH": project_root}
-        result = subprocess.run(
-            [_sys.executable, os.path.join("agent", "mcp_executor.py")],
-            capture_output=True, text=True, timeout=15,
-            cwd=project_root, env=env,
+        result = self._run_cli(
+            tmp_path,
+            extra_env={"MCP_LOG_LEVEL": "CRITICAL", "PYTHONPATH": project_root},
         )
         # 1. 程序正常启动
         assert result.returncode == 0, f"程序未正常启动: {result.stderr}"
