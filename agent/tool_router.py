@@ -45,7 +45,10 @@ _DEFAULT_TOOL_CATEGORIES = {
         "priority": 0,
         "tools": [
             "get_status", "search_memory", "remember", "expand_context",
-            "get_sensor_summary",
+            # todo_write 归 core：core 恒被命中（classify_user_input 以 matched={"core"}
+            # 起步）⇒ 等于"始终可见"；且 core 优先级 0，不会被 max_tools 截断。
+            # 它只有一个数组参数，常驻 schema 的 token 成本很小（对比 delegate 的八要素）。
+            "get_sensor_summary", "todo_write",
         ],
     },
     "web": {

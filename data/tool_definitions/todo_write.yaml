@@ -1,0 +1,33 @@
+name: todo_write
+category: core
+description: '把当前任务的计划清单写下来（todo list / plan / 计划、待办清单）。**整体替换式**：本次提交的 todos 就是完整清单（不是增量追加），空数组
+  [] 表示清空。每项 {"content": 做什么, "status": "pending"|"in_progress"|"completed"}；建议同时只保留一项
+  in_progress，完成一项就把它改成 completed 再整体提交一次。多步任务每推进一步更新一次，用它当自我纠偏的锚点（长任务缺一个模型可见的计划状态，会导致多步任务中途跑偏）。状态仅保存在当前会话内存中，不落盘。Write
+  the todo list, plan steps, task checklist'
+deprecated: false
+version: 1.0.0
+schema:
+  type: object
+  properties:
+    todos:
+      type: array
+      description: 完整计划清单（整体替换，不是增量追加）；空数组 [] 表示清空清单
+      items:
+        type: object
+        properties:
+          content:
+            type: string
+            description: 该步要做什么，一句话（不超过 500 字符）
+          status:
+            type: string
+            enum:
+            - pending
+            - in_progress
+            - completed
+            description: pending 待办 / in_progress 进行中（建议同时只留一项）/ completed 已完成
+        required:
+        - content
+        - status
+  required:
+  - todos
+examples: []
