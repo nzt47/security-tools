@@ -42,42 +42,48 @@
        → 拒绝（按工具原名与 canonical id ``cp.<source>.<name>`` 双向查找，任一命中
        即算命中）；
     3. **治理平面审批边界（``data/tool_definitions/*.yaml``，唯一真相）**：该工具的
-       元数据 ``needs_approval`` 为真 ⇒ **默认只记 warning 不拦截**；仅当
-       ``CP_TOOL_GATE_APPROVAL_ENFORCE`` 取 ``1/true/yes/on`` 时才返回结构化拒绝
-       （``error_code="APPROVAL_REQUIRED"``）。详见下方"治理平面审批边界"一节；
+       元数据 ``needs_approval`` 为真 ⇒ **默认拦截**：先查是否已有人工批准（有则消费后
+       放行，单次有效）、是否已被人工驳回（驳回则明确拒绝、不许重试）；否则**幂等挂单**
+       并返回 ``{"error_code": "APPROVAL_REQUIRED", "approval_id": ...}``，等人工在
+       审批收件箱裁决后**原样重试**即放行。置 ``CP_TOOL_GATE_APPROVAL_ENFORCE=0``
+       可退回"只记 warning 不拦截"。详见下方"治理平面审批边界"一节；
     4. 其余情况 → 放行（返回 ``None``）；
     5. **（可选，默认关闭）严格模式** —— 仅当 ``CP_TOOL_GATE_STRICT`` 取
-       ``1/true/yes/on`` 时才执行，且**只在第 1–3 步都未拒绝之后**追加一道
+       ``1/true/yes/on`` 时才执行，且**只在第 1–4 步都未拒绝之后**追加一道
        ``PermissionGateway.check()`` 的 RBAC + ABAC 判定；网关返回
        ``allowed=False`` → 拒绝。详见下方"严格模式"一节。
 
-治理平面审批边界（``CP_TOOL_GATE_APPROVAL_ENFORCE``，**默认关闭**）：
+治理平面审批边界（``CP_TOOL_GATE_APPROVAL_ENFORCE``，**默认开启**）：
     背景：``data/tool_definitions/*.yaml`` 是"哪个工具多危险"的唯一真相，其
     ``ToolMeta.needs_approval``（``plane == "govern"`` 或 ``effect == "extend"`` 或
     ``risk == "critical"``）在 ``agent/lines/models.py`` 里被声明为审批边界，但**改动前
     没有任何代码真的按它拦过**——实测 ``generate_tool`` / ``ext_install`` /
     ``connect_mcp`` / ``shell_execute`` / ``write_file`` / ``remember`` 全部返回
     ``None``（放行），``denied_tools`` 并集为空、``requires_approval`` 索引为 0、
-    严格模式关闭 ⇒ **97 个工具零拦截**，治理框架齐全却一条规则都没生效。
-    本节把"治理平面 = 审批边界"接进必经路径，并**用开关控制它是否真的拦截**：
-        开关：``CP_TOOL_GATE_APPROVAL_ENFORCE`` ∈ ``1/true/yes/on``（大小写不敏感、
-            两侧空白忽略）⇒ 命中即拒绝（``{"ok": False, "blocked": True,
-            "error_code": "APPROVAL_REQUIRED", "error": ..., "tool": ..., "reason": ...}``）；
-            **未设置或其它任何取值 ⇒ 只 ``logger.warning`` 记一条、照常放行**（默认口径
-            里"零行为变化"这条不变量优先，且审批 UI 尚未接入 ⇒ 默认拦截等于把所有治理
-            类工具变成"永远失败"，那是"接入审批"变成"系统瘫痪"的另一种写法）。
+    严格模式关闭 ⇒ **91 个工具零拦截**，治理框架齐全却一条规则都没生效。
+    本节把"治理平面 = 审批边界"接进必经路径，并接上**能走通的审批闭环**：
+        - 命中审批边界 ⇒ 经 ``agent/tool_approval.py`` 向既有审批流（``ApprovalFlow``，
+            收件箱 UI 同源）**挂单**，返回 ``APPROVAL_REQUIRED`` + ``approval_id`` +
+            ``guidance``（告诉模型：人工确认后原样重试）；
+        - 人工在「治理 → 审批收件箱」批准后，**同一次调用**（同一工具 + 同一参数摘要 +
+            同一会话）再进来 ⇒ 消费该批准（**单次有效**）并放行；
+        - 人工驳回 ⇒ 返回 ``APPROVAL_REJECTED`` 并带上否决理由，模型不应重试；
+        - 重启后仍然有效：批准记录落在 ``data/approval_records.jsonl``，消费台账落在
+            ``data/tool_approval_uses.jsonl``（审批流是决策权威，台账只解决"不可重放"）。
+    默认值为何反转（2026-09-17）：原先是"未设置＝不拦截"，理由是"审批 UI 尚未接到工具
+        调用上 ⇒ 默认拦截等于让治理类工具永远失败"。闭环接通后该理由消失——拦截现在是
+        一条**能走通**的路径。回滚只需 ``CP_TOOL_GATE_APPROVAL_ENFORCE=0``。
     为什么**不**复用 ``CP_TOOL_GATE_STRICT``：严格模式的语义是 **RBAC 白名单**，与"这个
         工具要不要人工审批"是两件事（``owner`` 的 ``allowed_tools=["*"]`` 下
-        ``shell_execute`` 会通过 RBAC 却仍属审批边界）。更重要的是，严格模式的既有契约
-        是"开启后 ``owner`` 下常用工具**放行**"（``tests/unit/test_tool_gate_strict.py``
-        的 ``test_严格模式加_owner_下_shell_execute_不被拒`` 钉死了这一点）——把审批边界
-        挂到同一个变量上会当场打破那条契约。故**新增独立开关**，两者可自由组合。
+        ``shell_execute`` 会通过 RBAC 却仍属审批边界）。故**独立开关**，两者可自由组合。
     为什么读不到元数据时**不** fail-closed（与 ``HITLManager.assess`` 刻意不对称）：
         本闸门的既定纪律是 fail-open（"闸门出错绝不断工具执行"，见下方"健壮性纪律"），
         未登记工具只记 ``warning``。真正的 fail-closed 在审批权威那里——
         ``agent/human_in_the_loop/hitl.py::HITLManager.assess`` 对未登记工具返回 HIGH。
         两处不对称是**刻意**的：安全判据从严，闸门自身从宽。
-    回滚方式：去掉 ``CP_TOOL_GATE_APPROVAL_ENFORCE``（或置 ``0``）⇒ 回到"只告警"口径。
+        **但审批边界这一层是例外**：一旦确认该工具属于审批边界，而桥接层不可用／挂单失败，
+        本层**不放行**（返回"需要审批"并附失败原因）——"证不出已批准"就不能执行。
+    回滚方式：``CP_TOOL_GATE_APPROVAL_ENFORCE=0`` ⇒ 回到"只告警、照常放行"口径。
 
 
 严格模式（``CP_TOOL_GATE_STRICT``，**默认关闭**）：
@@ -199,10 +205,12 @@ _WILDCARD = "*"
 ERROR_CODE_PERMISSION_DENIED = "PERMISSION_DENIED"
 
 # ── 治理平面审批边界（YAML 派生；见模块 docstring 同名一节）──────────────────
-#: 显式审批边界开关（**默认关闭**；未设置/其它值 ⇒ 只告警不拦截）
+#: 审批边界开关（**默认开启**；显式置 0/false/no/off 才退回"只告警不拦截"）
 APPROVAL_ENFORCE_ENV = "CP_TOOL_GATE_APPROVAL_ENFORCE"
 #: 审批边界拒绝的 error_code（与 PERMISSION_DENIED 区分：这是"要先审批"，不是"不许用"）
 ERROR_CODE_APPROVAL_REQUIRED = "APPROVAL_REQUIRED"
+#: 人工已**驳回**该次调用的 error_code（与"待审批"区分：不要再重试，重试也没用）
+ERROR_CODE_APPROVAL_REJECTED = "APPROVAL_REJECTED"
 
 #: ``data/tool_definitions/*.yaml`` 元数据缓存（``None`` = 尚未加载；按需加载）
 _TOOL_META_CACHE: Any = None
@@ -343,8 +351,9 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
     2. ``roles[*].denied_tools`` 并集含 ``"*"`` → 拒绝一切；含本次工具名 → 拒绝；
     3. 描述符 ``trust.requires_approval=true``（工具原名或 canonical id 命中）→ 拒绝；
     4. **治理平面审批边界**：``data/tool_definitions/*.yaml`` 的 ``needs_approval``
-       为真 ⇒ **默认只记 warning 不拦截**；``CP_TOOL_GATE_APPROVAL_ENFORCE`` 取
-       1/true/yes/on 时 → 拒绝（``error_code="APPROVAL_REQUIRED"``）；
+       为真 ⇒ 默认拦截。已有人工批准 ⇒ 消费后放行（单次有效）；已被驳回 ⇒
+       ``APPROVAL_REJECTED``；否则幂等挂单并返回 ``APPROVAL_REQUIRED`` + ``approval_id``。
+       置 ``CP_TOOL_GATE_APPROVAL_ENFORCE=0`` 可退回"只告警不拦截"；
     5. **（可选，默认关闭）** ``CP_TOOL_GATE_STRICT`` 取 1/true/yes/on 时，追加
        ``PermissionGateway.check()`` 的 RBAC+ABAC 判定；``allowed=False`` → 拒绝；
     6. 其余 → 放行。
@@ -397,37 +406,35 @@ def check_tool_call(func_name: str, args: Optional[Dict[str, Any]] = None,
         #   里写明的一条前提：「descriptors.json 的 trust.requires_approval **全为
         #   false** ⇒ 本闸门接入后对既有行为零影响」。
         #   而 `scripts/backfill_tool_descriptors.py` 把描述符从 3/91 补到 91/91 后，
-        #   该前提失效：`shell_execute`（critical）首次变成 requires_approval=true，
-        #   于是这一步被激活，**默认配置下直接拒掉 shell 执行**——而第 3 步（YAML 的
-        #   同一语义）是刻意做成"默认只告警、开关才拦"的。
+        #   该前提失效：`shell_execute`（critical）首次变成 requires_approval=true。
         #   同一语义两种行为，是缺陷而非特性：会让"补齐元数据"这种纯数据修正
         #   意外变成"关掉一项能力"。
-        #   现统一为：与第 3 步共用 APPROVAL_ENFORCE_ENV 开关，默认**只告警不拦截**。
-        #   要真正启用审批边界：设 CP_TOOL_GATE_APPROVAL_ENFORCE=1（一处开关管两个来源）。
+        #   现统一为：与第 3 步共用同一开关与同一套闭环处置（_tool_approval_outcome），
+        #   一处开关管两个来源，且两个来源都走"挂单 → 人工裁决 → 原样重试"。
         index = _cached_derived(DESCRIPTORS_PATH, _build_approval_index)
         cid = _approval_hit(name, index)
         if cid is not None:
             reason = ("描述符要求人工审批（%s 能力 %s 的 trust.requires_approval=true）"
                       % (DESCRIPTORS_PATH, cid))
             if _approval_enforce_enabled():
-                return _deny(name, "该工具的%s；请先走审批流程后再调用" % reason)
+                return _tool_approval_outcome(name, args, reason)
             _warn_once(
                 "approval_desc:" + name,
-                "工具 %s 的%s，但 %s 未开启 ⇒ 本次仅告警、不拦截（设 %s=1 即启用审批边界）",
-                name, reason, APPROVAL_ENFORCE_ENV, APPROVAL_ENFORCE_ENV,
+                "工具 %s 的%s，但 %s=0 ⇒ 本次仅告警、不拦截（删掉该环境变量即恢复审批边界）",
+                name, reason, APPROVAL_ENFORCE_ENV,
             )
 
         # 3. 治理平面审批边界（**唯一真相：data/tool_definitions/*.yaml**）。
-        #    默认只告警不拦截（见模块 docstring）；显式开启后返回结构化拒绝。
+        #    默认拦截：挂单 → 人工裁决 → 原样重试即放行（单次有效）。
         approval_reason = _approval_boundary(name)
         if approval_reason is not None:
             if _approval_enforce_enabled():
-                return _deny_approval(name, approval_reason)
+                return _tool_approval_outcome(name, args, approval_reason)
             _warn_once(
                 "approval:" + name,
                 "工具 %s 按 data/tool_definitions/*.yaml 的元数据需要人工审批（%s），"
-                "但 %s 未开启 ⇒ 本次仅告警、不拦截（设 %s=1 即启用审批边界）",
-                name, approval_reason, APPROVAL_ENFORCE_ENV, APPROVAL_ENFORCE_ENV,
+                "但 %s=0 ⇒ 本次仅告警、不拦截（删掉该环境变量即恢复审批边界）",
+                name, approval_reason, APPROVAL_ENFORCE_ENV,
             )
 
         # 4. 【可选，默认关闭】RBAC 严格模式：只在上面几步都未拒绝之后才追加。
@@ -465,25 +472,136 @@ def _deny(func_name: str, reason: str) -> Dict[str, Any]:
     }
 
 
-def _deny_approval(func_name: str, reason: str) -> Dict[str, Any]:
-    """构造"需要人工审批"的拒绝结果（治理平面审批边界专用）
+def _deny_approval(func_name: str, reason: str, *,
+                   approval_id: str = "",
+                   error_code: str = ERROR_CODE_APPROVAL_REQUIRED,
+                   guidance: str = "") -> Dict[str, Any]:
+    """构造"需要人工审批 / 已被驳回"的拒绝结果（治理平面审批边界专用）
 
-    与 :func:`_deny` 的区别只在 ``error_code`` 与额外两个结构化字段——
+    与 :func:`_deny` 的区别只在 ``error_code`` 与额外结构化字段——
     ``PERMISSION_DENIED`` 是"这个工具不许用"，``APPROVAL_REQUIRED`` 是"这个工具要先
-    走审批"。调用方（如审批 UI）据此区分"硬拒绝"与"待审批"，故**不能**复用前者。
+    走审批"、``APPROVAL_REJECTED`` 是"人工已否决这一次"。调用方（如审批 UI／模型）
+    据此区分"硬拒绝 / 待审批 / 已否决"，故**不能**复用前者。
+
+    ``approval_id`` 是挂单编号（收件箱里那张单子的 id）；``guidance`` 是给模型的
+    下一步指令（怎么恢复），单独成字段而不是混进 ``error``，便于调用方直接照做。
     """
-    message = ("工具 %s 被集中式工具闸门拒绝: 该工具按 data/tool_definitions/*.yaml 的"
-               "元数据需要人工审批（%s）；当前 %s 已开启，请先走审批流程后再调用"
-               % (func_name, reason, APPROVAL_ENFORCE_ENV))
+    message = ("工具 %s 被集中式工具闸门拒绝: %s" % (func_name, reason))
+    if error_code == ERROR_CODE_APPROVAL_REQUIRED:
+        message = ("工具 %s 需要人工审批（%s）；已提交审批收件箱，"
+                   "请人工确认后**重试同一次调用**（同一工具 + 同一参数）"
+                   % (func_name, reason))
+    elif error_code == ERROR_CODE_APPROVAL_REJECTED:
+        message = "工具 %s 的该次调用已被人工否决（%s），请勿重试" % (func_name, reason)
+    if approval_id:
+        message += " [审批单 %s]" % approval_id
     logger.warning("[tool_gate] %s", message)
-    return {
+    result = {
         "ok": False,
         "blocked": True,
-        "error_code": ERROR_CODE_APPROVAL_REQUIRED,
+        "error_code": error_code,
         "error": message,
         "tool": func_name,
         "reason": reason,
     }
+    if approval_id:
+        result["approval_id"] = str(approval_id)
+    if guidance:
+        result["guidance"] = guidance
+    return result
+
+
+# ─────────────────────────────────────────────────────────────
+# 审批闭环接线（挂单 → 人工裁决 → 恢复执行）
+# ─────────────────────────────────────────────────────────────
+
+
+def _current_session_key() -> str:
+    """当前会话键（TraceContext 的 ``subject_id``，与 ``plan_tools`` 同一来源）
+
+    审批单按会话绑定：A 会话批准的一次执行，不该自动授权 B 会话的同名调用。
+    取不到（无上下文／观测不可用）⇒ 返回空串＝**通配**（见 ``agent/tool_approval``
+    的匹配规则）：能批准的人只有人类，故"取不到会话"降级为"该批准对所有会话有效"，
+    而不是把工具彻底卡死。**为什么不 import plan_tools 拿这个键**：``plan_tools``
+    依赖工具注册表 ``agent.tools``，而 ``agent.tools`` 又导入本模块 ⇒ 会构成环。
+    """
+    try:
+        from agent.observability.trace_v2 import TraceContext  # noqa: PLC0415 惰性
+        ctx = TraceContext.current()
+        return str(getattr(ctx, "subject_id", "") or "").strip()
+    except Exception:  # noqa: BLE001 观测不可用不影响审批判定
+        return ""
+
+
+def _tool_approval_outcome(func_name: str, args: Optional[Dict[str, Any]],
+                           reason: str) -> Optional[Dict[str, Any]]:
+    """审批边界**已开启**时的最终裁决：``None`` = 放行；dict = 拒绝结果
+
+    判定顺序（与人工在审批收件箱里的动作一一对应）：
+
+    1. **已驳回** ⇒ ``APPROVAL_REJECTED``（明确告知模型别再重试）；
+    2. **已有有效批准** ⇒ 消费（单次有效）后放行；消费失败说明这张单已被用过 ⇒
+       继续往下走（重新挂单），**绝不错放**；
+    3. 其余 ⇒ 幂等挂单并返回 ``APPROVAL_REQUIRED``（带 ``approval_id`` 与恢复指引）。
+
+    **fail-closed 边界**：本函数只在这一层收紧。桥接层不可用／挂单失败时**不放行**，
+    而是照常返回"需要审批"（附失败原因）——审批边界一旦开启，"证不出已批准"就不能执行；
+    这与本模块其余各步的 fail-open（闸门自身 bug 不阻断执行）是**刻意的不对称**，
+    理由与 ``HITLManager.assess`` 一致：安全判据读不到依据时，放行的代价无上界。
+    """
+    session_key = _current_session_key()
+    try:
+        from agent.tool_approval import (  # noqa: PLC0415 惰性：审批桥接层较重
+            consume, find_permission, is_rejected, request_approval,
+        )
+    except Exception as e:  # noqa: BLE001 桥接层不可用 ⇒ 仍按"需审批"处理（不放行）
+        _warn_once("approval-bridge", "审批桥接层不可用（按需审批处理，不放行）: %s: %s",
+                   type(e).__name__, e)
+        return _deny_approval(func_name, "%s；审批桥接层不可用: %s" % (reason, e))
+
+    rejected = is_rejected(func_name, args, session_key=session_key)
+    if rejected:
+        return _deny_approval(
+            func_name,
+            "%s；人工已否决：%s" % (reason, rejected.get("reason") or "（未填原因）"),
+            approval_id=str(rejected.get("approval_id") or ""),
+            error_code=ERROR_CODE_APPROVAL_REJECTED)
+
+    permitted = find_permission(func_name, args, session_key=session_key)
+    if permitted:
+        approval_id = str(permitted.get("approval_id") or "")
+        if consume(approval_id, func_name, args):
+            logger.info("[tool_gate] 工具 %s 命中人工批准（审批单 %s，批准人 %s），本次放行",
+                        func_name, approval_id, permitted.get("decided_by") or "?")
+            return None
+        logger.warning("[tool_gate] 审批单 %s 已被消费过（单次有效），改为重新挂单", approval_id)
+
+    requested = request_approval(func_name, args, reason=reason, session_key=session_key,
+                                 source=str(_env_str("CP_PERMISSION_SESSION_SOURCE") or ""))
+    if not requested.get("ok"):
+        return _deny_approval(func_name, "%s；挂单失败: %s"
+                              % (reason, requested.get("error") or "未知原因"))
+    approval_id = str(requested.get("approval_id") or "")
+    state = str(requested.get("state") or "")
+    if state and state != "pending_review":
+        # 审批流被停用（APPROVAL_ENABLED=0）时 `ApprovalFlow.submit()` 会**直接放行**
+        # 并落一条 merged 记录 ⇒ 收件箱里不会出现任何待办，人根本无从批准。
+        # 此时若照常返回"已提交审批收件箱、请人工确认后重试"，就是发了一张**永远等不到**
+        # 的单号（模型无限重试、人看不到东西）。必须显式说清并给出两条出路。
+        return _deny_approval(
+            func_name,
+            "%s；审批流当前未处于待审状态（record state=%s，通常是 APPROVAL_ENABLED=0 "
+            "关闭了审批流）⇒ 收件箱里不会出现待办，没有人能批准它" % (reason, state),
+            approval_id=approval_id,
+            guidance=("请二选一：① 启用审批流（APPROVAL_ENABLED=1）后重试；"
+                      "② 若确实不需要审批，显式关闭审批边界（%s=0）。"
+                      "在此之前该工具不可用。" % APPROVAL_ENFORCE_ENV))
+    reused = bool(requested.get("reused"))
+    return _deny_approval(
+        func_name, reason, approval_id=approval_id,
+        guidance=("该次调用已在审批收件箱挂单%s。请人工在「治理 → 审批收件箱」确认后，"
+                  "**原样重试这一次调用**（同一工具 + 同一参数）；批准为单次有效。"
+                  % ("（复用先前挂单）" if reused else "")))
 
 
 # ─────────────────────────────────────────────────────────────
@@ -515,15 +633,21 @@ def _tool_meta() -> Dict[str, Any]:
 
 
 def _approval_enforce_enabled() -> bool:
-    """审批边界开关：``CP_TOOL_GATE_APPROVAL_ENFORCE`` ∈ {1,true,yes,on} 才真的拦截
+    """审批边界开关：**默认开启**；显式设为 0/false/no/off 才关闭
 
-    **未设置或其它任何取值一律返回 False**（＝回到"只记 warning、照常放行"的默认口径）。
-    读取异常按"未启用"处理——审批边界只在被显式要求时才收紧。
+    【2026-09-17 默认值反转】原先是"未设置＝不拦截"。审批闭环（挂单 → 人工在
+    审批收件箱裁决 → 原样重试即放行，单次有效）接通之后，"不拦截"不再有理由：
+    拦截已是一条**能走通**的路径，而不是"永远失败"。故默认改为拦截，
+    回滚方式是设 ``CP_TOOL_GATE_APPROVAL_ENFORCE=0``（不写任何数据文件、不改代码）。
+    读取异常按"启用"处理：审批边界宁可多问一次人工，不可因读环境变量失败而静默放行。
     """
-    raw = _env_str(APPROVAL_ENFORCE_ENV)
-    if raw is None:
-        return False
-    return raw.lower() in _ENABLED_VALUES
+    try:
+        raw = _env_str(APPROVAL_ENFORCE_ENV)
+    except Exception:  # noqa: BLE001 读环境失败 ⇒ 按启用（fail-closed 于本层）
+        return True
+    if raw is None or not raw.strip():
+        return True
+    return raw.strip().lower() in _ENABLED_VALUES
 
 
 def _approval_boundary(func_name: str) -> Optional[str]:

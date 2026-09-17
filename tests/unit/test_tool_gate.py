@@ -54,14 +54,10 @@ class _GateFiles:
 def gate(tmp_path, monkeypatch):
     """把两个路径常量指向 tmp_path 的假文件；默认两份文件都是"空规则"
 
-    【不易·审批边界开关】本夹具**显式开启** ``CP_TOOL_GATE_APPROVAL_ENFORCE``：
-    2026-09-17 起，``trust.requires_approval=true``（描述符）与治理平面 ``needs_approval``
-    的拦截**默认只告警不拦截**，只有该开关取 1/true/yes/on 才返回结构化拒绝
-    （见 ``agent/tool_gate.py`` 模块 docstring 与 ``agent/settings/registry.py`` 的
-    ``CP_TOOL_GATE_APPROVAL_ENFORCE`` 条目）。开关本身在代码里是**默认关闭**的，
-    故凡断言"要求审批即拒绝"的用例都必须显式打开它——这不是放宽断言，
-    而是把"审批边界生效"的前提写清楚；默认关闭态的用例见
-    ``TestApprovalEnforceSwitch``。
+    【审批边界开关】``CP_TOOL_GATE_APPROVAL_ENFORCE`` **默认开启**（2026-09-17 反转：
+    审批闭环接通后，拦截是一条能走通的路径——挂单 → 人工在收件箱裁决 → 原样重试即放行）。
+    本夹具仍**显式**写上 ``=1``：让"审批边界生效"成为用例的显式前提，而不是依赖默认值
+    （默认值的两态由 ``TestApprovalEnforceSwitch`` 单独钉住）。
     """
     import agent.tool_gate as G
 
@@ -187,7 +183,10 @@ class TestRequiresApproval:
         result = gate.check("write_file")
         assert result is not None
         assert result["blocked"] is True
-        assert result["error_code"] == "PERMISSION_DENIED"
+        # 2026-09-17 行为统一：描述符的 trust.requires_approval 与 YAML 的 needs_approval
+        # 是同一语义，统一走"审批边界"⇒ 结构化拒绝的 error_code 是 APPROVAL_REQUIRED
+        # （"要先走审批"），不再是 PERMISSION_DENIED（"不许用"）。
+        assert result["error_code"] == "APPROVAL_REQUIRED"
         assert "write_file" in result["error"]                     # 工具名
         assert "requires_approval" in result["error"]              # 规则来源
         assert "cp.builtin.write_file" in result["error"]          # 命中的能力 id
@@ -235,13 +234,13 @@ class TestRequiresApproval:
 
 
 class TestApprovalEnforceSwitch:
-    """审批边界开关的两态：默认只告警 / 显式打开才拦截（2026-09-17 起的口径）
+    """审批边界开关的两态：**默认拦截** / 显式关闭才只告警（2026-09-17 反转后的口径）
 
-    【为什么单独钉住"默认口径"】``CP_TOOL_GATE_APPROVAL_ENFORCE`` 默认关闭 ⇒
-    ``requires_approval=true`` 的工具调用**只告警不拦截**（描述符回填后
-    ``shell_execute`` 首次变成 requires_approval=true，默认拦截会挡掉关键工具调用）。
-    这是**安全姿态**，必须显式可断言：若哪天默认改成拦截，本用例会失败，
-    提醒同步 ``agent/settings/registry.py`` 的条目与部署侧开关。
+    【为什么单独钉住"默认口径"】``CP_TOOL_GATE_APPROVAL_ENFORCE`` 默认**开启**：
+    审批闭环（挂单 → 人工在收件箱裁决 → 原样重试即放行，单次有效）接通后，
+    "默认不拦"的理由（"拦了就没法用"）不再成立。这是**安全姿态**，必须显式可断言：
+    若哪天默认又被改成不拦，本用例会失败，提醒同步 ``agent/settings/registry.py``
+    的条目与部署侧开关。
     """
 
     @staticmethod
@@ -250,13 +249,15 @@ class TestApprovalEnforceSwitch:
             "cp.builtin.write_file": _descriptor_entry(
                 "cp.builtin.write_file", "write_file", True)}})
 
-    def test_默认只告警不拦截(self, gate, monkeypatch):
+    def test_默认即拦截(self, gate, monkeypatch):
         import agent.tool_gate as G
 
         monkeypatch.delenv(G.APPROVAL_ENFORCE_ENV, raising=False)
-        assert G._approval_enforce_enabled() is False
+        assert G._approval_enforce_enabled() is True
         self._write_approval_descriptor(gate)
-        assert gate.check("write_file") is None          # 默认：告警但放行
+        result = gate.check("write_file")
+        assert result is not None and result["blocked"] is True
+        assert result["error_code"] == "APPROVAL_REQUIRED"
 
     @pytest.mark.parametrize("value", ["1", "true", "TRUE", "yes", "on", " on "])
     def test_显式打开即拦截(self, gate, monkeypatch, value):
@@ -268,13 +269,28 @@ class TestApprovalEnforceSwitch:
         result = gate.check("write_file")
         assert result is not None and result["blocked"] is True
 
-    @pytest.mark.parametrize("value", ["0", "false", "no", "off", ""])
-    def test_非使能值不拦截(self, gate, monkeypatch, value):
+    @pytest.mark.parametrize("value", ["0", "false", "no", "off"])
+    def test_显式关闭才不拦截(self, gate, monkeypatch, value):
+        """回滚口径：置 0/false/no/off ⇒ 回到"只告警、照常放行"（一处环境变量即回滚）"""
         import agent.tool_gate as G
 
         monkeypatch.setenv(G.APPROVAL_ENFORCE_ENV, value)
+        assert G._approval_enforce_enabled() is False
         self._write_approval_descriptor(gate)
         assert gate.check("write_file") is None
+
+    def test_空值按默认处理即拦截(self, gate, monkeypatch):
+        """设了但为空串 ⇒ 视同未设置（默认拦截）。
+
+        刻意不把空串当作"关闭"：关闭必须是一个**明确写下**的假值，
+        否则"环境变量拼错/被清空"会静默把审批边界关掉。
+        """
+        import agent.tool_gate as G
+
+        monkeypatch.setenv(G.APPROVAL_ENFORCE_ENV, "   ")
+        assert G._approval_enforce_enabled() is True
+        self._write_approval_descriptor(gate)
+        assert gate.check("write_file") is not None
 
 
 # ════════════════════════════════════════════════════════════
@@ -477,7 +493,7 @@ class TestToolsCallIsEnforcementPoint:
         result = registry.call(PROBE_TOOL, a=1)
 
         assert result["blocked"] is True
-        assert result["error_code"] == "PERMISSION_DENIED"
+        assert result["error_code"] == "APPROVAL_REQUIRED"   # 走审批边界，非硬拒绝
         assert probe_tool["n"] == 0          # handler 未被调用
 
     def test_闸门排在限流之前(self, gate, monkeypatch, probe_tool):
@@ -606,4 +622,4 @@ class TestExecuteSafeRetrySemantics:
         result = service._execute_safe(PROBE_TOOL, {})
 
         assert probe_tool["n"] == 0
-        assert result["error_code"] == "PERMISSION_DENIED"
+        assert result["error_code"] == "APPROVAL_REQUIRED"   # 走审批边界，非硬拒绝

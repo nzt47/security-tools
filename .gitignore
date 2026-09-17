@@ -147,6 +147,13 @@ data/schedules.json
 # 属环境本地状态而非源码。见 agent/tools/persistence.py 与 docs/工具能力补全路线.md。
 data/dynamic_tools.json
 agent/tools/custom/
+# 计划清单落盘（todo_write 的持久化影子）：按会话记录"现在做到哪一步"，
+# 属运行期本地状态而非源码。见 agent/tools/plan_tools.py。
+data/todos.json
+# 工具审批消费台账（append-only）：记录哪张审批单已被哪次调用消费，
+# 属运行期本地状态；审批决策本身在 data/approval_records.jsonl（已被忽略）。
+# 见 agent/tool_approval.py。
+data/tool_approval_uses.jsonl
 
 # 测试产物（覆盖率/成本日志/报告，不入库）
 .coverage

@@ -157,7 +157,14 @@ def _all_yaml_tool_names() -> list:
 
 
 def _expected_tools_for_line(line_id: str) -> list:
-    """该主线的期望授权集（= 装配器结果 − 未开启 allow_govern 时的 govern 项）"""
+    """该主线的期望授权集
+
+    = 装配器结果 − 未开启 allow_govern 时的 govern 项 − §5.7 机制 3 硬禁项
+      （子代理工具集不含记忆读写：矩阵 ``view.memory`` / ``memory.write``
+       对 sub_agent 是 ❌，故 ``search_memory`` / ``remember`` 等不进授权集）
+    """
+    from agent.subagent.toolset import SubAgentToolset
+
     meta = load_tool_meta()
     profile = get_line_registry().load(line_id)
     assert profile is not None, f"主线不存在: {line_id}"
@@ -165,7 +172,8 @@ def _expected_tools_for_line(line_id: str) -> list:
     tools = list(result.tools)
     if not profile.allow_govern:
         tools = [t for t in tools if meta[t].plane != "govern"]
-    return tools
+    hard = set(SubAgentToolset.hard_denied(tools))
+    return [t for t in tools if t not in hard]
 
 
 def _govern_tools() -> set:
@@ -654,6 +662,29 @@ class TestGovernPlaneGuard:
         item = result["results"][0]
         assert set(result["govern_tools_granted"]) <= set(item["needs_approval"])
         assert "allow_govern" in item["toolset_note"]
+
+    def test_记忆读写不派给子代理(self, make_tool, full_pool):
+        """§5.7 机制 3：主线给**主智能体**装配的记忆工具，派子代理时必须剔除
+
+        ``engineering`` 主线装配集里含 ``search_memory`` / ``remember``（记忆读/写），
+        而矩阵对 sub_agent 的 ``view.memory`` / ``memory.write`` 一律 ❌。
+        若不剔除，子代理会拿到一份"授予了却永远调不动"的空头授权，
+        且一旦真调用会被 ``DelegationExecutor`` 判整次委派失败。
+        """
+        from agent.subagent.toolset import SubAgentToolset
+
+        expected = set(_expected_tools_for_line("engineering"))
+
+        handler, ex, _, _ = make_tool()
+        result = handler(tasks=[_task(line="engineering")])
+        granted = _granted(ex.calls[0], ex.calls[0]["delegations"][0])
+
+        hard = set(SubAgentToolset.hard_denied(sorted(_all_yaml_tool_names())))
+        assert hard, "口径自检：硬禁集不应为空（否则本用例失去意义）"
+        assert not granted & hard, f"子代理拿到了 §5.7 硬禁工具: {sorted(granted & hard)}"
+        item = result["results"][0]
+        assert "§5.7" in item["toolset_note"], "剔除硬禁工具后未如实上报"
+        assert granted == expected
 
 
 # ════════════════════════════════════════════════════════════

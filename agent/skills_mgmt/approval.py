@@ -71,6 +71,33 @@ from agent.security.governance_bridge import governance_trace_fields
 APPROVAL_LEVELS = ("L0", "L1", "L2")
 APPROVAL_STATES = ("draft", "pending_review", "approved", "rejected", "merged", "archived")
 
+#: 超时判定的 ``decision_reason`` 前缀（**结构标识**，不是文案）
+#:
+#: 为什么需要它：``expire_pending()`` 把"没人理的待办"判为 ``rejected``（复用既有状态机与
+#: §6.1「超时 Deny=2」计数口径），但**它与"人工点了驳回"是两回事**：
+#:   - 人工驳回 ⇒ 该请求被人否决，调用方**不应再重试**；
+#:   - 系统超时 ⇒ 只是没人处理，调用方**应当重新发起**（重新挂一张新待办）。
+#: 工具审批层（``agent/tool_approval.py::is_rejected``）据此把两者分开，否则模型会被告知
+#: "人工已否决、别再重试"，而实际从没有人看过那张单。改动本前缀 = 改动那个判据，
+#: 故它与使用方由测试一起钉住（``tests/unit/test_tool_approval.py``）。
+TIMEOUT_DENY_REASON_PREFIX = "超时未审批（timeout deny）"
+
+
+def is_timeout_deny(record: Any) -> bool:
+    """该记录是否是**系统超时判定**（而非人工裁决）
+
+    判据 = 状态 ``rejected`` 且 ``decision_reason`` 以上述前缀开头。
+    只用于区分语义，不改变状态机：两者都停在 ``rejected``（§6.1 计数口径要求）。
+    """
+    try:
+        if str(getattr(record, "state", "") or "") != "rejected":
+            return False
+        return str(getattr(record, "decision_reason", "") or "").startswith(
+            TIMEOUT_DENY_REASON_PREFIX)
+    except Exception:  # noqa: BLE001 判定失败按"不是超时"处理（从严：不解除人工否决）
+        return False
+
+
 # 状态机合法迁移表（验收 1: 全迁移路径测试依据）
 _TRANSITIONS: Dict[str, Tuple[str, ...]] = {
     "draft": ("pending_review",),
@@ -624,7 +651,8 @@ class ApprovalFlow:
     def expire_pending(self, *, older_than_seconds: float = 86400.0,
                        actor: str = "system", note: str = "",
                        limit: Optional[int] = None,
-                       now: Optional[datetime] = None) -> List[ApprovalRecord]:
+                       now: Optional[datetime] = None,
+                       object_type: str = "") -> List[ApprovalRecord]:
         """把超时未处理的 ``pending_review`` 记录判为拒绝（timeout deny）
 
         §6.1 计数口径中「超时 Deny=2」需要一个**真实发生点**：云枢此前没有任何审批
@@ -635,18 +663,27 @@ class ApprovalFlow:
         - 判定依据是 ``created_at`` 的**实际待办时长**（可显式传 ``now`` 便于单测）；
         - 迁移走统一漏斗 `_transition`（状态机+审计+埋点一致），但介入 kind 显式指定为
           ``timeout_deny``（权重 2），**不与 ``reject`` 重复计数**；
-        - ``decision_reason`` 留痕超时阈值与待办时长（审计可复核）。
+        - ``decision_reason`` 留痕超时阈值与待办时长（审计可复核），且以
+          ``TIMEOUT_DENY_REASON_PREFIX`` 开头 —— 使用方据此区分"系统超时"与"人工否决"。
+
+        Args:
+            object_type: **（可选）只清理该对象类型的待办**；空串＝全部（既有行为不变）。
+                为什么需要它：不同对象类型的合理待办时长不同（工具调用 15 分钟就该重来，
+                技能/提示词提案可以挂一整天），一把阈值全清会误伤另一类待办。
 
         Returns:
             被判定超时拒绝的记录列表（无超时记录 → 空列表）。
         """
         current = now or datetime.now()
         threshold_ms = max(0.0, float(older_than_seconds) * 1000.0)
+        scope = str(object_type or "").strip()
         expired: List[ApprovalRecord] = []
         with self._lock:
             self._ensure_loaded()
             for rec in list(self._records):
                 if rec.state != "pending_review":
+                    continue
+                if scope and str(rec.object_type) != scope:
                     continue
                 try:
                     created = datetime.fromisoformat(str(rec.created_at))
@@ -657,7 +694,7 @@ class ApprovalFlow:
                 elapsed_ms = (current - created).total_seconds() * 1000.0
                 if elapsed_ms < threshold_ms:
                     continue
-                reason = (f"超时未审批（timeout deny）：待办 {elapsed_ms / 1000.0:.0f}s "
+                reason = (f"{TIMEOUT_DENY_REASON_PREFIX}：待办 {elapsed_ms / 1000.0:.0f}s "
                           f"≥ 阈值 {older_than_seconds:.0f}s")
                 if note:
                     reason = f"{reason} | {note}"
@@ -667,8 +704,8 @@ class ApprovalFlow:
                 if limit is not None and len(expired) >= int(limit):
                     break
         if expired:
-            logger.warning("[Approval] 超时未审批判定为拒绝 %d 条（§6.1 超时 Deny=2）",
-                           len(expired))
+            logger.warning("[Approval] 超时未审批判定为拒绝 %d 条（§6.1 超时 Deny=2）%s",
+                           len(expired), f"（object_type={scope}）" if scope else "")
         return expired
 
     # ─── 生效判定 ───
@@ -933,6 +970,18 @@ class ApprovalFlow:
         return True
 
     def _ensure_loaded(self) -> None:
+        """把记录文件载入内存索引（**单条损坏不得拖垮整个审批面**）
+
+        【为什么 catch ``Exception`` 而不是少数几个异常】原先只兜
+        ``(ValueError, TypeError, KeyError)``，而实际会从
+        ``ApprovalRecord.from_dict`` / ``__post_init__`` 冒出来的还有
+        ``AttributeError``（JSON 行是 ``[1,2,3]`` 这类非对象）、``ApprovalLevelError``
+        （非法 ``level``）、``ApprovalError``（非法 ``state``）等 —— 2026-09-18 实测三种
+        损坏记录**全部直接抛给调用方**，于是 ``/api/approval/pending`` 与审批收件箱
+        整体 500，而且 ``_loaded`` 停在 False ⇒ **每次请求都再抛一次**。
+        一条坏记录不该让"人看不到任何待办"，故按"跳过该条 + 记 error 留痕"处理：
+        宁可少显示一条（可审计、可人工修），不可让整个审批面不可用。
+        """
         if self._loaded:
             return
         for d in _read_jsonl(self._records_path):
@@ -940,8 +989,11 @@ class ApprovalFlow:
                 rec = ApprovalRecord.from_dict(d)
                 self._records.append(rec)
                 self._index[rec.record_id] = rec
-            except (ValueError, TypeError, KeyError):
-                logger.warning("[Approval] 跳过损坏审批记录")
+            except Exception as e:  # noqa: BLE001 单条损坏只跳过这一条（见 docstring）
+                logger.error("[Approval] 跳过损坏审批记录（type=%s, error=%s）: %s",
+                             type(d).__name__, e,
+                             str(d)[:200] if not isinstance(d, dict)
+                             else str(d.get("record_id") or "?"))
         self._loaded = True
         logger.info("[Approval] 加载完成 count=%s path=%s",
                     len(self._records), self._records_path)

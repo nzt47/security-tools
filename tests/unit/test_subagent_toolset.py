@@ -359,3 +359,138 @@ class TestDecisionSerialisation:
         payload = toolset.report.to_dict()
         assert payload["denied_count"] == 1
         assert payload["visible"] == ["read_file"]
+
+# ════════════════════════════════════════════════════════════
+#  真实工具名 → 矩阵操作 派生（2026-09-17 补网）
+# ════════════════════════════════════════════════════════════
+#
+# 背景：``_TOOL_OPERATION_RULES`` 的键（``memory.read`` / ``memory.write``）是**能力
+# 命名空间**；真实工具叫 ``search_memory`` / ``remember`` / ``kb_search``，既不等于
+# 任何键也不带 ``memory.`` 前缀 ⇒ 矩阵里 ``view.memory / memory.write /
+# sub_agent ❌`` 那两行对真实工具完全失效。以下用例锁死「真实工具名同样落入硬禁网」
+# 与「治理平面不归本表管（其门禁是审批）」这两条口径。
+
+
+import agent.subagent.toolset as _ts
+
+
+@pytest.fixture
+def _fresh_derived_rules(monkeypatch):
+    """每个用例都重建派生表缓存（避免上一个用例的 monkeypatch 残留）"""
+    monkeypatch.setattr(_ts, "_DERIVED_RULES_CACHE", None)
+    yield
+    _ts._DERIVED_RULES_CACHE = None
+
+
+class TestDerivedProtectedToolRules:
+    """真实工具名必须与抽象命名空间同权（派生表 + 矩阵判定）"""
+
+    #: tags 含 memory 的**私人记忆子系统**真实工具（来自 data/tool_definitions/*.yaml）
+    MEMORY_READ_TOOLS = ("search_memory", "search_lifetrace")
+    MEMORY_WRITE_TOOLS = ("remember",)
+    #: 未被派生的普通工具（对照组：派生不得误伤）
+    SAFE = ("read_file", "write_file", "grep", "web_search")
+    #: 带 memory 标签但属**共享知识库**的工具（不是 §5.7 机制 3 所指的"私人记忆"）
+    KNOWLEDGE_BASE = ("kb_search", "kb_capture")
+
+    @pytest.mark.parametrize("tool", MEMORY_READ_TOOLS)
+    def test_memory_read_tools_denied(self, tool, _fresh_derived_rules):
+        """记忆**读**类真实工具：sub_agent 硬禁（矩阵 view.memory ❌）"""
+        decision = SubAgentToolset.build(
+            actor=ACTOR_SUB_AGENT,
+            requested=[tool], authorized_capabilities=[tool]).evaluate(tool)
+        assert decision.allowed is False
+        assert decision.matrix_operation == "view.memory"
+
+    @pytest.mark.parametrize("tool", MEMORY_WRITE_TOOLS)
+    def test_memory_write_tools_denied(self, tool, _fresh_derived_rules):
+        """记忆**写**类真实工具：sub_agent 硬禁（矩阵 memory.write ❌）"""
+        decision = SubAgentToolset.build(
+            actor=ACTOR_SUB_AGENT,
+            requested=[tool], authorized_capabilities=[tool]).evaluate(tool)
+        assert decision.allowed is False
+        assert decision.matrix_operation == OP_WRITE_MEMORY
+
+    @pytest.mark.parametrize("tool", ("generate_tool", "ext_install", "scan_mcp"))
+    def test_govern_plane_tools_not_hard_denied(self, tool, _fresh_derived_rules):
+        """govern 平面**不**在本表硬禁：其门禁是审批，不是矩阵硬禁
+
+        这不是漏网，是**分工**：主线档案 ``allow_govern: true`` 显式放行治理工具，
+        放行后由 ``needs_approval`` / HITL 人工确认把关（口径由
+        ``tests/unit/test_fan_out.py::test_显式允许治理的主线才放行且标注审批`` 锁定）。
+        若在此把它们映射成矩阵硬禁，"人工确认后可执行" 会退化成 "永远不可执行"。
+        本用例锁死分工，防止后人把它当"漏洞"重新补成硬禁。
+        """
+        decision = SubAgentToolset.build(
+            actor=ACTOR_SUB_AGENT,
+            requested=[tool], authorized_capabilities=[tool]).evaluate(tool)
+        assert decision.allowed is True, (
+            f"{tool} 被本表硬禁：治理平面的门禁是审批，不是矩阵硬禁，请勿在此补网")
+
+    @pytest.mark.parametrize("tool", SAFE)
+    def test_ordinary_tools_not_caught(self, tool, _fresh_derived_rules):
+        """对照组：派生表不得误伤普通工具（授权后仍可见）"""
+        decision = SubAgentToolset.build(
+            actor=ACTOR_SUB_AGENT,
+            requested=[tool], authorized_capabilities=[tool]).evaluate(tool)
+        assert decision.allowed is True, f"{tool} 被派生表误伤"
+
+    @pytest.mark.parametrize("tool", KNOWLEDGE_BASE)
+    def test_knowledge_base_tools_not_caught(self, tool, _fresh_derived_rules):
+        """``kb_*`` **不**进硬禁网：它是共享知识库，不是私人记忆
+
+        ``kb_search`` / ``kb_capture`` 的 YAML 也带 ``memory`` 标签，但语义是
+        "知识检索（知识卡片）" / "收集素材入库到 inbox"，与 §5.7 机制 3 所指的
+        私人记忆子系统（``search_memory``="搜索我的记忆"）不同族。
+        一并硬禁会掐掉 knowledge 主线子代理的检索/入库能力——过度收紧。
+        本用例锁死这条边界，防止后人按标签一刀切。
+        """
+        decision = SubAgentToolset.build(
+            actor=ACTOR_SUB_AGENT,
+            requested=[tool], authorized_capabilities=[tool]).evaluate(tool)
+        assert decision.allowed is True, (
+            f"{tool} 被误判为私人记忆读写：知识库工具应放行")
+
+    def test_every_memory_tool_is_covered(self, _fresh_derived_rules):
+        """**防漂移**：YAML 里每个私人记忆类真实工具都必须落在派生表内
+
+        口径与派生一致：``memory`` 标签 + 非 ``knowledge`` + effect ∈ {read, write}。
+        以后新增一个记忆类工具（读/写），只要忘了同步，本用例立刻失败——
+        而不是悄悄多给子代理一个零门禁的记忆能力。
+        """
+        from agent.lines.models import load_tool_meta
+
+        rules = _ts._all_tool_operation_rules()
+        expected = set()
+        for name, meta in load_tool_meta().items():
+            tags = {str(t).strip().lower() for t in (meta.tags or ())}
+            if "memory" in tags and "knowledge" not in tags \
+                    and meta.effect in ("read", "write"):
+                expected.add(name)
+        assert expected, "YAML 未解析出任何记忆类工具（数据源异常）"
+        missing = sorted(n for n in expected if n not in rules)
+        assert not missing, f"以下记忆类工具未落入硬禁网: {missing}"
+
+    def test_derivation_failure_falls_back_to_static_table(
+            self, monkeypatch, _fresh_derived_rules):
+        """派生失败 ⇒ 退回静态表：绝不因为读不到 YAML 而放行（fail-closed）"""
+        import agent.lines.models as _models
+
+        def _boom(*_a, **_kw):
+            raise RuntimeError("YAML 目录不可读")
+
+        monkeypatch.setattr(_models, "load_tool_meta", _boom)
+        rules = _ts._all_tool_operation_rules()
+        # 静态表仍生效
+        assert rules.get("memory.read") == "view.memory"
+        assert rules.get("governance.modify_policy") == "governance.modify_policy"
+        # 派生项缺席（退化为原状），但绝不出现"放行"条目
+        assert "search_memory" not in rules
+        assert "read_file" not in rules
+
+    def test_explicit_registration_wins_over_derivation(
+            self, monkeypatch, _fresh_derived_rules):
+        """显式登记优先于派生：人写的口径比推断的口径更权威"""
+        monkeypatch.setitem(_ts._TOOL_OPERATION_RULES, "search_memory", OP_WRITE_MEMORY)
+        rules = _ts._all_tool_operation_rules()
+        assert rules["search_memory"] == OP_WRITE_MEMORY

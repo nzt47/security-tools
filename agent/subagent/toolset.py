@@ -96,6 +96,91 @@ _TOOL_OPERATION_RULES: Dict[str, str] = {
     "governance.remove_source": OP_REMOVE_SOURCE,
 }
 
+def _derive_tool_operation_rules() -> Dict[str, str]:
+    """从 ``data/tool_definitions/*.yaml`` 派生**真实工具名** → 矩阵操作。
+
+    【为什么必须有这一层】
+        ``_TOOL_OPERATION_RULES`` 的键（``memory.read`` / ``memory.write``）是
+        **能力命名空间**，而真实工具叫 ``search_memory`` / ``remember`` /
+        ``kb_search``：它们既不等于任何键，也不带 ``memory.`` 前缀 ⇒
+        ``_matrix_deny()`` 返回 ``None`` ⇒ 「申请 ∩ 授权 − 矩阵拒绝」的第三步对它们
+        整体失效。即矩阵里 ``view.memory / memory.write / sub_agent ❌`` 那两行只能
+        拦住抽象名，拦不住真实工具。
+
+    【为什么只覆盖记忆类，不覆盖 govern 平面】
+        治理平面（``plane: govern``）在本项目的边界是**审批**，不是绝对禁止：
+        主线档案 ``allow_govern: true`` 显式放行，放行后由 ``needs_approval`` /
+        HITL 人工确认把关（``agent/tools/fan_out_tools.py`` + ``tests/unit/test_fan_out.py``
+        的「显式允许治理的主线才放行且标注审批」用例锁死了该语义）。
+        若在此把 govern 工具映射成矩阵硬禁，会把「人工确认后可执行」变成
+        「永远不可执行」，与既有放行口径冲突——那是另一条控制线，不归本表管。
+        而记忆类没有任何审批位（plane=resident/perceive、risk=low）：白名单一旦包含
+        它们就**零门禁**直接可用，§5.7 机制 3 的「子代理不含记忆读写」实际是失效的。
+        故本表只补这一个真正漏掉的洞。
+
+    【判定口径】YAML 声明是唯一权威（与 ``agent/lines`` 同源）：
+        - tags 含 ``memory``（且非 ``knowledge``）且 effect=read  → ``OP_VIEW_MEMORY``
+        - tags 含 ``memory``（且非 ``knowledge``）且 effect=write → ``OP_WRITE_MEMORY``
+
+    【为什么 ``kb_*`` 除外】
+        ``kb_search`` / ``kb_capture`` 的 YAML 也带 ``memory`` 标签，但它们是**共享
+        知识库**操作（"知识检索（语义融合检索知识卡片）" / "收集素材入库到 inbox"），
+        不是 §5.7 机制 3 所指的**私人记忆子系统**（``search_memory``="搜索我的记忆" /
+        ``remember``="存储到长期记忆" / ``search_lifetrace``）。机制 3 要防的是子代理
+        读写父体的私人记忆；把 ``kb_*`` 一并硬禁会直接掐掉 knowledge 主线子代理的
+        检索/入库能力——那是过度收紧，不是最小暴露。故按「``memory`` 且非 ``knowledge``」
+        判定，并由 ``test_knowledge_base_tools_not_caught`` 锁死这条边界。
+
+    【为什么不在这里判"允许/拒绝"】
+        本函数只做**寻址**（真实工具名 → 矩阵操作），是否拒绝一律交给 ``decide()``：
+        矩阵新增/收紧一行，本表自动跟随，本文件永不复制矩阵口径。
+
+    【失败语义】任何异常（YAML 目录缺失、解析失败、字段异常）都返回空表——
+        静态表继续生效，绝不因为读不到声明就放行任何工具（fail-closed）。
+    """
+    try:  # 延迟导入：本模块按纪律不依赖执行器/通道，也不在 import 期引入 agent.lines
+        from agent.lines.models import load_tool_meta
+        meta = load_tool_meta()
+    except Exception as e:  # noqa: BLE001 派生失败 ⇒ 退回静态表（不放行）
+        logger.warning("[Toolset] 受保护工具表派生失败，仅用静态表（fail-closed）: %s", e)
+        return {}
+
+    derived: Dict[str, str] = {}
+    for name, m in meta.items():
+        tags = {str(t).strip().lower() for t in (m.tags or ())}
+        if "memory" not in tags or "knowledge" in tags:
+            continue
+        if m.effect == "read":
+            derived[name] = OP_VIEW_MEMORY
+        elif m.effect == "write":
+            derived[name] = OP_WRITE_MEMORY
+        else:
+            # 记忆类的 execute/extend 不在 §5.7 机制 3 点名范围（点的是"记忆读写"），
+            # 不臆造映射：宁可少拦，不可把未知语义猜成硬禁。
+            logger.debug("[Toolset] 记忆类工具 %s 的 effect=%s 未映射（不猜）", name, m.effect)
+    return derived
+
+
+#: 派生表缓存（``None`` = 尚未计算）
+_DERIVED_RULES_CACHE: Optional[Dict[str, str]] = None
+
+
+def _all_tool_operation_rules() -> Dict[str, str]:
+    """合并后的「工具名 → 矩阵操作」总表（显式登记优先于派生）
+
+    结果随进程缓存（YAML 目录是启动期产物，不在运行中改写）。测试若 monkeypatch
+    了数据源或 ``_TOOL_OPERATION_RULES``，需先把 ``_DERIVED_RULES_CACHE`` 置 ``None``
+    再调用本函数（见 ``tests/unit/test_subagent_toolset.py`` 的 fixture）。
+    """
+    global _DERIVED_RULES_CACHE
+    if _DERIVED_RULES_CACHE is None:
+        merged = _derive_tool_operation_rules()
+        # 显式登记的语义永远覆盖派生（人写的口径比推断的口径更权威）
+        merged.update(_TOOL_OPERATION_RULES)
+        _DERIVED_RULES_CACHE = merged
+    return _DERIVED_RULES_CACHE
+
+
 #: 受保护类别的**名称前缀**（第二道网，fail-closed）
 #: 命中前缀但未登记映射的工具（如 ``memory.dream`` 这类未来新增项）同样拒绝——
 #: 「未登记」不等于「允许」。
@@ -311,6 +396,28 @@ class SubAgentToolset:
     # ── 构造 ──
 
     @classmethod
+    def hard_denied(cls, names: Iterable[str],
+                    actor: str = "sub_agent:anonymous") -> List[str]:
+        """从候选工具名里挑出会被 §5.7 机制 3 硬禁的那些（保持入参顺序，去重）
+
+        供**装配层**（``agent/tools/fan_out_tools.py``）在授权**前**剔除，与执行层
+        ``_matrix_deny()`` 同一口径。为什么要在授权前也剔一遍：装配层若把硬禁工具
+        放进 ``authorized_capabilities``，子代理会看到一份"授予了却永远调不动"的
+        空头清单（且执行时判整次委派失败），不如在授权清单里就如实不出现。
+        """
+        probe = cls(actor=actor)
+        seen: set = set()
+        out: List[str] = []
+        for raw in names:
+            name = normalize_tool_name(raw)
+            if not name or name in seen:
+                continue
+            seen.add(name)
+            if probe._matrix_deny(name) is not None:
+                out.append(str(raw))
+        return out
+
+    @classmethod
     def build(
         cls,
         requested: Iterable[str],
@@ -372,7 +479,7 @@ class SubAgentToolset:
 
     def _matrix_deny(self, name: str) -> Optional[ToolDecision]:
         """受保护类别判定（矩阵 + 前缀双网，fail-closed）"""
-        operation = _TOOL_OPERATION_RULES.get(name)
+        operation = _all_tool_operation_rules().get(name)
         if operation is None:
             for prefix in PROTECTED_TOOL_PREFIXES:
                 if name.startswith(prefix):

@@ -60,9 +60,18 @@ ALLOWED_UNDER_OWNER = ("read_file", "write_file", "grep", "edit", "todo_write")
 
 @pytest.fixture(autouse=True)
 def _clean_strict_env(monkeypatch):
-    """每个用例都从"未设置任何严格模式环境变量"起步，并清掉网关单例缓存"""
+    """每个用例都从"未设置任何严格模式环境变量"起步，并清掉网关单例缓存
+
+    【2026-09-17 补】同时**关掉审批边界**（``CP_TOOL_GATE_APPROVAL_ENFORCE=0``）：
+    本文件的被测对象是**严格模式（RBAC/ABAC）这一层**，而审批边界是另一层、且它默认开启、
+    还排在严格模式之前 ⇒ 不过滤掉它，用例拿到的拒绝可能来自审批边界而不是 RBAC，
+    断言就失去意义（``DENIED_UNDER_GUEST`` 里的 ``shell_execute`` 正落在审批边界上）。
+    审批边界自身的行为由 ``tests/unit/test_tool_gate.py`` 与
+    ``tests/unit/test_tool_approval*.py`` 负责；两者互不代偿。
+    """
     for name in (G.STRICT_ENABLED_ENV, G.STRICT_ROLE_ENV, G.STRICT_SOURCE_ENV):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv(G.APPROVAL_ENFORCE_ENV, "0")
     monkeypatch.setattr(G, "_STRICT_GATEWAY", None)
     G._reset_cache()
     yield
@@ -525,6 +534,11 @@ class TestShellExecuteNoLongerTimeBlocked:
 
         这条用例与运行时刻无关：规则已从 ``abac_rules`` 移除，唯一的时段来源消失，
         故无论白天还是 18:00 之后都必须放行（改动前：00:07 实测会被 ABAC 拒）。
+
+        【2026-09-17 补注】本用例钉的是**严格模式（RBAC/ABAC）这一层**的契约，与
+        "该工具要不要人工审批"是两件事。``shell_execute``（risk=critical）正落在审批
+        边界上，故本文件用 autouse 夹具关掉那条独立开关（见 ``_clean_strict_env``），
+        使断言只反映 RBAC/ABAC 的结果。
         """
         _enable_strict(monkeypatch, role="owner")
         assert G.check_tool_call("shell_execute", {"command": "echo hi"}) is None

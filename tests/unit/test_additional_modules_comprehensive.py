@@ -643,3 +643,45 @@ class TestExpandContextFromMemory:
         result = expand_context_from_memory(digital_life, "query")
         assert result["ok"] is False
         assert "test error" in result["error"]
+
+    # ── 分值字段诚实性（2026-09-17）────────────────────────────
+    # 真实 MemoryItem（memory/vector_store/vector_store.py:216）**没有** score 属性，
+    # 向量库把 BM25 分值写在 item.metadata['_score']（同文件 :897）。旧写法
+    # `getattr(item, 'score', 0)` 对真实对象恒得 0 ⇒ 最相关的记忆被读成"最差匹配"。
+
+    class _RealItem:
+        """最小化的真实 MemoryItem 形态：content + metadata（无 score 属性）"""
+
+        def __init__(self, content, score=None):
+            self.content = content
+            self.metadata = {} if score is None else {"_score": score}
+
+    def _dl_with_items(self, items):
+        digital_life = MagicMock()
+        digital_life._vector_memory.search.return_value = items
+        return digital_life
+
+    def test_score_comes_from_metadata_when_present(self):
+        """分值真实存在时必须取到（而不是恒 0）"""
+        from agent.system_tools import expand_context_from_memory
+        digital_life = self._dl_with_items([self._RealItem("真分值", 3.21)])
+        result = expand_context_from_memory(digital_life, "query")
+        assert result["items"][0]["score"] == 3.21
+
+    def test_score_absent_instead_of_fake_zero(self):
+        """取不到分值时不返回 score 字段 —— 不伪造 0"""
+        from agent.system_tools import expand_context_from_memory
+        digital_life = self._dl_with_items([self._RealItem("无分值")])
+        result = expand_context_from_memory(digital_life, "query")
+        assert result["items"][0]["content"] == "无分值"
+        assert "score" not in result["items"][0], "取不到分值时不应伪造 0"
+
+    def test_non_numeric_metadata_does_not_leak_as_score(self):
+        """metadata 不是 dict（如被 mock 成 MagicMock）⇒ 不得当成分值返回"""
+        from agent.system_tools import _memory_item_real_score
+        item = MagicMock()
+        assert _memory_item_real_score(item) is None
+        item.metadata = {"_score": "high"}          # 字符串分值不是数值 ⇒ 不采纳
+        assert _memory_item_real_score(item) is None
+        item.metadata = {"_score": True}            # 布尔不是分值
+        assert _memory_item_real_score(item) is None

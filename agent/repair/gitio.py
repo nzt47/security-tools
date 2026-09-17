@@ -204,10 +204,17 @@ def head_changed_files(repo_root: str, *, limit: int = 200) -> List[str]:
     """HEAD 提交改动的文件清单（仓库相对 POSIX 路径）
 
     **只读**：``git show --name-only``。用于「最近改动」按 mtime 归属到提交。
+
+    为什么带 ``-m --first-parent``：**HEAD 是合并提交时**，``git show --name-only``
+    默认不产出任何文件（合并提交没有"自己的"差异），会让本函数静默返回空清单——
+    调用方看到的不是"HEAD 无改动"，而是"最近改动无法归属"。加上这两个参数后，
+    合并提交按**第一父**给出差异（即"这次合并把什么带进了主线"）；
+    对普通提交二者皆为无操作（单父提交），返回值与原先逐字节一致。
     """
     try:
         out = run_git_readonly(
-            ["show", "--name-only", "--no-renames", "--format=", "HEAD"],
+            ["show", "--name-only", "--no-renames", "--format=",
+             "-m", "--first-parent", "HEAD"],
             cwd=repo_root)
     except GitReadOnlyError:
         return []

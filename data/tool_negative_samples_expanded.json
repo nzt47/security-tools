@@ -11,7 +11,13 @@
     "  - G8 json_to_yaml/yaml_to_json:报告 q08 风险点(BM25 无法区分转换方向)",
     "  - G9 web_search/search_memory/search_lifetrace:报告 q01 风险点(search 词根混淆)",
     "  - G10 read_file/write_file:读写方向性区分",
-    "工具名均经 tool_index.json 验证存在(2026-07-19 校验)"
+    "工具名均经 tool_index.json 验证存在(2026-07-19 校验)",
+    "2026-09-17 第 0 档合并后的夹具校正:",
+    "  - fetch_news → web_search(preset='news')、json_to_yaml/yaml_to_json → data_convert(to=)、",
+    "    install_tool → ext_install(type='auto')、software_install 注销(装软件改走 shell_execute)",
+    "  - 重新校验: 夹具内所有工具名必须存在于 tool_index.json;同一 query 的",
+    "    negative 与 expected_positive 不得相交(自相矛盾的用例等于没验证)",
+    "  - G8 方向区分的落点由'两个转换工具'变为'转换 vs 格式探测',故 negative 取同域真近邻 data_format_detect"
   ],
   "groups": [
     {

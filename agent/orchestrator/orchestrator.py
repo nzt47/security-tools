@@ -180,6 +180,29 @@ _LLM_CALL_TIMEOUT = int(os.getenv("LLM_CALL_TIMEOUT", "60"))
 # ── TASK-S2-01 统一 Trace 透传辅助（best-effort，失败绝不影响主链路） ──────
 
 
+def _preheat_session_todos(session_id: Optional[str]) -> None:
+    """会话任务起点预热计划清单（best-effort，失败绝不影响主链路）
+
+    为什么必须有这一步：``todo_write`` 的落盘是"内存态 + 同步刷盘"，**回载只能由宿主
+    触发**（``load_todos`` 刻意不注册成工具，否则模型会用它绕过 ``todo_write``）。
+    此前只有"写"没有"读"——``data/todos.json`` 写了却没人回载，跨会话/重启后清单等于丢失。
+
+    挂点选在任务级 Trace 起点（``subject_id=session_id`` 的同一点），此后
+    ``todo_write`` 经 ``_current_session_key()`` 取到的键与本函数的键必然一致。
+
+    只预热、不回退：``load_todos`` 是**内存优先**的（内存里已有该会话就直接返回，
+    不读盘），故同一会话的多轮任务不会把中途进度覆盖成盘上旧值。
+    """
+    sid = str(session_id or "").strip()
+    if not sid:
+        return
+    try:  # 惰性导入：编排器初始化期不必把工具包拖进依赖链
+        from agent.tools.plan_tools import load_todos  # noqa: PLC0415
+        load_todos(sid)
+    except Exception as e:  # noqa: BLE001 预热失败只降级为"本轮看不到历史清单"
+        logger.debug("[orchestrator] 计划清单预热跳过: %s", e)
+
+
 def _begin_unified_task_trace(session_id: Optional[str], task_id: Optional[str] = None) -> str:
     """任务级统一 Trace 起点：注入 TraceContext（工具链透传），返回 trace_id。
 
@@ -187,6 +210,8 @@ def _begin_unified_task_trace(session_id: Optional[str], task_id: Optional[str] 
     无会话时取进程工作目录哈希（仍带 workspace_id，不触发缺字段降级）。
     P7.2-08：workspace(repository) = 逻辑租户 ⇒ tenant_id = workspace-hash。
     """
+    # 计划清单预热放在 Trace 之前：观测链路不可用时，跨会话计划照样要能看到
+    _preheat_session_todos(session_id)
     try:
         from agent.observability.trace_v2 import TraceFacade, derive_workspace_id
         workspace_id = ""

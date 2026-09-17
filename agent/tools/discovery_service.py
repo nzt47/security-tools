@@ -107,6 +107,26 @@ class ToolDiscoveryService:
             logger.info(f"[发现] 在市场中找到匹配: {first_match.get('name', first_match.get('ext_id', '?'))}")
             # 尝试安装第一个匹配
             ext_id = first_match.get("ext_id") or first_match.get("name", "")
+
+            # ── 审批边界（2026-09-17）──
+            # 自动安装 = **自我改造**（`ext_install` 是 plane=govern / effect=extend）。
+            # 本方法是"模型调了一个不存在的工具名"触发的**隐性**安装路径：
+            # 若在此直接 install_and_register，就绕过了显式 `ext_install` 必须走的审批边界——
+            # 模型打错一个工具名即可装进一个扩展。故与显式调用走**同一道闸门**：
+            # 未获人工批准时挂单并如实上报，绝不静默安装。
+            denied = self._approval_gate(ext_id)
+            if denied is not None:
+                logger.warning("[发现] 自动安装被审批边界拦下: ext_id=%s error_code=%s",
+                               ext_id, denied.get("error_code", ""))
+                return {
+                    "acquired": False,
+                    "tool": tool_name,
+                    "error_code": str(denied.get("error_code") or ""),
+                    "approval_id": str(denied.get("approval_id") or ""),
+                    "message": (f"匹配到 {first_match.get('name', ext_id)}，但自动安装需要人工审批："
+                                f"{denied.get('error') or denied.get('reason') or '需审批'}"),
+                }
+
             install_result = self.install_and_register(ext_id)
             if install_result.get("ok"):
                 return {
@@ -116,6 +136,23 @@ class ToolDiscoveryService:
                 }
 
         return {"acquired": False, "tool": tool_name, "message": "未找到匹配工具"}
+
+    @staticmethod
+    def _approval_gate(ext_id: str):
+        """对"自动安装"取一次闸门判定：``None`` = 放行；否则为拒绝结果
+
+        与 ``agent/tool_gate.check_tool_call("ext_install", ...)`` 同源：命中审批边界时
+        会在审批收件箱挂单并返回 ``APPROVAL_REQUIRED``（人工批准后原样重试即放行）。
+        **闸门不可用按既有 fail-open 口径放行**（与 ``agent/tools/__init__.py::call()``
+        的 try/except 同一纪律：闸门自身 bug 不得阻断既有链路）；闸门**明确返回拒绝**时
+        才算拦下。
+        """
+        try:
+            from agent.tool_gate import check_tool_call
+            return check_tool_call("ext_install", {"source": str(ext_id or ""), "type": "auto"})
+        except Exception as e:  # noqa: BLE001 闸门不可用 ⇒ 不阻断既有自动发现链路
+            logger.debug("[发现] 审批闸门不可用（按放行处理）: %s: %s", type(e).__name__, e)
+            return None
 
     def scan_mcp_services(self, network_range: str = None) -> list[dict]:
         """扫描并注册已知 MCP 服务

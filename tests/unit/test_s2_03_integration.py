@@ -197,6 +197,31 @@ class TestApprovalWiring:
                  ev.read_events(types=["intervention"], directory=events_dir)]
         assert "reject" not in kinds
 
+    def test_timeout_scoped_by_object_type(self, flow, events_dir):
+        """``object_type`` 过滤：只清指定类型，不误伤其他类型的待办（2026-09-18 新增）
+
+        为什么需要：工具调用审批的合理待办时长是 15 分钟，而技能/提示词提案可以挂一整天；
+        工具侧惰性清理用的是 :meth:`expire_pending` 的**同一把阈值**，必须能只作用于
+        ``tool_call``，否则会把另一类正常待办一起判死。
+        """
+        skill = flow.submit("skill", "s1", action="params_submit")
+        tool = flow.submit("tool_call", "shell_execute", action="tool_call",
+                           payload={"args_digest": "abc", "session_key": ""})
+        for rec in (skill, tool):
+            rec.created_at = (datetime.now() - timedelta(days=3)).isoformat(
+                timespec="seconds")
+        flow._persist()
+
+        expired = flow.expire_pending(older_than_seconds=3600, object_type="tool_call")
+
+        assert [r.record_id for r in expired] == [tool.record_id]
+        assert flow.get(skill.record_id).state == "pending_review", "技能待办被误伤"
+        assert flow.get(tool.record_id).state == "rejected"
+        # 空串＝不过滤（既有行为不变）
+        assert [r.record_id for r in
+                flow.expire_pending(older_than_seconds=3600)] == [skill.record_id]
+
+
     def test_timeout_skips_fresh_records(self, flow, events_dir):
         flow.submit("skill", "s1", action="params_submit")
         assert flow.expire_pending(older_than_seconds=3600) == []

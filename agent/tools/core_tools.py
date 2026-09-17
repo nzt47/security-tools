@@ -29,9 +29,12 @@ def _vector_leg(dl, query, limit):
     """向量（语义）腿 —— 复用 `expand_context_from_memory`，即 `_vector_memory.search` 的既有封装。
 
     Returns:
-        (hits, error)：hits 元素恒为 ``{"content", "score"}``，与 expand_context
-        原来返回的 ``items`` 逐项同形；error 为非 None 时表示该腿整体不可用
-        （向量记忆未启用 / 检索异常），对齐 expand_context 的失败语义。
+        (hits, error)：hits 元素恒有 ``content``；**仅当能取到真实分值时才有 ``score``**
+        （真实 ``MemoryItem`` 没有 ``score`` 属性，分值写在 ``metadata['_score']``，
+        详见 `agent/system_tools._memory_item_real_score`）。不伪造 ``0``：
+        假分值会让模型把最相关的记忆读成"最差匹配"。
+        error 为非 None 时表示该腿整体不可用（向量记忆未启用 / 检索异常），
+        对齐 expand_context 的失败语义。
     """
     from agent.system_tools import expand_context_from_memory
 
@@ -39,12 +42,16 @@ def _vector_leg(dl, query, limit):
     hits = []
     for item in (res.get("items") or []):
         if isinstance(item, dict):
-            hits.append({"content": item.get("content", ""), "score": item.get("score", 0)})
-        else:
-            hits.append({
-                "content": getattr(item, "content", ""),
-                "score": getattr(item, "score", 0),
-            })
+            hit = {"content": item.get("content", "")}
+            if isinstance(item.get("score"), (int, float)) \
+                    and not isinstance(item.get("score"), bool):
+                hit["score"] = float(item["score"])
+        else:  # 防御：将来若该腿改为直返对象，仍只透传真实分值
+            hit = {"content": getattr(item, "content", "")}
+            raw = getattr(item, "score", None)
+            if isinstance(raw, (int, float)) and not isinstance(raw, bool):
+                hit["score"] = float(raw)
+        hits.append(hit)
     return hits, (None if res.get("ok") else res.get("error"))
 
 

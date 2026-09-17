@@ -19,13 +19,13 @@ schema:
       type: array
       items:
         type: string
-      description: 素材文件/目录路径列表（可空）
+      description: 素材文件/目录路径列表（可空，如 ['docs/xxx.md'] 或外部 SKILL.md 目录）
     artifacts:
       type: array
       items:
         type: string
         enum: [workflow, skill]
-      description: 固化产物类型
+      description: 固化产物类型，默认 ['workflow','skill']
     top_k:
       type: integer
       description: wiki 检索召回数，默认 5

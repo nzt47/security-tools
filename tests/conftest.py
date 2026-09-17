@@ -42,6 +42,66 @@ os.environ.setdefault("MKL_NUM_THREADS", "4")
 PROJECT_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
+
+# ════════════════════════════════════════════════════════════
+#  审批/事件/审计落盘隔离（2026-09-17）
+# ════════════════════════════════════════════════════════════
+#
+# 为什么需要：`agent/tool_gate.py` 命中审批边界的工具调用会**经审批流挂单**，而
+# `ApprovalFlow()` 无参构造默认写运行时 `data/approval_records.jsonl`；消费台账同理。
+# 单测里凡是通过 `agent.tools.call()` 调到 `shell_execute` / `generate_tool` /
+# `ext_install` 一类工具的用例，都会**真的往生产审批库里写待审批单** —— 本仓已四次
+# 踩到"测试写生产数据"（本次是第五处的预防）。
+# 而审批动作本身还有**两处副作用落点**，同样必须隔离，否则"跑一次单测"
+# 就会往生产事件流和链式审计台账里追加记录（实测：events.jsonl 41903→50835 字节、
+# audit_chain.db 14221312→14237696 字节）。这里在**会话级**把四个路径全部指向临时目录，
+# 用 `setdefault` 保证用例内的 `monkeypatch.setenv` 仍可覆盖（且回滚回本会话值）。
+
+@pytest.fixture(autouse=True, scope="session")
+def _isolate_approval_stores(tmp_path_factory):
+    """把审批记录 / 消费台账 / 事件流 / 链式审计指向会话级临时目录（绝不写 data/**）"""
+    isolation_dir = tmp_path_factory.mktemp("approval_isolation")
+    events_dir = isolation_dir / "events"
+    audit_dir = isolation_dir / "audit"
+    events_dir.mkdir(parents=True, exist_ok=True)
+    audit_dir.mkdir(parents=True, exist_ok=True)
+    keys = {
+        "APPROVAL_RECORDS_PATH": isolation_dir / "approval_records.jsonl",
+        "CP_TOOL_APPROVAL_USES_PATH": isolation_dir / "tool_approval_uses.jsonl",
+        # 审批动作会写事件流与链式审计（agent/audit/facade.py 的三个环境变量）
+        "CP_EVENTS_DIR": events_dir,
+        "AUDIT_DB_PATH": audit_dir / "audit_chain.db",
+        "AUDIT_ROOTS_PATH": audit_dir / "daily_roots.jsonl",
+        "AUDIT_SIGNING_KEY": audit_dir / "audit_signing_key.pem",
+    }
+    saved = {k: os.environ.get(k) for k in keys}
+    for k, v in keys.items():
+        os.environ.setdefault(k, str(v))
+
+    # 【必须改绑，不能只设环境变量】`agent/audit/facade.py:466` 是**模块级单例**
+    # `audit = AuditFacade()`，它在 **import 期**按当时的环境变量定路径。若该模块先于本夹具
+    # 被导入（collection 期由别的模块链式导入），它拿到的就是**生产路径**，
+    # 之后再设 AUDIT_DB_PATH 也不会回头生效 —— 实测后果：跑一次审批相关单测就写生产
+    # `data/audit/audit_chain.db`（每次 +32KB）。故这里显式重置门面并改绑三个路径。
+    try:
+        from agent.audit import facade as _audit_facade
+
+        _audit_facade.reset_audit_facade()          # close + bind(None) + 计数清零
+        _facade = getattr(_audit_facade, "audit", None)
+        if _facade is not None:
+            _facade._db_path = str(isolation_dir / "audit" / "audit_chain.db")
+            _facade._roots_path = str(isolation_dir / "audit" / "daily_roots.jsonl")
+            _facade._key_path = str(isolation_dir / "audit" / "audit_signing_key.pem")
+    except Exception as e:  # noqa: BLE001 审计门面不可用不该影响测试运行
+        print(f"[conftest] 审计门面隔离跳过（仅影响生产数据保护）: {type(e).__name__}: {e}")
+
+    yield isolation_dir
+    for k, v in saved.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
+
 # ════════════════════════════════════════════════════════════
 # 原生扩展导入顺序固化（S11-01：从 tests/integration 提升到 tests 根）
 # ════════════════════════════════════════════════════════════

@@ -303,23 +303,52 @@ def get_weather(city: str = "", format: str = "text") -> dict:
         return {"ok": False, "error": f"未知错误: {e}", "city": city}
 
 
+def _memory_item_real_score(item):
+    """取记忆条目的**真实**分值；取不到返回 ``None``（**不伪造 0**）
+
+    为什么不能再用 ``getattr(item, 'score', 0)``：真实 ``MemoryItem``
+    （``memory/vector_store/vector_store.py:216``）**没有** ``score`` 属性，
+    向量库把 BM25 分值写在 ``item.metadata['_score']``（同文件 :897）。
+    旧写法对真实对象恒得 ``0`` —— 一个看上去像"最差匹配"的假分值，
+    比"该字段不存在"更有害（模型会据此误判相关度）。
+    """
+    if isinstance(item, dict):
+        candidates = [item.get("score")]
+        meta = item.get("metadata")
+    else:
+        candidates = [getattr(item, "score", None)]
+        meta = getattr(item, "metadata", None)
+    if isinstance(meta, dict):
+        candidates.append(meta.get("_score"))
+    for value in candidates:
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return float(value)
+    return None
+
+
 def expand_context_from_memory(digital_life, query, max_items=5):
-    """从记忆库中查找更多与当前话题相关的上下文信息"""
+    """从记忆库中查找更多与当前话题相关的上下文信息
+
+    返回的 ``items`` 元素形如 ``{"content": ...}``，**仅当能取到真实分值时才带
+    ``score``**（见 ``_memory_item_real_score``）；顺序本身即相关度排序。
+    """
     try:
         if hasattr(digital_life, '_vector_memory') and digital_life._vector_memory:
             results = digital_life._vector_memory.search(query, top_k=max_items)
             context_items = []
             for item in results:
-                if hasattr(item, 'content'):
-                    context_items.append({
-                        'content': item.content,
-                        'score': getattr(item, 'score', 0)
-                    })
-                elif isinstance(item, dict) and 'content' in item:
-                    context_items.append({
-                        'content': item['content'],
-                        'score': item.get('score', 0)
-                    })
+                if isinstance(item, dict):
+                    if 'content' not in item:
+                        continue
+                    entry = {'content': item['content']}
+                elif hasattr(item, 'content'):
+                    entry = {'content': item.content}
+                else:
+                    continue
+                score = _memory_item_real_score(item)
+                if score is not None:
+                    entry['score'] = score
+                context_items.append(entry)
             return {
                 "ok": True,
                 "query": query,

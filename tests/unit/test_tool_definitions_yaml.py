@@ -758,6 +758,78 @@ class TestMigrationScript:
 #  7. 74 个 YAML 与原 Python @register 字段一致性
 # ════════════════════════════════════════════════════════════
 
+_UNRESOLVED = object()
+
+
+def _resolve_literal(node, table):
+    """把 AST 节点解析为 Python 字面量；解析不出来返回 ``_UNRESOLVED``
+
+    比 ``ast.literal_eval`` 多两件事：
+      1. ``schema=_SYNC_SCHEMA`` 这类**按名引用**——从模块级表里取值；
+      2. ``{**BASE, "properties": {**BASE["properties"], ...}}`` 这类**解包组合**
+         （``agent/process_distill/tools.py`` 的 ``_ASYNC_SCHEMA`` 就是这么写的）。
+    ``literal_eval`` 对两者都会直接失败，于是 ``_extract_from_call`` 返回
+    ``schema=None``，守门测试就把这个工具**静默跳过**——2026-09-17 实测正是如此：
+    ``process_distill_run`` 的 YAML 与 ``_SYNC_SCHEMA`` 有 2 处文案漂移而无人发现。
+    """
+    import ast
+    try:
+        return ast.literal_eval(node)
+    except (ValueError, SyntaxError):
+        pass
+    if isinstance(node, ast.Name):
+        return table.get(node.id, _UNRESOLVED)
+    if isinstance(node, ast.Dict):
+        out = {}
+        for key, value in zip(node.keys, node.values):
+            if key is None:                       # **VAR 展开
+                base = _resolve_literal(value, table)
+                if not isinstance(base, dict):
+                    return _UNRESOLVED
+                out.update(base)
+                continue
+            rk = _resolve_literal(key, table)
+            rv = _resolve_literal(value, table)
+            if rk is _UNRESOLVED or rv is _UNRESOLVED:
+                return _UNRESOLVED
+            out[rk] = rv
+        return out
+    return _UNRESOLVED
+
+
+def _module_literals(tree) -> dict:
+    """模块级「名字 → 字面量」表（按源码顺序，使 ``{**前一个变量}`` 能解析）"""
+    import ast
+    out: dict = {}
+    for node in tree.body:
+        targets = []
+        if isinstance(node, ast.Assign):
+            targets = [t for t in node.targets if isinstance(t, ast.Name)]
+            value = node.value
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            targets = [node.target]
+            value = node.value
+        else:
+            continue
+        if value is None:
+            continue
+        resolved = _resolve_literal(value, out)
+        if resolved is not _UNRESOLVED:
+            for t in targets:
+                out[t.id] = resolved
+    return out
+
+
+def _resolve_schema_kwarg(call, literals):
+    """把 ``schema=<名字>`` 解析成真实 schema；无此形态则返回 ``None``"""
+    import ast
+    for kw in call.keywords:
+        if kw.arg == "schema" and isinstance(kw.value, ast.Name):
+            value = literals.get(kw.value.id)
+            return value if isinstance(value, dict) else None
+    return None
+
+
 def _extract_knowledge_toolddefs() -> dict:
     """从 agent/knowledge/tools.py 的 `_TOOL_DEFS` 字面量里抽取 (name, description, schema)。
 
@@ -815,6 +887,7 @@ def _extract_python_register_defs() -> dict:
             tree = ast.parse(f.read_text(encoding="utf-8"), filename=str(f))
         except SyntaxError:
             continue
+        literals = _module_literals(tree)          # 供 schema=<变量> 解析
         for node in ast.walk(tree):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
@@ -823,7 +896,13 @@ def _extract_python_register_defs() -> dict:
                 if not migrate_mod._is_register_call(target):
                     continue
                 extracted = migrate_mod._extract_from_call(target)
-                if extracted and extracted["name"] not in py_defs:
+                if extracted is None:
+                    continue
+                if extracted.get("schema") is None:
+                    # `schema=<变量>`：literal_eval 抽不出，但变量本身是模块级字面量
+                    # ⇒ 解析出来参与比对，否则该工具会被守门测试静默跳过（漂移无人发现）
+                    extracted["schema"] = _resolve_schema_kwarg(target, literals)
+                if extracted["name"] not in py_defs:
                     extracted["src_file"] = f.name
                     py_defs[extracted["name"]] = extracted
     # 数据表形式注册的 kb_*

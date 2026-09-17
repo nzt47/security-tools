@@ -692,14 +692,26 @@ _REGISTRY_ROWS: List[SettingSpec] = [
        owner="agent/tool_gate.py",
        impact="影响面：开启后未在角色白名单内的工具会被拒；请先确认角色清单与作息相关的 ABAC 规则"),
     # 【B 级理由】审批边界开关：它决定"requires_approval 的工具调用是被拒绝还是只告警"。
-    #   默认关闭=只告警（2026-09-17 描述符回填后 shell_execute 首次变成 requires_approval=true，
-    #   若默认拦截会直接挡掉关键工具调用，故取"只告警"并在部署侧显式开启）。
-    _b("CP_TOOL_GATE_APPROVAL_ENFORCE", CAT_SELF_HEALING, False,
-       "工具闸门审批边界开关：置 1/true/yes/on ⇒ 描述符 trust.requires_approval 与治理平面 "
-       "needs_approval 的工具调用返回结构化拒绝（APPROVAL_REQUIRED）；默认 False = 只告警不拦截",
+    #   默认**开启**（2026-09-17 反转）：审批闭环接通后，拦截是一条能走通的路径——
+    #   闸门幂等挂单 → 人工在「治理 → 审批收件箱」裁决 → 模型原样重试即放行（单次有效）。
+    #   此前默认关闭的唯一理由是"审批 UI 未接到工具调用上 ⇒ 拦截=永远失败"，该理由已消失。
+    #   回滚 = 置 0/false/no/off（一处环境变量，不写数据文件）。
+    _b("CP_TOOL_GATE_APPROVAL_ENFORCE", CAT_SELF_HEALING, True,
+       "工具闸门审批边界开关：默认开启 ⇒ 描述符 trust.requires_approval 与治理平面 "
+       "needs_approval 的工具调用走审批闭环（挂单 → 人工裁决 → 原样重试即放行，单次有效）；"
+       "置 0/false/no/off = 退回「只告警不拦截」",
        owner="agent/tool_gate.py",
-       impact="影响面：开启=审批边界真正生效（critical 工具如 shell_execute 会被拒到人工审批）；"
+       impact="影响面：开启=审批边界生效（critical 工具如 shell_execute 需人工确认一次）；"
               "关闭=边界只告警不拦截"),
+    _a("CP_TOOL_APPROVAL_TTL_SEC", CAT_SELF_HEALING, 900,
+       "工具审批单的有效期（秒）：人工批准后须在该窗口内完成那次调用，超时即失效需重新审批；"
+       "默认 900（与审批会话 ≤15min 口径一致）",
+       owner="agent/tool_approval.py"),
+    _c("CP_TOOL_APPROVAL_USES_PATH", CAT_SELF_HEALING,
+       "data/tool_approval_uses.jsonl",
+       "工具审批消费台账路径（append-only，记录哪张审批单已被哪次调用消费）；"
+       "审批流记录本身是决策权威，本台账只解决「批准不可重放」",
+       owner="agent/tool_approval.py"),
     _a("CP_PERMISSION_DEFAULT_ROLE", CAT_SELF_HEALING, "owner",
        "严格模式下使用的角色（owner/admin/developer/guest）；非法值回退 owner",
        owner="agent/tool_gate.py"),

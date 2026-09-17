@@ -16,6 +16,8 @@
 
 测试直接取注册表里的 handler 调用（与模型实际调用路径一致），并按用例重置模块级状态。
 """
+import json
+
 import pytest
 
 from agent.tools import plan_tools
@@ -31,6 +33,21 @@ def clean_state():
     plan_tools._reset_state()
     yield
     plan_tools._reset_state()
+
+
+@pytest.fixture(autouse=True)
+def isolate_todos_file(tmp_path, monkeypatch):
+    """把落盘路径重定向到临时目录，**绝不写生产** ``data/todos.json``
+
+    为什么必需：``todo_write`` 的写路径是"更新内存后同步刷一份到 data/todos.json"，
+    而本模块的用例会真的调用 handler ⇒ 没有这层重定向时，跑一次单测就会把夹具会话
+    （``sess-A``）写进生产的 ``data/todos.json``。这正是本仓反复踩过的
+    "测试写生产数据"，故在此显式隔离，并加下面 ``test_不污染生产落盘文件`` 兜底。
+    """
+    target = tmp_path / "todos.json"
+    monkeypatch.setattr(plan_tools, "_TODOS_PATH_OVERRIDE", str(target), raising=False)
+    yield target
+    monkeypatch.setattr(plan_tools, "_TODOS_PATH_OVERRIDE", "", raising=False)
 
 
 @pytest.fixture
@@ -343,3 +360,113 @@ class TestRendered:
         """未超上限时不带截断标记"""
         result = todo_tool(todos=_todos(("短项", "pending")))
         assert "已截断" not in result["rendered"]
+
+
+# ════════════════════════════════════════════════════════════
+#  六、测试隔离（不许写生产落盘文件）
+# ════════════════════════════════════════════════════════════
+
+class TestNoProductionPollution:
+    """本仓已四次踩到"测试写生产数据"；本模块是其中一次，这里补兜底断言"""
+
+    def test_不污染生产落盘文件(self, todo_tool, session_key, isolate_todos_file):
+        """经 handler 真写一次 ⇒ 只落到临时文件，生产 data/todos.json 字节不变"""
+        import os
+
+        prod = os.path.join(plan_tools._repo_root(), plan_tools._TODOS_REL)
+        before = None
+        if os.path.exists(prod):
+            with open(prod, "rb") as f:
+                before = f.read()
+
+        result = todo_tool(todos=_todos(("隔离探针", "pending")))
+        assert result["ok"] is True and result["persisted"] is True
+
+        # 落盘确实发生了 —— 但落在被重定向的临时路径
+        assert isolate_todos_file.exists(), "重定向后的落盘文件未生成（隔离未生效）"
+        assert "隔离探针" in isolate_todos_file.read_text(encoding="utf-8")
+
+        after = None
+        if os.path.exists(prod):
+            with open(prod, "rb") as f:
+                after = f.read()
+        assert after == before, f"生产落盘文件被单测改写: {prod}"
+        if before is not None:
+            assert b"sess-A" not in (after or b""), "夹具会话被写进了生产 data/todos.json"
+
+
+# ════════════════════════════════════════════════════════════
+#  七、会话恢复：宿主必须真的**回载**（此前只写不读）
+# ════════════════════════════════════════════════════════════
+#
+# 背景：落盘（write_todos → data/todos.json）早已实现，但 `load_todos` 一直没有调用方
+# ⇒ 文件写了没人读，跨会话/重启后清单等于丢失。现挂在编排器任务级 Trace 起点
+# （`_begin_unified_task_trace`，即 `subject_id=session_id` 的同一点）。
+
+class TestSessionRestoreWiring:
+    """回载链路：端到端 + 挂点防漂移"""
+
+    def test_回载能拿到上一个会话的清单(self, isolate_todos_file):
+        """写 → 清内存（模拟重启）→ 宿主预热 → 清单从盘回来"""
+        plan_tools.write_todos(_todos(("跨会话的活", "in_progress")), session_key="s1")
+        plan_tools._reset_state()
+        assert plan_tools._STATE == {}, "内存未清空，模拟重启失败"
+
+        from agent.orchestrator.orchestrator import _preheat_session_todos
+        _preheat_session_todos("s1")
+
+        assert [t["content"] for t in plan_tools._STATE.get("s1", [])] == ["跨会话的活"]
+
+    def test_回载内存优先不覆盖进行中的进度(self, isolate_todos_file):
+        """盘上旧值不得覆盖内存里的最新进度（否则多轮任务会回退）"""
+        plan_tools.write_todos(_todos(("最新进度", "in_progress")), session_key="s1")
+
+        # 把盘改成"旧值"，模拟落盘失败/外部改动
+        isolate_todos_file.write_text(
+            json.dumps({"version": plan_tools._TODOS_VERSION,
+                        "by_session": {"s1": {"todos": [
+                            {"content": "盘上的旧值", "status": "pending"}],
+                            "updated_at": "2026-01-01T00:00:00+00:00"}}},
+                       ensure_ascii=False),
+            encoding="utf-8")
+
+        from agent.orchestrator.orchestrator import _preheat_session_todos
+        _preheat_session_todos("s1")
+
+        assert plan_tools._STATE["s1"][0]["content"] == "最新进度", "内存态被盘上旧值覆盖"
+
+    @pytest.mark.parametrize("sid", ["", None, "   "])
+    def test_无会话键不报错也不落盘(self, sid, isolate_todos_file):
+        """空会话键：预热直接跳过（绝不因此让任务起点抛异常）"""
+        from agent.orchestrator.orchestrator import _preheat_session_todos
+        _preheat_session_todos(sid)
+        assert not isolate_todos_file.exists()
+
+    def test_任务起点确实调用回载(self, isolate_todos_file, monkeypatch):
+        """**防漂移**：挂点被删/被挪走时立刻失败
+
+        用假的 TraceFacade 顶掉真实观测链路——真实 ``start()`` 会写 lifetrace /
+        heartbeat / health 等运行数据，单测绝不该触发（那正是"测试写生产数据"）。
+        """
+        import agent.observability.trace_v2 as trace_v2
+        from agent.orchestrator import orchestrator
+
+        started = []
+
+        class _FakeFacade:
+            def start(self, **kwargs):
+                started.append(kwargs)
+                return "trace-fake"
+
+        monkeypatch.setattr(trace_v2.TraceFacade, "instance",
+                            classmethod(lambda cls: _FakeFacade()))
+
+        calls = []
+        monkeypatch.setattr(plan_tools, "load_todos",
+                            lambda key=None: calls.append(key) or [])
+
+        orchestrator._begin_unified_task_trace("sess_wire_1", "task_wire_1")
+
+        assert calls == ["sess_wire_1"], (
+            "任务级起点没有回载计划清单（持久化退化成只写不读）")
+        assert started, "未走到 Trace 起点，用例失去意义"

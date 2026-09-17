@@ -217,6 +217,19 @@ def _resolve_line(line_id: str, registry: Any) -> str:
         return ""
 
 
+def _drop_hard_denied(toolset_cls: Any, granted: List[str]) -> List[str]:
+    """剔除被 §5.7 机制 3 硬禁的工具（记忆读写等），保持原顺序
+
+    为什么在**授权前**就要剔：``SubAgentToolset`` 是「申请 ∩ 授权 − 矩阵拒绝」，
+    硬禁项若留在 ``authorized_capabilities`` 里，子代理会拿到一份永远调不动的
+    空头授权；而一旦它真去调用，``DelegationExecutor`` 会判**整次委派失败**
+    （``E_TOOL_NOT_AUTHORIZED``）。故在装配授权集时就如实剔除。
+    口径与执行层同源（同一个 ``SubAgentToolset.hard_denied``），不另立标准。
+    """
+    denied = set(toolset_cls.hard_denied(granted))
+    return [t for t in granted if t not in denied]
+
+
 def _granted_tools_for_line(
     line_id: str,
     registry: Any,
@@ -238,11 +251,13 @@ def _granted_tools_for_line(
         _LineUnavailable: 主线不存在/已停用/档案损坏（该任务失败；**绝不**回退成全量授权）。
     """
     from agent.lines import assemble
+    from agent.subagent.toolset import SubAgentToolset
     from agent.tools.subagent_tools import _default_subagent_tools
 
     if not line_id:
         base = [t for t in _default_subagent_tools() if t in meta]
         granted = [t for t in base if meta[t].plane != "govern"]
+        granted = _drop_hard_denied(SubAgentToolset, granted)
         return (granted, [t for t in granted if meta[t].needs_approval],
                 "未指定 line 且无全局激活主线 ⇒ 使用只读默认集（写文件/Shell 不在内）")
 
@@ -265,7 +280,16 @@ def _granted_tools_for_line(
         dropped_govern = [t for t in granted if meta[t].plane == "govern"]
         granted = [t for t in granted if meta[t].plane != "govern"]
 
+    # §5.7 机制 3：子代理工具集不含记忆读写——主线档案可以给**主智能体**装配
+    # 记忆工具，但派给子代理时必须剔除（矩阵 view.memory / memory.write
+    # 对 sub_agent 是 ❌，留在授权集里只会变成"授予了却永远调不动"）。
+    _hard = set(SubAgentToolset.hard_denied(granted))
+    dropped_protected = [t for t in granted if t in _hard]
+    granted = [t for t in granted if t not in _hard]
+
     needs = [t for t in granted if meta[t].needs_approval]
+    protected_note = (f"；另剔除 {len(dropped_protected)} 个 §5.7 机制 3 硬禁工具"
+                      f"（子代理不含记忆读写）：{dropped_protected}") if dropped_protected else ""
     if dropped_govern:
         note = (f"沿主线 {profile.id} 装配：已剔除 {len(dropped_govern)} 个 govern 平面工具"
                 f"（{profile.id} 未开启 allow_govern）：{dropped_govern}")
@@ -274,7 +298,7 @@ def _granted_tools_for_line(
                 f"{len(needs)} 个工具需人工确认：{needs}")
     else:
         note = f"沿主线 {profile.id} 装配（{len(granted)} 个工具）"
-    return granted, needs, note
+    return granted, needs, note + protected_note
 
 
 def _tokens_used(outcome: Any) -> int:
