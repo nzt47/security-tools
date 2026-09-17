@@ -804,7 +804,14 @@ class TestRealExecutorIntegration:
     ``tools`` / ``authorized_capabilities`` 是整批共用的单值，逐任务靠
     ``tools_for`` / ``authorized_for`` 工厂生效（``executor._resolve_subset`` 之外的新路径）。
     断言取自执行器自己产出的 ``outcome.toolset["tools"]``（子代理**真正可见**的清单）。
+
+    【超时口径】这两例会真正物化 task_file、走凭据/隔离/回收三件套与成本记账（本地约 3s）；
+    CI 上与其余 11 个矩阵 job 共享 runner 时会明显变慢 —— 2026-09-17 实测 Shard 1 因
+    ``--timeout=60`` 判超时（本地 2.7s 通过，属 runner 争用而非死锁）。故显式放宽到 180s
+    （与 ``test_subagent_executor.py`` 的 e2e 级用例同口径），**不放宽任何断言**。
     """
+
+    pytestmark = pytest.mark.timeout(180)
 
     def _handler(self, monkeypatch, holder):
         def _factory(_llm):
